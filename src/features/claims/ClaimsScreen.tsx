@@ -112,6 +112,34 @@ function setVal(id: string, v: string) {
   if (el) el.value = v || '';
 }
 
+type CachedCustLink = { id: string; url: string; expiresAt: string };
+function custLinkCacheKey(claimId: string) {
+  return `dalia-claims-cust-link:${claimId}`;
+}
+function readCustLinkCache(claimId: string): CachedCustLink | null {
+  try {
+    const raw = localStorage.getItem(custLinkCacheKey(claimId));
+    if (!raw) return null;
+    const v = JSON.parse(raw) as CachedCustLink;
+    if (!v?.id || !v?.url) return null;
+    if (v.expiresAt && new Date(v.expiresAt).getTime() <= Date.now()) return null;
+    return v;
+  } catch {
+    return null;
+  }
+}
+function writeCustLinkCache(claimId: string, v: CachedCustLink) {
+  localStorage.setItem(custLinkCacheKey(claimId), JSON.stringify(v));
+}
+function clearCustLinkCache(claimId: string) {
+  localStorage.removeItem(custLinkCacheKey(claimId));
+}
+function customerUploadUrl(token: string) {
+  const origin = window.location.origin;
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+  return `${origin}${base && base !== '/' ? base : ''}/claims-upload?t=${token}`;
+}
+
 function fmtBytes(n: number) {
   if (!n) return '0 B';
   if (n < 1024) return `${n} B`;
@@ -584,6 +612,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [assignees, setAssignees] = useState<Array<{ id: string; full_name: string; company_name: string }>>([]);
   const [docs, setDocs] = useState<{ requests: DocRequest[]; files: ClaimFile[] }>({ requests: [], files: [] });
   const [hasUploadLink, setHasUploadLink] = useState(false);
+  const [uploadLinkMeta, setUploadLinkMeta] = useState<{ id?: string; created_at?: string; expires_at?: string } | null>(null);
+  const [askOpen, setAskOpen] = useState(false);
+  const [askKeys, setAskKeys] = useState<string[]>([]);
+  const [askBusy, setAskBusy] = useState(false);
   const [gmailStatus, setGmailStatus] = useState<{ connected?: boolean; email?: string | null; canConnect?: boolean }>({});
   const [gmailList, setGmailList] = useState<Array<Record<string, unknown>>>([]);
   const [gmailImports, setGmailImports] = useState<Array<Record<string, unknown>>>([]);
@@ -827,8 +859,77 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       requests: (d.requests as DocRequest[]) || [],
       files: (d.files as ClaimFile[]) || [],
     });
-    const link = lk?.link as { expires_at?: string; revoked_at?: string | null } | undefined;
-    setHasUploadLink(Boolean(link && !link.revoked_at && link.expires_at && new Date(link.expires_at).getTime() > Date.now()));
+    const link = lk?.link as { id?: string; expires_at?: string; revoked_at?: string | null; created_at?: string } | undefined;
+    const active = Boolean(link && !link.revoked_at && link.expires_at && new Date(link.expires_at).getTime() > Date.now());
+    setHasUploadLink(active);
+    setUploadLinkMeta(active ? { id: link?.id, created_at: link?.created_at, expires_at: link?.expires_at } : null);
+    const cached = readCustLinkCache(id);
+    if (active && cached && cached.id && link?.id && cached.id === link.id) setLinkUrl(cached.url);
+    else if (!active) setLinkUrl('');
+    else if (active && cached && cached.expiresAt === link?.expires_at) setLinkUrl(cached.url);
+    else setLinkUrl('');
+  };
+
+  const saveAskSelection = async (claimId: string, keys: string[]) => {
+    const extras = extraDocRequests(docs.requests).map((r) => ({ label: r.label, doc_key: r.doc_key || 'custom' }));
+    const r = await apiRef.current.invokeDocs('save_doc_requests', {
+      claim_id: claimId,
+      items: [
+        ...CLAIM_DOC_TYPES.filter((x) => keys.includes(x.key)).map((x) => ({ label: x.label, doc_key: x.key })),
+        ...extras,
+      ],
+    });
+    if (r.success === false) return { success: false as const, error: String(r.error || 'שמירת הבקשה נכשלה') };
+    await loadCardData(claimId);
+    return { success: true as const };
+  };
+
+  const copyCustomerLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast('הקישור הועתק');
+      return true;
+    } catch {
+      toast('לא ניתן להעתיק — העתיקו ידנית', 'err');
+      return false;
+    }
+  };
+
+  const mintCustomerLink = async (claimId: string, rotate = false) => {
+    if (hasUploadLink && linkUrl && !rotate) {
+      toast('יש קישור פעיל — לא נוצר קישור חדש');
+      return linkUrl;
+    }
+    if (hasUploadLink && !linkUrl && !rotate) {
+      const ok = window.confirm('יש קישור פעיל אבל הכתובת לא שמורה במחשב זה. יצירת קישור חדש תבטל את הישן. להמשיך?');
+      if (!ok) return '';
+    }
+    if (hasUploadLink && linkUrl && rotate) {
+      const ok = window.confirm('יצירת קישור חדש תבטל את הקישור הפעיל. להמשיך?');
+      if (!ok) return '';
+    }
+    const r = await apiRef.current.invokeDocs('create_link', { claim_id: claimId });
+    if (!r.success || !r.token) {
+      toast(String(r.error || 'יצירת קישור נכשלה'), 'err');
+      return '';
+    }
+    const url = customerUploadUrl(String(r.token));
+    const expiresAt = String(r.expiresAt || '');
+    const id = String(r.id || '');
+    writeCustLinkCache(claimId, { id, url, expiresAt });
+    setLinkUrl(url);
+    await copyCustomerLink(url);
+    await loadCardData(claimId);
+    await afterSignificant(claimId, 'נשלחה בקשת מסמכים ללקוח');
+    return url;
+  };
+
+  const revokeCustomerLink = async (claimId: string) => {
+    await apiRef.current.invokeDocs('revoke_link', { claim_id: claimId });
+    clearCustLinkCache(claimId);
+    setLinkUrl('');
+    await loadCardData(claimId);
+    toast('הקישור בוטל');
   };
 
   const refreshPackage = async (claimId: string, ids: string[]) => {
@@ -2231,6 +2332,77 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       </div>
                     );
                   })()}
+                  <div className="cust-ask" data-testid="cust-ask-panel">
+                    <button type="button" className="btn btn-p" data-testid="cust-ask-open" onClick={() => {
+                      setAskKeys(CLAIM_DOC_TYPES.filter((x) => catalogInRequests(docs.requests, x)).map((x) => x.key));
+                      setAskOpen((v) => !v);
+                    }}>{askOpen ? 'סגור בחירת מסמכים' : 'בקש מסמכים מהלקוח'}</button>
+                    {askOpen ? (
+                      <div className="cust-ask-box" data-testid="cust-ask-list">
+                        <div className="cust-ask-h">סמנו רק מה שחסר מהלקוח. אין שליחה אוטומטית.</div>
+                        {CLAIM_DOC_TYPES.map((t) => (
+                          <label key={t.key} className="cust-ask-item">
+                            <input
+                              type="checkbox"
+                              data-testid={`cust-ask-pick-${t.key}`}
+                              checked={askKeys.includes(t.key)}
+                              onChange={(e) => setAskKeys((prev) => e.target.checked ? [...new Set([...prev, t.key])] : prev.filter((k) => k !== t.key))}
+                            />
+                            <span>{t.label}{t.formLater ? ' · טופס קבוע בהמשך' : ''}{t.group ? ' · כמה קבצים' : ''}</span>
+                          </label>
+                        ))}
+                        <button
+                          type="button"
+                          className="btn btn-p"
+                          data-testid="cust-ask-create"
+                          disabled={askBusy}
+                          onClick={async () => {
+                            if (!askKeys.length && extraDocRequests(docs.requests).length === 0) {
+                              toast('סמנו לפחות מסמך אחד', 'err');
+                              return;
+                            }
+                            setAskBusy(true);
+                            try {
+                              const saved = await saveAskSelection(cur.id, askKeys);
+                              if (!saved.success) { toast(saved.error, 'err'); return; }
+                              await mintCustomerLink(cur.id, false);
+                            } finally {
+                              setAskBusy(false);
+                            }
+                          }}
+                        >{hasUploadLink && linkUrl ? 'שמור בקשה · יש קישור פעיל' : 'צור קישור ללקוח'}</button>
+                      </div>
+                    ) : null}
+                    {hasUploadLink ? (
+                      <div className="cust-link-card" data-testid="cust-link-card">
+                        <div className="cust-link-title">קישור פעיל ללקוח</div>
+                        <div className="cust-link-meta">נוצר: {uploadLinkMeta?.created_at ? new Date(uploadLinkMeta.created_at).toLocaleString('he-IL') : '—'}</div>
+                        <div className="cust-link-meta">תוקף עד: {uploadLinkMeta?.expires_at ? new Date(uploadLinkMeta.expires_at).toLocaleString('he-IL') : '—'} · 14 ימים</div>
+                        <div className="cust-link-meta">ביקשנו: {docs.requests.filter((r) => r.status === 'requested' || r.status === 'received').map((r) => r.label).join(', ') || '—'}</div>
+                        <div className="cust-link-meta">הלקוח העלה: {docs.requests.filter((r) => r.status === 'received').length} מתוך {docs.requests.filter((r) => r.status === 'requested' || r.status === 'received').length}</div>
+                        {linkUrl ? (
+                          <div className="cust-link-url" data-testid="cust-link-url">{linkUrl}</div>
+                        ) : (
+                          <div className="cust-link-warn" data-testid="cust-link-url-missing">הקישור פעיל אצל הלקוח, אבל הכתובת לא שמורה במחשב זה (נשמר רק hash). להעתקה כאן צריך קישור חדש — הישן יבוטל.</div>
+                        )}
+                        <div className="cust-link-acts">
+                          <button type="button" className="btn btn-p btn-sm" data-testid="cust-link-copy" disabled={!linkUrl} onClick={() => { if (linkUrl) void copyCustomerLink(linkUrl); }}>העתק קישור</button>
+                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-open" disabled={!linkUrl} onClick={() => { if (linkUrl) window.open(linkUrl, '_blank', 'noopener'); }}>פתח קישור</button>
+                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-wa" disabled={!linkUrl} onClick={() => {
+                            if (!linkUrl) return;
+                            const msg = `שלום${cur.clientName ? ` ${cur.clientName}` : ''}, לצורך תביעה ${displayClaimNum(cur)} נבקש להעלות מסמכים בקישור:\n${linkUrl}`;
+                            setModal('moWA');
+                            window.setTimeout(() => setVal('wa_msg', msg), 50);
+                          }}>WhatsApp עם הקישור</button>
+                          <button type="button" className="btn btn-sm" data-testid="cust-link-revoke" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { void revokeCustomerLink(cur.id); }}>בטל קישור</button>
+                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-rotate" onClick={async () => { setAskBusy(true); try { await mintCustomerLink(cur.id, true); } finally { setAskBusy(false); } }}>צור קישור חדש</button>
+                        </div>
+                        <div className="cust-link-note">אין שליחת מייל אוטומטית. העתיקו ושלחו ללקוח בעצמכם. WhatsApp נפתח רק אחרי לחיצה.</div>
+                      </div>
+                    ) : (
+                      <div className="cust-link-empty" data-testid="cust-link-empty">אין קישור פעיל. סמנו מסמכים ולחצו «צור קישור ללקוח».</div>
+                    )}
+                  </div>
                   <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>סמנו מה לבקש מהלקוח. העלאה נשמרת במאגר התביעה בלבד. לא מנחשים סוג לפי שם קובץ.</div>
                   <div className="doc-type-list" data-testid="claim-doc-types">
                     {CLAIM_DOC_TYPES.map((t) => {
@@ -2439,22 +2611,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         </div>
                       );
                     })}
-                  <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button className="btn btn-p btn-sm" onClick={async () => {
-                      const r = await apiRef.current.invokeDocs('create_link', { claim_id: cur.id });
-                      if (!r.success || !r.token) { toast(String(r.error || 'שגיאה'), 'err'); return; }
-                      const origin = window.location.origin;
-                      const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
-                      const url = `${origin}${base && base !== '/' ? base : ''}/claims-upload?t=${r.token}`;
-                      setLinkUrl(url);
-                      await navigator.clipboard.writeText(url).catch(() => undefined);
-                      toast('הקישור הועתק');
-                      await loadCardData(cur.id);
-                      await afterSignificant(cur.id, 'נשלחה בקשת מסמכים ללקוח');
-                    }}>קישור להעלאת מסמכים</button>
-                    <button className="btn btn-g btn-sm" onClick={async () => { await apiRef.current.invokeDocs('revoke_link', { claim_id: cur.id }); setLinkUrl(''); await loadCardData(cur.id); toast('הקישור בוטל'); }}>בטל קישור</button>
-                  </div>
-                  {linkUrl ? <div style={{ marginTop: 8, fontSize: 11, wordBreak: 'break-all', color: 'var(--ac3)' }}>{linkUrl}</div> : null}
+                  <div style={{ marginTop: 14, fontSize: 12, color: 'var(--t3)' }}>ניהול הקישור ללקוח נמצא בראש אזור המסמכים.</div>
                 </div>
               )}
               {cardTab === 'gin' && (

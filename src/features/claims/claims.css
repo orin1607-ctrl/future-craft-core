@@ -198,6 +198,19 @@
 .claims-root .tabs.tab-subs{padding-top:0;margin-top:-8px;border-bottom:1px solid var(--br);margin-bottom:12px}
 .claims-root .tabs.tab-subs .tab{font-size:11px;font-weight:500}
 .claims-root .mail-entry-bar,.claims-root .work-entry-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.claims-root .cust-ask{background:var(--bg2);border:1px solid var(--br2);border-radius:8px;padding:12px;margin-bottom:12px}
+.claims-root .cust-ask > .btn{margin-bottom:8px}
+.claims-root .cust-ask-box{display:flex;flex-direction:column;gap:6px;margin:8px 0 12px}
+.claims-root .cust-ask-h{font-size:12px;color:var(--t3);margin-bottom:4px}
+.claims-root .cust-ask-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 0;border-bottom:1px solid var(--br)}
+.claims-root .cust-link-card{background:var(--bg3);border:1px solid var(--ac2);border-radius:8px;padding:12px;margin-top:8px}
+.claims-root .cust-link-title{font-weight:800;margin-bottom:6px}
+.claims-root .cust-link-meta{font-size:12px;color:var(--t2);margin-top:3px}
+.claims-root .cust-link-url{margin-top:8px;font-size:11px;word-break:break-all;color:var(--ac3);background:var(--bg4);border-radius:6px;padding:8px}
+.claims-root .cust-link-warn{margin-top:8px;font-size:12px;color:var(--yn2)}
+.claims-root .cust-link-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.claims-root .cust-link-note{font-size:11px;color:var(--t3);margin-top:8px}
+.claims-root .cust-link-empty{font-size:12px;color:var(--t3);margin-top:8px}
 .claims-root .doc-sum{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--bg3);border:1px solid var(--br);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px}
 .claims-root .doc-sum-hold{color:var(--yn2);font-size:11px}
 .claims-root .doc-type-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}

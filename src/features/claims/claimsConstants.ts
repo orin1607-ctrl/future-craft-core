@@ -76,6 +76,18 @@ export const CLAIM_DOC_TYPES: ClaimDocType[] = [
   { key: 'demand_form', label: 'טופס דרישה', group: false, formLater: true, staffType: 'demand_form', docKind: null, aliases: [] },
 ];
 
+export function claimDocTypeByKey(key: string) {
+  return CLAIM_DOC_TYPES.find((t) => t.key === key);
+}
+
+export function isCustomerMultiDocKey(key: string) {
+  return CLAIM_DOC_TYPES.some((t) => t.key === key && t.group);
+}
+
+export function isFormLaterDocKey(key: string) {
+  return CLAIM_DOC_TYPES.some((t) => t.key === key && t.formLater);
+}
+
 export const TEMPLATES: Record<string, { name: string; subject?: string; body: string }> = {
   request_docs: {
     name: 'בקשת מסמכים',

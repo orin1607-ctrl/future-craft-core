@@ -67,6 +67,24 @@ const STAFF_TYPES = new Set([
   "demand_form",
 ]);
 
+const STAFF_TYPE_BY_DOC_KEY: Record<string, string> = {
+  notice_a: "notice_a",
+  notice_ayin: "notice_ayin",
+  no_claim_form: "no_claim_form",
+  insurance_history: "insurance_history",
+  consent_form: "consent_form",
+  check_photo: "check_photo",
+  garage_invoice: "garage_invoice",
+  surveyor_report: "surveyor_report",
+  damage_photos: "damage_photos",
+  license_driver: "driver_license",
+  license_vehicle: "vehicle_license",
+  power_of_attorney: "power_of_attorney",
+  rejection_letter: "rejection_letter",
+  demand_form: "demand_form",
+};
+const MULTI_DOC_KEYS = new Set(["surveyor_photos", "damage_photos"]);
+
 function kindFromUpload(docKey: string, mime: string, explicit: string) {
   if (explicit && DOC_KINDS.has(explicit)) return explicit;
   if (docKey === "surveyor_report" || docKey === "surveyor_photos") return mime.startsWith("image/") ? "surveyor_photo" : "surveyor_report";
@@ -177,13 +195,28 @@ Deno.serve(async (req) => {
       if ("error" in resolved) return jsonResponse({ success: false, error: resolved.error }, 404);
       const claimId = resolved.data.claim_id;
       const { data: claim } = await sb.from("claims_records").select("client_name, plate").eq("id", claimId).maybeSingle();
-      const { data: docs } = await sb.from("claims_doc_requests").select("id, label, status, received_at").eq("claim_id", claimId).order("created_at");
+      const { data: docs } = await sb.from("claims_doc_requests").select("id, label, doc_key, status, received_at").eq("claim_id", claimId).order("created_at");
+      const { data: custFiles } = await sb.from("claims_documents").select("id, doc_request_id").eq("claim_id", claimId).eq("source", "customer");
+      const uploadedByReq = new Map<string, number>();
+      for (const f of custFiles || []) {
+        const k = String(f.doc_request_id || "");
+        if (k) uploadedByReq.set(k, (uploadedByReq.get(k) || 0) + 1);
+      }
       return jsonResponse({
         success: true,
         clientName: claim?.client_name || "לקוח",
         plate: claim?.plate || "",
         expiresAt: resolved.data.expires_at,
-        docs: (docs || []).map((d) => ({ id: d.id, label: d.label, status: d.status, receivedAt: d.received_at })),
+        docs: (docs || []).map((d) => ({
+          id: d.id,
+          label: d.label,
+          docKey: String(d.doc_key || ""),
+          status: d.status,
+          receivedAt: d.received_at,
+          uploadedCount: uploadedByReq.get(d.id) || 0,
+          allowMultiple: MULTI_DOC_KEYS.has(String(d.doc_key || "")),
+          formDownload: false,
+        })),
       });
     }
 
@@ -204,6 +237,8 @@ Deno.serve(async (req) => {
       const path = `${claimId}/${docRequestId}/${nid("F")}-${sanitizeFileName(file.name)}`;
       const { error: upErr } = await sb.storage.from(BUCKET).upload(path, buf, { contentType: storedMime, upsert: false });
       if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
+      const reqKey = String(reqRow.doc_key || "");
+      const staffType = STAFF_TYPE_BY_DOC_KEY[reqKey] || "";
       await sb.from("claims_documents").insert({
         id: nid("CDM"),
         claim_id: claimId,
@@ -214,7 +249,8 @@ Deno.serve(async (req) => {
         byte_size: file.size,
         source: "customer",
         uploaded_by_name: "לקוח",
-        doc_kind: kindFromUpload(String(reqRow.doc_key || ""), storedMime, ""),
+        doc_kind: kindFromUpload(reqKey, storedMime, ""),
+        doc_meta: staffType ? { staff_type: staffType } : {},
       });
       await sb.from("claims_doc_requests").update({ status: "received", received_at: new Date().toISOString() }).eq("id", docRequestId);
       await history(sb, claimId, "מסמך התקבל מהלקוח", reqRow.label, "לקוח");
@@ -238,16 +274,17 @@ Deno.serve(async (req) => {
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
       await sb.from("claims_upload_links").update({ revoked_at: new Date().toISOString() }).eq("claim_id", claimId).is("revoked_at", null);
       const token = randomToken();
+      const linkId = nid("LNK");
       const expires = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
       await sb.from("claims_upload_links").insert({
-        id: nid("LNK"),
+        id: linkId,
         claim_id: claimId,
         token_hash: await sha256Hex(token),
         expires_at: expires,
         created_by: user.id,
       });
       await history(sb, claimId, "נוצר קישור להעלאת מסמכים", "", actorName);
-      return jsonResponse({ success: true, token, expiresAt: expires });
+      return jsonResponse({ success: true, token, expiresAt: expires, id: linkId });
     }
 
     if (action === "revoke_link") {
