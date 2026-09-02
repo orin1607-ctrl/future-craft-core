@@ -108,29 +108,31 @@ async function runSurface(page, prefix) {
   }
   rec(`${prefix}-more-archive-or-restore`, moreText.includes('ארכיון'));
   rec(`${prefix}-more-assign`, moreText.includes('הקצה לעובד מטפל'));
+  await page.screenshot({ path: join(OUT, 'screenshots', `${prefix}-card.png`), fullPage: true });
+  await page.screenshot({ path: join(OUT, 'screenshots', `${prefix}-more.png`) });
 
   await page.locator('[data-testid="claims-send-insurer"]').click();
   await page.waitForTimeout(800);
-  const insTitle = (await page.locator('.mh-t').first().innerText().catch(() => '')) || '';
-  rec(`${prefix}-insurer-composer`, insTitle.includes('חברת הביטוח'));
-  await page.locator('.mcl').first().click();
+  const insTitle = (await page.locator('.ov.open .mh-t').innerText().catch(() => '')) || '';
+  rec(`${prefix}-insurer-composer`, insTitle.includes('חברת הביטוח'), { insTitle });
+  await page.locator('.ov.open .mcl').click();
   await page.waitForTimeout(400);
 
   await page.locator('[data-testid="claims-card-more"]').click();
   await page.waitForTimeout(300);
   await page.locator('[data-testid="claims-send-legal"]').click();
   await page.waitForTimeout(800);
-  const legalTitle = (await page.locator('.mh-t').first().innerText().catch(() => '')) || '';
-  rec(`${prefix}-legal-composer`, legalTitle.includes('טיפול משפטי'));
-  await page.locator('.mcl').first().click();
+  const legalTitle = (await page.locator('.ov.open .mh-t').innerText().catch(() => '')) || '';
+  rec(`${prefix}-legal-composer`, legalTitle.includes('טיפול משפטי'), { legalTitle });
+  await page.locator('.ov.open .mcl').click();
   await page.waitForTimeout(400);
 
   await page.locator('[data-testid="claims-send-mail"]').click();
   await page.waitForTimeout(800);
-  const draftTitle = (await page.locator('.mh-t').first().innerText().catch(() => '')) || '';
-  rec(`${prefix}-draft-composer`, draftTitle.includes('שליחת תיק במייל'));
+  const draftTitle = (await page.locator('.ov.open .mh-t').innerText().catch(() => '')) || '';
+  rec(`${prefix}-draft-composer`, draftTitle.includes('שליחת תיק במייל'), { draftTitle });
   rec(`${prefix}-no-send-clicked`, true);
-  await page.locator('.mcl').first().click();
+  await page.locator('.ov.open .mcl').click();
   await page.waitForTimeout(400);
 
   for (const [g, sub] of [['info', 'client'], ['docs', 'surveyor'], ['mail', 'mailfu'], ['work', 'tasks'], ['hist', null]]) {
@@ -148,13 +150,11 @@ async function runSurface(page, prefix) {
   await page.waitForTimeout(400);
   rec(`${prefix}-mail-entry-bar`, await page.locator('[data-testid="mail-entry-bar"]').count() > 0);
   rec(`${prefix}-reply-still-present`, (await page.locator('[data-testid^="mail-reply-"]').count()) >= 0);
-  rec(`${prefix}-thread-copy-oldest`, /מסודר כרונולוגית/.test(await page.locator('.mb').innerText().catch(() => '')));
+  rec(`${prefix}-thread-oldest-ui`, (await page.getByText('מסודר כרונולוגית לפי תאריך המייל').count()) > 0);
 
   await page.locator('[data-testid="claims-open-docs"]').click();
   await page.waitForTimeout(400);
   rec(`${prefix}-docs-tab`, await page.locator('[data-testid="claims-tab-group-docs"]').getAttribute('class').then((c) => (c || '').includes('act')).catch(() => false));
-
-  await page.screenshot({ path: join(OUT, 'screenshots', `${prefix}-card.png`), fullPage: true });
 }
 
 const browser = await chromium.launch({ headless: true });

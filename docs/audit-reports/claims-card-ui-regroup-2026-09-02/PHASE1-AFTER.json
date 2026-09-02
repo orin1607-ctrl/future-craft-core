@@ -1,0 +1,99 @@
+{
+  "mission": "claims-card-ui-regroup-phase1",
+  "scope": "OREN CAR / CLAIMS / Staging only",
+  "stoppedAt": "PHASE 1 — UI regroup. No Phase 2.",
+  "at": "2026-09-02T16:50:00+03:00",
+  "restorePoint": {
+    "gitHeadBefore": "24392d7ac7d02c921ae2e431d790e665238ab9ce",
+    "backup": "docs/audit-reports/claims-card-ui-regroup-2026-09-02/restore-before/",
+    "file": "docs/audit-reports/claims-card-ui-regroup-2026-09-02/RESTORE-POINT-BEFORE.json"
+  },
+  "uiCommit": "63ada24a0829141ec479a3b4bb0933581a884d32",
+  "branch": "feat/incident-alerts-staging",
+  "publicStaging": "https://orin1607-ctrl.github.io/future-craft-core",
+  "deployed_ref_live": "63ada24 feat/incident-alerts-staging",
+  "stagingSupabase": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "dbChanged": false,
+  "schemaChanged": false,
+  "MAIL_DISPATCH_MODE": "dry_run",
+  "liveMailSent": false,
+  "schedulerLive": false,
+  "before": {
+    "chromeButtonsWorker": 17,
+    "chromeButtonsSuperAdmin": 18,
+    "tabs": 12,
+    "mobile": "crowded action row"
+  },
+  "after": {
+    "primary": ["מייל חדש", "עדכון טיפול", "מסמכים"],
+    "more": [
+      "שיחה",
+      "WhatsApp",
+      "שליחה לחברת ביטוח",
+      "טיפול משפטי",
+      "סיכום פנימי",
+      "סיכום חיצוני",
+      "משימה",
+      "תזכורת",
+      "מעקב מייל",
+      "ייבוא Gmail",
+      "הקצאת עובד (super_admin)",
+      "סטטוס (kept, not deleted)",
+      "סגירה",
+      "ארכיון/שחזור",
+      "מחיקה"
+    ],
+    "snapshot": [
+      "שם לקוח",
+      "מספר תביעה",
+      "חברת ביטוח",
+      "רכב",
+      "עובד מטפל",
+      "Status",
+      "טיפול אחרון",
+      "טיפול הבא",
+      "נדרשת פעולה",
+      "flags from existing data only: מייל חדש / מסמך חסר / משימה פתוחה / תזכורת"
+    ],
+    "tabGroups": ["מידע", "מסמכים", "דואר ותקשורת", "טיפול ומעקב", "History"],
+    "subTabsStillReachable": true,
+    "mailEntryBarOnGin": true,
+    "threadOrder": "oldest → newest (unchanged)",
+    "documentsStore": "claims_documents only (unchanged)"
+  },
+  "notChanged": [
+    "Status logic",
+    "moStatus ↔ moTreat",
+    "History logic",
+    "Composer / Gmail send / import / matching / Message ID / Thread ID",
+    "Follow-up / Reminder / Scheduler",
+    "Composer attachments",
+    "DB schema / migration",
+    "OAuth",
+    "Production"
+  ],
+  "qa": {
+    "file": "docs/audit-reports/claims-card-ui-regroup-2026-09-02/QA-RESULT.json",
+    "ok": true,
+    "historyCount": { "before": 391, "after": 391 },
+    "documentsCount": { "before": 1837, "after": 1837 },
+    "composerPresets": {
+      "draft": "📧 שליחת תיק במייל",
+      "insurer": "🏢 שליחה לחברת הביטוח",
+      "legal": "⚖️ שליחה לטיפול משפטי"
+    },
+    "noSendClicked": true
+  },
+  "screenshots": {
+    "desktopClosed": "docs/audit-reports/claims-card-ui-regroup-2026-09-02/screenshots/desktop-closed.png",
+    "desktopMoreOpen": "docs/audit-reports/claims-card-ui-regroup-2026-09-02/screenshots/desktop-card.png",
+    "mobileClosed": "docs/audit-reports/claims-card-ui-regroup-2026-09-02/screenshots/mobile-closed.png",
+    "mobileMoreOpen": "docs/audit-reports/claims-card-ui-regroup-2026-09-02/screenshots/mobile-card.png"
+  },
+  "filesChangedUi": [
+    "src/features/claims/ClaimsScreen.tsx",
+    "src/features/claims/claims.css"
+  ]
+}

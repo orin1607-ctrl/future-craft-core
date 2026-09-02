@@ -1,0 +1,424 @@
+{
+  "at": "2026-09-02T13:36:19.764Z",
+  "public": "https://orin1607-ctrl.github.io/future-craft-core",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "liveMailSent": false,
+  "schedulerLive": false,
+  "checks": [
+    {
+      "name": "mail-mode-dry-run",
+      "ok": true,
+      "mode": "dry_run"
+    },
+    {
+      "name": "claim-row-visible",
+      "ok": true
+    },
+    {
+      "name": "card-open",
+      "ok": true
+    },
+    {
+      "name": "desktop-snapshot-client",
+      "ok": true
+    },
+    {
+      "name": "desktop-snapshot-claim-num",
+      "ok": true
+    },
+    {
+      "name": "desktop-snapshot-insurer",
+      "ok": true
+    },
+    {
+      "name": "desktop-snapshot-vehicle",
+      "ok": true
+    },
+    {
+      "name": "desktop-snapshot-handler",
+      "ok": true
+    },
+    {
+      "name": "desktop-snapshot-status",
+      "ok": true
+    },
+    {
+      "name": "desktop-snapshot-last",
+      "ok": true
+    },
+    {
+      "name": "desktop-snapshot-next",
+      "ok": true
+    },
+    {
+      "name": "desktop-snapshot-needed",
+      "ok": true
+    },
+    {
+      "name": "desktop-primary-mail",
+      "ok": true
+    },
+    {
+      "name": "desktop-primary-treat",
+      "ok": true
+    },
+    {
+      "name": "desktop-primary-docs",
+      "ok": true
+    },
+    {
+      "name": "desktop-not-17-chrome",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-open",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-שיחה",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-WhatsApp",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-שליחה לחברת ביטוח",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-טיפול משפטי",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-סיכום פנימי",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-סיכום חיצוני",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-משימה",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-תזכורת",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-מעקב מייל",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-ייבוא Gmail",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-סגור תיק",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-מחק תיק",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-סטטוס",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-archive-or-restore",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-assign",
+      "ok": true
+    },
+    {
+      "name": "desktop-insurer-composer",
+      "ok": true,
+      "insTitle": "🏢 שליחה לחברת הביטוח"
+    },
+    {
+      "name": "desktop-legal-composer",
+      "ok": true,
+      "legalTitle": "⚖️ שליחה לטיפול משפטי"
+    },
+    {
+      "name": "desktop-draft-composer",
+      "ok": true,
+      "draftTitle": "📧 שליחת תיק במייל"
+    },
+    {
+      "name": "desktop-no-send-clicked",
+      "ok": true
+    },
+    {
+      "name": "desktop-group-info",
+      "ok": true
+    },
+    {
+      "name": "desktop-sub-client",
+      "ok": true
+    },
+    {
+      "name": "desktop-group-docs",
+      "ok": true
+    },
+    {
+      "name": "desktop-sub-surveyor",
+      "ok": true
+    },
+    {
+      "name": "desktop-group-mail",
+      "ok": true
+    },
+    {
+      "name": "desktop-sub-mailfu",
+      "ok": true
+    },
+    {
+      "name": "desktop-group-work",
+      "ok": true
+    },
+    {
+      "name": "desktop-sub-tasks",
+      "ok": true
+    },
+    {
+      "name": "desktop-group-hist",
+      "ok": true
+    },
+    {
+      "name": "desktop-mail-entry-bar",
+      "ok": true
+    },
+    {
+      "name": "desktop-reply-still-present",
+      "ok": true
+    },
+    {
+      "name": "desktop-thread-oldest-ui",
+      "ok": true
+    },
+    {
+      "name": "desktop-docs-tab",
+      "ok": true
+    },
+    {
+      "name": "claim-row-visible",
+      "ok": true
+    },
+    {
+      "name": "card-open",
+      "ok": true
+    },
+    {
+      "name": "mobile-snapshot-client",
+      "ok": true
+    },
+    {
+      "name": "mobile-snapshot-claim-num",
+      "ok": true
+    },
+    {
+      "name": "mobile-snapshot-insurer",
+      "ok": true
+    },
+    {
+      "name": "mobile-snapshot-vehicle",
+      "ok": true
+    },
+    {
+      "name": "mobile-snapshot-handler",
+      "ok": true
+    },
+    {
+      "name": "mobile-snapshot-status",
+      "ok": true
+    },
+    {
+      "name": "mobile-snapshot-last",
+      "ok": true
+    },
+    {
+      "name": "mobile-snapshot-next",
+      "ok": true
+    },
+    {
+      "name": "mobile-snapshot-needed",
+      "ok": true
+    },
+    {
+      "name": "mobile-primary-mail",
+      "ok": true
+    },
+    {
+      "name": "mobile-primary-treat",
+      "ok": true
+    },
+    {
+      "name": "mobile-primary-docs",
+      "ok": true
+    },
+    {
+      "name": "mobile-not-17-chrome",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-open",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-שיחה",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-WhatsApp",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-שליחה לחברת ביטוח",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-טיפול משפטי",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-סיכום פנימי",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-סיכום חיצוני",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-משימה",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-תזכורת",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-מעקב מייל",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-ייבוא Gmail",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-סגור תיק",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-מחק תיק",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-סטטוס",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-archive-or-restore",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-assign",
+      "ok": true
+    },
+    {
+      "name": "mobile-insurer-composer",
+      "ok": true,
+      "insTitle": "🏢 שליחה לחברת הביטוח"
+    },
+    {
+      "name": "mobile-legal-composer",
+      "ok": true,
+      "legalTitle": "⚖️ שליחה לטיפול משפטי"
+    },
+    {
+      "name": "mobile-draft-composer",
+      "ok": true,
+      "draftTitle": "📧 שליחת תיק במייל"
+    },
+    {
+      "name": "mobile-no-send-clicked",
+      "ok": true
+    },
+    {
+      "name": "mobile-group-info",
+      "ok": true
+    },
+    {
+      "name": "mobile-sub-client",
+      "ok": true
+    },
+    {
+      "name": "mobile-group-docs",
+      "ok": true
+    },
+    {
+      "name": "mobile-sub-surveyor",
+      "ok": true
+    },
+    {
+      "name": "mobile-group-mail",
+      "ok": true
+    },
+    {
+      "name": "mobile-sub-mailfu",
+      "ok": true
+    },
+    {
+      "name": "mobile-group-work",
+      "ok": true
+    },
+    {
+      "name": "mobile-sub-tasks",
+      "ok": true
+    },
+    {
+      "name": "mobile-group-hist",
+      "ok": true
+    },
+    {
+      "name": "mobile-mail-entry-bar",
+      "ok": true
+    },
+    {
+      "name": "mobile-reply-still-present",
+      "ok": true
+    },
+    {
+      "name": "mobile-thread-oldest-ui",
+      "ok": true
+    },
+    {
+      "name": "mobile-docs-tab",
+      "ok": true
+    },
+    {
+      "name": "history-count-unchanged",
+      "ok": true,
+      "histBefore": 391,
+      "histAfter": 391
+    },
+    {
+      "name": "documents-count-unchanged",
+      "ok": true,
+      "docsBefore": 1837,
+      "docsAfter": 1837
+    },
+    {
+      "name": "production-untouched",
+      "ok": true,
+      "note": "staging usfeoerkpcafxxlyuldl only"
+    }
+  ],
+  "ok": true
+}
