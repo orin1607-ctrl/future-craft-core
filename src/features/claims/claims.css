@@ -211,6 +211,9 @@
 .claims-root .cust-link-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .claims-root .cust-link-note{font-size:11px;color:var(--t3);margin-top:8px}
 .claims-root .cust-link-empty{font-size:12px;color:var(--t3);margin-top:8px}
+@media (max-width: 520px){
+  .claims-root .cust-link-acts .btn{flex:1 1 calc(50% - 6px);min-height:40px}
+}
 .claims-root .doc-sum{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--bg3);border:1px solid var(--br);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px}
 .claims-root .doc-sum-hold{color:var(--yn2);font-size:11px}
 .claims-root .doc-type-list{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}

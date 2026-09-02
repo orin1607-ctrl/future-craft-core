@@ -628,6 +628,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const inboxScanAt = useRef(0);
   const cardLoadGen = useRef(0);
   const [linkUrl, setLinkUrl] = useState('');
+  const [linkReconstructable, setLinkReconstructable] = useState(false);
   const [customDoc, setCustomDoc] = useState('');
   const [sendIds, setSendIds] = useState<string[]>([]);
   const [mailKind, setMailKind] = useState<'draft' | 'insurer' | 'legal'>('draft');
@@ -859,15 +860,32 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       requests: (d.requests as DocRequest[]) || [],
       files: (d.files as ClaimFile[]) || [],
     });
-    const link = lk?.link as { id?: string; expires_at?: string; revoked_at?: string | null; created_at?: string } | undefined;
+    const link = lk?.link as { id?: string; expires_at?: string; revoked_at?: string | null; created_at?: string; reconstructable?: boolean } | undefined;
     const active = Boolean(link && !link.revoked_at && link.expires_at && new Date(link.expires_at).getTime() > Date.now());
+    const reconstructable = Boolean(active && link?.reconstructable);
     setHasUploadLink(active);
+    setLinkReconstructable(reconstructable);
     setUploadLinkMeta(active ? { id: link?.id, created_at: link?.created_at, expires_at: link?.expires_at } : null);
     const cached = readCustLinkCache(id);
-    if (active && cached && cached.id && link?.id && cached.id === link.id) setLinkUrl(cached.url);
-    else if (!active) setLinkUrl('');
-    else if (active && cached && cached.expiresAt === link?.expires_at) setLinkUrl(cached.url);
-    else setLinkUrl('');
+    if (!active) {
+      setLinkUrl('');
+      return;
+    }
+    if (cached && cached.id && link?.id && cached.id === link.id) {
+      setLinkUrl(cached.url);
+      return;
+    }
+    if (reconstructable) {
+      const rv = await apiRef.current.invokeDocs('reveal_link', { claim_id: id });
+      if (gen !== cardLoadGen.current) return;
+      if (rv.success !== false && rv.token) {
+        const url = customerUploadUrl(String(rv.token));
+        writeCustLinkCache(id, { id: String(link?.id || rv.id || ''), url, expiresAt: String(link?.expires_at || rv.expiresAt || '') });
+        setLinkUrl(url);
+        return;
+      }
+    }
+    setLinkUrl('');
   };
 
   const saveAskSelection = async (claimId: string, keys: string[]) => {
@@ -895,17 +913,60 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }
   };
 
-  const mintCustomerLink = async (claimId: string, rotate = false) => {
-    if (hasUploadLink && linkUrl && !rotate) {
-      toast('יש קישור פעיל — לא נוצר קישור חדש');
-      return linkUrl;
+  const ensureCustomerLinkUrl = async (claimId: string) => {
+    if (linkUrl) return linkUrl;
+    const r = await apiRef.current.invokeDocs('reveal_link', { claim_id: claimId });
+    if (r.success !== false && r.token) {
+      const url = customerUploadUrl(String(r.token));
+      writeCustLinkCache(claimId, {
+        id: String(r.id || uploadLinkMeta?.id || ''),
+        url,
+        expiresAt: String(r.expiresAt || uploadLinkMeta?.expires_at || ''),
+      });
+      setLinkUrl(url);
+      setLinkReconstructable(true);
+      return url;
     }
-    if (hasUploadLink && !linkUrl && !rotate) {
-      const ok = window.confirm('יש קישור פעיל אבל הכתובת לא שמורה במחשב זה. יצירת קישור חדש תבטל את הישן. להמשיך?');
+    return '';
+  };
+
+  const shareCustomerLink = async (claimId: string, clientName: string, claimLabel: string) => {
+    const url = await ensureCustomerLinkUrl(claimId);
+    if (!url) {
+      toast('אין קישור להעתקה במכשיר זה — הנפיקו קישור חדש', 'err');
+      return;
+    }
+    const text = `שלום${clientName ? ` ${clientName}` : ''}, לצורך תביעה ${claimLabel} נבקש להעלות מסמכים בקישור:\n${url}`;
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void>; canShare?: (data: ShareData) => boolean };
+    if (typeof nav.share === 'function') {
+      try {
+        const payload: ShareData = { title: `מסמכים לתביעה ${claimLabel}`, text, url };
+        if (!nav.canShare || nav.canShare(payload)) {
+          await nav.share(payload);
+          return;
+        }
+      } catch (err) {
+        if ((err as DOMException)?.name === 'AbortError') return;
+      }
+    }
+    await copyCustomerLink(url);
+    toast('שיתוף מערכת לא זמין — הקישור הועתק');
+  };
+
+  const mintCustomerLink = async (claimId: string, rotate = false) => {
+    if (hasUploadLink && (linkUrl || linkReconstructable) && !rotate) {
+      const url = await ensureCustomerLinkUrl(claimId);
+      if (url) {
+        toast('יש קישור פעיל — לא נוצר קישור חדש');
+        return url;
+      }
+    }
+    if (hasUploadLink && !linkUrl && !linkReconstructable && !rotate) {
+      const ok = window.confirm('יש קישור פעיל ישן שאי אפשר לשחזר ממכשיר זה. יצירת קישור חדש תבטל את הישן. להמשיך?');
       if (!ok) return '';
     }
-    if (hasUploadLink && linkUrl && rotate) {
-      const ok = window.confirm('יצירת קישור חדש תבטל את הקישור הפעיל. להמשיך?');
+    if (hasUploadLink && (linkUrl || linkReconstructable) && rotate) {
+      const ok = window.confirm('יצירת קישור חדש תבטל את הקישור הפעיל. הלקוח יצטרך את הכתובת החדשה. להמשיך?');
       if (!ok) return '';
     }
     const r = await apiRef.current.invokeDocs('create_link', { claim_id: claimId });
@@ -918,6 +979,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const id = String(r.id || '');
     writeCustLinkCache(claimId, { id, url, expiresAt });
     setLinkUrl(url);
+    setLinkReconstructable(true);
     await copyCustomerLink(url);
     await loadCardData(claimId);
     return url;
@@ -927,6 +989,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     await apiRef.current.invokeDocs('revoke_link', { claim_id: claimId });
     clearCustLinkCache(claimId);
     setLinkUrl('');
+    setLinkReconstructable(false);
     await loadCardData(claimId);
     toast('הקישור בוטל');
   };
@@ -2341,22 +2404,28 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <div className="cust-link-meta">הלקוח העלה: {docs.requests.filter((r) => r.status === 'received').length} מתוך {docs.requests.filter((r) => r.status === 'requested' || r.status === 'received').length}</div>
                         {linkUrl ? (
                           <div className="cust-link-url" data-testid="cust-link-url">{linkUrl}</div>
+                        ) : linkReconstructable ? (
+                          <div className="cust-link-meta" data-testid="cust-link-url-loading">טוען כתובת קישור מהשרת…</div>
                         ) : (
-                          <div className="cust-link-warn" data-testid="cust-link-url-missing">הקישור פעיל אצל הלקוח, אבל הכתובת לא שמורה במחשב זה (נשמר רק hash). להעתקה כאן צריך קישור חדש — הישן יבוטל.</div>
+                          <div className="cust-link-warn" data-testid="cust-link-url-missing">קישור ישן (לפני שחזור מהשרת). העתקה ממכשיר זה דורשת קישור חדש — הישן יבוטל.</div>
                         )}
                         <div className="cust-link-acts">
-                          <button type="button" className="btn btn-p btn-sm" data-testid="cust-link-copy" disabled={!linkUrl} onClick={() => { if (linkUrl) void copyCustomerLink(linkUrl); }}>העתק קישור</button>
-                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-open" disabled={!linkUrl} onClick={() => { if (linkUrl) window.open(linkUrl, '_blank', 'noopener'); }}>פתח קישור</button>
-                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-wa" disabled={!linkUrl} onClick={() => {
-                            if (!linkUrl) return;
-                            const msg = `שלום${cur.clientName ? ` ${cur.clientName}` : ''}, לצורך תביעה ${displayClaimNum(cur)} נבקש להעלות מסמכים בקישור:\n${linkUrl}`;
-                            setModal('moWA');
-                            window.setTimeout(() => setVal('wa_msg', msg), 50);
+                          <button type="button" className="btn btn-p btn-sm" data-testid="cust-link-copy" disabled={!linkUrl && !linkReconstructable} onClick={() => { void (async () => { const url = await ensureCustomerLinkUrl(cur.id); if (url) await copyCustomerLink(url); else toast('אין קישור להעתקה — הנפיקו קישור חדש', 'err'); })(); }}>העתק קישור</button>
+                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-open" disabled={!linkUrl && !linkReconstructable} onClick={() => { void (async () => { const url = await ensureCustomerLinkUrl(cur.id); if (url) window.open(url, '_blank', 'noopener'); else toast('אין קישור לפתיחה — הנפיקו קישור חדש', 'err'); })(); }}>פתח קישור</button>
+                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-share" disabled={!linkUrl && !linkReconstructable} onClick={() => { void shareCustomerLink(cur.id, cur.clientName || '', displayClaimNum(cur)); }}>שתף קישור</button>
+                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-wa" disabled={!linkUrl && !linkReconstructable} onClick={() => {
+                            void (async () => {
+                              const url = await ensureCustomerLinkUrl(cur.id);
+                              if (!url) { toast('אין קישור ל-WhatsApp — הנפיקו קישור חדש', 'err'); return; }
+                              const msg = `שלום${cur.clientName ? ` ${cur.clientName}` : ''}, לצורך תביעה ${displayClaimNum(cur)} נבקש להעלות מסמכים בקישור:\n${url}`;
+                              setModal('moWA');
+                              window.setTimeout(() => setVal('wa_msg', msg), 50);
+                            })();
                           }}>WhatsApp עם הקישור</button>
                           <button type="button" className="btn btn-sm" data-testid="cust-link-revoke" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { void revokeCustomerLink(cur.id); }}>בטל קישור</button>
                           <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-rotate" onClick={async () => { setAskBusy(true); try { await mintCustomerLink(cur.id, true); } finally { setAskBusy(false); } }}>צור קישור חדש</button>
                         </div>
-                        <div className="cust-link-note">אין שליחת מייל אוטומטית. העתיקו ושלחו ללקוח בעצמכם. WhatsApp נפתח רק אחרי לחיצה.</div>
+                        <div className="cust-link-note">אין שליחה אוטומטית. שיתוף במכשיר נפתח רק אחרי לחיצה. WhatsApp נפתח רק אחרי לחיצה — בלי Auto Send.</div>
                       </div>
                     ) : (
                       <div className="cust-link-empty" data-testid="cust-link-empty">אין קישור פעיל. סמנו מסמכים ולחצו «צור קישור ללקוח».</div>
@@ -2399,7 +2468,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                               setAskBusy(false);
                             }
                           }}
-                        >{hasUploadLink && linkUrl ? 'שמור בקשה · יש קישור פעיל' : 'צור קישור ללקוח'}</button>
+                        >{hasUploadLink && (linkUrl || linkReconstructable) ? 'שמור בקשה · יש קישור פעיל' : 'צור קישור ללקוח'}</button>
                       </div>
                     ) : null}
                   </div>

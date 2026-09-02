@@ -1,6 +1,10 @@
 /**
  * Isolated claims documents + customer upload links.
  * Staging only. Does not touch document-request / WhatsApp / Gmail.
+ *
+ * Customer token is never stored in the DB. Public lookup uses SHA-256(token).
+ * Authorized staff can reconstruct the same token via HMAC(link_id|claim_id)
+ * so Copy/Share work on any signed-in device without plaintext-at-rest.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
@@ -27,10 +31,27 @@ async function sha256HexBytes(bytes: Uint8Array) {
   return bytesToHex(new Uint8Array(hash));
 }
 
-function randomToken() {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return bytesToHex(bytes);
+/** Domain-separated HMAC key. Never stored. Not the raw token. */
+async function uploadLinkMacKey() {
+  const material = `claims-upload-link-v1\0${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""}`;
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(material));
+  return new Uint8Array(hash);
+}
+
+async function hmacSha256Hex(keyBytes: Uint8Array, message: string) {
+  const key = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
+  return bytesToHex(new Uint8Array(sig));
+}
+
+/** Reconstructable staff token. Public lookup still uses token_hash only. */
+async function mintUploadToken(linkId: string, claimId: string) {
+  return hmacSha256Hex(await uploadLinkMacKey(), `${linkId}|${claimId}`);
+}
+
+async function isReconstructableLink(linkId: string, claimId: string, tokenHash: string) {
+  const token = await mintUploadToken(linkId, claimId);
+  return (await sha256Hex(token)) === tokenHash;
 }
 
 function nid(prefix: string) {
@@ -273,9 +294,9 @@ Deno.serve(async (req) => {
       const claimId = String(body.claim_id || "");
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
       await sb.from("claims_upload_links").update({ revoked_at: new Date().toISOString() }).eq("claim_id", claimId).is("revoked_at", null);
-      const token = randomToken();
       const linkId = nid("LNK");
       const expires = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+      const token = await mintUploadToken(linkId, claimId);
       await sb.from("claims_upload_links").insert({
         id: linkId,
         claim_id: claimId,
@@ -298,8 +319,47 @@ Deno.serve(async (req) => {
     if (action === "get_link") {
       const claimId = String(body.claim_id || url.searchParams.get("claim_id") || "");
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
-      const { data } = await sb.from("claims_upload_links").select("id, expires_at, revoked_at, created_at").eq("claim_id", claimId).is("revoked_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      return jsonResponse({ success: true, link: data });
+      const { data } = await sb.from("claims_upload_links").select("id, claim_id, token_hash, expires_at, revoked_at, created_at").eq("claim_id", claimId).is("revoked_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (!data) return jsonResponse({ success: true, link: null });
+      const reconstructable = await isReconstructableLink(data.id, data.claim_id, data.token_hash);
+      return jsonResponse({
+        success: true,
+        link: {
+          id: data.id,
+          expires_at: data.expires_at,
+          revoked_at: data.revoked_at,
+          created_at: data.created_at,
+          reconstructable,
+        },
+      });
+    }
+
+    if (action === "reveal_link") {
+      const claimId = String(body.claim_id || url.searchParams.get("claim_id") || "");
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+      const { data } = await sb.from("claims_upload_links").select("id, claim_id, token_hash, expires_at, revoked_at, created_at").eq("claim_id", claimId).is("revoked_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (!data) return jsonResponse({ success: true, reconstructable: false, token: null, link: null });
+      if (data.revoked_at) return jsonResponse({ success: false, error: "revoked" }, 410);
+      if (new Date(data.expires_at).getTime() < Date.now()) return jsonResponse({ success: false, error: "expired" }, 410);
+      const token = await mintUploadToken(data.id, data.claim_id);
+      if ((await sha256Hex(token)) !== data.token_hash) {
+        return jsonResponse({
+          success: true,
+          reconstructable: false,
+          token: null,
+          id: data.id,
+          expiresAt: data.expires_at,
+          createdAt: data.created_at,
+        });
+      }
+      return jsonResponse({
+        success: true,
+        reconstructable: true,
+        token,
+        id: data.id,
+        expiresAt: data.expires_at,
+        createdAt: data.created_at,
+      });
     }
 
     if (action === "save_doc_requests") {
