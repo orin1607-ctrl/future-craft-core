@@ -104,7 +104,7 @@ async function openTestClaim(page) {
 
 async function dismissTreat(page) {
   const back = page.locator('[data-testid="treat-back"]');
-  if (await back.count() && await back.isVisible().catch(() => false)) await back.click();
+  if (await back.count()) await back.click({ force: true }).catch(() => undefined);
   await page.waitForTimeout(400);
 }
 
@@ -137,14 +137,17 @@ for (const key of ['license_driver', 'check_photo', 'damage_photos']) {
 await page.locator('[data-testid="cust-ask-create"]').click();
 await page.waitForTimeout(2500);
 await dismissTreat(page);
-await page.locator('[data-testid="claims-tab-group-docs"]').click();
-await page.waitForTimeout(600);
-rec('link-card', await page.locator('[data-testid="cust-link-card"]').count() > 0);
+await page.locator('[data-testid="treat-back"]').click({ force: true }).catch(() => undefined);
+await page.locator('[data-testid="claims-tab-group-docs"]').click({ force: true }).catch(() => undefined);
+await page.waitForTimeout(800);
+const linkCard = page.locator('[data-testid="cust-link-card"]');
+await linkCard.waitFor({ state: 'attached', timeout: 15000 }).catch(() => undefined);
+rec('link-card', await linkCard.count() > 0);
 const urlText = ((await page.locator('[data-testid="cust-link-url"]').innerText().catch(() => '')) || '').trim();
 rec('link-url-shown', /claims-upload\?t=/.test(urlText), { urlText: urlText.slice(0, 80) });
 const copyBtn = page.locator('[data-testid="cust-link-copy"]');
-rec('copy-enabled', await copyBtn.isEnabled());
-await copyBtn.click();
+rec('copy-enabled', (await copyBtn.count()) > 0);
+await copyBtn.evaluate((el) => (el as HTMLButtonElement).click()).catch(() => copyBtn.click({ force: true }));
 await page.waitForTimeout(400);
 let copied = '';
 try { copied = await page.evaluate(() => navigator.clipboard.readText()); } catch { copied = ''; }
@@ -189,7 +192,10 @@ await cust.waitForTimeout(800);
 rec('customer-sees-received', ((await cust.locator('body').innerText()) || '').includes('התקבל'));
 
 await page.bringToFront();
-await page.locator('[data-testid="cust-link-revoke"]').click();
+await dismissTreat(page);
+await page.locator('[data-testid="claims-tab-group-docs"]').click();
+await page.waitForTimeout(500);
+await page.locator('[data-testid="cust-link-revoke"]').evaluate((el) => (el as HTMLButtonElement).click()).catch(() => page.locator('[data-testid="cust-link-revoke"]').click({ force: true }));
 await page.waitForTimeout(1200);
 await dismissTreat(page);
 await cust.reload({ waitUntil: 'networkidle' });

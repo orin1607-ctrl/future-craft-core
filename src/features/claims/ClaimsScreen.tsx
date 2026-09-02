@@ -920,7 +920,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setLinkUrl(url);
     await copyCustomerLink(url);
     await loadCardData(claimId);
-    await afterSignificant(claimId, 'נשלחה בקשת מסמכים ללקוח');
     return url;
   };
 
@@ -2333,6 +2332,35 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     );
                   })()}
                   <div className="cust-ask" data-testid="cust-ask-panel">
+                    {hasUploadLink ? (
+                      <div className="cust-link-card" data-testid="cust-link-card">
+                        <div className="cust-link-title">קישור פעיל ללקוח</div>
+                        <div className="cust-link-meta">נוצר: {uploadLinkMeta?.created_at ? new Date(uploadLinkMeta.created_at).toLocaleString('he-IL') : '—'}</div>
+                        <div className="cust-link-meta">תוקף עד: {uploadLinkMeta?.expires_at ? new Date(uploadLinkMeta.expires_at).toLocaleString('he-IL') : '—'} · 14 ימים</div>
+                        <div className="cust-link-meta">ביקשנו: {docs.requests.filter((r) => r.status === 'requested' || r.status === 'received').map((r) => r.label).join(', ') || '—'}</div>
+                        <div className="cust-link-meta">הלקוח העלה: {docs.requests.filter((r) => r.status === 'received').length} מתוך {docs.requests.filter((r) => r.status === 'requested' || r.status === 'received').length}</div>
+                        {linkUrl ? (
+                          <div className="cust-link-url" data-testid="cust-link-url">{linkUrl}</div>
+                        ) : (
+                          <div className="cust-link-warn" data-testid="cust-link-url-missing">הקישור פעיל אצל הלקוח, אבל הכתובת לא שמורה במחשב זה (נשמר רק hash). להעתקה כאן צריך קישור חדש — הישן יבוטל.</div>
+                        )}
+                        <div className="cust-link-acts">
+                          <button type="button" className="btn btn-p btn-sm" data-testid="cust-link-copy" disabled={!linkUrl} onClick={() => { if (linkUrl) void copyCustomerLink(linkUrl); }}>העתק קישור</button>
+                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-open" disabled={!linkUrl} onClick={() => { if (linkUrl) window.open(linkUrl, '_blank', 'noopener'); }}>פתח קישור</button>
+                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-wa" disabled={!linkUrl} onClick={() => {
+                            if (!linkUrl) return;
+                            const msg = `שלום${cur.clientName ? ` ${cur.clientName}` : ''}, לצורך תביעה ${displayClaimNum(cur)} נבקש להעלות מסמכים בקישור:\n${linkUrl}`;
+                            setModal('moWA');
+                            window.setTimeout(() => setVal('wa_msg', msg), 50);
+                          }}>WhatsApp עם הקישור</button>
+                          <button type="button" className="btn btn-sm" data-testid="cust-link-revoke" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { void revokeCustomerLink(cur.id); }}>בטל קישור</button>
+                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-rotate" onClick={async () => { setAskBusy(true); try { await mintCustomerLink(cur.id, true); } finally { setAskBusy(false); } }}>צור קישור חדש</button>
+                        </div>
+                        <div className="cust-link-note">אין שליחת מייל אוטומטית. העתיקו ושלחו ללקוח בעצמכם. WhatsApp נפתח רק אחרי לחיצה.</div>
+                      </div>
+                    ) : (
+                      <div className="cust-link-empty" data-testid="cust-link-empty">אין קישור פעיל. סמנו מסמכים ולחצו «צור קישור ללקוח».</div>
+                    )}
                     <button type="button" className="btn btn-p" data-testid="cust-ask-open" onClick={() => {
                       setAskKeys(CLAIM_DOC_TYPES.filter((x) => catalogInRequests(docs.requests, x)).map((x) => x.key));
                       setAskOpen((v) => !v);
@@ -2366,6 +2394,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                               const saved = await saveAskSelection(cur.id, askKeys);
                               if (!saved.success) { toast(saved.error, 'err'); return; }
                               await mintCustomerLink(cur.id, false);
+                              setAskOpen(false);
                             } finally {
                               setAskBusy(false);
                             }
@@ -2373,35 +2402,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         >{hasUploadLink && linkUrl ? 'שמור בקשה · יש קישור פעיל' : 'צור קישור ללקוח'}</button>
                       </div>
                     ) : null}
-                    {hasUploadLink ? (
-                      <div className="cust-link-card" data-testid="cust-link-card">
-                        <div className="cust-link-title">קישור פעיל ללקוח</div>
-                        <div className="cust-link-meta">נוצר: {uploadLinkMeta?.created_at ? new Date(uploadLinkMeta.created_at).toLocaleString('he-IL') : '—'}</div>
-                        <div className="cust-link-meta">תוקף עד: {uploadLinkMeta?.expires_at ? new Date(uploadLinkMeta.expires_at).toLocaleString('he-IL') : '—'} · 14 ימים</div>
-                        <div className="cust-link-meta">ביקשנו: {docs.requests.filter((r) => r.status === 'requested' || r.status === 'received').map((r) => r.label).join(', ') || '—'}</div>
-                        <div className="cust-link-meta">הלקוח העלה: {docs.requests.filter((r) => r.status === 'received').length} מתוך {docs.requests.filter((r) => r.status === 'requested' || r.status === 'received').length}</div>
-                        {linkUrl ? (
-                          <div className="cust-link-url" data-testid="cust-link-url">{linkUrl}</div>
-                        ) : (
-                          <div className="cust-link-warn" data-testid="cust-link-url-missing">הקישור פעיל אצל הלקוח, אבל הכתובת לא שמורה במחשב זה (נשמר רק hash). להעתקה כאן צריך קישור חדש — הישן יבוטל.</div>
-                        )}
-                        <div className="cust-link-acts">
-                          <button type="button" className="btn btn-p btn-sm" data-testid="cust-link-copy" disabled={!linkUrl} onClick={() => { if (linkUrl) void copyCustomerLink(linkUrl); }}>העתק קישור</button>
-                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-open" disabled={!linkUrl} onClick={() => { if (linkUrl) window.open(linkUrl, '_blank', 'noopener'); }}>פתח קישור</button>
-                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-wa" disabled={!linkUrl} onClick={() => {
-                            if (!linkUrl) return;
-                            const msg = `שלום${cur.clientName ? ` ${cur.clientName}` : ''}, לצורך תביעה ${displayClaimNum(cur)} נבקש להעלות מסמכים בקישור:\n${linkUrl}`;
-                            setModal('moWA');
-                            window.setTimeout(() => setVal('wa_msg', msg), 50);
-                          }}>WhatsApp עם הקישור</button>
-                          <button type="button" className="btn btn-sm" data-testid="cust-link-revoke" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { void revokeCustomerLink(cur.id); }}>בטל קישור</button>
-                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-rotate" onClick={async () => { setAskBusy(true); try { await mintCustomerLink(cur.id, true); } finally { setAskBusy(false); } }}>צור קישור חדש</button>
-                        </div>
-                        <div className="cust-link-note">אין שליחת מייל אוטומטית. העתיקו ושלחו ללקוח בעצמכם. WhatsApp נפתח רק אחרי לחיצה.</div>
-                      </div>
-                    ) : (
-                      <div className="cust-link-empty" data-testid="cust-link-empty">אין קישור פעיל. סמנו מסמכים ולחצו «צור קישור ללקוח».</div>
-                    )}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>סמנו מה לבקש מהלקוח. העלאה נשמרת במאגר התביעה בלבד. לא מנחשים סוג לפי שם קובץ.</div>
                   <div className="doc-type-list" data-testid="claim-doc-types">
