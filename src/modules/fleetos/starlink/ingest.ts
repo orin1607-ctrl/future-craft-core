@@ -152,7 +152,7 @@ export function ingestStarlinkLine(
 
   const prev = store.getLive(device.id);
   const eid = padEventId(tags.EID);
-  let ignition = parseFlag(tags.IGN ?? tags.IN8);
+  let ignition = parseFlag(tags.IGN ?? tags.IN8 ?? tags.IGNL);
   if (ignition == null && eid === '04') ignition = true;
   if (ignition == null && eid === '05') ignition = false;
   if (ignition == null) ignition = prev?.ignition ?? null;
@@ -168,7 +168,7 @@ export function ingestStarlinkLine(
   const drv = parseFlag(tags.DRV);
   const motion = motionOf(drv, speedKmh, ignition);
 
-  const odoIncoming = parseOdometerTag(tags.ODO);
+  const odoIncoming = parseOdometerTag(tags.ODO) ?? parseOdometerTag(tags.ODOD);
   const odo = shouldApplyTelematicsOdometer(prev?.odometer ?? null, odoIncoming);
 
   const vinNum = parseNum(tags.VIN);
@@ -176,7 +176,7 @@ export function ingestStarlinkLine(
   const backupVoltage = parseNum(tags.VBAT);
   const rpm = parseNum(tags.RPM);
   const engineHours = parseNum(tags.DUR) ?? parseNum(tags.TDUR);
-  const fuel = parseNum(tags.CFL);
+  const fuel = parseNum(tags.CFL) ?? parseNum(tags.CFL2);
   const driverId = tags.DID || tags.DAL || null;
   const imei = tags.IMEI || device.imei;
 

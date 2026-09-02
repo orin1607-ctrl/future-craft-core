@@ -13,6 +13,7 @@ import FleetOSMapSection from './FleetOSMapSection';
 import FleetOSFilterBar, { EMPTY_FLEETOS_FILTERS, type FleetOSFilters } from './FleetOSFilterBar';
 import FleetOSSelectedVehicleCard from './FleetOSSelectedVehicleCard';
 import FleetOSDeviceAssignPanel from './FleetOSDeviceAssignPanel';
+import FleetOSUnknownDevicesPanel from './FleetOSUnknownDevicesPanel';
 import FleetOSBottomNav, { type FleetOSNavModule } from './FleetOSBottomNav';
 import {
   applyFleetOSFilters,
@@ -29,6 +30,7 @@ import {
   type FleetOSKpiSnapshot,
 } from './fleetosTypes';
 import type { FleetOSAlertRow, FleetOSVehicleRow } from './fleetosData';
+import { commStatusLabel, originLabel } from './telematicsDisplay';
 
 const STATUS_DOT: Record<FleetOSVehicleRow['status'], string> = {
   driving: 'bg-success',
@@ -53,6 +55,7 @@ export interface FleetStatusModuleProps {
   gpsPersistReady?: boolean;
   onAssignGpsDevice?: (vehicle: FleetOSVehicleRow, unitId: string, imei: string) => void | Promise<void>;
   onUnassignGpsDevice?: (vehicle: FleetOSVehicleRow) => void | Promise<void>;
+  unknownDevices?: Array<{ id: string; at: string; raw: string; unitHint: string | null }>;
 }
 
 export default function FleetStatusModule({
@@ -71,6 +74,7 @@ export default function FleetStatusModule({
   gpsPersistReady = false,
   onAssignGpsDevice,
   onUnassignGpsDevice,
+  unknownDevices = [],
 }: FleetStatusModuleProps) {
   const visibility = getVisibilityForRole(userRole);
   const [draftFilters, setDraftFilters] = useState<FleetOSFilters>(EMPTY_FLEETOS_FILTERS);
@@ -159,7 +163,7 @@ export default function FleetStatusModule({
             </span>
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground pr-0 md:pr-14 leading-relaxed">
-            מצב צי — נתוני דליה, וטלמטיקה ERM כאשר מכשיר משויך
+            מצב צי — טלמטיקה ERM כשקיימת, נתוני QA מסומנים ולא מוצגים כ-Live ממכשיר
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
@@ -224,6 +228,8 @@ export default function FleetStatusModule({
           hubOpening={hubOpening}
         />
 
+        <FleetOSUnknownDevicesPanel userRole={userRole} rows={unknownDevices} />
+
         <FleetOSDeviceAssignPanel
           vehicle={selected}
           userRole={userRole}
@@ -277,7 +283,9 @@ export default function FleetStatusModule({
                               <InternalNumber value={v.internal_number} className="text-xs" />
                             )}
                             <span className="text-xs text-muted-foreground mr-auto shrink-0">
-                              {STATUS_LABEL[v.status]}
+                              {v.telematics
+                                ? `${originLabel(v.telematics)} · ${commStatusLabel(v.telematics.commStatus)}`
+                                : STATUS_LABEL[v.status]}
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5 truncate">

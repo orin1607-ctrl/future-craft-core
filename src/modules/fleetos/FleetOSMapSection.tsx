@@ -7,6 +7,7 @@ import type { FleetOSVehicleRow } from './fleetosData';
 import type { VehicleStatus } from './fleetosTypes';
 import FleetOSLeafletMap from './FleetOSLeafletMap';
 import type { MapBasemapId } from './starlink/mapProviders';
+import { commStatusLabel, formatLastSeen, gpsFreshnessLabel, originLabel } from './telematicsDisplay';
 
 const STATUS_PIN: Record<VehicleStatus, string> = {
   driving: 'bg-success',
@@ -72,7 +73,6 @@ export default function FleetOSMapSection({
 
   const filteredFromTotal = totalCount != null && totalCount !== vehicles.length;
   const selected = vehicles.find((v) => v.id === selectedId);
-  const selectedFresh = selected?.telematics?.freshness;
   const lastSeen = selected?.telematics?.lastSeen;
 
   return (
@@ -168,11 +168,16 @@ export default function FleetOSMapSection({
       {selectedId && (
         <div className="absolute bottom-12 left-1/2 -translate-x-1/2 bg-card/95 border border-primary/30 rounded-full px-3 py-1.5 text-[11px] sm:text-xs font-bold text-primary shadow-sm max-w-[92%] truncate z-[500]">
           {selected?.plate ?? ''} — נבחר
-          {selectedFresh === 'live' && ' · Live'}
-          {selectedFresh === 'stale' && ' · GPS ישן'}
+          {selected?.telematics && (
+            <>
+              {` · ${originLabel(selected.telematics)}`}
+              {` · ${commStatusLabel(selected.telematics.commStatus)}`}
+              {` · ${gpsFreshnessLabel(selected.telematics)}`}
+            </>
+          )}
           {lastSeen && (
             <span className="font-normal text-muted-foreground">
-              {` · נראה ${new Date(lastSeen).toLocaleString('he-IL')}`}
+              {` · נראה ${formatLastSeen(lastSeen)}`}
             </span>
           )}
         </div>

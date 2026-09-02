@@ -349,7 +349,7 @@ describe('ERM StarLink protocol QA', () => {
     seedTestDevice(store, { unitId: '0004D2', vehicleId: 'v1', companyName: 'A' });
     ingest(store, msg('0004D2', '60', loc()));
     const rows = [vehicle('v1', '12-345-67', 'A'), vehicle('v2', '98-765-43', 'A')];
-    const merged = mergeTelematics(rows, store, 'A');
+    const merged = mergeTelematics(rows, store, 'A', Date.parse('2026-08-30T13:22:30Z'));
     expect(merged[0].status).toBe('stopped');
     expect(merged[0].telematics?.live).toBe(true);
     expect(merged[1].telematics).toBeUndefined();
@@ -460,5 +460,60 @@ describe('ERM StarLink protocol QA', () => {
     );
     expect(merged.some((a) => a.id === 'comm-v1')).toBe(false);
     expect(merged.some((a) => a.id === 'erm-comm-v1')).toBe(true);
+  });
+
+  it('fuel/rpm/voltage stay null when absent — never coerced to 0', () => {
+    const store = new InMemoryGpsStore();
+    seedTestDevice(store, { unitId: '0004D2', vehicleId: 'v1', companyName: 'A' });
+    const r = ingest(store, msg('0004D2', '80', loc({ VIN: '', VBAT: '' })));
+    expect(r.live?.rpm).toBeNull();
+    expect(r.live?.fuel).toBeNull();
+    expect(r.live?.engineHours).toBeNull();
+    expect(r.live?.rpm === 0).toBe(false);
+    expect(r.live?.fuel === 0).toBe(false);
+  });
+
+  it('CFL2 fills fuel when CFL is absent', () => {
+    const store = new InMemoryGpsStore();
+    seedTestDevice(store, {
+      unitId: '0004D2',
+      vehicleId: 'v1',
+      companyName: 'A',
+      p177: `${DEFAULT_P177},#CFL2#`,
+    });
+    const r = ingest(store, msg('0004D2', '81', [...loc(), '48.5']));
+    expect(r.live?.fuel).toBeCloseTo(48.5);
+  });
+
+  it('QA unit overlay is never shown as Live from a real device', () => {
+    const store = new InMemoryGpsStore();
+    seedTestDevice(store, { unitId: 'QA-PREV-ONLINE', vehicleId: 'v1', companyName: 'A' });
+    ingest(store, msg('QA-PREV-ONLINE', '82', loc()));
+    const merged = mergeTelematics(
+      [vehicle('v1', '12-345-67', 'A')],
+      store,
+      'A',
+      Date.parse('2026-08-30T13:22:30Z'),
+    );
+    expect(merged[0].telematics?.dataOrigin).toBe('qa');
+    expect(merged[0].telematics?.live).toBe(false);
+    expect(merged[0].telematics?.freshness).toBe('live');
+    expect(merged[0].telematics?.commStatus).toBe('online');
+    expect(merged[0].telematics?.fuel).toBeNull();
+  });
+
+  it('recomputed freshness becomes stale when lastSeen is old', () => {
+    const store = new InMemoryGpsStore();
+    seedTestDevice(store, { unitId: '0004D2', vehicleId: 'v1', companyName: 'A' });
+    ingest(store, msg('0004D2', '83', loc()));
+    const merged = mergeTelematics(
+      [vehicle('v1', '12-345-67', 'A')],
+      store,
+      'A',
+      Date.parse('2026-08-30T13:30:30Z'),
+    );
+    expect(merged[0].telematics?.freshness).toBe('stale');
+    expect(merged[0].telematics?.live).toBe(false);
+    expect(merged[0].telematics?.commStatus).toBe('stale');
   });
 });

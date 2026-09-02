@@ -3,10 +3,11 @@ export const DEFAULT_P177 =
   '#EDT#,#EID#,#PDT#,#LAT#,#LONG#,#SPD#,#HEAD#,#ODO#,#LAC#,#CID#,#VIN#,#VBAT#';
 
 export const KNOWN_TAGS = [
-  'EDT', 'EID', 'PDT', 'LAT', 'LONG', 'LTDD', 'LGDD', 'SPD', 'SPDK', 'HEAD',
-  'ODO', 'LAC', 'CID', 'VIN', 'VBAT', 'IGN', 'IN8', 'ENG', 'DRV', 'PAS', 'PAM',
-  'RPM', 'DUR', 'TDUR', 'CFL', 'CFL2', 'DID', 'DAL', 'IMEI', 'UID', 'FID',
-  'VER', 'CSS', 'NC', 'NT', 'NXT', 'NXTS', 'FIX', 'JAM', 'CX', 'CR',
+  'EDT', 'EID', 'PDT', 'PDI', 'LAT', 'LONG', 'LTDD', 'LGDD', 'SPD', 'SPDK', 'HEAD',
+  'ODO', 'ODOD', 'LAC', 'CID', 'VIN', 'VBAT', 'IGN', 'IGNL', 'IN8', 'ENG', 'DRV', 'PAS', 'PAM',
+  'RPM', 'DUR', 'TDUR', 'IDL', 'STP', 'CFL', 'CFL2', 'DID', 'DAL', 'IMEI', 'UID', 'FID',
+  'VER', 'CSS', 'NC', 'NT', 'NXT', 'NXTS', 'FIX', 'LOCA', 'JAM', 'CX', 'CR',
+  'ALT', 'ALTD', 'SAT', 'HDOP',
   'CV1', 'CV2', 'CV3', 'CV4', 'CV5', 'CV6', 'CV7', 'CV8', 'CV9', 'CV10', 'CV11', 'CV12',
 ] as const;
 

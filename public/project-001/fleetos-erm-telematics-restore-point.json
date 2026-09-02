@@ -1,8 +1,9 @@
 {
-  "id": "fleetos-erm-telematics-restore-point",
-  "created_at": "2026-08-30T14:24:00Z",
+  "id": "fleetos-erm-software-ui-20260902",
+  "created_at": "2026-09-02T07:15:00Z",
   "branch": "feat/fleetos-erm-telematics",
-  "restore_ref": "fc86f5cf134d81c644a55f53cb18e8eb63ed7148",
+  "restore_ref": "99550bb7d73f39f5d09ab91e57870996d551c1e3",
+  "tag": "restore/pre-erm-software-ui-20260902",
   "scope": "מצב צי / מיקום צי חכם",
   "status": "restore_point_recorded"
 }

@@ -20,21 +20,24 @@ function pinStatus(v: FleetOSVehicleRow): VehicleStatus {
   return v.status;
 }
 
-function divIcon(status: VehicleStatus, selected: boolean, stale: boolean) {
+function divIcon(status: VehicleStatus, selected: boolean, stale: boolean, qa: boolean) {
   const size = selected ? 44 : 34;
+  const qaMark = qa
+    ? `<span style="position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);font:700 8px/1 sans-serif;color:#fff;background:hsl(218 58% 27%);padding:1px 4px;border-radius:6px;">QA</span>`
+    : '';
   return L.divIcon({
     className: 'fleetos-gps-marker',
-    iconSize: [size, size],
+    iconSize: [size, size + (qa ? 8 : 0)],
     iconAnchor: [size / 2, size / 2],
-    html: `<span style="
-      display:flex;align-items:center;justify-content:center;
+    html: `<span data-origin="${qa ? 'qa' : 'device'}" style="
+      position:relative;display:flex;align-items:center;justify-content:center;
       width:${size}px;height:${size}px;border-radius:9999px;
       background:${PIN_COLOR[status]};
       border:2px solid hsl(var(--background));
       box-shadow:0 2px 8px rgba(0,0,0,.25);
       opacity:${stale ? 0.45 : 1};
       ${selected ? 'box-shadow:0 0 0 4px hsl(var(--primary)/.45);' : ''}
-    "></span>`,
+    ">${qaMark}</span>`,
   });
 }
 
@@ -170,15 +173,17 @@ export default function FleetOSLeafletMap({
         if (lat == null || lng == null) return null;
         const status = pinStatus(v);
         const stale = v.telematics?.freshness === 'stale';
-        const live = v.telematics?.freshness === 'live';
+        const qa = v.telematics?.dataOrigin === 'qa';
+        const liveDevice = v.telematics?.live === true;
         const speed = v.telematics?.speedKmh;
+        const originNote = qa ? 'QA/TEST' : liveDevice ? 'Live' : stale ? 'GPS ישן' : STATUS_LABEL[status];
         return (
           <Marker
             key={v.id}
             position={[lat, lng]}
-            icon={divIcon(status, v.id === selectedId, stale)}
+            icon={divIcon(status, v.id === selectedId, stale, Boolean(qa))}
             eventHandlers={{ click: () => onSelect(v) }}
-            title={`${v.plate} — ${live ? 'Live' : stale ? 'GPS ישן' : STATUS_LABEL[status]}${speed != null ? ` · ${speed} קמ״ש` : ''}`}
+            title={`${v.plate} — ${originNote}${speed != null ? ` · ${speed} קמ״ש` : ''}`}
           />
         );
       })}

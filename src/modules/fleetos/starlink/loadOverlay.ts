@@ -1,26 +1,56 @@
 import { applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { supabase } from '@/integrations/supabase/client';
-import type { GpsFreshness, LiveSnapshot } from './types';
+import type { LiveSnapshot } from './types';
 import { assignmentOnlyOverlay } from './emptyOverlay';
 import type { TelematicsOverlay } from './adapter';
+import {
+  commStatusFromLastSeen,
+  dataOriginFromUnit,
+  freshnessNow,
+  gpsQualityFromTags,
+  odometerSourceLabel,
+} from './origin';
+
+const LIVE_SELECT = [
+  'vehicle_id',
+  'unit_id',
+  'imei',
+  'last_seen',
+  'gps_at',
+  'gps_age_sec',
+  'freshness',
+  'lat',
+  'lng',
+  'speed_kmh',
+  'heading',
+  'ignition',
+  'engine',
+  'motion',
+  'odometer',
+  'odometer_decision',
+  'vehicle_voltage',
+  'backup_voltage',
+  'rpm',
+  'engine_hours',
+  'fuel',
+  'driver_id_erm',
+  'can_raw',
+  'tags',
+].join(', ');
 
 /**
  * Reads gps_live when tables exist. Missing tables → empty overlay (no mock live).
- * Does not run migrations.
+ * Recomputes Online/Stale from last_seen so a stored row is never "Live" by existence.
  */
 export async function loadGpsLiveOverlay(
   companyFilter: string | null,
 ): Promise<Map<string, TelematicsOverlay>> {
   const out = new Map<string, TelematicsOverlay>();
+  const now = Date.now();
   try {
-    // Tables are proposed — query fails until Owner-approved migration runs.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await applyCompanyScope(
-      (supabase as any)
-        .from('gps_live')
-        .select(
-          'vehicle_id, unit_id, imei, last_seen, gps_at, gps_age_sec, freshness, lat, lng, speed_kmh, heading, ignition, engine, motion, odometer, vehicle_voltage, backup_voltage, rpm, can_raw',
-        ),
+      (supabase as any).from('gps_live').select(LIVE_SELECT),
       companyFilter,
     );
     if (error || !data) return out;
@@ -71,7 +101,13 @@ export async function loadGpsLiveOverlay(
       const id = String(e.vehicle_id || '');
       if (!id) continue;
       const arr = eventsByV.get(id) || [];
-      if (arr.length < 5) arr.push({ labelHe: String(e.label_he || ''), at: String(e.at || ''), severity: String(e.severity || 'info') });
+      if (arr.length < 5) {
+        arr.push({
+          labelHe: String(e.label_he || ''),
+          at: String(e.at || ''),
+          severity: String(e.severity || 'info'),
+        });
+      }
       eventsByV.set(id, arr);
     }
     const canByV = new Map<string, Record<string, { label: string; value: string }>>();
@@ -86,7 +122,18 @@ export async function loadGpsLiveOverlay(
     for (const row of data as Array<Record<string, unknown>>) {
       const vehicleId = String(row.vehicle_id || '');
       if (!vehicleId) continue;
-      const freshness = (row.freshness as GpsFreshness) || 'none';
+      const lat = num(row.lat);
+      const lng = num(row.lng);
+      const lastSeen = str(row.last_seen);
+      const gpsAt = str(row.gps_at);
+      const gpsAgeSec = num(row.gps_age_sec);
+      const freshness = freshnessNow(lat, lng, gpsAgeSec, gpsAt, lastSeen, now);
+      const unitId = str(row.unit_id);
+      const origin = dataOriginFromUnit(unitId);
+      const tags = (row.tags as Record<string, string | null>) || {};
+      const quality = gpsQualityFromTags(tags);
+      const odo = num(row.odometer);
+      const odoSrc = odometerSourceLabel(odo != null);
       const canRaw = (row.can_raw as Record<string, string>) || {};
       const mappedTpl = canByV.get(vehicleId) || {};
       const canMapped: Record<string, { label: string; value: string }> = {};
@@ -94,25 +141,37 @@ export async function loadGpsLiveOverlay(
         if (canRaw[tag] != null) canMapped[tag] = { label: meta.label, value: canRaw[tag] };
       }
       out.set(vehicleId, {
-        live: freshness === 'live',
+        live: freshness === 'live' && origin !== 'qa',
         freshness,
-        lat: num(row.lat),
-        lng: num(row.lng),
+        commStatus: commStatusFromLastSeen(lastSeen, now),
+        dataOrigin: origin,
+        lat,
+        lng,
         speedKmh: num(row.speed_kmh),
         heading: num(row.heading),
         ignition: bool(row.ignition),
         engine: bool(row.engine),
         motion: (row.motion as LiveSnapshot['motion']) ?? null,
-        odometer: num(row.odometer),
-        odometerDecision: 'skip',
+        odometer: odo,
+        odometerDecision: (row.odometer_decision as LiveSnapshot['odometerDecision']) || 'skip',
+        odometerSourceTag: odoSrc.tag,
+        odometerGpsVsCan: odoSrc.gpsVsCan,
         vehicleVoltage: num(row.vehicle_voltage),
         backupVoltage: num(row.backup_voltage),
         rpm: num(row.rpm),
-        lastSeen: str(row.last_seen),
-        gpsAt: str(row.gps_at),
-        gpsAgeSec: num(row.gps_age_sec),
+        engineHours: num(row.engine_hours),
+        fuel: num(row.fuel),
+        driverId: str(row.driver_id_erm),
+        altitude: quality.altitude,
+        satellites: quality.satellites,
+        hdop: quality.hdop,
+        gpsFix: quality.gpsFix,
+        idlingSec: quality.idlingSec,
+        lastSeen,
+        gpsAt,
+        gpsAgeSec,
         imei: str(row.imei),
-        unitId: str(row.unit_id),
+        unitId,
         trail: trails.get(vehicleId) || [],
         canRaw,
         canMapped,
@@ -163,4 +222,33 @@ export function applyOverlayMap(
     const t = overlay.get(v.id);
     return t ? { ...v, telematics: t } : v;
   });
+}
+
+export async function loadUnknownGpsRaw(limit = 8): Promise<
+  Array<{ id: string; at: string; raw: string; unitHint: string | null }>
+> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any)
+      .from('gps_raw')
+      .select('id, at, raw, reason')
+      .eq('reason', 'unknown_device')
+      .order('at', { ascending: false })
+      .limit(limit);
+    if (error || !data) return [];
+    return (data as Array<{ id: string; at: string; raw: string }>).map((row) => ({
+      id: row.id,
+      at: row.at,
+      raw: row.raw,
+      unitHint: unitHintFromRaw(row.raw),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export function unitHintFromRaw(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const m = /\$SLU([^,*]+)/i.exec(raw);
+  return m ? m[1] : null;
 }

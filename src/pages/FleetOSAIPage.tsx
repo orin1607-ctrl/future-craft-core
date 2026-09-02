@@ -17,6 +17,7 @@ import {
 } from '@/modules/fleetos/fleetosData';
 import { filterBusinessLocationNoComm, telematicsNoCommAlerts } from '@/modules/fleetos/starlink/adapter';
 import { gpsTablesReady, persistAssignDevice, persistUnassignDevice } from '@/modules/fleetos/starlink/persist';
+import { loadUnknownGpsRaw } from '@/modules/fleetos/starlink/loadOverlay';
 import type { FleetOSKpiSnapshot } from '@/modules/fleetos/fleetosTypes';
 import { readVehicleContext } from '@/lib/entityNavContext';
 
@@ -51,6 +52,9 @@ export default function FleetOSAIPage() {
   const [kpis, setKpis] = useState<FleetOSKpiSnapshot>(EMPTY_KPIS);
   const [loading, setLoading] = useState(true);
   const [gpsPersistReady, setGpsPersistReady] = useState(false);
+  const [unknownDevices, setUnknownDevices] = useState<
+    Array<{ id: string; at: string; raw: string; unitHint: string | null }>
+  >([]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -65,6 +69,7 @@ export default function FleetOSAIPage() {
       setVehicles(v);
       setKpis(k);
       setAlerts(withTelematics);
+      setUnknownDevices(await loadUnknownGpsRaw(8));
     } finally {
       setLoading(false);
     }
@@ -182,6 +187,7 @@ export default function FleetOSAIPage() {
       selectedVehicleId={statusSelectedId}
       onSelectedVehicleIdChange={onStatusVehicleSelect}
       gpsPersistReady={gpsPersistReady}
+      unknownDevices={unknownDevices}
       onAssignGpsDevice={async (vehicle, unitId, imei) => {
         const companyName = vehicle.company_name || user?.company_name || '';
         if (!companyName) {

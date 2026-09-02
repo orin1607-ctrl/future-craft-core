@@ -1,30 +1,48 @@
 import type { GpsFreshness, LiveSnapshot } from './types';
+import type { TelematicsOverlay } from './adapter';
+
+const EMPTY_QUALITY = {
+  altitude: null as number | null,
+  satellites: null as number | null,
+  hdop: null as number | null,
+  gpsFix: null as string | null,
+  idlingSec: null as number | null,
+};
 
 /** Assignment without a GPS fix — never treated as Live, never draws a marker. */
-export function assignmentOnlyOverlay(unitId: string | null, imei: string | null) {
+export function assignmentOnlyOverlay(unitId: string | null, imei: string | null): TelematicsOverlay {
+  const qa = Boolean(unitId && /^QA/i.test(unitId));
   return {
-    live: false as const,
+    live: false,
     freshness: 'none' as GpsFreshness,
-    lat: null as number | null,
-    lng: null as number | null,
-    speedKmh: null as number | null,
-    heading: null as number | null,
-    ignition: null as boolean | null,
-    engine: null as boolean | null,
+    commStatus: 'no_data',
+    dataOrigin: qa ? 'qa' : 'device',
+    lat: null,
+    lng: null,
+    speedKmh: null,
+    heading: null,
+    ignition: null,
+    engine: null,
     motion: null as LiveSnapshot['motion'],
-    odometer: null as number | null,
-    odometerDecision: 'skip' as LiveSnapshot['odometerDecision'],
-    vehicleVoltage: null as number | null,
-    backupVoltage: null as number | null,
-    rpm: null as number | null,
-    lastSeen: null as string | null,
-    gpsAt: null as string | null,
-    gpsAgeSec: null as number | null,
+    odometer: null,
+    odometerDecision: 'skip',
+    odometerSourceTag: null,
+    odometerGpsVsCan: 'לא התקבל',
+    vehicleVoltage: null,
+    backupVoltage: null,
+    rpm: null,
+    engineHours: null,
+    fuel: null,
+    driverId: null,
+    ...EMPTY_QUALITY,
+    lastSeen: null,
+    gpsAt: null,
+    gpsAgeSec: null,
     imei,
     unitId,
-    trail: [] as { lat: number; lng: number }[],
-    canRaw: {} as Record<string, string>,
-    canMapped: {} as Record<string, { label: string; value: string }>,
-    events: [] as { labelHe: string; at: string; severity: string }[],
+    trail: [],
+    canRaw: {},
+    canMapped: {},
+    events: [],
   };
 }

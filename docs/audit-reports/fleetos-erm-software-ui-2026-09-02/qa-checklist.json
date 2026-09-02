@@ -1,0 +1,41 @@
+{
+  "at": "2026-09-02T07:34:00Z",
+  "restore": "restore/pre-erm-software-ui-20260902",
+  "sha_before": "99550bb7d73f39f5d09ab91e57870996d551c1e3",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "productionTouched": false,
+  "ermDeviceTouched": false,
+  "vpsTouched": false,
+  "results": {
+    "PARSER": "PASS",
+    "FIELD_MAPPING": "PASS",
+    "GPS_LIVE": "PASS",
+    "GPS_HISTORY": "PASS",
+    "EVENTS": "PASS",
+    "CAN_MAPPING": "PASS",
+    "MISSING_DATA": "PASS",
+    "STALE_DATA": "PASS",
+    "QA_LIVE_SEPARATION": "PASS",
+    "IMEI_ASSIGNMENT": "PASS",
+    "MAP": "PASS",
+    "ROUTE_HISTORY": "PASS",
+    "DESKTOP": "PASS",
+    "MOBILE": "PASS",
+    "BUSINESS_DATA_ISOLATION": "PASS",
+    "PRODUCTION_ISOLATION": "PASS",
+    "ROLLBACK": "PASS"
+  },
+  "unit_tests": "43 passed (starlink)",
+  "e2e": "docs/audit-reports/fleetos-erm-software-ui-2026-09-02/qa-result.json",
+  "preview": {
+    "company": "דרכי חיים",
+    "online": "12121212 / QA-PREV-ONLINE",
+    "stopped": "12218802 / QA-PREV-STOPPED",
+    "stale": "1724230 / QA-PREV-STALE",
+    "offline": "28342904 / QA-PREV-OFFLINE",
+    "nogps": "33944001 / QA-PREV-NOGPS",
+    "unknown": "QAUNK01"
+  },
+  "rollback": "git checkout restore/pre-erm-software-ui-20260902 -- src/modules/fleetos src/pages/FleetOSAIPage.tsx; QA gps_* rows with unit_id QA-PREV-* can be deleted"
+}

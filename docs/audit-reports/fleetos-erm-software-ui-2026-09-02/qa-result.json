@@ -1,0 +1,207 @@
+{
+  "at": "2026-09-02T07:33:21.559Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "ermDeviceTouched": false,
+  "hostingerTouched": false,
+  "publicPort": false,
+  "base": "http://localhost:8080",
+  "checks": [
+    {
+      "id": "design-chrome",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "streets-map",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "satellite-map",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "unknown-device",
+      "ok": true,
+      "detail": "מכשיר לא מוכר\n\nUnknown Device\n\nהודעה הגיעה ל-Listener בלי שיוך Unit ID. אין ACK. לא נכתב ל-gps_live.\n\nQAUNK01\n\n2.9.2026, 10:32:58\n\nDEAD99\n\n2.9.2026, 4:19:10\n\nDEAD99\n\n2.9.2026, 3:43"
+    },
+    {
+      "id": "qa-badge",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "not-device-live",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "online-status",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "last-seen",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "speed",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "heading",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "ignition-on",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "odo",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "odo-source",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "voltage",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "rpm",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "fuel",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "can-mapped",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "events",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "event-time",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "route-history",
+      "ok": true,
+      "detail": {
+        "trail": 1
+      }
+    },
+    {
+      "id": "ignition-off",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "missing-rpm-na",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "missing-fuel-na",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "zero-speed-shown",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "stale-status",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "stale-not-device-live",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "offline-status",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "no-gps-copy",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "no-fake-marker",
+      "ok": true,
+      "detail": {
+        "markersNone": 0
+      }
+    },
+    {
+      "id": "no-gps-na-location",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-qa",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "mobile-map",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "business-data-isolation",
+      "ok": true,
+      "detail": {
+        "before": {
+          "faults": 15,
+          "accidents": 11,
+          "expenses": 11
+        },
+        "after": {
+          "faults": 15,
+          "accidents": 11,
+          "expenses": 11
+        }
+      }
+    },
+    {
+      "id": "production-isolation",
+      "ok": true,
+      "detail": null
+    }
+  ],
+  "ok": true,
+  "businessBefore": {
+    "faults": 15,
+    "accidents": 11,
+    "expenses": 11
+  },
+  "businessAfter": {
+    "faults": 15,
+    "accidents": 11,
+    "expenses": 11
+  }
+}

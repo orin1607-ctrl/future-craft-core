@@ -1,0 +1,66 @@
+{
+  "at": "2026-09-02T07:33:18.131Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "ermDeviceTouched": false,
+  "company": "דרכי חיים",
+  "emails": {
+    "companyA": "darkay.hayim@gmail.com",
+    "companyB": "yoni191177@gmail.com"
+  },
+  "p177": "#EDT#,#EID#,#PDT#,#LAT#,#LONG#,#SPD#,#HEAD#,#ODO#,#LAC#,#CID#,#VIN#,#VBAT#,#IGN#,#ENG#,#RPM#,#DUR#,#CFL#,#DID#,#FIX#,#SAT#,#HDOP#,#ALT#,#CV1#,#CV2#",
+  "vehicles": {
+    "online": {
+      "id": "b830dd7f-b7aa-4f81-a0ee-fc620119e6ff",
+      "license_plate": "12121212",
+      "company_name": "דרכי חיים",
+      "odometer": 0,
+      "status": "active",
+      "unit": "QA-PREV-ONLINE"
+    },
+    "stopped": {
+      "id": "c5c1e461-8c77-4fa3-80a6-5ee2a442679e",
+      "license_plate": "12218802",
+      "company_name": "דרכי חיים",
+      "odometer": 197968,
+      "status": "active",
+      "unit": "QA-PREV-STOPPED"
+    },
+    "stale": {
+      "id": "5b179dce-6b68-4b56-a72f-17eb39cef6fa",
+      "license_plate": "1724230",
+      "company_name": "דרכי חיים",
+      "odometer": 384451,
+      "status": "active",
+      "unit": "QA-PREV-STALE"
+    },
+    "offline": {
+      "id": "d06e741d-9329-4e0d-80dd-404bbb63a026",
+      "license_plate": "28342904",
+      "company_name": "דרכי חיים",
+      "odometer": 14988,
+      "status": "active",
+      "unit": "QA-PREV-OFFLINE"
+    },
+    "nogps": {
+      "id": "25b14ed5-aecd-48b0-ab1a-b6c6626db0c3",
+      "license_plate": "33944001",
+      "company_name": "דרכי חיים",
+      "odometer": 270062,
+      "status": "active",
+      "unit": "QA-PREV-NOGPS"
+    }
+  },
+  "unknownUnit": "QAUNK01",
+  "businessBefore": {
+    "faults": 15,
+    "accidents": 11,
+    "expenses": 11
+  },
+  "businessAfter": {
+    "faults": 15,
+    "accidents": 11,
+    "expenses": 11
+  },
+  "businessUnchanged": true
+}
