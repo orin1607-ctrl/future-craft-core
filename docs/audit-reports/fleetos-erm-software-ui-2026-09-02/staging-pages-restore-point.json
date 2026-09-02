@@ -1,0 +1,24 @@
+{
+  "restore_point": "restore/pre-erm-staging-pages-20260902",
+  "restore_sha": "11260034",
+  "restore_full_sha": "11260034ca5f85ac8148237544b538a15f8ca8a8",
+  "created_at": "2026-09-02T08:18:00Z",
+  "live_pages_before": {
+    "url": "https://orin1607-ctrl.github.io/future-craft-core/STAGING-DEPLOY.txt",
+    "deployed_ref": "1126003 feat/incident-alerts-staging"
+  },
+  "branch": "feat/incident-alerts-staging",
+  "target": "Orin Car / FleetOS STAGING GitHub Pages only",
+  "rollback": "gh workflow run deploy-staging-pages.yml -f deploy_ref=restore/pre-erm-staging-pages-20260902",
+  "not_touched": [
+    "72.60.36.182",
+    "qasomfndnjuixgjmjwcm",
+    "dalia-car.online",
+    "dalia-c.com",
+    "Hostinger / WordPress / Production",
+    "ERM device / portal / P49 / P50 / P177 on hardware",
+    "customer live data",
+    "main merge",
+    "production workflows"
+  ]
+}
