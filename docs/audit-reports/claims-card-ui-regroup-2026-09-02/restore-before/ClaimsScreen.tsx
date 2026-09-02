@@ -413,18 +413,6 @@ function correspondenceThreads(imports: Array<Record<string, unknown>>) {
   });
 }
 
-const CARD_TAB_GROUPS: Array<{ key: string; label: string; tabs: Array<{ key: string; label: string }> }> = [
-  { key: 'info', label: 'מידע', tabs: [{ key: 'claim', label: 'תביעה' }, { key: 'client', label: 'לקוח' }, { key: 'vehicle', label: 'רכב' }] },
-  { key: 'docs', label: 'מסמכים', tabs: [{ key: 'docs', label: 'כל המסמכים' }, { key: 'surveyor', label: 'דוח שמאי' }, { key: 'invoice', label: 'חשבונית מוסך' }] },
-  { key: 'mail', label: 'דואר ותקשורת', tabs: [{ key: 'gin', label: 'התכתבויות' }, { key: 'mailfu', label: 'מעקב מייל' }] },
-  { key: 'work', label: 'טיפול ומעקב', tabs: [{ key: 'treat', label: 'טיפול' }, { key: 'tasks', label: 'משימות' }, { key: 'rems', label: 'תזכורות' }] },
-  { key: 'hist', label: 'History', tabs: [{ key: 'timeline', label: 'היסטוריה' }] },
-];
-
-function cardGroupOf(tab: string) {
-  return CARD_TAB_GROUPS.find((g) => g.tabs.some((t) => t.key === tab)) || CARD_TAB_GROUPS[0];
-}
-
 function InCardPreview({ file, onClose }: { file: { url: string; name: string; mime: string } | null; onClose: () => void }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -462,7 +450,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [handlerFil, setHandlerFil] = useState('');
   const [curId, setCurId] = useState<string | null>(null);
   const [cardTab, setCardTab] = useState('comm');
-  const [cardMore, setCardMore] = useState(false);
   const [sbOpen, setSbOpen] = useState(false);
   const [modal, setModal] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -645,17 +632,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const unread = notifs.filter((n) => n.read !== 'true').length;
   const cur = claims.find((c) => c.id === curId) || null;
-  const tabGroup = cardGroupOf(cardTab);
-  const snapNewMail = Boolean(cur && (
-    notifs.some((n) => n.claimId === cur.id && n.read !== 'true' && (n.type === 'gmail_auto' || n.type === 'gmail_review'))
-    || gmailPending.some((p) => String(p.assigned_claim_id || '') === cur.id && !p.imported_at)
-  ));
-  const snapMissingDoc = Boolean(cur && (
-    docs.requests.some((d) => d.status === 'missing' || d.status === 'requested')
-    || tasks.some((t) => t.docState === 'missing')
-  ));
-  const snapOpenTask = Boolean(cur && tasks.length > 0);
-  const snapRem = Boolean(cur && reminders.length > 0);
   const activeClaims = useMemo(() => claims.filter((c) => c.archived !== 'true'), [claims]);
   const archiveClaims = useMemo(() => claims.filter((c) => c.archived === 'true'), [claims]);
   const workset = mineOnly ? activeClaims.filter((c) => c.assigned_to === actor.id) : activeClaims;
@@ -967,22 +943,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const openCard = async (id: string, tab = 'claim') => {
     setCurId(id);
     setCardTab(tab);
-    setCardMore(false);
     setModal('moCard');
     setLinkUrl('');
     setPreviewFile(null);
     await loadCardData(id);
-  };
-
-  const startGmailImport = async () => {
-    if (!cur) return;
-    setCardTab('gin');
-    setCardMore(false);
-    setGmailBusy('טוען מיילים…');
-    const r = await apiRef.current.invokeGmail('list_messages', { claim_id: cur.id });
-    setGmailBusy('');
-    if (!r.success) { toast(String(r.error || 'Gmail לא מחובר'), 'err'); return; }
-    setGmailList((r.messages as Array<Record<string, unknown>>) || []);
   };
 
   const collectClaimForm = (): Record<string, string> => {
@@ -1791,85 +1755,63 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           <div className="modal" style={{ maxWidth: 940 }}>
             <div className="mh">
               <div>
-                <div className="card-title-name">{cur.clientName || '—'}</div>
-                <div className="card-title-num">מספר תביעה: {displayClaimNum(cur)}</div>
+                <div style={{ fontSize: 11, color: 'var(--ac3)', fontWeight: 800 }}>מספר תביעה: {displayClaimNum(cur)}</div>
+                <div style={{ fontSize: 19, fontWeight: 900, marginBottom: 4 }}>{cur.clientName}</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {stBadge(cur.status)}
+                  {cur.plate ? <span style={{ fontSize: 11, color: 'var(--t3)' }}>{cur.plate}</span> : null}
+                  {cur.insCompany ? <span style={{ fontSize: 11, color: 'var(--t3)' }}>{cur.insCompany}</span> : null}
+                  {cur.vehicle_id ? <div className="lbl-pill">רכב משויך</div> : null}
+                  {cur.assigned_to_name ? <div className="lbl-pill">מטפל: {cur.assigned_to_name}</div> : <div className="lbl-pill">ללא מטפל</div>}
+                  {cur.claimKind ? <div className="lbl-pill">{cur.claimKind}</div> : null}
+                  {docsOrderOf(cur) === 'needs_sort' ? <div className="lbl-pill legacy">תיק ישן / דורש סידור מסמכים</div> : null}
+                  {docsOrderOf(cur) === 'organized' ? <div className="lbl-pill" style={{ color: '#22c55e', borderColor: 'rgba(34,197,94,.35)', background: 'rgba(34,197,94,.1)' }}>תיק מסודר</div> : null}
+                  {cur.source === 'Customer Accident Intake' ? <div className="lbl-pill">טופס לקוח</div> : null}
+                  {cur.duplicateSuspect === 'true' ? <div className="lbl-pill" style={{ color: '#b45309' }}>חשד לכפילות</div> : null}
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                <button className="btn btn-g btn-sm" data-testid="claims-edit-btn" onClick={() => startEdit(cur.id)}>ערוך</button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button className="btn btn-g btn-sm" onClick={() => startEdit(cur.id)}>✏️ ערוך</button>
+                {isSuperAdmin && <button className="btn btn-p btn-sm" data-testid="claims-assign-btn" onClick={() => setModal('moAssign')}>👤 הקצה לעובד מטפל</button>}
                 <button className="mcl" onClick={() => setModal(null)}>✕</button>
               </div>
             </div>
-            <div className="card-snap" data-testid="claims-card-snapshot">
-              <div className="card-snap-grid">
-                {([
-                  ['שם לקוח', cur.clientName || '—'],
-                  ['מספר תביעה', displayClaimNum(cur)],
-                  ['חברת ביטוח', cur.insCompany || '—'],
-                  ['רכב', cur.plate || '—'],
-                  ['עובד מטפל', cur.assigned_to_name || 'ללא מטפל'],
-                  ['סטטוס', cur.status || '—'],
-                  ['טיפול אחרון', fmtDay(cur.lastTreatmentAt || '')],
-                  ['טיפול הבא', fmtDay(cur.nextDate || '')],
-                  ['נדרשת פעולה', returnNeededLabel(cur)],
-                ] as Array<[string, string]>).map(([k, v]) => (
-                  <div key={k}><div className="card-snap-k">{k}</div><div className="card-snap-v">{k === 'סטטוס' ? stBadge(v) : v}</div></div>
-                ))}
-              </div>
-              <div className="card-flags">
-                {cur.claimKind ? <div className="lbl-pill">{cur.claimKind}</div> : null}
-                {docsOrderOf(cur) === 'needs_sort' ? <div className="lbl-pill legacy">תיק ישן / דורש סידור מסמכים</div> : null}
-                {docsOrderOf(cur) === 'organized' ? <div className="lbl-pill" style={{ color: '#22c55e', borderColor: 'rgba(34,197,94,.35)', background: 'rgba(34,197,94,.1)' }}>תיק מסודר</div> : null}
-                {cur.source === 'Customer Accident Intake' ? <div className="lbl-pill">טופס לקוח</div> : null}
-                {cur.duplicateSuspect === 'true' ? <div className="lbl-pill" style={{ color: '#b45309' }}>חשד לכפילות</div> : null}
-                {snapNewMail ? <div className="lbl-pill flag-on" data-testid="snap-new-mail">מייל חדש</div> : null}
-                {snapMissingDoc ? <div className="lbl-pill flag-warn" data-testid="snap-missing-doc">מסמך חסר</div> : null}
-                {snapOpenTask ? <div className="lbl-pill flag-on" data-testid="snap-open-task">משימה פתוחה</div> : null}
-                {snapRem ? <div className="lbl-pill flag-on" data-testid="snap-reminder">תזכורת</div> : null}
-              </div>
-            </div>
-            <div className="ab ab-regroup">
-              <div className="ab-primary">
-                <button className="ab-btn ab-mail ab-pri" data-testid="claims-send-mail" onClick={() => { setCardMore(false); void openSendModal('draft'); }}>מייל חדש</button>
-                <button className="ab-btn ab-status ab-pri" data-testid="claims-treat-open" onClick={() => { setCardMore(false); openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk }); }}>עדכון טיפול</button>
-                <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>מסמכים</button>
-              </div>
-              <div className="ab-more-wrap">
-                <button type="button" className={`ab-btn ab-sum ${cardMore ? 'act' : ''}`} data-testid="claims-card-more" onClick={() => setCardMore((v) => !v)}>עוד</button>
-                {cardMore ? <div className="ab-more-ov" data-testid="claims-card-more-ov" onClick={() => setCardMore(false)} /> : null}
-                {cardMore ? (
-                  <div className="ab-more-panel" data-testid="claims-card-more-panel">
-                    <button className="ab-btn ab-phone" onClick={() => { setCardMore(false); setModal('moCall'); }}>שיחה</button>
-                    <button className="ab-btn ab-wa" onClick={() => { setCardMore(false); setVal('wa_msg', `שלום, בהמשך לתביעה ${displayClaimNum(cur)}`); setModal('moWA'); }}>WhatsApp</button>
-                    <button className="ab-btn ab-mail" data-testid="claims-send-insurer" onClick={() => { setCardMore(false); void openSendModal('insurer'); }}>שליחה לחברת ביטוח</button>
-                    <button className="ab-btn ab-status" data-testid="claims-send-legal" onClick={() => { setCardMore(false); void openSendModal('legal'); }}>טיפול משפטי</button>
-                    <button className="ab-btn ab-sum" data-testid="claims-sum-internal" onClick={async () => { setCardMore(false); const r = await apiRef.current.exportClaimSummary(cur.id); setSumText(r.text || ''); setModal('moSum'); }}>סיכום פנימי</button>
-                    <button className="ab-btn ab-sum" data-testid="claims-sum-external" onClick={async () => {
-                      setCardMore(false);
-                      const mailBody = gmailImports.map((im) => String(im.body_text || '')).filter((t) => t.trim().length > 2).join('\n\n');
-                      const r = await apiRef.current.exportExternalSummary(cur.id, { mailBody, docNames: docs.files.map((f) => f.original_name) });
-                      setExportText(r.text || '');
-                      setModal('moExport');
-                    }}>סיכום חיצוני</button>
-                    <button className="ab-btn ab-task" onClick={() => { setCardMore(false); setModal('moTask'); }}>משימה</button>
-                    <button className="ab-btn ab-rem" onClick={() => { setCardMore(false); setModal('moRem'); }}>תזכורת</button>
-                    <button className="ab-btn ab-mail" data-testid="claims-mail-followup" onClick={() => { setCardMore(false); openMailFollowupModal(null); }}>מעקב מייל</button>
-                    <button className="ab-btn ab-mail" data-testid="claims-gmail-import" onClick={() => { void startGmailImport(); }}>ייבוא Gmail</button>
-                    {isSuperAdmin ? <button className="ab-btn ab-status" data-testid="claims-assign-btn" onClick={() => { setCardMore(false); setModal('moAssign'); }}>הקצה לעובד מטפל</button> : null}
-                    <button className="ab-btn ab-status" data-testid="claims-status-btn" onClick={() => { setCardMore(false); setVal('sf_st', cur.status); setVal('sf_note', ''); setModal('moStatus'); }}>סטטוס</button>
-                    <button className="ab-btn" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { setCardMore(false); setModal('moClose'); }}>סגור תיק</button>
-                    {cur.archived === 'true'
-                      ? <button className="ab-btn ab-sum" data-testid="claims-restore-archive" onClick={async () => {
-                        setCardMore(false);
-                        const r = await apiRef.current.restoreClaim(cur.id);
-                        if (!r.success) { toast(String(r.error || 'שחזור נכשל'), 'err'); return; }
-                        await loadAll();
-                        toast('שוחזר מארכיון');
-                      }}>שחזר מארכיון</button>
-                      : <button className="ab-btn ab-sum" data-testid="claims-archive" onClick={() => { setCardMore(false); setModal('moArchive'); }}>העבר לארכיון</button>}
-                    <button className="ab-btn" data-testid="claims-delete" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { setCardMore(false); setDeleteTyped(''); setModal('moDelete'); }}>מחק תיק</button>
-                  </div>
-                ) : null}
-              </div>
+            <div className="ab">
+              <button className="ab-btn ab-phone" onClick={() => setModal('moCall')}>📞 שיחה</button>
+              <button className="ab-btn ab-wa" onClick={() => { setVal('wa_msg', `שלום, בהמשך לתביעה ${displayClaimNum(cur)}`); setModal('moWA'); }}>💬 WhatsApp</button>
+              <button className="ab-btn ab-mail" data-testid="claims-send-mail" onClick={() => { void openSendModal('draft'); }}>📧 שליחת תיק במייל</button>
+              <button className="ab-btn ab-mail" onClick={() => { void openSendModal('insurer'); }}>🏢 לחברת ביטוח</button>
+              <button className="ab-btn ab-status" onClick={() => { void openSendModal('legal'); }}>⚖️ טיפול משפטי</button>
+              <button className="ab-btn ab-task" onClick={() => setModal('moTask')}>✅ משימה</button>
+              <button className="ab-btn ab-rem" onClick={() => setModal('moRem')}>🔔 תזכורת</button>
+              <button className="ab-btn ab-mail" onClick={() => openMailFollowupModal(null)}>📬 מעקב מייל</button>
+              <button className="ab-btn ab-mail" onClick={async () => {
+                setCardTab('gin');
+                setGmailBusy('טוען מיילים…');
+                const r = await apiRef.current.invokeGmail('list_messages', { claim_id: cur.id });
+                setGmailBusy('');
+                if (!r.success) { toast(String(r.error || 'Gmail לא מחובר'), 'err'); return; }
+                setGmailList((r.messages as Array<Record<string, unknown>>) || []);
+              }}>📥 ייבוא מ-Gmail</button>
+              <div className="ab-sep" />
+              <button className="ab-btn ab-status" onClick={() => { setVal('sf_st', cur.status); setVal('sf_note', ''); setModal('moStatus'); }}>🔄 סטטוס</button>
+              <button className="ab-btn ab-sum" onClick={async () => { const r = await apiRef.current.exportClaimSummary(cur.id); setSumText(r.text || ''); setModal('moSum'); }}>📄 סיכום פנימי</button>
+              <button className="ab-btn" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => setModal('moClose')}>🔒 סגור תיק</button>
+              {cur.archived === 'true'
+                ? <button className="ab-btn ab-sum" data-testid="claims-restore-archive" onClick={async () => {
+                  const r = await apiRef.current.restoreClaim(cur.id);
+                  if (!r.success) { toast(String(r.error || 'שחזור נכשל'), 'err'); return; }
+                  await loadAll();
+                  toast('שוחזר מארכיון');
+                }}>↩ שחזר מארכיון</button>
+                : <button className="ab-btn ab-sum" data-testid="claims-archive" onClick={() => setModal('moArchive')}>📦 העבר לארכיון</button>}
+              <button className="ab-btn" data-testid="claims-delete" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { setDeleteTyped(''); setModal('moDelete'); }}>🗑 מחק תיק</button>
+              <button className="ab-btn ab-sum" onClick={async () => {
+                const mailBody = gmailImports.map((im) => String(im.body_text || '')).filter((t) => t.trim().length > 2).join('\n\n');
+                const r = await apiRef.current.exportExternalSummary(cur.id, { mailBody, docNames: docs.files.map((f) => f.original_name) });
+                setExportText(r.text || '');
+                setModal('moExport');
+              }}>📄 סיכום חיצוני</button>
             </div>
             <div className="mb">
               {cur.treatmentPending === 'true' ? (
@@ -1879,18 +1821,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   <button type="button" className="btn btn-p btn-sm" data-testid="treatment-pending-open" style={{ marginInlineStart: 8 }} onClick={() => openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk })}>השלם עדכון טיפול</button>
                 </div>
               ) : null}
-              <div className="tabs tab-groups" data-testid="claims-tab-groups">
-                {CARD_TAB_GROUPS.map((g) => (
-                  <button key={g.key} type="button" className={`tab ${tabGroup.key === g.key ? 'act' : ''}`} data-testid={`claims-tab-group-${g.key}`} onClick={() => { setCardMore(false); setCardTab(g.tabs[0].key); }}>{g.label}</button>
+              <div className="tabs">
+                {[['claim', '📋 תביעה'], ['client', '👤 לקוח'], ['vehicle', '🚗 רכב'], ['treat', '🛠 טיפול'], ['surveyor', '🔎 דוח שמאי'], ['invoice', '🧾 חשבונית מוסך'], ['docs', '📄 מסמכים'], ['gin', '✉ התכתבויות'], ['tasks', '✅ משימות'], ['rems', '🔔 תזכורות'], ['mailfu', '📬 מעקב מייל'], ['timeline', '⏱ היסטוריה']].map(([k, l]) => (
+                  <button key={k} className={`tab ${cardTab === k ? 'act' : ''}`} onClick={() => setCardTab(k)}>{l}</button>
                 ))}
               </div>
-              {tabGroup.tabs.length > 1 ? (
-                <div className="tabs tab-subs" data-testid="claims-tab-subs">
-                  {tabGroup.tabs.map((t) => (
-                    <button key={t.key} type="button" className={`tab ${cardTab === t.key ? 'act' : ''}`} data-testid={`claims-tab-sub-${t.key}`} onClick={() => { setCardMore(false); setCardTab(t.key); }}>{t.label}</button>
-                  ))}
-                </div>
-              ) : null}
               {cardTab === 'claim' && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11 }}>
                   {[['מספר תביעה', displayClaimNum(cur)], ['סוג', cur.claimKind || '—'], ['תאריך אירוע', cur.eventDate || '—'], ['תאריך פתיחה', cur.createdAt || '—'],
@@ -2265,13 +2200,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               )}
               {cardTab === 'gin' && (
                 <div>
-                  <div className="mail-entry-bar" data-testid="mail-entry-bar">
-                    <button type="button" className="btn btn-p btn-sm" onClick={() => { void openSendModal('draft'); }}>מייל חדש</button>
-                    <button type="button" className="btn btn-g btn-sm" onClick={() => { void openSendModal('insurer'); }}>לחברת ביטוח</button>
-                    <button type="button" className="btn btn-g btn-sm" onClick={() => { void openSendModal('legal'); }}>טיפול משפטי</button>
-                    <button type="button" className="btn btn-g btn-sm" onClick={() => { void startGmailImport(); }}>ייבוא Gmail</button>
-                    <button type="button" className="btn btn-g btn-sm" onClick={() => openMailFollowupModal(null)}>מעקב מייל</button>
-                  </div>
                   <div className="sdiv"><div className="sdiv-t">התכתבויות ({gmailImports.length})</div><div className="sdiv-l" /></div>
                   <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>מסודר כרונולוגית לפי תאריך המייל. Thread אחד מתחת לשני. אין ייבוא נוסף מכאן אלא אם תבחר מייל חדש למטה.</div>
                   {gmailImports.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין מיילים יובאים בתיק</div>

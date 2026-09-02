@@ -168,7 +168,6 @@
 .claims-root .veh-drop{background:var(--bg2);border:1px solid var(--br2);border-radius:var(--r2);max-height:180px;overflow-y:auto}
 .claims-root .veh-item{padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--br);font-size:12px}
 .claims-root .veh-item:hover{background:var(--bg3)}
-.claims-root .lbl-pill{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;border:1px solid var(--br2);color:var(--t2);background:var(--bg4)}
 .claims-root .lbl-pill.legacy{color:#fbbf24;border-color:rgba(251,191,36,.45);background:rgba(251,191,36,.12)}
 .claims-root .bulk-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px;padding:8px 10px;background:var(--bg3);border:1px solid var(--br);border-radius:var(--r)}
 .claims-root .bulk-all{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700}
@@ -177,38 +176,7 @@
 .claims-root .sb-open-btn{display:none}
 .claims-root .sb-ov{display:none}
 .claims-root .sb-mhead{display:none}
-.claims-root .card-title-name{font-size:19px;font-weight:900;line-height:1.2}
-.claims-root .card-title-num{font-size:12px;color:var(--ac3);font-weight:800;margin-top:3px}
-.claims-root .card-snap{padding:10px 18px;border-bottom:1px solid var(--br);background:var(--bg3);flex-shrink:0}
-.claims-root .card-snap-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px 12px}
-.claims-root .card-snap-k{font-size:10px;color:var(--t3);font-weight:700}
-.claims-root .card-snap-v{font-size:12.5px;font-weight:700;margin-top:2px}
-.claims-root .card-flags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
-.claims-root .lbl-pill.flag-on{color:var(--ac3);border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.12)}
-.claims-root .lbl-pill.flag-warn{color:var(--yn2);border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.12)}
-.claims-root .ab-regroup{align-items:flex-start;justify-content:space-between;gap:8px}
-.claims-root .ab-primary{display:flex;flex-wrap:wrap;gap:6px}
-.claims-root .ab-btn.ab-pri{padding:8px 14px;font-size:12.5px}
-.claims-root .ab-more-wrap{position:relative;margin-right:auto}
-.claims-root .ab-btn.act{outline:1px solid var(--ac2)}
-.claims-root .ab-more-ov{position:fixed;inset:0;z-index:39;background:transparent}
-.claims-root .ab-more-panel{position:absolute;top:calc(100% + 6px);left:0;z-index:40;display:flex;flex-direction:column;gap:4px;min-width:220px;max-height:min(70vh,520px);overflow:auto;padding:8px;background:var(--bg2);border:1px solid var(--br2);border-radius:8px}
-.claims-root .ab-more-panel .ab-btn{width:100%;justify-content:flex-start;white-space:normal}
-.claims-root .tabs.tab-groups{flex-wrap:nowrap;overflow-x:auto}
-.claims-root .tabs.tab-subs{padding-top:0;margin-top:-8px;border-bottom:1px solid var(--br);margin-bottom:12px}
-.claims-root .tabs.tab-subs .tab{font-size:11px;font-weight:500}
-.claims-root .mail-entry-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 @media(max-width:700px){
-  .claims-root .card-snap{padding:8px 12px}
-  .claims-root .card-snap-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px}
-  .claims-root .ab-regroup{flex-direction:column;align-items:stretch}
-  .claims-root .ab-primary{width:100%}
-  .claims-root .ab-primary .ab-pri{flex:1;justify-content:center;min-width:0}
-  .claims-root .ab-more-wrap{margin:0;width:100%}
-  .claims-root .ab-more-wrap > .ab-btn{width:100%;justify-content:center}
-  .claims-root .ab-more-panel{position:fixed;left:12px;right:12px;top:auto;bottom:12px;min-width:0;max-height:60vh;z-index:5200}
-  .claims-root .ab-more-ov{z-index:5190;background:rgba(0,0,0,.35)}
-  .claims-root .tabs.tab-groups{flex-wrap:nowrap}
   .claims-root .tb{height:auto;min-height:52px;flex-wrap:wrap;padding:8px 10px;gap:8px}
   .claims-root .tb-logo{flex:1;min-width:0}
   .claims-root .tb-new{flex-shrink:0}

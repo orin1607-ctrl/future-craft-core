@@ -1,0 +1,16 @@
+{
+  "at": "2026-09-02T13:21:00+03:00",
+  "mission": "claims-card-ui-regroup-phase1",
+  "scope": "OREN CAR / CLAIMS / Staging only",
+  "gitHeadBefore": "24392d7ac7d02c921ae2e431d790e665238ab9ce",
+  "branch": "feat/incident-alerts-staging",
+  "files": [
+    "src/features/claims/ClaimsScreen.tsx",
+    "src/features/claims/claims.css"
+  ],
+  "backup": "docs/audit-reports/claims-card-ui-regroup-2026-09-02/restore-before/",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "dbChanged": false,
+  "mailDispatchMode": "dry_run (must remain)"
+}
