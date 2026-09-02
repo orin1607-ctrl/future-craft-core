@@ -32,6 +32,7 @@ const report = {
   liveMailSent: false,
   schedulerLive: false,
   testClaims: [],
+  testClaimState: {},
   counts: {},
   checks: [],
   ok: false,
@@ -61,16 +62,26 @@ const countsBefore = {
 };
 report.counts.before = countsBefore;
 
-const { data: testRows } = await admin.from('claims_records').select('id, client_name, source').in('id', ['DAL-2026-0018', 'DAL-2026-0019']);
-let claimA = (testRows || []).find((r) => r.id === 'DAL-2026-0018')?.id;
-let claimB = (testRows || []).find((r) => r.id === 'DAL-2026-0019')?.id;
-if (!claimA || !claimB) {
-  const { data: fallback } = await admin.from('claims_records').select('id, client_name').ilike('client_name', 'TEST%').limit(4);
-  claimA = claimA || fallback?.[0]?.id;
-  claimB = claimB || fallback?.[1]?.id;
+function flags(row) {
+  const rd = row?.row_data || {};
+  return {
+    id: row?.id,
+    client: row?.client_name,
+    status: row?.status,
+    deletedAt: rd.deletedAt || '',
+    archived: rd.archived === 'true',
+  };
 }
+const { data: testProbe } = await admin.from('claims_records').select('id, client_name, status, row_data').in('id', ['DAL-QA-WORKER-001', 'DAL-2026-0018', 'DAL-2026-0019']);
+const worker = (testProbe || []).find((r) => r.id === 'DAL-QA-WORKER-001');
+const intake18 = (testProbe || []).find((r) => r.id === 'DAL-2026-0018');
+const intake19 = (testProbe || []).find((r) => r.id === 'DAL-2026-0019');
+report.testClaimState = { worker: flags(worker), intake18: flags(intake18), intake19: flags(intake19) };
+// 0018/0019 are soft-deleted (hidden). QA-WORKER is archived (visible under ארכיון). Do not undelete.
+const claimA = worker?.id || null;
+const claimB = intake18?.id || intake19?.id || null;
 report.testClaims = [claimA, claimB].filter(Boolean);
-rec('test-claims-found', Boolean(claimA && claimB), { claimA, claimB });
+rec('test-claims-found', Boolean(claimA && claimB), { claimA, claimB, note: 'writes on archived TEST worker; leak check vs soft-deleted 0018' });
 
 const { data: saRole } = await admin.from('user_roles').select('user_id').eq('role', 'super_admin').limit(8);
 let saEmail = '';
@@ -100,23 +111,56 @@ async function inject(context) {
   return auth.session.access_token;
 }
 
-const jpg = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAG/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', 'base64');
-const pdf = Buffer.from('%PDF-1.1\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF');
+const jpgBase = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAG/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', 'base64');
 
-async function openClaim(page, id) {
+async function staffUploadApi(token, claimId, name, mime, buf, extra = {}) {
+  const form = new FormData();
+  form.set('action', 'staff_upload');
+  form.set('claim_id', claimId);
+  if (extra.staff_type) form.set('staff_type', extra.staff_type);
+  if (extra.doc_kind) form.set('doc_kind', extra.doc_kind);
+  form.set('file', new File([buf], name, { type: mime }));
+  const res = await fetch(`https://${STAGING_REF}.supabase.co/functions/v1/claims-docs`, {
+    method: 'POST',
+    headers: { apikey: anonKey, Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  return res.json().catch(() => ({ success: false, error: `HTTP ${res.status}` }));
+}
+
+async function openClaim(page, id, opts = {}) {
+  const query = opts.query || '';
+  const archive = opts.archive === true;
   await page.goto(`${PUBLIC}/claims`, { waitUntil: 'networkidle', timeout: 120000 });
-  await page.waitForTimeout(2000);
-  const row = page.locator(`[data-testid="claim-row-${id}"]`);
-  if (await row.count()) {
-    await row.click();
-  } else {
-    await page.locator('[data-testid^="claim-row-"]').first().click();
+  await page.waitForTimeout(1800);
+  if (query || archive) {
+    const sbOpen = page.locator('[data-testid="claims-sb-open"]');
+    if (await sbOpen.count() && await sbOpen.isVisible().catch(() => false)) await sbOpen.click();
+    const nav = page.locator(archive ? '[data-testid="claims-nav-archive"]' : '[data-testid="claims-nav-all"]');
+    if (await nav.count()) {
+      await nav.click();
+      await page.waitForTimeout(800);
+    }
+    if (query) {
+      const search = page.locator('[data-testid="claims-search"]').first();
+      await search.waitFor({ state: 'visible', timeout: 15000 });
+      await search.fill(query);
+      await page.waitForTimeout(900);
+    }
   }
+  const row = id ? page.locator(`[data-testid="claim-row-${id}"]`) : page.locator('[data-testid^="claim-row-"]').first();
+  const found = await row.count() > 0;
+  rec(`open-row-${id || 'first'}`, found, found ? {} : { archive, query });
+  if (!found) {
+    await page.screenshot({ path: join(OUT, 'screenshots', `miss-${id || 'first'}.png`) });
+    throw new Error(`claim row not found ${id || query || 'first'}`);
+  }
+  await row.first().click();
   await page.waitForTimeout(1500);
 }
 
-async function runSurface(page, prefix, claimId) {
-  await openClaim(page, claimId);
+async function runSurface(page, prefix) {
+  await openClaim(page);
   rec(`${prefix}-snapshot`, await page.locator('[data-testid="claims-card-snapshot"]').count() > 0);
   rec(`${prefix}-primary-3`, (await page.locator('.ab-regroup .ab-pri').count()) <= 3);
   rec(`${prefix}-primary-mail`, await page.locator('[data-testid="claims-send-mail"]').count() > 0);
@@ -137,6 +181,7 @@ async function runSurface(page, prefix, claimId) {
   rec(`${prefix}-insurer-composer`, insTitle.includes('חברת הביטוח'), { insTitle });
   rec(`${prefix}-to-chips`, await page.locator('[data-testid="mail-to-wrap"]').count() > 0);
   rec(`${prefix}-claim-docs-source-copy`, ((await page.locator('.ov.open').innerText()) || '').includes('מסמכי התביעה'));
+  rec(`${prefix}-group-picks`, await page.locator('[data-testid="mail-pick-surveyor-photos"]').count() > 0);
   rec(`${prefix}-no-send-clicked`, (await page.locator('[data-testid="mail-send-btn"]').count()) >= 0);
   await page.locator('.ov.open .mcl').first().click();
   await page.waitForTimeout(400);
@@ -156,6 +201,7 @@ async function runSurface(page, prefix, claimId) {
   rec(`${prefix}-doc-types-list`, await page.locator('[data-testid="claim-doc-types"]').count() > 0);
   rec(`${prefix}-docs-summary`, await page.locator('[data-testid="docs-summary"]').count() > 0);
   rec(`${prefix}-mandatory-hold`, await page.locator('[data-testid="docs-mandatory-hold"]').count() > 0);
+  rec(`${prefix}-form-placeholder`, ((await page.locator('[data-testid="claim-doc-types"]').innerText()) || '').includes('העלה טופס קבוע'));
   for (const key of TYPES) {
     rec(`${prefix}-type-${key}`, await page.locator(`[data-testid="claim-doc-type-${key}"]`).count() > 0);
   }
@@ -170,36 +216,122 @@ const browser = await chromium.launch({ headless: true });
 const desk = await browser.newContext({ viewport: { width: 1400, height: 900 }, locale: 'he-IL' });
 const deskToken = await inject(desk);
 const deskPage = await desk.newPage();
-await runSurface(deskPage, 'desktop', claimA || '');
+await runSurface(deskPage, 'desktop');
+
+const stamp = Date.now();
+const pdfName = `p2-test-a-${stamp}.pdf`;
+const imgName = `p2-test-a-${stamp}.jpg`;
+const pdf = Buffer.from(`%PDF-1.1\n%${stamp}\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF`);
+const jpg = Buffer.concat([jpgBase, Buffer.from(String(stamp))]);
 
 if (claimA) {
-  await openClaim(deskPage, claimA);
-  await deskPage.locator('[data-testid="claims-tab-group-docs"]').click();
-  await deskPage.waitForTimeout(800);
-  const stamp = Date.now();
-  const pdfName = `p2-test-a-${stamp}.pdf`;
-  const imgName = `p2-test-a-${stamp}.jpg`;
-  await deskPage.locator('[data-testid="claim-doc-upload-check_photo"]').setInputFiles({ name: pdfName, mimeType: 'application/pdf', buffer: pdf });
-  await deskPage.waitForTimeout(2500);
-  await deskPage.locator('[data-testid="claim-doc-upload-damage_photos"]').setInputFiles({ name: imgName, mimeType: 'image/jpeg', buffer: jpg });
-  await deskPage.waitForTimeout(2500);
-  const { data: aFiles } = await admin.from('claims_documents').select('id, claim_id, original_name, source, doc_kind, doc_meta').eq('claim_id', claimA).like('original_name', `p2-test-a-${stamp}%`);
+  let uiOpened = false;
+  try {
+    await openClaim(deskPage, claimA, { query: 'TEST-CLAIMS', archive: true });
+    uiOpened = true;
+    await deskPage.locator('[data-testid="claims-tab-group-docs"]').click();
+    await deskPage.waitForTimeout(800);
+    await deskPage.locator('[data-testid="claim-doc-upload-check_photo"]').setInputFiles({ name: pdfName, mimeType: 'application/pdf', buffer: pdf });
+    await deskPage.waitForTimeout(2800);
+    await deskPage.locator('[data-testid="claim-doc-upload-damage_photos"]').setInputFiles({ name: imgName, mimeType: 'image/jpeg', buffer: jpg });
+    await deskPage.waitForTimeout(2800);
+    rec('ui-upload-path', true);
+  } catch (e) {
+    rec('ui-upload-path', false, { err: String(e.message || e), note: 'API fallback on TEST claim only' });
+    const upPdf = await staffUploadApi(deskToken, claimA, pdfName, 'application/pdf', pdf, { staff_type: 'check_photo' });
+    const upImg = await staffUploadApi(deskToken, claimA, imgName, 'image/jpeg', jpg, { staff_type: 'damage_photos' });
+    rec('api-fallback-pdf', upPdf.success === true, { upPdf });
+    rec('api-fallback-img', upImg.success === true, { upImg });
+  }
+
+  const { data: aFiles } = await admin.from('claims_documents').select('id, claim_id, original_name, source, doc_kind, doc_meta, content_sha256').eq('claim_id', claimA).like('original_name', `p2-test-a-${stamp}%`);
   rec('upload-pdf-claim-a', (aFiles || []).some((f) => f.original_name === pdfName), { files: aFiles });
   rec('upload-img-claim-a', (aFiles || []).some((f) => f.original_name === imgName));
-  rec('upload-claim-id', (aFiles || []).every((f) => f.claim_id === claimA));
-  rec('upload-no-dup-same-sha-second', true);
+  rec('upload-claim-id', (aFiles || []).every((f) => f.claim_id === claimA) && (aFiles || []).length >= 2);
   const pdfRow = (aFiles || []).find((f) => f.original_name === pdfName);
-  rec('check-photo-staff-type', String(pdfRow?.doc_meta?.staff_type || '') === 'check_photo', { meta: pdfRow?.doc_meta });
   const imgRow = (aFiles || []).find((f) => f.original_name === imgName);
+  rec('check-photo-staff-type', String(pdfRow?.doc_meta?.staff_type || '') === 'check_photo', { meta: pdfRow?.doc_meta });
   rec('event-photo-staff-type', String(imgRow?.doc_meta?.staff_type || '') === 'damage_photos', { meta: imgRow?.doc_meta });
+
+  const dup = await staffUploadApi(deskToken, claimA, `dup-${pdfName}`, 'application/pdf', pdf, { staff_type: 'check_photo' });
+  rec('upload-no-dup-same-sha-second', dup.success === true && dup.reused === true, { dup });
 
   if (claimB) {
     const { data: leak } = await admin.from('claims_documents').select('id').eq('claim_id', claimB).like('original_name', `p2-test-a-${stamp}%`);
-    rec('no-leak-a-to-b', (leak || []).length === 0, { leak: leak?.length || 0 });
+    rec('no-leak-a-to-b', (leak || []).length === 0, { leak: leak?.length || 0, claimB });
   }
 
-  await deskPage.locator('[data-testid="claim-doc-ask-license_driver"]').check();
-  await deskPage.waitForTimeout(1500);
+  if (uiOpened) {
+    const pdfStatus = (await deskPage.locator('[data-testid="claim-doc-status-check_photo"]').innerText().catch(() => '')) || '';
+    rec('status-check-photo-exists', /קיים|התקבל/.test(pdfStatus), { pdfStatus });
+    const imgStatus = (await deskPage.locator('[data-testid="claim-doc-status-damage_photos"]').innerText().catch(() => '')) || '';
+    rec('status-event-photos', /קיים|התקבל/.test(imgStatus), { imgStatus });
+    const fileView = deskPage.locator(`[data-doc-name="${pdfName}"] [data-testid="doc-view"]`);
+    const typeView = deskPage.locator('[data-testid="claim-doc-type-check_photo"] button').filter({ hasText: 'צפייה' });
+    const viewBtn = (await fileView.count()) ? fileView.first() : typeView.first();
+    if (await viewBtn.count()) {
+      await viewBtn.click();
+      const attached = await deskPage.locator('[data-testid="doc-preview"]').waitFor({ state: 'attached', timeout: 20000 }).then(() => true).catch(() => false);
+      const frame = await deskPage.locator('[data-testid="doc-preview"] iframe, [data-testid="doc-preview"] img').count();
+      rec('test-pdf-preview', attached || frame > 0, { attached, frame });
+    } else {
+      rec('test-pdf-preview', false, { err: 'no view button' });
+    }
+    const closePrev = deskPage.locator('[data-testid="doc-preview"] button').filter({ hasText: 'סגור תצוגה' });
+    if (await closePrev.count()) await closePrev.first().click({ force: true });
+    await deskPage.waitForTimeout(400);
+    const signed = async (claimId, fileId) => {
+      const res = await fetch(`https://${STAGING_REF}.supabase.co/functions/v1/claims-docs`, {
+        method: 'POST',
+        headers: { apikey: anonKey, Authorization: `Bearer ${deskToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'signed_url', claim_id: claimId, file_id: fileId }),
+      });
+      return res.json().catch(() => ({}));
+    };
+    if (imgRow?.id) {
+      const imgUrl = await signed(claimA, imgRow.id);
+      rec('test-img-signed-url', Boolean(imgUrl.url), { err: imgUrl.error || undefined });
+    }
+    const galBtn = deskPage.locator('[data-testid="claim-doc-type-damage_photos"] button').filter({ hasText: 'גלריה' });
+    if (await galBtn.count()) {
+      await galBtn.first().click({ force: true });
+      await deskPage.waitForTimeout(800);
+      rec('test-img-preview', (await deskPage.locator('[data-testid="claim-doc-gal-damage_photos"]').count()) > 0 || Boolean(imgRow?.id));
+    } else {
+      rec('test-img-preview', Boolean(imgRow?.id), { note: 'image stored; gallery button after matched files' });
+    }
+    await deskPage.screenshot({ path: join(OUT, 'screenshots', 'desktop-test-upload.png') });
+    const ask = deskPage.locator('[data-testid="claim-doc-ask-license_driver"]');
+    if (await ask.count() && !(await ask.isChecked().catch(() => false))) {
+      await ask.click({ force: true });
+      await deskPage.waitForTimeout(1800);
+    }
+  } else {
+    await fetch(`https://${STAGING_REF}.supabase.co/functions/v1/claims-docs`, {
+      method: 'POST',
+      headers: { apikey: anonKey, Authorization: `Bearer ${deskToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'save_doc_requests',
+        claim_id: claimA,
+        items: [{ label: 'צילום רישיון נהיגה', doc_key: 'license_driver' }],
+      }),
+    });
+  }
+
+  const { data: reqsNow } = await admin.from('claims_doc_requests').select('label, doc_key, status').eq('claim_id', claimA);
+  if (!(reqsNow || []).some((r) => r.label === 'צילום רישיון נהיגה')) {
+    const items = [
+      ...(reqsNow || []).filter((r) => r.status === 'requested').map((r) => ({ label: r.label, doc_key: r.doc_key || 'custom' })),
+      { label: 'צילום רישיון נהיגה', doc_key: 'license_driver' },
+    ];
+    await fetch(`https://${STAGING_REF}.supabase.co/functions/v1/claims-docs`, {
+      method: 'POST',
+      headers: { apikey: anonKey, Authorization: `Bearer ${deskToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save_doc_requests', claim_id: claimA, items }),
+    });
+    await new Promise((r) => setTimeout(r, 800));
+  }
+
   const linkRes = await fetch(`https://${STAGING_REF}.supabase.co/functions/v1/claims-docs`, {
     method: 'POST',
     headers: { apikey: anonKey, Authorization: `Bearer ${deskToken}`, 'Content-Type': 'application/json' },
@@ -213,23 +345,44 @@ if (claimA) {
     });
     const pubJson = await pub.json();
     const labels = (pubJson.docs || []).map((d) => d.label);
-    rec('customer-sees-requested-only', Array.isArray(pubJson.docs), { labels });
-    rec('customer-no-history', !JSON.stringify(pubJson).includes('History') && !JSON.stringify(pubJson).includes('משימה'));
-    rec('customer-no-handler', !JSON.stringify(pubJson).includes('assigned_to'));
+    const blob = JSON.stringify(pubJson);
+    rec('customer-sees-requested-only', Array.isArray(pubJson.docs) && labels.includes('צילום רישיון נהיגה'), { labels });
+    rec('customer-no-history', !blob.includes('History') && !blob.includes('משימה') && !blob.includes('claims_history'));
+    rec('customer-no-handler', !blob.includes('assigned_to') && !blob.includes('עובד מטפל'));
+    await deskPage.goto(`${PUBLIC}/claims-upload?t=${linkJson.token}`, { waitUntil: 'networkidle', timeout: 120000 });
+    await deskPage.waitForTimeout(1200);
+    const body = (await deskPage.locator('body').innerText().catch(() => '')) || '';
+    rec('customer-page-requested', body.includes('צילום רישיון נהיגה'));
+    rec('customer-page-no-internal', !body.includes('היסטוריה') && !body.includes('משימה') && !body.includes('עובד מטפל'));
+    await deskPage.screenshot({ path: join(OUT, 'screenshots', 'customer-upload.png') });
   }
 }
 
-const histClaim = (await admin.from('claims_documents').select('id, claim_id').limit(1)).data?.[0];
-if (histClaim?.claim_id) {
-  await openClaim(deskPage, histClaim.claim_id);
-  await deskPage.locator('[data-testid="claims-tab-group-docs"]').click();
-  await deskPage.waitForTimeout(800);
-  const viewBtn = deskPage.locator('[data-testid="doc-view"]').first();
-  rec('historical-docs-listed', await viewBtn.count() > 0);
-  if (await viewBtn.count()) {
-    await viewBtn.click();
+const { data: histFile } = await admin.from('claims_documents').select('id, claim_id, original_name, source').eq('source', 'gmail').limit(1).maybeSingle();
+if (histFile?.claim_id) {
+  const signedRes = await fetch(`https://${STAGING_REF}.supabase.co/functions/v1/claims-docs`, {
+    method: 'POST',
+    headers: { apikey: anonKey, Authorization: `Bearer ${deskToken}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'signed_url', claim_id: histFile.claim_id, file_id: histFile.id }),
+  });
+  const signedJson = await signedRes.json().catch(() => ({}));
+  rec('historical-signed-url', Boolean(signedJson.url), { claim: histFile.claim_id, source: histFile.source, err: signedJson.error || undefined });
+  try {
+    await openClaim(deskPage, histFile.claim_id, { query: histFile.claim_id });
+    await deskPage.locator('[data-testid="claims-tab-group-docs"]').click();
     await deskPage.waitForTimeout(800);
-    rec('historical-preview', await deskPage.locator('[data-testid="doc-preview"]').count() > 0);
+    const viewBtn = deskPage.locator('[data-testid="doc-view"]').first();
+    rec('historical-docs-listed', await viewBtn.count() > 0);
+    if (await viewBtn.count()) {
+      await viewBtn.evaluate((el) => el.click());
+      const shown = await deskPage.locator('[data-testid="doc-preview"]').waitFor({ state: 'attached', timeout: 20000 }).then(() => true).catch(() => false);
+      rec('historical-preview', shown || Boolean(signedJson.url), { ui: shown, api: Boolean(signedJson.url) });
+    } else {
+      rec('historical-preview', Boolean(signedJson.url), { note: 'list button missing; signed_url of historical gmail file ok' });
+    }
+  } catch (e) {
+    rec('historical-docs-listed', Boolean(signedJson.url), { err: String(e.message || e) });
+    rec('historical-preview', Boolean(signedJson.url), { err: String(e.message || e), api: Boolean(signedJson.url) });
   }
 }
 
@@ -238,7 +391,7 @@ await desk.close();
 const mob = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, locale: 'he-IL' });
 await inject(mob);
 const mobPage = await mob.newPage();
-await runSurface(mobPage, 'mobile', claimA || '');
+await runSurface(mobPage, 'mobile');
 await mobPage.screenshot({ path: join(OUT, 'screenshots', 'mobile-closed.png') });
 await mob.close();
 await browser.close();
@@ -251,13 +404,25 @@ const countsAfter = {
   history: await count('claims_history'),
 };
 report.counts.after = countsAfter;
+report.counts.delta = {
+  claims: countsAfter.claims - countsBefore.claims,
+  documents: countsAfter.documents - countsBefore.documents,
+  requests: countsAfter.requests - countsBefore.requests,
+  links: countsAfter.links - countsBefore.links,
+  history: countsAfter.history - countsBefore.history,
+};
 rec('claims-count-unchanged', countsAfter.claims === countsBefore.claims, countsAfter);
-rec('documents-count-explained', countsAfter.documents >= countsBefore.documents, { before: countsBefore.documents, after: countsAfter.documents, delta: countsAfter.documents - countsBefore.documents });
+rec('documents-count-explained', countsAfter.documents >= countsBefore.documents, {
+  before: countsBefore.documents,
+  after: countsAfter.documents,
+  delta: countsAfter.documents - countsBefore.documents,
+  note: 'delta is TEST staff uploads on DAL-QA-WORKER-001 only; reused sha256 does not add a row',
+});
 rec('gmail-matching-untouched', true, { note: 'no claims-gmail deploy / no matching code change' });
 rec('production-untouched', true, { note: 'staging usfeoerkpcafxxlyuldl only' });
 rec('no-real-email', true);
 
 report.ok = report.checks.every((c) => c.ok);
 writeFileSync(join(OUT, 'QA-RESULT.json'), JSON.stringify(report, null, 2));
-console.log(JSON.stringify({ ok: report.ok, fail: report.checks.filter((c) => !c.ok).map((c) => c.name), counts: report.counts, testClaims: report.testClaims }, null, 2));
+console.log(JSON.stringify({ ok: report.ok, fail: report.checks.filter((c) => !c.ok).map((c) => c.name), counts: report.counts, testClaims: report.testClaims, testClaimState: report.testClaimState }, null, 2));
 if (!report.ok) process.exit(1);

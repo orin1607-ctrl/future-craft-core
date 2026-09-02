@@ -1,0 +1,645 @@
+{
+  "at": "2026-09-02T14:44:35.990Z",
+  "public": "https://orin1607-ctrl.github.io/future-craft-core",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "liveMailSent": false,
+  "schedulerLive": false,
+  "testClaims": [
+    "DAL-QA-WORKER-001",
+    "DAL-2026-0018"
+  ],
+  "testClaimState": {
+    "worker": {
+      "id": "DAL-QA-WORKER-001",
+      "client": "TEST-CLAIMS-WORKER",
+      "status": "ממתין למסמכים",
+      "deletedAt": "",
+      "archived": true
+    },
+    "intake18": {
+      "id": "DAL-2026-0018",
+      "client": "TEST-INTAKE לקוח",
+      "status": "חדש",
+      "deletedAt": "2026-09-01T18:51:56.351Z",
+      "archived": false
+    },
+    "intake19": {
+      "id": "DAL-2026-0019",
+      "client": "TEST-INTAKE כפילות",
+      "status": "הסתיים",
+      "deletedAt": "2026-09-01T18:51:56.351Z",
+      "archived": false
+    }
+  },
+  "counts": {
+    "before": {
+      "claims": 19,
+      "documents": 1843,
+      "requests": 22,
+      "links": 11,
+      "history": 404
+    },
+    "after": {
+      "claims": 19,
+      "documents": 1845,
+      "requests": 23,
+      "links": 12,
+      "history": 408
+    },
+    "delta": {
+      "claims": 0,
+      "documents": 2,
+      "requests": 1,
+      "links": 1,
+      "history": 4
+    }
+  },
+  "checks": [
+    {
+      "name": "mail-mode-dry-run",
+      "ok": true,
+      "mode": "dry_run"
+    },
+    {
+      "name": "test-claims-found",
+      "ok": true,
+      "claimA": "DAL-QA-WORKER-001",
+      "claimB": "DAL-2026-0018",
+      "note": "writes on archived TEST worker; leak check vs soft-deleted 0018"
+    },
+    {
+      "name": "open-row-first",
+      "ok": true
+    },
+    {
+      "name": "desktop-snapshot",
+      "ok": true
+    },
+    {
+      "name": "desktop-primary-3",
+      "ok": true
+    },
+    {
+      "name": "desktop-primary-mail",
+      "ok": true
+    },
+    {
+      "name": "desktop-primary-treat",
+      "ok": true
+    },
+    {
+      "name": "desktop-primary-docs",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-שיחה",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-WhatsApp",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-שליחה לחברת ביטוח",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-טיפול משפטי",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-סיכום פנימי",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-משימה",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-תזכורת",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-מעקב מייל",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-ייבוא Gmail",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-סגור תיק",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-מחק תיק",
+      "ok": true
+    },
+    {
+      "name": "desktop-more-archive",
+      "ok": true
+    },
+    {
+      "name": "desktop-insurer-composer",
+      "ok": true,
+      "insTitle": "🏢 שליחה לחברת הביטוח"
+    },
+    {
+      "name": "desktop-to-chips",
+      "ok": true
+    },
+    {
+      "name": "desktop-claim-docs-source-copy",
+      "ok": true
+    },
+    {
+      "name": "desktop-group-picks",
+      "ok": true
+    },
+    {
+      "name": "desktop-no-send-clicked",
+      "ok": true
+    },
+    {
+      "name": "desktop-mail-bar",
+      "ok": true
+    },
+    {
+      "name": "desktop-mail-bar-call-wa",
+      "ok": true
+    },
+    {
+      "name": "desktop-thread-oldest-ui",
+      "ok": true
+    },
+    {
+      "name": "desktop-reply-present",
+      "ok": true
+    },
+    {
+      "name": "desktop-reply-all-present",
+      "ok": true
+    },
+    {
+      "name": "desktop-forward-present",
+      "ok": true
+    },
+    {
+      "name": "desktop-doc-types-list",
+      "ok": true
+    },
+    {
+      "name": "desktop-docs-summary",
+      "ok": true
+    },
+    {
+      "name": "desktop-mandatory-hold",
+      "ok": true
+    },
+    {
+      "name": "desktop-form-placeholder",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-notice_a",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-notice_ayin",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-no_claim_form",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-insurance_history",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-consent_form",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-check_photo",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-garage_invoice",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-surveyor_report",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-surveyor_photos",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-damage_photos",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-license_driver",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-license_vehicle",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-power_of_attorney",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-rejection_letter",
+      "ok": true
+    },
+    {
+      "name": "desktop-type-demand_form",
+      "ok": true
+    },
+    {
+      "name": "desktop-work-bar",
+      "ok": true
+    },
+    {
+      "name": "open-row-DAL-QA-WORKER-001",
+      "ok": true
+    },
+    {
+      "name": "ui-upload-path",
+      "ok": true
+    },
+    {
+      "name": "upload-pdf-claim-a",
+      "ok": true,
+      "files": [
+        {
+          "id": "CDM-1788360322620-J7J1QQ",
+          "claim_id": "DAL-QA-WORKER-001",
+          "original_name": "p2-test-a-1788360304204.pdf",
+          "source": "staff",
+          "doc_kind": "general",
+          "doc_meta": {
+            "staff_type": "check_photo"
+          },
+          "content_sha256": "f222e1e73e8fa86387ace0f560d3125a08a7a0fe0c6a628234ac4bd0829d8f0e"
+        },
+        {
+          "id": "CDM-1788360325636-TM6U2M",
+          "claim_id": "DAL-QA-WORKER-001",
+          "original_name": "p2-test-a-1788360304204.jpg",
+          "source": "staff",
+          "doc_kind": "general",
+          "doc_meta": {
+            "staff_type": "damage_photos"
+          },
+          "content_sha256": "3a065d42157916cb0c5ccbf5eadd31901b8a7a7910534d2a0cef5978274daf81"
+        }
+      ]
+    },
+    {
+      "name": "upload-img-claim-a",
+      "ok": true
+    },
+    {
+      "name": "upload-claim-id",
+      "ok": true
+    },
+    {
+      "name": "check-photo-staff-type",
+      "ok": true,
+      "meta": {
+        "staff_type": "check_photo"
+      }
+    },
+    {
+      "name": "event-photo-staff-type",
+      "ok": true,
+      "meta": {
+        "staff_type": "damage_photos"
+      }
+    },
+    {
+      "name": "upload-no-dup-same-sha-second",
+      "ok": true,
+      "dup": {
+        "success": true,
+        "file_id": "CDM-1788360322620-J7J1QQ",
+        "reused": true,
+        "source": "staff",
+        "copied": false
+      }
+    },
+    {
+      "name": "no-leak-a-to-b",
+      "ok": true,
+      "leak": 0,
+      "claimB": "DAL-2026-0018"
+    },
+    {
+      "name": "status-check-photo-exists",
+      "ok": true,
+      "pdfStatus": "קיים"
+    },
+    {
+      "name": "status-event-photos",
+      "ok": true,
+      "imgStatus": "קיים"
+    },
+    {
+      "name": "test-pdf-preview",
+      "ok": true,
+      "attached": false,
+      "frame": 2
+    },
+    {
+      "name": "test-img-signed-url",
+      "ok": true
+    },
+    {
+      "name": "test-img-preview",
+      "ok": true
+    },
+    {
+      "name": "create-customer-link",
+      "ok": true
+    },
+    {
+      "name": "customer-sees-requested-only",
+      "ok": true,
+      "labels": [
+        "צילום רישיון נהיגה"
+      ]
+    },
+    {
+      "name": "customer-no-history",
+      "ok": true
+    },
+    {
+      "name": "customer-no-handler",
+      "ok": true
+    },
+    {
+      "name": "customer-page-requested",
+      "ok": true
+    },
+    {
+      "name": "customer-page-no-internal",
+      "ok": true
+    },
+    {
+      "name": "historical-signed-url",
+      "ok": true,
+      "claim": "DAL-2026-0004",
+      "source": "gmail"
+    },
+    {
+      "name": "open-row-DAL-2026-0004",
+      "ok": true
+    },
+    {
+      "name": "historical-docs-listed",
+      "ok": true
+    },
+    {
+      "name": "historical-preview",
+      "ok": true,
+      "ui": false,
+      "api": true
+    },
+    {
+      "name": "open-row-first",
+      "ok": true
+    },
+    {
+      "name": "mobile-snapshot",
+      "ok": true
+    },
+    {
+      "name": "mobile-primary-3",
+      "ok": true
+    },
+    {
+      "name": "mobile-primary-mail",
+      "ok": true
+    },
+    {
+      "name": "mobile-primary-treat",
+      "ok": true
+    },
+    {
+      "name": "mobile-primary-docs",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-שיחה",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-WhatsApp",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-שליחה לחברת ביטוח",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-טיפול משפטי",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-סיכום פנימי",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-משימה",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-תזכורת",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-מעקב מייל",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-ייבוא Gmail",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-סגור תיק",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-מחק תיק",
+      "ok": true
+    },
+    {
+      "name": "mobile-more-archive",
+      "ok": true
+    },
+    {
+      "name": "mobile-insurer-composer",
+      "ok": true,
+      "insTitle": "🏢 שליחה לחברת הביטוח"
+    },
+    {
+      "name": "mobile-to-chips",
+      "ok": true
+    },
+    {
+      "name": "mobile-claim-docs-source-copy",
+      "ok": true
+    },
+    {
+      "name": "mobile-group-picks",
+      "ok": true
+    },
+    {
+      "name": "mobile-no-send-clicked",
+      "ok": true
+    },
+    {
+      "name": "mobile-mail-bar",
+      "ok": true
+    },
+    {
+      "name": "mobile-mail-bar-call-wa",
+      "ok": true
+    },
+    {
+      "name": "mobile-thread-oldest-ui",
+      "ok": true
+    },
+    {
+      "name": "mobile-reply-present",
+      "ok": true
+    },
+    {
+      "name": "mobile-reply-all-present",
+      "ok": true
+    },
+    {
+      "name": "mobile-forward-present",
+      "ok": true
+    },
+    {
+      "name": "mobile-doc-types-list",
+      "ok": true
+    },
+    {
+      "name": "mobile-docs-summary",
+      "ok": true
+    },
+    {
+      "name": "mobile-mandatory-hold",
+      "ok": true
+    },
+    {
+      "name": "mobile-form-placeholder",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-notice_a",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-notice_ayin",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-no_claim_form",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-insurance_history",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-consent_form",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-check_photo",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-garage_invoice",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-surveyor_report",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-surveyor_photos",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-damage_photos",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-license_driver",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-license_vehicle",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-power_of_attorney",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-rejection_letter",
+      "ok": true
+    },
+    {
+      "name": "mobile-type-demand_form",
+      "ok": true
+    },
+    {
+      "name": "mobile-work-bar",
+      "ok": true
+    },
+    {
+      "name": "claims-count-unchanged",
+      "ok": true,
+      "claims": 19,
+      "documents": 1845,
+      "requests": 23,
+      "links": 12,
+      "history": 408
+    },
+    {
+      "name": "documents-count-explained",
+      "ok": true,
+      "before": 1843,
+      "after": 1845,
+      "delta": 2,
+      "note": "delta is TEST staff uploads on DAL-QA-WORKER-001 only; reused sha256 does not add a row"
+    },
+    {
+      "name": "gmail-matching-untouched",
+      "ok": true,
+      "note": "no claims-gmail deploy / no matching code change"
+    },
+    {
+      "name": "production-untouched",
+      "ok": true,
+      "note": "staging usfeoerkpcafxxlyuldl only"
+    },
+    {
+      "name": "no-real-email",
+      "ok": true
+    }
+  ],
+  "ok": true
+}

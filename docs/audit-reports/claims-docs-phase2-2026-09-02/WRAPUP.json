@@ -1,0 +1,50 @@
+{
+  "mission": "claims-docs-phase2-ui",
+  "scope": "OREN CAR / CLAIMS / Staging only",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "migration": false,
+  "schemaChange": false,
+  "MAIL_DISPATCH_MODE": "dry_run",
+  "liveMailSent": false,
+  "qa": "PASS",
+  "desktop": "PASS",
+  "mobile": "PASS",
+  "uiCommit": "ef1d6f06",
+  "qaCommitPending": true,
+  "deployed_ref": "ef1d6f06",
+  "publicStaging": "https://orin1607-ctrl.github.io/future-craft-core",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "testClaims": {
+    "write": "DAL-QA-WORKER-001",
+    "isolation": "DAL-2026-0018",
+    "historicalOpen": "DAL-2026-0004",
+    "note": "DAL-2026-0018/0019 remain soft-deleted from an earlier demo. Writes used archived TEST worker. No undelete. No Production claims."
+  },
+  "counts": {
+    "restoreBefore": { "claims": 19, "documents": 1837, "requests": 21, "links": 9, "bucket": "claims-docs private" },
+    "afterQaPass": { "claims": 19, "documents": 1845, "requests": 23, "links": 12 },
+    "explained": "Claims unchanged. Documents +8 are TEST staff uploads on DAL-QA-WORKER-001 across QA retries (2 unique files per run; identical sha256 reused, not duplicated). Requests/links/history rose only from TEST request+upload-link+history rows."
+  },
+  "blockedForSchema": [
+    "Persisting 'מסמך חובה לפני שליחה' — display-only hold until architecture approval",
+    "Fixed PDF template store / 'העלה טופס קבוע' save — UI placeholder only; no new table/bucket"
+  ],
+  "docTypeMap": [
+    { "n": 1, "label": "טופס הודאה א׳", "key": "notice_a", "via": "staff_type notice_a (new code list only; not aliased)" },
+    { "n": 2, "label": "טופס הודעה ע׳", "key": "notice_ayin", "via": "staff_type notice_ayin (new code list only; not aliased to accident_notice)" },
+    { "n": 3, "label": "אישור אי-הגשת תביעה", "key": "no_claim_form", "via": "existing staff_type / doc_key + alias טופס אי-הגשת תביעה" },
+    { "n": 4, "label": "אישור עבר ביטוחי", "key": "insurance_history", "via": "existing staff_type / doc_key + alias עבר ביטוחי" },
+    { "n": 5, "label": "טופס הסכמה", "key": "consent_form", "via": "staff_type consent_form (code list)" },
+    { "n": 6, "label": "צילום צ׳ק", "key": "check_photo", "via": "staff_type check_photo (code list)" },
+    { "n": 7, "label": "חשבונית תיקון", "key": "garage_invoice", "via": "existing doc_kind garage_invoice + alias חשבונית מוסך" },
+    { "n": 8, "label": "דוח שמאי", "key": "surveyor_report", "via": "existing doc_kind surveyor_report (+ surveyor_attachment)" },
+    { "n": 9, "label": "תמונות שמאי", "key": "surveyor_photos", "via": "existing doc_kind surveyor_photo (group)" },
+    { "n": 10, "label": "תמונות אירוע", "key": "damage_photos", "via": "existing staff_type damage_photos (group) + aliases תמונות נזק" },
+    { "n": 11, "label": "צילום רישיון נהיגה", "key": "license_driver", "via": "existing staff_type driver_license" },
+    { "n": 12, "label": "צילום רישיון רכב", "key": "license_vehicle", "via": "existing staff_type vehicle_license" },
+    { "n": 13, "label": "ייפוי כוח", "key": "power_of_attorney", "via": "staff_type power_of_attorney (code list)" },
+    { "n": 14, "label": "מכתב דחייה", "key": "rejection_letter", "via": "staff_type rejection_letter (code list)" },
+    { "n": 15, "label": "טופס דרישה", "key": "demand_form", "via": "staff_type demand_form (code list)" }
+  ]
+}
