@@ -239,7 +239,7 @@ async function openTestClaim(page, recName) {
 const sha = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
 if (String(PUBLIC).includes('github.io')) {
   let pagesReady = false;
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < 40; i++) {
     const txt = await fetch(`${PUBLIC}/STAGING-DEPLOY.txt`).then((r) => r.text()).catch(() => '');
     if (txt.includes(sha)) {
       pagesReady = true;
@@ -247,7 +247,7 @@ if (String(PUBLIC).includes('github.io')) {
       break;
     }
     if (i === 0) console.log(`waiting for GitHub Pages ${sha} … currently ${txt.trim()}`);
-    await new Promise((r) => setTimeout(r, 10000));
+    await new Promise((r) => setTimeout(r, 15000));
   }
   if (!pagesReady) rec('pages-deploy-sha', true, { sha, note: 'pages not on this SHA yet; continuing against configured base' });
 } else {
