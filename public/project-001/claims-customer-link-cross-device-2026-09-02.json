@@ -1,0 +1,24 @@
+{
+  "id": "claims-customer-link-cross-device-2026-09-02",
+  "environment": "staging",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "productionTouched": false,
+  "schemaMigration": false,
+  "plaintextTokenInDb": false,
+  "tokenHashKept": true,
+  "edgeFunctionChange": true,
+  "whyOtherDeviceFailed": "SHA-256 token_hash is one-way. create_link returned the raw token once; the SPA cached {id,url,expiresAt} in localStorage. get_link returned metadata only, so another browser showed an active link with no URL.",
+  "dbStores": ["id", "claim_id", "token_hash UNIQUE", "expires_at", "revoked_at", "created_by", "created_at"],
+  "localStorageStores": "dalia-claims-cust-link:<claimId> → { id, url, expiresAt } (convenience cache only)",
+  "chosenFix": "HMAC-SHA256(domain-separated service key, link_id|claim_id). Authorized staff who canWork the claim reconstruct the same token via reveal_link. Public lookup still uses token_hash. No plaintext token column.",
+  "rejected": {
+    "storeRawTokenInDb": "Owner-forbidden. DB/backup leak would expose every customer URL.",
+    "encryptedTokenColumn": "Would need schema/migration — stop until Owner approval.",
+    "rotateOnOtherDeviceOnly": "Clear UX but kills the customer's existing URL. Kept as explicit «צור קישור חדש» and as fallback for pre-HMAC rows."
+  },
+  "ownerGate": {
+    "waiting": "SUPABASE_ACCESS_TOKEN GitHub secret returns 401 on Staging function deploy",
+    "needed": "Rotate the token, then Staging claims-docs deploy + two-session QA can finish"
+  }
+}
