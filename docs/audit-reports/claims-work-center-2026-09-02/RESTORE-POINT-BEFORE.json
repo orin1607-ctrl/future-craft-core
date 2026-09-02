@@ -1,0 +1,101 @@
+{
+  "at": "2026-09-02T09:42:51.552Z",
+  "purpose": "restore-before-claims-work-center",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionRefUntouched": "qasomfndnjuixgjmjwcm",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "liveMailEnabled": false,
+  "schedulerLiveEnabled": false,
+  "MAIL_DISPATCH_MODE": "dry_run",
+  "gitHead": "01a9734e5d7dbed014707abc96190ffbc1c8a153",
+  "gitShort": "01a9734",
+  "gitBranch": "feat/incident-alerts-staging",
+  "bucketPublic": false,
+  "counts": {
+    "claims": 19,
+    "documents": 1837,
+    "tasks": 9,
+    "reminders": 3,
+    "history": 391,
+    "mailJobs": 0,
+    "gmailImports": 171,
+    "gmailOutbox": 5,
+    "gmailPending": 10,
+    "notifications": 31
+  },
+  "sources": {
+    "(empty)": 16,
+    "Customer Accident Intake": 2,
+    "create-user-claims-worker": 1
+  },
+  "docsOrder": {
+    "(unset)": 19
+  },
+  "kindCounts": {
+    "general": 214,
+    "surveyor_photo": 784,
+    "garage_invoice": 1,
+    "surveyor_report": 1
+  },
+  "docSources": {
+    "gmail": 982,
+    "staff": 18
+  },
+  "mailJobsSample": [],
+  "followupReminders": [],
+  "noteRemindersCount": 3,
+  "recentOutboxFollowup": [
+    {
+      "id": "GOS-1788334472402-M2PNQG",
+      "claim_id": "DAL-2026-0017",
+      "status": "sent",
+      "followup_approved": true,
+      "followup_days": 3,
+      "track_due": "2026-09-02T00:00:00+00:00",
+      "track_status": "waiting_reply",
+      "sent_at": "2026-09-02T07:34:33.732+00:00"
+    },
+    {
+      "id": "GOS-1788251218185-3HWVFM",
+      "claim_id": "DAL-2026-0013",
+      "status": "sent",
+      "followup_approved": false,
+      "followup_days": null,
+      "track_due": null,
+      "track_status": null,
+      "sent_at": "2026-09-01T08:27:00.264+00:00"
+    },
+    {
+      "id": "GOS-1788249872299-PCMHAB",
+      "claim_id": "DAL-2026-0018",
+      "status": "sent",
+      "followup_approved": false,
+      "followup_days": null,
+      "track_due": null,
+      "track_status": null,
+      "sent_at": "2026-09-01T08:04:34.003+00:00"
+    },
+    {
+      "id": "GOS-1788249529024-UU8JVR",
+      "claim_id": "DAL-2026-0018",
+      "status": "sent",
+      "followup_approved": false,
+      "followup_days": null,
+      "track_due": null,
+      "track_status": "sent",
+      "sent_at": "2026-09-01T07:58:49.612+00:00"
+    },
+    {
+      "id": "GOS-1788247918473-FHB5BW",
+      "claim_id": "DAL-2026-0018",
+      "status": "sent",
+      "followup_approved": false,
+      "followup_days": null,
+      "track_due": null,
+      "track_status": "sent",
+      "sent_at": "2026-09-01T07:31:59.182+00:00"
+    }
+  ],
+  "mutated": false
+}

@@ -1,0 +1,42 @@
+{
+  "at": "2026-09-02T09:51:06.430Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "documentsMutated": false,
+  "historyMutated": false,
+  "gmailMutated": false,
+  "marked": [
+    "DAL-2026-0002",
+    "DAL-2026-0006",
+    "DAL-2026-0007",
+    "DAL-2026-0008",
+    "DAL-2026-0016",
+    "DAL-2026-0015",
+    "DAL-2026-0013",
+    "DAL-2026-0014",
+    "DAL-2026-0012",
+    "DAL-2026-0004",
+    "DAL-2026-0005",
+    "DAL-2026-0003",
+    "DAL-2026-0010",
+    "DAL-2026-0017",
+    "DAL-2026-0011",
+    "DAL-2026-0009"
+  ],
+  "skipped": [
+    {
+      "id": "DAL-2026-0018",
+      "reason": "test_or_new",
+      "source": "Customer Accident Intake"
+    },
+    {
+      "id": "DAL-2026-0019",
+      "reason": "test_or_new",
+      "source": "Customer Accident Intake"
+    },
+    {
+      "id": "DAL-QA-WORKER-001",
+      "reason": "test_or_new",
+      "source": "create-user-claims-worker"
+    }
+  ]
+}
