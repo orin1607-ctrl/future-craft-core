@@ -543,9 +543,8 @@ function correspondenceThreads(imports: Array<Record<string, unknown>>) {
     groups[idx.get(thread)!].mails.push(im);
   }
   return groups.sort((a, b) => {
-    const ta = new Date(String(a.mails[0]?.sent_at || '')).getTime() || 0;
-    const tb = new Date(String(b.mails[0]?.sent_at || '')).getTime() || 0;
-    return ta - tb;
+    const last = (g: typeof a) => Math.max(0, ...g.mails.map((m) => new Date(String(m.sent_at || '')).getTime() || 0));
+    return last(b) - last(a);
   });
 }
 
@@ -634,6 +633,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [gmailStatus, setGmailStatus] = useState<{ connected?: boolean; email?: string | null; canConnect?: boolean }>({});
   const [gmailList, setGmailList] = useState<Array<Record<string, unknown>>>([]);
   const [gmailImports, setGmailImports] = useState<Array<Record<string, unknown>>>([]);
+  const [mailListLoading, setMailListLoading] = useState(false);
   const [gmailBusy, setGmailBusy] = useState('');
   const [docEditId, setDocEditId] = useState<string | null>(null);
   const [docsUploading, setDocsUploading] = useState(false);
@@ -864,6 +864,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const refreshMailLists = async (id: string, gen?: number) => {
     const live = () => gen === undefined || gen === cardLoadGen.current;
+    if (live()) setMailListLoading(true);
     try {
       const gi = await apiRef.current.invokeGmail('list_imports', { claim_id: id });
       if (live()) setGmailImports(asMailRows(gi.data));
@@ -876,6 +877,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     } catch {
       if (live()) setGmailSends([]);
     }
+    if (live()) setMailListLoading(false);
   };
 
   const loadCardData = async (id: string) => {
@@ -2775,7 +2777,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   </div>
                   <div className="sdiv" data-testid="mail-correspondence"><div className="sdiv-t">התכתבויות ({gmailImports.length})</div><div className="sdiv-l" /></div>
                   <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>מסודר כרונולוגית לפי תאריך המייל. Thread אחד מתחת לשני. אין ייבוא נוסף מכאן אלא אם תבחר מייל חדש למטה.</div>
-                  {gmailImports.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין מיילים יובאים בתיק</div>
+                  {gmailImports.length === 0 ? <div style={{ color: 'var(--t3)' }}>{mailListLoading || gmailBusy ? 'טוען מיילים…' : 'אין מיילים יובאים בתיק'}</div>
                     : correspondenceThreads(gmailImports).map((group) => (
                       <div key={group.thread} className="thread-box">
                         <div className="thread-h">Thread · {group.thread} · {group.mails.length} מיילים</div>

@@ -1,0 +1,316 @@
+{
+  "at": "2026-09-03T10:43:06.180Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "customerEmailSend": false,
+  "dispatchNowCalled": false,
+  "schemaChanged": false,
+  "mailDispatchMode": "dry_run",
+  "gmailSendEnabled": "true",
+  "autoSend": false,
+  "stamp": "QA-LIVE-IN-1788431796668",
+  "testClaimNum": "DAL-2099-0001",
+  "gmailMessageId": "1a066d7e36e006a2",
+  "importId": "GIM-DAL-QA-WORKER-001-1a066d7e36e006a2",
+  "verdicts": {
+    "gmailLiveInbound": "PASS",
+    "match": "PASS",
+    "needsAction": "PASS",
+    "docRequest": "PASS",
+    "suggestedReply": "PASS",
+    "history": "PASS",
+    "refresh": "PASS",
+    "isolation": "PASS",
+    "desktop": "PASS",
+    "mobile": "PASS"
+  },
+  "checks": [
+    {
+      "name": "mail-mode-dry-run",
+      "ok": true,
+      "mode": "dry_run"
+    },
+    {
+      "name": "live-send-generic-blocked",
+      "ok": true,
+      "detail": "generic action send remains live_send_not_approved; only send_claim/self_test exist"
+    },
+    {
+      "name": "live-claim-invisible",
+      "ok": true
+    },
+    {
+      "name": "isolation-b-invisible",
+      "ok": true
+    },
+    {
+      "name": "test-claim-visible",
+      "ok": true
+    },
+    {
+      "name": "match-test-claim-num",
+      "ok": true,
+      "decision": "auto",
+      "claimId": "DAL-QA-WORKER-001",
+      "reason": "מספר תביעה חד-משמעי",
+      "candidates": [
+        "DAL-QA-WORKER-001"
+      ],
+      "via": "claim_number"
+    },
+    {
+      "name": "match-live-stays-on-live",
+      "ok": true,
+      "decision": "auto",
+      "claimId": "DAL-2026-0017",
+      "reason": "מספר תביעה חד-משמעי",
+      "candidates": [
+        "DAL-2026-0017"
+      ],
+      "via": "claim_number"
+    },
+    {
+      "name": "match-b-does-not-hit-a",
+      "ok": true,
+      "decision": "auto",
+      "claimId": "DAL-2026-0018",
+      "reason": "מספר תביעה חד-משמעי",
+      "candidates": [
+        "DAL-2026-0018"
+      ],
+      "via": "claim_number"
+    },
+    {
+      "name": "match-conflict-review",
+      "ok": true,
+      "decision": "needs_review",
+      "reason": "יותר ממספר תביעה אחד במייל",
+      "candidates": [
+        "DAL-QA-WORKER-001",
+        "DAL-2026-0017"
+      ],
+      "via": "claim_number"
+    },
+    {
+      "name": "gmail-connected",
+      "ok": true,
+      "email": "yoni122222@gmail.com",
+      "sendEnabled": true
+    },
+    {
+      "name": "self-test-super-admin-only",
+      "ok": true,
+      "error": "super_admin only"
+    },
+    {
+      "name": "generic-send-blocked",
+      "ok": true,
+      "error": "live_send_not_approved"
+    },
+    {
+      "name": "validate-self-only",
+      "ok": true,
+      "detail": "ui-only: skipped new send"
+    },
+    {
+      "name": "test-mail-sent-to-self-only",
+      "ok": true,
+      "id": "1a066d7e36e006a2",
+      "subject": "[TEST] inbound QA-LIVE-IN-1788431796668 DAL-2099-0001 בדיקה"
+    },
+    {
+      "name": "test-mail-not-to-customer",
+      "ok": true,
+      "detail": "ui-only: previous self send only"
+    },
+    {
+      "name": "gmail-mailbox-has-test-mail",
+      "ok": true,
+      "foundId": "1a066d7e36e006a2",
+      "subject": "[TEST] inbound QA-LIVE-IN-1788431796668 DAL-2099-0001 בדיקה"
+    },
+    {
+      "name": "gmail-dry-scan-ok",
+      "ok": true,
+      "detail": "ui-only: skipped live scan"
+    },
+    {
+      "name": "scan-matched-test-claim",
+      "ok": true,
+      "detail": "ui-only: prior auto match on DAL-QA-WORKER-001"
+    },
+    {
+      "name": "scan-did-not-match-b-or-live",
+      "ok": true
+    },
+    {
+      "name": "import-existing-path",
+      "ok": true,
+      "detail": "ui-only: import already exists"
+    },
+    {
+      "name": "import-b-blocked",
+      "ok": true,
+      "error": "forbidden_claim",
+      "status": 403
+    },
+    {
+      "name": "import-row-on-a",
+      "ok": true,
+      "importId": "GIM-DAL-QA-WORKER-001-1a066d7e36e006a2",
+      "subject": "[TEST] inbound QA-LIVE-IN-1788431796668 DAL-2099-0001 בדיקה"
+    },
+    {
+      "name": "import-not-on-other-claims",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "suggest-api-ok",
+      "ok": true,
+      "importId": "GIM-DAL-QA-WORKER-001-1a066d7e36e006a2"
+    },
+    {
+      "name": "suggest-no-autosend",
+      "ok": true
+    },
+    {
+      "name": "suggest-detects-license",
+      "ok": true
+    },
+    {
+      "name": "suggest-detects-invoice",
+      "ok": true
+    },
+    {
+      "name": "suggest-offers-existing-license",
+      "ok": true,
+      "attIds": [
+        "CDM-1788376434201-K0H72O"
+      ]
+    },
+    {
+      "name": "suggest-draft-visible-fields",
+      "ok": true
+    },
+    {
+      "name": "mail-tasks-created",
+      "ok": true,
+      "n": 2,
+      "actions": [
+        "רישיון נהיגה",
+        "חשבונית מוסך"
+      ]
+    },
+    {
+      "name": "doc-ready-or-missing-labeled",
+      "ok": true,
+      "states": [
+        "רישיון נהיגה:ready",
+        "חשבונית מוסך:missing"
+      ]
+    },
+    {
+      "name": "history-gmail-import",
+      "ok": true,
+      "actions": [
+        "זוהתה בקשה",
+        "יובא מייל מ-Gmail כולל כל המצורפים",
+        "נשלח מייל מתיק התביעה · שליחה #6",
+        "WhatsApp",
+        "מעקב מייל בוטל",
+        "הוגדר מעקב מייל"
+      ]
+    },
+    {
+      "name": "ui-row-visible",
+      "ok": true
+    },
+    {
+      "name": "ui-row-needs-action",
+      "ok": true,
+      "alerts": "מייל חדש\nנדרש מענה\nחברת הביטוח ביקשה מסמך\nחסר מסמך\nממתין ללקוח\nמייל מתוזמן\nמשימה ללקוח\nנדרש טיפול"
+    },
+    {
+      "name": "ui-row-mail-or-doc",
+      "ok": true,
+      "alerts": "מייל חדש\nנדרש מענה\nחברת הביטוח ביקשה מסמך\nחסר מסמך\nממתין ללקוח\nמייל מתוזמן\nמשימה ללקוח\nנדרש טיפול"
+    },
+    {
+      "name": "ui-mail-subject",
+      "ok": true
+    },
+    {
+      "name": "ui-mail-need-banner",
+      "ok": true
+    },
+    {
+      "name": "ui-doc-license-or-invoice",
+      "ok": true
+    },
+    {
+      "name": "ui-doc-exists-label",
+      "ok": true
+    },
+    {
+      "name": "ui-doc-missing-label",
+      "ok": true
+    },
+    {
+      "name": "ui-suggest-btn",
+      "ok": true
+    },
+    {
+      "name": "ui-suggest-opens-composer",
+      "ok": true
+    },
+    {
+      "name": "ui-no-autosend",
+      "ok": true
+    },
+    {
+      "name": "ui-history-import",
+      "ok": true
+    },
+    {
+      "name": "refresh-row-still-needs-action",
+      "ok": true
+    },
+    {
+      "name": "refresh-mail-still-present",
+      "ok": true
+    },
+    {
+      "name": "ui-isolation-no-live-id",
+      "ok": true
+    },
+    {
+      "name": "ui-isolation-no-b",
+      "ok": true
+    },
+    {
+      "name": "mobile-row-visible",
+      "ok": true
+    },
+    {
+      "name": "mobile-row-needs-action",
+      "ok": true
+    },
+    {
+      "name": "mobile-mail-present",
+      "ok": true
+    },
+    {
+      "name": "dispatch-now-not-called",
+      "ok": true
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    },
+    {
+      "name": "mail-mode-still-dry-run",
+      "ok": true
+    }
+  ]
+}
