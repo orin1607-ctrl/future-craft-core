@@ -86,7 +86,11 @@ export function matchIncomingMail(mail: MatchMail, claims: MatchClaim[]): MatchR
   }));
 
   const dalIds = extractDalIds(hay);
-  const dalHits = uniqueClaims(dalIds.map((id) => claims.find((c) => c.id === id || c.claimNum === id)).filter(Boolean) as MatchClaim[]);
+  const hayU = hay.toUpperCase();
+  const dalHits = uniqueClaims(claims.filter((c) => {
+    const keys = [c.id, c.claimNum].map((x) => String(x || "").trim().toUpperCase()).filter((k) => k.length >= 8);
+    return keys.some((k) => dalIds.includes(k) || hayU.includes(k));
+  }));
 
   const plates = extractPlates(hay);
   const plateHits = uniqueClaims(claims.filter((c) => {

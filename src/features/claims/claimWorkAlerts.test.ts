@@ -5,6 +5,8 @@ import {
   detectMailRequests,
   inferRecipientKind,
   isOpenCustomerTask,
+  mailLooksInbound,
+  mailShowsTreatment,
 } from './claimWorkAlerts';
 import type { ClaimRecord } from './claimsConstants';
 
@@ -18,6 +20,21 @@ describe('detectMailRequests', () => {
   });
   it('does not guess on a vague update', () => {
     expect(detectMailRequests('עדכון כללי לגבי התיק').length).toBe(0);
+  });
+});
+
+describe('mailShowsTreatment', () => {
+  const own = 'yoni122222@gmail.com';
+  it('shows treatment for a real insurer From', () => {
+    expect(mailShowsTreatment('insurer@example.com', own, 'עדכון')).toBe(true);
+    expect(mailLooksInbound('insurer@example.com', own)).toBe(true);
+  });
+  it('shows treatment for self-mailbox TEST that asks for a document', () => {
+    expect(mailLooksInbound(`Yoni <${own}>`, own)).toBe(false);
+    expect(mailShowsTreatment(`Yoni <${own}>`, own, 'נא להעביר רישיון נהיגה')).toBe(true);
+  });
+  it('does not treat a self-mailbox note with no request as inbound work', () => {
+    expect(mailShowsTreatment(`Yoni <${own}>`, own, 'תזכורת פנימית בלבד')).toBe(false);
   });
 });
 

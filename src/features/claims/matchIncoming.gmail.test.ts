@@ -41,6 +41,28 @@ describe('matchIncomingMail — existing matcher, no guess', () => {
     expect(r.claimId).toBe('DAL-QA-WORKER-001');
   });
 
+  it('binds by TEST claim id when it appears in the mail', () => {
+    const r = matchIncomingMail({
+      messageId: 'm2b',
+      subject: 'TEST inbound',
+      body: 'נא להעביר רישיון נהיגה לתיק DAL-QA-WORKER-001',
+    }, [a, b]);
+    expect(r.decision).toBe('auto');
+    expect(r.via).toBe('claim_number');
+    expect(r.claimId).toBe('DAL-QA-WORKER-001');
+  });
+
+  it('sends conflicting claim numbers to Review and does not guess', () => {
+    const r = matchIncomingMail({
+      messageId: 'm2c',
+      subject: 'DAL-QA-WORKER-001 וגם DAL-2026-0018',
+      body: 'נא מסמך',
+    }, [a, b]);
+    expect(r.decision).toBe('needs_review');
+    expect(r.via).toBe('claim_number');
+    expect(r.claimId).toBeUndefined();
+  });
+
   it('binds by unique plate only when one claim owns it', () => {
     const r = matchIncomingMail({
       messageId: 'm3',

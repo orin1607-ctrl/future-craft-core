@@ -82,6 +82,12 @@ export function mailLooksInbound(fromAddr: string, ownMailbox: string) {
   return !own || !from.includes(own);
 }
 
+/** Show treatment on imported mail: real inbound, or a document request even when From is our mailbox (self TEST). */
+export function mailShowsTreatment(fromAddr: string, ownMailbox: string, text: string) {
+  if (mailLooksInbound(fromAddr, ownMailbox)) return true;
+  return detectMailRequests(text).length > 0;
+}
+
 export type AlertContext = {
   tasks: ClaimRecord[];
   notifs: ClaimRecord[];

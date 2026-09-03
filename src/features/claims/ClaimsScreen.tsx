@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
-import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, buildClaimRowAlerts, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, inferRecipientKind, mailLooksInbound, recipientKindLabel, type ClaimAlert } from './claimWorkAlerts';
+import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, buildClaimRowAlerts, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, inferRecipientKind, mailLooksInbound, mailShowsTreatment, recipientKindLabel, type ClaimAlert } from './claimWorkAlerts';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, type IntakeDraft } from './claimIntakeModel';
@@ -2787,7 +2787,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           return (
                             <div key={String(im.id)} className="gmail-card">
                               <div style={{ fontWeight: 800, marginBottom: 6 }}>{String(im.subject || '(ללא נושא)')}</div>
-                              {mailLooksInbound(String(im.from_addr || ''), OWN_MAILBOX) ? (
+                              {mailShowsTreatment(String(im.from_addr || ''), OWN_MAILBOX, `${im.subject || ''}\n${im.body_text || ''}`) ? (
                                 <div className="mail-need" data-testid={`mail-need-${im.id}`}>
                                   <div className="row-alert tone-need">נדרש טיפול</div>
                                   {(() => {
