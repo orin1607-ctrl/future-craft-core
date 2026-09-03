@@ -295,7 +295,7 @@ Deno.serve(async (req) => {
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
       await sb.from("claims_upload_links").update({ revoked_at: new Date().toISOString() }).eq("claim_id", claimId).is("revoked_at", null);
       const linkId = nid("LNK");
-      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const expires = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
       const token = await mintUploadToken(linkId, claimId);
       await sb.from("claims_upload_links").insert({
         id: linkId,

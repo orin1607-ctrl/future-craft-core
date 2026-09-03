@@ -2399,7 +2399,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       <div className="cust-link-card" data-testid="cust-link-card">
                         <div className="cust-link-title">קישור פעיל ללקוח</div>
                         <div className="cust-link-meta">נוצר: {uploadLinkMeta?.created_at ? new Date(uploadLinkMeta.created_at).toLocaleString('he-IL') : '—'}</div>
-                        <div className="cust-link-meta">תוקף עד: {uploadLinkMeta?.expires_at ? new Date(uploadLinkMeta.expires_at).toLocaleString('he-IL') : '—'} · 24 שעות</div>
+                        <div className="cust-link-meta">תוקף עד: {uploadLinkMeta?.expires_at ? new Date(uploadLinkMeta.expires_at).toLocaleString('he-IL') : '—'} · 14 ימים</div>
                         <div className="cust-link-meta">ביקשנו: {docs.requests.filter((r) => r.status === 'requested' || r.status === 'received').map((r) => r.label).join(', ') || '—'}</div>
                         <div className="cust-link-meta">הלקוח העלה: {docs.requests.filter((r) => r.status === 'received').length} מתוך {docs.requests.filter((r) => r.status === 'requested' || r.status === 'received').length}</div>
                         {linkUrl ? (
