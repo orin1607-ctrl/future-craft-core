@@ -128,12 +128,13 @@ export default function FleetStatusModule({
   useEffect(() => {
     if (!onSelectedVehicleIdChange) return;
     if (filtered.length === 0) {
+      if (selectedVehicleId && vehicles.some((v) => v.id === selectedVehicleId)) return;
       onSelectedVehicleIdChange(null);
       return;
     }
     if (selectedVehicleId && filtered.some((v) => v.id === selectedVehicleId)) return;
     onSelectedVehicleIdChange(filtered[0].id);
-  }, [filtered, selectedVehicleId, onSelectedVehicleIdChange]);
+  }, [filtered, selectedVehicleId, onSelectedVehicleIdChange, vehicles]);
 
   const handleOpenSelectedHub = useCallback(() => {
     const row = selectedRef.current;
@@ -232,10 +233,12 @@ export default function FleetStatusModule({
 
         <FleetOSDeviceAssignPanel
           vehicle={selected}
+          vehicles={vehicles}
           userRole={userRole}
           persistReady={gpsPersistReady}
           onAssign={(unitId, imei) => selected && onAssignGpsDevice?.(selected, unitId, imei)}
           onUnassign={() => selected && onUnassignGpsDevice?.(selected)}
+          onSelectVehicle={pickVehicle}
         />
 
         <div className="card-elevated overflow-hidden">
@@ -246,7 +249,13 @@ export default function FleetStatusModule({
           >
             <span className="text-sm font-bold text-foreground truncate">
               {listOpen ? 'הסתר רשימת רכבים' : 'הצג רשימת רכבים'}
-              <span className="text-muted-foreground font-normal mr-2">({filtered.length})</span>
+            <span className="text-muted-foreground font-normal mr-2">
+              {loading
+                ? '(טוען…)'
+                : filtered.length !== vehicles.length
+                  ? `(${filtered.length} מתוך ${vehicles.length})`
+                  : `(${filtered.length})`}
+            </span>
             </span>
             {listOpen ? (
               <ChevronUp size={18} className="text-primary shrink-0" />

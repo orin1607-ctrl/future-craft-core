@@ -69,7 +69,7 @@ export default function FleetOSAIPage() {
       setVehicles(v);
       setKpis(k);
       setAlerts(withTelematics);
-      setUnknownDevices(await loadUnknownGpsRaw(8));
+      setUnknownDevices(await loadUnknownGpsRaw(8, companyFilter));
     } finally {
       setLoading(false);
     }

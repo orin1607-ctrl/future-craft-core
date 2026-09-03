@@ -224,9 +224,28 @@ export function applyOverlayMap(
   });
 }
 
-export async function loadUnknownGpsRaw(limit = 8): Promise<
-  Array<{ id: string; at: string; raw: string; unitHint: string | null }>
-> {
+/** Hide historical unknown_device rows once the Unit ID has an enabled gps_devices mapping. */
+export function excludeMappedUnknownDevices<T extends { unitHint: string | null }>(
+  rows: T[],
+  assignedUnitIds: Iterable<string | null | undefined>,
+): T[] {
+  const mapped = new Set(
+    [...assignedUnitIds]
+      .map((u) => String(u || '').trim().toUpperCase())
+      .filter(Boolean),
+  );
+  if (mapped.size === 0) return rows;
+  return rows.filter((row) => {
+    const hint = String(row.unitHint || '').trim().toUpperCase();
+    if (!hint) return true;
+    return !mapped.has(hint);
+  });
+}
+
+export async function loadUnknownGpsRaw(
+  limit = 8,
+  companyFilter: string | null = null,
+): Promise<Array<{ id: string; at: string; raw: string; unitHint: string | null }>> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
@@ -236,12 +255,19 @@ export async function loadUnknownGpsRaw(limit = 8): Promise<
       .order('at', { ascending: false })
       .limit(limit);
     if (error || !data) return [];
-    return (data as Array<{ id: string; at: string; raw: string }>).map((row) => ({
+    const rows = (data as Array<{ id: string; at: string; raw: string }>).map((row) => ({
       id: row.id,
       at: row.at,
       raw: row.raw,
       unitHint: unitHintFromRaw(row.raw),
     }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const devicesQ = await applyCompanyScope(
+      (supabase as any).from('gps_devices').select('unit_id').eq('enabled', true),
+      companyFilter,
+    );
+    const assigned = ((devicesQ.data || []) as Array<{ unit_id?: string | null }>).map((d) => d.unit_id);
+    return excludeMappedUnknownDevices(rows, assigned);
   } catch {
     return [];
   }

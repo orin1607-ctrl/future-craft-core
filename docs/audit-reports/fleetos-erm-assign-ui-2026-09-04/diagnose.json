@@ -1,0 +1,135 @@
+{
+  "at": "2026-09-03T21:35:25.606Z",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "devicesByUnit": {
+    "data": [
+      {
+        "id": "6559c875-5ba4-456e-87a3-8df4d9b7e02f",
+        "unit_id": "043284",
+        "imei": null,
+        "vehicle_id": "295b935a-16f9-4e7a-a920-7bae92a4dc9a",
+        "company_name": "אכבים",
+        "enabled": true
+      }
+    ],
+    "error": null
+  },
+  "vehicle": {
+    "id": "295b935a-16f9-4e7a-a920-7bae92a4dc9a",
+    "license_plate": "36806603",
+    "manufacturer": "איסוזו",
+    "model": "די מקס",
+    "year": 2023,
+    "status": "active",
+    "company_name": "אכבים",
+    "assigned_driver_id": null
+  },
+  "vehiclesByPlate": [
+    {
+      "id": "295b935a-16f9-4e7a-a920-7bae92a4dc9a",
+      "license_plate": "36806603",
+      "company_name": "אכבים",
+      "status": "active"
+    }
+  ],
+  "activeMappings": [
+    {
+      "id": "6559c875-5ba4-456e-87a3-8df4d9b7e02f",
+      "unit_id": "043284",
+      "vehicle_id": "295b935a-16f9-4e7a-a920-7bae92a4dc9a",
+      "enabled": true
+    }
+  ],
+  "gpsLive": [
+    {
+      "device_id": "6559c875-5ba4-456e-87a3-8df4d9b7e02f",
+      "vehicle_id": "295b935a-16f9-4e7a-a920-7bae92a4dc9a",
+      "unit_id": "043284",
+      "company_name": "אכבים",
+      "last_seen": "2026-09-03T20:59:01.51+00:00",
+      "lat": null,
+      "lng": null,
+      "freshness": "none"
+    }
+  ],
+  "unknownRaw": [
+    {
+      "id": "e87d826e-e929-4d5d-ab28-668bc58a4614",
+      "at": "2026-09-03T13:34:26.917274+00:00",
+      "company_name": null,
+      "unitHint": "043284"
+    },
+    {
+      "id": "2ac3be67-b29a-46b5-b4bd-c95ef5c9afea",
+      "at": "2026-09-03T13:34:26.905108+00:00",
+      "company_name": null,
+      "unitHint": "043284"
+    },
+    {
+      "id": "345fc14b-8025-4c1c-ac1b-d8f884129b8f",
+      "at": "2026-09-03T13:34:13.487272+00:00",
+      "company_name": null,
+      "unitHint": "043284"
+    },
+    {
+      "id": "899baa88-46f1-4baf-aac3-7236c30ff69c",
+      "at": "2026-09-03T13:33:49.133125+00:00",
+      "company_name": null,
+      "unitHint": "043284"
+    },
+    {
+      "id": "13cb4030-9e5d-4b10-817b-56194012cbef",
+      "at": "2026-09-03T13:32:48.988954+00:00",
+      "company_name": null,
+      "unitHint": "043284"
+    },
+    {
+      "id": "381ea926-30ee-476d-8d7a-9d0268e4e390",
+      "at": "2026-09-03T13:32:41.078732+00:00",
+      "company_name": null,
+      "unitHint": "043284"
+    },
+    {
+      "id": "330abc3d-cf22-432d-b13b-8d27185ca0ab",
+      "at": "2026-09-03T13:29:53.215252+00:00",
+      "company_name": null,
+      "unitHint": "043284"
+    },
+    {
+      "id": "7d1711b8-2c4e-4275-8dfe-3883fe700bb7",
+      "at": "2026-09-03T13:28:53.121827+00:00",
+      "company_name": null,
+      "unitHint": "043284"
+    }
+  ],
+  "authUser": {
+    "id": "e15e21d0-c27a-4341-81f5-cfb17073b84c",
+    "email": "darkay.hayim@gmail.com"
+  },
+  "profile": null,
+  "akavimActiveVehicles": 6,
+  "allActiveVehicles": 434,
+  "userScope": {
+    "role": null,
+    "company": null,
+    "canReadVehicle36806603": false,
+    "vehicleError": null,
+    "vehicle": null,
+    "devices043284": [],
+    "devicesError": null,
+    "gpsLive": [],
+    "visibleActiveVehicles": 18,
+    "visibleAkavimVehicles": 0,
+    "unknownHints": [
+      "043284",
+      "043284",
+      "043284",
+      "043284",
+      "043284",
+      "043284",
+      "043284",
+      "043284"
+    ]
+  }
+}

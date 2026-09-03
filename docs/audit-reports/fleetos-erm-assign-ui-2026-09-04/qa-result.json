@@ -1,0 +1,102 @@
+{
+  "at": "2026-09-03T21:44:27.936Z",
+  "environment": "STAGING",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "base": "http://localhost:8080",
+  "productionTouched": false,
+  "checks": [
+    {
+      "id": "db-043284-to-36806603",
+      "ok": true,
+      "detail": {
+        "device": {
+          "id": "6559c875-5ba4-456e-87a3-8df4d9b7e02f",
+          "unit_id": "043284",
+          "vehicle_id": "295b935a-16f9-4e7a-a920-7bae92a4dc9a",
+          "company_name": "אכבים",
+          "enabled": true
+        },
+        "plate": "36806603"
+      }
+    },
+    {
+      "id": "db-no-duplicate-active",
+      "ok": true,
+      "detail": {
+        "count": 1
+      }
+    },
+    {
+      "id": "business-vehicle-unchanged",
+      "ok": true,
+      "detail": {
+        "id": "295b935a-16f9-4e7a-a920-7bae92a4dc9a",
+        "license_plate": "36806603",
+        "manufacturer": "איסוזו",
+        "model": "די מקס",
+        "year": 2023,
+        "company_name": "אכבים",
+        "status": "active"
+      }
+    },
+    {
+      "id": "unit-043284-visible",
+      "ok": true,
+      "detail": "שיוך מכשיר ERM\n\nשיוך פעיל בצי\n\n275076 → 09395 · רמת דוד רמסע 2021\nQA-PREV-ONLINE → 12121212 · 2026\nQA-PREV-STOPPED → 12218802 · פולקסווגן פולין DAW 2019\nQA-PREV-STALE → 1724230 · פורד טורקיה DRFF 2016\nQA-PREV-OFFLINE → 28342904 · מרצדס בנץ "
+    },
+    {
+      "id": "ui-shows-assigned",
+      "ok": true,
+      "detail": "שיוך מכשיר ERM\n\nשיוך פעיל בצי\n\n275076 → 09395 · רמת דוד רמסע 2021\nQA-PREV-ONLINE → 12121212 · 2026\nQA-PREV-STOPPED → 12218802 · פולקסווגן פולין DAW 2019\nQA-PREV-STALE → 1724230 · פורד טורקיה DRFF 2016\nQA-PREV-OFFLINE → 28342904 · מרצדס בנץ "
+    },
+    {
+      "id": "assigned-vehicle-36806603",
+      "ok": true,
+      "detail": "שיוך מכשיר ERM\n\nשיוך פעיל בצי\n\n275076 → 09395 · רמת דוד רמסע 2021\nQA-PREV-ONLINE → 12121212 · 2026\nQA-PREV-STOPPED → 12218802 · פולקסווגן פולין DAW 2019\nQA-PREV-STALE → 1724230 · פורד טורקיה DRFF 2016\nQA-PREV-OFFLINE → 28342904 · מרצדס בנץ "
+    },
+    {
+      "id": "vehicle-isuzu-2023",
+      "ok": true,
+      "detail": "שיוך מכשיר ERM\n\nשיוך פעיל בצי\n\n275076 → 09395 · רמת דוד רמסע 2021\nQA-PREV-ONLINE → 12121212 · 2026\nQA-PREV-STOPPED → 12218802 · פולקסווגן פולין DAW 2019\nQA-PREV-STALE → 1724230 · פורד טורקיה DRFF 2016\nQA-PREV-OFFLINE → 28342904 · מרצדס בנץ "
+    },
+    {
+      "id": "mapping-ui-matches-db",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "not-shown-as-unassigned-only",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "unit-not-in-unknown-panel",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "id": "selected-card-plate",
+      "ok": true,
+      "detail": "36806603\n\nפנימי: 368\n\nמכשיר\nOffline\nאין GPS\n\nמצב עכשיו\n\nLast Seen\n\n3.9.2026, 23:59:01\n\nמיקום\n\nלא התקבל\n\nמהירות\n\nלא התקבל\n\nHeading\n\nלא התקבל\n\nהצתה\n\nלא התקבל\n\nמנוע\n\nלא התקבל\n\nתנועה\n\nלא התקבל\n\nקילומטראז׳"
+    },
+    {
+      "id": "selected-card-vehicle",
+      "ok": true,
+      "detail": "36806603\n\nפנימי: 368\n\nמכשיר\nOffline\nאין GPS\n\nמצב עכשיו\n\nLast Seen\n\n3.9.2026, 23:59:01\n\nמיקום\n\nלא התקבל\n\nמהירות\n\nלא התקבל\n\nHeading\n\nלא התקבל\n\nהצתה\n\nלא התקבל\n\nמנוע\n\nלא התקבל\n\nתנועה\n\nלא התקבל\n\nקילומטראז׳"
+    },
+    {
+      "id": "no-fake-live-gps",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "id": "vehicle-list-not-zero-after-unit-search",
+      "ok": true,
+      "detail": "הצג רשימת רכבים(1 מתוך 433)"
+    }
+  ],
+  "assignText": "שיוך מכשיר ERM\n\nשיוך פעיל בצי\n\n275076 → 09395 · רמת דוד רמסע 2021\nQA-PREV-ONLINE → 12121212 · 2026\nQA-PREV-STOPPED → 12218802 · פולקסווגן פולין DAW 2019\nQA-PREV-STALE → 1724230 · פורד טורקיה DRFF 2016\nQA-PREV-OFFLINE → 28342904 · מרצדס בנץ OM654 2023\n043284 → 36806603 · איסוזו די מקס 2023\nQA118A → 78948502 · מרצדס-בנץ איי גי OM654 2022\n\nמשויך: 043284 → 36806603 · איסוזו די מקס 2023\n\nUnit ID\nIMEI\nשיוך לרכב\nניתוק",
+  "cardText": "36806603\n\nפנימי: 368\n\nמכשיר\nOffline\nאין GPS\n\nמצב עכשיו\n\nLast Seen\n\n3.9.2026, 23:59:01\n\nמיקום\n\nלא התקבל\n\nמהירות\n\nלא התקבל\n\nHeading\n\nלא התקבל\n\nהצתה\n\nלא התקבל\n\nמנוע\n\nלא התקבל\n\nתנועה\n\nלא התקבל\n\nקילומטראז׳\n\nODO טלמטיקה\n\n0\n\nמקור ODO\n\nERM #ODO#\n\nGPS / CAN\n\nלא אומת (P0004 הוא פרמטר מכשיר, לא שדה בדיווח)\n\nק״מ עסקי (לא נדרס)\n\n1,111\n\nחשמל ומנוע\n\nמתח רכב\n\n12.71 V\n\nסוללת גיבוי\n\n3.895 V\n\nRPM\n\nלא התקבל\n\nשעות מנוע\n\nלא התקבל\n\nדלק\n\nלא התקבל\n\nDriver ID\n\nלא התקבל\n\nאיכות GPS\n\nGPS Fix\n\nלא התקבל\n\nלוויינים\n\nלא התקבל\n\nHDOP\n\nלא התקבל\n\nגובה\n\nלא התקבל\n\nאירועים אחרונים\n\nזמן אירוע אחרון\n\nלא התקבל\n\nאירועים\n\nלא התקבל\n\nנהג עסקי\n\nללא נהג\n\nרכב\n\nאיסוזו די מקס 2023\n\nמספר פנימי\n\n368\n\nפתח כרטיס רכב מלא",
+  "listLabelAfterUnitSearch": "הצג רשימת רכבים(1 מתוך 433)",
+  "ok": true
+}

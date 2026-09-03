@@ -164,7 +164,7 @@ export default function FleetOSSelectedVehicleCard({
       <div className="p-3 sm:p-4 pt-0 grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
         <Info icon={User} label="נהג עסקי" value={vehicle.driver_name || 'ללא נהג'} />
         {(vehicle.make || vehicle.model) && (
-          <Info icon={Activity} label="רכב" value={`${vehicle.make || ''} ${vehicle.model || ''}`.trim()} />
+          <Info icon={Activity} label="רכב" value={`${vehicle.make || ''} ${vehicle.model || ''} ${vehicle.year || ''}`.trim()} />
         )}
         {vehicle.internal_number && (
           <Info icon={Hash} label="מספר פנימי" value={<InternalNumber value={vehicle.internal_number} className="text-sm" />} />

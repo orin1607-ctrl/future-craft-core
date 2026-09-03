@@ -16,6 +16,7 @@ export interface FleetOSVehicleRow {
   company_name?: string;
   make?: string;
   model?: string;
+  year?: number;
   driver_name?: string;
   status: VehicleStatus;
   status_text: string;
@@ -62,6 +63,7 @@ export function trackingRowToFleetOS(row: TrackingVehicleRow): FleetOSVehicleRow
     company_name: row.company_name && row.company_name !== '—' ? row.company_name : undefined,
     make: row.manufacturer || undefined,
     model: row.model || undefined,
+    year: row.year || undefined,
     driver_name: row.driver_name || undefined,
     status: mapDisplayStatus(row),
     status_text: row.status_text,
