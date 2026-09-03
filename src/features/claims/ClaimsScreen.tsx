@@ -858,31 +858,46 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }
   };
 
+  const asMailRows = (v: unknown): Array<Record<string, unknown>> => (
+    Array.isArray(v) ? v as Array<Record<string, unknown>> : []
+  );
+
+  const refreshMailLists = async (id: string, gen?: number) => {
+    const live = () => gen === undefined || gen === cardLoadGen.current;
+    try {
+      const gi = await apiRef.current.invokeGmail('list_imports', { claim_id: id });
+      if (live()) setGmailImports(asMailRows(gi.data));
+    } catch {
+      if (live()) setGmailImports([]);
+    }
+    try {
+      const gs = await apiRef.current.invokeGmail('list_sends', { claim_id: id });
+      if (live()) setGmailSends(asMailRows(gs.data));
+    } catch {
+      if (live()) setGmailSends([]);
+    }
+  };
+
   const loadCardData = async (id: string) => {
     const gen = ++cardLoadGen.current;
-    const [c, h, t, rem, d, fu, gi, gs, lk] = await Promise.all([
-      apiRef.current.getCommLog(id),
-      apiRef.current.getHistory(id),
-      apiRef.current.getTasks(id),
-      apiRef.current.getReminders(id),
-      apiRef.current.invokeDocs('list_docs', { claim_id: id }),
-      apiRef.current.listMailFollowups(id),
-      apiRef.current.invokeGmail('list_imports', { claim_id: id }),
-      apiRef.current.invokeGmail('list_sends', { claim_id: id }),
-      apiRef.current.invokeDocs('get_link', { claim_id: id }),
+    const live = () => gen === cardLoadGen.current;
+    const mailP = refreshMailLists(id, gen);
+    const restP = Promise.all([
+      apiRef.current.getCommLog(id).then((c) => { if (live()) setComm(c.data || []); }).catch(() => { if (live()) setComm([]); }),
+      apiRef.current.getHistory(id).then((h) => { if (live()) setHist(h.data || []); }).catch(() => { if (live()) setHist([]); }),
+      apiRef.current.getTasks(id).then((t) => { if (live()) setTasks((t.data || []).filter((x) => x.done !== 'true' || x.audience === 'customer')); }).catch(() => { if (live()) setTasks([]); }),
+      apiRef.current.getReminders(id).then((rem) => { if (live()) setReminders(rem.data || []); }).catch(() => { if (live()) setReminders([]); }),
+      apiRef.current.listMailFollowups(id).then((fu) => { if (live()) setMailFollowups(fu.data || []); }).catch(() => { if (live()) setMailFollowups([]); }),
+      apiRef.current.invokeDocs('list_docs', { claim_id: id }).then((d) => {
+        if (!live()) return;
+        setDocs({
+          requests: (d.requests as DocRequest[]) || [],
+          files: (d.files as ClaimFile[]) || [],
+        });
+      }).catch(() => { if (live()) setDocs({ requests: [], files: [] }); }),
     ]);
-    if (gen !== cardLoadGen.current) return;
-    setComm(c.data || []);
-    setHist(h.data || []);
-    setTasks((t.data || []).filter((x) => x.done !== 'true' || x.audience === 'customer'));
-    setReminders(rem.data || []);
-    setMailFollowups(fu.data || []);
-    setGmailImports((gi.data as Array<Record<string, unknown>>) || []);
-    setGmailSends((gs.data as Array<Record<string, unknown>>) || []);
-    setDocs({
-      requests: (d.requests as DocRequest[]) || [],
-      files: (d.files as ClaimFile[]) || [],
-    });
+    const lk = await apiRef.current.invokeDocs('get_link', { claim_id: id }).catch(() => ({} as Record<string, unknown>));
+    if (!live()) return;
     const link = lk?.link as { id?: string; expires_at?: string; revoked_at?: string | null; created_at?: string; reconstructable?: boolean } | undefined;
     const active = Boolean(link && !link.revoked_at && link.expires_at && new Date(link.expires_at).getTime() > Date.now());
     const reconstructable = Boolean(active && link?.reconstructable);
@@ -892,23 +907,22 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const cached = readCustLinkCache(id);
     if (!active) {
       setLinkUrl('');
-      return;
-    }
-    if (cached && cached.id && link?.id && cached.id === link.id) {
+    } else if (cached && cached.id && link?.id && cached.id === link.id) {
       setLinkUrl(cached.url);
-      return;
-    }
-    if (reconstructable) {
+    } else if (reconstructable) {
       const rv = await apiRef.current.invokeDocs('reveal_link', { claim_id: id });
-      if (gen !== cardLoadGen.current) return;
+      if (!live()) return;
       if (rv.success !== false && rv.token) {
         const url = customerUploadUrl(String(rv.token));
         writeCustLinkCache(id, { id: String(link?.id || rv.id || ''), url, expiresAt: String(link?.expires_at || rv.expiresAt || '') });
         setLinkUrl(url);
-        return;
+      } else {
+        setLinkUrl('');
       }
+    } else {
+      setLinkUrl('');
     }
-    setLinkUrl('');
+    await Promise.all([mailP, restP]);
   };
 
   const saveAskSelection = async (claimId: string, keys: string[]) => {
@@ -2209,7 +2223,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               ) : null}
               <div className="tabs tab-groups" data-testid="claims-tab-groups">
                 {CARD_TAB_GROUPS.map((g) => (
-                  <button key={g.key} type="button" className={`tab ${tabGroup.key === g.key ? 'act' : ''}`} data-testid={`claims-tab-group-${g.key}`} onClick={() => { setCardMore(false); setCardTab(g.tabs[0].key); }}>{g.label}</button>
+                  <button key={g.key} type="button" className={`tab ${tabGroup.key === g.key ? 'act' : ''}`} data-testid={`claims-tab-group-${g.key}`} onClick={() => { setCardMore(false); setCardTab(g.tabs[0].key); if (g.key === 'mail' && cur) void refreshMailLists(cur.id); }}>{g.label}</button>
                 ))}
               </div>
               {tabGroup.tabs.length > 1 ? (
@@ -2759,7 +2773,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <button type="button" className="btn btn-g btn-sm" onClick={() => setModal('moCall')}>שיחה</button>
                     <button type="button" className="btn btn-g btn-sm" onClick={() => { setVal('wa_msg', `שלום, בהמשך לתביעה ${displayClaimNum(cur)}`); setModal('moWA'); }}>WhatsApp</button>
                   </div>
-                  <div className="sdiv"><div className="sdiv-t">התכתבויות ({gmailImports.length})</div><div className="sdiv-l" /></div>
+                  <div className="sdiv" data-testid="mail-correspondence"><div className="sdiv-t">התכתבויות ({gmailImports.length})</div><div className="sdiv-l" /></div>
                   <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>מסודר כרונולוגית לפי תאריך המייל. Thread אחד מתחת לשני. אין ייבוא נוסף מכאן אלא אם תבחר מייל חדש למטה.</div>
                   {gmailImports.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין מיילים יובאים בתיק</div>
                     : correspondenceThreads(gmailImports).map((group) => (
@@ -3682,7 +3696,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         </div>
       </div>
 
-      <div className={`ov ${modal === 'moCustReq' ? 'open' : ''}`}>
+      <div className={`ov ${modal === 'moCustReq' ? 'open' : ''}`} data-testid="mo-cust-req">
         <div className="modal modal-sm">
           <div className="mh"><div className="mh-t">בקשה / משימה ללקוח</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
           <div className="mb">
@@ -3824,7 +3838,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         </div>
       </div>
 
-      <div className={`ov ${modal === 'moMailFu' ? 'open' : ''}`}>
+      <div className={`ov ${modal === 'moMailFu' ? 'open' : ''}`} data-testid="mo-mail-fu">
         <div className="modal modal-md">
           <div className="mh"><div className="mh-t">📬 מעקב מייל / Follow-up</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
           <div className="mb">
