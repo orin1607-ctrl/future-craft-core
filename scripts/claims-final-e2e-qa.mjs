@@ -175,9 +175,13 @@ try {
   await page.locator('[data-testid="claims-cust-request"]').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('[data-testid="claims-cust-request"]').click();
   await page.locator('[data-testid="cr-text"]').waitFor({ state: 'visible' });
+  await page.waitForTimeout(500);
   await page.locator('[data-testid="cr-kind"]').selectOption('send_doc');
-  await page.locator('[data-testid="cr-text"]').fill(requestText);
   await page.locator('[data-testid="cr-channel"]').selectOption('email');
+  await page.locator('[data-testid="cr-text"]').fill(requestText);
+  await page.waitForTimeout(200);
+  await page.locator('[data-testid="cr-text"]').fill(requestText);
+  rec('cust-form-text', (await page.locator('[data-testid="cr-text"]').inputValue()) === requestText);
   await page.screenshot({ path: join(OUT, 'screenshots', '01-customer-request-form.png'), fullPage: true });
   await page.locator('[data-testid="cr-save"]').click();
   const composerOpened = await page.locator('[data-testid="mail-body"]').waitFor({ state: 'visible', timeout: 12000 }).then(() => true).catch(() => false);
@@ -203,8 +207,10 @@ try {
 
   const stSent = page.locator('[data-testid^="cust-st-"][data-testid$="-sent"]').first();
   rec('cust-status-buttons', (await page.locator('[data-testid^="cust-st-"]').count()) >= 4);
-  await stSent.click();
-  await page.waitForTimeout(800);
+  if (await stSent.count()) {
+    await stSent.click();
+    await page.waitForTimeout(800);
+  }
   rec('cust-status-clicked-sent', (await page.getByText('נשלח').count()) > 0);
   await page.screenshot({ path: join(OUT, 'screenshots', '01-customer-status-sent.png'), fullPage: true });
 
@@ -213,8 +219,11 @@ try {
   await row.click();
   await page.locator('[data-testid="claims-tab-group-work"]').click({ force: true });
   await page.locator('[data-testid="claims-tab-sub-tasks"]').click({ force: true }).catch(() => null);
-  await page.getByText(STAMP).first().waitFor({ state: 'visible', timeout: 15000 });
-  const after = (await userDb.from('claims_tasks').select('id, row_data').eq('id', created?.id || 'none').maybeSingle()).data;
+  const stampAfterReload = await page.getByText(STAMP).first().waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false);
+  rec('cust-task-after-second-refresh', stampAfterReload);
+  const after = created?.id
+    ? (await userDb.from('claims_tasks').select('id, row_data').eq('id', created.id).maybeSingle()).data
+    : null;
   rec('cust-status-survives-refresh', after?.row_data?.customerStatus === 'sent', { status: after?.row_data?.customerStatus });
 
   await page.locator('[data-testid="claims-tab-group-hist"]').click({ force: true });
@@ -327,15 +336,17 @@ try {
   try { await browser?.close(); } catch { /* ignore */ }
 }
 
-const pass = (prefix) => report.checks.filter((c) => c.name.startsWith(prefix) && !c.name.includes('gmail-inbox')).every((c) => c.ok);
-report.items.customerRequestUi = report.checks.filter((c) => c.name.startsWith('cust-')).every((c) => c.ok) ? 'PASS' : 'FAIL';
-report.items.inboundGmail = (report.gmailLiveInbound === 'found_test_candidate' && report.checks.find((c) => c.name === 'gmail-inbox-has-no-new-test-mail')?.ok === false)
-  ? 'PASS'
-  : 'FAIL';
+const named = (prefix) => report.checks.filter((c) => c.name.startsWith(prefix));
+const allNamed = (prefix) => {
+  const rows = named(prefix);
+  return rows.length > 0 && rows.every((c) => c.ok);
+};
+report.items.customerRequestUi = allNamed('cust-') ? 'PASS' : 'FAIL';
+report.items.inboundGmail = 'FAIL';
 report.items.existingDocSuggest = ['suggest-api-ok', 'suggest-no-autosend', 'suggest-offers-existing-license-file', 'suggest-opens-composer', 'suggest-composer-has-license-file', 'doc-exists-banner'].every((n) => report.checks.find((c) => c.name === n)?.ok)
   ? 'PASS' : 'FAIL';
-report.items.scheduledMailUi = report.checks.filter((c) => c.name.startsWith('fu-')).every((c) => c.ok) ? 'PASS' : 'FAIL';
-report.items.whatsappWaMe = report.checks.filter((c) => c.name.startsWith('wa-')).every((c) => c.ok) ? 'PASS' : 'FAIL';
+report.items.scheduledMailUi = allNamed('fu-') ? 'PASS' : 'FAIL';
+report.items.whatsappWaMe = allNamed('wa-') ? 'PASS' : 'FAIL';
 
 writeFileSync(join(OUT, 'qa-report.json'), JSON.stringify(report, null, 2));
 console.log(JSON.stringify({
