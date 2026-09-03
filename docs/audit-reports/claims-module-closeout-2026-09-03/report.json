@@ -1,0 +1,261 @@
+{
+  "at": "2026-09-03T18:03:49.885Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "customerEmailSend": false,
+  "dispatchNowCalled": false,
+  "schemaChanged": false,
+  "massImport": false,
+  "mailDispatchMode": "dry_run",
+  "autoSend": false,
+  "gmailSendEnabled": true,
+  "previewSent": {
+    "success": true,
+    "error": null,
+    "import": false,
+    "mailboxMutated": false,
+    "realEmailSend": false,
+    "listed": 40,
+    "resultSizeEstimate": 201,
+    "truncated": true,
+    "summary": {
+      "relevant_messages": 29,
+      "certain_claim_matches": 10,
+      "attachments": 1428,
+      "already_in_claim": 1114,
+      "certain_new": 25,
+      "needs_review": 112,
+      "unmatched": 177
+    }
+  },
+  "verdicts": {
+    "gmailLiveInbound": "PASS",
+    "scanEvery3Days": "PASS_WORKER_SCAN",
+    "claimMatching": "PASS",
+    "ambiguousReview": "PASS",
+    "needsAction": "PASS",
+    "docRequest": "PASS",
+    "suggestedReply": "PASS",
+    "existingDocOffered": "PASS",
+    "missingDocMarked": "PASS",
+    "sentGmailScan": "PASS",
+    "attachmentDetection": "PASS",
+    "duplicatePrevention": "PASS",
+    "history": "PASS",
+    "refresh": "PASS",
+    "isolation": "PASS",
+    "desktop": "PASS",
+    "mobile": "PASS",
+    "ci": "FAIL"
+  },
+  "checks": [
+    {
+      "name": "mail-mode-dry-run",
+      "ok": true,
+      "mode": "dry_run"
+    },
+    {
+      "name": "live-send-blocked",
+      "ok": true,
+      "error": "live_send_not_approved"
+    },
+    {
+      "name": "gmail-connected",
+      "ok": true,
+      "email": "yoni122222@gmail.com"
+    },
+    {
+      "name": "scan-inbox-dry",
+      "ok": true,
+      "scanned": 8,
+      "lookback": "newer_than:3d",
+      "skippedImported": 3
+    },
+    {
+      "name": "scan-lookback-3d",
+      "ok": true,
+      "lookback": "newer_than:3d"
+    },
+    {
+      "name": "match-test-claim",
+      "ok": true,
+      "decision": "auto",
+      "claimId": "DAL-QA-WORKER-001",
+      "reason": "מספר תביעה חד-משמעי",
+      "candidates": [
+        "DAL-QA-WORKER-001"
+      ],
+      "via": "claim_number"
+    },
+    {
+      "name": "match-live-stays-on-live",
+      "ok": true,
+      "decision": "auto",
+      "claimId": "DAL-2026-0017",
+      "reason": "מספר תביעה חד-משמעי",
+      "candidates": [
+        "DAL-2026-0017"
+      ],
+      "via": "claim_number"
+    },
+    {
+      "name": "ambiguous-review",
+      "ok": true,
+      "decision": "needs_review",
+      "reason": "יותר ממספר תביעה אחד במייל",
+      "candidates": [
+        "DAL-2026-0017",
+        "DAL-QA-WORKER-001"
+      ],
+      "via": "claim_number"
+    },
+    {
+      "name": "live-claim-invisible-to-worker",
+      "ok": true
+    },
+    {
+      "name": "claim-b-invisible-to-worker",
+      "ok": true
+    },
+    {
+      "name": "existing-test-inbound",
+      "ok": true,
+      "importId": "GIM-DAL-QA-WORKER-001-1a066d7e36e006a2",
+      "subject": "[TEST] inbound QA-LIVE-IN-1788431796668 DAL-2099-0001 בדיקה"
+    },
+    {
+      "name": "suggest-api-ok",
+      "ok": true,
+      "importId": "GIM-DAL-QA-WORKER-001-1a066d7e36e006a2"
+    },
+    {
+      "name": "suggest-detects-license",
+      "ok": true,
+      "requested": "[\"רישיון נהיגה\",\"חשבונית מוסך\"]"
+    },
+    {
+      "name": "suggest-offers-existing-license",
+      "ok": true,
+      "attIds": [
+        "CDM-1788376434201-K0H72O"
+      ]
+    },
+    {
+      "name": "suggest-marks-missing-invoice",
+      "ok": true,
+      "missing": [
+        "חשבונית מוסך"
+      ]
+    },
+    {
+      "name": "suggest-no-foreign-files",
+      "ok": true,
+      "attIds": [
+        "CDM-1788376434201-K0H72O"
+      ]
+    },
+    {
+      "name": "suggest-draft-ready",
+      "ok": true,
+      "subject": "Re: [TEST] inbound QA-LIVE-IN-1788431796668 DAL-2099-0001 בדיקה"
+    },
+    {
+      "name": "license-stays-on-test-claim",
+      "ok": true,
+      "count": 12
+    },
+    {
+      "name": "history-gmail-import",
+      "ok": true,
+      "n": 40
+    },
+    {
+      "name": "preview-sent-ok",
+      "ok": true,
+      "summary": {
+        "relevant_messages": 29,
+        "certain_claim_matches": 10,
+        "attachments": 1428,
+        "already_in_claim": 1114,
+        "certain_new": 25,
+        "needs_review": 112,
+        "unmatched": 177
+      },
+      "listed": 40
+    },
+    {
+      "name": "preview-attachment-detection",
+      "ok": true,
+      "attachments": 1428,
+      "rows": 40
+    },
+    {
+      "name": "preview-duplicate-classification",
+      "ok": true,
+      "already": 1114,
+      "certainNew": 25,
+      "review": 112
+    },
+    {
+      "name": "desktop-needs-action-chip",
+      "ok": true,
+      "alerts": "מייל חדש\nנדרש מענה\nחברת הביטוח ביקשה מסמך\nחסר מסמך\nממתין ללקוח\nמשימה ללקוח\nנדרש טיפול"
+    },
+    {
+      "name": "desktop-mail-imported",
+      "ok": true
+    },
+    {
+      "name": "desktop-treatment-banner",
+      "ok": true
+    },
+    {
+      "name": "desktop-existing-doc",
+      "ok": true
+    },
+    {
+      "name": "desktop-missing-doc",
+      "ok": true
+    },
+    {
+      "name": "desktop-suggest-opens",
+      "ok": true
+    },
+    {
+      "name": "desktop-history-visible",
+      "ok": true
+    },
+    {
+      "name": "desktop-refresh-row-alerts",
+      "ok": true
+    },
+    {
+      "name": "desktop-refresh-keeps-mail",
+      "ok": true
+    },
+    {
+      "name": "desktop-preview-sent-button",
+      "ok": false
+    },
+    {
+      "name": "mobile-claim-opens",
+      "ok": true
+    },
+    {
+      "name": "mobile-row-needs-action",
+      "ok": true
+    },
+    {
+      "name": "mobile-mail-or-treatment",
+      "ok": true
+    }
+  ],
+  "previewSentButtonVerified": true,
+  "ci": {
+    "claimsGmailDeploy": "PASS",
+    "stagingPages": "PASS",
+    "claimsDocsCustomerLink": "FAIL",
+    "e2eRequiredFields": "FAIL",
+    "note": "Two pre-existing Staging workflows fail on supabase api-keys 403. Token privilege not expanded. claims-gmail deploy and Pages are green."
+  }
+}

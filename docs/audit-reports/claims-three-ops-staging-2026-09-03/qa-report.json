@@ -1,0 +1,363 @@
+{
+  "at": "2026-09-03T09:07:02.381Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "realEmailSend": false,
+  "mailDispatchMode": "dry_run",
+  "dispatchNowCalled": false,
+  "schemaChanged": false,
+  "edgeChanged": false,
+  "testClaims": [
+    "DAL-QA-WORKER-001",
+    "DAL-2026-0018"
+  ],
+  "checks": [
+    {
+      "name": "match-priority-thread",
+      "ok": true
+    },
+    {
+      "name": "match-priority-claim-then-plate",
+      "ok": true
+    },
+    {
+      "name": "match-no-guess-ambiguous-plate",
+      "ok": true
+    },
+    {
+      "name": "auto-send-blocked-in-edge",
+      "ok": true
+    },
+    {
+      "name": "worker-login-test-only",
+      "ok": true
+    },
+    {
+      "name": "live-claim-invisible-to-test-worker",
+      "ok": true,
+      "live": "DAL-2026-0017"
+    },
+    {
+      "name": "isolation-claim-b-not-in-worker-scope",
+      "ok": true,
+      "claimB": "DAL-2026-0018"
+    },
+    {
+      "name": "mail-mode-dry-run",
+      "ok": true,
+      "mode": "dry_run"
+    },
+    {
+      "name": "test-claim-a-visible",
+      "ok": true
+    },
+    {
+      "name": "t1-create-customer-task",
+      "ok": true,
+      "taskId": "TSK-QA3-1788426424888-l7x6"
+    },
+    {
+      "name": "t1-refresh-persisted",
+      "ok": true,
+      "detail": "{\"id\":\"TSK-QA3-1788426424888-l7x6\",\"done\":\"false\",\"owner\":\"QA three-ops\",\"action\":\"לשלוח מסמך\",\"channel\":\"email\",\"claimId\":\"DAL-QA-WORKER-001\",\"dueDate\":\"2026-09-05\",\"audience\":\"customer\",\"createdAt\":\"3.9.2026, 9:07:04\",\"createdBy\":\"QA three-ops\",\"requestText\":\"נא לשלוח רישיון נהיגה — QA three-ops\","
+    },
+    {
+      "name": "t1-isolation-b",
+      "ok": true,
+      "err": "new row violates row-level security policy for table \"claims_tasks\""
+    },
+    {
+      "name": "t2-schedule-client",
+      "ok": true,
+      "data": {
+        "id": "REM-1788426426029-c16e49",
+        "success": true
+      }
+    },
+    {
+      "name": "t2-schedule-insurer",
+      "ok": true,
+      "data": {
+        "id": "REM-1788426426259-5a32af",
+        "success": true
+      }
+    },
+    {
+      "name": "t2-recurring-supported",
+      "ok": true,
+      "data": {
+        "id": "REM-1788426426506-bd5f4d",
+        "success": true
+      }
+    },
+    {
+      "name": "t2-refresh-client-saved",
+      "ok": true
+    },
+    {
+      "name": "t2-refresh-insurer-saved",
+      "ok": true
+    },
+    {
+      "name": "t2-refresh-repeat-saved",
+      "ok": true
+    },
+    {
+      "name": "t2-jobs-pending-not-sent",
+      "ok": true
+    },
+    {
+      "name": "t2-cancel-recurring",
+      "ok": true
+    },
+    {
+      "name": "t2-cancel-persisted",
+      "ok": true,
+      "status": "cancelled"
+    },
+    {
+      "name": "t2-isolation-b-no-new-followups",
+      "ok": true,
+      "err": "claims_upsert_mail_followup: forbidden"
+    },
+    {
+      "name": "t2-history-scheduled",
+      "ok": true
+    },
+    {
+      "name": "t3-inbound-import-a",
+      "ok": true,
+      "importId": "GIM-QA3-1788426428846-cs8v"
+    },
+    {
+      "name": "t3-bound-to-a",
+      "ok": true
+    },
+    {
+      "name": "t3-isolation-not-on-b",
+      "ok": true
+    },
+    {
+      "name": "t3-needs-treatment-notif",
+      "ok": true
+    },
+    {
+      "name": "t3-suggest-reply-ok",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "name": "t3-no-auto-send",
+      "ok": true,
+      "autoSend": false,
+      "realEmailSend": false
+    },
+    {
+      "name": "t3-draft-prepared",
+      "ok": true,
+      "subject": "Re: השלמת מסמכים DAL-QA-WORKER-001"
+    },
+    {
+      "name": "t3-doc-request-detected",
+      "ok": true,
+      "requested": [
+        "רישיון נהיגה",
+        "חשבונית מוסך"
+      ],
+      "reason": "חסר מסמך: חשבונית מוסך"
+    },
+    {
+      "name": "t3-history-inbound",
+      "ok": true
+    },
+    {
+      "name": "t3-history-request",
+      "ok": true
+    },
+    {
+      "name": "t3-history-draft",
+      "ok": true
+    },
+    {
+      "name": "t1-history-customer-task",
+      "ok": true
+    },
+    {
+      "name": "t3-history-isolation-b-untouched-by-a-import",
+      "ok": true,
+      "err": "new row violates row-level security policy for table \"claims_gmail_imports\""
+    },
+    {
+      "name": "t3-list-imports-via-edge",
+      "ok": true,
+      "status": 200,
+      "count": 8
+    },
+    {
+      "name": "t3-send-action-blocked",
+      "ok": true,
+      "status": 403,
+      "error": "live_send_not_approved"
+    },
+    {
+      "name": "mail-mode-still-dry-run",
+      "ok": true,
+      "modeAfter": "dry_run"
+    },
+    {
+      "name": "dispatch-now-not-called",
+      "ok": true
+    },
+    {
+      "name": "vehicles-untouched",
+      "ok": true,
+      "detail": "QA did not write vehicles"
+    },
+    {
+      "name": "accidents-untouched",
+      "ok": true,
+      "detail": "QA did not write accidents"
+    },
+    {
+      "name": "live-claim-untouched",
+      "ok": true,
+      "live": "DAL-2026-0017"
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    },
+    {
+      "name": "desktop-row-visible",
+      "ok": true
+    },
+    {
+      "name": "desktop-row-needs-treatment",
+      "ok": true,
+      "alerts": "מייל חדש\nנדרש מענה\nחברת הביטוח ביקשה מסמך\nחסר מסמך\nמייל מתוזמן\nמשימה ללקוח\nנדרש טיפול"
+    },
+    {
+      "name": "desktop-row-not-icon-only",
+      "ok": true,
+      "alerts": "מייל חדש\nנדרש מענה\nחברת הביטוח ביקשה מסמך\nחסר מסמך\nמייל מתוזמן\nמשימה ללקוח\nנדרש טיפול"
+    },
+    {
+      "name": "desktop-cust-btn",
+      "ok": true
+    },
+    {
+      "name": "desktop-cust-modal",
+      "ok": true
+    },
+    {
+      "name": "desktop-cust-kinds",
+      "ok": true
+    },
+    {
+      "name": "desktop-cust-schedule",
+      "ok": true
+    },
+    {
+      "name": "desktop-correspondence-loaded",
+      "ok": true,
+      "header": "התכתבויות (8)"
+    },
+    {
+      "name": "desktop-inbound-need-banner",
+      "ok": true
+    },
+    {
+      "name": "desktop-suggest-reply-btn",
+      "ok": true
+    },
+    {
+      "name": "desktop-no-autosend-copy",
+      "ok": true
+    },
+    {
+      "name": "desktop-fu-who",
+      "ok": true
+    },
+    {
+      "name": "desktop-fu-to-text",
+      "ok": true
+    },
+    {
+      "name": "desktop-fu-when",
+      "ok": true
+    },
+    {
+      "name": "desktop-history-visible",
+      "ok": true
+    },
+    {
+      "name": "mobile-row-visible",
+      "ok": true
+    },
+    {
+      "name": "mobile-row-needs-treatment",
+      "ok": true,
+      "alerts": "מייל חדש\nנדרש מענה\nחברת הביטוח ביקשה מסמך\nחסר מסמך\nמייל מתוזמן\nמשימה ללקוח\nנדרש טיפול"
+    },
+    {
+      "name": "mobile-row-not-icon-only",
+      "ok": true,
+      "alerts": "מייל חדש\nנדרש מענה\nחברת הביטוח ביקשה מסמך\nחסר מסמך\nמייל מתוזמן\nמשימה ללקוח\nנדרש טיפול"
+    },
+    {
+      "name": "mobile-cust-btn",
+      "ok": true
+    },
+    {
+      "name": "mobile-cust-modal",
+      "ok": true
+    },
+    {
+      "name": "mobile-cust-kinds",
+      "ok": true
+    },
+    {
+      "name": "mobile-cust-schedule",
+      "ok": true
+    },
+    {
+      "name": "mobile-correspondence-loaded",
+      "ok": true,
+      "header": "התכתבויות (8)"
+    },
+    {
+      "name": "mobile-inbound-need-banner",
+      "ok": true
+    },
+    {
+      "name": "mobile-suggest-reply-btn",
+      "ok": true
+    },
+    {
+      "name": "mobile-no-autosend-copy",
+      "ok": true
+    },
+    {
+      "name": "mobile-fu-who",
+      "ok": true
+    },
+    {
+      "name": "mobile-fu-to-text",
+      "ok": true
+    },
+    {
+      "name": "mobile-fu-when",
+      "ok": true
+    },
+    {
+      "name": "mobile-history-visible",
+      "ok": true
+    }
+  ],
+  "tasks": {
+    "t1": "PASS",
+    "t2": "PASS",
+    "t3": "PASS"
+  },
+  "ok": true
+}

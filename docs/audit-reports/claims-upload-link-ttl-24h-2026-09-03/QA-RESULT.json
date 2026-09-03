@@ -1,0 +1,66 @@
+{
+  "at": "2026-09-03T08:00:30.191649Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "schemaChange": false,
+  "commit": "116805d5",
+  "edgeDeployed": false,
+  "checks": [
+    {
+      "name": "source-ttl-24h",
+      "ok": true
+    },
+    {
+      "name": "source-ui-24h",
+      "ok": true
+    },
+    {
+      "name": "source-still-revokes-on-create",
+      "ok": true
+    },
+    {
+      "name": "source-upload-uses-claim-id",
+      "ok": true
+    },
+    {
+      "name": "source-no-document-delete-on-create",
+      "ok": true
+    },
+    {
+      "name": "create-link",
+      "ok": false,
+      "err": "live deploy blocked: no SUPABASE_ACCESS_TOKEN"
+    },
+    {
+      "name": "expiry-24h",
+      "ok": false,
+      "err": "live Edge still previous version until deploy"
+    },
+    {
+      "name": "upload-ok",
+      "ok": false,
+      "err": "live QA blocked"
+    },
+    {
+      "name": "file-in-correct-claim",
+      "ok": false,
+      "err": "live QA blocked"
+    },
+    {
+      "name": "old-link-blocked",
+      "ok": false,
+      "err": "live QA blocked"
+    },
+    {
+      "name": "uploaded-file-kept",
+      "ok": false,
+      "err": "live QA blocked"
+    },
+    {
+      "name": "live-credentials",
+      "ok": false,
+      "err": "SUPABASE_ACCESS_TOKEN missing; functions deploy 401/no token"
+    }
+  ],
+  "ok": false
+}

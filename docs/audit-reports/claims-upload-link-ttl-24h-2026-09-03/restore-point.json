@@ -1,0 +1,12 @@
+{
+  "at": "2026-09-03T07:57:00.000Z",
+  "purpose": "restore-before-customer-upload-link-ttl-24h",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "productionTouched": false,
+  "schemaChange": false,
+  "files": [
+    "supabase/functions/claims-docs/index.ts",
+    "src/features/claims/ClaimsScreen.tsx"
+  ]
+}

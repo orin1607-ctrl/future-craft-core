@@ -1,0 +1,14 @@
+{
+  "at": "2026-09-02T19:45:00.000Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "schemaMigration": false,
+  "plaintextTokenInDb": false,
+  "tokenHashKept": true,
+  "edgeFunctionChange": true,
+  "whyOtherDeviceFailed": "SHA-256 token_hash is one-way. The full token existed only in the create_link response and localStorage of the creating browser.",
+  "dbStores": ["id", "claim_id", "token_hash", "expires_at", "revoked_at", "created_by", "created_at"],
+  "localStorageStores": "dalia-claims-cust-link:<claimId> = { id, url, expiresAt }",
+  "chosenFix": "Reconstruct HMAC token for canWork staff. Keep hash for public customer access.",
+  "deployBlocked": "GitHub secret SUPABASE_ACCESS_TOKEN → 401 on supabase functions deploy claims-docs (Staging)"
+}

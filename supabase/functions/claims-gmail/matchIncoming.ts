@@ -1,4 +1,7 @@
-/** Conservative incoming-mail → claim matcher. No guessing. Staging Claims Gmail. */
+/** Conservative incoming-mail → claim matcher. No guessing. Staging Claims Gmail.
+ * Also binds exact claim id / claimNum tokens (not only DAL-YYYY-NNNN). */
+
+
 
 export type MatchClaim = {
   id: string;
@@ -86,7 +89,11 @@ export function matchIncomingMail(mail: MatchMail, claims: MatchClaim[]): MatchR
   }));
 
   const dalIds = extractDalIds(hay);
-  const dalHits = uniqueClaims(dalIds.map((id) => claims.find((c) => c.id === id || c.claimNum === id)).filter(Boolean) as MatchClaim[]);
+  const hayU = hay.toUpperCase();
+  const dalHits = uniqueClaims(claims.filter((c) => {
+    const keys = [c.id, c.claimNum].map((x) => String(x || "").trim().toUpperCase()).filter((k) => k.length >= 8);
+    return keys.some((k) => dalIds.includes(k) || hayU.includes(k));
+  }));
 
   const plates = extractPlates(hay);
   const plateHits = uniqueClaims(claims.filter((c) => {
@@ -159,17 +166,53 @@ const REQUEST_TYPES: Array<{ re: RegExp; type: string; label: string }> = [
   { re: /תמונ(?:ות|ה) נזק/, type: "damage_photos", label: "תמונות נזק" },
 ];
 
+export type DetectedRequestKind = "doc" | "sign" | "generic" | "info" | "reply" | "update" | "approve" | "reject" | "other";
+export type DetectedRequest = { type: string; label: string; kind: DetectedRequestKind };
+
+const INTENT_TYPES: Array<{ re: RegExp; type: string; label: string; kind: DetectedRequestKind }> = [
+  { re: /נא למסור|נבקש לדעת|נדרש מידע|פרטים נוספים|נא לעדכן אותנו/, type: "info", label: "בקשת מידע", kind: "info" },
+  { re: /נא להגיב|נבקש תגובה|נא לאשר קבלה|נדרשת תגובה|ממתינים לתשובתכם/, type: "reply", label: "בקשת תגובה", kind: "reply" },
+  { re: /עדכון סטטוס|סטטוס התיק|נעדכן כי|התיק עבר לסטטוס/, type: "update", label: "עדכון", kind: "update" },
+  { re: /אושרה התביעה|אישור תשלום|אושר לשלם|אושרה לתשלום/, type: "approve", label: "אישור", kind: "approve" },
+  { re: /נדחתה התביעה|דחיית התביעה|התביעה נדחתה|לא אושרה התביעה/, type: "reject", label: "דחייה", kind: "reject" },
+  { re: /נא לטפל|יש לטפל בפנייה|נדרש טיפול בתיק/, type: "other", label: "טיפול אחר", kind: "other" },
+];
+
 function requestHay(text: string) {
   return String(text || "")
     .split(/כמפורט בתקנון החברה|PERSONAL_MAIL_NR/)[0]
     .slice(0, 2500);
 }
 
+export function isDocMailRequest(kind: string) {
+  return kind === "doc" || kind === "sign" || kind === "generic";
+}
+
+export function detectMailRequests(text: string): DetectedRequest[] {
+  const hay = requestHay(text);
+  const out: DetectedRequest[] = [];
+  const sign = /לחתום|חתום על|ולהחזיר|החזרה חתומ/;
+  for (const req of REQUEST_TYPES) {
+    if (req.re.test(hay)) out.push({ type: req.type, label: req.label, kind: sign.test(hay) ? "sign" : "doc" });
+  }
+  if (!out.length && sign.test(hay)) {
+    out.push({ type: "sign_return", label: "לחתום ולהחזיר את המסמך המצורף", kind: "sign" });
+  }
+  if (!out.some((x) => isDocMailRequest(x.kind)) && /השלמת מסמכים|מסמכים חסרים|נא להעביר|נא לצרף|אודה להשלמת|חוסרים/.test(hay)) {
+    out.push({ type: "docs_generic", label: "השלמת מסמכים לפי הבקשה במייל", kind: "generic" });
+  }
+  for (const req of INTENT_TYPES) {
+    if (req.re.test(hay) && !out.some((x) => x.type === req.type)) out.push({ type: req.type, label: req.label, kind: req.kind });
+  }
+  return out;
+}
+
 export function suggestReply(text: string, files: SuggestFile[]) {
   const hay = requestHay(text);
   const found = REQUEST_TYPES.filter((x) => x.re.test(hay));
-  if (!found.length) {
-    return { ok: false as const, reason: "לא זוהתה בקשת מסמך ברורה", requested: [], attachments: [] as SuggestFile[], missing: [] as string[] };
+  const detected = detectMailRequests(text);
+  if (!found.length && !detected.length) {
+    return { ok: false as const, reason: "לא זוהתה בקשה ברורה", requested: [] as string[], attachments: [] as SuggestFile[], missing: [] as string[] };
   }
   const attachments: SuggestFile[] = [];
   const missing: string[] = [];
@@ -184,29 +227,58 @@ export function suggestReply(text: string, files: SuggestFile[]) {
     else if (hits.length === 0) missing.push(req.label);
     else missing.push(`${req.label} (נמצאו ${hits.length} — בחירה ידנית)`);
   }
+  const requested = [...new Set([...found.map((x) => x.label), ...detected.map((x) => x.label)])];
+  if (!found.length) {
+    return {
+      ok: true as const,
+      reason: `זוהתה ${requested.join(", ")} — טיוטה לאישור ידני. אין Auto-send.`,
+      requested,
+      attachments,
+      missing,
+    };
+  }
   return {
     ok: missing.length === 0 && attachments.length > 0,
     reason: missing.length ? `חסר מסמך: ${missing.join(", ")}` : "מסמך מזוהה בתיק",
-    requested: found.map((x) => x.label),
+    requested,
     attachments,
     missing,
   };
 }
 
-export type DetectedRequest = { type: string; label: string; kind: "doc" | "sign" | "generic" };
+export function normFileName(name: string) {
+  return String(name || "").toLowerCase().replace(/\\/g, "/").split("/").pop()!.replace(/\s+/g, " ").trim();
+}
 
-export function detectMailRequests(text: string): DetectedRequest[] {
-  const hay = requestHay(text);
-  const out: DetectedRequest[] = [];
-  const sign = /לחתום|חתום על|ולהחזיר|החזרה חתומ/;
-  for (const req of REQUEST_TYPES) {
-    if (req.re.test(hay)) out.push({ type: req.type, label: req.label, kind: sign.test(hay) ? "sign" : "doc" });
+export function isGenericAttachmentName(name: string) {
+  const n = normFileName(name);
+  return /^(image|img|photo|scan|document|attachment|file|untitled)[-_\s]?\d*\.(pdf|jpe?g|png|gif|webp|heic)$/i.test(n)
+    || /^image-\d+\./.test(n);
+}
+
+export type SentPreviewDoc = { id?: string; original_name?: string; gmail_attachment_id?: string };
+
+export function classifySentAttachment(opts: {
+  filename: string;
+  attachmentId?: string;
+  match: MatchResult;
+  claimDocs: SentPreviewDoc[];
+}): { status: "already_in_claim" | "certain_new" | "needs_review" | "unmatched"; reason: string } {
+  const name = normFileName(opts.filename);
+  if (opts.match.decision !== "auto" || !opts.match.claimId) {
+    if (opts.match.candidates.length) return { status: "needs_review", reason: opts.match.reason };
+    return { status: "unmatched", reason: opts.match.reason || "אין מזהה מספיק" };
   }
-  if (!out.length && sign.test(hay)) {
-    out.push({ type: "sign_return", label: "לחתום ולהחזיר את המסמך המצורף", kind: "sign" });
+  const attId = String(opts.attachmentId || "").trim();
+  if (attId && opts.claimDocs.some((d) => String(d.gmail_attachment_id || "") === attId)) {
+    return { status: "already_in_claim", reason: "הקובץ כבר בתיק לפי מזהה Gmail" };
   }
-  if (!out.length && /השלמת מסמכים|מסמכים חסרים|נא להעביר|נא לצרף|אודה להשלמת|חוסרים/.test(hay)) {
-    out.push({ type: "docs_generic", label: "השלמת מסמכים לפי הבקשה במייל", kind: "generic" });
+  const nameHits = opts.claimDocs.filter((d) => normFileName(d.original_name || "") === name);
+  if (name && nameHits.length >= 1) {
+    return { status: "already_in_claim", reason: "שם הקובץ כבר בתיק המותאם" };
   }
-  return out;
+  if (!name || isGenericAttachmentName(opts.filename)) {
+    return { status: "needs_review", reason: "שם קובץ כללי — אין שיוך לפי שם בלבד" };
+  }
+  return { status: "certain_new", reason: "התאמת תביעה ודאית והקובץ אינו בתיק" };
 }
