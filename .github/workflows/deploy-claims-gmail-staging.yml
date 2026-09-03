@@ -1,0 +1,42 @@
+name: Staging claims-gmail deploy
+
+# Staging only. Deploys claims-gmail after SUPABASE_ACCESS_TOKEN refresh.
+# Never Production. Never Hostinger.
+
+on:
+  push:
+    branches:
+      - feat/incident-alerts-staging
+    paths:
+      - 'supabase/functions/claims-gmail/**'
+      - '.github/workflows/deploy-claims-gmail-staging.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-claims-gmail-staging
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard Staging only
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" != "production"
+          test "${GITHUB_REF_NAME}" != "main"
+          test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
+
+      - name: Deploy claims-gmail to Staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          npx --yes supabase functions deploy claims-gmail --project-ref usfeoerkpcafxxlyuldl --use-api

@@ -1,4 +1,7 @@
-/** Conservative incoming-mail → claim matcher. No guessing. Staging Claims Gmail. */
+/** Conservative incoming-mail → claim matcher. No guessing. Staging Claims Gmail.
+ * Also binds exact claim id / claimNum tokens (not only DAL-YYYY-NNNN). */
+
+
 
 export type MatchClaim = {
   id: string;
