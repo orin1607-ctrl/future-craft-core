@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
+import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, buildClaimRowAlerts, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, inferRecipientKind, mailLooksInbound, recipientKindLabel, type ClaimAlert } from './claimWorkAlerts';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, type IntakeDraft } from './claimIntakeModel';
@@ -46,6 +47,17 @@ function daysFromToday(s: string): number | null {
 function returnNeededLabel(c: ClaimRecord): string {
   if (isClosedStatus(c.status, c.archived)) return 'אין צורך בחזרה';
   return claimNeedsReturn(c) ? 'כן' : '—';
+}
+
+function RowAlerts({ alerts }: { alerts: ClaimAlert[] }) {
+  if (!alerts.length) return <span style={{ color: 'var(--t3)' }}>—</span>;
+  return (
+    <div className="row-alerts" data-testid="claim-row-alerts">
+      {alerts.map((a) => (
+        <span key={a.key} className={`row-alert tone-${a.tone}`} data-testid={`claim-alert-${a.key}`}>{a.label}</span>
+      ))}
+    </div>
+  );
 }
 
 const FC_MAP: Record<string, string> = {
@@ -608,6 +620,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [curTpl, setCurTpl] = useState('');
   const [reminders, setReminders] = useState<ClaimRecord[]>([]);
   const [mailFollowups, setMailFollowups] = useState<MailFollowupRow[]>([]);
+  const [dashFollowups, setDashFollowups] = useState<Array<{ id: string; claim_id: string; status: string; mail_to: string; mail_subject: string; next_run_at: string; recipient_kind: string }>>([]);
+  const [pendingCustTaskId, setPendingCustTaskId] = useState<string | null>(null);
+  const [suggestDraftBody, setSuggestDraftBody] = useState('');
   const [fuEditId, setFuEditId] = useState<string | null>(null);
   const [assignees, setAssignees] = useState<Array<{ id: string; full_name: string; company_name: string }>>([]);
   const [docs, setDocs] = useState<{ requests: DocRequest[]; files: ClaimFile[] }>({ requests: [], files: [] });
@@ -685,18 +700,20 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const loadAll = useCallback(async () => {
     setSync('pend');
     try {
-      const [cr, nr, tr, rr, pr] = await Promise.all([
+      const [cr, nr, tr, rr, pr, fu] = await Promise.all([
         apiRef.current.getClaims(),
         apiRef.current.getNotifications(),
         apiRef.current.getTasks(null),
         apiRef.current.getReminders(null),
         apiRef.current.invokeGmail('list_pending'),
+        apiRef.current.listScheduledMailFollowups(),
       ]);
       setClaims(cr.data || []);
       setNotifs(nr.data || []);
-      setDashTasks((tr.data || []).filter((t) => t.done !== 'true'));
+      setDashTasks(tr.data || []);
       setDashRems(rr.data || []);
       if (pr.success) setGmailPending((pr.data as Array<Record<string, unknown>>) || []);
+      if (fu.success) setDashFollowups(fu.data || []);
       if (!cr.success && cr.error) toast(`טעינת תביעות נכשלה: ${cr.error}`, 'err');
       if (actor.role === 'super_admin') {
         const a = await apiRef.current.listAssignees();
@@ -787,6 +804,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const snapOpenTask = Boolean(cur && tasks.length > 0);
   const snapRem = Boolean(cur && reminders.length > 0);
   const snapFollow = Boolean(cur && mailFollowups.length > 0);
+  const alertCtx = useMemo(() => ({
+    tasks: dashTasks,
+    notifs,
+    gmailPending,
+    scheduledFollowups: dashFollowups,
+  }), [dashTasks, notifs, gmailPending, dashFollowups]);
   const activeClaims = useMemo(() => claims.filter((c) => c.archived !== 'true'), [claims]);
   const archiveClaims = useMemo(() => claims.filter((c) => c.archived === 'true'), [claims]);
   const workset = mineOnly ? activeClaims.filter((c) => c.assigned_to === actor.id) : activeClaims;
@@ -851,7 +874,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (gen !== cardLoadGen.current) return;
     setComm(c.data || []);
     setHist(h.data || []);
-    setTasks((t.data || []).filter((x) => x.done !== 'true'));
+    setTasks((t.data || []).filter((x) => x.done !== 'true' || x.audience === 'customer'));
     setReminders(rem.data || []);
     setMailFollowups(fu.data || []);
     setGmailImports((gi.data as Array<Record<string, unknown>>) || []);
@@ -1198,15 +1221,26 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setFuEditId(edit?.id || null);
     setModal('moMailFu');
     const c = cur;
-    const filled = c ? await apiRef.current.fillTemplate('status_request', {
+    const who = edit
+      ? inferRecipientKind(edit.mail_to, c, edit.recipient_kind)
+      : 'insurer';
+    const tplKey = who === 'client' ? 'client_reminder' : 'status_request';
+    const filled = c ? await apiRef.current.fillTemplate(tplKey, {
       ...c,
       claimNum: workClaimNum(c),
       clientName: c.clientName || '',
       plate: c.plate || '',
       eventDate: c.eventDate || '',
+      status: c.status || '',
     }) : { subject: '', body: '' };
     setTimeout(() => {
+      const toOf = (w: string) => {
+        if (w === 'client') return c?.clientEmail || '';
+        if (w === 'insurer') return c?.insEmail || c?.insRepEmail || '';
+        return '';
+      };
       if (edit) {
+        setVal('fu_who', who);
         setVal('fu_to', edit.mail_to);
         setVal('fu_subj', edit.mail_subject);
         setVal('fu_body', edit.mail_body);
@@ -1216,7 +1250,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         setVal('fu_stop', toLocalInput(edit.stop_at));
         setVal('fu_attach', edit.attach_mode || 'none');
       } else {
-        setVal('fu_to', c?.insEmail || c?.insRepEmail || '');
+        setVal('fu_who', 'insurer');
+        setVal('fu_to', toOf('insurer'));
         setVal('fu_subj', filled.subject || '');
         setVal('fu_body', filled.body || '');
         setVal('fu_kind', 'email_once');
@@ -1226,6 +1261,32 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         setVal('fu_attach', 'none');
       }
     }, 0);
+  };
+
+  const openCustomerRequest = () => {
+    setModal('moCustReq');
+    setTimeout(() => {
+      setVal('cr_kind', 'send_doc');
+      setVal('cr_text', '');
+      setVal('cr_due', '');
+      setVal('cr_channel', 'email');
+      setVal('cr_when', '');
+    }, 0);
+  };
+
+  const markPendingCustomerSent = async () => {
+    if (!pendingCustTaskId || !curId) return;
+    const t = [...tasks, ...dashTasks].find((x) => x.id === pendingCustTaskId);
+    if (!t) { setPendingCustTaskId(null); return; }
+    await apiRef.current.saveTask({
+      ...t,
+      customerStatus: 'sent',
+      sentAt: new Date().toISOString(),
+      done: 'false',
+    });
+    setPendingCustTaskId(null);
+    await loadCardData(curId);
+    await loadAll();
   };
 
   const openCard = async (id: string, tab = 'claim') => {
@@ -1539,7 +1600,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       <th></th>
       <th>מספר תביעה</th><th>לקוח</th><th>רכב</th><th>חברת ביטוח</th>
       <th>סטטוס טיפול</th><th>עובד מטפל</th>
-      <th>טיפול אחרון</th><th>טיפול הבא</th><th>נדרשת פעולה</th><th>מצב מסמכים</th>
+      <th>טיפול אחרון</th><th>טיפול הבא</th><th>נדרש טיפול</th><th>מצב מסמכים</th>
       {view === 'claims' ? <th></th> : null}
     </tr></thead>
   );
@@ -1563,12 +1624,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       <td style={{ fontSize: 11 }}>{c.assigned_to_name || '—'}</td>
       <td style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtDay(c.lastTreatmentAt || '')}</td>
       <td style={{ fontSize: 10, color: 'var(--yn2)' }}>{fmtDay(c.nextDate || '')}</td>
-      <td style={{ fontSize: 11, fontWeight: 700 }}>{returnNeededLabel(c)}</td>
+      <td onClick={(e) => e.stopPropagation()}><RowAlerts alerts={buildClaimRowAlerts(c, alertCtx)} /></td>
       <td style={{ fontSize: 10 }}>{docsOrderLabel(docsOrderOf(c)) || '—'}</td>
       {extra ? <td onClick={(e) => e.stopPropagation()}><button className="btn btn-g btn-sm" onClick={() => startEdit(c.id)}>✏️</button></td> : null}
     </tr>
   );
-  const myTasks = dashTasks.filter((t) => !mineOnly || workset.some((c) => c.id === t.claimId)).slice(0, 8);
+  const myTasks = dashTasks.filter((t) => t.done !== 'true' && customerStatusOf(t) !== 'done' && customerStatusOf(t) !== 'cancelled' && (!mineOnly || workset.some((c) => c.id === t.claimId))).slice(0, 8);
   const myRems = dashRems.filter((r) => !mineOnly || workset.some((c) => c.id === r.claimId)).slice(0, 8);
 
   if (!ready) {
@@ -2091,10 +2152,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 {snapRem ? <div className="lbl-pill flag-on" data-testid="snap-reminder">תזכורת</div> : null}
                 {snapFollow ? <div className="lbl-pill flag-on" data-testid="snap-followup">מעקב מייל</div> : null}
               </div>
+              {cur ? <div className="card-flags" style={{ marginTop: 8 }}><RowAlerts alerts={buildClaimRowAlerts(cur, alertCtx)} /></div> : null}
             </div>
             <div className="ab ab-regroup">
               <div className="ab-primary">
                 <button className="ab-btn ab-mail ab-pri" data-testid="claims-send-mail" onClick={() => { setCardMore(false); void openSendModal('draft'); }}>מייל חדש</button>
+                <button className="ab-btn ab-task ab-pri" data-testid="claims-cust-request" onClick={() => { setCardMore(false); openCustomerRequest(); }}>בקשה ללקוח</button>
                 <button className="ab-btn ab-status ab-pri" data-testid="claims-treat-open" onClick={() => { setCardMore(false); openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk }); }}>עדכון טיפול</button>
                 <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>מסמכים</button>
               </div>
@@ -2187,6 +2250,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <>
                   <div className="work-entry-bar" data-testid="work-entry-bar">
                     <button type="button" className="btn btn-p btn-sm" onClick={() => openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk })}>עדכון טיפול</button>
+                    <button type="button" className="btn btn-g btn-sm" data-testid="work-cust-request" onClick={() => openCustomerRequest()}>בקשה ללקוח</button>
                     <button type="button" className="btn btn-g btn-sm" onClick={() => setCardTab('tasks')}>משימות ({tasks.length})</button>
                     <button type="button" className="btn btn-g btn-sm" onClick={() => setCardTab('rems')}>תזכורות ({reminders.length})</button>
                     <button type="button" className="btn btn-g btn-sm" onClick={() => setCardTab('mailfu')}>מעקב מייל ({mailFollowups.length})</button>
@@ -2687,6 +2751,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <div>
                   <div className="mail-entry-bar" data-testid="mail-entry-bar">
                     <button type="button" className="btn btn-p btn-sm" onClick={() => { void openSendModal('draft'); }}>מייל חדש</button>
+                    <button type="button" className="btn btn-p btn-sm" data-testid="mail-cust-request" onClick={() => openCustomerRequest()}>בקשה ללקוח</button>
                     <button type="button" className="btn btn-g btn-sm" onClick={() => { void openSendModal('insurer'); }}>לחברת ביטוח</button>
                     <button type="button" className="btn btn-g btn-sm" onClick={() => { void openSendModal('legal'); }}>טיפול משפטי</button>
                     <button type="button" className="btn btn-g btn-sm" onClick={() => { void startGmailImport(); }}>ייבוא Gmail</button>
@@ -2708,6 +2773,43 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           return (
                             <div key={String(im.id)} className="gmail-card">
                               <div style={{ fontWeight: 800, marginBottom: 6 }}>{String(im.subject || '(ללא נושא)')}</div>
+                              {mailLooksInbound(String(im.from_addr || ''), OWN_MAILBOX) ? (
+                                <div className="mail-need" data-testid={`mail-need-${im.id}`}>
+                                  <div className="row-alert tone-need">נדרש טיפול</div>
+                                  {(() => {
+                                    const detected = detectMailRequests(`${im.subject || ''}\n${im.body_text || ''}`);
+                                    const mailTasks = tasks.filter((t) => t.gmailMessageId === mid);
+                                    const labels = detected.length ? detected.map((d) => d.label) : mailTasks.map((t) => t.action).filter(Boolean);
+                                    if (!labels.length) return <div style={{ fontSize: 12, marginTop: 6 }}>מייל נכנס שויך לתיק. אין שליחה אוטומטית — הכינו טיוטה ידנית.</div>;
+                                    return (
+                                      <div style={{ marginTop: 6 }}>
+                                        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>זוהתה בקשה:</div>
+                                        {labels.map((lb) => {
+                                          const readyTask = mailTasks.find((t) => t.action === lb && t.docState === 'ready');
+                                          const missingTask = mailTasks.find((t) => t.action === lb && (t.docState === 'missing' || t.docState === 'needs_review'));
+                                          const typeHit = docs.files.some((f) => {
+                                            const st = fileMeta(f).staff_type;
+                                            const kind = String(f.doc_kind || '');
+                                            if (lb.includes('שמאי') && (kind === 'surveyor_report' || kind === 'surveyor_attachment')) return true;
+                                            if (lb.includes('חשבונית') && kind === 'garage_invoice') return true;
+                                            if (lb.includes('תמונ') && (kind === 'surveyor_photo' || st === 'damage_photos')) return true;
+                                            if (st && staffTypeLabel(st) === lb) return true;
+                                            return false;
+                                          });
+                                          return (
+                                            <div key={lb} style={{ fontSize: 12, marginBottom: 3 }}>
+                                              {lb}
+                                              {' · '}
+                                              {readyTask || typeHit ? <span style={{ color: 'var(--gn2)' }}>קיים בתיק — ניתן לצרף לתגובה</span> : missingTask || !typeHit ? <span style={{ color: 'var(--rd2)' }}>נדרש טיפול / חסר מסמך</span> : <span style={{ color: 'var(--yn2)' }}>לבדיקת עובד</span>}
+                                            </div>
+                                          );
+                                        })}
+                                        <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4 }}>אין Auto-send. רק טיוטה לאישור ידני.</div>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                              ) : null}
                               <div className="mail-meta">
                                 <div><b>תאריך</b>{fmtWhen(String(im.sent_at || ''))}</div>
                                 <div><b>From</b>{String(im.from_addr || '—')}</div>
@@ -2733,11 +2835,15 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                 <button type="button" className="btn btn-p btn-sm" data-testid={`suggest-reply-${im.id}`} style={{ marginInlineStart: 6 }} onClick={async () => {
                                   const r = await apiRef.current.invokeGmail('suggest_reply', { claim_id: cur.id, import_id: im.id });
                                   if (!r.success) { toast(String(r.error || 'לא ניתן להכין תגובה'), 'err'); return; }
-                                  const sug = (r.suggestion && typeof r.suggestion === 'object') ? r.suggestion as { ok?: boolean; reason?: string; missing?: string[]; attachments?: Array<{ id: string; original_name?: string }> } : {};
+                                  const sug = (r.suggestion && typeof r.suggestion === 'object') ? r.suggestion as { ok?: boolean; reason?: string; missing?: string[]; attachments?: Array<{ id: string; original_name?: string }>; requested?: string[] } : {};
                                   const draft = (r.draft && typeof r.draft === 'object') ? r.draft as { to?: string; subject?: string; body?: string; file_ids?: string[]; thread_id?: string } : {};
                                   if (r.autoSend === true) { toast('שליחה אוטומטית חסומה', 'err'); return; }
+                                  const detected = detectMailRequests(`${im.subject || ''}\n${im.body_text || ''}`);
+                                  await apiRef.current.logHistory(cur.id, detected.length ? 'זוהתה בקשה' : 'נוצרה טיוטת תגובה', [sug.reason, (sug.requested || detected.map((d) => d.label)).join(', ')].filter(Boolean).join(' · '), 'mail_draft');
+                                  if (detected.length && !sug.reason) await apiRef.current.logHistory(cur.id, 'נוצרה טיוטת תגובה', draft.subject || '', 'mail_draft');
                                   if (sug.missing?.length) toast(`חסר מסמך: ${sug.missing.join(', ')}`, 'err');
                                   else toast(String(sug.reason || 'תגובה מוצעת — לא נשלח'));
+                                  setSuggestDraftBody(String(draft.body || ''));
                                   await openSendModal('draft', {
                                     to: String(draft.to || ''),
                                     subject: String(draft.subject || ''),
@@ -2872,7 +2978,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               )}
               {cardTab === 'tasks' && (
                 <>
-                  <button className="btn btn-p btn-sm" style={{ marginBottom: 10 }} onClick={() => setModal('moTask')}>＋ הוסף משימה</button>
+                  <button className="btn btn-p btn-sm" style={{ marginBottom: 10 }} data-testid="tasks-cust-request" onClick={() => openCustomerRequest()}>בקשה ללקוח</button>
+                  <button className="btn btn-g btn-sm" style={{ marginBottom: 10, marginInlineStart: 6 }} onClick={() => setModal('moTask')}>＋ משימה פנימית</button>
                   {tasks.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין משימות פתוחות</div>
                     : tasks.map((t) => {
                       const ready = docs.files.find((f) => f.id === t.readyFileId);
@@ -2880,6 +2987,36 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       return (
                         <div key={t.id} data-testid={`task-card-${t.id}`} style={{ background: 'var(--bg3)', border: '1px solid var(--br)', borderRadius: 7, padding: '10px 12px', marginBottom: 7 }}>
                           <div style={{ fontWeight: 600 }}>{t.action}</div>
+                          {t.audience === 'customer' ? (
+                            <div className="cust-task-meta" data-testid={`cust-task-${t.id}`}>
+                              <div className={`row-alert tone-${customerStatusOf(t) === 'done' ? 'info' : customerStatusOf(t) === 'cancelled' ? 'info' : 'wait'}`}>{customerStatusLabel(customerStatusOf(t))}</div>
+                              <div style={{ fontSize: 12, marginTop: 6 }}>{t.requestText || t.note || ''}</div>
+                              <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4 }}>
+                                {t.channel === 'whatsapp' ? 'WhatsApp' : 'מייל'}
+                                {t.dueDate ? ` · יעד ${t.dueDate}` : ''}
+                                {t.scheduledAt ? ` · תזמון ${fmtWhen(t.scheduledAt)}` : ''}
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--t3)' }}>נוצר: {t.createdAt || '—'} · {t.createdBy || t.owner || '—'}</div>
+                              {t.sentAt ? <div style={{ fontSize: 11, color: 'var(--t3)' }}>נשלח: {fmtWhen(t.sentAt)}</div> : null}
+                              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                                {CUSTOMER_REQUEST_STATUSES.map((st) => (
+                                  <button key={st.key} type="button" className="btn btn-g btn-sm" data-testid={`cust-st-${t.id}-${st.key}`} onClick={async () => {
+                                    await apiRef.current.saveTask({
+                                      ...t,
+                                      customerStatus: st.key,
+                                      done: st.key === 'done' || st.key === 'cancelled' ? 'true' : 'false',
+                                      sentAt: st.key === 'sent' ? (t.sentAt || new Date().toISOString()) : (t.sentAt || ''),
+                                      completedAt: st.key === 'done' ? new Date().toISOString() : (t.completedAt || ''),
+                                      cancelledAt: st.key === 'cancelled' ? new Date().toISOString() : (t.cancelledAt || ''),
+                                    });
+                                    toast(`סטטוס: ${st.label}`);
+                                    await loadCardData(cur.id);
+                                    await loadAll();
+                                  }}>{st.label}</button>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
                           {t.source ? <div style={{ fontSize: 11, color: 'var(--t3)' }}>מקור: {t.source}</div> : null}
                           {t.createdAt ? <div style={{ fontSize: 11, color: 'var(--t3)' }}>תאריך: {t.createdAt}</div> : null}
                           {t.dueDate ? <div style={{ fontSize: 11, color: 'var(--yn2)' }}>📅 {t.dueDate}</div> : null}
@@ -2974,6 +3111,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           </div>
                           <div className="fu-grid">
                             <div><b>למי</b>{fu.mail_to || '—'}</div>
+                            <div><b>נמען</b>{recipientKindLabel(inferRecipientKind(fu.mail_to, cur, fu.recipient_kind))}</div>
                             <div><b>מועד מתוכנן</b>{fmtWhen(last?.planned_at || fu.next_run_at)}</div>
                             <div><b>מועד הבא</b>{fu.next_run_at ? fmtWhen(fu.next_run_at) : '—'}</div>
                             <div><b>מי הגדיר</b>{fu.defined_by || '—'}</div>
@@ -2985,6 +3123,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             <pre>{String((prev?.body as string) || fu.mail_body || '')}</pre>
                             <div><b>מסמכים לצירוף:</b> {fu.attach_mode === 'received' ? (atts.length ? atts.map((a) => a.name).filter(Boolean).join(', ') : 'מסמכים שהתקבלו בתיק (אם יש)') : 'ללא מצורפים'}</div>
                             {last ? <div style={{ marginTop: 6, fontSize: 11 }}><b>סטטוס שליחה:</b> {fuStatusHe(last.status)}{last.fail_reason ? ` · ${last.fail_reason}` : ''}{last.retry_count ? ` · retry ${last.retry_count}` : ''} · realEmailSend={String(prev?.realEmailSend ?? false)}</div> : null}
+                            {fu.jobs.length > 1 ? (
+                              <div style={{ marginTop: 8, fontSize: 11 }}>
+                                <b>ניסיונות:</b>
+                                {fu.jobs.slice(0, 8).map((j) => (
+                                  <div key={j.id}>{fuStatusHe(j.status)} · {fmtWhen(j.planned_at)}{j.fail_reason ? ` · ${j.fail_reason}` : ''}</div>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
                           {fu.status === 'scheduled' && (
                             <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
@@ -2994,6 +3140,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                 if (!r.success) { toast(r.error || 'שגיאה', 'err'); return; }
                                 toast('המעקב נעצר. ההיסטוריה נשמרה.');
                                 if (cur) await loadCardData(cur.id);
+                                await loadAll();
                               }}>עצור מעקב</button>
                             </div>
                           )}
@@ -3201,7 +3348,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               const intl = p.startsWith('0') ? `972${p.slice(1)}` : p;
               window.open(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`, '_blank');
               await apiRef.current.saveCommEntry({ claimId: curId || '', type: 'wa', phone, body: msg, direction: 'out', contactName: cur?.clientName || '' });
-              toast('WhatsApp נשלח ותועד');
+              await markPendingCustomerSent();
+              toast('WhatsApp נפתח ותועד. אין שליחה אוטומטית מספק.');
+              if (curId) await afterSignificant(curId, 'תועד WhatsApp');
               if (curId) await afterSignificant(curId, 'תועד WhatsApp');
             }}>💬 שלח + תעד</button>
           </div>
@@ -3437,6 +3586,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               if (r.error === 'package_too_large') { setMailPreviewOn(false); toast('הקבצים גדולים מדי לשליחה במייל — SEND חסום. לא יושמטו קבצים.', 'err'); return; }
               if (r.error === 'cc_invalid' || r.error === 'to_required') { setMailPreviewOn(false); toast('כתובת To/CC לא תקינה — SEND חסום', 'err'); return; }
               if (r.success === false && r.error) { setMailPreviewOn(false); toast(String(r.error), 'err'); return; }
+              if (suggestDraftBody && bodyText !== suggestDraftBody && curId) {
+                void apiRef.current.logHistory(curId, 'טיוטה נערכה', mailSubj, 'mail_draft');
+              }
               setMailPreviewOn(true);
             }}>👁 Preview</button>
             {!mailConfirmOn ? (
@@ -3488,6 +3640,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   setMailSending(false);
                   setMailConfirmOn(false);
                   setMailAck(false);
+                  await markPendingCustomerSent();
                   if (curId) void afterSignificant(curId, 'נשלח מייל עם מסמכים', { sendOk: true });
                   if (curId && (r.gmail_thread_id || mailThreadId)) {
                     const thread = String(r.gmail_thread_id || mailThreadId || '');
@@ -3525,6 +3678,111 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 }
               }}>{mailSending ? 'שולח…' : 'אשר ושלח'}</button>
             )}
+          </div>
+        </div>
+      </div>
+
+      <div className={`ov ${modal === 'moCustReq' ? 'open' : ''}`}>
+        <div className="modal modal-sm">
+          <div className="mh"><div className="mh-t">בקשה / משימה ללקוח</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
+          <div className="mb">
+            <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>נשמר בתיק כמשימה ללקוח. מייל יוצא במנגנון הקיים (או מתוזמן Dry Run). WhatsApp נפתח ידנית ב-wa.me — אין ספק חדש ואין שליחה אוטומטית.</div>
+            <div className="fg"><label className="fl">סוג בקשה</label>
+              <select className="fse fi" id="cr_kind" data-testid="cr-kind">
+                {CUSTOMER_REQUEST_KINDS.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
+              </select>
+            </div>
+            <div className="fg"><label className="fl">טקסט הבקשה *</label><textarea className="fta" id="cr_text" data-testid="cr-text" style={{ minHeight: 90 }} placeholder="מה הלקוח צריך לבצע" /></div>
+            <div className="fg"><label className="fl">תאריך יעד</label><input className="fi" id="cr_due" data-testid="cr-due" type="date" /></div>
+            <div className="fg"><label className="fl">ערוץ</label>
+              <select className="fse fi" id="cr_channel" data-testid="cr-channel">
+                <option value="email">מייל</option>
+                <option value="whatsapp">WhatsApp (ידני, מנגנון קיים)</option>
+              </select>
+            </div>
+            <div className="fg"><label className="fl">תזמון שליחה (ריק = עכשיו)</label><input className="fi" id="cr_when" data-testid="cr-when" type="datetime-local" /></div>
+          </div>
+          <div className="mf"><button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
+            <button className="btn btn-p" data-testid="cr-save" onClick={async () => {
+              if (!cur || !curId) return;
+              const kind = val(null, 'cr_kind') || 'other';
+              const text = val(null, 'cr_text');
+              if (!text) { toast('נא להזין את טקסט הבקשה', 'err'); return; }
+              const channel = val(null, 'cr_channel') || 'email';
+              const due = val(null, 'cr_due');
+              const when = val(null, 'cr_when');
+              const label = customerKindLabel(kind);
+              const row: Record<string, string> = {
+                claimId: curId,
+                audience: 'customer',
+                customerKind: kind,
+                action: label,
+                requestText: text,
+                note: text,
+                channel,
+                customerStatus: 'pending',
+                dueDate: due,
+                scheduledAt: when ? new Date(when).toISOString() : '',
+                createdBy: actor.full_name,
+                owner: actor.full_name,
+                done: 'false',
+              };
+              if (channel === 'email' && when) {
+                const to = cur.clientEmail || '';
+                if (!to) { toast('אין כתובת מייל ללקוח בתיק', 'err'); return; }
+                const whenIso = new Date(when).toISOString();
+                if (Number.isNaN(Date.parse(whenIso))) { toast('מועד לא תקין', 'err'); return; }
+                const fu = await apiRef.current.upsertMailFollowup({
+                  claim_id: curId,
+                  mail_to: to,
+                  mail_subject: `תביעה ${displayClaimNum(cur)} – ${label}`,
+                  mail_body: text,
+                  mail_kind: 'email_once',
+                  attach_mode: 'none',
+                  next_run_at: whenIso,
+                  recipient_kind: 'client',
+                });
+                if (!fu.success) { toast(String(fu.error || 'תזמון המייל נכשל'), 'err'); return; }
+                row.mailFollowupId = String(fu.id || '');
+                await apiRef.current.saveTask(row);
+                toast('משימה ללקוח נשמרה · מייל מתוזמן (Dry Run — לא נשלח)');
+                setCardTab('tasks');
+                setModal('moCard');
+                await loadCardData(curId);
+                await loadAll();
+                return;
+              }
+              const saved = await apiRef.current.saveTask(row);
+              setPendingCustTaskId(String(saved.id || ''));
+              if (channel === 'whatsapp') {
+                if (when) {
+                  await apiRef.current.saveReminder({
+                    claimId: curId,
+                    date: when.slice(0, 10),
+                    note: `תזכורת לשלוח WhatsApp ללקוח: ${text}`,
+                    owner: actor.full_name,
+                    sent: 'false',
+                  });
+                  toast('נשמרה משימה + תזכורת. אין שליחת WhatsApp אוטומטית במערכת.');
+                  setCardTab('tasks');
+                  setModal('moCard');
+                  await loadCardData(curId);
+                  await loadAll();
+                  return;
+                }
+                setVal('wa_phone', cur.clientPhone || '');
+                setVal('wa_msg', text);
+                setModal('moWA');
+                toast('משימה נשמרה — שליחת WhatsApp ידנית בחלון הבא');
+                return;
+              }
+              await openSendModal('draft', {
+                to: cur.clientEmail || '',
+                subject: `תביעה ${displayClaimNum(cur)} – ${label}`,
+                body: text,
+              });
+              toast('משימה נשמרה — המייל לא נשלח עד אישור ידני');
+            }}>שמור / המשך לשליחה</button>
           </div>
         </div>
       </div>
@@ -3570,9 +3828,33 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <div className="modal modal-md">
           <div className="mh"><div className="mh-t">📬 מעקב מייל / Follow-up</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
           <div className="mb">
-            <div style={{ fontSize: 11, color: 'var(--yn2)', marginBottom: 10 }}>Dry Run בלבד. לא נשלח מייל אמיתי ולא מתבצע OAuth.</div>
-            <div className="fg"><label className="fl">נמען *</label><input className="fi" id="fu_to" type="email" /></div>
-            <div className="fg"><label className="fl">מועד שליחה *</label><input className="fi" id="fu_when" type="datetime-local" /></div>
+            <div style={{ fontSize: 11, color: 'var(--yn2)', marginBottom: 10 }}>Dry Run בלבד. לא נשלח מייל אמיתי ולא מתבצע OAuth. MAIL_DISPATCH_MODE=dry_run.</div>
+            <div className="fg"><label className="fl">נמען</label>
+              <select className="fse fi" id="fu_who" data-testid="fu-who" onChange={async (e) => {
+                const w = e.target.value;
+                const c = cur;
+                if (w === 'client') setVal('fu_to', c?.clientEmail || '');
+                else if (w === 'insurer') setVal('fu_to', c?.insEmail || c?.insRepEmail || '');
+                const tplKey = w === 'client' ? 'client_reminder' : 'status_request';
+                if (c && !fuEditId) {
+                  const filled = await apiRef.current.fillTemplate(tplKey, {
+                    ...c,
+                    claimNum: workClaimNum(c),
+                    clientName: c.clientName || '',
+                    plate: c.plate || '',
+                    status: c.status || '',
+                  });
+                  if (filled.subject) setVal('fu_subj', filled.subject);
+                  if (filled.body) setVal('fu_body', filled.body);
+                }
+              }}>
+                <option value="insurer">חברת הביטוח</option>
+                <option value="client">לקוח</option>
+                <option value="other">כתובת אחרת</option>
+              </select>
+            </div>
+            <div className="fg"><label className="fl">כתובת נמען *</label><input className="fi" id="fu_to" data-testid="fu-to" type="text" inputMode="email" autoComplete="off" /></div>
+            <div className="fg"><label className="fl">מועד שליחה *</label><input className="fi" id="fu_when" data-testid="fu-when" type="datetime-local" /></div>
             <div className="fg"><label className="fl">סוג</label>
               <select className="fse fi" id="fu_kind">
                 <option value="email_once">חד-פעמי</option>
@@ -3604,6 +3886,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               if (Number.isNaN(Date.parse(whenIso))) { toast('מועד לא תקין', 'err'); return; }
               const stop = val(null, 'fu_stop');
               const kind = val(null, 'fu_kind') || 'email_once';
+              const who = val(null, 'fu_who') || 'other';
               const r = await apiRef.current.upsertMailFollowup({
                 id: fuEditId || undefined,
                 claim_id: curId,
@@ -3616,6 +3899,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 next_run_at: whenIso,
                 stop_at: stop ? new Date(stop).toISOString() : '',
                 allow_on_closed: isSuperAdmin && !!(document.getElementById('fu_closed') as HTMLInputElement | null)?.checked,
+                recipient_kind: who,
               });
               if (!r.success) { toast(r.error || 'שגיאה', 'err'); return; }
               toast(fuEditId ? 'המעקב עודכן' : 'מעקב מייל הוגדר (Dry Run)');
@@ -3623,6 +3907,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               setCardTab('mailfu');
               setModal('moCard');
               if (curId) await loadCardData(curId);
+              await loadAll();
             }}>💾 שמור מעקב</button>
           </div>
         </div>

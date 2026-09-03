@@ -184,7 +184,17 @@
 .claims-root .card-snap-k{font-size:10px;color:var(--t3);font-weight:700}
 .claims-root .card-snap-v{font-size:12.5px;font-weight:700;margin-top:2px}
 .claims-root .card-flags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
-.claims-root .lbl-pill.flag-on{color:var(--ac3);border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.12)}
+.claims-root .row-alerts{display:flex;flex-wrap:wrap;gap:4px;align-items:center;max-width:280px}
+.claims-root .row-alert{display:inline-flex;align-items:center;font-size:10px;font-weight:800;line-height:1.2;padding:3px 7px;border-radius:8px;border:1px solid var(--br2)}
+.claims-root .row-alert.tone-need{color:#b91c1c;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.12)}
+.claims-root .row-alert.tone-wait{color:#b45309;border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.12)}
+.claims-root .row-alert.tone-info{color:var(--ac3);border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.12)}
+.claims-root .mail-need{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:8px 10px;margin:0 0 8px}
+.claims-root .cust-task-meta{margin:6px 0 8px}
+@media(max-width:700px){
+  .claims-root .row-alerts{max-width:none}
+  .claims-root .row-alert{font-size:11px;padding:5px 8px;min-height:28px}
+}
 .claims-root .lbl-pill.flag-warn{color:var(--yn2);border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.12)}
 .claims-root .ab-regroup{align-items:flex-start;justify-content:space-between;gap:8px}
 .claims-root .ab-primary{display:flex;flex-wrap:wrap;gap:6px}

@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CLOSE_REASONS, STATUS_MANUAL, STATUS_UNCHANGED, TEMPLATES, isClosedStatus, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
+import { customerStatusOf, customerTaskHistoryAction } from './claimWorkAlerts';
 
 export type MailJobRow = {
   id: string;
@@ -27,6 +28,7 @@ export type MailFollowupRow = {
   status: string;
   allow_on_closed: boolean;
   defined_by: string;
+  recipient_kind: string;
   cancelled_at: string;
   created_at: string;
   jobs: MailJobRow[];
@@ -349,14 +351,23 @@ export function createClaimsApi(actor: ClaimsActor) {
       const row = { ...task };
       row.id = row.id || generateId('TSK');
       row.createdAt = row.createdAt || nowHe();
-      const { data: existing } = await tbl('claims_tasks').select('id').eq('id', row.id).maybeSingle();
+      row.createdBy = row.createdBy || actorName;
+      const { data: existing } = await tbl('claims_tasks').select('id, row_data').eq('id', row.id).maybeSingle();
+      const prev = existing ? rowFromData((existing as { row_data?: Record<string, unknown> }).row_data) : null;
       if (existing) {
         await tbl('claims_tasks').update({ row_data: row } as never).eq('id', row.id);
       } else {
         await tbl('claims_tasks').insert({ id: row.id, claim_id: row.claimId, row_data: row } as never);
       }
-      await appendHistory(row.claimId, `${row.done === 'true' ? 'משימה הושלמה' : 'משימה נוספה'}: ${row.action}`, '', 'task', '', '');
-      if (row.done !== 'true') await createNotification(row.claimId, 'task', `משימה: ${row.action}`);
+      const hist = customerTaskHistoryAction(prev, row);
+      await appendHistory(row.claimId, hist.action, hist.note, row.audience === 'customer' ? 'customer_task' : 'task', prev ? customerStatusOf(prev) : '', customerStatusOf(row) || row.done || '');
+      const st = customerStatusOf(row);
+      if (row.mailFollowupId && (st === 'cancelled' || st === 'done' || row.done === 'true')) {
+        await this.cancelMailFollowup(row.mailFollowupId).catch(() => ({ success: false }));
+      }
+      if (row.done !== 'true' && st !== 'cancelled' && st !== 'done') {
+        await createNotification(row.claimId, row.audience === 'customer' ? 'customer_task' : 'task', `משימה: ${row.action}`);
+      }
       return { success: true, id: row.id };
     },
 
@@ -441,7 +452,10 @@ export function createClaimsApi(actor: ClaimsActor) {
         historyNote ? `הערה: ${historyNote}` : '',
       ].filter(Boolean).join(' · ');
       void upsertNextTreatmentReminder(payload.claimId, closed ? '' : payload.nextDate, closed).catch(() => undefined);
-      void appendHistory(payload.claimId, 'עדכון טיפול', histNote, 'treatment', prevStatus, nextStatus).catch(() => undefined);
+      if (closed) {
+        void this.cancelScheduledMailFollowups(payload.claimId).catch(() => undefined);
+      }
+      void appendHistory(payload.claimId, closed ? 'טיפול הושלם' : 'עדכון טיפול', histNote, 'treatment', prevStatus, nextStatus).catch(() => undefined);
       return { success: true, lastTreatmentAt: patch.lastTreatmentAt, nextDate: patch.nextDate, status: nextStatus, fetch: 'claim-by-id' };
     },
 
@@ -484,7 +498,17 @@ export function createClaimsApi(actor: ClaimsActor) {
         if (msg.includes('not_editable')) return { success: false, error: 'לא ניתן לערוך מעקב שאינו מתוזמן' };
         return { success: false, error: msg };
       }
-      return { success: true, ...(data as Record<string, unknown>) };
+      const out = { success: true, ...(data as Record<string, unknown>) };
+      const id = asText(out.id);
+      const kind = asText(payload.recipient_kind);
+      if (id && kind) {
+        const { data: rem } = await tbl('claims_reminders').select('row_data').eq('id', id).maybeSingle();
+        const prev = rowFromData((rem as { row_data?: Record<string, unknown> } | null)?.row_data);
+        await tbl('claims_reminders').update({
+          row_data: { ...prev, recipient_kind: kind, recipient_label: kind === 'client' ? 'לקוח' : kind === 'insurer' ? 'חברת ביטוח' : 'אחר' },
+        } as never).eq('id', id);
+      }
+      return out;
     },
 
     async cancelMailFollowup(id: string) {
@@ -499,17 +523,19 @@ export function createClaimsApi(actor: ClaimsActor) {
       return { success: true, realEmailSend: false, ...(data as Record<string, unknown>) };
     },
 
-    async listMailFollowups(claimId: string) {
-      const { data: rems, error: remErr } = await tbl('claims_reminders')
+    async listMailFollowups(claimId?: string | null) {
+      let remQ = tbl('claims_reminders')
         .select('id, claim_id, action, mail_kind, mail_to, mail_subject, mail_body, attach_mode, repeat_every_days, stop_at, next_run_at, status, allow_on_closed, created_by, cancelled_at, created_at, row_data')
-        .eq('claim_id', claimId)
         .eq('action', 'send_email')
         .order('created_at', { ascending: false });
+      if (claimId) remQ = remQ.eq('claim_id', claimId);
+      const { data: rems, error: remErr } = await remQ;
       if (remErr) return { success: false, data: [] as MailFollowupRow[] };
-      const { data: jobs } = await tbl('claims_mail_jobs')
+      let jobQ = tbl('claims_mail_jobs')
         .select('id, reminder_id, planned_at, status, fail_reason, preview, finished_at, created_at, retry_count')
-        .eq('claim_id', claimId)
         .order('planned_at', { ascending: false });
+      if (claimId) jobQ = jobQ.eq('claim_id', claimId);
+      const { data: jobs } = await jobQ;
       const jobRows = (jobs || []) as MailJobRow[];
       const data: MailFollowupRow[] = ((rems || []) as Array<Record<string, unknown>>).map((r) => {
         const rd = (r.row_data && typeof r.row_data === 'object' ? r.row_data : {}) as Record<string, unknown>;
@@ -528,12 +554,40 @@ export function createClaimsApi(actor: ClaimsActor) {
           status: asText(r.status) || 'scheduled',
           allow_on_closed: r.allow_on_closed === true,
           defined_by: asText(rd.owner),
+          recipient_kind: asText(rd.recipient_kind),
           cancelled_at: asText(r.cancelled_at),
           created_at: asText(r.created_at),
           jobs: jobRows.filter((j) => j.reminder_id === id),
         };
       });
       return { success: true, data };
+    },
+
+    async listScheduledMailFollowups() {
+      const { data, error } = await tbl('claims_reminders')
+        .select('id, claim_id, status, mail_to, mail_subject, next_run_at, row_data')
+        .eq('action', 'send_email')
+        .eq('status', 'scheduled')
+        .order('next_run_at', { ascending: true });
+      if (error) return { success: false, data: [] as Array<{ id: string; claim_id: string; status: string; mail_to: string; mail_subject: string; next_run_at: string; recipient_kind: string }> };
+      const rows = ((data || []) as Array<Record<string, unknown>>).map((r) => {
+        const rd = (r.row_data && typeof r.row_data === 'object' ? r.row_data : {}) as Record<string, unknown>;
+        return {
+          id: asText(r.id),
+          claim_id: asText(r.claim_id),
+          status: asText(r.status) || 'scheduled',
+          mail_to: asText(r.mail_to),
+          mail_subject: asText(r.mail_subject),
+          next_run_at: asText(r.next_run_at),
+          recipient_kind: asText(rd.recipient_kind),
+        };
+      });
+      return { success: true, data: rows };
+    },
+
+    async logHistory(claimId: string, action: string, note: string, type: string) {
+      await appendHistory(claimId, action, note, type);
+      return { success: true };
     },
 
     async dispatchMailNow() {
@@ -701,6 +755,7 @@ export function createClaimsApi(actor: ClaimsActor) {
       await appendHistory(claimId, `תיק נסגר: ${closeReason}`, closeNote || '', 'close', c.status, status);
       await createNotification(claimId, 'close', `תיק נסגר: ${closeReason}`);
       await upsertNextTreatmentReminder(claimId, '', true);
+      await this.cancelScheduledMailFollowups(claimId);
       return this.saveClaim({ ...c, status, closeReason, closeNote: closeNote || '', nextDate: '' });
     },
 
