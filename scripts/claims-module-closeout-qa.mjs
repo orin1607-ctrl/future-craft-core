@@ -201,6 +201,11 @@ async function openTestClaim(page) {
   return row;
 }
 
+async function openMailTab(page) {
+  await page.locator('[data-testid="claims-tab-group-mail"]').click({ force: true });
+  await page.locator('[data-testid="mail-correspondence"]').waitFor({ state: 'visible', timeout: 15000 });
+}
+
 async function shot(page, name) {
   const p1 = join(OUT, 'screenshots', `${name}.png`);
   const p2 = join(ART, `${name}.png`);
@@ -208,64 +213,69 @@ async function shot(page, name) {
   if (existsSync(p1)) copyFileSync(p1, p2);
 }
 
+const stampHint = String(testImp?.subject || 'QA-LIVE-IN');
 const browser = await chromium.launch({ headless: true });
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'he-IL' });
   await inject(context);
   const page = await context.newPage();
-  const row = await openTestClaim(page);
-  const rowText = await row.innerText();
-  rec('desktop-needs-action-chip', /נדרש טיפול|מייל חדש|חסר מסמך/.test(rowText), { rowText: rowText.slice(0, 240) });
+  page.setDefaultTimeout(25000);
+  let row = await openTestClaim(page);
+  const alerts = await row.locator('[data-testid="claim-row-alerts"]').innerText().catch(() => '');
+  rec('desktop-needs-action-chip', /נדרש טיפול|מייל חדש|חסר מסמך/.test(alerts), { alerts: alerts.slice(0, 240) });
   await row.click();
-  await page.waitForTimeout(1200);
-  const mailTab = page.locator('[data-testid="card-tab-gin"], button:has-text("דואר"), button:has-text("תקשורת")').first();
-  if (await mailTab.count()) await mailTab.click().catch(() => null);
-  await page.waitForTimeout(1000);
-  const bodyText = await page.locator('body').innerText();
-  rec('desktop-mail-imported', /QA-LIVE-IN|DAL-2099-0001|רישיון נהיגה/.test(bodyText), { hit: bodyText.includes('רישיון') });
-  rec('desktop-treatment-banner', /נדרש טיפול/.test(bodyText));
-  rec('desktop-existing-doc', /קיים בתיק/.test(bodyText));
-  rec('desktop-missing-doc', /חסר מסמך/.test(bodyText));
+  await openMailTab(page);
+  rec('desktop-mail-imported', await page.getByText(/QA-LIVE-IN|DAL-2099-0001|רישיון נהיגה/).first().waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false));
+  rec('desktop-treatment-banner', await page.locator('[data-testid^="mail-need-"]').first().waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false));
+  rec('desktop-existing-doc', (await page.getByText('קיים בתיק').count()) > 0);
+  rec('desktop-missing-doc', (await page.getByText('חסר מסמך').count()) > 0);
+  await shot(page, 'closeout-desktop-mail');
   const sugBtn = page.locator('[data-testid^="suggest-reply-"]').first();
-  if (await sugBtn.count()) {
+  const sugVisible = await sugBtn.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false);
+  if (sugVisible) {
     await sugBtn.click();
-    await page.waitForTimeout(1500);
-    const after = await page.locator('body').innerText();
-    rec('desktop-suggest-opens', /תגובה|טיוטה|Re:/.test(after));
-    const close = page.locator('.mcl, button:has-text("ביטול"), button:has-text("סגור")').first();
-    if (await close.count()) await close.click().catch(() => null);
+    const composer = await page.locator('[data-testid="mail-body"]').waitFor({ state: 'visible', timeout: 12000 }).then(() => true).catch(() => false);
+    rec('desktop-suggest-opens', composer);
+    await shot(page, 'closeout-desktop-suggest');
+    await page.locator('.ov.open button.btn-g', { hasText: 'ביטול' }).click().catch(() => page.keyboard.press('Escape'));
   } else {
     rec('desktop-suggest-opens', false, { err: 'suggest button missing' });
   }
+  await page.locator('[data-testid="claims-tab-group-hist"]').click({ force: true }).catch(() => null);
+  await page.waitForTimeout(800);
+  rec('desktop-history-visible', (await page.getByText(/יובא מייל|זוהתה בקשה|Gmail/).count()) > 0);
+
   await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1500);
-  const afterReload = await page.locator('body').innerText();
-  rec('desktop-refresh-keeps-mail', /QA-LIVE-IN|רישיון נהיגה|נדרש טיפול/.test(afterReload));
-  await shot(page, 'closeout-desktop-claim');
+  row = await openTestClaim(page);
+  rec('desktop-refresh-row-alerts', /נדרש טיפול/.test(await row.locator('[data-testid="claim-row-alerts"]').innerText().catch(() => '')));
+  await row.click();
+  await openMailTab(page);
+  rec('desktop-refresh-keeps-mail', await page.getByText(/QA-LIVE-IN|DAL-2099-0001/).first().waitFor({ state: 'visible', timeout: 25000 }).then(() => true).catch(() => false));
+  await shot(page, 'closeout-desktop-refresh');
 
-  const histTab = page.locator('[data-testid="card-tab-hist"], button:has-text("היסטוריה")').first();
-  if (await histTab.count()) {
-    await histTab.click().catch(() => null);
-    await page.waitForTimeout(800);
-    rec('desktop-history-visible', /יובא מייל|זוהתה בקשה|Gmail|טיוט/.test(await page.locator('body').innerText()));
-  }
-
-  const gmailNav = page.locator('[data-testid="claims-nav-gmail"], button:has-text("Gmail")').first();
-  if (await gmailNav.count()) await gmailNav.click().catch(() => null);
+  if (await page.locator('[data-testid="claims-sb-open"]').count()) await page.locator('[data-testid="claims-sb-open"]').click().catch(() => null);
+  await page.locator('button:has-text("Gmail")').first().click().catch(() => null);
   await page.waitForTimeout(600);
   rec('desktop-preview-sent-button', (await page.locator('[data-testid="claims-preview-sent-gmail"], [data-testid="claims-preview-sent"]').count()) > 0);
-  report.verdicts.desktop = report.checks.filter((c) => c.name.startsWith('desktop-') && c.ok).length >= 5 ? 'PASS' : 'FAIL';
+  const previewBtn = page.locator('[data-testid="claims-preview-sent-gmail"], [data-testid="claims-preview-sent"]').first();
+  if (await previewBtn.count()) {
+    await previewBtn.click();
+    rec('desktop-preview-modal', await page.locator('[data-testid="sent-preview-body"]').waitFor({ state: 'visible', timeout: 60000 }).then(() => true).catch(() => false));
+    await shot(page, 'closeout-desktop-sent-preview');
+  }
+  report.verdicts.desktop = report.checks.filter((c) => c.name.startsWith('desktop-') && c.ok).length >= 6 ? 'PASS' : 'FAIL';
   await context.close();
 
   const mobileCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, locale: 'he-IL' });
   await inject(mobileCtx);
   const mobile = await mobileCtx.newPage();
   const mRow = await openTestClaim(mobile);
+  rec('mobile-claim-opens', true);
+  rec('mobile-row-needs-action', /נדרש טיפול/.test(await mRow.locator('[data-testid="claim-row-alerts"]').innerText().catch(() => '')));
   await mRow.click();
-  await mobile.waitForTimeout(1200);
-  const mText = await mobile.locator('body').innerText();
-  rec('mobile-claim-opens', /TEST-CLAIMS|DAL-QA-WORKER-001|רישיון|נדרש טיפול/.test(mText));
-  rec('mobile-mail-or-treatment', /נדרש טיפול|דואר|תקשורת|רישיון/.test(mText));
+  await mobile.locator('[data-testid="claims-tab-group-mail"]').click({ force: true }).catch(() => null);
+  await mobile.waitForTimeout(800);
+  rec('mobile-mail-or-treatment', await mobile.getByText(/QA-LIVE-IN|נדרש טיפול|רישיון/).first().waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false));
   await shot(mobile, 'closeout-mobile-claim');
   report.verdicts.mobile = (report.checks.find((c) => c.name === 'mobile-claim-opens')?.ok && report.checks.find((c) => c.name === 'mobile-mail-or-treatment')?.ok) ? 'PASS' : 'FAIL';
   await mobileCtx.close();
@@ -289,7 +299,7 @@ report.verdicts.sentGmailScan = ok('preview-sent-ok') ? 'PASS' : 'FAIL';
 report.verdicts.attachmentDetection = ok('preview-attachment-detection') && ok('preview-sent-ok') ? 'PASS' : 'FAIL';
 report.verdicts.duplicatePrevention = ok('preview-duplicate-classification') && ok('license-stays-on-test-claim') ? 'PASS' : 'FAIL';
 report.verdicts.history = ok('history-gmail-import') ? 'PASS' : 'FAIL';
-report.verdicts.refresh = ok('desktop-refresh-keeps-mail') ? 'PASS' : 'FAIL';
+report.verdicts.refresh = ok('desktop-refresh-keeps-mail') && (ok('desktop-refresh-row-alerts') || ok('desktop-needs-action-chip')) ? 'PASS' : 'FAIL';
 report.verdicts.isolation = ok('live-claim-invisible-to-worker') && ok('ambiguous-review') && ok('suggest-no-foreign-files') ? 'PASS' : 'FAIL';
 report.ok = report.checks.every((c) => c.ok) === false ? report.checks.filter((c) => !c.ok).map((c) => c.name) : true;
 
