@@ -2808,6 +2808,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                             if (lb.includes('חשבונית') && kind === 'garage_invoice') return true;
                                             if (lb.includes('תמונ') && (kind === 'surveyor_photo' || st === 'damage_photos')) return true;
                                             if (st && staffTypeLabel(st) === lb) return true;
+                                            if (st && CLAIM_DOC_TYPES.some((t) => t.staffType === st && (t.label === lb || (t.aliases || []).includes(lb)))) return true;
                                             return false;
                                           });
                                           return (
