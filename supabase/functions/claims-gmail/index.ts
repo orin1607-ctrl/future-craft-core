@@ -5,7 +5,7 @@
  */
 import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { matchIncomingMail, suggestReply, detectMailRequests, type MatchClaim } from "./matchIncoming.ts";
+import { matchIncomingMail, suggestReply, detectMailRequests, classifySentAttachment, isDocMailRequest, type MatchClaim } from "./matchIncoming.ts";
 
 const ALLOWED_ACCOUNT = "yoni122222@gmail.com";
 const SCOPES = [
@@ -497,7 +497,10 @@ async function ensureMailTasks(
     let docState = "missing";
     let readyFileId = "";
     let workStatus = "open";
-    if (req.kind === "generic") {
+    if (!isDocMailRequest(req.kind)) {
+      docState = "";
+      workStatus = "open";
+    } else if (req.kind === "generic") {
       docState = "needs_review";
       workStatus = "open";
     } else {
@@ -696,13 +699,24 @@ Deno.serve(async (req) => {
     const detected = detectMailRequests(`${im.subject || ""}\n${im.body_text || ""}`);
     const toAddr = String(im.from_addr || "").match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "";
     const generic = detected.find((d) => d.kind === "generic");
+    const kinds = new Set(detected.map((d) => d.kind));
     const reason = generic
       ? "דורש בדיקת עובד — רשימת החוסרים במסמך המצורף. אין Guess."
       : suggestion.reason;
-    const bodyText = suggestion.ok
+    const bodyText = suggestion.ok && suggestion.attachments.length
       ? `שלום,\n\nבהמשך לפנייתכם בנושא ${im.subject || `תביעה ${claimId}`},\nמצורפים המסמכים המבוקשים.\n\nבברכה,\nדליה ניהול תביעות`
       : generic
       ? `שלום,\n\nקיבלנו את בקשתכם להשלמת מסמכים.\nרשימת החוסרים מופיעה במסמך שצורף למייל.\nנבדוק את התיק ונשיב עם המסמכים הנדרשים.\n\nבברכה,\nדליה ניהול תביעות`
+      : kinds.has("info")
+      ? `שלום,\n\nקיבלנו את בקשת המידע.\nנבדוק את התיק ונשיב עם הפרטים המבוקשים.\n\nבברכה,\nדליה ניהול תביעות`
+      : kinds.has("reply")
+      ? `שלום,\n\nקיבלנו את פנייתכם ומכינים תשובה.\n\nבברכה,\nדליה ניהול תביעות`
+      : kinds.has("approve")
+      ? `שלום,\n\nקיבלנו את הודעת האישור. נעדכן את התיק בהתאם.\n\nבברכה,\nדליה ניהול תביעות`
+      : kinds.has("reject")
+      ? `שלום,\n\nקיבלנו את הודעת הדחייה. נבדוק את התיק ונחזור אליכם.\n\nבברכה,\nדליה ניהול תביעות`
+      : kinds.has("update")
+      ? `שלום,\n\nקיבלנו את עדכון הסטטוס. נעדכן את התיק בהתאם.\n\nבברכה,\nדליה ניהול תביעות`
       : `שלום,\n\nקיבלנו את פנייתכם. ${suggestion.reason}.\n\nבברכה,\nדליה ניהול תביעות`;
     return jsonResponse({
       success: true,
@@ -922,7 +936,7 @@ Deno.serve(async (req) => {
 
   if (action === "scan_inbox") {
     const dry = body.dry === true;
-    const listed = await gmailGet(access, `messages?maxResults=15&q=${encodeURIComponent("in:inbox newer_than:2d")}`);
+    const listed = await gmailGet(access, `messages?maxResults=15&q=${encodeURIComponent("in:inbox newer_than:3d")}`);
     const ids = ((listed.messages || []) as Array<{ id?: string }>).map((m) => String(m.id || "")).filter(Boolean).slice(0, 15);
     const { data: importedRows } = await sb.from("claims_gmail_imports").select("gmail_message_id");
     const importedSet = new Set((importedRows || []).map((r) => String(r.gmail_message_id || "")).filter(Boolean));
@@ -1028,6 +1042,114 @@ Deno.serve(async (req) => {
       realEmailSend: false,
       scheduler: false,
       oauthChanged: false,
+      lookback: "newer_than:3d",
+    });
+  }
+
+  if (action === "preview_sent") {
+    const q = "in:sent has:attachment newer_than:365d";
+    const listed = await gmailGet(access, `messages?maxResults=40&q=${encodeURIComponent(q)}`);
+    const ids = ((listed.messages || []) as Array<{ id?: string }>).map((m) => String(m.id || "")).filter(Boolean).slice(0, 40);
+    const claims = await loadMatchClaims(sb);
+    const docsByClaim = new Map<string, Array<{ id?: string; original_name?: string; gmail_attachment_id?: string }>>();
+    const loadClaimDocs = async (claimId: string) => {
+      if (docsByClaim.has(claimId)) return docsByClaim.get(claimId) || [];
+      const { data } = await sb.from("claims_documents").select("id, original_name, gmail_attachment_id").eq("claim_id", claimId);
+      const rows = (data || []).map((d) => ({
+        id: String(d.id),
+        original_name: String(d.original_name || ""),
+        gmail_attachment_id: d.gmail_attachment_id ? String(d.gmail_attachment_id) : "",
+      }));
+      docsByClaim.set(claimId, rows);
+      return rows;
+    };
+    const rows: Array<Record<string, unknown>> = [];
+    const summary = {
+      relevant_messages: 0,
+      certain_claim_matches: 0,
+      attachments: 0,
+      already_in_claim: 0,
+      certain_new: 0,
+      needs_review: 0,
+      unmatched: 0,
+    };
+    const certainClaims = new Set<string>();
+    for (const messageId of ids) {
+      const full = await gmailGet(access, `messages/${encodeURIComponent(messageId)}?format=full`);
+      const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+      const parts: Array<Record<string, unknown>> = [];
+      if (full.payload) walkParts(full.payload as Record<string, unknown>, parts);
+      const files = collectFiles(parts);
+      let bodyText = String(full.snippet || "");
+      for (const p of parts) {
+        const mime = String(p.mimeType || "").toLowerCase();
+        if (mime.startsWith("text/plain") && !String(p.filename || "").trim()) {
+          const d = decodeBody(p);
+          if (d.length > bodyText.length) bodyText = d;
+        }
+      }
+      const subject = header(headers, "Subject");
+      const match = matchIncomingMail({
+        messageId,
+        threadId: String(full.threadId || ""),
+        subject,
+        body: bodyText,
+        from: header(headers, "From"),
+        filenames: files.map((f) => f.filename),
+      }, claims);
+      const relevant = match.decision === "auto" || match.candidates.length > 0 || /DAL-|TEST-CLAIMS/i.test(`${subject}\n${bodyText}`);
+      if (relevant) summary.relevant_messages += 1;
+      if (match.decision === "auto" && match.claimId) certainClaims.add(match.claimId);
+      const claimDocs = match.claimId ? await loadClaimDocs(match.claimId) : [];
+      const attachments = files.map((f) => {
+        const cls = classifySentAttachment({
+          filename: f.filename,
+          attachmentId: f.attachmentId,
+          match,
+          claimDocs,
+        });
+        summary.attachments += 1;
+        if (cls.status === "already_in_claim") summary.already_in_claim += 1;
+        else if (cls.status === "certain_new") summary.certain_new += 1;
+        else if (cls.status === "needs_review") summary.needs_review += 1;
+        else summary.unmatched += 1;
+        return {
+          filename: f.filename,
+          mime: f.mime,
+          size: Number((f.part.body as { size?: number } | undefined)?.size || 0),
+          attachmentId: f.attachmentId || "",
+          claim_id: match.claimId || null,
+          ...cls,
+        };
+      });
+      rows.push({
+        message_id: messageId,
+        thread_id: String(full.threadId || ""),
+        subject,
+        from: header(headers, "From"),
+        to: header(headers, "To"),
+        date: header(headers, "Date"),
+        match,
+        relevant,
+        attachments,
+      });
+    }
+    summary.certain_claim_matches = certainClaims.size;
+    return jsonResponse({
+      success: true,
+      preview: true,
+      import: false,
+      autoSend: false,
+      mailboxMutated: false,
+      realEmailSend: false,
+      q,
+      listed: ids.length,
+      resultSizeEstimate: Number(listed.resultSizeEstimate || ids.length),
+      truncated: Number(listed.resultSizeEstimate || 0) > ids.length,
+      scanned: ids.length,
+      summary,
+      rows,
+      note: "SCAN/PREVIEW בלבד. אין Import, אין הורדת קבצים, אין שינוי בתיבה.",
     });
   }
 
@@ -1395,7 +1517,7 @@ Deno.serve(async (req) => {
           }
         }
       }
-      await ensureMailTasks(sb, {
+      const mailTasks = await ensureMailTasks(sb, {
         claimId,
         importId,
         messageId: String(full.id),
@@ -1405,6 +1527,27 @@ Deno.serve(async (req) => {
         body: extracted.bodyText || "",
         sentAt: full.internalDate ? new Date(Number(full.internalDate)).toISOString() : null,
       });
+      if (mailTasks.requests?.length) {
+        const bits = (mailTasks.tasks || []).map((t) => {
+          const req = (t.request && typeof t.request === "object") ? t.request as { label?: string } : {};
+          const ds = String(t.docState || "");
+          const state = ds === "ready" ? "מסמך נמצא" : ds === "missing" ? "מסמך חסר" : ds === "needs_review" ? "דורש בדיקת עובד" : "נדרש טיפול";
+          return `${req.label || ""} · ${state}`.trim();
+        }).filter(Boolean);
+        await sb.from("claims_history").insert({
+          id: nid("HIS"),
+          claim_id: claimId,
+          row_data: {
+            action: "זוהתה בקשה",
+            note: `נדרש טיפול · ${bits.join(" · ") || mailTasks.requests.map((r) => r.label).join(", ")}`,
+            type: "gmail_request",
+            by: actorName,
+            at: new Date().toLocaleString("he-IL"),
+            gmail_message_id: full.id,
+            gmail_thread_id: threadId,
+          },
+        });
+      }
     }
     return jsonResponse({
       success: true,

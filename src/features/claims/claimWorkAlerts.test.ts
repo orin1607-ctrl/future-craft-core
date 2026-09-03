@@ -21,6 +21,12 @@ describe('detectMailRequests', () => {
   it('does not guess on a vague update', () => {
     expect(detectMailRequests('עדכון כללי לגבי התיק').length).toBe(0);
   });
+  it('identifies info, reply, approve and reject without guessing docs', () => {
+    expect(detectMailRequests('נבקש לדעת מה הסכום שאושר').map((x) => x.type)).toContain('info');
+    expect(detectMailRequests('נא להגיב למייל זה').map((x) => x.type)).toContain('reply');
+    expect(detectMailRequests('אושרה התביעה לתשלום').map((x) => x.type)).toContain('approve');
+    expect(detectMailRequests('התביעה נדחתה על ידי החברה').map((x) => x.type)).toContain('reject');
+  });
 });
 
 describe('mailShowsTreatment', () => {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
-import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, buildClaimRowAlerts, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, inferRecipientKind, mailLooksInbound, mailShowsTreatment, recipientKindLabel, type ClaimAlert } from './claimWorkAlerts';
+import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, buildClaimRowAlerts, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, inferRecipientKind, isDocMailRequest, mailLooksInbound, mailShowsTreatment, recipientKindLabel, type ClaimAlert } from './claimWorkAlerts';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, type IntakeDraft } from './claimIntakeModel';
@@ -635,6 +635,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [gmailImports, setGmailImports] = useState<Array<Record<string, unknown>>>([]);
   const [mailListLoading, setMailListLoading] = useState(false);
   const [gmailBusy, setGmailBusy] = useState('');
+  const [sentPreview, setSentPreview] = useState<null | {
+    listed?: number;
+    resultSizeEstimate?: number;
+    truncated?: boolean;
+    summary?: Record<string, number>;
+    rows?: Array<Record<string, unknown>>;
+    note?: string;
+  }>(null);
   const [docEditId, setDocEditId] = useState<string | null>(null);
   const [docsUploading, setDocsUploading] = useState(false);
   const [gmailPending, setGmailPending] = useState<Array<Record<string, unknown>>>([]);
@@ -757,6 +765,34 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       if (!silent) toast(`סריקה: ${imported} שויכו אוטומטית · ${reviewN} דורשים בדיקת שיוך`, reviewN && !imported ? 'inf' : 'ok');
     } finally {
       if (!silent) setGmailBusy('');
+    }
+  };
+
+  const runSentPreview = async () => {
+    setGmailBusy('סריקת מיילים יוצאים (תצוגה בלבד)…');
+    try {
+      const r = await apiRef.current.invokeGmail('preview_sent');
+      if (!r.success) {
+        toast(String(r.error || 'סריקה נכשלה'), 'err');
+        return;
+      }
+      if (r.realEmailSend === true || r.import === true || r.mailboxMutated === true) {
+        toast('סריקה נחסמה — אין Import ואין שליחה', 'err');
+        return;
+      }
+      setSentPreview({
+        listed: Number(r.listed || 0),
+        resultSizeEstimate: Number(r.resultSizeEstimate || 0),
+        truncated: r.truncated === true,
+        summary: (r.summary && typeof r.summary === 'object') ? r.summary as Record<string, number> : {},
+        rows: Array.isArray(r.rows) ? r.rows as Array<Record<string, unknown>> : [],
+        note: String(r.note || 'SCAN/PREVIEW בלבד. אין Import.'),
+      });
+      setModal('moSentPreview');
+      const s = (r.summary && typeof r.summary === 'object') ? r.summary as Record<string, number> : {};
+      toast(`תצוגה: ${s.attachments || 0} קבצים · ${s.certain_new || 0} חדשים ודאיים · אין Import`, 'ok');
+    } finally {
+      setGmailBusy('');
     }
   };
 
@@ -1816,6 +1852,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     )}
                     {renderListFilterControls()}
                     <button className="btn btn-g btn-sm" data-testid="claims-scan-inbox" onClick={() => { void runInboxScan(false); showView('gmail'); }}>📬 סרוק מיילים</button>
+                    <button className="btn btn-g btn-sm" data-testid="claims-preview-sent" onClick={() => { void runSentPreview(); showView('gmail'); }}>📤 סריקת יוצאים (תצוגה)</button>
                   </div>
                 </div>
                 <div className="dcg">
@@ -1923,6 +1960,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   <div><div className="ph-t">📧 Gmail – חיבור תיבת דליה<div className="ph-bar" /></div></div>
                   <div className="ph-a">
                     <button className="btn btn-p btn-sm" data-testid="claims-scan-inbox-gmail" onClick={() => void runInboxScan(false)}>📬 סרוק מיילים נכנסים</button>
+                    <button className="btn btn-g btn-sm" data-testid="claims-preview-sent-gmail" onClick={() => void runSentPreview()}>📤 סריקת יוצאים (תצוגה)</button>
                   </div>
                 </div>
                 <div className="gmail-card">
@@ -1933,7 +1971,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     העובד לא נכנס לתיבת Gmail. ייבוא רק מתוך תיק מורשה.
                     <br />שליחה ידנית מתוך תיק: Preview → SEND → אשר ושלח שולחת מייל אמיתי מתיבת דליה. אין allowlist של TEST.
                     <br />מעקב מתוזמן נשאר Dry Run ואינו שולח לבד.
-                    <br />קליטת מיילים נכנסים: סריקה מתוך Claims בלבד. אין Scheduler חדש ואין שינוי OAuth.
+                    <br />קליטת מיילים נכנסים: סריקה מתוך Claims בלבד, חלון 3 הימים האחרונים. אין Scheduler חדש ואין שינוי OAuth.
+                    <br />סריקת יוצאים: תצוגה בלבד — אין Import המוני ואין שליחה.
                     <br />Token נשמר בשרת בלבד. ביטול: super_admin כאן, וגם בהרשאות Google.
                   </div>
                   {gmailBusy ? <div style={{ marginTop: 8, fontSize: 12 }}>{gmailBusy}</div> : null}
@@ -2795,32 +2834,41 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                   {(() => {
                                     const detected = detectMailRequests(`${im.subject || ''}\n${im.body_text || ''}`);
                                     const mailTasks = tasks.filter((t) => t.gmailMessageId === mid);
-                                    const labels = detected.length ? detected.map((d) => d.label) : mailTasks.map((t) => t.action).filter(Boolean);
-                                    if (!labels.length) return <div style={{ fontSize: 12, marginTop: 6 }}>מייל נכנס שויך לתיק. אין שליחה אוטומטית — הכינו טיוטה ידנית.</div>;
+                                    if (!detected.length && !mailTasks.length) return <div style={{ fontSize: 12, marginTop: 6 }}>מייל נכנס שויך לתיק. אין שליחה אוטומטית — הכינו טיוטה ידנית.</div>;
                                     return (
                                       <div style={{ marginTop: 6 }}>
                                         <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>זוהתה בקשה:</div>
-                                        {labels.map((lb) => {
-                                          const readyTask = mailTasks.find((t) => t.action === lb && t.docState === 'ready');
-                                          const missingTask = mailTasks.find((t) => t.action === lb && (t.docState === 'missing' || t.docState === 'needs_review'));
+                                        {detected.map((d) => {
+                                          if (!isDocMailRequest(d.kind)) {
+                                            return (
+                                              <div key={d.type} style={{ fontSize: 12, marginBottom: 3 }}>
+                                                {d.label}
+                                              </div>
+                                            );
+                                          }
+                                          const readyTask = mailTasks.find((t) => t.action === d.label && t.docState === 'ready');
+                                          const missingTask = mailTasks.find((t) => t.action === d.label && (t.docState === 'missing' || t.docState === 'needs_review'));
                                           const typeHit = docs.files.some((f) => {
                                             const st = fileMeta(f).staff_type;
                                             const kind = String(f.doc_kind || '');
-                                            if (lb.includes('שמאי') && (kind === 'surveyor_report' || kind === 'surveyor_attachment')) return true;
-                                            if (lb.includes('חשבונית') && kind === 'garage_invoice') return true;
-                                            if (lb.includes('תמונ') && (kind === 'surveyor_photo' || st === 'damage_photos')) return true;
-                                            if (st && staffTypeLabel(st) === lb) return true;
-                                            if (st && CLAIM_DOC_TYPES.some((t) => t.staffType === st && (t.label === lb || (t.aliases || []).includes(lb)))) return true;
+                                            if (d.label.includes('שמאי') && (kind === 'surveyor_report' || kind === 'surveyor_attachment')) return true;
+                                            if (d.label.includes('חשבונית') && kind === 'garage_invoice') return true;
+                                            if (d.label.includes('תמונ') && (kind === 'surveyor_photo' || st === 'damage_photos')) return true;
+                                            if (st && staffTypeLabel(st) === d.label) return true;
+                                            if (st && CLAIM_DOC_TYPES.some((t) => t.staffType === st && (t.label === d.label || (t.aliases || []).includes(d.label)))) return true;
                                             return false;
                                           });
                                           return (
-                                            <div key={lb} style={{ fontSize: 12, marginBottom: 3 }}>
-                                              {lb}
+                                            <div key={d.type} style={{ fontSize: 12, marginBottom: 3 }}>
+                                              {d.label}
                                               {' · '}
                                               {readyTask || typeHit ? <span style={{ color: 'var(--gn2)' }}>קיים בתיק — ניתן לצרף לתגובה</span> : missingTask || !typeHit ? <span style={{ color: 'var(--rd2)' }}>נדרש טיפול / חסר מסמך</span> : <span style={{ color: 'var(--yn2)' }}>לבדיקת עובד</span>}
                                             </div>
                                           );
                                         })}
+                                        {!detected.length ? mailTasks.map((t) => (
+                                          <div key={t.id} style={{ fontSize: 12, marginBottom: 3 }}>{t.action}</div>
+                                        )) : null}
                                         <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4 }}>אין Auto-send. רק טיוטה לאישור ידני.</div>
                                       </div>
                                     );
@@ -3974,6 +4022,53 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               await loadAll();
               toast('התיק הועבר לארכיון');
             }}>העבר לארכיון</button>
+          </div>
+        </div>
+      </div>
+
+      <div className={`ov ${modal === 'moSentPreview' ? 'open' : ''}`}>
+        <div className="modal modal-md">
+          <div className="mh"><div className="mh-t">סריקת מיילים יוצאים — תצוגה בלבד</div><button className="mcl" onClick={() => setModal(null)}>✕</button></div>
+          <div className="mb" data-testid="sent-preview-body">
+            <div style={{ fontSize: 12, color: 'var(--yn2)', fontWeight: 700, marginBottom: 8 }}>{sentPreview?.note || 'SCAN/PREVIEW בלבד. אין Import.'}</div>
+            <div style={{ fontSize: 12, marginBottom: 10 }}>
+              נסרקו {sentPreview?.listed || 0} מתוך {sentPreview?.resultSizeEstimate || 0}
+              {sentPreview?.truncated ? ' (חלקי — 40 האחרונים)' : ''}
+            </div>
+            <div className="dcg" style={{ marginBottom: 12 }}>
+              {([
+                ['רלוונטיים', sentPreview?.summary?.relevant_messages],
+                ['התאמות ודאיות', sentPreview?.summary?.certain_claim_matches],
+                ['קבצים', sentPreview?.summary?.attachments],
+                ['כבר בתיק', sentPreview?.summary?.already_in_claim],
+                ['חדשים ודאיים', sentPreview?.summary?.certain_new],
+                ['Review', sentPreview?.summary?.needs_review],
+                ['לא ניתן לשייך', sentPreview?.summary?.unmatched],
+              ] as Array<[string, number | undefined]>).map(([label, n]) => (
+                <div key={label} className="dc">
+                  <div className="dc-bar y" /><div className="dc-n y">{n || 0}</div><div className="dc-l">{label}</div>
+                </div>
+              ))}
+            </div>
+            {(sentPreview?.rows || []).slice(0, 20).map((row) => {
+              const match = (row.match && typeof row.match === 'object') ? row.match as { decision?: string; reason?: string; claimId?: string } : {};
+              const atts = Array.isArray(row.attachments) ? row.attachments as Array<{ filename?: string; status?: string; reason?: string }> : [];
+              return (
+                <div key={String(row.message_id)} className="gmail-card" style={{ marginBottom: 8 }}>
+                  <div style={{ fontWeight: 700 }}>{String(row.subject || '(ללא נושא)')}</div>
+                  <div style={{ fontSize: 11, color: 'var(--t3)' }}>{String(row.to || '')} · {String(row.date || '')}</div>
+                  <div style={{ fontSize: 12, margin: '4px 0', color: match.decision === 'auto' ? 'var(--gn2)' : 'var(--yn2)' }}>
+                    {match.decision === 'auto' ? `התאמה ודאית: ${match.claimId}` : match.reason || 'דורש Review'}
+                  </div>
+                  {atts.map((a, i) => (
+                    <div key={`${a.filename}-${i}`} style={{ fontSize: 11 }}>{a.filename} · {a.status} · {a.reason}</div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+          <div className="mf">
+            <button className="btn btn-g" onClick={() => setModal(null)}>סגור</button>
           </div>
         </div>
       </div>

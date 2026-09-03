@@ -41,6 +41,9 @@ export function isOpenCustomerTask(t: ClaimRecord): boolean {
   return st === 'pending' || st === 'sent';
 }
 
+export type MailRequestKind = 'doc' | 'sign' | 'generic' | 'info' | 'reply' | 'update' | 'approve' | 'reject' | 'other';
+export type DetectedMailRequest = { type: string; label: string; kind: MailRequestKind };
+
 const REQUEST_TYPES: Array<{ re: RegExp; type: string; label: string }> = [
   { re: /אי[\s-]?הגשת|אי הגשת תביעה/, type: 'no_claim_form', label: 'טופס אי-הגשת תביעה' },
   { re: /רישיון נהיגה/, type: 'driver_license', label: 'רישיון נהיגה' },
@@ -53,15 +56,28 @@ const REQUEST_TYPES: Array<{ re: RegExp; type: string; label: string }> = [
   { re: /תמונ(?:ות|ה) נזק/, type: 'damage_photos', label: 'תמונות נזק' },
 ];
 
+const INTENT_TYPES: Array<{ re: RegExp; type: string; label: string; kind: MailRequestKind }> = [
+  { re: /נא למסור|נבקש לדעת|נדרש מידע|פרטים נוספים|נא לעדכן אותנו/, type: 'info', label: 'בקשת מידע', kind: 'info' },
+  { re: /נא להגיב|נבקש תגובה|נא לאשר קבלה|נדרשת תגובה|ממתינים לתשובתכם/, type: 'reply', label: 'בקשת תגובה', kind: 'reply' },
+  { re: /עדכון סטטוס|סטטוס התיק|נעדכן כי|התיק עבר לסטטוס/, type: 'update', label: 'עדכון', kind: 'update' },
+  { re: /אושרה התביעה|אישור תשלום|אושר לשלם|אושרה לתשלום/, type: 'approve', label: 'אישור', kind: 'approve' },
+  { re: /נדחתה התביעה|דחיית התביעה|התביעה נדחתה|לא אושרה התביעה/, type: 'reject', label: 'דחייה', kind: 'reject' },
+  { re: /נא לטפל|יש לטפל בפנייה|נדרש טיפול בתיק/, type: 'other', label: 'טיפול אחר', kind: 'other' },
+];
+
 function requestHay(text: string) {
   return String(text || '')
     .split(/כמפורט בתקנון החברה|PERSONAL_MAIL_NR/)[0]
     .slice(0, 2500);
 }
 
-export function detectMailRequests(text: string): Array<{ type: string; label: string; kind: 'doc' | 'sign' | 'generic' }> {
+export function isDocMailRequest(kind: string) {
+  return kind === 'doc' || kind === 'sign' || kind === 'generic';
+}
+
+export function detectMailRequests(text: string): DetectedMailRequest[] {
   const hay = requestHay(text);
-  const out: Array<{ type: string; label: string; kind: 'doc' | 'sign' | 'generic' }> = [];
+  const out: DetectedMailRequest[] = [];
   const sign = /לחתום|חתום על|ולהחזיר|החזרה חתומ/;
   for (const req of REQUEST_TYPES) {
     if (req.re.test(hay)) out.push({ type: req.type, label: req.label, kind: sign.test(hay) ? 'sign' : 'doc' });
@@ -69,8 +85,11 @@ export function detectMailRequests(text: string): Array<{ type: string; label: s
   if (!out.length && sign.test(hay)) {
     out.push({ type: 'sign_return', label: 'לחתום ולהחזיר את המסמך המצורף', kind: 'sign' });
   }
-  if (!out.length && /השלמת מסמכים|מסמכים חסרים|נא להעביר|נא לצרף|אודה להשלמת|חוסרים/.test(hay)) {
+  if (!out.some((x) => isDocMailRequest(x.kind)) && /השלמת מסמכים|מסמכים חסרים|נא להעביר|נא לצרף|אודה להשלמת|חוסרים/.test(hay)) {
     out.push({ type: 'docs_generic', label: 'השלמת מסמכים לפי הבקשה במייל', kind: 'generic' });
+  }
+  for (const req of INTENT_TYPES) {
+    if (req.re.test(hay) && !out.some((x) => x.type === req.type)) out.push({ type: req.type, label: req.label, kind: req.kind });
   }
   return out;
 }
@@ -105,7 +124,7 @@ export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAle
   const unreadMail = ctx.notifs.some((n) => n.claimId === c.id && n.read !== 'true' && (n.type === 'gmail_auto' || n.type === 'gmail_review'));
   const pendingAssigned = ctx.gmailPending.some((p) => String(p.assigned_claim_id || '') === c.id && !p.imported_at);
   const mailTasks = claimTasks.filter((t) => t.gmailMessageId && t.done !== 'true');
-  const insurerDoc = mailTasks.some((t) => t.requestKind === 'doc' || t.docState === 'missing' || t.docState === 'needs_review');
+  const insurerDoc = mailTasks.some((t) => isDocMailRequest(t.requestKind || '') || t.docState === 'missing' || t.docState === 'needs_review');
   const missingDoc = claimTasks.some((t) => t.docState === 'missing' && t.done !== 'true');
   const openCust = claimTasks.filter(isOpenCustomerTask);
   const scheduled = ctx.scheduledFollowups.some((f) => f.claim_id === c.id && (!f.status || f.status === 'scheduled'));
