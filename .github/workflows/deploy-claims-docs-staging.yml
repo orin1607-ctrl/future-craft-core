@@ -2,6 +2,7 @@ name: Staging claims-docs customer link
 
 # Staging only. Deploys claims-docs and runs cross-device link QA.
 # Never Production. Never Hostinger.
+# 2026-09-03: re-run after SUPABASE_ACCESS_TOKEN refresh.
 
 on:
   push:
