@@ -312,7 +312,13 @@ if (uiOn) {
   await pageB.waitForTimeout(600);
   const waVal = await pageB.locator('#wa_msg').inputValue().catch(() => '');
   rec('whatsapp-no-autosend', waVal.includes('claims-upload') && !(await pageB.locator('text=WhatsApp נשלח').count()), { waHasLink: waVal.includes('claims-upload') });
-  await pageB.locator('.mcl').first().click({ force: true }).catch(() => undefined);
+  // WhatsApp replaces the claim overlay (`setModal('moWA')`). Close the *open*
+  // overlay only — `.mcl.first()` hits a hidden card/sidebar X and leaves
+  // cust-link-revoke inside display:none.
+  const waClose = pageB.locator('.ov.open button.mcl');
+  if (await waClose.count()) await waClose.click();
+  else await pageB.getByRole('button', { name: 'ביטול' }).click().catch(() => undefined);
+  await pageB.locator('[data-testid="cust-link-card"]').waitFor({ state: 'visible', timeout: 15000 });
 
   const mob = await browser.newContext({
     viewport: { width: 390, height: 844 },
@@ -347,7 +353,13 @@ if (uiOn) {
   await mp.screenshot({ path: join(OUT, 'screenshots', 'mobile-docs.png') });
   await mob.close();
 
-  await pageB.locator('[data-testid="cust-link-revoke"]').click({ force: true });
+  const docsTab = pageB.locator('[data-testid="claims-tab-group-docs"]');
+  if (await docsTab.count()) await docsTab.click();
+  const revoke = pageB.locator('[data-testid="cust-link-revoke"]');
+  await pageB.locator('[data-testid="cust-link-card"]').waitFor({ state: 'visible', timeout: 15000 });
+  await revoke.scrollIntoViewIfNeeded();
+  await revoke.waitFor({ state: 'visible', timeout: 10000 });
+  await revoke.click();
   await pageB.waitForTimeout(1200);
   rec('session-b-revoke-hides-card', await pageB.locator('[data-testid="cust-link-empty"]').count() > 0 || await pageB.locator('[data-testid="cust-link-card"]').count() === 0);
   const afterRevoke = await publicGet(minted);
