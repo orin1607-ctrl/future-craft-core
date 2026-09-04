@@ -134,7 +134,7 @@ export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAle
   if (insurerDoc) add('insurer_doc', 'חברת הביטוח ביקשה מסמך', 'need');
   if (missingDoc) add('missing_doc', 'חסר מסמך', 'need');
   if (openCust.some((t) => customerStatusOf(t) === 'sent')) add('wait_client', 'ממתין ללקוח', 'wait');
-  if (scheduled) add('mail_scheduled', 'מייל מתוזמן', 'info');
+  if (scheduled) add('mail_scheduled', 'מעקב', 'info');
   if (openCust.length) add('cust_task', 'משימה ללקוח', 'wait');
 
   if (out.length) add('needs_action', 'נדרש טיפול', 'need');

@@ -936,8 +936,8 @@ Deno.serve(async (req) => {
 
   if (action === "scan_inbox") {
     const dry = body.dry === true;
-    const listed = await gmailGet(access, `messages?maxResults=15&q=${encodeURIComponent("in:inbox newer_than:3d")}`);
-    const ids = ((listed.messages || []) as Array<{ id?: string }>).map((m) => String(m.id || "")).filter(Boolean).slice(0, 15);
+    const listed = await gmailGet(access, `messages?maxResults=50&q=${encodeURIComponent("in:inbox newer_than:3d")}`);
+    const ids = ((listed.messages || []) as Array<{ id?: string }>).map((m) => String(m.id || "")).filter(Boolean).slice(0, 50);
     const { data: importedRows } = await sb.from("claims_gmail_imports").select("gmail_message_id");
     const importedSet = new Set((importedRows || []).map((r) => String(r.gmail_message_id || "")).filter(Boolean));
     const { data: pendingRows } = await sb.from("claims_gmail_pending").select("id, gmail_message_id, imported_at, decision");

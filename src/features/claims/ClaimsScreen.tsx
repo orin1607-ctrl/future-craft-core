@@ -771,6 +771,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         const ir = await apiRef.current.importGmailMessage(item.claim_id, item.message_id);
         if (ir.success) {
           imported += 1;
+          await apiRef.current.logHistory(item.claim_id, 'הותאם לתביעה', `מייל נכנס שויך בוודאות · ${item.message_id}`, 'gmail_match');
           await apiRef.current.cancelScheduledMailFollowups(item.claim_id);
         }
       }
@@ -1988,8 +1989,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   <div style={{ fontSize: 12, color: 'var(--t2)', lineHeight: 1.6 }}>
                     העובד לא נכנס לתיבת Gmail. ייבוא רק מתוך תיק מורשה.
                     <br />שליחה ידנית מתוך תיק: Preview → SEND → אשר ושלח שולחת מייל אמיתי מתיבת דליה. אין allowlist של TEST.
-                    <br />מעקב מתוזמן נשאר Dry Run ואינו שולח לבד.
-                    <br />קליטת מיילים נכנסים: סריקה מתוך Claims בלבד, חלון 3 הימים האחרונים. אין Scheduler חדש ואין שינוי OAuth.
+                    <br />מעקב מתוזמן נשאר Dry Run ואינו שולח לבד. בחירת 3/4/5/7 ימים היא המתנה לתשובה — לא שליחה אוטומטית כל X ימים.
+                    <br />קליטת מיילים נכנסים: סריקה מתוך Claims כשהעובד פותח את המסך או לוחץ סרוק, חלון 3 הימים האחרונים. אין Auto-send. אין Cron חדש ואין שינוי OAuth.
                     <br />סריקת יוצאים: תצוגה בלבד — אין Import המוני ואין שליחה.
                     <br />Token נשמר בשרת בלבד. ביטול: super_admin כאן, וגם בהרשאות Google.
                   </div>
@@ -2194,7 +2195,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 <button className="btn btn-g btn-sm" data-testid="claims-edit-btn" onClick={() => startEdit(cur.id)}>ערוך</button>
-                <button className="mcl" onClick={() => setModal(null)}>✕</button>
+                <button className="mcl" data-testid="claims-card-close" onClick={() => setModal(null)}>✕</button>
               </div>
             </div>
             <div className="card-snap" data-testid="claims-card-snapshot">
@@ -3187,7 +3188,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       const prev = (last?.preview && typeof last.preview === 'object') ? last.preview : null;
                       const atts = Array.isArray(prev?.attachments) ? prev.attachments as Array<{ name?: string }> : [];
                       return (
-                        <div key={fu.id} className="fu-box">
+                        <div key={fu.id} className="fu-box" data-testid={`fu-box-${fu.id}`}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                             <div style={{ fontWeight: 700 }}>{fu.mail_kind === 'email_repeat' ? 'חוזר' : 'חד-פעמי'} · {fuStatusHe(fu.status)}</div>
                             <div style={{ fontSize: 11, color: 'var(--t3)' }}>{fu.id}</div>
@@ -3219,7 +3220,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           {fu.status === 'scheduled' && (
                             <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                               <button className="btn btn-g btn-sm" onClick={() => openMailFollowupModal(fu)}>עריכה</button>
-                              <button className="btn btn-sm" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={async () => {
+                              <button className="btn btn-sm" data-testid={`fu-cancel-${fu.id}`} style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={async () => {
                                 const r = await apiRef.current.cancelMailFollowup(fu.id);
                                 if (!r.success) { toast(r.error || 'שגיאה', 'err'); return; }
                                 toast('המעקב נעצר. ההיסטוריה נשמרה.');
