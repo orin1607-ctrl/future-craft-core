@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
-import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, buildClaimRowAlerts, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, inferRecipientKind, isDocMailRequest, mailLooksInbound, mailShowsTreatment, recipientKindLabel, type ClaimAlert } from './claimWorkAlerts';
+import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, buildClaimRowAlerts, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, recipientKindLabel, type ClaimAlert } from './claimWorkAlerts';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, type IntakeDraft } from './claimIntakeModel';
@@ -256,6 +256,20 @@ function withMailPrefix(subj: string, prefix: string) {
   if (!s) return prefix.trim();
   if (s.toLowerCase().startsWith(prefix.toLowerCase())) return s;
   return `${prefix}${s}`;
+}
+function FollowupDaysPicker({ days, onChange, disabled, testPrefix }: { days: number; onChange: (n: number) => void; disabled?: boolean; testPrefix: string }) {
+  const preset = followupDaysPreset(days);
+  return (
+    <div className="fu-days" data-testid={`${testPrefix}-picker`}>
+      {FOLLOWUP_DAY_PRESETS.map((n) => (
+        <button type="button" key={n} className={preset === n ? 'on' : ''} disabled={disabled} data-testid={`${testPrefix}-${n}`} onClick={() => onChange(n)}>{n} ימים</button>
+      ))}
+      <button type="button" className={preset === 'other' ? 'on' : ''} disabled={disabled} data-testid={`${testPrefix}-other`} onClick={() => onChange(preset === 'other' ? days : 6)}>אחר</button>
+      {preset === 'other' ? (
+        <input type="number" min={1} max={30} className="fi" data-testid={`${testPrefix}-other-input`} disabled={disabled} value={days} onChange={(e) => onChange(normalizeFollowupDays(e.target.value))} style={{ width: 64 }} />
+      ) : null}
+    </div>
+  );
 }
 const DOC_CATS: Array<{ key: string; label: string }> = [
   { key: 'surveyor', label: 'דוח שמאי' },
@@ -669,6 +683,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [trackDue, setTrackDue] = useState('');
   const [followupWanted, setFollowupWanted] = useState(false);
   const [followupDays, setFollowupDays] = useState(3);
+  const [fuWaitDays, setFuWaitDays] = useState(3);
   const mailIdemp = useRef('');
   const [listMode, setListMode] = useState<'active' | 'archive'>('active');
   const [workFil, setWorkFil] = useState('');
@@ -1292,23 +1307,26 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         return '';
       };
       if (edit) {
+        const days = followupWaitDaysFromRow(edit);
+        setFuWaitDays(days);
         setVal('fu_who', who);
         setVal('fu_to', edit.mail_to);
         setVal('fu_subj', edit.mail_subject);
         setVal('fu_body', edit.mail_body);
         setVal('fu_kind', edit.mail_kind);
-        setVal('fu_repeat', edit.repeat_every_days || '7');
-        setVal('fu_when', toLocalInput(edit.next_run_at) || toLocalInput(new Date(Date.now() + 3600000).toISOString()));
+        setVal('fu_repeat', String(days));
+        setVal('fu_when', toLocalInput(edit.next_run_at) || toLocalInput(new Date(Date.now() + days * 86400000).toISOString()));
         setVal('fu_stop', toLocalInput(edit.stop_at));
         setVal('fu_attach', edit.attach_mode || 'none');
       } else {
+        setFuWaitDays(3);
         setVal('fu_who', 'insurer');
         setVal('fu_to', toOf('insurer'));
         setVal('fu_subj', filled.subject || '');
         setVal('fu_body', filled.body || '');
         setVal('fu_kind', 'email_once');
-        setVal('fu_repeat', '7');
-        setVal('fu_when', toLocalInput(new Date(Date.now() + 3600000).toISOString()));
+        setVal('fu_repeat', '3');
+        setVal('fu_when', toLocalInput(new Date(Date.now() + 3 * 86400000).toISOString()));
         setVal('fu_stop', '');
         setVal('fu_attach', 'none');
       }
@@ -3180,6 +3198,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             <div><b>מועד מתוכנן</b>{fmtWhen(last?.planned_at || fu.next_run_at)}</div>
                             <div><b>מועד הבא</b>{fu.next_run_at ? fmtWhen(fu.next_run_at) : '—'}</div>
                             <div><b>מי הגדיר</b>{fu.defined_by || '—'}</div>
+                            <div data-testid={`fu-wait-${fu.id}`}><b>אם אין תשובה בתוך</b>{followupWaitDaysFromRow(fu)} ימים</div>
                             {fu.mail_kind === 'email_repeat' ? <div><b>כל N ימים</b>{fu.repeat_every_days || '—'}</div> : null}
                           </div>
                           <div className="fu-prev">
@@ -3475,9 +3494,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <div className="fg"><label className="fl">Body</label><textarea className="fta" id="mail_body" data-testid="mail-body" disabled={mailSending} style={{ minHeight: 100 }} value={mailBodyDraft} onChange={(e) => { bumpMailDraft(); setMailBodyDraft(e.target.value); setVal('mail_body', e.target.value); }} /></div>
             ) : <input type="hidden" id="mail_body" value={extSummary} readOnly />}
             <div className="fg"><label className="fl">אם אין תשובה עד</label><input className="fi" data-testid="mail-track-due" type="date" disabled={mailSending} value={trackDue} onChange={(e) => setTrackDue(e.target.value)} /></div>
-            <label className="pick-row" style={{ margin: '6px 0' }}>
+            <label className="pick-row" style={{ margin: '6px 0', alignItems: 'flex-start' }}>
               <input type="checkbox" data-testid="mail-followup" disabled={mailSending} checked={followupWanted} onChange={(e) => setFollowupWanted(e.target.checked)} />
-              <span>אם אין תשובה בתוך <input type="number" min={1} max={30} value={followupDays} onChange={(e) => setFollowupDays(Math.max(1, Number(e.target.value) || 3))} style={{ width: 56 }} /> ימים — אשר Follow-up אוטומטי מראש (לא נשלח חי כרגע)</span>
+              <span style={{ whiteSpace: 'normal', overflow: 'visible' }}>אם אין תשובה בתוך
+                <FollowupDaysPicker days={followupDays} disabled={mailSending || !followupWanted} testPrefix="mail-followup-days" onChange={setFollowupDays} />
+                — אשר Follow-up מראש (לא נשלח חי כרגע)
+              </span>
             </label>
             <div style={{ fontSize: 10, color: 'var(--yn2)', marginBottom: 8 }}>Follow-up אוטומטי חי דורש Scheduler / יציאה מ-Dry Run. האישור נשמר ביומן בלבד. אין שליחה מתוזמנת בלי אישור נוסף.</div>
             <div className="sdiv"><div className="sdiv-t">מסמכי התביעה לצירוף</div><div className="sdiv-l" /></div>
@@ -3734,6 +3756,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       mail_body: bodyText,
                       attach_mode: 'none',
                       next_run_at: whenIso,
+                      wait_days: followupDays,
+                      recipient_kind: 'other',
                     });
                     if (!fu.success) toast(`המייל נשלח, אך שמירת המעקב נכשלה: ${String(fu.error || '')}`, 'err');
                     else toast('מעקב נשמר בתיק (Dry Run — לא יישלח מייל אוטומטי אמיתי עד אישור)');
@@ -3926,7 +3950,19 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <option value="email_repeat">כל N ימים</option>
               </select>
             </div>
-            <div className="fg"><label className="fl">כל כמה ימים</label><input className="fi" id="fu_repeat" type="number" min={1} defaultValue="7" /></div>
+            <div className="fg"><label className="fl">אם אין תשובה בתוך</label>
+              <FollowupDaysPicker
+                days={fuWaitDays}
+                testPrefix="fu-days"
+                onChange={(n) => {
+                  setFuWaitDays(n);
+                  setVal('fu_repeat', String(n));
+                  setVal('fu_when', toLocalInput(new Date(Date.now() + n * 86400000).toISOString()));
+                }}
+              />
+              <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>נשמר במעקב הקיים. Dry Run — אין שליחה מתוזמנת חיה.</div>
+              <input className="fi" id="fu_repeat" type="hidden" value={fuWaitDays} readOnly />
+            </div>
             <div className="fg"><label className="fl">עצור אחרי (אופציונלי)</label><input className="fi" id="fu_stop" type="datetime-local" /></div>
             <div className="fg"><label className="fl">צירוף מסמכים</label>
               <select className="fse fi" id="fu_attach">
@@ -3943,7 +3979,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             )}
           </div>
           <div className="mf"><button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
-            <button className="btn btn-p" onClick={async () => {
+            <button className="btn btn-p" data-testid="fu-save" onClick={async () => {
               const to = val(null, 'fu_to');
               const when = val(null, 'fu_when');
               if (!to || !when) { toast('נמען ומועד חובה', 'err'); return; }
@@ -3960,7 +3996,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 mail_body: val(null, 'fu_body'),
                 mail_kind: kind,
                 attach_mode: val(null, 'fu_attach') || 'none',
-                repeat_every_days: kind === 'email_repeat' ? val(null, 'fu_repeat') || '7' : '',
+                repeat_every_days: kind === 'email_repeat' ? String(fuWaitDays || val(null, 'fu_repeat') || '3') : '',
+                wait_days: fuWaitDays,
                 next_run_at: whenIso,
                 stop_at: stop ? new Date(stop).toISOString() : '',
                 allow_on_closed: isSuperAdmin && !!(document.getElementById('fu_closed') as HTMLInputElement | null)?.checked,

@@ -3,10 +3,13 @@ import {
   buildClaimRowAlerts,
   customerTaskHistoryAction,
   detectMailRequests,
+  followupDaysPreset,
+  followupWaitDaysFromRow,
   inferRecipientKind,
   isOpenCustomerTask,
   mailLooksInbound,
   mailShowsTreatment,
+  normalizeFollowupDays,
 } from './claimWorkAlerts';
 import type { ClaimRecord } from './claimsConstants';
 
@@ -98,5 +101,23 @@ describe('customer helpers', () => {
   it('infers client vs insurer recipient', () => {
     expect(inferRecipientKind('a@client.com', { clientEmail: 'a@client.com', insEmail: 'ins@co.com' })).toBe('client');
     expect(inferRecipientKind('ins@co.com', { clientEmail: 'a@client.com', insEmail: 'ins@co.com' })).toBe('insurer');
+  });
+});
+
+describe('followup day presets', () => {
+  it('keeps 3/4/5/7 as named presets and anything else as אחר', () => {
+    expect(normalizeFollowupDays(4)).toBe(4);
+    expect(followupDaysPreset(3)).toBe(3);
+    expect(followupDaysPreset(4)).toBe(4);
+    expect(followupDaysPreset(5)).toBe(5);
+    expect(followupDaysPreset(7)).toBe(7);
+    expect(followupDaysPreset(9)).toBe('other');
+    expect(normalizeFollowupDays(0)).toBe(3);
+    expect(normalizeFollowupDays(99)).toBe(30);
+  });
+  it('restores wait days from stored row_data first', () => {
+    expect(followupWaitDaysFromRow({ wait_days: '4' })).toBe(4);
+    expect(followupWaitDaysFromRow({ wait_days: '9' })).toBe(9);
+    expect(followupWaitDaysFromRow({ repeat_every_days: '7' })).toBe(7);
   });
 });

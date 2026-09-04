@@ -107,6 +107,10 @@
 .claims-root .fu-box{background:var(--bg3);border:1px solid var(--br);border-radius:var(--r2);padding:12px;margin-bottom:10px}
 .claims-root .fu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin:8px 0;font-size:12px}
 .claims-root .fu-grid b{display:block;font-size:10px;color:var(--t3)}
+.claims-root .fu-days{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}
+.claims-root .fu-days button{border:1px solid var(--br2);background:transparent;color:var(--t2);border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer}
+.claims-root .fu-days button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.claims-root .fu-days button:disabled{opacity:.5;cursor:not-allowed}
 .claims-root .fu-prev{background:var(--bg2);border:1px dashed var(--br2);border-radius:7px;padding:10px;font-size:12px;margin-top:8px}
 .claims-root .gmail-card{background:var(--bg3);border:1px solid var(--br);border-radius:8px;padding:10px;margin-bottom:8px}
 .claims-root .mail-body{white-space:pre-wrap;font-family:inherit;font-size:12px;line-height:1.6;background:var(--bg2);border:1px dashed var(--br2);border-radius:7px;padding:8px;margin:6px 0;color:var(--t2);max-height:360px;overflow:auto}

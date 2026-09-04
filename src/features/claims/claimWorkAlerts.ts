@@ -189,3 +189,33 @@ export function recipientKindLabel(kind: string) {
   if (kind === 'insurer') return 'חברת הביטוח';
   return 'נמען אחר';
 }
+
+export const FOLLOWUP_DAY_PRESETS = [3, 4, 5, 7] as const;
+export type FollowupDayPreset = (typeof FOLLOWUP_DAY_PRESETS)[number] | 'other';
+
+export function normalizeFollowupDays(n: unknown): number {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v) || v < 1) return 3;
+  return Math.min(30, v);
+}
+
+export function followupDaysPreset(n: unknown): FollowupDayPreset {
+  const d = normalizeFollowupDays(n);
+  return (FOLLOWUP_DAY_PRESETS as readonly number[]).includes(d) ? (d as (typeof FOLLOWUP_DAY_PRESETS)[number]) : 'other';
+}
+
+export function followupWaitDaysFromRow(row: {
+  wait_days?: string;
+  repeat_every_days?: string;
+  next_run_at?: string;
+  created_at?: string;
+}): number {
+  if (row.wait_days) return normalizeFollowupDays(row.wait_days);
+  if (row.repeat_every_days) return normalizeFollowupDays(row.repeat_every_days);
+  const start = Date.parse(String(row.created_at || ''));
+  const due = Date.parse(String(row.next_run_at || ''));
+  if (Number.isFinite(start) && Number.isFinite(due) && due > start) {
+    return normalizeFollowupDays(due / 86400000 - start / 86400000);
+  }
+  return 3;
+}

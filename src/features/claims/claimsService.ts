@@ -29,6 +29,7 @@ export type MailFollowupRow = {
   allow_on_closed: boolean;
   defined_by: string;
   recipient_kind: string;
+  wait_days: string;
   cancelled_at: string;
   created_at: string;
   jobs: MailJobRow[];
@@ -501,11 +502,18 @@ export function createClaimsApi(actor: ClaimsActor) {
       const out = { success: true, ...(data as Record<string, unknown>) };
       const id = asText(out.id);
       const kind = asText(payload.recipient_kind);
-      if (id && kind) {
+      const waitDays = payload.wait_days == null || payload.wait_days === '' ? '' : String(payload.wait_days);
+      if (id && (kind || waitDays)) {
         const { data: rem } = await tbl('claims_reminders').select('row_data').eq('id', id).maybeSingle();
         const prev = rowFromData((rem as { row_data?: Record<string, unknown> } | null)?.row_data);
+        const extras: Record<string, unknown> = {};
+        if (kind) {
+          extras.recipient_kind = kind;
+          extras.recipient_label = kind === 'client' ? 'לקוח' : kind === 'insurer' ? 'חברת ביטוח' : 'אחר';
+        }
+        if (waitDays) extras.wait_days = waitDays;
         await tbl('claims_reminders').update({
-          row_data: { ...prev, recipient_kind: kind, recipient_label: kind === 'client' ? 'לקוח' : kind === 'insurer' ? 'חברת ביטוח' : 'אחר' },
+          row_data: { ...prev, ...extras },
         } as never).eq('id', id);
       }
       return out;
@@ -555,6 +563,7 @@ export function createClaimsApi(actor: ClaimsActor) {
           allow_on_closed: r.allow_on_closed === true,
           defined_by: asText(rd.owner),
           recipient_kind: asText(rd.recipient_kind),
+          wait_days: asText(rd.wait_days),
           cancelled_at: asText(r.cancelled_at),
           created_at: asText(r.created_at),
           jobs: jobRows.filter((j) => j.reminder_id === id),
