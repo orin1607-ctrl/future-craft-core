@@ -1,0 +1,215 @@
+{
+  "at": "2026-09-04T14:43:57.898Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mailDispatchMode": "dry_run",
+  "sha": "81df66b5",
+  "qaBase": "http://127.0.0.1:8080",
+  "surveyorMailReceived": false,
+  "surveyorNote": "טרם התקבל מייל חדש עם דוח שמאי בחלון newer_than:3d. סריקה תקינה. מייל שמאי ישן מ-31/08 נשאר ב-Review כי אין מזהה ודאי.",
+  "previewSent": {
+    "relevant_messages": 30,
+    "certain_claim_matches": 11,
+    "attachments": 1428,
+    "already_in_claim": 1114,
+    "certain_new": 26,
+    "needs_review": 112,
+    "unmatched": 176
+  },
+  "verdicts": {
+    "inboxScan": "PASS",
+    "newIncomingMail": "NOT_RECEIVED",
+    "claimMatching": "PASS",
+    "ambiguousReview": "PASS",
+    "surveyorEmailDetected": "NOT_RECEIVED",
+    "surveyorAttachment": "NOT_RECEIVED",
+    "documentOnCorrectClaim": "PASS_ISOLATION",
+    "mailCommunication": "PASS",
+    "sentHandling": "PASS",
+    "history": "PASS",
+    "isolation": "PASS",
+    "followup": "PASS",
+    "recurring1": "PASS",
+    "recurring2": "PASS",
+    "recurring3": "PASS",
+    "recurringCustom": "PASS",
+    "cancelRecurring": "PASS",
+    "refresh": "PASS",
+    "desktop": "PASS",
+    "mobile": "PASS",
+    "ci": "PASS"
+  },
+  "checks": [
+    {
+      "name": "mail-mode-dry-run",
+      "ok": true,
+      "mode": "dry_run"
+    },
+    {
+      "name": "staging-only",
+      "ok": true
+    },
+    {
+      "name": "live-send-blocked",
+      "ok": true,
+      "error": "live_send_not_approved"
+    },
+    {
+      "name": "inbox-scan-ok",
+      "ok": true,
+      "scanned": 6,
+      "lookback": "newer_than:3d",
+      "scheduler": false
+    },
+    {
+      "name": "scan-no-scheduler",
+      "ok": true
+    },
+    {
+      "name": "surveyor-new-mail-present",
+      "ok": false,
+      "detail": "טרם התקבל מייל חדש עם דוח שמאי בחלון newer_than:3d. סריקה תקינה. מייל שמאי ישן מ-31/08 נשאר ב-Review כי אין מזהה ודאי.",
+      "items": []
+    },
+    {
+      "name": "scan-mechanism-healthy",
+      "ok": true
+    },
+    {
+      "name": "ambiguous-review",
+      "ok": true,
+      "decision": "needs_review",
+      "reason": "יותר ממספר תביעה אחד במייל",
+      "candidates": [
+        "DAL-2026-0017",
+        "DAL-QA-WORKER-001"
+      ],
+      "via": "claim_number"
+    },
+    {
+      "name": "claim-matching",
+      "ok": true,
+      "decision": "auto",
+      "claimId": "DAL-QA-WORKER-001",
+      "reason": "מספר תביעה חד-משמעי",
+      "candidates": [
+        "DAL-QA-WORKER-001"
+      ],
+      "via": "claim_number"
+    },
+    {
+      "name": "old-surveyor-no-guess",
+      "ok": true,
+      "decision": "needs_review",
+      "reason": "אין מזהה מספיק",
+      "candidates": []
+    },
+    {
+      "name": "existing-inbound-on-a",
+      "ok": true,
+      "n": 5,
+      "subject": "[TEST] inbound QA-LIVE-IN-1788431796668 DAL-2099-0001 בדיקה"
+    },
+    {
+      "name": "isolation-mail",
+      "ok": true
+    },
+    {
+      "name": "isolation-docs",
+      "ok": true,
+      "a": 12,
+      "b": 0
+    },
+    {
+      "name": "sent-preview-ok",
+      "ok": true,
+      "summary": {
+        "relevant_messages": 30,
+        "certain_claim_matches": 11,
+        "attachments": 1428,
+        "already_in_claim": 1114,
+        "certain_new": 26,
+        "needs_review": 112,
+        "unmatched": 176
+      }
+    },
+    {
+      "name": "desktop-mailfu-open",
+      "ok": true
+    },
+    {
+      "name": "desktop-mail-tab",
+      "ok": true
+    },
+    {
+      "name": "desktop-history-or-mail",
+      "ok": true
+    },
+    {
+      "name": "desktop-recurring-1",
+      "ok": true,
+      "days": 1
+    },
+    {
+      "name": "desktop-refresh-1",
+      "ok": true,
+      "days": 1
+    },
+    {
+      "name": "desktop-recurring-2",
+      "ok": true,
+      "days": 2
+    },
+    {
+      "name": "desktop-recurring-3",
+      "ok": true,
+      "days": 3
+    },
+    {
+      "name": "desktop-recurring-other-8",
+      "ok": true,
+      "days": 8
+    },
+    {
+      "name": "desktop-refresh-other-8",
+      "ok": true,
+      "days": 8
+    },
+    {
+      "name": "desktop-dry-run-copy",
+      "ok": true
+    },
+    {
+      "name": "desktop-cancel-recurring",
+      "ok": true
+    },
+    {
+      "name": "desktop-followup-modal",
+      "ok": true
+    },
+    {
+      "name": "mobile-opens",
+      "ok": true
+    },
+    {
+      "name": "mobile-recurring-picker",
+      "ok": true
+    },
+    {
+      "name": "mobile-recurring-presets",
+      "ok": true
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    },
+    {
+      "name": "no-real-email",
+      "ok": true
+    }
+  ],
+  "open": [
+    "אין Cron לא מאויש לסריקת Gmail או לשליחת מייל חוזר בלי עובד מחובר. נדרש אישור לפני Scheduler חדש. MAIL_DISPATCH_MODE=dry_run.",
+    "טרם התקבל מייל חדש עם דוח שמאי בחלון newer_than:3d. סריקה תקינה. מייל שמאי ישן מ-31/08 נשאר ב-Review כי אין מזהה ודאי."
+  ]
+}
