@@ -237,6 +237,12 @@ async function openTestClaim(page, recName) {
   await page.waitForTimeout(1200);
 }
 
+async function waitTestId(page, testId, timeout = 15000) {
+  const loc = page.locator(`[data-testid="${testId}"]`);
+  await loc.waitFor({ state: 'visible', timeout }).catch(() => undefined);
+  return loc.isVisible().catch(() => false);
+}
+
 const sha = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
 if (String(PUBLIC).includes('github.io')) {
   let pagesReady = false;
@@ -264,7 +270,7 @@ if (uiOn) {
   const pageA = await ctxA.newPage();
   pageA.on('dialog', (d) => d.accept());
   await openTestClaim(pageA, 'session-a-open-claim');
-  rec('session-a-link-card', await pageA.locator('[data-testid="cust-link-card"]').count() > 0);
+  rec('session-a-link-card', await waitTestId(pageA, 'cust-link-card'));
   const urlA = ((await pageA.locator('[data-testid="cust-link-url"]').innerText().catch(() => '')) || '').trim();
   rec('session-a-url-shown', urlA.includes(minted) || /claims-upload\?t=/.test(urlA), { urlA: urlA.slice(0, 90) });
   rec('session-a-copy', await pageA.locator('[data-testid="cust-link-copy"]').count() > 0);
@@ -277,6 +283,7 @@ if (uiOn) {
   await ctxB.grantPermissions(['clipboard-read', 'clipboard-write']);
   await inject(ctxB, sessionA);
   const pageB = await ctxB.newPage();
+  pageB.on('dialog', (d) => d.accept());
   await pageB.addInitScript(() => {
     const drop = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -287,7 +294,8 @@ if (uiOn) {
   });
   await openTestClaim(pageB, 'session-b-open-claim');
   rec('session-b-no-local-cache', true);
-  rec('session-b-sees-active-card', await pageB.locator('[data-testid="cust-link-card"]').count() > 0);
+  // Session B has no localStorage cache, so the card appears only after get_link + reveal_link.
+  rec('session-b-sees-active-card', await waitTestId(pageB, 'cust-link-card'));
   await pageB.locator('[data-testid="cust-link-url"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
   const urlB = ((await pageB.locator('[data-testid="cust-link-url"]').innerText().catch(() => '')) || '').trim();
   rec('session-b-same-url', urlB.includes(minted) || urlB.includes('claims-upload?t='), { urlB: urlB.slice(0, 90) });
@@ -340,7 +348,7 @@ if (uiOn) {
   });
   const mp = await mob.newPage();
   await openTestClaim(mp, 'mobile-open-claim');
-  rec('mobile-active-card', await mp.locator('[data-testid="cust-link-card"]').count() > 0);
+  rec('mobile-active-card', await waitTestId(mp, 'cust-link-card'));
   rec('mobile-share-btn', await mp.locator('[data-testid="cust-link-share"]').count() > 0);
   await mp.locator('[data-testid="cust-link-url"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
   await mp.locator('[data-testid="cust-link-share"]').click({ force: true });
@@ -360,8 +368,10 @@ if (uiOn) {
   await revoke.scrollIntoViewIfNeeded();
   await revoke.waitFor({ state: 'visible', timeout: 10000 });
   await revoke.click();
-  await pageB.waitForTimeout(1200);
-  rec('session-b-revoke-hides-card', await pageB.locator('[data-testid="cust-link-empty"]').count() > 0 || await pageB.locator('[data-testid="cust-link-card"]').count() === 0);
+  // revokeCustomerLink is async (revoke_link + loadCardData). Empty state replaces the card
+  // only after that returns — a fixed 1200ms sleep races the network.
+  rec('session-b-revoke-hides-card', await waitTestId(pageB, 'cust-link-empty'));
+  await pageB.screenshot({ path: join(OUT, 'screenshots', 'session-b-after-revoke.png') });
   const afterRevoke = await publicGet(minted);
   rec('revoke-blocks-old-token', afterRevoke.json?.success === false || afterRevoke.status >= 400);
   await cust.reload({ waitUntil: 'networkidle' });
