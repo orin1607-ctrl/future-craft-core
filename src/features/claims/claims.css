@@ -198,6 +198,9 @@
 @media(max-width:700px){
   .claims-root .row-alerts{max-width:none}
   .claims-root .row-alert{font-size:11px;padding:5px 8px;min-height:28px}
+  .claims-root .fu-days{gap:8px}
+  .claims-root .fu-days button{padding:10px 12px;min-height:40px;font-size:13px}
+  .claims-root .fu-days input{min-height:40px;width:72px}
 }
 .claims-root .lbl-pill.flag-warn{color:var(--yn2);border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.12)}
 .claims-root .ab-regroup{align-items:flex-start;justify-content:space-between;gap:8px}

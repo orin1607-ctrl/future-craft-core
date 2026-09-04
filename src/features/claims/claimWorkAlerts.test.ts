@@ -64,7 +64,7 @@ describe('buildClaimRowAlerts', () => {
     expect(labels).toContain('חברת הביטוח ביקשה מסמך');
     expect(labels).toContain('חסר מסמך');
     expect(labels).toContain('ממתין ללקוח');
-    expect(labels).toContain('מייל מתוזמן');
+    expect(labels).toContain('מעקב');
     expect(labels).toContain('משימה ללקוח');
     expect(labels).toContain('נדרש טיפול');
   });
