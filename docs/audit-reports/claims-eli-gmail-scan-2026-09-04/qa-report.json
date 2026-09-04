@@ -1,0 +1,217 @@
+{
+  "at": "2026-09-04T15:11:57.850Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mailDispatchMode": "dry_run",
+  "sha": "22e140be",
+  "eli": {
+    "exactQuotedHits": 0,
+    "inbox3dQuotedHits": 0,
+    "sent14dQuotedHits": 0,
+    "nameMatch": {
+      "decision": "needs_review",
+      "reason": "אין מזהה מספיק",
+      "candidates": []
+    },
+    "dal20260021": {
+      "decision": "needs_review",
+      "reason": "אין מזהה מספיק",
+      "candidates": []
+    },
+    "eliyahuMatch": {
+      "decision": "auto",
+      "claimId": "DAL-2026-0020",
+      "reason": "מספר תביעה חד-משמעי",
+      "candidates": [
+        "DAL-2026-0020"
+      ],
+      "via": "claim_number"
+    },
+    "note": "אלי אטיאס exact quoted search empty. אטיאס אליהו is a different historical file (DAL-2026-0020). Not guessed."
+  },
+  "gmail": {
+    "connected": "yoni122222@gmail.com",
+    "inbox3d": {
+      "scanned": 6,
+      "subjects": [
+        "עדכון בשבילך: ‏בקשת חברות ‏1‏‏",
+        "The Meta Connect session schedule is live 📅",
+        "Webinar: Indoor asset tracking with Teltonika EYE Mesh tags and Wialon platform",
+        "Muse Spark 1.3 is now available in Muse Code and Meta Model API",
+        "Introducing Muse Voice Transcribe"
+      ]
+    },
+    "surveyorIn3d": []
+  },
+  "scheduler": {
+    "liveEdgeHasSchedulerField": false,
+    "skipped": false,
+    "lookback": "newer_than:3d",
+    "mailboxMutated": false,
+    "realEmailSend": false
+  },
+  "verdicts": {
+    "eliClaimVisibleToWorker": "FAIL",
+    "eliMailFound": "טרם התקבל",
+    "eliMailMatched": "FAIL",
+    "surveyorFound": "טרם התקבל",
+    "attachmentsMoved": "FAIL",
+    "docsOnClaim": "FAIL",
+    "noDuplicates": "PASS",
+    "history": "PASS",
+    "inbox": "PASS",
+    "sent": "PASS",
+    "autoScan3d": "CODE_READY_EDGE_NOT_DEPLOYED",
+    "recurringDryRun": "PASS",
+    "desktop": "PASS",
+    "mobile": "PASS"
+  },
+  "checks": [
+    {
+      "name": "mail-mode-dry-run",
+      "ok": true,
+      "mode": "dry_run"
+    },
+    {
+      "name": "staging-only",
+      "ok": true
+    },
+    {
+      "name": "live-send-blocked",
+      "ok": true,
+      "error": "live_send_not_approved"
+    },
+    {
+      "name": "gmail-connected",
+      "ok": true,
+      "email": "yoni122222@gmail.com"
+    },
+    {
+      "name": "inbox-scan-ok",
+      "ok": true,
+      "scanned": 6,
+      "auto": 0,
+      "review": 5
+    },
+    {
+      "name": "eli-exact-mail-absent",
+      "ok": true,
+      "exactN": 0,
+      "inboxEliN": 0
+    },
+    {
+      "name": "eli-no-guess-match",
+      "ok": true,
+      "result": {
+        "decision": "needs_review",
+        "reason": "אין מזהה מספיק",
+        "candidates": []
+      }
+    },
+    {
+      "name": "eli-new-dal-id-absent",
+      "ok": true,
+      "result": {
+        "decision": "needs_review",
+        "reason": "אין מזהה מספיק",
+        "candidates": []
+      }
+    },
+    {
+      "name": "eliyahu-stays-0020",
+      "ok": true,
+      "result": {
+        "decision": "auto",
+        "claimId": "DAL-2026-0020",
+        "reason": "מספר תביעה חד-משמעי",
+        "candidates": [
+          "DAL-2026-0020"
+        ],
+        "via": "claim_number"
+      }
+    },
+    {
+      "name": "surveyor-new-not-present",
+      "ok": true,
+      "n": 0,
+      "items": []
+    },
+    {
+      "name": "pending-no-eli-atias",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "scheduler-no-send",
+      "ok": true,
+      "liveEdgeHasSchedulerField": false,
+      "skipped": false,
+      "lookback": "newer_than:3d",
+      "mailboxMutated": false,
+      "realEmailSend": false
+    },
+    {
+      "name": "inbox-still-3d",
+      "ok": true
+    },
+    {
+      "name": "sent-preview-no-import",
+      "ok": true,
+      "summary": {
+        "relevant_messages": 30,
+        "certain_claim_matches": 11,
+        "attachments": 1428,
+        "already_in_claim": 1114,
+        "certain_new": 26,
+        "needs_review": 112,
+        "unmatched": 176
+      }
+    },
+    {
+      "name": "recurring-upsert",
+      "ok": true,
+      "data": {
+        "id": "REM-1788534767283-e40ba3",
+        "success": true
+      }
+    },
+    {
+      "name": "recurring-kind",
+      "ok": true,
+      "id": "REM-1788534767283-e40ba3",
+      "mail_kind": "email_repeat",
+      "repeat_every_days": 3,
+      "status": "scheduled"
+    },
+    {
+      "name": "recurring-cancel",
+      "ok": true
+    },
+    {
+      "name": "isolation-b-empty-or-own",
+      "ok": true,
+      "a": 9,
+      "b": 0,
+      "note": "no eli import attempted"
+    },
+    {
+      "name": "desktop-claims",
+      "ok": true,
+      "base": "http://127.0.0.1:8080"
+    },
+    {
+      "name": "desktop-mail-tab",
+      "ok": true
+    },
+    {
+      "name": "mobile-claims",
+      "ok": true,
+      "base": "http://127.0.0.1:8080"
+    }
+  ],
+  "open": [
+    "תביעת אלי אטיאס לא נראית ל-QA worker (RLS) ואין DAL-2026-0021+. לא נוחש שיוך לאטיאס אליהו / DAL-2026-0020.",
+    "דוח שמאי חדש לתיק זה טרם התקבל ב-Inbox של 3 הימים.",
+    "ה-Edge החי עדיין ללא שדה scheduler — הסריקה האוטומטית תידלק אחרי deploy ל-feat/incident-alerts-staging."
+  ]
+}

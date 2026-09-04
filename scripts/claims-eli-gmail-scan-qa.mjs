@@ -57,8 +57,11 @@ const anonKey = process.env.VITE_SUPABASE_ANON_KEY || loadDotEnv().VITE_SUPABASE
 const userDb = createClient(`https://${STAGING_REF}.supabase.co`, anonKey, { auth: { autoRefreshToken: false, persistSession: false } });
 const { data: auth, error: authErr } = await userDb.auth.signInWithPassword({ email: WORKER_EMAIL, password: WORKER_PASSWORD });
 if (authErr || !auth.session) throw authErr || new Error('login failed');
-const hdr = { apikey: anonKey, Authorization: `Bearer ${auth.session.access_token}`, 'Content-Type': 'application/json' };
+const session = auth.session;
+const hdr = { apikey: anonKey, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' };
 report.sha = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+mkdirSync(ART, { recursive: true });
+mkdirSync('/cursor/stores/self/artifacts', { recursive: true });
 
 async function invokeGmail(body) {
   const res = await fetch(`https://${STAGING_REF}.supabase.co/functions/v1/claims-gmail`, {
@@ -143,16 +146,20 @@ rec('sent-preview-no-import', sent.json?.success === true && sent.json?.import =
 });
 
 const rec1 = await userDb.rpc('claims_upsert_mail_followup', {
-  p_claim_id: CLAIM_A,
-  p_mail_to: REC_TO,
-  p_mail_subject: '[STAGING-QA-DO-NOT-SEND] recurring 3d eli-qa',
-  p_mail_body: 'dry_run only',
-  p_mail_kind: 'email_repeat',
-  p_repeat_every_days: 3,
+  p_payload: {
+    claim_id: CLAIM_A,
+    mail_to: REC_TO,
+    mail_subject: '[STAGING-QA-DO-NOT-SEND] recurring 3d eli-qa',
+    mail_body: 'dry_run only',
+    mail_kind: 'email_repeat',
+    repeat_every_days: 3,
+    next_run_at: new Date(Date.now() + 3 * 86400000).toISOString(),
+    attach_mode: 'none',
+  },
 });
-rec('recurring-upsert', !rec1.error, { err: rec1.error?.message });
+rec('recurring-upsert', !rec1.error && rec1.data?.success !== false, { err: rec1.error?.message, data: rec1.data });
 const recRow = (await userDb.from('claims_reminders').select('id, mail_kind, repeat_every_days, status').eq('claim_id', CLAIM_A).eq('mail_kind', 'email_repeat').order('created_at', { ascending: false }).limit(1)).data?.[0];
-rec('recurring-kind', recRow?.mail_kind === 'email_repeat' && Number(recRow?.repeat_every_days) === 3, recRow);
+rec('recurring-kind', recRow?.mail_kind === 'email_repeat' && Number(recRow?.repeat_every_days) === 3 && recRow?.status === 'scheduled', recRow);
 if (recRow?.id) {
   const cancel = await userDb.rpc('claims_cancel_mail_followup', { p_id: recRow.id });
   rec('recurring-cancel', !cancel.error, { err: cancel.error?.message });
@@ -164,31 +171,68 @@ rec('isolation-b-empty-or-own', true, { a: isoA.length, b: isoB.length, note: 'n
 
 let desktop = false;
 let mobile = false;
-const base = existsSync(join(process.cwd(), 'dist/index.html')) ? LOCAL : PUBLIC;
+const base = LOCAL;
+async function inject(context) {
+  await context.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
+    key: `sb-${STAGING_REF}-auth-token`,
+    value: {
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+      expires_at: session.expires_at,
+      expires_in: session.expires_in,
+      token_type: session.token_type,
+      user: session.user,
+    },
+  });
+}
+function copyShot(from, name) {
+  if (!existsSync(from)) return;
+  try { copyFileSync(from, join(ART, name)); } catch { /* ignore artifact fs */ }
+  try { copyFileSync(from, join('/cursor/stores/self/artifacts', name)); } catch { /* ignore */ }
+}
+async function openWorkerClaim(page) {
+  await page.goto(`${base}/claims`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  const search = page.locator('[data-testid="claims-search"]');
+  await search.waitFor({ state: 'visible', timeout: 40000 });
+  if (await page.locator('[data-testid="claims-sb-open"]').count()) await page.locator('[data-testid="claims-sb-open"]').click().catch(() => null);
+  await page.locator('[data-testid="claims-nav-archive"]').click().catch(() => null);
+  await page.waitForTimeout(500);
+  await search.fill('TEST-CLAIMS');
+  await page.waitForTimeout(800);
+  const row = page.locator(`[data-testid="claim-row-${CLAIM_A}"]`).first();
+  await row.waitFor({ state: 'visible', timeout: 20000 });
+  await row.click();
+  await page.locator('[data-testid="claims-tab-group-mail"]').click({ force: true });
+  await page.waitForTimeout(400);
+}
+
 try {
   const browser = await chromium.launch({ headless: true });
-  const desk = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const desk = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'he-IL' });
+  await inject(desk);
   const dpage = await desk.newPage();
-  await dpage.goto(`${base}/claims`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await dpage.waitForTimeout(2500);
+  dpage.setDefaultTimeout(25000);
+  await openWorkerClaim(dpage);
   const deskShot = join(OUT, 'screenshots', 'desktop.png');
   await dpage.screenshot({ path: deskShot, fullPage: true });
-  copyFileSync(deskShot, join(ART, 'claims_eli_desktop.png'));
-  desktop = /תביע|Claims|דואר|מייל/i.test(await dpage.locator('body').innerText().catch(() => ''));
+  copyShot(deskShot, 'claims_eli_desktop.png');
+  const deskText = await dpage.locator('body').innerText();
+  desktop = /דואר|מייל|תביע|TEST-CLAIMS/i.test(deskText);
   rec('desktop-claims', desktop, { base });
+  rec('desktop-mail-tab', /QA-LIVE-IN|DAL-2099-0001|רישיון|דואר/i.test(deskText));
 
-  const mob = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const mob = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'he-IL' });
+  await inject(mob);
   const mpage = await mob.newPage();
-  await mpage.goto(`${base}/claims`, { waitUntil: 'domcontentloaded', timeout: 60000 });
-  await mpage.waitForTimeout(2500);
+  await openWorkerClaim(mpage);
   const mobShot = join(OUT, 'screenshots', 'mobile.png');
   await mpage.screenshot({ path: mobShot, fullPage: true });
-  copyFileSync(mobShot, join(ART, 'claims_eli_mobile.png'));
-  mobile = /תביע|Claims|דואר|מייל/i.test(await mpage.locator('body').innerText().catch(() => ''));
+  copyShot(mobShot, 'claims_eli_mobile.png');
+  mobile = /דואר|מייל|תביע|TEST-CLAIMS/i.test(await mpage.locator('body').innerText());
   rec('mobile-claims', mobile, { base });
   await browser.close();
 } catch (e) {
-  rec('browser-qa', false, { err: String(e.message || e).slice(0, 300) });
+  rec('browser-qa', false, { err: String(e.message || e).slice(0, 400) });
 }
 
 const fail = report.checks.filter((c) => !c.ok);
@@ -205,8 +249,8 @@ report.verdicts = {
   sent: sent.json?.success ? 'PASS' : 'FAIL',
   autoScan3d: schedDry.json?.scheduler === true ? 'PASS' : 'CODE_READY_EDGE_NOT_DEPLOYED',
   recurringDryRun: report.checks.filter((c) => c.name.startsWith('recurring-')).every((c) => c.ok) ? 'PASS' : 'FAIL',
-  desktop: desktop ? 'PASS' : 'FAIL',
-  mobile: mobile ? 'PASS' : 'FAIL',
+  desktop: report.checks.find((c) => c.name === 'desktop-claims')?.ok ? 'PASS' : 'FAIL',
+  mobile: report.checks.find((c) => c.name === 'mobile-claims')?.ok ? 'PASS' : 'FAIL',
 };
 report.open.push('תביעת אלי אטיאס לא נראית ל-QA worker (RLS) ואין DAL-2026-0021+. לא נוחש שיוך לאטיאס אליהו / DAL-2026-0020.');
 report.open.push('דוח שמאי חדש לתיק זה טרם התקבל ב-Inbox של 3 הימים.');
