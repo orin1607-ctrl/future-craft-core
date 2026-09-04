@@ -134,7 +134,7 @@ export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAle
   if (insurerDoc) add('insurer_doc', 'חברת הביטוח ביקשה מסמך', 'need');
   if (missingDoc) add('missing_doc', 'חסר מסמך', 'need');
   if (openCust.some((t) => customerStatusOf(t) === 'sent')) add('wait_client', 'ממתין ללקוח', 'wait');
-  if (scheduled) add('mail_scheduled', 'מייל מתוזמן', 'info');
+  if (scheduled) add('mail_scheduled', 'מעקב', 'info');
   if (openCust.length) add('cust_task', 'משימה ללקוח', 'wait');
 
   if (out.length) add('needs_action', 'נדרש טיפול', 'need');
@@ -192,6 +192,8 @@ export function recipientKindLabel(kind: string) {
 
 export const FOLLOWUP_DAY_PRESETS = [3, 4, 5, 7] as const;
 export type FollowupDayPreset = (typeof FOLLOWUP_DAY_PRESETS)[number] | 'other';
+export const RECURRING_DAY_PRESETS = [1, 2, 3, 4, 5, 7] as const;
+export type RecurringDayPreset = (typeof RECURRING_DAY_PRESETS)[number] | 'other';
 
 export function normalizeFollowupDays(n: unknown): number {
   const v = Math.round(Number(n));
@@ -202,6 +204,24 @@ export function normalizeFollowupDays(n: unknown): number {
 export function followupDaysPreset(n: unknown): FollowupDayPreset {
   const d = normalizeFollowupDays(n);
   return (FOLLOWUP_DAY_PRESETS as readonly number[]).includes(d) ? (d as (typeof FOLLOWUP_DAY_PRESETS)[number]) : 'other';
+}
+
+export function normalizeRecurringDays(n: unknown): number {
+  const v = Math.round(Number(n));
+  if (!Number.isFinite(v) || v < 1) return 1;
+  return Math.min(30, v);
+}
+
+export function recurringDaysPreset(n: unknown): RecurringDayPreset {
+  const d = normalizeRecurringDays(n);
+  return (RECURRING_DAY_PRESETS as readonly number[]).includes(d) ? (d as (typeof RECURRING_DAY_PRESETS)[number]) : 'other';
+}
+
+export function recurringLabel(n: unknown): string {
+  const d = normalizeRecurringDays(n);
+  if (d === 1) return 'כל יום';
+  if (d === 2) return 'כל יומיים';
+  return `כל ${d} ימים`;
 }
 
 export function followupWaitDaysFromRow(row: {

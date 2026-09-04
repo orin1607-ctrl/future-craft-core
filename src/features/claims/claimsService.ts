@@ -30,6 +30,8 @@ export type MailFollowupRow = {
   defined_by: string;
   recipient_kind: string;
   wait_days: string;
+  file_ids: string[];
+  file_names: string[];
   cancelled_at: string;
   created_at: string;
   jobs: MailJobRow[];
@@ -503,7 +505,9 @@ export function createClaimsApi(actor: ClaimsActor) {
       const id = asText(out.id);
       const kind = asText(payload.recipient_kind);
       const waitDays = payload.wait_days == null || payload.wait_days === '' ? '' : String(payload.wait_days);
-      if (id && (kind || waitDays)) {
+      const fileIds = Array.isArray(payload.file_ids) ? payload.file_ids.map((x) => String(x)).filter(Boolean) : [];
+      const fileNames = Array.isArray(payload.file_names) ? payload.file_names.map((x) => String(x)).filter(Boolean) : [];
+      if (id && (kind || waitDays || fileIds.length || payload.file_ids)) {
         const { data: rem } = await tbl('claims_reminders').select('row_data').eq('id', id).maybeSingle();
         const prev = rowFromData((rem as { row_data?: Record<string, unknown> } | null)?.row_data);
         const extras: Record<string, unknown> = {};
@@ -512,6 +516,8 @@ export function createClaimsApi(actor: ClaimsActor) {
           extras.recipient_label = kind === 'client' ? 'לקוח' : kind === 'insurer' ? 'חברת ביטוח' : 'אחר';
         }
         if (waitDays) extras.wait_days = waitDays;
+        extras.file_ids = fileIds.join(',');
+        extras.file_names = fileNames.join(' | ');
         await tbl('claims_reminders').update({
           row_data: { ...prev, ...extras },
         } as never).eq('id', id);
@@ -564,6 +570,8 @@ export function createClaimsApi(actor: ClaimsActor) {
           defined_by: asText(rd.owner),
           recipient_kind: asText(rd.recipient_kind),
           wait_days: asText(rd.wait_days),
+          file_ids: asText(rd.file_ids).split(',').map((x) => x.trim()).filter(Boolean),
+          file_names: asText(rd.file_names).split(' | ').map((x) => x.trim()).filter(Boolean),
           cancelled_at: asText(r.cancelled_at),
           created_at: asText(r.created_at),
           jobs: jobRows.filter((j) => j.reminder_id === id),
