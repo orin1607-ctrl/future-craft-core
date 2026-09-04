@@ -1,0 +1,55 @@
+{
+  "at": "2026-09-04T08:24:57.494Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "liveMailSent": false,
+  "checks": [
+    {
+      "name": "ui-preview-sent-button",
+      "ok": true
+    },
+    {
+      "name": "ui-preview-sent-modal",
+      "ok": true
+    },
+    {
+      "name": "ui-preview-no-import",
+      "ok": true,
+      "detail": "SCAN/PREVIEW בלבד. אין Import, אין הורדת קבצים, אין שינוי בתיבה.\nנסרקו 40 מתוך 201 (חלקי — 40 האחרונים)\n30\nרלוונטיים\n11\nהתאמות ודאיות\n1428\nקבצים\n1114\nכבר בתיק\n26\nחדשים ודאיים\n112\nR"
+    },
+    {
+      "name": "ui-preview-has-counts",
+      "ok": true,
+      "detail": "SCAN/PREVIEW בלבד. אין Import, אין הורדת קבצים, אין שינוי בתיבה.\nנסרקו 40 מתוך 201 (חלקי — 40 האחרונים)\n30\nרלוונטיים\n11\nהתאמות ודאיות\n1428\nקבצים\n1114\nכבר בתיק\n26\nחדשים ודאיים\n112\nR"
+    },
+    {
+      "name": "desktop-save-5",
+      "ok": true,
+      "days": 5
+    },
+    {
+      "name": "desktop-refresh-5",
+      "ok": true,
+      "days": 5
+    },
+    {
+      "name": "desktop-save-7",
+      "ok": true,
+      "days": 7
+    },
+    {
+      "name": "desktop-refresh-7",
+      "ok": true,
+      "days": 7
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    },
+    {
+      "name": "no-real-email",
+      "ok": true
+    }
+  ],
+  "ok": true
+}
