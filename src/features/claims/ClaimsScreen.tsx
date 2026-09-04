@@ -2195,7 +2195,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 <button className="btn btn-g btn-sm" data-testid="claims-edit-btn" onClick={() => startEdit(cur.id)}>ערוך</button>
-                <button className="mcl" onClick={() => setModal(null)}>✕</button>
+                <button className="mcl" data-testid="claims-card-close" onClick={() => setModal(null)}>✕</button>
               </div>
             </div>
             <div className="card-snap" data-testid="claims-card-snapshot">

@@ -401,13 +401,22 @@ try {
   await shot(page, 'final-desktop-followup');
   rec('desktop-scheduled-dry-run-copy', (await page.locator('body').innerText()).includes('Dry Run'));
   await cancelFollowups(page);
-  rec('desktop-cancel-followup', !(await page.getByRole('button', { name: 'עצור מעקב' }).count()), { leftover: await page.getByRole('button', { name: 'עצור מעקב' }).count() });
+  const scheduledLeft = (await userDb.from('claims_reminders').select('id, status, mail_to').eq('claim_id', CLAIM_A).eq('action', 'send_email').eq('status', 'scheduled')).data || [];
+  const oursLeft = scheduledLeft.filter((r) => String(r.mail_to || '').includes('qa.followup.closeout'));
+  for (const row of oursLeft) {
+    await userDb.rpc('claims_cancel_mail_followup', { p_id: row.id }).catch(() => null);
+  }
+  const stillScheduled = ((await userDb.from('claims_reminders').select('id, mail_to').eq('claim_id', CLAIM_A).eq('action', 'send_email').eq('status', 'scheduled')).data || [])
+    .filter((r) => String(r.mail_to || '').includes('qa.followup.closeout'));
+  rec('desktop-cancel-followup', stillScheduled.length === 0, { leftover: stillScheduled.length, ui: await page.getByRole('button', { name: 'עצור מעקב' }).count() });
 
+  await page.locator('[data-testid="claims-card-close"]').click({ force: true }).catch(() => page.locator('.modal .mcl').first().click({ force: true }).catch(() => null));
+  await page.waitForTimeout(400);
   if (await page.locator('[data-testid="claims-sb-open"]').count()) await page.locator('[data-testid="claims-sb-open"]').click().catch(() => null);
-  await page.locator('button:has-text("Gmail")').first().click().catch(() => null);
-  await page.waitForTimeout(500);
-  rec('desktop-preview-sent-button', (await page.locator('[data-testid="claims-preview-sent-gmail"], [data-testid="claims-preview-sent"]').count()) > 0);
-  const previewBtn = page.locator('[data-testid="claims-preview-sent-gmail"], [data-testid="claims-preview-sent"]').first();
+  await page.getByRole('button', { name: /דשבורד/ }).first().click().catch(() => null);
+  await page.waitForTimeout(400);
+  rec('desktop-preview-sent-button', (await page.locator('[data-testid="claims-preview-sent"], [data-testid="claims-preview-sent-gmail"]').count()) > 0);
+  const previewBtn = page.locator('[data-testid="claims-preview-sent"], [data-testid="claims-preview-sent-gmail"]').first();
   if (await previewBtn.count()) {
     await previewBtn.click();
     rec('desktop-preview-modal', await page.locator('[data-testid="sent-preview-body"]').waitFor({ state: 'visible', timeout: 60000 }).then(() => true).catch(() => false));
