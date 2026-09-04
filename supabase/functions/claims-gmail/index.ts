@@ -8,6 +8,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { matchIncomingMail, suggestReply, detectMailRequests, classifySentAttachment, isDocMailRequest, type MatchClaim } from "./matchIncoming.ts";
 
 const ALLOWED_ACCOUNT = "yoni122222@gmail.com";
+const STAGING_REF = "usfeoerkpcafxxlyuldl";
+const PROD_REF = "qasomfndnjuixgjmjwcm";
+const INBOX_SCAN_EVERY_MS = 3 * 24 * 60 * 60 * 1000;
+const INBOX_SCAN_STAMP_KEY = "GMAIL_INBOX_LAST_SCAN_AT";
 const SCOPES = [
   "openid",
   "https://www.googleapis.com/auth/userinfo.email",
@@ -25,6 +29,37 @@ type Failure = { filename: string; reason: string };
 
 function admin() {
   return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+}
+
+function jwtRoleRef(token: string): { role?: string; ref?: string } {
+  try {
+    const part = token.split(".")[1];
+    if (!part) return {};
+    const json = atob(part.replace(/-/g, "+").replace(/_/g, "/"));
+    const payload = JSON.parse(json) as { role?: string; ref?: string };
+    return { role: payload.role, ref: payload.ref };
+  } catch {
+    return {};
+  }
+}
+
+function isInternalScheduler(req: Request) {
+  const secret = Deno.env.get("DALIA_EDGE_INTERNAL_SECRET");
+  return !!secret && req.headers.get("x-dalia-internal-key") === secret;
+}
+
+function isStagingServiceRole(req: Request) {
+  const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return false;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  if (serviceKey && token === serviceKey) {
+    const parsed = jwtRoleRef(serviceKey);
+    if (parsed.ref === PROD_REF) return false;
+    if (parsed.ref && parsed.ref !== STAGING_REF) return false;
+    return true;
+  }
+  const parsed = jwtRoleRef(token);
+  return parsed.role === "service_role" && parsed.ref === STAGING_REF;
 }
 
 function nid(prefix: string) {
@@ -562,7 +597,7 @@ async function ensureMailTasks(
   return { created, existing, autoSend: false, requests, tasks: out, review: requests.some((r) => r.kind === "generic") };
 }
 
-Deno.serve(async (req) => {
+async function handleClaimsGmail(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { headers: edgeCorsHeaders });
   const url = new URL(req.url);
   const sb = admin();
@@ -606,10 +641,21 @@ Deno.serve(async (req) => {
     });
   }
 
-  const auth = await requireAuth(req);
-  if ("error" in auth) return auth.error;
-  const { user, role } = auth.ctx;
-  if (!(await hasClaimsAccess(sb, user.id, role))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+  const schedulerRequested = body.scheduler === true && (action === "scan_inbox" || action === "import_message");
+  const systemScheduler = schedulerRequested && (isInternalScheduler(req) || isStagingServiceRole(req));
+  let user: { id: string; email?: string };
+  let role: string;
+  if (systemScheduler) {
+    user = { id: "scheduler", email: "claims-gmail-scan@staging" };
+    role = "super_admin";
+  } else {
+    const auth = await requireAuth(req);
+    if ("error" in auth) return auth.error;
+    user = auth.ctx.user;
+    role = auth.ctx.role;
+    if (!(await hasClaimsAccess(sb, user.id, role))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+  }
+  const forceScan = body.force === true && !systemScheduler;
 
   if (action === "status") {
     const conn = await loadConnection(sb);
@@ -920,6 +966,24 @@ Deno.serve(async (req) => {
     });
   }
 
+  if (action === "scan_inbox" && body.scheduler === true && !forceScan) {
+    const { data: stamp } = await sb.from("claims_config").select("value").eq("key", INBOX_SCAN_STAMP_KEY).maybeSingle();
+    const lastMs = stamp?.value ? Date.parse(String(stamp.value)) : 0;
+    if (lastMs && Number.isFinite(lastMs) && Date.now() - lastMs < INBOX_SCAN_EVERY_MS) {
+      return jsonResponse({
+        success: true,
+        skipped: true,
+        reason: "scan_not_due",
+        lookback: "newer_than:3d",
+        scheduler: true,
+        nextDueAt: new Date(lastMs + INBOX_SCAN_EVERY_MS).toISOString(),
+        mailboxMutated: false,
+        realEmailSend: false,
+        autoSend: false,
+      });
+    }
+  }
+
   const conn = await loadConnection(sb);
   if (!conn) return jsonResponse({ success: false, error: "gmail_not_connected" }, 409);
   if (conn.connected_email.toLowerCase() !== ALLOWED_ACCOUNT) {
@@ -936,6 +1000,7 @@ Deno.serve(async (req) => {
 
   if (action === "scan_inbox") {
     const dry = body.dry === true;
+    const scheduler = body.scheduler === true;
     const listed = await gmailGet(access, `messages?maxResults=50&q=${encodeURIComponent("in:inbox newer_than:3d")}`);
     const ids = ((listed.messages || []) as Array<{ id?: string }>).map((m) => String(m.id || "")).filter(Boolean).slice(0, 50);
     const { data: importedRows } = await sb.from("claims_gmail_imports").select("gmail_message_id");
@@ -1030,6 +1095,48 @@ Deno.serve(async (req) => {
         },
       });
     }
+    let imported = 0;
+    const importErrors: Array<{ message_id: string; error: string }> = [];
+    if (scheduler && !dry) {
+      for (const item of auto) {
+        const claimId = String(item.claim_id || "");
+        const messageId = String(item.message_id || "");
+        if (!claimId || !messageId) continue;
+        try {
+          let start = 0;
+          for (let step = 0; step < 40; step += 1) {
+            const child = await handleClaimsGmail(new Request(req.url, {
+              method: "POST",
+              headers: req.headers,
+              body: JSON.stringify({
+                action: "import_message",
+                claim_id: claimId,
+                message_id: messageId,
+                start,
+                scheduler: true,
+              }),
+            }));
+            const ir = await child.json() as { success?: boolean; done?: boolean; start?: number; error?: string };
+            if (!ir.success) {
+              importErrors.push({ message_id: messageId, error: String(ir.error || child.status) });
+              break;
+            }
+            if (ir.done) {
+              imported += 1;
+              break;
+            }
+            start = Number(ir.start || start + BATCH);
+          }
+        } catch (e) {
+          importErrors.push({ message_id: messageId, error: String((e as Error).message || e).slice(0, 180) });
+        }
+      }
+      await sb.from("claims_config").upsert({
+        key: INBOX_SCAN_STAMP_KEY,
+        value: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "key" });
+    }
     return jsonResponse({
       success: true,
       dry,
@@ -1038,9 +1145,12 @@ Deno.serve(async (req) => {
       needs_review: needsReview,
       skippedImported,
       skippedPending,
+      imported,
+      importErrors: importErrors.slice(0, 20),
       mailboxMutated: false,
       realEmailSend: false,
-      scheduler: false,
+      autoSend: false,
+      scheduler,
       oauthChanged: false,
       lookback: "newer_than:3d",
     });
@@ -2152,7 +2262,9 @@ Deno.serve(async (req) => {
   }
 
   return jsonResponse({ success: false, error: "unknown_action" }, 400);
-});
+}
+
+Deno.serve((req) => handleClaimsGmail(req));
 
 function whyScope(s: string) {
   if (s === "openid") return "זיהוי חשבון Google בלי לגשת לתוכן.";

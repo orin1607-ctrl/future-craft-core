@@ -23,6 +23,24 @@ const uniquePlate: MatchClaim = {
 };
 
 describe('matchIncomingMail — existing matcher, no guess', () => {
+  it('does not guess אלי אטיאס by client name alone', () => {
+    const named: MatchClaim = {
+      id: 'DAL-2026-0098',
+      claimNum: 'DAL-2026-0098',
+      clientName: 'אלי אטיאס',
+      plate: '11111111',
+    };
+    const r = matchIncomingMail({
+      messageId: 'eli-name-only',
+      subject: 'אלי אטיאס',
+      body: 'שלום אלי אטיאס',
+      from: 'someone@example.com',
+    }, [named]);
+    expect(r.decision).toBe('needs_review');
+    expect(r.claimId).toBeUndefined();
+    expect(r.candidates).toEqual([]);
+  });
+
   it('binds by existing Thread ID', () => {
     const r = matchIncomingMail({ messageId: 'm1', threadId: 'thread-test-a', subject: 'שלום' }, [a, b]);
     expect(r.decision).toBe('auto');
