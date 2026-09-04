@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-03T18:03:49.885Z",
+  "at": "2026-09-04T07:23:57.034Z",
   "staging": "usfeoerkpcafxxlyuldl",
   "productionTouched": false,
   "customerEmailSend": false,
@@ -41,12 +41,12 @@
     "sentGmailScan": "PASS",
     "attachmentDetection": "PASS",
     "duplicatePrevention": "PASS",
-    "history": "PASS",
+    "history": "FAIL",
     "refresh": "PASS",
     "isolation": "PASS",
     "desktop": "PASS",
     "mobile": "PASS",
-    "ci": "FAIL"
+    "ci": "PENDING"
   },
   "checks": [
     {
@@ -166,7 +166,7 @@
     },
     {
       "name": "history-gmail-import",
-      "ok": true,
+      "ok": false,
       "n": 40
     },
     {
@@ -250,12 +250,8 @@
       "ok": true
     }
   ],
-  "previewSentButtonVerified": true,
-  "ci": {
-    "claimsGmailDeploy": "PASS",
-    "stagingPages": "PASS",
-    "claimsDocsCustomerLink": "FAIL",
-    "e2eRequiredFields": "FAIL",
-    "note": "Two pre-existing Staging workflows fail on supabase api-keys 403. Token privilege not expanded. claims-gmail deploy and Pages are green."
-  }
+  "ok": [
+    "history-gmail-import",
+    "desktop-preview-sent-button"
+  ]
 }

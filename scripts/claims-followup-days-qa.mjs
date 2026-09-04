@@ -59,11 +59,12 @@ const mode = (await userDb.from('claims_config').select('value').eq('key', 'MAIL
 rec('mail-mode-dry-run', mode === 'dry_run', { mode });
 
 const sha = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+const shaShort = sha.slice(0, 7);
 if (String(PUBLIC).includes('github.io')) {
   let pagesReady = false;
   for (let i = 0; i < 24; i++) {
     const txt = await fetch(`${PUBLIC}/STAGING-DEPLOY.txt`).then((r) => r.text()).catch(() => '');
-    if (txt.includes(sha)) {
+    if (txt.includes(sha) || txt.includes(shaShort)) {
       pagesReady = true;
       rec('pages-deploy-sha', true, { sha, txt: txt.trim() });
       break;
@@ -122,21 +123,34 @@ async function saveDays(page, days, other) {
     await page.locator(`[data-testid="fu-days-${days}"]`).click();
   }
   await page.locator('[data-testid="fu-save"]').click();
-  await page.waitForTimeout(1500);
+  await page.locator('.fu-box').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
+  await page.waitForTimeout(400);
 }
 
 async function listedDays(page) {
-  const text = await page.locator('.fu-box').first().innerText().catch(() => '');
-  const m = text.match(/אם אין תשובה בתוך\s*(\d+)\s*ימים/);
+  const texts = await page.locator('.fu-box').allInnerTexts().catch(() => []);
+  const scheduled = texts.find((t) => t.includes('עריכה') || t.includes('עצור מעקב')) || texts[0] || '';
+  const m = scheduled.match(/אם אין תשובה בתוך\s*(\d+)\s*ימים/);
   return m ? Number(m[1]) : 0;
+}
+
+async function waitListedDays(page, expected, timeout = 15000) {
+  const start = Date.now();
+  let last = 0;
+  while (Date.now() - start < timeout) {
+    last = await listedDays(page);
+    if (last === expected) return last;
+    await page.waitForTimeout(400);
+  }
+  return last;
 }
 
 async function cancelAll(page) {
   for (let i = 0; i < 8; i++) {
     const stop = page.getByRole('button', { name: 'עצור מעקב' }).first();
     if (!(await stop.count())) break;
-    await stop.click();
-    await page.waitForTimeout(700);
+    await stop.click({ force: true, timeout: 8000 }).catch(() => undefined);
+    await page.waitForTimeout(800);
   }
 }
 
@@ -151,7 +165,7 @@ try {
   await cancelAll(page);
 
   await saveDays(page, 3, false);
-  rec('desktop-save-3', await listedDays(page) === 3, { days: await listedDays(page) });
+  rec('desktop-save-3', await waitListedDays(page, 3) === 3, { days: await listedDays(page) });
   await page.screenshot({ path: join(OUT, 'screenshots', 'fu-desktop-3.png') });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await openFollowupTab(page);
@@ -163,7 +177,7 @@ try {
   await page.locator('[data-testid="fu-days-4"]').click();
   await page.locator('[data-testid="fu-save"]').click();
   await page.waitForTimeout(1500);
-  rec('desktop-save-4', await listedDays(page) === 4, { days: await listedDays(page) });
+  rec('desktop-save-4', await waitListedDays(page, 4) === 4, { days: await listedDays(page) });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await openFollowupTab(page);
   rec('desktop-refresh-4', await listedDays(page) === 4, { days: await listedDays(page) });
@@ -172,10 +186,15 @@ try {
   await page.getByRole('button', { name: 'עריכה' }).first().click();
   await page.locator('[data-testid="mo-mail-fu"]').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('[data-testid="fu-days-other"]').click();
-  await page.locator('[data-testid="fu-days-other-input"]').fill('9');
+  const otherIn = page.locator('[data-testid="fu-days-other-input"]');
+  await otherIn.waitFor({ state: 'visible', timeout: 8000 });
+  await otherIn.fill('9');
+  await otherIn.blur();
+  await page.waitForTimeout(300);
   await page.locator('[data-testid="fu-save"]').click();
-  await page.waitForTimeout(1500);
-  rec('desktop-save-other-9', await listedDays(page) === 9, { days: await listedDays(page) });
+  await page.locator('.fu-box').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
+  await page.waitForTimeout(800);
+  rec('desktop-save-other-9', await waitListedDays(page, 9) === 9, { days: await listedDays(page) });
   await page.reload({ waitUntil: 'domcontentloaded' });
   await openFollowupTab(page);
   rec('desktop-refresh-other-9', await listedDays(page) === 9, { days: await listedDays(page) });
@@ -201,7 +220,7 @@ try {
   await mobile.locator('[data-testid="fu-days-3"]').click();
   await mobile.locator('[data-testid="fu-save"]').click();
   await mobile.waitForTimeout(1500);
-  rec('mobile-save-3', await listedDays(mobile) === 3, { days: await listedDays(mobile) });
+  rec('mobile-save-3', await waitListedDays(mobile, 3) === 3, { days: await listedDays(mobile) });
   await mobile.reload({ waitUntil: 'domcontentloaded' });
   await openFollowupTab(mobile);
   rec('mobile-refresh-3', await listedDays(mobile) === 3, { days: await listedDays(mobile) });

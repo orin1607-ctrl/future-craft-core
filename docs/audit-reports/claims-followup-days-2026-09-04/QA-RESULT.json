@@ -1,0 +1,105 @@
+{
+  "at": "2026-09-04T07:21:21.145Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "liveMailSent": false,
+  "schemaChanged": false,
+  "checks": [
+    {
+      "name": "mail-mode-dry-run",
+      "ok": true,
+      "mode": "dry_run"
+    },
+    {
+      "name": "pages-deploy-sha",
+      "ok": true,
+      "sha": "471aac23",
+      "txt": "deployed_ref=471aac2 feat/incident-alerts-staging"
+    },
+    {
+      "name": "desktop-mailfu-open",
+      "ok": true
+    },
+    {
+      "name": "desktop-save-3",
+      "ok": true,
+      "days": 3
+    },
+    {
+      "name": "desktop-refresh-3",
+      "ok": true,
+      "days": 3
+    },
+    {
+      "name": "desktop-edit-restores-3",
+      "ok": true
+    },
+    {
+      "name": "desktop-save-4",
+      "ok": true,
+      "days": 4
+    },
+    {
+      "name": "desktop-refresh-4",
+      "ok": true,
+      "days": 4
+    },
+    {
+      "name": "desktop-save-other-9",
+      "ok": true,
+      "days": 9
+    },
+    {
+      "name": "desktop-refresh-other-9",
+      "ok": true,
+      "days": 9
+    },
+    {
+      "name": "desktop-cancel",
+      "ok": true
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    },
+    {
+      "name": "no-real-email",
+      "ok": true
+    },
+    {
+      "name": "mobile-picker-3",
+      "ok": true
+    },
+    {
+      "name": "mobile-picker-4",
+      "ok": true
+    },
+    {
+      "name": "mobile-picker-5",
+      "ok": true
+    },
+    {
+      "name": "mobile-picker-7",
+      "ok": true
+    },
+    {
+      "name": "mobile-picker-other",
+      "ok": true
+    },
+    {
+      "name": "mobile-save-3",
+      "ok": true,
+      "days": 3
+    },
+    {
+      "name": "mobile-refresh-3",
+      "ok": true,
+      "days": 3
+    },
+    {
+      "name": "mobile-cancel",
+      "ok": true
+    }
+  ],
+  "ok": true
+}
