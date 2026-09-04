@@ -2,6 +2,7 @@ name: E2E — Required Fields Staging
 
 # Staging-only. Runs after SPA deploy branch push. Never Production.
 # 2026-09-03: re-run after SUPABASE_ACCESS_TOKEN refresh.
+# 2026-09-04: re-run after claims-docs customer-link QA wait fix (e8df21ea).
 on:
   push:
     branches:
