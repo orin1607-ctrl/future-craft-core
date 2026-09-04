@@ -1,0 +1,433 @@
+{
+  "at": "2026-09-04T08:55:14.638Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "productionProject": "qasomfndnjuixgjmjwcm",
+  "customerEmailSend": false,
+  "dispatchNowCalled": false,
+  "schemaChanged": false,
+  "massImport": false,
+  "autoSend": false,
+  "mailDispatchMode": "dry_run",
+  "gmailSendEnabled": true,
+  "previewSent": {
+    "success": true,
+    "import": false,
+    "mailboxMutated": false,
+    "realEmailSend": false,
+    "listed": 40,
+    "resultSizeEstimate": 201,
+    "truncated": true,
+    "summary": {
+      "relevant_messages": 30,
+      "certain_claim_matches": 11,
+      "attachments": 1428,
+      "already_in_claim": 1114,
+      "certain_new": 26,
+      "needs_review": 112,
+      "unmatched": 176
+    }
+  },
+  "sha": "97f1bc75",
+  "qaBase": "http://127.0.0.1:8080",
+  "verdicts": {
+    "gmailCheckEvery3Days": "PASS_WORKER_SCAN",
+    "incomingMatching": "PASS",
+    "ambiguousReview": "PASS",
+    "requestUnderstanding": "PASS",
+    "draftNoAutoSend": "PASS",
+    "requestedDocExists": "PASS",
+    "requestedDocMissing": "PASS",
+    "followupDays": "PASS",
+    "refreshPersistence": "PASS",
+    "scheduledMailDryRun": "PASS",
+    "customerTask": "PASS",
+    "history": "PASS",
+    "alerts": "PASS",
+    "isolation": "PASS",
+    "historicalPreview": "PASS",
+    "duplicatePrevention": "PASS",
+    "desktop": "PASS",
+    "mobile": "PASS",
+    "ci": "PASS"
+  },
+  "checks": [
+    {
+      "name": "mail-mode-dry-run",
+      "ok": true,
+      "mode": "dry_run"
+    },
+    {
+      "name": "staging-ref-only",
+      "ok": true
+    },
+    {
+      "name": "live-send-blocked",
+      "ok": true,
+      "error": "live_send_not_approved",
+      "status": 403
+    },
+    {
+      "name": "gmail-connected",
+      "ok": true,
+      "email": "yoni122222@gmail.com"
+    },
+    {
+      "name": "scan-inbox-dry",
+      "ok": true,
+      "scanned": 8,
+      "lookback": "newer_than:3d",
+      "skippedImported": 3,
+      "scheduler": false
+    },
+    {
+      "name": "scan-lookback-3d",
+      "ok": true,
+      "lookback": "newer_than:3d"
+    },
+    {
+      "name": "scan-no-unattended-scheduler",
+      "ok": true,
+      "scheduler": false
+    },
+    {
+      "name": "scan-no-auto-send",
+      "ok": true
+    },
+    {
+      "name": "match-test-claim",
+      "ok": true,
+      "decision": "auto",
+      "claimId": "DAL-QA-WORKER-001",
+      "reason": "מספר תביעה חד-משמעי",
+      "candidates": [
+        "DAL-QA-WORKER-001"
+      ],
+      "via": "claim_number"
+    },
+    {
+      "name": "match-live-stays-on-live",
+      "ok": true,
+      "decision": "auto",
+      "claimId": "DAL-2026-0017",
+      "reason": "מספר תביעה חד-משמעי",
+      "candidates": [
+        "DAL-2026-0017"
+      ],
+      "via": "claim_number"
+    },
+    {
+      "name": "ambiguous-review",
+      "ok": true,
+      "decision": "needs_review",
+      "reason": "יותר ממספר תביעה אחד במייל",
+      "candidates": [
+        "DAL-2026-0017",
+        "DAL-QA-WORKER-001"
+      ],
+      "via": "claim_number"
+    },
+    {
+      "name": "live-claim-invisible-to-worker",
+      "ok": true
+    },
+    {
+      "name": "foreign-claim-invisible-to-worker",
+      "ok": true
+    },
+    {
+      "name": "claim-a-visible",
+      "ok": true,
+      "id": "DAL-QA-WORKER-001"
+    },
+    {
+      "name": "isolation-claim-b-created",
+      "ok": true,
+      "existed": true
+    },
+    {
+      "name": "claim-b-visible-to-worker",
+      "ok": true,
+      "id": "DAL-QA-WORKER-002"
+    },
+    {
+      "name": "existing-test-inbound",
+      "ok": true,
+      "importId": "GIM-DAL-QA-WORKER-001-1a066d7e36e006a2",
+      "subject": "[TEST] inbound QA-LIVE-IN-1788431796668 DAL-2099-0001 בדיקה"
+    },
+    {
+      "name": "suggest-api-ok",
+      "ok": true,
+      "importId": "GIM-DAL-QA-WORKER-001-1a066d7e36e006a2"
+    },
+    {
+      "name": "suggest-detects-license",
+      "ok": true,
+      "requested": "[\"רישיון נהיגה\",\"חשבונית מוסך\"]"
+    },
+    {
+      "name": "suggest-offers-existing-license",
+      "ok": true,
+      "attIds": [
+        "CDM-1788376434201-K0H72O"
+      ]
+    },
+    {
+      "name": "suggest-marks-missing-invoice",
+      "ok": true,
+      "missing": [
+        "חשבונית מוסך"
+      ]
+    },
+    {
+      "name": "suggest-no-foreign-files",
+      "ok": true,
+      "attIds": [
+        "CDM-1788376434201-K0H72O"
+      ]
+    },
+    {
+      "name": "suggest-draft-ready",
+      "ok": true,
+      "subject": "Re: [TEST] inbound QA-LIVE-IN-1788431796668 DAL-2099-0001 בדיקה"
+    },
+    {
+      "name": "suggest-no-auto-send",
+      "ok": true
+    },
+    {
+      "name": "license-stays-on-test-claim",
+      "ok": true,
+      "count": 12
+    },
+    {
+      "name": "isolation-docs-no-leak",
+      "ok": true,
+      "docsB": 0,
+      "docsA": 12
+    },
+    {
+      "name": "isolation-mail-no-leak",
+      "ok": true,
+      "mailA": 9,
+      "mailB": 0
+    },
+    {
+      "name": "isolation-tasks-no-leak",
+      "ok": true,
+      "tasksA": 21,
+      "tasksB": 2
+    },
+    {
+      "name": "history-gmail-import",
+      "ok": true,
+      "n": 195
+    },
+    {
+      "name": "history-request-or-draft",
+      "ok": true,
+      "n": 195
+    },
+    {
+      "name": "history-has-actor-time",
+      "ok": true,
+      "sample": {
+        "at": "04/09/2026, 11:53:20",
+        "by": "TEST עובד תביעות 1788292403067",
+        "note": "REM-1788511957188-09a1a3",
+        "type": "mail_followup",
+        "action": "מעקב מייל בוטל"
+      }
+    },
+    {
+      "name": "isolation-history-no-leak",
+      "ok": true,
+      "histA": 195,
+      "histB": 0
+    },
+    {
+      "name": "preview-sent-ok",
+      "ok": true,
+      "summary": {
+        "relevant_messages": 30,
+        "certain_claim_matches": 11,
+        "attachments": 1428,
+        "already_in_claim": 1114,
+        "certain_new": 26,
+        "needs_review": 112,
+        "unmatched": 176
+      },
+      "listed": 40
+    },
+    {
+      "name": "preview-duplicate-classification",
+      "ok": true,
+      "relevant_messages": 30,
+      "certain_claim_matches": 11,
+      "attachments": 1428,
+      "already_in_claim": 1114,
+      "certain_new": 26,
+      "needs_review": 112,
+      "unmatched": 176
+    },
+    {
+      "name": "match-unique-plate-b",
+      "ok": true,
+      "decision": "auto",
+      "claimId": "DAL-QA-WORKER-002",
+      "reason": "מספר רכב מופיע בתיק אחד בלבד במערכת",
+      "candidates": [
+        "DAL-QA-WORKER-002"
+      ],
+      "via": "plate_unique"
+    },
+    {
+      "name": "desktop-alerts-visible",
+      "ok": true,
+      "alerts": "מייל חדש\nנדרש מענה\nחברת הביטוח ביקשה מסמך\nחסר מסמך\nממתין ללקוח\nמעקב\nמשימה ללקוח\nנדרש טיפול"
+    },
+    {
+      "name": "desktop-mail-imported",
+      "ok": true
+    },
+    {
+      "name": "desktop-treatment-banner",
+      "ok": true
+    },
+    {
+      "name": "desktop-existing-doc",
+      "ok": true
+    },
+    {
+      "name": "desktop-missing-doc",
+      "ok": true
+    },
+    {
+      "name": "desktop-suggest-opens",
+      "ok": true
+    },
+    {
+      "name": "desktop-history-visible",
+      "ok": true
+    },
+    {
+      "name": "desktop-customer-task-saved",
+      "ok": true
+    },
+    {
+      "name": "desktop-refresh-alerts",
+      "ok": true
+    },
+    {
+      "name": "desktop-refresh-keeps-mail",
+      "ok": true
+    },
+    {
+      "name": "desktop-save-3",
+      "ok": true,
+      "days": 3
+    },
+    {
+      "name": "desktop-refresh-3",
+      "ok": true,
+      "days": 3
+    },
+    {
+      "name": "desktop-save-4",
+      "ok": true,
+      "days": 4
+    },
+    {
+      "name": "desktop-save-5",
+      "ok": true,
+      "days": 5
+    },
+    {
+      "name": "desktop-save-7",
+      "ok": true,
+      "days": 7
+    },
+    {
+      "name": "desktop-save-other-9",
+      "ok": true,
+      "days": 9
+    },
+    {
+      "name": "desktop-refresh-other-9",
+      "ok": true,
+      "days": 9
+    },
+    {
+      "name": "desktop-scheduled-dry-run-copy",
+      "ok": true
+    },
+    {
+      "name": "desktop-cancel-followup",
+      "ok": true,
+      "leftover": 0,
+      "ui": 0
+    },
+    {
+      "name": "desktop-preview-sent-button",
+      "ok": true
+    },
+    {
+      "name": "desktop-preview-modal",
+      "ok": true
+    },
+    {
+      "name": "desktop-preview-no-import",
+      "ok": true,
+      "detail": "SCAN/PREVIEW בלבד. אין Import, אין הורדת קבצים, אין שינוי בתיבה.\nנסרקו 40 מתוך 201 (חלקי — 40 האחרונים)\n30\nרלוונטיים\n11\nהתאמות ודאיות\n1428\nקבצים\n1114\nכבר בתיק\n26\nחדשים ודאיים\n112\nReview\n176\nלא ניתן לשייך\nתביעה 2006402605"
+    },
+    {
+      "name": "mobile-claim-opens",
+      "ok": true
+    },
+    {
+      "name": "mobile-row-alerts",
+      "ok": true
+    },
+    {
+      "name": "mobile-mail-or-treatment",
+      "ok": true
+    },
+    {
+      "name": "mobile-followup-picker",
+      "ok": true
+    },
+    {
+      "name": "mobile-followup-presets",
+      "ok": true
+    },
+    {
+      "name": "customer-task-persisted",
+      "ok": true,
+      "n": 22
+    },
+    {
+      "name": "followup-rows-exist",
+      "ok": true,
+      "n": 45,
+      "cancelled": 28
+    },
+    {
+      "name": "history-followup-cancel",
+      "ok": true,
+      "sample": "מעקב מייל בוטל REM-1788512229314-fde346 mail_followup\nמעקב מייל בוטל REM-1788512261825-faf8fb mail_followup\nמעקב מייל בוטל REM-1788512261825-faf8fb mail_followup\nמעקב מייל בוטל REM-1788512263876-56327"
+    },
+    {
+      "name": "production-untouched",
+      "ok": true,
+      "note": "no production client, no production URL, no dalia-new"
+    },
+    {
+      "name": "no-real-email",
+      "ok": true
+    }
+  ],
+  "open": [
+    "אין Cron לא מאויש לבדיקת Gmail כל 3 ימים. הסריקה רצה כשהעובד פותח Claims או לוחץ סרוק, עם lookback של 3 ימים. Scheduler חדש דורש אישור מפורש."
+  ]
+}
