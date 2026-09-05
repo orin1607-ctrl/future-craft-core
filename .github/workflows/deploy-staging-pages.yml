@@ -1,19 +1,19 @@
 name: Deploy Staging to GitHub Pages
 
-# Manually-triggered staging deployment.
+# Manually-triggered staging deployment, plus push to `dev` so Cursor
+# can publish Oren Car (the bot cannot call workflow_dispatch).
 #
 # Builds the dev branch codebase pointed at the dalia-staging Supabase
 # environment, then publishes to GitHub Pages.
-#
-# This is intentionally manual-only (workflow_dispatch). It NEVER runs on
-# push. Yoni decides when staging updates, exactly like the main system's
-# "Update Code" button.
 #
 # Staging Supabase anon key is public-safe by design (it is embedded in
 # the frontend bundle regardless), so it lives here rather than as a secret.
 
 on:
   workflow_dispatch: {}
+  push:
+    branches:
+      - dev
 
 permissions:
   contents: read
