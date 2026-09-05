@@ -545,7 +545,7 @@ export function createClaimsApi(actor: ClaimsActor) {
         await this.cancelMailFollowup(extra.id);
       }
       return keep;
-    },,
+    },
 
     async stopRecurringIfReplied(claimId: string) {
       const listed = await this.listMailFollowups(claimId);
