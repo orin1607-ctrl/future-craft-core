@@ -6,6 +6,10 @@ import {
   followupDaysPreset,
   followupWaitDaysFromRow,
   inferRecipientKind,
+  isScheduledOnceMail,
+  normalizeRecurringDays,
+  recurringDaysPreset,
+  recurringLabel,
   isOpenCustomerTask,
   mailLooksInbound,
   mailShowsTreatment,
@@ -64,7 +68,7 @@ describe('buildClaimRowAlerts', () => {
     expect(labels).toContain('חברת הביטוח ביקשה מסמך');
     expect(labels).toContain('חסר מסמך');
     expect(labels).toContain('ממתין ללקוח');
-    expect(labels).toContain('מייל מתוזמן');
+    expect(labels).toContain('מעקב');
     expect(labels).toContain('משימה ללקוח');
     expect(labels).toContain('נדרש טיפול');
   });
@@ -119,5 +123,38 @@ describe('followup day presets', () => {
     expect(followupWaitDaysFromRow({ wait_days: '4' })).toBe(4);
     expect(followupWaitDaysFromRow({ wait_days: '9' })).toBe(9);
     expect(followupWaitDaysFromRow({ repeat_every_days: '7' })).toBe(7);
+  });
+});
+
+describe('recurring day presets', () => {
+  it('keeps 1/2/3/4/5/7 as named frequencies and anything else as אחר', () => {
+    expect(normalizeRecurringDays(1)).toBe(1);
+    expect(recurringDaysPreset(1)).toBe(1);
+    expect(recurringDaysPreset(2)).toBe(2);
+    expect(recurringDaysPreset(3)).toBe(3);
+    expect(recurringDaysPreset(8)).toBe('other');
+    expect(normalizeRecurringDays(0)).toBe(1);
+    expect(recurringLabel(1)).toBe('כל יום');
+    expect(recurringLabel(2)).toBe('כל יומיים');
+    expect(recurringLabel(3)).toBe('כל 3 ימים');
+  });
+});
+
+describe('scheduled once mail', () => {
+  it('recognizes scheduled_send and not follow-up/recurring', () => {
+    expect(isScheduledOnceMail('scheduled_send')).toBe(true);
+    expect(isScheduledOnceMail('')).toBe(false);
+    expect(isScheduledOnceMail(undefined)).toBe(false);
+  });
+
+  it('row alert for scheduled_send is מייל מתוזמן, not מעקב', () => {
+    const alerts = buildClaimRowAlerts(claim, {
+      tasks: [],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [{ claim_id: 'DAL-QA-A', status: 'scheduled', purpose: 'scheduled_send' }],
+    }).map((a) => a.label);
+    expect(alerts).toContain('מייל מתוזמן');
+    expect(alerts).not.toContain('מעקב');
   });
 });

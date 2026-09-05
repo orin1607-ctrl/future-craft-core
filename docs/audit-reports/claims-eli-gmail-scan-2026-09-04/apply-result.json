@@ -1,0 +1,15 @@
+{
+  "at": "2026-09-04T15:07:16.214Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "hostingerTouched": false,
+  "oauthStarted": false,
+  "realEmailSend": false,
+  "newSecretCreated": false,
+  "apply": {
+    "ok": false,
+    "error": "Command failed: npx --yes supabase link --project-ref usfeoerkpcafxxlyuldl --workdir \"/tmp/fcc-claims-gmail-scan-tick\" --yes",
+    "stderr": null
+  },
+  "verify": null
+}
