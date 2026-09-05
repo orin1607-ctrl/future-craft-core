@@ -32,6 +32,8 @@ export type MailFollowupRow = {
   wait_days: string;
   file_ids: string[];
   file_names: string[];
+  purpose: string;
+  mail_cc: string;
   cancelled_at: string;
   created_at: string;
   jobs: MailJobRow[];
@@ -507,7 +509,9 @@ export function createClaimsApi(actor: ClaimsActor) {
       const waitDays = payload.wait_days == null || payload.wait_days === '' ? '' : String(payload.wait_days);
       const fileIds = Array.isArray(payload.file_ids) ? payload.file_ids.map((x) => String(x)).filter(Boolean) : [];
       const fileNames = Array.isArray(payload.file_names) ? payload.file_names.map((x) => String(x)).filter(Boolean) : [];
-      if (id && (kind || waitDays || fileIds.length || payload.file_ids)) {
+      const purpose = asText(payload.purpose);
+      const mailCc = asText(payload.mail_cc);
+      if (id && (kind || waitDays || fileIds.length || payload.file_ids || purpose || mailCc || payload.purpose)) {
         const { data: rem } = await tbl('claims_reminders').select('row_data').eq('id', id).maybeSingle();
         const prev = rowFromData((rem as { row_data?: Record<string, unknown> } | null)?.row_data);
         const extras: Record<string, unknown> = {};
@@ -518,6 +522,8 @@ export function createClaimsApi(actor: ClaimsActor) {
         if (waitDays) extras.wait_days = waitDays;
         extras.file_ids = fileIds.join(',');
         extras.file_names = fileNames.join(' | ');
+        if (purpose) extras.purpose = purpose;
+        if (mailCc || payload.mail_cc !== undefined) extras.mail_cc = mailCc;
         await tbl('claims_reminders').update({
           row_data: { ...prev, ...extras },
         } as never).eq('id', id);
@@ -572,6 +578,8 @@ export function createClaimsApi(actor: ClaimsActor) {
           wait_days: asText(rd.wait_days),
           file_ids: asText(rd.file_ids).split(',').map((x) => x.trim()).filter(Boolean),
           file_names: asText(rd.file_names).split(' | ').map((x) => x.trim()).filter(Boolean),
+          purpose: asText(rd.purpose),
+          mail_cc: asText(rd.mail_cc),
           cancelled_at: asText(r.cancelled_at),
           created_at: asText(r.created_at),
           jobs: jobRows.filter((j) => j.reminder_id === id),
@@ -586,7 +594,7 @@ export function createClaimsApi(actor: ClaimsActor) {
         .eq('action', 'send_email')
         .eq('status', 'scheduled')
         .order('next_run_at', { ascending: true });
-      if (error) return { success: false, data: [] as Array<{ id: string; claim_id: string; status: string; mail_to: string; mail_subject: string; next_run_at: string; recipient_kind: string }> };
+      if (error) return { success: false, data: [] as Array<{ id: string; claim_id: string; status: string; mail_to: string; mail_subject: string; next_run_at: string; recipient_kind: string; purpose: string }> };
       const rows = ((data || []) as Array<Record<string, unknown>>).map((r) => {
         const rd = (r.row_data && typeof r.row_data === 'object' ? r.row_data : {}) as Record<string, unknown>;
         return {
@@ -597,6 +605,7 @@ export function createClaimsApi(actor: ClaimsActor) {
           mail_subject: asText(r.mail_subject),
           next_run_at: asText(r.next_run_at),
           recipient_kind: asText(rd.recipient_kind),
+          purpose: asText(rd.purpose),
         };
       });
       return { success: true, data: rows };

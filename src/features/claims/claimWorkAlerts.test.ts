@@ -6,6 +6,7 @@ import {
   followupDaysPreset,
   followupWaitDaysFromRow,
   inferRecipientKind,
+  isScheduledOnceMail,
   normalizeRecurringDays,
   recurringDaysPreset,
   recurringLabel,
@@ -136,5 +137,24 @@ describe('recurring day presets', () => {
     expect(recurringLabel(1)).toBe('כל יום');
     expect(recurringLabel(2)).toBe('כל יומיים');
     expect(recurringLabel(3)).toBe('כל 3 ימים');
+  });
+});
+
+describe('scheduled once mail', () => {
+  it('recognizes scheduled_send and not follow-up/recurring', () => {
+    expect(isScheduledOnceMail('scheduled_send')).toBe(true);
+    expect(isScheduledOnceMail('')).toBe(false);
+    expect(isScheduledOnceMail(undefined)).toBe(false);
+  });
+
+  it('row alert for scheduled_send is מייל מתוזמן, not מעקב', () => {
+    const alerts = buildClaimRowAlerts(claim, {
+      tasks: [],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [{ claim_id: 'DAL-QA-A', status: 'scheduled', purpose: 'scheduled_send' }],
+    }).map((a) => a.label);
+    expect(alerts).toContain('מייל מתוזמן');
+    expect(alerts).not.toContain('מעקב');
   });
 });
