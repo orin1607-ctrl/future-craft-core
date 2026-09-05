@@ -1,0 +1,185 @@
+{
+  "at": "2026-09-05T18:31:28.808Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "liveMailSent": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "deployTxt": "deployed_ref=aa0a67e feat/incident-alerts-staging",
+  "sha": "aa0a67ef",
+  "checks": [
+    {
+      "name": "public-deploy-has-scheduled-sha",
+      "ok": true,
+      "deployTxt": "deployed_ref=aa0a67e feat/incident-alerts-staging",
+      "note": "Pages short SHA aa0a67e matches commit aa0a67ef"
+    },
+    {
+      "name": "mail-mode-dry-run",
+      "ok": true,
+      "mode": "dry_run"
+    },
+    {
+      "name": "staging-only",
+      "ok": true
+    },
+    {
+      "name": "attachment-isolation-source",
+      "ok": true,
+      "a": 5,
+      "b": 0
+    },
+    {
+      "name": "desktop-schedule-visible",
+      "ok": true
+    },
+    {
+      "name": "desktop-not-only-followup",
+      "ok": true
+    },
+    {
+      "name": "desktop-date",
+      "ok": true
+    },
+    {
+      "name": "desktop-time",
+      "ok": true
+    },
+    {
+      "name": "desktop-save",
+      "ok": true
+    },
+    {
+      "name": "desktop-listed",
+      "ok": true,
+      "n": 58
+    },
+    {
+      "name": "desktop-refresh",
+      "ok": true
+    },
+    {
+      "name": "desktop-persist-fields",
+      "ok": true,
+      "id": "REM-1788633128219-079355",
+      "to": "qa.recurring.closeout@futurecraft.staging"
+    },
+    {
+      "name": "desktop-files-same-claim",
+      "ok": false,
+      "ids": []
+    },
+    {
+      "name": "desktop-cancel",
+      "ok": true,
+      "status": "cancelled"
+    },
+    {
+      "name": "mobile-schedule-visible",
+      "ok": true
+    },
+    {
+      "name": "mobile-not-only-followup",
+      "ok": true
+    },
+    {
+      "name": "mobile-date",
+      "ok": true
+    },
+    {
+      "name": "mobile-time",
+      "ok": true
+    },
+    {
+      "name": "mobile-save",
+      "ok": true
+    },
+    {
+      "name": "mobile-listed",
+      "ok": true,
+      "n": 59
+    },
+    {
+      "name": "mobile-refresh",
+      "ok": true
+    },
+    {
+      "name": "mobile-persist-fields",
+      "ok": true,
+      "id": "REM-1788633208970-43bc22",
+      "to": "qa.recurring.closeout@futurecraft.staging"
+    },
+    {
+      "name": "mobile-files-same-claim",
+      "ok": false,
+      "ids": []
+    },
+    {
+      "name": "mobile-cancel",
+      "ok": true,
+      "status": "cancelled"
+    },
+    {
+      "name": "due-saved",
+      "ok": true,
+      "id": "REM-1788633223217-87a4b6"
+    },
+    {
+      "name": "dispatch-dry-run",
+      "ok": true,
+      "reminder": {
+        "id": "REM-1788633223217-87a4b6",
+        "status": "completed"
+      },
+      "job": {
+        "id": "MJB-1788633223219-bcc353",
+        "status": "dry_run_sent",
+        "preview": {
+          "to": "qa.recurring.closeout@futurecraft.staging",
+          "body": "TEST scheduled email on public STAGING — dry_run only.",
+          "kind": "email_once",
+          "claimId": "DAL-QA-WORKER-001",
+          "subject": "QA public scheduled 2026-09-05T18:31 due",
+          "dispatch": "dry_run",
+          "definedBy": "TEST עובד תביעות 1788292403067",
+          "plannedAt": "2026-09-05T18:33:03.11+00:00",
+          "attachMode": "none",
+          "clientName": "TEST-CLAIMS-WORKER",
+          "attachments": [],
+          "gmailTouched": false,
+          "realEmailSend": false,
+          "repeatEveryDays": null
+        },
+        "finished_at": "2026-09-05T18:35:00.049507+00:00"
+      }
+    },
+    {
+      "name": "history",
+      "ok": true,
+      "n": 15
+    }
+  ],
+  "verdicts": {
+    "visiblePublic": "PASS",
+    "checkbox": "PASS",
+    "date": "PASS",
+    "time": "PASS",
+    "save": "PASS",
+    "refresh": "PASS",
+    "cancel": "PASS",
+    "history": "PASS",
+    "dispatchDryRun": "PASS",
+    "liveSend": "BLOCKED",
+    "desktop": "PASS",
+    "mobile": "PASS"
+  },
+  "open": [
+    "Live Send BLOCKED. MAIL_DISPATCH_MODE=dry_run. Do not flip for all Staging.",
+    "First Playwright pass missed file checkboxes (selector matched mail-file-row). Focused retest selected CDM-1788376436899-6OFUF5 from DAL-QA-WORKER-001 only; stored file_ids isolated; no CLAIM_B leak."
+  ],
+  "attachmentRetest": {
+    "ok": true,
+    "fileId": "CDM-1788376436899-6OFUF5",
+    "stored": ["CDM-1788376436899-6OFUF5"],
+    "leak": false
+  }
+}
