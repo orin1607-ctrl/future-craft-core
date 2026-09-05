@@ -108,7 +108,8 @@ async function openMailFu(page) {
   await page.locator('[data-testid="claims-tab-group-mail"]').click({ force: true });
   await page.waitForTimeout(250);
   await page.locator('[data-testid="claims-tab-sub-mailfu"]').click({ force: true });
-  await page.waitForTimeout(800);
+  await page.locator('[data-testid="mailfu-ready"]').waitFor({ state: 'visible', timeout: 25000 });
+  await page.waitForTimeout(400);
 }
 
 async function fillComposer(page, subject) {

@@ -537,6 +537,16 @@ export function createClaimsApi(actor: ClaimsActor) {
       return { success: true };
     },
 
+    async reuseScheduledRecurring(claimId: string, mailTo: string) {
+      const listed = await this.listMailFollowups(claimId);
+      const live = (listed.data || []).filter((r) => r.status === 'scheduled' && r.mail_kind === 'email_repeat' && r.mail_to === mailTo);
+      const keep = live[0] || null;
+      for (const extra of live.slice(1)) {
+        await this.cancelMailFollowup(extra.id);
+      }
+      return keep;
+    },,
+
     async stopRecurringIfReplied(claimId: string) {
       const listed = await this.listMailFollowups(claimId);
       const live = (listed.data || []).filter((r) => r.status === 'scheduled' && r.mail_kind === 'email_repeat');

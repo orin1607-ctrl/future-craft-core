@@ -656,6 +656,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [curTpl, setCurTpl] = useState('');
   const [reminders, setReminders] = useState<ClaimRecord[]>([]);
   const [mailFollowups, setMailFollowups] = useState<MailFollowupRow[]>([]);
+  const [mailFuLoaded, setMailFuLoaded] = useState(false);
   const [dashFollowups, setDashFollowups] = useState<Array<{ id: string; claim_id: string; status: string; mail_to: string; mail_subject: string; next_run_at: string; recipient_kind: string }>>([]);
   const [pendingCustTaskId, setPendingCustTaskId] = useState<string | null>(null);
   const [suggestDraftBody, setSuggestDraftBody] = useState('');
@@ -966,6 +967,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const loadCardData = async (id: string) => {
     const gen = ++cardLoadGen.current;
     const live = () => gen === cardLoadGen.current;
+    if (live()) setMailFuLoaded(false);
     const mailP = refreshMailLists(id, gen);
     const restP = Promise.all([
       apiRef.current.getCommLog(id).then((c) => { if (live()) setComm(c.data || []); }).catch(() => { if (live()) setComm([]); }),
@@ -973,14 +975,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       apiRef.current.getTasks(id).then((t) => { if (live()) setTasks((t.data || []).filter((x) => x.done !== 'true' || x.audience === 'customer')); }).catch(() => { if (live()) setTasks([]); }),
       apiRef.current.getReminders(id).then((rem) => { if (live()) setReminders(rem.data || []); }).catch(() => { if (live()) setReminders([]); }),
       apiRef.current.listMailFollowups(id).then(async (fu) => {
+        if (live()) setMailFollowups(fu.data || []);
+        if (live()) setMailFuLoaded(true);
         const stop = await apiRef.current.stopRecurringIfReplied(id).catch(() => ({ stopped: [] as string[] }));
         if (stop.stopped?.length) {
           const again = await apiRef.current.listMailFollowups(id);
           if (live()) setMailFollowups(again.data || []);
           const h = await apiRef.current.getHistory(id).catch(() => ({ data: [] as ClaimRecord[] }));
           if (live() && h.data) setHist(h.data);
-        } else if (live()) setMailFollowups(fu.data || []);
-      }).catch(() => { if (live()) setMailFollowups([]); }),
+        }
+      }).catch(() => { if (live()) { setMailFollowups([]); setMailFuLoaded(true); } }),
       apiRef.current.invokeDocs('list_docs', { claim_id: id }).then((d) => {
         if (!live()) return;
         setDocs({
@@ -3228,7 +3232,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 </>
               )}
               {cardTab === 'mailfu' && (
-                <>
+                <div data-testid={mailFuLoaded ? 'mailfu-ready' : 'mailfu-loading'}>
                   <div style={{ fontSize: 11, color: 'var(--yn2)', marginBottom: 10 }}>
                     מצב Dry Run — אין שליחת מייל אמיתית ואין חיבור Gmail. כאן מוצג בדיוק מה היה אמור להישלח.
                   </div>
@@ -3313,7 +3317,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         </div>
                       );
                     })}
-                </>
+                </div>
               )}
               {cardTab === 'timeline' && (
                 hist.length === 0 ? <div className="empty">אין היסטוריה עדיין</div>
@@ -3808,7 +3812,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 const days = normalizeRecurringDays(recurringDays);
                 const whenIso = new Date(Date.now() + Math.max(60_000, 2 * 60_000)).toISOString();
                 const selected = docs.files.filter((f) => sendIds.includes(f.id));
-                const existing = mailFollowups.find((f) => f.status === 'scheduled' && f.mail_kind === 'email_repeat' && f.mail_to === to);
+                const existing = await apiRef.current.reuseScheduledRecurring(curId, to);
                 setMailSending(true);
                 try {
                   const r = await apiRef.current.upsertMailFollowup({
@@ -4206,7 +4210,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               const selectedFiles = docs.files.filter((f) => fuFileIds.includes(f.id));
               const repeatDays = kind === 'email_repeat' ? normalizeRecurringDays(fuRepeatDays) : 0;
               const existingRepeat = !fuEditId && kind === 'email_repeat'
-                ? mailFollowups.find((f) => f.status === 'scheduled' && f.mail_kind === 'email_repeat' && f.mail_to === to)
+                ? await apiRef.current.reuseScheduledRecurring(curId || '', to)
                 : null;
               const r = await apiRef.current.upsertMailFollowup({
                 id: fuEditId || existingRepeat?.id || undefined,
