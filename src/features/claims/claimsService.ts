@@ -537,6 +537,36 @@ export function createClaimsApi(actor: ClaimsActor) {
       return { success: true };
     },
 
+    async stopRecurringIfReplied(claimId: string) {
+      const listed = await this.listMailFollowups(claimId);
+      const live = (listed.data || []).filter((r) => r.status === 'scheduled' && r.mail_kind === 'email_repeat');
+      if (!live.length) return { success: true, stopped: [] as string[] };
+      const { data: imps } = await tbl('claims_gmail_imports').select('id, sent_at, from_addr, created_at').eq('claim_id', claimId);
+      const { data: comms } = await tbl('claims_comm_log').select('id, created_at, row_data').eq('claim_id', claimId);
+      const own = 'yoni122222@gmail.com';
+      const stopped: string[] = [];
+      for (const rem of live) {
+        const created = Date.parse(rem.created_at || '') || 0;
+        const inboundMail = ((imps || []) as Array<Record<string, unknown>>).some((im) => {
+          const when = Date.parse(asText(im.sent_at) || asText(im.created_at)) || 0;
+          const from = asText(im.from_addr).toLowerCase();
+          return when > created && from && !from.includes(own);
+        });
+        const inboundComm = ((comms || []) as Array<Record<string, unknown>>).some((c) => {
+          const rd = (c.row_data && typeof c.row_data === 'object' ? c.row_data : {}) as Record<string, unknown>;
+          const dir = asText(rd.direction).toLowerCase();
+          const when = Date.parse(asText(c.created_at) || asText(rd.at)) || 0;
+          return (dir === 'in' || dir === 'inbound') && when > created;
+        });
+        if (!inboundMail && !inboundComm) continue;
+        const r = await this.cancelMailFollowup(rem.id);
+        if (!r.success) continue;
+        await appendHistory(claimId, 'מייל חוזר נעצר — התקבלה תשובה', `${rem.mail_to} · ${rem.mail_subject}`, 'mail_recurring');
+        stopped.push(rem.id);
+      }
+      return { success: true, stopped };
+    },
+
     async retryMailFollowup(id: string) {
       const { data, error } = await supabase.rpc('claims_retry_mail_followup' as never, { p_id: id } as never);
       if (error) return { success: false, error: error.message, realEmailSend: false };

@@ -9,6 +9,9 @@ import {
   isOpenCustomerTask,
   isScheduledOnceMail,
   mailLooksInbound,
+  normalizeRecurringDays,
+  recurringDaysPreset,
+  recurringLabel,
   mailShowsTreatment,
   normalizeFollowupDays,
 } from './claimWorkAlerts';
@@ -123,9 +126,25 @@ describe('followup day presets', () => {
   });
 });
 
+describe('recurring day presets', () => {
+  it('keeps 1/2/3 as named frequencies and anything else as אחר', () => {
+    expect(normalizeRecurringDays(1)).toBe(1);
+    expect(recurringDaysPreset(1)).toBe(1);
+    expect(recurringDaysPreset(2)).toBe(2);
+    expect(recurringDaysPreset(3)).toBe(3);
+    expect(recurringDaysPreset(8)).toBe('other');
+    expect(normalizeRecurringDays(0)).toBe(1);
+    expect(recurringLabel(1)).toBe('כל יום');
+    expect(recurringLabel(2)).toBe('כל יומיים');
+    expect(recurringLabel(3)).toBe('כל 3 ימים');
+    expect(recurringLabel(8)).toBe('כל 8 ימים');
+  });
+});
+
 describe('scheduled once mail', () => {
   it('recognizes scheduled_send and not follow-up', () => {
     expect(isScheduledOnceMail('scheduled_send')).toBe(true);
+    expect(isScheduledOnceMail('recurring_send')).toBe(false);
     expect(isScheduledOnceMail('')).toBe(false);
     expect(isScheduledOnceMail(undefined)).toBe(false);
   });

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
-import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, buildClaimRowAlerts, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isScheduledOnceMail, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, recipientKindLabel, type ClaimAlert } from './claimWorkAlerts';
+import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, buildClaimRowAlerts, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isScheduledOnceMail, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringLabel, type ClaimAlert } from './claimWorkAlerts';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, type IntakeDraft } from './claimIntakeModel';
@@ -276,6 +276,20 @@ function FollowupDaysPicker({ days, onChange, disabled, testPrefix }: { days: nu
       <button type="button" className={preset === 'other' ? 'on' : ''} disabled={disabled} data-testid={`${testPrefix}-other`} onClick={() => onChange(preset === 'other' ? days : 6)}>אחר</button>
       {preset === 'other' ? (
         <input type="number" min={1} max={30} className="fi" data-testid={`${testPrefix}-other-input`} disabled={disabled} value={days} onChange={(e) => onChange(normalizeFollowupDays(e.target.value))} style={{ width: 64 }} />
+      ) : null}
+    </div>
+  );
+}
+function RecurringDaysPicker({ days, onChange, disabled, testPrefix }: { days: number; onChange: (n: number) => void; disabled?: boolean; testPrefix: string }) {
+  const preset = recurringDaysPreset(days);
+  return (
+    <div className="fu-days" data-testid={`${testPrefix}-picker`}>
+      {RECURRING_DAY_PRESETS.map((n) => (
+        <button type="button" key={n} className={preset === n ? 'on' : ''} disabled={disabled} data-testid={`${testPrefix}-${n}`} onClick={() => onChange(n)}>{n === 1 ? 'כל יום' : n === 2 ? 'כל יומיים' : 'כל 3 ימים'}</button>
+      ))}
+      <button type="button" className={preset === 'other' ? 'on' : ''} disabled={disabled} data-testid={`${testPrefix}-other`} onClick={() => onChange(preset === 'other' ? days : 8)}>אחר</button>
+      {preset === 'other' ? (
+        <input type="number" min={1} max={30} className="fi" data-testid={`${testPrefix}-other-input`} disabled={disabled} value={days} onChange={(e) => onChange(normalizeRecurringDays(e.target.value))} style={{ width: 64 }} />
       ) : null}
     </div>
   );
@@ -695,7 +709,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [scheduleWanted, setScheduleWanted] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
+  const [recurringWanted, setRecurringWanted] = useState(false);
+  const [recurringDays, setRecurringDays] = useState(1);
   const [fuWaitDays, setFuWaitDays] = useState(3);
+  const [fuRepeatDays, setFuRepeatDays] = useState(1);
+  const [fuKind, setFuKind] = useState<'email_once' | 'email_repeat'>('email_once');
   const [fuFileIds, setFuFileIds] = useState<string[]>([]);
   const [fuEditPurpose, setFuEditPurpose] = useState('');
   const mailIdemp = useRef('');
@@ -954,7 +972,15 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       apiRef.current.getHistory(id).then((h) => { if (live()) setHist(h.data || []); }).catch(() => { if (live()) setHist([]); }),
       apiRef.current.getTasks(id).then((t) => { if (live()) setTasks((t.data || []).filter((x) => x.done !== 'true' || x.audience === 'customer')); }).catch(() => { if (live()) setTasks([]); }),
       apiRef.current.getReminders(id).then((rem) => { if (live()) setReminders(rem.data || []); }).catch(() => { if (live()) setReminders([]); }),
-      apiRef.current.listMailFollowups(id).then((fu) => { if (live()) setMailFollowups(fu.data || []); }).catch(() => { if (live()) setMailFollowups([]); }),
+      apiRef.current.listMailFollowups(id).then(async (fu) => {
+        const stop = await apiRef.current.stopRecurringIfReplied(id).catch(() => ({ stopped: [] as string[] }));
+        if (stop.stopped?.length) {
+          const again = await apiRef.current.listMailFollowups(id);
+          if (live()) setMailFollowups(again.data || []);
+          const h = await apiRef.current.getHistory(id).catch(() => ({ data: [] as ClaimRecord[] }));
+          if (live() && h.data) setHist(h.data);
+        } else if (live()) setMailFollowups(fu.data || []);
+      }).catch(() => { if (live()) setMailFollowups([]); }),
       apiRef.current.invokeDocs('list_docs', { claim_id: id }).then((d) => {
         if (!live()) return;
         setDocs({
@@ -1148,6 +1174,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setScheduleWanted(false);
     setScheduleDate('');
     setScheduleTime('');
+    setRecurringWanted(false);
+    setRecurringDays(1);
     mailIdemp.current = `send-${cur.id}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const ext = await apiRef.current.exportExternalSummary(cur.id);
     setExtSummary(ext.text || '');
@@ -1301,10 +1329,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }
   }, [cardTab, curId, docs.files, tasks]);
 
-  const openMailFollowupModal = async (edit?: MailFollowupRow | null) => {
+  const openMailFollowupModal = async (edit?: MailFollowupRow | null, mode?: 'followup' | 'recurring') => {
     setFuEditId(edit?.id || null);
     setFuEditPurpose(edit?.purpose || '');
     setFuFileIds(edit?.file_ids || []);
+    const editRepeat = edit?.mail_kind === 'email_repeat';
+    setFuKind(editRepeat || mode === 'recurring' ? 'email_repeat' : 'email_once');
+    setFuRepeatDays(normalizeRecurringDays(edit?.repeat_every_days || (mode === 'recurring' ? 1 : 1)));
     if (edit && isScheduledOnce(edit) && edit.next_run_at) {
       const d = new Date(edit.next_run_at);
       if (!Number.isNaN(d.getTime())) {
@@ -1335,25 +1366,29 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       };
       if (edit) {
         const days = followupWaitDaysFromRow(edit);
+        const repeat = normalizeRecurringDays(edit.repeat_every_days || days);
         setFuWaitDays(days);
+        setFuRepeatDays(repeat);
         setVal('fu_who', who);
         setVal('fu_to', edit.mail_to);
         setVal('fu_subj', edit.mail_subject);
         setVal('fu_body', edit.mail_body);
-        setVal('fu_kind', edit.mail_kind);
-        setVal('fu_repeat', String(days));
+        setVal('fu_kind', edit.mail_kind === 'email_repeat' ? 'email_repeat' : 'email_once');
+        setVal('fu_repeat', String(repeat));
         setVal('fu_when', toLocalInput(edit.next_run_at) || toLocalInput(new Date(Date.now() + days * 86400000).toISOString()));
         setVal('fu_stop', toLocalInput(edit.stop_at));
         setVal('fu_attach', edit.attach_mode || 'none');
       } else {
+        const recurring = mode === 'recurring';
         setFuWaitDays(3);
+        setFuRepeatDays(1);
         setVal('fu_who', 'insurer');
         setVal('fu_to', toOf('insurer'));
         setVal('fu_subj', filled.subject || '');
         setVal('fu_body', filled.body || '');
-        setVal('fu_kind', 'email_once');
-        setVal('fu_repeat', '3');
-        setVal('fu_when', toLocalInput(new Date(Date.now() + 3 * 86400000).toISOString()));
+        setVal('fu_kind', recurring ? 'email_repeat' : 'email_once');
+        setVal('fu_repeat', recurring ? '1' : '3');
+        setVal('fu_when', toLocalInput(new Date(Date.now() + (recurring ? 2 * 60_000 : 3 * 86400000)).toISOString()));
         setVal('fu_stop', '');
         setVal('fu_attach', 'none');
       }
@@ -3198,7 +3233,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     מצב Dry Run — אין שליחת מייל אמיתית ואין חיבור Gmail. כאן מוצג בדיוק מה היה אמור להישלח.
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                    <button className="btn btn-p btn-sm" onClick={() => openMailFollowupModal(null)}>＋ הגדר מעקב מייל</button>
+                    <button className="btn btn-p btn-sm" data-testid="claims-followup-new" onClick={() => openMailFollowupModal(null, 'followup')}>＋ מעקב (Follow-up)</button>
+                    <button className="btn btn-g btn-sm" data-testid="claims-recurring-new" onClick={() => openMailFollowupModal(null, 'recurring')}>＋ מייל חוזר</button>
                     {isSuperAdmin && (
                       <button className="btn btn-g btn-sm" onClick={async () => {
                         const r = await apiRef.current.dispatchMailNow();
@@ -3216,7 +3252,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       return (
                         <div key={fu.id} className="fu-box" data-testid={`fu-box-${fu.id}`} data-scheduled-once={isScheduledOnce(fu) ? 'true' : 'false'}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                            <div style={{ fontWeight: 700 }} data-testid={`fu-kind-${fu.id}`}>{isScheduledOnce(fu) ? 'מייל מתוזמן' : fu.mail_kind === 'email_repeat' ? 'חוזר' : 'מעקב (Follow-up)'} · {fuStatusHe(fu.status)}</div>
+                            <div style={{ fontWeight: 700 }} data-testid={`fu-kind-${fu.id}`}>{isScheduledOnce(fu) ? 'מייל מתוזמן' : fu.mail_kind === 'email_repeat' ? `מייל חוזר · ${recurringLabel(fu.repeat_every_days)}` : 'מעקב (Follow-up)'} · {fuStatusHe(fu.status)}</div>
                             <div style={{ fontSize: 11, color: 'var(--t3)' }}>{fu.id}</div>
                           </div>
                           <div className="fu-grid">
@@ -3230,8 +3266,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             <div><b>מי הגדיר</b>{fu.defined_by || '—'}</div>
                             {isScheduledOnce(fu)
                               ? <div data-testid={`fu-once-${fu.id}`}><b>סוג</b>שליחה חד-פעמית מתוזמנת</div>
-                              : <div data-testid={`fu-wait-${fu.id}`}><b>אם אין תשובה בתוך</b>{followupWaitDaysFromRow(fu)} ימים</div>}
-                            {!isScheduledOnce(fu) && fu.mail_kind === 'email_repeat' ? <div><b>כל N ימים</b>{fu.repeat_every_days || '—'}</div> : null}
+                              : fu.mail_kind === 'email_repeat'
+                                ? <div data-testid={`fu-repeat-${fu.id}`}><b>אם אין תשובה — שלח שוב</b>{recurringLabel(fu.repeat_every_days)}</div>
+                                : <div data-testid={`fu-wait-${fu.id}`}><b>אם אין תשובה בתוך</b>{followupWaitDaysFromRow(fu)} ימים</div>}
                           </div>
                           <div className="fu-prev">
                             <div style={{ fontWeight: 700, marginBottom: 4 }}>Preview — מה היה אמור להישלח</div>
@@ -3254,10 +3291,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                               <button className="btn btn-sm" data-testid={`fu-cancel-${fu.id}`} style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={async () => {
                                 const r = await apiRef.current.cancelMailFollowup(fu.id);
                                 if (!r.success) { toast(r.error || 'שגיאה', 'err'); return; }
-                                toast(isScheduledOnce(fu) ? 'התזמון בוטל. המייל לא יישלח.' : 'המעקב נעצר. ההיסטוריה נשמרה.');
+                                if (cur && fu.mail_kind === 'email_repeat') {
+                                  await apiRef.current.logHistory(cur.id, 'מייל חוזר נעצר', `${fu.mail_to} · ${recurringLabel(fu.repeat_every_days)}`, 'mail_recurring');
+                                }
+                                toast(isScheduledOnce(fu) ? 'התזמון בוטל. המייל לא יישלח.' : fu.mail_kind === 'email_repeat' ? 'החזרה נעצרה. ההיסטוריה נשמרה.' : 'המעקב נעצר. ההיסטוריה נשמרה.');
                                 if (cur) await loadCardData(cur.id);
                                 await loadAll();
-                              }}>{isScheduledOnce(fu) ? 'בטל שליחה' : 'עצור מעקב'}</button>
+                              }}>{isScheduledOnce(fu) ? 'בטל שליחה' : fu.mail_kind === 'email_repeat' ? 'עצור חזרה' : 'עצור מעקב'}</button>
                             </div>
                           )}
                           {fu.status === 'failed' && (
@@ -3527,7 +3567,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             ) : <input type="hidden" id="mail_body" value={extSummary} readOnly />}
             <div className="sdiv" data-testid="mail-schedule-block"><div className="sdiv-t">שליחה מתוזמנת</div><div className="sdiv-l" /></div>
             <label className="pick-row" style={{ margin: '6px 0', alignItems: 'flex-start' }}>
-              <input type="checkbox" data-testid="mail-schedule" disabled={mailSending} checked={scheduleWanted} onChange={(e) => { setScheduleWanted(e.target.checked); if (e.target.checked) setFollowupWanted(false); }} />
+              <input type="checkbox" data-testid="mail-schedule" disabled={mailSending} checked={scheduleWanted} onChange={(e) => { setScheduleWanted(e.target.checked); if (e.target.checked) { setFollowupWanted(false); setRecurringWanted(false); } }} />
               <span style={{ whiteSpace: 'normal', overflow: 'visible', fontWeight: 700 }}>שליחה מתוזמנת — מייל אחד בתאריך ובשעה שייבחרו. לא Follow-up ולא מייל חוזר.</span>
             </label>
             {scheduleWanted ? (
@@ -3541,15 +3581,28 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 מייל מתוזמן אל <b>{mailTo || '—'}</b> בתאריך <b>{scheduleDate}</b> בשעה <b>{scheduleTime}</b>. סטטוס אחרי שמירה: מתוזמן. לא יישלח עכשיו.
               </div>
             ) : null}
-            <div className="fg"><label className="fl">אם אין תשובה עד</label><input className="fi" data-testid="mail-track-due" type="date" disabled={mailSending || scheduleWanted} value={trackDue} onChange={(e) => setTrackDue(e.target.value)} /></div>
+            <div className="sdiv" data-testid="mail-recurring-block"><div className="sdiv-t">מייל חוזר</div><div className="sdiv-l" /></div>
             <label className="pick-row" style={{ margin: '6px 0', alignItems: 'flex-start' }}>
-              <input type="checkbox" data-testid="mail-followup" disabled={mailSending || scheduleWanted} checked={followupWanted} onChange={(e) => { setFollowupWanted(e.target.checked); if (e.target.checked) setScheduleWanted(false); }} />
+              <input type="checkbox" data-testid="mail-recurring" disabled={mailSending || scheduleWanted} checked={recurringWanted} onChange={(e) => { setRecurringWanted(e.target.checked); if (e.target.checked) { setFollowupWanted(false); setScheduleWanted(false); } }} />
+              <span style={{ whiteSpace: 'normal', overflow: 'visible', fontWeight: 700 }}>אם אין תשובה — שלח שוב כל X ימים. לא Follow-up ולא מייל מתוזמן חד-פעמי.</span>
+            </label>
+            <div data-testid="mail-recurring-picker-wrap" style={{ margin: '0 0 8px' }}>
+              <RecurringDaysPicker days={recurringDays} disabled={mailSending || !recurringWanted || scheduleWanted} testPrefix="mail-recurring-days" onChange={setRecurringDays} />
+            </div>
+            {recurringWanted && !scheduleWanted ? (
+              <div data-testid="mail-recurring-summary" style={{ background: 'rgba(37,99,235,.08)', border: '1px solid var(--bl2, #2563eb)', borderRadius: 7, padding: 10, marginBottom: 10, fontSize: 12 }}>
+                מייל חוזר אל <b>{mailTo || '—'}</b> · {recurringLabel(recurringDays)}. ייעצר כשתתקבל תשובה. Dry Run — אין שליחה חיה.
+              </div>
+            ) : null}
+            <div className="fg"><label className="fl">אם אין תשובה עד</label><input className="fi" data-testid="mail-track-due" type="date" disabled={mailSending || scheduleWanted || recurringWanted} value={trackDue} onChange={(e) => setTrackDue(e.target.value)} /></div>
+            <label className="pick-row" style={{ margin: '6px 0', alignItems: 'flex-start' }}>
+              <input type="checkbox" data-testid="mail-followup" disabled={mailSending || scheduleWanted || recurringWanted} checked={followupWanted} onChange={(e) => { setFollowupWanted(e.target.checked); if (e.target.checked) { setScheduleWanted(false); setRecurringWanted(false); } }} />
               <span style={{ whiteSpace: 'normal', overflow: 'visible' }}>אם אין תשובה בתוך
                 <FollowupDaysPicker days={followupDays} disabled={mailSending || !followupWanted || scheduleWanted} testPrefix="mail-followup-days" onChange={setFollowupDays} />
                 — אשר Follow-up מראש (לא נשלח חי כרגע)
               </span>
             </label>
-            <div style={{ fontSize: 10, color: 'var(--yn2)', marginBottom: 8 }}>Follow-up הוא מעקב אם אין תשובה. שליחה מתוזמנת היא מייל אחד במועד שנבחר — מסומנת למעלה.</div>
+            <div style={{ fontSize: 10, color: 'var(--yn2)', marginBottom: 8 }}>Follow-up הוא מעקב אם אין תשובה. שליחה מתוזמנת היא מייל אחד במועד שנבחר. מייל חוזר שולח שוב כל X ימים עד שתתקבל תשובה — שלושתם נפרדים.</div>
             <div className="sdiv"><div className="sdiv-t">מסמכי התביעה לצירוף</div><div className="sdiv-l" /></div>
             <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>מקור אחד: מסמכי התביעה. אין מאגר נפרד למייל. רק מה שמסומן יישלח. אין צירוף אוטומטי.</div>
             {curId ? (
@@ -3742,6 +3795,51 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 }
               }}>שמור תזמון</button>
             ) : null}
+            {recurringWanted && !scheduleWanted ? (
+              <button className="btn btn-p" data-testid="mail-recurring-save" disabled={mailSending} onClick={async () => {
+                if (!curId || !cur) return;
+                const to = normalizeMailAddr(mailTo);
+                const cc = normalizeMailAddr(mailCc);
+                const bodyText = mailKind === 'draft' ? mailBodyDraft : extSummary;
+                if (!mailAddrsOk(to, true)) { toast('כתובת To לא תקינה', 'err'); return; }
+                if (cc && !mailAddrsOk(cc, false)) { toast('כתובת CC לא תקינה', 'err'); return; }
+                if (!mailSubj.trim()) { toast('חסר Subject', 'err'); return; }
+                if (!bodyText.trim()) { toast('חסר Body', 'err'); return; }
+                const days = normalizeRecurringDays(recurringDays);
+                const whenIso = new Date(Date.now() + Math.max(60_000, 2 * 60_000)).toISOString();
+                const selected = docs.files.filter((f) => sendIds.includes(f.id));
+                const existing = mailFollowups.find((f) => f.status === 'scheduled' && f.mail_kind === 'email_repeat' && f.mail_to === to);
+                setMailSending(true);
+                try {
+                  const r = await apiRef.current.upsertMailFollowup({
+                    id: existing?.id,
+                    claim_id: curId,
+                    mail_kind: 'email_repeat',
+                    mail_to: to,
+                    mail_cc: cc,
+                    mail_subject: mailSubj,
+                    mail_body: bodyText,
+                    attach_mode: 'none',
+                    repeat_every_days: String(days),
+                    next_run_at: whenIso,
+                    recipient_kind: 'other',
+                    purpose: 'recurring_send',
+                    file_ids: selected.map((f) => f.id),
+                    file_names: selected.map((f) => f.original_name),
+                  });
+                  if (!r.success) { toast(String(r.error || 'שמירת המייל החוזר נכשלה'), 'err'); return; }
+                  await apiRef.current.logHistory(curId, existing ? 'עודכן מייל חוזר' : 'הוגדר מייל חוזר', `${to} · ${recurringLabel(days)}`, 'mail_recurring');
+                  toast(`מייל חוזר נשמר · ${recurringLabel(days)}. Dry Run — ייעצר כשתתקבל תשובה.`);
+                  setRecurringWanted(false);
+                  setCardTab('mailfu');
+                  setModal('moCard');
+                  await loadCardData(curId);
+                  await loadAll();
+                } finally {
+                  setMailSending(false);
+                }
+              }}>שמור מייל חוזר</button>
+            ) : null}
             <button className="btn btn-g" data-testid="mail-preview-btn" disabled={mailSending} onClick={async () => {
               if (curId) await refreshPackage(curId, sendIds);
               setMailConfirmOn(false);
@@ -3771,7 +3869,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               }
               setMailPreviewOn(true);
             }}>👁 Preview</button>
-            {!scheduleWanted && !mailConfirmOn ? (
+            {!scheduleWanted && !recurringWanted && !mailConfirmOn ? (
               <button className="btn btn-p" data-testid="mail-send-btn" disabled={mailSending || !mailPreviewOn || pkgInfo?.overLimit === true || !mailAddrsOk(mailTo, true) || !mailAddrsOk(mailCc, false)} title={!mailAddrsOk(mailTo, true) ? 'כתובת To לא תקינה' : !mailPreviewOn ? 'קודם Preview' : pkgInfo?.overLimit ? 'קבצים גדולים מדי' : ''} onClick={() => {
                 if (!mailPreviewOn) { toast('קודם Preview', 'err'); return; }
                 if (pkgInfo?.overLimit) { toast('הקבצים גדולים מדי לשליחה במייל', 'err'); return; }
@@ -3779,7 +3877,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 if (!mailAddrsOk(mailCc, false)) { toast('כתובת CC לא תקינה', 'err'); return; }
                 setMailConfirmOn(true);
               }}>SEND</button>
-            ) : !scheduleWanted ? (
+            ) : !scheduleWanted && !recurringWanted ? (
               <button className="btn btn-rd" data-testid="mail-confirm-send" disabled={mailSending || !mailAck || pkgInfo?.overLimit === true} onClick={async () => {
                 if (mailSending) return;
                 if (!mailAck) { toast('יש לאשר במפורש לפני שליחה', 'err'); return; }
@@ -4008,9 +4106,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
       <div className={`ov ${modal === 'moMailFu' ? 'open' : ''}`} data-testid="mo-mail-fu">
         <div className="modal modal-md">
-          <div className="mh"><div className="mh-t">{fuEditPurpose === 'scheduled_send' ? '📅 עריכת מייל מתוזמן' : '📬 מעקב מייל / Follow-up'}</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
+          <div className="mh"><div className="mh-t">{fuEditPurpose === 'scheduled_send' ? '📅 עריכת מייל מתוזמן' : fuKind === 'email_repeat' ? '📬 מייל חוזר' : '📬 מעקב מייל / Follow-up'}</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
           <div className="mb">
-            <div style={{ fontSize: 11, color: 'var(--yn2)', marginBottom: 10 }}>{fuEditPurpose === 'scheduled_send' ? 'עריכת מייל מתוזמן חד-פעמי. לא Follow-up. Dry Run — אין שליחה חיה עד אישור נפרד.' : 'Dry Run בלבד. לא נשלח מייל אמיתי ולא מתבצע OAuth. MAIL_DISPATCH_MODE=dry_run.'}</div>
+            <div style={{ fontSize: 11, color: 'var(--yn2)', marginBottom: 10 }}>{fuEditPurpose === 'scheduled_send' ? 'עריכת מייל מתוזמן חד-פעמי. לא Follow-up. Dry Run — אין שליחה חיה עד אישור נפרד.' : fuKind === 'email_repeat' ? 'מייל חוזר: אם אין תשובה — שלח שוב לפי התדירות. ייעצר כשתתקבל תשובה. לא Follow-up ולא מייל מתוזמן חד-פעמי. Dry Run.' : 'Dry Run בלבד. Follow-up הוא מעקב אם אין תשובה — לא שולח כל X ימים.'}</div>
             <div className="fg"><label className="fl">נמען</label>
               <select className="fse fi" id="fu_who" data-testid="fu-who" onChange={async (e) => {
                 const w = e.target.value;
@@ -4040,11 +4138,17 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             {fuEditPurpose !== 'scheduled_send' ? (
             <>
             <div className="fg"><label className="fl">סוג</label>
-              <select className="fse fi" id="fu_kind">
-                <option value="email_once">חד-פעמי</option>
-                <option value="email_repeat">כל N ימים</option>
+              <select className="fse fi" id="fu_kind" data-testid="fu-kind" value={fuKind} onChange={(e) => setFuKind(e.target.value === 'email_repeat' ? 'email_repeat' : 'email_once')}>
+                <option value="email_once">מעקב — אם אין תשובה</option>
+                <option value="email_repeat">מייל חוזר לפי תדירות</option>
               </select>
             </div>
+            {fuKind === 'email_repeat' ? (
+              <div className="fg"><label className="fl">אם אין תשובה — שלח שוב</label>
+                <RecurringDaysPicker days={fuRepeatDays} testPrefix="rec-days" onChange={setFuRepeatDays} />
+                <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>ייעצר אוטומטית כשתתקבל תשובה בתיק. Dry Run.</div>
+              </div>
+            ) : (
             <div className="fg"><label className="fl">אם אין תשובה בתוך</label>
               <FollowupDaysPicker
                 days={fuWaitDays}
@@ -4055,9 +4159,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   setVal('fu_when', toLocalInput(new Date(Date.now() + n * 86400000).toISOString()));
                 }}
               />
-              <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>נשמר במעקב הקיים. Dry Run — אין שליחה מתוזמנת חיה.</div>
+              <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>מעקב בלבד. לא שולח מייל כל X ימים.</div>
               <input className="fi" id="fu_repeat" type="hidden" value={fuWaitDays} readOnly />
             </div>
+            )}
             </>
             ) : <input type="hidden" id="fu_kind" value="email_once" readOnly />}
             {fuEditPurpose !== 'scheduled_send' ? (
@@ -4096,39 +4201,49 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               const whenIso = new Date(when).toISOString();
               if (Number.isNaN(Date.parse(whenIso))) { toast('מועד לא תקין', 'err'); return; }
               const stop = val(null, 'fu_stop');
-              const kind = fuEditPurpose === 'scheduled_send' ? 'email_once' : (val(null, 'fu_kind') || 'email_once');
+              const kind = fuEditPurpose === 'scheduled_send' ? 'email_once' : fuKind;
               const who = val(null, 'fu_who') || 'other';
               const selectedFiles = docs.files.filter((f) => fuFileIds.includes(f.id));
+              const repeatDays = kind === 'email_repeat' ? normalizeRecurringDays(fuRepeatDays) : 0;
+              const existingRepeat = !fuEditId && kind === 'email_repeat'
+                ? mailFollowups.find((f) => f.status === 'scheduled' && f.mail_kind === 'email_repeat' && f.mail_to === to)
+                : null;
               const r = await apiRef.current.upsertMailFollowup({
-                id: fuEditId || undefined,
+                id: fuEditId || existingRepeat?.id || undefined,
                 claim_id: curId,
                 mail_to: to,
                 mail_subject: val(null, 'fu_subj'),
                 mail_body: val(null, 'fu_body'),
                 mail_kind: kind,
                 attach_mode: val(null, 'fu_attach') || 'none',
-                repeat_every_days: kind === 'email_repeat' ? String(fuWaitDays || val(null, 'fu_repeat') || '3') : '',
-                wait_days: fuEditPurpose === 'scheduled_send' ? '' : fuWaitDays,
+                repeat_every_days: kind === 'email_repeat' ? String(repeatDays) : '',
+                wait_days: fuEditPurpose === 'scheduled_send' || kind === 'email_repeat' ? '' : fuWaitDays,
                 next_run_at: whenIso,
                 stop_at: stop ? new Date(stop).toISOString() : '',
                 allow_on_closed: isSuperAdmin && !!(document.getElementById('fu_closed') as HTMLInputElement | null)?.checked,
                 recipient_kind: who,
-                purpose: fuEditPurpose || undefined,
+                purpose: fuEditPurpose || (kind === 'email_repeat' ? 'recurring_send' : undefined),
                 file_ids: selectedFiles.map((f) => f.id),
                 file_names: selectedFiles.map((f) => f.original_name),
               });
               if (!r.success) { toast(r.error || 'שגיאה', 'err'); return; }
               if (curId && fuEditPurpose === 'scheduled_send') {
                 await apiRef.current.logHistory(curId, fuEditId ? 'עודכן מייל מתוזמן' : 'הוגדר מייל מתוזמן', `${to} · ${fmtDay(whenIso)} ${fmtClock(whenIso)}`, 'mail_scheduled');
+              } else if (curId && kind === 'email_repeat') {
+                await apiRef.current.logHistory(curId, (fuEditId || existingRepeat) ? 'עודכן מייל חוזר' : 'הוגדר מייל חוזר', `${to} · ${recurringLabel(repeatDays)}`, 'mail_recurring');
               }
-              toast(fuEditPurpose === 'scheduled_send' ? (fuEditId ? 'המייל המתוזמן עודכן (Dry Run)' : 'מייל מתוזמן נשמר (Dry Run)') : (fuEditId ? 'המעקב עודכן' : 'מעקב מייל הוגדר (Dry Run)'));
+              toast(fuEditPurpose === 'scheduled_send'
+                ? (fuEditId ? 'המייל המתוזמן עודכן (Dry Run)' : 'מייל מתוזמן נשמר (Dry Run)')
+                : kind === 'email_repeat'
+                  ? ((fuEditId || existingRepeat) ? 'המייל החוזר עודכן (Dry Run)' : 'מייל חוזר נשמר (Dry Run)')
+                  : (fuEditId ? 'המעקב עודכן' : 'מעקב מייל הוגדר (Dry Run)'));
               setFuEditPurpose('');
               setFuEditId(null);
               setCardTab('mailfu');
               setModal('moCard');
               if (curId) await loadCardData(curId);
               await loadAll();
-            }}>{fuEditPurpose === 'scheduled_send' ? '💾 שמור תזמון' : '💾 שמור מעקב'}</button>
+            }}>{fuEditPurpose === 'scheduled_send' ? '💾 שמור תזמון' : fuKind === 'email_repeat' ? '💾 שמור מייל חוזר' : '💾 שמור מעקב'}</button>
           </div>
         </div>
       </div>
