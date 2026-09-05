@@ -1,10 +1,10 @@
 name: Staging — Driver app notifications
 
-# Staging-only: apply driver-app settings migration and publish Oren Car.
+# Staging-only: attempt to apply driver-app settings SQL to dalia-staging.
 # NEVER targets production (qasomfndnjuixgjmjwcm or kuenhflklivaxrmqbsee).
 #
-# Triggers on push to this feature branch so the cloud agent can activate
-# staging without workflow_dispatch (bot cannot dispatch).
+# GitHub Pages is NOT deployed from this workflow: the github-pages
+# environment only allows branch `main`, and this agent will not push there.
 
 on:
   push:
@@ -14,11 +14,9 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages-staging
+  group: staging-driver-app-notifications
   cancel-in-progress: false
 
 jobs:
@@ -53,15 +51,14 @@ jobs:
           set -euo pipefail
           TOK=$(printf '%s' "${SUPABASE_ACCESS_TOKEN:-}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
           if [ -z "$TOK" ]; then
-            echo "::error::SUPABASE_ACCESS_TOKEN missing"
-            exit 1
+            echo "::warning::SUPABASE_ACCESS_TOKEN missing. Apply the SQL in the Staging SQL Editor."
+            exit 0
           fi
           export SUPABASE_ACCESS_TOKEN="$TOK"
 
           SQL_FILE="supabase/migrations/20260905223000_driver_app_notification_settings.sql"
           test -f "$SQL_FILE"
 
-          # Do not list all org projects (that endpoint 403s). Post SQL only to the hardcoded staging ref.
           SQL_JSON=$(python3 -c 'import json; print(json.dumps({"query": open("supabase/migrations/20260905223000_driver_app_notification_settings.sql", encoding="utf-8").read()}))')
           CODE=$(curl -sS -o /tmp/sql_result.json -w "%{http_code}" \
             -X POST "https://api.supabase.com/v1/projects/${STAGING_REF}/database/query" \
@@ -78,7 +75,7 @@ jobs:
           elif grep -qiE 'already exists|duplicate' /tmp/sql_result.json; then
             echo "✅ Migration already applied (idempotent)"
           else
-            echo "::warning::Could not apply migration to staging (HTTP $CODE). Frontend will still deploy; apply the SQL in the Staging SQL Editor."
+            echo "::warning::Could not apply migration to staging (HTTP $CODE). Apply supabase/migrations/20260905223000_driver_app_notification_settings.sql in the Staging SQL Editor."
             exit 0
           fi
 
@@ -100,45 +97,3 @@ jobs:
           else
             echo "::warning::Table not reachable on Staging yet (HTTP $CODE). Apply supabase/migrations/20260905223000_driver_app_notification_settings.sql in the Staging SQL Editor."
           fi
-
-  build-deploy:
-    name: Deploy Oren Car / GitHub Pages from this branch
-    needs: apply-staging-migration
-    if: always()
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Checkout this branch
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build (staging Supabase environment)
-        env:
-          VITE_SUPABASE_URL: https://usfeoerkpcafxxlyuldl.supabase.co
-          VITE_SUPABASE_PROJECT_ID: usfeoerkpcafxxlyuldl
-          VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU
-          VITE_BASE_PATH: /future-craft-core/
-        run: |
-          bun x vite build
-          cp dist/index.html dist/404.html
-          touch dist/.nojekyll
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
