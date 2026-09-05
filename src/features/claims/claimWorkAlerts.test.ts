@@ -7,6 +7,7 @@ import {
   followupWaitDaysFromRow,
   inferRecipientKind,
   isOpenCustomerTask,
+  isScheduledOnceMail,
   mailLooksInbound,
   mailShowsTreatment,
   normalizeFollowupDays,
@@ -119,5 +120,13 @@ describe('followup day presets', () => {
     expect(followupWaitDaysFromRow({ wait_days: '4' })).toBe(4);
     expect(followupWaitDaysFromRow({ wait_days: '9' })).toBe(9);
     expect(followupWaitDaysFromRow({ repeat_every_days: '7' })).toBe(7);
+  });
+});
+
+describe('scheduled once mail', () => {
+  it('recognizes scheduled_send and not follow-up', () => {
+    expect(isScheduledOnceMail('scheduled_send')).toBe(true);
+    expect(isScheduledOnceMail('')).toBe(false);
+    expect(isScheduledOnceMail(undefined)).toBe(false);
   });
 });

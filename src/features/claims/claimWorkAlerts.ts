@@ -111,8 +111,12 @@ export type AlertContext = {
   tasks: ClaimRecord[];
   notifs: ClaimRecord[];
   gmailPending: Array<Record<string, unknown>>;
-  scheduledFollowups: Array<{ claim_id: string; status?: string }>;
+  scheduledFollowups: Array<{ claim_id: string; status?: string; purpose?: string }>;
 };
+
+export function isScheduledOnceMail(purpose?: string) {
+  return purpose === 'scheduled_send';
+}
 
 export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAlert[] {
   const out: ClaimAlert[] = [];
