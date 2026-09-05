@@ -40,7 +40,8 @@ const report = {
   open: [],
 };
 const rec = (name, ok, extra = {}) => {
-  report.checks.push({ name, ok: Boolean(ok), ...extra });
+  const { name: _ignoredName, ...rest } = extra;
+  report.checks.push({ name, ok: Boolean(ok), ...rest, fileName: extra.name || extra.fileName });
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${extra.err ? ` · ${extra.err}` : extra.detail ? ` · ${String(extra.detail).slice(0, 220)}` : ''}`);
 };
 
@@ -211,8 +212,8 @@ async function runViewport(name, viewport) {
   const uiSubj = `${SUBJ} ${name}`;
   try {
     await openComposer(page);
-    await page.locator('[data-testid="mail-to"]').click();
-    await page.keyboard.type(TEST_TO);
+    await page.locator('[data-testid="mail-to"]').fill(TEST_TO);
+    await page.locator('[data-testid="mail-to"]').press('Enter');
     await page.locator('[data-testid="mail-subj"]').fill(uiSubj);
     await page.locator('[data-testid="mail-body"]').fill(BODY);
     if (fileA && await page.locator(`[data-testid="mail-file-${fileA.id}"]`).count()) {

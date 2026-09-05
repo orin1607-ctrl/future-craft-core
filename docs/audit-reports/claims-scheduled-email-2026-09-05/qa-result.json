@@ -1,0 +1,333 @@
+{
+  "at": "2026-09-05T18:11:58.488Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "liveMailSent": false,
+  "mailDispatchMode": "dry_run",
+  "sha": "4febcddc",
+  "qaBase": "http://127.0.0.1:8080",
+  "verdicts": {
+    "scheduledEmailUi": "PASS",
+    "datePick": "PASS",
+    "timePick": "PASS",
+    "save": "PASS",
+    "refresh": "PASS",
+    "autoDispatch": "PASS",
+    "noWorker": "PASS",
+    "status": "PASS",
+    "history": "PASS",
+    "cancel": "PASS",
+    "cancelledNotSent": "PASS",
+    "attachmentIsolation": "PASS",
+    "desktop": "PASS",
+    "mobile": "PASS",
+    "liveSend": "BLOCKED"
+  },
+  "checks": [
+    {
+      "name": "mail-mode-dry-run",
+      "ok": true,
+      "mode": "dry_run"
+    },
+    {
+      "name": "staging-only",
+      "ok": true
+    },
+    {
+      "name": "live-send-blocked",
+      "ok": true,
+      "error": "live_send_not_approved"
+    },
+    {
+      "name": "p2-test-a-1788359804802.pdf",
+      "ok": true,
+      "id": "CDM-1788359822635-FIGCUJ",
+      "n": 8
+    },
+    {
+      "name": "attachment-source-isolation",
+      "ok": true,
+      "a": 8,
+      "b": 0
+    },
+    {
+      "name": "api-save-scheduled",
+      "ok": true,
+      "success": true,
+      "id": "REM-1788631922019-8c036a",
+      "raw": {
+        "id": "REM-1788631922019-8c036a",
+        "success": true
+      }
+    },
+    {
+      "name": "api-purpose-scheduled-send",
+      "ok": true,
+      "purpose": "scheduled_send"
+    },
+    {
+      "name": "api-recipient",
+      "ok": true,
+      "to": "qa.recurring.closeout@futurecraft.staging"
+    },
+    {
+      "name": "api-status-scheduled",
+      "ok": true,
+      "status": "scheduled"
+    },
+    {
+      "name": "api-file-ids-same-claim",
+      "ok": true,
+      "storedIds": [
+        "CDM-1788359822635-FIGCUJ"
+      ],
+      "fileA": "CDM-1788359822635-FIGCUJ"
+    },
+    {
+      "name": "api-file-ids-not-claim-b",
+      "ok": true,
+      "storedIds": [
+        "CDM-1788359822635-FIGCUJ"
+      ]
+    },
+    {
+      "name": "api-save-cancel-target",
+      "ok": true,
+      "success": true,
+      "id": "REM-1788631923390-8c304a",
+      "raw": {
+        "id": "REM-1788631923390-8c304a",
+        "success": true
+      }
+    },
+    {
+      "name": "api-cancel",
+      "ok": true
+    },
+    {
+      "name": "api-cancel-status",
+      "ok": true,
+      "status": "cancelled"
+    },
+    {
+      "name": "api-cancel-jobs",
+      "ok": true,
+      "jobs": [
+        {
+          "id": "MJB-1788631923392-862295",
+          "status": "cancelled"
+        }
+      ]
+    },
+    {
+      "name": "api-save-due",
+      "ok": true,
+      "success": true,
+      "id": "REM-1788631924722-29f2df",
+      "raw": {
+        "id": "REM-1788631924722-29f2df",
+        "success": true
+      }
+    },
+    {
+      "name": "worker-cannot-dispatch",
+      "ok": true,
+      "err": "permission denied for function claims_mail_dispatch_now"
+    },
+    {
+      "name": "desktop-composer-open",
+      "ok": true
+    },
+    {
+      "name": "desktop-schedule-checkbox",
+      "ok": true
+    },
+    {
+      "name": "desktop-date",
+      "ok": true,
+      "date": "2026-09-05"
+    },
+    {
+      "name": "desktop-time",
+      "ok": true,
+      "time": "18:15"
+    },
+    {
+      "name": "desktop-summary",
+      "ok": true
+    },
+    {
+      "name": "desktop-send-hidden",
+      "ok": true
+    },
+    {
+      "name": "desktop-save-clicked",
+      "ok": true
+    },
+    {
+      "name": "desktop-listed-scheduled",
+      "ok": true,
+      "hit": "מייל מתוזמן · מתוזמן\nREM-1788631965505-7520a0\nלמי\nqa.recurring.closeout@futurecraft.staging\nנמען\nנמען אחר\nתאריך\n5.9.2026\nשעה\n18:15\nמועד מתוכנן\n5.9.2026, 18:15:00\nסטטוס\nממתין\nמי הגדיר\nTEST עובד תביעות 1788292403067\nסוג\nשליחה חד-פעמית מתוזמנת"
+    },
+    {
+      "name": "desktop-listed-date-time",
+      "ok": true,
+      "n": 56
+    },
+    {
+      "name": "desktop-refresh-persist",
+      "ok": true,
+      "n": 56
+    },
+    {
+      "name": "desktop-ui-cancel",
+      "ok": true,
+      "status": "cancelled",
+      "id": "REM-1788631965505-7520a0"
+    },
+    {
+      "name": "mobile-composer-open",
+      "ok": true
+    },
+    {
+      "name": "mobile-schedule-checkbox",
+      "ok": true
+    },
+    {
+      "name": "mobile-date",
+      "ok": true,
+      "date": "2026-09-05"
+    },
+    {
+      "name": "mobile-time",
+      "ok": true,
+      "time": "18:17"
+    },
+    {
+      "name": "mobile-summary",
+      "ok": true
+    },
+    {
+      "name": "mobile-send-hidden",
+      "ok": true
+    },
+    {
+      "name": "mobile-save-clicked",
+      "ok": true
+    },
+    {
+      "name": "mobile-listed-scheduled",
+      "ok": true,
+      "hit": "מייל מתוזמן · מתוזמן\nREM-1788632048730-d3d869\nלמי\nqa.recurring.closeout@futurecraft.staging\nנמען\nנמען אחר\nתאריך\n5.9.2026\nשעה\n18:17\nמועד מתוכנן\n5.9.2026, 18:17:00\nסטטוס\nממתין\nמי הגדיר\nTEST עובד תביעות 1788292403067\nסוג\nשליחה חד-פעמית מתוזמנת"
+    },
+    {
+      "name": "mobile-listed-date-time",
+      "ok": true,
+      "n": 57
+    },
+    {
+      "name": "mobile-refresh-persist",
+      "ok": true,
+      "n": 57
+    },
+    {
+      "name": "mobile-ui-cancel",
+      "ok": true,
+      "status": "cancelled",
+      "id": "REM-1788632048730-d3d869"
+    },
+    {
+      "name": "cron-unattended-dispatch",
+      "ok": true,
+      "reminder": {
+        "id": "REM-1788631924722-29f2df",
+        "status": "completed",
+        "next_run_at": null
+      },
+      "job": {
+        "id": "MJB-1788631924725-4b81db",
+        "status": "dry_run_sent",
+        "fail_reason": null,
+        "finished_at": "2026-09-05T18:15:00.04219+00:00",
+        "preview": {
+          "to": "qa.recurring.closeout@futurecraft.staging",
+          "body": "TEST scheduled email — dry_run only. Do not send live.",
+          "kind": "email_once",
+          "claimId": "DAL-QA-WORKER-001",
+          "subject": "QA scheduled once 2026-09-05T18:11 due",
+          "dispatch": "dry_run",
+          "definedBy": "TEST עובד תביעות 1788292403067",
+          "plannedAt": "2026-09-05T18:11:19.63+00:00",
+          "attachMode": "none",
+          "clientName": "TEST-CLAIMS-WORKER",
+          "attachments": [],
+          "gmailTouched": false,
+          "realEmailSend": false,
+          "repeatEveryDays": null
+        },
+        "planned_at": "2026-09-05T18:11:19.63+00:00"
+      },
+      "detail": "existing claims-mail-dispatch-staging cron, no worker invoke"
+    },
+    {
+      "name": "status-not-fake-sent",
+      "ok": true,
+      "jobStatus": "dry_run_sent",
+      "preview": {
+        "to": "qa.recurring.closeout@futurecraft.staging",
+        "body": "TEST scheduled email — dry_run only. Do not send live.",
+        "kind": "email_once",
+        "claimId": "DAL-QA-WORKER-001",
+        "subject": "QA scheduled once 2026-09-05T18:11 due",
+        "dispatch": "dry_run",
+        "definedBy": "TEST עובד תביעות 1788292403067",
+        "plannedAt": "2026-09-05T18:11:19.63+00:00",
+        "attachMode": "none",
+        "clientName": "TEST-CLAIMS-WORKER",
+        "attachments": [],
+        "gmailTouched": false,
+        "realEmailSend": false,
+        "repeatEveryDays": null
+      }
+    },
+    {
+      "name": "failed-not-marked-sent",
+      "ok": true,
+      "reminder": "completed",
+      "job": "dry_run_sent"
+    },
+    {
+      "name": "history-updated",
+      "ok": true,
+      "n": 3,
+      "sample": {
+        "at": "05/09/2026, 21:15:00",
+        "by": "מערכת (dry-run)",
+        "note": "qa.recurring.closeout@futurecraft.staging · QA scheduled once 2026-09-05T18:11 due",
+        "type": "mail_followup",
+        "action": "Dry Run: מייל שהיה אמור להישלח"
+      }
+    },
+    {
+      "name": "cancelled-not-sent",
+      "ok": true,
+      "status": "cancelled",
+      "jobs": [
+        {
+          "status": "cancelled"
+        }
+      ]
+    },
+    {
+      "name": "persist-still-scheduled-or-done",
+      "ok": true,
+      "status": "scheduled"
+    }
+  ],
+  "open": [
+    "Live Send BLOCKED: MAIL_DISPATCH_MODE=dry_run. Do not flip for all of Staging. Approve a separate one-off TEST live send if needed.",
+    "Live dispatcher still attach_mode=none so due-job preview.attachments=[]. Precise attach-at-dispatch needs applying supabase/migrations/20260905120000_claims_mail_dispatch_scheduled_files.sql on Staging only (function replace, no new cron). Stored file_ids already isolated to DAL-QA-WORKER-001.",
+    "Until that apply, dispatch history text stays the existing mail_followup Dry Run wording. UI already labels the row מייל מתוזמן."
+  ],
+  "ok": true
+}
