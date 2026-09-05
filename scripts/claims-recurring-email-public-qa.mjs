@@ -140,7 +140,7 @@ async function latestRepeat() {
     .eq('mail_kind', 'email_repeat')
     .order('created_at', { ascending: false })
     .limit(8)).data || [];
-  return rows.find((r) => r.mail_to === TEST_TO && r.status === 'scheduled') || rows[0] || null;
+  return rows.find((r) => r.mail_to === TEST_TO && r.status === 'scheduled') || null;
 }
 
 const browser = await chromium.launch({ headless: true, channel: 'chrome' });

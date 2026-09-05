@@ -1,0 +1,204 @@
+{
+  "at": "2026-09-05T19:01:38.241Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "liveMailSent": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "deployTxt": "deployed_ref=787ac6f feat/incident-alerts-staging",
+  "sha": "787ac6fb",
+  "checks": [
+    {
+      "name": "public-pages",
+      "ok": true,
+      "deployTxt": "deployed_ref=787ac6f feat/incident-alerts-staging"
+    },
+    {
+      "name": "mail-mode-dry-run",
+      "ok": true,
+      "mode": "dry_run"
+    },
+    {
+      "name": "staging-only",
+      "ok": true
+    },
+    {
+      "name": "recurring-visible",
+      "ok": true
+    },
+    {
+      "name": "not-mixed-followup",
+      "ok": true
+    },
+    {
+      "name": "every-1-control",
+      "ok": true
+    },
+    {
+      "name": "every-2-control",
+      "ok": true
+    },
+    {
+      "name": "every-3-control",
+      "ok": true
+    },
+    {
+      "name": "custom-control",
+      "ok": true
+    },
+    {
+      "name": "every-1-day",
+      "ok": true,
+      "id": "REM-1788635533329-6759ec",
+      "days": 1,
+      "note": "First script lookup hit a stale cancelled row. Re-proved on public Pages: saved כל יום, listed מייל חוזר · כל יום."
+    },
+    {
+      "name": "every-2-days",
+      "ok": true,
+      "id": "REM-1788634972530-1adfc0",
+      "days": 2
+    },
+    {
+      "name": "every-3-days",
+      "ok": true,
+      "id": "REM-1788634972530-1adfc0",
+      "days": 3
+    },
+    {
+      "name": "custom",
+      "ok": true,
+      "id": "REM-1788634972530-1adfc0",
+      "days": 8
+    },
+    {
+      "name": "no-duplicate-reminders",
+      "ok": true,
+      "beforeDup": 1,
+      "afterDup": 1
+    },
+    {
+      "name": "listed-recurring",
+      "ok": true,
+      "n": 71
+    },
+    {
+      "name": "not-listed-as-followup-or-scheduled",
+      "ok": true
+    },
+    {
+      "name": "refresh-persistence",
+      "ok": true,
+      "days": 8
+    },
+    {
+      "name": "history",
+      "ok": true,
+      "n": 20
+    },
+    {
+      "name": "mobile-visible",
+      "ok": true
+    },
+    {
+      "name": "mobile-save",
+      "ok": true,
+      "days": 3
+    },
+    {
+      "name": "mobile-listed",
+      "ok": true
+    },
+    {
+      "name": "due-saved",
+      "ok": true,
+      "id": "REM-1788635167385-923a3e"
+    },
+    {
+      "name": "dispatch-dry-run",
+      "ok": true,
+      "reminder": {
+        "id": "REM-1788635167385-923a3e",
+        "status": "scheduled",
+        "next_run_at": "2026-09-06T19:05:27.272+00:00",
+        "mail_kind": "email_repeat",
+        "repeat_every_days": 1
+      },
+      "jobs": [
+        {
+          "id": "MJB-1788635400084-0bc147",
+          "status": "pending",
+          "planned_at": "2026-09-06T19:05:27.272+00:00"
+        },
+        {
+          "id": "MJB-1788635167387-490753",
+          "status": "dry_run_sent",
+          "planned_at": "2026-09-05T19:05:27.272+00:00"
+        }
+      ]
+    },
+    {
+      "name": "next-occurrence-scheduled",
+      "ok": true,
+      "next": "2026-09-06T19:05:27.272+00:00",
+      "reminderNext": "2026-09-06T19:05:27.272+00:00"
+    },
+    {
+      "name": "no-duplicate-jobs",
+      "ok": true,
+      "samePlanned": 1
+    },
+    {
+      "name": "not-live-sent",
+      "ok": true,
+      "statuses": [
+        "pending",
+        "dry_run_sent"
+      ]
+    },
+    {
+      "name": "stop-row-saved",
+      "ok": true,
+      "id": "REM-1788635414577-bbdd9e"
+    },
+    {
+      "name": "inbound-comm-inserted",
+      "ok": true,
+      "commId": "COM-QA-REC-1788635414713"
+    },
+    {
+      "name": "stops-when-reply-received",
+      "ok": true,
+      "status": "cancelled",
+      "id": "REM-1788635414577-bbdd9e"
+    },
+    {
+      "name": "no-send-after-reply",
+      "ok": true,
+      "pending": 0
+    },
+    {
+      "name": "still-stopped-after-open",
+      "ok": true,
+      "status": "cancelled",
+      "lateJobs": []
+    }
+  ],
+  "verdicts": {
+    "visible": "PASS",
+    "every1": "PASS",
+    "every2": "PASS",
+    "every3": "PASS",
+    "custom": "PASS",
+    "refresh": "PASS",
+    "stopsOnReply": "PASS",
+    "noDuplicates": "PASS",
+    "history": "PASS",
+    "dispatchDryRun": "PASS",
+    "liveSend": "BLOCKED",
+    "desktop": "PASS",
+    "mobile": "PASS"
+  },
+  "open": [
+    "Live Send BLOCKED. MAIL_DISPATCH_MODE=dry_run. Do not flip for all Staging."
+  ]
+}
