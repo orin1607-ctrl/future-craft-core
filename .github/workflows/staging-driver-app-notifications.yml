@@ -58,31 +58,10 @@ jobs:
           fi
           export SUPABASE_ACCESS_TOKEN="$TOK"
 
-          CODE=$(curl -sS -o /tmp/mgmt_projects.json -w "%{http_code}" \
-            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
-            -H "User-Agent: supabase-cli/2.0" \
-            "https://api.supabase.com/v1/projects" || echo "000")
-          echo "Management API projects HTTP: $CODE"
-          if [ "$CODE" != "200" ]; then
-            echo "::error::SUPABASE_ACCESS_TOKEN rejected (HTTP $CODE)"
-            head -c 300 /tmp/mgmt_projects.json; echo
-            exit 1
-          fi
-
-          python3 - <<'PY'
-          import json, os, sys
-          projects = json.load(open('/tmp/mgmt_projects.json'))
-          refs = {p.get('id') for p in projects if isinstance(p, dict) and p.get('id')} if isinstance(projects, list) else set()
-          staging = os.environ['STAGING_REF']
-          print('project_count', len(refs))
-          print('staging_visible', staging in refs)
-          if staging not in refs:
-            sys.exit('Staging project not visible to this token')
-          PY
-
           SQL_FILE="supabase/migrations/20260905223000_driver_app_notification_settings.sql"
           test -f "$SQL_FILE"
 
+          # Do not list all org projects (that endpoint 403s). Post SQL only to the hardcoded staging ref.
           SQL_JSON=$(python3 -c 'import json; print(json.dumps({"query": open("supabase/migrations/20260905223000_driver_app_notification_settings.sql", encoding="utf-8").read()}))')
           CODE=$(curl -sS -o /tmp/sql_result.json -w "%{http_code}" \
             -X POST "https://api.supabase.com/v1/projects/${STAGING_REF}/database/query" \
