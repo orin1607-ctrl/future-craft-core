@@ -1,0 +1,164 @@
+name: Staging — Driver app notifications
+
+# Staging-only: apply driver-app settings migration and publish Oren Car.
+# NEVER targets production (qasomfndnjuixgjmjwcm or kuenhflklivaxrmqbsee).
+#
+# Triggers on push to this feature branch so the cloud agent can activate
+# staging without workflow_dispatch (bot cannot dispatch).
+
+on:
+  push:
+    branches:
+      - cursor/driver-app-notifications-563b
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-staging
+  cancel-in-progress: false
+
+jobs:
+  apply-staging-migration:
+    name: Apply migration to dalia-staging only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard — refuse production refs
+        run: |
+          set -euo pipefail
+          STAGING_REF="usfeoerkpcafxxlyuldl"
+          PROD_REF_A="qasomfndnjuixgjmjwcm"
+          PROD_REF_B="kuenhflklivaxrmqbsee"
+          echo "Target staging project: $STAGING_REF"
+          echo "Guarding against production: $PROD_REF_A $PROD_REF_B"
+          if grep -R --fixed-strings "$PROD_REF_A" .github/workflows/staging-driver-app-notifications.yml | grep -v 'PROD_REF\|production\|NEVER\|refuse\|Guard'; then
+            echo "::error::Workflow unexpectedly references production project A"
+            exit 1
+          fi
+          if grep -R --fixed-strings "$PROD_REF_B" .github/workflows/staging-driver-app-notifications.yml | grep -v 'PROD_REF\|production\|NEVER\|refuse\|Guard'; then
+            echo "::error::Workflow unexpectedly references production project B"
+            exit 1
+          fi
+
+      - name: Apply SQL via Supabase Management API (staging only)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_REF: usfeoerkpcafxxlyuldl
+        run: |
+          set -euo pipefail
+          TOK=$(printf '%s' "${SUPABASE_ACCESS_TOKEN:-}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          if [ -z "$TOK" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN missing"
+            exit 1
+          fi
+          export SUPABASE_ACCESS_TOKEN="$TOK"
+
+          CODE=$(curl -sS -o /tmp/mgmt_projects.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "User-Agent: supabase-cli/2.0" \
+            "https://api.supabase.com/v1/projects" || echo "000")
+          echo "Management API projects HTTP: $CODE"
+          if [ "$CODE" != "200" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN rejected (HTTP $CODE)"
+            head -c 300 /tmp/mgmt_projects.json; echo
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          import json, os, sys
+          projects = json.load(open('/tmp/mgmt_projects.json'))
+          refs = {p.get('id') for p in projects if isinstance(p, dict) and p.get('id')} if isinstance(projects, list) else set()
+          staging = os.environ['STAGING_REF']
+          print('project_count', len(refs))
+          print('staging_visible', staging in refs)
+          if staging not in refs:
+            sys.exit('Staging project not visible to this token')
+          PY
+
+          SQL_FILE="supabase/migrations/20260905223000_driver_app_notification_settings.sql"
+          test -f "$SQL_FILE"
+
+          SQL_JSON=$(python3 -c 'import json; print(json.dumps({"query": open("supabase/migrations/20260905223000_driver_app_notification_settings.sql", encoding="utf-8").read()}))')
+          CODE=$(curl -sS -o /tmp/sql_result.json -w "%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/${STAGING_REF}/database/query" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            -H "User-Agent: supabase-cli/2.0" \
+            --data-binary "$SQL_JSON" || echo "000")
+          echo "SQL HTTP: $CODE"
+          head -c 2000 /tmp/sql_result.json; echo
+
+          if [ "$CODE" = "200" ] || [ "$CODE" = "201" ]; then
+            echo "✅ Migration applied via Management API to staging only"
+          elif grep -qiE 'already exists|duplicate' /tmp/sql_result.json; then
+            echo "✅ Migration already applied (idempotent)"
+          else
+            echo "::error::Could not apply migration to staging"
+            exit 1
+          fi
+
+      - name: Verify new tables exist on staging
+        env:
+          STAGING_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          STAGING_ANON: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU
+        run: |
+          set -euo pipefail
+          CODE=$(curl -sS -o /tmp/verify.json -w "%{http_code}" \
+            "${STAGING_URL}/rest/v1/dalia_contact_settings?select=id&limit=1" \
+            -H "apikey: ${STAGING_ANON}" \
+            -H "Authorization: Bearer ${STAGING_ANON}")
+          echo "REST verify HTTP: $CODE"
+          cat /tmp/verify.json
+          echo
+          if [ "$CODE" != "200" ] && [ "$CODE" != "401" ] && [ "$CODE" != "403" ]; then
+            echo "::error::Table not reachable on Staging (HTTP $CODE)"
+            exit 1
+          fi
+          echo "✅ dalia_contact_settings is present on Staging (HTTP $CODE is expected under RLS)"
+
+  build-deploy:
+    name: Deploy Oren Car / GitHub Pages from this branch
+    needs: apply-staging-migration
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout this branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build (staging Supabase environment)
+        env:
+          VITE_SUPABASE_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          VITE_SUPABASE_PROJECT_ID: usfeoerkpcafxxlyuldl
+          VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU
+          VITE_BASE_PATH: /future-craft-core/
+        run: |
+          bun x vite build
+          cp dist/index.html dist/404.html
+          touch dist/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

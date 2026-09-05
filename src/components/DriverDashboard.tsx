@@ -14,6 +14,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useDriverActionVisibility } from '@/hooks/useDriverActionVisibility';
 
 interface AssignedVehicle {
   id: string;
@@ -62,16 +63,16 @@ const isOpenStatus = (status: string | null | undefined) =>
   OPEN_TREATMENT_STATUSES.includes((status || '').toLowerCase()) ||
   OPEN_TREATMENT_STATUSES.includes(status || '');
 
-const driverActions = [
-  { label: 'דיווח מעקב רכב', icon: Wrench, link: '/faults' },
-  { label: 'דיווח תאונה', icon: AlertTriangle, link: '/accidents' },
-  { label: 'שירותים ותחזוקה', icon: ClipboardList, link: '/service-orders' },
-  { label: 'העלאת חשבונית דלק / הוצאה', icon: FileText, link: '/expenses' },
-  { label: 'היסטוריית טיפולים לרכב', icon: Car, link: '/history' },
-  { label: 'סידור עבודה שלי', icon: ClipboardList, link: '/driver-schedule' },
-  { label: 'יצירת קשר עם מוקד', icon: Phone, link: '/emergency' },
-  { label: 'תצהיר נהג', icon: FileText, link: '/driver-declarations' },
-];
+const driverActionIcons: Record<string, typeof Wrench> = {
+  fault: Wrench,
+  accident: AlertTriangle,
+  service_order: ClipboardList,
+  expenses: FileText,
+  history: Car,
+  work_schedule: ClipboardList,
+  emergency: Phone,
+  declarations: FileText,
+};
 
 function ExpiryBadge({ days }: { days: number | null }) {
   if (days === null) return <span className="text-xs text-muted-foreground">לא הוזן</span>;
@@ -83,6 +84,7 @@ function ExpiryBadge({ days }: { days: number | null }) {
 
 export default function DriverDashboard() {
   const { user } = useAuth();
+  const { visibleDashboardActions } = useDriverActionVisibility();
   const [loading, setLoading] = useState(true);
   const [vehicle, setVehicle] = useState<AssignedVehicle | null>(null);
   const [alerts, setAlerts] = useState<DriverAlert[]>([]);
@@ -389,12 +391,15 @@ export default function DriverDashboard() {
 
       {/* Actions */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {driverActions.map((action) => (
-          <Link key={action.label} to={action.link} className="big-action-btn bg-card text-foreground border border-border">
-            <action.icon size={24} />
-            <span>{action.label}</span>
-          </Link>
-        ))}
+        {visibleDashboardActions.map((action) => {
+          const Icon = driverActionIcons[action.key] || ClipboardList;
+          return (
+            <Link key={action.key} to={action.routes[0]} className="big-action-btn bg-card text-foreground border border-border">
+              <Icon size={24} />
+              <span>{action.dashboardLabel}</span>
+            </Link>
+          );
+        })}
       </section>
     </div>
   );

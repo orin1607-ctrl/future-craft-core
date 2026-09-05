@@ -5,6 +5,7 @@ import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import logo from '@/assets/logo.png';
 import { LogOut, X, Eye, Building2 } from 'lucide-react';
 import HelpButton from '@/components/HelpButton';
+import DriverActionGate from '@/components/DriverActionGate';
 
 export default function Layout() {
   const { user, realUser, isImpersonating, stopImpersonation, logout } = useAuth();
@@ -70,7 +71,9 @@ export default function Layout() {
 
       {/* Main content */}
       <main className="md:mr-72 pb-24 md:pb-8 p-4 md:p-8">
-        <Outlet />
+        <DriverActionGate>
+          <Outlet />
+        </DriverActionGate>
       </main>
 
       {/* Footer credits */}

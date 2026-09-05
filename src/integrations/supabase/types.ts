@@ -370,6 +370,105 @@ export type Database = {
         }
         Relationships: []
       }
+      dalia_contact_settings: {
+        Row: {
+          email: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+          whatsapp: string
+        }
+        Insert: {
+          email?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp?: string
+        }
+        Update: {
+          email?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
+      driver_app_action_settings: {
+        Row: {
+          action_key: string
+          company_name: string
+          condition_mode: string
+          condition_values: string[]
+          email_enabled: boolean
+          email_extra: string
+          email_to_dalia: boolean
+          email_to_fleet_managers: boolean
+          id: string
+          updated_at: string
+          updated_by: string | null
+          visible_to_driver: boolean
+          whatsapp_enabled: boolean
+          whatsapp_extra: string
+          whatsapp_to_dalia: boolean
+        }
+        Insert: {
+          action_key: string
+          company_name: string
+          condition_mode?: string
+          condition_values?: string[]
+          email_enabled?: boolean
+          email_extra?: string
+          email_to_dalia?: boolean
+          email_to_fleet_managers?: boolean
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          visible_to_driver?: boolean
+          whatsapp_enabled?: boolean
+          whatsapp_extra?: string
+          whatsapp_to_dalia?: boolean
+        }
+        Update: {
+          action_key?: string
+          company_name?: string
+          condition_mode?: string
+          condition_values?: string[]
+          email_enabled?: boolean
+          email_extra?: string
+          email_to_dalia?: boolean
+          email_to_fleet_managers?: boolean
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          visible_to_driver?: boolean
+          whatsapp_enabled?: boolean
+          whatsapp_extra?: string
+          whatsapp_to_dalia?: boolean
+        }
+        Relationships: []
+      }
+      driver_app_company_config: {
+        Row: {
+          company_name: string
+          dalia_service_enabled: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_name: string
+          dalia_service_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_name?: string
+          dalia_service_enabled?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       custom_alerts: {
         Row: {
           alert_date: string

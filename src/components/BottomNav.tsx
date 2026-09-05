@@ -1,10 +1,11 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Car, Users, Route, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, Menu, X, LogOut, Settings, Bell, Briefcase, ClipboardList, History, UserCheck, Phone, Building2, ChevronsUpDown, Check, Truck, Shield, CheckSquare, Mail, Tag, MessageCircle, CreditCard, ScrollText, Upload, Search as SearchIcon, HeartPulse, Download, Database } from 'lucide-react';
-import { Home, Car, Users, Route, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, Menu, X, LogOut, Settings, Bell, Briefcase, ClipboardList, History, UserCheck, Phone, Building2, ChevronsUpDown, Check, Truck, Shield, CheckSquare, Mail, Tag, MessageCircle, CreditCard, ScrollText, Upload, Search as SearchIcon, HeartPulse, Calendar } from 'lucide-react';
+import { Home, Car, Users, Route, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, Menu, X, LogOut, Settings, Bell, Briefcase, ClipboardList, History, UserCheck, Phone, Building2, ChevronsUpDown, Check, Truck, Shield, CheckSquare, Mail, Tag, MessageCircle, CreditCard, ScrollText, Upload, Search as SearchIcon, HeartPulse, Download, Database, Smartphone } from 'lucide-react';
+import { Home, Car, Users, Route, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, Menu, X, LogOut, Settings, Bell, Briefcase, ClipboardList, History, UserCheck, Phone, Building2, ChevronsUpDown, Check, Truck, Shield, CheckSquare, Mail, Tag, MessageCircle, CreditCard, ScrollText, Upload, Search as SearchIcon, HeartPulse, Calendar, Smartphone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
 import { useHiddenButtons } from '@/hooks/useHiddenButtons';
+import { useDriverActionVisibility } from '@/hooks/useDriverActionVisibility';
 import logo from '@/assets/white-logo.png';
 import { useState } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -122,6 +123,7 @@ const extraItems: NavItem[] = [
 ];
 const superAdminExtra: NavItem[] = [
   { path: '/subscriptions', label: 'מנויים וחיוב', icon: CreditCard },
+  { path: '/driver-app-notifications', label: 'ניהול אפליקציית נהג והתראות', icon: Smartphone },
   { path: '/project-summary', label: 'דוח תוספות', icon: ScrollText },
   { path: '/completed-tasks', label: 'משימות פיתוח תוכנה', icon: CheckSquare },
   { path: '/system-update/code', label: 'עדכון קוד', icon: Download },
@@ -135,11 +137,13 @@ export default function BottomNav() {
   const [showMore, setShowMore] = useState(false);
   const unreadCount = useUnreadNotifications();
   const hiddenButtons = useHiddenButtons();
+  const { isPathVisible } = useDriverActionVisibility();
 
   const isDriver = user?.role === 'driver';
   const isPrivateCustomer = user?.role === 'private_customer';
   const isSuperAdmin = user?.role === 'super_admin';
-  const mobileNav = isDriver ? driverMobileNav : isPrivateCustomer ? privateCustomerMobileNav : managerMobileNav;
+  const mobileNav = (isDriver ? driverMobileNav : isPrivateCustomer ? privateCustomerMobileNav : managerMobileNav)
+    .filter(item => isPathVisible(item.path));
   const allItemsForMobile = [
     ...allManagerItems,
     ...extraItems,
@@ -205,6 +209,7 @@ export function DesktopSidebar() {
   const [companyPickerOpen, setCompanyPickerOpen] = useState(false);
   const unreadCount = useUnreadNotifications();
   const hiddenButtons = useHiddenButtons();
+  const { isPathVisible } = useDriverActionVisibility();
 
   const isDriver = user?.role === 'driver';
   const isSuperAdmin = user?.role === 'super_admin';
@@ -282,7 +287,7 @@ export function DesktopSidebar() {
 
       <nav className="flex-1 py-3 overflow-y-auto sidebar-scroll">
         {isDriver ? (
-          driverSidebarItems.map(item => (
+          driverSidebarItems.filter(item => isPathVisible(item.path)).map(item => (
             <NavLink key={item.path} to={item.path}
               className={({ isActive }) => `flex items-center gap-3 px-6 py-3.5 text-[15px] font-medium transition-colors relative ${isActive ? 'bg-primary-foreground/20 font-bold border-r-4 border-primary-foreground' : 'hover:bg-primary-foreground/10'}`}>
               <item.icon size={20} /><span>{item.label}</span>
