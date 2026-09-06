@@ -13,6 +13,7 @@ on:
       - 'scripts/claims-gmail-3h-eli-qa.mjs'
       - 'scripts/apply-claims-gmail-scan-3h-staging.mjs'
       - 'scripts/claims-eli-ui-closeout.mjs'
+      - 'scripts/claims-eli-surveyor-visible.mjs'
       - '.github/workflows/deploy-claims-gmail-staging.yml'
   workflow_dispatch: {}
 
@@ -88,10 +89,25 @@ jobs:
           npx playwright install --with-deps chromium
           node scripts/claims-eli-ui-closeout.mjs
 
+      - name: Eli surveyor report visible on PUBLIC STAGING
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          npm install --no-save @supabase/supabase-js playwright
+          npx playwright install --with-deps chromium
+          node scripts/claims-eli-surveyor-visible.mjs
+
       - name: Upload Eli UI screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: eli-ui-closeout
-          path: docs/audit-reports/claims-gmail-3h-scan-2026-09-06/ui
+          path: |
+            docs/audit-reports/claims-gmail-3h-scan-2026-09-06/ui
+            docs/audit-reports/claims-eli-surveyor-visible-2026-09-06
           if-no-files-found: warn
