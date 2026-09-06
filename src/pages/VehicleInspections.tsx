@@ -8,7 +8,8 @@ import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/li
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { validateTaskFields } from '@/lib/taskFieldValidation';
-import { useSearchParams } from 'react-router-dom';
+import { parseInspectionNotes } from '@/lib/triInspectionDisplay';
+import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 
 interface InspectionRow {
   id: string;
@@ -380,6 +381,7 @@ function InspectionForm({ vehicles, user, initialVehicleId = '', onDone, onBack 
 function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; onBack: () => void }) {
   const [items, setItems] = useState<InspectionItemRow[]>([]);
   const [internalNumber, setInternalNumber] = useState<string | null>(null);
+  const [vehicleYear, setVehicleYear] = useState<number | string | null>(null);
   const [relatedTasks, setRelatedTasks] = useState<{ id: string; title: string; description: string; status: string }[]>([]);
 
   useEffect(() => {
@@ -387,10 +389,14 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
       .then(({ data }) => { if (data) setItems(data as InspectionItemRow[]); });
 
     if (inspection.vehicle_id) {
-      void supabase.from('vehicles').select('internal_number').eq('id', inspection.vehicle_id).maybeSingle()
-        .then(({ data }) => setInternalNumber(data?.internal_number || null));
+      void supabase.from('vehicles').select('internal_number, year').eq('id', inspection.vehicle_id).maybeSingle()
+        .then(({ data }) => {
+          setInternalNumber(data?.internal_number || null);
+          setVehicleYear(data?.year ?? null);
+        });
     } else {
       setInternalNumber(null);
+      setVehicleYear(null);
     }
 
     void supabase
@@ -405,12 +411,7 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
 
   const defects = items.filter((item) => item.status === 'defect');
 
-  // The tri-semi screen stores the km reading inside vehicle_inspections.notes
-  // ("קילומטראז׳: 1111"), so split it out to keep the notes area for real remarks.
-  const savedNotes = (inspection.notes || '').trim();
-  const kmMatch = savedNotes.match(/קילומטראז[׳']?\s*:\s*([\d,\.]*)/);
-  const inspectionKm = (kmMatch?.[1] || '').trim();
-  const generalNotes = savedNotes.replace(/קילומטראז[׳']?\s*:\s*[\d,\.]*/, '').trim();
+  const { km: inspectionKm, generalNotes } = parseInspectionNotes(inspection.notes);
 
   // All remarks written during that inspection, from the sources that already
   // save them: the inspection row, its checklist items and its follow-up tasks.
@@ -447,7 +448,8 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
         </div>
         <div className="grid grid-cols-2 gap-4 text-lg">
           <div><span className="text-muted-foreground text-sm">מספר רכב</span><p className="font-bold">{inspection.vehicle_plate || '—'}</p></div>
-          <div><span className="text-muted-foreground text-sm">מספר פנימי</span><p className="font-bold">{internalNumber || '—'}</p></div>
+          <div><span className="text-muted-foreground text-sm">מספר פנימי</span><p className="font-bold"><InternalNumber value={internalNumber} /></p></div>
+          <div><span className="text-muted-foreground text-sm">שנת הרכב</span><p className="font-bold">{vehicleYear || '—'}</p></div>
           <div><span className="text-muted-foreground text-sm">תאריך הביקורת</span><p className="font-bold">{new Date(inspection.inspection_date).toLocaleDateString('he-IL')}</p></div>
           <div><span className="text-muted-foreground text-sm">מועד בדיקה הבאה</span><p className="font-bold">{inspection.next_due_date ? new Date(inspection.next_due_date).toLocaleDateString('he-IL') : '—'}</p></div>
           <div><span className="text-muted-foreground text-sm">בודק</span><p className="font-bold">{inspection.inspector_name || '—'}</p></div>

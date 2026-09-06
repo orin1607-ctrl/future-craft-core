@@ -53,6 +53,7 @@ import PrivateVehicleInspection from "@/pages/PrivateVehicleInspection";
 import VehicleLookup from "@/pages/VehicleLookup";
 import VehicleExchange from "@/pages/VehicleExchange";
 import DevVehicleHubPreview from "@/pages/DevVehicleHubPreview";
+import DevTriInspectionPreview from "@/pages/DevTriInspectionPreview";
 import DevVehicleFlowsPreview from "@/pages/DevVehicleFlowsPreview";
 import DevVehicleNewFormPreview from "@/pages/DevVehicleNewFormPreview";
 import DevVehicleNewFormFullPreview from "@/pages/DevVehicleNewFormFullPreview";
@@ -165,6 +166,7 @@ function AppRoutes() {
         <Route path="/faults" element={<Login />} />
         <Route path="/accidents" element={<Login />} />
         <Route path="/dev/vehicle-card" element={<DevVehicleHubPreview />} />
+        <Route path="/dev/tri-inspection" element={<DevTriInspectionPreview />} />
         <Route path="/dev/vehicle-flows" element={<DevVehicleFlowsPreview />} />
         <Route path="/dev/vehicle-new-form" element={<DevVehicleNewFormPreview />} />
         <Route path="/dev/vehicle-new-form-full" element={<DevVehicleNewFormFullPreview />} />
@@ -204,6 +206,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/dev/vehicle-card" element={<DevVehicleHubPreview />} />
+      <Route path="/dev/tri-inspection" element={<DevTriInspectionPreview />} />
       <Route path="/dev/vehicle-flows" element={<DevVehicleFlowsPreview />} />
       <Route path="/dev/vehicle-new-form" element={<DevVehicleNewFormPreview />} />
       <Route path="/dev/vehicle-new-form-full" element={<DevVehicleNewFormFullPreview />} />
