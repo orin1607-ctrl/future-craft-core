@@ -4,6 +4,7 @@ import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS
 import { buildSignedOpeningFormPdf } from './signedClaimPdf';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
+import SignaturePad from './SignaturePad';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, type IntakeDraft } from './claimIntakeModel';
 import './claims.css';
 
@@ -642,6 +643,7 @@ function InCardPreview({ file, onClose }: { file: { url: string; name: string; m
       <div className="doc-preview-bar">
         <b data-testid="doc-preview-name"><FileName name={file.name} /></b>
         <button className="btn btn-g btn-sm" onClick={() => window.open(file.url, '_blank')}>חלון נפרד</button>
+        <a className="btn btn-p btn-sm" href={file.url} download={file.name || 'document'} target="_blank" rel="noreferrer">הורדה</a>
         <button className="btn btn-g btn-sm" onClick={onClose}>סגור תצוגה</button>
       </div>
       {img
@@ -776,6 +778,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [intakeDraft, setIntakeDraft] = useState<IntakeDraft>({ ...EMPTY_INTAKE });
   const [intakeLinkMsg, setIntakeLinkMsg] = useState('');
   const [staffSig, setStaffSig] = useState('');
+  const [eventFormSignOpen, setEventFormSignOpen] = useState(false);
+  const saveLock = useRef(false);
   const mailFocusRef = useRef<string[]>([]);
   const [dashTasks, setDashTasks] = useState<ClaimRecord[]>([]);
   const [dashRems, setDashRems] = useState<ClaimRecord[]>([]);
@@ -1468,6 +1472,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setModal('moCard');
     setLinkUrl('');
     setPreviewFile(null);
+    setEventFormSignOpen(false);
     await loadCardData(id);
   };
 
@@ -1543,40 +1548,59 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setModal('moClaim');
   };
 
+  const persistEventFormPdf = async (
+    claimId: string,
+    draft: IntakeDraft,
+    data: Record<string, string>,
+    signaturePng?: string,
+  ) => {
+    const pdf = await buildSignedOpeningFormPdf({
+      clientName: draft.clientName || data.clientName,
+      plate: draft.plate || data.plate || '',
+      eventDate: draft.eventDate || data.eventDate || '',
+      eventLocation: [draft.eventPlace, draft.eventCity, draft.eventStreet].filter(Boolean).join(', '),
+      eventDesc: draft.eventDesc || draft.damageDesc || '',
+      signaturePng,
+    });
+    return apiRef.current.staffUpload(claimId, '', pdf, {
+      staff_type: 'accident_notice',
+      staff_title: signaturePng ? 'טופס אירוע / פתיחת תביעה — חתום' : 'טופס אירוע / פתיחת תביעה',
+    });
+  };
+
   const doSaveClaim = async () => {
+    if (saveLock.current) return;
+    saveLock.current = true;
     const data = mergeIntakeToClaim(collectClaimForm(), intakeDraft);
-    if (!data.clientName) { toast('נא להזין שם לקוח', 'err'); return; }
+    if (!data.clientName) {
+      saveLock.current = false;
+      toast('נא להזין שם לקוח', 'err');
+      return;
+    }
     setSync('pend');
-    const r = await apiRef.current.saveClaim(data);
-    if (r.success) {
-      const claimId = String(r.id || data.id || '');
-      if (staffSig && claimId) {
-        try {
-          const pdf = await buildSignedOpeningFormPdf({
-            clientName: intakeDraft.clientName || data.clientName,
-            plate: intakeDraft.plate || data.plate || '',
-            eventDate: intakeDraft.eventDate || data.eventDate || '',
-            eventLocation: [intakeDraft.eventPlace, intakeDraft.eventCity, intakeDraft.eventStreet].filter(Boolean).join(', '),
-            eventDesc: intakeDraft.eventDesc || intakeDraft.damageDesc || '',
-            signaturePng: staffSig,
-          });
-          const up = await apiRef.current.staffUpload(claimId, '', pdf, {
-            staff_type: 'accident_notice',
-            staff_title: 'טופס פתיחת תביעה חתום',
-          });
-          if (!up.success) toast(`התיק נשמר אבל העלאת ה-PDF נכשלה: ${up.error || ''}`, 'err');
-        } catch (err) {
-          toast(`התיק נשמר אבל יצירת PDF נכשלה: ${String((err as Error).message || err)}`, 'err');
+    try {
+      const r = await apiRef.current.saveClaim(data);
+      if (r.success) {
+        const claimId = String(r.id || data.id || '');
+        if (claimId) {
+          try {
+            const up = await persistEventFormPdf(claimId, intakeDraft, data, staffSig || undefined);
+            if (!up.success) toast(`התיק נשמר אבל העלאת טופס האירוע נכשלה: ${up.error || ''}`, 'err');
+          } catch (err) {
+            toast(`התיק נשמר אבל יצירת טופס האירוע נכשלה: ${String((err as Error).message || err)}`, 'err');
+          }
         }
+        setStaffSig('');
+        setModal(null);
+        await loadAll();
+        toast('תיק נשמר ✅');
+        if (claimId) await openCard(claimId, 'docs');
+      } else {
+        setSync('err');
+        toast(`שגיאה: ${r.error || ''}`, 'err');
       }
-      setStaffSig('');
-      setModal(null);
-      await loadAll();
-      toast('תיק נשמר ✅');
-      if (claimId) await openCard(claimId, 'docs');
-    } else {
-      setSync('err');
-      toast(`שגיאה: ${r.error || ''}`, 'err');
+    } finally {
+      saveLock.current = false;
     }
   };
 
@@ -2275,7 +2299,20 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               value={intakeDraft}
               onChange={(d) => { setIntakeDraft(d); setVal('fc_kind', d.claimKind || CLAIM_KINDS[0]); }}
               stepKey="all"
-              onSignature={setStaffSig}
+              onSignature={async (dataUrl) => {
+                setStaffSig(dataUrl);
+                const existingId = val(null, 'fc_id');
+                if (!existingId || !dataUrl) return;
+                try {
+                  const data = mergeIntakeToClaim(collectClaimForm(), intakeDraft);
+                  await apiRef.current.saveClaim({ ...data, staffSignedAt: new Date().toISOString() });
+                  const up = await persistEventFormPdf(existingId, { ...intakeDraft }, data, dataUrl);
+                  if (!up.success) toast(`החתימה נשמרה אבל העלאת הטופס נכשלה: ${up.error || ''}`, 'err');
+                  else toast('טופס אירוע חתום נשמר במסמכים');
+                } catch (err) {
+                  toast(`שמירת חתימה נכשלה: ${String((err as Error).message || err)}`, 'err');
+                }
+              }}
               signatureSet={!!staffSig}
               staffSlot={(
                 <>
@@ -2340,7 +2377,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <input type="hidden" id="fc_id" />
             <input type="hidden" id="fc_kind" />
           </div>
-          <div className="mf"><button className="btn btn-g" onClick={() => setModal(null)}>ביטול</button><button className="btn btn-p" onClick={doSaveClaim}>💾 שמור</button></div>
+          <div className="mf"><button className="btn btn-g" onClick={() => setModal(null)}>ביטול</button><button className="btn btn-p" data-testid="claims-save-btn" onClick={doSaveClaim}>💾 שמור</button></div>
         </div>
       </div>
 
@@ -2897,8 +2934,33 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                 } else void openInCard(cur.id, first);
                               }}>{t.group ? (openGal[`type:${t.key}`] ? 'הסתר גלריה' : 'פתח גלריה') : 'צפייה'}</button>
                             ) : null}
-                            <button type="button" className="btn btn-g btn-sm" disabled title="שמירת טופס קבוע דורשת אישור ארכיטקטורה — אין טבלה/Bucket חדשים">העלה טופס קבוע</button>
+                            {t.key === 'accident_notice' ? (
+                              <button type="button" className="btn btn-g btn-sm" data-testid="claim-event-form-sign" onClick={() => setEventFormSignOpen((v) => !v)}>
+                                {eventFormSignOpen ? 'סגור חתימה' : 'חתום על טופס האירוע'}
+                              </button>
+                            ) : null}
                           </div>
+                          {t.key === 'accident_notice' && eventFormSignOpen ? (
+                            <div className="event-form-sign" data-testid="claim-event-form-sign-pad">
+                              <div className="fl">חתימה על טופס האירוע — נשמרת במסמכי התביעה הזאת בלבד</div>
+                              <SignaturePad onChange={async (dataUrl) => {
+                                if (!dataUrl) return;
+                                try {
+                                  const draft = intakeFromClaim(cur);
+                                  await apiRef.current.saveClaim({ ...cur, staffSignedAt: new Date().toISOString() });
+                                  const up = await persistEventFormPdf(cur.id, draft, cur, dataUrl);
+                                  if (!up.success) toast(`החתימה נשמרה אבל העלאת הטופס נכשלה: ${up.error || ''}`, 'err');
+                                  else {
+                                    toast('טופס אירוע חתום נשמר במסמכים');
+                                    setEventFormSignOpen(false);
+                                    await loadCardData(cur.id);
+                                  }
+                                } catch (err) {
+                                  toast(`שמירת חתימה נכשלה: ${String((err as Error).message || err)}`, 'err');
+                                }
+                              }} />
+                            </div>
+                          ) : null}
                           {t.group && openGal[`type:${t.key}`] && matched.length ? (
                             <div className="gal-grid" data-testid={`claim-doc-gal-${t.key}`}>
                               {matched.filter(isImageFile).map((f) => (
@@ -3787,7 +3849,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <button className="btn btn-g btn-sm" data-testid="mail-pick-garage" onClick={() => setSendGroup(docs.files.filter((f) => f.doc_kind === 'garage_invoice' || fileMeta(f).staff_type === 'garage_invoice').map((f) => f.id), true)}>כל מסמכי המוסך</button>
               <button className="btn btn-g btn-sm" data-testid="mail-pick-license-front" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).staff_type === 'driver_license' && /קדמי/.test(fileMeta(f).staff_title || '')).map((f) => f.id), true)}>רישיון — צד קדמי</button>
               <button className="btn btn-g btn-sm" data-testid="mail-pick-license-back" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).staff_type === 'driver_license' && /אחורי/.test(fileMeta(f).staff_title || '')).map((f) => f.id), true)}>רישיון — צד אחורי</button>
-              <button className="btn btn-g btn-sm" data-testid="mail-pick-signed-form" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).staff_type === 'accident_notice').map((f) => f.id), true)}>טופס פתיחה חתום</button>
+              <button className="btn btn-g btn-sm" data-testid="mail-pick-signed-form" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).staff_type === 'accident_notice').map((f) => f.id), true)}>טופס אירוע</button>
               <button className="btn btn-g btn-sm" data-testid="mail-pick-images" onClick={() => setSendGroup(docs.files.filter((f) => isImageFile(f)).map((f) => f.id), true)}>כל התמונות</button>
               <button className="btn btn-g btn-sm" data-testid="mail-pick-identified" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).important === 'true').map((f) => f.id), true)}>מסמכים מזוהים</button>
             </div>

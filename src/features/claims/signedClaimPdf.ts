@@ -55,7 +55,7 @@ export async function buildSignedOpeningFormPdf(opts: {
   eventDate: string;
   eventLocation: string;
   eventDesc: string;
-  signaturePng: string;
+  signaturePng?: string;
 }): Promise<File> {
   const W = 794;
   const H = 1123;
@@ -70,7 +70,7 @@ export async function buildSignedOpeningFormPdf(opts: {
   ctx.textAlign = "right";
   ctx.direction = "rtl";
   ctx.font = "bold 28px Arial, sans-serif";
-  ctx.fillText("טופס פתיחת תביעה — חתום", W - 40, 56);
+  ctx.fillText(opts.signaturePng ? "טופס אירוע / פתיחת תביעה — חתום" : "טופס אירוע / פתיחת תביעה", W - 40, 56);
   ctx.font = "16px Arial, sans-serif";
   const lines = [
     `שם לקוח: ${opts.clientName || "—"}`,
@@ -81,27 +81,29 @@ export async function buildSignedOpeningFormPdf(opts: {
   ];
   lines.forEach((t, i) => ctx.fillText(t, W - 40, 110 + i * 32));
   ctx.font = "bold 16px Arial, sans-serif";
-  ctx.fillText("חתימה:", W - 40, 300);
+  ctx.fillText(opts.signaturePng ? "חתימה:" : "חתימה: טרם נחתם", W - 40, 300);
 
-  await new Promise<void>((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => {
-      const maxW = 360;
-      const maxH = 160;
-      const r = Math.min(maxW / img.width, maxH / img.height, 1);
-      ctx.drawImage(img, W - 40 - img.width * r, 320, img.width * r, img.height * r);
-      resolve();
-    };
-    img.onerror = () => reject(new Error("signature image"));
-    img.src = opts.signaturePng;
-  });
+  if (opts.signaturePng) {
+    await new Promise<void>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 360;
+        const maxH = 160;
+        const r = Math.min(maxW / img.width, maxH / img.height, 1);
+        ctx.drawImage(img, W - 40 - img.width * r, 320, img.width * r, img.height * r);
+        resolve();
+      };
+      img.onerror = () => reject(new Error("signature image"));
+      img.src = opts.signaturePng!;
+    });
+  }
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("jpeg"))), "image/jpeg", 0.82);
   });
   const jpeg = new Uint8Array(await blob.arrayBuffer());
   const pdf = wrapJpegAsPdf(jpeg, W, H);
-  return new File([pdf], "טופס-פתיחת-תביעה-חתום.pdf", { type: "application/pdf" });
+  return new File([pdf], opts.signaturePng ? "טופס-אירוע-חתום.pdf" : "טופס-אירוע.pdf", { type: "application/pdf" });
 }
 
 export async function fileToBase64(file: File): Promise<string> {
