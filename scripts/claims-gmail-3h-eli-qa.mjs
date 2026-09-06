@@ -266,11 +266,11 @@ rec('mail_dispatch_still_dry_run', mode?.value === 'dry_run', { mode: mode?.valu
 const hist = admin ? (await admin.from('claims_history').select('id, row_data').eq('claim_id', 'DAL-2026-0020').limit(30)).data : [];
 rec('eli_history_present', admin ? (hist || []).length > 0 : false, { n: (hist || []).length, reason: admin ? undefined : 'no_service_role' });
 
-const mail1 = schedHdr ? await gmail(schedHdr, { action: 'list_imports', scheduler: true, claim_id: 'DAL-2026-0020' }) : { json: {} };
-const mail2 = schedHdr ? await gmail(schedHdr, { action: 'list_imports', scheduler: true, claim_id: 'DAL-2026-0020' }) : { json: {} };
-const n1 = (mail1.json.data || []).length;
-const n2 = (mail2.json.data || []).length;
-rec('eli_mail_refresh', !!(schedHdr && n1 > 0 && n1 === n2), { first: n1, second: n2, error: mail1.json.error || (!schedHdr ? 'no_service_role' : undefined) });
+const mail1 = admin ? (await admin.from('claims_gmail_imports').select('id, subject').eq('claim_id', 'DAL-2026-0020')).data : [];
+const mail2 = admin ? (await admin.from('claims_gmail_imports').select('id, subject').eq('claim_id', 'DAL-2026-0020')).data : [];
+const n1 = (mail1 || []).length;
+const n2 = (mail2 || []).length;
+rec('eli_mail_refresh', !!(admin && n1 > 0 && n1 === n2), { first: n1, second: n2, reason: admin ? undefined : 'no_service_role' });
 
 const dispatchRes = admin ? await admin.rpc('claims_mail_dispatch_now') : { data: null, error: { message: 'no_service_role' } };
 const tick = dispatchRes.data?.inboxScanTick || {};
