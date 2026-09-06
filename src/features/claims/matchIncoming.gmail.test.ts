@@ -23,6 +23,40 @@ const uniquePlate: MatchClaim = {
 };
 
 describe('matchIncomingMail — existing matcher, no guess', () => {
+  it('does not guess אליהו אטיאס by client name alone', () => {
+    const named: MatchClaim = {
+      id: 'DAL-2026-0098',
+      claimNum: 'DAL-2026-0098',
+      clientName: 'אליהו אטיאס',
+      plate: '11111111',
+    };
+    const r = matchIncomingMail({
+      messageId: 'eli-name-only',
+      subject: 'אליהו אטיאס',
+      body: 'שלום אליהו אטיאס',
+      from: 'someone@example.com',
+    }, [named]);
+    expect(r.decision).toBe('needs_review');
+    expect(r.claimId).toBeUndefined();
+    expect(r.candidates).toEqual([]);
+  });
+
+  it('binds אליהו אטיאס only by unique claim-number token', () => {
+    const named: MatchClaim = {
+      id: 'DAL-2026-0020',
+      claimNum: '63292-003',
+      clientName: 'אליהו אטיאס',
+      plate: '22222222',
+    };
+    const r = matchIncomingMail({
+      messageId: 'eli-claim-num',
+      subject: "63292-003 ארוע 1260010522488 דו''ח שמאות 2241 אטיאס אליהו",
+    }, [named]);
+    expect(r.decision).toBe('auto');
+    expect(r.via).toBe('claim_number');
+    expect(r.claimId).toBe('DAL-2026-0020');
+  });
+
   it('binds by existing Thread ID', () => {
     const r = matchIncomingMail({ messageId: 'm1', threadId: 'thread-test-a', subject: 'שלום' }, [a, b]);
     expect(r.decision).toBe('auto');
