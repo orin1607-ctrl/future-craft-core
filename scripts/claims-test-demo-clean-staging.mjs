@@ -7,6 +7,7 @@
  *   STAGING_SUPABASE_SERVICE_ROLE_KEY=... node scripts/claims-test-demo-clean-staging.mjs --admin
  */
 import { createClient } from '@supabase/supabase-js';
+import { execSync } from 'child_process';
 import { mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
@@ -40,7 +41,13 @@ function proof(row) {
   return { ok: reasons.length > 0, reasons, client, by, source };
 }
 
-const adminKey = process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY || '';
+function loadAdminKey() {
+  if ((process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY || '').length > 40) return process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY;
+  if (!process.argv.includes('--admin')) return '';
+  const keys = JSON.parse(execSync(`npx --yes supabase projects api-keys --project-ref ${STAGING_REF} -o json`, { encoding: 'utf8' }));
+  return keys.find((k) => k.name === 'service_role')?.api_key || '';
+}
+const adminKey = loadAdminKey();
 const anon = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU';
 const useAdmin = process.argv.includes('--admin') && adminKey.length > 40;
 const db = createClient(`https://${STAGING_REF}.supabase.co`, useAdmin ? adminKey : anon, { auth: { autoRefreshToken: false, persistSession: false } });
