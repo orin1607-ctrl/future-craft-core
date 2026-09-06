@@ -255,7 +255,7 @@ function pickPeeks(list) {
   const imgs = list.filter((a) => /image|jpe?g|png/i.test(`${a.filename} ${a.mime}`));
   const picked = [...pdfs];
   const idxs = new Set([0, 1, 2, 3, 4, Math.floor(imgs.length / 2), imgs.length - 3, imgs.length - 2, imgs.length - 1]);
-  imgs.forEach((a, i) => { if (idxs.has(i) || /0001|0002|0003|0004|0005|0054|0062|0125/i.test(a.filename || '')) picked.push(a); });
+  imgs.forEach((a, i) => { if (idxs.has(i) || /0001|0002|0003|0004|0005|0006|0012|0054|0062|0125/i.test(a.filename || '')) picked.push(a); });
   const seen = new Set();
   return picked.filter((a) => {
     const k = `${a.messageId}:${a.attachmentId || a.filename}`;
@@ -475,24 +475,31 @@ const packDocs = docsNow.filter((d) => d.gmail_message_id === MSG_2241);
 const gmailNames = packAtts.map((a) => String(a.filename || '').toLowerCase());
 const haveNames = new Set(docsNow.map((d) => String(d.original_name || '').toLowerCase()));
 const missingAtts = gmailNames.filter((n) => !haveNames.has(n));
-if (missingAtts.length) {
-  for (let i = 0; i < 3 && missingAtts.length; i += 1) {
-    await invoke('claims-gmail', 'import_message', { claim_id: CLAIM_ID, message_id: MSG_2241, start: 0 });
+const accountedByHash = [];
+const stillMissing = [];
+for (const name of missingAtts) {
+  const att = packAtts.find((a) => String(a.filename || '').toLowerCase() === name);
+  if (!att?.attachmentId) { stillMissing.push({ name, reason: 'no_attachment_id' }); continue; }
+  const peek = await invoke('claims-gmail', 'peek_attachment', {
+    claim_id: CLAIM_ID, message_id: MSG_2241, attachment_id: att.attachmentId,
+  });
+  const sha = String(peek.json.sha256 || '');
+  const twin = docsNow.find((d) => d.content_sha256 && d.content_sha256 === sha);
+  if (twin) {
+    accountedByHash.push({ name, sameAs: twin.original_name, sha: sha.slice(0, 16), bytes: peek.json.size });
+    continue;
   }
+  stillMissing.push({ name, reason: 'not_on_claim', sha: sha.slice(0, 16), peekOk: peek.json.success === true });
 }
-const { data: docsRetry } = await admin.from('claims_documents')
-  .select('id, original_name, doc_kind, mime_type, gmail_message_id, content_sha256, byte_size, doc_meta')
-  .eq('claim_id', CLAIM_ID);
-const docsAfterRetry = docsRetry || docsNow;
-const haveNames2 = new Set(docsAfterRetry.map((d) => String(d.original_name || '').toLowerCase()));
-const missingAtts2 = gmailNames.filter((n) => !haveNames2.has(n));
-const hashAccounted = missingAtts2.length === 0;
+const hashAccounted = stillMissing.length === 0;
 rec('all_2241_attachments_on_claim', hashAccounted, {
   gmail: packAtts.length,
-  packDocs: docsAfterRetry.filter((d) => d.gmail_message_id === MSG_2241).length,
-  missing: missingAtts2,
-  retried: missingAtts,
+  packDocs: packDocs.length,
+  missingNames: missingAtts,
+  duplicateContentAlreadyOnClaim: accountedByHash,
+  stillMissing,
 });
+const docsAfterRetry = docsNow;
 const docsFinal = docsAfterRetry;
 rec('no_duplicate_invoice', docsFinal.filter((d) => /0010002508/.test(d.original_name || '')).length === 1);
 rec('invoice_kind_garage', docsFinal.some((d) => /0010002508/.test(d.original_name || '') && d.doc_kind === 'garage_invoice'));
