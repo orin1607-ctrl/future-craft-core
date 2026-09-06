@@ -1,0 +1,103 @@
+{
+  "at": "2026-09-06T20:53:27.119Z",
+  "mode": "worker-visible",
+  "productionTouched": false,
+  "gmailMailboxMutated": false,
+  "note": "Soft-delete only (row_data.deletedAt). Documents/mail/history rows stay. Gmail mailbox untouched.",
+  "classified": [
+    {
+      "id": "DAL-QA-WORKER-002",
+      "client": "TEST-CLAIMS-ISOLATION-B",
+      "status": "בטיפול",
+      "plate": "99887766",
+      "created_by_name": "TEST-CLAIMS-WORKER QA",
+      "created_at": "2026-09-04T08:50:20.187503+00:00",
+      "deletedAt": "",
+      "decide": "TEST_DELETE",
+      "reasons": [
+        "id DAL-QA-*",
+        "client TEST-CLAIMS-ISOLATION-B",
+        "created_by TEST-CLAIMS-WORKER QA"
+      ]
+    },
+    {
+      "id": "DAL-QA-WORKER-001",
+      "client": "TEST-CLAIMS-WORKER",
+      "status": "ממתין למסמכים",
+      "plate": null,
+      "created_by_name": "QA",
+      "created_at": "2026-09-01T19:53:32.524366+00:00",
+      "deletedAt": "",
+      "decide": "TEST_DELETE",
+      "reasons": [
+        "id DAL-QA-*",
+        "client TEST-CLAIMS-WORKER",
+        "row_data.qa",
+        "created_by QA",
+        "source create-user-claims-worker"
+      ]
+    },
+    {
+      "id": "DAL-2026-0021",
+      "client": "TEST-CLOSEOUT-1788727661315",
+      "status": "חדש",
+      "plate": "CLS661315",
+      "created_by_name": "TEST עובד תביעות 1788292403067",
+      "created_at": "2026-09-06T20:47:47.053438+00:00",
+      "deletedAt": "",
+      "decide": "TEST_DELETE",
+      "reasons": [
+        "client TEST-CLOSEOUT-1788727661315",
+        "created_by TEST עובד תביעות 1788292403067"
+      ]
+    }
+  ],
+  "toDelete": [
+    {
+      "id": "DAL-QA-WORKER-002",
+      "client": "TEST-CLAIMS-ISOLATION-B",
+      "status": "בטיפול",
+      "plate": "99887766",
+      "created_by_name": "TEST-CLAIMS-WORKER QA",
+      "created_at": "2026-09-04T08:50:20.187503+00:00",
+      "deletedAt": "",
+      "decide": "TEST_DELETE",
+      "reasons": [
+        "id DAL-QA-*",
+        "client TEST-CLAIMS-ISOLATION-B",
+        "created_by TEST-CLAIMS-WORKER QA"
+      ]
+    },
+    {
+      "id": "DAL-QA-WORKER-001",
+      "client": "TEST-CLAIMS-WORKER",
+      "status": "ממתין למסמכים",
+      "plate": null,
+      "created_by_name": "QA",
+      "created_at": "2026-09-01T19:53:32.524366+00:00",
+      "deletedAt": "",
+      "decide": "TEST_DELETE",
+      "reasons": [
+        "id DAL-QA-*",
+        "client TEST-CLAIMS-WORKER",
+        "row_data.qa",
+        "created_by QA",
+        "source create-user-claims-worker"
+      ]
+    },
+    {
+      "id": "DAL-2026-0021",
+      "client": "TEST-CLOSEOUT-1788727661315",
+      "status": "חדש",
+      "plate": "CLS661315",
+      "created_by_name": "TEST עובד תביעות 1788292403067",
+      "created_at": "2026-09-06T20:47:47.053438+00:00",
+      "deletedAt": "",
+      "decide": "TEST_DELETE",
+      "reasons": [
+        "client TEST-CLOSEOUT-1788727661315",
+        "created_by TEST עובד תביעות 1788292403067"
+      ]
+    }
+  ]
+}

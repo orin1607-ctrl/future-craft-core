@@ -1,0 +1,53 @@
+name: Staging Claims TEST/DEMO clean
+
+# Staging only. Soft-delete proven TEST/DEMO/QA claims after a restore-point file.
+# Never Production. Never Gmail mailbox. Never DAL-2026-0020.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - feat/incident-alerts-staging
+    paths:
+      - 'scripts/claims-test-demo-clean-staging.mjs'
+      - '.github/workflows/claims-test-demo-clean-staging.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: claims-test-demo-clean-staging
+  cancel-in-progress: false
+
+jobs:
+  audit-and-clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Guard Staging only
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" != "production"
+          test "${GITHUB_REF_NAME}" != "main"
+          test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
+
+      - name: Inventory + soft-delete proven TEST
+        env:
+          STAGING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${STAGING_SUPABASE_SERVICE_ROLE_KEY}"
+          npm install @supabase/supabase-js --no-save --silent
+          node scripts/claims-test-demo-clean-staging.mjs --admin
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: claims-test-demo-clean
+          path: docs/audit-reports/claims-four-closeout-2026-09-06
+          if-no-files-found: ignore
