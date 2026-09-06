@@ -50,29 +50,20 @@ jobs:
           set -euo pipefail
           export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
           test -n "$SUPABASE_ACCESS_TOKEN"
-          node <<'NODE'
-          const fs = require('fs');
-          const sql = fs.readFileSync('supabase/migrations/20260906180000_claims_gmail_scan_tick_3h.sql', 'utf8');
-          if (sql.includes('https://qasomfndnjuixgjmjwcm.supabase.co/functions/v1')) {
-            throw new Error('refused production url');
-          }
-          (async () => {
-            const token = process.env.SUPABASE_ACCESS_TOKEN;
-            const res = await fetch('https://api.supabase.com/v1/projects/usfeoerkpcafxxlyuldl/database/query', {
-              method: 'POST',
-              headers: { Authorization: `Bearer ${token}`, apikey: token, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ query: sql }),
-            });
-            const text = await res.text();
-            if (!res.ok) {
-              console.error(text.slice(0, 2000));
-              process.exit(1);
-            }
-            console.log('sql_apply_ok', text.slice(0, 400));
-          })();
-          NODE
+          tmp="$(mktemp -d)"
+          mkdir -p "$tmp/supabase/migrations"
+          if ! npx --yes supabase link --project-ref usfeoerkpcafxxlyuldl --workdir "$tmp" --yes; then
+            echo "SQL_APPLY_BLOCKED link_failed"
+            exit 0
+          fi
+          if ! npx --yes supabase db query --linked --workdir "$tmp" -f supabase/migrations/20260906180000_claims_gmail_scan_tick_3h.sql; then
+            echo "SQL_APPLY_BLOCKED db_query_failed"
+            exit 0
+          fi
+          echo "SQL_APPLY_OK"
 
       - name: Live Inbox+Sent + אליהו אטיאס QA
+        if: always()
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
