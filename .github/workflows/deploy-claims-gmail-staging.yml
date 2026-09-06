@@ -11,6 +11,7 @@ on:
       - 'supabase/functions/claims-gmail/**'
       - 'supabase/migrations/20260906180000_claims_gmail_scan_tick_3h.sql'
       - 'scripts/claims-gmail-3h-eli-qa.mjs'
+      - 'scripts/apply-claims-gmail-scan-3h-staging.mjs'
       - '.github/workflows/deploy-claims-gmail-staging.yml'
   workflow_dispatch: {}
 
