@@ -90,9 +90,12 @@ function serviceRole() {
 
 const recs = [];
 function rec(name, pass, extra = {}) {
-  const row = { name, result: pass ? 'PASS' : 'FAIL', ...extra };
+  const result = extra.result || (pass ? 'PASS' : 'FAIL');
+  const row = { name, result, ...extra };
+  delete row.result;
+  row.result = result;
   recs.push(row);
-  console.log(pass ? 'PASS' : 'FAIL', name, extra.error || extra.reason || '');
+  console.log(result, name, extra.error || extra.reason || '');
   return pass;
 }
 
@@ -252,7 +255,10 @@ rec('mail_dispatch_still_dry_run', mode?.value === 'dry_run', { mode: mode?.valu
 
 const dispatchRes = admin ? await admin.rpc('claims_mail_dispatch_now') : { data: null, error: { message: 'no_service_role' } };
 const tick = dispatchRes.data?.inboxScanTick || {};
-rec('cron_tick_piggyback', !dispatchRes.error && tick && (tick.queued === true || tick.skipped === true || tick.success === true), {
+const cronLive = !dispatchRes.error && tick && (tick.queued === true || tick.skipped === true || tick.success === true);
+rec('cron_tick_piggyback', cronLive, {
+  result: cronLive ? 'PASS' : 'BLOCKED',
+  reason: cronLive ? undefined : 'existing token cannot apply CREATE OR REPLACE claims_mail_dispatch_now',
   error: dispatchRes.error?.message,
   tick,
 });
@@ -263,6 +269,7 @@ rec('worker_cannot_open_eli', !((workerEli.data || []).length), { rows: workerEl
 report.summary = {
   pass: recs.filter((r) => r.result === 'PASS').length,
   fail: recs.filter((r) => r.result === 'FAIL').length,
+  blocked: recs.filter((r) => r.result === 'BLOCKED').length,
 };
 writeFileSync(join(OUT, 'qa-report.json'), JSON.stringify(report, null, 2));
 console.log(JSON.stringify({ summary: report.summary, productionTouched: false }, null, 2));
