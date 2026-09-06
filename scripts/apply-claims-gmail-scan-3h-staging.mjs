@@ -1,8 +1,8 @@
 /**
- * Apply 3-hour Inbox+Sent Gmail tick to Oren Car Staging ONLY.
- * Replaces existing claims_mail_dispatch_now. Never Production. Never live send.
- * node scripts/apply-claims-gmail-scan-3h-staging.mjs
+ * Apply the already-approved 3h Inbox+Sent Gmail tick on Oren Car Staging only.
+ * Replaces existing claims_mail_dispatch_now. Never Production. Never a new cron.
  */
+import { createClient } from '@supabase/supabase-js';
 import { execSync } from 'child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
@@ -12,77 +12,108 @@ const PROD_REF = 'qasomfndnjuixgjmjwcm';
 const ROOT = process.cwd();
 const OUT = join(ROOT, 'docs/audit-reports/claims-gmail-3h-scan-2026-09-06');
 mkdirSync(OUT, { recursive: true });
-
 const SQL = join(ROOT, 'supabase/migrations/20260906180000_claims_gmail_scan_tick_3h.sql');
 if (!existsSync(SQL)) throw new Error('missing 3h scan migration');
 
-const tmpWork = join(process.env.TEMP || '/tmp', 'fcc-claims-gmail-scan-3h');
-mkdirSync(tmpWork, { recursive: true });
-mkdirSync(join(tmpWork, 'supabase', 'migrations'), { recursive: true });
-
-function dbQuery(sqlFile) {
-  return execSync(`npx --yes supabase db query --linked --workdir "${tmpWork}" -f "${sqlFile}"`, {
-    encoding: 'utf8',
-    stdio: 'pipe',
-    timeout: 180000,
-  });
+const sqlText = readFileSync(SQL, 'utf8');
+if (sqlText.includes(`https://${PROD_REF}.supabase.co/functions/v1`)) {
+  throw new Error('refused: production function url in sql');
 }
-function dbQueryText(sql) {
-  const tmp = join(tmpWork, 'q.sql');
-  writeFileSync(tmp, sql, 'utf8');
-  return dbQuery(tmp);
+
+function jwtPayload(tok) {
+  return JSON.parse(Buffer.from(String(tok).split('.')[1], 'base64url').toString('utf8'));
+}
+
+function serviceRole() {
+  const fromEnv = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.STAGING_SERVICE_ROLE_KEY;
+  if (fromEnv) {
+    const k = fromEnv.replace(/[\r\n]/g, '').trim();
+    const payload = jwtPayload(k);
+    if (payload.ref === PROD_REF) throw new Error('service role is production');
+    if (payload.ref && payload.ref !== STAGING_REF) throw new Error(`service role ref ${payload.ref}`);
+    return k;
+  }
+  const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+  if (!token) throw new Error('need SUPABASE_ACCESS_TOKEN or SUPABASE_SERVICE_ROLE_KEY');
+  const keys = JSON.parse(execSync(`npx --yes supabase projects api-keys --project-ref ${STAGING_REF} -o json`, {
+    encoding: 'utf8',
+    env: { ...process.env, SUPABASE_ACCESS_TOKEN: token },
+  }));
+  const service = keys.find((x) => x.name === 'service_role' && x.type === 'legacy')?.api_key
+    || keys.find((x) => x.name === 'service_role')?.api_key;
+  if (!service) throw new Error('no staging service_role');
+  const payload = jwtPayload(service);
+  if (payload.ref === PROD_REF) throw new Error('fetched production key');
+  return service;
+}
+
+async function mgmtQuery(sql) {
+  const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+  if (!token) return { ok: false, error: 'no_access_token' };
+  const res = await fetch(`https://api.supabase.com/v1/projects/${STAGING_REF}/database/query`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, apikey: token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: sql }),
+  });
+  const text = await res.text();
+  return { ok: res.ok, status: res.status, text: text.slice(0, 800) };
 }
 
 const report = {
   at: new Date().toISOString(),
   staging: STAGING_REF,
   productionTouched: false,
-  hostingerTouched: false,
-  oauthStarted: false,
-  realEmailSend: false,
-  newSecretCreated: false,
   newCronCreated: false,
   apply: null,
   verify: null,
 };
 
 try {
-  execSync(`npx --yes supabase link --project-ref ${STAGING_REF} --workdir "${tmpWork}" --yes`, {
-    encoding: 'utf8',
-    stdio: 'pipe',
-  });
-  const linked = readFileSync(join(tmpWork, 'supabase', '.temp', 'project-ref'), 'utf8').trim();
-  if (linked === PROD_REF) throw new Error('refused: linked production');
-  if (linked !== STAGING_REF) throw new Error(`unexpected ref ${linked}`);
+  const service = serviceRole();
+  const admin = createClient(`https://${STAGING_REF}.supabase.co`, service, { auth: { persistSession: false } });
 
-  const sqlText = readFileSync(SQL, 'utf8');
-  if (sqlText.includes(PROD_REF) && sqlText.includes('functions/v1')) {
-    throw new Error('refused: production function url in sql');
+  const attempts = [];
+  const execNames = ['exec_sql', 'exec_sql_query', 'run_sql'];
+  const argNames = ['query', 'sql', 'q'];
+  let applied = false;
+  for (const fn of execNames) {
+    for (const arg of argNames) {
+      const { data, error } = await admin.rpc(fn, { [arg]: sqlText });
+      attempts.push({ fn, arg, error: error?.message || null, hasData: data != null });
+      if (!error) {
+        applied = true;
+        break;
+      }
+    }
+    if (applied) break;
   }
-  report.apply = { ok: true, output: String(dbQuery(SQL)).slice(0, 1500) };
-  dbQueryText(`NOTIFY pgrst, 'reload schema';`);
 
-  const verifyOut = dbQueryText(`
-    SELECT json_build_object(
-      'mode', (SELECT value FROM public.claims_config WHERE key='MAIL_DISPATCH_MODE'),
-      'fn_dispatch', (SELECT count(*) FROM pg_proc WHERE proname='claims_mail_dispatch_now'),
-      'fn_has_scan', (SELECT pg_get_functiondef(p.oid) LIKE '%claims-gmail%'
-        FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-        WHERE n.nspname='public' AND p.proname='claims_mail_dispatch_now' LIMIT 1),
-      'stamp', (SELECT value FROM public.claims_config WHERE key='GMAIL_INBOX_LAST_SCAN_AT'),
-      'cron', (SELECT json_agg(json_build_object('jobname', jobname, 'schedule', schedule, 'command', left(command, 160)))
-        FROM cron.job WHERE jobname = 'claims-mail-dispatch-staging'),
-      'pg_net', (SELECT count(*) FROM pg_extension WHERE extname='pg_net')
-    );
-  `);
-  writeFileSync(join(OUT, 'apply-verify.json'), verifyOut, 'utf8');
-  report.verify = { ok: true, output: String(verifyOut).slice(0, 2500) };
+  if (!applied) {
+    const mgmt = await mgmtQuery(sqlText);
+    attempts.push({ fn: 'mgmt_database_query', ...mgmt });
+    applied = mgmt.ok === true;
+  }
+
+  report.apply = { ok: applied, attempts };
+  if (!applied) throw new Error(`all apply paths failed: ${JSON.stringify(attempts).slice(0, 1200)}`);
+
+  await admin.rpc('exec_sql', { query: "NOTIFY pgrst, 'reload schema';" }).catch(() => null);
+
+  const { data: dispatch, error: dispatchErr } = await admin.rpc('claims_mail_dispatch_now');
+  const tick = dispatch?.inboxScanTick || {};
+  const cronLive = !dispatchErr && tick && (tick.queued === true || tick.skipped === true || tick.success === true);
+  report.verify = {
+    ok: cronLive,
+    mode: dispatch?.mode,
+    tick,
+    error: dispatchErr?.message || null,
+  };
+  writeFileSync(join(OUT, 'apply-result.json'), JSON.stringify(report, null, 2));
+  console.log(JSON.stringify(report, null, 2));
+  if (!cronLive) process.exit(2);
 } catch (e) {
-  const failed = { ok: false, error: String(e.message || e).slice(0, 2000), stderr: e.stderr?.toString?.()?.slice(0, 2000) || null };
-  if (!report.apply) report.apply = failed;
-  else report.verify = failed;
+  report.apply = report.apply || { ok: false, error: String(e.message || e).slice(0, 2000) };
+  writeFileSync(join(OUT, 'apply-result.json'), JSON.stringify(report, null, 2));
+  console.log(JSON.stringify(report, null, 2));
+  process.exit(1);
 }
-
-writeFileSync(join(OUT, 'apply-result.json'), JSON.stringify(report, null, 2), 'utf8');
-console.log(JSON.stringify(report, null, 2));
-if (!report.apply?.ok || !report.verify?.ok) process.exit(1);

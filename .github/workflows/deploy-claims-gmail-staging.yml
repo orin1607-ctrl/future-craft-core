@@ -46,21 +46,13 @@ jobs:
       - name: Apply existing-dispatch Gmail 3h tick SQL
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -euo pipefail
           export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
           test -n "$SUPABASE_ACCESS_TOKEN"
-          tmp="$(mktemp -d)"
-          mkdir -p "$tmp/supabase/migrations"
-          if ! npx --yes supabase link --project-ref usfeoerkpcafxxlyuldl --workdir "$tmp" --yes; then
-            echo "SQL_APPLY_BLOCKED link_failed"
-            exit 0
-          fi
-          if ! npx --yes supabase db query --linked --workdir "$tmp" -f supabase/migrations/20260906180000_claims_gmail_scan_tick_3h.sql; then
-            echo "SQL_APPLY_BLOCKED db_query_failed"
-            exit 0
-          fi
-          echo "SQL_APPLY_OK"
+          npm install --no-save @supabase/supabase-js
+          node scripts/apply-claims-gmail-scan-3h-staging.mjs
 
       - name: Live Inbox+Sent + אליהו אטיאס QA
         if: always()
