@@ -258,7 +258,7 @@ if (pdfRow) {
       fileNums: [...new Set((text.match(/63292[-\s]?003/g) || []))],
       reportNums: [...new Set((text.match(/2241/g) || []))],
       plates: [...new Set((text.match(/63292003|63292-?003/g) || []))],
-      dates: [...new Set((text.match(/\b(?:\d{4}-\d{2}-\d{2}|\d{1,2}[./-]\d{1,2}[./-]\d{4})\b/g) || [])].map(normDate).filter(Boolean)),
+      dates: [...new Set((text.match(/\b(?:\d{4}-\d{2}-\d{2}|\d{1,2}[./-]\d{1,2}[./-]\d{4})\b/g) || []).map(normDate).filter(Boolean))],
       rawExcerpt: text.replace(/\s+/g, ' ').slice(0, 800),
     };
     report.pdfTokens = tokens;
