@@ -3,9 +3,10 @@ import { useEffect, useRef } from 'react';
 type Props = {
   onChange: (dataUrl: string) => void;
   disabled?: boolean;
+  testId?: string;
 };
 
-export default function SignaturePad({ onChange, disabled }: Props) {
+export default function SignaturePad({ onChange, disabled, testId = 'intake-signature' }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
 
@@ -47,7 +48,7 @@ export default function SignaturePad({ onChange, disabled }: Props) {
       <canvas
         ref={canvasRef}
         className="sig-canvas"
-        data-testid="intake-signature"
+        data-testid={testId}
         style={{ width: '100%', height: 160, touchAction: 'none', border: '1px solid #cbd5e1', borderRadius: 12, background: '#fff' }}
         onPointerDown={(e) => {
           if (disabled) return;
