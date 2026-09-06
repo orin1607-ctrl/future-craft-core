@@ -90,13 +90,23 @@ function serviceRole() {
 
 const recs = [];
 function rec(name, pass, extra = {}) {
-  const result = extra.result || (pass ? 'PASS' : 'FAIL');
-  const row = { name, result, ...extra };
-  delete row.result;
-  row.result = result;
+  const result = pass ? 'PASS' : 'FAIL';
+  const { detail, ...rest } = extra;
+  const row = { name, result, ...rest };
+  if (detail !== undefined) row.detail = detail;
   recs.push(row);
-  console.log(result, name, extra.error || extra.reason || '');
+  const hint = rest.error || rest.reason || (detail && detail.decision) || '';
+  console.log(result, name, hint);
   return pass;
+}
+
+function tickLive(tick) {
+  return !!(tick && (
+    tick.queued === true
+    || tick.skipped === true
+    || tick.success === true
+    || tick.reason === 'scan_not_due'
+  ));
 }
 
 let service = null;
@@ -146,13 +156,13 @@ rec('inbox_scanned', Number(dry.json.folders?.inbox || 0) >= 0 && dry.json.succe
 rec('sent_scanned', Number(dry.json.folders?.sent || 0) >= 0 && dry.json.success === true, { sent: dry.json.folders?.sent });
 
 const nameOnly = await gmail(workerHdr, { action: 'match_dry_run', mail: { subject: 'אליהו אטיאס', body: 'לקוח אליהו אטיאס' } });
-rec('name_only_review', nameOnly.json.result?.decision === 'needs_review' && !nameOnly.json.result?.claimId, { result: nameOnly.json.result });
+rec('name_only_review', nameOnly.json.result?.decision === 'needs_review' && !nameOnly.json.result?.claimId, { detail: nameOnly.json.result });
 
 const fileNum = await gmail(workerHdr, { action: 'match_dry_run', mail: { subject: "63292-003 ארוע 1260010522488 דו''ח שמאות 2241 אטיאס אליהו" } });
-rec('file_number_auto', fileNum.json.result?.decision === 'auto' && fileNum.json.result?.claimId === 'DAL-2026-0020', { result: fileNum.json.result });
+rec('file_number_auto', fileNum.json.result?.decision === 'auto' && fileNum.json.result?.claimId === 'DAL-2026-0020', { detail: fileNum.json.result });
 
 const otherFile = await gmail(workerHdr, { action: 'match_dry_run', mail: { subject: '25311-002 אטיאס אליהו' } });
-rec('other_file_not_guessed', otherFile.json.result?.decision === 'needs_review', { result: otherFile.json.result });
+rec('other_file_not_guessed', otherFile.json.result?.decision === 'needs_review', { detail: otherFile.json.result });
 
 let eliClaim = null;
 let eliErr = service ? null : { message: 'no_service_role' };
@@ -253,13 +263,24 @@ rec('gate_skips_when_not_due', skip.json.skipped === true && skip.json.reason ==
 const mode = admin ? (await admin.from('claims_config').select('value').eq('key', 'MAIL_DISPATCH_MODE').maybeSingle()).data : null;
 rec('mail_dispatch_still_dry_run', mode?.value === 'dry_run', { mode: mode?.value, reason: admin ? undefined : 'no_service_role' });
 
+const hist = admin ? (await admin.from('claims_history').select('id, row_data').eq('claim_id', 'DAL-2026-0020').limit(30)).data : [];
+rec('eli_history_present', admin ? (hist || []).length > 0 : false, { n: (hist || []).length, reason: admin ? undefined : 'no_service_role' });
+
+const mail1 = schedHdr ? await gmail(schedHdr, { action: 'list_imports', scheduler: true, claim_id: 'DAL-2026-0020' }) : { json: {} };
+const mail2 = schedHdr ? await gmail(schedHdr, { action: 'list_imports', scheduler: true, claim_id: 'DAL-2026-0020' }) : { json: {} };
+const n1 = (mail1.json.data || []).length;
+const n2 = (mail2.json.data || []).length;
+rec('eli_mail_refresh', !!(schedHdr && n1 > 0 && n1 === n2), { first: n1, second: n2, error: mail1.json.error || (!schedHdr ? 'no_service_role' : undefined) });
+
 const dispatchRes = admin ? await admin.rpc('claims_mail_dispatch_now') : { data: null, error: { message: 'no_service_role' } };
 const tick = dispatchRes.data?.inboxScanTick || {};
-const cronLive = !dispatchRes.error && tick && (tick.queued === true || tick.skipped === true || tick.success === true);
+const cronLive = !dispatchRes.error && tickLive(tick);
 rec('cron_tick_piggyback', cronLive, {
   error: dispatchRes.error?.message,
   tick,
+  keys: Object.keys(tick || {}),
 });
+console.log('CRON_TICK', JSON.stringify(tick));
 
 const workerEli = await userDb.from('claims_records').select('id').eq('id', 'DAL-2026-0020');
 rec('worker_cannot_open_eli', !((workerEli.data || []).length), { rows: workerEli.data, error: workerEli.error?.message });

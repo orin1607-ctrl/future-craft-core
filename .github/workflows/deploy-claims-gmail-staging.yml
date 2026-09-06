@@ -12,6 +12,7 @@ on:
       - 'supabase/migrations/20260906180000_claims_gmail_scan_tick_3h.sql'
       - 'scripts/claims-gmail-3h-eli-qa.mjs'
       - 'scripts/apply-claims-gmail-scan-3h-staging.mjs'
+      - 'scripts/claims-eli-ui-closeout.mjs'
       - '.github/workflows/deploy-claims-gmail-staging.yml'
   workflow_dispatch: {}
 
@@ -35,6 +36,12 @@ jobs:
           test "${GITHUB_REF_NAME}" != "main"
           test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
 
+      - name: Existing secret presence
+        run: |
+          echo "has_staging_service_role=${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY != '' }}"
+          echo "has_staging_database_url=${{ secrets.STAGING_DATABASE_URL != '' }}"
+          echo "has_staging_db_password=${{ secrets.STAGING_SUPABASE_DB_PASSWORD != '' }}"
+
       - name: Deploy claims-gmail to Staging
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -48,11 +55,12 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
         run: |
           set -euo pipefail
           export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
           test -n "$SUPABASE_ACCESS_TOKEN"
-          npm install --no-save @supabase/supabase-js
+          npm install --no-save @supabase/supabase-js pg
           node scripts/apply-claims-gmail-scan-3h-staging.mjs
 
       - name: Live Inbox+Sent + אליהו אטיאס QA
@@ -66,3 +74,24 @@ jobs:
           set -euo pipefail
           npm install --no-save @supabase/supabase-js
           node scripts/claims-gmail-3h-eli-qa.mjs
+
+      - name: Eli claim UI refresh and reopen
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          npm install --no-save @supabase/supabase-js playwright
+          npx playwright install --with-deps chromium
+          node scripts/claims-eli-ui-closeout.mjs
+
+      - name: Upload Eli UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eli-ui-closeout
+          path: docs/audit-reports/claims-gmail-3h-scan-2026-09-06/ui
+          if-no-files-found: warn

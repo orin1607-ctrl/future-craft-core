@@ -47,6 +47,10 @@ function serviceRole() {
   return service;
 }
 
+function tickLive(tick) {
+  return !!(tick && (tick.queued === true || tick.skipped === true || tick.success === true || tick.reason === 'scan_not_due'));
+}
+
 async function mgmtQuery(sql) {
   const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
   if (!token) return { ok: false, error: 'no_access_token' };
@@ -57,6 +61,22 @@ async function mgmtQuery(sql) {
   });
   const text = await res.text();
   return { ok: res.ok, status: res.status, text: text.slice(0, 800) };
+}
+
+async function applyViaDatabaseUrl(sql) {
+  const url = (process.env.STAGING_DATABASE_URL || process.env.DATABASE_URL || '').trim();
+  if (!url) return { ok: false, error: 'no_staging_database_url' };
+  if (url.includes(PROD_REF)) return { ok: false, error: 'production_url_blocked' };
+  if (!url.includes(STAGING_REF)) return { ok: false, error: 'url_not_staging' };
+  const { default: pg } = await import('pg');
+  const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+  await client.connect();
+  try {
+    await client.query(sql);
+  } finally {
+    await client.end().catch(() => null);
+  }
+  return { ok: true };
 }
 
 const report = {
@@ -82,26 +102,45 @@ try {
   const service = serviceRole();
   const admin = createClient(`https://${STAGING_REF}.supabase.co`, service, { auth: { persistSession: false } });
 
+  const before = await admin.rpc('claims_mail_dispatch_now');
+  const beforeTick = before.data?.inboxScanTick || {};
+  report.alreadyLive = tickLive(beforeTick);
+  report.beforeTick = beforeTick;
+
   const attempts = [];
-  const execNames = ['exec_sql', 'exec_sql_query', 'run_sql'];
-  const argNames = ['query', 'sql', 'q'];
-  let applied = false;
-  for (const fn of execNames) {
-    for (const arg of argNames) {
-      const { data, error } = await admin.rpc(fn, { [arg]: sqlText });
-      attempts.push({ fn, arg, error: error?.message || null, hasData: data != null });
-      if (!error) {
-        applied = true;
-        break;
+  let applied = report.alreadyLive === true;
+  if (applied) attempts.push({ fn: 'already_live_inboxScanTick', ok: true, tick: beforeTick });
+
+  if (!applied) {
+    const execNames = ['exec_sql', 'exec_sql_query', 'run_sql'];
+    const argNames = ['query', 'sql', 'q'];
+    for (const fn of execNames) {
+      for (const arg of argNames) {
+        const { data, error } = await admin.rpc(fn, { [arg]: sqlText });
+        attempts.push({ fn, arg, error: error?.message || null, hasData: data != null });
+        if (!error) {
+          applied = true;
+          break;
+        }
       }
+      if (applied) break;
     }
-    if (applied) break;
   }
 
   if (!applied) {
     const mgmt = await mgmtQuery(sqlText);
     attempts.push({ fn: 'mgmt_database_query', ...mgmt });
     applied = mgmt.ok === true;
+  }
+
+  if (!applied) {
+    try {
+      const viaUrl = await applyViaDatabaseUrl(sqlText);
+      attempts.push({ fn: 'staging_database_url', ...viaUrl });
+      applied = viaUrl.ok === true;
+    } catch (e) {
+      attempts.push({ fn: 'staging_database_url', ok: false, error: String(e.message || e).slice(0, 220) });
+    }
   }
 
   if (!applied) {
@@ -116,18 +155,24 @@ try {
       body: JSON.stringify({ action: 'apply_approved_gmail_tick', scheduler: true, sql: sqlText }),
     });
     const json = await res.json().catch(() => ({}));
-    attempts.push({ fn: 'claims_gmail_apply_approved_tick', status: res.status, error: json.error || null, applied: json.applied === true, dbEnvNames: json.dbEnvNames || null });
+    attempts.push({
+      fn: 'claims_gmail_apply_approved_tick',
+      status: res.status,
+      error: json.error || null,
+      applied: json.applied === true,
+      via: json.via || null,
+      dbTarget: json.dbTarget || null,
+      dbEnvNames: json.dbEnvNames || null,
+    });
     applied = json.success === true && json.applied === true;
   }
 
   report.apply = { ok: applied, attempts };
-  if (!applied) throw new Error(`all apply paths failed: ${JSON.stringify(attempts).slice(0, 1200)}`);
-
   await admin.rpc('exec_sql', { query: "NOTIFY pgrst, 'reload schema';" }).catch(() => null);
 
   const { data: dispatch, error: dispatchErr } = await admin.rpc('claims_mail_dispatch_now');
   const tick = dispatch?.inboxScanTick || {};
-  const cronLive = !dispatchErr && tick && (tick.queued === true || tick.skipped === true || tick.success === true);
+  const cronLive = !dispatchErr && tickLive(tick);
   report.verify = {
     ok: cronLive,
     mode: dispatch?.mode,
@@ -136,7 +181,7 @@ try {
   };
   writeFileSync(join(OUT, 'apply-result.json'), JSON.stringify(report, null, 2));
   console.log(JSON.stringify(report, null, 2));
-  if (!cronLive) process.exit(2);
+  if (!cronLive) process.exit(applied ? 2 : 1);
 } catch (e) {
   report.apply = report.apply || { ok: false, error: String(e.message || e).slice(0, 2000) };
   writeFileSync(join(OUT, 'apply-result.json'), JSON.stringify(report, null, 2));

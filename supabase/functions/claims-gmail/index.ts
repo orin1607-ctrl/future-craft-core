@@ -71,6 +71,56 @@ function nid(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
+function sanitizeDbTarget(url: string) {
+  try {
+    const u = new URL(url);
+    return { protocol: u.protocol.replace(":", ""), hostname: u.hostname, port: u.port || "", db: u.pathname || "" };
+  } catch {
+    return { protocol: String(url.split(":")[0] || "invalid"), hostname: "", port: "", db: "" };
+  }
+}
+
+async function applyApprovedTickSql(dbUrl: string, sqlText: string) {
+  const target = sanitizeDbTarget(dbUrl);
+  const attempts: string[] = [];
+  if (!/^postgres(ql)?$/i.test(target.protocol)) {
+    return { ok: false, error: "db_url_not_postgres", target, attempts };
+  }
+  try {
+    const { Client } = await import("https://deno.land/x/postgres@v0.19.3/mod.ts");
+    const client = new Client(dbUrl);
+    await client.connect();
+    try {
+      await client.queryArray(sqlText);
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+    return { ok: true, via: "deno_postgres", target, attempts };
+  } catch (e) {
+    attempts.push(`deno_postgres:${String((e as Error).message || e).slice(0, 160)}`);
+  }
+  try {
+    type PgClient = { connect(): Promise<void>; query(s: string): Promise<unknown>; end(): Promise<void> };
+    const pgMod = await import("npm:pg@8.13.1") as {
+      default?: { Client: new (c: { connectionString: string; ssl: { rejectUnauthorized: boolean } }) => PgClient };
+      Client?: new (c: { connectionString: string; ssl: { rejectUnauthorized: boolean } }) => PgClient;
+    };
+    const Client = pgMod.default?.Client || pgMod.Client;
+    if (!Client) throw new Error("pg_client_missing");
+    const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    await client.connect();
+    try {
+      await client.query(sqlText);
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+    return { ok: true, via: "npm_pg", target, attempts };
+  } catch (e) {
+    attempts.push(`npm_pg:${String((e as Error).message || e).slice(0, 160)}`);
+  }
+  return { ok: false, error: attempts[attempts.length - 1] || "apply_failed", target, attempts };
+}
+
 function htmlPage(title: string, body: string, ok = true) {
   return new Response(
     `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>${title}</title>
@@ -684,28 +734,24 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     if (dbUrl.includes(PROD_REF)) {
       return jsonResponse({ success: false, error: "production_db_blocked" }, 403);
     }
-    try {
-      const { default: postgres } = await import("https://esm.sh/postgres@3.4.5");
-      const client = postgres(dbUrl, { ssl: "require", max: 1 });
-      try {
-        await client.unsafe(incoming);
-      } finally {
-        await client.end({ timeout: 5 });
-      }
+    const applied = await applyApprovedTickSql(dbUrl, incoming);
+    if (applied.ok) {
       return jsonResponse({
         success: true,
         applied: true,
-        via: "existing_edge_db_url",
+        via: applied.via,
+        dbTarget: applied.target,
         realEmailSend: false,
         newCron: false,
       });
-    } catch (e) {
-      return jsonResponse({
-        success: false,
-        error: String((e as Error).message || e).slice(0, 240),
-        dbEnvNames: envNames,
-      }, 400);
     }
+    return jsonResponse({
+      success: false,
+      error: applied.error || "apply_failed",
+      dbEnvNames: envNames,
+      dbTarget: applied.target,
+      attempts: applied.attempts,
+    }, 400);
   }
 
   if (action === "status") {
