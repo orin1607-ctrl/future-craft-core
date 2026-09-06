@@ -69,6 +69,16 @@ const report = {
 };
 
 try {
+  try {
+    const listed = execSync(`npx --yes supabase secrets list --project-ref ${STAGING_REF}`, {
+      encoding: 'utf8',
+      env: process.env,
+      timeout: 60000,
+    });
+    report.secretNames = String(listed).split('\n').map((l) => l.trim()).filter(Boolean).slice(0, 40);
+  } catch (e) {
+    report.secretNames = { error: String(e.message || e).slice(0, 180) };
+  }
   const service = serviceRole();
   const admin = createClient(`https://${STAGING_REF}.supabase.co`, service, { auth: { persistSession: false } });
 
