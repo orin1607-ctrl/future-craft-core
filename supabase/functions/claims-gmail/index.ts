@@ -1517,6 +1517,29 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     });
   }
 
+  if (action === "peek_attachment") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const messageId = String(body.message_id || "");
+    const attachmentId = String(body.attachment_id || "");
+    if (!messageId || !attachmentId) return jsonResponse({ success: false, error: "message_id and attachment_id required" }, 400);
+    const att = await gmailGet(access, `messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}`);
+    const bytes = b64urlToBytes(String(att.data || ""));
+    if (bytes.length > 8 * 1024 * 1024) {
+      return jsonResponse({ success: false, error: "attachment_too_large", size: bytes.length, mailboxMutated: false }, 413);
+    }
+    return jsonResponse({
+      success: true,
+      size: bytes.length,
+      sha256: await sha256HexBytes(bytes),
+      data_b64: bytesToB64(bytes),
+      mailboxMutated: false,
+      realEmailSend: false,
+    });
+  }
+
   if (action === "import_message") {
     const claimId = String(body.claim_id || "");
     if (!claimId || !(await canWork(sb, user.id, role, claimId))) {

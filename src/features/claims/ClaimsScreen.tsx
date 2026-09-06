@@ -548,20 +548,9 @@ function surveyorBundle(files: ClaimFile[], imports: Array<Record<string, unknow
   const photos = files.filter((f) => f.doc_kind === 'surveyor_photo');
   const tagged = files.filter((f) => f.doc_kind === 'surveyor_report');
   const taggedAtt = files.filter((f) => f.doc_kind === 'surveyor_attachment');
-  const surveyorMailIds = new Set(
-    imports
-      .filter((im) => /שמאי|שמאות|survey/i.test(String(im.subject || '')))
-      .map((im) => String(im.gmail_message_id || ''))
-      .filter(Boolean),
-  );
-  const fromSafeMail = files.filter((f) => (
-    surveyorMailIds.has(String(f.gmail_message_id || ''))
-    && !isImageFile(f)
-    && /pdf/i.test(`${f.mime_type || ''} ${f.original_name || ''}`)
-    && f.doc_kind !== 'garage_invoice'
-  ));
+  void imports;
   const reportById = new Map<string, ClaimFile>();
-  [...tagged, ...fromSafeMail].forEach((f) => reportById.set(f.id, f));
+  tagged.forEach((f) => reportById.set(f.id, f));
   const reports = [...reportById.values()];
   const gmailIds = new Set([...photos, ...reports, ...taggedAtt].map((f) => f.gmail_message_id).filter(Boolean) as string[]);
   const related = files.filter((f) => (
@@ -617,21 +606,48 @@ function cardGroupOf(tab: string) {
 
 function InCardPreview({ file, onClose }: { file: { url: string; name: string; mime: string } | null; onClose: () => void }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [blobUrl, setBlobUrl] = useState('');
+  const [loadErr, setLoadErr] = useState('');
   useEffect(() => {
     wrapRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [file?.url, blobUrl]);
+  useEffect(() => {
+    let revoke = '';
+    let cancelled = false;
+    setBlobUrl('');
+    setLoadErr('');
+    if (!file?.url) return undefined;
+    (async () => {
+      try {
+        const res = await fetch(file.url);
+        if (!res.ok) throw new Error(`http_${res.status}`);
+        const blob = await res.blob();
+        if (cancelled) return;
+        revoke = URL.createObjectURL(blob);
+        setBlobUrl(revoke);
+      } catch (e) {
+        if (!cancelled) setLoadErr(String((e as Error).message || e));
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (revoke) URL.revokeObjectURL(revoke);
+    };
   }, [file?.url]);
   if (!file) return null;
   const img = (file.mime || '').startsWith('image/') || /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(file.name);
+  const src = blobUrl || file.url;
   return (
     <div ref={wrapRef} className="doc-preview-wrap" data-testid="doc-preview">
       <div className="doc-preview-bar">
         <b data-testid="doc-preview-name"><FileName name={file.name} /></b>
-        <button className="btn btn-g btn-sm" onClick={() => window.open(file.url, '_blank')}>חלון נפרד</button>
+        <button className="btn btn-g btn-sm" onClick={() => window.open(file.url, '_blank')}>חלון נפרד / הורדה</button>
         <button className="btn btn-g btn-sm" onClick={onClose}>סגור תצוגה</button>
       </div>
+      {loadErr ? <div className="spec-empty" data-testid="doc-preview-error">התצוגה נכשלה ({loadErr}). לחץ «חלון נפרד / הורדה».</div> : null}
       {img
-        ? <img className="doc-preview-img" src={file.url} alt={file.name} />
-        : <iframe className="doc-preview-frame" title={file.name} src={file.url} />}
+        ? <img className="doc-preview-img" src={src} alt={file.name} data-testid="doc-preview-img" />
+        : <iframe className="doc-preview-frame" title={file.name} src={src} data-testid="doc-preview-frame" />}
     </div>
   );
 }
