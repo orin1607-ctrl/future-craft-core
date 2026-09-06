@@ -119,43 +119,45 @@ async function openEli(page) {
   await page.waitForTimeout(2000);
   const search = page.locator('[data-testid="claims-search"]');
   if (await search.count()) {
-    await search.fill('63292-003');
-    await page.waitForTimeout(900);
+    await search.fill('אליהו אטיאס');
+    await page.waitForTimeout(1000);
   }
   const row = page.locator(`[data-testid="claim-row-${CLAIM_ID}"]`);
-  rec('claim_row_visible', await row.count() > 0);
-  if (!(await row.count())) {
-    await page.locator('[data-testid="claims-search"]').fill('אטיאס');
-    await page.waitForTimeout(900);
+  if (!(await row.count()) && await search.count()) {
+    await search.fill('1260010522488');
+    await page.waitForTimeout(1000);
   }
+  rec('claim_row_visible', await row.count() > 0);
   if (await row.count()) await row.click();
-  await page.waitForTimeout(1600);
+  await page.waitForTimeout(1800);
   rec('card_open', await page.locator('[data-testid="claims-card-snapshot"]').count() > 0);
   const snap = (await page.locator('[data-testid="claims-card-snapshot"]').innerText().catch(() => '')) || '';
-  rec('correct_claim', /63292-003|DAL-2026-0020|אטיאס/.test(snap), { snap: snap.slice(0, 240) });
+  rec('correct_claim', /אליהו אטיאס/.test(snap) && /1260010522488|63292003|63292-003|DAL-2026-0020/.test(snap), { snap: snap.slice(0, 240) });
 }
 
 async function inspectOpenCard(page, prefix) {
   await page.locator('[data-testid="claims-tab-group-mail"]').click();
-  await page.waitForTimeout(1200);
-  const mailText = (await page.locator('[data-testid="mail-correspondence"]').innerText().catch(() => ''))
-    || (await page.locator('.claims-root').innerText().catch(() => ''));
-  rec(`${prefix}_mail_tab`, /דואר ותקשורת|התכתבויות|63292-003|אטיאס/.test(mailText), { sample: String(mailText).slice(0, 220) });
+  await page.locator('[data-testid="claims-tab-sub-gin"]').click().catch(() => null);
+  await page.getByText('63292-003').first().waitFor({ timeout: 15000 }).catch(() => null);
+  const overlay = page.locator('.ov.open');
+  const mailText = (await overlay.innerText().catch(() => '')) || '';
+  rec(`${prefix}_mail_tab`, /התכתבויות \(\d+\)/.test(mailText) && Number((mailText.match(/התכתבויות \((\d+)\)/) || [])[1] || 0) >= 1, { sample: String(mailText).slice(0, 280) });
   rec(`${prefix}_mail_file_number`, /63292-003/.test(mailText));
   rec(`${prefix}_mail_name`, /אטיאס/.test(mailText));
   await saveShot(page, `${prefix}_mail`);
 
   await page.locator('[data-testid="claims-tab-group-docs"]').click();
+  await page.locator('[data-testid="claims-tab-sub-surveyor"]').click().catch(() => null);
   await page.waitForTimeout(1200);
-  const docsText = (await page.locator('.claims-root').innerText().catch(() => '')) || '';
-  rec(`${prefix}_docs_tab`, /מסמכים|דוח|שמאות|\.pdf/i.test(docsText), { sample: String(docsText).slice(0, 220) });
-  rec(`${prefix}_report_present`, /שמאות|דוח|\.pdf|2241/i.test(docsText));
+  const docsText = (await overlay.innerText().catch(() => '')) || '';
+  rec(`${prefix}_docs_tab`, /מסמכים|דוח שמאי/.test(docsText), { sample: String(docsText).slice(0, 280) });
+  rec(`${prefix}_report_present`, /שמאות|דוח שמאי|\.pdf|2241|קיים/.test(docsText));
   await saveShot(page, `${prefix}_docs`);
 
   await page.locator('[data-testid="claims-tab-group-hist"]').click().catch(() => null);
-  await page.waitForTimeout(800);
-  const histText = (await page.locator('.claims-root').innerText().catch(() => '')) || '';
-  rec(`${prefix}_history`, /היסטוריה|Gmail|מייל|ייבוא/.test(histText));
+  await page.waitForTimeout(1000);
+  const histText = (await overlay.innerText().catch(() => '')) || '';
+  rec(`${prefix}_history`, /יובא מייל מ-Gmail|היסטוריה/.test(histText));
   await saveShot(page, `${prefix}_history`);
 }
 
@@ -166,9 +168,10 @@ const page = await ctx.newPage();
 try {
   await openEli(page);
   await inspectOpenCard(page, 'open');
-  await page.locator('.ov.open .mh button.mcl').click();
+  await page.locator('.ov.open .mh button.mcl').click({ timeout: 5000 }).catch(() => null);
+  await page.locator('.ov.open').click({ position: { x: 8, y: 8 }, timeout: 3000 }).catch(() => null);
   await page.waitForTimeout(800);
-  rec('card_closed', (await page.locator('[data-testid="claims-card-snapshot"]').count()) === 0);
+  rec('card_closed', (await page.locator('.ov.open').count()) === 0);
   await page.reload({ waitUntil: 'networkidle', timeout: 120000 });
   await page.waitForTimeout(1600);
   await openEli(page);

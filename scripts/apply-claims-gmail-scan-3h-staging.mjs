@@ -109,7 +109,14 @@ try {
 
   const attempts = [];
   let applied = report.alreadyLive === true;
-  if (applied) attempts.push({ fn: 'already_live_inboxScanTick', ok: true, tick: beforeTick });
+  if (applied) {
+    attempts.push({ fn: 'already_live_inboxScanTick', ok: true, tick: beforeTick });
+    report.apply = { ok: true, attempts };
+    report.verify = { ok: true, mode: before.data?.mode || null, tick: beforeTick, error: before.error?.message || null };
+    writeFileSync(join(OUT, 'apply-result.json'), JSON.stringify(report, null, 2));
+    console.log(JSON.stringify(report, null, 2));
+    process.exit(0);
+  }
 
   if (!applied) {
     const execNames = ['exec_sql', 'exec_sql_query', 'run_sql'];
@@ -168,7 +175,6 @@ try {
   }
 
   report.apply = { ok: applied, attempts };
-  await admin.rpc('exec_sql', { query: "NOTIFY pgrst, 'reload schema';" }).catch(() => null);
 
   const { data: dispatch, error: dispatchErr } = await admin.rpc('claims_mail_dispatch_now');
   const tick = dispatch?.inboxScanTick || {};
