@@ -551,7 +551,8 @@ function surveyorBundle(files: ClaimFile[], imports: Array<Record<string, unknow
   void imports;
   const reportById = new Map<string, ClaimFile>();
   tagged.forEach((f) => reportById.set(f.id, f));
-  const reports = [...reportById.values()];
+  const reports = [...reportById.values()].sort((a, b) =>
+    String(a.original_name || '').localeCompare(String(b.original_name || ''), undefined, { numeric: true, sensitivity: 'base' }));
   const gmailIds = new Set([...photos, ...reports, ...taggedAtt].map((f) => f.gmail_message_id).filter(Boolean) as string[]);
   const related = files.filter((f) => (
     f.gmail_message_id
@@ -609,7 +610,7 @@ function InCardPreview({ file, onClose }: { file: { url: string; name: string; m
   const [blobUrl, setBlobUrl] = useState('');
   const [loadErr, setLoadErr] = useState('');
   useEffect(() => {
-    wrapRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    wrapRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }, [file?.url, blobUrl]);
   useEffect(() => {
     let revoke = '';
@@ -2477,6 +2478,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
                       ))}
                     </div>
+                    <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
                     {pack.reports.length === 0 && pack.photos.length === 0 && pack.attachments.length === 0 && untaggedPhotos.length === 0 ? (
                       <div className="spec-empty">אין דוח שמאי מסומן בתיק. העלה את הדוח כאן, או סמן מסמך קיים כלשונית «מסמכים» כדוח שמאי. הקובץ נשמר פעם אחת בלבד.</div>
                     ) : null}
@@ -2495,7 +2497,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <button className="btn btn-p btn-sm" data-testid="surveyor-report-open" onClick={() => void openInCard(cur.id, f)}>פתח בתיק</button>
                       </div>
                     ))}
-                    <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
                     {report ? (
                       <div key={`${report.id}:${meta.surveyorName}:${meta.reportDate}:${meta.reportNumber}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 8, margin: '10px 0 14px' }}>
                         <input className="fi" id="surv_meta_name" defaultValue={meta.surveyorName || cur.surveyor || ''} placeholder="שם שמאי בדוח" />
