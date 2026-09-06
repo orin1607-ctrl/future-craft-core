@@ -6,7 +6,11 @@ name: Oren Car Production Code Deploy
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      # Owner-authorized 2026-09-06: overlay Tasks 1-2 onto live Production SHA only.
+      # Do not merge this branch to main. Does not target the GPS/telematics VPS.
+      - cursor/oren-car-prod-overlay-tasks-1-2-b1e6
     paths:
       - 'public/project-001/oren-car-production-deploy.json'
       - '.github/workflows/oren-car-production-code-deploy.yml'
@@ -88,7 +92,7 @@ jobs:
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/future-craft-core/site-static/
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "echo 'commit=${{ github.sha }} bundle=${{ steps.bundle.outputs.name }} at=$(date -u +%Y-%m-%dT%H:%M:%SZ) reason=oren-car-code-only-2026-08-10' > /root/future-craft-core/dist/PRODUCTION-DEPLOY.txt"
+            "echo 'commit=${{ github.sha }} bundle=${{ steps.bundle.outputs.name }} at=$(date -u +%Y-%m-%dT%H:%M:%SZ) reason=oren-car-tasks-1-2-overlay base=6431c688 fullMerge=NO' > /root/future-craft-core/dist/PRODUCTION-DEPLOY.txt"
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             "nginx -t && systemctl reload nginx"
