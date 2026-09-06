@@ -8,6 +8,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { matchIncomingMail, suggestReply, detectMailRequests, classifySentAttachment, isDocMailRequest, type MatchClaim } from "./matchIncoming.ts";
 
 const ALLOWED_ACCOUNT = "yoni122222@gmail.com";
+const STAGING_REF = "usfeoerkpcafxxlyuldl";
+const PROD_REF = "qasomfndnjuixgjmjwcm";
+const MAILBOX_SCAN_EVERY_MS = 3 * 60 * 60 * 1000;
+const MAILBOX_SCAN_STAMP_KEY = "GMAIL_INBOX_LAST_SCAN_AT";
+const MAILBOX_SCAN_LOOKBACK = "newer_than:3d";
 const SCOPES = [
   "openid",
   "https://www.googleapis.com/auth/userinfo.email",
@@ -25,6 +30,41 @@ type Failure = { filename: string; reason: string };
 
 function admin() {
   return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+}
+
+function jwtRoleRef(token: string): { role?: string; ref?: string } {
+  try {
+    const part = token.split(".")[1];
+    if (!part) return {};
+    const json = atob(part.replace(/-/g, "+").replace(/_/g, "/"));
+    const payload = JSON.parse(json) as { role?: string; ref?: string };
+    return { role: payload.role, ref: payload.ref };
+  } catch {
+    return {};
+  }
+}
+
+function isInternalScheduler(req: Request) {
+  const secret = Deno.env.get("DALIA_EDGE_INTERNAL_SECRET");
+  return !!secret && req.headers.get("x-dalia-internal-key") === secret;
+}
+
+function isStagingServiceRole(req: Request) {
+  const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return false;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  if (serviceKey && token === serviceKey) {
+    const parsed = jwtRoleRef(serviceKey);
+    if (parsed.ref === PROD_REF) return false;
+    if (parsed.ref && parsed.ref !== STAGING_REF) return false;
+    return true;
+  }
+  const parsed = jwtRoleRef(token);
+  return parsed.role === "service_role" && parsed.ref === STAGING_REF;
+}
+
+function isUuid(v: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 }
 
 function nid(prefix: string) {
@@ -562,7 +602,7 @@ async function ensureMailTasks(
   return { created, existing, autoSend: false, requests, tasks: out, review: requests.some((r) => r.kind === "generic") };
 }
 
-Deno.serve(async (req) => {
+async function handleClaimsGmail(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { headers: edgeCorsHeaders });
   const url = new URL(req.url);
   const sb = admin();
@@ -606,15 +646,28 @@ Deno.serve(async (req) => {
     });
   }
 
-  const auth = await requireAuth(req);
-  if ("error" in auth) return auth.error;
-  const { user, role } = auth.ctx;
-  if (!(await hasClaimsAccess(sb, user.id, role))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+  const schedulerRequested = body.scheduler === true && (action === "scan_inbox" || action === "import_message");
+  const systemScheduler = schedulerRequested && (isInternalScheduler(req) || isStagingServiceRole(req));
+  let user: { id: string; email?: string };
+  let role: string;
+  if (systemScheduler) {
+    user = { id: "", email: "claims-gmail-scan@staging" };
+    role = "super_admin";
+  } else {
+    const auth = await requireAuth(req);
+    if ("error" in auth) return auth.error;
+    user = auth.ctx.user;
+    role = auth.ctx.role;
+    if (!(await hasClaimsAccess(sb, user.id, role))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+  }
 
   if (action === "status") {
     const conn = await loadConnection(sb);
     const { count: selfTestCount } = await sb.from("claims_gmail_outbox").select("id", { count: "exact", head: true }).eq("kind", "self_test");
     const sendEnabled = await isSendEnabled(sb);
+    const { data: stamp } = await sb.from("claims_config").select("value").eq("key", MAILBOX_SCAN_STAMP_KEY).maybeSingle();
+    const lastMs = stamp?.value ? Date.parse(String(stamp.value)) : 0;
+    const lastScanAt = lastMs && Number.isFinite(lastMs) ? new Date(lastMs).toISOString() : null;
     return jsonResponse({
       success: true,
       connected: !!conn,
@@ -626,6 +679,15 @@ Deno.serve(async (req) => {
       scopes: SCOPES,
       canConnect: role === "super_admin",
       autoDispatch: false,
+      scheduler: {
+        everyMs: MAILBOX_SCAN_EVERY_MS,
+        everyHours: 3,
+        lookback: MAILBOX_SCAN_LOOKBACK,
+        folders: ["inbox", "sent"],
+        lastScanAt,
+        nextDueAt: lastScanAt ? new Date(lastMs + MAILBOX_SCAN_EVERY_MS).toISOString() : new Date().toISOString(),
+        dueNow: !lastScanAt || Date.now() - lastMs >= MAILBOX_SCAN_EVERY_MS,
+      },
     });
   }
 
@@ -920,6 +982,27 @@ Deno.serve(async (req) => {
     });
   }
 
+  if (action === "scan_inbox" && systemScheduler && body.force !== true) {
+    const { data: stamp } = await sb.from("claims_config").select("value").eq("key", MAILBOX_SCAN_STAMP_KEY).maybeSingle();
+    const lastMs = stamp?.value ? Date.parse(String(stamp.value)) : 0;
+    if (lastMs && Number.isFinite(lastMs) && Date.now() - lastMs < MAILBOX_SCAN_EVERY_MS) {
+      return jsonResponse({
+        success: true,
+        skipped: true,
+        reason: "scan_not_due",
+        lookback: MAILBOX_SCAN_LOOKBACK,
+        folders: ["inbox", "sent"],
+        scheduler: true,
+        everyMs: MAILBOX_SCAN_EVERY_MS,
+        lastScanAt: new Date(lastMs).toISOString(),
+        nextDueAt: new Date(lastMs + MAILBOX_SCAN_EVERY_MS).toISOString(),
+        mailboxMutated: false,
+        realEmailSend: false,
+        autoSend: false,
+      });
+    }
+  }
+
   const conn = await loadConnection(sb);
   if (!conn) return jsonResponse({ success: false, error: "gmail_not_connected" }, 409);
   if (conn.connected_email.toLowerCase() !== ALLOWED_ACCOUNT) {
@@ -936,8 +1019,7 @@ Deno.serve(async (req) => {
 
   if (action === "scan_inbox") {
     const dry = body.dry === true;
-    const listed = await gmailGet(access, `messages?maxResults=15&q=${encodeURIComponent("in:inbox newer_than:3d")}`);
-    const ids = ((listed.messages || []) as Array<{ id?: string }>).map((m) => String(m.id || "")).filter(Boolean).slice(0, 15);
+    const scheduler = systemScheduler;
     const { data: importedRows } = await sb.from("claims_gmail_imports").select("gmail_message_id");
     const importedSet = new Set((importedRows || []).map((r) => String(r.gmail_message_id || "")).filter(Boolean));
     const { data: pendingRows } = await sb.from("claims_gmail_pending").select("id, gmail_message_id, imported_at, decision");
@@ -945,104 +1027,171 @@ Deno.serve(async (req) => {
     const claims = await loadMatchClaims(sb);
     const auto: Array<Record<string, unknown>> = [];
     const needsReview: Array<Record<string, unknown>> = [];
+    const folderCounts: Record<string, number> = { inbox: 0, sent: 0 };
     let skippedImported = 0;
     let skippedPending = 0;
-    for (const messageId of ids) {
-      if (importedSet.has(messageId)) {
-        skippedImported += 1;
-        continue;
-      }
-      const existingPending = pendingByMsg.get(messageId);
-      if (existingPending?.imported_at) {
-        skippedImported += 1;
-        continue;
-      }
-      if (existingPending && !dry) {
-        skippedPending += 1;
-        continue;
-      }
-      const full = await gmailGet(access, `messages/${encodeURIComponent(messageId)}?format=full`);
-      const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
-      const parts: Array<Record<string, unknown>> = [];
-      if (full.payload) walkParts(full.payload as Record<string, unknown>, parts);
-      const files = collectFiles(parts);
-      const extracted = await extractMailBody(access, messageId, full.payload as Record<string, unknown>, parts, String(full.snippet || ""));
-      const fromAddr = header(headers, "From");
-      const subject = header(headers, "Subject");
-      const sentAt = full.internalDate ? new Date(Number(full.internalDate)).toISOString() : null;
-      const match = matchIncomingMail({
-        messageId,
-        threadId: String(full.threadId || ""),
-        subject,
-        body: extracted.bodyText,
-        from: fromAddr,
-        filenames: files.map((f) => f.filename),
-      }, claims);
-      const pendingId = `GIP-${messageId}`.slice(0, 80);
-      const row = {
-        id: pendingId,
-        gmail_message_id: messageId,
-        gmail_thread_id: String(full.threadId || ""),
-        from_addr: fromAddr,
-        subject,
-        snippet: String(full.snippet || extracted.bodyText.slice(0, 180)),
-        sent_at: sentAt,
-        decision: match.decision,
-        reason: match.reason,
-        via: match.via || null,
-        candidates: match.candidates,
-        assigned_claim_id: match.decision === "auto" ? (match.claimId || null) : null,
-      };
-      const item = {
-        pending_id: pendingId,
-        message_id: messageId,
-        thread_id: String(full.threadId || ""),
-        from: fromAddr,
-        subject,
-        sent_at: sentAt,
-        claim_id: match.claimId || null,
-        ...match,
-      };
-      if (match.decision === "auto" && match.claimId) auto.push(item);
-      else needsReview.push(item);
-      if (dry) continue;
-      await sb.from("claims_gmail_pending").upsert(row, { onConflict: "gmail_message_id" });
-      const ntfId = nid("NTF");
-      const claimLabel = match.claimId || "";
-      const whenHe = sentAt ? new Date(sentAt).toLocaleString("he-IL") : new Date().toLocaleString("he-IL");
-      const message = match.decision === "auto" && match.claimId
-        ? `מייל חדש התקבל בתביעה ${claimLabel}\nשולח: ${fromAddr}\nנושא: ${subject || "(ללא נושא)"}\nשעה: ${whenHe}`
-        : `מייל חדש דורש בדיקת שיוך\nשולח: ${fromAddr}\nנושא: ${subject || "(ללא נושא)"}\nשעה: ${whenHe}`;
-      await sb.from("claims_notifications").insert({
-        id: ntfId,
-        claim_id: match.claimId || null,
-        row_data: {
-          id: ntfId,
-          claimId: match.claimId || "",
-          type: match.decision === "auto" ? "gmail_auto" : "gmail_review",
-          message,
-          read: "false",
-          createdAt: new Date().toLocaleString("he-IL"),
+    const folders: Array<{ mailbox: "inbox" | "sent"; q: string }> = [
+      { mailbox: "inbox", q: `in:inbox ${MAILBOX_SCAN_LOOKBACK}` },
+      { mailbox: "sent", q: `in:sent ${MAILBOX_SCAN_LOOKBACK}` },
+    ];
+    const seenIds = new Set<string>();
+    for (const folder of folders) {
+      const listed = await gmailGet(access, `messages?maxResults=20&q=${encodeURIComponent(folder.q)}`);
+      const ids = ((listed.messages || []) as Array<{ id?: string }>).map((m) => String(m.id || "")).filter(Boolean).slice(0, 20);
+      folderCounts[folder.mailbox] = ids.length;
+      for (const messageId of ids) {
+        if (seenIds.has(messageId)) continue;
+        seenIds.add(messageId);
+        if (importedSet.has(messageId)) {
+          skippedImported += 1;
+          continue;
+        }
+        const existingPending = pendingByMsg.get(messageId);
+        if (existingPending?.imported_at) {
+          skippedImported += 1;
+          continue;
+        }
+        if (existingPending && !dry) {
+          skippedPending += 1;
+          continue;
+        }
+        const full = await gmailGet(access, `messages/${encodeURIComponent(messageId)}?format=full`);
+        const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+        const parts: Array<Record<string, unknown>> = [];
+        if (full.payload) walkParts(full.payload as Record<string, unknown>, parts);
+        const files = collectFiles(parts);
+        const extracted = await extractMailBody(access, messageId, full.payload as Record<string, unknown>, parts, String(full.snippet || ""));
+        const fromAddr = header(headers, "From");
+        const subject = header(headers, "Subject");
+        const sentAt = full.internalDate ? new Date(Number(full.internalDate)).toISOString() : null;
+        const match = matchIncomingMail({
+          messageId,
+          threadId: String(full.threadId || ""),
+          subject,
+          body: extracted.bodyText,
+          from: fromAddr,
+          filenames: files.map((f) => f.filename),
+        }, claims);
+        const pendingId = `GIP-${messageId}`.slice(0, 80);
+        const row = {
+          id: pendingId,
+          gmail_message_id: messageId,
+          gmail_thread_id: String(full.threadId || ""),
+          from_addr: fromAddr,
+          subject,
+          snippet: String(full.snippet || extracted.bodyText.slice(0, 180)),
+          sent_at: sentAt,
+          decision: match.decision,
+          reason: match.reason,
+          via: match.via || null,
+          candidates: match.candidates,
+          assigned_claim_id: match.decision === "auto" ? (match.claimId || null) : null,
+        };
+        const item = {
+          pending_id: pendingId,
+          message_id: messageId,
+          thread_id: String(full.threadId || ""),
+          mailbox: folder.mailbox,
           from: fromAddr,
           subject,
-          pendingId,
-          gmail_message_id: messageId,
-        },
-      });
+          sent_at: sentAt,
+          claim_id: match.claimId || null,
+          attachment_count: files.length,
+          ...match,
+        };
+        if (match.decision === "auto" && match.claimId) auto.push(item);
+        else needsReview.push(item);
+        if (dry) continue;
+        await sb.from("claims_gmail_pending").upsert(row, { onConflict: "gmail_message_id" });
+        const ntfId = nid("NTF");
+        const claimLabel = match.claimId || "";
+        const whenHe = sentAt ? new Date(sentAt).toLocaleString("he-IL") : new Date().toLocaleString("he-IL");
+        const folderHe = folder.mailbox === "sent" ? "יוצא" : "נכנס";
+        const message = match.decision === "auto" && match.claimId
+          ? `מייל ${folderHe} שויך לתביעה ${claimLabel}\nשולח: ${fromAddr}\nנושא: ${subject || "(ללא נושא)"}\nשעה: ${whenHe}`
+          : `מייל ${folderHe} דורש בדיקת שיוך\nשולח: ${fromAddr}\nנושא: ${subject || "(ללא נושא)"}\nשעה: ${whenHe}`;
+        await sb.from("claims_notifications").insert({
+          id: ntfId,
+          claim_id: match.claimId || null,
+          row_data: {
+            id: ntfId,
+            claimId: match.claimId || "",
+            type: match.decision === "auto" ? "gmail_auto" : "gmail_review",
+            message,
+            read: "false",
+            createdAt: new Date().toLocaleString("he-IL"),
+            from: fromAddr,
+            subject,
+            pendingId,
+            gmail_message_id: messageId,
+            mailbox: folder.mailbox,
+          },
+        });
+      }
     }
+    let imported = 0;
+    const importErrors: Array<{ message_id: string; error: string }> = [];
+    if (scheduler && !dry) {
+      for (const item of auto) {
+        const claimId = String(item.claim_id || "");
+        const messageId = String(item.message_id || "");
+        if (!claimId || !messageId) continue;
+        try {
+          let start = 0;
+          for (let step = 0; step < 40; step += 1) {
+            const child = await handleClaimsGmail(new Request(req.url, {
+              method: "POST",
+              headers: req.headers,
+              body: JSON.stringify({
+                action: "import_message",
+                claim_id: claimId,
+                message_id: messageId,
+                start,
+                scheduler: true,
+              }),
+            }));
+            const ir = await child.json() as { success?: boolean; done?: boolean; start?: number; error?: string };
+            if (!ir.success) {
+              importErrors.push({ message_id: messageId, error: String(ir.error || child.status) });
+              break;
+            }
+            if (ir.done) {
+              imported += 1;
+              break;
+            }
+            start = Number(ir.start || start + BATCH);
+          }
+        } catch (e) {
+          importErrors.push({ message_id: messageId, error: String((e as Error).message || e).slice(0, 180) });
+        }
+      }
+      await sb.from("claims_config").upsert({
+        key: MAILBOX_SCAN_STAMP_KEY,
+        value: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "key" });
+    }
+    const nowIso = new Date().toISOString();
     return jsonResponse({
       success: true,
       dry,
-      scanned: ids.length,
+      scanned: seenIds.size,
+      folders: folderCounts,
       auto,
       needs_review: needsReview,
       skippedImported,
       skippedPending,
+      imported,
+      importErrors: importErrors.slice(0, 20),
       mailboxMutated: false,
       realEmailSend: false,
-      scheduler: false,
+      autoSend: false,
+      scheduler,
       oauthChanged: false,
-      lookback: "newer_than:3d",
+      lookback: MAILBOX_SCAN_LOOKBACK,
+      everyMs: MAILBOX_SCAN_EVERY_MS,
+      lastScanAt: scheduler && !dry ? nowIso : undefined,
+      nextDueAt: scheduler && !dry ? new Date(Date.now() + MAILBOX_SCAN_EVERY_MS).toISOString() : undefined,
     });
   }
 
@@ -1295,8 +1444,13 @@ Deno.serve(async (req) => {
       }, 409);
     }
     const start = Number(body.start || 0) || 0;
-    const { data: profile } = await sb.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-    const actorName = profile?.full_name || user.email || user.id;
+    const actorId = isUuid(user.id) ? user.id : null;
+    const profile = actorId
+      ? (await sb.from("profiles").select("full_name").eq("id", actorId).maybeSingle()).data
+      : null;
+    const actorName = systemScheduler
+      ? "מערכת (סריקת Gmail)"
+      : (profile?.full_name || user.email || user.id);
 
     const full = await gmailGet(access, `messages/${encodeURIComponent(messageId)}?format=full`);
     const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
@@ -1326,7 +1480,7 @@ Deno.serve(async (req) => {
         imported_count: 0,
         failed_count: 0,
         failures: [],
-        imported_by: user.id,
+        imported_by: actorId,
         imported_by_name: actorName,
       }, { onConflict: "id" });
       const { data: rec } = await sb.from("claims_records").select("gmail_message_id").eq("id", claimId).maybeSingle();
@@ -1388,40 +1542,7 @@ Deno.serve(async (req) => {
       }
       const digest = await sha256HexBytes(bytes);
       const prior = (existingRows || []).find((r) => String(r.content_sha256 || "") === digest);
-      if (prior && String(prior.gmail_message_id || "") === String(full.id) && (
-        (f.attachmentId && String(prior.gmail_attachment_id || "") === f.attachmentId) || !f.attachmentId
-      )) {
-        skippedExisting += 1;
-        continue;
-      }
-      if (prior?.storage_path && String(prior.gmail_message_id || "") !== String(full.id)) {
-        const { error: linkErr } = await sb.from("claims_documents").insert({
-          id: nid("CDM"),
-          claim_id: claimId,
-          storage_path: prior.storage_path,
-          original_name: filename,
-          mime_type: storedMime || prior.mime_type,
-          byte_size: bytes.byteLength,
-          source: "gmail",
-          gmail_message_id: String(full.id),
-          gmail_thread_id: threadId,
-          gmail_attachment_id: f.attachmentId || null,
-          content_sha256: digest,
-          doc_kind: guessDocKind(filename, storedMime, subject),
-          uploaded_by: user.id,
-          uploaded_by_name: actorName,
-          doc_meta: { storage_reused: "true", related_file_id: String(prior.id) },
-        });
-        if (linkErr) {
-          failures.push({ filename, reason: `db_error:${linkErr.message}` });
-          continue;
-        }
-        uploaded += 1;
-        if (f.attachmentId) haveAtt.add(f.attachmentId);
-        haveHash.add(digest);
-        continue;
-      }
-      if (haveHash.has(digest) && prior && String(prior.gmail_message_id || "") === String(full.id)) {
+      if (prior || haveHash.has(digest)) {
         skippedExisting += 1;
         continue;
       }
@@ -1447,7 +1568,7 @@ Deno.serve(async (req) => {
         gmail_attachment_id: f.attachmentId || null,
         content_sha256: digest,
         doc_kind: guessDocKind(filename, storedMime, subject),
-        uploaded_by: user.id,
+        uploaded_by: actorId,
         uploaded_by_name: actorName,
       });
       if (insErr) {
@@ -2152,7 +2273,9 @@ Deno.serve(async (req) => {
   }
 
   return jsonResponse({ success: false, error: "unknown_action" }, 400);
-});
+}
+
+Deno.serve((req) => handleClaimsGmail(req));
 
 function whyScope(s: string) {
   if (s === "openid") return "זיהוי חשבון Google בלי לגשת לתוכן.";
