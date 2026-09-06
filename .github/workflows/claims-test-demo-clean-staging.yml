@@ -38,10 +38,11 @@ jobs:
 
       - name: Inventory + soft-delete proven TEST
         env:
-          STAGING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -euo pipefail
-          test -n "${STAGING_SUPABASE_SERVICE_ROLE_KEY}"
+          export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          test -n "$SUPABASE_ACCESS_TOKEN"
           npm install @supabase/supabase-js --no-save --silent
           node scripts/claims-test-demo-clean-staging.mjs --admin
 
