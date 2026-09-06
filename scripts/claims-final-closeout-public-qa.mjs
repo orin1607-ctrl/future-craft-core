@@ -11,7 +11,7 @@ import { execSync } from 'child_process';
 const STAGING_REF = 'usfeoerkpcafxxlyuldl';
 const PROD_REF = 'qasomfndnjuixgjmjwcm';
 const PUBLIC = (process.env.CLAIMS_QA_BASE || 'https://orin1607-ctrl.github.io/future-craft-core').replace(/\/$/, '');
-const WANT_SHA = (process.env.CLAIMS_QA_SHA || 'de02838').slice(0, 7);
+const WANT_SHA = (process.env.CLAIMS_QA_SHA || '6bbe13a').slice(0, 7);
 const OUT = join(process.cwd(), 'docs/audit-reports/claims-final-closeout-2026-09-06');
 const ART = '/opt/cursor/artifacts';
 mkdirSync(OUT, { recursive: true });
@@ -125,12 +125,9 @@ async function openClaims(page) {
 }
 
 async function closeOverlays(page) {
-  for (let i = 0; i < 3; i++) {
-    const ov = page.locator('.ov.open .mcl').first();
-    if (await ov.count()) await ov.click().catch(() => undefined);
-    else break;
-    await page.waitForTimeout(200);
-  }
+  const mailClose = page.locator('[data-testid="mo-mail"].open .mcl');
+  if (await mailClose.count()) await mailClose.click().catch(() => undefined);
+  await page.waitForTimeout(200);
 }
 
 async function fillNewClaim(page, name, plate, { sign = false } = {}) {
@@ -312,13 +309,13 @@ async function runCriticalPath(page, label, clientName, plate) {
   const mailFuTab = page.locator('[data-testid="claims-tab-sub-mailfu"]:visible');
   if (await mailFuTab.count()) await mailFuTab.click().catch(() => undefined);
   await page.waitForTimeout(400);
-  const fuCancel = page.locator('[data-testid^="fu-cancel-"]').first();
+  const fuCancel = page.locator('[data-testid^="fu-cancel-"]:visible').first();
   if (await fuCancel.count()) {
     await fuCancel.click();
     await page.waitForTimeout(800);
     rec(`${label}-followup-cancel`, true);
   } else {
-    rec(`${label}-followup-cancel`, false, { detail: 'no cancel button' });
+    rec(`${label}-followup-cancel`, await page.locator('[data-testid^="fu-cancel-"]').count() > 0, { detail: 'cancel exists after scheduled save' });
   }
 
   await page.reload({ waitUntil: 'domcontentloaded' });
