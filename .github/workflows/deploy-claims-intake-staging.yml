@@ -1,0 +1,42 @@
+name: Staging claims-intake deploy
+
+# Staging only. Deploys claims-intake (existing signature link + bound claim_id).
+# Never Production. Never Hostinger.
+
+on:
+  push:
+    branches:
+      - feat/incident-alerts-staging
+    paths:
+      - 'supabase/functions/claims-intake/**'
+      - '.github/workflows/deploy-claims-intake-staging.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-claims-intake-staging
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard Staging only
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" != "production"
+          test "${GITHUB_REF_NAME}" != "main"
+          test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
+
+      - name: Deploy claims-intake to Staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          npx --yes supabase functions deploy claims-intake --project-ref usfeoerkpcafxxlyuldl --use-api

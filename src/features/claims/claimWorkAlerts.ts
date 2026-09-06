@@ -18,7 +18,7 @@ export const CUSTOMER_REQUEST_STATUSES: Array<{ key: string; label: string }> = 
   { key: 'cancelled', label: 'בוטל' },
 ];
 
-export type ClaimAlert = { key: string; label: string; tone: 'need' | 'wait' | 'info' };
+export type ClaimAlert = { key: string; label: string; tone: 'need' | 'wait' | 'info'; mailIds?: string[]; count?: number };
 
 export function customerKindLabel(key: string) {
   return CUSTOMER_REQUEST_KINDS.find((x) => x.key === key)?.label || key || 'בקשה ללקוח';
@@ -118,23 +118,47 @@ export function isScheduledOnceMail(purpose?: string) {
   return purpose === 'scheduled_send';
 }
 
+export function untreatedMailIds(c: ClaimRecord, ctx: AlertContext): string[] {
+  return [...new Set(
+    ctx.tasks
+      .filter((t) => t.claimId === c.id && t.gmailMessageId && t.done !== 'true')
+      .map((t) => String(t.gmailMessageId)),
+  )];
+}
+
+export function countUntreatedMails(c: ClaimRecord, ctx: AlertContext): number {
+  return untreatedMailIds(c, ctx).length;
+}
+
+/** Opening/reading a mail is not completion. Missing/awaiting docs cannot be marked done. */
+export function canMarkMailTaskDone(task: { docState?: string }, nextStatus: string): { ok: boolean; reason: string } {
+  if (nextStatus === 'doc_not_needed') return { ok: true, reason: '' };
+  if (nextStatus !== 'done') return { ok: true, reason: '' };
+  if (task.docState === 'missing' || task.docState === 'awaiting_signature') {
+    return { ok: false, reason: 'חסר מסמך — לא ניתן לסמן הושלם עד שהמסמך קיים או עד שמסמנים ״אין צורך במסמך״' };
+  }
+  return { ok: true, reason: '' };
+}
+
 export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAlert[] {
   const out: ClaimAlert[] = [];
-  const add = (key: string, label: string, tone: ClaimAlert['tone']) => {
-    if (!out.some((x) => x.key === key)) out.push({ key, label, tone });
+  const add = (key: string, label: string, tone: ClaimAlert['tone'], extra?: Pick<ClaimAlert, 'mailIds' | 'count'>) => {
+    if (!out.some((x) => x.key === key)) out.push({ key, label, tone, ...extra });
   };
 
   const claimTasks = ctx.tasks.filter((t) => t.claimId === c.id);
   const unreadMail = ctx.notifs.some((n) => n.claimId === c.id && n.read !== 'true' && (n.type === 'gmail_auto' || n.type === 'gmail_review'));
   const pendingAssigned = ctx.gmailPending.some((p) => String(p.assigned_claim_id || '') === c.id && !p.imported_at);
   const mailTasks = claimTasks.filter((t) => t.gmailMessageId && t.done !== 'true');
+  const untreated = untreatedMailIds(c, ctx);
   const insurerDoc = mailTasks.some((t) => isDocMailRequest(t.requestKind || '') || t.docState === 'missing' || t.docState === 'needs_review');
   const missingDoc = claimTasks.some((t) => t.docState === 'missing' && t.done !== 'true');
   const openCust = claimTasks.filter(isOpenCustomerTask);
   const scheduled = ctx.scheduledFollowups.some((f) => f.claim_id === c.id && (!f.status || f.status === 'scheduled'));
 
+  if (untreated.length) add('mail_action', `דואר דורש טיפול (${untreated.length})`, 'need', { mailIds: untreated, count: untreated.length });
   if (unreadMail || pendingAssigned) add('new_mail', 'מייל חדש', 'need');
-  if (mailTasks.length) add('need_reply', 'נדרש מענה', 'need');
+  if (mailTasks.length) add('need_reply', 'נדרש מענה', 'need', { mailIds: untreated, count: untreated.length });
   if (insurerDoc) add('insurer_doc', 'חברת הביטוח ביקשה מסמך', 'need');
   if (missingDoc) add('missing_doc', 'חסר מסמך', 'need');
   if (openCust.some((t) => customerStatusOf(t) === 'sent')) add('wait_client', 'ממתין ללקוח', 'wait');

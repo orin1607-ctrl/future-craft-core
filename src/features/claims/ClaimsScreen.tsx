@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
-import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, buildClaimRowAlerts, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isScheduledOnceMail, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringLabel, type ClaimAlert } from './claimWorkAlerts';
+import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, buildClaimRowAlerts, canMarkMailTaskDone, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isScheduledOnceMail, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringLabel, untreatedMailIds, type ClaimAlert } from './claimWorkAlerts';
+import { buildSignedOpeningFormPdf } from './signedClaimPdf';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, type IntakeDraft } from './claimIntakeModel';
@@ -49,13 +50,25 @@ function returnNeededLabel(c: ClaimRecord): string {
   return claimNeedsReturn(c) ? 'כן' : '—';
 }
 
-function RowAlerts({ alerts }: { alerts: ClaimAlert[] }) {
+function RowAlerts({ alerts, onAlertClick }: { alerts: ClaimAlert[]; onAlertClick?: (a: ClaimAlert) => void }) {
   if (!alerts.length) return <span style={{ color: 'var(--t3)' }}>—</span>;
   return (
     <div className="row-alerts" data-testid="claim-row-alerts">
-      {alerts.map((a) => (
-        <span key={a.key} className={`row-alert tone-${a.tone}`} data-testid={`claim-alert-${a.key}`}>{a.label}</span>
-      ))}
+      {alerts.map((a) => {
+        const clickable = !!onAlertClick && (a.key === 'mail_action' || a.key === 'need_reply' || a.key === 'new_mail' || a.key === 'missing_doc' || a.key === 'insurer_doc');
+        return (
+          <span
+            key={a.key}
+            className={`row-alert tone-${a.tone}${clickable ? ' clickable' : ''}`}
+            data-testid={`claim-alert-${a.key}`}
+            onClick={(e) => {
+              if (!clickable) return;
+              e.stopPropagation();
+              onAlertClick?.(a);
+            }}
+          >{a.label}</span>
+        );
+      })}
     </div>
   );
 }
@@ -245,6 +258,7 @@ const WORK_STATUS: Array<{ key: string; label: string }> = [
   { key: 'sent', label: 'נשלח' },
   { key: 'waiting_reply', label: 'ממתין לתשובה' },
   { key: 'done', label: 'הושלם' },
+  { key: 'doc_not_needed', label: 'אין צורך במסמך' },
 ];
 function workStatusHe(k: string) {
   return WORK_STATUS.find((x) => x.key === k)?.label || k || 'פתוח';
@@ -761,6 +775,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [mineOnly, setMineOnly] = useState(actor.role !== 'super_admin');
   const [intakeDraft, setIntakeDraft] = useState<IntakeDraft>({ ...EMPTY_INTAKE });
   const [intakeLinkMsg, setIntakeLinkMsg] = useState('');
+  const [staffSig, setStaffSig] = useState('');
+  const mailFocusRef = useRef<string[]>([]);
   const [dashTasks, setDashTasks] = useState<ClaimRecord[]>([]);
   const [dashRems, setDashRems] = useState<ClaimRecord[]>([]);
   const toastN = useRef(0);
@@ -1303,7 +1319,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     await loadCardData(curId);
   };
 
-  const uploadStaffFiles = async (claimId: string, files: File[], selectForSend = false, extra?: { doc_kind?: string; staff_type?: string }) => {
+  const uploadStaffFiles = async (claimId: string, files: File[], selectForSend = false, extra?: { doc_kind?: string; staff_type?: string; staff_title?: string }) => {
     if (!files.length) return [];
     setDocsUploading(true);
     const ids: string[] = [];
@@ -1444,7 +1460,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     await loadAll();
   };
 
-  const openCard = async (id: string, tab = 'claim') => {
+  const openCard = async (id: string, tab = 'claim', mailIds?: string[]) => {
+    mailFocusRef.current = mailIds || [];
     setCurId(id);
     setCardTab(tab);
     setCardMore(false);
@@ -1453,6 +1470,28 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setPreviewFile(null);
     await loadCardData(id);
   };
+
+  const openMailAction = (claimId: string, alert?: ClaimAlert) => {
+    const ids = alert?.mailIds?.length ? alert.mailIds : untreatedMailIds(claims.find((c) => c.id === claimId) || { id: claimId } as ClaimRecord, alertCtx);
+    void openCard(claimId, 'gin', ids);
+  };
+
+  useEffect(() => {
+    if (modal !== 'moCard' || cardTab !== 'gin') return;
+    const ids = mailFocusRef.current;
+    if (!ids.length) return;
+    const t = window.setTimeout(() => {
+      for (const mid of ids) {
+        const el = document.querySelector(`[data-mail-mid="${mid}"]`) as HTMLElement | null;
+        if (el) {
+          el.classList.add('mail-focus');
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          break;
+        }
+      }
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [modal, cardTab, gmailImports, curId]);
 
   const startGmailImport = async () => {
     if (!cur) return;
@@ -1484,6 +1523,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setVal('fc_status', 'חדש');
     setVal('fc_kind', CLAIM_KINDS[0]);
     setIntakeDraft({ ...EMPTY_INTAKE });
+    setStaffSig('');
     setVehId('');
     setCompanyName('');
     setVehHits([]);
@@ -1497,6 +1537,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setVal('fc_id', c.id);
     setVal('fc_status', c.status || 'חדש');
     setIntakeDraft(intakeFromClaim(c));
+    setStaffSig('');
     setVehId(c.vehicle_id || '');
     setCompanyName(c.company_name || '');
     setModal('moClaim');
@@ -1508,13 +1549,46 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setSync('pend');
     const r = await apiRef.current.saveClaim(data);
     if (r.success) {
+      const claimId = String(r.id || data.id || '');
+      if (staffSig && claimId) {
+        try {
+          const pdf = await buildSignedOpeningFormPdf({
+            clientName: intakeDraft.clientName || data.clientName,
+            plate: intakeDraft.plate || data.plate || '',
+            eventDate: intakeDraft.eventDate || data.eventDate || '',
+            eventLocation: [intakeDraft.eventPlace, intakeDraft.eventCity, intakeDraft.eventStreet].filter(Boolean).join(', '),
+            eventDesc: intakeDraft.eventDesc || intakeDraft.damageDesc || '',
+            signaturePng: staffSig,
+          });
+          const up = await apiRef.current.staffUpload(claimId, '', pdf, {
+            staff_type: 'accident_notice',
+            staff_title: 'טופס פתיחת תביעה חתום',
+          });
+          if (!up.success) toast(`התיק נשמר אבל העלאת ה-PDF נכשלה: ${up.error || ''}`, 'err');
+        } catch (err) {
+          toast(`התיק נשמר אבל יצירת PDF נכשלה: ${String((err as Error).message || err)}`, 'err');
+        }
+      }
+      setStaffSig('');
       setModal(null);
       await loadAll();
       toast('תיק נשמר ✅');
+      if (claimId) await openCard(claimId, 'docs');
     } else {
       setSync('err');
       toast(`שגיאה: ${r.error || ''}`, 'err');
     }
+  };
+
+  const sendCustomerSignLink = async (claimId: string) => {
+    const r = await apiRef.current.invokeIntake('create_link', { claim_id: claimId });
+    if (!r.success || !r.token) { toast(String(r.error || 'יצירת קישור נכשלה'), 'err'); return; }
+    const origin = window.location.origin;
+    const base = import.meta.env.BASE_URL || '/';
+    const url = `${origin}${base && base !== '/' ? base.replace(/\/$/, '') : ''}/claims-intake?t=${r.token}`;
+    try { await navigator.clipboard.writeText(url); } catch { /* ignore */ }
+    setIntakeLinkMsg(url);
+    toast('קישור החתימה הועתק — משויך לתיק זה בלבד');
   };
 
   const searchVehicles = async (q: string) => {
@@ -1779,7 +1853,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       <td style={{ fontSize: 11 }}>{c.assigned_to_name || '—'}</td>
       <td style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtDay(c.lastTreatmentAt || '')}</td>
       <td style={{ fontSize: 10, color: 'var(--yn2)' }}>{fmtDay(c.nextDate || '')}</td>
-      <td onClick={(e) => e.stopPropagation()}><RowAlerts alerts={buildClaimRowAlerts(c, alertCtx)} /></td>
+      <td onClick={(e) => e.stopPropagation()}><RowAlerts alerts={buildClaimRowAlerts(c, alertCtx)} onAlertClick={(a) => openMailAction(c.id, a)} /></td>
       <td style={{ fontSize: 10 }}>{docsOrderLabel(docsOrderOf(c)) || '—'}</td>
       {extra ? <td onClick={(e) => e.stopPropagation()}><button className="btn btn-g btn-sm" onClick={() => startEdit(c.id)}>✏️</button></td> : null}
     </tr>
@@ -2201,6 +2275,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               value={intakeDraft}
               onChange={(d) => { setIntakeDraft(d); setVal('fc_kind', d.claimKind || CLAIM_KINDS[0]); }}
               stepKey="all"
+              onSignature={setStaffSig}
+              signatureSet={!!staffSig}
               staffSlot={(
                 <>
                   <div className="sdiv"><div className="sdiv-t">פנימי לעובד</div><div className="sdiv-l" /></div>
@@ -2310,7 +2386,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 {snapRem ? <div className="lbl-pill flag-on" data-testid="snap-reminder">תזכורת</div> : null}
                 {snapFollow ? <div className="lbl-pill flag-on" data-testid="snap-followup">מעקב מייל</div> : null}
               </div>
-              {cur ? <div className="card-flags" style={{ marginTop: 8 }}><RowAlerts alerts={buildClaimRowAlerts(cur, alertCtx)} /></div> : null}
+              {cur ? <div className="card-flags" style={{ marginTop: 8 }}><RowAlerts alerts={buildClaimRowAlerts(cur, alertCtx)} onAlertClick={(a) => openMailAction(cur.id, a)} /></div> : null}
             </div>
             <div className="ab ab-regroup">
               <div className="ab-primary">
@@ -2318,6 +2394,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button className="ab-btn ab-task ab-pri" data-testid="claims-cust-request" onClick={() => { setCardMore(false); openCustomerRequest(); }}>בקשה ללקוח</button>
                 <button className="ab-btn ab-status ab-pri" data-testid="claims-treat-open" onClick={() => { setCardMore(false); openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk }); }}>עדכון טיפול</button>
                 <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>מסמכים</button>
+                <button className="ab-btn ab-mail ab-pri" data-testid="claims-sign-link" onClick={() => { setCardMore(false); void sendCustomerSignLink(cur.id); }}>שלח ללקוח לחתימה</button>
               </div>
               <div className="ab-more-wrap">
                 <button type="button" className={`ab-btn ab-sum ${cardMore ? 'act' : ''}`} data-testid="claims-card-more" onClick={() => setCardMore((v) => !v)}>עוד</button>
@@ -2755,29 +2832,62 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             {matched.length ? (
                               <div className="doc-type-files" data-testid={`claim-doc-files-${t.key}`}>
                                 {matched.map((f) => (
-                                  <div key={f.id} data-doc-name={f.original_name} style={{ fontSize: 11, color: 'var(--t2)', marginTop: 4 }}>
-                                    <FileName name={f.original_name} />
+                                  <div key={f.id} data-doc-name={f.original_name} data-testid={`claim-doc-file-${f.id}`} style={{ fontSize: 11, color: 'var(--t2)', marginTop: 4 }}>
+                                    <FileName name={fileLabel(f)} />
                                   </div>
                                 ))}
                               </div>
                             ) : null}
                           </div>
                           <div className="doc-type-acts">
-                            <label className="btn btn-g btn-sm">העלה מסמך
-                              <input
-                                type="file"
-                                hidden
-                                multiple={t.group}
-                                accept="application/pdf,image/*"
-                                data-testid={`claim-doc-upload-${t.key}`}
-                                onChange={async (e) => {
-                                  const list = Array.from(e.target.files || []);
-                                  e.target.value = '';
-                                  if (!list.length) return;
-                                  await uploadStaffFiles(cur.id, list, false, extra);
-                                }}
-                              />
-                            </label>
+                            {t.key === 'license_driver' ? (
+                              <>
+                                <label className="btn btn-g btn-sm">העלה צד קדמי
+                                  <input
+                                    type="file"
+                                    hidden
+                                    accept="application/pdf,image/*"
+                                    data-testid="claim-doc-upload-license_driver-front"
+                                    onChange={async (e) => {
+                                      const list = Array.from(e.target.files || []);
+                                      e.target.value = '';
+                                      if (!list.length) return;
+                                      await uploadStaffFiles(cur.id, list, false, { staff_type: 'driver_license', staff_title: 'רישיון נהיגה — צד קדמי' });
+                                    }}
+                                  />
+                                </label>
+                                <label className="btn btn-g btn-sm">העלה צד אחורי
+                                  <input
+                                    type="file"
+                                    hidden
+                                    accept="application/pdf,image/*"
+                                    data-testid="claim-doc-upload-license_driver-back"
+                                    onChange={async (e) => {
+                                      const list = Array.from(e.target.files || []);
+                                      e.target.value = '';
+                                      if (!list.length) return;
+                                      await uploadStaffFiles(cur.id, list, false, { staff_type: 'driver_license', staff_title: 'רישיון נהיגה — צד אחורי' });
+                                    }}
+                                  />
+                                </label>
+                              </>
+                            ) : (
+                              <label className="btn btn-g btn-sm">העלה מסמך
+                                <input
+                                  type="file"
+                                  hidden
+                                  multiple={t.group}
+                                  accept="application/pdf,image/*"
+                                  data-testid={`claim-doc-upload-${t.key}`}
+                                  onChange={async (e) => {
+                                    const list = Array.from(e.target.files || []);
+                                    e.target.value = '';
+                                    if (!list.length) return;
+                                    await uploadStaffFiles(cur.id, list, false, extra);
+                                  }}
+                                />
+                              </label>
+                            )}
                             {matched.length ? (
                               <button type="button" className="btn btn-p btn-sm" onClick={() => {
                                 const first = matched[0];
@@ -2956,7 +3066,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           const photos = attached.filter((f) => isImageFile(f));
                           const rest = attached.filter((f) => !isImageFile(f));
                           return (
-                            <div key={String(im.id)} className="gmail-card">
+                            <div key={String(im.id)} className="gmail-card" data-mail-mid={mid} data-testid={`mail-item-${mid || im.id}`}>
                               <div style={{ fontWeight: 800, marginBottom: 6 }}>{String(im.subject || '(ללא נושא)')}</div>
                               {mailShowsTreatment(String(im.from_addr || ''), OWN_MAILBOX, `${im.subject || ''}\n${im.body_text || ''}`) ? (
                                 <div className="mail-need" data-testid={`mail-need-${im.id}`}>
@@ -3241,10 +3351,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             <label className="fl">סטטוס טיפול</label>
                             <select className="fse" data-testid={`task-status-${t.id}`} defaultValue={t.workStatus || 'open'} id={`tws_${t.id}`} onChange={async (e) => {
                               const next = e.target.value;
-                              await apiRef.current.saveTask({ ...t, workStatus: next, done: next === 'done' ? 'true' : 'false' });
+                              const gate = canMarkMailTaskDone(t, next);
+                              if (!gate.ok) {
+                                toast(gate.reason, 'err');
+                                e.target.value = t.workStatus || 'open';
+                                return;
+                              }
+                              await apiRef.current.saveTask({ ...t, workStatus: next, done: next === 'done' || next === 'doc_not_needed' ? 'true' : 'false' });
                               toast('סטטוס עודכן');
                               await loadCardData(cur.id);
-                              if (next === 'done') await afterSignificant(cur.id, `הושלמה משימה: ${t.action}`);
+                              if (next === 'done' || next === 'doc_not_needed') await afterSignificant(cur.id, `הושלמה משימה: ${t.action}`);
                             }}>
                               {WORK_STATUS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
                             </select>
@@ -3669,6 +3785,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <button className="btn btn-g btn-sm" data-testid="mail-pick-surveyor-photos" onClick={() => setSendGroup(docs.files.filter((f) => f.doc_kind === 'surveyor_photo').map((f) => f.id), true)}>כל תמונות השמאי</button>
               <button className="btn btn-g btn-sm" data-testid="mail-pick-surveyor-reports" onClick={() => setSendGroup(docs.files.filter((f) => f.doc_kind === 'surveyor_report' || f.doc_kind === 'surveyor_attachment').map((f) => f.id), true)}>כל דוחות השמאי</button>
               <button className="btn btn-g btn-sm" data-testid="mail-pick-garage" onClick={() => setSendGroup(docs.files.filter((f) => f.doc_kind === 'garage_invoice' || fileMeta(f).staff_type === 'garage_invoice').map((f) => f.id), true)}>כל מסמכי המוסך</button>
+              <button className="btn btn-g btn-sm" data-testid="mail-pick-license-front" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).staff_type === 'driver_license' && /קדמי/.test(fileMeta(f).staff_title || '')).map((f) => f.id), true)}>רישיון — צד קדמי</button>
+              <button className="btn btn-g btn-sm" data-testid="mail-pick-license-back" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).staff_type === 'driver_license' && /אחורי/.test(fileMeta(f).staff_title || '')).map((f) => f.id), true)}>רישיון — צד אחורי</button>
+              <button className="btn btn-g btn-sm" data-testid="mail-pick-signed-form" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).staff_type === 'accident_notice').map((f) => f.id), true)}>טופס פתיחה חתום</button>
               <button className="btn btn-g btn-sm" data-testid="mail-pick-images" onClick={() => setSendGroup(docs.files.filter((f) => isImageFile(f)).map((f) => f.id), true)}>כל התמונות</button>
               <button className="btn btn-g btn-sm" data-testid="mail-pick-identified" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).important === 'true').map((f) => f.id), true)}>מסמכים מזוהים</button>
             </div>

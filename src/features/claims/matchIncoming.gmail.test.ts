@@ -181,6 +181,15 @@ describe('suggestReply — draft only, no auto-send', () => {
     expect(r.missing).toContain('חשבונית מוסך');
     expect(r.ok).toBe(false);
   });
+  it('attaches both driver-license sides on the same claim when exactly two exist', () => {
+    const r = suggestReply('נא להעביר רישיון נהיגה', [
+      { id: 'CDM-FRONT', staff_type: 'driver_license', original_name: 'front.jpg' },
+      { id: 'CDM-BACK', staff_type: 'driver_license', original_name: 'back.jpg' },
+    ]);
+    expect(r.attachments.map((x) => x.id).sort()).toEqual(['CDM-BACK', 'CDM-FRONT']);
+    expect(r.missing).toEqual([]);
+    expect(r.ok).toBe(true);
+  });
   it('prepares a draft for an info request without attaching files', () => {
     const r = suggestReply('נבקש לדעת מה הסטטוס', []);
     expect(r.ok).toBe(true);

@@ -100,11 +100,12 @@ const STAFF_TYPE_BY_DOC_KEY: Record<string, string> = {
   damage_photos: "damage_photos",
   license_driver: "driver_license",
   license_vehicle: "vehicle_license",
+  accident_notice: "accident_notice",
   power_of_attorney: "power_of_attorney",
   rejection_letter: "rejection_letter",
   demand_form: "demand_form",
 };
-const MULTI_DOC_KEYS = new Set(["surveyor_photos", "damage_photos"]);
+const MULTI_DOC_KEYS = new Set(["surveyor_photos", "damage_photos", "license_driver"]);
 
 function kindFromUpload(docKey: string, mime: string, explicit: string) {
   if (explicit && DOC_KINDS.has(explicit)) return explicit;
@@ -505,6 +506,7 @@ Deno.serve(async (req) => {
       const docRequestId = String(form?.get("doc_request_id") || "") || null;
       const explicitKind = String(form?.get("doc_kind") || "");
       const staffType = String(form?.get("staff_type") || "");
+      const staffTitle = String(form?.get("staff_title") || "").trim().slice(0, 120);
       if (staffType && !STAFF_TYPES.has(staffType)) return jsonResponse({ success: false, error: "invalid_staff_type" }, 400);
       const file = form?.get("file");
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
@@ -539,7 +541,10 @@ Deno.serve(async (req) => {
         uploaded_by: user.id,
         uploaded_by_name: actorName,
         doc_kind: kindFromUpload(reqKey, storedMime, explicitKind),
-        doc_meta: staffType ? { staff_type: staffType } : {},
+        doc_meta: {
+          ...(staffType ? { staff_type: staffType } : {}),
+          ...(staffTitle ? { staff_title: staffTitle } : {}),
+        },
         content_sha256: digest,
       });
       if (insErr) return jsonResponse({ success: false, error: insErr.message }, 400);

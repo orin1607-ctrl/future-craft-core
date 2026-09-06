@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ClaimAccidentForm from '@/features/claims/ClaimAccidentForm';
 import { EMPTY_INTAKE, customerSteps, type IntakeDraft } from '@/features/claims/claimIntakeModel';
+import { buildSignedOpeningFormPdf, fileToBase64 } from '@/features/claims/signedClaimPdf';
 import '@/features/claims/claims-intake.css';
 
 const FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-intake`;
@@ -71,7 +72,21 @@ export default function ClaimsIntakePage() {
     submitting.current = true;
     setBusy(true);
     setMsg('');
-    const r = await call('public_submit', { draft, signature: sig });
+    let signedPdf: string | undefined;
+    try {
+      const pdf = await buildSignedOpeningFormPdf({
+        clientName: draft.clientName,
+        plate: draft.plate,
+        eventDate: draft.eventDate,
+        eventLocation: [draft.eventPlace, draft.eventCity, draft.eventStreet].filter(Boolean).join(', '),
+        eventDesc: draft.eventDesc || draft.damageDesc || '',
+        signaturePng: sig,
+      });
+      signedPdf = await fileToBase64(pdf);
+    } catch {
+      signedPdf = undefined;
+    }
+    const r = await call('public_submit', { draft, signature: sig, signed_pdf_base64: signedPdf });
     setBusy(false);
     if (r.json?.submitted) {
       setDone(true);

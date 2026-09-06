@@ -194,7 +194,9 @@
 .claims-root .row-alert.tone-need{color:#b91c1c;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.12)}
 .claims-root .row-alert.tone-wait{color:#b45309;border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.12)}
 .claims-root .row-alert.tone-info{color:var(--ac3);border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.12)}
+.claims-root .row-alert.clickable{cursor:pointer;text-decoration:underline}
 .claims-root .mail-need{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:8px 10px;margin:0 0 8px}
+.claims-root .gmail-card.mail-focus{outline:2px solid #b91c1c;box-shadow:0 0 0 3px rgba(185,28,28,.18)}
 .claims-root .cust-task-meta{margin:6px 0 8px}
 @media(max-width:700px){
   .claims-root .row-alerts{max-width:none}
