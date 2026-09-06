@@ -109,6 +109,8 @@ function claimView(c) {
     surveyorNum: rd.surveyorNum || rd.reportNumber || rd.surveyor_report_no || '',
     policyNum: rd.policyNum || '',
     insCompany: rd.insCompany || c.company_name || '',
+    eventDesc: String(rd.eventDesc || '').slice(0, 200),
+    sourceFileNo: rd.sourceFileNo || '',
     rowKeys: Object.keys(rd).sort(),
   };
 }
@@ -130,7 +132,17 @@ const admin = createClient(`https://${STAGING_REF}.supabase.co`, service, { auth
 const { data: allClaims, error: claimsErr } = await admin.from('claims_records')
   .select('id, client_name, plate, status, company_name, row_data, created_at, updated_at, gmail_thread_id');
 if (claimsErr) throw new Error(claimsErr.message);
-const related = (allClaims || []).filter((c) => nameRelated(c) || tokenRelated(c));
+function anyElihu(c) {
+  const hay = `${c.client_name || ''} ${JSON.stringify(c.row_data || {})}`;
+  return /אליהו/.test(hay);
+}
+const related = (allClaims || []).filter((c) => nameRelated(c) || tokenRelated(c) || anyElihu(c));
+report.allAtiasOrElihu = (allClaims || []).filter((c) => /אטיאס|אליהו/.test(`${c.client_name || ''} ${JSON.stringify(c.row_data || {})}`)).map((c) => {
+  const v = claimView(c);
+  v.elihuInRow = /אליהו/.test(`${c.client_name || ''} ${JSON.stringify(c.row_data || {})}`);
+  v.atiasInRow = /אטיאס/.test(`${c.client_name || ''} ${JSON.stringify(c.row_data || {})}`);
+  return v;
+});
 report.claims = related.map(claimView);
 rec('claims_listed', related.length > 0, { count: related.length, ids: related.map((c) => c.id) });
 
@@ -228,8 +240,8 @@ if (pdfRow) {
   const signed = await fetch(`https://${STAGING_REF}.supabase.co/functions/v1/claims-docs`, {
     method: 'POST',
     headers: {
-      apikey: service,
-      Authorization: `Bearer ${service}`,
+      apikey: anon,
+      Authorization: `Bearer ${userJwt}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ action: 'signed_url', claim_id: pdfRow.claim_id, file_id: pdfRow.id }),
@@ -346,8 +358,14 @@ try {
   await page.goto(`${PUBLIC}/claims`, { waitUntil: 'networkidle', timeout: 120000 });
   await page.waitForTimeout(2000);
   const search = page.locator('[data-testid="claims-search"]');
+  await search.fill('אטיאס');
+  await page.waitForTimeout(800);
+  await page.locator('[data-testid="dash-all"]').click().catch(() => null);
+  await page.waitForTimeout(800);
+  await saveShot(page, 'list_search_atias');
   await search.fill('אליהו אטיאס');
   await page.waitForTimeout(1200);
+  await page.locator('table').first().scrollIntoViewIfNeeded().catch(() => null);
   const nameRows = await page.locator('[data-testid^="claim-row-"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid')));
   report.ui.nameSearchRows = nameRows;
   rec('ui_multiple_or_listed_by_name', nameRows.length >= 1, { rows: nameRows });
