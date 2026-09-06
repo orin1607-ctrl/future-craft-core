@@ -18,6 +18,13 @@ import { validateTaskFields } from '@/lib/taskFieldValidation';
 import { DEFAULT_INSPECTION_CHECKLIST } from '@/lib/vehicleListDefaults';
 import { loadCompanyListSettings } from '@/lib/companyListSettings';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
+import { TriInspectionMetaCard } from '@/components/vehicles/TriInspectionMetaCard';
+import { TriInspectionNotesField } from '@/components/vehicles/TriInspectionNotesField';
+import {
+  TRI_SEMI_INSPECTION_TYPE,
+  composeInspectionNotes,
+  pickLatestTriInspectionDate,
+} from '@/lib/triInspectionDisplay';
 
 interface VehicleBasic {
   id: string;
@@ -26,6 +33,8 @@ interface VehicleBasic {
   model: string;
   company_name: string;
   odometer?: number | string | null;
+  internal_number?: string | null;
+  year?: number | string | null;
 }
 
 const CHECKLIST_ITEMS = [...DEFAULT_INSPECTION_CHECKLIST];
@@ -53,10 +62,12 @@ export default function PrivateVehicleInspection() {
     CHECKLIST_ITEMS.map(name => ({ name, status: 'ok', notes: '' }))
   );
   const [loading, setLoading] = useState(false);
+  const [lastTriDate, setLastTriDate] = useState<string | null>(null);
+  const [generalNotes, setGeneralNotes] = useState('');
 
   useEffect(() => {
     applyCompanyScope(
-      supabase.from('vehicles').select('id, license_plate, manufacturer, model, company_name, odometer'),
+      supabase.from('vehicles').select('id, license_plate, manufacturer, model, company_name, odometer, internal_number, year'),
       companyFilter,
     ).then(({ data }) => { if (data) setVehicles(data as VehicleBasic[]); });
   }, [companyFilter]);
@@ -83,6 +94,28 @@ export default function PrivateVehicleInspection() {
   }, [vehicles, contextPlate, contextVehicleId]);
 
   const selectedVehicle = vehicles.find(v => v.id === vehicleId);
+
+  useEffect(() => {
+    if (!vehicleId) {
+      setLastTriDate(null);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from('vehicle_inspections')
+      .select('inspection_date, inspection_type')
+      .eq('vehicle_id', vehicleId)
+      .eq('inspection_type', TRI_SEMI_INSPECTION_TYPE)
+      .order('inspection_date', { ascending: false })
+      .limit(30)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setLastTriDate(pickLatestTriInspectionDate(data || []));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicleId]);
 
   // Prefill odometer from the vehicle's last known km (vehicles.odometer).
   // User can still edit before save; shouldUpdateOdometer still guards downgrades.
@@ -113,7 +146,7 @@ export default function PrivateVehicleInspection() {
       next_due_date: nextDueDate,
       inspector_name: employeeName,
       overall_status: hasDefects ? 'failed' : 'passed',
-      notes: `קילומטראז׳: ${odometer}`,
+      notes: composeInspectionNotes(odometer, generalNotes),
       company_name: user?.company_name || '',
       created_by: user?.id,
     }).select('id').single();
@@ -265,6 +298,14 @@ export default function PrivateVehicleInspection() {
           </select>
         </div>
 
+        {selectedVehicle && (
+          <TriInspectionMetaCard
+            lastInspectionDate={lastTriDate}
+            internalNumber={selectedVehicle.internal_number}
+            year={selectedVehicle.year}
+          />
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-base font-medium mb-1.5">שם עובד *</label>
@@ -303,52 +344,61 @@ export default function PrivateVehicleInspection() {
         </div>
       </div>
 
-      {/* Inspection Table */}
+      {/* Inspection Table — ✓/✕ stay on checklist items; notes wrap on a full-width row on phone */}
       <div className="border border-border rounded-xl overflow-hidden mb-6">
-        {/* Header */}
-        <div className="grid grid-cols-[1fr_60px_60px_1fr] bg-muted/70 text-sm font-bold border-b border-border">
+        <div className="hidden sm:grid grid-cols-[minmax(0,1.2fr)_60px_60px_minmax(0,1.4fr)] bg-muted/70 text-sm font-bold border-b border-border">
           <div className="p-2.5 border-l border-border">בדיקה</div>
           <div className="p-2.5 text-center border-l border-border">תקין</div>
           <div className="p-2.5 text-center border-l border-border">לא תקין</div>
-          <div className="p-2.5">הערות</div>
+          <div className="p-2.5">הערות לסעיף</div>
         </div>
 
-        {/* Rows */}
         {items.map((item, i) => (
-          <div key={i} className={`grid grid-cols-[1fr_60px_60px_1fr] border-b border-border last:border-0 ${item.status === 'defect' ? 'bg-destructive/5' : ''}`}>
-            <div className="p-2.5 text-sm font-medium border-l border-border flex items-center">{item.name}</div>
-            <div className="p-2.5 border-l border-border flex items-center justify-center">
+          <div
+            key={i}
+            className={`grid grid-cols-2 sm:grid-cols-[minmax(0,1.2fr)_60px_60px_minmax(0,1.4fr)] border-b border-border last:border-0 ${item.status === 'defect' ? 'bg-destructive/5' : ''}`}
+          >
+            <div className="col-span-2 sm:col-span-1 p-2.5 text-sm font-medium sm:border-l border-border flex items-center">{item.name}</div>
+            <div className="p-2.5 sm:border-l border-border flex items-center justify-center gap-2">
+              <span className="sm:hidden text-xs text-muted-foreground">תקין</span>
               <button
                 type="button"
                 onClick={() => updateItem(i, 'status', 'ok')}
-                className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-colors ${
+                className={`w-9 h-9 sm:w-7 sm:h-7 rounded-lg border-2 flex items-center justify-center transition-colors ${
                   item.status === 'ok' ? 'bg-success/20 border-success text-success' : 'border-input text-transparent hover:border-muted-foreground'
                 }`}
               >
                 ✓
               </button>
             </div>
-            <div className="p-2.5 border-l border-border flex items-center justify-center">
+            <div className="p-2.5 sm:border-l border-border flex items-center justify-center gap-2">
+              <span className="sm:hidden text-xs text-muted-foreground">לא תקין</span>
               <button
                 type="button"
                 onClick={() => updateItem(i, 'status', 'defect')}
-                className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-colors ${
+                className={`w-9 h-9 sm:w-7 sm:h-7 rounded-lg border-2 flex items-center justify-center transition-colors ${
                   item.status === 'defect' ? 'bg-destructive/20 border-destructive text-destructive' : 'border-input text-transparent hover:border-muted-foreground'
                 }`}
               >
                 ✗
               </button>
             </div>
-            <div className="p-1.5">
-              <input
+            <div className="col-span-2 sm:col-span-1 p-2">
+              <textarea
                 value={item.notes}
                 onChange={e => updateItem(i, 'notes', e.target.value)}
-                placeholder="הערות..."
-                className="w-full p-1.5 text-xs rounded-lg border border-input bg-background focus:border-primary focus:outline-none"
+                placeholder="הערות לסעיף..."
+                rows={2}
+                dir="rtl"
+                className="w-full min-h-[3.5rem] p-2 text-base leading-relaxed rounded-lg border border-input bg-background focus:border-primary focus:outline-none whitespace-pre-wrap break-words resize-y"
               />
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mb-6">
+        <TriInspectionNotesField value={generalNotes} onChange={setGeneralNotes} />
       </div>
 
       {/* Submit */}
