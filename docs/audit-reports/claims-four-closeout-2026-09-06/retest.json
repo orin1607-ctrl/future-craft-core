@@ -1,0 +1,43 @@
+{
+  "at": "2026-09-06T20:52:14.835Z",
+  "claimId": "DAL-2026-0021",
+  "checks": [
+    {
+      "name": "re-counter-present",
+      "ok": true,
+      "detail": "דואר דורש טיפול (2)"
+    },
+    {
+      "name": "re-mail-subjects",
+      "ok": true,
+      "detail": "TEST-CLOSEOUT נא להגיבנדרש טיפולזוהתה בקשה:בקשת תגובהאין Auto-send. רק טיוטה לאי | TEST-CLOSEOUT נא להעביר רישיון נהיגהנדרש טיפולזוהתה בקשה:רישיון נהיגה · נדרש טיפ"
+    },
+    {
+      "name": "re-mail-mid",
+      "ok": true
+    },
+    {
+      "name": "re-pdf-view-btn",
+      "ok": true
+    },
+    {
+      "name": "re-pdf-preview",
+      "ok": true
+    },
+    {
+      "name": "re-mail-picks",
+      "ok": true,
+      "detail": "checked=7"
+    },
+    {
+      "name": "re-missing-block",
+      "ok": true,
+      "detail": "{\"id\":\"TSK-QA-MISS-1788727934390\",\"done\":\"false\",\"action\":\"חשבונית מוסך\",\"source\":\"QA-CLOSEOUT\",\"claimId\":\"DAL-2026-0021\",\"docState\":\"missing\",\"workStatus\":\"open\",\"requestKind\":\"doc\",\"gmailMessageId\":\"qa-closeout-miss-1788727934390\"}"
+    },
+    {
+      "name": "re-missing-toast",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

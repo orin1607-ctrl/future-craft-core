@@ -1,0 +1,39 @@
+{
+  "at": "2026-09-06T20:53:29.393Z",
+  "mode": "worker-visible",
+  "deletedCount": 3,
+  "deleted": [
+    {
+      "id": "DAL-QA-WORKER-002",
+      "client": "TEST-CLAIMS-ISOLATION-B",
+      "reasons": [
+        "id DAL-QA-*",
+        "client TEST-CLAIMS-ISOLATION-B",
+        "created_by TEST-CLAIMS-WORKER QA"
+      ]
+    },
+    {
+      "id": "DAL-QA-WORKER-001",
+      "client": "TEST-CLAIMS-WORKER",
+      "reasons": [
+        "id DAL-QA-*",
+        "client TEST-CLAIMS-WORKER",
+        "row_data.qa",
+        "created_by QA",
+        "source create-user-claims-worker"
+      ]
+    },
+    {
+      "id": "DAL-2026-0021",
+      "client": "TEST-CLOSEOUT-1788727661315",
+      "reasons": [
+        "client TEST-CLOSEOUT-1788727661315",
+        "created_by TEST עובד תביעות 1788292403067"
+      ]
+    }
+  ],
+  "leftoverTestVisible": [],
+  "visibleRemaining": [],
+  "gmailMailboxMutated": false,
+  "productionTouched": false
+}

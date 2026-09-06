@@ -1,0 +1,125 @@
+{
+  "at": "2026-09-06T20:47:41.315Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "gmailMailboxMutated": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "wantSha": "5afd54d",
+  "deployTxt": "deployed_ref=5afd54d feat/incident-alerts-staging",
+  "claimId": "DAL-2026-0021",
+  "checks": [
+    {
+      "name": "public-pages-sha",
+      "ok": true,
+      "deployTxt": "deployed_ref=5afd54d feat/incident-alerts-staging",
+      "want": "5afd54d"
+    },
+    {
+      "name": "t1-signed-pdf-slot",
+      "ok": true
+    },
+    {
+      "name": "t1-signed-pdf-listed",
+      "ok": true,
+      "detail": "טופס פתיחת תביעה חתום"
+    },
+    {
+      "name": "t1-single-claim",
+      "ok": true,
+      "claimId": "DAL-2026-0021"
+    },
+    {
+      "name": "t4-front",
+      "ok": true,
+      "detail": "רישיון נהיגה — צד אחורי\nרישיון נהיגה — צד קדמי"
+    },
+    {
+      "name": "t4-back",
+      "ok": true,
+      "detail": "רישיון נהיגה — צד אחורי\nרישיון נהיגה — צד קדמי"
+    },
+    {
+      "name": "t4-both",
+      "ok": true
+    },
+    {
+      "name": "t1-pdf-one-row",
+      "ok": true,
+      "count": 1
+    },
+    {
+      "name": "t4-two-license-rows",
+      "ok": true,
+      "count": 2
+    },
+    {
+      "name": "t3-row-visible",
+      "ok": true
+    },
+    {
+      "name": "t3-counter-2",
+      "ok": true,
+      "detail": "דואר דורש טיפול (2)"
+    },
+    {
+      "name": "t3-deeplink-gin",
+      "ok": true
+    },
+    {
+      "name": "t3-mail-a",
+      "ok": false
+    },
+    {
+      "name": "t3-counter-1",
+      "ok": true,
+      "detail": "דואר דורש טיפול (1)"
+    },
+    {
+      "name": "t3-counter-0",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "t1-refresh-no-dup-pdf",
+      "ok": true,
+      "count": 1
+    },
+    {
+      "name": "t4-refresh-both",
+      "ok": true,
+      "count": 2
+    },
+    {
+      "name": "desktop-no-js-error",
+      "ok": false,
+      "errors": [
+        "desktop: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.",
+        "mobile: Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+      ]
+    },
+    {
+      "name": "mobile-claims-open",
+      "ok": true
+    },
+    {
+      "name": "mobile-row",
+      "ok": true
+    },
+    {
+      "name": "mobile-card",
+      "ok": true
+    },
+    {
+      "name": "mobile-license-ui",
+      "ok": true
+    }
+  ],
+  "jsErrors": [
+    "desktop: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.",
+    "mobile: Failed to read the 'localStorage' property from 'Window': Access is denied for this document."
+  ],
+  "failed": [
+    "t3-mail-a",
+    "desktop-no-js-error"
+  ]
+}
