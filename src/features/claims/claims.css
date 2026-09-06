@@ -131,7 +131,7 @@
 .claims-root .doc-preview-bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--br);font-size:12px}
 .claims-root .doc-preview-bar b{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .claims-root .doc-preview-frame{width:100%;height:min(70vh,640px);border:0;background:#111}
-.claims-root .doc-preview-img{display:block;max-width:100%;max-height:min(70vh,640px);margin:0 auto}
+.claims-root .doc-preview-img{display:block;max-width:100%;max-height:min(70vh,640px);margin:0 auto;background:#fff}
 .claims-root .pick-cat{margin-bottom:8px}
 .claims-root .pick-cat-h{display:flex;align-items:center;gap:6px;font-weight:800;font-size:12px;margin-bottom:4px}
 .claims-root .pick-list{max-height:140px;overflow:auto;border:1px solid var(--br);border-radius:7px;padding:4px 8px;background:var(--bg2)}

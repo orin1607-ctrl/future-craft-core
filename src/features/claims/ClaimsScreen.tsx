@@ -548,21 +548,11 @@ function surveyorBundle(files: ClaimFile[], imports: Array<Record<string, unknow
   const photos = files.filter((f) => f.doc_kind === 'surveyor_photo');
   const tagged = files.filter((f) => f.doc_kind === 'surveyor_report');
   const taggedAtt = files.filter((f) => f.doc_kind === 'surveyor_attachment');
-  const surveyorMailIds = new Set(
-    imports
-      .filter((im) => /שמאי|שמאות|survey/i.test(String(im.subject || '')))
-      .map((im) => String(im.gmail_message_id || ''))
-      .filter(Boolean),
-  );
-  const fromSafeMail = files.filter((f) => (
-    surveyorMailIds.has(String(f.gmail_message_id || ''))
-    && !isImageFile(f)
-    && /pdf/i.test(`${f.mime_type || ''} ${f.original_name || ''}`)
-    && f.doc_kind !== 'garage_invoice'
-  ));
+  void imports;
   const reportById = new Map<string, ClaimFile>();
-  [...tagged, ...fromSafeMail].forEach((f) => reportById.set(f.id, f));
-  const reports = [...reportById.values()];
+  tagged.forEach((f) => reportById.set(f.id, f));
+  const reports = [...reportById.values()].sort((a, b) =>
+    String(a.original_name || '').localeCompare(String(b.original_name || ''), undefined, { numeric: true, sensitivity: 'base' }));
   const gmailIds = new Set([...photos, ...reports, ...taggedAtt].map((f) => f.gmail_message_id).filter(Boolean) as string[]);
   const related = files.filter((f) => (
     f.gmail_message_id
@@ -617,21 +607,48 @@ function cardGroupOf(tab: string) {
 
 function InCardPreview({ file, onClose }: { file: { url: string; name: string; mime: string } | null; onClose: () => void }) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const [blobUrl, setBlobUrl] = useState('');
+  const [loadErr, setLoadErr] = useState('');
   useEffect(() => {
-    wrapRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    wrapRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [file?.url, blobUrl]);
+  useEffect(() => {
+    let revoke = '';
+    let cancelled = false;
+    setBlobUrl('');
+    setLoadErr('');
+    if (!file?.url) return undefined;
+    (async () => {
+      try {
+        const res = await fetch(file.url);
+        if (!res.ok) throw new Error(`http_${res.status}`);
+        const blob = await res.blob();
+        if (cancelled) return;
+        revoke = URL.createObjectURL(blob);
+        setBlobUrl(revoke);
+      } catch (e) {
+        if (!cancelled) setLoadErr(String((e as Error).message || e));
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (revoke) URL.revokeObjectURL(revoke);
+    };
   }, [file?.url]);
   if (!file) return null;
   const img = (file.mime || '').startsWith('image/') || /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(file.name);
+  const src = blobUrl || file.url;
   return (
     <div ref={wrapRef} className="doc-preview-wrap" data-testid="doc-preview">
       <div className="doc-preview-bar">
         <b data-testid="doc-preview-name"><FileName name={file.name} /></b>
-        <button className="btn btn-g btn-sm" onClick={() => window.open(file.url, '_blank')}>חלון נפרד</button>
+        <button className="btn btn-g btn-sm" onClick={() => window.open(file.url, '_blank')}>חלון נפרד / הורדה</button>
         <button className="btn btn-g btn-sm" onClick={onClose}>סגור תצוגה</button>
       </div>
+      {loadErr ? <div className="spec-empty" data-testid="doc-preview-error">התצוגה נכשלה ({loadErr}). לחץ «חלון נפרד / הורדה».</div> : null}
       {img
-        ? <img className="doc-preview-img" src={file.url} alt={file.name} />
-        : <iframe className="doc-preview-frame" title={file.name} src={file.url} />}
+        ? <img className="doc-preview-img" src={src} alt={file.name} data-testid="doc-preview-img" />
+        : <iframe className="doc-preview-frame" title={file.name} src={src} data-testid="doc-preview-frame" />}
     </div>
   );
 }
@@ -2461,6 +2478,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
                       ))}
                     </div>
+                    <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
                     {pack.reports.length === 0 && pack.photos.length === 0 && pack.attachments.length === 0 && untaggedPhotos.length === 0 ? (
                       <div className="spec-empty">אין דוח שמאי מסומן בתיק. העלה את הדוח כאן, או סמן מסמך קיים כלשונית «מסמכים» כדוח שמאי. הקובץ נשמר פעם אחת בלבד.</div>
                     ) : null}
@@ -2479,7 +2497,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <button className="btn btn-p btn-sm" data-testid="surveyor-report-open" onClick={() => void openInCard(cur.id, f)}>פתח בתיק</button>
                       </div>
                     ))}
-                    <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
                     {report ? (
                       <div key={`${report.id}:${meta.surveyorName}:${meta.reportDate}:${meta.reportNumber}`} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 8, margin: '10px 0 14px' }}>
                         <input className="fi" id="surv_meta_name" defaultValue={meta.surveyorName || cur.surveyor || ''} placeholder="שם שמאי בדוח" />

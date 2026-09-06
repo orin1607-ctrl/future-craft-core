@@ -1,0 +1,63 @@
+name: Staging אליהו 2241 closeout
+
+# Staging only. Deploys a read-only peek_attachment action. Does not apply cron SQL.
+# Does not mutate Gmail. Does not touch Production.
+
+on:
+  push:
+    branches:
+      - cursor/claims-eli-audit-match-a50b
+    paths:
+      - 'scripts/claims-eli-2241-closeout.mjs'
+      - 'supabase/functions/claims-gmail/index.ts'
+      - 'src/features/claims/ClaimsScreen.tsx'
+      - '.github/workflows/claims-eli-2241-closeout.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  closeout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard Staging only
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" != "production"
+          test "${GITHUB_REF_NAME}" != "main"
+          test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
+
+      - name: Deploy claims-gmail peek only
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          npx --yes supabase functions deploy claims-gmail --project-ref usfeoerkpcafxxlyuldl --use-api
+
+      - name: Import 2241 pack onto DAL-2026-0020 + PUBLIC STAGING
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-heb || true
+          npm install --no-save @supabase/supabase-js playwright
+          npx playwright install --with-deps chromium
+          node scripts/claims-eli-2241-closeout.mjs
+
+      - name: Upload closeout artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eli-2241-closeout
+          path: docs/audit-reports/claims-eli-2241-closeout-2026-09-06
+          if-no-files-found: warn
