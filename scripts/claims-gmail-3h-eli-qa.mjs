@@ -14,18 +14,26 @@ const BASE = `https://${STAGING_REF}.supabase.co`;
 const OUT = join(process.cwd(), 'docs/audit-reports/claims-gmail-3h-scan-2026-09-06');
 mkdirSync(OUT, { recursive: true });
 
-const env = Object.fromEntries(
-  readFileSync('/workspace/.env', 'utf8').split('\n').filter((l) => l && !l.startsWith('#') && l.includes('=')).map((l) => {
-    const i = l.indexOf('=');
-    return [l.slice(0, i), l.slice(i + 1)];
-  }),
-);
-const anon = env.VITE_SUPABASE_ANON_KEY;
+function readDotEnv() {
+  try {
+    return Object.fromEntries(
+      readFileSync('/workspace/.env', 'utf8').split('\n').filter((l) => l && !l.startsWith('#') && l.includes('=')).map((l) => {
+        const i = l.indexOf('=');
+        return [l.slice(0, i), l.slice(i + 1)];
+      }),
+    );
+  } catch {
+    return {};
+  }
+}
+const env = readDotEnv();
+const anon = process.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY;
 if (!anon) throw new Error('missing anon');
 
 function serviceRole() {
-  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const k = process.env.SUPABASE_SERVICE_ROLE_KEY.replace(/[\r\n]/g, '').trim();
+  const fromEnv = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.STAGING_SERVICE_ROLE_KEY;
+  if (fromEnv) {
+    const k = fromEnv.replace(/[\r\n]/g, '').trim();
     const payload = JSON.parse(Buffer.from(k.split('.')[1], 'base64url').toString('utf8'));
     if (payload.ref === PROD_REF) throw new Error('service role is production');
     if (payload.ref && payload.ref !== STAGING_REF) throw new Error(`service role ref ${payload.ref}`);
