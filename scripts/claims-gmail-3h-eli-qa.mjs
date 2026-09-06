@@ -257,8 +257,6 @@ const dispatchRes = admin ? await admin.rpc('claims_mail_dispatch_now') : { data
 const tick = dispatchRes.data?.inboxScanTick || {};
 const cronLive = !dispatchRes.error && tick && (tick.queued === true || tick.skipped === true || tick.success === true);
 rec('cron_tick_piggyback', cronLive, {
-  result: cronLive ? 'PASS' : 'BLOCKED',
-  reason: cronLive ? undefined : 'existing token cannot apply CREATE OR REPLACE claims_mail_dispatch_now',
   error: dispatchRes.error?.message,
   tick,
 });
