@@ -935,7 +935,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   }), [dashTasks, notifs, gmailPending, dashFollowups]);
   const activeClaims = useMemo(() => claims.filter((c) => c.archived !== 'true'), [claims]);
   const archiveClaims = useMemo(() => claims.filter((c) => c.archived === 'true'), [claims]);
-  const workset = mineOnly ? activeClaims.filter((c) => c.assigned_to === actor.id) : activeClaims;
+  const isMyClaim = (c: ClaimRecord) => c.assigned_to === actor.id || c.created_by === actor.id;
+  const workset = mineOnly ? activeClaims.filter(isMyClaim) : activeClaims;
   const cnt = (f: (x: ClaimRecord) => boolean) => workset.filter(f).length;
 
   const showView = (name: string, f = '') => {
@@ -1717,7 +1718,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   }, [claims]);
 
   const matchesRowFilters = (c: ClaimRecord) => {
-    if (mineOnly && c.assigned_to !== actor.id) return false;
+    if (mineOnly && !isMyClaim(c)) return false;
     if (search && JSON.stringify(c).toLowerCase().indexOf(search.toLowerCase()) === -1) return false;
     if (stFil && c.status !== stFil) return false;
     if (filter && c.status !== filter) return false;

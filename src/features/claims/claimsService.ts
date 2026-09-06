@@ -74,6 +74,7 @@ function mapClaimRow(r: Record<string, unknown>): ClaimRecord | null {
   row.status = row.status || asText(r.status);
   row.company_name = row.company_name || asText(r.company_name);
   row.createdByName = asText(r.created_by_name);
+  row.created_by = asText(r.created_by);
   row.updatedByName = asText(r.updated_by_name);
   row.assigned_to = asText(r.assigned_to);
   row.assigned_to_name = asText(r.assigned_to_name);
@@ -278,6 +279,10 @@ export function createClaimsApi(actor: ClaimsActor) {
       if (isNew) incoming.createdByName = actorName;
       if (isNew && !incoming.source) incoming.source = 'Staff';
       if (isNew && !incoming.docsOrderStatus) incoming.docsOrderStatus = 'organized';
+      if (isNew && !incoming.assigned_to) {
+        incoming.assigned_to = actor.id;
+        incoming.assigned_to_name = actorName;
+      }
 
       const payload = {
         id: incoming.id,
@@ -287,6 +292,11 @@ export function createClaimsApi(actor: ClaimsActor) {
         status: incoming.status || 'חדש',
         company_name: incoming.company_name || incoming.insCompany || null,
         row_data: incoming,
+        ...(isNew && incoming.assigned_to ? {
+          assigned_to: incoming.assigned_to,
+          assigned_to_name: incoming.assigned_to_name || actorName,
+          assigned_at: new Date().toISOString(),
+        } : {}),
         updated_by: actor.id,
         updated_by_name: actorName,
         last_activity_at: new Date().toISOString(),
