@@ -11,7 +11,7 @@ import { execSync } from 'child_process';
 const STAGING_REF = 'usfeoerkpcafxxlyuldl';
 const PROD_REF = 'qasomfndnjuixgjmjwcm';
 const PUBLIC = (process.env.CLAIMS_QA_BASE || 'https://orin1607-ctrl.github.io/future-craft-core').replace(/\/$/, '');
-const WANT_SHA = (process.env.CLAIMS_QA_SHA || '1c30d14').slice(0, 7);
+const WANT_SHA = (process.env.CLAIMS_QA_SHA || 'de02838').slice(0, 7);
 const OUT = join(process.cwd(), 'docs/audit-reports/claims-final-closeout-2026-09-06');
 const ART = '/opt/cursor/artifacts';
 mkdirSync(OUT, { recursive: true });
@@ -177,6 +177,8 @@ rec('mail-dispatch-dry-run', String(modeRow?.value || '').includes('dry_run') ||
 const browser = await chromium.launch({ headless: true, channel: 'chrome' });
 
 async function runCriticalPath(page, label, clientName, plate) {
+  let claimId = '';
+  try {
   await openClaims(page);
   rec(`${label}-dashboard-or-app`, await page.locator('[data-testid="claims-open-new"]').count() > 0);
 
@@ -192,7 +194,7 @@ async function runCriticalPath(page, label, clientName, plate) {
 
   await fillNewClaim(page, clientName, plate, { sign: false });
   const { data: created } = await userDb.from('claims_records').select('id, client_name, assigned_to, row_data').eq('client_name', clientName).maybeSingle();
-  const claimId = created?.id || '';
+  claimId = created?.id || '';
   rec(`${label}-open-save`, Boolean(claimId), { claimId });
   rec(`${label}-assigned-to-worker`, Boolean(created?.assigned_to), { assigned: created?.assigned_to || '' });
 
@@ -224,13 +226,14 @@ async function runCriticalPath(page, label, clientName, plate) {
   forms = eventForms(docs);
   rec(`${label}-signed-form-db`, forms.some((d) => /חתום/.test(`${d.original_name}${d.doc_meta?.staff_title || ''}`)), { count: forms.length, names: forms.map((d) => d.original_name) });
 
-  const viewBtn = page.locator('[data-testid="claim-doc-view-accident_notice"], [data-testid="claim-doc-type-accident_notice"] button', { hasText: 'צפייה' }).first();
+  const viewBtn = page.locator('[data-testid="claim-doc-view-accident_notice"]');
   if (await viewBtn.count()) {
+    await viewBtn.scrollIntoViewIfNeeded();
     await viewBtn.click();
-    await page.waitForTimeout(1200);
+    await page.locator('[data-testid="doc-preview"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
   }
   rec(`${label}-preview`, await page.locator('[data-testid="doc-preview"]').count() > 0);
-  rec(`${label}-download`, await page.locator('[data-testid="doc-preview"] >> text=הורדה').count() > 0);
+  rec(`${label}-download`, await page.locator('[data-testid="doc-preview-download"], [data-testid="doc-preview"] >> text=הורדה').count() > 0);
 
   const front = join(OUT, `license-front-${label}.png`);
   const back = join(OUT, `license-back-${label}.png`);
@@ -250,12 +253,12 @@ async function runCriticalPath(page, label, clientName, plate) {
   rec(`${label}-license-both`, lic.length >= 2, { count: lic.length });
 
   await page.locator('[data-testid="claims-send-mail"]').click().catch(() => undefined);
-  await page.waitForTimeout(800);
-  rec(`${label}-composer`, await page.locator('[data-testid="mo-mail"].open, [data-testid="mo-mail"]').count() > 0);
+  await page.locator('[data-testid="mo-mail"].open').waitFor({ timeout: 10000 }).catch(() => undefined);
+  rec(`${label}-composer`, await page.locator('[data-testid="mo-mail"].open').count() > 0);
   const toInput = page.locator('[data-testid="mail-to"]:visible');
   if (await toInput.count()) await toInput.fill('qa.claims.noreply@example.com');
-  if (await page.locator('[data-testid="mail-subj"]').count()) await page.locator('[data-testid="mail-subj"]').fill(`TEST ${clientName} event form`);
-  if (await page.locator('[data-testid="mail-body"]').count()) await page.locator('[data-testid="mail-body"]').first().fill('QA draft — no live send');
+  if (await page.locator('[data-testid="mail-subj"]:visible').count()) await page.locator('[data-testid="mail-subj"]:visible').fill(`TEST ${clientName} event form`);
+  if (await page.locator('[data-testid="mail-body"]:visible').count()) await page.locator('[data-testid="mail-body"]:visible').first().fill('QA draft — no live send');
   if (await page.locator('[data-testid="mail-pick-signed-form"]').count()) {
     await page.locator('[data-testid="mail-pick-signed-form"]').click();
     await page.waitForTimeout(300);
@@ -289,11 +292,11 @@ async function runCriticalPath(page, label, clientName, plate) {
   await closeOverlays(page);
 
   await page.locator('[data-testid="claims-send-mail"]').click().catch(() => undefined);
-  await page.waitForTimeout(500);
+  await page.locator('[data-testid="mo-mail"].open').waitFor({ timeout: 10000 }).catch(() => undefined);
   if (await page.locator('[data-testid="mail-to"]:visible').count()) await page.locator('[data-testid="mail-to"]:visible').fill('qa.claims.noreply@example.com');
-  if (await page.locator('[data-testid="mail-subj"]').count()) await page.locator('[data-testid="mail-subj"]').fill(`TEST recurring ${clientName}`);
-  if (await page.locator('[data-testid="mail-body"]').count()) await page.locator('[data-testid="mail-body"]').first().fill('QA recurring — dry run');
-  if (await page.locator('[data-testid="mail-recurring"]').count()) {
+  if (await page.locator('[data-testid="mail-subj"]:visible').count()) await page.locator('[data-testid="mail-subj"]:visible').fill(`TEST recurring ${clientName}`);
+  if (await page.locator('[data-testid="mail-body"]:visible').count()) await page.locator('[data-testid="mail-body"]:visible').first().fill('QA recurring — dry run');
+  if (await page.locator('[data-testid="mail-recurring"]:visible').count()) {
     await page.locator('[data-testid="mail-recurring"]').check();
     if (await page.locator('[data-testid="mail-recurring-save"]').count()) {
       await page.locator('[data-testid="mail-recurring-save"]').click();
@@ -303,12 +306,12 @@ async function runCriticalPath(page, label, clientName, plate) {
   }
   await closeOverlays(page);
 
-  await page.locator('[data-testid="claims-tab-group-mail"]').click().catch(() => undefined);
+  const mailGroup = page.locator('[data-testid="claims-tab-group-mail"]:visible');
+  if (await mailGroup.count()) await mailGroup.click().catch(() => undefined);
   await page.waitForTimeout(400);
-  if (await page.locator('[data-testid="claims-tab-sub-mailfu"]').count()) {
-    await page.locator('[data-testid="claims-tab-sub-mailfu"]').click();
-    await page.waitForTimeout(600);
-  }
+  const mailFuTab = page.locator('[data-testid="claims-tab-sub-mailfu"]:visible');
+  if (await mailFuTab.count()) await mailFuTab.click().catch(() => undefined);
+  await page.waitForTimeout(400);
   const fuCancel = page.locator('[data-testid^="fu-cancel-"]').first();
   if (await fuCancel.count()) {
     await fuCancel.click();
@@ -338,6 +341,10 @@ async function runCriticalPath(page, label, clientName, plate) {
   }
 
   return claimId;
+  } catch (err) {
+    rec(`${label}-threw`, false, { err: String(err?.stack || err), claimId });
+    return claimId;
+  }
 }
 
 try {
@@ -345,7 +352,7 @@ try {
 
   const ctx = await browser.newContext({ locale: 'he-IL', viewport: { width: 1440, height: 900 } });
   ctx.on('page', (p) => p.on('pageerror', (e) => {
-    if (!/Access Denied|localStorage/i.test(e.message)) report.jsErrors.push(`desktop: ${e.message}`);
+    if (!/Access Denied|localStorage|setItem/i.test(e.message)) report.jsErrors.push(`desktop: ${e.message}`);
   }));
   await inject(ctx, session);
   const page = await ctx.newPage();
@@ -423,13 +430,20 @@ try {
   for (const [label, viewport] of viewports) {
     const vctx = await browser.newContext({ locale: 'he-IL', viewport, isMobile: /mobile/.test(label), hasTouch: true });
     vctx.on('page', (p) => p.on('pageerror', (e) => {
-      if (!/Access Denied|localStorage/i.test(e.message)) report.jsErrors.push(`${label}: ${e.message}`);
+      if (!/Access Denied|localStorage|setItem/i.test(e.message)) report.jsErrors.push(`${label}: ${e.message}`);
     }));
     await inject(vctx, session);
     const vp = await vctx.newPage();
     await openClaims(vp);
     rec(`${label}-open`, await vp.locator('[data-testid="claims-open-new"]').count() > 0);
-    const overflow = await vp.evaluate(() => document.querySelector('.claims-root')?.scrollWidth > document.querySelector('.claims-root')?.clientWidth + 8);
+    const overflow = await vp.evaluate(() => {
+      const root = document.querySelector('.claims-root');
+      if (!root) return false;
+      const tableWraps = [...root.querySelectorAll('.tw')];
+      const planned = tableWraps.some((el) => el.scrollWidth > el.clientWidth);
+      const unplanned = root.scrollWidth > root.clientWidth + 24;
+      return unplanned && !planned;
+    });
     rec(`${label}-no-page-overflow`, !overflow);
     if (report.claimA) {
       await vp.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);

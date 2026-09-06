@@ -66,7 +66,7 @@
 .claims-root .dc-n.b{color:var(--ac3)}.claims-root .dc-n.g{color:var(--gn2)}.claims-root .dc-n.y{color:var(--yn2)}.claims-root .dc-n.r{color:var(--rd2)}.claims-root .dc-n.p{color:var(--pu2)}
 .claims-root .dc-l{font-size:10px;color:var(--t2);font-weight:500}
 .claims-root button.dc{font:inherit;color:inherit;width:100%}
-.claims-root .tw{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;overflow-x:auto}
+.claims-root .tw{background:var(--bg2);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;overflow-x:auto;min-width:0;max-width:100%}
 .claims-root table{width:100%;border-collapse:collapse;min-width:600px}
 .claims-root thead tr{background:var(--bg3);border-bottom:1px solid var(--br)}
 .claims-root th{padding:8px 10px;font-size:10px;font-weight:700;color:var(--t3);text-align:right;white-space:nowrap}
@@ -212,6 +212,7 @@
 .claims-root .ab-more-panel{position:absolute;top:calc(100% + 6px);left:0;z-index:40;display:flex;flex-direction:column;gap:4px;min-width:220px;max-height:min(70vh,520px);overflow:auto;padding:8px;background:var(--bg2);border:1px solid var(--br2);border-radius:8px}
 .claims-root .ab-more-panel .ab-btn{width:100%;justify-content:flex-start;white-space:normal}
 .claims-root .tabs.tab-groups{flex-wrap:nowrap;overflow-x:auto}
+.claims-root .tabs.tab-subs{display:flex;flex-wrap:wrap;overflow:visible}
 .claims-root .tabs.tab-subs{padding-top:0;margin-top:-8px;border-bottom:1px solid var(--br);margin-bottom:12px}
 .claims-root .tabs.tab-subs .tab{font-size:11px;font-weight:500}
 .claims-root .mail-entry-bar,.claims-root .work-entry-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
@@ -269,7 +270,9 @@
   .claims-root .sb{display:flex;flex-direction:column;position:fixed;top:0;right:0;height:100dvh;width:min(280px,88vw);z-index:430;transform:translateX(110%);transition:transform .2s ease;box-shadow:-8px 0 32px rgba(0,0,0,.45);padding-top:0}
   .claims-root .sb.open{transform:translateX(0)}
   .claims-root .sb-mhead{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--br);font-weight:800;font-size:14px}
-  .claims-root .main{padding:12px;min-width:0;overflow-x:hidden}
+  .claims-root .main{padding:12px;min-width:0;overflow-x:hidden;max-width:100%}
+  .claims-root .app,.claims-root .ph,.claims-root .ph-a,.claims-root .card-snap{min-width:0;max-width:100%}
+  .claims-root .tw{max-width:100%}
   .claims-root .fg2,.claims-root .fg3{grid-template-columns:1fr}
   .claims-root .dcg{grid-template-columns:repeat(2,1fr)}
   .claims-root .doc-type-row{grid-template-columns:1fr}

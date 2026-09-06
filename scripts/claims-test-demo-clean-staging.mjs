@@ -32,7 +32,7 @@ function proof(row) {
   const source = String(rd.source || '');
   const reasons = [];
   if (String(row.id).startsWith('DAL-QA-')) reasons.push('id DAL-QA-*');
-  if (/^TEST-|^TEST |TEST-CLOSEOUT|TEST-CLAIMS|TEST-INTAKE|TEST-CLAIMS-ISOLATION/i.test(client)) reasons.push(`client ${client}`);
+  if (/^TEST-|^TEST |TEST-CLOSEOUT|TEST-CLAIMS|TEST-INTAKE|TEST-CLAIMS-ISOLATION|TEST-FINAL/i.test(client)) reasons.push(`client ${client}`);
   if (rd.qa === true || rd.qa === 'true') reasons.push('row_data.qa');
   if (/^QA$|TEST-CLAIMS-WORKER|TEST עובד תביעות|QA-CLOSEOUT/i.test(by)) reasons.push(`created_by ${by}`);
   if (source === 'create-user-claims-worker') reasons.push('source create-user-claims-worker');
