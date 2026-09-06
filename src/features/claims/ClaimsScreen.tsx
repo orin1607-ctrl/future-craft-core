@@ -643,7 +643,7 @@ function InCardPreview({ file, onClose }: { file: { url: string; name: string; m
       <div className="doc-preview-bar">
         <b data-testid="doc-preview-name"><FileName name={file.name} /></b>
         <button className="btn btn-g btn-sm" onClick={() => window.open(file.url, '_blank')}>חלון נפרד</button>
-        <a className="btn btn-p btn-sm" href={file.url} download={file.name || 'document'} target="_blank" rel="noreferrer">הורדה</a>
+        <a className="btn btn-p btn-sm" data-testid="doc-preview-download" href={file.url} download={file.name || 'document'} target="_blank" rel="noreferrer">הורדה</a>
         <button className="btn btn-g btn-sm" onClick={onClose}>סגור תצוגה</button>
       </div>
       {img
