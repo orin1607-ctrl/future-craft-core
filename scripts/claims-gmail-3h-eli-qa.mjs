@@ -26,8 +26,31 @@ function readDotEnv() {
     return {};
   }
 }
+function looksLikeJwt(v) {
+  return typeof v === 'string' && v.split('.').length === 3 && v.length > 80;
+}
+
+async function anonFromPublicPages() {
+  const html = await fetch('https://orin1607-ctrl.github.io/future-craft-core/', { redirect: 'follow' }).then((r) => r.text());
+  const asset = html.match(/\/future-craft-core\/assets\/[^"]+\.js/) || html.match(/assets\/[^"]+\.js/);
+  if (!asset) return '';
+  const url = asset[0].startsWith('http') ? asset[0] : `https://orin1607-ctrl.github.io${asset[0].startsWith('/') ? '' : '/future-craft-core/'}${asset[0]}`.replace('/future-craft-core/future-craft-core/', '/future-craft-core/');
+  const js = await fetch(url).then((r) => r.text());
+  const m = js.match(/eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g) || [];
+  for (const tok of m) {
+    try {
+      const payload = JSON.parse(Buffer.from(tok.split('.')[1], 'base64url').toString('utf8'));
+      if (payload.ref === STAGING_REF && payload.role === 'anon') return tok;
+    } catch {
+      /* skip */
+    }
+  }
+  return '';
+}
+
 const env = readDotEnv();
-const anon = process.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY;
+let anon = [process.env.VITE_SUPABASE_ANON_KEY, process.env.VITE_SUPABASE_PUBLISHABLE_KEY, env.VITE_SUPABASE_ANON_KEY, env.VITE_SUPABASE_PUBLISHABLE_KEY].find(looksLikeJwt) || '';
+if (!anon) anon = await anonFromPublicPages();
 if (!anon) throw new Error('missing anon');
 
 function serviceRole() {
@@ -61,8 +84,14 @@ function rec(name, pass, extra = {}) {
   return pass;
 }
 
-const service = serviceRole();
-const admin = createClient(BASE, service, { auth: { persistSession: false } });
+let service = null;
+try {
+  service = serviceRole();
+} catch (e) {
+  service = null;
+  console.log('SERVICE_ROLE_UNAVAILABLE', String(e.message || e).slice(0, 180));
+}
+const admin = service ? createClient(BASE, service, { auth: { persistSession: false } }) : null;
 const userDb = createClient(BASE, anon, { auth: { persistSession: false } });
 const { data: auth, error: authErr } = await userDb.auth.signInWithPassword({
   email: 'qa.claims.worker.1788292403067@futurecraft.staging',
@@ -70,7 +99,10 @@ const { data: auth, error: authErr } = await userDb.auth.signInWithPassword({
 });
 if (authErr || !auth.session) throw authErr || new Error('worker login failed');
 const workerHdr = { apikey: anon, Authorization: `Bearer ${auth.session.access_token}`, 'Content-Type': 'application/json' };
-const schedHdr = { apikey: anon, Authorization: `Bearer ${service}`, 'Content-Type': 'application/json', 'x-dalia-internal-key': service };
+const schedHdr = service
+  ? { apikey: anon, Authorization: `Bearer ${service}`, 'Content-Type': 'application/json', 'x-dalia-internal-key': service }
+  : null;
+rec('service_role_available', !!service, { reason: service ? 'ok' : 'need existing Staging service_role to import/unattended-scan' });
 
 async function gmail(hdr, body) {
   const res = await fetch(`${BASE}/functions/v1/claims-gmail`, { method: 'POST', headers: hdr, body: JSON.stringify(body) });
@@ -91,8 +123,10 @@ rec('gmail_connected', status.json.connected === true && status.json.email === '
 rec('scan_every_3h', status.json.scheduler?.everyHours === 3 && status.json.scheduler?.everyMs === 3 * 60 * 60 * 1000, { scheduler: status.json.scheduler });
 rec('scan_folders_inbox_sent', JSON.stringify(status.json.scheduler?.folders) === JSON.stringify(['inbox', 'sent']), { folders: status.json.scheduler?.folders });
 
-const dry = await gmail(schedHdr, { action: 'scan_inbox', scheduler: true, dry: true, force: true });
-rec('unattended_dry_scan', dry.status === 200 && dry.json.success === true && dry.json.scheduler === true, { status: dry.status, error: dry.json.error, scanned: dry.json.scanned, folders: dry.json.folders });
+const dry = schedHdr
+  ? await gmail(schedHdr, { action: 'scan_inbox', scheduler: true, dry: true, force: true })
+  : await gmail(workerHdr, { action: 'scan_inbox', dry: true });
+rec('unattended_dry_scan', !!(schedHdr && dry.status === 200 && dry.json.success === true && dry.json.scheduler === true), { status: dry.status, error: dry.json.error, scanned: dry.json.scanned, folders: dry.json.folders, scheduler: dry.json.scheduler });
 rec('inbox_scanned', Number(dry.json.folders?.inbox || 0) >= 0 && dry.json.success === true, { inbox: dry.json.folders?.inbox });
 rec('sent_scanned', Number(dry.json.folders?.sent || 0) >= 0 && dry.json.success === true, { sent: dry.json.folders?.sent });
 
@@ -105,10 +139,16 @@ rec('file_number_auto', fileNum.json.result?.decision === 'auto' && fileNum.json
 const otherFile = await gmail(workerHdr, { action: 'match_dry_run', mail: { subject: '25311-002 אטיאס אליהו' } });
 rec('other_file_not_guessed', otherFile.json.result?.decision === 'needs_review', { result: otherFile.json.result });
 
-const { data: eliClaim, error: eliErr } = await admin.from('claims_records')
-  .select('id, client_name, plate, row_data, gmail_thread_id')
-  .eq('id', 'DAL-2026-0020')
-  .maybeSingle();
+let eliClaim = null;
+let eliErr = service ? null : { message: 'no_service_role' };
+if (admin) {
+  const got = await admin.from('claims_records')
+    .select('id, client_name, plate, row_data, gmail_thread_id')
+    .eq('id', 'DAL-2026-0020')
+    .maybeSingle();
+  eliClaim = got.data;
+  eliErr = got.error;
+}
 const rd = eliClaim?.row_data && typeof eliClaim.row_data === 'object' ? eliClaim.row_data : {};
 const eliName = `${eliClaim?.client_name || ''} ${rd.clientName || ''}`;
 const eliOk = !!eliClaim && /אטיאס/.test(eliName) && /אליה/.test(eliName);
@@ -129,11 +169,11 @@ const inboxHit = relevant.find((m) => /גליל|שמאות|liowain|63292-003/i.t
 const sentHit = relevant.find((m) => /yoni122222|yoni atias/i.test(m.from || ''));
 rec('eli_inbox_or_sent', relevant.length > 0, { inboxHit: inboxHit?.id, sentHit: sentHit?.id });
 
-const { data: beforeDocs } = await admin.from('claims_documents').select('id, original_name, content_sha256, gmail_message_id, claim_id').eq('claim_id', 'DAL-2026-0020');
-const { data: beforeImp } = await admin.from('claims_gmail_imports').select('id, gmail_message_id, subject, attachment_count').eq('claim_id', 'DAL-2026-0020');
+const beforeDocs = admin ? (await admin.from('claims_documents').select('id, original_name, content_sha256, gmail_message_id, claim_id').eq('claim_id', 'DAL-2026-0020')).data : [];
+const beforeImp = admin ? (await admin.from('claims_gmail_imports').select('id, gmail_message_id, subject, attachment_count').eq('claim_id', 'DAL-2026-0020')).data : [];
 
 let importedIds = [];
-if (eliOk && relevant.length) {
+if (eliOk && relevant.length && schedHdr) {
   const targets = [];
   const seen = new Set();
   for (const m of relevant) {
@@ -159,40 +199,51 @@ if (eliOk && relevant.length) {
     rec(`eli_import_${m.id.slice(0, 8)}`, last.success === true, { error: last.error, imported: last.imported, skippedExisting: last.skippedExisting, found: last.found });
   }
 } else {
-  rec('eli_targets_safe', false, { reason: 'claim or mail not safely identified' });
+  rec('eli_targets_safe', false, { reason: !schedHdr ? 'no_service_role_for_import' : 'claim or mail not safely identified' });
 }
 
-const { data: afterDocs } = await admin.from('claims_documents').select('id, original_name, content_sha256, gmail_message_id, claim_id, source').eq('claim_id', 'DAL-2026-0020');
-const { data: afterImp } = await admin.from('claims_gmail_imports').select('id, gmail_message_id, subject, attachment_count, imported_count').eq('claim_id', 'DAL-2026-0020');
+const afterDocs = admin ? (await admin.from('claims_documents').select('id, original_name, content_sha256, gmail_message_id, claim_id, source').eq('claim_id', 'DAL-2026-0020')).data : [];
+const afterImp = admin ? (await admin.from('claims_gmail_imports').select('id, gmail_message_id, subject, attachment_count, imported_count').eq('claim_id', 'DAL-2026-0020')).data : [];
 const hashes = (afterDocs || []).map((d) => d.content_sha256).filter(Boolean);
 const hashDup = hashes.length !== new Set(hashes).size;
 const names = (afterDocs || []).map((d) => String(d.original_name || '').toLowerCase());
 rec('eli_docs_present', (afterDocs || []).length > 0, { before: (beforeDocs || []).length, after: (afterDocs || []).length, docs: (afterDocs || []).map((d) => d.original_name) });
 rec('eli_mail_linked', (afterImp || []).length > 0, { before: (beforeImp || []).length, after: (afterImp || []).length, subjects: (afterImp || []).map((i) => i.subject) });
-rec('no_hash_duplicate', !hashDup, { hashes: hashes.length, unique: new Set(hashes).size });
+rec('no_hash_duplicate', admin ? !hashDup : false, { hashes: hashes.length, unique: new Set(hashes).size, reason: admin ? undefined : 'no_service_role' });
 
-const { data: leak } = await admin.from('claims_documents').select('id, claim_id, original_name').in('claim_id', ['DAL-QA-WORKER-001', 'DAL-QA-WORKER-002']).in('original_name', names.length ? names : ['__none__']);
-rec('no_cross_claim_leak', !leak?.length, { leak });
+const leak = admin
+  ? (await admin.from('claims_documents').select('id, claim_id, original_name').in('claim_id', ['DAL-QA-WORKER-001', 'DAL-QA-WORKER-002']).in('original_name', names.length ? names : ['__none__'])).data
+  : null;
+rec('no_cross_claim_leak', admin ? !leak?.length : false, { leak, reason: admin ? undefined : 'no_service_role' });
 
-const live = await gmail(schedHdr, { action: 'scan_inbox', scheduler: true, dry: false, force: true });
-rec('unattended_live_tick', live.status === 200 && live.json.success === true && live.json.scheduler === true, {
+const live = schedHdr
+  ? await gmail(schedHdr, { action: 'scan_inbox', scheduler: true, dry: false, force: true })
+  : { status: 0, json: {} };
+rec('unattended_live_tick', !!(schedHdr && live.status === 200 && live.json.success === true && live.json.scheduler === true), {
   scanned: live.json.scanned,
   folders: live.json.folders,
   imported: live.json.imported,
   review: (live.json.needs_review || []).length,
   auto: (live.json.auto || []).length,
   nextDueAt: live.json.nextDueAt,
-  error: live.json.error,
+  error: live.json.error || (!schedHdr ? 'no_service_role' : undefined),
 });
 const nextMs = live.json.nextDueAt ? Date.parse(live.json.nextDueAt) : 0;
 const lastMs = live.json.lastScanAt ? Date.parse(live.json.lastScanAt) : 0;
 rec('next_due_3h', lastMs && nextMs && Math.abs((nextMs - lastMs) - 3 * 60 * 60 * 1000) < 5000, { lastScanAt: live.json.lastScanAt, nextDueAt: live.json.nextDueAt });
 
-const skip = await gmail(schedHdr, { action: 'scan_inbox', scheduler: true, dry: false });
-rec('gate_skips_when_not_due', skip.json.skipped === true && skip.json.reason === 'scan_not_due', { reason: skip.json.reason, nextDueAt: skip.json.nextDueAt });
+const skip = schedHdr ? await gmail(schedHdr, { action: 'scan_inbox', scheduler: true, dry: false }) : { json: {} };
+rec('gate_skips_when_not_due', skip.json.skipped === true && skip.json.reason === 'scan_not_due', { reason: skip.json.reason || (!schedHdr ? 'no_service_role' : undefined), nextDueAt: skip.json.nextDueAt });
 
-const { data: mode } = await admin.from('claims_config').select('value').eq('key', 'MAIL_DISPATCH_MODE').maybeSingle();
-rec('mail_dispatch_still_dry_run', mode?.value === 'dry_run', { mode: mode?.value });
+const mode = admin ? (await admin.from('claims_config').select('value').eq('key', 'MAIL_DISPATCH_MODE').maybeSingle()).data : null;
+rec('mail_dispatch_still_dry_run', mode?.value === 'dry_run', { mode: mode?.value, reason: admin ? undefined : 'no_service_role' });
+
+const dispatchRes = admin ? await admin.rpc('claims_mail_dispatch_now') : { data: null, error: { message: 'no_service_role' } };
+const tick = dispatchRes.data?.inboxScanTick || {};
+rec('cron_tick_piggyback', !dispatchRes.error && tick && (tick.queued === true || tick.skipped === true || tick.success === true), {
+  error: dispatchRes.error?.message,
+  tick,
+});
 
 const workerEli = await userDb.from('claims_records').select('id').eq('id', 'DAL-2026-0020');
 rec('worker_cannot_open_eli', !((workerEli.data || []).length), { rows: workerEli.data, error: workerEli.error?.message });
