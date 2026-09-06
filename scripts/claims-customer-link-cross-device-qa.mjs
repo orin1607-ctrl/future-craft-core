@@ -64,6 +64,7 @@ report.counts.before = {
   links: await count('claims_upload_links'),
 };
 
+// CI fixture: keep DAL-QA-WORKER-001 archived (not soft-deleted). Protected from TEST clean.
 const claimA = 'DAL-QA-WORKER-001';
 const claimB = 'DAL-2026-0018';
 report.testClaims = [claimA, claimB];

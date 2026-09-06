@@ -22,6 +22,7 @@ const PROTECTED_IDS = new Set([
   'DAL-2026-0014',
   'DAL-2026-0017',
   'DAL-2026-0001',
+  'DAL-QA-WORKER-001',
 ]);
 const PROTECTED_NAME = /אליהו|אטיאס|מנחם|דליה(?!\s*QA)/;
 
