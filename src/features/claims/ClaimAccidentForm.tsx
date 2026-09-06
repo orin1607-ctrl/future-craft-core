@@ -37,7 +37,7 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
   };
 
   const keys = stepKey === 'all'
-    ? ['client', ...(value.driverDifferent === 'true' ? ['driver'] : []), 'event', ...(value.claimKind === 'תביעת צד ג׳' ? ['third'] : []), ...(mode === 'customer' ? ['sign', 'review'] : [])]
+    ? ['client', ...(value.driverDifferent === 'true' ? ['driver'] : []), 'event', ...(value.claimKind === 'תביעת צד ג׳' ? ['third'] : []), ...(mode === 'customer' || onSignature ? ['sign'] : []), ...(mode === 'customer' ? ['review'] : [])]
     : [stepKey];
   const hideStepTitle = mode === 'customer' && stepKey !== 'all';
   const stepTitle = (text: string) => hideStepTitle ? null : (

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildClaimRowAlerts,
+  canMarkMailTaskDone,
+  countUntreatedMails,
   customerTaskHistoryAction,
   detectMailRequests,
   followupDaysPreset,
@@ -71,6 +73,40 @@ describe('buildClaimRowAlerts', () => {
     expect(labels).toContain('מייל מתוזמן');
     expect(labels).toContain('משימה ללקוח');
     expect(labels).toContain('נדרש טיפול');
+    expect(labels).toContain('דואר דורש טיפול (1)');
+  });
+
+  it('counts distinct untreated mails 2 → 1 → 0 without treating read as done', () => {
+    const two = {
+      tasks: [
+        { id: 't1', claimId: 'DAL-QA-A', gmailMessageId: 'm1', requestKind: 'doc', docState: 'missing', done: 'false' } as ClaimRecord,
+        { id: 't2', claimId: 'DAL-QA-A', gmailMessageId: 'm2', requestKind: 'reply', done: 'false' } as ClaimRecord,
+      ],
+      notifs: [{ id: 'n1', claimId: 'DAL-QA-A', type: 'gmail_auto', read: 'true' } as ClaimRecord],
+      gmailPending: [] as Array<Record<string, unknown>>,
+      scheduledFollowups: [],
+    };
+    expect(countUntreatedMails(claim, two)).toBe(2);
+    expect(buildClaimRowAlerts(claim, two).map((a) => a.label)).toContain('דואר דורש טיפול (2)');
+    const one = {
+      ...two,
+      tasks: [
+        { ...two.tasks[0], done: 'true' } as ClaimRecord,
+        two.tasks[1],
+      ],
+    };
+    expect(countUntreatedMails(claim, one)).toBe(1);
+    expect(buildClaimRowAlerts(claim, one).map((a) => a.label)).toContain('דואר דורש טיפול (1)');
+    const zero = { ...two, tasks: two.tasks.map((t) => ({ ...t, done: 'true' }) as ClaimRecord) };
+    expect(countUntreatedMails(claim, zero)).toBe(0);
+    expect(buildClaimRowAlerts(claim, zero).map((a) => a.label)).not.toContain('דואר דורש טיפול (0)');
+  });
+
+  it('blocks marking done when a required document is missing', () => {
+    expect(canMarkMailTaskDone({ docState: 'missing' }, 'done').ok).toBe(false);
+    expect(canMarkMailTaskDone({ docState: 'awaiting_signature' }, 'done').ok).toBe(false);
+    expect(canMarkMailTaskDone({ docState: 'missing' }, 'doc_not_needed').ok).toBe(true);
+    expect(canMarkMailTaskDone({ docState: 'ready' }, 'done').ok).toBe(true);
   });
 
   it('isolates alerts between two claims', () => {

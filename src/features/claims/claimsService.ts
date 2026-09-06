@@ -991,7 +991,7 @@ export function createClaimsApi(actor: ClaimsActor) {
       return { ...last, success: false, error: 'import_incomplete', hint: 'יותר מדי קבצים לסבב אחד — לחץ שוב לייבוא להשלמת היתרה' };
     },
 
-    async staffUpload(claimId: string, docRequestId: string, file: File, extra?: { doc_kind?: string; staff_type?: string }) {
+    async staffUpload(claimId: string, docRequestId: string, file: File, extra?: { doc_kind?: string; staff_type?: string; staff_title?: string }) {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
       const form = new FormData();
@@ -1000,6 +1000,7 @@ export function createClaimsApi(actor: ClaimsActor) {
       if (docRequestId) form.set('doc_request_id', docRequestId);
       if (extra?.doc_kind) form.set('doc_kind', extra.doc_kind);
       if (extra?.staff_type) form.set('staff_type', extra.staff_type);
+      if (extra?.staff_title) form.set('staff_title', extra.staff_title);
       form.set('file', file);
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-docs`, {
         method: 'POST',

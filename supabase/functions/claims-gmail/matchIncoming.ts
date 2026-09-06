@@ -225,6 +225,7 @@ export function suggestReply(text: string, files: SuggestFile[]) {
     );
     if (hits.length === 1) attachments.push(hits[0]);
     else if (hits.length === 0) missing.push(req.label);
+    else if (req.type === "driver_license" && hits.length === 2) attachments.push(...hits);
     else missing.push(`${req.label} (נמצאו ${hits.length} — בחירה ידנית)`);
   }
   const requested = [...new Set([...found.map((x) => x.label), ...detected.map((x) => x.label)])];
