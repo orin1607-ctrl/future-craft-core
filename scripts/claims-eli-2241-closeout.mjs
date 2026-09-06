@@ -308,11 +308,7 @@ for (const a of peeks) {
 }
 
 function looksLikeReportPage(p) {
-  const name = String(p.filename || '');
-  const ocr = String(p.ocr || '');
-  if (/rcv000[123]\.jpe?g/i.test(name)) return true;
-  if (p.tokens?.reportNo && /חוות|חלק|ירידת|מע.?מ|2241-0|דו.?ח/.test(ocr)) return true;
-  return false;
+  return /rcv000[1234]\.jpe?g/i.test(String(p.filename || ''));
 }
 
 const packRead = reads.find((m) => m.id === MSG_2241);
@@ -438,8 +434,7 @@ const { data: claimDocs } = await admin.from('claims_documents')
   .eq('claim_id', CLAIM_ID);
 report.claimDocs = claimDocs || [];
 
-const reportPageNames = new Set(reportPeeks.map((p) => String(p.filename || '').toLowerCase()));
-['rcv0001.jpg', 'rcv0002.jpg', 'rcv0003.jpg'].forEach((n) => reportPageNames.add(n));
+const reportPageNames = new Set(['rcv0001.jpg', 'rcv0002.jpg', 'rcv0003.jpg', 'rcv0004.jpg']);
 const reportDocs = (claimDocs || []).filter((d) => reportPageNames.has(String(d.original_name || '').toLowerCase()));
 report.taggedReports = [];
 for (const d of reportDocs) {
@@ -458,6 +453,20 @@ for (const d of reportDocs) {
   if (cls.json.success) report.documentsUpdated = true;
 }
 
+const feeInvoice = (claimDocs || []).find((d) => /^rcv0005\.jpe?g$/i.test(d.original_name || ''));
+if (feeInvoice && feeInvoice.doc_kind !== 'surveyor_attachment') {
+  const cls = await invoke('claims-docs', 'set_doc_kind', {
+    claim_id: CLAIM_ID,
+    file_id: feeInvoice.id,
+    doc_kind: 'surveyor_attachment',
+    doc_meta: { surveyorName: 'גליל גולן שמאות', reportNumber: '2241-0-1' },
+  });
+  rec('tag_surveyor_fee_invoice_as_attachment', cls.json.success === true, { err: cls.json.error, name: feeInvoice.original_name });
+  if (cls.json.success) report.documentsUpdated = true;
+} else {
+  rec('tag_surveyor_fee_invoice_as_attachment', feeInvoice?.doc_kind === 'surveyor_attachment', { already: feeInvoice?.doc_kind || 'missing' });
+}
+
 const { data: afterDocs } = await admin.from('claims_documents')
   .select('id, original_name, doc_kind, mime_type, gmail_message_id, content_sha256, byte_size, doc_meta')
   .eq('claim_id', CLAIM_ID);
@@ -466,13 +475,27 @@ const packDocs = docsNow.filter((d) => d.gmail_message_id === MSG_2241);
 const gmailNames = packAtts.map((a) => String(a.filename || '').toLowerCase());
 const haveNames = new Set(docsNow.map((d) => String(d.original_name || '').toLowerCase()));
 const missingAtts = gmailNames.filter((n) => !haveNames.has(n));
-rec('all_2241_attachments_on_claim', missingAtts.length === 0, {
+if (missingAtts.length) {
+  for (let i = 0; i < 3 && missingAtts.length; i += 1) {
+    await invoke('claims-gmail', 'import_message', { claim_id: CLAIM_ID, message_id: MSG_2241, start: 0 });
+  }
+}
+const { data: docsRetry } = await admin.from('claims_documents')
+  .select('id, original_name, doc_kind, mime_type, gmail_message_id, content_sha256, byte_size, doc_meta')
+  .eq('claim_id', CLAIM_ID);
+const docsAfterRetry = docsRetry || docsNow;
+const haveNames2 = new Set(docsAfterRetry.map((d) => String(d.original_name || '').toLowerCase()));
+const missingAtts2 = gmailNames.filter((n) => !haveNames2.has(n));
+const hashAccounted = missingAtts2.length === 0;
+rec('all_2241_attachments_on_claim', hashAccounted, {
   gmail: packAtts.length,
-  packDocs: packDocs.length,
-  missing: missingAtts,
+  packDocs: docsAfterRetry.filter((d) => d.gmail_message_id === MSG_2241).length,
+  missing: missingAtts2,
+  retried: missingAtts,
 });
-rec('no_duplicate_invoice', docsNow.filter((d) => /0010002508/.test(d.original_name || '')).length === 1);
-rec('invoice_kind_garage', docsNow.some((d) => /0010002508/.test(d.original_name || '') && d.doc_kind === 'garage_invoice'));
+const docsFinal = docsAfterRetry;
+rec('no_duplicate_invoice', docsFinal.filter((d) => /0010002508/.test(d.original_name || '')).length === 1);
+rec('invoice_kind_garage', docsFinal.some((d) => /0010002508/.test(d.original_name || '') && d.doc_kind === 'garage_invoice'));
 rec('no_cross_claim_invoice', (invoiceRows || []).every((d) => d.claim_id === CLAIM_ID));
 
 const { data: leakedDocs } = await admin.from('claims_documents')
@@ -482,12 +505,13 @@ rec('no_cross_claim_2241_pack', (leakedDocs || []).every((d) => d.claim_id === C
   claims: [...new Set((leakedDocs || []).map((d) => d.claim_id))],
 });
 
-const reportNow = docsNow.filter((d) => d.doc_kind === 'surveyor_report');
-const photosNow = docsNow.filter((d) => d.doc_kind === 'surveyor_photo');
-rec('report_pages_tagged', reportNow.length >= 3 && reportNow.every((d) => /rcv000[1234]\.jpe?g/i.test(d.original_name || '')), {
+const reportNow = docsFinal.filter((d) => d.doc_kind === 'surveyor_report');
+const photosNow = docsFinal.filter((d) => d.doc_kind === 'surveyor_photo');
+rec('report_pages_tagged', reportNow.length === 4 && reportNow.every((d) => /rcv000[1234]\.jpe?g/i.test(d.original_name || '')), {
   reports: reportNow.map((d) => d.original_name),
 });
-rec('invoice_not_tagged_surveyor', !docsNow.some((d) => /0010002508/.test(d.original_name || '') && d.doc_kind === 'surveyor_report'));
+rec('surveyor_fee_not_tagged_report', !docsFinal.some((d) => /^rcv0005\.jpe?g$/i.test(d.original_name || '') && d.doc_kind === 'surveyor_report'));
+rec('invoice_not_tagged_surveyor', !docsFinal.some((d) => /0010002508/.test(d.original_name || '') && d.doc_kind === 'surveyor_report'));
 
 async function inject(context) {
   await context.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
@@ -557,9 +581,10 @@ try {
   await page.locator('[data-testid="claims-tab-sub-surveyor"]').click();
   await page.waitForTimeout(2500);
   rec('invoice_not_shown_as_surveyor', await page.locator('[data-testid="surveyor-report-file"][data-doc-name*="0010002508"]').count() === 0);
+  rec('fee_invoice_not_shown_as_surveyor', await page.locator('[data-testid="surveyor-report-file"][data-doc-name*="RCV0005"]').count() === 0);
   const reportFiles = page.locator('[data-testid="surveyor-report-file"]');
   const reportCount = await reportFiles.count();
-  rec('ui_report_files_visible', reportCount >= 3, { count: reportCount });
+  rec('ui_report_files_visible', reportCount === 4, { count: reportCount });
   await saveShot(page, 'surveyor_tab_reports');
 
   for (let i = 0; i < reportCount; i += 1) {
@@ -578,15 +603,18 @@ try {
     }
     ui.reportPagesOpened.push({ name, preview, imgOk: vis.ok, w: vis.w, h: vis.h, downloadOk });
     rec(`ui_open_report_page_${i + 1}`, preview && vis.ok && downloadOk, { name, w: vis.w, h: vis.h, downloadOk });
+    await page.locator('.doc-preview-img, [data-testid="doc-preview-img"]').first().scrollIntoViewIfNeeded().catch(() => null);
+    await page.waitForTimeout(300);
     await saveShot(page, `surveyor_page_${i + 1}_${String(name || 'p').replace(/[^\w.\-]+/g, '_')}`);
     await page.getByRole('button', { name: /סגור תצוגה/ }).click().catch(() => null);
     await page.waitForTimeout(200);
   }
-  rec('ui_every_report_page_checked', ui.reportPagesOpened.length >= 3 && ui.reportPagesOpened.every((p) => p.imgOk && p.downloadOk), {
+  rec('ui_every_report_page_checked', ui.reportPagesOpened.length === 4 && ui.reportPagesOpened.every((p) => p.imgOk && p.downloadOk && /rcv000[1234]/i.test(p.name || '')), {
     opened: ui.reportPagesOpened,
   });
 
-  await page.waitForFunction(() => document.querySelectorAll('.gal-grid .gal-item img').length >= 20, { timeout: 90000 }).catch(() => null);
+  const expectThumbs = Math.max(100, photosNow.length);
+  await page.waitForFunction((n) => document.querySelectorAll('.gal-grid .gal-item img').length >= n, expectThumbs, { timeout: 120000 }).catch(() => null);
   const thumbs = page.locator('.gal-grid .gal-item img');
   const thumbCount = await thumbs.count();
   for (let i = 0; i < thumbCount; i += 1) {
@@ -636,11 +664,11 @@ try {
   await page.locator('[data-testid="claims-tab-sub-surveyor"]').click();
   await page.waitForTimeout(2500);
   rec('refresh_reopen_invoice_still_not_surveyor', await page.locator('[data-testid="surveyor-report-file"][data-doc-name*="0010002508"]').count() === 0);
-  rec('refresh_reopen_reports_still_visible', await page.locator('[data-testid="surveyor-report-file"]').count() >= 3, {
+  rec('refresh_reopen_reports_still_visible', await page.locator('[data-testid="surveyor-report-file"]').count() === 4, {
     count: await page.locator('[data-testid="surveyor-report-file"]').count(),
   });
-  await page.waitForFunction(() => document.querySelectorAll('.gal-grid .gal-item img').length >= 20, { timeout: 90000 }).catch(() => null);
-  rec('refresh_reopen_photos_still_visible', await page.locator('.gal-grid .gal-item img').count() >= 100, {
+  await page.waitForFunction((n) => document.querySelectorAll('.gal-grid .gal-item img').length >= n, expectThumbs, { timeout: 120000 }).catch(() => null);
+  rec('refresh_reopen_photos_still_visible', await page.locator('.gal-grid .gal-item img').count() >= expectThumbs, {
     count: await page.locator('.gal-grid .gal-item img').count(),
   });
   const firstAgain = page.locator('[data-testid="surveyor-report-file"]').first();
