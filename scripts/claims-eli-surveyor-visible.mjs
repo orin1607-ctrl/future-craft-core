@@ -211,14 +211,35 @@ async function inspectSurveyor(page, prefix) {
     const openBtn = row.getByRole('button', { name: 'פתח בתיק' });
     if (await openBtn.count()) await openBtn.click();
     else await row.locator('[data-testid="surveyor-report-open"]').click();
-    const preview = await page.locator('[data-testid="doc-preview"]').waitFor({ timeout: 15000 }).then(() => true).catch(() => false);
-    rec(`${prefix}_can_open`, preview);
-    const previewName = (await page.locator('[data-testid="doc-preview-name"]').innerText().catch(() => '')) || '';
+    const preview = page.locator('.ov.open [data-testid="doc-preview"]').first();
+    const opened = await preview.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
+    rec(`${prefix}_can_open`, opened);
+    const previewName = opened ? ((await page.locator('.ov.open [data-testid="doc-preview-name"]').first().innerText().catch(() => '')) || '') : '';
     rec(`${prefix}_preview_name`, isTargetName(previewName), { previewName });
+    const src = opened ? ((await page.locator('.ov.open iframe.doc-preview-frame').first().getAttribute('src').catch(() => '')) || '') : '';
+    rec(`${prefix}_signed_url`, /usfeoerkpcafxxlyuldl/.test(src) && /token=/.test(src), {
+      host: src ? (() => { try { return new URL(src).host; } catch { return 'bad-url'; } })() : '',
+    });
     await saveShot(page, `${prefix}_preview`);
+    if (opened) {
+      const popupPromise = page.waitForEvent('popup', { timeout: 8000 }).catch(() => null);
+      await page.locator('.ov.open [data-testid="doc-preview"]').first().getByRole('button', { name: 'חלון נפרד' }).click();
+      const popup = await popupPromise;
+      if (popup) await popup.waitForLoadState('domcontentloaded').catch(() => null);
+      const popupUrl = popup ? popup.url() : '';
+      rec(`${prefix}_new_window`, /usfeoerkpcafxxlyuldl/.test(popupUrl), {
+        host: popupUrl ? (() => { try { return new URL(popupUrl).host; } catch { return 'bad-url'; } })() : 'no-popup',
+      });
+      if (popup) await popup.close().catch(() => null);
+    } else {
+      rec(`${prefix}_signed_url`, false);
+      rec(`${prefix}_new_window`, false);
+    }
   } else {
     rec(`${prefix}_can_open`, false, { err: 'file not visible on דוח שמאי' });
     rec(`${prefix}_preview_name`, false);
+    rec(`${prefix}_signed_url`, false);
+    rec(`${prefix}_new_window`, false);
   }
 }
 
