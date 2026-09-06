@@ -2,7 +2,9 @@ import { starlinkChecksum, verifyStarlinkChecksum } from './checksum';
 import { parseP177Template } from './tags';
 import type { ParsedStarlinkMessage } from './types';
 
-const LINE_RE = /^\$((?:SLU|SRV)[^*]+)\*([0-9A-Fa-f]{2})\s*$/;
+/** `$` is optional: devices may send `$SLU...*CS` or `SLU...*CS`. Checksum is still required. */
+const LINE_RE = /^\$?((?:SLU|SRV)[^*]+)\*([0-9A-Fa-f]{2})\s*$/;
+const STARLINK_PREFIX_RE = /^\$?(?:SLU|SRV)/;
 
 export function extractStarlinkLines(buffer: string): { lines: string[]; rest: string } {
   const parts = buffer.split(/\r?\n/);
@@ -16,7 +18,7 @@ export function parseStarlinkMessage(
 ): ParsedStarlinkMessage | { error: 'partial' | 'malformed' | 'checksum' } {
   const trimmed = line.trim();
   if (!trimmed) return { error: 'malformed' };
-  if (trimmed.startsWith('$') && !trimmed.includes('*')) return { error: 'partial' };
+  if (STARLINK_PREFIX_RE.test(trimmed) && !trimmed.includes('*')) return { error: 'partial' };
 
   const m = LINE_RE.exec(trimmed);
   if (!m) return { error: 'malformed' };

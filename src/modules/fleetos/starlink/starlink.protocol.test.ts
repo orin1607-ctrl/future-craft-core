@@ -119,6 +119,104 @@ describe('ERM StarLink protocol QA', () => {
     expect(r.ack).toBeNull();
   });
 
+  describe('optional leading $ framing', () => {
+    const REAL_NO_DOLLAR =
+      'SLU043284,06,3,260906145430,01,260906145430,+3159.8342,+03445.9747,000.0,000,000000,17221,8716810,12.735,03.897,0,2*B8';
+
+    it('valid frame with $ still accepted', () => {
+      const store = new InMemoryGpsStore();
+      seedTestDevice(store, { unitId: '0004D2', vehicleId: 'v1', companyName: 'A' });
+      const line = msg('0004D2', '71', loc());
+      expect(line.startsWith('$')).toBe(true);
+      const r = ingest(store, line);
+      expect(r.accepted).toBe(true);
+      expect(r.reason).toBe('ok');
+      expect(r.ack).toMatch(/^\$SRV0004D2,02,/);
+      expect(r.live?.lat).toBeCloseTo(32.8158, 3);
+    });
+
+    it('valid frame without $ accepted + ACK + GPS', () => {
+      const store = new InMemoryGpsStore();
+      seedTestDevice(store, { unitId: '0004D2', vehicleId: 'v1', companyName: 'A' });
+      const withDollar = msg('0004D2', '81', loc());
+      const withoutDollar = withDollar.replace(/^\$/, '');
+      expect(withoutDollar.startsWith('SLU')).toBe(true);
+      const r = ingest(store, withoutDollar);
+      expect(r.accepted).toBe(true);
+      expect(r.reason).toBe('ok');
+      expect(r.ack).toMatch(/^\$SRV0004D2,02,/);
+      expect(r.live?.lat).toBeCloseTo(32.8158, 3);
+      expect(r.live?.lng).toBeCloseTo(34.9892, 3);
+    });
+
+    it('real 043284 wire frame without $ parses checksum and coordinates', () => {
+      const payload = REAL_NO_DOLLAR.replace(/\*[0-9A-Fa-f]{2}$/, '');
+      expect(starlinkChecksum(payload)).toBe('B8');
+      const parsed = parseStarlinkMessage(REAL_NO_DOLLAR, DEFAULT_P177);
+      expect('error' in parsed).toBe(false);
+      if ('error' in parsed) return;
+      expect(parsed.unitId).toBe('043284');
+      expect(parsed.cmd).toBe('06');
+      expect(parsed.checksumOk).toBe(true);
+      const store = new InMemoryGpsStore();
+      seedTestDevice(store, { unitId: '043284', vehicleId: 'v-dmax', companyName: 'אכבים' });
+      const r = ingestStarlinkLine(store, REAL_NO_DOLLAR, new Date('2026-09-06T14:54:31Z'));
+      expect(r.accepted).toBe(true);
+      expect(r.reason).toBe('ok');
+      expect(r.ack).toMatch(/^\$SRV043284,02,/);
+      expect(r.live?.lat).toBeCloseTo(31.9972, 3);
+      expect(r.live?.lng).toBeCloseTo(34.7662, 3);
+    });
+
+    it('same real frame with $ still accepted', () => {
+      const store = new InMemoryGpsStore();
+      seedTestDevice(store, { unitId: '043284', vehicleId: 'v-dmax', companyName: 'אכבים' });
+      const r = ingestStarlinkLine(store, `$${REAL_NO_DOLLAR}`, new Date('2026-09-06T14:54:31Z'));
+      expect(r.accepted).toBe(true);
+      expect(r.reason).toBe('ok');
+      expect(r.ack).toBeTruthy();
+    });
+
+    it('without $ + bad checksum → rejected, no ACK, no live', () => {
+      const store = new InMemoryGpsStore();
+      seedTestDevice(store, { unitId: '043284', vehicleId: 'v-dmax', companyName: 'אכבים' });
+      const r = ingestStarlinkLine(store, REAL_NO_DOLLAR.replace(/\*B8$/, '*00'));
+      expect(r.accepted).toBe(false);
+      expect(r.reason).toBe('checksum');
+      expect(r.ack).toBeNull();
+      expect(store.listLive()).toHaveLength(0);
+    });
+
+    it('with $ + bad checksum → rejected', () => {
+      const store = new InMemoryGpsStore();
+      seedTestDevice(store, { unitId: '0004D2', vehicleId: 'v1', companyName: 'A' });
+      const line = msg('0004D2', '72', loc()).replace(/\*[0-9A-F]{2}$/, '*00');
+      const r = ingestStarlinkLine(store, line);
+      expect(r.reason).toBe('checksum');
+      expect(r.ack).toBeNull();
+    });
+
+    it('garbage is rejected', () => {
+      const store = new InMemoryGpsStore();
+      seedTestDevice(store, { unitId: '043284', vehicleId: 'v-dmax', companyName: 'A' });
+      for (const line of ['hello', 'FOO043284,06,1*00', '$$$', 'SLU', '*B8']) {
+        const r = ingestStarlinkLine(store, line);
+        expect(r.accepted).toBe(false);
+        expect(r.ack).toBeNull();
+        expect(['malformed', 'partial', 'checksum']).toContain(r.reason);
+      }
+      expect(store.listLive()).toHaveLength(0);
+    });
+
+    it('partial frame without $ is held, not ingested', () => {
+      const store = new InMemoryGpsStore();
+      const r = ingestStarlinkLine(store, 'SLU043284,06,3,260906145430');
+      expect(r.reason).toBe('partial');
+      expect(r.ack).toBeNull();
+      expect(store.listRaw()).toHaveLength(0);
+    });
+  });
+
   it('known device accepted, unknown rejected', () => {
     const store = new InMemoryGpsStore();
     seedTestDevice(store, { unitId: '0004D2', vehicleId: 'v1', companyName: 'A' });
