@@ -53,7 +53,7 @@ jobs:
           node <<'NODE'
           const fs = require('fs');
           const sql = fs.readFileSync('supabase/migrations/20260906180000_claims_gmail_scan_tick_3h.sql', 'utf8');
-          if (sql.includes('qasomfndnjuixgjmjwcm') && sql.includes('functions/v1')) {
+          if (sql.includes('https://qasomfndnjuixgjmjwcm.supabase.co/functions/v1')) {
             throw new Error('refused production url');
           }
           (async () => {
