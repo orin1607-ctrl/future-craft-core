@@ -12,8 +12,13 @@ import { join } from 'path';
 const STAGING_REF = 'usfeoerkpcafxxlyuldl';
 const PROD_REF = 'qasomfndnjuixgjmjwcm';
 const CLAIM_ID = 'DAL-2026-0020';
-const REPORT_NAME = 'pdf.0010002508';
+const REPORT_TOKEN = '0010002508';
+const REPORT_NAME = '0010002508.pdf';
 const PUBLIC = process.env.CLAIMS_QA_BASE || 'https://orin1607-ctrl.github.io/future-craft-core';
+
+function isTargetName(name) {
+  return /0010002508/i.test(String(name || ''));
+}
 const OUT = join(process.cwd(), 'docs/audit-reports/claims-eli-surveyor-visible-2026-09-06');
 const ART = '/opt/cursor/artifacts';
 mkdirSync(OUT, { recursive: true });
@@ -94,9 +99,9 @@ const { data: beforeFiles } = await admin.from('claims_documents')
   .select('id, claim_id, original_name, doc_kind, mime_type, source, content_sha256, gmail_message_id, byte_size')
   .eq('claim_id', CLAIM_ID);
 report.filesBefore = beforeFiles || [];
-const target = (beforeFiles || []).find((f) => String(f.original_name || '') === REPORT_NAME)
-  || (beforeFiles || []).find((f) => /pdf\.0010002508/i.test(String(f.original_name || '')));
+const target = (beforeFiles || []).find((f) => isTargetName(f.original_name));
 rec('pdf_exists', !!target, {
+  storedName: target?.original_name || null,
   names: (beforeFiles || []).map((f) => `${f.original_name}:${f.doc_kind}:${f.source}`),
 });
 
@@ -118,7 +123,7 @@ const { data: afterFiles } = await admin.from('claims_documents')
   .select('id, claim_id, original_name, doc_kind, content_sha256')
   .eq('claim_id', CLAIM_ID);
 report.filesAfter = afterFiles || [];
-const afterTarget = (afterFiles || []).find((f) => String(f.original_name || '') === (target?.original_name || REPORT_NAME));
+const afterTarget = (afterFiles || []).find((f) => isTargetName(f.original_name));
 rec('classified_as_surveyor', afterTarget?.doc_kind === 'surveyor_report', { kind: afterTarget?.doc_kind });
 const hashes = (afterFiles || []).map((f) => f.content_sha256).filter(Boolean);
 rec('no_duplicate', hashes.length === new Set(hashes).size && (beforeFiles || []).length === (afterFiles || []).length, {
@@ -186,28 +191,52 @@ async function inspectSurveyor(page, prefix) {
   await saveShot(page, `${prefix}_mail`);
 
   await page.locator('[data-testid="claims-tab-group-docs"]').click();
+  await page.locator('[data-testid="claims-tab-sub-docs"]').click().catch(() => null);
+  const onAll = page.locator(`[data-doc-name*="${REPORT_TOKEN}"]`).first();
+  const allVisible = await onAll.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
+  rec(`${prefix}_filename_on_all_docs`, allVisible);
+  rec(`${prefix}_docs_surveyor_block`, (await page.locator('[data-testid="docs-surveyor-present"]').count()) > 0);
+  await saveShot(page, `${prefix}_all_docs`);
+
   await page.locator('[data-testid="claims-tab-sub-surveyor"]').click();
-  const named = page.getByText(REPORT_NAME, { exact: false }).first();
-  const visible = await named.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
+  const row = page.locator(`[data-testid="surveyor-report-file"][data-doc-name*="${REPORT_TOKEN}"]`).first();
+  const visible = await row.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
   rec(`${prefix}_surveyor_filename`, visible);
   rec(`${prefix}_empty_hidden`, (await page.getByText('אין דוח שמאי מסומן בתיק').count()) === 0);
+  const rowText = visible ? ((await row.innerText().catch(() => '')) || '') : '';
+  rec(`${prefix}_surveyor_classified_label`, visible && /דוח שמאי/.test(rowText), { rowText: rowText.slice(0, 180) });
   await saveShot(page, `${prefix}_surveyor`);
 
   if (visible) {
-    const row = page.locator('div.gal-box', { hasText: REPORT_NAME }).first();
     const openBtn = row.getByRole('button', { name: 'פתח בתיק' });
     if (await openBtn.count()) await openBtn.click();
-    else await page.locator('[data-testid="surveyor-report-open"]').click().catch(() => named.click());
+    else await row.locator('[data-testid="surveyor-report-open"]').click();
     const preview = await page.locator('[data-testid="doc-preview"]').waitFor({ timeout: 15000 }).then(() => true).catch(() => false);
     rec(`${prefix}_can_open`, preview);
     const previewName = (await page.locator('[data-testid="doc-preview-name"]').innerText().catch(() => '')) || '';
-    rec(`${prefix}_preview_name`, previewName.includes(REPORT_NAME), { previewName });
+    rec(`${prefix}_preview_name`, isTargetName(previewName), { previewName });
     await saveShot(page, `${prefix}_preview`);
   } else {
     rec(`${prefix}_can_open`, false, { err: 'file not visible on דוח שמאי' });
     rec(`${prefix}_preview_name`, false);
   }
 }
+
+async function waitForPagesSha() {
+  const short = String(process.env.GITHUB_SHA || '').slice(0, 7);
+  if (!short) return false;
+  for (let i = 0; i < 18; i++) {
+    const txt = await fetch(`${PUBLIC}/STAGING-DEPLOY.txt`).then((r) => r.text()).catch(() => '');
+    if (txt.includes(short)) {
+      console.log(`PASS pages_sha_live · ${txt.trim()}`);
+      return true;
+    }
+    await new Promise((r) => setTimeout(r, 10000));
+  }
+  console.log(`WARN pages_sha_live · PUBLIC still not ${short}; UI checks decide`);
+  return false;
+}
+await waitForPagesSha();
 
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext({ locale: 'he-IL', viewport: { width: 1440, height: 900 } });

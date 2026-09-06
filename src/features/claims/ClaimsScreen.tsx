@@ -430,6 +430,9 @@ function fileLabel(f: ClaimFile) {
   const t = fileMeta(f).staff_title;
   return t || f.original_name;
 }
+function FileName({ name }: { name: string }) {
+  return <bdi className="file-name-ltr" dir="ltr">{name}</bdi>;
+}
 function staffTypeLabel(key: string) {
   return STAFF_DOC_TYPES.find((x) => x.key === key)?.label || 'לא סווג / מסמך כללי';
 }
@@ -622,7 +625,7 @@ function InCardPreview({ file, onClose }: { file: { url: string; name: string; m
   return (
     <div ref={wrapRef} className="doc-preview-wrap" data-testid="doc-preview">
       <div className="doc-preview-bar">
-        <b data-testid="doc-preview-name">{file.name}</b>
+        <b data-testid="doc-preview-name"><FileName name={file.name} /></b>
         <button className="btn btn-g btn-sm" onClick={() => window.open(file.url, '_blank')}>חלון נפרד</button>
         <button className="btn btn-g btn-sm" onClick={onClose}>סגור תצוגה</button>
       </div>
@@ -2470,7 +2473,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     {pack.reports.map((f) => (
                       <div key={f.id} className="gal-box" data-testid="surveyor-report-file" data-doc-name={f.original_name} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
                         <div>
-                          <div style={{ fontWeight: 800 }}>{f.original_name} <span className="kind-pill surveyor">דוח שמאי</span></div>
+                          <div style={{ fontWeight: 800 }}><FileName name={f.original_name} /> <span className="kind-pill surveyor">דוח שמאי</span></div>
                           <div style={{ fontSize: 11, color: 'var(--t3)' }}>{sourceHe(f.source)} · {fmtBytes(Number(f.byte_size || 0))}</div>
                         </div>
                         <button className="btn btn-p btn-sm" data-testid="surveyor-report-open" onClick={() => void openInCard(cur.id, f)}>פתח בתיק</button>
@@ -2612,6 +2615,24 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       </div>
                     );
                   })()}
+                  {(() => {
+                    const pack = surveyorBundle(docs.files, gmailImports);
+                    if (!pack.reports.length) return null;
+                    return (
+                      <div className="gal-box" data-testid="docs-surveyor-present">
+                        <div className="sdiv"><div className="sdiv-t">דוח שמאי בתיק</div><div className="sdiv-l" /></div>
+                        {pack.reports.map((f) => (
+                          <div key={f.id} data-testid="surveyor-report-file" data-doc-name={f.original_name} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginTop: 8 }}>
+                            <div>
+                              <div style={{ fontWeight: 800 }}><FileName name={f.original_name} /> <span className="kind-pill surveyor">דוח שמאי</span></div>
+                              <div style={{ fontSize: 11, color: 'var(--t3)' }}>{sourceHe(f.source)} · {fmtBytes(Number(f.byte_size || 0))}</div>
+                            </div>
+                            <button className="btn btn-p btn-sm" data-testid="surveyor-report-open" onClick={() => void openInCard(cur.id, f)}>פתח בתיק</button>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                   <div className="cust-ask" data-testid="cust-ask-panel">
                     {hasUploadLink ? (
                       <div className="cust-link-card" data-testid="cust-link-card">
@@ -2730,6 +2751,15 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                               {t.group ? ` — ${matched.length} קבצים` : null}
                             </div>
                             <div className={`doc-type-st st-${st.key}`} data-testid={`claim-doc-status-${t.key}`}>{st.label}</div>
+                            {matched.length ? (
+                              <div className="doc-type-files" data-testid={`claim-doc-files-${t.key}`}>
+                                {matched.map((f) => (
+                                  <div key={f.id} data-doc-name={f.original_name} style={{ fontSize: 11, color: 'var(--t2)', marginTop: 4 }}>
+                                    <FileName name={f.original_name} />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
                           <div className="doc-type-acts">
                             <label className="btn btn-g btn-sm">העלה מסמך
