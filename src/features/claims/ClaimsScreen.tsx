@@ -779,6 +779,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [intakeLinkMsg, setIntakeLinkMsg] = useState('');
   const [staffSig, setStaffSig] = useState('');
   const [eventFormSignOpen, setEventFormSignOpen] = useState(false);
+  const [eventFormSig, setEventFormSig] = useState('');
   const saveLock = useRef(false);
   const mailFocusRef = useRef<string[]>([]);
   const [dashTasks, setDashTasks] = useState<ClaimRecord[]>([]);
@@ -1474,6 +1475,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setLinkUrl('');
     setPreviewFile(null);
     setEventFormSignOpen(false);
+    setEventFormSig('');
     await loadCardData(id);
   };
 
@@ -2927,7 +2929,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                               </label>
                             )}
                             {matched.length ? (
-                              <button type="button" className="btn btn-p btn-sm" onClick={() => {
+                              <button type="button" className="btn btn-p btn-sm" data-testid={`claim-doc-view-${t.key}`} onClick={() => {
                                 const first = matched[0];
                                 if (t.group) {
                                   setOpenGal((p) => ({ ...p, [`type:${t.key}`]: !p[`type:${t.key}`] }));
@@ -2944,22 +2946,30 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           {t.key === 'accident_notice' && eventFormSignOpen ? (
                             <div className="event-form-sign" data-testid="claim-event-form-sign-pad">
                               <div className="fl">חתימה על טופס האירוע — נשמרת במסמכי התביעה הזאת בלבד</div>
-                              <SignaturePad onChange={async (dataUrl) => {
-                                if (!dataUrl) return;
-                                try {
-                                  const draft = intakeFromClaim(cur);
-                                  await apiRef.current.saveClaim({ ...cur, staffSignedAt: new Date().toISOString() });
-                                  const up = await persistEventFormPdf(cur.id, draft, cur, dataUrl);
-                                  if (!up.success) toast(`החתימה נשמרה אבל העלאת הטופס נכשלה: ${up.error || ''}`, 'err');
-                                  else {
-                                    toast('טופס אירוע חתום נשמר במסמכים');
-                                    setEventFormSignOpen(false);
-                                    await loadCardData(cur.id);
+                              <SignaturePad testId="event-form-signature" onChange={(dataUrl) => setEventFormSig(dataUrl)} />
+                              <button
+                                type="button"
+                                className="btn btn-p btn-sm"
+                                data-testid="claim-event-form-sign-save"
+                                disabled={!eventFormSig}
+                                onClick={async () => {
+                                  if (!eventFormSig) { toast('נא לחתום על הטופס', 'err'); return; }
+                                  try {
+                                    const draft = intakeFromClaim(cur);
+                                    await apiRef.current.saveClaim({ ...cur, staffSignedAt: new Date().toISOString() });
+                                    const up = await persistEventFormPdf(cur.id, draft, cur, eventFormSig);
+                                    if (!up.success) toast(`החתימה נשמרה אבל העלאת הטופס נכשלה: ${up.error || ''}`, 'err');
+                                    else {
+                                      toast('טופס אירוע חתום נשמר במסמכים');
+                                      setEventFormSignOpen(false);
+                                      setEventFormSig('');
+                                      await loadCardData(cur.id);
+                                    }
+                                  } catch (err) {
+                                    toast(`שמירת חתימה נכשלה: ${String((err as Error).message || err)}`, 'err');
                                   }
-                                } catch (err) {
-                                  toast(`שמירת חתימה נכשלה: ${String((err as Error).message || err)}`, 'err');
-                                }
-                              }} />
+                                }}
+                              >שמור חתימה במסמכים</button>
                             </div>
                           ) : null}
                           {t.group && openGal[`type:${t.key}`] && matched.length ? (
