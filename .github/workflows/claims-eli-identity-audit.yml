@@ -1,0 +1,48 @@
+name: Staging אליהו identity audit
+
+# Read-only. Staging only. Does not deploy functions. Does not mutate Gmail.
+
+on:
+  push:
+    branches:
+      - cursor/claims-eli-audit-match-a50b
+    paths:
+      - 'scripts/claims-eli-identity-audit.mjs'
+      - '.github/workflows/claims-eli-identity-audit.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard Staging only
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" != "production"
+          test "${GITHUB_REF_NAME}" != "main"
+          test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
+
+      - name: Identity audit + PUBLIC STAGING
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          npm install --no-save @supabase/supabase-js playwright pdf-parse
+          npx playwright install --with-deps chromium
+          node scripts/claims-eli-identity-audit.mjs
+
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eli-identity-audit
+          path: docs/audit-reports/claims-eli-identity-audit-2026-09-06
+          if-no-files-found: warn
