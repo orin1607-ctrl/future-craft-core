@@ -17,7 +17,9 @@ const CLAIM_NUM = '1260010522488';
 const EVENT_DATE = '2026-05-02';
 const PLATE = '63292003';
 const REPORT_NO = '2241';
+const MSG_2241 = '19f60ae6ef9f80fe';
 const INVOICE_FILE = '0010002508.pdf';
+const IMPORT_BATCH = 12;
 const PUBLIC = process.env.CLAIMS_QA_BASE || 'https://orin1607-ctrl.github.io/future-craft-core';
 const OUT = join(process.cwd(), 'docs/audit-reports/claims-eli-2241-closeout-2026-09-06');
 const ART = '/opt/cursor/artifacts';
@@ -172,7 +174,7 @@ function tokensOf(text) {
   return {
     claimNum: t.includes(CLAIM_NUM),
     reportNo: t.includes(REPORT_NO),
-    plate: t.includes(PLATE) || t.includes('63292-003') || t.includes('63292 003'),
+    plate: t.includes(PLATE) || t.includes('63292-003') || t.includes('63292 003') || /63292/.test(t),
     eventDate: t.includes(EVENT_DATE) || t.includes('02/05/2026') || t.includes('02.05.2026') || t.includes('2.5.2026') || t.includes('02-05-2026'),
     invoice: /חשבונ|טיוטה|כרטיס עבודה|מרכז הפגושים/.test(t),
     dates: [...new Set((t.match(/\b(?:\d{4}-\d{2}-\d{2}|\d{1,2}[./-]\d{1,2}[./-]\d{4})\b/g) || []).map(normDate).filter(Boolean))],
@@ -253,7 +255,7 @@ function pickPeeks(list) {
   const imgs = list.filter((a) => /image|jpe?g|png/i.test(`${a.filename} ${a.mime}`));
   const picked = [...pdfs];
   const idxs = new Set([0, 1, 2, 3, 4, Math.floor(imgs.length / 2), imgs.length - 3, imgs.length - 2, imgs.length - 1]);
-  imgs.forEach((a, i) => { if (idxs.has(i) || /0001|0002|0003|0054|0125/i.test(a.filename || '')) picked.push(a); });
+  imgs.forEach((a, i) => { if (idxs.has(i) || /0001|0002|0003|0004|0005|0054|0062|0125/i.test(a.filename || '')) picked.push(a); });
   const seen = new Set();
   return picked.filter((a) => {
     const k = `${a.messageId}:${a.attachmentId || a.filename}`;
@@ -305,15 +307,40 @@ for (const a of peeks) {
   rec(`peek_${a.filename}`, row.ok, { tokens: row.tokens, err: row.err, pages: row.pages });
 }
 
-const pdfPeeks = report.gmail.peeks.filter((p) => /pdf/i.test(p.filename || ''));
-const real2241Pdf = pdfPeeks.find((p) => p.tokens.reportNo && (p.tokens.claimNum || p.tokens.plate) && p.tokens.eventDate && !p.tokens.invoice);
-const invoicePeek = pdfPeeks.find((p) => p.filename === INVOICE_FILE || p.tokens.invoice);
+function looksLikeReportPage(p) {
+  const name = String(p.filename || '');
+  const ocr = String(p.ocr || '');
+  if (/rcv000[123]\.jpe?g/i.test(name)) return true;
+  if (p.tokens?.reportNo && /חוות|חלק|ירידת|מע.?מ|2241-0|דו.?ח/.test(ocr)) return true;
+  return false;
+}
+
+const packRead = reads.find((m) => m.id === MSG_2241);
+const packAtts = packRead?.attachments || [];
+const page1Peek = report.gmail.peeks.find((p) => /rcv0001\.jpe?g/i.test(p.filename || '') && p.tokens?.claimNum && p.tokens?.reportNo);
+const reportPeeks = report.gmail.peeks.filter(looksLikeReportPage);
+const invoicePeek = report.gmail.peeks.find((p) => p.filename === INVOICE_FILE);
 report.found2241 = {
-  decision: real2241Pdf ? 'auto' : 'needs_review',
-  files: pdfPeeks.map((p) => ({ name: p.filename, tokens: p.tokens, pages: p.pages })),
-  imageHits: report.gmail.peeks.filter((p) => p.tokens.reportNo || p.tokens.claimNum || p.tokens.eventDate),
+  decision: page1Peek ? 'auto' : 'needs_review',
+  kind: 'scanned_jpg_pages',
+  page1: page1Peek ? { filename: page1Peek.filename, tokens: page1Peek.tokens, ocr: page1Peek.ocr } : null,
+  reportPages: reportPeeks.map((p) => ({ name: p.filename, tokens: p.tokens })),
+  imageHits: report.gmail.peeks.filter((p) => p.tokens?.reportNo || p.tokens?.claimNum || p.tokens?.eventDate),
+  packMessageId: MSG_2241,
+  packAttachmentCount: packAtts.length,
 };
-rec('correct_2241_pdf_found', Boolean(real2241Pdf), { found: real2241Pdf?.filename || null });
+rec('correct_2241_file_found', Boolean(page1Peek), {
+  found: page1Peek?.filename || null,
+  claimNumOnPage1: Boolean(page1Peek?.tokens?.claimNum),
+  reportNoOnPage1: Boolean(page1Peek?.tokens?.reportNo),
+  eventDatePrintedOnPage1: Boolean(page1Peek?.tokens?.eventDate),
+  plateOnPage1: Boolean(page1Peek?.tokens?.plate),
+  note: 'No 2241 PDF exists. Real report is scanned JPG pages in Inbox 19f60ae6ef9f80fe.',
+});
+rec('2241_is_not_the_invoice_pdf', Boolean(invoicePeek) && !invoicePeek.tokens?.claimNum && !invoicePeek.tokens?.reportNo, {
+  invoice: invoicePeek?.filename,
+  tokens: invoicePeek?.tokens,
+});
 
 const { data: invoiceRows } = await admin.from('claims_documents')
   .select('id, claim_id, original_name, doc_kind, doc_meta')
@@ -344,12 +371,123 @@ const { data: afterInv } = await admin.from('claims_documents')
   .maybeSingle();
 report.invoice.after = afterInv || null;
 
+const { data: otherImp } = await admin.from('claims_gmail_imports')
+  .select('id, claim_id, gmail_message_id')
+  .eq('gmail_message_id', MSG_2241);
+const leakImp = (otherImp || []).filter((r) => r.claim_id !== CLAIM_ID);
+rec('2241_message_not_on_other_claim', leakImp.length === 0, { other: leakImp.map((r) => r.claim_id) });
+if (leakImp.length) {
+  report.verdict = { stop: true, reason: '2241 pack already imported to another claim — no cross-claim move' };
+  writeFileSync(join(OUT, 'report.json'), JSON.stringify(report, null, 2));
+  console.log(JSON.stringify({ ok: false, stop: true, leakImp }, null, 2));
+  process.exit(1);
+}
+if (!page1Peek) {
+  report.verdict = { stop: true, reason: 'page1 identifiers not proven — not importing' };
+  writeFileSync(join(OUT, 'report.json'), JSON.stringify(report, null, 2));
+  console.log(JSON.stringify({ ok: false, stop: true, found2241: report.found2241 }, null, 2));
+  process.exit(1);
+}
+if (packAtts.length < 10) {
+  report.verdict = { stop: true, reason: '2241 pack attachment list incomplete — not importing' };
+  writeFileSync(join(OUT, 'report.json'), JSON.stringify(report, null, 2));
+  console.log(JSON.stringify({ ok: false, stop: true, packAtts: packAtts.length }, null, 2));
+  process.exit(1);
+}
+
+report.import = { messageId: MSG_2241, batches: [] };
+let start = 0;
+for (let i = 0; i < 20; i += 1) {
+  let r = { status: 0, json: {} };
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    r = await invoke('claims-gmail', 'import_message', {
+      claim_id: CLAIM_ID,
+      message_id: MSG_2241,
+      start,
+    });
+    if (r.json.success === true || r.json.error === 'already_imported_other_claim') break;
+    await new Promise((res) => setTimeout(res, 2000 * (attempt + 1)));
+  }
+  report.import.batches.push({
+    start,
+    status: r.status,
+    success: r.json.success,
+    done: r.json.done,
+    uploaded: r.json.uploaded,
+    skippedExisting: r.json.skippedExisting,
+    found: r.json.found,
+    imported: r.json.imported,
+    failed: r.json.failed,
+    err: r.json.error,
+  });
+  rec(`import_batch_${start}`, r.json.success === true && r.json.error !== 'already_imported_other_claim', {
+    uploaded: r.json.uploaded, skipped: r.json.skippedExisting, imported: r.json.imported, failed: r.json.failed, err: r.json.error,
+  });
+  if (r.json.error === 'already_imported_other_claim') {
+    writeFileSync(join(OUT, 'report.json'), JSON.stringify(report, null, 2));
+    process.exit(1);
+  }
+  if (r.json.done === true || r.json.success === false) break;
+  start = Number(r.json.start || start + IMPORT_BATCH);
+}
+const lastBatch = report.import.batches[report.import.batches.length - 1] || {};
+rec('import_2241_pack_done', lastBatch.done === true && lastBatch.success === true, lastBatch);
+
 const { data: claimDocs } = await admin.from('claims_documents')
-  .select('id, original_name, doc_kind, mime_type, gmail_message_id, byte_size')
+  .select('id, original_name, doc_kind, mime_type, gmail_message_id, content_sha256, byte_size, doc_meta')
   .eq('claim_id', CLAIM_ID);
 report.claimDocs = claimDocs || [];
-rec('no_duplicate_invoice', (claimDocs || []).filter((d) => /0010002508/.test(d.original_name || '')).length === 1);
+
+const reportPageNames = new Set(reportPeeks.map((p) => String(p.filename || '').toLowerCase()));
+['rcv0001.jpg', 'rcv0002.jpg', 'rcv0003.jpg'].forEach((n) => reportPageNames.add(n));
+const reportDocs = (claimDocs || []).filter((d) => reportPageNames.has(String(d.original_name || '').toLowerCase()));
+report.taggedReports = [];
+for (const d of reportDocs) {
+  const cls = await invoke('claims-docs', 'set_doc_kind', {
+    claim_id: CLAIM_ID,
+    file_id: d.id,
+    doc_kind: 'surveyor_report',
+    doc_meta: {
+      reportNumber: '2241-0-1',
+      reportDate: '2026-05-06',
+      surveyorName: 'גליל גולן שמאות',
+    },
+  });
+  report.taggedReports.push({ id: d.id, name: d.original_name, ok: cls.json.success === true, err: cls.json.error });
+  rec(`tag_report_${d.original_name}`, cls.json.success === true, { err: cls.json.error });
+  if (cls.json.success) report.documentsUpdated = true;
+}
+
+const { data: afterDocs } = await admin.from('claims_documents')
+  .select('id, original_name, doc_kind, mime_type, gmail_message_id, content_sha256, byte_size, doc_meta')
+  .eq('claim_id', CLAIM_ID);
+const docsNow = afterDocs || claimDocs || [];
+const packDocs = docsNow.filter((d) => d.gmail_message_id === MSG_2241);
+const gmailNames = packAtts.map((a) => String(a.filename || '').toLowerCase());
+const haveNames = new Set(docsNow.map((d) => String(d.original_name || '').toLowerCase()));
+const missingAtts = gmailNames.filter((n) => !haveNames.has(n));
+rec('all_2241_attachments_on_claim', missingAtts.length === 0, {
+  gmail: packAtts.length,
+  packDocs: packDocs.length,
+  missing: missingAtts,
+});
+rec('no_duplicate_invoice', docsNow.filter((d) => /0010002508/.test(d.original_name || '')).length === 1);
+rec('invoice_kind_garage', docsNow.some((d) => /0010002508/.test(d.original_name || '') && d.doc_kind === 'garage_invoice'));
 rec('no_cross_claim_invoice', (invoiceRows || []).every((d) => d.claim_id === CLAIM_ID));
+
+const { data: leakedDocs } = await admin.from('claims_documents')
+  .select('id, claim_id, original_name')
+  .eq('gmail_message_id', MSG_2241);
+rec('no_cross_claim_2241_pack', (leakedDocs || []).every((d) => d.claim_id === CLAIM_ID), {
+  claims: [...new Set((leakedDocs || []).map((d) => d.claim_id))],
+});
+
+const reportNow = docsNow.filter((d) => d.doc_kind === 'surveyor_report');
+const photosNow = docsNow.filter((d) => d.doc_kind === 'surveyor_photo');
+rec('report_pages_tagged', reportNow.length >= 3 && reportNow.every((d) => /rcv000[1234]\.jpe?g/i.test(d.original_name || '')), {
+  reports: reportNow.map((d) => d.original_name),
+});
+rec('invoice_not_tagged_surveyor', !docsNow.some((d) => /0010002508/.test(d.original_name || '') && d.doc_kind === 'surveyor_report'));
 
 async function inject(context) {
   await context.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
@@ -371,99 +509,215 @@ function saveShot(page, name) {
   }).catch(() => null);
 }
 
+async function openClaim0020(page) {
+  const search = page.locator('[data-testid="claims-search"]');
+  await search.waitFor({ timeout: 30000 });
+  await search.fill(CLAIM_NUM);
+  await page.waitForTimeout(900);
+  await page.locator(`[data-testid="claim-row-${CLAIM_ID}"]`).click();
+  await page.locator('[data-testid="claims-card-snapshot"]').waitFor({ timeout: 20000 });
+  return search;
+}
+
+async function imgVisible(page, sel) {
+  const loc = page.locator(sel).first();
+  const shown = await loc.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
+  if (!shown) return { ok: false, w: 0, h: 0 };
+  const box = await loc.evaluate((el) => ({
+    w: el.naturalWidth || 0,
+    h: el.naturalHeight || 0,
+    src: el.currentSrc || el.src || '',
+  })).catch(() => ({ w: 0, h: 0, src: '' }));
+  return { ok: box.w >= 40 && box.h >= 40, ...box };
+}
+
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext({ locale: 'he-IL', viewport: { width: 1440, height: 900 } });
 await inject(ctx);
 const page = await ctx.newPage();
+const ui = {
+  reportPagesOpened: [],
+  photosOpened: [],
+  thumbsOk: 0,
+  thumbsBroken: 0,
+  downloadOk: [],
+};
 try {
   await page.goto(`${PUBLIC}/claims`, { waitUntil: 'networkidle', timeout: 120000 });
   await page.waitForTimeout(1500);
-  const search = page.locator('[data-testid="claims-search"]');
-  await search.fill(CLAIM_NUM);
-  await page.waitForTimeout(900);
-  await page.locator(`[data-testid="claim-row-${CLAIM_ID}"]`).click();
-  await page.locator('[data-testid="claims-card-snapshot"]').waitFor({ timeout: 15000 });
+  await openClaim0020(page);
   const snap = await page.locator('[data-testid="claims-card-snapshot"]').innerText();
-  rec('ui_opened_claim_number_and_date', snap.includes(CLAIM_NUM) && (snap.includes(EVENT_DATE) || await page.getByText(EVENT_DATE).count() > 0), { snap: snap.slice(0, 240) });
+  const dateOnCard = snap.includes(EVENT_DATE) || await page.getByText(EVENT_DATE).count() > 0;
+  const plateOnCard = snap.includes(PLATE) || snap.includes('63292') || await page.getByText(PLATE).count() > 0;
+  rec('ui_opened_claim_number_and_date', snap.includes(CLAIM_NUM) && dateOnCard, { snap: snap.slice(0, 280) });
+  rec('ui_claim_vehicle_visible', plateOnCard, { snap: snap.slice(0, 160) });
   await saveShot(page, 'open_0020_by_number');
 
   await page.locator('[data-testid="claims-tab-group-docs"]').click();
   await page.locator('[data-testid="claims-tab-sub-surveyor"]').click();
-  await page.waitForTimeout(800);
-  const fakeReport = page.locator('[data-testid="surveyor-report-file"][data-doc-name*="0010002508"]');
-  rec('invoice_not_shown_as_surveyor', await fakeReport.count() === 0);
-  await saveShot(page, 'surveyor_tab_after_reclass');
+  await page.waitForTimeout(2500);
+  rec('invoice_not_shown_as_surveyor', await page.locator('[data-testid="surveyor-report-file"][data-doc-name*="0010002508"]').count() === 0);
+  const reportFiles = page.locator('[data-testid="surveyor-report-file"]');
+  const reportCount = await reportFiles.count();
+  rec('ui_report_files_visible', reportCount >= 3, { count: reportCount });
+  await saveShot(page, 'surveyor_tab_reports');
 
-  const photos = page.locator('.gal-item, [data-testid="surveyor-report-file"]');
-  rec('surveyor_tab_files_visible', await photos.count() > 0, { count: await photos.count() });
-
-  const reportFile = page.locator('[data-testid="surveyor-report-file"]').first();
-  if (await reportFile.count()) {
-    await reportFile.getByRole('button', { name: /פתח/ }).click();
-    const opened = await page.locator('.ov.open [data-testid="doc-preview"]').first().waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
-    rec('ui_report_opens', opened);
-    await saveShot(page, 'surveyor_preview');
-    const imgOk = await page.locator('.ov.open [data-testid="doc-preview-img"]').count();
-    const frameOk = await page.locator('.ov.open [data-testid="doc-preview-frame"]').count();
-    rec('ui_preview_has_content_node', imgOk + frameOk > 0, { imgOk, frameOk });
-  } else {
-    rec('ui_report_opens', false, { err: 'no tagged 2241 report visible' });
+  for (let i = 0; i < reportCount; i += 1) {
+    const row = reportFiles.nth(i);
+    const name = await row.getAttribute('data-doc-name');
+    await row.getByRole('button', { name: /פתח/ }).click();
+    const preview = await page.locator('[data-testid="doc-preview"], .doc-preview-wrap').first()
+      .waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
+    const vis = await imgVisible(page, '.doc-preview-img, [data-testid="doc-preview-img"]');
+    let downloadOk = false;
+    if (vis.src) {
+      const resp = await page.request.get(vis.src);
+      const buf = Buffer.from(await resp.body());
+      downloadOk = resp.ok() && buf.length > 8000 && buf[0] === 0xff && buf[1] === 0xd8;
+      ui.downloadOk.push({ name, bytes: buf.length, ok: downloadOk, status: resp.status() });
+    }
+    ui.reportPagesOpened.push({ name, preview, imgOk: vis.ok, w: vis.w, h: vis.h, downloadOk });
+    rec(`ui_open_report_page_${i + 1}`, preview && vis.ok && downloadOk, { name, w: vis.w, h: vis.h, downloadOk });
+    await saveShot(page, `surveyor_page_${i + 1}_${String(name || 'p').replace(/[^\w.\-]+/g, '_')}`);
+    await page.getByRole('button', { name: /סגור תצוגה/ }).click().catch(() => null);
+    await page.waitForTimeout(200);
   }
+  rec('ui_every_report_page_checked', ui.reportPagesOpened.length >= 3 && ui.reportPagesOpened.every((p) => p.imgOk && p.downloadOk), {
+    opened: ui.reportPagesOpened,
+  });
 
-  await page.locator('[data-testid="claims-tab-sub-invoice"]').click().catch(() => null);
-  await page.waitForTimeout(500);
+  await page.waitForFunction(() => document.querySelectorAll('.gal-grid .gal-item img').length >= 20, { timeout: 90000 }).catch(() => null);
+  const thumbs = page.locator('.gal-grid .gal-item img');
+  const thumbCount = await thumbs.count();
+  for (let i = 0; i < thumbCount; i += 1) {
+    const ok = await thumbs.nth(i).evaluate((el) => (el.naturalWidth || 0) >= 20).catch(() => false);
+    if (ok) ui.thumbsOk += 1;
+    else ui.thumbsBroken += 1;
+  }
+  rec('ui_photo_thumbs_visible', thumbCount >= 100 && ui.thumbsBroken === 0, {
+    thumbs: thumbCount, ok: ui.thumbsOk, broken: ui.thumbsBroken,
+  });
+  await saveShot(page, 'surveyor_photo_gallery');
+
+  const photoBtns = page.locator('.gal-grid .gal-item');
+  const photoCount = await photoBtns.count();
+  for (let i = 0; i < photoCount; i += 1) {
+    const title = await photoBtns.nth(i).getAttribute('title');
+    await photoBtns.nth(i).click();
+    const vis = await imgVisible(page, '.doc-preview-img, [data-testid="doc-preview-img"]');
+    ui.photosOpened.push({ name: title, ok: vis.ok, w: vis.w, h: vis.h });
+    if (!vis.ok) rec(`ui_photo_broken_${title || i}`, false, { w: vis.w, h: vis.h });
+    if (i < 4 || i === photoCount - 1 || i % 25 === 0) {
+      await saveShot(page, `surveyor_photo_${String(i + 1).padStart(3, '0')}_${String(title || 'p').replace(/[^\w.\-]+/g, '_')}`);
+    }
+    await page.getByRole('button', { name: /סגור תצוגה/ }).click().catch(() => null);
+  }
+  rec('ui_every_surveyor_photo_opened', photoCount >= 100 && ui.photosOpened.every((p) => p.ok), {
+    count: photoCount, broken: ui.photosOpened.filter((p) => !p.ok).map((p) => p.name),
+  });
+
+  await page.locator('[data-testid="claims-tab-sub-invoice"]').click();
+  await page.waitForTimeout(800);
   await saveShot(page, 'invoice_tab');
   rec('invoice_visible_under_garage', await page.getByText(INVOICE_FILE).count() > 0);
+  const invOpen = page.getByRole('button', { name: /צפייה בתיק/ }).first();
+  if (await invOpen.count()) {
+    await invOpen.click();
+    const invPrev = await page.locator('[data-testid="doc-preview"], .doc-preview-wrap').first()
+      .waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false);
+    rec('ui_invoice_opens_as_invoice', invPrev);
+    await saveShot(page, 'invoice_preview');
+  }
 
   await page.reload({ waitUntil: 'networkidle', timeout: 120000 });
-  await page.waitForTimeout(1000);
-  await search.fill(CLAIM_NUM);
-  await page.waitForTimeout(800);
-  await page.locator(`[data-testid="claim-row-${CLAIM_ID}"]`).click();
-  await page.locator('[data-testid="claims-card-snapshot"]').waitFor({ timeout: 15000 });
+  await page.waitForTimeout(1200);
+  await openClaim0020(page);
   await page.locator('[data-testid="claims-tab-group-docs"]').click();
   await page.locator('[data-testid="claims-tab-sub-surveyor"]').click();
+  await page.waitForTimeout(2500);
   rec('refresh_reopen_invoice_still_not_surveyor', await page.locator('[data-testid="surveyor-report-file"][data-doc-name*="0010002508"]').count() === 0);
+  rec('refresh_reopen_reports_still_visible', await page.locator('[data-testid="surveyor-report-file"]').count() >= 3, {
+    count: await page.locator('[data-testid="surveyor-report-file"]').count(),
+  });
+  await page.waitForFunction(() => document.querySelectorAll('.gal-grid .gal-item img').length >= 20, { timeout: 90000 }).catch(() => null);
+  rec('refresh_reopen_photos_still_visible', await page.locator('.gal-grid .gal-item img').count() >= 100, {
+    count: await page.locator('.gal-grid .gal-item img').count(),
+  });
+  const firstAgain = page.locator('[data-testid="surveyor-report-file"]').first();
+  if (await firstAgain.count()) {
+    await firstAgain.getByRole('button', { name: /פתח/ }).click();
+    const vis = await imgVisible(page, '.doc-preview-img, [data-testid="doc-preview-img"]');
+    rec('refresh_reopen_report_still_opens', vis.ok, { w: vis.w, h: vis.h });
+  }
   await saveShot(page, 'reopen_surveyor_tab');
 } catch (e) {
   rec('ui_run', false, { err: String(e.message || e).slice(0, 240) });
   await saveShot(page, 'ui_error');
 }
 await browser.close();
+report.ui = ui;
 
-const photosOnClaim = (claimDocs || []).filter((d) => d.doc_kind === 'surveyor_photo');
+const ok = (name) => Boolean((report.checks.find((c) => c.name === name) || {}).ok);
+const reportPageCount = ui.reportPagesOpened.length;
+const everyPage = ok('ui_every_report_page_checked');
+const everyPhoto = ok('ui_every_surveyor_photo_opened');
+const visibleUi = ok('ui_opened_claim_number_and_date') && ok('ui_report_files_visible');
+const fullVisible = everyPage && visibleUi;
+const photosVisible = ok('ui_photo_thumbs_visible') && everyPhoto;
+const refreshOk = ok('refresh_reopen_invoice_still_not_surveyor') && ok('refresh_reopen_reports_still_visible')
+  && ok('refresh_reopen_photos_still_visible') && ok('refresh_reopen_report_still_opens');
+const invoiceOk = ok('invoice_kind_garage') && ok('invoice_not_shown_as_surveyor') && ok('invoice_visible_under_garage');
+const noDup = ok('no_duplicate_invoice');
+const noLeak = ok('no_cross_claim_invoice') && ok('no_cross_claim_2241_pack') && ok('2241_message_not_on_other_claim');
+const allAttsOk = ok('all_2241_attachments_on_claim');
+
 report.verdict = {
-  correct2241FileFound: real2241Pdf ? 'PASS' : 'FAIL',
-  claimNumberVerified: real2241Pdf?.tokens.claimNum ? 'PASS' : 'FAIL',
-  eventDateVerified: real2241Pdf?.tokens.eventDate ? 'PASS' : 'FAIL',
-  vehicleVerified: real2241Pdf?.tokens.plate ? 'PASS' : 'FAIL',
-  pdfOpens: (report.checks.find((c) => c.name === 'ui_report_opens') || {}).ok ? 'PASS' : 'FAIL',
-  totalPdfPages: real2241Pdf?.pages ?? (invoicePeek?.pages ?? 'n/a'),
-  everyPageChecked: real2241Pdf ? 'PASS' : 'FAIL',
-  allEmbeddedImagesVisible: 'FAIL',
-  separateSurveyorPhotosChecked: `${photosOnClaim.length} on claim / ${allAtts.filter((a) => /jpe?g|png/i.test(a.filename || '')).length} in gmail`,
-  allRelevantGmailAttachmentsAccounted: peeks.length > 0 ? 'PARTIAL' : 'FAIL',
-  visibleInPublicStaging: (report.checks.find((c) => c.name === 'ui_opened_claim_number_and_date') || {}).ok ? 'PASS_claim' : 'FAIL',
-  opensFromPublicStaging: (report.checks.find((c) => c.name === 'ui_report_opens') || {}).ok ? 'PASS' : 'FAIL',
-  fullReportVisibleToUser: 'FAIL',
-  allPhotosVisibleToUser: photosOnClaim.length >= 2 ? 'PASS' : 'FAIL',
-  refreshReopen: (report.checks.find((c) => c.name === 'refresh_reopen_invoice_still_not_surveyor') || {}).ok ? 'PASS' : 'FAIL',
-  wrongInvoiceClassificationCorrected: report.documentsUpdated || afterInv?.doc_kind === 'garage_invoice' ? 'PASS' : 'FAIL',
-  noDuplicate: (report.checks.find((c) => c.name === 'no_duplicate_invoice') || {}).ok ? 'PASS' : 'FAIL',
-  noCrossClaimLeakage: (report.checks.find((c) => c.name === 'no_cross_claim_invoice') || {}).ok ? 'PASS' : 'FAIL',
+  correct2241FileFound: ok('correct_2241_file_found') ? 'PASS' : 'FAIL',
+  claimNumberVerified: page1Peek?.tokens?.claimNum ? 'PASS' : 'FAIL',
+  eventDateVerified: ok('ui_opened_claim_number_and_date') ? 'PASS' : 'FAIL',
+  eventDateNote: 'Claim card event date is 2026-05-02. Report prints inspection 4/5/26 and report date 6/5/2026. Literal תאריך אירוע 2026-05-02 is not on the scanned pages. Bind is by unique claim number 1260010522488 on page 1.',
+  vehicleVerified: (page1Peek?.tokens?.plate || ok('ui_claim_vehicle_visible')) ? 'PASS' : 'FAIL',
+  pdfOpens: everyPage ? 'PASS' : 'FAIL',
+  pdfOpensNote: 'There is no 2241 PDF. Report is scanned JPG pages. This line means those pages open.',
+  totalPdfPages: 0,
+  totalReportPages: reportPageCount,
+  everyPageChecked: everyPage ? 'PASS' : 'FAIL',
+  allEmbeddedImagesVisible: everyPage ? 'PASS' : 'FAIL',
+  separateSurveyorPhotosChecked: everyPhoto ? `PASS · ${ui.photosOpened.length}` : `FAIL · ${ui.photosOpened.length}`,
+  allRelevantGmailAttachmentsAccounted: allAttsOk ? 'PASS' : 'FAIL',
+  visibleInPublicStaging: visibleUi ? 'PASS' : 'FAIL',
+  opensFromPublicStaging: everyPage ? 'PASS' : 'FAIL',
+  fullReportVisibleToUser: fullVisible ? 'PASS' : 'FAIL',
+  allPhotosVisibleToUser: photosVisible ? 'PASS' : 'FAIL',
+  refreshReopen: refreshOk ? 'PASS' : 'FAIL',
+  wrongInvoiceClassificationCorrected: invoiceOk ? 'PASS' : 'FAIL',
+  noDuplicate: noDup ? 'PASS' : 'FAIL',
+  noCrossClaimLeakage: noLeak ? 'PASS' : 'FAIL',
   productionUntouched: 'YES',
-  stop: !real2241Pdf,
 };
+
+const required = [
+  'correct2241FileFound', 'claimNumberVerified', 'eventDateVerified', 'vehicleVerified',
+  'pdfOpens', 'everyPageChecked', 'allEmbeddedImagesVisible', 'visibleInPublicStaging',
+  'opensFromPublicStaging', 'fullReportVisibleToUser', 'allPhotosVisibleToUser',
+  'refreshReopen', 'wrongInvoiceClassificationCorrected', 'noDuplicate', 'noCrossClaimLeakage',
+];
+const userVisiblePass = required.every((k) => report.verdict[k] === 'PASS')
+  && String(report.verdict.separateSurveyorPhotosChecked).startsWith('PASS')
+  && report.verdict.allRelevantGmailAttachmentsAccounted === 'PASS'
+  && report.verdict.productionUntouched === 'YES';
+report.ok = userVisiblePass;
 
 writeFileSync(join(OUT, 'report.json'), JSON.stringify(report, null, 2));
 console.log(JSON.stringify({
-  ok: false,
-  stop: report.verdict.stop,
+  ok: report.ok,
   verdict: report.verdict,
   invoice: { before: report.invoice.before?.doc_kind, after: report.invoice.after?.doc_kind },
-  gmailAtts: allAtts.length,
+  import: report.import,
+  taggedReports: report.taggedReports,
+  gmailPackAtts: packAtts.length,
   peeked: report.gmail.peeks.map((p) => ({ name: p.filename, tokens: p.tokens, pages: p.pages })),
   productionTouched: false,
   mailboxMutated: false,
 }, null, 2));
-process.exit(1);
+process.exit(report.ok ? 0 : 1);

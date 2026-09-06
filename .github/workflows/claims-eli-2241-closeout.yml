@@ -20,6 +20,7 @@ permissions:
 jobs:
   closeout:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -39,7 +40,7 @@ jobs:
           test -n "$SUPABASE_ACCESS_TOKEN"
           npx --yes supabase functions deploy claims-gmail --project-ref usfeoerkpcafxxlyuldl --use-api
 
-      - name: Peek attachments + reclassify invoice + PUBLIC STAGING
+      - name: Import 2241 pack onto DAL-2026-0020 + PUBLIC STAGING
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
