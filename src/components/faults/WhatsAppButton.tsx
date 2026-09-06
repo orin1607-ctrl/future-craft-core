@@ -4,6 +4,7 @@ import { useCompanyFilter } from '@/hooks/useCompanyFilter';
 import { useAuth } from '@/contexts/AuthContext';
 import { Phone, X, AlertTriangle, Car, Wrench, Shield, HelpCircle, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useDriverActionVisibility } from '@/hooks/useDriverActionVisibility';
 
 interface EmergencyCategory {
   id: string;
@@ -35,6 +36,7 @@ const defaultCategories = [
 export default function WhatsAppButton() {
   const companyFilter = useCompanyFilter();
   const { user } = useAuth();
+  const { isActionVisible } = useDriverActionVisibility();
   const [settings, setSettings] = useState<{ whatsapp_phone: string; whatsapp_enabled: boolean; whatsapp_button_color: string; whatsapp_button_text: string } | null>(null);
   const [categories, setCategories] = useState<EmergencyCategory[]>([]);
   const [open, setOpen] = useState(false);
@@ -53,6 +55,7 @@ export default function WhatsAppButton() {
     });
   }, [companyFilter]);
 
+  if (!isActionVisible('whatsapp_contact')) return null;
   if (!settings?.whatsapp_enabled) return null;
 
   const buildMessage = (cat: { category_key: string; category_label: string; auto_message_template?: string }, targetPhone: string) => {

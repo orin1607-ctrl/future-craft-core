@@ -1,17 +1,24 @@
 import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { UserCheck, Car, Save, UserPlus, Send, Users, X, Plus } from 'lucide-react';
+import { UserCheck, Car, Save, UserPlus, Send, Users, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { buildDriverAssignmentHistoryRow, parseInitialKm } from '@/lib/driverAssignmentHistory';
 
-interface VehicleRow { id: string; license_plate: string; manufacturer: string; model: string; assigned_driver_id: string | null; }
+interface VehicleRow { id: string; license_plate: string; manufacturer: string; model: string; assigned_driver_id: string | null; company_name: string | null; odometer: number | null; }
 interface DriverRow { id: string; full_name: string; email: string; phone: string; }
 interface ProfileRow { id: string; full_name: string; phone: string; company_name: string; }
 interface CompanionRow { id: string; full_name: string; phone: string | null; }
 interface VehicleCompanionRow { id: string; vehicle_id: string; companion_id: string; }
+interface AssignmentHistoryRow {
+  vehicle_id: string;
+  odometer: number | null;
+  event_date: string;
+  description: string;
+}
 
 export default function AttachCar() {
   const { user } = useAuth();
@@ -21,10 +28,12 @@ export default function AttachCar() {
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [companions, setCompanions] = useState<CompanionRow[]>([]);
   const [vehicleCompanions, setVehicleCompanions] = useState<VehicleCompanionRow[]>([]);
+  const [assignmentHistory, setAssignmentHistory] = useState<AssignmentHistoryRow[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [selectedDriver, setSelectedDriver] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [selectedCompanions, setSelectedCompanions] = useState<string[]>([]);
+  const [initialKmInput, setInitialKmInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
   const [requestName, setRequestName] = useState('');
@@ -35,30 +44,48 @@ export default function AttachCar() {
   const isSuperAdmin = user?.role === 'super_admin';
 
   const loadData = async () => {
-    const [vRes, dRes, pRes, cRes, vcRes] = await Promise.all([
-      applyCompanyScope(supabase.from('vehicles').select('id, license_plate, manufacturer, model, assigned_driver_id'), companyFilter),
+    const [vRes, dRes, pRes, cRes, vcRes, hRes] = await Promise.all([
+      applyCompanyScope(supabase.from('vehicles').select('id, license_plate, manufacturer, model, assigned_driver_id, company_name, odometer'), companyFilter),
       applyCompanyScope(supabase.from('drivers').select('id, full_name, email, phone'), companyFilter),
       applyCompanyScope(supabase.from('profiles').select('id, full_name, phone, company_name'), companyFilter),
       applyCompanyScope(supabase.from('companions').select('id, full_name, phone'), companyFilter),
       applyCompanyScope(supabase.from('vehicle_companions').select('id, vehicle_id, companion_id'), companyFilter),
+      applyCompanyScope(
+        supabase
+          .from('vehicle_history')
+          .select('vehicle_id, odometer, event_date, description')
+          .eq('event_type', 'driver_assignment')
+          .order('event_date', { ascending: false }),
+        companyFilter,
+      ),
     ]);
     if (vRes.data) setVehicles(vRes.data as VehicleRow[]);
     if (dRes.data) setDrivers(dRes.data as DriverRow[]);
     if (pRes.data) setProfiles(pRes.data as ProfileRow[]);
     if (cRes.data) setCompanions(cRes.data as CompanionRow[]);
     if (vcRes.data) setVehicleCompanions(vcRes.data as VehicleCompanionRow[]);
+    if (hRes.data) setAssignmentHistory(hRes.data as AssignmentHistoryRow[]);
   };
 
   useEffect(() => { loadData(); }, []);
 
   const handleAssign = async () => {
     if (!selectedVehicle || !selectedDriver) return;
+    const { km: initialKm, error: kmError } = parseInitialKm(initialKmInput);
+    if (kmError) {
+      toast.error(kmError);
+      return;
+    }
     setLoading(true);
 
-    // Update vehicle assignment
+    const assignedId = selectedCustomer || selectedDriver;
+    const vehicle = vehicles.find((v) => v.id === selectedVehicle);
+    const driverName = getDriverName(assignedId);
+
+    // Update vehicle assignment only. Do not write vehicles.odometer from initial KM.
     const { error } = await supabase
       .from('vehicles')
-      .update({ assigned_driver_id: selectedCustomer || selectedDriver })
+      .update({ assigned_driver_id: assignedId })
       .eq('id', selectedVehicle);
 
     if (error) {
@@ -66,6 +93,27 @@ export default function AttachCar() {
       console.error(error);
       setLoading(false);
       return;
+    }
+
+    if (vehicle) {
+      const historyRow = buildDriverAssignmentHistoryRow({
+        vehicleId: vehicle.id,
+        companyName: vehicle.company_name || companyFilter || user?.company_name || '',
+        driverId: assignedId,
+        driverName,
+        vehiclePlate: vehicle.license_plate,
+        initialKm,
+        createdBy: user?.id || null,
+      });
+      const { error: historyError } = await supabase.from('vehicle_history').insert(historyRow);
+      if (historyError) {
+        const { assigned_driver_id: _assignedDriverId, ...withoutNewColumn } = historyRow;
+        const retry = await supabase.from('vehicle_history').insert(withoutNewColumn);
+        if (retry.error) {
+          console.error(historyError, retry.error);
+          toast.error('הרכב הוצמד, אך שמירת קילומטר התחלתי בהיסטוריה נכשלה');
+        }
+      }
     }
 
     // Save companions - delete existing and insert new
@@ -86,6 +134,7 @@ export default function AttachCar() {
 
     setLoading(false);
     toast.success('הרכב הוצמד בהצלחה');
+    setInitialKmInput('');
     loadData();
   };
 
@@ -162,6 +211,7 @@ export default function AttachCar() {
     // Load companions for this vehicle
     const vcs = vehicleCompanions.filter(vc => vc.vehicle_id === v.id);
     setSelectedCompanions(vcs.map(vc => vc.companion_id));
+    setInitialKmInput('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -198,6 +248,30 @@ export default function AttachCar() {
                 <option key={d.id} value={d.id}>{d.full_name} - {d.phone}</option>
               ))}
             </select>
+          </div>
+
+          {/* Initial KM at assignment — stored in vehicle_history, does not overwrite vehicles.odometer */}
+          <div>
+            <label className="block text-lg font-medium mb-2">קילומטר התחלתי</label>
+            {selectedVehicle && (
+              <p className="text-sm text-muted-foreground mb-2">
+                קילומטר נוכחי ברכב:{' '}
+                {vehicles.find((v) => v.id === selectedVehicle)?.odometer != null
+                  ? `${Number(vehicles.find((v) => v.id === selectedVehicle)?.odometer).toLocaleString('he-IL')} ק״מ`
+                  : 'לא הוזן ברכב'}
+              </p>
+            )}
+            <input
+              dir="ltr"
+              className={inputClass}
+              value={initialKmInput}
+              onChange={(e) => setInitialKmInput(e.target.value)}
+              placeholder="לדוגמה 85420"
+              inputMode="numeric"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              נשמר בהיסטוריית ההצמדה (נהג, רכב, מועד, ק״מ התחלתי). לא דורס את הקילומטר הנוכחי של הרכב.
+            </p>
           </div>
 
           {/* 3. Customer (user/profile) */}
@@ -295,6 +369,17 @@ export default function AttachCar() {
                   </p>
                   {getCustomerName(v.assigned_driver_id) && (
                     <p className="text-xs text-muted-foreground">🏢 {getCustomerName(v.assigned_driver_id)}</p>
+                  )}
+                  {v.odometer != null && (
+                    <p className="text-xs text-muted-foreground">ק״מ נוכחי ברכב: {Number(v.odometer).toLocaleString('he-IL')}</p>
+                  )}
+                  {assignmentHistory.find((h) => h.vehicle_id === v.id) && (
+                    <p className="text-xs text-muted-foreground">
+                      ק״מ התחלתי בהצמדה:{' '}
+                      {assignmentHistory.find((h) => h.vehicle_id === v.id)?.odometer != null
+                        ? `${Number(assignmentHistory.find((h) => h.vehicle_id === v.id)?.odometer).toLocaleString('he-IL')}`
+                        : 'לא הוזן'}
+                    </p>
                   )}
                 </div>
               </div>

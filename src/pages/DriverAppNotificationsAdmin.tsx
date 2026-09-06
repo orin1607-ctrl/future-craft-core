@@ -6,19 +6,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Switch } from '@/components/ui/switch';
 import {
   ActionSettingState,
+  CompanyDriverAppConfig,
   DRIVER_APP_ACTIONS,
   defaultActionSetting,
+  emptyCompanyDriverAppConfig,
   mergeActionSettings,
 } from '@/lib/driverAppActions';
 
 const inputClass =
   'w-full p-3 rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none text-sm';
 
-type CompanyConfig = {
-  dalia_service_enabled: boolean;
-};
-
-const emptyCompanyConfig = (): CompanyConfig => ({ dalia_service_enabled: false });
+type CompanyConfig = CompanyDriverAppConfig;
 
 export default function DriverAppNotificationsAdmin() {
   const { user } = useAuth();
@@ -35,7 +33,7 @@ export default function DriverAppNotificationsAdmin() {
 
   const [daliaEmail, setDaliaEmail] = useState('');
   const [daliaWhatsapp, setDaliaWhatsapp] = useState('');
-  const [companyConfig, setCompanyConfig] = useState<CompanyConfig>(emptyCompanyConfig);
+  const [companyConfig, setCompanyConfig] = useState<CompanyConfig>(emptyCompanyDriverAppConfig());
   const [actionSettings, setActionSettings] = useState<Record<string, ActionSettingState>>(
     () => mergeActionSettings([]),
   );
@@ -80,6 +78,8 @@ export default function DriverAppNotificationsAdmin() {
 
     setCompanyConfig({
       dalia_service_enabled: !!configRes.data?.dalia_service_enabled,
+      contact_email: configRes.data?.contact_email || '',
+      contact_whatsapp: configRes.data?.contact_whatsapp || '',
     });
     setActionSettings(mergeActionSettings(actionsRes.data || []));
     setLoadingCompany(false);
@@ -122,9 +122,12 @@ export default function DriverAppNotificationsAdmin() {
         visible_to_driver: setting.visible_to_driver,
         email_enabled: action.hasNotifications ? setting.email_enabled : false,
         email_to_fleet_managers: action.hasNotifications ? setting.email_to_fleet_managers : false,
+        email_to_company_contact: action.hasNotifications ? setting.email_to_company_contact : false,
         email_to_dalia: action.hasNotifications ? setting.email_to_dalia : false,
         email_extra: action.hasNotifications ? setting.email_extra.trim() : '',
         whatsapp_enabled: action.hasNotifications ? setting.whatsapp_enabled : false,
+        whatsapp_to_fleet_managers: action.hasNotifications ? setting.whatsapp_to_fleet_managers : false,
+        whatsapp_to_company_contact: action.hasNotifications ? setting.whatsapp_to_company_contact : false,
         whatsapp_to_dalia: action.hasNotifications ? setting.whatsapp_to_dalia : false,
         whatsapp_extra: action.hasNotifications ? setting.whatsapp_extra.trim() : '',
         condition_mode: action.conditions ? setting.condition_mode : 'all',
@@ -137,6 +140,8 @@ export default function DriverAppNotificationsAdmin() {
     const { error: configError } = await supabase.from('driver_app_company_config').upsert({
       company_name: selectedCompany,
       dalia_service_enabled: companyConfig.dalia_service_enabled,
+      contact_email: companyConfig.contact_email.trim(),
+      contact_whatsapp: companyConfig.contact_whatsapp.trim(),
       updated_at: new Date().toISOString(),
       updated_by: user?.id || null,
     });
@@ -175,8 +180,8 @@ export default function DriverAppNotificationsAdmin() {
         <Settings2 size={28} /> ניהול אפליקציית נהג והתראות
       </h1>
       <p className="text-muted-foreground">
-        שליטה לפי חברה על כפתורי הנהג ועל יעדי Email / WhatsApp. ההגדרות נשמרות בלבד —
-        שליחת הודעות אמיתית תתווסף בשלב הבא. המיילים הקיימים למנהל הצי ממשיכים לעבוד כרגיל.
+        שליטה לפי חברה על כפתורי הנהג, נמעני Email / WhatsApp, תנאי שליחה ושירות דליה.
+        ההגדרות נשמרות בלבד — שליחת הודעות אמיתית תתווסף בשלב הבא. המיילים הקיימים למנהל הצי ממשיכים לעבוד כרגיל.
       </p>
 
       {loading ? (
@@ -299,13 +304,15 @@ export default function DriverAppNotificationsAdmin() {
                       <p className="font-bold">שירות טיפול דליה</p>
                       <p className="text-sm text-muted-foreground">
                         {companyConfig.dalia_service_enabled
-                          ? 'ON — ההגדרות מוכנות לשלב השליחה הבא. לא נשלחות הודעות כעת.'
-                          : 'OFF — ההגדרות נשמרות, אך שירות דליה אינו פעיל לחברה זו.'}
+                          ? 'ON — ניתן לבחור את דליה כיעד לפי פעולה. לא נשלחות הודעות כעת.'
+                          : 'OFF — לא לשלוח לדליה. מנהל הצי וההתנהגות הקיימת של החברה לא נפגעים.'}
                       </p>
                     </div>
                     <Switch
                       checked={companyConfig.dalia_service_enabled}
-                      onCheckedChange={(checked) => setCompanyConfig({ dalia_service_enabled: checked })}
+                      onCheckedChange={(checked) =>
+                        setCompanyConfig((prev) => ({ ...prev, dalia_service_enabled: checked }))
+                      }
                       aria-label="שירות טיפול דליה"
                     />
                   </div>
@@ -314,6 +321,35 @@ export default function DriverAppNotificationsAdmin() {
                       סימון יעד «דליה» בפעולה יישמר, אבל השירות כבוי עד שיופעל המתג למעלה.
                     </p>
                   )}
+                  <div className="grid md:grid-cols-2 gap-4 pt-2 border-t border-border">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Email יעד — בעל החברה / איש קשר</label>
+                      <input
+                        dir="ltr"
+                        className={inputClass}
+                        value={companyConfig.contact_email}
+                        onChange={(e) =>
+                          setCompanyConfig((prev) => ({ ...prev, contact_email: e.target.value }))
+                        }
+                        placeholder="owner@example.com"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        אין מקור אמין יחיד למייל בעל החברה במערכת — לכן זה שדה יעד ברמת החברה.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">WhatsApp יעד — בעל החברה / איש קשר</label>
+                      <input
+                        dir="ltr"
+                        className={inputClass}
+                        value={companyConfig.contact_whatsapp}
+                        onChange={(e) =>
+                          setCompanyConfig((prev) => ({ ...prev, contact_whatsapp: e.target.value }))
+                        }
+                        placeholder="9725..."
+                      />
+                    </div>
+                  </div>
                 </section>
 
                 {DRIVER_APP_ACTIONS.map((action) => {
@@ -322,7 +358,19 @@ export default function DriverAppNotificationsAdmin() {
                     <section key={action.key} className="card-elevated space-y-4">
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <h3 className="text-lg font-bold">{action.label}</h3>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-lg font-bold">{action.label}</h3>
+                            {action.safetyLevel === 'critical' && (
+                              <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-destructive/10 text-destructive">
+                                SAFETY CRITICAL
+                              </span>
+                            )}
+                            {action.safetyLevel === 'warning' && (
+                              <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-warning/15 text-warning">
+                                רגיש
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">{action.description}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
@@ -334,6 +382,16 @@ export default function DriverAppNotificationsAdmin() {
                           />
                         </div>
                       </div>
+                      {action.safetyWarning && (
+                        <div className={`text-sm rounded-xl p-3 ${
+                          setting.visible_to_driver
+                            ? 'bg-warning/10 text-warning'
+                            : 'bg-destructive/10 text-destructive'
+                        }`}>
+                          {action.safetyWarning}
+                          {!setting.visible_to_driver && ' הכפתור מוסתר כעת לנהגי החברה.'}
+                        </div>
+                      )}
 
                       {action.hasNotifications ? (
                         <div className="grid md:grid-cols-2 gap-4 pt-2 border-t border-border">
@@ -355,7 +413,16 @@ export default function DriverAppNotificationsAdmin() {
                                 checked={setting.email_to_fleet_managers}
                                 onChange={(e) => updateAction(action.key, { email_to_fleet_managers: e.target.checked })}
                               />
-                              מנהל/י צי הרכב
+                              מנהל/י צי הרכב של החברה
+                            </label>
+                            <label className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                className="w-4 h-4 accent-primary"
+                                checked={setting.email_to_company_contact}
+                                onChange={(e) => updateAction(action.key, { email_to_company_contact: e.target.checked })}
+                              />
+                              בעל החברה / איש קשר ({companyConfig.contact_email || 'לא הוגדר Email יעד לחברה'})
                             </label>
                             <label className="flex items-center gap-2 text-sm">
                               <input
@@ -397,6 +464,24 @@ export default function DriverAppNotificationsAdmin() {
                                 onChange={(e) => updateAction(action.key, { whatsapp_to_dalia: e.target.checked })}
                               />
                               דליה ({daliaWhatsapp || 'לא הוגדר מספר קבוע'})
+                            </label>
+                            <label className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                className="w-4 h-4 accent-primary"
+                                checked={setting.whatsapp_to_fleet_managers}
+                                onChange={(e) => updateAction(action.key, { whatsapp_to_fleet_managers: e.target.checked })}
+                              />
+                              מנהל צי
+                            </label>
+                            <label className="flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                className="w-4 h-4 accent-primary"
+                                checked={setting.whatsapp_to_company_contact}
+                                onChange={(e) => updateAction(action.key, { whatsapp_to_company_contact: e.target.checked })}
+                              />
+                              בעל החברה / איש קשר ({companyConfig.contact_whatsapp || 'לא הוגדר מספר יעד לחברה'})
                             </label>
                             <div>
                               <label className="block text-xs text-muted-foreground mb-1">יעד נוסף (אופציונלי)</label>

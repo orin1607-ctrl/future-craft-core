@@ -56,28 +56,36 @@ jobs:
           fi
           export SUPABASE_ACCESS_TOKEN="$TOK"
 
-          SQL_FILE="supabase/migrations/20260905223000_driver_app_notification_settings.sql"
-          test -f "$SQL_FILE"
+          SQL_FILE_A="supabase/migrations/20260905223000_driver_app_notification_settings.sql"
+          SQL_FILE_B="supabase/migrations/20260906120000_driver_app_control_center_expand.sql"
+          test -f "$SQL_FILE_A"
+          test -f "$SQL_FILE_B"
 
-          SQL_JSON=$(python3 -c 'import json; print(json.dumps({"query": open("supabase/migrations/20260905223000_driver_app_notification_settings.sql", encoding="utf-8").read()}))')
-          CODE=$(curl -sS -o /tmp/sql_result.json -w "%{http_code}" \
-            -X POST "https://api.supabase.com/v1/projects/${STAGING_REF}/database/query" \
-            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -H "Accept: application/json" \
-            -H "User-Agent: supabase-cli/2.0" \
-            --data-binary "$SQL_JSON" || echo "000")
-          echo "SQL HTTP: $CODE"
-          head -c 2000 /tmp/sql_result.json; echo
+          apply_sql() {
+            local FILE="$1"
+            local SQL_JSON
+            SQL_JSON=$(python3 -c "import json; print(json.dumps({\"query\": open('$FILE', encoding='utf-8').read()}))")
+            local CODE
+            CODE=$(curl -sS -o /tmp/sql_result.json -w "%{http_code}" \
+              -X POST "https://api.supabase.com/v1/projects/${STAGING_REF}/database/query" \
+              -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -H "Accept: application/json" \
+              -H "User-Agent: supabase-cli/2.0" \
+              --data-binary "$SQL_JSON" || echo "000")
+            echo "SQL HTTP for $FILE: $CODE"
+            head -c 2000 /tmp/sql_result.json; echo
+            if [ "$CODE" = "200" ] || [ "$CODE" = "201" ]; then
+              echo "✅ Applied $FILE via Management API to staging only"
+            elif grep -qiE 'already exists|duplicate' /tmp/sql_result.json; then
+              echo "✅ $FILE already applied (idempotent)"
+            else
+              echo "::warning::Could not apply $FILE to staging (HTTP $CODE). Apply both driver-app SQL files in the Staging SQL Editor."
+            fi
+          }
 
-          if [ "$CODE" = "200" ] || [ "$CODE" = "201" ]; then
-            echo "✅ Migration applied via Management API to staging only"
-          elif grep -qiE 'already exists|duplicate' /tmp/sql_result.json; then
-            echo "✅ Migration already applied (idempotent)"
-          else
-            echo "::warning::Could not apply migration to staging (HTTP $CODE). Apply supabase/migrations/20260905223000_driver_app_notification_settings.sql in the Staging SQL Editor."
-            exit 0
-          fi
+          apply_sql "$SQL_FILE_A"
+          apply_sql "$SQL_FILE_B"
 
       - name: Verify new tables exist on staging
         env:

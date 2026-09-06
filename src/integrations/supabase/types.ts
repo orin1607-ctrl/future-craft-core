@@ -402,6 +402,7 @@ export type Database = {
           condition_values: string[]
           email_enabled: boolean
           email_extra: string
+          email_to_company_contact: boolean
           email_to_dalia: boolean
           email_to_fleet_managers: boolean
           id: string
@@ -410,7 +411,9 @@ export type Database = {
           visible_to_driver: boolean
           whatsapp_enabled: boolean
           whatsapp_extra: string
+          whatsapp_to_company_contact: boolean
           whatsapp_to_dalia: boolean
+          whatsapp_to_fleet_managers: boolean
         }
         Insert: {
           action_key: string
@@ -419,6 +422,7 @@ export type Database = {
           condition_values?: string[]
           email_enabled?: boolean
           email_extra?: string
+          email_to_company_contact?: boolean
           email_to_dalia?: boolean
           email_to_fleet_managers?: boolean
           id?: string
@@ -427,7 +431,9 @@ export type Database = {
           visible_to_driver?: boolean
           whatsapp_enabled?: boolean
           whatsapp_extra?: string
+          whatsapp_to_company_contact?: boolean
           whatsapp_to_dalia?: boolean
+          whatsapp_to_fleet_managers?: boolean
         }
         Update: {
           action_key?: string
@@ -436,6 +442,7 @@ export type Database = {
           condition_values?: string[]
           email_enabled?: boolean
           email_extra?: string
+          email_to_company_contact?: boolean
           email_to_dalia?: boolean
           email_to_fleet_managers?: boolean
           id?: string
@@ -444,25 +451,33 @@ export type Database = {
           visible_to_driver?: boolean
           whatsapp_enabled?: boolean
           whatsapp_extra?: string
+          whatsapp_to_company_contact?: boolean
           whatsapp_to_dalia?: boolean
+          whatsapp_to_fleet_managers?: boolean
         }
         Relationships: []
       }
       driver_app_company_config: {
         Row: {
           company_name: string
+          contact_email: string
+          contact_whatsapp: string
           dalia_service_enabled: boolean
           updated_at: string
           updated_by: string | null
         }
         Insert: {
           company_name: string
+          contact_email?: string
+          contact_whatsapp?: string
           dalia_service_enabled?: boolean
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
           company_name?: string
+          contact_email?: string
+          contact_whatsapp?: string
           dalia_service_enabled?: boolean
           updated_at?: string
           updated_by?: string | null
@@ -2810,6 +2825,7 @@ export type Database = {
       }
       vehicle_history: {
         Row: {
+          assigned_driver_id: string | null
           company_name: string
           cost: number | null
           created_at: string
@@ -2824,6 +2840,7 @@ export type Database = {
           vehicle_id: string
         }
         Insert: {
+          assigned_driver_id?: string | null
           company_name?: string
           cost?: number | null
           created_at?: string
@@ -2838,6 +2855,7 @@ export type Database = {
           vehicle_id: string
         }
         Update: {
+          assigned_driver_id?: string | null
           company_name?: string
           cost?: number | null
           created_at?: string
