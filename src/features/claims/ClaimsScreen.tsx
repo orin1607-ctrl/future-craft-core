@@ -541,10 +541,25 @@ function StaffUploadZone({ testId, inputId, busy, compact, addLabel, onFiles }: 
   );
 }
 
-function surveyorBundle(files: ClaimFile[]) {
+function surveyorBundle(files: ClaimFile[], imports: Array<Record<string, unknown>> = []) {
   const photos = files.filter((f) => f.doc_kind === 'surveyor_photo');
-  const reports = files.filter((f) => f.doc_kind === 'surveyor_report');
+  const tagged = files.filter((f) => f.doc_kind === 'surveyor_report');
   const taggedAtt = files.filter((f) => f.doc_kind === 'surveyor_attachment');
+  const surveyorMailIds = new Set(
+    imports
+      .filter((im) => /שמאי|שמאות|survey/i.test(String(im.subject || '')))
+      .map((im) => String(im.gmail_message_id || ''))
+      .filter(Boolean),
+  );
+  const fromSafeMail = files.filter((f) => (
+    surveyorMailIds.has(String(f.gmail_message_id || ''))
+    && !isImageFile(f)
+    && /pdf/i.test(`${f.mime_type || ''} ${f.original_name || ''}`)
+    && f.doc_kind !== 'garage_invoice'
+  ));
+  const reportById = new Map<string, ClaimFile>();
+  [...tagged, ...fromSafeMail].forEach((f) => reportById.set(f.id, f));
+  const reports = [...reportById.values()];
   const gmailIds = new Set([...photos, ...reports, ...taggedAtt].map((f) => f.gmail_message_id).filter(Boolean) as string[]);
   const related = files.filter((f) => (
     f.gmail_message_id
@@ -554,9 +569,9 @@ function surveyorBundle(files: ClaimFile[]) {
     && f.doc_kind !== 'surveyor_attachment'
     && !isImageFile(f)
   ));
-  const byId = new Map<string, ClaimFile>();
-  [...taggedAtt, ...related].forEach((f) => byId.set(f.id, f));
-  return { reports, photos, attachments: [...byId.values()] };
+  const attById = new Map<string, ClaimFile>();
+  [...taggedAtt, ...related].forEach((f) => attById.set(f.id, f));
+  return { reports, photos, attachments: [...attById.values()] };
 }
 
 function invoiceFiles(files: ClaimFile[]) {
@@ -1318,7 +1333,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   useEffect(() => {
     if (!curId) return;
     if (cardTab === 'surveyor' || cardTab === 'invoice') {
-      const tagged = cardTab === 'surveyor' ? surveyorBundle(docs.files).photos : invoiceFiles(docs.files).filter(isImageFile);
+      const tagged = cardTab === 'surveyor' ? surveyorBundle(docs.files, gmailImports).photos : invoiceFiles(docs.files).filter(isImageFile);
       const show = tagged.length ? tagged : (cardTab === 'surveyor' ? docs.files.filter(isImageFile) : tagged);
       if (show.length) void loadGalleryThumbs(curId, show);
       return;
@@ -2430,7 +2445,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 </>
               )}
               {cardTab === 'surveyor' && (() => {
-                const pack = surveyorBundle(docs.files);
+                const pack = surveyorBundle(docs.files, gmailImports);
                 const report = pack.reports[0];
                 const meta = report ? fileMeta(report) : {};
                 const untaggedPhotos = pack.photos.length === 0 ? docs.files.filter(isImageFile) : [];
@@ -2453,12 +2468,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       <div className="spec-empty">אין קובץ דוח PDF מסומן. מוצגות {pack.photos.length} תמונות שמאי שכבר יובאו לתיק — בלי עותק חדש.</div>
                     ) : null}
                     {pack.reports.map((f) => (
-                      <div key={f.id} className="gal-box" style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
+                      <div key={f.id} className="gal-box" data-testid="surveyor-report-file" data-doc-name={f.original_name} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
                         <div>
                           <div style={{ fontWeight: 800 }}>{f.original_name} <span className="kind-pill surveyor">דוח שמאי</span></div>
                           <div style={{ fontSize: 11, color: 'var(--t3)' }}>{sourceHe(f.source)} · {fmtBytes(Number(f.byte_size || 0))}</div>
                         </div>
-                        <button className="btn btn-p btn-sm" onClick={() => void openInCard(cur.id, f)}>פתח בתיק</button>
+                        <button className="btn btn-p btn-sm" data-testid="surveyor-report-open" onClick={() => void openInCard(cur.id, f)}>פתח בתיק</button>
                       </div>
                     ))}
                     <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
