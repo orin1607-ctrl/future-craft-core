@@ -53,9 +53,20 @@ function serviceRole() {
   if (fromEnv) {
     const k = fromEnv.replace(/[\r\n]/g, '').trim();
     if (jwtPayload(k).ref === PROD_REF) throw new Error('service role is production');
+    if (jwtPayload(k).ref && jwtPayload(k).ref !== STAGING_REF) throw new Error(`service role ref ${jwtPayload(k).ref}`);
     return k;
   }
-  throw new Error('need SUPABASE_SERVICE_ROLE_KEY');
+  const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+  if (!token) throw new Error('need SUPABASE_ACCESS_TOKEN or SUPABASE_SERVICE_ROLE_KEY');
+  const keys = JSON.parse(execSync(`npx --yes supabase projects api-keys --project-ref ${STAGING_REF} -o json`, {
+    encoding: 'utf8',
+    env: { ...process.env, SUPABASE_ACCESS_TOKEN: token },
+  }));
+  const service = keys.find((x) => x.name === 'service_role' && x.type === 'legacy')?.api_key
+    || keys.find((x) => x.name === 'service_role')?.api_key;
+  if (!service) throw new Error('no staging service_role');
+  if (jwtPayload(service).ref === PROD_REF) throw new Error('fetched production key');
+  return service;
 }
 function anonKey() {
   const fromEnv = process.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -63,7 +74,13 @@ function anonKey() {
     const p = jwtPayload(fromEnv);
     if (p.ref === STAGING_REF && p.role === 'anon') return fromEnv;
   }
-  throw new Error('need staging anon');
+  const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+  const keys = JSON.parse(execSync(`npx --yes supabase projects api-keys --project-ref ${STAGING_REF} -o json`, {
+    encoding: 'utf8',
+    env: { ...process.env, SUPABASE_ACCESS_TOKEN: token },
+  }));
+  return keys.find((x) => x.name === 'anon' && x.type === 'legacy')?.api_key
+    || keys.find((x) => x.name === 'anon')?.api_key;
 }
 function normDate(v) {
   const s = String(v || '').trim();
