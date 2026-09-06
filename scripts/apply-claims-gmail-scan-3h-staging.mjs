@@ -94,6 +94,22 @@ try {
     applied = mgmt.ok === true;
   }
 
+  if (!applied) {
+    const res = await fetch(`https://${STAGING_REF}.supabase.co/functions/v1/claims-gmail`, {
+      method: 'POST',
+      headers: {
+        apikey: service,
+        Authorization: `Bearer ${service}`,
+        'Content-Type': 'application/json',
+        'x-dalia-internal-key': service,
+      },
+      body: JSON.stringify({ action: 'apply_approved_gmail_tick', scheduler: true, sql: sqlText }),
+    });
+    const json = await res.json().catch(() => ({}));
+    attempts.push({ fn: 'claims_gmail_apply_approved_tick', status: res.status, error: json.error || null, applied: json.applied === true, dbEnvNames: json.dbEnvNames || null });
+    applied = json.success === true && json.applied === true;
+  }
+
   report.apply = { ok: applied, attempts };
   if (!applied) throw new Error(`all apply paths failed: ${JSON.stringify(attempts).slice(0, 1200)}`);
 

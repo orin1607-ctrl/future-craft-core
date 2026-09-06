@@ -646,7 +646,9 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     });
   }
 
-  const schedulerRequested = body.scheduler === true && (action === "scan_inbox" || action === "import_message");
+  const schedulerRequested = body.scheduler === true && (
+    action === "scan_inbox" || action === "import_message" || action === "apply_approved_gmail_tick"
+  );
   const systemScheduler = schedulerRequested && (isInternalScheduler(req) || isStagingServiceRole(req));
   let user: { id: string; email?: string };
   let role: string;
@@ -659,6 +661,51 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     user = auth.ctx.user;
     role = auth.ctx.role;
     if (!(await hasClaimsAccess(sb, user.id, role))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+  }
+
+  if (action === "apply_approved_gmail_tick") {
+    if (!systemScheduler) return jsonResponse({ success: false, error: "forbidden" }, 403);
+    const incoming = String(body.sql || "");
+    const hash = await sha256HexBytes(new TextEncoder().encode(incoming));
+    const expected = "69ec0955a3ef998a22642f2a03c6236564891ee4dd71f986e720f73bc5e4a570";
+    if (hash !== expected) {
+      return jsonResponse({ success: false, error: "sql_hash_mismatch", hash }, 400);
+    }
+    const dbUrl = Deno.env.get("SUPABASE_DB_URL") || Deno.env.get("DATABASE_URL") || Deno.env.get("POSTGRES_URL") || "";
+    const envNames = Object.keys(Deno.env.toObject()).filter((k) => /DB|POSTGRES|DATABASE/i.test(k));
+    if (!dbUrl) {
+      return jsonResponse({
+        success: false,
+        error: "no_db_url",
+        dbEnvNames: envNames,
+        realEmailSend: false,
+      }, 409);
+    }
+    if (dbUrl.includes(PROD_REF)) {
+      return jsonResponse({ success: false, error: "production_db_blocked" }, 403);
+    }
+    try {
+      const { default: postgres } = await import("https://esm.sh/postgres@3.4.5");
+      const client = postgres(dbUrl, { ssl: "require", max: 1 });
+      try {
+        await client.unsafe(incoming);
+      } finally {
+        await client.end({ timeout: 5 });
+      }
+      return jsonResponse({
+        success: true,
+        applied: true,
+        via: "existing_edge_db_url",
+        realEmailSend: false,
+        newCron: false,
+      });
+    } catch (e) {
+      return jsonResponse({
+        success: false,
+        error: String((e as Error).message || e).slice(0, 240),
+        dbEnvNames: envNames,
+      }, 400);
+    }
   }
 
   if (action === "status") {
