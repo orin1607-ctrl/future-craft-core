@@ -30,6 +30,18 @@ function looksLikeJwt(v) {
   return typeof v === 'string' && v.split('.').length === 3 && v.length > 80;
 }
 
+function stagingAnonJwt(v) {
+  if (!looksLikeJwt(v)) return '';
+  try {
+    const payload = JSON.parse(Buffer.from(v.split('.')[1], 'base64url').toString('utf8'));
+    if (payload.ref === PROD_REF) return '';
+    if (payload.ref === STAGING_REF && payload.role === 'anon') return v;
+  } catch {
+    return '';
+  }
+  return '';
+}
+
 async function anonFromPublicPages() {
   const html = await fetch('https://orin1607-ctrl.github.io/future-craft-core/', { redirect: 'follow' }).then((r) => r.text());
   const asset = html.match(/\/future-craft-core\/assets\/[^"]+\.js/) || html.match(/assets\/[^"]+\.js/);
@@ -49,7 +61,7 @@ async function anonFromPublicPages() {
 }
 
 const env = readDotEnv();
-let anon = [process.env.VITE_SUPABASE_ANON_KEY, process.env.VITE_SUPABASE_PUBLISHABLE_KEY, env.VITE_SUPABASE_ANON_KEY, env.VITE_SUPABASE_PUBLISHABLE_KEY].find(looksLikeJwt) || '';
+let anon = [process.env.VITE_SUPABASE_ANON_KEY, process.env.VITE_SUPABASE_PUBLISHABLE_KEY, env.VITE_SUPABASE_ANON_KEY, env.VITE_SUPABASE_PUBLISHABLE_KEY].map(stagingAnonJwt).find(Boolean) || '';
 if (!anon) anon = await anonFromPublicPages();
 if (!anon) throw new Error('missing anon');
 
