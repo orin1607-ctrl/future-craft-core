@@ -2309,7 +2309,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   </div>
                   <div className="ph-a">
                     {isSuperAdmin && (
-                      <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
+                      <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} data-testid="claims-mine-toggle" onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
                     )}
                     {renderListFilterControls()}
                     <button className="btn btn-g btn-sm" data-testid="claims-scan-inbox" onClick={() => { void runInboxScan(false); showView('gmail'); }}>📬 סרוק מיילים</button>
@@ -2393,7 +2393,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   <div><div className="ph-t" data-testid="claims-list-heading">{listMode === 'archive' ? 'תיקים בארכיון' : (filter || stFil || workFil || insCoFil || (mineOnly ? 'התביעות שלי' : 'כל התיקים'))}<div className="ph-bar" /></div></div>
                   <div className="ph-a">
                     {isSuperAdmin && (
-                      <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'שלי' : 'הכול'}</button>
+                      <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} data-testid="claims-mine-toggle" onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'שלי' : 'הכול'}</button>
                     )}
                     {renderListFilterControls()}
                   </div>
@@ -2824,7 +2824,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               {cardTab === 'treat' && (
                 <>
                   <div className="work-entry-bar" data-testid="work-entry-bar">
-                    <button type="button" className="btn btn-p btn-sm" onClick={() => openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk })}>עדכון טיפול</button>
+                    <button type="button" className="btn btn-p btn-sm" data-testid="treat-open" onClick={() => openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk })}>עדכון טיפול</button>
                     <button type="button" className="btn btn-g btn-sm" data-testid="work-cust-request" onClick={() => openCustomerRequest()}>בקשה ללקוח</button>
                     <button type="button" className="btn btn-g btn-sm" onClick={() => setCardTab('tasks')}>משימות ({tasks.length})</button>
                     <button type="button" className="btn btn-g btn-sm" onClick={() => setCardTab('rems')}>תזכורות ({reminders.length})</button>
