@@ -261,8 +261,9 @@ Deno.serve(async (req) => {
       if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
       const reqKey = String(reqRow.doc_key || "");
       const staffType = STAFF_TYPE_BY_DOC_KEY[reqKey] || "";
+      const fileId = nid("CDM");
       await sb.from("claims_documents").insert({
-        id: nid("CDM"),
+        id: fileId,
         claim_id: claimId,
         doc_request_id: docRequestId,
         storage_path: path,
@@ -276,7 +277,24 @@ Deno.serve(async (req) => {
       });
       await sb.from("claims_doc_requests").update({ status: "received", received_at: new Date().toISOString() }).eq("id", docRequestId);
       await history(sb, claimId, "מסמך התקבל מהלקוח", reqRow.label, "לקוח");
-      await notify(sb, claimId, `התקבל מסמך: ${reqRow.label}`);
+      await notify(sb, claimId, `התקבל מסמך חדש מהלקוח · ${reqRow.label}`);
+      const { data: taskRows } = await sb.from("claims_tasks").select("id, row_data").eq("claim_id", claimId);
+      for (const t of taskRows || []) {
+        const rd = (t.row_data && typeof t.row_data === "object") ? t.row_data as Record<string, string> : {};
+        if (rd.done === "true") continue;
+        if (rd.treatmentItem !== "true" && rd.kind !== "treatment_item") continue;
+        const matchesType = Boolean(staffType && rd.requestType && rd.requestType === staffType);
+        if (!matchesType) continue;
+        await sb.from("claims_tasks").update({
+          row_data: {
+            ...rd,
+            workStatus: "doc_received",
+            docState: "ready",
+            readyFileId: fileId,
+            updatedAt: new Date().toLocaleString("he-IL"),
+          },
+        }).eq("id", t.id);
+      }
       const { data: left } = await sb.from("claims_doc_requests").select("id").eq("claim_id", claimId).neq("status", "received");
       if ((left || []).length > 0) {
         await sb.from("claims_records").update({ status: "ממתין למסמכים", last_activity_at: new Date().toISOString() }).eq("id", claimId).eq("status", "חדש");

@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CLOSE_REASONS, STATUS_MANUAL, STATUS_UNCHANGED, TEMPLATES, isClosedStatus, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { customerStatusOf, customerTaskHistoryAction } from './claimWorkAlerts';
+import { inferTreatmentRequest } from './treatmentCenter';
 
 export type MailJobRow = {
   id: string;
@@ -269,8 +270,13 @@ export function createClaimsApi(actor: ClaimsActor) {
 
     async saveClaim(data: Record<string, string>) {
       const incoming = { ...(data || {}) };
-      const isNew = !incoming.id;
-      if (isNew) incoming.id = await bumpClaimId();
+      const providedId = String(incoming.id || '').trim();
+      const existingById = providedId ? await getClaimById(providedId) : null;
+      const isNew = !providedId || !existingById;
+      if (!providedId) incoming.id = await bumpClaimId();
+      if (providedId && !existingById) {
+        return { success: false, error: 'תיק לעריכה לא נמצא — לא נוצר תיק חדש' };
+      }
       incoming.updatedAt = nowHe();
       incoming.lastActivityAt = nowHe();
       incoming.finBalance = String((Number(incoming.finApproved) || 0) - (Number(incoming.finPaid) || 0));
@@ -302,7 +308,7 @@ export function createClaimsApi(actor: ClaimsActor) {
         last_activity_at: new Date().toISOString(),
       };
 
-      const existing = await getClaimById(incoming.id);
+      const existing = existingById;
       if (existing) {
         const { error } = await tbl('claims_records').update(payload as never).eq('id', incoming.id);
         if (error) return { success: false, error: error.message };
@@ -431,6 +437,8 @@ export function createClaimsApi(actor: ClaimsActor) {
       manualNote?: string;
       nextDate: string;
       note?: string;
+      continueWork?: 'continue' | 'done';
+      closeTaskId?: string;
     }) {
       const c = await getClaimById(payload.claimId);
       if (!c) return { success: false, error: 'תיק לא נמצא' };
@@ -472,7 +480,55 @@ export function createClaimsApi(actor: ClaimsActor) {
         void this.cancelScheduledMailFollowups(payload.claimId).catch(() => undefined);
       }
       void appendHistory(payload.claimId, closed ? 'טיפול הושלם' : 'עדכון טיפול', histNote, 'treatment', prevStatus, nextStatus).catch(() => undefined);
-      return { success: true, lastTreatmentAt: patch.lastTreatmentAt, nextDate: patch.nextDate, status: nextStatus, fetch: 'claim-by-id' };
+      let treatmentTaskId = '';
+      if (payload.closeTaskId) {
+        const { data: closeRow } = await tbl('claims_tasks').select('id, row_data').eq('id', payload.closeTaskId).maybeSingle();
+        if (closeRow) {
+          const prev = rowFromData((closeRow as { row_data?: Record<string, unknown> }).row_data);
+          const next = { ...prev, id: payload.closeTaskId, claimId: payload.claimId, done: 'true', workStatus: 'done', closedAt: nowHe(), closedBy: actorName, closeReason: payload.note || payload.action || 'טופל — אין המשך' };
+          await tbl('claims_tasks').update({ row_data: next } as never).eq('id', payload.closeTaskId);
+          await appendHistory(payload.claimId, 'טיפול נסגר', `${prev.action || ''} · ${next.closeReason}`, 'treatment', prev.workStatus || '', 'done');
+          treatmentTaskId = payload.closeTaskId;
+        }
+      } else if (payload.continueWork === 'continue') {
+        const inferred = inferTreatmentRequest(payload.action, payload.note || '');
+        const existingOpen = (await loadChild('claims_tasks', payload.claimId)).find((t) =>
+          t.done !== 'true' && (t.treatmentItem === 'true' || t.kind === 'treatment_item') && (
+            (inferred.type && t.requestType === inferred.type) || t.action === inferred.label || t.action === payload.action
+          ));
+        if (existingOpen) {
+          treatmentTaskId = existingOpen.id;
+          const next = {
+            ...existingOpen,
+            note: payload.note || existingOpen.note || '',
+            lastStatusNote: payload.note || existingOpen.lastStatusNote || '',
+            updatedAt: nowHe(),
+          };
+          await tbl('claims_tasks').update({ row_data: next } as never).eq('id', existingOpen.id);
+        } else {
+          const id = generateId('TSK');
+          const row = {
+            id,
+            claimId: payload.claimId,
+            kind: 'treatment_item',
+            treatmentItem: 'true',
+            action: inferred.label || payload.action,
+            requestType: inferred.type || '',
+            requestKind: inferred.kind || 'other',
+            workStatus: inferred.kind === 'doc' || inferred.kind === 'sign' ? 'waiting_doc' : 'open',
+            docState: inferred.kind === 'doc' || inferred.kind === 'sign' ? 'missing' : '',
+            done: 'false',
+            note: payload.note || '',
+            createdAt: nowHe(),
+            createdBy: actorName,
+            owner: actorName,
+          };
+          await tbl('claims_tasks').insert({ id, claim_id: payload.claimId, row_data: row } as never);
+          await appendHistory(payload.claimId, 'נוצר טיפול', `${row.action}${row.note ? ` · ${row.note}` : ''}`, 'treatment', '', row.workStatus);
+          treatmentTaskId = id;
+        }
+      }
+      return { success: true, lastTreatmentAt: patch.lastTreatmentAt, nextDate: patch.nextDate, status: nextStatus, treatmentTaskId, fetch: 'claim-by-id' };
     },
 
     async archiveClaim(claimId: string) {

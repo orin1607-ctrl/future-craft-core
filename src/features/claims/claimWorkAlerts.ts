@@ -18,7 +18,7 @@ export const CUSTOMER_REQUEST_STATUSES: Array<{ key: string; label: string }> = 
   { key: 'cancelled', label: 'בוטל' },
 ];
 
-export type ClaimAlert = { key: string; label: string; tone: 'need' | 'wait' | 'info'; mailIds?: string[]; count?: number };
+export type ClaimAlert = { key: string; label: string; tone: 'need' | 'wait' | 'info'; mailIds?: string[]; count?: number; taskId?: string };
 
 export function customerKindLabel(key: string) {
   return CUSTOMER_REQUEST_KINDS.find((x) => x.key === key)?.label || key || 'בקשה ללקוח';
@@ -174,11 +174,26 @@ export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAle
   const recurringFu = liveFu.filter(isRecurringMailFollowup);
   const scheduledOnceFu = liveFu.filter((f) => isScheduledOnceMail(f.purpose));
 
+  const openTreats = claimTasks.filter((t) => (t.treatmentItem === 'true' || t.kind === 'treatment_item') && t.done !== 'true' && t.workStatus !== 'done');
+  for (const t of openTreats) {
+    const name = t.action || 'טיפול';
+    const treatLabel = t.replyReceived === 'true'
+      ? `מייל חדש — ${name}`
+      : (t.workStatus === 'doc_received' || t.docState === 'ready')
+        ? `התקבל — לבדיקה: ${name}`
+        : (t.workStatus === 'waiting_doc' || t.docState === 'missing')
+          ? `חסר: ${name}`
+          : name;
+    add(`treat_${t.id}`, treatLabel, t.replyReceived === 'true' || t.workStatus === 'doc_received' ? 'need' : 'wait', {
+      taskId: t.id,
+      mailIds: t.gmailMessageId ? [t.gmailMessageId] : undefined,
+    });
+  }
   if (untreated.length) add('mail_action', mailActionLabel(untreated.length), 'need', { mailIds: untreated, count: untreated.length });
   if (!untreated.length && (unreadMail || pendingAssigned)) add('new_mail', 'מייל חדש', 'need');
   if (mailTasks.length && !untreated.length) add('need_reply', 'נדרש מענה', 'need', { mailIds: untreated, count: untreated.length });
-  if (insurerDoc) add('insurer_doc', 'חברת הביטוח ביקשה מסמך', 'need');
-  if (missingDoc) add('missing_doc', 'חסר מסמך', 'need');
+  if (insurerDoc && !openTreats.some((t) => t.requestKind === 'doc' || t.docState === 'missing')) add('insurer_doc', 'חברת הביטוח ביקשה מסמך', 'need');
+  if (missingDoc && !openTreats.some((t) => t.docState === 'missing' || t.workStatus === 'waiting_doc')) add('missing_doc', 'חסר מסמך', 'need');
   if (openCust.some((t) => customerStatusOf(t) === 'sent')) add('wait_client', 'ממתין ללקוח', 'wait');
   if (recurringFu.length) add('mail_recurring', 'מייל מתמשך', 'info', { mailIds: recurringFu.map((f) => String(f.id || '')).filter(Boolean), count: recurringFu.length });
   if (scheduledOnceFu.length) add('mail_scheduled', 'מייל מתוזמן', 'info', { mailIds: scheduledOnceFu.map((f) => String(f.id || '')).filter(Boolean), count: scheduledOnceFu.length });
