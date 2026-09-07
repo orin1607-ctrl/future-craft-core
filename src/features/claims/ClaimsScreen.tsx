@@ -2507,9 +2507,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 try {
                   const data = mergeIntakeToClaim(collectClaimForm(), intakeDraft);
                   await apiRef.current.saveClaim({ ...data, staffSignedAt: new Date().toISOString(), eventFormSignature: dataUrl });
-                  const up = await persistEventFormPdf(existingId, { ...intakeDraft }, data, dataUrl);
-                  if (!up.success) toast(`החתימה נשמרה אבל העלאת הטופס נכשלה: ${up.error || ''}`, 'err');
-                  else toast('טופס אירוע חתום נשמר במסמכים');
                 } catch (err) {
                   toast(`שמירת חתימה נכשלה: ${String((err as Error).message || err)}`, 'err');
                 }
