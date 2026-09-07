@@ -308,3 +308,43 @@
 }
 
 .claims-root .event-form-sign{grid-column:1 / -1;margin-top:8px;padding:10px;background:var(--bg2);border:1px dashed var(--br2);border-radius:8px}
+.claims-root .claims-search-in{width:180px;min-width:0;max-width:100%}
+.claims-root .claims-mlist{display:flex;flex-direction:column;gap:10px}
+.claims-root .claim-mcard{background:var(--bg2);border:1px solid var(--br2);border-radius:10px;padding:12px;cursor:pointer;text-align:right}
+.claims-root .claim-mcard-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.claims-root .claim-mcard-name{font-size:16px;font-weight:800;line-height:1.25;word-break:break-word}
+.claims-root .claim-mcard-num{font-size:12px;color:var(--ac3);font-weight:700;margin-top:3px}
+.claims-root .claim-mcard-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.claims-root .claim-mcard-check{display:flex;align-items:center}
+.claims-root .claim-mcard-meta{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px;font-size:13px;color:var(--t2)}
+.claims-root .claim-mcard-next{margin-top:8px;font-size:13px;font-weight:700;color:var(--yn2)}
+.claims-root .claim-mcard-alerts{margin-top:8px}
+.claims-root .claim-mcard-alerts .row-alerts{max-width:none}
+.claims-root .claim-mcard-edit{margin-top:10px}
+.claims-root .claim-mcard-empty{color:var(--t3);text-align:center;padding:28px 12px}
+.claims-root .doc-preview-nav{display:flex;gap:6px}
+.claims-root .doc-preview-pos{font-size:11px;color:var(--t3);font-weight:700;white-space:nowrap}
+
+@media(max-width:820px){
+  .claims-root .claims-search-in,.claims-root .ph-a .fi,.claims-root .ph-a .fse{width:100%;flex:1 1 100%}
+  .claims-root .ph-a{width:100%}
+  .claims-root .card-snap-desk-only{display:none}
+  .claims-root .card-title-name{font-size:17px}
+  .claims-root .card-flags{gap:5px;margin-top:6px}
+  .claims-root .lbl-pill{font-size:11px;padding:3px 7px}
+  .claims-root .ab-pri{font-size:13px}
+  .claims-root .tabs.tab-groups .tab{flex:0 0 auto;min-height:40px}
+  .claims-root .doc-preview-wrap{position:static}
+  .claims-root .doc-preview-img{max-height:min(62vh,520px);width:100%;height:auto;object-fit:contain}
+  .claims-root .doc-preview-frame{height:min(62vh,520px)}
+  .claims-root .gal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .claims-root .gal-item img{height:132px}
+  .claims-root input.fi,.claims-root select.fse,.claims-root textarea.fta{max-width:100%}
+  .claims-root .mail-chip-input{min-width:0}
+}
+
+@media(max-width:700px){
+  .claims-root .card-snap{padding:8px 12px}
+  .claims-root .mh{padding:10px 12px;gap:8px}
+  .claims-root .modal > .mb{padding:10px 12px 16px;overflow-x:hidden}
+}
