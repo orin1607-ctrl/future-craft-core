@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, buildClaimRowAlerts, canMarkMailTaskDone, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isRecurringMailFollowup, isScheduledOnceMail, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringLabel, shortStatusNote, untreatedMailIds, type ClaimAlert } from './claimWorkAlerts';
+import { claimMatchesSearch, searchEmptyLabel } from './claimSearch';
+import { groupMailThreads, unifyCorrespondence } from './claimMailThread';
+import { completedTreatments, docKeyForRequestType, filesForTreatment, isOpenTreatment, openTreatments, treatmentLabelOf, treatmentStatusHe } from './treatmentCenter';
 import { buildSignedOpeningFormPdf } from './signedClaimPdf';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
@@ -56,7 +59,7 @@ function RowAlerts({ alerts, onAlertClick }: { alerts: ClaimAlert[]; onAlertClic
   return (
     <div className="row-alerts" data-testid="claim-row-alerts">
       {alerts.map((a) => {
-        const clickable = !!onAlertClick && (a.key === 'mail_action' || a.key === 'need_reply' || a.key === 'new_mail' || a.key === 'missing_doc' || a.key === 'insurer_doc' || a.key === 'mail_recurring' || a.key === 'mail_scheduled');
+        const clickable = !!onAlertClick && (a.key === 'mail_action' || a.key === 'need_reply' || a.key === 'new_mail' || a.key === 'missing_doc' || a.key === 'insurer_doc' || a.key === 'mail_recurring' || a.key === 'mail_scheduled' || a.key.startsWith('treat_') || !!a.taskId);
         return (
           <span
             key={a.key}
@@ -277,8 +280,9 @@ function docStateHe(k: string) {
   return k || '';
 }
 const OWN_MAILBOX = 'yoni122222@gmail.com';
-function quotedOriginal(im: Record<string, unknown>) {
-  return `\n\n---------- הודעה מקורית ----------\nFrom: ${im.from_addr || ''}\nTo: ${im.to_addr || ''}\nDate: ${im.sent_at || ''}\nSubject: ${im.subject || ''}\n\n${im.body_text || ''}`;
+function quotedOriginal(im: object) {
+  const r = im as Record<string, unknown>;
+  return `\n\n---------- הודעה מקורית ----------\nFrom: ${r.from_addr || ''}\nTo: ${r.to_addr || ''}\nDate: ${r.sent_at || ''}\nSubject: ${r.subject || ''}\n\n${r.body_text || ''}`;
 }
 function withMailPrefix(subj: string, prefix: string) {
   const s = String(subj || '').trim();
@@ -613,28 +617,6 @@ function invoiceFiles(files: ClaimFile[]) {
   return files.filter((f) => f.doc_kind === 'garage_invoice');
 }
 
-function correspondenceThreads(imports: Array<Record<string, unknown>>) {
-  const sorted = [...imports].sort((a, b) => {
-    const ta = new Date(String(a.sent_at || '')).getTime() || 0;
-    const tb = new Date(String(b.sent_at || '')).getTime() || 0;
-    return ta - tb;
-  });
-  const groups: Array<{ thread: string; mails: typeof sorted }> = [];
-  const idx = new Map<string, number>();
-  for (const im of sorted) {
-    const thread = String(im.gmail_thread_id || im.gmail_message_id || im.id);
-    if (!idx.has(thread)) {
-      idx.set(thread, groups.length);
-      groups.push({ thread, mails: [] });
-    }
-    groups[idx.get(thread)!].mails.push(im);
-  }
-  return groups.sort((a, b) => {
-    const last = (g: typeof a) => Math.max(0, ...g.mails.map((m) => new Date(String(m.sent_at || '')).getTime() || 0));
-    return last(b) - last(a);
-  });
-}
-
 const CARD_TAB_GROUPS: Array<{ key: string; label: string; tabs: Array<{ key: string; label: string }> }> = [
   { key: 'info', label: 'מידע', tabs: [{ key: 'claim', label: 'תביעה' }, { key: 'client', label: 'לקוח' }, { key: 'vehicle', label: 'רכב' }] },
   { key: 'docs', label: 'מסמכים', tabs: [{ key: 'docs', label: 'כל המסמכים' }, { key: 'surveyor', label: 'דוח שמאי' }, { key: 'invoice', label: 'חשבונית מוסך' }] },
@@ -793,6 +775,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [treatAction, setTreatAction] = useState('');
   const [treatSendOk, setTreatSendOk] = useState(false);
   const [treatBusy, setTreatBusy] = useState(false);
+  const [treatCenterId, setTreatCenterId] = useState('');
+  const [closeTreatId, setCloseTreatId] = useState('');
+  const [mailOpen, setMailOpen] = useState<Record<string, boolean>>({});
   const [deleteTyped, setDeleteTyped] = useState('');
   const bumpMailDraft = () => {
     setMailPreviewOn(false);
@@ -1307,7 +1292,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setModal('moMail');
   };
 
-  const openMailCompose = (im: Record<string, unknown>, mode: 'reply' | 'replyAll' | 'forward') => {
+  const openMailCompose = (im: object, mode: 'reply' | 'replyAll' | 'forward') => {
     const from = emailsFromHeader(String(im.from_addr || ''))[0] || '';
     const toAddrs = emailsFromHeader(String(im.to_addr || ''));
     const ccAddrs = emailsFromHeader(String(im.cc_addr || ''));
@@ -1544,7 +1529,17 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     await loadCardData(id);
   };
 
+  const openTreatCenter = async (claimId: string, taskId: string) => {
+    setTreatCenterId(taskId);
+    await openCard(claimId, 'treat');
+    setModal('moTreatCenter');
+  };
+
   const openMailAction = (claimId: string, alert?: ClaimAlert) => {
+    if (alert?.taskId) {
+      void openTreatCenter(claimId, alert.taskId);
+      return;
+    }
     if (alert?.key === 'mail_recurring' || alert?.key === 'mail_scheduled') {
       void openCard(claimId, 'mailfu', alert.mailIds);
       return;
@@ -1697,6 +1692,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (opts.save) {
       const saved = await apiRef.current.saveClaim({
         ...data,
+        id: existingId,
         staffSignedAt: new Date().toISOString(),
         eventFormSignature: staffSig,
       });
@@ -1721,6 +1717,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (saveLock.current) return;
     saveLock.current = true;
     const data = mergeIntakeToClaim(collectClaimForm(), intakeDraft);
+    data.id = data.id || cur?.id || '';
     if (!data.clientName) {
       saveLock.current = false;
       toast('נא להזין שם לקוח', 'err');
@@ -1806,13 +1803,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const pendingStatus = useRef('');
 
-  const openTreat = (action: string, opts?: { sendOk?: boolean }) => {
+  const openTreat = (action: string, opts?: { sendOk?: boolean; continueWork?: 'continue' | 'done'; closeTaskId?: string }) => {
     setTreatAction(action);
     setTreatSendOk(!!opts?.sendOk);
+    setCloseTreatId(opts?.closeTaskId || '');
     setVal('tr_status', STATUS_UNCHANGED);
     setVal('tr_manual', '');
     setVal('tr_note', '');
+    setVal('tr_action', action);
     setVal('tr_next', cur?.nextDate || '');
+    setVal('tr_continue', opts?.continueWork || 'continue');
     setModal('moTreat');
   };
 
@@ -1831,6 +1831,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const nextDate = val(null, 'tr_next');
     const manualNote = val(null, 'tr_manual');
     const note = val(null, 'tr_note');
+    const actionText = val(null, 'tr_action') || treatAction || cur?.treatmentPendingAction || 'עדכון טיפול';
+    const continueWork = closeTreatId || (val(null, 'tr_continue') || 'continue') === 'done' ? 'done' : 'continue';
     const chosenStatus = statusChoice === STATUS_UNCHANGED ? (cur?.status || '') : statusChoice === STATUS_MANUAL ? (cur?.status || '') : statusChoice;
     const closed = isClosedStatus(chosenStatus, cur?.archived);
     if (statusChoice === STATUS_MANUAL && !manualNote) { toast('נא לכתוב עדכון ידני', 'err'); return; }
@@ -1839,16 +1841,25 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     try {
       const r = await apiRef.current.saveTreatmentUpdate({
         claimId: curId,
-        action: treatAction || cur?.treatmentPendingAction || 'עדכון טיפול',
+        action: actionText,
         statusChoice,
         manualNote,
         nextDate,
         note,
+        continueWork,
+        closeTaskId: closeTreatId || undefined,
       });
       if (!r.success) { toast(String(r.error || 'שמירת עדכון טיפול נכשלה'), 'err'); return; }
-      toast('עדכון טיפול נשמר');
-      setModal('moCard');
+      toast(continueWork === 'done' ? 'הפעולה נרשמה — ללא המשך טיפול' : 'עדכון טיפול נשמר');
+      const newId = String((r as { treatmentTaskId?: string }).treatmentTaskId || '');
       setTreatBusy(false);
+      setCloseTreatId('');
+      if (continueWork === 'continue' && newId) {
+        setTreatCenterId(newId);
+        setModal('moTreatCenter');
+      } else {
+        setModal('moCard');
+      }
       void loadAll().then(() => { if (curId) return loadCardData(curId); });
     } catch (e) {
       toast(`שמירת עדכון טיפול נכשלה: ${String((e as Error).message || e)}`, 'err');
@@ -1876,7 +1887,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const matchesRowFilters = (c: ClaimRecord) => {
     if (mineOnly && !isMyClaim(c)) return false;
-    if (search && JSON.stringify(c).toLowerCase().indexOf(search.toLowerCase()) === -1) return false;
+    if (search && !claimMatchesSearch(c, search)) return false;
     if (stFil && c.status !== stFil) return false;
     if (filter && c.status !== filter) return false;
     if (insCoFil && claimInsCompany(c) !== insCoFil) return false;
@@ -1969,6 +1980,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const renderListFilterControls = () => (
     <>
       <input className="fi claims-search-in" placeholder="🔎 חיפוש..." value={search} onChange={(e) => setSearch(e.target.value)} data-testid="claims-search" />
+      {search ? <button type="button" className="btn btn-g btn-sm" data-testid="claims-search-clear" onClick={() => setSearch('')}>נקה חיפוש</button> : null}
       <select className="fse" value={stFil} onChange={(e) => setStFil(e.target.value)} style={{ fontSize: 11.5 }} data-testid="claims-status-filter">
         <option value="">כל הסטטוסים</option>
         {STATUSES.map((s) => <option key={s}>{s}</option>)}
@@ -2048,25 +2060,28 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     </article>
   );
 
-  const renderClaimList = (rows: ClaimRecord[], extra: boolean | undefined, empty: string, tableTestId: string) => (
+  const renderClaimList = (rows: ClaimRecord[], extra: boolean | undefined, empty: string, tableTestId: string) => {
+    const emptyText = searchEmptyLabel(Boolean(search.trim()), empty);
+    return (
     <div data-testid={tableTestId}>
       {narrowList ? (
         <div className="claims-mlist" data-testid={`${tableTestId}-mobile`}>
           {rows.length === 0
-            ? <div className="claim-mcard-empty">{empty}</div>
+            ? <div className="claim-mcard-empty" data-testid="claims-list-empty">{emptyText}</div>
             : rows.map((c) => renderClaimMobileCard(c, extra))}
         </div>
       ) : (
         <div className="tw claims-desk-table"><table>
           {claimTableHead}
           <tbody>
-            {rows.length === 0 ? <tr><td colSpan={extra ? 12 : 11} style={{ textAlign: 'center', color: 'var(--t3)', padding: 28 }}>{empty}</td></tr>
+            {rows.length === 0 ? <tr><td colSpan={extra ? 12 : 11} style={{ textAlign: 'center', color: 'var(--t3)', padding: 28 }} data-testid="claims-list-empty">{emptyText}</td></tr>
               : rows.map((c) => renderClaimRow(c, extra))}
           </tbody>
         </table></div>
       )}
     </div>
-  );
+    );
+  };
 
   const renderClaimRow = (c: ClaimRecord, extra?: boolean) => (
     <tr key={c.id} onClick={() => openCard(c.id)} data-testid={`claim-row-${c.id}`}>
@@ -2125,7 +2140,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 setNotifs((xs) => xs.map((x) => x.id === n.id ? { ...x, read: 'true' } : x));
                 setNotifOpen(false);
                 if (n.type === 'gmail_review' || !n.claimId) showView('gmail');
-                else void openCard(n.claimId, n.type === 'gmail_auto' ? 'gin' : 'claim');
+                else {
+                  const treatHit = [...dashTasks, ...tasks].find((t) => t.claimId === n.claimId && isOpenTreatment(t));
+                  if (treatHit && /התקבל מסמך|מסמך חדש מהלקוח/i.test(String(n.message || ''))) void openTreatCenter(n.claimId, treatHit.id);
+                  else if (n.type === 'gmail_auto') void openCard(n.claimId, 'gin');
+                  else void openCard(n.claimId, 'claim');
+                }
               }}>
                 <div style={{ whiteSpace: 'pre-line' }}>{n.message}</div>
                 <div style={{ fontSize: 10, color: 'var(--t3)' }}>{n.createdAt}</div>
@@ -2506,7 +2526,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 if (!existingId || !dataUrl) return;
                 try {
                   const data = mergeIntakeToClaim(collectClaimForm(), intakeDraft);
-                  await apiRef.current.saveClaim({ ...data, staffSignedAt: new Date().toISOString(), eventFormSignature: dataUrl });
+                  await apiRef.current.saveClaim({ ...data, id: existingId, staffSignedAt: new Date().toISOString(), eventFormSignature: dataUrl });
                 } catch (err) {
                   toast(`שמירת חתימה נכשלה: ${String((err as Error).message || err)}`, 'err');
                 }
@@ -2783,6 +2803,20 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <button type="button" className="btn btn-g btn-sm" onClick={() => setCardTab('rems')}>תזכורות ({reminders.length})</button>
                     <button type="button" className="btn btn-g btn-sm" onClick={() => setCardTab('mailfu')}>מעקב מייל ({mailFollowups.length})</button>
                   </div>
+                  <div className="sdiv" data-testid="treat-active-list"><div className="sdiv-t">טיפולים פעילים</div><div className="sdiv-l" /></div>
+                  {openTreatments(tasks).length === 0
+                    ? <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>אין טיפול פתוח — עדכון טיפול עם «דורש המשך» יוצר פריט אחד כאן.</div>
+                    : openTreatments(tasks).map((t) => (
+                      <button type="button" key={t.id} className="treat-item-btn" data-testid={`treat-item-${t.id}`} onClick={() => void openTreatCenter(cur.id, t.id)}>
+                        <b>{treatmentLabelOf(t)}</b>
+                        <span>{treatmentStatusHe(t)}</span>
+                      </button>
+                    ))}
+                  {completedTreatments(tasks).length ? (
+                    <div style={{ fontSize: 11, color: 'var(--t3)', margin: '6px 0 12px' }} data-testid="treat-completed-list">
+                      טיפולים שהושלמו: {completedTreatments(tasks).map((t) => t.action).join(' · ')}
+                    </div>
+                  ) : null}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, marginBottom: 12 }}>
                     {([['סטטוס טיפול', cur.status], ['הערה אחרונה לסטטוס', cur.lastStatusNote || '—'], ['טיפול אחרון', fmtDay(cur.lastTreatmentAt || '')], ['טיפול הבא', fmtDay(cur.nextDate || '')], ['נדרשת פעולה', returnNeededLabel(cur)], ['הערות טיפול', cur.notes || '—']] as Array<[string, string]>)
                       .concat(cur.claimKind === 'תביעת צד ג׳' ? [['צד ג׳', cur.thirdParty || '—'], ['רכב צד ג׳', cur.thirdPlate || '—']] : [])
@@ -3397,19 +3431,30 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <button type="button" className="btn btn-g btn-sm" onClick={() => setModal('moCall')}>שיחה</button>
                     <button type="button" className="btn btn-g btn-sm" onClick={() => { setVal('wa_msg', `שלום, בהמשך לתביעה ${displayClaimNum(cur)}`); setModal('moWA'); }}>WhatsApp</button>
                   </div>
-                  <div className="sdiv" data-testid="mail-correspondence"><div className="sdiv-t">התכתבויות ({gmailImports.length})</div><div className="sdiv-l" /></div>
-                  <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>מסודר כרונולוגית לפי תאריך המייל. Thread אחד מתחת לשני. אין ייבוא נוסף מכאן אלא אם תבחר מייל חדש למטה.</div>
-                  {gmailImports.length === 0 ? <div style={{ color: 'var(--t3)' }}>{mailListLoading || gmailBusy ? 'טוען מיילים…' : 'אין מיילים יובאים בתיק'}</div>
-                    : correspondenceThreads(gmailImports).map((group) => (
-                      <div key={group.thread} className="thread-box">
+                  <div className="sdiv" data-testid="mail-correspondence"><div className="sdiv-t">התכתבויות ({unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX).length})</div><div className="sdiv-l" /></div>
+                  <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>אותו Thread לפי Message ID / Thread ID. ישן → חדש. החדש פתוח, הישנים מכווצים. Incoming / Outgoing לפי התיבה שלנו. אין ייבוא נוסף מכאן אלא אם תבחר מייל חדש למטה.</div>
+                  {unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX).length === 0 ? <div style={{ color: 'var(--t3)' }}>{mailListLoading || gmailBusy ? 'טוען מיילים…' : 'אין מיילים בתיק'}</div>
+                    : groupMailThreads(unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX)).map((group) => (
+                      <div key={group.thread} className="thread-box" data-testid={`mail-thread-${group.thread}`}>
                         <div className="thread-h">Thread · {group.thread} · {group.mails.length} מיילים</div>
-                        {group.mails.map((im) => {
+                        {group.mails.map((im, idx) => {
                           const mid = String(im.gmail_message_id || '');
+                          const newest = idx === group.mails.length - 1;
+                          const expanded = mailOpen[mid] === undefined ? newest : mailOpen[mid];
                           const attached = docs.files.filter((f) => f.gmail_message_id && f.gmail_message_id === mid);
                           const photos = attached.filter((f) => isImageFile(f));
                           const rest = attached.filter((f) => !isImageFile(f));
                           return (
-                            <div key={String(im.id)} className="gmail-card" data-mail-mid={mid} data-testid={`mail-item-${mid || im.id}`}>
+                            <div key={String(im.id)} className={`gmail-card mail-${im.direction}`} data-mail-mid={mid} data-testid={`mail-item-${mid || im.id}`}>
+                              <button type="button" className="mail-head" data-testid={`mail-toggle-${mid || im.id}`} onClick={() => setMailOpen((p) => ({ ...p, [mid]: !expanded }))}>
+                                <span className={`mail-dir mail-dir-${im.direction}`}>{im.direction === 'outgoing' ? 'Outgoing · נשלח' : 'Incoming · התקבל'}</span>
+                                <span className="mail-head-sub">{String(im.subject || '(ללא נושא)')}</span>
+                                <span className="mail-head-when">{fmtWhen(String(im.sent_at || ''))}</span>
+                                <span className="mail-head-att">{docs.files.filter((f) => f.gmail_message_id && f.gmail_message_id === mid).length || (im.file_names?.length || 0) ? '📎' : ''}</span>
+                                <span>{expanded ? '▲' : '▼'}</span>
+                              </button>
+                              {!expanded ? null : (
+                              <div className="mail-open">
                               <div style={{ fontWeight: 800, marginBottom: 6 }}>{String(im.subject || '(ללא נושא)')}</div>
                               {mailShowsTreatment(String(im.from_addr || ''), OWN_MAILBOX, `${im.subject || ''}\n${im.body_text || ''}`) ? (
                                 <div className="mail-need" data-testid={`mail-need-${im.id}`}>
@@ -3552,6 +3597,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                   ) : null}
                                 </div>
                               ) : <div style={{ fontSize: 11, color: 'var(--t3)' }}>אין קבצים מצורפים שמורים למייל זה</div>}
+                              </div>
+                              )}
                             </div>
                           );
                         })}
@@ -4462,11 +4509,19 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   setMailAck(false);
                   await markPendingCustomerSent();
                   if (curId) void afterSignificant(curId, 'נשלח מייל עם מסמכים', { sendOk: true });
-                  if (curId && (r.gmail_thread_id || mailThreadId)) {
+                  if (curId && (r.gmail_thread_id || mailThreadId || treatCenterId)) {
                     const thread = String(r.gmail_thread_id || mailThreadId || '');
+                    const msgid = String(r.gmail_message_id || '');
                     for (const t of tasks) {
-                      if (t.gmailThreadId === thread && t.done !== 'true') {
-                        void apiRef.current.saveTask({ ...t, workStatus: 'waiting_reply', done: 'false' });
+                      const mine = t.id === treatCenterId || (thread && t.gmailThreadId === thread);
+                      if (mine && t.done !== 'true') {
+                        void apiRef.current.saveTask({
+                          ...t,
+                          gmailThreadId: thread || t.gmailThreadId || '',
+                          gmailMessageId: msgid || t.gmailMessageId || '',
+                          workStatus: 'waiting_reply',
+                          done: 'false',
+                        });
                       }
                     }
                   }
@@ -4782,6 +4837,89 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         </div>
       </div>
 
+      <div className={`ov ${modal === 'moTreatCenter' ? 'open' : ''}`} data-testid="treat-center">
+        <div className="modal" style={{ maxWidth: 720 }}>
+          {(() => {
+            const t = tasks.find((x) => x.id === treatCenterId) || tasks.find((x) => x.id === treatCenterId);
+            if (!t || !cur) return <div className="mb">אין טיפול נבחר</div>;
+            const related = filesForTreatment(t, docs.files);
+            const threadMails = unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX).filter((m) => m.gmail_thread_id && t.gmailThreadId && m.gmail_thread_id === t.gmailThreadId);
+            const newestMail = threadMails[threadMails.length - 1];
+            const docKey = docKeyForRequestType(t.requestType);
+            return (
+              <>
+                <div className="mh">
+                  <div className="mh-t">מרכז טיפול · {treatmentLabelOf(t)}</div>
+                  <button className="mcl" data-testid="treat-center-close" onClick={() => setModal('moCard')}>✕</button>
+                </div>
+                <div className="mb" data-testid="treat-center-body">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 10, marginBottom: 12 }}>
+                    {([['לקוח', cur.clientName], ['תביעה', displayClaimNum(cur)], ['נושא', t.action || '—'], ['סטטוס טיפול', treatmentStatusHe(t)], ['הערה', t.note || '—'], ['נפתח', t.createdAt || '—'], ['עודכן', t.updatedAt || t.createdAt || '—'], ['מטפל', t.owner || t.createdBy || cur.assigned_to_name || '—'], ['ממתינים', t.workStatus === 'waiting_doc' ? 'למסמך מהלקוח' : t.workStatus === 'waiting_reply' ? 'לתגובת מייל' : '—']] as Array<[string, string]>).map(([k, v]) => (
+                      <div key={k}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{k}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{v || '—'}</div></div>
+                    ))}
+                  </div>
+                  <div className="sdiv"><div className="sdiv-t">מסמכים קשורים</div><div className="sdiv-l" /></div>
+                  {related.length === 0 ? <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>אין מסמך מקושר עדיין. Documents הוא מקור האמת.</div>
+                    : related.map((f) => (
+                      <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+                        <span style={{ fontSize: 12 }}>{f.original_name}</span>
+                        <button type="button" className="btn btn-g btn-sm" data-testid={`treat-doc-view-${f.id}`} onClick={() => void openInCard(cur.id, f)}>צפייה / הורדה</button>
+                      </div>
+                    ))}
+                  <div className="sdiv"><div className="sdiv-t">מייל / Thread</div><div className="sdiv-l" /></div>
+                  {newestMail
+                    ? <div className={`gmail-card mail-${newestMail.direction} ${newestMail.direction === 'incoming' ? 'mail-focus' : ''}`} data-testid="treat-center-mail">
+                        <div className={`mail-dir mail-dir-${newestMail.direction}`}>{newestMail.direction === 'outgoing' ? 'Outgoing' : 'Incoming'}</div>
+                        <div style={{ fontWeight: 700 }}>{newestMail.subject || '—'}</div>
+                        <div style={{ fontSize: 11, color: 'var(--t3)' }}>{fmtWhen(newestMail.sent_at)}</div>
+                        <pre className="mail-body">{newestMail.body_text || '—'}</pre>
+                      </div>
+                    : <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>{t.gmailThreadId ? `Thread ${t.gmailThreadId}` : 'אין Thread מקושר עדיין'}</div>}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                    {docKey ? <button type="button" className="btn btn-p btn-sm" data-testid="treat-ask-doc" onClick={async () => {
+                      setAskKeys([docKey]);
+                      setAskOpen(true);
+                      const saved = await saveAskSelection(cur.id, [docKey]);
+                      if (!saved.success) { toast(saved.error, 'err'); return; }
+                      setCardTab('docs');
+                      setModal('moCard');
+                      toast('בקשת המסמך נשמרה — השתמשו ב-Customer Upload הקיים');
+                    }}>בקש מהלקוח מסמך</button> : null}
+                    {related[0] ? <button type="button" className="btn btn-g btn-sm" data-testid="treat-approve-doc" onClick={async () => {
+                      const next = { ...t, workStatus: 'ready_to_send', docState: 'ready', readyFileId: related[0].id, note: t.note || 'אושר' };
+                      await apiRef.current.saveTask(next);
+                      await apiRef.current.logHistory(cur.id, 'מסמך אושר בטיפול', t.action || '', 'treatment');
+                      toast('המסמך אושר — הטיפול נשאר פתוח עד סגירה');
+                      await loadCardData(cur.id); await loadAll();
+                    }}>אושר</button> : null}
+                    {related[0] ? <button type="button" className="btn btn-g btn-sm" data-testid="treat-reject-doc" onClick={async () => {
+                      const reason = window.prompt('חובה הערה — למה המסמך לא תקין?') || '';
+                      if (!reason.trim()) { toast('חובה הערה', 'err'); return; }
+                      const next = { ...t, workStatus: 'needs_retry', docState: 'missing', note: reason, readyFileId: '' };
+                      await apiRef.current.saveTask(next);
+                      await apiRef.current.logHistory(cur.id, 'מסמך לא תקין — בקש מחדש', reason, 'treatment');
+                      toast('סומן נדרש מחדש');
+                      await loadCardData(cur.id); await loadAll();
+                    }}>לא תקין / בקש מחדש</button> : null}
+                    {related[0] ? <button type="button" className="btn btn-p btn-sm" data-testid="treat-send-mail" onClick={() => {
+                      void openSendModal('draft', { file_ids: [related[0].id], subject: `תביעה ${displayClaimNum(cur)} · ${t.action || ''}`, thread_id: t.gmailThreadId || '' });
+                    }}>שלח במייל</button> : null}
+                    {t.gmailThreadId || newestMail ? <button type="button" className="btn btn-g btn-sm" data-testid="treat-reply" onClick={() => {
+                      const src = newestMail || { from_addr: '', to_addr: '', cc_addr: '', subject: t.action, gmail_thread_id: t.gmailThreadId, body_text: '' };
+                      openMailCompose(src, 'reply');
+                    }}>Reply</button> : null}
+                    <button type="button" className="btn btn-g btn-sm" data-testid="treat-followup" onClick={() => { setModal('moCard'); setCardTab('mailfu'); }}>Follow-up / מתוזמן / חוזר</button>
+                    <button type="button" className="btn btn-p btn-sm" data-testid="treat-close-done" onClick={() => {
+                      openTreat(t.action || 'טיפול נסגר', { continueWork: 'done', closeTaskId: t.id });
+                    }}>טופל — אין המשך</button>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      </div>
+
       <div className={`ov ${modal === 'moTreatChoice' ? 'open' : ''}`} data-testid="treat-choice">
         <div className="modal modal-sm">
           <div className="mh"><div className="mh-t">מה קורה עם הסטטוס?</div>
@@ -4811,8 +4949,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           </div>
           <div className="mb">
             {treatSendOk ? <div data-testid="treat-send-ok" style={{ background: 'rgba(34,197,94,.12)', border: '1px solid var(--gn2)', borderRadius: 7, padding: 8, marginBottom: 10, fontSize: 12 }}>המייל נשלח בהצלחה. עדכון הטיפול לא שולח שוב.</div> : null}
-            <div style={{ fontSize: 12, marginBottom: 8 }}><b>פעולה:</b> {treatAction || cur?.treatmentPendingAction || '—'}</div>
+            <div style={{ fontSize: 12, marginBottom: 8 }}><b>פעולה נוכחית:</b> {treatAction || cur?.treatmentPendingAction || '—'}</div>
             <div style={{ fontSize: 12, marginBottom: 10 }}><b>סטטוס נוכחי:</b> {cur?.status || '—'}</div>
+            <div className="fg"><label className="fl">מה קרה / מה נדרש</label>
+              <input className="fi" id="tr_action" data-testid="treat-action" defaultValue={treatAction || cur?.treatmentPendingAction || ''} placeholder="לדוגמה: חסר רישיון נהיגה" />
+            </div>
             <div className="fg"><label className="fl">עדכון סטטוס</label>
               <select className="fse fi" id="tr_status" data-testid="treat-status" defaultValue={STATUS_UNCHANGED}>
                 <option value={STATUS_UNCHANGED}>המשך בסטטוס הקיים</option>
@@ -4822,6 +4963,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             </div>
             <div className="fg"><label className="fl">עדכון ידני</label><textarea className="fta" id="tr_manual" data-testid="treat-manual" placeholder="אם נבחר אחר" /></div>
             <div className="fg"><label className="fl">הערה</label><input className="fi" id="tr_note" data-testid="treat-note" /></div>
+            <div className="fg"><label className="fl">המשך טיפול</label>
+              <select className="fse fi" id="tr_continue" data-testid="treat-continue" defaultValue="continue">
+                <option value="continue">דורש המשך טיפול</option>
+                <option value="done">בוצע — ללא המשך טיפול</option>
+              </select>
+            </div>
             <div className="fg"><label className="fl">תאריך טיפול הבא</label>
               <input className="fi" id="tr_next" data-testid="treat-next" type="date" />
               <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>חובה בתיק פעיל. לא נדרש אם הסטטוס הסתיים / שולם / נדחה או שהתיק בארכיון.</div>

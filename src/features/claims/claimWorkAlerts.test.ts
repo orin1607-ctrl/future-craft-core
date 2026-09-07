@@ -218,4 +218,26 @@ describe('scheduled once mail', () => {
     expect(mailActionLabel(1)).toBe('מייל חדש');
     expect(mailActionLabel(2)).toBe('2 מיילים דורשים טיפול');
   });
+
+  it('opens a treatment label with the exact task id', () => {
+    const alerts = buildClaimRowAlerts(claim, {
+      tasks: [{
+        id: 'TSK-LIC',
+        claimId: 'DAL-QA-A',
+        treatmentItem: 'true',
+        kind: 'treatment_item',
+        action: 'רישיון נהיגה',
+        workStatus: 'waiting_doc',
+        docState: 'missing',
+        done: 'false',
+      } as ClaimRecord],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [],
+    });
+    const treat = alerts.find((a) => a.key === 'treat_TSK-LIC');
+    expect(treat?.label).toBe('חסר: רישיון נהיגה');
+    expect(treat?.taskId).toBe('TSK-LIC');
+    expect(alerts.filter((a) => a.label.includes('חסר מסמך')).length).toBe(0);
+  });
 });
