@@ -307,7 +307,7 @@ export function createClaimsApi(actor: ClaimsActor) {
         const { error } = await tbl('claims_records').update(payload as never).eq('id', incoming.id);
         if (error) return { success: false, error: error.message };
         if (existing.status !== incoming.status) {
-          await appendHistory(incoming.id, 'שינוי סטטוס', incoming.status, 'status', existing.status, incoming.status);
+          await appendHistory(incoming.id, 'שינוי סטטוס', incoming.lastStatusNote || '', 'status', existing.status, incoming.status);
           await createNotification(incoming.id, 'status', `סטטוס שונה ל: ${incoming.status}`);
         } else {
           await appendHistory(incoming.id, 'עדכון פרטי תיק', '', 'update', '', '');
@@ -450,6 +450,7 @@ export function createClaimsApi(actor: ClaimsActor) {
         lastTreatmentAction: payload.action,
         lastTreatmentAt: nowHe(),
         lastActivityAt: nowHe(),
+        lastStatusNote: historyNote || payload.note || payload.action,
         nextDate: closed ? '' : payload.nextDate,
         nextAction: closed ? '' : (c.nextAction || payload.action),
         status: nextStatus,
@@ -640,11 +641,11 @@ export function createClaimsApi(actor: ClaimsActor) {
 
     async listScheduledMailFollowups() {
       const { data, error } = await tbl('claims_reminders')
-        .select('id, claim_id, status, mail_to, mail_subject, next_run_at, row_data')
+        .select('id, claim_id, status, mail_to, mail_subject, next_run_at, mail_kind, row_data')
         .eq('action', 'send_email')
         .eq('status', 'scheduled')
         .order('next_run_at', { ascending: true });
-      if (error) return { success: false, data: [] as Array<{ id: string; claim_id: string; status: string; mail_to: string; mail_subject: string; next_run_at: string; recipient_kind: string; purpose: string }> };
+      if (error) return { success: false, data: [] as Array<{ id: string; claim_id: string; status: string; mail_to: string; mail_subject: string; next_run_at: string; recipient_kind: string; purpose: string; mail_kind: string }> };
       const rows = ((data || []) as Array<Record<string, unknown>>).map((r) => {
         const rd = (r.row_data && typeof r.row_data === 'object' ? r.row_data : {}) as Record<string, unknown>;
         return {
@@ -656,6 +657,7 @@ export function createClaimsApi(actor: ClaimsActor) {
           next_run_at: asText(r.next_run_at),
           recipient_kind: asText(rd.recipient_kind),
           purpose: asText(rd.purpose),
+          mail_kind: asText(r.mail_kind) || asText(rd.mail_kind),
         };
       });
       return { success: true, data: rows };
@@ -670,6 +672,10 @@ export function createClaimsApi(actor: ClaimsActor) {
       const { data, error } = await supabase.functions.invoke('claims-mail-dispatch', { body: {} });
       if (error) return { success: false, error: error.message, realEmailSend: false };
       return { success: true, realEmailSend: false, ...(data as Record<string, unknown>) };
+    },
+
+    async dispatchDueTest() {
+      return this.invokeGmail('dispatch_due_test');
     },
 
     async saveCommEntry(entry: Record<string, string>) {

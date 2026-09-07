@@ -86,7 +86,16 @@ export default function ClaimsIntakePage() {
       });
       signedPdf = await fileToBase64(pdf);
     } catch {
-      signedPdf = undefined;
+      submitting.current = false;
+      setBusy(false);
+      setMsg('יצירת ה-PDF המלא נכשלה. לא נשלח טופס בלי PDF חתום.');
+      return;
+    }
+    if (!signedPdf) {
+      submitting.current = false;
+      setBusy(false);
+      setMsg('יצירת ה-PDF המלא נכשלה. לא נשלח טופס בלי PDF חתום.');
+      return;
     }
     const r = await call('public_submit', { draft, signature: sig, signed_pdf_base64: signedPdf });
     setBusy(false);

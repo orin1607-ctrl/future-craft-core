@@ -9,7 +9,9 @@ import {
   followupWaitDaysFromRow,
   inferRecipientKind,
   isOpenCustomerTask,
+  isRecurringMailFollowup,
   isScheduledOnceMail,
+  mailActionLabel,
   mailLooksInbound,
   normalizeRecurringDays,
   recurringDaysPreset,
@@ -66,14 +68,15 @@ describe('buildClaimRowAlerts', () => {
     });
     const labels = alerts.map((a) => a.label);
     expect(labels).toContain('מייל חדש');
-    expect(labels).toContain('נדרש מענה');
+    expect(labels).not.toContain('נדרש מענה');
     expect(labels).toContain('חברת הביטוח ביקשה מסמך');
     expect(labels).toContain('חסר מסמך');
     expect(labels).toContain('ממתין ללקוח');
-    expect(labels).toContain('מייל מתוזמן');
+    expect(labels).not.toContain('מייל מתוזמן');
     expect(labels).toContain('משימה ללקוח');
     expect(labels).toContain('נדרש טיפול');
-    expect(labels).toContain('דואר דורש טיפול (1)');
+    expect(labels).toContain('מייל חדש');
+    expect(labels.filter((x) => x === 'מייל חדש').length).toBe(1);
   });
 
   it('counts distinct untreated mails 2 → 1 → 0 without treating read as done', () => {
@@ -87,7 +90,7 @@ describe('buildClaimRowAlerts', () => {
       scheduledFollowups: [],
     };
     expect(countUntreatedMails(claim, two)).toBe(2);
-    expect(buildClaimRowAlerts(claim, two).map((a) => a.label)).toContain('דואר דורש טיפול (2)');
+    expect(buildClaimRowAlerts(claim, two).map((a) => a.label)).toContain('2 מיילים דורשים טיפול');
     const one = {
       ...two,
       tasks: [
@@ -96,10 +99,11 @@ describe('buildClaimRowAlerts', () => {
       ],
     };
     expect(countUntreatedMails(claim, one)).toBe(1);
-    expect(buildClaimRowAlerts(claim, one).map((a) => a.label)).toContain('דואר דורש טיפול (1)');
+    expect(buildClaimRowAlerts(claim, one).map((a) => a.label)).toContain('מייל חדש');
     const zero = { ...two, tasks: two.tasks.map((t) => ({ ...t, done: 'true' }) as ClaimRecord) };
     expect(countUntreatedMails(claim, zero)).toBe(0);
-    expect(buildClaimRowAlerts(claim, zero).map((a) => a.label)).not.toContain('דואר דורש טיפול (0)');
+    expect(buildClaimRowAlerts(claim, zero).map((a) => a.label)).not.toContain('מייל חדש');
+    expect(buildClaimRowAlerts(claim, zero).map((a) => a.label)).not.toContain('2 מיילים דורשים טיפול');
   });
 
   it('blocks marking done when a required document is missing', () => {
@@ -183,5 +187,35 @@ describe('scheduled once mail', () => {
     expect(isScheduledOnceMail('recurring_send')).toBe(false);
     expect(isScheduledOnceMail('')).toBe(false);
     expect(isScheduledOnceMail(undefined)).toBe(false);
+  });
+  it('labels only an active recurring followup as מייל מתמשך', () => {
+    expect(isRecurringMailFollowup({ mail_kind: 'email_repeat' })).toBe(true);
+    expect(isRecurringMailFollowup({ purpose: 'recurring_send' })).toBe(true);
+    expect(isRecurringMailFollowup({ purpose: 'scheduled_send' })).toBe(false);
+    const withRecurring = buildClaimRowAlerts(claim, {
+      tasks: [],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [{ id: 'fu1', claim_id: 'DAL-QA-A', status: 'scheduled', mail_kind: 'email_repeat', purpose: 'recurring_send' }],
+    }).map((a) => a.label);
+    expect(withRecurring).toContain('מייל מתמשך');
+    expect(withRecurring).not.toContain('מייל מתוזמן');
+    const withScheduled = buildClaimRowAlerts(claim, {
+      tasks: [],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [{ id: 'fu2', claim_id: 'DAL-QA-A', status: 'scheduled', purpose: 'scheduled_send' }],
+    }).map((a) => a.label);
+    expect(withScheduled).toContain('מייל מתוזמן');
+    expect(withScheduled).not.toContain('מייל מתמשך');
+    const none = buildClaimRowAlerts(claim, {
+      tasks: [],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [{ id: 'fu3', claim_id: 'DAL-QA-A', status: 'cancelled', mail_kind: 'email_repeat', purpose: 'recurring_send' }],
+    }).map((a) => a.label);
+    expect(none).not.toContain('מייל מתמשך');
+    expect(mailActionLabel(1)).toBe('מייל חדש');
+    expect(mailActionLabel(2)).toBe('2 מיילים דורשים טיפול');
   });
 });

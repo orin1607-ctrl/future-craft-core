@@ -196,7 +196,8 @@
 .claims-root .row-alert.tone-info{color:var(--ac3);border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.12)}
 .claims-root .row-alert.clickable{cursor:pointer;text-decoration:underline}
 .claims-root .mail-need{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:8px 10px;margin:0 0 8px}
-.claims-root .gmail-card.mail-focus{outline:2px solid #b91c1c;box-shadow:0 0 0 3px rgba(185,28,28,.18)}
+.claims-root .gmail-card.mail-focus,.claims-root .fu-box.mail-focus{outline:2px solid #b91c1c;box-shadow:0 0 0 3px rgba(185,28,28,.18)}
+.claims-root .claim-status-note{font-size:10px;font-weight:600;color:var(--t2);margin-top:3px;max-width:160px;line-height:1.25}
 .claims-root .cust-task-meta{margin:6px 0 8px}
 @media(max-width:700px){
   .claims-root .row-alerts{max-width:none;gap:3px}

@@ -151,19 +151,19 @@ async function storeSignedOpeningPdf(
   claimId: string,
   linkId: string,
   pdfB64: string,
-) {
+): Promise<{ ok: boolean; reused?: boolean; error?: string }> {
   const pdf = decodePdfBase64(pdfB64);
-  if (!pdf) return;
+  if (!pdf) return { ok: false, error: "signed_pdf_required" };
   const digest = await sha256HexBytes(pdf);
   const { data: existing } = await sb.from("claims_documents").select("id").eq("claim_id", claimId).eq("content_sha256", digest).maybeSingle();
-  if (existing?.id) return;
+  if (existing?.id) return { ok: true, reused: true };
   const pdfPath = `intake/${linkId}/signed-opening-form.pdf`;
   const { error: upErr } = await sb.storage.from(BUCKET).upload(pdfPath, pdf, {
     contentType: "application/pdf",
     upsert: true,
   });
-  if (upErr) return;
-  await sb.from("claims_documents").insert({
+  if (upErr) return { ok: false, error: "signed_pdf_store_failed" };
+  const { error: insErr } = await sb.from("claims_documents").insert({
     id: nid("CDM"),
     claim_id: claimId,
     storage_path: pdfPath,
@@ -175,6 +175,43 @@ async function storeSignedOpeningPdf(
     doc_kind: "general",
     doc_meta: { staff_type: "accident_notice", staff_title: "טופס פתיחת תביעה חתום" },
     content_sha256: digest,
+  });
+  if (insErr) return { ok: false, error: "signed_pdf_record_failed" };
+  return { ok: true };
+}
+
+function draftFromClaimRow(claim: { plate?: string | null; client_name?: string | null; row_data?: unknown }) {
+  const rd = (claim.row_data && typeof claim.row_data === "object") ? claim.row_data as Record<string, unknown> : {};
+  return sanitizeDraft({
+    clientName: rd.clientName || claim.client_name || "",
+    clientPhone: rd.clientPhone || "",
+    clientEmail: rd.clientEmail || "",
+    clientId: rd.clientId || "",
+    clientAddress: rd.clientAddress || "",
+    clientZip: rd.clientZip || "",
+    plate: rd.plate || claim.plate || "",
+    carMake: rd.carMake || "",
+    carModel: rd.carModel || "",
+    carYear: rd.carYear || "",
+    carType: rd.carType || "",
+    insCompany: rd.insCompany || "",
+    insType: rd.insType || "",
+    policyNum: rd.policyNum || "",
+    claimNum: rd.claimNum || "",
+    claimKind: rd.claimKind || "",
+    driverDifferent: rd.driverDifferent || "",
+    driverName: rd.driverName || "",
+    eventDate: rd.eventDate || "",
+    eventTime: rd.eventTime || "",
+    eventPlace: rd.eventPlace || "",
+    eventCity: rd.eventCity || "",
+    eventStreet: rd.eventStreet || "",
+    eventDesc: rd.eventDesc || "",
+    damageDesc: rd.damageDesc || "",
+    damageLocation: rd.damageLocation || "",
+    thirdDriver: rd.thirdParty || rd.thirdDriver || "",
+    thirdPlate: rd.thirdPlate || "",
+    thirdPhone: rd.thirdPhone || "",
   });
 }
 
@@ -259,6 +296,8 @@ Deno.serve(async (req) => {
       }
       const png = decodePng(String(body.signature || ""));
       if (!png) return jsonResponse({ success: false, error: "signature_required" }, 400);
+      const pdfBytes = decodePdfBase64(String(body.signed_pdf_base64 || ""));
+      if (!pdfBytes) return jsonResponse({ success: false, error: "signed_pdf_required" }, 400);
 
       const { data: locked } = await sb.from("claims_intake_links")
         .update({ status: "submitting", draft, updated_at: new Date().toISOString() })
@@ -419,18 +458,11 @@ Deno.serve(async (req) => {
         });
       }
 
-      await sb.from("claims_documents").insert({
-        id: nid("CDM"),
-        claim_id: claimId,
-        storage_path: sigPath,
-        original_name: "signature.png",
-        mime_type: "image/png",
-        byte_size: png.byteLength,
-        source: "customer",
-        uploaded_by_name: "Customer Accident Intake",
-        doc_kind: "general",
-      });
-      await storeSignedOpeningPdf(sb, claimId, row.id, String(body.signed_pdf_base64 || ""));
+      const stored = await storeSignedOpeningPdf(sb, claimId, row.id, String(body.signed_pdf_base64 || ""));
+      if (!stored.ok) {
+        await sb.from("claims_intake_links").update({ status: "pending" }).eq("id", row.id);
+        return jsonResponse({ success: false, error: stored.error || "signed_pdf_store_failed" }, 400);
+      }
 
       await sb.from("claims_intake_links").update({
         status: "submitted",
@@ -463,8 +495,24 @@ Deno.serve(async (req) => {
     const id = nid("INL");
     const claimId = String(body.claim_id || "").trim();
     if (claimId) {
-      const { data: claim } = await sb.from("claims_records").select("id").eq("id", claimId).maybeSingle();
+      const { data: claim } = await sb.from("claims_records").select("id, plate, client_name, row_data").eq("id", claimId).maybeSingle();
       if (!claim) return jsonResponse({ success: false, error: "claim_not_found" }, 400);
+      const draft = draftFromClaimRow(claim);
+      const { error } = await sb.from("claims_intake_links").insert({
+        id,
+        token_hash: await sha256Hex(token),
+        status: "pending",
+        expires_at: new Date(Date.now() + LINK_TTL_MS).toISOString(),
+        created_by: user.id,
+        claim_id: claimId,
+        draft,
+      });
+      if (error) return jsonResponse({ success: false, error: error.message }, 400);
+      return jsonResponse({
+        success: true,
+        token,
+        expiresAt: new Date(Date.now() + LINK_TTL_MS).toISOString(),
+      });
     }
     const { error } = await sb.from("claims_intake_links").insert({
       id,
@@ -472,7 +520,6 @@ Deno.serve(async (req) => {
       status: "pending",
       expires_at: new Date(Date.now() + LINK_TTL_MS).toISOString(),
       created_by: user.id,
-      ...(claimId ? { claim_id: claimId } : {}),
     });
     if (error) return jsonResponse({ success: false, error: error.message }, 400);
     return jsonResponse({

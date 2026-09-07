@@ -430,6 +430,28 @@ async function isSendEnabled(sb: ReturnType<typeof admin>) {
   return String(data?.value || "") === "true";
 }
 
+const HARDCODED_LIVE_TEST_ALLOWLIST = ["yoni122222@gmail.com"];
+
+async function getLiveSendAllowlist(sb: ReturnType<typeof admin>) {
+  const set = new Set(HARDCODED_LIVE_TEST_ALLOWLIST.map((e) => e.toLowerCase()));
+  const { data } = await sb.from("claims_config").select("value").eq("key", "GMAIL_LIVE_TEST_ALLOWLIST").maybeSingle();
+  const extra = String(data?.value || "");
+  for (const part of extra.split(/[,;\s]+/)) {
+    const e = part.trim().toLowerCase();
+    if (e.includes("@")) set.add(e);
+  }
+  return set;
+}
+
+function recipientsAllowlisted(raw: string, allow: Set<string>, required: boolean) {
+  const parsed = parseEmailListStrict(raw, required);
+  if (!parsed.ok) return parsed;
+  if (parsed.emails.some((e) => !allow.has(e))) {
+    return { ok: false as const, emails: parsed.emails, error: "live_send_recipient_not_allowlisted" };
+  }
+  return parsed;
+}
+
 function stripMailNoise(raw: string) {
   return String(raw || "")
     .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\u00ad\u200b-\u200d\ufeff]/g, "")
@@ -975,10 +997,11 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
       return jsonResponse({ success: false, error: "forbidden_claim", realEmailSend: false }, 403);
     }
-    const toCheck = parseEmailListStrict(String(body.to || ""), true);
-    const ccCheck = parseEmailListStrict(String(body.cc || ""), false);
-    if (!toCheck.ok) return jsonResponse({ success: false, error: toCheck.error, realEmailSend: false }, 400);
-    if (!ccCheck.ok) return jsonResponse({ success: false, error: ccCheck.error, realEmailSend: false }, 400);
+    const allow = await getLiveSendAllowlist(sb);
+    const toCheck = recipientsAllowlisted(String(body.to || ""), allow, true);
+    const ccCheck = recipientsAllowlisted(String(body.cc || ""), allow, false);
+    if (!toCheck.ok) return jsonResponse({ success: false, error: toCheck.error, realEmailSend: false, allowlist: [...allow] }, toCheck.error === "live_send_recipient_not_allowlisted" ? 403 : 400);
+    if (!ccCheck.ok) return jsonResponse({ success: false, error: ccCheck.error, realEmailSend: false, allowlist: [...allow] }, ccCheck.error === "live_send_recipient_not_allowlisted" ? 403 : 400);
     const to = toCheck.emails.join(", ");
     const cc = ccCheck.emails.join(", ");
     const subject = String(body.subject || "").trim();
@@ -2110,6 +2133,168 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     });
   }
 
+  if (action === "dispatch_due_test") {
+    if (!(await isSendEnabled(sb))) {
+      return jsonResponse({ success: false, error: "send_disabled", realEmailSend: false }, 403);
+    }
+    const allow = await getLiveSendAllowlist(sb);
+    const nowIso = new Date(Date.now() + 90_000).toISOString();
+    const { data: dueJobs } = await sb.from("claims_mail_jobs")
+      .select("id, reminder_id, claim_id, planned_at, status")
+      .eq("status", "pending")
+      .lte("planned_at", nowIso)
+      .order("planned_at", { ascending: true })
+      .limit(20);
+    let processed = 0;
+    let skipped = 0;
+    let failed = 0;
+    const sent: Array<Record<string, unknown>> = [];
+    for (const job of dueJobs || []) {
+      const claimId = String(job.claim_id || "");
+      if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+        skipped += 1;
+        continue;
+      }
+      const { data: rem } = await sb.from("claims_reminders").select("*").eq("id", job.reminder_id).maybeSingle();
+      if (!rem || rem.status === "cancelled") {
+        await sb.from("claims_mail_jobs").update({ status: "cancelled", finished_at: new Date().toISOString(), fail_reason: "followup_cancelled" }).eq("id", job.id);
+        skipped += 1;
+        continue;
+      }
+      const rd = (rem.row_data && typeof rem.row_data === "object") ? (rem.row_data as Record<string, unknown>) : {};
+      const purpose = String(rd.purpose || "");
+      const kind = String(rem.mail_kind || "");
+      if (kind !== "email_repeat" && purpose !== "scheduled_send") {
+        skipped += 1;
+        continue;
+      }
+      const toCheck = recipientsAllowlisted(String(rem.mail_to || ""), allow, true);
+      const ccCheck = recipientsAllowlisted(String(rd.mail_cc || ""), allow, false);
+      if (!toCheck.ok || !ccCheck.ok) {
+        skipped += 1;
+        continue;
+      }
+      const claimed = await sb.from("claims_mail_jobs").update({ status: "sending", claimed_at: new Date().toISOString() }).eq("id", job.id).eq("status", "pending").select("id").maybeSingle();
+      if (!claimed.data) {
+        skipped += 1;
+        continue;
+      }
+      const ids = String(rd.file_ids || "").split(",").map((x) => x.trim()).filter(Boolean);
+      const { data: fileRows } = ids.length
+        ? await sb.from("claims_documents").select("id, original_name, mime_type, byte_size, storage_path, claim_id").eq("claim_id", claimId).in("id", ids)
+        : { data: [] as Array<{ id: string; original_name: string; mime_type: string; byte_size: number; storage_path: string; claim_id: string }> };
+      const ordered = ids.map((id) => (fileRows || []).find((f) => f.id === id)!).filter(Boolean);
+      const to = toCheck.emails.join(", ");
+      const cc = ccCheck.emails.join(", ");
+      const subject = String(rem.mail_subject || "").trim() || "Claims TEST";
+      const text = String(rem.mail_body || "").trim() || "Claims TEST";
+      const encodedMsg = await encodeMixedMessage(sb, { to, cc, subject, text, files: ordered });
+      if ("error" in encodedMsg && encodedMsg.error) {
+        await sb.from("claims_mail_jobs").update({ status: "failed", finished_at: new Date().toISOString(), fail_reason: String(encodedMsg.error) }).eq("id", job.id);
+        failed += 1;
+        continue;
+      }
+      const gmailRes = await gmailPost(access, "messages/send", { raw: (encodedMsg as { encoded: string }).encoded });
+      if (!gmailRes.ok) {
+        await sb.from("claims_mail_jobs").update({ status: "failed", finished_at: new Date().toISOString(), fail_reason: "gmail_send_failed" }).eq("id", job.id);
+        failed += 1;
+        continue;
+      }
+      const gmailMessageId = String(gmailRes.json.id || "");
+      const gmailThreadId = String(gmailRes.json.threadId || "");
+      const sentAt = new Date().toISOString();
+      const attached = (encodedMsg as { attached: Array<{ id: string; name: string; bytes: number }> }).attached || [];
+      const preview = {
+        dispatch: "live_test",
+        realEmailSend: true,
+        gmailTouched: true,
+        to,
+        cc,
+        subject,
+        body: text,
+        plannedAt: job.planned_at,
+        kind,
+        purpose,
+        attachments: attached,
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        claimId,
+      };
+      await sb.from("claims_mail_jobs").update({
+        status: "dry_run_sent",
+        finished_at: sentAt,
+        preview,
+        fail_reason: null,
+      }).eq("id", job.id);
+      const histType = purpose === "scheduled_send" ? "mail_scheduled" : "mail_recurring";
+      await sb.from("claims_history").insert({
+        id: nid("HIS"),
+        claim_id: claimId,
+        row_data: {
+          action: purpose === "scheduled_send" ? "נשלח מייל מתוזמן (TEST חי)" : "נשלח מייל מתמשך (TEST חי)",
+          note: `From ${ALLOWED_ACCOUNT} · To ${to} · ${subject} · msgid ${gmailMessageId}`,
+          type: histType,
+          by: user.email || user.id,
+          at: new Date().toLocaleString("he-IL"),
+          to,
+          subject,
+          gmail_message_id: gmailMessageId,
+          gmail_thread_id: gmailThreadId,
+          sent_at: sentAt,
+        },
+      });
+      await sb.from("claims_gmail_outbox").insert({
+        id: nid("GOS"),
+        claim_id: claimId,
+        kind: "claim_send",
+        idempotency_key: `due-test-${job.id}`,
+        status: "sent",
+        to_addr: to,
+        cc_addr: cc || null,
+        subject,
+        sender: ALLOWED_ACCOUNT,
+        from_addr: ALLOWED_ACCOUNT,
+        body_excerpt: text.slice(0, 500),
+        file_ids: ids,
+        file_names: attached.map((a) => a.name),
+        created_by: user.id,
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        sent_at: sentAt,
+      });
+      if (kind === "email_repeat") {
+        const days = Math.max(1, Number(rem.repeat_every_days) || 1);
+        const next = new Date(new Date(String(job.planned_at)).getTime() + days * 86400000);
+        const stopAt = rem.stop_at ? new Date(String(rem.stop_at)) : null;
+        if (stopAt && next > stopAt) {
+          await sb.from("claims_reminders").update({ status: "completed", next_run_at: null }).eq("id", rem.id);
+        } else {
+          await sb.from("claims_reminders").update({ next_run_at: next.toISOString() }).eq("id", rem.id);
+          await sb.from("claims_mail_jobs").insert({
+            id: nid("MJB"),
+            reminder_id: rem.id,
+            claim_id: claimId,
+            planned_at: next.toISOString(),
+            status: "pending",
+          });
+        }
+      } else {
+        await sb.from("claims_reminders").update({ status: "completed", next_run_at: null }).eq("id", rem.id);
+      }
+      processed += 1;
+      sent.push({ job_id: job.id, claim_id: claimId, to, subject, gmail_message_id: gmailMessageId });
+    }
+    return jsonResponse({
+      success: true,
+      processed,
+      skipped,
+      failed,
+      sent,
+      realEmailSend: processed > 0,
+      allowlist: [...allow],
+    });
+  }
+
   if (action === "send_claim") {
     if (body.confirm !== true) {
       return jsonResponse({
@@ -2126,10 +2311,11 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
       return jsonResponse({ success: false, error: "forbidden_claim", realEmailSend: false }, 403);
     }
-    const toCheck = parseEmailListStrict(String(body.to || ""), true);
-    const ccCheck = parseEmailListStrict(String(body.cc || ""), false);
-    if (!toCheck.ok) return jsonResponse({ success: false, error: toCheck.error, realEmailSend: false }, 400);
-    if (!ccCheck.ok) return jsonResponse({ success: false, error: ccCheck.error, realEmailSend: false }, 400);
+    const allow = await getLiveSendAllowlist(sb);
+    const toCheck = recipientsAllowlisted(String(body.to || ""), allow, true);
+    const ccCheck = recipientsAllowlisted(String(body.cc || ""), allow, false);
+    if (!toCheck.ok) return jsonResponse({ success: false, error: toCheck.error, realEmailSend: false, allowlist: [...allow] }, toCheck.error === "live_send_recipient_not_allowlisted" ? 403 : 400);
+    if (!ccCheck.ok) return jsonResponse({ success: false, error: ccCheck.error, realEmailSend: false, allowlist: [...allow] }, ccCheck.error === "live_send_recipient_not_allowlisted" ? 403 : 400);
     const to = toCheck.emails.join(", ");
     const cc = ccCheck.emails.join(", ");
     const subject = String(body.subject || "").trim();

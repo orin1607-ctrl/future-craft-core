@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
-import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, buildClaimRowAlerts, canMarkMailTaskDone, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isScheduledOnceMail, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringLabel, untreatedMailIds, type ClaimAlert } from './claimWorkAlerts';
+import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, buildClaimRowAlerts, canMarkMailTaskDone, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isRecurringMailFollowup, isScheduledOnceMail, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringLabel, shortStatusNote, untreatedMailIds, type ClaimAlert } from './claimWorkAlerts';
 import { buildSignedOpeningFormPdf } from './signedClaimPdf';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
@@ -56,7 +56,7 @@ function RowAlerts({ alerts, onAlertClick }: { alerts: ClaimAlert[]; onAlertClic
   return (
     <div className="row-alerts" data-testid="claim-row-alerts">
       {alerts.map((a) => {
-        const clickable = !!onAlertClick && (a.key === 'mail_action' || a.key === 'need_reply' || a.key === 'new_mail' || a.key === 'missing_doc' || a.key === 'insurer_doc');
+        const clickable = !!onAlertClick && (a.key === 'mail_action' || a.key === 'need_reply' || a.key === 'new_mail' || a.key === 'missing_doc' || a.key === 'insurer_doc' || a.key === 'mail_recurring' || a.key === 'mail_scheduled');
         return (
           <span
             key={a.key}
@@ -110,7 +110,8 @@ function fmtDay(s: string) {
   const m = String(s).match(/^(\d{1,2}[./]\d{1,2}[./]\d{2,4})/);
   return m ? m[1] : s;
 }
-function fuStatusHe(s: string) {
+function fuStatusHe(s: string, live?: boolean) {
+  if (live && (s === 'dry_run_sent' || s === 'completed')) return 'נשלח (TEST חי)';
   const map: Record<string, string> = {
     scheduled: 'מתוזמן',
     completed: 'הושלם',
@@ -121,6 +122,10 @@ function fuStatusHe(s: string) {
     dry_run_sent: 'Dry Run — לא נשלח',
   };
   return map[s] || s;
+}
+function jobWasLive(job?: { preview?: Record<string, unknown> | null; status?: string } | null) {
+  const prev = job?.preview && typeof job.preview === 'object' ? job.preview : null;
+  return prev?.realEmailSend === true;
 }
 function isScheduledOnce(fu: { purpose?: string }) {
   return isScheduledOnceMail(fu.purpose);
@@ -812,6 +817,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [eventFormSig, setEventFormSig] = useState('');
   const saveLock = useRef(false);
   const mailFocusRef = useRef<string[]>([]);
+  const fuFocusRef = useRef<string[]>([]);
   const [dashTasks, setDashTasks] = useState<ClaimRecord[]>([]);
   const [dashRems, setDashRems] = useState<ClaimRecord[]>([]);
   const toastN = useRef(0);
@@ -1523,7 +1529,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const openCard = async (id: string, tab = 'claim', mailIds?: string[]) => {
-    mailFocusRef.current = mailIds || [];
+    mailFocusRef.current = tab === 'mailfu' ? [] : (mailIds || []);
+    fuFocusRef.current = tab === 'mailfu' ? (mailIds || []) : [];
     setCurId(id);
     setCardTab(tab);
     setCardMore(false);
@@ -1538,6 +1545,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const openMailAction = (claimId: string, alert?: ClaimAlert) => {
+    if (alert?.key === 'mail_recurring' || alert?.key === 'mail_scheduled') {
+      void openCard(claimId, 'mailfu', alert.mailIds);
+      return;
+    }
     const ids = alert?.mailIds?.length ? alert.mailIds : untreatedMailIds(claims.find((c) => c.id === claimId) || { id: claimId } as ClaimRecord, alertCtx);
     void openCard(claimId, 'gin', ids);
   };
@@ -1558,6 +1569,23 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }, 250);
     return () => window.clearTimeout(t);
   }, [modal, cardTab, gmailImports, curId]);
+
+  useEffect(() => {
+    if (modal !== 'moCard' || cardTab !== 'mailfu') return;
+    const ids = fuFocusRef.current;
+    if (!ids.length) return;
+    const t = window.setTimeout(() => {
+      for (const id of ids) {
+        const el = document.querySelector(`[data-testid="fu-box-${id}"]`) as HTMLElement | null;
+        if (el) {
+          el.classList.add('mail-focus');
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          break;
+        }
+      }
+    }, 250);
+    return () => window.clearTimeout(t);
+  }, [modal, cardTab, mailFollowups, curId]);
 
   const startGmailImport = async () => {
     if (!cur) return;
@@ -1700,7 +1728,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       return;
     }
     setSync('pend');
-    const r = await apiRef.current.saveClaim({ ...cur, status: newSt });
+    const r = await apiRef.current.saveClaim({ ...cur, status: newSt, lastStatusNote: note });
     if (r.success) {
       if (note) {
         await apiRef.current.saveCommEntry({ claimId: cur.id, type: 'note', body: note, note: `סטטוס: ${newSt}` });
@@ -1725,7 +1753,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const afterSignificant = async (claimId: string, action: string, opts?: { sendOk?: boolean }) => {
-    openTreat(action, opts);
+    setTreatAction(action);
+    setTreatSendOk(!!opts?.sendOk);
+    setModal('moTreatChoice');
     void apiRef.current.markTreatmentPending(claimId, action)
       .then(() => loadAll())
       .catch(() => undefined);
@@ -1931,6 +1961,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         </div>
         <div className="claim-mcard-side">
           {stBadge(c.status)}
+          {shortStatusNote(c.lastStatusNote) ? <div className="claim-status-note" data-testid="claim-status-note">{shortStatusNote(c.lastStatusNote)}</div> : null}
           <label className="claim-mcard-check" onClick={(e) => e.stopPropagation()}>
             <input type="checkbox" data-testid={`claim-check-${c.id}`} checked={selectedIds.includes(c.id)} onChange={(e) => toggleSelect(c.id, e.target.checked)} />
           </label>
@@ -1988,7 +2019,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       </td>
       <td>{c.plate || '—'}</td>
       <td>{claimInsCompanyLabel(c)}</td>
-      <td>{stBadge(c.status)}</td>
+      <td>
+        {stBadge(c.status)}
+        {shortStatusNote(c.lastStatusNote) ? <div className="claim-status-note" data-testid="claim-status-note">{shortStatusNote(c.lastStatusNote)}</div> : null}
+      </td>
       <td style={{ fontSize: 11 }}>{c.assigned_to_name || '—'}</td>
       <td style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtDay(c.lastTreatmentAt || '')}</td>
       <td style={{ fontSize: 10, color: 'var(--yn2)' }}>{fmtDay(c.nextDate || '')}</td>
@@ -2273,8 +2307,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--t2)', lineHeight: 1.6 }}>
                     העובד לא נכנס לתיבת Gmail. ייבוא רק מתוך תיק מורשה.
-                    <br />שליחה ידנית מתוך תיק: Preview → SEND → אשר ושלח שולחת מייל אמיתי מתיבת דליה. אין allowlist של TEST.
-                    <br />מעקב מתוזמן נשאר Dry Run ואינו שולח לבד.
+                    <br />שליחה ידנית מתוך תיק: Preview → SEND → אשר ושלח שולחת מייל אמיתי מתיבת דליה, רק לכתובות TEST מאושרות (yoni122222@gmail.com).
+                    <br />מעקב Follow-up נשאר תזכורת. מייל מתוזמן / מתמשך ל-TEST נשלח רק לכתובות מאושרות.
                     <br />קליטת מיילים נכנסים: סריקה מתוך Claims בלבד, חלון 3 הימים האחרונים. אין Scheduler חדש ואין שינוי OAuth.
                     <br />סריקת יוצאים: תצוגה בלבד — אין Import המוני ואין שליחה.
                     <br />Token נשמר בשרת בלבד. ביטול: super_admin כאן, וגם בהרשאות Google.
@@ -2515,6 +2549,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <div className="card-snap-compact" data-testid="claims-card-snap-compact">
                   <div className="card-snap-compact-meta">
                     <span>{stBadge(cur.status)}</span>
+                    {shortStatusNote(cur.lastStatusNote) ? <span className="claim-status-note" data-testid="claim-status-note">{shortStatusNote(cur.lastStatusNote)}</span> : null}
                     {returnNeededLabel(cur) === 'כן' ? <span className="card-snap-compact-need">דורש טיפול</span> : null}
                   </div>
                   <div className="card-flags card-flags-compact">
@@ -2531,6 +2566,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       ['רכב', cur.plate || '—', 'keep'],
                       ['עובד מטפל', cur.assigned_to_name || 'ללא מטפל', 'desk'],
                       ['סטטוס', cur.status || '—', 'keep'],
+                      ['הערה אחרונה', shortStatusNote(cur.lastStatusNote, 60) || '—', 'keep'],
                       ['טיפול אחרון', fmtDay(cur.lastTreatmentAt || ''), 'desk'],
                       ['טיפול הבא', fmtDay(cur.nextDate || ''), 'keep'],
                       ['נדרשת פעולה', returnNeededLabel(cur), 'keep'],
@@ -2662,7 +2698,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <button type="button" className="btn btn-g btn-sm" onClick={() => setCardTab('mailfu')}>מעקב מייל ({mailFollowups.length})</button>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, marginBottom: 12 }}>
-                    {([['סטטוס טיפול', cur.status], ['טיפול אחרון', fmtDay(cur.lastTreatmentAt || '')], ['טיפול הבא', fmtDay(cur.nextDate || '')], ['נדרשת פעולה', returnNeededLabel(cur)], ['הערות טיפול', cur.notes || '—']] as Array<[string, string]>)
+                    {([['סטטוס טיפול', cur.status], ['הערה אחרונה לסטטוס', cur.lastStatusNote || '—'], ['טיפול אחרון', fmtDay(cur.lastTreatmentAt || '')], ['טיפול הבא', fmtDay(cur.nextDate || '')], ['נדרשת פעולה', returnNeededLabel(cur)], ['הערות טיפול', cur.notes || '—']] as Array<[string, string]>)
                       .concat(cur.claimKind === 'תביעת צד ג׳' ? [['צד ג׳', cur.thirdParty || '—'], ['רכב צד ג׳', cur.thirdPlate || '—']] : [])
                       .map((f) => (
                       <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
@@ -2683,6 +2719,23 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       {DOCS_ORDER.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
                     </select>
                   </div>
+                  <div className="sdiv"><div className="sdiv-t">היסטוריית סטטוסים</div><div className="sdiv-l" /></div>
+                  {(() => {
+                    const rows = hist.filter((h) => h.type === 'status' || h.type === 'treatment' || h.type === 'new').slice().reverse();
+                    if (!rows.length) return <div className="empty" data-testid="status-history">אין היסטוריית סטטוסים עדיין</div>;
+                    return (
+                      <div data-testid="status-history" style={{ marginBottom: 14 }}>
+                        {rows.map((h) => (
+                          <div key={h.id} className="status-hist-row" data-testid={`status-hist-${h.id}`} style={{ background: 'var(--bg2)', border: '1px solid var(--br)', borderRadius: 8, padding: '8px 10px', marginBottom: 6 }}>
+                            <div style={{ fontWeight: 700, fontSize: 12 }}>{h.action || 'עדכון סטטוס'}</div>
+                            <div style={{ fontSize: 12 }}>{h.valueBefore || '—'} → {h.valueAfter || h.action || '—'}</div>
+                            {h.note ? <div style={{ fontSize: 11.5, color: 'var(--t2)' }}>{h.note}</div> : null}
+                            <div style={{ fontSize: 10, color: 'var(--t3)' }}>{h.at} · {h.by || '—'}</div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                   <div className="sdiv"><div className="sdiv-t">תקשורת והערות</div><div className="sdiv-l" /></div>
                   {comm.length === 0 ? <div className="empty">אין תקשורת מתועדת</div>
                     : comm.map((e) => (
@@ -3600,10 +3653,17 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               {cardTab === 'mailfu' && (
                 <div data-testid={mailFuLoaded ? 'mailfu-ready' : 'mailfu-loading'}>
                   <div style={{ fontSize: 11, color: 'var(--yn2)', marginBottom: 10 }}>
-                    מצב Dry Run — אין שליחת מייל אמיתית ואין חיבור Gmail. כאן מוצג בדיוק מה היה אמור להישלח.
+                    שליחה אוטומטית כללית נשארת Dry Run. שליחת TEST חיה רק לכתובות מאושרות (yoni122222@gmail.com). Follow-up נשאר תזכורת — לא מייל אוטומטי.
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                     <button className="btn btn-p btn-sm" data-testid="claims-followup-new" onClick={() => openMailFollowupModal(null, 'followup')}>＋ מעקב (Follow-up)</button>
+                    <button className="btn btn-p btn-sm" data-testid="claims-dispatch-due-test" onClick={async () => {
+                      const r = await apiRef.current.dispatchDueTest();
+                      if (!r.success) { toast(String(r.error || 'שגיאה'), 'err'); return; }
+                      toast(r.realEmailSend ? `נשלחו ${String(r.processed ?? 0)} מיילי TEST` : `לא נשלח · ${String(r.processed ?? 0)} עובדו`);
+                      if (cur) await loadCardData(cur.id);
+                      await loadAll();
+                    }}>שלח תזמוני TEST עכשיו</button>
                     {isSuperAdmin && (
                       <button className="btn btn-g btn-sm" onClick={async () => {
                         const r = await apiRef.current.dispatchMailNow();
@@ -3618,38 +3678,45 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       const last = fu.jobs[0];
                       const prev = (last?.preview && typeof last.preview === 'object') ? last.preview : null;
                       const atts = Array.isArray(prev?.attachments) ? prev.attachments as Array<{ name?: string }> : [];
+                      const sentJobs = fu.jobs.filter((j) => j.finished_at && (j.status === 'dry_run_sent' || j.status === 'completed'));
+                      const lastSent = sentJobs[0];
+                      const live = fu.jobs.some((j) => jobWasLive(j));
+                      const activeLabel = fu.status === 'scheduled' ? 'פעיל' : fu.status === 'cancelled' ? 'נעצר / בוטל' : fuStatusHe(fu.status, live);
                       return (
-                        <div key={fu.id} className="fu-box" data-testid={`fu-box-${fu.id}`} data-scheduled-once={isScheduledOnce(fu) ? 'true' : 'false'}>
+                        <div key={fu.id} className="fu-box" data-testid={`fu-box-${fu.id}`} data-scheduled-once={isScheduledOnce(fu) ? 'true' : 'false'} data-recurring={isRecurringMailFollowup(fu) ? 'true' : 'false'}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                            <div style={{ fontWeight: 700 }} data-testid={`fu-kind-${fu.id}`}>{isScheduledOnce(fu) ? 'מייל מתוזמן' : fu.mail_kind === 'email_repeat' ? `מייל חוזר · ${recurringLabel(fu.repeat_every_days)}` : 'מעקב (Follow-up)'} · {fuStatusHe(fu.status)}</div>
+                            <div style={{ fontWeight: 700 }} data-testid={`fu-kind-${fu.id}`}>{isScheduledOnce(fu) ? 'מייל מתוזמן' : fu.mail_kind === 'email_repeat' ? `מייל מתמשך · ${recurringLabel(fu.repeat_every_days)}` : 'מעקב (Follow-up)'} · {activeLabel}</div>
                             <div style={{ fontSize: 11, color: 'var(--t3)' }}>{fu.id}</div>
                           </div>
                           <div className="fu-grid">
                             <div><b>למי</b>{fu.mail_to || '—'}</div>
+                            <div><b>Subject</b>{fu.mail_subject || '—'}</div>
                             <div><b>נמען</b>{recipientKindLabel(inferRecipientKind(fu.mail_to, cur, fu.recipient_kind))}</div>
+                            <div data-testid={`fu-created-${fu.id}`}><b>מתי נוצר</b>{fmtWhen(fu.created_at)}</div>
                             <div data-testid={`fu-date-${fu.id}`}><b>תאריך</b>{fmtDay(last?.planned_at || fu.next_run_at)}</div>
                             <div data-testid={`fu-time-${fu.id}`}><b>שעה</b>{fmtClock(last?.planned_at || fu.next_run_at)}</div>
                             <div><b>מועד מתוכנן</b>{fmtWhen(last?.planned_at || fu.next_run_at)}</div>
-                            <div data-testid={`fu-status-${fu.id}`}><b>סטטוס</b>{fuStatusHe(last?.status || fu.status)}</div>
-                            {!isScheduledOnce(fu) ? <div><b>מועד הבא</b>{fu.next_run_at ? fmtWhen(fu.next_run_at) : '—'}</div> : null}
+                            <div data-testid={`fu-status-${fu.id}`}><b>סטטוס</b>{activeLabel}</div>
+                            <div data-testid={`fu-last-sent-${fu.id}`}><b>נשלח לאחרונה</b>{lastSent ? fmtWhen(lastSent.finished_at || lastSent.planned_at) : 'טרם נשלח'}</div>
+                            {!isScheduledOnce(fu) ? <div data-testid={`fu-next-${fu.id}`}><b>השליחה הבאה</b>{fu.next_run_at ? fmtWhen(fu.next_run_at) : '—'}</div> : null}
                             <div><b>מי הגדיר</b>{fu.defined_by || '—'}</div>
                             {isScheduledOnce(fu)
                               ? <div data-testid={`fu-once-${fu.id}`}><b>סוג</b>שליחה חד-פעמית מתוזמנת</div>
                               : fu.mail_kind === 'email_repeat'
-                                ? <div data-testid={`fu-repeat-${fu.id}`}><b>אם אין תשובה — שלח שוב</b>{recurringLabel(fu.repeat_every_days)}</div>
+                                ? <div data-testid={`fu-repeat-${fu.id}`}><b>תדירות</b>{recurringLabel(fu.repeat_every_days)}</div>
                                 : <div data-testid={`fu-wait-${fu.id}`}><b>אם אין תשובה בתוך</b>{followupWaitDaysFromRow(fu)} ימים</div>}
                           </div>
                           <div className="fu-prev">
-                            <div style={{ fontWeight: 700, marginBottom: 4 }}>Preview — מה היה אמור להישלח</div>
+                            <div style={{ fontWeight: 700, marginBottom: 4 }}>{live ? 'Preview / היסטוריית שליחות' : 'Preview — מה היה אמור להישלח'}</div>
                             <div><b>נושא:</b> {(prev?.subject as string) || fu.mail_subject || '—'}</div>
                             <pre>{String((prev?.body as string) || fu.mail_body || '')}</pre>
                             <div><b>מסמכים לצירוף:</b> {fu.file_names?.length ? fu.file_names.join(', ') : fu.attach_mode === 'received' ? (atts.length ? atts.map((a) => a.name).filter(Boolean).join(', ') : 'מסמכים שהתקבלו בתיק (אם יש)') : 'ללא מצורפים'}</div>
-                            {last ? <div style={{ marginTop: 6, fontSize: 11 }}><b>סטטוס שליחה:</b> {fuStatusHe(last.status)}{last.fail_reason ? ` · ${last.fail_reason}` : ''}{last.retry_count ? ` · retry ${last.retry_count}` : ''} · realEmailSend={String(prev?.realEmailSend ?? false)}</div> : null}
-                            {fu.jobs.length > 1 ? (
-                              <div style={{ marginTop: 8, fontSize: 11 }}>
-                                <b>ניסיונות:</b>
-                                {fu.jobs.slice(0, 8).map((j) => (
-                                  <div key={j.id}>{fuStatusHe(j.status)} · {fmtWhen(j.planned_at)}{j.fail_reason ? ` · ${j.fail_reason}` : ''}</div>
+                            {last ? <div style={{ marginTop: 6, fontSize: 11 }}><b>סטטוס שליחה:</b> {fuStatusHe(last.status, jobWasLive(last))}{last.fail_reason ? ` · ${last.fail_reason}` : ''}{last.retry_count ? ` · retry ${last.retry_count}` : ''} · realEmailSend={String(prev?.realEmailSend ?? false)}</div> : null}
+                            {fu.jobs.length > 0 ? (
+                              <div style={{ marginTop: 8, fontSize: 11 }} data-testid={`fu-jobs-${fu.id}`}>
+                                <b>היסטוריית שליחות:</b>
+                                {fu.jobs.slice(0, 12).map((j) => (
+                                  <div key={j.id}>{fuStatusHe(j.status, jobWasLive(j))} · {fmtWhen(j.planned_at)}{j.fail_reason ? ` · ${j.fail_reason}` : ''}</div>
                                 ))}
                               </div>
                             ) : null}
@@ -3683,13 +3750,27 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               )}
               {cardTab === 'timeline' && (
                 hist.length === 0 ? <div className="empty">אין היסטוריה עדיין</div>
-                  : hist.map((h) => (
-                    <div key={h.id} style={{ marginBottom: 14 }}>
-                      <div style={{ fontWeight: 600 }}>{h.action}</div>
-                      {h.note ? <div style={{ fontSize: 11.5, color: 'var(--t2)' }}>{h.note}</div> : null}
-                      <div style={{ fontSize: 10, color: 'var(--t3)' }}>{h.at} · {h.by}</div>
-                    </div>
-                  ))
+                  : (
+                    <>
+                      <div className="sdiv"><div className="sdiv-t">היסטוריית סטטוסים</div><div className="sdiv-l" /></div>
+                      {hist.filter((h) => h.type === 'status' || h.type === 'treatment' || h.type === 'new').slice().reverse().map((h) => (
+                        <div key={`st-${h.id}`} className="status-hist-row" style={{ marginBottom: 10 }}>
+                          <div style={{ fontWeight: 600 }}>{h.action}</div>
+                          <div style={{ fontSize: 12 }}>{h.valueBefore || '—'} → {h.valueAfter || '—'}</div>
+                          {h.note ? <div style={{ fontSize: 11.5, color: 'var(--t2)' }}>{h.note}</div> : null}
+                          <div style={{ fontSize: 10, color: 'var(--t3)' }}>{h.at} · {h.by}</div>
+                        </div>
+                      ))}
+                      <div className="sdiv"><div className="sdiv-t">כל ההיסטוריה</div><div className="sdiv-l" /></div>
+                      {hist.map((h) => (
+                        <div key={h.id} style={{ marginBottom: 14 }}>
+                          <div style={{ fontWeight: 600 }}>{h.action}</div>
+                          {h.note ? <div style={{ fontSize: 11.5, color: 'var(--t2)' }}>{h.note}</div> : null}
+                          <div style={{ fontSize: 10, color: 'var(--t3)' }}>{h.at} · {h.by}</div>
+                        </div>
+                      ))}
+                    </>
+                  )
               )}
             </div>
           </div>
@@ -3873,7 +3954,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               await markPendingCustomerSent();
               toast('WhatsApp נפתח ותועד. אין שליחה אוטומטית מספק.');
               if (curId) await afterSignificant(curId, 'תועד WhatsApp');
-              if (curId) await afterSignificant(curId, 'תועד WhatsApp');
             }}>💬 שלח + תעד</button>
           </div>
         </div>
@@ -3883,7 +3963,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <div className="modal modal-md">
           <div className="mh"><div className="mh-t">{mailKind === 'insurer' ? '🏢 שליחה לחברת הביטוח' : mailKind === 'legal' ? '⚖️ שליחה לטיפול משפטי' : '📧 שליחת תיק במייל'}</div><button className="mcl" onClick={() => { if (!mailSending) setModal('moCard'); }}>✕</button></div>
           <div className="mb">
-            <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 10 }}>{scheduleWanted ? 'שליחה מתוזמנת — המייל לא יישלח עכשיו. יישמר כמתוזמן ויישלח אוטומטית במועד שנבחר. Dry Run כרגע: אין שליחה חיה עד אישור נפרד.' : 'שליחה ידנית אמיתית מתיבת דליה. אין allowlist של TEST. אין בחירת נמען אוטומטית ואין צירוף אוטומטי של מסמכים. שליחה רק אחרי Preview ואישור SEND מפורש. הערות פנימיות / משימות / היסטוריה לא יוצאות. Follow-up אוטומטי חי כבוי — נשמר אישור בלבד.'}</div>
+            <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 10 }}>{scheduleWanted ? 'שליחה מתוזמנת — המייל לא יישלח עכשיו. יישמר ויישלח במועד שנבחר, רק אם הנמען ב-TEST allowlist (yoni122222@gmail.com). Follow-up נשאר תזכורת ולא הופך למייל אוטומטי.' : 'שליחה ידנית אמיתית מתיבת דליה. שליחה חיה מאושרת רק לכתובות TEST (yoni122222@gmail.com). אין בחירת נמען אוטומטית ואין צירוף אוטומטי של מסמכים. שליחה רק אחרי Preview ואישור SEND מפורש. הערות פנימיות / משימות / היסטוריה לא יוצאות. Follow-up אוטומטי חי כבוי — נשמר תזכורת בלבד.'}</div>
             {suggestMissing.length ? (
               <div data-testid="suggest-missing" style={{ background: 'rgba(239,68,68,.08)', border: '1px solid var(--rd2)', borderRadius: 7, padding: 10, marginBottom: 10, fontSize: 12 }}>
                 חסר מסמך: {suggestMissing.join(', ')}. לא צוּרף מסמך דומה בניחוש.
@@ -4616,6 +4696,28 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         </div>
       </div>
 
+      <div className={`ov ${modal === 'moTreatChoice' ? 'open' : ''}`} data-testid="treat-choice">
+        <div className="modal modal-sm">
+          <div className="mh"><div className="mh-t">מה קורה עם הסטטוס?</div>
+            <button className="mcl" onClick={() => setModal('moCard')}>✕</button>
+          </div>
+          <div className="mb">
+            <div style={{ fontSize: 12, marginBottom: 10 }}><b>פעולה:</b> {treatAction || cur?.treatmentPendingAction || '—'}</div>
+            <div style={{ fontSize: 12, marginBottom: 12 }}><b>סטטוס נוכחי:</b> {cur?.status || '—'}</div>
+            <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 12 }}>אחרי טיפול משמעותי צריך לדעת מה מצב התיק. פתיחה בלבד לא נחשבת טיפול.</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button type="button" className="btn btn-p" data-testid="treat-choice-new" onClick={() => {
+                openTreat(treatAction || cur?.treatmentPendingAction || 'עדכון טיפול', { sendOk: treatSendOk });
+                setTimeout(() => setVal('tr_status', ''), 0);
+              }}>עדכון סטטוס חדש</button>
+              <button type="button" className="btn btn-g" data-testid="treat-choice-keep" onClick={() => {
+                openTreat(treatAction || cur?.treatmentPendingAction || 'עדכון טיפול', { sendOk: treatSendOk });
+              }}>המשך בסטטוס הקיים</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className={`ov ${modal === 'moTreat' ? 'open' : ''}`} data-testid="treat-ops-v3">
         <div className="modal modal-sm">
           <div className="mh"><div className="mh-t">עדכון טיפול</div>
@@ -4627,7 +4729,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div style={{ fontSize: 12, marginBottom: 10 }}><b>סטטוס נוכחי:</b> {cur?.status || '—'}</div>
             <div className="fg"><label className="fl">עדכון סטטוס</label>
               <select className="fse fi" id="tr_status" data-testid="treat-status" defaultValue={STATUS_UNCHANGED}>
-                <option value={STATUS_UNCHANGED}>הסטטוס ללא שינוי</option>
+                <option value={STATUS_UNCHANGED}>המשך בסטטוס הקיים</option>
                 {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                 <option value={STATUS_MANUAL}>אחר / עדכון ידני</option>
               </select>
