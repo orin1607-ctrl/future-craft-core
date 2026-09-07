@@ -172,8 +172,16 @@ async function fillIf(page, sel, value) {
 }
 
 async function createClaim(page, client, plate, stamp) {
+  await closeOverlays(page);
   await page.locator('[data-testid="claims-open-new"]').click();
   await page.waitForSelector('[data-testid="intake-name"]', { timeout: 20000 });
+  const title = await page.locator('#mClaimT').innerText().catch(() => '');
+  if (/עריכת תיק/.test(title)) {
+    await page.evaluate(() => {
+      const el = document.getElementById('fc_id');
+      if (el) el.value = '';
+    });
+  }
   await page.locator('[data-testid="intake-name"]').fill(client);
   await page.locator('[data-testid="intake-phone"]').fill('0500000091');
   await fillIf(page, '#in_email', SELF);
@@ -189,6 +197,9 @@ async function createClaim(page, client, plate, stamp) {
   const created = idFromUi
     ? (await userDb.from('claims_records').select('id, client_name, plate, status, row_data').eq('id', idFromUi).maybeSingle()).data
     : (await userDb.from('claims_records').select('id, client_name, plate, status, row_data').eq('plate', plate).limit(1).maybeSingle()).data;
+  if (!created?.id) throw new Error(`createClaim missing row for ${client} / ${plate}`);
+  if (created.client_name !== client) throw new Error(`createClaim wrote ${created.id} name=${created.client_name} want=${client}`);
+  if (created.plate !== plate) throw new Error(`createClaim wrote ${created.id} plate=${created.plate} want=${plate}`);
   return created;
 }
 
@@ -431,14 +442,17 @@ async function runRound(browser, session, round, fixtures) {
     const treatA = lic[0];
     rec(`r${round}-t4-a-active`, Boolean(treatA), { id: treatA?.id });
 
+    rec(`r${round}-center-from-save`, await page.locator('[data-testid="treat-center"].open [data-testid="treat-center-body"]').count() > 0);
     await closeOverlays(page);
     await openClaimCard(page, client, claimId);
     await openTreatTab(page);
     const itemBtn = page.locator(`[data-testid="treat-item-${treatA?.id}"]`);
     await itemBtn.waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
     rec(`r${round}-treat-list`, await itemBtn.count() > 0);
-    if (await itemBtn.count()) await itemBtn.click();
-    await page.waitForSelector('[data-testid="treat-center"].open, .ov.open[data-testid="treat-center"]', { timeout: 15000 });
+    if (await itemBtn.count()) {
+      await itemBtn.click();
+      await page.waitForSelector('[data-testid="treat-center"].open, .ov.open[data-testid="treat-center"]', { timeout: 15000 }).catch(() => undefined);
+    }
     rec(`r${round}-center-from-list`, await page.locator('[data-testid="treat-center"].open [data-testid="treat-center-body"]').count() > 0);
     await shot(page, `r${round}-treat-center`);
     await page.locator('[data-testid="treat-center-close"]').click().catch(() => undefined);
