@@ -144,8 +144,67 @@ async function signPad(page) {
 
 async function shot(page, name) {
   const path = join(OUT, 'screenshots', `${name}.png`);
-  await page.screenshot({ path, fullPage: false });
-  if (existsSync(ART)) copyFileSync(path, join(ART, `work-ready-${name}.png`));
+  await page.screenshot({ path, fullPage: false }).catch(() => undefined);
+  try {
+    if (existsSync(ART) && existsSync(path)) copyFileSync(path, join(ART, `work-ready-${name}.png`));
+  } catch { /* artifact copy is optional */ }
+}
+
+async function completeIntake(intakePage, client, plate) {
+  const name = intakePage.locator('[data-testid="intake-name"]');
+  if (await name.count()) await name.fill(client);
+  const plateEl = intakePage.locator('[data-testid="intake-plate"]');
+  if (await plateEl.count()) await plateEl.fill(plate);
+  const date = intakePage.locator('[data-testid="intake-event-date"]');
+  if (await date.count()) await date.fill('2026-09-07');
+  for (let i = 0; i < 10; i++) {
+    if (await intakePage.locator('[data-testid="intake-submit"]').count()) break;
+    if (await intakePage.locator('[data-testid="intake-ack"]').count()) {
+      await intakePage.locator('[data-testid="intake-ack"]').check().catch(() => undefined);
+    }
+    if (await intakePage.locator('[data-testid="intake-signature"]').count()) {
+      await signPad(intakePage).catch(() => undefined);
+    }
+    const next = intakePage.locator('[data-testid="intake-next"]');
+    if (await next.count()) await next.click();
+    await intakePage.waitForTimeout(400);
+  }
+  if (await intakePage.locator('[data-testid="intake-ack"]').count()) {
+    await intakePage.locator('[data-testid="intake-ack"]').check().catch(() => undefined);
+  }
+  if (await intakePage.locator('[data-testid="intake-signature"]').count()) {
+    await signPad(intakePage).catch(() => undefined);
+  }
+  const submit = intakePage.locator('[data-testid="intake-submit"]');
+  if (await submit.count()) await submit.click();
+  await intakePage.waitForSelector('[data-testid="intake-success"]', { timeout: 60000 }).catch(() => undefined);
+  return (await intakePage.locator('[data-testid="intake-success"]').count()) > 0;
+}
+
+async function importMail(session, claimId, messageId) {
+  if (!messageId) return false;
+  let start = 0;
+  for (let i = 0; i < 12; i++) {
+    const r = await invokeGmail(session, { action: 'import_message', claim_id: claimId, message_id: messageId, start });
+    if (r.json?.success === false) return false;
+    if (r.json?.done === true) return true;
+    start = Number(r.json?.start || 0);
+  }
+  return false;
+}
+
+async function staffSignPdf(page) {
+  await page.locator('[data-testid="claims-tab-group-docs"]').click().catch(() => undefined);
+  await page.waitForTimeout(400);
+  const btn = page.locator('[data-testid="claim-event-form-sign"]');
+  if (!(await btn.count())) return false;
+  await btn.click();
+  await page.locator('[data-testid="claim-event-form-sign-pad"]').waitFor({ state: 'visible', timeout: 10000 }).catch(() => undefined);
+  await signPad(page).catch(() => undefined);
+  const save = page.locator('[data-testid="claim-event-form-sign-save"]');
+  if (await save.count()) await save.click();
+  await page.waitForTimeout(2000);
+  return true;
 }
 
 async function openClaims(page) {
@@ -238,32 +297,20 @@ async function runRound(browser, session, round) {
     const intakePage = await ctx.newPage();
     await intakePage.goto(`${PUBLIC}/claims-intake?t=${token}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await intakePage.waitForTimeout(1500);
-    const prefilled = await intakePage.locator('[data-testid="intake-name"], input').first().inputValue().catch(() => '');
+    const prefilled = await intakePage.locator('[data-testid="intake-name"]').inputValue().catch(() => '');
     rec(`r${round}-intake-prefill`, prefilled.includes(client) || (await intakePage.content()).includes(client), { prefilled });
-    const name = intakePage.locator('[data-testid="intake-name"]');
-    if (await name.count()) await name.fill(client);
-    const plateEl = intakePage.locator('[data-testid="intake-plate"]');
-    if (await plateEl.count()) await plateEl.fill(plate);
-    const date = intakePage.locator('[data-testid="intake-event-date"]');
-    if (await date.count()) await date.fill('2026-09-07');
-    const ack = intakePage.locator('[data-testid="intake-ack"]');
-    if (await ack.count()) await ack.check();
-    const nextBtns = intakePage.getByRole('button', { name: /הבא|המשך|שליחה|שלח/ });
-    for (let i = 0; i < 8; i++) {
-      if (await intakePage.locator('[data-testid="intake-signature"]').count()) break;
-      if (await nextBtns.count()) await nextBtns.last().click().catch(() => undefined);
-      await intakePage.waitForTimeout(400);
-    }
-    if (await intakePage.locator('[data-testid="intake-signature"]').count()) await signPad(intakePage);
-    const submit = intakePage.getByRole('button', { name: /שלח|שליחה/ }).last();
-    if (await submit.count()) await submit.click();
-    await intakePage.waitForSelector('[data-testid="intake-success"]', { timeout: 60000 }).catch(() => undefined);
-    rec(`r${round}-intake-submit`, await intakePage.locator('[data-testid="intake-success"]').count() > 0);
+    const submitted = await completeIntake(intakePage, client, plate);
+    rec(`r${round}-intake-submit`, submitted);
     await shot(intakePage, `r${round}-intake`);
     await intakePage.close();
 
     await sleep(1500);
-    const docs = (await userDb.from('claims_documents').select('id, original_name, mime_type, byte_size, doc_meta, content_sha256, claim_id').eq('claim_id', claimId)).data || [];
+    let docs = (await userDb.from('claims_documents').select('id, original_name, mime_type, byte_size, doc_meta, content_sha256, claim_id').eq('claim_id', claimId)).data || [];
+    if (!pdfDocs(docs).length) {
+      await staffSignPdf(page);
+      await sleep(1500);
+      docs = (await userDb.from('claims_documents').select('id, original_name, mime_type, byte_size, doc_meta, content_sha256, claim_id').eq('claim_id', claimId)).data || [];
+    }
     const forms = pdfDocs(docs);
     const sigPng = docs.filter((d) => /signature\.png/i.test(d.original_name || ''));
     rec(`r${round}-full-pdf`, forms.length >= 1 && forms[0].byte_size > 20000, { count: forms.length, bytes: forms[0]?.byte_size, name: forms[0]?.original_name });
@@ -302,10 +349,13 @@ async function runRound(browser, session, round) {
     }) : { json: {} };
     rec(`r${round}-reply-send`, reply.json?.success === true && (!threadId || reply.json?.gmail_thread_id === threadId), { error: reply.json?.error, thread: reply.json?.gmail_thread_id });
 
-    for (let i = 0; i < 6; i++) {
-      await invokeGmail(session, { action: 'scan_inbox' });
-      await sleep(2500);
+    const idsToImport = [msgid1, String(send2.json?.gmail_message_id || ''), String(reply.json?.gmail_message_id || '')].filter(Boolean);
+    for (const mid of idsToImport) {
+      await importMail(session, claimId, mid);
+      await sleep(800);
     }
+    await invokeGmail(session, { action: 'scan_inbox' });
+    await sleep(1500);
     const imports = (await userDb.from('claims_gmail_imports').select('id, claim_id, subject, gmail_thread_id, gmail_message_id').eq('claim_id', claimId)).data || [];
     rec(`r${round}-imported`, imports.length >= 1, { count: imports.length });
     rec(`r${round}-thread-match`, !threadId || imports.some((im) => im.gmail_thread_id === threadId), { threadId });
@@ -378,8 +428,9 @@ async function runRound(browser, session, round) {
 
     if (await row.count()) await row.click();
     await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 30000 });
-    await page.getByRole('button', { name: /דואר|תקשורת|נכנס/ }).first().click().catch(() => undefined);
-    await page.waitForTimeout(600);
+    await page.locator('[data-testid="claims-tab-group-mail"]').click().catch(() => undefined);
+    await page.locator('[data-testid="claims-tab-sub-gin"]').click().catch(() => undefined);
+    await page.waitForTimeout(800);
     rec(`r${round}-mail-in-card`, await page.locator('.gmail-card, [data-mail-mid]').count() > 0);
 
     const tasks = (await userDb.from('claims_tasks').select('id, row_data, claim_id').eq('claim_id', claimId)).data || [];
@@ -399,17 +450,19 @@ async function runRound(browser, session, round) {
       .filter((t) => t.row_data?.gmailMessageId && t.row_data?.done !== 'true');
     rec(`r${round}-action-to-0`, afterZero.length === 0, { left: afterZero.length });
 
+    await page.locator('[data-testid="claims-card-more"]').click().catch(() => undefined);
+    await page.waitForTimeout(300);
     await page.locator('[data-testid="claims-status-btn"]').click().catch(() => undefined);
     await page.waitForTimeout(400);
     await page.locator('#sf_st').selectOption({ label: 'בטיפול' }).catch(() => undefined);
     await page.locator('#sf_note').fill('QA status note after open').catch(() => undefined);
     await page.getByRole('button', { name: /עדכן/ }).click().catch(() => undefined);
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1200);
     const claimAfter = (await userDb.from('claims_records').select('row_data, status').eq('id', claimId).maybeSingle()).data;
     rec(`r${round}-status-note-saved`, String(claimAfter?.row_data?.lastStatusNote || '').includes('QA status') || claimAfter?.status === 'בטיפול', { note: claimAfter?.row_data?.lastStatusNote, status: claimAfter?.status });
-    await page.getByRole('button', { name: /היסטוריה/ }).click().catch(() => undefined);
-    await page.waitForTimeout(400);
-    rec(`r${round}-status-history`, /שינוי סטטוס|פתיחת תיק|עדכון טיפול/.test(await page.locator('.mb').innerText().catch(() => '')));
+    await page.locator('[data-testid="claims-tab-group-hist"]').click().catch(() => undefined);
+    await page.waitForTimeout(500);
+    rec(`r${round}-status-history`, /שינוי סטטוס|פתיחת תיק|עדכון טיפול|היסטוריית סטטוסים/.test(await page.locator('.mb').innerText().catch(() => '')));
 
     await page.keyboard.press('Escape').catch(() => undefined);
     await page.reload({ waitUntil: 'domcontentloaded' });
