@@ -282,6 +282,16 @@ async function markTaskTreated(task) {
   }).eq('id', task.id);
 }
 
+async function uniqueUntreatedMids(claimId) {
+  return [...new Set((await untreatedMailTasks(claimId)).map((t) => String(t.row_data?.gmailMessageId || '')).filter(Boolean))];
+}
+
+async function treatMessage(claimId, mid) {
+  for (const t of (await untreatedMailTasks(claimId)).filter((x) => String(x.row_data?.gmailMessageId || '') === mid)) {
+    await markTaskTreated(t);
+  }
+}
+
 async function previewSignedPdfComposer(page, round, claimId, client) {
   if (!(await page.locator('[data-testid="claims-card-snapshot"]').count())) {
     const row = await searchClaimRow(page, claimId, client);
@@ -294,11 +304,26 @@ async function previewSignedPdfComposer(page, round, claimId, client) {
     await page.locator('[data-testid="claims-send-insurer"]').click();
   });
   await page.locator('[data-testid="mail-to"]').waitFor({ state: 'visible', timeout: 15000 });
+  await page.getByText('טופס פתיחת תביעה חתום').first().waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
   await page.locator('[data-testid="mail-to"]').fill(SELF);
   await page.locator('[data-testid="mail-to"]').blur();
+  const formRow = page.locator('.pick-row').filter({ hasText: 'טופס פתיחת תביעה חתום' }).first();
+  if (await formRow.count()) {
+    const box = formRow.locator('input[type="checkbox"]').first();
+    if (await box.count()) await box.check().catch(() => undefined);
+    const filePrev = formRow.locator('[data-testid^="mail-file-preview-"]').first();
+    if (await filePrev.count()) {
+      await filePrev.click().catch(() => undefined);
+      await page.waitForTimeout(800);
+      rec(`r${round}-pdf-open`, /טופס|פתיחת|\.pdf/i.test((await page.locator('[data-testid="doc-preview-name"]').innerText().catch(() => '')) || ''), {});
+      await page.locator('[data-testid="doc-preview-close"]').click().catch(() => undefined);
+    }
+  }
   const pick = page.locator('[data-testid="mail-pick-signed-form"]');
   if (await pick.count()) await pick.click();
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(600);
+  const selected = (await page.locator('[data-testid="mail-selected-list"]').innerText().catch(() => '')) || '';
+  rec(`r${round}-pdf-selected`, /טופס פתיחת תביעה חתום|\.pdf/i.test(selected), { selected: selected.slice(0, 200) });
   const subj = page.locator('[data-testid="mail-subj"]');
   if (await subj.count()) {
     const cur = await subj.inputValue().catch(() => '');
@@ -310,18 +335,19 @@ async function previewSignedPdfComposer(page, round, claimId, client) {
     if (!String(cur).trim()) await body.fill('TEST preview of signed opening form PDF');
   }
   await page.locator('[data-testid="mail-preview-btn"]').click();
-  await page.waitForTimeout(1200);
+  await page.waitForSelector('[data-testid="mail-preview"]', { timeout: 15000 }).catch(() => undefined);
+  await page.waitForTimeout(600);
   const preview = page.locator('[data-testid="mail-preview"]');
   const previewText = (await preview.innerText().catch(() => '')) || '';
   const filesText = (await page.locator('[data-testid="mail-preview-files"]').innerText().catch(() => '')) || '';
-  rec(`r${round}-pdf-preview`, await preview.count() > 0 && /טופס|פתיחת תביעה|אירוע|\.pdf/i.test(`${previewText}\n${filesText}`), {
+  rec(`r${round}-pdf-preview`, await preview.isVisible().catch(() => false) && /טופס|פתיחת תביעה|\.pdf/i.test(filesText || previewText), {
     preview: previewText.slice(0, 240),
     files: filesText.slice(0, 240),
+    selected: selected.slice(0, 160),
   });
-  rec(`r${round}-pdf-preview-not-signature-only`, !/signature\.png/i.test(`${previewText}\n${filesText}`) && /טופס|פתיחת|\.pdf/i.test(`${filesText}\n${previewText}`), { files: filesText.slice(0, 180) });
+  rec(`r${round}-pdf-preview-not-signature-only`, !/signature\.png/i.test(`${previewText}\n${filesText}`) && /טופס|פתיחת|\.pdf/i.test(filesText || selected), { files: filesText.slice(0, 180) });
   await shot(page, `r${round}-pdf-preview`);
   await page.keyboard.press('Escape').catch(() => undefined);
-  await page.waitForTimeout(400);
 }
 
 async function softDelete(claimId) {
@@ -530,15 +556,18 @@ async function runRound(browser, session, round) {
     rec(`r${round}-status-in-table`, await row.locator('.st').count() > 0);
 
     let untreated = await untreatedMailTasks(claimId);
-    while (untreated.length > 2) {
-      await markTaskTreated(untreated[0]);
-      untreated = await untreatedMailTasks(claimId);
+    let mids = await uniqueUntreatedMids(claimId);
+    while (mids.length > 2) {
+      await treatMessage(claimId, mids[0]);
+      mids = await uniqueUntreatedMids(claimId);
     }
-    rec(`r${round}-action-required-two`, untreated.length >= 2, { count: untreated.length });
+    untreated = await untreatedMailTasks(claimId);
+    rec(`r${round}-action-required-two`, mids.length >= 2, { count: untreated.length, uniqueMails: mids.length });
     await reloadClaimsList(page);
     row = await searchClaimRow(page, claimId, client);
+    await page.waitForTimeout(400);
     const twoLabel = (await row.locator('[data-testid="claim-alert-mail_action"]').innerText().catch(() => '')) || '';
-    rec(`r${round}-action-ui-two`, /2 מיילים דורשים טיפול/.test(twoLabel), { twoLabel });
+    rec(`r${round}-action-ui-two`, /2 מיילים דורשים טיפול/.test(twoLabel), { twoLabel, uniqueMails: mids.length });
 
     const mailAction = row.locator('[data-testid="claim-alert-mail_action"]');
     if (await mailAction.count()) {
@@ -558,7 +587,7 @@ async function runRound(browser, session, round) {
     await reloadClaimsList(page);
     row = await searchClaimRow(page, claimId, client);
     const afterOpen = (await row.locator('[data-testid="claim-alert-mail_action"]').innerText().catch(() => '')) || '';
-    rec(`r${round}-open-not-treat`, /2 מיילים דורשים טיפול/.test(afterOpen) || (await untreatedMailTasks(claimId)).length >= 2, { afterOpen });
+    rec(`r${round}-open-not-treat`, /2 מיילים דורשים טיפול/.test(afterOpen), { afterOpen, uniqueMails: (await uniqueUntreatedMids(claimId)).length });
 
     untreated = await untreatedMailTasks(claimId);
     if (await row.count()) {
