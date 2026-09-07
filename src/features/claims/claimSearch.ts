@@ -3,7 +3,12 @@
 import type { ClaimRecord } from './claimsConstants';
 
 function norm(s: string) {
-  return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+  return String(s || '')
+    .normalize('NFC')
+    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function digits(s: string) {
@@ -34,6 +39,8 @@ export function claimMatchesSearch(c: ClaimRecord, rawQuery: string): boolean {
   if (!tokens.length) return true;
   const fields = claimSearchHaystacks(c);
   const name = norm(c.clientName || '');
+  const blob = [name, ...fields.map((f) => norm(f))].filter(Boolean).join(' ');
+  if (q && blob.includes(q)) return true;
   return tokens.every((tok) => {
     const d = digits(tok);
     if (name && name.split(' ').includes(tok)) return true;
