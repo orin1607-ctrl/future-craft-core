@@ -445,6 +445,17 @@ function fileLabel(f: ClaimFile) {
   const t = fileMeta(f).staff_title;
   return t || f.original_name;
 }
+function isOpeningFormPdf(f: ClaimFile) {
+  if (fileMeta(f).staff_type !== 'accident_notice') return false;
+  if (isImageFile(f) && /signature/i.test(`${f.original_name || ''}`)) return false;
+  return /pdf/i.test(`${f.mime_type || ''} ${f.original_name || ''}`);
+}
+function preferredOpeningForm(files: ClaimFile[]) {
+  const pdfs = files.filter(isOpeningFormPdf);
+  const signed = pdfs.filter((f) => /חתום|signed/i.test(`${fileMeta(f).staff_title || ''} ${f.original_name || ''}`));
+  const pool = signed.length ? signed : pdfs;
+  return pool.slice().sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))[0] || null;
+}
 function FileName({ name }: { name: string }) {
   return <bdi className="file-name-ltr" dir="ltr">{name}</bdi>;
 }
@@ -791,6 +802,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [previewFile, setPreviewFile] = useState<{ id: string; url: string; name: string; mime: string } | null>(null);
   const [previewList, setPreviewList] = useState<ClaimFile[]>([]);
   const [narrowList, setNarrowList] = useState(false);
+  const [phoneNarrow, setPhoneNarrow] = useState(false);
+  const [cardSnapCollapsed, setCardSnapCollapsed] = useState(true);
   const [mineOnly, setMineOnly] = useState(actor.role !== 'super_admin');
   const [intakeDraft, setIntakeDraft] = useState<IntakeDraft>({ ...EMPTY_INTAKE });
   const [intakeLinkMsg, setIntakeLinkMsg] = useState('');
@@ -904,6 +917,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 820px)');
     const sync = () => setNarrowList(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 700px)');
+    const sync = () => setPhoneNarrow(mq.matches);
     sync();
     mq.addEventListener('change', sync);
     return () => mq.removeEventListener('change', sync);
@@ -1513,6 +1533,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setPreviewList([]);
     setEventFormSignOpen(false);
     setEventFormSig('');
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 700px)').matches) setCardSnapCollapsed(true);
     await loadCardData(id);
   };
 
@@ -1594,15 +1615,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     data: Record<string, string>,
     signaturePng?: string,
   ) => {
+    const merged = { ...draft, ...data } as IntakeDraft;
     const pdf = await buildSignedOpeningFormPdf({
-      clientName: draft.clientName || data.clientName,
-      plate: draft.plate || data.plate || '',
-      eventDate: draft.eventDate || data.eventDate || '',
-      eventLocation: [draft.eventPlace, draft.eventCity, draft.eventStreet].filter(Boolean).join(', '),
-      eventDesc: draft.eventDesc || draft.damageDesc || '',
+      clientName: merged.clientName || data.clientName,
+      plate: merged.plate || data.plate || '',
+      eventDate: merged.eventDate || data.eventDate || '',
+      eventLocation: [merged.eventPlace, merged.eventCity, merged.eventStreet].filter(Boolean).join(', '),
+      eventDesc: merged.eventDesc || merged.damageDesc || '',
       signaturePng,
-      claimNum: displayClaimNum({ claimNum: draft.claimNum || data.claimNum }),
-      draft,
+      claimNum: displayClaimNum({ claimNum: merged.claimNum || data.claimNum }),
+      draft: merged,
     });
     return apiRef.current.staffUpload(claimId, '', pdf, {
       staff_type: 'accident_notice',
@@ -2476,35 +2498,63 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button className="mcl" onClick={() => setModal(null)}>✕</button>
               </div>
             </div>
-            <div className="card-snap" data-testid="claims-card-snapshot">
-              <div className="card-snap-grid">
-                {([
-                  ['שם לקוח', cur.clientName || '—', 'desk'],
-                  ['מספר תביעה', displayClaimNum(cur), 'desk'],
-                  ['חברת ביטוח', cur.insCompany || '—', 'keep'],
-                  ['רכב', cur.plate || '—', 'keep'],
-                  ['עובד מטפל', cur.assigned_to_name || 'ללא מטפל', 'desk'],
-                  ['סטטוס', cur.status || '—', 'keep'],
-                  ['טיפול אחרון', fmtDay(cur.lastTreatmentAt || ''), 'desk'],
-                  ['טיפול הבא', fmtDay(cur.nextDate || ''), 'keep'],
-                  ['נדרשת פעולה', returnNeededLabel(cur), 'keep'],
-                ] as Array<[string, string, 'desk' | 'keep']>).map(([k, v, show]) => (
-                  <div key={k} className={show === 'desk' ? 'card-snap-desk-only' : undefined}><div className="card-snap-k">{k}</div><div className="card-snap-v">{k === 'סטטוס' ? stBadge(v) : v}</div></div>
-                ))}
-              </div>
-              <div className="card-flags">
-                {cur.claimKind ? <div className="lbl-pill">{cur.claimKind}</div> : null}
-                {docsOrderOf(cur) === 'needs_sort' ? <div className="lbl-pill legacy">תיק ישן / דורש סידור מסמכים</div> : null}
-                {docsOrderOf(cur) === 'organized' ? <div className="lbl-pill" style={{ color: '#22c55e', borderColor: 'rgba(34,197,94,.35)', background: 'rgba(34,197,94,.1)' }}>תיק מסודר</div> : null}
-                {cur.source === 'Customer Accident Intake' ? <div className="lbl-pill">טופס לקוח</div> : null}
-                {cur.duplicateSuspect === 'true' ? <div className="lbl-pill" style={{ color: '#b45309' }}>חשד לכפילות</div> : null}
-                {snapNewMail ? <div className="lbl-pill flag-on" data-testid="snap-new-mail">מייל חדש</div> : null}
-                {snapMissingDoc ? <div className="lbl-pill flag-warn" data-testid="snap-missing-doc">מסמך חסר</div> : null}
-                {snapOpenTask ? <div className="lbl-pill flag-on" data-testid="snap-open-task">משימה פתוחה</div> : null}
-                {snapRem ? <div className="lbl-pill flag-on" data-testid="snap-reminder">תזכורת</div> : null}
-                {snapFollow ? <div className="lbl-pill flag-on" data-testid="snap-followup">מעקב מייל</div> : null}
-              </div>
-              {cur ? <div className="card-flags" style={{ marginTop: 8 }}><RowAlerts alerts={buildClaimRowAlerts(cur, alertCtx)} onAlertClick={(a) => openMailAction(cur.id, a)} /></div> : null}
+            <div className={`card-snap${phoneNarrow && cardSnapCollapsed ? ' is-collapsed' : ''}`} data-testid="claims-card-snapshot">
+              {phoneNarrow ? (
+                <button
+                  type="button"
+                  className="card-snap-toggle"
+                  data-testid="claims-card-snap-toggle"
+                  aria-expanded={!cardSnapCollapsed}
+                  onClick={() => setCardSnapCollapsed((v) => !v)}
+                >
+                  <span>{cardSnapCollapsed ? 'פתח פרטי תיק' : 'כיווץ פרטי תיק'}</span>
+                  <span aria-hidden>{cardSnapCollapsed ? '▾' : '▴'}</span>
+                </button>
+              ) : null}
+              {phoneNarrow && cardSnapCollapsed ? (
+                <div className="card-snap-compact" data-testid="claims-card-snap-compact">
+                  <div className="card-snap-compact-name">{cur.clientName || '—'}</div>
+                  <div className="card-snap-compact-meta">
+                    <span>{displayClaimNum(cur)}</span>
+                    <span>{stBadge(cur.status)}</span>
+                    {returnNeededLabel(cur) === 'כן' ? <span className="card-snap-compact-need">דורש טיפול</span> : null}
+                  </div>
+                  <div className="card-flags card-flags-compact">
+                    <RowAlerts alerts={buildClaimRowAlerts(cur, alertCtx)} onAlertClick={(a) => openMailAction(cur.id, a)} />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="card-snap-grid">
+                    {([
+                      ['שם לקוח', cur.clientName || '—', 'desk'],
+                      ['מספר תביעה', displayClaimNum(cur), 'desk'],
+                      ['חברת ביטוח', cur.insCompany || '—', 'keep'],
+                      ['רכב', cur.plate || '—', 'keep'],
+                      ['עובד מטפל', cur.assigned_to_name || 'ללא מטפל', 'desk'],
+                      ['סטטוס', cur.status || '—', 'keep'],
+                      ['טיפול אחרון', fmtDay(cur.lastTreatmentAt || ''), 'desk'],
+                      ['טיפול הבא', fmtDay(cur.nextDate || ''), 'keep'],
+                      ['נדרשת פעולה', returnNeededLabel(cur), 'keep'],
+                    ] as Array<[string, string, 'desk' | 'keep']>).map(([k, v, show]) => (
+                      <div key={k} className={show === 'desk' ? 'card-snap-desk-only' : undefined}><div className="card-snap-k">{k}</div><div className="card-snap-v">{k === 'סטטוס' ? stBadge(v) : v}</div></div>
+                    ))}
+                  </div>
+                  <div className="card-flags">
+                    {cur.claimKind ? <div className="lbl-pill">{cur.claimKind}</div> : null}
+                    {docsOrderOf(cur) === 'needs_sort' ? <div className="lbl-pill legacy">תיק ישן / דורש סידור מסמכים</div> : null}
+                    {docsOrderOf(cur) === 'organized' ? <div className="lbl-pill" style={{ color: '#22c55e', borderColor: 'rgba(34,197,94,.35)', background: 'rgba(34,197,94,.1)' }}>תיק מסודר</div> : null}
+                    {cur.source === 'Customer Accident Intake' ? <div className="lbl-pill">טופס לקוח</div> : null}
+                    {cur.duplicateSuspect === 'true' ? <div className="lbl-pill" style={{ color: '#b45309' }}>חשד לכפילות</div> : null}
+                    {snapNewMail ? <div className="lbl-pill flag-on" data-testid="snap-new-mail">מייל חדש</div> : null}
+                    {snapMissingDoc ? <div className="lbl-pill flag-warn" data-testid="snap-missing-doc">מסמך חסר</div> : null}
+                    {snapOpenTask ? <div className="lbl-pill flag-on" data-testid="snap-open-task">משימה פתוחה</div> : null}
+                    {snapRem ? <div className="lbl-pill flag-on" data-testid="snap-reminder">תזכורת</div> : null}
+                    {snapFollow ? <div className="lbl-pill flag-on" data-testid="snap-followup">מעקב מייל</div> : null}
+                  </div>
+                  {cur ? <div className="card-flags" data-testid="claims-card-snap-expanded"><RowAlerts alerts={buildClaimRowAlerts(cur, alertCtx)} onAlertClick={(a) => openMailAction(cur.id, a)} /></div> : null}
+                </>
+              )}
             </div>
             <div className="ab ab-regroup">
               <div className="ab-primary">
@@ -3017,7 +3067,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                 if (t.group) {
                                   setOpenGal((p) => ({ ...p, [`type:${t.key}`]: !p[`type:${t.key}`] }));
                                   void loadGalleryThumbs(cur.id, matched.filter(isImageFile));
-                                } else void openInCard(cur.id, first);
+                                } else void openInCard(cur.id, (t.key === 'accident_notice' && preferredOpeningForm(matched)) || first);
                               }}>{t.group ? (openGal[`type:${t.key}`] ? 'הסתר גלריה' : 'פתח גלריה') : 'צפייה'}</button>
                             ) : null}
                             {t.key === 'accident_notice' ? (
@@ -3943,7 +3993,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <button className="btn btn-g btn-sm" data-testid="mail-pick-garage" onClick={() => setSendGroup(docs.files.filter((f) => f.doc_kind === 'garage_invoice' || fileMeta(f).staff_type === 'garage_invoice').map((f) => f.id), true)}>כל מסמכי המוסך</button>
               <button className="btn btn-g btn-sm" data-testid="mail-pick-license-front" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).staff_type === 'driver_license' && /קדמי/.test(fileMeta(f).staff_title || '')).map((f) => f.id), true)}>רישיון — צד קדמי</button>
               <button className="btn btn-g btn-sm" data-testid="mail-pick-license-back" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).staff_type === 'driver_license' && /אחורי/.test(fileMeta(f).staff_title || '')).map((f) => f.id), true)}>רישיון — צד אחורי</button>
-              <button className="btn btn-g btn-sm" data-testid="mail-pick-signed-form" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).staff_type === 'accident_notice').map((f) => f.id), true)}>טופס אירוע</button>
+              <button className="btn btn-g btn-sm" data-testid="mail-pick-signed-form" onClick={() => {
+                const form = preferredOpeningForm(docs.files);
+                setSendGroup(form ? [form.id] : docs.files.filter((f) => fileMeta(f).staff_type === 'accident_notice' && !isImageFile(f)).map((f) => f.id).slice(0, 1), true);
+              }}>טופס אירוע</button>
               <button className="btn btn-g btn-sm" data-testid="mail-pick-images" onClick={() => setSendGroup(docs.files.filter((f) => isImageFile(f)).map((f) => f.id), true)}>כל התמונות</button>
               <button className="btn btn-g btn-sm" data-testid="mail-pick-identified" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).important === 'true').map((f) => f.id), true)}>מסמכים מזוהים</button>
             </div>

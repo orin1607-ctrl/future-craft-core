@@ -199,8 +199,8 @@
 .claims-root .gmail-card.mail-focus{outline:2px solid #b91c1c;box-shadow:0 0 0 3px rgba(185,28,28,.18)}
 .claims-root .cust-task-meta{margin:6px 0 8px}
 @media(max-width:700px){
-  .claims-root .row-alerts{max-width:none}
-  .claims-root .row-alert{font-size:11px;padding:5px 8px;min-height:28px}
+  .claims-root .row-alerts{max-width:none;gap:3px}
+  .claims-root .row-alert{font-size:10px;padding:3px 6px;min-height:0}
 }
 .claims-root .lbl-pill.flag-warn{color:var(--yn2);border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.12)}
 .claims-root .ab-regroup{align-items:flex-start;justify-content:space-between;gap:8px}
@@ -351,7 +351,24 @@
 }
 
 @media(max-width:700px){
-  .claims-root .card-snap{padding:8px 12px}
-  .claims-root .mh{padding:10px 12px;gap:8px}
+  .claims-root .card-snap{padding:6px 10px}
+  .claims-root .mh{padding:8px 10px;gap:6px}
   .claims-root .modal > .mb{padding:10px 12px 16px;overflow-x:hidden}
+  .claims-root .card-title-name{font-size:15px;line-height:1.2}
+  .claims-root .card-title-num{font-size:11px;margin-top:2px}
+  .claims-root .card-snap-toggle{
+    display:flex;align-items:center;justify-content:space-between;width:100%;
+    margin:0 0 6px;padding:7px 10px;border:1px solid var(--br2);border-radius:8px;
+    background:var(--bg4);color:var(--t);font:inherit;font-size:13px;font-weight:800;
+    min-height:40px;cursor:pointer;
+  }
+  .claims-root .card-snap-compact-name{font-size:15px;font-weight:800;line-height:1.25;word-break:break-word}
+  .claims-root .card-snap-compact-meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:4px;font-size:12px;font-weight:700}
+  .claims-root .card-snap-compact-need{color:var(--yn2)}
+  .claims-root .card-flags{gap:3px;margin-top:4px}
+  .claims-root .card-flags-compact{margin-top:6px}
+  .claims-root .card-flags-compact .row-alerts{max-width:none;gap:3px}
+  .claims-root .card-flags-compact .row-alert{font-size:10px;padding:3px 6px;min-height:0;line-height:1.25}
+  .claims-root .card-snap:not(.is-collapsed) .row-alert{font-size:10px;padding:3px 6px;min-height:0}
+  .claims-root .lbl-pill{font-size:10px;padding:2px 6px}
 }
