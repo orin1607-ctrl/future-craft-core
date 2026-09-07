@@ -343,12 +343,42 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     rec(`${label}-create-save`, Boolean(claimId), { claimId });
     rec(`${label}-assigned`, Boolean(created?.assigned_to));
 
-    await page.locator('[data-testid="claims-edit-btn"]').click().catch(() => undefined);
-    if (await page.locator('[data-testid="intake-phone"]').count()) {
+    try {
+      await page.locator('[data-testid="claims-edit-btn"]').click();
+      await page.locator('[data-testid="intake-phone"]').waitFor({ state: 'visible', timeout: 10000 });
       await page.locator('[data-testid="intake-phone"]').fill('0500000088');
       await page.locator('[data-testid="claims-save-btn"]').click();
-      await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 30000 });
-      rec(`${label}-edit-save`, true);
+      await page.locator('[data-testid="claims-new-modal"].open').waitFor({ state: 'hidden', timeout: 45000 }).catch(() => undefined);
+      const cardOpen = page.locator('.ov.open [data-testid="claims-card-snapshot"]');
+      await cardOpen.waitFor({ state: 'visible', timeout: 45000 }).catch(() => undefined);
+      if (!(await cardOpen.count())) {
+        await closeOverlays(page);
+        await goAll(page);
+        await page.locator('[data-testid="claims-search"]').fill(clientName);
+        await page.waitForTimeout(400);
+        const row = page.locator(`[data-testid="claim-row-${claimId}"]`);
+        if (await row.count()) {
+          const nameEl = row.locator('.claim-mcard-name, td >> nth=2').first();
+          if (await nameEl.count()) await nameEl.click();
+          else await row.click();
+          await page.waitForTimeout(800);
+        }
+      }
+      const { data: edited } = await userDb.from('claims_records').select('id, row_data, client_name').eq('id', claimId).maybeSingle();
+      const phoneSaved = /0500000088/.test(JSON.stringify(edited?.row_data || {}));
+      rec(`${label}-edit-save`, await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count() > 0 || phoneSaved, { phoneSaved });
+    } catch (err) {
+      rec(`${label}-edit-save`, false, { err: String(err?.message || err) });
+      await closeOverlays(page);
+      await goAll(page);
+      await page.locator('[data-testid="claims-search"]').fill(clientName);
+      await page.waitForTimeout(400);
+      const row = page.locator(`[data-testid="claim-row-${claimId}"]`);
+      if (await row.count()) {
+        const nameEl = row.locator('.claim-mcard-name, td >> nth=2').first();
+        if (await nameEl.count()) await nameEl.click(); else await row.click();
+        await page.waitForTimeout(800);
+      }
     }
 
     await page.locator('[data-testid="claims-open-docs"]').click().catch(() => undefined);
@@ -705,8 +735,8 @@ try {
   rec('gmail-scan-button-present-not-clicked', await page.locator('[data-testid="claims-scan-inbox-gmail"], [data-testid="claims-scan-inbox"]').count() > 0, { detail: 'Mass import not triggered' });
   await shot(page, 'desktop-gmail');
 
-  await page.locator('[data-testid="dash-all"]').click().catch(() => undefined);
-  await page.waitForTimeout(400);
+  await closeOverlays(page);
+  await goAll(page);
   rec('table', await page.locator('[data-testid="claims-list-table"], [data-testid="claims-dash-table"]').count() > 0);
   rec('search-control', await page.locator('[data-testid="claims-search"]').count() > 0);
   rec('status-filter', await page.locator('[data-testid="claims-status-filter"]').count() > 0);
@@ -764,6 +794,7 @@ try {
       const upCtx = await browser.newContext({ locale: 'he-IL', viewport: { width: 390, height: 844 } });
       const up = await upCtx.newPage();
       await up.goto(linkUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await up.locator('text=טוען').waitFor({ state: 'hidden', timeout: 25000 }).catch(() => undefined);
       const pubText = await up.innerText('body').catch(() => '');
       rec('customer-upload-page', /העלאת מסמכים|חסר/.test(pubText), { detail: pubText.slice(0, 180) });
       rec('customer-no-internal', !/Gmail|היסטוריה פנימית|assigned_to|yoni122222/.test(pubText) && !pubText.includes(report.claimA));
@@ -782,8 +813,10 @@ try {
       const revokedCtx = await browser.newContext({ locale: 'he-IL' });
       const rp = await revokedCtx.newPage();
       await rp.goto(linkUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await rp.waitForTimeout(4000);
+      await rp.getByText(/בוטל|פג|לא תקף|אין קישור|העלאת מסמכים/).first().waitFor({ timeout: 20000 }).catch(() => undefined);
       const revText = await rp.innerText('body').catch(() => '');
-      rec('customer-revoked-blocked', /בוטל|פג|לא תקף|revoke|expired|אין קישור/i.test(revText) || !/העלה/.test(revText), { detail: revText.slice(0, 160) });
+      rec('customer-revoked-blocked', /בוטל|פג|לא תקף|revoke|expired|אין קישור/i.test(revText), { detail: revText.slice(0, 160) });
       await revokedCtx.close();
     }
 
