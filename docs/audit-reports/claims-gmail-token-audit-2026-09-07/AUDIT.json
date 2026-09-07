@@ -1,0 +1,70 @@
+{
+  "at": "2026-09-07T21:00:00.000Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "gmail3hCronTouched": false,
+  "matchingTouched": false,
+  "newGmailIntegration": false,
+  "mailbox": "yoni122222@gmail.com",
+  "gcpProject": "oren-car-claims",
+  "oauthConsentKnown": {
+    "userType": "External",
+    "publishingStatus": "Testing",
+    "published": false,
+    "source": "docs/audit-reports/claims-gmail-oauth-staging-2026-08-31/gcp-project-decision.json"
+  },
+  "connectedAtKnown": "2026-08-31T15:11:35.122Z",
+  "lastSuccessfulScanAt": "2026-09-07T09:33:07.407Z",
+  "lastSuccessfulLiveSends": [
+    { "claimId": "DAL-2026-0088", "at": "2026-09-07T10:31:14.661Z" },
+    { "claimId": "DAL-2026-0089", "at": "2026-09-07T10:34:57.401Z" },
+    { "claimId": "DAL-2026-0090", "at": "2026-09-07T10:38:39.479Z" }
+  ],
+  "lastSuccessfulFunctionDeploy": {
+    "at": "2026-09-07T09:31:02Z",
+    "sha": "49e624a728a90f0e2bb63df0bd1630c16410e063",
+    "workflow": "deploy-claims-gmail-staging.yml",
+    "conclusion": "success"
+  },
+  "liveProbeBeforeDeploy": {
+    "status": {
+      "http": 200,
+      "connected": true,
+      "email": "yoni122222@gmail.com",
+      "accountExpected": "yoni122222@gmail.com",
+      "sendEnabled": true,
+      "canConnect": false,
+      "revokedAtImpliedNull": true
+    },
+    "scan_inbox_dry": {
+      "http": 400,
+      "error": "Token has been expired or revoked."
+    },
+    "list_imports_db_only": {
+      "http": 200,
+      "note": "Existing imported/sent rows remain readable without Google API"
+    },
+    "worker_cannot_read_connection_table": "permission denied for table claims_gmail_connection",
+    "MAIL_DISPATCH_MODE": "dry_run",
+    "GMAIL_SEND_ENABLED": "true"
+  },
+  "ruledOut": {
+    "not_connected_row": false,
+    "wrong_mailbox": false,
+    "send_disabled": false,
+    "app_revoke_action": false,
+    "missing_edge_client_secret_likely": false,
+    "comment": "Google returned invalid_grant ('Token has been expired or revoked.'), not invalid_client / missing_client_env / gmail_not_connected / wrong_account. Edge client id+secret were accepted. Connection row still present with revoked_at null."
+  },
+  "cannotRenewHere": {
+    "credentialsFile": "integrations/google/credentials.claims-oauth.json — missing on this VM (gitignored)",
+    "supabaseManagementToken": "present but Unauthorized (cannot secrets list / projects list)",
+    "serviceRole": "not in this environment",
+    "localOAuthStore": "absent",
+    "secondRefreshToken": "none found",
+    "connectEdgeAction": "none — reconnect is scripts/claims-gmail-oauth-connect.mjs writing claims_gmail_connection via owner-linked db query"
+  },
+  "mostLikelyCause": "Google OAuth app oren-car-claims is External + Testing; refresh tokens expire after 7 days. Connected 2026-08-31T15:11Z. Last Gmail API success 2026-09-07 morning; all later refresh attempts fail with invalid_grant.",
+  "codeHardening": "Persist rotated Google refresh_token if Google returns a new one. status?probe=true reports oauth health without changing 3h scan or matching.",
+  "verdict": "STOP — Google refresh grant is dead; no existing credential on this agent can mint a new one"
+}
