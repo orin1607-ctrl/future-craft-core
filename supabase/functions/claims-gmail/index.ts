@@ -155,20 +155,52 @@ async function loadConnection(sb: ReturnType<typeof admin>) {
   };
 }
 
-async function googleAccessToken(refreshToken: string) {
+function tokenStoredKind(refreshToken: string) {
+  const t = String(refreshToken || "");
+  if (!t) return "missing";
+  if (t === "revoked") return "placeholder_revoked";
+  if (t.startsWith("1//")) return "google_refresh";
+  return "other";
+}
+
+function classifyTokenError(msg: string) {
+  const m = String(msg || "").toLowerCase();
+  if (m.includes("expired") || m.includes("revoked")) return "invalid_grant_revoked";
+  if (m.includes("invalid_client")) return "invalid_client";
+  if (m.includes("unauthorized_client")) return "unauthorized_client";
+  if (m.includes("invalid_request")) return "invalid_request";
+  if (m.includes("token_refresh_failed")) return "token_refresh_failed";
+  return "other";
+}
+
+async function googleAccessToken(refreshToken: string): Promise<{ access: string; newRefresh?: string }> {
+  const clientId = Deno.env.get("CLAIMS_GOOGLE_CLIENT_ID") || "";
+  const clientSecret = Deno.env.get("CLAIMS_GOOGLE_CLIENT_SECRET") || "";
+  if (!clientId || !clientSecret) throw new Error("missing_client_env");
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: Deno.env.get("CLAIMS_GOOGLE_CLIENT_ID") || "",
-      client_secret: Deno.env.get("CLAIMS_GOOGLE_CLIENT_SECRET") || "",
+      client_id: clientId,
+      client_secret: clientSecret,
       refresh_token: refreshToken,
       grant_type: "refresh_token",
     }),
   });
   const json = await res.json();
   if (!res.ok || !json.access_token) throw new Error(json.error_description || json.error || "token_refresh_failed");
-  return String(json.access_token);
+  return {
+    access: String(json.access_token),
+    newRefresh: json.refresh_token ? String(json.refresh_token) : undefined,
+  };
+}
+
+async function persistRotatedRefresh(sb: ReturnType<typeof admin>, current: string, next?: string) {
+  if (!next || next === current || tokenStoredKind(next) === "placeholder_revoked") return;
+  await sb.from("claims_gmail_connection").update({
+    refresh_token: next,
+    last_ok_at: new Date().toISOString(),
+  }).eq("id", "staging");
 }
 
 async function loadMatchClaims(sb: ReturnType<typeof admin>): Promise<MatchClaim[]> {
@@ -783,6 +815,25 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     const { data: stamp } = await sb.from("claims_config").select("value").eq("key", MAILBOX_SCAN_STAMP_KEY).maybeSingle();
     const lastMs = stamp?.value ? Date.parse(String(stamp.value)) : 0;
     const lastScanAt = lastMs && Number.isFinite(lastMs) ? new Date(lastMs).toISOString() : null;
+    const clientId = Deno.env.get("CLAIMS_GOOGLE_CLIENT_ID") || "";
+    let refreshProbe: { ok: boolean; errorClass: string | null; message: string | null } = { ok: false, errorClass: "not_tried", message: null };
+    if (body.probe === true) {
+      if (conn?.refresh_token && tokenStoredKind(conn.refresh_token) !== "placeholder_revoked") {
+        try {
+          const tok = await googleAccessToken(conn.refresh_token);
+          await persistRotatedRefresh(sb, conn.refresh_token, tok.newRefresh);
+          await sb.from("claims_gmail_connection").update({ last_ok_at: new Date().toISOString() }).eq("id", "staging");
+          refreshProbe = { ok: true, errorClass: null, message: null };
+        } catch (e) {
+          const message = String((e as Error).message || e).slice(0, 160);
+          refreshProbe = { ok: false, errorClass: classifyTokenError(message), message };
+        }
+      } else if (!conn) {
+        refreshProbe = { ok: false, errorClass: "not_connected", message: null };
+      } else {
+        refreshProbe = { ok: false, errorClass: tokenStoredKind(conn.refresh_token), message: null };
+      }
+    }
     return jsonResponse({
       success: true,
       connected: !!conn,
@@ -794,6 +845,15 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
       scopes: SCOPES,
       canConnect: role === "super_admin",
       autoDispatch: false,
+      oauth: {
+        clientIdPresent: Boolean(clientId),
+        clientSecretPresent: Boolean(Deno.env.get("CLAIMS_GOOGLE_CLIENT_SECRET")),
+        clientIdPrefix: clientId.slice(0, 12),
+        tokenStored: conn ? tokenStoredKind(conn.refresh_token) : "missing",
+        tokenLen: conn ? String(conn.refresh_token || "").length : 0,
+        lastOkAt: (conn as { last_ok_at?: string } | null)?.last_ok_at || null,
+        refreshProbe,
+      },
       scheduler: {
         everyMs: MAILBOX_SCAN_EVERY_MS,
         everyHours: 3,
@@ -1127,7 +1187,9 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
 
   let access = "";
   try {
-    access = await googleAccessToken(conn.refresh_token);
+    const tok = await googleAccessToken(conn.refresh_token);
+    access = tok.access;
+    await persistRotatedRefresh(sb, conn.refresh_token, tok.newRefresh);
     await sb.from("claims_gmail_connection").update({ last_ok_at: new Date().toISOString() }).eq("id", "staging");
   } catch (e) {
     return jsonResponse({ success: false, error: String((e as Error).message || e) }, 400);
