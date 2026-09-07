@@ -1049,7 +1049,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const restP = Promise.all([
       apiRef.current.getCommLog(id).then((c) => { if (live()) setComm(c.data || []); }).catch(() => { if (live()) setComm([]); }),
       apiRef.current.getHistory(id).then((h) => { if (live()) setHist(h.data || []); }).catch(() => { if (live()) setHist([]); }),
-      apiRef.current.getTasks(id).then((t) => { if (live()) setTasks((t.data || []).filter((x) => x.done !== 'true' || x.audience === 'customer')); }).catch(() => { if (live()) setTasks([]); }),
+      apiRef.current.getTasks(id).then((t) => {
+        if (live()) setTasks((t.data || []).filter((x) => x.done !== 'true' || x.audience === 'customer' || x.treatmentItem === 'true' || x.kind === 'treatment_item'));
+      }).catch(() => { if (live()) setTasks([]); }),
       apiRef.current.getReminders(id).then((rem) => { if (live()) setReminders(rem.data || []); }).catch(() => { if (live()) setReminders([]); }),
       apiRef.current.listMailFollowups(id).then(async (fu) => {
         if (live()) setMailFollowups(fu.data || []);
@@ -1097,6 +1099,31 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       setLinkUrl('');
     }
     await Promise.all([mailP, restP]);
+    if (!live()) return;
+    try {
+      const [taskRes, gi] = await Promise.all([
+        apiRef.current.getTasks(id),
+        apiRef.current.invokeGmail('list_imports', { claim_id: id }),
+      ]);
+      const imports = asMailRows(gi.data);
+      for (const t of (taskRes.data || [])) {
+        if (!isOpenTreatment(t) || !t.gmailThreadId || t.replyReceived === 'true') continue;
+        const hit = imports.find((im) => {
+          const tid = String(im.gmail_thread_id || '');
+          const mid = String(im.gmail_message_id || '');
+          const from = String(im.from_addr || '');
+          return tid === t.gmailThreadId && mid && mid !== t.gmailMessageId && !mailLooksOutgoing(from, OWN_MAILBOX);
+        });
+        if (!hit) continue;
+        await apiRef.current.saveTask({
+          ...t,
+          replyReceived: 'true',
+          gmailMessageId: String(hit.gmail_message_id || t.gmailMessageId || ''),
+        });
+      }
+    } catch {
+      /* keep existing mail/treatment lists */
+    }
   };
 
   const saveAskSelection = async (claimId: string, keys: string[]) => {
