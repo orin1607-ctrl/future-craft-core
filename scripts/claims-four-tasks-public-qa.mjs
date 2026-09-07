@@ -183,8 +183,9 @@ async function createClaim(page, client, plate, stamp) {
   await page.locator('[data-testid="claims-save-btn"]').click();
   await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 60000 });
   await page.waitForTimeout(600);
-  const header = `${await page.locator('.card-title-num').innerText().catch(() => '')} ${await page.locator('[data-testid="claims-card-snapshot"]').innerText().catch(() => '')}`;
+  const header = await page.locator('.card-title-num').innerText();
   const idFromUi = (header.match(/DAL-20\d{2}-\d{4}/) || [])[0] || '';
+  if (!idFromUi) throw new Error(`no claim id in card title: ${header}`);
   const created = idFromUi
     ? (await userDb.from('claims_records').select('id, client_name, plate, status, row_data').eq('id', idFromUi).maybeSingle()).data
     : (await userDb.from('claims_records').select('id, client_name, plate, status, row_data').eq('plate', plate).limit(1).maybeSingle()).data;
@@ -237,14 +238,18 @@ async function saveTreat(page, { action, note, continueWork, nextDate }) {
   const bar = page.locator('[data-testid="claims-treat-open"]');
   const treatBtn = (await bar.count()) ? bar.first() : page.locator('[data-testid="treat-open"]').first();
   await treatBtn.evaluate((el) => el.click());
-  await page.waitForSelector('[data-testid="treat-ops-v3"]', { timeout: 15000 });
+  await page.waitForSelector('[data-testid="treat-ops-v3"].open, .ov.open[data-testid="treat-ops-v3"]', { timeout: 15000 });
   if (action) await page.locator('[data-testid="treat-action"]').fill(action);
   if (note) await page.locator('[data-testid="treat-note"]').fill(note);
   await page.locator('[data-testid="treat-continue"]').selectOption(continueWork);
   const day = nextDate || new Date(Date.now() + 86400000).toISOString().slice(0, 10);
   await page.locator('[data-testid="treat-next"]').fill(day);
   await page.locator('[data-testid="treat-save"]').click();
-  await page.waitForTimeout(1500);
+  if (continueWork === 'continue') {
+    await page.waitForSelector('[data-testid="treat-center"].open, .ov.open[data-testid="treat-center"]', { timeout: 20000 });
+  } else {
+    await page.waitForTimeout(1500);
+  }
 }
 
 async function publicUpload(session, token, docRequestId, bytes, name) {
@@ -266,10 +271,25 @@ function searchBox(page) {
 }
 async function typeSearch(page, q) {
   const box = searchBox(page);
-  await box.click({ force: true });
-  await box.fill('');
-  await box.pressSequentially(q, { delay: 30 });
-  await page.waitForTimeout(400);
+  await box.waitFor({ state: 'visible', timeout: 15000 });
+  await box.evaluate((el, value) => {
+    const proto = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+    proto?.set?.call(el, value);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }, q);
+  await page.waitForTimeout(500);
+}
+async function visibleClaimIds(page) {
+  return page.evaluate(() => {
+    const rows = [...document.querySelectorAll('[data-testid^="claim-row-"]')];
+    return rows
+      .filter((el) => el.getAttribute('data-testid') !== 'claim-row-alerts')
+      .map((el) => ({
+        id: String(el.getAttribute('data-testid') || '').replace('claim-row-', ''),
+        text: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160),
+      }));
+  });
 }
 
 async function runSearchSuite(page, prefix, fixtures) {
@@ -279,13 +299,14 @@ async function runSearchSuite(page, prefix, fixtures) {
   await typeSearch(page, ELI);
   await page.waitForTimeout(800);
   await shot(page, `${prefix}-search-full`);
-  const fullText = await page.locator('body').innerText();
-  const hasA = await page.locator(`[data-testid="claim-row-${eliA.id}"]`).count();
-  const hasB = await page.locator(`[data-testid="claim-row-${eliB.id}"]`).count();
-  const hasSim = await page.locator(`[data-testid="claim-row-${similar.id}"]`).count();
-  rec(`${prefix}-full-name`, hasA > 0 && fullText.includes(ELI), { hasA, hasB });
-  rec(`${prefix}-multiple-claims`, hasA > 0 && hasB > 0, { hasA, hasB });
-  rec(`${prefix}-no-eli-cohen-leak`, hasSim === 0, { hasSim });
+  const fullRows = await visibleClaimIds(page);
+  const typed = await searchBox(page).inputValue().catch(() => '');
+  const hasA = fullRows.some((r) => r.id === eliA.id);
+  const hasB = fullRows.some((r) => r.id === eliB.id);
+  const hasSim = fullRows.some((r) => r.id === similar.id);
+  rec(`${prefix}-full-name`, hasA && typed.includes('אליהו') && typed.includes('אטיאס'), { hasA, hasB, typed, rows: fullRows.map((r) => r.id) });
+  rec(`${prefix}-multiple-claims`, hasA && hasB, { hasA, hasB });
+  rec(`${prefix}-no-eli-cohen-leak`, !hasSim, { hasSim });
 
   await typeSearch(page, 'אליהו');
   await page.waitForTimeout(600);
@@ -414,10 +435,11 @@ async function runRound(browser, session, round, fixtures) {
     await openClaimCard(page, client, claimId);
     await openTreatTab(page);
     const itemBtn = page.locator(`[data-testid="treat-item-${treatA?.id}"]`);
+    await itemBtn.waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
     rec(`r${round}-treat-list`, await itemBtn.count() > 0);
     if (await itemBtn.count()) await itemBtn.click();
-    await page.waitForSelector('[data-testid="treat-center"]', { timeout: 10000 });
-    rec(`r${round}-center-from-list`, await page.locator('[data-testid="treat-center-body"]').count() > 0);
+    await page.waitForSelector('[data-testid="treat-center"].open, .ov.open[data-testid="treat-center"]', { timeout: 15000 });
+    rec(`r${round}-center-from-list`, await page.locator('[data-testid="treat-center"].open [data-testid="treat-center-body"]').count() > 0);
     await shot(page, `r${round}-treat-center`);
     await page.locator('[data-testid="treat-center-close"]').click().catch(() => undefined);
 
@@ -567,16 +589,20 @@ async function runRound(browser, session, round, fixtures) {
     rec(`r${round}-two-treats`, Boolean(treatA) && Boolean(treatB) && treatA.id !== treatB?.id, { a: treatA?.id, b: treatB?.id });
 
     if (treatA) {
-      const curA = (await claimTasks(claimId)).find((t) => t.id === treatA.id);
-      if (curA && isOpenTreat(curA)) {
-        await userDb.from('claims_tasks').update({
-          row_data: { ...curA.row_data, done: 'true', workStatus: 'done', closedAt: new Date().toISOString(), closeReason: 'טופל — אין המשך' },
-        }).eq('id', treatA.id);
-        await userDb.from('claims_history').insert({
-          id: `HIS-QA-${stamp}`,
-          claim_id: claimId,
-          row_data: { action: 'טיפול נסגר', note: 'טופל — אין המשך · המשך בסטטוס הקיים', type: 'treatment', at: new Date().toLocaleString('he-IL'), by: 'QA' },
-        });
+      await closeOverlays(page);
+      await openClaimCard(page, client, claimId);
+      await openTreatTab(page);
+      const itemA = page.locator(`[data-testid="treat-item-${treatA.id}"]`);
+      if (await itemA.count()) await itemA.click();
+      await page.waitForSelector('[data-testid="treat-center"].open, .ov.open[data-testid="treat-center"]', { timeout: 15000 }).catch(() => undefined);
+      const closeBtn = page.locator('[data-testid="treat-close-done"]');
+      if (await closeBtn.count()) {
+        await closeBtn.click();
+        await page.waitForSelector('[data-testid="treat-ops-v3"].open, .ov.open[data-testid="treat-ops-v3"]', { timeout: 15000 });
+        await page.locator('[data-testid="treat-note"]').fill('טופל — אין המשך');
+        await page.locator('[data-testid="treat-continue"]').selectOption('done');
+        await page.locator('[data-testid="treat-save"]').click();
+        await page.waitForTimeout(1500);
       }
     }
     const statusAfter = (await userDb.from('claims_records').select('id, status').eq('id', claimId).maybeSingle()).data;
@@ -629,11 +655,15 @@ try {
   const fixtures = await createSearchFixtures(bootPage);
   fixtureIds.push(fixtures.eliA?.id, fixtures.eliB?.id, fixtures.similar?.id);
   rec('search-fixtures', Boolean(fixtures.eliA?.id && fixtures.eliB?.id && fixtures.similar?.id)
+    && fixtures.eliA.id !== fixtures.eliB.id && fixtures.eliA.id !== fixtures.similar.id
     && fixtures.eliA.client_name === ELI && fixtures.eliB.client_name === ELI && fixtures.similar.client_name === 'אליהו כהן', {
-    eliA: fixtures.eliA, eliB: fixtures.eliB, similar: fixtures.similar,
+    eliA: { id: fixtures.eliA?.id, name: fixtures.eliA?.client_name },
+    eliB: { id: fixtures.eliB?.id, name: fixtures.eliB?.client_name },
+    similar: { id: fixtures.similar?.id, name: fixtures.similar?.client_name },
   });
   await boot.close();
-  for (let r = 1; r <= 3; r++) {
+  const rounds = Number(process.env.CLAIMS_QA_ROUNDS || 3);
+  for (let r = 1; r <= rounds; r++) {
     await runRound(browser, session, r, fixtures);
   }
 } finally {
@@ -642,7 +672,7 @@ try {
 }
 
 const failed = report.checks.filter((c) => !c.ok);
-report.cleanThreeRounds = report.rounds.length === 3 && report.rounds.every((r) => r.pass);
+report.cleanThreeRounds = report.rounds.length >= 3 && report.rounds.every((r) => r.pass);
 report.verdicts = {
   TASK1: (() => { const xs = report.checks.filter((c) => /search|full-name|partial|clear|no-results|open-correct|multiple-claims/.test(c.name)); return xs.length && xs.every((c) => c.ok) ? 'PASS' : 'FAIL'; })(),
   TASK2: (() => { const xs = report.checks.filter((c) => /mail|thread|incoming|reply-composer|newest-open/.test(c.name)); return xs.length && xs.every((c) => c.ok) ? 'PASS' : 'FAIL'; })(),
