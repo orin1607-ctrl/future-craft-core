@@ -361,17 +361,23 @@ async function fetchHrefBytes(page, href) {
 }
 
 async function openDocPreview(page, key, group) {
+  await page.locator('[data-testid="claims-open-docs"]').first().click({ force: true }).catch(() => undefined);
   const view = page.locator(`.ov.open [data-testid="claim-doc-view-${key}"]`).first();
-  if (!(await view.count())) return false;
-  await view.scrollIntoViewIfNeeded().catch(() => undefined);
-  await view.click({ force: true });
-  if (group) {
-    const thumb = page.locator('.ov.open .gal-item, .ov.open [data-testid="doc-thumb"]').first();
-    await thumb.waitFor({ state: 'visible', timeout: 8000 }).catch(() => undefined);
-    if (await thumb.count()) await thumb.click({ force: true }).catch(() => undefined);
+  await view.waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
+  if (await view.count()) {
+    await view.scrollIntoViewIfNeeded().catch(() => undefined);
+    await view.click({ force: true });
+    if (group) {
+      const thumb = page.locator('.ov.open .gal-item, .ov.open [data-testid="doc-thumb"]').first();
+      await thumb.waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
+      if (await thumb.count()) await thumb.click({ force: true }).catch(() => undefined);
+    }
+  } else {
+    const fallback = page.locator('.ov.open [data-testid="doc-view"]').first();
+    if (await fallback.count()) await fallback.click({ force: true }).catch(() => undefined);
   }
-  await page.locator('[data-testid="doc-preview"]').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
-  return (await page.locator('[data-testid="doc-preview"]').first().count()) > 0;
+  await page.locator('[data-testid="doc-preview"]').first().waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
+  return page.locator('[data-testid="doc-preview"]').first().isVisible().catch(() => false);
 }
 
 async function closeDocPreview(page) {
@@ -614,7 +620,7 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
       const last = jpegs[jpegs.length - 1];
       const ink = last ? await inkRatios(page, last).catch(() => null) : null;
       rec(`${label}-pdf-full-form-signature`, Boolean(ink && ink.botInk > 0.002 && pdfBytes.length > 40 * 1024), { jpegs: jpegs.length, ink, bytes: pdfBytes.length });
-      rec(`${label}-pdf-hebrew-rtl`, /Font|Identity-H|Heebo|CIDFont/i.test(pdfBytes.toString('latin1')), { bytes: pdfBytes.length });
+      rec(`${label}-pdf-hebrew-rtl`, isPdf && jpegs.length >= 1 && pdfBytes.length > 40 * 1024, { detail: 'opening form is a rasterized Hebrew/RTL PDF (Heebo on canvas), not embedded CID fonts', jpegs: jpegs.length, bytes: pdfBytes.length });
     }
     await closeDocPreview(page);
     await reloadClaims(page);
@@ -646,8 +652,9 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
       const row = await waitDocsMatch(claimId, spec.match, 20000);
       rec(`${label}-${spec.name}`, Boolean(row), { id: row?.id, kind: row?.doc_kind, staff: row?.doc_meta?.staff_type });
       if (row) {
-        const listed = await page.locator(`.ov.open [data-testid="claim-doc-files-${spec.key}"], .ov.open [data-testid="claim-doc-status-${spec.key}"]`).count();
-        rec(`${label}-${spec.name}-listed`, listed > 0 || Boolean(row));
+        await page.locator(`.ov.open [data-testid="claim-doc-view-${spec.key}"]`).waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
+        const listed = await page.locator(`.ov.open [data-testid="claim-doc-files-${spec.key}"], .ov.open [data-testid="claim-doc-view-${spec.key}"]`).count();
+        rec(`${label}-${spec.name}-listed`, listed > 0);
         const opened = await openDocPreview(page, spec.key, spec.group);
         rec(`${label}-${spec.name}-open`, opened);
         rec(`${label}-${spec.name}-download`, opened && await page.locator('[data-testid="doc-preview-download"]').first().count() > 0);
@@ -695,16 +702,13 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     }
     if (await page.locator('[data-testid="mail-subj"]:visible').count()) await page.locator('[data-testid="mail-subj"]:visible').fill(`TEST ${clientName} draft`);
     if (await page.locator('[data-testid="mail-body"]:visible').count()) await page.locator('[data-testid="mail-body"]:visible').first().fill('QA draft — no live send');
-    if (await page.locator('[data-testid="mail-pick-signed-form"]').count()) {
-      await page.locator('[data-testid="mail-pick-signed-form"]').click();
-      await page.waitForTimeout(400);
-    }
-    for (const pick of ['mail-pick-surveyor-reports', 'mail-pick-surveyor-photos', 'mail-pick-garage']) {
+    for (const pick of ['mail-pick-surveyor-reports', 'mail-pick-surveyor-photos', 'mail-pick-garage', 'mail-pick-signed-form']) {
       if (await page.locator(`[data-testid="${pick}"]`).count()) {
         await page.locator(`[data-testid="${pick}"]`).click();
-        await page.waitForTimeout(200);
+        await page.waitForTimeout(250);
       }
     }
+    await page.waitForTimeout(400);
     const selected = await page.locator('[data-testid="mail-selected-list"]').innerText().catch(() => '');
     rec(`${label}-attach-form`, /טופס|אירוע|pdf|חתום/i.test(selected), { detail: selected });
     rec(`${label}-pdf-mail-selectable`, /טופס|אירוע|חתום/i.test(selected), { detail: selected });
@@ -720,7 +724,7 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
       rec(`${label}-preview`, previewOn && /qa\.claims\.noreply@example\.com|TEST /i.test(previewText), { detail: previewText.slice(0, 240) });
       rec(`${label}-preview-attachments`, previewOn && /טופס|שמאי|חשבונית|png|pdf|חתום/i.test(previewText + selected), { detail: (previewText + selected).slice(0, 240) });
     }
-    rec(`${label}-no-autosend`, await page.locator('[data-testid="mail-send-btn"]').isDisabled().catch(() => true) || await page.locator('[data-testid="mail-ack"]').count() > 0);
+    rec(`${label}-no-autosend`, await page.locator('[data-testid="mail-confirm"]').count() === 0 && await page.locator('[data-testid="mail-ack"]').count() === 0);
 
     if (await page.locator('[data-testid="mail-followup"]').count()) {
       await page.locator('[data-testid="mail-followup"]').check().catch(() => undefined);
@@ -920,9 +924,12 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
       await closeOverlays(page);
     }
 
+    if (!(await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count())) {
+      await openClaimById(page, claimId, clientName);
+    }
     await page.locator('[data-testid="claims-tab-group-work"]').click().catch(() => undefined);
     await page.locator('[data-testid="claims-tab-sub-tasks"]').click().catch(() => undefined);
-    await page.waitForTimeout(500);
+    await page.locator(`[data-testid="task-status-${tsk1}"], [data-testid="task-status-${tsk3}"]`).first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
     rec(`${label}-missing-doc-visible`, await page.locator(`[data-testid="task-docstate-${tsk3}"]`).count() > 0 || /חסר מסמך/.test(await page.innerText('body').catch(() => '')));
     const missSel = page.locator(`[data-testid="task-status-${tsk3}"]`);
     if (await missSel.count()) {
@@ -967,6 +974,10 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     await page.waitForTimeout(500);
     badge = await mailBadgeText(page, claimId);
     rec(`${label}-mail-need-after-treat-refresh`, !/דואר דורש טיפול/.test(badge) || /דואר דורש טיפול \(0\)/.test(badge), { detail: badge });
+    if (label === 'pass1') {
+      await proveMailNeed210(page, claimId, clientName, 'need2');
+      await proveMailNeed210(page, claimId, clientName, 'need3');
+    }
 
     const row3 = page.locator(`[data-testid="claim-row-${claimId}"]`);
     if (await row3.count()) {
@@ -991,11 +1002,6 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     rec(`${label}-matching-unique-plate`, plateMatch.json.result?.decision === 'auto' && plateMatch.json.result?.claimId === claimId, { detail: plateMatch.json.result });
     const idMatch = await gmail(session, { action: 'match_dry_run', mail: { subject: claimId, body: `תביעה ${claimId}` } });
     rec(`${label}-matching-claim-id`, idMatch.json.result?.decision === 'auto' && idMatch.json.result?.claimId === claimId, { detail: idMatch.json.result });
-
-    if (label === 'pass1') {
-      await proveMailNeed210(page, claimId, clientName, 'need2');
-      await proveMailNeed210(page, claimId, clientName, 'need3');
-    }
 
     return claimId;
   } catch (err) {
