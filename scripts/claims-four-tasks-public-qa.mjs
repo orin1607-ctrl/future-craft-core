@@ -173,8 +173,8 @@ async function fillIf(page, sel, value) {
 
 async function createClaim(page, client, plate, stamp) {
   await closeOverlays(page);
-  await page.locator('[data-testid="claims-open-new"]').click();
-  await page.waitForSelector('[data-testid="intake-name"]', { timeout: 20000 });
+  await page.locator('[data-testid="claims-open-new"]').evaluate((el) => el.click());
+  await page.waitForSelector('[data-testid="claims-new-modal"].open [data-testid="intake-name"], .ov.open[data-testid="claims-new-modal"] [data-testid="intake-name"]', { timeout: 20000 });
   const title = await page.locator('#mClaimT').innerText().catch(() => '');
   if (/עריכת תיק/.test(title)) {
     await page.evaluate(() => {
@@ -188,10 +188,11 @@ async function createClaim(page, client, plate, stamp) {
   await page.locator('[data-testid="intake-plate"]').fill(plate);
   await fillIf(page, '#in_co', 'הפניקס');
   await page.locator('[data-testid="intake-event-date"]').fill('2026-09-07');
-  await page.locator('[data-testid="claims-new-modal"].open, .ov.open[data-testid="claims-new-modal"]').waitFor({ timeout: 15000 }).catch(() => undefined);
+  await page.waitForSelector('[data-testid="claims-new-modal"].open, .ov.open[data-testid="claims-new-modal"]', { timeout: 15000 });
   await page.locator('[data-testid="claims-save-btn"]').click();
+  await page.locator('[data-testid="claims-new-modal"].open, .ov.open[data-testid="claims-new-modal"]').waitFor({ state: 'hidden', timeout: 60000 }).catch(() => undefined);
   let created = null;
-  for (let i = 0; i < 20 && !created; i++) {
+  for (let i = 0; i < 24 && !created; i++) {
     await page.waitForTimeout(500);
     created = (await userDb.from('claims_records').select('id, client_name, plate, status, row_data').eq('plate', plate).maybeSingle()).data;
   }
