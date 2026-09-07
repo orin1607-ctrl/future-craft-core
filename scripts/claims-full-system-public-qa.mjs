@@ -370,13 +370,14 @@ async function openDocPreview(page, key, group) {
     await thumb.waitFor({ state: 'visible', timeout: 8000 }).catch(() => undefined);
     if (await thumb.count()) await thumb.click({ force: true }).catch(() => undefined);
   }
-  await page.locator('[data-testid="doc-preview"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
-  return (await page.locator('[data-testid="doc-preview"]').count()) > 0;
+  await page.locator('[data-testid="doc-preview"]').first().waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
+  return (await page.locator('[data-testid="doc-preview"]').first().count()) > 0;
 }
 
 async function closeDocPreview(page) {
-  if (await page.locator('[data-testid="doc-preview-close"]').count()) {
-    await page.locator('[data-testid="doc-preview-close"]').click().catch(() => undefined);
+  const closeBtn = page.locator('[data-testid="doc-preview-close"]').first();
+  if (await closeBtn.count()) {
+    await closeBtn.click().catch(() => undefined);
     await page.waitForTimeout(200);
   }
 }
@@ -599,7 +600,7 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     await page.locator('[data-testid="claim-doc-view-accident_notice"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
     const pdfOpened = await openDocPreview(page, 'accident_notice', false);
     rec(`${label}-pdf-open`, pdfOpened);
-    const dl = page.locator('[data-testid="doc-preview-download"]');
+    const dl = page.locator('[data-testid="doc-preview-download"]').first();
     rec(`${label}-pdf-download`, await dl.count() > 0);
     let pdfBytes = null;
     if (await dl.count()) {
@@ -649,7 +650,7 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
         rec(`${label}-${spec.name}-listed`, listed > 0 || Boolean(row));
         const opened = await openDocPreview(page, spec.key, spec.group);
         rec(`${label}-${spec.name}-open`, opened);
-        rec(`${label}-${spec.name}-download`, opened && await page.locator('[data-testid="doc-preview-download"]').count() > 0);
+        rec(`${label}-${spec.name}-download`, opened && await page.locator('[data-testid="doc-preview-download"]').first().count() > 0);
         await closeDocPreview(page);
       }
     }
