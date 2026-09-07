@@ -113,8 +113,8 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
           <Field id="in_eplace" label="מקום / כתובת"><input className="fi" id="in_eplace" value={value.eventPlace} onChange={(e) => set('eventPlace', e.target.value)} /></Field>
           <Field id="in_ecity" label="יישוב"><input className="fi" id="in_ecity" value={value.eventCity} onChange={(e) => set('eventCity', e.target.value)} /></Field>
           <Field id="in_estreet" label="רחוב"><input className="fi" id="in_estreet" value={value.eventStreet} onChange={(e) => set('eventStreet', e.target.value)} /></Field>
-          <div className="fg full"><label className="fl">תיאור מפורט של התאונה</label><textarea className="fta" value={value.eventDesc} onChange={(e) => set('eventDesc', e.target.value)} /></div>
-          <div className="fg full"><label className="fl">תיאור הנזק</label><textarea className="fta" value={value.damageDesc} onChange={(e) => set('damageDesc', e.target.value)} /></div>
+          <div className="fg full"><label className="fl">תיאור מפורט של התאונה</label><textarea id="in_edesc" data-testid="intake-event-desc" className="fta" value={value.eventDesc} onChange={(e) => set('eventDesc', e.target.value)} /></div>
+          <div className="fg full"><label className="fl">תיאור הנזק</label><textarea id="in_edamage" data-testid="intake-damage-desc" className="fta" value={value.damageDesc} onChange={(e) => set('damageDesc', e.target.value)} /></div>
           <div className="fg full">
             <label className="fl">מיקום הנזק ברכב</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>

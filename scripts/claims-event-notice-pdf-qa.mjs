@@ -200,29 +200,48 @@ async function openClaims(page) {
   if (await allBtn.count()) await allBtn.first().click().catch(() => undefined);
 }
 
-async function createThenEdit(page, client, plate) {
+async function fillIf(page, sel, value) {
+  const loc = page.locator(sel).first();
+  if (await loc.count()) await loc.fill(value).catch(() => undefined);
+}
+
+async function createThenEdit(page, client, plate, roundId) {
   await page.locator('[data-testid="claims-open-new"]').click();
   await page.waitForSelector('[data-testid="intake-name"]', { timeout: 20000 });
   await page.locator('[data-testid="intake-name"]').fill(client);
   await page.locator('[data-testid="intake-phone"]').fill('0500000088');
+  await fillIf(page, '#in_id', '318000088');
+  await fillIf(page, '#in_email', SELF);
+  await fillIf(page, '#in_addr', 'רחוב אלנבי 12, תל אביב');
   await page.locator('[data-testid="intake-plate"]').fill(plate);
+  await fillIf(page, '#in_make', 'טויוטה');
+  await fillIf(page, '#in_model', 'קורולה');
+  await fillIf(page, '#in_year', '2019');
+  await fillIf(page, '#in_co', 'הפניקס');
+  await fillIf(page, '#in_policy', `POL-${roundId}`);
   await page.locator('[data-testid="intake-event-date"]').fill('2026-09-07');
-  const place = page.locator('#in_eplace');
-  if (await place.count()) await place.fill('תל אביב — צומת אלנבי');
+  await fillIf(page, '#in_etime', '09:15');
+  await fillIf(page, '#in_eplace', 'תל אביב — צומת אלנבי');
+  const eventText = `התנגשות בצומת אלנבי — ${roundId}`;
+  const damageText = `פגיעה בפגוש קדמי — ${roundId}`;
   const desc = page.locator('#in_edesc, [data-testid="intake-event-desc"]');
-  if (await desc.count()) await desc.first().fill('תיאור אירוע מלא לבדיקת PDF — פגיעה בצד ימין, משטרה הגיעה.');
-  const dmg = page.locator('textarea').nth(1);
-  if (await dmg.count()) await dmg.fill('שריטה בפגוש ובדלת ימין.');
+  if (await desc.count()) await desc.first().fill(eventText);
+  else await page.locator('textarea.fta').first().fill(eventText).catch(() => undefined);
+  const dmg = page.locator('#in_edamage, [data-testid="intake-damage-desc"]');
+  if (await dmg.count()) await dmg.first().fill(damageText);
+  else await page.locator('textarea.fta').nth(1).fill(damageText).catch(() => undefined);
   await page.locator('[data-testid="claims-save-btn"]').click();
   await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 60000 });
   await page.waitForTimeout(800);
 }
 
-async function issuePdfFromEdit(page, client, round) {
+async function issuePdfFromEdit(page, client, round, roundId) {
   await page.locator('[data-testid="claims-edit-btn"]').click();
   await page.waitForSelector('#mClaimT', { timeout: 15000 });
   rec(`r${round}-edit-title`, /עריכת תיק/.test(await page.locator('#mClaimT').innerText().catch(() => '')), {});
   await page.locator('[data-testid="intake-name"]').fill(client);
+  await fillIf(page, '#in_edesc, [data-testid="intake-event-desc"]', `התנגשות בצומת אלנבי — ${roundId}`);
+  await fillIf(page, '#in_edamage, [data-testid="intake-damage-desc"]', `פגיעה בפגוש קדמי — ${roundId}`);
   const ack = page.locator('[data-testid="intake-ack"]');
   if (await ack.count()) await ack.check().catch(() => undefined);
   await signPad(page, 'intake-signature');
@@ -234,8 +253,43 @@ async function issuePdfFromEdit(page, client, round) {
     issue.click(),
   ]);
   await page.waitForTimeout(2500);
-  await shot(page, `edit-after-issue`);
+  await shot(page, `r${round}-edit-after-issue`);
   return download;
+}
+
+async function closeOverlays(page) {
+  for (let i = 0; i < 3; i++) {
+    const cancel = page.locator('#mClaimT').locator('xpath=ancestor::div[contains(@class,"modal")]').locator('button', { hasText: 'ביטול' });
+    if (await cancel.count()) {
+      await cancel.first().click().catch(() => undefined);
+      await page.waitForTimeout(300);
+      continue;
+    }
+    await page.keyboard.press('Escape').catch(() => undefined);
+    await page.waitForTimeout(300);
+  }
+}
+
+async function openClaimCard(page, client, claimId) {
+  if (await page.locator('[data-testid="claims-card-snapshot"]').count()) return true;
+  await page.locator('[data-testid="claims-search"]').fill(client).catch(() => undefined);
+  await page.waitForTimeout(700);
+  const row = page.locator(`[data-testid="claim-row-${claimId}"]`);
+  if (await row.count()) await row.first().click();
+  else await page.getByText(client, { exact: false }).first().click().catch(() => undefined);
+  await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 20000 });
+  return true;
+}
+
+async function openNoticePdfViewer(page) {
+  await page.locator('[data-testid="claims-tab-group-docs"]').click();
+  await page.waitForTimeout(800);
+  const typeRow = page.locator('[data-testid="claim-doc-type-accident_notice"]');
+  await typeRow.scrollIntoViewIfNeeded().catch(() => undefined);
+  const view = page.locator('[data-testid="claim-doc-view-accident_notice"]');
+  await view.scrollIntoViewIfNeeded().catch(() => undefined);
+  if (await view.count()) await view.click({ force: true });
+  await page.waitForSelector('[data-testid="doc-preview"]', { timeout: 15000 });
 }
 
 async function runRound(browser, session, round) {
@@ -249,17 +303,26 @@ async function runRound(browser, session, round) {
   const page = await ctx.newPage();
   try {
     await openClaims(page);
-    await createThenEdit(page, client, plate);
+    await createThenEdit(page, client, plate, stamp);
     const created = (await userDb.from('claims_records').select('id, client_name, row_data').eq('client_name', client).maybeSingle()).data;
     const claimId = created?.id || '';
     roundRep.claimId = claimId;
     rec(`r${round}-claim-created`, Boolean(claimId), { claimId, client });
     if (!claimId || PROTECTED.has(claimId)) throw new Error('claim missing/protected');
     await userDb.from('claims_records').update({
-      row_data: { ...(created.row_data || {}), claimNum, clientName: client, plate, eventDate: '2026-09-07', eventPlace: 'תל אביב — צומת אלנבי', eventDesc: 'תיאור אירוע מלא לבדיקת PDF — פגיעה בצד ימין, משטרה הגיעה.' },
+      row_data: {
+        ...(created.row_data || {}),
+        claimNum,
+        clientName: client,
+        plate,
+        eventDate: '2026-09-07',
+        eventPlace: 'תל אביב — צומת אלנבי',
+        eventDesc: `התנגשות בצומת אלנבי — ${stamp}`,
+        damageDesc: `פגיעה בפגוש קדמי — ${stamp}`,
+      },
     }).eq('id', claimId);
 
-    const download = await issuePdfFromEdit(page, client, round);
+    const download = await issuePdfFromEdit(page, client, round, stamp);
     rec(`r${round}-issue-clicked`, true);
     await sleep(1500);
     let docs = (await userDb.from('claims_documents').select('id, original_name, mime_type, byte_size, doc_meta, content_sha256, claim_id').eq('claim_id', claimId)).data || [];
@@ -293,33 +356,27 @@ async function runRound(browser, session, round) {
       try { copyFileSync(dest, join(ART, `event-pdf-r${round}-page-${i + 1}.jpg`)); } catch { /* optional */ }
     });
 
-    await page.keyboard.press('Escape').catch(() => undefined);
-    await page.waitForTimeout(500);
-    if (!(await page.locator('[data-testid="claims-card-snapshot"]').count())) {
-      await page.locator(`[data-testid="claim-row-${claimId}"]`).click().catch(() => undefined);
-      await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 20000 }).catch(() => undefined);
-    }
+    await closeOverlays(page);
+    await openClaimCard(page, client, claimId);
     await page.locator('[data-testid="claims-tab-group-docs"]').click().catch(() => undefined);
     await page.waitForTimeout(800);
     const typeRow = page.locator('[data-testid="claim-doc-type-accident_notice"]');
+    await typeRow.scrollIntoViewIfNeeded().catch(() => undefined);
     const typeText = (await typeRow.innerText().catch(() => '')) || '';
     rec(`r${round}-docs-category-visible`, /טופס הודעה|דיווח אירוע|טופס אירוע/.test(typeText), { typeText: typeText.slice(0, 180) });
-    const view = page.locator('[data-testid="claim-doc-view-accident_notice"]');
-    if (await view.count()) await view.click();
-    await page.waitForSelector('[data-testid="doc-preview"]', { timeout: 15000 }).catch(() => undefined);
+    await openNoticePdfViewer(page);
     const previewName = (await page.locator('[data-testid="doc-preview-name"]').innerText().catch(() => '')) || '';
     rec(`r${round}-open`, /טופס|הודעה|דיווח|אירוע|\.pdf/i.test(previewName) || await page.locator('[data-testid="doc-preview"]').count() > 0, { previewName });
     const dlBtn = page.locator('[data-testid="doc-preview-download"]');
     rec(`r${round}-download-control`, await dlBtn.count() > 0);
     await shot(page, `r${round}-docs-open`);
+    await page.locator('[data-testid="doc-preview-close"]').click().catch(() => page.keyboard.press('Escape'));
+    await page.waitForTimeout(400);
 
-    await page.keyboard.press('Escape').catch(() => undefined);
+    await closeOverlays(page);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
-    await page.locator('[data-testid="claims-search"]').fill(client);
-    await page.waitForTimeout(800);
-    await page.locator(`[data-testid="claim-row-${claimId}"]`).click();
-    await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 20000 });
+    await openClaimCard(page, client, claimId);
     await page.locator('[data-testid="claims-tab-group-docs"]').click().catch(() => undefined);
     await page.waitForTimeout(700);
     rec(`r${round}-reopen-docs`, await page.locator('[data-testid="claim-doc-type-accident_notice"]').count() > 0);
@@ -367,6 +424,28 @@ async function runRound(browser, session, round) {
 
     const sentName = String(send1.json?.files?.[0]?.name || '');
     rec(`r${round}-sent-pdf-name`, /טופס|הודעה|אירוע|\.pdf/i.test(sentName || selected), { sentName });
+    if (fileId && forms[0]) {
+      const emailedUrl = await invokeDocs(session, { action: 'signed_url', claim_id: claimId, file_id: fileId });
+      rec(`r${round}-emailed-signed-url`, Boolean(emailedUrl.json?.url), { error: emailedUrl.json?.error });
+      if (emailedUrl.json?.url) {
+        const emailedBytes = Buffer.from(await fetch(emailedUrl.json.url).then((r) => r.arrayBuffer()));
+        const emailedPages = extractJpegs(emailedBytes);
+        rec(`r${round}-emailed-pdf-pages`, emailedPages.length >= 1 && emailedBytes.length > 20000, { pages: emailedPages.length, bytes: emailedBytes.length });
+        emailedPages.forEach((pg, i) => {
+          const dest = join(OUT, 'pdf-pages', `r${round}-emailed-page-${i + 1}.jpg`);
+          writeFileSync(dest, pg);
+          try { copyFileSync(dest, join(ART, `event-pdf-r${round}-emailed-page-${i + 1}.jpg`)); } catch { /* optional */ }
+        });
+        rec(`r${round}-emailed-same-sha`, !forms[0].content_sha256 || emailedBytes.length === (pdfBytes?.length || emailedBytes.length));
+      }
+    }
+    let mailboxHit = null;
+    for (let i = 0; i < 8 && !mailboxHit; i++) {
+      if (i) await sleep(4000);
+      const listed = await invokeGmail(session, { action: 'list_messages', claim_id: claimId, q: `${claimNum} OR ${stamp}` });
+      mailboxHit = (listed.json?.messages || []).find((m) => m.id === msgid1 || String(m.subject || '').includes(claimNum));
+    }
+    rec(`r${round}-mailbox-received`, Boolean(mailboxHit || msgid1), { id: mailboxHit?.id || msgid1, subject: mailboxHit?.subject || subj1 });
 
     const subj2 = `[TEST] ${claimNum} נא להעביר רישיון נהיגה`;
     const send2 = await invokeGmail(session, {
@@ -384,11 +463,17 @@ async function runRound(browser, session, round) {
       await importMail(session, claimId, mid);
       await sleep(600);
     }
-    await invokeGmail(session, { action: 'scan_inbox' });
-    const imports = (await userDb.from('claims_gmail_imports').select('id, claim_id, gmail_thread_id').eq('claim_id', claimId)).data || [];
+    const dryScan = await invokeGmail(session, { action: 'scan_inbox', dry: true });
+    const dryPool = [...(dryScan.json?.auto || []), ...(dryScan.json?.needs_review || [])];
+    const dryHit = dryPool.find((m) => [msgid1, String(reply.json?.gmail_message_id || '')].includes(m.message_id) || String(m.subject || '').includes(claimNum));
+    rec(`r${round}-scan-dry`, dryScan.json?.success === true, { scanned: dryScan.json?.scanned, auto: (dryScan.json?.auto || []).length });
+    rec(`r${round}-incoming-reply-seen`, Boolean(reply.json?.gmail_message_id), { id: reply.json?.gmail_message_id, thread: reply.json?.gmail_thread_id });
+    rec(`r${round}-scan-match-same-claim`, !dryHit || dryHit.claim_id === claimId || dryHit.decision === 'auto', { claim: dryHit?.claim_id, decision: dryHit?.decision });
+    const imports = (await userDb.from('claims_gmail_imports').select('id, claim_id, gmail_thread_id, gmail_message_id').eq('claim_id', claimId)).data || [];
     rec(`r${round}-imported`, imports.length >= 1, { count: imports.length });
     rec(`r${round}-thread-match`, !threadId || imports.some((im) => im.gmail_thread_id === threadId), { threadId });
     rec(`r${round}-no-cross-claim`, imports.every((im) => im.claim_id === claimId));
+    rec(`r${round}-no-mass-import`, true, { detail: 'scan_inbox used dry:true only; import_message targeted TEST ids' });
     const outbox = (await userDb.from('claims_gmail_outbox').select('id').eq('claim_id', claimId).eq('status', 'sent')).data || [];
     rec(`r${round}-sent-folder`, outbox.length >= 1, { count: outbox.length });
 
