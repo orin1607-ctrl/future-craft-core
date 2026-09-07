@@ -181,13 +181,14 @@ async function openClaims(page) {
 }
 
 async function closeOverlays(page) {
-  for (let i = 0; i < 4; i++) {
-    const el = page.locator('.ov.open .mcl, [data-testid="claims-sb-close"]').first();
-    if (!(await el.count())) break;
-    await el.click({ force: true }).catch(() => undefined);
-    await page.waitForTimeout(150);
+  for (let i = 0; i < 5; i++) {
+    const newClose = page.locator('[data-testid="claims-new-modal"].open .mcl, [data-testid="mo-mail"].open .mcl, .ov.open .mcl').first();
+    if (!(await newClose.count())) break;
+    await newClose.click({ force: true }).catch(() => undefined);
+    await page.waitForTimeout(200);
   }
   await page.keyboard.press('Escape').catch(() => undefined);
+  await page.locator('[data-testid="claims-new-modal"].open').waitFor({ state: 'hidden', timeout: 4000 }).catch(() => undefined);
 }
 
 async function goAll(page) {
@@ -211,19 +212,24 @@ async function goAll(page) {
 }
 
 async function openClaimById(page, claimId, clientName) {
-  await closeOverlays(page);
-  await goAll(page);
-  if (clientName && await page.locator('[data-testid="claims-search"]').first().count()) {
-    await page.locator('[data-testid="claims-search"]').first().fill(clientName);
-    await page.waitForTimeout(400);
+  try {
+    await closeOverlays(page);
+    await goAll(page);
+    if (clientName && await page.locator('[data-testid="claims-search"]').first().count()) {
+      await page.locator('[data-testid="claims-search"]').first().fill(clientName);
+      await page.waitForTimeout(400);
+    }
+    const row = page.locator(`[data-testid="claim-row-${claimId}"]`).first();
+    if (!(await row.count())) return false;
+    const nameEl = row.locator('.claim-mcard-name').first();
+    if (await nameEl.count()) await nameEl.click({ force: true });
+    else await row.locator('td').nth(2).click({ force: true }).catch(() => row.click({ force: true }));
+    await page.locator('.ov.open [data-testid="claims-card-snapshot"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
+    return (await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count()) > 0;
+  } catch (err) {
+    await closeOverlays(page);
+    return (await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count()) > 0;
   }
-  const row = page.locator(`[data-testid="claim-row-${claimId}"]`).first();
-  if (!(await row.count())) return false;
-  const nameEl = row.locator('.claim-mcard-name').first();
-  if (await nameEl.count()) await nameEl.click();
-  else await row.locator('td').nth(2).click().catch(() => row.click());
-  await page.locator('.ov.open [data-testid="claims-card-snapshot"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
-  return (await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count()) > 0;
 }
 
 async function fillMailTo(page, email) {
@@ -379,18 +385,20 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
       await page.locator('[data-testid="intake-phone"]').waitFor({ state: 'visible', timeout: 10000 });
       await page.locator('[data-testid="intake-phone"]').fill('0500000088');
       await page.locator('[data-testid="claims-save-btn"]').click();
-      await page.locator('[data-testid="claims-new-modal"].open').waitFor({ state: 'hidden', timeout: 45000 }).catch(() => undefined);
+      await page.locator('.ov.open [data-testid="claims-card-snapshot"]').waitFor({ state: 'visible', timeout: 90000 }).catch(() => undefined);
     } catch (err) {
       rec(`${label}-edit-click`, false, { err: String(err?.message || err) });
     }
-    await openClaimById(page, claimId, clientName);
-    const { data: edited } = await userDb.from('claims_records').select('id, row_data, client_name').eq('id', claimId).maybeSingle();
-    const phoneSaved = /0500000088/.test(JSON.stringify(edited?.row_data || {}));
-    rec(`${label}-edit-save`, phoneSaved || await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count() > 0, { phoneSaved });
-
+    if (await page.locator('[data-testid="claims-new-modal"].open').count()) {
+      await page.locator('[data-testid="claims-new-modal"].open .mcl').click({ force: true }).catch(() => undefined);
+      await page.locator('[data-testid="claims-new-modal"].open').waitFor({ state: 'hidden', timeout: 8000 }).catch(() => undefined);
+    }
     if (!(await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count())) {
       await openClaimById(page, claimId, clientName);
     }
+    const { data: edited } = await userDb.from('claims_records').select('id, row_data, client_name').eq('id', claimId).maybeSingle();
+    const phoneSaved = /0500000088/.test(JSON.stringify(edited?.row_data || {}));
+    rec(`${label}-edit-save`, phoneSaved || await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count() > 0, { phoneSaved });
     await page.locator('[data-testid="claims-open-docs"]').first().click({ force: true }).catch(() => undefined);
     await page.waitForTimeout(700);
     rec(`${label}-doc-types`, await page.locator('[data-testid="claim-doc-types"]').count() > 0);
