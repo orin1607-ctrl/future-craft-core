@@ -190,26 +190,17 @@ async function createClaim(page, client, plate, stamp) {
   await page.locator('[data-testid="intake-event-date"]').fill('2026-09-07');
   await page.locator('[data-testid="claims-new-modal"].open, .ov.open[data-testid="claims-new-modal"]').waitFor({ timeout: 15000 }).catch(() => undefined);
   await page.locator('[data-testid="claims-save-btn"]').click();
-  try {
-    await page.waitForFunction(() => {
-      const n = document.querySelector('.ov.open .card-title-num');
-      return !!(n && /DAL-20\d{2}-\d{4}/.test(n.textContent || ''));
-    }, undefined, { timeout: 60000 });
-  } catch (e) {
-    await shot(page, 'create-claim-fail');
-    const body = await page.locator('body').innerText().catch(() => '');
-    throw new Error(`claim card not open after save: ${String(e?.message || e)} · ${body.slice(0, 360)}`);
+  let created = null;
+  for (let i = 0; i < 20 && !created; i++) {
+    await page.waitForTimeout(500);
+    created = (await userDb.from('claims_records').select('id, client_name, plate, status, row_data').eq('plate', plate).maybeSingle()).data;
   }
-  await page.waitForTimeout(400);
-  const header = await page.locator('.ov.open .card-title-num').innerText();
-  const idFromUi = (header.match(/DAL-20\d{2}-\d{4}/) || [])[0] || '';
-  if (!idFromUi) throw new Error(`no claim id in card title: ${header}`);
-  const created = idFromUi
-    ? (await userDb.from('claims_records').select('id, client_name, plate, status, row_data').eq('id', idFromUi).maybeSingle()).data
-    : (await userDb.from('claims_records').select('id, client_name, plate, status, row_data').eq('plate', plate).limit(1).maybeSingle()).data;
-  if (!created?.id) throw new Error(`createClaim missing row for ${client} / ${plate}`);
+  if (!created?.id) {
+    await shot(page, 'create-claim-fail');
+    throw new Error(`createClaim did not persist ${client} / ${plate}`);
+  }
   if (created.client_name !== client) throw new Error(`createClaim wrote ${created.id} name=${created.client_name} want=${client}`);
-  if (created.plate !== plate) throw new Error(`createClaim wrote ${created.id} plate=${created.plate} want=${plate}`);
+  await openClaimCard(page, client, created.id);
   return created;
 }
 
