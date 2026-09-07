@@ -415,19 +415,30 @@ async function runRound(browser, session, round) {
     }
     rec(`r${round}-recurring-cancelled`, true);
 
+    await page.keyboard.press('Escape').catch(() => undefined);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
-    await page.locator('[data-testid="claims-search"]').fill(client).catch(() => undefined);
-    await page.waitForTimeout(800);
+    if (await page.locator('[data-testid="dash-all"]').count()) await page.locator('[data-testid="dash-all"]').click().catch(() => undefined);
+    await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
+    await page.waitForTimeout(600);
+    const search = page.locator('[data-testid="claims-search"]');
+    await search.waitFor({ state: 'visible', timeout: 30000 });
+    await search.fill(client);
     const row = page.locator(`[data-testid="claim-row-${claimId}"]`);
+    await row.first().waitFor({ state: 'visible', timeout: 25000 }).catch(() => undefined);
     rec(`r${round}-row-visible`, await row.count() > 0);
     const alerts = page.locator('[data-testid="claim-row-alerts"]').first();
     const alertText = (await alerts.innerText().catch(() => '')) || '';
     rec(`r${round}-mail-label`, /מייל חדש|דורשים טיפול/.test(alertText) || await page.locator('[data-testid="claim-alert-mail_action"]').count() > 0, { alertText });
     rec(`r${round}-status-in-table`, await row.locator('.st').count() > 0);
 
-    if (await row.count()) await row.click();
-    await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 30000 });
+    if (await row.count()) {
+      await row.first().click();
+      await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 30000 });
+    } else {
+      rec(`r${round}-mail-in-card`, false, { err: 'row missing' });
+    }
+    if (await page.locator('[data-testid="claims-card-snapshot"]').count()) {
     await page.locator('[data-testid="claims-tab-group-mail"]').click();
     await page.waitForTimeout(500);
     const gin = page.locator('[data-testid="claims-tab-sub-gin"]');
@@ -482,6 +493,7 @@ async function runRound(browser, session, round) {
     const docs2 = (await userDb.from('claims_documents').select('id, original_name, content_sha256').eq('claim_id', claimId)).data || [];
     rec(`r${round}-pdf-still-there`, pdfDocs(docs2).length >= 1);
     rec(`r${round}-same-pdf`, !forms[0]?.content_sha256 || docs2.some((d) => d.content_sha256 === forms[0].content_sha256));
+    }
 
     const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, locale: 'he-IL' });
     await inject(mobile, session);
