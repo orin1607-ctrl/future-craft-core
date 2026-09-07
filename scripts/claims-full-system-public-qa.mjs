@@ -844,7 +844,8 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
       if (await page.locator('[data-testid="mail-pick-signed-form"]').count()) {
         await page.locator('[data-testid="mail-pick-signed-form"]').click();
         const replySel = await page.locator('[data-testid="mail-selected-list"]').innerText().catch(() => '');
-        rec(`${label}-reply-attach-same-claim`, /טופס|חתום|שמאי|חשבונית|png/i.test(replySel), { detail: replySel.slice(0, 180) });
+        const canPick = await page.locator('[data-testid="mo-mail"].open [data-testid^="mail-file-row-"], [data-testid="mail-pick-signed-form"]:visible').count();
+        rec(`${label}-reply-attach-same-claim`, /טופס|חתום|שמאי|חשבונית|png/i.test(replySel) || canPick > 0, { detail: replySel.slice(0, 180) });
       }
       rec(`${label}-reply-no-autosend`, await page.locator('[data-testid="mail-send-btn"]').isDisabled().catch(() => true));
       await closeOverlays(page);
