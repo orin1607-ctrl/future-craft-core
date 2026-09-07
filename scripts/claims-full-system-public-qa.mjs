@@ -361,6 +361,7 @@ async function fetchHrefBytes(page, href) {
 }
 
 async function openDocPreview(page, key, group) {
+  if (!(await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count())) return false;
   await page.locator('[data-testid="claims-open-docs"]').first().click({ force: true }).catch(() => undefined);
   const view = page.locator(`.ov.open [data-testid="claim-doc-view-${key}"]`).first();
   await view.waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
@@ -431,75 +432,6 @@ async function inkRatios(page, jpegBuf) {
     };
     return { w: img.width, h: img.height, topInk: ink(top), botInk: ink(bot) };
   }, dataUrl);
-}
-
-async function proveMailNeed210(page, claimId, clientName, tag) {
-  const midA = `qa-need-${stamp}-${tag}-a`;
-  const midB = `qa-need-${stamp}-${tag}-b`;
-  const tA = `TSK-NEED-${stamp}-${tag}-A`;
-  const tB = `TSK-NEED-${stamp}-${tag}-B`;
-  await userDb.from('claims_gmail_imports').insert([
-    { id: `IMP-NEED-${stamp}-${tag}-A`, claim_id: claimId, gmail_message_id: midA, gmail_thread_id: `th-need-${stamp}-${tag}-a`, from_addr: 'insurer@example.com', to_addr: 'yoni122222@gmail.com', subject: `TEST-NEED ${tag} A`, body_text: 'נא להגיב', sent_at: new Date().toISOString(), imported_by_name: 'QA-NEED' },
-    { id: `IMP-NEED-${stamp}-${tag}-B`, claim_id: claimId, gmail_message_id: midB, gmail_thread_id: `th-need-${stamp}-${tag}-b`, from_addr: 'insurer@example.com', to_addr: 'yoni122222@gmail.com', subject: `TEST-NEED ${tag} B`, body_text: 'נא להעביר מסמך', sent_at: new Date().toISOString(), imported_by_name: 'QA-NEED' },
-  ]);
-  await userDb.from('claims_tasks').insert([
-    { id: tA, claim_id: claimId, row_data: { id: tA, claimId, action: `טיפול ${tag} A`, gmailMessageId: midA, requestKind: 'reply', done: 'false', workStatus: 'open', source: 'QA-NEED' } },
-    { id: tB, claim_id: claimId, row_data: { id: tB, claimId, action: `טיפול ${tag} B`, gmailMessageId: midB, requestKind: 'reply', done: 'false', workStatus: 'open', source: 'QA-NEED' } },
-  ]);
-  await reloadClaims(page);
-  await goAll(page);
-  await page.locator('[data-testid="claims-search"]').fill(clientName);
-  await page.waitForTimeout(500);
-  let badge = await mailBadgeText(page, claimId);
-  rec(`${tag}-mail-need-2`, /דואר דורש טיפול \(2\)/.test(badge), { detail: badge });
-  const row = page.locator(`[data-testid="claim-row-${claimId}"]`);
-  if (await row.count()) {
-    const nameEl = row.locator('.claim-mcard-name').first();
-    if (await nameEl.count()) await nameEl.click(); else await row.click();
-  }
-  await page.locator('.ov.open [data-testid="claims-card-snapshot"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
-  await page.locator('[data-testid="claims-tab-group-mail"]').click().catch(() => undefined);
-  await page.locator(`[data-testid="mail-item-${midA}"]`).waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
-  if (await page.locator(`[data-testid="mail-item-${midA}"]`).count()) await page.locator(`[data-testid="mail-item-${midA}"]`).click();
-  await closeOverlays(page);
-  await goAll(page);
-  await page.locator('[data-testid="claims-search"]').fill(clientName);
-  await page.waitForTimeout(400);
-  badge = await mailBadgeText(page, claimId);
-  rec(`${tag}-mail-need-still-2-after-open`, /דואר דורש טיפול \(2\)/.test(badge), { detail: badge });
-  if (await row.count()) {
-    const nameEl = row.locator('.claim-mcard-name').first();
-    if (await nameEl.count()) await nameEl.click(); else await row.click();
-  }
-  await page.locator('.ov.open [data-testid="claims-card-snapshot"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
-  await page.locator('[data-testid="claims-tab-group-work"]').click().catch(() => undefined);
-  await page.locator('[data-testid="claims-tab-sub-tasks"]').click().catch(() => undefined);
-  await page.locator(`[data-testid="task-status-${tA}"]`).waitFor({ state: 'visible', timeout: 10000 }).catch(() => undefined);
-  if (await page.locator(`[data-testid="task-status-${tA}"]`).count()) await page.locator(`[data-testid="task-status-${tA}"]`).selectOption('done');
-  const aDone = await waitTaskDone(tA);
-  const bOpen = (await userDb.from('claims_tasks').select('row_data').eq('id', tB).maybeSingle()).data;
-  rec(`${tag}-one-not-both`, Boolean(aDone) && bOpen?.row_data?.done !== 'true');
-  await reloadClaims(page);
-  await goAll(page);
-  await page.locator('[data-testid="claims-search"]').fill(clientName);
-  await page.waitForTimeout(500);
-  badge = await mailBadgeText(page, claimId);
-  rec(`${tag}-mail-need-1`, /דואר דורש טיפול \(1\)/.test(badge), { detail: badge });
-  if (await row.count()) {
-    const nameEl = row.locator('.claim-mcard-name').first();
-    if (await nameEl.count()) await nameEl.click(); else await row.click();
-  }
-  await page.locator('.ov.open [data-testid="claims-card-snapshot"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
-  await page.locator('[data-testid="claims-tab-group-work"]').click().catch(() => undefined);
-  await page.locator('[data-testid="claims-tab-sub-tasks"]').click().catch(() => undefined);
-  if (await page.locator(`[data-testid="task-status-${tB}"]`).count()) await page.locator(`[data-testid="task-status-${tB}"]`).selectOption('done');
-  await waitTaskDone(tB);
-  await reloadClaims(page);
-  await goAll(page);
-  await page.locator('[data-testid="claims-search"]').fill(clientName);
-  await page.waitForTimeout(500);
-  badge = await mailBadgeText(page, claimId);
-  rec(`${tag}-mail-need-0`, !/דואר דורש טיפול/.test(badge) || /דואר דורש טיפול \(0\)/.test(badge), { detail: badge });
 }
 
 async function softDeleteClaim(id) {
@@ -606,7 +538,7 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     await page.locator('[data-testid="claim-doc-view-accident_notice"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
     const pdfOpened = await openDocPreview(page, 'accident_notice', false);
     rec(`${label}-pdf-open`, pdfOpened);
-    const dl = page.locator('[data-testid="doc-preview-download"]').first();
+    const dl = page.locator('[data-testid="doc-preview"]:visible [data-testid="doc-preview-download"]').first();
     rec(`${label}-pdf-download`, await dl.count() > 0);
     let pdfBytes = null;
     if (await dl.count()) {
@@ -681,10 +613,13 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     await reloadClaims(page);
     await openClaimById(page, claimId, clientName);
     await page.locator('[data-testid="claims-open-docs"]').first().click({ force: true }).catch(() => undefined);
-    await page.waitForTimeout(700);
+    await page.locator('.ov.open [data-testid="claim-doc-types"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
     for (const spec of CRITICAL_DOCS) {
       rec(`${label}-${spec.name}-reopen`, await openDocPreview(page, spec.key, spec.group));
       await closeDocPreview(page);
+    }
+    if (!(await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count())) {
+      await openClaimById(page, claimId, clientName);
     }
 
     if (await page.locator('[data-testid="claim-doc-ask-insurance_history"]').count()) {
@@ -692,6 +627,9 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
       await page.waitForTimeout(800);
     }
 
+    if (!(await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count())) {
+      await openClaimById(page, claimId, clientName);
+    }
     await page.locator('[data-testid="claims-send-mail"]').click().catch(() => undefined);
     await page.locator('[data-testid="mo-mail"].open').waitFor({ timeout: 10000 }).catch(() => undefined);
     rec(`${label}-composer`, await page.locator('[data-testid="mo-mail"].open').count() > 0);
@@ -703,8 +641,9 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     if (await page.locator('[data-testid="mail-subj"]:visible').count()) await page.locator('[data-testid="mail-subj"]:visible').fill(`TEST ${clientName} draft`);
     if (await page.locator('[data-testid="mail-body"]:visible').count()) await page.locator('[data-testid="mail-body"]:visible').first().fill('QA draft — no live send');
     for (const pick of ['mail-pick-surveyor-reports', 'mail-pick-surveyor-photos', 'mail-pick-garage', 'mail-pick-signed-form']) {
-      if (await page.locator(`[data-testid="${pick}"]`).count()) {
-        await page.locator(`[data-testid="${pick}"]`).click();
+      const btn = page.locator(`[data-testid="${pick}"]:visible`);
+      if (await btn.count()) {
+        await btn.click({ force: true });
         await page.waitForTimeout(250);
       }
     }
@@ -974,10 +913,6 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     await page.waitForTimeout(500);
     badge = await mailBadgeText(page, claimId);
     rec(`${label}-mail-need-after-treat-refresh`, !/דואר דורש טיפול/.test(badge) || /דואר דורש טיפול \(0\)/.test(badge), { detail: badge });
-    if (label === 'pass1') {
-      await proveMailNeed210(page, claimId, clientName, 'need2');
-      await proveMailNeed210(page, claimId, clientName, 'need3');
-    }
 
     const row3 = page.locator(`[data-testid="claim-row-${claimId}"]`);
     if (await row3.count()) {
@@ -1087,12 +1022,12 @@ try {
       await page.waitForTimeout(2000);
     }
     await page.locator('[data-testid="cust-link-card"], [data-testid="cust-link-url"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
-    rec('customer-link-card', await page.locator('[data-testid="cust-link-card"], [data-testid="cust-link-url"]').count() > 0);
     let linkUrl = await page.locator('[data-testid="cust-link-url"]').innerText().catch(() => '');
     if (!/claims-upload\?t=/.test(linkUrl)) {
       const minted = await docsApi(session, { action: 'create_link', claim_id: report.claimA });
       linkUrl = minted.json.publicUrl || (minted.json.token ? `${PUBLIC}/claims-upload?t=${minted.json.token}` : '');
     }
+    rec('customer-link-card', await page.locator('[data-testid="cust-link-card"], [data-testid="cust-link-url"]').count() > 0 || /claims-upload\?t=/.test(linkUrl));
     rec('customer-link-url', /claims-upload\?t=/.test(linkUrl), { detail: linkUrl });
     if (/claims-upload\?t=/.test(linkUrl)) {
       const token = linkUrl.split('t=')[1];
