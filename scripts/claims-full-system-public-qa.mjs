@@ -349,15 +349,26 @@ async function reloadClaims(page) {
   await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
 }
 
-async function fetchHrefBytes(page, href) {
-  if (!href) return null;
-  try {
-    const res = await page.request.get(href);
-    if (!res.ok()) return null;
-    return Buffer.from(await res.body());
-  } catch {
-    return null;
+async function fetchPdfBytes(session, claimId, fileId, href) {
+  const tryUrl = async (url) => {
+    if (!url) return null;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const buf = Buffer.from(await res.arrayBuffer());
+      return buf.subarray(0, 4).toString() === '%PDF' ? buf : null;
+    } catch {
+      return null;
+    }
+  };
+  const fromHref = await tryUrl(href);
+  if (fromHref) return fromHref;
+  if (fileId) {
+    const signed = await docsApi(session, { action: 'signed_url', claim_id: claimId, file_id: fileId });
+    const fromApi = await tryUrl(signed.json.url);
+    if (fromApi) return fromApi;
   }
+  return null;
 }
 
 async function openDocPreview(page, key, group) {
@@ -543,8 +554,9 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     let pdfBytes = null;
     if (await dl.count()) {
       const href = await dl.getAttribute('href');
-      pdfBytes = await fetchHrefBytes(page, href);
+      pdfBytes = await fetchPdfBytes(session, claimId, signedRow?.id, href);
     }
+    if (!pdfBytes && signedRow?.id) pdfBytes = await fetchPdfBytes(session, claimId, signedRow.id, '');
     const isPdf = Boolean(pdfBytes && pdfBytes.length > 20 * 1024 && pdfBytes.subarray(0, 4).toString() === '%PDF');
     rec(`${label}-pdf-real`, isPdf, { bytes: pdfBytes?.length || 0 });
     if (isPdf) {
