@@ -165,10 +165,14 @@ async function signPad(page) {
 }
 
 async function shot(page, name) {
-  const path = join(OUT, 'screenshots', `${name}.png`);
-  await page.screenshot({ path, fullPage: false });
-  if (existsSync(ART)) copyFileSync(path, join(ART, `claims-fullqa-${name}.png`));
-  return path;
+  try {
+    const path = join(OUT, 'screenshots', `${name}.png`);
+    await page.screenshot({ path, fullPage: false });
+    try { if (existsSync(ART)) copyFileSync(path, join(ART, `claims-fullqa-${name}.png`)); } catch { /* artifact disk may be full */ }
+    return path;
+  } catch {
+    return '';
+  }
 }
 
 async function openClaims(page) {
@@ -176,26 +180,50 @@ async function openClaims(page) {
   await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
 }
 
+async function closeOverlays(page) {
+  for (let i = 0; i < 4; i++) {
+    const el = page.locator('.ov.open .mcl, [data-testid="claims-sb-close"]').first();
+    if (!(await el.count())) break;
+    await el.click({ force: true }).catch(() => undefined);
+    await page.waitForTimeout(150);
+  }
+  await page.keyboard.press('Escape').catch(() => undefined);
+}
+
 async function goAll(page) {
-  if (await page.locator('[data-testid="claims-sb-open"]').count()) {
+  await closeOverlays(page);
+  if (await page.locator('[data-testid="claims-sb-open"]').isVisible().catch(() => false)) {
     await page.locator('[data-testid="claims-sb-open"]').click().catch(() => undefined);
     await page.waitForTimeout(200);
   }
-  await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
-  if (await page.locator('[data-testid="claims-sb-close"]').count()) await page.locator('[data-testid="claims-sb-close"]').click().catch(() => undefined);
-  if (await page.locator('[data-testid="claims-sb-overlay"]').count()) await page.locator('[data-testid="claims-sb-overlay"]').click({ force: true }).catch(() => undefined);
-  if (await page.locator('[data-testid="claims-status-filter"]').count()) await page.locator('[data-testid="claims-status-filter"]').selectOption('').catch(() => undefined);
-  if (await page.locator('[data-testid="claims-search"]').count()) await page.locator('[data-testid="claims-search"]').fill('');
-  await page.waitForTimeout(250);
+  await page.locator('[data-testid="claims-nav-all"]').first().click({ force: true }).catch(() => undefined);
+  await page.waitForTimeout(350);
+  if (await page.locator('[data-testid="claims-sb-close"]').isVisible().catch(() => false)) {
+    await page.locator('[data-testid="claims-sb-close"]').click().catch(() => undefined);
+  }
+  if (await page.locator('[data-testid="claims-status-filter"]').first().count()) {
+    await page.locator('[data-testid="claims-status-filter"]').first().selectOption('').catch(() => undefined);
+  }
+  if (await page.locator('[data-testid="claims-search"]').first().count()) {
+    await page.locator('[data-testid="claims-search"]').first().fill('');
+  }
+  await page.locator('[data-testid="claims-search"]').first().waitFor({ state: 'visible', timeout: 8000 }).catch(() => undefined);
 }
 
-async function closeOverlays(page) {
-  for (const sel of ['[data-testid="mo-mail"].open .mcl', '[data-testid="claims-new-modal"].open .mcl', '.ov.open .mcl']) {
-    const el = page.locator(sel).first();
-    if (await el.count()) await el.click().catch(() => undefined);
+async function openClaimById(page, claimId, clientName) {
+  await closeOverlays(page);
+  await goAll(page);
+  if (clientName && await page.locator('[data-testid="claims-search"]').first().count()) {
+    await page.locator('[data-testid="claims-search"]').first().fill(clientName);
+    await page.waitForTimeout(400);
   }
-  await page.keyboard.press('Escape').catch(() => undefined);
-  await page.waitForTimeout(200);
+  const row = page.locator(`[data-testid="claim-row-${claimId}"]`).first();
+  if (!(await row.count())) return false;
+  const nameEl = row.locator('.claim-mcard-name').first();
+  if (await nameEl.count()) await nameEl.click();
+  else await row.locator('td').nth(2).click().catch(() => row.click());
+  await page.locator('.ov.open [data-testid="claims-card-snapshot"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
+  return (await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count()) > 0;
 }
 
 async function fillMailTo(page, email) {
@@ -344,55 +372,41 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     rec(`${label}-assigned`, Boolean(created?.assigned_to));
 
     try {
-      await page.locator('[data-testid="claims-edit-btn"]').click();
+      if (!(await page.locator('.ov.open [data-testid="claims-edit-btn"]').count())) {
+        await openClaimById(page, claimId, clientName);
+      }
+      await page.locator('[data-testid="claims-edit-btn"]').first().click({ force: true });
       await page.locator('[data-testid="intake-phone"]').waitFor({ state: 'visible', timeout: 10000 });
       await page.locator('[data-testid="intake-phone"]').fill('0500000088');
       await page.locator('[data-testid="claims-save-btn"]').click();
       await page.locator('[data-testid="claims-new-modal"].open').waitFor({ state: 'hidden', timeout: 45000 }).catch(() => undefined);
-      const cardOpen = page.locator('.ov.open [data-testid="claims-card-snapshot"]');
-      await cardOpen.waitFor({ state: 'visible', timeout: 45000 }).catch(() => undefined);
-      if (!(await cardOpen.count())) {
-        await closeOverlays(page);
-        await goAll(page);
-        await page.locator('[data-testid="claims-search"]').fill(clientName);
-        await page.waitForTimeout(400);
-        const row = page.locator(`[data-testid="claim-row-${claimId}"]`);
-        if (await row.count()) {
-          const nameEl = row.locator('.claim-mcard-name, td >> nth=2').first();
-          if (await nameEl.count()) await nameEl.click();
-          else await row.click();
-          await page.waitForTimeout(800);
-        }
-      }
-      const { data: edited } = await userDb.from('claims_records').select('id, row_data, client_name').eq('id', claimId).maybeSingle();
-      const phoneSaved = /0500000088/.test(JSON.stringify(edited?.row_data || {}));
-      rec(`${label}-edit-save`, await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count() > 0 || phoneSaved, { phoneSaved });
     } catch (err) {
-      rec(`${label}-edit-save`, false, { err: String(err?.message || err) });
-      await closeOverlays(page);
-      await goAll(page);
-      await page.locator('[data-testid="claims-search"]').fill(clientName);
-      await page.waitForTimeout(400);
-      const row = page.locator(`[data-testid="claim-row-${claimId}"]`);
-      if (await row.count()) {
-        const nameEl = row.locator('.claim-mcard-name, td >> nth=2').first();
-        if (await nameEl.count()) await nameEl.click(); else await row.click();
-        await page.waitForTimeout(800);
-      }
+      rec(`${label}-edit-click`, false, { err: String(err?.message || err) });
     }
+    await openClaimById(page, claimId, clientName);
+    const { data: edited } = await userDb.from('claims_records').select('id, row_data, client_name').eq('id', claimId).maybeSingle();
+    const phoneSaved = /0500000088/.test(JSON.stringify(edited?.row_data || {}));
+    rec(`${label}-edit-save`, phoneSaved || await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count() > 0, { phoneSaved });
 
-    await page.locator('[data-testid="claims-open-docs"]').click().catch(() => undefined);
+    if (!(await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count())) {
+      await openClaimById(page, claimId, clientName);
+    }
+    await page.locator('[data-testid="claims-open-docs"]').first().click({ force: true }).catch(() => undefined);
     await page.waitForTimeout(700);
     rec(`${label}-doc-types`, await page.locator('[data-testid="claim-doc-types"]').count() > 0);
     rec(`${label}-event-slot`, await page.locator('[data-testid="claim-doc-type-accident_notice"]').count() > 0);
 
-    if (await page.locator('[data-testid="claim-event-form-sign"]').count()) {
-      await page.locator('[data-testid="claim-event-form-sign"]').click();
+    const signBtn = page.locator('[data-testid="claim-event-form-sign"]').first();
+    if (await signBtn.count()) {
+      await signBtn.scrollIntoViewIfNeeded().catch(() => undefined);
+      await signBtn.click({ force: true }).catch(() => undefined);
       await page.locator('[data-testid="claim-event-form-sign-pad"]').waitFor({ state: 'visible', timeout: 10000 }).catch(() => undefined);
-      await signPad(page);
-      if (await page.locator('[data-testid="claim-event-form-sign-save"]').count()) {
-        await page.locator('[data-testid="claim-event-form-sign-save"]').click();
-        await page.waitForTimeout(2500);
+      if (await page.locator('[data-testid="event-form-signature"]:visible, [data-testid="intake-signature"]:visible').count()) {
+        await signPad(page);
+        if (await page.locator('[data-testid="claim-event-form-sign-save"]').count()) {
+          await page.locator('[data-testid="claim-event-form-sign-save"]').click({ force: true });
+          await page.waitForTimeout(3000);
+        }
       }
     }
     let docs = await docsFor(claimId);
@@ -415,20 +429,25 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     writeFileSync(front, PNG_FRONT);
     writeFileSync(back, PNG_BACK);
     writeFileSync(extraPng, PNG);
-    if (await page.locator('[data-testid="claim-doc-upload-license_driver-front"]').count()) {
-      await page.setInputFiles('[data-testid="claim-doc-upload-license_driver-front"]', front);
+    if (await page.locator('.ov.open [data-testid="claim-doc-upload-license_driver-front"]').count()) {
+      await page.setInputFiles('.ov.open [data-testid="claim-doc-upload-license_driver-front"]', front);
       await page.waitForTimeout(1600);
-      await page.setInputFiles('[data-testid="claim-doc-upload-license_driver-back"]', back);
+      await page.setInputFiles('.ov.open [data-testid="claim-doc-upload-license_driver-back"]', back);
       await page.waitForTimeout(1600);
     }
     for (const key of DOC_UPLOAD_KEYS) {
-      const inp = page.locator(`[data-testid="claim-doc-upload-${key}"]`);
+      const inp = page.locator(`.ov.open [data-testid="claim-doc-upload-${key}"]`);
       if (await inp.count()) {
         await inp.setInputFiles(extraPng);
-        await page.waitForTimeout(700);
+        await page.waitForTimeout(900);
       }
     }
-    docs = await docsFor(claimId);
+    for (let i = 0; i < 10; i++) {
+      docs = await docsFor(claimId);
+      if (docs.some((d) => d.doc_kind === 'surveyor_report' || d.doc_meta?.staff_type === 'surveyor_report')
+        && docs.some((d) => d.doc_meta?.staff_type === 'vehicle_license')) break;
+      await page.waitForTimeout(700);
+    }
     rec(`${label}-license-both`, docs.filter((d) => d.doc_meta?.staff_type === 'driver_license').length >= 2, { count: docs.filter((d) => d.doc_meta?.staff_type === 'driver_license').length });
     rec(`${label}-surveyor-report`, docs.some((d) => d.doc_kind === 'surveyor_report' || d.doc_meta?.staff_type === 'surveyor_report'));
     rec(`${label}-surveyor-photos`, docs.some((d) => d.doc_kind === 'surveyor_photo'));
@@ -504,10 +523,12 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
       }
     }
     await closeOverlays(page);
-
-    if (await page.locator('[data-testid="claims-tab-group-mail"]').count()) await page.locator('[data-testid="claims-tab-group-mail"]').click();
+    if (!(await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count())) {
+      await openClaimById(page, claimId, clientName);
+    }
+    await page.locator('[data-testid="claims-tab-group-mail"]').first().click({ force: true }).catch(() => undefined);
     await page.waitForTimeout(300);
-    if (await page.locator('[data-testid="claims-tab-sub-mailfu"]').count()) await page.locator('[data-testid="claims-tab-sub-mailfu"]').click();
+    await page.locator('[data-testid="claims-tab-sub-mailfu"]').first().click({ force: true }).catch(() => undefined);
     await page.waitForTimeout(400);
     const fuCancel = page.locator('[data-testid^="fu-cancel-"]:visible').first();
     rec(`${label}-fu-cancel-visible`, await page.locator('[data-testid^="fu-cancel-"]').count() > 0);
@@ -813,8 +834,7 @@ try {
       const revokedCtx = await browser.newContext({ locale: 'he-IL' });
       const rp = await revokedCtx.newPage();
       await rp.goto(linkUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
-      await rp.waitForTimeout(4000);
-      await rp.getByText(/בוטל|פג|לא תקף|אין קישור|העלאת מסמכים/).first().waitFor({ timeout: 20000 }).catch(() => undefined);
+      await rp.locator('text=טוען').waitFor({ state: 'hidden', timeout: 25000 }).catch(() => undefined);
       const revText = await rp.innerText('body').catch(() => '');
       rec('customer-revoked-blocked', /בוטל|פג|לא תקף|revoke|expired|אין קישור/i.test(revText), { detail: revText.slice(0, 160) });
       await revokedCtx.close();
