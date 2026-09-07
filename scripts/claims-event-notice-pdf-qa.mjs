@@ -258,37 +258,41 @@ async function issuePdfFromEdit(page, client, round, roundId) {
 }
 
 async function closeOverlays(page) {
-  for (let i = 0; i < 3; i++) {
-    const cancel = page.locator('#mClaimT').locator('xpath=ancestor::div[contains(@class,"modal")]').locator('button', { hasText: 'ביטול' });
-    if (await cancel.count()) {
-      await cancel.first().click().catch(() => undefined);
-      await page.waitForTimeout(300);
-      continue;
-    }
-    await page.keyboard.press('Escape').catch(() => undefined);
-    await page.waitForTimeout(300);
+  const editClose = page.locator('[data-testid="claims-new-modal"] button.mcl');
+  if (await editClose.count()) {
+    await editClose.first().click({ force: true }).catch(() => undefined);
+    await page.waitForTimeout(500);
+  }
+  const cancel = page.getByRole('button', { name: 'ביטול' });
+  if (await cancel.count() && await cancel.first().isVisible().catch(() => false)) {
+    await cancel.first().click({ force: true }).catch(() => undefined);
+    await page.waitForTimeout(400);
   }
 }
 
 async function openClaimCard(page, client, claimId) {
-  if (await page.locator('[data-testid="claims-card-snapshot"]').count()) return true;
+  const snap = page.locator('[data-testid="claims-card-snapshot"]');
+  if (await snap.isVisible().catch(() => false)) return true;
   await page.locator('[data-testid="claims-search"]').fill(client).catch(() => undefined);
   await page.waitForTimeout(700);
   const row = page.locator(`[data-testid="claim-row-${claimId}"]`);
   if (await row.count()) await row.first().click();
   else await page.getByText(client, { exact: false }).first().click().catch(() => undefined);
-  await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 20000 });
+  await snap.waitFor({ state: 'visible', timeout: 20000 });
   return true;
 }
 
 async function openNoticePdfViewer(page) {
-  await page.locator('[data-testid="claims-tab-group-docs"]').click();
+  const docsTab = page.locator('[data-testid="claims-tab-group-docs"]');
+  await docsTab.waitFor({ state: 'visible', timeout: 15000 });
+  await docsTab.click({ force: true });
   await page.waitForTimeout(800);
   const typeRow = page.locator('[data-testid="claim-doc-type-accident_notice"]');
   await typeRow.scrollIntoViewIfNeeded().catch(() => undefined);
   const view = page.locator('[data-testid="claim-doc-view-accident_notice"]');
+  await view.waitFor({ state: 'visible', timeout: 15000 });
   await view.scrollIntoViewIfNeeded().catch(() => undefined);
-  if (await view.count()) await view.click({ force: true });
+  await view.click({ force: true });
   await page.waitForSelector('[data-testid="doc-preview"]', { timeout: 15000 });
 }
 
