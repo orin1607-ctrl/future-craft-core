@@ -295,6 +295,14 @@ try {
     await page.locator('[data-testid="claim-event-form-sign-save"]').click();
     await page.waitForTimeout(2800);
   }
+  if (await page.locator('[data-testid="claim-doc-view-accident_notice"]').count()) {
+    await page.locator('[data-testid="claim-doc-view-accident_notice"]').click();
+    await page.locator('[data-testid="doc-preview"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
+    rec('pdf-preview-open', await page.locator('[data-testid="doc-preview"]').count() > 0);
+    rec('pdf-preview-download-btn', await page.locator('[data-testid="doc-preview-download"]').count() > 0);
+    await shot(page, 'm390-pdf-preview');
+    if (await page.locator('[data-testid="doc-preview-close"]').count()) await page.locator('[data-testid="doc-preview-close"]').click().catch(() => undefined);
+  }
 
   let docs = [];
   for (let i = 0; i < 14; i++) {
@@ -382,14 +390,12 @@ try {
     await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 20000 });
   }
   await page.locator('[data-testid="claims-open-docs"]').click();
-  await page.waitForTimeout(800);
+  await page.locator('[data-testid="claim-doc-view-accident_notice"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
   if (await page.locator('[data-testid="claim-doc-view-accident_notice"]').count()) {
     await page.locator('[data-testid="claim-doc-view-accident_notice"]').click();
     await page.locator('[data-testid="doc-preview"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
   }
-  rec('pdf-preview-open', await page.locator('[data-testid="doc-preview"]').count() > 0);
-  rec('pdf-preview-download-btn', await page.locator('[data-testid="doc-preview-download"]').count() > 0);
-  await shot(page, 'm390-pdf-preview');
+  rec('pdf-preview-reopen', await page.locator('[data-testid="doc-preview"]').count() > 0);
 
   await page.locator('[data-testid="claims-send-mail"]').click();
   await page.locator('[data-testid="mo-mail"].open').waitFor({ timeout: 10000 }).catch(() => undefined);

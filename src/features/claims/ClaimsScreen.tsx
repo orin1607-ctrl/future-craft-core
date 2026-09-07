@@ -2491,31 +2491,29 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="mh">
               <div>
                 <div className="card-title-name">{cur.clientName || '—'}</div>
-                <div className="card-title-num">מספר תביעה: {displayClaimNum(cur)}</div>
+                <div className="card-title-num">מספר תביעה: {displayClaimNum(cur)}{cur.id ? ` · ${cur.id}` : ''}</div>
               </div>
-              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
+                {phoneNarrow ? (
+                  <button
+                    type="button"
+                    className="card-snap-toggle"
+                    data-testid="claims-card-snap-toggle"
+                    aria-expanded={!cardSnapCollapsed}
+                    onClick={() => setCardSnapCollapsed((v) => !v)}
+                  >
+                    <span>{cardSnapCollapsed ? 'פרטי תיק' : 'כיווץ'}</span>
+                    <span aria-hidden>{cardSnapCollapsed ? '▾' : '▴'}</span>
+                  </button>
+                ) : null}
                 <button className="btn btn-g btn-sm" data-testid="claims-edit-btn" onClick={() => startEdit(cur.id)}>ערוך</button>
                 <button className="mcl" onClick={() => setModal(null)}>✕</button>
               </div>
             </div>
             <div className={`card-snap${phoneNarrow && cardSnapCollapsed ? ' is-collapsed' : ''}`} data-testid="claims-card-snapshot">
-              {phoneNarrow ? (
-                <button
-                  type="button"
-                  className="card-snap-toggle"
-                  data-testid="claims-card-snap-toggle"
-                  aria-expanded={!cardSnapCollapsed}
-                  onClick={() => setCardSnapCollapsed((v) => !v)}
-                >
-                  <span>{cardSnapCollapsed ? 'פתח פרטי תיק' : 'כיווץ פרטי תיק'}</span>
-                  <span aria-hidden>{cardSnapCollapsed ? '▾' : '▴'}</span>
-                </button>
-              ) : null}
               {phoneNarrow && cardSnapCollapsed ? (
                 <div className="card-snap-compact" data-testid="claims-card-snap-compact">
-                  <div className="card-snap-compact-name">{cur.clientName || '—'}</div>
                   <div className="card-snap-compact-meta">
-                    <span>{displayClaimNum(cur)}</span>
                     <span>{stBadge(cur.status)}</span>
                     {returnNeededLabel(cur) === 'כן' ? <span className="card-snap-compact-need">דורש טיפול</span> : null}
                   </div>
@@ -2562,7 +2560,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button className="ab-btn ab-task ab-pri" data-testid="claims-cust-request" onClick={() => { setCardMore(false); openCustomerRequest(); }}>בקשה ללקוח</button>
                 <button className="ab-btn ab-status ab-pri" data-testid="claims-treat-open" onClick={() => { setCardMore(false); openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk }); }}>עדכון טיפול</button>
                 <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>מסמכים</button>
-                {!narrowList ? (
+                {!(narrowList || phoneNarrow) ? (
                   <button className="ab-btn ab-mail ab-pri" data-testid="claims-sign-link" onClick={() => { setCardMore(false); void sendCustomerSignLink(cur.id); }}>שלח ללקוח לחתימה</button>
                 ) : null}
               </div>
@@ -2571,7 +2569,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 {cardMore ? <div className="ab-more-ov" data-testid="claims-card-more-ov" onClick={() => setCardMore(false)} /> : null}
                 {cardMore ? (
                   <div className="ab-more-panel" data-testid="claims-card-more-panel">
-                    {narrowList ? (
+                    {(narrowList || phoneNarrow) ? (
                       <button className="ab-btn ab-mail" data-testid="claims-sign-link" onClick={() => { setCardMore(false); void sendCustomerSignLink(cur.id); }}>שלח ללקוח לחתימה</button>
                     ) : null}
                     <button className="ab-btn ab-phone" onClick={() => { setCardMore(false); setModal('moCall'); }}>שיחה</button>
