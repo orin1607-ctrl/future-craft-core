@@ -157,8 +157,12 @@ function isOpenTreat(t) {
 async function openClaims(page) {
   await page.goto(`${PUBLIC}/claims`, { waitUntil: 'domcontentloaded', timeout: 120000 });
   await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
-  const allBtn = page.getByRole('button', { name: /הכול|כל התביעות/ });
-  if (await allBtn.count()) await allBtn.first().click().catch(() => undefined);
+  const mine = page.locator('[data-testid="claims-mine-toggle"]');
+  if (await mine.count()) {
+    const label = (await mine.first().innerText().catch(() => '')) || '';
+    if (/שלי|התביעות שלי/.test(label)) await mine.first().click();
+  }
+  await page.waitForTimeout(400);
 }
 
 async function fillIf(page, sel, value) {
@@ -211,15 +215,21 @@ async function openClaimCard(page, client, claimId) {
 }
 
 async function openTreatTab(page) {
-  await page.locator('[data-testid="claims-tab-group-work"]').click().catch(() => undefined);
-  await page.waitForTimeout(300);
-  const sub = page.locator('[data-testid="claims-tab-sub-treat"]');
-  if (await sub.count()) await sub.click().catch(() => undefined);
+  const snap = page.locator('[data-testid="claims-card-snap-toggle"]');
+  if (await snap.count()) {
+    const exp = await snap.getAttribute('aria-expanded');
+    if (exp === 'false') await snap.click().catch(() => undefined);
+  }
+  await page.locator('[data-testid="claims-tab-group-work"]').waitFor({ state: 'visible', timeout: 20000 });
+  await page.locator('[data-testid="claims-tab-group-work"]').click();
   await page.waitForTimeout(400);
+  const sub = page.locator('[data-testid="claims-tab-sub-treat"]');
+  if (await sub.count()) await sub.click();
+  await page.waitForSelector('[data-testid="treat-open"]', { timeout: 15000 });
 }
 
 async function saveTreat(page, { action, note, continueWork, nextDate }) {
-  await page.getByRole('button', { name: 'עדכון טיפול' }).first().click();
+  await page.locator('[data-testid="treat-open"]').first().click();
   await page.waitForSelector('[data-testid="treat-ops-v3"]', { timeout: 15000 });
   if (action) await page.locator('[data-testid="treat-action"]').fill(action);
   if (note) await page.locator('[data-testid="treat-note"]').fill(note);
@@ -244,34 +254,37 @@ async function publicUpload(session, token, docRequestId, bytes, name) {
   return { status: res.status, json: await res.json().catch(() => ({})) };
 }
 
-async function runSearchSuite(page, prefix) {
+async function runSearchSuite(page, prefix, fixtures) {
+  const { eliA, eliB, similar } = fixtures;
   await closeOverlays(page);
   await page.locator('[data-testid="claims-search"]').fill(ELI);
   await page.waitForTimeout(800);
   await shot(page, `${prefix}-search-full`);
-  const fullRows = await page.locator('[data-testid^="claim-row-"]').count();
   const fullText = await page.locator('body').innerText();
-  rec(`${prefix}-full-name`, fullRows >= 1 && fullText.includes(ELI), { rows: fullRows });
-  rec(`${prefix}-no-eli-cohen-leak`, !/אליהו כהן/.test(fullText) || fullText.includes(ELI), { detail: 'full name should keep אליהו אטיאס' });
+  const hasA = await page.locator(`[data-testid="claim-row-${eliA.id}"]`).count();
+  const hasB = await page.locator(`[data-testid="claim-row-${eliB.id}"]`).count();
+  const hasSim = await page.locator(`[data-testid="claim-row-${similar.id}"]`).count();
+  rec(`${prefix}-full-name`, hasA > 0 && fullText.includes(ELI), { hasA, hasB });
+  rec(`${prefix}-multiple-claims`, hasA > 0 && hasB > 0, { hasA, hasB });
+  rec(`${prefix}-no-eli-cohen-leak`, hasSim === 0, { hasSim });
 
   await page.locator('[data-testid="claims-search"]').fill('אליהו');
   await page.waitForTimeout(600);
-  rec(`${prefix}-partial-first`, await page.locator('[data-testid^="claim-row-"]').count() >= 1);
+  rec(`${prefix}-partial-first`, (await page.locator(`[data-testid="claim-row-${eliA.id}"]`).count()) > 0 && (await page.locator(`[data-testid="claim-row-${similar.id}"]`).count()) > 0);
 
   await page.locator('[data-testid="claims-search"]').fill('אטיאס');
   await page.waitForTimeout(600);
-  rec(`${prefix}-partial-last`, await page.locator('[data-testid^="claim-row-"]').count() >= 1);
+  rec(`${prefix}-partial-last`, (await page.locator(`[data-testid="claim-row-${eliA.id}"]`).count()) > 0 && (await page.locator(`[data-testid="claim-row-${similar.id}"]`).count()) === 0);
 
   await page.locator('[data-testid="claims-search"]').fill(ELI);
   await page.waitForTimeout(500);
   const status = page.locator('[data-testid="claims-status-filter"]');
   if (await status.count()) {
-    const opts = await status.locator('option').allTextContents();
-    const pick = opts.find((o) => o && o !== 'כל הסטטוסים') || '';
-    if (pick) await status.selectOption({ label: pick }).catch(() => undefined);
+    await status.selectOption({ label: 'חדש' }).catch(() => undefined);
     await page.waitForTimeout(400);
   }
-  rec(`${prefix}-search-plus-filter`, true);
+  rec(`${prefix}-search-plus-filter`, (await page.locator(`[data-testid="claim-row-${eliA.id}"]`).count()) > 0);
+  if (await status.count()) await status.selectOption({ label: 'כל הסטטוסים' }).catch(() => undefined);
   await page.locator('[data-testid="claims-search-clear"]').click().catch(() => undefined);
   await page.waitForTimeout(400);
   rec(`${prefix}-clear`, !(await page.locator('[data-testid="claims-search"]').inputValue()).trim());
@@ -283,15 +296,15 @@ async function runSearchSuite(page, prefix) {
   await page.locator('[data-testid="claims-search-clear"]').click().catch(() => undefined);
   await page.locator('[data-testid="claims-search"]').fill(ELI);
   await page.waitForTimeout(500);
-  const eliRow = page.locator('[data-testid="claim-row-DAL-2026-0020"]');
+  const eliRow = page.locator(`[data-testid="claim-row-${eliA.id}"]`);
   if (await eliRow.count()) {
     await eliRow.first().click();
     await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 15000 });
     const snap = await page.locator('[data-testid="claims-card-snapshot"]').innerText();
-    rec(`${prefix}-open-correct`, snap.includes('0020') || snap.includes(ELI), { snap: snap.slice(0, 120) });
+    rec(`${prefix}-open-correct`, snap.includes(eliA.id) || snap.includes(ELI), { snap: snap.slice(0, 120) });
     await closeOverlays(page);
   } else {
-    rec(`${prefix}-open-correct`, false, { err: 'DAL-2026-0020 not in search results' });
+    rec(`${prefix}-open-correct`, false, { err: `${eliA.id} not in search results` });
   }
 }
 
@@ -320,7 +333,19 @@ async function runMailSuite(page, claimId, prefix) {
   } else rec(`${prefix}-reply-composer`, n === 0, { detail: 'no reply button — empty thread ok if we just sent' });
 }
 
-async function runRound(browser, session, round) {
+async function createSearchFixtures(page) {
+  const stamp = Date.now();
+  await openClaims(page);
+  const eliA = await createClaim(page, ELI, `ELA${String(stamp).slice(-5)}`);
+  await closeOverlays(page);
+  const eliB = await createClaim(page, ELI, `ELB${String(stamp).slice(-5)}`);
+  await closeOverlays(page);
+  const similar = await createClaim(page, 'אליהו כהן', `ELC${String(stamp).slice(-5)}`);
+  await closeOverlays(page);
+  return { eliA, eliB, similar };
+}
+
+async function runRound(browser, session, round, fixtures) {
   const stamp = Date.now();
   const client = `TEST-4T-R${round}-${stamp}`;
   const plate = `T4T${String(stamp).slice(-6)}`;
@@ -333,10 +358,10 @@ async function runRound(browser, session, round) {
   const mpage = await mobile.newPage();
   try {
     await openClaims(page);
-    await runSearchSuite(page, `r${round}-d`);
+    await runSearchSuite(page, `r${round}-d`, fixtures);
 
     await openClaims(mpage);
-    await runSearchSuite(mpage, `r${round}-m`);
+    await runSearchSuite(mpage, `r${round}-m`, fixtures);
     await shot(mpage, `r${round}-mobile-search`);
 
     const created = await createClaim(page, client, plate, stamp);
@@ -577,12 +602,21 @@ if (!deployed) {
 
 const session = await login();
 const browser = await chromium.launch({ headless: true });
+const fixtureIds = [];
 try {
+  const boot = await browser.newContext({ viewport: { width: 1440, height: 980 }, locale: 'he-IL' });
+  await inject(boot, session);
+  const bootPage = await boot.newPage();
+  const fixtures = await createSearchFixtures(bootPage);
+  fixtureIds.push(fixtures.eliA?.id, fixtures.eliB?.id, fixtures.similar?.id);
+  rec('search-fixtures', Boolean(fixtures.eliA?.id && fixtures.eliB?.id && fixtures.similar?.id), { ids: fixtureIds });
+  await boot.close();
   for (let r = 1; r <= 3; r++) {
-    await runRound(browser, session, r);
+    await runRound(browser, session, r, fixtures);
   }
 } finally {
   await browser.close();
+  for (const id of fixtureIds.filter(Boolean)) await softDelete(id);
 }
 
 const failed = report.checks.filter((c) => !c.ok);
