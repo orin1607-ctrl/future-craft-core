@@ -801,6 +801,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [eventFormSignOpen, setEventFormSignOpen] = useState(false);
   const [eventFormSig, setEventFormSig] = useState('');
   const saveLock = useRef(false);
+  const [saveBusy, setSaveBusy] = useState(false);
   const claimFormMode = useRef<'new' | 'edit'>('new');
   const mailFocusRef = useRef<string[]>([]);
   const fuFocusRef = useRef<string[]>([]);
@@ -1746,10 +1747,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const doSaveClaim = async () => {
     if (saveLock.current) return;
     saveLock.current = true;
+    setSaveBusy(true);
     const data = mergeIntakeToClaim(collectClaimForm(), intakeDraft);
     data.id = resolveStaffClaimSaveId(claimFormMode.current, val(null, 'fc_id'), cur?.id || '');
     if (!data.clientName) {
       saveLock.current = false;
+      setSaveBusy(false);
       toast('נא להזין שם לקוח', 'err');
       return;
     }
@@ -1784,6 +1787,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       }
     } finally {
       saveLock.current = false;
+      setSaveBusy(false);
     }
   };
 
@@ -2651,7 +2655,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 >שמור PDF במסמכי התביעה</button>
               </>
             ) : null}
-            <button className="btn btn-p" data-testid="claims-save-btn" onClick={doSaveClaim}>💾 שמור</button>
+            <button className="btn btn-p" data-testid="claims-save-btn" disabled={saveBusy} onClick={doSaveClaim}>{saveBusy ? 'שומר…' : '💾 שמור'}</button>
           </div>
         </div>
       </div>
