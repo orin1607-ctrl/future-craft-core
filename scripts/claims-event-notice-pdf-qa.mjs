@@ -259,7 +259,7 @@ async function runRound(browser, session, round) {
       row_data: { ...(created.row_data || {}), claimNum, clientName: client, plate, eventDate: '2026-09-07', eventPlace: 'תל אביב — צומת אלנבי', eventDesc: 'תיאור אירוע מלא לבדיקת PDF — פגיעה בצד ימין, משטרה הגיעה.' },
     }).eq('id', claimId);
 
-    const download = await issuePdfFromEdit(page, client);
+    const download = await issuePdfFromEdit(page, client, round);
     rec(`r${round}-issue-clicked`, true);
     await sleep(1500);
     let docs = (await userDb.from('claims_documents').select('id, original_name, mime_type, byte_size, doc_meta, content_sha256, claim_id').eq('claim_id', claimId)).data || [];
