@@ -4453,7 +4453,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="fg"><label className="fl">הערה</label><input className="fi" id="task_note" /></div>
           </div>
           <div className="mf"><button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
-            <button className="btn btn-p" onClick={async () => {
+            <button className="btn btn-p" data-testid="task-save" onClick={async () => {
               const action = val(null, 'task_action'); if (!action) { toast('נא להזין פעולה', 'err'); return; }
               await apiRef.current.saveTask({ claimId: curId || '', action, owner: val(null, 'task_owner'), dueDate: val(null, 'task_date'), note: val(null, 'task_note'), done: 'false' });
               toast('משימה נוספה');

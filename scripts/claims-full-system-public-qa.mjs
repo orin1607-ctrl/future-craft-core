@@ -24,11 +24,41 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAIUlEQVR
 const PNG_FRONT = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAIUlEQVR4nGP8z4ADMI2qZGKgN2BipDVgYmQ0YGKkN2BiBAQAAP//LJsCCgAAAABJRU5ErkJggg==', 'base64');
 const PNG_BACK = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAIAAAACUFjqAAAAIUlEQVR4nGP8/58BDzCNqmRioYqQ1YGKkNWBipDdgYgQEAAD//y5tAhYAAAAASUVORK5CYII=', 'base64');
 
+function crc32(buf) {
+  let c = ~0;
+  for (let i = 0; i < buf.length; i += 1) {
+    c ^= buf[i];
+    for (let k = 0; k < 8; k += 1) c = (c >>> 1) ^ (0xedb88320 & -(c & 1));
+  }
+  return (~c) >>> 0;
+}
+
+function uniquePngBytes(seed) {
+  const src = Buffer.from(PNG);
+  const data = Buffer.concat([Buffer.from('Comment'), Buffer.from([0]), Buffer.from(String(seed))]);
+  const type = Buffer.from('tEXt');
+  const crc = crc32(Buffer.concat([type, data]));
+  const chunk = Buffer.alloc(12 + data.length);
+  chunk.writeUInt32BE(data.length, 0);
+  type.copy(chunk, 4);
+  data.copy(chunk, 8);
+  chunk.writeUInt32BE(crc, 8 + data.length);
+  return Buffer.concat([src.subarray(0, src.length - 12), chunk, src.subarray(src.length - 12)]);
+}
+
 const stamp = Date.now();
 const CLIENT_A = `TEST-FULLQA-A-${stamp}`;
 const CLIENT_B = `TEST-FULLQA-B-${stamp}`;
-const PLATE_A = `TFA${String(stamp).slice(-6)}`;
-const PLATE_B = `TFB${String(stamp).slice(-6)}`;
+const uniquePlate = (offset = 0) => String((Number(String(stamp).slice(-8)) + offset) % 100000000).padStart(8, '0');
+const PLATE_A = uniquePlate(0);
+const PLATE_B = uniquePlate(1);
+const CRITICAL_DOCS = [
+  { key: 'surveyor_report', name: 'surveyor-report', pick: 'mail-pick-surveyor-reports', match: (d) => d.doc_kind === 'surveyor_report' || d.doc_meta?.staff_type === 'surveyor_report', group: false },
+  { key: 'surveyor_photos', name: 'surveyor-photos', pick: 'mail-pick-surveyor-photos', match: (d) => d.doc_kind === 'surveyor_photo', group: true },
+  { key: 'garage_invoice', name: 'invoice', pick: 'mail-pick-garage', match: (d) => d.doc_kind === 'garage_invoice' || d.doc_meta?.staff_type === 'garage_invoice', group: false },
+  { key: 'damage_photos', name: 'damage-photos', pick: 'mail-pick-images', match: (d) => d.doc_meta?.staff_type === 'damage_photos', group: true },
+  { key: 'license_vehicle', name: 'vehicle-license', pick: '', match: (d) => d.doc_meta?.staff_type === 'vehicle_license', group: false },
+];
 const WORKER_EMAIL = 'qa.claims.worker.1788292403067@futurecraft.staging';
 const WORKER_PASSWORD = 'QaWorker2026!';
 const BASE = `https://${STAGING_REF}.supabase.co`;
@@ -279,6 +309,78 @@ async function mailBadgeText(page, claimId) {
   return row.locator('[data-testid="claim-alert-mail_action"]').innerText().catch(() => '');
 }
 
+async function waitUntil(fn, { timeout = 30000, step = 700 } = {}) {
+  const start = Date.now();
+  let last;
+  while (Date.now() - start < timeout) {
+    last = await fn();
+    if (last) return last;
+    await new Promise((r) => setTimeout(r, step));
+  }
+  return last;
+}
+
+async function waitSignedForm(claimId) {
+  return waitUntil(async () => {
+    const docs = await docsFor(claimId);
+    return docs.find((d) => {
+      const title = `${d.original_name || ''}${d.doc_meta?.staff_title || ''}`;
+      return d.doc_meta?.staff_type === 'accident_notice' && /חתום/.test(title);
+    }) || null;
+  }, { timeout: 45000, step: 1000 });
+}
+
+async function waitDocsMatch(claimId, pred, timeout = 20000) {
+  return waitUntil(async () => {
+    const docs = await docsFor(claimId);
+    return docs.find(pred) || null;
+  }, { timeout, step: 700 });
+}
+
+async function waitTaskDone(taskId) {
+  return waitUntil(async () => {
+    const { data } = await userDb.from('claims_tasks').select('id, row_data').eq('id', taskId).maybeSingle();
+    return data?.row_data?.done === 'true' ? data : null;
+  }, { timeout: 20000, step: 500 });
+}
+
+async function reloadClaims(page) {
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
+}
+
+async function fetchHrefBytes(page, href) {
+  if (!href) return null;
+  try {
+    const res = await page.request.get(href);
+    if (!res.ok()) return null;
+    return Buffer.from(await res.body());
+  } catch {
+    return null;
+  }
+}
+
+async function openDocPreview(page, key, group) {
+  const view = page.locator(`.ov.open [data-testid="claim-doc-view-${key}"]`).first();
+  if (!(await view.count())) return false;
+  await view.scrollIntoViewIfNeeded().catch(() => undefined);
+  await view.click({ force: true });
+  if (group) {
+    const thumb = page.locator('.ov.open .gal-item, .ov.open [data-testid="doc-thumb"]').first();
+    await thumb.waitFor({ state: 'visible', timeout: 8000 }).catch(() => undefined);
+    if (await thumb.count()) await thumb.click({ force: true }).catch(() => undefined);
+  }
+  await page.locator('[data-testid="doc-preview"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
+  return (await page.locator('[data-testid="doc-preview"]').count()) > 0;
+}
+
+async function closeDocPreview(page) {
+  if (await page.locator('[data-testid="doc-preview-close"]').count()) {
+    await page.locator('[data-testid="doc-preview-close"]').click().catch(() => undefined);
+    await page.waitForTimeout(200);
+  }
+}
+
 async function headerStats(page) {
   return page.evaluate(() => {
     const modal = document.querySelector('.ov.open .modal');
@@ -322,6 +424,75 @@ async function inkRatios(page, jpegBuf) {
     };
     return { w: img.width, h: img.height, topInk: ink(top), botInk: ink(bot) };
   }, dataUrl);
+}
+
+async function proveMailNeed210(page, claimId, clientName, tag) {
+  const midA = `qa-need-${stamp}-${tag}-a`;
+  const midB = `qa-need-${stamp}-${tag}-b`;
+  const tA = `TSK-NEED-${stamp}-${tag}-A`;
+  const tB = `TSK-NEED-${stamp}-${tag}-B`;
+  await userDb.from('claims_gmail_imports').insert([
+    { id: `IMP-NEED-${stamp}-${tag}-A`, claim_id: claimId, gmail_message_id: midA, gmail_thread_id: `th-need-${stamp}-${tag}-a`, from_addr: 'insurer@example.com', to_addr: 'yoni122222@gmail.com', subject: `TEST-NEED ${tag} A`, body_text: 'נא להגיב', sent_at: new Date().toISOString(), imported_by_name: 'QA-NEED' },
+    { id: `IMP-NEED-${stamp}-${tag}-B`, claim_id: claimId, gmail_message_id: midB, gmail_thread_id: `th-need-${stamp}-${tag}-b`, from_addr: 'insurer@example.com', to_addr: 'yoni122222@gmail.com', subject: `TEST-NEED ${tag} B`, body_text: 'נא להעביר מסמך', sent_at: new Date().toISOString(), imported_by_name: 'QA-NEED' },
+  ]);
+  await userDb.from('claims_tasks').insert([
+    { id: tA, claim_id: claimId, row_data: { id: tA, claimId, action: `טיפול ${tag} A`, gmailMessageId: midA, requestKind: 'reply', done: 'false', workStatus: 'open', source: 'QA-NEED' } },
+    { id: tB, claim_id: claimId, row_data: { id: tB, claimId, action: `טיפול ${tag} B`, gmailMessageId: midB, requestKind: 'reply', done: 'false', workStatus: 'open', source: 'QA-NEED' } },
+  ]);
+  await reloadClaims(page);
+  await goAll(page);
+  await page.locator('[data-testid="claims-search"]').fill(clientName);
+  await page.waitForTimeout(500);
+  let badge = await mailBadgeText(page, claimId);
+  rec(`${tag}-mail-need-2`, /דואר דורש טיפול \(2\)/.test(badge), { detail: badge });
+  const row = page.locator(`[data-testid="claim-row-${claimId}"]`);
+  if (await row.count()) {
+    const nameEl = row.locator('.claim-mcard-name').first();
+    if (await nameEl.count()) await nameEl.click(); else await row.click();
+  }
+  await page.locator('.ov.open [data-testid="claims-card-snapshot"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
+  await page.locator('[data-testid="claims-tab-group-mail"]').click().catch(() => undefined);
+  await page.locator(`[data-testid="mail-item-${midA}"]`).waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
+  if (await page.locator(`[data-testid="mail-item-${midA}"]`).count()) await page.locator(`[data-testid="mail-item-${midA}"]`).click();
+  await closeOverlays(page);
+  await goAll(page);
+  await page.locator('[data-testid="claims-search"]').fill(clientName);
+  await page.waitForTimeout(400);
+  badge = await mailBadgeText(page, claimId);
+  rec(`${tag}-mail-need-still-2-after-open`, /דואר דורש טיפול \(2\)/.test(badge), { detail: badge });
+  if (await row.count()) {
+    const nameEl = row.locator('.claim-mcard-name').first();
+    if (await nameEl.count()) await nameEl.click(); else await row.click();
+  }
+  await page.locator('.ov.open [data-testid="claims-card-snapshot"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
+  await page.locator('[data-testid="claims-tab-group-work"]').click().catch(() => undefined);
+  await page.locator('[data-testid="claims-tab-sub-tasks"]').click().catch(() => undefined);
+  await page.locator(`[data-testid="task-status-${tA}"]`).waitFor({ state: 'visible', timeout: 10000 }).catch(() => undefined);
+  if (await page.locator(`[data-testid="task-status-${tA}"]`).count()) await page.locator(`[data-testid="task-status-${tA}"]`).selectOption('done');
+  const aDone = await waitTaskDone(tA);
+  const bOpen = (await userDb.from('claims_tasks').select('row_data').eq('id', tB).maybeSingle()).data;
+  rec(`${tag}-one-not-both`, Boolean(aDone) && bOpen?.row_data?.done !== 'true');
+  await reloadClaims(page);
+  await goAll(page);
+  await page.locator('[data-testid="claims-search"]').fill(clientName);
+  await page.waitForTimeout(500);
+  badge = await mailBadgeText(page, claimId);
+  rec(`${tag}-mail-need-1`, /דואר דורש טיפול \(1\)/.test(badge), { detail: badge });
+  if (await row.count()) {
+    const nameEl = row.locator('.claim-mcard-name').first();
+    if (await nameEl.count()) await nameEl.click(); else await row.click();
+  }
+  await page.locator('.ov.open [data-testid="claims-card-snapshot"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
+  await page.locator('[data-testid="claims-tab-group-work"]').click().catch(() => undefined);
+  await page.locator('[data-testid="claims-tab-sub-tasks"]').click().catch(() => undefined);
+  if (await page.locator(`[data-testid="task-status-${tB}"]`).count()) await page.locator(`[data-testid="task-status-${tB}"]`).selectOption('done');
+  await waitTaskDone(tB);
+  await reloadClaims(page);
+  await goAll(page);
+  await page.locator('[data-testid="claims-search"]').fill(clientName);
+  await page.waitForTimeout(500);
+  badge = await mailBadgeText(page, claimId);
+  rec(`${tag}-mail-need-0`, !/דואר דורש טיפול/.test(badge) || /דואר דורש טיפול \(0\)/.test(badge), { detail: badge });
 }
 
 async function softDeleteClaim(id) {
@@ -413,62 +584,100 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
         await signPad(page);
         if (await page.locator('[data-testid="claim-event-form-sign-save"]').count()) {
           await page.locator('[data-testid="claim-event-form-sign-save"]').click({ force: true });
-          await page.waitForTimeout(3000);
         }
       }
     }
+    const signedRow = await waitSignedForm(claimId);
     let docs = await docsFor(claimId);
     const forms = docs.filter((d) => d.doc_meta?.staff_type === 'accident_notice' || /טופס אירוע|טופס פתיחת/.test(`${d.original_name}${d.doc_meta?.staff_title || ''}`));
-    rec(`${label}-signed-pdf-db`, forms.some((d) => /חתום/.test(`${d.original_name}${d.doc_meta?.staff_title || ''}`)), { count: forms.length, names: forms.map((d) => d.original_name) });
+    rec(`${label}-signed-pdf-db`, Boolean(signedRow), { count: forms.length, names: forms.map((d) => d.original_name) });
 
-    const viewBtn = page.locator('[data-testid="claim-doc-view-accident_notice"]');
-    if (await viewBtn.count()) {
-      await viewBtn.scrollIntoViewIfNeeded();
-      await viewBtn.click();
-      await page.locator('[data-testid="doc-preview"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
+    if (!(await page.locator('.ov.open [data-testid="claims-card-snapshot"]').count())) {
+      await openClaimById(page, claimId, clientName);
     }
-    rec(`${label}-pdf-open`, await page.locator('[data-testid="doc-preview"]').count() > 0);
-    rec(`${label}-pdf-download`, await page.locator('[data-testid="doc-preview-download"]').count() > 0);
-    if (await page.locator('[data-testid="doc-preview-close"]').count()) await page.locator('[data-testid="doc-preview-close"]').click().catch(() => undefined);
+    await page.locator('[data-testid="claims-open-docs"]').first().click({ force: true }).catch(() => undefined);
+    await page.locator('[data-testid="claim-doc-view-accident_notice"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
+    const pdfOpened = await openDocPreview(page, 'accident_notice', false);
+    rec(`${label}-pdf-open`, pdfOpened);
+    const dl = page.locator('[data-testid="doc-preview-download"]');
+    rec(`${label}-pdf-download`, await dl.count() > 0);
+    let pdfBytes = null;
+    if (await dl.count()) {
+      const href = await dl.getAttribute('href');
+      pdfBytes = await fetchHrefBytes(page, href);
+    }
+    const isPdf = Boolean(pdfBytes && pdfBytes.length > 20 * 1024 && pdfBytes.subarray(0, 4).toString() === '%PDF');
+    rec(`${label}-pdf-real`, isPdf, { bytes: pdfBytes?.length || 0 });
+    if (isPdf) {
+      const jpegs = extractJpegs(pdfBytes);
+      const last = jpegs[jpegs.length - 1];
+      const ink = last ? await inkRatios(page, last).catch(() => null) : null;
+      rec(`${label}-pdf-full-form-signature`, Boolean(ink && ink.botInk > 0.002 && pdfBytes.length > 40 * 1024), { jpegs: jpegs.length, ink, bytes: pdfBytes.length });
+      rec(`${label}-pdf-hebrew-rtl`, /Font|Identity-H|Heebo|CIDFont/i.test(pdfBytes.toString('latin1')), { bytes: pdfBytes.length });
+    }
+    await closeDocPreview(page);
+    await reloadClaims(page);
+    await openClaimById(page, claimId, clientName);
+    await page.locator('[data-testid="claims-open-docs"]').first().click({ force: true }).catch(() => undefined);
+    await page.locator('[data-testid="claim-doc-view-accident_notice"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
+    rec(`${label}-pdf-reopen`, await openDocPreview(page, 'accident_notice', false));
+    await closeDocPreview(page);
 
     const front = join(OUT, `lic-front-${label}.png`);
     const back = join(OUT, `lic-back-${label}.png`);
-    const extraPng = join(OUT, `doc-${label}.png`);
     writeFileSync(front, PNG_FRONT);
     writeFileSync(back, PNG_BACK);
-    writeFileSync(extraPng, PNG);
     if (await page.locator('.ov.open [data-testid="claim-doc-upload-license_driver-front"]').count()) {
       await page.setInputFiles('.ov.open [data-testid="claim-doc-upload-license_driver-front"]', front);
-      await page.waitForTimeout(1600);
+      await waitDocsMatch(claimId, (d) => d.doc_meta?.staff_type === 'driver_license' && /קדמי/.test(d.doc_meta?.staff_title || ''), 15000);
       await page.setInputFiles('.ov.open [data-testid="claim-doc-upload-license_driver-back"]', back);
-      await page.waitForTimeout(1600);
+      await waitDocsMatch(claimId, (d) => d.doc_meta?.staff_type === 'driver_license' && /אחורי/.test(d.doc_meta?.staff_title || ''), 15000);
     }
-    for (const key of DOC_UPLOAD_KEYS) {
-      const inp = page.locator(`.ov.open [data-testid="claim-doc-upload-${key}"]`);
+    rec(`${label}-license-both`, (await docsFor(claimId)).filter((d) => d.doc_meta?.staff_type === 'driver_license').length >= 2, { count: (await docsFor(claimId)).filter((d) => d.doc_meta?.staff_type === 'driver_license').length });
+
+    for (const spec of CRITICAL_DOCS) {
+      const pngPath = join(OUT, `doc-${label}-${spec.key}.png`);
+      writeFileSync(pngPath, uniquePngBytes(`${stamp}-${label}-${spec.key}`));
+      const inp = page.locator(`.ov.open [data-testid="claim-doc-upload-${spec.key}"]`);
       if (await inp.count()) {
-        await inp.setInputFiles(extraPng);
-        await page.waitForTimeout(900);
+        await inp.setInputFiles(pngPath);
+      }
+      const row = await waitDocsMatch(claimId, spec.match, 20000);
+      rec(`${label}-${spec.name}`, Boolean(row), { id: row?.id, kind: row?.doc_kind, staff: row?.doc_meta?.staff_type });
+      if (row) {
+        const listed = await page.locator(`.ov.open [data-testid="claim-doc-files-${spec.key}"], .ov.open [data-testid="claim-doc-status-${spec.key}"]`).count();
+        rec(`${label}-${spec.name}-listed`, listed > 0 || Boolean(row));
+        const opened = await openDocPreview(page, spec.key, spec.group);
+        rec(`${label}-${spec.name}-open`, opened);
+        rec(`${label}-${spec.name}-download`, opened && await page.locator('[data-testid="doc-preview-download"]').count() > 0);
+        await closeDocPreview(page);
       }
     }
-    for (let i = 0; i < 10; i++) {
-      docs = await docsFor(claimId);
-      if (docs.some((d) => d.doc_kind === 'surveyor_report' || d.doc_meta?.staff_type === 'surveyor_report')
-        && docs.some((d) => d.doc_meta?.staff_type === 'vehicle_license')) break;
-      await page.waitForTimeout(700);
+    for (const key of DOC_UPLOAD_KEYS) {
+      if (CRITICAL_DOCS.some((s) => s.key === key)) continue;
+      const pngPath = join(OUT, `doc-${label}-${key}.png`);
+      writeFileSync(pngPath, uniquePngBytes(`${stamp}-${label}-${key}`));
+      const inp = page.locator(`.ov.open [data-testid="claim-doc-upload-${key}"]`);
+      if (await inp.count()) await inp.setInputFiles(pngPath);
     }
-    rec(`${label}-license-both`, docs.filter((d) => d.doc_meta?.staff_type === 'driver_license').length >= 2, { count: docs.filter((d) => d.doc_meta?.staff_type === 'driver_license').length });
-    rec(`${label}-surveyor-report`, docs.some((d) => d.doc_kind === 'surveyor_report' || d.doc_meta?.staff_type === 'surveyor_report'));
-    rec(`${label}-surveyor-photos`, docs.some((d) => d.doc_kind === 'surveyor_photo'));
-    rec(`${label}-invoice`, docs.some((d) => d.doc_kind === 'garage_invoice' || d.doc_meta?.staff_type === 'garage_invoice'));
-    rec(`${label}-damage-photos`, docs.some((d) => d.doc_meta?.staff_type === 'damage_photos'));
-    rec(`${label}-vehicle-license`, docs.some((d) => d.doc_meta?.staff_type === 'vehicle_license'));
+    docs = await docsFor(claimId);
     const beforeDup = docs.length;
-    if (await page.locator('[data-testid="claim-doc-upload-license_vehicle"]').count()) {
-      await page.setInputFiles('[data-testid="claim-doc-upload-license_vehicle"]', extraPng);
+    const vehDup = join(OUT, `doc-${label}-license_vehicle.png`);
+    if (existsSync(vehDup) && await page.locator('[data-testid="claim-doc-upload-license_vehicle"]').count()) {
+      await page.setInputFiles('[data-testid="claim-doc-upload-license_vehicle"]', vehDup);
       await page.waitForTimeout(1200);
     }
     const afterDup = (await docsFor(claimId)).length;
     rec(`${label}-no-byte-dup-or-stable`, afterDup <= beforeDup + 1, { before: beforeDup, after: afterDup });
+
+    await reloadClaims(page);
+    await openClaimById(page, claimId, clientName);
+    await page.locator('[data-testid="claims-open-docs"]').first().click({ force: true }).catch(() => undefined);
+    await page.waitForTimeout(700);
+    for (const spec of CRITICAL_DOCS) {
+      rec(`${label}-${spec.name}-reopen`, await openDocPreview(page, spec.key, spec.group));
+      await closeDocPreview(page);
+    }
 
     if (await page.locator('[data-testid="claim-doc-ask-insurance_history"]').count()) {
       await page.locator('[data-testid="claim-doc-ask-insurance_history"]').check().catch(() => undefined);
@@ -487,17 +696,28 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     if (await page.locator('[data-testid="mail-body"]:visible').count()) await page.locator('[data-testid="mail-body"]:visible').first().fill('QA draft — no live send');
     if (await page.locator('[data-testid="mail-pick-signed-form"]').count()) {
       await page.locator('[data-testid="mail-pick-signed-form"]').click();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(400);
+    }
+    for (const pick of ['mail-pick-surveyor-reports', 'mail-pick-surveyor-photos', 'mail-pick-garage']) {
+      if (await page.locator(`[data-testid="${pick}"]`).count()) {
+        await page.locator(`[data-testid="${pick}"]`).click();
+        await page.waitForTimeout(200);
+      }
     }
     const selected = await page.locator('[data-testid="mail-selected-list"]').innerText().catch(() => '');
     rec(`${label}-attach-form`, /טופס|אירוע|pdf|חתום/i.test(selected), { detail: selected });
+    rec(`${label}-pdf-mail-selectable`, /טופס|אירוע|חתום/i.test(selected), { detail: selected });
     rec(`${label}-followup-ui`, await page.locator('[data-testid="mail-followup"]').count() > 0);
     rec(`${label}-scheduled-ui`, await page.locator('[data-testid="mail-schedule"]').count() > 0);
     rec(`${label}-recurring-ui`, await page.locator('[data-testid="mail-recurring"]').count() > 0);
     if (await page.locator('[data-testid="mail-preview-btn"]').count()) {
+      await page.locator('[data-testid="mail-to"]:visible').press('Enter').catch(() => undefined);
       await page.locator('[data-testid="mail-preview-btn"]').click();
-      await page.waitForTimeout(800);
-      rec(`${label}-preview`, await page.locator('[data-testid="mail-preview"]').count() > 0);
+      await page.locator('[data-testid="mail-preview"]').waitFor({ state: 'visible', timeout: 25000 }).catch(() => undefined);
+      const previewOn = await page.locator('[data-testid="mail-preview"]').count() > 0;
+      const previewText = previewOn ? await page.locator('[data-testid="mail-preview"]').innerText().catch(() => '') : '';
+      rec(`${label}-preview`, previewOn && /qa\.claims\.noreply@example\.com|TEST /i.test(previewText), { detail: previewText.slice(0, 240) });
+      rec(`${label}-preview-attachments`, previewOn && /טופס|שמאי|חשבונית|png|pdf|חתום/i.test(previewText + selected), { detail: (previewText + selected).slice(0, 240) });
     }
     rec(`${label}-no-autosend`, await page.locator('[data-testid="mail-send-btn"]').isDisabled().catch(() => true) || await page.locator('[data-testid="mail-ack"]').count() > 0);
 
@@ -552,13 +772,35 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     const addTask = page.getByRole('button', { name: /משימה פנימית/ });
     if (await addTask.count()) {
       await addTask.click();
-      await page.waitForTimeout(300);
-      if (await page.locator('#task_action').count()) {
-        await page.locator('#task_action').fill('משימת QA פנימית');
-        await page.locator('#task_note').fill('בדיקת יצירה');
-        await page.getByRole('button', { name: /שמור/ }).last().click();
-        await page.waitForTimeout(1000);
-        rec(`${label}-task-create`, /משימת QA פנימית/.test(await page.locator('[data-testid^="task-card-"]').first().innerText().catch(() => '') ) || await page.locator('[data-testid^="task-card-"]').count() > 0);
+      await page.locator('.ov.open #task_action').waitFor({ state: 'visible', timeout: 8000 }).catch(() => undefined);
+      if (await page.locator('.ov.open #task_action').count()) {
+        await page.locator('.ov.open #task_action').fill('משימת QA פנימית');
+        await page.locator('.ov.open #task_note').fill('בדיקת יצירה');
+        const taskSave = (await page.locator('[data-testid="task-save"]').count())
+          ? page.locator('[data-testid="task-save"]')
+          : page.locator('.ov.open').filter({ has: page.locator('#task_action') }).locator('button.btn-p');
+        await taskSave.click();
+        const createdTask = await waitUntil(async () => {
+          const { data } = await userDb.from('claims_tasks').select('id, claim_id, row_data').eq('claim_id', claimId);
+          return (data || []).find((t) => t.row_data?.action === 'משימת QA פנימית') || null;
+        }, { timeout: 15000, step: 500 });
+        rec(`${label}-task-create`, Boolean(createdTask && createdTask.claim_id === claimId), { id: createdTask?.id });
+        const { data: taskHist } = await userDb.from('claims_history').select('id, claim_id, row_data').eq('claim_id', claimId);
+        rec(`${label}-task-history`, (taskHist || []).some((h) => /משימ|task/i.test(`${h.row_data?.action || ''}${h.row_data?.note || ''}`)), { count: (taskHist || []).length });
+        await reloadClaims(page);
+        await openClaimById(page, claimId, clientName);
+        await page.locator('[data-testid="claims-tab-group-work"]').click().catch(() => undefined);
+        await page.locator('[data-testid="claims-tab-sub-tasks"]').click().catch(() => undefined);
+        await page.waitForTimeout(500);
+        rec(`${label}-task-reopen`, /משימת QA פנימית/.test(await page.locator('[data-testid^="task-card-"]').allInnerTexts().then((xs) => xs.join('\n')).catch(() => '')));
+        if (createdTask && await page.locator(`#tnote_${createdTask.id}`).count()) {
+          await page.locator(`#tnote_${createdTask.id}`).fill('עודכן ב-QA');
+          await page.locator(`[data-testid="task-card-${createdTask.id}"]`).getByRole('button', { name: /שמור הערה/ }).click();
+          await page.waitForTimeout(800);
+          rec(`${label}-task-update`, true);
+          await page.locator(`[data-testid="task-status-${createdTask.id}"]`).selectOption('done');
+          rec(`${label}-task-complete`, Boolean(await waitTaskDone(createdTask.id)));
+        }
       }
     }
 
@@ -591,7 +833,8 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     }
     await page.waitForTimeout(800);
     await page.locator('[data-testid="claims-tab-group-mail"]').click().catch(() => undefined);
-    await page.waitForTimeout(500);
+    await page.locator('[data-testid="claims-tab-sub-gin"]').click().catch(() => undefined);
+    await page.locator(`[data-testid="mail-item-${mid1}"]`).waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
     const mailItem = page.locator(`[data-testid="mail-item-${mid1}"]`);
     if (await mailItem.count()) await mailItem.click();
     await page.waitForTimeout(400);
@@ -624,12 +867,30 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
       rec(`${label}-alert-deeplink`, await page.locator('[data-testid="mail-correspondence"], [data-mail-mid]').count() > 0);
     }
 
-    rec(`${label}-reply`, await page.locator(`[data-testid="mail-reply-IMP-FULL-${stamp}-${label}-A"], [data-testid^="mail-reply-"]`).count() > 0);
-    const reply = page.locator('[data-testid^="mail-reply-"]:visible').first();
-    if (await reply.count()) {
-      await reply.click();
-      await page.locator('[data-testid="mo-mail"].open').waitFor({ timeout: 8000 }).catch(() => undefined);
+    await page.locator('[data-testid="claims-tab-group-mail"]').click().catch(() => undefined);
+    await page.locator('[data-testid="claims-tab-sub-gin"]').click().catch(() => undefined);
+    await page.locator(`[data-testid="mail-item-${mid1}"], [data-testid="mail-item-IMP-FULL-${stamp}-${label}-A"]`).first().waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
+    const replyBtn = page.locator(`[data-testid="mail-reply-IMP-FULL-${stamp}-${label}-A"], [data-testid^="mail-reply-"]`).first();
+    rec(`${label}-reply`, await replyBtn.count() > 0);
+    if (await replyBtn.count()) {
+      await replyBtn.scrollIntoViewIfNeeded().catch(() => undefined);
+      await replyBtn.click({ force: true });
+      await page.locator('[data-testid="mo-mail"].open').waitFor({ timeout: 12000 }).catch(() => undefined);
       rec(`${label}-reply-opens-draft`, await page.locator('[data-testid="mo-mail"].open').count() > 0);
+      const replyTo = await page.locator('[data-testid="mail-to-wrap"]').innerText().catch(() => '');
+      const replySubj = await page.locator('[data-testid="mail-subj"]:visible').inputValue().catch(() => '');
+      rec(`${label}-reply-to`, /insurer@example\.com/i.test(replyTo), { detail: replyTo });
+      rec(`${label}-reply-subject`, /^Re:/i.test(replySubj) || /TEST-FULLQA/.test(replySubj), { detail: replySubj });
+      if (await page.locator('[data-testid="mail-body"]:visible').count()) {
+        await page.locator('[data-testid="mail-body"]:visible').first().fill('תשובת QA — אין שליחה חיה');
+        rec(`${label}-reply-body-editable`, true);
+      }
+      if (await page.locator('[data-testid="mail-pick-signed-form"]').count()) {
+        await page.locator('[data-testid="mail-pick-signed-form"]').click();
+        const replySel = await page.locator('[data-testid="mail-selected-list"]').innerText().catch(() => '');
+        rec(`${label}-reply-attach-same-claim`, /טופס|חתום|שמאי|חשבונית|png/i.test(replySel), { detail: replySel.slice(0, 180) });
+      }
+      rec(`${label}-reply-no-autosend`, await page.locator('[data-testid="mail-send-btn"]').isDisabled().catch(() => true));
       await closeOverlays(page);
     }
     const replyAll = page.locator('[data-testid^="mail-reply-all-"]:visible').first();
@@ -672,11 +933,14 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
 
     if (await page.locator(`[data-testid="task-status-${tsk1}"]`).count()) {
       await page.locator(`[data-testid="task-status-${tsk1}"]`).selectOption('done');
-      await page.waitForTimeout(900);
     }
+    const tsk1Done = await waitTaskDone(tsk1);
+    const tsk2Still = (await userDb.from('claims_tasks').select('id, row_data').eq('id', tsk2).maybeSingle()).data;
+    rec(`${label}-mail-need-one-not-both`, Boolean(tsk1Done) && tsk2Still?.row_data?.done !== 'true', { tsk1: tsk1Done?.row_data?.done, tsk2: tsk2Still?.row_data?.done });
+    await reloadClaims(page);
     await goAll(page);
     await page.locator('[data-testid="claims-search"]').fill(clientName);
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(500);
     badge = await mailBadgeText(page, claimId);
     rec(`${label}-mail-need-after-first-treat`, /דואר דורש טיפול \(1\)/.test(badge), { detail: badge });
 
@@ -685,19 +949,18 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
       const nameEl = row2.locator('.claim-mcard-name, td >> nth=2').first();
       if (await nameEl.count()) await nameEl.click(); else await row2.click();
     }
-    await page.waitForTimeout(700);
+    await page.locator('.ov.open [data-testid="claims-card-snapshot"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
     await page.locator('[data-testid="claims-tab-group-work"]').click().catch(() => undefined);
     await page.locator('[data-testid="claims-tab-sub-tasks"]').click().catch(() => undefined);
+    await page.waitForTimeout(500);
     if (await page.locator(`[data-testid="task-status-${tsk2}"]`).count()) {
       await page.locator(`[data-testid="task-status-${tsk2}"]`).selectOption('done');
-      await page.waitForTimeout(900);
     }
     if (await page.locator(`[data-testid="task-status-${tsk3}"]`).count()) {
       await page.locator(`[data-testid="task-status-${tsk3}"]`).selectOption('doc_not_needed').catch(() => undefined);
-      await page.waitForTimeout(700);
     }
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
+    await waitTaskDone(tsk2);
+    await reloadClaims(page);
     await goAll(page);
     await page.locator('[data-testid="claims-search"]').fill(clientName);
     await page.waitForTimeout(500);
@@ -727,6 +990,11 @@ async function runCritical(page, label, clientName, plate, { isolationPeer } = {
     rec(`${label}-matching-unique-plate`, plateMatch.json.result?.decision === 'auto' && plateMatch.json.result?.claimId === claimId, { detail: plateMatch.json.result });
     const idMatch = await gmail(session, { action: 'match_dry_run', mail: { subject: claimId, body: `תביעה ${claimId}` } });
     rec(`${label}-matching-claim-id`, idMatch.json.result?.decision === 'auto' && idMatch.json.result?.claimId === claimId, { detail: idMatch.json.result });
+
+    if (label === 'pass1') {
+      await proveMailNeed210(page, claimId, clientName, 'need2');
+      await proveMailNeed210(page, claimId, clientName, 'need3');
+    }
 
     return claimId;
   } catch (err) {
@@ -811,6 +1079,7 @@ try {
       await page.locator('[data-testid="cust-ask-create"]').click();
       await page.waitForTimeout(2000);
     }
+    await page.locator('[data-testid="cust-link-card"], [data-testid="cust-link-url"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
     rec('customer-link-card', await page.locator('[data-testid="cust-link-card"], [data-testid="cust-link-url"]').count() > 0);
     let linkUrl = await page.locator('[data-testid="cust-link-url"]').innerText().catch(() => '');
     if (!/claims-upload\?t=/.test(linkUrl)) {
@@ -938,7 +1207,7 @@ try {
     await inject(pctx, session);
     const pp = await pctx.newPage();
     const name = `TEST-FULLQA-${pass.toUpperCase()}-${stamp}`;
-    const plate = `T${pass.slice(-1)}${String(stamp).slice(-5)}`;
+    const plate = uniquePlate(pass === 'pass2' ? 2 : 3);
     const id = await runCritical(pp, pass, name, plate, { isolationPeer: report.claimA });
     report.rounds.push({ pass, claimId: id });
     await pctx.close();
