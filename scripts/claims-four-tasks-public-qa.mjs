@@ -189,9 +189,12 @@ async function createClaim(page, client, plate, stamp) {
   await fillIf(page, '#in_co', 'הפניקס');
   await page.locator('[data-testid="intake-event-date"]').fill('2026-09-07');
   await page.locator('[data-testid="claims-save-btn"]').click();
-  await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 60000 });
-  await page.waitForTimeout(600);
-  const header = await page.locator('.card-title-num').innerText();
+  await page.waitForFunction(() => {
+    const n = document.querySelector('.ov.open .card-title-num');
+    return !!(n && /DAL-20\d{2}-\d{4}/.test(n.textContent || ''));
+  }, { timeout: 60000 });
+  await page.waitForTimeout(400);
+  const header = await page.locator('.ov.open .card-title-num').innerText();
   const idFromUi = (header.match(/DAL-20\d{2}-\d{4}/) || [])[0] || '';
   if (!idFromUi) throw new Error(`no claim id in card title: ${header}`);
   const created = idFromUi
@@ -216,17 +219,18 @@ async function closeOverlays(page) {
 }
 
 async function openClaimCard(page, client, claimId) {
-  if (await page.locator('[data-testid="claims-card-snapshot"]').count()) {
-    const snap = await page.locator('[data-testid="claims-card-snapshot"]').innerText().catch(() => '');
-    if (snap.includes(client) || snap.includes(claimId)) return true;
-  }
+  const openTitle = await page.locator('.ov.open .card-title-num').innerText().catch(() => '');
+  if ((claimId && openTitle.includes(claimId)) || (client && openTitle.includes(client))) return true;
   await closeOverlays(page);
-  await page.locator('[data-testid="claims-search"]').fill(client).catch(() => undefined);
-  await page.waitForTimeout(700);
+  await typeSearch(page, client || claimId);
+  await page.waitForTimeout(500);
   const row = page.locator(`[data-testid="claim-row-${claimId}"]`);
   if (await row.count()) await row.first().evaluate((el) => el.click());
   else await page.getByText(client, { exact: false }).first().click().catch(() => undefined);
-  await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 20000 });
+  await page.waitForFunction((id) => {
+    const n = document.querySelector('.ov.open .card-title-num');
+    return !!(n && (!id || (n.textContent || '').includes(id)));
+  }, claimId, { timeout: 20000 });
   return true;
 }
 
@@ -349,9 +353,10 @@ async function runSearchSuite(page, prefix, fixtures) {
   const eliRow = page.locator(`[data-testid="claim-row-${eliA.id}"]`).first();
   if (await eliRow.count()) {
     await eliRow.evaluate((el) => el.click());
-    await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 15000 }).catch(() => undefined);
-    const snap = await page.locator('[data-testid="claims-card-snapshot"]').innerText().catch(() => '');
-    rec(`${prefix}-open-correct`, snap.includes(eliA.id) || snap.includes(ELI), { snap: snap.slice(0, 160) });
+    await page.waitForFunction(() => !!document.querySelector('.ov.open .card-title-num'), { timeout: 15000 }).catch(() => undefined);
+    const snap = await page.locator('.ov.open .card-title-num, .ov.open .card-title-name').allInnerTexts().catch(() => []);
+    const snapText = snap.join(' ');
+    rec(`${prefix}-open-correct`, snapText.includes(eliA.id) || snapText.includes(ELI), { snap: snapText.slice(0, 160) });
     await closeOverlays(page);
   } else {
     rec(`${prefix}-open-correct`, false, { err: `${eliA.id} not in search results` });
@@ -606,7 +611,7 @@ async function runRound(browser, session, round, fixtures) {
       await openClaimCard(page, client, claimId);
       await openTreatTab(page);
       const itemA = page.locator(`[data-testid="treat-item-${treatA.id}"]`);
-      if (await itemA.count()) await itemA.click();
+      if (await itemA.count()) await itemA.evaluate((el) => el.click());
       await page.waitForSelector('[data-testid="treat-center"].open, .ov.open[data-testid="treat-center"]', { timeout: 15000 }).catch(() => undefined);
       const closeBtn = page.locator('[data-testid="treat-close-done"]');
       if (await closeBtn.count()) {
@@ -634,7 +639,7 @@ async function runRound(browser, session, round, fixtures) {
     await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
     rec(`r${round}-refresh`, true);
     await openClaimCard(page, client, claimId);
-    rec(`r${round}-reopen`, await page.locator('[data-testid="claims-card-snapshot"]').count() > 0);
+    rec(`r${round}-reopen`, /DAL-20\d{2}-\d{4}/.test(await page.locator('.ov.open .card-title-num').innerText().catch(() => '')));
 
     const opens = report.checks.filter((c) => c.name.startsWith(`r${round}-`) && !c.ok);
     roundRep.pass = opens.length === 0;
