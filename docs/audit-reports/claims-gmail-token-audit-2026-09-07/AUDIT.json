@@ -65,5 +65,13 @@
   },
   "mostLikelyCause": "Stored Google refresh grant is dead (invalid_grant). Last successful refresh was 2026-09-07T17:57:08Z; later the same afternoon every refresh fails. Fits (1) Testing-app 7-day expiry from the 2026-08-31 connect and/or (2) Google rotated the refresh token on that last success and the previous function discarded the new value. Persist-rotation is now deployed but cannot revive an already-dead grant.",
   "codeHardeningDeployed": "Persist rotated Google refresh_token if Google returns a new one. status + probe:true reports oauth health. 3h scan and matching unchanged.",
-  "verdict": "STOP — Google refresh grant is dead; no existing credential on this agent can mint a new one"
+  "verdict": "STOP — Google refresh grant is dead; no existing credential on this agent can mint a new one",
+  "reconnectAttempt2026-09-07T21:44Z": {
+    "ownerReportedOauthOk": true,
+    "stagingLastOkAtStill": "2026-09-07T17:57:08.785+00:00",
+    "refreshProbeStill": "invalid_grant_revoked",
+    "sendStill": "Token has been expired or revoked.",
+    "localOauthConnectJsonAt": "2026-08-31T15:11:35.122Z",
+    "conclusion": "New client secret may exist, but claims_gmail_connection.refresh_token on STAGING was not replaced. Connect script must print OAUTH_OK and set last_ok_at to now."
+  }
 }
