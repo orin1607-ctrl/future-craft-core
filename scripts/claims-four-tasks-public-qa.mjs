@@ -188,11 +188,18 @@ async function createClaim(page, client, plate, stamp) {
   await page.locator('[data-testid="intake-plate"]').fill(plate);
   await fillIf(page, '#in_co', 'הפניקס');
   await page.locator('[data-testid="intake-event-date"]').fill('2026-09-07');
+  await page.locator('[data-testid="claims-new-modal"].open, .ov.open[data-testid="claims-new-modal"]').waitFor({ timeout: 15000 }).catch(() => undefined);
   await page.locator('[data-testid="claims-save-btn"]').click();
-  await page.waitForFunction(() => {
-    const n = document.querySelector('.ov.open .card-title-num');
-    return !!(n && /DAL-20\d{2}-\d{4}/.test(n.textContent || ''));
-  }, { timeout: 60000 });
+  try {
+    await page.waitForFunction(() => {
+      const n = document.querySelector('.ov.open .card-title-num');
+      return !!(n && /DAL-20\d{2}-\d{4}/.test(n.textContent || ''));
+    }, undefined, { timeout: 60000 });
+  } catch (e) {
+    await shot(page, 'create-claim-fail');
+    const body = await page.locator('body').innerText().catch(() => '');
+    throw new Error(`claim card not open after save: ${String(e?.message || e)} · ${body.slice(0, 360)}`);
+  }
   await page.waitForTimeout(400);
   const header = await page.locator('.ov.open .card-title-num').innerText();
   const idFromUi = (header.match(/DAL-20\d{2}-\d{4}/) || [])[0] || '';
