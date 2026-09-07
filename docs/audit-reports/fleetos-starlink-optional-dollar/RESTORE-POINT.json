@@ -1,0 +1,26 @@
+{
+  "created_at": "2026-09-06T15:10:00Z",
+  "task": "optional-leading-dollar-starlink-parser-staging",
+  "branch": "cursor/starlink-optional-dollar-b1e6",
+  "base_branch": "feat/incident-alerts-staging",
+  "restore_ref": "093dd444bf662720a76a901894f4b5c6f376bc20",
+  "restore_subject": "feat(oren-car): show last tri date, internal number, year, and larger notes",
+  "environment": "STAGING only",
+  "staging_vps": "187.7.19.118",
+  "staging_supabase": "usfeoerkpcafxxlyuldl",
+  "production_untouched": true,
+  "not_touched": [
+    "Production",
+    "72.60.36.182",
+    "dalia-car.online",
+    "main",
+    "ERM device parameters",
+    "firewall / nginx / port 5055",
+    "gps_devices / gps_device_assignments",
+    "business tables"
+  ],
+  "rollback": {
+    "git": "git checkout 093dd444bf662720a76a901894f4b5c6f376bc20 -- src/modules/fleetos/starlink/parseMessage.ts src/modules/fleetos/starlink/starlink.optionalDollar.test.ts",
+    "listener": "restore parseMessage.ts on Staging listener then systemctl restart fleetos-erm-listener on 187.7.19.118 only"
+  }
+}
