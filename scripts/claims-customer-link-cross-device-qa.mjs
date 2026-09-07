@@ -243,10 +243,11 @@ async function openTestClaim(page, recName) {
   const row = page.locator(`[data-testid="claim-row-${claimA}"]`);
   if (recName) rec(recName, await row.count() > 0);
   if (!(await row.count())) throw new Error('TEST claim not in archive');
-  await row.first().click();
-  await page.locator('[data-testid="claims-card-snapshot"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
+  const nameHit = row.first().locator('.claim-mcard-name');
+  if (await nameHit.count()) await nameHit.click({ force: true });
+  else await row.first().click();
+  await page.locator('[data-testid="claims-card-snapshot"]').waitFor({ state: 'visible', timeout: 20000 });
   const docsTab = page.locator('[data-testid="claims-tab-group-docs"]');
-  await docsTab.waitFor({ state: 'attached', timeout: 20000 });
   await docsTab.scrollIntoViewIfNeeded().catch(() => undefined);
   await docsTab.click({ force: true, timeout: 20000 });
   await page.waitForTimeout(1200);
