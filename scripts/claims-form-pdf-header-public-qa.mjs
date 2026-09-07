@@ -10,7 +10,7 @@ import { join } from 'path';
 const STAGING_REF = 'usfeoerkpcafxxlyuldl';
 const PROD_REF = 'qasomfndnjuixgjmjwcm';
 const PUBLIC = 'https://orin1607-ctrl.github.io/future-craft-core';
-const WANT_SHA = (process.env.CLAIMS_QA_SHA || '659d369').slice(0, 7);
+const WANT_SHA = (process.env.CLAIMS_QA_SHA || '1fcdb41').slice(0, 7);
 const OUT = join(process.cwd(), 'docs/audit-reports/claims-form-pdf-header-2026-09-07');
 const ART = '/opt/cursor/artifacts';
 mkdirSync(OUT, { recursive: true });
