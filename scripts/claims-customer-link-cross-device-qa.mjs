@@ -57,16 +57,27 @@ rec('mail-mode-dry-run', mode === 'dry_run', { mode });
 async function count(t) {
   return (await admin.from(t).select('id', { count: 'exact', head: true })).count ?? 0;
 }
+async function countEq(t, col, val) {
+  return (await admin.from(t).select('id', { count: 'exact', head: true }).eq(col, val)).count ?? 0;
+}
+// CI fixture: keep DAL-QA-WORKER-001 archived (not soft-deleted). Protected from TEST clean.
+const claimA = 'DAL-QA-WORKER-001';
+const claimB = 'DAL-2026-0018';
+const { data: claimRowsBefore } = await admin.from('claims_records').select('id, client_name');
+const claimIdsBefore = new Set((claimRowsBefore || []).map((r) => r.id));
 report.counts.before = {
   claims: await count('claims_records'),
   documents: await count('claims_documents'),
   requests: await count('claims_doc_requests'),
   links: await count('claims_upload_links'),
+  fixture: {
+    claims: await countEq('claims_records', 'id', claimA),
+    documents: await countEq('claims_documents', 'claim_id', claimA),
+    requests: await countEq('claims_doc_requests', 'claim_id', claimA),
+    links: await countEq('claims_upload_links', 'claim_id', claimA),
+  },
 };
 
-// CI fixture: keep DAL-QA-WORKER-001 archived (not soft-deleted). Protected from TEST clean.
-const claimA = 'DAL-QA-WORKER-001';
-const claimB = 'DAL-2026-0018';
 report.testClaims = [claimA, claimB];
 rec('test-claims', true, { claimA, claimB });
 
@@ -390,13 +401,45 @@ rec('reveal-after-revoke-empty', !revokedReveal.json?.token);
 const afterRevokeApi = await publicGet(minted);
 rec('revoke-blocks-old-token-api', afterRevokeApi.json?.success === false || afterRevokeApi.status >= 400);
 
+const { data: claimRowsAfter } = await admin.from('claims_records').select('id, client_name, created_at');
 report.counts.after = {
   claims: await count('claims_records'),
   documents: await count('claims_documents'),
   requests: await count('claims_doc_requests'),
   links: await count('claims_upload_links'),
+  fixture: {
+    claims: await countEq('claims_records', 'id', claimA),
+    documents: await countEq('claims_documents', 'claim_id', claimA),
+    requests: await countEq('claims_doc_requests', 'claim_id', claimA),
+    links: await countEq('claims_upload_links', 'claim_id', claimA),
+  },
 };
-rec('claims-count-unchanged', report.counts.after.claims === report.counts.before.claims);
+// This script uses fixture DAL-QA-WORKER-001 only and never inserts claims_records.
+// Concurrent STAGING TEST QA (TEST-* / DAL-2026-NNNN) may raise the global count —
+// that is not a product regression and must not fail this job.
+const appeared = (claimRowsAfter || []).filter((r) => !claimIdsBefore.has(r.id));
+const isOtherStagingTestClaim = (row) => {
+  const id = String(row.id || '');
+  const name = String(row.client_name || '');
+  if (id === claimA || id === claimB) return false;
+  if (/^TEST/i.test(name)) return true;
+  if (/^DAL-2026-\d{4}$/.test(id)) return true;
+  if (id.startsWith('DAL-QA-')) return true;
+  return false;
+};
+const concurrentTest = appeared.filter(isOtherStagingTestClaim);
+const unexpectedClaims = appeared.filter((r) => !isOtherStagingTestClaim(r));
+const fixtureStill = report.counts.after.fixture.claims === 1
+  && report.counts.before.fixture.claims === 1;
+rec('claims-count-unchanged', fixtureStill && unexpectedClaims.length === 0, {
+  globalBefore: report.counts.before.claims,
+  globalAfter: report.counts.after.claims,
+  fixtureBefore: report.counts.before.fixture,
+  fixtureAfter: report.counts.after.fixture,
+  concurrentTestClaims: concurrentTest.map((r) => ({ id: r.id, client_name: r.client_name })),
+  unexpectedClaims: unexpectedClaims.map((r) => ({ id: r.id, client_name: r.client_name })),
+  note: 'fixture-scoped: this run must not insert claims_records; global TEST deltas from other STAGING QA are ignored',
+});
 rec('production-untouched', true);
 rec('no-real-email', true);
 
