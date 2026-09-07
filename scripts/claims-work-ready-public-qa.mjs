@@ -151,13 +151,13 @@ async function shot(page, name) {
 }
 
 async function completeIntake(intakePage, client, plate) {
-  const name = intakePage.locator('[data-testid="intake-name"]');
-  if (await name.count()) await name.fill(client);
-  const plateEl = intakePage.locator('[data-testid="intake-plate"]');
-  if (await plateEl.count()) await plateEl.fill(plate);
-  const date = intakePage.locator('[data-testid="intake-event-date"]');
-  if (await date.count()) await date.fill('2026-09-07');
   for (let i = 0; i < 10; i++) {
+    const name = intakePage.locator('[data-testid="intake-name"]');
+    if (await name.count()) await name.fill(client);
+    const plateEl = intakePage.locator('[data-testid="intake-plate"]');
+    if (await plateEl.count()) await plateEl.fill(plate);
+    const date = intakePage.locator('[data-testid="intake-event-date"]');
+    if (await date.count()) await date.fill('2026-09-07');
     if (await intakePage.locator('[data-testid="intake-submit"]').count()) break;
     if (await intakePage.locator('[data-testid="intake-ack"]').count()) {
       await intakePage.locator('[data-testid="intake-ack"]').check().catch(() => undefined);
@@ -167,7 +167,7 @@ async function completeIntake(intakePage, client, plate) {
     }
     const next = intakePage.locator('[data-testid="intake-next"]');
     if (await next.count()) await next.click();
-    await intakePage.waitForTimeout(400);
+    await intakePage.waitForTimeout(450);
   }
   if (await intakePage.locator('[data-testid="intake-ack"]').count()) {
     await intakePage.locator('[data-testid="intake-ack"]').check().catch(() => undefined);
@@ -428,10 +428,12 @@ async function runRound(browser, session, round) {
 
     if (await row.count()) await row.click();
     await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 30000 });
-    await page.locator('[data-testid="claims-tab-group-mail"]').click().catch(() => undefined);
-    await page.locator('[data-testid="claims-tab-sub-gin"]').click().catch(() => undefined);
-    await page.waitForTimeout(800);
-    rec(`r${round}-mail-in-card`, await page.locator('.gmail-card, [data-mail-mid]').count() > 0);
+    await page.locator('[data-testid="claims-tab-group-mail"]').click();
+    await page.waitForTimeout(500);
+    const gin = page.locator('[data-testid="claims-tab-sub-gin"]');
+    if (await gin.count()) await gin.click();
+    await page.waitForTimeout(2500);
+    rec(`r${round}-mail-in-card`, await page.locator('[data-testid^="mail-item-"], [data-mail-mid], [data-testid^="send-journal-"]').count() > 0);
 
     const tasks = (await userDb.from('claims_tasks').select('id, row_data, claim_id').eq('claim_id', claimId)).data || [];
     const untreated = tasks.filter((t) => t.row_data?.gmailMessageId && t.row_data?.done !== 'true');
@@ -460,9 +462,13 @@ async function runRound(browser, session, round) {
     await page.waitForTimeout(1200);
     const claimAfter = (await userDb.from('claims_records').select('row_data, status').eq('id', claimId).maybeSingle()).data;
     rec(`r${round}-status-note-saved`, String(claimAfter?.row_data?.lastStatusNote || '').includes('QA status') || claimAfter?.status === 'בטיפול', { note: claimAfter?.row_data?.lastStatusNote, status: claimAfter?.status });
-    await page.locator('[data-testid="claims-tab-group-hist"]').click().catch(() => undefined);
-    await page.waitForTimeout(500);
-    rec(`r${round}-status-history`, /שינוי סטטוס|פתיחת תיק|עדכון טיפול|היסטוריית סטטוסים/.test(await page.locator('.mb').innerText().catch(() => '')));
+    await page.locator('[data-testid="claims-tab-group-work"]').click().catch(() => undefined);
+    await page.waitForTimeout(400);
+    const treatHist = await page.locator('[data-testid="status-history"]').count();
+    await page.locator('[data-testid="claims-tab-group-hist"]').click();
+    await page.waitForTimeout(800);
+    const histTitle = await page.getByText('היסטוריית סטטוסים').count();
+    rec(`r${round}-status-history`, treatHist > 0 || histTitle > 0, { treatHist, histTitle });
 
     await page.keyboard.press('Escape').catch(() => undefined);
     await page.reload({ waitUntil: 'domcontentloaded' });
