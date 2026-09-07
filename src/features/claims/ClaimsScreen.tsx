@@ -922,7 +922,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     return () => mq.removeEventListener('change', sync);
   }, []);
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 700px)');
+    const mq = window.matchMedia('(max-width: 700px), (max-width: 920px) and (max-height: 500px)');
     const sync = () => setPhoneNarrow(mq.matches);
     sync();
     mq.addEventListener('change', sync);
@@ -1533,7 +1533,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setPreviewList([]);
     setEventFormSignOpen(false);
     setEventFormSig('');
-    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 700px)').matches) setCardSnapCollapsed(true);
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 700px), (max-width: 920px) and (max-height: 500px)').matches) setCardSnapCollapsed(true);
     await loadCardData(id);
   };
 
@@ -1623,7 +1623,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       eventLocation: [merged.eventPlace, merged.eventCity, merged.eventStreet].filter(Boolean).join(', '),
       eventDesc: merged.eventDesc || merged.damageDesc || '',
       signaturePng,
-      claimNum: displayClaimNum({ claimNum: merged.claimNum || data.claimNum }),
+      claimNum: merged.claimNum || claimId || displayClaimNum({ claimNum: data.claimNum }),
       draft: merged,
     });
     return apiRef.current.staffUpload(claimId, '', pdf, {
@@ -1646,9 +1646,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       const r = await apiRef.current.saveClaim(data);
       if (r.success) {
         const claimId = String(r.id || data.id || '');
-        if (claimId) {
+        if (claimId && staffSig) {
           try {
-            const up = await persistEventFormPdf(claimId, intakeDraft, data, staffSig || undefined);
+            const up = await persistEventFormPdf(claimId, intakeDraft, data, staffSig);
             if (!up.success) toast(`התיק נשמר אבל העלאת טופס האירוע נכשלה: ${up.error || ''}`, 'err');
           } catch (err) {
             toast(`התיק נשמר אבל יצירת טופס האירוע נכשלה: ${String((err as Error).message || err)}`, 'err');
