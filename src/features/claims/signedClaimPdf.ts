@@ -152,7 +152,7 @@ export async function buildSignedOpeningFormPdf(opts: {
   const kv = (k: string, v: string | undefined) => blocks.push({ kind: 'kv', text: `${k}: ${v || '—'}` });
   const p = (t: string) => blocks.push({ kind: 'p', text: t });
 
-  h(opts.signaturePng ? 'טופס אירוע / פתיחת תביעה — חתום' : 'טופס אירוע / פתיחת תביעה');
+  h(opts.signaturePng ? 'טופס הודעה / דיווח אירוע — חתום' : 'טופס הודעה / דיווח אירוע');
   kv('מספר תביעה', claimNum);
   kv('סוג התביעה', d.claimKind || '—');
 

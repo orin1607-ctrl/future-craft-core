@@ -415,7 +415,7 @@ const STAFF_DOC_TYPES: Array<{ key: string; label: string }> = (() => {
     rows.push({ key: t.staffType, label: t.label });
   }
   for (const extra of [
-    { key: 'accident_notice', label: 'טופס הודעה על תאונה' },
+    { key: 'accident_notice', label: 'טופס הודעה / דיווח אירוע' },
     { key: 'policy', label: 'פוליסה' },
     { key: 'police', label: 'אישור משטרה' },
     { key: 'other', label: 'מסמך אחר' },
@@ -1631,7 +1631,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setVal('fc_id', c.id);
     setVal('fc_status', c.status || 'חדש');
     setIntakeDraft(intakeFromClaim(c));
-    setStaffSig('');
+    setStaffSig(c.eventFormSignature || '');
     setVehId(c.vehicle_id || '');
     setCompanyName(c.company_name || '');
     setModal('moClaim');
@@ -1656,8 +1656,65 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     });
     return apiRef.current.staffUpload(claimId, '', pdf, {
       staff_type: 'accident_notice',
-      staff_title: signaturePng ? 'טופס אירוע / פתיחת תביעה — חתום' : 'טופס אירוע / פתיחת תביעה',
+      staff_title: signaturePng ? 'טופס הודעה / דיווח אירוע — חתום' : 'טופס הודעה / דיווח אירוע',
     });
+  };
+
+  const downloadPdfFile = (file: File) => {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name || 'טופס-הודעה-דיווח-אירוע.pdf';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
+
+  const issueEventNoticePdf = async (opts: { download: boolean; save: boolean }) => {
+    const existingId = val(null, 'fc_id') || cur?.id || '';
+    if (!existingId) {
+      toast('שמרו את התיק לפני הפקת טופס ההודעה', 'err');
+      return { success: false };
+    }
+    if (!staffSig) {
+      toast('נא לחתום על הטופס למטה — בלי חתימה לא מופק PDF מלא', 'err');
+      return { success: false };
+    }
+    const data = mergeIntakeToClaim(collectClaimForm(), intakeDraft);
+    const merged = { ...intakeDraft, ...data } as IntakeDraft;
+    const pdf = await buildSignedOpeningFormPdf({
+      clientName: merged.clientName || data.clientName,
+      plate: merged.plate || data.plate || '',
+      eventDate: merged.eventDate || data.eventDate || '',
+      eventLocation: [merged.eventPlace, merged.eventCity, merged.eventStreet].filter(Boolean).join(', '),
+      eventDesc: merged.eventDesc || merged.damageDesc || '',
+      signaturePng: staffSig,
+      claimNum: merged.claimNum || existingId || displayClaimNum({ claimNum: data.claimNum }),
+      draft: merged,
+    });
+    if (opts.save) {
+      const saved = await apiRef.current.saveClaim({
+        ...data,
+        staffSignedAt: new Date().toISOString(),
+        eventFormSignature: staffSig,
+      });
+      if (!saved.success) {
+        toast(`התיק לא נשמר: ${saved.error || ''}`, 'err');
+        return { success: false };
+      }
+      const up = await persistEventFormPdf(existingId, merged, data, staffSig);
+      if (!up.success) {
+        toast(`ה-PDF נוצר אבל לא נשמר במסמכים: ${up.error || ''}`, 'err');
+        return { success: false };
+      }
+    }
+    if (opts.download) downloadPdfFile(pdf);
+    toast(opts.save ? 'טופס הודעה / דיווח אירוע נשמר במסמכי התביעה' : 'ה-PDF הורד');
+    await loadAll();
+    if (cur?.id === existingId) await loadCardData(existingId);
+    return { success: true };
   };
 
   const doSaveClaim = async () => {
@@ -1676,10 +1733,17 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         const claimId = String(r.id || data.id || '');
         if (claimId && staffSig) {
           try {
+            const savedSig = await apiRef.current.saveClaim({
+              ...data,
+              id: claimId,
+              staffSignedAt: new Date().toISOString(),
+              eventFormSignature: staffSig,
+            });
+            if (!savedSig.success) toast(`התיק נשמר אבל החתימה לא עודכנה: ${savedSig.error || ''}`, 'err');
             const up = await persistEventFormPdf(claimId, intakeDraft, data, staffSig);
-            if (!up.success) toast(`התיק נשמר אבל העלאת טופס האירוע נכשלה: ${up.error || ''}`, 'err');
+            if (!up.success) toast(`התיק נשמר אבל העלאת טופס ההודעה נכשלה: ${up.error || ''}`, 'err');
           } catch (err) {
-            toast(`התיק נשמר אבל יצירת טופס האירוע נכשלה: ${String((err as Error).message || err)}`, 'err');
+            toast(`התיק נשמר אבל יצירת טופס ההודעה נכשלה: ${String((err as Error).message || err)}`, 'err');
           }
         }
         setStaffSig('');
@@ -2442,7 +2506,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 if (!existingId || !dataUrl) return;
                 try {
                   const data = mergeIntakeToClaim(collectClaimForm(), intakeDraft);
-                  await apiRef.current.saveClaim({ ...data, staffSignedAt: new Date().toISOString() });
+                  await apiRef.current.saveClaim({ ...data, staffSignedAt: new Date().toISOString(), eventFormSignature: dataUrl });
                   const up = await persistEventFormPdf(existingId, { ...intakeDraft }, data, dataUrl);
                   if (!up.success) toast(`החתימה נשמרה אבל העלאת הטופס נכשלה: ${up.error || ''}`, 'err');
                   else toast('טופס אירוע חתום נשמר במסמכים');
@@ -2513,8 +2577,33 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             />
             <input type="hidden" id="fc_id" />
             <input type="hidden" id="fc_kind" />
+            {staffSig ? (
+              <div style={{ marginTop: 12, padding: 10, background: 'var(--bg2)', border: '1px solid var(--br)', borderRadius: 8 }} data-testid="claim-event-sig-preview-wrap">
+                <div className="fl">חתימה על טופס ההודעה / דיווח האירוע</div>
+                <img src={staffSig} alt="חתימה קיימת" data-testid="claim-event-sig-preview" style={{ maxHeight: 88, maxWidth: '100%', background: '#fff', borderRadius: 8, display: 'block', marginTop: 6 }} />
+              </div>
+            ) : null}
           </div>
-          <div className="mf"><button className="btn btn-g" onClick={() => setModal(null)}>ביטול</button><button className="btn btn-p" data-testid="claims-save-btn" onClick={doSaveClaim}>💾 שמור</button></div>
+          <div className="mf" style={{ flexWrap: 'wrap', gap: 8 }}>
+            <button className="btn btn-g" onClick={() => setModal(null)}>ביטול</button>
+            {val(null, 'fc_id') ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-p"
+                  data-testid="claim-event-pdf-issue"
+                  onClick={() => void issueEventNoticePdf({ download: true, save: true })}
+                >הפק והורד טופס הודעה / דיווח אירוע</button>
+                <button
+                  type="button"
+                  className="btn btn-g"
+                  data-testid="claim-event-pdf-save"
+                  onClick={() => void issueEventNoticePdf({ download: false, save: true })}
+                >שמור PDF במסמכי התביעה</button>
+              </>
+            ) : null}
+            <button className="btn btn-p" data-testid="claims-save-btn" onClick={doSaveClaim}>💾 שמור</button>
+          </div>
         </div>
       </div>
 
@@ -3140,7 +3229,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                   if (!eventFormSig) { toast('נא לחתום על הטופס', 'err'); return; }
                                   try {
                                     const draft = intakeFromClaim(cur);
-                                    await apiRef.current.saveClaim({ ...cur, staffSignedAt: new Date().toISOString() });
+                                    await apiRef.current.saveClaim({ ...cur, staffSignedAt: new Date().toISOString(), eventFormSignature: eventFormSig });
                                     const up = await persistEventFormPdf(cur.id, draft, cur, eventFormSig);
                                     if (!up.success) toast(`החתימה נשמרה אבל העלאת הטופס נכשלה: ${up.error || ''}`, 'err');
                                     else {
