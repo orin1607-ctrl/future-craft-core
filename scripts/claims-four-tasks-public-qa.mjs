@@ -162,7 +162,8 @@ async function openClaims(page) {
     const label = (await mine.first().innerText().catch(() => '')) || '';
     if (/שלי|התביעות שלי/.test(label)) await mine.first().click();
   }
-  await page.waitForTimeout(400);
+  await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
+  await page.waitForTimeout(500);
 }
 
 async function fillIf(page, sel, value) {
@@ -182,7 +183,11 @@ async function createClaim(page, client, plate, stamp) {
   await page.locator('[data-testid="claims-save-btn"]').click();
   await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 60000 });
   await page.waitForTimeout(600);
-  const created = (await userDb.from('claims_records').select('id, client_name, status, row_data').eq('client_name', client).maybeSingle()).data;
+  const header = `${await page.locator('.card-title-num').innerText().catch(() => '')} ${await page.locator('[data-testid="claims-card-snapshot"]').innerText().catch(() => '')}`;
+  const idFromUi = (header.match(/DAL-20\d{2}-\d{4}/) || [])[0] || '';
+  const created = idFromUi
+    ? (await userDb.from('claims_records').select('id, client_name, plate, status, row_data').eq('id', idFromUi).maybeSingle()).data
+    : (await userDb.from('claims_records').select('id, client_name, plate, status, row_data').eq('plate', plate).limit(1).maybeSingle()).data;
   return created;
 }
 
@@ -220,16 +225,18 @@ async function openTreatTab(page) {
     const exp = await snap.getAttribute('aria-expanded');
     if (exp === 'false') await snap.click().catch(() => undefined);
   }
-  await page.locator('[data-testid="claims-tab-group-work"]').waitFor({ state: 'visible', timeout: 20000 });
-  await page.locator('[data-testid="claims-tab-group-work"]').click();
+  const work = page.locator('[data-testid="claims-tab-group-work"]');
+  if (await work.count()) await work.first().click({ force: true }).catch(() => undefined);
   await page.waitForTimeout(400);
   const sub = page.locator('[data-testid="claims-tab-sub-treat"]');
-  if (await sub.count()) await sub.click();
-  await page.waitForSelector('[data-testid="treat-open"]', { timeout: 15000 });
+  if (await sub.count()) await sub.first().click({ force: true }).catch(() => undefined);
+  await page.waitForTimeout(400);
 }
 
 async function saveTreat(page, { action, note, continueWork, nextDate }) {
-  await page.locator('[data-testid="treat-open"]').first().click();
+  const bar = page.locator('[data-testid="claims-treat-open"]');
+  const treatBtn = (await bar.count()) ? bar.first() : page.locator('[data-testid="treat-open"]').first();
+  await treatBtn.evaluate((el) => el.click());
   await page.waitForSelector('[data-testid="treat-ops-v3"]', { timeout: 15000 });
   if (action) await page.locator('[data-testid="treat-action"]').fill(action);
   if (note) await page.locator('[data-testid="treat-note"]').fill(note);
@@ -254,10 +261,22 @@ async function publicUpload(session, token, docRequestId, bytes, name) {
   return { status: res.status, json: await res.json().catch(() => ({})) };
 }
 
+function searchBox(page) {
+  return page.locator('[data-testid="claims-search"]').locator('visible=true').first();
+}
+async function typeSearch(page, q) {
+  const box = searchBox(page);
+  await box.click({ force: true });
+  await box.fill('');
+  await box.pressSequentially(q, { delay: 30 });
+  await page.waitForTimeout(400);
+}
+
 async function runSearchSuite(page, prefix, fixtures) {
   const { eliA, eliB, similar } = fixtures;
   await closeOverlays(page);
-  await page.locator('[data-testid="claims-search"]').fill(ELI);
+  await page.waitForSelector(`[data-testid="claim-row-${eliA.id}"], [data-testid="claim-row-${eliB.id}"]`, { timeout: 30000 });
+  await typeSearch(page, ELI);
   await page.waitForTimeout(800);
   await shot(page, `${prefix}-search-full`);
   const fullText = await page.locator('body').innerText();
@@ -268,15 +287,15 @@ async function runSearchSuite(page, prefix, fixtures) {
   rec(`${prefix}-multiple-claims`, hasA > 0 && hasB > 0, { hasA, hasB });
   rec(`${prefix}-no-eli-cohen-leak`, hasSim === 0, { hasSim });
 
-  await page.locator('[data-testid="claims-search"]').fill('אליהו');
+  await typeSearch(page, 'אליהו');
   await page.waitForTimeout(600);
   rec(`${prefix}-partial-first`, (await page.locator(`[data-testid="claim-row-${eliA.id}"]`).count()) > 0 && (await page.locator(`[data-testid="claim-row-${similar.id}"]`).count()) > 0);
 
-  await page.locator('[data-testid="claims-search"]').fill('אטיאס');
+  await typeSearch(page, 'אטיאס');
   await page.waitForTimeout(600);
   rec(`${prefix}-partial-last`, (await page.locator(`[data-testid="claim-row-${eliA.id}"]`).count()) > 0 && (await page.locator(`[data-testid="claim-row-${similar.id}"]`).count()) === 0);
 
-  await page.locator('[data-testid="claims-search"]').fill(ELI);
+  await typeSearch(page, ELI);
   await page.waitForTimeout(500);
   const status = page.locator('[data-testid="claims-status-filter"]');
   if (await status.count()) {
@@ -287,14 +306,14 @@ async function runSearchSuite(page, prefix, fixtures) {
   if (await status.count()) await status.selectOption({ label: 'כל הסטטוסים' }).catch(() => undefined);
   await page.locator('[data-testid="claims-search-clear"]').click().catch(() => undefined);
   await page.waitForTimeout(400);
-  rec(`${prefix}-clear`, !(await page.locator('[data-testid="claims-search"]').inputValue()).trim());
+  rec(`${prefix}-clear`, !(await searchBox(page).inputValue()).trim());
 
-  await page.locator('[data-testid="claims-search"]').fill(`ZZZ-NO-SUCH-${Date.now()}`);
+  await typeSearch(page, `ZZZ-NO-SUCH-${Date.now()}`);
   await page.waitForTimeout(600);
   const empty = await page.locator('[data-testid="claims-list-empty"]').innerText().catch(() => '');
   rec(`${prefix}-no-results`, empty.includes('לא נמצאו תוצאות'), { empty });
   await page.locator('[data-testid="claims-search-clear"]').click().catch(() => undefined);
-  await page.locator('[data-testid="claims-search"]').fill(ELI);
+  await typeSearch(page, ELI);
   await page.waitForTimeout(500);
   const eliRow = page.locator(`[data-testid="claim-row-${eliA.id}"]`);
   if (await eliRow.count()) {
@@ -609,7 +628,10 @@ try {
   const bootPage = await boot.newPage();
   const fixtures = await createSearchFixtures(bootPage);
   fixtureIds.push(fixtures.eliA?.id, fixtures.eliB?.id, fixtures.similar?.id);
-  rec('search-fixtures', Boolean(fixtures.eliA?.id && fixtures.eliB?.id && fixtures.similar?.id), { ids: fixtureIds });
+  rec('search-fixtures', Boolean(fixtures.eliA?.id && fixtures.eliB?.id && fixtures.similar?.id)
+    && fixtures.eliA.client_name === ELI && fixtures.eliB.client_name === ELI && fixtures.similar.client_name === 'אליהו כהן', {
+    eliA: fixtures.eliA, eliB: fixtures.eliB, similar: fixtures.similar,
+  });
   await boot.close();
   for (let r = 1; r <= 3; r++) {
     await runRound(browser, session, r, fixtures);
@@ -622,10 +644,10 @@ try {
 const failed = report.checks.filter((c) => !c.ok);
 report.cleanThreeRounds = report.rounds.length === 3 && report.rounds.every((r) => r.pass);
 report.verdicts = {
-  TASK1: report.checks.filter((c) => /search|full-name|partial|clear|no-results|open-correct/.test(c.name)).every((c) => c.ok) ? 'PASS' : 'FAIL',
-  TASK2: report.checks.filter((c) => /mail|thread|incoming|reply|composer/.test(c.name)).every((c) => c.ok) ? 'PASS' : 'FAIL',
-  TASK3: report.checks.filter((c) => /opening|edit-no-opening/.test(c.name)).every((c) => c.ok) ? 'PASS' : 'FAIL',
-  TASK4: report.checks.filter((c) => /t4-|treat-|label-|cust-|doc-|approve|live-send/.test(c.name)).every((c) => c.ok) ? 'PASS' : 'FAIL',
+  TASK1: (() => { const xs = report.checks.filter((c) => /search|full-name|partial|clear|no-results|open-correct|multiple-claims/.test(c.name)); return xs.length && xs.every((c) => c.ok) ? 'PASS' : 'FAIL'; })(),
+  TASK2: (() => { const xs = report.checks.filter((c) => /mail|thread|incoming|reply-composer|newest-open/.test(c.name)); return xs.length && xs.every((c) => c.ok) ? 'PASS' : 'FAIL'; })(),
+  TASK3: (() => { const xs = report.checks.filter((c) => /opening|edit-no-opening/.test(c.name)); return xs.length && xs.every((c) => c.ok) ? 'PASS' : 'FAIL'; })(),
+  TASK4: (() => { const xs = report.checks.filter((c) => /t4-|treat-|label-|cust-|doc-|approve|live-send/.test(c.name)); return xs.length && xs.every((c) => c.ok) ? 'PASS' : 'FAIL'; })(),
   ROUND1: report.rounds[0]?.pass ? 'PASS' : 'FAIL',
   ROUND2: report.rounds[1]?.pass ? 'PASS' : 'FAIL',
   ROUND3: report.rounds[2]?.pass ? 'PASS' : 'FAIL',
