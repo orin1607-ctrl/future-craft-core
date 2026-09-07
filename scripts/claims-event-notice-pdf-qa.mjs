@@ -369,6 +369,8 @@ async function runRound(browser, session, round) {
     rec(`r${round}-open`, /טופס|הודעה|דיווח|אירוע|\.pdf/i.test(previewName) || await page.locator('[data-testid="doc-preview"]').count() > 0, { previewName });
     const dlBtn = page.locator('[data-testid="doc-preview-download"]');
     rec(`r${round}-download-control`, await dlBtn.count() > 0);
+    await page.locator('.doc-preview-frame, [data-testid="doc-preview"] iframe').first().waitFor({ state: 'attached', timeout: 8000 }).catch(() => undefined);
+    await page.waitForTimeout(2000);
     await shot(page, `r${round}-docs-open`);
     await page.locator('[data-testid="doc-preview-close"]').click().catch(() => page.keyboard.press('Escape'));
     await page.waitForTimeout(400);
@@ -382,7 +384,7 @@ async function runRound(browser, session, round) {
     rec(`r${round}-reopen-docs`, await page.locator('[data-testid="claim-doc-type-accident_notice"]').count() > 0);
     const docs2 = (await userDb.from('claims_documents').select('id, original_name, content_sha256, doc_meta').eq('claim_id', claimId)).data || [];
     rec(`r${round}-same-pdf`, !forms[0]?.content_sha256 || docs2.some((d) => d.content_sha256 === forms[0].content_sha256));
-    rec(`r${round}-no-dup`, noticeDocs(docs2).length <= 2, { count: noticeDocs(docs2).length });
+    rec(`r${round}-no-dup`, noticeDocs(docs2).length === 1, { count: noticeDocs(docs2).length });
 
     await page.locator('[data-testid="claims-send-mail"]').click();
     await page.locator('[data-testid="mail-to"]').waitFor({ state: 'visible', timeout: 15000 });
@@ -412,7 +414,7 @@ async function runRound(browser, session, round) {
 
     const fileId = forms[0]?.id || noticeDocs(docs2)[0]?.id || '';
     const subj1 = `[TEST] ${claimNum} טופס הודעה / דיווח אירוע`;
-    const body1 = `שלום,\nמצורף טופס הודעה / דיווח אירוע לתביעה ${claimNum}.\nTEST בלבד. ${client}`;
+    const body1 = `שלום,\nמצורף טופס הודעה / דיווח אירוע לתביעה ${claimNum}.\nנא להעביר רישיון נהיגה.\nTEST בלבד. ${client}`;
     const send1 = await invokeGmail(session, {
       action: 'send_claim', confirm: true, claim_id: claimId, to: SELF, subject: subj1, body: body1,
       file_ids: fileId ? [fileId] : [], idempotency_key: `s1-${stamp}`,
@@ -450,7 +452,7 @@ async function runRound(browser, session, round) {
     const subj2 = `[TEST] ${claimNum} נא להעביר רישיון נהיגה`;
     const send2 = await invokeGmail(session, {
       action: 'send_claim', confirm: true, claim_id: claimId, to: SELF, subject: subj2,
-      body: `נא להעביר רישיון נהיגה עבור ${claimNum}`, file_ids: [], idempotency_key: `s2-${stamp}`,
+      body: `נא להעביר חשבונית מוסך עבור ${claimNum}`, file_ids: [], idempotency_key: `s2-${stamp}`,
     });
     rec(`r${round}-second-mail`, send2.json?.success === true, { error: send2.json?.error });
     const reply = threadId ? await invokeGmail(session, {
@@ -478,6 +480,10 @@ async function runRound(browser, session, round) {
     rec(`r${round}-sent-folder`, outbox.length >= 1, { count: outbox.length });
 
     let mids = await uniqueUntreatedMids(claimId);
+    for (let i = 0; i < 8 && mids.length < 2; i++) {
+      await sleep(2000);
+      mids = await uniqueUntreatedMids(claimId);
+    }
     while (mids.length > 2) {
       await treatMessage(claimId, mids[0]);
       mids = await uniqueUntreatedMids(claimId);
