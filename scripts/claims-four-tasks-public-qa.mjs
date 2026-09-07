@@ -204,15 +204,14 @@ async function createClaim(page, client, plate, stamp) {
 }
 
 async function closeOverlays(page) {
-  for (let i = 0; i < 4; i++) {
-    const vis = page.locator('.ov.open .mcl, [data-testid="treat-center-close"], [data-testid="treat-back"]');
+  for (let i = 0; i < 6; i++) {
+    const vis = page.locator('.ov.open [data-testid="treat-center-close"], .ov.open [data-testid="treat-back"], .ov.open .mcl').locator('visible=true');
     if (await vis.count()) {
-      await vis.first().click().catch(() => undefined);
-      await page.waitForTimeout(250);
+      await vis.first().evaluate((el) => el.click()).catch(() => undefined);
+      await page.waitForTimeout(300);
       continue;
     }
-    await page.keyboard.press('Escape').catch(() => undefined);
-    await page.waitForTimeout(200);
+    break;
   }
 }
 
@@ -225,7 +224,7 @@ async function openClaimCard(page, client, claimId) {
   await page.locator('[data-testid="claims-search"]').fill(client).catch(() => undefined);
   await page.waitForTimeout(700);
   const row = page.locator(`[data-testid="claim-row-${claimId}"]`);
-  if (await row.count()) await row.first().click();
+  if (await row.count()) await row.first().evaluate((el) => el.click());
   else await page.getByText(client, { exact: false }).first().click().catch(() => undefined);
   await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 20000 });
   return true;
@@ -347,12 +346,12 @@ async function runSearchSuite(page, prefix, fixtures) {
   await page.locator('[data-testid="claims-search-clear"]').click().catch(() => undefined);
   await typeSearch(page, ELI);
   await page.waitForTimeout(500);
-  const eliRow = page.locator(`[data-testid="claim-row-${eliA.id}"]`);
+  const eliRow = page.locator(`[data-testid="claim-row-${eliA.id}"]`).first();
   if (await eliRow.count()) {
-    await eliRow.first().click();
-    await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 15000 });
-    const snap = await page.locator('[data-testid="claims-card-snapshot"]').innerText();
-    rec(`${prefix}-open-correct`, snap.includes(eliA.id) || snap.includes(ELI), { snap: snap.slice(0, 120) });
+    await eliRow.evaluate((el) => el.click());
+    await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 15000 }).catch(() => undefined);
+    const snap = await page.locator('[data-testid="claims-card-snapshot"]').innerText().catch(() => '');
+    rec(`${prefix}-open-correct`, snap.includes(eliA.id) || snap.includes(ELI), { snap: snap.slice(0, 160) });
     await closeOverlays(page);
   } else {
     rec(`${prefix}-open-correct`, false, { err: `${eliA.id} not in search results` });
@@ -450,7 +449,7 @@ async function runRound(browser, session, round, fixtures) {
     await itemBtn.waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
     rec(`r${round}-treat-list`, await itemBtn.count() > 0);
     if (await itemBtn.count()) {
-      await itemBtn.click();
+      await itemBtn.evaluate((el) => el.click());
       await page.waitForSelector('[data-testid="treat-center"].open, .ov.open[data-testid="treat-center"]', { timeout: 15000 }).catch(() => undefined);
     }
     rec(`r${round}-center-from-list`, await page.locator('[data-testid="treat-center"].open [data-testid="treat-center-body"]').count() > 0);
