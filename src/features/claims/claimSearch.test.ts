@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { claimMatchesSearch, searchEmptyLabel } from './claimSearch';
+import { resolveStaffClaimSaveId } from './claimIntakeModel';
 import type { ClaimRecord } from './claimsConstants';
 
 const eli = { id: 'DAL-2026-0020', clientName: 'אליהו אטיאס', plate: '12-345-67', claimNum: 'DAL-2026-0020', status: 'בטיפול' } as ClaimRecord;
@@ -30,6 +31,17 @@ describe('claimMatchesSearch', () => {
   });
   it('empty query matches all', () => {
     expect(claimMatchesSearch(eli, '   ')).toBe(true);
+  });
+});
+
+describe('resolveStaffClaimSaveId', () => {
+  it('never reuses the open card when opening a new claim', () => {
+    expect(resolveStaffClaimSaveId('new', '', 'DAL-2026-0123')).toBe('');
+    expect(resolveStaffClaimSaveId('new', 'DAL-2026-0123', 'DAL-2026-0123')).toBe('');
+  });
+  it('keeps the edited claim id', () => {
+    expect(resolveStaffClaimSaveId('edit', 'DAL-2026-0124', 'DAL-2026-0124')).toBe('DAL-2026-0124');
+    expect(resolveStaffClaimSaveId('edit', '', 'DAL-2026-0124')).toBe('DAL-2026-0124');
   });
 });
 

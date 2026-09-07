@@ -8,7 +8,7 @@ import { buildSignedOpeningFormPdf } from './signedClaimPdf';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
 import SignaturePad from './SignaturePad';
-import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, type IntakeDraft } from './claimIntakeModel';
+import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, resolveStaffClaimSaveId, type IntakeDraft } from './claimIntakeModel';
 import './claims.css';
 
 const ST_CSS: Record<string, string> = {
@@ -801,6 +801,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [eventFormSignOpen, setEventFormSignOpen] = useState(false);
   const [eventFormSig, setEventFormSig] = useState('');
   const saveLock = useRef(false);
+  const claimFormMode = useRef<'new' | 'edit'>('new');
   const mailFocusRef = useRef<string[]>([]);
   const fuFocusRef = useRef<string[]>([]);
   const [dashTasks, setDashTasks] = useState<ClaimRecord[]>([]);
@@ -1634,6 +1635,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const openNew = () => {
+    claimFormMode.current = 'new';
     Object.keys(FC_MAP).forEach((fid) => setVal(fid, ''));
     setVal('fc_id', '');
     setVal('fc_status', 'חדש');
@@ -1649,6 +1651,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const startEdit = (id: string) => {
     const c = claims.find((x) => x.id === id);
     if (!c) return;
+    claimFormMode.current = 'edit';
     Object.entries(FC_MAP).forEach(([fid, key]) => setVal(fid, c[key] || ''));
     setVal('fc_id', c.id);
     setVal('fc_status', c.status || 'חדש');
@@ -1744,7 +1747,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (saveLock.current) return;
     saveLock.current = true;
     const data = mergeIntakeToClaim(collectClaimForm(), intakeDraft);
-    data.id = data.id || cur?.id || '';
+    data.id = resolveStaffClaimSaveId(claimFormMode.current, val(null, 'fc_id'), cur?.id || '');
     if (!data.clientName) {
       saveLock.current = false;
       toast('נא להזין שם לקוח', 'err');
@@ -1884,6 +1887,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       await loadAll();
       if (curId) await loadCardData(curId);
       if (continueWork === 'continue' && newId) {
+        setCardTab('treat');
         setTreatCenterId(newId);
         setModal('moTreatCenter');
       } else {
