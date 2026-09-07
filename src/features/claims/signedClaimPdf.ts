@@ -243,9 +243,16 @@ export async function buildSignedOpeningFormPdf(opts: {
   const pages: Block[][] = [[]];
   let used = 78;
   const bodyLimit = PAGE_H - 56;
-  for (const b of blocks) {
+  const sigIdx = blocks.findIndex((b) => b.kind === 'sig');
+  const declIdx = blocks.findIndex((b) => b.kind === 'h' && b.text.includes('הצהרה'));
+  const keepFrom = declIdx >= 0 && sigIdx > declIdx ? declIdx : sigIdx;
+  const tailH = keepFrom >= 0 ? blocks.slice(keepFrom).reduce((n, b) => n + blockH(b), 0) : sigH;
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
     const need = blockH(b);
-    if (used + need > bodyLimit && pages[pages.length - 1].length) {
+    const startingTail = i === keepFrom;
+    const room = startingTail ? tailH : need;
+    if (used + room > bodyLimit && pages[pages.length - 1].length) {
       pages.push([]);
       used = 78;
     }
@@ -300,6 +307,8 @@ export async function buildSignedOpeningFormPdf(opts: {
         continue;
       }
       if (b.kind === 'sig') {
+        const pinY = PAGE_H - 56 - (opts.signaturePng ? 178 : 36);
+        if (cy < pinY) cy = pinY;
         ctx.font = `700 15px ${FONT}`;
         ctx.fillStyle = '#111111';
         ctx.textAlign = 'right';

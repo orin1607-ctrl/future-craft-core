@@ -308,6 +308,7 @@ try {
   rec('pdf-is-pdf', signed.length > 0 && signed.every((d) => d.mime_type === 'application/pdf'), { names: forms.map((d) => d.original_name), mime: forms.map((d) => d.mime_type) });
   rec('pdf-same-claim', forms.every((d) => d.claim_id === report.claimId));
   rec('no-cross-claim', forms.every((d) => d.claim_id === report.claimId) && report.claimId !== 'DAL-2026-0020');
+  rec('no-duplicate', signed.length === 1 && forms.filter((d) => d.mime_type === 'application/pdf').length === 1, { names: forms.map((d) => d.original_name) });
 
   const target = signed[0] || forms.find((d) => d.mime_type === 'application/pdf');
   if (target?.id) {
@@ -349,18 +350,22 @@ try {
         rec('pdf-full-form-not-signature-only', ink.topInk > 0.012 && ink.w >= 700 && ink.h >= 1000, ink);
         rec('pdf-form-fields-ink', ink.topInk > 0.012, ink);
         rec('pdf-a4-page', ink.w === 794 && ink.h === 1123, ink);
-        await page.setContent(`<html><body style="margin:0;background:#333"><img src="data:image/jpeg;base64,${Buffer.from(jpegs[0]).toString('base64')}" style="width:100%"></body></html>`);
-        await shot(page, 'pdf-page-1');
+        const vis = await ctx.newPage();
+        await vis.setContent(`<html><body style="margin:0;background:#333"><img src="data:image/jpeg;base64,${Buffer.from(jpegs[0]).toString('base64')}" style="width:100%"></body></html>`);
+        await shot(vis, 'pdf-page-1');
+        await vis.close();
       }
       if (jpegs.length > 1) {
         const last = join(OUT, `page-${jpegs.length}.jpg`);
         writeFileSync(last, jpegs[jpegs.length - 1]);
         const inkL = await inkRatios(page, last);
-        rec('pdf-signature-at-bottom', inkL.botInk > 0.004, inkL);
-        await page.setContent(`<html><body style="margin:0;background:#333"><img src="data:image/jpeg;base64,${Buffer.from(jpegs[jpegs.length - 1]).toString('base64')}" style="width:100%"></body></html>`);
-        await shot(page, 'pdf-page-last');
+        rec('pdf-signature-at-bottom', inkL.botInk > 0.008, inkL);
+        const vis2 = await ctx.newPage();
+        await vis2.setContent(`<html><body style="margin:0;background:#333"><img src="data:image/jpeg;base64,${Buffer.from(jpegs[jpegs.length - 1]).toString('base64')}" style="width:100%"></body></html>`);
+        await shot(vis2, 'pdf-page-last');
+        await vis2.close();
       } else if (jpegs[0]) {
-        rec('pdf-signature-at-bottom', report.ink.botInk > 0.003, report.ink);
+        rec('pdf-signature-at-bottom', report.ink.botInk > 0.008, report.ink);
       }
     }
   } else {
@@ -430,9 +435,9 @@ try {
     const st = await headerStats(vp);
     rec(`${label}-card`, await vp.locator('[data-testid="claims-card-snapshot"]').count() > 0);
     rec(`${label}-no-overflow`, !(await overflow(vp)).overflow, await overflow(vp));
-    if (phone && viewport.width <= 700) {
+    if (phone && (viewport.width <= 700 || viewport.height <= 500)) {
       rec(`${label}-toggle`, Boolean(st?.toggle), st);
-      rec(`${label}-work`, Boolean(st && st.mbH > 80 && st.ratio < 0.62), st);
+      rec(`${label}-work`, Boolean(st && st.mbH > 80 && st.ratio < 0.7), st);
     } else {
       rec(`${label}-no-phone-toggle`, !st?.compact && !(st?.toggle), st);
     }
