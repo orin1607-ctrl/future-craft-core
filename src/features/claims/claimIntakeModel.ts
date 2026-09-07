@@ -46,6 +46,12 @@ export function intakeFromClaim(c: Record<string, string>): IntakeDraft {
   return next;
 }
 
+/** New claim must not inherit the open card id. Edit may fall back to the open card. */
+export function resolveStaffClaimSaveId(mode: 'new' | 'edit', formId: string, openClaimId: string) {
+  if (mode === 'new') return '';
+  return String(formId || openClaimId || '').trim();
+}
+
 export function mergeIntakeToClaim(base: Record<string, string>, d: IntakeDraft): Record<string, string> {
   return {
     ...base,
