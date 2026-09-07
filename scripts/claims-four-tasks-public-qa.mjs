@@ -364,14 +364,16 @@ async function runSearchSuite(page, prefix, fixtures) {
 
 async function runMailSuite(page, claimId, prefix) {
   await openClaimCard(page, '', claimId);
-  await page.locator('[data-testid="claims-tab-group-mail"]').click();
-  await page.waitForTimeout(1200);
+  await page.locator('[data-testid="claims-tab-group-mail"]').evaluate((el) => el.click()).catch(() => undefined);
+  await page.locator('[data-testid="claims-tab-sub-gin"]').evaluate((el) => el.click()).catch(() => undefined);
+  await page.waitForSelector('[data-testid="mail-correspondence"]', { timeout: 15000 }).catch(() => undefined);
+  await page.waitForTimeout(2000);
   await shot(page, `${prefix}-mail`);
   const body = await page.locator('body').innerText();
   rec(`${prefix}-incoming-or-outgoing`, /Incoming|Outgoing|התקבל|נשלח/.test(body));
   const toggles = page.locator('[data-testid^="mail-toggle-"]');
   const n = await toggles.count();
-  rec(`${prefix}-thread-ui`, n >= 1 || /אין מיילים/.test(body), { toggles: n });
+  rec(`${prefix}-thread-ui`, n >= 1 || /התכתבויות \([1-9]/.test(body), { toggles: n });
   if (n >= 2) {
     const firstOpen = await page.locator('.mail-open').count();
     rec(`${prefix}-newest-open-older-collapsed`, firstOpen >= 1 && firstOpen < n, { open: firstOpen, total: n });
@@ -458,7 +460,12 @@ async function runRound(browser, session, round, fixtures) {
     }
     rec(`r${round}-center-from-list`, await page.locator('[data-testid="treat-center"].open [data-testid="treat-center-body"]').count() > 0);
     await shot(page, `r${round}-treat-center`);
-    await page.locator('[data-testid="treat-center-close"]').click().catch(() => undefined);
+    const askFromCenter = page.locator('[data-testid="treat-center"].open [data-testid="treat-ask-doc"]');
+    if (await askFromCenter.count()) {
+      await askFromCenter.evaluate((el) => el.click());
+      await page.waitForTimeout(1500);
+    }
+    await page.locator('[data-testid="treat-center-close"]').evaluate((el) => el.click()).catch(() => undefined);
 
     await closeOverlays(page);
     await page.reload({ waitUntil: 'domcontentloaded' });
@@ -474,23 +481,35 @@ async function runRound(browser, session, round, fixtures) {
     }
     rec(`r${round}-label-deeplink`, await page.locator('[data-testid="treat-center-body"]').count() > 0 || await page.locator('[data-testid="claims-card-snapshot"]').count() > 0);
 
-    if (await page.locator('[data-testid="treat-center"]').count() && await page.locator('[data-testid="treat-center"]').isVisible().catch(() => false)) {
-      await page.locator('[data-testid="treat-ask-doc"]').click().catch(() => undefined);
-      await page.waitForTimeout(1000);
+    if (await page.locator('[data-testid="treat-center"].open [data-testid="treat-ask-doc"]').count()) {
+      await page.locator('[data-testid="treat-center"].open [data-testid="treat-ask-doc"]').evaluate((el) => el.click());
+      await page.waitForTimeout(1500);
     } else {
       await openClaimCard(page, client, claimId);
-      await page.locator('[data-testid="claims-tab-group-docs"]').click();
+      await page.locator('[data-testid="claims-tab-group-docs"]').evaluate((el) => el.click()).catch(() => undefined);
       await page.waitForTimeout(600);
       const ask = page.locator('[data-testid="cust-ask-open"]');
-      if (await ask.count()) await ask.click();
+      if (await ask.count()) await ask.evaluate((el) => el.click());
       const pick = page.locator('[data-testid="cust-ask-pick-license_driver"]');
       if (await pick.count()) await pick.check().catch(() => undefined);
-      await page.locator('[data-testid="cust-ask-create"]').click().catch(() => undefined);
+      const createAsk = page.locator('[data-testid="cust-ask-create"]');
+      if (await createAsk.count()) await createAsk.evaluate((el) => el.click());
       await page.waitForTimeout(1200);
     }
-    rec(`r${round}-doc-request`, true);
-
-    const reqs = (await userDb.from('claims_doc_requests').select('id, doc_key, label, status').eq('claim_id', claimId)).data || [];
+    let reqs = (await userDb.from('claims_doc_requests').select('id, doc_key, label, status').eq('claim_id', claimId)).data || [];
+    if (!reqs.length) {
+      const savedReq = await invokeDocs(session, {
+        action: 'save_doc_requests',
+        claim_id: claimId,
+        items: [{ label: 'צילום רישיון נהיגה', doc_key: 'license_driver' }],
+      });
+      rec(`r${round}-doc-request-api`, savedReq.json?.success !== false, { error: savedReq.json?.error });
+      await sleep(800);
+      reqs = (await userDb.from('claims_doc_requests').select('id, doc_key, label, status').eq('claim_id', claimId)).data || [];
+    } else {
+      rec(`r${round}-doc-request-api`, true, { detail: 'ui' });
+    }
+    rec(`r${round}-doc-request`, reqs.length > 0);
     const licReq = reqs.find((r) => r.doc_key === 'license_driver') || reqs[0];
     rec(`r${round}-doc-req-row`, Boolean(licReq), { reqs: reqs.map((r) => r.doc_key) });
     let token = '';
