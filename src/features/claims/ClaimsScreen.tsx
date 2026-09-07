@@ -2512,13 +2512,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button className="ab-btn ab-task ab-pri" data-testid="claims-cust-request" onClick={() => { setCardMore(false); openCustomerRequest(); }}>בקשה ללקוח</button>
                 <button className="ab-btn ab-status ab-pri" data-testid="claims-treat-open" onClick={() => { setCardMore(false); openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk }); }}>עדכון טיפול</button>
                 <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>מסמכים</button>
-                <button className="ab-btn ab-mail ab-pri" data-testid="claims-sign-link" onClick={() => { setCardMore(false); void sendCustomerSignLink(cur.id); }}>שלח ללקוח לחתימה</button>
+                {!narrowList ? (
+                  <button className="ab-btn ab-mail ab-pri" data-testid="claims-sign-link" onClick={() => { setCardMore(false); void sendCustomerSignLink(cur.id); }}>שלח ללקוח לחתימה</button>
+                ) : null}
               </div>
               <div className="ab-more-wrap">
                 <button type="button" className={`ab-btn ab-sum ${cardMore ? 'act' : ''}`} data-testid="claims-card-more" onClick={() => setCardMore((v) => !v)}>עוד</button>
                 {cardMore ? <div className="ab-more-ov" data-testid="claims-card-more-ov" onClick={() => setCardMore(false)} /> : null}
                 {cardMore ? (
                   <div className="ab-more-panel" data-testid="claims-card-more-panel">
+                    {narrowList ? (
+                      <button className="ab-btn ab-mail" data-testid="claims-sign-link" onClick={() => { setCardMore(false); void sendCustomerSignLink(cur.id); }}>שלח ללקוח לחתימה</button>
+                    ) : null}
                     <button className="ab-btn ab-phone" onClick={() => { setCardMore(false); setModal('moCall'); }}>שיחה</button>
                     <button className="ab-btn ab-wa" onClick={() => { setCardMore(false); setVal('wa_msg', `שלום, בהמשך לתביעה ${displayClaimNum(cur)}`); setModal('moWA'); }}>WhatsApp</button>
                     <button className="ab-btn ab-mail" data-testid="claims-send-insurer" onClick={() => { setCardMore(false); void openSendModal('insurer'); }}>שליחה לחברת ביטוח</button>

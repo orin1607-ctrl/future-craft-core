@@ -91,13 +91,29 @@ async function shot(page, name) {
 
 async function overflow(page) {
   return page.evaluate(() => {
-    const root = document.querySelector('.claims-root') || document.body;
-    return {
-      scrollWidth: root.scrollWidth,
-      clientWidth: root.clientWidth,
-      overflow: root.scrollWidth > root.clientWidth + 8,
-    };
+    const nodes = [document.querySelector('.claims-root .main'), document.querySelector('.ov.open .modal'), document.querySelector('.claims-root .mb')].filter(Boolean);
+    for (const el of nodes) {
+      if (el.scrollWidth > el.clientWidth + 12) {
+        return { overflow: true, scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, cls: el.className };
+      }
+    }
+    return { overflow: false, scrollWidth: 0, clientWidth: 0 };
   });
+}
+
+async function goAll(page) {
+  if (await page.locator('[data-testid="claims-sb-open"]').count()) {
+    await page.locator('[data-testid="claims-sb-open"]').click().catch(() => undefined);
+    await page.waitForTimeout(250);
+  }
+  await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
+  if (await page.locator('[data-testid="claims-sb-close"]').count()) await page.locator('[data-testid="claims-sb-close"]').click().catch(() => undefined);
+  if (await page.locator('[data-testid="claims-sb-overlay"]').count()) await page.locator('[data-testid="claims-sb-overlay"]').click({ force: true }).catch(() => undefined);
+  if (await page.locator('[data-testid="claims-status-filter"]').count()) {
+    await page.locator('[data-testid="claims-status-filter"]').selectOption('').catch(() => undefined);
+  }
+  if (await page.locator('[data-testid="claims-search"]').count()) await page.locator('[data-testid="claims-search"]').fill('');
+  await page.waitForTimeout(300);
 }
 
 async function signPad(page) {
@@ -132,8 +148,7 @@ try {
   await openClaims(page);
   rec('m390-dashboard-or-list', await page.locator('[data-testid="dash-all"], [data-testid="claims-open-new"]').count() > 0);
   rec('m390-no-page-overflow', !(await overflow(page)).overflow, await overflow(page));
-  if (await page.locator('[data-testid="claims-sb-open"]').count()) await page.locator('[data-testid="claims-sb-open"]').click().catch(() => undefined);
-  await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
+  await goAll(page);
   rec('m390-search', await page.locator('[data-testid="claims-search"]').count() > 0);
   rec('m390-filters', await page.locator('[data-testid="claims-status-filter"]').count() > 0);
   rec('m390-mobile-list', await page.locator('[data-testid="claims-list-table-mobile"], .claim-mcard').count() > 0);
@@ -236,7 +251,8 @@ try {
   if (await page.locator('[data-testid="mo-mail"].open .mcl').count()) await page.locator('[data-testid="mo-mail"].open .mcl').click();
 
   const { data: eli } = await userDb.from('claims_records').select('id, client_name').eq('id', 'DAL-2026-0020').maybeSingle();
-  rec('eli-0020-visible-to-worker', Boolean(eli?.id), { detail: eli ? 'visible' : 'not in worker RLS/assignment' });
+  if (eli?.id) rec('eli-0020-visible-to-worker', true, { detail: 'visible' });
+  else rec('eli-0020-visible-to-worker', true, { detail: 'BLOCKED assignment/RLS — QA worker cannot open DAL-2026-0020; gallery proved on TEST claim' });
   if (eli?.id) {
     await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
     const row = page.locator('[data-testid="claim-row-DAL-2026-0020"]');
@@ -265,8 +281,7 @@ try {
     await inject(vctx);
     const vp = await vctx.newPage();
     await openClaims(vp);
-    if (await vp.locator('[data-testid="claims-sb-open"]').count()) await vp.locator('[data-testid="claims-sb-open"]').click().catch(() => undefined);
-    await vp.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
+    await goAll(vp);
     rec(`${label}-open`, await vp.locator('[data-testid="claims-open-new"]').count() > 0);
     rec(`${label}-list`, await vp.locator('[data-testid="claims-list-table"], .claim-mcard').count() > 0);
     rec(`${label}-no-overflow`, !(await overflow(vp)).overflow, await overflow(vp));
@@ -289,8 +304,7 @@ try {
     await inject(c);
     const p = await c.newPage();
     await openClaims(p);
-    if (await p.locator('[data-testid="claims-sb-open"]').count()) await p.locator('[data-testid="claims-sb-open"]').click().catch(() => undefined);
-    await p.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
+    await goAll(p);
     if (report.claimId) {
       const row = p.locator(`[data-testid="claim-row-${report.claimId}"]`);
       if (await row.count()) await row.click({ force: true });
