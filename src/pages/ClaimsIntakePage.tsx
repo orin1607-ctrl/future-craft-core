@@ -81,6 +81,8 @@ export default function ClaimsIntakePage() {
         eventLocation: [draft.eventPlace, draft.eventCity, draft.eventStreet].filter(Boolean).join(', '),
         eventDesc: draft.eventDesc || draft.damageDesc || '',
         signaturePng: sig,
+        claimNum: draft.claimNum || 'טרם התקבל',
+        draft,
       });
       signedPdf = await fileToBase64(pdf);
     } catch {

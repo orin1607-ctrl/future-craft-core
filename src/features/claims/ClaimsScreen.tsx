@@ -631,7 +631,15 @@ function cardGroupOf(tab: string) {
   return CARD_TAB_GROUPS.find((g) => g.tabs.some((t) => t.key === tab)) || CARD_TAB_GROUPS[0];
 }
 
-function InCardPreview({ file, onClose }: { file: { url: string; name: string; mime: string } | null; onClose: () => void }) {
+function InCardPreview({ file, onClose, pos, canPrev, canNext, onPrev, onNext }: {
+  file: { url: string; name: string; mime: string } | null;
+  onClose: () => void;
+  pos?: string;
+  canPrev?: boolean;
+  canNext?: boolean;
+  onPrev?: () => void;
+  onNext?: () => void;
+}) {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     wrapRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
@@ -642,9 +650,16 @@ function InCardPreview({ file, onClose }: { file: { url: string; name: string; m
     <div ref={wrapRef} className="doc-preview-wrap" data-testid="doc-preview">
       <div className="doc-preview-bar">
         <b data-testid="doc-preview-name"><FileName name={file.name} /></b>
+        {pos ? <span className="doc-preview-pos" data-testid="doc-preview-pos">{pos}</span> : null}
+        {canPrev || canNext ? (
+          <div className="doc-preview-nav">
+            <button type="button" className="btn btn-g btn-sm" data-testid="doc-preview-prev" disabled={!canPrev} onClick={onPrev}>הקודם</button>
+            <button type="button" className="btn btn-g btn-sm" data-testid="doc-preview-next" disabled={!canNext} onClick={onNext}>הבא</button>
+          </div>
+        ) : null}
         <button className="btn btn-g btn-sm" onClick={() => window.open(file.url, '_blank')}>חלון נפרד</button>
         <a className="btn btn-p btn-sm" data-testid="doc-preview-download" href={file.url} download={file.name || 'document'} target="_blank" rel="noreferrer">הורדה</a>
-        <button className="btn btn-g btn-sm" onClick={onClose}>סגור תצוגה</button>
+        <button className="btn btn-g btn-sm" data-testid="doc-preview-close" onClick={onClose}>סגור תצוגה</button>
       </div>
       {img
         ? <img className="doc-preview-img" src={file.url} alt={file.name} />
@@ -774,6 +789,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [galleryUrls, setGalleryUrls] = useState<Record<string, string>>({});
   const [openGal, setOpenGal] = useState<Record<string, boolean>>({});
   const [previewFile, setPreviewFile] = useState<{ id: string; url: string; name: string; mime: string } | null>(null);
+  const [previewList, setPreviewList] = useState<ClaimFile[]>([]);
+  const [narrowList, setNarrowList] = useState(false);
   const [mineOnly, setMineOnly] = useState(actor.role !== 'super_admin');
   const [intakeDraft, setIntakeDraft] = useState<IntakeDraft>({ ...EMPTY_INTAKE });
   const [intakeLinkMsg, setIntakeLinkMsg] = useState('');
@@ -883,6 +900,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       setGmailBusy('');
     }
   };
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 820px)');
+    const sync = () => setNarrowList(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   useEffect(() => {
     apiRef.current = createClaimsApi(actor);
@@ -1305,11 +1330,22 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }
   };
 
-  const openInCard = async (claimId: string, f: ClaimFile) => {
+  const openInCard = async (claimId: string, f: ClaimFile, list?: ClaimFile[]) => {
     const r = await apiRef.current.invokeDocs('signed_url', { claim_id: claimId, file_id: f.id });
     if (!r.url) { toast('לא ניתן לפתוח את הקובץ', 'err'); return; }
+    if (list && list.length) setPreviewList(list);
     setPreviewFile({ id: f.id, url: String(r.url), name: f.original_name, mime: f.mime_type || '' });
   };
+
+  const previewIdx = previewFile ? previewList.findIndex((x) => x.id === previewFile.id) : -1;
+  const previewNav = previewList.length > 1 && previewIdx >= 0 ? {
+    pos: `${previewIdx + 1} / ${previewList.length}`,
+    canPrev: previewIdx > 0,
+    canNext: previewIdx < previewList.length - 1,
+    onPrev: () => { const prev = previewList[previewIdx - 1]; if (prev && curId) void openInCard(curId, prev, previewList); },
+    onNext: () => { const next = previewList[previewIdx + 1]; if (next && curId) void openInCard(curId, next, previewList); },
+  } : {};
+  const closePreview = () => { setPreviewFile(null); setPreviewList([]); };
 
   const markDocKind = async (claimId: string, fileId: string, kind: string, meta?: Record<string, string>) => {
     const r = await apiRef.current.invokeDocs('set_doc_kind', { claim_id: claimId, file_id: fileId, doc_kind: kind, doc_meta: meta || {} });
@@ -1474,6 +1510,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setModal('moCard');
     setLinkUrl('');
     setPreviewFile(null);
+    setPreviewList([]);
     setEventFormSignOpen(false);
     setEventFormSig('');
     await loadCardData(id);
@@ -1564,6 +1601,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       eventLocation: [draft.eventPlace, draft.eventCity, draft.eventStreet].filter(Boolean).join(', '),
       eventDesc: draft.eventDesc || draft.damageDesc || '',
       signaturePng,
+      claimNum: displayClaimNum({ claimNum: draft.claimNum || data.claimNum }),
+      draft,
     });
     return apiRef.current.staffUpload(claimId, '', pdf, {
       staff_type: 'accident_notice',
@@ -1813,7 +1852,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const renderListFilterControls = () => (
     <>
-      <input className="fi" placeholder="🔎 חיפוש..." style={{ width: 180 }} value={search} onChange={(e) => setSearch(e.target.value)} data-testid="claims-search" />
+      <input className="fi claims-search-in" placeholder="🔎 חיפוש..." value={search} onChange={(e) => setSearch(e.target.value)} data-testid="claims-search" />
       <select className="fse" value={stFil} onChange={(e) => setStFil(e.target.value)} style={{ fontSize: 11.5 }} data-testid="claims-status-filter">
         <option value="">כל הסטטוסים</option>
         {STATUSES.map((s) => <option key={s}>{s}</option>)}
@@ -1859,6 +1898,57 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       <th>טיפול אחרון</th><th>טיפול הבא</th><th>נדרש טיפול</th><th>מצב מסמכים</th>
       {view === 'claims' ? <th></th> : null}
     </tr></thead>
+  );
+
+  const renderClaimMobileCard = (c: ClaimRecord, extra?: boolean) => (
+    <article key={c.id} className="claim-mcard" data-testid={`claim-row-${c.id}`} onClick={() => openCard(c.id)}>
+      <div className="claim-mcard-head">
+        <div>
+          <div className="claim-mcard-name">{c.clientName || '—'}</div>
+          <div className="claim-mcard-num">מספר תביעה: {displayClaimNum(c)}</div>
+        </div>
+        <div className="claim-mcard-side">
+          {stBadge(c.status)}
+          <label className="claim-mcard-check" onClick={(e) => e.stopPropagation()}>
+            <input type="checkbox" data-testid={`claim-check-${c.id}`} checked={selectedIds.includes(c.id)} onChange={(e) => toggleSelect(c.id, e.target.checked)} />
+          </label>
+        </div>
+      </div>
+      <div className="claim-mcard-meta">
+        <span>רכב {c.plate || '—'}</span>
+        <span>{claimInsCompanyLabel(c) || '—'}</span>
+      </div>
+      <div className="claim-mcard-next">
+        פעולה/טיפול הבא: {fmtDay(c.nextDate || '') || '—'}
+        {c.nextAction ? ` · ${c.nextAction}` : ''}
+      </div>
+      <div className="claim-mcard-alerts" onClick={(e) => e.stopPropagation()}>
+        <RowAlerts alerts={buildClaimRowAlerts(c, alertCtx)} onAlertClick={(a) => openMailAction(c.id, a)} />
+      </div>
+      {extra ? (
+        <button type="button" className="btn btn-g btn-sm claim-mcard-edit" onClick={(e) => { e.stopPropagation(); startEdit(c.id); }}>ערוך</button>
+      ) : null}
+    </article>
+  );
+
+  const renderClaimList = (rows: ClaimRecord[], extra: boolean | undefined, empty: string, tableTestId: string) => (
+    <div data-testid={tableTestId}>
+      {narrowList ? (
+        <div className="claims-mlist" data-testid={`${tableTestId}-mobile`}>
+          {rows.length === 0
+            ? <div className="claim-mcard-empty">{empty}</div>
+            : rows.map((c) => renderClaimMobileCard(c, extra))}
+        </div>
+      ) : (
+        <div className="tw claims-desk-table"><table>
+          {claimTableHead}
+          <tbody>
+            {rows.length === 0 ? <tr><td colSpan={extra ? 12 : 11} style={{ textAlign: 'center', color: 'var(--t3)', padding: 28 }}>{empty}</td></tr>
+              : rows.map((c) => renderClaimRow(c, extra))}
+          </tbody>
+        </table></div>
+      )}
+    </div>
   );
 
   const renderClaimRow = (c: ClaimRecord, extra?: boolean) => (
@@ -2095,13 +2185,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 </div>
                 <div className="sdiv"><div className="sdiv-t">{workFil || insCoFil || docsOrderFil ? 'תוצאות מסוננות' : (mineOnly ? 'התביעות שלי' : 'כל התביעות')}</div><div className="sdiv-l" /></div>
                 {renderBulkBar()}
-                <div className="tw" data-testid="claims-dash-table"><table>
-                  {claimTableHead}
-                  <tbody>
-                    {dashRows.length === 0 ? <tr><td colSpan={11} style={{ textAlign: 'center', color: 'var(--t3)', padding: 24 }}>אין תיקים</td></tr>
-                      : dashRows.map((x) => renderClaimRow(x))}
-                  </tbody>
-                </table></div>
+                {renderClaimList(dashRows, false, 'אין תיקים', 'claims-dash-table')}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, marginTop: 16 }}>
                   <div>
                     <div className="sdiv"><div className="sdiv-t">משימות לביצוע</div><div className="sdiv-l" /></div>
@@ -2148,13 +2232,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   </div>
                 </div>
                 {renderBulkBar()}
-                <div className="tw" data-testid="claims-list-table"><table>
-                  {claimTableHead}
-                  <tbody>
-                    {list.length === 0 ? <tr><td colSpan={12} style={{ textAlign: 'center', color: 'var(--t3)', padding: 28 }}>לא נמצאו תיקים</td></tr>
-                      : list.map((c) => renderClaimRow(c, true))}
-                  </tbody>
-                </table></div>
+                {renderClaimList(list, true, 'לא נמצאו תיקים', 'claims-list-table')}
               </>
             )}
 
@@ -2401,17 +2479,17 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="card-snap" data-testid="claims-card-snapshot">
               <div className="card-snap-grid">
                 {([
-                  ['שם לקוח', cur.clientName || '—'],
-                  ['מספר תביעה', displayClaimNum(cur)],
-                  ['חברת ביטוח', cur.insCompany || '—'],
-                  ['רכב', cur.plate || '—'],
-                  ['עובד מטפל', cur.assigned_to_name || 'ללא מטפל'],
-                  ['סטטוס', cur.status || '—'],
-                  ['טיפול אחרון', fmtDay(cur.lastTreatmentAt || '')],
-                  ['טיפול הבא', fmtDay(cur.nextDate || '')],
-                  ['נדרשת פעולה', returnNeededLabel(cur)],
-                ] as Array<[string, string]>).map(([k, v]) => (
-                  <div key={k}><div className="card-snap-k">{k}</div><div className="card-snap-v">{k === 'סטטוס' ? stBadge(v) : v}</div></div>
+                  ['שם לקוח', cur.clientName || '—', 'desk'],
+                  ['מספר תביעה', displayClaimNum(cur), 'desk'],
+                  ['חברת ביטוח', cur.insCompany || '—', 'keep'],
+                  ['רכב', cur.plate || '—', 'keep'],
+                  ['עובד מטפל', cur.assigned_to_name || 'ללא מטפל', 'desk'],
+                  ['סטטוס', cur.status || '—', 'keep'],
+                  ['טיפול אחרון', fmtDay(cur.lastTreatmentAt || ''), 'desk'],
+                  ['טיפול הבא', fmtDay(cur.nextDate || ''), 'keep'],
+                  ['נדרשת פעולה', returnNeededLabel(cur), 'keep'],
+                ] as Array<[string, string, 'desk' | 'keep']>).map(([k, v, show]) => (
+                  <div key={k} className={show === 'desk' ? 'card-snap-desk-only' : undefined}><div className="card-snap-k">{k}</div><div className="card-snap-v">{k === 'סטטוס' ? stBadge(v) : v}</div></div>
                 ))}
               </div>
               <div className="card-flags">
@@ -2579,7 +2657,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <div key={f[0]}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{f[0]}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{f[1]}</div></div>
                       ))}
                     </div>
-                    <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
+                    <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
                     {pack.reports.length === 0 && pack.photos.length === 0 && pack.attachments.length === 0 && untaggedPhotos.length === 0 ? (
                       <div className="spec-empty">אין דוח שמאי מסומן בתיק. העלה את הדוח כאן, או סמן מסמך קיים כלשונית «מסמכים» כדוח שמאי. הקובץ נשמר פעם אחת בלבד.</div>
                     ) : null}
@@ -2615,7 +2693,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <div className="sdiv"><div className="sdiv-t">תמונות הדוח ({pack.photos.length})</div><div className="sdiv-l" /></div>
                         <div className="gal-grid">
                           {pack.photos.map((f) => (
-                            <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
+                            <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f, pack.photos)}>
                               {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>{f.original_name}</span>}
                             </button>
                           ))}
@@ -2627,7 +2705,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <div className="sdiv"><div className="sdiv-t">תמונות בתיק ({untaggedPhotos.length})</div><div className="sdiv-l" /></div>
                         <div className="gal-grid">
                           {untaggedPhotos.map((f) => (
-                            <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
+                            <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f, untaggedPhotos)}>
                               {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>{f.original_name}</span>}
                             </button>
                           ))}
@@ -2705,7 +2783,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         </div>
                       );
                     })}
-                    <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
+                    <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
                     {cur.plate ? <div style={{ fontSize: 12, color: 'var(--t3)', margin: '8px 0' }}>רכב בתיק: {cur.plate}{cur.carModel ? ` · ${cur.carModel}` : ''} — המסמך נשמר בתיק התביעה בלבד, לא במודול Vehicles.</div> : null}
                     <StaffUploadZone
                       testId="invoice-drop"
@@ -2975,7 +3053,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           {t.group && openGal[`type:${t.key}`] && matched.length ? (
                             <div className="gal-grid" data-testid={`claim-doc-gal-${t.key}`}>
                               {matched.filter(isImageFile).map((f) => (
-                                <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
+                                <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f, matched.filter(isImageFile))}>
                                   {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>{f.original_name}</span>}
                                 </button>
                               ))}
@@ -3028,7 +3106,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     busy={docsUploading}
                     onFiles={(files) => { if (cur) void uploadStaffFiles(cur.id, files); }}
                   />
-                  <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
+                  <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
                   <div className="sdiv"><div className="sdiv-t">קבצים שהתקבלו ({docs.files.length})</div><div className="sdiv-l" /></div>
                   {docs.files.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין קבצים עדיין</div>
                     : Object.entries(docs.files.reduce((acc: Record<string, ClaimFile[]>, f) => {
@@ -3060,7 +3138,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           {isGal && photos.length ? (
                             <div className="gal-grid">
                               {preview.map((f) => (
-                                <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
+                                <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f, photos)}>
                                   {galleryUrls[f.id]
                                     ? <img src={galleryUrls[f.id]} alt={f.original_name} />
                                     : <span>{f.original_name}</span>}
@@ -3274,7 +3352,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                   {openGal[`mail:${mid}`] ? (
                                     <div className="gal-grid">
                                       {photos.map((f) => (
-                                        <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
+                                        <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f, photos)}>
                                           {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>{f.original_name}</span>}
                                         </button>
                                       ))}
@@ -3318,7 +3396,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         </div>
                       );
                     })}
-                  <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
+                  <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
                   <div className="sdiv"><div className="sdiv-t">ייבוא Gmail — מייל חדש בלבד</div><div className="sdiv-l" /></div>
                   <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 8 }}>אין לשלוח מייל. אין לייבא שוב מייל שכבר בתיק. הקבצים הקיימים לא יועתקו.</div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
@@ -3912,7 +3990,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 </div>
               );
             })}
-            <InCardPreview file={previewFile} onClose={() => setPreviewFile(null)} />
+            <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
             <div className="sdiv"><div className="sdiv-t">נבחרו לשליחה ({sendIds.length})</div><div className="sdiv-l" /></div>
             <div data-testid="mail-selected-list" style={{ fontSize: 12, marginBottom: 8 }}>
               {sendIds.length === 0 ? <div style={{ color: 'var(--t3)' }}>לא נבחר אף קובץ</div> : (
