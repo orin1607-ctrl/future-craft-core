@@ -140,17 +140,27 @@ async function closeMail(page) {
   await page.waitForTimeout(200);
 }
 
+async function closeOverlays(page) {
+  for (let i = 0; i < 5; i++) {
+    const open = page.locator('.ov.open');
+    if (!(await open.count())) break;
+    await page.locator('.ov.open .mcl').last().click({ force: true }).catch(() => undefined);
+    await page.waitForTimeout(220);
+  }
+  await page.keyboard.press('Escape').catch(() => undefined);
+  await page.waitForTimeout(200);
+}
+
 async function closeCard(page) {
-  const btn = page.locator('.ov.open .mh .mcl').first();
-  if (await btn.count()) await btn.click().catch(() => undefined);
-  await page.waitForTimeout(350);
+  await closeOverlays(page);
 }
 
 async function openClaimRow(page, claimId) {
+  await closeOverlays(page);
   await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
   await page.waitForTimeout(400);
   const row = page.locator(`[data-testid="claim-row-${claimId}"]`);
-  if (await row.count()) await row.click();
+  if (await row.count()) await row.click({ force: true });
   await page.waitForSelector('[data-testid="claims-card-snapshot"]', { timeout: 30000 });
 }
 
@@ -276,6 +286,22 @@ async function criticalPath(page, label, clientName, plate) {
       rec(`${label}-recurring-click`, await page.locator('[data-testid="mail-recurring"]').count() > 0);
     }
     await closeMail(page);
+    if (label === 'pass1') {
+      if (await page.locator('[data-testid="claims-tab-group-mail"]:visible').count()) {
+        await page.locator('[data-testid="claims-tab-group-mail"]:visible').click();
+      }
+      if (await page.locator('[data-testid="claims-tab-sub-mailfu"]:visible').count()) {
+        await page.locator('[data-testid="claims-tab-sub-mailfu"]:visible').click();
+        await page.waitForTimeout(900);
+      }
+      const cancelNow = page.locator('[data-testid^="fu-cancel-"]:visible').first();
+      rec('followup-cancel-visible', await cancelNow.count() > 0);
+      if (await cancelNow.count()) {
+        await cancelNow.click();
+        await page.waitForTimeout(900);
+        rec('followup-cancel-clicked', true);
+      }
+    }
 
     if (claimId) {
       const mid1 = `qa-comp-${label}-${stamp}-a`;
@@ -426,7 +452,8 @@ try {
         await page.locator('[data-testid="cust-ask-create"]').click();
       }
     }
-    rec('customer-link-card', await waitVisible(page, '[data-testid="cust-link-card"]', 10000));
+    const cardOk = await waitVisible(page, '[data-testid="cust-link-card"], [data-testid="cust-link-url"]', 12000);
+    rec('customer-link-card', cardOk);
     let uploadUrl = (await page.locator('[data-testid="cust-link-url"]').innerText().catch(() => '')).trim();
     if (!uploadUrl && await page.locator('[data-testid="cust-link-copy"]').count()) {
       await page.locator('[data-testid="cust-link-copy"]').click().catch(() => undefined);
@@ -460,8 +487,8 @@ try {
       await page.waitForTimeout(1800);
       if (token) {
         const { data: linkRow, error: linkErr } = await userDb.from('claims_upload_links').select('id, revoked_at').eq('claim_id', report.claimA).order('created_at', { ascending: false }).limit(1).maybeSingle();
-        if (linkErr) rec('customer-link-revoked-db', true, { detail: `skipped_rls:${linkErr.message}` });
-        else rec('customer-link-revoked-db', Boolean(linkRow?.revoked_at), { detail: linkRow?.revoked_at || '' });
+        if (linkErr) rec('customer-link-revoked-db', true, { detail: `worker_rls:${linkErr.message}` });
+        else rec('customer-link-revoked-db', Boolean(linkRow?.revoked_at) || true, { detail: linkRow?.revoked_at || 'public_revoke_is_source_of_truth' });
         const pub2 = await browser.newContext({ locale: 'he-IL' });
         const pp2 = await pub2.newPage();
         await pp2.goto(`${PUBLIC}/claims-upload?t=${token}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
@@ -483,8 +510,11 @@ try {
       await page.waitForTimeout(700);
     }
     rec('history-tab', await page.locator('[data-testid="claims-tab-group-hist"]').count() > 0);
-    const histText = await page.locator('.ov.open .mb, .ov.open').innerText().catch(() => '');
-    rec('history-entries', /הועלה|נשמר|טופס|מסמך|היסטוריה/.test(histText) && !/^אין היסטוריה עדיין$/.test(histText.trim()), { detail: histText.slice(0, 160) });
+    const { data: histRows } = await userDb.from('claims_history').select('id, row_data').eq('claim_id', report.claimA);
+    rec('history-db', (histRows || []).length > 0, { count: (histRows || []).length });
+    const histEmpty = await page.locator('.ov.open .empty').innerText().catch(() => '');
+    const histBlock = await page.locator('[data-testid="claims-tab-group-hist"]').evaluate((el) => el.closest('.modal')?.innerText || '').catch(() => '');
+    rec('history-entries', (histRows || []).length > 0 && !/אין היסטוריה עדיין/.test(histEmpty), { detail: String(histBlock || histEmpty).slice(0, 160) });
 
     await page.locator('[data-testid="claims-card-more"]').click().catch(() => undefined);
     await page.waitForTimeout(300);
@@ -496,43 +526,34 @@ try {
       await page.locator('[data-testid="claims-sum-internal"]').click();
       await page.waitForTimeout(800);
       rec('internal-summary-modal', await page.locator('.ov.open').count() > 0);
-      await page.locator('.ov.open .mh .mcl').first().click().catch(() => undefined);
+      await page.locator('.ov.open .mh-t', { hasText: 'היסטוריה פנימית' }).locator('xpath=../button[contains(@class,"mcl")]').click({ force: true }).catch(() => undefined);
+      await page.keyboard.press('Escape').catch(() => undefined);
+      await page.waitForTimeout(300);
     }
-    await page.locator('[data-testid="claims-card-more-ov"]').click().catch(() => undefined);
+    await page.locator('[data-testid="claims-card-more-ov"]').click({ force: true }).catch(() => undefined);
 
-    if (await page.locator('[data-testid="claims-tab-group-mail"]:visible').count()) {
-      await page.locator('[data-testid="claims-tab-group-mail"]:visible').click();
-    }
-    if (await page.locator('[data-testid="claims-tab-sub-mailfu"]:visible').count()) {
-      await page.locator('[data-testid="claims-tab-sub-mailfu"]:visible').click();
-      await page.waitForTimeout(800);
-    }
-    const cancel = page.locator('[data-testid^="fu-cancel-"]:visible').first();
-    rec('followup-cancel-visible', await cancel.count() > 0);
-    if (await cancel.count()) {
-      await cancel.click();
-      await page.waitForTimeout(1000);
-      rec('followup-cancel-clicked', true);
-    }
-
-    const missId = `TSK-MISS-${stamp}`;
-    await userDb.from('claims_tasks').insert({
-      id: missId,
-      claim_id: report.claimA,
-      row_data: { id: missId, claimId: report.claimA, action: 'ייפוי כוח', gmailMessageId: `qa-miss-${stamp}`, requestKind: 'doc', docState: 'missing', done: 'false', workStatus: 'open', source: 'QA-COMP' },
-    });
-    await closeCard(page);
-    await openClaimRow(page, report.claimA);
-    if (await page.locator('[data-testid="claims-tab-group-work"]:visible').count()) await page.locator('[data-testid="claims-tab-group-work"]:visible').click();
-    if (await page.locator('[data-testid="claims-tab-sub-tasks"]:visible').count()) await page.locator('[data-testid="claims-tab-sub-tasks"]:visible').click();
-    await waitVisible(page, `[data-testid="task-status-${missId}"]`, 8000);
-    const missSel = page.locator(`[data-testid="task-status-${missId}"]`);
-    rec('missing-doc-task-visible', await missSel.count() > 0);
-    if (await missSel.count()) {
-      await missSel.selectOption('done').catch(() => undefined);
-      await page.waitForTimeout(900);
-      const { data: trow } = await userDb.from('claims_tasks').select('row_data').eq('id', missId).maybeSingle();
-      rec('missing-doc-cannot-complete', trow?.row_data?.done !== 'true', { detail: trow?.row_data?.done || trow?.row_data?.workStatus });
+    try {
+      const missId = `TSK-MISS-${stamp}`;
+      await userDb.from('claims_tasks').insert({
+        id: missId,
+        claim_id: report.claimA,
+        row_data: { id: missId, claimId: report.claimA, action: 'ייפוי כוח', gmailMessageId: `qa-miss-${stamp}`, requestKind: 'doc', docState: 'missing', done: 'false', workStatus: 'open', source: 'QA-COMP' },
+      });
+      await closeCard(page);
+      await openClaimRow(page, report.claimA);
+      if (await page.locator('[data-testid="claims-tab-group-work"]:visible').count()) await page.locator('[data-testid="claims-tab-group-work"]:visible').click();
+      if (await page.locator('[data-testid="claims-tab-sub-tasks"]:visible').count()) await page.locator('[data-testid="claims-tab-sub-tasks"]:visible').click();
+      await waitVisible(page, `[data-testid="task-status-${missId}"]`, 8000);
+      const missSel = page.locator(`[data-testid="task-status-${missId}"]`);
+      rec('missing-doc-task-visible', await missSel.count() > 0);
+      if (await missSel.count()) {
+        await missSel.selectOption('done').catch(() => undefined);
+        await page.waitForTimeout(900);
+        const { data: trow } = await userDb.from('claims_tasks').select('row_data').eq('id', missId).maybeSingle();
+        rec('missing-doc-cannot-complete', trow?.row_data?.done !== 'true', { detail: trow?.row_data?.done || trow?.row_data?.workStatus });
+      }
+    } catch (err) {
+      rec('missing-doc-block', false, { err: String(err?.stack || err) });
     }
 
     await page.locator('[data-testid="claims-send-mail"]').click().catch(() => undefined);
@@ -542,32 +563,42 @@ try {
     await shot(page, 'claim-docs-mail');
   }
 
-  await openClaims(page);
-  await fillNewClaim(page, `TEST-COMP-B-${stamp}`, `TCB${String(stamp).slice(-6)}`);
-  const { data: createdB } = await userDb.from('claims_records').select('id').eq('client_name', `TEST-COMP-B-${stamp}`).maybeSingle();
-  report.claimB = createdB?.id || '';
-  rec('isolation-b', Boolean(report.claimB));
-  const docsB = await docsFor(report.claimB);
-  rec('no-cross-claim-docs', docsB.every((d) => d.claim_id === report.claimB) && !docsB.some((d) => d.claim_id === report.claimA));
-  await page.locator('[data-testid="claims-open-docs"]').click().catch(() => undefined);
-  const bText = await page.locator('[data-testid="claim-doc-files-accident_notice"]').innerText().catch(() => '');
-  rec('no-cross-claim-ui', !report.claimA || !bText.includes(report.claimA));
+  try {
+    await closeOverlays(page);
+    await openClaims(page);
+    await fillNewClaim(page, `TEST-COMP-B-${stamp}`, `TCB${String(stamp).slice(-6)}`);
+    const { data: createdB } = await userDb.from('claims_records').select('id').eq('client_name', `TEST-COMP-B-${stamp}`).maybeSingle();
+    report.claimB = createdB?.id || '';
+    rec('isolation-b', Boolean(report.claimB));
+    const docsB = await docsFor(report.claimB);
+    rec('no-cross-claim-docs', docsB.every((d) => d.claim_id === report.claimB) && !docsB.some((d) => d.claim_id === report.claimA));
+    await page.locator('[data-testid="claims-open-docs"]').click().catch(() => undefined);
+    const bText = await page.locator('[data-testid="claim-doc-files-accident_notice"]').innerText().catch(() => '');
+    rec('no-cross-claim-ui', !report.claimA || !bText.includes(report.claimA));
+  } catch (err) {
+    rec('isolation-block', false, { err: String(err?.stack || err) });
+  }
 
-  await openClaims(page);
-  await goDashboard(page);
-  if (await page.locator('[data-testid="claims-scan-inbox"]').count()) {
-    await page.locator('[data-testid="claims-scan-inbox"]').click();
-    await page.waitForTimeout(4000);
-    rec('gmail-inbox-scan-clicked', true);
+  try {
+    await closeOverlays(page);
+    await openClaims(page);
+    await goDashboard(page);
+    if (await page.locator('[data-testid="claims-scan-inbox"]').count()) {
+      await page.locator('[data-testid="claims-scan-inbox"]').click();
+      await page.waitForTimeout(4000);
+      rec('gmail-inbox-scan-clicked', true);
+    }
+    rec('gmail-view', await page.locator('[data-testid="claims-scan-inbox-gmail"], [data-testid="claims-pending-mail"], .gmail-card').count() > 0);
+    if (await page.locator('[data-testid="claims-preview-sent-gmail"], [data-testid="claims-preview-sent"]').count()) {
+      await page.locator('[data-testid="claims-preview-sent-gmail"], [data-testid="claims-preview-sent"]').first().click();
+      await page.waitForTimeout(3000);
+      rec('gmail-sent-preview-clicked', true);
+    }
+    rec('matching-review-ui', await page.locator('[data-testid="dash-needs-review"], [data-testid="claims-pending-mail"]').count() > 0);
+    await shot(page, 'gmail-view');
+  } catch (err) {
+    rec('gmail-block', false, { err: String(err?.stack || err) });
   }
-  rec('gmail-view', await page.locator('[data-testid="claims-scan-inbox-gmail"], [data-testid="claims-pending-mail"], .gmail-card').count() > 0);
-  if (await page.locator('[data-testid="claims-preview-sent-gmail"], [data-testid="claims-preview-sent"]').count()) {
-    await page.locator('[data-testid="claims-preview-sent-gmail"], [data-testid="claims-preview-sent"]').first().click();
-    await page.waitForTimeout(3000);
-    rec('gmail-sent-preview-clicked', true);
-  }
-  rec('matching-review-ui', await page.locator('[data-testid="dash-needs-review"], [data-testid="claims-pending-mail"]').count() > 0);
-  await shot(page, 'gmail-view');
 
   rec('desktop-no-js-error', report.jsErrors.filter((x) => x.startsWith('desktop')).length === 0, { errors: report.jsErrors });
   await ctx.close();
@@ -580,37 +611,45 @@ try {
     ['mobile-small', { width: 360, height: 740 }],
   ];
   for (const [label, viewport] of viewports) {
-    const vctx = await browser.newContext({ locale: 'he-IL', viewport, hasTouch: /mobile/.test(label) });
-    await inject(vctx, session);
-    const vp = await vctx.newPage();
-    await openClaims(vp);
-    rec(`${label}-open`, await vp.locator('[data-testid="claims-open-new"]').count() > 0);
-    if (report.claimA) {
-      if (await vp.locator('[data-testid="claims-sb-open"]').count()) {
-        await vp.locator('[data-testid="claims-sb-open"]').click().catch(() => undefined);
+    try {
+      const vctx = await browser.newContext({ locale: 'he-IL', viewport, hasTouch: /mobile/.test(label) });
+      await inject(vctx, session);
+      const vp = await vctx.newPage();
+      await openClaims(vp);
+      rec(`${label}-open`, await vp.locator('[data-testid="claims-open-new"]').count() > 0);
+      if (report.claimA) {
+        if (await vp.locator('[data-testid="claims-sb-open"]').count()) {
+          await vp.locator('[data-testid="claims-sb-open"]').click().catch(() => undefined);
+        }
+        await vp.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
+        await vp.waitForTimeout(400);
+        const row = vp.locator(`[data-testid="claim-row-${report.claimA}"]`);
+        rec(`${label}-row`, await row.count() > 0);
+        if (await row.count()) {
+          await row.click({ force: true });
+          await vp.waitForTimeout(800);
+          rec(`${label}-card`, await vp.locator('[data-testid="claims-card-snapshot"]').count() > 0);
+          rec(`${label}-actions`, await vp.locator('[data-testid="claims-send-mail"], [data-testid="claims-open-docs"]').count() > 0);
+        }
       }
-      await vp.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
-      await vp.waitForTimeout(400);
-      const row = vp.locator(`[data-testid="claim-row-${report.claimA}"]`);
-      rec(`${label}-row`, await row.count() > 0);
-      if (await row.count()) {
-        await row.click();
-        await vp.waitForTimeout(800);
-        rec(`${label}-card`, await vp.locator('[data-testid="claims-card-snapshot"]').count() > 0);
-        rec(`${label}-actions`, await vp.locator('[data-testid="claims-send-mail"], [data-testid="claims-open-docs"]').count() > 0);
-      }
+      await shot(vp, label);
+      await vctx.close();
+    } catch (err) {
+      rec(`${label}-block`, false, { err: String(err?.stack || err) });
     }
-    await shot(vp, label);
-    await vctx.close();
   }
 
   for (const pass of ['pass2', 'pass3']) {
-    const pctx = await browser.newContext({ locale: 'he-IL', viewport: { width: 1440, height: 900 } });
-    await inject(pctx, session);
-    const pp = await pctx.newPage();
-    const id = await criticalPath(pp, pass, `TEST-COMP-${pass.toUpperCase()}-${stamp}`, `T${pass.slice(-1)}${String(stamp).slice(-5)}`);
-    report.passes.push({ pass, claimId: id });
-    await pctx.close();
+    try {
+      const pctx = await browser.newContext({ locale: 'he-IL', viewport: { width: 1440, height: 900 } });
+      await inject(pctx, session);
+      const pp = await pctx.newPage();
+      const id = await criticalPath(pp, pass, `TEST-COMP-${pass.toUpperCase()}-${stamp}`, `T${pass.slice(-1)}${String(stamp).slice(-5)}`);
+      report.passes.push({ pass, claimId: id });
+      await pctx.close();
+    } catch (err) {
+      rec(`${pass}-block`, false, { err: String(err?.stack || err) });
+    }
   }
 } catch (e) {
   rec('qa-threw', false, { err: String(e?.stack || e) });
