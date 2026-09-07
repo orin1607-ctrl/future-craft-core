@@ -23,6 +23,11 @@ describe('claimMatchesSearch', () => {
     expect(claimMatchesSearch(similar, 'אליהו אטיאס')).toBe(false);
     expect(claimMatchesSearch(similar, 'אליהו')).toBe(true);
   });
+  it('matches full and last name even when the query has RTL marks', () => {
+    expect(claimMatchesSearch(eli, '\u200fאליהו \u200fאטיאס')).toBe(true);
+    expect(claimMatchesSearch(eli, '\u200fאטיאס')).toBe(true);
+    expect(claimMatchesSearch(similar, '\u200fאליהו \u200fאטיאס')).toBe(false);
+  });
   it('empty query matches all', () => {
     expect(claimMatchesSearch(eli, '   ')).toBe(true);
   });

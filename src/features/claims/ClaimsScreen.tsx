@@ -940,7 +940,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const t = window.setTimeout(() => {
       const statusEl = document.getElementById('tr_status') as HTMLSelectElement | null;
       if (statusEl && !statusEl.value) setVal('tr_status', STATUS_UNCHANGED);
-      if (!val(null, 'tr_next')) setVal('tr_next', cur?.nextDate || '');
+      if (!val(null, 'tr_next')) setVal('tr_next', cur?.nextDate || new Date(Date.now() + 86400000).toISOString().slice(0, 10));
     }, 50);
     return () => window.clearTimeout(t);
   }, [modal, treatAction, curId]);
@@ -1838,7 +1838,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setVal('tr_manual', '');
     setVal('tr_note', '');
     setVal('tr_action', action);
-    setVal('tr_next', cur?.nextDate || '');
+    setVal('tr_next', cur?.nextDate || new Date(Date.now() + 86400000).toISOString().slice(0, 10));
     setVal('tr_continue', opts?.continueWork || 'continue');
     setModal('moTreat');
   };
@@ -1881,13 +1881,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       const newId = String((r as { treatmentTaskId?: string }).treatmentTaskId || '');
       setTreatBusy(false);
       setCloseTreatId('');
+      await loadAll();
+      if (curId) await loadCardData(curId);
       if (continueWork === 'continue' && newId) {
         setTreatCenterId(newId);
         setModal('moTreatCenter');
       } else {
         setModal('moCard');
       }
-      void loadAll().then(() => { if (curId) return loadCardData(curId); });
     } catch (e) {
       toast(`שמירת עדכון טיפול נכשלה: ${String((e as Error).message || e)}`, 'err');
     } finally {
