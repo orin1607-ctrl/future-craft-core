@@ -220,8 +220,8 @@ describe('recurring day presets', () => {
     expect(immediate.ok).toBe(true);
     if (immediate.ok) {
       expect(immediate.sendNow).toBe(true);
-      expect(immediate.firstAt.toISOString()).toBe(new Date(now).toISOString());
-      expect(addRecurringDays(immediate.firstAt, 3).toISOString()).toBe(new Date(now + 3 * 86400000).toISOString());
+      expect(immediate.firstAt.toISOString()).toBe(new Date(now - 15_000).toISOString());
+      expect(addRecurringDays(immediate.firstAt, 3).toISOString()).toBe(new Date(now - 15_000 + 3 * 86400000).toISOString());
     }
     const later = resolveRecurringFirstRun({ mode: 'later', date: '2026-09-10', time: '10:00', nowMs: now });
     expect(later.ok).toBe(true);

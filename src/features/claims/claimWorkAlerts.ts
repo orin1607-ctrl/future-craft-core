@@ -332,7 +332,7 @@ export function resolveRecurringFirstRun(opts: {
 }): { ok: true; firstAt: Date; sendNow: boolean } | { ok: false; error: string } {
   const nowMs = opts.nowMs ?? Date.now();
   if (opts.mode === 'now') {
-    return { ok: true, firstAt: new Date(nowMs), sendNow: true };
+    return { ok: true, firstAt: new Date(nowMs - 15_000), sendNow: true };
   }
   const fromParts = parseLocalDateTime(opts.date || '', opts.time || '');
   const fromLocal = opts.datetimeLocal ? new Date(opts.datetimeLocal) : null;
