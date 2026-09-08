@@ -1,0 +1,59 @@
+{
+  "at": "2026-09-08T15:04:04.698Z",
+  "checks": [
+    {
+      "name": "claim-created",
+      "ok": true,
+      "detail": "DAL-2026-0216"
+    },
+    {
+      "name": "staff-upload",
+      "ok": true,
+      "detail": "{\"success\":true,\"file_id\":\"CDM-1788879884442-3TIAAO\",\"reused\":false,\"source\":\"staff\"}"
+    },
+    {
+      "name": "file-checked",
+      "ok": true,
+      "detail": "CDM-1788879884442-3TIAAO"
+    },
+    {
+      "name": "preview-ok",
+      "ok": true
+    },
+    {
+      "name": "send-succeeded",
+      "ok": true,
+      "mid": "1a0818d6107b7ddf",
+      "to": "orin1607@gmail.com"
+    },
+    {
+      "name": "file-ids-on-outbox",
+      "ok": true,
+      "files": "[\"CDM-1788879884442-3TIAAO\"]"
+    },
+    {
+      "name": "file-names-on-outbox",
+      "ok": true,
+      "files": "[\"qa-attach-1788879844698.png\"]"
+    },
+    {
+      "name": "gmail-has-attachment",
+      "ok": true,
+      "files": "[{\"filename\":\"qa-attach-1788879844698.png\",\"mime\":\"image/png\",\"size\":70,\"attachmentId\":\"ANGjdJ_7UjCIqIAHBHBK8U7ioMBEoDCVaJR-XLxmp1EIwIp-qe8zRe6UCZ8Fe4l5D-_P8BI4fPigEUrvCjTcWspTtlpJbs6vliHs27f-v-WukGKdJjyjoNYoxiHZI49gPxzeixFBxcAYnr7FTVjy6Gic3MBrvZHnehjOF-10Rnn5i2xsQNLQUUyRQ6m8ACi_cOVqwFvMTUQARAiExVvVs8CRAZZb_89a0iI3kd7c6kb16wP-j2GbOflQS6KtAD1MKKrZmN9XLTv-HDHGOw5Wh42_3M6QL5x8k7l_q6b0PnenY8rSjDlS9AwJkoEWaLnZdIMVjlsm6hOELhk-scnrH7W1UsuPu5ukfUr_kZm4vTl9ct9q3wK-W_XRxQn7ukb_M1Pp_WERmbhJG1U998MP\"}]"
+    },
+    {
+      "name": "gmail-sent-label",
+      "ok": true,
+      "detail": "[\"SENT\"]"
+    },
+    {
+      "name": "gmail-to-owner",
+      "ok": true,
+      "detail": "orin1607@gmail.com"
+    }
+  ],
+  "verdict": "PASS",
+  "claimId": "DAL-2026-0216",
+  "fileId": "CDM-1788879884442-3TIAAO",
+  "mid": "1a0818d6107b7ddf"
+}

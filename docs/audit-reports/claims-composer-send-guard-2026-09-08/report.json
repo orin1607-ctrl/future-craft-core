@@ -1,0 +1,299 @@
+{
+  "at": "2026-09-08T14:56:08.866Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "oauthChanged": false,
+  "gmailScanChanged": false,
+  "treatmentCenterChanged": false,
+  "wantSha": "6e7ec4d",
+  "deployTxt": "deployed_ref=6e7ec4d feat/incident-alerts-staging",
+  "to": "orin1607@gmail.com",
+  "draftFound": {
+    "outboxPending": [],
+    "jobsPending": [
+      {
+        "id": "MJB-1788761512537-f9e152",
+        "claim_id": "DAL-2026-0051",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788761512522-40e673"
+      },
+      {
+        "id": "MJB-1788753282107-8150d5",
+        "claim_id": "DAL-2026-0041",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788753282104-15d6e8"
+      },
+      {
+        "id": "MJB-1788753213219-312815",
+        "claim_id": "DAL-2026-0040",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788753213217-1905f2"
+      },
+      {
+        "id": "MJB-1788752610296-ae53e7",
+        "claim_id": "DAL-2026-0037",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788752610290-cf074e"
+      },
+      {
+        "id": "MJB-1788752222825-6d59ab",
+        "claim_id": "DAL-2026-0036",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788752222824-00f290"
+      },
+      {
+        "id": "MJB-1788752185266-0b735e",
+        "claim_id": "DAL-2026-0035",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788752185257-8e685f"
+      },
+      {
+        "id": "MJB-1788751879413-4fc9c2",
+        "claim_id": "DAL-2026-0033",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788751879402-a3cacb"
+      },
+      {
+        "id": "MJB-1788730499654-3e3f70",
+        "claim_id": "DAL-2026-0031",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788730499651-203ff1"
+      },
+      {
+        "id": "MJB-1788730166235-3a75b0",
+        "claim_id": "DAL-2026-0029",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788730166233-15b737"
+      },
+      {
+        "id": "MJB-1788729912412-43f126",
+        "claim_id": "DAL-2026-0028",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788729912410-3371f8"
+      },
+      {
+        "id": "MJB-1788729782053-7f5904",
+        "claim_id": "DAL-2026-0027",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788729782049-59a8c4"
+      },
+      {
+        "id": "MJB-1788729453221-d85e4b",
+        "claim_id": "DAL-2026-0025",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788729453219-274ab6"
+      },
+      {
+        "id": "MJB-1788729309086-9f39a4",
+        "claim_id": "DAL-2026-0024",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788729309084-d2fad2"
+      },
+      {
+        "id": "MJB-1788729099830-d71bc4",
+        "claim_id": "DAL-2026-0023",
+        "status": "pending",
+        "planned_at": "2026-12-31T10:00:00+00:00",
+        "reminder_id": "REM-1788729099818-9af8fd"
+      }
+    ],
+    "history": []
+  },
+  "checks": [
+    {
+      "name": "gmail-connected",
+      "ok": true,
+      "email": "yoni122222@gmail.com"
+    },
+    {
+      "name": "send-enabled",
+      "ok": true
+    },
+    {
+      "name": "oauth-probe-ok",
+      "ok": true,
+      "errorClass": null,
+      "message": null
+    },
+    {
+      "name": "gmail-3h-untouched",
+      "ok": true,
+      "everyMs": 10800000
+    },
+    {
+      "name": "generic-send-still-blocked",
+      "ok": true
+    },
+    {
+      "name": "generic-action-send-blocked",
+      "ok": true,
+      "status": 403,
+      "reason": "live_send_not_approved"
+    },
+    {
+      "name": "mail-dispatch-still-dry-run",
+      "ok": true,
+      "value": "dry_run"
+    },
+    {
+      "name": "gmail-send-enabled-true",
+      "ok": true,
+      "value": "true"
+    },
+    {
+      "name": "config-allowlist-null-or-empty",
+      "ok": true,
+      "value": null
+    },
+    {
+      "name": "composer-draft-not-in-outbox",
+      "ok": true,
+      "n": 0,
+      "note": "Composer UI draft is local; outbox pending is scheduled/sending only"
+    },
+    {
+      "name": "looked-for-in-app-draft-history",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "claim-created",
+      "ok": true,
+      "claimId": "DAL-2026-0214"
+    },
+    {
+      "name": "empty-to-still-rejected",
+      "ok": true,
+      "status": 400,
+      "error": "to_required"
+    },
+    {
+      "name": "invalid-to-still-rejected",
+      "ok": true,
+      "status": 400,
+      "error": "to_required"
+    },
+    {
+      "name": "pre-or-live-validate-owner",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "name": "allowlist-lifted-on-validate",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "name": "public-pages-sha",
+      "ok": true,
+      "deployTxt": "deployed_ref=6e7ec4d feat/incident-alerts-staging",
+      "wantSha": "6e7ec4d"
+    },
+    {
+      "name": "phone-composer-opened",
+      "ok": true,
+      "flow": "claims-send-mail"
+    },
+    {
+      "name": "attachment-selected",
+      "ok": true
+    },
+    {
+      "name": "preview-ok",
+      "ok": true
+    },
+    {
+      "name": "no-invalid-to-toast",
+      "ok": true
+    },
+    {
+      "name": "no-allowlist-toast",
+      "ok": true
+    },
+    {
+      "name": "no-generic-non2xx",
+      "ok": true
+    },
+    {
+      "name": "send-succeeded",
+      "ok": true,
+      "mid": "1a08186232cd861d",
+      "thread": "1a08186232cd861d",
+      "to": "orin1607@gmail.com",
+      "subject": "STAGING QA composer send 1788879378617"
+    },
+    {
+      "name": "to-is-owner-not-only-yoni",
+      "ok": true,
+      "to": "orin1607@gmail.com"
+    },
+    {
+      "name": "gmail-message-id",
+      "ok": true
+    },
+    {
+      "name": "gmail-thread-id",
+      "ok": true
+    },
+    {
+      "name": "saved-on-correct-claim",
+      "ok": true,
+      "claimId": "DAL-2026-0214",
+      "got": "DAL-2026-0214"
+    },
+    {
+      "name": "attachments-recorded",
+      "ok": false,
+      "files": []
+    },
+    {
+      "name": "history-on-claim",
+      "ok": true,
+      "n": 2
+    },
+    {
+      "name": "list-sends-same-claim",
+      "ok": true,
+      "n": 1
+    },
+    {
+      "name": "no-cross-claim-leakage",
+      "ok": true,
+      "n": 1
+    },
+    {
+      "name": "no-duplicate-outbox",
+      "ok": true,
+      "n": 1
+    },
+    {
+      "name": "gmail-sent-folder",
+      "ok": true,
+      "n": 1,
+      "ids": [
+        "1a08186232cd861d"
+      ]
+    },
+    {
+      "name": "refresh-reopen-ok",
+      "ok": true
+    }
+  ],
+  "verdict": "FAIL",
+  "failed": [
+    "attachments-recorded"
+  ]
+}
