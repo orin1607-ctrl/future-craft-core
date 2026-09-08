@@ -1622,7 +1622,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const dismissMailTableAlert = async (claimId: string, messageId: string, opts?: { silent?: boolean }) => {
     if (!claimId || !messageId) return;
-    const rows = [...tasks, ...dashTasks].filter((t) => t.claimId === claimId && t.gmailMessageId === messageId && !isTreatmentItem(t));
+    const listed = await apiRef.current.getTasks(claimId);
+    const rows = (listed.data || []).filter((t) => t.gmailMessageId === messageId && !isTreatmentItem(t));
     for (const t of rows) {
       await apiRef.current.saveTask({ ...t, tableAlert: 'off' });
     }
@@ -1646,7 +1647,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const keepMailTableAlert = async (claimId: string, messageId: string) => {
-    const rows = [...tasks, ...dashTasks].filter((t) => t.claimId === claimId && t.gmailMessageId === messageId && !isTreatmentItem(t));
+    const listed = await apiRef.current.getTasks(claimId);
+    const rows = (listed.data || []).filter((t) => t.gmailMessageId === messageId && !isTreatmentItem(t));
     for (const t of rows) {
       if (t.tableAlert === 'keep') continue;
       await apiRef.current.saveTask({ ...t, tableAlert: 'keep' });

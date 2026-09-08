@@ -525,10 +525,16 @@ try {
       const beforeHist = ((await userDb.from('claims_history').select('id').eq('claim_id', claimA)).data || []).length;
       const beforeImp = ((await userDb.from('claims_gmail_imports').select('id').eq('claim_id', claimA).eq('gmail_message_id', mid1)).data || []).length;
       await page.locator(`[data-testid="mail-label-dismiss-${mid1}"]`).evaluate((el) => el.click());
-      await page.waitForTimeout(1200);
+      await page.waitForTimeout(2000);
       await closeOverlays(page);
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
+      await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
       const afterDismiss = await rowAlertInfo(page, claimA);
-      rec(`r${round}-dismiss-one`, /מייל חדש/.test(afterDismiss.text) && !/2 מיילים/.test(afterDismiss.text), afterDismiss);
+      const mid1Tasks = (await claimTasks(claimA)).filter((t) => t.row_data?.gmailMessageId === mid1 && !isTreat(t));
+      rec(`r${round}-dismiss-one`, /מייל חדש/.test(afterDismiss.text) && !/2 מיילים/.test(afterDismiss.text) && mid1Tasks.every((t) => t.row_data?.tableAlert === 'off'), {
+        ...afterDismiss, mid1Alert: mid1Tasks.map((t) => t.row_data?.tableAlert || ''),
+      });
       const afterImp = ((await userDb.from('claims_gmail_imports').select('id').eq('claim_id', claimA).eq('gmail_message_id', mid1)).data || []).length;
       const afterHist = ((await userDb.from('claims_history').select('id').eq('claim_id', claimA)).data || []).length;
       rec(`r${round}-dismiss-keeps-mail-history`, afterImp >= beforeImp && afterHist >= beforeHist && afterImp > 0, { beforeImp, afterImp, beforeHist, afterHist });
@@ -550,7 +556,8 @@ try {
     await openMailTab(page);
     if (mid2 && await page.locator(`[data-testid="mail-label-treat-${mid2}"]`).count()) {
       await page.locator(`[data-testid="mail-label-treat-${mid2}"]`).evaluate((el) => el.click());
-      await page.waitForTimeout(1500);
+      await page.waitForSelector('[data-testid="treat-center"].open [data-testid="treat-center-body"], .ov.open[data-testid="treat-center"] [data-testid="treat-center-body"]', { timeout: 20000 }).catch(() => undefined);
+      await page.waitForTimeout(1200);
     }
     const afterLink = (await claimTasks(claimA));
     const linkedTreat = afterLink.filter(isOpenTreat).find((t) => t.row_data?.gmailMessageId === mid2) || afterLink.filter(isOpenTreat)[0];
@@ -559,6 +566,9 @@ try {
     });
     rec(`r${round}-no-treat-dup-mess`, afterLink.filter(isOpenTreat).length <= 2, { n: afterLink.filter(isOpenTreat).length });
     await closeOverlays(page);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
+    await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
     const afterLinkAlerts = await rowAlertInfo(page, claimA);
     rec(`r${round}-treat-label-after-link`, afterLinkAlerts.keys.some((k) => k.includes('claim-alert-treat_')), afterLinkAlerts);
     rec(`r${round}-mail2-chip-gone-or-other`, !/2 מיילים/.test(afterLinkAlerts.text), afterLinkAlerts);
