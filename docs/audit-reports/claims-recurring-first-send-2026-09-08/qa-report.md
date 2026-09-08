@@ -1,0 +1,53 @@
+# Recurring first-send QA — PUBLIC STAGING
+
+- Verdict: **PASS**
+- SHA: deployed_ref=f471827 feat/incident-alerts-staging
+- Now claim: DAL-2026-0221 rem REM-1788900892700-86e1b8
+- Later claim: DAL-2026-0222 rem REM-1788900970601-598ebb
+- Live first send: true
+- Future not sent early: true
+- Production: not touched
+
+- PASS public-pages-sha
+- PASS staging-only
+- PASS gmail-3h-untouched
+- PASS claim-now-created
+- PASS composer-recurring-control
+- PASS composer-schedule-untouched
+- PASS composer-followup-untouched
+- PASS first-send-now-radio
+- PASS first-send-later-radio
+- PASS preview-now-first
+- PASS preview-now-freq
+- PASS preview-now-next
+- PASS now-reminder-saved
+- PASS now-no-duplicate
+- PASS qa1-first-send-now-live
+- PASS qa3-cycle-from-first
+- PASS after-activate-shows-next
+- PASS after-activate-shows-first
+- PASS qa4-refresh-reopen-now
+- PASS claim-later-created
+- PASS preview-later-first
+- PASS preview-later-no-send-now
+- PASS preview-later-cycle
+- PASS later-reminder-saved
+- PASS qa2-future-not-sent
+- PASS qa3-later-cycle-from-chosen-first
+- PASS later-ui-next
+- PASS qa4-refresh-reopen-later
+- PASS qa5-cancel-status
+- PASS qa5-no-further-sends
+- PASS regression-regular-send-btn
+- PASS regression-schedule-checkbox
+- PASS regression-schedule-fields
+- PASS regression-recurring-disabled-when-schedule
+- PASS regression-followup
+- PASS mobile-first-now
+- PASS mobile-first-later
+- PASS mobile-date-time
+- PASS mobile-preview
+- PASS mobile-schedule
+- PASS mobile-followup
+- PASS soft-deleted-test-claims
+- PASS protected-untouched

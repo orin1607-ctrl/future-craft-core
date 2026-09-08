@@ -1,0 +1,266 @@
+{
+  "at": "2026-09-08T20:54:31.682Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mailDispatchModeTouched": false,
+  "gmail3hCronTouched": false,
+  "schemaMigration": false,
+  "newScheduler": false,
+  "followupChanged": false,
+  "scheduledOnceChanged": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "wantSha": "f471827",
+  "deployTxt": "deployed_ref=f471827 feat/incident-alerts-staging",
+  "claimNow": "DAL-2026-0221",
+  "claimLater": "DAL-2026-0222",
+  "remNow": "REM-1788900892700-86e1b8",
+  "remLater": "REM-1788900970601-598ebb",
+  "firstSendLive": true,
+  "futureNotSentEarly": true,
+  "cycleFromFirst": true,
+  "checks": [
+    {
+      "name": "public-pages-sha",
+      "ok": true,
+      "deployTxt": "deployed_ref=f471827 feat/incident-alerts-staging",
+      "wantSha": "f471827"
+    },
+    {
+      "name": "staging-only",
+      "ok": true
+    },
+    {
+      "name": "gmail-3h-untouched",
+      "ok": true,
+      "everyMs": 10800000
+    },
+    {
+      "name": "claim-now-created",
+      "ok": true,
+      "claimNow": "DAL-2026-0221"
+    },
+    {
+      "name": "composer-recurring-control",
+      "ok": true
+    },
+    {
+      "name": "composer-schedule-untouched",
+      "ok": true
+    },
+    {
+      "name": "composer-followup-untouched",
+      "ok": true
+    },
+    {
+      "name": "first-send-now-radio",
+      "ok": true
+    },
+    {
+      "name": "first-send-later-radio",
+      "ok": true
+    },
+    {
+      "name": "preview-now-first",
+      "ok": true,
+      "previewNow": "מייל מתמשך אל yoni122222@gmail.com\nמועד שליחה ראשונה: עכשיו — לפי מנגנון השליחה החיה הקיים\nתדירות: כל 3 ימים\nשליחה הבאה: מיד עם ההפעלה\nהמחזור הבא אחריה: 11.9.2026 23:54\nיישלח עכשיו לפי המנגנון הקיים. המחזור הבא יחושב ממועד השליחה הראשונה."
+    },
+    {
+      "name": "preview-now-freq",
+      "ok": true,
+      "previewNow": "מייל מתמשך אל yoni122222@gmail.com\nמועד שליחה ראשונה: עכשיו — לפי מנגנון השליחה החיה הקיים\nתדירות: כל 3 ימים\nשליחה הבאה: מיד עם ההפעלה\nהמחזור הבא אחריה: 11.9.2026 23:54\nיישלח עכשיו לפי המנגנון הקיים. המחזור הבא יחושב ממועד השליחה הראשונה."
+    },
+    {
+      "name": "preview-now-next",
+      "ok": true,
+      "previewNow": "מייל מתמשך אל yoni122222@gmail.com\nמועד שליחה ראשונה: עכשיו — לפי מנגנון השליחה החיה הקיים\nתדירות: כל 3 ימים\nשליחה הבאה: מיד עם ההפעלה\nהמחזור הבא אחריה: 11.9.2026 23:54\nיישלח עכשיו לפי המנגנון הקיים. המחזור הבא יחושב ממועד השליחה הראשונה."
+    },
+    {
+      "name": "now-reminder-saved",
+      "ok": true,
+      "id": "REM-1788900892700-86e1b8",
+      "status": "scheduled",
+      "days": 3,
+      "next": "2026-09-11T20:54:37.107+00:00"
+    },
+    {
+      "name": "now-no-duplicate",
+      "ok": true
+    },
+    {
+      "name": "qa1-first-send-now-live",
+      "ok": true,
+      "jobs": [
+        {
+          "id": "MJB-1788900892702-6e6b39",
+          "status": "dry_run_sent",
+          "planned": "2026-09-08T20:54:37.107+00:00",
+          "live": true,
+          "msgid": "1a082cd75dae93cd"
+        },
+        {
+          "id": "MJB-1788900898971-DK83L1",
+          "status": "pending",
+          "planned": "2026-09-11T20:54:37.107+00:00",
+          "live": false
+        }
+      ]
+    },
+    {
+      "name": "qa3-cycle-from-first",
+      "ok": true,
+      "firstPlanned": "2026-09-08T20:54:37.107+00:00",
+      "next_run_at": "2026-09-11T20:54:37.107+00:00",
+      "expected": "2026-09-11T20:54:37.107Z",
+      "live": 1
+    },
+    {
+      "name": "after-activate-shows-next",
+      "ok": true,
+      "fuText": "שליחה אוטומטית כללית נשארת Dry Run. שליחת TEST חיה רק לכתובות מאושרות (yoni122222@gmail.com). Follow-up נשאר תזכורת — לא מייל אוטומטי.\n＋ מעקב (Follow-up)\nשלח תזמוני TEST עכשיו\nמייל מתמשך · כל 3 ימים · פעיל\nREM-1788900892700-86e1b8\nלמי\nyoni122222@gmail.com\nSubject\nQA first-send NOW 1788900874226\nנמען\nנמען אחר\nמתי נוצר\n8.9.2026, 23:54:52\nתאריך\n11.9.2026\nשעה\n23:54\nמועד מתוכנן\n11.9.2026, 23:54:37\nסטטו"
+    },
+    {
+      "name": "after-activate-shows-first",
+      "ok": true,
+      "fuText": "שליחה אוטומטית כללית נשארת Dry Run. שליחת TEST חיה רק לכתובות מאושרות (yoni122222@gmail.com). Follow-up נשאר תזכורת — לא מייל אוטומטי.\n＋ מעקב (Follow-up)\nשלח תזמוני TEST עכשיו\nמייל מתמשך · כל 3 ימים · פעיל\nREM-1788900892700-86e1b8\nלמי\nyoni122222@gmail.com\nSubject\nQA first-send NOW 1788900874226\nנמען\nנמען אחר\nמתי נוצר\n8.9.2026, 23:54:52\nתאריך\n11.9.2026\nשעה\n23:54\nמועד מתוכנן\n11.9.2026, 23:54:37\nסטטו"
+    },
+    {
+      "name": "qa4-refresh-reopen-now",
+      "ok": true,
+      "fuReload": "שליחה אוטומטית כללית נשארת Dry Run. שליחת TEST חיה רק לכתובות מאושרות (yoni122222@gmail.com). Follow-up נשאר תזכורת — לא מייל אוטומטי.\n＋ מעקב (Follow-up)\nשלח תזמוני TEST עכשיו\nמייל מתמשך · כל 3 ימים · פעיל\nREM-1788900892700-86e1b8\nלמי\nyoni122222@gmail.com\nSubject\nQA first-send NOW 1788900874226\nנמען"
+    },
+    {
+      "name": "claim-later-created",
+      "ok": true,
+      "claimLater": "DAL-2026-0222"
+    },
+    {
+      "name": "preview-later-first",
+      "ok": true,
+      "previewLater": "מייל מתמשך אל yoni122222@gmail.com\nמועד שליחה ראשונה: 10.9.2026 10:00\nתדירות: כל 3 ימים\nשליחה הבאה: 10.9.2026 10:00\nהמחזור הבא אחריה: 13.9.2026 10:00\nלא יישלח לפני המועד שנבחר. המחזור הקיים ממשיך מאותו מועד."
+    },
+    {
+      "name": "preview-later-no-send-now",
+      "ok": true,
+      "previewLater": "מייל מתמשך אל yoni122222@gmail.com\nמועד שליחה ראשונה: 10.9.2026 10:00\nתדירות: כל 3 ימים\nשליחה הבאה: 10.9.2026 10:00\nהמחזור הבא אחריה: 13.9.2026 10:00\nלא יישלח לפני המועד שנבחר. המחזור הקיים ממשיך מאותו מועד."
+    },
+    {
+      "name": "preview-later-cycle",
+      "ok": true,
+      "previewLater": "מייל מתמשך אל yoni122222@gmail.com\nמועד שליחה ראשונה: 10.9.2026 10:00\nתדירות: כל 3 ימים\nשליחה הבאה: 10.9.2026 10:00\nהמחזור הבא אחריה: 13.9.2026 10:00\nלא יישלח לפני המועד שנבחר. המחזור הקיים ממשיך מאותו מועד."
+    },
+    {
+      "name": "later-reminder-saved",
+      "ok": true,
+      "id": "REM-1788900970601-598ebb",
+      "next": "2026-09-10T07:00:00+00:00",
+      "laterParts": {
+        "date": "2026-09-10",
+        "time": "10:00"
+      }
+    },
+    {
+      "name": "qa2-future-not-sent",
+      "ok": true,
+      "live": 0,
+      "jobs": [
+        {
+          "status": "pending",
+          "planned": "2026-09-10T07:00:00+00:00",
+          "live": false
+        }
+      ]
+    },
+    {
+      "name": "qa3-later-cycle-from-chosen-first",
+      "ok": true,
+      "laterFirst": "2026-09-10T07:00:00+00:00",
+      "laterNext": "2026-09-13T07:00:00.000Z"
+    },
+    {
+      "name": "later-ui-next",
+      "ok": true,
+      "laterFu": "שליחה אוטומטית כללית נשארת Dry Run. שליחת TEST חיה רק לכתובות מאושרות (yoni122222@gmail.com). Follow-up נשאר תזכורת — לא מייל אוטומטי.\n＋ מעקב (Follow-up)\nשלח תזמוני TEST עכשיו\nמייל מתמשך · כל 3 ימים · פעיל\nREM-1788900970601-598ebb\nלמי\nyoni122222@gmail.com\nSubject\nQA first-send LATER 1788900874226\nנמען\nנמען אחר\nמתי נוצר\n8.9.2026, 23:56:10\nתאריך\n10.9.2026\nשעה\n10:00\nמועד מתוכנן\n10.9.2026, 10:00:00\nסט"
+    },
+    {
+      "name": "qa4-refresh-reopen-later",
+      "ok": true,
+      "laterReload": "שליחה אוטומטית כללית נשארת Dry Run. שליחת TEST חיה רק לכתובות מאושרות (yoni122222@gmail.com). Follow-up נשאר תזכורת — לא מייל אוטומטי.\n＋ מעקב (Follow-up)\nשלח תזמוני TEST עכשיו\nמייל מתמשך · כל 3 ימים · פעיל\nREM-1788900970601-598ebb\nלמי\nyoni122222@gmail.com\nSubject\nQA first-send LATER 1788900874226\nנמ"
+    },
+    {
+      "name": "qa5-cancel-status",
+      "ok": true,
+      "status": "cancelled",
+      "cancelled_at": "2026-09-08T20:57:18.91974+00:00"
+    },
+    {
+      "name": "qa5-no-further-sends",
+      "ok": true,
+      "dispatch": {
+        "success": true,
+        "processed": 0,
+        "real": false
+      },
+      "jobs": [
+        {
+          "status": "cancelled",
+          "live": false
+        }
+      ]
+    },
+    {
+      "name": "regression-regular-send-btn",
+      "ok": true
+    },
+    {
+      "name": "regression-schedule-checkbox",
+      "ok": true
+    },
+    {
+      "name": "regression-schedule-fields",
+      "ok": true
+    },
+    {
+      "name": "regression-recurring-disabled-when-schedule",
+      "ok": true
+    },
+    {
+      "name": "regression-followup",
+      "ok": true
+    },
+    {
+      "name": "mobile-first-now",
+      "ok": true
+    },
+    {
+      "name": "mobile-first-later",
+      "ok": true
+    },
+    {
+      "name": "mobile-date-time",
+      "ok": true
+    },
+    {
+      "name": "mobile-preview",
+      "ok": true
+    },
+    {
+      "name": "mobile-schedule",
+      "ok": true
+    },
+    {
+      "name": "mobile-followup",
+      "ok": true
+    },
+    {
+      "name": "soft-deleted-test-claims",
+      "ok": true,
+      "claimNow": "DAL-2026-0221",
+      "claimLater": "DAL-2026-0222"
+    },
+    {
+      "name": "protected-untouched",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS"
+}
