@@ -74,6 +74,27 @@ export function filesForTreatment(t: ClaimRecord, files: Array<{ id: string; doc
   });
 }
 
+export type RecurringMailRow = {
+  id: string;
+  status: string;
+  mail_kind?: string;
+  purpose?: string;
+  treatment_task_id?: string;
+  mail_to?: string;
+};
+
+export function recurringForTreatment<T extends RecurringMailRow>(rows: T[], taskId: string): T[] {
+  if (!taskId) return [];
+  return rows.filter((r) => (
+    (r.mail_kind === 'email_repeat' || r.purpose === 'recurring_send')
+    && r.treatment_task_id === taskId
+  ));
+}
+
+export function liveRecurringForTreatment<T extends RecurringMailRow>(rows: T[], taskId: string): T[] {
+  return recurringForTreatment(rows, taskId).filter((r) => r.status === 'scheduled');
+}
+
 export function openTreatments(tasks: ClaimRecord[]) {
   return tasks.filter(isOpenTreatment);
 }

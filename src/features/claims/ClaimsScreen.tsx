@@ -3,7 +3,7 @@ import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STAT
 import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, buildClaimRowAlerts, canMarkMailTaskDone, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isRecurringMailFollowup, isScheduledOnceMail, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringLabel, shortStatusNote, untreatedMailIds, type ClaimAlert } from './claimWorkAlerts';
 import { claimMatchesSearch, searchEmptyLabel } from './claimSearch';
 import { groupMailThreads, unifyCorrespondence } from './claimMailThread';
-import { completedTreatments, docKeyForRequestType, filesForTreatment, isOpenTreatment, openTreatments, treatmentLabelOf, treatmentStatusHe } from './treatmentCenter';
+import { completedTreatments, docKeyForRequestType, filesForTreatment, isOpenTreatment, liveRecurringForTreatment, openTreatments, recurringForTreatment, treatmentLabelOf, treatmentStatusHe } from './treatmentCenter';
 import { buildSignedOpeningFormPdf } from './signedClaimPdf';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
@@ -709,6 +709,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [pendingCustTaskId, setPendingCustTaskId] = useState<string | null>(null);
   const [suggestDraftBody, setSuggestDraftBody] = useState('');
   const [fuEditId, setFuEditId] = useState<string | null>(null);
+  const [fuTreatTaskId, setFuTreatTaskId] = useState('');
+  const [fuFromTreat, setFuFromTreat] = useState(false);
   const [assignees, setAssignees] = useState<Array<{ id: string; full_name: string; company_name: string }>>([]);
   const [docs, setDocs] = useState<{ requests: DocRequest[]; files: ClaimFile[] }>({ requests: [], files: [] });
   const [hasUploadLink, setHasUploadLink] = useState(false);
@@ -1450,10 +1452,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }
   }, [cardTab, curId, docs.files, tasks]);
 
-  const openMailFollowupModal = async (edit?: MailFollowupRow | null, mode?: 'followup' | 'recurring') => {
+  const openMailFollowupModal = async (edit?: MailFollowupRow | null, mode?: 'followup' | 'recurring', opts?: { treatmentTaskId?: string; fileIds?: string[] }) => {
     setFuEditId(edit?.id || null);
-    setFuEditPurpose(edit?.purpose || '');
-    setFuFileIds(edit?.file_ids || []);
+    setFuEditPurpose(edit?.purpose || (mode === 'recurring' ? 'recurring_send' : ''));
+    setFuTreatTaskId(opts?.treatmentTaskId || edit?.treatment_task_id || '');
+    setFuFromTreat(Boolean(opts?.treatmentTaskId));
+    setFuFileIds(edit?.file_ids?.length ? edit.file_ids : (opts?.fileIds || []));
     const editRepeat = edit?.mail_kind === 'email_repeat';
     setFuKind(editRepeat || mode === 'recurring' ? 'email_repeat' : 'email_once');
     setFuRepeatDays(normalizeRecurringDays(edit?.repeat_every_days || (mode === 'recurring' ? 1 : 1)));
@@ -1499,6 +1503,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         setVal('fu_when', toLocalInput(edit.next_run_at) || toLocalInput(new Date(Date.now() + days * 86400000).toISOString()));
         setVal('fu_stop', toLocalInput(edit.stop_at));
         setVal('fu_attach', edit.attach_mode || 'none');
+        setVal('fu_cc', edit.mail_cc || '');
       } else {
         const recurring = mode === 'recurring';
         setFuWaitDays(3);
@@ -1512,6 +1517,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         setVal('fu_when', toLocalInput(new Date(Date.now() + (recurring ? 2 * 60_000 : 3 * 86400000)).toISOString()));
         setVal('fu_stop', '');
         setVal('fu_attach', 'none');
+        setVal('fu_cc', '');
       }
     }, 0);
   };
@@ -4739,9 +4745,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
       <div className={`ov ${modal === 'moMailFu' ? 'open' : ''}`} data-testid="mo-mail-fu">
         <div className="modal modal-md">
-          <div className="mh"><div className="mh-t">{fuEditPurpose === 'scheduled_send' ? '📅 עריכת מייל מתוזמן' : fuKind === 'email_repeat' ? '📬 מייל חוזר' : '📬 מעקב מייל / Follow-up'}</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
+          <div className="mh"><div className="mh-t">{fuEditPurpose === 'scheduled_send' ? '📅 עריכת מייל מתוזמן' : fuKind === 'email_repeat' ? (fuFromTreat ? '📬 מייל מתמשך / אוטומטי' : '📬 מייל חוזר') : '📬 מעקב מייל / Follow-up'}</div><button className="mcl" onClick={() => { const backTreat = fuFromTreat; setFuTreatTaskId(''); setFuFromTreat(false); setModal(backTreat ? 'moTreatCenter' : 'moCard'); }}>✕</button></div>
           <div className="mb">
-            <div style={{ fontSize: 11, color: 'var(--yn2)', marginBottom: 10 }}>{fuEditPurpose === 'scheduled_send' ? 'עריכת מייל מתוזמן חד-פעמי. לא Follow-up. Dry Run — אין שליחה חיה עד אישור נפרד.' : fuKind === 'email_repeat' ? 'מייל חוזר: אם אין תשובה — שלח שוב לפי התדירות. ייעצר כשתתקבל תשובה. לא Follow-up ולא מייל מתוזמן חד-פעמי. Dry Run.' : 'Dry Run בלבד. Follow-up הוא מעקב אם אין תשובה — לא שולח כל X ימים.'}</div>
+            <div style={{ fontSize: 11, color: 'var(--yn2)', marginBottom: 10 }}>{fuEditPurpose === 'scheduled_send' ? 'עריכת מייל מתוזמן חד-פעמי. לא Follow-up. Dry Run — אין שליחה חיה עד אישור נפרד.' : fuKind === 'email_repeat' ? (fuFromTreat ? 'מייל מתמשך מתוך הטיפול הפתוח. משתמש במנגנון הקיים. לא יוצר טיפול חדש. לא Follow-up ולא מייל מתוזמן חד-פעמי. הפעלה מפורשת — Dry Run עד שליחת TEST.' : 'מייל חוזר: אם אין תשובה — שלח שוב לפי התדירות. ייעצר כשתתקבל תשובה. לא Follow-up ולא מייל מתוזמן חד-פעמי. Dry Run.') : 'Dry Run בלבד. Follow-up הוא מעקב אם אין תשובה — לא שולח כל X ימים.'}</div>
             <div className="fg"><label className="fl">נמען</label>
               <select className="fse fi" id="fu_who" data-testid="fu-who" onChange={async (e) => {
                 const w = e.target.value;
@@ -4767,6 +4773,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               </select>
             </div>
             <div className="fg"><label className="fl">כתובת נמען *</label><input className="fi" id="fu_to" data-testid="fu-to" type="text" inputMode="email" autoComplete="off" /></div>
+            {fuKind === 'email_repeat' ? (
+              <div className="fg"><label className="fl">CC</label><input className="fi" id="fu_cc" data-testid="fu-cc" type="text" inputMode="email" autoComplete="off" placeholder="אופציונלי" /></div>
+            ) : null}
             <div className="fg"><label className="fl">מועד שליחה *</label><input className="fi" id="fu_when" data-testid="fu-when" type="datetime-local" /></div>
             {fuEditPurpose !== 'scheduled_send' && fuKind === 'email_repeat' ? (
               <div className="fg"><label className="fl">אם אין תשובה — שלח שוב</label>
@@ -4818,7 +4827,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               </label>
             )}
           </div>
-          <div className="mf"><button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
+          <div className="mf"><button className="btn btn-g" onClick={() => { const backTreat = fuFromTreat; setFuTreatTaskId(''); setFuFromTreat(false); setModal(backTreat ? 'moTreatCenter' : 'moCard'); }}>ביטול</button>
             <button className="btn btn-p" data-testid="fu-save" onClick={async () => {
               const to = val(null, 'fu_to');
               const when = val(null, 'fu_when');
@@ -4830,13 +4839,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               const who = val(null, 'fu_who') || 'other';
               const selectedFiles = docs.files.filter((f) => fuFileIds.includes(f.id));
               const repeatDays = kind === 'email_repeat' ? normalizeRecurringDays(fuRepeatDays) : 0;
+              const cc = kind === 'email_repeat' ? val(null, 'fu_cc') : '';
+              const treatId = fuTreatTaskId;
               const existingRepeat = !fuEditId && kind === 'email_repeat'
-                ? await apiRef.current.reuseScheduledRecurring(curId || '', to)
+                ? await apiRef.current.reuseScheduledRecurring(curId || '', to, treatId || undefined)
                 : null;
               const r = await apiRef.current.upsertMailFollowup({
                 id: fuEditId || existingRepeat?.id || undefined,
                 claim_id: curId,
                 mail_to: to,
+                mail_cc: cc,
                 mail_subject: val(null, 'fu_subj'),
                 mail_body: val(null, 'fu_body'),
                 mail_kind: kind,
@@ -4850,12 +4862,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 purpose: fuEditPurpose || (kind === 'email_repeat' ? 'recurring_send' : undefined),
                 file_ids: selectedFiles.map((f) => f.id),
                 file_names: selectedFiles.map((f) => f.original_name),
+                ...(treatId ? { treatment_task_id: treatId } : {}),
               });
               if (!r.success) { toast(r.error || 'שגיאה', 'err'); return; }
               if (curId && fuEditPurpose === 'scheduled_send') {
                 await apiRef.current.logHistory(curId, fuEditId ? 'עודכן מייל מתוזמן' : 'הוגדר מייל מתוזמן', `${to} · ${fmtDay(whenIso)} ${fmtClock(whenIso)}`, 'mail_scheduled');
               } else if (curId && kind === 'email_repeat') {
-                await apiRef.current.logHistory(curId, (fuEditId || existingRepeat) ? 'עודכן מייל חוזר' : 'הוגדר מייל חוזר', `${to} · ${recurringLabel(repeatDays)}`, 'mail_recurring');
+                await apiRef.current.logHistory(curId, (fuEditId || existingRepeat) ? 'עודכן מייל חוזר' : 'הוגדר מייל חוזר', `${to} · ${recurringLabel(repeatDays)}${treatId ? ' · מתוך טיפול' : ''}`, 'mail_recurring');
               }
               toast(fuEditPurpose === 'scheduled_send'
                 ? (fuEditId ? 'המייל המתוזמן עודכן (Dry Run)' : 'מייל מתוזמן נשמר (Dry Run)')
@@ -4864,8 +4877,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   : (fuEditId ? 'המעקב עודכן' : 'מעקב מייל הוגדר (Dry Run)'));
               setFuEditPurpose('');
               setFuEditId(null);
-              setCardTab('mailfu');
-              setModal('moCard');
+              setFuTreatTaskId('');
+              setFuFromTreat(false);
+              if (treatId && fuFromTreat) {
+                setModal('moTreatCenter');
+              } else {
+                setCardTab('mailfu');
+                setModal('moCard');
+              }
               if (curId) await loadCardData(curId);
               await loadAll();
             }}>{fuEditPurpose === 'scheduled_send' ? '💾 שמור תזמון' : fuKind === 'email_repeat' ? '💾 שמור מייל חוזר' : '💾 שמור מעקב'}</button>
@@ -4882,6 +4901,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             const threadMails = unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX).filter((m) => m.gmail_thread_id && t.gmailThreadId && m.gmail_thread_id === t.gmailThreadId);
             const newestMail = threadMails[threadMails.length - 1];
             const docKey = docKeyForRequestType(t.requestType);
+            const treatRecurring = recurringForTreatment(mailFollowups, t.id);
+            const liveTreatRecurring = liveRecurringForTreatment(mailFollowups, t.id);
             return (
               <>
                 <div className="mh">
@@ -4911,6 +4932,60 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <pre className="mail-body">{newestMail.body_text || '—'}</pre>
                       </div>
                     : <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>{t.gmailThreadId ? `Thread ${t.gmailThreadId}` : 'אין Thread מקושר עדיין'}</div>}
+                  <div className="sdiv"><div className="sdiv-t">מייל מתמשך / אוטומטי</div><div className="sdiv-l" /></div>
+                  <div data-testid="treat-recurring-list" style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>המנגנון הקיים של מייל חוזר. משויך לטיפול זה בלבד. לא Follow-up ולא מייל מתוזמן חד-פעמי. לא יוצר טיפול נוסף.</div>
+                    {treatRecurring.length === 0 ? <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>אין מייל מתמשך לטיפול זה</div>
+                      : treatRecurring.map((fu) => {
+                        const last = fu.jobs[0];
+                        const prev = (last?.preview && typeof last.preview === 'object') ? last.preview : null;
+                        const sentJobs = fu.jobs.filter((j) => j.finished_at && (j.status === 'dry_run_sent' || j.status === 'completed'));
+                        const lastSent = sentJobs[0];
+                        const live = fu.jobs.some((j) => jobWasLive(j));
+                        const activeLabel = fu.status === 'scheduled' ? 'פעיל' : fu.status === 'cancelled' ? 'נעצר / בוטל' : fuStatusHe(fu.status, live);
+                        return (
+                          <div key={fu.id} className="fu-box" data-testid={`treat-recurring-box-${fu.id}`} data-recurring="true" data-treatment-task={t.id}>
+                            <div style={{ fontWeight: 700 }} data-testid={`treat-recurring-kind-${fu.id}`}>מייל מתמשך · {recurringLabel(fu.repeat_every_days)} · {activeLabel}</div>
+                            <div className="fu-grid">
+                              <div data-testid={`treat-recurring-to-${fu.id}`}><b>למי</b>{fu.mail_to || '—'}</div>
+                              {fu.mail_cc ? <div><b>CC</b>{fu.mail_cc}</div> : null}
+                              <div data-testid={`treat-recurring-subj-${fu.id}`}><b>נושא</b>{fu.mail_subject || '—'}</div>
+                              <div data-testid={`treat-recurring-created-${fu.id}`}><b>מתי נוצר</b>{fmtWhen(fu.created_at)}</div>
+                              <div data-testid={`treat-recurring-freq-${fu.id}`}><b>תדירות</b>{recurringLabel(fu.repeat_every_days)}</div>
+                              <div data-testid={`treat-recurring-status-${fu.id}`}><b>סטטוס</b>{activeLabel}</div>
+                              <div data-testid={`treat-recurring-last-${fu.id}`}><b>שליחה אחרונה</b>{lastSent ? fmtWhen(lastSent.finished_at || lastSent.planned_at) : 'טרם נשלח'}</div>
+                              <div data-testid={`treat-recurring-next-${fu.id}`}><b>שליחה הבאה</b>{fu.status === 'scheduled' && fu.next_run_at ? fmtWhen(fu.next_run_at) : '—'}</div>
+                            </div>
+                            <div className="fu-prev">
+                              <div style={{ fontWeight: 700, marginBottom: 4 }}>{live ? 'Preview / היסטוריית שליחות' : 'Preview — מה היה אמור להישלח'}</div>
+                              <div><b>נושא:</b> {(prev?.subject as string) || fu.mail_subject || '—'}</div>
+                              <pre>{String((prev?.body as string) || fu.mail_body || '')}</pre>
+                              <div><b>קבצים מתיק זה:</b> {fu.file_names?.length ? fu.file_names.join(', ') : 'ללא מצורפים'}</div>
+                              {fu.jobs.length > 0 ? (
+                                <div style={{ marginTop: 8, fontSize: 11 }} data-testid={`treat-recurring-jobs-${fu.id}`}>
+                                  <b>היסטוריית שליחות:</b>
+                                  {fu.jobs.slice(0, 12).map((j) => (
+                                    <div key={j.id}>{fuStatusHe(j.status, jobWasLive(j))} · {fmtWhen(j.planned_at)}{j.fail_reason ? ` · ${j.fail_reason}` : ''}</div>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                            {fu.status === 'scheduled' && (
+                              <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                                <button type="button" className="btn btn-g btn-sm" data-testid={`treat-recurring-edit-${fu.id}`} onClick={() => void openMailFollowupModal(fu, 'recurring', { treatmentTaskId: t.id })}>עריכה</button>
+                                <button type="button" className="btn btn-sm" data-testid={`treat-recurring-cancel-${fu.id}`} style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={async () => {
+                                  const r = await apiRef.current.cancelMailFollowup(fu.id);
+                                  if (!r.success) { toast(r.error || 'שגיאה', 'err'); return; }
+                                  toast('החזרה נעצרה. ההיסטוריה נשמרה.');
+                                  if (cur) await loadCardData(cur.id);
+                                  await loadAll();
+                                }}>עצור / בטל</button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
                     {docKey ? <button type="button" className="btn btn-p btn-sm" data-testid="treat-ask-doc" onClick={async () => {
                       setAskKeys([docKey]);
@@ -4944,8 +5019,25 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       const src = newestMail || { from_addr: '', to_addr: '', cc_addr: '', subject: t.action, gmail_thread_id: t.gmailThreadId, body_text: '' };
                       openMailCompose(src, 'reply');
                     }}>Reply</button> : null}
-                    <button type="button" className="btn btn-g btn-sm" data-testid="treat-followup" onClick={() => { setModal('moCard'); setCardTab('mailfu'); }}>Follow-up / מתוזמן / חוזר</button>
+                    <button type="button" className="btn btn-g btn-sm" data-testid="treat-followup" onClick={() => { setModal('moCard'); setCardTab('mailfu'); }}>Follow-up</button>
+                    <button type="button" className="btn btn-p btn-sm" data-testid="treat-recurring-open" onClick={() => {
+                      void openMailFollowupModal(null, 'recurring', { treatmentTaskId: t.id, fileIds: related.map((f) => f.id) });
+                    }}>מייל מתמשך / אוטומטי</button>
+                    {liveTreatRecurring.length ? (
+                      <button type="button" className="btn btn-g btn-sm" data-testid="treat-recurring-dispatch-test" onClick={async () => {
+                        const r = await apiRef.current.dispatchDueTest();
+                        if (!r.success) { toast(String(r.error || 'שגיאה'), 'err'); return; }
+                        toast(r.realEmailSend ? `נשלחו ${String(r.processed ?? 0)} מיילי TEST` : `לא נשלח · ${String(r.processed ?? 0)} עובדו`);
+                        if (cur) await loadCardData(cur.id);
+                        await loadAll();
+                      }}>שלח TEST עכשיו</button>
+                    ) : null}
                     <button type="button" className="btn btn-p btn-sm" data-testid="treat-close-done" onClick={() => {
+                      if (liveTreatRecurring.length) {
+                        const who = liveTreatRecurring.map((r) => r.mail_to).filter(Boolean).join(', ');
+                        const ok = window.confirm(`יש מייל מתמשך פעיל לטיפול זה${who ? ` (${who})` : ''}. סגירת הטיפול תעצור אותו לפי המנגנון הקיים. ההיסטוריה תישמר. להמשיך?`);
+                        if (!ok) return;
+                      }
                       openTreat(t.action || 'טיפול נסגר', { continueWork: 'done', closeTaskId: t.id });
                     }}>טופל — אין המשך</button>
                   </div>

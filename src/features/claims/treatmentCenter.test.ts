@@ -1,6 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { filesForTreatment, inferTreatmentRequest, isOpenTreatment, treatmentLabelOf } from './treatmentCenter';
+import { filesForTreatment, inferTreatmentRequest, isOpenTreatment, liveRecurringForTreatment, recurringForTreatment, treatmentLabelOf } from './treatmentCenter';
 import type { ClaimRecord } from './claimsConstants';
+
+describe('recurringForTreatment', () => {
+  it('keeps recurring on the same treatment and ignores follow-up/scheduled', () => {
+    const rows = [
+      { id: 'A', status: 'scheduled', mail_kind: 'email_repeat', purpose: 'recurring_send', treatment_task_id: 'TSK-1' },
+      { id: 'B', status: 'scheduled', mail_kind: 'email_repeat', purpose: 'recurring_send', treatment_task_id: 'TSK-2' },
+      { id: 'C', status: 'scheduled', mail_kind: 'email_once', purpose: '', treatment_task_id: 'TSK-1' },
+      { id: 'D', status: 'cancelled', mail_kind: 'email_repeat', purpose: 'recurring_send', treatment_task_id: 'TSK-1' },
+    ];
+    expect(recurringForTreatment(rows, 'TSK-1').map((r) => r.id)).toEqual(['A', 'D']);
+    expect(liveRecurringForTreatment(rows, 'TSK-1').map((r) => r.id)).toEqual(['A']);
+    expect(recurringForTreatment(rows, 'TSK-2').map((r) => r.id)).toEqual(['B']);
+  });
+
+  it('does not list claim-level recurring on a treatment', () => {
+    const rows = [
+      { id: 'CLAIM', status: 'scheduled', mail_kind: 'email_repeat', purpose: 'recurring_send', treatment_task_id: '' },
+      { id: 'SCHED', status: 'scheduled', mail_kind: 'email_once', purpose: 'scheduled_send', treatment_task_id: 'TSK-1' },
+    ];
+    expect(recurringForTreatment(rows, 'TSK-1').map((r) => r.id)).toEqual([]);
+    expect(liveRecurringForTreatment(rows, 'TSK-1')).toEqual([]);
+  });
+});
 
 describe('inferTreatmentRequest', () => {
   it('maps a missing-license update to driver_license', () => {
