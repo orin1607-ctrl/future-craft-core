@@ -462,6 +462,7 @@ async function isSendEnabled(sb: ReturnType<typeof admin>) {
   return String(data?.value || "") === "true";
 }
 
+/** TEST/DEMO recipient allowlist for scheduled / dispatch_due_test only — not Composer Preview/SEND. */
 const HARDCODED_LIVE_TEST_ALLOWLIST = ["yoni122222@gmail.com"];
 
 async function getLiveSendAllowlist(sb: ReturnType<typeof admin>) {
@@ -493,7 +494,11 @@ function stripMailNoise(raw: string) {
 }
 
 function parseEmailListStrict(raw: string, required: boolean) {
-  const parts = stripMailNoise(raw).split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+  const parts = stripMailNoise(raw).split(/[,;]/).map((s) => {
+    const cleaned = s.trim();
+    const angle = cleaned.match(/<([^>]+)>/);
+    return (angle ? angle[1] : cleaned).trim();
+  }).filter(Boolean);
   if (!parts.length) {
     return required
       ? { ok: false as const, emails: [] as string[], error: "to_required" }
@@ -1057,13 +1062,14 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
       return jsonResponse({ success: false, error: "forbidden_claim", realEmailSend: false }, 403);
     }
-    const allow = await getLiveSendAllowlist(sb);
-    const toCheck = recipientsAllowlisted(String(body.to || ""), allow, true);
-    const ccCheck = recipientsAllowlisted(String(body.cc || ""), allow, false);
-    if (!toCheck.ok) return jsonResponse({ success: false, error: toCheck.error, realEmailSend: false, allowlist: [...allow] }, toCheck.error === "live_send_recipient_not_allowlisted" ? 403 : 400);
-    if (!ccCheck.ok) return jsonResponse({ success: false, error: ccCheck.error, realEmailSend: false, allowlist: [...allow] }, ccCheck.error === "live_send_recipient_not_allowlisted" ? 403 : 400);
-    const to = toCheck.emails.join(", ");
-    const cc = ccCheck.emails.join(", ");
+    // Composer Preview: format validation only. Recipient allowlist stays on
+    // dispatch_due_test / scheduled TEST mail — not on operator SEND after Preview.
+    const toParsed = parseEmailListStrict(String(body.to || ""), true);
+    const ccParsed = parseEmailListStrict(String(body.cc || ""), false);
+    if (!toParsed.ok) return jsonResponse({ success: false, error: toParsed.error, realEmailSend: false }, 400);
+    if (!ccParsed.ok) return jsonResponse({ success: false, error: ccParsed.error, realEmailSend: false }, 400);
+    const to = toParsed.emails.join(", ");
+    const cc = ccParsed.emails.join(", ");
     const subject = String(body.subject || "").trim();
     const text = String(body.body || "").trim();
     const ids = Array.isArray(body.file_ids) ? body.file_ids.map((x) => String(x)).filter(Boolean) : [];
@@ -2400,13 +2406,15 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
       return jsonResponse({ success: false, error: "forbidden_claim", realEmailSend: false }, 403);
     }
-    const allow = await getLiveSendAllowlist(sb);
-    const toCheck = recipientsAllowlisted(String(body.to || ""), allow, true);
-    const ccCheck = recipientsAllowlisted(String(body.cc || ""), allow, false);
-    if (!toCheck.ok) return jsonResponse({ success: false, error: toCheck.error, realEmailSend: false, allowlist: [...allow] }, toCheck.error === "live_send_recipient_not_allowlisted" ? 403 : 400);
-    if (!ccCheck.ok) return jsonResponse({ success: false, error: ccCheck.error, realEmailSend: false, allowlist: [...allow] }, ccCheck.error === "live_send_recipient_not_allowlisted" ? 403 : 400);
-    const to = toCheck.emails.join(", ");
-    const cc = ccCheck.emails.join(", ");
+    // Composer SEND: format validation only. Do not apply the TEST/DEMO allowlist
+    // here — that guard remains on dispatch_due_test so mass/scheduled TEST mail
+    // cannot go to real customers. Operator send after Preview+confirm uses To as typed.
+    const toParsed = parseEmailListStrict(String(body.to || ""), true);
+    const ccParsed = parseEmailListStrict(String(body.cc || ""), false);
+    if (!toParsed.ok) return jsonResponse({ success: false, error: toParsed.error, realEmailSend: false }, 400);
+    if (!ccParsed.ok) return jsonResponse({ success: false, error: ccParsed.error, realEmailSend: false }, 400);
+    const to = toParsed.emails.join(", ");
+    const cc = ccParsed.emails.join(", ");
     const subject = String(body.subject || "").trim();
     const text = String(body.body || "").trim();
     const ids = Array.isArray(body.file_ids) ? [...new Set(body.file_ids.map((x) => String(x)).filter(Boolean))] : [];

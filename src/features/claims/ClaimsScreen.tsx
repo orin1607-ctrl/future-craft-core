@@ -2570,7 +2570,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--t2)', lineHeight: 1.6 }}>
                     העובד לא נכנס לתיבת Gmail. ייבוא רק מתוך תיק מורשה.
-                    <br />שליחה ידנית מתוך תיק: Preview → SEND → אשר ושלח שולחת מייל אמיתי מתיבת דליה, רק לכתובות TEST מאושרות (yoni122222@gmail.com).
+                    <br />שליחה ידנית מתוך תיק: Preview → SEND → אשר ושלח שולחת מייל אמיתי מתיבת דליה לכתובת To שאושרה. שליחה אוטומטית כללית נשארת Dry Run.
                     <br />מעקב Follow-up נשאר תזכורת. מייל מתוזמן / מתמשך ל-TEST נשלח רק לכתובות מאושרות.
                     <br />קליטת מיילים נכנסים: סריקה מתוך Claims בלבד, חלון 3 הימים האחרונים. אין Scheduler חדש ואין שינוי OAuth.
                     <br />סריקת יוצאים: תצוגה בלבד — אין Import המוני ואין שליחה.
@@ -4337,7 +4337,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <div className="modal modal-md">
           <div className="mh"><div className="mh-t">{mailKind === 'insurer' ? '🏢 שליחה לחברת הביטוח' : mailKind === 'legal' ? '⚖️ שליחה לטיפול משפטי' : '📧 שליחת תיק במייל'}</div><button className="mcl" onClick={() => { if (!mailSending) closeMailModal(); }}>✕</button></div>
           <div className="mb">
-            <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 10 }}>{scheduleWanted ? 'שליחה מתוזמנת — המייל לא יישלח עכשיו. יישמר ויישלח במועד שנבחר, רק אם הנמען ב-TEST allowlist (yoni122222@gmail.com). Follow-up נשאר תזכורת ולא הופך למייל אוטומטי.' : 'שליחה ידנית אמיתית מתיבת דליה. שליחה חיה מאושרת רק לכתובות TEST (yoni122222@gmail.com). אין בחירת נמען אוטומטית ואין צירוף אוטומטי של מסמכים. שליחה רק אחרי Preview ואישור SEND מפורש. הערות פנימיות / משימות / היסטוריה לא יוצאות. Follow-up אוטומטי חי כבוי — נשמר תזכורת בלבד.'}</div>
+            <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 10 }}>{scheduleWanted ? 'שליחה מתוזמנת — המייל לא יישלח עכשיו. יישמר ויישלח במועד שנבחר, רק אם הנמען ב-TEST allowlist (yoni122222@gmail.com). Follow-up נשאר תזכורת ולא הופך למייל אוטומטי.' : 'שליחה ידנית אמיתית מתיבת דליה לכתובת To שאושרה ב-Preview. אין בחירת נמען אוטומטית ואין צירוף אוטומטי של מסמכים. שליחה רק אחרי Preview ואישור SEND מפורש. הערות פנימיות / משימות / היסטוריה לא יוצאות. Follow-up אוטומטי חי כבוי — נשמר תזכורת בלבד. שליחה מתוזמנת / מתמשכת ל-TEST נשארת מאולצת לכתובות מאושרות.'}</div>
             {suggestMissing.length ? (
               <div data-testid="suggest-missing" style={{ background: 'rgba(239,68,68,.08)', border: '1px solid var(--rd2)', borderRadius: 7, padding: 10, marginBottom: 10, fontSize: 12 }}>
                 חסר מסמך: {suggestMissing.join(', ')}. לא צוּרף מסמך דומה בניחוש.
@@ -4694,8 +4694,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               if (r.error === 'internal_content_blocked') { setMailPreviewOn(false); toast('התוכן כולל חומר פנימי — לא לשלוח', 'err'); return; }
               if (r.error === 'package_too_large') { setMailPreviewOn(false); toast('הקבצים גדולים מדי לשליחה במייל — SEND חסום. לא יושמטו קבצים.', 'err'); return; }
               if (r.error === 'cc_invalid' || r.error === 'to_required') { setMailPreviewOn(false); toast('כתובת To/CC לא תקינה — SEND חסום', 'err'); return; }
-              if (r.error === 'live_send_recipient_not_allowlisted') { setMailPreviewOn(false); toast('שליחה חיה מאושרת רק ל-yoni122222@gmail.com', 'err'); return; }
-              if (r.error === 'Edge Function returned a non-2xx status code') { setMailPreviewOn(false); toast('שגיאת Edge בשליחה — בדקו To/Allowlist', 'err'); return; }
+              if (r.error === 'live_send_recipient_not_allowlisted') { setMailPreviewOn(false); toast('שליחה אוטומטית לכתובת זו חסומה. שליחה ידנית דורשת Preview ו-SEND.', 'err'); return; }
+              if (r.error === 'Edge Function returned a non-2xx status code') { setMailPreviewOn(false); toast('שגיאת Edge בשליחה — בדקו To ואת פרטי השגיאה', 'err'); return; }
               if (r.success === false && r.error) { setMailPreviewOn(false); toast(String(r.error), 'err'); return; }
               if (suggestDraftBody && bodyText !== suggestDraftBody && curId) {
                 void apiRef.current.logHistory(curId, 'טיוטה נערכה', mailSubj, 'mail_draft');
@@ -4747,7 +4747,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     else if (r.error === 'confirm_required') toast('נדרש אישור מפורש', 'err');
                     else if (r.error === 'internal_content_blocked') toast('התוכן כולל חומר פנימי — לא נשלח', 'err');
                     else if (r.error === 'to_required' || r.error === 'cc_invalid') toast('כתובת To/CC לא תקינה — SEND חסום', 'err');
-                    else if (r.error === 'live_send_recipient_not_allowlisted') toast('שליחה חיה מאושרת רק ל-yoni122222@gmail.com', 'err');
+                    else if (r.error === 'live_send_recipient_not_allowlisted') toast('שליחה אוטומטית לכתובת זו חסומה', 'err');
                     else if (r.error === 'thread_not_on_claim') toast('ה-Thread לא שייך לתיק זה. שלחו כמייל חדש בלי Thread.', 'err');
                     else if (r.error === 'send_disabled') toast('שליחה חיה כבויה', 'err');
                     else toast(String(r.error || 'שליחה נכשלה — Gmail לא החזיר Message ID'), 'err');
