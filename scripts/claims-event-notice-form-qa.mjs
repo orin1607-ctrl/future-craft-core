@@ -332,8 +332,10 @@ async function main() {
     rec('no-duplicate-claim', samePlate.length === 1, { count: samePlate.length });
 
     await page.waitForSelector('[data-testid="claims-card-snapshot"], [data-testid="claims-tab-group-docs"]', { timeout: 20000 }).catch(() => undefined);
-    await page.locator('[data-testid="claims-tab-group-docs"]').click().catch(() => undefined);
-    await page.waitForTimeout(1000);
+    await page.locator('[data-testid="claims-tab-group-docs"]').evaluate((el) => el.click()).catch(() => undefined);
+    await page.locator('[data-testid="claim-doc-type-accident_notice"]').waitFor({ timeout: 20000 }).catch(() => undefined);
+    await page.locator('[data-testid="claim-doc-type-accident_notice"]').scrollIntoViewIfNeeded().catch(() => undefined);
+    await page.locator('[data-testid="claim-doc-view-accident_notice"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
     await shot(page, 'desktop-docs');
 
     let files = [];
@@ -348,14 +350,15 @@ async function main() {
     const view = page.locator('[data-testid="claim-doc-view-accident_notice"]');
     rec('preview-button', await view.count() > 0);
     if (await view.count()) {
-      await view.first().click({ force: true });
+      await view.first().evaluate((el) => el.click());
       await page.waitForSelector('[data-testid="doc-preview"]', { timeout: 15000 }).catch(() => undefined);
       rec('preview-open', await page.locator('[data-testid="doc-preview"]').count() > 0);
+      rec('download-control', await page.locator('[data-testid="doc-preview-download"]').count() > 0);
       await shot(page, 'desktop-preview');
+      await page.locator('[data-testid="doc-preview-close"]').evaluate((el) => el.click()).catch(() => undefined);
+    } else {
+      rec('download-control', false, { err: 'no preview button yet' });
     }
-
-    const dl = page.locator('[data-testid="claim-doc-download-accident_notice"], [data-testid="doc-download"]');
-    rec('download-control', await dl.count() > 0 || await page.getByText('הורדה').count() > 0);
 
     let pdfBytes = null;
     if (files[0]?.id) {
@@ -440,21 +443,26 @@ async function main() {
     }
     await mobile.close();
 
-    await page.locator('[data-testid="claims-open-new"]').click().catch(() => undefined);
-    await page.waitForSelector('[data-testid="intake-name"]', { timeout: 15000 }).catch(() => undefined);
-    await page.locator('[data-testid="intake-name"]').fill(leakClient);
-    await page.locator('[data-testid="intake-phone"]').fill('0507000333');
-    await page.locator('[data-testid="intake-plate"]').fill(leakPlate);
-    await page.locator('[data-testid="intake-event-date"]').fill('2026-09-08');
-    await page.locator('[data-testid="claims-save-btn"]').click();
-    await page.waitForTimeout(2500);
-    leakId = (await userDb.from('claims_records').select('id').eq('plate', leakPlate).maybeSingle()).data?.id || '';
-    rec('leak-claim-created', !!leakId && leakId !== claimId, { leakId });
-    if (leakId) {
-      const leakFiles = (await listDocs(session, leakId)).filter(isNoticePdf);
-      rec('no-cross-claim-pdf', leakFiles.length === 0, { count: leakFiles.length });
-      const originFiles = (await listDocs(session, claimId)).filter(isNoticePdf);
-      rec('origin-pdf-untouched', originFiles.length === 1, { count: originFiles.length });
+    try {
+      await closeOverlays(page);
+      await page.locator('[data-testid="claims-open-new"]').evaluate((el) => el.click());
+      await page.locator('[data-testid="claims-new-modal"].open [data-testid="intake-name"]').waitFor({ state: 'visible', timeout: 20000 });
+      await page.locator('[data-testid="claims-new-modal"].open [data-testid="intake-name"]').fill(leakClient);
+      await page.locator('[data-testid="claims-new-modal"].open [data-testid="intake-phone"]').fill('0507000333');
+      await page.locator('[data-testid="claims-new-modal"].open [data-testid="intake-plate"]').fill(leakPlate);
+      await page.locator('[data-testid="claims-new-modal"].open [data-testid="intake-event-date"]').fill('2026-09-08');
+      await page.locator('[data-testid="claims-save-btn"]').click();
+      await page.waitForTimeout(2500);
+      leakId = (await userDb.from('claims_records').select('id').eq('plate', leakPlate).maybeSingle()).data?.id || '';
+      rec('leak-claim-created', !!leakId && leakId !== claimId, { leakId });
+      if (leakId) {
+        const leakFiles = (await listDocs(session, leakId)).filter(isNoticePdf);
+        rec('no-cross-claim-pdf', leakFiles.length === 0, { count: leakFiles.length });
+        const originFiles = (await listDocs(session, claimId)).filter(isNoticePdf);
+        rec('origin-pdf-untouched', originFiles.length === 1, { count: originFiles.length });
+      }
+    } catch (err) {
+      rec('leak-claim-created', false, { err: String(err?.message || err) });
     }
   } finally {
     await browser.close();

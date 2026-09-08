@@ -181,10 +181,11 @@ function cell(
   lines.forEach((ln, i) => ctx.fillText(ln, x + w - 5, y + 25 + i * 13));
 }
 
-function checks(
+function checkRow(
   ctx: CanvasRenderingContext2D,
   x: number, y: number, w: number, h: number,
-  label: string, options: string[], selected: string,
+  label: string,
+  items: Array<{ label: string; on: boolean }>,
 ) {
   box(ctx, x, y, w, h, '#ffffff');
   ctx.fillStyle = '#64748b';
@@ -192,20 +193,27 @@ function checks(
   ctx.direction = 'ltr';
   ctx.font = `600 9px ${FONT}`;
   ctx.fillText(label, x + w - 5, y + 11);
-  let cx = x + w - 8;
-  options.forEach((opt) => {
-    const on = selected === opt;
+  const slot = Math.min(128, Math.max(72, (w - 12) / Math.max(items.length, 1)));
+  items.forEach((item, i) => {
+    const ox = x + w - 8 - i * slot;
     ctx.strokeStyle = '#1e293b';
-    ctx.strokeRect(cx - 9, y + 16, 9, 9);
-    if (on) {
+    ctx.strokeRect(ox - 9, y + 16, 9, 9);
+    if (item.on) {
       ctx.fillStyle = '#1e3a5f';
-      ctx.fillRect(cx - 8, y + 17, 7, 7);
+      ctx.fillRect(ox - 8, y + 17, 7, 7);
     }
     ctx.fillStyle = '#0f172a';
     ctx.font = `600 11px ${FONT}`;
-    ctx.fillText(opt, cx - 13, y + 25);
-    cx -= ctx.measureText(opt).width + 22;
+    ctx.fillText(item.label, ox - 13, y + 25);
   });
+}
+
+function checks(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number,
+  label: string, options: string[], selected: string,
+) {
+  checkRow(ctx, x, y, w, h, label, options.map((opt) => ({ label: opt, on: selected === opt })));
 }
 
 function yn(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, label: string, value: string) {
@@ -354,7 +362,7 @@ export async function buildSignedOpeningFormPdf(opts: {
   checks(c1, MARGIN + inner * 0.46 + 4, y, inner * 0.54 - 4, 34, 'סוג הרכב', [...CAR_TYPES], d.carType);
   y += 34;
   a = col(4, 0); cell(c1, a.x, y, a.w, 34, 'תוצר', d.carMake);
-  a = col(4, 1); cell(c1, a.x, y, a.w, 34, 'דגם', d.carModel);
+  a = col(4, 1); cell(c1, a.x, y, a.w, 34, 'דגם', String(d.carModel || '').replace(d.carMake ? new RegExp(`^${d.carMake}\\s+`) : /^$/, '') || d.carModel);
   a = col(4, 2); cell(c1, a.x, y, a.w, 34, 'שנת ייצור', d.carYear);
   a = col(4, 3); cell(c1, a.x, y, a.w, 34, 'מס׳ רישוי', opts.plate || d.plate);
   y += 34;
@@ -388,31 +396,11 @@ export async function buildSignedOpeningFormPdf(opts: {
   a = col(3, 1); cell(c1, a.x, y, a.w, 34, 'שעה', d.eventTime);
   a = col(3, 2); cell(c1, a.x, y, a.w, 34, 'מקום / כתובת אתר התאונה', eventPlace(d, opts.eventLocation));
   y += 34;
-  {
-    const opts3 = [
-      { label: 'משטרה', on: d.police === 'true' },
-      { label: 'גרר', on: d.tow === 'true' },
-      { label: 'מכבי אש', on: d.fireDept === 'true' },
-    ];
-    box(c1, MARGIN, y, inner, 34, '#ffffff');
-    c1.fillStyle = '#64748b';
-    c1.textAlign = 'right';
-    c1.font = `600 9px ${FONT}`;
-    c1.fillText('האם היה באירוע?', MARGIN + inner - 5, y + 11);
-    let cx = MARGIN + inner - 8;
-    opts3.forEach((opt) => {
-      c1.strokeStyle = '#1e293b';
-      c1.strokeRect(cx - 9, y + 16, 9, 9);
-      if (opt.on) {
-        c1.fillStyle = '#1e3a5f';
-        c1.fillRect(cx - 8, y + 17, 7, 7);
-      }
-      c1.fillStyle = '#0f172a';
-      c1.font = `600 11px ${FONT}`;
-      c1.fillText(opt.label, cx - 13, y + 25);
-      cx -= c1.measureText(opt.label).width + 22;
-    });
-  }
+  checkRow(c1, MARGIN, y, inner, 34, 'האם היה באירוע?', [
+    { label: 'משטרה', on: d.police === 'true' },
+    { label: 'גרר', on: d.tow === 'true' },
+    { label: 'מכבי אש', on: d.fireDept === 'true' },
+  ]);
   y += 34;
   a = col(4, 0); cell(c1, a.x, y, a.w, 34, 'נגבתה עדות בתחנת', d.policeStation);
   a = col(4, 1); cell(c1, a.x, y, a.w, 34, 'מס׳ תיק', d.policeFile);
