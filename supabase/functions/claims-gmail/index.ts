@@ -2256,7 +2256,16 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         failed += 1;
         continue;
       }
-      const gmailRes = await gmailPost(access, "messages/send", { raw: (encodedMsg as { encoded: string }).encoded });
+      const treatmentTaskId = String(rd.treatmentTaskId || "");
+      let existingTreatThread = "";
+      if (treatmentTaskId) {
+        const { data: treatRow } = await sb.from("claims_tasks").select("id, row_data").eq("id", treatmentTaskId).eq("claim_id", claimId).maybeSingle();
+        const trd = (treatRow?.row_data && typeof treatRow.row_data === "object") ? treatRow.row_data as Record<string, unknown> : {};
+        existingTreatThread = String(trd.gmailThreadId || "");
+      }
+      const sendPayload: Record<string, unknown> = { raw: (encodedMsg as { encoded: string }).encoded };
+      if (existingTreatThread) sendPayload.threadId = existingTreatThread;
+      const gmailRes = await gmailPost(access, "messages/send", sendPayload);
       if (!gmailRes.ok) {
         await sb.from("claims_mail_jobs").update({ status: "failed", finished_at: new Date().toISOString(), fail_reason: "gmail_send_failed" }).eq("id", job.id);
         failed += 1;
@@ -2281,6 +2290,7 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         gmail_message_id: gmailMessageId,
         gmail_thread_id: gmailThreadId,
         claimId,
+        treatment_task_id: treatmentTaskId || undefined,
       };
       await sb.from("claims_mail_jobs").update({
         status: "dry_run_sent",
@@ -2294,7 +2304,7 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         claim_id: claimId,
         row_data: {
           action: purpose === "scheduled_send" ? "נשלח מייל מתוזמן (TEST חי)" : "נשלח מייל מתמשך (TEST חי)",
-          note: `From ${ALLOWED_ACCOUNT} · To ${to} · ${subject} · msgid ${gmailMessageId}`,
+          note: `From ${ALLOWED_ACCOUNT} · To ${to} · ${subject} · msgid ${gmailMessageId}${treatmentTaskId ? ` · טיפול ${treatmentTaskId}` : ""}`,
           type: histType,
           by: user.email || user.id,
           at: new Date().toLocaleString("he-IL"),
@@ -2303,6 +2313,7 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
           gmail_message_id: gmailMessageId,
           gmail_thread_id: gmailThreadId,
           sent_at: sentAt,
+          treatment_task_id: treatmentTaskId || undefined,
         },
       });
       await sb.from("claims_gmail_outbox").insert({
@@ -2324,6 +2335,22 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         gmail_thread_id: gmailThreadId,
         sent_at: sentAt,
       });
+      if (treatmentTaskId && gmailThreadId) {
+        const { data: treatRow } = await sb.from("claims_tasks").select("id, row_data").eq("id", treatmentTaskId).eq("claim_id", claimId).maybeSingle();
+        if (treatRow) {
+          const trd = (treatRow.row_data && typeof treatRow.row_data === "object") ? treatRow.row_data as Record<string, unknown> : {};
+          if (String(trd.done) !== "true" && String(trd.workStatus) !== "done") {
+            await sb.from("claims_tasks").update({
+              row_data: {
+                ...trd,
+                gmailThreadId,
+                gmailMessageId,
+                workStatus: "waiting_reply",
+              },
+            }).eq("id", treatmentTaskId).eq("claim_id", claimId);
+          }
+        }
+      }
       if (kind === "email_repeat") {
         const days = Math.max(1, Number(rem.repeat_every_days) || 1);
         const next = new Date(new Date(String(job.planned_at)).getTime() + days * 86400000);

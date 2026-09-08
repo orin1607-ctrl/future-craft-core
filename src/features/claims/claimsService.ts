@@ -35,6 +35,7 @@ export type MailFollowupRow = {
   file_names: string[];
   purpose: string;
   mail_cc: string;
+  treatment_task_id: string;
   cancelled_at: string;
   created_at: string;
   jobs: MailJobRow[];
@@ -489,6 +490,14 @@ export function createClaimsApi(actor: ClaimsActor) {
           await tbl('claims_tasks').update({ row_data: next } as never).eq('id', payload.closeTaskId);
           await appendHistory(payload.claimId, 'טיפול נסגר', `${prev.action || ''} · ${next.closeReason}`, 'treatment', prev.workStatus || '', 'done');
           treatmentTaskId = payload.closeTaskId;
+          const listed = await this.listMailFollowups(payload.claimId);
+          for (const fu of listed.data || []) {
+            if (fu.status !== 'scheduled' || fu.mail_kind !== 'email_repeat' || fu.treatment_task_id !== payload.closeTaskId) continue;
+            const stopped = await this.cancelMailFollowup(fu.id);
+            if (stopped.success) {
+              await appendHistory(payload.claimId, 'מייל מתמשך נעצר — הטיפול נסגר', `${fu.mail_to} · ${fu.mail_subject}`, 'mail_recurring');
+            }
+          }
         }
       } else if (payload.continueWork === 'continue') {
         const inferred = inferTreatmentRequest(payload.action, payload.note || '');
@@ -578,7 +587,8 @@ export function createClaimsApi(actor: ClaimsActor) {
       const fileNames = Array.isArray(payload.file_names) ? payload.file_names.map((x) => String(x)).filter(Boolean) : [];
       const purpose = asText(payload.purpose);
       const mailCc = asText(payload.mail_cc);
-      if (id && (kind || waitDays || fileIds.length || payload.file_ids || purpose || mailCc || payload.purpose)) {
+      const treatmentTaskId = asText(payload.treatment_task_id);
+      if (id && (kind || waitDays || fileIds.length || payload.file_ids || purpose || mailCc || payload.purpose || payload.treatment_task_id !== undefined || treatmentTaskId)) {
         const { data: rem } = await tbl('claims_reminders').select('row_data').eq('id', id).maybeSingle();
         const prev = rowFromData((rem as { row_data?: Record<string, unknown> } | null)?.row_data);
         const extras: Record<string, unknown> = {};
@@ -591,6 +601,7 @@ export function createClaimsApi(actor: ClaimsActor) {
         extras.file_names = fileNames.join(' | ');
         if (purpose) extras.purpose = purpose;
         if (mailCc || payload.mail_cc !== undefined) extras.mail_cc = mailCc;
+        if (payload.treatment_task_id !== undefined) extras.treatmentTaskId = treatmentTaskId;
         await tbl('claims_reminders').update({
           row_data: { ...prev, ...extras },
         } as never).eq('id', id);
@@ -604,9 +615,14 @@ export function createClaimsApi(actor: ClaimsActor) {
       return { success: true };
     },
 
-    async reuseScheduledRecurring(claimId: string, mailTo: string) {
+    async reuseScheduledRecurring(claimId: string, mailTo: string, treatmentTaskId?: string) {
       const listed = await this.listMailFollowups(claimId);
-      const live = (listed.data || []).filter((r) => r.status === 'scheduled' && r.mail_kind === 'email_repeat' && r.mail_to === mailTo);
+      const live = (listed.data || []).filter((r) => (
+        r.status === 'scheduled'
+        && r.mail_kind === 'email_repeat'
+        && r.mail_to === mailTo
+        && (treatmentTaskId ? r.treatment_task_id === treatmentTaskId : !r.treatment_task_id)
+      ));
       const keep = live[0] || null;
       for (const extra of live.slice(1)) {
         await this.cancelMailFollowup(extra.id);
@@ -687,6 +703,7 @@ export function createClaimsApi(actor: ClaimsActor) {
           file_names: asText(rd.file_names).split(' | ').map((x) => x.trim()).filter(Boolean),
           purpose: asText(rd.purpose),
           mail_cc: asText(rd.mail_cc),
+          treatment_task_id: asText(rd.treatmentTaskId),
           cancelled_at: asText(r.cancelled_at),
           created_at: asText(r.created_at),
           jobs: jobRows.filter((j) => j.reminder_id === id),
