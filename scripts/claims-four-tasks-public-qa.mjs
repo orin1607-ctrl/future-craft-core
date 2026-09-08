@@ -570,6 +570,13 @@ async function runRound(browser, session, round, fixtures) {
       await page.locator('[data-testid="mail-to"]').fill(SELF);
       await page.keyboard.press('Escape').catch(() => undefined);
     } else rec(`r${round}-composer`, false, { err: 'send mail control missing' });
+    await closeOverlays(page);
+    await openClaimCard(page, client, claimId);
+    await openTreatTab(page);
+    if (await page.locator(`[data-testid="treat-item-${treatA?.id}"]`).count()) {
+      await page.locator(`[data-testid="treat-item-${treatA?.id}"]`).evaluate((el) => el.click());
+    }
+    await page.waitForSelector('[data-testid="treat-center"].open [data-testid="treat-followup"]', { timeout: 15000 }).catch(() => undefined);
     const fuBtn = page.locator('[data-testid="treat-center"].open [data-testid="treat-followup"]');
     if (await fuBtn.count()) {
       await fuBtn.evaluate((el) => el.click());
