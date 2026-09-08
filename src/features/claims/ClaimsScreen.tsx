@@ -1522,6 +1522,30 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }, 0);
   };
 
+  const stampTreatmentFromRecurringJobs = async (claimId: string, taskId: string) => {
+    if (!claimId || !taskId) return;
+    const [listed, taskRes] = await Promise.all([
+      apiRef.current.listMailFollowups(claimId),
+      apiRef.current.getTasks(claimId),
+    ]);
+    const task = (taskRes.data || []).find((x) => x.id === taskId);
+    if (!task || task.done === 'true' || task.workStatus === 'done') return;
+    const job = recurringForTreatment(listed.data || [], taskId)
+      .flatMap((f) => f.jobs)
+      .find((j) => jobWasLive(j) && j.preview && typeof j.preview === 'object' && j.preview.gmail_thread_id);
+    const prev = job?.preview && typeof job.preview === 'object' ? job.preview : null;
+    const thread = String(prev?.gmail_thread_id || '');
+    if (!thread) return;
+    const mid = String(prev?.gmail_message_id || task.gmailMessageId || '');
+    if (task.gmailThreadId === thread && task.gmailMessageId === mid) return;
+    await apiRef.current.saveTask({
+      ...task,
+      gmailThreadId: thread,
+      gmailMessageId: mid,
+      workStatus: 'waiting_reply',
+    });
+  };
+
   const openCustomerRequest = () => {
     setModal('moCustReq');
     setTimeout(() => {
@@ -5028,7 +5052,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         const r = await apiRef.current.dispatchDueTest();
                         if (!r.success) { toast(String(r.error || 'שגיאה'), 'err'); return; }
                         toast(r.realEmailSend ? `נשלחו ${String(r.processed ?? 0)} מיילי TEST` : `לא נשלח · ${String(r.processed ?? 0)} עובדו`);
-                        if (cur) await loadCardData(cur.id);
+                        if (cur) {
+                          await stampTreatmentFromRecurringJobs(cur.id, t.id);
+                          await loadCardData(cur.id);
+                        }
                         await loadAll();
                       }}>שלח TEST עכשיו</button>
                     ) : null}
