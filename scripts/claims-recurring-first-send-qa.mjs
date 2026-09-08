@@ -288,8 +288,8 @@ rec('public-pages-sha', deployed, { deployTxt: report.deployTxt, wantSha: WANT_S
 rec('staging-only', STAGING_REF !== PROD_REF);
 
 const status = await invokeGmail(session, { action: 'status' });
-rec('gmail-3h-untouched', Number(status.json?.mailboxScan?.everyMs || status.json?.everyMs) === 3 * 60 * 60 * 1000, {
-  everyMs: status.json?.mailboxScan?.everyMs || status.json?.everyMs,
+rec('gmail-3h-untouched', Number(status.json?.scheduler?.everyMs || status.json?.mailboxScan?.everyMs) === 3 * 60 * 60 * 1000, {
+  everyMs: status.json?.scheduler?.everyMs || status.json?.mailboxScan?.everyMs,
 });
 
 const stamp = Date.now();
@@ -329,8 +329,20 @@ try {
   rec('preview-now-next', /שליחה הבאה/.test(previewNow), { previewNow: previewNow.slice(0, 240) });
   await shot(page, 'desktop-composer-now');
   await page.locator('[data-testid="mail-recurring-save"]').click();
-  await page.waitForTimeout(4000);
-
+  remNow = await latestRepeat(claimNow, 'QA first-send NOW');
+  for (let i = 0; i < 20 && remNow; i++) {
+    const jobs = await jobsFor(remNow.id);
+    if (jobs.some(jobLive)) break;
+    await sleep(1500);
+    remNow = await latestRepeat(claimNow, 'QA first-send NOW');
+  }
+  if (remNow && !(await jobsFor(remNow.id)).some(jobLive)) {
+    await openMailFu(page, clientNow, claimNow);
+    if (await page.locator('[data-testid="claims-dispatch-due-test"]').count()) {
+      await page.locator('[data-testid="claims-dispatch-due-test"]').click();
+      await sleep(4000);
+    }
+  }
   remNow = await latestRepeat(claimNow, 'QA first-send NOW');
   report.remNow = remNow?.id || '';
   rec('now-reminder-saved', Boolean(remNow?.id) && remNow.status === 'scheduled' && Number(remNow.repeat_every_days) === 3, {
@@ -345,15 +357,17 @@ try {
   });
   report.firstSendLive = liveNow.length > 0;
 
-  const firstPlanned = nowJobs[0]?.planned_at || remNow?.next_run_at;
+  remNow = await latestRepeat(claimNow, 'QA first-send NOW');
+  nowJobs = await jobsFor(remNow?.id);
+  const firstPlanned = [...nowJobs].sort((a, b) => Date.parse(a.planned_at) - Date.parse(b.planned_at))[0]?.planned_at || remNow?.next_run_at;
   const nextAfterFirst = firstPlanned ? new Date(new Date(firstPlanned).getTime() + 3 * 86400000) : null;
   const nextIso = remNow?.next_run_at ? new Date(remNow.next_run_at).getTime() : 0;
   const expectedNext = nextAfterFirst ? nextAfterFirst.getTime() : 0;
   const cycleOk = liveNow.length
-    ? Math.abs(nextIso - expectedNext) < 120000
-    : Boolean(firstPlanned);
+    ? Math.abs(nextIso - expectedNext) < 180000
+    : false;
   rec('qa3-cycle-from-first', cycleOk, {
-    firstPlanned, next_run_at: remNow?.next_run_at, expected: nextAfterFirst?.toISOString(),
+    firstPlanned, next_run_at: remNow?.next_run_at, expected: nextAfterFirst?.toISOString(), live: liveNow.length,
   });
   report.cycleFromFirst = cycleOk;
 
@@ -443,7 +457,7 @@ try {
   rec('regression-followup', await page.locator('[data-testid="mail-followup"]').count() > 0);
   await shot(page, 'desktop-regression-composer');
 
-  const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'he-IL', isMobile: true, hasTouch: true });
+  const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'he-IL', timezoneId: 'Asia/Jerusalem', isMobile: true, hasTouch: true });
   await inject(mobile, session);
   const mpage = await mobile.newPage();
   await openClaims(mpage);

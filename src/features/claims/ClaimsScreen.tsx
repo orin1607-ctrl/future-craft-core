@@ -1645,6 +1645,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }, 0);
   };
 
+  const dispatchRecurringFirstNow = async () => {
+    await new Promise((r) => setTimeout(r, 500));
+    let sent = await apiRef.current.dispatchDueTest();
+    if (sent.success && sent.realEmailSend !== true) {
+      await new Promise((r) => setTimeout(r, 800));
+      sent = await apiRef.current.dispatchDueTest();
+    }
+    return sent;
+  };
+
   const stampTreatmentFromRecurringJobs = async (claimId: string, taskId: string) => {
     if (!claimId || !taskId) return;
     const [listed, taskRes] = await Promise.all([
@@ -4778,13 +4788,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   if (!r.success) { toast(String(r.error || 'שמירת המייל החוזר נכשלה'), 'err'); return; }
                   await apiRef.current.logHistory(curId, existing ? 'עודכן מייל חוזר' : 'הוגדר מייל חוזר', `${to} · ${recurringLabel(days)} · ראשונה ${fmtWhen(whenIso)}`, 'mail_recurring');
                   if (first.sendNow) {
-                    const sent = await apiRef.current.dispatchDueTest();
+                    const sent = await dispatchRecurringFirstNow();
                     if (!sent.success) {
                       toast(`מייל מתמשך נשמר, אך השליחה הראשונה נכשלה: ${String(sent.error || 'שגיאה')}`, 'err');
                     } else if (sent.realEmailSend) {
                       toast(`מייל מתמשך הופעל · נשלח TEST · ${recurringLabel(days)} · שליחה הבאה ${fmtWhen(addRecurringDays(first.firstAt, days).toISOString())}`);
                     } else {
-                      toast(`מייל מתמשך נשמר · ${recurringLabel(days)} · לא נשלח: ${String(sent.error || 'בדקו allowlist / Dry Run')}`);
+                      toast(`מייל מתמשך נשמר · ${recurringLabel(days)} · לא נשלח: ${String(sent.error || sent.skipped != null ? `דולג ${String(sent.skipped)}` : 'בדקו allowlist / Dry Run')}`);
                     }
                   } else {
                     toast(`מייל מתמשך נשמר · שליחה ראשונה ${fmtWhen(whenIso)} · ${recurringLabel(days)}. לא נשלח עכשיו.`);
@@ -5235,7 +5245,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 await apiRef.current.logHistory(curId, (fuEditId || existingRepeat) ? 'עודכן מייל חוזר' : 'הוגדר מייל חוזר', `${to} · ${recurringLabel(repeatDays)} · ראשונה ${fmtWhen(whenIso)}${treatId ? ' · מתוך טיפול' : ''}`, 'mail_recurring');
               }
               if (kind === 'email_repeat' && sendNow) {
-                const sent = await apiRef.current.dispatchDueTest();
+                const sent = await dispatchRecurringFirstNow();
                 if (!sent.success) {
                   toast(`מייל מתמשך נשמר, אך השליחה הראשונה נכשלה: ${String(sent.error || 'שגיאה')}`, 'err');
                 } else if (sent.realEmailSend) {
