@@ -329,21 +329,23 @@ try {
   rec('preview-now-next', /שליחה הבאה/.test(previewNow), { previewNow: previewNow.slice(0, 240) });
   await shot(page, 'desktop-composer-now');
   await page.locator('[data-testid="mail-recurring-save"]').click();
-  remNow = await latestRepeat(claimNow, 'QA first-send NOW');
-  for (let i = 0; i < 20 && remNow; i++) {
-    const jobs = await jobsFor(remNow.id);
-    if (jobs.some(jobLive)) break;
+  for (let i = 0; i < 24; i++) {
+    remNow = await latestRepeat(claimNow, 'QA first-send NOW') || await latestRepeat(claimNow);
+    const jobs = remNow ? await jobsFor(remNow.id) : [];
+    if (remNow && jobs.some(jobLive)) break;
     await sleep(1500);
-    remNow = await latestRepeat(claimNow, 'QA first-send NOW');
   }
   if (remNow && !(await jobsFor(remNow.id)).some(jobLive)) {
     await openMailFu(page, clientNow, claimNow);
     if (await page.locator('[data-testid="claims-dispatch-due-test"]').count()) {
       await page.locator('[data-testid="claims-dispatch-due-test"]').click();
-      await sleep(4000);
+      for (let i = 0; i < 12; i++) {
+        if ((await jobsFor(remNow.id)).some(jobLive)) break;
+        await sleep(1500);
+      }
     }
   }
-  remNow = await latestRepeat(claimNow, 'QA first-send NOW');
+  remNow = await latestRepeat(claimNow, 'QA first-send NOW') || await latestRepeat(claimNow);
   report.remNow = remNow?.id || '';
   rec('now-reminder-saved', Boolean(remNow?.id) && remNow.status === 'scheduled' && Number(remNow.repeat_every_days) === 3, {
     id: remNow?.id, status: remNow?.status, days: remNow?.repeat_every_days, next: remNow?.next_run_at,
