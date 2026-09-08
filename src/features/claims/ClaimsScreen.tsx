@@ -781,6 +781,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [treatBusy, setTreatBusy] = useState(false);
   const [treatCenterId, setTreatCenterId] = useState('');
   const [closeTreatId, setCloseTreatId] = useState('');
+  const [updateTreatId, setUpdateTreatId] = useState('');
+  const [treatDocPick, setTreatDocPick] = useState<string[]>([]);
+  const [treatContinueChoice, setTreatContinueChoice] = useState<'continue' | 'done'>('continue');
+  const mailReturnRef = useRef('');
   const [mailOpen, setMailOpen] = useState<Record<string, boolean>>({});
   const [deleteTyped, setDeleteTyped] = useState('');
   const bumpMailDraft = () => {
@@ -1323,6 +1327,17 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (seed?.body) { setMailBodyDraft(seed.body); setVal('mail_body', seed.body); }
     if (seed?.file_ids?.length && cur.id) void refreshPackage(cur.id, seed.file_ids);
     setModal('moMail');
+  };
+
+  const openMailFromTreat = (seed?: Parameters<typeof openSendModal>[1]) => {
+    mailReturnRef.current = 'moTreatCenter';
+    void openSendModal('draft', seed);
+  };
+
+  const closeMailModal = () => {
+    const back = mailReturnRef.current || 'moCard';
+    mailReturnRef.current = '';
+    setModal(back);
   };
 
   const openMailCompose = (im: object, mode: 'reply' | 'replyAll' | 'forward') => {
@@ -1947,10 +1962,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const pendingStatus = useRef('');
 
-  const openTreat = (action: string, opts?: { sendOk?: boolean; continueWork?: 'continue' | 'done'; closeTaskId?: string }) => {
+  const openTreat = (action: string, opts?: { sendOk?: boolean; continueWork?: 'continue' | 'done'; closeTaskId?: string; updateTaskId?: string }) => {
     setTreatAction(action);
     setTreatSendOk(!!opts?.sendOk);
     setCloseTreatId(opts?.closeTaskId || '');
+    setUpdateTreatId(opts?.updateTaskId || opts?.closeTaskId || '');
+    setTreatContinueChoice(opts?.continueWork || 'continue');
     setVal('tr_status', STATUS_UNCHANGED);
     setVal('tr_manual', '');
     setVal('tr_note', '');
@@ -1976,28 +1993,31 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const manualNote = val(null, 'tr_manual');
     const note = val(null, 'tr_note');
     const actionText = val(null, 'tr_action') || treatAction || cur?.treatmentPendingAction || 'עדכון טיפול';
-    const continueWork = closeTreatId || (val(null, 'tr_continue') || 'continue') === 'done' ? 'done' : 'continue';
+    const continueWork = (val(null, 'tr_continue') || 'continue') === 'done' ? 'done' : 'continue';
     const chosenStatus = statusChoice === STATUS_UNCHANGED ? (cur?.status || '') : statusChoice === STATUS_MANUAL ? (cur?.status || '') : statusChoice;
     const closed = isClosedStatus(chosenStatus, cur?.archived);
     if (statusChoice === STATUS_MANUAL && !manualNote) { toast('נא לכתוב עדכון ידני', 'err'); return; }
     if (!closed && !nextDate) { toast('חובה להגדיר תאריך טיפול הבא', 'err'); return; }
     setTreatBusy(true);
     try {
+      const boundId = updateTreatId || closeTreatId || '';
       const r = await apiRef.current.saveTreatmentUpdate({
         claimId: curId,
         action: actionText,
         statusChoice,
         manualNote,
         nextDate,
-        note,
+        note: note || actionText,
         continueWork,
-        closeTaskId: closeTreatId || undefined,
+        closeTaskId: continueWork === 'done' ? (boundId || undefined) : undefined,
+        updateTaskId: continueWork === 'continue' ? (boundId || undefined) : undefined,
       });
       if (!r.success) { toast(String(r.error || 'שמירת עדכון טיפול נכשלה'), 'err'); return; }
-      toast(continueWork === 'done' ? 'הפעולה נרשמה — ללא המשך טיפול' : 'עדכון טיפול נשמר');
+      toast(continueWork === 'done' ? 'התווית הוסרה. העדכון נשמר בהיסטוריה.' : 'עדכון טיפול נשמר — התווית נשארת');
       const newId = String((r as { treatmentTaskId?: string }).treatmentTaskId || '');
       setTreatBusy(false);
       setCloseTreatId('');
+      setUpdateTreatId('');
       await loadAll();
       if (curId) await loadCardData(curId);
       if (continueWork === 'continue' && newId) {
@@ -4302,7 +4322,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
       <div className={`ov ${modal === 'moMail' ? 'open' : ''}`} data-testid="mo-mail">
         <div className="modal modal-md">
-          <div className="mh"><div className="mh-t">{mailKind === 'insurer' ? '🏢 שליחה לחברת הביטוח' : mailKind === 'legal' ? '⚖️ שליחה לטיפול משפטי' : '📧 שליחת תיק במייל'}</div><button className="mcl" onClick={() => { if (!mailSending) setModal('moCard'); }}>✕</button></div>
+          <div className="mh"><div className="mh-t">{mailKind === 'insurer' ? '🏢 שליחה לחברת הביטוח' : mailKind === 'legal' ? '⚖️ שליחה לטיפול משפטי' : '📧 שליחת תיק במייל'}</div><button className="mcl" onClick={() => { if (!mailSending) closeMailModal(); }}>✕</button></div>
           <div className="mb">
             <div style={{ fontSize: 12, color: 'var(--yn2)', marginBottom: 10 }}>{scheduleWanted ? 'שליחה מתוזמנת — המייל לא יישלח עכשיו. יישמר ויישלח במועד שנבחר, רק אם הנמען ב-TEST allowlist (yoni122222@gmail.com). Follow-up נשאר תזכורת ולא הופך למייל אוטומטי.' : 'שליחה ידנית אמיתית מתיבת דליה. שליחה חיה מאושרת רק לכתובות TEST (yoni122222@gmail.com). אין בחירת נמען אוטומטית ואין צירוף אוטומטי של מסמכים. שליחה רק אחרי Preview ואישור SEND מפורש. הערות פנימיות / משימות / היסטוריה לא יוצאות. Follow-up אוטומטי חי כבוי — נשמר תזכורת בלבד.'}</div>
             {suggestMissing.length ? (
@@ -4546,7 +4566,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             )}
           </div>
           <div className="mf">
-            <button className="btn btn-g" disabled={mailSending} onClick={() => { setMailConfirmOn(false); setMailAck(false); setModal('moCard'); }}>ביטול</button>
+            <button className="btn btn-g" disabled={mailSending} onClick={() => { setMailConfirmOn(false); setMailAck(false); closeMailModal(); }}>ביטול</button>
             {scheduleWanted ? (
               <button className="btn btn-p" data-testid="mail-schedule-save" disabled={mailSending} onClick={async () => {
                 if (!curId || !cur) return;
@@ -5077,10 +5097,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 </div>
                 <div className="mb" data-testid="treat-center-body">
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 10, marginBottom: 12 }}>
-                    {([['לקוח', cur.clientName], ['תביעה', displayClaimNum(cur)], ['נושא', t.action || '—'], ['סטטוס טיפול', treatmentStatusHe(t)], ['הערה', t.note || '—'], ['נפתח', t.createdAt || '—'], ['עודכן', t.updatedAt || t.createdAt || '—'], ['מטפל', t.owner || t.createdBy || cur.assigned_to_name || '—'], ['ממתינים', t.workStatus === 'waiting_doc' ? 'למסמך מהלקוח' : t.workStatus === 'waiting_reply' ? 'לתגובת מייל' : '—']] as Array<[string, string]>).map(([k, v]) => (
+                    {([['לקוח', cur.clientName], ['תביעה', displayClaimNum(cur)], ['נושא', t.action || '—'], ['סטטוס טיפול', treatmentStatusHe(t)], ['עדכון אחרון', t.lastStatusNote || t.note || '—'], ['מה צריך לעשות עכשיו', t.lastStatusNote || t.note || t.action || '—'], ['נפתח', t.createdAt || '—'], ['עודכן', t.updatedAt || t.createdAt || '—'], ['מי כתב', t.updatedBy || t.owner || t.createdBy || cur.assigned_to_name || '—'], ['ממתינים', t.workStatus === 'waiting_doc' ? 'למסמך מהלקוח' : t.workStatus === 'waiting_reply' ? 'לתגובת מייל' : '—']] as Array<[string, string]>).map(([k, v]) => (
                       <div key={k}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{k}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{v || '—'}</div></div>
                     ))}
                   </div>
+                  <div className="sdiv"><div className="sdiv-t">היסטוריית הטיפול</div><div className="sdiv-l" /></div>
+                  <div data-testid="treat-center-history" style={{ fontSize: 12, marginBottom: 10 }}>
+                    {hist.filter((h) => h.type === 'treatment' || /טיפול/.test(h.action || '')).slice(0, 8).map((h) => (
+                      <div key={h.id} style={{ marginBottom: 4 }}>{h.at || h.createdAt || ''} · {h.by || h.createdBy || ''} · {h.action}{h.note ? ` · ${h.note}` : ''}</div>
+                    ))}
+                    {hist.filter((h) => h.type === 'treatment' || /טיפול/.test(h.action || '')).length === 0 ? <div style={{ color: 'var(--t3)' }}>אין היסטוריית טיפול עדיין</div> : null}
+                  </div>
+                  <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
                   <div className="sdiv"><div className="sdiv-t">מסמכים קשורים</div><div className="sdiv-l" /></div>
                   {related.length === 0 ? <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>אין מסמך מקושר עדיין. Documents הוא מקור האמת.</div>
                     : related.map((f) => (
@@ -5153,6 +5181,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       })}
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                    <button type="button" className="btn btn-p btn-sm" data-testid="treat-docs-open" onClick={() => {
+                      setTreatDocPick([]);
+                      setModal('moTreatDocs');
+                      if (cur) void loadGalleryThumbs(cur.id, docs.files.filter((f) => isImageFile(f)));
+                    }}>מסמכים ותמונות</button>
+                    <button type="button" className="btn btn-p btn-sm" data-testid="treat-update-open" onClick={() => {
+                      openTreat(t.lastStatusNote || t.action || 'עדכון טיפול', { continueWork: 'continue', updateTaskId: t.id });
+                    }}>עדכון טיפול</button>
                     {docKey ? <button type="button" className="btn btn-p btn-sm" data-testid="treat-ask-doc" onClick={async () => {
                       setAskKeys([docKey]);
                       setAskOpen(true);
@@ -5179,7 +5215,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       await loadCardData(cur.id); await loadAll();
                     }}>לא תקין / בקש מחדש</button> : null}
                     {related[0] ? <button type="button" className="btn btn-p btn-sm" data-testid="treat-send-mail" onClick={() => {
-                      void openSendModal('draft', { file_ids: [related[0].id], subject: `תביעה ${displayClaimNum(cur)} · ${t.action || ''}`, thread_id: t.gmailThreadId || '' });
+                      openMailFromTreat({ file_ids: [related[0].id], subject: `תביעה ${displayClaimNum(cur)} · ${t.action || ''}`, thread_id: t.gmailThreadId || '' });
                     }}>שלח במייל</button> : null}
                     {t.gmailThreadId || newestMail ? <button type="button" className="btn btn-g btn-sm" data-testid="treat-reply" onClick={() => {
                       const src = newestMail || { from_addr: '', to_addr: '', cc_addr: '', subject: t.action, gmail_thread_id: t.gmailThreadId, body_text: '' };
@@ -5217,6 +5253,52 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         </div>
       </div>
 
+      <div className={`ov ${modal === 'moTreatDocs' ? 'open' : ''}`} data-testid="treat-docs">
+        <div className="modal" style={{ maxWidth: 720 }}>
+          <div className="mh">
+            <div className="mh-t">מסמכים ותמונות · {cur ? displayClaimNum(cur) : ''}</div>
+            <button className="mcl" data-testid="treat-docs-back" onClick={() => setModal('moTreatCenter')}>✕</button>
+          </div>
+          <div className="mb" data-testid="treat-docs-body">
+            <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>מסמכי תביעה זו בלבד. אותו מקור כמו Documents. אין שכפול קבצים. בחירה מצרפת ל-Composer הקיים.</div>
+            <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
+            {docs.files.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין מסמכים בתיק</div>
+              : docs.files.map((f) => {
+                const img = isImageFile(f);
+                const on = treatDocPick.includes(f.id);
+                return (
+                  <div key={f.id} className="pick-row" data-testid={`treat-docs-row-${f.id}`} data-claim-id={cur?.id || ''} style={{ marginBottom: 6 }}>
+                    <input type="checkbox" data-testid={`treat-docs-pick-${f.id}`} checked={on} onChange={() => {
+                      setTreatDocPick((prev) => on ? prev.filter((id) => id !== f.id) : [...prev, f.id]);
+                    }} />
+                    {img ? (
+                      <button type="button" className="pick-thumb" data-testid={`treat-docs-thumb-${f.id}`} onClick={() => cur && void openInCard(cur.id, f, docs.files.filter(isImageFile))}>
+                        {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>📷</span>}
+                      </button>
+                    ) : null}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700 }}>{fileLabel(f)}</div>
+                      <div style={{ fontSize: 10, color: 'var(--t3)' }}>{f.original_name}</div>
+                    </div>
+                    <button type="button" className="btn btn-g btn-sm" data-testid={`treat-docs-preview-${f.id}`} onClick={() => cur && void openInCard(cur.id, f)}>צפייה</button>
+                  </div>
+                );
+              })}
+          </div>
+          <div className="mf">
+            <button className="btn btn-g" data-testid="treat-docs-close" onClick={() => setModal('moTreatCenter')}>חזרה לטיפול</button>
+            <button className="btn btn-p" data-testid="treat-docs-attach-mail" disabled={!treatDocPick.length} onClick={() => {
+              const t = tasks.find((x) => x.id === treatCenterId) || dashTasks.find((x) => x.id === treatCenterId);
+              openMailFromTreat({
+                file_ids: treatDocPick,
+                subject: cur ? `תביעה ${displayClaimNum(cur)}${t?.action ? ` · ${t.action}` : ''}` : '',
+                thread_id: t?.gmailThreadId || '',
+              });
+            }}>צרף למייל ({treatDocPick.length})</button>
+          </div>
+        </div>
+      </div>
+
       <div className={`ov ${modal === 'moTreatChoice' ? 'open' : ''}`} data-testid="treat-choice">
         <div className="modal modal-sm">
           <div className="mh"><div className="mh-t">מה קורה עם הסטטוס?</div>
@@ -5242,7 +5324,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       <div className={`ov ${modal === 'moTreat' ? 'open' : ''}`} data-testid="treat-ops-v3">
         <div className="modal modal-sm">
           <div className="mh"><div className="mh-t">עדכון טיפול</div>
-            <button className="mcl" data-testid="treat-back" onClick={() => setModal('moCard')}>✕</button>
+            <button className="mcl" data-testid="treat-back" onClick={() => setModal(treatCenterId ? 'moTreatCenter' : 'moCard')}>✕</button>
           </div>
           <div className="mb">
             {treatSendOk ? <div data-testid="treat-send-ok" style={{ background: 'rgba(34,197,94,.12)', border: '1px solid var(--gn2)', borderRadius: 7, padding: 8, marginBottom: 10, fontSize: 12 }}>המייל נשלח בהצלחה. עדכון הטיפול לא שולח שוב.</div> : null}
@@ -5261,6 +5343,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             <div className="fg"><label className="fl">עדכון ידני</label><textarea className="fta" id="tr_manual" data-testid="treat-manual" placeholder="אם נבחר אחר" /></div>
             <div className="fg"><label className="fl">הערה</label><input className="fi" id="tr_note" data-testid="treat-note" /></div>
             <div className="fg"><label className="fl">המשך טיפול</label>
+              <div data-testid="treat-continue-choice" style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+                <button type="button" className={`btn btn-sm ${treatContinueChoice === 'continue' ? 'btn-p' : 'btn-g'}`} data-testid="treat-keep-label" aria-pressed={treatContinueChoice === 'continue'} onClick={() => { setTreatContinueChoice('continue'); setVal('tr_continue', 'continue'); }}>דורש המשך טיפול / השאר תווית</button>
+                <button type="button" className={`btn btn-sm ${treatContinueChoice === 'done' ? 'btn-p' : 'btn-g'}`} data-testid="treat-drop-label" aria-pressed={treatContinueChoice === 'done'} onClick={() => { setTreatContinueChoice('done'); setVal('tr_continue', 'done'); }}>בוצע / אין המשך / הסר תווית</button>
+              </div>
               <select className="fse fi" id="tr_continue" data-testid="treat-continue" defaultValue="continue">
                 <option value="continue">דורש המשך טיפול</option>
                 <option value="done">בוצע — ללא המשך טיפול</option>
@@ -5272,7 +5358,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             </div>
           </div>
           <div className="mf">
-            <button className="btn btn-g" disabled={treatBusy} onClick={() => setModal('moCard')}>חזור לתיק</button>
+            <button className="btn btn-g" disabled={treatBusy} onClick={() => setModal(treatCenterId ? 'moTreatCenter' : 'moCard')}>{treatCenterId ? 'חזור לטיפול' : 'חזור לתיק'}</button>
             <button className="btn btn-p" data-testid="treat-save" disabled={treatBusy} onClick={() => void submitTreat()}>{treatBusy ? 'שומר…' : 'שמור וסיים'}</button>
           </div>
         </div>

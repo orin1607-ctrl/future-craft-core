@@ -186,17 +186,19 @@ export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAle
   const openTreats = claimTasks.filter((t) => isTreatTask(t) && t.done !== 'true' && t.workStatus !== 'done');
   for (const t of openTreats) {
     const name = t.action || 'טיפול';
-    const treatLabel = t.replyReceived === 'true'
-      ? `מייל חדש — ${name}`
-      : (t.workStatus === 'doc_received' || t.docState === 'ready')
-        ? `התקבל — לבדיקה: ${name}`
-        : (t.workStatus === 'waiting_doc' || t.docState === 'missing')
-          ? `חסר: ${name}`
-          : name;
-    add(`treat_${t.id}`, treatLabel, t.replyReceived === 'true' || t.workStatus === 'doc_received' ? 'need' : 'wait', {
+    const treatLabel = (t.lastStatusNote || t.note)
+      ? String(t.lastStatusNote || t.note).replace(/\s+/g, ' ').trim().slice(0, 42)
+      : t.replyReceived === 'true'
+        ? `מייל חדש — ${name}`
+        : (t.workStatus === 'doc_received' || t.docState === 'ready')
+          ? `התקבל — לבדיקה: ${name}`
+          : (t.workStatus === 'waiting_doc' || t.docState === 'missing')
+            ? `חסר: ${name}`
+            : name;
+    add(`treat_${t.id}`, treatLabel || name, t.replyReceived === 'true' || t.workStatus === 'doc_received' ? 'need' : 'wait', {
       taskId: t.id,
       mailIds: t.gmailMessageId ? [t.gmailMessageId] : undefined,
-      why: `טיפול פתוח שדורש המשך: ${name}`,
+      why: `טיפול פתוח: ${name}${t.lastStatusNote || t.note ? ` · ${t.lastStatusNote || t.note}` : ''}`,
     });
   }
   if (untreated.length) {
