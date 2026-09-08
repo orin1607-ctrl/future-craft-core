@@ -1,0 +1,199 @@
+{
+  "at": "2026-09-08T20:26:22.028Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "oauthChanged": false,
+  "sendChanged": false,
+  "scanChanged": false,
+  "wantSha": "73d331c",
+  "deployTxt": "deployed_ref=73d331c feat/incident-alerts-staging",
+  "incoming": "PASS",
+  "sent": "PASS",
+  "mobile": "PASS",
+  "regression": "PASS",
+  "checks": [
+    {
+      "name": "hex-id-helper",
+      "ok": true
+    },
+    {
+      "name": "href-uses-thread-not-inbox",
+      "ok": true
+    },
+    {
+      "name": "href-rejects-guess",
+      "ok": true
+    },
+    {
+      "name": "gmail-connected",
+      "ok": true,
+      "detail": "yoni122222@gmail.com"
+    },
+    {
+      "name": "send-enabled-untouched",
+      "ok": true
+    },
+    {
+      "name": "oauth-untouched",
+      "ok": true
+    },
+    {
+      "name": "scan-3h-untouched",
+      "ok": true
+    },
+    {
+      "name": "found-incoming-with-gmail-id",
+      "ok": true,
+      "detail": "DAL-2026-0186 1a080d935bd28109"
+    },
+    {
+      "name": "found-sent-with-gmail-id",
+      "ok": true,
+      "detail": "DAL-2026-0186 1a080d935bd28109"
+    },
+    {
+      "name": "found-second-thread",
+      "ok": true,
+      "detail": "DAL-2026-0186 1a080d90a7d8f79f"
+    },
+    {
+      "name": "fake-qa-ids-have-no-href",
+      "ok": true
+    },
+    {
+      "name": "public-pages-sha",
+      "ok": true,
+      "detail": "deployed_ref=73d331c feat/incident-alerts-staging"
+    },
+    {
+      "name": "incoming-link-present",
+      "ok": true,
+      "detail": "items=2 mid=1a080d935bd28109"
+    },
+    {
+      "name": "incoming-href-exact-stored-id",
+      "ok": true,
+      "href": "https://mail.google.com/mail/?authuser=yoni122222%40gmail.com#all/1a080d935bd28109",
+      "detail": "https://mail.google.com/mail/?authuser=yoni122222%40gmail.com#all/1a080d935bd28109"
+    },
+    {
+      "name": "incoming-href-not-inbox-home",
+      "ok": true
+    },
+    {
+      "name": "incoming-opens-new-tab",
+      "ok": true
+    },
+    {
+      "name": "incoming-no-guess-subject",
+      "ok": true
+    },
+    {
+      "name": "sent-link-present",
+      "ok": true
+    },
+    {
+      "name": "sent-href-exact-stored-id",
+      "ok": true,
+      "href": "https://mail.google.com/mail/?authuser=yoni122222%40gmail.com#all/1a080d935bd28109"
+    },
+    {
+      "name": "sent-href-not-inbox-home",
+      "ok": true
+    },
+    {
+      "name": "sent-opens-new-tab",
+      "ok": true
+    },
+    {
+      "name": "sent-no-guess-subject",
+      "ok": true
+    },
+    {
+      "name": "two-threads-different-href",
+      "ok": true,
+      "detail": "1a080d935bd28109 | 1a080d90a7d8f79f"
+    },
+    {
+      "name": "reply-button-still-present",
+      "ok": true
+    },
+    {
+      "name": "send-mail-still-present",
+      "ok": true
+    },
+    {
+      "name": "refresh-link-present",
+      "ok": true,
+      "detail": "items=2 mid=1a080d935bd28109"
+    },
+    {
+      "name": "refresh-href-exact-stored-id",
+      "ok": true,
+      "href": "https://mail.google.com/mail/?authuser=yoni122222%40gmail.com#all/1a080d935bd28109",
+      "detail": "https://mail.google.com/mail/?authuser=yoni122222%40gmail.com#all/1a080d935bd28109"
+    },
+    {
+      "name": "refresh-href-not-inbox-home",
+      "ok": true
+    },
+    {
+      "name": "refresh-opens-new-tab",
+      "ok": true
+    },
+    {
+      "name": "refresh-no-guess-subject",
+      "ok": true
+    },
+    {
+      "name": "refresh-href-stable",
+      "ok": true,
+      "href": "https://mail.google.com/mail/?authuser=yoni122222%40gmail.com#all/1a080d935bd28109"
+    },
+    {
+      "name": "mobile-link-present",
+      "ok": true,
+      "detail": "items=2 mid=1a080d935bd28109"
+    },
+    {
+      "name": "mobile-href-exact-stored-id",
+      "ok": true,
+      "href": "https://mail.google.com/mail/?authuser=yoni122222%40gmail.com#all/1a080d935bd28109",
+      "detail": "https://mail.google.com/mail/?authuser=yoni122222%40gmail.com#all/1a080d935bd28109"
+    },
+    {
+      "name": "mobile-href-not-inbox-home",
+      "ok": true
+    },
+    {
+      "name": "mobile-opens-new-tab",
+      "ok": true
+    },
+    {
+      "name": "mobile-no-guess-subject",
+      "ok": true
+    },
+    {
+      "name": "mobile-target-blank",
+      "ok": true
+    },
+    {
+      "name": "no-send-path-change",
+      "ok": true
+    },
+    {
+      "name": "no-oauth-change",
+      "ok": true
+    },
+    {
+      "name": "no-scan-change",
+      "ok": true
+    },
+    {
+      "name": "regression-send-scan-oauth",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS",
+  "failed": []
+}
