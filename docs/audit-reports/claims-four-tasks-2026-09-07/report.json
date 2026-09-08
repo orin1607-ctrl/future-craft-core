@@ -1,0 +1,1092 @@
+{
+  "at": "2026-09-08T07:43:17.050Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mailDispatchModeTouched": false,
+  "gmail3hCronTouched": false,
+  "gmailMailboxMutated": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "wantSha": "b7924d2",
+  "deployTxt": "deployed_ref=b7924d2 feat/incident-alerts-staging",
+  "rounds": [
+    {
+      "round": 1,
+      "client": "TEST-4T-R1-1788853420824",
+      "plate": "T4T420824",
+      "claimId": "DAL-2026-0164",
+      "pass": true
+    },
+    {
+      "round": 2,
+      "client": "TEST-4T-R2-1788853895508",
+      "plate": "T4T895508",
+      "claimId": "DAL-2026-0165",
+      "pass": true
+    },
+    {
+      "round": 3,
+      "client": "TEST-4T-R3-1788854391564",
+      "plate": "T4T391564",
+      "claimId": "DAL-2026-0166",
+      "pass": true
+    }
+  ],
+  "checks": [
+    {
+      "name": "public-pages-sha",
+      "ok": true,
+      "deployTxt": "deployed_ref=b7924d2 feat/incident-alerts-staging",
+      "want": "b7924d2"
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    },
+    {
+      "name": "search-fixtures",
+      "ok": true,
+      "eliA": {
+        "id": "DAL-2026-0161",
+        "name": "אליהו אטיאס"
+      },
+      "eliB": {
+        "id": "DAL-2026-0162",
+        "name": "אליהו אטיאס"
+      },
+      "similar": {
+        "id": "DAL-2026-0163",
+        "name": "אליהו כהן"
+      }
+    },
+    {
+      "name": "r1-d-full-name",
+      "ok": true,
+      "hasA": true,
+      "hasB": true,
+      "typed": "אליהו אטיאס",
+      "rows": [
+        "DAL-2026-0162",
+        "DAL-2026-0161",
+        "DAL-2026-0136",
+        "DAL-2026-0135",
+        "DAL-2026-0134",
+        "DAL-2026-0132"
+      ]
+    },
+    {
+      "name": "r1-d-multiple-claims",
+      "ok": true,
+      "hasA": true,
+      "hasB": true
+    },
+    {
+      "name": "r1-d-no-eli-cohen-leak",
+      "ok": true,
+      "hasSim": false
+    },
+    {
+      "name": "r1-d-partial-first",
+      "ok": true
+    },
+    {
+      "name": "r1-d-partial-last",
+      "ok": true
+    },
+    {
+      "name": "r1-d-search-plus-filter",
+      "ok": true
+    },
+    {
+      "name": "r1-d-clear",
+      "ok": true
+    },
+    {
+      "name": "r1-d-no-results",
+      "ok": true,
+      "empty": "לא נמצאו תוצאות"
+    },
+    {
+      "name": "r1-d-open-correct",
+      "ok": true,
+      "snap": "אליהו אטיאס מספר תביעה: טרם התקבל · DAL-2026-0161"
+    },
+    {
+      "name": "r1-m-full-name",
+      "ok": true,
+      "hasA": true,
+      "hasB": true,
+      "typed": "אליהו אטיאס",
+      "rows": [
+        "DAL-2026-0162",
+        "DAL-2026-0161",
+        "DAL-2026-0136",
+        "DAL-2026-0135",
+        "DAL-2026-0134",
+        "DAL-2026-0132"
+      ]
+    },
+    {
+      "name": "r1-m-multiple-claims",
+      "ok": true,
+      "hasA": true,
+      "hasB": true
+    },
+    {
+      "name": "r1-m-no-eli-cohen-leak",
+      "ok": true,
+      "hasSim": false
+    },
+    {
+      "name": "r1-m-partial-first",
+      "ok": true
+    },
+    {
+      "name": "r1-m-partial-last",
+      "ok": true
+    },
+    {
+      "name": "r1-m-search-plus-filter",
+      "ok": true
+    },
+    {
+      "name": "r1-m-clear",
+      "ok": true
+    },
+    {
+      "name": "r1-m-no-results",
+      "ok": true,
+      "empty": "לא נמצאו תוצאות"
+    },
+    {
+      "name": "r1-m-open-correct",
+      "ok": true,
+      "snap": "אליהו אטיאס מספר תביעה: טרם התקבל · DAL-2026-0161"
+    },
+    {
+      "name": "r1-claim-created",
+      "ok": true,
+      "claimId": "DAL-2026-0164"
+    },
+    {
+      "name": "r1-opening-once-create",
+      "ok": true,
+      "open1": 1
+    },
+    {
+      "name": "r1-edit-title",
+      "ok": true
+    },
+    {
+      "name": "r1-edit-no-opening",
+      "ok": true,
+      "open2": 1
+    },
+    {
+      "name": "r1-t4-a-one-item",
+      "ok": true,
+      "open": 1,
+      "lic": [
+        "רישיון נהיגה"
+      ]
+    },
+    {
+      "name": "r1-t4-a-active",
+      "ok": true,
+      "id": "TSK-1788853509774-E48E"
+    },
+    {
+      "name": "r1-center-from-save",
+      "ok": true
+    },
+    {
+      "name": "r1-treat-list",
+      "ok": true
+    },
+    {
+      "name": "r1-center-from-list",
+      "ok": true
+    },
+    {
+      "name": "r1-table-label-missing",
+      "ok": true,
+      "alerts": "\tטרם התקבל\t\nTEST-4T-R1-1788853420824\n\tT4T420824\tהפניקס\tחדש\nצריך צילום ברור של שני הצדדים.\n\tTEST עובד תביעות 1788292403067\t8.9.2026\t9.9.2026\t\nחסר: רישיון נהיגה\nנדרש טיפול\n\t—"
+    },
+    {
+      "name": "r1-label-deeplink",
+      "ok": true
+    },
+    {
+      "name": "r1-doc-request-api",
+      "ok": true,
+      "detail": "ui"
+    },
+    {
+      "name": "r1-doc-request",
+      "ok": true
+    },
+    {
+      "name": "r1-doc-req-row",
+      "ok": true,
+      "reqs": [
+        "license_driver"
+      ]
+    },
+    {
+      "name": "r1-cust-link",
+      "ok": true
+    },
+    {
+      "name": "r1-cust-upload",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "name": "r1-doc-in-claim",
+      "ok": true,
+      "count": 1
+    },
+    {
+      "name": "r1-doc-type",
+      "ok": true,
+      "kinds": [
+        "driver_license"
+      ]
+    },
+    {
+      "name": "r1-treat-received",
+      "ok": true,
+      "status": "doc_received",
+      "doc": "ready"
+    },
+    {
+      "name": "r1-received-alert",
+      "ok": true,
+      "n": 2
+    },
+    {
+      "name": "r1-label-received",
+      "ok": true,
+      "afterLabel": "\tטרם התקבל\t\nTEST-4T-R1-1788853420824\n\tT4T420824\tהפניקס\tחדש\nצריך צילום ברור של שני הצדדים.\n\tTEST עובד תביעות 1788292403067\t8.9.2026\t9.9.2026\t\nהתקבל — לבדיקה: רישיון נהיגה\nנדרש טיפול\n\t—"
+    },
+    {
+      "name": "r1-open-same-treat",
+      "ok": true
+    },
+    {
+      "name": "r1-approve",
+      "ok": true
+    },
+    {
+      "name": "r1-composer",
+      "ok": true
+    },
+    {
+      "name": "r1-composer-attach",
+      "ok": true,
+      "selected": "license-r1.png\n78 B\nבטל"
+    },
+    {
+      "name": "r1-followup-existing",
+      "ok": true
+    },
+    {
+      "name": "r1-blocked-non-test",
+      "ok": true,
+      "error": "live_send_recipient_not_allowlisted"
+    },
+    {
+      "name": "r1-live-send",
+      "ok": true,
+      "mid": "1a07ffd2e9340d47"
+    },
+    {
+      "name": "r1-reply-send",
+      "ok": true,
+      "thread": "1a07ffd2e9340d47"
+    },
+    {
+      "name": "r1-scan-dry-only",
+      "ok": true,
+      "scanned": 21
+    },
+    {
+      "name": "r1-same-thread",
+      "ok": true,
+      "threadId": "1a07ffd2e9340d47",
+      "imports": 2
+    },
+    {
+      "name": "r1-no-cross-claim-mail",
+      "ok": true
+    },
+    {
+      "name": "r1-treat-thread",
+      "ok": true,
+      "got": "1a07ffd2e9340d47"
+    },
+    {
+      "name": "r1-mail-action-present",
+      "ok": true,
+      "mailBadgeText": "2 מיילים דורשים טיפול"
+    },
+    {
+      "name": "r1-incoming-or-outgoing",
+      "ok": true
+    },
+    {
+      "name": "r1-thread-ui",
+      "ok": true,
+      "toggles": 2
+    },
+    {
+      "name": "r1-newest-open-older-collapsed",
+      "ok": true,
+      "open": 1,
+      "total": 2
+    },
+    {
+      "name": "r1-reply-composer",
+      "ok": true
+    },
+    {
+      "name": "r1-t4-b-history",
+      "ok": true,
+      "n": 17
+    },
+    {
+      "name": "r1-t4-b-no-extra-open",
+      "ok": true,
+      "open": [
+        "רישיון נהיגה"
+      ]
+    },
+    {
+      "name": "r1-two-treats",
+      "ok": true,
+      "a": "TSK-1788853509774-E48E",
+      "b": "TSK-1788853777342-C82L"
+    },
+    {
+      "name": "r1-t4-c-status-kept",
+      "ok": true,
+      "status": "חדש"
+    },
+    {
+      "name": "r1-close-a-keeps-b",
+      "ok": true,
+      "b": "waiting_doc"
+    },
+    {
+      "name": "r1-a-not-deleted",
+      "ok": true
+    },
+    {
+      "name": "r1-history-kept",
+      "ok": true,
+      "completed": "טיפולים שהושלמו: רישיון נהיגה"
+    },
+    {
+      "name": "r1-refresh",
+      "ok": true
+    },
+    {
+      "name": "r1-reopen",
+      "ok": true
+    },
+    {
+      "name": "r1-round",
+      "ok": true,
+      "failed": []
+    },
+    {
+      "name": "r2-d-full-name",
+      "ok": true,
+      "hasA": true,
+      "hasB": true,
+      "typed": "אליהו אטיאס",
+      "rows": [
+        "DAL-2026-0162",
+        "DAL-2026-0161",
+        "DAL-2026-0136",
+        "DAL-2026-0135",
+        "DAL-2026-0134",
+        "DAL-2026-0132"
+      ]
+    },
+    {
+      "name": "r2-d-multiple-claims",
+      "ok": true,
+      "hasA": true,
+      "hasB": true
+    },
+    {
+      "name": "r2-d-no-eli-cohen-leak",
+      "ok": true,
+      "hasSim": false
+    },
+    {
+      "name": "r2-d-partial-first",
+      "ok": true
+    },
+    {
+      "name": "r2-d-partial-last",
+      "ok": true
+    },
+    {
+      "name": "r2-d-search-plus-filter",
+      "ok": true
+    },
+    {
+      "name": "r2-d-clear",
+      "ok": true
+    },
+    {
+      "name": "r2-d-no-results",
+      "ok": true,
+      "empty": "לא נמצאו תוצאות"
+    },
+    {
+      "name": "r2-d-open-correct",
+      "ok": true,
+      "snap": "אליהו אטיאס מספר תביעה: טרם התקבל · DAL-2026-0161"
+    },
+    {
+      "name": "r2-m-full-name",
+      "ok": true,
+      "hasA": true,
+      "hasB": true,
+      "typed": "אליהו אטיאס",
+      "rows": [
+        "DAL-2026-0162",
+        "DAL-2026-0161",
+        "DAL-2026-0136",
+        "DAL-2026-0135",
+        "DAL-2026-0134",
+        "DAL-2026-0132"
+      ]
+    },
+    {
+      "name": "r2-m-multiple-claims",
+      "ok": true,
+      "hasA": true,
+      "hasB": true
+    },
+    {
+      "name": "r2-m-no-eli-cohen-leak",
+      "ok": true,
+      "hasSim": false
+    },
+    {
+      "name": "r2-m-partial-first",
+      "ok": true
+    },
+    {
+      "name": "r2-m-partial-last",
+      "ok": true
+    },
+    {
+      "name": "r2-m-search-plus-filter",
+      "ok": true
+    },
+    {
+      "name": "r2-m-clear",
+      "ok": true
+    },
+    {
+      "name": "r2-m-no-results",
+      "ok": true,
+      "empty": "לא נמצאו תוצאות"
+    },
+    {
+      "name": "r2-m-open-correct",
+      "ok": true,
+      "snap": "אליהו אטיאס מספר תביעה: טרם התקבל · DAL-2026-0161"
+    },
+    {
+      "name": "r2-claim-created",
+      "ok": true,
+      "claimId": "DAL-2026-0165"
+    },
+    {
+      "name": "r2-opening-once-create",
+      "ok": true,
+      "open1": 1
+    },
+    {
+      "name": "r2-edit-title",
+      "ok": true
+    },
+    {
+      "name": "r2-edit-no-opening",
+      "ok": true,
+      "open2": 1
+    },
+    {
+      "name": "r2-t4-a-one-item",
+      "ok": true,
+      "open": 1,
+      "lic": [
+        "רישיון נהיגה"
+      ]
+    },
+    {
+      "name": "r2-t4-a-active",
+      "ok": true,
+      "id": "TSK-1788854036198-LRWK"
+    },
+    {
+      "name": "r2-center-from-save",
+      "ok": true
+    },
+    {
+      "name": "r2-treat-list",
+      "ok": true
+    },
+    {
+      "name": "r2-center-from-list",
+      "ok": true
+    },
+    {
+      "name": "r2-table-label-missing",
+      "ok": true,
+      "alerts": "\tטרם התקבל\t\nTEST-4T-R2-1788853895508\n\tT4T895508\tהפניקס\tחדש\nצריך צילום ברור של שני הצדדים.\n\tTEST עובד תביעות 1788292403067\t8.9.2026\t9.9.2026\t\nחסר: רישיון נהיגה\nנדרש טיפול\n\t—"
+    },
+    {
+      "name": "r2-label-deeplink",
+      "ok": true
+    },
+    {
+      "name": "r2-doc-request-api",
+      "ok": true,
+      "detail": "ui"
+    },
+    {
+      "name": "r2-doc-request",
+      "ok": true
+    },
+    {
+      "name": "r2-doc-req-row",
+      "ok": true,
+      "reqs": [
+        "license_driver"
+      ]
+    },
+    {
+      "name": "r2-cust-link",
+      "ok": true
+    },
+    {
+      "name": "r2-cust-upload",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "name": "r2-doc-in-claim",
+      "ok": true,
+      "count": 1
+    },
+    {
+      "name": "r2-doc-type",
+      "ok": true,
+      "kinds": [
+        "driver_license"
+      ]
+    },
+    {
+      "name": "r2-treat-received",
+      "ok": true,
+      "status": "doc_received",
+      "doc": "ready"
+    },
+    {
+      "name": "r2-received-alert",
+      "ok": true,
+      "n": 2
+    },
+    {
+      "name": "r2-label-received",
+      "ok": true,
+      "afterLabel": "\tטרם התקבל\t\nTEST-4T-R2-1788853895508\n\tT4T895508\tהפניקס\tחדש\nצריך צילום ברור של שני הצדדים.\n\tTEST עובד תביעות 1788292403067\t8.9.2026\t9.9.2026\t\nהתקבל — לבדיקה: רישיון נהיגה\nנדרש טיפול\n\t—"
+    },
+    {
+      "name": "r2-open-same-treat",
+      "ok": true
+    },
+    {
+      "name": "r2-approve",
+      "ok": true
+    },
+    {
+      "name": "r2-composer",
+      "ok": true
+    },
+    {
+      "name": "r2-composer-attach",
+      "ok": true,
+      "selected": "license-r2.png\n78 B\nבטל"
+    },
+    {
+      "name": "r2-followup-existing",
+      "ok": true
+    },
+    {
+      "name": "r2-blocked-non-test",
+      "ok": true,
+      "error": "live_send_recipient_not_allowlisted"
+    },
+    {
+      "name": "r2-live-send",
+      "ok": true,
+      "mid": "1a08004f1e2dd173"
+    },
+    {
+      "name": "r2-reply-send",
+      "ok": true,
+      "thread": "1a08004f1e2dd173"
+    },
+    {
+      "name": "r2-scan-dry-only",
+      "ok": true,
+      "scanned": 21
+    },
+    {
+      "name": "r2-same-thread",
+      "ok": true,
+      "threadId": "1a08004f1e2dd173",
+      "imports": 2
+    },
+    {
+      "name": "r2-no-cross-claim-mail",
+      "ok": true
+    },
+    {
+      "name": "r2-treat-thread",
+      "ok": true,
+      "got": "1a08004f1e2dd173"
+    },
+    {
+      "name": "r2-mail-action-present",
+      "ok": true,
+      "mailBadgeText": "2 מיילים דורשים טיפול"
+    },
+    {
+      "name": "r2-incoming-or-outgoing",
+      "ok": true
+    },
+    {
+      "name": "r2-thread-ui",
+      "ok": true,
+      "toggles": 2
+    },
+    {
+      "name": "r2-newest-open-older-collapsed",
+      "ok": true,
+      "open": 1,
+      "total": 2
+    },
+    {
+      "name": "r2-reply-composer",
+      "ok": true
+    },
+    {
+      "name": "r2-t4-b-history",
+      "ok": true,
+      "n": 18
+    },
+    {
+      "name": "r2-t4-b-no-extra-open",
+      "ok": true,
+      "open": [
+        "רישיון נהיגה"
+      ]
+    },
+    {
+      "name": "r2-two-treats",
+      "ok": true,
+      "a": "TSK-1788854036198-LRWK",
+      "b": "TSK-1788854273465-DU9F"
+    },
+    {
+      "name": "r2-t4-c-status-kept",
+      "ok": true,
+      "status": "חדש"
+    },
+    {
+      "name": "r2-close-a-keeps-b",
+      "ok": true,
+      "b": "waiting_doc"
+    },
+    {
+      "name": "r2-a-not-deleted",
+      "ok": true
+    },
+    {
+      "name": "r2-history-kept",
+      "ok": true,
+      "completed": "טיפולים שהושלמו: רישיון נהיגה"
+    },
+    {
+      "name": "r2-refresh",
+      "ok": true
+    },
+    {
+      "name": "r2-reopen",
+      "ok": true
+    },
+    {
+      "name": "r2-round",
+      "ok": true,
+      "failed": []
+    },
+    {
+      "name": "r3-d-full-name",
+      "ok": true,
+      "hasA": true,
+      "hasB": true,
+      "typed": "אליהו אטיאס",
+      "rows": [
+        "DAL-2026-0162",
+        "DAL-2026-0161",
+        "DAL-2026-0136",
+        "DAL-2026-0135",
+        "DAL-2026-0134",
+        "DAL-2026-0132"
+      ]
+    },
+    {
+      "name": "r3-d-multiple-claims",
+      "ok": true,
+      "hasA": true,
+      "hasB": true
+    },
+    {
+      "name": "r3-d-no-eli-cohen-leak",
+      "ok": true,
+      "hasSim": false
+    },
+    {
+      "name": "r3-d-partial-first",
+      "ok": true
+    },
+    {
+      "name": "r3-d-partial-last",
+      "ok": true
+    },
+    {
+      "name": "r3-d-search-plus-filter",
+      "ok": true
+    },
+    {
+      "name": "r3-d-clear",
+      "ok": true
+    },
+    {
+      "name": "r3-d-no-results",
+      "ok": true,
+      "empty": "לא נמצאו תוצאות"
+    },
+    {
+      "name": "r3-d-open-correct",
+      "ok": true,
+      "snap": "אליהו אטיאס מספר תביעה: טרם התקבל · DAL-2026-0161"
+    },
+    {
+      "name": "r3-m-full-name",
+      "ok": true,
+      "hasA": true,
+      "hasB": true,
+      "typed": "אליהו אטיאס",
+      "rows": [
+        "DAL-2026-0162",
+        "DAL-2026-0161",
+        "DAL-2026-0136",
+        "DAL-2026-0135",
+        "DAL-2026-0134",
+        "DAL-2026-0132"
+      ]
+    },
+    {
+      "name": "r3-m-multiple-claims",
+      "ok": true,
+      "hasA": true,
+      "hasB": true
+    },
+    {
+      "name": "r3-m-no-eli-cohen-leak",
+      "ok": true,
+      "hasSim": false
+    },
+    {
+      "name": "r3-m-partial-first",
+      "ok": true
+    },
+    {
+      "name": "r3-m-partial-last",
+      "ok": true
+    },
+    {
+      "name": "r3-m-search-plus-filter",
+      "ok": true
+    },
+    {
+      "name": "r3-m-clear",
+      "ok": true
+    },
+    {
+      "name": "r3-m-no-results",
+      "ok": true,
+      "empty": "לא נמצאו תוצאות"
+    },
+    {
+      "name": "r3-m-open-correct",
+      "ok": true,
+      "snap": "אליהו אטיאס מספר תביעה: טרם התקבל · DAL-2026-0161"
+    },
+    {
+      "name": "r3-claim-created",
+      "ok": true,
+      "claimId": "DAL-2026-0166"
+    },
+    {
+      "name": "r3-opening-once-create",
+      "ok": true,
+      "open1": 1
+    },
+    {
+      "name": "r3-edit-title",
+      "ok": true
+    },
+    {
+      "name": "r3-edit-no-opening",
+      "ok": true,
+      "open2": 1
+    },
+    {
+      "name": "r3-t4-a-one-item",
+      "ok": true,
+      "open": 1,
+      "lic": [
+        "רישיון נהיגה"
+      ]
+    },
+    {
+      "name": "r3-t4-a-active",
+      "ok": true,
+      "id": "TSK-1788854606782-SK56"
+    },
+    {
+      "name": "r3-center-from-save",
+      "ok": true
+    },
+    {
+      "name": "r3-treat-list",
+      "ok": true
+    },
+    {
+      "name": "r3-center-from-list",
+      "ok": true
+    },
+    {
+      "name": "r3-table-label-missing",
+      "ok": true,
+      "alerts": "\tטרם התקבל\t\nTEST-4T-R3-1788854391564\n\tT4T391564\tהפניקס\tחדש\nצריך צילום ברור של שני הצדדים.\n\tTEST עובד תביעות 1788292403067\t8.9.2026\t9.9.2026\t\nחסר: רישיון נהיגה\nנדרש טיפול\n\t—"
+    },
+    {
+      "name": "r3-label-deeplink",
+      "ok": true
+    },
+    {
+      "name": "r3-doc-request-api",
+      "ok": true,
+      "detail": "ui"
+    },
+    {
+      "name": "r3-doc-request",
+      "ok": true
+    },
+    {
+      "name": "r3-doc-req-row",
+      "ok": true,
+      "reqs": [
+        "license_driver"
+      ]
+    },
+    {
+      "name": "r3-cust-link",
+      "ok": true
+    },
+    {
+      "name": "r3-cust-upload",
+      "ok": true,
+      "status": 200
+    },
+    {
+      "name": "r3-doc-in-claim",
+      "ok": true,
+      "count": 1
+    },
+    {
+      "name": "r3-doc-type",
+      "ok": true,
+      "kinds": [
+        "driver_license"
+      ]
+    },
+    {
+      "name": "r3-treat-received",
+      "ok": true,
+      "status": "doc_received",
+      "doc": "ready"
+    },
+    {
+      "name": "r3-received-alert",
+      "ok": true,
+      "n": 2
+    },
+    {
+      "name": "r3-label-received",
+      "ok": true,
+      "afterLabel": "\tטרם התקבל\t\nTEST-4T-R3-1788854391564\n\tT4T391564\tהפניקס\tחדש\nצריך צילום ברור של שני הצדדים.\n\tTEST עובד תביעות 1788292403067\t8.9.2026\t9.9.2026\t\nהתקבל — לבדיקה: רישיון נהיגה\nנדרש טיפול\n\t—"
+    },
+    {
+      "name": "r3-open-same-treat",
+      "ok": true
+    },
+    {
+      "name": "r3-approve",
+      "ok": true
+    },
+    {
+      "name": "r3-composer",
+      "ok": true
+    },
+    {
+      "name": "r3-composer-attach",
+      "ok": true,
+      "selected": "license-r3.png\n78 B\nבטל"
+    },
+    {
+      "name": "r3-followup-existing",
+      "ok": true
+    },
+    {
+      "name": "r3-blocked-non-test",
+      "ok": true,
+      "error": "live_send_recipient_not_allowlisted"
+    },
+    {
+      "name": "r3-live-send",
+      "ok": true,
+      "mid": "1a0800d72f855fc6"
+    },
+    {
+      "name": "r3-reply-send",
+      "ok": true,
+      "thread": "1a0800d72f855fc6"
+    },
+    {
+      "name": "r3-scan-dry-only",
+      "ok": true,
+      "scanned": 21
+    },
+    {
+      "name": "r3-same-thread",
+      "ok": true,
+      "threadId": "1a0800d72f855fc6",
+      "imports": 2
+    },
+    {
+      "name": "r3-no-cross-claim-mail",
+      "ok": true
+    },
+    {
+      "name": "r3-treat-thread",
+      "ok": true,
+      "got": "1a0800d72f855fc6"
+    },
+    {
+      "name": "r3-mail-action-present",
+      "ok": true,
+      "mailBadgeText": "2 מיילים דורשים טיפול"
+    },
+    {
+      "name": "r3-incoming-or-outgoing",
+      "ok": true
+    },
+    {
+      "name": "r3-thread-ui",
+      "ok": true,
+      "toggles": 2
+    },
+    {
+      "name": "r3-newest-open-older-collapsed",
+      "ok": true,
+      "open": 1,
+      "total": 2
+    },
+    {
+      "name": "r3-reply-composer",
+      "ok": true
+    },
+    {
+      "name": "r3-t4-b-history",
+      "ok": true,
+      "n": 17
+    },
+    {
+      "name": "r3-t4-b-no-extra-open",
+      "ok": true,
+      "open": [
+        "רישיון נהיגה"
+      ]
+    },
+    {
+      "name": "r3-two-treats",
+      "ok": true,
+      "a": "TSK-1788854606782-SK56",
+      "b": "TSK-1788854852520-6UPO"
+    },
+    {
+      "name": "r3-t4-c-status-kept",
+      "ok": true,
+      "status": "חדש"
+    },
+    {
+      "name": "r3-close-a-keeps-b",
+      "ok": true,
+      "b": "waiting_doc"
+    },
+    {
+      "name": "r3-a-not-deleted",
+      "ok": true
+    },
+    {
+      "name": "r3-history-kept",
+      "ok": true,
+      "completed": "טיפולים שהושלמו: רישיון נהיגה"
+    },
+    {
+      "name": "r3-refresh",
+      "ok": true
+    },
+    {
+      "name": "r3-reopen",
+      "ok": true
+    },
+    {
+      "name": "r3-round",
+      "ok": true,
+      "failed": []
+    }
+  ],
+  "verdicts": {
+    "TASK1": "PASS",
+    "TASK2": "PASS",
+    "TASK3": "PASS",
+    "TASK4": "PASS",
+    "ROUND1": "PASS",
+    "ROUND2": "PASS",
+    "ROUND3": "PASS"
+  },
+  "cleanThreeRounds": true
+}
