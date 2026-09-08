@@ -54,7 +54,7 @@ export default function ClaimsIntakePage() {
     void boot();
   }, [token]);
 
-  const steps = useMemo(() => customerSteps(draft), [draft.driverDifferent, draft.claimKind]);
+  const steps = useMemo(() => customerSteps(draft), [draft]);
   const stepKey = steps[Math.min(step, steps.length - 1)]?.key || 'client';
 
   const persist = (next: IntakeDraft) => {
