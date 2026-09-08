@@ -1614,6 +1614,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const openTreatCenter = async (claimId: string, taskId: string) => {
     setTreatCenterId(taskId);
+    setModal('moTreatCenter');
     await openCard(claimId, 'treat');
     setModal('moTreatCenter');
   };
@@ -5082,7 +5083,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <div className="modal" style={{ maxWidth: 720 }}>
           {(() => {
             const t = tasks.find((x) => x.id === treatCenterId) || dashTasks.find((x) => x.id === treatCenterId);
-            if (!t || !cur) return <div className="mb">אין טיפול נבחר</div>;
+            if (!t || !cur) return (
+              <>
+                <div className="mh"><div className="mh-t">מרכז טיפול</div><button className="mcl" data-testid="treat-center-close" onClick={() => setModal('moCard')}>✕</button></div>
+                <div className="mb" data-testid="treat-center-body">טוען טיפול…</div>
+              </>
+            );
             const related = filesForTreatment(t, docs.files);
             const threadMails = unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX).filter((m) => m.gmail_thread_id && t.gmailThreadId && m.gmail_thread_id === t.gmailThreadId);
             const newestMail = threadMails[threadMails.length - 1];
