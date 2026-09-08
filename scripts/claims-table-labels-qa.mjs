@@ -543,6 +543,14 @@ try {
     await closeOverlays(page);
     await openClaimCard(page, clientA, claimA);
     await openMailTab(page);
+    if (mid2) {
+      const jump2 = page.locator(`[data-testid="mail-alert-jump-${mid2}"]`);
+      if (await jump2.count()) await jump2.first().click().catch(() => undefined);
+      if (!(await page.locator(`[data-testid="mail-label-keep-${mid2}"]`).count())) {
+        await page.locator(`[data-testid="mail-toggle-${mid2}"]`).click().catch(() => undefined);
+      }
+      await page.waitForTimeout(400);
+    }
     if (mid2 && await page.locator(`[data-testid="mail-label-keep-${mid2}"]`).count()) {
       await page.locator(`[data-testid="mail-label-keep-${mid2}"]`).evaluate((el) => el.click());
       await page.waitForTimeout(900);
@@ -554,6 +562,14 @@ try {
     await closeOverlays(page);
     await openClaimCard(page, clientA, claimA);
     await openMailTab(page);
+    if (mid2) {
+      const jump2b = page.locator(`[data-testid="mail-alert-jump-${mid2}"]`);
+      if (await jump2b.count()) await jump2b.first().click().catch(() => undefined);
+      if (!(await page.locator(`[data-testid="mail-label-treat-${mid2}"]`).count())) {
+        await page.locator(`[data-testid="mail-toggle-${mid2}"]`).click().catch(() => undefined);
+      }
+      await page.waitForTimeout(400);
+    }
     if (mid2 && await page.locator(`[data-testid="mail-label-treat-${mid2}"]`).count()) {
       await page.locator(`[data-testid="mail-label-treat-${mid2}"]`).evaluate((el) => el.click());
       await page.waitForSelector('[data-testid="treat-center"].open [data-testid="treat-center-body"], .ov.open[data-testid="treat-center"] [data-testid="treat-center-body"]', { timeout: 20000 }).catch(() => undefined);
