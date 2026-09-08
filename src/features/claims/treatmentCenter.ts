@@ -13,6 +13,13 @@ export function isOpenTreatment(t: ClaimRecord): boolean {
   return isTreatmentItem(t) && t.done !== 'true' && t.workStatus !== 'done';
 }
 
+/** Short table chip from the last treatment update text. No generic umbrella. */
+export function tableTreatLabel(t: ClaimRecord, max = 42) {
+  const raw = String(t.lastStatusNote || t.note || t.action || 'טיפול').replace(/\s+/g, ' ').trim();
+  if (!raw) return 'טיפול';
+  return raw.length > max ? `${raw.slice(0, max - 1)}…` : raw;
+}
+
 export function treatmentLabelOf(t: ClaimRecord): string {
   const name = t.action || requestTypeLabel(t.requestType) || 'טיפול';
   if (t.done === 'true' || t.workStatus === 'done') return name;

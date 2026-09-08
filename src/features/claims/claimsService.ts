@@ -440,6 +440,7 @@ export function createClaimsApi(actor: ClaimsActor) {
       note?: string;
       continueWork?: 'continue' | 'done';
       closeTaskId?: string;
+      updateTaskId?: string;
     }) {
       const c = await getClaimById(payload.claimId);
       if (!c) return { success: false, error: 'תיק לא נמצא' };
@@ -501,17 +502,23 @@ export function createClaimsApi(actor: ClaimsActor) {
         }
       } else if (payload.continueWork === 'continue') {
         const inferred = inferTreatmentRequest(payload.action, payload.note || '');
-        const existingOpen = (await loadChild('claims_tasks', payload.claimId)).find((t) =>
-          t.done !== 'true' && (t.treatmentItem === 'true' || t.kind === 'treatment_item') && (
-            (inferred.type && t.requestType === inferred.type) || t.action === inferred.label || t.action === payload.action
-          ));
+        const listed = await loadChild('claims_tasks', payload.claimId);
+        const existingOpen = (payload.updateTaskId
+          ? listed.find((t) => t.id === payload.updateTaskId && t.done !== 'true' && (t.treatmentItem === 'true' || t.kind === 'treatment_item'))
+          : undefined)
+          || listed.find((t) =>
+            t.done !== 'true' && (t.treatmentItem === 'true' || t.kind === 'treatment_item') && (
+              (inferred.type && t.requestType === inferred.type) || t.action === inferred.label || t.action === payload.action
+            ));
         if (existingOpen) {
           treatmentTaskId = existingOpen.id;
           const next = {
             ...existingOpen,
+            action: payload.action || existingOpen.action,
             note: payload.note || existingOpen.note || '',
-            lastStatusNote: payload.note || existingOpen.lastStatusNote || '',
+            lastStatusNote: payload.note || payload.action || existingOpen.lastStatusNote || '',
             updatedAt: nowHe(),
+            updatedBy: actorName,
           };
           await tbl('claims_tasks').update({ row_data: next } as never).eq('id', existingOpen.id);
         } else {
@@ -528,6 +535,7 @@ export function createClaimsApi(actor: ClaimsActor) {
             docState: inferred.kind === 'doc' || inferred.kind === 'sign' ? 'missing' : '',
             done: 'false',
             note: payload.note || '',
+            lastStatusNote: payload.note || payload.action || inferred.label || '',
             createdAt: nowHe(),
             createdBy: actorName,
             owner: actorName,

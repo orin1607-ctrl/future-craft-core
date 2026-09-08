@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filesForTreatment, inferTreatmentRequest, isOpenTreatment, liveRecurringForTreatment, recurringForTreatment, treatmentLabelOf } from './treatmentCenter';
+import { filesForTreatment, inferTreatmentRequest, isOpenTreatment, liveRecurringForTreatment, recurringForTreatment, tableTreatLabel, treatmentLabelOf } from './treatmentCenter';
 import type { ClaimRecord } from './claimsConstants';
 
 describe('recurringForTreatment', () => {
@@ -45,6 +45,17 @@ describe('filesForTreatment', () => {
     const t = { treatmentItem: 'true', requestType: 'license_driver' } as ClaimRecord;
     const files = [{ id: 'CDM-3', original_name: 'license.png', doc_kind: 'driver_license', doc_meta: { staff_type: 'driver_license' } }];
     expect(filesForTreatment(t, files).map((f) => f.id)).toEqual(['CDM-3']);
+  });
+});
+
+describe('tableTreatLabel', () => {
+  it('prefers the last update text over a generic action', () => {
+    expect(tableTreatLabel({
+      treatmentItem: 'true',
+      action: 'רישיון נהיגה',
+      lastStatusNote: 'להתקשר ללקוח',
+      note: 'ישן',
+    } as ClaimRecord)).toBe('להתקשר ללקוח');
   });
 });
 

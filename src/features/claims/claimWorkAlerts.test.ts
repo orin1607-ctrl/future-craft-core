@@ -303,6 +303,27 @@ describe('scheduled once mail', () => {
     const treat = alerts.find((a) => a.key === 'treat_TSK-LIC');
     expect(treat?.label).toBe('חסר: רישיון נהיגה');
     expect(treat?.taskId).toBe('TSK-LIC');
+  });
+
+  it('uses the last treatment update text as the table chip', () => {
+    const alerts = buildClaimRowAlerts(claim, {
+      tasks: [{
+        id: 'TSK-NOTE',
+        claimId: 'DAL-QA-A',
+        treatmentItem: 'true',
+        kind: 'treatment_item',
+        action: 'רישיון נהיגה',
+        lastStatusNote: 'ממתין לדוח שמאי',
+        note: 'ממתין לדוח שמאי',
+        workStatus: 'waiting_doc',
+        done: 'false',
+      } as ClaimRecord],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [],
+    });
+    expect(alerts.find((a) => a.key === 'treat_TSK-NOTE')?.label).toBe('ממתין לדוח שמאי');
+    expect(alerts.filter((a) => a.key.startsWith('treat_')).length).toBe(1);
     expect(alerts.filter((a) => a.label.includes('חסר מסמך')).length).toBe(0);
   });
 });
