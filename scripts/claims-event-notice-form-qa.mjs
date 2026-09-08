@@ -173,7 +173,9 @@ async function softDelete(id) {
 }
 
 async function listDocs(session, claimId) {
-  const r = await invokeDocs(session, { action: 'list', claim_id: claimId });
+  const fromTable = (await userDb.from('claims_documents').select('id, original_name, mime_type, byte_size, doc_meta, claim_id').eq('claim_id', claimId)).data || [];
+  if (fromTable.length) return fromTable;
+  const r = await invokeDocs(session, { action: 'list_docs', claim_id: claimId });
   return r.json?.files || r.json?.documents || [];
 }
 
@@ -379,16 +381,20 @@ async function main() {
     }
 
     await closeOverlays(page);
-    const send = page.locator('[data-testid="claims-send-mail"]');
-    if (await send.count()) {
-      await send.click();
-      await page.locator('[data-testid="mo-mail"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
-      const pick = page.locator('.pick-row').filter({ hasText: /טופס הודעה|תאונת רכב|טופס-הודעה/ });
-      rec('composer-can-attach-pdf', await pick.count() > 0, { text: await pick.first().innerText().catch(() => '') });
-      await shot(page, 'desktop-composer');
-      await closeOverlays(page);
-    } else {
-      rec('composer-can-attach-pdf', false, { err: 'no composer button' });
+    try {
+      const send = page.locator('[data-testid="claims-send-mail"]');
+      if (await send.count()) {
+        await send.evaluate((el) => el.click());
+        await page.locator('[data-testid="mo-mail"]').waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
+        const pick = page.locator('.pick-row').filter({ hasText: /טופס הודעה|תאונת רכב|טופס-הודעה/ });
+        rec('composer-can-attach-pdf', await pick.count() > 0, { text: await pick.first().innerText().catch(() => '') });
+        await shot(page, 'desktop-composer');
+        await closeOverlays(page);
+      } else {
+        rec('composer-can-attach-pdf', false, { err: 'no composer button' });
+      }
+    } catch (err) {
+      rec('composer-can-attach-pdf', false, { err: String(err?.message || err) });
     }
 
     await page.reload({ waitUntil: 'domcontentloaded' });
