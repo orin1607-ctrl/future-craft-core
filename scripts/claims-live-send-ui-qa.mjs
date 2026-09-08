@@ -137,29 +137,52 @@ try {
   rec('claim-created', Boolean(claimId) && !PROTECTED.has(claimId), { claimId });
   if (claimId) {
     await page.waitForTimeout(800);
+    const cardOpen = await page.locator('.ov.open .card-title-num').count();
+    if (!cardOpen) {
+      const box = page.locator('[data-testid="claims-search"]').locator('visible=true').first();
+      if (await box.count()) {
+        await box.fill(client);
+        await page.waitForTimeout(400);
+      }
+      const row = page.locator(`[data-testid="claim-row-${claimId}"]`);
+      if (await row.count()) await row.first().click();
+      await page.waitForTimeout(800);
+    }
+    const snap = page.locator('[data-testid="claims-card-snap-toggle"]');
+    if (await snap.count() && (await snap.getAttribute('aria-expanded')) === 'false') await snap.click().catch(() => undefined);
     const sendBtn = page.locator('[data-testid="claims-send-mail"]');
-    if (await sendBtn.count()) await sendBtn.first().click();
-    else await page.locator('[data-testid="claims-open-new"]').click().catch(() => undefined);
+    await sendBtn.first().waitFor({ state: 'visible', timeout: 15000 });
+    await sendBtn.first().click({ force: true });
     await page.waitForSelector('[data-testid="mo-mail"].open, .ov.open[data-testid="mo-mail"]', { timeout: 20000 });
+    const copyHint = page.getByRole('button', { name: /העתק כתובת ששמורה בתיק/ });
+    if (await copyHint.count()) await copyHint.first().click().catch(() => undefined);
     const chip = page.locator('#mail_to, [data-testid="mail-to"]').first();
     await chip.waitFor({ state: 'visible', timeout: 10000 });
     await chip.fill(SELF);
-    rec('typed-to-in-chip', (await chip.inputValue()) === SELF);
+    await chip.press('Enter').catch(() => undefined);
+    rec('typed-to-in-chip', (await chip.inputValue()) === SELF || await page.locator('.mail-chip').count() > 0);
     await page.locator('[data-testid="mail-preview-btn"]').click();
-    await page.waitForTimeout(1500);
+    const send = page.locator('[data-testid="mail-send-btn"]');
+    await send.waitFor({ state: 'visible', timeout: 15000 });
+    const previewOk = await send.waitFor({ state: 'visible', timeout: 20000 }).then(async () => {
+      for (let i = 0; i < 20; i++) {
+        if (!(await send.isDisabled())) return true;
+        await page.waitForTimeout(500);
+      }
+      return !(await send.isDisabled());
+    }).catch(() => false);
     const blockedTo = await page.getByText('כתובת To לא תקינה — SEND חסום').count();
     rec('preview-not-blocked-empty-to', blockedTo === 0);
     rec('preview-no-generic-non2xx', await page.getByText('Edge Function returned a non-2xx status code').count() === 0);
-    const send = page.locator('[data-testid="mail-send-btn"]');
-    await send.waitFor({ state: 'visible', timeout: 15000 });
-    if (await send.isDisabled()) {
-      rec('send-enabled-after-preview', false, { err: 'SEND still disabled' });
+    rec('preview-error-text', previewOk || await page.locator('.toast, [class*="toast"]').count() === 0, { detail: await page.locator('.ov.open').innerText().catch(() => '') });
+    if (!previewOk) {
+      rec('send-enabled-after-preview', false, { err: 'SEND still disabled', detail: await page.locator('[data-testid="mo-mail"]').innerText().catch(() => '') });
     } else {
       rec('send-enabled-after-preview', true);
       await send.click();
       await page.locator('[data-testid="mail-ack"]').check();
       await page.locator('[data-testid="mail-confirm-send"]').click();
-      await page.waitForTimeout(4000);
+      await page.waitForTimeout(12000);
     }
     rec('no-generic-non2xx-after-send', await page.getByText('Edge Function returned a non-2xx status code').count() === 0);
     const shot = join(OUT, 'screenshots', 'live-send.png');

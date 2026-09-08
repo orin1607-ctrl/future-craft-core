@@ -1,0 +1,105 @@
+{
+  "at": "2026-09-08T14:24:46.886Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "oauthChanged": false,
+  "gmailScanChanged": false,
+  "wantSha": "dfc0964",
+  "deployTxt": "deployed_ref=dfc0964 feat/incident-alerts-staging",
+  "checks": [
+    {
+      "name": "public-pages-sha",
+      "ok": true,
+      "deployTxt": "deployed_ref=dfc0964 feat/incident-alerts-staging",
+      "wantSha": "dfc0964"
+    },
+    {
+      "name": "gmail-connected",
+      "ok": true,
+      "email": "yoni122222@gmail.com"
+    },
+    {
+      "name": "send-enabled",
+      "ok": true
+    },
+    {
+      "name": "oauth-probe-ok",
+      "ok": true,
+      "errorClass": null,
+      "message": null
+    },
+    {
+      "name": "gmail-3h-untouched",
+      "ok": true
+    },
+    {
+      "name": "no-oauth-change",
+      "ok": true
+    },
+    {
+      "name": "claim-created",
+      "ok": true,
+      "claimId": "DAL-2026-0213"
+    },
+    {
+      "name": "typed-to-in-chip",
+      "ok": true
+    },
+    {
+      "name": "preview-not-blocked-empty-to",
+      "ok": true
+    },
+    {
+      "name": "preview-no-generic-non2xx",
+      "ok": true
+    },
+    {
+      "name": "preview-error-text",
+      "ok": true,
+      "detail": "📧 שליחת תיק במייל\n✕\nשליחה ידנית אמיתית מתיבת דליה. שליחה חיה מאושרת רק לכתובות TEST (yoni122222@gmail.com). אין בחירת נמען אוטומטית ואין צירוף אוטומטי של מסמכים. שליחה רק אחרי Preview ואישור SEND מפורש. הערות פנימיות / משימות / היסטוריה לא יוצאות. Follow-up אוטומטי חי כבוי — נשמר תזכורת בלבד.\nFrom\nTo *\nyoni122222@gmail.com\n×\nהעתק כתובת ששמורה בתיק (yoni122222@gmail.com)\nCC\nSubject\nBody\nשליחה מתוזמנת\nשליחה מתוזמנת — מייל אחד בתאריך ובשעה שייבחרו. לא Follow-up ולא מייל חוזר.\nמייל חוזר\nאם אין תשובה — שלח שוב כל X ימים. לא Follow-up ולא מייל מתוזמן חד-פעמי.\nאם אין תשובה עד\nמעקב (Follow-up) — אם אין תשובה בתוך X ימים. לא שולח שוב כל X ימים.\nמייל חוזר מוגדר למעלה בלבד. Follow-up הוא מעקב. שליחה מתוזמנת היא מייל אחד במועד שנבחר.\nמסמכי התביעה לצירוף\nמקור אחד: מסמכי התביעה. אין מאגר נפרד למייל. רק מה שמסומן יישלח. אין צירוף אוטומטי.\n＋ צרף קובץ מהמכשיר\nגרור קבצים לכאן או לחץ להעלאה\nנשמר במסמכי התביעה כ«הועלה על ידינו». ביטול סימון לשליחה לא מוחק את הקובץ.\nנקה בחירה\nכל תמונות השמאי\nכל דוחות השמאי\nכל מסמכי המוסך\nרישיון — צד קדמי\nרישיון — צד אחורי\nטופס אירוע\nכל התמונות\nמסמכים מזוהים\nנבחרו לשליחה (0)\nלא נבחר אף קובץ\nגודל כולל: 0 B / 18.0 MB · 0 קבצים\nPreview לפני שליחה\nFrom: yoni122222@gmail.com\nTo: yoni122222@gmail.com\nCC: —\nSubject: תביעה – TEST-SEND-UI-1788877494036\nBody:\nשלום,\n\nבהמשך לתביעה \nלקוח: TEST-SEND-UI-1788877494036\nרכב: SU494036\n\nבברכה,\nדליה ניהול תביעות\nAttachments שנבחרו (0)\nאין קבצים נבחרים\nגודל כולל: 0 B\nביטול\n👁 Preview\nSEND"
+    },
+    {
+      "name": "send-enabled-after-preview",
+      "ok": true
+    },
+    {
+      "name": "no-generic-non2xx-after-send",
+      "ok": true
+    },
+    {
+      "name": "outbox-sent",
+      "ok": true,
+      "mid": "1a081688a7503d89",
+      "thread": "1a081688a7503d89",
+      "to": "yoni122222@gmail.com"
+    },
+    {
+      "name": "to-is-test-allowlist",
+      "ok": true
+    },
+    {
+      "name": "gmail-message-id",
+      "ok": true
+    },
+    {
+      "name": "gmail-thread-id",
+      "ok": true
+    },
+    {
+      "name": "history-linked",
+      "ok": true,
+      "n": 2
+    },
+    {
+      "name": "list-sends-same-claim",
+      "ok": true,
+      "n": 1
+    },
+    {
+      "name": "refresh-ok",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS",
+  "failed": []
+}
