@@ -16,6 +16,10 @@ import {
   normalizeRecurringDays,
   recurringDaysPreset,
   recurringLabel,
+  addRecurringDays,
+  defaultRecurringFirstLocal,
+  recurringFirstPlannedAt,
+  resolveRecurringFirstRun,
   mailShowsTreatment,
   normalizeFollowupDays,
 } from './claimWorkAlerts';
@@ -208,6 +212,41 @@ describe('recurring day presets', () => {
     expect(recurringLabel(2)).toBe('כל יומיים');
     expect(recurringLabel(3)).toBe('כל 3 ימים');
     expect(recurringLabel(8)).toBe('כל 8 ימים');
+  });
+
+  it('resolves first-send now vs a future datetime on the existing next_run_at field', () => {
+    const now = Date.parse('2026-09-08T08:00:00');
+    const immediate = resolveRecurringFirstRun({ mode: 'now', nowMs: now });
+    expect(immediate.ok).toBe(true);
+    if (immediate.ok) {
+      expect(immediate.sendNow).toBe(true);
+      expect(immediate.firstAt.toISOString()).toBe(new Date(now).toISOString());
+      expect(addRecurringDays(immediate.firstAt, 3).toISOString()).toBe(new Date(now + 3 * 86400000).toISOString());
+    }
+    const later = resolveRecurringFirstRun({ mode: 'later', date: '2026-09-10', time: '10:00', nowMs: now });
+    expect(later.ok).toBe(true);
+    if (later.ok) {
+      expect(later.sendNow).toBe(false);
+      expect(later.firstAt.getFullYear()).toBe(2026);
+      expect(later.firstAt.getMonth()).toBe(8);
+      expect(later.firstAt.getDate()).toBe(10);
+      expect(later.firstAt.getHours()).toBe(10);
+      expect(addRecurringDays(later.firstAt, 3).getDate()).toBe(13);
+    }
+    const past = resolveRecurringFirstRun({ mode: 'later', date: '2026-09-01', time: '10:00', nowMs: now });
+    expect(past.ok).toBe(false);
+    const editPast = resolveRecurringFirstRun({ mode: 'later', date: '2026-09-01', time: '10:00', nowMs: now, allowPast: true });
+    expect(editPast.ok).toBe(true);
+    const missing = resolveRecurringFirstRun({ mode: 'later', nowMs: now });
+    expect(missing.ok).toBe(false);
+    const def = defaultRecurringFirstLocal(now);
+    expect(def.time).toBe('10:00');
+    expect(def.date).toBe('2026-09-09');
+    expect(recurringFirstPlannedAt(
+      [{ planned_at: '2026-09-13T07:00:00.000Z' }, { planned_at: '2026-09-10T07:00:00.000Z' }],
+      'fallback',
+    )).toBe('2026-09-10T07:00:00.000Z');
+    expect(recurringFirstPlannedAt([], '2026-09-10T07:00:00.000Z')).toBe('2026-09-10T07:00:00.000Z');
   });
 });
 

@@ -300,6 +300,61 @@ export function recurringLabel(n: unknown): string {
   return `כל ${d} ימים`;
 }
 
+export type RecurringFirstSendMode = 'now' | 'later';
+
+export function parseLocalDateTime(date: string, time: string): Date | null {
+  if (!date || !time) return null;
+  const d = new Date(`${date}T${time}`);
+  if (Number.isNaN(d.getTime())) return null;
+  return d;
+}
+
+export function addRecurringDays(base: Date, days: unknown): Date {
+  return new Date(base.getTime() + normalizeRecurringDays(days) * 86_400_000);
+}
+
+export function defaultRecurringFirstLocal(nowMs = Date.now()): { date: string; time: string } {
+  const d = new Date(nowMs + 86_400_000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return {
+    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    time: '10:00',
+  };
+}
+
+export function resolveRecurringFirstRun(opts: {
+  mode: RecurringFirstSendMode;
+  date?: string;
+  time?: string;
+  datetimeLocal?: string;
+  nowMs?: number;
+  allowPast?: boolean;
+}): { ok: true; firstAt: Date; sendNow: boolean } | { ok: false; error: string } {
+  const nowMs = opts.nowMs ?? Date.now();
+  if (opts.mode === 'now') {
+    return { ok: true, firstAt: new Date(nowMs), sendNow: true };
+  }
+  const fromParts = parseLocalDateTime(opts.date || '', opts.time || '');
+  const fromLocal = opts.datetimeLocal ? new Date(opts.datetimeLocal) : null;
+  const first = fromParts || (fromLocal && !Number.isNaN(fromLocal.getTime()) ? fromLocal : null);
+  if (!first) return { ok: false, error: 'נא לבחור תאריך ושעה לשליחה הראשונה' };
+  if (!opts.allowPast && first.getTime() < nowMs - 30_000) {
+    return { ok: false, error: 'מועד השליחה הראשונה חייב להיות בעתיד' };
+  }
+  return { ok: true, firstAt: first, sendNow: false };
+}
+
+export function recurringFirstPlannedAt(
+  jobs: Array<{ planned_at?: string }>,
+  fallback?: string,
+): string {
+  const times = jobs
+    .map((j) => Date.parse(j.planned_at || ''))
+    .filter((n) => Number.isFinite(n));
+  if (!times.length) return fallback || '';
+  return new Date(Math.min(...times)).toISOString();
+}
+
 export function followupWaitDaysFromRow(row: {
   wait_days?: string;
   repeat_every_days?: string;

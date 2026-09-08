@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
-import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, buildClaimRowAlerts, canMarkMailTaskDone, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isRecurringMailFollowup, isScheduledOnceMail, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringLabel, shortStatusNote, untreatedMailIds, type ClaimAlert } from './claimWorkAlerts';
+import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, addRecurringDays, buildClaimRowAlerts, canMarkMailTaskDone, customerKindLabel, customerStatusLabel, customerStatusOf, defaultRecurringFirstLocal, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isRecurringMailFollowup, isScheduledOnceMail, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringFirstPlannedAt, recurringLabel, resolveRecurringFirstRun, shortStatusNote, untreatedMailIds, type ClaimAlert, type RecurringFirstSendMode } from './claimWorkAlerts';
 import { claimMatchesSearch, searchEmptyLabel } from './claimSearch';
 import { gmailOpenHref, groupMailThreads, unifyCorrespondence } from './claimMailThread';
 import { completedTreatments, docKeyForRequestType, filesForTreatment, inferTreatmentRequest, isOpenTreatment, isTreatmentItem, liveRecurringForTreatment, openTreatments, recurringForTreatment, treatmentLabelOf, treatmentStatusHe } from './treatmentCenter';
@@ -343,6 +343,59 @@ function RecurringDaysPicker({ days, onChange, disabled, testPrefix }: { days: n
       {preset === 'other' ? (
         <input type="number" min={1} max={30} className="fi" data-testid={`${testPrefix}-other-input`} disabled={disabled} value={days} onChange={(e) => onChange(normalizeRecurringDays(e.target.value))} style={{ width: 64 }} />
       ) : null}
+    </div>
+  );
+}
+function RecurringFirstSendPicker({
+  mode,
+  date,
+  time,
+  days,
+  mailTo,
+  disabled,
+  testPrefix,
+  onMode,
+  onDate,
+  onTime,
+}: {
+  mode: RecurringFirstSendMode;
+  date: string;
+  time: string;
+  days: number;
+  mailTo?: string;
+  disabled?: boolean;
+  testPrefix: string;
+  onMode: (mode: RecurringFirstSendMode) => void;
+  onDate: (v: string) => void;
+  onTime: (v: string) => void;
+}) {
+  const resolved = resolveRecurringFirstRun({ mode, date, time });
+  const firstAt = resolved.ok ? resolved.firstAt : null;
+  const nextAfter = firstAt ? addRecurringDays(firstAt, days) : null;
+  return (
+    <div data-testid={`${testPrefix}-first-send`} style={{ margin: '0 0 8px' }}>
+      <label className="pick-row" style={{ margin: '6px 0', alignItems: 'flex-start' }}>
+        <input type="radio" name={`${testPrefix}-first-mode`} data-testid={`${testPrefix}-first-now`} disabled={disabled} checked={mode === 'now'} onChange={() => onMode('now')} />
+        <span style={{ whiteSpace: 'normal', overflow: 'visible', fontWeight: 700 }}>שליחה ראשונה עכשיו</span>
+      </label>
+      <label className="pick-row" style={{ margin: '6px 0', alignItems: 'flex-start' }}>
+        <input type="radio" name={`${testPrefix}-first-mode`} data-testid={`${testPrefix}-first-later`} disabled={disabled} checked={mode === 'later'} onChange={() => onMode('later')} />
+        <span style={{ whiteSpace: 'normal', overflow: 'visible', fontWeight: 700 }}>מועד שליחה ראשונה</span>
+      </label>
+      {mode === 'later' ? (
+        <div data-testid={`${testPrefix}-first-fields`} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, margin: '0 0 10px' }}>
+          <div className="fg" style={{ margin: 0 }}><label className="fl">תאריך שליחה ראשונה</label><input className="fi" data-testid={`${testPrefix}-first-date`} type="date" disabled={disabled} value={date} onChange={(e) => onDate(e.target.value)} /></div>
+          <div className="fg" style={{ margin: 0 }}><label className="fl">שעת שליחה ראשונה</label><input className="fi" data-testid={`${testPrefix}-first-time`} type="time" disabled={disabled} value={time} onChange={(e) => onTime(e.target.value)} /></div>
+        </div>
+      ) : null}
+      <div data-testid={`${testPrefix}-summary`} style={{ background: 'rgba(37,99,235,.08)', border: '1px solid var(--bl2, #2563eb)', borderRadius: 7, padding: 10, marginBottom: 10, fontSize: 12 }}>
+        {mailTo ? <>מייל מתמשך אל <b>{mailTo}</b><br /></> : null}
+        <b>מועד שליחה ראשונה:</b> {mode === 'now' ? 'עכשיו — לפי מנגנון השליחה החיה הקיים' : (firstAt ? `${fmtDay(firstAt.toISOString())} ${fmtClock(firstAt.toISOString())}` : '— נבחרו תאריך ושעה')}<br />
+        <b>תדירות:</b> {recurringLabel(days)}<br />
+        <b>שליחה הבאה:</b> {mode === 'now' ? 'מיד עם ההפעלה' : (firstAt ? `${fmtDay(firstAt.toISOString())} ${fmtClock(firstAt.toISOString())}` : '—')}<br />
+        <b>המחזור הבא אחריה:</b> {nextAfter ? `${fmtDay(nextAfter.toISOString())} ${fmtClock(nextAfter.toISOString())}` : '—'}
+        {mode === 'later' ? <div style={{ marginTop: 6 }}>לא יישלח לפני המועד שנבחר. המחזור הקיים ממשיך מאותו מועד.</div> : <div style={{ marginTop: 6 }}>יישלח עכשיו לפי המנגנון הקיים. המחזור הבא יחושב ממועד השליחה הראשונה.</div>}
+      </div>
     </div>
   );
 }
@@ -790,6 +843,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [scheduleTime, setScheduleTime] = useState('');
   const [recurringWanted, setRecurringWanted] = useState(false);
   const [recurringDays, setRecurringDays] = useState(1);
+  const [recurringFirstMode, setRecurringFirstMode] = useState<RecurringFirstSendMode>('now');
+  const [recurringFirstDate, setRecurringFirstDate] = useState(() => defaultRecurringFirstLocal().date);
+  const [recurringFirstTime, setRecurringFirstTime] = useState(() => defaultRecurringFirstLocal().time);
+  const [fuFirstSendMode, setFuFirstSendMode] = useState<RecurringFirstSendMode>('now');
+  const [fuFirstDate, setFuFirstDate] = useState(() => defaultRecurringFirstLocal().date);
+  const [fuFirstTime, setFuFirstTime] = useState(() => defaultRecurringFirstLocal().time);
   const [fuWaitDays, setFuWaitDays] = useState(3);
   const [fuRepeatDays, setFuRepeatDays] = useState(1);
   const [fuKind, setFuKind] = useState<'email_once' | 'email_repeat'>('email_once');
@@ -1504,6 +1563,27 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const editRepeat = edit?.mail_kind === 'email_repeat';
     setFuKind(editRepeat || mode === 'recurring' ? 'email_repeat' : 'email_once');
     setFuRepeatDays(normalizeRecurringDays(edit?.repeat_every_days || (mode === 'recurring' ? 1 : 1)));
+    if (editRepeat || mode === 'recurring') {
+      if (edit?.next_run_at) {
+        const first = new Date(edit.next_run_at);
+        if (!Number.isNaN(first.getTime())) {
+          const pad = (n: number) => String(n).padStart(2, '0');
+          setFuFirstSendMode('later');
+          setFuFirstDate(`${first.getFullYear()}-${pad(first.getMonth() + 1)}-${pad(first.getDate())}`);
+          setFuFirstTime(`${pad(first.getHours())}:${pad(first.getMinutes())}`);
+        } else {
+          const def = defaultRecurringFirstLocal();
+          setFuFirstSendMode('now');
+          setFuFirstDate(def.date);
+          setFuFirstTime(def.time);
+        }
+      } else {
+        const def = defaultRecurringFirstLocal();
+        setFuFirstSendMode('now');
+        setFuFirstDate(def.date);
+        setFuFirstTime(def.time);
+      }
+    }
     if (edit && isScheduledOnce(edit) && edit.next_run_at) {
       const d = new Date(edit.next_run_at);
       if (!Number.isNaN(d.getTime())) {
@@ -4094,6 +4174,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             <div><b>מועד מתוכנן</b>{fmtWhen(last?.planned_at || fu.next_run_at)}</div>
                             <div data-testid={`fu-status-${fu.id}`}><b>סטטוס</b>{activeLabel}</div>
                             <div data-testid={`fu-last-sent-${fu.id}`}><b>נשלח לאחרונה</b>{lastSent ? fmtWhen(lastSent.finished_at || lastSent.planned_at) : 'טרם נשלח'}</div>
+                            {fu.mail_kind === 'email_repeat' ? <div data-testid={`fu-first-${fu.id}`}><b>מועד שליחה ראשונה</b>{fmtWhen(recurringFirstPlannedAt(fu.jobs, fu.next_run_at))}</div> : null}
                             {!isScheduledOnce(fu) ? <div data-testid={`fu-next-${fu.id}`}><b>השליחה הבאה</b>{fu.next_run_at ? fmtWhen(fu.next_run_at) : '—'}</div> : null}
                             <div><b>מי הגדיר</b>{fu.defined_by || '—'}</div>
                             {isScheduledOnce(fu)
@@ -4433,9 +4514,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <div data-testid="mail-recurring-picker-wrap" style={{ margin: '0 0 8px' }}>
                   <RecurringDaysPicker days={recurringDays} disabled={mailSending} testPrefix="mail-recurring-days" onChange={setRecurringDays} />
                 </div>
-                <div data-testid="mail-recurring-summary" style={{ background: 'rgba(37,99,235,.08)', border: '1px solid var(--bl2, #2563eb)', borderRadius: 7, padding: 10, marginBottom: 10, fontSize: 12 }}>
-                  מייל חוזר אל <b>{mailTo || '—'}</b> · {recurringLabel(recurringDays)}. ייעצר כשתתקבל תשובה. Dry Run — אין שליחה חיה.
-                </div>
+                <RecurringFirstSendPicker
+                  mode={recurringFirstMode}
+                  date={recurringFirstDate}
+                  time={recurringFirstTime}
+                  days={recurringDays}
+                  mailTo={mailTo || '—'}
+                  disabled={mailSending}
+                  testPrefix="mail-recurring"
+                  onMode={setRecurringFirstMode}
+                  onDate={setRecurringFirstDate}
+                  onTime={setRecurringFirstTime}
+                />
               </>
             ) : null}
             <div className="fg"><label className="fl">אם אין תשובה עד</label><input className="fi" data-testid="mail-track-due" type="date" disabled={mailSending || scheduleWanted || recurringWanted} value={trackDue} onChange={(e) => setTrackDue(e.target.value)} /></div>
@@ -4658,7 +4748,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 if (!mailSubj.trim()) { toast('חסר Subject', 'err'); return; }
                 if (!bodyText.trim()) { toast('חסר Body', 'err'); return; }
                 const days = normalizeRecurringDays(recurringDays);
-                const whenIso = new Date(Date.now() + Math.max(60_000, 2 * 60_000)).toISOString();
+                const first = resolveRecurringFirstRun({
+                  mode: recurringFirstMode,
+                  date: recurringFirstDate,
+                  time: recurringFirstTime,
+                });
+                if (!first.ok) { toast(first.error, 'err'); return; }
+                const whenIso = first.firstAt.toISOString();
                 const selected = docs.files.filter((f) => sendIds.includes(f.id));
                 const existing = await apiRef.current.reuseScheduledRecurring(curId, to);
                 setMailSending(true);
@@ -4680,8 +4776,19 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     file_names: selected.map((f) => f.original_name),
                   });
                   if (!r.success) { toast(String(r.error || 'שמירת המייל החוזר נכשלה'), 'err'); return; }
-                  await apiRef.current.logHistory(curId, existing ? 'עודכן מייל חוזר' : 'הוגדר מייל חוזר', `${to} · ${recurringLabel(days)}`, 'mail_recurring');
-                  toast(`מייל חוזר נשמר · ${recurringLabel(days)}. Dry Run — ייעצר כשתתקבל תשובה.`);
+                  await apiRef.current.logHistory(curId, existing ? 'עודכן מייל חוזר' : 'הוגדר מייל חוזר', `${to} · ${recurringLabel(days)} · ראשונה ${fmtWhen(whenIso)}`, 'mail_recurring');
+                  if (first.sendNow) {
+                    const sent = await apiRef.current.dispatchDueTest();
+                    if (!sent.success) {
+                      toast(`מייל מתמשך נשמר, אך השליחה הראשונה נכשלה: ${String(sent.error || 'שגיאה')}`, 'err');
+                    } else if (sent.realEmailSend) {
+                      toast(`מייל מתמשך הופעל · נשלח TEST · ${recurringLabel(days)} · שליחה הבאה ${fmtWhen(addRecurringDays(first.firstAt, days).toISOString())}`);
+                    } else {
+                      toast(`מייל מתמשך נשמר · ${recurringLabel(days)} · לא נשלח: ${String(sent.error || 'בדקו allowlist / Dry Run')}`);
+                    }
+                  } else {
+                    toast(`מייל מתמשך נשמר · שליחה ראשונה ${fmtWhen(whenIso)} · ${recurringLabel(days)}. לא נשלח עכשיו.`);
+                  }
                   setRecurringWanted(false);
                   setCardTab('mailfu');
                   setModal('moCard');
@@ -5006,12 +5113,29 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             {fuKind === 'email_repeat' ? (
               <div className="fg"><label className="fl">CC</label><input className="fi" id="fu_cc" data-testid="fu-cc" type="text" inputMode="email" autoComplete="off" placeholder="אופציונלי" /></div>
             ) : null}
-            <div className="fg"><label className="fl">מועד שליחה *</label><input className="fi" id="fu_when" data-testid="fu-when" type="datetime-local" /></div>
+            {fuKind === 'email_repeat' && fuEditPurpose !== 'scheduled_send' ? (
+              <>
+                <RecurringFirstSendPicker
+                  mode={fuFirstSendMode}
+                  date={fuFirstDate}
+                  time={fuFirstTime}
+                  days={fuRepeatDays}
+                  disabled={false}
+                  testPrefix="fu-recurring"
+                  onMode={setFuFirstSendMode}
+                  onDate={setFuFirstDate}
+                  onTime={setFuFirstTime}
+                />
+                <input type="hidden" id="fu_when" data-testid="fu-when" value={fuFirstSendMode === 'now' ? toLocalInput(new Date().toISOString()) : `${fuFirstDate}T${fuFirstTime}`} readOnly />
+              </>
+            ) : (
+              <div className="fg"><label className="fl">מועד שליחה *</label><input className="fi" id="fu_when" data-testid="fu-when" type="datetime-local" /></div>
+            )}
             {fuEditPurpose !== 'scheduled_send' && fuKind === 'email_repeat' ? (
               <div className="fg"><label className="fl">אם אין תשובה — שלח שוב</label>
                 <input type="hidden" id="fu_kind" value="email_repeat" readOnly />
                 <RecurringDaysPicker days={fuRepeatDays} testPrefix="rec-days" onChange={setFuRepeatDays} />
-                <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>עריכת מייל חוזר קיים. ייעצר כשתתקבל תשובה. Dry Run.</div>
+                <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>המחזור הקיים ממשיך ממועד השליחה הראשונה. ייעצר כשתתקבל תשובה.</div>
               </div>
             ) : fuEditPurpose !== 'scheduled_send' ? (
             <div className="fg"><label className="fl">אם אין תשובה בתוך</label>
@@ -5060,12 +5184,22 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           <div className="mf"><button className="btn btn-g" onClick={() => { const backTreat = fuFromTreat; setFuTreatTaskId(''); setFuFromTreat(false); setModal(backTreat ? 'moTreatCenter' : 'moCard'); }}>ביטול</button>
             <button className="btn btn-p" data-testid="fu-save" onClick={async () => {
               const to = val(null, 'fu_to');
-              const when = val(null, 'fu_when');
-              if (!to || !when) { toast('נמען ומועד חובה', 'err'); return; }
-              const whenIso = new Date(when).toISOString();
-              if (Number.isNaN(Date.parse(whenIso))) { toast('מועד לא תקין', 'err'); return; }
-              const stop = val(null, 'fu_stop');
               const kind = fuEditPurpose === 'scheduled_send' ? 'email_once' : fuKind;
+              let whenIso = '';
+              let sendNow = false;
+              if (kind === 'email_repeat' && fuEditPurpose !== 'scheduled_send') {
+                if (!to) { toast('נמען חובה', 'err'); return; }
+                const first = resolveRecurringFirstRun({ mode: fuFirstSendMode, date: fuFirstDate, time: fuFirstTime, allowPast: Boolean(fuEditId) });
+                if (!first.ok) { toast(first.error, 'err'); return; }
+                whenIso = first.firstAt.toISOString();
+                sendNow = first.sendNow;
+              } else {
+                const when = val(null, 'fu_when');
+                if (!to || !when) { toast('נמען ומועד חובה', 'err'); return; }
+                whenIso = new Date(when).toISOString();
+                if (Number.isNaN(Date.parse(whenIso))) { toast('מועד לא תקין', 'err'); return; }
+              }
+              const stop = val(null, 'fu_stop');
               const who = val(null, 'fu_who') || 'other';
               const selectedFiles = docs.files.filter((f) => fuFileIds.includes(f.id));
               const repeatDays = kind === 'email_repeat' ? normalizeRecurringDays(fuRepeatDays) : 0;
@@ -5098,13 +5232,24 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               if (curId && fuEditPurpose === 'scheduled_send') {
                 await apiRef.current.logHistory(curId, fuEditId ? 'עודכן מייל מתוזמן' : 'הוגדר מייל מתוזמן', `${to} · ${fmtDay(whenIso)} ${fmtClock(whenIso)}`, 'mail_scheduled');
               } else if (curId && kind === 'email_repeat') {
-                await apiRef.current.logHistory(curId, (fuEditId || existingRepeat) ? 'עודכן מייל חוזר' : 'הוגדר מייל חוזר', `${to} · ${recurringLabel(repeatDays)}${treatId ? ' · מתוך טיפול' : ''}`, 'mail_recurring');
+                await apiRef.current.logHistory(curId, (fuEditId || existingRepeat) ? 'עודכן מייל חוזר' : 'הוגדר מייל חוזר', `${to} · ${recurringLabel(repeatDays)} · ראשונה ${fmtWhen(whenIso)}${treatId ? ' · מתוך טיפול' : ''}`, 'mail_recurring');
               }
-              toast(fuEditPurpose === 'scheduled_send'
-                ? (fuEditId ? 'המייל המתוזמן עודכן (Dry Run)' : 'מייל מתוזמן נשמר (Dry Run)')
-                : kind === 'email_repeat'
-                  ? ((fuEditId || existingRepeat) ? 'המייל החוזר עודכן (Dry Run)' : 'מייל חוזר נשמר (Dry Run)')
-                  : (fuEditId ? 'המעקב עודכן' : 'מעקב מייל הוגדר (Dry Run)'));
+              if (kind === 'email_repeat' && sendNow) {
+                const sent = await apiRef.current.dispatchDueTest();
+                if (!sent.success) {
+                  toast(`מייל מתמשך נשמר, אך השליחה הראשונה נכשלה: ${String(sent.error || 'שגיאה')}`, 'err');
+                } else if (sent.realEmailSend) {
+                  toast(`מייל מתמשך הופעל · נשלח TEST · ${recurringLabel(repeatDays)}`);
+                } else {
+                  toast(`מייל מתמשך נשמר · ${recurringLabel(repeatDays)} · לא נשלח: ${String(sent.error || 'בדקו allowlist / Dry Run')}`);
+                }
+              } else {
+                toast(fuEditPurpose === 'scheduled_send'
+                  ? (fuEditId ? 'המייל המתוזמן עודכן (Dry Run)' : 'מייל מתוזמן נשמר (Dry Run)')
+                  : kind === 'email_repeat'
+                    ? `מייל מתמשך נשמר · שליחה ראשונה ${fmtWhen(whenIso)} · ${recurringLabel(repeatDays)}. לא נשלח עכשיו.`
+                    : (fuEditId ? 'המעקב עודכן' : 'מעקב מייל הוגדר (Dry Run)'));
+              }
               setFuEditPurpose('');
               setFuEditId(null);
               setFuTreatTaskId('');
@@ -5205,6 +5350,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                               <div data-testid={`treat-recurring-freq-${fu.id}`}><b>תדירות</b>{recurringLabel(fu.repeat_every_days)}</div>
                               <div data-testid={`treat-recurring-status-${fu.id}`}><b>סטטוס</b>{activeLabel}</div>
                               <div data-testid={`treat-recurring-last-${fu.id}`}><b>שליחה אחרונה</b>{lastSent ? fmtWhen(lastSent.finished_at || lastSent.planned_at) : 'טרם נשלח'}</div>
+                              <div data-testid={`treat-recurring-first-${fu.id}`}><b>מועד שליחה ראשונה</b>{fmtWhen(recurringFirstPlannedAt(fu.jobs, fu.next_run_at))}</div>
                               <div data-testid={`treat-recurring-next-${fu.id}`}><b>שליחה הבאה</b>{fu.status === 'scheduled' && fu.next_run_at ? fmtWhen(fu.next_run_at) : '—'}</div>
                             </div>
                             <div className="fu-prev">
