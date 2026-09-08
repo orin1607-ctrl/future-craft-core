@@ -222,9 +222,11 @@ async function clickAlert(page, claimId, prefix) {
   await typeSearch(page, claimId);
   const chip = page.locator(`[data-testid="claim-row-${claimId}"] [data-testid^="claim-alert-${prefix}"]`).locator('visible=true').first();
   await chip.waitFor({ state: 'visible', timeout: 15000 });
-  await chip.click();
+  await chip.scrollIntoViewIfNeeded().catch(() => undefined);
+  await chip.click({ force: true });
   if (String(prefix).startsWith('treat_')) {
-    await page.waitForSelector('[data-testid="treat-center"].open [data-testid="treat-center-body"]', { timeout: 20000 });
+    const id = String(prefix).replace(/^treat_/, '');
+    await page.waitForSelector(`[data-testid="treat-center"].open [data-treat-id="${id}"]`, { timeout: 45000 });
   }
 }
 
