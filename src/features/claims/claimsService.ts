@@ -1069,8 +1069,14 @@ export function createClaimsApi(actor: ClaimsActor) {
       const { data, error } = await supabase.functions.invoke('claims-gmail', { body: { action, ...body } });
       const payload = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
       if (error) {
-        const serverErr = typeof payload.error === 'string' && payload.error ? payload.error : error.message;
-        return { ...payload, success: false, error: serverErr, realEmailSend: payload.realEmailSend === true };
+        let fromCtx: Record<string, unknown> = {};
+        const ctx = (error as { context?: Response }).context;
+        if (ctx && typeof ctx.json === 'function') {
+          try { fromCtx = await ctx.json() as Record<string, unknown>; } catch { /* body already read */ }
+        }
+        const merged = { ...fromCtx, ...payload };
+        const serverErr = typeof merged.error === 'string' && merged.error ? merged.error : error.message;
+        return { ...merged, success: false, error: serverErr, realEmailSend: merged.realEmailSend === true };
       }
       return { ...payload, success: payload.success !== false, realEmailSend: payload.realEmailSend === true };
     },

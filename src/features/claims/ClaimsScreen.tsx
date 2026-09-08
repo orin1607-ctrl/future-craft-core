@@ -201,13 +201,25 @@ function normalizeMailAddr(raw: string) {
     .replace(/[\uFF0E\uFF61]/g, '.')
     .trim();
 }
+function oneMailAddr(raw: string) {
+  const cleaned = normalizeMailAddr(raw);
+  const angle = cleaned.match(/<([^>]+)>/);
+  return (angle ? angle[1] : cleaned).trim();
+}
 function mailAddrsOk(raw: string, required: boolean) {
-  const parts = normalizeMailAddr(raw).split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+  const parts = normalizeMailAddr(raw).split(/[,;]/).map(oneMailAddr).filter(Boolean);
   if (!parts.length) return !required;
   return parts.every((p) => EMAIL_RE.test(p));
 }
 function mailAddrParts(raw: string) {
-  return normalizeMailAddr(raw).split(/[,;]/).map((s) => s.trim()).filter(Boolean);
+  return normalizeMailAddr(raw).split(/[,;]/).map(oneMailAddr).filter(Boolean);
+}
+function flushMailChip(inputId: string, stored: string) {
+  const typed = oneMailAddr((typeof document !== 'undefined' ? (document.getElementById(inputId) as HTMLInputElement | null)?.value : '') || '');
+  if (!typed) return mailAddrParts(stored).join(', ');
+  const parts = mailAddrParts(stored);
+  if (parts.some((p) => p.toLowerCase() === typed.toLowerCase())) return parts.join(', ');
+  return [...parts, typed].join(', ');
 }
 function MailAddrChips({ id, testId, value, disabled, placeholder, onChange }: {
   id: string; testId: string; value: string; disabled?: boolean; placeholder?: string; onChange: (v: string) => void;
@@ -4662,9 +4674,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               if (curId) await refreshPackage(curId, sendIds);
               setMailConfirmOn(false);
               setMailAck(false);
-              const to = normalizeMailAddr(mailTo);
-              const cc = normalizeMailAddr(mailCc);
+              const to = flushMailChip('mail_to', mailTo);
+              const cc = flushMailChip('mail_cc', mailCc);
               if (to !== mailTo) setMailTo(to);
+              if (cc !== mailCc) setMailCc(cc);
               const bodyText = mailKind === 'draft' ? mailBodyDraft : extSummary;
               if (!mailAddrsOk(to, true)) { setMailPreviewOn(false); toast('כתובת To לא תקינה — SEND חסום', 'err'); return; }
               if (cc && !mailAddrsOk(cc, false)) { setMailPreviewOn(false); toast('כתובת CC לא תקינה — SEND חסום', 'err'); return; }
@@ -4681,6 +4694,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               if (r.error === 'internal_content_blocked') { setMailPreviewOn(false); toast('התוכן כולל חומר פנימי — לא לשלוח', 'err'); return; }
               if (r.error === 'package_too_large') { setMailPreviewOn(false); toast('הקבצים גדולים מדי לשליחה במייל — SEND חסום. לא יושמטו קבצים.', 'err'); return; }
               if (r.error === 'cc_invalid' || r.error === 'to_required') { setMailPreviewOn(false); toast('כתובת To/CC לא תקינה — SEND חסום', 'err'); return; }
+              if (r.error === 'live_send_recipient_not_allowlisted') { setMailPreviewOn(false); toast('שליחה חיה מאושרת רק ל-yoni122222@gmail.com', 'err'); return; }
+              if (r.error === 'Edge Function returned a non-2xx status code') { setMailPreviewOn(false); toast('שגיאת Edge בשליחה — בדקו To/Allowlist', 'err'); return; }
               if (r.success === false && r.error) { setMailPreviewOn(false); toast(String(r.error), 'err'); return; }
               if (suggestDraftBody && bodyText !== suggestDraftBody && curId) {
                 void apiRef.current.logHistory(curId, 'טיוטה נערכה', mailSubj, 'mail_draft');
@@ -4700,8 +4715,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 if (mailSending) return;
                 if (!mailAck) { toast('יש לאשר במפורש לפני שליחה', 'err'); return; }
                 if (pkgInfo?.overLimit) { toast('הקבצים גדולים מדי לשליחה במייל', 'err'); return; }
-                const to = normalizeMailAddr(mailTo);
-                const cc = normalizeMailAddr(mailCc);
+                const to = flushMailChip('mail_to', mailTo);
+                const cc = flushMailChip('mail_cc', mailCc);
+                if (to !== mailTo) setMailTo(to);
+                if (cc !== mailCc) setMailCc(cc);
                 const bodyText = mailKind === 'draft' ? mailBodyDraft : extSummary;
                 if (!mailAddrsOk(to, true)) { toast('כתובת To לא תקינה', 'err'); return; }
                 if (!mailAddrsOk(cc, false)) { toast('כתובת CC לא תקינה', 'err'); return; }
@@ -4729,6 +4746,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     else if (r.error === 'package_too_large') toast('הקבצים גדולים מדי לשליחה במייל — לא נשלח ולא הושמטו קבצים', 'err');
                     else if (r.error === 'confirm_required') toast('נדרש אישור מפורש', 'err');
                     else if (r.error === 'internal_content_blocked') toast('התוכן כולל חומר פנימי — לא נשלח', 'err');
+                    else if (r.error === 'to_required' || r.error === 'cc_invalid') toast('כתובת To/CC לא תקינה — SEND חסום', 'err');
+                    else if (r.error === 'live_send_recipient_not_allowlisted') toast('שליחה חיה מאושרת רק ל-yoni122222@gmail.com', 'err');
+                    else if (r.error === 'thread_not_on_claim') toast('ה-Thread לא שייך לתיק זה. שלחו כמייל חדש בלי Thread.', 'err');
+                    else if (r.error === 'send_disabled') toast('שליחה חיה כבויה', 'err');
                     else toast(String(r.error || 'שליחה נכשלה — Gmail לא החזיר Message ID'), 'err');
                     return;
                   }
@@ -5298,7 +5319,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               openMailFromTreat({
                 file_ids: treatDocPick,
                 subject: cur ? `תביעה ${displayClaimNum(cur)}${t?.action ? ` · ${t.action}` : ''}` : '',
-                thread_id: t?.gmailThreadId || '',
               });
             }}>צרף למייל ({treatDocPick.length})</button>
           </div>
