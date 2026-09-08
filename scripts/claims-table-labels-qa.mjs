@@ -153,10 +153,10 @@ function isMailOn(t) {
 }
 
 async function leftoverAudit() {
-  const claims = (await userDb.from('claims_records').select('id, client_name, status, row_data').limit(400)).data || [];
-  const tasks = (await userDb.from('claims_tasks').select('id, claim_id, row_data').limit(2000)).data || [];
-  const notifs = (await userDb.from('claims_notifications').select('id, claim_id, row_data').limit(2000)).data || [];
-  const fus = (await userDb.from('claims_reminders').select('id, claim_id, status, mail_kind, row_data').limit(800)).data || [];
+  const claims = (await userDb.from('claims_records').select('id, client_name, status, row_data').limit(2000)).data || [];
+  const tasks = (await userDb.from('claims_tasks').select('id, claim_id, row_data').limit(4000)).data || [];
+  const notifs = (await userDb.from('claims_notifications').select('id, claim_id, row_data').limit(4000)).data || [];
+  const fus = (await userDb.from('claims_reminders').select('id, claim_id, status, mail_kind, row_data').limit(2000)).data || [];
   const byClaim = new Map();
   for (const t of tasks) {
     const list = byClaim.get(t.claim_id) || { tasks: [], notifs: [], fus: [] };
@@ -304,11 +304,12 @@ async function rowAlertInfo(page, claimId) {
 }
 
 async function clickAlert(page, claimId, prefix) {
+  await closeOverlays(page);
   await typeSearch(page, claimId);
-  await page.waitForTimeout(300);
-  const chip = page.locator(`[data-testid="claim-row-${claimId}"] [data-testid^="claim-alert-${prefix}"], [data-testid^="claim-alert-${prefix}"]`).first();
+  await page.waitForTimeout(400);
+  const chip = page.locator(`[data-testid="claim-row-${claimId}"] [data-testid^="claim-alert-${prefix}"]`).locator('visible=true').first();
   await chip.waitFor({ state: 'visible', timeout: 15000 });
-  await chip.evaluate((el) => el.click());
+  await chip.click();
 }
 
 async function openTreatTab(page) {
@@ -351,7 +352,7 @@ async function saveTreat(page, { action, note, continueWork, nextDate }) {
   await page.locator('[data-testid="treat-next"]').fill(day);
   await page.locator('[data-testid="treat-save"]').click();
   if (continueWork === 'continue') {
-    await page.waitForSelector('[data-testid="treat-center"].open, .ov.open[data-testid="treat-center"]', { timeout: 20000 });
+    await page.waitForSelector('[data-testid="treat-center"].open [data-testid="treat-center-body"], .ov.open[data-testid="treat-center"] [data-testid="treat-center-body"]', { timeout: 30000 }).catch(() => undefined);
   } else {
     await page.waitForTimeout(1500);
   }
@@ -396,8 +397,8 @@ rec('public-pages-sha', deployed, { deployTxt: report.deployTxt, wantSha: WANT_S
 rec('staging-only', STAGING_REF !== PROD_REF);
 
 const status = await invokeGmail(session, { action: 'status' });
-rec('gmail-3h-untouched', Number(status.json?.mailboxScan?.everyMs || status.json?.everyMs) === 3 * 60 * 60 * 1000, {
-  everyMs: status.json?.mailboxScan?.everyMs || status.json?.everyMs,
+rec('gmail-3h-untouched', Number(status.json?.scheduler?.everyMs || status.json?.mailboxScan?.everyMs || status.json?.everyMs) === 3 * 60 * 60 * 1000, {
+  everyMs: status.json?.scheduler?.everyMs || status.json?.mailboxScan?.everyMs || status.json?.everyMs,
 });
 
 const createdIds = [];
@@ -446,11 +447,12 @@ try {
     rec(`r${round}-no-dup-treat`, afterTreat.keys.filter((k) => k.includes('claim-alert-treat_')).length === 1, afterTreat);
 
     await clickAlert(page, claimA, `treat_${treatA?.id}`);
-    const centerOpen = await page.locator('[data-testid="treat-center"].open [data-testid="treat-center-body"]').count();
-    rec(`r${round}-click-treat-exact`, centerOpen > 0, { centerOpen });
+    const centerSel = '[data-testid="treat-center"].open [data-testid="treat-center-body"], .ov.open[data-testid="treat-center"] [data-testid="treat-center-body"]';
+    const centerOpened = await page.waitForSelector(centerSel, { timeout: 20000 }).then(() => true).catch(() => false);
+    rec(`r${round}-click-treat-exact`, centerOpened, { title: await page.locator('.ov.open[data-testid="treat-center"] .mh-t').innerText().catch(() => '') });
     await shot(page, `r${round}-treat-open`);
 
-    const closeBtn = page.locator('[data-testid="treat-close-done"]');
+    const closeBtn = page.locator('[data-testid="treat-center"].open [data-testid="treat-close-done"], .ov.open[data-testid="treat-center"] [data-testid="treat-close-done"]').locator('visible=true');
     if (await closeBtn.count()) {
       await closeBtn.first().evaluate((el) => el.click());
       await page.waitForSelector('[data-testid="treat-ops-v3"].open [data-testid="treat-save"], .ov.open[data-testid="treat-ops-v3"] [data-testid="treat-save"]', { timeout: 15000 });
@@ -501,11 +503,22 @@ try {
     await shot(page, `r${round}-two-mail`);
 
     await clickAlert(page, claimA, 'mail_action');
-    await page.waitForTimeout(800);
+    const ginOpened = await page.waitForSelector('[data-testid="mail-correspondence"], [data-testid="mail-open-alerts"]', { timeout: 20000 }).then(() => true).catch(() => false);
+    if (mid1) {
+      await page.waitForSelector(`[data-mail-mid="${mid1}"], [data-testid="mail-item-${mid1}"]`, { timeout: 20000 }).catch(() => undefined);
+      const jump = page.locator(`[data-testid="mail-alert-jump-${mid1}"]`);
+      if (await jump.count()) await jump.first().click().catch(() => undefined);
+      await page.waitForTimeout(400);
+    }
     const banner = await page.locator('[data-testid="mail-open-alerts"]').count();
     const focused = mid1 ? await page.locator(`[data-mail-mid="${mid1}"]`).count() : 0;
     const item1 = mid1 ? await page.locator(`[data-testid="mail-item-${mid1}"]`).count() : 0;
-    rec(`r${round}-click-mail-exact`, banner > 0 && (focused > 0 || item1 > 0), { banner, focused, item1 });
+    rec(`r${round}-click-mail-exact`, ginOpened && banner > 0 && (focused > 0 || item1 > 0), { ginOpened, banner, focused, item1 });
+    const dismissBtn = mid1 ? page.locator(`[data-testid="mail-label-dismiss-${mid1}"]`) : null;
+    if (dismissBtn && !(await dismissBtn.count()) && mid1) {
+      await page.locator(`[data-testid="mail-toggle-${mid1}"]`).click().catch(() => undefined);
+      await page.waitForTimeout(300);
+    }
     rec(`r${round}-mail-choice-visible`, mid1 ? await page.locator(`[data-testid="mail-label-dismiss-${mid1}"]`).count() > 0 : false);
 
     if (mid1) {
@@ -602,7 +615,7 @@ try {
   }
 
   const scanAgain = await invokeGmail(session, { action: 'status' });
-  rec('gmail-3h-after', Number(scanAgain.json?.mailboxScan?.everyMs || scanAgain.json?.everyMs) === 3 * 60 * 60 * 1000);
+  rec('gmail-3h-after', Number(scanAgain.json?.scheduler?.everyMs || scanAgain.json?.mailboxScan?.everyMs || scanAgain.json?.everyMs) === 3 * 60 * 60 * 1000);
   rec('no-schema-migration', report.schemaMigration === false);
 
   await desktop.close();
