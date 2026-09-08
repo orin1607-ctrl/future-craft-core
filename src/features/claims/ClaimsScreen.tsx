@@ -1993,7 +1993,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const manualNote = val(null, 'tr_manual');
     const note = val(null, 'tr_note');
     const actionText = val(null, 'tr_action') || treatAction || cur?.treatmentPendingAction || 'עדכון טיפול';
-    const continueWork = (val(null, 'tr_continue') || 'continue') === 'done' ? 'done' : 'continue';
+    const continueWork = treatContinueChoice === 'done' || (val(null, 'tr_continue') || 'continue') === 'done' ? 'done' : 'continue';
     const chosenStatus = statusChoice === STATUS_UNCHANGED ? (cur?.status || '') : statusChoice === STATUS_MANUAL ? (cur?.status || '') : statusChoice;
     const closed = isClosedStatus(chosenStatus, cur?.archived);
     if (statusChoice === STATUS_MANUAL && !manualNote) { toast('נא לכתוב עדכון ידני', 'err'); return; }
