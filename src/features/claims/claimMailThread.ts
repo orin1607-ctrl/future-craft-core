@@ -77,6 +77,22 @@ export function unifyCorrespondence(
   return [...byMid.values()].sort((a, b) => whenMs(a.sent_at) - whenMs(b.sent_at));
 }
 
+/** Gmail API message/thread ids are hex. Reject internal IMP-/GOS-/claim ids. */
+export function isGmailApiId(raw: unknown): boolean {
+  return /^[0-9a-f]{10,24}$/i.test(String(raw || '').trim());
+}
+
+/** Open the stored Gmail conversation. Prefer thread id. Never invent an id. */
+export function gmailOpenHref(input: { threadId?: unknown; messageId?: unknown; authUser?: string }): string | null {
+  const thread = String(input.threadId || '').trim();
+  const message = String(input.messageId || '').trim();
+  const id = isGmailApiId(thread) ? thread : (isGmailApiId(message) ? message : '');
+  if (!id) return null;
+  const auth = String(input.authUser || '').trim();
+  const q = auth.includes('@') ? `?authuser=${encodeURIComponent(auth)}` : '';
+  return `https://mail.google.com/mail/${q}#all/${id}`;
+}
+
 export function groupMailThreads(mails: MailCard[]) {
   const groups: Array<{ thread: string; mails: MailCard[] }> = [];
   const idx = new Map<string, number>();

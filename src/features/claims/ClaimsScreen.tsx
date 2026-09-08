@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, buildClaimRowAlerts, canMarkMailTaskDone, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isRecurringMailFollowup, isScheduledOnceMail, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringLabel, shortStatusNote, untreatedMailIds, type ClaimAlert } from './claimWorkAlerts';
 import { claimMatchesSearch, searchEmptyLabel } from './claimSearch';
-import { groupMailThreads, unifyCorrespondence } from './claimMailThread';
+import { gmailOpenHref, groupMailThreads, unifyCorrespondence } from './claimMailThread';
 import { completedTreatments, docKeyForRequestType, filesForTreatment, inferTreatmentRequest, isOpenTreatment, isTreatmentItem, liveRecurringForTreatment, openTreatments, recurringForTreatment, treatmentLabelOf, treatmentStatusHe } from './treatmentCenter';
 import { buildSignedOpeningFormPdf } from './signedClaimPdf';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
@@ -294,6 +294,20 @@ function docStateHe(k: string) {
   return k || '';
 }
 const OWN_MAILBOX = 'yoni122222@gmail.com';
+function OpenInGmailLink({ threadId, messageId, testId }: { threadId?: unknown; messageId?: unknown; testId: string }) {
+  const href = gmailOpenHref({ threadId, messageId, authUser: OWN_MAILBOX });
+  if (!href) return null;
+  return (
+    <a
+      className="btn btn-g btn-sm"
+      data-testid={testId}
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{ textDecoration: 'none' }}
+    >פתח ב-Gmail</a>
+  );
+}
 function quotedOriginal(im: object) {
   const r = im as Record<string, unknown>;
   return `\n\n---------- הודעה מקורית ----------\nFrom: ${r.from_addr || ''}\nTo: ${r.to_addr || ''}\nDate: ${r.sent_at || ''}\nSubject: ${r.subject || ''}\n\n${r.body_text || ''}`;
@@ -3653,6 +3667,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                     <button type="button" className="btn btn-g btn-sm" data-testid={`mail-label-dismiss-${mid}`} onClick={() => void dismissMailTableAlert(cur.id, mid)}>קראתי — הסר מהתוויות</button>
                                     <button type="button" className="btn btn-g btn-sm" data-testid={`mail-label-keep-${mid}`} onClick={() => void keepMailTableAlert(cur.id, mid)}>השאר להמשך טיפול</button>
                                     <button type="button" className="btn btn-p btn-sm" data-testid={`mail-label-treat-${mid}`} onClick={() => void continueMailAsTreatment(cur.id, mid, String(task?.action || ''), String(task?.note || ''), String(task?.gmailThreadId || ''))}>דורש המשך טיפול</button>
+                                    <OpenInGmailLink threadId={task?.gmailThreadId} messageId={mid} testId={`mail-open-gmail-${mid}`} />
                                   </div>
                                 </div>
                               </div>
@@ -3788,6 +3803,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                   });
                                 }}>תגובה מוצעת</button>
                                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                                  <OpenInGmailLink threadId={im.gmail_thread_id} messageId={mid} testId={`mail-open-gmail-${mid || im.id}`} />
                                   <button type="button" className="btn btn-p btn-sm" data-testid={`mail-reply-${im.id}`} onClick={() => openMailCompose(im, 'reply')}>השב</button>
                                   {(() => {
                                     const from = emailsFromHeader(String(im.from_addr || ''))[0] || '';
@@ -3863,6 +3879,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             <div><b>Thread</b>{String(s.gmail_thread_id || '—')}</div>
                             <div><b>סטטוס</b>{String(s.status || '—')}</div>
                           </div>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '6px 0' }}>
+                            <OpenInGmailLink threadId={s.gmail_thread_id} messageId={s.gmail_message_id} testId={`send-open-gmail-${s.id}`} />
+                          </div>
                           <div style={{ fontSize: 12, margin: '6px 0' }}><b>מסמכים שנשלחו:</b> {names.length ? names.join(', ') : 'ללא מצורפים'}</div>
                           {s.track_due ? <div style={{ fontSize: 11, color: 'var(--yn2)' }}>תזכורת אם אין תשובה עד {fmtWhen(String(s.track_due))}</div> : null}
                           <select className="fse" value={String(s.track_status || 'sent')} onChange={async (e) => {
@@ -3894,6 +3913,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       <div style={{ fontWeight: 700 }}>{String(m.subject || '(ללא נושא)')}</div>
                       <div style={{ fontSize: 11, color: 'var(--t3)' }}>{String(m.from || '')} · {String(m.date || '')}</div>
                       <div style={{ fontSize: 12, margin: '6px 0' }}>{String(m.snippet || '')}</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                        <OpenInGmailLink threadId={m.threadId} messageId={m.id} testId={`pick-open-gmail-${m.id}`} />
+                      </div>
                       <button className="btn btn-p btn-sm" onClick={async () => {
                         setGmailBusy('מייבא את המייל וכל המצורפים…');
                         const r = await apiRef.current.importGmailMessage(cur.id, String(m.id));
@@ -5151,8 +5173,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <div style={{ fontWeight: 700 }}>{newestMail.subject || '—'}</div>
                         <div style={{ fontSize: 11, color: 'var(--t3)' }}>{fmtWhen(newestMail.sent_at)}</div>
                         <pre className="mail-body">{newestMail.body_text || '—'}</pre>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                          <OpenInGmailLink threadId={newestMail.gmail_thread_id || t.gmailThreadId} messageId={newestMail.gmail_message_id || t.gmailMessageId} testId="treat-open-gmail" />
+                        </div>
                       </div>
-                    : <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>{t.gmailThreadId ? `Thread ${t.gmailThreadId}` : 'אין Thread מקושר עדיין'}</div>}
+                    : <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>
+                        {t.gmailThreadId ? `Thread ${t.gmailThreadId}` : 'אין Thread מקושר עדיין'}
+                        <div style={{ marginTop: 8 }}>
+                          <OpenInGmailLink threadId={t.gmailThreadId} messageId={t.gmailMessageId} testId="treat-open-gmail" />
+                        </div>
+                      </div>}
                   <div className="sdiv"><div className="sdiv-t">מייל מתמשך / אוטומטי</div><div className="sdiv-l" /></div>
                   <div data-testid="treat-recurring-list" style={{ marginBottom: 10 }}>
                     <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 8 }}>המנגנון הקיים של מייל חוזר. משויך לטיפול זה בלבד. לא Follow-up ולא מייל מתוזמן חד-פעמי. לא יוצר טיפול נוסף.</div>
@@ -5445,6 +5475,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   {atts.map((a, i) => (
                     <div key={`${a.filename}-${i}`} style={{ fontSize: 11 }}>{a.filename} · {a.status} · {a.reason}</div>
                   ))}
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                    <OpenInGmailLink threadId={row.thread_id} messageId={row.message_id} testId={`sent-preview-open-gmail-${row.message_id}`} />
+                  </div>
                 </div>
               );
             })}

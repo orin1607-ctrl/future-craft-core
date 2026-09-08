@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { groupMailThreads, unifyCorrespondence } from './claimMailThread';
+import { gmailOpenHref, groupMailThreads, isGmailApiId, unifyCorrespondence } from './claimMailThread';
 
 const own = 'yoni122222@gmail.com';
 
@@ -30,5 +30,28 @@ describe('unifyCorrespondence', () => {
     const groups = groupMailThreads(unified);
     expect(groups).toHaveLength(1);
     expect(groups[0].mails.at(-1)?.gmail_message_id).toBe('m2');
+  });
+});
+
+describe('gmailOpenHref', () => {
+  it('prefers a hex thread id and pins the connected mailbox', () => {
+    expect(isGmailApiId('1a0818d6107b7ddf')).toBe(true);
+    expect(gmailOpenHref({
+      threadId: '1a0818d6107b7ddf',
+      messageId: '1a08186232cd861d',
+      authUser: 'yoni122222@gmail.com',
+    })).toBe('https://mail.google.com/mail/?authuser=yoni122222%40gmail.com#all/1a0818d6107b7ddf');
+  });
+
+  it('falls back to a hex message id when thread is missing', () => {
+    expect(gmailOpenHref({ messageId: '1a08186232cd861d' })).toBe('https://mail.google.com/mail/#all/1a08186232cd861d');
+  });
+
+  it('does not guess from internal ids or subject-like values', () => {
+    expect(isGmailApiId('IMP-1')).toBe(false);
+    expect(isGmailApiId('GOS-1788879446190-8ZZN12')).toBe(false);
+    expect(isGmailApiId('DAL-2026-0214')).toBe(false);
+    expect(gmailOpenHref({ threadId: 'IMP-1', messageId: 'GOS-1' })).toBeNull();
+    expect(gmailOpenHref({ threadId: 'Re: רישיון', messageId: 'client@x.com' })).toBeNull();
   });
 });
