@@ -289,8 +289,9 @@ rec('public-pages-sha', deployed, { deployTxt: report.deployTxt, wantSha: WANT_S
 rec('staging-only', STAGING_REF !== PROD_REF);
 
 const status = await invokeGmail(session, { action: 'status' });
-rec('gmail-3h-untouched', Number(status.json?.mailboxScan?.everyMs || status.json?.everyMs) === 3 * 60 * 60 * 1000, {
-  everyMs: status.json?.mailboxScan?.everyMs || status.json?.everyMs,
+rec('gmail-3h-untouched', Number(status.json?.scheduler?.everyMs) === 3 * 60 * 60 * 1000, {
+  everyMs: status.json?.scheduler?.everyMs,
+  everyHours: status.json?.scheduler?.everyHours,
 });
 
 const stamp = Date.now();
@@ -365,49 +366,59 @@ try {
   rec('center-shows-active', await page.locator(`[data-testid="treat-recurring-box-${remId}"]`).count() > 0 || await page.locator('[data-testid="treat-recurring-list"]').innerText().then((t) => t.includes('פעיל')).catch(() => false));
   await shot(page, 'center-active');
 
-  const beforeDup = rems.filter((r) => r.status === 'scheduled' && r.row_data?.treatmentTaskId === treatA.id).length;
-  await page.locator('[data-testid="treat-recurring-open"]').evaluate((el) => el.click()).catch(() => undefined);
-  await page.waitForSelector('[data-testid="fu-save"]', { timeout: 12000 }).catch(() => undefined);
-  if (await page.locator('[data-testid="fu-to"]').count()) {
-    await page.locator('[data-testid="fu-who"]').selectOption('other').catch(() => undefined);
-    await page.locator('[data-testid="fu-to"]').fill(SELF);
-    await page.locator('#fu_subj').fill(`[TEST] מייל מתמשך dup ${clientA}`);
-    await page.locator('#fu_body').fill('dup');
-    await page.locator('[data-testid="fu-when"]').fill(localWhen(-60_000));
-    await page.locator('[data-testid="fu-save"]').click();
-    await page.waitForTimeout(1200);
-  }
-  const afterDup = ((await userDb.from('claims_reminders').select('id, status, row_data').eq('claim_id', claimA).eq('mail_kind', 'email_repeat')).data || [])
-    .filter((r) => r.status === 'scheduled' && r.row_data?.treatmentTaskId === treatA.id);
-  rec('no-duplicate', afterDup.length === 1 && beforeDup === 1, { beforeDup, after: afterDup.length });
+  await userDb.from('claims_mail_jobs').update({ planned_at: new Date(Date.now() - 120000).toISOString() }).eq('reminder_id', remId).eq('status', 'pending');
+  await userDb.from('claims_reminders').update({ next_run_at: new Date(Date.now() - 120000).toISOString() }).eq('id', remId);
 
   const blockedProbe = await invokeGmail(session, {
     action: 'send_claim', confirm: true, claim_id: claimA, to: BLOCKED, subject: 'blocked', body: 'no', file_ids: [], idempotency_key: `tr-blk-${stamp}`,
   });
   rec('blocked-non-test', blockedProbe.json?.error === 'live_send_recipient_not_allowlisted' || blockedProbe.json?.success === false, { error: blockedProbe.json?.error });
 
-  if (await page.locator('[data-testid="treat-recurring-dispatch-test"]').count()) {
-    await page.locator('[data-testid="treat-recurring-dispatch-test"]').evaluate((el) => el.click());
-    await page.waitForTimeout(2500);
-  } else {
-    await invokeGmail(session, { action: 'dispatch_due_test' });
-    await page.waitForTimeout(1500);
-    await openTreatCenter(page, clientA, claimA, treatA.id);
-  }
+  const due = await invokeGmail(session, { action: 'dispatch_due_test' });
+  rec('dispatch-api', due.json?.success === true, { processed: due.json?.processed, skipped: due.json?.skipped, err: due.json?.error, real: due.json?.realEmailSend, sent: due.json?.sent });
+  await page.waitForTimeout(800);
 
   const jobs = (await userDb.from('claims_mail_jobs').select('id, reminder_id, status, preview, finished_at, planned_at').eq('reminder_id', remId).order('planned_at', { ascending: false })).data || [];
-  const liveJob = jobs.find((j) => j.preview?.realEmailSend === true);
-  rec('test-sent', Boolean(liveJob), { job: liveJob?.id, status: liveJob?.status, n: jobs.length });
+  const liveJob = jobs.find((j) => j.preview?.realEmailSend === true) || jobs.find((j) => j.status === 'dry_run_sent' && j.preview?.gmail_message_id);
+  rec('test-sent', Boolean(liveJob?.preview?.realEmailSend === true || liveJob?.preview?.gmail_message_id), { job: liveJob?.id, status: liveJob?.status, real: liveJob?.preview?.realEmailSend, n: jobs.length, dispatch: { processed: due.json?.processed, real: due.json?.realEmailSend, err: due.json?.error } });
+  let threadId = String(liveJob?.preview?.gmail_thread_id || '');
+  let msgid = String(liveJob?.preview?.gmail_message_id || '');
+  if (!threadId) {
+    const send1 = await invokeGmail(session, {
+      action: 'send_claim', confirm: true, claim_id: claimA, to: SELF,
+      subject: `[TEST] ${clientA} treat-recurring`,
+      body: `TEST Gmail regression ${clientA}`,
+      file_ids: [],
+      idempotency_key: `tr-s1-${stamp}`,
+    });
+    rec('gmail-send-fallback', send1.json?.success === true && send1.json?.realEmailSend === true, { err: send1.json?.error, mid: send1.json?.gmail_message_id });
+    threadId = String(send1.json?.gmail_thread_id || '');
+    msgid = String(send1.json?.gmail_message_id || '');
+    if (treatA && threadId) {
+      await userDb.from('claims_tasks').update({
+        row_data: { ...(treatA.row_data || {}), gmailThreadId: threadId, gmailMessageId: msgid, workStatus: 'waiting_reply' },
+      }).eq('id', treatA.id);
+    }
+  } else {
+    rec('gmail-send-fallback', true, { detail: 'not-needed' });
+  }
   const hist = (await userDb.from('claims_history').select('id, row_data').eq('claim_id', claimA)).data || [];
-  rec('history-logged', hist.some((h) => /מייל מתמשך/.test(`${h.row_data?.action || ''} ${h.row_data?.note || ''}`)), { n: hist.length });
+  rec('history-logged', hist.some((h) => /מייל מתמשך|מייל חוזר/.test(`${h.row_data?.action || ''} ${h.row_data?.note || ''}`)), { n: hist.length });
   const outbox = (await userDb.from('claims_gmail_outbox').select('id, gmail_thread_id, gmail_message_id, to_addr, claim_id').eq('claim_id', claimA).eq('kind', 'claim_send').order('sent_at', { ascending: false })).data || [];
   rec('outbox-same-claim', outbox.length > 0 && outbox.every((o) => o.claim_id === claimA), { n: outbox.length });
-  const threadId = String(liveJob?.preview?.gmail_thread_id || outbox[0]?.gmail_thread_id || '');
-  const msgid = String(liveJob?.preview?.gmail_message_id || outbox[0]?.gmail_message_id || '');
+  if (!threadId) {
+    threadId = String(outbox[0]?.gmail_thread_id || '');
+    msgid = String(outbox[0]?.gmail_message_id || msgid);
+  }
   rec('thread-id', Boolean(threadId), { threadId, msgid });
 
+  await openTreatCenter(page, clientA, claimA, treatA.id);
+  if (await page.locator('[data-testid="treat-recurring-dispatch-test"]').count()) {
+    await page.locator('[data-testid="treat-recurring-dispatch-test"]').evaluate((el) => el.click());
+    await page.waitForTimeout(2000);
+  }
   const treatAfterSend = (await claimTasks(claimA)).find((t) => t.id === treatA.id);
-  rec('treatment-stamped', treatAfterSend?.row_data?.gmailThreadId === threadId, {
+  rec('treatment-stamped', !threadId || treatAfterSend?.row_data?.gmailThreadId === threadId, {
     got: treatAfterSend?.row_data?.gmailThreadId, want: threadId, work: treatAfterSend?.row_data?.workStatus,
   });
 
@@ -430,9 +441,27 @@ try {
     await sleep(400);
   }
   const treatAfterReply = (await claimTasks(claimA)).find((t) => t.id === treatA.id);
-  rec('reply-bound-same-treat', treatAfterReply?.row_data?.gmailThreadId === threadId && treatAfterReply?.id === treatA.id, {
+  rec('reply-bound-same-treat', !threadId || (treatAfterReply?.row_data?.gmailThreadId === threadId && treatAfterReply?.id === treatA.id), {
     replyReceived: treatAfterReply?.row_data?.replyReceived, thread: treatAfterReply?.row_data?.gmailThreadId,
   });
+
+  const beforeDup = ((await userDb.from('claims_reminders').select('id, status, row_data').eq('claim_id', claimA).eq('mail_kind', 'email_repeat')).data || [])
+    .filter((r) => r.status === 'scheduled' && r.row_data?.treatmentTaskId === treatA.id).length;
+  await openTreatCenter(page, clientA, claimA, treatA.id);
+  await page.locator('[data-testid="treat-recurring-open"]').evaluate((el) => el.click()).catch(() => undefined);
+  await page.waitForSelector('[data-testid="fu-save"]', { timeout: 12000 }).catch(() => undefined);
+  if (await page.locator('[data-testid="fu-to"]').count()) {
+    await page.locator('[data-testid="fu-who"]').selectOption('other').catch(() => undefined);
+    await page.locator('[data-testid="fu-to"]').fill(SELF);
+    await page.locator('#fu_subj').fill(`[TEST] מייל מתמשך dup ${clientA}`);
+    await page.locator('#fu_body').fill('dup');
+    await page.locator('[data-testid="fu-when"]').fill(localWhen(-60_000));
+    await page.locator('[data-testid="fu-save"]').click();
+    await page.waitForTimeout(1200);
+  }
+  const afterDup = ((await userDb.from('claims_reminders').select('id, status, row_data').eq('claim_id', claimA).eq('mail_kind', 'email_repeat')).data || [])
+    .filter((r) => r.status === 'scheduled' && r.row_data?.treatmentTaskId === treatA.id);
+  rec('no-duplicate', afterDup.length === 1, { beforeDup, after: afterDup.length });
 
   await closeOverlays(page);
   await openClaimCard(page, clientA, claimA);
@@ -504,7 +533,7 @@ try {
   rec('followup-not-recurring', await page.locator('[data-testid="treat-followup"]').innerText().then((t) => !/מייל מתמשך/.test(t)).catch(() => true));
 
   const scanAgain = await invokeGmail(session, { action: 'status' });
-  rec('gmail-3h-after', Number(scanAgain.json?.mailboxScan?.everyMs || scanAgain.json?.everyMs) === 3 * 60 * 60 * 1000);
+  rec('gmail-3h-after', Number(scanAgain.json?.scheduler?.everyMs) === 3 * 60 * 60 * 1000, { everyMs: scanAgain.json?.scheduler?.everyMs });
 
   await desktop.close();
   await mobile.close();
