@@ -136,6 +136,14 @@ async function softDelete(claimId) {
 async function claimTasks(claimId) {
   return (await userDb.from('claims_tasks').select('id, row_data, claim_id').eq('claim_id', claimId)).data || [];
 }
+async function waitTreatClosed(claimId, taskId) {
+  for (let i = 0; i < 25; i++) {
+    const row = (await claimTasks(claimId)).find((t) => t.id === taskId);
+    if (row && !isOpenTreat(row)) return true;
+    await sleep(400);
+  }
+  return false;
+}
 function isTreat(t) {
   const rd = t.row_data || {};
   return rd.treatmentItem === 'true' || rd.kind === 'treatment_item';
@@ -331,7 +339,8 @@ try {
     rec(`r${round}-label-text`, labeled.text.includes('ממתין לדוח שמאי') && labeled.keys.some((k) => k.includes(`treat_${treatA?.id}`)), labeled);
 
     await clickAlert(page, claimA, `treat_${treatA?.id}`);
-    rec(`r${round}-click-exact`, await page.locator('[data-testid="treat-center"].open [data-testid="treat-center-body"]').count() > 0 && await page.locator('[data-testid="treat-center"].open').innerText().then((t) => t.includes('ממתין לדוח שמאי')));
+    const openedId = await page.locator('[data-testid="treat-center"].open [data-testid="treat-center-body"]').getAttribute('data-treat-id').catch(() => '');
+    rec(`r${round}-click-exact`, await page.locator('[data-testid="treat-center"].open [data-testid="treat-center-body"]').count() > 0 && (!openedId || openedId === treatA.id) && await page.locator('[data-testid="treat-center"].open').innerText().then((t) => t.includes('ממתין לדוח שמאי')), { openedId, treatA: treatA?.id });
     rec(`r${round}-update-visible`, await page.locator('[data-testid="treat-center"].open').innerText().then((t) => t.includes('ממתין לדוח שמאי')).catch(() => false));
     await shot(page, `r${round}-treat`);
 
@@ -411,13 +420,15 @@ try {
     await page.locator('[data-testid="treat-continue"]').selectOption('done');
     await page.locator('[data-testid="treat-next"]').fill(new Date(Date.now() + 86400000).toISOString().slice(0, 10));
     await page.locator('[data-testid="treat-save"]').click();
-    await page.waitForTimeout(1500);
+    await page.locator('[data-testid="treat-ops-v3"].open').waitFor({ state: 'hidden', timeout: 30000 }).catch(() => undefined);
+    const dbClosed = await waitTreatClosed(claimA, treatA?.id);
+    rec(`r${round}-label-removed-db`, dbClosed, { treatA: treatA?.id });
     await closeOverlays(page);
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
     await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
     const afterClose = await rowAlertInfo(page, claimA);
-    rec(`r${round}-label-removed`, !afterClose.keys.some((k) => k.includes(`treat_${treatA?.id}`)), afterClose);
+    rec(`r${round}-label-removed`, dbClosed && !afterClose.keys.some((k) => k.includes(`treat_${treatA?.id}`)), afterClose);
     const hist = ((await userDb.from('claims_history').select('id, row_data').eq('claim_id', claimA)).data || []);
     rec(`r${round}-history-kept`, hist.some((h) => /טיפול/.test(`${h.row_data?.action || ''} ${h.row_data?.type || ''}`)), { n: hist.length });
     rec(`r${round}-other-treat-stays`, afterClose.keys.some((k) => k.includes('claim-alert-treat_') && !k.includes(treatA?.id)), afterClose);
