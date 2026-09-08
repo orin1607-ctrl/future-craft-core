@@ -1,11 +1,27 @@
 import { describe, expect, it } from 'vitest';
-import { inferTreatmentRequest, isOpenTreatment, treatmentLabelOf } from './treatmentCenter';
+import { filesForTreatment, inferTreatmentRequest, isOpenTreatment, treatmentLabelOf } from './treatmentCenter';
 import type { ClaimRecord } from './claimsConstants';
 
 describe('inferTreatmentRequest', () => {
   it('maps a missing-license update to driver_license', () => {
     const r = inferTreatmentRequest('חסר רישיון נהיגה', 'צריך שני צדדים');
     expect(r.type).toBe('driver_license');
+  });
+});
+
+describe('filesForTreatment', () => {
+  it('binds the customer license by readyFileId and staff type', () => {
+    const t = { treatmentItem: 'true', requestType: 'driver_license', readyFileId: 'CDM-1' } as ClaimRecord;
+    const files = [
+      { id: 'CDM-1', original_name: 'license.png', doc_meta: { staff_type: 'driver_license' } },
+      { id: 'CDM-2', original_name: 'other.pdf', doc_meta: { staff_type: 'surveyor_report' } },
+    ];
+    expect(filesForTreatment(t, files).map((f) => f.id)).toEqual(['CDM-1']);
+  });
+  it('also matches the existing license_driver doc key to driver_license', () => {
+    const t = { treatmentItem: 'true', requestType: 'license_driver' } as ClaimRecord;
+    const files = [{ id: 'CDM-3', original_name: 'license.png', doc_kind: 'driver_license', doc_meta: { staff_type: 'driver_license' } }];
+    expect(filesForTreatment(t, files).map((f) => f.id)).toEqual(['CDM-3']);
   });
 });
 

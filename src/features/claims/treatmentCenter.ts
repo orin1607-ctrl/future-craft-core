@@ -63,10 +63,12 @@ export function inferTreatmentRequest(action: string, note = '') {
 export function filesForTreatment(t: ClaimRecord, files: Array<{ id: string; doc_meta?: unknown; doc_kind?: string; original_name?: string; gmail_message_id?: string }>) {
   const ready = String(t.readyFileId || '');
   const reqType = t.requestType || '';
+  const hit = CLAIM_DOC_TYPES.find((d) => d.staffType === reqType || d.key === reqType);
+  const typeKeys = new Set([reqType, hit?.staffType || '', hit?.key || ''].filter(Boolean));
   return files.filter((f) => {
     if (ready && f.id === ready) return true;
     const meta = (f.doc_meta && typeof f.doc_meta === 'object') ? f.doc_meta as Record<string, string> : {};
-    if (reqType && (meta.staff_type === reqType || f.doc_kind === reqType)) return true;
+    if (typeKeys.size && (typeKeys.has(meta.staff_type || '') || typeKeys.has(f.doc_kind || ''))) return true;
     if (t.gmailMessageId && f.gmail_message_id === t.gmailMessageId) return true;
     return false;
   });

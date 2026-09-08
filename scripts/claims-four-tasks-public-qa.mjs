@@ -547,20 +547,36 @@ async function runRound(browser, session, round, fixtures) {
     await page.waitForTimeout(800);
     rec(`r${round}-open-same-treat`, true);
 
-    if (await page.locator('[data-testid="treat-approve-doc"]').count()) {
-      await page.locator('[data-testid="treat-approve-doc"]').click();
-      await page.waitForTimeout(800);
+    await closeOverlays(page);
+    await openClaimCard(page, client, claimId);
+    await openTreatTab(page);
+    const treatItemAfterUp = page.locator(`[data-testid="treat-item-${treatA?.id}"]`);
+    if (await treatItemAfterUp.count()) await treatItemAfterUp.evaluate((el) => el.click());
+    await page.waitForSelector('[data-testid="treat-center"].open [data-testid="treat-center-body"]', { timeout: 20000 }).catch(() => undefined);
+    const approveBtn = page.locator('[data-testid="treat-center"].open [data-testid="treat-approve-doc"]');
+    if (await approveBtn.count()) {
+      await approveBtn.evaluate((el) => el.click());
+      await page.waitForTimeout(1000);
     }
-    rec(`r${round}-approve`, true);
-    if (await page.locator('[data-testid="treat-send-mail"]').count()) {
-      await page.locator('[data-testid="treat-send-mail"]').click();
+    rec(`r${round}-approve`, await page.locator('[data-testid="treat-center"].open [data-testid="treat-approve-doc"], [data-testid="treat-center"].open [data-testid="treat-send-mail"]').count() > 0);
+    const sendMailBtn = page.locator('[data-testid="treat-center"].open [data-testid="treat-send-mail"]');
+    await sendMailBtn.waitFor({ state: 'attached', timeout: 20000 }).catch(() => undefined);
+    if (await sendMailBtn.count()) {
+      await sendMailBtn.evaluate((el) => el.click());
       await page.waitForSelector('[data-testid="mail-to"]', { timeout: 12000 }).catch(() => undefined);
       rec(`r${round}-composer`, await page.locator('[data-testid="mail-to"]').count() > 0);
       const selected = await page.locator('[data-testid="mail-selected-list"]').innerText().catch(() => '');
-      rec(`${`r${round}`}-composer-attach`, /license|רישיון|\.png|\.pdf/i.test(selected) || await page.locator('.pick-row input:checked').count() > 0, { selected: selected.slice(0, 160) });
+      rec(`r${round}-composer-attach`, /license|רישיון|\.png|\.pdf/i.test(selected) || await page.locator('.pick-row input:checked').count() > 0, { selected: selected.slice(0, 160) });
       await page.locator('[data-testid="mail-to"]').fill(SELF);
       await page.keyboard.press('Escape').catch(() => undefined);
     } else rec(`r${round}-composer`, false, { err: 'send mail control missing' });
+    const fuBtn = page.locator('[data-testid="treat-center"].open [data-testid="treat-followup"]');
+    if (await fuBtn.count()) {
+      await fuBtn.evaluate((el) => el.click());
+      await page.waitForTimeout(800);
+      rec(`r${round}-followup-existing`, await page.locator('[data-testid="mailfu-ready"], [data-testid="mailfu-loading"], [data-testid="claims-tab-sub-mailfu"]').count() > 0);
+      await closeOverlays(page);
+    } else rec(`r${round}-followup-existing`, false, { err: 'treat-followup missing' });
 
     const docsNow = (await userDb.from('claims_documents').select('id, original_name, doc_meta').eq('claim_id', claimId)).data || [];
     const fileId = docsNow.find((d) => d.doc_meta?.staff_type === 'driver_license')?.id || docsNow[0]?.id || '';
@@ -603,6 +619,15 @@ async function runRound(browser, session, round, fixtures) {
     tasks = await claimTasks(claimId);
     const treatAfterMail = tasks.find((t) => t.id === treatA?.id);
     rec(`r${round}-treat-thread`, !threadId || treatAfterMail?.row_data?.gmailThreadId === threadId, { got: treatAfterMail?.row_data?.gmailThreadId });
+    await closeOverlays(page);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
+    await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
+    await typeSearch(page, client);
+    await page.waitForTimeout(700);
+    const mailBadge = page.locator(`[data-testid="claim-row-${claimId}"] [data-testid="claim-alert-mail_action"]`);
+    const mailBadgeText = await mailBadge.innerText().catch(() => '');
+    rec(`r${round}-mail-action-present`, await mailBadge.count() > 0 || /נדרש טיפול|דואר/.test(await page.locator(`[data-testid="claim-row-${claimId}"]`).innerText().catch(() => '')), { mailBadgeText });
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
