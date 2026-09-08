@@ -61,7 +61,8 @@ function RowAlerts({ alerts, onAlertClick }: { alerts: ClaimAlert[]; onAlertClic
       {alerts.map((a) => {
         const clickable = !!onAlertClick && (a.key === 'mail_action' || a.key === 'new_mail' || a.key === 'wait_client' || a.key === 'cust_task' || a.key.startsWith('treat_') || !!a.taskId);
         return (
-          <span
+          <button
+            type="button"
             key={a.key}
             className={`row-alert tone-${a.tone}${clickable ? ' clickable' : ''}`}
             data-testid={`claim-alert-${a.key}`}
@@ -71,7 +72,7 @@ function RowAlerts({ alerts, onAlertClick }: { alerts: ClaimAlert[]; onAlertClic
               e.stopPropagation();
               onAlertClick?.(a);
             }}
-          >{a.label}</span>
+          >{a.label}</button>
         );
       })}
     </div>
@@ -1602,21 +1603,21 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setModal('moTreatCenter');
   };
 
-  const openMailAction = (claimId: string, alert?: ClaimAlert) => {
+  const openMailAction = async (claimId: string, alert?: ClaimAlert) => {
     if (alert?.key?.startsWith('treat_') && alert.taskId) {
-      void openTreatCenter(claimId, alert.taskId);
+      await openTreatCenter(claimId, alert.taskId);
       return;
     }
     if (alert?.key === 'cust_task' || alert?.key === 'wait_client') {
-      void openCard(claimId, 'tasks');
+      await openCard(claimId, 'tasks');
       return;
     }
     if (alert?.key === 'mail_recurring' || alert?.key === 'mail_scheduled') {
-      void openCard(claimId, 'mailfu', alert.mailIds);
+      await openCard(claimId, 'mailfu', alert.mailIds);
       return;
     }
     const ids = alert?.mailIds?.length ? alert.mailIds : untreatedMailIds(claims.find((c) => c.id === claimId) || { id: claimId } as ClaimRecord, alertCtx);
-    void openCard(claimId, 'gin', ids);
+    await openCard(claimId, 'gin', ids);
   };
 
   const dismissMailTableAlert = async (claimId: string, messageId: string, opts?: { silent?: boolean }) => {
@@ -3597,6 +3598,35 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     );
                   })()}
                   <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>אותו Thread לפי Message ID / Thread ID. ישן → חדש. החדש פתוח, הישנים מכווצים. Incoming / Outgoing לפי התיבה שלנו. אין ייבוא נוסף מכאן אלא אם תבחר מייל חדש למטה.</div>
+                  {(() => {
+                    const listedIds = new Set(unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX).map((m) => String(m.gmail_message_id || '')));
+                    const openIds = cur ? untreatedMailIds(cur, { ...alertCtx, tasks: [...dashTasks, ...tasks] }) : [];
+                    const missing = openIds.filter((id) => id && !listedIds.has(id));
+                    if (!missing.length) return null;
+                    return (
+                      <div data-testid="mail-open-pending">
+                        {missing.map((mid) => {
+                          const task = [...dashTasks, ...tasks].find((t) => t.gmailMessageId === mid);
+                          return (
+                            <div key={mid} className="gmail-card mail-incoming" data-mail-mid={mid} data-testid={`mail-item-${mid}`}>
+                              <div className="mail-open">
+                                <div style={{ fontWeight: 800, marginBottom: 6 }}>{task?.action || 'מייל חדש'}</div>
+                                <div className="mail-need" data-testid={`mail-label-actions-${mid}`} style={{ marginBottom: 8 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 700 }}>תווית פעילה בטבלה — המייל שויך לתיק זה</div>
+                                  <div style={{ fontSize: 11, color: 'var(--t3)', margin: '4px 0 8px' }}>פתיחת המייל לא מסירה את התווית. בחרו מה לעשות. המייל וההיסטוריה נשמרים בכל מקרה.</div>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                    <button type="button" className="btn btn-g btn-sm" data-testid={`mail-label-dismiss-${mid}`} onClick={() => void dismissMailTableAlert(cur.id, mid)}>קראתי — הסר מהתוויות</button>
+                                    <button type="button" className="btn btn-g btn-sm" data-testid={`mail-label-keep-${mid}`} onClick={() => void keepMailTableAlert(cur.id, mid)}>השאר להמשך טיפול</button>
+                                    <button type="button" className="btn btn-p btn-sm" data-testid={`mail-label-treat-${mid}`} onClick={() => void continueMailAsTreatment(cur.id, mid, String(task?.action || ''), String(task?.note || ''), String(task?.gmailThreadId || ''))}>דורש המשך טיפול</button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                   {unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX).length === 0 ? <div style={{ color: 'var(--t3)' }}>{mailListLoading || gmailBusy ? 'טוען מיילים…' : 'אין מיילים בתיק'}</div>
                     : groupMailThreads(unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX)).map((group) => (
                       <div key={group.thread} className="thread-box" data-testid={`mail-thread-${group.thread}`}>
@@ -5029,7 +5059,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       <div className={`ov ${modal === 'moTreatCenter' ? 'open' : ''}`} data-testid="treat-center">
         <div className="modal" style={{ maxWidth: 720 }}>
           {(() => {
-            const t = tasks.find((x) => x.id === treatCenterId) || tasks.find((x) => x.id === treatCenterId);
+            const t = tasks.find((x) => x.id === treatCenterId) || dashTasks.find((x) => x.id === treatCenterId);
             if (!t || !cur) return <div className="mb">אין טיפול נבחר</div>;
             const related = filesForTreatment(t, docs.files);
             const threadMails = unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX).filter((m) => m.gmail_thread_id && t.gmailThreadId && m.gmail_thread_id === t.gmailThreadId);
