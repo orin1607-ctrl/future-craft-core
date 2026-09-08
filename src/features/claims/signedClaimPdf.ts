@@ -2,15 +2,27 @@
  * Client-side opening-form PDF using canvas → JPEG → minimal PDF.
  * Existing claims-docs / claims-intake upload path. No new library or schema.
  *
+ * Layout follows טופס "הודעה על תאונת רכב" (sections א–ד + הצהרה + חתימה).
  * Mobile Safari + `direction:rtl` + `textAlign:right` at x=width-margin
- * draws Hebrew off the canvas, so the saved page looked like signature-only.
- * Draw LTR with right-aligned text so every field stays on the page.
+ * draws Hebrew off the canvas, so draw LTR with right-aligned text.
  */
-import type { IntakeDraft } from './claimIntakeModel';
+import {
+  CAR_TYPES,
+  DAMAGE_ZONES,
+  DECLARATION_TEXT,
+  INS_TYPES,
+  TRIP_PURPOSES,
+  displayDriverId,
+  displayDriverName,
+  displayDriverPhone,
+  hasZone,
+  tripPurposeLabel,
+  type IntakeDraft,
+} from './claimIntakeModel';
 
 const PAGE_W = 794;
 const PAGE_H = 1123;
-const MARGIN = 40;
+const MARGIN = 28;
 const FONT = 'Heebo, "Arial Hebrew", "Noto Sans Hebrew", Arial, sans-serif';
 
 type PdfPage = { jpeg: Uint8Array; widthPx: number; heightPx: number };
@@ -72,11 +84,16 @@ function wrapJpegsAsPdf(pages: PdfPage[]): Uint8Array {
 function yesNo(v: string | undefined) {
   if (v === 'true') return 'כן';
   if (v === 'false') return 'לא';
-  return v || '—';
+  return v || '';
+}
+
+function dash(v: string | undefined) {
+  const s = String(v || '').trim();
+  return s || '—';
 }
 
 function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
-  const raw = String(text || '—').replace(/\s+/g, ' ').trim() || '—';
+  const raw = String(text || '').replace(/\s+/g, ' ').trim() || '—';
   const out: string[] = [];
   let line = '';
   for (const ch of raw) {
@@ -100,8 +117,9 @@ async function readyHebrewFont() {
       document.head.appendChild(l);
     }
     if (document.fonts?.load) {
-      await document.fonts.load(`400 16px ${FONT}`);
-      await document.fonts.load(`700 20px ${FONT}`);
+      await document.fonts.load(`400 12px ${FONT}`);
+      await document.fonts.load(`700 16px ${FONT}`);
+      await document.fonts.load(`800 22px ${FONT}`);
     }
     if (document.fonts?.ready) await document.fonts.ready;
   } catch {
@@ -123,11 +141,132 @@ function canvasToJpeg(canvas: HTMLCanvasElement): Promise<Uint8Array> {
     canvas.toBlob((b) => {
       if (!b) { reject(new Error('jpeg')); return; }
       void b.arrayBuffer().then((buf) => resolve(new Uint8Array(buf)));
-    }, 'image/jpeg', 0.88);
+    }, 'image/jpeg', 0.9);
   });
 }
 
-type Block = { kind: 'h' | 'kv' | 'p' | 'sig'; text: string };
+function box(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, fill = '#ffffff') {
+  ctx.fillStyle = fill;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#1e293b';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+}
+
+function sectionHead(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, letter: string, title: string) {
+  box(ctx, x, y, w, 22, '#1e3a5f');
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'right';
+  ctx.direction = 'ltr';
+  ctx.font = `800 12px ${FONT}`;
+  ctx.fillText(`${letter}  ${title}`, x + w - 8, y + 15);
+  return y + 22;
+}
+
+function cell(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number,
+  label: string, value: string, opts?: { small?: boolean },
+) {
+  box(ctx, x, y, w, h, '#ffffff');
+  ctx.fillStyle = '#64748b';
+  ctx.textAlign = 'right';
+  ctx.direction = 'ltr';
+  ctx.font = `600 ${opts?.small ? 8 : 9}px ${FONT}`;
+  ctx.fillText(label, x + w - 5, y + 11);
+  ctx.fillStyle = '#0f172a';
+  ctx.font = `700 ${opts?.small ? 11 : 12}px ${FONT}`;
+  const maxW = w - 12;
+  const lines = wrapLines(ctx, dash(value), maxW).slice(0, h > 36 ? 3 : 1);
+  lines.forEach((ln, i) => ctx.fillText(ln, x + w - 5, y + 25 + i * 13));
+}
+
+function checks(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number,
+  label: string, options: string[], selected: string,
+) {
+  box(ctx, x, y, w, h, '#ffffff');
+  ctx.fillStyle = '#64748b';
+  ctx.textAlign = 'right';
+  ctx.direction = 'ltr';
+  ctx.font = `600 9px ${FONT}`;
+  ctx.fillText(label, x + w - 5, y + 11);
+  let cx = x + w - 8;
+  options.forEach((opt) => {
+    const on = selected === opt;
+    ctx.strokeStyle = '#1e293b';
+    ctx.strokeRect(cx - 9, y + 16, 9, 9);
+    if (on) {
+      ctx.fillStyle = '#1e3a5f';
+      ctx.fillRect(cx - 8, y + 17, 7, 7);
+    }
+    ctx.fillStyle = '#0f172a';
+    ctx.font = `600 11px ${FONT}`;
+    ctx.fillText(opt, cx - 13, y + 25);
+    cx -= ctx.measureText(opt).width + 22;
+  });
+}
+
+function yn(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, label: string, value: string) {
+  checks(ctx, x, y, w, h, label, ['כן', 'לא'], yesNo(value) || '');
+}
+
+function markZones(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number,
+  title: string, csv: string,
+) {
+  box(ctx, x, y, w, h, '#f8fafc');
+  ctx.fillStyle = '#64748b';
+  ctx.textAlign = 'right';
+  ctx.direction = 'ltr';
+  ctx.font = `600 9px ${FONT}`;
+  ctx.fillText(title, x + w - 6, y + 12);
+  const carX = x + 16;
+  const carY = y + 22;
+  const carW = Math.min(86, w - 28);
+  const carH = h - 36;
+  ctx.strokeStyle = '#334155';
+  ctx.strokeRect(carX, carY, carW, carH);
+  ctx.fillStyle = '#e2e8f0';
+  ctx.fillRect(carX + 18, carY + 10, carW - 36, carH - 20);
+  const marks: Array<{ z: string; lx: number; ly: number }> = [
+    { z: 'חזית', lx: carX + carW / 2, ly: carY + 8 },
+    { z: 'אחור', lx: carX + carW / 2, ly: carY + carH - 4 },
+    { z: 'ימין', lx: carX + carW - 4, ly: carY + carH / 2 },
+    { z: 'שמאל', lx: carX + 4, ly: carY + carH / 2 },
+    { z: 'גג', lx: carX + carW / 2, ly: carY + carH / 2 },
+  ];
+  ctx.font = `700 9px ${FONT}`;
+  ctx.textAlign = 'center';
+  marks.forEach((m) => {
+    ctx.fillStyle = hasZone(csv, m.z) ? '#b91c1c' : '#94a3b8';
+    ctx.fillText(m.z, m.lx, m.ly);
+  });
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#0f172a';
+  ctx.font = `600 10px ${FONT}`;
+  ctx.fillText(dash(csv), x + w - 6, y + h - 8);
+}
+
+function para(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, label: string, text: string) {
+  box(ctx, x, y, w, h, '#ffffff');
+  ctx.fillStyle = '#64748b';
+  ctx.textAlign = 'right';
+  ctx.direction = 'ltr';
+  ctx.font = `600 9px ${FONT}`;
+  ctx.fillText(label, x + w - 5, y + 11);
+  ctx.fillStyle = '#0f172a';
+  ctx.font = `500 11px ${FONT}`;
+  const lines = wrapLines(ctx, dash(text), w - 12);
+  const max = Math.max(1, Math.floor((h - 18) / 13));
+  lines.slice(0, max).forEach((ln, i) => ctx.fillText(ln, x + w - 5, y + 26 + i * 13));
+}
+
+function eventPlace(d: IntakeDraft, fallback: string) {
+  return [d.eventPlace, d.eventStreet, d.eventCity].filter(Boolean).join(', ') || fallback;
+}
 
 export async function buildSignedOpeningFormPdf(opts: {
   clientName: string;
@@ -142,217 +281,238 @@ export async function buildSignedOpeningFormPdf(opts: {
   await readyHebrewFont();
   const d = opts.draft || ({} as IntakeDraft);
   const claimNum = opts.claimNum || d.claimNum || 'טרם התקבל';
-  const maxW = PAGE_W - MARGIN * 2;
-  const measure = document.createElement('canvas').getContext('2d');
-  if (!measure) throw new Error('canvas');
-  measure.font = `16px ${FONT}`;
-
-  const blocks: Block[] = [];
-  const h = (t: string) => blocks.push({ kind: 'h', text: t });
-  const kv = (k: string, v: string | undefined) => blocks.push({ kind: 'kv', text: `${k}: ${v || '—'}` });
-  const p = (t: string) => blocks.push({ kind: 'p', text: t });
-
-  h(opts.signaturePng ? 'טופס הודעה / דיווח אירוע — חתום' : 'טופס הודעה / דיווח אירוע');
-  kv('מספר תביעה', claimNum);
-  kv('סוג התביעה', d.claimKind || '—');
-
-  h('הלקוח / המבוטח');
-  kv('שם לקוח', opts.clientName || d.clientName);
-  kv('ת״ז / ח.פ.', d.clientId);
-  kv('טלפון', d.clientPhone);
-  kv('דוא״ל', d.clientEmail);
-  kv('כתובת', d.clientAddress);
-  kv('מיקוד', d.clientZip);
-
-  h('הרכב');
-  kv('מספר רכב', opts.plate || d.plate);
-  kv('יצרן', d.carMake);
-  kv('דגם', d.carModel);
-  kv('שנת ייצור', d.carYear);
-  kv('סוג הרכב', d.carType);
-
-  h('ביטוח');
-  kv('חברת ביטוח', d.insCompany);
-  kv('סוג ביטוח', d.insType);
-  kv('מספר פוליסה', d.policyNum);
-  kv('מספר תביעה בחברת הביטוח', d.claimNum);
-
-  if (d.driverDifferent === 'true' || d.driverName) {
-    h('פרטי הנהג');
-    kv('הנהג שונה מהלקוח', yesNo(d.driverDifferent));
-    kv('שם נהג', d.driverName);
-    kv('ת״ז נהג', d.driverId);
-    kv('טלפון נהג', d.driverPhone);
-    kv('מספר רישיון', d.driverLicense);
-    kv('סוג רישיון', d.driverLicenseType);
-    kv('תוקף רישיון', d.driverLicenseValid);
-    kv('שנת הוצאת רישיון', d.driverLicenseYear);
-    kv('תאריך לידה', d.driverBirthDate);
-    kv('מין', d.driverGender);
-    kv('נהג ברשות המבוטח', yesNo(d.driverPermission));
-  }
-
-  h('פרטי האירוע');
-  kv('תאריך אירוע', opts.eventDate || d.eventDate);
-  kv('שעת אירוע', d.eventTime);
-  kv('מקום האירוע', opts.eventLocation || [d.eventPlace, d.eventCity, d.eventStreet].filter(Boolean).join(', '));
-  kv('יישוב', d.eventCity);
-  kv('רחוב', d.eventStreet);
-  p(`תיאור האירוע: ${opts.eventDesc || d.eventDesc || '—'}`);
-  p(`תיאור הנזק: ${d.damageDesc || '—'}`);
-  kv('מיקום הנזק ברכב', d.damageLocation);
-  kv('הייתה משטרה', yesNo(d.police));
-  if (d.police === 'true') {
-    kv('תחנת משטרה', d.policeStation);
-    kv('מספר תיק משטרה', d.policeFile);
-    kv('תאריך דיווח למשטרה', d.policeDate);
-  }
-  kv('היה גרר', yesNo(d.tow));
-  p(`עדים: ${d.witnesses || '—'}`);
-
-  if (d.claimKind === 'תביעת צד ג׳' || d.thirdDriver || d.thirdPlate) {
-    h('צד ג׳');
-    kv('נהג צד ג׳', d.thirdDriver);
-    kv('בעל הרכב', d.thirdOwner);
-    kv('ת״ז', d.thirdId);
-    kv('טלפון', d.thirdPhone);
-    kv('מספר רכב', d.thirdPlate);
-    kv('יצרן / דגם', d.thirdMakeModel);
-    kv('חברת ביטוח', d.thirdInsCompany);
-    kv('פוליסה', d.thirdPolicy);
-    kv('מספר תביעה', d.thirdClaimNum);
-    p(`נזק לצד ג׳: ${d.thirdDamage || '—'}`);
-  }
-
-  h('הצהרה וחתימה');
-  kv('הצהרה אושרה', yesNo(d.declarationAck));
-  kv('הטופס מולא ע״י', d.formFilledBy);
-  kv('קבלת הודעות — דוא״ל', yesNo(d.contactPrefEmail));
-  kv('קבלת הודעות — נייד', yesNo(d.contactPrefMobile));
-  kv('קבלת הודעות — דואר', yesNo(d.contactPrefPost));
-  blocks.push({ kind: 'sig', text: opts.signaturePng ? 'חתימת הלקוח:' : 'חתימה: טרם נחתם' });
-
-  const sigH = opts.signaturePng ? 188 : 36;
-  const blockH = (b: Block) => {
-    if (b.kind === 'h') return 34;
-    if (b.kind === 'sig') return sigH;
-    measure.font = b.kind === 'p' ? `15px ${FONT}` : `16px ${FONT}`;
-    return wrapLines(measure, b.text, maxW).length * 22 + 6;
+  const inner = PAGE_W - MARGIN * 2;
+  const col = (n: number, i: number, gap = 4) => {
+    const w = (inner - gap * (n - 1)) / n;
+    return { x: MARGIN + (n - 1 - i) * (w + gap), w };
   };
 
-  const pages: Block[][] = [[]];
-  let used = 78;
-  const bodyLimit = PAGE_H - 56;
-  const sigIdx = blocks.findIndex((b) => b.kind === 'sig');
-  const declIdx = blocks.findIndex((b) => b.kind === 'h' && b.text.includes('הצהרה'));
-  const keepFrom = declIdx >= 0 && sigIdx > declIdx ? declIdx : sigIdx;
-  const tailH = keepFrom >= 0 ? blocks.slice(keepFrom).reduce((n, b) => n + blockH(b), 0) : sigH;
-  for (let i = 0; i < blocks.length; i++) {
-    const b = blocks[i];
-    const need = blockH(b);
-    const startingTail = i === keepFrom;
-    const room = startingTail ? tailH : need;
-    if (used + room > bodyLimit && pages[pages.length - 1].length) {
-      pages.push([]);
-      used = 78;
-    }
-    pages[pages.length - 1].push(b);
-    used += need;
-  }
-
-  const drawChrome = (ctx: CanvasRenderingContext2D, pageNo: number, pageCount: number) => {
-    ctx.fillStyle = '#ffffff';
+  const paintChrome = (ctx: CanvasRenderingContext2D, pageNo: number, pageCount: number) => {
+    ctx.fillStyle = '#f4f1ea';
     ctx.fillRect(0, 0, PAGE_W, PAGE_H);
-    ctx.fillStyle = '#1d4ed8';
-    ctx.fillRect(0, 0, PAGE_W, 46);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(MARGIN - 6, 18, PAGE_W - (MARGIN - 6) * 2, PAGE_H - 40);
+    ctx.strokeStyle = '#1e3a5f';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(MARGIN - 6, 18, PAGE_W - (MARGIN - 6) * 2, PAGE_H - 40);
+    ctx.fillStyle = '#1e3a5f';
+    ctx.fillRect(MARGIN - 6, 18, PAGE_W - (MARGIN - 6) * 2, 46);
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'right';
     ctx.direction = 'ltr';
-    ctx.font = `700 16px ${FONT}`;
-    ctx.fillText('דליה ניהול תביעות', PAGE_W - MARGIN, 30);
+    ctx.font = `800 20px ${FONT}`;
+    ctx.fillText('הודעה על תאונת רכב', PAGE_W - MARGIN, 38);
+    ctx.font = `600 10px ${FONT}`;
+    ctx.fillText('דליה ניהול תביעות  ·  נא להקפיד למלא טופס זה באופן מדויק ושלם', PAGE_W - MARGIN, 56);
     ctx.textAlign = 'left';
-    ctx.font = `600 13px ${FONT}`;
-    ctx.fillText(claimNum, MARGIN, 30);
-    ctx.strokeStyle = '#dbe4f3';
-    ctx.strokeRect(MARGIN - 10, 58, PAGE_W - (MARGIN - 10) * 2, PAGE_H - 86);
-    ctx.fillStyle = '#6b7280';
+    ctx.font = `700 11px ${FONT}`;
+    ctx.fillText(claimNum, MARGIN + 4, 38);
+    ctx.fillStyle = '#475569';
     ctx.textAlign = 'center';
-    ctx.font = `12px ${FONT}`;
-    ctx.fillText(`עמ׳ ${pageNo} מתוך ${pageCount}`, PAGE_W / 2, PAGE_H - 18);
+    ctx.font = `11px ${FONT}`;
+    ctx.fillText(`עמ׳ ${pageNo} מתוך ${pageCount}`, PAGE_W / 2, PAGE_H - 10);
     ctx.textAlign = 'right';
-    ctx.fillStyle = '#111111';
   };
 
-  const paintPage = async (pageBlocks: Block[], pageNo: number, pageCount: number) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = PAGE_W;
-    canvas.height = PAGE_H;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('canvas');
-    drawChrome(ctx, pageNo, pageCount);
-    let cy = 82;
-    for (const b of pageBlocks) {
-      if (b.kind === 'h') {
-        ctx.font = `700 18px ${FONT}`;
-        ctx.fillStyle = '#1d4ed8';
-        ctx.textAlign = 'right';
-        ctx.fillText(b.text, PAGE_W - MARGIN, cy + 16);
-        ctx.strokeStyle = '#93c5fd';
-        ctx.beginPath();
-        ctx.moveTo(PAGE_W - MARGIN, cy + 22);
-        ctx.lineTo(MARGIN, cy + 22);
-        ctx.stroke();
-        ctx.fillStyle = '#111111';
-        cy += 34;
-        continue;
-      }
-      if (b.kind === 'sig') {
-        const pinY = PAGE_H - 56 - (opts.signaturePng ? 178 : 36);
-        if (cy < pinY) cy = pinY;
-        ctx.font = `700 15px ${FONT}`;
-        ctx.fillStyle = '#111111';
-        ctx.textAlign = 'right';
-        ctx.fillText(b.text, PAGE_W - MARGIN, cy + 14);
-        cy += 22;
-        if (opts.signaturePng) {
-          const img = await loadImage(opts.signaturePng);
-          const maxSW = 340;
-          const maxSH = 140;
-          const r = Math.min(maxSW / Math.max(img.width, 1), maxSH / Math.max(img.height, 1), 1);
-          const dw = Math.max(80, img.width * r);
-          const dh = Math.max(40, img.height * r);
-          const x = PAGE_W - MARGIN - dw;
-          ctx.fillStyle = '#f8fafc';
-          ctx.fillRect(x - 6, cy, dw + 12, dh + 12);
-          ctx.strokeStyle = '#94a3b8';
-          ctx.strokeRect(x - 6, cy, dw + 12, dh + 12);
-          ctx.drawImage(img, x, cy + 6, dw, dh);
-          cy += dh + 20;
-        }
-        continue;
-      }
-      ctx.font = b.kind === 'p' ? `15px ${FONT}` : `16px ${FONT}`;
-      ctx.fillStyle = '#111111';
-      ctx.textAlign = 'right';
-      for (const line of wrapLines(ctx, b.text, maxW)) {
-        ctx.fillText(line, PAGE_W - MARGIN, cy + 16);
-        cy += 22;
-      }
-      cy += 6;
-    }
-    return canvasToJpeg(canvas);
-  };
+  const page1 = document.createElement('canvas');
+  page1.width = PAGE_W;
+  page1.height = PAGE_H;
+  const c1 = page1.getContext('2d');
+  if (!c1) throw new Error('canvas');
 
-  const jpegs: PdfPage[] = [];
-  for (let i = 0; i < pages.length; i++) {
-    jpegs.push({
-      jpeg: await paintPage(pages[i], i + 1, pages.length),
-      widthPx: PAGE_W,
-      heightPx: PAGE_H,
+  const page2 = document.createElement('canvas');
+  page2.width = PAGE_W;
+  page2.height = PAGE_H;
+  const c2 = page2.getContext('2d');
+  if (!c2) throw new Error('canvas');
+
+  paintChrome(c1, 1, 2);
+  paintChrome(c2, 2, 2);
+
+  let y = 72;
+  y = sectionHead(c1, MARGIN, y, inner, 'א', 'פרטי המבוטח והפוליסה');
+  let a = col(4, 0); cell(c1, a.x, y, a.w, 34, 'זהות המדווח', d.reporterName || opts.clientName || d.clientName);
+  a = col(4, 1); cell(c1, a.x, y, a.w, 34, 'שם הסוכן', d.agentName);
+  a = col(4, 2); cell(c1, a.x, y, a.w, 34, 'מס׳ הפוליסה', d.policyNum);
+  a = col(4, 3); cell(c1, a.x, y, a.w, 34, 'בתוקף עד', d.policyValidUntil);
+  y += 34;
+  a = col(3, 0); cell(c1, a.x, y, a.w, 34, 'שם המבוטח', opts.clientName || d.clientName);
+  a = col(3, 1); cell(c1, a.x, y, a.w, 34, 'מס׳ ת.ז.', d.clientId);
+  a = col(3, 2); yn(c1, a.x, y, a.w, 34, 'עוסק מורשה', d.licensedDealer);
+  y += 34;
+  a = col(4, 0); cell(c1, a.x, y, a.w, 34, 'כתובת', d.clientAddress);
+  a = col(4, 1); cell(c1, a.x, y, a.w, 34, 'רחוב', d.addressStreet);
+  a = col(4, 2); cell(c1, a.x, y, a.w, 34, 'ישוב', d.addressCity);
+  a = col(4, 3); cell(c1, a.x, y, a.w, 34, 'מיקוד', d.clientZip);
+  y += 34;
+  a = col(4, 0); cell(c1, a.x, y, a.w, 34, 'טלפון בית', d.phoneHome);
+  a = col(4, 1); cell(c1, a.x, y, a.w, 34, 'טלפון נייד', d.phoneMobile || d.clientPhone);
+  a = col(4, 2); cell(c1, a.x, y, a.w, 34, 'פקס', d.clientFax);
+  a = col(4, 3); cell(c1, a.x, y, a.w, 34, 'דואר אלקטרוני', d.clientEmail, { small: true });
+  y += 34;
+  checks(c1, MARGIN, y, inner * 0.46, 34, 'סוג ביטוח', [...INS_TYPES], d.insType);
+  checks(c1, MARGIN + inner * 0.46 + 4, y, inner * 0.54 - 4, 34, 'סוג הרכב', [...CAR_TYPES], d.carType);
+  y += 34;
+  a = col(4, 0); cell(c1, a.x, y, a.w, 34, 'תוצר', d.carMake);
+  a = col(4, 1); cell(c1, a.x, y, a.w, 34, 'דגם', d.carModel);
+  a = col(4, 2); cell(c1, a.x, y, a.w, 34, 'שנת ייצור', d.carYear);
+  a = col(4, 3); cell(c1, a.x, y, a.w, 34, 'מס׳ רישוי', opts.plate || d.plate);
+  y += 34;
+  a = col(2, 0); cell(c1, a.x, y, a.w, 34, 'שם בעל הרכב', d.vehicleOwnerName || opts.clientName || d.clientName);
+  a = col(2, 1); cell(c1, a.x, y, a.w, 34, 'חברת הביטוח / מס׳ תביעה', [d.insCompany, d.claimNum].filter(Boolean).join(' · '));
+  y += 40;
+
+  y = sectionHead(c1, MARGIN, y, inner, 'ב', 'פרטי הנהג  (חובה למלא את כל הפרטים בפרק זה)');
+  a = col(3, 0); cell(c1, a.x, y, a.w, 34, 'שם הנהג', displayDriverName(d));
+  a = col(3, 1); cell(c1, a.x, y, a.w, 34, 'מס׳ ת.ז.', displayDriverId(d));
+  a = col(3, 2); yn(c1, a.x, y, a.w, 34, 'האם נהג ברשות מבוטח', d.driverPermission);
+  y += 34;
+  a = col(4, 0); cell(c1, a.x, y, a.w, 34, 'כתובת', d.driverAddress);
+  a = col(4, 1); cell(c1, a.x, y, a.w, 34, 'רחוב', d.driverStreet);
+  a = col(4, 2); cell(c1, a.x, y, a.w, 34, 'ישוב', d.driverCity);
+  a = col(4, 3); cell(c1, a.x, y, a.w, 34, 'מיקוד', d.driverZip);
+  y += 34;
+  a = col(4, 0); cell(c1, a.x, y, a.w, 34, 'טלפון בית', d.driverPhoneHome);
+  a = col(4, 1); cell(c1, a.x, y, a.w, 34, 'טלפון נייד', displayDriverPhone(d));
+  a = col(4, 2); cell(c1, a.x, y, a.w, 34, 'תאריך לידה', d.driverBirthDate);
+  a = col(4, 3); cell(c1, a.x, y, a.w, 34, 'מין', d.driverGender);
+  y += 34;
+  a = col(4, 0); cell(c1, a.x, y, a.w, 34, 'מס׳ רישיון נהיגה', d.driverLicense);
+  a = col(4, 1); cell(c1, a.x, y, a.w, 34, 'סוג רישיון', d.driverLicenseType);
+  a = col(4, 2); cell(c1, a.x, y, a.w, 34, 'תוקף רישיון', d.driverLicenseValid);
+  a = col(4, 3); cell(c1, a.x, y, a.w, 34, 'שנת הוצאת רישיון', d.driverLicenseYear);
+  y += 40;
+
+  y = sectionHead(c1, MARGIN, y, inner, 'ג', 'פרטי התאונה');
+  a = col(3, 0); cell(c1, a.x, y, a.w, 34, 'תאריך', opts.eventDate || d.eventDate);
+  a = col(3, 1); cell(c1, a.x, y, a.w, 34, 'שעה', d.eventTime);
+  a = col(3, 2); cell(c1, a.x, y, a.w, 34, 'מקום / כתובת אתר התאונה', eventPlace(d, opts.eventLocation));
+  y += 34;
+  {
+    const opts3 = [
+      { label: 'משטרה', on: d.police === 'true' },
+      { label: 'גרר', on: d.tow === 'true' },
+      { label: 'מכבי אש', on: d.fireDept === 'true' },
+    ];
+    box(c1, MARGIN, y, inner, 34, '#ffffff');
+    c1.fillStyle = '#64748b';
+    c1.textAlign = 'right';
+    c1.font = `600 9px ${FONT}`;
+    c1.fillText('האם היה באירוע?', MARGIN + inner - 5, y + 11);
+    let cx = MARGIN + inner - 8;
+    opts3.forEach((opt) => {
+      c1.strokeStyle = '#1e293b';
+      c1.strokeRect(cx - 9, y + 16, 9, 9);
+      if (opt.on) {
+        c1.fillStyle = '#1e3a5f';
+        c1.fillRect(cx - 8, y + 17, 7, 7);
+      }
+      c1.fillStyle = '#0f172a';
+      c1.font = `600 11px ${FONT}`;
+      c1.fillText(opt.label, cx - 13, y + 25);
+      cx -= c1.measureText(opt.label).width + 22;
     });
   }
+  y += 34;
+  a = col(4, 0); cell(c1, a.x, y, a.w, 34, 'נגבתה עדות בתחנת', d.policeStation);
+  a = col(4, 1); cell(c1, a.x, y, a.w, 34, 'מס׳ תיק', d.policeFile);
+  a = col(4, 2); cell(c1, a.x, y, a.w, 34, 'מס׳ יומן', d.journalNumber);
+  a = col(4, 3); cell(c1, a.x, y, a.w, 34, 'בתאריך', d.policeDate);
+  y += 36;
+  para(c1, MARGIN, y, inner, 118, 'תיאור מפורט של התאונה (מספר הרכב במידה והמקום לא מספיק ניתן להוסיף דף מלווה)', opts.eventDesc || d.eventDesc);
+  y += 122;
+  para(c1, MARGIN, y, inner * 0.58, 96, 'תרשים ממקום התאונה', d.accidentDiagramNotes);
+  markZones(c1, MARGIN + inner * 0.58 + 4, y, inner * 0.42 - 4, 96, 'איזורי פגיעה רכב מבוטח', d.damageLocation);
+  y += 100;
+  para(c1, MARGIN, y, inner, 52, 'תיאור הנזק / מיקום הנזק ברכב המבוטח', d.damageDesc);
+
+  y = 72;
+  y = sectionHead(c2, MARGIN, y, inner, 'ג', 'פרטי התאונה — המשך');
+  a = col(2, 0);
+  cell(c2, a.x, y, a.w, 48, 'עד 1 — שם / כתובת', [d.witness1Name, d.witness1Address].filter(Boolean).join(' · '));
+  a = col(2, 1);
+  cell(c2, a.x, y, a.w, 48, 'עד 2 — שם / כתובת', [d.witness2Name, d.witness2Address].filter(Boolean).join(' · '));
+  y += 48;
+  para(c2, MARGIN, y, inner, 36, 'עדים — הערות נוספות', d.witnesses);
+  y += 36;
+  checks(c2, MARGIN, y, inner * 0.62, 34, 'המקרה אירע', TRIP_PURPOSES.map((p) => p.label), tripPurposeLabel(d.tripPurpose));
+  a = col(5, 4);
+  cell(c2, MARGIN + inner * 0.62 + 4, y, inner * 0.38 - 4, 34, 'מוסך / שמאי', [d.garageName, d.surveyorName].filter(Boolean).join(' · '));
+  y += 40;
+
+  y = sectionHead(c2, MARGIN, y, inner, 'ד', 'פרטי המעורב — צד ג׳  (חובה למלא את כל הפרטים בפרק זה)');
+  a = col(3, 0); cell(c2, a.x, y, a.w, 34, 'שם הנהג', d.thirdDriver);
+  a = col(3, 1); cell(c2, a.x, y, a.w, 34, 'מס׳ ת.ז.', d.thirdId);
+  a = col(3, 2); cell(c2, a.x, y, a.w, 34, 'טלפון', d.thirdPhone);
+  y += 34;
+  a = col(3, 0); cell(c2, a.x, y, a.w, 34, 'כתובת', d.thirdAddress);
+  a = col(3, 1); cell(c2, a.x, y, a.w, 34, 'שם בעל הרכב', d.thirdOwner);
+  a = col(3, 2); cell(c2, a.x, y, a.w, 34, 'מס׳ רישוי', d.thirdPlate);
+  y += 34;
+  checks(c2, MARGIN, y, inner * 0.5, 34, 'סוג הרכב', [...CAR_TYPES], d.thirdCarType);
+  a = col(2, 1); cell(c2, MARGIN + inner * 0.5 + 4, y, inner * 0.5 - 4, 34, 'תוצר ודגם', d.thirdMakeModel);
+  y += 34;
+  a = col(3, 0); cell(c2, a.x, y, a.w, 34, 'שם חברת הביטוח', d.thirdInsCompany);
+  a = col(3, 1); cell(c2, a.x, y, a.w, 34, 'מס׳ הפוליסה', d.thirdPolicy);
+  a = col(3, 2); checks(c2, a.x, y, a.w, 34, 'סוג הביטוח', [...INS_TYPES], d.thirdInsType);
+  y += 34;
+  para(c2, MARGIN, y, inner * 0.58, 72, 'תיאור הנזק / מיקום הנזק לצד ג׳', d.thirdDamage);
+  markZones(c2, MARGIN + inner * 0.58 + 4, y, inner * 0.42 - 4, 72, 'איזורי פגיעה רכב צד ג׳', d.thirdDamageLocation);
+  y += 78;
+
+  y = sectionHead(c2, MARGIN, y, inner, 'ה', 'הצהרת המבוטח/ת');
+  yn(c2, MARGIN, y, inner, 32, 'הנני מעוניין/ת כי תביעת צד ג׳ שתוגש נגדי תטופל ו/או תשולם על ידי החברה', d.thirdClaimAgainstMe);
+  y += 32;
+  para(c2, MARGIN, y, inner, 92, 'הצהרה', DECLARATION_TEXT.replace(/\n/g, ' '));
+  y += 94;
+  const prefs = [
+    d.contactPrefEmail === 'true' ? 'דואר אלקטרוני' : '',
+    d.contactPrefMobile === 'true' ? 'טלפון נייד' : '',
+    d.contactPrefPost === 'true' ? 'דואר ישראל' : '',
+  ].filter(Boolean).join(' · ');
+  cell(c2, MARGIN, y, inner, 34, 'אמצעי קבלת הודעות', prefs);
+  y += 40;
+
+  const sigTop = Math.max(y, PAGE_H - 210);
+  box(c2, MARGIN, sigTop, inner, 168, '#ffffff');
+  c2.fillStyle = '#64748b';
+  c2.textAlign = 'right';
+  c2.font = `600 9px ${FONT}`;
+  const third = inner / 3;
+  c2.fillText('תאריך', MARGIN + inner - 8, sigTop + 14);
+  c2.fillText('הטופס מולא ע״י', MARGIN + inner - third - 8, sigTop + 14);
+  c2.fillText('חתימת המבוטח/ת', MARGIN + third - 8, sigTop + 14);
+  c2.fillStyle = '#0f172a';
+  c2.font = `700 13px ${FONT}`;
+  c2.fillText(dash(d.declarationDate), MARGIN + inner - 8, sigTop + 34);
+  c2.fillText(dash(d.formFilledBy), MARGIN + inner - third - 8, sigTop + 34);
+  c2.strokeStyle = '#94a3b8';
+  c2.beginPath();
+  c2.moveTo(MARGIN + 10, sigTop + 150);
+  c2.lineTo(MARGIN + third - 10, sigTop + 150);
+  c2.stroke();
+  if (opts.signaturePng) {
+    const img = await loadImage(opts.signaturePng);
+    const maxSW = third - 24;
+    const maxSH = 108;
+    const r = Math.min(maxSW / Math.max(img.width, 1), maxSH / Math.max(img.height, 1), 1);
+    const dw = Math.max(70, img.width * r);
+    const dh = Math.max(32, img.height * r);
+    const sx = MARGIN + 12;
+    const sy = sigTop + 36;
+    c2.drawImage(img, sx, sy, dw, dh);
+  } else {
+    c2.fillStyle = '#94a3b8';
+    c2.font = `600 11px ${FONT}`;
+    c2.fillText('טרם נחתם', MARGIN + third - 16, sigTop + 80);
+  }
+
+  const jpegs: PdfPage[] = [
+    { jpeg: await canvasToJpeg(page1), widthPx: PAGE_W, heightPx: PAGE_H },
+    { jpeg: await canvasToJpeg(page2), widthPx: PAGE_W, heightPx: PAGE_H },
+  ];
   const pdf = wrapJpegsAsPdf(jpegs);
-  return new File([pdf], opts.signaturePng ? 'טופס-אירוע-חתום.pdf' : 'טופס-אירוע.pdf', { type: 'application/pdf' });
+  return new File([pdf], opts.signaturePng ? 'טופס-הודעה-על-תאונת-רכב-חתום.pdf' : 'טופס-הודעה-על-תאונת-רכב.pdf', { type: 'application/pdf' });
 }
 
 export async function fileToBase64(file: File): Promise<string> {

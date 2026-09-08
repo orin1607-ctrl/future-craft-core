@@ -1924,7 +1924,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     });
     return apiRef.current.staffUpload(claimId, '', pdf, {
       staff_type: 'accident_notice',
-      staff_title: signaturePng ? 'טופס הודעה / דיווח אירוע — חתום' : 'טופס הודעה / דיווח אירוע',
+      staff_title: signaturePng ? 'טופס הודעה על תאונת רכב — חתום' : 'טופס הודעה על תאונת רכב',
     });
   };
 
@@ -1980,7 +1980,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       }
     }
     if (opts.download) downloadPdfFile(pdf);
-    toast(opts.save ? 'טופס הודעה / דיווח אירוע נשמר במסמכי התביעה' : 'ה-PDF הורד');
+    toast(opts.save ? 'טופס הודעה על תאונת רכב נשמר במסמכי התביעה' : 'ה-PDF הורד');
     await loadAll();
     if (cur?.id === existingId) await loadCardData(existingId);
     return { success: true };
@@ -2893,7 +2893,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   className="btn btn-p"
                   data-testid="claim-event-pdf-issue"
                   onClick={() => void issueEventNoticePdf({ download: true, save: true })}
-                >הפק והורד טופס הודעה / דיווח אירוע</button>
+                >הפק והורד טופס הודעה על תאונת רכב</button>
                 <button
                   type="button"
                   className="btn btn-g"

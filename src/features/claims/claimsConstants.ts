@@ -70,7 +70,7 @@ export const CLAIM_DOC_TYPES: ClaimDocType[] = [
   { key: 'surveyor_photos', label: 'תמונות שמאי', group: true, formLater: false, staffType: '', docKind: 'surveyor_photo', aliases: [] },
   { key: 'damage_photos', label: 'תמונות אירוע', group: true, formLater: false, staffType: 'damage_photos', docKind: null, aliases: ['תמונות נזק / אירוע', 'תמונות נזק'] },
   { key: 'license_driver', label: 'צילום רישיון נהיגה', group: true, formLater: false, staffType: 'driver_license', docKind: null, aliases: ['רישיון נהיגה – שני הצדדים', 'רישיון נהיגה'] },
-  { key: 'accident_notice', label: 'טופס הודעה / דיווח אירוע', group: false, formLater: false, staffType: 'accident_notice', docKind: null, aliases: ['טופס הודעה על תאונה', 'טופס אירוע / פתיחת תביעה', 'טופס פתיחת תביעה חתום', 'טופס אירוע'] },
+  { key: 'accident_notice', label: 'טופס הודעה על תאונת רכב', group: false, formLater: false, staffType: 'accident_notice', docKind: null, aliases: ['טופס הודעה / דיווח אירוע', 'טופס הודעה על תאונה', 'טופס אירוע / פתיחת תביעה', 'טופס פתיחת תביעה חתום', 'טופס אירוע'] },
   { key: 'license_vehicle', label: 'צילום רישיון רכב', group: false, formLater: false, staffType: 'vehicle_license', docKind: null, aliases: ['רישיון רכב'] },
   { key: 'power_of_attorney', label: 'ייפוי כוח', group: false, formLater: true, staffType: 'power_of_attorney', docKind: null, aliases: [] },
   { key: 'rejection_letter', label: 'מכתב דחייה', group: false, formLater: false, staffType: 'rejection_letter', docKind: null, aliases: [] },
