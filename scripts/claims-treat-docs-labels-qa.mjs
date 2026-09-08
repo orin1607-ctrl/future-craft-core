@@ -215,6 +215,9 @@ async function clickAlert(page, claimId, prefix) {
   const chip = page.locator(`[data-testid="claim-row-${claimId}"] [data-testid^="claim-alert-${prefix}"]`).locator('visible=true').first();
   await chip.waitFor({ state: 'visible', timeout: 15000 });
   await chip.click();
+  if (String(prefix).startsWith('treat_')) {
+    await page.waitForSelector('[data-testid="treat-center"].open [data-testid="treat-center-body"]', { timeout: 20000 });
+  }
 }
 
 async function openTreatTab(page) {
@@ -328,7 +331,7 @@ try {
     rec(`r${round}-label-text`, labeled.text.includes('ממתין לדוח שמאי') && labeled.keys.some((k) => k.includes(`treat_${treatA?.id}`)), labeled);
 
     await clickAlert(page, claimA, `treat_${treatA?.id}`);
-    rec(`r${round}-click-exact`, await page.locator('[data-testid="treat-center"].open [data-testid="treat-center-body"]').count() > 0);
+    rec(`r${round}-click-exact`, await page.locator('[data-testid="treat-center"].open [data-testid="treat-center-body"]').count() > 0 && await page.locator('[data-testid="treat-center"].open').innerText().then((t) => t.includes('ממתין לדוח שמאי')));
     rec(`r${round}-update-visible`, await page.locator('[data-testid="treat-center"].open').innerText().then((t) => t.includes('ממתין לדוח שמאי')).catch(() => false));
     await shot(page, `r${round}-treat`);
 
