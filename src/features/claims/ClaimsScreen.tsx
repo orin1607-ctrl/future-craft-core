@@ -3,7 +3,7 @@ import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STAT
 import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, buildClaimRowAlerts, canMarkMailTaskDone, customerKindLabel, customerStatusLabel, customerStatusOf, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isRecurringMailFollowup, isScheduledOnceMail, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringLabel, shortStatusNote, untreatedMailIds, type ClaimAlert } from './claimWorkAlerts';
 import { claimMatchesSearch, searchEmptyLabel } from './claimSearch';
 import { groupMailThreads, unifyCorrespondence } from './claimMailThread';
-import { completedTreatments, docKeyForRequestType, filesForTreatment, isOpenTreatment, liveRecurringForTreatment, openTreatments, recurringForTreatment, treatmentLabelOf, treatmentStatusHe } from './treatmentCenter';
+import { completedTreatments, docKeyForRequestType, filesForTreatment, inferTreatmentRequest, isOpenTreatment, isTreatmentItem, liveRecurringForTreatment, openTreatments, recurringForTreatment, treatmentLabelOf, treatmentStatusHe } from './treatmentCenter';
 import { buildSignedOpeningFormPdf } from './signedClaimPdf';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
@@ -59,12 +59,13 @@ function RowAlerts({ alerts, onAlertClick }: { alerts: ClaimAlert[]; onAlertClic
   return (
     <div className="row-alerts" data-testid="claim-row-alerts">
       {alerts.map((a) => {
-        const clickable = !!onAlertClick && (a.key === 'mail_action' || a.key === 'need_reply' || a.key === 'new_mail' || a.key === 'missing_doc' || a.key === 'insurer_doc' || a.key === 'mail_recurring' || a.key === 'mail_scheduled' || a.key.startsWith('treat_') || !!a.taskId);
+        const clickable = !!onAlertClick && (a.key === 'mail_action' || a.key === 'new_mail' || a.key === 'wait_client' || a.key === 'cust_task' || a.key.startsWith('treat_') || !!a.taskId);
         return (
           <span
             key={a.key}
             className={`row-alert tone-${a.tone}${clickable ? ' clickable' : ''}`}
             data-testid={`claim-alert-${a.key}`}
+            title={a.why || a.label}
             onClick={(e) => {
               if (!clickable) return;
               e.stopPropagation();
@@ -1575,6 +1576,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const openCard = async (id: string, tab = 'claim', mailIds?: string[]) => {
     mailFocusRef.current = tab === 'mailfu' ? [] : (mailIds || []);
     fuFocusRef.current = tab === 'mailfu' ? (mailIds || []) : [];
+    if (tab === 'gin' && mailIds?.length) {
+      setMailOpen((p) => {
+        const next = { ...p };
+        for (const mid of mailIds) if (mid) next[mid] = true;
+        return next;
+      });
+    }
     setCurId(id);
     setCardTab(tab);
     setCardMore(false);
@@ -1595,8 +1603,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const openMailAction = (claimId: string, alert?: ClaimAlert) => {
-    if (alert?.taskId) {
+    if (alert?.key?.startsWith('treat_') && alert.taskId) {
       void openTreatCenter(claimId, alert.taskId);
+      return;
+    }
+    if (alert?.key === 'cust_task' || alert?.key === 'wait_client') {
+      void openCard(claimId, 'tasks');
       return;
     }
     if (alert?.key === 'mail_recurring' || alert?.key === 'mail_scheduled') {
@@ -1607,19 +1619,84 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     void openCard(claimId, 'gin', ids);
   };
 
+  const dismissMailTableAlert = async (claimId: string, messageId: string, opts?: { silent?: boolean }) => {
+    if (!claimId || !messageId) return;
+    const rows = [...tasks, ...dashTasks].filter((t) => t.claimId === claimId && t.gmailMessageId === messageId && !isTreatmentItem(t));
+    for (const t of rows) {
+      await apiRef.current.saveTask({ ...t, tableAlert: 'off' });
+    }
+    if (!rows.length) {
+      await apiRef.current.saveTask({
+        claimId,
+        gmailMessageId: messageId,
+        action: 'מייל — תווית טבלה',
+        tableAlert: 'off',
+        done: 'false',
+        source: 'table_label',
+      });
+    }
+    for (const n of notifs.filter((x) => x.claimId === claimId && x.read !== 'true' && String(x.gmail_message_id || x.gmailMessageId || '') === messageId)) {
+      await apiRef.current.markNotificationRead(n.id);
+    }
+    await apiRef.current.logHistory(claimId, 'הוסרה תווית מייל מהטבלה', `msgid ${messageId} · המייל וההיסטוריה נשמרו`, 'mail_label');
+    if (!opts?.silent) toast('התווית הוסרה מהטבלה. המייל נשאר בדואר ובהיסטוריה.');
+    if (curId === claimId) await loadCardData(claimId);
+    await loadAll();
+  };
+
+  const keepMailTableAlert = async (claimId: string, messageId: string) => {
+    const rows = [...tasks, ...dashTasks].filter((t) => t.claimId === claimId && t.gmailMessageId === messageId && !isTreatmentItem(t));
+    for (const t of rows) {
+      if (t.tableAlert === 'keep') continue;
+      await apiRef.current.saveTask({ ...t, tableAlert: 'keep' });
+    }
+    toast('התווית נשארת פעילה בטבלה');
+    if (curId === claimId) await loadCardData(claimId);
+    await loadAll();
+  };
+
+  const continueMailAsTreatment = async (claimId: string, messageId: string, subject: string, body: string, threadId: string) => {
+    const inferred = inferTreatmentRequest(subject || 'טיפול ממייל', body || '');
+    const nextDate = cur?.nextDate || new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const r = await apiRef.current.saveTreatmentUpdate({
+      claimId,
+      action: inferred.label || subject || 'טיפול ממייל',
+      statusChoice: STATUS_UNCHANGED,
+      nextDate,
+      note: subject || '',
+      continueWork: 'continue',
+    });
+    if (!r.success) { toast(String(r.error || 'שמירת הטיפול נכשלה'), 'err'); return; }
+    const treatId = String((r as { treatmentTaskId?: string }).treatmentTaskId || '');
+    if (treatId) {
+      const listed = await apiRef.current.getTasks(claimId);
+      const treat = (listed.data || []).find((t) => t.id === treatId);
+      if (treat) {
+        await apiRef.current.saveTask({
+          ...treat,
+          gmailMessageId: messageId || treat.gmailMessageId || '',
+          gmailThreadId: threadId || treat.gmailThreadId || '',
+        });
+      }
+    }
+    await dismissMailTableAlert(claimId, messageId, { silent: true });
+    toast('המייל קושר לטיפול. התווית נשארת עד סגירת הטיפול.');
+    if (treatId) await openTreatCenter(claimId, treatId);
+  };
+
   useEffect(() => {
     if (modal !== 'moCard' || cardTab !== 'gin') return;
     const ids = mailFocusRef.current;
     if (!ids.length) return;
     const t = window.setTimeout(() => {
+      let first: HTMLElement | null = null;
       for (const mid of ids) {
         const el = document.querySelector(`[data-mail-mid="${mid}"]`) as HTMLElement | null;
-        if (el) {
-          el.classList.add('mail-focus');
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          break;
-        }
+        if (!el) continue;
+        el.classList.add('mail-focus');
+        if (!first) first = el;
       }
+      first?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 250);
     return () => window.clearTimeout(t);
   }, [modal, cardTab, gmailImports, curId]);
@@ -3498,6 +3575,27 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <button type="button" className="btn btn-g btn-sm" onClick={() => { setVal('wa_msg', `שלום, בהמשך לתביעה ${displayClaimNum(cur)}`); setModal('moWA'); }}>WhatsApp</button>
                   </div>
                   <div className="sdiv" data-testid="mail-correspondence"><div className="sdiv-t">התכתבויות ({unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX).length})</div><div className="sdiv-l" /></div>
+                  {(() => {
+                    const openIds = cur ? untreatedMailIds(cur, { ...alertCtx, tasks: [...dashTasks, ...tasks] }) : [];
+                    if (!openIds.length) return null;
+                    return (
+                      <div data-testid="mail-open-alerts" style={{ background: 'rgba(37,99,235,.08)', border: '1px solid var(--bl2, #2563eb)', borderRadius: 7, padding: 8, marginBottom: 10, fontSize: 12 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 4 }}>{openIds.length === 1 ? 'מייל אחד עדיין בתוויות הפעילות' : `${openIds.length} מיילים עדיין בתוויות הפעילות`}</div>
+                        {openIds.map((mid) => {
+                          const im = unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX).find((m) => String(m.gmail_message_id || '') === mid);
+                          return (
+                            <button key={mid} type="button" className="btn btn-g btn-sm" data-testid={`mail-alert-jump-${mid}`} style={{ margin: '2px 4px 2px 0' }} onClick={() => {
+                              mailFocusRef.current = [mid];
+                              const el = document.querySelector(`[data-mail-mid="${mid}"]`) as HTMLElement | null;
+                              el?.classList.add('mail-focus');
+                              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              if (mid) setMailOpen((p) => ({ ...p, [mid]: true }));
+                            }}>{String(im?.subject || mid).slice(0, 48)}</button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                   <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>אותו Thread לפי Message ID / Thread ID. ישן → חדש. החדש פתוח, הישנים מכווצים. Incoming / Outgoing לפי התיבה שלנו. אין ייבוא נוסף מכאן אלא אם תבחר מייל חדש למטה.</div>
                   {unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX).length === 0 ? <div style={{ color: 'var(--t3)' }}>{mailListLoading || gmailBusy ? 'טוען מיילים…' : 'אין מיילים בתיק'}</div>
                     : groupMailThreads(unifyCorrespondence(gmailImports, gmailSends, OWN_MAILBOX)).map((group) => (
@@ -3507,6 +3605,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           const mid = String(im.gmail_message_id || '');
                           const newest = idx === group.mails.length - 1;
                           const expanded = mailOpen[mid] === undefined ? newest : mailOpen[mid];
+                          const mailAlertOn = !!mid && untreatedMailIds(cur, { ...alertCtx, tasks: [...dashTasks, ...tasks] }).includes(mid);
                           const attached = docs.files.filter((f) => f.gmail_message_id && f.gmail_message_id === mid);
                           const photos = attached.filter((f) => isImageFile(f));
                           const rest = attached.filter((f) => !isImageFile(f));
@@ -3522,6 +3621,17 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                               {!expanded ? null : (
                               <div className="mail-open">
                               <div style={{ fontWeight: 800, marginBottom: 6 }}>{String(im.subject || '(ללא נושא)')}</div>
+                              {mailAlertOn ? (
+                                <div className="mail-need" data-testid={`mail-label-actions-${mid || im.id}`} style={{ marginBottom: 8 }}>
+                                  <div style={{ fontSize: 12, fontWeight: 700 }}>תווית פעילה בטבלה — המייל שויך לתיק זה</div>
+                                  <div style={{ fontSize: 11, color: 'var(--t3)', margin: '4px 0 8px' }}>פתיחת המייל לא מסירה את התווית. בחרו מה לעשות. המייל וההיסטוריה נשמרים בכל מקרה.</div>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                    <button type="button" className="btn btn-g btn-sm" data-testid={`mail-label-dismiss-${mid}`} onClick={() => void dismissMailTableAlert(cur.id, mid)}>קראתי — הסר מהתוויות</button>
+                                    <button type="button" className="btn btn-g btn-sm" data-testid={`mail-label-keep-${mid}`} onClick={() => void keepMailTableAlert(cur.id, mid)}>השאר להמשך טיפול</button>
+                                    <button type="button" className="btn btn-p btn-sm" data-testid={`mail-label-treat-${mid}`} onClick={() => void continueMailAsTreatment(cur.id, mid, String(im.subject || ''), String(im.body_text || ''), String(im.gmail_thread_id || ''))}>דורש המשך טיפול</button>
+                                  </div>
+                                </div>
+                              ) : null}
                               {mailShowsTreatment(String(im.from_addr || ''), OWN_MAILBOX, `${im.subject || ''}\n${im.body_text || ''}`) ? (
                                 <div className="mail-need" data-testid={`mail-need-${im.id}`}>
                                   <div className="row-alert tone-need">נדרש טיפול</div>

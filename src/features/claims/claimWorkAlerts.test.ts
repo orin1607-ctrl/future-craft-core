@@ -56,27 +56,56 @@ describe('mailShowsTreatment', () => {
 });
 
 describe('buildClaimRowAlerts', () => {
-  it('shows explicit treatment labels, not a bare icon', () => {
-    const alerts = buildClaimRowAlerts(claim, {
+  it('shows only actionable labels, not diary or umbrella chips', () => {
+    const alerts = buildClaimRowAlerts({ ...claim, nextDate: '2026-09-20' } as ClaimRecord, {
       tasks: [
         { id: 't1', claimId: 'DAL-QA-A', audience: 'customer', customerStatus: 'sent', done: 'false' } as ClaimRecord,
         { id: 't2', claimId: 'DAL-QA-A', gmailMessageId: 'm1', requestKind: 'doc', docState: 'missing', done: 'false' } as ClaimRecord,
       ],
-      notifs: [{ id: 'n1', claimId: 'DAL-QA-A', type: 'gmail_auto', read: 'false' } as ClaimRecord],
+      notifs: [{ id: 'n1', claimId: 'DAL-QA-A', type: 'gmail_auto', read: 'false', gmail_message_id: 'm1' } as ClaimRecord],
       gmailPending: [],
-      scheduledFollowups: [{ claim_id: 'DAL-QA-A', status: 'scheduled' }],
+      scheduledFollowups: [{ claim_id: 'DAL-QA-A', status: 'scheduled', purpose: 'scheduled_send' }],
     });
     const labels = alerts.map((a) => a.label);
     expect(labels).toContain('מייל חדש');
-    expect(labels).not.toContain('נדרש מענה');
-    expect(labels).toContain('חברת הביטוח ביקשה מסמך');
-    expect(labels).toContain('חסר מסמך');
     expect(labels).toContain('ממתין ללקוח');
+    expect(labels).not.toContain('נדרש טיפול');
+    expect(labels).not.toContain('טיפול לפי יומן');
     expect(labels).not.toContain('מייל מתוזמן');
-    expect(labels).toContain('משימה ללקוח');
-    expect(labels).toContain('נדרש טיפול');
-    expect(labels).toContain('מייל חדש');
+    expect(labels).not.toContain('חברת הביטוח ביקשה מסמך');
+    expect(labels).not.toContain('חסר מסמך');
     expect(labels.filter((x) => x === 'מייל חדש').length).toBe(1);
+  });
+
+  it('hides a dismissed mail without treating the mail as done', () => {
+    const ctx = {
+      tasks: [{ id: 't2', claimId: 'DAL-QA-A', gmailMessageId: 'm1', done: 'false', tableAlert: 'off' } as ClaimRecord],
+      notifs: [{ id: 'n1', claimId: 'DAL-QA-A', type: 'gmail_auto', read: 'true', gmail_message_id: 'm1' } as ClaimRecord],
+      gmailPending: [] as Array<Record<string, unknown>>,
+      scheduledFollowups: [],
+    };
+    expect(countUntreatedMails(claim, ctx)).toBe(0);
+    expect(buildClaimRowAlerts(claim, ctx).map((a) => a.label)).not.toContain('מייל חדש');
+  });
+
+  it('does not list a treatment-bound mail as a separate mail label', () => {
+    const alerts = buildClaimRowAlerts(claim, {
+      tasks: [{
+        id: 'TSK-1',
+        claimId: 'DAL-QA-A',
+        treatmentItem: 'true',
+        kind: 'treatment_item',
+        action: 'רישיון נהיגה',
+        gmailMessageId: 'm9',
+        done: 'false',
+        workStatus: 'waiting_reply',
+      } as ClaimRecord],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [],
+    });
+    expect(alerts.map((a) => a.key)).toEqual(['treat_TSK-1']);
+    expect(alerts.some((a) => a.key === 'mail_action')).toBe(false);
   });
 
   it('counts distinct untreated mails 2 → 1 → 0 without treating read as done', () => {
@@ -122,9 +151,10 @@ describe('buildClaimRowAlerts', () => {
     };
     const a = buildClaimRowAlerts(claim, ctx).map((x) => x.label);
     const b = buildClaimRowAlerts(other, ctx).map((x) => x.label);
-    expect(a).toContain('נדרש טיפול');
-    expect(b).not.toContain('נדרש טיפול');
+    expect(a).toContain('משימה ללקוח');
+    expect(b).not.toContain('משימה ללקוח');
     expect(b).not.toContain('מייל חדש');
+    expect(a).not.toContain('נדרש טיפול');
   });
 });
 
@@ -198,16 +228,15 @@ describe('scheduled once mail', () => {
       gmailPending: [],
       scheduledFollowups: [{ id: 'fu1', claim_id: 'DAL-QA-A', status: 'scheduled', mail_kind: 'email_repeat', purpose: 'recurring_send' }],
     }).map((a) => a.label);
-    expect(withRecurring).toContain('מייל מתמשך');
-    expect(withRecurring).not.toContain('מייל מתוזמן');
+    expect(withRecurring).not.toContain('מייל מתמשך');
+    expect(withRecurring).not.toContain('טיפול לפי יומן');
     const withScheduled = buildClaimRowAlerts(claim, {
       tasks: [],
       notifs: [],
       gmailPending: [],
       scheduledFollowups: [{ id: 'fu2', claim_id: 'DAL-QA-A', status: 'scheduled', purpose: 'scheduled_send' }],
     }).map((a) => a.label);
-    expect(withScheduled).toContain('מייל מתוזמן');
-    expect(withScheduled).not.toContain('מייל מתמשך');
+    expect(withScheduled).not.toContain('מייל מתוזמן');
     const none = buildClaimRowAlerts(claim, {
       tasks: [],
       notifs: [],
@@ -217,6 +246,42 @@ describe('scheduled once mail', () => {
     expect(none).not.toContain('מייל מתמשך');
     expect(mailActionLabel(1)).toBe('מייל חדש');
     expect(mailActionLabel(2)).toBe('2 מיילים דורשים טיפול');
+  });
+
+  it('shows no table label when the claim only has a diary nextDate', () => {
+    const alerts = buildClaimRowAlerts({ ...claim, nextDate: '2026-09-20', status: 'בטיפול' } as ClaimRecord, {
+      tasks: [],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [],
+    });
+    expect(alerts).toEqual([]);
+  });
+
+  it('hides a closed treatment and keeps a keep-mail label', () => {
+    const closed = buildClaimRowAlerts(claim, {
+      tasks: [{
+        id: 'TSK-DONE',
+        claimId: 'DAL-QA-A',
+        treatmentItem: 'true',
+        kind: 'treatment_item',
+        action: 'רישיון נהיגה',
+        done: 'true',
+        workStatus: 'done',
+      } as ClaimRecord],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [],
+    });
+    expect(closed.some((a) => a.key.startsWith('treat_'))).toBe(false);
+    const kept = buildClaimRowAlerts(claim, {
+      tasks: [{ id: 't2', claimId: 'DAL-QA-A', gmailMessageId: 'm1', done: 'false', tableAlert: 'keep' } as ClaimRecord],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [],
+    });
+    expect(kept.map((a) => a.key)).toContain('mail_action');
+    expect(kept.find((a) => a.key === 'mail_action')?.why).toContain('מייל חדש');
   });
 
   it('opens a treatment label with the exact task id', () => {

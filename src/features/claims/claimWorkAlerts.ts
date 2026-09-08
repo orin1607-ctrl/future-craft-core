@@ -1,6 +1,6 @@
 /** Claim-row work alerts + customer-request helpers. Reuses existing tasks / followups / notifications. No new tables. */
 
-import { claimNeedsReturn, type ClaimRecord } from './claimsConstants';
+import { type ClaimRecord } from './claimsConstants';
 
 export const CUSTOMER_REQUEST_KINDS: Array<{ key: string; label: string }> = [
   { key: 'send_doc', label: 'לשלוח מסמך' },
@@ -18,7 +18,15 @@ export const CUSTOMER_REQUEST_STATUSES: Array<{ key: string; label: string }> = 
   { key: 'cancelled', label: 'בוטל' },
 ];
 
-export type ClaimAlert = { key: string; label: string; tone: 'need' | 'wait' | 'info'; mailIds?: string[]; count?: number; taskId?: string };
+export type ClaimAlert = { key: string; label: string; tone: 'need' | 'wait' | 'info'; mailIds?: string[]; count?: number; taskId?: string; why?: string };
+
+function isTreatTask(t: { treatmentItem?: string; kind?: string }) {
+  return t.treatmentItem === 'true' || t.kind === 'treatment_item';
+}
+
+export function isMailTableAlertOn(t: { tableAlert?: string; done?: string }) {
+  return t.done !== 'true' && t.tableAlert !== 'off';
+}
 
 export function customerKindLabel(key: string) {
   return CUSTOMER_REQUEST_KINDS.find((x) => x.key === key)?.label || key || 'בקשה ללקוח';
@@ -135,11 +143,19 @@ export function shortStatusNote(s: string, max = 48) {
 }
 
 export function untreatedMailIds(c: ClaimRecord, ctx: AlertContext): string[] {
-  return [...new Set(
+  const dismissed = new Set(
     ctx.tasks
-      .filter((t) => t.claimId === c.id && t.gmailMessageId && t.done !== 'true')
+      .filter((t) => t.claimId === c.id && t.gmailMessageId && t.tableAlert === 'off' && !isTreatTask(t))
       .map((t) => String(t.gmailMessageId)),
-  )];
+  );
+  const fromTasks = ctx.tasks
+    .filter((t) => t.claimId === c.id && t.gmailMessageId && isMailTableAlertOn(t) && !isTreatTask(t))
+    .map((t) => String(t.gmailMessageId));
+  const fromNotifs = ctx.notifs
+    .filter((n) => n.claimId === c.id && n.read !== 'true' && (n.type === 'gmail_auto' || n.type === 'gmail_review'))
+    .map((n) => String(n.gmail_message_id || n.gmailMessageId || ''))
+    .filter(Boolean);
+  return [...new Set([...fromTasks, ...fromNotifs].filter((id) => !dismissed.has(id)))];
 }
 
 export function countUntreatedMails(c: ClaimRecord, ctx: AlertContext): number {
@@ -158,23 +174,16 @@ export function canMarkMailTaskDone(task: { docState?: string }, nextStatus: str
 
 export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAlert[] {
   const out: ClaimAlert[] = [];
-  const add = (key: string, label: string, tone: ClaimAlert['tone'], extra?: Pick<ClaimAlert, 'mailIds' | 'count'>) => {
+  const add = (key: string, label: string, tone: ClaimAlert['tone'], extra?: Pick<ClaimAlert, 'mailIds' | 'count' | 'taskId' | 'why'>) => {
     if (!out.some((x) => x.key === key)) out.push({ key, label, tone, ...extra });
   };
 
   const claimTasks = ctx.tasks.filter((t) => t.claimId === c.id);
-  const unreadMail = ctx.notifs.some((n) => n.claimId === c.id && n.read !== 'true' && (n.type === 'gmail_auto' || n.type === 'gmail_review'));
   const pendingAssigned = ctx.gmailPending.some((p) => String(p.assigned_claim_id || '') === c.id && !p.imported_at);
-  const mailTasks = claimTasks.filter((t) => t.gmailMessageId && t.done !== 'true');
   const untreated = untreatedMailIds(c, ctx);
-  const insurerDoc = mailTasks.some((t) => isDocMailRequest(t.requestKind || '') || t.docState === 'missing' || t.docState === 'needs_review');
-  const missingDoc = claimTasks.some((t) => t.docState === 'missing' && t.done !== 'true');
   const openCust = claimTasks.filter(isOpenCustomerTask);
-  const liveFu = ctx.scheduledFollowups.filter((f) => f.claim_id === c.id && (!f.status || f.status === 'scheduled'));
-  const recurringFu = liveFu.filter(isRecurringMailFollowup);
-  const scheduledOnceFu = liveFu.filter((f) => isScheduledOnceMail(f.purpose));
 
-  const openTreats = claimTasks.filter((t) => (t.treatmentItem === 'true' || t.kind === 'treatment_item') && t.done !== 'true' && t.workStatus !== 'done');
+  const openTreats = claimTasks.filter((t) => isTreatTask(t) && t.done !== 'true' && t.workStatus !== 'done');
   for (const t of openTreats) {
     const name = t.action || 'טיפול';
     const treatLabel = t.replyReceived === 'true'
@@ -187,20 +196,23 @@ export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAle
     add(`treat_${t.id}`, treatLabel, t.replyReceived === 'true' || t.workStatus === 'doc_received' ? 'need' : 'wait', {
       taskId: t.id,
       mailIds: t.gmailMessageId ? [t.gmailMessageId] : undefined,
+      why: `טיפול פתוח שדורש המשך: ${name}`,
     });
   }
-  if (untreated.length) add('mail_action', mailActionLabel(untreated.length), 'need', { mailIds: untreated, count: untreated.length });
-  if (!untreated.length && (unreadMail || pendingAssigned)) add('new_mail', 'מייל חדש', 'need');
-  if (mailTasks.length && !untreated.length) add('need_reply', 'נדרש מענה', 'need', { mailIds: untreated, count: untreated.length });
-  if (insurerDoc && !openTreats.some((t) => t.requestKind === 'doc' || t.docState === 'missing')) add('insurer_doc', 'חברת הביטוח ביקשה מסמך', 'need');
-  if (missingDoc && !openTreats.some((t) => t.docState === 'missing' || t.workStatus === 'waiting_doc')) add('missing_doc', 'חסר מסמך', 'need');
-  if (openCust.some((t) => customerStatusOf(t) === 'sent')) add('wait_client', 'ממתין ללקוח', 'wait');
-  if (recurringFu.length) add('mail_recurring', 'מייל מתמשך', 'info', { mailIds: recurringFu.map((f) => String(f.id || '')).filter(Boolean), count: recurringFu.length });
-  if (scheduledOnceFu.length) add('mail_scheduled', 'מייל מתוזמן', 'info', { mailIds: scheduledOnceFu.map((f) => String(f.id || '')).filter(Boolean), count: scheduledOnceFu.length });
-  if (openCust.length) add('cust_task', 'משימה ללקוח', 'wait');
-
-  if (out.length) add('needs_action', 'נדרש טיפול', 'need');
-  else if (claimNeedsReturn(c)) add('diary', 'טיפול לפי יומן', 'info');
+  if (untreated.length) {
+    add('mail_action', mailActionLabel(untreated.length), 'need', {
+      mailIds: untreated,
+      count: untreated.length,
+      why: untreated.length === 1 ? 'מייל חדש ששויך לתיק ועדיין דורש תשומת לב' : `${untreated.length} מיילים חדשים שעדיין דורשים תשומת לב`,
+    });
+  } else if (pendingAssigned) {
+    add('new_mail', 'מייל חדש', 'need', { why: 'מייל שויך לתיק וממתין לייבוא' });
+  }
+  if (openCust.some((t) => customerStatusOf(t) === 'sent')) {
+    add('wait_client', 'ממתין ללקוח', 'wait', { taskId: openCust.find((t) => customerStatusOf(t) === 'sent')?.id, why: 'משימה פתוחה שנשלחה ללקוח' });
+  } else if (openCust.length) {
+    add('cust_task', 'משימה ללקוח', 'wait', { taskId: openCust[0]?.id, why: 'משימה פתוחה ללקוח' });
+  }
 
   return out;
 }
