@@ -5095,7 +5095,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   <div className="mh-t">מרכז טיפול · {treatmentLabelOf(t)}</div>
                   <button className="mcl" data-testid="treat-center-close" onClick={() => setModal('moCard')}>✕</button>
                 </div>
-                <div className="mb" data-testid="treat-center-body">
+                <div className="mb" data-testid="treat-center-body" data-treat-id={t.id}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 10, marginBottom: 12 }}>
                     {([['לקוח', cur.clientName], ['תביעה', displayClaimNum(cur)], ['נושא', t.action || '—'], ['סטטוס טיפול', treatmentStatusHe(t)], ['עדכון אחרון', t.lastStatusNote || t.note || '—'], ['מה צריך לעשות עכשיו', t.lastStatusNote || t.note || t.action || '—'], ['נפתח', t.createdAt || '—'], ['עודכן', t.updatedAt || t.createdAt || '—'], ['מי כתב', t.updatedBy || t.owner || t.createdBy || cur.assigned_to_name || '—'], ['ממתינים', t.workStatus === 'waiting_doc' ? 'למסמך מהלקוח' : t.workStatus === 'waiting_reply' ? 'לתגובת מייל' : '—']] as Array<[string, string]>).map(([k, v]) => (
                       <div key={k}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{k}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{v || '—'}</div></div>
