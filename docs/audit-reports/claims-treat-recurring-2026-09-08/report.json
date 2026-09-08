@@ -1,0 +1,232 @@
+{
+  "at": "2026-09-08T09:01:47.882Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "mailDispatchModeTouched": false,
+  "gmail3hCronTouched": false,
+  "schemaMigration": false,
+  "newScheduler": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "wantSha": "ab52797",
+  "deployTxt": "deployed_ref=ab52797 feat/incident-alerts-staging",
+  "checks": [
+    {
+      "name": "public-pages-sha",
+      "ok": true,
+      "deployTxt": "deployed_ref=ab52797 feat/incident-alerts-staging",
+      "wantSha": "ab52797"
+    },
+    {
+      "name": "staging-only",
+      "ok": true
+    },
+    {
+      "name": "gmail-3h-untouched",
+      "ok": true,
+      "everyMs": 10800000,
+      "everyHours": 3
+    },
+    {
+      "name": "claim-a-created",
+      "ok": true,
+      "claimA": "DAL-2026-0169"
+    },
+    {
+      "name": "treatment-open",
+      "ok": true,
+      "id": "TSK-1788858120119-AS3O",
+      "n": 1
+    },
+    {
+      "name": "center-open",
+      "ok": true
+    },
+    {
+      "name": "followup-still-separate",
+      "ok": true
+    },
+    {
+      "name": "existing-modal",
+      "ok": true
+    },
+    {
+      "name": "cc-on-recurring",
+      "ok": true
+    },
+    {
+      "name": "no-extra-treatment",
+      "ok": true,
+      "before": 1,
+      "after": 1
+    },
+    {
+      "name": "bound-claim-treatment",
+      "ok": true,
+      "remId": "REM-1788858141239-66d67e",
+      "treat": "TSK-1788858120119-AS3O",
+      "purpose": "recurring_send",
+      "to": "yoni122222@gmail.com"
+    },
+    {
+      "name": "to-allowlisted",
+      "ok": true,
+      "to": "yoni122222@gmail.com"
+    },
+    {
+      "name": "center-shows-active",
+      "ok": true
+    },
+    {
+      "name": "blocked-non-test",
+      "ok": true,
+      "error": "live_send_recipient_not_allowlisted"
+    },
+    {
+      "name": "dispatch-api",
+      "ok": true,
+      "processed": 1,
+      "skipped": 0,
+      "real": true,
+      "sent": [
+        {
+          "job_id": "MJB-1788858141244-057b5b",
+          "claim_id": "DAL-2026-0169",
+          "to": "yoni122222@gmail.com",
+          "subject": "[TEST] מייל מתמשך TEST-TR-A-1788858110762",
+          "gmail_message_id": "1a080427a8dd7a1f"
+        }
+      ]
+    },
+    {
+      "name": "test-sent",
+      "ok": true,
+      "job": "MJB-1788858141244-057b5b",
+      "status": "dry_run_sent",
+      "real": true,
+      "n": 2,
+      "dispatch": {
+        "processed": 1,
+        "real": true
+      }
+    },
+    {
+      "name": "gmail-send-fallback",
+      "ok": true,
+      "detail": "not-needed"
+    },
+    {
+      "name": "history-logged",
+      "ok": true,
+      "n": 6
+    },
+    {
+      "name": "outbox-same-claim",
+      "ok": true,
+      "n": 1
+    },
+    {
+      "name": "thread-id",
+      "ok": true,
+      "threadId": "1a080427a8dd7a1f",
+      "msgid": "1a080427a8dd7a1f"
+    },
+    {
+      "name": "treatment-stamped",
+      "ok": true,
+      "got": "1a080427a8dd7a1f",
+      "want": "1a080427a8dd7a1f",
+      "work": "waiting_reply"
+    },
+    {
+      "name": "last-next-visible",
+      "ok": true,
+      "box": "המנגנון הקיים של מייל חוזר. משויך לטיפול זה בלבד. לא Follow-up ולא מייל מתוזמן חד-פעמי. לא יוצר טיפול נוסף.\nמייל מתמשך · כל יום · פעיל\nלמי\nyoni122222@gmail.com\nנושא\n[TEST] מייל מתמשך TEST-TR-A-1788858110762\nמתי נוצר\n8.9.2026, 9:02:21\nתדירות\nכל יום\nסטטוס\nפעיל\nשליחה אחרונה\n8.9.2026"
+    },
+    {
+      "name": "history-in-center",
+      "ok": true,
+      "box": "המנגנון הקיים של מייל חוזר. משויך לטיפול זה בלבד. לא Follow-up ולא מייל מתוזמן חד-פעמי. לא יוצר טיפול נוסף.\nמייל מתמשך · כל יום · פעיל\nלמי\nyoni122222@gmail.com\nנושא\n[TEST] מייל מתמ"
+    },
+    {
+      "name": "reply-send",
+      "ok": true,
+      "thread": "1a080427a8dd7a1f"
+    },
+    {
+      "name": "reply-bound-same-treat",
+      "ok": true,
+      "thread": "1a080427a8dd7a1f"
+    },
+    {
+      "name": "no-duplicate",
+      "ok": true,
+      "beforeDup": 1,
+      "after": 1
+    },
+    {
+      "name": "other-treatment-created",
+      "ok": true,
+      "id": "TSK-1788858451104-43UW"
+    },
+    {
+      "name": "other-treatment-untouched",
+      "ok": true,
+      "otherList": "המנגנון הקיים של מייל חוזר. משויך לטיפול זה בלבד. לא Follow-up ולא מייל מתוזמן חד-פעמי. לא יוצר טיפול נוסף.\nאין מייל מתמשך לטיפול זה"
+    },
+    {
+      "name": "other-no-box",
+      "ok": true
+    },
+    {
+      "name": "claim-b-created",
+      "ok": true
+    },
+    {
+      "name": "claim-b-treatment",
+      "ok": true
+    },
+    {
+      "name": "no-cross-claim",
+      "ok": true,
+      "bList": "המנגנון הקיים של מייל חוזר. משויך לטיפול זה בלבד. לא Follow-up ולא מייל מתוזמן חד-פעמי. לא יוצר טיפול נוסף.\nאין מייל מתמשך לטיפול זה"
+    },
+    {
+      "name": "no-cross-claim-db",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "stop-cancel",
+      "ok": true,
+      "status": "cancelled"
+    },
+    {
+      "name": "refresh-reopen",
+      "ok": true,
+      "afterReload": "המנגנון הקיים של מייל חוזר. משויך לטיפול זה בלבד. לא Follow-up ולא מייל מתוזמן חד-פעמי. לא יוצר טיפול נוסף.\nמייל מתמשך · כל יום · נעצר / בוטל\nלמי\nyoni122222@gmail.com\nנושא\n[TEST] מייל מתמשך dup TEST-T"
+    },
+    {
+      "name": "still-one-row",
+      "ok": true
+    },
+    {
+      "name": "mobile-recurring-control",
+      "ok": true
+    },
+    {
+      "name": "mobile-followup-untouched",
+      "ok": true
+    },
+    {
+      "name": "followup-not-recurring",
+      "ok": true
+    },
+    {
+      "name": "gmail-3h-after",
+      "ok": true,
+      "everyMs": 10800000
+    }
+  ],
+  "verdict": "PASS",
+  "failed": []
+}
