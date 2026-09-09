@@ -224,6 +224,25 @@ Deno.serve(async (req) => {
         const k = String(f.doc_request_id || "");
         if (k) uploadedByReq.set(k, (uploadedByReq.get(k) || 0) + 1);
       }
+      const { data: taskRows } = await sb.from("claims_tasks").select("id, row_data").eq("claim_id", claimId);
+      const letterByReq = new Map<string, Record<string, unknown>>();
+      for (const t of taskRows || []) {
+        const rd = (t.row_data && typeof t.row_data === "object") ? t.row_data as Record<string, string> : {};
+        if (rd.audience !== "customer") continue;
+        if (rd.done === "true" || rd.customerStatus === "done" || rd.customerStatus === "cancelled") continue;
+        const did = String(rd.docRequestId || "");
+        if (!did) continue;
+        letterByReq.set(did, {
+          title: rd.action || rd.letterSubject || "",
+          date: rd.letterDate || "",
+          to: rd.letterTo || "",
+          subject: rd.letterSubject || "",
+          body: rd.letterBody || rd.requestText || "",
+          needsSignature: rd.needsSignature === "true",
+          kind: rd.customerKind || "",
+          allowUpload: rd.allowUpload !== "false",
+        });
+      }
       return jsonResponse({
         success: true,
         clientName: claim?.client_name || "לקוח",
@@ -238,6 +257,7 @@ Deno.serve(async (req) => {
           uploadedCount: uploadedByReq.get(d.id) || 0,
           allowMultiple: MULTI_DOC_KEYS.has(String(d.doc_key || "")),
           formDownload: false,
+          letter: letterByReq.get(d.id) || null,
         })),
       });
     }
@@ -282,15 +302,24 @@ Deno.serve(async (req) => {
       for (const t of taskRows || []) {
         const rd = (t.row_data && typeof t.row_data === "object") ? t.row_data as Record<string, string> : {};
         if (rd.done === "true") continue;
-        if (rd.treatmentItem !== "true" && rd.kind !== "treatment_item") continue;
-        const matchesType = Boolean(staffType && rd.requestType && rd.requestType === staffType);
-        if (!matchesType) continue;
+        const matchesCustomer = rd.audience === "customer" && (
+          rd.docRequestId === docRequestId
+          || (rd.requestType && staffType && rd.requestType === staffType)
+          || (rd.action && reqRow.label && rd.action === reqRow.label)
+        );
+        const matchesTreat = (rd.treatmentItem === "true" || rd.kind === "treatment_item") && Boolean(staffType && rd.requestType && rd.requestType === staffType);
+        if (!matchesCustomer && !matchesTreat) continue;
         await sb.from("claims_tasks").update({
           row_data: {
             ...rd,
             workStatus: "doc_received",
             docState: "ready",
             readyFileId: fileId,
+            ...(matchesCustomer ? {
+              customerStatus: "received",
+              receivedAt: new Date().toISOString(),
+              done: "false",
+            } : {}),
             updatedAt: new Date().toLocaleString("he-IL"),
           },
         }).eq("id", t.id);

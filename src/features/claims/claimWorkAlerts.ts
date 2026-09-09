@@ -1,19 +1,24 @@
 /** Claim-row work alerts + customer-request helpers. Reuses existing tasks / followups / notifications. No new tables. */
 
 import { type ClaimRecord } from './claimsConstants';
+import { customerTableLabel } from './customerRequestModel';
 
 export const CUSTOMER_REQUEST_KINDS: Array<{ key: string; label: string }> = [
-  { key: 'send_doc', label: 'לשלוח מסמך' },
-  { key: 'complete_form', label: 'להשלים טופס' },
-  { key: 'schedule_surveyor', label: 'לתאם שמאי' },
+  { key: 'send_doc', label: 'בקשת מסמך חסר' },
+  { key: 'complete_form', label: 'השלמת טופס' },
+  { key: 'sign_doc', label: 'חתימה על מסמך' },
+  { key: 'affidavit', label: 'תצהיר' },
+  { key: 'schedule_surveyor', label: 'תיאום שמאי' },
   { key: 'present_car', label: 'להעמיד רכב לבדיקה' },
   { key: 'contact', label: 'ליצור קשר' },
+  { key: 'free', label: 'בקשה חופשית' },
   { key: 'other', label: 'פעולה אחרת' },
 ];
 
 export const CUSTOMER_REQUEST_STATUSES: Array<{ key: string; label: string }> = [
   { key: 'pending', label: 'ממתין' },
   { key: 'sent', label: 'נשלח' },
+  { key: 'received', label: 'התקבל — לבדיקה' },
   { key: 'done', label: 'בוצע' },
   { key: 'cancelled', label: 'בוטל' },
 ];
@@ -46,7 +51,7 @@ export function customerStatusOf(t: ClaimRecord): string {
 export function isOpenCustomerTask(t: ClaimRecord): boolean {
   if (t.audience !== 'customer') return false;
   const st = customerStatusOf(t);
-  return st === 'pending' || st === 'sent';
+  return st === 'pending' || st === 'sent' || st === 'received';
 }
 
 export type MailRequestKind = 'doc' | 'sign' | 'generic' | 'info' | 'reply' | 'update' | 'approve' | 'reject' | 'other';
@@ -224,10 +229,14 @@ export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAle
   } else if (pendingAssigned) {
     add('new_mail', 'מייל חדש', 'need', { why: 'מייל שויך לתיק וממתין לייבוא' });
   }
-  if (openCust.some((t) => customerStatusOf(t) === 'sent')) {
-    add('wait_client', 'ממתין ללקוח', 'wait', { taskId: openCust.find((t) => customerStatusOf(t) === 'sent')?.id, why: 'משימה פתוחה שנשלחה ללקוח' });
-  } else if (openCust.length) {
-    add('cust_task', 'משימה ללקוח', 'wait', { taskId: openCust[0]?.id, why: 'משימה פתוחה ללקוח' });
+  for (const t of openCust) {
+    const label = customerTableLabel(t);
+    if (!label) continue;
+    const st = customerStatusOf(t);
+    add(`cust_${t.id}`, label, st === 'received' ? 'need' : 'wait', {
+      taskId: t.id,
+      why: st === 'received' ? 'הלקוח החזיר — ממתין לאישור ידני' : 'בקשה פתוחה ללקוח',
+    });
   }
 
   return out;
@@ -248,6 +257,7 @@ export function customerTaskHistoryAction(prev: ClaimRecord | null, next: ClaimR
   if (prevSt !== nextSt) {
     const map: Record<string, string> = {
       sent: 'משימה נשלחה',
+      received: 'התקבל מהלקוח — לבדיקה',
       done: 'טיפול הושלם',
       cancelled: 'סטטוס השתנה',
       pending: 'סטטוס השתנה',

@@ -73,7 +73,7 @@ describe('buildClaimRowAlerts', () => {
     });
     const labels = alerts.map((a) => a.label);
     expect(labels).toContain('מייל חדש');
-    expect(labels).toContain('ממתין ללקוח');
+    expect(labels).toContain('ממתין ללקוח — בקשה');
     expect(labels).not.toContain('נדרש טיפול');
     expect(labels).not.toContain('טיפול לפי יומן');
     expect(labels).not.toContain('מייל מתוזמן');
@@ -156,8 +156,8 @@ describe('buildClaimRowAlerts', () => {
     };
     const a = buildClaimRowAlerts(claim, ctx).map((x) => x.label);
     const b = buildClaimRowAlerts(other, ctx).map((x) => x.label);
-    expect(a).toContain('משימה ללקוח');
-    expect(b).not.toContain('משימה ללקוח');
+    expect(a).toContain('ממתין ללקוח — בקשה');
+    expect(b).not.toContain('ממתין ללקוח — בקשה');
     expect(b).not.toContain('מייל חדש');
     expect(a).not.toContain('נדרש טיפול');
   });
@@ -166,6 +166,7 @@ describe('buildClaimRowAlerts', () => {
 describe('customer helpers', () => {
   it('keeps pending customer tasks open', () => {
     expect(isOpenCustomerTask({ id: '1', audience: 'customer', customerStatus: 'pending', done: 'false' } as ClaimRecord)).toBe(true);
+    expect(isOpenCustomerTask({ id: '1', audience: 'customer', customerStatus: 'received', done: 'false' } as ClaimRecord)).toBe(true);
     expect(isOpenCustomerTask({ id: '1', audience: 'customer', customerStatus: 'cancelled', done: 'true' } as ClaimRecord)).toBe(false);
   });
   it('records create vs send history', () => {
