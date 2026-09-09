@@ -1,0 +1,36 @@
+{
+  "at": "2026-09-09T13:41:21.244Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "productionRef": "qasomfndnjuixgjmjwcm",
+  "apply": {
+    "ok": true,
+    "via": "supabase_mgmt_database_query",
+    "status": 201
+  },
+  "verify": {
+    "ok": true,
+    "table": "public.claims_share_links",
+    "columns": [
+      "id", "claim_id", "token_hash", "recipient_name", "recipient_kind",
+      "recipient_kind_note", "recipient_email", "recipient_phone", "file_ids",
+      "expires_at", "revoked_at", "created_by", "created_by_name", "created_at",
+      "opened_at", "last_download_at", "open_count"
+    ],
+    "rawTokenColumn": false,
+    "tokenColumnExists": false,
+    "tokenColumnError": "column claims_share_links.token does not exist",
+    "rlsEnabled": true,
+    "policy": "claims_share_links_all FOR ALL TO authenticated USING/WITH CHECK claims_can_work_claim(claim_id)",
+    "anonRevoked": true,
+    "claimsDocsBucket": "claims-docs",
+    "claimsDocsPublic": false,
+    "newBucket": false
+  },
+  "edgeDeploy": {
+    "ok": true,
+    "projectRef": "usfeoerkpcafxxlyuldl",
+    "function": "claims-docs",
+    "sha": "ad7e9f9597087a8ad9a72c0b6ed929dad80df2b8"
+  }
+}

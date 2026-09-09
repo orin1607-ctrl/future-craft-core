@@ -27,17 +27,22 @@ export default function ClaimsSharePage() {
 
   const load = async () => {
     if (!token) { setError('קישור לא תקין'); setLoading(false); return; }
-    const r = await call('public_share_get');
-    if (!r.ok || r.json.success === false) {
-      const e = String(r.json.error || '');
-      setError(e === 'expired' ? 'הקישור פג תוקף' : e === 'revoked' ? 'הקישור בוטל' : 'קישור לא תקין');
+    try {
+      const r = await call('public_share_get');
+      if (!r.ok || r.json.success === false) {
+        const e = String(r.json.error || '');
+        setError(e === 'expired' ? 'הקישור פג תוקף' : e === 'revoked' ? 'הקישור בוטל' : 'קישור לא תקין');
+        setLoading(false);
+        return;
+      }
+      setExpiresAt(String(r.json.expiresAt || ''));
+      setFiles(r.json.files || []);
+      setPicked((r.json.files || []).map((f: ShareFile) => f.id));
       setLoading(false);
-      return;
+    } catch {
+      setError('קישור לא תקין');
+      setLoading(false);
     }
-    setExpiresAt(String(r.json.expiresAt || ''));
-    setFiles(r.json.files || []);
-    setPicked((r.json.files || []).map((f: ShareFile) => f.id));
-    setLoading(false);
   };
 
   useEffect(() => {

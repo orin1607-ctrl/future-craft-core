@@ -1,0 +1,392 @@
+{
+  "at": "2026-09-09T13:47:24.467Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "claimsDocsPrivate": true,
+  "rawTokenInDb": false,
+  "crossClaimLeakage": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "checks": [
+    {
+      "name": "worker-login",
+      "ok": true
+    },
+    {
+      "name": "staging-only",
+      "ok": true,
+      "ref": "usfeoerkpcafxxlyuldl"
+    },
+    {
+      "name": "create-DAL-QA-SHR-A-1788961644864",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-SHR-B-1788961644864",
+      "ok": true
+    },
+    {
+      "name": "upload-selected",
+      "ok": true,
+      "id": "CDM-1788961648931-I5LRFB"
+    },
+    {
+      "name": "upload-unselected",
+      "ok": true,
+      "id": "CDM-1788961654706-J16FGM"
+    },
+    {
+      "name": "upload-photo",
+      "ok": true,
+      "id": "CDM-1788961660114-GA2IOI"
+    },
+    {
+      "name": "upload-other-claim",
+      "ok": true,
+      "id": "CDM-1788961663384-2CLVYZ"
+    },
+    {
+      "name": "create-foreign-file-blocked",
+      "ok": true,
+      "status": 403,
+      "err": "BLOCKED"
+    },
+    {
+      "name": "create-share-once-token",
+      "ok": true,
+      "id": "SHR-1788961670472-G9KLLX",
+      "tokenLen": 64
+    },
+    {
+      "name": "default-ttl-48h",
+      "ok": true,
+      "expiresAt": "2026-09-11T13:47:50.472Z"
+    },
+    {
+      "name": "list-shares-no-token",
+      "ok": true,
+      "keys": [
+        "id",
+        "recipient_name",
+        "recipient_kind",
+        "recipient_kind_note",
+        "recipient_email",
+        "recipient_phone",
+        "file_ids",
+        "file_names",
+        "expires_at",
+        "revoked_at",
+        "created_by_name",
+        "created_at",
+        "opened_at",
+        "last_download_at",
+        "open_count",
+        "status"
+      ]
+    },
+    {
+      "name": "list-shares-same-claim-only",
+      "ok": true
+    },
+    {
+      "name": "reveal-share-disabled",
+      "ok": true,
+      "err": "reveal_share_disabled"
+    },
+    {
+      "name": "selected-file-pass",
+      "ok": true,
+      "ids": [
+        "CDM-1788961648931-I5LRFB",
+        "CDM-1788961660114-GA2IOI"
+      ]
+    },
+    {
+      "name": "unselected-file-absent",
+      "ok": true,
+      "ids": [
+        "CDM-1788961648931-I5LRFB",
+        "CDM-1788961660114-GA2IOI"
+      ]
+    },
+    {
+      "name": "public-no-claim-id",
+      "ok": true
+    },
+    {
+      "name": "refresh-reopen-active",
+      "ok": true
+    },
+    {
+      "name": "download-individual",
+      "ok": true,
+      "ttl": 600
+    },
+    {
+      "name": "unselected-file-blocked",
+      "ok": true,
+      "status": 403,
+      "err": "BLOCKED"
+    },
+    {
+      "name": "other-claim-file-blocked",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "other-claim-hint-blocked",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "tamper-file-id-blocked",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "tamper-token-blocked",
+      "ok": true,
+      "status": 404,
+      "err": "not_found"
+    },
+    {
+      "name": "download-all-zip",
+      "ok": true,
+      "names": [
+        "docs/share-keep-1788961644864.pdf",
+        "photos/share-photo-1788961644864.jpg"
+      ]
+    },
+    {
+      "name": "zip-only-allowlisted",
+      "ok": true,
+      "names": [
+        "docs/share-keep-1788961644864.pdf",
+        "photos/share-photo-1788961644864.jpg"
+      ]
+    },
+    {
+      "name": "zip-inject-unselected-blocked",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "zip-selected-only",
+      "ok": true,
+      "names": [
+        "docs/share-keep-1788961644864.pdf"
+      ]
+    },
+    {
+      "name": "bundle-pdf-extra",
+      "ok": true,
+      "status": 200,
+      "ct": "application/pdf"
+    },
+    {
+      "name": "bundle-does-not-replace-originals",
+      "ok": true
+    },
+    {
+      "name": "second-share-same-claim",
+      "ok": true,
+      "id": "SHR-1788961702154-GIAYHW"
+    },
+    {
+      "name": "shares-do-not-revoke-each-other",
+      "ok": true,
+      "first": [
+        "CDM-1788961648931-I5LRFB",
+        "CDM-1788961660114-GA2IOI"
+      ],
+      "second": [
+        "CDM-1788961654706-J16FGM"
+      ]
+    },
+    {
+      "name": "second-share-own-allowlist",
+      "ok": true
+    },
+    {
+      "name": "no-cross-share-leakage",
+      "ok": true
+    },
+    {
+      "name": "no-cross-claim-list",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "revoke-ok",
+      "ok": true
+    },
+    {
+      "name": "revoke-blocks-immediately",
+      "ok": true,
+      "status": 410
+    },
+    {
+      "name": "revoke-blocks-download",
+      "ok": true
+    },
+    {
+      "name": "revoke-blocks-zip",
+      "ok": true
+    },
+    {
+      "name": "revoke-one-keeps-other",
+      "ok": true
+    },
+    {
+      "name": "service-role-staging",
+      "ok": true,
+      "haveAdmin": true
+    },
+    {
+      "name": "db-token-hash-only",
+      "ok": true,
+      "colNames": [
+        "id",
+        "claim_id",
+        "token_hash",
+        "recipient_name",
+        "recipient_kind",
+        "recipient_kind_note",
+        "recipient_email",
+        "recipient_phone",
+        "file_ids",
+        "expires_at",
+        "revoked_at",
+        "created_by",
+        "created_by_name",
+        "created_at",
+        "opened_at",
+        "last_download_at",
+        "open_count"
+      ],
+      "hashPrefix": "d82780eb8950"
+    },
+    {
+      "name": "db-no-raw-token-column",
+      "ok": true,
+      "colNames": [
+        "id",
+        "claim_id",
+        "token_hash",
+        "recipient_name",
+        "recipient_kind",
+        "recipient_kind_note",
+        "recipient_email",
+        "recipient_phone",
+        "file_ids",
+        "expires_at",
+        "revoked_at",
+        "created_by",
+        "created_by_name",
+        "created_at",
+        "opened_at",
+        "last_download_at",
+        "open_count"
+      ]
+    },
+    {
+      "name": "no-new-bucket",
+      "ok": true,
+      "names": [
+        "coco-media",
+        "documents",
+        "telemarketing-recordings",
+        "claims-docs"
+      ]
+    },
+    {
+      "name": "claims-docs-private",
+      "ok": true,
+      "public": false
+    },
+    {
+      "name": "expiry-blocked",
+      "ok": true,
+      "status": 410
+    },
+    {
+      "name": "expiry-blocks-download",
+      "ok": true
+    },
+    {
+      "name": "ui-base-ready",
+      "ok": true,
+      "pagesShare": 404,
+      "localShare": 200,
+      "uiBase": "http://127.0.0.1:4173"
+    },
+    {
+      "name": "desktop-public-page",
+      "ok": true
+    },
+    {
+      "name": "desktop-has-zip",
+      "ok": true
+    },
+    {
+      "name": "desktop-has-pdf",
+      "ok": true
+    },
+    {
+      "name": "desktop-no-upload",
+      "ok": true
+    },
+    {
+      "name": "desktop-no-internal-nav",
+      "ok": true
+    },
+    {
+      "name": "desktop-download-btn",
+      "ok": true
+    },
+    {
+      "name": "mobile-public-page",
+      "ok": true
+    },
+    {
+      "name": "mobile-has-zip",
+      "ok": true
+    },
+    {
+      "name": "mobile-has-pdf",
+      "ok": true
+    },
+    {
+      "name": "mobile-no-upload",
+      "ok": true
+    },
+    {
+      "name": "mobile-no-internal-nav",
+      "ok": true
+    },
+    {
+      "name": "mobile-download-btn",
+      "ok": true
+    },
+    {
+      "name": "staff-share-button",
+      "ok": true
+    },
+    {
+      "name": "staff-share-history",
+      "ok": true
+    },
+    {
+      "name": "no-cross-claim-leakage",
+      "ok": true,
+      "failed": []
+    },
+    {
+      "name": "soft-delete-test-claims",
+      "ok": true,
+      "idA": "DAL-QA-SHR-A-1788961644864",
+      "idB": "DAL-QA-SHR-B-1788961644864"
+    }
+  ],
+  "verdict": "PASS",
+  "failed": []
+}

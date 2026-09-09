@@ -369,9 +369,14 @@ if (!process.env.CLAIMS_QA_API_ONLY) {
         if (await row.count()) {
           await row.click();
           await staffPage.locator('.claims-root .tab').filter({ hasText: 'מסמכים' }).click().catch(() => null);
-          await staffPage.waitForTimeout(800);
+          await staffPage.waitForSelector('[data-testid="share-history-panel"]', { timeout: 15000 }).catch(() => null);
+          await staffPage.waitForFunction(() => {
+            const t = document.querySelector('[data-testid="share-history-panel"]')?.textContent || '';
+            return /שמאי|פעיל|active|surveyor|קבצים/.test(t);
+          }, null, { timeout: 20000 }).catch(() => null);
           rec('staff-share-button', await staffPage.locator('[data-testid="claims-secure-share"]').count() > 0);
-          rec('staff-share-history', await staffPage.locator('[data-testid="share-history-panel"]').count() > 0);
+          const histText = await staffPage.locator('[data-testid="share-history-panel"]').innerText().catch(() => '');
+          rec('staff-share-history', /שמאי|קבצים|פעיל|active/.test(histText), { hist: histText.replace(/\s+/g, ' ').slice(0, 180) });
           const histPath = join(OUT, 'screenshots', 'staff-docs-share.png');
           await staffPage.screenshot({ path: histPath, fullPage: false });
           try { copyFileSync(histPath, join('/opt/cursor/artifacts', 'share-staff-docs.png')); } catch { /* skip */ }
