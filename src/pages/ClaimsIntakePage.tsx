@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ClaimAccidentForm from '@/features/claims/ClaimAccidentForm';
+import SignaturePad from '@/features/claims/SignaturePad';
 import { EMPTY_INTAKE, customerSteps, type IntakeDraft } from '@/features/claims/claimIntakeModel';
-import { buildSignedOpeningFormPdf, fileToBase64 } from '@/features/claims/signedClaimPdf';
+import { buildFreeTextSignPdf, buildSignedOpeningFormPdf, fileToBase64 } from '@/features/claims/signedClaimPdf';
 import '@/features/claims/claims-intake.css';
 
 const FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-intake`;
@@ -19,6 +20,7 @@ export default function ClaimsIntakePage() {
   const [sig, setSig] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [signDoc, setSignDoc] = useState<{ title?: string; body?: string; previewUrl?: string } | null>(null);
   const saveTimer = useRef<number | null>(null);
   const submitting = useRef(false);
 
@@ -42,6 +44,12 @@ export default function ClaimsIntakePage() {
         return;
       }
       if (r.json.submitted) { setDone(true); setLoading(false); return; }
+      if (r.json.purpose === 'sign_document' && r.json.signDocument && typeof r.json.signDocument === 'object') {
+        document.title = 'חתימה על מסמך';
+        setSignDoc(r.json.signDocument as { title?: string; body?: string; previewUrl?: string });
+        setLoading(false);
+        return;
+      }
       const serverDraft = (r.json.draft && typeof r.json.draft === 'object') ? r.json.draft as IntakeDraft : {};
       const local = cached ? JSON.parse(cached) as IntakeDraft : {};
       const merged: IntakeDraft = { ...EMPTY_INTAKE, ...serverDraft };
@@ -108,6 +116,34 @@ export default function ClaimsIntakePage() {
     setMsg(r.json?.error === 'already_used' ? 'הדיווח כבר נשלח' : String(r.json?.error || 'השליחה נכשלה'));
   };
 
+  const submitSign = async () => {
+    if (submitting.current || busy) return;
+    if (!sig) { setMsg('יש לחתום לפני השליחה'); return; }
+    submitting.current = true;
+    setBusy(true);
+    setMsg('');
+    try {
+      const pdf = await buildFreeTextSignPdf({
+        title: signDoc?.title || 'מסמך לחתימה',
+        body: signDoc?.body || (signDoc?.title ? `אני מאשר/ת שקראתי וחתמתי על המסמך: ${signDoc.title}` : 'אני מאשר/ת את המסמך.'),
+        signaturePng: sig,
+      });
+      const signedPdf = await fileToBase64(pdf);
+      const r = await call('public_submit', { signature: sig, signed_pdf_base64: signedPdf, purpose: 'sign_document' });
+      setBusy(false);
+      if (r.json?.submitted) {
+        setDone(true);
+        return;
+      }
+      submitting.current = false;
+      setMsg(String(r.json?.error || 'השליחה נכשלה'));
+    } catch {
+      submitting.current = false;
+      setBusy(false);
+      setMsg('יצירת ה-PDF החתום נכשלה.');
+    }
+  };
+
   if (loading) return <div className="intake-page" dir="rtl">טוען…</div>;
   if (error) return (
     <div className="intake-page" dir="rtl">
@@ -120,11 +156,40 @@ export default function ClaimsIntakePage() {
     <div className="intake-page" dir="rtl" data-testid="intake-success">
       <div className="intake-brand"><div className="intake-mark">ד</div><div><div className="intake-brand-t">דליה</div><div className="intake-brand-s">ניהול תביעות</div></div></div>
       <div className="intake-card">
-        <h1 className="intake-ok">הדיווח התקבל בהצלחה</h1>
+        <h1 className="intake-ok">{signDoc ? 'החתימה התקבלה בהצלחה' : 'הדיווח התקבל בהצלחה'}</h1>
         <p className="intake-lead">תודה. הצוות ימשיך את הטיפול בתיק.</p>
       </div>
     </div>
   );
+
+  if (signDoc) {
+    return (
+      <div className="intake-page" dir="rtl" data-testid="intake-sign-doc">
+        <div className="intake-brand">
+          <div className="intake-mark">ד</div>
+          <div>
+            <div className="intake-brand-t">דליה</div>
+            <div className="intake-brand-s">ניהול תביעות</div>
+          </div>
+        </div>
+        <h1>{signDoc.title || 'חתימה על מסמך'}</h1>
+        <p className="intake-lead">קראו את המסמך וחתמו למטה. המסמך החתום יישמר בתיק.</p>
+        <div className="intake-card">
+          {signDoc.previewUrl ? (
+            <iframe title="מסמך לחתימה" src={signDoc.previewUrl} style={{ width: '100%', minHeight: 360, border: '1px solid #e2e8f0', borderRadius: 8 }} />
+          ) : null}
+          {signDoc.body ? <div style={{ whiteSpace: 'pre-wrap', marginTop: 12 }}>{signDoc.body}</div> : null}
+          <div style={{ marginTop: 16 }}>
+            <SignaturePad onChange={setSig} />
+          </div>
+        </div>
+        {msg ? <div className="intake-err">{msg}</div> : null}
+        <div className="intake-nav">
+          <button type="button" className="btn btn-p" data-testid="intake-sign-submit" disabled={busy} onClick={() => void submitSign()}>{busy ? 'שולח…' : 'שלח חתימה'}</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="intake-page" dir="rtl">

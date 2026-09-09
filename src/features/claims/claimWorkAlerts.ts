@@ -1,8 +1,12 @@
 /** Claim-row work alerts + customer-request helpers. Reuses existing tasks / followups / notifications. No new tables. */
 
 import { type ClaimRecord } from './claimsConstants';
+import { customerRequestTableLabel, isRequestCenterTask, showsCustomerRequestLabel } from './customerRequestCenter';
 
 export const CUSTOMER_REQUEST_KINDS: Array<{ key: string; label: string }> = [
+  { key: 'ask_document', label: 'בקשת מסמך / תמונה' },
+  { key: 'ask_info', label: 'בקשת מידע / עדכון' },
+  { key: 'ask_signature', label: 'שליחת מסמך לחתימה' },
   { key: 'send_doc', label: 'לשלוח מסמך' },
   { key: 'complete_form', label: 'להשלים טופס' },
   { key: 'schedule_surveyor', label: 'לתאם שמאי' },
@@ -14,6 +18,9 @@ export const CUSTOMER_REQUEST_KINDS: Array<{ key: string; label: string }> = [
 export const CUSTOMER_REQUEST_STATUSES: Array<{ key: string; label: string }> = [
   { key: 'pending', label: 'ממתין' },
   { key: 'sent', label: 'נשלח' },
+  { key: 'awaiting_signature', label: 'ממתין לחתימה' },
+  { key: 'received_pending_review', label: 'התקבל — ממתין לבדיקה' },
+  { key: 'reask', label: 'בקש שוב' },
   { key: 'done', label: 'בוצע' },
   { key: 'cancelled', label: 'בוטל' },
 ];
@@ -46,7 +53,7 @@ export function customerStatusOf(t: ClaimRecord): string {
 export function isOpenCustomerTask(t: ClaimRecord): boolean {
   if (t.audience !== 'customer') return false;
   const st = customerStatusOf(t);
-  return st === 'pending' || st === 'sent';
+  return st === 'pending' || st === 'sent' || st === 'received_pending_review' || st === 'awaiting_signature' || st === 'reask';
 }
 
 export type MailRequestKind = 'doc' | 'sign' | 'generic' | 'info' | 'reply' | 'update' | 'approve' | 'reject' | 'other';
@@ -182,8 +189,9 @@ export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAle
   const pendingAssigned = ctx.gmailPending.some((p) => String(p.assigned_claim_id || '') === c.id && !p.imported_at);
   const untreated = untreatedMailIds(c, ctx);
   const openCust = claimTasks.filter(isOpenCustomerTask);
+  const labeledRequests = claimTasks.filter(showsCustomerRequestLabel);
 
-  const openTreats = claimTasks.filter((t) => isTreatTask(t) && t.done !== 'true' && t.workStatus !== 'done');
+  const openTreats = claimTasks.filter((t) => isTreatTask(t) && t.done !== 'true' && t.workStatus !== 'done' && !isRequestCenterTask(t));
   for (const t of openTreats) {
     const name = t.action || 'טיפול';
     const treatLabel = (t.lastStatusNote || t.note)
@@ -210,10 +218,17 @@ export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAle
   } else if (pendingAssigned) {
     add('new_mail', 'מייל חדש', 'need', { why: 'מייל שויך לתיק וממתין לייבוא' });
   }
-  if (openCust.some((t) => customerStatusOf(t) === 'sent')) {
-    add('wait_client', 'ממתין ללקוח', 'wait', { taskId: openCust.find((t) => customerStatusOf(t) === 'sent')?.id, why: 'משימה פתוחה שנשלחה ללקוח' });
-  } else if (openCust.length) {
-    add('cust_task', 'משימה ללקוח', 'wait', { taskId: openCust[0]?.id, why: 'משימה פתוחה ללקוח' });
+  for (const t of labeledRequests) {
+    add(`custreq_${t.id}`, customerRequestTableLabel(t), customerStatusOf(t) === 'received_pending_review' ? 'need' : 'wait', {
+      taskId: t.id,
+      why: `${customerRequestTableLabel(t)}${t.dueDate ? ` · יעד ${t.dueDate}` : ''}`,
+    });
+  }
+  const legacyCust = openCust.filter((t) => !isRequestCenterTask(t));
+  if (legacyCust.some((t) => customerStatusOf(t) === 'sent')) {
+    add('wait_client', 'ממתין ללקוח', 'wait', { taskId: legacyCust.find((t) => customerStatusOf(t) === 'sent')?.id, why: 'משימה פתוחה שנשלחה ללקוח' });
+  } else if (legacyCust.length) {
+    add('cust_task', 'משימה ללקוח', 'wait', { taskId: legacyCust[0]?.id, why: 'משימה פתוחה ללקוח' });
   }
 
   return out;
@@ -234,6 +249,9 @@ export function customerTaskHistoryAction(prev: ClaimRecord | null, next: ClaimR
   if (prevSt !== nextSt) {
     const map: Record<string, string> = {
       sent: 'משימה נשלחה',
+      awaiting_signature: 'מסמך נשלח לחתימה',
+      received_pending_review: 'התקבל — ממתין לבדיקה',
+      reask: 'בקשה נשלחה שוב',
       done: 'טיפול הושלם',
       cancelled: 'סטטוס השתנה',
       pending: 'סטטוס השתנה',

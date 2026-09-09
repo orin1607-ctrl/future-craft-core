@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CLOSE_REASONS, STATUS_MANUAL, STATUS_UNCHANGED, TEMPLATES, isClosedStatus, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { customerStatusOf, customerTaskHistoryAction } from './claimWorkAlerts';
 import { inferTreatmentRequest } from './treatmentCenter';
+import { SIGN_TEMPLATES_CONFIG_KEY, parseSignTemplates, serializeSignTemplates, type SignTemplate } from './customerRequestCenter';
 
 export type MailJobRow = {
   id: string;
@@ -893,6 +894,22 @@ export function createClaimsApi(actor: ClaimsActor) {
 
     async getTemplates() {
       return { success: true, data: TEMPLATES };
+    },
+
+    async getSignTemplates(): Promise<{ success: boolean; data: SignTemplate[]; error?: string }> {
+      const { data, error } = await tbl('claims_config').select('key, value').eq('key', SIGN_TEMPLATES_CONFIG_KEY).maybeSingle();
+      if (error) return { success: false, data: [], error: error.message };
+      return { success: true, data: parseSignTemplates((data as { value?: string } | null)?.value) };
+    },
+
+    async saveSignTemplates(list: SignTemplate[]): Promise<{ success: boolean; error?: string }> {
+      const { error } = await tbl('claims_config').upsert({
+        key: SIGN_TEMPLATES_CONFIG_KEY,
+        value: serializeSignTemplates(list),
+        updated_at: new Date().toISOString(),
+      } as never);
+      if (error) return { success: false, error: error.message };
+      return { success: true };
     },
 
     async fillTemplate(templateKey: string, claimData: Record<string, string>) {

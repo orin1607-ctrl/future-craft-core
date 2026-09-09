@@ -151,33 +151,75 @@ async function storeSignedOpeningPdf(
   claimId: string,
   linkId: string,
   pdfB64: string,
-): Promise<{ ok: boolean; reused?: boolean; error?: string }> {
+  opts?: { originalName?: string; staffType?: string; staffTitle?: string; pathName?: string },
+): Promise<{ ok: boolean; reused?: boolean; fileId?: string; error?: string }> {
   const pdf = decodePdfBase64(pdfB64);
   if (!pdf) return { ok: false, error: "signed_pdf_required" };
   const digest = await sha256HexBytes(pdf);
   const { data: existing } = await sb.from("claims_documents").select("id").eq("claim_id", claimId).eq("content_sha256", digest).maybeSingle();
-  if (existing?.id) return { ok: true, reused: true };
-  const pdfPath = `intake/${linkId}/signed-opening-form.pdf`;
+  if (existing?.id) return { ok: true, reused: true, fileId: existing.id };
+  const pdfPath = `intake/${linkId}/${opts?.pathName || "signed-opening-form.pdf"}`;
   const { error: upErr } = await sb.storage.from(BUCKET).upload(pdfPath, pdf, {
     contentType: "application/pdf",
     upsert: true,
   });
   if (upErr) return { ok: false, error: "signed_pdf_store_failed" };
+  const fileId = nid("CDM");
   const { error: insErr } = await sb.from("claims_documents").insert({
-    id: nid("CDM"),
+    id: fileId,
     claim_id: claimId,
     storage_path: pdfPath,
-    original_name: "טופס פתיחת תביעה חתום.pdf",
+    original_name: opts?.originalName || "טופס פתיחת תביעה חתום.pdf",
     mime_type: "application/pdf",
     byte_size: pdf.byteLength,
     source: "customer",
     uploaded_by_name: "Customer Accident Intake",
     doc_kind: "general",
-    doc_meta: { staff_type: "accident_notice", staff_title: "טופס פתיחת תביעה חתום" },
+    doc_meta: {
+      staff_type: opts?.staffType || "accident_notice",
+      staff_title: opts?.staffTitle || "טופס פתיחת תביעה חתום",
+    },
     content_sha256: digest,
   });
   if (insErr) return { ok: false, error: "signed_pdf_record_failed" };
-  return { ok: true };
+  return { ok: true, fileId };
+}
+
+function signMetaFromDraft(raw: unknown) {
+  const src = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+  if (String(src.purpose || "") !== "sign_document") return null;
+  return {
+    purpose: "sign_document" as const,
+    signDocumentId: String(src.signDocumentId || "").slice(0, 80),
+    signDocumentTitle: String(src.signDocumentTitle || "").slice(0, 180),
+    customerTaskId: String(src.customerTaskId || "").slice(0, 80),
+    signBody: String(src.signBody || "").slice(0, 8000),
+  };
+}
+
+async function markCustomerRequestSigned(
+  sb: ReturnType<typeof admin>,
+  claimId: string,
+  taskId: string,
+  fileId: string,
+  signedAt: string,
+) {
+  if (!taskId || !claimId) return;
+  const { data: task } = await sb.from("claims_tasks").select("id, row_data").eq("id", taskId).eq("claim_id", claimId).maybeSingle();
+  if (!task) return;
+  const rd = (task.row_data && typeof task.row_data === "object") ? task.row_data as Record<string, string> : {};
+  const linked = String(rd.linkedDocIds || "").split(/[,;]/).map((x) => x.trim()).filter(Boolean);
+  if (fileId && !linked.includes(fileId)) linked.push(fileId);
+  await sb.from("claims_tasks").update({
+    row_data: {
+      ...rd,
+      customerStatus: "received_pending_review",
+      signedFileId: fileId || rd.signedFileId || "",
+      signedAt,
+      linkedDocIds: linked.join(","),
+      done: "false",
+    },
+  }).eq("id", taskId);
 }
 
 function draftFromClaimRow(claim: { plate?: string | null; client_name?: string | null; row_data?: unknown }) {
@@ -250,14 +292,45 @@ Deno.serve(async (req) => {
           message: "הדיווח התקבל בהצלחה",
         });
       }
+      const signMeta = signMetaFromDraft(row.draft);
+      let signDocument: Record<string, string> | null = null;
+      if (signMeta && row.claim_id) {
+        let previewUrl = "";
+        if (signMeta.signDocumentId) {
+          const { data: file } = await sb.from("claims_documents")
+            .select("storage_path")
+            .eq("id", signMeta.signDocumentId)
+            .eq("claim_id", row.claim_id)
+            .maybeSingle();
+          if (file?.storage_path) {
+            const signed = await sb.storage.from(BUCKET).createSignedUrl(String(file.storage_path), 600);
+            previewUrl = signed.data?.signedUrl || "";
+          }
+        }
+        signDocument = {
+          title: signMeta.signDocumentTitle,
+          body: signMeta.signBody,
+          fileId: signMeta.signDocumentId,
+          previewUrl,
+          taskId: signMeta.customerTaskId,
+        };
+      }
       if (row.status === "submitting") {
-        return jsonResponse({ success: true, submitting: true, draft: sanitizeDraft(row.draft) });
+        return jsonResponse({
+          success: true,
+          submitting: true,
+          draft: sanitizeDraft(row.draft),
+          purpose: signMeta?.purpose || "",
+          signDocument,
+        });
       }
       return jsonResponse({
         success: true,
         submitted: false,
         expiresAt: row.expires_at,
         draft: sanitizeDraft(row.draft),
+        purpose: signMeta?.purpose || "",
+        signDocument,
       });
     }
 
@@ -265,7 +338,8 @@ Deno.serve(async (req) => {
       if (row.status !== "pending") {
         return jsonResponse({ success: false, error: "already_used" }, 409);
       }
-      const draft = sanitizeDraft(body.draft);
+      const prevMeta = signMetaFromDraft(row.draft);
+      const draft = prevMeta ? { ...sanitizeDraft(body.draft), ...prevMeta } : sanitizeDraft(body.draft);
       const packed = JSON.stringify(draft);
       if (packed.length > DRAFT_MAX) return jsonResponse({ success: false, error: "draft_too_large" }, 400);
       await sb.from("claims_intake_links").update({
@@ -284,6 +358,68 @@ Deno.serve(async (req) => {
         if (Number.isFinite(age) && age < 120_000) {
           return jsonResponse({ success: false, error: "submit_in_progress" }, 409);
         }
+      }
+      const signMeta = signMetaFromDraft(row.draft) || signMetaFromDraft(body);
+      if (signMeta) {
+        const boundClaimId = String(row.claim_id || "").trim();
+        if (!boundClaimId) return jsonResponse({ success: false, error: "bound_claim_missing" }, 400);
+        const png = decodePng(String(body.signature || ""));
+        if (!png) return jsonResponse({ success: false, error: "signature_required" }, 400);
+        const pdfBytes = decodePdfBase64(String(body.signed_pdf_base64 || ""));
+        if (!pdfBytes) return jsonResponse({ success: false, error: "signed_pdf_required" }, 400);
+        const { data: locked } = await sb.from("claims_intake_links")
+          .update({ status: "submitting", updated_at: new Date().toISOString() })
+          .eq("id", row.id)
+          .in("status", ["pending", "submitting"])
+          .select("id, claim_id, status")
+          .maybeSingle();
+        if (!locked) {
+          const { data: raced } = await sb.from("claims_intake_links").select("status, claim_id").eq("id", row.id).maybeSingle();
+          if (raced?.status === "submitted" && raced?.claim_id) return jsonResponse({ success: true, submitted: true, already: true });
+          return jsonResponse({ success: false, error: "submit_in_progress" }, 409);
+        }
+        const sigPath = `intake/${row.id}/signature.png`;
+        const { error: upErr } = await sb.storage.from(BUCKET).upload(sigPath, png, {
+          contentType: "image/png",
+          upsert: true,
+        });
+        if (upErr) {
+          await sb.from("claims_intake_links").update({ status: "pending" }).eq("id", row.id);
+          return jsonResponse({ success: false, error: "signature_store_failed" }, 400);
+        }
+        const signedAt = new Date().toISOString();
+        const title = signMeta.signDocumentTitle || "מסמך חתום";
+        const stored = await storeSignedOpeningPdf(sb, boundClaimId, row.id, String(body.signed_pdf_base64 || ""), {
+          originalName: `${title} — חתום.pdf`,
+          staffType: "other",
+          staffTitle: `${title} — חתום`,
+          pathName: "signed-document.pdf",
+        });
+        if (!stored.ok) {
+          await sb.from("claims_intake_links").update({ status: "pending" }).eq("id", row.id);
+          return jsonResponse({ success: false, error: stored.error || "signed_pdf_store_failed" }, 400);
+        }
+        await markCustomerRequestSigned(sb, boundClaimId, signMeta.customerTaskId, stored.fileId || "", signedAt);
+        await sb.from("claims_history").insert({
+          id: nid("HIS"),
+          claim_id: boundClaimId,
+          row_data: {
+            action: "מסמך נחתם ע״י הלקוח",
+            type: "intake",
+            source: "Customer Accident Intake",
+            note: title,
+            signedAt,
+            at: new Date().toLocaleString("he-IL"),
+          },
+        });
+        await sb.from("claims_intake_links").update({
+          status: "submitted",
+          claim_id: boundClaimId,
+          submitted_at: signedAt,
+          signature_path: sigPath,
+          updated_at: signedAt,
+        }).eq("id", row.id);
+        return jsonResponse({ success: true, submitted: true, message: "החתימה התקבלה בהצלחה" });
       }
       const draft = sanitizeDraft({ ...(row.draft || {}), ...(body.draft || {}) });
       if (!String(draft.clientName || "").trim()) return jsonResponse({ success: false, error: "client_name_required" }, 400);
@@ -497,7 +633,17 @@ Deno.serve(async (req) => {
     if (claimId) {
       const { data: claim } = await sb.from("claims_records").select("id, plate, client_name, row_data").eq("id", claimId).maybeSingle();
       if (!claim) return jsonResponse({ success: false, error: "claim_not_found" }, 400);
-      const draft = draftFromClaimRow(claim);
+      const purpose = String(body.purpose || "");
+      const draft = {
+        ...draftFromClaimRow(claim),
+        ...(purpose === "sign_document" ? {
+          purpose: "sign_document",
+          signDocumentId: String(body.sign_document_id || "").slice(0, 80),
+          signDocumentTitle: String(body.sign_document_title || "").slice(0, 180),
+          customerTaskId: String(body.customer_task_id || "").slice(0, 80),
+          signBody: String(body.sign_body || "").slice(0, 8000),
+        } : {}),
+      };
       const { error } = await sb.from("claims_intake_links").insert({
         id,
         token_hash: await sha256Hex(token),

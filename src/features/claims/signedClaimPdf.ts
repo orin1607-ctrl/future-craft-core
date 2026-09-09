@@ -503,6 +503,115 @@ export async function buildSignedOpeningFormPdf(opts: {
   return new File([pdf], opts.signaturePng ? 'טופס-הודעה-על-תאונת-רכב-חתום.pdf' : 'טופס-הודעה-על-תאונת-רכב.pdf', { type: 'application/pdf' });
 }
 
+function wrapParagraphs(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+  const blocks = String(text || '').replace(/\r\n/g, '\n').split('\n');
+  const out: string[] = [];
+  for (const block of blocks) {
+    const raw = block.replace(/\s+/g, ' ').trim();
+    if (!raw) {
+      out.push('');
+      continue;
+    }
+    let line = '';
+    for (const ch of raw) {
+      const next = line + ch;
+      if (ctx.measureText(next).width > maxW && line) {
+        out.push(line);
+        line = ch.trimStart();
+      } else line = next;
+    }
+    if (line) out.push(line);
+  }
+  return out.length ? out : ['—'];
+}
+
+/** Free-text customer sign document. Same canvas → JPEG → PDF path as the opening form. */
+export async function buildFreeTextSignPdf(opts: {
+  title: string;
+  body: string;
+  clientName?: string;
+  claimLabel?: string;
+  signaturePng?: string;
+}): Promise<File> {
+  await readyHebrewFont();
+  const title = String(opts.title || 'מסמך לחתימה').trim() || 'מסמך לחתימה';
+  const innerW = PAGE_W - MARGIN * 2;
+  const probe = document.createElement('canvas');
+  const pctx = probe.getContext('2d');
+  if (pctx) pctx.font = `500 15px ${FONT}`;
+  const lines = pctx ? wrapParagraphs(pctx, opts.body, innerW - 8) : String(opts.body || '—').split('\n');
+  const lineH = 22;
+  const headerH = 118;
+  const sigH = opts.signaturePng ? 168 : 120;
+  const usable = PAGE_H - headerH - sigH - MARGIN;
+  const perPage = Math.max(8, Math.floor(usable / lineH));
+  const pages: HTMLCanvasElement[] = [];
+  const pageCount = Math.max(1, Math.ceil(lines.length / perPage));
+
+  for (let p = 0; p < pageCount; p++) {
+    const canvas = document.createElement('canvas');
+    canvas.width = PAGE_W;
+    canvas.height = PAGE_H;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('canvas');
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(0, 0, PAGE_W, PAGE_H);
+    ctx.fillStyle = '#1e3a5f';
+    ctx.fillRect(0, 0, PAGE_W, 54);
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'right';
+    ctx.direction = 'ltr';
+    ctx.font = `800 20px ${FONT}`;
+    ctx.fillText('דליה — מסמך לחתימת לקוח', PAGE_W - MARGIN, 34);
+    ctx.fillStyle = '#0f172a';
+    ctx.font = `800 18px ${FONT}`;
+    ctx.fillText(title, PAGE_W - MARGIN, 82);
+    ctx.fillStyle = '#64748b';
+    ctx.font = `500 11px ${FONT}`;
+    const meta = [opts.clientName ? `לקוח: ${opts.clientName}` : '', opts.claimLabel ? `תיק: ${opts.claimLabel}` : '', `עמוד ${p + 1} מתוך ${pageCount}`]
+      .filter(Boolean)
+      .join('  ·  ');
+    ctx.fillText(meta, PAGE_W - MARGIN, 102);
+
+    box(ctx, MARGIN, headerH, innerW, usable, '#ffffff');
+    ctx.fillStyle = '#0f172a';
+    ctx.font = `500 15px ${FONT}`;
+    const slice = lines.slice(p * perPage, (p + 1) * perPage);
+    slice.forEach((ln, i) => {
+      if (!ln) return;
+      ctx.fillText(ln, PAGE_W - MARGIN - 8, headerH + 24 + i * lineH);
+    });
+
+    if (p === pageCount - 1) {
+      const sigTop = PAGE_H - MARGIN - sigH + 8;
+      box(ctx, MARGIN, sigTop, innerW, sigH - 16, '#ffffff');
+      ctx.fillStyle = '#64748b';
+      ctx.font = `600 11px ${FONT}`;
+      ctx.fillText('חתימת הלקוח', PAGE_W - MARGIN - 8, sigTop + 16);
+      if (opts.signaturePng) {
+        const img = await loadImage(opts.signaturePng);
+        const maxSW = 280;
+        const maxSH = 96;
+        const r = Math.min(maxSW / Math.max(img.width, 1), maxSH / Math.max(img.height, 1), 1);
+        ctx.drawImage(img, MARGIN + 16, sigTop + 28, Math.max(70, img.width * r), Math.max(32, img.height * r));
+      } else {
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = `600 12px ${FONT}`;
+        ctx.fillText('טרם נחתם', PAGE_W - MARGIN - 8, sigTop + 70);
+      }
+    }
+    pages.push(canvas);
+  }
+
+  const jpegs: PdfPage[] = [];
+  for (const canvas of pages) {
+    jpegs.push({ jpeg: await canvasToJpeg(canvas), widthPx: PAGE_W, heightPx: PAGE_H });
+  }
+  const pdf = wrapJpegsAsPdf(jpegs);
+  const safe = title.replace(/[^\u0590-\u05FFa-zA-Z0-9._-]+/g, '-').slice(0, 40) || 'document';
+  return new File([pdf], opts.signaturePng ? `${safe}-signed.pdf` : `${safe}.pdf`, { type: 'application/pdf' });
+}
+
 export async function fileToBase64(file: File): Promise<string> {
   const buf = await file.arrayBuffer();
   const bytes = new Uint8Array(buf);
