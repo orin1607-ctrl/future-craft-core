@@ -1277,17 +1277,9 @@ export function createClaimsApi(actor: ClaimsActor) {
       return { ...last, success: false, error: 'import_incomplete', hint: 'יותר מדי קבצים לסבב אחד — לחץ שוב לייבוא להשלמת היתרה' };
     },
 
-    async staffUpload(claimId: string, docRequestId: string, file: File, extra?: { doc_kind?: string; staff_type?: string; staff_title?: string }) {
+    async invokeDocsForm(form: FormData) {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
-      const form = new FormData();
-      form.set('action', 'staff_upload');
-      form.set('claim_id', claimId);
-      if (docRequestId) form.set('doc_request_id', docRequestId);
-      if (extra?.doc_kind) form.set('doc_kind', extra.doc_kind);
-      if (extra?.staff_type) form.set('staff_type', extra.staff_type);
-      if (extra?.staff_title) form.set('staff_title', extra.staff_title);
-      form.set('file', file);
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-docs`, {
         method: 'POST',
         headers: {
@@ -1296,9 +1288,23 @@ export function createClaimsApi(actor: ClaimsActor) {
         },
         body: form,
       });
-      const json = await res.json().catch(() => ({})) as { success?: boolean; error?: string; file_id?: string; reused?: boolean };
-      if (!res.ok || json.success === false) return { success: false, error: json.error || `HTTP ${res.status}` };
-      return { success: true, file_id: json.file_id || '', reused: json.reused === true };
+      const json = await res.json().catch(() => ({})) as Record<string, unknown> & { success?: boolean; error?: string };
+      if (!res.ok || json.success === false) return { ...json, success: false, error: String(json.error || `HTTP ${res.status}`) };
+      return { ...json, success: true };
+    },
+
+    async staffUpload(claimId: string, docRequestId: string, file: File, extra?: { doc_kind?: string; staff_type?: string; staff_title?: string }) {
+      const form = new FormData();
+      form.set('action', 'staff_upload');
+      form.set('claim_id', claimId);
+      if (docRequestId) form.set('doc_request_id', docRequestId);
+      if (extra?.doc_kind) form.set('doc_kind', extra.doc_kind);
+      if (extra?.staff_type) form.set('staff_type', extra.staff_type);
+      if (extra?.staff_title) form.set('staff_title', extra.staff_title);
+      form.set('file', file);
+      const json = await this.invokeDocsForm(form);
+      if (json.success === false) return { success: false, error: json.error || 'upload_failed' };
+      return { success: true, file_id: String(json.file_id || ''), reused: json.reused === true };
     },
 
     async listRequestTemplates() {

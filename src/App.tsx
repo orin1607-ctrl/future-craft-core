@@ -135,6 +135,7 @@ import ClaimsPage from "@/pages/ClaimsPage";
 import ClaimsUploadPage from "@/pages/ClaimsUploadPage";
 import ClaimsSharePage from "@/pages/ClaimsSharePage";
 import ClaimsIntakePage from "@/pages/ClaimsIntakePage";
+import GarageJobsPage from "@/pages/GarageJobsPage";
 
 const queryClient = new QueryClient();
 
@@ -272,6 +273,7 @@ function AppRoutes() {
         <Route path="/telemarketing" element={<TelemarketingAgentPage />} />
         <Route path="/telemarketing/admin" element={<TelemarketingAdminPage />} />
         <Route path="/claims" element={<ClaimsPage />} />
+        <Route path="/garage" element={<GarageJobsPage />} />
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/faults" element={<Faults />} />
         <Route path="/handover" element={<VehicleHandover />} />
@@ -338,7 +340,7 @@ function AppRoutes() {
 function ThemeToggleGate() {
   const loc = useLocation();
   const path = `${loc.pathname || ''} ${typeof window !== 'undefined' ? window.location.pathname : ''}`;
-  if (/claims-upload|claims-intake|claims-share/.test(path)) return null;
+  if (/claims-upload|claims-intake|claims-share|\/garage/.test(path)) return null;
   return <ThemeToggle />;
 }
 

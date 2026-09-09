@@ -15,6 +15,8 @@ import SecureShareModal from './SecureShareModal';
 import { type ShareRow } from './claimSecureShare';
 import ClaimDocsLibrary from './ClaimDocsLibrary';
 import { DOC_LIB_SECTIONS, fileDocBucket } from './claimDocLibrary';
+import GarageAssignBar from './GarageAssignBar';
+import { type GarageAssignment } from './claimGarage';
 import { emailsUnknownToDirectory, parseFromAddr, phoneUnknownToDirectory, type ClaimContact } from './claimContacts';
 import './claims.css';
 
@@ -897,6 +899,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [shareOpen, setShareOpen] = useState(false);
   const [sharePresetIds, setSharePresetIds] = useState<string[]>([]);
   const [shares, setShares] = useState<ShareRow[]>([]);
+  const [garageAssign, setGarageAssign] = useState<GarageAssignment | null>(null);
+  const [garageWorkers, setGarageWorkers] = useState<Array<{ id: string; full_name: string }>>([]);
+  const [garagePick, setGaragePick] = useState('');
+  const [garageNote, setGarageNote] = useState('');
+  const [garageBusy, setGarageBusy] = useState(false);
+  const [garageWorkerQ, setGarageWorkerQ] = useState('');
   const [docPickIds, setDocPickIds] = useState<string[]>([]);
   const [docLibCat, setDocLibCat] = useState('all');
   const mailReturnRef = useRef('');
@@ -1202,6 +1210,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       }).catch(() => { if (live()) setDocs({ requests: [], files: [] }); }),
       apiRef.current.listClaimContacts(id).then((c) => { if (live()) setClaimContacts(c.data || []); }).catch(() => { if (live()) setClaimContacts([]); }),
       apiRef.current.invokeDocs('list_shares', { claim_id: id }).then((s) => { if (live()) setShares((s.shares as ShareRow[]) || []); }).catch(() => { if (live()) setShares([]); }),
+      apiRef.current.invokeDocs('get_garage_assignment', { claim_id: id }).then((g) => {
+        if (!live()) return;
+        setGarageAssign((g.assignment as GarageAssignment) || null);
+      }).catch(() => { if (live()) setGarageAssign(null); }),
     ]);
     const lk = await apiRef.current.invokeDocs('get_link', { claim_id: id }).catch(() => ({} as Record<string, unknown>));
     if (!live()) return;
@@ -1254,6 +1266,49 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       }
     } catch {
       /* keep existing mail/treatment lists */
+    }
+  };
+
+  const openGarageAssign = async () => {
+    setGaragePick(garageAssign?.worker_id || '');
+    setGarageNote(garageAssign?.worker_note || '');
+    setGarageWorkerQ('');
+    setModal('moGarage');
+    const r = await apiRef.current.invokeDocs('list_garage_workers');
+    if (r.success === false) { toast(String(r.error || 'טעינת עובדים נכשלה'), 'err'); return; }
+    setGarageWorkers((r.workers as Array<{ id: string; full_name: string }>) || []);
+  };
+
+  const saveGarageAssign = async () => {
+    if (!cur || !garagePick) { toast('בחר עובד', 'err'); return; }
+    setGarageBusy(true);
+    try {
+      const r = await apiRef.current.invokeDocs('assign_garage_worker', {
+        claim_id: cur.id,
+        worker_id: garagePick,
+        worker_note: garageNote,
+      });
+      if (r.success === false) { toast(String(r.error || 'שיוך נכשל'), 'err'); return; }
+      setGarageAssign((r.assignment as GarageAssignment) || null);
+      setModal('moCard');
+      await loadCardData(cur.id);
+      toast(garageAssign ? 'השיוך הוחלף' : 'העובד שויך לצילומי מוסך');
+    } finally {
+      setGarageBusy(false);
+    }
+  };
+
+  const unassignGarage = async () => {
+    if (!cur) return;
+    setGarageBusy(true);
+    try {
+      const r = await apiRef.current.invokeDocs('unassign_garage_worker', { claim_id: cur.id });
+      if (r.success === false) { toast(String(r.error || 'ביטול נכשל'), 'err'); return; }
+      setGarageAssign(null);
+      await loadCardData(cur.id);
+      toast('השיוך בוטל');
+    } finally {
+      setGarageBusy(false);
     }
   };
 
@@ -3133,6 +3188,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <button className="ab-btn ab-mail" data-testid="claims-mail-followup" onClick={() => { setCardMore(false); openMailFollowupModal(null); }}>מעקב מייל</button>
                     <button className="ab-btn ab-mail" data-testid="claims-gmail-import" onClick={() => { void startGmailImport(); }}>ייבוא Gmail</button>
                     {isSuperAdmin ? <button className="ab-btn ab-status" data-testid="claims-assign-btn" onClick={() => { setCardMore(false); setModal('moAssign'); }}>הקצה לעובד מטפל</button> : null}
+                    <button className="ab-btn ab-status" data-testid="claims-garage-assign-btn" onClick={() => { setCardMore(false); void openGarageAssign(); }}>שייך עובד לצילומי מוסך</button>
                     <button className="ab-btn ab-status" data-testid="claims-status-btn" onClick={() => { setCardMore(false); setVal('sf_st', cur.status); setVal('sf_note', ''); setModal('moStatus'); }}>סטטוס</button>
                     <button className="ab-btn" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { setCardMore(false); setModal('moClose'); }}>סגור תיק</button>
                     {cur.archived === 'true'
@@ -3441,6 +3497,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       </div>
                     );
                   })()}
+                  <GarageAssignBar
+                    assignment={garageAssign}
+                    photoCount={docs.files.filter((f) => fileDocBucket(f) === 'garage_photos').length}
+                    busy={garageBusy}
+                    onAssign={() => { void openGarageAssign(); }}
+                    onUnassign={() => { void unassignGarage(); }}
+                  />
                   <ClaimDocsLibrary
                     files={docs.files}
                     picked={docPickIds}
@@ -4405,6 +4468,37 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               await loadCardData(cur.id);
               toast('התביעה הוקצתה');
             }}>הקצה</button>
+          </div>
+        </div>
+      </div>
+
+      <div className={`ov ${modal === 'moGarage' ? 'open' : ''}`} data-testid="garage-assign-modal">
+        <div className="modal modal-sm">
+          <div className="mh"><div className="mh-t">שייך עובד לצילומי מוסך</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
+          <div className="mb">
+            <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 8 }}>
+              זה שיוך צילום בלבד. לא מחליף את העובד המטפל בתיק.
+            </div>
+            <div className="fg"><label className="fl">חיפוש עובד</label>
+              <input className="fi" data-testid="garage-worker-search" value={garageWorkerQ} onChange={(e) => setGarageWorkerQ(e.target.value)} placeholder="שם עובד" />
+            </div>
+            <div className="fg"><label className="fl">עובד</label>
+              <select className="fse fi" data-testid="garage-worker-select" value={garagePick} onChange={(e) => setGaragePick(e.target.value)}>
+                <option value="">— בחר עובד —</option>
+                {garageWorkers
+                  .filter((w) => !garageWorkerQ.trim() || w.full_name.toLowerCase().includes(garageWorkerQ.trim().toLowerCase()))
+                  .map((w) => <option key={w.id} value={w.id}>{w.full_name}</option>)}
+              </select>
+            </div>
+            <div className="fg"><label className="fl">הערה לעובד (לא חובה)</label>
+              <input className="fi" data-testid="garage-worker-note" value={garageNote} onChange={(e) => setGarageNote(e.target.value)} placeholder="למשל: צילום פח קדמי" />
+            </div>
+          </div>
+          <div className="mf">
+            <button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
+            <button className="btn btn-p" data-testid="garage-assign-save" disabled={garageBusy} onClick={() => { void saveGarageAssign(); }}>
+              {garageBusy ? 'שומר…' : 'שייך'}
+            </button>
           </div>
         </div>
       </div>

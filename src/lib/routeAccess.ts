@@ -58,6 +58,10 @@ export function canAccessRoute(
   if (!role) return false;
 
   const path = pathname.split('?')[0];
+  if (path === '/garage' || path.startsWith('/garage/')) {
+    return role !== 'private_customer' && role !== 'business_customer' && role !== 'telemarketing_agent';
+  }
+
   if (extras?.claimsWorkerOnly) {
     if (path === '/claims' || path.startsWith('/claims/')) {
       return role === 'super_admin' || !!extras.hasClaimsAccess;

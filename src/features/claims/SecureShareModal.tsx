@@ -14,7 +14,7 @@ import {
 } from './claimSecureShare';
 import type { ClaimsApi } from './claimsService';
 
-type FileRow = { id: string; original_name: string; mime_type?: string; byte_size?: number; doc_kind?: string };
+type FileRow = { id: string; original_name: string; mime_type?: string; byte_size?: number; doc_kind?: string; doc_meta?: { staff_type?: string } | null };
 
 type Props = {
   open: boolean;
@@ -46,7 +46,7 @@ export default function SecureShareModal({
 
   const images = files.filter((f) => isShareImage(f.mime_type || '', f.original_name));
   const docs = files.filter((f) => !isShareImage(f.mime_type || '', f.original_name));
-  const garage = files.filter((f) => f.doc_kind === 'surveyor_photo' || /מוסך|garage/i.test(f.original_name));
+  const garage = files.filter((f) => f.doc_kind === 'garage_photo' || String((f as { doc_meta?: { staff_type?: string } }).doc_meta?.staff_type || '') === 'garage_photos');
 
   const expiry = useMemo(() => resolveShareExpiry(ttl, custom), [ttl, custom]);
   const untilText = expiry.ok ? new Date(expiry.expiresAt).toLocaleString('he-IL') : '—';
