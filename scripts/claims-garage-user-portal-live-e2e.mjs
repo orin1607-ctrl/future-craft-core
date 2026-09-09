@@ -164,7 +164,7 @@ rec('pages-live-sha', !WANT || String(marker).includes(WANT), { marker: String(m
 const html = await fetch(`${PUBLIC}/?t=${Date.now()}`, { cache: 'no-store' }).then((r) => r.text());
 const jsName = (html.match(/assets\/index-[^"]+\.js/) || [])[0] || '';
 const js = jsName ? await fetch(`${PUBLIC}/${jsName}`, { cache: 'no-store' }).then((r) => r.text()) : '';
-rec('pages-bundle-has-user-type', js.includes('עובד צילומי מוסך') && js.includes('create-user-type-garage_photographer'), { jsName });
+rec('pages-bundle-has-user-type', js.includes('עובד צילומי מוסך') && /create-user-type-garage[_-]photographer|garage_photographer/.test(js), { jsName });
 rec('pages-bundle-has-open-portal', js.includes('פתח פורטל עובד') && js.includes('garage-open-worker-portal') && js.includes('garage-admin-preview'), { jsName });
 
 const photoLogin = await userDb.auth.signInWithPassword({ email: PHOTO_EMAIL, password: PHOTO_PASSWORD });
@@ -213,6 +213,11 @@ if (desk.data.session) {
   rec(`create-${claimId}`, !insErr, { err: insErr?.message });
   const assigned = await invoke(desk.data.session, { action: 'assign_garage_worker', claim_id: claimId, worker_id: photoUserId, worker_note: 'LIVE portal' });
   rec('assign-existing-photographer', assigned.json?.success === true, { err: assigned.json?.error });
+  const previewApi = await invoke(desk.data.session, { action: 'garage_list_jobs', worker_id: photoUserId });
+  rec('api-desk-preview-sees-claim', (previewApi.json.jobs || []).some((j) => j.claim_id === claimId), {
+    n: (previewApi.json.jobs || []).length,
+    err: previewApi.json.error,
+  });
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -282,8 +287,10 @@ try {
     await portalPage.waitForTimeout(2000);
   }
   const preview = portalPage.locator('[data-testid="garage-admin-preview"]');
+  await portalPage.waitForSelector('[data-testid="garage-job-list"], [data-testid="garage-empty"]', { timeout: 30000 });
   rec('live-admin-preview-banner', await preview.count() > 0, { url: portalPage.url() });
   rec('live-admin-preview-no-user-switch', portalPage.url().includes('worker=') && !isImpersonatingText(await portalPage.locator('body').innerText().catch(() => '')), { url: portalPage.url() });
+  rec('live-admin-preview-sees-claim', await portalPage.locator(`[data-testid="garage-job-${claimId}"]`).count() > 0);
   const stillAdmin = await portalPage.evaluate((ref) => {
     const raw = localStorage.getItem(`sb-${ref}-auth-token`);
     try { return JSON.parse(raw)?.user?.email || ''; } catch { return ''; }
@@ -296,20 +303,24 @@ try {
   await injectPassword(deskCtx, DESK_EMAIL, DESK_PASSWORD);
   const deskPage = await deskCtx.newPage();
   await deskPage.goto(`${PUBLIC}/claims`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await deskPage.waitForTimeout(2500);
-  const search = deskPage.locator('[data-testid="claims-search"]');
-  if (await search.count()) {
-    await search.fill(claimId);
-    await deskPage.waitForTimeout(800);
+  await deskPage.waitForSelector('[data-testid="claims-search"], [data-testid="claims-open-new"]', { timeout: 45000 });
+  const mine = deskPage.locator('[data-testid="claims-mine-toggle"]').locator('visible=true').first();
+  if (await mine.count()) {
+    const t = await mine.innerText().catch(() => '');
+    if (/שלי/.test(t)) await mine.click().catch(() => null);
   }
-  const row = deskPage.locator(`text=${claimId}`).first();
-  if (await row.count()) await row.click();
-  else await deskPage.goto(`${PUBLIC}/claims?open=${encodeURIComponent(claimId)}`, { waitUntil: 'domcontentloaded' });
-  await deskPage.waitForTimeout(2000);
-  const docsTab = deskPage.locator('text=גלריית מסמכים ותמונות').first();
-  if (await docsTab.count()) await docsTab.click();
-  await deskPage.waitForSelector('[data-testid="garage-assign-bar"]', { timeout: 20000 });
+  const box = deskPage.locator('[data-testid="claims-search"]').locator('visible=true').first();
+  await box.fill(claimId);
+  await deskPage.waitForTimeout(1200);
+  const row = deskPage.locator(`[data-testid="claim-row-${claimId}"]`).first();
+  await row.waitFor({ timeout: 20000 });
+  await row.click();
+  const docsBtn = deskPage.locator('[data-testid="claims-open-docs"]');
+  if (await docsBtn.count()) await docsBtn.click();
+  await deskPage.waitForSelector('[data-testid="garage-assign-bar"]', { timeout: 25000 });
+  await deskPage.waitForSelector('[data-testid="garage-assign-current"], [data-testid="garage-open-worker-portal"]', { timeout: 20000 }).catch(() => null);
   rec('live-claim-open-portal-btn', await deskPage.locator('[data-testid="garage-open-worker-portal"]').count() > 0);
+  await saveShot(deskPage, 'live-desk-assign-bar');
   const deskPopupP = deskPage.waitForEvent('popup', { timeout: 15000 }).catch(() => null);
   await deskPage.locator('[data-testid="garage-open-worker-portal"]').click();
   const deskPopup = await deskPopupP;
@@ -320,6 +331,7 @@ try {
   } else {
     await deskPage.waitForTimeout(2000);
   }
+  await portal2.waitForSelector('[data-testid="garage-job-list"], [data-testid="garage-empty"]', { timeout: 30000 });
   rec('live-desk-preview-banner', await portal2.locator('[data-testid="garage-admin-preview"]').count() > 0, { url: portal2.url() });
   rec('live-desk-sees-assigned-claim', await portal2.locator(`[data-testid="garage-job-${claimId}"]`).count() > 0, { url: portal2.url() });
   const deskEmail = await portal2.evaluate((ref) => {

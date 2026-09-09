@@ -1,0 +1,146 @@
+{
+  "at": "2026-09-09T21:15:28.732Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "liveSha": "deployed_ref=99673cb feat/incident-alerts-staging",
+  "checks": [
+    {
+      "name": "staging-only",
+      "ok": true,
+      "ref": "usfeoerkpcafxxlyuldl"
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    },
+    {
+      "name": "pages-live-sha",
+      "ok": true,
+      "marker": "deployed_ref=99673cb feat/incident-alerts-staging",
+      "want": "99673cb"
+    },
+    {
+      "name": "pages-bundle-has-user-type",
+      "ok": true,
+      "jsName": "assets/index-xKQP5LGJ.js"
+    },
+    {
+      "name": "pages-bundle-has-open-portal",
+      "ok": true,
+      "jsName": "assets/index-xKQP5LGJ.js"
+    },
+    {
+      "name": "photographer-login",
+      "ok": true
+    },
+    {
+      "name": "desk-login",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-GAR-PORTAL-1788988530389",
+      "ok": true
+    },
+    {
+      "name": "assign-existing-photographer",
+      "ok": true
+    },
+    {
+      "name": "api-desk-preview-sees-claim",
+      "ok": true,
+      "n": 1
+    },
+    {
+      "name": "super-admin-login",
+      "ok": true,
+      "email": "orina1607@gmail.com"
+    },
+    {
+      "name": "live-user-type-visible",
+      "ok": true,
+      "typeText": "עובד צילומי מוסך\n\nצלם מוסך — רואה ב־/garage רק תיקים ששויכו אליו"
+    },
+    {
+      "name": "live-user-type-selected",
+      "ok": true
+    },
+    {
+      "name": "live-user-created",
+      "ok": true,
+      "email": "qa.garage.type.1788988530389@futurecraft.staging",
+      "id": "b0a553bd-59ba-4bd2-8f10-507c31172a03"
+    },
+    {
+      "name": "live-user-job-title",
+      "ok": true,
+      "job_title": "garage_photographer"
+    },
+    {
+      "name": "live-user-no-claims-access",
+      "ok": true
+    },
+    {
+      "name": "live-user-no-driver-row",
+      "ok": true
+    },
+    {
+      "name": "live-admin-portal-button",
+      "ok": true
+    },
+    {
+      "name": "live-admin-preview-banner",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/garage/?worker=9423c84e-14d1-48d9-adf6-af2e0ea0c5cb"
+    },
+    {
+      "name": "live-admin-preview-no-user-switch",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/garage/?worker=9423c84e-14d1-48d9-adf6-af2e0ea0c5cb"
+    },
+    {
+      "name": "live-admin-preview-sees-claim",
+      "ok": true
+    },
+    {
+      "name": "live-session-still-admin",
+      "ok": true,
+      "email": "orina1607@gmail.com"
+    },
+    {
+      "name": "live-claim-open-portal-btn",
+      "ok": true
+    },
+    {
+      "name": "live-desk-preview-banner",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/garage/?worker=9423c84e-14d1-48d9-adf6-af2e0ea0c5cb"
+    },
+    {
+      "name": "live-desk-sees-assigned-claim",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/garage/?worker=9423c84e-14d1-48d9-adf6-af2e0ea0c5cb"
+    },
+    {
+      "name": "live-desk-session-unchanged",
+      "ok": true,
+      "email": "qa.claims.worker.1788292403067@futurecraft.staging"
+    },
+    {
+      "name": "soft-delete-test-claim",
+      "ok": true,
+      "claimId": "DAL-QA-GAR-PORTAL-1788988530389"
+    },
+    {
+      "name": "deactivate-test-user",
+      "ok": true,
+      "createdUserId": "b0a553bd-59ba-4bd2-8f10-507c31172a03"
+    },
+    {
+      "name": "production-untouched-final",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS",
+  "failed": []
+}
