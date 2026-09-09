@@ -1,7 +1,69 @@
 {
-  "at": "2026-09-09T15:19:13.834Z",
-  "claimId": "DAL-QA-DOCS-1788967140131",
+  "at": "2026-09-09T15:29:22.750Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "pagesSha": "99ad3e3",
+  "pagesHasShare": false,
+  "uiBase": "http://127.0.0.1:4173",
+  "claimId": "DAL-QA-DOCS-1788967763209",
   "checks": [
+    {
+      "name": "pages-sha-recorded",
+      "ok": true,
+      "detail": "99ad3e3"
+    },
+    {
+      "name": "pages-share-route-404",
+      "ok": true,
+      "status": 404
+    },
+    {
+      "name": "pages-html-no-share-yet",
+      "ok": true,
+      "sha": "99ad3e3"
+    },
+    {
+      "name": "worker-login",
+      "ok": true
+    },
+    {
+      "name": "staging-only",
+      "ok": true
+    },
+    {
+      "name": "create-test-claim",
+      "ok": true,
+      "id": "DAL-QA-DOCS-1788967763209"
+    },
+    {
+      "name": "upload-keep",
+      "ok": true,
+      "id": "CDM-1788967765483-VO9P1C"
+    },
+    {
+      "name": "upload-skip",
+      "ok": true,
+      "id": "CDM-1788967768987-J4HPAO"
+    },
+    {
+      "name": "upload-photo",
+      "ok": true,
+      "id": "CDM-1788967772331-W3M58S"
+    },
+    {
+      "name": "upload-invoice",
+      "ok": true,
+      "id": "CDM-1788967775960-7OAKDD"
+    },
+    {
+      "name": "local-preview-up",
+      "ok": true,
+      "ui": "http://127.0.0.1:4173"
+    },
+    {
+      "name": "claim-row",
+      "ok": true
+    },
     {
       "name": "share-bar",
       "ok": true
@@ -19,11 +81,12 @@
       "ok": true
     },
     {
-      "name": "keep-present",
-      "ok": true
+      "name": "cats-exact",
+      "ok": true,
+      "cats": "כל המסמכים (4) לקוח (0) רכב (0) שמאי (2) חברת ביטוח (0) חשבוניות (1) נזק (0) טפסים (0) אחר (1)"
     },
     {
-      "name": "photo-present",
+      "name": "keep-present",
       "ok": true
     },
     {
@@ -31,12 +94,36 @@
       "ok": true
     },
     {
-      "name": "no-gmail-clutter",
-      "ok": false
+      "name": "photo-present",
+      "ok": true
     },
     {
-      "name": "cat-surveyor-photo-only",
-      "ok": false
+      "name": "invoice-present",
+      "ok": true
+    },
+    {
+      "name": "photo-gallery",
+      "ok": true
+    },
+    {
+      "name": "no-gmail-clutter",
+      "ok": true
+    },
+    {
+      "name": "cat-surveyor-keep",
+      "ok": true
+    },
+    {
+      "name": "cat-surveyor-photo",
+      "ok": true
+    },
+    {
+      "name": "cat-surveyor-no-invoice",
+      "ok": true
+    },
+    {
+      "name": "cat-surveyor-no-skip",
+      "ok": true
     },
     {
       "name": "picked-one",
@@ -44,7 +131,8 @@
     },
     {
       "name": "modal-48h",
-      "ok": true
+      "ok": true,
+      "ttl": "48h"
     },
     {
       "name": "modal-shows-selected",
@@ -52,14 +140,23 @@
     },
     {
       "name": "share-created",
-      "ok": true
+      "ok": true,
+      "url": "http://127.0.0.1:4173/claims-share?t=04f39e86fed6a4f810ea616e9cd341fe5f78fc96180"
     },
     {
       "name": "share-only-selected",
       "ok": true,
       "ids": [
-        "CDM-1788967142957-XUMRIN"
+        "CDM-1788967765483-VO9P1C"
       ]
+    },
+    {
+      "name": "share-excludes-skip",
+      "ok": true
+    },
+    {
+      "name": "share-excludes-photo",
+      "ok": true
     },
     {
       "name": "mobile-share-visible",
@@ -68,13 +165,8 @@
     {
       "name": "soft-delete",
       "ok": true,
-      "id": "DAL-QA-DOCS-1788967140131"
+      "id": "DAL-QA-DOCS-1788967763209"
     }
   ],
-  "productionTouched": false,
-  "verdict": "FAIL",
-  "failed": [
-    "no-gmail-clutter",
-    "cat-surveyor-photo-only"
-  ]
+  "verdict": "PASS"
 }
