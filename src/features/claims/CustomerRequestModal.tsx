@@ -128,7 +128,7 @@ export default function CustomerRequestModal({
           plate: claim.plate,
           fileName: `${label}.pdf`,
         });
-        const up = await api.staffUpload(claim.id, added.id, pdf, { staff_type: staffType, staff_title: label });
+        const up = await api.staffUpload(claim.id, '', pdf, { staff_type: staffType, staff_title: label });
         if (up.success) letterFileId = up.file_id || '';
       } catch (err) {
         toast(`הבקשה נשמרת, אך הפקת ה-PDF נכשלה: ${String((err as Error).message || err)}`, 'err');

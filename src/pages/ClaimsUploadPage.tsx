@@ -163,7 +163,7 @@ export default function ClaimsUploadPage() {
                     <div style={{ fontWeight: 800, marginTop: 6 }}>לכבוד {letter.to || clientName}</div>
                     <div style={{ fontWeight: 700, margin: '8px 0' }}>הנדון: {letter.subject || d.label}</div>
                     <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.55, fontSize: 14 }}>{letter.body}</div>
-                    {letter.needsSignature && stillNeed ? (
+                {letter?.needsSignature && stillNeed ? (
                       <div style={{ marginTop: 12 }} data-testid={`cust-sign-${d.id}`}>
                         <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>חתימה במקום המתאים</div>
                         <SignaturePad testId={`cust-sign-pad-${d.id}`} onChange={(v) => setSigs((p) => ({ ...p, [d.id]: v }))} />
