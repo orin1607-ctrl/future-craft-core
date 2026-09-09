@@ -3701,7 +3701,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       </label>
                     </div>
                   ))}
-                  </div>
                   </details>
                 </div>
               )}
