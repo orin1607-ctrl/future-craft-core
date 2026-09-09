@@ -279,21 +279,61 @@ Deno.serve(async (req) => {
       await history(sb, claimId, "מסמך התקבל מהלקוח", reqRow.label, "לקוח");
       await notify(sb, claimId, `התקבל מסמך חדש מהלקוח · ${reqRow.label}`);
       const { data: taskRows } = await sb.from("claims_tasks").select("id, row_data").eq("claim_id", claimId);
+      const customerHits: Array<{ id: string; rd: Record<string, string>; score: number }> = [];
       for (const t of taskRows || []) {
         const rd = (t.row_data && typeof t.row_data === "object") ? t.row_data as Record<string, string> : {};
         if (rd.done === "true") continue;
-        if (rd.treatmentItem !== "true" && rd.kind !== "treatment_item") continue;
-        const matchesType = Boolean(staffType && rd.requestType && rd.requestType === staffType);
-        if (!matchesType) continue;
+        if (rd.treatmentItem === "true" || rd.kind === "treatment_item") {
+          const matchesType = Boolean(staffType && rd.requestType && rd.requestType === staffType);
+          if (!matchesType) continue;
+          await sb.from("claims_tasks").update({
+            row_data: {
+              ...rd,
+              workStatus: "doc_received",
+              docState: "ready",
+              readyFileId: fileId,
+              updatedAt: new Date().toLocaleString("he-IL"),
+            },
+          }).eq("id", t.id);
+          continue;
+        }
+        if (rd.audience !== "customer" || rd.requestCenter !== "true") continue;
+        if (rd.customerStatus === "done" || rd.customerStatus === "cancelled") continue;
+        if (rd.customerKind !== "ask_document" && rd.customerKind !== "send_doc") continue;
+        let score = 0;
+        if (rd.docRequestId && rd.docRequestId === docRequestId) score += 4;
+        if (rd.requestLabel && rd.requestLabel === reqRow.label) score += 3;
+        if (rd.title && String(rd.title) === reqRow.label) score += 2;
+        if (score > 0) customerHits.push({ id: t.id, rd, score });
+      }
+      const bestScore = customerHits.reduce((n, x) => Math.max(n, x.score), 0);
+      let chosen = bestScore > 0 ? customerHits.filter((x) => x.score === bestScore) : [];
+      if (!chosen.length) {
+        const openDocs = (taskRows || []).map((t) => {
+          const rd = (t.row_data && typeof t.row_data === "object") ? t.row_data as Record<string, string> : {};
+          return { id: t.id, rd, score: 0 };
+        }).filter((x) =>
+          x.rd.audience === "customer"
+          && x.rd.requestCenter === "true"
+          && x.rd.done !== "true"
+          && x.rd.customerStatus !== "done"
+          && x.rd.customerStatus !== "cancelled"
+          && (x.rd.customerKind === "ask_document" || x.rd.customerKind === "send_doc")
+        );
+        if (openDocs.length === 1) chosen = openDocs;
+      }
+      for (const hit of chosen) {
+        const linked = String(hit.rd.linkedDocIds || "").split(/[,;]/).map((x) => x.trim()).filter(Boolean);
+        if (!linked.includes(fileId)) linked.push(fileId);
         await sb.from("claims_tasks").update({
           row_data: {
-            ...rd,
-            workStatus: "doc_received",
-            docState: "ready",
-            readyFileId: fileId,
+            ...hit.rd,
+            linkedDocIds: linked.join(","),
+            customerStatus: "received_pending_review",
+            done: "false",
             updatedAt: new Date().toLocaleString("he-IL"),
           },
-        }).eq("id", t.id);
+        }).eq("id", hit.id);
       }
       const { data: left } = await sb.from("claims_doc_requests").select("id").eq("claim_id", claimId).neq("status", "received");
       if ((left || []).length > 0) {
