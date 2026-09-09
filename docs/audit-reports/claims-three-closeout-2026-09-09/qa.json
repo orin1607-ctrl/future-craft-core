@@ -1,0 +1,205 @@
+{
+  "at": "2026-09-09T12:01:55.102Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "schemaMigration": false,
+  "newBucket": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "wantSha": "99ad3e3",
+  "checks": [
+    {
+      "name": "worker-login",
+      "ok": true
+    },
+    {
+      "name": "staging-only",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-3A-1788955315894",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-3B-1788955315894",
+      "ok": true
+    },
+    {
+      "name": "s1-save-claim",
+      "ok": true,
+      "id": "DAL-2026-0236",
+      "toast": "✅ תיק נפתח והטופס נשמר במסמכים ✅"
+    },
+    {
+      "name": "s1-claim-created",
+      "ok": true,
+      "id": "DAL-2026-0236"
+    },
+    {
+      "name": "s1-one-notice-pdf",
+      "ok": true,
+      "n": 1,
+      "names": [
+        "טופס-הודעה-על-תאונת-רכב-חתום.pdf"
+      ],
+      "allNames": [
+        "טופס-הודעה-על-תאונת-רכב-חתום.pdf"
+      ],
+      "status": 200
+    },
+    {
+      "name": "s1-pdf-same-claim",
+      "ok": true,
+      "claimId": "DAL-2026-0236"
+    },
+    {
+      "name": "s1-no-cross-claim-pdf",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "s1-composer-exists",
+      "ok": true
+    },
+    {
+      "name": "s1-preview-control",
+      "ok": true
+    },
+    {
+      "name": "s1-download-control",
+      "ok": true
+    },
+    {
+      "name": "s1-composer-attach",
+      "ok": true,
+      "selected": 1,
+      "checked": 1
+    },
+    {
+      "name": "s2-seed-button",
+      "ok": true
+    },
+    {
+      "name": "s2-clal-desk",
+      "ok": true
+    },
+    {
+      "name": "s2-migdal-cart",
+      "ok": true
+    },
+    {
+      "name": "s2-phoenix-property",
+      "ok": true
+    },
+    {
+      "name": "s2-no-guess-copy",
+      "ok": true
+    },
+    {
+      "name": "s3-modal-open",
+      "ok": true
+    },
+    {
+      "name": "s3-template-applied",
+      "ok": true
+    },
+    {
+      "name": "s3-need-sign",
+      "ok": true
+    },
+    {
+      "name": "s3-template-saved",
+      "ok": true
+    },
+    {
+      "name": "s3-composer-or-card",
+      "ok": true
+    },
+    {
+      "name": "s3-no-autosend",
+      "ok": true
+    },
+    {
+      "name": "s3-task-created",
+      "ok": true,
+      "id": "TSK-1788955422759-X7DH",
+      "status": "sent"
+    },
+    {
+      "name": "s3-label-waiting",
+      "ok": true
+    },
+    {
+      "name": "s3-secure-link",
+      "ok": true
+    },
+    {
+      "name": "s3-customer-page",
+      "ok": true
+    },
+    {
+      "name": "s3-no-internal-leak",
+      "ok": true
+    },
+    {
+      "name": "s3-letter-visible",
+      "ok": true
+    },
+    {
+      "name": "s3-customer-submit",
+      "ok": true
+    },
+    {
+      "name": "s3-received-label",
+      "ok": true,
+      "rowText": "\tטרם התקבל\t\nQA Three Affidavit\n0501111111\n\t12-345-67\tמגדל\tבטיפול\tTEST עובד תביעות 1788292403067\t—\t—\t\nהתקבל — לבדיקה\n\t✏️"
+    },
+    {
+      "name": "s3-approve-visible",
+      "ok": true
+    },
+    {
+      "name": "s3-history-kept",
+      "ok": true,
+      "hist": "היסטוריית סטטוסים\nכל ההיסטוריה\nטיפול הושלם\nסטטוס: התקבל — לבדיקה → בוצע · אני הח״מ QA Three Affidavit, בעל/ת הרכב שמספרו 12-345-67, מצהיר/ה בזאת כי הפרטים שמסרתי בקשר לאירוע מיום נכונים ומדויקים. הנני מתחייב/ת להודיע על כל שינוי מהותי ולשתף"
+    },
+    {
+      "name": "s3-label-gone-after-approve",
+      "ok": true,
+      "after": "\tטרם התקבל\t\nQA Three Affidavit\n0501111111\n\t12-345-67\tמגדל\tבטיפול\tTEST עובד תביעות 1788292403067\t—\t—\t—\t✏️"
+    },
+    {
+      "name": "s3-doc-in-same-claim",
+      "ok": true,
+      "n": 1,
+      "names": [
+        "תצהיר-חתום.pdf"
+      ]
+    },
+    {
+      "name": "s3-no-cross-claim-doc",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "regression-mail",
+      "ok": true
+    },
+    {
+      "name": "regression-contacts",
+      "ok": true
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    },
+    {
+      "name": "mobile-claims",
+      "ok": true
+    },
+    {
+      "name": "soft-delete-test-claims",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS"
+}
