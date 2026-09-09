@@ -1,0 +1,90 @@
+{
+  "tables": [
+    {
+      "table": "claims_claim_contacts",
+      "rls": true
+    },
+    {
+      "table": "claims_contact_channels",
+      "rls": true
+    },
+    {
+      "table": "claims_contacts",
+      "rls": true
+    }
+  ],
+  "policies": [
+    {
+      "table": "claims_claim_contacts",
+      "policy": "claims_claim_contacts_all",
+      "cmd": "ALL",
+      "qual": "claims_can_work_claim(claim_id)",
+      "with_check": "claims_can_work_claim(claim_id)"
+    },
+    {
+      "table": "claims_contact_channels",
+      "policy": "claims_contact_channels_all",
+      "cmd": "ALL",
+      "qual": "has_claims_access(auth.uid())",
+      "with_check": "has_claims_access(auth.uid())"
+    },
+    {
+      "table": "claims_contacts",
+      "policy": "claims_contacts_all",
+      "cmd": "ALL",
+      "qual": "has_claims_access(auth.uid())",
+      "with_check": "has_claims_access(auth.uid())"
+    }
+  ],
+  "indexes": [
+    {
+      "table": "claims_claim_contacts",
+      "index": "claims_claim_contacts_pkey"
+    },
+    {
+      "table": "claims_claim_contacts",
+      "index": "idx_claims_claim_contacts_contact"
+    },
+    {
+      "table": "claims_claim_contacts",
+      "index": "idx_claims_claim_contacts_one_primary"
+    },
+    {
+      "table": "claims_contact_channels",
+      "index": "claims_contact_channels_pkey"
+    },
+    {
+      "table": "claims_contact_channels",
+      "index": "idx_claims_contact_channels_contact"
+    },
+    {
+      "table": "claims_contact_channels",
+      "index": "idx_claims_contact_channels_kind_norm"
+    },
+    {
+      "table": "claims_contact_channels",
+      "index": "idx_claims_contact_channels_norm"
+    },
+    {
+      "table": "claims_contacts",
+      "index": "claims_contacts_pkey"
+    },
+    {
+      "table": "claims_contacts",
+      "index": "idx_claims_contacts_company"
+    },
+    {
+      "table": "claims_contacts",
+      "index": "idx_claims_contacts_name"
+    },
+    {
+      "table": "claims_contacts",
+      "index": "idx_claims_contacts_role"
+    }
+  ],
+  "directory_rows": 0,
+  "channel_rows": 0,
+  "link_rows": 0,
+  "claims_records": 237,
+  "worker_email_still_there": 1
+}

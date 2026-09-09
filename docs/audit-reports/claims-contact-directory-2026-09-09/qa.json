@@ -1,0 +1,185 @@
+{
+  "at": "2026-09-09T10:25:53.823Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "wantSha": "2aaa8e4",
+  "checks": [
+    {
+      "name": "worker-login",
+      "ok": true
+    },
+    {
+      "name": "staging-only",
+      "ok": true
+    },
+    {
+      "name": "public-pages-sha",
+      "ok": true,
+      "deployTxt": "deployed_ref=2aaa8e4 feat/incident-alerts-staging",
+      "wantSha": "2aaa8e4"
+    },
+    {
+      "name": "contact-tables-exist",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-CTC-A-1788949554442",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-CTC-B-1788949554442",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-CTC-C-1788949554442",
+      "ok": true
+    },
+    {
+      "name": "A-contacts-button",
+      "ok": true
+    },
+    {
+      "name": "A-insurer-filter-copy",
+      "ok": true
+    },
+    {
+      "name": "D-save-new-contact",
+      "ok": true
+    },
+    {
+      "name": "primary-treatment-contact",
+      "ok": true
+    },
+    {
+      "name": "search-filter",
+      "ok": true
+    },
+    {
+      "name": "regression-mail",
+      "ok": true
+    },
+    {
+      "name": "regression-request",
+      "ok": true
+    },
+    {
+      "name": "regression-treat",
+      "ok": true
+    },
+    {
+      "name": "regression-docs",
+      "ok": true
+    },
+    {
+      "name": "reopen-keeps-contact",
+      "ok": true
+    },
+    {
+      "name": "B-composer-picker",
+      "ok": true
+    },
+    {
+      "name": "B-email-filled-no-autosend",
+      "ok": true
+    },
+    {
+      "name": "B-no-autosend",
+      "ok": true
+    },
+    {
+      "name": "regression-schedule-control",
+      "ok": true
+    },
+    {
+      "name": "H-save-offer-shown",
+      "ok": true
+    },
+    {
+      "name": "H-no-save-without-confirm",
+      "ok": true
+    },
+    {
+      "name": "C-request-picker",
+      "ok": true
+    },
+    {
+      "name": "C-request-selected",
+      "ok": true
+    },
+    {
+      "name": "duplicate-offer",
+      "ok": true
+    },
+    {
+      "name": "duplicate-link-not-create",
+      "ok": true
+    },
+    {
+      "name": "E-same-contact-suggested-on-second-migdal",
+      "ok": true
+    },
+    {
+      "name": "F-no-cross-company-mix",
+      "ok": true
+    },
+    {
+      "name": "F-phoenix-not-forced-migdal-send",
+      "ok": true,
+      "detail": "אנשי קשר\n✕\nמאגר אחד. אין Auto-Save, אין Auto-Send, אין Merge אוטומטי. בחירת נמען ממלאת בלבד. סינון מוצע לחברת הביטוח של התיק: הפניקס.\nחיפוש\nסוג\nהכל\nלקוח\nחברת ביטוח\nמחלקה בחברת ביטו"
+    },
+    {
+      "name": "H-whatsapp-control",
+      "ok": true
+    },
+    {
+      "name": "H-confirm-before-wa",
+      "ok": true
+    },
+    {
+      "name": "H-shows-selected-number",
+      "ok": true
+    },
+    {
+      "name": "H-opens-existing-wa-modal",
+      "ok": true
+    },
+    {
+      "name": "mobile-contacts-button",
+      "ok": true
+    },
+    {
+      "name": "logout-no-contacts-without-session",
+      "ok": true
+    },
+    {
+      "name": "login-again-claims-ready",
+      "ok": true
+    },
+    {
+      "name": "no-duplicate-efrat",
+      "ok": true,
+      "n": 1
+    },
+    {
+      "name": "G-multi-channel-contact",
+      "ok": true,
+      "kinds": [
+        "email",
+        "phone",
+        "whatsapp"
+      ]
+    },
+    {
+      "name": "no-mass-migration",
+      "ok": true,
+      "n": 1
+    },
+    {
+      "name": "soft-delete-test-claims",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS",
+  "deployTxt": "deployed_ref=2aaa8e4 feat/incident-alerts-staging"
+}

@@ -113,6 +113,7 @@ async function makeClaim(id, name, company, extra = {}) {
     client_name: name,
     status: 'בטיפול',
     plate: extra.plate || '11-222-33',
+    assigned_to: session.user.id,
     row_data: {
       id, clientName: name, clientEmail: extra.email || 'yoni122222@gmail.com', clientPhone: extra.phone || '0501111111',
       plate: extra.plate || '11-222-33', status: 'בטיפול', source: 'Staff', insCompany: company,
@@ -137,11 +138,18 @@ try {
     await page.goto(`${PUBLIC}/claims`, { waitUntil: 'domcontentloaded', timeout: 120000 });
     await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
     await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
+    const mine = page.locator('[data-testid="claims-mine-toggle"]').locator('visible=true').first();
+    if (await mine.count()) {
+      const t = await mine.innerText().catch(() => '');
+      if (/שלי|התביעות שלי/.test(t)) await mine.click().catch(() => undefined);
+    }
     const box = page.locator('[data-testid="claims-search"]').locator('visible=true').first();
     await box.waitFor({ state: 'visible', timeout: 15000 });
     await box.fill(id);
-    await page.waitForTimeout(700);
-    await page.locator(`[data-testid="claim-row-${id}"]`).click();
+    await page.waitForTimeout(1200);
+    const row = page.locator(`[data-testid="claim-row-${id}"]`).first();
+    await row.waitFor({ state: 'visible', timeout: 20000 });
+    await row.click();
     await page.waitForSelector('[data-testid="claims-open-contacts"]', { timeout: 20000 });
   };
 
@@ -160,8 +168,22 @@ try {
   await page.locator('[data-testid="contact-phone"]').fill('0502222222');
   await page.locator('[data-testid="contact-wa"]').fill('0502222222');
   await page.locator('[data-testid="contact-save"]').click();
-  await page.waitForTimeout(1200);
+  await page.getByText('אפרת כהן QA', { exact: false }).first().waitFor({ timeout: 20000 });
   rec('D-save-new-contact', (await page.locator('[data-testid="mo-contacts"]').innerText()).includes('אפרת כהן QA'));
+  await page.getByRole('button', { name: 'ראשי לטיפול' }).first().click();
+  await page.waitForSelector('[data-testid="contact-primary"]', { timeout: 15000 });
+  rec('primary-treatment-contact', (await page.locator('[data-testid="contact-primary"]').innerText()).includes('אפרת כהן QA'));
+  await page.locator('[data-testid="contacts-search"]').fill('אפרת');
+  rec('search-filter', (await page.locator('[data-testid="mo-contacts"]').innerText()).includes('אפרת כהן QA'));
+  await page.locator('[data-testid="contacts-close"]').click();
+  rec('regression-mail', await page.locator('[data-testid="claims-send-mail"]').count() > 0);
+  rec('regression-request', await page.locator('[data-testid="claims-cust-request"]').count() > 0);
+  rec('regression-treat', await page.locator('[data-testid="claims-treat-open"]').count() > 0);
+  rec('regression-docs', await page.locator('[data-testid="claims-open-docs"]').count() > 0);
+  await page.locator('[data-testid="claims-open-contacts"]').click();
+  await page.waitForSelector('[data-testid="mo-contacts"]', { timeout: 15000 });
+  await page.getByText('אפרת כהן QA', { exact: false }).first().waitFor({ timeout: 20000 });
+  rec('reopen-keeps-contact', (await page.locator('[data-testid="mo-contacts"]').innerText()).includes('אפרת כהן QA'));
   await page.locator('[data-testid="contacts-close"]').click();
 
   await page.locator('[data-testid="claims-send-mail"]').click();
@@ -173,6 +195,14 @@ try {
   const toWrap = await page.locator('[data-testid="mail-to-wrap"]').innerText().catch(() => '');
   rec('B-email-filled-no-autosend', toWrap.includes('efrat.qa.ctc@example.com') || toVal.includes('efrat.qa.ctc@example.com'));
   rec('B-no-autosend', !(await page.locator('text=נשלח בהצלחה').count()));
+  rec('regression-schedule-control', await page.locator('[data-testid="mail-schedule"]').count() > 0);
+  await page.locator('[data-testid="mail-to"]').fill('brand.new.ctc@example.com');
+  await page.locator('[data-testid="mail-to"]').blur();
+  await page.waitForTimeout(400);
+  rec('H-save-offer-shown', await page.locator('[data-testid="mail-save-offer"]').count() > 0);
+  await page.locator('[data-testid="mail-save-offer"] button', { hasText: 'לא עכשיו' }).first().click().catch(() => undefined);
+  const beforeSkip = (await userDb.from('claims_contact_channels').select('id').eq('value_norm', 'brand.new.ctc@example.com')).data?.length || 0;
+  rec('H-no-save-without-confirm', beforeSkip === 0);
   await shot(page, 'b-composer');
   await page.locator('[data-testid="mo-mail"] .mcl').click().catch(() => undefined);
 
@@ -217,7 +247,9 @@ try {
 
   await openClaim(idA);
   await page.locator('[data-testid="claims-open-contacts"]').click();
-  const waBtn = page.locator('[data-testid^="contact-wa-"]').first();
+  await page.waitForSelector('[data-testid="mo-contacts"]', { timeout: 15000 });
+  await page.getByText('אפרת כהן QA', { exact: false }).first().waitFor({ timeout: 20000 });
+  const waBtn = page.locator('[data-testid^="contact-wa-CTC"]').first();
   rec('H-whatsapp-control', await waBtn.count() > 0);
   if (await waBtn.count()) {
     await waBtn.click();
@@ -244,14 +276,39 @@ try {
   await shot(mpage, 'mobile');
   await mobile.close();
 
-  const { data: nContacts } = await userDb.from('claims_contacts').select('id').ilike('full_name', '%QA%');
-  rec('G-multi-channel-contact', true, { detail: 'email+phone+whatsapp saved on אפרת' });
+  const loggedOut = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  const lpage = await loggedOut.newPage();
+  await lpage.goto(`${PUBLIC}/claims`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await lpage.waitForTimeout(2500);
+  rec('logout-no-contacts-without-session', await lpage.locator('[data-testid="claims-open-contacts"]').count() === 0);
+  await loggedOut.close();
+  const relog = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  await inject(relog, session);
+  const rpage = await relog.newPage();
+  await rpage.goto(`${PUBLIC}/claims`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await rpage.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
+  rec('login-again-claims-ready', await rpage.locator('[data-testid="claims-open-new"]').count() > 0);
+  await relog.close();
+
+  const { data: nContacts } = await userDb.from('claims_contacts').select('id, full_name').ilike('full_name', '%אפרת כהן QA%');
+  rec('no-duplicate-efrat', (nContacts || []).length === 1, { n: (nContacts || []).length });
+  const efratId = nContacts?.[0]?.id;
+  const { data: chans } = efratId
+    ? await userDb.from('claims_contact_channels').select('kind').eq('contact_id', efratId)
+    : { data: [] };
+  rec('G-multi-channel-contact', new Set((chans || []).map((c) => c.kind)).size >= 2, { kinds: (chans || []).map((c) => c.kind) });
   rec('no-mass-migration', (nContacts || []).length < 20, { n: (nContacts || []).length });
 } catch (e) {
   rec('qa-runtime', false, { err: String(e?.message || e).slice(0, 400) });
 } finally {
   if (browser) await browser.close().catch(() => undefined);
   for (const id of [idA, idB, idC]) await softDelete(id);
+  const { data: qaPeople } = await userDb.from('claims_contacts').select('id').eq('full_name', 'אפרת כהן QA');
+  for (const p of qaPeople || []) {
+    await userDb.from('claims_claim_contacts').delete().eq('contact_id', p.id);
+    await userDb.from('claims_contact_channels').delete().eq('contact_id', p.id);
+    await userDb.from('claims_contacts').delete().eq('id', p.id);
+  }
   rec('soft-delete-test-claims', true);
 }
 
