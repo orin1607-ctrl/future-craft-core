@@ -404,12 +404,18 @@ if (uiOn) {
   if (await docsTab.count()) await docsTab.click();
   const revoke = pageB.locator('[data-testid="cust-link-revoke"]');
   await pageB.locator('[data-testid="cust-link-card"]').waitFor({ state: 'visible', timeout: 15000 });
-  await revoke.scrollIntoViewIfNeeded();
-  await revoke.waitFor({ state: 'visible', timeout: 10000 });
-  await revoke.click();
-  // revokeCustomerLink is async (revoke_link + loadCardData). Empty state replaces the card
-  // only after that returns — a fixed 1200ms sleep races the network.
-  rec('session-b-revoke-hides-card', await waitTestId(pageB, 'cust-link-empty'));
+  await revoke.evaluate((el) => {
+    el.scrollIntoView({ block: 'center', inline: 'nearest' });
+    const mb = el.closest('.mb');
+    if (mb instanceof HTMLElement) {
+      const top = el.getBoundingClientRect().top - mb.getBoundingClientRect().top;
+      mb.scrollTop += top - 24;
+    }
+    if (el instanceof HTMLElement) el.click();
+  });
+  const cardGone = await pageB.locator('[data-testid="cust-link-card"]').waitFor({ state: 'hidden', timeout: 20000 }).then(() => true).catch(() => false);
+  const emptyShown = await pageB.locator('[data-testid="cust-link-empty"]').waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false);
+  rec('session-b-revoke-hides-card', cardGone && emptyShown);
   await pageB.screenshot({ path: join(OUT, 'screenshots', 'session-b-after-revoke.png') });
   const afterRevoke = await publicGet(minted);
   rec('revoke-blocks-old-token', afterRevoke.json?.success === false || afterRevoke.status >= 400);

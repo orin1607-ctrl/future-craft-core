@@ -1359,6 +1359,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     clearCustLinkCache(claimId);
     setLinkUrl('');
     setLinkReconstructable(false);
+    setHasUploadLink(false);
+    setUploadLinkMeta(null);
     await loadCardData(claimId);
     toast('הקישור בוטל');
   };
@@ -3494,15 +3496,15 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       </div>
                       <div className="cust-link-note">אין שליחה אוטומטית. שיתוף במכשיר נפתח רק אחרי לחיצה. WhatsApp נפתח רק אחרי לחיצה — בלי Auto Send.</div>
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="cust-link-empty" data-testid="cust-link-empty">אין קישור פעיל. סמנו מסמכים ולחצו «צור קישור ללקוח».</div>
+                  )}
                   <details className="docs-more" data-testid="docs-more-customer">
                     <summary>בקשה מהלקוח / רשימת חסרים</summary>
                   <div className="cust-ask" data-testid="cust-ask-panel">
                     {hasUploadLink ? (
                       <div className="cust-link-note">יש קישור פעיל מעל — כאן רק בקשת מסמכים.</div>
-                    ) : (
-                      <div className="cust-link-empty" data-testid="cust-link-empty">אין קישור פעיל. סמנו מסמכים ולחצו «צור קישור ללקוח».</div>
-                    )}
+                    ) : null}
                     <button type="button" className="btn btn-p" data-testid="cust-ask-open" onClick={() => {
                       setAskKeys(CLAIM_DOC_TYPES.filter((x) => catalogInRequests(docs.requests, x)).map((x) => x.key));
                       setAskOpen((v) => !v);
