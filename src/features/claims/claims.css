@@ -335,6 +335,16 @@
   text-decoration:underline;text-underline-offset:2px;max-width:220px;
 }
 .claims-root .claims-desk-table .claim-last-treat{font-size:11px;font-weight:600;max-width:200px}
+.claims-root .claim-contact-card{background:var(--bg2);border:1px solid var(--br);border-radius:8px;padding:10px;margin-bottom:8px}
+.claims-root .claim-contact-card.is-primary{border-color:var(--ac2);box-shadow:0 0 0 1px var(--ac2)}
+.claims-root .claim-contact-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:6px}
+.claims-root .claim-contact-name{font-weight:800}
+.claims-root .claim-contact-meta,.claims-root .claim-contact-line,.claims-root .claim-contact-note{font-size:12px;color:var(--t2)}
+.claims-root .claim-contact-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.claims-root .claim-contact-form{background:var(--bg3);border-radius:8px;padding:10px;margin:10px 0}
+.claims-root .claim-contact-confirm{background:rgba(37,99,235,.1);border:1px solid var(--ac2);border-radius:8px;padding:10px;margin:10px 0}
+.claims-root .claim-contact-pick-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--br)}
+.claims-root .claim-contact-offer{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:10px;margin:8px 0;font-size:12px}
 .claims-root .claim-mcard-alerts{margin-top:8px}
 .claims-root .claim-mcard-alerts .row-alerts{max-width:none}
 .claims-root .claim-mcard-edit{margin-top:10px}
