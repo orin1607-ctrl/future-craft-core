@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { garageStatusLabel, isGaragePhoto, publicGarageClaimFields } from './claimGarage';
+import { formatGarageReviewedAt, garageReviewLabel, garageStatusLabel, garageWorkerReviewLabel, isGarageAwaitingReview, isGaragePhoto, publicGarageClaimFields } from './claimGarage';
 
 describe('claimGarage', () => {
   it('labels assignment statuses', () => {
@@ -7,6 +7,18 @@ describe('claimGarage', () => {
     expect(garageStatusLabel('in_progress')).toBe('צילום בתהליך');
     expect(garageStatusLabel('completed')).toBe('צילום הושלם');
     expect(garageStatusLabel('')).toBe('לא שויך');
+  });
+
+  it('labels review statuses without touching document workflow', () => {
+    expect(garageReviewLabel('awaiting_review')).toBe('התקבל — לבדיקה');
+    expect(garageReviewLabel('approved')).toBe('אושר');
+    expect(garageReviewLabel('needs_update')).toBe('נדרש להשלים');
+    expect(garageReviewLabel('')).toBe('');
+    expect(garageWorkerReviewLabel('awaiting_review')).toBe('נשלח לבדיקה');
+    expect(garageWorkerReviewLabel('needs_update')).toBe('נדרש להשלים');
+    expect(isGarageAwaitingReview('awaiting_review')).toBe(true);
+    expect(isGarageAwaitingReview('')).toBe(false);
+    expect(formatGarageReviewedAt('2026-09-09T12:00:00.000Z')).toMatch(/2026|09/);
   });
 
   it('recognizes garage_photos classification only', () => {

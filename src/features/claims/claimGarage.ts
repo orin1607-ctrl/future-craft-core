@@ -8,6 +8,14 @@ export const GARAGE_STATUSES = [
 
 export type GarageStatus = (typeof GARAGE_STATUSES)[number]['key'];
 
+export const GARAGE_REVIEW_STATUSES = [
+  { key: 'awaiting_review', label: 'התקבל — לבדיקה', workerLabel: 'נשלח לבדיקה' },
+  { key: 'approved', label: 'אושר', workerLabel: 'אושר' },
+  { key: 'needs_update', label: 'נדרש להשלים', workerLabel: 'נדרש להשלים' },
+] as const;
+
+export type GarageReviewStatus = (typeof GARAGE_REVIEW_STATUSES)[number]['key'] | '';
+
 export type GarageAssignment = {
   id: string;
   claim_id: string;
@@ -19,10 +27,34 @@ export type GarageAssignment = {
   assigned_by_name?: string;
   assigned_at?: string;
   completed_at?: string | null;
+  review_status?: GarageReviewStatus | string;
+  review_note?: string;
+  reviewed_by?: string | null;
+  reviewed_by_name?: string;
+  reviewed_at?: string | null;
 };
 
 export function garageStatusLabel(status?: string) {
   return GARAGE_STATUSES.find((s) => s.key === status)?.label || 'לא שויך';
+}
+
+export function garageReviewLabel(status?: string) {
+  return GARAGE_REVIEW_STATUSES.find((s) => s.key === status)?.label || '';
+}
+
+export function garageWorkerReviewLabel(status?: string) {
+  return GARAGE_REVIEW_STATUSES.find((s) => s.key === status)?.workerLabel || '';
+}
+
+export function isGarageAwaitingReview(status?: string) {
+  return status === 'awaiting_review';
+}
+
+export function formatGarageReviewedAt(iso?: string | null) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  return d.toLocaleString('he-IL');
 }
 
 export function isGaragePhoto(file: { doc_kind?: string; doc_meta?: Record<string, string> | null }) {

@@ -367,6 +367,34 @@ describe('scheduled once mail', () => {
     expect(alerts.filter((a) => a.key.startsWith('treat_')).length).toBe(1);
     expect(alerts.filter((a) => a.label.includes('חסר מסמך')).length).toBe(0);
   });
+
+  it('shows garage review only when awaiting_review and not as a customer request', () => {
+    const awaiting = buildClaimRowAlerts(claim, {
+      tasks: [],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [],
+      garageReviews: { 'DAL-QA-A': { review_status: 'awaiting_review' } },
+    });
+    expect(awaiting.map((a) => a.key)).toContain('garage_review');
+    expect(awaiting.find((a) => a.key === 'garage_review')?.label).toBe('התקבל — לבדיקה');
+    const approved = buildClaimRowAlerts(claim, {
+      tasks: [],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [],
+      garageReviews: { 'DAL-QA-A': { review_status: 'approved' } },
+    });
+    expect(approved.map((a) => a.key)).not.toContain('garage_review');
+    const otherClaim = buildClaimRowAlerts(other, {
+      tasks: [],
+      notifs: [],
+      gmailPending: [],
+      scheduledFollowups: [],
+      garageReviews: { 'DAL-QA-A': { review_status: 'awaiting_review' } },
+    });
+    expect(otherClaim.map((a) => a.key)).not.toContain('garage_review');
+  });
 });
 
 describe('lastTreatmentActionText', () => {

@@ -68,7 +68,7 @@ function RowAlerts({ alerts, onAlertClick }: { alerts: ClaimAlert[]; onAlertClic
   return (
     <div className="row-alerts" data-testid="claim-row-alerts">
       {alerts.map((a) => {
-        const clickable = !!onAlertClick && (a.key === 'mail_action' || a.key === 'new_mail' || a.key === 'wait_client' || a.key === 'cust_task' || a.key.startsWith('cust_') || a.key.startsWith('treat_') || !!a.taskId);
+        const clickable = !!onAlertClick && (a.key === 'mail_action' || a.key === 'new_mail' || a.key === 'wait_client' || a.key === 'cust_task' || a.key === 'garage_review' || a.key.startsWith('cust_') || a.key.startsWith('treat_') || !!a.taskId);
         return (
           <button
             type="button"
@@ -905,6 +905,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [garageNote, setGarageNote] = useState('');
   const [garageBusy, setGarageBusy] = useState(false);
   const [garageWorkerQ, setGarageWorkerQ] = useState('');
+  const [garageReviews, setGarageReviews] = useState<Record<string, { review_status?: string }>>({});
   const [docPickIds, setDocPickIds] = useState<string[]>([]);
   const [docLibCat, setDocLibCat] = useState('all');
   const mailReturnRef = useRef('');
@@ -951,13 +952,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const loadAll = useCallback(async () => {
     setSync('pend');
     try {
-      const [cr, nr, tr, rr, pr, fu] = await Promise.all([
+      const [cr, nr, tr, rr, pr, fu, gr] = await Promise.all([
         apiRef.current.getClaims(),
         apiRef.current.getNotifications(),
         apiRef.current.getTasks(null),
         apiRef.current.getReminders(null),
         apiRef.current.invokeGmail('list_pending'),
         apiRef.current.listScheduledMailFollowups(),
+        apiRef.current.invokeDocs('list_garage_reviews').catch(() => ({})),
       ]);
       setClaims(cr.data || []);
       setNotifs(nr.data || []);
@@ -965,6 +967,15 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       setDashRems(rr.data || []);
       if (pr.success) setGmailPending((pr.data as Array<Record<string, unknown>>) || []);
       if (fu.success) setDashFollowups(fu.data || []);
+      if (gr && typeof gr === 'object' && (gr as { success?: boolean }).success && Array.isArray((gr as { reviews?: unknown }).reviews)) {
+        const map: Record<string, { review_status?: string }> = {};
+        for (const row of (gr as { reviews: Array<{ claim_id?: string; review_status?: string }> }).reviews) {
+          if (row?.claim_id) map[row.claim_id] = { review_status: String(row.review_status || '') };
+        }
+        setGarageReviews(map);
+      } else {
+        setGarageReviews({});
+      }
       if (!cr.success && cr.error) toast(`טעינת תביעות נכשלה: ${cr.error}`, 'err');
       if (actor.role === 'super_admin') {
         const a = await apiRef.current.listAssignees();
@@ -1103,7 +1114,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     notifs,
     gmailPending,
     scheduledFollowups: dashFollowups,
-  }), [dashTasks, notifs, gmailPending, dashFollowups]);
+    garageReviews,
+  }), [dashTasks, notifs, gmailPending, dashFollowups, garageReviews]);
   const activeClaims = useMemo(() => claims.filter((c) => c.archived !== 'true'), [claims]);
   const archiveClaims = useMemo(() => claims.filter((c) => c.archived === 'true'), [claims]);
   const isMyClaim = (c: ClaimRecord) => c.assigned_to === actor.id || c.created_by === actor.id;
@@ -1306,7 +1318,40 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       if (r.success === false) { toast(String(r.error || 'ביטול נכשל'), 'err'); return; }
       setGarageAssign(null);
       await loadCardData(cur.id);
+      await loadAll();
       toast('השיוך בוטל');
+    } finally {
+      setGarageBusy(false);
+    }
+  };
+
+  const approveGarageReview = async () => {
+    if (!cur) return;
+    setGarageBusy(true);
+    try {
+      const r = await apiRef.current.invokeDocs('garage_review_approve', { claim_id: cur.id });
+      if (r.success === false) { toast(String(r.error || 'אישור נכשל'), 'err'); return; }
+      setGarageAssign((r.assignment as GarageAssignment) || null);
+      await loadCardData(cur.id);
+      await loadAll();
+      toast('צילומי המוסך אושרו');
+    } finally {
+      setGarageBusy(false);
+    }
+  };
+
+  const needsUpdateGarageReview = async (note: string) => {
+    if (!cur) return;
+    const next = note.trim();
+    if (!next) { toast('יש לרשום סיבה להשלמה', 'err'); return; }
+    setGarageBusy(true);
+    try {
+      const r = await apiRef.current.invokeDocs('garage_review_needs_update', { claim_id: cur.id, note: next });
+      if (r.success === false) { toast(String(r.error || 'עדכון נכשל'), 'err'); return; }
+      setGarageAssign((r.assignment as GarageAssignment) || null);
+      await loadCardData(cur.id);
+      await loadAll();
+      toast('נשלחה בקשת השלמה לעובד');
     } finally {
       setGarageBusy(false);
     }
@@ -1905,6 +1950,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }
     if (alert?.key === 'mail_recurring' || alert?.key === 'mail_scheduled') {
       await openCard(claimId, 'mailfu', alert.mailIds);
+      return;
+    }
+    if (alert?.key === 'garage_review') {
+      await openCard(claimId, 'docs');
       return;
     }
     const ids = alert?.mailIds?.length ? alert.mailIds : untreatedMailIds(claims.find((c) => c.id === claimId) || { id: claimId } as ClaimRecord, alertCtx);
@@ -3503,6 +3552,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     busy={garageBusy}
                     onAssign={() => { void openGarageAssign(); }}
                     onUnassign={() => { void unassignGarage(); }}
+                    onApprove={() => { void approveGarageReview(); }}
+                    onNeedsUpdate={(note) => { void needsUpdateGarageReview(note); }}
                     onOpenPortal={garageAssign?.worker_id ? () => {
                       const base = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
                       window.open(`${base}garage?worker=${encodeURIComponent(garageAssign.worker_id)}`, '_blank', 'noopener');
