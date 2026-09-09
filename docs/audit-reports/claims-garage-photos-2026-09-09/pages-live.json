@@ -1,0 +1,199 @@
+{
+  "at": "2026-09-09T19:47:46.981Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "liveSha": "deployed_ref=f435bd1 feat/incident-alerts-staging",
+  "checks": [
+    {
+      "name": "pages-live-sha",
+      "ok": true,
+      "marker": "deployed_ref=f435bd1 feat/incident-alerts-staging",
+      "want": "f435bd1"
+    },
+    {
+      "name": "pages-garage-200",
+      "ok": true,
+      "garageStatus": 200
+    },
+    {
+      "name": "pages-bundle-has-assign-button",
+      "ok": true,
+      "jsName": "index-DbExWDac.js"
+    },
+    {
+      "name": "pages-bundle-has-garage-portal",
+      "ok": true
+    },
+    {
+      "name": "staging-only",
+      "ok": true,
+      "ref": "usfeoerkpcafxxlyuldl"
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    },
+    {
+      "name": "desk-login",
+      "ok": true
+    },
+    {
+      "name": "photographer-login",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-GAR-LIVE-1788983267897",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-GAR-LIVE-O-1788983267897",
+      "ok": true
+    },
+    {
+      "name": "real-jpegs-ready",
+      "ok": true,
+      "front": "/tmp/garage-front.jpg",
+      "side": "/tmp/garage-side.jpg"
+    },
+    {
+      "name": "live-assign-button-visible",
+      "ok": true,
+      "text": "צילומי מוסך לא שויך עובד לצילומי מוסך שייך עובד לצילומי מוסך"
+    },
+    {
+      "name": "live-more-assign-button",
+      "ok": true
+    },
+    {
+      "name": "live-worker-in-picker",
+      "ok": true,
+      "n": 2,
+      "sample": [
+        "QA צלם מוסך"
+      ]
+    },
+    {
+      "name": "live-staff-assigned",
+      "ok": true,
+      "barText": "צילומי מוסך עובד: QA צלם מוסך סטטוס: ממתין לצילום תמונות: 0 החלף שיוך בטל שיוך"
+    },
+    {
+      "name": "other-worker-no-job",
+      "ok": true
+    },
+    {
+      "name": "live-garage-works",
+      "ok": true
+    },
+    {
+      "name": "live-worker-sees-assigned",
+      "ok": true
+    },
+    {
+      "name": "live-worker-no-other-claim",
+      "ok": true
+    },
+    {
+      "name": "live-worker-limited-fields",
+      "ok": true
+    },
+    {
+      "name": "live-pending-ready",
+      "ok": true
+    },
+    {
+      "name": "live-upload-visible",
+      "ok": true
+    },
+    {
+      "name": "live-complete-clicked",
+      "ok": true
+    },
+    {
+      "name": "live-status-completed-on-claim",
+      "ok": true,
+      "status": "completed",
+      "photos": 2
+    },
+    {
+      "name": "live-files-classified-garage-photos",
+      "ok": true,
+      "n": 2,
+      "kinds": [
+        "garage_photo",
+        "garage_photo"
+      ]
+    },
+    {
+      "name": "live-claim-status-completed",
+      "ok": true,
+      "bar2": "צילומי מוסך עובד: QA צלם מוסך סטטוס: צילום הושלם תמונות: 2 החלף שיוך בטל שיוך"
+    },
+    {
+      "name": "live-gallery-topic-garage",
+      "ok": true
+    },
+    {
+      "name": "live-photo-in-same-claim",
+      "ok": true
+    },
+    {
+      "name": "live-preview",
+      "ok": true
+    },
+    {
+      "name": "live-download",
+      "ok": true
+    },
+    {
+      "name": "live-secure-share-created",
+      "ok": true,
+      "shareUrl": "https://orin1607-ctrl.github.io/future-craft-core/claims-share?t=18218491054c1f40fc83cf357798690eba375a5e59e95eb09587de81e286d210"
+    },
+    {
+      "name": "live-share-outside-selected-only",
+      "ok": true,
+      "pubText": "שיתוף מאובטח חומר שנבחר לשיתוף בלבד. המסך לקריאה ולהורדה. הקישור זמין עד 11.9.2026, 19:49:10 בחר הכל נקה רק מסמכים רק תמונות הורד הכל / ZIP הורד נבחרים הפק / הורד PDF מרוכז נבחרו 2 מתוך 2 תמונות garage-side.jpg📷Preview "
+    },
+    {
+      "name": "live-share-no-internal-nav",
+      "ok": true
+    },
+    {
+      "name": "live-revoke-blocks",
+      "ok": true,
+      "err": "revoked"
+    },
+    {
+      "name": "live-other-claim-blocked",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "live-other-worker-blocked",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "live-no-cross-claim-leakage",
+      "ok": true
+    },
+    {
+      "name": "live-mobile-assign-bar",
+      "ok": true
+    },
+    {
+      "name": "soft-delete-test-claims",
+      "ok": true,
+      "claimId": "DAL-QA-GAR-LIVE-1788983267897",
+      "otherId": "DAL-QA-GAR-LIVE-O-1788983267897"
+    },
+    {
+      "name": "production-untouched-final",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS",
+  "failed": []
+}
