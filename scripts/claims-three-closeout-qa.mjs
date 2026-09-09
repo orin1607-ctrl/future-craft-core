@@ -108,6 +108,23 @@ function noticeFiles(files) {
     return pdf && (d.doc_meta?.staff_type === 'accident_notice' || /הודעה|טופס אירוע|פתיחת תביעה/.test(title));
   });
 }
+async function listNoticeUntil(session, claimId, tries = 12) {
+  let last = { status: 0, json: {} };
+  let notices = [];
+  for (let i = 0; i < tries; i++) {
+    last = await invokeDocs(session, { action: 'list_docs', claim_id: claimId });
+    notices = noticeFiles(last.json?.files);
+    if (notices.length) break;
+    await sleep(2000);
+  }
+  return { last, notices, allNames: (last.json?.files || []).map((f) => f.original_name) };
+}
+async function openTasksTab(page) {
+  await page.locator('[data-testid="claims-tab-group-work"]').click();
+  await page.waitForTimeout(350);
+  await page.locator('[data-testid="claims-tab-sub-tasks"]').click();
+  await page.waitForTimeout(500);
+}
 
 const session = await login();
 rec('worker-login', !!session.access_token);
@@ -203,24 +220,60 @@ try {
   await page.locator('[data-testid="intake-signature"]').scrollIntoViewIfNeeded().catch(() => undefined);
   await signPad(page, 'intake-signature');
   await page.locator('[data-testid="claims-save-btn"]').click();
-  await page.waitForTimeout(4000);
+  await page.locator('[data-testid="intake-name"]').waitFor({ state: 'hidden', timeout: 90000 }).catch(() => undefined);
+  await page.waitForFunction(() => Array.from(document.querySelectorAll('.toast')).some((el) => /תיק נפתח|תיק נשמר|העלאת|יצירת טופס/.test(el.textContent || '')), { timeout: 30000 }).catch(() => undefined);
+  const saveToast = (await page.locator('.toast').allInnerTexts().catch(() => [])).join(' | ');
+  await page.waitForTimeout(800);
 
   const listed = (await userDb.from('claims_records').select('id, client_name, row_data').eq('assigned_to', session.user.id).order('created_at', { ascending: false }).limit(8)).data || [];
   const created = listed.find((r) => r.client_name === pdfName || r.row_data?.clientName === pdfName);
   createdId = created?.id || '';
-  rec('s1-save-claim', Boolean(createdId), { id: createdId });
+  rec('s1-save-claim', Boolean(createdId), { id: createdId, toast: saveToast.slice(0, 220) });
   rec('s1-claim-created', Boolean(createdId), { id: createdId });
   if (createdId) {
-    const docs = await invokeDocs(session, { action: 'list_docs', claim_id: createdId });
-    const notices = noticeFiles(docs.json.files);
-    rec('s1-one-notice-pdf', notices.length === 1, { n: notices.length, names: notices.map((f) => f.original_name) });
-    rec('s1-pdf-same-claim', notices.every((f) => true), { claimId: createdId });
+    const found = await listNoticeUntil(session, createdId, 15);
+    rec('s1-one-notice-pdf', found.notices.length === 1, {
+      n: found.notices.length,
+      names: found.notices.map((f) => f.original_name),
+      allNames: found.allNames,
+      err: found.last.json?.error,
+      status: found.last.status,
+    });
+    rec('s1-pdf-same-claim', found.notices.length === 1 && found.notices.every((f) => true), { claimId: createdId });
     const leak = await invokeDocs(session, { action: 'list_docs', claim_id: idB });
     const leakN = noticeFiles(leak.json.files).filter((f) => String(f.original_name || '').includes(String(stamp)));
     rec('s1-no-cross-claim-pdf', leakN.length === 0, { n: leakN.length });
   }
-  rec('s1-preview-control', await page.locator('button:has-text("פתח"), button:has-text("תצוגה")').count() >= 0);
+  await page.locator('[data-testid="claims-tab-group-docs"]').click().catch(() => undefined);
+  await page.waitForTimeout(400);
+  if (createdId && !(await page.locator('[data-testid="claim-doc-view-accident_notice"]').count())) {
+    await openClaim(createdId);
+    await page.locator('[data-testid="claims-tab-group-docs"]').click().catch(() => undefined);
+    await page.waitForTimeout(500);
+  }
+  const viewNotice = page.locator('[data-testid="claim-doc-view-accident_notice"]');
+  await viewNotice.first().waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
+  if (await viewNotice.count()) {
+    await viewNotice.first().click();
+    await page.waitForTimeout(800);
+  }
+  rec('s1-preview-control', await page.locator('[data-testid="doc-preview"]').count() > 0);
+  rec('s1-download-control', await page.locator('[data-testid="doc-preview-download"]').count() > 0);
   rec('s1-composer-exists', await page.locator('[data-testid="claims-send-mail"]').count() > 0);
+  if (await page.locator('[data-testid="claims-send-mail"]').count()) {
+    await page.locator('[data-testid="claims-send-mail"]').click();
+    await page.waitForSelector('[data-testid="mail-pick-signed-form"], [data-testid="mail-to"]', { timeout: 15000 }).catch(() => undefined);
+    if (await page.locator('[data-testid="mail-pick-signed-form"]').count()) {
+      await page.locator('[data-testid="mail-pick-signed-form"]').click();
+      await page.waitForTimeout(500);
+    }
+    const selected = await page.locator('[data-testid^="mail-selected-"]').count();
+    const checked = await page.locator('[data-testid^="mail-file-"]:checked').count();
+    rec('s1-composer-attach', selected > 0 || checked > 0, { selected, checked });
+    await page.locator('.mcl').first().click().catch(() => undefined);
+  } else {
+    rec('s1-composer-attach', false, { err: 'composer missing' });
+  }
   await shot(page, 's1-docs');
 
   // ---- S2 verified desks ----
@@ -258,8 +311,17 @@ try {
   await page.waitForTimeout(400);
   rec('s3-template-applied', (await page.locator('[data-testid="cr-text"]').inputValue()).includes('מצהיר') || (await page.locator('[data-testid="cr-text"]').inputValue()).length > 20);
   rec('s3-need-sign', await page.locator('[data-testid="cr-need-sign"]').isChecked());
+  await page.locator('[data-testid="cr-tpl-name"]').fill(`QA תצהיר ${stamp}`);
+  await page.locator('[data-testid="cr-tpl-save"]').click();
+  await page.waitForTimeout(800);
+  rec('s3-template-saved', (await page.locator('.toast').allInnerTexts().catch(() => [])).join(' ').includes('התבנית נשמרה')
+    || (await page.locator('[data-testid="cr-template"]').innerText()).includes('QA תצהיר'));
   await page.locator('[data-testid="cr-save"]').click();
-  await page.waitForTimeout(5000);
+  await page.waitForFunction(() => {
+    const t = Array.from(document.querySelectorAll('.toast')).map((el) => el.textContent || '').join(' ');
+    return /הבקשה נשמרה/.test(t) || document.querySelector('[data-testid="cr-link"]');
+  }, { timeout: 60000 }).catch(() => undefined);
+  await page.waitForTimeout(800);
   rec('s3-composer-or-card', await page.locator('[data-testid="mail-to"], [data-testid="claims-cust-request"]').count() > 0);
   await shot(page, 's3-after-create');
 
@@ -304,20 +366,25 @@ try {
   const rowText = await page.locator(`[data-testid="claim-row-${idA}"]`).innerText().catch(() => '');
   const cardText = await page.locator('.modal, [data-testid="claims-cust-request"]').first().innerText().catch(() => '');
   rec('s3-received-label', /התקבל — לבדיקה/.test(rowText + cardText) || (await page.getByText('התקבל — לבדיקה').count()) > 0, { rowText: rowText.slice(0, 180) });
-  await page.getByRole('button', { name: /משימות/ }).first().click().catch(() => undefined);
-  await page.waitForTimeout(800);
+  await openTasksTab(page);
   const approve = page.locator('[data-testid^="cust-approve-"]').first();
+  await approve.waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
   rec('s3-approve-visible', await approve.count() > 0);
   if (await approve.count()) {
+    await approve.scrollIntoViewIfNeeded();
     await approve.click();
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(2000);
   }
+  await page.locator('[data-testid="claims-tab-group-hist"]').click().catch(() => undefined);
+  await page.waitForSelector('[data-testid="claim-treat-history"], [data-testid="claim-treat-history-loading"]', { timeout: 15000 }).catch(() => undefined);
+  await page.waitForFunction(() => !document.querySelector('[data-testid="claim-treat-history-loading"]'), { timeout: 20000 }).catch(() => undefined);
+  const histText = await page.locator('[data-testid="claim-treat-history"]').innerText().catch(() => '');
+  rec('s3-history-kept', /טיפול הושלם|התקבל מהלקוח|משימה ללקוח|בקשה ללקוח/.test(histText), { hist: histText.slice(0, 240) });
   await openClaims();
   await page.locator('[data-testid="claims-search"]').locator('visible=true').first().fill(idA);
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(1200);
   const after = await page.locator(`[data-testid="claim-row-${idA}"]`).innerText().catch(() => '');
-  rec('s3-label-gone-after-approve', !/ממתין ללקוח — תצהיר/.test(after), { after: after.slice(0, 180) });
-  rec('s3-history-kept', true);
+  rec('s3-label-gone-after-approve', !/ממתין ללקוח/.test(after) && !/התקבל — לבדיקה/.test(after), { after: after.slice(0, 280) });
 
   const filesA = await invokeDocs(session, { action: 'list_docs', claim_id: idA });
   const filesB = await invokeDocs(session, { action: 'list_docs', claim_id: idB });
