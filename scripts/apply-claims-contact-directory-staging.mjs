@@ -41,18 +41,48 @@ if (service) {
 const attempts = [];
 let applied = false;
 
+async function applyViaPgUrl(url, label) {
+  if (!url) return { ok: false, error: `no_${label}` };
+  if (url.includes(PROD_REF)) return { ok: false, error: 'production_url_blocked' };
+  if (!url.includes(STAGING_REF)) return { ok: false, error: 'url_not_staging' };
+  const { default: pg } = await import('pg');
+  const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+  await client.connect();
+  try { await client.query(sqlText); }
+  finally { await client.end().catch(() => null); }
+  return { ok: true };
+}
+
 const dbUrl = (process.env.STAGING_DATABASE_URL || process.env.DATABASE_URL || '').trim();
 if (dbUrl) {
-  if (dbUrl.includes(PROD_REF)) throw new Error('production url blocked');
-  if (!dbUrl.includes(STAGING_REF)) throw new Error('url not staging');
   try {
-    const { default: pg } = await import('pg');
-    const client = new pg.Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
-    await client.connect();
-    try { await client.query(sqlText); applied = true; attempts.push({ fn: 'staging_database_url', ok: true }); }
-    finally { await client.end().catch(() => null); }
+    const via = await applyViaPgUrl(dbUrl, 'staging_database_url');
+    attempts.push({ fn: 'staging_database_url', ...via });
+    applied = via.ok === true;
   } catch (e) {
     attempts.push({ fn: 'staging_database_url', ok: false, error: String(e.message || e).slice(0, 240) });
+  }
+}
+
+if (!applied) {
+  const pwd = (process.env.STAGING_SUPABASE_DB_PASSWORD || '').trim();
+  const host = (process.env.STAGING_POOLER_HOST || 'aws-0-eu-central-1.pooler.supabase.com').trim();
+  if (pwd) {
+    const encoded = encodeURIComponent(pwd);
+    const candidates = [
+      `postgresql://postgres.${STAGING_REF}:${encoded}@${host}:6543/postgres?sslmode=require`,
+      `postgresql://postgres.${STAGING_REF}:${encoded}@${host}:5432/postgres?sslmode=require`,
+      `postgresql://postgres:${encoded}@db.${STAGING_REF}.supabase.co:5432/postgres?sslmode=require`,
+    ];
+    for (const url of candidates) {
+      try {
+        const via = await applyViaPgUrl(url, 'staging_db_password');
+        attempts.push({ fn: 'staging_db_password', ok: via.ok, error: via.error || null });
+        if (via.ok) { applied = true; break; }
+      } catch (e) {
+        attempts.push({ fn: 'staging_db_password', ok: false, error: String(e.message || e).slice(0, 240) });
+      }
+    }
   }
 }
 

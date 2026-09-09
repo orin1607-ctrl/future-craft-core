@@ -4336,7 +4336,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           open
           claim={cur}
           api={apiRef.current}
-          onClose={() => setModal('moCard')}
+          onClose={() => { setModal('moCard'); if (cur) void loadCardData(cur.id); }}
           toast={(m, k) => toast(m, k || 'ok')}
           onMail={(email, c) => {
             void openSendModal('draft', { to: email, subject: `תביעה ${displayClaimNum(cur)}`, body: `שלום ${c.full_name},\n` });

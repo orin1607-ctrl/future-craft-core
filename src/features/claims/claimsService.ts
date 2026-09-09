@@ -792,7 +792,10 @@ export function createClaimsApi(actor: ClaimsActor) {
       const dir = await this.listDirectoryContacts();
       if (!dir.success) return dir;
       const { data: links, error } = await tbl('claims_claim_contacts').select('claim_id, contact_id, role_on_claim, is_primary_treatment').eq('claim_id', claimId);
-      if (error) return { success: false as const, error: error.message, data: [] as ClaimContact[] };
+      if (error) {
+        if (/schema cache/i.test(error.message)) return { success: true as const, data: [] as ClaimContact[] };
+        return { success: false as const, error: error.message, data: [] as ClaimContact[] };
+      }
       const by = new Map((links || []).map((l: Record<string, unknown>) => [asText(l.contact_id), l]));
       const data = dir.data.map((c) => {
         const link = by.get(c.id);
@@ -810,8 +813,12 @@ export function createClaimsApi(actor: ClaimsActor) {
     async findDuplicateChannels(kind: ContactChannelKind, value: string) {
       const norm = normChannel(kind, value);
       if (!norm) return { success: true as const, matches: [] as ClaimContact[] };
-      const { data, error } = await tbl('claims_contact_channels').select('id, contact_id, kind, value, value_norm, label').eq('kind', kind).eq('value_norm', norm);
-      if (error) return { success: false as const, error: error.message, matches: [] as ClaimContact[] };
+      const kinds = kind === 'email' ? ['email'] : ['phone', 'whatsapp'];
+      const { data, error } = await tbl('claims_contact_channels').select('id, contact_id, kind, value, value_norm, label').in('kind', kinds).eq('value_norm', norm);
+      if (error) {
+        if (/schema cache/i.test(error.message)) return { success: true as const, matches: [] as ClaimContact[] };
+        return { success: false as const, error: error.message, matches: [] as ClaimContact[] };
+      }
       const ids = [...new Set(((data || []) as Array<Record<string, unknown>>).map((r) => asText(r.contact_id)).filter(Boolean))];
       if (!ids.length) return { success: true as const, matches: [] as ClaimContact[] };
       const dir = await this.listDirectoryContacts();
@@ -922,7 +929,6 @@ export function createClaimsApi(actor: ClaimsActor) {
       if (error) return { success: false as const, error: error.message };
       return { success: true as const };
     },
-,
 
     async dispatchMailNow() {
       const { data, error } = await supabase.functions.invoke('claims-mail-dispatch', { body: {} });
