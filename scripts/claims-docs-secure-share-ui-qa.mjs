@@ -153,6 +153,7 @@ rec('local-preview-up', localOk, { ui: UI });
 if (localOk) {
   const { chromium } = await import('playwright');
   const browser = await chromium.launch({ headless: true });
+  try {
   const ctx = await browser.newContext({ locale: 'he-IL', viewport: { width: 1400, height: 900 } });
   await ctx.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
     key: `sb-${STAGING_REF}-auth-token`,
@@ -174,7 +175,7 @@ if (localOk) {
   rec('claim-row', await row.count() > 0);
   if (await row.count()) {
     await row.click();
-    await page.locator('.claims-root .tab').filter({ hasText: 'מסמכים' }).click();
+    await page.locator('[data-testid="claims-tab-group-docs"]').click();
     await page.locator('[data-testid="docs-share-bar"]').waitFor({ timeout: 20000 });
     const lib = page.locator('[data-testid="docs-library"]');
     await lib.locator('[data-testid="doc-file-row"], [data-testid^="docs-img-"]').first().waitFor({ timeout: 25000 });
@@ -251,13 +252,15 @@ if (localOk) {
   const mrow = mpage.locator(`[data-testid="claim-row-${claimId}"]`).first();
   if (await mrow.count()) {
     await mrow.click();
-    await mpage.locator('.claims-root .tab').filter({ hasText: 'מסמכים' }).click();
+    await mpage.locator('[data-testid="claims-tab-group-docs"]').click();
     await mpage.locator('[data-testid="claims-secure-share"]').waitFor({ timeout: 15000 });
     rec('mobile-share-visible', await mpage.locator('[data-testid="claims-secure-share"]').isVisible());
     await shot(mpage, 'mobile-share');
   } else rec('mobile-share-visible', false, { err: 'row missing' });
   await mobile.close();
-  await browser.close();
+  } finally {
+    await browser.close();
+  }
 }
 
 await softDelete(claimId);

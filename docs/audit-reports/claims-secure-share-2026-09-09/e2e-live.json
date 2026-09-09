@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-09T13:47:24.467Z",
+  "at": "2026-09-09T15:56:36.622Z",
   "staging": "usfeoerkpcafxxlyuldl",
   "productionTouched": false,
   "claimsDocsPrivate": true,
@@ -17,32 +17,32 @@
       "ref": "usfeoerkpcafxxlyuldl"
     },
     {
-      "name": "create-DAL-QA-SHR-A-1788961644864",
+      "name": "create-DAL-QA-SHR-A-1788969396994",
       "ok": true
     },
     {
-      "name": "create-DAL-QA-SHR-B-1788961644864",
+      "name": "create-DAL-QA-SHR-B-1788969396994",
       "ok": true
     },
     {
       "name": "upload-selected",
       "ok": true,
-      "id": "CDM-1788961648931-I5LRFB"
+      "id": "CDM-1788969399867-BR5RIY"
     },
     {
       "name": "upload-unselected",
       "ok": true,
-      "id": "CDM-1788961654706-J16FGM"
+      "id": "CDM-1788969403319-DEU8C5"
     },
     {
       "name": "upload-photo",
       "ok": true,
-      "id": "CDM-1788961660114-GA2IOI"
+      "id": "CDM-1788969406148-5JQ4P9"
     },
     {
       "name": "upload-other-claim",
       "ok": true,
-      "id": "CDM-1788961663384-2CLVYZ"
+      "id": "CDM-1788969410592-WSLXGO"
     },
     {
       "name": "create-foreign-file-blocked",
@@ -53,13 +53,13 @@
     {
       "name": "create-share-once-token",
       "ok": true,
-      "id": "SHR-1788961670472-G9KLLX",
+      "id": "SHR-1788969417022-YHH15P",
       "tokenLen": 64
     },
     {
       "name": "default-ttl-48h",
       "ok": true,
-      "expiresAt": "2026-09-11T13:47:50.472Z"
+      "expiresAt": "2026-09-11T15:56:57.022Z"
     },
     {
       "name": "list-shares-no-token",
@@ -96,16 +96,16 @@
       "name": "selected-file-pass",
       "ok": true,
       "ids": [
-        "CDM-1788961648931-I5LRFB",
-        "CDM-1788961660114-GA2IOI"
+        "CDM-1788969399867-BR5RIY",
+        "CDM-1788969406148-5JQ4P9"
       ]
     },
     {
       "name": "unselected-file-absent",
       "ok": true,
       "ids": [
-        "CDM-1788961648931-I5LRFB",
-        "CDM-1788961660114-GA2IOI"
+        "CDM-1788969399867-BR5RIY",
+        "CDM-1788969406148-5JQ4P9"
       ]
     },
     {
@@ -152,16 +152,16 @@
       "name": "download-all-zip",
       "ok": true,
       "names": [
-        "docs/share-keep-1788961644864.pdf",
-        "photos/share-photo-1788961644864.jpg"
+        "docs/share-keep-1788969396994.pdf",
+        "photos/share-photo-1788969396994.jpg"
       ]
     },
     {
       "name": "zip-only-allowlisted",
       "ok": true,
       "names": [
-        "docs/share-keep-1788961644864.pdf",
-        "photos/share-photo-1788961644864.jpg"
+        "docs/share-keep-1788969396994.pdf",
+        "photos/share-photo-1788969396994.jpg"
       ]
     },
     {
@@ -173,7 +173,7 @@
       "name": "zip-selected-only",
       "ok": true,
       "names": [
-        "docs/share-keep-1788961644864.pdf"
+        "docs/share-keep-1788969396994.pdf"
       ]
     },
     {
@@ -189,17 +189,17 @@
     {
       "name": "second-share-same-claim",
       "ok": true,
-      "id": "SHR-1788961702154-GIAYHW"
+      "id": "SHR-1788969439934-JX58AM"
     },
     {
       "name": "shares-do-not-revoke-each-other",
       "ok": true,
       "first": [
-        "CDM-1788961648931-I5LRFB",
-        "CDM-1788961660114-GA2IOI"
+        "CDM-1788969399867-BR5RIY",
+        "CDM-1788969406148-5JQ4P9"
       ],
       "second": [
-        "CDM-1788961654706-J16FGM"
+        "CDM-1788969403319-DEU8C5"
       ]
     },
     {
@@ -263,7 +263,7 @@
         "last_download_at",
         "open_count"
       ],
-      "hashPrefix": "d82780eb8950"
+      "hashPrefix": "c3e487e2524f"
     },
     {
       "name": "db-no-raw-token-column",
@@ -313,69 +313,6 @@
       "ok": true
     },
     {
-      "name": "ui-base-ready",
-      "ok": true,
-      "pagesShare": 404,
-      "localShare": 200,
-      "uiBase": "http://127.0.0.1:4173"
-    },
-    {
-      "name": "desktop-public-page",
-      "ok": true
-    },
-    {
-      "name": "desktop-has-zip",
-      "ok": true
-    },
-    {
-      "name": "desktop-has-pdf",
-      "ok": true
-    },
-    {
-      "name": "desktop-no-upload",
-      "ok": true
-    },
-    {
-      "name": "desktop-no-internal-nav",
-      "ok": true
-    },
-    {
-      "name": "desktop-download-btn",
-      "ok": true
-    },
-    {
-      "name": "mobile-public-page",
-      "ok": true
-    },
-    {
-      "name": "mobile-has-zip",
-      "ok": true
-    },
-    {
-      "name": "mobile-has-pdf",
-      "ok": true
-    },
-    {
-      "name": "mobile-no-upload",
-      "ok": true
-    },
-    {
-      "name": "mobile-no-internal-nav",
-      "ok": true
-    },
-    {
-      "name": "mobile-download-btn",
-      "ok": true
-    },
-    {
-      "name": "staff-share-button",
-      "ok": true
-    },
-    {
-      "name": "staff-share-history",
-      "ok": true
-    },
-    {
       "name": "no-cross-claim-leakage",
       "ok": true,
       "failed": []
@@ -383,8 +320,8 @@
     {
       "name": "soft-delete-test-claims",
       "ok": true,
-      "idA": "DAL-QA-SHR-A-1788961644864",
-      "idB": "DAL-QA-SHR-B-1788961644864"
+      "idA": "DAL-QA-SHR-A-1788969396994",
+      "idB": "DAL-QA-SHR-B-1788969396994"
     }
   ],
   "verdict": "PASS",

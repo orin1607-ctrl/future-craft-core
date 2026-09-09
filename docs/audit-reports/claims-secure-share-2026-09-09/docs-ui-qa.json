@@ -1,11 +1,11 @@
 {
-  "at": "2026-09-09T15:29:22.750Z",
+  "at": "2026-09-09T15:55:43.720Z",
   "staging": "usfeoerkpcafxxlyuldl",
   "productionTouched": false,
   "pagesSha": "99ad3e3",
   "pagesHasShare": false,
   "uiBase": "http://127.0.0.1:4173",
-  "claimId": "DAL-QA-DOCS-1788967763209",
+  "claimId": "DAL-QA-DOCS-1788969344214",
   "checks": [
     {
       "name": "pages-sha-recorded",
@@ -33,27 +33,27 @@
     {
       "name": "create-test-claim",
       "ok": true,
-      "id": "DAL-QA-DOCS-1788967763209"
+      "id": "DAL-QA-DOCS-1788969344214"
     },
     {
       "name": "upload-keep",
       "ok": true,
-      "id": "CDM-1788967765483-VO9P1C"
+      "id": "CDM-1788969348625-2IWO6Y"
     },
     {
       "name": "upload-skip",
       "ok": true,
-      "id": "CDM-1788967768987-J4HPAO"
+      "id": "CDM-1788969353989-6VLMHD"
     },
     {
       "name": "upload-photo",
       "ok": true,
-      "id": "CDM-1788967772331-W3M58S"
+      "id": "CDM-1788969362422-VK5IZJ"
     },
     {
       "name": "upload-invoice",
       "ok": true,
-      "id": "CDM-1788967775960-7OAKDD"
+      "id": "CDM-1788969367108-LY8L6B"
     },
     {
       "name": "local-preview-up",
@@ -83,7 +83,7 @@
     {
       "name": "cats-exact",
       "ok": true,
-      "cats": "כל המסמכים (4) לקוח (0) רכב (0) שמאי (2) חברת ביטוח (0) חשבוניות (1) נזק (0) טפסים (0) אחר (1)"
+      "cats": "כל הגלריה (4) דוחות שמאי (1) תמונות שמאי (1) תמונות אירוע / נזק (0) מסמכי לקוח (0) מסמכי רכב / נהג (0) מסמכי חברת ביטוח (0) חשבוניות / מוסך (1) טפסים / תצהירים (0) אחר (1)"
     },
     {
       "name": "keep-present",
@@ -126,6 +126,18 @@
       "ok": true
     },
     {
+      "name": "gallery-tab",
+      "ok": true
+    },
+    {
+      "name": "print-btn",
+      "ok": true
+    },
+    {
+      "name": "cat-photos-only",
+      "ok": true
+    },
+    {
       "name": "picked-one",
       "ok": true
     },
@@ -141,13 +153,13 @@
     {
       "name": "share-created",
       "ok": true,
-      "url": "http://127.0.0.1:4173/claims-share?t=04f39e86fed6a4f810ea616e9cd341fe5f78fc96180"
+      "url": "http://127.0.0.1:4173/claims-share?t=7b2ba9bb89c3242ab7b52d50a08ed31a64fb34da792"
     },
     {
       "name": "share-only-selected",
       "ok": true,
       "ids": [
-        "CDM-1788967765483-VO9P1C"
+        "CDM-1788969348625-2IWO6Y"
       ]
     },
     {
@@ -165,7 +177,7 @@
     {
       "name": "soft-delete",
       "ok": true,
-      "id": "DAL-QA-DOCS-1788967763209"
+      "id": "DAL-QA-DOCS-1788969344214"
     }
   ],
   "verdict": "PASS"
