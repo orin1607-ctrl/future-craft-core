@@ -14,6 +14,7 @@ import CustomerRequestModal from './CustomerRequestModal';
 import SecureShareModal from './SecureShareModal';
 import { type ShareRow } from './claimSecureShare';
 import ClaimDocsLibrary from './ClaimDocsLibrary';
+import { DOC_LIB_SECTIONS, fileDocBucket } from './claimDocLibrary';
 import { emailsUnknownToDirectory, parseFromAddr, phoneUnknownToDirectory, type ClaimContact } from './claimContacts';
 import './claims.css';
 
@@ -1544,6 +1545,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const docsShareBar = (curClaim: ClaimRecord) => {
     const names = docs.files.filter((f) => docPickIds.includes(f.id)).map((f) => fileLabel(f));
+    const topics = DOC_LIB_SECTIONS
+      .map((s) => ({ key: s.key, label: s.label, ids: docs.files.filter((f) => s.match.includes(fileDocBucket(f))).map((f) => f.id) }))
+      .filter((t) => t.ids.length);
     return (
       <div className="docs-share-bar" data-testid="docs-share-bar">
         <div className="docs-share-hero">
@@ -1551,9 +1555,22 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             שיתוף מאובטח
           </button>
           <div className="docs-share-copy">
-            <div className="docs-share-title">גלריית מסמכים ותמונות · שיתוף מאובטח · קריאה בלבד · ברירת מחדל 48 שעות</div>
-            <div data-testid="docs-share-picked">{docPickIds.length ? `נבחרו לשיתוף: ${docPickIds.length} קבצים / תמונות` : 'סמנו קבצים או תמונות למטה, ואז לחצו שיתוף מאובטח'}</div>
+            <div className="docs-share-title">שיתוף מאובטח · רק מה שנבחר · קריאה בלבד · ברירת מחדל 48 שעות</div>
+            <div data-testid="docs-share-picked">{docPickIds.length ? `נבחרו לשיתוף: ${docPickIds.length} קבצים / תמונות` : 'בחרו נושא או פריטים למעלה, ואז צרו קישור ללקוח / עו״ד / שמאי / ביטוח / סוכן'}</div>
             {names.length ? <div className="docs-share-names" data-testid="docs-share-names">{names.slice(0, 8).join(' · ')}{names.length > 8 ? '…' : ''}</div> : null}
+            {topics.length ? (
+              <div className="docs-share-topic" data-testid="docs-share-topic-wrap">
+                <select className="fi" data-testid="docs-share-topic" id="docs_share_topic" defaultValue={topics[0].key}>
+                  {topics.map((t) => <option key={t.key} value={t.key}>{t.label} · {t.ids.length}</option>)}
+                </select>
+                <button type="button" className="btn btn-g btn-sm" data-testid="docs-share-topic-go" onClick={() => {
+                  const key = String((document.getElementById('docs_share_topic') as HTMLSelectElement | null)?.value || '');
+                  const hit = topics.find((t) => t.key === key);
+                  if (!hit?.ids.length) { toast('אין קבצים בנושא', 'err'); return; }
+                  openSecureShare(hit.ids);
+                }}>שתף נושא</button>
+              </div>
+            ) : null}
           </div>
         </div>
         <div className="docs-share-hist" data-testid="share-history-panel">
@@ -3408,7 +3425,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               })()}
               {cardTab === 'docs' && (
                 <div>
-                  {docsShareBar(cur)}
                   {(() => {
                     const statuses = CLAIM_DOC_TYPES.map((t) => ({ t, st: docTypeStatus(t, docs.files, docs.requests, hasUploadLink), files: filesForDocType(t, docs.files, docs.requests) }));
                     const present = statuses.filter((x) => x.st.key === 'exists' || x.st.key === 'received').length;
@@ -3436,7 +3452,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     onPreview={(f, list) => void openInCard(cur.id, f as ClaimFile, list as ClaimFile[])}
                     onDownload={(f) => void downloadClaimFile(cur.id, f as ClaimFile)}
                     onPrint={(f) => void printClaimFile(cur.id, f as ClaimFile)}
+                    onShareTopic={(ids) => openSecureShare(ids)}
                   />
+                  {docsShareBar(cur)}
                   <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
                   <StaffUploadZone
                     testId="docs-drop"

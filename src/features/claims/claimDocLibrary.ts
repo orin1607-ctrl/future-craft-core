@@ -4,7 +4,7 @@ export const DOC_LIB_CATEGORIES = [
   { key: 'all', label: 'כל הגלריה' },
   { key: 'surveyor_reports', label: 'דוחות שמאי' },
   { key: 'surveyor_photos', label: 'תמונות שמאי' },
-  { key: 'damage', label: 'תמונות אירוע / נזק' },
+  { key: 'damage', label: 'תמונות נזק / תאונה' },
   { key: 'client', label: 'מסמכי לקוח' },
   { key: 'vehicle', label: 'מסמכי רכב / נהג' },
   { key: 'insurer', label: 'מסמכי חברת ביטוח' },
@@ -15,10 +15,17 @@ export const DOC_LIB_CATEGORIES = [
 
 export type DocLibCategory = (typeof DOC_LIB_CATEGORIES)[number]['key'];
 
+/** Visual groups only. Same buckets — no new classification. */
+export const DOC_LIB_GROUPS: Array<{ key: string; label: string; keys: string[] }> = [
+  { key: 'photos', label: 'תמונות', keys: ['surveyor_photos', 'damage'] },
+  { key: 'reports', label: 'דוחות', keys: ['surveyor_reports'] },
+  { key: 'docs', label: 'מסמכים', keys: ['client', 'vehicle', 'insurer', 'invoice', 'forms', 'other'] },
+];
+
 export const DOC_LIB_SECTIONS: Array<{ key: string; label: string; match: string[] }> = [
   { key: 'surveyor_reports', label: 'דוחות שמאי', match: ['surveyor_reports'] },
   { key: 'surveyor_photos', label: 'תמונות שמאי', match: ['surveyor_photos'] },
-  { key: 'damage', label: 'תמונות אירוע / נזק', match: ['damage'] },
+  { key: 'damage', label: 'תמונות נזק / תאונה', match: ['damage'] },
   { key: 'client', label: 'מסמכי לקוח', match: ['client'] },
   { key: 'vehicle', label: 'מסמכי רכב / נהג', match: ['vehicle'] },
   { key: 'insurer', label: 'מסמכי חברת ביטוח', match: ['insurer'] },

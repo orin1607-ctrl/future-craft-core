@@ -227,12 +227,14 @@
 .claims-root .tabs.tab-subs .tab{font-size:11px;font-weight:500}
 .claims-root .mail-entry-bar,.claims-root .work-entry-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .claims-root .share-hist{background:var(--bg2);border:1px solid var(--br2);border-radius:8px;padding:12px;margin:0 0 12px}
-.claims-root .docs-share-bar{display:flex;flex-direction:column;gap:10px;background:#1d4ed8;color:#fff;border:3px solid #1e3a8a;border-radius:12px;padding:14px;margin:0 0 14px}
+.claims-root .docs-share-bar{display:flex;flex-direction:column;gap:10px;background:#1d4ed8;color:#fff;border:3px solid #1e3a8a;border-radius:12px;padding:14px;margin:16px 0 14px}
 .claims-root .docs-share-hero{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
 .claims-root .docs-share-btn{font-size:18px;font-weight:900;padding:14px 22px;min-height:52px;min-width:min(100%,220px);background:#fff;color:#1d4ed8;border:0}
 .claims-root .docs-share-copy{flex:1;min-width:180px;font-size:13px;color:#fff}
 .claims-root .docs-share-title{font-weight:800;font-size:14px;margin-bottom:4px}
 .claims-root .docs-share-names{font-size:11px;color:#dbeafe;margin-top:4px}
+.claims-root .docs-share-topic{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.claims-root .docs-share-topic .fi{max-width:260px;background:#fff;color:#123}
 .claims-root .docs-share-hist{font-size:11px;color:#dbeafe;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .claims-root .docs-share-hist .btn{background:#fff;color:#1e3a8a}
 .claims-root .docs-more{margin:14px 0;background:var(--bg2);border:1px solid var(--br2);border-radius:8px;padding:8px 12px}
@@ -251,6 +253,10 @@
 .claims-root .doc-lib-thumb{width:100%;height:110px;border:0;border-radius:6px;overflow:hidden;background:var(--bg4);padding:0;cursor:pointer}
 .claims-root .doc-lib-thumb img{width:100%;height:100%;object-fit:cover}
 .claims-root .doc-lib-empty{color:var(--t3);padding:12px 0}
+.claims-root .doc-lib-group{margin:16px 0 8px}
+.claims-root .doc-lib-group-t{font-size:15px;font-weight:800;margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid var(--ac2,#2563eb)}
+.claims-root .doc-lib-sec-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px}
+.claims-root .doc-lib-sec-h .sdiv-t{font-weight:800}
 .claims-root .cust-ask{background:var(--bg2);border:1px solid var(--br2);border-radius:8px;padding:12px;margin-bottom:12px}
 .claims-root .cust-ask > .btn{margin-bottom:8px}
 .claims-root .cust-ask-box{display:flex;flex-direction:column;gap:6px;margin:8px 0 12px}

@@ -201,6 +201,8 @@ if (localOk) {
     rec('cat-surveyor-no-skip', await lib.locator(`[data-doc-name="skip-${stamp}.pdf"]`).count() === 0);
     rec('gallery-tab', await page.locator('[data-testid="claims-tab-group-docs"]').innerText().then((t) => /גלרי/.test(t)));
     rec('print-btn', await lib.locator(`[data-testid="docs-print-${fileKeep}"]`).count() > 0);
+    rec('topic-groups', await page.locator('[data-testid="docs-group-photos"]').count() > 0 && await page.locator('[data-testid="docs-group-reports"]').count() > 0);
+    rec('topic-share-btn', await lib.locator('[data-testid="docs-topic-share-surveyor_reports"]').count() > 0);
     await page.locator('[data-testid="docs-cat-surveyor_photos"]').click();
     await page.waitForTimeout(200);
     rec('cat-photos-only', await lib.locator(`[data-testid="docs-img-${filePhoto}"]`).count() > 0 && await lib.locator(`[data-doc-name="keep-${stamp}.pdf"]`).count() === 0);

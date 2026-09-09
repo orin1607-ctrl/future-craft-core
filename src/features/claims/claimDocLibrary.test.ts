@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DOC_LIB_CATEGORIES, fileDocBucket, fileInLibCategory, libTypeLabel } from './claimDocLibrary';
+import { DOC_LIB_CATEGORIES, DOC_LIB_GROUPS, fileDocBucket, fileInLibCategory, libTypeLabel } from './claimDocLibrary';
 
 describe('claimDocLibrary', () => {
   it('uses doc_kind before source', () => {
@@ -38,8 +38,9 @@ describe('claimDocLibrary', () => {
 
   it('exposes the gallery category names', () => {
     expect(DOC_LIB_CATEGORIES.map((c) => c.label)).toEqual([
-      'כל הגלריה', 'דוחות שמאי', 'תמונות שמאי', 'תמונות אירוע / נזק', 'מסמכי לקוח',
+      'כל הגלריה', 'דוחות שמאי', 'תמונות שמאי', 'תמונות נזק / תאונה', 'מסמכי לקוח',
       'מסמכי רכב / נהג', 'מסמכי חברת ביטוח', 'חשבוניות / מוסך', 'טפסים / תצהירים', 'אחר',
     ]);
+    expect(DOC_LIB_GROUPS.map((g) => g.label)).toEqual(['תמונות', 'דוחות', 'מסמכים']);
   });
 });

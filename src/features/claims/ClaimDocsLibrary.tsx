@@ -1,4 +1,4 @@
-import { DOC_LIB_CATEGORIES, DOC_LIB_SECTIONS, fileDocBucket, filesForLibCategory, libTypeLabel } from './claimDocLibrary';
+import { DOC_LIB_CATEGORIES, DOC_LIB_GROUPS, DOC_LIB_SECTIONS, fileDocBucket, filesForLibCategory, libTypeLabel } from './claimDocLibrary';
 
 export type LibFile = {
   id: string;
@@ -9,6 +9,8 @@ export type LibFile = {
   doc_kind?: string;
   doc_meta?: Record<string, string> | null;
 };
+
+type Section = { key: string; label: string; match: string[]; rows: LibFile[] };
 
 type Props = {
   files: LibFile[];
@@ -23,6 +25,7 @@ type Props = {
   onPreview: (f: LibFile, list: LibFile[]) => void;
   onDownload: (f: LibFile) => void;
   onPrint: (f: LibFile) => void;
+  onShareTopic: (ids: string[]) => void;
 };
 
 function fmtDay(iso?: string) {
@@ -33,12 +36,12 @@ function fmtDay(iso?: string) {
 }
 
 export default function ClaimDocsLibrary({
-  files, picked, category, thumbs, isImage, fileLabel, onCategory, onToggle, onToggleAll, onPreview, onDownload, onPrint,
+  files, picked, category, thumbs, isImage, fileLabel, onCategory, onToggle, onToggleAll, onPreview, onDownload, onPrint, onShareTopic,
 }: Props) {
   const visible = filesForLibCategory(files, category);
   const visibleDocs = visible.filter((f) => !isImage(f));
   const visiblePhotos = visible.filter(isImage);
-  const sections = category === 'all'
+  const allSections: Section[] = category === 'all'
     ? DOC_LIB_SECTIONS
       .map((s) => ({ ...s, rows: visible.filter((f) => s.match.includes(fileDocBucket(f))) }))
       .filter((s) => s.rows.length)
@@ -48,6 +51,64 @@ export default function ClaimDocsLibrary({
       match: DOC_LIB_SECTIONS.find((s) => s.key === category)?.match || [category],
       rows: visible,
     }];
+
+  const renderSec = (sec: Section) => {
+    const images = sec.rows.filter(isImage);
+    const docs = sec.rows.filter((f) => !isImage(f));
+    const ids = sec.rows.map((f) => f.id);
+    return (
+      <div key={sec.key} className="doc-lib-sec" data-testid={`docs-sec-${sec.key}`}>
+        <div className="doc-lib-sec-h">
+          <div className="sdiv-t">{sec.label} · {sec.rows.length}</div>
+          <button type="button" className="btn btn-g btn-sm" data-testid={`docs-topic-pick-${sec.key}`} onClick={() => onToggleAll(ids)}>בחר נושא</button>
+          <button type="button" className="btn btn-p btn-sm" data-testid={`docs-topic-share-${sec.key}`} onClick={() => onShareTopic(ids)}>שתף נושא זה</button>
+        </div>
+        {docs.map((f) => (
+          <div key={f.id} className="doc-lib-row" data-testid={`doc-file-row`} data-doc-name={f.original_name}>
+            <label className="doc-lib-check">
+              <input type="checkbox" data-testid={`docs-pick-${f.id}`} checked={picked.includes(f.id)} onChange={() => onToggle(f.id)} />
+            </label>
+            <div className="doc-lib-main">
+              <div className="doc-lib-name">{fileLabel(f)}</div>
+              <div className="doc-lib-meta">{libTypeLabel(f)} · {fmtDay(f.created_at)}</div>
+            </div>
+            <div className="doc-lib-acts">
+              <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, sec.rows)}>Preview</button>
+              <button type="button" className="btn btn-g btn-sm" data-testid={`docs-dl-${f.id}`} onClick={() => onDownload(f)}>Download</button>
+              <button type="button" className="btn btn-g btn-sm" data-testid={`docs-print-${f.id}`} onClick={() => onPrint(f)}>Print</button>
+            </div>
+          </div>
+        ))}
+        {images.length ? (
+          <div className="doc-lib-gal" data-testid={`docs-gal-${sec.key}`}>
+            {images.map((f) => (
+              <div key={f.id} className="doc-lib-card" data-testid={`docs-img-${f.id}`}>
+                <label className="doc-lib-check">
+                  <input type="checkbox" data-testid={`docs-pick-${f.id}`} checked={picked.includes(f.id)} onChange={() => onToggle(f.id)} />
+                  <span>{fileLabel(f)}</span>
+                </label>
+                <button type="button" className="doc-lib-thumb" onClick={() => onPreview(f, images)}>
+                  {thumbs[f.id] ? <img src={thumbs[f.id]} alt={f.original_name} /> : <span>📷</span>}
+                </button>
+                <div className="doc-lib-meta">{libTypeLabel(f)} · {fmtDay(f.created_at)}</div>
+                <div className="doc-lib-acts">
+                  <button type="button" className="btn btn-p btn-sm" onClick={() => onPreview(f, images)}>Preview</button>
+                  <button type="button" className="btn btn-g btn-sm" onClick={() => onDownload(f)}>Download</button>
+                  <button type="button" className="btn btn-g btn-sm" onClick={() => onPrint(f)}>Print</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
+  const grouped = category === 'all'
+    ? DOC_LIB_GROUPS
+      .map((g) => ({ ...g, sections: allSections.filter((s) => g.keys.includes(s.key)) }))
+      .filter((g) => g.sections.length)
+    : [];
 
   return (
     <div className="doc-lib" data-testid="docs-library">
@@ -67,67 +128,20 @@ export default function ClaimDocsLibrary({
       </div>
       <div className="doc-lib-pickbar">
         <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-all" onClick={() => onToggleAll(visible.map((f) => f.id))}>בחר את כל המוצגים</button>
-        <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-docs" onClick={() => onToggleAll(visibleDocs.map((f) => f.id))}>כל המסמכים בקטגוריה</button>
-        <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-photos" onClick={() => onToggleAll(visiblePhotos.map((f) => f.id))}>כל התמונות בקטגוריה</button>
+        <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-docs" onClick={() => onToggleAll(visibleDocs.map((f) => f.id))}>כל המסמכים בנושא</button>
+        <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-photos" onClick={() => onToggleAll(visiblePhotos.map((f) => f.id))}>כל התמונות בנושא</button>
         <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-clear" onClick={() => onToggleAll([])}>נקה בחירה</button>
         <span data-testid="docs-lib-count">נבחרו {picked.length} מתוך {files.length}</span>
       </div>
-      {!visible.length ? <div className="doc-lib-empty" data-testid="docs-lib-empty">אין קבצים בקטגוריה זו</div> : null}
-      {sections.map((sec) => {
-        const images = sec.rows.filter(isImage);
-        const docs = sec.rows.filter((f) => !isImage(f));
-        return (
-          <div key={sec.key} className="doc-lib-sec" data-testid={`docs-sec-${sec.key}`}>
-            <div className="sdiv">
-              <div className="sdiv-t">{sec.label} · {sec.rows.length}</div>
-              <div className="sdiv-l" />
-            </div>
-            {docs.length && images.length ? (
-              <div className="doc-lib-pickbar">
-                <button type="button" className="btn btn-g btn-sm" data-testid={`docs-sec-docs-${sec.key}`} onClick={() => onToggleAll(docs.map((f) => f.id))}>כל המסמכים כאן</button>
-                <button type="button" className="btn btn-g btn-sm" data-testid={`docs-sec-photos-${sec.key}`} onClick={() => onToggleAll(images.map((f) => f.id))}>כל התמונות כאן</button>
-              </div>
-            ) : null}
-            {docs.map((f) => (
-              <div key={f.id} className="doc-lib-row" data-testid={`doc-file-row`} data-doc-name={f.original_name}>
-                <label className="doc-lib-check">
-                  <input type="checkbox" data-testid={`docs-pick-${f.id}`} checked={picked.includes(f.id)} onChange={() => onToggle(f.id)} />
-                </label>
-                <div className="doc-lib-main">
-                  <div className="doc-lib-name">{fileLabel(f)}</div>
-                  <div className="doc-lib-meta">{libTypeLabel(f)} · {fmtDay(f.created_at)}</div>
-                </div>
-                <div className="doc-lib-acts">
-                  <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, sec.rows)}>Preview</button>
-                  <button type="button" className="btn btn-g btn-sm" data-testid={`docs-dl-${f.id}`} onClick={() => onDownload(f)}>Download</button>
-                  <button type="button" className="btn btn-g btn-sm" data-testid={`docs-print-${f.id}`} onClick={() => onPrint(f)}>Print</button>
-                </div>
-              </div>
-            ))}
-            {images.length ? (
-              <div className="doc-lib-gal" data-testid={`docs-gal-${sec.key}`}>
-                {images.map((f) => (
-                  <div key={f.id} className="doc-lib-card" data-testid={`docs-img-${f.id}`}>
-                    <label className="doc-lib-check">
-                      <input type="checkbox" data-testid={`docs-pick-${f.id}`} checked={picked.includes(f.id)} onChange={() => onToggle(f.id)} />
-                      <span>{fileLabel(f)}</span>
-                    </label>
-                    <button type="button" className="doc-lib-thumb" onClick={() => onPreview(f, images)}>
-                      {thumbs[f.id] ? <img src={thumbs[f.id]} alt={f.original_name} /> : <span>📷</span>}
-                    </button>
-                    <div className="doc-lib-meta">{libTypeLabel(f)} · {fmtDay(f.created_at)}</div>
-                    <div className="doc-lib-acts">
-                      <button type="button" className="btn btn-p btn-sm" onClick={() => onPreview(f, images)}>Preview</button>
-                      <button type="button" className="btn btn-g btn-sm" onClick={() => onDownload(f)}>Download</button>
-                      <button type="button" className="btn btn-g btn-sm" onClick={() => onPrint(f)}>Print</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
+      {!visible.length ? <div className="doc-lib-empty" data-testid="docs-lib-empty">אין קבצים בנושא זה</div> : null}
+      {grouped.length
+        ? grouped.map((g) => (
+          <div key={g.key} className="doc-lib-group" data-testid={`docs-group-${g.key}`}>
+            <div className="doc-lib-group-t">{g.label}</div>
+            {g.sections.map(renderSec)}
           </div>
-        );
-      })}
+        ))
+        : allSections.map(renderSec)}
     </div>
   );
 }
