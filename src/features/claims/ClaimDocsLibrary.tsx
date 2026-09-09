@@ -22,6 +22,7 @@ type Props = {
   onToggleAll: (ids: string[]) => void;
   onPreview: (f: LibFile, list: LibFile[]) => void;
   onDownload: (f: LibFile) => void;
+  onPrint: (f: LibFile) => void;
 };
 
 function fmtDay(iso?: string) {
@@ -32,9 +33,11 @@ function fmtDay(iso?: string) {
 }
 
 export default function ClaimDocsLibrary({
-  files, picked, category, thumbs, isImage, fileLabel, onCategory, onToggle, onToggleAll, onPreview, onDownload,
+  files, picked, category, thumbs, isImage, fileLabel, onCategory, onToggle, onToggleAll, onPreview, onDownload, onPrint,
 }: Props) {
   const visible = filesForLibCategory(files, category);
+  const visibleDocs = visible.filter((f) => !isImage(f));
+  const visiblePhotos = visible.filter(isImage);
   const sections = category === 'all'
     ? DOC_LIB_SECTIONS
       .map((s) => ({ ...s, rows: visible.filter((f) => s.match.includes(fileDocBucket(f))) }))
@@ -64,6 +67,8 @@ export default function ClaimDocsLibrary({
       </div>
       <div className="doc-lib-pickbar">
         <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-all" onClick={() => onToggleAll(visible.map((f) => f.id))}>בחר את כל המוצגים</button>
+        <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-docs" onClick={() => onToggleAll(visibleDocs.map((f) => f.id))}>כל המסמכים בקטגוריה</button>
+        <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-photos" onClick={() => onToggleAll(visiblePhotos.map((f) => f.id))}>כל התמונות בקטגוריה</button>
         <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-clear" onClick={() => onToggleAll([])}>נקה בחירה</button>
         <span data-testid="docs-lib-count">נבחרו {picked.length} מתוך {files.length}</span>
       </div>
@@ -73,7 +78,16 @@ export default function ClaimDocsLibrary({
         const docs = sec.rows.filter((f) => !isImage(f));
         return (
           <div key={sec.key} className="doc-lib-sec" data-testid={`docs-sec-${sec.key}`}>
-            <div className="sdiv"><div className="sdiv-t">{sec.label} · {sec.rows.length}</div><div className="sdiv-l" /></div>
+            <div className="sdiv">
+              <div className="sdiv-t">{sec.label} · {sec.rows.length}</div>
+              <div className="sdiv-l" />
+            </div>
+            {docs.length && images.length ? (
+              <div className="doc-lib-pickbar">
+                <button type="button" className="btn btn-g btn-sm" data-testid={`docs-sec-docs-${sec.key}`} onClick={() => onToggleAll(docs.map((f) => f.id))}>כל המסמכים כאן</button>
+                <button type="button" className="btn btn-g btn-sm" data-testid={`docs-sec-photos-${sec.key}`} onClick={() => onToggleAll(images.map((f) => f.id))}>כל התמונות כאן</button>
+              </div>
+            ) : null}
             {docs.map((f) => (
               <div key={f.id} className="doc-lib-row" data-testid={`doc-file-row`} data-doc-name={f.original_name}>
                 <label className="doc-lib-check">
@@ -86,6 +100,7 @@ export default function ClaimDocsLibrary({
                 <div className="doc-lib-acts">
                   <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, sec.rows)}>Preview</button>
                   <button type="button" className="btn btn-g btn-sm" data-testid={`docs-dl-${f.id}`} onClick={() => onDownload(f)}>Download</button>
+                  <button type="button" className="btn btn-g btn-sm" data-testid={`docs-print-${f.id}`} onClick={() => onPrint(f)}>Print</button>
                 </div>
               </div>
             ))}
@@ -104,6 +119,7 @@ export default function ClaimDocsLibrary({
                     <div className="doc-lib-acts">
                       <button type="button" className="btn btn-p btn-sm" onClick={() => onPreview(f, images)}>Preview</button>
                       <button type="button" className="btn btn-g btn-sm" onClick={() => onDownload(f)}>Download</button>
+                      <button type="button" className="btn btn-g btn-sm" onClick={() => onPrint(f)}>Print</button>
                     </div>
                   </div>
                 ))}

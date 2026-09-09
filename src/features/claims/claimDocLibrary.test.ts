@@ -23,19 +23,23 @@ describe('claimDocLibrary', () => {
     expect(fileDocBucket({ id: '1', source: 'customer', doc_kind: 'general' })).toBe('client');
   });
 
-  it('surveyor filter includes reports and photos only', () => {
+  it('keeps surveyor reports and photos in separate gallery buckets', () => {
     const report = { id: 'r', doc_kind: 'surveyor_report' };
     const photo = { id: 'p', doc_kind: 'surveyor_photo' };
     const inv = { id: 'i', doc_kind: 'garage_invoice' };
-    expect(fileInLibCategory(report, 'surveyor')).toBe(true);
-    expect(fileInLibCategory(photo, 'surveyor')).toBe(true);
-    expect(fileInLibCategory(inv, 'surveyor')).toBe(false);
-    expect(libTypeLabel(report)).toBe('שמאי');
+    expect(fileInLibCategory(report, 'surveyor_reports')).toBe(true);
+    expect(fileInLibCategory(photo, 'surveyor_reports')).toBe(false);
+    expect(fileInLibCategory(photo, 'surveyor_photos')).toBe(true);
+    expect(fileInLibCategory(report, 'surveyor_photos')).toBe(false);
+    expect(fileInLibCategory(inv, 'surveyor_reports')).toBe(false);
+    expect(libTypeLabel(report)).toBe('דוחות שמאי');
+    expect(libTypeLabel(photo)).toBe('תמונות שמאי');
   });
 
-  it('exposes the clean Documents category names', () => {
+  it('exposes the gallery category names', () => {
     expect(DOC_LIB_CATEGORIES.map((c) => c.label)).toEqual([
-      'כל המסמכים', 'לקוח', 'רכב', 'שמאי', 'חברת ביטוח', 'חשבוניות', 'נזק', 'טפסים', 'אחר',
+      'כל הגלריה', 'דוחות שמאי', 'תמונות שמאי', 'תמונות אירוע / נזק', 'מסמכי לקוח',
+      'מסמכי רכב / נהג', 'מסמכי חברת ביטוח', 'חשבוניות / מוסך', 'טפסים / תצהירים', 'אחר',
     ]);
   });
 });

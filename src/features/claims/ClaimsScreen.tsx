@@ -712,9 +712,9 @@ function invoiceFiles(files: ClaimFile[]) {
   return files.filter((f) => f.doc_kind === 'garage_invoice');
 }
 
-const CARD_TAB_GROUPS: Array<{ key: string; label: string; tabs: Array<{ key: string; label: string }> }> = [
+const CARD_TAB_GROUPS: Array<{ key: string; label: string; shortLabel?: string; tabs: Array<{ key: string; label: string }> }> = [
   { key: 'info', label: 'מידע', tabs: [{ key: 'claim', label: 'תביעה' }, { key: 'client', label: 'לקוח' }, { key: 'vehicle', label: 'רכב' }] },
-  { key: 'docs', label: 'מסמכים', tabs: [{ key: 'docs', label: 'כל המסמכים' }, { key: 'surveyor', label: 'דוח שמאי' }, { key: 'invoice', label: 'חשבונית מוסך' }] },
+  { key: 'docs', label: 'גלריית מסמכים ותמונות', shortLabel: 'גלריה', tabs: [{ key: 'docs', label: 'כל הגלריה' }, { key: 'surveyor', label: 'דוח שמאי' }, { key: 'invoice', label: 'חשבונית מוסך' }] },
   { key: 'mail', label: 'דואר ותקשורת', tabs: [{ key: 'gin', label: 'התכתבויות' }, { key: 'mailfu', label: 'מעקב מייל' }] },
   { key: 'work', label: 'טיפול ומעקב', tabs: [{ key: 'treat', label: 'טיפול' }, { key: 'tasks', label: 'משימות' }, { key: 'rems', label: 'תזכורות' }] },
   { key: 'hist', label: 'היסטוריה', tabs: [{ key: 'timeline', label: 'היסטוריה' }] },
@@ -752,6 +752,10 @@ function InCardPreview({ file, onClose, pos, canPrev, canNext, onPrev, onNext }:
         ) : null}
         <button className="btn btn-g btn-sm" onClick={() => window.open(file.url, '_blank')}>חלון נפרד</button>
         <a className="btn btn-p btn-sm" data-testid="doc-preview-download" href={file.url} download={file.name || 'document'} target="_blank" rel="noreferrer">הורדה</a>
+        <button className="btn btn-g btn-sm" data-testid="doc-preview-print" onClick={() => {
+          const w = window.open(file.url, '_blank', 'noopener');
+          w?.addEventListener('load', () => { try { w.print(); } catch { /* ignore */ } });
+        }}>Print</button>
         <button className="btn btn-g btn-sm" data-testid="doc-preview-close" onClick={onClose}>סגור תצוגה</button>
       </div>
       {img
@@ -1525,6 +1529,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     a.remove();
   };
 
+  const printClaimFile = async (claimId: string, f: ClaimFile) => {
+    const r = await apiRef.current.invokeDocs('signed_url', { claim_id: claimId, file_id: f.id });
+    if (!r.url) { toast('לא ניתן להדפיס את הקובץ', 'err'); return; }
+    const w = window.open(String(r.url), '_blank', 'noopener');
+    w?.addEventListener('load', () => { try { w.print(); } catch { /* ignore */ } });
+  };
+
   const openSecureShare = (ids?: string[]) => {
     const picked = ids && ids.length ? ids : docPickIds;
     setSharePresetIds(picked);
@@ -1540,8 +1551,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             שיתוף מאובטח
           </button>
           <div className="docs-share-copy">
-            <div className="docs-share-title">שיתוף מאובטח · קריאה בלבד · ברירת מחדל 48 שעות</div>
-            <div data-testid="docs-share-picked">{docPickIds.length ? `נבחרו לשיתוף: ${docPickIds.length} קבצים` : 'סמנו קבצים למטה, ואז לחצו שיתוף מאובטח'}</div>
+            <div className="docs-share-title">גלריית מסמכים ותמונות · שיתוף מאובטח · קריאה בלבד · ברירת מחדל 48 שעות</div>
+            <div data-testid="docs-share-picked">{docPickIds.length ? `נבחרו לשיתוף: ${docPickIds.length} קבצים / תמונות` : 'סמנו קבצים או תמונות למטה, ואז לחצו שיתוף מאובטח'}</div>
             {names.length ? <div className="docs-share-names" data-testid="docs-share-names">{names.slice(0, 8).join(' · ')}{names.length > 8 ? '…' : ''}</div> : null}
           </div>
         </div>
@@ -3071,7 +3082,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button className="ab-btn ab-mail ab-pri" data-testid="claims-send-mail" onClick={() => { setCardMore(false); void openSendModal('draft'); }}>מייל חדש</button>
                 <button className="ab-btn ab-task ab-pri" data-testid="claims-cust-request" onClick={() => { setCardMore(false); openCustomerRequest(); }}>בקשה ללקוח</button>
                 <button className="ab-btn ab-status ab-pri" data-testid="claims-treat-open" onClick={() => { setCardMore(false); openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk }); }}>עדכון טיפול</button>
-                <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>מסמכים</button>
+                <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>{phoneNarrow || narrowList ? 'גלריה' : 'גלריית מסמכים ותמונות'}</button>
                 <button className="ab-btn ab-pri" data-testid="claims-secure-share-ab" onClick={() => { setCardMore(false); setCardTab('docs'); setSharePresetIds(docPickIds); setShareOpen(true); }}>שיתוף מאובטח</button>
                 <button className="ab-btn ab-phone ab-pri" data-testid="claims-open-contacts" onClick={() => { setCardMore(false); setModal('moContacts'); }}>אנשי קשר</button>
                 {!(narrowList || phoneNarrow) ? (
@@ -3129,7 +3140,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               ) : null}
               <div className="tabs tab-groups" data-testid="claims-tab-groups">
                 {CARD_TAB_GROUPS.map((g) => (
-                  <button key={g.key} type="button" className={`tab ${tabGroup.key === g.key ? 'act' : ''}`} data-testid={`claims-tab-group-${g.key}`} onClick={() => { setCardMore(false); setCardTab(g.tabs[0].key); if (g.key === 'mail' && cur) void refreshMailLists(cur.id); }}>{g.label}</button>
+                  <button key={g.key} type="button" className={`tab ${tabGroup.key === g.key ? 'act' : ''}`} data-testid={`claims-tab-group-${g.key}`} onClick={() => { setCardMore(false); setCardTab(g.tabs[0].key); if (g.key === 'mail' && cur) void refreshMailLists(cur.id); }}>{(phoneNarrow || narrowList) && g.shortLabel ? g.shortLabel : g.label}</button>
                 ))}
               </div>
               {tabGroup.tabs.length > 1 ? (
@@ -3424,6 +3435,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     onToggleAll={(ids) => setDocPickIds(ids)}
                     onPreview={(f, list) => void openInCard(cur.id, f as ClaimFile, list as ClaimFile[])}
                     onDownload={(f) => void downloadClaimFile(cur.id, f as ClaimFile)}
+                    onPrint={(f) => void printClaimFile(cur.id, f as ClaimFile)}
                   />
                   <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
                   <StaffUploadZone
@@ -4825,7 +4837,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <div className="pkg-warn" data-testid="mail-oversize">
                   הקבצים גדולים מדי לשליחה במייל. SEND חסום. לא יושמטו קבצים בשקט. אפשר לבחור פחות קבצים, לפצל למספר מיילים, או ליצור קישור מאובטח.
                   <div style={{ marginTop: 8 }}>
-                    <button type="button" className="btn btn-p btn-sm" data-testid="mail-open-secure-share" onClick={() => { setSharePresetIds(sendIds); setShareOpen(true); }}>החומר גדול מדי לשליחה כקבצים מצורפים — צור קישור מאובטח</button>
+                    <button type="button" className="btn btn-p btn-sm" data-testid="mail-open-secure-share" onClick={() => { setSharePresetIds(sendIds); setShareOpen(true); }}>החומר גדול מדי לשליחה במייל — צור קישור מאובטח</button>
                   </div>
                   <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {(pkgInfo.split || []).map((g) => (
@@ -5013,7 +5025,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 file_ids: sendIds,
               });
               if (r.error === 'internal_content_blocked') { setMailPreviewOn(false); toast('התוכן כולל חומר פנימי — לא לשלוח', 'err'); return; }
-              if (r.error === 'package_too_large') { setMailPreviewOn(false); toast('הקבצים גדולים מדי לשליחה במייל — SEND חסום. לא יושמטו קבצים.', 'err'); return; }
+              if (r.error === 'package_too_large') { setMailPreviewOn(false); toast('החומר גדול מדי לשליחה במייל — צור קישור מאובטח', 'err'); return; }
               if (r.error === 'cc_invalid' || r.error === 'to_required') { setMailPreviewOn(false); toast('כתובת To/CC לא תקינה — SEND חסום', 'err'); return; }
               if (r.error === 'live_send_recipient_not_allowlisted') { setMailPreviewOn(false); toast('שליחה אוטומטית לכתובת זו חסומה. שליחה ידנית דורשת Preview ו-SEND.', 'err'); return; }
               if (r.error === 'Edge Function returned a non-2xx status code') { setMailPreviewOn(false); toast('שגיאת Edge בשליחה — בדקו To ואת פרטי השגיאה', 'err'); return; }
@@ -5064,7 +5076,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   if (!r.success || r.realEmailSend !== true || !r.gmail_message_id) {
                     if (r.error === 'already_sent') toast('המייל כבר נשלח — אין שליחה כפולה', 'err');
                     else if (r.error === 'send_in_progress') toast('שליחה כבר בתהליך', 'err');
-                    else if (r.error === 'package_too_large') toast('הקבצים גדולים מדי לשליחה במייל — לא נשלח ולא הושמטו קבצים', 'err');
+                    else if (r.error === 'package_too_large') toast('החומר גדול מדי לשליחה במייל — צור קישור מאובטח', 'err');
                     else if (r.error === 'confirm_required') toast('נדרש אישור מפורש', 'err');
                     else if (r.error === 'internal_content_blocked') toast('התוכן כולל חומר פנימי — לא נשלח', 'err');
                     else if (r.error === 'to_required' || r.error === 'cc_invalid') toast('כתובת To/CC לא תקינה — SEND חסום', 'err');

@@ -2,7 +2,7 @@
 
 export const SHARE_RECIPIENT_KINDS = [
   { key: 'surveyor', label: 'שמאי' },
-  { key: 'lawyer', label: 'עורך דין' },
+  { key: 'lawyer', label: 'עו"ד' },
   { key: 'insurer', label: 'חברת ביטוח' },
   { key: 'agent', label: 'סוכן' },
   { key: 'client', label: 'לקוח' },
@@ -97,15 +97,25 @@ export function sharePublicUrl(token: string) {
   return `${origin}${base && base !== '/' ? base : ''}/claims-share?t=${encodeURIComponent(token)}`;
 }
 
-export function shareRecipientMessage(url: string, expiresAt: string) {
-  const until = expiresAt ? new Date(expiresAt).toLocaleString('he-IL') : '';
+export function shareTtlPhrase(preset: string, expiresAt?: string) {
+  const hit = SHARE_TTL_PRESETS.find((p) => p.key === preset);
+  if (hit && hit.key !== 'custom') return hit.label;
+  if (expiresAt) return new Date(expiresAt).toLocaleString('he-IL');
+  return '48 שעות';
+}
+
+export function shareRecipientMessage(url: string, expiresAt: string, ttlPreset = DEFAULT_SHARE_TTL) {
+  const duration = shareTtlPhrase(ttlPreset, expiresAt);
+  const untilLine = ttlPreset === 'custom'
+    ? `הקישור יהיה זמין עד ${duration} בלבד.`
+    : `הקישור יהיה זמין למשך ${duration} בלבד.`;
   return [
-    'הקישור מכיל חומר שנבחר מתיק התביעה.',
-    until ? `הקישור זמין עד: ${until}.` : '',
+    'מצורף קישור מאובטח לצפייה ולהורדת המסמכים והתמונות.',
+    untilLine,
     'יש להוריד ולשמור את החומר לפני פקיעת הקישור.',
     '',
     url,
-  ].filter(Boolean).join('\n');
+  ].join('\n');
 }
 
 export function parseShareFileIds(raw: unknown): string[] {

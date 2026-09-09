@@ -1,27 +1,29 @@
-/** Safe document-library categories from existing doc_kind / staff_type only. No filename guessing. */
+/** Safe gallery categories from existing doc_kind / staff_type only. No filename guessing. */
 
 export const DOC_LIB_CATEGORIES = [
-  { key: 'all', label: 'כל המסמכים' },
-  { key: 'client', label: 'לקוח' },
-  { key: 'vehicle', label: 'רכב' },
-  { key: 'surveyor', label: 'שמאי' },
-  { key: 'insurer', label: 'חברת ביטוח' },
-  { key: 'invoice', label: 'חשבוניות' },
-  { key: 'damage', label: 'נזק' },
-  { key: 'forms', label: 'טפסים' },
+  { key: 'all', label: 'כל הגלריה' },
+  { key: 'surveyor_reports', label: 'דוחות שמאי' },
+  { key: 'surveyor_photos', label: 'תמונות שמאי' },
+  { key: 'damage', label: 'תמונות אירוע / נזק' },
+  { key: 'client', label: 'מסמכי לקוח' },
+  { key: 'vehicle', label: 'מסמכי רכב / נהג' },
+  { key: 'insurer', label: 'מסמכי חברת ביטוח' },
+  { key: 'invoice', label: 'חשבוניות / מוסך' },
+  { key: 'forms', label: 'טפסים / תצהירים' },
   { key: 'other', label: 'אחר' },
 ] as const;
 
 export type DocLibCategory = (typeof DOC_LIB_CATEGORIES)[number]['key'];
 
 export const DOC_LIB_SECTIONS: Array<{ key: string; label: string; match: string[] }> = [
-  { key: 'client', label: 'לקוח', match: ['client'] },
-  { key: 'vehicle', label: 'רכב', match: ['vehicle'] },
-  { key: 'surveyor', label: 'שמאי', match: ['surveyor_reports', 'surveyor_photos'] },
-  { key: 'insurer', label: 'חברת ביטוח', match: ['insurer'] },
-  { key: 'invoice', label: 'חשבוניות', match: ['invoice'] },
-  { key: 'damage', label: 'נזק', match: ['damage'] },
-  { key: 'forms', label: 'טפסים', match: ['forms'] },
+  { key: 'surveyor_reports', label: 'דוחות שמאי', match: ['surveyor_reports'] },
+  { key: 'surveyor_photos', label: 'תמונות שמאי', match: ['surveyor_photos'] },
+  { key: 'damage', label: 'תמונות אירוע / נזק', match: ['damage'] },
+  { key: 'client', label: 'מסמכי לקוח', match: ['client'] },
+  { key: 'vehicle', label: 'מסמכי רכב / נהג', match: ['vehicle'] },
+  { key: 'insurer', label: 'מסמכי חברת ביטוח', match: ['insurer'] },
+  { key: 'invoice', label: 'חשבוניות / מוסך', match: ['invoice'] },
+  { key: 'forms', label: 'טפסים / תצהירים', match: ['forms'] },
   { key: 'other', label: 'אחר', match: ['other'] },
 ];
 
@@ -37,7 +39,7 @@ function staffTypeOf(f: LibFile) {
   return String(meta.staff_type || '');
 }
 
-/** One safe bucket. Never infer from the file name. */
+/** One safe bucket. Never infer from the file name. Does not change stored classification. */
 export function fileDocBucket(f: LibFile): string {
   const kind = String(f.doc_kind || '');
   const st = staffTypeOf(f);

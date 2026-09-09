@@ -4,6 +4,7 @@ import {
   fileInShareAllowlist,
   filesBelongToClaim,
   resolveShareExpiry,
+  shareRecipientMessage,
   shareStatusOf,
 } from './claimSecureShare';
 
@@ -31,6 +32,16 @@ describe('claimSecureShare', () => {
     expect(fileInShareAllowlist('A', ['A', 'B'], 'C1', 'C1')).toBe(true);
     expect(fileInShareAllowlist('Z', ['A', 'B'], 'C1', 'C1')).toBe(false);
     expect(fileInShareAllowlist('A', ['A'], 'C1', 'C2')).toBe(false);
+  });
+
+  it('writes a TTL-aware recipient message', () => {
+    const msg48 = shareRecipientMessage('https://example.test/s', new Date(Date.now() + 48 * 3600_000).toISOString(), '48h');
+    expect(msg48).toContain('מצורף קישור מאובטח');
+    expect(msg48).toContain('48 שעות');
+    expect(msg48).toContain('https://example.test/s');
+    const msg7 = shareRecipientMessage('https://example.test/s', new Date(Date.now() + 7 * 86400_000).toISOString(), '7d');
+    expect(msg7).toContain('7 ימים');
+    expect(msg7).not.toContain('48 שעות');
   });
 
   it('marks revoked and expired', () => {

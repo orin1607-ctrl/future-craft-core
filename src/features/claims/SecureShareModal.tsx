@@ -141,7 +141,7 @@ export default function SecureShareModal({
             <button type="button" className="btn btn-g btn-sm" data-testid="share-images" onClick={() => setMany(images.map((f) => f.id))}>כל התמונות</button>
             <button type="button" className="btn btn-g btn-sm" data-testid="share-garage" onClick={() => setMany(garage.map((f) => f.id))}>תמונות מוסך</button>
           </div>
-          <div data-testid="share-count" style={{ fontWeight: 700, marginBottom: 8 }}>נבחרו לשיתוף {picked.length} קבצים</div>
+          <div data-testid="share-count" style={{ fontWeight: 700, marginBottom: 8 }}>נבחרו לשיתוף {picked.length} קבצים / תמונות</div>
           {picked.length ? (
             <div data-testid="share-picked-names" style={{ fontSize: 12, marginBottom: 10, color: 'var(--t2)' }}>
               {files.filter((f) => picked.includes(f.id)).map((f) => f.original_name).join(' · ')}
@@ -191,8 +191,8 @@ export default function SecureShareModal({
               <div className="cust-link-meta">עד {createdUntil ? new Date(createdUntil).toLocaleString('he-IL') : untilText}</div>
               <div className="cust-link-acts">
                 <button type="button" className="btn btn-p btn-sm" data-testid="share-copy" onClick={() => void copy()}>העתק קישור</button>
-                <button type="button" className="btn btn-g btn-sm" data-testid="share-mail" onClick={() => onMail(email, `שיתוף מאובטח — ${name}`, shareRecipientMessage(createdUrl, createdUntil))}>שלח במייל</button>
-                <button type="button" className="btn btn-g btn-sm" data-testid="share-wa" onClick={() => onWhatsApp(phone, shareRecipientMessage(createdUrl, createdUntil))}>שלח ב-WhatsApp</button>
+                <button type="button" className="btn btn-g btn-sm" data-testid="share-mail" onClick={() => onMail(email, `שיתוף מאובטח — ${name}`, shareRecipientMessage(createdUrl, createdUntil, ttl))}>שלח במייל</button>
+                <button type="button" className="btn btn-g btn-sm" data-testid="share-wa" onClick={() => onWhatsApp(phone, shareRecipientMessage(createdUrl, createdUntil, ttl))}>שלח ב-WhatsApp</button>
               </div>
               <div className="cust-link-note">אם הקישור יאבד — בטלו וצרו שיתוף חדש. אין חשיפה מחדש.</div>
             </div>

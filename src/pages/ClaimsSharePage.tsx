@@ -15,6 +15,7 @@ export default function ClaimsSharePage() {
   const [files, setFiles] = useState<ShareFile[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
   const [preview, setPreview] = useState<{ url: string; name: string; mime: string } | null>(null);
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState('');
 
   const pubHeaders = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
@@ -36,9 +37,15 @@ export default function ClaimsSharePage() {
         return;
       }
       setExpiresAt(String(r.json.expiresAt || ''));
-      setFiles(r.json.files || []);
-      setPicked((r.json.files || []).map((f: ShareFile) => f.id));
+      const next = (r.json.files || []) as ShareFile[];
+      setFiles(next);
+      setPicked(next.map((f) => f.id));
       setLoading(false);
+      const imgs = next.filter((f) => f.image).slice(0, 24);
+      for (const f of imgs) {
+        const u = await call('public_share_url', { file_id: f.id, purpose: 'preview' });
+        if (u.json.url) setThumbs((prev) => ({ ...prev, [f.id]: String(u.json.url) }));
+      }
     } catch {
       setError('קישור לא תקין');
       setLoading(false);
@@ -173,7 +180,10 @@ export default function ClaimsSharePage() {
         {images.map((f) => (
           <div key={f.id} className="card" data-testid={`share-pub-img-${f.id}`}>
             <label><input type="checkbox" checked={picked.includes(f.id)} onChange={(e) => setPicked((p) => e.target.checked ? [...p, f.id] : p.filter((x) => x !== f.id))} /> {f.name}</label>
-            <button className="btn" type="button" style={{ width: '100%', marginTop: 6 }} onClick={() => void openFile(f)}>פתיחה בגודל מלא</button>
+            <button className="btn" type="button" style={{ width: '100%', marginTop: 6, padding: 0, background: '#eef' }} onClick={() => void openFile(f)}>
+              {thumbs[f.id] ? <img className="thumb" src={thumbs[f.id]} alt={f.name} /> : <span>📷</span>}
+            </button>
+            <button className="btn" type="button" style={{ width: '100%', marginTop: 6 }} onClick={() => void openFile(f)}>Preview / גודל מלא</button>
             <button className="btn btn-g" type="button" style={{ width: '100%', marginTop: 6 }} data-testid={`share-pub-dl-${f.id}`} onClick={() => void openFile(f, 'download')}>Download</button>
           </div>
         ))}

@@ -184,7 +184,7 @@ if (localOk) {
     rec('ab-button', await page.locator('[data-testid="claims-secure-share-ab"]').count() > 0);
     rec('library', await lib.isVisible());
     const cats = await page.locator('[data-testid="docs-lib-cats"]').innerText();
-    rec('cats-exact', /לקוח/.test(cats) && /רכב/.test(cats) && /שמאי/.test(cats) && /חברת ביטוח/.test(cats) && /חשבוניות/.test(cats) && /נזק/.test(cats) && /טפסים/.test(cats) && /אחר/.test(cats) && !/כל המסמכים \(0\)/.test(cats), { cats: cats.replace(/\s+/g, ' ') });
+    rec('cats-exact', /מסמכי לקוח/.test(cats) && /מסמכי רכב/.test(cats) && /דוחות שמאי/.test(cats) && /תמונות שמאי/.test(cats) && /חברת ביטוח/.test(cats) && /חשבוניות/.test(cats) && /טפסים/.test(cats) && /אחר/.test(cats) && /כל הגלריה/.test(cats) && !/כל הגלריה \(0\)/.test(cats), { cats: cats.replace(/\s+/g, ' ') });
     rec('keep-present', await lib.locator(`[data-doc-name="keep-${stamp}.pdf"]`).count() > 0);
     rec('skip-present', await lib.locator(`[data-doc-name="skip-${stamp}.pdf"]`).count() > 0);
     rec('photo-present', await lib.locator(`[data-testid="docs-img-${filePhoto}"]`).count() > 0);
@@ -192,12 +192,17 @@ if (localOk) {
     rec('photo-gallery', await lib.locator('[data-testid^="docs-gal-"]').count() > 0);
     const libHtml = await lib.innerHTML();
     rec('no-gmail-clutter', !/mail-body|gmail_thread|נושא המייל|From:|Subject:/.test(libHtml));
-    await page.locator('[data-testid="docs-cat-surveyor"]').click();
+    await page.locator('[data-testid="docs-cat-surveyor_reports"]').click();
     await page.waitForTimeout(300);
     rec('cat-surveyor-keep', await lib.locator(`[data-doc-name="keep-${stamp}.pdf"]`).count() > 0);
-    rec('cat-surveyor-photo', await lib.locator(`[data-testid="docs-img-${filePhoto}"]`).count() > 0);
+    rec('cat-surveyor-photo', await lib.locator(`[data-testid="docs-img-${filePhoto}"]`).count() === 0);
     rec('cat-surveyor-no-invoice', await lib.locator(`[data-doc-name="invoice-${stamp}.pdf"]`).count() === 0);
     rec('cat-surveyor-no-skip', await lib.locator(`[data-doc-name="skip-${stamp}.pdf"]`).count() === 0);
+    rec('gallery-tab', await page.locator('[data-testid="claims-tab-group-docs"]').innerText().then((t) => /גלרי/.test(t)));
+    rec('print-btn', await lib.locator(`[data-testid="docs-print-${fileKeep}"]`).count() > 0);
+    await page.locator('[data-testid="docs-cat-surveyor_photos"]').click();
+    await page.waitForTimeout(200);
+    rec('cat-photos-only', await lib.locator(`[data-testid="docs-img-${filePhoto}"]`).count() > 0 && await lib.locator(`[data-doc-name="keep-${stamp}.pdf"]`).count() === 0);
     await page.locator('[data-testid="docs-cat-all"]').click();
     await lib.locator(`[data-testid="docs-pick-${fileKeep}"]`).check();
     rec('picked-one', await page.locator('[data-testid="docs-share-picked"]').innerText().then((t) => t.includes('1')));
