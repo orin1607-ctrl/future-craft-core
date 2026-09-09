@@ -8,7 +8,7 @@ import { buildSignedOpeningFormPdf } from './signedClaimPdf';
 import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsService';
 import ClaimAccidentForm from './ClaimAccidentForm';
 import SignaturePad from './SignaturePad';
-import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, resolveStaffClaimSaveId, type IntakeDraft } from './claimIntakeModel';
+import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, resolveStaffClaimSaveId, shouldAutoPersistNoticePdf, type IntakeDraft } from './claimIntakeModel';
 import './claims.css';
 
 const ST_CSS: Record<string, string> = {
@@ -891,6 +891,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [intakeDraft, setIntakeDraft] = useState<IntakeDraft>({ ...EMPTY_INTAKE });
   const [intakeLinkMsg, setIntakeLinkMsg] = useState('');
   const [staffSig, setStaffSig] = useState('');
+  const staffSigRef = useRef('');
   const [eventFormSignOpen, setEventFormSignOpen] = useState(false);
   const [eventFormSig, setEventFormSig] = useState('');
   const saveLock = useRef(false);
@@ -1884,6 +1885,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setVal('fc_status', 'חדש');
     setVal('fc_kind', CLAIM_KINDS[0]);
     setIntakeDraft({ ...EMPTY_INTAKE });
+    staffSigRef.current = '';
     setStaffSig('');
     setVehId('');
     setCompanyName('');
@@ -1899,6 +1901,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setVal('fc_id', c.id);
     setVal('fc_status', c.status || 'חדש');
     setIntakeDraft(intakeFromClaim(c));
+    staffSigRef.current = c.eventFormSignature || '';
     setStaffSig(c.eventFormSignature || '');
     setVehId(c.vehicle_id || '');
     setCompanyName(c.company_name || '');
@@ -2003,25 +2006,38 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       const r = await apiRef.current.saveClaim(data);
       if (r.success) {
         const claimId = String(r.id || data.id || '');
-        if (claimId && staffSig) {
+        const sig = staffSigRef.current || staffSig;
+        let pdfSaved = false;
+        if (claimId) {
           try {
-            const savedSig = await apiRef.current.saveClaim({
-              ...data,
-              id: claimId,
-              staffSignedAt: new Date().toISOString(),
-              eventFormSignature: staffSig,
-            });
-            if (!savedSig.success) toast(`התיק נשמר אבל החתימה לא עודכנה: ${savedSig.error || ''}`, 'err');
-            const up = await persistEventFormPdf(claimId, intakeDraft, data, staffSig);
-            if (!up.success) toast(`התיק נשמר אבל העלאת טופס ההודעה נכשלה: ${up.error || ''}`, 'err');
+            if (sig) {
+              const savedSig = await apiRef.current.saveClaim({
+                ...data,
+                id: claimId,
+                staffSignedAt: new Date().toISOString(),
+                eventFormSignature: sig,
+              });
+              if (!savedSig.success) toast(`התיק נשמר אבל החתימה לא עודכנה: ${savedSig.error || ''}`, 'err');
+            }
+            let existingNotice = 0;
+            if (claimFormMode.current === 'edit') {
+              const listed = await apiRef.current.invokeDocs('list_docs', { claim_id: claimId }).catch(() => ({} as Record<string, unknown>));
+              existingNotice = ((listed.files as ClaimFile[]) || []).filter(isOpeningFormPdf).length;
+            }
+            if (shouldAutoPersistNoticePdf(claimFormMode.current, existingNotice)) {
+              const up = await persistEventFormPdf(claimId, intakeDraft, data, sig || undefined);
+              if (!up.success) toast(`התיק נשמר אבל העלאת טופס ההודעה נכשלה: ${up.error || ''}`, 'err');
+              else pdfSaved = true;
+            }
           } catch (err) {
             toast(`התיק נשמר אבל יצירת טופס ההודעה נכשלה: ${String((err as Error).message || err)}`, 'err');
           }
         }
+        staffSigRef.current = '';
         setStaffSig('');
         setModal(null);
         await loadAll();
-        toast('תיק נשמר ✅');
+        toast(pdfSaved ? 'תיק נפתח והטופס נשמר במסמכים ✅' : 'תיק נשמר ✅');
         if (claimId) await openCard(claimId, 'docs');
       } else {
         setSync('err');
@@ -2804,6 +2820,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               onChange={(d) => { setIntakeDraft(d); setVal('fc_kind', d.claimKind || CLAIM_KINDS[0]); }}
               stepKey="all"
               onSignature={async (dataUrl) => {
+                staffSigRef.current = dataUrl;
                 setStaffSig(dataUrl);
                 const existingId = val(null, 'fc_id');
                 if (!existingId || !dataUrl) return;
@@ -2886,23 +2903,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           </div>
           <div className="mf" style={{ flexWrap: 'wrap', gap: 8 }}>
             <button className="btn btn-g" onClick={() => setModal(null)}>ביטול</button>
-            {val(null, 'fc_id') ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-p"
-                  data-testid="claim-event-pdf-issue"
-                  onClick={() => void issueEventNoticePdf({ download: true, save: true })}
-                >הפק והורד טופס הודעה על תאונת רכב</button>
-                <button
-                  type="button"
-                  className="btn btn-g"
-                  data-testid="claim-event-pdf-save"
-                  onClick={() => void issueEventNoticePdf({ download: false, save: true })}
-                >שמור PDF במסמכי התביעה</button>
-              </>
-            ) : null}
-            <button className="btn btn-p" data-testid="claims-save-btn" disabled={saveBusy} onClick={doSaveClaim}>{saveBusy ? 'שומר…' : '💾 שמור'}</button>
+            <button className="btn btn-p" data-testid="claims-save-btn" disabled={saveBusy} onClick={doSaveClaim}>{saveBusy ? 'שומר…' : (val(null, 'fc_id') ? '💾 שמור' : 'פתח תיק')}</button>
           </div>
         </div>
       </div>
