@@ -1,0 +1,318 @@
+{
+  "at": "2026-09-09T21:51:56.813Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "claimsDocsPrivate": true,
+  "claimsDocumentsUnchanged": true,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "liveSha": "6b249d0",
+  "checks": [
+    {
+      "name": "service-role-staging",
+      "ok": true,
+      "haveAdmin": true
+    },
+    {
+      "name": "desk-login",
+      "ok": true
+    },
+    {
+      "name": "photographer-login",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-GRV-1788990719228",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-GRV-O-1788990719228",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-GRV-L-1788990719228",
+      "ok": true
+    },
+    {
+      "name": "01-assign-legacy-no-awaiting",
+      "ok": true,
+      "reviews": []
+    },
+    {
+      "name": "01-staff-assign",
+      "ok": true
+    },
+    {
+      "name": "02-worker-sees-assigned-only",
+      "ok": true,
+      "jobIds": [
+        "DAL-QA-GRV-1788990719228",
+        "DAL-QA-GRV-L-1788990719228"
+      ]
+    },
+    {
+      "name": "03-worker-other-claim-403",
+      "ok": true,
+      "status": 403,
+      "err": "forbidden"
+    },
+    {
+      "name": "26-worker-pdf-blocked",
+      "ok": true,
+      "err": "image_required"
+    },
+    {
+      "name": "04-worker-upload-jpegs",
+      "ok": true,
+      "file1": "CDM-1788990732291-8EWMUM",
+      "file2": "CDM-1788990736337-IKYWJN"
+    },
+    {
+      "name": "05-same-claim",
+      "ok": true,
+      "claimId": "DAL-QA-GRV-1788990719228"
+    },
+    {
+      "name": "06-worker-complete",
+      "ok": true,
+      "review": "awaiting_review"
+    },
+    {
+      "name": "07-staff-awaiting-review",
+      "ok": true,
+      "status": "completed",
+      "review": "awaiting_review"
+    },
+    {
+      "name": "07-table-awaiting",
+      "ok": true,
+      "n": 1
+    },
+    {
+      "name": "08-gallery-garage-photos",
+      "ok": true,
+      "kind": "garage_photo",
+      "staff": "garage_photos",
+      "n": 2
+    },
+    {
+      "name": "09-preview-url",
+      "ok": true,
+      "hasUrl": true
+    },
+    {
+      "name": "10-download-url",
+      "ok": true,
+      "urlKind": "https://usfeoerkpcafxxlyuldl.supabase.co"
+    },
+    {
+      "name": "worker-cannot-approve",
+      "ok": true,
+      "status": 403,
+      "err": "forbidden"
+    },
+    {
+      "name": "11-staff-approve",
+      "ok": true
+    },
+    {
+      "name": "12-label-cleared",
+      "ok": true,
+      "review": "approved"
+    },
+    {
+      "name": "13-approved-saved",
+      "ok": true
+    },
+    {
+      "name": "14-reviewer-saved",
+      "ok": true,
+      "by": "TEST עובד תביעות 1788292403067",
+      "at": "2026-09-09T21:52:33.929+00:00"
+    },
+    {
+      "name": "12-chip-gone",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "15-history-approve",
+      "ok": true,
+      "actions": [
+        "צילומי מוסך נשלחו לבדיקה",
+        "צילומי מוסך אושרו",
+        "שויך צלם מוסך",
+        "תמונת מוסך הועלתה",
+        "תמונת מוסך הועלתה"
+      ]
+    },
+    {
+      "name": "recomplete-after-approve-sets-awaiting",
+      "ok": true
+    },
+    {
+      "name": "16-needs-update",
+      "ok": true,
+      "review": "needs_update",
+      "status": "in_progress"
+    },
+    {
+      "name": "16-note-required",
+      "ok": true,
+      "err": "not_awaiting_review"
+    },
+    {
+      "name": "17-worker-sees-reason",
+      "ok": true,
+      "note": "חסרה תמונת לוחית ושלדה",
+      "review": "needs_update"
+    },
+    {
+      "name": "17-reason-not-on-other-claim",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "17-ui-needs-card",
+      "ok": true,
+      "text": "צילומי מוסך רק התיקים ששויכו אליך. בלי תביעות אחרות. כל הסטטוסים ממתין לצילום צילום בתהליך צילום הושלם DAL-QA-GRV-1788990719228 TEST Garage Review 1788990719228 11-222-33 צילום בתהליך · 2 תמונות נדרש להשלים · חסרה תמונת "
+    },
+    {
+      "name": "17-ui-needs-reason",
+      "ok": true
+    },
+    {
+      "name": "18-worker-adds-photos",
+      "ok": true,
+      "file3": "CDM-1788990781073-AGDLCF"
+    },
+    {
+      "name": "19-old-photos-kept",
+      "ok": true,
+      "n": 3
+    },
+    {
+      "name": "20-complete-again",
+      "ok": true
+    },
+    {
+      "name": "21-back-to-awaiting",
+      "ok": true,
+      "review": "awaiting_review",
+      "note": ""
+    },
+    {
+      "name": "07-ui-table-chip",
+      "ok": true,
+      "text": " טרם התקבל TEST Garage Review 1788990719228 11-222-33 מגדל בטיפול TEST עובד תביעות 1788292403067 — — התקבל — לבדיקה"
+    },
+    {
+      "name": "07-ui-awaiting-banner",
+      "ok": true
+    },
+    {
+      "name": "09-ui-preview-ready",
+      "ok": true
+    },
+    {
+      "name": "22-approve-after-update",
+      "ok": true
+    },
+    {
+      "name": "23-refresh-reopen",
+      "ok": true,
+      "review": "approved",
+      "by": "TEST עובד תביעות 1788292403067"
+    },
+    {
+      "name": "29-no-cross-claim-signed",
+      "ok": true,
+      "status": 403,
+      "err": "BLOCKED"
+    },
+    {
+      "name": "29-no-cross-claim-list",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "28-secure-share",
+      "ok": true
+    },
+    {
+      "name": "28-share-only-this-claim",
+      "ok": true,
+      "pubIds": [
+        "CDM-1788990732291-8EWMUM",
+        "CDM-1788990736337-IKYWJN"
+      ]
+    },
+    {
+      "name": "claims-docs-private",
+      "ok": true,
+      "public": false
+    },
+    {
+      "name": "migration-no-old-awaiting",
+      "ok": true,
+      "legacy": []
+    },
+    {
+      "name": "ui-base-ready",
+      "ok": true,
+      "pagesGarage": 200,
+      "localGarage": 200,
+      "uiBase": "https://orin1607-ctrl.github.io/future-craft-core"
+    },
+    {
+      "name": "25-desktop-chip-absent-after-approve",
+      "ok": true
+    },
+    {
+      "name": "25-desktop-staff-bar",
+      "ok": true
+    },
+    {
+      "name": "25-desktop-approved-label",
+      "ok": true,
+      "text": "צילומי מוסך עובד: QA צלם מוסך סטטוס: צילום הושלם תמונות: 0 אושר אושר על ידי TEST עובד תביעות 1788292403067 · 9.9.2026, 21:53:20 החלף שיוך פתח פורטל עובד בטל שיוך"
+    },
+    {
+      "name": "30-gallery-topic",
+      "ok": true
+    },
+    {
+      "name": "24-mobile-garage",
+      "ok": true
+    },
+    {
+      "name": "24-mobile-job-card",
+      "ok": true
+    },
+    {
+      "name": "24-mobile-job-open",
+      "ok": true
+    },
+    {
+      "name": "27-staff-unassign",
+      "ok": true
+    },
+    {
+      "name": "27-unassign-blocks-worker",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "soft-delete-test-claims",
+      "ok": true,
+      "claimId": "DAL-QA-GRV-1788990719228",
+      "otherId": "DAL-QA-GRV-O-1788990719228",
+      "legacyId": "DAL-QA-GRV-L-1788990719228"
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS",
+  "failed": []
+}
