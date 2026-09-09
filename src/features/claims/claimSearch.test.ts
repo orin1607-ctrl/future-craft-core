@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { claimMatchesSearch, searchEmptyLabel } from './claimSearch';
-import { resolveStaffClaimSaveId } from './claimIntakeModel';
+import { resolveStaffClaimSaveId, shouldAutoPersistNoticePdf } from './claimIntakeModel';
 import type { ClaimRecord } from './claimsConstants';
 
 const eli = { id: 'DAL-2026-0020', clientName: 'אליהו אטיאס', plate: '12-345-67', claimNum: 'DAL-2026-0020', status: 'בטיפול' } as ClaimRecord;
@@ -42,6 +42,17 @@ describe('resolveStaffClaimSaveId', () => {
   it('keeps the edited claim id', () => {
     expect(resolveStaffClaimSaveId('edit', 'DAL-2026-0124', 'DAL-2026-0124')).toBe('DAL-2026-0124');
     expect(resolveStaffClaimSaveId('edit', '', 'DAL-2026-0124')).toBe('DAL-2026-0124');
+  });
+});
+
+describe('shouldAutoPersistNoticePdf', () => {
+  it('always persists on a new claim open', () => {
+    expect(shouldAutoPersistNoticePdf('new', 0)).toBe(true);
+    expect(shouldAutoPersistNoticePdf('new', 1)).toBe(true);
+  });
+  it('does not add a second notice PDF on edit', () => {
+    expect(shouldAutoPersistNoticePdf('edit', 0)).toBe(true);
+    expect(shouldAutoPersistNoticePdf('edit', 1)).toBe(false);
   });
 });
 

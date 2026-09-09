@@ -208,6 +208,12 @@ export function resolveStaffClaimSaveId(mode: 'new' | 'edit', formId: string, op
   return String(formId || openClaimId || '').trim();
 }
 
+/** New open always persists one notice PDF. Edit does not add a second copy. */
+export function shouldAutoPersistNoticePdf(mode: 'new' | 'edit', existingNoticeCount: number) {
+  if (mode === 'new') return true;
+  return existingNoticeCount < 1;
+}
+
 export function mergeIntakeToClaim(base: Record<string, string>, d: IntakeDraft): Record<string, string> {
   const phone = firstFilled(d.clientPhone, d.phoneMobile, d.phoneHome);
   const address = firstFilled(d.clientAddress, [d.addressStreet, d.addressCity].filter(Boolean).join(', '));

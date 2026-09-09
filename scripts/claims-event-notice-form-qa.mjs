@@ -248,6 +248,8 @@ async function main() {
     rec('section-third-always', await page.locator('[data-testid="intake-section-third"]').count() > 0);
     rec('section-sign', await page.locator('[data-testid="intake-section-sign"]').count() > 0);
     rec('staff-slot-kept', await page.getByText('פנימי לעובד').count() > 0);
+    rec('no-manual-pdf-transfer-btn', await page.locator('[data-testid="claim-event-pdf-save"]').count() === 0);
+    rec('open-claim-btn', /פתח תיק/.test(await page.locator('[data-testid="claims-save-btn"]').innerText().catch(() => '')));
 
     for (const [label, sel] of FORM_SELECTORS) {
       const ok = await page.locator(sel).count() > 0;
