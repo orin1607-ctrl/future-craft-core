@@ -1,10 +1,10 @@
 /**
- * Isolated claims documents + customer upload links.
- * Staging only. Does not touch document-request / WhatsApp / Gmail.
+ * Isolated claims documents + customer upload links + outbound secure share.
+ * Staging only. Does not touch document-request / WhatsApp / Gmail OAuth.
  *
- * Customer token is never stored in the DB. Public lookup uses SHA-256(token).
- * Authorized staff can reconstruct the same token via HMAC(link_id|claim_id)
- * so Copy/Share work on any signed-in device without plaintext-at-rest.
+ * Customer upload token: SHA-256 in DB; staff may reconstruct via HMAC (upload only).
+ * Outbound share token: random, shown once at create_share. SHA-256 only in DB.
+ * There is no reveal_share. Lost link → revoke and create a new share.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
@@ -12,6 +12,10 @@ import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.
 const BUCKET = "claims-docs";
 const ALLOWED = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic"]);
 const MAX_BYTES = 15 * 1024 * 1024;
+const SIGNED_TTL_SEC = 600;
+const SHARE_KINDS = new Set(["surveyor", "lawyer", "insurer", "agent", "client", "other"]);
+const MAX_SHARE_FILES = 80;
+const MAX_ZIP_BYTES = 40 * 1024 * 1024;
 
 function admin() {
   return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -29,6 +33,146 @@ async function sha256Hex(input: string) {
 async function sha256HexBytes(bytes: Uint8Array) {
   const hash = await crypto.subtle.digest("SHA-256", bytes);
   return bytesToHex(new Uint8Array(hash));
+}
+
+function randomShareToken() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return bytesToHex(bytes);
+}
+
+function parseShareIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.map((x) => String(x || "").trim()).filter(Boolean))].slice(0, MAX_SHARE_FILES);
+}
+
+function shareFileIdsOf(row: { file_ids?: unknown }): string[] {
+  return parseShareIds(row.file_ids);
+}
+
+function isImageName(mime: string, name: string) {
+  return /^image\//i.test(mime) || /\.(jpe?g|png|gif|webp|heic|heif)$/i.test(name);
+}
+
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(buf: Uint8Array) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function u16(n: number) {
+  return Uint8Array.of(n & 255, (n >>> 8) & 255);
+}
+function u32(n: number) {
+  return Uint8Array.of(n & 255, (n >>> 8) & 255, (n >>> 16) & 255, (n >>> 24) & 255);
+}
+
+function zipStore(files: Array<{ name: string; data: Uint8Array }>): Uint8Array {
+  const enc = new TextEncoder();
+  const locals: Uint8Array[] = [];
+  const centrals: Uint8Array[] = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name.replace(/\\/g, "/"));
+    const crc = crc32(f.data);
+    const local = new Uint8Array(30 + name.length + f.data.length);
+    local.set([0x50, 0x4b, 0x03, 0x04, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0], 0);
+    local.set(u32(crc), 14);
+    local.set(u32(f.data.length), 18);
+    local.set(u32(f.data.length), 22);
+    local.set(u16(name.length), 26);
+    local.set(name, 30);
+    local.set(f.data, 30 + name.length);
+    locals.push(local);
+    const central = new Uint8Array(46 + name.length);
+    central.set([0x50, 0x4b, 0x01, 0x02, 20, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0], 0);
+    central.set(u32(crc), 16);
+    central.set(u32(f.data.length), 20);
+    central.set(u32(f.data.length), 24);
+    central.set(u16(name.length), 28);
+    central.set(u32(offset), 42);
+    central.set(name, 46);
+    centrals.push(central);
+    offset += local.length;
+  }
+  const centralSize = centrals.reduce((n, c) => n + c.length, 0);
+  const end = new Uint8Array(22);
+  end.set([0x50, 0x4b, 0x05, 0x06], 0);
+  end.set(u16(files.length), 8);
+  end.set(u16(files.length), 10);
+  end.set(u32(centralSize), 12);
+  end.set(u32(offset), 16);
+  const total = offset + centralSize + 22;
+  const out = new Uint8Array(total);
+  let p = 0;
+  for (const l of locals) { out.set(l, p); p += l.length; }
+  for (const c of centrals) { out.set(c, p); p += c.length; }
+  out.set(end, p);
+  return out;
+}
+
+function wrapJpegsPdf(pages: Array<{ jpeg: Uint8Array; w: number; h: number }>): Uint8Array {
+  const pageW = 595;
+  const encoder = new TextEncoder();
+  const chunks: Uint8Array[] = [];
+  const push = (s: string) => chunks.push(encoder.encode(s));
+  push("%PDF-1.4\n");
+  const off: number[] = [0];
+  const pos = () => chunks.reduce((n, c) => n + c.length, 0);
+  const add = (body: string) => { off.push(pos()); push(body); };
+  const n = Math.max(1, pages.length);
+  const kids = pages.map((_, i) => `${3 + 3 * i} 0 R`).join(" ");
+  add("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+  add(`2 0 obj\n<< /Type /Pages /Kids [${kids}] /Count ${n} >>\nendobj\n`);
+  pages.forEach((pg, i) => {
+    const pageId = 3 + 3 * i;
+    const imgId = pageId + 1;
+    const contentId = pageId + 2;
+    const pageH = Math.max(200, Math.round((pg.h / Math.max(1, pg.w)) * pageW));
+    add(`${pageId} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /XObject << /Im0 ${imgId} 0 R >> >> /Contents ${contentId} 0 R >>\nendobj\n`);
+    off.push(pos());
+    push(`${imgId} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${pg.w} /Height ${pg.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${pg.jpeg.length} >>\nstream\n`);
+    chunks.push(pg.jpeg);
+    push("\nendstream\nendobj\n");
+    const content = `q ${pageW} 0 0 ${pageH} 0 0 cm /Im0 Do Q`;
+    add(`${contentId} 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`);
+  });
+  const xrefAt = pos();
+  const objCount = 2 + 3 * n;
+  push(`xref\n0 ${objCount + 1}\n0000000000 65535 f \n`);
+  for (let i = 1; i <= objCount; i++) push(`${String(off[i]).padStart(10, "0")} 00000 n \n`);
+  push(`trailer\n<< /Size ${objCount + 1} /Root 1 0 R >>\nstartxref\n${xrefAt}\n%%EOF\n`);
+  const total = chunks.reduce((n, c) => n + c.length, 0);
+  const out = new Uint8Array(total);
+  let p = 0;
+  for (const c of chunks) { out.set(c, p); p += c.length; }
+  return out;
+}
+
+function binResponse(body: Uint8Array, contentType: string, filename: string) {
+  return new Response(body, {
+    status: 200,
+    headers: {
+      ...edgeCorsHeaders,
+      "Content-Type": contentType,
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+function blocked(reason = "BLOCKED") {
+  return jsonResponse({ success: false, error: reason, blocked: true }, 403);
 }
 
 /** Domain-separated HMAC key. Never stored. Not the raw token. */
@@ -191,6 +335,46 @@ async function resolveLink(sb: ReturnType<typeof admin>, token: string) {
   return { data };
 }
 
+type ShareRow = {
+  id: string;
+  claim_id: string;
+  file_ids: unknown;
+  expires_at: string;
+  revoked_at: string | null;
+  recipient_name: string;
+  recipient_kind: string;
+  opened_at: string | null;
+  open_count: number;
+};
+
+async function resolveShare(sb: ReturnType<typeof admin>, token: string) {
+  if (!token || token.length < 32) return { error: "invalid_token" as const };
+  const tokenHash = await sha256Hex(token);
+  const { data } = await sb.from("claims_share_links").select("id, claim_id, file_ids, expires_at, revoked_at, recipient_name, recipient_kind, opened_at, open_count").eq("token_hash", tokenHash).maybeSingle();
+  if (!data) return { error: "not_found" as const };
+  if (data.revoked_at) return { error: "revoked" as const };
+  if (new Date(data.expires_at).getTime() < Date.now()) return { error: "expired" as const };
+  return { data: data as ShareRow };
+}
+
+function sharePublicError(code: string) {
+  const status = code === "revoked" || code === "expired" ? 410 : 404;
+  return jsonResponse({ success: false, error: code, blocked: true }, status);
+}
+
+async function loadShareFiles(sb: ReturnType<typeof admin>, share: ShareRow, requested?: string[]) {
+  const allowed = shareFileIdsOf(share);
+  const want = requested?.length ? requested : allowed;
+  if (want.some((id) => !allowed.includes(id))) return { error: "BLOCKED" as const, files: [] as Array<{ id: string; claim_id: string; storage_path: string; original_name: string; mime_type: string; byte_size: number }> };
+  if (!want.length) return { error: "no_files" as const, files: [] };
+  const { data } = await sb.from("claims_documents").select("id, claim_id, storage_path, original_name, mime_type, byte_size").eq("claim_id", share.claim_id).in("id", want);
+  const rows = data || [];
+  if (rows.some((f) => f.claim_id !== share.claim_id || !allowed.includes(f.id))) return { error: "BLOCKED" as const, files: [] };
+  if (rows.length !== want.length) return { error: "BLOCKED" as const, files: [] };
+  const byId = new Map(rows.map((f) => [f.id, f]));
+  return { files: want.map((id) => byId.get(id)!).filter(Boolean) };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: edgeCorsHeaders });
   const sb = admin();
@@ -331,6 +515,99 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true });
     }
 
+    if (action === "public_share_get" || action === "public_share_url" || action === "public_share_zip" || action === "public_share_bundle_pdf") {
+      const token = String(url.searchParams.get("token") || body.token || form?.get("token") || "");
+      const resolved = await resolveShare(sb, token);
+      if ("error" in resolved) return sharePublicError(resolved.error);
+      const share = resolved.data;
+      const hintedClaim = String(body.claim_id || url.searchParams.get("claim_id") || "");
+      if (hintedClaim && hintedClaim !== share.claim_id) return blocked("BLOCKED");
+
+      if (action === "public_share_get") {
+        const loaded = await loadShareFiles(sb, share);
+        if ("error" in loaded && loaded.error === "BLOCKED") return blocked("BLOCKED");
+        await sb.from("claims_share_links").update({
+          opened_at: share.opened_at || new Date().toISOString(),
+          open_count: Number(share.open_count || 0) + 1,
+        }).eq("id", share.id);
+        return jsonResponse({
+          success: true,
+          expiresAt: share.expires_at,
+          recipientKind: share.recipient_kind,
+          files: loaded.files.map((f) => ({
+            id: f.id,
+            name: f.original_name,
+            mime: f.mime_type,
+            bytes: f.byte_size,
+            image: isImageName(f.mime_type, f.original_name),
+          })),
+          note: "read_only",
+        });
+      }
+
+      const reqIds = parseShareIds(body.file_ids || (body.file_id ? [body.file_id] : url.searchParams.get("file_id") ? [url.searchParams.get("file_id")] : []));
+
+      if (action === "public_share_url") {
+        const fileId = String(body.file_id || url.searchParams.get("file_id") || reqIds[0] || "");
+        if (!fileId) return blocked("BLOCKED");
+        const loaded = await loadShareFiles(sb, share, [fileId]);
+        if ("error" in loaded) return blocked("BLOCKED");
+        const file = loaded.files[0];
+        if (!file || file.claim_id !== share.claim_id) return blocked("BLOCKED");
+        const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(file.storage_path, SIGNED_TTL_SEC);
+        if (error || !data?.signedUrl) return jsonResponse({ success: false, error: error?.message || "sign_failed" }, 400);
+        if (body.purpose === "download") {
+          await sb.from("claims_share_links").update({ last_download_at: new Date().toISOString() }).eq("id", share.id);
+        }
+        return jsonResponse({ success: true, url: data.signedUrl, name: file.original_name, mime: file.mime_type, ttl: SIGNED_TTL_SEC });
+      }
+
+      const loaded = await loadShareFiles(sb, share, reqIds.length ? reqIds : undefined);
+      if ("error" in loaded) return blocked(loaded.error === "no_files" ? "no_files" : "BLOCKED");
+      const files = loaded.files;
+      let total = 0;
+      const blobs: Array<{ name: string; data: Uint8Array; mime: string; image: boolean }> = [];
+      for (const f of files) {
+        if (f.claim_id !== share.claim_id) return blocked("BLOCKED");
+        const dl = await sb.storage.from(BUCKET).download(f.storage_path);
+        if (dl.error || !dl.data) return jsonResponse({ success: false, error: "download_failed" }, 400);
+        const buf = new Uint8Array(await dl.data.arrayBuffer());
+        total += buf.length;
+        if (total > MAX_ZIP_BYTES) return jsonResponse({ success: false, error: "package_too_large" }, 400);
+        blobs.push({
+          name: sanitizeFileName(f.original_name),
+          data: buf,
+          mime: f.mime_type,
+          image: isImageName(f.mime_type, f.original_name),
+        });
+      }
+      await sb.from("claims_share_links").update({ last_download_at: new Date().toISOString() }).eq("id", share.id);
+
+      if (action === "public_share_zip") {
+        const zip = zipStore(blobs.map((b) => ({
+          name: `${b.image ? "photos" : "docs"}/${b.name}`,
+          data: b.data,
+        })));
+        return binResponse(zip, "application/zip", "claim-share.zip");
+      }
+
+      const pages: Array<{ jpeg: Uint8Array; w: number; h: number }> = [];
+      for (const b of blobs) {
+        const jpeg = b.data.length > 2 && b.data[0] === 0xff && b.data[1] === 0xd8;
+        if (!jpeg) continue;
+        pages.push({ jpeg: b.data, w: 1200, h: 1600 });
+      }
+      if (!pages.length) {
+        return jsonResponse({
+          success: false,
+          error: "bundle_pdf_images_only",
+          hint: "אין תמונות שניתן לשלב ב-PDF. קבצי המקור זמינים להורדה ול-ZIP.",
+        }, 400);
+      }
+      const pdf = wrapJpegsPdf(pages);
+      return binResponse(pdf, "application/pdf", "claim-share-bundle.pdf");
+    }
+
     const auth = await requireAuth(req);
     if ("error" in auth) return auth.error;
     const { user, role } = auth.ctx;
@@ -408,6 +685,116 @@ Deno.serve(async (req) => {
         expiresAt: data.expires_at,
         createdAt: data.created_at,
       });
+    }
+
+    if (action === "create_share") {
+      const claimId = String(body.claim_id || "");
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+      const recipientName = String(body.recipient_name || "").trim().slice(0, 160);
+      const recipientKind = String(body.recipient_kind || "").trim();
+      const recipientNote = String(body.recipient_kind_note || "").trim().slice(0, 160);
+      const recipientEmail = String(body.recipient_email || "").trim().slice(0, 200);
+      const recipientPhone = String(body.recipient_phone || "").trim().slice(0, 40);
+      const fileIds = parseShareIds(body.file_ids);
+      if (!recipientName) return jsonResponse({ success: false, error: "recipient_required" }, 400);
+      if (!SHARE_KINDS.has(recipientKind)) return jsonResponse({ success: false, error: "recipient_kind_required" }, 400);
+      if (!fileIds.length) return jsonResponse({ success: false, error: "files_required" }, 400);
+      const { data: claimFiles } = await sb.from("claims_documents").select("id, claim_id, original_name").eq("claim_id", claimId).in("id", fileIds);
+      const found = claimFiles || [];
+      if (found.length !== fileIds.length || found.some((f) => f.claim_id !== claimId)) {
+        return blocked("BLOCKED");
+      }
+      let expiresAt = "";
+      const custom = String(body.expires_at || "").trim();
+      const hours = Number(body.ttl_hours || 0);
+      if (custom) {
+        const t = Date.parse(custom);
+        if (!Number.isFinite(t) || t < Date.now() + 60_000) return jsonResponse({ success: false, error: "expires_invalid" }, 400);
+        if (t > Date.now() + 90 * 86_400_000) return jsonResponse({ success: false, error: "expires_invalid" }, 400);
+        expiresAt = new Date(t).toISOString();
+      } else if ([24, 48, 72, 168].includes(hours)) {
+        expiresAt = new Date(Date.now() + hours * 3600_000).toISOString();
+      } else {
+        expiresAt = new Date(Date.now() + 48 * 3600_000).toISOString();
+      }
+      const token = randomShareToken();
+      const shareId = nid("SHR");
+      const { error: insErr } = await sb.from("claims_share_links").insert({
+        id: shareId,
+        claim_id: claimId,
+        token_hash: await sha256Hex(token),
+        recipient_name: recipientName,
+        recipient_kind: recipientKind,
+        recipient_kind_note: recipientNote,
+        recipient_email: recipientEmail,
+        recipient_phone: recipientPhone,
+        file_ids: fileIds,
+        expires_at: expiresAt,
+        created_by: user.id,
+        created_by_name: actorName,
+      });
+      if (insErr) return jsonResponse({ success: false, error: insErr.message }, 400);
+      await history(sb, claimId, "נוצר שיתוף מאובטח", `${recipientName} · ${recipientKind} · ${fileIds.length} קבצים · עד ${expiresAt}`, actorName);
+      return jsonResponse({
+        success: true,
+        id: shareId,
+        token,
+        expiresAt,
+        fileCount: fileIds.length,
+        once: true,
+      });
+    }
+
+    if (action === "list_shares") {
+      const claimId = String(body.claim_id || url.searchParams.get("claim_id") || "");
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+      const { data } = await sb.from("claims_share_links").select("id, claim_id, recipient_name, recipient_kind, recipient_kind_note, recipient_email, recipient_phone, file_ids, expires_at, revoked_at, created_by_name, created_at, opened_at, last_download_at, open_count").eq("claim_id", claimId).order("created_at", { ascending: false }).limit(80);
+      const ids = [...new Set((data || []).flatMap((s) => parseShareIds(s.file_ids)))];
+      const { data: files } = ids.length
+        ? await sb.from("claims_documents").select("id, original_name").eq("claim_id", claimId).in("id", ids)
+        : { data: [] as Array<{ id: string; original_name: string }> };
+      const names = new Map((files || []).map((f) => [f.id, f.original_name]));
+      const now = Date.now();
+      return jsonResponse({
+        success: true,
+        shares: (data || []).map((s) => {
+          const fids = parseShareIds(s.file_ids);
+          const st = s.revoked_at ? "revoked" : (new Date(s.expires_at).getTime() <= now ? "expired" : "active");
+          return {
+            id: s.id,
+            recipient_name: s.recipient_name,
+            recipient_kind: s.recipient_kind,
+            recipient_kind_note: s.recipient_kind_note,
+            recipient_email: s.recipient_email,
+            recipient_phone: s.recipient_phone,
+            file_ids: fids,
+            file_names: fids.map((id) => names.get(id) || id),
+            expires_at: s.expires_at,
+            revoked_at: s.revoked_at,
+            created_by_name: s.created_by_name,
+            created_at: s.created_at,
+            opened_at: s.opened_at,
+            last_download_at: s.last_download_at,
+            open_count: s.open_count,
+            status: st,
+          };
+        }),
+      });
+    }
+
+    if (action === "revoke_share") {
+      const claimId = String(body.claim_id || "");
+      const shareId = String(body.share_id || "");
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+      const { data } = await sb.from("claims_share_links").select("id, claim_id, recipient_name").eq("id", shareId).eq("claim_id", claimId).maybeSingle();
+      if (!data) return blocked("BLOCKED");
+      await sb.from("claims_share_links").update({ revoked_at: new Date().toISOString() }).eq("id", shareId).eq("claim_id", claimId);
+      await history(sb, claimId, "בוטל שיתוף מאובטח", data.recipient_name || shareId, actorName);
+      return jsonResponse({ success: true });
+    }
+
+    if (action === "reveal_share") {
+      return jsonResponse({ success: false, error: "reveal_share_disabled", hint: "הקישור מוצג פעם אחת ביצירה. אם אבד — בטל וצור שיתוף חדש." }, 400);
     }
 
     if (action === "save_doc_requests") {
@@ -526,7 +913,7 @@ Deno.serve(async (req) => {
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
       const { data: file } = await sb.from("claims_documents").select("storage_path, claim_id").eq("id", fileId).eq("claim_id", claimId).maybeSingle();
       if (!file) return jsonResponse({ success: false, error: "not_found" }, 404);
-      const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(file.storage_path, 600);
+      const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(file.storage_path, SIGNED_TTL_SEC);
       if (error) return jsonResponse({ success: false, error: error.message }, 400);
       return jsonResponse({ success: true, url: data.signedUrl });
     }
@@ -538,7 +925,7 @@ Deno.serve(async (req) => {
       if (!ids.length) return jsonResponse({ success: true, urls: {} });
       const { data: files } = await sb.from("claims_documents").select("id, storage_path").eq("claim_id", claimId).in("id", ids);
       const rows = files || [];
-      const { data, error } = await sb.storage.from(BUCKET).createSignedUrls(rows.map((f) => f.storage_path), 600);
+      const { data, error } = await sb.storage.from(BUCKET).createSignedUrls(rows.map((f) => f.storage_path), SIGNED_TTL_SEC);
       if (error) return jsonResponse({ success: false, error: error.message }, 400);
       const urls: Record<string, string> = {};
       rows.forEach((f, i) => {

@@ -11,6 +11,8 @@ import SignaturePad from './SignaturePad';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, resolveStaffClaimSaveId, shouldAutoPersistNoticePdf, type IntakeDraft } from './claimIntakeModel';
 import { ClaimContactsModal, ContactPickerList } from './ClaimContactsModal';
 import CustomerRequestModal from './CustomerRequestModal';
+import SecureShareModal from './SecureShareModal';
+import { type ShareRow } from './claimSecureShare';
 import { emailsUnknownToDirectory, parseFromAddr, phoneUnknownToDirectory, type ClaimContact } from './claimContacts';
 import './claims.css';
 
@@ -886,6 +888,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [updateTreatId, setUpdateTreatId] = useState('');
   const [treatDocPick, setTreatDocPick] = useState<string[]>([]);
   const [treatContinueChoice, setTreatContinueChoice] = useState<'continue' | 'done'>('continue');
+  const [shareOpen, setShareOpen] = useState(false);
+  const [sharePresetIds, setSharePresetIds] = useState<string[]>([]);
+  const [shares, setShares] = useState<ShareRow[]>([]);
   const mailReturnRef = useRef('');
   const [mailOpen, setMailOpen] = useState<Record<string, boolean>>({});
   const [deleteTyped, setDeleteTyped] = useState('');
@@ -1186,6 +1191,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         });
       }).catch(() => { if (live()) setDocs({ requests: [], files: [] }); }),
       apiRef.current.listClaimContacts(id).then((c) => { if (live()) setClaimContacts(c.data || []); }).catch(() => { if (live()) setClaimContacts([]); }),
+      apiRef.current.invokeDocs('list_shares', { claim_id: id }).then((s) => { if (live()) setShares((s.shares as ShareRow[]) || []); }).catch(() => { if (live()) setShares([]); }),
     ]);
     const lk = await apiRef.current.invokeDocs('get_link', { claim_id: id }).catch(() => ({} as Record<string, unknown>));
     if (!live()) return;
@@ -3345,6 +3351,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <span>{missing} חסרים</span>
                         <span>{waiting} ממתינים ללקוח</span>
                         <span className="doc-sum-hold" data-testid="docs-mandatory-hold">מסמכי חובה: לא הוגדרו (ממתין לאישור ארכיטקטורה)</span>
+                        <button type="button" className="btn btn-p btn-sm" data-testid="claims-secure-share" onClick={() => { setSharePresetIds([]); setShareOpen(true); }}>שיתוף מאובטח</button>
                       </div>
                     );
                   })()}
@@ -3366,6 +3373,21 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       </div>
                     );
                   })()}
+                  <div className="share-hist" data-testid="share-history-panel">
+                    <div className="sdiv"><div className="sdiv-t">שיתופים פעילים / היסטוריית שיתופים</div><div className="sdiv-l" /></div>
+                    {!shares.length ? <div style={{ fontSize: 12, color: 'var(--t3)' }}>אין שיתופים בתיק זה</div> : shares.slice(0, 8).map((s) => (
+                      <div key={s.id} data-testid={`share-hist-${s.id}`} style={{ fontSize: 12, marginTop: 6 }}>
+                        {s.recipient_name} · {s.recipient_kind} · {s.status || '—'} · {s.file_ids?.length || 0} קבצים · עד {s.expires_at ? new Date(s.expires_at).toLocaleString('he-IL') : '—'}
+                        {s.status === 'active' ? (
+                          <button type="button" className="btn btn-g btn-sm" data-testid={`share-hist-revoke-${s.id}`} style={{ marginInlineStart: 8 }} onClick={async () => {
+                            const r = await apiRef.current.invokeDocs('revoke_share', { claim_id: cur.id, share_id: s.id });
+                            toast(r.success ? 'הקישור בוטל מיד' : String(r.error || 'ביטול נכשל'), r.success ? 'ok' : 'err');
+                            await loadCardData(cur.id);
+                          }}>בטל קישור</button>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
                   <div className="cust-ask" data-testid="cust-ask-panel">
                     {hasUploadLink ? (
                       <div className="cust-link-card" data-testid="cust-link-card">
@@ -4846,7 +4868,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               {' · '}{sendIds.length} קבצים
               {pkgInfo?.overLimit ? (
                 <div className="pkg-warn" data-testid="mail-oversize">
-                  הקבצים גדולים מדי לשליחה במייל. SEND חסום. לא יושמטו קבצים בשקט. אפשר לבחור פחות קבצים, לפצל למספר מיילים, או קישור מאובטח — לא אוטומטית.
+                  הקבצים גדולים מדי לשליחה במייל. SEND חסום. לא יושמטו קבצים בשקט. אפשר לבחור פחות קבצים, לפצל למספר מיילים, או ליצור קישור מאובטח.
+                  <div style={{ marginTop: 8 }}>
+                    <button type="button" className="btn btn-p btn-sm" data-testid="mail-open-secure-share" onClick={() => { setSharePresetIds(sendIds); setShareOpen(true); }}>החומר גדול מדי לשליחה כקבצים מצורפים — צור קישור מאובטח</button>
+                  </div>
                   <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {(pkgInfo.split || []).map((g) => (
                       <button key={g.index} className="btn btn-g btn-sm" type="button" disabled={g.tooLargeSingle} onClick={() => {
@@ -5166,6 +5191,28 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           }}
           onWhatsApp={(phone, body, taskId) => {
             setPendingCustTaskId(taskId);
+            setVal('wa_phone', phone);
+            setVal('wa_msg', body);
+            setModal('moWA');
+          }}
+        />
+      ) : null}
+
+      {cur && shareOpen ? (
+        <SecureShareModal
+          open
+          claimId={cur.id}
+          files={docs.files}
+          presetIds={sharePresetIds}
+          api={apiRef.current}
+          toast={(m, k) => toast(m, k || 'ok')}
+          onClose={() => { setShareOpen(false); void loadCardData(cur.id); }}
+          onMail={(to, subject, body) => {
+            setShareOpen(false);
+            void openSendModal('draft', { to, subject, body, file_ids: [] });
+          }}
+          onWhatsApp={(phone, body) => {
+            setShareOpen(false);
             setVal('wa_phone', phone);
             setVal('wa_msg', body);
             setModal('moWA');

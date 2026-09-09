@@ -133,6 +133,7 @@ import TelemarketingAdminPage from "@/pages/TelemarketingAdminPage";
 import TransportHubPage from "@/pages/TransportHubPage";
 import ClaimsPage from "@/pages/ClaimsPage";
 import ClaimsUploadPage from "@/pages/ClaimsUploadPage";
+import ClaimsSharePage from "@/pages/ClaimsSharePage";
 import ClaimsIntakePage from "@/pages/ClaimsIntakePage";
 
 const queryClient = new QueryClient();
@@ -196,6 +197,7 @@ function AppRoutes() {
         <Route path="/take-exam" element={<TakeDrivingExam />} />
         <Route path="/upload-request" element={<UploadDocumentRequest />} />
         <Route path="/claims-upload" element={<ClaimsUploadPage />} />
+        <Route path="/claims-share" element={<ClaimsSharePage />} />
         <Route path="/claims-intake" element={<ClaimsIntakePage />} />
         {/* Protected deep links → login (not marketing About / fake 404) */}
         <Route path="*" element={<LoginRedirect />} />
@@ -235,6 +237,7 @@ function AppRoutes() {
       />
       <Route path="/dalia-crm" element={<LegacyMarketingRedirect />} />
       <Route path="/claims-upload" element={<ClaimsUploadPage />} />
+      <Route path="/claims-share" element={<ClaimsSharePage />} />
       <Route path="/claims-intake" element={<ClaimsIntakePage />} />
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
@@ -335,7 +338,7 @@ function AppRoutes() {
 function ThemeToggleGate() {
   const loc = useLocation();
   const path = `${loc.pathname || ''} ${typeof window !== 'undefined' ? window.location.pathname : ''}`;
-  if (/claims-upload|claims-intake/.test(path)) return null;
+  if (/claims-upload|claims-intake|claims-share/.test(path)) return null;
   return <ThemeToggle />;
 }
 

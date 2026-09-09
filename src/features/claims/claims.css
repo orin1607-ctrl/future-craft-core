@@ -226,6 +226,7 @@
 .claims-root .tabs.tab-subs{padding-top:0;margin-top:-8px;border-bottom:1px solid var(--br);margin-bottom:12px}
 .claims-root .tabs.tab-subs .tab{font-size:11px;font-weight:500}
 .claims-root .mail-entry-bar,.claims-root .work-entry-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.claims-root .share-hist{background:var(--bg2);border:1px solid var(--br2);border-radius:8px;padding:12px;margin:0 0 12px}
 .claims-root .cust-ask{background:var(--bg2);border:1px solid var(--br2);border-radius:8px;padding:12px;margin-bottom:12px}
 .claims-root .cust-ask > .btn{margin-bottom:8px}
 .claims-root .cust-ask-box{display:flex;flex-direction:column;gap:6px;margin:8px 0 12px}
