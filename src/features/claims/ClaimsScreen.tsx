@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
-import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, addRecurringDays, buildClaimRowAlerts, canMarkMailTaskDone, customerKindLabel, customerStatusLabel, customerStatusOf, defaultRecurringFirstLocal, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isRecurringMailFollowup, isScheduledOnceMail, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringFirstPlannedAt, recurringLabel, resolveRecurringFirstRun, shortStatusNote, untreatedMailIds, type ClaimAlert, type RecurringFirstSendMode } from './claimWorkAlerts';
+import { CUSTOMER_REQUEST_KINDS, CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, addRecurringDays, buildClaimRowAlerts, canMarkMailTaskDone, customerKindLabel, customerStatusLabel, customerStatusOf, defaultRecurringFirstLocal, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isRecurringMailFollowup, isScheduledOnceMail, lastTreatmentActionText, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringFirstPlannedAt, recurringLabel, resolveRecurringFirstRun, shortStatusNote, untreatedMailIds, type ClaimAlert, type RecurringFirstSendMode } from './claimWorkAlerts';
 import { claimMatchesSearch, searchEmptyLabel } from './claimSearch';
 import { gmailOpenHref, groupMailThreads, unifyCorrespondence } from './claimMailThread';
 import { completedTreatments, docKeyForRequestType, filesForTreatment, inferTreatmentRequest, isOpenTreatment, isTreatmentItem, liveRecurringForTreatment, openTreatments, recurringForTreatment, treatmentLabelOf, treatmentStatusHe } from './treatmentCenter';
@@ -114,6 +114,14 @@ function fmtDay(s: string) {
   }
   const m = String(s).match(/^(\d{1,2}[./]\d{1,2}[./]\d{2,4})/);
   return m ? m[1] : s;
+}
+function lastTreatLabel(c: ClaimRecord) {
+  const action = shortStatusNote(lastTreatmentActionText(c), 40);
+  const day = fmtDay(c.lastTreatmentAt || '');
+  if (action && day && day !== '—') return `${action} · ${day}`;
+  if (action) return action;
+  if (day && day !== '—') return day;
+  return '—';
 }
 function fuStatusHe(s: string, live?: boolean) {
   if (live && (s === 'dry_run_sent' || s === 'completed')) return 'נשלח (TEST חי)';
@@ -2322,7 +2330,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       <th></th>
       <th>מספר תביעה</th><th>לקוח</th><th>רכב</th><th>חברת ביטוח</th>
       <th>סטטוס טיפול</th><th>עובד מטפל</th>
-      <th>טיפול אחרון</th><th>טיפול הבא</th><th>נדרש טיפול</th><th>מצב מסמכים</th>
+      <th>הטיפול האחרון</th><th>טיפול הבא</th><th>נדרש טיפול</th>
       {view === 'claims' ? <th></th> : null}
     </tr></thead>
   );
@@ -2350,6 +2358,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         פעולה/טיפול הבא: {fmtDay(c.nextDate || '') || '—'}
         {c.nextAction ? ` · ${c.nextAction}` : ''}
       </div>
+      <div className="claim-mcard-last" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          className="claim-last-treat"
+          data-testid={`claim-last-treatment-${c.id}`}
+          onClick={() => void openCard(c.id, 'timeline')}
+        >הטיפול האחרון: {lastTreatLabel(c)}</button>
+      </div>
       <div className="claim-mcard-alerts" onClick={(e) => e.stopPropagation()}>
         <RowAlerts alerts={buildClaimRowAlerts(c, alertCtx)} onAlertClick={(a) => openMailAction(c.id, a)} />
       </div>
@@ -2373,7 +2389,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <div className="tw claims-desk-table"><table>
           {claimTableHead}
           <tbody>
-            {rows.length === 0 ? <tr><td colSpan={extra ? 12 : 11} style={{ textAlign: 'center', color: 'var(--t3)', padding: 28 }} data-testid="claims-list-empty">{emptyText}</td></tr>
+            {rows.length === 0 ? <tr><td colSpan={extra ? 11 : 10} style={{ textAlign: 'center', color: 'var(--t3)', padding: 28 }} data-testid="claims-list-empty">{emptyText}</td></tr>
               : rows.map((c) => renderClaimRow(c, extra))}
           </tbody>
         </table></div>
@@ -2392,7 +2408,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <div style={{ fontWeight: 600 }}>{c.clientName}</div>
         {c.clientPhone && extra ? <div style={{ fontSize: 10, color: 'var(--t3)' }}>{c.clientPhone}</div> : null}
         {c.source === 'Customer Accident Intake' ? <div className="lbl-pill">טופס לקוח</div> : null}
-        {docsOrderOf(c) === 'needs_sort' ? <div className="lbl-pill legacy">תיק ישן / דורש סידור</div> : null}
         {c.duplicateSuspect === 'true' ? <div className="lbl-pill" style={{ color: '#b45309' }}>חשד לכפילות</div> : null}
       </td>
       <td>{c.plate || '—'}</td>
@@ -2402,10 +2417,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         {shortStatusNote(c.lastStatusNote) ? <div className="claim-status-note" data-testid="claim-status-note">{shortStatusNote(c.lastStatusNote)}</div> : null}
       </td>
       <td style={{ fontSize: 11 }}>{c.assigned_to_name || '—'}</td>
-      <td style={{ fontSize: 10, color: 'var(--t3)' }}>{fmtDay(c.lastTreatmentAt || '')}</td>
+      <td onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          className="claim-last-treat"
+          data-testid={`claim-last-treatment-${c.id}`}
+          onClick={() => void openCard(c.id, 'timeline')}
+        >{lastTreatLabel(c)}</button>
+      </td>
       <td style={{ fontSize: 10, color: 'var(--yn2)' }}>{fmtDay(c.nextDate || '')}</td>
       <td onClick={(e) => e.stopPropagation()}><RowAlerts alerts={buildClaimRowAlerts(c, alertCtx)} onAlertClick={(a) => openMailAction(c.id, a)} /></td>
-      <td style={{ fontSize: 10 }}>{docsOrderLabel(docsOrderOf(c)) || '—'}</td>
       {extra ? <td onClick={(e) => e.stopPropagation()}><button className="btn btn-g btn-sm" onClick={() => startEdit(c.id)}>✏️</button></td> : null}
     </tr>
   );
@@ -4237,9 +4258,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 </div>
               )}
               {cardTab === 'timeline' && (
-                hist.length === 0 ? <div className="empty">אין היסטוריה עדיין</div>
+                hist.length === 0 ? <div className="empty" data-testid="claim-treat-history">אין היסטוריה עדיין</div>
                   : (
-                    <>
+                    <div data-testid="claim-treat-history">
                       <div className="sdiv"><div className="sdiv-t">היסטוריית סטטוסים</div><div className="sdiv-l" /></div>
                       {hist.filter((h) => h.type === 'status' || h.type === 'treatment' || h.type === 'new').slice().reverse().map((h) => (
                         <div key={`st-${h.id}`} className="status-hist-row" style={{ marginBottom: 10 }}>
@@ -4257,7 +4278,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           <div style={{ fontSize: 10, color: 'var(--t3)' }}>{h.at} · {h.by}</div>
                         </div>
                       ))}
-                    </>
+                    </div>
                   )
               )}
             </div>

@@ -142,6 +142,20 @@ export function shortStatusNote(s: string, max = 48) {
   return t.length > max ? `${t.slice(0, max - 1)}…` : t;
 }
 
+function isDocsOrderCopy(s: string) {
+  const t = String(s || '').replace(/\s+/g, ' ').trim();
+  return !t ? false : t === 'תיק ישן / דורש סידור מסמכים' || t.includes('תיק ישן') || t === 'תיק מסודר';
+}
+
+/** Table/list text for last treatment. Does not use docs-order / "תיק ישן". */
+export function lastTreatmentActionText(c: { lastTreatmentAction?: string; lastStatusNote?: string; lastTreatmentAt?: string }) {
+  const action = String(c.lastTreatmentAction || '').replace(/\s+/g, ' ').trim();
+  if (action && !isDocsOrderCopy(action)) return action;
+  const note = String(c.lastStatusNote || '').replace(/\s+/g, ' ').trim();
+  if (note && !isDocsOrderCopy(note)) return note;
+  return '';
+}
+
 export function untreatedMailIds(c: ClaimRecord, ctx: AlertContext): string[] {
   const dismissed = new Set(
     ctx.tasks

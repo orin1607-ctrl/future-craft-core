@@ -22,6 +22,7 @@ import {
   resolveRecurringFirstRun,
   mailShowsTreatment,
   normalizeFollowupDays,
+  lastTreatmentActionText,
 } from './claimWorkAlerts';
 import type { ClaimRecord } from './claimsConstants';
 
@@ -364,5 +365,26 @@ describe('scheduled once mail', () => {
     expect(alerts.find((a) => a.key === 'treat_TSK-NOTE')?.label).toBe('ממתין לדוח שמאי');
     expect(alerts.filter((a) => a.key.startsWith('treat_')).length).toBe(1);
     expect(alerts.filter((a) => a.label.includes('חסר מסמך')).length).toBe(0);
+  });
+});
+
+describe('lastTreatmentActionText', () => {
+  it('prefers the last treatment action and never uses docs-order copy', () => {
+    expect(lastTreatmentActionText({
+      lastTreatmentAction: 'עדכון טיפול — נשלח לשמאי',
+      lastStatusNote: 'הערה לסטטוס',
+      lastTreatmentAt: '2026-09-08',
+    })).toBe('עדכון טיפול — נשלח לשמאי');
+    expect(lastTreatmentActionText({
+      lastStatusNote: 'ממתין לתשובת הלקוח',
+    })).toBe('ממתין לתשובת הלקוח');
+    expect(lastTreatmentActionText({})).toBe('');
+    expect(lastTreatmentActionText({
+      lastTreatmentAction: 'בקשת רישיון',
+      lastStatusNote: 'תיק ישן / דורש סידור מסמכים',
+    })).not.toContain('תיק ישן');
+    expect(lastTreatmentActionText({
+      lastStatusNote: 'תיק ישן / דורש סידור מסמכים',
+    })).toBe('');
   });
 });
