@@ -255,6 +255,18 @@ async function openTestClaim(page, recName) {
 
 async function waitTestId(page, testId, timeout = 15000) {
   const loc = page.locator(`[data-testid="${testId}"]`);
+  if (!(await loc.isVisible().catch(() => false))) {
+    const sum = page.locator('[data-testid="docs-more-customer"] > summary');
+    if (await sum.count()) await sum.click({ force: true }).catch(() => undefined);
+  }
+  await loc.evaluate((el) => {
+    el.scrollIntoView({ block: 'center', inline: 'nearest' });
+    const mb = el.closest('.mb');
+    if (mb instanceof HTMLElement) {
+      const top = el.getBoundingClientRect().top - mb.getBoundingClientRect().top;
+      mb.scrollTop += top - 24;
+    }
+  }).catch(() => undefined);
   await loc.waitFor({ state: 'visible', timeout }).catch(() => undefined);
   return loc.isVisible().catch(() => false);
 }
@@ -316,7 +328,18 @@ if (uiOn) {
   const urlB = ((await pageB.locator('[data-testid="cust-link-url"]').innerText().catch(() => '')) || '').trim();
   rec('session-b-same-url', urlB.includes(minted) || urlB.includes('claims-upload?t='), { urlB: urlB.slice(0, 90) });
   rec('session-b-not-missing-warn', (await pageB.locator('[data-testid="cust-link-url-missing"]').count()) === 0);
-  await pageB.locator('[data-testid="cust-link-copy"]').click({ force: true });
+  const copyBtn = pageB.locator('[data-testid="cust-link-copy"]');
+  await copyBtn.evaluate((el) => {
+    el.scrollIntoView({ block: 'center', inline: 'nearest' });
+    const mb = el.closest('.mb');
+    if (mb instanceof HTMLElement) {
+      const top = el.getBoundingClientRect().top - mb.getBoundingClientRect().top;
+      mb.scrollTop += top - 24;
+    }
+  }).catch(() => undefined);
+  await copyBtn.click({ force: true }).catch(async () => {
+    await copyBtn.evaluate((el) => { if (el instanceof HTMLElement) el.click(); });
+  });
   await pageB.waitForTimeout(400);
   let copied = '';
   try { copied = await pageB.evaluate(() => navigator.clipboard.readText()); } catch { copied = ''; }

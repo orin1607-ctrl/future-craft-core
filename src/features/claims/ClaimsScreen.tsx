@@ -3462,41 +3462,44 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     busy={docsUploading}
                     onFiles={(files) => { if (cur) void uploadStaffFiles(cur.id, files); }}
                   />
+                  {hasUploadLink ? (
+                    <div className="cust-link-card" data-testid="cust-link-card">
+                      <div className="cust-link-title">קישור פעיל ללקוח</div>
+                      <div className="cust-link-meta">נוצר: {uploadLinkMeta?.created_at ? new Date(uploadLinkMeta.created_at).toLocaleString('he-IL') : '—'}</div>
+                      <div className="cust-link-meta">תוקף עד: {uploadLinkMeta?.expires_at ? new Date(uploadLinkMeta.expires_at).toLocaleString('he-IL') : '—'} · 24 שעות</div>
+                      <div className="cust-link-meta">ביקשנו: {docs.requests.filter((r) => r.status === 'requested' || r.status === 'received').map((r) => r.label).join(', ') || '—'}</div>
+                      <div className="cust-link-meta">הלקוח העלה: {docs.requests.filter((r) => r.status === 'received').length} מתוך {docs.requests.filter((r) => r.status === 'requested' || r.status === 'received').length}</div>
+                      {linkUrl ? (
+                        <div className="cust-link-url" data-testid="cust-link-url">{linkUrl}</div>
+                      ) : linkReconstructable ? (
+                        <div className="cust-link-meta" data-testid="cust-link-url-loading">טוען כתובת קישור מהשרת…</div>
+                      ) : (
+                        <div className="cust-link-warn" data-testid="cust-link-url-missing">קישור ישן (לפני שחזור מהשרת). העתקה ממכשיר זה דורשת קישור חדש — הישן יבוטל.</div>
+                      )}
+                      <div className="cust-link-acts">
+                        <button type="button" className="btn btn-p btn-sm" data-testid="cust-link-copy" disabled={!linkUrl && !linkReconstructable} onClick={() => { void (async () => { const url = await ensureCustomerLinkUrl(cur.id); if (url) await copyCustomerLink(url); else toast('אין קישור להעתקה — הנפיקו קישור חדש', 'err'); })(); }}>העתק קישור</button>
+                        <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-open" disabled={!linkUrl && !linkReconstructable} onClick={() => { void (async () => { const url = await ensureCustomerLinkUrl(cur.id); if (url) window.open(url, '_blank', 'noopener'); else toast('אין קישור לפתיחה — הנפיקו קישור חדש', 'err'); })(); }}>פתח קישור</button>
+                        <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-share" disabled={!linkUrl && !linkReconstructable} onClick={() => { void shareCustomerLink(cur.id, cur.clientName || '', displayClaimNum(cur)); }}>שתף קישור</button>
+                        <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-wa" disabled={!linkUrl && !linkReconstructable} onClick={() => {
+                          void (async () => {
+                            const url = await ensureCustomerLinkUrl(cur.id);
+                            if (!url) { toast('אין קישור ל-WhatsApp — הנפיקו קישור חדש', 'err'); return; }
+                            const msg = `שלום${cur.clientName ? ` ${cur.clientName}` : ''}, לצורך תביעה ${displayClaimNum(cur)} נבקש להעלות מסמכים בקישור:\n${url}`;
+                            setModal('moWA');
+                            window.setTimeout(() => setVal('wa_msg', msg), 50);
+                          })();
+                        }}>WhatsApp עם הקישור</button>
+                        <button type="button" className="btn btn-sm" data-testid="cust-link-revoke" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { void revokeCustomerLink(cur.id); }}>בטל קישור</button>
+                        <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-rotate" onClick={async () => { setAskBusy(true); try { await mintCustomerLink(cur.id, true); } finally { setAskBusy(false); } }}>צור קישור חדש</button>
+                      </div>
+                      <div className="cust-link-note">אין שליחה אוטומטית. שיתוף במכשיר נפתח רק אחרי לחיצה. WhatsApp נפתח רק אחרי לחיצה — בלי Auto Send.</div>
+                    </div>
+                  ) : null}
                   <details className="docs-more" data-testid="docs-more-customer">
                     <summary>בקשה מהלקוח / רשימת חסרים</summary>
                   <div className="cust-ask" data-testid="cust-ask-panel">
                     {hasUploadLink ? (
-                      <div className="cust-link-card" data-testid="cust-link-card">
-                        <div className="cust-link-title">קישור פעיל ללקוח</div>
-                        <div className="cust-link-meta">נוצר: {uploadLinkMeta?.created_at ? new Date(uploadLinkMeta.created_at).toLocaleString('he-IL') : '—'}</div>
-                        <div className="cust-link-meta">תוקף עד: {uploadLinkMeta?.expires_at ? new Date(uploadLinkMeta.expires_at).toLocaleString('he-IL') : '—'} · 24 שעות</div>
-                        <div className="cust-link-meta">ביקשנו: {docs.requests.filter((r) => r.status === 'requested' || r.status === 'received').map((r) => r.label).join(', ') || '—'}</div>
-                        <div className="cust-link-meta">הלקוח העלה: {docs.requests.filter((r) => r.status === 'received').length} מתוך {docs.requests.filter((r) => r.status === 'requested' || r.status === 'received').length}</div>
-                        {linkUrl ? (
-                          <div className="cust-link-url" data-testid="cust-link-url">{linkUrl}</div>
-                        ) : linkReconstructable ? (
-                          <div className="cust-link-meta" data-testid="cust-link-url-loading">טוען כתובת קישור מהשרת…</div>
-                        ) : (
-                          <div className="cust-link-warn" data-testid="cust-link-url-missing">קישור ישן (לפני שחזור מהשרת). העתקה ממכשיר זה דורשת קישור חדש — הישן יבוטל.</div>
-                        )}
-                        <div className="cust-link-acts">
-                          <button type="button" className="btn btn-p btn-sm" data-testid="cust-link-copy" disabled={!linkUrl && !linkReconstructable} onClick={() => { void (async () => { const url = await ensureCustomerLinkUrl(cur.id); if (url) await copyCustomerLink(url); else toast('אין קישור להעתקה — הנפיקו קישור חדש', 'err'); })(); }}>העתק קישור</button>
-                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-open" disabled={!linkUrl && !linkReconstructable} onClick={() => { void (async () => { const url = await ensureCustomerLinkUrl(cur.id); if (url) window.open(url, '_blank', 'noopener'); else toast('אין קישור לפתיחה — הנפיקו קישור חדש', 'err'); })(); }}>פתח קישור</button>
-                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-share" disabled={!linkUrl && !linkReconstructable} onClick={() => { void shareCustomerLink(cur.id, cur.clientName || '', displayClaimNum(cur)); }}>שתף קישור</button>
-                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-wa" disabled={!linkUrl && !linkReconstructable} onClick={() => {
-                            void (async () => {
-                              const url = await ensureCustomerLinkUrl(cur.id);
-                              if (!url) { toast('אין קישור ל-WhatsApp — הנפיקו קישור חדש', 'err'); return; }
-                              const msg = `שלום${cur.clientName ? ` ${cur.clientName}` : ''}, לצורך תביעה ${displayClaimNum(cur)} נבקש להעלות מסמכים בקישור:\n${url}`;
-                              setModal('moWA');
-                              window.setTimeout(() => setVal('wa_msg', msg), 50);
-                            })();
-                          }}>WhatsApp עם הקישור</button>
-                          <button type="button" className="btn btn-sm" data-testid="cust-link-revoke" style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={() => { void revokeCustomerLink(cur.id); }}>בטל קישור</button>
-                          <button type="button" className="btn btn-g btn-sm" data-testid="cust-link-rotate" onClick={async () => { setAskBusy(true); try { await mintCustomerLink(cur.id, true); } finally { setAskBusy(false); } }}>צור קישור חדש</button>
-                        </div>
-                        <div className="cust-link-note">אין שליחה אוטומטית. שיתוף במכשיר נפתח רק אחרי לחיצה. WhatsApp נפתח רק אחרי לחיצה — בלי Auto Send.</div>
-                      </div>
+                      <div className="cust-link-note">יש קישור פעיל מעל — כאן רק בקשת מסמכים.</div>
                     ) : (
                       <div className="cust-link-empty" data-testid="cust-link-empty">אין קישור פעיל. סמנו מסמכים ולחצו «צור קישור ללקוח».</div>
                     )}
