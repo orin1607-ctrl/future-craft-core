@@ -59,10 +59,13 @@ const rec = (name, ok, extra = {}) => {
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${extra.err ? ` · ${extra.err}` : extra.detail ? ` · ${String(extra.detail).slice(0, 240)}` : ''}`);
 };
 
-const JPG = Buffer.from(
+const JPG_BASE = Buffer.from(
   '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAG/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=',
   'base64',
 );
+function jpgN(tag) {
+  return Buffer.concat([JPG_BASE, Buffer.from(`-${tag}-`)]);
+}
 const PDF = Buffer.from('%PDF-1.1\n1 0 obj<<>>endobj\ntrailer<<>>\n%%GARAGE-PDF\n');
 
 function authHdr(session) {
@@ -124,8 +127,8 @@ if (!admin) {
 }
 
 try {
-  const shaRes = await fetch(`${PUBLIC}/sha.txt`, { cache: 'no-store' });
-  report.liveSha = (await shaRes.text()).trim().slice(0, 64);
+  const pagesTxt = await fetch(`${PUBLIC}/STAGING-DEPLOY.txt?t=${Date.now()}`, { cache: 'no-store' }).then((r) => r.text());
+  report.liveSha = ((pagesTxt.match(/deployed_ref=(\S+)/) || [])[1] || pagesTxt.trim().split('\n')[0] || '').slice(0, 120);
 } catch { /* optional until Pages deploy */ }
 
 const desk = await loginAs(DESK_EMAIL, DESK_PASSWORD);
@@ -234,7 +237,7 @@ async function uploadJpg(name) {
   const form = new FormData();
   form.set('action', 'garage_upload');
   form.set('claim_id', claimId);
-  form.set('file', new Blob([JPG], { type: 'image/jpeg' }), name);
+  form.set('file', new Blob([jpgN(name)], { type: 'image/jpeg' }), name);
   return invokeForm(photo.session, form);
 }
 const up1 = await uploadJpg(`garage-front-${stamp}.jpg`);
@@ -310,6 +313,48 @@ rec('17-worker-sees-reason', workerJob?.review_status === 'needs_update' && Stri
 });
 const otherWorkerView = await invoke(photo.session, { action: 'garage_get_job', claim_id: otherId });
 rec('17-reason-not-on-other-claim', otherWorkerView.status === 403, { status: otherWorkerView.status });
+
+if (!process.env.CLAIMS_QA_API_ONLY) {
+  try {
+    const { chromium } = await import('playwright');
+    const pagesGarage = await fetch(`${PUBLIC}/garage`, { cache: 'no-store' }).then((r) => r.status).catch(() => 0);
+    const local = (process.env.CLAIMS_QA_UI_BASE || 'http://127.0.0.1:4173').replace(/\/$/, '');
+    const localGarage = await fetch(`${local}/garage`, { cache: 'no-store' }).then((r) => r.status).catch(() => 0);
+    const uiBase = localGarage === 200 ? local : (pagesGarage === 200 ? PUBLIC : '');
+    if (uiBase) {
+      const browser = await chromium.launch({ headless: true });
+      const ctx = await browser.newContext({ locale: 'he-IL', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      await ctx.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
+        key: `sb-${STAGING_REF}-auth-token`,
+        value: {
+          access_token: photo.session.access_token,
+          refresh_token: photo.session.refresh_token,
+          expires_at: photo.session.expires_at,
+          expires_in: photo.session.expires_in,
+          token_type: photo.session.token_type,
+          user: photo.session.user,
+        },
+      });
+      const page = await ctx.newPage();
+      await page.goto(`${uiBase}/garage`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.waitForSelector(`[data-testid="garage-job-${claimId}"]`, { timeout: 25000 }).catch(() => null);
+      rec('17-ui-needs-card', await page.locator(`[data-testid="garage-job-needs-${claimId}"]`).count() > 0, {
+        text: (await page.locator('[data-testid="garage-portal"]').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 220),
+      });
+      if (await page.locator(`[data-testid="garage-job-${claimId}"]`).count()) {
+        await page.locator(`[data-testid="garage-job-${claimId}"]`).click();
+        await page.waitForSelector('[data-testid="garage-needs-update"]', { timeout: 15000 }).catch(() => null);
+        rec('17-ui-needs-reason', (await page.locator('[data-testid="garage-needs-update"]').innerText().catch(() => '')).includes('לוחית'));
+        const p = join(OUT, 'screenshots', 'worker-needs-update.png');
+        await page.screenshot({ path: p, fullPage: true });
+        try { copyFileSync(p, join('/opt/cursor/artifacts', 'garage-review-needs-mobile.png')); } catch { /* skip */ }
+      }
+      await browser.close();
+    }
+  } catch (e) {
+    rec('17-ui-needs-card', false, { err: String(e.message || e).slice(0, 240) });
+  }
+}
 
 const up3 = await uploadJpg(`garage-plate-${stamp}.jpg`);
 const file3 = String(up3.json.file_id || '');
