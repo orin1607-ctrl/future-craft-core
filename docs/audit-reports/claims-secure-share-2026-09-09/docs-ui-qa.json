@@ -1,26 +1,31 @@
 {
-  "at": "2026-09-09T16:20:40.525Z",
+  "at": "2026-09-09T16:29:48.078Z",
   "staging": "usfeoerkpcafxxlyuldl",
   "productionTouched": false,
-  "pagesSha": "99ad3e3",
-  "pagesHasShare": false,
-  "uiBase": "http://127.0.0.1:4173",
-  "claimId": "DAL-QA-DOCS-1788970840962",
+  "pagesSha": "f26882c",
+  "pagesHasShare": true,
+  "uiBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "claimId": "DAL-QA-DOCS-1788971389024",
   "checks": [
     {
       "name": "pages-sha-recorded",
       "ok": true,
-      "detail": "99ad3e3"
+      "detail": "f26882c"
     },
     {
-      "name": "pages-share-route-404",
+      "name": "pages-deployed-new-sha",
+      "ok": true,
+      "sha": "f26882c"
+    },
+    {
+      "name": "pages-share-spa",
       "ok": true,
       "status": 404
     },
     {
-      "name": "pages-html-no-share-yet",
+      "name": "pages-js-has-gallery",
       "ok": true,
-      "sha": "99ad3e3"
+      "js": "assets/index-xWMkUUkg.js"
     },
     {
       "name": "worker-login",
@@ -33,32 +38,32 @@
     {
       "name": "create-test-claim",
       "ok": true,
-      "id": "DAL-QA-DOCS-1788970840962"
+      "id": "DAL-QA-DOCS-1788971389024"
     },
     {
       "name": "upload-keep",
       "ok": true,
-      "id": "CDM-1788970846296-78UJ7S"
+      "id": "CDM-1788971392965-73S3HV"
     },
     {
       "name": "upload-skip",
       "ok": true,
-      "id": "CDM-1788970849604-PJBCHT"
+      "id": "CDM-1788971396288-3A8H5V"
     },
     {
       "name": "upload-photo",
       "ok": true,
-      "id": "CDM-1788970852859-YGHUVE"
+      "id": "CDM-1788971399115-8T4OMN"
     },
     {
       "name": "upload-invoice",
       "ok": true,
-      "id": "CDM-1788970855612-NJFJYD"
+      "id": "CDM-1788971402961-I0NO8K"
     },
     {
       "name": "local-preview-up",
       "ok": true,
-      "ui": "http://127.0.0.1:4173"
+      "ui": "https://orin1607-ctrl.github.io/future-craft-core"
     },
     {
       "name": "claim-row",
@@ -161,13 +166,13 @@
     {
       "name": "share-created",
       "ok": true,
-      "url": "http://127.0.0.1:4173/claims-share?t=6e4d8832ef6f366b84f130d989c82353e01ddff8684"
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/claims-share?t=1945ab53aefb8e1"
     },
     {
       "name": "share-only-selected",
       "ok": true,
       "ids": [
-        "CDM-1788970846296-78UJ7S"
+        "CDM-1788971392965-73S3HV"
       ]
     },
     {
@@ -185,7 +190,7 @@
     {
       "name": "soft-delete",
       "ok": true,
-      "id": "DAL-QA-DOCS-1788970840962"
+      "id": "DAL-QA-DOCS-1788971389024"
     }
   ],
   "verdict": "PASS"

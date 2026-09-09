@@ -104,12 +104,17 @@ function shot(page, name) {
 
 const pagesTxt = await fetch(`${PUBLIC}/STAGING-DEPLOY.txt`, { cache: 'no-store' }).then((r) => r.text()).catch(() => '');
 report.pagesSha = (pagesTxt.match(/deployed_ref=(\S+)/) || [])[1] || '';
-const pagesShare = await fetch(`${PUBLIC}/claims-share?t=probe`, { cache: 'no-store' }).then((r) => r.status).catch(() => 0);
-const pagesHtml = await fetch(`${PUBLIC}/claims`, { cache: 'no-store' }).then((r) => r.text()).catch(() => '');
-report.pagesHasShare = /שיתוף מאובטח|claims-secure-share|ClaimDocsLibrary/.test(pagesHtml);
+const pagesShareRes = await fetch(`${PUBLIC}/claims-share?t=probe`, { cache: 'no-store' }).catch(() => null);
+const pagesShare = pagesShareRes?.status || 0;
+const pagesShareHtml = pagesShareRes ? await pagesShareRes.text().catch(() => '') : '';
+const pagesHtml = await fetch(`${PUBLIC}/claims/`, { cache: 'no-store' }).then((r) => r.text()).catch(() => '');
+const jsName = (pagesHtml.match(/assets\/index-[^"]+\.js/) || [])[0] || '';
+const pagesJs = jsName ? await fetch(`${PUBLIC}/${jsName}`, { cache: 'no-store' }).then((r) => r.text()).catch(() => '') : '';
+report.pagesHasShare = /שיתוף מאובטח|גלריית מסמכים ותמונות|claims-share/.test(pagesJs);
 rec('pages-sha-recorded', Boolean(report.pagesSha), { detail: report.pagesSha });
-rec('pages-share-route-404', pagesShare === 404, { status: pagesShare });
-rec('pages-html-no-share-yet', report.pagesHasShare === false, { sha: report.pagesSha });
+rec('pages-deployed-new-sha', report.pagesSha.startsWith('f26882c') || report.pagesSha.startsWith('40d9a93') || /שיתוף מאובטח/.test(pagesJs), { sha: report.pagesSha });
+rec('pages-share-spa', /index-/.test(pagesShareHtml) && /future-craft-core/.test(pagesShareHtml), { status: pagesShare });
+rec('pages-js-has-gallery', report.pagesHasShare === true, { js: jsName });
 
 const session = await login();
 rec('worker-login', !!session.access_token);
