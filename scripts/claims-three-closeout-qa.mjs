@@ -254,11 +254,10 @@ try {
   const viewNotice = page.locator('[data-testid="claim-doc-view-accident_notice"]');
   await viewNotice.first().waitFor({ state: 'visible', timeout: 20000 }).catch(() => undefined);
   if (await viewNotice.count()) {
+    await viewNotice.first().scrollIntoViewIfNeeded().catch(() => undefined);
     await viewNotice.first().click();
-    await page.waitForTimeout(800);
+    await page.locator('[data-testid="doc-preview"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
   }
-  rec('s1-preview-control', await page.locator('[data-testid="doc-preview"]').count() > 0);
-  rec('s1-download-control', await page.locator('[data-testid="doc-preview-download"]').count() > 0);
   rec('s1-composer-exists', await page.locator('[data-testid="claims-send-mail"]').count() > 0);
   if (await page.locator('[data-testid="claims-send-mail"]').count()) {
     await page.locator('[data-testid="claims-send-mail"]').click();
@@ -267,14 +266,24 @@ try {
       await page.locator('[data-testid="mail-pick-signed-form"]').click();
       await page.waitForTimeout(500);
     }
-    const selected = await page.locator('[data-testid^="mail-selected-"]').count();
+    const previewBtn = page.locator('[data-testid^="mail-file-preview-"]').first();
+    if (!(await page.locator('[data-testid="doc-preview"]').count()) && await previewBtn.count()) {
+      await previewBtn.click();
+      await page.locator('[data-testid="doc-preview"]').waitFor({ state: 'visible', timeout: 15000 }).catch(() => undefined);
+    }
+    const selected = await page.locator('[data-testid^="mail-selected-"]:not([data-testid="mail-selected-list"])').count();
     const checked = await page.locator('[data-testid^="mail-file-"]:checked').count();
+    rec('s1-preview-control', await page.locator('[data-testid="doc-preview"]').count() > 0);
+    rec('s1-download-control', await page.locator('[data-testid="doc-preview-download"]').count() > 0);
     rec('s1-composer-attach', selected > 0 || checked > 0, { selected, checked });
+    await shot(page, 's1-docs');
     await page.locator('.mcl').first().click().catch(() => undefined);
   } else {
+    rec('s1-preview-control', await page.locator('[data-testid="doc-preview"]').count() > 0);
+    rec('s1-download-control', await page.locator('[data-testid="doc-preview-download"]').count() > 0);
     rec('s1-composer-attach', false, { err: 'composer missing' });
+    await shot(page, 's1-docs');
   }
-  await shot(page, 's1-docs');
 
   // ---- S2 verified desks ----
   await openClaim(idA);
