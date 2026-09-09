@@ -1,0 +1,80 @@
+{
+  "at": "2026-09-09T15:19:13.834Z",
+  "claimId": "DAL-QA-DOCS-1788967140131",
+  "checks": [
+    {
+      "name": "share-bar",
+      "ok": true
+    },
+    {
+      "name": "share-button",
+      "ok": true
+    },
+    {
+      "name": "ab-button",
+      "ok": true
+    },
+    {
+      "name": "library",
+      "ok": true
+    },
+    {
+      "name": "keep-present",
+      "ok": true
+    },
+    {
+      "name": "photo-present",
+      "ok": true
+    },
+    {
+      "name": "skip-present",
+      "ok": true
+    },
+    {
+      "name": "no-gmail-clutter",
+      "ok": false
+    },
+    {
+      "name": "cat-surveyor-photo-only",
+      "ok": false
+    },
+    {
+      "name": "picked-one",
+      "ok": true
+    },
+    {
+      "name": "modal-48h",
+      "ok": true
+    },
+    {
+      "name": "modal-shows-selected",
+      "ok": true
+    },
+    {
+      "name": "share-created",
+      "ok": true
+    },
+    {
+      "name": "share-only-selected",
+      "ok": true,
+      "ids": [
+        "CDM-1788967142957-XUMRIN"
+      ]
+    },
+    {
+      "name": "mobile-share-visible",
+      "ok": true
+    },
+    {
+      "name": "soft-delete",
+      "ok": true,
+      "id": "DAL-QA-DOCS-1788967140131"
+    }
+  ],
+  "productionTouched": false,
+  "verdict": "FAIL",
+  "failed": [
+    "no-gmail-clutter",
+    "cat-surveyor-photo-only"
+  ]
+}
