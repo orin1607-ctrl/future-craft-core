@@ -37,12 +37,14 @@ export default function GarageJobsPage() {
   const [err, setErr] = useState('');
   const [progress, setProgress] = useState('');
   const [pending, setPending] = useState<Array<{ name: string; file: File; preview: string }>>([]);
+  const [ready, setReady] = useState(false);
 
   const loadJobs = useCallback(async () => {
     setErr('');
     const r = await api.invokeDocs('garage_list_jobs');
-    if (r.success === false) { setErr(String(r.error || 'טעינה נכשלה')); setJobs([]); return; }
+    if (r.success === false) { setErr(String(r.error || 'טעינה נכשלה')); setJobs([]); setReady(true); return; }
     setJobs((r.jobs as Job[]) || []);
+    setReady(true);
   }, [api]);
 
   useEffect(() => { void loadJobs(); }, [loadJobs]);
@@ -129,7 +131,9 @@ export default function GarageJobsPage() {
             </select>
           </div>
           {err ? <div className="garage-err">{err}</div> : null}
-          {!filtered.length ? <div className="garage-empty" data-testid="garage-empty">אין תיקים משויכים</div> : (
+          {!ready ? <div className="garage-empty" data-testid="garage-loading">טוען תיקים…</div> : null}
+          {ready && !filtered.length ? <div className="garage-empty" data-testid="garage-empty">אין תיקים משויכים</div> : null}
+          {ready && filtered.length ? (
             <div className="garage-list" data-testid="garage-job-list">
               {filtered.map((j) => (
                 <button type="button" key={j.id} className="garage-card" data-testid={`garage-job-${j.claim_id}`} onClick={() => void openJob(j.claim_id)}>
@@ -140,7 +144,7 @@ export default function GarageJobsPage() {
                 </button>
               ))}
             </div>
-          )}
+          ) : null}
         </>
       ) : (
         <div data-testid="garage-job-open">

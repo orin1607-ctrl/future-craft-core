@@ -1,0 +1,265 @@
+{
+  "at": "2026-09-09T18:08:47.844Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "claimsDocsPrivate": true,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "checks": [
+    {
+      "name": "service-role-staging",
+      "ok": true,
+      "haveAdmin": true
+    },
+    {
+      "name": "desk-login",
+      "ok": true
+    },
+    {
+      "name": "recycle-existing-auth-user",
+      "ok": true,
+      "id": "9423c84e-14d1-48d9-adf6-af2e0ea0c5cb"
+    },
+    {
+      "name": "photographer-no-claims-access",
+      "ok": true
+    },
+    {
+      "name": "photographer-login",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-GAR-1788977332589",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-GAR-O-1788977332589",
+      "ok": true
+    },
+    {
+      "name": "staff-assign",
+      "ok": true
+    },
+    {
+      "name": "assigned-to-unchanged",
+      "ok": true,
+      "before": "4c98e498-5052-41e2-830c-5eddb241e3cb",
+      "after": "4c98e498-5052-41e2-830c-5eddb241e3cb"
+    },
+    {
+      "name": "staff-get-assignment",
+      "ok": true,
+      "status": "pending"
+    },
+    {
+      "name": "worker-sees-assigned-only",
+      "ok": true,
+      "jobIds": [
+        "DAL-QA-GAR-1788977332589"
+      ]
+    },
+    {
+      "name": "worker-limited-claim",
+      "ok": true,
+      "claim": {
+        "id": "DAL-QA-GAR-1788977332589",
+        "client_name": "TEST Garage 1788977332589",
+        "plate": "11-222-33",
+        "car_model": "קורולה",
+        "garage_name": "מוסך QA",
+        "event_date": "2026-09-01"
+      }
+    },
+    {
+      "name": "worker-other-claim-403",
+      "ok": true,
+      "status": 403,
+      "err": "forbidden"
+    },
+    {
+      "name": "desk-not-photographer-403",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "worker-no-list-docs",
+      "ok": true,
+      "status": 403,
+      "err": "forbidden"
+    },
+    {
+      "name": "worker-no-direct-table",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "worker-no-direct-claim",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "worker-pdf-blocked",
+      "ok": true,
+      "err": "image_required"
+    },
+    {
+      "name": "worker-upload-1",
+      "ok": true,
+      "id": "CDM-1788977351143-NZV9OD",
+      "status": "in_progress"
+    },
+    {
+      "name": "worker-upload-2",
+      "ok": true,
+      "id": "CDM-1788977351143-NZV9OD"
+    },
+    {
+      "name": "upload-marks-in-progress",
+      "ok": true
+    },
+    {
+      "name": "worker-lists-own-photos",
+      "ok": true,
+      "n": 1
+    },
+    {
+      "name": "worker-signed-url",
+      "ok": true,
+      "hasUrl": true
+    },
+    {
+      "name": "staff-gallery-garage-photos",
+      "ok": true,
+      "kind": "garage_photo",
+      "staff": "garage_photos"
+    },
+    {
+      "name": "worker-complete",
+      "ok": true
+    },
+    {
+      "name": "staff-sees-completed",
+      "ok": true,
+      "status": "completed"
+    },
+    {
+      "name": "other-claim-file",
+      "ok": true,
+      "id": "CDM-1788977369468-FFHIX8"
+    },
+    {
+      "name": "share-foreign-file-blocked",
+      "ok": true,
+      "status": 403,
+      "err": "BLOCKED"
+    },
+    {
+      "name": "existing-secure-share",
+      "ok": true,
+      "id": "SHR-1788977375303-MJ8RBL",
+      "tokenLen": 64
+    },
+    {
+      "name": "share-only-garage-photos",
+      "ok": true,
+      "pubIds": [
+        "CDM-1788977351143-NZV9OD"
+      ]
+    },
+    {
+      "name": "share-revoke",
+      "ok": true
+    },
+    {
+      "name": "share-revoke-blocks",
+      "ok": true,
+      "err": "revoked"
+    },
+    {
+      "name": "no-new-bucket",
+      "ok": true,
+      "names": [
+        "coco-media",
+        "documents",
+        "telemarketing-recordings",
+        "claims-docs"
+      ]
+    },
+    {
+      "name": "claims-docs-private",
+      "ok": true,
+      "public": false
+    },
+    {
+      "name": "ui-base-ready",
+      "ok": true,
+      "pagesGarage": 404,
+      "localGarage": 200,
+      "uiBase": "http://127.0.0.1:4173"
+    },
+    {
+      "name": "ui-jobs-still-assigned",
+      "ok": true,
+      "n": 1
+    },
+    {
+      "name": "staff-assign-bar",
+      "ok": true
+    },
+    {
+      "name": "staff-assign-current",
+      "ok": true,
+      "text": "צילומי מוסך עובד: QA צלם מוסך סטטוס: צילום הושלם תמונות: 1 החלף שיוך בטל שיוך"
+    },
+    {
+      "name": "staff-gallery-topic",
+      "ok": true
+    },
+    {
+      "name": "worker-portal",
+      "ok": true
+    },
+    {
+      "name": "worker-job-card",
+      "ok": true,
+      "empty": 0,
+      "text": "צילומי מוסך רק התיקים ששויכו אליך. בלי תביעות אחרות. כל הסטטוסים ממתין לצילום צילום בתהליך צילום הושלם DAL-QA-GAR-1788977332589 TEST Garage 1788977332589 11-222-33 צילום הושלם · 1 תמונות"
+    },
+    {
+      "name": "worker-job-open",
+      "ok": true
+    },
+    {
+      "name": "worker-camera",
+      "ok": true
+    },
+    {
+      "name": "worker-complete-btn",
+      "ok": true
+    },
+    {
+      "name": "staff-unassign",
+      "ok": true
+    },
+    {
+      "name": "unassign-blocks-worker",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "unassign-keeps-desk-handler",
+      "ok": true
+    },
+    {
+      "name": "soft-delete-test-claims",
+      "ok": true,
+      "claimId": "DAL-QA-GAR-1788977332589",
+      "otherId": "DAL-QA-GAR-O-1788977332589"
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS",
+  "failed": []
+}

@@ -1,0 +1,26 @@
+{
+  "at": "2026-09-09T17:57:41.747Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "apply": {
+    "ok": true,
+    "attempts": [
+      {
+        "fn": "mgmt_database_query",
+        "ok": true,
+        "status": 201,
+        "text": "[]"
+      }
+    ]
+  },
+  "verify": {
+    "ok": true,
+    "columns": "[{\"column_name\":\"id\"},{\"column_name\":\"claim_id\"},{\"column_name\":\"worker_id\"},{\"column_name\":\"worker_name\"},{\"column_name\":\"status\"},{\"column_name\":\"worker_note\"},{\"column_name\":\"photo_count\"},{\"column_name\":\"assigned_by\"},{\"column_name\":\"assigned_by_name\"},{\"column_name\":\"assigned_at\"},{\"column_name\":\"completed_at\"},{\"column_name\":\"unassigned_at\"},{\"column_name\":\"unassigned_by\"},{\"column_name\":\"unassigned_by_name\"}]",
+    "noAssignedToColumn": true,
+    "claimsDocsPrivate": true
+  },
+  "edge": {
+    "ok": true,
+    "output": "{\"project_ref\":\"usfeoerkpcafxxlyuldl\",\"functions\":[\"claims-docs\"],\"dashboard_url\":\"https://supabase.com/dashboard/project/usfeoerkpcafxxlyuldl/functions\",\"message\":\"Deployed Functions.\"}\n"
+  }
+}

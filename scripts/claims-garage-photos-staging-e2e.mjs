@@ -287,13 +287,6 @@ rec('share-revoke', revoked.json.success === true);
 const afterRevoke = await pub({ action: 'public_share_get', token });
 rec('share-revoke-blocks', afterRevoke.json.blocked === true || afterRevoke.json.error === 'revoked', { err: afterRevoke.json.error });
 
-const unassign = await invoke(desk.session, { action: 'unassign_garage_worker', claim_id: claimId });
-rec('staff-unassign', unassign.json.success === true, { err: unassign.json.error });
-const afterUn = await invoke(photo.session, { action: 'garage_get_job', claim_id: claimId });
-rec('unassign-blocks-worker', afterUn.status === 403 && afterUn.json.blocked === true, { status: afterUn.status });
-const afterUnAssignTo = await desk.db.from('claims_records').select('assigned_to').eq('id', claimId).maybeSingle();
-rec('unassign-keeps-desk-handler', afterUnAssignTo.data?.assigned_to === desk.session.user.id);
-
 const { data: buckets } = await admin.storage.listBuckets();
 const names = (buckets || []).map((b) => b.name);
 const docsBucket = (buckets || []).find((b) => b.name === 'claims-docs');
@@ -309,8 +302,10 @@ if (!process.env.CLAIMS_QA_API_ONLY) {
     const uiBase = localGarage === 200 ? local : (pagesGarage === 200 ? PUBLIC : '');
     rec('ui-base-ready', Boolean(uiBase), { pagesGarage, localGarage, uiBase });
     if (uiBase) {
-      const reassign = await invoke(desk.session, { action: 'assign_garage_worker', claim_id: claimId, worker_id: photoUserId });
-      rec('ui-reassign', reassign.json.success === true, { err: reassign.json.error });
+      const liveJobs = await invoke(photo.session, { action: 'garage_list_jobs' });
+      rec('ui-jobs-still-assigned', (liveJobs.json.jobs || []).some((j) => j.claim_id === claimId), {
+        n: (liveJobs.json.jobs || []).length,
+      });
       const browser = await chromium.launch({ headless: true });
 
       async function authContext(session, viewport) {
@@ -342,7 +337,11 @@ if (!process.env.CLAIMS_QA_API_ONLY) {
           await row.click();
           await staffPage.locator('[data-testid="claims-open-docs"]').click().catch(() => null);
           await staffPage.waitForSelector('[data-testid="garage-assign-bar"]', { timeout: 20000 }).catch(() => null);
+          await staffPage.waitForSelector('[data-testid="garage-assign-current"]', { timeout: 20000 }).catch(() => null);
           rec('staff-assign-bar', await staffPage.locator('[data-testid="garage-assign-bar"]').count() > 0);
+          rec('staff-assign-current', await staffPage.locator('[data-testid="garage-assign-current"]').count() > 0, {
+            text: (await staffPage.locator('[data-testid="garage-assign-bar"]').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 180),
+          });
           rec('staff-gallery-topic', await staffPage.getByText('תמונות מוסך', { exact: false }).count() > 0);
           const barPath = join(OUT, 'screenshots', 'staff-garage-bar.png');
           await staffPage.screenshot({ path: barPath, fullPage: false });
@@ -356,7 +355,12 @@ if (!process.env.CLAIMS_QA_API_ONLY) {
       await photoPage.goto(`${uiBase}/garage`, { waitUntil: 'domcontentloaded', timeout: 60000 });
       await photoPage.waitForSelector('[data-testid="garage-portal"]', { timeout: 30000 }).catch(() => null);
       rec('worker-portal', await photoPage.locator('[data-testid="garage-portal"]').count() > 0);
-      rec('worker-job-card', await photoPage.locator(`[data-testid="garage-job-${claimId}"]`).count() > 0);
+      await photoPage.waitForSelector(`[data-testid="garage-job-${claimId}"]`, { timeout: 25000 }).catch(() => null);
+      const jobCard = photoPage.locator(`[data-testid="garage-job-${claimId}"]`);
+      rec('worker-job-card', await jobCard.count() > 0, {
+        empty: await photoPage.locator('[data-testid="garage-empty"]').count(),
+        text: (await photoPage.locator('[data-testid="garage-portal"]').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 220),
+      });
       if (await photoPage.locator(`[data-testid="garage-job-${claimId}"]`).count()) {
         await photoPage.locator(`[data-testid="garage-job-${claimId}"]`).click();
         await photoPage.waitForSelector('[data-testid="garage-job-open"]', { timeout: 15000 }).catch(() => null);
@@ -374,6 +378,13 @@ if (!process.env.CLAIMS_QA_API_ONLY) {
     rec('ui-playwright', false, { err: String(e.message || e).slice(0, 240) });
   }
 }
+
+const unassign = await invoke(desk.session, { action: 'unassign_garage_worker', claim_id: claimId });
+rec('staff-unassign', unassign.json.success === true, { err: unassign.json.error });
+const afterUn = await invoke(photo.session, { action: 'garage_get_job', claim_id: claimId });
+rec('unassign-blocks-worker', afterUn.status === 403 && afterUn.json.blocked === true, { status: afterUn.status });
+const afterUnAssignTo = await desk.db.from('claims_records').select('assigned_to').eq('id', claimId).maybeSingle();
+rec('unassign-keeps-desk-handler', afterUnAssignTo.data?.assigned_to === desk.session.user.id);
 
 await softDelete(claimId, desk.db);
 await softDelete(otherId, desk.db);
