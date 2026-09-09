@@ -33,11 +33,18 @@ jobs:
           test "${GITHUB_REF_NAME}" != "main"
           test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
 
+      - name: Existing secret presence
+        run: |
+          echo "has_staging_service_role=${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY != '' }}"
+          echo "has_staging_database_url=${{ secrets.STAGING_DATABASE_URL != '' }}"
+          echo "has_staging_db_password=${{ secrets.STAGING_SUPABASE_DB_PASSWORD != '' }}"
+
       - name: Apply contact directory SQL on Staging
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
           STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          STAGING_SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_SUPABASE_DB_PASSWORD }}
         run: |
           set -euo pipefail
           export SUPABASE_ACCESS_TOKEN="$(printf '%s' "${SUPABASE_ACCESS_TOKEN:-}" | tr -d '\r\n')"

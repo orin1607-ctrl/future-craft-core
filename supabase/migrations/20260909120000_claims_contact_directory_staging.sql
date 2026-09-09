@@ -78,3 +78,5 @@ REVOKE ALL ON TABLE public.claims_claim_contacts FROM PUBLIC;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.claims_contacts TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.claims_contact_channels TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.claims_claim_contacts TO authenticated;
+
+NOTIFY pgrst, 'reload schema';
