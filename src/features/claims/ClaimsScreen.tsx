@@ -900,7 +900,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [sharePresetIds, setSharePresetIds] = useState<string[]>([]);
   const [shares, setShares] = useState<ShareRow[]>([]);
   const [garageAssign, setGarageAssign] = useState<GarageAssignment | null>(null);
-  const [garageWorkers, setGarageWorkers] = useState<Array<{ id: string; full_name: string }>>([]);
+  const [garageWorkers, setGarageWorkers] = useState<Array<{ id: string; full_name: string; garage_photographer?: boolean }>>([]);
   const [garagePick, setGaragePick] = useState('');
   const [garageNote, setGarageNote] = useState('');
   const [garageBusy, setGarageBusy] = useState(false);
@@ -1276,7 +1276,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setModal('moGarage');
     const r = await apiRef.current.invokeDocs('list_garage_workers');
     if (r.success === false) { toast(String(r.error || 'טעינת עובדים נכשלה'), 'err'); return; }
-    setGarageWorkers((r.workers as Array<{ id: string; full_name: string }>) || []);
+    setGarageWorkers((r.workers as Array<{ id: string; full_name: string; garage_photographer?: boolean }>) || []);
   };
 
   const saveGarageAssign = async () => {
@@ -3503,6 +3503,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     busy={garageBusy}
                     onAssign={() => { void openGarageAssign(); }}
                     onUnassign={() => { void unassignGarage(); }}
+                    onOpenPortal={garageAssign?.worker_id ? () => {
+                      const base = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
+                      window.open(`${base}garage?worker=${encodeURIComponent(garageAssign.worker_id)}`, '_blank', 'noopener');
+                    } : undefined}
                   />
                   <ClaimDocsLibrary
                     files={docs.files}
@@ -4487,7 +4491,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <option value="">— בחר עובד —</option>
                 {garageWorkers
                   .filter((w) => !garageWorkerQ.trim() || w.full_name.toLowerCase().includes(garageWorkerQ.trim().toLowerCase()))
-                  .map((w) => <option key={w.id} value={w.id}>{w.full_name}</option>)}
+                  .map((w) => <option key={w.id} value={w.id}>{w.garage_photographer ? 'עובד צילומי מוסך · ' : ''}{w.full_name}</option>)}
               </select>
             </div>
             <div className="fg"><label className="fl">הערה לעובד (לא חובה)</label>

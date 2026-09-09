@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClaimsApi } from '@/features/claims/claimsService';
 import { garageStatusLabel, type GarageAssignment } from '@/features/claims/claimGarage';
@@ -18,7 +19,10 @@ type Job = GarageAssignment & {
 type Photo = { id: string; original_name: string; mime_type?: string; created_at?: string; url?: string };
 
 export default function GarageJobsPage() {
-  const { user } = useAuth();
+  const { user, realUser } = useAuth();
+  const [searchParams] = useSearchParams();
+  const previewWorkerId = (searchParams.get('worker') || '').trim();
+  const isAdminPreview = Boolean(previewWorkerId);
   const api = useMemo(() => createClaimsApi({
     id: user?.id || '',
     full_name: user?.full_name || '',
@@ -41,11 +45,11 @@ export default function GarageJobsPage() {
 
   const loadJobs = useCallback(async () => {
     setErr('');
-    const r = await api.invokeDocs('garage_list_jobs');
+    const r = await api.invokeDocs('garage_list_jobs', previewWorkerId ? { worker_id: previewWorkerId } : {});
     if (r.success === false) { setErr(String(r.error || 'טעינה נכשלה')); setJobs([]); setReady(true); return; }
     setJobs((r.jobs as Job[]) || []);
     setReady(true);
-  }, [api]);
+  }, [api, previewWorkerId]);
 
   useEffect(() => { void loadJobs(); }, [loadJobs]);
 
@@ -58,7 +62,10 @@ export default function GarageJobsPage() {
   const openJob = async (claimId: string) => {
     setBusy('load');
     setErr('');
-    const r = await api.invokeDocs('garage_get_job', { claim_id: claimId });
+    const r = await api.invokeDocs('garage_get_job', {
+      claim_id: claimId,
+      ...(previewWorkerId ? { worker_id: previewWorkerId } : {}),
+    });
     setBusy('');
     if (r.success === false) { setErr(String(r.error || 'אין גישה לתיק')); return; }
     setOpenId(claimId);
@@ -66,7 +73,11 @@ export default function GarageJobsPage() {
     const rows = ((r.photos as Photo[]) || []);
     setPhotos(rows);
     for (const p of rows) {
-      const u = await api.invokeDocs('garage_signed_url', { claim_id: claimId, file_id: p.id });
+      const u = await api.invokeDocs('garage_signed_url', {
+        claim_id: claimId,
+        file_id: p.id,
+        ...(previewWorkerId ? { worker_id: previewWorkerId } : {}),
+      });
       if (u.url) setPhotos((cur) => cur.map((x) => x.id === p.id ? { ...x, url: String(u.url) } : x));
     }
   };
@@ -117,7 +128,15 @@ export default function GarageJobsPage() {
     <div className="claims-root garage-portal" data-testid="garage-portal" dir="rtl">
       <div className="garage-head">
         <h1>צילומי מוסך</h1>
-        <p>רק התיקים ששויכו אליך. בלי תביעות אחרות.</p>
+        {isAdminPreview ? (
+          <div className="garage-admin-preview" data-testid="garage-admin-preview">
+            <b>תצוגת פורטל עובד</b>
+            <p>מחוברים כמנהל ({realUser?.full_name || user?.full_name || 'מנהל'}) — בלי החלפת משתמש.</p>
+            <p>מוצגים רק התיקים ששויכו לעובד זה. העלאה וסיום צילום נשארים אצל העובד.</p>
+          </div>
+        ) : (
+          <p>רק התיקים ששויכו אליך. בלי תביעות אחרות.</p>
+        )}
       </div>
       {!openId ? (
         <>
@@ -160,7 +179,7 @@ export default function GarageJobsPage() {
           </div>
           {err ? <div className="garage-err">{err}</div> : null}
           {progress ? <div className="garage-progress" data-testid="garage-progress">{progress}</div> : null}
-          <div className="garage-acts">
+          {isAdminPreview ? null : <div className="garage-acts">
             <label className="btn btn-p garage-cam">
               📷 צלם תמונות
               <input hidden type="file" accept="image/*" capture="environment" multiple data-testid="garage-camera" onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }} />
@@ -169,8 +188,8 @@ export default function GarageJobsPage() {
               העלה תמונות קיימות
               <input hidden type="file" accept="image/*" multiple data-testid="garage-pick" onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }} />
             </label>
-          </div>
-          {pending.length ? (
+          </div>}
+          {!isAdminPreview && pending.length ? (
             <div data-testid="garage-pending">
               <div>מוכנות לשליחה: {pending.length}</div>
               <div className="garage-thumbs">
@@ -194,7 +213,9 @@ export default function GarageJobsPage() {
               </a>
             ))}
           </div>
-          <button type="button" className="btn btn-p" data-testid="garage-complete" disabled={busy === 'done'} onClick={() => void complete()}>סיימתי צילום</button>
+          {isAdminPreview ? null : (
+            <button type="button" className="btn btn-p" data-testid="garage-complete" disabled={busy === 'done'} onClick={() => void complete()}>סיימתי צילום</button>
+          )}
         </div>
       )}
     </div>

@@ -453,6 +453,10 @@
 .garage-portal{padding:16px 14px 88px;max-width:720px;margin:0 auto}
 .garage-portal .garage-head h1{margin:0 0 4px;font-size:22px}
 .garage-portal .garage-head p{margin:0 0 14px;color:var(--t3);font-size:13px}
+.garage-portal .garage-admin-preview{
+  margin:0 0 14px;padding:10px 12px;border:1px solid var(--br2);border-radius:12px;background:var(--bg4);
+}
+.garage-portal .garage-admin-preview p{margin:4px 0 0}
 .garage-portal .garage-filters{display:grid;gap:8px;margin-bottom:12px}
 .garage-portal .garage-list{display:grid;gap:8px}
 .garage-portal .garage-card{

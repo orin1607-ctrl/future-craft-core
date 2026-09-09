@@ -19,6 +19,7 @@ export interface UserProfile {
   user_number?: string | null;
   hasClaimsAccess?: boolean;
   claimsWorkerOnly?: boolean;
+  garagePhotographer?: boolean;
 }
 
 interface AuthContextType {
@@ -100,6 +101,7 @@ async function fetchUserProfile(userId: string, email: string, retries = 3): Pro
       user_number: profile.user_number || null,
       hasClaimsAccess,
       claimsWorkerOnly,
+      garagePhotographer: String(profile.job_title || '').trim() === 'garage_photographer',
     };
   }
   return null;
