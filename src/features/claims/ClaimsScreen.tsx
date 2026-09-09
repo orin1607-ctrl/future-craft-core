@@ -13,6 +13,7 @@ import { ClaimContactsModal, ContactPickerList } from './ClaimContactsModal';
 import CustomerRequestModal from './CustomerRequestModal';
 import SecureShareModal from './SecureShareModal';
 import { type ShareRow } from './claimSecureShare';
+import ClaimDocsLibrary from './ClaimDocsLibrary';
 import { emailsUnknownToDirectory, parseFromAddr, phoneUnknownToDirectory, type ClaimContact } from './claimContacts';
 import './claims.css';
 
@@ -891,6 +892,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [shareOpen, setShareOpen] = useState(false);
   const [sharePresetIds, setSharePresetIds] = useState<string[]>([]);
   const [shares, setShares] = useState<ShareRow[]>([]);
+  const [docPickIds, setDocPickIds] = useState<string[]>([]);
+  const [docLibCat, setDocLibCat] = useState('all');
   const mailReturnRef = useRef('');
   const [mailOpen, setMailOpen] = useState<Record<string, boolean>>({});
   const [deleteTyped, setDeleteTyped] = useState('');
@@ -1189,6 +1192,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           requests: (d.requests as DocRequest[]) || [],
           files: (d.files as ClaimFile[]) || [],
         });
+        setDocPickIds([]);
+        setDocLibCat('all');
       }).catch(() => { if (live()) setDocs({ requests: [], files: [] }); }),
       apiRef.current.listClaimContacts(id).then((c) => { if (live()) setClaimContacts(c.data || []); }).catch(() => { if (live()) setClaimContacts([]); }),
       apiRef.current.invokeDocs('list_shares', { claim_id: id }).then((s) => { if (live()) setShares((s.shares as ShareRow[]) || []); }).catch(() => { if (live()) setShares([]); }),
@@ -1505,6 +1510,52 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (!r.url) { toast('לא ניתן לפתוח את הקובץ', 'err'); return; }
     if (list && list.length) setPreviewList(list);
     setPreviewFile({ id: f.id, url: String(r.url), name: f.original_name, mime: f.mime_type || '' });
+  };
+
+  const downloadClaimFile = async (claimId: string, f: ClaimFile) => {
+    const r = await apiRef.current.invokeDocs('signed_url', { claim_id: claimId, file_id: f.id });
+    if (!r.url) { toast('לא ניתן להוריד את הקובץ', 'err'); return; }
+    const a = document.createElement('a');
+    a.href = String(r.url);
+    a.download = f.original_name || 'document';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  const openSecureShare = (ids?: string[]) => {
+    const picked = ids && ids.length ? ids : docPickIds;
+    setSharePresetIds(picked);
+    setShareOpen(true);
+  };
+
+  const docsShareBar = (curClaim: ClaimRecord) => {
+    const names = docs.files.filter((f) => docPickIds.includes(f.id)).map((f) => fileLabel(f));
+    return (
+      <div className="docs-share-bar" data-testid="docs-share-bar">
+        <button type="button" className="btn btn-p docs-share-btn" data-testid="claims-secure-share" onClick={() => openSecureShare(docPickIds)}>
+          שיתוף מאובטח
+        </button>
+        <div className="docs-share-copy">
+          <div data-testid="docs-share-picked">{docPickIds.length ? `נבחרו לשיתוף: ${docPickIds.length} קבצים` : 'סמנו קבצים למטה ואז שיתוף מאובטח'}</div>
+          {names.length ? <div className="docs-share-names" data-testid="docs-share-names">{names.slice(0, 8).join(' · ')}{names.length > 8 ? '…' : ''}</div> : null}
+        </div>
+        <div className="docs-share-hist" data-testid="share-history-panel">
+          {!shares.length ? <span>אין שיתופים פעילים</span> : shares.filter((s) => s.status === 'active').slice(0, 3).map((s) => (
+            <span key={s.id} data-testid={`share-hist-${s.id}`}>
+              {s.recipient_name} · {s.file_ids?.length || 0} קבצים
+              <button type="button" className="btn btn-g btn-sm" data-testid={`share-hist-revoke-${s.id}`} onClick={async () => {
+                const r = await apiRef.current.invokeDocs('revoke_share', { claim_id: curClaim.id, share_id: s.id });
+                toast(r.success ? 'הקישור בוטל מיד' : String(r.error || 'ביטול נכשל'), r.success ? 'ok' : 'err');
+                await loadCardData(curClaim.id);
+              }}>בטל</button>
+            </span>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   const previewIdx = previewFile ? previewList.findIndex((x) => x.id === previewFile.id) : -1;
@@ -3018,6 +3069,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button className="ab-btn ab-task ab-pri" data-testid="claims-cust-request" onClick={() => { setCardMore(false); openCustomerRequest(); }}>בקשה ללקוח</button>
                 <button className="ab-btn ab-status ab-pri" data-testid="claims-treat-open" onClick={() => { setCardMore(false); openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk }); }}>עדכון טיפול</button>
                 <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>מסמכים</button>
+                <button className="ab-btn ab-pri" data-testid="claims-secure-share-ab" onClick={() => { setCardMore(false); setCardTab('docs'); setSharePresetIds(docPickIds); setShareOpen(true); }}>שיתוף מאובטח</button>
                 <button className="ab-btn ab-phone ab-pri" data-testid="claims-open-contacts" onClick={() => { setCardMore(false); setModal('moContacts'); }}>אנשי קשר</button>
                 {!(narrowList || phoneNarrow) ? (
                   <button className="ab-btn ab-mail ab-pri" data-testid="claims-sign-link" onClick={() => { setCardMore(false); void sendCustomerSignLink(cur.id); }}>שלח ללקוח לחתימה</button>
@@ -3193,6 +3245,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 const untaggedPhotos = pack.photos.length === 0 ? docs.files.filter(isImageFile) : [];
                 return (
                   <div>
+                    {docsShareBar(cur)}
                     <div className="sdiv"><div className="sdiv-t">דוח שמאי · {docs.files.length} קבצים בתיק</div><div className="sdiv-l" /></div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, marginBottom: 12 }}>
                       {[['מספר רכב', cur.plate || '—'], ['מספר תביעה', displayClaimNum(cur)], ['תאריך אירוע', cur.eventDate || '—'],
@@ -3287,6 +3340,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 const list = invoiceFiles(docs.files);
                 return (
                   <div>
+                    {docsShareBar(cur)}
                     <div className="sdiv"><div className="sdiv-t">חשבונית מוסך</div><div className="sdiv-l" /></div>
                     <div style={{ fontSize: 12, color: 'var(--t3)', marginBottom: 10 }}>קיצור דרך לאותו קובץ שמופיע גם במסמכים. אין שכפול קובץ.</div>
                     {list.length === 0 ? (
@@ -3340,6 +3394,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               })()}
               {cardTab === 'docs' && (
                 <div>
+                  {docsShareBar(cur)}
                   {(() => {
                     const statuses = CLAIM_DOC_TYPES.map((t) => ({ t, st: docTypeStatus(t, docs.files, docs.requests, hasUploadLink), files: filesForDocType(t, docs.files, docs.requests) }));
                     const present = statuses.filter((x) => x.st.key === 'exists' || x.st.key === 'received').length;
@@ -3351,43 +3406,31 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <span>{missing} חסרים</span>
                         <span>{waiting} ממתינים ללקוח</span>
                         <span className="doc-sum-hold" data-testid="docs-mandatory-hold">מסמכי חובה: לא הוגדרו (ממתין לאישור ארכיטקטורה)</span>
-                        <button type="button" className="btn btn-p btn-sm" data-testid="claims-secure-share" onClick={() => { setSharePresetIds([]); setShareOpen(true); }}>שיתוף מאובטח</button>
                       </div>
                     );
                   })()}
-                  {(() => {
-                    const pack = surveyorBundle(docs.files, gmailImports);
-                    if (!pack.reports.length) return null;
-                    return (
-                      <div className="gal-box" data-testid="docs-surveyor-present">
-                        <div className="sdiv"><div className="sdiv-t">דוח שמאי בתיק</div><div className="sdiv-l" /></div>
-                        {pack.reports.map((f) => (
-                          <div key={f.id} data-testid="surveyor-report-file" data-doc-name={f.original_name} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginTop: 8 }}>
-                            <div>
-                              <div style={{ fontWeight: 800 }}><FileName name={f.original_name} /> <span className="kind-pill surveyor">דוח שמאי</span></div>
-                              <div style={{ fontSize: 11, color: 'var(--t3)' }}>{sourceHe(f.source)} · {fmtBytes(Number(f.byte_size || 0))}</div>
-                            </div>
-                            <button className="btn btn-p btn-sm" data-testid="surveyor-report-open" onClick={() => void openInCard(cur.id, f)}>פתח בתיק</button>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                  <div className="share-hist" data-testid="share-history-panel">
-                    <div className="sdiv"><div className="sdiv-t">שיתופים פעילים / היסטוריית שיתופים</div><div className="sdiv-l" /></div>
-                    {!shares.length ? <div style={{ fontSize: 12, color: 'var(--t3)' }}>אין שיתופים בתיק זה</div> : shares.slice(0, 8).map((s) => (
-                      <div key={s.id} data-testid={`share-hist-${s.id}`} style={{ fontSize: 12, marginTop: 6 }}>
-                        {s.recipient_name} · {s.recipient_kind} · {s.status || '—'} · {s.file_ids?.length || 0} קבצים · עד {s.expires_at ? new Date(s.expires_at).toLocaleString('he-IL') : '—'}
-                        {s.status === 'active' ? (
-                          <button type="button" className="btn btn-g btn-sm" data-testid={`share-hist-revoke-${s.id}`} style={{ marginInlineStart: 8 }} onClick={async () => {
-                            const r = await apiRef.current.invokeDocs('revoke_share', { claim_id: cur.id, share_id: s.id });
-                            toast(r.success ? 'הקישור בוטל מיד' : String(r.error || 'ביטול נכשל'), r.success ? 'ok' : 'err');
-                            await loadCardData(cur.id);
-                          }}>בטל קישור</button>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
+                  <ClaimDocsLibrary
+                    files={docs.files}
+                    picked={docPickIds}
+                    category={docLibCat}
+                    thumbs={galleryUrls}
+                    isImage={isImageFile}
+                    fileLabel={fileLabel}
+                    onCategory={setDocLibCat}
+                    onToggle={(id) => setDocPickIds((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id])}
+                    onToggleAll={(ids) => setDocPickIds(ids)}
+                    onPreview={(f, list) => void openInCard(cur.id, f as ClaimFile, list as ClaimFile[])}
+                    onDownload={(f) => void downloadClaimFile(cur.id, f as ClaimFile)}
+                  />
+                  <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
+                  <StaffUploadZone
+                    testId="docs-drop"
+                    inputId="docs_staff_files"
+                    busy={docsUploading}
+                    onFiles={(files) => { if (cur) void uploadStaffFiles(cur.id, files); }}
+                  />
+                  <details className="docs-more" data-testid="docs-more-customer">
+                    <summary>בקשה מהלקוח / רשימת חסרים</summary>
                   <div className="cust-ask" data-testid="cust-ask-panel">
                     {hasUploadLink ? (
                       <div className="cust-link-card" data-testid="cust-link-card">
@@ -3658,98 +3701,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       </label>
                     </div>
                   ))}
-                  <div className="sdiv"><div className="sdiv-t">מאגר מסמכי התביעה</div><div className="sdiv-l" /></div>
-                  <StaffUploadZone
-                    testId="docs-drop"
-                    inputId="docs_staff_files"
-                    busy={docsUploading}
-                    onFiles={(files) => { if (cur) void uploadStaffFiles(cur.id, files); }}
-                  />
-                  <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
-                  <div className="sdiv"><div className="sdiv-t">קבצים שהתקבלו ({docs.files.length})</div><div className="sdiv-l" /></div>
-                  {docs.files.length === 0 ? <div style={{ color: 'var(--t3)' }}>אין קבצים עדיין</div>
-                    : Object.entries(docs.files.reduce((acc: Record<string, ClaimFile[]>, f) => {
-                      const k = f.source === 'gmail' && f.gmail_message_id ? `gmail:${f.gmail_message_id}` : `one:${f.id}`;
-                      (acc[k] = acc[k] || []).push(f);
-                      return acc;
-                    }, {})).map(([k, group]) => {
-                      const isGal = k.startsWith('gmail:');
-                      const mid = isGal ? k.slice(6) : '';
-                      const imp = gmailImports.find((im) => String(im.gmail_message_id) === mid);
-                      const photos = group.filter((f) => classifyDoc(f) === 'photos');
-                      const rest = group.filter((f) => classifyDoc(f) !== 'photos');
-                      const preview = openGal[k] ? photos : photos.slice(0, 8);
-                      return (
-                        <div key={k} className="gal-box">
-                          {isGal ? (
-                            <div>
-                              <div style={{ fontWeight: 800, marginBottom: 4 }}>גלריה ממייל · {group.length} קבצים</div>
-                              {imp ? <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 6 }}>{String(imp.subject || '')} · {String(imp.from_addr || '')}</div> : null}
-                              {imp && String(imp.body_text || '').trim().length > 2 ? (
-                                <pre className="mail-body">{String(imp.body_text)}</pre>
-                              ) : <div style={{ color: 'var(--yn2)', fontSize: 12 }}>המייל התקבל ללא טקסט בגוף — רק מצורפים.</div>}
-                              <button className="btn btn-g btn-sm" style={{ marginBottom: 8 }} onClick={async () => {
-                                setOpenGal((p) => ({ ...p, [k]: !p[k] }));
-                                if (!openGal[k] && cur) await loadGalleryThumbs(cur.id, photos);
-                              }}>{openGal[k] ? 'הסתר גלריה' : `הצג גלריה (${photos.length} תמונות)`}</button>
-                            </div>
-                          ) : null}
-                          {isGal && photos.length ? (
-                            <div className="gal-grid">
-                              {preview.map((f) => (
-                                <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f, photos)}>
-                                  {galleryUrls[f.id]
-                                    ? <img src={galleryUrls[f.id]} alt={f.original_name} />
-                                    : <span>{f.original_name}</span>}
-                                </button>
-                              ))}
-                            </div>
-                          ) : null}
-                          {(isGal ? rest : group).map((f) => {
-                            const knd = effectiveKind(f);
-                            const img = isImageFile(f);
-                            return (
-                            <div key={f.id} style={{ marginTop: 6 }} data-testid="doc-file-row" data-doc-name={f.original_name}>
-                              <div style={{ minWidth: 140, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                              <div style={{ display: 'flex', gap: 8, minWidth: 0 }}>
-                                {img ? (
-                                  <button type="button" className="pick-thumb" data-testid="doc-thumb" title={f.original_name} onClick={() => void openInCard(cur.id, f)}>
-                                    {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>📷</span>}
-                                  </button>
-                                ) : null}
-                                <div>
-                                <div style={{ fontWeight: 600, fontSize: 12 }}>
-                                  {fileLabel(f)}
-                                  {kindHe(knd) ? <span className={`kind-pill ${knd === 'garage_invoice' ? 'invoice' : 'surveyor'}`}>{kindHe(knd)}</span> : null}
-                                  {fileMeta(f).staff_type ? <span className="kind-pill">{staffTypeLabel(fileMeta(f).staff_type)}</span> : <span className="kind-pill">לא סווג</span>}
-                                  {fileMeta(f).important === 'true' ? <span className="kind-pill surveyor">חשוב</span> : null}
-                                  {fileMeta(f).doc_status ? <span className="kind-pill">{statusLabel(fileMeta(f).doc_status)}</span> : null}
-                                </div>
-                                <div style={{ fontSize: 10, color: 'var(--t3)' }}>{sourceHe(f.source)} · {fmtBytes(Number(f.byte_size || 0))} · {f.original_name}</div>
-                                {fileMeta(f).related_file_id ? (() => {
-                                  const rel = docs.files.find((x) => x.id === fileMeta(f).related_file_id);
-                                  return rel ? <div style={{ fontSize: 11, color: 'var(--t2)' }}>קשור למסמך: {fileLabel(rel)}</div> : null;
-                                })() : null}
-                                {fileMeta(f).staff_note ? <div style={{ fontSize: 11, color: 'var(--t2)' }}>הערה: {fileMeta(f).staff_note}</div> : null}
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                                {knd !== 'surveyor_report' ? <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'surveyor_report')}>סמן כדוח שמאי</button> : null}
-                                {knd !== 'garage_invoice' ? <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'garage_invoice')}>סמן כחשבונית מוסך</button> : null}
-                                {f.doc_kind && f.doc_kind !== 'general' ? <button className="btn btn-g btn-sm" onClick={() => void markDocKind(cur.id, f.id, 'general')}>בטל סימון</button> : null}
-                                <button className="btn btn-g btn-sm" data-testid="doc-view" onClick={() => void openInCard(cur.id, f)}>צפייה</button>
-                                <button className="btn btn-g btn-sm" data-testid={`doc-edit-${f.id}`} onClick={() => setDocEditId(docEditId === f.id ? null : f.id)}>שם / סוג</button>
-                              </div>
-                              </div>
-                              {docEditId === f.id ? <DocStaffFields file={f} allFiles={docs.files} onSave={async (patch) => { await saveDocStaff(f, patch); toast('פרטי המסמך נשמרו'); }} /> : null}
-                            </div>
-                            );
-                          })}
-                          {!isGal ? null : photos.length && !openGal[k] ? <div style={{ fontSize: 11, color: 'var(--t3)' }}>{photos.length} תמונות מקובצות — לחץ להצגת גלריה</div> : null}
-                        </div>
-                      );
-                    })}
-                  <div style={{ marginTop: 14, fontSize: 12, color: 'var(--t3)' }}>ניהול הקישור ללקוח נמצא בראש אזור המסמכים.</div>
+                  </div>
+                  </details>
                 </div>
               )}
               {cardTab === 'gin' && (

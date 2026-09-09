@@ -227,6 +227,27 @@
 .claims-root .tabs.tab-subs .tab{font-size:11px;font-weight:500}
 .claims-root .mail-entry-bar,.claims-root .work-entry-bar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 .claims-root .share-hist{background:var(--bg2);border:1px solid var(--br2);border-radius:8px;padding:12px;margin:0 0 12px}
+.claims-root .docs-share-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--bg2);border:2px solid var(--ac2,#2563eb);border-radius:10px;padding:12px;margin:0 0 12px}
+.claims-root .docs-share-btn{font-size:15px;font-weight:800;padding:10px 16px}
+.claims-root .docs-share-copy{flex:1;min-width:180px;font-size:13px}
+.claims-root .docs-share-names{font-size:11px;color:var(--t3);margin-top:4px}
+.claims-root .docs-share-hist{font-size:11px;color:var(--t3);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.claims-root .docs-more{margin:14px 0;background:var(--bg2);border:1px solid var(--br2);border-radius:8px;padding:8px 12px}
+.claims-root .docs-more>summary{cursor:pointer;font-weight:700;padding:6px 0}
+.claims-root .doc-lib-cats{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.claims-root .doc-lib-cat{border:1px solid var(--br);background:var(--bg3);border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer}
+.claims-root .doc-lib-cat.act{background:var(--ac2,#2563eb);color:#fff;border-color:transparent}
+.claims-root .doc-lib-pickbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px;font-size:12px}
+.claims-root .doc-lib-row{display:flex;gap:8px;align-items:center;background:var(--bg3);border:1px solid var(--br);border-radius:8px;padding:8px;margin-bottom:6px}
+.claims-root .doc-lib-main{flex:1;min-width:0}
+.claims-root .doc-lib-name{font-weight:700;font-size:13px}
+.claims-root .doc-lib-meta{font-size:11px;color:var(--t3)}
+.claims-root .doc-lib-acts{display:flex;gap:4px;flex-wrap:wrap}
+.claims-root .doc-lib-gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:8px 0}
+.claims-root .doc-lib-card{background:var(--bg3);border:1px solid var(--br);border-radius:8px;padding:8px}
+.claims-root .doc-lib-thumb{width:100%;height:110px;border:0;border-radius:6px;overflow:hidden;background:var(--bg4);padding:0;cursor:pointer}
+.claims-root .doc-lib-thumb img{width:100%;height:100%;object-fit:cover}
+.claims-root .doc-lib-empty{color:var(--t3);padding:12px 0}
 .claims-root .cust-ask{background:var(--bg2);border:1px solid var(--br2);border-radius:8px;padding:12px;margin-bottom:12px}
 .claims-root .cust-ask > .btn{margin-bottom:8px}
 .claims-root .cust-ask-box{display:flex;flex-direction:column;gap:6px;margin:8px 0 12px}

@@ -141,7 +141,12 @@ export default function SecureShareModal({
             <button type="button" className="btn btn-g btn-sm" data-testid="share-images" onClick={() => setMany(images.map((f) => f.id))}>כל התמונות</button>
             <button type="button" className="btn btn-g btn-sm" data-testid="share-garage" onClick={() => setMany(garage.map((f) => f.id))}>תמונות מוסך</button>
           </div>
-          <div data-testid="share-count" style={{ fontWeight: 700, marginBottom: 8 }}>נבחרו {picked.length} קבצים</div>
+          <div data-testid="share-count" style={{ fontWeight: 700, marginBottom: 8 }}>נבחרו לשיתוף {picked.length} קבצים</div>
+          {picked.length ? (
+            <div data-testid="share-picked-names" style={{ fontSize: 12, marginBottom: 10, color: 'var(--t2)' }}>
+              {files.filter((f) => picked.includes(f.id)).map((f) => f.original_name).join(' · ')}
+            </div>
+          ) : null}
           {docs.length ? <div className="sdiv"><div className="sdiv-t">מסמכים</div><div className="sdiv-l" /></div> : null}
           {docs.map(row)}
           {images.length ? <div className="sdiv"><div className="sdiv-t">תמונות</div><div className="sdiv-l" /></div> : null}
