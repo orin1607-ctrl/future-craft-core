@@ -2,12 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { Search, Users, Shield, KeyRound, Loader2, Filter, Pencil, Eye, Mail, Copy, UserPlus } from 'lucide-react';
+import { Search, Users, Shield, KeyRound, Loader2, Filter, Pencil, Eye, Mail, Copy, UserPlus, Camera } from 'lucide-react';
 import CreateUserWizardDialog from '@/components/user-management/CreateUserWizardDialog';
 import SettingsBackBar from '@/components/user-management/SettingsBackBar';
 import TwoFactorApprovalSection from '@/components/user-management/TwoFactorApprovalSection';
 import AuthAuditLogPanel from '@/components/user-management/AuthAuditLogPanel';
 import { APPROVAL_STATUS_LABELS } from '@/lib/userManagementSchema';
+import { GARAGE_PHOTOGRAPHER_LABEL, isGaragePhotographerJobTitle, openGarageWorkerPortal } from '@/lib/garagePhotographer';
 import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,7 @@ interface ManagedUser {
   two_factor_approved_by_name: string | null;
   hasClaimsAccess: boolean;
   claimsWorkerOnly: boolean;
+  garagePhotographer: boolean;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -88,7 +90,7 @@ export default function UserManagement() {
     
     // Fetch profiles and roles
     const [profilesRes, rolesRes, emailsRes, approversRes, claimsAccessRes] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, phone, company_name, is_active, approval_status, two_factor_approved, two_factor_approved_at, two_factor_approved_by'),
+      supabase.from('profiles').select('id, full_name, phone, company_name, job_title, is_active, approval_status, two_factor_approved, two_factor_approved_at, two_factor_approved_by'),
       supabase.from('user_roles').select('user_id, role'),
       supabase.functions.invoke('create-admin-user', { body: { action: 'list-users' } }),
       supabase.from('profiles').select('id, full_name'),
@@ -130,6 +132,7 @@ export default function UserManagement() {
         : null,
       hasClaimsAccess: (roleMap.get(p.id) || '') === 'super_admin' || claimsAccessIds.has(p.id),
       claimsWorkerOnly: claimsWorkerOnlyIds.has(p.id),
+      garagePhotographer: isGaragePhotographerJobTitle(p.job_title),
     }));
 
     setUsers(mapped);
@@ -154,7 +157,8 @@ export default function UserManagement() {
       const matchClaims =
         claimsFilter === 'all'
         || (claimsFilter === 'workers' && u.hasClaimsAccess)
-        || (claimsFilter === 'none' && !u.hasClaimsAccess);
+        || (claimsFilter === 'garage' && u.garagePhotographer)
+        || (claimsFilter === 'none' && !u.hasClaimsAccess && !u.garagePhotographer);
       return matchSearch && matchCompany && matchRole && matchClaims;
     });
   }, [users, search, companyFilter, roleFilter, claimsFilter]);
@@ -285,6 +289,7 @@ export default function UserManagement() {
       role: u.role as any,
       hasClaimsAccess: u.hasClaimsAccess,
       claimsWorkerOnly: u.claimsWorkerOnly,
+      garagePhotographer: u.garagePhotographer,
     });
     navigate(u.claimsWorkerOnly ? '/claims' : '/dashboard');
   };
@@ -313,7 +318,7 @@ export default function UserManagement() {
         </h1>
         <div className="flex items-center gap-2 flex-wrap">
           <Badge variant="outline" className="text-sm">{filtered.length} משתמשים</Badge>
-          <Button onClick={() => setCreateOpen(true)} className="gap-2 font-bold">
+          <Button onClick={() => setCreateOpen(true)} className="gap-2 font-bold" data-testid="create-user-open">
             <UserPlus size={18} />
             פתיחת משתמש חדש
           </Button>
@@ -368,6 +373,7 @@ export default function UserManagement() {
           <SelectContent>
             <SelectItem value="all">כל המשתמשים</SelectItem>
             <SelectItem value="workers">עובדי תביעות</SelectItem>
+            <SelectItem value="garage">עובדי צילומי מוסך</SelectItem>
             <SelectItem value="none">ללא הרשאת תביעות</SelectItem>
           </SelectContent>
         </Select>
@@ -421,7 +427,11 @@ export default function UserManagement() {
                     <TableCell>{u.company_name || '—'}</TableCell>
                     <TableCell dir="ltr" className="text-right">{u.phone || '—'}</TableCell>
                     <TableCell>
-                      {u.claimsWorkerOnly ? (
+                      {u.garagePhotographer ? (
+                        <Badge variant="outline" className="text-xs border-primary/40 text-primary" data-testid={`garage-worker-type-badge-${u.id}`}>
+                          {GARAGE_PHOTOGRAPHER_LABEL}
+                        </Badge>
+                      ) : u.claimsWorkerOnly ? (
                         <Badge variant="outline" className="text-xs border-primary/40 text-primary" data-testid={`claims-worker-type-badge-${u.id}`}>
                           עובד ניהול תביעות
                         </Badge>
@@ -511,6 +521,18 @@ export default function UserManagement() {
                           <KeyRound size={14} />
                           סיסמה
                         </Button>
+                        {u.garagePhotographer && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            data-testid={`open-garage-portal-${u.id}`}
+                            onClick={() => openGarageWorkerPortal(u.id)}
+                            className="gap-1.5"
+                          >
+                            <Camera size={14} />
+                            פתח פורטל עובד
+                          </Button>
+                        )}
                         {u.id !== user?.id && u.role !== 'super_admin' && (
                           <Button
                             size="sm"

@@ -6,9 +6,10 @@ type Props = {
   busy?: boolean;
   onAssign: () => void;
   onUnassign: () => void;
+  onOpenPortal?: () => void;
 };
 
-export default function GarageAssignBar({ assignment, photoCount, busy, onAssign, onUnassign }: Props) {
+export default function GarageAssignBar({ assignment, photoCount, busy, onAssign, onUnassign, onOpenPortal }: Props) {
   const count = photoCount ?? assignment?.photo_count ?? 0;
   return (
     <div className="garage-assign-bar" data-testid="garage-assign-bar">
@@ -26,6 +27,11 @@ export default function GarageAssignBar({ assignment, photoCount, busy, onAssign
         <button type="button" className="btn btn-p btn-sm" data-testid="garage-assign-open" disabled={busy} onClick={onAssign}>
           {assignment ? 'החלף שיוך' : 'שייך עובד לצילומי מוסך'}
         </button>
+        {assignment && onOpenPortal ? (
+          <button type="button" className="btn btn-g btn-sm" data-testid="garage-open-worker-portal" disabled={busy} onClick={onOpenPortal}>
+            פתח פורטל עובד
+          </button>
+        ) : null}
         {assignment ? (
           <button type="button" className="btn btn-sm" data-testid="garage-unassign" disabled={busy} style={{ background: 'rgba(239,68,68,.12)', color: 'var(--rd2)' }} onClick={onUnassign}>
             בטל שיוך

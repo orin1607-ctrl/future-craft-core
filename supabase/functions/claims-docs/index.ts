@@ -662,10 +662,14 @@ Deno.serve(async (req) => {
     }
 
     if (action === "garage_list_jobs" || action === "garage_get_job" || action === "garage_upload" || action === "garage_list_photos" || action === "garage_complete" || action === "garage_signed_url") {
+      const previewWorker = String(body.worker_id || form?.get("worker_id") || "").trim();
+      const staffPreview = Boolean(previewWorker && previewWorker !== user.id && await hasClaimsAccess(sb, user.id, role));
+      const effectiveWorkerId = staffPreview ? previewWorker : user.id;
+
       if (action === "garage_list_jobs") {
         const { data: jobs } = await sb.from("claims_garage_assignments")
           .select("id, claim_id, worker_id, worker_name, status, worker_note, photo_count, assigned_at, completed_at")
-          .eq("worker_id", user.id)
+          .eq("worker_id", effectiveWorkerId)
           .is("unassigned_at", null)
           .order("assigned_at", { ascending: false });
         const ids = (jobs || []).map((j) => j.claim_id);
@@ -688,8 +692,15 @@ Deno.serve(async (req) => {
       }
 
       const claimId = String(body.claim_id || form?.get("claim_id") || "");
-      const job = await workerOwnsGarage(claimId);
+      let job = await workerOwnsGarage(claimId);
+      if (!job && staffPreview) {
+        const active = await activeGarageJob(claimId);
+        if (active && active.worker_id === previewWorker) job = active;
+      }
       if (!job) return jsonResponse({ success: false, error: "forbidden", blocked: true }, 403);
+      if ((action === "garage_upload" || action === "garage_complete") && job.worker_id !== user.id) {
+        return jsonResponse({ success: false, error: "forbidden", blocked: true }, 403);
+      }
       const { data: ownedClaim } = await sb.from("claims_records").select("id, client_name, plate, row_data").eq("id", claimId).maybeSingle();
       if (!ownedClaim || claimSoftDeleted(ownedClaim)) return jsonResponse({ success: false, error: "forbidden", blocked: true }, 403);
 
@@ -778,14 +789,17 @@ Deno.serve(async (req) => {
 
     if (action === "list_garage_workers") {
       const { data } = await sb.from("profiles")
-        .select("id, full_name")
+        .select("id, full_name, job_title")
         .eq("is_active", true)
         .order("full_name")
         .limit(400);
-      return jsonResponse({
-        success: true,
-        workers: (data || []).map((p) => ({ id: p.id, full_name: p.full_name || p.id })),
-      });
+      const workers = (data || []).map((p) => ({
+        id: p.id,
+        full_name: p.full_name || p.id,
+        garage_photographer: String(p.job_title || "").trim() === "garage_photographer",
+      }));
+      workers.sort((a, b) => Number(b.garage_photographer) - Number(a.garage_photographer) || a.full_name.localeCompare(b.full_name, "he"));
+      return jsonResponse({ success: true, workers });
     }
 
     if (action === "get_garage_assignment") {
