@@ -449,6 +449,20 @@
 .claims-root .garage-assign-title{font-weight:800;margin-bottom:4px}
 .claims-root .garage-assign-meta{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12px;color:var(--t3);margin-bottom:8px}
 .claims-root .garage-assign-acts{display:flex;flex-wrap:wrap;gap:8px}
+.claims-root .garage-review-banner{
+  margin:0 0 8px;padding:8px 10px;border-radius:10px;font-weight:800;font-size:13px
+}
+.claims-root .garage-review-banner.need{background:rgba(234,179,8,.16);color:#92400e}
+.claims-root .garage-review-banner.wait{background:rgba(59,130,246,.12);color:#1d4ed8}
+.claims-root .garage-review-banner.ok{background:rgba(34,197,94,.12);color:#15803d}
+.claims-root .garage-review-acts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.claims-root .garage-review-note{display:grid;gap:8px;width:100%}
+.garage-portal .garage-review-banner{
+  margin:8px 0;padding:8px 10px;border-radius:10px;font-weight:800;font-size:13px
+}
+.garage-portal .garage-review-banner.need{background:rgba(234,179,8,.16);color:#92400e}
+.garage-portal .garage-review-banner.wait{background:rgba(239,68,68,.12);color:var(--rd2)}
+.garage-portal .garage-review-banner.ok{background:rgba(34,197,94,.12);color:#15803d}
 
 .garage-portal{padding:16px 14px 88px;max-width:720px;margin:0 auto}
 .garage-portal .garage-head h1{margin:0 0 4px;font-size:22px}

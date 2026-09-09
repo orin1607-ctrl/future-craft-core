@@ -618,9 +618,11 @@ Deno.serve(async (req) => {
     const profile = await sb.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
     const actorName = profile.data?.full_name || user.email || user.id;
 
+    const garageJobCols = "id, claim_id, worker_id, worker_name, status, worker_note, photo_count, assigned_by_name, assigned_at, completed_at, unassigned_at, review_status, review_note, reviewed_by, reviewed_by_name, reviewed_at";
+
     async function activeGarageJob(claimId: string) {
       const { data } = await sb.from("claims_garage_assignments")
-        .select("id, claim_id, worker_id, worker_name, status, worker_note, photo_count, assigned_by_name, assigned_at, completed_at, unassigned_at")
+        .select(garageJobCols)
         .eq("claim_id", claimId)
         .is("unassigned_at", null)
         .maybeSingle();
@@ -668,7 +670,7 @@ Deno.serve(async (req) => {
 
       if (action === "garage_list_jobs") {
         const { data: jobs } = await sb.from("claims_garage_assignments")
-          .select("id, claim_id, worker_id, worker_name, status, worker_note, photo_count, assigned_at, completed_at")
+          .select("id, claim_id, worker_id, worker_name, status, worker_note, photo_count, assigned_at, completed_at, review_status, review_note")
           .eq("worker_id", effectiveWorkerId)
           .is("unassigned_at", null)
           .order("assigned_at", { ascending: false });
@@ -738,9 +740,14 @@ Deno.serve(async (req) => {
         await sb.from("claims_garage_assignments").update({
           status: "completed",
           completed_at: now,
+          review_status: "awaiting_review",
+          review_note: "",
+          reviewed_by: null,
+          reviewed_by_name: "",
+          reviewed_at: null,
         }).eq("id", job.id).eq("worker_id", user.id).is("unassigned_at", null);
-        await history(sb, claimId, "צילומי מוסך הושלמו", `עובד ${job.worker_name}`, actorName);
-        return jsonResponse({ success: true, status: "completed", completed_at: now });
+        await history(sb, claimId, "צילומי מוסך נשלחו לבדיקה", `עובד ${job.worker_name}`, actorName);
+        return jsonResponse({ success: true, status: "completed", review_status: "awaiting_review", completed_at: now });
       }
 
       if (action === "garage_upload") {
@@ -810,6 +817,57 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, assignment: job || null, photo_count: photos.length });
     }
 
+    if (action === "list_garage_reviews") {
+      const { data } = await sb.from("claims_garage_assignments")
+        .select("claim_id, review_status, review_note, reviewed_by, reviewed_by_name, reviewed_at, status, worker_id, worker_name")
+        .is("unassigned_at", null)
+        .eq("review_status", "awaiting_review");
+      const rows = data || [];
+      if (role === "super_admin") return jsonResponse({ success: true, reviews: rows });
+      const ids = [...new Set(rows.map((r) => r.claim_id).filter(Boolean))];
+      if (!ids.length) return jsonResponse({ success: true, reviews: [] });
+      const { data: mine } = await sb.from("claims_records")
+        .select("id")
+        .in("id", ids)
+        .or(`assigned_to.eq.${user.id},created_by.eq.${user.id}`);
+      const allowed = new Set((mine || []).map((c) => c.id));
+      return jsonResponse({ success: true, reviews: rows.filter((r) => allowed.has(r.claim_id)) });
+    }
+
+    if (action === "garage_review_approve" || action === "garage_review_needs_update") {
+      const claimId = String(body.claim_id || "");
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+      const job = await activeGarageJob(claimId);
+      if (!job) return jsonResponse({ success: false, error: "no_assignment" }, 404);
+      if (job.review_status !== "awaiting_review") return jsonResponse({ success: false, error: "not_awaiting_review" }, 409);
+      const now = new Date().toISOString();
+      if (action === "garage_review_approve") {
+        await sb.from("claims_garage_assignments").update({
+          review_status: "approved",
+          reviewed_by: user.id,
+          reviewed_by_name: actorName,
+          reviewed_at: now,
+        }).eq("id", job.id).is("unassigned_at", null);
+        await history(sb, claimId, "צילומי מוסך אושרו", actorName, actorName);
+        const next = await activeGarageJob(claimId);
+        return jsonResponse({ success: true, assignment: next });
+      }
+      const note = String(body.note || "").trim();
+      if (!note) return jsonResponse({ success: false, error: "note_required" }, 400);
+      if (note.length > 400) return jsonResponse({ success: false, error: "note_too_long" }, 400);
+      await sb.from("claims_garage_assignments").update({
+        review_status: "needs_update",
+        review_note: note,
+        reviewed_by: user.id,
+        reviewed_by_name: actorName,
+        reviewed_at: now,
+        status: "in_progress",
+      }).eq("id", job.id).is("unassigned_at", null);
+      await history(sb, claimId, "צילומי מוסך — דרושה השלמה", note, actorName);
+      const next = await activeGarageJob(claimId);
+      return jsonResponse({ success: true, assignment: next });
+    }
+
     if (action === "assign_garage_worker") {
       const claimId = String(body.claim_id || "");
       const workerId = String(body.worker_id || "");
@@ -836,6 +894,11 @@ Deno.serve(async (req) => {
         status: "pending",
         worker_note: workerNote,
         photo_count: 0,
+        review_status: "",
+        review_note: "",
+        reviewed_by: null,
+        reviewed_by_name: "",
+        reviewed_at: null,
         assigned_by: user.id,
         assigned_by_name: actorName,
       });

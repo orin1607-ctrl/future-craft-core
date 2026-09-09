@@ -1,0 +1,29 @@
+{
+  "at": "2026-09-09T21:41:33.816Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "apply": {
+    "ok": true,
+    "attempts": [
+      {
+        "fn": "mgmt_database_query",
+        "ok": true,
+        "status": 201,
+        "text": "[]"
+      }
+    ]
+  },
+  "verify": {
+    "ok": true,
+    "columns": "[{\"column_name\":\"id\",\"data_type\":\"text\",\"column_default\":null,\"is_nullable\":\"NO\"},{\"column_name\":\"claim_id\",\"data_type\":\"text\",\"column_default\":null,\"is_nullable\":\"NO\"},{\"column_name\":\"worker_id\",\"data_type\":\"uuid\",\"column_default\":null,\"is_nullable\":\"NO\"},{\"column_name\":\"worker_name\",\"data_type\":\"text\",\"column_default\":\"''::text\",\"is_nullable\":\"NO\"},{\"column_name\":\"status\",\"data_type\":\"text\",\"column_default\":\"'pending'::text\",\"is_nullable\":\"NO\"},{\"column_name\":\"worker_note\",\"data_type\":\"text\",\"column_default\":\"''::text\",\"is_nullable\":\"NO\"},{\"column_name\":\"photo_count\",\"data_type\":\"integer\",\"column_default\":\"0\",\"is_nullable\":\"NO\"},{\"column_name\":\"assigned_by\",\"data_type\":\"uuid\",\"column_default\":null,\"is_nullable\":\"YES\"},{\"column_name\":\"assigned_by_name\",\"data_type\":\"text\",\"column_default\":\"''::text\",\"is_nullable\":\"NO\"},{\"column_name\":\"assigned_at\",\"data_type\":\"timestamp with time zone\",\"column_default\":\"now()\",\"is_nullable\":\"NO\"},{\"column_name\":\"completed_at\",\"data_type\":\"timestamp with time zone\",\"column_default\":null,\"is_nullable\":\"YES\"},{\"column_name\":\"unassigned_at\",\"data_type\":\"timestamp with time zone\",\"column_default\":null,\"is_nullable\":\"YES\"},{\"column_name\":\"unassigned_by\",\"data_type\":\"uuid\",\"column_default\":null,\"is_nullable\":\"YES\"},{\"column_name\":\"unassigned_by_name\",\"data_type\":\"text\",\"column_default\":\"''::text\",\"is_nullable\":\"NO\"},{\"column_name\":\"review_status\",\"data_type\":\"text\",\"column_default\":\"''::text\",\"is_nullable\":\"NO\"},{\"column_name\":\"review_note\",\"data_type\":\"text\",\"column_default\":\"''::text\",\"is_nullable\":\"NO\"},{\"column_name\":\"reviewed_by\",\"data_type\":\"uuid\",\"column_default\":null,\"is_nullable\":\"YES\"},{\"column_name\":\"reviewed_by_name\",\"data_type\":\"text\",\"column_default\":\"''::text\",\"is_nullable\":\"NO\"},{\"column_name\":\"reviewed_at\",\"data_type\":\"timestamp with time zone\",\"column_default\":null,\"is_nullable\":\"YES\"}]",
+    "constraint": "[{\"conname\":\"claims_garage_assignments_review_status_check\",\"def\":\"CHECK ((review_status = ANY (ARRAY[''::text, 'awaiting_review'::text, 'approved'::text, 'needs_update'::text])))\"}]",
+    "claimsDocumentsUnchanged": true,
+    "noOldAwaitingBackfill": "[{\"awaiting_old\":0}]",
+    "claimsDocsPrivate": true,
+    "productionTouched": false
+  },
+  "edge": {
+    "ok": true,
+    "output": "{\"project_ref\":\"usfeoerkpcafxxlyuldl\",\"functions\":[\"claims-docs\"],\"dashboard_url\":\"https://supabase.com/dashboard/project/usfeoerkpcafxxlyuldl/functions\",\"message\":\"Deployed Functions.\"}\n"
+  }
+}

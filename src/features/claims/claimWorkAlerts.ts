@@ -125,6 +125,7 @@ export type AlertContext = {
   notifs: ClaimRecord[];
   gmailPending: Array<Record<string, unknown>>;
   scheduledFollowups: Array<{ id?: string; claim_id: string; status?: string; purpose?: string; mail_kind?: string }>;
+  garageReviews?: Record<string, { review_status?: string }>;
 };
 
 export function isScheduledOnceMail(purpose?: string) {
@@ -236,6 +237,12 @@ export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAle
     add(`cust_${t.id}`, label, st === 'received' ? 'need' : 'wait', {
       taskId: t.id,
       why: st === 'received' ? 'הלקוח החזיר — ממתין לאישור ידני' : 'בקשה פתוחה ללקוח',
+    });
+  }
+
+  if (ctx.garageReviews?.[c.id]?.review_status === 'awaiting_review') {
+    add('garage_review', 'התקבל — לבדיקה', 'need', {
+      why: 'צילומי מוסך התקבלו וממתינים לבדיקה',
     });
   }
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClaimsApi } from '@/features/claims/claimsService';
-import { garageStatusLabel, type GarageAssignment } from '@/features/claims/claimGarage';
+import { garageStatusLabel, garageWorkerReviewLabel, type GarageAssignment } from '@/features/claims/claimGarage';
 import '@/features/claims/claims.css';
 
 type Job = GarageAssignment & {
@@ -160,6 +160,12 @@ export default function GarageJobsPage() {
                   <span>{j.claim?.client_name || '—'}</span>
                   <span>{j.claim?.plate || '—'}</span>
                   <span>{garageStatusLabel(j.status)} · {j.photo_count || 0} תמונות</span>
+                  {j.review_status === 'needs_update' ? (
+                    <span className="garage-review-banner wait" data-testid={`garage-job-needs-${j.claim_id}`}>נדרש להשלים{j.review_note ? ` · ${j.review_note}` : ''}</span>
+                  ) : null}
+                  {j.review_status === 'awaiting_review' ? (
+                    <span className="garage-review-banner need" data-testid={`garage-job-awaiting-${j.claim_id}`}>{garageWorkerReviewLabel(j.review_status)}</span>
+                  ) : null}
                 </button>
               ))}
             </div>
@@ -176,6 +182,21 @@ export default function GarageJobsPage() {
             <div>תאריך אירוע: {job?.claim?.event_date || '—'}</div>
             <div>סטטוס: {garageStatusLabel(job?.status)}</div>
             {job?.worker_note ? <div>הערה: {job.worker_note}</div> : null}
+            {job?.review_status === 'needs_update' ? (
+              <div className="garage-review-banner wait" data-testid="garage-needs-update">
+                נדרש להשלים{job.review_note ? ` — ${job.review_note}` : ''}
+              </div>
+            ) : null}
+            {job?.review_status === 'awaiting_review' ? (
+              <div className="garage-review-banner need" data-testid="garage-awaiting-review">
+                {garageWorkerReviewLabel(job.review_status)}
+              </div>
+            ) : null}
+            {job?.review_status === 'approved' ? (
+              <div className="garage-review-banner ok" data-testid="garage-approved">
+                {garageWorkerReviewLabel(job.review_status)}
+              </div>
+            ) : null}
           </div>
           {err ? <div className="garage-err">{err}</div> : null}
           {progress ? <div className="garage-progress" data-testid="garage-progress">{progress}</div> : null}
