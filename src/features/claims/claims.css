@@ -328,6 +328,13 @@
 .claims-root .claim-mcard-check{display:flex;align-items:center}
 .claims-root .claim-mcard-meta{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px;font-size:13px;color:var(--t2)}
 .claims-root .claim-mcard-next{margin-top:8px;font-size:13px;font-weight:700;color:var(--yn2)}
+.claims-root .claim-mcard-last{margin-top:6px}
+.claims-root .claim-last-treat{
+  background:none;border:0;padding:0;margin:0;cursor:pointer;
+  color:var(--ac3);font-size:12px;font-weight:700;text-align:right;
+  text-decoration:underline;text-underline-offset:2px;max-width:220px;
+}
+.claims-root .claims-desk-table .claim-last-treat{font-size:11px;font-weight:600;max-width:200px}
 .claims-root .claim-mcard-alerts{margin-top:8px}
 .claims-root .claim-mcard-alerts .row-alerts{max-width:none}
 .claims-root .claim-mcard-edit{margin-top:10px}
