@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fileDocBucket, fileInLibCategory, libTypeLabel } from './claimDocLibrary';
+import { DOC_LIB_CATEGORIES, fileDocBucket, fileInLibCategory, libTypeLabel } from './claimDocLibrary';
 
 describe('claimDocLibrary', () => {
   it('uses doc_kind before source', () => {
@@ -30,6 +30,12 @@ describe('claimDocLibrary', () => {
     expect(fileInLibCategory(report, 'surveyor')).toBe(true);
     expect(fileInLibCategory(photo, 'surveyor')).toBe(true);
     expect(fileInLibCategory(inv, 'surveyor')).toBe(false);
-    expect(libTypeLabel(report)).toBe('דוחות שמאי');
+    expect(libTypeLabel(report)).toBe('שמאי');
+  });
+
+  it('exposes the clean Documents category names', () => {
+    expect(DOC_LIB_CATEGORIES.map((c) => c.label)).toEqual([
+      'כל המסמכים', 'לקוח', 'רכב', 'שמאי', 'חברת ביטוח', 'חשבוניות', 'נזק', 'טפסים', 'אחר',
+    ]);
   });
 });

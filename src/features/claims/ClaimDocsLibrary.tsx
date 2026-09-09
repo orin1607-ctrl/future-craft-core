@@ -35,11 +35,16 @@ export default function ClaimDocsLibrary({
   files, picked, category, thumbs, isImage, fileLabel, onCategory, onToggle, onToggleAll, onPreview, onDownload,
 }: Props) {
   const visible = filesForLibCategory(files, category);
-  const sections = category === 'all' || category === 'surveyor'
-    ? DOC_LIB_SECTIONS.filter((s) => (category === 'surveyor' ? s.match[0].startsWith('surveyor') : true))
+  const sections = category === 'all'
+    ? DOC_LIB_SECTIONS
       .map((s) => ({ ...s, rows: visible.filter((f) => s.match.includes(fileDocBucket(f))) }))
       .filter((s) => s.rows.length)
-    : [{ key: category, label: DOC_LIB_CATEGORIES.find((c) => c.key === category)?.label || 'אחר', match: [category], rows: visible }];
+    : [{
+      key: category,
+      label: DOC_LIB_CATEGORIES.find((c) => c.key === category)?.label || 'אחר',
+      match: DOC_LIB_SECTIONS.find((s) => s.key === category)?.match || [category],
+      rows: visible,
+    }];
 
   return (
     <div className="doc-lib" data-testid="docs-library">

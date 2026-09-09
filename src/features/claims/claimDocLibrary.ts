@@ -2,27 +2,26 @@
 
 export const DOC_LIB_CATEGORIES = [
   { key: 'all', label: 'כל המסמכים' },
-  { key: 'client', label: 'מסמכי לקוח' },
-  { key: 'vehicle', label: 'מסמכי רכב / נהג' },
-  { key: 'insurer', label: 'מסמכי חברת ביטוח' },
-  { key: 'surveyor', label: 'מסמכי שמאי' },
-  { key: 'invoice', label: 'חשבוניות / מוסך' },
-  { key: 'damage', label: 'תמונות אירוע / נזק' },
-  { key: 'forms', label: 'טפסים / תצהירים' },
+  { key: 'client', label: 'לקוח' },
+  { key: 'vehicle', label: 'רכב' },
+  { key: 'surveyor', label: 'שמאי' },
+  { key: 'insurer', label: 'חברת ביטוח' },
+  { key: 'invoice', label: 'חשבוניות' },
+  { key: 'damage', label: 'נזק' },
+  { key: 'forms', label: 'טפסים' },
   { key: 'other', label: 'אחר' },
 ] as const;
 
 export type DocLibCategory = (typeof DOC_LIB_CATEGORIES)[number]['key'];
 
 export const DOC_LIB_SECTIONS: Array<{ key: string; label: string; match: string[] }> = [
-  { key: 'client', label: 'מסמכי לקוח', match: ['client'] },
-  { key: 'vehicle', label: 'מסמכי רכב / נהג', match: ['vehicle'] },
-  { key: 'insurer', label: 'מסמכי חברת ביטוח', match: ['insurer'] },
-  { key: 'surveyor_reports', label: 'מסמכי שמאי · דוחות שמאי', match: ['surveyor_reports'] },
-  { key: 'surveyor_photos', label: 'מסמכי שמאי · תמונות שמאי', match: ['surveyor_photos'] },
-  { key: 'invoice', label: 'חשבוניות / מוסך', match: ['invoice'] },
-  { key: 'damage', label: 'תמונות אירוע / נזק', match: ['damage'] },
-  { key: 'forms', label: 'טפסים / תצהירים', match: ['forms'] },
+  { key: 'client', label: 'לקוח', match: ['client'] },
+  { key: 'vehicle', label: 'רכב', match: ['vehicle'] },
+  { key: 'surveyor', label: 'שמאי', match: ['surveyor_reports', 'surveyor_photos'] },
+  { key: 'insurer', label: 'חברת ביטוח', match: ['insurer'] },
+  { key: 'invoice', label: 'חשבוניות', match: ['invoice'] },
+  { key: 'damage', label: 'נזק', match: ['damage'] },
+  { key: 'forms', label: 'טפסים', match: ['forms'] },
   { key: 'other', label: 'אחר', match: ['other'] },
 ];
 
@@ -64,14 +63,15 @@ export function fileDocBucket(f: LibFile): string {
 export function fileInLibCategory(f: LibFile, cat: string) {
   if (!cat || cat === 'all') return true;
   const bucket = fileDocBucket(f);
-  if (cat === 'surveyor') return bucket === 'surveyor_reports' || bucket === 'surveyor_photos';
+  const sec = DOC_LIB_SECTIONS.find((s) => s.key === cat);
+  if (sec) return sec.match.includes(bucket);
   return bucket === cat;
 }
 
 export function libTypeLabel(f: LibFile) {
   const bucket = fileDocBucket(f);
   const hit = DOC_LIB_SECTIONS.find((s) => s.match.includes(bucket));
-  return hit?.label.replace(/^מסמכי שמאי · /, '') || 'אחר';
+  return hit?.label || 'אחר';
 }
 
 export function filesForLibCategory<T extends LibFile>(files: T[], cat: string) {

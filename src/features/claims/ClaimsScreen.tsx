@@ -1535,12 +1535,15 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const names = docs.files.filter((f) => docPickIds.includes(f.id)).map((f) => fileLabel(f));
     return (
       <div className="docs-share-bar" data-testid="docs-share-bar">
-        <button type="button" className="btn btn-p docs-share-btn" data-testid="claims-secure-share" onClick={() => openSecureShare(docPickIds)}>
-          שיתוף מאובטח
-        </button>
-        <div className="docs-share-copy">
-          <div data-testid="docs-share-picked">{docPickIds.length ? `נבחרו לשיתוף: ${docPickIds.length} קבצים` : 'סמנו קבצים למטה ואז שיתוף מאובטח'}</div>
-          {names.length ? <div className="docs-share-names" data-testid="docs-share-names">{names.slice(0, 8).join(' · ')}{names.length > 8 ? '…' : ''}</div> : null}
+        <div className="docs-share-hero">
+          <button type="button" className="btn btn-p docs-share-btn" data-testid="claims-secure-share" onClick={() => openSecureShare(docPickIds)}>
+            שיתוף מאובטח
+          </button>
+          <div className="docs-share-copy">
+            <div className="docs-share-title">שיתוף מאובטח · קריאה בלבד · ברירת מחדל 48 שעות</div>
+            <div data-testid="docs-share-picked">{docPickIds.length ? `נבחרו לשיתוף: ${docPickIds.length} קבצים` : 'סמנו קבצים למטה, ואז לחצו שיתוף מאובטח'}</div>
+            {names.length ? <div className="docs-share-names" data-testid="docs-share-names">{names.slice(0, 8).join(' · ')}{names.length > 8 ? '…' : ''}</div> : null}
+          </div>
         </div>
         <div className="docs-share-hist" data-testid="share-history-panel">
           {!shares.length ? <span>אין שיתופים פעילים</span> : shares.filter((s) => s.status === 'active').slice(0, 3).map((s) => (
