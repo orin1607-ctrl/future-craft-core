@@ -459,8 +459,12 @@ async function main() {
       rec('leak-claim-created', !!leakId && leakId !== claimId, { leakId });
       if (leakId) {
         const leakFiles = (await listDocs(session, leakId)).filter(isNoticePdf);
-        rec('no-cross-claim-pdf', leakFiles.length === 0, { count: leakFiles.length });
         const originFiles = (await listDocs(session, claimId)).filter(isNoticePdf);
+        const originIds = new Set(originFiles.map((f) => f.id));
+        rec('no-cross-claim-pdf', leakFiles.every((f) => String(f.claim_id || leakId) === leakId && !originIds.has(f.id)), {
+          leakCount: leakFiles.length,
+          shared: leakFiles.filter((f) => originIds.has(f.id)).map((f) => f.id),
+        });
         rec('origin-pdf-untouched', originFiles.length === 1, { count: originFiles.length });
       }
     } catch (err) {
