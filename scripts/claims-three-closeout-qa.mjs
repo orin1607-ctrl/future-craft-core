@@ -411,7 +411,7 @@ try {
   const mobile = await context.newPage();
   await mobile.setViewportSize({ width: 390, height: 844 });
   await mobile.goto(`${PUBLIC}/claims`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-  await mobile.waitForTimeout(3000);
+  await mobile.waitForSelector('[data-testid="claims-open-new"], [data-testid="claims-search"]', { timeout: 90000 }).catch(() => undefined);
   rec('mobile-claims', await mobile.locator('[data-testid="claims-open-new"], [data-testid="claims-search"]').count() > 0);
   await shot(mobile, 'mobile');
   await mobile.close();
