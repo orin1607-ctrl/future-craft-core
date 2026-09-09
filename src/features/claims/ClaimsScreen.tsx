@@ -783,6 +783,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [companyName, setCompanyName] = useState('');
   const [comm, setComm] = useState<ClaimRecord[]>([]);
   const [hist, setHist] = useState<ClaimRecord[]>([]);
+  const [histReady, setHistReady] = useState(false);
   const [tasks, setTasks] = useState<ClaimRecord[]>([]);
   const [allTasks, setAllTasks] = useState<ClaimRecord[]>([]);
   const [reportHtml, setReportHtml] = useState('');
@@ -1150,9 +1151,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const live = () => gen === cardLoadGen.current;
     if (live()) setMailFuLoaded(false);
     const mailP = refreshMailLists(id, gen);
+    if (live()) setHistReady(false);
     const restP = Promise.all([
       apiRef.current.getCommLog(id).then((c) => { if (live()) setComm(c.data || []); }).catch(() => { if (live()) setComm([]); }),
-      apiRef.current.getHistory(id).then((h) => { if (live()) setHist(h.data || []); }).catch(() => { if (live()) setHist([]); }),
+      apiRef.current.getHistory(id).then((h) => { if (live()) { setHist(h.data || []); setHistReady(true); } }).catch(() => { if (live()) { setHist([]); setHistReady(true); } }),
       apiRef.current.getTasks(id).then((t) => {
         if (live()) setTasks((t.data || []).filter((x) => x.done !== 'true' || x.audience === 'customer' || x.treatmentItem === 'true' || x.kind === 'treatment_item'));
       }).catch(() => { if (live()) setTasks([]); }),
@@ -1726,6 +1728,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     }
     setCurId(id);
     setCardTab(tab);
+    setHistReady(false);
     setCardMore(false);
     setModal('moCard');
     setLinkUrl('');
@@ -4258,7 +4261,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 </div>
               )}
               {cardTab === 'timeline' && (
-                hist.length === 0 ? <div className="empty" data-testid="claim-treat-history">אין היסטוריה עדיין</div>
+                !histReady ? <div className="empty" data-testid="claim-treat-history-loading">טוען היסטוריה…</div>
+                : hist.length === 0 ? <div className="empty" data-testid="claim-treat-history">אין היסטוריה עדיין</div>
                   : (
                     <div data-testid="claim-treat-history">
                       <div className="sdiv"><div className="sdiv-t">היסטוריית סטטוסים</div><div className="sdiv-l" /></div>

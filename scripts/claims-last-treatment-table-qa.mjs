@@ -123,10 +123,11 @@ const { error: insErr } = await userDb.from('claims_records').insert({
 });
 rec('create-test-claim', !insErr, { err: insErr?.message, id });
 
-await userDb.from('claims_history').insert([
+const hisIns = await userDb.from('claims_history').insert([
   { id: `HIS-${Date.now()}-1`, claim_id: id, row_data: { action: action1, type: 'treatment', note: 'היסטוריה ראשונה', at: '08.09.2026, 10:00', by: 'QA' } },
   { id: `HIS-${Date.now()}-2`, claim_id: id, row_data: { action: action2, type: 'treatment', note: 'היסטוריה אחרונה', at: '09.09.2026, 11:00', by: 'QA' } },
-]);
+]).select('id');
+rec('seed-history-rows', !hisIns.error && (hisIns.data || []).length === 2, { err: hisIns.error?.message, n: (hisIns.data || []).length });
 
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
@@ -152,11 +153,19 @@ const btnOk = await btn.count();
 rec('last-treatment-control', btnOk > 0);
 if (btnOk) {
   await btn.first().click();
-  const hist = await page.waitForSelector('[data-testid="claim-treat-history"]', { timeout: 20000 }).then(() => true).catch(() => false);
+  const hist = await page.waitForSelector('[data-testid="claim-treat-history"]', { timeout: 25000 }).then(() => true).catch(() => false);
   rec('click-opens-treatment-history', hist);
+  await page.getByText(action1, { exact: false }).first().waitFor({ timeout: 20000 }).catch(() => undefined);
   const histText = (await page.locator('[data-testid="claim-treat-history"]').innerText().catch(() => '')) || '';
   rec('history-keeps-previous-updates', histText.includes(action1) && histText.includes(action2), { histText: histText.slice(0, 400) });
   await shot(page, 'history');
+  await page.locator('.mcl').first().click().catch(() => undefined);
+  await page.waitForTimeout(400);
+  await page.locator(`[data-testid="claim-last-treatment-${id}"]`).first().click();
+  await page.waitForSelector('[data-testid="claim-treat-history"]', { timeout: 25000 });
+  const histAgain = (await page.locator('[data-testid="claim-treat-history"]').innerText().catch(() => '')) || '';
+  rec('history-still-there-after-close', histAgain.includes(action1) && histAgain.includes(action2), { histAgain: histAgain.slice(0, 400) });
+  await shot(page, 'history-reopen');
 }
 
 const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
