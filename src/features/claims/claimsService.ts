@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CLOSE_REASONS, STATUS_MANUAL, STATUS_UNCHANGED, TEMPLATES, isClosedStatus, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { customerStatusOf, customerTaskHistoryAction } from './claimWorkAlerts';
 import { inferTreatmentRequest } from './treatmentCenter';
+import { normChannel, type ClaimContact, type ClaimContactChannel, type ContactChannelKind } from './claimContacts';
 
 export type MailJobRow = {
   id: string;
@@ -748,6 +749,180 @@ export function createClaimsApi(actor: ClaimsActor) {
       await appendHistory(claimId, action, note, type);
       return { success: true };
     },
+
+    async listDirectoryContacts() {
+      const { data: people, error } = await tbl('claims_contacts').select('id, full_name, role, company_name, department, note, active, created_at, row_data').order('full_name');
+      if (error) {
+        if (/schema cache/i.test(error.message)) return { success: true as const, data: [] as ClaimContact[] };
+        return { success: false as const, error: error.message, data: [] as ClaimContact[] };
+      }
+      const { data: channels } = await tbl('claims_contact_channels').select('id, contact_id, kind, value, value_norm, label');
+      const byId = new Map<string, ClaimContactChannel[]>();
+      for (const ch of (channels || []) as Array<Record<string, unknown>>) {
+        const cid = asText(ch.contact_id);
+        const row: ClaimContactChannel = {
+          id: asText(ch.id),
+          contact_id: cid,
+          kind: asText(ch.kind) as ContactChannelKind,
+          value: asText(ch.value),
+          value_norm: asText(ch.value_norm),
+          label: asText(ch.label),
+        };
+        byId.set(cid, [...(byId.get(cid) || []), row]);
+      }
+      const data: ClaimContact[] = ((people || []) as Array<Record<string, unknown>>).map((p) => {
+        const rd = (p.row_data && typeof p.row_data === 'object' ? p.row_data : {}) as Record<string, unknown>;
+        return {
+          id: asText(p.id),
+          full_name: asText(p.full_name),
+          role: asText(p.role) || 'other',
+          company_name: asText(p.company_name),
+          department: asText(p.department),
+          note: asText(p.note),
+          active: p.active !== false,
+          listed_in_directory: rd.listed_in_directory !== false && rd.listed_in_directory !== 'false',
+          channels: byId.get(asText(p.id)) || [],
+          source: 'directory',
+        };
+      });
+      return { success: true as const, data };
+    },
+
+    async listClaimContacts(claimId: string) {
+      const dir = await this.listDirectoryContacts();
+      if (!dir.success) return dir;
+      const { data: links, error } = await tbl('claims_claim_contacts').select('claim_id, contact_id, role_on_claim, is_primary_treatment').eq('claim_id', claimId);
+      if (error) return { success: false as const, error: error.message, data: [] as ClaimContact[] };
+      const by = new Map((links || []).map((l: Record<string, unknown>) => [asText(l.contact_id), l]));
+      const data = dir.data.map((c) => {
+        const link = by.get(c.id);
+        if (!link) return { ...c, linked: false, is_primary_treatment: false };
+        return {
+          ...c,
+          linked: true,
+          is_primary_treatment: link.is_primary_treatment === true,
+          role: asText(link.role_on_claim) || c.role,
+        };
+      });
+      return { success: true as const, data };
+    },
+
+    async findDuplicateChannels(kind: ContactChannelKind, value: string) {
+      const norm = normChannel(kind, value);
+      if (!norm) return { success: true as const, matches: [] as ClaimContact[] };
+      const { data, error } = await tbl('claims_contact_channels').select('id, contact_id, kind, value, value_norm, label').eq('kind', kind).eq('value_norm', norm);
+      if (error) return { success: false as const, error: error.message, matches: [] as ClaimContact[] };
+      const ids = [...new Set(((data || []) as Array<Record<string, unknown>>).map((r) => asText(r.contact_id)).filter(Boolean))];
+      if (!ids.length) return { success: true as const, matches: [] as ClaimContact[] };
+      const dir = await this.listDirectoryContacts();
+      return { success: true as const, matches: dir.data.filter((c) => ids.includes(c.id)) };
+    },
+
+    async saveContact(payload: {
+      id?: string;
+      full_name: string;
+      role: string;
+      company_name?: string;
+      department?: string;
+      note?: string;
+      listed_in_directory?: boolean;
+      claimId?: string;
+      linkClaim?: boolean;
+      channels?: Array<{ kind: ContactChannelKind; value: string; label?: string }>;
+    }) {
+      const channels = (payload.channels || []).filter((ch) => String(ch.value || '').trim());
+      for (const ch of channels) {
+        const dup = await this.findDuplicateChannels(ch.kind, ch.value);
+        if (!dup.success) return { success: false as const, error: dup.error };
+        const other = dup.matches.filter((m) => m.id !== payload.id);
+        if (other.length) {
+          return { success: false as const, duplicate: true as const, existing: other[0], error: 'איש קשר עם אותו Email/Phone כבר קיים' };
+        }
+      }
+      const id = payload.id || generateId('CTC');
+      const row = {
+        id,
+        full_name: payload.full_name || '',
+        role: payload.role || 'other',
+        company_name: payload.company_name || '',
+        department: payload.department || '',
+        note: payload.note || '',
+        active: true,
+        created_by: actor.id || null,
+        updated_at: new Date().toISOString(),
+        row_data: { listed_in_directory: payload.listed_in_directory !== false },
+      };
+      const { error } = payload.id
+        ? await tbl('claims_contacts').update(row as never).eq('id', id)
+        : await tbl('claims_contacts').insert(row as never);
+      if (error) return { success: false as const, error: error.message };
+      if (!payload.id) {
+        for (const ch of channels) {
+          const norm = normChannel(ch.kind, ch.value);
+          if (!norm) continue;
+          const { error: chErr } = await tbl('claims_contact_channels').insert({
+            id: generateId('CHN'),
+            contact_id: id,
+            kind: ch.kind,
+            value: String(ch.value).trim(),
+            value_norm: norm,
+            label: ch.label || '',
+          } as never);
+          if (chErr) return { success: false as const, duplicate: /duplicate|unique/i.test(chErr.message), error: chErr.message };
+        }
+      } else if (channels.length) {
+        for (const ch of channels) {
+          const norm = normChannel(ch.kind, ch.value);
+          if (!norm) continue;
+          const { data: have } = await tbl('claims_contact_channels').select('id').eq('contact_id', id).eq('kind', ch.kind).eq('value_norm', norm).maybeSingle();
+          if (have) continue;
+          const { error: chErr } = await tbl('claims_contact_channels').insert({
+            id: generateId('CHN'),
+            contact_id: id,
+            kind: ch.kind,
+            value: String(ch.value).trim(),
+            value_norm: norm,
+            label: ch.label || '',
+          } as never);
+          if (chErr) return { success: false as const, duplicate: /duplicate|unique/i.test(chErr.message), error: chErr.message };
+        }
+      }
+      if (payload.claimId && payload.linkClaim !== false) {
+        const linked = await this.linkContactToClaim(payload.claimId, id, payload.role);
+        if (!linked.success) return linked;
+      }
+      if (payload.claimId) {
+        void appendHistory(payload.claimId, payload.id ? 'עודכן איש קשר' : 'נשמר איש קשר', `${payload.full_name} · ${payload.role}`, 'contact').catch(() => undefined);
+      }
+      return { success: true as const, id };
+    },
+
+    async linkContactToClaim(claimId: string, contactId: string, roleOnClaim = '') {
+      const { data: existing } = await tbl('claims_claim_contacts').select('claim_id, contact_id').eq('claim_id', claimId).eq('contact_id', contactId).maybeSingle();
+      if (existing) return { success: true as const, id: contactId, already: true as const };
+      const { error } = await tbl('claims_claim_contacts').insert({
+        claim_id: claimId,
+        contact_id: contactId,
+        role_on_claim: roleOnClaim || '',
+        is_primary_treatment: false,
+      } as never);
+      if (error) return { success: false as const, error: error.message };
+      void appendHistory(claimId, 'איש קשר שויך לתיק', contactId, 'contact').catch(() => undefined);
+      return { success: true as const, id: contactId };
+    },
+
+    async setPrimaryClaimContact(claimId: string, contactId: string) {
+      const { data: existing } = await tbl('claims_claim_contacts').select('contact_id').eq('claim_id', claimId).eq('contact_id', contactId).maybeSingle();
+      if (!existing) {
+        const linked = await this.linkContactToClaim(claimId, contactId);
+        if (!linked.success) return linked;
+      }
+      await tbl('claims_claim_contacts').update({ is_primary_treatment: false } as never).eq('claim_id', claimId);
+      const { error } = await tbl('claims_claim_contacts').update({ is_primary_treatment: true } as never).eq('claim_id', claimId).eq('contact_id', contactId);
+      if (error) return { success: false as const, error: error.message };
+      return { success: true as const };
+    },
+,
 
     async dispatchMailNow() {
       const { data, error } = await supabase.functions.invoke('claims-mail-dispatch', { body: {} });

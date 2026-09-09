@@ -1,0 +1,104 @@
+{
+  "at": "2026-09-09T07:22:37.323Z",
+  "purpose": "restore-before-claims-contact-directory",
+  "stagingRef": "usfeoerkpcafxxlyuldl",
+  "productionRefUntouched": "qasomfndnjuixgjmjwcm",
+  "productionTouched": false,
+  "gitHead": "fd952f4a21a1f954c59b331123390e7e808f5e6b",
+  "gitBranch": "cursor/claims-contact-center-a50b",
+  "tables": {
+    "claims_records": {
+      "count": 217,
+      "error": null,
+      "exists": true
+    },
+    "claims_history": {
+      "count": 2305,
+      "error": null,
+      "exists": true
+    },
+    "claims_contacts": {
+      "count": 0,
+      "error": "Could not find the table 'public.claims_contacts' in the schema cache",
+      "exists": false
+    },
+    "claims_contact_channels": {
+      "count": 0,
+      "error": "Could not find the table 'public.claims_contact_channels' in the schema cache",
+      "exists": false
+    },
+    "claims_claim_contacts": {
+      "count": 0,
+      "error": "Could not find the table 'public.claims_claim_contacts' in the schema cache",
+      "exists": false
+    }
+  },
+  "sampleExistingClaimContactFields": [
+    {
+      "id": "DAL-2026-0046",
+      "hasClientEmail": false,
+      "hasInsCompany": true,
+      "hasInsEmail": false,
+      "hasClientPhone": true
+    },
+    {
+      "id": "DAL-2026-0051",
+      "hasClientEmail": false,
+      "hasInsCompany": true,
+      "hasInsEmail": false,
+      "hasClientPhone": true
+    },
+    {
+      "id": "DAL-2026-0026",
+      "hasClientEmail": false,
+      "hasInsCompany": false,
+      "hasInsEmail": false,
+      "hasClientPhone": true
+    },
+    {
+      "id": "DAL-2026-0225",
+      "hasClientEmail": true,
+      "hasInsCompany": true,
+      "hasInsEmail": false,
+      "hasClientPhone": true
+    },
+    {
+      "id": "DAL-QA-WORKER-001",
+      "hasClientEmail": true,
+      "hasInsCompany": false,
+      "hasInsEmail": true,
+      "hasClientPhone": true
+    },
+    {
+      "id": "DAL-2026-0227",
+      "hasClientEmail": true,
+      "hasInsCompany": true,
+      "hasInsEmail": false,
+      "hasClientPhone": true
+    },
+    {
+      "id": "DAL-2026-0054",
+      "hasClientEmail": false,
+      "hasInsCompany": true,
+      "hasInsEmail": false,
+      "hasClientPhone": true
+    },
+    {
+      "id": "DAL-2026-0117",
+      "hasClientEmail": true,
+      "hasInsCompany": true,
+      "hasInsEmail": false,
+      "hasClientPhone": true
+    }
+  ],
+  "massMigrationOfClaimFields": false,
+  "note": "Existing claims_records.row_data contact fields left untouched. New tables were absent before apply.",
+  "rollbackSql": "supabase/migrations/20260909120000_claims_contact_directory_staging_rollback.sql",
+  "rollback": [
+    "DROP TABLE IF EXISTS public.claims_claim_contacts CASCADE;",
+    "DROP TABLE IF EXISTS public.claims_contact_channels CASCADE;",
+    "DROP TABLE IF EXISTS public.claims_contacts CASCADE;",
+    "Does not drop claims_records or mutate row_data.",
+    "Does not touch Production."
+  ]
+}

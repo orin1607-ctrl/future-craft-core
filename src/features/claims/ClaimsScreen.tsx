@@ -9,6 +9,8 @@ import { createClaimsApi, type ClaimsApi, type MailFollowupRow } from './claimsS
 import ClaimAccidentForm from './ClaimAccidentForm';
 import SignaturePad from './SignaturePad';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, resolveStaffClaimSaveId, shouldAutoPersistNoticePdf, type IntakeDraft } from './claimIntakeModel';
+import { ClaimContactsModal, ContactPickerList } from './ClaimContactsModal';
+import { emailsUnknownToDirectory, parseFromAddr, phoneUnknownToDirectory, type ClaimContact } from './claimContacts';
 import './claims.css';
 
 const ST_CSS: Record<string, string> = {
@@ -797,6 +799,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [mailFuLoaded, setMailFuLoaded] = useState(false);
   const [dashFollowups, setDashFollowups] = useState<Array<{ id: string; claim_id: string; status: string; mail_to: string; mail_subject: string; next_run_at: string; recipient_kind: string }>>([]);
   const [pendingCustTaskId, setPendingCustTaskId] = useState<string | null>(null);
+  const [claimContacts, setClaimContacts] = useState<ClaimContact[]>([]);
+  const [mailPicker, setMailPicker] = useState<'to' | 'cc' | null>(null);
+  const [mailSaveOffer, setMailSaveOffer] = useState<{ email: string; name: string } | null>(null);
+  const [mailSaveName, setMailSaveName] = useState('');
+  const [crPicker, setCrPicker] = useState(false);
+  const [crContact, setCrContact] = useState<ClaimContact | null>(null);
+  const [crDest, setCrDest] = useState('');
+  const [waSaveOffer, setWaSaveOffer] = useState('');
   const [suggestDraftBody, setSuggestDraftBody] = useState('');
   const [fuEditId, setFuEditId] = useState<string | null>(null);
   const [fuTreatTaskId, setFuTreatTaskId] = useState('');
@@ -1177,6 +1187,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           files: (d.files as ClaimFile[]) || [],
         });
       }).catch(() => { if (live()) setDocs({ requests: [], files: [] }); }),
+      apiRef.current.listClaimContacts(id).then((c) => { if (live()) setClaimContacts(c.data || []); }).catch(() => { if (live()) setClaimContacts([]); }),
     ]);
     const lk = await apiRef.current.invokeDocs('get_link', { claim_id: id }).catch(() => ({} as Record<string, unknown>));
     if (!live()) return;
@@ -1692,6 +1703,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const openCustomerRequest = () => {
     setModal('moCustReq');
+    setCrPicker(false);
+    setCrContact(null);
+    setCrDest('');
     setTimeout(() => {
       setVal('cr_kind', 'send_doc');
       setVal('cr_text', '');
@@ -3010,6 +3024,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button className="ab-btn ab-task ab-pri" data-testid="claims-cust-request" onClick={() => { setCardMore(false); openCustomerRequest(); }}>בקשה ללקוח</button>
                 <button className="ab-btn ab-status ab-pri" data-testid="claims-treat-open" onClick={() => { setCardMore(false); openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk }); }}>עדכון טיפול</button>
                 <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>מסמכים</button>
+                <button className="ab-btn ab-phone ab-pri" data-testid="claims-open-contacts" onClick={() => { setCardMore(false); setModal('moContacts'); }}>אנשי קשר</button>
                 {!(narrowList || phoneNarrow) ? (
                   <button className="ab-btn ab-mail ab-pri" data-testid="claims-sign-link" onClick={() => { setCardMore(false); void sendCustomerSignLink(cur.id); }}>שלח ללקוח לחתימה</button>
                 ) : null}
@@ -3876,7 +3891,33 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                               ) : null}
                               <div className="mail-meta">
                                 <div><b>תאריך</b>{fmtWhen(String(im.sent_at || ''))}</div>
-                                <div><b>From</b>{String(im.from_addr || '—')}</div>
+                                <div><b>From</b>{String(im.from_addr || '—')}
+                                  {(() => {
+                                    const parsed = parseFromAddr(String(im.from_addr || ''));
+                                    if (!parsed.email) return null;
+                                    const known = claimContacts.some((c) => c.channels.some((ch) => ch.kind === 'email' && ch.value_norm === parsed.email));
+                                    if (known) return null;
+                                    return (
+                                      <button type="button" className="btn btn-g btn-sm" data-testid={`mail-save-from-${im.id}`} style={{ marginInlineStart: 8 }} onClick={async () => {
+                                        if (!cur) return;
+                                        const r = await apiRef.current.saveContact({
+                                          full_name: parsed.name || parsed.email,
+                                          role: 'other',
+                                          listed_in_directory: true,
+                                          claimId: cur.id,
+                                          linkClaim: true,
+                                          channels: [{ kind: 'email', value: parsed.email }],
+                                        });
+                                        if (r.duplicate && r.existing) {
+                                          await apiRef.current.linkContactToClaim(cur.id, r.existing.id, r.existing.role);
+                                          toast('שויך איש קשר קיים — לא נוצרה כפילות');
+                                        } else if (!r.success) { toast(String(r.error || 'שמירה נכשלה'), 'err'); return; }
+                                        else toast('נשמר במאגר אחרי אישור מפורש');
+                                        await loadCardData(cur.id);
+                                      }}>+ שמור באנשי קשר</button>
+                                    );
+                                  })()}
+                                </div>
                                 <div><b>To</b>{String(im.to_addr || '—')}</div>
                                 <div><b>CC</b>{String(im.cc_addr || '—')}</div>
                                 <div><b>Thread</b>{String(im.gmail_thread_id || '—')}</div>
@@ -4290,6 +4331,27 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         )}
       </div>
 
+      {modal === 'moContacts' && cur ? (
+        <ClaimContactsModal
+          open
+          claim={cur}
+          api={apiRef.current}
+          onClose={() => setModal('moCard')}
+          toast={(m, k) => toast(m, k || 'ok')}
+          onMail={(email, c) => {
+            void openSendModal('draft', { to: email, subject: `תביעה ${displayClaimNum(cur)}`, body: `שלום ${c.full_name},\n` });
+          }}
+          onWhatsApp={(phone, c) => {
+            setVal('wa_phone', phone);
+            setVal('wa_msg', `שלום ${c.full_name}, בהמשך לתביעה ${displayClaimNum(cur)}`);
+            setModal('moWA');
+          }}
+          onCall={(phone) => {
+            window.open(`tel:${phone}`);
+          }}
+        />
+      ) : null}
+
       {/* ASSIGN */}
       <div className={`ov ${modal === 'moAssign' ? 'open' : ''}`}>
         <div className="modal modal-sm">
@@ -4453,8 +4515,35 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <div className="modal modal-sm">
           <div className="mh"><div className="mh-t">💬 שליחת WhatsApp</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
           <div className="mb">
-            <div className="fg"><label className="fl">טלפון</label><input className="fi" id="wa_phone" defaultValue={cur?.clientPhone} /></div>
+            <div className="fg"><label className="fl">טלפון</label><input className="fi" id="wa_phone" data-testid="wa-phone" key={val(null, 'wa_phone') || cur?.clientPhone || 'wa'} defaultValue={val(null, 'wa_phone') || cur?.clientPhone} /></div>
             <div className="fg"><label className="fl">הודעה</label><textarea className="fta" id="wa_msg" /></div>
+            {phoneUnknownToDirectory(val(null, 'wa_phone') || cur?.clientPhone || '', claimContacts) && waSaveOffer !== '__dismissed__' ? (
+              <div className="claim-contact-offer" data-testid="wa-save-offer">
+                המספר הזה אינו שמור באנשי הקשר. האם לשמור אותו?
+                <div className="claim-contact-acts" style={{ marginTop: 8 }}>
+                  <button type="button" className="btn btn-p btn-sm" data-testid="wa-save-confirm" onClick={async () => {
+                    if (!cur) return;
+                    const phone = val(null, 'wa_phone') || cur.clientPhone || '';
+                    const r = await apiRef.current.saveContact({
+                      full_name: cur.clientName || phone,
+                      role: 'client',
+                      listed_in_directory: true,
+                      claimId: cur.id,
+                      linkClaim: true,
+                      channels: [{ kind: 'whatsapp', value: phone }, { kind: 'phone', value: phone }],
+                    });
+                    if (r.duplicate && r.existing) {
+                      await apiRef.current.linkContactToClaim(cur.id, r.existing.id, r.existing.role);
+                      toast('שויך איש קשר קיים — לא נוצרה כפילות');
+                    } else if (!r.success) { toast(String(r.error || 'שמירה נכשלה'), 'err'); return; }
+                    else toast('נשמר במאגר אחרי אישור מפורש');
+                    setWaSaveOffer('__dismissed__');
+                    await loadCardData(cur.id);
+                  }}>שמור במאגר</button>
+                  <button type="button" className="btn btn-g btn-sm" onClick={() => setWaSaveOffer('__dismissed__')}>לא עכשיו</button>
+                </div>
+              </div>
+            ) : null}
           </div>
           <div className="mf"><button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
             <button className="btn btn-p" style={{ background: '#15803d' }} onClick={async () => {
@@ -4498,9 +4587,64 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               {toHint ? (
                 <button type="button" className="btn btn-g btn-sm" style={{ marginTop: 6 }} disabled={mailSending} onClick={() => { bumpMailDraft(); const next = mailAddrParts(mailTo).includes(toHint) ? mailTo : [...mailAddrParts(mailTo), toHint].join(', '); setMailTo(next); setVal('mail_to', next); }}>העתק כתובת ששמורה בתיק ({toHint})</button>
               ) : <div style={{ fontSize: 10, color: 'var(--t3)' }}>אין כתובת שמורה בתיק — חובה להקליד.</div>}
+              <button type="button" className="btn btn-g btn-sm" data-testid="mail-pick-contact" style={{ marginTop: 6 }} disabled={mailSending} onClick={() => setMailPicker(mailPicker === 'to' ? null : 'to')}>בחר מאנשי קשר</button>
+              {mailPicker === 'to' ? (
+                <ContactPickerList
+                  contacts={claimContacts}
+                  claim={cur}
+                  channel="email"
+                  onPick={(c, v) => {
+                    bumpMailDraft();
+                    const next = mailAddrParts(mailTo).includes(v) ? mailTo : [...mailAddrParts(mailTo), v].join(', ');
+                    setMailTo(next);
+                    setVal('mail_to', next);
+                    setMailPicker(null);
+                    toast(`נבחר ${c.full_name} — המייל לא נשלח עד אישור SEND`);
+                  }}
+                />
+              ) : null}
               {mailTo && !mailAddrsOk(mailTo, true) ? (
                 <div style={{ fontSize: 11, color: 'var(--rd2)', marginTop: 6 }}>הכתובת לא נקראת כאימייל תקין. הקלידו באנגלית משמאל לימין, בלי רווחים.</div>
               ) : null}
+              {emailsUnknownToDirectory(mailTo, claimContacts).filter((e) => e !== mailSaveOffer?.email || mailSaveName !== '__dismissed__').slice(0, 1).map((email) => (
+                mailSaveOffer?.email === email && mailSaveName === '__dismissed__' ? null : (
+                  <div key={email} className="claim-contact-offer" data-testid="mail-save-offer">
+                    כתובת המייל הזו אינה שמורה באנשי הקשר. האם לשמור אותה?
+                    {mailSaveOffer?.email === email ? (
+                      <div style={{ marginTop: 8 }}>
+                        <input className="fi" data-testid="mail-save-name" placeholder="שם איש הקשר" value={mailSaveName} onChange={(e) => setMailSaveName(e.target.value)} />
+                        <div className="claim-contact-acts">
+                          <button type="button" className="btn btn-p btn-sm" data-testid="mail-save-confirm" onClick={async () => {
+                            if (!cur) return;
+                            const r = await apiRef.current.saveContact({
+                              full_name: mailSaveName.trim() || email,
+                              role: 'other',
+                              company_name: cur.insCompany || '',
+                              listed_in_directory: true,
+                              claimId: cur.id,
+                              linkClaim: true,
+                              channels: [{ kind: 'email', value: email }],
+                            });
+                            if (r.duplicate && r.existing) {
+                              const link = await apiRef.current.linkContactToClaim(cur.id, r.existing.id, r.existing.role);
+                              toast(link.success ? 'שויך איש קשר קיים — לא נוצרה כפילות' : String(link.error || 'שיוך נכשל'), link.success ? 'ok' : 'err');
+                            } else if (!r.success) { toast(String(r.error || 'שמירה נכשלה'), 'err'); return; }
+                            else toast('נשמר במאגר אחרי אישור מפורש');
+                            setMailSaveOffer(null);
+                            await loadCardData(cur.id);
+                          }}>שמור במאגר</button>
+                          <button type="button" className="btn btn-g btn-sm" data-testid="mail-save-skip" onClick={() => { setMailSaveOffer({ email, name: '' }); setMailSaveName('__dismissed__'); }}>לא עכשיו</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="claim-contact-acts" style={{ marginTop: 8 }}>
+                        <button type="button" className="btn btn-p btn-sm" data-testid="mail-save-start" onClick={() => { setMailSaveOffer({ email, name: '' }); setMailSaveName(''); }}>שמור במאגר</button>
+                        <button type="button" className="btn btn-g btn-sm" onClick={() => { setMailSaveOffer({ email, name: '' }); setMailSaveName('__dismissed__'); }}>לא עכשיו</button>
+                      </div>
+                    )}
+                  </div>
+                )
+              ))}
             </div>
             <div className="fg">
               <label className="fl">CC</label>
@@ -4512,6 +4656,21 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 placeholder="אופציונלי"
                 onChange={(v) => { bumpMailDraft(); setMailCc(v); setVal('mail_cc', v); }}
               />
+              <button type="button" className="btn btn-g btn-sm" style={{ marginTop: 6 }} disabled={mailSending} onClick={() => setMailPicker(mailPicker === 'cc' ? null : 'cc')}>CC מאנשי קשר</button>
+              {mailPicker === 'cc' ? (
+                <ContactPickerList
+                  contacts={claimContacts}
+                  claim={cur}
+                  channel="email"
+                  onPick={(c, v) => {
+                    bumpMailDraft();
+                    const next = mailAddrParts(mailCc).includes(v) ? mailCc : [...mailAddrParts(mailCc), v].join(', ');
+                    setMailCc(next);
+                    setVal('mail_cc', next);
+                    setMailPicker(null);
+                  }}
+                />
+              ) : null}
             </div>
             <div className="fg"><label className="fl">Subject</label><input className="fi" id="mail_subj" data-testid="mail-subj" disabled={mailSending} value={mailSubj} onChange={(e) => { bumpMailDraft(); setMailSubj(e.target.value); setVal('mail_subj', e.target.value); }} /></div>
             {(mailKind === 'insurer' || mailKind === 'legal') && (
@@ -4992,6 +5151,23 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <option value="whatsapp">WhatsApp (ידני, מנגנון קיים)</option>
               </select>
             </div>
+            <div className="fg"><label className="fl">נמען מאנשי קשר</label>
+              <button type="button" className="btn btn-g btn-sm" data-testid="cr-pick-contact" onClick={() => setCrPicker((v) => !v)}>בחר איש קשר</button>
+              {crContact ? (
+                <div data-testid="cr-selected" style={{ fontSize: 12, marginTop: 6 }}>
+                  נבחר: <b>{crContact.full_name}</b> · {crContact.company_name || '—'} · <span dir="ltr">{crDest || '—'}</span>
+                  <div style={{ color: 'var(--t3)' }}>אין שליחה עד אישור «שמור / המשך לשליחה».</div>
+                </div>
+              ) : <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 4 }}>ברירת מחדל: פרטי הלקוח שכבר בתיק. אפשר לבחור סוכן / איש קשר אחר.</div>}
+              {crPicker ? (
+                <ContactPickerList
+                  contacts={claimContacts}
+                  claim={cur}
+                  channel={(val(null, 'cr_channel') || 'email') === 'whatsapp' ? 'phone' : 'email'}
+                  onPick={(c, v) => { setCrContact(c); setCrDest(v); setCrPicker(false); }}
+                />
+              ) : null}
+            </div>
             <div className="fg"><label className="fl">תזמון שליחה (ריק = עכשיו)</label><input className="fi" id="cr_when" data-testid="cr-when" type="datetime-local" /></div>
           </div>
           <div className="mf"><button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
@@ -5020,8 +5196,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 done: 'false',
               };
               if (channel === 'email' && when) {
-                const to = cur.clientEmail || '';
-                if (!to) { toast('אין כתובת מייל ללקוח בתיק', 'err'); return; }
+                const to = crDest || cur.clientEmail || '';
+                if (!to) { toast('אין כתובת מייל — בחרו איש קשר או מלאו מייל בתיק', 'err'); return; }
                 const whenIso = new Date(when).toISOString();
                 if (Number.isNaN(Date.parse(whenIso))) { toast('מועד לא תקין', 'err'); return; }
                 const fu = await apiRef.current.upsertMailFollowup({
@@ -5032,7 +5208,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   mail_kind: 'email_once',
                   attach_mode: 'none',
                   next_run_at: whenIso,
-                  recipient_kind: 'client',
+                  recipient_kind: crContact?.role === 'insurer' || crContact?.role === 'insurer_dept' ? 'insurer' : crContact && crContact.role !== 'client' ? 'other' : 'client',
                 });
                 if (!fu.success) { toast(String(fu.error || 'תזמון המייל נכשל'), 'err'); return; }
                 row.mailFollowupId = String(fu.id || '');
@@ -5062,14 +5238,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   await loadAll();
                   return;
                 }
-                setVal('wa_phone', cur.clientPhone || '');
+                setVal('wa_phone', crDest || cur.clientPhone || '');
                 setVal('wa_msg', text);
                 setModal('moWA');
                 toast('משימה נשמרה — שליחת WhatsApp ידנית בחלון הבא');
                 return;
               }
               await openSendModal('draft', {
-                to: cur.clientEmail || '',
+                to: crDest || cur.clientEmail || '',
                 subject: `תביעה ${displayClaimNum(cur)} – ${label}`,
                 body: text,
               });
