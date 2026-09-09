@@ -13,8 +13,11 @@ const PROD_REF = 'qasomfndnjuixgjmjwcm';
 const ROOT = process.cwd();
 const OUT = join(ROOT, 'docs/audit-reports/claims-garage-photos-2026-09-09');
 mkdirSync(OUT, { recursive: true });
-const SQL = join(ROOT, 'supabase/migrations/20260909180000_claims_garage_assignments_staging.sql');
-const sqlText = readFileSync(SQL, 'utf8');
+const SQL_FILES = [
+  join(ROOT, 'supabase/migrations/20260909180000_claims_garage_assignments_staging.sql'),
+  join(ROOT, 'supabase/migrations/20260909181000_claims_garage_photo_kind_staging.sql'),
+];
+const sqlText = SQL_FILES.map((p) => readFileSync(p, 'utf8')).join('\n\n');
 if (sqlText.includes(PROD_REF) || /qasomfndnjuixgjmjwcm|dalia-new/.test(sqlText)) {
   throw new Error('refused production ref in sql');
 }

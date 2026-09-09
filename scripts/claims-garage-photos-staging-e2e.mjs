@@ -235,8 +235,8 @@ const up1 = await uploadJpg(`garage-front-${stamp}.jpg`);
 const up2 = await uploadJpg(`garage-side-${stamp}.jpg`);
 const file1 = String(up1.json.file_id || '');
 const file2 = String(up2.json.file_id || '');
-rec('worker-upload-1', up1.json.success === true && Boolean(file1), { id: file1, status: up1.json.status });
-rec('worker-upload-2', up2.json.success === true && Boolean(file2), { id: file2 });
+rec('worker-upload-1', up1.json.success === true && Boolean(file1), { id: file1, status: up1.json.status, err: up1.json.error });
+rec('worker-upload-2', up2.json.success === true && Boolean(file2), { id: file2, err: up2.json.error });
 rec('upload-marks-in-progress', up1.json.status === 'in_progress' || up2.json.status === 'in_progress');
 
 const photos = await invoke(photo.session, { action: 'garage_list_photos', claim_id: claimId });
