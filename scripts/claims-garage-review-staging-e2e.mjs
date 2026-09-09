@@ -371,6 +371,56 @@ rec('21-back-to-awaiting', afterRound2.json.assignment?.review_status === 'await
   review: afterRound2.json.assignment?.review_status, note: afterRound2.json.assignment?.review_note,
 });
 
+if (!process.env.CLAIMS_QA_API_ONLY) {
+  try {
+    const { chromium } = await import('playwright');
+    const pagesGarage = await fetch(`${PUBLIC}/garage`, { cache: 'no-store' }).then((r) => r.status).catch(() => 0);
+    const local = (process.env.CLAIMS_QA_UI_BASE || 'http://127.0.0.1:4173').replace(/\/$/, '');
+    const localGarage = await fetch(`${local}/garage`, { cache: 'no-store' }).then((r) => r.status).catch(() => 0);
+    const uiBase = localGarage === 200 ? local : (pagesGarage === 200 ? PUBLIC : '');
+    if (uiBase) {
+      const browser = await chromium.launch({ headless: true });
+      const ctx = await browser.newContext({ locale: 'he-IL', viewport: { width: 1400, height: 900 } });
+      await ctx.addInitScript(({ key, value }) => localStorage.setItem(key, JSON.stringify(value)), {
+        key: `sb-${STAGING_REF}-auth-token`,
+        value: {
+          access_token: desk.session.access_token,
+          refresh_token: desk.session.refresh_token,
+          expires_at: desk.session.expires_at,
+          expires_in: desk.session.expires_in,
+          token_type: desk.session.token_type,
+          user: desk.session.user,
+        },
+      });
+      const page = await ctx.newPage();
+      await page.goto(`${uiBase}/claims`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.waitForSelector('[data-testid="claims-search"]', { timeout: 45000 }).catch(() => null);
+      const box = page.locator('[data-testid="claims-search"]').locator('visible=true').first();
+      if (await box.count()) {
+        await box.fill(claimId);
+        await page.waitForSelector(`[data-testid="claim-alert-garage_review"]`, { timeout: 20000 }).catch(() => null);
+        rec('07-ui-table-chip', await page.locator('[data-testid="claim-alert-garage_review"]').count() > 0, {
+          text: (await page.locator(`[data-testid="claim-row-${claimId}"]`).innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 220),
+        });
+        const row = page.locator(`[data-testid="claim-row-${claimId}"]`).first();
+        if (await row.count()) {
+          await row.click();
+          await page.locator('[data-testid="claims-open-docs"]').click().catch(() => null);
+          await page.waitForSelector('[data-testid="garage-review-awaiting"]', { timeout: 25000 }).catch(() => null);
+          rec('07-ui-awaiting-banner', await page.locator('[data-testid="garage-review-awaiting"]').count() > 0);
+          rec('09-ui-preview-ready', await page.getByText('תמונות מוסך', { exact: false }).count() > 0);
+          const p = join(OUT, 'screenshots', 'staff-awaiting-review.png');
+          await page.screenshot({ path: p, fullPage: false });
+          try { copyFileSync(p, join('/opt/cursor/artifacts', 'garage-review-awaiting.png')); } catch { /* skip */ }
+        }
+      }
+      await browser.close();
+    }
+  } catch (e) {
+    rec('07-ui-table-chip', false, { err: String(e.message || e).slice(0, 240) });
+  }
+}
+
 const approve2 = await invoke(desk.session, { action: 'garage_review_approve', claim_id: claimId });
 rec('22-approve-after-update', approve2.json.success === true && approve2.json.assignment?.review_status === 'approved', { err: approve2.json.error });
 
@@ -455,7 +505,7 @@ if (!process.env.CLAIMS_QA_API_ONLY) {
         if (await row.count()) {
           await row.click();
           await staffPage.locator('[data-testid="claims-open-docs"]').click().catch(() => null);
-          await staffPage.waitForSelector('[data-testid="garage-assign-bar"]', { timeout: 20000 }).catch(() => null);
+          await staffPage.waitForSelector('[data-testid="garage-assign-current"], [data-testid="garage-review-approved"]', { timeout: 25000 }).catch(() => null);
           rec('25-desktop-staff-bar', await staffPage.locator('[data-testid="garage-assign-bar"]').count() > 0);
           rec('25-desktop-approved-label', await staffPage.locator('[data-testid="garage-review-approved"]').count() > 0, {
             text: (await staffPage.locator('[data-testid="garage-assign-bar"]').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 220),
