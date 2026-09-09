@@ -13,6 +13,7 @@ import {
   type ContactChannelKind,
 } from './claimContacts';
 import type { ClaimRecord, ClaimsApi } from './claimsService';
+import { UNPUBLISHED_INSURER_EMAIL_NOTE } from './verifiedInsurerDepts';
 
 type SaveDraft = {
   full_name: string;
@@ -244,6 +245,15 @@ export function ClaimContactsModal({
             </select>
           </div>
           <button type="button" className="btn btn-p btn-sm" data-testid="contacts-add" onClick={() => { setAdding((v) => !v); setDup(null); }}>+ הוסף איש קשר</button>
+          <button type="button" className="btn btn-g btn-sm" data-testid="contacts-seed-insurers" disabled={busy} style={{ marginInlineStart: 6 }} onClick={async () => {
+            setBusy(true);
+            const r = await api.ensureVerifiedInsurerDepts();
+            setBusy(false);
+            if (!r.success) { toast(r.error || 'טעינת מחלקות נכשלה', 'err'); return; }
+            toast(`נוספו ${r.created} מחלקות מאומתות · ${r.skipped} כבר היו במאגר`);
+            await load();
+          }}>הוסף מחלקות תביעות מאומתות</button>
+          <div style={{ fontSize: 11, color: 'var(--t3)', margin: '8px 0 12px' }}>{UNPUBLISHED_INSURER_EMAIL_NOTE}</div>
           {adding ? (
             <div className="claim-contact-form" data-testid="contacts-add-form">
               <div className="fg"><label className="fl">שם *</label><input className="fi" data-testid="contact-name" value={draft.full_name} onChange={(e) => setDraft({ ...draft, full_name: e.target.value })} /></div>

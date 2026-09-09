@@ -1,5 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CLOSE_REASONS, STATUS_MANUAL, STATUS_UNCHANGED, TEMPLATES, isClosedStatus, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
+import { CUSTOMER_REQUEST_TEMPLATE_KEY, parseRequestTemplates, type CustomerRequestTemplate } from './customerRequestModel';
+import { VERIFIED_INSURER_DEPTS } from './verifiedInsurerDepts';
 import { customerStatusOf, customerTaskHistoryAction } from './claimWorkAlerts';
 import { inferTreatmentRequest } from './treatmentCenter';
 import { normChannel, type ClaimContact, type ClaimContactChannel, type ContactChannelKind } from './claimContacts';
@@ -1297,6 +1299,86 @@ export function createClaimsApi(actor: ClaimsActor) {
       const json = await res.json().catch(() => ({})) as { success?: boolean; error?: string; file_id?: string; reused?: boolean };
       if (!res.ok || json.success === false) return { success: false, error: json.error || `HTTP ${res.status}` };
       return { success: true, file_id: json.file_id || '', reused: json.reused === true };
+    },
+
+    async listRequestTemplates() {
+      const { data, error } = await tbl('claims_config').select('key, value').eq('key', CUSTOMER_REQUEST_TEMPLATE_KEY).maybeSingle();
+      if (error) return { success: false as const, error: error.message, data: parseRequestTemplates('') };
+      return { success: true as const, data: parseRequestTemplates(asText((data as { value?: string } | null)?.value)) };
+    },
+
+    async saveRequestTemplates(templates: CustomerRequestTemplate[]) {
+      const { error } = await tbl('claims_config').upsert({
+        key: CUSTOMER_REQUEST_TEMPLATE_KEY,
+        value: JSON.stringify(templates),
+        updated_at: new Date().toISOString(),
+      } as never);
+      if (error) return { success: false as const, error: error.message };
+      return { success: true as const };
+    },
+
+    async addDocRequest(claimId: string, label: string, docKey = 'custom') {
+      const name = String(label || '').trim();
+      if (!claimId || !name) return { success: false as const, error: 'חסר תווית בקשה' };
+      const { data: existing, error: listErr } = await tbl('claims_doc_requests').select('id, label, status').eq('claim_id', claimId);
+      if (listErr) return { success: false as const, error: listErr.message };
+      const hit = (existing || []).find((e) => e.label === name && e.status !== 'received');
+      if (hit) return { success: true as const, id: asText(hit.id), reused: true as const };
+      const id = generateId('DCR');
+      const { error } = await tbl('claims_doc_requests').insert({
+        id,
+        claim_id: claimId,
+        label: name,
+        doc_key: docKey || 'custom',
+        status: 'requested',
+        created_by: actor.id || null,
+      } as never);
+      if (error) return { success: false as const, error: error.message };
+      await appendHistory(claimId, 'נוספה בקשת מסמך ללקוח', name, 'customer_task');
+      return { success: true as const, id, reused: false as const };
+    },
+
+    async resetDocRequest(claimId: string, requestId: string) {
+      if (!claimId || !requestId) return { success: false as const, error: 'חסר מזהה' };
+      const { error } = await tbl('claims_doc_requests').update({
+        status: 'requested',
+        received_at: null,
+      } as never).eq('id', requestId).eq('claim_id', claimId);
+      if (error) return { success: false as const, error: error.message };
+      await appendHistory(claimId, 'בקשה הוחזרה ללקוח', requestId, 'customer_task');
+      return { success: true as const };
+    },
+
+    async ensureVerifiedInsurerDepts() {
+      let created = 0;
+      let skipped = 0;
+      for (const row of VERIFIED_INSURER_DEPTS) {
+        const dup = await this.findDuplicateChannels('email', row.email);
+        if (!dup.success) return { success: false as const, error: dup.error, created, skipped };
+        if (dup.matches.length) {
+          skipped += 1;
+          continue;
+        }
+        const { data: have } = await tbl('claims_contacts').select('id').eq('id', row.id).maybeSingle();
+        if (have) {
+          skipped += 1;
+          continue;
+        }
+        const saved = await this.saveContact({
+          full_name: row.full_name,
+          role: 'insurer_dept',
+          company_name: row.company_name,
+          department: row.department,
+          note: `${row.note} · ${row.source}`,
+          listed_in_directory: true,
+          linkClaim: false,
+          channels: [{ kind: 'email', value: row.email, label: row.department }],
+        });
+        if (saved.duplicate) { skipped += 1; continue; }
+        if (!saved.success) return { success: false as const, error: saved.error, created, skipped };
+        created += 1;
+      }
+      return { success: true as const, created, skipped };
     },
   };
 }
