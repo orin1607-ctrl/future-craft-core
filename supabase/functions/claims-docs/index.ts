@@ -208,6 +208,7 @@ const DOC_KINDS = new Set([
   "surveyor_photo",
   "surveyor_attachment",
   "garage_invoice",
+  "garage_photo",
 ]);
 
 const STAFF_TYPES = new Set([
@@ -220,6 +221,7 @@ const STAFF_TYPES = new Set([
   "police",
   "surveyor_report",
   "garage_invoice",
+  "garage_photos",
   "damage_photos",
   "other",
   "notice_a",
@@ -240,6 +242,7 @@ const STAFF_TYPE_BY_DOC_KEY: Record<string, string> = {
   consent_form: "consent_form",
   check_photo: "check_photo",
   garage_invoice: "garage_invoice",
+  garage_photos: "garage_photos",
   surveyor_report: "surveyor_report",
   damage_photos: "damage_photos",
   license_driver: "driver_license",
@@ -255,6 +258,7 @@ function kindFromUpload(docKey: string, mime: string, explicit: string) {
   if (explicit && DOC_KINDS.has(explicit)) return explicit;
   if (docKey === "surveyor_report" || docKey === "surveyor_photos") return mime.startsWith("image/") ? "surveyor_photo" : "surveyor_report";
   if (docKey === "garage_invoice") return "garage_invoice";
+  if (docKey === "garage_photos" || explicit === "garage_photo") return "garage_photo";
   return "general";
 }
 
@@ -611,9 +615,245 @@ Deno.serve(async (req) => {
     const auth = await requireAuth(req);
     if ("error" in auth) return auth.error;
     const { user, role } = auth.ctx;
-    if (!(await hasClaimsAccess(sb, user.id, role))) return jsonResponse({ success: false, error: "forbidden" }, 403);
     const profile = await sb.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
     const actorName = profile.data?.full_name || user.email || user.id;
+
+    async function activeGarageJob(claimId: string) {
+      const { data } = await sb.from("claims_garage_assignments")
+        .select("id, claim_id, worker_id, worker_name, status, worker_note, photo_count, assigned_by_name, assigned_at, completed_at, unassigned_at")
+        .eq("claim_id", claimId)
+        .is("unassigned_at", null)
+        .maybeSingle();
+      return data;
+    }
+
+    async function workerOwnsGarage(claimId: string) {
+      const job = await activeGarageJob(claimId);
+      return !!job && job.worker_id === user.id ? job : null;
+    }
+
+    function claimPublicSlice(row: { id?: string; client_name?: string; plate?: string; row_data?: Record<string, unknown> | null }) {
+      const rd = row.row_data && typeof row.row_data === "object" ? row.row_data : {};
+      const str = (k: string) => String((rd as Record<string, unknown>)[k] || "").trim();
+      return {
+        id: String(row.id || ""),
+        client_name: String(row.client_name || str("clientName") || ""),
+        plate: String(row.plate || str("plate") || ""),
+        car_model: str("carModel"),
+        garage_name: str("garageName"),
+        event_date: str("eventDate"),
+      };
+    }
+
+    function claimSoftDeleted(row: { row_data?: Record<string, unknown> | null } | null | undefined) {
+      const rd = row?.row_data;
+      return Boolean(rd && typeof rd === "object" && rd.deletedAt);
+    }
+
+    async function listGaragePhotos(claimId: string) {
+      const { data } = await sb.from("claims_documents")
+        .select("id, original_name, mime_type, byte_size, created_at, uploaded_by_name, doc_kind, doc_meta")
+        .eq("claim_id", claimId)
+        .order("created_at", { ascending: true });
+      return (data || []).filter((f) => {
+        const st = String((f.doc_meta && typeof f.doc_meta === "object" ? (f.doc_meta as Record<string, string>).staff_type : "") || "");
+        return f.doc_kind === "garage_photo" || st === "garage_photos";
+      });
+    }
+
+    if (action === "garage_list_jobs" || action === "garage_get_job" || action === "garage_upload" || action === "garage_list_photos" || action === "garage_complete" || action === "garage_signed_url") {
+      if (action === "garage_list_jobs") {
+        const { data: jobs } = await sb.from("claims_garage_assignments")
+          .select("id, claim_id, worker_id, worker_name, status, worker_note, photo_count, assigned_at, completed_at")
+          .eq("worker_id", user.id)
+          .is("unassigned_at", null)
+          .order("assigned_at", { ascending: false });
+        const ids = (jobs || []).map((j) => j.claim_id);
+        const claims = ids.length
+          ? (await sb.from("claims_records").select("id, client_name, plate, row_data").in("id", ids)).data || []
+          : [];
+        const byId = new Map(claims.map((c) => [c.id, c]));
+        return jsonResponse({
+          success: true,
+          jobs: (jobs || [])
+            .filter((j) => {
+              const row = byId.get(j.claim_id);
+              return Boolean(row) && !claimSoftDeleted(row);
+            })
+            .map((j) => ({
+              ...j,
+              claim: claimPublicSlice(byId.get(j.claim_id) || { id: j.claim_id }),
+            })),
+        });
+      }
+
+      const claimId = String(body.claim_id || form?.get("claim_id") || "");
+      const job = await workerOwnsGarage(claimId);
+      if (!job) return jsonResponse({ success: false, error: "forbidden", blocked: true }, 403);
+      const { data: ownedClaim } = await sb.from("claims_records").select("id, client_name, plate, row_data").eq("id", claimId).maybeSingle();
+      if (!ownedClaim || claimSoftDeleted(ownedClaim)) return jsonResponse({ success: false, error: "forbidden", blocked: true }, 403);
+
+      if (action === "garage_get_job" || action === "garage_list_photos") {
+        const photos = await listGaragePhotos(claimId);
+        return jsonResponse({
+          success: true,
+          job,
+          claim: claimPublicSlice(ownedClaim || { id: claimId }),
+          photos: photos.map((p) => ({
+            id: p.id,
+            original_name: p.original_name,
+            mime_type: p.mime_type,
+            byte_size: p.byte_size,
+            created_at: p.created_at,
+            uploaded_by_name: p.uploaded_by_name,
+          })),
+        });
+      }
+
+      if (action === "garage_signed_url") {
+        const fileId = String(body.file_id || "");
+        const photos = await listGaragePhotos(claimId);
+        const hit = photos.find((p) => p.id === fileId);
+        if (!hit) return jsonResponse({ success: false, error: "BLOCKED", blocked: true }, 403);
+        const { data: file } = await sb.from("claims_documents").select("storage_path, claim_id").eq("id", fileId).eq("claim_id", claimId).maybeSingle();
+        if (!file) return jsonResponse({ success: false, error: "not_found" }, 404);
+        const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(file.storage_path, SIGNED_TTL_SEC);
+        if (error) return jsonResponse({ success: false, error: error.message }, 400);
+        return jsonResponse({ success: true, url: data.signedUrl });
+      }
+
+      if (action === "garage_complete") {
+        const now = new Date().toISOString();
+        await sb.from("claims_garage_assignments").update({
+          status: "completed",
+          completed_at: now,
+        }).eq("id", job.id).eq("worker_id", user.id).is("unassigned_at", null);
+        await history(sb, claimId, "צילומי מוסך הושלמו", `עובד ${job.worker_name}`, actorName);
+        return jsonResponse({ success: true, status: "completed", completed_at: now });
+      }
+
+      if (action === "garage_upload") {
+        const file = form?.get("file");
+        if (!(file instanceof File)) return jsonResponse({ success: false, error: "file_required" }, 400);
+        if (file.size > MAX_BYTES) return jsonResponse({ success: false, error: "file_too_large" }, 400);
+        const buf = new Uint8Array(await file.arrayBuffer());
+        const storedMime = resolveStoredMime(file.name, file.type, buf);
+        if (!/^image\//.test(storedMime) || !ALLOWED.has(storedMime)) return jsonResponse({ success: false, error: "image_required" }, 400);
+        const digest = await sha256HexBytes(buf);
+        const { data: existing } = await sb.from("claims_documents").select("id, source").eq("claim_id", claimId).eq("content_sha256", digest).maybeSingle();
+        if (existing?.id) {
+          return jsonResponse({ success: true, file_id: existing.id, reused: true, source: existing.source });
+        }
+        const fileId = nid("CDM");
+        const path = `${claimId}/staff/${nid("F")}-${sanitizeFileName(file.name)}`;
+        const { error: upErr } = await sb.storage.from(BUCKET).upload(path, buf, { contentType: storedMime, upsert: false });
+        if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
+        const { error: insErr } = await sb.from("claims_documents").insert({
+          id: fileId,
+          claim_id: claimId,
+          storage_path: path,
+          original_name: file.name,
+          mime_type: storedMime,
+          byte_size: file.size,
+          source: "staff",
+          uploaded_by: user.id,
+          uploaded_by_name: actorName,
+          doc_kind: "garage_photo",
+          doc_meta: { staff_type: "garage_photos", staff_title: "תמונות מוסך" },
+          content_sha256: digest,
+        });
+        if (insErr) return jsonResponse({ success: false, error: insErr.message }, 400);
+        const photos = await listGaragePhotos(claimId);
+        const nextStatus = job.status === "completed" ? "completed" : "in_progress";
+        await sb.from("claims_garage_assignments").update({
+          photo_count: photos.length,
+          status: nextStatus,
+        }).eq("id", job.id);
+        await history(sb, claimId, "תמונת מוסך הועלתה", file.name, actorName);
+        return jsonResponse({ success: true, file_id: fileId, reused: false, photo_count: photos.length, status: nextStatus });
+      }
+    }
+
+    if (!(await hasClaimsAccess(sb, user.id, role))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+
+    if (action === "list_garage_workers") {
+      const { data } = await sb.from("profiles")
+        .select("id, full_name")
+        .eq("is_active", true)
+        .order("full_name")
+        .limit(400);
+      return jsonResponse({
+        success: true,
+        workers: (data || []).map((p) => ({ id: p.id, full_name: p.full_name || p.id })),
+      });
+    }
+
+    if (action === "get_garage_assignment") {
+      const claimId = String(body.claim_id || "");
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+      const job = await activeGarageJob(claimId);
+      const photos = job ? await listGaragePhotos(claimId) : [];
+      return jsonResponse({ success: true, assignment: job || null, photo_count: photos.length });
+    }
+
+    if (action === "assign_garage_worker") {
+      const claimId = String(body.claim_id || "");
+      const workerId = String(body.worker_id || "");
+      const workerNote = String(body.worker_note || "").trim().slice(0, 400);
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+      if (!workerId) return jsonResponse({ success: false, error: "worker_required" }, 400);
+      const { data: worker } = await sb.from("profiles").select("id, full_name, is_active").eq("id", workerId).maybeSingle();
+      if (!worker?.id || worker.is_active === false) return jsonResponse({ success: false, error: "worker_not_found" }, 404);
+      const prev = await activeGarageJob(claimId);
+      if (prev) {
+        await sb.from("claims_garage_assignments").update({
+          unassigned_at: new Date().toISOString(),
+          unassigned_by: user.id,
+          unassigned_by_name: actorName,
+        }).eq("id", prev.id);
+        await history(sb, claimId, prev.worker_id === workerId ? "שיוך צלם מוסך חודש" : "הוחלף צלם מוסך", `${prev.worker_name} → ${worker.full_name || workerId}`, actorName);
+      }
+      const id = nid("GAR");
+      const { error: insErr } = await sb.from("claims_garage_assignments").insert({
+        id,
+        claim_id: claimId,
+        worker_id: worker.id,
+        worker_name: worker.full_name || worker.id,
+        status: "pending",
+        worker_note: workerNote,
+        photo_count: 0,
+        assigned_by: user.id,
+        assigned_by_name: actorName,
+      });
+      if (insErr) return jsonResponse({ success: false, error: insErr.message }, 400);
+      if (!prev) await history(sb, claimId, "שויך צלם מוסך", worker.full_name || workerId, actorName);
+      return jsonResponse({
+        success: true,
+        assignment: {
+          id,
+          claim_id: claimId,
+          worker_id: worker.id,
+          worker_name: worker.full_name || worker.id,
+          status: "pending",
+          worker_note: workerNote,
+          assigned_by_name: actorName,
+        },
+      });
+    }
+
+    if (action === "unassign_garage_worker") {
+      const claimId = String(body.claim_id || "");
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+      const prev = await activeGarageJob(claimId);
+      if (!prev) return jsonResponse({ success: true, assignment: null });
+      await sb.from("claims_garage_assignments").update({
+        unassigned_at: new Date().toISOString(),
+        unassigned_by: user.id,
+        unassigned_by_name: actorName,
+      }).eq("id", prev.id);
+      await history(sb, claimId, "בוטל שיוך צלם מוסך", prev.worker_name, actorName);
+      return jsonResponse({ success: true, assignment: null });
+    }
 
     if (action === "create_link") {
       const claimId = String(body.claim_id || "");
@@ -974,7 +1214,7 @@ Deno.serve(async (req) => {
         source: "staff",
         uploaded_by: user.id,
         uploaded_by_name: actorName,
-        doc_kind: kindFromUpload(reqKey, storedMime, explicitKind),
+        doc_kind: staffType === "garage_photos" ? "garage_photo" : kindFromUpload(reqKey, storedMime, explicitKind),
         doc_meta: {
           ...(staffType ? { staff_type: staffType } : {}),
           ...(staffTitle ? { staff_title: staffTitle } : {}),

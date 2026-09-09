@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Scale, X } from 'lucide-react';
+import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Scale, X, Camera } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
@@ -56,6 +56,7 @@ const managerMobileNav: NavItem[] = [
 // Driver mobile bottom nav
 const driverMobileNav: NavItem[] = [
   { path: '/dashboard', label: 'בית', icon: Home },
+  { path: '/garage', label: 'צילומי מוסך', icon: Camera },
   { path: '/driver-notifications', label: 'התראות', icon: Bell },
   { path: '/faults', label: 'תקלה', icon: Wrench },
   { path: '/expenses', label: 'חשבוניות', icon: FileText },
@@ -68,6 +69,7 @@ const telemarketingMobileNav: NavItem[] = [
 
 const claimsWorkerMobileNav: NavItem[] = [
   { path: '/claims', label: 'תביעות', icon: Scale },
+  { path: '/garage', label: 'צילומי מוסך', icon: Camera },
 ];
 
 export default function BottomNav() {
@@ -151,6 +153,7 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
     { path: '/work-orders', label: 'סידור עבודה', icon: ClipboardList },
     { path: '/history', label: 'היסטוריה טיפולים', icon: History },
     { path: '/emergency', label: 'שירותי חירום 24/7', icon: Phone },
+    { path: '/garage', label: 'צילומי מוסך', icon: Camera },
     ...(canClaims ? [{ path: '/claims', label: 'ניהול תביעות', icon: Scale } as NavItem] : []),
   ];
 
@@ -161,6 +164,7 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
 
   const claimsWorkerSidebarItems: NavItem[] = [
     { path: '/claims', label: 'ניהול תביעות', icon: Scale },
+    { path: '/garage', label: 'צילומי מוסך', icon: Camera },
   ];
 
   return (

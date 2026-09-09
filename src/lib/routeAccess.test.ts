@@ -72,5 +72,14 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/vehicles', 'driver', extras)).toBe(false);
     expect(canAccessRoute('/accidents', 'driver', extras)).toBe(false);
     expect(canAccessRoute('/telemarketing', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/garage', 'driver', extras)).toBe(true);
+  });
+
+  it('garage portal is for existing auth users, not customers', () => {
+    expect(canAccessRoute('/garage', 'driver')).toBe(true);
+    expect(canAccessRoute('/garage', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/garage', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/garage', 'private_customer')).toBe(false);
+    expect(canAccessRoute('/garage', 'telemarketing_agent')).toBe(false);
   });
 });

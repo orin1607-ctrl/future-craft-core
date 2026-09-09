@@ -13,6 +13,8 @@ describe('claimDocLibrary', () => {
     expect(fileDocBucket({ id: '2', doc_kind: 'general', doc_meta: { staff_type: 'insurance_history' } })).toBe('insurer');
     expect(fileDocBucket({ id: '3', doc_kind: 'general', doc_meta: { staff_type: 'accident_notice' } })).toBe('forms');
     expect(fileDocBucket({ id: '4', doc_kind: 'general', doc_meta: { staff_type: 'damage_photos' } })).toBe('damage');
+    expect(fileDocBucket({ id: '5', doc_kind: 'garage_photo', doc_meta: { staff_type: 'garage_photos' } })).toBe('garage_photos');
+    expect(fileDocBucket({ id: '6', doc_kind: 'general', doc_meta: { staff_type: 'garage_photos' } })).toBe('garage_photos');
   });
 
   it('does not guess from the file name', () => {
@@ -38,7 +40,7 @@ describe('claimDocLibrary', () => {
 
   it('exposes the gallery category names', () => {
     expect(DOC_LIB_CATEGORIES.map((c) => c.label)).toEqual([
-      'כל הגלריה', 'דוחות שמאי', 'תמונות שמאי', 'תמונות נזק / תאונה', 'מסמכי לקוח',
+      'כל הגלריה', 'דוחות שמאי', 'תמונות שמאי', 'תמונות מוסך', 'תמונות נזק / תאונה', 'מסמכי לקוח',
       'מסמכי רכב / נהג', 'מסמכי חברת ביטוח', 'חשבוניות / מוסך', 'טפסים / תצהירים', 'אחר',
     ]);
     expect(DOC_LIB_GROUPS.map((g) => g.label)).toEqual(['תמונות', 'דוחות', 'מסמכים']);

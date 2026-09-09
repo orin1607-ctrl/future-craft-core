@@ -68,6 +68,7 @@ export const CLAIM_DOC_TYPES: ClaimDocType[] = [
   { key: 'garage_invoice', label: 'חשבונית תיקון', group: false, formLater: false, staffType: 'garage_invoice', docKind: 'garage_invoice', aliases: ['חשבונית מוסך'] },
   { key: 'surveyor_report', label: 'דוח שמאי', group: false, formLater: false, staffType: 'surveyor_report', docKind: 'surveyor_report', extraDocKinds: ['surveyor_attachment'], aliases: [] },
   { key: 'surveyor_photos', label: 'תמונות שמאי', group: true, formLater: false, staffType: '', docKind: 'surveyor_photo', aliases: [] },
+  { key: 'garage_photos', label: 'תמונות מוסך', group: true, formLater: false, staffType: 'garage_photos', docKind: 'garage_photo', aliases: ['צילומי מוסך'] },
   { key: 'damage_photos', label: 'תמונות אירוע', group: true, formLater: false, staffType: 'damage_photos', docKind: null, aliases: ['תמונות נזק / אירוע', 'תמונות נזק'] },
   { key: 'license_driver', label: 'צילום רישיון נהיגה', group: true, formLater: false, staffType: 'driver_license', docKind: null, aliases: ['רישיון נהיגה – שני הצדדים', 'רישיון נהיגה'] },
   { key: 'accident_notice', label: 'טופס הודעה על תאונת רכב', group: false, formLater: false, staffType: 'accident_notice', docKind: null, aliases: ['טופס הודעה / דיווח אירוע', 'טופס הודעה על תאונה', 'טופס אירוע / פתיחת תביעה', 'טופס פתיחת תביעה חתום', 'טופס אירוע'] },

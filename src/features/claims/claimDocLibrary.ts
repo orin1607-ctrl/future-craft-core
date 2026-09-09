@@ -4,6 +4,7 @@ export const DOC_LIB_CATEGORIES = [
   { key: 'all', label: 'כל הגלריה' },
   { key: 'surveyor_reports', label: 'דוחות שמאי' },
   { key: 'surveyor_photos', label: 'תמונות שמאי' },
+  { key: 'garage_photos', label: 'תמונות מוסך' },
   { key: 'damage', label: 'תמונות נזק / תאונה' },
   { key: 'client', label: 'מסמכי לקוח' },
   { key: 'vehicle', label: 'מסמכי רכב / נהג' },
@@ -17,7 +18,7 @@ export type DocLibCategory = (typeof DOC_LIB_CATEGORIES)[number]['key'];
 
 /** Visual groups only. Same buckets — no new classification. */
 export const DOC_LIB_GROUPS: Array<{ key: string; label: string; keys: string[] }> = [
-  { key: 'photos', label: 'תמונות', keys: ['surveyor_photos', 'damage'] },
+  { key: 'photos', label: 'תמונות', keys: ['surveyor_photos', 'garage_photos', 'damage'] },
   { key: 'reports', label: 'דוחות', keys: ['surveyor_reports'] },
   { key: 'docs', label: 'מסמכים', keys: ['client', 'vehicle', 'insurer', 'invoice', 'forms', 'other'] },
 ];
@@ -25,6 +26,7 @@ export const DOC_LIB_GROUPS: Array<{ key: string; label: string; keys: string[] 
 export const DOC_LIB_SECTIONS: Array<{ key: string; label: string; match: string[] }> = [
   { key: 'surveyor_reports', label: 'דוחות שמאי', match: ['surveyor_reports'] },
   { key: 'surveyor_photos', label: 'תמונות שמאי', match: ['surveyor_photos'] },
+  { key: 'garage_photos', label: 'תמונות מוסך', match: ['garage_photos'] },
   { key: 'damage', label: 'תמונות נזק / תאונה', match: ['damage'] },
   { key: 'client', label: 'מסמכי לקוח', match: ['client'] },
   { key: 'vehicle', label: 'מסמכי רכב / נהג', match: ['vehicle'] },
@@ -52,6 +54,7 @@ export function fileDocBucket(f: LibFile): string {
   const st = staffTypeOf(f);
   if (kind === 'surveyor_report' || kind === 'surveyor_attachment' || st === 'surveyor_report') return 'surveyor_reports';
   if (kind === 'surveyor_photo') return 'surveyor_photos';
+  if (kind === 'garage_photo' || st === 'garage_photos') return 'garage_photos';
   if (kind === 'garage_invoice' || st === 'garage_invoice') return 'invoice';
   if (st === 'damage_photos') return 'damage';
   if (st === 'driver_license' || st === 'vehicle_license') return 'vehicle';
