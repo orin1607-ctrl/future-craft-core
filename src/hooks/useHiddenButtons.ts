@@ -62,6 +62,7 @@ export const DASHBOARD_CARD_BUTTONS = [
   { path: '/admin-home', label: 'מרכז ניהול', category: 'כרטיסי דשבורד' },
   { path: '/ai-marketing', label: 'ניהול שיווק', category: 'כרטיסי דשבורד' },
   { path: '/garage-management', label: 'ניהול מוסך', category: 'כרטיסי דשבורד' },
+  { path: '/claims', label: 'ניהול תביעות', category: 'כרטיסי דשבורד' },
 ];
 
 /** All manageable buttons with labels for the settings UI (matches sidebar IA) */
@@ -77,6 +78,7 @@ export const MANAGEABLE_BUTTONS = [
   { path: '/reports', label: 'דוחות', category: 'ניווט' },
   { path: '/fleet-managers', label: 'מנהלי צי', category: 'ניווט' },
   { path: '/customers', label: 'לקוחות', category: 'ניווט' },
+  { path: '/claims', label: 'ניהול תביעות', category: 'ניווט' },
   { path: '/alerts', label: 'התראות', category: 'ניווט' },
   { path: '/emergency', label: 'חירום', category: 'ניווט' },
   { path: '/internal-chat', label: 'צ\'אט', category: 'ניווט' },

@@ -9,8 +9,12 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
 
   if (!user) return null;
 
-  if (!canAccessRoute(location.pathname, user.role)) {
-    return <Navigate to="/dashboard" replace state={{ from: location.pathname }} />;
+  if (!canAccessRoute(location.pathname, user.role, {
+    hasClaimsAccess: user.hasClaimsAccess,
+    claimsWorkerOnly: user.claimsWorkerOnly,
+  })) {
+    const home = user.claimsWorkerOnly ? '/claims' : '/dashboard';
+    return <Navigate to={home} replace state={{ from: location.pathname }} />;
   }
 
   return <>{children}</>;

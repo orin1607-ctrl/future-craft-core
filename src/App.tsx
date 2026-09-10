@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { RequiredFieldsProvider } from "@/contexts/RequiredFieldsContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -127,13 +127,34 @@ import FleetManagers from "@/pages/FleetManagers";
 import FleetOSAIPage from "@/pages/FleetOSAIPage";
 import TransportHubPage from "@/pages/TransportHubPage";
 import GarageApp from "@/modules/garage-management/GarageApp";
+import ClaimsPage from "@/pages/ClaimsPage";
+import ClaimsUploadPage from "@/pages/ClaimsUploadPage";
+import ClaimsSharePage from "@/pages/ClaimsSharePage";
+import ClaimsIntakePage from "@/pages/ClaimsIntakePage";
 
 const queryClient = new QueryClient();
 
+function isPublicClaimsPath(pathname: string) {
+  const p = pathname.replace(/\/+$/, '') || '/';
+  return p === '/claims-share' || p === '/claims-upload' || p === '/claims-intake';
+}
+
+function PublicClaimsRoutes() {
+  return (
+    <Routes>
+      <Route path="/claims-upload" element={<ClaimsUploadPage />} />
+      <Route path="/claims-share" element={<ClaimsSharePage />} />
+      <Route path="/claims-intake" element={<ClaimsIntakePage />} />
+    </Routes>
+  );
+}
+
 function AppRoutes() {
   const { isAuthenticated, loading } = useAuth();
+  const loc = useLocation();
 
   if (loading) {
+    if (isPublicClaimsPath(loc.pathname)) return <PublicClaimsRoutes />;
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -153,6 +174,7 @@ function AppRoutes() {
     if (isIncidentDeepLink) {
       captureCurrentPathForLogin();
     }
+    if (isPublicClaimsPath(loc.pathname)) return <PublicClaimsRoutes />;
 
     return (
       <Routes>
@@ -187,6 +209,9 @@ function AppRoutes() {
         <Route path="/sign-declaration" element={<SignDeclaration />} />
         <Route path="/take-exam" element={<TakeDrivingExam />} />
         <Route path="/upload-request" element={<UploadDocumentRequest />} />
+        <Route path="/claims-upload" element={<ClaimsUploadPage />} />
+        <Route path="/claims-share" element={<ClaimsSharePage />} />
+        <Route path="/claims-intake" element={<ClaimsIntakePage />} />
         {/* Protected deep links → login (not marketing About / fake 404) */}
         <Route path="*" element={<LoginRedirect />} />
       </Routes>
@@ -223,9 +248,13 @@ function AppRoutes() {
         }
       />
       <Route path="/dalia-crm" element={<LegacyMarketingRedirect />} />
+      <Route path="/claims-upload" element={<ClaimsUploadPage />} />
+      <Route path="/claims-share" element={<ClaimsSharePage />} />
+      <Route path="/claims-intake" element={<ClaimsIntakePage />} />
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/garage-management/*" element={<GarageApp />} />
+        <Route path="/claims" element={<ClaimsPage />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />
         <Route path="/transport" element={<TransportHubPage />} />
         <Route path="/transport/import" element={<Navigate to="/transport" replace />} />

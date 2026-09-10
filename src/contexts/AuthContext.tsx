@@ -14,6 +14,8 @@ export interface UserProfile {
   company_name: string;
   is_active: boolean;
   role: AppRole;
+  hasClaimsAccess?: boolean;
+  claimsWorkerOnly?: boolean;
 }
 
 interface AuthContextType {
@@ -62,6 +64,28 @@ async function fetchUserProfile(userId: string, email: string, retries = 3): Pro
       .eq('user_id', userId)
       .single();
 
+    const role = (roleData?.role as AppRole) || 'driver';
+    let hasClaimsAccess = role === 'super_admin';
+    let claimsWorkerOnly = false;
+    if (!hasClaimsAccess) {
+      try {
+        const { data: can } = await supabase.rpc('claims_can_access' as never);
+        hasClaimsAccess = !!can;
+      } catch {
+        hasClaimsAccess = false;
+      }
+    }
+    try {
+      const { data: accessRow } = await supabase
+        .from('claims_access' as never)
+        .select('worker_only')
+        .eq('user_id', userId)
+        .maybeSingle();
+      claimsWorkerOnly = role !== 'super_admin' && !!(accessRow as { worker_only?: boolean } | null)?.worker_only;
+    } catch {
+      claimsWorkerOnly = false;
+    }
+
     return {
       id: userId,
       email,
@@ -69,7 +93,9 @@ async function fetchUserProfile(userId: string, email: string, retries = 3): Pro
       phone: profile.phone || '',
       company_name: profile.company_name || '',
       is_active: profile.is_active ?? true,
-      role: (roleData?.role as AppRole) || 'driver',
+      role,
+      hasClaimsAccess,
+      claimsWorkerOnly,
     };
   }
   return null;

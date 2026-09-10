@@ -34,4 +34,22 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/admin/modules/vehicles/required-fields', 'super_admin')).toBe(true);
     expect(canAccessRoute('/admin/modules/vehicles/required-fields', 'fleet_manager')).toBe(false);
   });
+
+  it('claims route requires grant, not role', () => {
+    expect(canAccessRoute('/claims', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/claims', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/claims', 'fleet_manager', { hasClaimsAccess: true })).toBe(true);
+    expect(canAccessRoute('/claims', 'driver')).toBe(false);
+    expect(canAccessRoute('/claims', 'driver', { hasClaimsAccess: true })).toBe(true);
+  });
+
+  it('claims worker is limited to Claims (not driver modules)', () => {
+    const extras = { hasClaimsAccess: true, claimsWorkerOnly: true };
+    expect(canAccessRoute('/claims', 'driver', extras)).toBe(true);
+    expect(canAccessRoute('/dashboard', 'driver', extras)).toBe(true);
+    expect(canAccessRoute('/settings', 'driver', extras)).toBe(true);
+    expect(canAccessRoute('/faults', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/vehicles', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/accidents', 'driver', extras)).toBe(false);
+  });
 });

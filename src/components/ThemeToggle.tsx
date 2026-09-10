@@ -10,6 +10,7 @@ export default function ThemeToggle() {
 
   if (!visible) return null;
   if (location.pathname.startsWith('/garage-management')) return null;
+  if (/^\/claims-(upload|intake|share)/.test(location.pathname)) return null;
 
   return (
     <div className="fixed top-4 z-50 flex items-center gap-0 md:top-6" style={{ left: 'calc(4rem + 15px)', }}>
