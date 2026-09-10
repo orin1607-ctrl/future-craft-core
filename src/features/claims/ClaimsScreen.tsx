@@ -19,6 +19,7 @@ import GarageAssignBar from './GarageAssignBar';
 import GaragePhotosGallery from './GaragePhotosGallery';
 import { isGaragePhoto, type GarageAssignment } from './claimGarage';
 import { sharePublicUrl } from './claimSecureShare';
+import { downloadRemoteFile } from './claimFileDownload';
 import { emailsUnknownToDirectory, parseFromAddr, phoneUnknownToDirectory, type ClaimContact } from './claimContacts';
 import './claims.css';
 
@@ -756,7 +757,7 @@ function InCardPreview({ file, onClose, pos, canPrev, canNext, onPrev, onNext }:
           </div>
         ) : null}
         <button className="btn btn-g btn-sm" onClick={() => window.open(file.url, '_blank')}>חלון נפרד</button>
-        <a className="btn btn-p btn-sm" data-testid="doc-preview-download" href={file.url} download={file.name || 'document'} target="_blank" rel="noreferrer">הורדה</a>
+        <button type="button" className="btn btn-p btn-sm" data-testid="doc-preview-download" onClick={() => { void downloadRemoteFile(file.url, file.name || 'document'); }}>הורדה</button>
         <button className="btn btn-g btn-sm" data-testid="doc-preview-print" onClick={() => {
           const w = window.open(file.url, '_blank', 'noopener');
           w?.addEventListener('load', () => { try { w.print(); } catch { /* ignore */ } });
@@ -1622,16 +1623,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const downloadClaimFile = async (claimId: string, f: ClaimFile) => {
-    const r = await apiRef.current.invokeDocs('signed_url', { claim_id: claimId, file_id: f.id });
+    const r = await apiRef.current.invokeDocs('signed_url', {
+      claim_id: claimId,
+      file_id: f.id,
+      purpose: 'download',
+      filename: f.original_name || 'document',
+    });
     if (!r.url) { toast('לא ניתן להוריד את הקובץ', 'err'); return; }
-    const a = document.createElement('a');
-    a.href = String(r.url);
-    a.download = f.original_name || 'document';
-    a.target = '_blank';
-    a.rel = 'noopener';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    await downloadRemoteFile(String(r.url), f.original_name || 'document');
   };
 
   const printClaimFile = async (claimId: string, f: ClaimFile) => {
@@ -3496,10 +3495,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             </div>
                             <div style={{ display: 'flex', gap: 6 }}>
                               <button className="btn btn-p btn-sm" onClick={() => void openInCard(cur.id, f)}>צפייה בתיק</button>
-                              <button className="btn btn-g btn-sm" onClick={async () => {
-                                const r = await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: f.id });
-                                if (r.url) window.open(String(r.url), '_blank');
-                              }}>הורדה</button>
+                              <button className="btn btn-g btn-sm" data-testid="invoice-download" onClick={() => void downloadClaimFile(cur.id, f)}>הורדה</button>
                             </div>
                           </div>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 11, marginTop: 10 }}>
@@ -3572,6 +3568,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     onPreview={(p) => {
                       const hit = docs.files.find((f) => f.id === p.id);
                       if (hit) void openInCard(cur.id, hit as ClaimFile, garageLibFiles(docs.files) as ClaimFile[]);
+                    }}
+                    onDownload={(p) => {
+                      const hit = docs.files.find((f) => f.id === p.id);
+                      if (hit) void downloadClaimFile(cur.id, hit as ClaimFile);
                     }}
                     onCreateShare={async (fileIds, recipientName) => {
                       const r = await apiRef.current.invokeDocs('create_share', {
@@ -4724,7 +4724,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           <div className="mh"><div className="mh-t">💬 שליחת WhatsApp</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
           <div className="mb">
             <div className="fg"><label className="fl">טלפון</label><input className="fi" id="wa_phone" data-testid="wa-phone" key={val(null, 'wa_phone') || cur?.clientPhone || 'wa'} defaultValue={val(null, 'wa_phone') || cur?.clientPhone} /></div>
-            <div className="fg"><label className="fl">הודעה</label><textarea className="fta" id="wa_msg" /></div>
+            <div className="fg"><label className="fl">הודעה</label><textarea className="fta" id="wa_msg" data-testid="wa-msg" /></div>
             {phoneUnknownToDirectory(val(null, 'wa_phone') || cur?.clientPhone || '', claimContacts) && waSaveOffer !== '__dismissed__' ? (
               <div className="claim-contact-offer" data-testid="wa-save-offer">
                 המספר הזה אינו שמור באנשי הקשר. האם לשמור אותו?
@@ -5382,9 +5382,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           }}
           onWhatsApp={(phone, body) => {
             setShareOpen(false);
-            setVal('wa_phone', phone);
-            setVal('wa_msg', body);
             setModal('moWA');
+            window.setTimeout(() => {
+              setVal('wa_phone', phone);
+              setVal('wa_msg', body);
+            }, 50);
           }}
         />
       ) : null}

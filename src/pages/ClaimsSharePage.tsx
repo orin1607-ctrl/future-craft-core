@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { downloadRemoteFile, triggerBlobDownload } from '@/features/claims/claimFileDownload';
 
 const FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-docs`;
 const KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
@@ -14,7 +15,7 @@ export default function ClaimsSharePage() {
   const [expiresAt, setExpiresAt] = useState('');
   const [files, setFiles] = useState<ShareFile[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
-  const [preview, setPreview] = useState<{ url: string; name: string; mime: string } | null>(null);
+  const [preview, setPreview] = useState<{ id: string; url: string; name: string; mime: string } | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState('');
 
@@ -66,22 +67,37 @@ export default function ClaimsSharePage() {
   const docs = files.filter((f) => !f.image);
   const selected = useMemo(() => files.filter((f) => picked.includes(f.id)), [files, picked]);
 
+  const downloadOne = async (f: ShareFile) => {
+    setBusy(f.id);
+    const res = await fetch(FN, {
+      method: 'POST',
+      headers: pubHeaders,
+      body: JSON.stringify({ action: 'public_share_file', token, file_id: f.id }),
+    });
+    if (res.ok) {
+      const ct = res.headers.get('content-type') || '';
+      if (!/json/i.test(ct)) {
+        triggerBlobDownload(await res.blob(), f.name);
+        setBusy('');
+        return;
+      }
+    }
+    const r = await call('public_share_url', { file_id: f.id, purpose: 'download' });
+    setBusy('');
+    if (!r.ok || !r.json.url) { setError(r.json.blocked ? 'BLOCKED' : 'לא ניתן להוריד'); return; }
+    await downloadRemoteFile(String(r.json.url), f.name);
+  };
+
   const openFile = async (f: ShareFile, purpose = 'preview') => {
+    if (purpose === 'download') {
+      await downloadOne(f);
+      return;
+    }
     setBusy(f.id);
     const r = await call('public_share_url', { file_id: f.id, purpose });
     setBusy('');
     if (!r.ok || !r.json.url) { setError(r.json.blocked ? 'BLOCKED' : 'לא ניתן לפתוח'); return; }
-    if (purpose === 'preview') setPreview({ url: r.json.url, name: f.name, mime: f.mime || r.json.mime });
-    else {
-      const a = document.createElement('a');
-      a.href = r.json.url;
-      a.download = f.name;
-      a.rel = 'noopener';
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    }
+    setPreview({ id: f.id, url: r.json.url, name: f.name, mime: f.mime || r.json.mime });
   };
 
   const binary = async (action: string, filename: string, ids?: string[]) => {
@@ -153,7 +169,7 @@ export default function ClaimsSharePage() {
         <div className="preview" data-testid="share-preview">
           <div style={{ background: '#fff', color: '#123', padding: 8, display: 'flex', gap: 8 }}>
             <b data-testid="share-preview-name">{preview.name}</b>
-            <a className="btn" href={preview.url} download={preview.name} data-testid="share-preview-download">הורדה</a>
+            <button className="btn" type="button" data-testid="share-preview-download" onClick={() => { const hit = files.find((x) => x.id === preview.id); if (hit) void downloadOne(hit); }}>הורדה</button>
             <button className="btn btn-g" type="button" data-testid="share-preview-print" onClick={() => { const w = window.open(preview.url, '_blank', 'noopener'); w?.addEventListener('load', () => { try { w.print(); } catch { /* ignore */ } }); }}>Print</button>
             <button className="btn btn-g" type="button" onClick={() => setPreview(null)}>סגור</button>
           </div>

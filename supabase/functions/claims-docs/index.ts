@@ -519,7 +519,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true });
     }
 
-    if (action === "public_share_get" || action === "public_share_url" || action === "public_share_zip" || action === "public_share_bundle_pdf") {
+    if (action === "public_share_get" || action === "public_share_url" || action === "public_share_file" || action === "public_share_zip" || action === "public_share_bundle_pdf") {
       const token = String(url.searchParams.get("token") || body.token || form?.get("token") || "");
       const resolved = await resolveShare(sb, token);
       if ("error" in resolved) return sharePublicError(resolved.error);
@@ -558,12 +558,31 @@ Deno.serve(async (req) => {
         if ("error" in loaded) return blocked("BLOCKED");
         const file = loaded.files[0];
         if (!file || file.claim_id !== share.claim_id) return blocked("BLOCKED");
-        const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(file.storage_path, SIGNED_TTL_SEC);
+        const wantDownload = String(body.purpose || "") === "download";
+        const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(
+          file.storage_path,
+          SIGNED_TTL_SEC,
+          wantDownload ? { download: sanitizeFileName(file.original_name) } : undefined,
+        );
         if (error || !data?.signedUrl) return jsonResponse({ success: false, error: error?.message || "sign_failed" }, 400);
-        if (body.purpose === "download") {
+        if (wantDownload) {
           await sb.from("claims_share_links").update({ last_download_at: new Date().toISOString() }).eq("id", share.id);
         }
         return jsonResponse({ success: true, url: data.signedUrl, name: file.original_name, mime: file.mime_type, ttl: SIGNED_TTL_SEC });
+      }
+
+      if (action === "public_share_file") {
+        const fileId = String(body.file_id || url.searchParams.get("file_id") || reqIds[0] || "");
+        if (!fileId) return blocked("BLOCKED");
+        const loaded = await loadShareFiles(sb, share, [fileId]);
+        if ("error" in loaded) return blocked("BLOCKED");
+        const file = loaded.files[0];
+        if (!file || file.claim_id !== share.claim_id) return blocked("BLOCKED");
+        const dl = await sb.storage.from(BUCKET).download(file.storage_path);
+        if (dl.error || !dl.data) return jsonResponse({ success: false, error: "download_failed" }, 400);
+        const buf = new Uint8Array(await dl.data.arrayBuffer());
+        await sb.from("claims_share_links").update({ last_download_at: new Date().toISOString() }).eq("id", share.id);
+        return binResponse(buf, file.mime_type || "application/octet-stream", sanitizeFileName(file.original_name));
       }
 
       const loaded = await loadShareFiles(sb, share, reqIds.length ? reqIds : undefined);
@@ -784,9 +803,19 @@ Deno.serve(async (req) => {
         const want = action === "garage_signed_url" ? ids : (ids.length ? ids : photos.map((p) => p.id));
         if (want.some((id) => !allowed.has(id))) return jsonResponse({ success: false, error: "BLOCKED", blocked: true }, 403);
         if (!want.length) return jsonResponse({ success: true, urls: {} });
-        const { data: files } = await sb.from("claims_documents").select("id, storage_path, claim_id").eq("claim_id", claimId).in("id", want);
+        const { data: files } = await sb.from("claims_documents").select("id, storage_path, claim_id, original_name").eq("claim_id", claimId).in("id", want);
         const rows = (files || []).filter((f) => f.claim_id === claimId && allowed.has(f.id));
         if (rows.length !== want.length) return jsonResponse({ success: false, error: "BLOCKED", blocked: true }, 403);
+        const wantDownload = String(body.purpose || "") === "download";
+        if (action === "garage_signed_url" && wantDownload && rows[0]) {
+          const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(
+            rows[0].storage_path,
+            SIGNED_TTL_SEC,
+            { download: sanitizeFileName(String(body.filename || rows[0].original_name || "file")) },
+          );
+          if (error || !data?.signedUrl) return jsonResponse({ success: false, error: error?.message || "sign_failed" }, 400);
+          return jsonResponse({ success: true, url: data.signedUrl });
+        }
         const { data, error } = await sb.storage.from(BUCKET).createSignedUrls(rows.map((f) => f.storage_path), SIGNED_TTL_SEC);
         if (error) return jsonResponse({ success: false, error: error.message }, 400);
         const urls: Record<string, string> = {};
@@ -1289,9 +1318,14 @@ Deno.serve(async (req) => {
       const claimId = String(body.claim_id || "");
       const fileId = String(body.file_id || "");
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
-      const { data: file } = await sb.from("claims_documents").select("storage_path, claim_id").eq("id", fileId).eq("claim_id", claimId).maybeSingle();
+      const { data: file } = await sb.from("claims_documents").select("storage_path, claim_id, original_name").eq("id", fileId).eq("claim_id", claimId).maybeSingle();
       if (!file) return jsonResponse({ success: false, error: "not_found" }, 404);
-      const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(file.storage_path, SIGNED_TTL_SEC);
+      const wantDownload = String(body.purpose || "") === "download";
+      const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(
+        file.storage_path,
+        SIGNED_TTL_SEC,
+        wantDownload ? { download: sanitizeFileName(String(body.filename || file.original_name || "file")) } : undefined,
+      );
       if (error) return jsonResponse({ success: false, error: error.message }, 400);
       return jsonResponse({ success: true, url: data.signedUrl });
     }
