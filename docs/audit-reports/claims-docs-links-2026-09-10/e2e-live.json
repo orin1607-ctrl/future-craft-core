@@ -1,10 +1,10 @@
 {
-  "at": "2026-09-10T06:12:41.197Z",
+  "at": "2026-09-10T06:26:18.026Z",
   "staging": "usfeoerkpcafxxlyuldl",
   "productionTouched": false,
   "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
-  "uiBase": "http://127.0.0.1:4173",
-  "liveSha": "8977202",
+  "uiBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "liveSha": "e58bb81",
   "checks": [
     {
       "name": "service-role-staging",
@@ -24,32 +24,32 @@
       "ok": true
     },
     {
-      "name": "create-DAL-QA-DLK-A-1789020763990",
+      "name": "create-DAL-QA-DLK-A-1789021580891",
       "ok": true
     },
     {
-      "name": "create-DAL-QA-DLK-B-1789020763990",
+      "name": "create-DAL-QA-DLK-B-1789021580891",
       "ok": true
     },
     {
       "name": "upload-pdf",
       "ok": true,
-      "id": "CDM-1789020767974-O5CBCP"
+      "id": "CDM-1789021583329-62ZHZF"
     },
     {
       "name": "upload-photo",
       "ok": true,
-      "id": "CDM-1789020770538-SGDD7L"
+      "id": "CDM-1789021586826-V87L7C"
     },
     {
       "name": "upload-unselected",
       "ok": true,
-      "id": "CDM-1789020774044-2PHOMR"
+      "id": "CDM-1789021589943-0YUMAH"
     },
     {
       "name": "upload-other-claim",
       "ok": true,
-      "id": "CDM-1789020777059-H6UKAD"
+      "id": "CDM-1789021593046-J3ZBFP"
     },
     {
       "name": "staff-signed-download-url",
@@ -60,7 +60,7 @@
       "ok": true,
       "status": 200,
       "ct": "image/jpeg",
-      "cd": "attachment; filename=dlk-photo-1789020763990.jpg; filename*=UTF-8''dlk-photo-1789020763990.jpg",
+      "cd": "attachment; filename=dlk-photo-1789021580891.jpg; filename*=UTF-8''dlk-photo-1789021580891.jpg",
       "acao": "*",
       "bytes": 251,
       "jpeg": true,
@@ -71,7 +71,7 @@
       "ok": true,
       "status": 200,
       "ct": "image/jpeg",
-      "cd": "attachment; filename=dlk-photo-1789020763990.jpg; filename*=UTF-8''dlk-photo-1789020763990.jpg",
+      "cd": "attachment; filename=dlk-photo-1789021580891.jpg; filename*=UTF-8''dlk-photo-1789021580891.jpg",
       "acao": "*",
       "bytes": 251,
       "jpeg": true,
@@ -86,8 +86,8 @@
       "name": "share-selected-only",
       "ok": true,
       "pubIds": [
-        "CDM-1789020767974-O5CBCP",
-        "CDM-1789020770538-SGDD7L"
+        "CDM-1789021583329-62ZHZF",
+        "CDM-1789021586826-V87L7C"
       ]
     },
     {
@@ -114,7 +114,7 @@
       "ok": true,
       "status": 200,
       "ct": "image/jpeg",
-      "cd": "attachment; filename=\"dlk-photo-1789020763990.jpg\"",
+      "cd": "attachment; filename=\"dlk-photo-1789021580891.jpg\"",
       "bytes": 251
     },
     {
@@ -122,7 +122,7 @@
       "ok": true,
       "status": 200,
       "ct": "application/pdf",
-      "cd": "attachment; filename=\"dlk-doc-1789020763990.pdf\"",
+      "cd": "attachment; filename=\"dlk-doc-1789021580891.pdf\"",
       "bytes": 54
     },
     {
@@ -149,23 +149,23 @@
       "name": "download-all-zip",
       "ok": true,
       "names": [
-        "docs/dlk-doc-1789020763990.pdf",
-        "photos/dlk-photo-1789020763990.jpg"
+        "docs/dlk-doc-1789021580891.pdf",
+        "photos/dlk-photo-1789021580891.jpg"
       ]
     },
     {
       "name": "zip-only-allowlisted",
       "ok": true,
       "names": [
-        "docs/dlk-doc-1789020763990.pdf",
-        "photos/dlk-photo-1789020763990.jpg"
+        "docs/dlk-doc-1789021580891.pdf",
+        "photos/dlk-photo-1789021580891.jpg"
       ]
     },
     {
       "name": "download-selected-zip",
       "ok": true,
       "names": [
-        "photos/dlk-photo-1789020763990.jpg"
+        "photos/dlk-photo-1789021580891.jpg"
       ]
     },
     {
@@ -180,9 +180,9 @@
     {
       "name": "garage-upload",
       "ok": true,
-      "gar1": "CDM-1789020803540-TX4GBV",
-      "gar2": "CDM-1789020806440-URD68X",
-      "gar3": "CDM-1789020810673-AHUOIM"
+      "gar1": "CDM-1789021617937-1QT0XD",
+      "gar2": "CDM-1789021620876-TMXY3N",
+      "gar3": "CDM-1789021623846-GJW2O2"
     },
     {
       "name": "garage-create-surveyor-share",
@@ -192,8 +192,8 @@
       "name": "garage-share-selected-only",
       "ok": true,
       "gIds": [
-        "CDM-1789020803540-TX4GBV",
-        "CDM-1789020806440-URD68X"
+        "CDM-1789021617937-1QT0XD",
+        "CDM-1789021620876-TMXY3N"
       ]
     },
     {
@@ -217,7 +217,7 @@
       "ok": true,
       "pagesShare": 200,
       "localShare": 200,
-      "uiBase": "http://127.0.0.1:4173"
+      "uiBase": "https://orin1607-ctrl.github.io/future-craft-core"
     },
     {
       "name": "desktop-nologin-page",
@@ -236,7 +236,7 @@
       "ok": true
     },
     {
-      "name": "dlk-photo-1789020763990.jpg",
+      "name": "dlk-photo-1789021580891.jpg",
       "ok": true,
       "dest": "/workspace/docs/audit-reports/claims-docs-links-2026-09-10/downloads/desktop-share-photo.bin",
       "buf": {
@@ -501,7 +501,7 @@
       "zip": false
     },
     {
-      "name": "dlk-doc-1789020763990.pdf",
+      "name": "dlk-doc-1789021580891.pdf",
       "ok": true,
       "dest": "/workspace/docs/audit-reports/claims-docs-links-2026-09-10/downloads/desktop-share-doc.bin",
       "buf": {
@@ -628,13 +628,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           106,
           112,
@@ -959,13 +959,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           106,
           112,
@@ -1055,13 +1055,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           112,
           100,
@@ -1173,13 +1173,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           106,
           112,
@@ -1500,13 +1500,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           112,
           100,
@@ -1580,13 +1580,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           106,
           112,
@@ -1641,7 +1641,7 @@
       "ok": true
     },
     {
-      "name": "dlk-photo-1789020763990.jpg",
+      "name": "dlk-photo-1789021580891.jpg",
       "ok": true,
       "dest": "/workspace/docs/audit-reports/claims-docs-links-2026-09-10/downloads/mobile-share-photo.bin",
       "buf": {
@@ -1906,7 +1906,7 @@
       "zip": false
     },
     {
-      "name": "dlk-doc-1789020763990.pdf",
+      "name": "dlk-doc-1789021580891.pdf",
       "ok": true,
       "dest": "/workspace/docs/audit-reports/claims-docs-links-2026-09-10/downloads/mobile-share-doc.bin",
       "buf": {
@@ -2033,13 +2033,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           106,
           112,
@@ -2364,13 +2364,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           106,
           112,
@@ -2460,13 +2460,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           112,
           100,
@@ -2578,13 +2578,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           106,
           112,
@@ -2905,13 +2905,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           112,
           100,
@@ -2985,13 +2985,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           106,
           112,
@@ -3038,7 +3038,7 @@
       "ok": true
     },
     {
-      "name": "dlk-gar-1-1789020763990.jpg",
+      "name": "dlk-gar-1-1789021580891.jpg",
       "ok": true,
       "dest": "/workspace/docs/audit-reports/claims-docs-links-2026-09-10/downloads/garage-share-photo.bin",
       "buf": {
@@ -3305,13 +3305,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           106,
           112,
@@ -3333,7 +3333,7 @@
       "ok": true
     },
     {
-      "name": "dlk-photo-1789020763990.jpg",
+      "name": "dlk-photo-1789021580891.jpg",
       "ok": true,
       "dest": "/workspace/docs/audit-reports/claims-docs-links-2026-09-10/downloads/staff-preview-photo.bin",
       "buf": {
@@ -3598,7 +3598,7 @@
       "zip": false
     },
     {
-      "name": "dlk-doc-1789020763990.pdf",
+      "name": "dlk-doc-1789021580891.pdf",
       "ok": true,
       "dest": "/workspace/docs/audit-reports/claims-docs-links-2026-09-10/downloads/staff-gallery-doc.bin",
       "buf": {
@@ -3672,24 +3672,24 @@
     {
       "name": "staff-create-link",
       "ok": true,
-      "url": "http://127.0.0.1:4173/claims-share?t=dddaa2cb41f068f615a701322ae944f7283997124561944f34cb8dad43499260"
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/claims-share?t=2d01050227a8e0c01f1980cde6b0f9fceb2d9ecedd7dddc8040239b"
     },
     {
       "name": "staff-copy-link",
       "ok": true,
-      "copied": "http://127.0.0.1:4173/claims-share?t=dddaa2cb41f068f615a701322ae944f728399712456"
+      "copied": "https://orin1607-ctrl.github.io/future-craft-core/claims-share?t=2d01050227a8e0c"
     },
     {
       "name": "staff-whatsapp-has-url",
       "ok": true,
-      "body": "מצורף קישור מאובטח לצפייה ולהורדת המסמכים והתמונות.\nהקישור יהיה זמין למשך 48 שעות בלבד.\nיש להוריד ולשמור את החומר לפני פקיעת הקישור.\n\nhttp://127.0.0.1:4173/clai"
+      "body": "מצורף קישור מאובטח לצפייה ולהורדת המסמכים והתמונות.\nהקישור יהיה זמין למשך 48 שעות בלבד.\nיש להוריד ולשמור את החומר לפני פקיעת הקישור.\n\nhttps://orin1607-ctrl.gith"
     },
     {
       "name": "copied-link-nologin",
       "ok": true
     },
     {
-      "name": "dlk-doc-1789020763990.pdf",
+      "name": "dlk-doc-1789021580891.pdf",
       "ok": true,
       "dest": "/workspace/docs/audit-reports/claims-docs-links-2026-09-10/downloads/copied-link-file.bin",
       "buf": {
@@ -3761,7 +3761,7 @@
       "ok": true
     },
     {
-      "name": "dlk-gar-1-1789020763990.jpg",
+      "name": "dlk-gar-1-1789021580891.jpg",
       "ok": true,
       "dest": "/workspace/docs/audit-reports/claims-docs-links-2026-09-10/downloads/garage-portal-photo.bin",
       "buf": {
@@ -4028,13 +4028,13 @@
           57,
           48,
           50,
+          49,
+          53,
+          56,
           48,
-          55,
-          54,
-          51,
+          56,
           57,
-          57,
-          48,
+          49,
           46,
           106,
           112,
@@ -4050,7 +4050,7 @@
     {
       "name": "garage-portal-create-link",
       "ok": true,
-      "url": "http://127.0.0.1:4173/claims-share?t=14549f989a96e065d1caf60a1e575d6519e368978f79fcdc7fa5be131156850b"
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/claims-share?t=b00cc2ba56f620ce76c33ccd8ac48ea443f73d5795c488abbba7e2b"
     },
     {
       "name": "garage-portal-whatsapp",
@@ -4060,8 +4060,8 @@
     {
       "name": "soft-delete-test-claims",
       "ok": true,
-      "idA": "DAL-QA-DLK-A-1789020763990",
-      "idB": "DAL-QA-DLK-B-1789020763990"
+      "idA": "DAL-QA-DLK-A-1789021580891",
+      "idB": "DAL-QA-DLK-B-1789021580891"
     }
   ],
   "verdict": "PASS"
