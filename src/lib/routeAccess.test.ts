@@ -52,4 +52,13 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/vehicles', 'driver', extras)).toBe(false);
     expect(canAccessRoute('/accidents', 'driver', extras)).toBe(false);
   });
+
+  it('telemarketing agent is limited to caller home', () => {
+    expect(canAccessRoute('/telemarketing', 'telemarketing_agent')).toBe(true);
+    expect(canAccessRoute('/dashboard', 'telemarketing_agent')).toBe(true);
+    expect(canAccessRoute('/telemarketing/admin', 'telemarketing_agent')).toBe(false);
+    expect(canAccessRoute('/vehicles', 'telemarketing_agent')).toBe(false);
+    expect(canAccessRoute('/telemarketing/admin', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/telemarketing/admin', 'fleet_manager')).toBe(false);
+  });
 });

@@ -4,15 +4,38 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { consumePostLoginRedirect } from '@/lib/postLoginRedirect';
+import { homePathForRole, postLoginPathForRole, replaceToAgentWorkHome } from '@/lib/postLoginHome';
 import {
   ACCOUNT_LOCKOUT_MESSAGE,
-  applyAuthSession,
   invokeAuthLoginChallenge,
   invokeAuthSendOtp,
   invokeAuthVerifyOtp,
 } from '@/lib/authOtpClient';
 
 type LoginStep = 'credentials' | 'otp';
+
+function goAfterLogin(
+  role: string | undefined,
+  navigate: (path: string) => void,
+  extras?: { claimsWorkerOnly?: boolean; garagePhotographer?: boolean },
+) {
+  if (extras?.garagePhotographer) {
+    consumePostLoginRedirect('/garage');
+    navigate('/garage');
+    return;
+  }
+  if (extras?.claimsWorkerOnly) {
+    consumePostLoginRedirect('/claims');
+    navigate('/claims');
+    return;
+  }
+  if (role === 'telemarketing_agent') {
+    consumePostLoginRedirect('/telemarketing');
+    replaceToAgentWorkHome();
+    return;
+  }
+  navigate(postLoginPathForRole(role, consumePostLoginRedirect(homePathForRole(role, extras)), extras));
+}
 
 export default function Login() {
   const { login, signup, completeLoginSession } = useAuth();
@@ -78,9 +101,9 @@ export default function Login() {
     }
 
     if (result.session) {
-      const { error: sessionError } = await completeLoginSession(result.session);
+      const { error: sessionError, role, claimsWorkerOnly } = await completeLoginSession(result.session);
       if (sessionError) setError(sessionError);
-      else navigate(consumePostLoginRedirect('/dashboard'));
+      else goAfterLogin(role, navigate, { claimsWorkerOnly });
       return;
     }
 
@@ -104,9 +127,9 @@ export default function Login() {
       return;
     }
 
-    const { error: sessionError } = await completeLoginSession(result.session);
+    const { error: sessionError, role, claimsWorkerOnly } = await completeLoginSession(result.session);
     if (sessionError) setError(sessionError);
-    else navigate(consumePostLoginRedirect('/dashboard'));
+    else goAfterLogin(role, navigate, { claimsWorkerOnly });
   };
 
   const handleOtpResend = async () => {

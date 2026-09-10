@@ -22,6 +22,10 @@ export default function Dashboard() {
     return <Navigate to="/claims" replace />;
   }
 
+  if (user.role === 'telemarketing_agent') {
+    return <Navigate to="/telemarketing" replace />;
+  }
+
   if (driverLocked && driverId && isManager) {
     if (hideDriverDashForFm) {
       return <Navigate to={`/drivers?driverId=${encodeURIComponent(driverId)}`} replace />;

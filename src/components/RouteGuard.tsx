@@ -13,7 +13,11 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     hasClaimsAccess: user.hasClaimsAccess,
     claimsWorkerOnly: user.claimsWorkerOnly,
   })) {
-    const home = user.claimsWorkerOnly ? '/claims' : '/dashboard';
+    const home = user.claimsWorkerOnly
+      ? '/claims'
+      : user.role === 'telemarketing_agent'
+        ? '/telemarketing'
+        : '/dashboard';
     return <Navigate to={home} replace state={{ from: location.pathname }} />;
   }
 

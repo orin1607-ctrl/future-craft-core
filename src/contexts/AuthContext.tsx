@@ -3,8 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Session } from '@supabase/supabase-js';
 import type { AuthSessionPayload } from '@/lib/authOtpClient';
 import { applyAuthSession } from '@/lib/authOtpClient';
+import { clearAllTeleModes, clearTeleModesForUser } from '@/features/telemarketing/lib/teleEntryMode';
 
-export type AppRole = 'driver' | 'fleet_manager' | 'super_admin' | 'private_customer' | 'business_customer';
+export type AppRole = 'driver' | 'fleet_manager' | 'super_admin' | 'private_customer' | 'business_customer' | 'telemarketing_agent';
 
 export interface UserProfile {
   id: string;
@@ -14,6 +15,7 @@ export interface UserProfile {
   company_name: string;
   is_active: boolean;
   role: AppRole;
+  user_number?: string | null;
   hasClaimsAccess?: boolean;
   claimsWorkerOnly?: boolean;
 }
@@ -26,7 +28,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   signup: (email: string, password: string, metadata: { full_name: string; phone: string; company_name: string; role?: AppRole }) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
-  completeLoginSession: (session: AuthSessionPayload) => Promise<{ error: string | null }>;
+  completeLoginSession: (session: AuthSessionPayload) => Promise<{ error: string | null; role?: AppRole; claimsWorkerOnly?: boolean }>;
   isAuthenticated: boolean;
   isImpersonating: boolean;
   impersonate: (targetUser: UserProfile) => void;
@@ -94,6 +96,7 @@ async function fetchUserProfile(userId: string, email: string, retries = 3): Pro
       company_name: profile.company_name || '',
       is_active: profile.is_active ?? true,
       role,
+      user_number: profile.user_number || null,
       hasClaimsAccess,
       claimsWorkerOnly,
     };
@@ -144,6 +147,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         await supabase.auth.signOut();
         return { error: 'החשבון שלך ממתין לאישור מנהל. פנה למנהל המערכת.' };
       }
+      clearTeleModesForUser(data.session.user.id);
       setRealUser(profile);
       setSession(data.session);
     }
@@ -167,6 +171,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    clearAllTeleModes();
     await supabase.auth.signOut();
     setRealUser(null);
     setImpersonatedUser(null);
@@ -188,9 +193,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const userEmail = (session.user as { email?: string })?.email || '';
     if (userId) {
       const profile = await fetchUserProfile(userId, userEmail);
+      clearTeleModesForUser(userId);
       setRealUser(profile);
       const { data: { session: s } } = await supabase.auth.getSession();
       setSession(s);
+      return { error: null, role: profile?.role, claimsWorkerOnly: profile?.claimsWorkerOnly };
     }
     return { error: null };
   };

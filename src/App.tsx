@@ -131,6 +131,8 @@ import ClaimsPage from "@/pages/ClaimsPage";
 import ClaimsUploadPage from "@/pages/ClaimsUploadPage";
 import ClaimsSharePage from "@/pages/ClaimsSharePage";
 import ClaimsIntakePage from "@/pages/ClaimsIntakePage";
+import TelemarketingAgentPage from "@/pages/TelemarketingAgentPage";
+import TelemarketingAdminPage from "@/pages/TelemarketingAdminPage";
 
 const queryClient = new QueryClient();
 
@@ -255,6 +257,8 @@ function AppRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/garage-management/*" element={<GarageApp />} />
         <Route path="/claims" element={<ClaimsPage />} />
+        <Route path="/telemarketing" element={<TelemarketingAgentPage />} />
+        <Route path="/telemarketing/admin" element={<TelemarketingAdminPage />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />
         <Route path="/transport" element={<TransportHubPage />} />
         <Route path="/transport/import" element={<Navigate to="/transport" replace />} />
