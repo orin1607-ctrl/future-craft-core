@@ -126,6 +126,7 @@ import AdminHome from "@/pages/AdminHome";
 import FleetManagers from "@/pages/FleetManagers";
 import FleetOSAIPage from "@/pages/FleetOSAIPage";
 import TransportHubPage from "@/pages/TransportHubPage";
+import GarageApp from "@/modules/garage-management/GarageApp";
 
 const queryClient = new QueryClient();
 
@@ -224,6 +225,7 @@ function AppRoutes() {
       <Route path="/dalia-crm" element={<LegacyMarketingRedirect />} />
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/garage-management/*" element={<GarageApp />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />
         <Route path="/transport" element={<TransportHubPage />} />
         <Route path="/transport/import" element={<Navigate to="/transport" replace />} />

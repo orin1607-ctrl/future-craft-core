@@ -1,12 +1,15 @@
 import { Sun, Moon, X } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 export default function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
   const [visible, setVisible] = useState(true);
+  const location = useLocation();
 
   if (!visible) return null;
+  if (location.pathname.startsWith('/garage-management')) return null;
 
   return (
     <div className="fixed top-4 z-50 flex items-center gap-0 md:top-6" style={{ left: 'calc(4rem + 15px)', }}>

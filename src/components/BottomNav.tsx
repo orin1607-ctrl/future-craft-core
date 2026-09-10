@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone } from 'lucide-react';
+import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Warehouse } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
@@ -26,6 +26,7 @@ const managerNavItems: NavItem[] = [
   { path: '/fleetos-ai', label: 'מיקום צי חכם', icon: Radar },
   { path: '/transport', label: 'חברות הסעות', icon: Bus },
   { path: '/faults', label: 'תקלות', icon: Wrench },
+  { path: '/garage-management', label: 'ניהול מוסך', icon: Warehouse },
   { path: '/reports', label: 'דוחות', icon: BarChart3 },
   { path: '/fleet-managers', label: 'מנהלי צי', icon: Building2 },
   { path: '/customers', label: 'לקוחות', icon: Users },
