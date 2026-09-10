@@ -57,12 +57,9 @@ const reportTypes = [
   { value: 'drivers', label: 'סיכום נהגים' },
   { value: 'expenses', label: 'הוצאות לפי תקופה' },
   { value: 'profit_loss', label: 'רווח והפסד' },
-  { value: 'faults', label: 'טיפולים (מפורט)' },
-  { value: 'accidents', label: 'תאונות (מפורט)' },
   { value: 'service_orders', label: 'הזמנות' },
   { value: 'vendors', label: 'סיכום לפי ספקים' },
 ];
-
 const STANDARD_HEADERS = ['מס\' פנימי', 'מספר רכב', 'חברה / לקוח', 'נהג', 'סוג האירוע', 'תאריך', 'סטטוס'];
 const OFFICER_INSPECTION_HEADERS = [
   'מספר רכב',
@@ -912,11 +909,16 @@ export default function Reports() {
             expanded={expandedReport === 'ops_treatments'}
             onToggle={() => toggleExpand('ops_treatments')}
             card={
-              <SummaryCard
+              <ReportCard
+                title={formatSummaryHeadline(filtered.faults.length, 'טיפולים', period.labelSuffix)}
                 icon={Wrench}
                 color="bg-warning/10 text-warning"
-                headline={formatSummaryHeadline(filtered.faults.length, 'טיפולים', period.labelSuffix)}
                 expanded={expandedReport === 'ops_treatments'}
+                stats={[
+                  { label: 'פתוחות', value: filtered.faults.filter(f => ['new', 'open', 'in_progress'].includes(f.status)).length.toString() },
+                  { label: 'דחופות', value: filtered.faults.filter(f => ['urgent', 'critical'].includes(f.urgency)).length.toString() },
+                  { label: 'סה"כ', value: filtered.faults.length.toString() },
+                ]}
               />
             }
             table={
@@ -941,11 +943,16 @@ export default function Reports() {
             expanded={expandedReport === 'ops_accidents'}
             onToggle={() => toggleExpand('ops_accidents')}
             card={
-              <SummaryCard
+              <ReportCard
+                title={formatSummaryHeadline(filtered.accidents.length, 'תאונות', period.labelSuffix)}
                 icon={AlertTriangle}
                 color="bg-destructive/10 text-destructive"
-                headline={formatSummaryHeadline(filtered.accidents.length, 'תאונות', period.labelSuffix)}
                 expanded={expandedReport === 'ops_accidents'}
+                stats={[
+                  { label: 'פתוחות', value: filtered.accidents.filter(a => a.status !== 'closed').length.toString() },
+                  { label: 'עלות משוערת', value: `₪${totalAccidentCost.toLocaleString()}` },
+                  { label: 'סה"כ', value: filtered.accidents.length.toString() },
+                ]}
               />
             }
             table={
@@ -1107,68 +1114,6 @@ export default function Reports() {
                   eventType: 'רכב',
                   date: '-',
                   status: statusLabel(v.status),
-                }))}
-              />
-            }
-          />
-        )}
-
-        {showReport('faults') && (
-          <ExpandableReport
-            expanded={expandedReport === 'faults'}
-            onToggle={() => toggleExpand('faults')}
-            card={
-              <ReportCard title="דוח טיפולים / תקלות" icon={Wrench} color="bg-warning/10 text-warning"
-                expanded={expandedReport === 'faults'}
-                stats={[
-                  { label: 'פתוחות', value: filtered.faults.filter(f => ['new', 'open', 'in_progress'].includes(f.status)).length.toString() },
-                  { label: 'דחופות', value: filtered.faults.filter(f => ['urgent', 'critical'].includes(f.urgency)).length.toString() },
-                  { label: 'סה"כ', value: filtered.faults.length.toString() },
-                ]}
-              />
-            }
-            table={
-              <DetailTable
-                headers={STANDARD_HEADERS}
-                rows={filtered.faults.map(f => standardRow({
-                  internal: getInternal(f.vehicle_plate),
-                  plate: f.vehicle_plate,
-                  company: getCompanyForPlate(f.vehicle_plate, f.company_name),
-                  driver: f.driver_name,
-                  eventType: f.fault_type || 'טיפול',
-                  date: fmtDate(f.date),
-                  status: statusLabel(f.status),
-                }))}
-              />
-            }
-          />
-        )}
-
-        {showReport('accidents') && (
-          <ExpandableReport
-            expanded={expandedReport === 'accidents'}
-            onToggle={() => toggleExpand('accidents')}
-            card={
-              <ReportCard title="דוח תאונות" icon={AlertTriangle} color="bg-destructive/10 text-destructive"
-                expanded={expandedReport === 'accidents'}
-                stats={[
-                  { label: 'פתוחות', value: filtered.accidents.filter(a => a.status !== 'closed').length.toString() },
-                  { label: 'עלות משוערת', value: `₪${totalAccidentCost.toLocaleString()}` },
-                  { label: 'סה"כ', value: filtered.accidents.length.toString() },
-                ]}
-              />
-            }
-            table={
-              <DetailTable
-                headers={STANDARD_HEADERS}
-                rows={filtered.accidents.map(a => standardRow({
-                  internal: getInternal(a.vehicle_plate),
-                  plate: a.vehicle_plate,
-                  company: getCompanyForPlate(a.vehicle_plate, a.company_name),
-                  driver: a.driver_name,
-                  eventType: 'תאונה',
-                  date: fmtDate(a.date),
-                  status: statusLabel(a.status),
                 }))}
               />
             }

@@ -64,6 +64,8 @@ import DevVehiclesListPreview from "@/pages/DevVehiclesListPreview";
 import DevFleetManagerDriverFlow from "@/pages/DevFleetManagerDriverFlow";
 import DevFaultsScopedPreview from "@/pages/DevFaultsScopedPreview";
 import DevDocumentsScopedPreview from "@/pages/DevDocumentsScopedPreview";
+import DevVehicleTasksPreview from "@/pages/DevVehicleTasksPreview";
+import DevReportsTypesPreview from "@/pages/DevReportsTypesPreview";
 import DevDocumentUxPreview from "@/pages/DevDocumentUxPreview";
 import DevStagingProofFlow from "@/pages/DevStagingProofFlow";
 import DevIncidentAlertsProof from "@/pages/DevIncidentAlertsProof";
@@ -196,6 +198,8 @@ function AppRoutes() {
         <Route path="/dev/vehicle-form-live/edit" element={<DevVehicleFormLive editPreview initialStep="full" openAllSections />} />
         <Route path="/dev/faults-scoped" element={<DevFaultsScopedPreview />} />
         <Route path="/dev/documents-scoped" element={<DevDocumentsScopedPreview />} />
+        <Route path="/dev/vehicle-tasks" element={<DevVehicleTasksPreview />} />
+        <Route path="/dev/reports-types" element={<DevReportsTypesPreview />} />
         <Route path="/dev/document-ux-preview" element={<DevDocumentUxPreview />} />
         <Route path="/dev/staging-proof-flow" element={<DevStagingProofFlow />} />
         <Route path="/dev/incident-alerts-proof" element={<DevIncidentAlertsProof />} />
@@ -236,6 +240,8 @@ function AppRoutes() {
       <Route path="/dev/vehicle-form-live/edit" element={<DevVehicleFormLive editPreview initialStep="full" openAllSections />} />
       <Route path="/dev/faults-scoped" element={<DevFaultsScopedPreview />} />
       <Route path="/dev/documents-scoped" element={<DevDocumentsScopedPreview />} />
+      <Route path="/dev/vehicle-tasks" element={<DevVehicleTasksPreview />} />
+      <Route path="/dev/reports-types" element={<DevReportsTypesPreview />} />
       <Route path="/dev/staging-proof-flow" element={<DevStagingProofFlow />} />
       <Route path="/dev/incident-alerts-proof" element={<DevIncidentAlertsProof />} />
       <Route path="/dev/vehicles-list" element={<DevVehiclesListPreview />} />
