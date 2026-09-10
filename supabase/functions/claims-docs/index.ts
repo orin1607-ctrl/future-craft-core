@@ -663,7 +663,59 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (action === "garage_list_jobs" || action === "garage_get_job" || action === "garage_upload" || action === "garage_list_photos" || action === "garage_complete" || action === "garage_signed_url") {
+    async function mintShare(claimId: string, fileIds: string[], recipient: {
+      name: string;
+      kind: string;
+      note?: string;
+      email?: string;
+      phone?: string;
+      expiresAt?: string;
+      ttlHours?: number;
+    }) {
+      if (!fileIds.length) return jsonResponse({ success: false, error: "files_required" }, 400);
+      if (!SHARE_KINDS.has(recipient.kind)) return jsonResponse({ success: false, error: "recipient_kind_required" }, 400);
+      let expiresAt = "";
+      const custom = String(recipient.expiresAt || "").trim();
+      const hours = Number(recipient.ttlHours || 0);
+      if (custom) {
+        const t = Date.parse(custom);
+        if (!Number.isFinite(t) || t < Date.now() + 60_000) return jsonResponse({ success: false, error: "expires_invalid" }, 400);
+        if (t > Date.now() + 90 * 86_400_000) return jsonResponse({ success: false, error: "expires_invalid" }, 400);
+        expiresAt = new Date(t).toISOString();
+      } else if ([24, 48, 72, 168].includes(hours)) {
+        expiresAt = new Date(Date.now() + hours * 3600_000).toISOString();
+      } else {
+        expiresAt = new Date(Date.now() + 48 * 3600_000).toISOString();
+      }
+      const token = randomShareToken();
+      const shareId = nid("SHR");
+      const { error: insErr } = await sb.from("claims_share_links").insert({
+        id: shareId,
+        claim_id: claimId,
+        token_hash: await sha256Hex(token),
+        recipient_name: recipient.name,
+        recipient_kind: recipient.kind,
+        recipient_kind_note: recipient.note || "",
+        recipient_email: recipient.email || "",
+        recipient_phone: recipient.phone || "",
+        file_ids: fileIds,
+        expires_at: expiresAt,
+        created_by: user.id,
+        created_by_name: actorName,
+      });
+      if (insErr) return jsonResponse({ success: false, error: insErr.message }, 400);
+      await history(sb, claimId, "נוצר שיתוף מאובטח", `${recipient.name} · ${recipient.kind} · ${fileIds.length} קבצים · עד ${expiresAt}`, actorName);
+      return jsonResponse({
+        success: true,
+        id: shareId,
+        token,
+        expiresAt,
+        fileCount: fileIds.length,
+        once: true,
+      });
+    }
+
+    if (action === "garage_list_jobs" || action === "garage_get_job" || action === "garage_upload" || action === "garage_list_photos" || action === "garage_complete" || action === "garage_signed_url" || action === "garage_create_share") {
       const previewWorker = String(body.worker_id || form?.get("worker_id") || "").trim();
       const staffPreview = Boolean(previewWorker && previewWorker !== user.id && await hasClaimsAccess(sb, user.id, role));
       const effectiveWorkerId = staffPreview ? previewWorker : user.id;
@@ -700,7 +752,7 @@ Deno.serve(async (req) => {
         if (active && active.worker_id === previewWorker) job = active;
       }
       if (!job) return jsonResponse({ success: false, error: "forbidden", blocked: true }, 403);
-      if ((action === "garage_upload" || action === "garage_complete") && job.worker_id !== user.id) {
+      if ((action === "garage_upload" || action === "garage_complete" || action === "garage_create_share") && job.worker_id !== user.id) {
         return jsonResponse({ success: false, error: "forbidden", blocked: true }, 403);
       }
       const { data: ownedClaim } = await sb.from("claims_records").select("id, client_name, plate, row_data").eq("id", claimId).maybeSingle();
@@ -733,6 +785,30 @@ Deno.serve(async (req) => {
         const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(file.storage_path, SIGNED_TTL_SEC);
         if (error) return jsonResponse({ success: false, error: error.message }, 400);
         return jsonResponse({ success: true, url: data.signedUrl });
+      }
+
+      if (action === "garage_create_share") {
+        const recipientName = String(body.recipient_name || "שמאי").trim().slice(0, 160) || "שמאי";
+        const fileIds = parseShareIds(body.file_ids);
+        if (!fileIds.length) return jsonResponse({ success: false, error: "files_required" }, 400);
+        const photos = await listGaragePhotos(claimId);
+        const allowed = new Set(photos.map((p) => p.id));
+        if (fileIds.some((id) => !allowed.has(id))) return blocked("BLOCKED");
+        const { data: claimFiles } = await sb.from("claims_documents").select("id, claim_id, doc_kind, doc_meta").eq("claim_id", claimId).in("id", fileIds);
+        const found = claimFiles || [];
+        if (found.length !== fileIds.length || found.some((f) => f.claim_id !== claimId)) return blocked("BLOCKED");
+        const notGarage = found.some((f) => {
+          const st = String((f.doc_meta && typeof f.doc_meta === "object" ? (f.doc_meta as Record<string, string>).staff_type : "") || "");
+          return f.doc_kind !== "garage_photo" && st !== "garage_photos";
+        });
+        if (notGarage) return blocked("BLOCKED");
+        return mintShare(claimId, fileIds, {
+          name: recipientName,
+          kind: "surveyor",
+          phone: String(body.recipient_phone || "").trim().slice(0, 40),
+          expiresAt: String(body.expires_at || ""),
+          ttlHours: Number(body.ttl_hours || 48),
+        });
       }
 
       if (action === "garage_complete") {
@@ -1014,51 +1090,20 @@ Deno.serve(async (req) => {
       const recipientPhone = String(body.recipient_phone || "").trim().slice(0, 40);
       const fileIds = parseShareIds(body.file_ids);
       if (!recipientName) return jsonResponse({ success: false, error: "recipient_required" }, 400);
-      if (!SHARE_KINDS.has(recipientKind)) return jsonResponse({ success: false, error: "recipient_kind_required" }, 400);
       if (!fileIds.length) return jsonResponse({ success: false, error: "files_required" }, 400);
       const { data: claimFiles } = await sb.from("claims_documents").select("id, claim_id, original_name").eq("claim_id", claimId).in("id", fileIds);
       const found = claimFiles || [];
       if (found.length !== fileIds.length || found.some((f) => f.claim_id !== claimId)) {
         return blocked("BLOCKED");
       }
-      let expiresAt = "";
-      const custom = String(body.expires_at || "").trim();
-      const hours = Number(body.ttl_hours || 0);
-      if (custom) {
-        const t = Date.parse(custom);
-        if (!Number.isFinite(t) || t < Date.now() + 60_000) return jsonResponse({ success: false, error: "expires_invalid" }, 400);
-        if (t > Date.now() + 90 * 86_400_000) return jsonResponse({ success: false, error: "expires_invalid" }, 400);
-        expiresAt = new Date(t).toISOString();
-      } else if ([24, 48, 72, 168].includes(hours)) {
-        expiresAt = new Date(Date.now() + hours * 3600_000).toISOString();
-      } else {
-        expiresAt = new Date(Date.now() + 48 * 3600_000).toISOString();
-      }
-      const token = randomShareToken();
-      const shareId = nid("SHR");
-      const { error: insErr } = await sb.from("claims_share_links").insert({
-        id: shareId,
-        claim_id: claimId,
-        token_hash: await sha256Hex(token),
-        recipient_name: recipientName,
-        recipient_kind: recipientKind,
-        recipient_kind_note: recipientNote,
-        recipient_email: recipientEmail,
-        recipient_phone: recipientPhone,
-        file_ids: fileIds,
-        expires_at: expiresAt,
-        created_by: user.id,
-        created_by_name: actorName,
-      });
-      if (insErr) return jsonResponse({ success: false, error: insErr.message }, 400);
-      await history(sb, claimId, "נוצר שיתוף מאובטח", `${recipientName} · ${recipientKind} · ${fileIds.length} קבצים · עד ${expiresAt}`, actorName);
-      return jsonResponse({
-        success: true,
-        id: shareId,
-        token,
-        expiresAt,
-        fileCount: fileIds.length,
-        once: true,
+      return mintShare(claimId, fileIds, {
+        name: recipientName,
+        kind: recipientKind,
+        note: recipientNote,
+        email: recipientEmail,
+        phone: recipientPhone,
+        expiresAt: String(body.expires_at || ""),
+        ttlHours: Number(body.ttl_hours || 0),
       });
     }
 

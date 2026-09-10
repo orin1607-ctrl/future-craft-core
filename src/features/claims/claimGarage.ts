@@ -62,6 +62,25 @@ export function isGaragePhoto(file: { doc_kind?: string; doc_meta?: Record<strin
   return file.doc_kind === 'garage_photo' || st === 'garage_photos';
 }
 
+/** Display-only helper. Does not copy files or change storage. */
+export function garagePhotosOf<T extends { doc_kind?: string; doc_meta?: Record<string, string> | null }>(files: T[]) {
+  return files.filter(isGaragePhoto);
+}
+
+export function garageShareIdsAllowed(
+  fileIds: string[],
+  garageFiles: Array<{ id: string; claim_id?: string }>,
+  claimId: string,
+) {
+  const allowed = new Set(
+    garageFiles.filter((f) => !f.claim_id || f.claim_id === claimId).map((f) => f.id),
+  );
+  const unique = [...new Set(fileIds.map(String).filter(Boolean))];
+  if (!unique.length) return { ok: false as const, error: 'נא לבחור לפחות תמונת מוסך אחת', ids: [] as string[] };
+  if (unique.some((id) => !allowed.has(id))) return { ok: false as const, error: 'BLOCKED', ids: [] as string[] };
+  return { ok: true as const, ids: unique };
+}
+
 export function publicGarageClaimFields(row: {
   id?: string;
   client_name?: string;

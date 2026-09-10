@@ -14,9 +14,11 @@ import CustomerRequestModal from './CustomerRequestModal';
 import SecureShareModal from './SecureShareModal';
 import { type ShareRow } from './claimSecureShare';
 import ClaimDocsLibrary from './ClaimDocsLibrary';
-import { DOC_LIB_SECTIONS, fileDocBucket } from './claimDocLibrary';
+import { DOC_LIB_SECTIONS, fileDocBucket, generalLibFiles, garageLibFiles } from './claimDocLibrary';
 import GarageAssignBar from './GarageAssignBar';
-import { type GarageAssignment } from './claimGarage';
+import GaragePhotosGallery from './GaragePhotosGallery';
+import { isGaragePhoto, type GarageAssignment } from './claimGarage';
+import { sharePublicUrl } from './claimSecureShare';
 import { emailsUnknownToDirectory, parseFromAddr, phoneUnknownToDirectory, type ClaimContact } from './claimContacts';
 import './claims.css';
 
@@ -3380,7 +3382,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 const pack = surveyorBundle(docs.files, gmailImports);
                 const report = pack.reports[0];
                 const meta = report ? fileMeta(report) : {};
-                const untaggedPhotos = pack.photos.length === 0 ? docs.files.filter(isImageFile) : [];
+                const untaggedPhotos = pack.photos.length === 0 ? docs.files.filter((f) => isImageFile(f) && !isGaragePhoto(f)) : [];
                 return (
                   <div>
                     {docsShareBar(cur)}
@@ -3559,8 +3561,34 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       window.open(`${base}garage?worker=${encodeURIComponent(garageAssign.worker_id)}`, '_blank', 'noopener');
                     } : undefined}
                   />
+                  <GaragePhotosGallery
+                    photos={garageLibFiles(docs.files).map((f) => ({
+                      id: f.id,
+                      original_name: f.original_name,
+                      mime_type: f.mime_type,
+                      url: galleryUrls[f.id],
+                    }))}
+                    busy={garageBusy}
+                    onPreview={(p) => {
+                      const hit = docs.files.find((f) => f.id === p.id);
+                      if (hit) void openInCard(cur.id, hit as ClaimFile, garageLibFiles(docs.files) as ClaimFile[]);
+                    }}
+                    onCreateShare={async (fileIds, recipientName) => {
+                      const r = await apiRef.current.invokeDocs('create_share', {
+                        claim_id: cur.id,
+                        recipient_name: recipientName,
+                        recipient_kind: 'surveyor',
+                        file_ids: fileIds,
+                        ttl_hours: 48,
+                      });
+                      if (!r.success || !r.token) { toast(String(r.error || 'יצירת הקישור נכשלה'), 'err'); return null; }
+                      toast('הקישור לשמאי נוצר. הוא מוצג פעם אחת בלבד.');
+                      await loadCardData(cur.id);
+                      return { url: sharePublicUrl(String(r.token)), expiresAt: String(r.expiresAt || '') };
+                    }}
+                  />
                   <ClaimDocsLibrary
-                    files={docs.files}
+                    files={generalLibFiles(docs.files)}
                     picked={docPickIds}
                     category={docLibCat}
                     thumbs={galleryUrls}
@@ -3705,7 +3733,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                               {t.group ? ` — ${matched.length} קבצים` : null}
                             </div>
                             <div className={`doc-type-st st-${st.key}`} data-testid={`claim-doc-status-${t.key}`}>{st.label}</div>
-                            {matched.length ? (
+                            {t.key === 'garage_photos' ? (
+                              <div className="doc-type-files" data-testid="claim-doc-files-garage_photos">מוצגות בגלריית תמונות מוסך בלבד</div>
+                            ) : matched.length ? (
                               <div className="doc-type-files" data-testid={`claim-doc-files-${t.key}`}>
                                 {matched.map((f) => (
                                   <div key={f.id} data-doc-name={f.original_name} data-testid={`claim-doc-file-${f.id}`} style={{ fontSize: 11, color: 'var(--t2)', marginTop: 4 }}>
@@ -4934,7 +4964,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 const form = preferredOpeningForm(docs.files);
                 setSendGroup(form ? [form.id] : docs.files.filter((f) => fileMeta(f).staff_type === 'accident_notice' && !isImageFile(f)).map((f) => f.id).slice(0, 1), true);
               }}>טופס אירוע</button>
-              <button className="btn btn-g btn-sm" data-testid="mail-pick-images" onClick={() => setSendGroup(docs.files.filter((f) => isImageFile(f)).map((f) => f.id), true)}>כל התמונות</button>
+              <button className="btn btn-g btn-sm" data-testid="mail-pick-images" onClick={() => setSendGroup(docs.files.filter((f) => isImageFile(f) && !isGaragePhoto(f)).map((f) => f.id), true)}>כל התמונות</button>
               <button className="btn btn-g btn-sm" data-testid="mail-pick-identified" onClick={() => setSendGroup(docs.files.filter((f) => fileMeta(f).important === 'true').map((f) => f.id), true)}>מסמכים מזוהים</button>
             </div>
             {(() => {
@@ -5341,7 +5371,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <SecureShareModal
           open
           claimId={cur.id}
-          files={docs.files}
+          files={generalLibFiles(docs.files)}
           presetIds={sharePresetIds}
           api={apiRef.current}
           toast={(m, k) => toast(m, k || 'ok')}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatGarageReviewedAt, garageReviewLabel, garageStatusLabel, garageWorkerReviewLabel, isGarageAwaitingReview, isGaragePhoto, publicGarageClaimFields } from './claimGarage';
+import { formatGarageReviewedAt, garagePhotosOf, garageReviewLabel, garageShareIdsAllowed, garageStatusLabel, garageWorkerReviewLabel, isGarageAwaitingReview, isGaragePhoto, publicGarageClaimFields } from './claimGarage';
 
 describe('claimGarage', () => {
   it('labels assignment statuses', () => {
@@ -26,6 +26,13 @@ describe('claimGarage', () => {
     expect(isGaragePhoto({ doc_meta: { staff_type: 'garage_photos' } })).toBe(true);
     expect(isGaragePhoto({ doc_kind: 'surveyor_photo' })).toBe(false);
     expect(isGaragePhoto({ doc_meta: { staff_type: 'damage_photos' } })).toBe(false);
+    expect(garagePhotosOf([
+      { id: 'g', doc_kind: 'garage_photo' },
+      { id: 's', doc_kind: 'surveyor_photo' },
+    ]).map((f) => f.id)).toEqual(['g']);
+    expect(garageShareIdsAllowed(['g'], [{ id: 'g', claim_id: 'C1' }, { id: 'x', claim_id: 'C1' }], 'C1').ok).toBe(true);
+    expect(garageShareIdsAllowed(['g', 'other'], [{ id: 'g', claim_id: 'C1' }], 'C1').ok).toBe(false);
+    expect(garageShareIdsAllowed(['g'], [{ id: 'g', claim_id: 'C2' }], 'C1').ok).toBe(false);
   });
 
   it('exposes only public claim fields', () => {

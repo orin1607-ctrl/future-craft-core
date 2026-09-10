@@ -4,7 +4,6 @@ export const DOC_LIB_CATEGORIES = [
   { key: 'all', label: 'כל הגלריה' },
   { key: 'surveyor_reports', label: 'דוחות שמאי' },
   { key: 'surveyor_photos', label: 'תמונות שמאי' },
-  { key: 'garage_photos', label: 'תמונות מוסך' },
   { key: 'damage', label: 'תמונות נזק / תאונה' },
   { key: 'client', label: 'מסמכי לקוח' },
   { key: 'vehicle', label: 'מסמכי רכב / נהג' },
@@ -18,7 +17,7 @@ export type DocLibCategory = (typeof DOC_LIB_CATEGORIES)[number]['key'];
 
 /** Visual groups only. Same buckets — no new classification. */
 export const DOC_LIB_GROUPS: Array<{ key: string; label: string; keys: string[] }> = [
-  { key: 'photos', label: 'תמונות', keys: ['surveyor_photos', 'garage_photos', 'damage'] },
+  { key: 'photos', label: 'תמונות', keys: ['surveyor_photos', 'damage'] },
   { key: 'reports', label: 'דוחות', keys: ['surveyor_reports'] },
   { key: 'docs', label: 'מסמכים', keys: ['client', 'vehicle', 'insurer', 'invoice', 'forms', 'other'] },
 ];
@@ -26,7 +25,6 @@ export const DOC_LIB_GROUPS: Array<{ key: string; label: string; keys: string[] 
 export const DOC_LIB_SECTIONS: Array<{ key: string; label: string; match: string[] }> = [
   { key: 'surveyor_reports', label: 'דוחות שמאי', match: ['surveyor_reports'] },
   { key: 'surveyor_photos', label: 'תמונות שמאי', match: ['surveyor_photos'] },
-  { key: 'garage_photos', label: 'תמונות מוסך', match: ['garage_photos'] },
   { key: 'damage', label: 'תמונות נזק / תאונה', match: ['damage'] },
   { key: 'client', label: 'מסמכי לקוח', match: ['client'] },
   { key: 'vehicle', label: 'מסמכי רכב / נהג', match: ['vehicle'] },
@@ -72,7 +70,20 @@ export function fileDocBucket(f: LibFile): string {
   return 'other';
 }
 
+export function isGarageLibFile(f: LibFile) {
+  return fileDocBucket(f) === 'garage_photos';
+}
+
+export function generalLibFiles<T extends LibFile>(files: T[]) {
+  return files.filter((f) => !isGarageLibFile(f));
+}
+
+export function garageLibFiles<T extends LibFile>(files: T[]) {
+  return files.filter(isGarageLibFile);
+}
+
 export function fileInLibCategory(f: LibFile, cat: string) {
+  if (isGarageLibFile(f)) return false;
   if (!cat || cat === 'all') return true;
   const bucket = fileDocBucket(f);
   const sec = DOC_LIB_SECTIONS.find((s) => s.key === cat);

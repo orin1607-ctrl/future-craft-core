@@ -44,9 +44,9 @@ export default function SecureShareModal({
   const [createdUntil, setCreatedUntil] = useState('');
   const [shares, setShares] = useState<ShareRow[]>([]);
 
-  const images = files.filter((f) => isShareImage(f.mime_type || '', f.original_name));
-  const docs = files.filter((f) => !isShareImage(f.mime_type || '', f.original_name));
-  const garage = files.filter((f) => f.doc_kind === 'garage_photo' || String((f as { doc_meta?: { staff_type?: string } }).doc_meta?.staff_type || '') === 'garage_photos');
+  const visible = files.filter((f) => !(f.doc_kind === 'garage_photo' || String((f as { doc_meta?: { staff_type?: string } }).doc_meta?.staff_type || '') === 'garage_photos'));
+  const images = visible.filter((f) => isShareImage(f.mime_type || '', f.original_name));
+  const docs = visible.filter((f) => !isShareImage(f.mime_type || '', f.original_name));
 
   const expiry = useMemo(() => resolveShareExpiry(ttl, custom), [ttl, custom]);
   const untilText = expiry.ok ? new Date(expiry.expiresAt).toLocaleString('he-IL') : '—';
@@ -58,7 +58,8 @@ export default function SecureShareModal({
 
   useEffect(() => {
     if (!open) return;
-    setPicked(presetIds?.length ? [...presetIds] : []);
+    const allowed = new Set(files.filter((f) => !(f.doc_kind === 'garage_photo' || String((f as { doc_meta?: { staff_type?: string } }).doc_meta?.staff_type || '') === 'garage_photos')).map((f) => f.id));
+    setPicked((presetIds || []).filter((id) => allowed.has(id)));
     setName('');
     setKind('surveyor');
     setKindNote('');
@@ -83,6 +84,7 @@ export default function SecureShareModal({
     if (!expiry.ok) { toast(expiry.error, 'err'); return; }
     setBusy(true);
     try {
+      const ids = picked.filter((id) => visible.some((f) => f.id === id));
       const r = await api.invokeDocs('create_share', {
         claim_id: claimId,
         recipient_name: name.trim(),
@@ -90,7 +92,7 @@ export default function SecureShareModal({
         recipient_kind_note: kindNote,
         recipient_email: email,
         recipient_phone: phone,
-        file_ids: picked,
+        file_ids: ids,
         ttl_hours: ttl === 'custom' ? 0 : SHARE_TTL_PRESETS.find((p) => p.key === ttl)?.hours,
         expires_at: ttl === 'custom' ? expiry.expiresAt : '',
       });
@@ -135,23 +137,22 @@ export default function SecureShareModal({
             המקבל רואה רק את מה שנבחר. claims-docs נשאר פרטי. הקישור המלא מוצג פעם אחת — אין חשיפה מחדש.
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-            <button type="button" className="btn btn-g btn-sm" data-testid="share-all" onClick={() => setMany(files.map((f) => f.id))}>בחר הכל</button>
+            <button type="button" className="btn btn-g btn-sm" data-testid="share-all" onClick={() => setMany(visible.map((f) => f.id))}>בחר הכל</button>
             <button type="button" className="btn btn-g btn-sm" data-testid="share-clear" onClick={() => setPicked([])}>נקה בחירה</button>
             <button type="button" className="btn btn-g btn-sm" data-testid="share-docs" onClick={() => setMany(docs.map((f) => f.id))}>כל המסמכים</button>
             <button type="button" className="btn btn-g btn-sm" data-testid="share-images" onClick={() => setMany(images.map((f) => f.id))}>כל התמונות</button>
-            <button type="button" className="btn btn-g btn-sm" data-testid="share-garage" onClick={() => setMany(garage.map((f) => f.id))}>תמונות מוסך</button>
           </div>
           <div data-testid="share-count" style={{ fontWeight: 700, marginBottom: 8 }}>נבחרו לשיתוף {picked.length} קבצים / תמונות</div>
           {picked.length ? (
             <div data-testid="share-picked-names" style={{ fontSize: 12, marginBottom: 10, color: 'var(--t2)' }}>
-              {files.filter((f) => picked.includes(f.id)).map((f) => f.original_name).join(' · ')}
+              {visible.filter((f) => picked.includes(f.id)).map((f) => f.original_name).join(' · ')}
             </div>
           ) : null}
           {docs.length ? <div className="sdiv"><div className="sdiv-t">מסמכים</div><div className="sdiv-l" /></div> : null}
           {docs.map(row)}
           {images.length ? <div className="sdiv"><div className="sdiv-t">תמונות</div><div className="sdiv-l" /></div> : null}
           {images.map(row)}
-          {!files.length ? <div style={{ color: 'var(--t3)' }}>אין קבצים בתיק</div> : null}
+          {!visible.length ? <div style={{ color: 'var(--t3)' }}>אין קבצים בגלריה הכללית</div> : null}
 
           <div className="fg"><label className="fl">נשלח אל *</label>
             <input className="fi" data-testid="share-to" value={name} onChange={(e) => setName(e.target.value)} placeholder="שם המקבל" />

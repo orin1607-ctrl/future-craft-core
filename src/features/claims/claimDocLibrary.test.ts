@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DOC_LIB_CATEGORIES, DOC_LIB_GROUPS, fileDocBucket, fileInLibCategory, libTypeLabel } from './claimDocLibrary';
+import { DOC_LIB_CATEGORIES, DOC_LIB_GROUPS, fileDocBucket, fileInLibCategory, generalLibFiles, isGarageLibFile, libTypeLabel } from './claimDocLibrary';
 
 describe('claimDocLibrary', () => {
   it('uses doc_kind before source', () => {
@@ -40,9 +40,21 @@ describe('claimDocLibrary', () => {
 
   it('exposes the gallery category names', () => {
     expect(DOC_LIB_CATEGORIES.map((c) => c.label)).toEqual([
-      'כל הגלריה', 'דוחות שמאי', 'תמונות שמאי', 'תמונות מוסך', 'תמונות נזק / תאונה', 'מסמכי לקוח',
+      'כל הגלריה', 'דוחות שמאי', 'תמונות שמאי', 'תמונות נזק / תאונה', 'מסמכי לקוח',
       'מסמכי רכב / נהג', 'מסמכי חברת ביטוח', 'חשבוניות / מוסך', 'טפסים / תצהירים', 'אחר',
     ]);
     expect(DOC_LIB_GROUPS.map((g) => g.label)).toEqual(['תמונות', 'דוחות', 'מסמכים']);
+    expect(DOC_LIB_CATEGORIES.some((c) => c.key === 'garage_photos')).toBe(false);
+  });
+
+  it('keeps garage photos classified but out of the general library', () => {
+    const garage = { id: 'g', doc_kind: 'garage_photo', doc_meta: { staff_type: 'garage_photos' } };
+    const damage = { id: 'd', doc_kind: 'general', doc_meta: { staff_type: 'damage_photos' } };
+    expect(fileDocBucket(garage)).toBe('garage_photos');
+    expect(isGarageLibFile(garage)).toBe(true);
+    expect(fileInLibCategory(garage, 'all')).toBe(false);
+    expect(fileInLibCategory(garage, 'damage')).toBe(false);
+    expect(fileInLibCategory(damage, 'all')).toBe(true);
+    expect(generalLibFiles([garage, damage]).map((f) => f.id)).toEqual(['d']);
   });
 });

@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClaimsApi } from '@/features/claims/claimsService';
-import { garageStatusLabel, garageWorkerReviewLabel, type GarageAssignment } from '@/features/claims/claimGarage';
+import { garageShareIdsAllowed, garageStatusLabel, garageWorkerReviewLabel, type GarageAssignment } from '@/features/claims/claimGarage';
+import GaragePhotosGallery from '@/features/claims/GaragePhotosGallery';
+import { sharePublicUrl } from '@/features/claims/claimSecureShare';
 import '@/features/claims/claims.css';
 
 type Job = GarageAssignment & {
@@ -227,21 +229,26 @@ export default function GarageJobsPage() {
               </button>
             </div>
           ) : null}
-          <h3>תמונות מוסך ({photos.length})</h3>
-          <div className="garage-thumbs" data-testid="garage-photos">
-            {photos.map((p) => (
-              <div key={p.id} className="garage-thumb" data-testid={`garage-photo-${p.id}`}>
-                {p.url ? (
-                  <button type="button" className="garage-thumb-open" onClick={() => setPreview(p)} data-testid={`garage-preview-${p.id}`}>
-                    <img src={p.url} alt={p.original_name} />
-                  </button>
-                ) : <span>{p.original_name}</span>}
-                {p.url ? (
-                  <a className="btn btn-sm btn-g" href={p.url} download={p.original_name} target="_blank" rel="noreferrer" data-testid={`garage-download-${p.id}`}>הורדה</a>
-                ) : null}
-              </div>
-            ))}
-          </div>
+          <GaragePhotosGallery
+            photos={photos}
+            canShare={!isAdminPreview}
+            busy={Boolean(busy)}
+            onPreview={setPreview}
+            onCreateShare={async (fileIds, recipientName) => {
+              const allowed = garageShareIdsAllowed(fileIds, photos.map((p) => ({ id: p.id, claim_id: openId })), openId);
+              if (!allowed.ok) { setErr(allowed.error); return null; }
+              const r = await api.invokeDocs('garage_create_share', {
+                claim_id: openId,
+                recipient_name: recipientName,
+                recipient_kind: 'surveyor',
+                file_ids: allowed.ids,
+                ttl_hours: 48,
+              });
+              if (!r.success || !r.token) { setErr(String(r.error || 'יצירת הקישור נכשלה')); return null; }
+              setErr('');
+              return { url: sharePublicUrl(String(r.token)), expiresAt: String(r.expiresAt || '') };
+            }}
+          />
           {isAdminPreview ? null : (
             <button type="button" className="btn btn-p" data-testid="garage-complete" disabled={busy === 'done'} onClick={() => void complete()}>סיימתי צילום</button>
           )}
