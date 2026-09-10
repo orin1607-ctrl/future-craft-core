@@ -297,7 +297,7 @@ try {
     await recPage.screenshot({ path: join(OUT, 'screenshots', '05-incognito.png'), fullPage: true });
     if (hasShare) {
       const countTxt = await recPage.locator('[data-testid="share-pub-count"]').innerText().catch(() => '');
-      rec('incognito-four-files', /4/.test(countTxt), { countTxt });
+      rec('incognito-four-files', /2 תמונות/.test(countTxt) && (await recPage.locator('[data-testid="share-docs"] [data-testid^="share-pub-file-"]').count()) === 2, { countTxt });
       await recPage.locator('[data-testid^="share-pub-img-"]').first().click();
       await recPage.waitForSelector('[data-testid="share-lightbox"], [data-testid="share-preview"]', { timeout: 15000 }).catch(() => null);
       rec('incognito-preview', await recPage.locator('[data-testid="share-lightbox"], [data-testid="share-preview"]').count() > 0);

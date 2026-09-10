@@ -17,6 +17,62 @@ type ShareFile = { id: string; name: string; mime: string; bytes: number; image:
 
 type DisplaySlot = { url: string; error?: string };
 
+const SHARE_ALBUM_CSS = `
+  html, body.claims-public-page { margin: 0; background: #f4f5f7; }
+  .claims-public-page [aria-label="סגור"], .claims-public-page [aria-label="מצב כהה"], .claims-public-page [aria-label="מצב בהיר"] { display: none !important; }
+  .share-pub{min-height:100vh;margin:0;padding:0;font-family:Heebo,Arial,sans-serif;direction:rtl;color:#102033;background:#f4f5f7}
+  .share-head{padding:18px 16px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+  .share-head-main{flex:1;min-width:180px}
+  .share-pub h1{font-size:28px;line-height:1.15;font-weight:800;margin:0}
+  .share-count{margin-top:4px;font-size:16px;font-weight:700;color:#3b4a5c}
+  .share-pub .meta{color:#5b6b7c;font-size:12px;width:100%}
+  .share-pub .acts{display:flex;flex-wrap:wrap;gap:8px}
+  .share-pub .btn{border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;background:#1d4ed8;color:#fff}
+  .share-pub .btn-g{background:#e8eef6;color:#123}
+  .share-pub .btn:disabled{opacity:.45;cursor:default}
+  .share-pub .card{background:#fff;border:1px solid #d7deea;border-radius:10px;padding:12px;margin-bottom:8px}
+  .share-docs{padding:20px 16px 48px}
+  .share-docs h2{font-size:18px;margin:0 0 10px}
+  .share-pub .gal{display:grid;gap:3px;width:100%;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .share-pub .thumb-tile{position:relative;min-width:0}
+  .share-pub .thumb-btn{position:relative;display:block;width:100%;padding:0;border:0;border-radius:0;overflow:hidden;background:#d8dee8;aspect-ratio:1;cursor:pointer}
+  .share-pub .thumb-btn img{width:100%;height:100%;object-fit:cover;display:block}
+  .share-pub .thumb-ph{display:flex;align-items:center;justify-content:center;height:100%;color:#5b6b7c;font-size:13px}
+  .share-pub .thumb-dl{position:absolute;top:6px;left:6px;z-index:1;border:0;border-radius:7px;padding:4px 7px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(15,23,42,.55);color:#fff}
+  .share-pub .err{color:#b91c1c;margin:8px 16px}
+  .share-loading-msg{padding:24px 16px;color:#5b6b7c}
+  .share-lb{position:fixed;inset:0;z-index:9999;background:#0b1020;display:flex;flex-direction:column;color:#fff}
+  .share-lb .btn{border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;background:#1d4ed8;color:#fff}
+  .share-lb .btn-g{background:#243044;color:#fff}
+  .share-lb-top{display:flex;align-items:center;gap:8px;padding:10px 12px;flex-shrink:0;background:#0b1020}
+  .share-lb-top b{flex:1;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .share-lb-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;touch-action:pan-y;background:#0b1020}
+  .share-lb-stage img{max-width:min(100%,1200px);max-height:100%;width:auto;height:auto;object-fit:contain;user-select:none;-webkit-user-drag:none}
+  .share-lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:64px;border:0;border-radius:10px;background:rgba(255,255,255,.16);color:#fff;font-size:28px;cursor:pointer}
+  .share-lb-nav.prev{right:10px}
+  .share-lb-nav.next{left:10px}
+  .share-lb-nav:disabled{opacity:.25}
+  @media (max-width: 700px){
+    .share-lb-nav{width:40px;height:52px}
+    .share-pub h1{font-size:26px}
+  }
+  @media (max-width: 380px){
+    .share-pub .gal{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media (min-width: 720px){
+    .share-pub h1{font-size:32px}
+    .share-pub .gal{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+    .share-head{padding:20px 20px 14px}
+    .share-docs{padding:24px 20px 56px}
+  }
+  @media (min-width: 1100px){
+    .share-pub .gal{grid-template-columns:repeat(5,minmax(0,1fr))}
+  }
+  @media (min-width: 1440px){
+    .share-pub .gal{grid-template-columns:repeat(6,minmax(0,1fr))}
+  }
+`;
+
 export default function ClaimsSharePage() {
   const [params] = useSearchParams();
   const token = params.get('t') || params.get('token') || '';
@@ -124,7 +180,7 @@ export default function ClaimsSharePage() {
   };
 
   useEffect(() => {
-    document.title = 'שיתוף מאובטח';
+    document.title = 'גלריית תמונות';
     document.documentElement.lang = 'he';
     document.documentElement.dir = 'rtl';
     document.body.classList.add('claims-public-page');
@@ -230,8 +286,24 @@ export default function ClaimsSharePage() {
     triggerBlobDownload(await res.blob(), filename);
   };
 
-  if (loading) return <div className="share-pub" data-testid="share-loading">טוען…</div>;
-  if (error && !files.length) return <div className="share-pub" data-testid="share-error">{error}</div>;
+  if (loading) {
+    return (
+      <div className="share-pub" data-testid="share-loading">
+        <style>{SHARE_ALBUM_CSS}</style>
+        <header className="share-head"><h1>גלריית תמונות</h1></header>
+        <div className="share-loading-msg">טוען…</div>
+      </div>
+    );
+  }
+  if (error && !files.length) {
+    return (
+      <div className="share-pub" data-testid="share-error">
+        <style>{SHARE_ALBUM_CSS}</style>
+        <header className="share-head"><h1>גלריית תמונות</h1></header>
+        <div className="err">{error}</div>
+      </div>
+    );
+  }
 
   const current = viewer != null ? images[viewer] : null;
   const currentSlot = current ? (full[current.id] || thumbs[current.id]) : null;
@@ -267,55 +339,34 @@ export default function ClaimsSharePage() {
 
   return (
     <div className="share-pub" data-testid="share-page">
-      <style>{`
-        .claims-public-page [aria-label="סגור"], .claims-public-page [aria-label="מצב כהה"], .claims-public-page [aria-label="מצב בהיר"] { display: none !important; }
-        .share-pub{max-width:1080px;margin:0 auto;padding:20px 16px 48px;font-family:Heebo,Arial,sans-serif;direction:rtl;color:#102033}
-        .share-pub h1{font-size:22px;margin:0 0 6px}
-        .share-pub h2{font-size:16px;margin:22px 0 10px}
-        .share-pub .meta{color:#5b6b7c;font-size:13px;margin-bottom:14px}
-        .share-pub .acts{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-        .share-pub .btn{border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;background:#1d4ed8;color:#fff}
-        .share-pub .btn-g{background:#e8eef6;color:#123}
-        .share-pub .btn:disabled{opacity:.45;cursor:default}
-        .share-pub .card{background:#fff;border:1px solid #d7deea;border-radius:10px;padding:12px;margin-bottom:8px}
-        .share-pub .gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px}
-        .share-pub .thumb-tile{position:relative}
-        .share-pub .thumb-btn{position:relative;display:block;width:100%;padding:0;border:0;border-radius:10px;overflow:hidden;background:#dbe4f0;aspect-ratio:1;cursor:pointer}
-        .share-pub .thumb-btn img{width:100%;height:100%;object-fit:cover;display:block}
-        .share-pub .thumb-ph{display:flex;align-items:center;justify-content:center;height:100%;color:#5b6b7c;font-size:13px}
-        .share-pub .thumb-name{position:absolute;left:0;right:0;bottom:0;padding:6px 8px;background:linear-gradient(transparent,rgba(0,0,0,.65));color:#fff;font-size:11px;text-align:right}
-        .share-pub .thumb-dl{position:absolute;top:6px;left:6px;z-index:1;border:0;border-radius:7px;padding:4px 7px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(15,23,42,.72);color:#fff}
-        .share-pub .err{color:#b91c1c;margin:8px 0}
-        .share-lb{position:fixed;inset:0;z-index:9999;background:#0b1020;display:flex;flex-direction:column;color:#fff}
-        .share-lb .btn{border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;background:#1d4ed8;color:#fff}
-        .share-lb .btn-g{background:#243044;color:#fff}
-        .share-lb-top{display:flex;align-items:center;gap:8px;padding:10px 12px;flex-shrink:0;background:#0b1020}
-        .share-lb-top b{flex:1;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .share-lb-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;touch-action:pan-y;background:#0b1020}
-        .share-lb-stage img{max-width:min(100%,1200px);max-height:100%;width:auto;height:auto;object-fit:contain;user-select:none;-webkit-user-drag:none}
-        .share-lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:64px;border:0;border-radius:10px;background:rgba(255,255,255,.16);color:#fff;font-size:28px;cursor:pointer}
-        .share-lb-nav.prev{right:10px}
-        .share-lb-nav.next{left:10px}
-        .share-lb-nav:disabled{opacity:.25}
-        @media (max-width: 700px){
-          .share-pub .gal{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
-          .share-lb-nav{width:40px;height:52px}
-        }
-      `}</style>
-      <h1>שיתוף מאובטח</h1>
-      <div className="meta">חומר שנבחר לשיתוף בלבד. המסך לקריאה ולהורדה. הקישור זמין עד {expiresAt ? new Date(expiresAt).toLocaleString('he-IL') : '—'}</div>
-      {error ? <div className="err" data-testid="share-err">{error}</div> : null}
-      <div className="acts">
-        <button className="btn" data-testid="share-pub-zip" type="button" disabled={busy === 'public_share_zip' || !files.length} onClick={() => void binary('public_share_zip', 'claim-share.zip')}>הורד הכל / ZIP</button>
-      </div>
-      <div data-testid="share-pub-count">{images.length} תמונות · {docs.length} מסמכים · {files.length} קבצים</div>
-      {images.length ? (
-        <div className="meta" data-testid="share-thumbs-progress" data-loaded={thumbsLoaded} data-total={images.length}>
-          {thumbsReady ? 'כל התמונות נטענו' : `נטענו ${thumbsLoaded} מתוך ${images.length} תמונות`}
+      <style>{SHARE_ALBUM_CSS}</style>
+      <header className="share-head">
+        <div className="share-head-main">
+          <h1 data-testid="share-gallery-title">גלריית תמונות</h1>
+          {images.length ? (
+            <div className="share-count" data-testid="share-pub-count">{images.length} תמונות</div>
+          ) : (
+            <div className="share-count" data-testid="share-pub-count">אין תמונות</div>
+          )}
         </div>
-      ) : null}
+        <div className="acts">
+          <button className="btn" data-testid="share-pub-zip" type="button" disabled={busy === 'public_share_zip' || !files.length} onClick={() => void binary('public_share_zip', 'claim-share.zip')}>הורד הכל</button>
+        </div>
+        <div className="meta">
+          קישור מאובטח לקריאה ולהורדה בלבד
+          {expiresAt ? ` · עד ${new Date(expiresAt).toLocaleString('he-IL')}` : ''}
+          {images.length && !thumbsReady ? ` · נטענו ${thumbsLoaded} מתוך ${images.length}` : ''}
+        </div>
+      </header>
+      {error ? <div className="err" data-testid="share-err">{error}</div> : null}
+      <div
+        className="meta"
+        data-testid="share-thumbs-progress"
+        data-loaded={thumbsLoaded}
+        data-total={images.length}
+        hidden
+      />
 
-      {images.length ? <h2 data-testid="share-gallery-title">תמונות</h2> : null}
       <div
         className="gal"
         data-testid="share-gallery"
@@ -330,27 +381,31 @@ export default function ClaimsSharePage() {
               className="thumb-btn"
               data-testid={`share-pub-img-${f.id}`}
               onClick={() => void openViewer(idx)}
+              aria-label={f.name}
             >
               {thumbs[f.id]?.url
                 ? <img src={thumbs[f.id].url} alt={f.name} data-testid={`share-thumb-${f.id}`} />
                 : <span className="thumb-ph" data-testid={`share-thumb-ph-${f.id}`}>{thumbs[f.id]?.error || 'טוען…'}</span>}
-              <span className="thumb-name">{f.name}</span>
             </button>
             <button type="button" className="thumb-dl" data-testid={`share-pub-dl-${f.id}`} onClick={() => void downloadOne(f)}>הורדה</button>
           </div>
         ))}
       </div>
 
-      {docs.length ? <h2>מסמכים</h2> : null}
-      {docs.map((f) => (
-        <div key={f.id} className="card" data-testid={`share-pub-file-${f.id}`}>
-          <div>{f.name}</div>
-          <div className="acts">
-            <button className="btn" type="button" data-testid={`share-pub-view-${f.id}`} onClick={() => void openDoc(f)}>Preview</button>
-            <button className="btn btn-g" type="button" data-testid={`share-pub-dl-${f.id}`} onClick={() => void downloadOne(f)}>Download</button>
-          </div>
-        </div>
-      ))}
+      {docs.length ? (
+        <section className="share-docs" data-testid="share-docs">
+          <h2>מסמכים</h2>
+          {docs.map((f) => (
+            <div key={f.id} className="card" data-testid={`share-pub-file-${f.id}`}>
+              <div>{f.name}</div>
+              <div className="acts">
+                <button className="btn" type="button" data-testid={`share-pub-view-${f.id}`} onClick={() => void openDoc(f)}>Preview</button>
+                <button className="btn btn-g" type="button" data-testid={`share-pub-dl-${f.id}`} onClick={() => void downloadOne(f)}>Download</button>
+              </div>
+            </div>
+          ))}
+        </section>
+      ) : null}
 
       {lightbox && typeof document !== 'undefined' ? createPortal(lightbox, document.body) : null}
     </div>

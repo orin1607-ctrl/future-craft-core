@@ -257,6 +257,15 @@ try {
   });
   rec('all-thumbs-decode', loaded.decoded === expectedImages && loaded.broken.length === 0 && loaded.errors.length === 0, { ...loaded, expectedImages });
   if (loaded.broken.length || loaded.errors.length) find('broken-thumbs', [...loaded.broken, ...loaded.errors].join(', '));
+  const title = (await page.locator('[data-testid="share-gallery-title"]').innerText()).trim();
+  rec('album-title', title === 'גלריית תמונות', { title });
+  const countTxt = (await page.locator('[data-testid="share-pub-count"]').innerText()).trim();
+  rec('album-count', countTxt === `${expectedImages} תמונות`, { countTxt });
+  const desktopCols = await page.evaluate(() => (
+    getComputedStyle(document.querySelector('[data-testid="share-gallery"]')).gridTemplateColumns.split(' ').filter(Boolean).length
+  ));
+  rec('desktop-album-cols', desktopCols >= 4, { desktopCols });
+  rec('docs-below-gallery', await page.locator('[data-testid="share-docs"]').count() === 1);
   await page.screenshot({ path: join(OUT, 'screenshots', '01-gallery.png'), fullPage: true });
 
   await page.locator('[data-testid="share-gallery"] img').first().click();
@@ -311,6 +320,11 @@ try {
   const mob = await phone.newPage();
   await mob.goto(publicUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await mob.locator('[data-testid="share-gallery"] img').first().waitFor({ timeout: 45000 });
+  const mobCols = await mob.evaluate(() => (
+    getComputedStyle(document.querySelector('[data-testid="share-gallery"]')).gridTemplateColumns.split(' ').filter(Boolean).length
+  ));
+  rec('mobile-album-cols', mobCols === 2 || mobCols === 3, { mobCols });
+  await mob.screenshot({ path: join(OUT, 'screenshots', '04-mobile-album.png'), fullPage: true });
   await mob.locator('[data-testid="share-gallery"] img').first().click();
   await mob.locator('[data-testid="share-lightbox"]').waitFor({ timeout: 15000 });
   const before = await mob.locator('[data-testid="share-lb-pos"]').innerText();
@@ -347,5 +361,6 @@ try {
   copyFileSync(join(OUT, 'screenshots', '01-gallery.png'), join('/opt/cursor/artifacts', 'share_gallery_thumbs.png'));
   copyFileSync(join(OUT, 'screenshots', '02-lightbox.png'), join('/opt/cursor/artifacts', 'share_gallery_lightbox.png'));
   copyFileSync(join(OUT, 'screenshots', '03-mobile-lightbox.png'), join('/opt/cursor/artifacts', 'share_gallery_mobile.png'));
+  copyFileSync(join(OUT, 'screenshots', '04-mobile-album.png'), join('/opt/cursor/artifacts', 'share_gallery_mobile_album.png'));
 } catch { /* */ }
 if (failed.length) process.exitCode = 1;

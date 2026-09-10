@@ -368,7 +368,7 @@ if (uiBase && !process.env.CLAIMS_QA_API_ONLY) {
       await page.locator('[data-testid="share-page"]').waitFor({ timeout: 30000 });
       rec(`${name}-nologin-page`, await page.locator('[data-testid="share-page"]').isVisible());
       rec(`${name}-nologin-no-login-form`, (await page.locator('input[type="password"]').count()) === 0);
-      rec(`${name}-nologin-count`, /2/.test(await page.locator('[data-testid="share-pub-count"]').innerText().catch(() => '')));
+      rec(`${name}-nologin-count`, /1 תמונות/.test(await page.locator('[data-testid="share-pub-count"]').innerText().catch(() => '')) && (await page.locator('[data-testid="share-docs"]').count()) === 1);
       await page.locator(`[data-testid="share-pub-img-${fileJpg}"]`).first().click().catch(() => null);
       await page.waitForSelector('[data-testid="share-lightbox"], [data-testid="share-preview"]', { timeout: 15000 }).catch(() => null);
       rec(`${name}-nologin-preview`, await page.locator('[data-testid="share-lightbox"], [data-testid="share-preview"]').count() > 0);
