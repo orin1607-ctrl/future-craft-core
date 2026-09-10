@@ -71,4 +71,11 @@ describe('oren car round-2 display', () => {
     expect(src).toContain("path: '/vehicle-tasks'");
     expect(src).toContain('openDefectLabel');
   });
+
+  it('titles the tracking summary tile as רכבים עם ליקויים without changing the defect key', () => {
+    const src = readFileSync('src/components/vehicle-tracking/TrackingSummaryGrid.tsx', 'utf8');
+    expect(src).toContain("{ key: 'defect', label: 'רכבים עם ליקויים'");
+    expect(src).not.toContain("label: 'עם ליקויים'");
+    expect(src).toContain("key: 'defect'");
+  });
 });
