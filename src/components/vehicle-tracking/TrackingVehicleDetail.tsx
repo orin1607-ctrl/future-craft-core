@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Car } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { formatExpiry } from '@/components/vehicles/vehicleHubUtils';
 import type { TrackingVehicleRow } from '@/lib/vehicleTrackingData';
 import type { VehicleHistoryEntry } from '@/lib/vehicleHistory';
 import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import EntityListNote from '@/components/vehicles/EntityListNote';
+import { buildAllAccidentsUrl } from '@/lib/entityNavContext';
 
 const TABS = [
   { id: 'current', label: 'מצב נוכחי' },
@@ -32,6 +32,7 @@ export default function TrackingVehicleDetail({
     type: a.label,
     desc: a.detail,
     link: a.hubLink,
+    kind: a.kind,
   }));
 
   return (
@@ -50,8 +51,9 @@ export default function TrackingVehicleDetail({
           <div>
             <p className="font-bold text-lg">{v.manufacturer} {v.model} {v.year || ''}</p>
             <p className="text-sm text-muted-foreground">
-              <InternalNumber value={v.internal_number} /> · {v.company_name}
-              {v.department ? ` — ${v.department}` : ''}
+              מספר פנימי: <InternalNumber value={v.internal_number} className="text-sm" />
+              {' · '}מחלקה: {v.department?.trim() || '—'}
+              {v.company_name ? ` · ${v.company_name}` : ''}
             </p>
             <EntityListNote notes={v.notes} />
           </div>
@@ -82,6 +84,12 @@ export default function TrackingVehicleDetail({
             ))}
           </div>
         )}
+        <Link
+          to={buildAllAccidentsUrl()}
+          className="mt-4 flex items-center justify-center gap-2 w-full py-3 rounded-xl border border-primary/30 text-primary font-bold min-h-[48px]"
+        >
+          כל התאונות
+        </Link>
       </div>
 
       <div className="flex gap-2 mb-4 overflow-x-auto">
@@ -117,7 +125,9 @@ export default function TrackingVehicleDetail({
               <Link key={i} to={item.link} className="card-elevated block hover:border-primary/40 transition-colors">
                 <p className="font-bold text-destructive">{item.type}</p>
                 <p className="text-sm text-muted-foreground">{item.desc}</p>
-                <p className="text-xs text-primary mt-2 font-semibold">פתח בכרטיס הרכב ←</p>
+                <p className="text-xs text-primary mt-2 font-semibold">
+                  {item.kind === 'accident' ? 'פתח דוח תאונה ←' : 'פתח בכרטיס הרכב ←'}
+                </p>
               </Link>
             ))
           )}

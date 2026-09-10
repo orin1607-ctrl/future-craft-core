@@ -103,8 +103,13 @@ export default function DevVehiclesListPreview() {
                         {v.manufacturer} {v.model}
                       </p>
                       <p className="text-muted-foreground text-lg truncate">
-                        {v.license_plate}
-                        {v.internal_number ? ` | ${v.internal_number}` : ''} • {v.year}
+                        {v.license_plate} • {v.year}
+                      </p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        מספר פנימי: {v.internal_number || '—'}
+                      </p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        מחלקה: {v.department?.trim() || '—'}
                       </p>
                       <p className="text-sm text-muted-foreground truncate">
                         נהג: {getDriverName(v.assigned_driver_id)}

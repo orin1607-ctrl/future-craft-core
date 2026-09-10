@@ -21,7 +21,7 @@ import CompanyVehicleListsManager from '@/components/vehicles/CompanyVehicleList
 import { VehicleDaliaFlow, VehicleForm } from '@/pages/VehicleDaliaFlow';
 import { collectDepartmentsFromVehicles, fetchCompanyDepartments, mergeDepartmentNames } from '@/lib/companyDepartments';
 import { shouldSkipHubReopen } from '@/lib/vehicleHubOpenGuard';
-import { VehiclePlatePipeLine } from '@/components/vehicles/vehiclePlateDisplay';
+import { VehiclePlatePipeLine, InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import EntityListNote from '@/components/vehicles/EntityListNote';
 import { sortByExactInternalNumberFirst } from '@/lib/internalNumberSearch';
 
@@ -542,10 +542,11 @@ export default function Vehicles() {
                         <VehiclePlatePipeLine plate={v.license_plate} internal={v.internal_number} />
                         {' • '}{v.year}
                       </p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        מספר פנימי: <InternalNumber value={v.internal_number} className="text-sm" />
+                      </p>
                       <p className="text-sm text-muted-foreground truncate">נהג: {getDriverName(v.assigned_driver_id)}</p>
-                      {v.department?.trim() ? (
-                        <p className="text-sm text-muted-foreground truncate">מחלקה: {v.department.trim()}</p>
-                      ) : null}
+                      <p className="text-sm text-muted-foreground truncate">מחלקה: {v.department?.trim() || '—'}</p>
                       <EntityListNote notes={v.notes} />
                     </div>
                   </button>

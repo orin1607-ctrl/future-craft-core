@@ -65,6 +65,21 @@ export function buildFaultDetailUrl(faultId: string, ctx: { plate: string; vehic
   return `/faults?${q.toString()}`;
 }
 
+/** Open the existing Accidents page on a specific accident report (not VehicleHub activity). */
+export function buildAccidentDetailUrl(accidentId: string, ctx: { plate: string; vehicleId: string }): string {
+  const q = new URLSearchParams();
+  q.set('id', accidentId);
+  q.set('plate', ctx.plate);
+  q.set('vehicleId', ctx.vehicleId);
+  q.set('context', 'vehicle');
+  return `/accidents?${q.toString()}`;
+}
+
+/** Existing Accidents list page — company-scoped by the page itself. */
+export function buildAllAccidentsUrl(): string {
+  return '/accidents';
+}
+
 export function buildVehicleTaskDetailUrl(taskId: string, ctx: { plate: string; vehicleId: string }): string {
   const q = new URLSearchParams();
   q.set('id', taskId);
