@@ -48,6 +48,7 @@ export const MANAGEABLE_BUTTONS = [
   { path: '/vehicle-tasks', label: 'ליקויים', category: 'ניהול צי רכב' },
   { path: '/history', label: 'היסטוריית שינויים', category: 'ניהול צי רכב' },
   { path: '/faults', label: 'מעקב רכב', category: 'תפעול ושירות' },
+  { path: '/garage-management', label: 'ניהול מוסך', category: 'תפעול ושירות' },
   { path: '/service-orders', label: 'שירותים ותחזוקה', category: 'תפעול ושירות' },
   { path: '/routes', label: 'ניהול מסלולים', category: 'תפעול ושירות' },
   { path: '/work-orders', label: 'סידור עבודה', category: 'תפעול ושירות' },

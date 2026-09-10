@@ -78,6 +78,7 @@ import SystemUpdateCode from "@/pages/SystemUpdateCode";
 import SystemUpdateDatabase from "@/pages/SystemUpdateDatabase";
 import SystemUpdateAudit from "@/pages/SystemUpdateAudit";
 import PickupAppointments from "@/pages/PickupAppointments";
+import GarageApp from "@/modules/garage-management/GarageApp";
 
 const queryClient = new QueryClient();
 
@@ -188,6 +189,7 @@ function AppRoutes() {
         <Route path="/system-update/database" element={<SystemUpdateDatabase />} />
         <Route path="/system-update/audit" element={<SystemUpdateAudit />} />
         <Route path="/pickup-appointments" element={<PickupAppointments />} />
+        <Route path="/garage-management/*" element={<GarageApp />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>
