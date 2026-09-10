@@ -62,6 +62,22 @@ async function readBlobBytes(blob: Blob): Promise<Uint8Array> {
   return new Uint8Array(await new Response(blob).arrayBuffer());
 }
 
+export async function withTimeout<T>(p: Promise<T>, ms: number, label = 'timeout'): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      p,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(label)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+const HEIC_CONVERT_MS = 20000;
+
 export async function blobToDisplayBlob(
   blob: Blob,
   mime = '',
@@ -72,12 +88,9 @@ export async function blobToDisplayBlob(
   if (!isHeicLike(mime, name, buf.subarray(0, 32))) {
     return { blob, converted: false };
   }
-  try {
-    const jpeg = await convertHeic(blob);
-    return { blob: jpeg, converted: true };
-  } catch {
-    return { blob, converted: false };
-  }
+  const jpeg = await withTimeout(convertHeic(blob), HEIC_CONVERT_MS, 'heic-timeout');
+  if (!jpeg || jpeg.size < 3) throw new Error('heic-empty');
+  return { blob: jpeg, converted: true };
 }
 
 export async function mapPool<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {

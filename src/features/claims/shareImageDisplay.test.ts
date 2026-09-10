@@ -49,9 +49,16 @@ describe('shareImageDisplay', () => {
 
   it('converts HEIC bytes through the supplied converter', async () => {
     const raw = new Blob([heicHeader('heic')], { type: 'image/heic' });
-    const jpeg = new Blob([new Uint8Array([0xff, 0xd8, 0xff])], { type: 'image/jpeg' });
+    const jpeg = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: 'image/jpeg' });
     const out = await blobToDisplayBlob(raw, 'image/jpeg', 'IMG_1.HEIC', async () => jpeg);
     expect(out.converted).toBe(true);
     expect(out.blob).toBe(jpeg);
+  });
+
+  it('does not hand a raw HEIC blob to <img> when conversion fails', async () => {
+    const raw = new Blob([heicHeader('heic')], { type: 'image/heic' });
+    await expect(blobToDisplayBlob(raw, 'image/jpeg', 'IMG_1.HEIC', async () => {
+      throw new Error('converter-down');
+    })).rejects.toThrow(/converter-down/);
   });
 });

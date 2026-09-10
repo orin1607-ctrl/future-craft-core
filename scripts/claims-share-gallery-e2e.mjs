@@ -122,6 +122,46 @@ async function up(name, mime, bytes, extra = {}) {
 }
 
 const imageIds = [];
+const clonedFromLive = [];
+async function cloneLiveImages() {
+  const { data: docs } = await db.from('claims_documents')
+    .select('id, claim_id, mime_type, original_name, byte_size')
+    .in('mime_type', ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'])
+    .order('created_at', { ascending: false })
+    .limit(80);
+  const picked = [];
+  const seenMime = new Set();
+  for (const row of docs || []) {
+    const mime = String(row.mime_type || '');
+    const size = Number(row.byte_size || 0);
+    if (size < 80 || size > 4_000_000) continue;
+    const key = `${mime}|${row.claim_id}`;
+    if (seenMime.has(key) && picked.filter((p) => p.mime_type === mime).length >= 3) continue;
+    seenMime.add(key);
+    picked.push(row);
+    if (picked.length >= 8) break;
+  }
+  for (const row of picked) {
+    const signed = await fetch(FN, {
+      method: 'POST',
+      headers: { apikey: anonKey, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'signed_urls', claim_id: row.claim_id, file_ids: [row.id] }),
+    }).then((r) => r.json()).catch(() => ({}));
+    const url = signed?.urls?.[row.id];
+    if (!url) continue;
+    const buf = Buffer.from(await fetch(url).then((r) => r.arrayBuffer()));
+    if (buf.length < 80) continue;
+    const name = `live-${String(row.original_name || 'photo').replace(/[^\w.\-]+/g, '_').slice(0, 40)}`;
+    const res = await up(name, row.mime_type, buf, { staff_type: 'damage_photos' });
+    if (res.file_id && !imageIds.includes(res.file_id)) {
+      imageIds.push(res.file_id);
+      clonedFromLive.push({ mime: row.mime_type, name, bytes: buf.length });
+    }
+  }
+}
+await cloneLiveImages();
+rec('cloned-live-photos', true, { count: clonedFromLive.length, clonedFromLive });
+
 const colors = [
   [200, 40, 40], [40, 140, 40], [40, 80, 200], [220, 180, 40], [160, 60, 180],
   [30, 160, 160], [220, 100, 40], [80, 80, 80], [20, 20, 140], [180, 20, 80],
@@ -130,15 +170,15 @@ const colors = [
 for (let i = 0; i < colors.length; i++) {
   const [r, g, b] = colors[i];
   const res = await up(`gallery-png-${i}-${stamp}.png`, 'image/png', pngSolid(320, 240, r, g, b, i), { staff_type: 'damage_photos' });
-  if (res.file_id) imageIds.push(res.file_id);
+  if (res.file_id && !imageIds.includes(res.file_id)) imageIds.push(res.file_id);
 }
 for (let i = 0; i < 4; i++) {
-  const res = await up(`gallery-jpg-${i}-${stamp}.jpg`, 'image/jpeg', Buffer.concat([JPG, Buffer.from(`-j${i}-`)]), { staff_type: 'damage_photos' });
-  if (res.file_id) imageIds.push(res.file_id);
+  const res = await up(`gallery-jpg-${i}-${stamp}.jpg`, 'image/jpeg', Buffer.concat([JPG, Buffer.from([0xff, 0xd9]), Buffer.from(`JPG${i}-${stamp}`)]), { staff_type: 'damage_photos' });
+  if (res.file_id && !imageIds.includes(res.file_id)) imageIds.push(res.file_id);
 }
 for (let i = 0; i < 2; i++) {
   const res = await up(`gallery-webp-${i}-${stamp}.webp`, 'image/webp', WEBP, { staff_type: 'damage_photos' });
-  if (res.file_id) imageIds.push(res.file_id);
+  if (res.file_id && !imageIds.includes(res.file_id)) imageIds.push(res.file_id);
 }
 let heicOk = false;
 try {
@@ -176,31 +216,49 @@ try {
   await page.goto(publicUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.locator('[data-testid="share-page"]').waitFor({ timeout: 30000 });
   rec('nologin-share-page', (await page.locator('input[type="password"]').count()) === 0);
-  await page.waitForSelector('[data-testid="share-gallery"] img', { timeout: 45000 });
-  await page.waitForTimeout(4000);
+  const expectedImages = imageIds.length;
+  await page.waitForFunction((n) => {
+    const el = document.querySelector('[data-testid="share-gallery"]');
+    return el && el.getAttribute('data-thumbs-ready') === '1' && Number(el.getAttribute('data-thumbs-total') || 0) >= n;
+  }, expectedImages, { timeout: 120000 });
   const loaded = await page.evaluate(() => {
     const imgs = [...document.querySelectorAll('[data-testid="share-gallery"] img')];
+    const gal = document.querySelector('[data-testid="share-gallery"]');
     return {
       thumbs: imgs.length,
       decoded: imgs.filter((im) => im.naturalWidth > 0).length,
       broken: imgs.filter((im) => im.complete && im.naturalWidth === 0).map((im) => im.alt),
+      errors: [...document.querySelectorAll('[data-testid^="share-thumb-ph-"]')].map((el) => el.textContent),
+      ready: gal?.getAttribute('data-thumbs-ready'),
+      loadedAttr: gal?.getAttribute('data-thumbs-loaded'),
     };
   });
-  rec('all-thumbs-decode', loaded.decoded >= Math.min(18, imageIds.length) && loaded.broken.length === 0, loaded);
-  if (loaded.broken.length) find('broken-thumbs', loaded.broken.join(', '));
+  rec('all-thumbs-decode', loaded.decoded === expectedImages && loaded.broken.length === 0 && loaded.errors.length === 0, { ...loaded, expectedImages });
+  if (loaded.broken.length || loaded.errors.length) find('broken-thumbs', [...loaded.broken, ...loaded.errors].join(', '));
   await page.screenshot({ path: join(OUT, 'screenshots', '01-gallery.png'), fullPage: true });
 
   await page.locator('[data-testid^="share-pub-img-"]').first().click();
   await page.locator('[data-testid="share-lightbox"]').waitFor({ timeout: 15000 });
   rec('lightbox-opens', true);
+  await page.locator('[data-testid="share-lb-img"]').waitFor({ timeout: 30000 });
   const startPos = await page.locator('[data-testid="share-lb-pos"]').innerText();
-  rec('lightbox-pos-start', /^1 \//.test(startPos), { startPos });
+  rec('lightbox-pos-start', startPos.trim() === `1 / ${expectedImages}`, { startPos, expectedImages });
   for (let i = 0; i < 8; i++) await page.locator('[data-testid="share-lb-next"]').click();
   const midPos = await page.locator('[data-testid="share-lb-pos"]').innerText();
-  rec('lightbox-next', /^9 \//.test(midPos), { midPos });
+  rec('lightbox-next', midPos.trim() === `9 / ${expectedImages}`, { midPos });
   await page.locator('[data-testid="share-lb-prev"]').click();
   const backPos = await page.locator('[data-testid="share-lb-pos"]').innerText();
-  rec('lightbox-prev', /^8 \//.test(backPos), { backPos });
+  rec('lightbox-prev', backPos.trim() === `8 / ${expectedImages}`, { backPos });
+  for (let i = 8; i < expectedImages; i++) await page.locator('[data-testid="share-lb-next"]').click();
+  const endPos = await page.locator('[data-testid="share-lb-pos"]').innerText();
+  rec('lightbox-walk-all', endPos.trim() === `${expectedImages} / ${expectedImages}`, { endPos });
+  const opaque = await page.evaluate(() => {
+    const el = document.querySelector('[data-testid="share-lightbox"]');
+    if (!el) return { bg: '', z: '' };
+    const cs = getComputedStyle(el);
+    return { bg: cs.backgroundColor, z: cs.zIndex };
+  });
+  rec('lightbox-opaque', /rgb\(11,\s*16,\s*32\)/.test(opaque.bg) && Number(opaque.z) >= 9999, opaque);
   await page.screenshot({ path: join(OUT, 'screenshots', '02-lightbox.png') });
   try {
     const [dl] = await Promise.all([

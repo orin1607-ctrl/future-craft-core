@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { triggerBlobDownload } from '@/features/claims/claimFileDownload';
 import {
@@ -29,6 +30,9 @@ export default function ClaimsSharePage() {
   const [viewer, setViewer] = useState<number | null>(null);
   const urlsRef = useRef<string[]>([]);
   const touchX = useRef<number | null>(null);
+  const inflight = useRef(new Map<string, Promise<DisplaySlot>>());
+  const thumbsRef = useRef<Record<string, DisplaySlot>>({});
+  const fullRef = useRef<Record<string, DisplaySlot>>({});
 
   const pubHeaders = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
 
@@ -55,11 +59,34 @@ export default function ClaimsSharePage() {
     return res.blob();
   };
 
-  const displayUrlFor = async (f: ShareFile) => {
-    const blob = await fetchFileBlob(f.id, 'preview');
-    if (!blob) return { url: '', error: 'לא נטען' };
-    const out = await blobToDisplayBlob(blob, f.mime, f.name);
-    return { url: rememberUrl(URL.createObjectURL(out.blob)) };
+  const displayUrlFor = (f: ShareFile) => {
+    const cached = fullRef.current[f.id] || thumbsRef.current[f.id];
+    if (cached) return Promise.resolve(cached);
+    const pending = inflight.current.get(f.id);
+    if (pending) return pending;
+    const p = (async (): Promise<DisplaySlot> => {
+      try {
+        const blob = await fetchFileBlob(f.id, 'preview');
+        if (!blob) return { url: '', error: 'לא נטען' };
+        const mime = f.mime || blob.type || '';
+        const out = await blobToDisplayBlob(blob, mime, f.name);
+        return { url: rememberUrl(URL.createObjectURL(out.blob)) };
+      } catch {
+        return { url: '', error: 'לא נטען' };
+      }
+    })();
+    inflight.current.set(f.id, p);
+    return p;
+  };
+
+  const putThumb = (id: string, slot: DisplaySlot) => {
+    thumbsRef.current[id] = slot;
+    setThumbs((prev) => ({ ...prev, [id]: slot }));
+  };
+
+  const putFull = (id: string, slot: DisplaySlot) => {
+    fullRef.current[id] = slot;
+    setFull((prev) => ({ ...prev, [id]: slot }));
   };
 
   const load = async () => {
@@ -77,13 +104,9 @@ export default function ClaimsSharePage() {
       setFiles(next);
       setLoading(false);
       const imgs = next.filter((f) => f.image);
-      await mapPool(imgs, 4, async (f) => {
-        try {
-          const slot = await displayUrlFor(f);
-          setThumbs((prev) => ({ ...prev, [f.id]: slot }));
-        } catch {
-          setThumbs((prev) => ({ ...prev, [f.id]: { url: '', error: 'לא נטען' } }));
-        }
+      await mapPool(imgs, 6, async (f) => {
+        const slot = await displayUrlFor(f);
+        putThumb(f.id, slot);
       });
     } catch {
       setError('קישור לא תקין');
@@ -107,18 +130,20 @@ export default function ClaimsSharePage() {
 
   const images = useMemo(() => files.filter((f) => f.image), [files]);
   const docs = useMemo(() => files.filter((f) => !f.image), [files]);
+  const thumbsLoaded = images.filter((f) => thumbs[f.id]).length;
+  const thumbsReady = images.length > 0 && thumbsLoaded === images.length;
 
   const ensureFull = useCallback(async (f: ShareFile) => {
-    if (full[f.id]?.url) return full[f.id];
-    if (thumbs[f.id]?.url) {
-      setFull((p) => (p[f.id] ? p : { ...p, [f.id]: thumbs[f.id] }));
-      return thumbs[f.id];
+    if (fullRef.current[f.id]?.url) return fullRef.current[f.id];
+    if (thumbsRef.current[f.id]?.url) {
+      putFull(f.id, thumbsRef.current[f.id]);
+      return thumbsRef.current[f.id];
     }
     const slot = await displayUrlFor(f);
-    setFull((p) => ({ ...p, [f.id]: slot }));
-    setThumbs((p) => (p[f.id]?.url ? p : { ...p, [f.id]: slot }));
+    putFull(f.id, slot);
+    if (!thumbsRef.current[f.id]?.url) putThumb(f.id, slot);
     return slot;
-  }, [full, thumbs]);
+  }, []);
 
   const openViewer = async (index: number) => {
     const f = images[index];
@@ -176,7 +201,7 @@ export default function ClaimsSharePage() {
     setBusy('');
     if (!blob) { setError('לא ניתן לפתוח'); return; }
     const url = rememberUrl(URL.createObjectURL(blob));
-    setFull((p) => ({ ...p, [f.id]: { url } }));
+    putFull(f.id, { url });
     window.open(url, '_blank', 'noopener');
   };
 
@@ -202,6 +227,35 @@ export default function ClaimsSharePage() {
   const current = viewer != null ? images[viewer] : null;
   const currentSlot = current ? (full[current.id] || thumbs[current.id]) : null;
 
+  const lightbox = viewer != null && current ? (
+    <div
+      className="share-lb"
+      data-testid="share-lightbox"
+      onTouchStart={(e) => { touchX.current = e.changedTouches[0]?.clientX ?? null; }}
+      onTouchEnd={(e) => {
+        const start = touchX.current;
+        touchX.current = null;
+        if (start == null) return;
+        const dir = swipeDeltaToDir((e.changedTouches[0]?.clientX ?? start) - start);
+        if (dir) void go(dir);
+      }}
+    >
+      <div className="share-lb-top">
+        <b data-testid="share-preview-name">{current.name}</b>
+        <span data-testid="share-lb-pos">{viewer + 1} / {images.length}</span>
+        <button className="btn" type="button" data-testid="share-preview-download" onClick={() => void downloadOne(current)}>הורדה</button>
+        <button className="btn btn-g" type="button" data-testid="share-lb-close" onClick={() => setViewer(null)}>סגור</button>
+      </div>
+      <div className="share-lb-stage" data-testid="share-preview">
+        <button className="share-lb-nav prev" type="button" data-testid="share-lb-prev" disabled={viewer <= 0} onClick={() => void go('prev')} aria-label="הקודם">‹</button>
+        {currentSlot?.url
+          ? <img src={currentSlot.url} alt={current.name} data-testid="share-lb-img" />
+          : <div data-testid="share-lb-missing">{currentSlot?.error || 'טוען…'}</div>}
+        <button className="share-lb-nav next" type="button" data-testid="share-lb-next" disabled={viewer >= images.length - 1} onClick={() => void go('next')} aria-label="הבא">›</button>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className="share-pub" data-testid="share-page">
       <style>{`
@@ -223,11 +277,13 @@ export default function ClaimsSharePage() {
         .share-pub .thumb-name{position:absolute;left:0;right:0;bottom:0;padding:6px 8px;background:linear-gradient(transparent,rgba(0,0,0,.65));color:#fff;font-size:11px;text-align:right}
         .share-pub .thumb-dl{position:absolute;top:6px;left:6px;z-index:1;border:0;border-radius:7px;padding:4px 7px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(15,23,42,.72);color:#fff}
         .share-pub .err{color:#b91c1c;margin:8px 0}
-        .share-lb{position:fixed;inset:0;z-index:80;background:rgba(8,12,20,.94);display:flex;flex-direction:column;color:#fff}
-        .share-lb-top{display:flex;align-items:center;gap:8px;padding:10px 12px;flex-shrink:0}
+        .share-lb{position:fixed;inset:0;z-index:9999;background:#0b1020;display:flex;flex-direction:column;color:#fff}
+        .share-lb .btn{border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;background:#1d4ed8;color:#fff}
+        .share-lb .btn-g{background:#243044;color:#fff}
+        .share-lb-top{display:flex;align-items:center;gap:8px;padding:10px 12px;flex-shrink:0;background:#0b1020}
         .share-lb-top b{flex:1;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .share-lb-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;touch-action:pan-y}
-        .share-lb-stage img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
+        .share-lb-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;touch-action:pan-y;background:#0b1020}
+        .share-lb-stage img{max-width:min(100%,1200px);max-height:100%;width:auto;height:auto;object-fit:contain;user-select:none;-webkit-user-drag:none}
         .share-lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:64px;border:0;border-radius:10px;background:rgba(255,255,255,.16);color:#fff;font-size:28px;cursor:pointer}
         .share-lb-nav.prev{right:10px}
         .share-lb-nav.next{left:10px}
@@ -244,9 +300,20 @@ export default function ClaimsSharePage() {
         <button className="btn" data-testid="share-pub-zip" type="button" disabled={busy === 'public_share_zip' || !files.length} onClick={() => void binary('public_share_zip', 'claim-share.zip')}>הורד הכל / ZIP</button>
       </div>
       <div data-testid="share-pub-count">{images.length} תמונות · {docs.length} מסמכים · {files.length} קבצים</div>
+      {images.length ? (
+        <div className="meta" data-testid="share-thumbs-progress" data-loaded={thumbsLoaded} data-total={images.length}>
+          {thumbsReady ? 'כל התמונות נטענו' : `נטענו ${thumbsLoaded} מתוך ${images.length} תמונות`}
+        </div>
+      ) : null}
 
       {images.length ? <h2 data-testid="share-gallery-title">תמונות</h2> : null}
-      <div className="gal" data-testid="share-gallery">
+      <div
+        className="gal"
+        data-testid="share-gallery"
+        data-thumbs-ready={thumbsReady ? '1' : '0'}
+        data-thumbs-loaded={thumbsLoaded}
+        data-thumbs-total={images.length}
+      >
         {images.map((f, idx) => (
           <div key={f.id} className="thumb-tile">
             <button
@@ -276,34 +343,7 @@ export default function ClaimsSharePage() {
         </div>
       ))}
 
-      {viewer != null && current ? (
-        <div
-          className="share-lb"
-          data-testid="share-lightbox"
-          onTouchStart={(e) => { touchX.current = e.changedTouches[0]?.clientX ?? null; }}
-          onTouchEnd={(e) => {
-            const start = touchX.current;
-            touchX.current = null;
-            if (start == null) return;
-            const dir = swipeDeltaToDir((e.changedTouches[0]?.clientX ?? start) - start);
-            if (dir) void go(dir);
-          }}
-        >
-          <div className="share-lb-top">
-            <b data-testid="share-preview-name">{current.name}</b>
-            <span data-testid="share-lb-pos">{viewer + 1} / {images.length}</span>
-            <button className="btn" type="button" data-testid="share-preview-download" onClick={() => void downloadOne(current)}>הורדה</button>
-            <button className="btn btn-g" type="button" data-testid="share-lb-close" onClick={() => setViewer(null)}>סגור</button>
-          </div>
-          <div className="share-lb-stage" data-testid="share-preview">
-            <button className="share-lb-nav prev" type="button" data-testid="share-lb-prev" disabled={viewer <= 0} onClick={() => void go('prev')} aria-label="הקודם">‹</button>
-            {currentSlot?.url
-              ? <img src={currentSlot.url} alt={current.name} data-testid="share-lb-img" />
-              : <div data-testid="share-lb-missing">{currentSlot?.error || 'טוען…'}</div>}
-            <button className="share-lb-nav next" type="button" data-testid="share-lb-next" disabled={viewer >= images.length - 1} onClick={() => void go('next')} aria-label="הבא">›</button>
-          </div>
-        </div>
-      ) : null}
+      {lightbox && typeof document !== 'undefined' ? createPortal(lightbox, document.body) : null}
     </div>
   );
 }
