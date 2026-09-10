@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Session } from '@supabase/supabase-js';
 import type { AuthSessionPayload } from '@/lib/authOtpClient';
 import { applyAuthSession } from '@/lib/authOtpClient';
+import { securityEndSession } from '@/lib/securityAuditClient';
 import { clearAllTeleModes, clearTeleModesForUser } from '@/features/telemarketing/lib/teleEntryMode';
 
 export type AppRole = 'driver' | 'fleet_manager' | 'super_admin' | 'private_customer' | 'business_customer' | 'telemarketing_agent';
@@ -173,6 +174,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    await securityEndSession('logout');
     clearAllTeleModes();
     await supabase.auth.signOut();
     setRealUser(null);

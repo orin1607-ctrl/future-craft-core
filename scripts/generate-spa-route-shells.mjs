@@ -91,6 +91,7 @@ const ROUTES = [
   'customer-docs',
   'emergency-settings',
   'system-logs',
+  'security-center',
   'service-order-history',
   'project-summary',
   'completed-tasks',

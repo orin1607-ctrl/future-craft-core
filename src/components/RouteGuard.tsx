@@ -14,6 +14,12 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     claimsWorkerOnly: user.claimsWorkerOnly,
     garagePhotographer: user.garagePhotographer,
   })) {
+    void import('@/lib/securityAuditClient').then(({ securityRecordClientEvent }) => {
+      securityRecordClientEvent('unauthorized_page', {
+        action: 'גישה לעמוד מוגן',
+        result: 'נדחה',
+      }).catch(() => undefined);
+    });
     const home = user.garagePhotographer
       ? '/garage'
       : user.claimsWorkerOnly

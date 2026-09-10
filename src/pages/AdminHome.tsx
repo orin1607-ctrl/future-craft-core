@@ -11,6 +11,7 @@ const ADMIN_LINKS = [
   { to: '/permissions', icon: Shield, title: 'הרשאות', subtitle: 'תפקידים וגישה' },
   { to: '/settings', icon: Settings, title: 'פרופיל אישי', subtitle: 'שם, טלפון, סיסמה' },
   { to: '/system-logs', icon: ScrollText, title: 'Audit / לוגים', subtitle: 'בקרה מערכתית' },
+  { to: '/security-center', icon: Shield, title: 'מרכז בקרה ואבטחה', subtitle: 'כניסות · Sessions · GitHub · Supabase · VPS' },
   { to: '/suppliers', icon: Building2, title: 'ספקים', subtitle: 'ניהול ספקים' },
   { to: '/email-templates', icon: Mail, title: 'תבניות מייל', subtitle: 'תקשורת מערכת' },
 ];

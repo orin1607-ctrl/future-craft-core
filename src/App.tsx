@@ -134,6 +134,7 @@ import ClaimsIntakePage from "@/pages/ClaimsIntakePage";
 import TelemarketingAgentPage from "@/pages/TelemarketingAgentPage";
 import TelemarketingAdminPage from "@/pages/TelemarketingAdminPage";
 import GarageJobsPage from "@/pages/GarageJobsPage";
+import SecurityControlCenter from "@/pages/SecurityControlCenter";
 
 const queryClient = new QueryClient();
 
@@ -327,6 +328,7 @@ function AppRoutes() {
         <Route path="/customer-docs" element={<CustomerDocs />} />
         <Route path="/emergency-settings" element={<EmergencySettings />} />
         <Route path="/system-logs" element={<SystemLogs />} />
+        <Route path="/security-center" element={<SecurityControlCenter />} />
         <Route path="/service-order-history" element={<ServiceOrderHistory />} />
         <Route path="/project-summary" element={<ProjectSummary />} />
         <Route path="/completed-tasks" element={<CompletedTasks />} />

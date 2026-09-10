@@ -87,6 +87,7 @@ export const MANAGEABLE_BUTTONS = [
   { path: '/emergency', label: 'חירום', category: 'ניווט' },
   { path: '/internal-chat', label: 'צ\'אט', category: 'ניווט' },
   { path: '/admin-home', label: 'מרכז ניהול', category: 'מרכז ניהול' },
+  { path: '/security-center', label: 'מרכז בקרה ואבטחה', category: 'מרכז ניהול' },
   { path: '/ai-marketing', label: 'ניהול שיווק', category: 'מרכז ניהול' },
   { path: '/dalia-settings', label: 'Dalia Settings', category: 'מרכז ניהול' },
   { path: '/user-management', label: 'משתמשים (דשבורד)', category: 'כרטיסי דשבורד' },

@@ -75,4 +75,10 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(true);
     expect(canAccessRoute('/garage', 'telemarketing_agent')).toBe(false);
   });
+
+  it('security-center is super_admin only', () => {
+    expect(canAccessRoute('/security-center', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/security-center', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/security-center', 'driver')).toBe(false);
+  });
 });
