@@ -88,6 +88,7 @@ export default function TrackingFleetList({
             <tr className="bg-muted/50 text-muted-foreground text-xs">
               <th className="py-3 px-3 text-right font-bold">מספר רכב</th>
               <th className="py-3 px-2 text-right">פנימי</th>
+              <th className="py-3 px-2 text-right">מחלקה</th>
               <th className="py-3 px-2 text-right">חברה</th>
               <th className="py-3 px-2 text-right">יצרן / דגם</th>
               <th className="py-3 px-2 text-right">נהג</th>
@@ -108,6 +109,7 @@ export default function TrackingFleetList({
               >
                 <td className="py-3 px-3 font-bold">{v.license_plate}</td>
                 <td className="py-3 px-2"><InternalNumber value={v.internal_number} className="text-xs" /></td>
+                <td className="py-3 px-2">{v.department?.trim() || '—'}</td>
                 <td className="py-3 px-2">{v.company_name}</td>
                 <td className="py-3 px-2">{v.manufacturer} {v.model}</td>
                 <td className="py-3 px-2">{v.driver_name || '—'}</td>
@@ -147,7 +149,9 @@ export default function TrackingFleetList({
               <div>
                 <p className="text-lg font-black">{v.license_plate}</p>
                 <p className="text-xs text-muted-foreground">
-                  <InternalNumber value={v.internal_number} className="text-xs" /> · {v.manufacturer} {v.model}
+                  מספר פנימי: <InternalNumber value={v.internal_number} className="text-xs" />
+                  {' · '}מחלקה: {v.department?.trim() || '—'}
+                  {' · '}{v.manufacturer} {v.model}
                 </p>
               </div>
             </div>

@@ -20,7 +20,7 @@ import VehicleHub from '@/components/vehicles/VehicleHub';
 import CompanyVehicleListsManager from '@/components/vehicles/CompanyVehicleListsManager';
 import { VehicleDaliaFlow, VehicleForm } from '@/pages/VehicleDaliaFlow';
 import { collectDepartmentsFromVehicles } from '@/lib/companyDepartments';
-import { VehiclePlatePipeLine } from '@/components/vehicles/vehiclePlateDisplay';
+import { VehiclePlatePipeLine, InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import { sortByExactInternalNumberFirst } from '@/lib/internalNumberSearch';
 
 export { VehicleForm };
@@ -509,7 +509,11 @@ export default function Vehicles() {
                         <VehiclePlatePipeLine plate={v.license_plate} internal={v.internal_number} />
                         {' • '}{v.year}
                       </p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        מספר פנימי: <InternalNumber value={v.internal_number} className="text-sm" />
+                      </p>
                       <p className="text-sm text-muted-foreground truncate">נהג: {getDriverName(v.assigned_driver_id)}</p>
+                      <p className="text-sm text-muted-foreground truncate">מחלקה: {v.department?.trim() || '—'}</p>
                       {v.show_notes_on_list && v.notes?.trim() ? (
                         <p className="text-sm text-foreground/80 mt-1 whitespace-pre-wrap break-words">{v.notes.trim()}</p>
                       ) : null}

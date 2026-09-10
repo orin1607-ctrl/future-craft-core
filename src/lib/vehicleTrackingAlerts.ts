@@ -1,5 +1,6 @@
 import { daysUntil } from '@/components/vehicles/vehicleHubUtils';
 import {
+  buildAccidentDetailUrl,
   buildFaultDetailUrl,
   buildServiceOrderDetailUrl,
   buildVehicleHubUrl,
@@ -178,7 +179,7 @@ export function buildVehicleTrackingAlerts(input: {
       label: TRACKING_ALERT_KIND_LABELS.accident,
       detail: a.detail || a.title,
       entityId: a.id,
-      hubLink: hubLink(vid, plate, { hubSection: 'actions', hubTab: 'accidents' }),
+      hubLink: buildAccidentDetailUrl(a.id, ctx(vid, plate)),
     });
   }
 

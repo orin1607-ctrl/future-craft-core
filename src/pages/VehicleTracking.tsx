@@ -17,6 +17,7 @@ import {
   type TrackingFilters,
   type TrackingVehicleRow,
 } from '@/lib/vehicleTrackingData';
+import { buildAllAccidentsUrl } from '@/lib/entityNavContext';
 
 export default function VehicleTracking() {
   const companyFilter = useCompanyFilter();
@@ -126,6 +127,14 @@ export default function VehicleTracking() {
       ) : (
         <>
           <TrackingSummaryGrid counts={counts} activeKey={summaryKey} onSelect={onSummarySelect} />
+          <div className="flex justify-end mt-3 mb-1">
+            <Link
+              to={buildAllAccidentsUrl()}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-primary/30 text-primary text-sm font-bold min-h-[44px] hover:bg-primary/5"
+            >
+              כל התאונות
+            </Link>
+          </div>
           <div className="mt-6">
             <TrackingFilterPanel
               open={filterOpen}

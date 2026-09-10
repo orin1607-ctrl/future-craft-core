@@ -9,14 +9,20 @@ import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { useDriverVehicle } from '@/hooks/useDriverVehicle';
 import { DocumentCard, DocumentGallery } from '@/components/documents/DocumentViewer';
 import MultiImageUpload from '@/components/MultiImageUpload';
-import { buildVehicleHubUrl, isVehicleScopedContext, plateMatches, useVehicleUrlContext, readDriverContext } from '@/lib/entityNavContext';
+import { buildVehicleContextUrl, buildVehicleHubUrl, isVehicleScopedContext, useVehicleUrlContext, readDriverContext } from '@/lib/entityNavContext';
+import {
+  accidentBelongsToVehicle,
+  accidentMatchesSearch,
+  findVehicleIdentity,
+  type VehicleIdentity,
+} from '@/lib/accidentListFilter';
 import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { createAccidentIncident } from '@/lib/incidentCreate';
 import IncidentSubmitSuccess from '@/components/incidents/IncidentSubmitSuccess';
 import { formatIsraelDateTime } from '@/lib/incidentEventNumber';
-import { InternalNumber, InternalPrefixSuffix } from '@/components/vehicles/vehiclePlateDisplay';
+import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import { uploadDocument } from '@/lib/uploadDocument';
 
 interface AccidentRow {
@@ -100,6 +106,7 @@ export default function Accidents() {
     loadAccidents();
   };
   const [accidents, setAccidents] = useState<AccidentRow[]>([]);
+  const [vehicleIdentities, setVehicleIdentities] = useState<VehicleIdentity[]>([]);
   const [search, setSearch] = useState('');
   const [initialVehiclePlate, setInitialVehiclePlate] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -118,8 +125,21 @@ export default function Accidents() {
 
   const loadAccidents = async () => {
     setLoading(true);
-    const { data } = await applyCompanyScope(supabase.from('accidents').select('*'), companyFilter).order('created_at', { ascending: false });
+    const [{ data }, vehiclesRes] = await Promise.all([
+      applyCompanyScope(supabase.from('accidents').select('*'), companyFilter).order('created_at', { ascending: false }),
+      applyCompanyScope(
+        supabase.from('vehicles').select('license_plate, internal_number, department'),
+        companyFilter,
+      ),
+    ]);
     if (data) setAccidents(data as AccidentRow[]);
+    setVehicleIdentities(
+      (vehiclesRes.data || []).map((v) => ({
+        plate: v.license_plate || '',
+        internal_number: v.internal_number,
+        department: v.department,
+      })),
+    );
     setLoading(false);
   };
 
@@ -127,7 +147,6 @@ export default function Accidents() {
 
   useEffect(() => {
     if (contextPlate) {
-      setSearch(contextPlate);
       setInitialVehiclePlate(contextPlate);
     }
     if (contextAction === 'new') {
@@ -167,11 +186,33 @@ export default function Accidents() {
 
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
 
-  const filtered = accidents.filter(a => {
-    const matchSearch = !search || a.driver_name?.includes(search) || plateMatches(a.vehicle_plate, search) || a.description?.includes(search) || (a.event_number || '').includes(search) || a.claim_number?.includes(search);
+  const scopedAccidents = accidents.filter((a) =>
+    vehicleScoped ? accidentBelongsToVehicle(a, contextPlate) : true,
+  );
+
+  const filtered = scopedAccidents.filter((a) => {
+    const identity = findVehicleIdentity(vehicleIdentities, a.vehicle_plate);
+    const matchSearch = accidentMatchesSearch(a, search, identity);
     const matchStatus = !filterStatus || a.status === filterStatus;
     return matchSearch && matchStatus;
   });
+
+  const accidentsListUrl = vehicleScoped
+    ? buildVehicleContextUrl('/accidents', {
+        plate: contextPlate,
+        vehicleId: contextVehicleId || undefined,
+      })
+    : '/accidents';
+
+  const backFromDetailToList = () => {
+    if (driverScoped) {
+      goBackToDriver();
+      return;
+    }
+    setSelected(null);
+    setViewMode('list');
+    navigate(accidentsListUrl, { replace: true });
+  };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     const { error } = await supabase.from('accidents').update({ status: newStatus }).eq('id', id);
@@ -233,19 +274,10 @@ export default function Accidents() {
           active={vehicleScoped}
         />
         <button
-          onClick={() => {
-            if (vehicleScoped && contextVehicleId) {
-              goBackToHub();
-            } else if (driverScoped) {
-              goBackToDriver();
-            } else {
-              setViewMode('list');
-              setSelected(null);
-            }
-          }}
+          onClick={backFromDetailToList}
           className="flex items-center gap-2 text-primary text-lg font-medium mb-4 min-h-[48px]"
         >
-          <ArrowRight size={20} /> {vehicleScoped ? 'חזרה לכרטיס הרכב' : driverScoped ? 'חזרה לכרטיס הנהג' : 'חזרה'}
+          <ArrowRight size={20} /> {driverScoped ? 'חזרה לכרטיס הנהג' : 'חזרה לרשימת התאונות'}
         </button>
         <div className="card-elevated mb-4">
           <div className="flex items-center justify-between mb-4">
@@ -262,6 +294,14 @@ export default function Accidents() {
             <div><span className="text-muted-foreground text-sm">תאריך</span><p className="font-bold">{a.date ? new Date(a.date).toLocaleDateString('he-IL') : '—'}</p></div>
             <div><span className="text-muted-foreground text-sm">עלות משוערת</span><p className="font-bold">₪{(a.estimated_cost || 0).toLocaleString()}</p></div>
             <div><span className="text-muted-foreground text-sm">מספר תביעה</span><p className="font-bold">{a.claim_number || '—'}</p></div>
+            <div>
+              <span className="text-muted-foreground text-sm">מספר פנימי</span>
+              <p className="font-bold"><InternalNumber value={findVehicleIdentity(vehicleIdentities, a.vehicle_plate)?.internal_number} /></p>
+            </div>
+            <div>
+              <span className="text-muted-foreground text-sm">מחלקה</span>
+              <p className="font-bold">{findVehicleIdentity(vehicleIdentities, a.vehicle_plate)?.department?.trim() || '—'}</p>
+            </div>
           </div>
           <div className="flex gap-3 mt-4">
             {a.has_insurance && <span className="status-badge status-active">ביטוח ✓</span>}
@@ -344,7 +384,7 @@ export default function Accidents() {
   return (
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="page-header !mb-0 flex items-center gap-3"><AlertTriangle size={28} /> תאונות</h1>
+        <h1 className="page-header !mb-0 flex items-center gap-3"><AlertTriangle size={28} /> {vehicleScoped ? 'תאונות הרכב' : 'תאונות'}</h1>
         <div className="flex items-center gap-2">
           <button onClick={() => exportToCsv('accidents', [
             { key: 'date', label: 'תאריך' },
@@ -371,10 +411,19 @@ export default function Accidents() {
         pageLabel="תאונות"
         active={vehicleScoped}
       />
+      {vehicleScoped && (
+        <p className="text-sm text-muted-foreground mb-3">
+          מוצגות תאונות הרכב הזה בלבד. {scopedAccidents.length} רשומות לפי הרשאות.
+        </p>
+      )}
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="חיפוש..." className="w-full pr-12 p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none"
-          disabled={locked && !!contextPlate} />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="חיפוש לפי מספר רכב, מספר פנימי, מחלקה, נהג או תביעה..."
+          className="w-full pr-12 p-4 text-lg rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none"
+        />
       </div>
       <div className="flex gap-2 mb-5 flex-wrap">
         {(['', 'open', 'in_progress', 'closed'] as const).map(key => (
@@ -392,6 +441,7 @@ export default function Accidents() {
         <div className="space-y-3">
           {filtered.map(a => {
             const st = statusLabels[a.status] || statusLabels.open;
+            const identity = findVehicleIdentity(vehicleIdentities, a.vehicle_plate);
             return (
               <button key={a.id} onClick={() => { setSelected(a); setViewMode('detail'); }} className="card-elevated w-full text-right hover:shadow-lg transition-shadow">
                 <div className="flex items-start gap-4">
@@ -403,6 +453,10 @@ export default function Accidents() {
                       <p className="text-xl font-bold">{a.vehicle_plate}</p>
                       <span className={`status-badge ${st.cls}`}>{st.text}</span>
                     </div>
+                    <p className="text-sm text-muted-foreground mb-1">
+                      מספר פנימי: <InternalNumber value={identity?.internal_number} className="text-sm" />
+                      {' · '}מחלקה: {identity?.department?.trim() || '—'}
+                    </p>
                     <p className="text-muted-foreground line-clamp-1">{a.description}</p>
                     <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
                       <span>👤 {a.driver_name}</span>

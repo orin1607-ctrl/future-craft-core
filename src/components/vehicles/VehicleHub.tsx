@@ -279,6 +279,7 @@ export default function VehicleHub({
     { label: 'הצמדת רכב לנהג', path: '/attach-car', icon: UserCheck },
     { label: 'תקלות', path: '/faults', icon: Wrench },
     { label: 'הזמנת שירות', path: '/service-orders', icon: Briefcase },
+    { label: 'תאונות', path: '/accidents', icon: AlertTriangle },
     { label: 'דיווח תאונה', path: '/accidents', icon: AlertTriangle, action: 'new' as const },
     { label: 'מסמכים', path: '/documents', icon: ClipboardList },
   ];
