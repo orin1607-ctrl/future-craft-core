@@ -15,6 +15,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const isSuperAdmin = realUser?.role === 'super_admin' && !isImpersonating;
+  const isGaragePhotographer = !!user?.garagePhotographer;
   const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
@@ -53,32 +54,61 @@ export default function Layout() {
         </div>
       )}
 
-      <DesktopSidebar mobileOpen={navOpen} onMobileClose={() => setNavOpen(false)} />
+      {isGaragePhotographer ? null : (
+        <DesktopSidebar mobileOpen={navOpen} onMobileClose={() => setNavOpen(false)} />
+      )}
 
       {/* Mobile header */}
-      <header className="md:hidden bg-[hsl(218,58%,15%)] text-primary-foreground p-3 flex items-center justify-between sticky top-0 z-20 shadow-lg gap-2">
-        <button
-          type="button"
-          aria-label="פתח תפריט"
-          data-testid="mobile-nav-open"
-          onClick={() => setNavOpen(true)}
-          className="flex items-center gap-2 bg-primary-foreground/25 border border-primary-foreground/40 rounded-xl px-3 py-2 active:scale-95 transition-transform shrink-0 min-h-11"
-        >
-          <Menu size={20} />
-          <span className="text-sm font-medium">תפריט</span>
-        </button>
-        <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
-          <img src={logo} alt="דליה" className="h-9 brightness-0 invert shrink-0" />
-          <div className="min-w-0">
-            <h1 className="text-base font-bold leading-tight truncate">דליה</h1>
-            <p className="text-[10px] opacity-80 truncate">פתרונות תפעול ותחזוקה לרכב</p>
+      <header className="md:hidden bg-[hsl(218,58%,15%)] text-primary-foreground p-3 flex items-center justify-between sticky top-0 z-20 shadow-lg gap-2" data-testid={isGaragePhotographer ? 'garage-shell-header' : 'app-mobile-header'}>
+        {isGaragePhotographer ? (
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <img src={logo} alt="דליה" className="h-9 brightness-0 invert shrink-0" />
+            <div className="min-w-0">
+              <h1 className="text-base font-bold leading-tight truncate">צילומי מוסך</h1>
+              <p className="text-[10px] opacity-80 truncate">{user?.full_name || 'עובד מוסך'}</p>
+            </div>
           </div>
-        </div>
-        <button onClick={() => logout()} className="flex items-center gap-1 bg-primary-foreground/20 rounded-xl px-3 py-2 active:scale-95 transition-transform shrink-0">
+        ) : (
+          <>
+            <button
+              type="button"
+              aria-label="פתח תפריט"
+              data-testid="mobile-nav-open"
+              onClick={() => setNavOpen(true)}
+              className="flex items-center gap-2 bg-primary-foreground/25 border border-primary-foreground/40 rounded-xl px-3 py-2 active:scale-95 transition-transform shrink-0 min-h-11"
+            >
+              <Menu size={20} />
+              <span className="text-sm font-medium">תפריט</span>
+            </button>
+            <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
+              <img src={logo} alt="דליה" className="h-9 brightness-0 invert shrink-0" />
+              <div className="min-w-0">
+                <h1 className="text-base font-bold leading-tight truncate">דליה</h1>
+                <p className="text-[10px] opacity-80 truncate">פתרונות תפעול ותחזוקה לרכב</p>
+              </div>
+            </div>
+          </>
+        )}
+        <button onClick={() => logout()} className="flex items-center gap-1 bg-primary-foreground/20 rounded-xl px-3 py-2 active:scale-95 transition-transform shrink-0" data-testid="garage-logout">
           <LogOut size={18} />
           <span className="text-sm font-medium">יציאה</span>
         </button>
       </header>
+      {isGaragePhotographer ? (
+        <header className="hidden md:flex bg-[hsl(218,58%,15%)] text-primary-foreground px-6 py-3 items-center justify-between sticky top-0 z-20 shadow-lg" data-testid="garage-shell-header-desktop">
+          <div className="flex items-center gap-3 min-w-0">
+            <img src={logo} alt="דליה" className="h-10 brightness-0 invert shrink-0" />
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold leading-tight truncate">צילומי מוסך</h1>
+              <p className="text-xs opacity-80 truncate">{user?.full_name || 'עובד מוסך'}</p>
+            </div>
+          </div>
+          <button onClick={() => logout()} className="flex items-center gap-2 bg-primary-foreground/20 rounded-xl px-4 py-2" data-testid="garage-logout-desktop">
+            <LogOut size={18} />
+            <span className="text-sm font-medium">יציאה</span>
+          </button>
+        </header>
+      ) : null}
 
       {/* Company scope banner for super_admin */}
       {isSuperAdmin && selectedCompany && (
@@ -98,16 +128,16 @@ export default function Layout() {
       )}
 
       {/* Main content */}
-      <main className="md:mr-72 pb-24 md:pb-8 p-4 md:p-8">
+      <main className={isGaragePhotographer ? 'pb-8 p-4 md:p-8' : 'md:mr-72 pb-24 md:pb-8 p-4 md:p-8'} data-testid={isGaragePhotographer ? 'garage-shell' : 'app-main'}>
         <RouteGuard>
           <Outlet />
         </RouteGuard>
       </main>
 
       {/* Footer credits */}
-      <footer className="md:mr-72 pb-20 md:pb-4 px-4 text-center">
+      <footer className={isGaragePhotographer ? 'pb-4 px-4 text-center' : 'md:mr-72 pb-20 md:pb-4 px-4 text-center'}>
         <p className="text-muted-foreground text-xs">
-          דליה פתרונות תפעול ותחזוקה לרכב | פתרונות ניהול ובקרה מתקדמים לציי רכב |{' '}
+          {isGaragePhotographer ? 'פורטל צילומי מוסך' : 'דליה פתרונות תפעול ותחזוקה לרכב | פתרונות ניהול ובקרה מתקדמים לציי רכב'} |{' '}
           <a
             href="http://www.dalia-c.com"
             target="_blank"
@@ -120,8 +150,8 @@ export default function Layout() {
         </p>
       </footer>
 
-      <BottomNav />
-      <HelpButton />
+      {isGaragePhotographer ? null : <BottomNav />}
+      {isGaragePhotographer ? null : <HelpButton />}
     </div>
   );
 }

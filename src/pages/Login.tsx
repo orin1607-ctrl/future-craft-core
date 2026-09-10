@@ -17,9 +17,14 @@ type LoginStep = 'credentials' | 'otp';
 function goAfterLogin(
   role: string | undefined,
   navigate: (path: string) => void,
-  claimsWorkerOnly?: boolean,
+  extras?: { claimsWorkerOnly?: boolean; garagePhotographer?: boolean },
 ) {
-  if (claimsWorkerOnly) {
+  if (extras?.garagePhotographer) {
+    consumePostLoginRedirect('/garage');
+    navigate('/garage');
+    return;
+  }
+  if (extras?.claimsWorkerOnly) {
     consumePostLoginRedirect('/claims');
     navigate('/claims');
     return;
@@ -29,7 +34,7 @@ function goAfterLogin(
     replaceToAgentWorkHome();
     return;
   }
-  navigate(postLoginPathForRole(role, consumePostLoginRedirect(homePathForRole(role))));
+  navigate(postLoginPathForRole(role, consumePostLoginRedirect(homePathForRole(role, extras)), extras));
 }
 
 export default function Login() {
@@ -89,9 +94,9 @@ export default function Login() {
     }
 
     if (result.session) {
-      const { error: sessionError, role, claimsWorkerOnly } = await completeLoginSession(result.session);
+      const { error: sessionError, role, claimsWorkerOnly, garagePhotographer } = await completeLoginSession(result.session);
       if (sessionError) setError(sessionError);
-      else goAfterLogin(role, navigate, claimsWorkerOnly);
+      else goAfterLogin(role, navigate, { claimsWorkerOnly, garagePhotographer });
       return;
     }
 
@@ -115,9 +120,9 @@ export default function Login() {
       return;
     }
 
-    const { error: sessionError, role, claimsWorkerOnly } = await completeLoginSession(result.session);
+    const { error: sessionError, role, claimsWorkerOnly, garagePhotographer } = await completeLoginSession(result.session);
     if (sessionError) setError(sessionError);
-    else goAfterLogin(role, navigate, claimsWorkerOnly);
+    else goAfterLogin(role, navigate, { claimsWorkerOnly, garagePhotographer });
   };
 
   const handleOtpResend = async () => {

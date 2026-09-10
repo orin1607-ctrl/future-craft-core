@@ -30,7 +30,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   signup: (email: string, password: string, metadata: { full_name: string; phone: string; company_name: string; role?: AppRole }) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
-  completeLoginSession: (session: AuthSessionPayload) => Promise<{ error: string | null; role?: AppRole; claimsWorkerOnly?: boolean }>;
+  completeLoginSession: (session: AuthSessionPayload) => Promise<{ error: string | null; role?: AppRole; claimsWorkerOnly?: boolean; garagePhotographer?: boolean }>;
   isAuthenticated: boolean;
   isImpersonating: boolean;
   impersonate: (targetUser: UserProfile) => void;
@@ -215,7 +215,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRealUser(profile);
       const { data: { session: s } } = await supabase.auth.getSession();
       setSession(s);
-      return { error: null, role: profile?.role, claimsWorkerOnly: profile?.claimsWorkerOnly };
+      return { error: null, role: profile?.role, claimsWorkerOnly: profile?.claimsWorkerOnly, garagePhotographer: profile?.garagePhotographer };
     }
     return { error: null };
   };

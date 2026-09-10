@@ -1,4 +1,10 @@
-export function homePathForRole(role?: string, extras?: { claimsWorkerOnly?: boolean }): string {
+export type PostLoginExtras = {
+  claimsWorkerOnly?: boolean;
+  garagePhotographer?: boolean;
+};
+
+export function homePathForRole(role?: string, extras?: PostLoginExtras): string {
+  if (extras?.garagePhotographer) return '/garage';
   if (extras?.claimsWorkerOnly) return '/claims';
   if (role === 'telemarketing_agent') return '/telemarketing';
   return '/dashboard';
@@ -8,8 +14,9 @@ export function homePathForRole(role?: string, extras?: { claimsWorkerOnly?: boo
 export function postLoginPathForRole(
   role: string | undefined,
   intended: string,
-  extras?: { claimsWorkerOnly?: boolean },
+  extras?: PostLoginExtras,
 ): string {
+  if (extras?.garagePhotographer) return '/garage';
   if (extras?.claimsWorkerOnly) return '/claims';
   if (role === 'telemarketing_agent') return '/telemarketing';
   return intended;

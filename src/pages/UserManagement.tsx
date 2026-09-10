@@ -291,7 +291,7 @@ export default function UserManagement() {
       claimsWorkerOnly: u.claimsWorkerOnly,
       garagePhotographer: u.garagePhotographer,
     });
-    navigate(u.claimsWorkerOnly ? '/claims' : '/dashboard');
+    navigate(u.garagePhotographer ? '/garage' : u.claimsWorkerOnly ? '/claims' : '/dashboard');
   };
 
   const copyToClipboard = (text: string) => {

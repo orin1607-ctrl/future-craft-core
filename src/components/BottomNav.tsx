@@ -72,6 +72,10 @@ const claimsWorkerMobileNav: NavItem[] = [
   { path: '/garage', label: 'צילומי מוסך', icon: Camera },
 ];
 
+const garagePhotographerMobileNav: NavItem[] = [
+  { path: '/garage', label: 'צילומי מוסך', icon: Camera },
+];
+
 export default function BottomNav() {
   const { user } = useAuth();
   const unreadCount = useUnreadNotifications();
@@ -79,7 +83,10 @@ export default function BottomNav() {
   const isDriver = user?.role === 'driver';
   const isTelemarketingAgent = user?.role === 'telemarketing_agent';
   const isClaimsWorker = !!user?.claimsWorkerOnly;
-  const mobileNav = isClaimsWorker
+  const isGaragePhotographer = !!user?.garagePhotographer;
+  const mobileNav = isGaragePhotographer
+    ? garagePhotographerMobileNav
+    : isClaimsWorker
     ? claimsWorkerMobileNav
     : isTelemarketingAgent
       ? telemarketingMobileNav
@@ -121,6 +128,7 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
   const isSuperAdmin = user?.role === 'super_admin';
   const isTelemarketingAgent = user?.role === 'telemarketing_agent';
   const isClaimsWorker = !!user?.claimsWorkerOnly;
+  const isGaragePhotographer = !!user?.garagePhotographer;
   const canFleetOS = isSuperAdmin || user?.role === 'fleet_manager';
   const canClaims = isSuperAdmin || !!user?.hasClaimsAccess;
 
@@ -167,6 +175,10 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
     { path: '/garage', label: 'צילומי מוסך', icon: Camera },
   ];
 
+  const garagePhotographerSidebarItems: NavItem[] = [
+    { path: '/garage', label: 'צילומי מוסך', icon: Camera },
+  ];
+
   return (
     <>
       {mobileOpen ? (
@@ -199,7 +211,9 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
           <p className="text-sm font-bold">{user?.full_name}</p>
           <p className="text-xs opacity-60">{user?.company_name}</p>
           <span className="mt-1 inline-block text-xs bg-primary-foreground/15 px-3 py-0.5 rounded-full">
-            {user?.claimsWorkerOnly
+            {user?.garagePhotographer
+              ? 'עובד צילומי מוסך'
+              : user?.claimsWorkerOnly
               ? 'עובד ניהול תביעות'
               : user?.role === 'super_admin'
                 ? 'מנהל על'
@@ -258,7 +272,14 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
           if (t?.closest('a')) onMobileClose();
         }}
       >
-        {isClaimsWorker ? (
+        {isGaragePhotographer ? (
+          garagePhotographerSidebarItems.map(item => (
+            <NavLink key={item.path} to={item.path}
+              className={({ isActive }) => `flex items-center gap-3 px-6 py-3.5 text-[15px] font-medium transition-colors relative ${isActive ? 'bg-primary-foreground/20 font-bold border-r-4 border-primary-foreground' : 'hover:bg-primary-foreground/10'}`}>
+              <item.icon size={20} /><span>{item.label}</span>
+            </NavLink>
+          ))
+        ) : isClaimsWorker ? (
           claimsWorkerSidebarItems.map(item => (
             <NavLink key={item.path} to={item.path}
               className={({ isActive }) => `flex items-center gap-3 px-6 py-3.5 text-[15px] font-medium transition-colors relative ${isActive ? 'bg-primary-foreground/20 font-bold border-r-4 border-primary-foreground' : 'hover:bg-primary-foreground/10'}`}>
