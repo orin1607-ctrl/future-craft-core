@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import BottomNav, { DesktopSidebar } from '@/components/BottomNav';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
@@ -11,7 +11,9 @@ export default function Layout() {
   const { user, realUser, isImpersonating, stopImpersonation, logout } = useAuth();
   const { selectedCompany, setSelectedCompany } = useCompanyScope();
   const navigate = useNavigate();
+  const location = useLocation();
   const isSuperAdmin = realUser?.role === 'super_admin' && !isImpersonating;
+  const isGarage = location.pathname.startsWith('/garage-management');
 
   return (
     <div className="min-h-screen bg-background">
@@ -38,7 +40,7 @@ export default function Layout() {
       <DesktopSidebar />
 
       {/* Mobile header */}
-      <header className="md:hidden bg-[hsl(218,58%,15%)] text-primary-foreground p-4 flex items-center justify-between sticky top-0 z-20 shadow-lg">
+      <header className={`${isGarage ? 'hidden' : 'md:hidden'} bg-[hsl(218,58%,15%)] text-primary-foreground p-4 flex items-center justify-between sticky top-0 z-20 shadow-lg`}>
         <div className="flex items-center gap-3">
           <img src={logo} alt="דליה" className="h-10 brightness-0 invert" />
           <div>
@@ -70,14 +72,14 @@ export default function Layout() {
       )}
 
       {/* Main content */}
-      <main className="md:mr-72 pb-24 md:pb-8 p-4 md:p-8">
+      <main className={isGarage ? 'md:mr-72 p-0 min-h-screen' : 'md:mr-72 pb-24 md:pb-8 p-4 md:p-8'}>
         <DriverActionGate>
           <Outlet />
         </DriverActionGate>
       </main>
 
       {/* Footer credits */}
-      <footer className="md:mr-72 pb-20 md:pb-4 px-4 text-center">
+      <footer className={`${isGarage ? 'hidden' : ''} md:mr-72 pb-20 md:pb-4 px-4 text-center`}>
         <p className="text-muted-foreground text-xs">
           נבנה ע״י{' '}
           <a href="https://mao.co.il" target="_blank" rel="noopener noreferrer" className="hover:text-foreground underline">
@@ -91,8 +93,8 @@ export default function Layout() {
         </p>
       </footer>
 
-      <BottomNav />
-      <HelpButton />
+      {!isGarage && <BottomNav />}
+      {!isGarage && <HelpButton />}
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
   ChevronsUpDown,
   Eye,
   Plus,
+  Warehouse,
 } from 'lucide-react';
 import { useAuth, type AppRole } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -291,6 +292,7 @@ function SuperAdminDashboard({ onEnterFleetMode }: { onEnterFleetMode: (company:
   };
 
   const superAdminActions = [
+    { label: 'ניהול מוסך', icon: Warehouse, href: '/garage-management', type: 'link' as const },
     { label: 'פתיחת משתמש חדש', icon: UserPlus, action: () => setShowCreateUserModal(true), type: 'button' as const },
     { label: 'כניסה למנהל צי רכב', icon: ArrowRightLeft, action: () => setShowFleetCompanyPicker(true), type: 'button' as const },
     { label: 'דוחות כל החברות', icon: BarChart3, href: '/reports', type: 'link' as const },
@@ -716,6 +718,7 @@ function FleetManagerDashboard({
 
   const fleetActions = useMemo(
     () => [
+      { label: 'ניהול מוסך', icon: Warehouse, href: '/garage-management' },
       { label: 'הצמדת נהג לרכב', icon: ArrowRightLeft, href: '/attach-car' },
       { label: 'שירותים ותחזוקה / השוואת מחירים', icon: ClipboardList, href: '/service-orders' },
       { label: 'דיווח תאונה', icon: AlertTriangle, href: '/accidents' },
