@@ -1,0 +1,234 @@
+{
+  "at": "2026-09-10T04:40:44.614Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "claimsDocsPrivate": true,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "liveSha": "04f2f40",
+  "checks": [
+    {
+      "name": "service-role-staging",
+      "ok": true
+    },
+    {
+      "name": "desk-login",
+      "ok": true
+    },
+    {
+      "name": "photographer-job-title",
+      "ok": true,
+      "job": "garage_photographer"
+    },
+    {
+      "name": "photographer-api-login",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-GPS-1789015248568",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-GPS-O-1789015248568",
+      "ok": true
+    },
+    {
+      "name": "staff-assign",
+      "ok": true
+    },
+    {
+      "name": "worker-sees-assigned-only",
+      "ok": true,
+      "jobIds": [
+        "DAL-QA-GPS-1789015248568"
+      ]
+    },
+    {
+      "name": "unassigned-claim-blocked",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "upload-two-jpegs",
+      "ok": true,
+      "file1": "CDM-1789015257523-L62I0B",
+      "file2": "CDM-1789015262424-RUXT10"
+    },
+    {
+      "name": "complete-awaiting",
+      "ok": true
+    },
+    {
+      "name": "needs-update",
+      "ok": true
+    },
+    {
+      "name": "add-photo-same-claim",
+      "ok": true,
+      "file3": "CDM-1789015271534-UIBJMQ"
+    },
+    {
+      "name": "old-photos-kept",
+      "ok": true,
+      "n": 3
+    },
+    {
+      "name": "complete-again",
+      "ok": true
+    },
+    {
+      "name": "staff-approve",
+      "ok": true
+    },
+    {
+      "name": "foreign-file-blocked",
+      "ok": true
+    },
+    {
+      "name": "secure-share-create",
+      "ok": true
+    },
+    {
+      "name": "share-selected-only",
+      "ok": true,
+      "pubIds": [
+        "CDM-1789015257523-L62I0B",
+        "CDM-1789015262424-RUXT10"
+      ]
+    },
+    {
+      "name": "claims-docs-private",
+      "ok": true,
+      "public": false
+    },
+    {
+      "name": "ui-base-ready",
+      "ok": true,
+      "pagesGarage": 200,
+      "localGarage": 200,
+      "uiBase": "https://orin1607-ctrl.github.io/future-craft-core",
+      "liveSha": "04f2f40"
+    },
+    {
+      "name": "real-login-lands-garage",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/garage"
+    },
+    {
+      "name": "real-login-garage-portal",
+      "ok": true
+    },
+    {
+      "name": "no-fleet-menu",
+      "ok": true
+    },
+    {
+      "name": "no-driver-bottom-nav-faults",
+      "ok": true
+    },
+    {
+      "name": "no-driver-bottom-nav-invoices",
+      "ok": true
+    },
+    {
+      "name": "no-vehicles-link",
+      "ok": true
+    },
+    {
+      "name": "assigned-job-visible",
+      "ok": true
+    },
+    {
+      "name": "other-job-hidden",
+      "ok": true
+    },
+    {
+      "name": "search-assigned",
+      "ok": true
+    },
+    {
+      "name": "search-empty-not-global",
+      "ok": true
+    },
+    {
+      "name": "open-job",
+      "ok": true
+    },
+    {
+      "name": "camera-button",
+      "ok": true
+    },
+    {
+      "name": "upload-button",
+      "ok": true
+    },
+    {
+      "name": "complete-button",
+      "ok": true
+    },
+    {
+      "name": "has-download",
+      "ok": true
+    },
+    {
+      "name": "dashboard-redirects-garage",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/garage"
+    },
+    {
+      "name": "faults-blocked",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/garage"
+    },
+    {
+      "name": "logout",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/login"
+    },
+    {
+      "name": "relogin-garage",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/garage"
+    },
+    {
+      "name": "refresh-stays-garage",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/garage/"
+    },
+    {
+      "name": "staff-desktop-approved",
+      "ok": true,
+      "text": "צילומי מוסך עובד: QA צלם מוסך סטטוס: צילום הושלם תמונות: 3 אושר אושר על ידי TEST עובד תביעות 1788292403067 · 10.9.2026, 4:41:19 החלף שיוך פתח פורטל עובד בטל שיוך"
+    },
+    {
+      "name": "staff-secure-share-control",
+      "ok": true
+    },
+    {
+      "name": "surveyor-no-login-share",
+      "ok": true,
+      "shareText": "טוען..."
+    },
+    {
+      "name": "unassign",
+      "ok": true
+    },
+    {
+      "name": "unassign-blocks",
+      "ok": true,
+      "status": 403,
+      "err": "forbidden"
+    },
+    {
+      "name": "soft-delete-test-claims",
+      "ok": true,
+      "claimId": "DAL-QA-GPS-1789015248568",
+      "otherId": "DAL-QA-GPS-O-1789015248568"
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS",
+  "failed": []
+}
