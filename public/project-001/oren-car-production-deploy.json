@@ -1,12 +1,12 @@
 {
   "id": "oren-car-production-deploy",
   "armed": true,
-  "requestedAt": "2026-08-11T11:45:00.000Z",
+  "requestedAt": "2026-09-10T13:30:00.000Z",
   "requestedBy": "owner",
-  "owner_phrase": "מאשר העלאה לאתר הפעיל — תיקון ביטוח + מתגי הדגשה",
+  "owner_phrase": "קרוס — אישור מעבר מבוקר ל-Production עבור המשימות המאושרות בלבד. משימות 1,2,3,4,5,7. משימה 6 אינה מאושרת.",
   "target": "https://dalia-car.online",
-  "commit": "30713b4",
-  "scope": "insurance-gap-fix-and-company-attention-red-toggles",
+  "commit": "b482984a",
+  "scope": "tasks-1-2-3-4-5-7-display-fixes-no-task-6",
   "codeOnly": true,
   "dataChanges": false,
   "noImport": true,
@@ -20,5 +20,5 @@
     "dupPlateGroups": 47,
     "dupInternalGroups": 19
   },
-  "note": "CODE ONLY — do not touch duplicate plates, internal dupes, or ק'יבוץ בארי records"
+  "note": "CODE ONLY — PR 66 cherry-pick onto main. Do not merge PR 64/65. No schema/RLS/storage/policies. Task 6 excluded."
 }
