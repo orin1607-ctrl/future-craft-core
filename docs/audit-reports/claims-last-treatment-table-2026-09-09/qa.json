@@ -1,0 +1,72 @@
+{
+  "at": "2026-09-09T06:40:26.342Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "wantSha": "fd952f4",
+  "deployTxt": "",
+  "checks": [
+    {
+      "name": "worker-login",
+      "ok": true
+    },
+    {
+      "name": "staging-only",
+      "ok": true
+    },
+    {
+      "name": "create-test-claim",
+      "ok": true,
+      "id": "DAL-QA-LTT-1788936027090"
+    },
+    {
+      "name": "seed-history-rows",
+      "ok": true,
+      "n": 2
+    },
+    {
+      "name": "table-shows-last-treatment",
+      "ok": true,
+      "rowText": "\tטרם התקבל\t\nQA Last Treatment\n\t98-765-43\t—\tבטיפול\nעדכון טיפול אחרון QA\n\tTEST עובד תביעות 1788292403067\tעדכון טיפול אחרון QA · 9.9.2026\t—\t—\t✏️"
+    },
+    {
+      "name": "table-hides-docs-order-in-that-slot",
+      "ok": true,
+      "rowText": "\tטרם התקבל\t\nQA Last Treatment\n\t98-765-43\t—\tבטיפול\nעדכון טיפול אחרון QA\n\tTEST עובד תביעות 1788292403067\tעדכון טיפול אחרון QA · 9.9.2026\t—\t—\t✏️"
+    },
+    {
+      "name": "table-shows-date",
+      "ok": true,
+      "rowText": "\tטרם התקבל\t\nQA Last Treatment\n\t98-765-43\t—\tבטיפול\nעדכון טיפול אחרון QA\n\tTEST עובד תביעות 1788292403067\tעדכון טיפול אחרון QA · 9.9.2026\t—\t—\t✏️"
+    },
+    {
+      "name": "last-treatment-control",
+      "ok": true
+    },
+    {
+      "name": "click-opens-treatment-history",
+      "ok": true
+    },
+    {
+      "name": "history-keeps-previous-updates",
+      "ok": true,
+      "histText": "היסטוריית סטטוסים\nעדכון טיפול אחרון QA\n— → —\nהיסטוריה אחרונה\n09.09.2026, 11:00 · QA\nעדכון טיפול ראשון QA\n— → —\nהיסטוריה ראשונה\n08.09.2026, 10:00 · QA\nכל ההיסטוריה\nעדכון טיפול ראשון QA\nהיסטוריה ראשונה\n08.09.2026, 10:00 · QA\nעדכון טיפול אחרון QA\nהיסטוריה אחרונה\n09.09.2026, 11:00 · QA"
+    },
+    {
+      "name": "history-still-there-after-close",
+      "ok": true,
+      "histAgain": "היסטוריית סטטוסים\nעדכון טיפול אחרון QA\n— → —\nהיסטוריה אחרונה\n09.09.2026, 11:00 · QA\nעדכון טיפול ראשון QA\n— → —\nהיסטוריה ראשונה\n08.09.2026, 10:00 · QA\nכל ההיסטוריה\nעדכון טיפול ראשון QA\nהיסטוריה ראשונה\n08.09.2026, 10:00 · QA\nעדכון טיפול אחרון QA\nהיסטוריה אחרונה\n09.09.2026, 11:00 · QA"
+    },
+    {
+      "name": "mobile-shows-last-treatment",
+      "ok": true,
+      "mtext": "QA Last Treatment\nמספר תביעה: טרם התקבל\nבטיפול\nעדכון טיפול אחרון QA\nרכב 98-765-43\n—\nפעולה/טיפול הבא: —\nהטיפול האחרון: עדכון טיפול אחרון QA · 9.9.2026\n—"
+    },
+    {
+      "name": "soft-delete-test-claim",
+      "ok": true,
+      "id": "DAL-QA-LTT-1788936027090"
+    }
+  ],
+  "verdict": "PASS"
+}

@@ -129,63 +129,74 @@ const hisIns = await userDb.from('claims_history').insert([
 ]).select('id');
 rec('seed-history-rows', !hisIns.error && (hisIns.data || []).length === 2, { err: hisIns.error?.message, n: (hisIns.data || []).length });
 
-const browser = await chromium.launch({ headless: true });
-const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
-await inject(context, session);
-const page = await context.newPage();
-await page.goto(`${PUBLIC}/claims`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
-await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
-const box = page.locator('[data-testid="claims-search"]').locator('visible=true').first();
-await box.waitFor({ state: 'visible', timeout: 15000 });
-await box.fill(id);
-await page.waitForTimeout(700);
-await shot(page, 'table');
-
-const row = page.locator(`[data-testid="claim-row-${id}"]`);
-const rowText = (await row.innerText().catch(() => '')) || '';
-rec('table-shows-last-treatment', rowText.includes(action2) || rowText.includes('טיפול אחרון QA'), { rowText: rowText.slice(0, 400) });
-rec('table-hides-docs-order-in-that-slot', !/תיק ישן \/ דורש סידור/.test(rowText), { rowText: rowText.slice(0, 400) });
-rec('table-shows-date', /09\/09|9\.9\.|09\.09/.test(rowText) || rowText.includes('2026'), { rowText: rowText.slice(0, 400) });
-
-const btn = page.locator(`[data-testid="claim-last-treatment-${id}"]`);
-const btnOk = await btn.count();
-rec('last-treatment-control', btnOk > 0);
-if (btnOk) {
-  await btn.first().click();
-  const hist = await page.waitForSelector('[data-testid="claim-treat-history"]', { timeout: 25000 }).then(() => true).catch(() => false);
-  rec('click-opens-treatment-history', hist);
-  await page.getByText(action1, { exact: false }).first().waitFor({ timeout: 20000 }).catch(() => undefined);
-  const histText = (await page.locator('[data-testid="claim-treat-history"]').innerText().catch(() => '')) || '';
-  rec('history-keeps-previous-updates', histText.includes(action1) && histText.includes(action2), { histText: histText.slice(0, 400) });
-  await shot(page, 'history');
-  await page.locator('.mcl').first().click().catch(() => undefined);
-  await page.waitForTimeout(400);
-  await page.locator(`[data-testid="claim-last-treatment-${id}"]`).first().click();
-  await page.waitForSelector('[data-testid="claim-treat-history"]', { timeout: 25000 });
-  const histAgain = (await page.locator('[data-testid="claim-treat-history"]').innerText().catch(() => '')) || '';
-  rec('history-still-there-after-close', histAgain.includes(action1) && histAgain.includes(action2), { histAgain: histAgain.slice(0, 400) });
-  await shot(page, 'history-reopen');
+const leftovers = (await userDb.from('claims_records').select('id, row_data').like('id', 'DAL-QA-LTT-%')).data || [];
+for (const row of leftovers) {
+  if (row.id !== id && !row.row_data?.deletedAt) await softDelete(row.id);
 }
 
-const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-await inject(mobile, session);
-const mpage = await mobile.newPage();
-await mpage.goto(`${PUBLIC}/claims`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-await mpage.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
-await mpage.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
-const mbox = mpage.locator('[data-testid="claims-search"]').locator('visible=true').first();
-if (await mbox.count()) await mbox.fill(id);
-await mpage.waitForTimeout(700);
-const mtext = (await mpage.locator(`[data-testid="claim-row-${id}"]`).innerText().catch(() => '')) || '';
-rec('mobile-shows-last-treatment', mtext.includes(action2) || (await mpage.locator(`[data-testid="claim-last-treatment-${id}"]`).count()) > 0, { mtext: mtext.slice(0, 300) });
-await shot(mpage, 'mobile');
-await mobile.close();
-await browser.close();
+let browser;
+try {
+  browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ viewport: { width: 1400, height: 900 } });
+  await inject(context, session);
+  const page = await context.newPage();
+  await page.goto(`${PUBLIC}/claims`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await page.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
+  await page.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
+  const box = page.locator('[data-testid="claims-search"]').locator('visible=true').first();
+  await box.waitFor({ state: 'visible', timeout: 15000 });
+  await box.fill(id);
+  await page.waitForTimeout(700);
+  await shot(page, 'table');
 
-await softDelete(id);
-const { data: gone } = await userDb.from('claims_records').select('row_data').eq('id', id).maybeSingle();
-rec('soft-delete-test-claim', Boolean(gone?.row_data?.deletedAt), { id });
+  const row = page.locator(`[data-testid="claim-row-${id}"]`);
+  const rowText = (await row.innerText().catch(() => '')) || '';
+  rec('table-shows-last-treatment', rowText.includes(action2) || rowText.includes('טיפול אחרון QA'), { rowText: rowText.slice(0, 400) });
+  rec('table-hides-docs-order-in-that-slot', !/תיק ישן \/ דורש סידור/.test(rowText), { rowText: rowText.slice(0, 400) });
+  rec('table-shows-date', /09\/09|9\.9\.|09\.09/.test(rowText) || rowText.includes('2026'), { rowText: rowText.slice(0, 400) });
+
+  const btn = page.locator(`[data-testid="claim-last-treatment-${id}"]`);
+  const btnOk = await btn.count();
+  rec('last-treatment-control', btnOk > 0);
+  if (btnOk) {
+    await btn.first().click();
+    const hist = await page.waitForSelector('[data-testid="claim-treat-history"]', { timeout: 25000 }).then(() => true).catch(() => false);
+    rec('click-opens-treatment-history', hist);
+    await page.getByText(action1, { exact: false }).first().waitFor({ timeout: 20000 }).catch(() => undefined);
+    const histText = (await page.locator('[data-testid="claim-treat-history"]').innerText().catch(() => '')) || '';
+    rec('history-keeps-previous-updates', histText.includes(action1) && histText.includes(action2), { histText: histText.slice(0, 400) });
+    await shot(page, 'history');
+    await page.locator('.ov.open .mh button.mcl').click({ timeout: 8000 });
+    await page.locator('.ov.open').waitFor({ state: 'hidden', timeout: 10000 });
+    await page.locator(`[data-testid="claim-last-treatment-${id}"]`).first().click();
+    await page.waitForSelector('[data-testid="claim-treat-history"]', { timeout: 25000 });
+    await page.getByText(action1, { exact: false }).first().waitFor({ timeout: 20000 }).catch(() => undefined);
+    const histAgain = (await page.locator('[data-testid="claim-treat-history"]').innerText().catch(() => '')) || '';
+    rec('history-still-there-after-close', histAgain.includes(action1) && histAgain.includes(action2), { histAgain: histAgain.slice(0, 400) });
+    await shot(page, 'history-reopen');
+  }
+
+  const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await inject(mobile, session);
+  const mpage = await mobile.newPage();
+  await mpage.goto(`${PUBLIC}/claims`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+  await mpage.waitForSelector('[data-testid="claims-open-new"]', { timeout: 90000 });
+  await mpage.locator('[data-testid="claims-nav-all"]').click().catch(() => undefined);
+  const mbox = mpage.locator('[data-testid="claims-search"]').locator('visible=true').first();
+  if (await mbox.count()) await mbox.fill(id);
+  await mpage.waitForTimeout(700);
+  const mtext = (await mpage.locator(`[data-testid="claim-row-${id}"]`).innerText().catch(() => '')) || '';
+  rec('mobile-shows-last-treatment', mtext.includes(action2) || (await mpage.locator(`[data-testid="claim-last-treatment-${id}"]`).count()) > 0, { mtext: mtext.slice(0, 300) });
+  await shot(mpage, 'mobile');
+  await mobile.close();
+} catch (e) {
+  rec('qa-runtime', false, { err: String(e?.message || e).slice(0, 400) });
+} finally {
+  if (browser) await browser.close().catch(() => undefined);
+  await softDelete(id);
+  const { data: gone } = await userDb.from('claims_records').select('row_data').eq('id', id).maybeSingle();
+  rec('soft-delete-test-claim', Boolean(gone?.row_data?.deletedAt), { id });
+}
 
 const failed = report.checks.filter((c) => !c.ok);
 report.verdict = failed.length ? 'FAIL' : 'PASS';
