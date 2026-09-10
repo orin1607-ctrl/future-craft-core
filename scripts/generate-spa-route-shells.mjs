@@ -109,6 +109,7 @@ const ROUTES = [
   'telemarketing/admin',
   'claims',
   'claims-upload',
+  'claims-share',
   'claims-intake',
   'garage',
 ];

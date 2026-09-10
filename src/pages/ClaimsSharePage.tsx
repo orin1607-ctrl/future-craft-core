@@ -8,7 +8,7 @@ type ShareFile = { id: string; name: string; mime: string; bytes: number; image:
 
 export default function ClaimsSharePage() {
   const [params] = useSearchParams();
-  const token = params.get('t') || '';
+  const token = params.get('t') || params.get('token') || '';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
