@@ -17,12 +17,29 @@ function heicHeader(brand = 'heic') {
   return b;
 }
 
+function binaryBlob(bytes: Uint8Array, type: string) {
+  const copy = bytes.slice();
+  return {
+    type,
+    size: copy.byteLength,
+    arrayBuffer: async () => copy.buffer.slice(copy.byteOffset, copy.byteOffset + copy.byteLength),
+  } as Blob;
+}
+
 describe('shareImageDisplay', () => {
   it('sniffs HEIC/HEIF brands even when the mime says jpeg', () => {
     expect(sniffHeic(heicHeader('heic'))).toBe(true);
     expect(sniffHeic(heicHeader('mif1'))).toBe(true);
     expect(isHeicLike('image/jpeg', 'IMG_0092.jpg', heicHeader('heic'))).toBe(true);
     expect(isBrowserDecodableImage('image/jpeg', 'IMG_0092.jpg', heicHeader('heic'))).toBe(false);
+  });
+
+  it('does not treat HTML or JPEG bytes as HEIC just because the name says .heic', () => {
+    const html = new TextEncoder().encode('<!DOCTYPE html><html></html>');
+    expect(isHeicLike('image/heic', 'sample.heic', html)).toBe(false);
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9, 0, 0, 0, 0, 0, 0, 0, 0]);
+    expect(isHeicLike('image/heic', 'photo.heic', jpeg)).toBe(false);
+    expect(isHeicLike('image/heic', 'photo.heic')).toBe(true);
   });
 
   it('treats jpeg/png/webp as browser-decodable', () => {
@@ -48,7 +65,7 @@ describe('shareImageDisplay', () => {
   });
 
   it('converts HEIC bytes through the supplied converter', async () => {
-    const raw = new Blob([heicHeader('heic')], { type: 'image/heic' });
+    const raw = binaryBlob(heicHeader('heic'), 'image/heic');
     const jpeg = new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: 'image/jpeg' });
     const out = await blobToDisplayBlob(raw, 'image/jpeg', 'IMG_1.HEIC', async () => jpeg);
     expect(out.converted).toBe(true);
@@ -56,7 +73,7 @@ describe('shareImageDisplay', () => {
   });
 
   it('does not hand a raw HEIC blob to <img> when conversion fails', async () => {
-    const raw = new Blob([heicHeader('heic')], { type: 'image/heic' });
+    const raw = binaryBlob(heicHeader('heic'), 'image/heic');
     await expect(blobToDisplayBlob(raw, 'image/jpeg', 'IMG_1.HEIC', async () => {
       throw new Error('converter-down');
     })).rejects.toThrow(/converter-down/);

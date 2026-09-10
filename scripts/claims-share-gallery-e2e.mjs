@@ -7,6 +7,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { deflateSync, crc32 } from 'zlib';
 import { mkdirSync, writeFileSync, copyFileSync, readFileSync } from 'fs';
+import { spawnSync } from 'child_process';
 import { join } from 'path';
 
 const STAGING_REF = 'usfeoerkpcafxxlyuldl';
@@ -77,8 +78,20 @@ function pngSolid(w, h, r, g, b, salt = 0) {
   ]);
 }
 
-const JPG = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAG/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', 'base64');
-const WEBP = Buffer.from('UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=', 'base64');
+function looksLikeHeic(buf) {
+  return buf.length >= 12 && buf.slice(4, 8).toString('ascii') === 'ftyp';
+}
+function looksLikeJpeg(buf) { return buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8; }
+function looksLikePng(buf) { return buf.length >= 4 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47; }
+function looksLikeWebp(buf) { return buf.length >= 12 && buf.slice(0, 4).toString('ascii') === 'RIFF'; }
+function looksLikeImage(buf) {
+  return looksLikeHeic(buf) || looksLikeJpeg(buf) || looksLikePng(buf) || looksLikeWebp(buf);
+}
+function ffmpegStill(ext, color, dest) {
+  const r = spawnSync('ffmpeg', ['-y', '-f', 'lavfi', '-i', `color=c=${color}:s=320x240:d=1`, '-frames:v', '1', dest], { encoding: 'utf8' });
+  if (r.status !== 0) throw new Error((r.stderr || '').slice(-240));
+  return readFileSync(dest);
+}
 
 const db = createClient(`https://${STAGING_REF}.supabase.co`, anonKey, { auth: { persistSession: false } });
 const { data: auth, error: loginErr } = await db.auth.signInWithPassword({ email: DESK_EMAIL, password: DESK_PASSWORD });
@@ -134,7 +147,9 @@ async function cloneLiveImages() {
   for (const row of docs || []) {
     const mime = String(row.mime_type || '');
     const size = Number(row.byte_size || 0);
-    if (size < 80 || size > 4_000_000) continue;
+    const name = String(row.original_name || '');
+    if (size < 2000 || size > 4_000_000) continue;
+    if (/gallery-(png|jpg|jpeg|webp|heic)|live-gallery-/i.test(name)) continue;
     const key = `${mime}|${row.claim_id}`;
     if (seenMime.has(key) && picked.filter((p) => p.mime_type === mime).length >= 3) continue;
     seenMime.add(key);
@@ -150,12 +165,12 @@ async function cloneLiveImages() {
     const url = signed?.urls?.[row.id];
     if (!url) continue;
     const buf = Buffer.from(await fetch(url).then((r) => r.arrayBuffer()));
-    if (buf.length < 80) continue;
+    if (!looksLikeImage(buf)) continue;
     const name = `live-${String(row.original_name || 'photo').replace(/[^\w.\-]+/g, '_').slice(0, 40)}`;
     const res = await up(name, row.mime_type, buf, { staff_type: 'damage_photos' });
     if (res.file_id && !imageIds.includes(res.file_id)) {
       imageIds.push(res.file_id);
-      clonedFromLive.push({ mime: row.mime_type, name, bytes: buf.length });
+      clonedFromLive.push({ mime: row.mime_type, name, bytes: buf.length, magic: looksLikeHeic(buf) ? 'heic' : looksLikeJpeg(buf) ? 'jpeg' : looksLikePng(buf) ? 'png' : 'webp' });
     }
   }
 }
@@ -172,22 +187,29 @@ for (let i = 0; i < colors.length; i++) {
   const res = await up(`gallery-png-${i}-${stamp}.png`, 'image/png', pngSolid(320, 240, r, g, b, i), { staff_type: 'damage_photos' });
   if (res.file_id && !imageIds.includes(res.file_id)) imageIds.push(res.file_id);
 }
-for (let i = 0; i < 4; i++) {
-  const res = await up(`gallery-jpg-${i}-${stamp}.jpg`, 'image/jpeg', Buffer.concat([JPG, Buffer.from([0xff, 0xd9]), Buffer.from(`JPG${i}-${stamp}`)]), { staff_type: 'damage_photos' });
+const jpgColors = ['red', 'green', 'blue', 'orange'];
+for (let i = 0; i < jpgColors.length; i++) {
+  const bytes = ffmpegStill('jpg', jpgColors[i], `/tmp/gallery-jpg-${i}.jpg`);
+  const res = await up(`gallery-jpg-${i}-${stamp}.jpg`, 'image/jpeg', bytes, { staff_type: 'damage_photos' });
   if (res.file_id && !imageIds.includes(res.file_id)) imageIds.push(res.file_id);
 }
-for (let i = 0; i < 2; i++) {
-  const res = await up(`gallery-webp-${i}-${stamp}.webp`, 'image/webp', WEBP, { staff_type: 'damage_photos' });
+const webpColors = ['purple', 'teal'];
+for (let i = 0; i < webpColors.length; i++) {
+  const bytes = ffmpegStill('webp', webpColors[i], `/tmp/gallery-webp-${i}.webp`);
+  const res = await up(`gallery-webp-${i}-${stamp}.webp`, 'image/webp', bytes, { staff_type: 'damage_photos' });
   if (res.file_id && !imageIds.includes(res.file_id)) imageIds.push(res.file_id);
 }
 let heicOk = false;
 try {
-  const heicBuf = Buffer.from(await fetch('https://github.com/tigranbs/test-files/raw/master/sample.heic').then((r) => r.arrayBuffer()));
-  if (heicBuf.length > 100) {
+  const heicBuf = Buffer.from(await fetch('https://raw.githubusercontent.com/alexcorvi/heic2any/master/demo/1.heic').then((r) => r.arrayBuffer()));
+  rec('heic-magic', looksLikeHeic(heicBuf), { bytes: heicBuf.length, brand: heicBuf.slice(4, 12).toString('ascii') });
+  if (looksLikeHeic(heicBuf)) {
     const res = await up(`gallery-heic-${stamp}.heic`, 'image/heic', heicBuf, { staff_type: 'damage_photos' });
     if (res.file_id) { imageIds.push(res.file_id); heicOk = true; }
   }
-} catch { /* optional */ }
+} catch (e) {
+  rec('heic-fetch', false, { err: String(e.message || e).slice(0, 180) });
+}
 rec('heic-uploaded', heicOk);
 const pdf = await up(`gallery-doc-${stamp}.pdf`, 'application/pdf', Buffer.from('%PDF-1.1\n%%GALLERY\n'));
 rec('setup-images', imageIds.length >= 18, { count: imageIds.length, heicOk, pdf: pdf.file_id });
@@ -237,10 +259,11 @@ try {
   if (loaded.broken.length || loaded.errors.length) find('broken-thumbs', [...loaded.broken, ...loaded.errors].join(', '));
   await page.screenshot({ path: join(OUT, 'screenshots', '01-gallery.png'), fullPage: true });
 
-  await page.locator('[data-testid^="share-pub-img-"]').first().click();
+  await page.locator('[data-testid="share-gallery"] img').first().click();
   await page.locator('[data-testid="share-lightbox"]').waitFor({ timeout: 15000 });
   rec('lightbox-opens', true);
   await page.locator('[data-testid="share-lb-img"]').waitFor({ timeout: 30000 });
+  rec('lightbox-img', await page.locator('[data-testid="share-lb-img"]').count() > 0);
   const startPos = await page.locator('[data-testid="share-lb-pos"]').innerText();
   rec('lightbox-pos-start', startPos.trim() === `1 / ${expectedImages}`, { startPos, expectedImages });
   for (let i = 0; i < 8; i++) await page.locator('[data-testid="share-lb-next"]').click();
@@ -288,7 +311,7 @@ try {
   const mob = await phone.newPage();
   await mob.goto(publicUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await mob.locator('[data-testid="share-gallery"] img').first().waitFor({ timeout: 45000 });
-  await mob.locator('[data-testid^="share-pub-img-"]').first().click();
+  await mob.locator('[data-testid="share-gallery"] img').first().click();
   await mob.locator('[data-testid="share-lightbox"]').waitFor({ timeout: 15000 });
   const before = await mob.locator('[data-testid="share-lb-pos"]').innerText();
   await mob.evaluate(() => {
@@ -307,6 +330,8 @@ try {
   await mob.screenshot({ path: join(OUT, 'screenshots', '03-mobile-lightbox.png') });
   await phone.close();
   await ctx.close();
+} catch (e) {
+  rec('browser-e2e', false, { err: String(e.message || e).slice(0, 400) });
 } finally {
   await browser.close();
   if (!PROTECTED.has(claimId)) {

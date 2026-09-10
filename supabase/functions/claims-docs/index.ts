@@ -287,26 +287,40 @@ function sniffHeic(bytes?: Uint8Array) {
   return brand === "heic" || brand === "heix" || brand === "heif" || brand === "heim" || brand === "heis" || brand === "mif1" || brand === "msf1";
 }
 
+function sniffImageMime(bytes?: Uint8Array) {
+  if (!bytes || bytes.length < 12) {
+    if (bytes && bytes.length >= 4) {
+      if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf";
+      if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
+      if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
+      if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return "image/webp";
+    }
+    return "";
+  }
+  if (sniffHeic(bytes)) return "image/heic";
+  if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf";
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
+  if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return "image/webp";
+  return "";
+}
+
 function resolveStoredMime(filename: string, declared: string, bytes?: Uint8Array) {
   const name = String(filename || "").toLowerCase();
-  if (bytes && sniffHeic(bytes)) return "image/heic";
-  if (bytes && bytes.length >= 4) {
-    if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf";
-    if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
-    if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
-    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return "image/webp";
-  }
+  const sniffed = sniffImageMime(bytes);
+  if (sniffed) return sniffed;
   const d = String(declared || "").toLowerCase().split(";")[0].trim();
-  if (d === "application/pdf" || /^image\/(jpeg|jpg|png|webp|heic|heif)$/.test(d)) {
-    if (d === "image/jpg") return "image/jpeg";
-    if (d === "image/heif") return "image/heic";
-    return d;
+  if (d === "image/jpg") return "image/jpeg";
+  if (d === "image/heif" || d === "image/heic") {
+    if (bytes && bytes.length >= 12) return "";
+    return "image/heic";
   }
+  if (d === "application/pdf" || /^image\/(jpeg|png|webp)$/.test(d)) return d;
   if (name.endsWith(".pdf")) return "application/pdf";
   if (/\.jpe?g$/.test(name)) return "image/jpeg";
   if (name.endsWith(".png")) return "image/png";
   if (name.endsWith(".webp")) return "image/webp";
-  if (/\.(heic|heif)$/.test(name)) return "image/heic";
+  if (/\.(heic|heif)$/.test(name)) return bytes && bytes.length >= 12 ? "" : "image/heic";
   return d || "";
 }
 
@@ -595,7 +609,7 @@ Deno.serve(async (req) => {
         if (purpose !== "preview") {
           await sb.from("claims_share_links").update({ last_download_at: new Date().toISOString() }).eq("id", share.id);
         }
-        const mime = sniffHeic(buf) ? "image/heic" : (file.mime_type || "application/octet-stream");
+        const mime = sniffImageMime(buf) || file.mime_type || "application/octet-stream";
         return binResponse(buf, mime, sanitizeFileName(file.original_name), purpose === "preview");
       }
 

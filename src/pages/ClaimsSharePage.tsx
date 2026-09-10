@@ -59,6 +59,13 @@ export default function ClaimsSharePage() {
     return res.blob();
   };
 
+  const decodeUrl = (url: string) => new Promise<boolean>((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img.naturalWidth > 0);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+
   const displayUrlFor = (f: ShareFile) => {
     const cached = fullRef.current[f.id] || thumbsRef.current[f.id];
     if (cached) return Promise.resolve(cached);
@@ -70,7 +77,9 @@ export default function ClaimsSharePage() {
         if (!blob) return { url: '', error: 'לא נטען' };
         const mime = f.mime || blob.type || '';
         const out = await blobToDisplayBlob(blob, mime, f.name);
-        return { url: rememberUrl(URL.createObjectURL(out.blob)) };
+        const url = rememberUrl(URL.createObjectURL(out.blob));
+        if (!(await decodeUrl(url))) return { url: '', error: 'לא נטען' };
+        return { url };
       } catch {
         return { url: '', error: 'לא נטען' };
       }

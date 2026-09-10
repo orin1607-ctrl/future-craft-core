@@ -11,7 +11,8 @@ export function sniffHeic(bytes: Uint8Array | ArrayBuffer | null | undefined) {
 }
 
 export function isHeicLike(mime = '', name = '', bytes?: Uint8Array | ArrayBuffer | null) {
-  if (bytes && sniffHeic(bytes)) return true;
+  const b = bytes instanceof Uint8Array ? bytes : bytes ? new Uint8Array(bytes) : null;
+  if (b && b.length >= 12) return sniffHeic(b);
   const m = String(mime || '').toLowerCase();
   const n = String(name || '').toLowerCase();
   return /image\/hei[cf]/i.test(m) || /\.(heic|heif)$/i.test(n);
@@ -44,11 +45,21 @@ type HeicConverter = (blob: Blob) => Promise<Blob>;
 
 let cachedConvert: HeicConverter | null = null;
 
+function unwrapHeic2any(mod: unknown) {
+  let cur: unknown = mod;
+  for (let i = 0; i < 4; i++) {
+    if (typeof cur === 'function') {
+      return cur as (opts: { blob: Blob; toType: string; quality?: number }) => Promise<Blob | Blob[]>;
+    }
+    if (!cur || typeof cur !== 'object') break;
+    cur = (cur as { default?: unknown }).default ?? (cur as { heic2any?: unknown }).heic2any;
+  }
+  throw new Error('heic2any-missing');
+}
+
 async function defaultHeicToJpeg(blob: Blob): Promise<Blob> {
   if (!cachedConvert) {
-    const mod = await import('heic2any');
-    const heic2any = (mod as { default?: (opts: { blob: Blob; toType: string; quality?: number }) => Promise<Blob | Blob[]> }).default
-      || (mod as unknown as (opts: { blob: Blob; toType: string; quality?: number }) => Promise<Blob | Blob[]>);
+    const heic2any = unwrapHeic2any(await import('heic2any'));
     cachedConvert = async (b: Blob) => {
       const out = await heic2any({ blob: b, toType: 'image/jpeg', quality: 0.86 });
       return Array.isArray(out) ? out[0] : out;
