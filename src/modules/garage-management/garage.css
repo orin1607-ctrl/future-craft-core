@@ -13,10 +13,12 @@
   --border2: rgba(255, 255, 255, 0.16);
   box-sizing: border-box;
   min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
   background: var(--bg);
   color: var(--white);
   font-family: Heebo, Arial, sans-serif;
-  overflow-x: hidden;
+  overflow: hidden;
   -webkit-tap-highlight-color: transparent;
   display: flex;
   justify-content: center;
@@ -38,11 +40,14 @@
 .gm-stage {
   width: 100%;
   max-width: 430px;
+  height: 100dvh;
+  max-height: 100dvh;
   min-height: 100dvh;
   background: var(--bg);
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
 }
 
 @media (min-width: 768px) {
@@ -52,6 +57,8 @@
     padding: 0;
   }
   .gm-stage {
+    height: 100vh;
+    max-height: 100vh;
     min-height: 100vh;
     border-left: 1px solid var(--border);
     border-right: 1px solid var(--border);

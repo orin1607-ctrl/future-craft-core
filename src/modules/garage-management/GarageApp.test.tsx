@@ -17,6 +17,7 @@ describe('garage-management screens', () => {
   beforeEach(() => {
     localStorage.clear();
   });
+
   it('opens a case from existing customer through to the case hub', () => {
     renderAt('/garage-management');
     expect(screen.getByText('ניהול מוסך')).toBeInTheDocument();
@@ -51,5 +52,23 @@ describe('garage-management screens', () => {
     fireEvent.click(screen.getByRole('button', { name: 'הצעת מחיר' }));
     expect(screen.getByText('כנף קדמית שמאל')).toBeInTheDocument();
     expect(screen.getByText('פנס קדמי ימין')).toBeInTheDocument();
+  });
+
+  it('opens communication, share, intake, history and complete from the hub', () => {
+    renderAt('/garage-management/cases/case-1054');
+    fireEvent.click(screen.getByRole('button', { name: 'תקשורת' }));
+    expect(screen.getByText('Thread')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'חזרה' }));
+    fireEvent.click(screen.getByRole('button', { name: 'שיתוף מאובטח' }));
+    expect(screen.getByText('בחר מה לשתף')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'חזרה' }));
+    fireEvent.click(screen.getByRole('button', { name: 'קבלת רכב' }));
+    expect(screen.getByText("קילומטראז'")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'חזרה' }));
+    fireEvent.click(screen.getByRole('button', { name: 'היסטוריה' }));
+    expect(screen.getByText('יוסי פתח תיק')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'חזרה' }));
+    fireEvent.click(screen.getByRole('button', { name: 'סיום / סגירה' }));
+    expect(screen.getByText(/שום מידע לא נמחק/)).toBeInTheDocument();
   });
 });
