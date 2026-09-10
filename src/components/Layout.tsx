@@ -23,6 +23,13 @@ export default function Layout() {
   }, [location.pathname]);
 
   useEffect(() => {
+    if (!user?.garagePhotographer) return;
+    const path = location.pathname.split('?')[0];
+    if (path === '/garage' || path.startsWith('/garage/')) return;
+    navigate('/garage', { replace: true });
+  }, [user?.garagePhotographer, location.pathname, navigate]);
+
+  useEffect(() => {
     if (!navOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';

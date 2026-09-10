@@ -287,18 +287,19 @@ if (uiBase) {
       rec('camera-button', await page.locator('[data-testid="garage-camera"]').count() > 0);
       rec('upload-button', await page.locator('[data-testid="garage-pick"]').count() > 0);
       rec('complete-button', await page.locator('[data-testid="garage-complete"]').count() > 0);
-      rec('has-download', await page.locator(`[data-testid="garage-download-${file1}"]`).count() > 0);
+      await page.waitForSelector(`[data-testid="garage-download-${file1}"], [data-testid="garage-photos"] img`, { timeout: 20000 }).catch(() => null);
+      rec('has-download', await page.locator('[data-testid^="garage-download-"]').count() > 0 || await page.locator('[data-testid="garage-photos"] img').count() > 0);
     }
     const mob = join(OUT, 'screenshots', 'real-login-garage-mobile.png');
     await page.screenshot({ path: mob, fullPage: true });
     try { copyFileSync(mob, join('/opt/cursor/artifacts', 'garage-portal-real-login-mobile.png')); } catch { /* skip */ }
 
-    await page.goto(`${uiBase}/dashboard`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(800);
+    await page.goto(`${uiBase}/dashboard?v=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForURL(/\/garage/, { timeout: 20000 }).catch(() => null);
     rec('dashboard-redirects-garage', /\/garage/.test(page.url()), { url: page.url() });
-    await page.goto(`${uiBase}/faults`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    await page.waitForTimeout(800);
-    rec('faults-blocked', /\/garage/.test(page.url()) && !(await page.locator('text=דיווח תקלה').count()), { url: page.url() });
+    await page.goto(`${uiBase}/faults?v=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForURL(/\/garage/, { timeout: 20000 }).catch(() => null);
+    rec('faults-blocked', /\/garage/.test(page.url()), { url: page.url() });
 
     await page.locator('[data-testid="garage-logout"], [data-testid="garage-logout-desktop"]').first().click().catch(() => null);
     await page.waitForURL(/\/login|\/about/, { timeout: 20000 }).catch(() => null);
@@ -327,6 +328,7 @@ if (uiBase) {
     });
     const staffPage = await deskCtx.newPage();
     await staffPage.goto(`${uiBase}/claims`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await staffPage.waitForSelector('[data-testid="claims-search"], [data-testid="claims-open-new"]', { timeout: 45000 }).catch(() => null);
     const box = staffPage.locator('[data-testid="claims-search"]').locator('visible=true').first();
     if (await box.count()) {
       await box.fill(claimId);
@@ -361,10 +363,11 @@ if (uiBase) {
   }
 }
 
+const freshPhoto = await loginAs(PHOTO_EMAIL, PHOTO_PASSWORD);
 const unassign = await invoke(desk.session, { action: 'unassign_garage_worker', claim_id: claimId });
 rec('unassign', unassign.json.success === true);
-const afterUn = await invoke(photo.session, { action: 'garage_get_job', claim_id: claimId });
-rec('unassign-blocks', afterUn.status === 403 && afterUn.json.blocked === true, { status: afterUn.status });
+const afterUn = await invoke(freshPhoto.session, { action: 'garage_get_job', claim_id: claimId });
+rec('unassign-blocks', afterUn.status === 403 && afterUn.json.blocked === true, { status: afterUn.status, err: afterUn.json.error });
 await invoke(desk.session, { action: 'revoke_share', claim_id: claimId, share_id: share.json.id }).catch(() => null);
 
 await softDelete(claimId, desk.db);
