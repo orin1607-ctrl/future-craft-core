@@ -8,7 +8,7 @@ const DEFS: { key: SummaryFilterKey; label: string; color: string }[] = [
   { key: 'service', label: 'בטיפול', color: 'text-warning' },
   { key: 'transport', label: 'בשינוע', color: 'text-info' },
   { key: 'accident', label: 'בתאונה', color: 'text-destructive' },
-  { key: 'defect', label: 'עם ליקויים', color: 'text-warning' },
+  { key: 'defect', label: 'רכבים עם ליקויים', color: 'text-warning' },
   { key: 'fault', label: 'עם תקלה', color: 'text-warning' },
   { key: 'alert', label: 'עם התראות', color: 'text-warning' },
   { key: 'garage', label: 'במוסך', color: 'text-warning' },

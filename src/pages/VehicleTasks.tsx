@@ -8,6 +8,11 @@ import { toast } from 'sonner';
 import { validateTaskFields } from '@/lib/taskFieldValidation';
 import { Badge } from '@/components/ui/badge';
 import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
+import {
+  isDefectListTask,
+  isOpenDefectTask,
+  taskBelongsToVehicle,
+} from '@/lib/openVehicleDefects';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -51,7 +56,7 @@ export default function VehicleTasks() {
   const vehicleScoped = isVehicleScopedContext({ locked, plate: contextPlate, vehicleId: contextVehicleId });
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('open');
+  const [statusFilter, setStatusFilter] = useState<string>(() => searchParams.get('status') || 'open');
   const [dateFilter, setDateFilter] = useState('');
   const [dateFilterEnd, setDateFilterEnd] = useState('');
   const [followUpOnly, setFollowUpOnly] = useState(false);
@@ -77,6 +82,12 @@ export default function VehicleTasks() {
   }, [contextPlate]);
 
   useEffect(() => {
+    if (!vehicleScoped) return;
+    if (searchParams.get('status')) return;
+    setStatusFilter((prev) => (prev === 'open' ? 'active' : prev));
+  }, [vehicleScoped, searchParams]);
+
+  useEffect(() => {
     const id = searchParams.get('id');
     if (!id || tasks.length === 0) return;
     requestAnimationFrame(() => {
@@ -84,9 +95,18 @@ export default function VehicleTasks() {
     });
   }, [searchParams, tasks]);
 
-  const filtered = tasks.filter(t => {
-    const matchSearch = !search || plateMatches(t.vehicle_plate, search) || t.title?.includes(search) || t.description?.includes(search);
-    const matchStatus = statusFilter === 'all' || t.status === statusFilter;
+  const scopedTasks = tasks.filter((t) => {
+    if (!isDefectListTask(t)) return false;
+    if (!vehicleScoped) return true;
+    return taskBelongsToVehicle(t, { id: contextVehicleId, plate: contextPlate });
+  });
+
+  const filtered = scopedTasks.filter(t => {
+    const matchSearch = vehicleScoped || !search || plateMatches(t.vehicle_plate, search) || t.title?.includes(search) || t.description?.includes(search);
+    const matchStatus =
+      statusFilter === 'all' ? true :
+      statusFilter === 'active' ? isOpenDefectTask(t) :
+      t.status === statusFilter;
     const matchFollowUp = !followUpOnly || t.requires_follow_up;
     
     // Date filtering
@@ -195,13 +215,14 @@ export default function VehicleTasks() {
   };
 
   const statusCounts = {
-    all: tasks.length,
-    open: tasks.filter(t => t.status === 'open').length,
-    in_progress: tasks.filter(t => t.status === 'in_progress').length,
-    resolved: tasks.filter(t => t.status === 'resolved').length,
+    all: scopedTasks.length,
+    active: scopedTasks.filter(t => isOpenDefectTask(t)).length,
+    open: scopedTasks.filter(t => t.status === 'open').length,
+    in_progress: scopedTasks.filter(t => t.status === 'in_progress').length,
+    resolved: scopedTasks.filter(t => t.status === 'resolved').length,
   };
 
-  const overdueCount = tasks.filter(t => 
+  const overdueCount = scopedTasks.filter(t => 
     t.status !== 'resolved' && t.follow_up_date && new Date(t.follow_up_date) < new Date()
   ).length;
 
@@ -220,6 +241,11 @@ export default function VehicleTasks() {
         pageLabel="ליקויים"
         active={vehicleScoped}
       />
+      {vehicleScoped && (
+        <p className="text-sm text-muted-foreground mb-3">
+          מוצגים ליקויי הרכב הזה בלבד — תיאור, תאריך פתיחה וסטטוס. {statusCounts.active} פתוחים כעת.
+        </p>
+      )}
 
       <div className="relative mb-4">
         <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
@@ -244,16 +270,17 @@ export default function VehicleTasks() {
       <div className="flex gap-2 mb-3 flex-wrap">
         {([
           { key: 'all', label: 'הכל', emoji: '📋' },
+          ...(vehicleScoped ? [{ key: 'active', label: 'פתוחים (הכל)', emoji: '🟠' }] : []),
           { key: 'open', label: 'פתוחים', emoji: '🔴' },
           { key: 'in_progress', label: 'בטיפול', emoji: '🟡' },
           { key: 'resolved', label: 'טופלו', emoji: '🟢' },
-        ] as const).map(f => (
+        ]).map(f => (
           <button key={f.key} onClick={() => setStatusFilter(f.key)}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-1.5 ${
               statusFilter === f.key ? 'bg-primary text-primary-foreground shadow-md' : 'bg-muted text-muted-foreground hover:bg-muted/80'
             }`}>
             <span>{f.emoji}</span>
-            {f.label} ({statusCounts[f.key]})
+            {f.label} ({statusCounts[f.key as keyof typeof statusCounts]})
           </button>
         ))}
       </div>
@@ -302,7 +329,7 @@ export default function VehicleTasks() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <AlertTriangle size={48} className="mx-auto mb-4 opacity-50" />
-          <p className="text-xl">{locked && contextPlate ? VEHICLE_EMPTY_LIST_MSG : `אין ליקויים${statusFilter !== 'all' ? ` בסטטוס "${STATUS_CONFIG[statusFilter]?.label || statusFilter}"` : ''}`}</p>
+          <p className="text-xl">{locked && contextPlate ? VEHICLE_EMPTY_LIST_MSG : `אין ליקויים${statusFilter !== 'all' && statusFilter !== 'active' ? ` בסטטוס "${STATUS_CONFIG[statusFilter]?.label || statusFilter}"` : statusFilter === 'active' ? ' פתוחים' : ''}`}</p>
         </div>
       ) : (
         <div className="space-y-3">

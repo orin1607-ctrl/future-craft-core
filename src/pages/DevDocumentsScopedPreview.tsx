@@ -9,7 +9,7 @@ export default function DevDocumentsScopedPreview() {
     { icon: '🚗', label: 'רישיונות רכב', count: 0 },
     { icon: '🛡️', label: 'ביטוח חובה', count: 1 },
     { icon: '📋', label: 'ביטוח מקיף', count: 0 },
-    { icon: '✅', label: 'טסט', count: 0 },
+    { icon: '📄', label: 'ביטוח צד ג׳', count: 0 },
   ];
 
   return (

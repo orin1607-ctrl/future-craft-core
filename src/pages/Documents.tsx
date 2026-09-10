@@ -392,7 +392,7 @@ export default function Documents() {
   const activeFilterCount = [filterVehicle, filterDriver, filterCompany, filterManufacturer, filterModel].filter(Boolean).length;
 
   // Driver only sees vehicle + driver docs
-  const visibleVehicleDocs = vehicleDocs;
+  const visibleVehicleDocs = vehicleDocs.filter((c) => c.key !== 'test');
   const visibleDriverDocs = driverDocs;
 
   // Category list view
@@ -407,7 +407,7 @@ export default function Documents() {
         />
         <h1 className="page-header flex items-center gap-3"><FileText size={28} /> מסמכים</h1>
 
-        <CategorySection title="מסמכי רכב" description="טסט, ביטוח, רישיון רכב" categories={visibleVehicleDocs} counts={categoryCounts} onOpen={openCategory} icon={<Car size={20} className="text-primary" />} />
+        <CategorySection title="מסמכי רכב" description="ביטוח ורישיון רכב" categories={visibleVehicleDocs} counts={categoryCounts} onOpen={openCategory} icon={<Car size={20} className="text-primary" />} />
         <CategorySection title="מסמכי נהגים" description="רישיונות נהיגה, תעודות, אישורים" categories={visibleDriverDocs} counts={categoryCounts} onOpen={openCategory} icon={<User size={20} className="text-primary" />} />
         <CategorySection title="מסמכי תאונות" description="תביעות, ביטוח, משטרה ושמאות" categories={accidentDocs} counts={categoryCounts} onOpen={openCategory} icon={<FileText size={20} className="text-primary" />} />
         {!isDriver && (

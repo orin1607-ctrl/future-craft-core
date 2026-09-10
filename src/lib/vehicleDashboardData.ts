@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { countMissingDocs } from '@/lib/vehicleHistory';
 import { CUSTOM_GAP_PREFIX, isHistoryLogTask } from '@/lib/vehicleEventLog';
+import { isOpenDefectTask, taskBelongsToVehicle } from '@/lib/openVehicleDefects';
 import type { VehicleHubVehicle } from '@/components/vehicles/VehicleHub';
 import { daysUntil, formatExpiry, insuranceStatusText } from '@/components/vehicles/vehicleHubUtils';
 import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
@@ -276,10 +277,10 @@ export async function loadDashboardDrillDown(
 
   const { data: tasks } = await supabase
     .from('vehicle_tasks')
-    .select('id, title, description, status, created_at, resolved_by_name')
-    .eq('vehicle_plate', v.license_plate)
+    .select('id, title, description, status, created_at, resolved_by_name, vehicle_id, vehicle_plate')
+    .or(`vehicle_plate.eq.${v.license_plate},vehicle_id.eq.${v.id}`)
     .order('created_at', { ascending: false })
-    .limit(30);
+    .limit(40);
 
   const customGaps: CustomGapItem[] = [];
 
@@ -297,7 +298,8 @@ export async function loadDashboardDrillDown(
       }
       return;
     }
-    if (!['open', 'pending', 'in_progress'].includes(t.status || '')) return;
+    if (!taskBelongsToVehicle(t, { id: v.id, plate: v.license_plate })) return;
+    if (!isOpenDefectTask(t)) return;
     openIssues.push({
       id: t.id,
       kind: 'defect',
