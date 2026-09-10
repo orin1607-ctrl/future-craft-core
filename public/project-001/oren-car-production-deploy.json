@@ -1,12 +1,12 @@
 {
   "id": "oren-car-production-deploy",
   "armed": true,
-  "requestedAt": "2026-09-10T13:30:00.000Z",
+  "requestedAt": "2026-09-10T14:33:00.000Z",
   "requestedBy": "owner",
-  "owner_phrase": "קרוס — אישור מעבר מבוקר ל-Production עבור המשימות המאושרות בלבד. משימות 1,2,3,4,5,7. משימה 6 אינה מאושרת.",
+  "owner_phrase": "קרוס — יש אישור להעלות את משימה 6 לאתר החי / Production.",
   "target": "https://dalia-car.online",
-  "commit": "b482984a",
-  "scope": "tasks-1-2-3-4-5-7-display-fixes-no-task-6",
+  "commit": "5ac8710e",
+  "scope": "task-6-accident-navigation-only",
   "codeOnly": true,
   "dataChanges": false,
   "noImport": true,
@@ -20,5 +20,5 @@
     "dupPlateGroups": 47,
     "dupInternalGroups": 19
   },
-  "note": "CODE ONLY — PR 66 cherry-pick onto main. Do not merge PR 64/65. No schema/RLS/storage/policies. Task 6 excluded."
+  "note": "CODE ONLY — Task 6 cherry-pick onto main (16c1aa9c → 5ac8710e). No schema/RLS/storage/policies. No מספר פנימי 2. No /dev. Tasks 1-5,7 unchanged."
 }
