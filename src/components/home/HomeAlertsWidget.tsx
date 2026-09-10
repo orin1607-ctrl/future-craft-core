@@ -17,6 +17,7 @@ import {
   DEFAULT_HOME_ALERT_PREFS,
 } from '@/hooks/useHomeAlertPrefs';
 import { loadFleetAlertSlotSummaries, type FleetAlertSlotSummary } from '@/lib/fleetAlerts';
+import ExpiryPendingCard from '@/components/expiry/ExpiryPendingCard';
 
 const SLOT_ICONS: Record<HomeAlertSlotType, typeof Car> = {
   test: Car,
@@ -170,6 +171,8 @@ export default function HomeAlertsWidget({
           <AlertSlotCard key={s.type + s.label} summary={s} loading={loading} />
         ))}
       </div>
+
+      <ExpiryPendingCard companyFilter={companyFilter} />
 
       <div className="text-center">
         <Link to="/alerts" className="text-sm text-primary font-medium hover:underline">

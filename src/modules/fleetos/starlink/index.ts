@@ -1,0 +1,11 @@
+export { starlinkChecksum, verifyStarlinkChecksum } from './checksum';
+export { buildAck } from './ack';
+export { parseStarlinkMessage, buildUnitMessage, sealStarlinkMessage } from './parseMessage';
+export { ingestStarlinkLine } from './ingest';
+export { InMemoryGpsStore, seedTestDevice } from './store';
+export { mergeTelematics, telematicsNoCommAlerts } from './adapter';
+export { canManageGpsDevices } from './types';
+export { DEFAULT_P177 } from './tags';
+export { latLngToPercent } from './geo';
+export { shouldApplyTelematicsOdometer } from './odometerGuard';
+export { planAssignDevice, planUnassignDevice, planReplaceDevice } from './deviceRegistry';

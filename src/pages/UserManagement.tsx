@@ -39,6 +39,7 @@ const ROLE_LABELS: Record<string, string> = {
   driver: 'נהג',
   private_customer: 'לקוח פרטי',
   business_customer: 'לקוח עסקי',
+  telemarketing_agent: 'נציג/ת טלמיטינג',
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -47,6 +48,7 @@ const ROLE_COLORS: Record<string, string> = {
   driver: 'bg-muted text-muted-foreground border-border',
   private_customer: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30',
   business_customer: 'bg-amber-500/10 text-amber-700 border-amber-500/30',
+  telemarketing_agent: 'bg-sky-500/10 text-sky-700 border-sky-500/30',
 };
 
 export default function UserManagement() {

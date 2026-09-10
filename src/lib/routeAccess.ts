@@ -1,4 +1,4 @@
-export type AppRole = 'super_admin' | 'fleet_manager' | 'driver' | 'private_customer';
+export type AppRole = 'super_admin' | 'fleet_manager' | 'driver' | 'private_customer' | 'business_customer' | 'telemarketing_agent';
 
 /** Prefix routes — manager-only modules (drivers redirected to dashboard). */
 const MANAGER_PREFIXES = [
@@ -11,9 +11,11 @@ const MANAGER_PREFIXES = [
   '/dalia-crm',
   '/transport',
   '/customers',
+  '/telemarketing',
   '/routes',
   '/reports',
   '/alerts',
+  '/expiry-approvals',
   '/admin-home',
   '/user-management',
   '/permissions',
@@ -21,6 +23,7 @@ const MANAGER_PREFIXES = [
   '/alert-settings',
   '/approval-settings',
   '/system-logs',
+  '/security-center',
   '/email-templates',
   '/suppliers',
   '/fleet-managers',
@@ -37,10 +40,12 @@ const SUPER_ADMIN_ONLY = [
   '/alert-settings',
   '/approval-settings',
   '/system-logs',
+  '/security-center',
   '/email-templates',
   '/required-fields',
   '/admin/modules',
   '/emergency-settings',
+  '/telemarketing/admin',
 ];
 
 const FLEET_MANAGER_ROUTES = ['/fleetos-ai'];
@@ -48,11 +53,17 @@ const FLEET_MANAGER_ROUTES = ['/fleetos-ai'];
 export function canAccessRoute(
   pathname: string,
   role: AppRole | undefined,
-  extras?: { hasClaimsAccess?: boolean; claimsWorkerOnly?: boolean },
+  extras?: { hasClaimsAccess?: boolean; claimsWorkerOnly?: boolean; garagePhotographer?: boolean },
 ): boolean {
   if (!role) return false;
 
   const path = pathname.split('?')[0];
+  if (extras?.garagePhotographer) {
+    return path === '/garage' || path.startsWith('/garage/');
+  }
+  if (path === '/garage' || path.startsWith('/garage/')) {
+    return role !== 'private_customer' && role !== 'business_customer' && role !== 'telemarketing_agent';
+  }
 
   if (extras?.claimsWorkerOnly) {
     if (path === '/claims' || path.startsWith('/claims/')) {
@@ -81,6 +92,10 @@ export function canAccessRoute(
   if (role === 'private_customer') {
     const allowed = ['/dashboard', '/service-orders', '/driver-notifications', '/settings'];
     return allowed.some((p) => path === p || path.startsWith(`${p}/`));
+  }
+
+  if (role === 'telemarketing_agent') {
+    return path === '/telemarketing' || path === '/dashboard';
   }
 
   if (role === 'fleet_manager') {

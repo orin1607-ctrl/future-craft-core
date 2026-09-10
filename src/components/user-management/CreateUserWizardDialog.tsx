@@ -4,6 +4,9 @@ import {
   Building2,
   Car,
   Users,
+  Phone,
+  Camera,
+  Scale,
   ChevronLeft,
   Loader2,
   CheckCircle2,
@@ -39,6 +42,7 @@ import {
   diagnoseResendFailure,
   type AccessCodeSendResult,
 } from '@/lib/edgeFunctionError';
+import { GARAGE_PHOTOGRAPHER_JOB_TITLE } from '@/lib/garagePhotographer';
 import { cn } from '@/lib/utils';
 import { BUSINESS_CUSTOMER_SERVICE_TYPES } from '@/lib/marketingProvision';
 
@@ -47,6 +51,9 @@ const TYPE_ICONS: Record<UserCreationType, typeof User> = {
   business_customer: Building2,
   fleet_manager: Users,
   driver: Car,
+  telemarketing_agent: Phone,
+  claims_worker: Scale,
+  garage_photographer: Camera,
 };
 
 const STEPS = ['סוג משתמש', 'פרטים', 'קוד גישה', 'סיכום'] as const;
@@ -165,7 +172,7 @@ export default function CreateUserWizardDialog({
     const company =
       userType === 'private_customer'
         ? ''
-        : form.company_assigned || form.company_name || '';
+        : form.company_assigned || form.company_name || (userType === 'claims_worker' ? 'ניהול תביעות' : userType === 'garage_photographer' ? 'צילומי מוסך' : '');
     const fullName =
       userType === 'business_customer'
         ? form.contact_person || form.company_name || ''
@@ -184,15 +191,17 @@ export default function CreateUserWizardDialog({
       nickname: form.nickname || undefined,
       address: form.address || undefined,
       contact_email: form.email || undefined,
-      job_title: form.job_title || undefined,
+      job_title: userType === 'garage_photographer' ? GARAGE_PHOTOGRAPHER_JOB_TITLE : form.job_title || undefined,
       notes: form.notes || undefined,
       permissions: form.permissions || undefined,
+      user_number: form.user_number || undefined,
       contact_role: form.contact_role || undefined,
       activity_field: form.activity_field || undefined,
       business_id: form.business_id || undefined,
       service_type: userType === 'business_customer' ? (form.service_type || 'marketing_only') : undefined,
       license_number: form.license_number || undefined,
       assigned_vehicle_id: form.assigned_vehicle_id || undefined,
+      skip_driver_row: userType === 'claims_worker' || userType === 'garage_photographer',
     };
   };
 
@@ -388,6 +397,16 @@ export default function CreateUserWizardDialog({
             <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-sm">
               כל משתמש חדש נוצר <strong>לא פעיל</strong> — ממתין לאישור מנהל מערכת לפני גישה.
             </div>
+            {userType === 'claims_worker' && (
+              <div className="p-3 rounded-xl bg-primary/10 border border-primary/30 text-sm">
+                עובד ניהול תביעות רואה רק את אזור Claims ואת התביעות שיוקצו אליו.
+              </div>
+            )}
+            {userType === 'garage_photographer' && (
+              <div className="p-3 rounded-xl bg-primary/10 border border-primary/30 text-sm" data-testid="create-user-garage-note">
+                עובד צילומי מוסך לא מקבל הרשאת Claims. הוא רואה ב־/garage רק תיקים ששויכו אליו לצילום.
+              </div>
+            )}
 
             {userType === 'driver' && (
               <div className="flex items-center gap-3 p-3 rounded-xl border">

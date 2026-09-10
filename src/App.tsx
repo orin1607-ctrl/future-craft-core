@@ -131,6 +131,11 @@ import ClaimsPage from "@/pages/ClaimsPage";
 import ClaimsUploadPage from "@/pages/ClaimsUploadPage";
 import ClaimsSharePage from "@/pages/ClaimsSharePage";
 import ClaimsIntakePage from "@/pages/ClaimsIntakePage";
+import TelemarketingAgentPage from "@/pages/TelemarketingAgentPage";
+import TelemarketingAdminPage from "@/pages/TelemarketingAdminPage";
+import GarageJobsPage from "@/pages/GarageJobsPage";
+import SecurityControlCenter from "@/pages/SecurityControlCenter";
+import ExpiryApprovals from "@/pages/ExpiryApprovals";
 
 const queryClient = new QueryClient();
 
@@ -255,6 +260,9 @@ function AppRoutes() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/garage-management/*" element={<GarageApp />} />
         <Route path="/claims" element={<ClaimsPage />} />
+        <Route path="/telemarketing" element={<TelemarketingAgentPage />} />
+        <Route path="/telemarketing/admin" element={<TelemarketingAdminPage />} />
+        <Route path="/garage" element={<GarageJobsPage />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />
         <Route path="/transport" element={<TransportHubPage />} />
         <Route path="/transport/import" element={<Navigate to="/transport" replace />} />
@@ -294,6 +302,7 @@ function AppRoutes() {
         <Route path="/attach-car" element={<AttachCar />} />
         <Route path="/attach-customer" element={<AttachCar />} />
         <Route path="/alerts" element={<Alerts />} />
+        <Route path="/expiry-approvals" element={<ExpiryApprovals />} />
         <Route path="/dalia-settings" element={<DaliaSettings />} />
         <Route path="/dalia-settings/deploy" element={<DaliaDeploy />} />
         <Route path="/dalia-settings/whatsapp" element={<WhatsAppSettingsPage />} />
@@ -321,6 +330,7 @@ function AppRoutes() {
         <Route path="/customer-docs" element={<CustomerDocs />} />
         <Route path="/emergency-settings" element={<EmergencySettings />} />
         <Route path="/system-logs" element={<SystemLogs />} />
+        <Route path="/security-center" element={<SecurityControlCenter />} />
         <Route path="/service-order-history" element={<ServiceOrderHistory />} />
         <Route path="/project-summary" element={<ProjectSummary />} />
         <Route path="/completed-tasks" element={<CompletedTasks />} />

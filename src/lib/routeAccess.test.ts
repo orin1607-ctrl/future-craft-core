@@ -52,4 +52,39 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/vehicles', 'driver', extras)).toBe(false);
     expect(canAccessRoute('/accidents', 'driver', extras)).toBe(false);
   });
+
+  it('telemarketing agent is limited to caller home', () => {
+    expect(canAccessRoute('/telemarketing', 'telemarketing_agent')).toBe(true);
+    expect(canAccessRoute('/dashboard', 'telemarketing_agent')).toBe(true);
+    expect(canAccessRoute('/telemarketing/admin', 'telemarketing_agent')).toBe(false);
+    expect(canAccessRoute('/vehicles', 'telemarketing_agent')).toBe(false);
+    expect(canAccessRoute('/telemarketing/admin', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/telemarketing/admin', 'fleet_manager')).toBe(false);
+  });
+
+  it('garage photographer is limited to photographer portal', () => {
+    const extras = { garagePhotographer: true };
+    expect(canAccessRoute('/garage', 'driver', extras)).toBe(true);
+    expect(canAccessRoute('/dashboard', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/claims', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/garage-management', 'driver', extras)).toBe(false);
+  });
+
+  it('garage portal is not confused with garage-management', () => {
+    expect(canAccessRoute('/garage', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/garage', 'telemarketing_agent')).toBe(false);
+  });
+
+  it('security-center is super_admin only', () => {
+    expect(canAccessRoute('/security-center', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/security-center', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/security-center', 'driver')).toBe(false);
+  });
+
+  it('expiry-approvals is a manager module', () => {
+    expect(canAccessRoute('/expiry-approvals', 'driver')).toBe(false);
+    expect(canAccessRoute('/expiry-approvals', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/expiry-approvals', 'super_admin')).toBe(true);
+  });
 });

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Warehouse, Scale } from 'lucide-react';
+import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Warehouse, Scale, Camera } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
@@ -31,6 +31,7 @@ const managerNavItems: NavItem[] = [
   { path: '/fleet-managers', label: 'מנהלי צי', icon: Building2 },
   { path: '/customers', label: 'לקוחות', icon: Users },
   { path: '/claims', label: 'ניהול תביעות', icon: Scale },
+  { path: '/telemarketing/admin', label: 'טלמיטינג', icon: Phone },
   { path: '/alerts', label: 'התראות', icon: Bell },
   { path: '/emergency', label: 'חירום', icon: Phone },
   { path: '/internal-chat', label: 'צ\'אט', icon: MessageCircle },
@@ -38,6 +39,7 @@ const managerNavItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   { path: '/admin-home', label: 'מרכז ניהול', icon: Shield },
+  { path: '/security-center', label: 'מרכז בקרה ואבטחה', icon: Shield },
   { path: '/ai-marketing', label: 'ניהול שיווק', icon: Megaphone },
   { path: '/dalia-settings', label: 'Dalia Settings', icon: SlidersHorizontal },
 ];
@@ -54,6 +56,15 @@ const managerMobileNav: NavItem[] = [
 
 const claimsWorkerMobileNav: NavItem[] = [
   { path: '/claims', label: 'תביעות', icon: Scale },
+  { path: '/garage', label: 'צילומי מוסך', icon: Camera },
+];
+
+const telemarketingMobileNav: NavItem[] = [
+  { path: '/telemarketing', label: 'טלמיטינג', icon: Phone },
+];
+
+const garagePhotographerMobileNav: NavItem[] = [
+  { path: '/garage', label: 'צילומי מוסך', icon: Camera },
 ];
 
 // Driver mobile bottom nav
@@ -79,13 +90,19 @@ export default function BottomNav() {
   const isDriver = user?.role === 'driver';
   const isPrivateCustomer = user?.role === 'private_customer';
   const isClaimsWorker = !!user?.claimsWorkerOnly;
-  const mobileNav = isClaimsWorker
+  const isTelemarketingAgent = user?.role === 'telemarketing_agent';
+  const isGaragePhotographer = !!user?.garagePhotographer;
+  const mobileNav = isGaragePhotographer
+    ? garagePhotographerMobileNav
+    : isClaimsWorker
     ? claimsWorkerMobileNav
-    : isDriver
-      ? driverMobileNav
-      : isPrivateCustomer
-        ? privateCustomerMobileNav
-        : managerMobileNav;
+    : isTelemarketingAgent
+      ? telemarketingMobileNav
+      : isDriver
+        ? driverMobileNav
+        : isPrivateCustomer
+          ? privateCustomerMobileNav
+          : managerMobileNav;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t-2 border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)] md:hidden">
@@ -120,6 +137,8 @@ export function DesktopSidebar() {
   const isDriver = user?.role === 'driver';
   const isSuperAdmin = user?.role === 'super_admin';
   const isClaimsWorker = !!user?.claimsWorkerOnly;
+  const isTelemarketingAgent = user?.role === 'telemarketing_agent';
+  const isGaragePhotographer = !!user?.garagePhotographer;
   const canFleetOS = isSuperAdmin || user?.role === 'fleet_manager';
   const canClaims = isSuperAdmin || !!user?.hasClaimsAccess;
 
@@ -131,6 +150,8 @@ export function DesktopSidebar() {
     }
     if (path === '/fleetos-ai') return canFleetOS;
     if (path === '/ai-marketing') return isSuperAdmin;
+    if (path === '/telemarketing/admin') return isSuperAdmin;
+    if (path === '/security-center') return isSuperAdmin;
     if (path === '/claims') return canClaims;
     return true;
   };
@@ -151,10 +172,21 @@ export function DesktopSidebar() {
     { path: '/history', label: 'היסטוריה טיפולים', icon: History },
     { path: '/emergency', label: 'שירותי חירום 24/7', icon: Phone },
     ...(canClaims ? [{ path: '/claims', label: 'ניהול תביעות', icon: Scale } as NavItem] : []),
+    { path: '/garage', label: 'צילומי מוסך', icon: Camera },
   ];
 
   const claimsWorkerSidebarItems: NavItem[] = [
     { path: '/claims', label: 'ניהול תביעות', icon: Scale },
+    { path: '/garage', label: 'צילומי מוסך', icon: Camera },
+  ];
+
+  const telemarketingSidebarItems: NavItem[] = [
+    { path: '/telemarketing', label: 'טלמיטינג', icon: Phone },
+    ...(canClaims ? [{ path: '/claims', label: 'ניהול תביעות', icon: Scale } as NavItem] : []),
+  ];
+
+  const garagePhotographerSidebarItems: NavItem[] = [
+    { path: '/garage', label: 'צילומי מוסך', icon: Camera },
   ];
 
 
@@ -168,13 +200,17 @@ export function DesktopSidebar() {
           <p className="text-sm font-bold">{user?.full_name}</p>
           <p className="text-xs opacity-60">{user?.company_name}</p>
           <span className="mt-1 inline-block text-xs bg-primary-foreground/15 px-3 py-0.5 rounded-full">
-            {user?.claimsWorkerOnly
+            {user?.garagePhotographer
+              ? 'עובד צילומי מוסך'
+              : user?.claimsWorkerOnly
               ? 'עובד ניהול תביעות'
               : user?.role === 'super_admin'
                 ? 'מנהל על'
                 : user?.role === 'fleet_manager'
                   ? 'מנהל צי'
-                  : 'נהג'}
+                  : user?.role === 'telemarketing_agent'
+                    ? 'נציג/ת טלמיטינג'
+                    : 'נהג'}
           </span>
         </div>
       </div>
@@ -218,7 +254,7 @@ export function DesktopSidebar() {
       )}
 
       <nav className="flex-1 py-3 overflow-y-auto sidebar-scroll">
-        {isDriver && !isClaimsWorker ? (
+        {isDriver && !isClaimsWorker && !isTelemarketingAgent && !isGaragePhotographer ? (
           driverSidebarItems.map(item => (
             <NavLink key={item.path} to={item.path}
               className={({ isActive }) => `flex items-center gap-3 px-6 py-3.5 text-[15px] font-medium transition-colors relative ${isActive ? 'bg-primary-foreground/20 font-bold border-r-4 border-primary-foreground' : 'hover:bg-primary-foreground/10'}`}>
@@ -228,8 +264,22 @@ export function DesktopSidebar() {
               )}
             </NavLink>
           ))
+        ) : isGaragePhotographer ? (
+          garagePhotographerSidebarItems.map(item => (
+            <NavLink key={item.path} to={item.path}
+              className={({ isActive }) => `flex items-center gap-3 px-6 py-3.5 text-[15px] font-medium transition-colors relative ${isActive ? 'bg-primary-foreground/20 font-bold border-r-4 border-primary-foreground' : 'hover:bg-primary-foreground/10'}`}>
+              <item.icon size={20} /><span>{item.label}</span>
+            </NavLink>
+          ))
         ) : isClaimsWorker ? (
           claimsWorkerSidebarItems.map(item => (
+            <NavLink key={item.path} to={item.path}
+              className={({ isActive }) => `flex items-center gap-3 px-6 py-3.5 text-[15px] font-medium transition-colors relative ${isActive ? 'bg-primary-foreground/20 font-bold border-r-4 border-primary-foreground' : 'hover:bg-primary-foreground/10'}`}>
+              <item.icon size={20} /><span>{item.label}</span>
+            </NavLink>
+          ))
+        ) : isTelemarketingAgent ? (
+          telemarketingSidebarItems.map(item => (
             <NavLink key={item.path} to={item.path}
               className={({ isActive }) => `flex items-center gap-3 px-6 py-3.5 text-[15px] font-medium transition-colors relative ${isActive ? 'bg-primary-foreground/20 font-bold border-r-4 border-primary-foreground' : 'hover:bg-primary-foreground/10'}`}>
               <item.icon size={20} /><span>{item.label}</span>

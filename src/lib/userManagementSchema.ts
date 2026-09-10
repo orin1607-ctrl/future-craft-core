@@ -6,13 +6,19 @@ export type UserCreationType =
   | 'private_customer'
   | 'business_customer'
   | 'fleet_manager'
-  | 'driver';
+  | 'driver'
+  | 'telemarketing_agent'
+  | 'claims_worker'
+  | 'garage_photographer';
 
 export const USER_TYPE_LABELS: Record<UserCreationType, string> = {
   private_customer: 'לקוח פרטי',
   business_customer: 'לקוח עסקי / בעל עסק',
   fleet_manager: 'מנהל צי רכב',
   driver: 'נהג',
+  telemarketing_agent: 'נציג/ת טלמיטינג',
+  claims_worker: 'עובד ניהול תביעות',
+  garage_photographer: 'עובד צילומי מוסך',
 };
 
 export const USER_TYPE_DESCRIPTIONS: Record<UserCreationType, string> = {
@@ -20,6 +26,9 @@ export const USER_TYPE_DESCRIPTIONS: Record<UserCreationType, string> = {
   business_customer: 'בעל עסק / חברה — שיוך עתידי לרכבים, נהגים ומסמכים',
   fleet_manager: 'מנהל צי עם הרשאות ניהול לפי חברה',
   driver: 'נהג עם שיוך לחברה ולרכב',
+  telemarketing_agent: 'נציג/ת טלמיטינג — שיחות, דיווח ו-Follow-up בלבד',
+  claims_worker: 'עובד Claims בלבד — רואה רק תביעות שהוקצו אליו',
+  garage_photographer: 'צלם מוסך — רואה ב־/garage רק תיקים ששויכו אליו',
 };
 
 export const ROLE_MAP: Record<UserCreationType, string> = {
@@ -27,6 +36,9 @@ export const ROLE_MAP: Record<UserCreationType, string> = {
   business_customer: 'business_customer',
   fleet_manager: 'fleet_manager',
   driver: 'driver',
+  telemarketing_agent: 'telemarketing_agent',
+  claims_worker: 'driver',
+  garage_photographer: 'driver',
 };
 
 export type FieldKey =
@@ -48,7 +60,8 @@ export type FieldKey =
   | 'permissions'
   | 'assigned_vehicle_id'
   | 'license_number'
-  | 'service_type';
+  | 'service_type'
+  | 'user_number';
 
 export interface FieldDef {
   key: FieldKey;
@@ -113,6 +126,33 @@ export const FIELDS_BY_TYPE: Record<UserCreationType, FieldDef[]> = {
     f('assigned_vehicle_id', 'רכב משויך', { type: 'select', persistTarget: 'vehicles.assigned_driver_id' }),
     f('license_number', 'מספר רישיון נהיגה', { persistTarget: 'drivers.license_number', dir: 'ltr' }),
     f('notes', 'הערות', { type: 'textarea', persistTarget: 'drivers.notes' }),
+  ],
+  telemarketing_agent: [
+    f('full_name', 'שם מלא', { required: true, persistTarget: 'profiles.full_name' }),
+    f('user_number', 'קוד עובד', { persistTarget: 'profiles.user_number', dir: 'ltr' }),
+    f('phone', 'טלפון', { required: true, persistTarget: 'profiles.phone', dir: 'ltr' }),
+    f('email', 'אימייל', { type: 'email', dir: 'ltr', persistTarget: 'profiles.contact_email' }),
+    f('login_email', 'אימייל התחברות', { required: true, type: 'email', dir: 'ltr', persistTarget: 'auth.email' }),
+    f('password', 'סיסמה', { required: true, type: 'password', dir: 'ltr', persistTarget: 'auth.password' }),
+    f('company_assigned', 'חברה משויכת', { required: true, persistTarget: 'profiles.company_name' }),
+    f('job_title', 'תפקיד', { persistTarget: 'profiles.job_title' }),
+    f('notes', 'הערות', { type: 'textarea', persistTarget: 'profiles.notes' }),
+  ],
+  claims_worker: [
+    f('full_name', 'שם מלא', { required: true, persistTarget: 'profiles.full_name' }),
+    f('phone', 'טלפון', { required: true, persistTarget: 'profiles.phone', dir: 'ltr' }),
+    f('login_email', 'אימייל התחברות', { required: true, type: 'email', dir: 'ltr', persistTarget: 'auth.email' }),
+    f('password', 'סיסמה', { required: true, type: 'password', dir: 'ltr', persistTarget: 'auth.password' }),
+    f('company_assigned', 'חברה משויכת', { persistTarget: 'profiles.company_name' }),
+    f('notes', 'הערות', { type: 'textarea', persistTarget: 'profiles.notes' }),
+  ],
+  garage_photographer: [
+    f('full_name', 'שם מלא', { required: true, persistTarget: 'profiles.full_name' }),
+    f('phone', 'טלפון', { required: true, persistTarget: 'profiles.phone', dir: 'ltr' }),
+    f('login_email', 'אימייל התחברות', { required: true, type: 'email', dir: 'ltr', persistTarget: 'auth.email' }),
+    f('password', 'סיסמה', { required: true, type: 'password', dir: 'ltr', persistTarget: 'auth.password' }),
+    f('company_assigned', 'חברה משויכת', { persistTarget: 'profiles.company_name' }),
+    f('notes', 'הערות', { type: 'textarea', persistTarget: 'profiles.notes' }),
   ],
 };
 

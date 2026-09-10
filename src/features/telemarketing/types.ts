@@ -1,0 +1,402 @@
+export type UUID = string;
+
+export const CALL_RESULTS = [
+  'לא ענה',
+  'לנסות שוב',
+  'דיברנו',
+  'מעוניין',
+  'מעוניין מאוד',
+  'ביקש מידע',
+  'ביקש הצעת מחיר',
+  'רוצה פגישה',
+  'לחזור אליו',
+  'לא מעוניין',
+  'לא רלוונטי',
+  'מספר שגוי',
+] as const;
+export type CallResult = (typeof CALL_RESULTS)[number];
+
+export const LEAD_RATINGS = ['קר', 'פושר', 'חם', 'דחוף'] as const;
+export type LeadRating = (typeof LEAD_RATINGS)[number];
+
+export const URGENCY_LEVELS = ['רגיל', 'חשוב', 'דחוף'] as const;
+export type UrgencyLevel = (typeof URGENCY_LEVELS)[number];
+
+export type NotificationStatus = 'not_applicable' | 'pending' | 'sent' | 'failed';
+export type RecordingStatus = 'none' | 'pending' | 'ready' | 'failed';
+export type CallStatus = 'in_progress' | 'completed' | 'released';
+export type FollowUpStatus = 'open' | 'done';
+
+export interface TelemarketingEmployee {
+  id: UUID;
+  displayName: string;
+  employeeCode?: string | null;
+}
+
+export interface CustomerRef {
+  customerId?: UUID | null;
+  companyName: string;
+  contactName?: string;
+  contactRole?: string;
+  phone: string;
+  email?: string;
+  vehicleCount?: number | null;
+  city?: string;
+}
+
+export interface TelemarketingCall extends CustomerRef {
+  id: UUID;
+  employeeId: UUID;
+  employeeName: string;
+  startedAt: string;
+  endedAt: string | null;
+  durationSeconds: number | null;
+  reportStartedAt?: string | null;
+  reportEndedAt?: string | null;
+  reportDurationSeconds?: number | null;
+  treatedEndedAt?: string | null;
+  treatmentDurationSeconds?: number | null;
+  status: CallStatus;
+  result: CallResult | null;
+  leadRating: LeadRating | null;
+  summary: string | null;
+  needsFollowUp: boolean;
+  nextAction: string | null;
+  followUpOwner: string | null;
+  followUpDate: string | null;
+  followUpTime: string | null;
+  followUpUrgency: UrgencyLevel | null;
+  managerNote: string | null;
+  whatsappStatus: NotificationStatus;
+  emailStatus: NotificationStatus;
+  recordingPath: string | null;
+  recordingStatus: RecordingStatus;
+  recordingMime: string | null;
+  sourceFollowUpId: string | null;
+  clientToken: string;
+  createdAt: string;
+  updatedAt: string;
+  leadNumber?: string | null;
+}
+
+export interface TelemarketingFollowUp {
+  id: UUID;
+  callId: UUID | null;
+  companyName: string;
+  contactName?: string;
+  phone: string;
+  actionNeeded: string;
+  owner: string | null;
+  ownerEmployeeId?: UUID | null;
+  dueDate: string;
+  dueTime: string | null;
+  urgency: UrgencyLevel;
+  managerNote: string | null;
+  status: FollowUpStatus;
+  completedBy: UUID | null;
+  completedAt: string | null;
+  closedByCallId: string | null;
+  createdAt: string;
+  leadNumber?: string | null;
+}
+
+export interface HistoricalWorkEntry {
+  id: UUID;
+  employeeId: UUID;
+  employeeName: string;
+  workDate: string;
+  leadNumber: string | null;
+  companyName: string;
+  phone: string;
+  durationSeconds: number;
+  note: string;
+  source: string;
+}
+
+export interface StartCallPayload {
+  employeeId: UUID;
+  employeeName: string;
+  customerId?: UUID | null;
+  companyName: string;
+  contactName?: string;
+  contactRole?: string;
+  phone: string;
+  email?: string;
+  vehicleCount?: number | null;
+  city?: string;
+  clientToken: string;
+  sourceFollowUpId?: string | null;
+}
+
+export interface CompleteCallReportPayload {
+  callId: UUID;
+  result: CallResult;
+  leadRating: LeadRating;
+  summary: string;
+  needsFollowUp: boolean;
+  nextAction?: string;
+  followUpOwner?: string;
+  followUpDate?: string;
+  followUpTime?: string;
+  followUpUrgency?: UrgencyLevel;
+  managerNote?: string;
+  clientToken: string;
+  sourceFollowUpId?: string | null;
+  leadColor?: 'red' | 'yellow' | 'green';
+  leadStatus?: string;
+  closeReason?: string;
+  closeOpenFollowUps?: boolean;
+  needsDaliaCare?: boolean;
+  daliaCareType?: string;
+  daliaCareTypeOther?: string;
+  daliaCareDetail?: string;
+  daliaCareUrgency?: UrgencyLevel;
+  daliaCareDueDate?: string;
+}
+
+export interface ExistingCustomerLookup {
+  found: boolean;
+  companyName?: string;
+  contactName?: string;
+  lastCallDate?: string;
+  lastCallTime?: string;
+  lastResult?: CallResult;
+  lastSummary?: string;
+  openFollowUp?: {
+    dueDate: string;
+    actionNeeded: string;
+  } | null;
+  inProgressByOtherAgent?: boolean;
+}
+
+export interface FollowUpNotificationPayload {
+  companyName: string;
+  contactName?: string;
+  phone: string;
+  vehicleCount?: number | null;
+  employeeName: string;
+  callDate: string;
+  startedAtLabel: string;
+  endedAtLabel: string;
+  durationLabel: string;
+  result: CallResult;
+  leadRating: LeadRating;
+  summary: string;
+  nextAction: string;
+  followUpDate: string;
+  followUpTime?: string;
+  urgency: UrgencyLevel;
+}
+
+export interface TelemarketingDashboardSummary {
+  callsToday: number;
+  answeredToday: number;
+  noAnswerToday: number;
+  totalCallDurationSeconds: number;
+  avgCallDurationSeconds: number;
+  interested: number;
+  hotLeads: number;
+  urgentLeads: number;
+  wantsInfo: number;
+  wantsQuote: number;
+  wantsMeeting: number;
+  followUpsOpen: number;
+  followUpsToday: number;
+  followUpsLate: number;
+}
+
+export interface AgentPerformance {
+  employeeId: UUID;
+  employeeName: string;
+  employeeCode?: string | null;
+  callsToday: number;
+  answeredToday: number;
+  noAnswerToday: number;
+  hotLeads: number;
+  followUpsOpen: number;
+  totalCallDurationSeconds: number;
+  avgCallDurationSeconds: number;
+  wantsMeeting: number;
+  wantsInfo: number;
+  wantsQuote: number;
+  workCount: number;
+  workSeconds: number;
+  avgWorkSeconds: number;
+  totalWorkSeconds: number;
+}
+
+export interface TelemarketingSettings {
+  managerWhatsappNumber: string;
+  managerNotificationEmail: string;
+  whatsappEnabled: boolean;
+  emailEnabled: boolean;
+}
+
+export interface FollowUpWorkItem extends TelemarketingFollowUp {
+  employeeId: string;
+  employeeName: string;
+  lastResult: CallResult | null;
+  lastSummary: string | null;
+  lastRecordingPath: string | null;
+  bucket: 'late' | 'today' | 'future' | 'done';
+  leadColor?: 'red' | 'yellow' | 'green' | null;
+  leadStatus?: string | null;
+  closeReason?: string | null;
+}
+
+export const WORK_TASK_TYPES = [
+  'בדיקה על לקוח',
+  'חיפוש מידע',
+  'הכנת חומר',
+  'שליחת חומר',
+  'הכנת הצעה',
+  'טיפול ב-Follow-up',
+  'עדכון פרטים',
+  'עבודה משרדית',
+  'שיחה פנימית / תיאום',
+  'משימה אחרת',
+] as const;
+export type WorkTaskType = (typeof WORK_TASK_TYPES)[number];
+
+export interface TelemarketingWorkSession {
+  id: UUID;
+  employeeId: UUID;
+  employeeName: string;
+  customerId: UUID | null;
+  companyName: string;
+  contactName?: string;
+  phone: string;
+  taskType: string;
+  description: string | null;
+  note: string | null;
+  needsFollowUp: boolean;
+  startedAt: string;
+  endedAt: string | null;
+  durationSeconds: number | null;
+  reportStartedAt?: string | null;
+  reportEndedAt?: string | null;
+  reportDurationSeconds?: number | null;
+  treatedEndedAt?: string | null;
+  treatmentDurationSeconds?: number | null;
+  status: CallStatus;
+  clientToken: string;
+  createdAt: string;
+  leadNumber?: string | null;
+}
+
+export interface TelemarketingLeadState {
+  id: UUID;
+  leadKey: string;
+  companyName: string;
+  contactName?: string;
+  phone: string;
+  employeeId: string | null;
+  employeeName: string | null;
+  leadColor: 'red' | 'yellow' | 'green';
+  leadStatus: string;
+  reason: string | null;
+  changedAt: string;
+  changedBy: string | null;
+  callCount?: number;
+  workSeconds?: number;
+  lastCallAt?: string | null;
+  nextFollowUp?: string | null;
+  leadNumber?: string | null;
+}
+
+export interface ActivityJournalItem {
+  id: string;
+  kind: 'call' | 'work';
+  employeeId: string;
+  employeeName: string;
+  startedAt: string;
+  endedAt: string | null;
+  durationSeconds: number | null;
+  title: string;
+  detail: string | null;
+}
+
+export interface WorkTimeSummary {
+  employeeId: string;
+  employeeName: string;
+  callCount: number;
+  workCount: number;
+  callSeconds: number;
+  workSeconds: number;
+  totalSeconds: number;
+  avgCallSeconds: number;
+  avgWorkSeconds: number;
+}
+
+export const DALIA_CARE_TYPES = [
+  'שליחת Email',
+  'שליחת מידע',
+  'שליחת חומר',
+  'שליחת הצעה',
+  'תיאום פגישה',
+  'התקשרות ללקוח',
+  'בדיקת מידע',
+  'בדיקת מחיר / שירות',
+  'הכנת מסמך',
+  'טיפול מנהל',
+  'Follow-up מצד צוות דליה',
+  'אחר',
+] as const;
+export type DaliaCareType = (typeof DALIA_CARE_TYPES)[number];
+export const INTERNAL_CHAT_TYPE = 'פנייה פנימית';
+
+export const TEAM_CHAT_STATUSES = ['חדש', 'בטיפול', 'ממתין לנציג', 'ממתין ללקוח', 'הושלם', 'ארכיון'] as const;
+export type TeamChatStatus = (typeof TEAM_CHAT_STATUSES)[number];
+
+export interface TeamChat {
+  id: string;
+  agentId: string;
+  agentName: string;
+  companyName: string;
+  contactName?: string;
+  phone: string;
+  email?: string;
+  leadKey: string | null;
+  callId: string | null;
+  followupId: string | null;
+  workSessionId: string | null;
+  careType: string;
+  careTypeOther: string | null;
+  requestDetail: string;
+  urgency: UrgencyLevel;
+  dueAt: string | null;
+  lastCallSummary: string | null;
+  status: TeamChatStatus;
+  openedAt: string;
+  firstResponseAt: string | null;
+  startedAt: string | null;
+  closedAt: string | null;
+  closedBy: string | null;
+  closingSummary: string | null;
+  lastMessageAt: string | null;
+  lastMessagePreview: string | null;
+  leadNumber?: string | null;
+  unreadCount: number;
+  initiatedBy: 'agent' | 'admin';
+}
+
+export interface TeamChatMessage {
+  id: string;
+  chatId: string;
+  authorId: string;
+  authorName: string;
+  authorRole: 'telemarketing_agent' | 'super_admin' | 'system';
+  body: string;
+  kind: 'user' | 'system';
+  createdAt: string;
+}
+
+export interface TeamChatSummary {
+  newToday: number;
+  openNow: number;
+  closedToday: number;
+  waitingAgent: number;
+  waitingCustomer: number;
+  avgFirstResponseSeconds: number | null;
+  avgCloseSeconds: number | null;
+}

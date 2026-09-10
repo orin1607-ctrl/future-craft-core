@@ -18,8 +18,16 @@ export default function Dashboard() {
 
   if (!user) return null;
 
+  if (user.garagePhotographer) {
+    return <Navigate to="/garage" replace />;
+  }
+
   if (user.claimsWorkerOnly) {
     return <Navigate to="/claims" replace />;
+  }
+
+  if (user.role === 'telemarketing_agent') {
+    return <Navigate to="/telemarketing" replace />;
   }
 
   if (driverLocked && driverId && isManager) {

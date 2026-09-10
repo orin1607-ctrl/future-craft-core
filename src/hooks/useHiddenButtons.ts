@@ -62,7 +62,9 @@ export const DASHBOARD_CARD_BUTTONS = [
   { path: '/admin-home', label: 'מרכז ניהול', category: 'כרטיסי דשבורד' },
   { path: '/ai-marketing', label: 'ניהול שיווק', category: 'כרטיסי דשבורד' },
   { path: '/garage-management', label: 'ניהול מוסך', category: 'כרטיסי דשבורד' },
+  { path: '/garage', label: 'צילומי מוסך', category: 'כרטיסי דשבורד' },
   { path: '/claims', label: 'ניהול תביעות', category: 'כרטיסי דשבורד' },
+  { path: '/telemarketing/admin', label: 'טלמיטינג', category: 'כרטיסי דשבורד' },
 ];
 
 /** All manageable buttons with labels for the settings UI (matches sidebar IA) */
@@ -75,14 +77,18 @@ export const MANAGEABLE_BUTTONS = [
   { path: '/transport', label: 'חברות הסעות', category: 'ניווט' },
   { path: '/faults', label: 'תקלות', category: 'ניווט' },
   { path: '/garage-management', label: 'ניהול מוסך', category: 'ניווט' },
+  { path: '/garage', label: 'צילומי מוסך', category: 'ניווט' },
   { path: '/reports', label: 'דוחות', category: 'ניווט' },
   { path: '/fleet-managers', label: 'מנהלי צי', category: 'ניווט' },
   { path: '/customers', label: 'לקוחות', category: 'ניווט' },
   { path: '/claims', label: 'ניהול תביעות', category: 'ניווט' },
+  { path: '/telemarketing/admin', label: 'טלמיטינג', category: 'ניווט' },
   { path: '/alerts', label: 'התראות', category: 'ניווט' },
+  { path: '/expiry-approvals', label: 'אישורי תוקף', category: 'ניווט' },
   { path: '/emergency', label: 'חירום', category: 'ניווט' },
   { path: '/internal-chat', label: 'צ\'אט', category: 'ניווט' },
   { path: '/admin-home', label: 'מרכז ניהול', category: 'מרכז ניהול' },
+  { path: '/security-center', label: 'מרכז בקרה ואבטחה', category: 'מרכז ניהול' },
   { path: '/ai-marketing', label: 'ניהול שיווק', category: 'מרכז ניהול' },
   { path: '/dalia-settings', label: 'Dalia Settings', category: 'מרכז ניהול' },
   { path: '/user-management', label: 'משתמשים (דשבורד)', category: 'כרטיסי דשבורד' },

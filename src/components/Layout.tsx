@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import BottomNav, { DesktopSidebar } from '@/components/BottomNav';
 import RouteGuard from '@/components/RouteGuard';
@@ -6,6 +7,7 @@ import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import logo from '@/assets/logo.png';
 import { LogOut, X, Eye, Building2 } from 'lucide-react';
 import HelpButton from '@/components/HelpButton';
+import SecurityActivityTracker from '@/components/SecurityActivityTracker';
 
 export default function Layout() {
   const { user, realUser, isImpersonating, stopImpersonation, logout } = useAuth();
@@ -13,10 +15,20 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const isSuperAdmin = realUser?.role === 'super_admin' && !isImpersonating;
-  const isGarage = location.pathname.startsWith('/garage-management');
+  const path = location.pathname.split('?')[0];
+  const isGarageManagement = path.startsWith('/garage-management');
+  const isGaragePortal = path === '/garage' || path.startsWith('/garage/');
+  const isGarage = isGarageManagement || isGaragePortal;
+
+  useEffect(() => {
+    if (!user?.garagePhotographer) return;
+    if (path === '/garage' || path.startsWith('/garage/')) return;
+    navigate('/garage', { replace: true });
+  }, [user?.garagePhotographer, path, navigate]);
 
   return (
     <div className="min-h-screen bg-background">
+      <SecurityActivityTracker />
       {/* Impersonation Banner */}
       {isImpersonating && (
         <div className="bg-warning text-warning-foreground px-4 py-2 flex items-center justify-between text-sm font-bold sticky top-0 z-50 shadow-md">

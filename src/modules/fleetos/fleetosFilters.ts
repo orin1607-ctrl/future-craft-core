@@ -32,7 +32,10 @@ export function applyFleetOSFilters(
     if (f.company && v.company_name !== f.company) return false;
     if (f.plate) {
       const q = normalizePlate(f.plate);
-      if (!normalizePlate(v.plate).includes(q)) return false;
+      const plateHit = normalizePlate(v.plate).includes(q);
+      const unitHit = normalizePlate(v.telematics?.unitId || '').includes(q);
+      const imeiHit = normalizePlate(v.telematics?.imei || '').includes(q);
+      if (!plateHit && !unitHit && !imeiHit) return false;
     }
     if (f.internal && !includesFold(v.internal_number, f.internal)) return false;
     if (f.department && (v.department || '') !== f.department) return false;

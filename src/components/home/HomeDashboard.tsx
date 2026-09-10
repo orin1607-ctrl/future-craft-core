@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog, Megaphone, Warehouse, Scale } from 'lucide-react';
+import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog, Megaphone, Warehouse, Scale, Phone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -192,6 +192,16 @@ export default function HomeDashboard() {
             icon={Megaphone}
             title="ניהול שיווק"
             subtitle="שיווק · Google · AI — מערכת אחת"
+            accent="primary"
+          />
+        )}
+        {isSuperAdmin && (
+          <DashboardCardGate
+            path="/telemarketing/admin"
+            to="/telemarketing/admin"
+            icon={Phone}
+            title="טלמיטינג"
+            subtitle="מאגר לידים · שיוך לעובדים · Follow-up"
             accent="primary"
           />
         )}
