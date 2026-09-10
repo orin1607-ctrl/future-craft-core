@@ -327,7 +327,7 @@ if (admin) {
 async function resolveUiBase() {
   const pagesShare = await fetch(`${PUBLIC}/claims-share/?t=probe`, { cache: 'no-store' }).then((r) => r.status).catch(() => 0);
   const local = (process.env.CLAIMS_QA_UI_BASE || 'http://127.0.0.1:4173').replace(/\/$/, '');
-  const localShare = await fetch(`${local}/claims-share?t=probe`, { cache: 'no-store' }).then((r) => r.status).catch(() => 0);
+  const localShare = await fetch(`${local}/claims-share/?t=probe`, { cache: 'no-store' }).then((r) => r.status).catch(() => 0);
   const preferLocal = process.env.CLAIMS_QA_UI_BASE || (localShare === 200 && process.env.CLAIMS_QA_PREFER_LOCAL);
   const uiBase = preferLocal ? local : (pagesShare === 200 || pagesShare === 301 ? PUBLIC : (localShare === 200 ? local : ''));
   rec('ui-base-ready', Boolean(uiBase), { pagesShare, localShare, uiBase });
@@ -352,8 +352,8 @@ if (uiBase && !process.env.CLAIMS_QA_API_ONLY) {
   try {
     const { chromium } = await import('playwright');
     const browser = await chromium.launch({ headless: true });
-    const shareUrl = `${uiBase}/claims-share?t=${encodeURIComponent(token1)}`;
-    const garageShareUrl = `${uiBase}/claims-share?t=${encodeURIComponent(gToken)}`;
+    const shareUrl = `${uiBase}/claims-share/?t=${encodeURIComponent(token1)}`;
+    const garageShareUrl = `${uiBase}/claims-share/?t=${encodeURIComponent(gToken)}`;
 
     async function noLoginViewport(name, viewport) {
       const ctx = await browser.newContext({
@@ -487,16 +487,15 @@ if (uiBase && !process.env.CLAIMS_QA_API_ONLY) {
         await staff.locator('[data-testid="share-create"]').click();
         await staff.waitForSelector('[data-testid="share-created"]', { timeout: 20000 });
         const createdUrl = (await staff.locator('[data-testid="share-url"]').innerText().catch(() => '')).trim();
-        rec('staff-create-link', /claims-share\?t=/.test(createdUrl), { url: createdUrl.slice(0, 120) });
+        rec('staff-create-link', /claims-share\/?\?t=/.test(createdUrl), { url: createdUrl.slice(0, 120) });
+        rec('staff-create-link-trailing-slash', /claims-share\/\?t=/.test(createdUrl), { url: createdUrl.slice(0, 120) });
         await staff.locator('[data-testid="share-copy"]').click();
         const copied = await staff.evaluate(async () => {
           try { return await navigator.clipboard.readText(); } catch { return ''; }
         });
-        rec('staff-copy-link', copied === createdUrl || /claims-share\?t=/.test(copied), { copied: String(copied).slice(0, 80) });
-        await staff.locator('[data-testid="share-wa"]').click();
-        await staff.waitForTimeout(200);
-        const waBody = await staff.locator('[data-testid="wa-msg"]').inputValue().catch(() => '');
-        rec('staff-whatsapp-has-url', /claims-share\?t=/.test(waBody) && /קישור מאובטח/.test(waBody), { body: waBody.slice(0, 160) });
+        rec('staff-copy-link', copied === createdUrl || /claims-share\/?\?t=/.test(copied), { copied: String(copied).slice(0, 80) });
+        const waHref = await staff.locator('[data-testid="share-wa"]').getAttribute('href');
+        rec('staff-whatsapp-has-url', /wa\.me/.test(String(waHref || '')) && /claims-share/.test(decodeURIComponent(String(waHref || ''))), { href: String(waHref || '').slice(0, 180) });
         const staffShot = join(OUT, 'screenshots', 'staff-share.png');
         await staff.screenshot({ path: staffShot, fullPage: false });
         try { copyFileSync(staffShot, join('/opt/cursor/artifacts', 'docs-links-staff-share.png')); } catch { /* skip */ }

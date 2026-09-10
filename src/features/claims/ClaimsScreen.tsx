@@ -911,6 +911,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [garageReviews, setGarageReviews] = useState<Record<string, { review_status?: string }>>({});
   const [docPickIds, setDocPickIds] = useState<string[]>([]);
   const [docLibCat, setDocLibCat] = useState('all');
+  const [docsReady, setDocsReady] = useState(false);
   const mailReturnRef = useRef('');
   const [mailOpen, setMailOpen] = useState<Record<string, boolean>>({});
   const [deleteTyped, setDeleteTyped] = useState('');
@@ -1220,9 +1221,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           requests: (d.requests as DocRequest[]) || [],
           files: (d.files as ClaimFile[]) || [],
         });
-        setDocPickIds([]);
-        setDocLibCat('all');
-      }).catch(() => { if (live()) setDocs({ requests: [], files: [] }); }),
+        setDocsReady(true);
+      }).catch(() => { if (live()) { setDocs({ requests: [], files: [] }); setDocsReady(true); } }),
       apiRef.current.listClaimContacts(id).then((c) => { if (live()) setClaimContacts(c.data || []); }).catch(() => { if (live()) setClaimContacts([]); }),
       apiRef.current.invokeDocs('list_shares', { claim_id: id }).then((s) => { if (live()) setShares((s.shares as ShareRow[]) || []); }).catch(() => { if (live()) setShares([]); }),
       apiRef.current.invokeDocs('get_garage_assignment', { claim_id: id }).then((g) => {
@@ -1521,13 +1521,24 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setRecurringWanted(false);
     setRecurringDays(1);
     mailIdemp.current = `send-${cur.id}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    const ext = await apiRef.current.exportExternalSummary(cur.id);
-    setExtSummary(ext.text || '');
-    setVal('mail_cc', '');
-    setVal('mail_to', '');
-    setMailTo('');
-    setMailCc('');
+    setMailCc(seed?.cc || '');
+    setVal('mail_cc', seed?.cc || '');
     setToHint(kind === 'legal' ? (cur.legalEmail || '') : (kind === 'insurer' ? (cur.insEmail || '') : (cur.insEmail || cur.clientEmail || '')));
+    if (seed?.to) { setMailTo(seed.to); setVal('mail_to', seed.to); }
+    else { setMailTo(''); setVal('mail_to', ''); }
+    if (seed?.subject) { setMailSubj(seed.subject); setVal('mail_subj', seed.subject); }
+    if (seed?.body) { setMailBodyDraft(seed.body); setVal('mail_body', seed.body); }
+    if (seed?.file_ids?.length && cur.id) void refreshPackage(cur.id, seed.file_ids);
+    setModal('moMail');
+    const ext = await apiRef.current.exportExternalSummary(cur.id).catch(() => ({ text: '' }));
+    setExtSummary(ext.text || '');
+    if (seed?.body) {
+      if (seed.to) { setMailTo(seed.to); setVal('mail_to', seed.to); }
+      if (seed.subject) { setMailSubj(seed.subject); setVal('mail_subj', seed.subject); }
+      setMailBodyDraft(seed.body);
+      setVal('mail_body', seed.body);
+      return;
+    }
     if (kind === 'insurer') {
       setMailSubj(mailClaimLabel(cur));
       setMailBodyDraft(ext.text || '');
@@ -1550,9 +1561,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (seed?.to) { setMailTo(seed.to); setVal('mail_to', seed.to); }
     if (seed?.cc !== undefined) { setMailCc(seed.cc); setVal('mail_cc', seed.cc); }
     if (seed?.subject) { setMailSubj(seed.subject); setVal('mail_subj', seed.subject); }
-    if (seed?.body) { setMailBodyDraft(seed.body); setVal('mail_body', seed.body); }
-    if (seed?.file_ids?.length && cur.id) void refreshPackage(cur.id, seed.file_ids);
-    setModal('moMail');
   };
 
   const openMailFromTreat = (seed?: Parameters<typeof openSendModal>[1]) => {
@@ -1641,8 +1649,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const openSecureShare = (ids?: string[]) => {
-    const picked = ids && ids.length ? ids : docPickIds;
-    setSharePresetIds(picked);
+    const allowed = new Set(generalLibFiles(docs.files).map((f) => f.id));
+    const requested = (ids && ids.length ? ids : docPickIds).filter((id) => allowed.has(id));
+    setSharePresetIds(requested);
     setShareOpen(true);
   };
 
@@ -1929,6 +1938,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setPreviewList([]);
     setEventFormSignOpen(false);
     setEventFormSig('');
+    setDocPickIds([]);
+    setDocLibCat('all');
+    setDocsReady(false);
     if (typeof window !== 'undefined' && window.matchMedia('(max-width: 700px), (max-width: 920px) and (max-height: 500px)').matches) setCardSnapCollapsed(true);
     await loadCardData(id);
   };
@@ -3207,7 +3219,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <button className="ab-btn ab-task ab-pri" data-testid="claims-cust-request" onClick={() => { setCardMore(false); openCustomerRequest(); }}>בקשה ללקוח</button>
                 <button className="ab-btn ab-status ab-pri" data-testid="claims-treat-open" onClick={() => { setCardMore(false); openTreat(cur.treatmentPendingAction || treatAction || 'עדכון טיפול', { sendOk: treatSendOk }); }}>עדכון טיפול</button>
                 <button className="ab-btn ab-sum ab-pri" data-testid="claims-open-docs" onClick={() => { setCardMore(false); setCardTab('docs'); }}>{phoneNarrow || narrowList ? 'גלריה' : 'גלריית מסמכים ותמונות'}</button>
-                <button className="ab-btn ab-pri" data-testid="claims-secure-share-ab" onClick={() => { setCardMore(false); setCardTab('docs'); setSharePresetIds(docPickIds); setShareOpen(true); }}>שיתוף מאובטח</button>
+                <button className="ab-btn ab-pri" data-testid="claims-secure-share-ab" onClick={() => { setCardMore(false); setCardTab('docs'); openSecureShare(docPickIds); }}>שיתוף מאובטח</button>
                 <button className="ab-btn ab-phone ab-pri" data-testid="claims-open-contacts" onClick={() => { setCardMore(false); setModal('moContacts'); }}>אנשי קשר</button>
                 {!(narrowList || phoneNarrow) ? (
                   <button className="ab-btn ab-mail ab-pri" data-testid="claims-sign-link" onClick={() => { setCardMore(false); void sendCustomerSignLink(cur.id); }}>שלח ללקוח לחתימה</button>
@@ -3573,13 +3585,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       const hit = docs.files.find((f) => f.id === p.id);
                       if (hit) void downloadClaimFile(cur.id, hit as ClaimFile);
                     }}
-                    onCreateShare={async (fileIds, recipientName) => {
+                    onCreateShare={async (fileIds, recipientName, expiry) => {
                       const r = await apiRef.current.invokeDocs('create_share', {
                         claim_id: cur.id,
                         recipient_name: recipientName,
                         recipient_kind: 'surveyor',
                         file_ids: fileIds,
-                        ttl_hours: 48,
+                        ttl_hours: expiry?.expiresAt ? 0 : (expiry?.ttlHours || 48),
+                        expires_at: expiry?.expiresAt || '',
                       });
                       if (!r.success || !r.token) { toast(String(r.error || 'יצירת הקישור נכשלה'), 'err'); return null; }
                       toast('הקישור לשמאי נוצר. הוא מוצג פעם אחת בלבד.');
@@ -5373,20 +5386,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           claimId={cur.id}
           files={generalLibFiles(docs.files)}
           presetIds={sharePresetIds}
+          filesLoading={!docsReady}
           api={apiRef.current}
           toast={(m, k) => toast(m, k || 'ok')}
           onClose={() => { setShareOpen(false); void loadCardData(cur.id); }}
           onMail={(to, subject, body) => {
             setShareOpen(false);
             void openSendModal('draft', { to, subject, body, file_ids: [] });
-          }}
-          onWhatsApp={(phone, body) => {
-            setShareOpen(false);
-            setModal('moWA');
-            window.setTimeout(() => {
-              setVal('wa_phone', phone);
-              setVal('wa_msg', body);
-            }, 50);
           }}
         />
       ) : null}

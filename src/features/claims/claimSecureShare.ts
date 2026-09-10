@@ -91,10 +91,22 @@ export function fileInShareAllowlist(fileId: string, shareFileIds: unknown, shar
   return ids.includes(fileId);
 }
 
+/** Path with trailing slash so GitHub Pages serves the SPA shell at 200 and does not 301 (which can drop ?t= in WhatsApp / in-app browsers). */
+export function sharePublicPath(token: string) {
+  const base = (typeof import.meta !== 'undefined' ? String(import.meta.env?.BASE_URL || '/') : '/').replace(/\/$/, '');
+  const prefix = base && base !== '/' ? base : '';
+  return `${prefix}/claims-share/?t=${encodeURIComponent(token)}`;
+}
+
 export function sharePublicUrl(token: string) {
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const base = (typeof import.meta !== 'undefined' ? String(import.meta.env?.BASE_URL || '/') : '/').replace(/\/$/, '');
-  return `${origin}${base && base !== '/' ? base : ''}/claims-share?t=${encodeURIComponent(token)}`;
+  return `${origin}${sharePublicPath(token)}`;
+}
+
+export function shareWhatsAppHref(message: string, phone = '') {
+  const digits = String(phone || '').replace(/\D/g, '');
+  const q = encodeURIComponent(message);
+  return digits ? `https://wa.me/${digits}?text=${q}` : `https://wa.me/?text=${q}`;
 }
 
 export function shareTtlPhrase(preset: string, expiresAt?: string) {

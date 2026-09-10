@@ -10,6 +10,7 @@ import {
   shareRecipientMessage,
   shareStatusLabel,
   shareStatusOf,
+  shareWhatsAppHref,
   type ShareRow,
 } from './claimSecureShare';
 import type { ClaimsApi } from './claimsService';
@@ -25,11 +26,11 @@ type Props = {
   toast: (msg: string, kind?: 'ok' | 'err') => void;
   onClose: () => void;
   onMail: (to: string, subject: string, body: string) => void;
-  onWhatsApp: (phone: string, body: string) => void;
+  filesLoading?: boolean;
 };
 
 export default function SecureShareModal({
-  open, claimId, files, presetIds, api, toast, onClose, onMail, onWhatsApp,
+  open, claimId, files, presetIds, api, toast, onClose, onMail, filesLoading,
 }: Props) {
   const [picked, setPicked] = useState<string[]>([]);
   const [name, setName] = useState('');
@@ -47,9 +48,14 @@ export default function SecureShareModal({
   const visible = files.filter((f) => !(f.doc_kind === 'garage_photo' || String((f as { doc_meta?: { staff_type?: string } }).doc_meta?.staff_type || '') === 'garage_photos'));
   const images = visible.filter((f) => isShareImage(f.mime_type || '', f.original_name));
   const docs = visible.filter((f) => !isShareImage(f.mime_type || '', f.original_name));
+  const visibleIds = visible.map((f) => f.id).join(',');
+  const presetKey = (presetIds || []).join(',');
 
   const expiry = useMemo(() => resolveShareExpiry(ttl, custom), [ttl, custom]);
   const untilText = expiry.ok ? new Date(expiry.expiresAt).toLocaleString('he-IL') : '—';
+  const waHref = createdUrl
+    ? shareWhatsAppHref(shareRecipientMessage(createdUrl, createdUntil, ttl), phone)
+    : '';
 
   const loadShares = async () => {
     const r = await api.invokeDocs('list_shares', { claim_id: claimId });
@@ -58,8 +64,6 @@ export default function SecureShareModal({
 
   useEffect(() => {
     if (!open) return;
-    const allowed = new Set(files.filter((f) => !(f.doc_kind === 'garage_photo' || String((f as { doc_meta?: { staff_type?: string } }).doc_meta?.staff_type || '') === 'garage_photos')).map((f) => f.id));
-    setPicked((presetIds || []).filter((id) => allowed.has(id)));
     setName('');
     setKind('surveyor');
     setKindNote('');
@@ -70,7 +74,18 @@ export default function SecureShareModal({
     setCreatedUrl('');
     setCreatedUntil('');
     void loadShares();
-  }, [open, claimId, (presetIds || []).join(',')]);
+  }, [open, claimId]);
+
+  useEffect(() => {
+    if (!open) return;
+    const allowed = new Set(visible.map((f) => f.id));
+    const fromPreset = (presetIds || []).filter((id) => allowed.has(id));
+    setPicked((prev) => {
+      const keep = prev.filter((id) => allowed.has(id));
+      if (keep.length) return keep;
+      return fromPreset;
+    });
+  }, [open, claimId, presetKey, visibleIds]);
 
   if (!open) return null;
 
@@ -109,8 +124,25 @@ export default function SecureShareModal({
 
   const copy = async () => {
     if (!createdUrl) return;
-    try { await navigator.clipboard.writeText(createdUrl); toast('הקישור הועתק'); }
-    catch { toast('העתיקו ידנית', 'err'); }
+    try {
+      await navigator.clipboard.writeText(createdUrl);
+      toast('הקישור הועתק');
+      return;
+    } catch { /* fall through */ }
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = createdUrl;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.top = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      toast('הקישור הועתק');
+    } catch {
+      toast('העתיקו ידנית', 'err');
+    }
   };
 
   const revoke = async (id: string) => {
@@ -152,7 +184,11 @@ export default function SecureShareModal({
           {docs.map(row)}
           {images.length ? <div className="sdiv"><div className="sdiv-t">תמונות</div><div className="sdiv-l" /></div> : null}
           {images.map(row)}
-          {!visible.length ? <div style={{ color: 'var(--t3)' }}>אין קבצים בגלריה הכללית</div> : null}
+          {!visible.length ? (
+            <div style={{ color: 'var(--t3)' }} data-testid="share-empty">
+              {filesLoading ? 'טוען את חומר התיק…' : 'אין קבצים בגלריה הכללית'}
+            </div>
+          ) : null}
 
           <div className="fg"><label className="fl">נשלח אל *</label>
             <input className="fi" data-testid="share-to" value={name} onChange={(e) => setName(e.target.value)} placeholder="שם המקבל" />
@@ -193,7 +229,7 @@ export default function SecureShareModal({
               <div className="cust-link-acts">
                 <button type="button" className="btn btn-p btn-sm" data-testid="share-copy" onClick={() => void copy()}>העתק קישור</button>
                 <button type="button" className="btn btn-g btn-sm" data-testid="share-mail" onClick={() => onMail(email, `שיתוף מאובטח — ${name}`, shareRecipientMessage(createdUrl, createdUntil, ttl))}>שלח במייל</button>
-                <button type="button" className="btn btn-g btn-sm" data-testid="share-wa" onClick={() => onWhatsApp(phone, shareRecipientMessage(createdUrl, createdUntil, ttl))}>שלח ב-WhatsApp</button>
+                <a className="btn btn-g btn-sm" data-testid="share-wa" href={waHref} target="_blank" rel="noreferrer">שלח ב-WhatsApp</a>
               </div>
               <div className="cust-link-note">אם הקישור יאבד — בטלו וצרו שיתוף חדש. אין חשיפה מחדש.</div>
             </div>

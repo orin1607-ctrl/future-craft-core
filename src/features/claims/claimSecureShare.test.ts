@@ -4,8 +4,11 @@ import {
   fileInShareAllowlist,
   filesBelongToClaim,
   resolveShareExpiry,
+  sharePublicPath,
+  sharePublicUrl,
   shareRecipientMessage,
   shareStatusOf,
+  shareWhatsAppHref,
 } from './claimSecureShare';
 
 describe('claimSecureShare', () => {
@@ -42,6 +45,19 @@ describe('claimSecureShare', () => {
     const msg7 = shareRecipientMessage('https://example.test/s', new Date(Date.now() + 7 * 86400_000).toISOString(), '7d');
     expect(msg7).toContain('7 ימים');
     expect(msg7).not.toContain('48 שעות');
+  });
+
+  it('builds a trailing-slash public path so GitHub Pages does not 301 the token', () => {
+    const path = sharePublicPath('tok-1');
+    expect(path).toContain('/claims-share/?t=tok-1');
+    expect(path).not.toMatch(/claims-share\?t=/);
+    expect(sharePublicUrl('tok-1')).toContain('/claims-share/?t=tok-1');
+  });
+
+  it('opens WhatsApp with the share message even when no phone is stored', () => {
+    const href = shareWhatsAppHref('see https://example.test/claims-share/?t=abc', '');
+    expect(href.startsWith('https://wa.me/?text=')).toBe(true);
+    expect(decodeURIComponent(href)).toContain('https://example.test/claims-share/?t=abc');
   });
 
   it('marks revoked and expired', () => {

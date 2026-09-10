@@ -237,7 +237,7 @@ export default function GarageJobsPage() {
             busy={Boolean(busy)}
             onPreview={setPreview}
             onDownload={(p) => { if (p.url) void downloadRemoteFile(p.url, p.original_name); }}
-            onCreateShare={async (fileIds, recipientName) => {
+            onCreateShare={async (fileIds, recipientName, expiry) => {
               const allowed = garageShareIdsAllowed(fileIds, photos.map((p) => ({ id: p.id, claim_id: openId })), openId);
               if (!allowed.ok) { setErr(allowed.error); return null; }
               const r = await api.invokeDocs('garage_create_share', {
@@ -245,7 +245,8 @@ export default function GarageJobsPage() {
                 recipient_name: recipientName,
                 recipient_kind: 'surveyor',
                 file_ids: allowed.ids,
-                ttl_hours: 48,
+                ttl_hours: expiry?.expiresAt ? 0 : (expiry?.ttlHours || 48),
+                expires_at: expiry?.expiresAt || '',
               });
               if (!r.success || !r.token) { setErr(String(r.error || 'יצירת הקישור נכשלה')); return null; }
               setErr('');

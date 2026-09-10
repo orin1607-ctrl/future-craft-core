@@ -139,10 +139,27 @@ import GarageJobsPage from "@/pages/GarageJobsPage";
 
 const queryClient = new QueryClient();
 
+function isPublicClaimsPath(pathname: string) {
+  const p = pathname.replace(/\/+$/, '') || '/';
+  return p === '/claims-share' || p === '/claims-upload' || p === '/claims-intake';
+}
+
+function PublicClaimsRoutes() {
+  return (
+    <Routes>
+      <Route path="/claims-upload" element={<ClaimsUploadPage />} />
+      <Route path="/claims-share" element={<ClaimsSharePage />} />
+      <Route path="/claims-intake" element={<ClaimsIntakePage />} />
+    </Routes>
+  );
+}
+
 function AppRoutes() {
   const { isAuthenticated, loading } = useAuth();
+  const loc = useLocation();
 
   if (loading) {
+    if (isPublicClaimsPath(loc.pathname)) return <PublicClaimsRoutes />;
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">

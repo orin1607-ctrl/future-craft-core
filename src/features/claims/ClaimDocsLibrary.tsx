@@ -127,7 +127,7 @@ export default function ClaimDocsLibrary({
         })}
       </div>
       <div className="doc-lib-pickbar">
-        <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-all" onClick={() => onToggleAll(visible.map((f) => f.id))}>בחר את כל המוצגים</button>
+        <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-all" onClick={() => onToggleAll((category === 'all' ? files : visible).map((f) => f.id))}>{category === 'all' ? 'בחר הכל' : 'בחר את כל המוצגים'}</button>
         <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-docs" onClick={() => onToggleAll(visibleDocs.map((f) => f.id))}>כל המסמכים בנושא</button>
         <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-photos" onClick={() => onToggleAll(visiblePhotos.map((f) => f.id))}>כל התמונות בנושא</button>
         <button type="button" className="btn btn-g btn-sm" data-testid="docs-lib-clear" onClick={() => onToggleAll([])}>נקה בחירה</button>
