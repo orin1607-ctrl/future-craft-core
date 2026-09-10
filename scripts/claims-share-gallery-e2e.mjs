@@ -1,0 +1,268 @@
+#!/usr/bin/env node
+/**
+ * Live PUBLIC STAGING: Secure Share recipient gallery.
+ * Mix of jpeg/png/webp (+ heic if fetchable). Lightbox next/prev/swipe/download.
+ * TEST claim, soft-delete. Never Production.
+ */
+import { createClient } from '@supabase/supabase-js';
+import { deflateSync, crc32 } from 'zlib';
+import { mkdirSync, writeFileSync, copyFileSync, readFileSync } from 'fs';
+import { join } from 'path';
+
+const STAGING_REF = 'usfeoerkpcafxxlyuldl';
+const PROD_REF = 'qasomfndnjuixgjmjwcm';
+const PUBLIC = 'https://orin1607-ctrl.github.io/future-craft-core';
+const FN = `https://${STAGING_REF}.supabase.co/functions/v1/claims-docs`;
+const OUT = join(process.cwd(), 'docs/audit-reports/claims-share-gallery-2026-09-10');
+mkdirSync(OUT, { recursive: true });
+mkdirSync(join(OUT, 'screenshots'), { recursive: true });
+if (STAGING_REF === PROD_REF) throw new Error('refused production');
+
+const DESK_EMAIL = 'qa.claims.worker.1788292403067@futurecraft.staging';
+const DESK_PASSWORD = 'QaWorker2026!';
+const PROTECTED = new Set(['DAL-2026-0020', 'DAL-2026-0014', 'DAL-2026-0017', 'DAL-2026-0001', 'DAL-QA-WORKER-001']);
+const env = {};
+for (const line of readFileSync(join(process.cwd(), '.env'), 'utf8').split('\n')) {
+  if (!line || line.startsWith('#') || !line.includes('=')) continue;
+  const i = line.indexOf('=');
+  env[line.slice(0, i)] = line.slice(i + 1);
+}
+const anonKey = env.VITE_SUPABASE_ANON_KEY;
+function jwtRef(tok) {
+  try { return JSON.parse(Buffer.from(String(tok).split('.')[1], 'base64url').toString('utf8')).ref || ''; }
+  catch { return ''; }
+}
+if (jwtRef(anonKey) === PROD_REF) throw new Error('production anon key blocked');
+
+const report = {
+  at: new Date().toISOString(), staging: STAGING_REF, public: PUBLIC,
+  productionTouched: false, checks: [], findings: [], copiedUrl: '',
+};
+const rec = (name, ok, extra = {}) => {
+  report.checks.push({ name, ok: Boolean(ok), ...extra });
+  console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${extra.err ? ` · ${extra.err}` : extra.detail ? ` · ${String(extra.detail).slice(0, 220)}` : ''}`);
+};
+const find = (title, detail) => {
+  report.findings.push({ title, detail });
+  console.log(`FINDING ${title} · ${detail}`);
+};
+
+function pngSolid(w, h, r, g, b, salt = 0) {
+  const raw = Buffer.alloc((w * 3 + 1) * h);
+  for (let y = 0; y < h; y++) {
+    const row = y * (w * 3 + 1);
+    raw[row] = 0;
+    for (let x = 0; x < w; x++) {
+      const i = row + 1 + x * 3;
+      raw[i] = (r + x + salt) & 255;
+      raw[i + 1] = (g + y) & 255;
+      raw[i + 2] = b & 255;
+    }
+  }
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0);
+  ihdr.writeUInt32BE(h, 4);
+  ihdr[8] = 8; ihdr[9] = 2;
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+    const td = Buffer.concat([Buffer.from(type), data]);
+    const c = Buffer.alloc(4); c.writeUInt32BE(crc32(td) >>> 0);
+    return Buffer.concat([len, td, c]);
+  };
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk('IHDR', ihdr),
+    chunk('IDAT', deflateSync(raw)),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
+}
+
+const JPG = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAG/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', 'base64');
+const WEBP = Buffer.from('UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=', 'base64');
+
+const db = createClient(`https://${STAGING_REF}.supabase.co`, anonKey, { auth: { persistSession: false } });
+const { data: auth, error: loginErr } = await db.auth.signInWithPassword({ email: DESK_EMAIL, password: DESK_PASSWORD });
+if (loginErr || !auth.session) throw loginErr || new Error('api login failed');
+const session = auth.session;
+
+const { data: mimeRows } = await db.from('claims_documents').select('mime_type, original_name').limit(400);
+const mimeTally = {};
+for (const row of mimeRows || []) {
+  const k = `${row.mime_type || '?'}|${String(row.original_name || '').split('.').pop() || ''}`;
+  mimeTally[k] = (mimeTally[k] || 0) + 1;
+}
+report.existingMimes = mimeTally;
+rec('existing-image-mimes-sampled', true, { mimeTally });
+
+const stamp = Date.now();
+const claimId = `DAL-QA-GALLERY-${stamp}`;
+const now = new Date().toISOString();
+await db.from('claims_records').insert({
+  id: claimId, client_name: `TEST Gallery ${stamp}`, status: 'בטיפול', plate: '12-345-67',
+  assigned_to: session.user.id,
+  row_data: {
+    id: claimId, clientName: `TEST Gallery ${stamp}`, clientEmail: 'yoni122222@gmail.com',
+    plate: '12-345-67', status: 'בטיפול', source: 'Staff', createdAt: now,
+  },
+  created_by_name: 'QA Worker', last_activity_at: now,
+});
+
+async function up(name, mime, bytes, extra = {}) {
+  const form = new FormData();
+  form.set('action', 'staff_upload');
+  form.set('claim_id', claimId);
+  if (extra.staff_type) form.set('staff_type', extra.staff_type);
+  form.set('file', new Blob([bytes], { type: mime }), name);
+  const r = await fetch(FN, {
+    method: 'POST',
+    headers: { apikey: anonKey, Authorization: `Bearer ${session.access_token}` },
+    body: form,
+  });
+  return r.json();
+}
+
+const imageIds = [];
+const colors = [
+  [200, 40, 40], [40, 140, 40], [40, 80, 200], [220, 180, 40], [160, 60, 180],
+  [30, 160, 160], [220, 100, 40], [80, 80, 80], [20, 20, 140], [180, 20, 80],
+  [100, 200, 80], [240, 140, 180],
+];
+for (let i = 0; i < colors.length; i++) {
+  const [r, g, b] = colors[i];
+  const res = await up(`gallery-png-${i}-${stamp}.png`, 'image/png', pngSolid(320, 240, r, g, b, i), { staff_type: 'damage_photos' });
+  if (res.file_id) imageIds.push(res.file_id);
+}
+for (let i = 0; i < 4; i++) {
+  const res = await up(`gallery-jpg-${i}-${stamp}.jpg`, 'image/jpeg', Buffer.concat([JPG, Buffer.from(`-j${i}-`)]), { staff_type: 'damage_photos' });
+  if (res.file_id) imageIds.push(res.file_id);
+}
+for (let i = 0; i < 2; i++) {
+  const res = await up(`gallery-webp-${i}-${stamp}.webp`, 'image/webp', WEBP, { staff_type: 'damage_photos' });
+  if (res.file_id) imageIds.push(res.file_id);
+}
+let heicOk = false;
+try {
+  const heicBuf = Buffer.from(await fetch('https://github.com/tigranbs/test-files/raw/master/sample.heic').then((r) => r.arrayBuffer()));
+  if (heicBuf.length > 100) {
+    const res = await up(`gallery-heic-${stamp}.heic`, 'image/heic', heicBuf, { staff_type: 'damage_photos' });
+    if (res.file_id) { imageIds.push(res.file_id); heicOk = true; }
+  }
+} catch { /* optional */ }
+rec('heic-uploaded', heicOk);
+const pdf = await up(`gallery-doc-${stamp}.pdf`, 'application/pdf', Buffer.from('%PDF-1.1\n%%GALLERY\n'));
+rec('setup-images', imageIds.length >= 18, { count: imageIds.length, heicOk, pdf: pdf.file_id });
+
+const share = await fetch(FN, {
+  method: 'POST',
+  headers: { apikey: anonKey, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    action: 'create_share', claim_id: claimId, recipient_name: 'שמאי גלריה',
+    recipient_kind: 'surveyor', file_ids: [...imageIds, pdf.file_id].filter(Boolean), ttl_hours: 24,
+  }),
+}).then((r) => r.json());
+rec('create-share', Boolean(share.token), { err: share.error, fileCount: share.fileCount });
+const publicUrl = `${PUBLIC}/claims-share/?t=${encodeURIComponent(share.token || '')}`;
+report.copiedUrl = publicUrl;
+
+const pagesTxt = await fetch(`${PUBLIC}/STAGING-DEPLOY.txt?t=${Date.now()}`).then((r) => r.text()).catch(() => '');
+report.liveSha = ((pagesTxt.match(/deployed_ref=(\S+)/) || [])[1] || '');
+rec('pages-sha', Boolean(report.liveSha), { txt: pagesTxt.trim() });
+
+const { chromium } = await import('playwright');
+const browser = await chromium.launch({ headless: true });
+try {
+  const ctx = await browser.newContext({ locale: 'he-IL', viewport: { width: 1400, height: 900 }, acceptDownloads: true });
+  const page = await ctx.newPage();
+  await page.goto(publicUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await page.locator('[data-testid="share-page"]').waitFor({ timeout: 30000 });
+  rec('nologin-share-page', (await page.locator('input[type="password"]').count()) === 0);
+  await page.waitForSelector('[data-testid="share-gallery"] img', { timeout: 45000 });
+  await page.waitForTimeout(4000);
+  const loaded = await page.evaluate(() => {
+    const imgs = [...document.querySelectorAll('[data-testid="share-gallery"] img')];
+    return {
+      thumbs: imgs.length,
+      decoded: imgs.filter((im) => im.naturalWidth > 0).length,
+      broken: imgs.filter((im) => im.complete && im.naturalWidth === 0).map((im) => im.alt),
+    };
+  });
+  rec('all-thumbs-decode', loaded.decoded >= Math.min(18, imageIds.length) && loaded.broken.length === 0, loaded);
+  if (loaded.broken.length) find('broken-thumbs', loaded.broken.join(', '));
+  await page.screenshot({ path: join(OUT, 'screenshots', '01-gallery.png'), fullPage: true });
+
+  await page.locator('[data-testid^="share-pub-img-"]').first().click();
+  await page.locator('[data-testid="share-lightbox"]').waitFor({ timeout: 15000 });
+  rec('lightbox-opens', true);
+  const startPos = await page.locator('[data-testid="share-lb-pos"]').innerText();
+  rec('lightbox-pos-start', /^1 \//.test(startPos), { startPos });
+  for (let i = 0; i < 8; i++) await page.locator('[data-testid="share-lb-next"]').click();
+  const midPos = await page.locator('[data-testid="share-lb-pos"]').innerText();
+  rec('lightbox-next', /^9 \//.test(midPos), { midPos });
+  await page.locator('[data-testid="share-lb-prev"]').click();
+  const backPos = await page.locator('[data-testid="share-lb-pos"]').innerText();
+  rec('lightbox-prev', /^8 \//.test(backPos), { backPos });
+  await page.screenshot({ path: join(OUT, 'screenshots', '02-lightbox.png') });
+  try {
+    const [dl] = await Promise.all([
+      page.waitForEvent('download', { timeout: 20000 }),
+      page.locator('[data-testid="share-preview-download"]').click(),
+    ]);
+    rec('lightbox-download', Boolean(dl), { name: dl.suggestedFilename() });
+  } catch (e) {
+    rec('lightbox-download', false, { err: String(e.message || e).slice(0, 180) });
+  }
+  await page.locator('[data-testid="share-lb-close"]').click();
+  rec('lightbox-close', await page.locator('[data-testid="share-lightbox"]').count() === 0);
+
+  try {
+    const [zip] = await Promise.all([
+      page.waitForEvent('download', { timeout: 30000 }),
+      page.locator('[data-testid="share-pub-zip"]').click(),
+    ]);
+    rec('download-all', Boolean(zip), { name: zip.suggestedFilename() });
+  } catch (e) {
+    rec('download-all', false, { err: String(e.message || e).slice(0, 180) });
+  }
+
+  const phone = await browser.newContext({
+    locale: 'he-IL', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, acceptDownloads: true,
+  });
+  const mob = await phone.newPage();
+  await mob.goto(publicUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await mob.locator('[data-testid="share-gallery"] img').first().waitFor({ timeout: 45000 });
+  await mob.locator('[data-testid^="share-pub-img-"]').first().click();
+  await mob.locator('[data-testid="share-lightbox"]').waitFor({ timeout: 15000 });
+  const before = await mob.locator('[data-testid="share-lb-pos"]').innerText();
+  await mob.evaluate(() => {
+    const el = document.querySelector('[data-testid="share-lightbox"]');
+    if (!el) return;
+    const fire = (type, x) => {
+      const t = new Touch({ identifier: 1, target: el, clientX: x, clientY: 240, screenX: x, screenY: 240, pageX: x, pageY: 240, radiusX: 1, radiusY: 1, rotationAngle: 0, force: 1 });
+      el.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, changedTouches: [t], touches: type === 'touchend' ? [] : [t] }));
+    };
+    fire('touchstart', 320);
+    fire('touchend', 40);
+  });
+  await mob.waitForTimeout(500);
+  const after = await mob.locator('[data-testid="share-lb-pos"]').innerText();
+  rec('mobile-swipe-next', before !== after, { before, after });
+  await mob.screenshot({ path: join(OUT, 'screenshots', '03-mobile-lightbox.png') });
+  await phone.close();
+  await ctx.close();
+} finally {
+  await browser.close();
+  if (!PROTECTED.has(claimId)) {
+    const { data } = await db.from('claims_records').select('id, row_data').eq('id', claimId).maybeSingle();
+    if (data) await db.from('claims_records').update({ row_data: { ...(data.row_data || {}), deletedAt: new Date().toISOString() } }).eq('id', claimId);
+  }
+}
+
+const failed = report.checks.filter((c) => !c.ok);
+writeFileSync(join(OUT, 'e2e-live.json'), JSON.stringify(report, null, 2));
+console.log(`\nGALLERY fail=${failed.length}/${report.checks.length} findings=${report.findings.length}`);
+try {
+  copyFileSync(join(OUT, 'screenshots', '01-gallery.png'), join('/opt/cursor/artifacts', 'share_gallery_thumbs.png'));
+  copyFileSync(join(OUT, 'screenshots', '02-lightbox.png'), join('/opt/cursor/artifacts', 'share_gallery_lightbox.png'));
+  copyFileSync(join(OUT, 'screenshots', '03-mobile-lightbox.png'), join('/opt/cursor/artifacts', 'share_gallery_mobile.png'));
+} catch { /* */ }
+if (failed.length) process.exitCode = 1;

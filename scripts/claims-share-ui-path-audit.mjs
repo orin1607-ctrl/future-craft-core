@@ -298,9 +298,9 @@ try {
     if (hasShare) {
       const countTxt = await recPage.locator('[data-testid="share-pub-count"]').innerText().catch(() => '');
       rec('incognito-four-files', /4/.test(countTxt), { countTxt });
-      await recPage.locator('[data-testid^="share-pub-view-"], [data-testid^="share-pub-img-"] button').first().click().catch(() => null);
-      await recPage.waitForSelector('[data-testid="share-preview"]', { timeout: 15000 }).catch(() => null);
-      rec('incognito-preview', await recPage.locator('[data-testid="share-preview"]').count() > 0);
+      await recPage.locator('[data-testid^="share-pub-img-"]').first().click();
+      await recPage.waitForSelector('[data-testid="share-lightbox"], [data-testid="share-preview"]', { timeout: 15000 }).catch(() => null);
+      rec('incognito-preview', await recPage.locator('[data-testid="share-lightbox"], [data-testid="share-preview"]').count() > 0);
       try {
         const [dl] = await Promise.all([
           recPage.waitForEvent('download', { timeout: 20000 }),

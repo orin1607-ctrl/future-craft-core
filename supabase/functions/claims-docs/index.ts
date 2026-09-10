@@ -10,7 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
 
 const BUCKET = "claims-docs";
-const ALLOWED = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic"]);
+const ALLOWED = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
 const MAX_BYTES = 15 * 1024 * 1024;
 const SIGNED_TTL_SEC = 600;
 const SHARE_KINDS = new Set(["surveyor", "lawyer", "insurer", "agent", "client", "other"]);
@@ -159,14 +159,14 @@ function wrapJpegsPdf(pages: Array<{ jpeg: Uint8Array; w: number; h: number }>):
   return out;
 }
 
-function binResponse(body: Uint8Array, contentType: string, filename: string) {
+function binResponse(body: Uint8Array, contentType: string, filename: string, inline = false) {
   return new Response(body, {
     status: 200,
     headers: {
       ...edgeCorsHeaders,
       "Content-Type": contentType,
-      "Content-Disposition": `attachment; filename="${filename}"`,
-      "Cache-Control": "no-store",
+      "Content-Disposition": `${inline ? "inline" : "attachment"}; filename="${filename}"`,
+      "Cache-Control": "private, max-age=60",
     },
   });
 }
@@ -280,23 +280,33 @@ function sanitizeFileName(name: string) {
   return ext ? `${safeBase}.${ext}` : safeBase;
 }
 
+function sniffHeic(bytes?: Uint8Array) {
+  if (!bytes || bytes.length < 12) return false;
+  if (bytes[4] !== 0x66 || bytes[5] !== 0x74 || bytes[6] !== 0x79 || bytes[7] !== 0x70) return false;
+  const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]).toLowerCase();
+  return brand === "heic" || brand === "heix" || brand === "heif" || brand === "heim" || brand === "heis" || brand === "mif1" || brand === "msf1";
+}
+
 function resolveStoredMime(filename: string, declared: string, bytes?: Uint8Array) {
   const name = String(filename || "").toLowerCase();
-  const d = String(declared || "").toLowerCase().split(";")[0].trim();
-  if (d === "application/pdf" || /^image\/(jpeg|jpg|png|webp|heic|heif)$/.test(d)) {
-    return d === "image/jpg" ? "image/jpeg" : d;
-  }
+  if (bytes && sniffHeic(bytes)) return "image/heic";
   if (bytes && bytes.length >= 4) {
     if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf";
     if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
     if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
     if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return "image/webp";
   }
+  const d = String(declared || "").toLowerCase().split(";")[0].trim();
+  if (d === "application/pdf" || /^image\/(jpeg|jpg|png|webp|heic|heif)$/.test(d)) {
+    if (d === "image/jpg") return "image/jpeg";
+    if (d === "image/heif") return "image/heic";
+    return d;
+  }
   if (name.endsWith(".pdf")) return "application/pdf";
   if (/\.jpe?g$/.test(name)) return "image/jpeg";
   if (name.endsWith(".png")) return "image/png";
   if (name.endsWith(".webp")) return "image/webp";
-  if (/\.heic$/.test(name)) return "image/heic";
+  if (/\.(heic|heif)$/.test(name)) return "image/heic";
   return d || "";
 }
 
@@ -581,8 +591,12 @@ Deno.serve(async (req) => {
         const dl = await sb.storage.from(BUCKET).download(file.storage_path);
         if (dl.error || !dl.data) return jsonResponse({ success: false, error: "download_failed" }, 400);
         const buf = new Uint8Array(await dl.data.arrayBuffer());
-        await sb.from("claims_share_links").update({ last_download_at: new Date().toISOString() }).eq("id", share.id);
-        return binResponse(buf, file.mime_type || "application/octet-stream", sanitizeFileName(file.original_name));
+        const purpose = String(body.purpose || "");
+        if (purpose !== "preview") {
+          await sb.from("claims_share_links").update({ last_download_at: new Date().toISOString() }).eq("id", share.id);
+        }
+        const mime = sniffHeic(buf) ? "image/heic" : (file.mime_type || "application/octet-stream");
+        return binResponse(buf, mime, sanitizeFileName(file.original_name), purpose === "preview");
       }
 
       const loaded = await loadShareFiles(sb, share, reqIds.length ? reqIds : undefined);

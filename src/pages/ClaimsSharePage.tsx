@@ -1,11 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { downloadRemoteFile, triggerBlobDownload } from '@/features/claims/claimFileDownload';
+import { triggerBlobDownload } from '@/features/claims/claimFileDownload';
+import {
+  blobToDisplayBlob,
+  mapPool,
+  nextPhotoIndex,
+  prevPhotoIndex,
+  swipeDeltaToDir,
+} from '@/features/claims/shareImageDisplay';
 
 const FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-docs`;
 const KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 type ShareFile = { id: string; name: string; mime: string; bytes: number; image: boolean };
+
+type DisplaySlot = { url: string; error?: string };
 
 export default function ClaimsSharePage() {
   const [params] = useSearchParams();
@@ -14,17 +23,43 @@ export default function ClaimsSharePage() {
   const [error, setError] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
   const [files, setFiles] = useState<ShareFile[]>([]);
-  const [picked, setPicked] = useState<string[]>([]);
-  const [preview, setPreview] = useState<{ id: string; url: string; name: string; mime: string } | null>(null);
-  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const [thumbs, setThumbs] = useState<Record<string, DisplaySlot>>({});
+  const [full, setFull] = useState<Record<string, DisplaySlot>>({});
   const [busy, setBusy] = useState('');
+  const [viewer, setViewer] = useState<number | null>(null);
+  const urlsRef = useRef<string[]>([]);
+  const touchX = useRef<number | null>(null);
 
   const pubHeaders = { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' };
+
+  const rememberUrl = (url: string) => {
+    urlsRef.current.push(url);
+    return url;
+  };
 
   const call = async (action: string, extra: Record<string, unknown> = {}) => {
     const res = await fetch(FN, { method: 'POST', headers: pubHeaders, body: JSON.stringify({ action, token, ...extra }) });
     const json = await res.json().catch(() => ({}));
     return { ok: res.ok, status: res.status, json };
+  };
+
+  const fetchFileBlob = async (fileId: string, purpose: 'preview' | 'download' = 'preview') => {
+    const res = await fetch(FN, {
+      method: 'POST',
+      headers: pubHeaders,
+      body: JSON.stringify({ action: 'public_share_file', token, file_id: fileId, purpose }),
+    });
+    if (!res.ok) return null;
+    const ct = res.headers.get('content-type') || '';
+    if (/json/i.test(ct)) return null;
+    return res.blob();
+  };
+
+  const displayUrlFor = async (f: ShareFile) => {
+    const blob = await fetchFileBlob(f.id, 'preview');
+    if (!blob) return { url: '', error: 'לא נטען' };
+    const out = await blobToDisplayBlob(blob, f.mime, f.name);
+    return { url: rememberUrl(URL.createObjectURL(out.blob)) };
   };
 
   const load = async () => {
@@ -40,13 +75,16 @@ export default function ClaimsSharePage() {
       setExpiresAt(String(r.json.expiresAt || ''));
       const next = (r.json.files || []) as ShareFile[];
       setFiles(next);
-      setPicked(next.map((f) => f.id));
       setLoading(false);
-      const imgs = next.filter((f) => f.image).slice(0, 24);
-      for (const f of imgs) {
-        const u = await call('public_share_url', { file_id: f.id, purpose: 'preview' });
-        if (u.json.url) setThumbs((prev) => ({ ...prev, [f.id]: String(u.json.url) }));
-      }
+      const imgs = next.filter((f) => f.image);
+      await mapPool(imgs, 4, async (f) => {
+        try {
+          const slot = await displayUrlFor(f);
+          setThumbs((prev) => ({ ...prev, [f.id]: slot }));
+        } catch {
+          setThumbs((prev) => ({ ...prev, [f.id]: { url: '', error: 'לא נטען' } }));
+        }
+      });
     } catch {
       setError('קישור לא תקין');
       setLoading(false);
@@ -58,54 +96,96 @@ export default function ClaimsSharePage() {
     document.documentElement.lang = 'he';
     document.documentElement.dir = 'rtl';
     document.body.classList.add('claims-public-page');
-    return () => document.body.classList.remove('claims-public-page');
+    return () => {
+      document.body.classList.remove('claims-public-page');
+      urlsRef.current.forEach((u) => URL.revokeObjectURL(u));
+      urlsRef.current = [];
+    };
   }, []);
 
   useEffect(() => { void load(); }, [token]);
 
-  const images = files.filter((f) => f.image);
-  const docs = files.filter((f) => !f.image);
-  const selected = useMemo(() => files.filter((f) => picked.includes(f.id)), [files, picked]);
+  const images = useMemo(() => files.filter((f) => f.image), [files]);
+  const docs = useMemo(() => files.filter((f) => !f.image), [files]);
+
+  const ensureFull = useCallback(async (f: ShareFile) => {
+    if (full[f.id]?.url) return full[f.id];
+    if (thumbs[f.id]?.url) {
+      setFull((p) => (p[f.id] ? p : { ...p, [f.id]: thumbs[f.id] }));
+      return thumbs[f.id];
+    }
+    const slot = await displayUrlFor(f);
+    setFull((p) => ({ ...p, [f.id]: slot }));
+    setThumbs((p) => (p[f.id]?.url ? p : { ...p, [f.id]: slot }));
+    return slot;
+  }, [full, thumbs]);
+
+  const openViewer = async (index: number) => {
+    const f = images[index];
+    if (!f) return;
+    setViewer(index);
+    await ensureFull(f);
+    const around = [images[index - 1], images[index + 1]].filter(Boolean) as ShareFile[];
+    around.forEach((n) => { void ensureFull(n); });
+  };
+
+  const go = useCallback(async (dir: 'next' | 'prev') => {
+    setViewer((cur) => {
+      if (cur == null) return cur;
+      return dir === 'next' ? nextPhotoIndex(cur, images.length) : prevPhotoIndex(cur, images.length);
+    });
+  }, [images.length]);
+
+  useEffect(() => {
+    if (viewer == null) return;
+    const f = images[viewer];
+    if (f) void ensureFull(f);
+    const peekNext = images[viewer + 1];
+    const peekPrev = images[viewer - 1];
+    if (peekNext) void ensureFull(peekNext);
+    if (peekPrev) void ensureFull(peekPrev);
+  }, [viewer, images, ensureFull]);
+
+  useEffect(() => {
+    if (viewer == null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setViewer(null);
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); void go('next'); }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); void go('prev'); }
+    };
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [viewer, go]);
 
   const downloadOne = async (f: ShareFile) => {
     setBusy(f.id);
-    const res = await fetch(FN, {
-      method: 'POST',
-      headers: pubHeaders,
-      body: JSON.stringify({ action: 'public_share_file', token, file_id: f.id }),
-    });
-    if (res.ok) {
-      const ct = res.headers.get('content-type') || '';
-      if (!/json/i.test(ct)) {
-        triggerBlobDownload(await res.blob(), f.name);
-        setBusy('');
-        return;
-      }
-    }
-    const r = await call('public_share_url', { file_id: f.id, purpose: 'download' });
+    const blob = await fetchFileBlob(f.id, 'download');
     setBusy('');
-    if (!r.ok || !r.json.url) { setError(r.json.blocked ? 'BLOCKED' : 'לא ניתן להוריד'); return; }
-    await downloadRemoteFile(String(r.json.url), f.name);
+    if (!blob) { setError('לא ניתן להוריד'); return; }
+    triggerBlobDownload(blob, f.name || 'file');
   };
 
-  const openFile = async (f: ShareFile, purpose = 'preview') => {
-    if (purpose === 'download') {
-      await downloadOne(f);
-      return;
-    }
+  const openDoc = async (f: ShareFile) => {
     setBusy(f.id);
-    const r = await call('public_share_url', { file_id: f.id, purpose });
+    const blob = await fetchFileBlob(f.id, 'preview');
     setBusy('');
-    if (!r.ok || !r.json.url) { setError(r.json.blocked ? 'BLOCKED' : 'לא ניתן לפתוח'); return; }
-    setPreview({ id: f.id, url: r.json.url, name: f.name, mime: f.mime || r.json.mime });
+    if (!blob) { setError('לא ניתן לפתוח'); return; }
+    const url = rememberUrl(URL.createObjectURL(blob));
+    setFull((p) => ({ ...p, [f.id]: { url } }));
+    window.open(url, '_blank', 'noopener');
   };
 
-  const binary = async (action: string, filename: string, ids?: string[]) => {
+  const binary = async (action: string, filename: string) => {
     setBusy(action);
     const res = await fetch(FN, {
       method: 'POST',
       headers: pubHeaders,
-      body: JSON.stringify({ action, token, ...(ids ? { file_ids: ids } : {}) }),
+      body: JSON.stringify({ action, token }),
     });
     setBusy('');
     if (!res.ok) {
@@ -113,97 +193,117 @@ export default function ClaimsSharePage() {
       setError(json.blocked ? 'BLOCKED' : String(json.error || json.hint || 'ההורדה נכשלה'));
       return;
     }
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 2000);
-  };
-
-  const printFile = async (f: ShareFile) => {
-    const r = await call('public_share_url', { file_id: f.id, purpose: 'preview' });
-    if (!r.json.url) return;
-    const w = window.open(r.json.url, '_blank', 'noopener');
-    w?.addEventListener('load', () => { try { w.print(); } catch { /* ignore */ } });
+    triggerBlobDownload(await res.blob(), filename);
   };
 
   if (loading) return <div className="share-pub" data-testid="share-loading">טוען…</div>;
   if (error && !files.length) return <div className="share-pub" data-testid="share-error">{error}</div>;
 
+  const current = viewer != null ? images[viewer] : null;
+  const currentSlot = current ? (full[current.id] || thumbs[current.id]) : null;
+
   return (
     <div className="share-pub" data-testid="share-page">
       <style>{`
         .claims-public-page [aria-label="סגור"], .claims-public-page [aria-label="מצב כהה"], .claims-public-page [aria-label="מצב בהיר"] { display: none !important; }
-        .share-pub{max-width:880px;margin:0 auto;padding:20px 16px 48px;font-family:Heebo,Arial,sans-serif;direction:rtl;color:#102033}
+        .share-pub{max-width:1080px;margin:0 auto;padding:20px 16px 48px;font-family:Heebo,Arial,sans-serif;direction:rtl;color:#102033}
         .share-pub h1{font-size:22px;margin:0 0 6px}
+        .share-pub h2{font-size:16px;margin:22px 0 10px}
         .share-pub .meta{color:#5b6b7c;font-size:13px;margin-bottom:14px}
         .share-pub .acts{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
         .share-pub .btn{border:0;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer;background:#1d4ed8;color:#fff}
         .share-pub .btn-g{background:#e8eef6;color:#123}
+        .share-pub .btn:disabled{opacity:.45;cursor:default}
         .share-pub .card{background:#fff;border:1px solid #d7deea;border-radius:10px;padding:12px;margin-bottom:8px}
-        .share-pub .gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
-        .share-pub .thumb{width:100%;height:120px;object-fit:cover;border-radius:8px;background:#eef}
-        .share-pub .preview{margin:12px 0;border:1px solid #d7deea;border-radius:10px;overflow:hidden;background:#111}
-        .share-pub .preview iframe,.share-pub .preview img{width:100%;min-height:360px;border:0}
+        .share-pub .gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px}
+        .share-pub .thumb-tile{position:relative}
+        .share-pub .thumb-btn{position:relative;display:block;width:100%;padding:0;border:0;border-radius:10px;overflow:hidden;background:#dbe4f0;aspect-ratio:1;cursor:pointer}
+        .share-pub .thumb-btn img{width:100%;height:100%;object-fit:cover;display:block}
+        .share-pub .thumb-ph{display:flex;align-items:center;justify-content:center;height:100%;color:#5b6b7c;font-size:13px}
+        .share-pub .thumb-name{position:absolute;left:0;right:0;bottom:0;padding:6px 8px;background:linear-gradient(transparent,rgba(0,0,0,.65));color:#fff;font-size:11px;text-align:right}
+        .share-pub .thumb-dl{position:absolute;top:6px;left:6px;z-index:1;border:0;border-radius:7px;padding:4px 7px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(15,23,42,.72);color:#fff}
         .share-pub .err{color:#b91c1c;margin:8px 0}
+        .share-lb{position:fixed;inset:0;z-index:80;background:rgba(8,12,20,.94);display:flex;flex-direction:column;color:#fff}
+        .share-lb-top{display:flex;align-items:center;gap:8px;padding:10px 12px;flex-shrink:0}
+        .share-lb-top b{flex:1;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .share-lb-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;touch-action:pan-y}
+        .share-lb-stage img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-drag:none}
+        .share-lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:64px;border:0;border-radius:10px;background:rgba(255,255,255,.16);color:#fff;font-size:28px;cursor:pointer}
+        .share-lb-nav.prev{right:10px}
+        .share-lb-nav.next{left:10px}
+        .share-lb-nav:disabled{opacity:.25}
+        @media (max-width: 700px){
+          .share-pub .gal{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
+          .share-lb-nav{width:40px;height:52px}
+        }
       `}</style>
       <h1>שיתוף מאובטח</h1>
       <div className="meta">חומר שנבחר לשיתוף בלבד. המסך לקריאה ולהורדה. הקישור זמין עד {expiresAt ? new Date(expiresAt).toLocaleString('he-IL') : '—'}</div>
       {error ? <div className="err" data-testid="share-err">{error}</div> : null}
       <div className="acts">
-        <button className="btn btn-g" data-testid="share-pub-all" type="button" onClick={() => setPicked(files.map((f) => f.id))}>בחר הכל</button>
-        <button className="btn btn-g" data-testid="share-pub-clear" type="button" onClick={() => setPicked([])}>נקה</button>
-        <button className="btn btn-g" data-testid="share-pub-docs-only" type="button" onClick={() => setPicked(docs.map((f) => f.id))}>רק מסמכים</button>
-        <button className="btn btn-g" data-testid="share-pub-photos-only" type="button" onClick={() => setPicked(images.map((f) => f.id))}>רק תמונות</button>
         <button className="btn" data-testid="share-pub-zip" type="button" disabled={busy === 'public_share_zip' || !files.length} onClick={() => void binary('public_share_zip', 'claim-share.zip')}>הורד הכל / ZIP</button>
-        <button className="btn btn-g" data-testid="share-pub-selected" type="button" disabled={!selected.length} onClick={() => void binary('public_share_zip', 'claim-share-selected.zip', picked)}>הורד נבחרים</button>
-        <button className="btn btn-g" data-testid="share-pub-pdf" type="button" disabled={!files.length} onClick={() => void binary('public_share_bundle_pdf', 'claim-share-bundle.pdf')}>הפק / הורד PDF מרוכז</button>
       </div>
-      <div data-testid="share-pub-count">נבחרו {picked.length} מתוך {files.length}</div>
+      <div data-testid="share-pub-count">{images.length} תמונות · {docs.length} מסמכים · {files.length} קבצים</div>
 
-      {preview ? (
-        <div className="preview" data-testid="share-preview">
-          <div style={{ background: '#fff', color: '#123', padding: 8, display: 'flex', gap: 8 }}>
-            <b data-testid="share-preview-name">{preview.name}</b>
-            <button className="btn" type="button" data-testid="share-preview-download" onClick={() => { const hit = files.find((x) => x.id === preview.id); if (hit) void downloadOne(hit); }}>הורדה</button>
-            <button className="btn btn-g" type="button" data-testid="share-preview-print" onClick={() => { const w = window.open(preview.url, '_blank', 'noopener'); w?.addEventListener('load', () => { try { w.print(); } catch { /* ignore */ } }); }}>Print</button>
-            <button className="btn btn-g" type="button" onClick={() => setPreview(null)}>סגור</button>
+      {images.length ? <h2 data-testid="share-gallery-title">תמונות</h2> : null}
+      <div className="gal" data-testid="share-gallery">
+        {images.map((f, idx) => (
+          <div key={f.id} className="thumb-tile">
+            <button
+              type="button"
+              className="thumb-btn"
+              data-testid={`share-pub-img-${f.id}`}
+              onClick={() => void openViewer(idx)}
+            >
+              {thumbs[f.id]?.url
+                ? <img src={thumbs[f.id].url} alt={f.name} data-testid={`share-thumb-${f.id}`} />
+                : <span className="thumb-ph" data-testid={`share-thumb-ph-${f.id}`}>{thumbs[f.id]?.error || 'טוען…'}</span>}
+              <span className="thumb-name">{f.name}</span>
+            </button>
+            <button type="button" className="thumb-dl" data-testid={`share-pub-dl-${f.id}`} onClick={() => void downloadOne(f)}>הורדה</button>
           </div>
-          {preview.mime.startsWith('image/')
-            ? <img src={preview.url} alt={preview.name} />
-            : <iframe title={preview.name} src={preview.url} />}
-        </div>
-      ) : null}
+        ))}
+      </div>
 
       {docs.length ? <h2>מסמכים</h2> : null}
       {docs.map((f) => (
         <div key={f.id} className="card" data-testid={`share-pub-file-${f.id}`}>
-          <label><input type="checkbox" checked={picked.includes(f.id)} onChange={(e) => setPicked((p) => e.target.checked ? [...p, f.id] : p.filter((x) => x !== f.id))} /> {f.name}</label>
+          <div>{f.name}</div>
           <div className="acts">
-            <button className="btn" type="button" data-testid={`share-pub-view-${f.id}`} onClick={() => void openFile(f)}>Preview</button>
-            <button className="btn btn-g" type="button" data-testid={`share-pub-dl-${f.id}`} onClick={() => void openFile(f, 'download')}>Download</button>
-            <button className="btn btn-g" type="button" data-testid={`share-pub-print-${f.id}`} onClick={() => void printFile(f)}>Print</button>
+            <button className="btn" type="button" data-testid={`share-pub-view-${f.id}`} onClick={() => void openDoc(f)}>Preview</button>
+            <button className="btn btn-g" type="button" data-testid={`share-pub-dl-${f.id}`} onClick={() => void downloadOne(f)}>Download</button>
           </div>
         </div>
       ))}
 
-      {images.length ? <h2>תמונות</h2> : null}
-      <div className="gal">
-        {images.map((f) => (
-          <div key={f.id} className="card" data-testid={`share-pub-img-${f.id}`}>
-            <label><input type="checkbox" checked={picked.includes(f.id)} onChange={(e) => setPicked((p) => e.target.checked ? [...p, f.id] : p.filter((x) => x !== f.id))} /> {f.name}</label>
-            <button className="btn" type="button" style={{ width: '100%', marginTop: 6, padding: 0, background: '#eef' }} onClick={() => void openFile(f)}>
-              {thumbs[f.id] ? <img className="thumb" src={thumbs[f.id]} alt={f.name} /> : <span>📷</span>}
-            </button>
-            <button className="btn" type="button" style={{ width: '100%', marginTop: 6 }} onClick={() => void openFile(f)}>Preview / גודל מלא</button>
-            <button className="btn btn-g" type="button" style={{ width: '100%', marginTop: 6 }} data-testid={`share-pub-dl-${f.id}`} onClick={() => void openFile(f, 'download')}>Download</button>
+      {viewer != null && current ? (
+        <div
+          className="share-lb"
+          data-testid="share-lightbox"
+          onTouchStart={(e) => { touchX.current = e.changedTouches[0]?.clientX ?? null; }}
+          onTouchEnd={(e) => {
+            const start = touchX.current;
+            touchX.current = null;
+            if (start == null) return;
+            const dir = swipeDeltaToDir((e.changedTouches[0]?.clientX ?? start) - start);
+            if (dir) void go(dir);
+          }}
+        >
+          <div className="share-lb-top">
+            <b data-testid="share-preview-name">{current.name}</b>
+            <span data-testid="share-lb-pos">{viewer + 1} / {images.length}</span>
+            <button className="btn" type="button" data-testid="share-preview-download" onClick={() => void downloadOne(current)}>הורדה</button>
+            <button className="btn btn-g" type="button" data-testid="share-lb-close" onClick={() => setViewer(null)}>סגור</button>
           </div>
-        ))}
-      </div>
+          <div className="share-lb-stage" data-testid="share-preview">
+            <button className="share-lb-nav prev" type="button" data-testid="share-lb-prev" disabled={viewer <= 0} onClick={() => void go('prev')} aria-label="הקודם">‹</button>
+            {currentSlot?.url
+              ? <img src={currentSlot.url} alt={current.name} data-testid="share-lb-img" />
+              : <div data-testid="share-lb-missing">{currentSlot?.error || 'טוען…'}</div>}
+            <button className="share-lb-nav next" type="button" data-testid="share-lb-next" disabled={viewer >= images.length - 1} onClick={() => void go('next')} aria-label="הבא">›</button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

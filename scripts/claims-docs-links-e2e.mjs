@@ -369,9 +369,9 @@ if (uiBase && !process.env.CLAIMS_QA_API_ONLY) {
       rec(`${name}-nologin-page`, await page.locator('[data-testid="share-page"]').isVisible());
       rec(`${name}-nologin-no-login-form`, (await page.locator('input[type="password"]').count()) === 0);
       rec(`${name}-nologin-count`, /2/.test(await page.locator('[data-testid="share-pub-count"]').innerText().catch(() => '')));
-      await page.locator(`[data-testid="share-pub-view-${fileJpg}"] , [data-testid="share-pub-img-${fileJpg}"] button`).first().click().catch(() => null);
-      await page.waitForSelector('[data-testid="share-preview"]', { timeout: 15000 }).catch(() => null);
-      rec(`${name}-nologin-preview`, await page.locator('[data-testid="share-preview"]').count() > 0);
+      await page.locator(`[data-testid="share-pub-img-${fileJpg}"]`).first().click().catch(() => null);
+      await page.waitForSelector('[data-testid="share-lightbox"], [data-testid="share-preview"]', { timeout: 15000 }).catch(() => null);
+      rec(`${name}-nologin-preview`, await page.locator('[data-testid="share-lightbox"], [data-testid="share-preview"]').count() > 0);
       const shot = join(OUT, 'screenshots', `nologin-${name}.png`);
       await page.screenshot({ path: shot, fullPage: true });
       try { copyFileSync(shot, join('/opt/cursor/artifacts', `docs-links-nologin-${name}.png`)); } catch { /* skip */ }
