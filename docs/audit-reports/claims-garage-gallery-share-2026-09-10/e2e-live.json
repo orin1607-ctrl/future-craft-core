@@ -1,0 +1,259 @@
+{
+  "at": "2026-09-10T05:23:48.371Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "claimsDocsPrivate": true,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "liveSha": "43fd04c",
+  "checks": [
+    {
+      "name": "service-role-staging",
+      "ok": true
+    },
+    {
+      "name": "desk-login",
+      "ok": true
+    },
+    {
+      "name": "photographer-api-login",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-GGS-1789017830758",
+      "ok": true
+    },
+    {
+      "name": "create-DAL-QA-GGS-O-1789017830758",
+      "ok": true
+    },
+    {
+      "name": "01-staff-assign",
+      "ok": true
+    },
+    {
+      "name": "02-worker-sees-assigned-only",
+      "ok": true,
+      "jobIds": [
+        "DAL-QA-GGS-1789017830758"
+      ]
+    },
+    {
+      "name": "03-unassigned-claim-blocked",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "04-upload-three-jpegs",
+      "ok": true,
+      "file1": "CDM-1789017838734-KYY0ZP",
+      "file2": "CDM-1789017841572-ZWST85",
+      "file3": "CDM-1789017845303-KZWATF"
+    },
+    {
+      "name": "04b-signed-url",
+      "ok": true
+    },
+    {
+      "name": "04c-signed-urls",
+      "ok": true
+    },
+    {
+      "name": "05-staff-damage-photo-same-claim",
+      "ok": true,
+      "damageId": "CDM-1789017853821-RT7QHA"
+    },
+    {
+      "name": "06-source-of-truth-same-claim",
+      "ok": true,
+      "garage": 3,
+      "total": 4
+    },
+    {
+      "name": "07-no-duplication",
+      "ok": true
+    },
+    {
+      "name": "08-garage-kind",
+      "ok": true
+    },
+    {
+      "name": "09-worker-cannot-share-non-garage",
+      "ok": true,
+      "status": 403,
+      "err": "BLOCKED"
+    },
+    {
+      "name": "10-worker-create-surveyor-share",
+      "ok": true
+    },
+    {
+      "name": "11-worker-cannot-use-staff-create-share",
+      "ok": true
+    },
+    {
+      "name": "12-share-selected-only",
+      "ok": true,
+      "pubIds": [
+        "CDM-1789017838734-KYY0ZP",
+        "CDM-1789017841572-ZWST85"
+      ]
+    },
+    {
+      "name": "13-unselected-garage-blocked",
+      "ok": true
+    },
+    {
+      "name": "14-other-file-same-claim-blocked",
+      "ok": true
+    },
+    {
+      "name": "15-other-claim-blocked",
+      "ok": true
+    },
+    {
+      "name": "16-tamper-claim-id-blocked",
+      "ok": true
+    },
+    {
+      "name": "17-share-download",
+      "ok": true
+    },
+    {
+      "name": "18-share-download-all",
+      "ok": true,
+      "status": 200,
+      "type": "application/zip"
+    },
+    {
+      "name": "19-claims-docs-private",
+      "ok": true,
+      "public": false
+    },
+    {
+      "name": "20-ui-base-ready",
+      "ok": true,
+      "pagesGarage": 200,
+      "localGarage": 200,
+      "uiBase": "https://orin1607-ctrl.github.io/future-craft-core",
+      "liveSha": "43fd04c"
+    },
+    {
+      "name": "21-real-login-garage",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/garage"
+    },
+    {
+      "name": "22-assigned-job-visible",
+      "ok": true
+    },
+    {
+      "name": "23-other-job-hidden",
+      "ok": true
+    },
+    {
+      "name": "24-open-job",
+      "ok": true
+    },
+    {
+      "name": "25-camera",
+      "ok": true
+    },
+    {
+      "name": "26-upload",
+      "ok": true
+    },
+    {
+      "name": "27-garage-gallery-title",
+      "ok": true
+    },
+    {
+      "name": "28-preview-control",
+      "ok": true
+    },
+    {
+      "name": "29-download-control",
+      "ok": true
+    },
+    {
+      "name": "30-selected-two",
+      "ok": true
+    },
+    {
+      "name": "31-ui-create-surveyor-link",
+      "ok": true
+    },
+    {
+      "name": "32-copy-and-whatsapp",
+      "ok": true
+    },
+    {
+      "name": "33-refresh-stays-garage",
+      "ok": true
+    },
+    {
+      "name": "34-staff-garage-gallery",
+      "ok": true
+    },
+    {
+      "name": "35-general-gallery-has-no-garage-chip",
+      "ok": true
+    },
+    {
+      "name": "36-general-gallery-has-no-garage-image",
+      "ok": true
+    },
+    {
+      "name": "37-garage-photo-in-garage-gallery",
+      "ok": true
+    },
+    {
+      "name": "38-surveyor-no-login",
+      "ok": true,
+      "shareText": "שיתוף מאובטח חומר שנבחר לשיתוף בלבד. המסך לקריאה ולהורדה. הקישור זמין עד 12.9.2026, 5:24:24 בחר הכל נקה רק מסמכים רק תמונות הורד הכל / ZIP הורד נבחרים הפק / הורד PDF מרוכז נבחרו 2 מתוך 2 תמונות ggs-front-1789017830758.jpg📷Preview / גודל מלאDownload ggs-side-1789017830758.jpg📷Preview / גודל מלאDownload"
+    },
+    {
+      "name": "39-surveyor-selected-only",
+      "ok": true
+    },
+    {
+      "name": "40-surveyor-download-all",
+      "ok": true
+    },
+    {
+      "name": "41-revoke",
+      "ok": true
+    },
+    {
+      "name": "42-revoked-blocked",
+      "ok": true,
+      "status": 410,
+      "err": "revoked"
+    },
+    {
+      "name": "43-unassign",
+      "ok": true
+    },
+    {
+      "name": "44-unassign-blocks-job",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "45-unassign-blocks-share",
+      "ok": true,
+      "status": 403
+    },
+    {
+      "name": "46-soft-delete-test-claims",
+      "ok": true,
+      "claimId": "DAL-QA-GGS-1789017830758",
+      "otherId": "DAL-QA-GGS-O-1789017830758"
+    },
+    {
+      "name": "47-production-untouched",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS",
+  "failed": []
+}
