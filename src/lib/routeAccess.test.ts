@@ -82,4 +82,16 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/garage', 'private_customer')).toBe(false);
     expect(canAccessRoute('/garage', 'telemarketing_agent')).toBe(false);
   });
+
+  it('garage photographer is limited to /garage only', () => {
+    const extras = { garagePhotographer: true };
+    expect(canAccessRoute('/garage', 'driver', extras)).toBe(true);
+    expect(canAccessRoute('/dashboard', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/faults', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/vehicles', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/claims', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/settings', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/expenses', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/driver-notifications', 'driver', extras)).toBe(false);
+  });
 });

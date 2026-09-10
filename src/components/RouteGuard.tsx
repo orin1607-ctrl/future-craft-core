@@ -12,6 +12,7 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
   if (!canAccessRoute(location.pathname, user.role, {
     hasClaimsAccess: user.hasClaimsAccess,
     claimsWorkerOnly: user.claimsWorkerOnly,
+    garagePhotographer: user.garagePhotographer,
   })) {
     void import('@/lib/securityAuditClient').then(({ securityRecordClientEvent }) => {
       securityRecordClientEvent('unauthorized_page', {
@@ -19,7 +20,8 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
         result: 'נדחה',
       }).catch(() => undefined);
     });
-    return <Navigate to={user.claimsWorkerOnly ? '/claims' : '/dashboard'} replace state={{ from: location.pathname }} />;
+    const home = user.garagePhotographer ? '/garage' : user.claimsWorkerOnly ? '/claims' : '/dashboard';
+    return <Navigate to={home} replace state={{ from: location.pathname }} />;
   }
 
   return <>{children}</>;

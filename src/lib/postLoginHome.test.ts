@@ -14,6 +14,13 @@ describe('homePathForRole', () => {
   it('sends claims workers to Claims', () => {
     expect(homePathForRole('driver', { claimsWorkerOnly: true })).toBe('/claims');
   });
+
+  it('sends garage photographers to /garage, not the driver dashboard', () => {
+    expect(homePathForRole('driver', { garagePhotographer: true })).toBe('/garage');
+    expect(homePathForRole('driver', { garagePhotographer: true, claimsWorkerOnly: true })).toBe('/garage');
+    expect(postLoginPathForRole('driver', '/dashboard', { garagePhotographer: true })).toBe('/garage');
+    expect(postLoginPathForRole('driver', '/faults', { garagePhotographer: true })).toBe('/garage');
+  });
 });
 
 describe('postLoginPathForRole', () => {

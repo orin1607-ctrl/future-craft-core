@@ -42,6 +42,7 @@ export default function GarageJobsPage() {
   const [progress, setProgress] = useState('');
   const [pending, setPending] = useState<Array<{ name: string; file: File; preview: string }>>([]);
   const [ready, setReady] = useState(false);
+  const [preview, setPreview] = useState<Photo | null>(null);
 
   const loadJobs = useCallback(async () => {
     setErr('');
@@ -141,7 +142,7 @@ export default function GarageJobsPage() {
       {!openId ? (
         <>
           <div className="garage-filters">
-            <input className="fi" data-testid="garage-search" placeholder="חיפוש לפי מספר תביעה / לקוח / רכב / תאריך" value={q} onChange={(e) => setQ(e.target.value)} />
+            <input className="fi" data-testid="garage-search" placeholder="חיפוש לפי שם לקוח / מספר רכב / מספר תביעה" value={q} onChange={(e) => setQ(e.target.value)} />
             <select className="fse fi" data-testid="garage-status-filter" value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="">כל הסטטוסים</option>
               <option value="pending">ממתין לצילום</option>
@@ -202,11 +203,11 @@ export default function GarageJobsPage() {
           {progress ? <div className="garage-progress" data-testid="garage-progress">{progress}</div> : null}
           {isAdminPreview ? null : <div className="garage-acts">
             <label className="btn btn-p garage-cam">
-              📷 צלם תמונות
+              📷 צלם תמונה
               <input hidden type="file" accept="image/*" capture="environment" multiple data-testid="garage-camera" onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }} />
             </label>
             <label className="btn btn-g">
-              העלה תמונות קיימות
+              העלה תמונות
               <input hidden type="file" accept="image/*" multiple data-testid="garage-pick" onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }} />
             </label>
           </div>}
@@ -229,9 +230,16 @@ export default function GarageJobsPage() {
           <h3>תמונות מוסך ({photos.length})</h3>
           <div className="garage-thumbs" data-testid="garage-photos">
             {photos.map((p) => (
-              <a key={p.id} className="garage-thumb" href={p.url || '#'} target="_blank" rel="noreferrer" data-testid={`garage-photo-${p.id}`}>
-                {p.url ? <img src={p.url} alt={p.original_name} /> : <span>{p.original_name}</span>}
-              </a>
+              <div key={p.id} className="garage-thumb" data-testid={`garage-photo-${p.id}`}>
+                {p.url ? (
+                  <button type="button" className="garage-thumb-open" onClick={() => setPreview(p)} data-testid={`garage-preview-${p.id}`}>
+                    <img src={p.url} alt={p.original_name} />
+                  </button>
+                ) : <span>{p.original_name}</span>}
+                {p.url ? (
+                  <a className="btn btn-sm btn-g" href={p.url} download={p.original_name} target="_blank" rel="noreferrer" data-testid={`garage-download-${p.id}`}>הורדה</a>
+                ) : null}
+              </div>
             ))}
           </div>
           {isAdminPreview ? null : (
@@ -239,6 +247,17 @@ export default function GarageJobsPage() {
           )}
         </div>
       )}
+      {preview?.url ? (
+        <div className="garage-preview-overlay" data-testid="garage-preview-overlay" onClick={() => setPreview(null)}>
+          <div className="garage-preview-card" onClick={(e) => e.stopPropagation()}>
+            <img src={preview.url} alt={preview.original_name} />
+            <div className="garage-preview-acts">
+              <a className="btn btn-g" href={preview.url} download={preview.original_name} target="_blank" rel="noreferrer" data-testid="garage-preview-download">הורדה</a>
+              <button type="button" className="btn btn-p" data-testid="garage-preview-close" onClick={() => setPreview(null)}>סגור</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
