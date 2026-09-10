@@ -1,0 +1,100 @@
+{
+  "at": "2026-09-10T05:49:54.982Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "liveSha": "85e2fcb",
+  "checks": [
+    {
+      "name": "service-role-staging",
+      "ok": true
+    },
+    {
+      "name": "photographer-login",
+      "ok": true
+    },
+    {
+      "name": "create-test-claim",
+      "ok": true,
+      "claimId": "DAL-QA-SLK-1789019399001"
+    },
+    {
+      "name": "upload-three",
+      "ok": true
+    },
+    {
+      "name": "create-share",
+      "ok": true
+    },
+    {
+      "name": "public-link-http-ok",
+      "ok": true,
+      "status": 200,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/claims-share?t=88a8a8f115b284c3d94d85387480a457d8d5331cabe746f5dfbee9c07953e9b5",
+      "final": "https://orin1607-ctrl.github.io/future-craft-core/claims-share/?t=88a8a8f115b284c3d94d85387480a457d8d5331cabe746f5dfbee9c07953e9b5"
+    },
+    {
+      "name": "public-link-not-404",
+      "ok": true,
+      "status": 301,
+      "location": "https://orin1607-ctrl.github.io/future-craft-core/claims-share/?t=88a8a8f115b284c3d94d85387480a457d8d5331cabe746f5dfbee9c07953e9b5"
+    },
+    {
+      "name": "api-selected-only",
+      "ok": true,
+      "pubIds": [
+        "CDM-1789019408008-VR2HV3",
+        "CDM-1789019413437-MYLE3U"
+      ]
+    },
+    {
+      "name": "api-unselected-blocked",
+      "ok": true
+    },
+    {
+      "name": "api-download",
+      "ok": true
+    },
+    {
+      "name": "no-login-window",
+      "ok": true,
+      "url": "https://orin1607-ctrl.github.io/future-craft-core/claims-share/?t=88a8a8f115b284c3d94d85387480a457d8d5331cabe746f5dfbee9c07953e9b5",
+      "bodyText": "שיתוף מאובטח חומר שנבחר לשיתוף בלבד. המסך לקריאה ולהורדה. הקישור זמין עד 12.9.2026, 5:50:23 בחר הכל נקה רק מסמכים רק תמונות הורד הכל / ZIP הורד נבחרים הפק / הורד PDF מרוכז נבחרו 2 מתוך 2 תמונות slk-a-1789019399001.jpg📷Preview / גודל מלאDownload slk-b-1789019399001.jpg📷Preview / גודל מלאDownload"
+    },
+    {
+      "name": "sees-selected",
+      "ok": true
+    },
+    {
+      "name": "hides-unselected",
+      "ok": true
+    },
+    {
+      "name": "has-preview",
+      "ok": true
+    },
+    {
+      "name": "has-download",
+      "ok": true
+    },
+    {
+      "name": "has-download-all",
+      "ok": true
+    },
+    {
+      "name": "desktop-no-login",
+      "ok": true
+    },
+    {
+      "name": "soft-delete",
+      "ok": true,
+      "claimId": "DAL-QA-SLK-1789019399001"
+    },
+    {
+      "name": "production-untouched",
+      "ok": true
+    }
+  ],
+  "verdict": "PASS",
+  "failed": []
+}
