@@ -320,6 +320,7 @@ try {
   const mob = await phone.newPage();
   await mob.goto(publicUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await mob.locator('[data-testid="share-gallery"] img').first().waitFor({ timeout: 45000 });
+  await mob.waitForFunction(() => document.querySelector('[data-testid="share-gallery"]')?.getAttribute('data-thumbs-ready') === '1', null, { timeout: 120000 }).catch(() => null);
   const mobCols = await mob.evaluate(() => (
     getComputedStyle(document.querySelector('[data-testid="share-gallery"]')).gridTemplateColumns.split(' ').filter(Boolean).length
   ));
