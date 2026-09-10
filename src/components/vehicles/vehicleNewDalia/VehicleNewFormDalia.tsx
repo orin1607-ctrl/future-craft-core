@@ -825,9 +825,8 @@ function VehicleNewFormDaliaInner({
                   <Fld label="טסט הבא" name="next_test" type="date" />
                   <Fld label="סטטוס טסט" name="test_status" />
                   <Fld label="קישור מסמך טסט" name="test_doc_link" />
-                  <Fld label="העלאת קובץ טסט" name="test_file_name">
-                    <FileWrap name="test_file" textName="test_file_name" />
-                  </Fld>
+                  {/* Bottom "העלאת קובץ טסט" removed from display — it did not land in the needed place.
+                      Existing test documents / test_doc_link values are left untouched. */}
                 </div>
               </div>
               <div className="d-card">

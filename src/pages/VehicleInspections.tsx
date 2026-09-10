@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ClipboardCheck, ArrowRight, Plus, Search, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { ClipboardCheck, ArrowRight, Plus, Search, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
@@ -10,6 +11,10 @@ import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { validateTaskFields } from '@/lib/taskFieldValidation';
 import { parseInspectionNotes } from '@/lib/triInspectionDisplay';
 import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
+import {
+  checklistItemsWithoutSignature,
+  findInspectionSignatureUrl,
+} from '@/lib/inspectionSignature';
 
 interface InspectionRow {
   id: string;
@@ -59,7 +64,6 @@ export default function VehicleInspections() {
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedInspection, setSelectedInspection] = useState<InspectionRow | null>(null);
-  const [inspectionItems, setInspectionItems] = useState<InspectionItemRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialVehicleId, setInitialVehicleId] = useState('');
 
@@ -409,7 +413,9 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
       });
   }, [inspection.id, inspection.vehicle_id]);
 
-  const defects = items.filter((item) => item.status === 'defect');
+  const visibleItems = checklistItemsWithoutSignature(items);
+  const signatureUrl = findInspectionSignatureUrl(items);
+  const defects = visibleItems.filter((item) => item.status === 'defect');
 
   const { km: inspectionKm, generalNotes } = parseInspectionNotes(inspection.notes);
 
@@ -417,7 +423,7 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
   // save them: the inspection row, its checklist items and its follow-up tasks.
   const noteEntries: { key: string; label: string; text: string }[] = [];
   if (generalNotes) noteEntries.push({ key: 'general', label: 'הערה כללית', text: generalNotes });
-  items.forEach((item, i) => {
+  visibleItems.forEach((item, i) => {
     const text = (item.notes || '').trim();
     if (!text) return;
     noteEntries.push({
@@ -497,12 +503,21 @@ function InspectionDetail({ inspection, onBack }: { inspection: InspectionRow; o
         </div>
       )}
 
+      {signatureUrl && (
+        <div className="card-elevated mb-4" data-testid="inspection-signature">
+          <h2 className="text-lg font-bold mb-3">חתימה דיגיטלית</h2>
+          <div className="rounded-xl border border-border bg-white p-3">
+            <img src={signatureUrl} alt="חתימה דיגיטלית" className="max-h-40 max-w-full mx-auto" />
+          </div>
+        </div>
+      )}
+
       <div className="card-elevated mb-4">
         <h2 className="text-lg font-bold mb-4">סעיפי הבדיקה</h2>
         <div className="space-y-2">
-          {items.length === 0 ? (
+          {visibleItems.length === 0 ? (
             <p className="text-muted-foreground">אין סעיפי בדיקה שמורים לביקורת זו</p>
-          ) : items.map((item, i) => (
+          ) : visibleItems.map((item, i) => (
             <div key={item.id || i} className="py-2 border-b border-border last:border-0">
               <div className="flex items-center justify-between gap-3">
                 <span className="font-medium">{item.item_name}</span>
