@@ -1649,9 +1649,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const openSecureShare = (ids?: string[]) => {
-    const allowed = new Set(generalLibFiles(docs.files).map((f) => f.id));
-    const requested = (ids && ids.length ? ids : docPickIds).filter((id) => allowed.has(id));
-    setSharePresetIds(requested);
+    const requested = ids && ids.length ? ids : docPickIds;
+    setSharePresetIds([...requested]);
     setShareOpen(true);
   };
 
@@ -5382,6 +5381,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
       {cur && shareOpen ? (
         <SecureShareModal
+          key={`${cur.id}:${sharePresetIds.join(',')}`}
           open
           claimId={cur.id}
           files={generalLibFiles(docs.files)}

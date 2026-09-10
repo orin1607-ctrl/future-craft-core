@@ -32,7 +32,7 @@ type Props = {
 export default function SecureShareModal({
   open, claimId, files, presetIds, api, toast, onClose, onMail, filesLoading,
 }: Props) {
-  const [picked, setPicked] = useState<string[]>([]);
+  const [picked, setPicked] = useState<string[]>(() => [...(presetIds || [])]);
   const [name, setName] = useState('');
   const [kind, setKind] = useState('surveyor');
   const [kindNote, setKindNote] = useState('');

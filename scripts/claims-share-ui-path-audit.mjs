@@ -205,6 +205,10 @@ try {
     await page.locator('[data-testid="claims-secure-share"]').first().click();
     await page.locator('[data-testid="mo-secure-share"]').waitFor({ timeout: 15000 });
     rec('share-modal-opened', true);
+    await page.waitForFunction(() => {
+      const el = document.querySelector('[data-testid="share-count"]');
+      return Boolean(el && /נבחרו לשיתוף [1-9]/.test(el.textContent || ''));
+    }, null, { timeout: 8000 }).catch(() => null);
     const modalCount = await page.locator('[data-testid="share-count"]').innerText().catch(() => '');
     rec('modal-got-selected-ids', /נבחרו לשיתוף [1-9]/.test(modalCount), { modalCount });
     if (!/נבחרו לשיתוף [1-9]/.test(modalCount)) {
