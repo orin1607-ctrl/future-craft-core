@@ -576,7 +576,14 @@ export default function VehicleDashboard({
             {drill.openIssues.map((o) => (
               <div key={o.id} className="card-elevated p-3 mb-2">
                 <p className="font-bold text-sm">{o.title}</p>
-                <p className="text-xs text-muted-foreground">{o.description}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {o.kind === 'defect' ? 'ליקוי' : o.kind === 'fault' ? 'תקלה' : 'שירות'}
+                  {o.status ? ` · ${o.status}` : ''}
+                  {o.date ? ` · ${o.date}` : ''}
+                </p>
+                {o.description ? (
+                  <p className="text-xs text-muted-foreground mt-1">{o.description}</p>
+                ) : null}
               </div>
             ))}
             <Button className="w-full mt-2" onClick={() => { setSheetOpen(false); onJumpTo?.('actions', 'faults'); }}>

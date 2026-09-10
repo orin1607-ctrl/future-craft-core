@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { statusLabel } from '@/components/vehicles/vehicleHubUtils';
 import { isHistoryLogTask, isCustomGapTask } from '@/lib/vehicleEventLog';
+import { isOpenDefectStatus, isOpenDefectTask } from '@/lib/openVehicleDefects';
 import { loadVehicleHistory, type VehicleHistoryEntry } from '@/lib/vehicleHistory';
 import { fetchCompanySettings } from '@/lib/companySettings';
 import {
@@ -36,7 +37,6 @@ const OPEN_FAULT = [
   'פתוח',
   'בטיפול',
 ];
-const OPEN_TASK = ['open', 'in_progress', 'pending', 'פתוח', 'בטיפול'];
 const OPEN_ACCIDENT = ['open', 'new', 'opened', 'in_progress', 'פתוח', 'חדש', 'בטיפול'];
 const OPEN_SERVICE = ['new', 'open', 'in_progress', 'pending', 'pending_approval', 'חדש', 'פתוח', 'בטיפול'];
 const GARAGE_STATUS = ['in_service', 'maintenance', 'בתחזוקה', 'בטיפול'];
@@ -206,7 +206,7 @@ function pushEntity(map: Map<string, TrackingOpenEntity[]>, plate: string | null
       companyFilter,
     ),
     applyCompanyScope(
-      supabase.from('vehicle_tasks').select('id, vehicle_plate, status, title, description, created_at'),
+      supabase.from('vehicle_tasks').select('id, vehicle_id, vehicle_plate, status, title, description, created_at'),
       companyFilter,
     ),
     applyCompanyScope(
@@ -227,6 +227,8 @@ function pushEntity(map: Map<string, TrackingOpenEntity[]>, plate: string | null
   const accidentsByPlate = new Map<string, TrackingOpenEntity[]>();
   const servicesByPlate = new Map<string, TrackingOpenEntity[]>();
 
+  const defectsByVehicleId = new Map<string, TrackingOpenEntity[]>();
+
   (faultsRes.data || []).forEach((f) => {
     if (!f.vehicle_plate || !isOpen(OPEN_FAULT, f.status)) return;
     pushEntity(faultsByPlate, f.vehicle_plate, {
@@ -237,9 +239,9 @@ function pushEntity(map: Map<string, TrackingOpenEntity[]>, plate: string | null
   });
 
   (tasksRes.data || []).forEach((t) => {
-    if (!t.vehicle_plate || isHistoryLogTask(t)) return;
+    if (isHistoryLogTask(t)) return;
     if (isCustomGapTask(t)) {
-      if (!isOpen(OPEN_TASK, t.status)) return;
+      if (!isOpenDefectStatus(t.status)) return;
       pushEntity(gapsByPlate, t.vehicle_plate, {
         id: t.id,
         title: gapTitleFromTask(t.title),
@@ -247,12 +249,18 @@ function pushEntity(map: Map<string, TrackingOpenEntity[]>, plate: string | null
       });
       return;
     }
-    if (!isOpen(OPEN_TASK, t.status)) return;
-    pushEntity(defectsByPlate, t.vehicle_plate, {
+    if (!isOpenDefectTask(t)) return;
+    const entity: TrackingOpenEntity = {
       id: t.id,
       title: t.title || 'ליקוי',
       detail: t.description || 'ליקוי פתוח',
-    });
+    };
+    pushEntity(defectsByPlate, t.vehicle_plate, entity);
+    if (t.vehicle_id) {
+      const list = defectsByVehicleId.get(t.vehicle_id) || [];
+      if (!list.some((e) => e.id === entity.id)) list.push(entity);
+      defectsByVehicleId.set(t.vehicle_id, list);
+    }
   });
 
   (accidentsRes.data || []).forEach((a) => {
@@ -305,7 +313,14 @@ function pushEntity(map: Map<string, TrackingOpenEntity[]>, plate: string | null
     }
 
     const openFaults = faultsByPlate.get(plateKey) || [];
-    const openDefects = defectsByPlate.get(plateKey) || [];
+    const fromPlate = defectsByPlate.get(plateKey) || [];
+    const fromId = defectsByVehicleId.get(v.id) || [];
+    const seenDefects = new Set<string>();
+    const openDefects = [...fromPlate, ...fromId].filter((d) => {
+      if (seenDefects.has(d.id)) return false;
+      seenDefects.add(d.id);
+      return true;
+    });
     const openAccidents = accidentsByPlate.get(plateKey) || [];
     const openServices = servicesByPlate.get(plateKey) || [];
     const customGaps = gapsByPlate.get(plateKey) || [];

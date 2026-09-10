@@ -51,7 +51,8 @@ import type { VehicleHistoryEntry } from '@/lib/vehicleHistory';
 import type { DashboardDrillDown } from '@/lib/vehicleDashboardData';
 import { shouldShowInsuranceRed } from '@/lib/vehicleInsuranceAlerts';
 import { PREVIEW_HUB_DATA } from '@/dev/vehicleHubPreviewMock';
-import { logVehicleEvent } from '@/lib/vehicleEventLog';
+import { isHistoryLogTask, logVehicleEvent } from '@/lib/vehicleEventLog';
+import { countOpenDefects, openDefectLabel } from '@/lib/openVehicleDefects';
 import { useAuth } from '@/contexts/AuthContext';
 
 export interface VehicleHubVehicle {
@@ -203,6 +204,7 @@ export default function VehicleHub({
     triInspection: string | null;
     latestInsurer: string | null;
     openIssuesCount: number;
+    openDefectCount?: number;
     drillDown: DashboardDrillDown;
   };
   hubBackLabel?: string;
@@ -229,6 +231,7 @@ export default function VehicleHub({
   const [triInspection, setTriInspection] = useState<string | null>(null);
   const [latestInsurer, setLatestInsurer] = useState<string | null>(null);
   const [openIssuesCount, setOpenIssuesCount] = useState(0);
+  const [openDefectCount, setOpenDefectCount] = useState(0);
   const [drillRefreshKey, setDrillRefreshKey] = useState(0);
   const [initialDrillKind, setInitialDrillKind] = useState<
     'insurance_licenses' | 'documents' | 'gaps_alerts' | 'service' | 'open_issues' | 'transport' | null
@@ -265,13 +268,14 @@ export default function VehicleHub({
     icon: typeof ClipboardCheck;
     action?: 'new';
     fleetFuel?: boolean;
+    countLabel?: string;
   }[] = [
     ...(canAccessFleetOS(user?.role)
       ? [{ label: 'דלק וטעינה', path: '/fleetos-ai', icon: Fuel, fleetFuel: true }]
       : []),
     { label: 'ביקורת רכב', path: '/vehicle-inspections', icon: ClipboardCheck },
     { label: 'בדיקת תלת / חצי', path: '/private-vehicle-inspection', icon: ClipboardCheck },
-    { label: 'ליקויים', path: '/vehicle-tasks', icon: AlertTriangle },
+    { label: 'ניהול ליקויים', path: '/vehicle-tasks', icon: AlertTriangle, countLabel: openDefectLabel(openDefectCount) },
     { label: 'הצמדת רכב לנהג', path: '/attach-car', icon: UserCheck },
     { label: 'תקלות', path: '/faults', icon: Wrench },
     { label: 'הזמנת שירות', path: '/service-orders', icon: Briefcase },
@@ -285,7 +289,7 @@ export default function VehicleHub({
         <ExternalLink size={18} /> מסכים מלאים — רכב זה בלבד
       </h2>
       <div className="grid grid-cols-2 gap-2">
-        {vehicleScopedScreens.map(({ label, path, icon: Icon, action, fleetFuel }) => (
+        {vehicleScopedScreens.map(({ label, path, icon: Icon, action, fleetFuel, countLabel }) => (
           <Button
             key={path + label}
             type="button"
@@ -311,12 +315,15 @@ export default function VehicleHub({
                   plate: v.license_plate,
                   vehicleId: v.id,
                   action,
-                }),
+                }) + (path === '/vehicle-tasks' ? '&status=active' : ''),
               );
             }}
           >
             <Icon size={18} />
             {label}
+            {countLabel ? (
+              <span className="text-[11px] text-muted-foreground leading-tight">{countLabel}</span>
+            ) : null}
           </Button>
         ))}
       </div>
@@ -359,6 +366,10 @@ export default function VehicleHub({
       setTriInspection(previewHubExtras.triInspection);
       setLatestInsurer(previewHubExtras.latestInsurer);
       setOpenIssuesCount(previewHubExtras.openIssuesCount);
+      setOpenDefectCount(
+        previewHubExtras.openDefectCount
+          ?? previewHubExtras.drillDown.openIssues.filter((i) => i.kind === 'defect').length,
+      );
       return;
     }
     supabase
@@ -390,26 +401,31 @@ export default function VehicleHub({
 
   useEffect(() => {
     if (previewMode && previewHubExtras) return;
+    const plate = v.license_plate;
+    const orFilter = v.id
+      ? `vehicle_plate.eq.${plate},vehicle_id.eq.${v.id}`
+      : `vehicle_plate.eq.${plate}`;
     Promise.all([
       supabase
         .from('faults')
         .select('id', { count: 'exact', head: true })
-        .eq('vehicle_plate', v.license_plate)
+        .eq('vehicle_plate', plate)
         .in('status', ['new', 'open', 'opened', 'in_progress']),
       supabase
         .from('vehicle_tasks')
-        .select('id, title, status')
-        .eq('vehicle_plate', v.license_plate)
-        .in('status', ['open', 'pending', 'in_progress']),
+        .select('id, title, status, vehicle_id, vehicle_plate')
+        .or(orFilter),
     ]).then(([f, t]) => {
-      const taskCount = (t.data || []).filter(
+      const rows = t.data || [];
+      setOpenDefectCount(countOpenDefects(rows, { id: v.id, plate }));
+      const taskCount = rows.filter(
         (row) =>
-          row.status !== 'history_log' &&
-          !(row.title || '').startsWith('__veh_evt__:'),
+          ['open', 'pending', 'in_progress'].includes(row.status || '') &&
+          !isHistoryLogTask(row),
       ).length;
       setOpenIssuesCount((f.count || 0) + taskCount);
     });
-  }, [v.license_plate, previewMode, previewHubExtras]);
+  }, [v.id, v.license_plate, previewMode, previewHubExtras]);
 
   const jumpFromDashboard = (section: 'details' | 'actions' | 'history' | 'manage', tab?: HubTabId) => {
     setMainSection(section);

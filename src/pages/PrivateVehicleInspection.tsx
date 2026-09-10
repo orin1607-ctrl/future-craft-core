@@ -380,12 +380,6 @@ export default function PrivateVehicleInspection() {
         ))}
       </div>
 
-<<<<<<< HEAD
-=======
-      <div className="mb-6">
-        <TriInspectionNotesField value={generalNotes} onChange={setGeneralNotes} />
-      </div>
-
       <div className="mb-6" data-testid="tri-inspection-signature">
         <label className="block text-base font-medium mb-1.5">חתימה דיגיטלית</label>
         <p className="text-sm text-muted-foreground mb-2">
@@ -399,7 +393,6 @@ export default function PrivateVehicleInspection() {
         />
       </div>
 
->>>>>>> fe2bc9d4 (fix(oren-car): round 1 — duplicate test upload, tri signature, inspections crash)
       {/* Submit */}
       <button
         onClick={handleSubmit}
