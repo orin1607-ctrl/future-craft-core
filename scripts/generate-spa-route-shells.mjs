@@ -57,6 +57,7 @@ const ROUTES = [
   'claims-intake',
   'telemarketing',
   'telemarketing/admin',
+  'garage',
   'garage-management',
   'settings',
   'dalia-settings',

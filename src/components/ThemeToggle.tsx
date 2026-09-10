@@ -10,6 +10,7 @@ export default function ThemeToggle() {
 
   if (!visible) return null;
   if (location.pathname.startsWith('/garage-management')) return null;
+  if (location.pathname === '/garage' || location.pathname.startsWith('/garage/')) return null;
   if (/^\/claims-(upload|intake|share)/.test(location.pathname)) return null;
 
   return (

@@ -12,8 +12,11 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
   if (!canAccessRoute(location.pathname, user.role, {
     hasClaimsAccess: user.hasClaimsAccess,
     claimsWorkerOnly: user.claimsWorkerOnly,
+    garagePhotographer: user.garagePhotographer,
   })) {
-    const home = user.claimsWorkerOnly
+    const home = user.garagePhotographer
+      ? '/garage'
+      : user.claimsWorkerOnly
       ? '/claims'
       : user.role === 'telemarketing_agent'
         ? '/telemarketing'

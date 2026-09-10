@@ -7,7 +7,9 @@ export type UserCreationType =
   | 'business_customer'
   | 'fleet_manager'
   | 'driver'
-  | 'telemarketing_agent';
+  | 'telemarketing_agent'
+  | 'claims_worker'
+  | 'garage_photographer';
 
 export const USER_TYPE_LABELS: Record<UserCreationType, string> = {
   private_customer: 'לקוח פרטי',
@@ -15,6 +17,8 @@ export const USER_TYPE_LABELS: Record<UserCreationType, string> = {
   fleet_manager: 'מנהל צי רכב',
   driver: 'נהג',
   telemarketing_agent: 'נציג/ת טלמיטינג',
+  claims_worker: 'עובד ניהול תביעות',
+  garage_photographer: 'עובד צילומי מוסך',
 };
 
 export const USER_TYPE_DESCRIPTIONS: Record<UserCreationType, string> = {
@@ -23,6 +27,8 @@ export const USER_TYPE_DESCRIPTIONS: Record<UserCreationType, string> = {
   fleet_manager: 'מנהל צי עם הרשאות ניהול לפי חברה',
   driver: 'נהג עם שיוך לחברה ולרכב',
   telemarketing_agent: 'נציג/ת טלמיטינג — שיחות, דיווח ו-Follow-up בלבד',
+  claims_worker: 'עובד Claims בלבד — רואה רק תביעות שהוקצו אליו',
+  garage_photographer: 'צלם מוסך — רואה ב־/garage רק תיקים ששויכו אליו',
 };
 
 export const ROLE_MAP: Record<UserCreationType, string> = {
@@ -31,6 +37,8 @@ export const ROLE_MAP: Record<UserCreationType, string> = {
   fleet_manager: 'fleet_manager',
   driver: 'driver',
   telemarketing_agent: 'telemarketing_agent',
+  claims_worker: 'driver',
+  garage_photographer: 'driver',
 };
 
 export type FieldKey =
@@ -128,6 +136,22 @@ export const FIELDS_BY_TYPE: Record<UserCreationType, FieldDef[]> = {
     f('password', 'סיסמה', { required: true, type: 'password', dir: 'ltr', persistTarget: 'auth.password' }),
     f('company_assigned', 'חברה משויכת', { required: true, persistTarget: 'profiles.company_name' }),
     f('job_title', 'תפקיד', { persistTarget: 'profiles.job_title' }),
+    f('notes', 'הערות', { type: 'textarea', persistTarget: 'profiles.notes' }),
+  ],
+  claims_worker: [
+    f('full_name', 'שם מלא', { required: true, persistTarget: 'profiles.full_name' }),
+    f('phone', 'טלפון', { required: true, persistTarget: 'profiles.phone', dir: 'ltr' }),
+    f('login_email', 'אימייל התחברות', { required: true, type: 'email', dir: 'ltr', persistTarget: 'auth.email' }),
+    f('password', 'סיסמה', { required: true, type: 'password', dir: 'ltr', persistTarget: 'auth.password' }),
+    f('company_assigned', 'חברה משויכת', { persistTarget: 'profiles.company_name' }),
+    f('notes', 'הערות', { type: 'textarea', persistTarget: 'profiles.notes' }),
+  ],
+  garage_photographer: [
+    f('full_name', 'שם מלא', { required: true, persistTarget: 'profiles.full_name' }),
+    f('phone', 'טלפון', { required: true, persistTarget: 'profiles.phone', dir: 'ltr' }),
+    f('login_email', 'אימייל התחברות', { required: true, type: 'email', dir: 'ltr', persistTarget: 'auth.email' }),
+    f('password', 'סיסמה', { required: true, type: 'password', dir: 'ltr', persistTarget: 'auth.password' }),
+    f('company_assigned', 'חברה משויכת', { persistTarget: 'profiles.company_name' }),
     f('notes', 'הערות', { type: 'textarea', persistTarget: 'profiles.notes' }),
   ],
 };

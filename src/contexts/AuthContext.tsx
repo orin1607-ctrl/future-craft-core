@@ -18,6 +18,7 @@ export interface UserProfile {
   user_number?: string | null;
   hasClaimsAccess?: boolean;
   claimsWorkerOnly?: boolean;
+  garagePhotographer?: boolean;
 }
 
 interface AuthContextType {
@@ -28,7 +29,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   signup: (email: string, password: string, metadata: { full_name: string; phone: string; company_name: string; role?: AppRole }) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
-  completeLoginSession: (session: AuthSessionPayload) => Promise<{ error: string | null; role?: AppRole; claimsWorkerOnly?: boolean }>;
+  completeLoginSession: (session: AuthSessionPayload) => Promise<{ error: string | null; role?: AppRole; claimsWorkerOnly?: boolean; garagePhotographer?: boolean }>;
   isAuthenticated: boolean;
   isImpersonating: boolean;
   impersonate: (targetUser: UserProfile) => void;
@@ -99,6 +100,7 @@ async function fetchUserProfile(userId: string, email: string, retries = 3): Pro
       user_number: profile.user_number || null,
       hasClaimsAccess,
       claimsWorkerOnly,
+      garagePhotographer: String(profile.job_title || '').trim() === 'garage_photographer',
     };
   }
   return null;
@@ -197,7 +199,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRealUser(profile);
       const { data: { session: s } } = await supabase.auth.getSession();
       setSession(s);
-      return { error: null, role: profile?.role, claimsWorkerOnly: profile?.claimsWorkerOnly };
+      return { error: null, role: profile?.role, claimsWorkerOnly: profile?.claimsWorkerOnly, garagePhotographer: profile?.garagePhotographer };
     }
     return { error: null };
   };

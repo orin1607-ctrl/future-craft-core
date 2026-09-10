@@ -62,6 +62,7 @@ export const DASHBOARD_CARD_BUTTONS = [
   { path: '/admin-home', label: 'מרכז ניהול', category: 'כרטיסי דשבורד' },
   { path: '/ai-marketing', label: 'ניהול שיווק', category: 'כרטיסי דשבורד' },
   { path: '/garage-management', label: 'ניהול מוסך', category: 'כרטיסי דשבורד' },
+  { path: '/garage', label: 'צילומי מוסך', category: 'כרטיסי דשבורד' },
   { path: '/claims', label: 'ניהול תביעות', category: 'כרטיסי דשבורד' },
   { path: '/telemarketing/admin', label: 'טלמיטינג', category: 'כרטיסי דשבורד' },
 ];
@@ -76,6 +77,7 @@ export const MANAGEABLE_BUTTONS = [
   { path: '/transport', label: 'חברות הסעות', category: 'ניווט' },
   { path: '/faults', label: 'תקלות', category: 'ניווט' },
   { path: '/garage-management', label: 'ניהול מוסך', category: 'ניווט' },
+  { path: '/garage', label: 'צילומי מוסך', category: 'ניווט' },
   { path: '/reports', label: 'דוחות', category: 'ניווט' },
   { path: '/fleet-managers', label: 'מנהלי צי', category: 'ניווט' },
   { path: '/customers', label: 'לקוחות', category: 'ניווט' },

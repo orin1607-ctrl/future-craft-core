@@ -133,6 +133,7 @@ import ClaimsSharePage from "@/pages/ClaimsSharePage";
 import ClaimsIntakePage from "@/pages/ClaimsIntakePage";
 import TelemarketingAgentPage from "@/pages/TelemarketingAgentPage";
 import TelemarketingAdminPage from "@/pages/TelemarketingAdminPage";
+import GarageJobsPage from "@/pages/GarageJobsPage";
 
 const queryClient = new QueryClient();
 
@@ -259,6 +260,7 @@ function AppRoutes() {
         <Route path="/claims" element={<ClaimsPage />} />
         <Route path="/telemarketing" element={<TelemarketingAgentPage />} />
         <Route path="/telemarketing/admin" element={<TelemarketingAdminPage />} />
+        <Route path="/garage" element={<GarageJobsPage />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />
         <Route path="/transport" element={<TransportHubPage />} />
         <Route path="/transport/import" element={<Navigate to="/transport" replace />} />

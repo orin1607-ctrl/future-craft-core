@@ -61,4 +61,18 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/telemarketing/admin', 'super_admin')).toBe(true);
     expect(canAccessRoute('/telemarketing/admin', 'fleet_manager')).toBe(false);
   });
+
+  it('garage photographer is limited to photographer portal', () => {
+    const extras = { garagePhotographer: true };
+    expect(canAccessRoute('/garage', 'driver', extras)).toBe(true);
+    expect(canAccessRoute('/dashboard', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/claims', 'driver', extras)).toBe(false);
+    expect(canAccessRoute('/garage-management', 'driver', extras)).toBe(false);
+  });
+
+  it('garage portal is not confused with garage-management', () => {
+    expect(canAccessRoute('/garage', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/garage', 'telemarketing_agent')).toBe(false);
+  });
 });
