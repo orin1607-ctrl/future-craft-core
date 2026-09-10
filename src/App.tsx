@@ -107,6 +107,7 @@ function AppRoutes() {
         <Route path="/dev/vehicle-new-dalia" element={<DevVehicleNewFormDalia />} />
         <Route path="/dev/vehicle-form-live" element={<DevVehicleFormLive />} />
         <Route path="/dev/vehicle-form-live/full" element={<DevVehicleFormLive initialStep="full" mockGov openAllSections />} />
+        <Route path="/garage-management/*" element={<GarageApp />} />
         <Route path="/about" element={<About />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

@@ -412,6 +412,23 @@ export function QuoteScreen() {
           <button className="dashed-add" onClick={() => setEditing({ id: uid('w'), part: '', workType: 'תיקון + צבע', detail: '', price: 0 })}>
             ＋ הוסף עבודה
           </button>
+          <div style={{ fontSize: 12, color: 'var(--white50)', margin: '14px 0 8px' }}>חלקים נדרשים</div>
+          {c.partsLines.map((p) => (
+            <div key={p.id} className="card qcard">
+              <div className="qfield"><span className="qf-l">חלק</span><span className="qf-v">{p.name}</span></div>
+              <div className="qfield"><span className="qf-l">מק"ט</span><span className="qf-v">{p.sku || '—'}</span></div>
+              <div className="qfield"><span className="qf-l">כמות</span><span className="qf-v">{p.qty}</span></div>
+              <div className="qcard-foot">
+                <span className={`badge ${p.supplier === 'us' ? 'b-blue' : 'b-gray'}`}>
+                  {p.supplier === 'us' ? 'אנחנו מספקים' : p.supplierLabel || 'הלקוח / החברה מספקים'}
+                </span>
+                <span className={`l-p ${p.supplier === 'customer' ? 'muted' : ''}`}>{p.supplier === 'us' ? formatMoney(p.price) : '—'}</span>
+              </div>
+            </div>
+          ))}
+          <button className="dashed-add" onClick={() => setPartEdit({ id: uid('p'), name: '', sku: '', qty: 1, price: 0, supplier: 'us' })}>
+            ＋ הוסף חלק
+          </button>
         </>
       )}
 
