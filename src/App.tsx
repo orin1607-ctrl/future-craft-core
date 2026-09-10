@@ -135,6 +135,7 @@ import TelemarketingAgentPage from "@/pages/TelemarketingAgentPage";
 import TelemarketingAdminPage from "@/pages/TelemarketingAdminPage";
 import GarageJobsPage from "@/pages/GarageJobsPage";
 import SecurityControlCenter from "@/pages/SecurityControlCenter";
+import ExpiryApprovals from "@/pages/ExpiryApprovals";
 
 const queryClient = new QueryClient();
 
@@ -301,6 +302,7 @@ function AppRoutes() {
         <Route path="/attach-car" element={<AttachCar />} />
         <Route path="/attach-customer" element={<AttachCar />} />
         <Route path="/alerts" element={<Alerts />} />
+        <Route path="/expiry-approvals" element={<ExpiryApprovals />} />
         <Route path="/dalia-settings" element={<DaliaSettings />} />
         <Route path="/dalia-settings/deploy" element={<DaliaDeploy />} />
         <Route path="/dalia-settings/whatsapp" element={<WhatsAppSettingsPage />} />

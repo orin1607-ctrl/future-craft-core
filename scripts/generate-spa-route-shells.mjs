@@ -51,6 +51,7 @@ const ROUTES = [
   'documents',
   'reports',
   'alerts',
+  'expiry-approvals',
   'claims',
   'claims-upload',
   'claims-share',

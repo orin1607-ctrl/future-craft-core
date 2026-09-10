@@ -15,6 +15,7 @@ const MANAGER_PREFIXES = [
   '/routes',
   '/reports',
   '/alerts',
+  '/expiry-approvals',
   '/admin-home',
   '/user-management',
   '/permissions',

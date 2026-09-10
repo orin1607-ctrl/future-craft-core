@@ -81,4 +81,10 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/security-center', 'fleet_manager')).toBe(false);
     expect(canAccessRoute('/security-center', 'driver')).toBe(false);
   });
+
+  it('expiry-approvals is a manager module', () => {
+    expect(canAccessRoute('/expiry-approvals', 'driver')).toBe(false);
+    expect(canAccessRoute('/expiry-approvals', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/expiry-approvals', 'super_admin')).toBe(true);
+  });
 });
