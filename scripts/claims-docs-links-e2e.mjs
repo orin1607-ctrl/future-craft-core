@@ -446,9 +446,13 @@ if (uiBase && !process.env.CLAIMS_QA_API_ONLY) {
         await row.click();
         await staff.locator('.claims-root .tab, [data-testid="docs-library"]').filter({ hasText: /מסמכים|גלריה/ }).first().click().catch(() => null);
         await staff.waitForSelector('[data-testid="docs-library"]', { timeout: 20000 }).catch(() => null);
+        await staff.locator('[data-testid="docs-cat-all"]').click().catch(() => null);
+        await staff.locator(`[data-testid="docs-dl-${filePdf}"]`).waitFor({ timeout: 20000 }).catch(() => null);
+        await staff.locator(`[data-testid="docs-preview-${fileJpg}"]`).waitFor({ timeout: 20000 }).catch(() => null);
         rec('staff-gallery', await staff.locator('[data-testid="docs-library"]').count() > 0);
         const prevBtn = staff.locator(`[data-testid="docs-preview-${fileJpg}"]`);
         if (await prevBtn.count()) {
+          await prevBtn.scrollIntoViewIfNeeded().catch(() => null);
           await prevBtn.click();
           await staff.waitForSelector('[data-testid="doc-preview"]', { timeout: 15000 }).catch(() => null);
           rec('staff-preview', await staff.locator('[data-testid="doc-preview"]').count() > 0);
@@ -530,6 +534,13 @@ if (uiBase && !process.env.CLAIMS_QA_API_ONLY) {
     const gp = await photoCtx.newPage();
     await gp.goto(`${uiBase}/garage`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await gp.waitForSelector('[data-testid="garage-portal"]', { timeout: 30000 }).catch(() => null);
+    await gp.waitForSelector('[data-testid="garage-job-list"], [data-testid="garage-empty"], [data-testid="garage-loading"]', { timeout: 20000 }).catch(() => null);
+    const search = gp.locator('[data-testid="garage-search"]');
+    if (await search.count()) {
+      await search.fill(idA);
+      await gp.waitForTimeout(800);
+    }
+    await gp.locator(`[data-testid="garage-job-${idA}"]`).waitFor({ timeout: 20000 }).catch(() => null);
     const jobBtn = gp.locator(`[data-testid="garage-job-${idA}"]`);
     if (await jobBtn.count()) {
       await jobBtn.click();
