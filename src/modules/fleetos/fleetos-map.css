@@ -1,0 +1,15 @@
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  background: hsl(var(--muted));
+  font-family: inherit;
+}
+.leaflet-control-attribution {
+  font-size: 10px;
+  max-width: min(72%, 420px);
+  line-height: 1.3;
+}
+.fleetos-gps-marker {
+  background: transparent;
+  border: none;
+}

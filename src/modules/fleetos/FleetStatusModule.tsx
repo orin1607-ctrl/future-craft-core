@@ -12,6 +12,8 @@ import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import FleetOSMapSection from './FleetOSMapSection';
 import FleetOSFilterBar, { EMPTY_FLEETOS_FILTERS, type FleetOSFilters } from './FleetOSFilterBar';
 import FleetOSSelectedVehicleCard from './FleetOSSelectedVehicleCard';
+import FleetOSDeviceAssignPanel from './FleetOSDeviceAssignPanel';
+import FleetOSUnknownDevicesPanel from './FleetOSUnknownDevicesPanel';
 import FleetOSBottomNav, { type FleetOSNavModule } from './FleetOSBottomNav';
 import {
   applyFleetOSFilters,
@@ -28,6 +30,7 @@ import {
   type FleetOSKpiSnapshot,
 } from './fleetosTypes';
 import type { FleetOSAlertRow, FleetOSVehicleRow } from './fleetosData';
+import { commStatusLabel, originLabel } from './telematicsDisplay';
 
 const STATUS_DOT: Record<FleetOSVehicleRow['status'], string> = {
   driving: 'bg-success',
@@ -49,6 +52,10 @@ export interface FleetStatusModuleProps {
   onModuleChange?: (module: FleetOSNavModule) => void;
   selectedVehicleId?: string | null;
   onSelectedVehicleIdChange?: (vehicleId: string | null) => void;
+  gpsPersistReady?: boolean;
+  onAssignGpsDevice?: (vehicle: FleetOSVehicleRow, unitId: string, imei: string) => void | Promise<void>;
+  onUnassignGpsDevice?: (vehicle: FleetOSVehicleRow) => void | Promise<void>;
+  unknownDevices?: Array<{ id: string; at: string; raw: string; unitHint: string | null }>;
 }
 
 export default function FleetStatusModule({
@@ -64,6 +71,10 @@ export default function FleetStatusModule({
   onModuleChange,
   selectedVehicleId = null,
   onSelectedVehicleIdChange,
+  gpsPersistReady = false,
+  onAssignGpsDevice,
+  onUnassignGpsDevice,
+  unknownDevices = [],
 }: FleetStatusModuleProps) {
   const visibility = getVisibilityForRole(userRole);
   const [draftFilters, setDraftFilters] = useState<FleetOSFilters>(EMPTY_FLEETOS_FILTERS);
@@ -117,12 +128,13 @@ export default function FleetStatusModule({
   useEffect(() => {
     if (!onSelectedVehicleIdChange) return;
     if (filtered.length === 0) {
+      if (selectedVehicleId && vehicles.some((v) => v.id === selectedVehicleId)) return;
       onSelectedVehicleIdChange(null);
       return;
     }
     if (selectedVehicleId && filtered.some((v) => v.id === selectedVehicleId)) return;
     onSelectedVehicleIdChange(filtered[0].id);
-  }, [filtered, selectedVehicleId, onSelectedVehicleIdChange]);
+  }, [filtered, selectedVehicleId, onSelectedVehicleIdChange, vehicles]);
 
   const handleOpenSelectedHub = useCallback(() => {
     const row = selectedRef.current;
@@ -152,7 +164,7 @@ export default function FleetStatusModule({
             </span>
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground pr-0 md:pr-14 leading-relaxed">
-            מצב צי — נתונים חיים ממערכת דליה (רכבים, תקלות, הזמנות שירות)
+            מצב צי — טלמטיקה ERM כשקיימת, נתוני QA מסומנים ולא מוצגים כ-Live ממכשיר
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto sm:shrink-0">
@@ -217,6 +229,18 @@ export default function FleetStatusModule({
           hubOpening={hubOpening}
         />
 
+        <FleetOSUnknownDevicesPanel userRole={userRole} rows={unknownDevices} />
+
+        <FleetOSDeviceAssignPanel
+          vehicle={selected}
+          vehicles={vehicles}
+          userRole={userRole}
+          persistReady={gpsPersistReady}
+          onAssign={(unitId, imei) => selected && onAssignGpsDevice?.(selected, unitId, imei)}
+          onUnassign={() => selected && onUnassignGpsDevice?.(selected)}
+          onSelectVehicle={pickVehicle}
+        />
+
         <div className="card-elevated overflow-hidden">
           <button
             type="button"
@@ -225,7 +249,13 @@ export default function FleetStatusModule({
           >
             <span className="text-sm font-bold text-foreground truncate">
               {listOpen ? 'הסתר רשימת רכבים' : 'הצג רשימת רכבים'}
-              <span className="text-muted-foreground font-normal mr-2">({filtered.length})</span>
+            <span className="text-muted-foreground font-normal mr-2">
+              {loading
+                ? '(טוען…)'
+                : filtered.length !== vehicles.length
+                  ? `(${filtered.length} מתוך ${vehicles.length})`
+                  : `(${filtered.length})`}
+            </span>
             </span>
             {listOpen ? (
               <ChevronUp size={18} className="text-primary shrink-0" />
@@ -262,7 +292,9 @@ export default function FleetStatusModule({
                               <InternalNumber value={v.internal_number} className="text-xs" />
                             )}
                             <span className="text-xs text-muted-foreground mr-auto shrink-0">
-                              {STATUS_LABEL[v.status]}
+                              {v.telematics
+                                ? `${originLabel(v.telematics)} · ${commStatusLabel(v.telematics.commStatus)}`
+                                : STATUS_LABEL[v.status]}
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5 truncate">
