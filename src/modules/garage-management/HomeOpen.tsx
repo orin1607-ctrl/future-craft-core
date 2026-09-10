@@ -5,6 +5,8 @@ import { Field, Shell } from './ui';
 import { useGarage } from './store';
 import { matchesQuery, STATUS_META, uid } from './logic';
 
+const STAGING_SHA = String(import.meta.env.VITE_BUILD_COMMIT || '').slice(0, 7);
+
 export function HomeScreen() {
   const nav = useNavigate();
   const { cases, resetDraft, patchDraft } = useGarage();
@@ -12,7 +14,7 @@ export function HomeScreen() {
   return (
     <Shell
       title="ניהול מוסך"
-      sub="Oren Car · פתיחת עבודה"
+      sub={STAGING_SHA ? `Oren Car · ${STAGING_SHA}` : 'Oren Car · פתיחת עבודה'}
       onBack={() => nav('/dashboard')}
       footer={
         <button
