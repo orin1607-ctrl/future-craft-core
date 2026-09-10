@@ -122,7 +122,7 @@ export default function ClaimDocsLibrary({
               className={`doc-lib-cat ${category === c.key ? 'act' : ''}`}
               data-testid={`docs-cat-${c.key}`}
               onClick={() => onCategory(c.key)}
-            >{c.label}{c.key !== 'all' ? ` (${n})` : ` (${files.length})`}</button>
+              >{c.label} ({n})</button>
           );
         })}
       </div>
