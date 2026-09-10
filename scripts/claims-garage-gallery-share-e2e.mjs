@@ -199,6 +199,10 @@ const file1 = String(up1.json.file_id || '');
 const file2 = String(up2.json.file_id || '');
 const file3 = String(up3.json.file_id || '');
 rec('04-upload-three-jpegs', Boolean(file1 && file2 && file3 && new Set([file1, file2, file3]).size === 3), { file1, file2, file3 });
+const signed = await invoke(photo.session, { action: 'garage_signed_url', claim_id: claimId, file_id: file1 });
+rec('04b-signed-url', Boolean(signed.json.url), { err: signed.json.error });
+const signedMany = await invoke(photo.session, { action: 'garage_signed_urls', claim_id: claimId, file_ids: [file1, file2, file3] });
+rec('04c-signed-urls', Boolean(signedMany.json.urls?.[file1] && signedMany.json.urls?.[file2]), { err: signedMany.json.error });
 
 const staffPdf = new FormData();
 staffPdf.set('action', 'staff_upload');
@@ -302,6 +306,7 @@ if (uiBase) {
       rec('26-upload', await page.locator('[data-testid="garage-pick"]').count() > 0);
       await page.waitForSelector('[data-testid="garage-photo-gallery"]', { timeout: 20000 }).catch(() => null);
       rec('27-garage-gallery-title', await page.getByTestId('garage-gallery-title').innerText().then((t) => t.includes('גלריית תמונות מוסך')).catch(() => false));
+      await page.waitForSelector(`[data-testid="garage-preview-${file1}"], [data-testid="garage-download-${file1}"]`, { timeout: 25000 }).catch(() => null);
       rec('28-preview-control', await page.locator('[data-testid^="garage-preview-"]').count() > 0);
       rec('29-download-control', await page.locator('[data-testid^="garage-download-"]').count() > 0);
       await page.locator(`[data-testid="garage-pick-${file1}"]`).check().catch(() => null);
@@ -343,7 +348,8 @@ if (uiBase) {
       if (await row.count()) {
         await row.click();
         await staffPage.locator('[data-testid="claims-open-docs"]').click().catch(() => null);
-        await staffPage.waitForSelector('[data-testid="garage-photo-gallery"], [data-testid="docs-library"]', { timeout: 25000 }).catch(() => null);
+        await staffPage.waitForSelector('[data-testid="garage-assign-current"]', { timeout: 25000 }).catch(() => null);
+        await staffPage.waitForSelector(`[data-testid="garage-photo-${file1}"]`, { timeout: 25000 }).catch(() => null);
         rec('34-staff-garage-gallery', await staffPage.locator('[data-testid="garage-photo-gallery"]').count() > 0);
         rec('35-general-gallery-has-no-garage-chip', await staffPage.locator('[data-testid="docs-cat-garage_photos"]').count() === 0);
         rec('36-general-gallery-has-no-garage-image', await staffPage.locator(`[data-testid="docs-img-${file1}"]`).count() === 0);
