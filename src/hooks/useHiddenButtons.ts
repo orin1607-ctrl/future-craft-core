@@ -61,6 +61,7 @@ export const DASHBOARD_CARD_BUTTONS = [
   { path: '/user-management', label: 'משתמשים', category: 'כרטיסי דשבורד' },
   { path: '/admin-home', label: 'מרכז ניהול', category: 'כרטיסי דשבורד' },
   { path: '/ai-marketing', label: 'ניהול שיווק', category: 'כרטיסי דשבורד' },
+  { path: '/garage-management', label: 'ניהול מוסך', category: 'כרטיסי דשבורד' },
 ];
 
 /** All manageable buttons with labels for the settings UI (matches sidebar IA) */
@@ -72,6 +73,7 @@ export const MANAGEABLE_BUTTONS = [
   { path: '/fleetos-ai', label: 'מיקום צי חכם (FleetOS)', category: 'ניווט' },
   { path: '/transport', label: 'חברות הסעות', category: 'ניווט' },
   { path: '/faults', label: 'תקלות', category: 'ניווט' },
+  { path: '/garage-management', label: 'ניהול מוסך', category: 'ניווט' },
   { path: '/reports', label: 'דוחות', category: 'ניווט' },
   { path: '/fleet-managers', label: 'מנהלי צי', category: 'ניווט' },
   { path: '/customers', label: 'לקוחות', category: 'ניווט' },
