@@ -715,7 +715,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (action === "garage_list_jobs" || action === "garage_get_job" || action === "garage_upload" || action === "garage_list_photos" || action === "garage_complete" || action === "garage_signed_url" || action === "garage_create_share") {
+    if (action === "garage_list_jobs" || action === "garage_get_job" || action === "garage_upload" || action === "garage_list_photos" || action === "garage_complete" || action === "garage_signed_url" || action === "garage_signed_urls" || action === "garage_create_share") {
       const previewWorker = String(body.worker_id || form?.get("worker_id") || "").trim();
       const staffPreview = Boolean(previewWorker && previewWorker !== user.id && await hasClaimsAccess(sb, user.id, role));
       const effectiveWorkerId = staffPreview ? previewWorker : user.id;
@@ -775,16 +775,32 @@ Deno.serve(async (req) => {
         });
       }
 
-      if (action === "garage_signed_url") {
-        const fileId = String(body.file_id || "");
+      if (action === "garage_signed_url" || action === "garage_signed_urls") {
         const photos = await listGaragePhotos(claimId);
-        const hit = photos.find((p) => p.id === fileId);
-        if (!hit) return jsonResponse({ success: false, error: "BLOCKED", blocked: true }, 403);
-        const { data: file } = await sb.from("claims_documents").select("storage_path, claim_id").eq("id", fileId).eq("claim_id", claimId).maybeSingle();
-        if (!file) return jsonResponse({ success: false, error: "not_found" }, 404);
-        const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(file.storage_path, SIGNED_TTL_SEC);
+        const allowed = new Set(photos.map((p) => p.id));
+        const ids = action === "garage_signed_url"
+          ? [String(body.file_id || "")].filter(Boolean)
+          : parseShareIds(body.file_ids).filter((id) => allowed.has(id));
+        const want = action === "garage_signed_url" ? ids : (ids.length ? ids : photos.map((p) => p.id));
+        if (want.some((id) => !allowed.has(id))) return jsonResponse({ success: false, error: "BLOCKED", blocked: true }, 403);
+        if (!want.length) return jsonResponse({ success: true, urls: {} });
+        const { data: files } = await sb.from("claims_documents").select("id, storage_path, claim_id").eq("claim_id", claimId).in("id", want);
+        const rows = (files || []).filter((f) => f.claim_id === claimId && allowed.has(f.id));
+        if (rows.length !== want.length) return jsonResponse({ success: false, error: "BLOCKED", blocked: true }, 403);
+        const { data, error } = await sb.storage.from(BUCKET).createSignedUrls(rows.map((f) => f.storage_path), SIGNED_TTL_SEC);
         if (error) return jsonResponse({ success: false, error: error.message }, 400);
-        return jsonResponse({ success: true, url: data.signedUrl });
+        const urls: Record<string, string> = {};
+        rows.forEach((f, i) => {
+          const signed = (data || [])[i]?.signedUrl || "";
+          if (signed) urls[f.id] = signed;
+        });
+        if (action === "garage_signed_url") {
+          const fileId = want[0] || "";
+          const url = urls[fileId] || "";
+          if (!url) return jsonResponse({ success: false, error: "not_found" }, 404);
+          return jsonResponse({ success: true, url });
+        }
+        return jsonResponse({ success: true, urls });
       }
 
       if (action === "garage_create_share") {

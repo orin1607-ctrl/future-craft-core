@@ -75,13 +75,14 @@ export default function GarageJobsPage() {
     setJob({ ...(r.job as Job), claim: r.claim as Job['claim'] });
     const rows = ((r.photos as Photo[]) || []);
     setPhotos(rows);
-    for (const p of rows) {
-      const u = await api.invokeDocs('garage_signed_url', {
-        claim_id: claimId,
-        file_id: p.id,
-        ...(previewWorkerId ? { worker_id: previewWorkerId } : {}),
-      });
-      if (u.url) setPhotos((cur) => cur.map((x) => x.id === p.id ? { ...x, url: String(u.url) } : x));
+    const u = await api.invokeDocs('garage_signed_urls', {
+      claim_id: claimId,
+      file_ids: rows.map((p) => p.id),
+      ...(previewWorkerId ? { worker_id: previewWorkerId } : {}),
+    });
+    const urls = (u.urls && typeof u.urls === 'object') ? u.urls as Record<string, string> : {};
+    if (Object.keys(urls).length) {
+      setPhotos((cur) => cur.map((x) => urls[x.id] ? { ...x, url: urls[x.id] } : x));
     }
   };
 
