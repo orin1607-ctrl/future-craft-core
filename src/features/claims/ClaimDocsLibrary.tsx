@@ -92,8 +92,8 @@ export default function ClaimDocsLibrary({
                 </button>
                 <div className="doc-lib-meta">{libTypeLabel(f)} · {fmtDay(f.created_at)}</div>
                 <div className="doc-lib-acts">
-                  <button type="button" className="btn btn-p btn-sm" onClick={() => onPreview(f, images)}>Preview</button>
-                  <button type="button" className="btn btn-g btn-sm" onClick={() => onDownload(f)}>Download</button>
+                  <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, images)}>Preview</button>
+                  <button type="button" className="btn btn-g btn-sm" data-testid={`docs-dl-${f.id}`} onClick={() => onDownload(f)}>Download</button>
                   <button type="button" className="btn btn-g btn-sm" onClick={() => onPrint(f)}>Print</button>
                 </div>
               </div>

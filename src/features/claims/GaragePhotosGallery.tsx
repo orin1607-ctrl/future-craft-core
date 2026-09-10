@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { shareRecipientMessage } from './claimSecureShare';
+import { downloadRemoteFile } from './claimFileDownload';
 
 export type GarageGalleryPhoto = {
   id: string;
@@ -15,11 +16,12 @@ type Props = {
   canShare?: boolean;
   busy?: boolean;
   onPreview: (photo: GarageGalleryPhoto) => void;
+  onDownload?: (photo: GarageGalleryPhoto) => void;
   onCreateShare: (fileIds: string[], recipientName: string) => Promise<CreatedShare | null>;
 };
 
 export default function GaragePhotosGallery({
-  photos, canShare = true, busy, onPreview, onCreateShare,
+  photos, canShare = true, busy, onPreview, onDownload, onCreateShare,
 }: Props) {
   const [picked, setPicked] = useState<string[]>([]);
   const [name, setName] = useState('שמאי');
@@ -82,7 +84,15 @@ export default function GaragePhotosGallery({
               </button>
             ) : <span>{p.original_name}</span>}
             {p.url ? (
-              <a className="btn btn-sm btn-g" href={p.url} download={p.original_name} target="_blank" rel="noreferrer" data-testid={`garage-download-${p.id}`}>הורדה</a>
+              <button
+                type="button"
+                className="btn btn-sm btn-g"
+                data-testid={`garage-download-${p.id}`}
+                onClick={() => {
+                  if (onDownload) onDownload(p);
+                  else void downloadRemoteFile(p.url || '', p.original_name);
+                }}
+              >הורדה</button>
             ) : null}
           </div>
         ))}

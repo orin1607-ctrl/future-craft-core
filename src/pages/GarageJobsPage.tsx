@@ -5,6 +5,7 @@ import { createClaimsApi } from '@/features/claims/claimsService';
 import { garageShareIdsAllowed, garageStatusLabel, garageWorkerReviewLabel, type GarageAssignment } from '@/features/claims/claimGarage';
 import GaragePhotosGallery from '@/features/claims/GaragePhotosGallery';
 import { sharePublicUrl } from '@/features/claims/claimSecureShare';
+import { downloadRemoteFile } from '@/features/claims/claimFileDownload';
 import '@/features/claims/claims.css';
 
 type Job = GarageAssignment & {
@@ -235,6 +236,7 @@ export default function GarageJobsPage() {
             canShare={!isAdminPreview}
             busy={Boolean(busy)}
             onPreview={setPreview}
+            onDownload={(p) => { if (p.url) void downloadRemoteFile(p.url, p.original_name); }}
             onCreateShare={async (fileIds, recipientName) => {
               const allowed = garageShareIdsAllowed(fileIds, photos.map((p) => ({ id: p.id, claim_id: openId })), openId);
               if (!allowed.ok) { setErr(allowed.error); return null; }
@@ -260,7 +262,7 @@ export default function GarageJobsPage() {
           <div className="garage-preview-card" onClick={(e) => e.stopPropagation()}>
             <img src={preview.url} alt={preview.original_name} />
             <div className="garage-preview-acts">
-              <a className="btn btn-g" href={preview.url} download={preview.original_name} target="_blank" rel="noreferrer" data-testid="garage-preview-download">הורדה</a>
+              <button type="button" className="btn btn-g" data-testid="garage-preview-download" onClick={() => { void downloadRemoteFile(preview.url || '', preview.original_name); }}>הורדה</button>
               <button type="button" className="btn btn-p" data-testid="garage-preview-close" onClick={() => setPreview(null)}>סגור</button>
             </div>
           </div>
