@@ -14,6 +14,7 @@ vi.mock('./garageBook', async () => {
     ...actual,
     listCases: vi.fn(async () => []),
     getCase: vi.fn(async () => null),
+    probeGarageBook: vi.fn(async () => ({ ready: false, pending: true, error: actual.GARAGE_BOOK_PENDING_MESSAGE })),
   };
 });
 
@@ -64,5 +65,8 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain("callHost('gm:saveCase'");
     expect(approvedSourceHtml).toContain('saveCustomerAndContinue');
     expect(approvedSourceHtml).toContain('home-cases');
+    expect(approvedSourceHtml).toContain('gm:goManager');
+    expect(approvedSourceHtml).toContain('garage_case_id');
+    expect(approvedSourceHtml).toContain('book-pending-banner');
   });
 });

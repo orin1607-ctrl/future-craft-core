@@ -4,6 +4,7 @@ import {
   deriveCaseStatus,
   emptyCaseData,
   findDuplicateCustomers,
+  isGarageSchemaMissing,
   normalizePhone,
   normalizePlate,
   sanitizeCaseData,
@@ -73,5 +74,10 @@ describe('garage book helpers', () => {
   it('builds display labels', () => {
     expect(customerDisplayName({ customer_type: 'private', name: 'ישראל', company_name: '' })).toBe('ישראל');
     expect(vehicleLabel({ make: 'Toyota', model: 'Corolla', year: 2021 })).toBe('Toyota · Corolla · 2021');
+  });
+
+  it('detects missing garage schema without treating it as a generic failure', () => {
+    expect(isGarageSchemaMissing({ code: 'PGRST205', message: "Could not find the table 'public.garage_cases'" })).toBe(true);
+    expect(isGarageSchemaMissing({ message: 'permission denied' })).toBe(false);
   });
 });

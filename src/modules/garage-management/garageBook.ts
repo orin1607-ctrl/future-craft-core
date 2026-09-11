@@ -171,6 +171,25 @@ function errMessage(error: { message?: string } | null | undefined, fallback: st
   return error?.message || fallback;
 }
 
+export function isGarageSchemaMissing(error: { code?: string; message?: string } | null | undefined): boolean {
+  const code = String(error?.code || '');
+  const message = String(error?.message || '');
+  return code === 'PGRST205'
+    || /could not find the table/i.test(message)
+    || /schema cache/i.test(message)
+    || /does not exist/i.test(message);
+}
+
+export const GARAGE_BOOK_PENDING_MESSAGE =
+  'הפעלת מסד נתוני המוסך עדיין ממתינה. הלקוח, הרכב והתיק לא נשמרים עד להרצת ה-SQL ב-Staging.';
+
+export async function probeGarageBook(): Promise<{ ready: boolean; pending: boolean; error?: string }> {
+  const { error } = await tbl('garage_cases').select('id').limit(1);
+  if (!error) return { ready: true, pending: false };
+  if (isGarageSchemaMissing(error)) return { ready: false, pending: true, error: GARAGE_BOOK_PENDING_MESSAGE };
+  return { ready: false, pending: false, error: errMessage(error, 'בדיקת ספר המוסך נכשלה') };
+}
+
 export async function searchCustomers(query: string): Promise<GarageCustomer[]> {
   const q = String(query || '').trim().replace(/[%(),]/g, ' ');
   if (!q) return [];
@@ -191,7 +210,10 @@ export async function searchCustomers(query: string): Promise<GarageCustomer[]> 
     )
     .order('created_at', { ascending: false })
     .limit(25);
-  if (error) throw new Error(errMessage(error, 'חיפוש לקוח נכשל'));
+  if (error) {
+    if (isGarageSchemaMissing(error)) return [];
+    throw new Error(errMessage(error, 'חיפוש לקוח נכשל'));
+  }
   const customers = (data || []) as GarageCustomer[];
   if (plate.length >= 5) {
     const { data: vehicles } = await tbl('garage_vehicles').select('customer_id, plate').limit(200);
@@ -281,7 +303,10 @@ export async function listVehicles(customerId: string): Promise<GarageVehicle[]>
     .select('*')
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false });
-  if (error) throw new Error(errMessage(error, 'טעינת רכבים נכשלה'));
+  if (error) {
+    if (isGarageSchemaMissing(error)) return [];
+    throw new Error(errMessage(error, 'טעינת רכבים נכשלה'));
+  }
   return (data || []) as GarageVehicle[];
 }
 
@@ -289,7 +314,10 @@ export async function findVehicleByPlate(plate: string): Promise<GarageVehicle |
   const needle = normalizePlate(plate);
   if (!needle) return null;
   const { data, error } = await tbl('garage_vehicles').select('*').limit(500);
-  if (error) throw new Error(errMessage(error, 'חיפוש רכב נכשל'));
+  if (error) {
+    if (isGarageSchemaMissing(error)) return null;
+    throw new Error(errMessage(error, 'חיפוש רכב נכשל'));
+  }
   return ((data || []) as GarageVehicle[]).find((v) => normalizePlate(v.plate) === needle) || null;
 }
 
@@ -366,7 +394,10 @@ export async function updateCase(
 
 export async function getCase(caseId: string): Promise<GarageCase | null> {
   const { data, error } = await tbl('garage_cases').select('*').eq('id', caseId).maybeSingle();
-  if (error) throw new Error(errMessage(error, 'טעינת תיק נכשלה'));
+  if (error) {
+    if (isGarageSchemaMissing(error)) return null;
+    throw new Error(errMessage(error, 'טעינת תיק נכשלה'));
+  }
   if (!data) return null;
   const row = data as GarageCase;
   const [{ data: customer }, { data: vehicle }] = await Promise.all([
@@ -386,7 +417,10 @@ export async function listCases(): Promise<GarageCase[]> {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(100);
-  if (error) throw new Error(errMessage(error, 'טעינת תיקים נכשלה'));
+  if (error) {
+    if (isGarageSchemaMissing(error)) return [];
+    throw new Error(errMessage(error, 'טעינת תיקים נכשלה'));
+  }
   return ((data || []) as GarageCase[]).map((row) => ({
     ...row,
     case_data: sanitizeCaseData(row.case_data),
@@ -398,6 +432,9 @@ export async function listCustomerCases(customerId: string): Promise<GarageCase[
     .select('*')
     .eq('customer_id', customerId)
     .order('created_at', { ascending: false });
-  if (error) throw new Error(errMessage(error, 'טעינת היסטוריית לקוח נכשלה'));
+  if (error) {
+    if (isGarageSchemaMissing(error)) return [];
+    throw new Error(errMessage(error, 'טעינת היסטוריית לקוח נכשלה'));
+  }
   return (data || []) as GarageCase[];
 }

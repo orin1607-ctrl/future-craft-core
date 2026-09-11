@@ -4,20 +4,24 @@ import { useAuth } from '@/contexts/AuthContext';
 import approvedSourceHtml from './approved-source.html?raw';
 import './garage.css';
 import {
+  GARAGE_BOOK_PENDING_MESSAGE,
   createCase,
   createCustomer,
   createVehicle,
   emptyCaseData,
   getCase,
+  isGarageSchemaMissing,
   listCases,
   listCustomerCases,
   listVehicles,
+  probeGarageBook,
   searchCustomers,
   updateCase,
   type GarageActor,
   type GarageCustomer,
   type GarageVehicle,
 } from './garageBook';
+import { emptyGarageGallery } from './garageMedia';
 
 type HostRequest = {
   type: string;
@@ -28,6 +32,16 @@ type HostRequest = {
 function actorOf(user: { id: string; full_name?: string; role?: string } | null): GarageActor | null {
   if (!user?.id) return null;
   return { id: user.id, full_name: user.full_name, role: user.role };
+}
+
+function asBookError(error: unknown): string {
+  const raw = error as { code?: string; message?: string } | Error | string;
+  if (raw && typeof raw === 'object' && isGarageSchemaMissing(raw as { code?: string; message?: string })) {
+    return GARAGE_BOOK_PENDING_MESSAGE;
+  }
+  const message = String((raw as Error)?.message || raw || 'שגיאה');
+  if (isGarageSchemaMissing({ message })) return GARAGE_BOOK_PENDING_MESSAGE;
+  return message;
 }
 
 export default function GarageApp() {
@@ -44,18 +58,40 @@ export default function GarageApp() {
   const bootstrap = useCallback(async () => {
     const win = iframeRef.current?.contentWindow;
     if (!win || !actor) return;
+    const probe = await probeGarageBook();
     try {
       if (caseId) {
+        if (probe.pending) {
+          win.postMessage({
+            type: 'gm:bootstrap',
+            payload: { mode: 'case', userName: actor.full_name || '', bookPending: true, error: GARAGE_BOOK_PENDING_MESSAGE },
+          }, '*');
+          return;
+        }
         const loaded = await getCase(caseId);
-        win.postMessage({ type: 'gm:bootstrap', payload: { mode: 'case', userName: actor.full_name || '', loaded } }, '*');
+        win.postMessage({ type: 'gm:bootstrap', payload: { mode: 'case', userName: actor.full_name || '', loaded, bookPending: false } }, '*');
         return;
       }
-      const cases = await listCases();
-      win.postMessage({ type: 'gm:bootstrap', payload: { mode: 'home', userName: actor.full_name || '', cases } }, '*');
+      const cases = probe.pending ? [] : await listCases();
+      win.postMessage({
+        type: 'gm:bootstrap',
+        payload: {
+          mode: 'home',
+          userName: actor.full_name || '',
+          cases,
+          bookPending: probe.pending,
+          error: probe.pending ? GARAGE_BOOK_PENDING_MESSAGE : undefined,
+        },
+      }, '*');
     } catch (error) {
       win.postMessage({
         type: 'gm:bootstrap',
-        payload: { mode: caseId ? 'case' : 'home', userName: actor.full_name || '', error: String((error as Error).message || error) },
+        payload: {
+          mode: caseId ? 'case' : 'home',
+          userName: actor.full_name || '',
+          bookPending: probe.pending,
+          error: asBookError(error),
+        },
       }, '*');
     }
   }, [actor, caseId]);
@@ -112,6 +148,11 @@ export default function GarageApp() {
           reply(requestId, { ok: true, saved });
           return;
         }
+        if (msg.type === 'gm:listMedia') {
+          const id = String(payload.garageCaseId || caseId || '');
+          reply(requestId, { ok: true, garage_case_id: id, items: emptyGarageGallery(id), pending: true });
+          return;
+        }
         if (msg.type === 'gm:openCase') {
           const id = String(payload.caseId || '');
           if (id) navigate(`/garage-management/${id}`);
@@ -119,9 +160,14 @@ export default function GarageApp() {
         }
         if (msg.type === 'gm:goHome') {
           navigate('/garage-management');
+          return;
+        }
+        if (msg.type === 'gm:goManager') {
+          navigate('/claims?tab=garage');
+          return;
         }
       } catch (error) {
-        reply(requestId, { ok: false, error: String((error as Error).message || error) });
+        reply(requestId, { ok: false, error: asBookError(error) });
       }
     };
     window.addEventListener('message', onMessage);

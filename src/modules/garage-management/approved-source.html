@@ -234,6 +234,9 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   .no-print{display:none !important;}
 }
 ::-webkit-scrollbar{display:none;}
+.pending-banner{display:none;margin:10px 16px 0;padding:10px 12px;border-radius:12px;background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.35);color:#fde68a;font-size:12.5px;line-height:1.45;}
+.pending-banner.show{display:block;}
+.manager-link{display:inline-block;margin:8px 16px 0;font-size:12px;color:var(--accent,#7dd3fc);cursor:pointer;}
 </style>
 </head>
 <body>
@@ -243,7 +246,9 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   <div class="home-header">
     <div class="greet" id="home-greet">בוקר טוב</div>
     <div class="name">דליה — לקוחות ישירים</div>
+    <div class="manager-link" onclick="goManager()">← חזרה למסך הניהול</div>
   </div>
+  <div class="pending-banner" id="book-pending-banner">הפעלת מסד נתוני המוסך עדיין ממתינה. אפשר לעבור על הזרימה; שמירת לקוח, רכב, תיק ותמונות תתחיל אחרי הרצת ה-SQL ב-Staging.</div>
   <div class="big-open" onclick="go('s-choose')">
     <div class="txt"><div>פתח תיק</div><div>לקוח קיים או לקוח חדש</div></div>
     <div class="plus">＋</div>
@@ -346,7 +351,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="act-tile" onclick="go('s-inspect')"><div class="ic">🔍</div><div class="lb">בדיקת רכב</div><div class="sub" id="tile-inspect-sub">2/4 תמונות</div></div>
     <div class="act-tile" onclick="go('s-quote')"><div class="ic">📋</div><div class="lb">הצעת מחיר</div><div class="sub" id="tile-quote-sub">טרם נוצרה</div></div>
     <div class="act-tile" onclick="go('s-workorder')"><div class="ic">📦</div><div class="lb">הזמנת עבודה</div><div class="sub" id="tile-wo-sub">ממתין</div></div>
-    <div class="act-tile" onclick="go('s-gallery')"><div class="ic">🖼️</div><div class="lb">גלריה</div><div class="sub" id="tile-gal-sub">2 תמונות</div></div>
+    <div class="act-tile" onclick="go('s-gallery')"><div class="ic">🖼️</div><div class="lb">גלריה</div><div class="sub" id="tile-gal-sub">אין תמונות שמורות</div></div>
     <div class="act-tile" onclick="go('s-comm')"><div class="ic">✉️</div><div class="lb">תקשורת</div><div class="sub" id="tile-comm-sub">אין הודעות</div><span class="dot-alert" id="comm-alert" style="display:none;"></span></div>
     <div class="act-tile" onclick="go('s-share')"><div class="ic">🔗</div><div class="lb">שיתוף מאובטח</div><div class="sub" id="tile-share-sub">—</div></div>
     <div class="act-tile locked" id="tile-intake" onclick="tryIntake()"><div class="ic">🚗</div><div class="lb">קבלת רכב</div><div class="sub" id="tile-intake-sub">נעול עד אישור</div></div>
@@ -639,29 +644,17 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: GALLERY ================= -->
 <section class="screen" id="s-gallery">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>גלריית תמונות ומסמכים</h1><div class="sub">תיק #1056</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>גלריית תמונות ומסמכים</h1><div class="sub" id="gallery-case-sub">תיק מוסך</div></div></div>
   <div class="gal-bar no-print">
-    <button class="btn btn-white btn-sm" style="white-space:nowrap;">📷 צלם</button>
-    <button class="btn btn-ghost btn-sm" style="white-space:nowrap;">העלה</button>
+    <button class="btn btn-white btn-sm" style="white-space:nowrap;" onclick="garageMediaPending()">📷 צלם</button>
+    <button class="btn btn-ghost btn-sm" style="white-space:nowrap;" onclick="garageMediaPending()">העלה</button>
   </div>
-  <div class="content">
-    <div class="gal-topic-label">ארבע זוויות (2)</div>
-    <div class="gal-grid">
-      <div class="gal-item" onclick="toggleGalSel(this)"><div class="ph">🚙</div><div class="cb"></div><div class="tag">קדמי שמאל</div></div>
-      <div class="gal-item" onclick="toggleGalSel(this)"><div class="ph">🚙</div><div class="cb"></div><div class="tag">קדמי ימין</div></div>
-    </div>
-    <div class="gal-topic-label">מוקדי נזק (1)</div>
-    <div class="gal-grid">
-      <div class="gal-item" onclick="toggleGalSel(this)"><div class="ph">🛠️</div><div class="cb"></div><div class="tag">כנף שמאל</div></div>
-    </div>
-    <div class="gal-topic-label">הצעות מחיר (0)</div>
-    <div class="hint" style="margin-bottom:0;">אין עדיין קבצי הצעת מחיר בגלריה.</div>
-    <div class="gal-topic-label">הזמנות עבודה (0)</div>
-    <div class="hint">אין עדיין הזמנות עבודה בגלריה.</div>
+  <div class="content" id="garage-gallery-body">
+    <div class="hint" id="gallery-pending-hint">תמונות ומסמכים שייכים לתיק המוסך בלבד (garage_case_id). לא ל-claim_id. שמירה אמיתית ממתינה להפעלת מסד המוסך.</div>
   </div>
   <div class="gal-selectbar" id="gal-selectbar">
-    <button class="btn btn-white" onclick="alert('מוריד את הפריטים שנבחרו')">הורד</button>
-    <button class="btn btn-ghost" onclick="alert('נפתח חלון שליחה במייל')">שלח במייל</button>
+    <button class="btn btn-white" onclick="garageMediaPending()">הורד</button>
+    <button class="btn btn-ghost" onclick="garageMediaPending()">שלח במייל</button>
     <button class="btn btn-ghost" onclick="go('s-share')">שיתוף מאובטח</button>
   </div>
 </section>
@@ -873,7 +866,34 @@ var persistTimer = null;
 var searchTimer = null;
 var reqSeq = 0;
 var pending = {};
+var bookPending = false;
 var draftCustomerType = 'private';
+var GARAGE_GALLERY_TOPICS = [
+  '4 זוויות','בדיקת רכב','נקודות נזק','הצעת מחיר','קבלת רכב',
+  'לפני עבודה','במהלך עבודה','סיום','לפני מסירה','מסמכים','הזמנות עבודה','אחר'
+];
+function pendingSaveMessage(){
+  return 'הפעלת מסד נתוני המוסך עדיין ממתינה. הלקוח, הרכב, התיק והתמונות לא נשמרים עד להרצת ה-SQL ב-Staging.';
+}
+function garageMediaPending(){
+  alert(bookPending
+    ? pendingSaveMessage()
+    : 'שמירת קבצי מוסך אמיתית עדיין לא הופעלה. התמונות שייכות ל-garage_case_id בלבד, לא ל-claim_id.');
+}
+function goManager(){
+  parent.postMessage({type:'gm:goManager'}, '*');
+}
+function renderGarageGallery(caseId){
+  var body = document.getElementById('garage-gallery-body');
+  var sub = document.getElementById('gallery-case-sub');
+  if(sub) sub.textContent = caseId ? ('תיק מוסך · ' + caseId) : 'תיק מוסך';
+  if(!body) return;
+  var html = '<div class="hint" id="gallery-pending-hint">תמונות ומסמכים שייכים לתיק המוסך בלבד (garage_case_id). לא ל-claim_id. אין שמירה ב-Claims Storage.</div>';
+  GARAGE_GALLERY_TOPICS.forEach(function(label){
+    html += '<div class="gal-topic-label">'+label+' (0)</div><div class="hint" style="margin-bottom:10px;">אין עדיין קבצים בקטגוריה זו.</div>';
+  });
+  body.innerHTML = html;
+}
 function callHost(type, payload){
   return new Promise(function(resolve, reject){
     var id = String(++reqSeq);
@@ -894,6 +914,9 @@ window.addEventListener('message', function(ev){
   if(msg.type === 'gm:bootstrap') applyBootstrap(msg.payload || {});
 });
 function applyBootstrap(payload){
+  bookPending = !!payload.bookPending;
+  var banner = document.getElementById('book-pending-banner');
+  if(banner) banner.classList.toggle('show', bookPending);
   if(payload.userName){
     workerName = payload.userName;
     var greet = document.getElementById('home-greet');
@@ -903,6 +926,7 @@ function applyBootstrap(payload){
     var empty = document.getElementById('home-empty');
     if(empty) empty.textContent = payload.error;
   }
+  renderGarageGallery(payload.loaded && payload.loaded.id);
   if(payload.mode === 'home'){
     renderHomeCases(payload.cases || []);
     go('s-home');
@@ -969,8 +993,8 @@ function hydrateCase(loaded){
     }
   });
   refreshCaseHub();
+  renderGarageGallery(loaded && loaded.id);
 }
-function schedulePersist(){
   if(!currentCase || !currentCase.id) return;
   clearTimeout(persistTimer);
   persistTimer = setTimeout(function(){
@@ -1003,7 +1027,7 @@ function runSearch(){
     if(!(res.customers||[]).length){
       box.innerHTML = '<div class="hint">לא נמצא לקוח. אפשר לפתוח לקוח חדש.</div>';
     }
-  }).catch(function(err){ alert(err.message || err); });
+  }).catch(function(err){ alert(bookPending ? pendingSaveMessage() : (err.message || err)); });
 }
 function selectExistingCustomer(c){
   currentCustomer = c;
@@ -1023,7 +1047,7 @@ function selectExistingCustomer(c){
       hist.innerHTML = (res.history||[]).length ? '<div class="hint">היסטוריה: '+(res.history||[]).map(function(h){ return esc(h.case_number)+' · '+esc(h.status); }).join(' | ')+'</div>' : '';
     }
     go('s-newvehicle');
-  }).catch(function(err){ alert(err.message || err); });
+  }).catch(function(err){ alert(bookPending ? pendingSaveMessage() : (err.message || err)); });
 }
 function draftFromForm(){
   var name = (document.getElementById('cust-name').value || '').trim();
@@ -1064,7 +1088,7 @@ function saveCustomerAndContinue(force){
     }
     currentCustomer = res.customer;
     selectExistingCustomer(res.customer);
-  }).catch(function(err){ alert(err.message || err); });
+  }).catch(function(err){ alert(bookPending ? pendingSaveMessage() : (err.message || err)); });
 }
 function saveVehicleAndCreateCase(){
   if(!currentCustomer){ alert('יש לבחור לקוח תחילה'); return; }
@@ -1085,14 +1109,14 @@ function saveVehicleAndCreateCase(){
   };
   callHost('gm:createVehicle', {draft: draft}).then(function(res){
     createCaseWithVehicle(res.vehicle);
-  }).catch(function(err){ alert(err.message || err); });
+  }).catch(function(err){ alert(bookPending ? pendingSaveMessage() : (err.message || err)); });
 }
 function createCaseWithVehicle(vehicle){
   currentVehicle = vehicle;
   callHost('gm:createCase', {customer: currentCustomer, vehicle: vehicle}).then(function(res){
     if(res.created) hydrateCase(Object.assign({}, res.created, {customer: currentCustomer, vehicle: vehicle}));
     go('s-case');
-  }).catch(function(err){ alert(err.message || err); });
+  }).catch(function(err){ alert(bookPending ? pendingSaveMessage() : (err.message || err)); });
 }
 function go(id){
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
