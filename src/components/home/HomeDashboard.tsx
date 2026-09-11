@@ -150,6 +150,7 @@ export default function HomeDashboard() {
           subtitle="דוחות וניתוחים"
           accent="success"
         />
+        {isSuperAdmin && (
         <DashboardCardGate
           path="/garage-management"
           to="/garage-management"
@@ -157,6 +158,7 @@ export default function HomeDashboard() {
           title="ניהול מוסך"
           subtitle="תיקי עבודה · הצעות · קבלת רכב"
         />
+        )}
         {canClaims && (
           <DashboardCardGate
             path="/claims"

@@ -153,6 +153,7 @@ export function DesktopSidebar() {
     if (path === '/telemarketing/admin') return isSuperAdmin;
     if (path === '/security-center') return isSuperAdmin;
     if (path === '/claims') return canClaims;
+    if (path === '/garage-management' || path.startsWith('/garage-management/')) return isSuperAdmin;
     return true;
   };
 

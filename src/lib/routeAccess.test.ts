@@ -72,7 +72,8 @@ describe('routeAccess', () => {
 
   it('garage portal is not confused with garage-management', () => {
     expect(canAccessRoute('/garage', 'fleet_manager')).toBe(true);
-    expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/garage-management', 'super_admin')).toBe(true);
     expect(canAccessRoute('/garage', 'telemarketing_agent')).toBe(false);
   });
 

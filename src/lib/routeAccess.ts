@@ -46,6 +46,7 @@ const SUPER_ADMIN_ONLY = [
   '/admin/modules',
   '/emergency-settings',
   '/telemarketing/admin',
+  '/garage-management',
 ];
 
 const FLEET_MANAGER_ROUTES = ['/fleetos-ai'];
