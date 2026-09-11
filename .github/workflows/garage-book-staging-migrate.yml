@@ -6,6 +6,12 @@ name: Garage book migration — Staging only
 
 on:
   workflow_dispatch: {}
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260911120000_garage_book_staging.sql'
+      - 'scripts/apply-garage-book-staging.mjs'
+      - '.github/workflows/garage-book-staging-migrate.yml'
   push:
     branches: [main]
     paths:
