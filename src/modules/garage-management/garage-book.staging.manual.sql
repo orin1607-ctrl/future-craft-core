@@ -428,6 +428,12 @@ BEGIN
   IF NEW.opened_by IS DISTINCT FROM OLD.opened_by THEN
     RAISE EXCEPTION 'לא ניתן לשנות את פותח התיק לאחר יצירה';
   END IF;
+  IF NEW.customer_id IS DISTINCT FROM OLD.customer_id THEN
+    RAISE EXCEPTION 'לא ניתן לשנות את לקוח התיק לאחר יצירה';
+  END IF;
+  IF NEW.vehicle_id IS DISTINCT FROM OLD.vehicle_id THEN
+    RAISE EXCEPTION 'לא ניתן לשנות את רכב התיק לאחר יצירה';
+  END IF;
   RETURN NEW;
 END;
 $$;
