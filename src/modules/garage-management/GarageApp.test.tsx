@@ -66,6 +66,7 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('saveCustomerAndContinue');
     expect(approvedSourceHtml).toContain('home-cases');
     expect(approvedSourceHtml).toContain('gm:goManager');
+    expect(approvedSourceHtml).toContain('חזרה למסך הניהול');
     expect(approvedSourceHtml).toContain('garage_case_id');
     expect(approvedSourceHtml).toContain('book-pending-banner');
   });
