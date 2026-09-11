@@ -258,7 +258,8 @@ function AppRoutes() {
       <Route path="/claims-intake" element={<ClaimsIntakePage />} />
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/garage-management/*" element={<GarageApp />} />
+        <Route path="/garage-management/:caseId" element={<GarageApp />} />
+        <Route path="/garage-management" element={<GarageApp />} />
         <Route path="/claims" element={<ClaimsPage />} />
         <Route path="/telemarketing" element={<TelemarketingAgentPage />} />
         <Route path="/telemarketing/admin" element={<TelemarketingAdminPage />} />

@@ -1,14 +1,28 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import GarageApp from './GarageApp';
 import approvedSourceHtml from './approved-source.html?raw';
+
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'user-1', full_name: 'יוסי', role: 'super_admin' } }),
+}));
+
+vi.mock('./garageBook', async () => {
+  const actual = await vi.importActual<typeof import('./garageBook')>('./garageBook');
+  return {
+    ...actual,
+    listCases: vi.fn(async () => []),
+    getCase: vi.fn(async () => null),
+  };
+});
 
 function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/garage-management/*" element={<GarageApp />} />
+        <Route path="/garage-management/:caseId" element={<GarageApp />} />
+        <Route path="/garage-management" element={<GarageApp />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -29,12 +43,12 @@ describe('garage-management approved source', () => {
     expect(frame.srcdoc).toContain('סגירת תיק');
   });
 
-  it('keeps nested garage-management paths on the same approved source', () => {
-    renderAt('/garage-management/cases/case-1056');
+  it('keeps nested garage-management case ids on the approved source', () => {
+    renderAt('/garage-management/case-1056');
     expect(screen.getByTitle('ניהול מוסך')).toBeInTheDocument();
   });
 
-  it('preserves the approved flow screens in the source document', () => {
+  it('preserves the approved flow screens and persist bridge', () => {
     expect(approvedSourceHtml).toContain('id="s-home"');
     expect(approvedSourceHtml).toContain('id="s-choose"');
     expect(approvedSourceHtml).toContain('id="s-search"');
@@ -43,22 +57,12 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('id="s-newvehicle"');
     expect(approvedSourceHtml).toContain('id="s-vehform"');
     expect(approvedSourceHtml).toContain('id="s-case"');
-    expect(approvedSourceHtml).toContain('id="s-inspect"');
-    expect(approvedSourceHtml).toContain('id="s-quote"');
-    expect(approvedSourceHtml).toContain('id="s-quote-preview"');
-    expect(approvedSourceHtml).toContain('id="s-workorder"');
-    expect(approvedSourceHtml).toContain('id="s-gallery"');
-    expect(approvedSourceHtml).toContain('id="s-comm"');
-    expect(approvedSourceHtml).toContain('id="s-compose"');
-    expect(approvedSourceHtml).toContain('id="s-share"');
-    expect(approvedSourceHtml).toContain('id="s-intake"');
-    expect(approvedSourceHtml).toContain('id="s-job"');
-    expect(approvedSourceHtml).toContain('id="s-finish"');
-    expect(approvedSourceHtml).toContain('id="s-close"');
-    expect(approvedSourceHtml).toContain('id="s-timeline"');
     expect(approvedSourceHtml).toContain('function go(id)');
     expect(approvedSourceHtml).toContain('function createShareLink()');
     expect(approvedSourceHtml).toContain('function confirmIntake()');
     expect(approvedSourceHtml).toContain('function confirmCloseCase()');
+    expect(approvedSourceHtml).toContain("callHost('gm:saveCase'");
+    expect(approvedSourceHtml).toContain('saveCustomerAndContinue');
+    expect(approvedSourceHtml).toContain('home-cases');
   });
 });

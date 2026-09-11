@@ -241,7 +241,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <!-- ================= SCREEN: HOME ================= -->
 <section class="screen active" id="s-home">
   <div class="home-header">
-    <div class="greet">בוקר טוב, יוסי</div>
+    <div class="greet" id="home-greet">בוקר טוב</div>
     <div class="name">דליה — לקוחות ישירים</div>
   </div>
   <div class="big-open" onclick="go('s-choose')">
@@ -249,30 +249,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="plus">＋</div>
   </div>
   <div class="section-label">התיקים שלי</div>
-  <div class="case-card tap" onclick="openCase()">
-    <div class="top-row">
-      <div><div class="co">אלדן בע"מ</div><div class="plate">12-345-67 · Toyota Corolla</div></div>
-      <span class="badge badge-warn">בדיקת רכב</span>
-    </div>
-    <div class="num">תיק #1056</div>
-    <div class="price">טרם נוצרה הצעה</div>
-  </div>
-  <div class="case-card">
-    <div class="top-row">
-      <div><div class="co">ישראל ישראלי</div><div class="plate">87-654-32 · Kia Niro</div></div>
-      <span class="badge badge-accent">בעבודה</span>
-    </div>
-    <div class="num">תיק #1055</div>
-    <div class="price">1,450 ₪</div>
-  </div>
-  <div class="case-card">
-    <div class="top-row">
-      <div><div class="co">חברת רהיטי הצפון</div><div class="plate">33-221-09 · Ford Transit</div></div>
-      <span class="badge badge-ok">מוכן למסירה</span>
-    </div>
-    <div class="num">תיק #1051 · הזמנה 9902</div>
-    <div class="price">2,860 ₪</div>
-  </div>
+  <div id="home-cases"></div>
+  <div id="home-empty" class="hint" style="padding:0 16px;">אין תיקים שמורים עדיין. פתיחת תיק שומרת לקוח, רכב ותיק עבודה.</div>
 </section>
 <!-- ================= SCREEN: CHOOSE NEW/EXISTING ================= -->
 <section class="screen" id="s-choose">
@@ -293,24 +271,18 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <section class="screen" id="s-search">
   <div class="topbar"><div class="back" onclick="go('s-choose')">→</div><div><h1>לקוח קיים</h1><div class="sub">חיפוש לקוח</div></div></div>
   <div class="content">
-    <div class="field"><input type="text" placeholder="שם, טלפון, ח.פ. או מספר רכב" value="אלדן"></div>
-    <div class="cust-result tap" onclick="go('s-newvehicle')">
-      <div class="id">לקוח #1204</div>
-      <div class="nm">אלדן בע"מ</div>
-      <div class="ph">03-9001234 · הזמנות@aldan.co.il</div>
-      <div class="veh-mini"><div><div class="p">12-345-67</div><div class="m">Toyota Corolla</div></div><span class="chev">‹</span></div>
-      <div class="veh-mini"><div><div class="p">87-654-32</div><div class="m">Kia Niro</div></div><span class="chev">‹</span></div>
-    </div>
-    <button class="btn btn-ghost" onclick="go('s-vehform')">＋ הוסף רכב חדש ללקוח זה</button>
+    <div class="field"><input id="search-q" type="text" placeholder="שם, טלפון, ח.פ. או מספר רכב" oninput="scheduleSearch()"></div>
+    <div id="search-results"></div>
+    <div id="search-hint" class="hint">חפש לקוח קיים לפי שם, טלפון, ח.פ. או מספר רכב.</div>
   </div>
 </section>
 <!-- ================= SCREEN: NEW CUSTOMER TYPE ================= -->
 <section class="screen" id="s-newtype">
   <div class="topbar"><div class="back" onclick="go('s-choose')">→</div><div><h1>לקוח חדש</h1><div class="sub">בחירת סוג לקוח</div></div></div>
   <div class="content">
-    <div class="card tap" onclick="go('s-newform')"><div class="row"><div style="font-weight:700;">לקוח פרטי</div><span class="chev">‹</span></div></div>
-    <div class="card tap" onclick="go('s-newform')"><div class="row"><div style="font-weight:700;">עסקי / חברה</div><span class="chev">‹</span></div></div>
-    <div class="card tap" onclick="go('s-newform')"><div class="row"><div style="font-weight:700;">חברה קבועה / צי רכב</div><span class="chev">‹</span></div></div>
+    <div class="card tap" onclick="startNewCustomer('private')"><div class="row"><div style="font-weight:700;">לקוח פרטי</div><span class="chev">‹</span></div></div>
+    <div class="card tap" onclick="startNewCustomer('business')"><div class="row"><div style="font-weight:700;">עסקי / חברה</div><span class="chev">‹</span></div></div>
+    <div class="card tap" onclick="startNewCustomer('fleet')"><div class="row"><div style="font-weight:700;">חברה קבועה / צי רכב</div><span class="chev">‹</span></div></div>
     <div class="hint" style="margin-top:8px;">מספר לקוח (#1284) יינתן אוטומטית — אין צורך להזין ידנית.</div>
   </div>
 </section>
@@ -318,21 +290,25 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <section class="screen" id="s-newform">
   <div class="topbar"><div class="back" onclick="go('s-newtype')">→</div><div><h1>פרטי לקוח</h1><div class="sub">לקוח חדש #1284</div></div></div>
   <div class="content">
-    <div class="field"><label>שם מלא / שם חברה <span class="req">*</span></label><input placeholder="לדוגמה: ישראל ישראלי"></div>
-    <div class="field"><label>טלפון <span class="req">*</span></label><input placeholder="050-0000000"></div>
-    <div class="field"><label>Email</label><input placeholder="name@mail.com"></div>
-    <div class="field"><label>כתובת</label><input placeholder="עיר, רחוב"></div>
-    <div class="field"><label>אמצעי תקשורת מועדף</label><div class="chip-row"><div class="chip selected">WhatsApp</div><div class="chip">Email</div><div class="chip">טלפון</div></div></div>
-    <div class="field"><label>הערות</label><textarea placeholder="הערות כלליות על הלקוח"></textarea></div>
-    <button class="btn btn-white" onclick="go('s-vehform')">שמור והמשך לרכב</button>
+    <div class="field"><label>שם מלא / שם חברה <span class="req">*</span></label><input id="cust-name" placeholder="לדוגמה: ישראל ישראלי"></div>
+    <div class="field"><label>טלפון <span class="req">*</span></label><input id="cust-phone" placeholder="050-0000000"></div>
+    <div class="field"><label>טלפון נוסף</label><input id="cust-phone2" placeholder="טלפון נוסף"></div>
+    <div class="field"><label>Email</label><input id="cust-email" placeholder="name@mail.com"></div>
+    <div class="field"><label>כתובת</label><input id="cust-address" placeholder="עיר, רחוב"></div>
+    <div class="field"><label>ח.פ / עוסק</label><input id="cust-biz" placeholder="מספר עוסק / ח.פ"></div>
+    <div class="field"><label>איש קשר</label><input id="cust-contact" placeholder="שם איש קשר"></div>
+    <div class="field"><label>אמצעי תקשורת מועדף</label><div class="chip-row"><div class="chip selected" data-channel="WhatsApp" onclick="selChip(this)">WhatsApp</div><div class="chip" data-channel="Email" onclick="selChip(this)">Email</div><div class="chip" data-channel="טלפון" onclick="selChip(this)">טלפון</div></div></div>
+    <div class="field"><label>הערות</label><textarea id="cust-notes" placeholder="הערות כלליות על הלקוח"></textarea></div>
+    <div id="cust-dupes"></div>
+    <button class="btn btn-white" id="cust-save-btn" onclick="saveCustomerAndContinue(false)">שמור והמשך לרכב</button>
   </div>
 </section>
 <!-- ================= SCREEN: VEHICLE EXISTING PICK ================= -->
 <section class="screen" id="s-newvehicle">
-  <div class="topbar"><div class="back" onclick="go('s-search')">→</div><div><h1>רכב</h1><div class="sub">אלדן בע"מ · לקוח #1204</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-search')">→</div><div><h1>רכב</h1><div class="sub" id="veh-pick-sub">בחירת רכב</div></div></div>
   <div class="content">
-    <div class="card tap" onclick="createCase()"><div class="row"><div><div style="font-weight:700;">12-345-67</div><div style="font-size:12px; color:var(--white50);">Toyota Corolla · 2021</div></div><span class="chev">‹</span></div></div>
-    <div class="card tap" onclick="createCase()"><div class="row"><div><div style="font-weight:700;">87-654-32</div><div style="font-size:12px; color:var(--white50);">Kia Niro · 2022</div></div><span class="chev">‹</span></div></div>
+    <div id="vehicle-pick-list"></div>
+    <div id="customer-history"></div>
     <button class="btn btn-ghost" onclick="go('s-vehform')">＋ הוסף רכב חדש</button>
   </div>
 </section>
@@ -340,24 +316,25 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <section class="screen" id="s-vehform">
   <div class="topbar"><div class="back" onclick="go('s-newform')">→</div><div><h1>פרטי רכב</h1><div class="sub">רכב חדש</div></div></div>
   <div class="content">
-    <div class="field"><label>מספר רישוי <span class="req">*</span></label><input placeholder="00-000-00"></div>
-    <div class="field"><label>יצרן</label><input placeholder="Toyota"></div>
-    <div class="field"><label>דגם</label><input placeholder="Corolla"></div>
-    <div class="field"><label>שנה</label><input placeholder="2023"></div>
-    <div class="field"><label>צבע</label><input placeholder="לבן"></div>
-    <div class="field"><label>הערות</label><textarea placeholder="פרטים נוספים על הרכב"></textarea></div>
-    <button class="btn btn-white" onclick="createCase()">צור תיק עבודה</button>
+    <div class="field"><label>מספר רישוי <span class="req">*</span></label><input id="veh-plate" placeholder="00-000-00"></div>
+    <div class="field"><label>יצרן</label><input id="veh-make" placeholder="Toyota"></div>
+    <div class="field"><label>דגם</label><input id="veh-model" placeholder="Corolla"></div>
+    <div class="field"><label>שנה</label><input id="veh-year" placeholder="2023"></div>
+    <div class="field"><label>צבע</label><input id="veh-color" placeholder="לבן"></div>
+    <div class="field"><label>VIN</label><input id="veh-vin" placeholder="מספר שילדה"></div>
+    <div class="field"><label>הערות</label><textarea id="veh-notes" placeholder="פרטים נוספים על הרכב"></textarea></div>
+    <button class="btn btn-white" onclick="saveVehicleAndCreateCase()">צור תיק עבודה</button>
   </div>
 </section>
 <!-- ================= SCREEN: CASE HUB ================= -->
 <section class="screen" id="s-case">
   <div class="case-head">
-    <div class="idrow"><span class="tag">תיק #1056</span><span class="badge badge-warn" id="case-status-badge">בדיקת רכב</span></div>
-    <div class="co-line">אלדן בע"מ</div>
-    <div class="veh-line">12-345-67 · Toyota Corolla · 2021</div>
+    <div class="idrow"><span class="tag" id="case-number-tag">תיק חדש</span><span class="badge badge-warn" id="case-status-badge">בדיקת רכב</span></div>
+    <div class="co-line" id="case-customer-line"></div>
+    <div class="veh-line" id="case-vehicle-line"></div>
     <div class="meta">
-      <span class="metapill">עובד: יוסי</span>
-      <span class="metapill">נפתח היום 09:05</span>
+      <span class="metapill" id="case-worker-pill">עובד</span>
+      <span class="metapill" id="case-opened-pill">נפתח</span>
       <span class="metapill" id="case-order-pill">הזמנה: —</span>
     </div>
   </div>
@@ -872,8 +849,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </div>
 <script>
 var state = {
-  photos: {fl:true, fr:true, rl:false, rr:false},
-  damageCount: 1,
+  photos: {fl:false, fr:false, rl:false, rr:false},
+  damageCount: 0,
   quoteCreated: false,
   quoteSent: false,
   quoteApproved: false,
@@ -881,19 +858,252 @@ var state = {
   workOrderAmount: null,
   workOrderNumber: null,
   intakeDone: false,
+  signatureCaptured: false,
   workStarted: false,
   workFinished: false,
   caseClosed: false,
-  workExtraPrice: 0
+  workExtraPrice: 0,
+  currentScreen: 's-home'
 };
+var currentCase = null;
+var currentCustomer = null;
+var currentVehicle = null;
+var workerName = '';
+var persistTimer = null;
+var searchTimer = null;
+var reqSeq = 0;
+var pending = {};
+var draftCustomerType = 'private';
+function callHost(type, payload){
+  return new Promise(function(resolve, reject){
+    var id = String(++reqSeq);
+    pending[id] = {resolve: resolve, reject: reject};
+    parent.postMessage({type: type, requestId: id, payload: payload || {}}, '*');
+    setTimeout(function(){
+      if(pending[id]){ pending[id].reject(new Error('timeout')); delete pending[id]; }
+    }, 20000);
+  });
+}
+window.addEventListener('message', function(ev){
+  var msg = ev.data || {};
+  if(msg.type === 'gm:response' && msg.requestId && pending[msg.requestId]){
+    var p = pending[msg.requestId]; delete pending[msg.requestId];
+    if(msg.payload && msg.payload.ok === false) p.reject(new Error(msg.payload.error || 'error'));
+    else p.resolve(msg.payload || {});
+  }
+  if(msg.type === 'gm:bootstrap') applyBootstrap(msg.payload || {});
+});
+function applyBootstrap(payload){
+  if(payload.userName){
+    workerName = payload.userName;
+    var greet = document.getElementById('home-greet');
+    if(greet) greet.textContent = 'בוקר טוב, ' + payload.userName;
+  }
+  if(payload.error){
+    var empty = document.getElementById('home-empty');
+    if(empty) empty.textContent = payload.error;
+  }
+  if(payload.mode === 'home'){
+    renderHomeCases(payload.cases || []);
+    go('s-home');
+    return;
+  }
+  if(payload.mode === 'case' && payload.loaded){
+    hydrateCase(payload.loaded);
+    go('s-case');
+  }
+}
+function renderHomeCases(cases){
+  var box = document.getElementById('home-cases');
+  var empty = document.getElementById('home-empty');
+  if(!box) return;
+  box.innerHTML = '';
+  if(!cases.length){
+    if(empty) empty.style.display = 'block';
+    return;
+  }
+  if(empty) empty.style.display = 'none';
+  cases.forEach(function(c){
+    var el = document.createElement('div');
+    el.className = 'case-card tap';
+    el.onclick = function(){ parent.postMessage({type:'gm:openCase', payload:{caseId:c.id}}, '*'); };
+    var badge = c.status === 'סגור' ? 'badge-muted' : (c.status === 'מוכן למסירה' ? 'badge-ok' : (c.status === 'בעבודה' || c.status === 'הרכב התקבל' ? 'badge-accent' : 'badge-warn'));
+    el.innerHTML = '<div class="top-row"><div><div class="co">'+esc(c.customer_name_snapshot||'')+'</div><div class="plate">'+esc(c.vehicle_plate_snapshot||'')+' · '+esc(c.vehicle_label_snapshot||'')+'</div></div><span class="badge '+badge+'">'+esc(c.status||'')+'</span></div><div class="num">'+esc(c.case_number||'')+'</div>';
+    box.appendChild(el);
+  });
+}
+function esc(s){ return String(s||'').replace(/[&<>"']/g, function(ch){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]); }); }
+function hydrateCase(loaded){
+  currentCase = loaded;
+  currentCustomer = loaded.customer || currentCustomer;
+  currentVehicle = loaded.vehicle || currentVehicle;
+  var data = loaded.case_data || {};
+  state.photos = Object.assign({fl:false,fr:false,rl:false,rr:false}, data.photos || {});
+  state.damageCount = data.damageCount || 0;
+  state.quoteCreated = !!data.quoteCreated;
+  state.quoteSent = !!data.quoteSent;
+  state.quoteApproved = !!data.quoteApproved;
+  state.workOrderSaved = !!data.workOrderSaved;
+  state.workOrderAmount = data.workOrderAmount || null;
+  state.workOrderNumber = data.workOrderNumber || null;
+  state.intakeDone = !!data.intakeDone;
+  state.signatureCaptured = !!data.signatureCaptured;
+  state.workStarted = !!data.workStarted;
+  state.workFinished = !!data.workFinished;
+  state.caseClosed = !!data.caseClosed;
+  state.workExtraPrice = data.workExtraPrice || 0;
+  document.getElementById('case-number-tag').textContent = loaded.case_number || '';
+  document.getElementById('case-customer-line').textContent = loaded.customer_name_snapshot || '';
+  document.getElementById('case-vehicle-line').textContent = (loaded.vehicle_plate_snapshot||'') + ' · ' + (loaded.vehicle_label_snapshot||'');
+  document.getElementById('case-worker-pill').textContent = 'נפתח על ידי: ' + (loaded.opened_by_name || workerName || '');
+  var opened = loaded.created_at ? new Date(loaded.created_at) : new Date();
+  document.getElementById('case-opened-pill').textContent = 'נפתח ' + opened.toLocaleString('he-IL');
+  if(state.workOrderNumber) document.getElementById('case-order-pill').textContent = 'הזמנה: ' + state.workOrderNumber;
+  ['fl','fr','rl','rr'].forEach(function(angle){
+    var slot = document.querySelector('.photo-slot[data-angle="'+angle+'"]');
+    if(!slot) return;
+    if(state.photos[angle]){
+      slot.classList.add('done');
+    } else {
+      slot.classList.remove('done');
+    }
+  });
+  refreshCaseHub();
+}
+function schedulePersist(){
+  if(!currentCase || !currentCase.id) return;
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(function(){
+    var data = Object.assign({}, state, {photos: Object.assign({}, state.photos)});
+    callHost('gm:saveCase', {caseId: currentCase.id, caseData: data}).catch(function(err){ console.warn(err); });
+  }, 400);
+}
+function startNewCustomer(type){
+  draftCustomerType = type;
+  go('s-newform');
+}
+function scheduleSearch(){
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(runSearch, 250);
+}
+function runSearch(){
+  var q = (document.getElementById('search-q').value || '').trim();
+  if(!q){ document.getElementById('search-results').innerHTML=''; return; }
+  callHost('gm:searchCustomers', {q:q}).then(function(res){
+    var box = document.getElementById('search-results');
+    box.innerHTML = '';
+    (res.customers || []).forEach(function(c){
+      var el = document.createElement('div');
+      el.className = 'cust-result tap';
+      el.onclick = function(){ selectExistingCustomer(c); };
+      var nm = c.customer_type === 'private' ? c.name : (c.company_name || c.name);
+      el.innerHTML = '<div class="id">לקוח #'+esc(c.customer_number)+'</div><div class="nm">'+esc(nm)+'</div><div class="ph">'+esc(c.phone)+(c.email?' · '+esc(c.email):'')+'</div>';
+      box.appendChild(el);
+    });
+    if(!(res.customers||[]).length){
+      box.innerHTML = '<div class="hint">לא נמצא לקוח. אפשר לפתוח לקוח חדש.</div>';
+    }
+  }).catch(function(err){ alert(err.message || err); });
+}
+function selectExistingCustomer(c){
+  currentCustomer = c;
+  document.getElementById('veh-pick-sub').textContent = (c.company_name || c.name) + ' · לקוח #' + c.customer_number;
+  callHost('gm:listVehicles', {customerId: c.id}).then(function(res){
+    var list = document.getElementById('vehicle-pick-list');
+    list.innerHTML = '';
+    (res.vehicles || []).forEach(function(v){
+      var el = document.createElement('div');
+      el.className = 'card tap';
+      el.onclick = function(){ createCaseWithVehicle(v); };
+      el.innerHTML = '<div class="row"><div><div style="font-weight:700;">'+esc(v.plate)+'</div><div style="font-size:12px; color:var(--white50);">'+esc([v.make,v.model,v.year].filter(Boolean).join(' · '))+'</div></div><span class="chev">‹</span></div>';
+      list.appendChild(el);
+    });
+    var hist = document.getElementById('customer-history');
+    if(hist){
+      hist.innerHTML = (res.history||[]).length ? '<div class="hint">היסטוריה: '+(res.history||[]).map(function(h){ return esc(h.case_number)+' · '+esc(h.status); }).join(' | ')+'</div>' : '';
+    }
+    go('s-newvehicle');
+  }).catch(function(err){ alert(err.message || err); });
+}
+function draftFromForm(){
+  var name = (document.getElementById('cust-name').value || '').trim();
+  return {
+    customer_type: draftCustomerType,
+    name: draftCustomerType === 'private' ? name : '',
+    company_name: draftCustomerType === 'private' ? '' : name,
+    phone: (document.getElementById('cust-phone').value || '').trim(),
+    second_phone: (document.getElementById('cust-phone2').value || '').trim(),
+    email: (document.getElementById('cust-email').value || '').trim(),
+    address: (document.getElementById('cust-address').value || '').trim(),
+    business_id: (document.getElementById('cust-biz').value || '').trim(),
+    contact_person: (document.getElementById('cust-contact').value || '').trim(),
+    preferred_channel: (document.querySelector('#s-newform .chip.selected') || {}).dataset ? document.querySelector('#s-newform .chip.selected').getAttribute('data-channel') : 'WhatsApp',
+    notes: (document.getElementById('cust-notes').value || '').trim()
+  };
+}
+function saveCustomerAndContinue(force){
+  var draft = draftFromForm();
+  if(!draft.phone || !(draft.name || draft.company_name)){ alert('יש למלא שם וטלפון'); return; }
+  callHost('gm:createCustomer', {draft: draft, force: !!force}).then(function(res){
+    var box = document.getElementById('cust-dupes');
+    if(res.needsConfirm && res.duplicates && res.duplicates.length){
+      box.innerHTML = '<div class="hint">נמצא לקוח קיים. לא בוצע מיזוג אוטומטי.</div>';
+      res.duplicates.forEach(function(c){
+        var el = document.createElement('div');
+        el.className = 'cust-result tap';
+        el.onclick = function(){ selectExistingCustomer(c); };
+        el.innerHTML = '<div class="id">לקוח קיים #'+esc(c.customer_number)+'</div><div class="nm">'+esc(c.company_name || c.name)+'</div><div class="ph">'+esc(c.phone)+'</div>';
+        box.appendChild(el);
+      });
+      var btn = document.createElement('button');
+      btn.className = 'btn btn-ghost';
+      btn.textContent = 'צור בכל זאת לקוח חדש';
+      btn.onclick = function(){ saveCustomerAndContinue(true); };
+      box.appendChild(btn);
+      return;
+    }
+    currentCustomer = res.customer;
+    selectExistingCustomer(res.customer);
+  }).catch(function(err){ alert(err.message || err); });
+}
+function saveVehicleAndCreateCase(){
+  if(!currentCustomer){ alert('יש לבחור לקוח תחילה'); return; }
+  var plate = (document.getElementById('veh-plate').value || '').trim();
+  if(!plate){ alert('יש למלא מספר רישוי'); return; }
+  var yearRaw = (document.getElementById('veh-year').value || '').trim();
+  var draft = {
+    customer_id: currentCustomer.id,
+    plate: plate,
+    make: (document.getElementById('veh-make').value || '').trim(),
+    model: (document.getElementById('veh-model').value || '').trim(),
+    year: yearRaw ? parseInt(yearRaw, 10) : null,
+    color: (document.getElementById('veh-color').value || '').trim(),
+    vin: (document.getElementById('veh-vin').value || '').trim(),
+    vehicle_type: '',
+    internal_number: '',
+    notes: (document.getElementById('veh-notes').value || '').trim()
+  };
+  callHost('gm:createVehicle', {draft: draft}).then(function(res){
+    createCaseWithVehicle(res.vehicle);
+  }).catch(function(err){ alert(err.message || err); });
+}
+function createCaseWithVehicle(vehicle){
+  currentVehicle = vehicle;
+  callHost('gm:createCase', {customer: currentCustomer, vehicle: vehicle}).then(function(res){
+    if(res.created) hydrateCase(Object.assign({}, res.created, {customer: currentCustomer, vehicle: vehicle}));
+    go('s-case');
+  }).catch(function(err){ alert(err.message || err); });
+}
 function go(id){
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
+  state.currentScreen = id;
   if(id==='s-intake') setTimeout(initSigPad, 50);
+  if(currentCase && currentCase.id) schedulePersist();
 }
-function openCase(){ refreshCaseHub(); go('s-case'); }
-function createCase(){ refreshCaseHub(); go('s-case'); }
+function openCase(){ if(currentCase) { refreshCaseHub(); go('s-case'); } }
+function createCase(){ if(currentVehicle) createCaseWithVehicle(currentVehicle); }
 function toggleAcc(el){ el.classList.toggle('open'); }
 /* ---------- inspection ---------- */
 function togglePhoto(angle){
@@ -1075,8 +1285,9 @@ function initSigPad(){
 function clearSig(){ if(sigCtx) sigCtx.clearRect(0,0,document.getElementById('sigpad').width, document.getElementById('sigpad').height); }
 function confirmIntake(){
   state.intakeDone = true;
+  state.signatureCaptured = true;
   addTimelineEvent('הרכב התקבל ולקוח חתם על קבלת הרכב');
-  alert('קבלת הרכב אושרה. הופק PDF קבלת רכב חתום ונשמר בגלריה.');
+  alert('קבלת הרכב אושרה. החתימה נרשמה כדגל בתיק; קובץ החתימה יישמר בשלב Storage נפרד.');
   state.workStarted = true;
   refreshCaseHub();
   go('s-job');
@@ -1100,10 +1311,10 @@ function tryCloseCase(){
 }
 function confirmCloseCase(){
   state.caseClosed = true;
-  addTimelineEvent('התיק נסגר ע"י יוסי');
+  addTimelineEvent('התיק נסגר');
   refreshCaseHub();
-  alert('התיק נסגר ועבר לארכיון תיקים סגורים. הלקוח והרכב נשארים זמינים לתיק הבא.');
-  go('s-home');
+  alert('התיק נסגר. הלקוח והרכב נשארים זמינים לתיק הבא.');
+  parent.postMessage({type:'gm:goHome'}, '*');
 }
 /* ---------- comm ---------- */
 function sendComposedEmail(){
@@ -1182,8 +1393,9 @@ function refreshCaseHub(){
   document.getElementById('tile-wo-sub').textContent = state.workOrderSaved ? (state.workOrderNumber+' · '+parseInt(state.workOrderAmount).toLocaleString()+' ₪') : 'ממתין';
   document.getElementById('acc-wo-body').innerHTML = state.workOrderSaved ? (state.workOrderNumber+' · '+parseInt(state.workOrderAmount).toLocaleString()+' ₪ · מאושרת <span class="open-link" onclick="event.stopPropagation(); go(\'s-workorder\')">פתח ›</span>') : 'אין הזמנות עבודה מקושרות עדיין. <span class="open-link" onclick="event.stopPropagation(); go(\'s-workorder\')">פתח ›</span>';
   document.getElementById('close-case-btn').disabled = !state.workFinished || state.caseClosed;
+  schedulePersist();
 }
-refreshCaseHub();
+parent.postMessage({type:'gm:ready'}, '*');
 </script>
 </body>
 </html>
