@@ -773,7 +773,7 @@ function InCardPreview({ file, onClose, pos, canPrev, canNext, onPrev, onNext }:
 
 type ToastItem = { id: number; msg: string; type: string };
 
-export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
+export function ClaimsScreen({ actor, openClaimId, startNewNonce }: { actor: ClaimsActor; openClaimId?: string; startNewNonce?: number }) {
   const apiRef = useRef<ClaimsApi>(createClaimsApi(actor));
   const [ready, setReady] = useState(false);
   const [sync, setSync] = useState<'ok' | 'pend' | 'err'>('ok');
@@ -2111,6 +2111,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setVehHits([]);
     setModal('moClaim');
   };
+
+  useEffect(() => {
+    if (!ready || !openClaimId) return;
+    void openCard(openClaimId);
+  }, [ready, openClaimId]);
+
+  useEffect(() => {
+    if (!ready || !startNewNonce) return;
+    openNew();
+  }, [ready, startNewNonce]);
 
   const startEdit = (id: string) => {
     const c = claims.find((x) => x.id === id);
