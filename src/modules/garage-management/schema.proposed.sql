@@ -162,7 +162,8 @@ CREATE TABLE IF NOT EXISTS public.garage_vehicles (
   notes text NOT NULL DEFAULT '',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT garage_vehicles_plate_present CHECK (length(trim(plate)) > 0)
+  CONSTRAINT garage_vehicles_plate_present CHECK (length(trim(plate)) > 0),
+  CONSTRAINT garage_vehicles_id_customer_unique UNIQUE (id, customer_id)
 );
 
 COMMENT ON TABLE public.garage_vehicles IS
@@ -197,7 +198,7 @@ CREATE TABLE IF NOT EXISTS public.garage_cases (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   case_number text NOT NULL DEFAULT public.next_garage_case_number(),
   customer_id uuid NOT NULL REFERENCES public.garage_customers(id) ON DELETE RESTRICT,
-  vehicle_id uuid NOT NULL REFERENCES public.garage_vehicles(id) ON DELETE RESTRICT,
+  vehicle_id uuid NOT NULL,
   status text NOT NULL DEFAULT 'בדיקת רכב',
   opened_by uuid NOT NULL REFERENCES auth.users(id),
   opened_by_name text NOT NULL DEFAULT '',
@@ -218,7 +219,11 @@ CREATE TABLE IF NOT EXISTS public.garage_cases (
     'מוכן למסירה',
     'סגור'
   )),
-  CONSTRAINT garage_cases_case_data_object CHECK (jsonb_typeof(case_data) = 'object')
+  CONSTRAINT garage_cases_case_data_object CHECK (jsonb_typeof(case_data) = 'object'),
+  CONSTRAINT garage_cases_vehicle_customer_fkey
+    FOREIGN KEY (vehicle_id, customer_id)
+    REFERENCES public.garage_vehicles (id, customer_id)
+    ON DELETE RESTRICT
 );
 
 COMMENT ON TABLE public.garage_cases IS
@@ -256,14 +261,12 @@ CREATE TRIGGER garage_cases_set_updated_at
 REVOKE ALL ON TABLE public.garage_customers FROM PUBLIC, anon;
 REVOKE ALL ON TABLE public.garage_vehicles FROM PUBLIC, anon;
 REVOKE ALL ON TABLE public.garage_cases FROM PUBLIC, anon;
-REVOKE ALL ON SEQUENCE public.garage_customers_number_seq FROM PUBLIC, anon;
-REVOKE ALL ON SEQUENCE public.garage_cases_number_seq FROM PUBLIC, anon;
+REVOKE ALL ON SEQUENCE public.garage_customers_number_seq FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON SEQUENCE public.garage_cases_number_seq FROM PUBLIC, anon, authenticated;
 
 GRANT SELECT, INSERT, UPDATE ON TABLE public.garage_customers TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.garage_vehicles TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.garage_cases TO authenticated;
-GRANT USAGE, SELECT ON SEQUENCE public.garage_customers_number_seq TO authenticated;
-GRANT USAGE, SELECT ON SEQUENCE public.garage_cases_number_seq TO authenticated;
 
 -- ============================================================================
 -- 5. RLS

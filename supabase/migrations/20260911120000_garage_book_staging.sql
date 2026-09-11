@@ -2,11 +2,56 @@
 -- Oren Car PUBLIC STAGING ONLY (dalia-staging / usfeoerkpcafxxlyuldl)
 -- Production / dalia-car.online / qasomfndnjuixgjmjwcm: FORBIDDEN.
 --
+-- Canonical paste-and-run copy (with BEGIN/COMMIT for SQL Editor):
+--   src/modules/garage-management/garage-book.staging.manual.sql
+-- This migration is the same DDL. Supabase CLI already wraps files in a
+-- transaction, so BEGIN/COMMIT are not repeated here.
+--
 -- garage_customers + garage_vehicles + garage_cases
 -- No FK to claims_records / public.vehicles / public.customers / drivers.
 -- No DELETE. No new app_role. No driver shortcut.
 -- fleet_manager visibility: Variant A (own cases only).
+-- Composite FK: garage_cases (vehicle_id, customer_id)
+--               → garage_vehicles (id, customer_id)
+-- No GRANT on sequences to authenticated.
 -- ============================================================================
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'has_role'
+  ) THEN
+    RAISE EXCEPTION
+      'חסר public.has_role ב-Staging. עוצרים לפני יצירת טבלאות המוסך. לא יוצרים תחליף.';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_type t
+    JOIN pg_namespace n ON n.oid = t.typnamespace
+    WHERE n.nspname = 'public'
+      AND t.typname = 'app_role'
+  ) THEN
+    RAISE EXCEPTION
+      'חסר public.app_role ב-Staging. עוצרים לפני יצירת טבלאות המוסך. לא יוצרים תחליף.';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'update_updated_at_column'
+  ) THEN
+    RAISE EXCEPTION
+      'חסר public.update_updated_at_column ב-Staging. עוצרים לפני יצירת טבלאות המוסך. לא יוצרים תחליף.';
+  END IF;
+END;
+$$;
 
 CREATE SEQUENCE IF NOT EXISTS public.garage_customers_number_seq
   AS bigint
@@ -134,7 +179,8 @@ CREATE TABLE IF NOT EXISTS public.garage_vehicles (
   notes text NOT NULL DEFAULT '',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT garage_vehicles_plate_present CHECK (length(trim(plate)) > 0)
+  CONSTRAINT garage_vehicles_plate_present CHECK (length(trim(plate)) > 0),
+  CONSTRAINT garage_vehicles_id_customer_unique UNIQUE (id, customer_id)
 );
 
 COMMENT ON TABLE public.garage_vehicles IS
@@ -160,7 +206,7 @@ CREATE TABLE IF NOT EXISTS public.garage_cases (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   case_number text NOT NULL DEFAULT public.next_garage_case_number(),
   customer_id uuid NOT NULL REFERENCES public.garage_customers(id) ON DELETE RESTRICT,
-  vehicle_id uuid NOT NULL REFERENCES public.garage_vehicles(id) ON DELETE RESTRICT,
+  vehicle_id uuid NOT NULL,
   status text NOT NULL DEFAULT 'בדיקת רכב',
   opened_by uuid NOT NULL REFERENCES auth.users(id),
   opened_by_name text NOT NULL DEFAULT '',
@@ -181,13 +227,58 @@ CREATE TABLE IF NOT EXISTS public.garage_cases (
     'מוכן למסירה',
     'סגור'
   )),
-  CONSTRAINT garage_cases_case_data_object CHECK (jsonb_typeof(case_data) = 'object')
+  CONSTRAINT garage_cases_case_data_object CHECK (jsonb_typeof(case_data) = 'object'),
+  CONSTRAINT garage_cases_vehicle_customer_fkey
+    FOREIGN KEY (vehicle_id, customer_id)
+    REFERENCES public.garage_vehicles (id, customer_id)
+    ON DELETE RESTRICT
 );
 
 COMMENT ON TABLE public.garage_cases IS
   'Body-shop work cases. Independent of claims_records. Close = status סגור. No DELETE. Staging only.';
 COMMENT ON COLUMN public.garage_cases.case_data IS
   'Flow state JSON only. FORBIDDEN: base64, data URLs, file blobs.';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'garage_vehicles_id_customer_unique'
+      AND conrelid = 'public.garage_vehicles'::regclass
+  ) THEN
+    ALTER TABLE public.garage_vehicles
+      ADD CONSTRAINT garage_vehicles_id_customer_unique UNIQUE (id, customer_id);
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'garage_cases_vehicle_id_fkey'
+      AND conrelid = 'public.garage_cases'::regclass
+  ) THEN
+    ALTER TABLE public.garage_cases DROP CONSTRAINT garage_cases_vehicle_id_fkey;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'garage_cases_vehicle_customer_fkey'
+      AND conrelid = 'public.garage_cases'::regclass
+  ) THEN
+    ALTER TABLE public.garage_cases
+      ADD CONSTRAINT garage_cases_vehicle_customer_fkey
+      FOREIGN KEY (vehicle_id, customer_id)
+      REFERENCES public.garage_vehicles (id, customer_id)
+      ON DELETE RESTRICT;
+  END IF;
+END;
+$$;
+
+COMMENT ON CONSTRAINT garage_vehicles_id_customer_unique ON public.garage_vehicles IS
+  'Required target for garage_cases composite FK (vehicle_id, customer_id).';
+COMMENT ON CONSTRAINT garage_cases_vehicle_customer_fkey ON public.garage_cases IS
+  'A case vehicle must belong to the same garage customer as the case.';
 
 CREATE INDEX IF NOT EXISTS garage_cases_customer_id_idx
   ON public.garage_cases (customer_id, created_at DESC);
@@ -209,14 +300,13 @@ CREATE TRIGGER garage_cases_set_updated_at
 REVOKE ALL ON TABLE public.garage_customers FROM PUBLIC, anon;
 REVOKE ALL ON TABLE public.garage_vehicles FROM PUBLIC, anon;
 REVOKE ALL ON TABLE public.garage_cases FROM PUBLIC, anon;
-REVOKE ALL ON SEQUENCE public.garage_customers_number_seq FROM PUBLIC, anon;
-REVOKE ALL ON SEQUENCE public.garage_cases_number_seq FROM PUBLIC, anon;
+
+REVOKE ALL ON SEQUENCE public.garage_customers_number_seq FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON SEQUENCE public.garage_cases_number_seq FROM PUBLIC, anon, authenticated;
 
 GRANT SELECT, INSERT, UPDATE ON TABLE public.garage_customers TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.garage_vehicles TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.garage_cases TO authenticated;
-GRANT USAGE, SELECT ON SEQUENCE public.garage_customers_number_seq TO authenticated;
-GRANT USAGE, SELECT ON SEQUENCE public.garage_cases_number_seq TO authenticated;
 
 ALTER TABLE public.garage_customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.garage_vehicles ENABLE ROW LEVEL SECURITY;
