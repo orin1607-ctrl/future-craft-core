@@ -1,6 +1,7 @@
 -- ============================================================================
 -- APPROVED STAGING SCHEMA.
--- Canonical runnable copy: supabase/migrations/20260911120000_garage_book_staging.sql
+-- Canonical runnable copy (SQL Editor, BEGIN/COMMIT):
+--   src/modules/garage-management/garage-book.staging.manual.sql
 -- This file remains the review copy. Production is still forbidden.
 --
 -- Isolation (hard):
@@ -8,7 +9,9 @@
 --   - Independent of public.vehicles (fleet) and public.customers (CRM/fleet).
 --   - No Storage / claims-docs / photographer portal /garage.
 --   - No new app_role. No Auth changes. No driver shortcut.
+--   - No garage_staff table yet (deferred).
 --   - No DELETE policies. Closed case = status 'סגור', row stays.
+--   - Phase 1 RLS: super_admin only. fleet_manager is blocked.
 -- ============================================================================
 --
 -- Why NOT public.vehicles / public.customers
@@ -42,8 +45,7 @@ AS $$
   SELECT nextval('public.garage_customers_number_seq')::integer;
 $$;
 
-REVOKE ALL ON FUNCTION public.next_garage_customer_number() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.next_garage_customer_number() TO authenticated;
+REVOKE ALL ON FUNCTION public.next_garage_customer_number() FROM PUBLIC, anon, authenticated;
 
 -- Work-case numbers: GM-YYYY-NNNN  (year is a prefix; sequence does NOT reset yearly)
 CREATE SEQUENCE IF NOT EXISTS public.garage_cases_number_seq
@@ -68,21 +70,23 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.next_garage_case_number() FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.next_garage_case_number() TO authenticated;
+REVOKE ALL ON FUNCTION public.next_garage_case_number() FROM PUBLIC, anon, authenticated;
 
 -- Staff helper for RLS. NOT a new role. Existing enum only.
--- Phase 1: super_admin OR fleet_manager. Explicitly NOT driver.
+-- Phase 1: super_admin only. fleet_manager is NOT garage staff.
+-- Explicitly NOT driver / garage_photographer / claims worker.
+-- Future: garage_staff allow-list. Do not create that table in this script.
 CREATE OR REPLACE FUNCTION public.garage_is_staff(_user_id uuid)
 RETURNS boolean
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = pg_catalog, public
 AS $$
-  SELECT
-    public.has_role(_user_id, 'super_admin'::public.app_role)
-    OR public.has_role(_user_id, 'fleet_manager'::public.app_role);
+  SELECT COALESCE(
+    public.has_role(_user_id, 'super_admin'::public.app_role),
+    false
+  );
 $$;
 
 REVOKE ALL ON FUNCTION public.garage_is_staff(uuid) FROM PUBLIC, anon;
@@ -93,7 +97,7 @@ GRANT EXECUTE ON FUNCTION public.garage_is_staff(uuid) TO authenticated;
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS public.garage_customers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_number integer NOT NULL DEFAULT public.next_garage_customer_number(),
+  customer_number integer NOT NULL,
   customer_type text NOT NULL,
   name text NOT NULL DEFAULT '',
   company_name text NOT NULL DEFAULT '',
@@ -196,7 +200,7 @@ CREATE TRIGGER garage_vehicles_set_updated_at
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS public.garage_cases (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  case_number text NOT NULL DEFAULT public.next_garage_case_number(),
+  case_number text NOT NULL,
   customer_id uuid NOT NULL REFERENCES public.garage_customers(id) ON DELETE RESTRICT,
   vehicle_id uuid NOT NULL,
   status text NOT NULL DEFAULT 'בדיקת רכב',
@@ -254,9 +258,15 @@ CREATE TRIGGER garage_cases_set_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
+-- Numbering and immutability (full SQL in garage-book.staging.manual.sql):
+-- BEFORE INSERT SECURITY DEFINER triggers always set customer_number / case_number
+-- from the sequences, ignoring any client-supplied value.
+-- BEFORE UPDATE triggers reject changes to customer_number, case_number, opened_by.
+-- next_garage_* are not granted to authenticated; counters advance only on real INSERT.
+
 -- ============================================================================
 -- 4. Grants — authenticated only. Never anon. Never PUBLIC.
---    DELETE is not granted.
+--    DELETE is not granted. Sequences and numbering functions are not granted.
 -- ============================================================================
 REVOKE ALL ON TABLE public.garage_customers FROM PUBLIC, anon;
 REVOKE ALL ON TABLE public.garage_vehicles FROM PUBLIC, anon;
@@ -269,90 +279,82 @@ GRANT SELECT, INSERT, UPDATE ON TABLE public.garage_vehicles TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.garage_cases TO authenticated;
 
 -- ============================================================================
--- 5. RLS
---    Phase 1 actors: super_admin + fleet_manager via garage_is_staff().
---    driver: NOT included.
---    garage_photographer (job_title on a driver login): NOT included.
+-- 5. RLS — Phase 1: super_admin only.
+--    fleet_manager is blocked (may be an external fleet customer, not shop staff).
+--    driver / garage_photographer / claims worker: NOT included.
 --    No DELETE policy on any table.
---
---    Customer book + vehicle book: shared among staff.
---    Required so "לקוח קיים" search works across super_admin and fleet_manager.
---
---    garage_cases visibility for fleet_manager is PENDING OWNER CHOICE.
---    Written below is VARIANT A (own cases only) — the tighter default.
---    VARIANT B (all garage cases) is commented. Do not enable both.
+--    garage_staff allow-list is deferred; do not create it here.
 -- ============================================================================
 ALTER TABLE public.garage_customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.garage_vehicles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.garage_cases ENABLE ROW LEVEL SECURITY;
 
--- ----- garage_customers -----
 DROP POLICY IF EXISTS garage_customers_select_staff ON public.garage_customers;
-CREATE POLICY garage_customers_select_staff
-  ON public.garage_customers
-  FOR SELECT
-  TO authenticated
-  USING (public.garage_is_staff(auth.uid()));
-
 DROP POLICY IF EXISTS garage_customers_insert_staff ON public.garage_customers;
-CREATE POLICY garage_customers_insert_staff
+DROP POLICY IF EXISTS garage_customers_update_staff ON public.garage_customers;
+DROP POLICY IF EXISTS garage_customers_select_super_admin ON public.garage_customers;
+DROP POLICY IF EXISTS garage_customers_insert_super_admin ON public.garage_customers;
+DROP POLICY IF EXISTS garage_customers_update_super_admin ON public.garage_customers;
+
+CREATE POLICY garage_customers_select_super_admin
+  ON public.garage_customers
+  FOR SELECT
+  TO authenticated
+  USING (public.garage_is_staff(auth.uid()));
+
+CREATE POLICY garage_customers_insert_super_admin
   ON public.garage_customers
   FOR INSERT
   TO authenticated
   WITH CHECK (public.garage_is_staff(auth.uid()));
 
-DROP POLICY IF EXISTS garage_customers_update_staff ON public.garage_customers;
-CREATE POLICY garage_customers_update_staff
+CREATE POLICY garage_customers_update_super_admin
   ON public.garage_customers
   FOR UPDATE
   TO authenticated
   USING (public.garage_is_staff(auth.uid()))
   WITH CHECK (public.garage_is_staff(auth.uid()));
 
--- no DELETE policy
-
--- ----- garage_vehicles -----
 DROP POLICY IF EXISTS garage_vehicles_select_staff ON public.garage_vehicles;
-CREATE POLICY garage_vehicles_select_staff
+DROP POLICY IF EXISTS garage_vehicles_insert_staff ON public.garage_vehicles;
+DROP POLICY IF EXISTS garage_vehicles_update_staff ON public.garage_vehicles;
+DROP POLICY IF EXISTS garage_vehicles_select_super_admin ON public.garage_vehicles;
+DROP POLICY IF EXISTS garage_vehicles_insert_super_admin ON public.garage_vehicles;
+DROP POLICY IF EXISTS garage_vehicles_update_super_admin ON public.garage_vehicles;
+
+CREATE POLICY garage_vehicles_select_super_admin
   ON public.garage_vehicles
   FOR SELECT
   TO authenticated
   USING (public.garage_is_staff(auth.uid()));
 
-DROP POLICY IF EXISTS garage_vehicles_insert_staff ON public.garage_vehicles;
-CREATE POLICY garage_vehicles_insert_staff
+CREATE POLICY garage_vehicles_insert_super_admin
   ON public.garage_vehicles
   FOR INSERT
   TO authenticated
   WITH CHECK (public.garage_is_staff(auth.uid()));
 
-DROP POLICY IF EXISTS garage_vehicles_update_staff ON public.garage_vehicles;
-CREATE POLICY garage_vehicles_update_staff
+CREATE POLICY garage_vehicles_update_super_admin
   ON public.garage_vehicles
   FOR UPDATE
   TO authenticated
   USING (public.garage_is_staff(auth.uid()))
   WITH CHECK (public.garage_is_staff(auth.uid()));
 
--- no DELETE policy
-
--- ----- garage_cases : VARIANT A (active) — fleet_manager sees own cases only
--- super_admin sees all. fleet_manager SELECT/UPDATE where opened_by = auth.uid().
 DROP POLICY IF EXISTS garage_cases_select_staff ON public.garage_cases;
-CREATE POLICY garage_cases_select_staff
+DROP POLICY IF EXISTS garage_cases_insert_staff ON public.garage_cases;
+DROP POLICY IF EXISTS garage_cases_update_staff ON public.garage_cases;
+DROP POLICY IF EXISTS garage_cases_select_super_admin ON public.garage_cases;
+DROP POLICY IF EXISTS garage_cases_insert_super_admin ON public.garage_cases;
+DROP POLICY IF EXISTS garage_cases_update_super_admin ON public.garage_cases;
+
+CREATE POLICY garage_cases_select_super_admin
   ON public.garage_cases
   FOR SELECT
   TO authenticated
-  USING (
-    public.has_role(auth.uid(), 'super_admin'::public.app_role)
-    OR (
-      public.has_role(auth.uid(), 'fleet_manager'::public.app_role)
-      AND opened_by = auth.uid()
-    )
-  );
+  USING (public.garage_is_staff(auth.uid()));
 
-DROP POLICY IF EXISTS garage_cases_insert_staff ON public.garage_cases;
-CREATE POLICY garage_cases_insert_staff
+CREATE POLICY garage_cases_insert_super_admin
   ON public.garage_cases
   FOR INSERT
   TO authenticated
@@ -361,41 +363,14 @@ CREATE POLICY garage_cases_insert_staff
     AND opened_by = auth.uid()
   );
 
-DROP POLICY IF EXISTS garage_cases_update_staff ON public.garage_cases;
-CREATE POLICY garage_cases_update_staff
+CREATE POLICY garage_cases_update_super_admin
   ON public.garage_cases
   FOR UPDATE
   TO authenticated
-  USING (
-    public.has_role(auth.uid(), 'super_admin'::public.app_role)
-    OR (
-      public.has_role(auth.uid(), 'fleet_manager'::public.app_role)
-      AND opened_by = auth.uid()
-    )
-  )
-  WITH CHECK (
-    public.has_role(auth.uid(), 'super_admin'::public.app_role)
-    OR (
-      public.has_role(auth.uid(), 'fleet_manager'::public.app_role)
-      AND opened_by = auth.uid()
-    )
-  );
+  USING (public.garage_is_staff(auth.uid()))
+  WITH CHECK (public.garage_is_staff(auth.uid()));
 
 -- no DELETE policy
-
--- ----- garage_cases : VARIANT B (NOT active) — fleet_manager sees all cases
--- Uncomment these and drop VARIANT A only after explicit owner approval:
---
--- DROP POLICY IF EXISTS garage_cases_select_staff ON public.garage_cases;
--- CREATE POLICY garage_cases_select_staff
---   ON public.garage_cases FOR SELECT TO authenticated
---   USING (public.garage_is_staff(auth.uid()));
---
--- DROP POLICY IF EXISTS garage_cases_update_staff ON public.garage_cases;
--- CREATE POLICY garage_cases_update_staff
---   ON public.garage_cases FOR UPDATE TO authenticated
---   USING (public.garage_is_staff(auth.uid()))
---   WITH CHECK (public.garage_is_staff(auth.uid()));
 
 -- ============================================================================
 -- case_data shape (app-enforced; not a Storage bucket)
