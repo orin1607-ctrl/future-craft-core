@@ -1,25 +1,54 @@
 -- ============================================================================
 -- PROPOSED ONLY — DO NOT RUN.
--- Table: public.garage_cases
 -- Scope: Oren Car PUBLIC STAGING (dalia-staging / usfeoerkpcafxxlyuldl) only.
 -- Production / dalia-car.online: FORBIDDEN.
 --
--- This file is NOT a migration. It must not be copied to supabase/migrations/
+-- This file is NOT a migration. Do not copy to supabase/migrations/
 -- until the owner explicitly approves the schema and RLS.
 --
--- Isolation rules (hard):
---   - Separate entity from insurance claims.
---   - NO FK to claims_records.
---   - NO linked_claim_id.
---   - NO write to claims_config / CLAIM_COUNTER.
---   - NO Storage / claims-docs / garage photographer portal (/garage).
---   - NO new app_role.
+-- Isolation (hard):
+--   - Independent of claims_records / CLAIM_COUNTER / claim_id / linked_claim_id.
+--   - Independent of public.vehicles (fleet) and public.customers (CRM/fleet).
+--   - No Storage / claims-docs / photographer portal /garage.
+--   - No new app_role. No Auth changes. No driver shortcut.
+--   - No DELETE policies. Closed case = status 'סגור', row stays.
+-- ============================================================================
+--
+-- Why NOT public.vehicles / public.customers
+-- ------------------------------------------
+-- public.vehicles is the company FLEET register: license_plate, assigned_driver_id,
+-- insurance/test expiry, company_name, GPS/FleetOS. Inserting a private car that
+-- arrived for body work would pollute the fleet and tracking.
+-- public.customers is the fleet/CRM company book, scoped by company_name.
+-- Garage walk-in / returning body-shop clients are a different book.
+-- Future link, if ever wanted, is an explicit later decision.
+--
+-- ============================================================================
+-- COUNTERS — two sequences, never shared, never CLAIM_COUNTER
 -- ============================================================================
 
--- ---------------------------------------------------------------------------
--- 1. Case-number sequence (independent of DAL-YYYY-NNNN)
---    Display format: GM-YYYY-NNNN  e.g. GM-2026-0001
--- ---------------------------------------------------------------------------
+-- Customer numbers: 1281, 1282, 1283...  (display: #1281)
+CREATE SEQUENCE IF NOT EXISTS public.garage_customers_number_seq
+  AS bigint
+  START WITH 1281
+  INCREMENT BY 1
+  MINVALUE 1281
+  NO MAXVALUE
+  CACHE 1;
+
+CREATE OR REPLACE FUNCTION public.next_garage_customer_number()
+RETURNS integer
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT nextval('public.garage_customers_number_seq')::integer;
+$$;
+
+REVOKE ALL ON FUNCTION public.next_garage_customer_number() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.next_garage_customer_number() TO authenticated;
+
+-- Work-case numbers: GM-YYYY-NNNN  (year is a prefix; sequence does NOT reset yearly)
 CREATE SEQUENCE IF NOT EXISTS public.garage_cases_number_seq
   AS bigint
   START WITH 1
@@ -45,21 +74,139 @@ $$;
 REVOKE ALL ON FUNCTION public.next_garage_case_number() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.next_garage_case_number() TO authenticated;
 
--- ---------------------------------------------------------------------------
--- 2. Table
---    Extra column beyond the approved minimum: case_data jsonb
---    Required so the approved /garage-management Flow (inspection flags,
---    quote, work order, intake, timeline) survives refresh WITHOUT Storage
---    and WITHOUT extra tables. No photo bucket in this phase.
--- ---------------------------------------------------------------------------
+-- Staff helper for RLS. NOT a new role. Existing enum only.
+-- Phase 1: super_admin OR fleet_manager. Explicitly NOT driver.
+CREATE OR REPLACE FUNCTION public.garage_is_staff(_user_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    public.has_role(_user_id, 'super_admin'::public.app_role)
+    OR public.has_role(_user_id, 'fleet_manager'::public.app_role);
+$$;
+
+REVOKE ALL ON FUNCTION public.garage_is_staff(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.garage_is_staff(uuid) TO authenticated;
+
+-- ============================================================================
+-- 1. garage_customers  — real returning customer book
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.garage_customers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_number integer NOT NULL DEFAULT public.next_garage_customer_number(),
+  customer_type text NOT NULL,
+  name text NOT NULL DEFAULT '',
+  company_name text NOT NULL DEFAULT '',
+  phone text NOT NULL DEFAULT '',
+  second_phone text NOT NULL DEFAULT '',
+  email text NOT NULL DEFAULT '',
+  address text NOT NULL DEFAULT '',
+  business_id text NOT NULL DEFAULT '',
+  contact_person text NOT NULL DEFAULT '',
+  preferred_channel text NOT NULL DEFAULT '',
+  notes text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT garage_customers_number_unique UNIQUE (customer_number),
+  CONSTRAINT garage_customers_type_check CHECK (customer_type IN ('private', 'business', 'fleet')),
+  CONSTRAINT garage_customers_has_display_name CHECK (
+    (customer_type = 'private' AND length(trim(name)) > 0)
+    OR (customer_type IN ('business', 'fleet') AND length(trim(company_name)) > 0)
+  ),
+  CONSTRAINT garage_customers_phone_present CHECK (length(trim(phone)) > 0)
+);
+
+COMMENT ON TABLE public.garage_customers IS
+  'Body-shop customer book for /garage-management. NOT public.customers (fleet CRM).';
+COMMENT ON COLUMN public.garage_customers.customer_number IS
+  'Sequential garage customer number starting at 1281. Not a case number. Not a claim id.';
+COMMENT ON COLUMN public.garage_customers.business_id IS
+  'ח.פ / עוסק מורשה. No company_id FK — that would imply fleet/CRM coupling.';
+COMMENT ON COLUMN public.garage_customers.preferred_channel IS
+  'Approved Flow field (WhatsApp / Email / טלפון).';
+
+CREATE INDEX IF NOT EXISTS garage_customers_name_idx
+  ON public.garage_customers (name);
+CREATE INDEX IF NOT EXISTS garage_customers_company_name_idx
+  ON public.garage_customers (company_name);
+CREATE INDEX IF NOT EXISTS garage_customers_phone_idx
+  ON public.garage_customers (phone);
+CREATE INDEX IF NOT EXISTS garage_customers_second_phone_idx
+  ON public.garage_customers (second_phone);
+CREATE INDEX IF NOT EXISTS garage_customers_business_id_idx
+  ON public.garage_customers (business_id);
+CREATE INDEX IF NOT EXISTS garage_customers_created_at_idx
+  ON public.garage_customers (created_at DESC);
+
+DROP TRIGGER IF EXISTS garage_customers_set_updated_at ON public.garage_customers;
+CREATE TRIGGER garage_customers_set_updated_at
+  BEFORE UPDATE ON public.garage_customers
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================================================
+-- 2. garage_vehicles  — real cars that return with the customer
+--    NO FK to public.vehicles.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.garage_vehicles (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id uuid NOT NULL REFERENCES public.garage_customers(id) ON DELETE RESTRICT,
+  plate text NOT NULL,
+  make text NOT NULL DEFAULT '',
+  model text NOT NULL DEFAULT '',
+  year integer,
+  color text NOT NULL DEFAULT '',
+  vin text NOT NULL DEFAULT '',
+  vehicle_type text NOT NULL DEFAULT '',
+  internal_number text NOT NULL DEFAULT '',
+  notes text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT garage_vehicles_plate_present CHECK (length(trim(plate)) > 0)
+);
+
+COMMENT ON TABLE public.garage_vehicles IS
+  'Body-shop vehicles for /garage-management. NOT public.vehicles (company fleet).';
+COMMENT ON COLUMN public.garage_vehicles.internal_number IS
+  'Optional garage-internal mark. Not fleet vehicles.internal_number.';
+COMMENT ON COLUMN public.garage_vehicles.customer_id IS
+  'Owner in the garage customer book. One customer, many vehicles.';
+
+-- Same physical car should not be duplicated. Search-by-plate uses this.
+CREATE UNIQUE INDEX IF NOT EXISTS garage_vehicles_plate_unique_idx
+  ON public.garage_vehicles (lower(regexp_replace(plate, '[^0-9A-Za-z]', '', 'g')));
+CREATE UNIQUE INDEX IF NOT EXISTS garage_vehicles_vin_unique_idx
+  ON public.garage_vehicles (upper(trim(vin)))
+  WHERE length(trim(vin)) > 0;
+CREATE INDEX IF NOT EXISTS garage_vehicles_customer_id_idx
+  ON public.garage_vehicles (customer_id);
+CREATE INDEX IF NOT EXISTS garage_vehicles_plate_idx
+  ON public.garage_vehicles (plate);
+
+DROP TRIGGER IF EXISTS garage_vehicles_set_updated_at ON public.garage_vehicles;
+CREATE TRIGGER garage_vehicles_set_updated_at
+  BEFORE UPDATE ON public.garage_vehicles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================================================
+-- 3. garage_cases  — work-order file. Source of customer/vehicle is the FKs.
+--    Snapshots are display/history only.
+-- ============================================================================
 CREATE TABLE IF NOT EXISTS public.garage_cases (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   case_number text NOT NULL DEFAULT public.next_garage_case_number(),
-  customer jsonb NOT NULL DEFAULT '{}'::jsonb,
-  vehicle jsonb NOT NULL DEFAULT '{}'::jsonb,
+  customer_id uuid NOT NULL REFERENCES public.garage_customers(id) ON DELETE RESTRICT,
+  vehicle_id uuid NOT NULL REFERENCES public.garage_vehicles(id) ON DELETE RESTRICT,
   status text NOT NULL DEFAULT 'בדיקת רכב',
   opened_by uuid NOT NULL REFERENCES auth.users(id),
   opened_by_name text NOT NULL DEFAULT '',
+  customer_name_snapshot text NOT NULL DEFAULT '',
+  vehicle_plate_snapshot text NOT NULL DEFAULT '',
+  vehicle_label_snapshot text NOT NULL DEFAULT '',
   case_data jsonb NOT NULL DEFAULT '{}'::jsonb,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
@@ -74,24 +221,24 @@ CREATE TABLE IF NOT EXISTS public.garage_cases (
     'מוכן למסירה',
     'סגור'
   )),
-  CONSTRAINT garage_cases_customer_object CHECK (jsonb_typeof(customer) = 'object'),
-  CONSTRAINT garage_cases_vehicle_object CHECK (jsonb_typeof(vehicle) = 'object'),
   CONSTRAINT garage_cases_case_data_object CHECK (jsonb_typeof(case_data) = 'object')
 );
 
 COMMENT ON TABLE public.garage_cases IS
-  'Body-shop work cases for /garage-management. Independent of claims_records. Staging only.';
+  'Body-shop work cases. Independent of claims_records. Close = status סגור. No DELETE.';
 COMMENT ON COLUMN public.garage_cases.case_number IS
-  'Human case number GM-YYYY-NNNN. Not a claim id. Not DAL-YYYY-NNNN.';
-COMMENT ON COLUMN public.garage_cases.customer IS
-  'Snapshot of customer fields used by the approved Flow. No FK to claims or CRM.';
-COMMENT ON COLUMN public.garage_cases.vehicle IS
-  'Snapshot of vehicle fields used by the approved Flow. No FK to public.vehicles.';
-COMMENT ON COLUMN public.garage_cases.opened_by IS
-  'auth.uid() of the user who opened the case. Used for worker RLS.';
+  'GM-YYYY-NNNN from garage_cases_number_seq. Not customer_number. Not CLAIM_COUNTER.';
+COMMENT ON COLUMN public.garage_cases.customer_name_snapshot IS
+  'Frozen display name at open/last save. Source of truth remains garage_customers.';
+COMMENT ON COLUMN public.garage_cases.vehicle_plate_snapshot IS
+  'Frozen plate at open/last save. Source of truth remains garage_vehicles.';
 COMMENT ON COLUMN public.garage_cases.case_data IS
-  'Approved-Flow ephemeral state (photos flags, quote, work order, timeline). Not Storage.';
+  'Flow state JSON only: flags, quote, parts, work order, timeline, current screen. FORBIDDEN: base64, data URLs, file blobs. Not a Storage substitute.';
 
+CREATE INDEX IF NOT EXISTS garage_cases_customer_id_idx
+  ON public.garage_cases (customer_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS garage_cases_vehicle_id_idx
+  ON public.garage_cases (vehicle_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS garage_cases_opened_by_idx
   ON public.garage_cases (opened_by, created_at DESC);
 CREATE INDEX IF NOT EXISTS garage_cases_status_idx
@@ -99,131 +246,175 @@ CREATE INDEX IF NOT EXISTS garage_cases_status_idx
 CREATE INDEX IF NOT EXISTS garage_cases_created_at_idx
   ON public.garage_cases (created_at DESC);
 
--- ---------------------------------------------------------------------------
--- 3. updated_at trigger
---    Reuses existing public.update_updated_at_column(). No new helper.
--- ---------------------------------------------------------------------------
 DROP TRIGGER IF EXISTS garage_cases_set_updated_at ON public.garage_cases;
 CREATE TRIGGER garage_cases_set_updated_at
   BEFORE UPDATE ON public.garage_cases
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
--- ---------------------------------------------------------------------------
+-- ============================================================================
 -- 4. Grants — authenticated only. Never anon. Never PUBLIC.
--- ---------------------------------------------------------------------------
+--    DELETE is not granted.
+-- ============================================================================
+REVOKE ALL ON TABLE public.garage_customers FROM PUBLIC, anon;
+REVOKE ALL ON TABLE public.garage_vehicles FROM PUBLIC, anon;
 REVOKE ALL ON TABLE public.garage_cases FROM PUBLIC, anon;
+REVOKE ALL ON SEQUENCE public.garage_customers_number_seq FROM PUBLIC, anon;
 REVOKE ALL ON SEQUENCE public.garage_cases_number_seq FROM PUBLIC, anon;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.garage_cases TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.garage_customers TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.garage_vehicles TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.garage_cases TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.garage_customers_number_seq TO authenticated;
 GRANT USAGE, SELECT ON SEQUENCE public.garage_cases_number_seq TO authenticated;
 
--- ---------------------------------------------------------------------------
+-- ============================================================================
 -- 5. RLS
---    Existing app_role values only: super_admin / fleet_manager / driver.
---    No new garage_worker role.
---    Super-admin: all rows.
---    Worker (existing roles): own rows (opened_by = auth.uid()).
---    fleet_manager does NOT see other workers' cases unless they are also
---    the opener. Manager table "all garage cases" is super_admin in this phase.
--- ---------------------------------------------------------------------------
+--    Phase 1 actors: super_admin + fleet_manager via garage_is_staff().
+--    driver: NOT included.
+--    garage_photographer (job_title on a driver login): NOT included.
+--    No DELETE policy on any table.
+--
+--    Customer book + vehicle book: shared among staff.
+--    Required so "לקוח קיים" search works across super_admin and fleet_manager.
+--
+--    garage_cases visibility for fleet_manager is PENDING OWNER CHOICE.
+--    Written below is VARIANT A (own cases only) — the tighter default.
+--    VARIANT B (all garage cases) is commented. Do not enable both.
+-- ============================================================================
+ALTER TABLE public.garage_customers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.garage_vehicles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.garage_cases ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS garage_cases_select_own_or_admin ON public.garage_cases;
-CREATE POLICY garage_cases_select_own_or_admin
+-- ----- garage_customers -----
+DROP POLICY IF EXISTS garage_customers_select_staff ON public.garage_customers;
+CREATE POLICY garage_customers_select_staff
+  ON public.garage_customers
+  FOR SELECT
+  TO authenticated
+  USING (public.garage_is_staff(auth.uid()));
+
+DROP POLICY IF EXISTS garage_customers_insert_staff ON public.garage_customers;
+CREATE POLICY garage_customers_insert_staff
+  ON public.garage_customers
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (public.garage_is_staff(auth.uid()));
+
+DROP POLICY IF EXISTS garage_customers_update_staff ON public.garage_customers;
+CREATE POLICY garage_customers_update_staff
+  ON public.garage_customers
+  FOR UPDATE
+  TO authenticated
+  USING (public.garage_is_staff(auth.uid()))
+  WITH CHECK (public.garage_is_staff(auth.uid()));
+
+-- no DELETE policy
+
+-- ----- garage_vehicles -----
+DROP POLICY IF EXISTS garage_vehicles_select_staff ON public.garage_vehicles;
+CREATE POLICY garage_vehicles_select_staff
+  ON public.garage_vehicles
+  FOR SELECT
+  TO authenticated
+  USING (public.garage_is_staff(auth.uid()));
+
+DROP POLICY IF EXISTS garage_vehicles_insert_staff ON public.garage_vehicles;
+CREATE POLICY garage_vehicles_insert_staff
+  ON public.garage_vehicles
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (public.garage_is_staff(auth.uid()));
+
+DROP POLICY IF EXISTS garage_vehicles_update_staff ON public.garage_vehicles;
+CREATE POLICY garage_vehicles_update_staff
+  ON public.garage_vehicles
+  FOR UPDATE
+  TO authenticated
+  USING (public.garage_is_staff(auth.uid()))
+  WITH CHECK (public.garage_is_staff(auth.uid()));
+
+-- no DELETE policy
+
+-- ----- garage_cases : VARIANT A (active) — fleet_manager sees own cases only
+-- super_admin sees all. fleet_manager SELECT/UPDATE where opened_by = auth.uid().
+DROP POLICY IF EXISTS garage_cases_select_staff ON public.garage_cases;
+CREATE POLICY garage_cases_select_staff
   ON public.garage_cases
   FOR SELECT
   TO authenticated
   USING (
     public.has_role(auth.uid(), 'super_admin'::public.app_role)
-    OR opened_by = auth.uid()
+    OR (
+      public.has_role(auth.uid(), 'fleet_manager'::public.app_role)
+      AND opened_by = auth.uid()
+    )
   );
 
-DROP POLICY IF EXISTS garage_cases_insert_self ON public.garage_cases;
-CREATE POLICY garage_cases_insert_self
+DROP POLICY IF EXISTS garage_cases_insert_staff ON public.garage_cases;
+CREATE POLICY garage_cases_insert_staff
   ON public.garage_cases
   FOR INSERT
   TO authenticated
   WITH CHECK (
-    opened_by = auth.uid()
-    AND (
-      public.has_role(auth.uid(), 'super_admin'::public.app_role)
-      OR public.has_role(auth.uid(), 'fleet_manager'::public.app_role)
-      OR public.has_role(auth.uid(), 'driver'::public.app_role)
-    )
+    public.garage_is_staff(auth.uid())
+    AND opened_by = auth.uid()
   );
 
-DROP POLICY IF EXISTS garage_cases_update_own_or_admin ON public.garage_cases;
-CREATE POLICY garage_cases_update_own_or_admin
+DROP POLICY IF EXISTS garage_cases_update_staff ON public.garage_cases;
+CREATE POLICY garage_cases_update_staff
   ON public.garage_cases
   FOR UPDATE
   TO authenticated
   USING (
     public.has_role(auth.uid(), 'super_admin'::public.app_role)
-    OR opened_by = auth.uid()
+    OR (
+      public.has_role(auth.uid(), 'fleet_manager'::public.app_role)
+      AND opened_by = auth.uid()
+    )
   )
   WITH CHECK (
     public.has_role(auth.uid(), 'super_admin'::public.app_role)
-    OR opened_by = auth.uid()
+    OR (
+      public.has_role(auth.uid(), 'fleet_manager'::public.app_role)
+      AND opened_by = auth.uid()
+    )
   );
 
-DROP POLICY IF EXISTS garage_cases_delete_admin ON public.garage_cases;
-CREATE POLICY garage_cases_delete_admin
-  ON public.garage_cases
-  FOR DELETE
-  TO authenticated
-  USING (
-    public.has_role(auth.uid(), 'super_admin'::public.app_role)
-  );
+-- no DELETE policy
 
--- Explicitly no policy for anon / public.
+-- ----- garage_cases : VARIANT B (NOT active) — fleet_manager sees all cases
+-- Uncomment these and drop VARIANT A only after explicit owner approval:
+--
+-- DROP POLICY IF EXISTS garage_cases_select_staff ON public.garage_cases;
+-- CREATE POLICY garage_cases_select_staff
+--   ON public.garage_cases FOR SELECT TO authenticated
+--   USING (public.garage_is_staff(auth.uid()));
+--
+-- DROP POLICY IF EXISTS garage_cases_update_staff ON public.garage_cases;
+-- CREATE POLICY garage_cases_update_staff
+--   ON public.garage_cases FOR UPDATE TO authenticated
+--   USING (public.garage_is_staff(auth.uid()))
+--   WITH CHECK (public.garage_is_staff(auth.uid()));
 
--- ---------------------------------------------------------------------------
--- JSON shapes used by the app (not enforced as columns)
+-- ============================================================================
+-- case_data shape (app-enforced; not a Storage bucket)
 --
--- customer:
---   {
---     "name": text,
---     "phone": text,
---     "email": text,
---     "type": "private" | "business" | "fleet",
---     "address": text,
---     "preferred_channel": text,
---     "notes": text
---   }
+-- ALLOWED:
+--   photos: {fl,fr,rl,rr: boolean}     -- captured flags only, not image bytes
+--   damage / quote / parts / workOrder -- structured objects
+--   timeline: array of {at, text}
+--   flags: quoteCreated, quoteSent, quoteApproved, workOrderSaved,
+--          intakeDone, signatureCaptured, workStarted, workFinished, caseClosed
+--   currentScreen: text
 --
--- vehicle:
---   {
---     "plate": text,
---     "make": text,
---     "model": text,
---     "year": text,
---     "color": text,
---     "notes": text
---   }
+-- FORBIDDEN inside case_data:
+--   base64, data URLs, File/Blob, storage paths-as-content, signature PNG bytes
+--   If real photos or signature images are required: STOP and propose a bucket.
+-- ============================================================================
 --
--- case_data (Flow state only; no Storage objects in this phase):
---   {
---     "photos": {"fl": bool, "fr": bool, "rl": bool, "rr": bool},
---     "damageCount": number,
---     "quoteCreated": bool,
---     "quoteSent": bool,
---     "quoteApproved": bool,
---     "workOrderSaved": bool,
---     "workOrderAmount": number | null,
---     "workOrderNumber": text | null,
---     "intakeDone": bool,
---     "workStarted": bool,
---     "workFinished": bool,
---     "caseClosed": bool,
---     "workExtraPrice": number,
---     "currentScreen": text,
---     "timeline": array,
---     "quote": object,
---     "damage": array
---   }
---
--- Intentionally ABSENT:
---   linked_claim_id, claim_id, insurer, assigned_to (separate worker role),
---   storage_path, any FK to claims_records / vehicles / claims-docs.
--- ---------------------------------------------------------------------------
+-- Intentionally ABSENT from all three tables:
+--   claim_id, linked_claim_id, insurer
+--   FK to claims_records / public.vehicles / public.customers / public.drivers
+--   DELETE, archive flag, assigned_to worker role
+-- ============================================================================
