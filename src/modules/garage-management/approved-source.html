@@ -322,6 +322,20 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="field"><label>איש קשר</label><input id="cust-contact" placeholder="שם איש קשר"></div>
     <div class="field"><label>אמצעי תקשורת מועדף</label><div class="chip-row"><div class="chip selected" data-channel="WhatsApp" onclick="selChip(this)">WhatsApp</div><div class="chip" data-channel="Email" onclick="selChip(this)">Email</div><div class="chip" data-channel="טלפון" onclick="selChip(this)">טלפון</div></div></div>
     <div class="field"><label>הערות</label><textarea id="cust-notes" placeholder="הערות כלליות על הלקוח"></textarea></div>
+    <div class="field">
+      <label>שיטת עבודה ברירת מחדל</label>
+      <div class="hint" style="margin-bottom:8px;">ברירת מחדל לתיקים חדשים של הלקוח. לא נקבע לפי סוג לקוח. בתיק עצמו אפשר לשנות.</div>
+      <div class="route-pick">
+        <div class="route-opt sel" id="cust-wf-quote_first" data-route="quote_first" onclick="setCustomerDefaultWorkflow('quote_first')">
+          <div class="nm">הצעת מחיר תחילה</div>
+          <div class="sub">הצעה → אישור → קבלת רכב</div>
+        </div>
+        <div class="route-opt" id="cust-wf-intake_first" data-route="intake_first" onclick="setCustomerDefaultWorkflow('intake_first')">
+          <div class="nm">קבלת רכב תחילה</div>
+          <div class="sub">הזמנה → קבלה → הצעה</div>
+        </div>
+      </div>
+    </div>
     <div id="cust-dupes"></div>
     <button class="btn btn-white" id="cust-save-btn" onclick="saveCustomerAndContinue(false)">שמור והמשך לרכב</button>
   </div>
@@ -330,6 +344,20 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <section class="screen" id="s-newvehicle">
   <div class="topbar"><div class="back" onclick="go('s-search')">→</div><div><h1>רכב</h1><div class="sub" id="veh-pick-sub">בחירת רכב</div></div></div>
   <div class="content">
+    <div class="card" id="existing-customer-workflow">
+      <div style="font-weight:700; font-size:14px; margin-bottom:8px;">שיטת עבודה ברירת מחדל</div>
+      <div class="hint" style="margin-bottom:8px;">נשמרת בכרטיס הלקוח. תיק חדש ייפתח במסלול הזה. אפשר לשנות בתיק עצמו.</div>
+      <div class="route-pick">
+        <div class="route-opt sel" id="exist-wf-quote_first" data-route="quote_first" onclick="setCustomerDefaultWorkflow('quote_first')">
+          <div class="nm">הצעת מחיר תחילה</div>
+          <div class="sub">הצעה → אישור → קבלת רכב</div>
+        </div>
+        <div class="route-opt" id="exist-wf-intake_first" data-route="intake_first" onclick="setCustomerDefaultWorkflow('intake_first')">
+          <div class="nm">קבלת רכב תחילה</div>
+          <div class="sub">הזמנה → קבלה → הצעה</div>
+        </div>
+      </div>
+    </div>
     <div id="vehicle-pick-list"></div>
     <div id="customer-history"></div>
     <button class="btn btn-ghost" onclick="go('s-vehform')">＋ הוסף רכב חדש</button>
@@ -365,7 +393,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   </div>
   <div class="route-block">
     <h2>מה המסלול של התיק?</h2>
-    <div class="hint" style="margin-bottom:10px;">ברירת מחדל לפי סוג הלקוח. אפשר לבחור לפי המקרה בפועל.</div>
+    <div class="hint" style="margin-bottom:10px;">ברירת מחדל מכרטיס הלקוח. שינוי כאן הוא לתיק זה בלבד.</div>
     <div class="route-pick">
       <div class="route-opt" id="route-opt-quote_first" data-route="quote_first" onclick="setCaseRoute('quote_first')">
         <div class="nm">הצעת מחיר תחילה</div>
@@ -909,6 +937,7 @@ var mediaItems = [];
 var uploadCtx = { category: 'other', title: 'קובץ', angle: '' };
 var nextActionFn = null;
 var draftCustomerType = 'private';
+var draftDefaultWorkflow = 'quote_first';
 var GARAGE_GALLERY_TOPICS = [
   {id:'customer_order', label:'הזמנת לקוח'},
   {id:'quote_photos', label:'תמונות להצעת מחיר'},
@@ -1071,8 +1100,29 @@ function garageMediaPending(){
 }
 function caseRoute(){ return state.route === 'intake_first' ? 'intake_first' : 'quote_first'; }
 function defaultRouteForCustomer(){
-  var t = currentCustomer && currentCustomer.customer_type;
-  return t === 'business' || t === 'fleet' ? 'intake_first' : 'quote_first';
+  if(currentCustomer && currentCustomer.default_workflow === 'intake_first') return 'intake_first';
+  return draftDefaultWorkflow === 'intake_first' ? 'intake_first' : 'quote_first';
+}
+function syncCustomerWorkflowUi(){
+  var route = defaultRouteForCustomer();
+  ['cust-wf-quote_first','exist-wf-quote_first'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.classList.toggle('sel', route === 'quote_first');
+  });
+  ['cust-wf-intake_first','exist-wf-intake_first'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.classList.toggle('sel', route === 'intake_first');
+  });
+}
+function setCustomerDefaultWorkflow(route){
+  draftDefaultWorkflow = route === 'intake_first' ? 'intake_first' : 'quote_first';
+  if(currentCustomer) currentCustomer.default_workflow = draftDefaultWorkflow;
+  syncCustomerWorkflowUi();
+  if(currentCustomer && currentCustomer.id){
+    callHost('gm:updateCustomer', {customerId: currentCustomer.id, default_workflow: draftDefaultWorkflow}).then(function(res){
+      if(res && res.customer) currentCustomer = Object.assign({}, currentCustomer, res.customer, {default_workflow: draftDefaultWorkflow});
+    }).catch(function(err){ alert(err.message || err); });
+  }
 }
 function routeLabelText(route){
   return route === 'intake_first' ? 'הרכב התקבל / לקוח קבוע' : 'הצעת מחיר תחילה';
@@ -1424,10 +1474,12 @@ function clearVehicleForm(){
 }
 function startNewCustomer(type){
   draftCustomerType = type;
+  draftDefaultWorkflow = 'quote_first';
   currentCustomer = null;
   currentVehicle = null;
   clearCustomerForm();
   clearVehicleForm();
+  syncCustomerWorkflowUi();
   go('s-newform');
 }
 function scheduleSearch(){
@@ -1455,6 +1507,9 @@ function runSearch(){
 }
 function selectExistingCustomer(c){
   currentCustomer = c;
+  draftDefaultWorkflow = c.default_workflow === 'intake_first' ? 'intake_first' : 'quote_first';
+  currentCustomer.default_workflow = draftDefaultWorkflow;
+  syncCustomerWorkflowUi();
   document.getElementById('veh-pick-sub').textContent = (c.company_name || c.name) + (c.customer_number ? (' · לקוח #' + c.customer_number) : '');
   if(bookPending || !c.id){
     var emptyList = document.getElementById('vehicle-pick-list');
@@ -1525,7 +1580,8 @@ function draftFromForm(){
     business_id: (document.getElementById('cust-biz').value || '').trim(),
     contact_person: (document.getElementById('cust-contact').value || '').trim(),
     preferred_channel: (document.querySelector('#s-newform .chip.selected') || {}).dataset ? document.querySelector('#s-newform .chip.selected').getAttribute('data-channel') : 'WhatsApp',
-    notes: (document.getElementById('cust-notes').value || '').trim()
+    notes: (document.getElementById('cust-notes').value || '').trim(),
+    default_workflow: draftDefaultWorkflow === 'intake_first' ? 'intake_first' : 'quote_first'
   };
 }
 function saveCustomerAndContinue(force){

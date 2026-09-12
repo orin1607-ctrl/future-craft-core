@@ -7,6 +7,7 @@ import {
   findDuplicateCustomers,
   garageNextAction,
   isGarageSchemaMissing,
+  isGarageWorkflowColumnMissing,
   normalizePhone,
   normalizePlate,
   routeLabel,
@@ -77,10 +78,13 @@ describe('garage book helpers', () => {
     expect(deriveCaseStatus({ caseClosed: true })).toBe('סגור');
   });
 
-  it('defaults private customers to quote-first and fleet/business to intake-first', () => {
+  it('uses the customer default_workflow field and never infers route from customer_type', () => {
     expect(defaultRouteForCustomer({ customer_type: 'private' })).toBe('quote_first');
-    expect(defaultRouteForCustomer({ customer_type: 'business' })).toBe('intake_first');
-    expect(defaultRouteForCustomer({ customer_type: 'fleet' })).toBe('intake_first');
+    expect(defaultRouteForCustomer({ customer_type: 'business' })).toBe('quote_first');
+    expect(defaultRouteForCustomer({ customer_type: 'fleet' })).toBe('quote_first');
+    expect(defaultRouteForCustomer({ customer_type: 'fleet', default_workflow: 'intake_first' })).toBe('intake_first');
+    expect(defaultRouteForCustomer({ customer_type: 'business', default_workflow: 'quote_first' })).toBe('quote_first');
+    expect(defaultRouteForCustomer({ customer_type: 'private', default_workflow: 'intake_first' })).toBe('intake_first');
     expect(routeLabel('quote_first')).toBe('הצעת מחיר תחילה');
     expect(routeLabel('intake_first')).toBe('הרכב התקבל / לקוח קבוע');
     expect(garageNextAction({ route: 'quote_first' })).toBe('הכנת הצעת מחיר');
@@ -99,5 +103,13 @@ describe('garage book helpers', () => {
   it('detects missing garage schema without treating it as a generic failure', () => {
     expect(isGarageSchemaMissing({ code: 'PGRST205', message: "Could not find the table 'public.garage_cases'" })).toBe(true);
     expect(isGarageSchemaMissing({ message: 'permission denied' })).toBe(false);
+  });
+
+  it('detects a missing default_workflow column without treating it as a missing table', () => {
+    expect(isGarageWorkflowColumnMissing({
+      code: 'PGRST204',
+      message: "Could not find the 'default_workflow' column of 'garage_customers' in the schema cache",
+    })).toBe(true);
+    expect(isGarageWorkflowColumnMissing({ code: 'PGRST205', message: "Could not find the table 'public.garage_cases'" })).toBe(false);
   });
 });

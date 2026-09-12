@@ -84,6 +84,9 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('quote-works-empty');
     expect(approvedSourceHtml).toContain('clearCustomerForm');
     expect(approvedSourceHtml).toContain('מה המסלול של התיק?');
+    expect(approvedSourceHtml).toContain('שיטת עבודה ברירת מחדל');
+    expect(approvedSourceHtml).toContain('ברירת מחדל מכרטיס הלקוח');
+    expect(approvedSourceHtml).not.toContain('ברירת מחדל לפי סוג הלקוח');
     expect(approvedSourceHtml).toContain('capture="environment"');
     expect(approvedSourceHtml).toContain("callHost('gm:uploadMedia'");
     expect(approvedSourceHtml).toContain('4 תמונות חובה לקבלת רכב');

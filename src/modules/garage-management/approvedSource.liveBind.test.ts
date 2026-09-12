@@ -115,4 +115,53 @@ describe('garage flow live case binding', () => {
     expect(win.document.getElementById('route-opt-intake_first')?.classList.contains('sel')).toBe(true);
     expect(win.document.getElementById('next-action-label')?.textContent).toContain('העלאת הזמנת לקוח');
   });
+
+  it('does not treat a fleet customer as intake-first unless that is the saved customer default', () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      startNewCustomer: (type: string) => void;
+      document: Document;
+    };
+    win.startNewCustomer('fleet');
+    expect(win.document.getElementById('cust-wf-quote_first')?.classList.contains('sel')).toBe(true);
+    expect(win.document.getElementById('cust-wf-intake_first')?.classList.contains('sel')).toBe(false);
+
+    const fleetQuote = {
+      ...qaCase,
+      id: 'qa-fleet-quote',
+      case_number: 'GM-QA-FLEET-Q',
+      customer_name_snapshot: 'QA / TEST חברה הצעה תחילה',
+      customer: {
+        id: 'cust-fq',
+        customer_number: 9002,
+        customer_type: 'fleet',
+        default_workflow: 'quote_first',
+        name: '',
+        company_name: 'QA / TEST חברה הצעה תחילה',
+        phone: '039000001',
+        email: '',
+      },
+      case_data: { route: 'quote_first' },
+    };
+    win.applyBootstrap({ mode: 'case', loaded: fleetQuote, bookPending: false });
+    expect(win.document.getElementById('route-opt-quote_first')?.classList.contains('sel')).toBe(true);
+    expect(win.document.getElementById('next-action-label')?.textContent).toContain('הכנת הצעת מחיר');
+
+    const fleetIntake = {
+      ...fleetQuote,
+      id: 'qa-fleet-intake',
+      case_number: 'GM-QA-FLEET-I',
+      customer_name_snapshot: 'QA / TEST חברה קבלה תחילה',
+      customer: {
+        ...fleetQuote.customer,
+        id: 'cust-fi',
+        default_workflow: 'intake_first',
+        company_name: 'QA / TEST חברה קבלה תחילה',
+      },
+      case_data: { route: 'intake_first' },
+    };
+    win.applyBootstrap({ mode: 'case', loaded: fleetIntake, bookPending: false });
+    expect(win.document.getElementById('route-opt-intake_first')?.classList.contains('sel')).toBe(true);
+    expect(win.document.getElementById('next-action-label')?.textContent).toContain('העלאת הזמנת לקוח');
+  });
 });

@@ -1,11 +1,13 @@
 import { supabase } from '@/integrations/supabase/client';
 
 export type GarageCustomerType = 'private' | 'business' | 'fleet';
+export type GarageRoute = 'quote_first' | 'intake_first';
 
 export type GarageCustomer = {
   id: string;
   customer_number: number;
   customer_type: GarageCustomerType;
+  default_workflow?: GarageRoute;
   name: string;
   company_name: string;
   phone: string;
@@ -33,8 +35,6 @@ export type GarageVehicle = {
   internal_number: string;
   notes: string;
 };
-
-export type GarageRoute = 'quote_first' | 'intake_first';
 
 export type GarageCaseData = {
   route?: GarageRoute;
@@ -122,8 +122,10 @@ export function vehicleLabel(v: Pick<GarageVehicle, 'make' | 'model' | 'year'>):
   return [v.make, v.model, v.year ? String(v.year) : ''].filter(Boolean).join(' · ');
 }
 
-export function defaultRouteForCustomer(c: Pick<GarageCustomer, 'customer_type'>): GarageRoute {
-  return c.customer_type === 'private' ? 'quote_first' : 'intake_first';
+export function defaultRouteForCustomer(
+  c?: Pick<GarageCustomer, 'default_workflow' | 'customer_type'> | null,
+): GarageRoute {
+  return c?.default_workflow === 'intake_first' ? 'intake_first' : 'quote_first';
 }
 
 export function routeLabel(route?: string): string {
@@ -240,6 +242,16 @@ export function isGarageSchemaMissing(error: { code?: string; message?: string }
     || /does not exist/i.test(message);
 }
 
+export function isGarageWorkflowColumnMissing(error: { code?: string; message?: string } | null | undefined): boolean {
+  const code = String(error?.code || '');
+  const message = String(error?.message || '');
+  return /default_workflow/i.test(message)
+    && (code === 'PGRST204' || /does not exist/i.test(message) || /schema cache/i.test(message) || /could not find/i.test(message));
+}
+
+export const GARAGE_WORKFLOW_PENDING_MESSAGE =
+  'שדה שיטת העבודה של הלקוח (default_workflow) עדיין ממתין ל-SQL ב-Staging. תיקים חדשים ייפתחו כהצעת מחיר תחילה עד להרצה.';
+
 export const GARAGE_BOOK_PENDING_MESSAGE =
   'הפעלת מסד נתוני המוסך עדיין ממתינה. הלקוח, הרכב והתיק לא נשמרים עד להרצת ה-SQL ב-Staging.';
 
@@ -343,6 +355,7 @@ export async function createCustomer(
   if (duplicates.length && !opts?.force) {
     return { customer: duplicates[0], duplicates };
   }
+  const workflow: GarageRoute = draft.default_workflow === 'intake_first' ? 'intake_first' : 'quote_first';
   const insert = {
     customer_type: draft.customer_type,
     name: draft.name || '',
@@ -355,10 +368,37 @@ export async function createCustomer(
     contact_person: draft.contact_person || '',
     preferred_channel: draft.preferred_channel || '',
     notes: draft.notes || '',
+    default_workflow: workflow,
   };
-  const { data, error } = await tbl('garage_customers').insert(insert as never).select('*').single();
-  if (error) throw new Error(errMessage(error, 'שמירת לקוח נכשלה'));
-  return { customer: data as GarageCustomer, duplicates: [] };
+  const first = await tbl('garage_customers').insert(insert as never).select('*').single();
+  if (!first.error) {
+    return { customer: { ...(first.data as GarageCustomer), default_workflow: workflow }, duplicates: [] };
+  }
+  if (isGarageWorkflowColumnMissing(first.error)) {
+    const { default_workflow: _omit, ...without } = insert;
+    void _omit;
+    const retry = await tbl('garage_customers').insert(without as never).select('*').single();
+    if (retry.error) throw new Error(errMessage(retry.error, 'שמירת לקוח נכשלה'));
+    return { customer: { ...(retry.data as GarageCustomer), default_workflow: workflow }, duplicates: [] };
+  }
+  throw new Error(errMessage(first.error, 'שמירת לקוח נכשלה'));
+}
+
+export async function updateCustomerWorkflow(
+  customerId: string,
+  workflow: GarageRoute,
+): Promise<GarageCustomer> {
+  const value: GarageRoute = workflow === 'intake_first' ? 'intake_first' : 'quote_first';
+  const { data, error } = await tbl('garage_customers')
+    .update({ default_workflow: value } as never)
+    .eq('id', customerId)
+    .select('*')
+    .single();
+  if (error) {
+    if (isGarageWorkflowColumnMissing(error)) throw new Error(GARAGE_WORKFLOW_PENDING_MESSAGE);
+    throw new Error(errMessage(error, 'שמירת שיטת העבודה נכשלה'));
+  }
+  return { ...(data as GarageCustomer), default_workflow: value };
 }
 
 export async function listVehicles(customerId: string): Promise<GarageVehicle[]> {

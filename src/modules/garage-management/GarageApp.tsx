@@ -11,13 +11,16 @@ import {
   defaultRouteForCustomer,
   emptyCaseData,
   getCase,
+  GARAGE_WORKFLOW_PENDING_MESSAGE,
   isGarageSchemaMissing,
+  isGarageWorkflowColumnMissing,
   listCases,
   listCustomerCases,
   listVehicles,
   probeGarageBook,
   searchCustomers,
   updateCase,
+  updateCustomerWorkflow,
   type GarageActor,
   type GarageCustomer,
   type GarageRoute,
@@ -45,11 +48,14 @@ function actorOf(user: { id: string; full_name?: string; role?: string } | null)
 
 function asBookError(error: unknown): string {
   const raw = error as { code?: string; message?: string } | Error | string;
-  if (raw && typeof raw === 'object' && isGarageSchemaMissing(raw as { code?: string; message?: string })) {
+  const message = String((raw as Error)?.message || (raw as { message?: string })?.message || raw || 'שגיאה');
+  const shaped = raw && typeof raw === 'object' ? raw as { code?: string; message?: string } : { message };
+  if (isGarageWorkflowColumnMissing(shaped) || /default_workflow/i.test(message)) {
+    return GARAGE_WORKFLOW_PENDING_MESSAGE;
+  }
+  if (isGarageSchemaMissing(shaped) || isGarageSchemaMissing({ message })) {
     return GARAGE_BOOK_PENDING_MESSAGE;
   }
-  const message = String((raw as Error)?.message || raw || 'שגיאה');
-  if (isGarageSchemaMissing({ message })) return GARAGE_BOOK_PENDING_MESSAGE;
   return message;
 }
 
@@ -150,6 +156,14 @@ export default function GarageApp() {
         if (msg.type === 'gm:createVehicle') {
           const vehicle = await createVehicle(payload.draft as Parameters<typeof createVehicle>[0]);
           reply(requestId, { ok: true, vehicle });
+          return;
+        }
+        if (msg.type === 'gm:updateCustomer') {
+          const customer = await updateCustomerWorkflow(
+            String(payload.customerId || ''),
+            (payload.default_workflow as GarageRoute) === 'intake_first' ? 'intake_first' : 'quote_first',
+          );
+          reply(requestId, { ok: true, customer });
           return;
         }
         if (msg.type === 'gm:createCase') {
