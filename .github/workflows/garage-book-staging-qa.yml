@@ -6,6 +6,11 @@ name: Garage book live QA — Staging only
 
 on:
   workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/qa-garage-book-live.mjs'
+      - '.github/workflows/garage-book-staging-qa.yml'
 
 permissions:
   contents: read
