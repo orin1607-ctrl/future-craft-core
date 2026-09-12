@@ -13,7 +13,7 @@ export const GARAGE_MEDIA_CATEGORIES = [
   { id: 'customer_order', label: 'הזמנת לקוח' },
   { id: 'quote_photos', label: 'תמונות להצעת מחיר' },
   { id: 'intake', label: 'תמונות קבלת רכב' },
-  { id: 'angles', label: '4 זוויות' },
+  { id: 'angles', label: 'קבלת רכב' },
   { id: 'damage', label: 'תמונות נזק' },
   { id: 'during_work', label: 'במהלך עבודה' },
   { id: 'finish', label: 'תמונות סיום' },

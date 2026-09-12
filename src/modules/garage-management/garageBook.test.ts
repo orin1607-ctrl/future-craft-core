@@ -4,6 +4,7 @@ import {
   defaultRouteForCustomer,
   deriveCaseStatus,
   emptyCaseData,
+  extractWorkOrderHints,
   findDuplicateCustomers,
   garageNextAction,
   isGarageSchemaMissing,
@@ -20,6 +21,21 @@ describe('garage book helpers', () => {
     expect(normalizePhone('050-123-4567')).toBe('0501234567');
     expect(normalizePhone('+972501234567')).toBe('0501234567');
     expect(normalizePlate('12-345-67')).toBe('1234567');
+  });
+
+  it('extracts work-order hints from a filename without auto-saving them', () => {
+    const hints = extractWorkOrderHints({
+      fileName: 'order-PO-8821-99-888-77-claim-DAL99.pdf',
+      company: 'QA / TEST חברה',
+      contact: 'רותי',
+      casePlate: '9988877',
+    });
+    expect(hints.order_number).toMatch(/8821/);
+    expect(hints.plate).toBe('9988877');
+    expect(hints.claim_ref).toMatch(/DAL99/i);
+    expect(hints.company).toBe('QA / TEST חברה');
+    expect(hints.fromFile.length).toBeGreaterThan(0);
+    expect(hints.fromCase).toContain('חברה מהתיק');
   });
 
   it('warns on duplicate phone / business id / name without merging', () => {
@@ -89,9 +105,9 @@ describe('garage book helpers', () => {
     expect(routeLabel('intake_first')).toBe('הרכב התקבל / לקוח קבוע');
     expect(garageNextAction({ route: 'quote_first' })).toBe('הכנת הצעת מחיר');
     expect(garageNextAction({ route: 'quote_first', quoteSent: true })).toBe('ממתינים לאישור הלקוח');
-    expect(garageNextAction({ route: 'quote_first', quoteApproved: true })).toBe('קבלת רכב + 4 תמונות');
+    expect(garageNextAction({ route: 'quote_first', quoteApproved: true })).toBe('קבלת רכב + 5 תמונות');
     expect(garageNextAction({ route: 'intake_first' })).toBe('העלאת הזמנת לקוח');
-    expect(garageNextAction({ route: 'intake_first', workOrderSaved: true })).toBe('קבלת רכב + 4 תמונות');
+    expect(garageNextAction({ route: 'intake_first', workOrderSaved: true })).toBe('קבלת רכב + 5 תמונות');
     expect(garageNextAction({ route: 'intake_first', intakeDone: true })).toBe('הכנת הצעת מחיר');
   });
 

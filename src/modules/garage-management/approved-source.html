@@ -432,7 +432,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   <div style="padding:0 16px;">
     <div class="accordion-item open" onclick="toggleAcc(this)">
       <div class="accordion-head"><div class="l"><span>📷</span> בדיקת רכב וצילומים</div><span class="arrow">‹</span></div>
-      <div class="accordion-body" id="acc-inspect-body">תמונות נזק / הצעת מחיר אופציונליות. 4 זוויות חובה רק בקבלת רכב. <span class="open-link" onclick="event.stopPropagation(); go('s-inspect')">פתח ›</span></div>
+      <div class="accordion-body" id="acc-inspect-body">תמונות נזק / הצעת מחיר אופציונליות. 5 תמונות חובה רק בקבלת רכב. <span class="open-link" onclick="event.stopPropagation(); go('s-inspect')">פתח ›</span></div>
     </div>
     <div class="accordion-item" onclick="toggleAcc(this)">
       <div class="accordion-head"><div class="l"><span>📋</span> הצעות מחיר</div><span class="arrow">‹</span></div>
@@ -457,7 +457,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   <div class="content">
     <h2 class="section-title">תמונות להצעת מחיר</h2>
     <div class="bar"></div>
-    <div class="hint">אופציונלי לפי הצורך. אלה אינן 4 תמונות קבלת הרכב. 4 זוויות חובה רק כאשר הרכב נכנס למוסך.</div>
+    <div class="hint">אופציונלי לפי הצורך. אלה אינן 5 תמונות קבלת הרכב. חמש זוויות חובה רק כאשר הרכב נכנס למוסך.</div>
     <div class="btn-row" style="margin-bottom:12px;">
       <button class="btn btn-white" onclick="pickMedia('quote_photos','תמונת נזק להצעה',true)">📷 צלם</button>
       <button class="btn btn-ghost" onclick="pickMedia('quote_photos','תמונת נזק להצעה',false)">העלה מהגלריה</button>
@@ -556,7 +556,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <button class="btn btn-ghost" onclick="openAddPart()">＋ הוסף חלק</button>
     </div>
     <div class="tabpanel" id="q-photos">
-      <div class="hint">בחר את התמונות שייכנסו להצעת המחיר. רק תמונות נזק / הצעה של התיק הנוכחי — לא 4 זוויות קבלת הרכב.</div>
+      <div class="hint">בחר את התמונות שייכנסו להצעת המחיר. רק תמונות נזק / הצעה של התיק הנוכחי — לא 5 תמונות קבלת הרכב.</div>
       <div class="gal-grid" id="quote-photo-grid"></div>
       <div class="hint" id="quote-photos-empty">אין תמונות בתיק זה עדיין.</div>
       <button class="btn btn-ghost" onclick="pickMedia('quote_photos','תמונה להצעה',true)">📷 צלם להצעה</button>
@@ -576,7 +576,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <button class="btn btn-ghost" onclick="saveQuoteDraft()">שמור טיוטה</button>
       <button class="btn btn-white" onclick="go('s-quote-preview')">תצוגה מקדימה · PDF</button>
     </div>
-    <button class="btn btn-ghost" style="margin-top:10px;" onclick="openWhatsApp()">📱 שלח ב-WhatsApp</button>
+    <button class="btn btn-white" style="margin-top:10px;" onclick="sendQuoteEmail()">שלח במייל</button>
+    <button class="btn btn-ghost" style="margin-top:10px;" onclick="openWhatsApp()">📱 WhatsApp — אפשרות נוספת</button>
     <div class="section-label" style="padding-right:0;">גרסאות הצעה</div>
     <div class="card" id="quote-versions">
       <div class="hint" style="margin:0;">אין גרסאות שמורות עדיין.</div>
@@ -666,6 +667,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <h2 class="section-title">פרטי הזמנה חדשה</h2>
     <div class="bar"></div>
     <div class="field"><label>מספר הזמנה <span class="req">*</span></label><input id="wo-num" placeholder="מספר הזמנה"></div>
+    <div class="field"><label>מספר תביעה / אסמכתא</label><input id="wo-ref" placeholder="אם מופיע בהזמנה"></div>
     <div class="field"><label>תאריך הזמנה</label><input id="wo-date" placeholder="תאריך"></div>
     <div class="field"><label>סכום מאושר <span class="req">*</span></label><input id="wo-amount" type="number" placeholder="0"></div>
     <div class="field"><label>איש קשר</label><input id="wo-contact" placeholder="שם איש הקשר אצל הלקוח"></div>
@@ -676,19 +678,22 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     </div>
     <div class="media-preview-row" id="wo-order-previews"></div>
     <div class="card" id="wo-scan-result" style="display:none;">
-      <div style="font-size:13px; font-weight:700; margin-bottom:8px;">זוהו במסמך:</div>
-      <div class="doc-row"><span>מספר הזמנה</span><span id="wo-scan-num">—</span></div>
-      <div class="doc-row"><span>מספר רכב</span><span id="wo-scan-plate">—</span></div>
-      <div class="doc-row"><span>תאריך</span><span id="wo-scan-date">—</span></div>
-      <div class="doc-row"><span>סכום</span><span id="wo-scan-amount">—</span></div>
-      <div class="doc-row"><span>לקוח</span><span id="wo-scan-customer">—</span></div>
+      <div style="font-size:13px; font-weight:700; margin-bottom:8px;">נתונים שחולצו — אשר או תקן לפני שמירה</div>
+      <div class="hint" id="wo-scan-source" style="margin-bottom:8px;">לא נשמר אוטומטית לתיק.</div>
+      <div class="field"><label>מספר הזמנה</label><input id="wo-scan-num" placeholder="—"></div>
+      <div class="field"><label>מספר רכב</label><input id="wo-scan-plate" placeholder="—"></div>
+      <div class="field"><label>מספר תביעה / אסמכתא</label><input id="wo-scan-ref" placeholder="—"></div>
+      <div class="field"><label>חברה</label><input id="wo-scan-customer" placeholder="—"></div>
+      <div class="field"><label>איש קשר</label><input id="wo-scan-contact" placeholder="—"></div>
+      <div class="field"><label>סכום</label><input id="wo-scan-amount" placeholder="—"></div>
+      <button class="btn btn-ghost" type="button" onclick="applyExtractedOrderToForm()">החל על טופס ההזמנה</button>
     </div>
     <button class="btn btn-white" onclick="saveWorkOrder()">אשר ושמור הזמנה</button>
     <div class="section-label" style="padding-right:0;">גרסאות הזמנה</div>
     <div id="wo-versions"></div>
     <div class="btn-row" style="margin-top:14px;">
       <button class="btn btn-ghost">הורד הזמנה</button>
-      <button class="btn btn-ghost">שלח במייל</button>
+      <button class="btn btn-ghost" onclick="go('s-compose')">שלח במייל</button>
     </div>
   </div>
 </section>
@@ -717,7 +722,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <div class="tab" onclick="switchTab(this,'c-email')">Email</div>
       <div class="tab" onclick="switchTab(this,'c-wa')">WhatsApp</div>
     </div>
-    <button class="btn btn-white" style="margin-bottom:16px;" onclick="go('s-compose')">＋ מייל חדש</button>
+    <button class="btn btn-white" style="margin-bottom:16px;" onclick="go('s-compose')">＋ שליחה מהתיק</button>
     <div class="tabpanel active" id="c-all">
       <div class="comm-thread" id="comm-thread-all"></div>
       <div class="hint" id="comm-empty">אין הודעות בתיק זה עדיין.</div>
@@ -732,21 +737,31 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: COMPOSE EMAIL ================= -->
 <section class="screen" id="s-compose">
-  <div class="topbar"><div class="back" onclick="go('s-comm')">→</div><div><h1>מייל חדש</h1><div class="sub" data-live="case-sub">מייל חדש</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-comm')">→</div><div><h1>שליחה מהתיק</h1><div class="sub" data-live="case-sub">מייל ברירת מחדל</div></div></div>
   <div class="content">
+    <div class="hint">הנתונים מתמלאים מהתיק. אין תיבת מייל נפרדת למוסך — נפתח מייל / WhatsApp ידני. לא נשלח דרך תיבת Claims, ולא מוצג "נשלח" אם לא נשלח.</div>
+    <div class="field"><label>ערוץ</label>
+      <div class="chip-row" id="compose-channel-row">
+        <div class="chip selected" data-channel="email" onclick="selChip(this)">Email / מייל</div>
+        <div class="chip" data-channel="whatsapp" onclick="selChip(this)">WhatsApp</div>
+      </div>
+    </div>
     <div class="field"><label>אל</label><input id="compose-to" placeholder="email@example.com"></div>
     <div class="field"><label>CC</label><input id="compose-cc" placeholder="אופציונלי"></div>
     <div class="field"><label>נושא</label><input id="compose-subject" placeholder="נושא"></div>
     <div class="field"><label>תוכן</label><textarea id="compose-body" style="min-height:120px;" placeholder="תוכן המייל"></textarea></div>
-    <div class="field"><label>צירופים</label>
-      <div class="chip-row">
-        <div class="chip selected" onclick="selChip(this)">הצעת מחיר</div>
-        <div class="chip" onclick="selChip(this)">תמונות</div>
-        <div class="chip" onclick="selChip(this)">הזמנה</div>
-        <div class="chip" onclick="selChip(this)">קישור מאובטח</div>
+    <div class="field"><label>צירופים לבחירה</label>
+      <div class="hint">הקבצים שנבחרו ייכללו בתיאור. אין שליחת קבצים אוטומטית.</div>
+      <div class="chip-row" id="compose-attach-row">
+        <div class="chip selected" data-attach="quote" onclick="this.classList.toggle('selected')">הצעת מחיר</div>
+        <div class="chip" data-attach="order" onclick="this.classList.toggle('selected')">הזמנת הלקוח</div>
+        <div class="chip" data-attach="photos_all" onclick="this.classList.toggle('selected')">כל התמונות</div>
+        <div class="chip" data-attach="docs_all" onclick="this.classList.toggle('selected')">כל המסמכים</div>
+        <div class="chip" data-attach="selected" onclick="this.classList.toggle('selected')">תמונות / מסמכים נבחרים</div>
+        <div class="chip" data-attach="all" onclick="this.classList.toggle('selected')">כל חומר התיק</div>
       </div>
     </div>
-    <button class="btn btn-white" onclick="sendComposedEmail()">שלח</button>
+    <button class="btn btn-white" onclick="sendComposedEmail()">פתח שליחה</button>
   </div>
 </section>
 <!-- ================= SCREEN: SECURE SHARE ================= -->
@@ -808,15 +823,16 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="field"><label>חפצים שנשארו ברכב</label><input id="intake-items" placeholder="אם יש"></div>
     <div class="field"><label>מצב פנים הרכב</label><textarea id="intake-interior" placeholder="הערות על מצב הפנים"></textarea></div>
     <div class="field"><label>עובד שקיבל את הרכב</label><input id="intake-worker" placeholder="שם העובד"></div>
-    <h2 class="section-title">4 תמונות חובה לקבלת רכב</h2>
+    <h2 class="section-title">5 תמונות חובה לקבלת רכב</h2>
     <div class="bar"></div>
-    <div class="progress-pill" id="intake-photo-progress">0 מתוך 4 חובה</div>
-    <div class="hint">קדמי, אחורי, צד ימין, צד שמאל — מינימום לקבלת רכב בלבד. מותר להוסיף 5, 6, 10, 20 תמונות בלי הגבלה מלאכותית.</div>
+    <div class="progress-pill" id="intake-photo-progress">0 מתוך 5 חובה</div>
+    <div class="hint">קדמי, אחורי, צד ימין, צד שמאל, ולוח מחוונים / דשבורד שבו רואים את הקילומטראז' — מינימום לקבלת רכב בלבד. מותר להוסיף תמונות נוספות בלי הגבלה.</div>
     <div class="photo-grid" style="margin-bottom:10px;" id="intake-angle-grid">
       <div class="photo-slot" data-intake-angle="front" onclick="pickIntakeAngle('front', true)"><div class="cam">📷</div><div class="lbl">קדמי</div></div>
       <div class="photo-slot" data-intake-angle="rear" onclick="pickIntakeAngle('rear', true)"><div class="cam">📷</div><div class="lbl">אחורי</div></div>
       <div class="photo-slot" data-intake-angle="right" onclick="pickIntakeAngle('right', true)"><div class="cam">📷</div><div class="lbl">צד ימין</div></div>
       <div class="photo-slot" data-intake-angle="left" onclick="pickIntakeAngle('left', true)"><div class="cam">📷</div><div class="lbl">צד שמאל</div></div>
+      <div class="photo-slot" data-intake-angle="dashboard" onclick="pickIntakeAngle('dashboard', true)"><div class="cam">📷</div><div class="lbl">דשבורד / ק״מ</div></div>
     </div>
     <div class="btn-row" style="margin-bottom:12px;">
       <button class="btn btn-ghost" onclick="pickMedia('intake','תמונת קבלה נוספת',true)">📷 תמונה נוספת</button>
@@ -942,14 +958,15 @@ var draftDefaultWorkflow = 'quote_first';
 var customerOnly = false;
 var GARAGE_GALLERY_TOPICS = [
   {id:'customer_order', label:'הזמנת לקוח'},
-  {id:'quote_photos', label:'תמונות להצעת מחיר'},
-  {id:'intake', label:'תמונות קבלת רכב'},
-  {id:'angles', label:'4 זוויות'},
+  {id:'quote_photos', label:'הצעת מחיר'},
+  {id:'angles', label:'קבלת רכב'},
+  {id:'dashboard', label:'דשבורד / קילומטראז\''},
+  {id:'intake', label:'תמונות קבלה נוספות'},
   {id:'damage', label:'תמונות נזק'},
-  {id:'during_work', label:'במהלך עבודה'},
+  {id:'during_work', label:'במהלך העבודה'},
   {id:'finish', label:'תמונות סיום'},
-  {id:'parts_invoices', label:'חלקים / חשבוניות חלקים'},
-  {id:'quotes', label:'הצעות מחיר'},
+  {id:'quotes', label:'מסמכי הצעה'},
+  {id:'parts_invoices', label:'מסמכים'},
   {id:'customer_approvals', label:'אישורי לקוח'},
   {id:'intake_docs', label:'מסמכי קבלה'},
   {id:'delivery', label:'מסירה'},
@@ -960,7 +977,7 @@ function emptyFlowState(){
     route: 'quote_first',
     flowStage: 'open',
     photos: {fl:false, fr:false, rl:false, rr:false},
-    intakeAngles: {front:false, rear:false, right:false, left:false},
+    intakeAngles: {front:false, rear:false, right:false, left:false, dashboard:false},
     damageCount: 0,
     damageItems: [],
     quoteCreated: false,
@@ -973,6 +990,10 @@ function emptyFlowState(){
     workOrderSaved: false,
     workOrderAmount: null,
     workOrderNumber: null,
+    workOrderRef: '',
+    workOrderContact: '',
+    workOrderDate: '',
+    workOrderNotes: '',
     intakeDone: false,
     intakeKm: '',
     intakeFuel: '',
@@ -1070,12 +1091,7 @@ function bindLiveCase(){
   setText('close-customer', name);
   setText('close-vehicle', veh || '—');
   setText('close-case-number', caseNo);
-  var composeTo = document.getElementById('compose-to');
-  var composeSubject = document.getElementById('compose-subject');
-  var composeBody = document.getElementById('compose-body');
-  if(composeTo && !composeTo.value && currentCustomer && currentCustomer.email) composeTo.value = currentCustomer.email;
-  if(composeSubject && !composeSubject.value) composeSubject.value = 'הצעת מחיר — ' + caseNo + (plate ? (' — ' + plate) : '');
-  if(composeBody && !composeBody.value) composeBody.value = 'שלום, מצורפת הצעת מחיר עבור ' + (plate || 'הרכב') + '.';
+  fillSendFromCase();
   var shareCompany = document.getElementById('share-company');
   if(shareCompany && !shareCompany.value && liveCustomerName()) shareCompany.value = liveCustomerName();
   var shareName = document.getElementById('share-name');
@@ -1134,12 +1150,21 @@ function setCaseRoute(route){
   refreshCaseHub();
   schedulePersist();
 }
+function galleryItemsForTopic(topic){
+  if(topic.id === 'dashboard'){
+    return mediaByCategory('angles').filter(function(item){ return String(item.title || '').indexOf('דשבורד') !== -1; });
+  }
+  if(topic.id === 'angles'){
+    return mediaByCategory('angles').filter(function(item){ return String(item.title || '').indexOf('דשבורד') === -1; });
+  }
+  return mediaByCategory(topic.id);
+}
 function mediaByCategory(cat){
   return (mediaItems || []).filter(function(item){ return item.category === cat; });
 }
 function angleCount(){
   var a = state.intakeAngles || {};
-  return ['front','rear','right','left'].filter(function(k){ return !!a[k]; }).length;
+  return ['front','rear','right','left','dashboard'].filter(function(k){ return !!a[k]; }).length;
 }
 function goManager(){
   parent.postMessage({type:'gm:goManager'}, '*');
@@ -1183,7 +1208,7 @@ function renderGarageGallery(caseId){
     html += '<div class="hint">שמירה אמיתית ממתינה להרצת SQL של garage-media ב-PUBLIC STAGING בלבד.</div>';
   }
   GARAGE_GALLERY_TOPICS.forEach(function(topic){
-    var items = mediaByCategory(topic.id);
+    var items = galleryItemsForTopic(topic);
     html += '<div class="gal-topic-label">'+topic.label+' ('+items.length+')</div>';
     if(!items.length){
       html += '<div class="hint" style="margin-bottom:10px;">אין עדיין קבצים בקטגוריה זו.</div>';
@@ -1222,13 +1247,14 @@ function loadGarageMedia(){
   });
 }
 function syncAnglesFromMedia(){
-  var angles = Object.assign({front:false, rear:false, right:false, left:false}, state.intakeAngles || {});
+  var angles = Object.assign({front:false, rear:false, right:false, left:false, dashboard:false}, state.intakeAngles || {});
   mediaByCategory('angles').forEach(function(item){
     var t = String(item.title || '');
-    if(t.indexOf('קדמי') !== -1) angles.front = true;
-    if(t.indexOf('אחורי') !== -1) angles.rear = true;
-    if(t.indexOf('ימין') !== -1) angles.right = true;
-    if(t.indexOf('שמאל') !== -1) angles.left = true;
+    if(t.indexOf('דשבורד') !== -1 || t.indexOf('קילומטר') !== -1) angles.dashboard = true;
+    else if(t.indexOf('קדמי') !== -1) angles.front = true;
+    else if(t.indexOf('אחורי') !== -1) angles.rear = true;
+    else if(t.indexOf('ימין') !== -1) angles.right = true;
+    else if(t.indexOf('שמאל') !== -1) angles.left = true;
   });
   state.intakeAngles = angles;
 }
@@ -1261,7 +1287,7 @@ function pickMedia(category, title, camera){
   input.click();
 }
 function pickIntakeAngle(angle, camera){
-  var titles = {front:'קדמי', rear:'אחורי', right:'צד ימין', left:'צד שמאל'};
+  var titles = {front:'קדמי', rear:'אחורי', right:'צד ימין', left:'צד שמאל', dashboard:'דשבורד / קילומטראז\''};
   uploadCtx = { category: 'angles', title: titles[angle] || angle, angle: angle };
   var input = document.getElementById(camera ? 'gm-file-camera' : 'gm-file-pick');
   if(!input) return;
@@ -1291,6 +1317,9 @@ function uploadSelectedFiles(fileList){
         if(uploadCtx.angle){
           state.intakeAngles = state.intakeAngles || {};
           state.intakeAngles[uploadCtx.angle] = true;
+        }
+        if(uploadCtx.category === 'customer_order'){
+          showOrderExtractReview(file.name);
         }
         if(uploadCtx.category === 'quote_photos' || uploadCtx.category === 'damage'){
           state.photos = state.photos || {};
@@ -1389,7 +1418,7 @@ function hydrateCase(loaded){
   state.route = data.route === 'intake_first' ? 'intake_first' : (data.route || defaultRouteForCustomer());
   state.flowStage = data.flowStage || 'open';
   state.photos = Object.assign({fl:false,fr:false,rl:false,rr:false}, data.photos || {});
-  state.intakeAngles = Object.assign({front:false, rear:false, right:false, left:false}, data.intakeAngles || {});
+  state.intakeAngles = Object.assign({front:false, rear:false, right:false, left:false, dashboard:false}, data.intakeAngles || {});
   state.damageItems = Array.isArray(data.damageItems) ? data.damageItems.slice() : (Array.isArray(data.damage) ? data.damage.slice() : []);
   state.damageCount = state.damageItems.length || data.damageCount || 0;
   state.quoteCreated = !!data.quoteCreated;
@@ -1404,6 +1433,10 @@ function hydrateCase(loaded){
   state.workOrderSaved = !!data.workOrderSaved;
   state.workOrderAmount = data.workOrderAmount || null;
   state.workOrderNumber = data.workOrderNumber || null;
+  state.workOrderRef = data.workOrderRef || '';
+  state.workOrderContact = data.workOrderContact || '';
+  state.workOrderDate = data.workOrderDate || '';
+  state.workOrderNotes = data.workOrderNotes || '';
   state.intakeDone = !!data.intakeDone;
   state.intakeKm = data.intakeKm || '';
   state.intakeFuel = data.intakeFuel || '';
@@ -1432,6 +1465,18 @@ function hydrateCase(loaded){
   if(validityEl) validityEl.value = state.quoteValidity || '';
   var kmEl = document.getElementById('intake-km');
   if(kmEl) kmEl.value = state.intakeKm || '';
+  var woNum = document.getElementById('wo-num');
+  if(woNum) woNum.value = state.workOrderNumber || '';
+  var woRef = document.getElementById('wo-ref');
+  if(woRef) woRef.value = state.workOrderRef || '';
+  var woDate = document.getElementById('wo-date');
+  if(woDate) woDate.value = state.workOrderDate || '';
+  var woAmount = document.getElementById('wo-amount');
+  if(woAmount) woAmount.value = state.workOrderAmount || '';
+  var woContact = document.getElementById('wo-contact');
+  if(woContact) woContact.value = state.workOrderContact || (currentCustomer && currentCustomer.contact_person) || '';
+  var woNotes = document.getElementById('wo-notes');
+  if(woNotes) woNotes.value = state.workOrderNotes || '';
   var keysEl = document.getElementById('intake-keys');
   if(keysEl) keysEl.value = state.intakeKeys || '';
   var lightsEl = document.getElementById('intake-lights');
@@ -1731,7 +1776,8 @@ function go(id){
     setTimeout(initSigPad, 50);
   }
   if(id==='s-finish' || id==='s-close') bindCloseAndFinish();
-  if(id==='s-gallery' || id==='s-inspect' || id==='s-intake' || id==='s-job' || id==='s-share' || id==='s-quote') loadGarageMedia();
+  if(id==='s-gallery' || id==='s-inspect' || id==='s-intake' || id==='s-job' || id==='s-share' || id==='s-quote' || id==='s-compose') loadGarageMedia();
+  if(id==='s-compose' || id==='s-share' || id==='s-comm') fillSendFromCase();
   if(currentCase && currentCase.id) schedulePersist();
 }
 function openCase(){ if(currentCase) { refreshCaseHub(); go('s-case'); } }
@@ -1740,21 +1786,25 @@ function toggleAcc(el){ el.classList.toggle('open'); }
 /* ---------- inspection ---------- */
 function togglePhoto(angle){ pickIntakeAngle(angle === 'fl' || angle === 'fr' ? 'front' : (angle === 'rr' ? 'right' : 'left'), true); }
 function photoLabel(angle){
-  return ({fl:'קדמי שמאל', fr:'קדמי ימין', rl:'אחורי שמאל', rr:'אחורי ימין', front:'קדמי', rear:'אחורי', right:'צד ימין', left:'צד שמאל'})[angle] || angle;
+  return ({fl:'קדמי שמאל', fr:'קדמי ימין', rl:'אחורי שמאל', rr:'אחורי ימין', front:'קדמי', rear:'אחורי', right:'צד ימין', left:'צד שמאל', dashboard:'דשבורד / קילומטראז\''})[angle] || angle;
 }
 function renderIntakeAngles(){
-  var labels = {front:'קדמי', rear:'אחורי', right:'צד ימין', left:'צד שמאל'};
+  var labels = {front:'קדמי', rear:'אחורי', right:'צד ימין', left:'צד שמאל', dashboard:'דשבורד / ק״מ'};
   Object.keys(labels).forEach(function(angle){
     var slot = document.querySelector('.photo-slot[data-intake-angle="'+angle+'"]');
     if(!slot) return;
     var done = !!(state.intakeAngles && state.intakeAngles[angle]);
-    var match = mediaByCategory('angles').filter(function(item){ return String(item.title||'').indexOf(labels[angle]) !== -1; })[0];
+    var match = mediaByCategory('angles').filter(function(item){
+      var t = String(item.title||'');
+      if(angle === 'dashboard') return t.indexOf('דשבורד') !== -1;
+      return t.indexOf(labels[angle].replace(' / ק״מ','')) !== -1;
+    })[0];
     slot.classList.toggle('done', done);
     slot.classList.toggle('has-img', !!(match && match.signedUrl));
     var img = (match && match.signedUrl) ? '<img src="'+esc(match.signedUrl)+'" alt="'+labels[angle]+'">' : '';
     slot.innerHTML = img + (done ? '<span class="check">✓</span>' : '') + '<div class="cam">📷</div><div class="lbl">'+labels[angle]+'</div>';
   });
-  setText('intake-photo-progress', angleCount() + ' מתוך 4 חובה');
+  setText('intake-photo-progress', angleCount() + ' מתוך 5 חובה');
 }
 function renderQuotePhotosFromMedia(){
   var photoGrid = document.getElementById('quote-photo-grid');
@@ -2039,14 +2089,52 @@ function sharePackText(){
   var lines = [
     'תיק מוסך ' + (liveCaseNumber() || ''),
     'לקוח: ' + (liveCustomerName() || '—'),
+    currentCustomer && currentCustomer.company_name ? ('חברה: ' + currentCustomer.company_name) : '',
     'רכב: ' + (liveVehicleLine() || '—'),
+    'מספר רכב: ' + (livePlate() || '—'),
     'מסלול: ' + routeLabelText(caseRoute()),
     'הצעה: ' + money(quoteGrandTotal()),
     state.workOrderNumber ? ('הזמנה: ' + state.workOrderNumber) : '',
-    'קבצים בתיק: ' + String(mediaItems.length),
-    'QA / TEST — שיתוף ידני מתוך אותו garage_case_id'
+    state.workOrderRef ? ('אסמכתא / תביעה: ' + state.workOrderRef) : '',
+    state.workOrderContact ? ('איש קשר: ' + state.workOrderContact) : '',
+    selectedAttachSummary(),
+    'QA / TEST — שיתוף ידני מתוך אותו garage_case_id. לא נשלח דרך תיבת Claims.'
   ];
   return lines.filter(Boolean).join('\n');
+}
+function selectedAttachSummary(){
+  var chips = document.querySelectorAll('#compose-attach-row .chip.selected, #share-step1 .chip.selected[data-pack]');
+  var labels = [];
+  chips.forEach(function(c){ labels.push((c.textContent || '').trim()); });
+  var selected = document.querySelectorAll('.gal-item.sel').length;
+  if(selected) labels.push(selected + ' פריטים נבחרים בגלריה');
+  return labels.length ? ('צירופים שנבחרו: ' + labels.join(', ')) : 'צירופים: לא נבחרו (העובד בוחר מה לצרף)';
+}
+function fillSendFromCase(){
+  var to = (currentCustomer && currentCustomer.email) || '';
+  var name = liveCustomerName() || '';
+  var caseNo = liveCaseNumber() || '';
+  var plate = livePlate() || '';
+  var subj = 'הצעת מחיר — ' + caseNo + (plate ? (' — ' + plate) : '');
+  var body = sharePackText();
+  var composeTo = document.getElementById('compose-to');
+  var composeSubject = document.getElementById('compose-subject');
+  var composeBody = document.getElementById('compose-body');
+  if(composeTo) composeTo.value = to;
+  if(composeSubject) composeSubject.value = subj;
+  if(composeBody) composeBody.value = body;
+  var shareEmail = document.getElementById('share-email');
+  var shareName = document.getElementById('share-name');
+  var shareCompany = document.getElementById('share-company');
+  var sharePhone = document.getElementById('share-phone');
+  if(shareEmail) shareEmail.value = to;
+  if(shareName) shareName.value = (currentCustomer && currentCustomer.contact_person) || name;
+  if(shareCompany) shareCompany.value = (currentCustomer && (currentCustomer.company_name || currentCustomer.name)) || name;
+  if(sharePhone) sharePhone.value = (currentCustomer && currentCustomer.phone) || '';
+}
+function composeChannel(){
+  var chip = document.querySelector('#compose-channel-row .chip.selected');
+  return (chip && chip.getAttribute('data-channel')) || 'email';
 }
 function waPhone(){
   var digits = String((currentCustomer && (currentCustomer.phone || currentCustomer.second_phone)) || '').replace(/\D/g, '');
@@ -2111,6 +2199,66 @@ function startWork(){
   go('s-job');
 }
 /* ---------- work order ---------- */
+function extractWorkOrderHintsFromName(fileName, extraText){
+  var hay = String(fileName || '') + ' ' + String(extraText || '');
+  var orderMatch = hay.match(/(?:הזמנה|order|po|wo)[\s#:.\-_]*([A-Za-z0-9\/\-]{3,})/i);
+  var claimMatch = hay.match(/(?:תביעה|אסמכתא|claim|ref)[\s#:.\-_]*([A-Za-z0-9\/\-]{3,})/i);
+  var amountMatch = hay.match(/(?:₪|ש["״']?ח|amount|סכום)[\s:]*([\d,.]+)/i);
+  var dashedPlate = hay.match(/\b(\d{2,3}-\d{2,3}-\d{2,3})\b/);
+  var plateMatch = dashedPlate || hay.match(/(?:רכב|plate|לוחית)[\s#:.\-_]*(\d{7,8})/i);
+  var fromFile = [];
+  var fromCase = [];
+  var hints = {
+    order_number: orderMatch ? String(orderMatch[1]) : '',
+    plate: plateMatch ? String(plateMatch[1]).replace(/[^0-9A-Za-z]/g, '') : '',
+    claim_ref: claimMatch ? String(claimMatch[1]) : '',
+    company: liveCustomerName() || '',
+    contact: (currentCustomer && currentCustomer.contact_person) || '',
+    amount: amountMatch ? String(amountMatch[1]) : ''
+  };
+  if(hints.order_number) fromFile.push('מספר הזמנה');
+  if(hints.plate) fromFile.push('מספר רכב');
+  if(hints.claim_ref) fromFile.push('אסמכתא / תביעה');
+  if(hints.amount) fromFile.push('סכום');
+  if(!hints.plate && livePlate()){ hints.plate = livePlate(); fromCase.push('מספר רכב מהתיק'); }
+  if(hints.company) fromCase.push('חברה מהתיק');
+  if(hints.contact) fromCase.push('איש קשר מהתיק');
+  hints.fromFile = fromFile;
+  hints.fromCase = fromCase;
+  return hints;
+}
+function showOrderExtractReview(fileName, extraText){
+  var box = document.getElementById('wo-scan-result');
+  if(!box) return;
+  var hints = extractWorkOrderHintsFromName(fileName, extraText);
+  box.style.display = 'block';
+  var src = document.getElementById('wo-scan-source');
+  if(src){
+    var bits = [];
+    if(hints.fromFile.length) bits.push('מהקובץ: ' + hints.fromFile.join(', '));
+    if(hints.fromCase.length) bits.push('מהתיק: ' + hints.fromCase.join(', '));
+    src.textContent = (bits.join(' · ') || 'לא זוהו שדות מהקובץ. מלא ידנית.') + ' לא נשמר לתיק עד אישור ושמירת הזמנה.';
+  }
+  var setVal = function(id, v){ var el = document.getElementById(id); if(el) el.value = v || ''; };
+  setVal('wo-scan-num', hints.order_number);
+  setVal('wo-scan-plate', hints.plate);
+  setVal('wo-scan-ref', hints.claim_ref);
+  setVal('wo-scan-customer', hints.company);
+  setVal('wo-scan-contact', hints.contact);
+  setVal('wo-scan-amount', hints.amount);
+}
+function applyExtractedOrderToForm(){
+  var copy = function(fromId, toId){
+    var from = document.getElementById(fromId);
+    var to = document.getElementById(toId);
+    if(from && to && (from.value || '').trim()) to.value = from.value.trim();
+  };
+  copy('wo-scan-num', 'wo-num');
+  copy('wo-scan-ref', 'wo-ref');
+  copy('wo-scan-contact', 'wo-contact');
+  copy('wo-scan-amount', 'wo-amount');
+  alert('הנתונים הועתקו לטופס. לחץ "אשר ושמור הזמנה" כדי לשמור בתיק.');
+}
 function saveWorkOrder(){
   var num = (document.getElementById('wo-num').value || '').trim();
   var amount = (document.getElementById('wo-amount').value || '').trim();
@@ -2118,6 +2266,10 @@ function saveWorkOrder(){
   state.workOrderSaved = true;
   state.workOrderNumber = num;
   state.workOrderAmount = amount;
+  state.workOrderRef = (document.getElementById('wo-ref') && document.getElementById('wo-ref').value || '').trim();
+  state.workOrderContact = (document.getElementById('wo-contact') && document.getElementById('wo-contact').value || '').trim();
+  state.workOrderDate = (document.getElementById('wo-date') && document.getElementById('wo-date').value || '').trim();
+  state.workOrderNotes = (document.getElementById('wo-notes') && document.getElementById('wo-notes').value || '').trim();
   document.getElementById('wo-approved-amount').textContent = money(amount);
   var v = document.getElementById('wo-versions');
   var row = document.createElement('div');
@@ -2167,11 +2319,11 @@ function clearSig(){ if(sigCtx) sigCtx.clearRect(0,0,document.getElementById('si
 function confirmIntake(){
   captureIntakeFields();
   if(!state.intakeKm){ alert('יש למלא קילומטראז׳'); return; }
-  if(angleCount() < 4){ alert('יש לצלם לפחות 4 תמונות חובה: קדמי, אחורי, צד ימין, צד שמאל. אפשר להוסיף תמונות נוספות בלי הגבלה.'); return; }
+  if(angleCount() < 5){ alert('יש לצלם לפחות 5 תמונות חובה: קדמי, אחורי, צד ימין, צד שמאל, ולוח מחוונים / דשבורד. אפשר להוסיף תמונות נוספות בלי הגבלה.'); return; }
   state.intakeDone = true;
   state.signatureCaptured = true;
   state.flowStage = caseRoute() === 'intake_first' ? 'quote' : 'work';
-  addTimelineEvent('הרכב התקבל · 4 זוויות + קילומטראז׳');
+  addTimelineEvent('הרכב התקבל · 5 תמונות חובה + קילומטראז׳');
   uploadSignatureIfPossible();
   if(caseRoute() === 'quote_first'){
     state.workStarted = true;
@@ -2241,17 +2393,24 @@ function sendComposedEmail(){
   var to = (document.getElementById('compose-to') && document.getElementById('compose-to').value) || (currentCustomer && currentCustomer.email) || '';
   var subj = (document.getElementById('compose-subject') && document.getElementById('compose-subject').value) || ('תיק מוסך ' + liveCaseNumber());
   var body = (document.getElementById('compose-body') && document.getElementById('compose-body').value) || sharePackText();
-  window.location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(body);
+  var channel = composeChannel();
+  if(channel === 'whatsapp'){
+    var url = 'https://wa.me/' + (waPhone() || '') + '?text=' + encodeURIComponent(body);
+    window.open(url, '_blank');
+    addTimelineEvent('נפתח WhatsApp ידני מהתיק · אין שליחה אוטומטית');
+  } else {
+    window.location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(body);
+    addTimelineEvent('נפתח מייל ידני מהתיק · אין תיבת מוסך אוטומטית · לא נשלח דרך Claims');
+  }
   var thread = document.getElementById('comm-thread-all');
   var empty = document.getElementById('comm-empty');
   if(empty) empty.style.display = 'none';
   if(thread){
     var b = document.createElement('div');
     b.className = 'bubble out';
-    b.innerHTML = '<div class="bmeta">'+esc(workerName || 'עובד')+' · עכשיו</div>נפתח מייל ידני'+(to ? (' אל '+esc(to)) : '')+' · אין תיבת מוסך אוטומטית';
+    b.innerHTML = '<div class="bmeta">'+esc(workerName || 'עובד')+' · עכשיו</div>'+(channel === 'whatsapp' ? 'נפתח WhatsApp ידני' : ('נפתח מייל ידני'+(to ? (' אל '+esc(to)) : '')))+' · לא סומן כנשלח';
     thread.appendChild(b);
   }
-  addTimelineEvent('נפתח מייל ידני מהתיק');
   go('s-comm');
 }
 /* ---------- share ---------- */
@@ -2310,7 +2469,7 @@ function renderIntakeSummary(){
   renderIntakeAngles();
   var box = document.getElementById('intake-photo-check');
   if(box){
-    var labels = {front:'קדמי', rear:'אחורי', right:'צד ימין', left:'צד שמאל'};
+    var labels = {front:'קדמי', rear:'אחורי', right:'צד ימין', left:'צד שמאל', dashboard:'דשבורד / קילומטראז\''};
     box.innerHTML = Object.keys(labels).map(function(angle){
       var ok = !!(state.intakeAngles && state.intakeAngles[angle]);
       return '<div class="doc-row"><span>'+labels[angle]+'</span><span style="color:'+(ok ? 'var(--ok)' : 'var(--white50)')+';">'+(ok ? '✓' : 'חסר')+'</span></div>';
@@ -2347,7 +2506,7 @@ function nextActionSpec(){
   if(state.workStarted) return {status:'בעבודה', badge:'badge-accent', label:'המשך עבודה / אישור נוסף', btn:'המשך', fn:function(){ go('s-job'); }};
   if(route === 'quote_first'){
     if(state.intakeDone) return {status:'הרכב התקבל', badge:'badge-accent', label:'התחל עבודה', btn:'המשך', fn:startWork};
-    if(state.quoteApproved) return {status:'אושר', badge:'badge-ok', label:'קבלת רכב + 4 תמונות', btn:'המשך', fn:function(){ go('s-intake'); }};
+    if(state.quoteApproved) return {status:'אושר', badge:'badge-ok', label:'קבלת רכב + 5 תמונות', btn:'המשך', fn:function(){ go('s-intake'); }};
     if(state.quoteSent || state.waitingForApproval) return {status:'ממתין לאישור', badge:'badge-warn', label:'ממתינים לאישור הלקוח', btn:'הצעה אושרה / המשך לקבלת הרכב', fn:approveQuoteContinue};
     if(state.quoteCreated) return {status:'הצעה בהכנה', badge:'badge-warn', label:'שלח הצעת מחיר', btn:'המשך', fn:function(){ go('s-quote-preview'); }};
     return {status:'בדיקת רכב', badge:'badge-warn', label:'הכנת הצעת מחיר', btn:'המשך', fn:function(){ go('s-quote'); }};
@@ -2355,7 +2514,7 @@ function nextActionSpec(){
   if(state.quoteApproved) return {status:'אושר', badge:'badge-ok', label:'התחל עבודה', btn:'המשך', fn:startWork};
   if(state.quoteSent || state.waitingForApproval) return {status:'ממתין לאישור', badge:'badge-warn', label:'ממתינים לאישור הלקוח', btn:'הצעה אושרה / התחל עבודה', fn:approveQuoteContinue};
   if(state.intakeDone) return {status:'הרכב התקבל', badge:'badge-accent', label:'הכנת הצעת מחיר', btn:'המשך', fn:function(){ go('s-quote'); }};
-  if(state.workOrderSaved) return {status:'בדיקת רכב', badge:'badge-warn', label:'קבלת רכב + 4 תמונות', btn:'המשך', fn:function(){ go('s-intake'); }};
+  if(state.workOrderSaved) return {status:'בדיקת רכב', badge:'badge-warn', label:'קבלת רכב + 5 תמונות', btn:'המשך', fn:function(){ go('s-intake'); }};
   return {status:'בדיקת רכב', badge:'badge-warn', label:'העלאת הזמנת לקוח', btn:'המשך', fn:function(){ go('s-workorder'); }};
 }
 function flowMeterText(spec){
@@ -2366,11 +2525,11 @@ function flowMeterText(spec){
     if(state.quoteCreated) done.push('הצעה'); else missing.push('הצעת מחיר');
     if(state.quoteSent || state.waitingForApproval || state.quoteApproved) done.push('שליחה'); else if(state.quoteCreated) missing.push('שליחה ללקוח');
     if(state.quoteApproved || state.intakeUnlocked) done.push('אישור/המשך'); else if(state.quoteSent) missing.push('אישור לקוח');
-    if(state.intakeDone) done.push('קבלת רכב'); else if(state.quoteApproved || state.intakeUnlocked) missing.push('קבלת רכב + 4 תמונות');
+    if(state.intakeDone) done.push('קבלת רכב'); else if(state.quoteApproved || state.intakeUnlocked) missing.push('קבלת רכב + 5 תמונות');
     if(state.workStarted) done.push('עבודה'); else if(state.intakeDone) missing.push('התחלת עבודה');
   } else {
     if(state.workOrderSaved) done.push('הזמנת לקוח'); else missing.push('הזמנת לקוח');
-    if(state.intakeDone) done.push('קבלת רכב'); else missing.push('קבלת רכב + 4 תמונות');
+    if(state.intakeDone) done.push('קבלת רכב'); else missing.push('קבלת רכב + 5 תמונות');
     if(state.quoteCreated) done.push('הצעה'); else if(state.intakeDone) missing.push('הצעת מחיר');
     if(state.quoteSent || state.waitingForApproval || state.quoteApproved) done.push('שליחת חבילה'); else if(state.quoteCreated) missing.push('שליחה לאישור');
     if(state.workStarted) done.push('עבודה'); else if(state.quoteApproved) missing.push('התחלת עבודה');
@@ -2417,7 +2576,7 @@ function refreshCaseHub(){
   var qPhotos = mediaByCategory('quote_photos').length + mediaByCategory('damage').length;
   setText('tile-inspect-sub', qPhotos ? (qPhotos + ' תמונות נזק/הצעה') : 'אופציונלי');
   var inspectBody = document.getElementById('acc-inspect-body');
-  if(inspectBody) inspectBody.innerHTML = 'תמונות נזק/הצעה: '+qPhotos+' · 4 זוויות חובה רק בקבלת רכב ('+angleCount()+'/4) · '+(state.damageCount||0)+' מוקדי נזק <span class="open-link" onclick="event.stopPropagation(); go(\'s-inspect\')">פתח ›</span>';
+  if(inspectBody) inspectBody.innerHTML = 'תמונות נזק/הצעה: '+qPhotos+' · 5 תמונות חובה רק בקבלת רכב ('+angleCount()+'/5) · '+(state.damageCount||0)+' מוקדי נזק <span class="open-link" onclick="event.stopPropagation(); go(\'s-inspect\')">פתח ›</span>';
   document.getElementById('tile-quote-sub').textContent = state.quoteSent ? 'נשלחה' : (state.quoteCreated ? 'טיוטה' : 'טרם נוצרה');
   var quoteTotal = quoteGrandTotal();
   document.getElementById('acc-quote-body').innerHTML = state.quoteSent
@@ -2449,7 +2608,7 @@ function sendExtraApproval(){
   var price = parseFloat(document.getElementById('extra-price').value) || 0;
   if(!text){ alert('יש לתאר את הבקשה'); return; }
   state.extraApprovals = state.extraApprovals || [];
-  var item = { id: 'x'+Date.now(), text: text, price: price, at: new Date().toISOString(), sent: true };
+  var item = { id: 'x'+Date.now(), text: text, price: price, at: new Date().toISOString(), sent: false };
   state.extraApprovals.push(item);
   if(price){
     state.quoteWorks = state.quoteWorks || [];
@@ -2459,9 +2618,9 @@ function sendExtraApproval(){
   state.waitingForApproval = true;
   closeExtraApproval();
   var to = (currentCustomer && currentCustomer.email) || '';
-  var body = 'בקשת אישור נוספת לתיק '+liveCaseNumber()+'\n'+text+'\nמחיר: '+money(price)+'\nרק החומר של בקשה זו.';
+  var body = 'בקשת אישור נוספת לתיק '+liveCaseNumber()+'\n'+text+'\nמחיר: '+money(price)+'\nרק החומר של בקשה זו.\nלא נשלח דרך תיבת Claims.';
   window.location.href = 'mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent('אישור נוסף · '+liveCaseNumber())+'&body='+encodeURIComponent(body);
-  addTimelineEvent('נשלחה בקשת אישור נוספת · '+text);
+  addTimelineEvent('נפתח מייל ידני לבקשת אישור נוספת · '+text);
   renderExtraApprovals();
   refreshCaseHub();
 }

@@ -40,7 +40,7 @@ export type GarageCaseData = {
   route?: GarageRoute;
   flowStage?: string;
   photos?: { fl?: boolean; fr?: boolean; rl?: boolean; rr?: boolean };
-  intakeAngles?: { front?: boolean; rear?: boolean; right?: boolean; left?: boolean };
+  intakeAngles?: { front?: boolean; rear?: boolean; right?: boolean; left?: boolean; dashboard?: boolean };
   damageCount?: number;
   quoteCreated?: boolean;
   quoteSent?: boolean;
@@ -48,6 +48,10 @@ export type GarageCaseData = {
   workOrderSaved?: boolean;
   workOrderAmount?: number | string | null;
   workOrderNumber?: string | null;
+  workOrderRef?: string | null;
+  workOrderContact?: string | null;
+  workOrderDate?: string | null;
+  workOrderNotes?: string | null;
   intakeDone?: boolean;
   signatureCaptured?: boolean;
   workStarted?: boolean;
@@ -113,6 +117,59 @@ export function normalizePlate(raw: string): string {
   return String(raw || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
 }
 
+export type WorkOrderHints = {
+  order_number: string;
+  plate: string;
+  claim_ref: string;
+  company: string;
+  contact: string;
+  amount: string;
+  notes: string;
+  fromFile: string[];
+  fromCase: string[];
+};
+
+export function extractWorkOrderHints(input: {
+  fileName?: string;
+  text?: string;
+  casePlate?: string;
+  company?: string;
+  contact?: string;
+} = {}): WorkOrderHints {
+  const hay = `${input.fileName || ''} ${input.text || ''}`;
+  const fromFile: string[] = [];
+  const fromCase: string[] = [];
+  const orderMatch = hay.match(/(?:הזמנה|order|po|wo)[\s#:.\-_]*([A-Za-z0-9\/\-]{3,})/i);
+  const claimMatch = hay.match(/(?:תביעה|אסמכתא|claim|ref)[\s#:.\-_]*([A-Za-z0-9\/\-]{3,})/i);
+  const amountMatch = hay.match(/(?:₪|ש["״']?ח|amount|סכום)[\s:]*([\d,.]+)/i);
+  const dashedPlate = hay.match(/\b(\d{2,3}-\d{2,3}-\d{2,3})\b/);
+  const plateMatch = dashedPlate || hay.match(/(?:רכב|plate|לוחית)[\s#:.\-_]*(\d{7,8})/i);
+  const hints: WorkOrderHints = {
+    order_number: orderMatch ? String(orderMatch[1]) : '',
+    plate: plateMatch ? normalizePlate(plateMatch[1]) : '',
+    claim_ref: claimMatch ? String(claimMatch[1]) : '',
+    company: String(input.company || '').trim(),
+    contact: String(input.contact || '').trim(),
+    amount: amountMatch ? String(amountMatch[1]) : '',
+    notes: '',
+    fromFile: [],
+    fromCase: [],
+  };
+  if (hints.order_number) fromFile.push('מספר הזמנה');
+  if (hints.plate) fromFile.push('מספר רכב');
+  if (hints.claim_ref) fromFile.push('אסמכתא / תביעה');
+  if (hints.amount) fromFile.push('סכום');
+  if (!hints.plate && input.casePlate) {
+    hints.plate = normalizePlate(input.casePlate);
+    fromCase.push('מספר רכב מהתיק');
+  }
+  if (hints.company) fromCase.push('חברה מהתיק');
+  if (hints.contact) fromCase.push('איש קשר מהתיק');
+  hints.fromFile = fromFile;
+  hints.fromCase = fromCase;
+  return hints;
+}
+
 export function customerDisplayName(c: Pick<GarageCustomer, 'customer_type' | 'name' | 'company_name'>): string {
   if (c.customer_type === 'private') return c.name.trim();
   return (c.company_name || c.name).trim();
@@ -139,7 +196,7 @@ export function garageNextAction(data: GarageCaseData): string {
   if (data.workStarted) return 'המשך עבודה / אישור נוסף';
   if (route === 'quote_first') {
     if (data.intakeDone) return 'התחל עבודה';
-    if (data.quoteApproved) return 'קבלת רכב + 4 תמונות';
+    if (data.quoteApproved) return 'קבלת רכב + 5 תמונות';
     if (data.quoteSent || data.waitingForApproval) return 'ממתינים לאישור הלקוח';
     if (data.quoteCreated) return 'שלח הצעת מחיר';
     return 'הכנת הצעת מחיר';
@@ -147,7 +204,7 @@ export function garageNextAction(data: GarageCaseData): string {
   if (data.quoteApproved) return 'התחל עבודה';
   if (data.quoteSent || data.waitingForApproval) return 'ממתינים לאישור הלקוח';
   if (data.intakeDone) return 'הכנת הצעת מחיר';
-  if (data.workOrderSaved) return 'קבלת רכב + 4 תמונות';
+  if (data.workOrderSaved) return 'קבלת רכב + 5 תמונות';
   return 'העלאת הזמנת לקוח';
 }
 
@@ -156,7 +213,7 @@ export function emptyCaseData(): GarageCaseData {
     route: 'quote_first',
     flowStage: 'open',
     photos: { fl: false, fr: false, rl: false, rr: false },
-    intakeAngles: { front: false, rear: false, right: false, left: false },
+    intakeAngles: { front: false, rear: false, right: false, left: false, dashboard: false },
     damageCount: 0,
     quoteCreated: false,
     quoteSent: false,

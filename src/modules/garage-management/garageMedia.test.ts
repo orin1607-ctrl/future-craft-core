@@ -3,7 +3,7 @@ import { emptyGarageGallery, GARAGE_MEDIA_CATEGORIES, garageMediaObjectPath } fr
 
 describe('garage media contract', () => {
   it('keeps gallery categories keyed by garage_case_id and never claim_id', () => {
-    expect(GARAGE_MEDIA_CATEGORIES.map((c) => c.label)).toContain('4 זוויות');
+    expect(GARAGE_MEDIA_CATEGORIES.map((c) => c.label)).toContain('קבלת רכב');
     expect(GARAGE_MEDIA_CATEGORIES.map((c) => c.label)).toContain('תמונות להצעת מחיר');
     expect(GARAGE_MEDIA_CATEGORIES.map((c) => c.label)).toContain('תמונות קבלת רכב');
     expect(GARAGE_MEDIA_CATEGORIES.map((c) => c.label)).toContain('מסירה');

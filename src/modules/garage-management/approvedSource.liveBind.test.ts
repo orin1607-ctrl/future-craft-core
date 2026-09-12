@@ -98,7 +98,7 @@ describe('garage flow live case binding', () => {
     expect(quote).not.toContain('אלדן');
   });
 
-  it('defaults a private customer to quote-first and does not require 4 photos before the quote', () => {
+  it('defaults a private customer to quote-first and does not require 5 intake photos before the quote', () => {
     const win = bootFlow() as Window & {
       applyBootstrap: (payload: Record<string, unknown>) => void;
       setCaseRoute: (route: string) => void;
@@ -109,7 +109,9 @@ describe('garage flow live case binding', () => {
     expect(win.document.getElementById('next-action-label')?.textContent).toContain('הכנת הצעת מחיר');
     expect(win.document.getElementById('s-inspect')?.textContent).toContain('אופציונלי');
     expect(win.document.getElementById('s-inspect')?.textContent).not.toContain('צילומי חובה — 4 זוויות');
-    expect(win.document.getElementById('s-intake')?.textContent).toContain('4 תמונות חובה לקבלת רכב');
+    expect(win.document.getElementById('s-inspect')?.textContent).toContain('אינן 5 תמונות קבלת הרכב');
+    expect(win.document.getElementById('s-intake')?.textContent).toContain('5 תמונות חובה לקבלת רכב');
+    expect(win.document.getElementById('s-intake')?.querySelector('[data-intake-angle="dashboard"]')).toBeTruthy();
     expect(win.document.getElementById('gm-file-camera')?.getAttribute('capture')).toBe('environment');
     win.setCaseRoute('intake_first');
     expect(win.document.getElementById('route-opt-intake_first')?.classList.contains('sel')).toBe(true);
@@ -266,5 +268,87 @@ describe('garage flow live case binding', () => {
     win.saveCustomerAndContinue(false);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(win.document.getElementById('s-newvehicle')?.classList.contains('active')).toBe(true);
+  });
+
+  it('blocks intake until mileage and 5 required photos including dashboard, and keeps extras unlimited', () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      confirmIntake: () => void;
+      go: (id: string) => void;
+      alert: (msg?: string) => void;
+      document: Document;
+    };
+    const alerts: string[] = [];
+    win.alert = (msg?: string) => { alerts.push(String(msg || '')); };
+    win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
+    (win as unknown as { state: { intakeKm: string; intakeAngles: Record<string, boolean> } }).state = Object.assign(
+      (win as unknown as { state: object }).state || {},
+      {
+        intakeKm: '',
+        intakeAngles: { front: true, rear: true, right: true, left: true, dashboard: false },
+      },
+    );
+    (win.document.getElementById('intake-km') as HTMLInputElement).value = '';
+    win.confirmIntake();
+    expect(alerts.some((a) => /קילומטראז/.test(a))).toBe(true);
+    (win.document.getElementById('intake-km') as HTMLInputElement).value = '12000';
+    win.confirmIntake();
+    expect(alerts.some((a) => /5 תמונות/.test(a))).toBe(true);
+    expect(win.document.getElementById('s-intake')?.textContent).toContain('תמונה נוספת');
+    expect(win.document.getElementById('s-intake')?.textContent).toContain('בלי הגבלה');
+  });
+
+  it('shows extracted order fields for worker confirm and does not save until saveWorkOrder', () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      showOrderExtractReview: (name: string) => void;
+      applyExtractedOrderToForm: () => void;
+      saveWorkOrder: () => void;
+      alert: (msg?: string) => void;
+      document: Document;
+    };
+    win.alert = () => {};
+    win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
+    win.showOrderExtractReview('order-PO-4455-99-888-77-claim-QA12.pdf');
+    expect(win.document.getElementById('wo-scan-result')?.getAttribute('style') || '').not.toContain('display:none');
+    expect((win.document.getElementById('wo-scan-num') as HTMLInputElement).value).toMatch(/4455/);
+    expect((win.document.getElementById('wo-num') as HTMLInputElement).value).toBe('');
+    win.applyExtractedOrderToForm();
+    expect((win.document.getElementById('wo-num') as HTMLInputElement).value).toMatch(/4455/);
+    expect((win as unknown as { state: { workOrderSaved?: boolean } }).state.workOrderSaved).toBeFalsy();
+    (win.document.getElementById('wo-amount') as HTMLInputElement).value = '1500';
+    win.saveWorkOrder();
+    expect((win as unknown as { state: { workOrderSaved?: boolean; workOrderNumber?: string } }).state.workOrderSaved).toBe(true);
+    expect((win as unknown as { state: { workOrderNumber?: string } }).state.workOrderNumber).toMatch(/4455/);
+  });
+
+  it('prefills the existing send area from the live case with email as default', () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      go: (id: string) => void;
+      fillSendFromCase: () => void;
+      document: Document;
+    };
+    const loaded = {
+      ...qaCase,
+      customer: {
+        ...qaCase.customer,
+        email: 'qa-garage@example.com',
+        phone: '0509991111',
+        company_name: '',
+      },
+      case_data: { route: 'quote_first', workOrderNumber: 'PO-4455', quoteWorks: [{ part: 'דלת', qty: 1, price: 200 }] },
+    };
+    win.applyBootstrap({ mode: 'case', loaded, bookPending: false });
+    (win as unknown as { state: { workOrderNumber: string; quoteWorks: Array<{ price: number; qty: number }> } }).state.workOrderNumber = 'PO-4455';
+    (win as unknown as { state: { quoteWorks: Array<{ price: number; qty: number }> } }).state.quoteWorks = [{ price: 200, qty: 1 }];
+    win.go('s-compose');
+    expect(win.document.getElementById('compose-channel-row')?.querySelector('.chip.selected')?.textContent).toContain('מייל');
+    expect((win.document.getElementById('compose-to') as HTMLInputElement).value).toContain('qa-garage@example.com');
+    expect((win.document.getElementById('compose-subject') as HTMLInputElement).value).toContain('GM-2026-0099');
+    expect((win.document.getElementById('compose-body') as HTMLTextAreaElement).value).toContain('99-888-77');
+    expect((win.document.getElementById('compose-body') as HTMLTextAreaElement).value).toContain('PO-4455');
+    expect(win.document.getElementById('s-compose')?.textContent).toContain('WhatsApp');
+    expect(win.document.getElementById('s-compose')?.textContent).toContain('לא נשלח דרך תיבת Claims');
   });
 });
