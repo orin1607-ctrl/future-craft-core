@@ -72,8 +72,15 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('book-pending-banner');
     expect(approvedSourceHtml).toContain('function schedulePersist()');
     expect(approvedSourceHtml).toContain('startScreen');
-    expect(approvedSourceHtml).toContain('openLocalCase');
-    expect(approvedSourceHtml).toContain('notifySave');
+    expect(approvedSourceHtml).not.toContain('אלדן');
+    expect(approvedSourceHtml).not.toContain('orders@aldan.co.il');
+    expect(approvedSourceHtml).not.toContain('תיק #1056');
+    expect(approvedSourceHtml).not.toContain('12-345-67');
+    expect(approvedSourceHtml).not.toContain('ישראל ישראלי');
+    expect(approvedSourceHtml).not.toContain('רהיטי הצפון');
+    expect(approvedSourceHtml).toContain('function bindLiveCase()');
+    expect(approvedSourceHtml).toContain('quote-works-empty');
+    expect(approvedSourceHtml).toContain('clearCustomerForm');
   });
 
   it('keeps the approved iframe script syntactically valid', () => {

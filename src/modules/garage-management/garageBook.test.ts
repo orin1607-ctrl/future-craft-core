@@ -25,7 +25,7 @@ describe('garage book helpers', () => {
         customer_number: 1281,
         customer_type: 'business' as const,
         name: '',
-        company_name: 'אלדן בע"מ',
+        company_name: 'חברת בדיקה בע"מ',
         phone: '03-9001234',
         second_phone: '',
         email: '',
@@ -39,7 +39,7 @@ describe('garage book helpers', () => {
     expect(findDuplicateCustomers(existing, {
       customer_type: 'business',
       name: '',
-      company_name: 'אלדן בע"מ',
+      company_name: 'חברת בדיקה בע"מ',
       phone: '039001234',
       business_id: '',
     })).toHaveLength(1);

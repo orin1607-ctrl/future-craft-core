@@ -52,7 +52,12 @@ export type GarageCaseData = {
   currentScreen?: string;
   timeline?: Array<{ at?: string; text?: string }>;
   quote?: Record<string, unknown>;
+  quoteWorks?: Array<{ id?: string; part?: string; type?: string; qty?: number; price?: number; desc?: string }>;
+  quoteParts?: Array<{ id?: string; name?: string; qty?: number; price?: number; supplier?: string; sku?: string }>;
+  quoteNotes?: string;
+  quoteValidity?: string;
   damage?: unknown[];
+  damageItems?: Array<{ part?: string; status?: string }>;
 };
 
 export type GarageCase = {
@@ -120,8 +125,13 @@ export function emptyCaseData(): GarageCaseData {
     workExtraPrice: 0,
     currentScreen: 's-case',
     timeline: [],
-    quote: {},
+    quote: { works: [], parts: [], notes: '', validity: '' },
+    quoteWorks: [],
+    quoteParts: [],
+    quoteNotes: '',
+    quoteValidity: '',
     damage: [],
+    damageItems: [],
   };
 }
 

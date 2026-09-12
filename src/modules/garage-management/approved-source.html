@@ -288,14 +288,14 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="card tap" onclick="startNewCustomer('private')"><div class="row"><div style="font-weight:700;">לקוח פרטי</div><span class="chev">‹</span></div></div>
     <div class="card tap" onclick="startNewCustomer('business')"><div class="row"><div style="font-weight:700;">עסקי / חברה</div><span class="chev">‹</span></div></div>
     <div class="card tap" onclick="startNewCustomer('fleet')"><div class="row"><div style="font-weight:700;">חברה קבועה / צי רכב</div><span class="chev">‹</span></div></div>
-    <div class="hint" style="margin-top:8px;">מספר לקוח (#1284) יינתן אוטומטית — אין צורך להזין ידנית.</div>
+    <div class="hint" style="margin-top:8px;">מספר לקוח יינתן אוטומטית אחרי השמירה — אין צורך להזין ידנית.</div>
   </div>
 </section>
 <!-- ================= SCREEN: NEW CUSTOMER FORM ================= -->
 <section class="screen" id="s-newform">
-  <div class="topbar"><div class="back" onclick="go('s-newtype')">→</div><div><h1>פרטי לקוח</h1><div class="sub">לקוח חדש #1284</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-newtype')">→</div><div><h1>פרטי לקוח</h1><div class="sub" id="newform-sub">לקוח חדש</div></div></div>
   <div class="content">
-    <div class="field"><label>שם מלא / שם חברה <span class="req">*</span></label><input id="cust-name" placeholder="לדוגמה: ישראל ישראלי"></div>
+    <div class="field"><label>שם מלא / שם חברה <span class="req">*</span></label><input id="cust-name" placeholder="שם מלא או שם החברה" autocomplete="off"></div>
     <div class="field"><label>טלפון <span class="req">*</span></label><input id="cust-phone" placeholder="050-0000000"></div>
     <div class="field"><label>טלפון נוסף</label><input id="cust-phone2" placeholder="טלפון נוסף"></div>
     <div class="field"><label>Email</label><input id="cust-email" placeholder="name@mail.com"></div>
@@ -322,9 +322,9 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   <div class="topbar"><div class="back" onclick="go('s-newform')">→</div><div><h1>פרטי רכב</h1><div class="sub">רכב חדש</div></div></div>
   <div class="content">
     <div class="field"><label>מספר רישוי <span class="req">*</span></label><input id="veh-plate" placeholder="00-000-00"></div>
-    <div class="field"><label>יצרן</label><input id="veh-make" placeholder="Toyota"></div>
-    <div class="field"><label>דגם</label><input id="veh-model" placeholder="Corolla"></div>
-    <div class="field"><label>שנה</label><input id="veh-year" placeholder="2023"></div>
+    <div class="field"><label>יצרן</label><input id="veh-make" placeholder="יצרן"></div>
+    <div class="field"><label>דגם</label><input id="veh-model" placeholder="דגם"></div>
+    <div class="field"><label>שנה</label><input id="veh-year" placeholder="שנה"></div>
     <div class="field"><label>צבע</label><input id="veh-color" placeholder="לבן"></div>
     <div class="field"><label>VIN</label><input id="veh-vin" placeholder="מספר שילדה"></div>
     <div class="field"><label>הערות</label><textarea id="veh-notes" placeholder="פרטים נוספים על הרכב"></textarea></div>
@@ -350,20 +350,20 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <button class="btn btn-white btn-sm" id="next-action-btn" onclick="doNextAction()">המשך</button>
   </div>
   <div class="action-grid">
-    <div class="act-tile" onclick="go('s-inspect')"><div class="ic">🔍</div><div class="lb">בדיקת רכב</div><div class="sub" id="tile-inspect-sub">2/4 תמונות</div></div>
+    <div class="act-tile" onclick="go('s-inspect')"><div class="ic">🔍</div><div class="lb">בדיקת רכב</div><div class="sub" id="tile-inspect-sub">0/4 תמונות</div></div>
     <div class="act-tile" onclick="go('s-quote')"><div class="ic">📋</div><div class="lb">הצעת מחיר</div><div class="sub" id="tile-quote-sub">טרם נוצרה</div></div>
     <div class="act-tile" onclick="go('s-workorder')"><div class="ic">📦</div><div class="lb">הזמנת עבודה</div><div class="sub" id="tile-wo-sub">ממתין</div></div>
     <div class="act-tile" onclick="go('s-gallery')"><div class="ic">🖼️</div><div class="lb">גלריה</div><div class="sub" id="tile-gal-sub">אין תמונות שמורות</div></div>
     <div class="act-tile" onclick="go('s-comm')"><div class="ic">✉️</div><div class="lb">תקשורת</div><div class="sub" id="tile-comm-sub">אין הודעות</div><span class="dot-alert" id="comm-alert" style="display:none;"></span></div>
     <div class="act-tile" onclick="go('s-share')"><div class="ic">🔗</div><div class="lb">שיתוף מאובטח</div><div class="sub" id="tile-share-sub">—</div></div>
     <div class="act-tile locked" id="tile-intake" onclick="tryIntake()"><div class="ic">🚗</div><div class="lb">קבלת רכב</div><div class="sub" id="tile-intake-sub">נעול עד אישור</div></div>
-    <div class="act-tile" onclick="go('s-timeline')"><div class="ic">🕓</div><div class="lb">היסטוריה</div><div class="sub" id="tile-hist-sub">4 אירועים</div></div>
+    <div class="act-tile" onclick="go('s-timeline')"><div class="ic">🕓</div><div class="lb">היסטוריה</div><div class="sub" id="tile-hist-sub">0 אירועים</div></div>
   </div>
   <div class="section-label">כרטיס עבודה מלא</div>
   <div style="padding:0 16px;">
     <div class="accordion-item open" onclick="toggleAcc(this)">
       <div class="accordion-head"><div class="l"><span>📷</span> בדיקת רכב וצילומים</div><span class="arrow">‹</span></div>
-      <div class="accordion-body">2/4 צילומי חובה · 1 מוקד נזק <span class="open-link" onclick="event.stopPropagation(); go('s-inspect')">פתח ›</span></div>
+      <div class="accordion-body" id="acc-inspect-body">0/4 צילומי חובה · 0 מוקדי נזק <span class="open-link" onclick="event.stopPropagation(); go('s-inspect')">פתח ›</span></div>
     </div>
     <div class="accordion-item" onclick="toggleAcc(this)">
       <div class="accordion-head"><div class="l"><span>📋</span> הצעות מחיר</div><span class="arrow">‹</span></div>
@@ -384,14 +384,14 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: INSPECTION ================= -->
 <section class="screen" id="s-inspect">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>בדיקת רכב</h1><div class="sub">תיק #1056 · 12-345-67</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>בדיקת רכב</h1><div class="sub" data-live="case-sub">תיק חדש</div></div></div>
   <div class="content">
     <h2 class="section-title">1. צילומי חובה — 4 זוויות</h2>
     <div class="bar"></div>
-    <div class="progress-pill" id="photo-progress">2 מתוך 4</div>
+    <div class="progress-pill" id="photo-progress">0 מתוך 4</div>
     <div class="photo-grid" style="margin-bottom:10px;" id="photo-grid">
-      <div class="photo-slot done" data-angle="fl" onclick="togglePhoto('fl')"><span class="check">✓</span><div class="cam">📷</div><div class="lbl">קדמי שמאל</div></div>
-      <div class="photo-slot done" data-angle="fr" onclick="togglePhoto('fr')"><span class="check">✓</span><div class="cam">📷</div><div class="lbl">קדמי ימין</div></div>
+      <div class="photo-slot" data-angle="fl" onclick="togglePhoto('fl')"><div class="cam">📷</div><div class="lbl">קדמי שמאל</div></div>
+      <div class="photo-slot" data-angle="fr" onclick="togglePhoto('fr')"><div class="cam">📷</div><div class="lbl">קדמי ימין</div></div>
       <div class="photo-slot" data-angle="rl" onclick="togglePhoto('rl')"><div class="cam">📷</div><div class="lbl">אחורי שמאל</div></div>
       <div class="photo-slot" data-angle="rr" onclick="togglePhoto('rr')"><div class="cam">📷</div><div class="lbl">אחורי ימין</div></div>
     </div>
@@ -405,7 +405,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
         <svg viewBox="0 0 200 380" xmlns="http://www.w3.org/2000/svg">
           <rect class="carpart" x="55" y="10" width="90" height="35" rx="10" onclick="openPart('פגוש קדמי')"/>
           <rect class="carpart" x="55" y="48" width="90" height="45" rx="6" onclick="openPart('מכסה מנוע')"/>
-          <rect class="carpart repair" id="part-flf" x="20" y="98" width="35" height="70" rx="8" onclick="openPart('כנף קדמית שמאל')"/>
+          <rect class="carpart" id="part-flf" x="20" y="98" width="35" height="70" rx="8" onclick="openPart('כנף קדמית שמאל')"/>
           <rect class="carpart" x="145" y="98" width="35" height="70" rx="8" onclick="openPart('כנף קדמית ימין')"/>
           <rect class="carpart" x="20" y="172" width="35" height="70" rx="8" onclick="openPart('דלת קדמית שמאל')"/>
           <rect class="carpart" x="145" y="172" width="35" height="70" rx="8" onclick="openPart('דלת קדמית ימין')"/>
@@ -423,9 +423,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     </div>
     <div class="card" id="damage-list-card">
       <div style="font-size:13px; font-weight:700; margin-bottom:6px;">מוקדי נזק שסומנו</div>
-      <div id="damage-list">
-        <div class="damage-list-item"><span>כנף קדמית שמאל</span><span class="badge badge-danger">מיועד לתיקון</span></div>
-      </div>
+      <div id="damage-list"></div>
+      <div class="hint" id="damage-empty" style="margin:0;">לא סומנו מוקדי נזק עדיין.</div>
     </div>
     <div class="btn-row" style="margin-top:8px;">
       <button class="btn btn-ghost" onclick="saveInspection()">שמור בדיקה</button>
@@ -437,10 +436,10 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <div class="sheet-overlay" id="overlay" onclick="closeSheet()"></div>
 <div class="sheet" id="part-sheet">
   <div class="handle"></div>
-  <h3 id="sheet-title">כנף קדמית שמאל</h3>
+  <h3 id="sheet-title">חלק ברכב</h3>
   <div style="font-size:12px; color:var(--white50); margin-bottom:6px;">מצב</div>
-  <div class="radio-opt" onclick="selRadio(this)"><div class="radio-dot"></div>תקין</div>
-  <div class="radio-opt sel" onclick="selRadio(this)"><div class="radio-dot"></div>נזק קיים — לא לתיקון</div>
+  <div class="radio-opt sel" onclick="selRadio(this)"><div class="radio-dot"></div>תקין</div>
+  <div class="radio-opt" onclick="selRadio(this)"><div class="radio-dot"></div>נזק קיים — לא לתיקון</div>
   <div class="radio-opt" onclick="selRadio(this)"><div class="radio-dot"></div>מיועד לתיקון</div>
   <div class="field" style="margin-top:14px;">
     <label>סוג נזק</label>
@@ -459,13 +458,13 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </div>
 <!-- ================= SCREEN: QUOTE ================= -->
 <section class="screen" id="s-quote">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>הצעת מחיר</h1><div class="sub" id="quote-version-sub">תיק #1056 · טיוטה</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>הצעת מחיר</h1><div class="sub" id="quote-version-sub" data-live="quote-sub">תיק חדש · טיוטה</div></div></div>
   <div class="content">
     <div class="card" style="margin-bottom:16px;">
       <div style="font-size:11.5px; color:var(--white50);">לכבוד</div>
-      <div style="font-weight:700; font-size:15px; margin-bottom:8px;">אלדן בע"מ</div>
-      <div class="doc-row" style="border:none; padding:3px 0; font-size:11.5px; color:var(--white50);"><span>מספר לקוח #1204</span><span>מספר תיק #1056</span></div>
-      <div class="doc-row" style="border:none; padding:3px 0; font-size:11.5px; color:var(--white50);"><span>12-345-67 · Toyota Corolla</span><span id="quote-order-ref">הזמנה: —</span></div>
+      <div style="font-weight:700; font-size:15px; margin-bottom:8px;" id="quote-customer-name" data-live="customer-name">—</div>
+      <div class="doc-row" style="border:none; padding:3px 0; font-size:11.5px; color:var(--white50);"><span id="quote-customer-number">מספר לקוח —</span><span id="quote-case-number">מספר תיק —</span></div>
+      <div class="doc-row" style="border:none; padding:3px 0; font-size:11.5px; color:var(--white50);"><span id="quote-vehicle-line">—</span><span id="quote-order-ref">הזמנה: —</span></div>
     </div>
     <div class="tabs">
       <div class="tab active" onclick="switchTab(this,'q-works')">עבודות</div>
@@ -473,101 +472,73 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <div class="tab" onclick="switchTab(this,'q-photos')">תמונות</div>
     </div>
     <div class="tabpanel active" id="q-works">
-      <div class="job-card">
-        <div class="jh"><div><div class="part">כנף קדמית שמאל</div><div class="type">תיקון + צבע</div></div><div class="price">650 ₪</div></div>
-        <div class="desc">תיקון פח וצבע מלא לכנף</div>
-        <div class="jactions"><span>ערוך</span><span class="del">הסר</span></div>
-      </div>
-      <div class="job-card">
-        <div class="jh"><div><div class="part">פגוש קדמי</div><div class="type">תיקון + צבע</div></div><div class="price">800 ₪</div></div>
-        <div class="desc">פירוק, תיקון וצביעה</div>
-        <div class="jactions"><span>ערוך</span><span class="del">הסר</span></div>
-      </div>
-      <div class="job-card">
-        <div class="jh"><div><div class="part">מכסה מנוע</div><div class="type">תיקון</div></div><div class="price">900 ₪</div></div>
-        <div class="desc">יישור פח בלבד</div>
-        <div class="jactions"><span>ערוך</span><span class="del">הסר</span></div>
-      </div>
-      <div id="extra-work-items"></div>
+      <div id="quote-works-list"></div>
+      <div class="hint" id="quote-works-empty">אין עבודות עדיין. הוסף עבודה, כמות ומחיר.</div>
       <button class="btn btn-ghost" onclick="openAddWork()">＋ הוסף עבודה</button>
     </div>
     <div class="tabpanel" id="q-parts">
-      <div class="job-card">
-        <div class="jh"><div><div class="part">פנס קדמי ימין</div><div class="type">כמות 1</div></div><div class="price">—</div></div>
-        <div class="desc">מסופק ע"י אלדן — לא לחיוב</div>
-      </div>
-      <div class="job-card">
-        <div class="jh"><div><div class="part">גריל</div><div class="type">כמות 1</div></div><div class="price">—</div></div>
-        <div class="desc">מסופק ע"י אלדן — לא לחיוב</div>
-      </div>
-      <div id="extra-part-items"></div>
+      <div id="quote-parts-list"></div>
+      <div class="hint" id="quote-parts-empty">אין חלקים עדיין. הוסף חלק, כמות ומחיר.</div>
       <button class="btn btn-ghost" onclick="openAddPart()">＋ הוסף חלק</button>
     </div>
     <div class="tabpanel" id="q-photos">
-      <div class="hint">בחר את התמונות שייכנסו להצעת המחיר.</div>
-      <div class="gal-grid">
-        <div class="gal-item sel" onclick="toggleGalSel(this)"><div class="ph">📷</div><div class="cb">✓</div><div class="tag">כנף שמאל</div></div>
-        <div class="gal-item sel" onclick="toggleGalSel(this)"><div class="ph">📷</div><div class="cb">✓</div><div class="tag">פגוש</div></div>
-        <div class="gal-item" onclick="toggleGalSel(this)"><div class="ph">📷</div><div class="cb"></div><div class="tag">דלת</div></div>
-        <div class="gal-item sel" onclick="toggleGalSel(this)"><div class="ph">📷</div><div class="cb">✓</div><div class="tag">מכסה מנוע</div></div>
-      </div>
+      <div class="hint">בחר את התמונות שייכנסו להצעת המחיר. רק תמונות של התיק הנוכחי.</div>
+      <div class="gal-grid" id="quote-photo-grid"></div>
+      <div class="hint" id="quote-photos-empty">אין תמונות בתיק זה עדיין.</div>
       <button class="btn btn-ghost" style="margin-top:14px;" onclick="quoteSelectAllPhotos()">בחר הכל</button>
     </div>
     <div class="total-box">
-      <div class="total-row"><span>סה"כ עבודות</span><span id="tot-works">2,350 ₪</span></div>
+      <div class="total-row"><span>סה"כ עבודות</span><span id="tot-works">0 ₪</span></div>
       <div class="total-row"><span>סה"כ חלקים (אנחנו)</span><span id="tot-parts">0 ₪</span></div>
-      <div class="total-row"><span>חלקים מסופקים ע"י אלדן</span><span>2 פריטים</span></div>
-      <div class="total-row"><span>הנחה</span><span>0 ₪</span></div>
-      <div class="total-row"><span>מע"מ (18%)</span><span id="tot-vat">423 ₪</span></div>
-      <div class="total-row final"><span>סה"כ לתשלום</span><span id="tot-final">2,773 ₪</span></div>
+      <div class="total-row"><span>חלקים שמסופקים על ידי הלקוח</span><span id="tot-cust-parts">0 פריטים</span></div>
+      <div class="total-row"><span>הנחה</span><span id="tot-discount">0 ₪</span></div>
+      <div class="total-row"><span>מע"מ (18%)</span><span id="tot-vat">0 ₪</span></div>
+      <div class="total-row final"><span>סה"כ לתשלום</span><span id="tot-final">0 ₪</span></div>
     </div>
-    <div class="field" style="margin-top:14px;"><label>תוקף ההצעה</label><input value="7 ימים מהיום"></div>
-    <div class="field"><label>הערות להצעה</label><textarea placeholder="תנאי תשלום, אחריות וכו׳"></textarea></div>
+    <div class="field" style="margin-top:14px;"><label>תוקף ההצעה</label><input id="quote-validity" placeholder="לדוגמה: 7 ימים מהיום"></div>
+    <div class="field"><label>הערות להצעה</label><textarea id="quote-notes" placeholder="תנאי תשלום, אחריות וכו׳"></textarea></div>
     <div class="btn-row">
-      <button class="btn btn-ghost" onclick="notifySave('הטיוטה נשמרה')">שמור טיוטה</button>
+      <button class="btn btn-ghost" onclick="saveQuoteDraft()">שמור טיוטה</button>
       <button class="btn btn-white" onclick="go('s-quote-preview')">תצוגה מקדימה · PDF</button>
     </div>
     <button class="btn btn-ghost" style="margin-top:10px;" onclick="openWhatsApp()">📱 שלח ב-WhatsApp</button>
     <div class="section-label" style="padding-right:0;">גרסאות הצעה</div>
     <div class="card" id="quote-versions">
-      <div class="doc-row"><span>V1 — 2,773 ₪</span><span style="color:var(--white50);">נשלחה 10/09 10:15</span></div>
+      <div class="hint" style="margin:0;">אין גרסאות שמורות עדיין.</div>
     </div>
   </div>
 </section>
 <!-- ================= SCREEN: QUOTE PDF PREVIEW / PRINT ================= -->
 <section class="screen" id="s-quote-preview">
-  <div class="topbar no-print"><div class="back" onclick="go('s-quote')">→</div><div><h1>תצוגה מקדימה</h1><div class="sub">הצעת מחיר · תיק #1056</div></div></div>
+  <div class="topbar no-print"><div class="back" onclick="go('s-quote')">→</div><div><h1>תצוגה מקדימה</h1><div class="sub" data-live="quote-preview-sub">הצעת מחיר</div></div></div>
   <div class="content">
     <div class="doc-page" id="printable">
       <div style="display:flex; justify-content:space-between; align-items:flex-start;">
         <div>
           <h3>דליה — פתרונות תפעול ותחזוקה לרכב</h3>
-          <div class="doc-muted">מוסך ומוקד תיקוני פחח וצבע · ח.פ. 000000000</div>
+          <div class="doc-muted">מוסך ומוקד תיקוני פחח וצבע</div>
         </div>
         <div style="text-align:left; font-size:11px;">
-          <div>תאריך: 10.09.2026</div>
-          <div>תיק #1056</div>
+          <div id="preview-date"></div>
+          <div id="preview-case-number">תיק חדש</div>
         </div>
       </div>
       <div class="doc-section-title">לכבוד</div>
-      <div>אלדן בע"מ</div>
-      <div class="doc-muted">מספר לקוח #1204 · הזמנה: —</div>
-      <div class="doc-muted">רכב: 12-345-67 · Toyota Corolla · 2021</div>
+      <div id="preview-customer-name">—</div>
+      <div class="doc-muted" id="preview-customer-meta">מספר לקוח —</div>
+      <div class="doc-muted" id="preview-vehicle-line">רכב: —</div>
       <div class="doc-section-title">עבודות לביצוע</div>
-      <div class="doc-row"><span>כנף קדמית שמאל — תיקון + צבע</span><span>650 ₪</span></div>
-      <div class="doc-row"><span>פגוש קדמי — תיקון + צבע</span><span>800 ₪</span></div>
-      <div class="doc-row"><span>מכסה מנוע — תיקון</span><span>900 ₪</span></div>
+      <div id="preview-works"><div class="doc-muted">אין עבודות</div></div>
       <div class="doc-section-title">חלקים נדרשים</div>
-      <div class="doc-row"><span>פנס קדמי ימין — מסופק ע"י אלדן</span><span>—</span></div>
-      <div class="doc-row"><span>גריל — מסופק ע"י אלדן</span><span>—</span></div>
+      <div id="preview-parts"><div class="doc-muted">אין חלקים</div></div>
       <div class="doc-section-title">סיכום כספי</div>
-      <div class="doc-row"><span>סה"כ עבודות</span><span>2,350 ₪</span></div>
-      <div class="doc-row"><span>מע"מ (18%)</span><span>423 ₪</span></div>
-      <div class="doc-row" style="font-weight:800; border-bottom:2px solid #111;"><span>סה"כ לתשלום</span><span>2,773 ₪</span></div>
-      <div class="doc-section-title">תמונות מצורפות</div>
-      <div class="doc-muted">3 תמונות: כנף שמאל, פגוש, מכסה מנוע</div>
+      <div class="doc-row"><span>סה"כ עבודות</span><span id="preview-tot-works">0 ₪</span></div>
+      <div class="doc-row"><span>מע"מ (18%)</span><span id="preview-tot-vat">0 ₪</span></div>
+      <div class="doc-row" style="font-weight:800; border-bottom:2px solid #111;"><span>סה"כ לתשלום</span><span id="preview-tot-final">0 ₪</span></div>
+      <div class="doc-section-title">הערות</div>
+      <div class="doc-muted" id="preview-notes">אין הערות</div>
       <div class="doc-section-title">תנאים</div>
-      <div class="doc-muted">תוקף ההצעה: 7 ימים מהיום. התשלום במעמד מסירת הרכב, אלא אם סוכם אחרת.</div>
+      <div class="doc-muted" id="preview-validity">תוקף ההצעה ייקבע בעת השמירה.</div>
     </div>
     <div class="btn-row no-print" style="margin-top:16px;">
       <button class="btn btn-white" onclick="markQuotePdfCreated(); window.print();">הדפס / שמור כ-PDF</button>
@@ -581,7 +552,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <div class="sheet" id="work-sheet">
   <div class="handle"></div>
   <h3>הוספת עבודה</h3>
-  <div class="field"><label>חלק ברכב</label><input id="w-part" placeholder="לדוגמה: דלת קדמית שמאל"></div>
+  <div class="field"><label>חלק ברכב</label><input id="w-part" placeholder="שם העבודה / חלק ברכב"></div>
   <div class="field"><label>סוג עבודה</label>
     <div class="chip-row">
       <div class="chip selected" onclick="selChip(this)">פחחות</div><div class="chip" onclick="selChip(this)">צבע</div>
@@ -590,7 +561,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     </div>
   </div>
   <div class="field"><label>פירוט עבודה</label><textarea id="w-desc" placeholder="תיאור העבודה"></textarea></div>
-  <div class="field"><label>מחיר (₪)</label><input id="w-price" type="number" placeholder="0"></div>
+  <div class="field"><label>כמות</label><input id="w-qty" type="number" min="1" step="1" value="1"></div>
+  <div class="field"><label>מחיר ליחידה (₪)</label><input id="w-price" type="number" placeholder="0"></div>
   <button class="btn btn-white" style="margin-bottom:10px;" onclick="saveWork()">שמור עבודה</button>
 </div>
 <!-- add part sheet -->
@@ -598,7 +570,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <div class="sheet" id="part-add-sheet">
   <div class="handle"></div>
   <h3>הוספת חלק</h3>
-  <div class="field"><label>שם החלק</label><input id="p-name" placeholder="לדוגמה: מראה שמאל"></div>
+  <div class="field"><label>שם החלק</label><input id="p-name" placeholder="שם החלק"></div>
   <div class="field"><label>מק"ט</label><input id="p-sku" placeholder="אופציונלי"></div>
   <div class="field"><label>כמות</label><input id="p-qty" type="number" value="1"></div>
   <div class="field"><label>מחיר יחידה (₪)</label><input id="p-price" type="number" placeholder="0"></div>
@@ -610,7 +582,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </div>
 <!-- ================= SCREEN: WORK ORDER ================= -->
 <section class="screen" id="s-workorder">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>הזמנת עבודה</h1><div class="sub">אלדן בע"מ · תיק #1056</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>הזמנת עבודה</h1><div class="sub" data-live="case-customer-sub">הזמנת עבודה</div></div></div>
   <div class="content">
     <div class="card" style="margin-bottom:18px;">
       <div class="row"><div class="lbl" style="font-size:11.5px; color:var(--white50);">סכום מאושר נוכחי</div></div>
@@ -618,22 +590,22 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     </div>
     <h2 class="section-title">פרטי הזמנה חדשה</h2>
     <div class="bar"></div>
-    <div class="field"><label>מספר הזמנה <span class="req">*</span></label><input id="wo-num" placeholder="A-8821"></div>
-    <div class="field"><label>תאריך הזמנה</label><input value="10.09.2026"></div>
-    <div class="field"><label>סכום מאושר <span class="req">*</span></label><input id="wo-amount" type="number" placeholder="3200"></div>
-    <div class="field"><label>איש קשר</label><input placeholder="שם איש הקשר אצל אלדן"></div>
-    <div class="field"><label>הערות</label><textarea placeholder="הערות להזמנה"></textarea></div>
+    <div class="field"><label>מספר הזמנה <span class="req">*</span></label><input id="wo-num" placeholder="מספר הזמנה"></div>
+    <div class="field"><label>תאריך הזמנה</label><input id="wo-date" placeholder="תאריך"></div>
+    <div class="field"><label>סכום מאושר <span class="req">*</span></label><input id="wo-amount" type="number" placeholder="0"></div>
+    <div class="field"><label>איש קשר</label><input id="wo-contact" placeholder="שם איש הקשר אצל הלקוח"></div>
+    <div class="field"><label>הערות</label><textarea id="wo-notes" placeholder="הערות להזמנה"></textarea></div>
     <div class="btn-row" style="margin-bottom:14px;">
       <button class="btn btn-ghost">📷 צלם הזמנה</button>
       <button class="btn btn-ghost">העלה הזמנה</button>
     </div>
     <div class="card" id="wo-scan-result" style="display:none;">
       <div style="font-size:13px; font-weight:700; margin-bottom:8px;">זוהו במסמך:</div>
-      <div class="doc-row"><span>מספר הזמנה</span><span>A-8821</span></div>
-      <div class="doc-row"><span>מספר רכב</span><span>12-345-67</span></div>
-      <div class="doc-row"><span>תאריך</span><span>10.09.2026</span></div>
-      <div class="doc-row"><span>סכום</span><span>3,200 ₪</span></div>
-      <div class="doc-row"><span>חברה</span><span>אלדן בע"מ</span></div>
+      <div class="doc-row"><span>מספר הזמנה</span><span id="wo-scan-num">—</span></div>
+      <div class="doc-row"><span>מספר רכב</span><span id="wo-scan-plate">—</span></div>
+      <div class="doc-row"><span>תאריך</span><span id="wo-scan-date">—</span></div>
+      <div class="doc-row"><span>סכום</span><span id="wo-scan-amount">—</span></div>
+      <div class="doc-row"><span>לקוח</span><span id="wo-scan-customer">—</span></div>
     </div>
     <button class="btn btn-white" onclick="saveWorkOrder()">אשר ושמור הזמנה</button>
     <div class="section-label" style="padding-right:0;">גרסאות הזמנה</div>
@@ -662,7 +634,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: COMMUNICATION ================= -->
 <section class="screen" id="s-comm">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>תקשורת</h1><div class="sub">תיק #1056 · אלדן בע"מ</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>תקשורת</h1><div class="sub" data-live="case-customer-sub">תקשורת</div></div></div>
   <div class="content">
     <div class="tabs">
       <div class="tab active" onclick="switchTab(this,'c-all')">הכל</div>
@@ -671,9 +643,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     </div>
     <button class="btn btn-white" style="margin-bottom:16px;" onclick="go('s-compose')">＋ מייל חדש</button>
     <div class="tabpanel active" id="c-all">
-      <div class="comm-thread" id="comm-thread-all">
-        <div class="bubble out"><div class="bmeta">יוסי · 10/09 09:38</div>נשלחה הצעת מחיר V1 אל orders@aldan.co.il<div class="battach"><span>📎 הצעת_מחיר_V1.pdf</span><span style="color:var(--accent);">פתח</span></div></div>
-      </div>
+      <div class="comm-thread" id="comm-thread-all"></div>
+      <div class="hint" id="comm-empty">אין הודעות בתיק זה עדיין.</div>
     </div>
     <div class="tabpanel" id="c-email">
       <div class="hint">רק הודעות Email של התיק יוצגו כאן.</div>
@@ -685,12 +656,12 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: COMPOSE EMAIL ================= -->
 <section class="screen" id="s-compose">
-  <div class="topbar"><div class="back" onclick="go('s-comm')">→</div><div><h1>מייל חדש</h1><div class="sub">תיק #1056</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-comm')">→</div><div><h1>מייל חדש</h1><div class="sub" data-live="case-sub">מייל חדש</div></div></div>
   <div class="content">
-    <div class="field"><label>אל</label><input value="orders@aldan.co.il"></div>
-    <div class="field"><label>CC</label><input placeholder="אופציונלי"></div>
-    <div class="field"><label>נושא</label><input value="הצעת מחיר — תיק 1056 — 12-345-67"></div>
-    <div class="field"><label>תוכן</label><textarea style="min-height:120px;">שלום, מצורפת הצעת מחיר עבור רכב 12-345-67. בברכה, יוסי.</textarea></div>
+    <div class="field"><label>אל</label><input id="compose-to" placeholder="email@example.com"></div>
+    <div class="field"><label>CC</label><input id="compose-cc" placeholder="אופציונלי"></div>
+    <div class="field"><label>נושא</label><input id="compose-subject" placeholder="נושא"></div>
+    <div class="field"><label>תוכן</label><textarea id="compose-body" style="min-height:120px;" placeholder="תוכן המייל"></textarea></div>
     <div class="field"><label>צירופים</label>
       <div class="chip-row">
         <div class="chip selected" onclick="selChip(this)">הצעת מחיר</div>
@@ -704,22 +675,22 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: SECURE SHARE ================= -->
 <section class="screen" id="s-share">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>שיתוף מאובטח</h1><div class="sub">תיק #1056</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>שיתוף מאובטח</h1><div class="sub" data-live="case-sub">שיתוף מאובטח</div></div></div>
   <div class="content" id="share-step1">
     <h2 class="section-title">1. מה לשתף?</h2>
     <div class="bar"></div>
-    <div class="gal-grid" style="margin-bottom:18px;">
-      <div class="gal-item sel" onclick="toggleGalSel(this)"><div class="ph">🚙</div><div class="cb">✓</div><div class="tag">קדמי שמאל</div></div>
-      <div class="gal-item sel" onclick="toggleGalSel(this)"><div class="ph">🚙</div><div class="cb">✓</div><div class="tag">קדמי ימין</div></div>
+    <div class="gal-grid" style="margin-bottom:18px;" id="share-item-grid">
+      <div class="gal-item" onclick="toggleGalSel(this)"><div class="ph">🚙</div><div class="cb"></div><div class="tag">קדמי שמאל</div></div>
+      <div class="gal-item" onclick="toggleGalSel(this)"><div class="ph">🚙</div><div class="cb"></div><div class="tag">קדמי ימין</div></div>
       <div class="gal-item" onclick="toggleGalSel(this)"><div class="ph">📋</div><div class="cb"></div><div class="tag">הצעת מחיר</div></div>
       <div class="gal-item" onclick="toggleGalSel(this)"><div class="ph">📦</div><div class="cb"></div><div class="tag">הזמנה</div></div>
     </div>
     <h2 class="section-title">2. נשלח אל</h2>
     <div class="bar"></div>
-    <div class="field"><label>שם <span class="req">*</span></label><input placeholder="שם הנמען"></div>
-    <div class="field"><label>חברה</label><input value="אלדן בע&quot;מ"></div>
-    <div class="field"><label>Email</label><input placeholder="name@mail.com"></div>
-    <div class="field"><label>טלפון</label><input placeholder="050-0000000"></div>
+    <div class="field"><label>שם <span class="req">*</span></label><input id="share-name" placeholder="שם הנמען"></div>
+    <div class="field"><label>חברה</label><input id="share-company" placeholder="חברה"></div>
+    <div class="field"><label>Email</label><input id="share-email" placeholder="name@mail.com"></div>
+    <div class="field"><label>טלפון</label><input id="share-phone" placeholder="050-0000000"></div>
     <h2 class="section-title">3. תוקף הקישור</h2>
     <div class="bar"></div>
     <div class="chip-row" style="margin-bottom:20px;">
@@ -736,42 +707,35 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <div style="font-weight:700; font-size:16px; margin-bottom:6px;">הקישור מוכן</div>
       <div class="hint" style="margin-bottom:0;">תקף ל-48 שעות · 2 פריטים</div>
     </div>
-    <div class="field"><input value="https://dalia-share.co.il/s/9f2ab7" readonly></div>
+    <div class="field"><input id="share-link-value" value="" placeholder="הקישור יוצג כאן אחרי יצירה" readonly></div>
     <button class="btn btn-white" onclick="alert('הקישור הועתק')">העתק קישור</button>
     <button class="btn btn-ghost" style="margin-top:10px;" onclick="openWhatsApp()">📱 שלח ב-WhatsApp</button>
     <button class="btn btn-ghost" style="margin-top:10px;" onclick="alert('נפתח חלון שליחה במייל')">שלח במייל</button>
     <div class="section-label" style="padding-right:0;">היסטוריית שיתוף</div>
-    <div class="card">
-      <div class="row"><div style="font-weight:700; font-size:13px;">אלדן בע"מ</div><span class="badge badge-ok">פעיל</span></div>
-      <div class="hint" style="margin:6px 0 10px;">נוצר 10/09 09:40 · תוקף עד 12/09 09:40 · 2 פריטים</div>
-      <button class="btn btn-danger-ghost btn-sm" onclick="alert('הקישור בוטל')">בטל קישור עכשיו</button>
+    <div class="card" id="share-history">
+      <div class="hint" style="margin:0;">אין קישורי שיתוף לתיק זה עדיין.</div>
     </div>
   </div>
 </section>
 <!-- ================= SCREEN: VEHICLE INTAKE ================= -->
 <section class="screen" id="s-intake">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>קבלת רכב</h1><div class="sub">תיק #1056 · 12-345-67</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>קבלת רכב</h1><div class="sub" data-live="case-sub">קבלת רכב</div></div></div>
   <div class="content">
-    <div class="field"><label>קילומטראז' <span class="req">*</span></label><input type="number" placeholder="128,500"></div>
+    <div class="field"><label>קילומטראז' <span class="req">*</span></label><input id="intake-km" type="number" placeholder="קילומטראז'"></div>
     <div class="field"><label>מפלס דלק</label>
-      <div class="chip-row"><div class="chip" onclick="selChip(this)">ריק</div><div class="chip" onclick="selChip(this)">1/4</div><div class="chip selected" onclick="selChip(this)">1/2</div><div class="chip" onclick="selChip(this)">3/4</div><div class="chip" onclick="selChip(this)">מלא</div></div>
+      <div class="chip-row"><div class="chip" onclick="selChip(this)">ריק</div><div class="chip" onclick="selChip(this)">1/4</div><div class="chip" onclick="selChip(this)">1/2</div><div class="chip" onclick="selChip(this)">3/4</div><div class="chip" onclick="selChip(this)">מלא</div></div>
     </div>
-    <div class="field"><label>מספר מפתחות</label><input type="number" value="2"></div>
-    <div class="field"><label>נורות אזהרה קיימות</label><input placeholder="לדוגמה: מנוע"></div>
-    <div class="field"><label>חפצים שנשארו ברכב</label><input placeholder="לדוגמה: משקפי שמש"></div>
-    <div class="field"><label>מצב פנים הרכב</label><textarea placeholder="הערות על מצב הפנים"></textarea></div>
+    <div class="field"><label>מספר מפתחות</label><input id="intake-keys" type="number" placeholder="0"></div>
+    <div class="field"><label>נורות אזהרה קיימות</label><input id="intake-lights" placeholder="אם יש"></div>
+    <div class="field"><label>חפצים שנשארו ברכב</label><input id="intake-items" placeholder="אם יש"></div>
+    <div class="field"><label>מצב פנים הרכב</label><textarea id="intake-interior" placeholder="הערות על מצב הפנים"></textarea></div>
     <h2 class="section-title">בדיקת השלמת תמונות</h2>
     <div class="bar"></div>
-    <div class="card" style="margin-bottom:18px;">
-      <div class="doc-row"><span>קדמי שמאל</span><span style="color:var(--ok);">✓</span></div>
-      <div class="doc-row"><span>קדמי ימין</span><span style="color:var(--ok);">✓</span></div>
-      <div class="doc-row"><span>אחורי שמאל</span><span style="color:var(--ok);">✓</span></div>
-      <div class="doc-row" style="border:none;"><span>אחורי ימין</span><span style="color:var(--ok);">✓</span></div>
-    </div>
+    <div class="card" style="margin-bottom:18px;" id="intake-photo-check"></div>
     <h2 class="section-title">סיכום מפת הנזקים</h2>
     <div class="bar"></div>
-    <div class="card" style="margin-bottom:18px;">
-      <div class="damage-list-item"><span>כנף קדמית שמאל</span><span class="badge badge-danger">מיועד לתיקון</span></div>
+    <div class="card" style="margin-bottom:18px;" id="intake-damage-summary">
+      <div class="hint" style="margin:0;">לא סומנו מוקדי נזק.</div>
     </div>
     <h2 class="section-title">חתימת לקוח</h2>
     <div class="bar"></div>
@@ -786,7 +750,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: JOB / FINISH WORK ================= -->
 <section class="screen" id="s-job">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>כרטיס עבודה</h1><div class="sub">תיק #1056 · בעבודה</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>כרטיס עבודה</h1><div class="sub" data-live="case-sub">כרטיס עבודה</div></div></div>
   <div class="content">
     <div class="hint">כל מה שנאסף בתיק עד כה נשאר זמין כאן: לקוח, רכב, תמונות, בדיקה, הצעה, חלקים, הזמנה וחתימה.</div>
     <div class="chip-row" style="margin-bottom:18px;">
@@ -800,12 +764,12 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: FINISH WORK ================= -->
 <section class="screen" id="s-finish">
-  <div class="topbar"><div class="back" onclick="go('s-job')">→</div><div><h1>סיום עבודה</h1><div class="sub">תיק #1056</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-job')">→</div><div><h1>סיום עבודה</h1><div class="sub" data-live="case-sub">סיום עבודה</div></div></div>
   <div class="content">
     <div class="card" style="margin-bottom:18px;">
       <div style="font-weight:700; font-size:14px; margin-bottom:8px;">סיכום</div>
-      <div class="doc-row"><span>עבודות שבוצעו</span><span>3</span></div>
-      <div class="doc-row"><span>חלקים</span><span>2</span></div>
+      <div class="doc-row"><span>עבודות שבוצעו</span><span id="finish-works-count">0</span></div>
+      <div class="doc-row"><span>חלקים</span><span id="finish-parts-count">0</span></div>
       <div class="doc-row"><span>מספר הזמנה</span><span id="finish-order">—</span></div>
       <div class="doc-row" style="border:none;"><span>סכום מאושר</span><span id="finish-amount">—</span></div>
     </div>
@@ -817,49 +781,30 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: CLOSE CASE ================= -->
 <section class="screen" id="s-close">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>סגירת תיק</h1><div class="sub">תיק #1056</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>סגירת תיק</h1><div class="sub" data-live="case-sub">סגירת תיק</div></div></div>
   <div class="content">
     <div class="card" style="margin-bottom:20px;">
-      <div class="doc-row"><span>לקוח</span><span>אלדן בע"מ</span></div>
-      <div class="doc-row"><span>רכב</span><span>12-345-67</span></div>
-      <div class="doc-row"><span>הצעה אחרונה</span><span>2,773 ₪</span></div>
+      <div class="doc-row"><span>לקוח</span><span id="close-customer">—</span></div>
+      <div class="doc-row"><span>רכב</span><span id="close-vehicle">—</span></div>
+      <div class="doc-row"><span>הצעה אחרונה</span><span id="close-quote">—</span></div>
       <div class="doc-row"><span>הזמנה</span><span id="close-order">—</span></div>
       <div class="doc-row"><span>סכום מאושר</span><span id="close-amount">—</span></div>
-      <div class="doc-row"><span>תמונות</span><span>6</span></div>
-      <div class="doc-row" style="border:none;"><span>תאריך מסירה</span><span>10.09.2026</span></div>
+      <div class="doc-row"><span>תמונות</span><span id="close-photos">0</span></div>
+      <div class="doc-row" style="border:none;"><span>תיק</span><span id="close-case-number">—</span></div>
     </div>
     <button class="btn btn-white" onclick="confirmCloseCase()">אשר סגירת תיק</button>
   </div>
 </section>
 <!-- ================= SCREEN: TIMELINE ================= -->
 <section class="screen" id="s-timeline">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>היסטוריית תיק</h1><div class="sub">תיק #1056</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>היסטוריית תיק</h1><div class="sub" data-live="case-sub">היסטוריה</div></div></div>
   <div class="content" id="timeline-content">
-    <div class="timeline-item"><div class="tdot"></div><div><div class="tt">09:05</div><div class="te">יוסי פתח תיק</div></div></div>
-    <div class="timeline-item"><div class="tdot"></div><div><div class="tt">09:12</div><div class="te">צולמו 2 תמונות היקפיות</div></div></div>
-    <div class="timeline-item"><div class="tdot"></div><div><div class="tt">09:18</div><div class="te">סומן נזק בכנף קדמית שמאל</div></div></div>
-    <div class="timeline-item"><div class="tdot"></div><div><div class="tt">09:30</div><div class="te">הצעה V1 נוצרה — 2,773 ₪</div></div></div>
+    <div class="hint" id="timeline-empty">אין אירועים בתיק זה עדיין.</div>
   </div>
 </section>
 </div>
 <script>
-var state = {
-  photos: {fl:false, fr:false, rl:false, rr:false},
-  damageCount: 0,
-  quoteCreated: false,
-  quoteSent: false,
-  quoteApproved: false,
-  workOrderSaved: false,
-  workOrderAmount: null,
-  workOrderNumber: null,
-  intakeDone: false,
-  signatureCaptured: false,
-  workStarted: false,
-  workFinished: false,
-  caseClosed: false,
-  workExtraPrice: 0,
-  currentScreen: 's-home'
-};
+var state = emptyFlowState();
 var currentCase = null;
 var currentCustomer = null;
 var currentVehicle = null;
@@ -874,6 +819,121 @@ var GARAGE_GALLERY_TOPICS = [
   '4 זוויות','בדיקת רכב','נקודות נזק','הצעת מחיר','קבלת רכב',
   'לפני עבודה','במהלך עבודה','סיום','לפני מסירה','מסמכים','הזמנות עבודה','אחר'
 ];
+function emptyFlowState(){
+  return {
+    photos: {fl:false, fr:false, rl:false, rr:false},
+    damageCount: 0,
+    damageItems: [],
+    quoteCreated: false,
+    quoteSent: false,
+    quoteApproved: false,
+    quoteWorks: [],
+    quoteParts: [],
+    quoteNotes: '',
+    quoteValidity: '',
+    workOrderSaved: false,
+    workOrderAmount: null,
+    workOrderNumber: null,
+    intakeDone: false,
+    signatureCaptured: false,
+    workStarted: false,
+    workFinished: false,
+    caseClosed: false,
+    workExtraPrice: 0,
+    timeline: [],
+    currentScreen: 's-home'
+  };
+}
+function liveCustomerName(){
+  if(currentCustomer){
+    if(currentCustomer.customer_type === 'private') return String(currentCustomer.name || '').trim();
+    return String(currentCustomer.company_name || currentCustomer.name || '').trim();
+  }
+  return String((currentCase && currentCase.customer_name_snapshot) || '').trim();
+}
+function liveCustomerNumber(){
+  var n = currentCustomer && currentCustomer.customer_number;
+  return n ? String(n) : '';
+}
+function liveCaseNumber(){ return String((currentCase && currentCase.case_number) || ''); }
+function liveCaseId(){ return String((currentCase && currentCase.id) || ''); }
+function livePlate(){
+  if(currentVehicle && currentVehicle.plate) return String(currentVehicle.plate);
+  return String((currentCase && currentCase.vehicle_plate_snapshot) || '');
+}
+function liveVehicleLabel(){
+  if(currentVehicle) return [currentVehicle.make, currentVehicle.model, currentVehicle.year].filter(Boolean).join(' · ');
+  return String((currentCase && currentCase.vehicle_label_snapshot) || '');
+}
+function liveVehicleLine(){
+  var plate = livePlate();
+  var label = liveVehicleLabel();
+  return [plate, label].filter(Boolean).join(' · ');
+}
+function money(n){
+  return (Number(n) || 0).toLocaleString('he-IL') + ' ₪';
+}
+function quoteWorksTotal(){
+  return (state.quoteWorks || []).reduce(function(sum, item){
+    return sum + (Number(item.price) || 0) * (Number(item.qty) || 1);
+  }, 0);
+}
+function quotePartsTotal(){
+  return (state.quoteParts || []).reduce(function(sum, item){
+    if(item.supplier === 'customer') return sum;
+    return sum + (Number(item.price) || 0) * (Number(item.qty) || 1);
+  }, 0);
+}
+function quoteCustomerPartCount(){
+  return (state.quoteParts || []).filter(function(item){ return item.supplier === 'customer'; }).length;
+}
+function quoteGrandTotal(){
+  var net = quoteWorksTotal() + quotePartsTotal();
+  return net + Math.round(net * 0.18);
+}
+function setText(id, text){
+  var el = document.getElementById(id);
+  if(el) el.textContent = text;
+}
+function bindLiveCase(){
+  var name = liveCustomerName() || '—';
+  var caseNo = liveCaseNumber() || 'תיק חדש';
+  var plate = livePlate();
+  var veh = liveVehicleLine() || '—';
+  var custNo = liveCustomerNumber();
+  var caseSub = caseNo + (plate ? (' · ' + plate) : '');
+  var custSub = name === '—' ? caseNo : (name + ' · ' + caseNo);
+  document.querySelectorAll('[data-live="case-sub"]').forEach(function(el){ el.textContent = caseSub; });
+  document.querySelectorAll('[data-live="case-customer-sub"]').forEach(function(el){ el.textContent = custSub; });
+  document.querySelectorAll('[data-live="customer-name"]').forEach(function(el){ el.textContent = name; });
+  document.querySelectorAll('[data-live="quote-sub"]').forEach(function(el){ el.textContent = caseNo + ' · טיוטה'; });
+  document.querySelectorAll('[data-live="quote-preview-sub"]').forEach(function(el){ el.textContent = 'הצעת מחיר · ' + caseNo; });
+  setText('quote-customer-name', name);
+  setText('quote-customer-number', custNo ? ('מספר לקוח #' + custNo) : 'מספר לקוח —');
+  setText('quote-case-number', 'מספר תיק ' + caseNo);
+  setText('quote-vehicle-line', veh);
+  setText('quote-version-sub', caseNo + (state.quoteCreated ? ' · טיוטה' : ' · חדשה'));
+  if(state.workOrderNumber) setText('quote-order-ref', 'הזמנה: ' + state.workOrderNumber);
+  setText('preview-case-number', caseNo);
+  setText('preview-customer-name', name);
+  setText('preview-customer-meta', (custNo ? ('מספר לקוח #' + custNo) : 'מספר לקוח —') + (state.workOrderNumber ? (' · הזמנה: ' + state.workOrderNumber) : ''));
+  setText('preview-vehicle-line', 'רכב: ' + (veh || '—'));
+  setText('close-customer', name);
+  setText('close-vehicle', veh || '—');
+  setText('close-case-number', caseNo);
+  var composeTo = document.getElementById('compose-to');
+  var composeSubject = document.getElementById('compose-subject');
+  var composeBody = document.getElementById('compose-body');
+  if(composeTo && !composeTo.value && currentCustomer && currentCustomer.email) composeTo.value = currentCustomer.email;
+  if(composeSubject && !composeSubject.value) composeSubject.value = 'הצעת מחיר — ' + caseNo + (plate ? (' — ' + plate) : '');
+  if(composeBody && !composeBody.value) composeBody.value = 'שלום, מצורפת הצעת מחיר עבור ' + (plate || 'הרכב') + '.';
+  var shareCompany = document.getElementById('share-company');
+  if(shareCompany && !shareCompany.value && liveCustomerName()) shareCompany.value = liveCustomerName();
+  var shareName = document.getElementById('share-name');
+  if(shareName && !shareName.value && currentCustomer && currentCustomer.contact_person) shareName.value = currentCustomer.contact_person;
+  var woDate = document.getElementById('wo-date');
+  if(woDate && !woDate.value) woDate.placeholder = new Date().toLocaleDateString('he-IL');
+}
 function pendingSaveMessage(){
   return 'הפעלת מסד נתוני המוסך עדיין ממתינה. הלקוח, הרכב, התיק והתמונות לא נשמרים עד להרצת ה-SQL ב-Staging.';
 }
@@ -895,7 +955,7 @@ function goManager(){
 function renderGarageGallery(caseId){
   var body = document.getElementById('garage-gallery-body');
   var sub = document.getElementById('gallery-case-sub');
-  if(sub) sub.textContent = caseId ? ('תיק מוסך · ' + caseId) : 'תיק מוסך';
+  if(sub) sub.textContent = liveCaseNumber() ? ('תיק מוסך · ' + liveCaseNumber()) : (caseId ? ('תיק מוסך · ' + caseId) : 'תיק מוסך');
   if(!body) return;
   var html = '<div class="hint" id="gallery-pending-hint">תמונות ומסמכים שייכים לתיק המוסך בלבד (garage_case_id). לא ל-claim_id. אין שמירה ב-Claims Storage.</div>';
   GARAGE_GALLERY_TOPICS.forEach(function(label){
@@ -939,6 +999,15 @@ function applyBootstrap(payload){
   }
   renderGarageGallery((payload.loaded && payload.loaded.id) || payload.caseId || '');
   if(payload.mode === 'home'){
+    currentCase = null;
+    currentCustomer = null;
+    currentVehicle = null;
+    state = emptyFlowState();
+    clearCustomerForm();
+    clearVehicleForm();
+    renderQuote();
+    renderDamageList();
+    renderTimeline();
     renderHomeCases(payload.cases || []);
     go(payload.startScreen || 's-home');
     return;
@@ -980,10 +1049,15 @@ function hydrateCase(loaded){
   currentVehicle = loaded.vehicle || currentVehicle;
   var data = loaded.case_data || {};
   state.photos = Object.assign({fl:false,fr:false,rl:false,rr:false}, data.photos || {});
-  state.damageCount = data.damageCount || 0;
+  state.damageItems = Array.isArray(data.damageItems) ? data.damageItems.slice() : (Array.isArray(data.damage) ? data.damage.slice() : []);
+  state.damageCount = state.damageItems.length || data.damageCount || 0;
   state.quoteCreated = !!data.quoteCreated;
   state.quoteSent = !!data.quoteSent;
   state.quoteApproved = !!data.quoteApproved;
+  state.quoteWorks = Array.isArray(data.quoteWorks) ? data.quoteWorks.slice() : ((data.quote && data.quote.works) || []);
+  state.quoteParts = Array.isArray(data.quoteParts) ? data.quoteParts.slice() : ((data.quote && data.quote.parts) || []);
+  state.quoteNotes = data.quoteNotes || (data.quote && data.quote.notes) || '';
+  state.quoteValidity = data.quoteValidity || (data.quote && data.quote.validity) || '';
   state.workOrderSaved = !!data.workOrderSaved;
   state.workOrderAmount = data.workOrderAmount || null;
   state.workOrderNumber = data.workOrderNumber || null;
@@ -993,22 +1067,23 @@ function hydrateCase(loaded){
   state.workFinished = !!data.workFinished;
   state.caseClosed = !!data.caseClosed;
   state.workExtraPrice = data.workExtraPrice || 0;
+  state.timeline = Array.isArray(data.timeline) ? data.timeline.slice() : [];
   document.getElementById('case-number-tag').textContent = loaded.case_number || '';
-  document.getElementById('case-customer-line').textContent = loaded.customer_name_snapshot || '';
-  document.getElementById('case-vehicle-line').textContent = (loaded.vehicle_plate_snapshot||'') + ' · ' + (loaded.vehicle_label_snapshot||'');
+  document.getElementById('case-customer-line').textContent = loaded.customer_name_snapshot || liveCustomerName() || '';
+  document.getElementById('case-vehicle-line').textContent = liveVehicleLine() || ((loaded.vehicle_plate_snapshot||'') + ' · ' + (loaded.vehicle_label_snapshot||''));
   document.getElementById('case-worker-pill').textContent = 'נפתח על ידי: ' + (loaded.opened_by_name || workerName || '');
   var opened = loaded.created_at ? new Date(loaded.created_at) : new Date();
   document.getElementById('case-opened-pill').textContent = 'נפתח ' + opened.toLocaleString('he-IL');
   if(state.workOrderNumber) document.getElementById('case-order-pill').textContent = 'הזמנה: ' + state.workOrderNumber;
-  ['fl','fr','rl','rr'].forEach(function(angle){
-    var slot = document.querySelector('.photo-slot[data-angle="'+angle+'"]');
-    if(!slot) return;
-    if(state.photos[angle]){
-      slot.classList.add('done');
-    } else {
-      slot.classList.remove('done');
-    }
-  });
+  var notesEl = document.getElementById('quote-notes');
+  var validityEl = document.getElementById('quote-validity');
+  if(notesEl) notesEl.value = state.quoteNotes || '';
+  if(validityEl) validityEl.value = state.quoteValidity || '';
+  syncPhotoSlots();
+  renderDamageList();
+  renderQuote();
+  renderTimeline();
+  bindLiveCase();
   refreshCaseHub();
   renderGarageGallery(loaded && loaded.id);
 }
@@ -1018,12 +1093,48 @@ function schedulePersist(){
   if(String(currentCase.id).indexOf('pending') === 0) return;
   clearTimeout(persistTimer);
   persistTimer = setTimeout(function(){
-    var data = Object.assign({}, state, {photos: Object.assign({}, state.photos)});
+    captureQuoteFields();
+    var data = Object.assign({}, state, {
+      photos: Object.assign({}, state.photos),
+      damageItems: (state.damageItems || []).slice(),
+      quoteWorks: (state.quoteWorks || []).slice(),
+      quoteParts: (state.quoteParts || []).slice(),
+      timeline: (state.timeline || []).slice(),
+      quote: {
+        works: (state.quoteWorks || []).slice(),
+        parts: (state.quoteParts || []).slice(),
+        notes: state.quoteNotes || '',
+        validity: state.quoteValidity || ''
+      }
+    });
     callHost('gm:saveCase', {caseId: currentCase.id, caseData: data}).catch(function(err){ console.warn(err); });
   }, 400);
 }
+function clearCustomerForm(){
+  ['cust-name','cust-phone','cust-phone2','cust-email','cust-address','cust-biz','cust-contact','cust-notes'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  var dupes = document.getElementById('cust-dupes');
+  if(dupes) dupes.innerHTML = '';
+  var chips = document.querySelectorAll('#s-newform .chip');
+  chips.forEach(function(c){ c.classList.remove('selected'); });
+  if(chips[0]) chips[0].classList.add('selected');
+  var sub = document.getElementById('newform-sub');
+  if(sub) sub.textContent = 'לקוח חדש';
+}
+function clearVehicleForm(){
+  ['veh-plate','veh-make','veh-model','veh-year','veh-color','veh-vin','veh-notes'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+}
 function startNewCustomer(type){
   draftCustomerType = type;
+  currentCustomer = null;
+  currentVehicle = null;
+  clearCustomerForm();
+  clearVehicleForm();
   go('s-newform');
 }
 function scheduleSearch(){
@@ -1151,6 +1262,8 @@ function saveCustomerAndContinue(force){
       return;
     }
     currentCustomer = res.customer;
+    var sub = document.getElementById('newform-sub');
+    if(sub && res.customer && res.customer.customer_number) sub.textContent = 'לקוח #' + res.customer.customer_number;
     selectExistingCustomer(res.customer);
   }).catch(function(err){
     if(isPendingError(err)){
@@ -1202,7 +1315,12 @@ function createCaseWithVehicle(vehicle){
     return;
   }
   callHost('gm:createCase', {customer: currentCustomer, vehicle: vehicle}).then(function(res){
-    if(res.created) hydrateCase(Object.assign({}, res.created, {customer: currentCustomer, vehicle: vehicle}));
+    if(res.created){
+      hydrateCase(Object.assign({}, res.created, {customer: currentCustomer, vehicle: vehicle}));
+      if(!(state.timeline || []).length){
+        addTimelineEvent('נפתח תיק ' + (res.created.case_number || '') + (liveCustomerName() ? (' · ' + liveCustomerName()) : ''));
+      }
+    }
     go('s-case');
   }).catch(function(err){
     if(isPendingError(err)){
@@ -1218,7 +1336,16 @@ function go(id){
   document.getElementById(id).classList.add('active');
   window.scrollTo(0,0);
   state.currentScreen = id;
-  if(id==='s-intake') setTimeout(initSigPad, 50);
+  bindLiveCase();
+  if(id==='s-quote') renderQuote();
+  if(id==='s-quote-preview') renderQuotePreview();
+  if(id==='s-timeline') renderTimeline();
+  if(id==='s-intake'){
+    renderIntakeSummary();
+    setTimeout(initSigPad, 50);
+  }
+  if(id==='s-finish' || id==='s-close') bindCloseAndFinish();
+  if(id==='s-gallery') renderGarageGallery(liveCaseId());
   if(currentCase && currentCase.id) schedulePersist();
 }
 function openCase(){ if(currentCase) { refreshCaseHub(); go('s-case'); } }
@@ -1227,20 +1354,30 @@ function toggleAcc(el){ el.classList.toggle('open'); }
 /* ---------- inspection ---------- */
 function togglePhoto(angle){
   state.photos[angle] = !state.photos[angle];
-  var el = document.querySelector('.photo-slot[data-angle="'+angle+'"]');
-  if(state.photos[angle]){
-    el.classList.add('done');
-    el.innerHTML = '<span class="check">✓</span><div class="cam">📷</div><div class="lbl">'+el.querySelector('.lbl').textContent+'</div>';
-  } else {
-    el.classList.remove('done');
-    el.innerHTML = '<div class="cam">📷</div><div class="lbl">'+el.querySelector('.lbl').textContent+'</div>';
-  }
+  syncPhotoSlots();
   updatePhotoProgress();
+}
+function photoLabel(angle){
+  return ({fl:'קדמי שמאל', fr:'קדמי ימין', rl:'אחורי שמאל', rr:'אחורי ימין'})[angle] || angle;
+}
+function syncPhotoSlots(){
+  ['fl','fr','rl','rr'].forEach(function(angle){
+    var slot = document.querySelector('.photo-slot[data-angle="'+angle+'"]');
+    if(!slot) return;
+    var label = photoLabel(angle);
+    if(state.photos[angle]){
+      slot.classList.add('done');
+      slot.innerHTML = '<span class="check">✓</span><div class="cam">📷</div><div class="lbl">'+label+'</div>';
+    } else {
+      slot.classList.remove('done');
+      slot.innerHTML = '<div class="cam">📷</div><div class="lbl">'+label+'</div>';
+    }
+  });
 }
 function updatePhotoProgress(){
   var count = Object.values(state.photos).filter(Boolean).length;
-  document.getElementById('photo-progress').textContent = count + ' מתוך 4';
-  document.getElementById('tile-inspect-sub').textContent = count + '/4 תמונות';
+  setText('photo-progress', count + ' מתוך 4');
+  setText('tile-inspect-sub', count + '/4 תמונות');
   refreshCaseHub();
 }
 function saveInspection(){ notifySave('הבדיקה נשמרה. אפשר לחזור אליה בכל שלב מבלי לאבד נתונים.'); }
@@ -1267,18 +1404,44 @@ function selChip(el){
   el.classList.add('selected');
 }
 function addPartToQuoteFromSheet(){
-  var list = document.getElementById('damage-list');
-  var item = document.createElement('div');
-  item.className = 'damage-list-item';
-  item.innerHTML = '<span>'+currentSheetPart+'</span><span class="badge badge-danger">מיועד לתיקון</span>';
-  list.appendChild(item);
-  var extra = document.getElementById('extra-work-items');
-  var card = document.createElement('div');
-  card.className = 'job-card';
-  card.innerHTML = '<div class="jh"><div><div class="part">'+currentSheetPart+'</div><div class="type">תיקון + צבע</div></div><div class="price">—</div></div><div class="desc">נוסף ממפת הנזקים</div><div class="jactions"><span>ערוך</span><span class="del">הסר</span></div>';
-  extra.appendChild(card);
+  var statusEl = document.querySelector('#part-sheet .radio-opt.sel');
+  var status = statusEl ? statusEl.textContent.trim() : 'מיועד לתיקון';
+  if(status.indexOf('תקין') === 0){
+    closeSheet();
+    return;
+  }
+  state.damageItems = state.damageItems || [];
+  state.damageItems.push({ part: currentSheetPart, status: status });
+  state.damageCount = state.damageItems.length;
+  if(status.indexOf('מיועד לתיקון') !== -1){
+    state.quoteWorks = state.quoteWorks || [];
+    state.quoteWorks.push({
+      id: 'w'+Date.now(),
+      part: currentSheetPart,
+      type: 'תיקון + צבע',
+      qty: 1,
+      price: 0,
+      desc: 'נוסף ממפת הנזקים'
+    });
+  }
+  renderDamageList();
+  renderQuote();
   closeSheet();
-  alert('"'+currentSheetPart+'" נוסף להצעת המחיר');
+  alert('"'+currentSheetPart+'" עודכן בתיק הנוכחי');
+}
+function renderDamageList(){
+  var list = document.getElementById('damage-list');
+  var empty = document.getElementById('damage-empty');
+  if(!list) return;
+  list.innerHTML = '';
+  (state.damageItems || []).forEach(function(item){
+    var row = document.createElement('div');
+    row.className = 'damage-list-item';
+    row.innerHTML = '<span>'+esc(item.part)+'</span><span class="badge badge-danger">'+esc(item.status || 'מיועד לתיקון')+'</span>';
+    list.appendChild(row);
+  });
+  if(empty) empty.style.display = (state.damageItems || []).length ? 'none' : 'block';
+  state.damageCount = (state.damageItems || []).length;
 }
 /* ---------- quote ---------- */
 function switchTab(el, panelId){
@@ -1297,46 +1460,175 @@ function updateGalSelectbar(){
   bar.classList.toggle('active', any);
 }
 function quoteSelectAllPhotos(){
-  document.querySelectorAll('#q-photos .gal-item').forEach(function(it){
+  document.querySelectorAll('#quote-photo-grid .gal-item').forEach(function(it){
     it.classList.add('sel'); it.querySelector('.cb').textContent = '✓';
   });
 }
-function openAddWork(){ document.getElementById('overlay-work').classList.add('active'); document.getElementById('work-sheet').classList.add('active'); }
+function captureQuoteFields(){
+  var notesEl = document.getElementById('quote-notes');
+  var validityEl = document.getElementById('quote-validity');
+  if(notesEl) state.quoteNotes = notesEl.value || '';
+  if(validityEl) state.quoteValidity = validityEl.value || '';
+}
+function saveQuoteDraft(){
+  captureQuoteFields();
+  if((state.quoteWorks || []).length || (state.quoteParts || []).length || state.quoteNotes){
+    state.quoteCreated = true;
+  }
+  refreshCaseHub();
+  notifySave('הטיוטה נשמרה בתיק הנוכחי');
+}
+function openAddWork(){
+  document.getElementById('w-part').value = '';
+  document.getElementById('w-desc').value = '';
+  document.getElementById('w-qty').value = '1';
+  document.getElementById('w-price').value = '';
+  document.getElementById('overlay-work').classList.add('active');
+  document.getElementById('work-sheet').classList.add('active');
+}
 function closeWorkSheet(){ document.getElementById('overlay-work').classList.remove('active'); document.getElementById('work-sheet').classList.remove('active'); }
 function saveWork(){
-  var part = document.getElementById('w-part').value || 'עבודה חדשה';
-  var price = document.getElementById('w-price').value || '0';
-  var desc = document.getElementById('w-desc').value || '';
-  var extra = document.getElementById('extra-work-items');
-  var card = document.createElement('div');
-  card.className = 'job-card';
-  card.innerHTML = '<div class="jh"><div><div class="part">'+part+'</div><div class="type">עבודה שנוספה</div></div><div class="price">'+price+' ₪</div></div><div class="desc">'+desc+'</div><div class="jactions"><span>ערוך</span><span class="del">הסר</span></div>';
-  extra.appendChild(card);
-  state.workExtraPrice += parseFloat(price) || 0;
-  recalcTotals();
+  var part = (document.getElementById('w-part').value || '').trim();
+  if(!part){ alert('יש למלא שם עבודה'); return; }
+  var typeEl = document.querySelector('#work-sheet .chip.selected');
+  state.quoteWorks = state.quoteWorks || [];
+  state.quoteWorks.push({
+    id: 'w'+Date.now(),
+    part: part,
+    type: typeEl ? typeEl.textContent.trim() : 'עבודה',
+    qty: parseFloat(document.getElementById('w-qty').value) || 1,
+    price: parseFloat(document.getElementById('w-price').value) || 0,
+    desc: (document.getElementById('w-desc').value || '').trim()
+  });
+  state.quoteCreated = true;
+  renderQuote();
   closeWorkSheet();
+  schedulePersist();
 }
-function openAddPart(){ document.getElementById('overlay-part').classList.add('active'); document.getElementById('part-add-sheet').classList.add('active'); }
+function openAddPart(){
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-sku').value = '';
+  document.getElementById('p-qty').value = '1';
+  document.getElementById('p-price').value = '';
+  document.getElementById('overlay-part').classList.add('active');
+  document.getElementById('part-add-sheet').classList.add('active');
+}
 function closePartSheet(){ document.getElementById('overlay-part').classList.remove('active'); document.getElementById('part-add-sheet').classList.remove('active'); }
 function savePart(){
-  var name = document.getElementById('p-name').value || 'חלק חדש';
-  var qty = document.getElementById('p-qty').value || '1';
-  var price = document.getElementById('p-price').value || '0';
-  var extra = document.getElementById('extra-part-items');
-  var card = document.createElement('div');
-  card.className = 'job-card';
-  card.innerHTML = '<div class="jh"><div><div class="part">'+name+'</div><div class="type">כמות '+qty+'</div></div><div class="price">'+price+' ₪</div></div>';
-  extra.appendChild(card);
+  var name = (document.getElementById('p-name').value || '').trim();
+  if(!name){ alert('יש למלא שם חלק'); return; }
+  var supplierEl = document.querySelector('#part-add-sheet .radio-opt.sel');
+  var supplier = (supplierEl && supplierEl.textContent.indexOf('הלקוח') !== -1) ? 'customer' : 'us';
+  state.quoteParts = state.quoteParts || [];
+  state.quoteParts.push({
+    id: 'p'+Date.now(),
+    name: name,
+    sku: (document.getElementById('p-sku').value || '').trim(),
+    qty: parseFloat(document.getElementById('p-qty').value) || 1,
+    price: parseFloat(document.getElementById('p-price').value) || 0,
+    supplier: supplier
+  });
+  state.quoteCreated = true;
+  renderQuote();
   closePartSheet();
+  schedulePersist();
+}
+function removeQuoteWork(id){
+  state.quoteWorks = (state.quoteWorks || []).filter(function(item){ return item.id !== id; });
+  renderQuote();
+  schedulePersist();
+}
+function removeQuotePart(id){
+  state.quoteParts = (state.quoteParts || []).filter(function(item){ return item.id !== id; });
+  renderQuote();
+  schedulePersist();
+}
+function renderQuote(){
+  bindLiveCase();
+  var worksBox = document.getElementById('quote-works-list');
+  var worksEmpty = document.getElementById('quote-works-empty');
+  if(worksBox){
+    worksBox.innerHTML = '';
+    (state.quoteWorks || []).forEach(function(item){
+      var card = document.createElement('div');
+      card.className = 'job-card';
+      var lineTotal = (Number(item.price) || 0) * (Number(item.qty) || 1);
+      card.innerHTML = '<div class="jh"><div><div class="part">'+esc(item.part)+'</div><div class="type">'+esc(item.type || 'עבודה')+' · כמות '+esc(item.qty || 1)+'</div></div><div class="price">'+money(lineTotal)+'</div></div><div class="desc">'+esc(item.desc || '')+'</div><div class="jactions"><span class="del" data-id="'+esc(item.id)+'">הסר</span></div>';
+      card.querySelector('.del').onclick = function(){ removeQuoteWork(item.id); };
+      worksBox.appendChild(card);
+    });
+  }
+  if(worksEmpty) worksEmpty.style.display = (state.quoteWorks || []).length ? 'none' : 'block';
+  var partsBox = document.getElementById('quote-parts-list');
+  var partsEmpty = document.getElementById('quote-parts-empty');
+  if(partsBox){
+    partsBox.innerHTML = '';
+    (state.quoteParts || []).forEach(function(item){
+      var card = document.createElement('div');
+      card.className = 'job-card';
+      var lineTotal = (Number(item.price) || 0) * (Number(item.qty) || 1);
+      var supplied = item.supplier === 'customer' ? 'מסופק על ידי הלקוח — לא לחיוב' : 'מסופק על ידי המוסך';
+      card.innerHTML = '<div class="jh"><div><div class="part">'+esc(item.name)+'</div><div class="type">כמות '+esc(item.qty || 1)+'</div></div><div class="price">'+(item.supplier === 'customer' ? '—' : money(lineTotal))+'</div></div><div class="desc">'+esc(supplied)+'</div><div class="jactions"><span class="del">הסר</span></div>';
+      card.querySelector('.del').onclick = function(){ removeQuotePart(item.id); };
+      partsBox.appendChild(card);
+    });
+  }
+  if(partsEmpty) partsEmpty.style.display = (state.quoteParts || []).length ? 'none' : 'block';
+  var photoGrid = document.getElementById('quote-photo-grid');
+  var photosEmpty = document.getElementById('quote-photos-empty');
+  if(photoGrid){
+    photoGrid.innerHTML = '';
+    ['fl','fr','rl','rr'].forEach(function(angle){
+      if(!state.photos[angle]) return;
+      var el = document.createElement('div');
+      el.className = 'gal-item';
+      el.onclick = function(){ toggleGalSel(el); };
+      el.innerHTML = '<div class="ph">📷</div><div class="cb"></div><div class="tag">'+photoLabel(angle)+'</div>';
+      photoGrid.appendChild(el);
+    });
+  }
+  if(photosEmpty) photosEmpty.style.display = photoGrid && photoGrid.children.length ? 'none' : 'block';
+  recalcTotals();
+}
+function renderQuotePreview(){
+  bindLiveCase();
+  captureQuoteFields();
+  setText('preview-date', 'תאריך: ' + new Date().toLocaleDateString('he-IL'));
+  var works = document.getElementById('preview-works');
+  if(works){
+    works.innerHTML = (state.quoteWorks || []).length
+      ? state.quoteWorks.map(function(item){
+          return '<div class="doc-row"><span>'+esc(item.part)+' — '+esc(item.type || '')+' × '+esc(item.qty || 1)+'</span><span>'+money((Number(item.price)||0)*(Number(item.qty)||1))+'</span></div>';
+        }).join('')
+      : '<div class="doc-muted">אין עבודות</div>';
+  }
+  var parts = document.getElementById('preview-parts');
+  if(parts){
+    parts.innerHTML = (state.quoteParts || []).length
+      ? state.quoteParts.map(function(item){
+          var label = item.supplier === 'customer' ? (esc(item.name)+' — מסופק על ידי הלקוח') : esc(item.name);
+          var price = item.supplier === 'customer' ? '—' : money((Number(item.price)||0)*(Number(item.qty)||1));
+          return '<div class="doc-row"><span>'+label+' × '+esc(item.qty || 1)+'</span><span>'+price+'</span></div>';
+        }).join('')
+      : '<div class="doc-muted">אין חלקים</div>';
+  }
+  setText('preview-tot-works', money(quoteWorksTotal()));
+  setText('preview-tot-vat', money(Math.round((quoteWorksTotal()+quotePartsTotal())*0.18)));
+  setText('preview-tot-final', money(quoteGrandTotal()));
+  setText('preview-notes', state.quoteNotes || 'אין הערות');
+  setText('preview-validity', state.quoteValidity ? ('תוקף ההצעה: ' + state.quoteValidity) : 'תוקף ההצעה ייקבע בעת השמירה.');
 }
 function recalcTotals(){
-  var works = 2350 + state.workExtraPrice;
-  var vat = Math.round(works*0.18);
-  var final = works+vat;
-  document.getElementById('tot-works').textContent = works.toLocaleString()+' ₪';
-  document.getElementById('tot-vat').textContent = vat.toLocaleString()+' ₪';
-  document.getElementById('tot-final').textContent = final.toLocaleString()+' ₪';
-  state.quoteCreated = true;
+  var works = quoteWorksTotal();
+  var parts = quotePartsTotal();
+  var vat = Math.round((works + parts) * 0.18);
+  var final = works + parts + vat;
+  setText('tot-works', money(works));
+  setText('tot-parts', money(parts));
+  setText('tot-cust-parts', quoteCustomerPartCount() + ' פריטים');
+  setText('tot-vat', money(vat));
+  setText('tot-final', money(final));
+  if((state.quoteWorks || []).length || (state.quoteParts || []).length) state.quoteCreated = true;
   refreshCaseHub();
 }
 function markQuotePdfCreated(){
@@ -1345,7 +1637,7 @@ function markQuotePdfCreated(){
 }
 function sendQuoteEmail(){
   state.quoteSent = true;
-  addTimelineEvent('הצעת מחיר נשלחה במייל אל אלדן בע"מ');
+  addTimelineEvent('הצעת מחיר נשלחה במייל אל ' + (liveCustomerName() || 'הלקוח'));
   refreshCaseHub();
   alert('הודעה נשלחה. ניתן לעקוב אחריה במסך תקשורת.');
   go('s-case');
@@ -1353,21 +1645,22 @@ function sendQuoteEmail(){
 function openWhatsApp(){ alert('נפתח WhatsApp עם הודעה מוכנה וקישור להצעה'); }
 /* ---------- work order ---------- */
 function saveWorkOrder(){
-  var num = document.getElementById('wo-num').value || 'A-8821';
-  var amount = document.getElementById('wo-amount').value || '3200';
+  var num = (document.getElementById('wo-num').value || '').trim();
+  var amount = (document.getElementById('wo-amount').value || '').trim();
+  if(!num || !amount){ alert('יש למלא מספר הזמנה וסכום מאושר'); return; }
   state.workOrderSaved = true;
   state.workOrderNumber = num;
   state.workOrderAmount = amount;
   state.quoteApproved = true;
-  document.getElementById('wo-approved-amount').textContent = parseInt(amount).toLocaleString()+' ₪';
+  document.getElementById('wo-approved-amount').textContent = money(amount);
   var v = document.getElementById('wo-versions');
   var row = document.createElement('div');
   row.className = 'card';
-  row.innerHTML = '<div class="doc-row"><span>הזמנה '+num+'</span><span>'+parseInt(amount).toLocaleString()+' ₪</span></div><div class="hint" style="margin:6px 0 0;">10.09.2026</div>';
+  row.innerHTML = '<div class="doc-row"><span>הזמנה '+esc(num)+'</span><span>'+money(amount)+'</span></div><div class="hint" style="margin:6px 0 0;">'+esc(liveCustomerName() || '')+' · '+esc(liveCaseNumber() || '')+'</div>';
   v.prepend(row);
   document.getElementById('case-order-pill').textContent = 'הזמנה: '+num;
-  document.getElementById('quote-order-ref').textContent = 'הזמנה: '+num;
-  addTimelineEvent('הזמנה '+num+' התקבלה — סכום מאושר '+parseInt(amount).toLocaleString()+' ₪');
+  setText('quote-order-ref', 'הזמנה: '+num);
+  addTimelineEvent('הזמנה '+num+' התקבלה — סכום מאושר '+money(amount));
   unlockIntake();
   refreshCaseHub();
   notifySave('ההזמנה נשמרה. קבלת רכב פתוחה כעת.');
@@ -1415,8 +1708,7 @@ function confirmIntake(){
 function toggleCheck(el){ el.classList.toggle('checked'); el.querySelector('.checkbox-box').textContent = el.classList.contains('checked') ? '✓' : ''; }
 function finishWork(){
   state.workFinished = true;
-  document.getElementById('finish-order').textContent = state.workOrderNumber || '—';
-  document.getElementById('finish-amount').textContent = state.workOrderAmount ? (parseInt(state.workOrderAmount).toLocaleString()+' ₪') : '—';
+  bindCloseAndFinish();
   addTimelineEvent('העבודה הסתיימה — הרכב מוכן למסירה');
   refreshCaseHub();
   alert('העבודה סומנה כהושלמה. סטטוס התיק: מוכן למסירה.');
@@ -1424,8 +1716,7 @@ function finishWork(){
 }
 function tryCloseCase(){
   if(!state.workFinished){ alert('ניתן לסגור את התיק רק לאחר סיום העבודה.'); return; }
-  document.getElementById('close-order').textContent = state.workOrderNumber || '—';
-  document.getElementById('close-amount').textContent = state.workOrderAmount ? (parseInt(state.workOrderAmount).toLocaleString()+' ₪') : '—';
+  bindCloseAndFinish();
   go('s-close');
 }
 function confirmCloseCase(){
@@ -1438,39 +1729,84 @@ function confirmCloseCase(){
 /* ---------- comm ---------- */
 function sendComposedEmail(){
   var thread = document.getElementById('comm-thread-all');
+  var empty = document.getElementById('comm-empty');
+  if(empty) empty.style.display = 'none';
+  var to = (document.getElementById('compose-to') && document.getElementById('compose-to').value) || (currentCustomer && currentCustomer.email) || '';
   var b = document.createElement('div');
   b.className = 'bubble out';
-  b.innerHTML = '<div class="bmeta">יוסי · עכשיו</div>נשלח מייל אל orders@aldan.co.il<div class="battach"><span>📎 הצעת_מחיר_V1.pdf</span><span style="color:var(--accent);">פתח</span></div>';
+  b.innerHTML = '<div class="bmeta">'+esc(workerName || 'עובד')+' · עכשיו</div>נשלח מייל'+(to ? (' אל '+esc(to)) : '')+'<div class="battach"><span>📎 הצעת מחיר</span><span style="color:var(--accent);">פתח</span></div>';
   thread.appendChild(b);
-  setTimeout(function(){
-    var r = document.createElement('div');
-    r.className = 'bubble in';
-    r.innerHTML = '<div class="bmeta">אלדן · +30 דק׳</div>ההצעה מאושרת. מצורפת הזמנה מעודכנת.<div class="battach"><span>📎 הזמנה_A-8821.pdf</span><span style="color:var(--accent);">שמור להזמנות</span></div>';
-    thread.appendChild(r);
-    document.getElementById('comm-alert').style.display = 'block';
-    document.getElementById('tile-comm-sub').textContent = '2 הודעות · 1 חדשה';
-  }, 400);
-  addTimelineEvent('הצעת מחיר נשלחה במייל');
+  addTimelineEvent('הצעת מחיר נשלחה במייל'+(liveCustomerName() ? (' אל '+liveCustomerName()) : ''));
   go('s-comm');
 }
 /* ---------- share ---------- */
 function createShareLink(){
   document.getElementById('share-step1').style.display = 'none';
   document.getElementById('share-step2').style.display = 'block';
+  var link = document.getElementById('share-link-value');
+  if(link) link.value = '';
   document.getElementById('tile-share-sub').textContent = '1 קישור פעיל';
-  addTimelineEvent('נוצר קישור שיתוף מאובטח לאלדן בע"מ');
+  addTimelineEvent('נוצר קישור שיתוף מאובטח'+(liveCustomerName() ? (' ל'+liveCustomerName()) : ''));
 }
 /* ---------- timeline / hub refresh ---------- */
 function addTimelineEvent(text){
-  var tl = document.getElementById('timeline-content');
+  state.timeline = state.timeline || [];
   var now = new Date();
-  var hh = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  var item = document.createElement('div');
-  item.className = 'timeline-item';
-  item.innerHTML = '<div class="tdot"></div><div><div class="tt">'+hh+'</div><div class="te">'+text+'</div></div>';
-  tl.appendChild(item);
-  var count = tl.querySelectorAll('.timeline-item').length;
-  document.getElementById('tile-hist-sub').textContent = count + ' אירועים';
+  state.timeline.push({
+    at: now.toISOString(),
+    text: text
+  });
+  renderTimeline();
+  schedulePersist();
+}
+function renderTimeline(){
+  var tl = document.getElementById('timeline-content');
+  if(!tl) return;
+  var items = state.timeline || [];
+  var empty = '<div class="hint" id="timeline-empty">אין אירועים בתיק זה עדיין.</div>';
+  if(!items.length){
+    tl.innerHTML = empty;
+  } else {
+    tl.innerHTML = items.map(function(ev){
+      var when = ev.at ? new Date(ev.at) : new Date();
+      var hh = String(when.getHours()).padStart(2,'0')+':'+String(when.getMinutes()).padStart(2,'0');
+      return '<div class="timeline-item"><div class="tdot"></div><div><div class="tt">'+hh+'</div><div class="te">'+esc(ev.text || '')+'</div></div></div>';
+    }).join('');
+  }
+  setText('tile-hist-sub', items.length + ' אירועים');
+}
+function renderIntakeSummary(){
+  var box = document.getElementById('intake-photo-check');
+  if(box){
+    var labels = {fl:'קדמי שמאל', fr:'קדמי ימין', rl:'אחורי שמאל', rr:'אחורי ימין'};
+    box.innerHTML = Object.keys(labels).map(function(angle){
+      var ok = !!state.photos[angle];
+      return '<div class="doc-row"><span>'+labels[angle]+'</span><span style="color:'+(ok ? 'var(--ok)' : 'var(--white50)')+';">'+(ok ? '✓' : 'חסר')+'</span></div>';
+    }).join('');
+  }
+  var dmg = document.getElementById('intake-damage-summary');
+  if(dmg){
+    if((state.damageItems || []).length){
+      dmg.innerHTML = state.damageItems.map(function(item){
+        return '<div class="damage-list-item"><span>'+esc(item.part)+'</span><span class="badge badge-danger">'+esc(item.status || '')+'</span></div>';
+      }).join('');
+    } else {
+      dmg.innerHTML = '<div class="hint" style="margin:0;">לא סומנו מוקדי נזק.</div>';
+    }
+  }
+}
+function bindCloseAndFinish(){
+  setText('finish-works-count', String((state.quoteWorks || []).length));
+  setText('finish-parts-count', String((state.quoteParts || []).length));
+  setText('finish-order', state.workOrderNumber || '—');
+  setText('finish-amount', state.workOrderAmount ? money(state.workOrderAmount) : '—');
+  setText('close-customer', liveCustomerName() || '—');
+  setText('close-vehicle', liveVehicleLine() || '—');
+  setText('close-quote', money(quoteGrandTotal()));
+  setText('close-order', state.workOrderNumber || '—');
+  setText('close-amount', state.workOrderAmount ? money(state.workOrderAmount) : '—');
+  setText('close-photos', String(Object.values(state.photos).filter(Boolean).length));
+  setText('close-case-number', liveCaseNumber() || '—');
 }
 function refreshCaseHub(){
   var photoCount = Object.values(state.photos).filter(Boolean).length;
@@ -1507,11 +1843,19 @@ function refreshCaseHub(){
     label.textContent = 'השלם צילומי רכב ('+photoCount+'/4)'; btn.textContent='המשך'; btn.onclick=function(){go('s-inspect');};
   }
   document.getElementById('tile-inspect-sub').textContent = photoCount+'/4 תמונות';
-  document.getElementById('tile-quote-sub').textContent = state.quoteSent ? 'V1 · נשלחה' : (state.quoteCreated ? 'טיוטה' : 'טרם נוצרה');
-  document.getElementById('acc-quote-body').innerHTML = state.quoteSent ? 'V1 · 2,773 ₪ · נשלחה <span class="open-link" onclick="event.stopPropagation(); go(\'s-quote\')">פתח ›</span>' : 'טרם נוצרה הצעה עבור תיק זה. <span class="open-link" onclick="event.stopPropagation(); go(\'s-quote\')">פתח ›</span>';
-  document.getElementById('tile-wo-sub').textContent = state.workOrderSaved ? (state.workOrderNumber+' · '+parseInt(state.workOrderAmount).toLocaleString()+' ₪') : 'ממתין';
-  document.getElementById('acc-wo-body').innerHTML = state.workOrderSaved ? (state.workOrderNumber+' · '+parseInt(state.workOrderAmount).toLocaleString()+' ₪ · מאושרת <span class="open-link" onclick="event.stopPropagation(); go(\'s-workorder\')">פתח ›</span>') : 'אין הזמנות עבודה מקושרות עדיין. <span class="open-link" onclick="event.stopPropagation(); go(\'s-workorder\')">פתח ›</span>';
+  var inspectBody = document.getElementById('acc-inspect-body');
+  if(inspectBody) inspectBody.innerHTML = photoCount+'/4 צילומי חובה · '+(state.damageCount||0)+' מוקדי נזק <span class="open-link" onclick="event.stopPropagation(); go(\'s-inspect\')">פתח ›</span>';
+  document.getElementById('tile-quote-sub').textContent = state.quoteSent ? 'נשלחה' : (state.quoteCreated ? 'טיוטה' : 'טרם נוצרה');
+  var quoteTotal = quoteGrandTotal();
+  document.getElementById('acc-quote-body').innerHTML = state.quoteSent
+    ? (money(quoteTotal)+' · נשלחה <span class="open-link" onclick="event.stopPropagation(); go(\'s-quote\')">פתח ›</span>')
+    : (state.quoteCreated
+      ? (money(quoteTotal)+' · טיוטה <span class="open-link" onclick="event.stopPropagation(); go(\'s-quote\')">פתח ›</span>')
+      : 'טרם נוצרה הצעה עבור תיק זה. <span class="open-link" onclick="event.stopPropagation(); go(\'s-quote\')">פתח ›</span>');
+  document.getElementById('tile-wo-sub').textContent = state.workOrderSaved ? (state.workOrderNumber+' · '+money(state.workOrderAmount)) : 'ממתין';
+  document.getElementById('acc-wo-body').innerHTML = state.workOrderSaved ? (state.workOrderNumber+' · '+money(state.workOrderAmount)+' · מאושרת <span class="open-link" onclick="event.stopPropagation(); go(\'s-workorder\')">פתח ›</span>') : 'אין הזמנות עבודה מקושרות עדיין. <span class="open-link" onclick="event.stopPropagation(); go(\'s-workorder\')">פתח ›</span>';
   document.getElementById('close-case-btn').disabled = !state.workFinished || state.caseClosed;
+  setText('tile-hist-sub', ((state.timeline || []).length) + ' אירועים');
   schedulePersist();
 }
 parent.postMessage({type:'gm:ready'}, '*');
