@@ -332,7 +332,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
           <div class="sub">הצעה → אישור → קבלת רכב</div>
         </div>
         <div class="route-opt" id="cust-wf-intake_first" data-route="intake_first" onclick="setCustomerDefaultWorkflow('intake_first')">
-          <div class="nm">קבלת רכב תחילה</div>
+          <div class="nm">קבלת רכב</div>
           <div class="sub">הזמנה → קבלה → הצעה</div>
         </div>
       </div>
@@ -354,7 +354,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
           <div class="sub">הצעה → אישור → קבלת רכב</div>
         </div>
         <div class="route-opt" id="exist-wf-intake_first" data-route="intake_first" onclick="setCustomerDefaultWorkflow('intake_first')">
-          <div class="nm">קבלת רכב תחילה</div>
+          <div class="nm">קבלת רכב</div>
           <div class="sub">הזמנה → קבלה → הצעה</div>
         </div>
       </div>
@@ -398,11 +398,11 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="route-pick">
       <div class="route-opt" id="route-opt-quote_first" data-route="quote_first" onclick="setCaseRoute('quote_first')">
         <div class="nm">הצעת מחיר תחילה</div>
-        <div class="sub">לקוח חדש / פרטי · הצעה ואז קבלת רכב</div>
+        <div class="sub">הצעה → אישור → קבלת רכב</div>
       </div>
       <div class="route-opt" id="route-opt-intake_first" data-route="intake_first" onclick="setCaseRoute('intake_first')">
-        <div class="nm">הרכב התקבל / לקוח קבוע</div>
-        <div class="sub">חברה / הזמנה קיימת · קבלה ואז הצעה</div>
+        <div class="nm">קבלת רכב</div>
+        <div class="sub">הזמנה → קבלה → הצעה</div>
       </div>
     </div>
   </div>
@@ -679,7 +679,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="media-preview-row" id="wo-order-previews"></div>
     <div class="card" id="wo-scan-result" style="display:none;">
       <div style="font-size:13px; font-weight:700; margin-bottom:8px;">נתונים שחולצו — אשר או תקן לפני שמירה</div>
-      <div class="hint" id="wo-scan-source" style="margin-bottom:8px;">לא נשמר אוטומטית לתיק.</div>
+      <div class="hint" id="wo-scan-source" style="margin-bottom:8px;">זיהוי משם הקובץ בלבד. אין OCR ואין קריאת תוכן PDF/תמונה. לא נשמר אוטומטית לתיק.</div>
       <div class="field"><label>מספר הזמנה</label><input id="wo-scan-num" placeholder="—"></div>
       <div class="field"><label>מספר רכב</label><input id="wo-scan-plate" placeholder="—"></div>
       <div class="field"><label>מספר תביעה / אסמכתא</label><input id="wo-scan-ref" placeholder="—"></div>
@@ -1143,7 +1143,7 @@ function setCustomerDefaultWorkflow(route){
   }
 }
 function routeLabelText(route){
-  return route === 'intake_first' ? 'הרכב התקבל / לקוח קבוע' : 'הצעת מחיר תחילה';
+  return route === 'intake_first' ? 'קבלת רכב' : 'הצעת מחיר תחילה';
 }
 function setCaseRoute(route){
   state.route = route === 'intake_first' ? 'intake_first' : 'quote_first';
@@ -2237,7 +2237,7 @@ function showOrderExtractReview(fileName, extraText){
     var bits = [];
     if(hints.fromFile.length) bits.push('מהקובץ: ' + hints.fromFile.join(', '));
     if(hints.fromCase.length) bits.push('מהתיק: ' + hints.fromCase.join(', '));
-    src.textContent = (bits.join(' · ') || 'לא זוהו שדות מהקובץ. מלא ידנית.') + ' לא נשמר לתיק עד אישור ושמירת הזמנה.';
+    src.textContent = (bits.join(' · ') || 'לא זוהו שדות מהקובץ. מלא ידנית.') + ' זיהוי משם הקובץ בלבד, אין OCR. לא נשמר לתיק עד אישור ושמירת הזמנה.';
   }
   var setVal = function(id, v){ var el = document.getElementById(id); if(el) el.value = v || ''; };
   setVal('wo-scan-num', hints.order_number);
@@ -2325,13 +2325,11 @@ function confirmIntake(){
   state.flowStage = caseRoute() === 'intake_first' ? 'quote' : 'work';
   addTimelineEvent('הרכב התקבל · 5 תמונות חובה + קילומטראז׳');
   uploadSignatureIfPossible();
+  refreshCaseHub();
   if(caseRoute() === 'quote_first'){
-    state.workStarted = true;
-    refreshCaseHub();
-    go('s-job');
+    go('s-case');
     return;
   }
-  refreshCaseHub();
   go('s-quote');
 }
 function captureIntakeFields(){

@@ -351,4 +351,64 @@ describe('garage flow live case binding', () => {
     expect(win.document.getElementById('s-compose')?.textContent).toContain('WhatsApp');
     expect(win.document.getElementById('s-compose')?.textContent).toContain('לא נשלח דרך תיבת Claims');
   });
+
+  it('shows exactly הצעת מחיר תחילה and קבלת רכב on the case route picker', () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      confirmIntake: () => void;
+      document: Document;
+    };
+    win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
+    const quote = win.document.getElementById('route-opt-quote_first')?.textContent || '';
+    const intake = win.document.getElementById('route-opt-intake_first')?.textContent || '';
+    expect(quote).toContain('הצעת מחיר תחילה');
+    expect(intake).toContain('קבלת רכב');
+    expect(intake).not.toContain('הרכב התקבל');
+    expect(intake).not.toContain('הרכב מתקבל');
+    expect(intake).not.toContain('הרכב הגיע למוסך');
+    expect(intake).not.toContain('קבלת רכב תחילה');
+    expect(win.document.getElementById('cust-wf-intake_first')?.textContent).toContain('קבלת רכב');
+    expect(win.document.getElementById('cust-wf-intake_first')?.textContent).not.toContain('קבלת רכב תחילה');
+    expect(win.document.getElementById('case-status-badge')?.textContent).toBe('בדיקת רכב');
+  });
+
+  it('blocks vehicle intake until mileage and all 5 required photos exist, then sets status הרכב התקבל', () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      confirmIntake: () => void;
+      go: (id: string) => void;
+      alert: (msg?: string) => void;
+      document: Document;
+      state: {
+        intakeKm?: string;
+        intakeAngles: Record<string, boolean>;
+        intakeDone: boolean;
+        workStarted: boolean;
+      };
+    };
+    const alerts: string[] = [];
+    win.alert = (msg?: string) => { alerts.push(String(msg || '')); };
+    win.HTMLCanvasElement.prototype.toBlob = function toBlob(cb: BlobCallback) { cb(null); };
+    win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
+    win.go('s-intake');
+    (win.document.getElementById('intake-km') as HTMLInputElement).value = '';
+    win.confirmIntake();
+    expect(alerts.some((msg) => msg.includes('קילומטראז'))).toBe(true);
+    expect(win.state.intakeDone).toBe(false);
+
+    (win.document.getElementById('intake-km') as HTMLInputElement).value = '48210';
+    win.state.intakeAngles = { front: true, rear: true, right: true, left: true, dashboard: false };
+    win.confirmIntake();
+    expect(alerts.some((msg) => msg.includes('5 תמונות'))).toBe(true);
+    expect(win.state.intakeDone).toBe(false);
+    expect(win.document.getElementById('case-status-badge')?.textContent).not.toBe('הרכב התקבל');
+
+    win.state.intakeAngles.dashboard = true;
+    win.confirmIntake();
+    expect(win.state.intakeDone).toBe(true);
+    expect(win.state.workStarted).toBe(false);
+    expect(win.document.getElementById('case-status-badge')?.textContent).toBe('הרכב התקבל');
+    expect(win.document.getElementById('s-case')?.classList.contains('active')).toBe(true);
+    expect(win.document.getElementById('s-intake')?.textContent).toContain('תמונה נוספת');
+  });
 });

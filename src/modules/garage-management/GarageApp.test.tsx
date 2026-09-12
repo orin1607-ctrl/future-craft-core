@@ -88,6 +88,12 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('quote-works-empty');
     expect(approvedSourceHtml).toContain('clearCustomerForm');
     expect(approvedSourceHtml).toContain('מה המסלול של התיק?');
+    expect(approvedSourceHtml).toContain('id="route-opt-quote_first"');
+    expect(approvedSourceHtml).toContain('id="route-opt-intake_first"');
+    expect(approvedSourceHtml).not.toContain('הרכב התקבל / לקוח קבוע');
+    expect(approvedSourceHtml).not.toContain('קבלת רכב תחילה');
+    expect(approvedSourceHtml).not.toContain('הרכב הגיע למוסך');
+    expect(approvedSourceHtml).not.toContain('הרכב מתקבל');
     expect(approvedSourceHtml).toContain('שיטת עבודה ברירת מחדל');
     expect(approvedSourceHtml).toContain('ברירת מחדל מכרטיס הלקוח');
     expect(approvedSourceHtml).not.toContain('ברירת מחדל לפי סוג הלקוח');

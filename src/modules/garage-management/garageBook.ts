@@ -186,7 +186,7 @@ export function defaultRouteForCustomer(
 }
 
 export function routeLabel(route?: string): string {
-  return route === 'intake_first' ? 'הרכב התקבל / לקוח קבוע' : 'הצעת מחיר תחילה';
+  return route === 'intake_first' ? 'קבלת רכב' : 'הצעת מחיר תחילה';
 }
 
 export function garageNextAction(data: GarageCaseData): string {

@@ -102,7 +102,7 @@ describe('garage book helpers', () => {
     expect(defaultRouteForCustomer({ customer_type: 'business', default_workflow: 'quote_first' })).toBe('quote_first');
     expect(defaultRouteForCustomer({ customer_type: 'private', default_workflow: 'intake_first' })).toBe('intake_first');
     expect(routeLabel('quote_first')).toBe('הצעת מחיר תחילה');
-    expect(routeLabel('intake_first')).toBe('הרכב התקבל / לקוח קבוע');
+    expect(routeLabel('intake_first')).toBe('קבלת רכב');
     expect(garageNextAction({ route: 'quote_first' })).toBe('הכנת הצעת מחיר');
     expect(garageNextAction({ route: 'quote_first', quoteSent: true })).toBe('ממתינים לאישור הלקוח');
     expect(garageNextAction({ route: 'quote_first', quoteApproved: true })).toBe('קבלת רכב + 5 תמונות');
