@@ -49,7 +49,7 @@ export default function Layout() {
         </div>
       )}
 
-      <DesktopSidebar />
+      {!isGarageManagement && <DesktopSidebar />}
 
       {/* Mobile header */}
       <header className={`${isGarage ? 'hidden' : 'md:hidden'} bg-[hsl(218,58%,15%)] text-primary-foreground p-4 flex items-center justify-between sticky top-0 z-20 shadow-lg`}>
@@ -84,7 +84,7 @@ export default function Layout() {
       )}
 
       {/* Main content */}
-      <main className={isGarage ? 'md:mr-72 p-0 min-h-screen' : 'md:mr-72 pb-24 md:pb-8 p-4 md:p-8'}>
+      <main className={isGarageManagement ? 'p-0 min-h-screen' : isGarage ? 'md:mr-72 p-0 min-h-screen' : 'md:mr-72 pb-24 md:pb-8 p-4 md:p-8'}>
         <RouteGuard>
           <Outlet />
         </RouteGuard>

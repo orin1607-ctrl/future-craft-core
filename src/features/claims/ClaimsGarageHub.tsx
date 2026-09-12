@@ -197,7 +197,7 @@ export function ClaimsGarageHub({ actor }: { actor: ClaimsActor }) {
         </div>
         <div className="cg-actions">
           <button type="button" className="cg-btn" data-testid="hub-new-claim" onClick={openNewClaim}>+ תיק תביעה</button>
-          <button type="button" className="cg-btn primary" data-testid="hub-new-garage" onClick={() => navigate('/garage-management')}>+ תיק מוסך חדש</button>
+          <button type="button" className="cg-btn primary" data-testid="hub-new-garage" onClick={() => navigate('/garage-management?new=1')}>+ תיק מוסך חדש</button>
         </div>
       </div>
       <div className="cg-body">
@@ -217,7 +217,12 @@ export function ClaimsGarageHub({ actor }: { actor: ClaimsActor }) {
             onOpen={openRow}
           />
         </div>
-        <div className={`cg-pane ${tab === 'claims' ? '' : 'hidden'}`} data-testid="hub-pane-claims">
+        <div
+          className={`cg-pane ${tab === 'claims' ? '' : 'hidden'}`}
+          data-testid="hub-pane-claims"
+          hidden={tab !== 'claims'}
+          {...(tab !== 'claims' ? ({ inert: '' } as Record<string, string>) : {})}
+        >
           <ClaimsScreen actor={actor} openClaimId={openClaimId} startNewNonce={startNewNonce} />
         </div>
       </div>

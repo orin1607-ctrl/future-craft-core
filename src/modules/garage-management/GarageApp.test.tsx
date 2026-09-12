@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Script } from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 import GarageApp from './GarageApp';
 import approvedSourceHtml from './approved-source.html?raw';
@@ -69,5 +70,20 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('חזרה למסך הניהול');
     expect(approvedSourceHtml).toContain('garage_case_id');
     expect(approvedSourceHtml).toContain('book-pending-banner');
+    expect(approvedSourceHtml).toContain('function schedulePersist()');
+    expect(approvedSourceHtml).toContain('startScreen');
+    expect(approvedSourceHtml).toContain('openLocalCase');
+    expect(approvedSourceHtml).toContain('notifySave');
+  });
+
+  it('keeps the approved iframe script syntactically valid', () => {
+    const script = approvedSourceHtml.split('<script>')[1]?.split('</script>')[0] || '';
+    expect(script.length).toBeGreaterThan(100);
+    expect(() => new Script(script)).not.toThrow();
+  });
+
+  it('opens a new garage file from /garage-management?new=1', () => {
+    renderAt('/garage-management?new=1');
+    expect(screen.getByTitle('ניהול מוסך')).toBeInTheDocument();
   });
 });

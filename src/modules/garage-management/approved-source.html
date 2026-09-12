@@ -343,6 +343,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <span class="metapill" id="case-order-pill">הזמנה: —</span>
     </div>
     <div class="manager-link" onclick="goManager()">← חזרה למסך הניהול</div>
+    <div class="pending-banner" id="book-pending-banner-case">הפעלת מסד נתוני המוסך עדיין ממתינה. אפשר לעבור על הזרימה; שמירת לקוח, רכב, תיק ותמונות תתחיל אחרי הרצת ה-SQL ב-Staging.</div>
   </div>
   <div class="status-strip">
     <div><div class="lbl">פעולה הבאה</div><div class="val" id="next-action-label">השלמת 4 זוויות צילום</div></div>
@@ -523,7 +524,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="field" style="margin-top:14px;"><label>תוקף ההצעה</label><input value="7 ימים מהיום"></div>
     <div class="field"><label>הערות להצעה</label><textarea placeholder="תנאי תשלום, אחריות וכו׳"></textarea></div>
     <div class="btn-row">
-      <button class="btn btn-ghost" onclick="alert('הטיוטה נשמרה')">שמור טיוטה</button>
+      <button class="btn btn-ghost" onclick="notifySave('הטיוטה נשמרה')">שמור טיוטה</button>
       <button class="btn btn-white" onclick="go('s-quote-preview')">תצוגה מקדימה · PDF</button>
     </div>
     <button class="btn btn-ghost" style="margin-top:10px;" onclick="openWhatsApp()">📱 שלח ב-WhatsApp</button>
@@ -876,6 +877,13 @@ var GARAGE_GALLERY_TOPICS = [
 function pendingSaveMessage(){
   return 'הפעלת מסד נתוני המוסך עדיין ממתינה. הלקוח, הרכב, התיק והתמונות לא נשמרים עד להרצת ה-SQL ב-Staging.';
 }
+function isPendingError(err){
+  var text = String((err && err.message) || err || '');
+  return bookPending || /ממתינה/.test(text) || /PGRST205/i.test(text) || /could not find the table/i.test(text);
+}
+function notifySave(okMsg){
+  alert(bookPending ? pendingSaveMessage() : (okMsg || pendingSaveMessage()));
+}
 function garageMediaPending(){
   alert(bookPending
     ? pendingSaveMessage()
@@ -916,8 +924,10 @@ window.addEventListener('message', function(ev){
 });
 function applyBootstrap(payload){
   bookPending = !!payload.bookPending;
-  var banner = document.getElementById('book-pending-banner');
-  if(banner) banner.classList.toggle('show', bookPending);
+  ['book-pending-banner','book-pending-banner-case'].forEach(function(id){
+    var banner = document.getElementById(id);
+    if(banner) banner.classList.toggle('show', bookPending);
+  });
   if(payload.userName){
     workerName = payload.userName;
     var greet = document.getElementById('home-greet');
@@ -927,14 +937,20 @@ function applyBootstrap(payload){
     var empty = document.getElementById('home-empty');
     if(empty) empty.textContent = payload.error;
   }
-  renderGarageGallery(payload.loaded && payload.loaded.id);
+  renderGarageGallery((payload.loaded && payload.loaded.id) || payload.caseId || '');
   if(payload.mode === 'home'){
     renderHomeCases(payload.cases || []);
-    go('s-home');
+    go(payload.startScreen || 's-home');
     return;
   }
-  if(payload.mode === 'case' && payload.loaded){
-    hydrateCase(payload.loaded);
+  if(payload.mode === 'case'){
+    if(payload.loaded){
+      hydrateCase(payload.loaded);
+    } else {
+      renderGarageGallery(payload.caseId || '');
+      var tag = document.getElementById('case-number-tag');
+      if(tag) tag.textContent = payload.caseId || '';
+    }
     go('s-case');
   }
 }
@@ -996,7 +1012,10 @@ function hydrateCase(loaded){
   refreshCaseHub();
   renderGarageGallery(loaded && loaded.id);
 }
+function schedulePersist(){
+  if(bookPending) return;
   if(!currentCase || !currentCase.id) return;
+  if(String(currentCase.id).indexOf('pending') === 0) return;
   clearTimeout(persistTimer);
   persistTimer = setTimeout(function(){
     var data = Object.assign({}, state, {photos: Object.assign({}, state.photos)});
@@ -1032,7 +1051,13 @@ function runSearch(){
 }
 function selectExistingCustomer(c){
   currentCustomer = c;
-  document.getElementById('veh-pick-sub').textContent = (c.company_name || c.name) + ' · לקוח #' + c.customer_number;
+  document.getElementById('veh-pick-sub').textContent = (c.company_name || c.name) + (c.customer_number ? (' · לקוח #' + c.customer_number) : '');
+  if(bookPending || !c.id){
+    var emptyList = document.getElementById('vehicle-pick-list');
+    if(emptyList) emptyList.innerHTML = '';
+    go('s-newvehicle');
+    return;
+  }
   callHost('gm:listVehicles', {customerId: c.id}).then(function(res){
     var list = document.getElementById('vehicle-pick-list');
     list.innerHTML = '';
@@ -1048,7 +1073,40 @@ function selectExistingCustomer(c){
       hist.innerHTML = (res.history||[]).length ? '<div class="hint">היסטוריה: '+(res.history||[]).map(function(h){ return esc(h.case_number)+' · '+esc(h.status); }).join(' | ')+'</div>' : '';
     }
     go('s-newvehicle');
-  }).catch(function(err){ alert(bookPending ? pendingSaveMessage() : (err.message || err)); });
+  }).catch(function(err){
+    if(isPendingError(err)){
+      alert(pendingSaveMessage());
+      go('s-newvehicle');
+      return;
+    }
+    alert(err.message || err);
+  });
+}
+function localCustomer(draft){
+  return Object.assign({
+    id: '',
+    customer_number: '',
+  }, draft || {});
+}
+function localVehicle(draft){
+  return Object.assign({ id: '' }, draft || {});
+}
+function openLocalCase(customer, vehicle){
+  currentCustomer = customer;
+  currentVehicle = vehicle;
+  hydrateCase({
+    id: '',
+    case_number: '—',
+    status: 'טיוטה מקומית',
+    opened_by_name: workerName,
+    customer_name_snapshot: (customer && (customer.company_name || customer.name)) || '',
+    vehicle_plate_snapshot: (vehicle && vehicle.plate) || '',
+    vehicle_label_snapshot: vehicle ? [vehicle.make, vehicle.model, vehicle.year].filter(Boolean).join(' · ') : '',
+    customer: customer,
+    vehicle: vehicle,
+    case_data: {}
+  });
+  go('s-case');
 }
 function draftFromForm(){
   var name = (document.getElementById('cust-name').value || '').trim();
@@ -1069,6 +1127,11 @@ function draftFromForm(){
 function saveCustomerAndContinue(force){
   var draft = draftFromForm();
   if(!draft.phone || !(draft.name || draft.company_name)){ alert('יש למלא שם וטלפון'); return; }
+  if(bookPending){
+    alert(pendingSaveMessage());
+    selectExistingCustomer(localCustomer(draft));
+    return;
+  }
   callHost('gm:createCustomer', {draft: draft, force: !!force}).then(function(res){
     var box = document.getElementById('cust-dupes');
     if(res.needsConfirm && res.duplicates && res.duplicates.length){
@@ -1089,7 +1152,14 @@ function saveCustomerAndContinue(force){
     }
     currentCustomer = res.customer;
     selectExistingCustomer(res.customer);
-  }).catch(function(err){ alert(bookPending ? pendingSaveMessage() : (err.message || err)); });
+  }).catch(function(err){
+    if(isPendingError(err)){
+      alert(pendingSaveMessage());
+      selectExistingCustomer(localCustomer(draft));
+      return;
+    }
+    alert(err.message || err);
+  });
 }
 function saveVehicleAndCreateCase(){
   if(!currentCustomer){ alert('יש לבחור לקוח תחילה'); return; }
@@ -1108,16 +1178,40 @@ function saveVehicleAndCreateCase(){
     internal_number: '',
     notes: (document.getElementById('veh-notes').value || '').trim()
   };
+  if(bookPending){
+    alert(pendingSaveMessage());
+    openLocalCase(currentCustomer, localVehicle(draft));
+    return;
+  }
   callHost('gm:createVehicle', {draft: draft}).then(function(res){
     createCaseWithVehicle(res.vehicle);
-  }).catch(function(err){ alert(bookPending ? pendingSaveMessage() : (err.message || err)); });
+  }).catch(function(err){
+    if(isPendingError(err)){
+      alert(pendingSaveMessage());
+      openLocalCase(currentCustomer, localVehicle(draft));
+      return;
+    }
+    alert(err.message || err);
+  });
 }
 function createCaseWithVehicle(vehicle){
   currentVehicle = vehicle;
+  if(bookPending){
+    alert(pendingSaveMessage());
+    openLocalCase(currentCustomer, vehicle);
+    return;
+  }
   callHost('gm:createCase', {customer: currentCustomer, vehicle: vehicle}).then(function(res){
     if(res.created) hydrateCase(Object.assign({}, res.created, {customer: currentCustomer, vehicle: vehicle}));
     go('s-case');
-  }).catch(function(err){ alert(bookPending ? pendingSaveMessage() : (err.message || err)); });
+  }).catch(function(err){
+    if(isPendingError(err)){
+      alert(pendingSaveMessage());
+      openLocalCase(currentCustomer, vehicle);
+      return;
+    }
+    alert(err.message || err);
+  });
 }
 function go(id){
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
@@ -1149,7 +1243,7 @@ function updatePhotoProgress(){
   document.getElementById('tile-inspect-sub').textContent = count + '/4 תמונות';
   refreshCaseHub();
 }
-function saveInspection(){ alert('הבדיקה נשמרה. אפשר לחזור אליה בכל שלב מבלי לאבד נתונים.'); }
+function saveInspection(){ notifySave('הבדיקה נשמרה. אפשר לחזור אליה בכל שלב מבלי לאבד נתונים.'); }
 function finishInspection(){ go('s-quote'); }
 var currentSheetPart = 'כנף קדמית שמאל';
 function openPart(name){
@@ -1276,7 +1370,7 @@ function saveWorkOrder(){
   addTimelineEvent('הזמנה '+num+' התקבלה — סכום מאושר '+parseInt(amount).toLocaleString()+' ₪');
   unlockIntake();
   refreshCaseHub();
-  alert('ההזמנה נשמרה. קבלת רכב פתוחה כעת.');
+  notifySave('ההזמנה נשמרה. קבלת רכב פתוחה כעת.');
 }
 function unlockIntake(){
   var tile = document.getElementById('tile-intake');

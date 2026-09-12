@@ -264,7 +264,10 @@ export async function detectCustomerDuplicates(
   ].filter(Boolean);
   if (!filters.length) return [];
   const { data, error } = await tbl('garage_customers').select('*').or(filterJoin(filters)).limit(25);
-  if (error) throw new Error(errMessage(error, 'בדיקת כפילות לקוח נכשלה'));
+  if (error) {
+    if (isGarageSchemaMissing(error)) return [];
+    throw new Error(errMessage(error, 'בדיקת כפילות לקוח נכשלה'));
+  }
   return findDuplicateCustomers((data || []) as GarageCustomer[], draft);
 }
 

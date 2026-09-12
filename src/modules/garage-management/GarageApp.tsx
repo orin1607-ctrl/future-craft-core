@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import approvedSourceHtml from './approved-source.html?raw';
 import './garage.css';
@@ -46,6 +46,8 @@ function asBookError(error: unknown): string {
 
 export default function GarageApp() {
   const { caseId } = useParams();
+  const [params] = useSearchParams();
+  const startNew = params.get('new') === '1';
   const navigate = useNavigate();
   const { user } = useAuth();
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -64,12 +66,21 @@ export default function GarageApp() {
         if (probe.pending) {
           win.postMessage({
             type: 'gm:bootstrap',
-            payload: { mode: 'case', userName: actor.full_name || '', bookPending: true, error: GARAGE_BOOK_PENDING_MESSAGE },
+            payload: {
+              mode: 'case',
+              caseId,
+              userName: actor.full_name || '',
+              bookPending: true,
+              error: GARAGE_BOOK_PENDING_MESSAGE,
+            },
           }, '*');
           return;
         }
         const loaded = await getCase(caseId);
-        win.postMessage({ type: 'gm:bootstrap', payload: { mode: 'case', userName: actor.full_name || '', loaded, bookPending: false } }, '*');
+        win.postMessage({
+          type: 'gm:bootstrap',
+          payload: { mode: 'case', caseId, userName: actor.full_name || '', loaded, bookPending: false },
+        }, '*');
         return;
       }
       const cases = probe.pending ? [] : await listCases();
@@ -80,6 +91,7 @@ export default function GarageApp() {
           userName: actor.full_name || '',
           cases,
           bookPending: probe.pending,
+          startScreen: startNew ? 's-choose' : 's-home',
           error: probe.pending ? GARAGE_BOOK_PENDING_MESSAGE : undefined,
         },
       }, '*');
@@ -88,13 +100,15 @@ export default function GarageApp() {
         type: 'gm:bootstrap',
         payload: {
           mode: caseId ? 'case' : 'home',
+          caseId,
           userName: actor.full_name || '',
           bookPending: probe.pending,
+          startScreen: startNew ? 's-choose' : 's-home',
           error: asBookError(error),
         },
       }, '*');
     }
-  }, [actor, caseId]);
+  }, [actor, caseId, startNew]);
 
   useEffect(() => {
     const onMessage = async (event: MessageEvent<HostRequest>) => {
@@ -186,7 +200,7 @@ export default function GarageApp() {
         className="gm-approved-frame"
         srcDoc={approvedSourceHtml}
         sandbox="allow-scripts allow-modals allow-same-origin"
-        key={caseId || 'home'}
+        key={caseId || (startNew ? 'new' : 'home')}
         onLoad={() => { void bootstrap(); }}
       />
     </div>

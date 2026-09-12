@@ -9,6 +9,8 @@
 
 .cg-bar {
   flex: 0 0 auto;
+  position: relative;
+  z-index: 40;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -63,7 +65,8 @@
 }
 
 .cg-pane.hidden {
-  display: none;
+  display: none !important;
+  pointer-events: none;
 }
 
 .cg-table-wrap {

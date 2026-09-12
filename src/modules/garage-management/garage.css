@@ -1,9 +1,10 @@
 .gm-root {
   box-sizing: border-box;
+  position: fixed;
+  inset: 0;
+  z-index: 60;
   width: 100%;
-  min-height: 100dvh;
   height: 100dvh;
-  max-height: 100dvh;
   background: #04091a;
   overflow: hidden;
 }
@@ -12,7 +13,6 @@
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 100dvh;
   border: 0;
   background: #04091a;
 }

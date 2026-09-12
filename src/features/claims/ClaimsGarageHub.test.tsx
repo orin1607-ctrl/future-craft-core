@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimsGarageHub } from './ClaimsGarageHub';
 import { GARAGE_BOOK_PENDING_MESSAGE, probeGarageBook, listCases } from '@/modules/garage-management/garageBook';
@@ -34,13 +34,18 @@ vi.mock('@/modules/garage-management/garageBook', async () => {
 
 const actor = { id: 'u1', full_name: 'ישראל', role: 'super_admin' as const };
 
+function LocationProbe() {
+  const loc = useLocation();
+  return <div data-testid="loc">{`${loc.pathname}${loc.search}`}</div>;
+}
+
 function renderHub(path = '/claims') {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/claims" element={<ClaimsGarageHub actor={actor} />} />
-        <Route path="/garage-management" element={<div data-testid="garage-flow">garage-flow</div>} />
-        <Route path="/garage-management/:caseId" element={<div data-testid="garage-case">garage-case</div>} />
+        <Route path="/claims" element={<><LocationProbe /><ClaimsGarageHub actor={actor} /></>} />
+        <Route path="/garage-management" element={<><LocationProbe /><div data-testid="garage-flow">garage-flow</div></>} />
+        <Route path="/garage-management/:caseId" element={<><LocationProbe /><div data-testid="garage-case">garage-case</div></>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -84,6 +89,7 @@ describe('ClaimsGarageHub', () => {
     await waitFor(() => expect(screen.getAllByTestId('hub-row-garage:case-9').length).toBeGreaterThan(0));
     fireEvent.click(screen.getByTestId('hub-new-garage'));
     expect(screen.getByTestId('garage-flow')).toBeInTheDocument();
+    expect(screen.getByTestId('loc')).toHaveTextContent('/garage-management?new=1');
   });
 
   it('opens a garage case on /garage-management/:caseId without writing claims_records', async () => {
