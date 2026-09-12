@@ -277,7 +277,10 @@ export async function searchCustomers(query: string): Promise<GarageCustomer[]> 
         `second_phone.ilike.%${q}%`,
         `business_id.ilike.%${q}%`,
         `contact_person.ilike.%${q}%`,
+        `email.ilike.%${q}%`,
         phone ? `phone.ilike.%${phone}%` : '',
+        phone ? `second_phone.ilike.%${phone}%` : '',
+        /^\d{3,}$/.test(q) ? `customer_number.eq.${q}` : '',
       ].filter(Boolean).join(','),
     )
     .order('created_at', { ascending: false })

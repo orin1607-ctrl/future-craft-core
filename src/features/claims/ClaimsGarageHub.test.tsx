@@ -65,6 +65,7 @@ describe('ClaimsGarageHub', () => {
     expect(screen.getByTestId('hub-tab-claims')).toHaveTextContent('תביעות ביטוח');
     expect(screen.getByTestId('hub-tab-garage')).toHaveTextContent('תיקי מוסך');
     expect(screen.getByTestId('hub-new-claim')).toHaveTextContent('תיק תביעה');
+    expect(screen.getByTestId('hub-new-garage-customer')).toHaveTextContent('הקמת לקוח');
     expect(screen.getByTestId('hub-new-garage')).toHaveTextContent('תיק מוסך חדש');
     expect(screen.getByTestId('claims-screen-unmodified')).toBeInTheDocument();
     await waitFor(() => expect(screen.getAllByText(/מסד נתוני המוסך עדיין ממתינה/).length).toBeGreaterThan(0));
@@ -92,6 +93,14 @@ describe('ClaimsGarageHub', () => {
     fireEvent.click(screen.getByTestId('hub-new-garage'));
     expect(screen.getByTestId('garage-flow')).toBeInTheDocument();
     expect(screen.getByTestId('loc')).toHaveTextContent('/garage-management?new=1');
+  });
+
+  it('opens customer-only setup from + הקמת לקוח without starting a new case', async () => {
+    renderHub();
+    fireEvent.click(screen.getByTestId('hub-new-garage-customer'));
+    expect(screen.getByTestId('garage-flow')).toBeInTheDocument();
+    expect(screen.getByTestId('loc')).toHaveTextContent('/garage-management?customer=1');
+    expect(screen.getByTestId('loc')).not.toHaveTextContent('new=1');
   });
 
   it('opens a garage case on /garage-management/:caseId without writing claims_records', async () => {

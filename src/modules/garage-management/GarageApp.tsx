@@ -63,6 +63,7 @@ export default function GarageApp() {
   const { caseId } = useParams();
   const [params] = useSearchParams();
   const startNew = params.get('new') === '1';
+  const startCustomer = params.get('customer') === '1';
   const navigate = useNavigate();
   const { user } = useAuth();
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -106,7 +107,8 @@ export default function GarageApp() {
           userName: actor.full_name || '',
           cases,
           bookPending: probe.pending,
-          startScreen: startNew ? 's-choose' : 's-home',
+          customerOnly: startCustomer,
+          startScreen: startCustomer ? 's-newtype' : startNew ? 's-choose' : 's-home',
           error: probe.pending ? GARAGE_BOOK_PENDING_MESSAGE : undefined,
         },
       }, '*');
@@ -118,12 +120,13 @@ export default function GarageApp() {
           caseId,
           userName: actor.full_name || '',
           bookPending: probe.pending,
-          startScreen: startNew ? 's-choose' : 's-home',
+          customerOnly: startCustomer,
+          startScreen: startCustomer ? 's-newtype' : startNew ? 's-choose' : 's-home',
           error: asBookError(error),
         },
       }, '*');
     }
-  }, [actor, caseId, startNew]);
+  }, [actor, caseId, startCustomer, startNew]);
 
   useEffect(() => {
     const onMessage = async (event: MessageEvent<HostRequest>) => {
@@ -251,7 +254,7 @@ export default function GarageApp() {
         srcDoc={approvedSourceHtml}
         sandbox="allow-scripts allow-modals allow-same-origin allow-downloads allow-popups"
         allow="camera; microphone; clipboard-write"
-        key={caseId || (startNew ? 'new' : 'home')}
+        key={caseId || (startCustomer ? 'customer' : startNew ? 'new' : 'home')}
         onLoad={() => { void bootstrap(); }}
       />
     </div>

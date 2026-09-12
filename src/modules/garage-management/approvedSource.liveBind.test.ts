@@ -164,4 +164,107 @@ describe('garage flow live case binding', () => {
     expect(win.document.getElementById('route-opt-intake_first')?.classList.contains('sel')).toBe(true);
     expect(win.document.getElementById('next-action-label')?.textContent).toContain('העלאת הזמנת לקוח');
   });
+
+  it('saves a customer-only record without creating a vehicle or garage case', async () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      startNewCustomer: (type: string) => void;
+      saveCustomerAndContinue: (force: boolean) => void;
+      callHost: (type: string, payload?: Record<string, unknown>) => Promise<Record<string, unknown>>;
+      alert: (msg?: string) => void;
+      document: Document;
+    };
+    const hostCalls: string[] = [];
+    const alerts: string[] = [];
+    const posted: Array<{ type?: string }> = [];
+    win.alert = (msg?: string) => { alerts.push(String(msg || '')); };
+    const originalPost = win.parent.postMessage.bind(win.parent);
+    win.parent.postMessage = ((data: unknown, targetOrigin?: string, transfer?: Transferable[]) => {
+      posted.push((data || {}) as { type?: string });
+      return originalPost(data, targetOrigin as string, transfer);
+    }) as typeof win.parent.postMessage;
+    win.callHost = (type: string) => {
+      hostCalls.push(type);
+      if (type === 'gm:createCustomer') {
+        return Promise.resolve({
+          customer: {
+            id: 'cust-only-qa',
+            customer_number: 1410,
+            customer_type: 'private',
+            name: 'לקוח QA הקמת לקוח',
+            company_name: '',
+            phone: '0501410141',
+            email: 'qa-customer-only@example.com',
+            default_workflow: 'quote_first',
+          },
+          needsConfirm: false,
+          duplicates: [],
+        });
+      }
+      throw new Error(`unexpected host call: ${type}`);
+    };
+    win.applyBootstrap({
+      mode: 'home',
+      cases: [],
+      startScreen: 's-newtype',
+      customerOnly: true,
+      bookPending: false,
+    });
+    expect(win.document.getElementById('s-newtype')?.classList.contains('active')).toBe(true);
+    expect(win.document.getElementById('newtype-title')?.textContent).toBe('הקמת לקוח');
+    expect(win.document.getElementById('cust-save-btn')?.textContent).toBe('שמור לקוח');
+    win.startNewCustomer('private');
+    (win.document.getElementById('cust-name') as HTMLInputElement).value = 'לקוח QA הקמת לקוח';
+    (win.document.getElementById('cust-phone') as HTMLInputElement).value = '0501410141';
+    win.saveCustomerAndContinue(false);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(hostCalls).toEqual(['gm:createCustomer']);
+    expect(hostCalls).not.toContain('gm:createVehicle');
+    expect(hostCalls).not.toContain('gm:createCase');
+    expect(alerts).toContain('הלקוח הוקם בהצלחה');
+    expect(posted.some((msg) => msg.type === 'gm:goManager')).toBe(true);
+    expect(win.document.getElementById('s-newvehicle')?.classList.contains('active')).toBe(false);
+    expect(win.document.getElementById('s-case')?.classList.contains('active')).toBe(false);
+  });
+
+  it('keeps + תיק מוסך חדש continuing from the customer form into the vehicle step', async () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      startNewCustomer: (type: string) => void;
+      saveCustomerAndContinue: (force: boolean) => void;
+      callHost: (type: string, payload?: Record<string, unknown>) => Promise<Record<string, unknown>>;
+      alert: (msg?: string) => void;
+      document: Document;
+    };
+    win.alert = () => {};
+    win.callHost = (type: string) => {
+      if (type === 'gm:createCustomer') {
+        return Promise.resolve({
+          customer: {
+            id: 'cust-case-qa',
+            customer_number: 1411,
+            customer_type: 'private',
+            name: 'לקוח QA תיק חדש',
+            company_name: '',
+            phone: '0501411141',
+            default_workflow: 'quote_first',
+          },
+          needsConfirm: false,
+          duplicates: [],
+        });
+      }
+      if (type === 'gm:listVehicles') {
+        return Promise.resolve({ vehicles: [], history: [] });
+      }
+      throw new Error(`unexpected host call: ${type}`);
+    };
+    win.applyBootstrap({ mode: 'home', cases: [], startScreen: 's-choose', bookPending: false });
+    expect(win.document.getElementById('cust-save-btn')?.textContent).toBe('שמור והמשך לרכב');
+    win.startNewCustomer('private');
+    (win.document.getElementById('cust-name') as HTMLInputElement).value = 'לקוח QA תיק חדש';
+    (win.document.getElementById('cust-phone') as HTMLInputElement).value = '0501411141';
+    win.saveCustomerAndContinue(false);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(win.document.getElementById('s-newvehicle')?.classList.contains('active')).toBe(true);
+  });
 });

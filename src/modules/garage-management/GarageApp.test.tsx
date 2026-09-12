@@ -67,6 +67,10 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('function confirmCloseCase()');
     expect(approvedSourceHtml).toContain("callHost('gm:saveCase'");
     expect(approvedSourceHtml).toContain('saveCustomerAndContinue');
+    expect(approvedSourceHtml).toContain('customerOnly');
+    expect(approvedSourceHtml).toContain('finishCustomerOnlySave');
+    expect(approvedSourceHtml).toContain('הלקוח הוקם בהצלחה');
+    expect(approvedSourceHtml).toContain('שמור לקוח');
     expect(approvedSourceHtml).toContain('home-cases');
     expect(approvedSourceHtml).toContain('gm:goManager');
     expect(approvedSourceHtml).toContain('חזרה למסך הניהול');
@@ -103,5 +107,14 @@ describe('garage-management approved source', () => {
   it('opens a new garage file from /garage-management?new=1', () => {
     renderAt('/garage-management?new=1');
     expect(screen.getByTitle('ניהול מוסך')).toBeInTheDocument();
+  });
+
+  it('opens customer-only setup from /garage-management?customer=1', () => {
+    renderAt('/garage-management?customer=1');
+    const frame = screen.getByTitle('ניהול מוסך') as HTMLIFrameElement;
+    expect(frame).toBeInTheDocument();
+    expect(frame.srcdoc).toContain('הקמת לקוח');
+    expect(frame.srcdoc).toContain('שמור לקוח');
+    expect(frame.srcdoc).toContain('לא נפתח תיק עבודה ולא ניתן מספר GM');
   });
 });

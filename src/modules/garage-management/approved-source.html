@@ -294,19 +294,20 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <section class="screen" id="s-search">
   <div class="topbar"><div class="back" onclick="go('s-choose')">→</div><div><h1>לקוח קיים</h1><div class="sub">חיפוש לקוח</div></div></div>
   <div class="content">
-    <div class="field"><input id="search-q" type="text" placeholder="שם, טלפון, ח.פ. או מספר רכב" oninput="scheduleSearch()"></div>
+    <div class="field"><input id="search-q" type="text" placeholder="שם, חברה, טלפון, ח.פ, אימייל, מספר לקוח או מספר רכב" oninput="scheduleSearch()"></div>
     <div id="search-results"></div>
-    <div id="search-hint" class="hint">חפש לקוח קיים לפי שם, טלפון, ח.פ. או מספר רכב.</div>
+    <div id="search-hint" class="hint">חפש לקוח קיים לפי מספר לקוח, שם, חברה, טלפון, ח.פ / עוסק, אימייל או מספר רכב.</div>
   </div>
 </section>
 <!-- ================= SCREEN: NEW CUSTOMER TYPE ================= -->
 <section class="screen" id="s-newtype">
-  <div class="topbar"><div class="back" onclick="go('s-choose')">→</div><div><h1>לקוח חדש</h1><div class="sub">בחירת סוג לקוח</div></div></div>
+  <div class="topbar"><div class="back" onclick="backFromNewType()">→</div><div><h1 id="newtype-title">לקוח חדש</h1><div class="sub" id="newtype-sub">בחירת סוג לקוח</div></div></div>
   <div class="content">
     <div class="card tap" onclick="startNewCustomer('private')"><div class="row"><div style="font-weight:700;">לקוח פרטי</div><span class="chev">‹</span></div></div>
     <div class="card tap" onclick="startNewCustomer('business')"><div class="row"><div style="font-weight:700;">עסקי / חברה</div><span class="chev">‹</span></div></div>
     <div class="card tap" onclick="startNewCustomer('fleet')"><div class="row"><div style="font-weight:700;">חברה קבועה / צי רכב</div><span class="chev">‹</span></div></div>
     <div class="hint" style="margin-top:8px;">מספר לקוח יינתן אוטומטית אחרי השמירה — אין צורך להזין ידנית.</div>
+    <div class="hint" id="newtype-customer-only-hint" style="display:none;margin-top:8px;">נשמר רק בספר לקוחות המוסך. לא נפתח תיק עבודה ולא ניתן מספר GM.</div>
   </div>
 </section>
 <!-- ================= SCREEN: NEW CUSTOMER FORM ================= -->
@@ -938,6 +939,7 @@ var uploadCtx = { category: 'other', title: 'קובץ', angle: '' };
 var nextActionFn = null;
 var draftCustomerType = 'private';
 var draftDefaultWorkflow = 'quote_first';
+var customerOnly = false;
 var GARAGE_GALLERY_TOPICS = [
   {id:'customer_order', label:'הזמנת לקוח'},
   {id:'quote_photos', label:'תמונות להצעת מחיר'},
@@ -1142,6 +1144,25 @@ function angleCount(){
 function goManager(){
   parent.postMessage({type:'gm:goManager'}, '*');
 }
+function backFromNewType(){
+  if(customerOnly){ goManager(); return; }
+  go('s-choose');
+}
+function syncCustomerOnlyUi(){
+  var title = document.getElementById('newtype-title');
+  var sub = document.getElementById('newtype-sub');
+  var hint = document.getElementById('newtype-customer-only-hint');
+  var saveBtn = document.getElementById('cust-save-btn');
+  if(title) title.textContent = customerOnly ? 'הקמת לקוח' : 'לקוח חדש';
+  if(sub) sub.textContent = customerOnly ? 'לקוח בלבד — בלי תיק עבודה' : 'בחירת סוג לקוח';
+  if(hint) hint.style.display = customerOnly ? 'block' : 'none';
+  if(saveBtn) saveBtn.textContent = customerOnly ? 'שמור לקוח' : 'שמור והמשך לרכב';
+}
+function finishCustomerOnlySave(customer){
+  currentCustomer = customer || currentCustomer;
+  alert('הלקוח הוקם בהצלחה');
+  goManager();
+}
 function renderThumbRow(elId, items){
   var el = document.getElementById(elId);
   if(!el) return;
@@ -1297,6 +1318,8 @@ window.addEventListener('message', function(ev){
   if(msg.type === 'gm:bootstrap') applyBootstrap(msg.payload || {});
 });
 function applyBootstrap(payload){
+  customerOnly = !!payload.customerOnly;
+  syncCustomerOnlyUi();
   bookPending = !!payload.bookPending;
   ['book-pending-banner','book-pending-banner-case'].forEach(function(id){
     var banner = document.getElementById(id);
@@ -1589,6 +1612,7 @@ function saveCustomerAndContinue(force){
   if(!draft.phone || !(draft.name || draft.company_name)){ alert('יש למלא שם וטלפון'); return; }
   if(bookPending){
     alert(pendingSaveMessage());
+    if(customerOnly) return;
     selectExistingCustomer(localCustomer(draft));
     return;
   }
@@ -1599,7 +1623,14 @@ function saveCustomerAndContinue(force){
       res.duplicates.forEach(function(c){
         var el = document.createElement('div');
         el.className = 'cust-result tap';
-        el.onclick = function(){ selectExistingCustomer(c); };
+        el.onclick = function(){
+          if(customerOnly){
+            alert('הלקוח כבר קיים בספר הלקוחות');
+            goManager();
+            return;
+          }
+          selectExistingCustomer(c);
+        };
         el.innerHTML = '<div class="id">לקוח קיים #'+esc(c.customer_number)+'</div><div class="nm">'+esc(c.company_name || c.name)+'</div><div class="ph">'+esc(c.phone)+'</div>';
         box.appendChild(el);
       });
@@ -1613,10 +1644,15 @@ function saveCustomerAndContinue(force){
     currentCustomer = res.customer;
     var sub = document.getElementById('newform-sub');
     if(sub && res.customer && res.customer.customer_number) sub.textContent = 'לקוח #' + res.customer.customer_number;
+    if(customerOnly){
+      finishCustomerOnlySave(res.customer);
+      return;
+    }
     selectExistingCustomer(res.customer);
   }).catch(function(err){
     if(isPendingError(err)){
       alert(pendingSaveMessage());
+      if(customerOnly) return;
       selectExistingCustomer(localCustomer(draft));
       return;
     }
