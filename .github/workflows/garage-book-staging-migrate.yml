@@ -16,6 +16,7 @@ permissions:
 
 jobs:
   staging-migrate:
+    if: github.ref != 'refs/heads/cursor/garage-gmail-connect-bed0'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,4 +34,93 @@ jobs:
         with:
           name: garage-book-staging-qa
           path: test-results/garage-book-staging-qa.json
+          if-no-files-found: ignore
+
+  # Dispatch this existing workflow from cursor/garage-gmail-connect-bed0 to
+  # apply garage-gmail SQL + deploy the Edge function. Staging only.
+  # Does not deploy claims-gmail. Does not touch Production.
+  staging-garage-gmail:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Guard refs
+        env:
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, sys
+          u = os.environ.get("STAGING_DATABASE_URL") or ""
+          if "qasomfndnjuixgjmjwcm" in u:
+              sys.exit("Production database URL forbidden")
+          if "usfeoerkpcafxxlyuldl" not in u:
+              sys.exit("STAGING_DATABASE_URL missing staging ref")
+          print("db_target=usfeoerkpcafxxlyuldl")
+          PY
+      - name: Apply garage Gmail SQL on Staging
+        env:
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: node scripts/apply-garage-gmail-staging.mjs
+      - name: Deploy garage-gmail Edge to Staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          TOK=$(printf '%s' "${SUPABASE_ACCESS_TOKEN:-}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          export SUPABASE_ACCESS_TOKEN="$TOK"
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN missing — cannot deploy garage-gmail"
+            exit 1
+          fi
+          CODE=$(curl -sS -o /tmp/mgmt.json -w "%{http_code}" -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" "https://api.supabase.com/v1/projects/usfeoerkpcafxxlyuldl" || echo 000)
+          echo "Management API staging project HTTP $CODE"
+          if [ "$CODE" != "200" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN rejected ($CODE). Rotate the GitHub secret. Production was not touched."
+            exit 1
+          fi
+          npx --yes supabase functions deploy garage-gmail --project-ref usfeoerkpcafxxlyuldl --use-api
+      - name: Upload apply log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garage-gmail-staging
+          path: test-results/garage-gmail-sql.json
+          if-no-files-found: ignore
+
+  staging-garage-gmail-e2e:
+    needs: staging-garage-gmail
+    if: always() && needs.staging-garage-gmail.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: E2E garage-gmail on Staging only
+        env:
+          VITE_SUPABASE_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          VITE_SUPABASE_PROJECT_ID: usfeoerkpcafxxlyuldl
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          TEST_EMAIL: ${{ secrets.STAGING_QA_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VITE_SUPABASE_ANON_KEY:-}" ]; then
+            export VITE_SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU'
+            export VITE_SUPABASE_PUBLISHABLE_KEY="$VITE_SUPABASE_ANON_KEY"
+          fi
+          node scripts/qa-garage-gmail-staging.mjs
+      - name: Upload E2E report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garage-gmail-staging-qa
+          path: test-results/garage-gmail-staging-qa.json
           if-no-files-found: ignore
