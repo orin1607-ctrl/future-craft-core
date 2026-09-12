@@ -1,0 +1,44 @@
+name: Garage book live QA — Staging only
+
+# Read/QA garage_customers, garage_vehicles, garage_cases on
+# usfeoerkpcafxxlyuldl (dalia-staging). Never Production.
+# Does not apply SQL. Does not deploy.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  staging-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: QA garage book on Staging only
+        env:
+          VITE_SUPABASE_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          VITE_SUPABASE_PROJECT_ID: usfeoerkpcafxxlyuldl
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          TEST_EMAIL: ${{ secrets.STAGING_QA_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD }}
+        run: |
+          if [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+            export VITE_SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU'
+            export VITE_SUPABASE_PUBLISHABLE_KEY="$VITE_SUPABASE_ANON_KEY"
+          fi
+          node scripts/qa-garage-book-live.mjs
+      - name: Upload QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garage-book-live-qa
+          path: test-results/garage-book-live-qa.json
+          if-no-files-found: ignore
