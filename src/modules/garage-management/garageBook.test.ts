@@ -137,13 +137,18 @@ describe('garage book helpers', () => {
     expect(isGarageWorkflowColumnMissing({ code: 'PGRST205', message: "Could not find the table 'public.garage_cases'" })).toBe(false);
   });
 
-  it('encodes garage contacts into existing customer notes without a new table', () => {
-    const encoded = encodeContactsInNotes('הערה רגילה', [
+  it('does not encode contacts into customer notes; still reads leftover markers', () => {
+    expect(encodeContactsInNotes('הערה רגילה', [
       { id: 'c1', name: 'רותי', role: 'רכזת', phone: '0501111111', email: 'r@example.com', notes: '' },
-    ]);
-    expect(encoded).toContain('הערה רגילה');
-    expect(notesWithoutContacts(encoded)).toBe('הערה רגילה');
-    expect(parseCustomerContacts({ notes: encoded, contact_person: '', phone: '', email: '' }).map((c) => c.name)).toEqual(['רותי']);
+    ])).toBe('הערה רגילה');
+    const leftover = 'הערה רגילה\n<!--gm-contacts:[{"id":"c1","name":"רותי","role":"רכזת","phone":"0501111111","email":"r@example.com","notes":""}]-->';
+    expect(notesWithoutContacts(leftover)).toBe('הערה רגילה');
+    expect(parseCustomerContacts({ notes: leftover, contact_person: '', phone: '', email: '' }).map((c) => c.name)).toEqual(['רותי']);
+    expect(parseCustomerContacts({
+      contacts: [{ id: 'c2', name: 'דנה', role: '', phone: '', email: '', notes: '' }],
+      notes: leftover,
+      contact_person: '',
+    }).map((c) => c.name)).toEqual(['דנה']);
   });
 
   it('blocks case close until finish photos, delivery, payment and signature exist', () => {

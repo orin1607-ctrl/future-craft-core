@@ -362,11 +362,10 @@ export function notesWithoutContacts(notes: string): string {
   return String(notes || '').replace(/\n?<!--gm-contacts:[\s\S]*?-->/g, '').trim();
 }
 
+/** Read-only helper for leftover encoded notes. Do not write this marker anymore. */
 export function encodeContactsInNotes(notes: string, contacts: GarageContact[]): string {
-  const base = notesWithoutContacts(notes);
-  const clean = (contacts || []).map((c, i) => normalizeGarageContact(c, i)).filter((c) => c.name || c.phone || c.email);
-  if (!clean.length) return base;
-  return `${base}${base ? '\n' : ''}<!--gm-contacts:${JSON.stringify(clean)}-->`;
+  void contacts;
+  return notesWithoutContacts(notes);
 }
 
 export function parseCustomerContacts(c?: Partial<GarageCustomer> | null): GarageContact[] {
@@ -531,7 +530,6 @@ export async function createCustomer(
   const contacts = parseCustomerContacts(draft);
   const primary = contacts[0];
   const workflow: GarageRoute = draft.default_workflow === 'intake_first' ? 'intake_first' : 'quote_first';
-  const encodedNotes = encodeContactsInNotes(draft.notes || '', contacts);
   const insert: Record<string, unknown> = {
     customer_type: draft.customer_type,
     name: draft.name || '',
@@ -543,7 +541,7 @@ export async function createCustomer(
     business_id: draft.business_id || '',
     contact_person: draft.contact_person || primary?.name || '',
     preferred_channel: draft.preferred_channel || '',
-    notes: encodedNotes,
+    notes: notesWithoutContacts(draft.notes || ''),
     default_workflow: workflow,
     contacts,
   };
@@ -596,8 +594,8 @@ export async function updateCustomerBook(
     updates.contacts = contacts;
     updates.contact_person = patch.contact_person || contacts[0]?.name || '';
   }
-  if (patch.notes !== undefined || contacts) {
-    updates.notes = encodeContactsInNotes(patch.notes || '', contacts || []);
+  if (patch.notes !== undefined) {
+    updates.notes = notesWithoutContacts(patch.notes);
   }
   const first = await tbl('garage_customers').update(updates as never).eq('id', customerId).select('*').single();
   if (!first.error) return hydrateCustomer(first.data as GarageCustomer);
