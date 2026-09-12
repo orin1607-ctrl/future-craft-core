@@ -272,8 +272,13 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="plus">＋</div>
   </div>
   <div class="section-label">התיקים שלי</div>
+  <div class="tabs" id="home-status-tabs" style="margin:0 16px 12px;">
+    <div class="tab active" data-home-bucket="open" onclick="setHomeBucket('open')">פתוח</div>
+    <div class="tab" data-home-bucket="in_work" onclick="setHomeBucket('in_work')">רכב בעבודה</div>
+    <div class="tab" data-home-bucket="closed" onclick="setHomeBucket('closed')">סגור</div>
+  </div>
   <div id="home-cases"></div>
-  <div id="home-empty" class="hint" style="padding:0 16px;">אין תיקים שמורים עדיין. פתיחת תיק שומרת לקוח, רכב ותיק עבודה.</div>
+  <div id="home-empty" class="hint" style="padding:0 16px;">אין רכבים פתוחים. תיק חדש מופיע כאן עד שהעבודה מתחילה.</div>
 </section>
 <!-- ================= SCREEN: CHOOSE NEW/EXISTING ================= -->
 <section class="screen" id="s-choose">
@@ -436,7 +441,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="act-tile" onclick="go('s-quote')"><div class="ic">📋</div><div class="lb">הצעת מחיר</div><div class="sub" id="tile-quote-sub">טרם נוצרה</div></div>
     <div class="act-tile" onclick="go('s-workorder')"><div class="ic">📦</div><div class="lb">הזמנת עבודה</div><div class="sub" id="tile-wo-sub">ממתין</div></div>
     <div class="act-tile" onclick="go('s-gallery')"><div class="ic">🖼️</div><div class="lb">גלריה</div><div class="sub" id="tile-gal-sub">אין תמונות שמורות</div></div>
-    <div class="act-tile" onclick="go('s-comm')"><div class="ic">✉️</div><div class="lb">תקשורת</div><div class="sub" id="tile-comm-sub">אין הודעות</div><span class="dot-alert" id="comm-alert" style="display:none;"></span></div>
+    <div class="act-tile" onclick="go('s-comm')"><div class="ic">✉️</div><div class="lb">מיילים / התכתבויות</div><div class="sub" id="tile-comm-sub">אין הודעות</div><span class="dot-alert" id="comm-alert" style="display:none;"></span></div>
     <div class="act-tile" onclick="go('s-share')"><div class="ic">🔗</div><div class="lb">שיתוף מאובטח</div><div class="sub" id="tile-share-sub">—</div></div>
     <div class="act-tile locked" id="tile-intake" onclick="tryIntake()"><div class="ic">🚗</div><div class="lb">קבלת רכב</div><div class="sub" id="tile-intake-sub">נעול עד אישור</div></div>
     <div class="act-tile" onclick="go('s-timeline')"><div class="ic">🕓</div><div class="lb">היסטוריה</div><div class="sub" id="tile-hist-sub">0 אירועים</div></div>
@@ -457,7 +462,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     </div>
     <div class="accordion-item" onclick="toggleAcc(this)">
       <div class="accordion-head"><div class="l"><span>✉️</span> תקשורת</div><span class="arrow">‹</span></div>
-      <div class="accordion-body" id="acc-comm-body">אין הודעות עדיין. <span class="open-link" onclick="event.stopPropagation(); go('s-comm')">פתח ›</span></div>
+      <div class="accordion-body" id="acc-comm-body">אין התכתבות בתיק עדיין. <span class="open-link" onclick="event.stopPropagation(); go('s-comm')">פתח ›</span></div>
     </div>
   </div>
   <div style="padding:16px;">
@@ -726,20 +731,27 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: COMMUNICATION ================= -->
 <section class="screen" id="s-comm">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>תקשורת</h1><div class="sub" data-live="case-customer-sub">תקשורת</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>מיילים / התכתבויות / עדכונים</h1><div class="sub" data-live="case-customer-sub">התכתבות התיק</div></div></div>
   <div class="content">
+    <div class="hint">תיבת המוסך המיועדת: yoni191177@gmail.com. לא תיבת Claims (yoni122222@gmail.com). מייל משויך לתיק רק כשההתאמה חד-משמעית. מחיר שזוהה לא מתעדכן בלי אישור העובד.</div>
+    <div class="card" id="garage-mail-status" style="margin-bottom:12px;"></div>
+    <div class="card" id="price-review-card" style="display:none; margin-bottom:12px;"></div>
+    <div class="card" id="garage-mail-pending" style="display:none; margin-bottom:12px;"></div>
     <div class="tabs">
       <div class="tab active" onclick="switchTab(this,'c-all')">הכל</div>
       <div class="tab" onclick="switchTab(this,'c-email')">Email</div>
       <div class="tab" onclick="switchTab(this,'c-wa')">WhatsApp</div>
     </div>
-    <button class="btn btn-white" style="margin-bottom:16px;" onclick="go('s-compose')">＋ שליחה מהתיק</button>
+    <div class="btn-row" style="margin-bottom:16px;">
+      <button class="btn btn-white" onclick="go('s-compose')">＋ שליחה מהתיק</button>
+      <button class="btn btn-ghost" onclick="scanGarageMail()">סרוק תיבת מוסך</button>
+    </div>
     <div class="tabpanel active" id="c-all">
       <div class="comm-thread" id="comm-thread-all"></div>
-      <div class="hint" id="comm-empty">אין הודעות בתיק זה עדיין.</div>
+      <div class="hint" id="comm-empty">אין התכתבות בתיק זה עדיין.</div>
     </div>
     <div class="tabpanel" id="c-email">
-      <div class="hint">רק הודעות Email של התיק יוצגו כאן.</div>
+      <div class="comm-thread" id="comm-thread-email"></div>
     </div>
     <div class="tabpanel" id="c-wa">
       <div class="hint">הודעות וקישורי WhatsApp שנשלחו מהתיק יוצגו כאן.</div>
@@ -750,7 +762,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <section class="screen" id="s-compose">
   <div class="topbar"><div class="back" onclick="go('s-comm')">→</div><div><h1>שליחה מהתיק</h1><div class="sub" data-live="case-sub">מייל ברירת מחדל</div></div></div>
   <div class="content">
-    <div class="hint">הנתונים מתמלאים מהתיק. אין תיבת מייל נפרדת למוסך — נפתח מייל / WhatsApp ידני. לא נשלח דרך תיבת Claims, ולא מוצג "נשלח" אם לא נשלח.</div>
+    <div class="hint">שליחה ידנית מהתיק (mailto / WhatsApp). תיבת המוסך המיועדת היא yoni191177@gmail.com — לא תיבת Claims. אין שליחה אוטומטית ואין סימון "נשלח" אם לא נשלח.</div>
     <div class="field"><label>ערוץ</label>
       <div class="chip-row" id="compose-channel-row">
         <div class="chip selected" data-channel="email" onclick="selChip(this)">Email / מייל</div>
@@ -906,21 +918,47 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: FINISH WORK ================= -->
 <section class="screen" id="s-finish">
-  <div class="topbar"><div class="back" onclick="go('s-job')">→</div><div><h1>סיום עבודה / הכנה למסירה</h1><div class="sub" data-live="case-sub">סיום עבודה</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-job')">→</div><div><h1>סיום עבודה</h1><div class="sub" data-live="case-sub">סיום עבודה</div></div></div>
   <div class="content">
-    <div class="hint">סימון סיום עבודה אינו סוגר את התיק. אחרי זה ממשיכים למסירה, תשלום, תמונות סיום וחתימה.</div>
+    <div class="hint">סיום עבודה אינו סגירת תיק. אחרי האישור התיק יורד מרשימת הרכבים הפתוחים ועובר לסטטוס סגור / מוכן למסירה. מסירת הרכב וסגירת התיק נשארות בשלב הבא.</div>
+    <div class="card" id="finish-gaps" style="margin-bottom:16px;"></div>
     <div class="card" style="margin-bottom:18px;">
-      <div style="font-weight:700; font-size:14px; margin-bottom:8px;">סיכום מחיר</div>
+      <div style="font-weight:700; font-size:14px; margin-bottom:8px;">הזמנה מתומחרת / מחיר מאושר</div>
       <div class="doc-row"><span>עבודות שבוצעו</span><span id="finish-works-count">0</span></div>
       <div class="doc-row"><span>חלקים</span><span id="finish-parts-count">0</span></div>
       <div class="doc-row"><span>הצעה / סכום</span><span id="finish-quote-total">—</span></div>
-      <div class="doc-row"><span>תוספות עבודה</span><span id="finish-extra-sum">—</span></div>
+      <div class="doc-row"><span>תוספות עבודה מאושרות</span><span id="finish-extra-sum">—</span></div>
       <div class="doc-row"><span>מספר הזמנה</span><span id="finish-order">—</span></div>
-      <div class="doc-row" style="border:none;"><span>סכום מאושר</span><span id="finish-amount">—</span></div>
+      <div class="doc-row" style="border:none;"><span>מחיר סופי מאושר לתשלום</span><span id="finish-amount">—</span></div>
     </div>
-    <div class="checkbox-row checked" onclick="toggleCheck(this)"><div class="checkbox-box">✓</div>העבודה הושלמה</div>
-    <div class="checkbox-row" onclick="toggleCheck(this)"><div class="checkbox-box"></div>הרכב מוכן למסירה</div>
-    <button class="btn btn-white" style="margin-top:20px;" onclick="finishWork()">סיום עבודה / הכנה למסירה</button>
+    <h2 class="section-title">תמונות סיום עבודה — חובה</h2>
+    <div class="bar"></div>
+    <div class="hint">לפחות 4 תמונות: קדימה, אחורה, צד ימין, צד שמאל. בלי ארבע התמונות אי אפשר לסיים את העבודה.</div>
+    <div class="progress-pill" id="finish-photo-progress">0 מתוך 4 חובה</div>
+    <div class="photo-grid" style="margin-bottom:10px;" id="finish-angle-grid">
+      <div class="photo-slot" data-finish-angle="front" onclick="pickFinishAngle('front', true)"><div class="cam">📷</div><div class="lbl">קדימה</div></div>
+      <div class="photo-slot" data-finish-angle="rear" onclick="pickFinishAngle('rear', true)"><div class="cam">📷</div><div class="lbl">אחורה</div></div>
+      <div class="photo-slot" data-finish-angle="right" onclick="pickFinishAngle('right', true)"><div class="cam">📷</div><div class="lbl">צד ימין</div></div>
+      <div class="photo-slot" data-finish-angle="left" onclick="pickFinishAngle('left', true)"><div class="cam">📷</div><div class="lbl">צד שמאל</div></div>
+    </div>
+    <div class="btn-row" style="margin-bottom:12px;">
+      <button class="btn btn-ghost" onclick="pickMedia('finish','תמונת סיום נוספת',true)">+ תמונה נוספת</button>
+      <button class="btn btn-ghost" onclick="pickMedia('finish','תמונת סיום נוספת',false)">העלה נוספת</button>
+    </div>
+    <div class="media-preview-row" id="finish-extra-previews"></div>
+    <h2 class="section-title">קילומטראז' בסיום</h2>
+    <div class="bar"></div>
+    <div class="hint">מומלץ למלא. לא חוסם סיום עבודה אם השדה ריק.</div>
+    <div class="field"><label>קילומטראז' בסיום</label>
+      <div class="btn-row" style="align-items:center;">
+        <input id="finish-km" type="number" placeholder="מומלץ" inputmode="numeric" oninput="captureFinishFields()">
+        <span style="white-space:nowrap; color:var(--white80); font-weight:700;">ק״מ</span>
+      </div>
+    </div>
+    <h2 class="section-title">הערות סיום</h2>
+    <div class="bar"></div>
+    <div class="field"><label>הערות סיום (לא חובה)</label><textarea id="finish-notes" placeholder="לפי הצורך. אם יש הערה היא נשמרת בתיק ובהיסטוריה." oninput="captureFinishFields()"></textarea></div>
+    <button class="btn btn-white" id="confirm-finish-btn" style="margin-top:8px;" onclick="finishWork()" disabled>סיום עבודה</button>
   </div>
 </section>
 <!-- ================= SCREEN: CLOSE CASE ================= -->
@@ -952,21 +990,15 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
         <option value="paid">שולם</option>
       </select>
     </div>
-    <h2 class="section-title">תמונות סיום — חובה</h2>
+    <h2 class="section-title">תמונות סיום</h2>
     <div class="bar"></div>
-    <div class="hint">מינימום 4 זוויות להשוואה מול קבלת הרכב. בלי תמונות הסיום התיק לא נסגר.</div>
-    <div class="progress-pill" id="finish-photo-progress">0 מתוך 4 חובה</div>
-    <div class="photo-grid" style="margin-bottom:10px;" id="finish-angle-grid">
-      <div class="photo-slot" data-finish-angle="front" onclick="pickFinishAngle('front', true)"><div class="cam">📷</div><div class="lbl">קדמי</div></div>
-      <div class="photo-slot" data-finish-angle="rear" onclick="pickFinishAngle('rear', true)"><div class="cam">📷</div><div class="lbl">אחורי</div></div>
-      <div class="photo-slot" data-finish-angle="right" onclick="pickFinishAngle('right', true)"><div class="cam">📷</div><div class="lbl">צד ימין</div></div>
-      <div class="photo-slot" data-finish-angle="left" onclick="pickFinishAngle('left', true)"><div class="cam">📷</div><div class="lbl">צד שמאל</div></div>
-    </div>
+    <div class="hint">ארבע תמונות הסיום נשמרות בשלב סיום העבודה. כאן אפשר להוסיף תמונות למסירה.</div>
+    <div class="card" id="close-finish-photo-summary" style="margin-bottom:12px;"></div>
     <div class="btn-row" style="margin-bottom:12px;">
-      <button class="btn btn-ghost" onclick="pickMedia('finish','תמונת סיום נוספת',true)">+ תמונה נוספת</button>
-      <button class="btn btn-ghost" onclick="pickMedia('finish','תמונת סיום נוספת',false)">העלה נוספת</button>
+      <button class="btn btn-ghost" onclick="pickMedia('finish','תמונת מסירה נוספת',true)">+ תמונה נוספת</button>
+      <button class="btn btn-ghost" onclick="pickMedia('finish','תמונת מסירה נוספת',false)">העלה נוספת</button>
     </div>
-    <div class="media-preview-row" id="finish-extra-previews"></div>
+    <div class="media-preview-row" id="close-extra-previews"></div>
     <h2 class="section-title">קילומטראז' במסירה</h2>
     <div class="bar"></div>
     <div class="field"><label>קילומטראז' במסירה <span class="req">*</span></label>
@@ -995,7 +1027,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="field"><label>שם המאשר <span class="req">*</span></label><input id="delivery-signer" placeholder="שם מלא"></div>
     <button class="btn btn-ghost" style="margin-bottom:16px;" onclick="confirmDeliverySignature()">שמור אישור / חתימת מקבל הרכב</button>
     <div class="card" style="margin-bottom:16px;" id="reopen-box">
-      <div class="hint" style="margin:0 0 8px;">תיק סגור נשאר בהיסטוריה. פתיחה מחדש לא מוחקת את הסגירה הקודמת.</div>
+      <div class="hint" style="margin:0 0 8px;">תיק שסיים עבודה או נסגר אחרי מסירה נשאר בהיסטוריה. פתיחה מחדש מחזירה אותו לרכב בעבודה ולא מוחקת את הסיום/הסגירה הקודמים.</div>
       <div class="field"><label>סיבת פתיחה מחדש</label><input id="reopen-reason" placeholder="אופציונלי"></div>
       <button class="btn btn-ghost" onclick="reopenClosedCase()">פתח תיק סגור מחדש</button>
     </div>
@@ -1067,6 +1099,13 @@ var draftContacts = [];
 var draftSelectedContactId = '';
 var editingContactId = '';
 var customerOnly = false;
+var homeCasesList = [];
+var homeBucket = 'open';
+var HOME_EMPTY = {
+  open: 'אין רכבים פתוחים. תיק חדש מופיע כאן עד שהעבודה מתחילה.',
+  in_work: 'אין רכבים בעבודה.',
+  closed: 'אין תיקים סגורים. אחרי סיום עבודה התיק מופיע כאן ונשאר בהיסטוריה.'
+};
 var GARAGE_GALLERY_TOPICS = [
   {id:'customer_order', label:'הזמנת לקוח'},
   {id:'quote_photos', label:'הצעת מחיר'},
@@ -1116,6 +1155,7 @@ function emptyFlowState(){
     signatureCaptured: false,
     workStarted: false,
     workFinished: false,
+    workFinishedAt: '',
     caseClosed: false,
     workExtraPrice: 0,
     extraApprovals: [],
@@ -1125,6 +1165,9 @@ function emptyFlowState(){
     customerContacts: [],
     paymentStatus: '',
     finishAngles: {front:false, rear:false, right:false, left:false},
+    finishKm: '',
+    finishNotes: '',
+    finalApprovedAmount: null,
     deliveryKm: '',
     closeNote: '',
     deliveryDone: false,
@@ -1138,6 +1181,10 @@ function emptyFlowState(){
     caseClosedAt: '',
     caseClosedBy: '',
     reopenHistory: [],
+    correspondence: [],
+    unreadMail: false,
+    pendingGarageMail: null,
+    priceReview: { status: 'none', detectedAmount: null, sentAmount: null },
     timeline: [],
     currentScreen: 's-home'
   };
@@ -1472,9 +1519,11 @@ function renderGarageGallery(caseId){
   renderThumbRow('intake-extra-previews', mediaByCategory('intake'));
   renderThumbRow('job-work-previews', mediaByCategory('during_work').concat(mediaByCategory('finish')));
   renderThumbRow('finish-extra-previews', mediaByCategory('finish'));
+  renderThumbRow('close-extra-previews', mediaByCategory('finish'));
   renderIntakeAngles();
   renderFinishAngles();
   renderQuotePhotosFromMedia();
+  bindCloseAndFinish();
 }
 function loadGarageMedia(){
   var id = liveCaseId();
@@ -1506,8 +1555,8 @@ function syncFinishFromMedia(){
   var angles = Object.assign({front:false, rear:false, right:false, left:false}, state.finishAngles || {});
   mediaByCategory('finish').forEach(function(item){
     var t = String(item.title || '');
-    if(t.indexOf('קדמי') !== -1) angles.front = true;
-    else if(t.indexOf('אחורי') !== -1) angles.rear = true;
+    if(t.indexOf('קדמי') !== -1 || t.indexOf('קדימה') !== -1) angles.front = true;
+    else if(t.indexOf('אחורי') !== -1 || t.indexOf('אחורה') !== -1) angles.rear = true;
     else if(t.indexOf('ימין') !== -1) angles.right = true;
     else if(t.indexOf('שמאל') !== -1) angles.left = true;
   });
@@ -1550,7 +1599,7 @@ function pickIntakeAngle(angle, camera){
   input.click();
 }
 function pickFinishAngle(angle, camera){
-  var titles = {front:'סיום קדמי', rear:'סיום אחורי', right:'סיום צד ימין', left:'סיום צד שמאל'};
+  var titles = {front:'סיום קדימה', rear:'סיום אחורה', right:'סיום צד ימין', left:'סיום צד שמאל'};
   uploadCtx = { category: 'finish', title: titles[angle] || ('סיום '+angle), angle: '', finishAngle: angle };
   var input = document.getElementById(camera ? 'gm-file-camera' : 'gm-file-pick');
   if(!input) return;
@@ -1660,22 +1709,59 @@ function applyBootstrap(payload){
     go('s-case');
   }
 }
+function garageListBucket(data, status){
+  data = data || {};
+  if(data.caseClosed || data.workFinished || status === 'סגור' || status === 'מוכן למסירה') return 'closed';
+  if(data.workStarted || status === 'בעבודה') return 'in_work';
+  return 'open';
+}
+function garageListStatusLabel(bucket){
+  if(bucket === 'closed') return 'סגור';
+  if(bucket === 'in_work') return 'רכב בעבודה';
+  return 'פתוח';
+}
+function setHomeBucket(bucket){
+  homeBucket = bucket === 'in_work' ? 'in_work' : (bucket === 'closed' ? 'closed' : 'open');
+  document.querySelectorAll('#home-status-tabs .tab').forEach(function(el){
+    el.classList.toggle('active', el.getAttribute('data-home-bucket') === homeBucket);
+  });
+  renderHomeCases(homeCasesList);
+}
 function renderHomeCases(cases){
+  homeCasesList = Array.isArray(cases) ? cases.slice() : [];
   var box = document.getElementById('home-cases');
   var empty = document.getElementById('home-empty');
   if(!box) return;
   box.innerHTML = '';
-  if(!cases.length){
-    if(empty) empty.style.display = 'block';
+  var counts = {open:0, in_work:0, closed:0};
+  homeCasesList.forEach(function(c){
+    var bucket = garageListBucket(c.case_data || {}, c.status);
+    counts[bucket] = (counts[bucket] || 0) + 1;
+  });
+  document.querySelectorAll('#home-status-tabs .tab').forEach(function(el){
+    var b = el.getAttribute('data-home-bucket');
+    var base = b === 'in_work' ? 'רכב בעבודה' : (b === 'closed' ? 'סגור' : 'פתוח');
+    el.textContent = base + ' (' + (counts[b] || 0) + ')';
+    el.classList.toggle('active', b === homeBucket);
+  });
+  var filtered = homeCasesList.filter(function(c){
+    return garageListBucket(c.case_data || {}, c.status) === homeBucket;
+  });
+  if(!filtered.length){
+    if(empty){
+      empty.style.display = 'block';
+      if(!bookPending) empty.textContent = HOME_EMPTY[homeBucket] || HOME_EMPTY.open;
+    }
     return;
   }
   if(empty) empty.style.display = 'none';
-  cases.forEach(function(c){
+  filtered.forEach(function(c){
     var el = document.createElement('div');
     el.className = 'case-card tap';
     el.onclick = function(){ parent.postMessage({type:'gm:openCase', payload:{caseId:c.id}}, '*'); };
-    var statusLabel = c.status === 'סגור' ? 'הרכב נמסר / התיק נסגר' : (c.status || '');
-    var badge = c.status === 'סגור' ? 'badge-muted' : (c.status === 'מוכן למסירה' ? 'badge-ok' : (c.status === 'בעבודה' || c.status === 'הרכב התקבל' ? 'badge-accent' : 'badge-warn'));
+    var bucket = garageListBucket(c.case_data || {}, c.status);
+    var statusLabel = garageListStatusLabel(bucket);
+    var badge = bucket === 'closed' ? 'badge-muted' : (bucket === 'in_work' ? 'badge-accent' : 'badge-warn');
     el.innerHTML = '<div class="top-row"><div><div class="co">'+esc(c.customer_name_snapshot||'')+'</div><div class="plate">'+esc(c.vehicle_plate_snapshot||'')+' · '+esc(c.vehicle_label_snapshot||'')+'</div></div><span class="badge '+badge+'">'+esc(statusLabel)+'</span></div><div class="num">'+esc(c.case_number||'')+'</div>';
     box.appendChild(el);
   });
@@ -1719,6 +1805,7 @@ function hydrateCase(loaded){
   state.signatureCaptured = !!data.signatureCaptured;
   state.workStarted = !!data.workStarted;
   state.workFinished = !!data.workFinished;
+  state.workFinishedAt = data.workFinishedAt || '';
   state.caseClosed = !!data.caseClosed;
   state.workExtraPrice = data.workExtraPrice || 0;
   state.extraApprovals = Array.isArray(data.extraApprovals) ? data.extraApprovals.slice() : [];
@@ -1727,6 +1814,9 @@ function hydrateCase(loaded){
   state.customerContacts = Array.isArray(data.customerContacts) ? data.customerContacts.slice() : [];
   state.paymentStatus = data.paymentStatus || '';
   state.finishAngles = Object.assign({front:false, rear:false, right:false, left:false}, data.finishAngles || {});
+  state.finishKm = data.finishKm || '';
+  state.finishNotes = data.finishNotes || '';
+  state.finalApprovedAmount = data.finalApprovedAmount || null;
   state.deliveryKm = data.deliveryKm || '';
   state.closeNote = data.closeNote || '';
   state.deliveryDone = !!data.deliveryDone;
@@ -1740,6 +1830,9 @@ function hydrateCase(loaded){
   state.caseClosedAt = data.caseClosedAt || '';
   state.caseClosedBy = data.caseClosedBy || '';
   state.reopenHistory = Array.isArray(data.reopenHistory) ? data.reopenHistory.slice() : [];
+  state.correspondence = Array.isArray(data.correspondence) ? data.correspondence.slice() : [];
+  state.unreadMail = !!data.unreadMail;
+  state.priceReview = data.priceReview || { status: 'none', detectedAmount: null, sentAmount: null };
   draftContacts = parseCustomerContacts(currentCustomer);
   if(state.customerContacts && state.customerContacts.length && !draftContacts.length) draftContacts = state.customerContacts.slice();
   draftSelectedContactId = (state.selectedContact && state.selectedContact.id) || draftSelectedContactId || (draftContacts[0] && draftContacts[0].id) || '';
@@ -1809,7 +1902,14 @@ function schedulePersist(){
       customerContacts: (draftContacts || state.customerContacts || []).slice(),
       paymentStatus: state.paymentStatus || '',
       finishAngles: Object.assign({}, state.finishAngles),
+      finishKm: state.finishKm || '',
+      finishNotes: state.finishNotes || '',
+      finalApprovedAmount: state.finalApprovedAmount || null,
+      workFinishedAt: state.workFinishedAt || '',
       reopenHistory: (state.reopenHistory || []).slice(),
+      correspondence: (state.correspondence || []).slice(),
+      unreadMail: !!state.unreadMail,
+      priceReview: state.priceReview || { status: 'none', detectedAmount: null, sentAmount: null },
       quote: {
         works: (state.quoteWorks || []).slice(),
         parts: (state.quoteParts || []).slice(),
@@ -2096,8 +2196,12 @@ function go(id){
     bindCloseAndFinish();
     if(id==='s-close') setTimeout(initDeliverySigPad, 50);
   }
-  if(id==='s-gallery' || id==='s-inspect' || id==='s-intake' || id==='s-job' || id==='s-share' || id==='s-quote' || id==='s-compose' || id==='s-close') loadGarageMedia();
+  if(id==='s-gallery' || id==='s-inspect' || id==='s-intake' || id==='s-job' || id==='s-share' || id==='s-quote' || id==='s-compose' || id==='s-close' || id==='s-finish') loadGarageMedia();
   if(id==='s-compose' || id==='s-share' || id==='s-comm') fillSendFromCase();
+  if(id==='s-comm'){
+    renderCorrespondence();
+    markGarageMailRead();
+  }
   if(currentCase && currentCase.id) schedulePersist();
 }
 function openCase(){ if(currentCase) { refreshCaseHub(); go('s-case'); } }
@@ -2131,20 +2235,25 @@ function finishAngleCount(){
   return ['front','rear','right','left'].filter(function(k){ return !!a[k]; }).length;
 }
 function renderFinishAngles(){
-  var labels = {front:'קדמי', rear:'אחורי', right:'צד ימין', left:'צד שמאל'};
+  var labels = {front:'קדימה', rear:'אחורה', right:'צד ימין', left:'צד שמאל'};
   Object.keys(labels).forEach(function(angle){
     var slot = document.querySelector('.photo-slot[data-finish-angle="'+angle+'"]');
     if(!slot) return;
     var done = !!(state.finishAngles && state.finishAngles[angle]);
     var match = mediaByCategory('finish').filter(function(item){
       var t = String(item.title||'');
-      return t.indexOf(labels[angle]) !== -1;
+      return t.indexOf(labels[angle]) !== -1 || t.indexOf(angle === 'front' ? 'קדמי' : (angle === 'rear' ? 'אחורי' : labels[angle])) !== -1;
     })[0];
     slot.classList.toggle('done', done);
+    slot.classList.toggle('has-img', !!(match && match.signedUrl));
     var img = (match && match.signedUrl) ? '<img src="'+esc(match.signedUrl)+'" alt="'+labels[angle]+'">' : '';
     slot.innerHTML = img + (done ? '<span class="check">✓</span>' : '') + '<div class="cam">📷</div><div class="lbl">'+labels[angle]+'</div>';
   });
   setText('finish-photo-progress', finishAngleCount() + ' מתוך 4 חובה');
+  var sum = document.getElementById('close-finish-photo-summary');
+  if(sum){
+    sum.innerHTML = '<div class="doc-row" style="border:none;"><span>תמונות סיום עבודה</span><span>'+finishAngleCount()+' / 4</span></div>';
+  }
 }
 function renderQuotePhotosFromMedia(){
   var photoGrid = document.getElementById('quote-photo-grid');
@@ -2419,10 +2528,10 @@ function sendQuoteEmail(){
   captureQuoteFields();
   state.quoteCreated = true;
   var to = (currentCustomer && currentCustomer.email) || '';
-  var subj = encodeURIComponent('הצעת מחיר — ' + (liveCaseNumber() || 'תיק מוסך'));
-  var body = encodeURIComponent(sharePackText());
-  window.location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + subj + '&body=' + body;
-  addTimelineEvent('נפתח מייל ידני להצעת מחיר · אין תיבת מוסך אוטומטית');
+  var subj = 'הצעת מחיר — ' + (liveCaseNumber() || 'תיק מוסך');
+  var body = sharePackText();
+  window.location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(body);
+  appendOutgoingMailCard(to, subj, body, 'quote');
   openAfterSendSheet();
 }
 function sharePackText(){
@@ -2510,7 +2619,7 @@ function afterSendWait(){
   state.waitingForApproval = true;
   state.flowStage = 'waiting_approval';
   closeAfterSendSheet();
-  addTimelineEvent('הצעת מחיר נשלחה · ממתין לאישור');
+  addTimelineEvent('מחיר נשלח · הצעת מחיר נשלחה · ממתין לאישור');
   refreshCaseHub();
   go('s-case');
 }
@@ -2578,6 +2687,24 @@ function showOrderExtractReview(extract){
       plateBox.style.display = 'none';
       plateBox.textContent = '';
     }
+  }
+  if(extract.detectedAmount || extract.priceLabel){
+    state.priceReview = state.priceReview || {};
+    state.priceReview.status = extract.detectedAmount ? 'priced_order_received' : 'new_material';
+    state.priceReview.detectedAmount = extract.detectedAmount || null;
+    state.priceReview.sentAmount = Number(state.workOrderAmount) || quoteGrandTotal() || null;
+    state.priceReview.detectionLabel = extract.priceLabel || '';
+    state.priceReview.compareMessage = extract.priceReason || '';
+    if(state.priceReview.sentAmount && extract.detectedAmount && Number(state.priceReview.sentAmount) !== Number(extract.detectedAmount)){
+      state.priceReview.compare = 'mismatch';
+      state.priceReview.compareMessage = 'פער במחיר: נשלח '+money(state.priceReview.sentAmount)+' · חזר '+money(extract.detectedAmount)+'. לא מעדכנים אוטומטית.';
+      addTimelineEvent('נמצא פער במחיר · מסמך הזמנה');
+    } else if(extract.detectedAmount){
+      state.priceReview.compare = 'match';
+    }
+    if(extract.detectedAmount) addTimelineEvent('מחיר זוהה במסמך הזמנה: '+money(extract.detectedAmount)+' · ממתין לאישור עובד');
+    renderCorrespondence();
+    // Never copy a detected mail/OCR amount into wo-amount. Worker confirms separately.
   }
 }
 function applyExtractedOrderToForm(){
@@ -2698,15 +2825,6 @@ function uploadSignatureIfPossible(){
   }, 'image/png');
 }
 /* ---------- finish work / close ---------- */
-function toggleCheck(el){ el.classList.toggle('checked'); el.querySelector('.checkbox-box').textContent = el.classList.contains('checked') ? '✓' : ''; }
-function finishWork(){
-  state.workFinished = true;
-  bindCloseAndFinish();
-  addTimelineEvent('סיום עבודה / הכנה למסירה');
-  refreshCaseHub();
-  alert('העבודה סומנה כהושלמה. התיק עדיין לא נסגר — יש להשלים מסירה, תשלום, תמונות סיום וחתימה.');
-  go('s-close');
-}
 function extraApprovalIsPending(item){
   if(!item) return false;
   if(item.approvedAt || item.status === 'approved' || item.status === 'rejected') return false;
@@ -2719,12 +2837,88 @@ function extraApprovalSummary(){
   }).join(' | ');
 }
 function extraTotal(){
-  return (state.extraApprovals || []).reduce(function(sum, item){ return sum + (Number(item.price) || 0); }, 0);
+  return extraApprovedTotal();
+}
+function extraApprovedTotal(){
+  return (state.extraApprovals || []).reduce(function(sum, item){
+    if(extraApprovalIsPending(item) || item.status === 'rejected') return sum;
+    return sum + (Number(item.price) || 0);
+  }, 0);
+}
+function approvedFinalAmount(){
+  var stored = Number(state.finalApprovedAmount);
+  if(state.workFinished && isFinite(stored) && stored > 0) return stored;
+  var quote = quoteGrandTotal();
+  if(quote > 0) return quote;
+  var order = Number(state.workOrderAmount) || 0;
+  return order + extraApprovedTotal();
+}
+function hasApprovedPrice(){
+  if(approvedFinalAmount() <= 0) return false;
+  if(state.quoteApproved) return true;
+  if(state.workOrderSaved && Number(state.workOrderAmount) > 0) return true;
+  return false;
+}
+function finishWorkGaps(){
+  var gaps = [];
+  if(finishAngleCount() < 4) gaps.push('חסרות תמונות סיום חובה (קדימה, אחורה, ימין, שמאל)');
+  if(!hasApprovedPrice()) gaps.push('חסר מחיר סופי מאושר לתשלום');
+  if((state.extraApprovals || []).filter(extraApprovalIsPending).length) gaps.push('קיימת תוספת עבודה שממתינה לאישור');
+  return gaps;
+}
+function captureFinishFields(){
+  var km = document.getElementById('finish-km');
+  if(km) state.finishKm = km.value || '';
+  var notes = document.getElementById('finish-notes');
+  if(notes) state.finishNotes = notes.value || '';
+  renderFinishGaps();
+  schedulePersist();
+}
+function renderFinishGaps(){
+  var box = document.getElementById('finish-gaps');
+  var btn = document.getElementById('confirm-finish-btn');
+  var gaps = finishWorkGaps();
+  if(box){
+    if(state.workFinished){
+      box.innerHTML = '<div class="hint" style="margin:0; color:var(--ok);">העבודה הסתיימה. התיק מוכן למסירה ואינו ברשימת הרכבים הפתוחים.</div>';
+    } else if(!gaps.length){
+      box.innerHTML = '<div class="hint" style="margin:0; color:var(--ok);">אפשר לאשר סיום עבודה. הקילומטראז׳ וההערות אינם חובה.</div>';
+    } else {
+      box.innerHTML = '<div style="font-weight:700; margin-bottom:8px;">חסר לסיום עבודה</div>' + gaps.map(function(g){
+        return '<div class="doc-row"><span>'+esc(g)+'</span><span style="color:var(--danger);">חסר</span></div>';
+      }).join('');
+    }
+  }
+  if(btn){
+    btn.disabled = state.workFinished || gaps.length > 0;
+    btn.textContent = state.workFinished ? 'העבודה הסתיימה' : 'סיום עבודה';
+  }
+}
+function finishWork(){
+  captureFinishFields();
+  var gaps = finishWorkGaps();
+  if(gaps.length){
+    alert('לא ניתן לסיים את העבודה. חסר:\n• ' + gaps.join('\n• '));
+    renderFinishGaps();
+    return;
+  }
+  state.workFinished = true;
+  state.workFinishedAt = new Date().toISOString();
+  state.finalApprovedAmount = approvedFinalAmount();
+  state.flowStage = 'ready_delivery';
+  var bits = ['סיום עבודה', 'מחיר מאושר ' + money(state.finalApprovedAmount), '4 תמונות סיום'];
+  if((state.finishKm || '').trim()) bits.push('ק״מ בסיום ' + state.finishKm);
+  addTimelineEvent(bits.join(' · '));
+  if((state.finishNotes || '').trim()) addTimelineEvent('הערות סיום: ' + state.finishNotes);
+  refreshCaseHub();
+  bindCloseAndFinish();
+  alert('העבודה הסתיימה והתיק מוכן למסירה. הוא ירד מרשימת הרכבים הפתוחים. סגירת התיק נעשית אחרי מסירה.');
+  go('s-case');
 }
 function closeCaseGaps(){
   var gaps = [];
   if(!state.workFinished) gaps.push('העבודה טרם סומנה כהושלמה');
-  var hasPrice = !!(state.quoteCreated || state.workOrderAmount || (state.quoteWorks && state.quoteWorks.length) || (state.quoteParts && state.quoteParts.length));
+  var hasPrice = hasApprovedPrice() || !!(state.quoteCreated || state.workOrderAmount || (state.quoteWorks && state.quoteWorks.length) || (state.quoteParts && state.quoteParts.length));
   if(!hasPrice) gaps.push('המחיר/ההצעה הסופיים אינם ברורים');
   if((state.extraApprovals || []).filter(extraApprovalIsPending).length) gaps.push('קיימת תוספת עבודה שממתינה לאישור');
   if(!state.paymentStatus) gaps.push('מצב התשלום לא סומן');
@@ -2859,21 +3053,261 @@ function confirmCloseCase(){
   parent.postMessage({type:'gm:goHome'}, '*');
 }
 function reopenClosedCase(){
-  if(!state.caseClosed){ alert('התיק אינו סגור.'); return; }
+  if(!state.caseClosed && !state.workFinished){ alert('התיק אינו סגור.'); return; }
   var reason = (document.getElementById('reopen-reason') && document.getElementById('reopen-reason').value || '').trim();
   state.reopenHistory = state.reopenHistory || [];
   state.reopenHistory.push({
     at: new Date().toISOString(),
     by: workerName || '',
     reason: reason,
-    previousClosedAt: state.caseClosedAt || ''
+    previousClosedAt: state.caseClosedAt || state.workFinishedAt || ''
   });
   state.caseClosed = false;
-  addTimelineEvent('תיק נפתח מחדש' + (reason ? (' · ' + reason) : '') + (workerName ? (' · ' + workerName) : ''));
+  state.workFinished = false;
+  addTimelineEvent('תיק נפתח מחדש · חזר לסטטוס רכב בעבודה' + (reason ? (' · ' + reason) : '') + (workerName ? (' · ' + workerName) : ''));
   refreshCaseHub();
-  alert('התיק נפתח מחדש. הסגירה הקודמת נשמרה בהיסטוריה.');
+  alert('התיק נפתח מחדש וחזר לסטטוס רכב בעבודה. הסגירה/סיום הקודמים נשמרו בהיסטוריה.');
 }
 /* ---------- comm ---------- */
+function garagePriceStatusLabel(){
+  var review = state.priceReview || {};
+  if(review.status === 'worker_approved' || state.quoteApproved) return 'מחיר נבדק ואושר על ידי העובד';
+  if(review.status === 'priced_order_received') return 'התקבל אישור / הזמנה מתומחרת';
+  if(state.unreadMail || review.status === 'new_material') return 'התקבל חומר חדש';
+  if(state.quoteSent || state.waitingForApproval) return 'ממתין לאישור מחיר';
+  return '';
+}
+function markGarageMailRead(){
+  if(!state.unreadMail && !(state.correspondence || []).some(function(m){ return m.unread; })) return;
+  state.unreadMail = false;
+  state.correspondence = (state.correspondence || []).map(function(m){ return Object.assign({}, m, { unread: false }); });
+  schedulePersist();
+  renderCorrespondence();
+}
+function renderCorrespondence(){
+  var cards = state.correspondence || [];
+  var all = document.getElementById('comm-thread-all');
+  var email = document.getElementById('comm-thread-email');
+  var empty = document.getElementById('comm-empty');
+  var html = cards.map(function(m){
+    var when = m.sent_at ? new Date(m.sent_at) : new Date();
+    var dir = m.direction === 'outgoing' ? 'out' : 'in';
+    var files = (m.file_names || []).length ? ('<div class="hint" style="margin:6px 0 0;">קבצים: '+esc((m.file_names||[]).join(', '))+'</div>') : '';
+    return '<div class="bubble '+dir+'"><div class="bmeta">'+esc(m.from_addr || '')+' · '+esc(when.toLocaleString('he-IL'))+(m.unread ? ' · מייל חדש' : '')+'</div><div style="font-weight:700;">'+esc(m.subject || '(ללא נושא)')+'</div><div style="margin-top:4px; white-space:pre-wrap;">'+esc(m.body_text || '')+'</div>'+files+'</div>';
+  }).join('');
+  if(all){
+    all.innerHTML = html;
+  }
+  if(email){
+    email.innerHTML = html || '<div class="hint">רק הודעות Email של התיק יוצגו כאן.</div>';
+  }
+  if(empty) empty.style.display = cards.length ? 'none' : 'block';
+  var n = cards.length;
+  var priceLbl = garagePriceStatusLabel();
+  setText('tile-comm-sub', n ? (n + ' הודעות' + (state.unreadMail ? ' · מייל חדש' : '') + (priceLbl ? (' · '+priceLbl) : '')) : (priceLbl || 'אין הודעות'));
+  var alertDot = document.getElementById('comm-alert');
+  if(alertDot) alertDot.style.display = state.unreadMail ? 'block' : 'none';
+  var acc = document.getElementById('acc-comm-body');
+  if(acc) acc.innerHTML = (n ? (n + ' הודעות בתיק') : 'אין התכתבות בתיק עדיין.') + (priceLbl ? (' · '+priceLbl) : '') + ' <span class="open-link" onclick="event.stopPropagation(); go(\'s-comm\')">פתח ›</span>';
+  renderPriceReviewCard();
+  renderGarageMailStatus();
+}
+function renderPriceReviewCard(){
+  var box = document.getElementById('price-review-card');
+  if(!box) return;
+  var review = state.priceReview || {};
+  if(!review.detectedAmount && review.status !== 'priced_order_received' && review.status !== 'worker_approved'){
+    box.style.display = 'none';
+    return;
+  }
+  box.style.display = 'block';
+  var mismatch = review.compare === 'mismatch';
+  var approved = review.status === 'worker_approved';
+  box.innerHTML = '<div style="font-weight:800; margin-bottom:8px;">אישור מחיר / הזמנה מתומחרת</div>'
+    + '<div class="doc-row"><span>מחיר שנשלח</span><span>'+(review.sentAmount ? money(review.sentAmount) : '—')+'</span></div>'
+    + '<div class="doc-row"><span>מחיר שחזר/אושר</span><span>'+(review.detectedAmount ? money(review.detectedAmount) : 'לא זוהה')+'</span></div>'
+    + '<div class="hint" style="margin:8px 0; '+(mismatch ? 'color:var(--danger);' : '')+'">'+esc(review.compareMessage || review.detectionLabel || '')+'</div>'
+    + (approved
+      ? '<div class="hint" style="margin:0; color:var(--ok);">העובד אישר. המחיר נשמר בתיק לסיום עבודה.</div>'
+      : (review.detectedAmount
+        ? '<button class="btn btn-white" onclick="approveGarageDetectedPrice()">אשר מחיר לתיק</button>'
+        : '<div class="hint" style="margin:0;">הנתון דורש בדיקה ידנית. לא ממציאים מחיר.</div>'));
+}
+function renderGarageMailStatus(){
+  var box = document.getElementById('garage-mail-status');
+  if(!box) return;
+  box.innerHTML = '<div style="font-weight:700;">תיבת מוסך: yoni191177@gmail.com</div><div class="hint" style="margin:6px 0 0;" id="garage-mail-status-hint">סריקה חיה ממתינה לחיבור נפרד. לא משתמשים בתיבת Claims.</div>';
+}
+function approveGarageDetectedPrice(){
+  var amount = Number((state.priceReview && state.priceReview.detectedAmount) || 0);
+  if(!(amount > 0)){ alert('אין מחיר ברור לאישור. לא ממציאים סכום.'); return; }
+  state.quoteApproved = true;
+  state.workOrderSaved = true;
+  state.workOrderAmount = amount;
+  state.finalApprovedAmount = amount;
+  state.waitingForApproval = false;
+  state.priceReview = Object.assign({}, state.priceReview, {
+    status: 'worker_approved',
+    reviewedAt: new Date().toISOString(),
+    reviewedBy: workerName || ''
+  });
+  var wo = document.getElementById('wo-amount');
+  if(wo) wo.value = String(amount);
+  var approvedAmt = document.getElementById('wo-approved-amount');
+  if(approvedAmt) approvedAmt.textContent = money(amount);
+  addTimelineEvent('העובד אישר את המחיר · '+money(amount)+(workerName ? (' · '+workerName) : ''));
+  refreshCaseHub();
+  alert('המחיר המאושר נשמר בתיק. סיום עבודה משתמש במחיר הזה.');
+}
+function parseGarageAmountToken(raw){
+  var n = Number(String(raw || '').replace(/[^\d.]/g, '').replace(/,/g, ''));
+  if(!Number.isFinite(n) || n < 10 || n > 10000000) return null;
+  return Math.round(n);
+}
+function detectPricedFromMail(mail){
+  var hay = [mail.subject || '', mail.body || '', (mail.filenames || []).join(' ')].join('\n');
+  var hinted = /הזמנה מתומחרת|מתומחרת|אישור מחיר|סכום מאושר|אושר המחיר|אושר לתשלום|לתשלום/.test(hay);
+  var labeled = hay.match(/(?:סה["״']?כ(?:\s+לתשלום)?|סכום מאושר|מחיר מאושר|לתשלום)[^\d₪]{0,24}([₪\d.,]+)/i);
+  var amount = labeled ? parseGarageAmountToken(labeled[1]) : null;
+  var found = [];
+  var re = /(?:₪|ש["״']?ח)?\s*(\d{1,3}(?:[,\s]\d{3})+|\d{2,7})\s*(?:₪|ש["״']?ח)?/g;
+  var m;
+  while((m = re.exec(hay))){
+    var n = parseGarageAmountToken(m[1]);
+    if(n && found.indexOf(n) < 0) found.push(n);
+  }
+  if(!amount){
+    if(found.length === 1) amount = found[0];
+    else if(found.length > 1){
+      return { amount: null, hinted: hinted || true, label: 'נמצאו כמה סכומים — דורש בדיקה ידנית', reason: 'סכומים אפשריים: '+found.join(', ')+'. לא בוחרים אוטומטית.' };
+    }
+  }
+  return {
+    amount: amount,
+    hinted: hinted,
+    label: amount ? ('נמצא מחיר מאושר/מתומחר: '+money(amount)) : (hinted ? 'ייתכן אישור מחיר — הסכום לא זוהה' : 'לא זוהה מחיר'),
+    reason: amount ? (labeled ? 'סכום ליד תווית מחיר/לתשלום' : 'סכום יחיד במסמך') : (hinted ? 'יש ניסוח של אישור/הזמנה מתומחרת אבל אין סכום ברור.' : 'אין סכום ברור. לא ממציאים מחיר.')
+  };
+}
+function applyPriceReviewFromMail(mail){
+  var det = detectPricedFromMail(mail);
+  if(!det.amount && !det.hinted){
+    state.priceReview = state.priceReview || {};
+    if(!state.priceReview.status || state.priceReview.status === 'none') state.priceReview.status = 'new_material';
+    return;
+  }
+  var sent = Number(state.finalApprovedAmount) || Number(state.workOrderAmount) || quoteGrandTotal() || null;
+  var compare = (!sent || !det.amount) ? 'unknown' : (Number(sent) === Number(det.amount) ? 'match' : 'mismatch');
+  var compareMessage = compare === 'mismatch'
+    ? ('פער במחיר: נשלח '+money(sent)+' · חזר '+money(det.amount)+'. לא מעדכנים אוטומטית.')
+    : (compare === 'match' ? ('התאמה: המחיר שנשלח והמחיר שחזר זהים ('+money(det.amount)+').') : det.reason);
+  state.priceReview = {
+    status: det.amount ? 'priced_order_received' : 'new_material',
+    detectedAmount: det.amount,
+    sentAmount: sent || null,
+    compare: compare,
+    compareMessage: compareMessage,
+    detectionLabel: det.label,
+    sourceMailId: mail.messageId || ''
+  };
+  if(det.amount) addTimelineEvent('הזמנה מתומחרת / מחיר זוהה: '+money(det.amount)+' · ממתין לאישור עובד');
+  else addTimelineEvent('ייתכן אישור מחיר — דורש בדיקה ידנית');
+  if(compare === 'mismatch') addTimelineEvent('נמצא פער במחיר · '+compareMessage);
+}
+function appendOutgoingMailCard(to, subject, body, kind){
+  state.correspondence = state.correspondence || [];
+  var id = 'mailto-' + Date.now();
+  state.correspondence.push({
+    id: id,
+    gmail_message_id: id,
+    gmail_thread_id: id,
+    subject: subject || '',
+    from_addr: 'yoni191177@gmail.com',
+    to_addr: to || '',
+    sent_at: new Date().toISOString(),
+    body_text: body || '',
+    direction: 'outgoing',
+    source: 'mailto',
+    unread: false
+  });
+  if(kind === 'quote') addTimelineEvent('מחיר נשלח / נפתח מייל לשליחה ידנית');
+  else addTimelineEvent('מייל נשלח / נפתח מייל לשליחה ידנית');
+  schedulePersist();
+  renderCorrespondence();
+}
+function ingestGarageMail(mail, match){
+  if(!mail) return;
+  if(!match || match.decision !== 'auto'){
+    state.pendingGarageMail = mail;
+    var box = document.getElementById('garage-mail-pending');
+    if(box){
+      box.style.display = 'block';
+      box.innerHTML = '<div style="font-weight:800;">מייל דורש שיוך ידני</div><div class="hint" style="margin:6px 0;">'+esc((match && match.reason) || 'ההתאמה אינה חד-משמעית')+'. לא מנחשים.</div><div>'+esc(mail.subject || '')+'</div><button class="btn btn-white" style="margin-top:10px;" onclick="assignPendingGarageMail()">שייך לתיק זה</button>';
+    }
+    addTimelineEvent('מייל לא שויך אוטומטית · דורש בדיקת עובד');
+    return;
+  }
+  state.correspondence = state.correspondence || [];
+  if(!(state.correspondence || []).some(function(m){ return m.gmail_message_id === mail.messageId; })){
+    state.correspondence.push({
+      id: mail.messageId,
+      gmail_message_id: mail.messageId,
+      gmail_thread_id: mail.threadId || mail.messageId,
+      subject: mail.subject || '',
+      from_addr: mail.from || '',
+      to_addr: mail.to || 'yoni191177@gmail.com',
+      sent_at: mail.sentAt || new Date().toISOString(),
+      body_text: mail.body || '',
+      direction: 'incoming',
+      source: 'import',
+      file_names: mail.filenames || [],
+      unread: true
+    });
+  }
+  state.unreadMail = true;
+  addTimelineEvent('התקבל מייל חדש · '+(mail.subject || 'ללא נושא'));
+  if((mail.filenames || []).length) addTimelineEvent('קובץ התקבל במייל · '+(mail.filenames || []).join(', '));
+  applyPriceReviewFromMail(mail);
+  renderCorrespondence();
+  schedulePersist();
+}
+function assignPendingGarageMail(){
+  var mail = state.pendingGarageMail;
+  if(!mail) return;
+  ingestGarageMail(mail, { decision: 'auto', caseId: liveCaseId(), reason: 'שיוך ידני על ידי העובד', candidates: [liveCaseId()] });
+  addTimelineEvent('מסמך שויך ידנית לתיק'+(workerName ? (' · '+workerName) : ''));
+  state.pendingGarageMail = null;
+  var box = document.getElementById('garage-mail-pending');
+  if(box) box.style.display = 'none';
+}
+function scanGarageMail(){
+  callHost('gm:scanGarageMail', { caseId: liveCaseId() }).then(function(res){
+    var hint = document.getElementById('garage-mail-status-hint');
+    if(res && res.pending){
+      if(hint) hint.textContent = res.error || 'סריקת תיבת המוסך ממתינה לחיבור נפרד. לא משתמשים ב-Claims.';
+      alert(res.error || 'סריקת Gmail חיה חסומה עד חיבור נפרד של yoni191177@gmail.com לניהול המוסך.');
+      return;
+    }
+    if(res && res.appliedThisCase){
+      var applied = res.appliedThisCase;
+      state.correspondence = Array.isArray(applied.correspondence) ? applied.correspondence.slice() : state.correspondence;
+      state.unreadMail = !!applied.unreadMail;
+      state.priceReview = applied.priceReview || state.priceReview;
+      if(Array.isArray(applied.timeline)) state.timeline = applied.timeline.slice();
+      if(applied.quoteApproved) state.quoteApproved = applied.quoteApproved;
+    } else {
+      (res.matched || []).forEach(function(row){
+        if(row && row.match && row.match.caseId && row.match.caseId !== liveCaseId()) return;
+        ingestGarageMail(row.mail, row.match);
+      });
+    }
+    (res.needs_review || []).forEach(function(row){ ingestGarageMail(row.mail, row.match); });
+    renderCorrespondence();
+    renderTimeline();
+  }).catch(function(err){
+    alert((err && err.message) || 'סריקה נכשלה');
+  });
+}
 function sendComposedEmail(){
   var to = (document.getElementById('compose-to') && document.getElementById('compose-to').value) || (currentCustomer && currentCustomer.email) || '';
   var subj = (document.getElementById('compose-subject') && document.getElementById('compose-subject').value) || ('תיק מוסך ' + liveCaseNumber());
@@ -2885,16 +3319,7 @@ function sendComposedEmail(){
     addTimelineEvent('נפתח WhatsApp ידני מהתיק · אין שליחה אוטומטית');
   } else {
     window.location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(body);
-    addTimelineEvent('נפתח מייל ידני מהתיק · אין תיבת מוסך אוטומטית · לא נשלח דרך Claims');
-  }
-  var thread = document.getElementById('comm-thread-all');
-  var empty = document.getElementById('comm-empty');
-  if(empty) empty.style.display = 'none';
-  if(thread){
-    var b = document.createElement('div');
-    b.className = 'bubble out';
-    b.innerHTML = '<div class="bmeta">'+esc(workerName || 'עובד')+' · עכשיו</div>'+(channel === 'whatsapp' ? 'נפתח WhatsApp ידני' : ('נפתח מייל ידני'+(to ? (' אל '+esc(to)) : '')))+' · לא סומן כנשלח';
-    thread.appendChild(b);
+    appendOutgoingMailCard(to, subj, body, Number(state.workOrderAmount || 0) || quoteGrandTotal() ? 'quote' : 'mail');
   }
   go('s-comm');
 }
@@ -2977,9 +3402,9 @@ function bindCloseAndFinish(){
   setText('finish-works-count', String((state.quoteWorks || []).length));
   setText('finish-parts-count', String((state.quoteParts || []).length));
   setText('finish-quote-total', money(quoteGrandTotal()));
-  setText('finish-extra-sum', extraTotal() ? money(extraTotal()) : 'אין');
+  setText('finish-extra-sum', extraApprovedTotal() ? money(extraApprovedTotal()) : 'אין');
   setText('finish-order', state.workOrderNumber || '—');
-  setText('finish-amount', state.workOrderAmount ? money(state.workOrderAmount) : money(quoteGrandTotal()));
+  setText('finish-amount', hasApprovedPrice() ? money(approvedFinalAmount()) : 'חסר מחיר מאושר');
   setText('close-customer', liveCustomerName() || '—');
   setText('close-contact', (liveSelectedContact() && liveSelectedContact().name) || (currentCustomer && currentCustomer.contact_person) || '—');
   setText('close-vehicle', liveVehicleLine() || '—');
@@ -2992,6 +3417,10 @@ function bindCloseAndFinish(){
   setText('close-case-number', liveCaseNumber() || '—');
   var pay = document.getElementById('close-payment');
   if(pay && !pay.value) pay.value = state.paymentStatus || '';
+  var finishKm = document.getElementById('finish-km');
+  if(finishKm) finishKm.value = state.finishKm || '';
+  var finishNotes = document.getElementById('finish-notes');
+  if(finishNotes) finishNotes.value = state.finishNotes || '';
   var km = document.getElementById('delivery-km');
   if(km && !km.value) km.value = state.deliveryKm || '';
   var note = document.getElementById('close-note');
@@ -3007,15 +3436,16 @@ function bindCloseAndFinish(){
   var signer = document.getElementById('delivery-signer');
   if(signer && !signer.value) signer.value = state.deliverySignerName || '';
   var reopenBox = document.getElementById('reopen-box');
-  if(reopenBox) reopenBox.style.display = state.caseClosed ? 'block' : 'none';
+  if(reopenBox) reopenBox.style.display = (state.caseClosed || state.workFinished) ? 'block' : 'none';
   renderFinishAngles();
+  renderFinishGaps();
   renderCloseGaps();
 }
 function nextActionSpec(){
   var route = caseRoute();
   if(state.caseClosed) return {status:'הרכב נמסר / התיק נסגר', badge:'badge-muted', label:'התיק סגור', btn:'פתח מחדש', fn:function(){ go('s-close'); }};
-  if(state.workFinished) return {status:'מוכן למסירה', badge:'badge-ok', label:'מסירה / סגירת תיק', btn:'המשך', fn:tryCloseCase};
-  if(state.workStarted) return {status:'בעבודה', badge:'badge-accent', label:'המשך עבודה / אישור נוסף', btn:'המשך', fn:function(){ go('s-job'); }};
+  if(state.workFinished) return {status:'העבודה הסתיימה / מוכן למסירה', badge:'badge-ok', label:'מסירה / סגירת תיק', btn:'המשך', fn:tryCloseCase};
+  if(state.workStarted) return {status:'רכב בעבודה', badge:'badge-accent', label:'המשך עבודה / אישור נוסף', btn:'המשך', fn:function(){ go('s-job'); }};
   if(route === 'quote_first'){
     if(state.intakeDone) return {status:'הרכב התקבל', badge:'badge-accent', label:'התחל עבודה', btn:'המשך', fn:startWork};
     if(state.quoteApproved) return {status:'אושר', badge:'badge-ok', label:'קבלת רכב + 5 תמונות', btn:'המשך', fn:function(){ go('s-intake'); }};
@@ -3104,6 +3534,7 @@ function refreshCaseHub(){
   setText('tile-gal-sub', mediaItems.length ? (mediaItems.length + ' קבצים') : 'אין תמונות שמורות');
   flowMeterText(spec);
   renderExtraApprovals();
+  renderCorrespondence();
   schedulePersist();
 }
 function openExtraApproval(){

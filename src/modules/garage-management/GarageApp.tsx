@@ -32,6 +32,7 @@ import {
   uploadGarageMedia,
   type GarageMediaCategoryId,
 } from './garageMedia';
+import { scanGarageMailbox } from './garageMail';
 
 type HostRequest = {
   type: string;
@@ -251,6 +252,14 @@ export default function GarageApp() {
         }
         if (msg.type === 'gm:goManager') {
           navigate('/claims?tab=garage');
+          return;
+        }
+        if (msg.type === 'gm:scanGarageMail') {
+          const scanned = await scanGarageMailbox({
+            currentCaseId: String(payload.caseId || caseId || ''),
+            actorName: actor?.full_name,
+          });
+          reply(requestId, scanned);
           return;
         }
       } catch (error) {

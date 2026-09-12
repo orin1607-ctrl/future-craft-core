@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimsGarageHub } from './ClaimsGarageHub';
@@ -90,6 +90,7 @@ describe('ClaimsGarageHub', () => {
     await waitFor(() => expect(screen.getAllByTestId('hub-row-garage:case-9').length).toBeGreaterThan(0));
     expect(screen.getAllByTestId('hub-row-garage:case-9')[0]).toHaveTextContent('הצעת מחיר תחילה');
     expect(screen.getAllByTestId('hub-row-garage:case-9')[0]).toHaveTextContent('הכנת הצעת מחיר');
+    expect(screen.getAllByTestId('hub-row-garage:case-9')[0]).toHaveTextContent('פתוח');
     fireEvent.click(screen.getByTestId('hub-new-garage'));
     expect(screen.getByTestId('garage-flow')).toBeInTheDocument();
     expect(screen.getByTestId('loc')).toHaveTextContent('/garage-management?new=1');
@@ -120,6 +121,59 @@ describe('ClaimsGarageHub', () => {
     await waitFor(() => expect(screen.getAllByTestId('hub-row-garage:case-9').length).toBeGreaterThan(0));
     fireEvent.click(screen.getAllByTestId('hub-row-garage:case-9')[0]);
     expect(screen.getByTestId('garage-case')).toBeInTheDocument();
+  });
+
+  it('filters garage cases into open, in-work and closed without leaving a finished car in open', async () => {
+    vi.mocked(probeGarageBook).mockResolvedValue({ ready: true, pending: false });
+    vi.mocked(listCases).mockResolvedValue([
+      {
+        id: 'open-1',
+        case_number: 'GM-O',
+        status: 'בדיקת רכב',
+        customer_name_snapshot: 'פתוח',
+        vehicle_label_snapshot: 'A',
+        vehicle_plate_snapshot: '111',
+        opened_by_name: 'QA',
+        created_at: '2026-09-11T12:00:00Z',
+        case_data: {},
+      },
+      {
+        id: 'work-1',
+        case_number: 'GM-W',
+        status: 'בעבודה',
+        customer_name_snapshot: 'בעבודה',
+        vehicle_label_snapshot: 'B',
+        vehicle_plate_snapshot: '222',
+        opened_by_name: 'QA',
+        created_at: '2026-09-11T12:00:00Z',
+        case_data: { workStarted: true },
+      },
+      {
+        id: 'closed-1',
+        case_number: 'GM-C',
+        status: 'סגור',
+        customer_name_snapshot: 'סגור',
+        vehicle_label_snapshot: 'C',
+        vehicle_plate_snapshot: '333',
+        opened_by_name: 'QA',
+        created_at: '2026-09-11T12:00:00Z',
+        case_data: { workFinished: true },
+      },
+    ] as never);
+    renderHub('/claims?tab=garage');
+    const pane = await screen.findByTestId('hub-pane-garage');
+    await waitFor(() => expect(within(pane).getByTestId('hub-row-garage:open-1')).toBeInTheDocument());
+    expect(within(pane).getByTestId('hub-row-garage:open-1')).toHaveTextContent('פתוח');
+    expect(within(pane).queryByTestId('hub-row-garage:work-1')).not.toBeInTheDocument();
+    expect(within(pane).queryByTestId('hub-row-garage:closed-1')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('garage-filter-in-work'));
+    expect(within(pane).getByTestId('hub-row-garage:work-1')).toHaveTextContent('רכב בעבודה');
+    expect(within(pane).queryByTestId('hub-row-garage:open-1')).not.toBeInTheDocument();
+    expect(within(pane).queryByTestId('hub-row-garage:closed-1')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('garage-filter-closed'));
+    expect(within(pane).getByTestId('hub-row-garage:closed-1')).toHaveTextContent('סגור');
+    expect(within(pane).queryByTestId('hub-row-garage:open-1')).not.toBeInTheDocument();
+    expect(within(pane).queryByTestId('hub-row-garage:work-1')).not.toBeInTheDocument();
   });
 
   it('keeps + תיק תביעה on the existing Claims screen', async () => {

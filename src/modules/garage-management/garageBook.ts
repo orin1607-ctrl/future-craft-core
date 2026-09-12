@@ -68,8 +68,9 @@ export type GarageCaseData = {
   intakeDone?: boolean;
   signatureCaptured?: boolean;
   workStarted?: boolean;
-  workFinished?: boolean;
-  caseClosed?: boolean;
+    workFinished?: boolean;
+    workFinishedAt?: string;
+    caseClosed?: boolean;
   workExtraPrice?: number;
   currentScreen?: string;
   timeline?: Array<{ at?: string; text?: string }>;
@@ -106,6 +107,9 @@ export type GarageCaseData = {
     customerContacts?: GarageContact[];
     paymentStatus?: GaragePaymentStatus;
     finishAngles?: { front?: boolean; rear?: boolean; right?: boolean; left?: boolean };
+    finishKm?: string;
+    finishNotes?: string;
+    finalApprovedAmount?: number | string | null;
     deliveryKm?: string;
     closeNote?: string;
     deliveryDone?: boolean;
@@ -119,6 +123,32 @@ export type GarageCaseData = {
     caseClosedAt?: string;
     caseClosedBy?: string;
     reopenHistory?: Array<{ at?: string; by?: string; reason?: string; previousClosedAt?: string }>;
+    correspondence?: Array<{
+      id?: string;
+      gmail_message_id?: string;
+      gmail_thread_id?: string;
+      subject?: string;
+      from_addr?: string;
+      to_addr?: string;
+      sent_at?: string;
+      body_text?: string;
+      direction?: 'incoming' | 'outgoing';
+      source?: 'import' | 'mailto' | 'upload';
+      file_names?: string[];
+      unread?: boolean;
+    }>;
+    unreadMail?: boolean;
+    priceReview?: {
+      status?: 'none' | 'waiting_for_price' | 'new_material' | 'priced_order_received' | 'worker_approved';
+      detectedAmount?: number | null;
+      sentAmount?: number | null;
+      compare?: 'match' | 'mismatch' | 'unknown';
+      compareMessage?: string;
+      detectionLabel?: string;
+      sourceMailId?: string;
+      reviewedAt?: string;
+      reviewedBy?: string;
+    };
   };
 
 export type GarageCase = {
@@ -192,6 +222,24 @@ export function routeLabel(route?: string): string {
   return route === 'intake_first' ? 'קבלת רכב' : 'הצעת מחיר תחילה';
 }
 
+export type GarageListBucket = 'open' | 'in_work' | 'closed';
+
+export function garageListBucket(data: GarageCaseData = {}, status?: string): GarageListBucket {
+  if (data.caseClosed || data.workFinished || status === 'סגור' || status === 'מוכן למסירה') return 'closed';
+  if (data.workStarted || status === 'בעבודה') return 'in_work';
+  return 'open';
+}
+
+export function garageListStatusLabel(bucket: GarageListBucket): string {
+  if (bucket === 'closed') return 'סגור';
+  if (bucket === 'in_work') return 'רכב בעבודה';
+  return 'פתוח';
+}
+
+export function garageCaseListStatus(data: GarageCaseData = {}, status?: string): string {
+  return garageListStatusLabel(garageListBucket(data, status));
+}
+
 export function garageNextAction(data: GarageCaseData): string {
   const route: GarageRoute = data.route === 'intake_first' ? 'intake_first' : 'quote_first';
   if (data.caseClosed) return '—';
@@ -228,6 +276,7 @@ export function emptyCaseData(): GarageCaseData {
     signatureCaptured: false,
     workStarted: false,
     workFinished: false,
+    workFinishedAt: '',
     caseClosed: false,
     workExtraPrice: 0,
     currentScreen: 's-case',
@@ -246,11 +295,17 @@ export function emptyCaseData(): GarageCaseData {
     customerContacts: [],
     paymentStatus: '',
     finishAngles: { front: false, rear: false, right: false, left: false },
+    finishKm: '',
+    finishNotes: '',
+    finalApprovedAmount: null,
     deliveryKm: '',
     closeNote: '',
     deliveryDone: false,
     deliveryRecipient: '',
     deliveryConfirmed: false,
+    correspondence: [],
+    unreadMail: false,
+    priceReview: { status: 'none', detectedAmount: null, sentAmount: null },
   };
 }
 
@@ -286,8 +341,7 @@ export function sanitizeCaseData(input: unknown): GarageCaseData {
 }
 
 export function deriveCaseStatus(data: GarageCaseData): string {
-  if (data.caseClosed) return 'סגור';
-  if (data.workFinished) return 'מוכן למסירה';
+  if (data.caseClosed || data.workFinished) return 'סגור';
   if (data.workStarted) return 'בעבודה';
   if (data.intakeDone && data.route === 'intake_first' && !data.quoteCreated) return 'הרכב התקבל';
   if (data.intakeDone && data.quoteApproved) return 'הרכב התקבל';
@@ -322,22 +376,71 @@ export function extraApprovalIsPending(item: NonNullable<GarageCaseData['extraAp
   return true;
 }
 
+export function extraApprovedTotal(data: GarageCaseData): number {
+  return (data.extraApprovals || []).reduce((sum, item) => {
+    if (extraApprovalIsPending(item)) return sum;
+    if (item.status === 'rejected') return sum;
+    return sum + (Number(item.price) || 0);
+  }, 0);
+}
+
+function quoteWorksPartsGross(data: GarageCaseData): number {
+  const works = (data.quoteWorks || []).reduce(
+    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 1),
+    0,
+  );
+  const parts = (data.quoteParts || []).reduce((sum, item) => {
+    if (item.supplier === 'customer') return sum;
+    return sum + (Number(item.price) || 0) * (Number(item.qty) || 1);
+  }, 0);
+  const net = works + parts;
+  return net + Math.round(net * 0.18);
+}
+
+export function approvedFinalAmount(data: GarageCaseData): number {
+  const stored = Number(data.finalApprovedAmount);
+  if (Number.isFinite(stored) && stored > 0 && data.workFinished) return stored;
+  const quote = quoteWorksPartsGross(data);
+  if (quote > 0) return quote;
+  const order = Number(data.workOrderAmount) || 0;
+  return order + extraApprovedTotal(data);
+}
+
+export function hasApprovedPrice(data: GarageCaseData): boolean {
+  if (approvedFinalAmount(data) <= 0) return false;
+  if (data.quoteApproved) return true;
+  if (data.workOrderSaved && Number(data.workOrderAmount) > 0) return true;
+  return false;
+}
+
+export function finishPhotoCount(data: GarageCaseData): number {
+  const finish = data.finishAngles || {};
+  return ['front', 'rear', 'right', 'left'].filter((k) => !!(finish as Record<string, boolean>)[k]).length;
+}
+
+export function finishWorkGaps(data: GarageCaseData): string[] {
+  const gaps: string[] = [];
+  if (finishPhotoCount(data) < 4) gaps.push('חסרות תמונות סיום חובה (קדמי, אחורי, ימין, שמאל)');
+  if (!hasApprovedPrice(data)) gaps.push('חסר מחיר סופי מאושר לתשלום');
+  const pendingExtra = (data.extraApprovals || []).filter(extraApprovalIsPending);
+  if (pendingExtra.length) gaps.push('קיימת תוספת עבודה שממתינה לאישור');
+  return gaps;
+}
+
 export function closeCaseGaps(data: GarageCaseData): string[] {
   const gaps: string[] = [];
   if (!data.workFinished) gaps.push('העבודה טרם סומנה כהושלמה');
-  const hasPrice = Boolean(
+  const pendingExtra = (data.extraApprovals || []).filter(extraApprovalIsPending);
+  if (pendingExtra.length) gaps.push('קיימת תוספת עבודה שממתינה לאישור');
+  const hasPrice = hasApprovedPrice(data) || Boolean(
     data.quoteCreated
     || data.workOrderAmount
     || (data.quoteWorks && data.quoteWorks.length)
     || (data.quoteParts && data.quoteParts.length),
   );
   if (!hasPrice) gaps.push('המחיר/ההצעה הסופיים אינם ברורים');
-  const pendingExtra = (data.extraApprovals || []).filter(extraApprovalIsPending);
-  if (pendingExtra.length) gaps.push('קיימת תוספת עבודה שממתינה לאישור');
+  if (finishPhotoCount(data) < 4) gaps.push('חסרות תמונות סיום חובה (קדמי, אחורי, ימין, שמאל)');
   if (!data.paymentStatus) gaps.push('מצב התשלום לא סומן');
-  const finish = data.finishAngles || {};
-  const finishCount = ['front', 'rear', 'right', 'left'].filter((k) => !!(finish as Record<string, boolean>)[k]).length;
-  if (finishCount < 4) gaps.push('חסרות תמונות סיום חובה (קדמי, אחורי, ימין, שמאל)');
   if (!String(data.deliveryKm || '').trim()) gaps.push('חסר קילומטראז׳ במסירה');
   if (!data.deliveryDone) gaps.push('מסירת הרכב לא בוצעה');
   if (!String(data.deliveryRecipient || '').trim()) gaps.push('מקבל הרכב לא זוהה');
