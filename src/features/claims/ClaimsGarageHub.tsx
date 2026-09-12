@@ -5,11 +5,14 @@ import { createClaimsApi } from '@/features/claims/claimsService';
 import { displayClaimNum, type ClaimRecord, type ClaimsActor } from '@/features/claims/claimsConstants';
 import {
   GARAGE_BOOK_PENDING_MESSAGE,
+  garageCaseListStatus,
+  garageListBucket,
   garageNextAction,
   listCases,
   probeGarageBook,
   routeLabel,
   type GarageCase,
+  type GarageListBucket,
 } from '@/modules/garage-management/garageBook';
 import './claimsGarageHub.css';
 
@@ -31,6 +34,7 @@ type UnifiedRow = {
   amount: string;
   href?: string;
   claimId?: string;
+  bucket?: GarageListBucket;
 };
 
 function formatWhen(iso?: string) {
@@ -51,12 +55,13 @@ function garageRow(c: GarageCase): UnifiedRow {
     vehicle: c.vehicle_label_snapshot || '—',
     plate: c.vehicle_plate_snapshot || '—',
     openedBy: c.opened_by_name || '—',
-    status: c.status || '—',
+    status: garageCaseListStatus(c.case_data || {}, c.status),
     route: routeLabel(c.case_data?.route),
     nextAction: garageNextAction(c.case_data || {}),
     openedAt: formatWhen(c.created_at),
     amount: amount === 0 || amount ? String(amount) : '—',
     href: `/garage-management/${c.id}`,
+    bucket: garageListBucket(c.case_data || {}, c.status),
   };
 }
 
@@ -145,6 +150,7 @@ export function ClaimsGarageHub({ actor }: { actor: ClaimsActor }) {
   const [claims, setClaims] = useState<ClaimRecord[]>([]);
   const [garageCases, setGarageCases] = useState<GarageCase[]>([]);
   const [garagePending, setGaragePending] = useState('');
+  const [garageFilter, setGarageFilter] = useState<GarageListBucket>('open');
   const [startNewNonce, setStartNewNonce] = useState(0);
   const openClaimId = params.get('claim') || undefined;
 
@@ -175,6 +181,15 @@ export function ClaimsGarageHub({ actor }: { actor: ClaimsActor }) {
   }, [actor]);
 
   const garageRows = useMemo(() => garageCases.map(garageRow), [garageCases]);
+  const garageCounts = useMemo(() => ({
+    open: garageRows.filter((r) => r.bucket === 'open').length,
+    in_work: garageRows.filter((r) => r.bucket === 'in_work').length,
+    closed: garageRows.filter((r) => r.bucket === 'closed').length,
+  }), [garageRows]);
+  const filteredGarageRows = useMemo(
+    () => garageRows.filter((r) => r.bucket === garageFilter),
+    [garageRows, garageFilter],
+  );
   const claimRows = useMemo(() => claims.map(claimRow), [claims]);
   const allRows = useMemo(() => [...claimRows, ...garageRows], [claimRows, garageRows]);
 
@@ -223,10 +238,15 @@ export function ClaimsGarageHub({ actor }: { actor: ClaimsActor }) {
           />
         </div>
         <div className={`cg-pane ${tab === 'garage' ? '' : 'hidden'}`} data-testid="hub-pane-garage">
+          <div className="cg-status-filters" role="tablist" aria-label="סינון סטטוס מוסך">
+            <button type="button" className={`cg-tab ${garageFilter === 'open' ? 'on' : ''}`} data-testid="garage-filter-open" onClick={() => setGarageFilter('open')}>פתוח ({garageCounts.open})</button>
+            <button type="button" className={`cg-tab ${garageFilter === 'in_work' ? 'on' : ''}`} data-testid="garage-filter-in-work" onClick={() => setGarageFilter('in_work')}>רכב בעבודה ({garageCounts.in_work})</button>
+            <button type="button" className={`cg-tab ${garageFilter === 'closed' ? 'on' : ''}`} data-testid="garage-filter-closed" onClick={() => setGarageFilter('closed')}>סגור ({garageCounts.closed})</button>
+          </div>
           <CasesTable
-            rows={garageRows}
+            rows={filteredGarageRows}
             pending={garagePending}
-            empty="אין תיקי מוסך עדיין."
+            empty={garageFilter === 'closed' ? 'אין תיקים סגורים.' : garageFilter === 'in_work' ? 'אין רכבים בעבודה.' : 'אין רכבים פתוחים.'}
             onOpen={openRow}
           />
         </div>

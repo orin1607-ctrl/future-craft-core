@@ -1,8 +1,9 @@
 /**
- * Read customer-order documents for garage cases.
+ * Extract customer-order fields from a garage document.
  * Fields come from document text or real OCR only — never from the filename,
  * and never from the already-known garage_case customer.
  */
+import { detectPricedOrder } from './garagePriceFromMail';
 export type CustomerOrderExtractSource = 'pdf_text' | 'ocr' | 'none' | 'reading';
 
 export type CustomerOrderFields = {
@@ -16,6 +17,9 @@ export type CustomerOrderExtract = {
   fields: CustomerOrderFields;
   note: string;
   plateHint?: string;
+  detectedAmount?: number | null;
+  priceLabel?: string;
+  priceReason?: string;
 };
 
 const EMPTY_FIELDS: CustomerOrderFields = {
@@ -256,7 +260,16 @@ export async function extractCustomerOrderDocument(input: {
   const finish = (source: CustomerOrderExtractSource, text: string): CustomerOrderExtract => {
     const fields = extractCustomerOrderFields(text);
     const plateHint = extractPlateHint(text);
-    return { source, fields, note: extractNote(source, fields), plateHint: plateHint || undefined };
+    const priced = detectPricedOrder({ body: text, filenames: [fileName], subject: fileName });
+    return {
+      source,
+      fields,
+      note: extractNote(source, fields),
+      plateHint: plateHint || undefined,
+      detectedAmount: priced.amount,
+      priceLabel: priced.label,
+      priceReason: priced.reason,
+    };
   };
 
   try {

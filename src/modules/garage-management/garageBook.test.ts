@@ -9,7 +9,11 @@ import {
   encodeContactsInNotes,
   extractWorkOrderHints,
   findDuplicateCustomers,
+  finishWorkGaps,
+  garageCaseListStatus,
+  garageListBucket,
   garageNextAction,
+  hasApprovedPrice,
   isGarageSchemaMissing,
   isGarageWorkflowColumnMissing,
   notesWithoutContacts,
@@ -97,8 +101,16 @@ describe('garage book helpers', () => {
     expect(deriveCaseStatus({ quoteSent: true })).toBe('ממתין לאישור');
     expect(deriveCaseStatus({ waitingForApproval: true })).toBe('ממתין לאישור');
     expect(deriveCaseStatus({ intakeDone: true, route: 'intake_first' })).toBe('הרכב התקבל');
-    expect(deriveCaseStatus({ workFinished: true })).toBe('מוכן למסירה');
+    expect(deriveCaseStatus({ workFinished: true })).toBe('סגור');
     expect(deriveCaseStatus({ caseClosed: true })).toBe('סגור');
+    expect(deriveCaseStatus({ workStarted: true })).toBe('בעבודה');
+    expect(garageListBucket({ workStarted: true })).toBe('in_work');
+    expect(garageListBucket({ workFinished: true })).toBe('closed');
+    expect(garageListBucket({ intakeDone: true })).toBe('open');
+    expect(garageCaseListStatus({ workStarted: true })).toBe('רכב בעבודה');
+    expect(garageCaseListStatus({ workFinished: true })).toBe('סגור');
+    expect(garageCaseListStatus({})).toBe('פתוח');
+    expect(garageListBucket({}, 'מוכן למסירה')).toBe('closed');
   });
 
   it('uses the customer default_workflow field and never infers route from customer_type', () => {
@@ -149,6 +161,39 @@ describe('garage book helpers', () => {
       notes: leftover,
       contact_person: '',
     }).map((c) => c.name)).toEqual(['דנה']);
+  });
+
+  it('blocks finish work until 4 photos and an approved price exist, without requiring km', () => {
+    expect(finishWorkGaps({})).toEqual(expect.arrayContaining([
+      'חסרות תמונות סיום חובה (קדמי, אחורי, ימין, שמאל)',
+      'חסר מחיר סופי מאושר לתשלום',
+    ]));
+    expect(finishWorkGaps({
+      finishAngles: { front: true, rear: true, right: true, left: true },
+      quoteCreated: true,
+      quoteWorks: [{ part: 'תיקון', qty: 1, price: 100 }],
+    })).toEqual(['חסר מחיר סופי מאושר לתשלום']);
+    expect(hasApprovedPrice({
+      quoteApproved: true,
+      quoteWorks: [{ part: 'תיקון', qty: 1, price: 100 }],
+    })).toBe(true);
+    expect(finishWorkGaps({
+      finishAngles: { front: true, rear: true, right: true, left: true },
+      quoteApproved: true,
+      quoteWorks: [{ part: 'תיקון', qty: 1, price: 100 }],
+      extraApprovals: [{ text: 'תוספת', price: 50, status: 'sent_mailto' }],
+    })).toEqual(['קיימת תוספת עבודה שממתינה לאישור']);
+    expect(finishWorkGaps({
+      finishAngles: { front: true, rear: true, right: true, left: true },
+      quoteApproved: true,
+      quoteWorks: [{ part: 'תיקון', qty: 1, price: 100 }],
+      extraApprovals: [{ text: 'תוספת', price: 50, status: 'approved', approvedAt: '2026-09-12T12:00:00.000Z' }],
+    })).toEqual([]);
+    expect(finishWorkGaps({
+      finishAngles: { front: true, rear: true, right: true, left: true },
+      workOrderSaved: true,
+      workOrderAmount: 1800,
+    })).toEqual([]);
   });
 
   it('blocks case close until finish photos, delivery, payment and signature exist', () => {

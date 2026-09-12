@@ -122,6 +122,13 @@
   background: color-mix(in srgb, #a78bfa 18%, transparent);
 }
 
+.cg-status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px 0;
+}
+
 .cg-empty {
   padding: 24px 8px;
   color: hsl(var(--muted-foreground));
