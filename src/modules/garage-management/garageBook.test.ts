@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
   customerDisplayName,
+  defaultRouteForCustomer,
   deriveCaseStatus,
   emptyCaseData,
   findDuplicateCustomers,
+  garageNextAction,
   isGarageSchemaMissing,
   normalizePhone,
   normalizePlate,
+  routeLabel,
   sanitizeCaseData,
   vehicleLabel,
 } from './garageBook';
@@ -67,8 +70,25 @@ describe('garage book helpers', () => {
   it('derives status from flow flags', () => {
     expect(deriveCaseStatus(emptyCaseData())).toBe('בדיקת רכב');
     expect(deriveCaseStatus({ quoteCreated: true })).toBe('הצעה בהכנה');
+    expect(deriveCaseStatus({ quoteSent: true })).toBe('ממתין לאישור');
+    expect(deriveCaseStatus({ waitingForApproval: true })).toBe('ממתין לאישור');
+    expect(deriveCaseStatus({ intakeDone: true, route: 'intake_first' })).toBe('הרכב התקבל');
     expect(deriveCaseStatus({ workFinished: true })).toBe('מוכן למסירה');
     expect(deriveCaseStatus({ caseClosed: true })).toBe('סגור');
+  });
+
+  it('defaults private customers to quote-first and fleet/business to intake-first', () => {
+    expect(defaultRouteForCustomer({ customer_type: 'private' })).toBe('quote_first');
+    expect(defaultRouteForCustomer({ customer_type: 'business' })).toBe('intake_first');
+    expect(defaultRouteForCustomer({ customer_type: 'fleet' })).toBe('intake_first');
+    expect(routeLabel('quote_first')).toBe('הצעת מחיר תחילה');
+    expect(routeLabel('intake_first')).toBe('הרכב התקבל / לקוח קבוע');
+    expect(garageNextAction({ route: 'quote_first' })).toBe('הכנת הצעת מחיר');
+    expect(garageNextAction({ route: 'quote_first', quoteSent: true })).toBe('ממתינים לאישור הלקוח');
+    expect(garageNextAction({ route: 'quote_first', quoteApproved: true })).toBe('קבלת רכב + 4 תמונות');
+    expect(garageNextAction({ route: 'intake_first' })).toBe('העלאת הזמנת לקוח');
+    expect(garageNextAction({ route: 'intake_first', workOrderSaved: true })).toBe('קבלת רכב + 4 תמונות');
+    expect(garageNextAction({ route: 'intake_first', intakeDone: true })).toBe('הכנת הצעת מחיר');
   });
 
   it('builds display labels', () => {

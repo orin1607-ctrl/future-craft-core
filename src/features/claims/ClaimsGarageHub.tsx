@@ -5,8 +5,10 @@ import { createClaimsApi } from '@/features/claims/claimsService';
 import { displayClaimNum, type ClaimRecord, type ClaimsActor } from '@/features/claims/claimsConstants';
 import {
   GARAGE_BOOK_PENDING_MESSAGE,
+  garageNextAction,
   listCases,
   probeGarageBook,
+  routeLabel,
   type GarageCase,
 } from '@/modules/garage-management/garageBook';
 import './claimsGarageHub.css';
@@ -23,6 +25,8 @@ type UnifiedRow = {
   plate: string;
   openedBy: string;
   status: string;
+  route: string;
+  nextAction: string;
   openedAt: string;
   amount: string;
   href?: string;
@@ -48,6 +52,8 @@ function garageRow(c: GarageCase): UnifiedRow {
     plate: c.vehicle_plate_snapshot || '—',
     openedBy: c.opened_by_name || '—',
     status: c.status || '—',
+    route: routeLabel(c.case_data?.route),
+    nextAction: garageNextAction(c.case_data || {}),
     openedAt: formatWhen(c.created_at),
     amount: amount === 0 || amount ? String(amount) : '—',
     href: `/garage-management/${c.id}`,
@@ -65,6 +71,8 @@ function claimRow(c: ClaimRecord): UnifiedRow {
     plate: c.plate || '—',
     openedBy: c.createdByName || c.created_by_name || '—',
     status: c.status || '—',
+    route: '—',
+    nextAction: '—',
     openedAt: c.createdAt || formatWhen(c.created_at),
     amount: c.finApproved || c.finClaimed || '—',
     claimId: c.id,
@@ -97,7 +105,9 @@ function CasesTable({
               <th>רכב</th>
               <th>מספר רישוי</th>
               <th>מי פתח</th>
+              <th>מסלול</th>
               <th>סטטוס</th>
+              <th>פעולה הבאה</th>
               <th>תאריך פתיחה</th>
               <th>סכום</th>
               <th>טיפול</th>
@@ -113,7 +123,9 @@ function CasesTable({
                 <td>{row.vehicle}</td>
                 <td>{row.plate}</td>
                 <td>{row.openedBy}</td>
+                <td>{row.route || '—'}</td>
                 <td>{row.status}</td>
+                <td>{row.nextAction || '—'}</td>
                 <td>{row.openedAt}</td>
                 <td>{row.amount}</td>
                 <td>פתח</td>

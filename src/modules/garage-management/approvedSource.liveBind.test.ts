@@ -97,4 +97,22 @@ describe('garage flow live case binding', () => {
     expect(quote).toContain('לקוח בדיקת מוסך QA');
     expect(quote).not.toContain('אלדן');
   });
+
+  it('defaults a private customer to quote-first and does not require 4 photos before the quote', () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      setCaseRoute: (route: string) => void;
+      document: Document;
+    };
+    win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
+    expect(win.document.getElementById('route-opt-quote_first')?.classList.contains('sel')).toBe(true);
+    expect(win.document.getElementById('next-action-label')?.textContent).toContain('הכנת הצעת מחיר');
+    expect(win.document.getElementById('s-inspect')?.textContent).toContain('אופציונלי');
+    expect(win.document.getElementById('s-inspect')?.textContent).not.toContain('צילומי חובה — 4 זוויות');
+    expect(win.document.getElementById('s-intake')?.textContent).toContain('4 תמונות חובה לקבלת רכב');
+    expect(win.document.getElementById('gm-file-camera')?.getAttribute('capture')).toBe('environment');
+    win.setCaseRoute('intake_first');
+    expect(win.document.getElementById('route-opt-intake_first')?.classList.contains('sel')).toBe(true);
+    expect(win.document.getElementById('next-action-label')?.textContent).toContain('העלאת הזמנת לקוח');
+  });
 });

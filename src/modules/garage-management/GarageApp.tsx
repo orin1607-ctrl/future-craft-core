@@ -8,6 +8,7 @@ import {
   createCase,
   createCustomer,
   createVehicle,
+  defaultRouteForCustomer,
   emptyCaseData,
   getCase,
   isGarageSchemaMissing,
@@ -19,14 +20,22 @@ import {
   updateCase,
   type GarageActor,
   type GarageCustomer,
+  type GarageRoute,
   type GarageVehicle,
 } from './garageBook';
-import { emptyGarageGallery } from './garageMedia';
+import {
+  GARAGE_MEDIA_PENDING_MESSAGE,
+  listGarageMedia,
+  probeGarageMedia,
+  uploadGarageMedia,
+  type GarageMediaCategoryId,
+} from './garageMedia';
 
 type HostRequest = {
   type: string;
   requestId?: string;
   payload?: Record<string, unknown>;
+  buffer?: ArrayBuffer;
 };
 
 function actorOf(user: { id: string; full_name?: string; role?: string } | null): GarageActor | null {
@@ -145,11 +154,14 @@ export default function GarageApp() {
         }
         if (msg.type === 'gm:createCase') {
           if (!actor) throw new Error('אין משתמש מחובר');
+          const customer = payload.customer as GarageCustomer;
+          const route = (payload.route as GarageRoute)
+            || defaultRouteForCustomer(customer);
           const created = await createCase({
-            customer: payload.customer as GarageCustomer,
+            customer,
             vehicle: payload.vehicle as GarageVehicle,
             actor,
-            caseData: emptyCaseData(),
+            caseData: { ...emptyCaseData(), ...(payload.caseData as object || {}), route },
           });
           reply(requestId, { ok: true, created });
           navigate(`/garage-management/${created.id}`, { replace: true });
@@ -164,7 +176,31 @@ export default function GarageApp() {
         }
         if (msg.type === 'gm:listMedia') {
           const id = String(payload.garageCaseId || caseId || '');
-          reply(requestId, { ok: true, garage_case_id: id, items: emptyGarageGallery(id), pending: true });
+          const probe = await probeGarageMedia();
+          const items = probe.pending ? [] : await listGarageMedia(id);
+          reply(requestId, {
+            ok: true,
+            garage_case_id: id,
+            items,
+            pending: probe.pending,
+            error: probe.pending ? GARAGE_MEDIA_PENDING_MESSAGE : probe.error,
+          });
+          return;
+        }
+        if (msg.type === 'gm:uploadMedia') {
+          const id = String(payload.garageCaseId || caseId || '');
+          const buffer = msg.buffer;
+          if (!buffer) throw new Error('אין קובץ להעלאה');
+          const item = await uploadGarageMedia({
+            garageCaseId: id,
+            category: String(payload.category || 'other') as GarageMediaCategoryId,
+            title: String(payload.title || payload.name || 'קובץ'),
+            fileName: String(payload.name || 'file'),
+            mimeType: String(payload.type || 'application/octet-stream'),
+            bytes: buffer,
+            actorId: actor?.id,
+          });
+          reply(requestId, { ok: true, item });
           return;
         }
         if (msg.type === 'gm:openCase') {
@@ -199,7 +235,8 @@ export default function GarageApp() {
         title="ניהול מוסך"
         className="gm-approved-frame"
         srcDoc={approvedSourceHtml}
-        sandbox="allow-scripts allow-modals allow-same-origin"
+        sandbox="allow-scripts allow-modals allow-same-origin allow-downloads allow-popups"
+        allow="camera; microphone; clipboard-write"
         key={caseId || (startNew ? 'new' : 'home')}
         onLoad={() => { void bootstrap(); }}
       />

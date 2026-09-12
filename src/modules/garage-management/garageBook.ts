@@ -34,8 +34,13 @@ export type GarageVehicle = {
   notes: string;
 };
 
+export type GarageRoute = 'quote_first' | 'intake_first';
+
 export type GarageCaseData = {
+  route?: GarageRoute;
+  flowStage?: string;
   photos?: { fl?: boolean; fr?: boolean; rl?: boolean; rr?: boolean };
+  intakeAngles?: { front?: boolean; rear?: boolean; right?: boolean; left?: boolean };
   damageCount?: number;
   quoteCreated?: boolean;
   quoteSent?: boolean;
@@ -55,10 +60,20 @@ export type GarageCaseData = {
   quoteWorks?: Array<{ id?: string; part?: string; type?: string; qty?: number; price?: number; desc?: string }>;
   quoteParts?: Array<{ id?: string; name?: string; qty?: number; price?: number; supplier?: string; sku?: string }>;
   quoteNotes?: string;
-  quoteValidity?: string;
-  damage?: unknown[];
-  damageItems?: Array<{ part?: string; status?: string }>;
-};
+    quoteValidity?: string;
+    damage?: unknown[];
+    damageItems?: Array<{ part?: string; status?: string }>;
+    extraApprovals?: Array<{ id?: string; text?: string; price?: number; at?: string; sent?: boolean }>;
+    waitingForApproval?: boolean;
+    intakeUnlocked?: boolean;
+    intakeKm?: string;
+    intakeFuel?: string;
+    intakeKeys?: string;
+    intakeLights?: string;
+    intakeItems?: string;
+    intakeInterior?: string;
+    intakeWorker?: string;
+  };
 
 export type GarageCase = {
   id: string;
@@ -107,9 +122,39 @@ export function vehicleLabel(v: Pick<GarageVehicle, 'make' | 'model' | 'year'>):
   return [v.make, v.model, v.year ? String(v.year) : ''].filter(Boolean).join(' · ');
 }
 
+export function defaultRouteForCustomer(c: Pick<GarageCustomer, 'customer_type'>): GarageRoute {
+  return c.customer_type === 'private' ? 'quote_first' : 'intake_first';
+}
+
+export function routeLabel(route?: string): string {
+  return route === 'intake_first' ? 'הרכב התקבל / לקוח קבוע' : 'הצעת מחיר תחילה';
+}
+
+export function garageNextAction(data: GarageCaseData): string {
+  const route: GarageRoute = data.route === 'intake_first' ? 'intake_first' : 'quote_first';
+  if (data.caseClosed) return '—';
+  if (data.workFinished) return 'סגור תיק';
+  if (data.workStarted) return 'המשך עבודה / אישור נוסף';
+  if (route === 'quote_first') {
+    if (data.intakeDone) return 'התחל עבודה';
+    if (data.quoteApproved) return 'קבלת רכב + 4 תמונות';
+    if (data.quoteSent || data.waitingForApproval) return 'ממתינים לאישור הלקוח';
+    if (data.quoteCreated) return 'שלח הצעת מחיר';
+    return 'הכנת הצעת מחיר';
+  }
+  if (data.quoteApproved) return 'התחל עבודה';
+  if (data.quoteSent || data.waitingForApproval) return 'ממתינים לאישור הלקוח';
+  if (data.intakeDone) return 'הכנת הצעת מחיר';
+  if (data.workOrderSaved) return 'קבלת רכב + 4 תמונות';
+  return 'העלאת הזמנת לקוח';
+}
+
 export function emptyCaseData(): GarageCaseData {
   return {
+    route: 'quote_first',
+    flowStage: 'open',
     photos: { fl: false, fr: false, rl: false, rr: false },
+    intakeAngles: { front: false, rear: false, right: false, left: false },
     damageCount: 0,
     quoteCreated: false,
     quoteSent: false,
@@ -132,6 +177,9 @@ export function emptyCaseData(): GarageCaseData {
     quoteValidity: '',
     damage: [],
     damageItems: [],
+    extraApprovals: [],
+    waitingForApproval: false,
+    intakeUnlocked: false,
   };
 }
 
@@ -170,10 +218,12 @@ export function deriveCaseStatus(data: GarageCaseData): string {
   if (data.caseClosed) return 'סגור';
   if (data.workFinished) return 'מוכן למסירה';
   if (data.workStarted) return 'בעבודה';
-  if (data.intakeDone) return 'הרכב התקבל';
+  if (data.intakeDone && data.route === 'intake_first' && !data.quoteCreated) return 'הרכב התקבל';
+  if (data.intakeDone && data.quoteApproved) return 'הרכב התקבל';
   if (data.quoteApproved) return 'אושר';
-  if (data.quoteSent) return 'ממתין לאישור';
+  if (data.quoteSent || data.waitingForApproval) return 'ממתין לאישור';
   if (data.quoteCreated) return 'הצעה בהכנה';
+  if (data.intakeDone) return 'הרכב התקבל';
   return 'בדיקת רכב';
 }
 

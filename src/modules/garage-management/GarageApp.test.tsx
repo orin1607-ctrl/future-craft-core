@@ -35,12 +35,14 @@ describe('garage-management approved source', () => {
     renderAt('/garage-management');
     const frame = screen.getByTitle('ניהול מוסך') as HTMLIFrameElement;
     expect(frame).toBeInTheDocument();
+    expect(frame.getAttribute('allow')).toContain('camera');
     expect(frame.srcdoc).toContain('פתח תיק');
     expect(frame.srcdoc).toContain('דליה — לקוחות ישירים');
     expect(frame.srcdoc).toContain('מפת נזקים אינטראקטיבית');
     expect(frame.srcdoc).toContain('הזמנת עבודה');
     expect(frame.srcdoc).toContain('שיתוף מאובטח');
     expect(frame.srcdoc).toContain('קבלת רכב');
+    expect(frame.srcdoc).toContain('מה המסלול של התיק?');
     expect(frame.srcdoc).toContain('סיום עבודה');
     expect(frame.srcdoc).toContain('סגירת תיק');
   });
@@ -81,6 +83,12 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('function bindLiveCase()');
     expect(approvedSourceHtml).toContain('quote-works-empty');
     expect(approvedSourceHtml).toContain('clearCustomerForm');
+    expect(approvedSourceHtml).toContain('מה המסלול של התיק?');
+    expect(approvedSourceHtml).toContain('capture="environment"');
+    expect(approvedSourceHtml).toContain("callHost('gm:uploadMedia'");
+    expect(approvedSourceHtml).toContain('4 תמונות חובה לקבלת רכב');
+    expect(approvedSourceHtml).toContain('תמונות נזק / הצעת מחיר');
+    expect(approvedSourceHtml).not.toContain('צילומי חובה — 4 זוויות');
   });
 
   it('keeps the approved iframe script syntactically valid', () => {

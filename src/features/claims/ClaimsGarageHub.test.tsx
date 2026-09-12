@@ -87,6 +87,8 @@ describe('ClaimsGarageHub', () => {
     } as never]);
     renderHub();
     await waitFor(() => expect(screen.getAllByTestId('hub-row-garage:case-9').length).toBeGreaterThan(0));
+    expect(screen.getAllByTestId('hub-row-garage:case-9')[0]).toHaveTextContent('הצעת מחיר תחילה');
+    expect(screen.getAllByTestId('hub-row-garage:case-9')[0]).toHaveTextContent('הכנת הצעת מחיר');
     fireEvent.click(screen.getByTestId('hub-new-garage'));
     expect(screen.getByTestId('garage-flow')).toBeInTheDocument();
     expect(screen.getByTestId('loc')).toHaveTextContent('/garage-management?new=1');
