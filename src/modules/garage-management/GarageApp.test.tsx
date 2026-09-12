@@ -104,7 +104,13 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('לוח שעונים / מד קילומטראז');
     expect(approvedSourceHtml).toContain('קילומטראז\' נוכחי');
     expect(approvedSourceHtml).toContain('+ הוסף איש קשר');
-    expect(approvedSourceHtml).toContain('סיום עבודה / הכנה למסירה');
+    expect(approvedSourceHtml).toContain('סיום עבודה');
+    expect(approvedSourceHtml).toContain('קילומטראז\' בסיום');
+    expect(approvedSourceHtml).toContain('הערות סיום');
+    expect(approvedSourceHtml).toContain('תמונות סיום עבודה');
+    expect(approvedSourceHtml).toContain("data-home-bucket=\"open\"");
+    expect(approvedSourceHtml).toContain("data-home-bucket=\"in_work\"");
+    expect(approvedSourceHtml).toContain("data-home-bucket=\"closed\"");
     expect(approvedSourceHtml).toContain('אני מאשר שקיבלתי את הרכב');
     expect(approvedSourceHtml).toContain('Email / מייל');
     expect(approvedSourceHtml).toContain('החל על טופס ההזמנה');

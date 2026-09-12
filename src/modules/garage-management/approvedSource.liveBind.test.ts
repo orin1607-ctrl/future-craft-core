@@ -458,14 +458,132 @@ describe('garage flow live case binding', () => {
     expect(win.document.getElementById('s-case')?.textContent).toContain('העובד בוחר את המסלול בכל תיק');
     expect(win.document.getElementById('s-newform')?.textContent).toContain('+ הוסף איש קשר');
     win.finishWork();
-    expect(win.state.workFinished).toBe(true);
-    expect(win.state.caseClosed).toBeFalsy();
-    expect(win.document.getElementById('s-close')?.classList.contains('active')).toBe(true);
+    expect(win.state.workFinished).toBeFalsy();
+    expect(alerts.some((msg) => /לא ניתן לסיים את העבודה/.test(msg))).toBe(true);
+    win.state.workFinished = true;
+    win.state.quoteApproved = true;
+    win.state.quoteWorks = [{ part: 'תיקון', qty: 1, price: 100 }];
+    win.state.finishAngles = { front: true, rear: true, right: true, left: true };
     win.confirmCloseCase();
     expect(alerts.some((msg) => /לא ניתן לסגור/.test(msg))).toBe(true);
     expect(win.state.caseClosed).toBeFalsy();
     expect(win.document.getElementById('s-close')?.textContent).toContain('אני מאשר שקיבלתי את הרכב');
     expect(win.document.getElementById('s-close')?.textContent).toContain('קילומטראז\' במסירה');
+  });
+
+  it('gates finish work on 4 photos and approved price, then drops the case from the open list', () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      finishWork: () => void;
+      captureFinishFields: () => void;
+      setHomeBucket: (bucket: string) => void;
+      reopenClosedCase: () => void;
+      go: (id: string) => void;
+      alert: (msg?: string) => void;
+      document: Document;
+      state: Record<string, unknown>;
+    };
+    const alerts: string[] = [];
+    win.alert = (msg?: string) => { alerts.push(String(msg || '')); };
+    win.applyBootstrap({
+      mode: 'home',
+      cases: [
+        { id: 'open-1', case_number: 'GM-1', status: 'בדיקת רכב', customer_name_snapshot: 'פתוח QA', vehicle_plate_snapshot: '11-111-11', vehicle_label_snapshot: 'Open', case_data: {} },
+        { id: 'work-1', case_number: 'GM-2', status: 'בעבודה', customer_name_snapshot: 'בעבודה QA', vehicle_plate_snapshot: '22-222-22', vehicle_label_snapshot: 'Work', case_data: { workStarted: true } },
+        { id: 'done-1', case_number: 'GM-3', status: 'סגור', customer_name_snapshot: 'סגור QA', vehicle_plate_snapshot: '33-333-33', vehicle_label_snapshot: 'Done', case_data: { workFinished: true } },
+      ],
+      bookPending: false,
+    });
+    const openList = win.document.getElementById('home-cases')?.textContent || '';
+    expect(openList).toContain('פתוח QA');
+    expect(openList).not.toContain('בעבודה QA');
+    expect(openList).not.toContain('סגור QA');
+    win.setHomeBucket('in_work');
+    expect(win.document.getElementById('home-cases')?.textContent).toContain('בעבודה QA');
+    expect(win.document.getElementById('home-cases')?.textContent).not.toContain('פתוח QA');
+    win.setHomeBucket('closed');
+    expect(win.document.getElementById('home-cases')?.textContent).toContain('סגור QA');
+    expect(win.document.getElementById('home-cases')?.textContent).not.toContain('פתוח QA');
+
+    win.applyBootstrap({
+      mode: 'case',
+      loaded: {
+        ...qaCase,
+        case_data: {
+          quoteApproved: true,
+          quoteWorks: [{ part: 'תיקון', qty: 1, price: 250 }],
+          workStarted: true,
+        },
+      },
+      bookPending: false,
+    });
+    win.go('s-finish');
+    expect(win.document.getElementById('s-finish')?.classList.contains('active')).toBe(true);
+    expect(win.document.getElementById('confirm-finish-btn')).toHaveProperty('disabled', true);
+    win.finishWork();
+    expect(win.state.workFinished).toBeFalsy();
+    expect(alerts.some((msg) => /תמונות סיום/.test(msg))).toBe(true);
+
+    win.state.finishAngles = { front: true, rear: true, right: true, left: false };
+    win.finishWork();
+    expect(win.state.workFinished).toBeFalsy();
+
+    win.state.quoteApproved = false;
+    win.state.finishAngles = { front: true, rear: true, right: true, left: true };
+    win.finishWork();
+    expect(win.state.workFinished).toBeFalsy();
+    expect(alerts.some((msg) => /מחיר סופי מאושר/.test(msg))).toBe(true);
+
+    win.state.quoteApproved = true;
+    (win.document.getElementById('finish-km') as HTMLInputElement).value = '51200';
+    (win.document.getElementById('finish-notes') as HTMLTextAreaElement).value = 'נמסר מוכן לנסיעה';
+    win.finishWork();
+    expect(win.state.workFinished).toBe(true);
+    expect(win.state.finishKm).toBe('51200');
+    expect(win.state.finishNotes).toBe('נמסר מוכן לנסיעה');
+    expect(win.state.caseClosed).toBeFalsy();
+    expect(win.document.getElementById('case-status-badge')?.textContent).toBe('העבודה הסתיימה / מוכן למסירה');
+    expect(win.document.getElementById('s-case')?.classList.contains('active')).toBe(true);
+    const timeline = win.document.getElementById('timeline-content')?.textContent || '';
+    expect(timeline).toContain('סיום עבודה');
+    expect(timeline).toContain('ק״מ בסיום 51200');
+    expect(timeline).toContain('הערות סיום: נמסר מוכן לנסיעה');
+
+    win.applyBootstrap({
+      mode: 'case',
+      loaded: {
+        ...qaCase,
+        status: 'סגור',
+        case_data: {
+          workStarted: true,
+          workFinished: true,
+          workFinishedAt: '2026-09-12T12:00:00.000Z',
+          finishKm: '51200',
+          finishNotes: 'נמסר מוכן לנסיעה',
+          finishAngles: { front: true, rear: true, right: true, left: true },
+          quoteApproved: true,
+          quoteWorks: [{ part: 'תיקון', qty: 1, price: 250 }],
+          finalApprovedAmount: 295,
+          timeline: [
+            { at: '2026-09-12T12:00:00.000Z', text: 'סיום עבודה · מחיר מאושר · ק״מ בסיום 51200' },
+            { at: '2026-09-12T12:00:01.000Z', text: 'הערות סיום: נמסר מוכן לנסיעה' },
+          ],
+        },
+      },
+      bookPending: false,
+    });
+    expect(win.state.workFinished).toBe(true);
+    expect(win.state.finishKm).toBe('51200');
+    expect(win.state.finishNotes).toBe('נמסר מוכן לנסיעה');
+    expect((win.document.getElementById('finish-km') as HTMLInputElement).value).toBe('51200');
+    expect((win.document.getElementById('finish-notes') as HTMLTextAreaElement).value).toBe('נמסר מוכן לנסיעה');
+    expect(win.document.getElementById('case-status-badge')?.textContent).toBe('העבודה הסתיימה / מוכן למסירה');
+    expect(win.document.getElementById('timeline-content')?.textContent).toContain('הערות סיום: נמסר מוכן לנסיעה');
+
+    win.reopenClosedCase();
+    expect(win.state.workFinished).toBe(false);
+    expect(win.document.getElementById('case-status-badge')?.textContent).toBe('רכב בעבודה');
+    expect((win.document.getElementById('timeline-content')?.textContent || '')).toContain('תיק נפתח מחדש');
   });
 
   it('keeps mailto extra-work send from looking like customer approval', () => {
