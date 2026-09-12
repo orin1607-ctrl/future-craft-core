@@ -35,20 +35,30 @@ jobs:
         with:
           node-version: '22'
       - name: Guard refs
+        id: guard
         env:
           STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import os, sys
           u = os.environ.get("STAGING_DATABASE_URL") or ""
+          tok = (os.environ.get("SUPABASE_ACCESS_TOKEN") or "").strip()
           if "qasomfndnjuixgjmjwcm" in u:
               sys.exit("Production database URL forbidden")
-          if "usfeoerkpcafxxlyuldl" not in u:
-              sys.exit("STAGING_DATABASE_URL missing staging ref")
-          print("db_target=usfeoerkpcafxxlyuldl")
+          if u and "usfeoerkpcafxxlyuldl" not in u:
+              sys.exit("STAGING_DATABASE_URL is not staging usfeoerkpcafxxlyuldl")
+          has_db = "usfeoerkpcafxxlyuldl" in u
+          print("has_staging_database_url=" + ("yes" if has_db else "no"))
+          print("has_access_token=" + ("yes" if tok else "no"))
+          if not has_db and not tok:
+              sys.exit("Need STAGING_DATABASE_URL or SUPABASE_ACCESS_TOKEN for staging. Production was not touched.")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write("has_db=" + ("yes" if has_db else "no") + "\n")
           PY
       - name: Apply garage Gmail SQL on Staging
+        if: steps.guard.outputs.has_db == 'yes'
         env:
           STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
         run: node scripts/apply-garage-gmail-staging.mjs
