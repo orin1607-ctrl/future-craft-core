@@ -1,13 +1,50 @@
 -- ============================================================================
 -- Oren Car PUBLIC STAGING ONLY (dalia-staging / usfeoerkpcafxxlyuldl)
 -- Production / dalia-car.online / qasomfndnjuixgjmjwcm: FORBIDDEN.
--- DO NOT RUN without owner approval.
 --
 -- Garage mailbox correspondence, separate from Claims Gmail.
 -- Expected mailbox: yoni191177@gmail.com
--- Claims mailbox yoni122222@gmail.com / claims_gmail_* / claims-docs: DO NOT TOUCH.
+-- Claims mailbox yoni122222@gmail.com / claims_gmail_* / claims-docs / claims_gmail_connection: DO NOT TOUCH.
 -- Attachments stay in existing private bucket garage-media (no new bucket).
 -- ============================================================================
+
+DO $$
+BEGIN
+  IF to_regprocedure('public.garage_is_staff(uuid)') IS NULL THEN
+    RAISE EXCEPTION 'חסר public.garage_is_staff(uuid). עוצרים. לא נוגעים ב-Claims.';
+  END IF;
+END $$;
+
+-- Token row for the garage mailbox only. Service role / Edge only — no GRANT to authenticated/anon.
+CREATE TABLE IF NOT EXISTS public.garage_gmail_connection (
+  id text PRIMARY KEY,
+  connected_email text NOT NULL DEFAULT '',
+  refresh_token text NOT NULL DEFAULT '',
+  oauth_state text NOT NULL DEFAULT '',
+  last_ok_at timestamptz,
+  revoked_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT garage_gmail_connection_not_claims CHECK (position('yoni122222' in lower(connected_email)) = 0)
+);
+
+INSERT INTO public.garage_gmail_connection (id, connected_email)
+VALUES ('staging', '')
+ON CONFLICT (id) DO NOTHING;
+
+ALTER TABLE public.garage_gmail_connection ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.garage_gmail_connection FORCE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.garage_gmail_connection FROM PUBLIC, anon, authenticated;
+
+DROP POLICY IF EXISTS garage_gmail_connection_deny_clients ON public.garage_gmail_connection;
+CREATE POLICY garage_gmail_connection_deny_clients
+  ON public.garage_gmail_connection FOR ALL TO authenticated
+  USING (false)
+  WITH CHECK (false);
+
+COMMENT ON TABLE public.garage_gmail_connection IS
+  'Garage mailbox OAuth refresh token. Staging only. Not claims_gmail_connection. Edge service_role only.';
+
 
 -- garage_gmail_pending: unmatched / ambiguous inbound mail awaiting worker assign.
 CREATE TABLE IF NOT EXISTS public.garage_gmail_pending (

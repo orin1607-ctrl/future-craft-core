@@ -33,6 +33,7 @@ import {
   type GarageMediaCategoryId,
 } from './garageMedia';
 import { scanGarageMailbox } from './garageMail';
+import { supabase } from '@/integrations/supabase/client';
 
 type HostRequest = {
   type: string;
@@ -260,6 +261,27 @@ export default function GarageApp() {
             actorName: actor?.full_name,
           });
           reply(requestId, scanned);
+          return;
+        }
+        if (msg.type === 'gm:garageGmailStatus') {
+          const { data, error } = await supabase.functions.invoke('garage-gmail', { body: { action: 'status' } });
+          const row = (data && typeof data === 'object') ? data as Record<string, unknown> : {};
+          reply(requestId, {
+            ok: !error,
+            connected: row.connected === true || row.ok === true,
+            pending: row.pending === true || row.connected !== true,
+            email: row.email,
+            mailbox: row.mailbox,
+            error: error ? String((error as { message?: string }).message || error) : (row.error as string | undefined),
+            ...row,
+          });
+          return;
+        }
+        if (msg.type === 'gm:garageGmailOauthStart') {
+          const { data, error } = await supabase.functions.invoke('garage-gmail', {
+            body: { action: 'oauth_start', preferPages: payload.preferPages === true },
+          });
+          reply(requestId, { ok: !error, ...(data && typeof data === 'object' ? data : {}), error: error ? String((error as Error).message || error) : undefined });
           return;
         }
       } catch (error) {

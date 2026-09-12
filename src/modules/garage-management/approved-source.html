@@ -3136,7 +3136,52 @@ function renderPriceReviewCard(){
 function renderGarageMailStatus(){
   var box = document.getElementById('garage-mail-status');
   if(!box) return;
-  box.innerHTML = '<div style="font-weight:700;">תיבת מוסך: yoni191177@gmail.com</div><div class="hint" style="margin:6px 0 0;" id="garage-mail-status-hint">סריקה חיה ממתינה לחיבור נפרד. לא משתמשים בתיבת Claims.</div>';
+  if(state.currentScreen !== 's-comm') return;
+  box.innerHTML = '<div style="font-weight:700;">תיבת מוסך: yoni191177@gmail.com</div><div class="hint" style="margin:6px 0 0;" id="garage-mail-status-hint">בודק חיבור…</div><div id="garage-mail-connect-row" style="margin-top:10px;"></div>';
+  refreshGarageGmailStatus();
+}
+function refreshGarageGmailStatus(){
+  var hint = document.getElementById('garage-mail-status-hint');
+  var row = document.getElementById('garage-mail-connect-row');
+  var req;
+  try { req = callHost('gm:garageGmailStatus', {}); } catch (e) { return; }
+  if(!req || !req.then) return;
+  req.then(function(res){
+    if(!hint) return;
+    if(res && res.connected){
+      hint.textContent = 'מחובר לסריקה אוטומטית · '+((res.email||'yoni191177@gmail.com'))+' · לא תיבת Claims.';
+      if(row) row.innerHTML = '';
+      return;
+    }
+    hint.textContent = (res && res.error) || 'תיבת המוסך עדיין לא מחוברת לסריקה. לחצו לחיבור Google של yoni191177@gmail.com בלבד.';
+    if(row) row.innerHTML = '<button class="btn btn-white" type="button" onclick="connectGarageGmail()">חבר yoni191177@gmail.com</button>';
+  }).catch(function(){
+    if(hint) hint.textContent = 'תיבת המוסך עדיין לא מחוברת לסריקה אוטומטית.';
+  });
+}
+function connectGarageGmail(){
+  var req;
+  try { req = callHost('gm:garageGmailOauthStart', { preferPages: true }); } catch (e) { return; }
+  if(!req || !req.then) return;
+  req.then(function(res){
+    if(res && res.authUrl){
+      window.open(res.authUrl, '_blank', 'noopener,noreferrer');
+      alert('נפתח מסך Google. התחברו בדיוק עם yoni191177@gmail.com ואשרו. אחר כך לחצו שוב סרוק תיבת מוסך.');
+      return;
+    }
+    try {
+      return callHost('gm:garageGmailOauthStart', {}).then(function(res2){
+        if(res2 && res2.authUrl){
+          window.open(res2.authUrl, '_blank', 'noopener,noreferrer');
+          alert('נפתח מסך Google. התחברו בדיוק עם yoni191177@gmail.com.');
+          return;
+        }
+        alert((res && res.error) || (res2 && res2.error) || 'אין קישור OAuth עדיין. חסר חיבור Google ב-Staging.');
+      });
+    } catch (e2) {
+      alert((res && res.error) || 'אין קישור OAuth עדיין.');
+    }
+  }).catch(function(){});
 }
 function approveGarageDetectedPrice(){
   var amount = Number((state.priceReview && state.priceReview.detectedAmount) || 0);

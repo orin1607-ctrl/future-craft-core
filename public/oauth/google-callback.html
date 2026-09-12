@@ -46,21 +46,36 @@ p{font-size:14px;color:rgba(255,255,255,.7);line-height:1.6;margin:0 0 16px;}
     return;
   }
 
-  var staging = null;
-  try { staging = JSON.parse(sessionStorage.getItem('coco-google-oauth-pending') || 'null'); } catch (e) { /* ignore */ }
+  var staging = 'https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/garage-gmail';
+  var anon = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU';
+  var state = params.get('state') || '';
+  if (state.indexOf('garage-gmail') === 0) {
+    fetch(staging, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': anon, 'Authorization': 'Bearer ' + anon },
+      body: JSON.stringify({ action: 'oauth_callback', code: code, state: state })
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (data && data.success) finish(true, 'תיבת המוסך yoni191177@gmail.com מחוברת לסריקה. אפשר לסגור ולחזור לניהול המוסך.');
+      else finish(false, (data && (data.error || data.email)) || 'החלפת קוד Gmail של המוסך נכשלה');
+    }).catch(function (e) { finish(false, 'שגיאת רשת: ' + e.message); });
+    return;
+  }
 
-  if (!staging || !staging.edgeUrl || !staging.accessToken) {
+  var pending = null;
+  try { pending = JSON.parse(sessionStorage.getItem('coco-google-oauth-pending') || 'null'); } catch (e) { /* ignore */ }
+
+  if (!pending || !pending.edgeUrl || !pending.accessToken) {
     finish(true, 'קוד OAuth התקבל. חזור למערכת דליה (Super Admin) ולחץ שוב על "חבר אוטומטית" — או הרץ npm run project-001:auth במחשב הבעלים.');
     sessionStorage.setItem('coco-google-oauth-code', code);
     return;
   }
 
-  fetch(staging.edgeUrl, {
+  fetch(pending.edgeUrl, {
     method: 'POST',
     headers: {
-      'Authorization': 'Bearer ' + staging.accessToken,
+      'Authorization': 'Bearer ' + pending.accessToken,
       'Content-Type': 'application/json',
-      'apikey': staging.anonKey || ''
+      'apikey': pending.anonKey || ''
     },
     body: JSON.stringify({
       action: 'exchange',

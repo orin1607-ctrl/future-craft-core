@@ -83,3 +83,7 @@ verify_jwt = false
 # Public token upload + authenticated create (JWT checked inside handler)
 [functions.document-request]
 verify_jwt = false
+
+# Garage Gmail — JWT checked inside; Google OAuth callback has no user JWT.
+[functions.garage-gmail]
+verify_jwt = false
