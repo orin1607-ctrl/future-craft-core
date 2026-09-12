@@ -15,6 +15,7 @@ export type CustomerOrderExtract = {
   source: CustomerOrderExtractSource;
   fields: CustomerOrderFields;
   note: string;
+  plateHint?: string;
 };
 
 const EMPTY_FIELDS: CustomerOrderFields = {
@@ -121,6 +122,20 @@ export function extractCustomerOrderFields(text: string): CustomerOrderFields {
     case_ref: case_ref && !/^\d{1,2}[./-]\d{1,2}[./-]\d{2,4}$/.test(case_ref) ? case_ref : '',
     order_date: normalizeDate(labeledDate),
   };
+}
+
+export function extractPlateHint(text: string): string {
+  const hay = normalizeDocText(text);
+  if (!hay) return '';
+  const plateToken = /[0-9]{2,3}-[0-9]{2,3}-[0-9]{2,3}|[0-9]{7,8}/;
+  return captureLabeled(hay, [
+    'מספר רכב',
+    'מספר רישוי',
+    'לוחית',
+    'רישוי',
+    'license plate',
+    'plate',
+  ], plateToken);
 }
 
 export function extractNote(source: CustomerOrderExtractSource, fields: CustomerOrderFields) {
@@ -240,7 +255,8 @@ export async function extractCustomerOrderDocument(input: {
 
   const finish = (source: CustomerOrderExtractSource, text: string): CustomerOrderExtract => {
     const fields = extractCustomerOrderFields(text);
-    return { source, fields, note: extractNote(source, fields) };
+    const plateHint = extractPlateHint(text);
+    return { source, fields, note: extractNote(source, fields), plateHint: plateHint || undefined };
   };
 
   try {

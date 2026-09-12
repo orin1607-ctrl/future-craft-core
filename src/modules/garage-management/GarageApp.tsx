@@ -8,7 +8,6 @@ import {
   createCase,
   createCustomer,
   createVehicle,
-  defaultRouteForCustomer,
   emptyCaseData,
   getCase,
   GARAGE_WORKFLOW_PENDING_MESSAGE,
@@ -20,7 +19,7 @@ import {
   probeGarageBook,
   searchCustomers,
   updateCase,
-  updateCustomerWorkflow,
+  updateCustomerBook,
   type GarageActor,
   type GarageCustomer,
   type GarageRoute,
@@ -50,11 +49,11 @@ function asBookError(error: unknown): string {
   const raw = error as { code?: string; message?: string } | Error | string;
   const message = String((raw as Error)?.message || (raw as { message?: string })?.message || raw || 'שגיאה');
   const shaped = raw && typeof raw === 'object' ? raw as { code?: string; message?: string } : { message };
-  if (isGarageWorkflowColumnMissing(shaped) || /default_workflow/i.test(message)) {
-    return GARAGE_WORKFLOW_PENDING_MESSAGE;
-  }
   if (isGarageSchemaMissing(shaped) || isGarageSchemaMissing({ message })) {
     return GARAGE_BOOK_PENDING_MESSAGE;
+  }
+  if (isGarageWorkflowColumnMissing(shaped) || message === GARAGE_WORKFLOW_PENDING_MESSAGE) {
+    return 'המסלול נבחר בכל תיק בנפרד. שמירת הלקוח נמשכת בלי שדה ברירת מחדל.';
   }
   return message;
 }
@@ -162,18 +161,21 @@ export default function GarageApp() {
           return;
         }
         if (msg.type === 'gm:updateCustomer') {
-          const customer = await updateCustomerWorkflow(
-            String(payload.customerId || ''),
-            (payload.default_workflow as GarageRoute) === 'intake_first' ? 'intake_first' : 'quote_first',
-          );
+          const customer = await updateCustomerBook(String(payload.customerId || ''), {
+            default_workflow: payload.default_workflow
+              ? ((payload.default_workflow as GarageRoute) === 'intake_first' ? 'intake_first' : 'quote_first')
+              : undefined,
+            contact_person: payload.contact_person != null ? String(payload.contact_person) : undefined,
+            notes: payload.notes != null ? String(payload.notes) : undefined,
+            contacts: Array.isArray(payload.contacts) ? payload.contacts as never : undefined,
+          });
           reply(requestId, { ok: true, customer });
           return;
         }
         if (msg.type === 'gm:createCase') {
           if (!actor) throw new Error('אין משתמש מחובר');
           const customer = payload.customer as GarageCustomer;
-          const route = (payload.route as GarageRoute)
-            || defaultRouteForCustomer(customer);
+          const route: GarageRoute = (payload.route as GarageRoute) === 'intake_first' ? 'intake_first' : 'quote_first';
           const created = await createCase({
             customer,
             vehicle: payload.vehicle as GarageVehicle,

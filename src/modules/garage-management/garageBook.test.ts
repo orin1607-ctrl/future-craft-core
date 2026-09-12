@@ -1,16 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import {
+  closeCaseGaps,
+  closedCaseUiStatus,
   customerDisplayName,
   defaultRouteForCustomer,
   deriveCaseStatus,
   emptyCaseData,
+  encodeContactsInNotes,
   extractWorkOrderHints,
   findDuplicateCustomers,
   garageNextAction,
   isGarageSchemaMissing,
   isGarageWorkflowColumnMissing,
+  notesWithoutContacts,
   normalizePhone,
   normalizePlate,
+  parseCustomerContacts,
   routeLabel,
   sanitizeCaseData,
   vehicleLabel,
@@ -111,6 +116,7 @@ describe('garage book helpers', () => {
     expect(garageNextAction({ route: 'intake_first' })).toBe('העלאת הזמנת לקוח');
     expect(garageNextAction({ route: 'intake_first', workOrderSaved: true })).toBe('קבלת רכב + 5 תמונות');
     expect(garageNextAction({ route: 'intake_first', intakeDone: true })).toBe('הכנת הצעת מחיר');
+    expect(garageNextAction({ workFinished: true })).toBe('מסירה / סגירת תיק');
   });
 
   it('builds display labels', () => {
@@ -129,5 +135,50 @@ describe('garage book helpers', () => {
       message: "Could not find the 'default_workflow' column of 'garage_customers' in the schema cache",
     })).toBe(true);
     expect(isGarageWorkflowColumnMissing({ code: 'PGRST205', message: "Could not find the table 'public.garage_cases'" })).toBe(false);
+  });
+
+  it('encodes garage contacts into existing customer notes without a new table', () => {
+    const encoded = encodeContactsInNotes('הערה רגילה', [
+      { id: 'c1', name: 'רותי', role: 'רכזת', phone: '0501111111', email: 'r@example.com', notes: '' },
+    ]);
+    expect(encoded).toContain('הערה רגילה');
+    expect(notesWithoutContacts(encoded)).toBe('הערה רגילה');
+    expect(parseCustomerContacts({ notes: encoded, contact_person: '', phone: '', email: '' }).map((c) => c.name)).toEqual(['רותי']);
+  });
+
+  it('blocks case close until finish photos, delivery, payment and signature exist', () => {
+    expect(closeCaseGaps({ workFinished: true })).toEqual(expect.arrayContaining([
+      'המחיר/ההצעה הסופיים אינם ברורים',
+      'מצב התשלום לא סומן',
+      'חסרות תמונות סיום חובה (קדמי, אחורי, ימין, שמאל)',
+      'חסר קילומטראז׳ במסירה',
+      'מסירת הרכב לא בוצעה',
+      'מקבל הרכב לא זוהה',
+      'חסר אישור/חתימת מקבל הרכב',
+    ]));
+    expect(closeCaseGaps({
+      workFinished: true,
+      quoteCreated: true,
+      quoteWorks: [{ part: 'תיקון', qty: 1, price: 100 }],
+      paymentStatus: 'pending',
+      finishAngles: { front: true, rear: true, right: true, left: true },
+      deliveryKm: '50100',
+      deliveryDone: true,
+      deliveryRecipient: 'QA מקבל',
+      deliveryConfirmed: true,
+      extraApprovals: [{ text: 'תוספת', status: 'sent_mailto' }],
+    })).toEqual(['קיימת תוספת עבודה שממתינה לאישור']);
+    expect(closeCaseGaps({
+      workFinished: true,
+      quoteCreated: true,
+      paymentStatus: 'settled',
+      finishAngles: { front: true, rear: true, right: true, left: true },
+      deliveryKm: '50100',
+      deliveryDone: true,
+      deliveryRecipient: 'QA מקבל',
+      deliveryConfirmed: true,
+      extraApprovals: [{ text: 'תוספת', status: 'approved', approvedAt: '2026-09-12T12:00:00.000Z' }],
+    })).toEqual([]);
+    expect(closedCaseUiStatus({ caseClosed: true })).toBe('הרכב נמסר / התיק נסגר');
   });
 });

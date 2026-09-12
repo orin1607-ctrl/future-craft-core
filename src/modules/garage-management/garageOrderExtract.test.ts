@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { extractCustomerOrderDocument, extractCustomerOrderFields, extractNote } from './garageOrderExtract';
+import { extractCustomerOrderDocument, extractCustomerOrderFields, extractNote, extractPlateHint } from './garageOrderExtract';
 
 const sample = `
 הזמנת עבודה
@@ -61,6 +61,11 @@ describe('garage customer-order extract', () => {
     expect(JSON.stringify(fields)).not.toMatch(/חברת צי/);
     expect(JSON.stringify(fields)).not.toMatch(/רותי/);
     expect(Object.keys(fields).sort()).toEqual(['case_ref', 'order_date', 'order_number']);
+  });
+
+  it('exposes a plate hint for worker verification without putting it in saved fields', () => {
+    expect(extractPlateHint(sample)).toMatch(/12-345-67|1234567/);
+    expect(Object.keys(extractCustomerOrderFields(sample))).not.toContain('plate');
   });
 
   it('normalizes ISO dates and ignores unlabeled noise', () => {

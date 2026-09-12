@@ -111,6 +111,8 @@ describe('garage flow live case binding', () => {
     expect(win.document.getElementById('s-inspect')?.textContent).not.toContain('צילומי חובה — 4 זוויות');
     expect(win.document.getElementById('s-inspect')?.textContent).toContain('אינן 5 תמונות קבלת הרכב');
     expect(win.document.getElementById('s-intake')?.textContent).toContain('5 תמונות חובה לקבלת רכב');
+    expect(win.document.getElementById('s-intake')?.textContent).toContain('קילומטראז\' נוכחי');
+    expect(win.document.getElementById('s-intake')?.textContent).toContain('לוח שעונים');
     expect(win.document.getElementById('s-intake')?.querySelector('[data-intake-angle="dashboard"]')).toBeTruthy();
     expect(win.document.getElementById('gm-file-camera')?.getAttribute('capture')).toBe('environment');
     win.setCaseRoute('intake_first');
@@ -426,5 +428,60 @@ describe('garage flow live case binding', () => {
     expect(win.document.getElementById('case-status-badge')?.textContent).toBe('הרכב התקבל');
     expect(win.document.getElementById('s-case')?.classList.contains('active')).toBe(true);
     expect(win.document.getElementById('s-intake')?.textContent).toContain('תמונה נוספת');
+  });
+
+  it('does not force case route from customer default_workflow and requires closeout gates', () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      confirmCloseCase: () => void;
+      finishWork: () => void;
+      markDeliveryDone: () => void;
+      confirmDeliverySignature: () => void;
+      reopenClosedCase: () => void;
+      alert: (msg?: string) => void;
+      document: Document;
+      state: Record<string, unknown>;
+    };
+    const alerts: string[] = [];
+    win.alert = (msg?: string) => { alerts.push(String(msg || '')); };
+    win.HTMLCanvasElement.prototype.toBlob = function toBlob(cb: BlobCallback) { cb(null); };
+    win.applyBootstrap({
+      mode: 'case',
+      loaded: {
+        ...qaCase,
+        customer: { ...qaCase.customer, customer_type: 'fleet', default_workflow: 'intake_first', company_name: 'QA צי' },
+        case_data: { route: 'quote_first' },
+      },
+      bookPending: false,
+    });
+    expect(win.document.getElementById('route-opt-quote_first')?.classList.contains('sel')).toBe(true);
+    expect(win.document.getElementById('s-case')?.textContent).toContain('העובד בוחר את המסלול בכל תיק');
+    expect(win.document.getElementById('s-newform')?.textContent).toContain('+ הוסף איש קשר');
+    win.finishWork();
+    expect(win.state.workFinished).toBe(true);
+    expect(win.state.caseClosed).toBeFalsy();
+    expect(win.document.getElementById('s-close')?.classList.contains('active')).toBe(true);
+    win.confirmCloseCase();
+    expect(alerts.some((msg) => /לא ניתן לסגור/.test(msg))).toBe(true);
+    expect(win.state.caseClosed).toBeFalsy();
+    expect(win.document.getElementById('s-close')?.textContent).toContain('אני מאשר שקיבלתי את הרכב');
+    expect(win.document.getElementById('s-close')?.textContent).toContain('קילומטראז\' במסירה');
+  });
+
+  it('keeps mailto extra-work send from looking like customer approval', () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      sendExtraApproval: (channel: string) => void;
+      document: Document;
+      state: { extraApprovals: Array<{ status?: string; approvedAt?: string }> };
+    };
+    win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
+    (win.document.getElementById('extra-text') as HTMLTextAreaElement).value = 'תוספת עבודה QA';
+    (win.document.getElementById('extra-price') as HTMLInputElement).value = '250';
+    win.sendExtraApproval('email');
+    expect(win.state.extraApprovals[0].status).toBe('sent_mailto');
+    expect(win.state.extraApprovals[0].approvedAt).toBeFalsy();
+    expect(win.document.getElementById('extra-approval-list')?.textContent).toContain('נפתח מייל');
+    expect(win.document.getElementById('extra-approval-list')?.textContent).not.toContain('אושר ·');
   });
 });
