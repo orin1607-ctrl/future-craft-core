@@ -667,7 +667,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <h2 class="section-title">פרטי הזמנה חדשה</h2>
     <div class="bar"></div>
     <div class="field"><label>מספר הזמנה <span class="req">*</span></label><input id="wo-num" placeholder="מספר הזמנה"></div>
-    <div class="field"><label>מספר תביעה / אסמכתא</label><input id="wo-ref" placeholder="אם מופיע בהזמנה"></div>
+    <div class="field"><label>מספר תיק / אסמכתא</label><input id="wo-ref" placeholder="אם מופיע בהזמנה"></div>
     <div class="field"><label>תאריך הזמנה</label><input id="wo-date" placeholder="תאריך"></div>
     <div class="field"><label>סכום מאושר <span class="req">*</span></label><input id="wo-amount" type="number" placeholder="0"></div>
     <div class="field"><label>איש קשר</label><input id="wo-contact" placeholder="שם איש הקשר אצל הלקוח"></div>
@@ -678,14 +678,11 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     </div>
     <div class="media-preview-row" id="wo-order-previews"></div>
     <div class="card" id="wo-scan-result" style="display:none;">
-      <div style="font-size:13px; font-weight:700; margin-bottom:8px;">נתונים שחולצו — אשר או תקן לפני שמירה</div>
-      <div class="hint" id="wo-scan-source" style="margin-bottom:8px;">זיהוי משם הקובץ בלבד. אין OCR ואין קריאת תוכן PDF/תמונה. לא נשמר אוטומטית לתיק.</div>
+      <div style="font-size:13px; font-weight:700; margin-bottom:8px;">נתונים שחולצו מהמסמך — אשר או תקן לפני שמירה</div>
+      <div class="hint" id="wo-scan-source" style="margin-bottom:8px;">לא נשמר אוטומטית לתיק. הלקוח כבר ידוע מהתיק ולא משתנה מההזמנה.</div>
       <div class="field"><label>מספר הזמנה</label><input id="wo-scan-num" placeholder="—"></div>
-      <div class="field"><label>מספר רכב</label><input id="wo-scan-plate" placeholder="—"></div>
-      <div class="field"><label>מספר תביעה / אסמכתא</label><input id="wo-scan-ref" placeholder="—"></div>
-      <div class="field"><label>חברה</label><input id="wo-scan-customer" placeholder="—"></div>
-      <div class="field"><label>איש קשר</label><input id="wo-scan-contact" placeholder="—"></div>
-      <div class="field"><label>סכום</label><input id="wo-scan-amount" placeholder="—"></div>
+      <div class="field"><label>מספר תיק / אסמכתא</label><input id="wo-scan-ref" placeholder="—"></div>
+      <div class="field"><label>תאריך הזמנה</label><input id="wo-scan-date" placeholder="—"></div>
       <button class="btn btn-ghost" type="button" onclick="applyExtractedOrderToForm()">החל על טופס ההזמנה</button>
     </div>
     <button class="btn btn-white" onclick="saveWorkOrder()">אשר ושמור הזמנה</button>
@@ -1276,7 +1273,7 @@ function callHost(type, payload, buffer){
     }
     setTimeout(function(){
       if(pending[id]){ pending[id].reject(new Error('timeout')); delete pending[id]; }
-    }, 20000);
+    }, type === 'gm:uploadMedia' ? 120000 : 20000);
   });
 }
 function pickMedia(category, title, camera){
@@ -1304,6 +1301,9 @@ function uploadSelectedFiles(fileList){
   var chain = Promise.resolve();
   files.forEach(function(file){
     chain = chain.then(function(){
+      if(uploadCtx.category === 'customer_order'){
+        showOrderExtractReview({ source: 'reading', fields: {} });
+      }
       return file.arrayBuffer().then(function(buf){
         return callHost('gm:uploadMedia', {
           garageCaseId: liveCaseId(),
@@ -1319,7 +1319,7 @@ function uploadSelectedFiles(fileList){
           state.intakeAngles[uploadCtx.angle] = true;
         }
         if(uploadCtx.category === 'customer_order'){
-          showOrderExtractReview(file.name);
+          showOrderExtractReview(res && res.extract);
         }
         if(uploadCtx.category === 'quote_photos' || uploadCtx.category === 'damage'){
           state.photos = state.photos || {};
@@ -2095,7 +2095,7 @@ function sharePackText(){
     'מסלול: ' + routeLabelText(caseRoute()),
     'הצעה: ' + money(quoteGrandTotal()),
     state.workOrderNumber ? ('הזמנה: ' + state.workOrderNumber) : '',
-    state.workOrderRef ? ('אסמכתא / תביעה: ' + state.workOrderRef) : '',
+    state.workOrderRef ? ('מספר תיק / אסמכתא: ' + state.workOrderRef) : '',
     state.workOrderContact ? ('איש קשר: ' + state.workOrderContact) : '',
     selectedAttachSummary(),
     'QA / TEST — שיתוף ידני מתוך אותו garage_case_id. לא נשלח דרך תיבת Claims.'
@@ -2199,53 +2199,22 @@ function startWork(){
   go('s-job');
 }
 /* ---------- work order ---------- */
-function extractWorkOrderHintsFromName(fileName, extraText){
-  var hay = String(fileName || '') + ' ' + String(extraText || '');
-  var orderMatch = hay.match(/(?:הזמנה|order|po|wo)[\s#:.\-_]*([A-Za-z0-9\/\-]{3,})/i);
-  var claimMatch = hay.match(/(?:תביעה|אסמכתא|claim|ref)[\s#:.\-_]*([A-Za-z0-9\/\-]{3,})/i);
-  var amountMatch = hay.match(/(?:₪|ש["״']?ח|amount|סכום)[\s:]*([\d,.]+)/i);
-  var dashedPlate = hay.match(/\b(\d{2,3}-\d{2,3}-\d{2,3})\b/);
-  var plateMatch = dashedPlate || hay.match(/(?:רכב|plate|לוחית)[\s#:.\-_]*(\d{7,8})/i);
-  var fromFile = [];
-  var fromCase = [];
-  var hints = {
-    order_number: orderMatch ? String(orderMatch[1]) : '',
-    plate: plateMatch ? String(plateMatch[1]).replace(/[^0-9A-Za-z]/g, '') : '',
-    claim_ref: claimMatch ? String(claimMatch[1]) : '',
-    company: liveCustomerName() || '',
-    contact: (currentCustomer && currentCustomer.contact_person) || '',
-    amount: amountMatch ? String(amountMatch[1]) : ''
-  };
-  if(hints.order_number) fromFile.push('מספר הזמנה');
-  if(hints.plate) fromFile.push('מספר רכב');
-  if(hints.claim_ref) fromFile.push('אסמכתא / תביעה');
-  if(hints.amount) fromFile.push('סכום');
-  if(!hints.plate && livePlate()){ hints.plate = livePlate(); fromCase.push('מספר רכב מהתיק'); }
-  if(hints.company) fromCase.push('חברה מהתיק');
-  if(hints.contact) fromCase.push('איש קשר מהתיק');
-  hints.fromFile = fromFile;
-  hints.fromCase = fromCase;
-  return hints;
-}
-function showOrderExtractReview(fileName, extraText){
+function showOrderExtractReview(extract){
   var box = document.getElementById('wo-scan-result');
   if(!box) return;
-  var hints = extractWorkOrderHintsFromName(fileName, extraText);
+  if(typeof extract === 'string') extract = {};
+  extract = extract || {};
+  var fields = extract.fields || {};
   box.style.display = 'block';
   var src = document.getElementById('wo-scan-source');
   if(src){
-    var bits = [];
-    if(hints.fromFile.length) bits.push('מהקובץ: ' + hints.fromFile.join(', '));
-    if(hints.fromCase.length) bits.push('מהתיק: ' + hints.fromCase.join(', '));
-    src.textContent = (bits.join(' · ') || 'לא זוהו שדות מהקובץ. מלא ידנית.') + ' זיהוי משם הקובץ בלבד, אין OCR. לא נשמר לתיק עד אישור ושמירת הזמנה.';
+    src.textContent = extract.note
+      || 'לא נמצא טקסט במסמך. מלא ידנית. לא משתמשים בשם הקובץ. הלקוח כבר ידוע מהתיק ולא משתנה.';
   }
   var setVal = function(id, v){ var el = document.getElementById(id); if(el) el.value = v || ''; };
-  setVal('wo-scan-num', hints.order_number);
-  setVal('wo-scan-plate', hints.plate);
-  setVal('wo-scan-ref', hints.claim_ref);
-  setVal('wo-scan-customer', hints.company);
-  setVal('wo-scan-contact', hints.contact);
-  setVal('wo-scan-amount', hints.amount);
+  setVal('wo-scan-num', fields.order_number || '');
+  setVal('wo-scan-ref', fields.case_ref || '');
+  setVal('wo-scan-date', fields.order_date || '');
 }
 function applyExtractedOrderToForm(){
   var copy = function(fromId, toId){
@@ -2255,9 +2224,8 @@ function applyExtractedOrderToForm(){
   };
   copy('wo-scan-num', 'wo-num');
   copy('wo-scan-ref', 'wo-ref');
-  copy('wo-scan-contact', 'wo-contact');
-  copy('wo-scan-amount', 'wo-amount');
-  alert('הנתונים הועתקו לטופס. לחץ "אשר ושמור הזמנה" כדי לשמור בתיק.');
+  copy('wo-scan-date', 'wo-date');
+  alert('הנתונים הועתקו לטופס. לחץ "אשר ושמור הזמנה" כדי לשמור בתיק. הלקוח לא משתנה.');
 }
 function saveWorkOrder(){
   var num = (document.getElementById('wo-num').value || '').trim();

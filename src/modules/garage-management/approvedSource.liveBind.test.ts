@@ -301,7 +301,7 @@ describe('garage flow live case binding', () => {
   it('shows extracted order fields for worker confirm and does not save until saveWorkOrder', () => {
     const win = bootFlow() as Window & {
       applyBootstrap: (payload: Record<string, unknown>) => void;
-      showOrderExtractReview: (name: string) => void;
+      showOrderExtractReview: (extract: Record<string, unknown>) => void;
       applyExtractedOrderToForm: () => void;
       saveWorkOrder: () => void;
       alert: (msg?: string) => void;
@@ -309,17 +309,33 @@ describe('garage flow live case binding', () => {
     };
     win.alert = () => {};
     win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
-    win.showOrderExtractReview('order-PO-4455-99-888-77-claim-QA12.pdf');
+    win.showOrderExtractReview({
+      source: 'pdf_text',
+      note: 'חולץ מטקסט המסמך: מספר הזמנה, מספר תיק / אסמכתא, תאריך הזמנה.',
+      fields: { order_number: '88900123', case_ref: 'TK-4421', order_date: '12/09/2026' },
+    });
     expect(win.document.getElementById('wo-scan-result')?.getAttribute('style') || '').not.toContain('display:none');
-    expect((win.document.getElementById('wo-scan-num') as HTMLInputElement).value).toMatch(/4455/);
+    expect((win.document.getElementById('wo-scan-num') as HTMLInputElement).value).toBe('88900123');
+    expect((win.document.getElementById('wo-scan-ref') as HTMLInputElement).value).toBe('TK-4421');
+    expect((win.document.getElementById('wo-scan-date') as HTMLInputElement).value).toBe('12/09/2026');
+    expect(win.document.getElementById('wo-scan-result')?.textContent).not.toContain('חברה');
     expect((win.document.getElementById('wo-num') as HTMLInputElement).value).toBe('');
+    win.showOrderExtractReview('order-PO-4455-99-888-77-claim-QA12.pdf');
+    expect((win.document.getElementById('wo-scan-num') as HTMLInputElement).value).toBe('');
+    win.showOrderExtractReview({
+      source: 'pdf_text',
+      fields: { order_number: '88900123', case_ref: 'TK-4421', order_date: '12/09/2026' },
+    });
     win.applyExtractedOrderToForm();
-    expect((win.document.getElementById('wo-num') as HTMLInputElement).value).toMatch(/4455/);
+    expect((win.document.getElementById('wo-num') as HTMLInputElement).value).toBe('88900123');
+    expect((win.document.getElementById('wo-ref') as HTMLInputElement).value).toBe('TK-4421');
+    expect((win.document.getElementById('wo-date') as HTMLInputElement).value).toBe('12/09/2026');
     expect((win as unknown as { state: { workOrderSaved?: boolean } }).state.workOrderSaved).toBeFalsy();
     (win.document.getElementById('wo-amount') as HTMLInputElement).value = '1500';
     win.saveWorkOrder();
-    expect((win as unknown as { state: { workOrderSaved?: boolean; workOrderNumber?: string } }).state.workOrderSaved).toBe(true);
-    expect((win as unknown as { state: { workOrderNumber?: string } }).state.workOrderNumber).toMatch(/4455/);
+    expect((win as unknown as { state: { workOrderSaved?: boolean; workOrderNumber?: string; workOrderDate?: string } }).state.workOrderSaved).toBe(true);
+    expect((win as unknown as { state: { workOrderNumber?: string } }).state.workOrderNumber).toBe('88900123');
+    expect((win as unknown as { state: { workOrderDate?: string } }).state.workOrderDate).toBe('12/09/2026');
   });
 
   it('prefills the existing send area from the live case with email as default', () => {

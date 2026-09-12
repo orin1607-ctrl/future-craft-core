@@ -208,16 +208,34 @@ export default function GarageApp() {
           const id = String(payload.garageCaseId || caseId || '');
           const buffer = msg.buffer;
           if (!buffer) throw new Error('אין קובץ להעלאה');
+          const bytes = buffer.slice(0);
           const item = await uploadGarageMedia({
             garageCaseId: id,
             category: String(payload.category || 'other') as GarageMediaCategoryId,
             title: String(payload.title || payload.name || 'קובץ'),
             fileName: String(payload.name || 'file'),
             mimeType: String(payload.type || 'application/octet-stream'),
-            bytes: buffer,
+            bytes,
             actorId: actor?.id,
           });
-          reply(requestId, { ok: true, item });
+          let extract: Record<string, unknown> | undefined;
+          if (String(payload.category || '') === 'customer_order') {
+            try {
+              const { extractCustomerOrderDocument } = await import('./garageOrderExtract');
+              extract = await extractCustomerOrderDocument({
+                bytes: new Uint8Array(buffer),
+                mimeType: String(payload.type || ''),
+                fileName: String(payload.name || ''),
+              });
+            } catch {
+              extract = {
+                source: 'none',
+                fields: { order_number: '', case_ref: '', order_date: '' },
+                note: 'קריאת המסמך נכשלה. מלא ידנית. לא משתמשים בשם הקובץ. הלקוח כבר ידוע מהתיק ולא משתנה.',
+              };
+            }
+          }
+          reply(requestId, { ok: true, item, extract });
           return;
         }
         if (msg.type === 'gm:openCase') {

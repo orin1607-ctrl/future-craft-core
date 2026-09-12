@@ -23,19 +23,21 @@ describe('garage book helpers', () => {
     expect(normalizePlate('12-345-67')).toBe('1234567');
   });
 
-  it('extracts work-order hints from a filename without auto-saving them', () => {
+  it('extracts work-order fields from document text only, never from the filename or customer', () => {
     const hints = extractWorkOrderHints({
       fileName: 'order-PO-8821-99-888-77-claim-DAL99.pdf',
-      company: 'QA / TEST חברה',
-      contact: 'רותי',
-      casePlate: '9988877',
+      text: [
+        'לקוח: חברת צי QA',
+        'מספר הזמנה: 88900123',
+        'מספר תיק / אסמכתא: TK-4421',
+        'תאריך הזמנה: 12/09/2026',
+      ].join('\n'),
     });
-    expect(hints.order_number).toMatch(/8821/);
-    expect(hints.plate).toBe('9988877');
-    expect(hints.claim_ref).toMatch(/DAL99/i);
-    expect(hints.company).toBe('QA / TEST חברה');
-    expect(hints.fromFile.length).toBeGreaterThan(0);
-    expect(hints.fromCase).toContain('חברה מהתיק');
+    expect(hints.order_number).toBe('88900123');
+    expect(hints.case_ref).toBe('TK-4421');
+    expect(hints.order_date).toBe('12/09/2026');
+    expect(extractWorkOrderHints({ fileName: 'order-PO-8821-claim-DAL99.pdf' }).order_number).toBe('');
+    expect(extractWorkOrderHints({ fileName: 'order-PO-8821-claim-DAL99.pdf' }).case_ref).toBe('');
   });
 
   it('warns on duplicate phone / business id / name without merging', () => {

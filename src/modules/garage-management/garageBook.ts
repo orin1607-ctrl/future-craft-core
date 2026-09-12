@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { extractCustomerOrderFields } from './garageOrderExtract';
 
 export type GarageCustomerType = 'private' | 'business' | 'fleet';
 export type GarageRoute = 'quote_first' | 'intake_first';
@@ -119,55 +120,16 @@ export function normalizePlate(raw: string): string {
 
 export type WorkOrderHints = {
   order_number: string;
-  plate: string;
-  claim_ref: string;
-  company: string;
-  contact: string;
-  amount: string;
-  notes: string;
-  fromFile: string[];
-  fromCase: string[];
+  case_ref: string;
+  order_date: string;
 };
 
 export function extractWorkOrderHints(input: {
-  fileName?: string;
   text?: string;
-  casePlate?: string;
-  company?: string;
-  contact?: string;
+  fileName?: string;
 } = {}): WorkOrderHints {
-  const hay = `${input.fileName || ''} ${input.text || ''}`;
-  const fromFile: string[] = [];
-  const fromCase: string[] = [];
-  const orderMatch = hay.match(/(?:הזמנה|order|po|wo)[\s#:.\-_]*([A-Za-z0-9\/\-]{3,})/i);
-  const claimMatch = hay.match(/(?:תביעה|אסמכתא|claim|ref)[\s#:.\-_]*([A-Za-z0-9\/\-]{3,})/i);
-  const amountMatch = hay.match(/(?:₪|ש["״']?ח|amount|סכום)[\s:]*([\d,.]+)/i);
-  const dashedPlate = hay.match(/\b(\d{2,3}-\d{2,3}-\d{2,3})\b/);
-  const plateMatch = dashedPlate || hay.match(/(?:רכב|plate|לוחית)[\s#:.\-_]*(\d{7,8})/i);
-  const hints: WorkOrderHints = {
-    order_number: orderMatch ? String(orderMatch[1]) : '',
-    plate: plateMatch ? normalizePlate(plateMatch[1]) : '',
-    claim_ref: claimMatch ? String(claimMatch[1]) : '',
-    company: String(input.company || '').trim(),
-    contact: String(input.contact || '').trim(),
-    amount: amountMatch ? String(amountMatch[1]) : '',
-    notes: '',
-    fromFile: [],
-    fromCase: [],
-  };
-  if (hints.order_number) fromFile.push('מספר הזמנה');
-  if (hints.plate) fromFile.push('מספר רכב');
-  if (hints.claim_ref) fromFile.push('אסמכתא / תביעה');
-  if (hints.amount) fromFile.push('סכום');
-  if (!hints.plate && input.casePlate) {
-    hints.plate = normalizePlate(input.casePlate);
-    fromCase.push('מספר רכב מהתיק');
-  }
-  if (hints.company) fromCase.push('חברה מהתיק');
-  if (hints.contact) fromCase.push('איש קשר מהתיק');
-  hints.fromFile = fromFile;
-  hints.fromCase = fromCase;
-  return hints;
+  void input.fileName;
+  return extractCustomerOrderFields(input.text || '');
 }
 
 export function customerDisplayName(c: Pick<GarageCustomer, 'customer_type' | 'name' | 'company_name'>): string {

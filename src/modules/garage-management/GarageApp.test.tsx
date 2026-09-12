@@ -104,6 +104,10 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('Email / מייל');
     expect(approvedSourceHtml).toContain('החל על טופס ההזמנה');
     expect(approvedSourceHtml).toContain('לא נשמר אוטומטית לתיק');
+    expect(approvedSourceHtml).toContain('id="wo-scan-date"');
+    expect(approvedSourceHtml).toContain('מספר תיק / אסמכתא');
+    expect(approvedSourceHtml).not.toContain('זיהוי משם הקובץ בלבד');
+    expect(approvedSourceHtml).not.toContain('extractWorkOrderHintsFromName');
     expect(approvedSourceHtml).toContain('תמונות נזק / הצעת מחיר');
     expect(approvedSourceHtml).not.toContain('צילומי חובה — 4 זוויות');
   });
