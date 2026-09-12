@@ -123,6 +123,32 @@ export type GarageCaseData = {
     caseClosedAt?: string;
     caseClosedBy?: string;
     reopenHistory?: Array<{ at?: string; by?: string; reason?: string; previousClosedAt?: string }>;
+    correspondence?: Array<{
+      id?: string;
+      gmail_message_id?: string;
+      gmail_thread_id?: string;
+      subject?: string;
+      from_addr?: string;
+      to_addr?: string;
+      sent_at?: string;
+      body_text?: string;
+      direction?: 'incoming' | 'outgoing';
+      source?: 'import' | 'mailto' | 'upload';
+      file_names?: string[];
+      unread?: boolean;
+    }>;
+    unreadMail?: boolean;
+    priceReview?: {
+      status?: 'none' | 'waiting_for_price' | 'new_material' | 'priced_order_received' | 'worker_approved';
+      detectedAmount?: number | null;
+      sentAmount?: number | null;
+      compare?: 'match' | 'mismatch' | 'unknown';
+      compareMessage?: string;
+      detectionLabel?: string;
+      sourceMailId?: string;
+      reviewedAt?: string;
+      reviewedBy?: string;
+    };
   };
 
 export type GarageCase = {
@@ -277,6 +303,9 @@ export function emptyCaseData(): GarageCaseData {
     deliveryDone: false,
     deliveryRecipient: '',
     deliveryConfirmed: false,
+    correspondence: [],
+    unreadMail: false,
+    priceReview: { status: 'none', detectedAmount: null, sentAmount: null },
   };
 }
 

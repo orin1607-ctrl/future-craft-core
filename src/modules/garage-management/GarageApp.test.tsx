@@ -113,6 +113,12 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain("data-home-bucket=\"closed\"");
     expect(approvedSourceHtml).toContain('אני מאשר שקיבלתי את הרכב');
     expect(approvedSourceHtml).toContain('Email / מייל');
+    expect(approvedSourceHtml).toContain('מיילים / התכתבויות');
+    expect(approvedSourceHtml).toContain('yoni191177@gmail.com');
+    expect(approvedSourceHtml).toContain("callHost('gm:scanGarageMail'");
+    expect(approvedSourceHtml).toContain('אשר מחיר לתיק');
+    expect(approvedSourceHtml).not.toContain('claims-gmail');
+    expect(approvedSourceHtml).not.toContain('claims-docs');
     expect(approvedSourceHtml).toContain('החל על טופס ההזמנה');
     expect(approvedSourceHtml).toContain('לא נשמר אוטומטית לתיק');
     expect(approvedSourceHtml).toContain('id="wo-scan-date"');

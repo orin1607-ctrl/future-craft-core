@@ -367,7 +367,12 @@ describe('garage flow live case binding', () => {
     expect((win.document.getElementById('compose-body') as HTMLTextAreaElement).value).toContain('99-888-77');
     expect((win.document.getElementById('compose-body') as HTMLTextAreaElement).value).toContain('PO-4455');
     expect(win.document.getElementById('s-compose')?.textContent).toContain('WhatsApp');
-    expect(win.document.getElementById('s-compose')?.textContent).toContain('לא נשלח דרך תיבת Claims');
+    expect(win.document.getElementById('s-compose')?.textContent).toContain('לא תיבת Claims');
+    expect(win.document.getElementById('s-compose')?.textContent).toContain('yoni191177@gmail.com');
+    win.go('s-comm');
+    expect(win.document.getElementById('s-comm')?.textContent).toContain('מיילים / התכתבויות / עדכונים');
+    expect(win.document.getElementById('s-comm')?.textContent).toContain('yoni191177@gmail.com');
+    expect(win.document.getElementById('s-comm')?.textContent).toContain('yoni122222@gmail.com');
   });
 
   it('shows exactly הצעת מחיר תחילה and קבלת רכב on the case route picker', () => {
@@ -601,5 +606,85 @@ describe('garage flow live case binding', () => {
     expect(win.state.extraApprovals[0].approvedAt).toBeFalsy();
     expect(win.document.getElementById('extra-approval-list')?.textContent).toContain('נפתח מייל');
     expect(win.document.getElementById('extra-approval-list')?.textContent).not.toContain('אושר ·');
+  });
+
+  it('keeps a mail chain on the case, never auto-applies a priced order, and does not guess ambiguous mail', () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      go: (id: string) => void;
+      ingestGarageMail: (mail: Record<string, unknown>, match: Record<string, unknown>) => void;
+      assignPendingGarageMail: () => void;
+      approveGarageDetectedPrice: () => void;
+      showOrderExtractReview: (extract: Record<string, unknown>) => void;
+      document: Document;
+      state: Record<string, unknown>;
+      alert: (msg?: string) => void;
+    };
+    win.alert = () => {};
+    win.applyBootstrap({
+      mode: 'case',
+      loaded: {
+        ...qaCase,
+        case_data: {
+          quoteSent: true,
+          quoteWorks: [{ part: 'תיקון', qty: 1, price: 1525.42 }],
+          workOrderAmount: 1800,
+        },
+      },
+      bookPending: false,
+    });
+    win.ingestGarageMail({
+      messageId: 'm-a',
+      threadId: 't-qa',
+      subject: 'חסרה תמונה',
+      body: 'נא לשלוח תמונה נוספת',
+      from: 'fleet@example.com',
+      sentAt: '2026-09-12T10:00:00.000Z',
+    }, { decision: 'auto', caseId: qaCase.id, reason: 'ok', candidates: [qaCase.id] });
+    win.ingestGarageMail({
+      messageId: 'm-b',
+      threadId: 't-qa',
+      subject: 'הזמנה מתומחרת PO-88001',
+      body: 'סכום מאושר לתשלום: 1,950 ₪',
+      from: 'fleet@example.com',
+      filenames: ['priced-order.pdf'],
+      sentAt: '2026-09-12T11:00:00.000Z',
+    }, { decision: 'auto', caseId: qaCase.id, reason: 'ok', candidates: [qaCase.id] });
+    expect((win.state.correspondence as Array<{ gmail_message_id: string }>).map((m) => m.gmail_message_id)).toEqual(['m-a', 'm-b']);
+    expect(win.state.quoteApproved).toBeFalsy();
+    expect(win.state.workOrderAmount).toBe(1800);
+    win.go('s-comm');
+    const comm = win.document.getElementById('s-comm')?.textContent || '';
+    expect(comm).toContain('חסרה תמונה');
+    expect(comm).toContain('הזמנה מתומחרת');
+    expect(comm).toContain('priced-order.pdf');
+    expect(comm).toContain('פער במחיר');
+    expect(comm).toContain('אשר מחיר לתיק');
+    expect((win.document.getElementById('wo-amount') as HTMLInputElement).value).toBe('1800');
+    win.approveGarageDetectedPrice();
+    expect(win.state.quoteApproved).toBe(true);
+    expect(win.state.workOrderAmount).toBe(1950);
+    expect(win.state.finalApprovedAmount).toBe(1950);
+    expect((win.document.getElementById('timeline-content')?.textContent || '')).toContain('העובד אישר את המחיר');
+
+    win.ingestGarageMail({
+      messageId: 'm-ambiguous',
+      subject: 'עדכון',
+      body: 'שלום, נא מסמך',
+    }, { decision: 'needs_review', reason: 'אותו רכב ביותר מתיק מוסך אחד', candidates: ['a', 'b'] });
+    expect(win.document.getElementById('garage-mail-pending')?.textContent).toContain('מייל דורש שיוך ידני');
+    expect(win.document.getElementById('garage-mail-pending')?.textContent).toContain('לא מנחשים');
+    win.assignPendingGarageMail();
+    expect((win.state.correspondence as Array<{ gmail_message_id: string }>).some((m) => m.gmail_message_id === 'm-ambiguous')).toBe(true);
+    expect((win.document.getElementById('timeline-content')?.textContent || '')).toContain('מסמך שויך ידנית לתיק');
+
+    win.showOrderExtractReview({
+      source: 'pdf_text',
+      detectedAmount: 2200,
+      priceLabel: 'נמצא מחיר מאושר/מתומחר: 2,200 ₪',
+      fields: { order_number: 'PO-9', case_ref: '', order_date: '' },
+    });
+    expect((win.document.getElementById('wo-amount') as HTMLInputElement).value).toBe('1950');
+    expect(win.state.workOrderAmount).toBe(1950);
   });
 });
