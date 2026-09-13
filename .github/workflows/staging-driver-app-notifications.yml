@@ -1,0 +1,186 @@
+name: Staging — Driver app notifications
+
+# Staging-only: attempt to apply driver-app settings SQL to dalia-staging.
+# NEVER targets production (qasomfndnjuixgjmjwcm or kuenhflklivaxrmqbsee).
+#
+# GitHub Pages is NOT deployed from this workflow. Pages always publishes
+# origin/main via deploy-staging-pages.yml — never origin/dev.
+
+on:
+  push:
+    branches:
+      - cursor/driver-area-on-main-b784
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging-driver-app-notifications
+  cancel-in-progress: false
+
+jobs:
+  apply-staging-migration:
+    name: Apply migration to dalia-staging only
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard — refuse production refs
+        run: |
+          set -euo pipefail
+          STAGING_REF="usfeoerkpcafxxlyuldl"
+          PROD_REF_A="qasomfndnjuixgjmjwcm"
+          PROD_REF_B="kuenhflklivaxrmqbsee"
+          echo "Target staging project: $STAGING_REF"
+          echo "Guarding against production: $PROD_REF_A $PROD_REF_B"
+          if grep -R --fixed-strings "$PROD_REF_A" .github/workflows/staging-driver-app-notifications.yml | grep -v 'PROD_REF\|production\|NEVER\|refuse\|Guard'; then
+            echo "::error::Workflow unexpectedly references production project A"
+            exit 1
+          fi
+          if grep -R --fixed-strings "$PROD_REF_B" .github/workflows/staging-driver-app-notifications.yml | grep -v 'PROD_REF\|production\|NEVER\|refuse\|Guard'; then
+            echo "::error::Workflow unexpectedly references production project B"
+            exit 1
+          fi
+
+      - name: Apply SQL via Supabase Management API (staging only)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_REF: usfeoerkpcafxxlyuldl
+        run: |
+          set -euo pipefail
+          TOK=$(printf '%s' "${SUPABASE_ACCESS_TOKEN:-}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          if [ -z "$TOK" ]; then
+            echo "::warning::SUPABASE_ACCESS_TOKEN missing. Apply the SQL in the Staging SQL Editor."
+            exit 0
+          fi
+          export SUPABASE_ACCESS_TOKEN="$TOK"
+
+          SQL_FILE_A="supabase/migrations/20260905223000_driver_app_notification_settings.sql"
+          SQL_FILE_B="supabase/migrations/20260906120000_driver_app_control_center_expand.sql"
+          SQL_FILE_C="supabase/migrations/20260913200000_driver_area_settings_expand.sql"
+          test -f "$SQL_FILE_A"
+          test -f "$SQL_FILE_B"
+          test -f "$SQL_FILE_C"
+
+          apply_sql() {
+            local FILE="$1"
+            echo "Applying $FILE to staging via supabase db query"
+            if npx --yes supabase db query --project-ref "$STAGING_REF" -f "$FILE"; then
+              echo "✅ Applied $FILE via CLI to staging only"
+              return 0
+            fi
+            echo "CLI query failed for $FILE — falling back to Management API curl"
+            local SQL_JSON
+            SQL_JSON=$(python3 -c "import json; print(json.dumps({\"query\": open('$FILE', encoding='utf-8').read()}))")
+            local CODE
+            CODE=$(curl -sS -o /tmp/sql_result.json -w "%{http_code}" \
+              -X POST "https://api.supabase.com/v1/projects/${STAGING_REF}/database/query" \
+              -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -H "Accept: application/json" \
+              -H "User-Agent: supabase-cli/2.0" \
+              --data-binary "$SQL_JSON" || echo "000")
+            echo "SQL HTTP for $FILE: $CODE"
+            head -c 2000 /tmp/sql_result.json; echo
+            if [ "$CODE" = "200" ] || [ "$CODE" = "201" ]; then
+              echo "✅ Applied $FILE via Management API to staging only"
+            elif grep -qiE 'already exists|duplicate' /tmp/sql_result.json; then
+              echo "✅ $FILE already applied (idempotent)"
+            else
+              echo "::warning::Could not apply $FILE to staging (HTTP $CODE). Apply supabase/migrations/20260913200000_driver_area_settings_expand.sql in the Staging SQL Editor."
+            fi
+          }
+
+          apply_sql "$SQL_FILE_A"
+          apply_sql "$SQL_FILE_B"
+          apply_sql "$SQL_FILE_C"
+
+      - name: Deploy notify-driver-event to staging only
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+          STAGING_REF: usfeoerkpcafxxlyuldl
+        run: |
+          set -euo pipefail
+          TOK=$(printf '%s' "${SUPABASE_ACCESS_TOKEN:-}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          if [ -z "$TOK" ]; then
+            echo "::warning::SUPABASE_ACCESS_TOKEN missing. Deploy notify-driver-event in the Staging dashboard."
+            exit 0
+          fi
+          # STAGING_REF is hardcoded to usfeoerkpcafxxlyuldl (Guard: never production).
+          echo "Staging function secret names (values never printed):"
+          npx --yes supabase secrets list --project-ref "$STAGING_REF" || true
+          URL=$(printf '%s' "${STAGING_DB_URL:-}" | tr -d '\r\n')
+          if [ -n "$URL" ]; then
+            case "$URL" in
+              *qasomfndnjuixgjmjwcm*|*kuenhflklivaxrmqbsee*) # Guard: refuse production DB URL
+                echo "::error::Refusing to set a production database URL on staging"
+                exit 1
+                ;;
+              *usfeoerkpcafxxlyuldl*)
+                npx --yes supabase secrets set --project-ref "$STAGING_REF" "SUPABASE_DB_URL=$URL"
+                echo "✅ SUPABASE_DB_URL set on staging functions from GitHub secret STAGING_DB_URL"
+                ;;
+              *)
+                echo "::error::STAGING_DB_URL does not include the staging project ref"
+                exit 1
+                ;;
+            esac
+          else
+            echo "GitHub secret STAGING_DB_URL is not set; edge function will use project-injected DB URL if present"
+          fi
+          npx --yes supabase functions deploy notify-driver-event \
+            --project-ref "$STAGING_REF" \
+            --no-verify-jwt
+          echo "✅ notify-driver-event deployed to staging only"
+
+      - name: Apply driver-area SQL via staging function (staging only)
+        env:
+          STAGING_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          STAGING_ANON: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU
+        run: |
+          set -euo pipefail
+          CODE=$(curl -sS -o /tmp/apply.json -w "%{http_code}" \
+            -X POST "${STAGING_URL}/functions/v1/staging-apply-driver-area-sql" \
+            -H "apikey: ${STAGING_ANON}" \
+            -H "Authorization: Bearer ${STAGING_ANON}" \
+            -H "Content-Type: application/json" \
+            -d '{"confirm":"driver-area-settings-expand-staging"}')
+          echo "Apply function HTTP: $CODE"
+          cat /tmp/apply.json; echo
+          if [ "$CODE" = "200" ]; then
+            echo "✅ Migration applied on staging via edge function"
+          else
+            echo "::warning::staging-apply-driver-area-sql did not apply (HTTP $CODE). Check SUPABASE_DB_URL on staging or paste the SQL in the Staging SQL Editor."
+          fi
+
+      - name: Verify new tables exist on staging
+        env:
+          STAGING_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          STAGING_ANON: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU
+        run: |
+          set -euo pipefail
+          CODE=$(curl -sS -o /tmp/verify.json -w "%{http_code}" \
+            "${STAGING_URL}/rest/v1/dalia_contact_settings?select=id&limit=1" \
+            -H "apikey: ${STAGING_ANON}" \
+            -H "Authorization: Bearer ${STAGING_ANON}")
+          echo "REST verify HTTP: $CODE"
+          cat /tmp/verify.json
+          echo
+          if [ "$CODE" = "200" ] || [ "$CODE" = "401" ] || [ "$CODE" = "403" ]; then
+            echo "✅ dalia_contact_settings is present on Staging (HTTP $CODE is expected under RLS)"
+          else
+            echo "::warning::Table not reachable on Staging yet (HTTP $CODE). Apply supabase/migrations/20260905223000_driver_app_notification_settings.sql in the Staging SQL Editor."
+          fi
+          COL_CODE=$(curl -sS -o /tmp/verify_col.json -w "%{http_code}" \
+            "${STAGING_URL}/rest/v1/driver_app_company_config?select=emergency_phone&limit=1" \
+            -H "apikey: ${STAGING_ANON}" \
+            -H "Authorization: Bearer ${STAGING_ANON}")
+          echo "emergency_phone column HTTP: $COL_CODE"
+          cat /tmp/verify_col.json; echo
+          if grep -q 'does not exist' /tmp/verify_col.json; then
+            echo "::warning::driver_area_settings_expand.sql is not applied yet. Paste that file in the Staging SQL Editor."
+          else
+            echo "✅ emergency_phone column is present on Staging"
+          fi

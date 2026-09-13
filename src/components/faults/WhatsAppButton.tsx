@@ -4,6 +4,9 @@ import { useCompanyFilter } from '@/hooks/useCompanyFilter';
 import { useAuth } from '@/contexts/AuthContext';
 import { Phone, X, AlertTriangle, Car, Wrench, Shield, HelpCircle, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useDriverActionVisibility } from '@/hooks/useDriverActionVisibility';
+import { dispatchDriverEvent } from '@/lib/dispatchDriverEvent';
+import { resolveEmergencyDialNumber } from '@/lib/resolveEmergencyPhone';
 
 interface EmergencyCategory {
   id: string;
@@ -35,9 +38,11 @@ const defaultCategories = [
 export default function WhatsAppButton() {
   const companyFilter = useCompanyFilter();
   const { user } = useAuth();
+  const { isActionVisible } = useDriverActionVisibility();
   const [settings, setSettings] = useState<{ whatsapp_phone: string; whatsapp_enabled: boolean; whatsapp_button_color: string; whatsapp_button_text: string } | null>(null);
   const [categories, setCategories] = useState<EmergencyCategory[]>([]);
   const [open, setOpen] = useState(false);
+  const [dialNumber, setDialNumber] = useState('');
 
   useEffect(() => {
     if (!companyFilter) return;
@@ -45,14 +50,21 @@ export default function WhatsAppButton() {
     Promise.all([
       supabase.from('company_settings').select('whatsapp_phone, whatsapp_enabled, whatsapp_button_color, whatsapp_button_text').eq('company_name', companyFilter).maybeSingle(),
       supabase.from('emergency_categories').select('*').eq('company_name', companyFilter).eq('is_active', true).order('sort_order'),
-    ]).then(([settingsRes, catsRes]) => {
+      supabase.from('driver_app_company_config').select('emergency_phone').eq('company_name', companyFilter).maybeSingle(),
+      supabase.from('dalia_contact_settings').select('phone').eq('id', 'global').maybeSingle(),
+    ]).then(([settingsRes, catsRes, configRes, daliaRes]) => {
       if (settingsRes.data) setSettings(settingsRes.data);
       if (catsRes.data && catsRes.data.length > 0) {
         setCategories(catsRes.data as EmergencyCategory[]);
       }
+      setDialNumber(resolveEmergencyDialNumber({
+        companyEmergencyPhone: (configRes.data as { emergency_phone?: string } | null)?.emergency_phone,
+        daliaPhone: (daliaRes.data as { phone?: string } | null)?.phone,
+      }));
     });
   }, [companyFilter]);
 
+  if (!isActionVisible('whatsapp_contact')) return null;
   if (!settings?.whatsapp_enabled) return null;
 
   const buildMessage = (cat: { category_key: string; category_label: string; auto_message_template?: string }, targetPhone: string) => {
@@ -71,7 +83,7 @@ export default function WhatsAppButton() {
 
   const logEmergencyClick = async (cat: { category_key: string; category_label: string }, targetType: string, targetValue: string) => {
     if (!user) return;
-    await supabase.from('emergency_logs').insert({
+    const insertPayload = {
       company_name: user.company_name || '',
       user_id: user.id,
       user_name: user.full_name || '',
@@ -79,19 +91,36 @@ export default function WhatsAppButton() {
       category_label: cat.category_label,
       target_type: targetType,
       target_value: targetValue,
-    });
+    };
+    const { data } = await supabase.from('emergency_logs').insert(insertPayload).select('id').single();
+    dispatchDriverEvent({
+      action_key: 'emergency',
+      record: { ...insertPayload, id: data?.id, driver_name: user.full_name || '' },
+      title: 'בקשת חירום',
+      message: `${user.full_name || ''} פתח בקשת חירום: ${cat.category_label}`,
+      link: '/emergency-settings',
+    }).catch(console.error);
   };
 
   const handleCategoryClick = async (cat: EmergencyCategory | { category_key: string; category_label: string; category_icon: string; target_type: string; target_value: string }) => {
     const targetType = cat.target_type || 'whatsapp';
-    const targetValue = cat.target_value || settings?.whatsapp_phone || '';
+    const configured = resolveEmergencyDialNumber({
+      companyEmergencyPhone: dialNumber,
+      categoryPhone: cat.target_value,
+    });
+    const targetValue = configured || settings?.whatsapp_phone || '';
     
     await logEmergencyClick(cat, targetType, targetValue);
+
+    if (!targetValue) {
+      toast.error('מספר מוקד לא הוגדר לחברה');
+      setOpen(false);
+      return;
+    }
 
     if (targetType === 'phone') {
       window.open(`tel:${targetValue}`, '_self');
     } else {
-      // WhatsApp
       const phone = targetValue.replace(/[^0-9]/g, '');
       const msg = buildMessage(cat as EmergencyCategory, phone);
       const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
@@ -120,7 +149,7 @@ export default function WhatsAppButton() {
     // No center configured
     return (
       <div
-        className="fixed bottom-24 left-4 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg text-white font-bold text-sm opacity-60 cursor-not-allowed"
+        className="fixed bottom-24 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg text-white font-bold text-sm opacity-60 cursor-not-allowed"
         style={{ backgroundColor: settings?.whatsapp_button_color || '#666' }}
       >
         <Phone size={22} />
@@ -138,7 +167,7 @@ export default function WhatsAppButton() {
 
       {/* Emergency Menu */}
       {open && (
-        <div className="fixed bottom-32 left-4 right-4 md:left-4 md:right-auto md:w-80 z-[70] bg-card rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in">
+        <div className="fixed bottom-44 left-4 right-4 md:right-6 md:left-auto md:w-80 z-[70] bg-card rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in">
           <div className="p-4 bg-destructive/10 border-b border-border flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Phone size={20} className="text-destructive" />
@@ -172,7 +201,7 @@ export default function WhatsAppButton() {
       {/* Main Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed bottom-24 left-4 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg text-white font-bold text-sm transition-transform hover:scale-105 active:scale-95"
+        className="fixed bottom-24 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg text-white font-bold text-sm transition-transform hover:scale-105 active:scale-95"
         style={{ backgroundColor: settings?.whatsapp_button_color || '#25D366' }}
       >
         {open ? <X size={22} /> : <Phone size={22} />}

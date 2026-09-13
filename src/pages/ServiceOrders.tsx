@@ -20,6 +20,7 @@ import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/li
 import { isTowingServiceOrder, recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
+import { dispatchDriverEvent } from '@/lib/dispatchDriverEvent';
 
 interface ServiceRow {
   id: string;
@@ -659,12 +660,19 @@ function ServiceOrderForm({
       toast.success(editData ? 'ההזמנה עודכנה' : 'הזמנת השירות נשלחה – ממתינה לאישור');
       if (!editData) {
         const isUrgent = urgency === 'critical' || urgency === 'urgent';
+        const record = { ...payload, created_by: user?.id, ordering_user: user?.full_name || '' };
         supabase.functions.invoke('notify-service-order-email', {
           body: {
-            record: { ...payload, created_by: user?.id, ordering_user: user?.full_name || '' },
+            record,
             type: isUrgent ? 'urgent_order' : 'new_order',
           },
         }).catch(err => console.error('Email notification error:', err));
+        dispatchDriverEvent({
+          action_key: 'service_order',
+          condition_value: urgency,
+          record,
+          link: '/service-orders',
+        }).catch((err) => console.error('Driver event notification error:', err));
 
         if (fromVehicleHub) {
           const towing = isTowingServiceOrder(payload);

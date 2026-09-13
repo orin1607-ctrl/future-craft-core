@@ -45,6 +45,8 @@ const SUPER_ADMIN_ONLY = [
   '/required-fields',
   '/admin/modules',
   '/emergency-settings',
+  '/driver-app-notifications',
+  '/driver-area-settings',
   '/telemarketing/admin',
   '/garage-management',
 ];

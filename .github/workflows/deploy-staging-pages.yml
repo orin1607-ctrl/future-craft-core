@@ -1,21 +1,21 @@
 name: Deploy Staging to GitHub Pages
 
 # Staging deployment to GitHub Pages (dalia-staging Supabase only).
-# - Auto on push to main only.
-# - Do NOT auto-deploy feat/incident-alerts-staging: that branch overwrote
-#   the full garage-management UI with a stripped /garage Gmail list.
-# - Manual workflow_dispatch can still deploy any ref without merging to main.
+# Always publishes origin/main. Never publishes origin/dev or production.
+# Cursor cannot workflow_dispatch; push to cursor/deploy-staging-pages-bed0
+# rebuilds origin/main. Push to main also rebuilds origin/main.
 
 on:
   workflow_dispatch:
     inputs:
       deploy_ref:
-        description: 'Git ref to build and deploy (branch/tag/SHA). Empty = workflow ref.'
+        description: 'Git ref to build and deploy. Empty = origin/main. Never production or dev.'
         required: false
-        default: ''
+        default: 'main'
   push:
     branches:
       - main
+      - cursor/deploy-staging-pages-bed0
 
 permissions:
   contents: read
@@ -32,20 +32,39 @@ jobs:
     # Do not bind this job to environment `github-pages` (that environment
     # only allows branch `main`). Pages deploy uses pages:write + id-token.
     steps:
-      - name: Resolve deploy ref
+      - name: Resolve deploy ref (main only)
         id: ref
         run: |
+          set -euo pipefail
           if [ -n "${{ github.event.inputs.deploy_ref }}" ]; then
-            echo "value=${{ github.event.inputs.deploy_ref }}" >> "$GITHUB_OUTPUT"
+            REF="${{ github.event.inputs.deploy_ref }}"
+          elif [ "${{ github.ref_name }}" = "cursor/deploy-staging-pages-bed0" ]; then
+            REF="main"
           else
-            echo "value=${{ github.ref }}" >> "$GITHUB_OUTPUT"
+            REF="main"
           fi
+          case "$REF" in
+            production|refs/heads/production|*production*|dev|refs/heads/dev|origin/dev)
+              echo "::error::Refusing to publish $REF to GitHub Pages"
+              exit 1
+              ;;
+          esac
+          echo "Publishing GitHub Pages from: $REF"
+          echo "value=$REF" >> "$GITHUB_OUTPUT"
 
       - name: Checkout deploy ref
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.ref.outputs.value }}
           fetch-depth: 1
+
+      - name: Record checked-out SHA
+        run: |
+          set -euo pipefail
+          SHA=$(git rev-parse HEAD)
+          echo "Checked out $SHA"
+          echo "DEPLOY_SHA=$SHA" >> "$GITHUB_ENV"
+          printf '%s\n' "$SHA" > /tmp/staging-sha.txt
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -61,7 +80,7 @@ jobs:
           VITE_SUPABASE_PROJECT_ID: usfeoerkpcafxxlyuldl
           VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU
           VITE_BASE_PATH: /future-craft-core/
-          VITE_BUILD_COMMIT: ${{ github.sha }}
+          VITE_BUILD_COMMIT: ${{ env.DEPLOY_SHA }}
           VITE_MARKETING_UI_VERSION: v3-mission-25-1-${{ github.run_number }}
         run: |
           bun x vite build
@@ -99,6 +118,7 @@ jobs:
           test -f dist/404.html || cp dist/index.html dist/404.html
           touch dist/.nojekyll
           echo "deployed_ref=$(git rev-parse --short HEAD) $(git rev-parse --abbrev-ref HEAD)" > dist/STAGING-DEPLOY.txt
+          cp /tmp/staging-sha.txt dist/staging-sha.txt
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

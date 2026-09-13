@@ -5,6 +5,7 @@ import {
   Car,
   ClipboardList,
   FileText,
+  Gauge,
   Phone,
   Shield,
   Wrench,
@@ -18,6 +19,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { EntityContextBanner } from '@/components/EntityContextBanner';
 import { buildVehicleContextUrl } from '@/lib/entityNavContext';
 import { useHiddenButtons } from '@/hooks/useHiddenButtons';
+import { useDriverActionVisibility } from '@/hooks/useDriverActionVisibility';
 
 interface AssignedVehicle {
   id: string;
@@ -71,6 +73,8 @@ const driverActions = [
   { label: 'דיווח תאונה', icon: AlertTriangle, link: '/accidents' },
   { label: 'הזמנת שירות', icon: ClipboardList, link: '/service-orders' },
   { label: 'העלאת חשבונית דלק / הוצאה', icon: FileText, link: '/expenses' },
+  { label: 'מסמכים', icon: FileText, link: '/documents' },
+  { label: 'דיווח קילומטראז׳', icon: Gauge, link: '/odometer' },
   { label: 'היסטוריית טיפולים לרכב', icon: Car, link: '/history' },
   { label: 'סידור עבודה שלי', icon: ClipboardList, link: '/driver-schedule' },
   { label: 'יצירת קשר עם מוקד', icon: Phone, link: '/emergency' },
@@ -96,6 +100,7 @@ export default function DriverDashboard({
 } = {}) {
   const { user } = useAuth();
   const hiddenButtons = useHiddenButtons();
+  const { isPathVisible } = useDriverActionVisibility();
   const [loading, setLoading] = useState(true);
   const [vehicle, setVehicle] = useState<AssignedVehicle | null>(null);
   const [alerts, setAlerts] = useState<DriverAlert[]>([]);
@@ -504,9 +509,9 @@ export default function DriverDashboard({
       {/* Actions — מסונכרן עם hidden_buttons מ-company_settings; UI נפרד מ-Dalia New */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {driverActions
-          .filter((action) => !hiddenButtons.includes(action.link))
+          .filter((action) => !hiddenButtons.includes(action.link) && (managerView || isPathVisible(action.link)))
           .map((action) => {
-          const scopedPaths = ['/faults', '/accidents', '/service-orders', '/expenses'];
+          const scopedPaths = ['/faults', '/accidents', '/service-orders', '/expenses', '/documents'];
           const link =
             managerView && vehicle && scopedPaths.includes(action.link)
               ? buildVehicleContextUrl(action.link, {

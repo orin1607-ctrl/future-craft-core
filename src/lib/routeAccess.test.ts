@@ -88,4 +88,13 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/expiry-approvals', 'fleet_manager')).toBe(true);
     expect(canAccessRoute('/expiry-approvals', 'super_admin')).toBe(true);
   });
+
+  it('driver-area settings is super_admin only; odometer is a driver route', () => {
+    expect(canAccessRoute('/driver-app-notifications', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/driver-area-settings', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/driver-app-notifications', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/driver-area-settings', 'driver')).toBe(false);
+    expect(canAccessRoute('/odometer', 'driver')).toBe(true);
+    expect(canAccessRoute('/odometer', 'fleet_manager')).toBe(true);
+  });
 });
