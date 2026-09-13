@@ -67,6 +67,12 @@ jobs:
 
           apply_sql() {
             local FILE="$1"
+            echo "Applying $FILE to staging via supabase db query"
+            if npx --yes supabase db query --project-ref "$STAGING_REF" -f "$FILE"; then
+              echo "✅ Applied $FILE via CLI to staging only"
+              return 0
+            fi
+            echo "CLI query failed for $FILE — falling back to Management API curl"
             local SQL_JSON
             SQL_JSON=$(python3 -c "import json; print(json.dumps({\"query\": open('$FILE', encoding='utf-8').read()}))")
             local CODE
@@ -84,7 +90,7 @@ jobs:
             elif grep -qiE 'already exists|duplicate' /tmp/sql_result.json; then
               echo "✅ $FILE already applied (idempotent)"
             else
-              echo "::warning::Could not apply $FILE to staging (HTTP $CODE). Apply both driver-app SQL files in the Staging SQL Editor."
+              echo "::warning::Could not apply $FILE to staging (HTTP $CODE). Apply supabase/migrations/20260913200000_driver_area_settings_expand.sql in the Staging SQL Editor."
             fi
           }
 
@@ -126,4 +132,15 @@ jobs:
             echo "✅ dalia_contact_settings is present on Staging (HTTP $CODE is expected under RLS)"
           else
             echo "::warning::Table not reachable on Staging yet (HTTP $CODE). Apply supabase/migrations/20260905223000_driver_app_notification_settings.sql in the Staging SQL Editor."
+          fi
+          COL_CODE=$(curl -sS -o /tmp/verify_col.json -w "%{http_code}" \
+            "${STAGING_URL}/rest/v1/driver_app_company_config?select=emergency_phone&limit=1" \
+            -H "apikey: ${STAGING_ANON}" \
+            -H "Authorization: Bearer ${STAGING_ANON}")
+          echo "emergency_phone column HTTP: $COL_CODE"
+          cat /tmp/verify_col.json; echo
+          if grep -q 'does not exist' /tmp/verify_col.json; then
+            echo "::warning::driver_area_settings_expand.sql is not applied yet. Paste that file in the Staging SQL Editor."
+          else
+            echo "✅ emergency_phone column is present on Staging"
           fi
