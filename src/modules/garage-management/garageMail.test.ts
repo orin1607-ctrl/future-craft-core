@@ -195,7 +195,8 @@ describe('priced-order detection and worker approval', () => {
     expect(fnSrc).toContain('persistGarageMailbox');
     expect(fnSrc).not.toContain('existing_google_token_is_');
     expect(fnSrc).not.toContain('Deno.env.get("GOOGLE_REFRESH_TOKEN")');
-    expect(fnSrc).toContain('orin1607-ctrl.github.io/future-craft-core/oauth/google-callback.html');
+    expect(fnSrc).toContain('oauth_probe');
+    expect(fnSrc).toContain('https://orin1607-ctrl.github.io/future-craft-core/oauth/google-callback.html');
     expect(mailSrc).toContain("invoke('garage-gmail'");
     expect(mailSrc).not.toContain("invoke('claims-gmail'");
     expect(mailSrc).not.toContain('claims-docs');

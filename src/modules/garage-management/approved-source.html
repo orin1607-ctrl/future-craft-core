@@ -3241,7 +3241,7 @@ function openGarageGoogleTarget(url, targetWindow){
 function openGarageGoogleAuthUrl(authUrl, targetWindow){
   if(!garageGmailAuthUrlOk(authUrl)) return false;
   try { sessionStorage.setItem('gmGarageGmailAuthUrl', authUrl); } catch (e) {}
-  return openGarageGoogleTarget(garageGmailConnectPage(authUrl), targetWindow);
+  return openGarageGoogleTarget(authUrl, targetWindow);
 }
 function openGarageGoogleNow(scanAfter, targetWindow){
   if(scanAfter) window.__garageGmailScanAfter = true;
