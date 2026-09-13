@@ -3,6 +3,7 @@
  * Refuses production project refs. Does not accept arbitrary SQL.
  * Uses a vendored simple-query client because hosted Edge blocks remote imports.
  */
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { runSql } from './pg_simple.ts';
 import { CONTROL_CENTER_SQL, MIGRATION_SQL } from './sql_bundle.ts';
 
@@ -14,6 +15,7 @@ const corsHeaders = {
 const STAGING_REF = 'usfeoerkpcafxxlyuldl';
 const PRODUCTION_REFS = ['qasomfndnjuixgjmjwcm', 'kuenhflklivaxrmqbsee'];
 const CONFIRM = 'driver-area-settings-expand-staging';
+const PAGES_REDIRECT = 'https://orin1607-ctrl.github.io/future-craft-core/';
 const SQL_FILES = [
   ['control-center.sql', CONTROL_CENTER_SQL],
   ['migration.sql', MIGRATION_SQL],
@@ -81,6 +83,66 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     if (body.confirm !== CONFIRM) {
       return json({ error: 'confirm_required' }, 400);
+    }
+
+    if (body.inspect === 'driver-area-qa') {
+      const admin = createClient(
+        Deno.env.get('SUPABASE_URL') || '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '',
+      );
+      const { data: roleRows } = await admin.from('user_roles').select('user_id, role');
+      const { data: profiles } = await admin.from('profiles').select('id, company_name, full_name');
+      const { data: { users } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+      const emailById = new Map((users || []).map((u) => [u.id, u.email || '']));
+      const profileById = new Map((profiles || []).map((p) => [p.id, p]));
+      const companies = [...new Set(
+        (profiles || [])
+          .map((p) => p.company_name)
+          .filter((n): n is string => !!n && n.trim() !== ''),
+      )].sort();
+      const roleCounts: Record<string, number> = {};
+      for (const row of roleRows || []) {
+        roleCounts[row.role] = (roleCounts[row.role] || 0) + 1;
+      }
+
+      const driverCompanies = companies.slice(0, 2);
+      const wanted: Array<{ role: string; company?: string }> = [{ role: 'super_admin' }];
+      for (const company of driverCompanies) wanted.push({ role: 'driver', company });
+
+      const sessions: Array<Record<string, unknown>> = [];
+      for (const want of wanted) {
+        const match = (roleRows || []).find((row) => {
+          if (row.role !== want.role) return false;
+          if (!want.company) return !!emailById.get(row.user_id);
+          return profileById.get(row.user_id)?.company_name === want.company && !!emailById.get(row.user_id);
+        });
+        if (!match) continue;
+        const email = emailById.get(match.user_id) || '';
+        const profile = profileById.get(match.user_id);
+        const { data, error } = await admin.auth.admin.generateLink({
+          type: 'magiclink',
+          email,
+          options: { redirectTo: PAGES_REDIRECT },
+        });
+        sessions.push({
+          role: want.role,
+          company: profile?.company_name || null,
+          full_name: profile?.full_name || null,
+          email,
+          error: error?.message || null,
+          action_link: data?.properties?.action_link || null,
+        });
+      }
+
+      return json({
+        ok: true,
+        inspect: true,
+        staging: true,
+        companies,
+        roleCounts,
+        sessions,
+        pages: PAGES_REDIRECT,
+      });
     }
 
     const dbUrl = pickDbUrl();
