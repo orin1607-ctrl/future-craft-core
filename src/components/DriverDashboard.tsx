@@ -10,6 +10,7 @@ import {
   Wrench,
   Bell,
   Calendar,
+  Gauge,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -72,6 +73,8 @@ const driverActionIcons: Record<string, typeof Wrench> = {
   work_schedule: ClipboardList,
   emergency: Phone,
   declarations: FileText,
+  documents: FileText,
+  odometer: Gauge,
 };
 
 function ExpiryBadge({ days }: { days: number | null }) {

@@ -67,6 +67,7 @@ import InternalChat from "@/pages/InternalChat";
 import Subscriptions from "@/pages/Subscriptions";
 import EmergencySettings from "@/pages/EmergencySettings";
 import DriverAppNotificationsAdmin from "@/pages/DriverAppNotificationsAdmin";
+import DriverOdometer from "@/pages/DriverOdometer";
 import CustomerDocs from "@/pages/CustomerDocs";
 import DriverDeclarations from "@/pages/DriverDeclarations";
 import SignDeclaration from "@/pages/SignDeclaration";
@@ -169,6 +170,8 @@ function AppRoutes() {
         <Route path="/customer-docs" element={<CustomerDocs />} />
         <Route path="/emergency-settings" element={<EmergencySettings />} />
         <Route path="/driver-app-notifications" element={<DriverAppNotificationsAdmin />} />
+        <Route path="/driver-area-settings" element={<DriverAppNotificationsAdmin />} />
+        <Route path="/odometer" element={<DriverOdometer />} />
         <Route path="/system-logs" element={<Alerts />} />
         <Route path="/service-order-history" element={<ServiceOrderHistory />} />
         <Route path="/project-summary" element={<ProjectSummary />} />

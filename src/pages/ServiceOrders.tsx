@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import ImageUpload from '@/components/ImageUpload';
 import ServiceOrderChat from '@/components/service-orders/ServiceOrderChat';
 import ServiceOrderReferral from '@/components/service-orders/ServiceOrderReferral';
+import { dispatchDriverEvent } from '@/lib/dispatchDriverEvent';
 
 interface ServiceRow {
   id: string;
@@ -570,15 +571,14 @@ function ServiceOrderForm({ onDone, user, editData }: { onDone: () => void; user
     if (error) { toast.error('שגיאה בשמירה'); console.error(error); }
     else {
       toast.success(editData ? 'ההזמנה עודכנה' : 'הזמנת השירות נשלחה – ממתינה לאישור');
-      // Send email notification for new orders (or urgent updates)
       if (!editData) {
-        const isUrgent = urgency === 'critical' || urgency === 'urgent';
-        supabase.functions.invoke('notify-service-order-email', {
-          body: {
-            record: { ...payload, created_by: user?.id, ordering_user: user?.full_name || '' },
-            type: isUrgent ? 'urgent_order' : 'new_order',
-          },
-        }).catch(err => console.error('Email notification error:', err));
+        const record = { ...payload, created_by: user?.id, ordering_user: user?.full_name || '' };
+        dispatchDriverEvent({
+          action_key: 'service_order',
+          condition_value: urgency,
+          record,
+          link: '/service-orders',
+        }).catch((err) => console.error('Driver event notification error:', err));
       }
       onDone();
     }

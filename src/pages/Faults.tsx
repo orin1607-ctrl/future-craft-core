@@ -13,6 +13,7 @@ import FaultReferral from '@/components/faults/FaultReferral';
 import FaultTowing from '@/components/faults/FaultTowing';
 import WhatsAppButton from '@/components/faults/WhatsAppButton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { dispatchDriverEvent } from '@/lib/dispatchDriverEvent';
 
 interface FaultRow {
   id: string;
@@ -624,9 +625,12 @@ function FaultForm({ fault, onDone, onBack, user }: { fault: FaultRow | null; on
       const insertPayload = { ...payload, status: 'opened', company_name: user?.company_name || '', created_by: user?.id };
       ({ error } = await supabase.from('faults').insert(insertPayload));
       if (!error) {
-        if (urgency === 'urgent' || urgency === 'critical') {
-          supabase.functions.invoke('notify-accident-email', { body: { record: insertPayload, type: 'fault' } }).catch(console.error);
-        }
+        dispatchDriverEvent({
+          action_key: 'fault',
+          condition_value: urgency,
+          record: insertPayload,
+          link: '/faults',
+        }).catch(console.error);
       }
     }
     setLoading(false);

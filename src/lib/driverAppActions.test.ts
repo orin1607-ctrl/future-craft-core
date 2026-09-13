@@ -7,15 +7,18 @@ import {
   emptyCompanyDriverAppConfig,
   findActionByRoute,
   isDriverRouteVisible,
+  isVisibilityAction,
   mergeActionSettings,
+  resolveDriverEventKey,
   safetyCriticalActions,
 } from './driverAppActions';
 
 describe('driver app action catalog', () => {
-  it('covers the live driver dashboard, sidebar, mobile, and inline buttons', () => {
+  it('covers driver buttons plus routing-only urgent fault', () => {
     const keys = DRIVER_APP_ACTIONS.map((a) => a.key);
     expect(keys).toEqual([
       'fault',
+      'fault_urgent',
       'accident',
       'service_order',
       'emergency',
@@ -23,24 +26,28 @@ describe('driver app action catalog', () => {
       'expenses',
       'history',
       'work_schedule',
+      'documents',
+      'odometer',
       'declarations',
       'handover',
       'driver_notifications',
     ]);
+    expect(isVisibilityAction(DRIVER_APP_ACTIONS.find((a) => a.key === 'fault')!)).toBe(true);
+    expect(isVisibilityAction(DRIVER_APP_ACTIONS.find((a) => a.key === 'fault_urgent')!)).toBe(false);
   });
 
   it('maps both work-schedule routes to one action', () => {
     expect(findActionByRoute('/driver-schedule')?.key).toBe('work_schedule');
     expect(findActionByRoute('/work-orders')?.key).toBe('work_schedule');
+    expect(findActionByRoute('/odometer')?.key).toBe('odometer');
+    expect(findActionByRoute('/documents')?.key).toBe('documents');
   });
 
-  it('uses only real urgency values from each form', () => {
-    const fault = DRIVER_APP_ACTIONS.find((a) => a.key === 'fault')!;
-    expect(fault.conditions?.options.map((o) => o.value)).toEqual(['normal', 'urgent', 'critical']);
-    const service = DRIVER_APP_ACTIONS.find((a) => a.key === 'service_order')!;
-    expect(service.conditions?.options.map((o) => o.value)).toEqual(['normal', 'urgent']);
-    expect(DRIVER_APP_ACTIONS.find((a) => a.key === 'accident')!.conditions).toBeNull();
-    expect(DRIVER_APP_ACTIONS.find((a) => a.key === 'emergency')!.conditions).toBeNull();
+  it('routes urgent faults to the dedicated notification profile', () => {
+    expect(resolveDriverEventKey('fault', 'normal')).toBe('fault');
+    expect(resolveDriverEventKey('fault', 'urgent')).toBe('fault_urgent');
+    expect(resolveDriverEventKey('fault', 'critical')).toBe('fault_urgent');
+    expect(resolveDriverEventKey('accident')).toBe('accident');
   });
 
   it('marks emergency contact surfaces as safety-critical without blocking hide', () => {
@@ -55,12 +62,13 @@ describe('mergeActionSettings', () => {
   it('fills defaults when a company has no saved rows', () => {
     const merged = mergeActionSettings([]);
     expect(merged.fault.visible_to_driver).toBe(true);
-    expect(merged.fault.email_to_fleet_managers).toBe(true);
-    expect(merged.fault.email_to_company_contact).toBe(false);
-    expect(merged.fault.condition_values).toEqual(['urgent', 'critical']);
-    expect(merged.emergency.email_enabled).toBe(false);
-    expect(merged.expenses.email_enabled).toBe(false);
+    expect(merged.fault.in_app_to_fleet_managers).toBe(true);
+    expect(merged.fault.email_enabled).toBe(false);
+    expect(merged.fault_urgent.email_to_fleet_managers).toBe(true);
+    expect(merged.emergency.in_app_enabled).toBe(true);
+    expect(merged.expenses.in_app_to_fleet_managers).toBe(true);
     expect(merged.whatsapp_contact.visible_to_driver).toBe(true);
+    expect(merged.odometer.visible_to_driver).toBe(true);
   });
 
   it('keeps company A settings from leaking into company B', () => {
@@ -82,6 +90,7 @@ describe('isDriverRouteVisible', () => {
     );
     expect(isDriverRouteVisible('/dashboard', hiddenAll)).toBe(true);
     expect(isDriverRouteVisible('/faults', hiddenAll)).toBe(false);
+    expect(isDriverRouteVisible('/odometer', hiddenAll)).toBe(false);
     expect(isDriverRouteVisible('/unknown-route', hiddenAll)).toBe(true);
   });
 
@@ -93,9 +102,12 @@ describe('isDriverRouteVisible', () => {
 });
 
 describe('collectStoredRecipients', () => {
-  it('supports multiple email and WhatsApp destinations', () => {
+  it('supports in-app, email and WhatsApp destinations', () => {
     const setting = {
-      ...defaultActionSetting(DRIVER_APP_ACTIONS.find((a) => a.key === 'fault')!),
+      ...defaultActionSetting(DRIVER_APP_ACTIONS.find((a) => a.key === 'accident')!),
+      in_app_enabled: true,
+      in_app_to_fleet_managers: true,
+      in_app_to_company_contact: true,
       email_enabled: true,
       email_to_fleet_managers: true,
       email_to_company_contact: true,
@@ -110,12 +122,17 @@ describe('collectStoredRecipients', () => {
     const targets = collectStoredRecipients({
       setting,
       companyConfig: {
+        ...emptyCompanyDriverAppConfig(),
         dalia_service_enabled: true,
         contact_email: 'owner@example.com',
         contact_whatsapp: '972502222222',
       },
-      dalia: { email: 'dalia@example.com', whatsapp: '972503333333' },
+      dalia: { contact_name: 'דליה', email: 'dalia@example.com', whatsapp: '972503333333', phone: '03-0000000' },
     });
+    expect(targets.filter((t) => t.channel === 'in_app').map((t) => t.key)).toEqual([
+      'fleet_managers',
+      'company_contact',
+    ]);
     expect(targets.filter((t) => t.channel === 'email').map((t) => t.key)).toEqual([
       'fleet_managers',
       'company_contact',
@@ -132,7 +149,7 @@ describe('collectStoredRecipients', () => {
 
   it('does not target Dalia when the company Dalia service is OFF', () => {
     const setting = {
-      ...defaultActionSetting(DRIVER_APP_ACTIONS.find((a) => a.key === 'fault')!),
+      ...defaultActionSetting(DRIVER_APP_ACTIONS.find((a) => a.key === 'accident')!),
       email_enabled: true,
       email_to_dalia: true,
       whatsapp_enabled: true,
@@ -141,7 +158,7 @@ describe('collectStoredRecipients', () => {
     const targets = collectStoredRecipients({
       setting,
       companyConfig: { ...emptyCompanyDriverAppConfig(), dalia_service_enabled: false },
-      dalia: { email: 'dalia@example.com', whatsapp: '972503333333' },
+      dalia: { contact_name: '', email: 'dalia@example.com', whatsapp: '972503333333', phone: '' },
     });
     expect(targets.some((t) => t.key === 'dalia')).toBe(false);
     expect(targets.some((t) => t.key === 'fleet_managers')).toBe(true);
@@ -149,24 +166,23 @@ describe('collectStoredRecipients', () => {
 
   it('does not invent a company-contact destination when none is configured', () => {
     const setting = {
-      ...defaultActionSetting(DRIVER_APP_ACTIONS.find((a) => a.key === 'fault')!),
+      ...defaultActionSetting(DRIVER_APP_ACTIONS.find((a) => a.key === 'accident')!),
       email_enabled: true,
       email_to_company_contact: true,
     };
     const targets = collectStoredRecipients({
       setting,
       companyConfig: emptyCompanyDriverAppConfig(),
-      dalia: { email: '', whatsapp: '' },
+      dalia: { contact_name: '', email: '', whatsapp: '', phone: '' },
     });
-    expect(targets.some((t) => t.key === 'company_contact')).toBe(false);
+    expect(targets.some((t) => t.key === 'company_contact' && t.channel === 'email')).toBe(false);
   });
 });
 
 describe('conditionMatches', () => {
-  it('honors by_value urgency without inventing extra conditions', () => {
+  it('defaults fault routing to all values after the urgent split', () => {
     const setting = mergeActionSettings([])['fault'];
+    expect(conditionMatches(setting, 'normal')).toBe(true);
     expect(conditionMatches(setting, 'urgent')).toBe(true);
-    expect(conditionMatches(setting, 'normal')).toBe(false);
-    expect(conditionMatches({ ...setting, condition_mode: 'all' }, 'normal')).toBe(true);
   });
 });

@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { useDriverVehicle } from '@/hooks/useDriverVehicle';
 import MultiImageUpload from '@/components/MultiImageUpload';
+import { dispatchDriverEvent } from '@/lib/dispatchDriverEvent';
 
 interface AccidentRow {
   id: string;
@@ -295,7 +296,11 @@ function AccidentForm({ accident, onDone, onBack, user }: { accident: AccidentRo
       const insertPayload = { ...payload, company_name: user?.company_name || '', created_by: user?.id };
       ({ error } = await supabase.from('accidents').insert(insertPayload));
       if (!error) {
-        supabase.functions.invoke('notify-accident-email', { body: { record: insertPayload } }).catch(console.error);
+        dispatchDriverEvent({
+          action_key: 'accident',
+          record: insertPayload,
+          link: '/accidents',
+        }).catch(console.error);
       }
     }
     setLoading(false);

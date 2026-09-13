@@ -1,10 +1,7 @@
 /**
  * Catalog of driver-app actions and notification settings.
- * UI + visibility read this catalog. Adding an action later is a catalog
- * change plus optional defaults — not a new screen.
- *
- * Notification toggles are stored only. Existing email / WhatsApp senders
- * are not changed by this module. No messages are sent from here.
+ * UI + visibility + notify-driver-event read this catalog.
+ * Adding an action later is a catalog change plus optional defaults.
  */
 
 export type ConditionOption = {
@@ -32,6 +29,10 @@ export type DriverAppActionDef = {
 export type ActionSettingState = {
   action_key: string;
   visible_to_driver: boolean;
+  in_app_enabled: boolean;
+  in_app_to_fleet_managers: boolean;
+  in_app_to_company_contact: boolean;
+  in_app_to_dalia: boolean;
   email_enabled: boolean;
   email_to_fleet_managers: boolean;
   email_to_company_contact: boolean;
@@ -49,13 +50,19 @@ export type ActionSettingState = {
 
 export type CompanyDriverAppConfig = {
   dalia_service_enabled: boolean;
+  contact_name: string;
   contact_email: string;
   contact_whatsapp: string;
+  service_phone: string;
+  emergency_phone: string;
+  emergency_timeout_minutes: number;
 };
 
 export type GlobalDaliaContact = {
+  contact_name: string;
   email: string;
   whatsapp: string;
+  phone: string;
 };
 
 export type RecipientKey = 'fleet_managers' | 'company_contact' | 'dalia' | 'extra';
@@ -90,6 +97,23 @@ export const DRIVER_APP_ACTIONS: DriverAppActionDef[] = [
       label: 'דחיפות',
       options: [
         { value: 'normal', label: 'רגילה' },
+      ],
+    },
+  },
+  {
+    key: 'fault_urgent',
+    label: 'תקלה דחופה',
+    dashboardLabel: 'תקלה דחופה',
+    description: 'הפניית התראות כאשר דיווח תקלה מסומן דחוף או מיידי — אין כפתור נפרד לנהג',
+    routes: [],
+    surfaces: [],
+    hasNotifications: true,
+    safetyLevel: 'warning',
+    safetyWarning: null,
+    conditions: {
+      field: 'urgency',
+      label: 'דחיפות',
+      options: [
         { value: 'urgent', label: 'דחופה' },
         { value: 'critical', label: 'קריטית' },
       ],
@@ -188,6 +212,30 @@ export const DRIVER_APP_ACTIONS: DriverAppActionDef[] = [
     conditions: null,
   },
   {
+    key: 'documents',
+    label: 'מסמכים',
+    dashboardLabel: 'מסמכים',
+    description: 'צפייה במסמכי הרכב והנהג',
+    routes: ['/documents'],
+    surfaces: ['dashboard', 'sidebar'],
+    hasNotifications: false,
+    safetyLevel: 'normal',
+    safetyWarning: null,
+    conditions: null,
+  },
+  {
+    key: 'odometer',
+    label: 'דיווח קילומטראז׳',
+    dashboardLabel: 'דיווח קילומטראז׳',
+    description: 'עדכון קילומטראז׳ לרכב המשויך, עם היסטוריה',
+    routes: ['/odometer'],
+    surfaces: ['dashboard', 'sidebar', 'mobile'],
+    hasNotifications: false,
+    safetyLevel: 'normal',
+    safetyWarning: null,
+    conditions: null,
+  },
+  {
     key: 'declarations',
     label: 'תצהיר נהג',
     dashboardLabel: 'תצהיר נהג',
@@ -228,9 +276,28 @@ export const DRIVER_APP_ACTIONS: DriverAppActionDef[] = [
 export function emptyCompanyDriverAppConfig(): CompanyDriverAppConfig {
   return {
     dalia_service_enabled: false,
+    contact_name: '',
     contact_email: '',
     contact_whatsapp: '',
+    service_phone: '',
+    emergency_phone: '',
+    emergency_timeout_minutes: 10,
   };
+}
+
+export function emptyDaliaContact(): GlobalDaliaContact {
+  return { contact_name: '', email: '', whatsapp: '', phone: '' };
+}
+
+export function isVisibilityAction(action: DriverAppActionDef): boolean {
+  return action.surfaces.length > 0;
+}
+
+export function resolveDriverEventKey(actionKey: string, conditionValue?: string | null): string {
+  if (actionKey === 'fault' && (conditionValue === 'urgent' || conditionValue === 'critical')) {
+    return 'fault_urgent';
+  }
+  return actionKey;
 }
 
 export function findActionByRoute(path: string): DriverAppActionDef | undefined {
@@ -242,10 +309,18 @@ export function findActionByKey(key: string): DriverAppActionDef | undefined {
   return DRIVER_APP_ACTIONS.find((action) => action.key === key);
 }
 
+function boolOr(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
 export function defaultActionSetting(action: DriverAppActionDef): ActionSettingState {
   const base: ActionSettingState = {
     action_key: action.key,
     visible_to_driver: true,
+    in_app_enabled: false,
+    in_app_to_fleet_managers: false,
+    in_app_to_company_contact: false,
+    in_app_to_dalia: false,
     email_enabled: false,
     email_to_fleet_managers: false,
     email_to_company_contact: false,
@@ -260,23 +335,47 @@ export function defaultActionSetting(action: DriverAppActionDef): ActionSettingS
     condition_values: [],
   };
 
-  // Starting defaults mirror today's live notify behavior (stored only, not wired).
   if (action.key === 'fault') {
     return {
       ...base,
+      in_app_enabled: true,
+      in_app_to_fleet_managers: true,
+      condition_mode: 'all',
+      condition_values: [],
+    };
+  }
+  if (action.key === 'fault_urgent') {
+    return {
+      ...base,
+      in_app_enabled: true,
+      in_app_to_fleet_managers: true,
       email_enabled: true,
       email_to_fleet_managers: true,
-      condition_mode: 'by_value',
-      condition_values: ['urgent', 'critical'],
+      condition_mode: 'all',
+      condition_values: [],
     };
   }
   if (action.key === 'accident' || action.key === 'service_order') {
     return {
       ...base,
+      in_app_enabled: true,
+      in_app_to_fleet_managers: true,
       email_enabled: true,
       email_to_fleet_managers: true,
-      condition_mode: 'all',
-      condition_values: [],
+    };
+  }
+  if (action.key === 'emergency') {
+    return {
+      ...base,
+      in_app_enabled: true,
+      in_app_to_fleet_managers: true,
+    };
+  }
+  if (action.key === 'expenses') {
+    return {
+      ...base,
+      in_app_enabled: true,
+      in_app_to_fleet_managers: true,
     };
   }
   return base;
@@ -298,15 +397,19 @@ export function mergeActionSettings(
     merged[action.key] = {
       ...defaults,
       visible_to_driver: row.visible_to_driver === false ? false : (typeof row.visible_to_driver === 'boolean' ? row.visible_to_driver : defaults.visible_to_driver),
-      email_enabled: typeof row.email_enabled === 'boolean' ? row.email_enabled : defaults.email_enabled,
-      email_to_fleet_managers: typeof row.email_to_fleet_managers === 'boolean' ? row.email_to_fleet_managers : defaults.email_to_fleet_managers,
-      email_to_company_contact: typeof row.email_to_company_contact === 'boolean' ? row.email_to_company_contact : defaults.email_to_company_contact,
-      email_to_dalia: typeof row.email_to_dalia === 'boolean' ? row.email_to_dalia : defaults.email_to_dalia,
+      in_app_enabled: boolOr(row.in_app_enabled, defaults.in_app_enabled),
+      in_app_to_fleet_managers: boolOr(row.in_app_to_fleet_managers, defaults.in_app_to_fleet_managers),
+      in_app_to_company_contact: boolOr(row.in_app_to_company_contact, defaults.in_app_to_company_contact),
+      in_app_to_dalia: boolOr(row.in_app_to_dalia, defaults.in_app_to_dalia),
+      email_enabled: boolOr(row.email_enabled, defaults.email_enabled),
+      email_to_fleet_managers: boolOr(row.email_to_fleet_managers, defaults.email_to_fleet_managers),
+      email_to_company_contact: boolOr(row.email_to_company_contact, defaults.email_to_company_contact),
+      email_to_dalia: boolOr(row.email_to_dalia, defaults.email_to_dalia),
       email_extra: typeof row.email_extra === 'string' ? row.email_extra : defaults.email_extra,
-      whatsapp_enabled: typeof row.whatsapp_enabled === 'boolean' ? row.whatsapp_enabled : defaults.whatsapp_enabled,
-      whatsapp_to_fleet_managers: typeof row.whatsapp_to_fleet_managers === 'boolean' ? row.whatsapp_to_fleet_managers : defaults.whatsapp_to_fleet_managers,
-      whatsapp_to_company_contact: typeof row.whatsapp_to_company_contact === 'boolean' ? row.whatsapp_to_company_contact : defaults.whatsapp_to_company_contact,
-      whatsapp_to_dalia: typeof row.whatsapp_to_dalia === 'boolean' ? row.whatsapp_to_dalia : defaults.whatsapp_to_dalia,
+      whatsapp_enabled: boolOr(row.whatsapp_enabled, defaults.whatsapp_enabled),
+      whatsapp_to_fleet_managers: boolOr(row.whatsapp_to_fleet_managers, defaults.whatsapp_to_fleet_managers),
+      whatsapp_to_company_contact: boolOr(row.whatsapp_to_company_contact, defaults.whatsapp_to_company_contact),
+      whatsapp_to_dalia: boolOr(row.whatsapp_to_dalia, defaults.whatsapp_to_dalia),
       whatsapp_extra: typeof row.whatsapp_extra === 'string' ? row.whatsapp_extra : defaults.whatsapp_extra,
       condition_mode: row.condition_mode === 'by_value' ? 'by_value' : (row.condition_mode === 'all' ? 'all' : defaults.condition_mode),
       condition_values: Array.isArray(conditionValues) ? conditionValues.filter((v): v is string => typeof v === 'string') : defaults.condition_values,
@@ -337,12 +440,12 @@ export function conditionMatches(setting: ActionSettingState, fieldValue?: strin
 
 export type StoredRecipientTarget = {
   key: RecipientKey;
-  channel: 'email' | 'whatsapp';
+  channel: 'email' | 'whatsapp' | 'in_app';
   destination: string;
 };
 
 /**
- * Builds the stored recipient list for a future send step.
+ * Builds the recipient list for notify-driver-event.
  * Dalia is included only when the company Dalia service is ON and a global
  * contact exists. Never invents a company-owner address.
  */
@@ -353,6 +456,18 @@ export function collectStoredRecipients(params: {
 }): StoredRecipientTarget[] {
   const { setting, companyConfig, dalia } = params;
   const targets: StoredRecipientTarget[] = [];
+
+  if (setting.in_app_enabled) {
+    if (setting.in_app_to_fleet_managers) {
+      targets.push({ key: 'fleet_managers', channel: 'in_app', destination: 'fleet_managers' });
+    }
+    if (setting.in_app_to_company_contact) {
+      targets.push({ key: 'company_contact', channel: 'in_app', destination: 'company_contact' });
+    }
+    if (setting.in_app_to_dalia && companyConfig.dalia_service_enabled) {
+      targets.push({ key: 'dalia', channel: 'in_app', destination: 'dalia' });
+    }
+  }
 
   if (setting.email_enabled) {
     if (setting.email_to_fleet_managers) {

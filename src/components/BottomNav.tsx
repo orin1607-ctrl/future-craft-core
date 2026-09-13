@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Home, Car, Users, Route, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, Menu, X, LogOut, Settings, Bell, Briefcase, ClipboardList, History, UserCheck, Phone, Building2, ChevronsUpDown, Check, Truck, Shield, CheckSquare, Mail, Tag, MessageCircle, CreditCard, ScrollText, Upload, Search as SearchIcon, HeartPulse, Download, Database, Smartphone, Calendar, Warehouse } from 'lucide-react';
+import { Home, Car, Users, Route, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, Menu, X, LogOut, Settings, Bell, Briefcase, ClipboardList, History, UserCheck, Phone, Building2, ChevronsUpDown, Check, Truck, Shield, CheckSquare, Mail, Tag, MessageCircle, CreditCard, ScrollText, Upload, Search as SearchIcon, HeartPulse, Download, Database, Smartphone, Calendar, Warehouse, Gauge } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
@@ -76,6 +76,7 @@ const managerCategories = [
   {
     title: 'מערכת והגדרות',
     items: [
+      { path: '/driver-app-notifications', label: 'הגדרות אזור נהג', icon: Smartphone },
       { path: '/user-management', label: 'ניהול משתמשים', icon: Users },
       { path: '/permissions', label: 'הרשאות', icon: Shield },
       { path: '/alert-settings', label: 'הגדרות חברות', icon: Building2 },
@@ -103,6 +104,7 @@ const driverMobileNav: NavItem[] = [
   { path: '/dashboard', label: 'בית', icon: Home },
   { path: '/driver-notifications', label: 'התראות', icon: Bell },
   { path: '/faults', label: 'תקלה', icon: Wrench },
+  { path: '/odometer', label: 'ק״מ', icon: Gauge },
   { path: '/expenses', label: 'חשבוניות', icon: FileText },
 ];
 
@@ -121,9 +123,10 @@ const extraItems: NavItem[] = [
   { path: '/promotions', label: 'מבצעים', icon: Tag },
   { path: '/internal-chat', label: 'צ\'אט פנימי', icon: MessageCircle },
 ];
+const SUPER_ADMIN_ONLY_PATHS = ['/driver-app-notifications'];
+
 const superAdminExtra: NavItem[] = [
   { path: '/subscriptions', label: 'מנויים וחיוב', icon: CreditCard },
-  { path: '/driver-app-notifications', label: 'ניהול אפליקציית נהג והתראות', icon: Smartphone },
   { path: '/project-summary', label: 'דוח תוספות', icon: ScrollText },
   { path: '/completed-tasks', label: 'משימות פיתוח תוכנה', icon: CheckSquare },
   { path: '/system-update/code', label: 'עדכון קוד', icon: Download },
@@ -148,7 +151,10 @@ export default function BottomNav() {
     ...allManagerItems,
     ...extraItems,
     ...(isSuperAdmin ? superAdminExtra : []),
-  ].filter(item => !hiddenButtons.includes(item.path));
+  ].filter(item => {
+    if (SUPER_ADMIN_ONLY_PATHS.includes(item.path) && !isSuperAdmin) return false;
+    return !hiddenButtons.includes(item.path);
+  });
   const moreItems = (isDriver || isPrivateCustomer) ? [] : allItemsForMobile.filter(
     item => !managerMobileNav.some(m => m.path === item.path)
   );
@@ -228,6 +234,8 @@ export function DesktopSidebar() {
     { path: '/handover', label: 'החלפת נהג', icon: RefreshCw },
     { path: '/work-orders', label: 'סידור עבודה', icon: ClipboardList },
     { path: '/history', label: 'היסטוריה טיפולים', icon: History },
+    { path: '/documents', label: 'מסמכים', icon: FileText },
+    { path: '/odometer', label: 'דיווח קילומטראז׳', icon: Gauge },
     { path: '/emergency', label: 'שירותי חירום 24/7', icon: Phone },
   ];
 
@@ -299,7 +307,10 @@ export function DesktopSidebar() {
         ) : (
           <>
             {managerCategories.map(cat => {
-              const visibleItems = cat.items.filter(item => !hiddenButtons.includes(item.path));
+              const visibleItems = cat.items.filter(item => {
+                if (SUPER_ADMIN_ONLY_PATHS.includes(item.path) && !isSuperAdmin) return false;
+                return !hiddenButtons.includes(item.path);
+              });
               if (visibleItems.length === 0) return null;
               return (
               <div key={cat.title} className="mb-0.5">

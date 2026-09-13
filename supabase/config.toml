@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.notify-accident-email]
 verify_jwt = false
 
+[functions.notify-driver-event]
+verify_jwt = false
+
 [functions.send-supplier-order-email]
 verify_jwt = false
 

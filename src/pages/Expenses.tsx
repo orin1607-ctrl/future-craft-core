@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import ImageUpload from '@/components/ImageUpload';
+import { dispatchDriverEvent } from '@/lib/dispatchDriverEvent';
 
 interface ExpenseRow {
   id: string;
@@ -158,14 +159,24 @@ function ExpenseFormPage({ onDone, onBack, user }: { onDone: () => void; onBack:
   const handleSubmit = async () => {
     if (!isValid) return;
     setLoading(true);
-    const { error } = await supabase.from('expenses').insert({
+    const insertPayload = {
       vehicle_plate: vehiclePlate, driver_name: driverName, category, vendor,
       invoice_number: invoiceNumber, amount: parseFloat(amount) || 0,
       odometer: parseInt(odometer) || 0, notes, image_url: imageUrl || '',
       company_name: user?.company_name || '', created_by: user?.id,
-    });
+    };
+    const { error } = await supabase.from('expenses').insert(insertPayload);
     setLoading(false);
-    if (error) { toast.error('שגיאה בשמירה'); } else { toast.success('ההוצאה נשמרה'); onDone(); }
+    if (error) { toast.error('שגיאה בשמירה'); }
+    else {
+      dispatchDriverEvent({
+        action_key: 'expenses',
+        record: insertPayload,
+        link: '/expenses',
+      }).catch(console.error);
+      toast.success('ההוצאה נשמרה');
+      onDone();
+    }
   };
 
   return (

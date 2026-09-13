@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Bell, Building2, ChevronDown, Mail, MessageCircle, Save, Search, Settings2 } from 'lucide-react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Bell, Building2, ChevronDown, Mail, MessageCircle, Save, Search, Settings2, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,13 +10,12 @@ import {
   DRIVER_APP_ACTIONS,
   defaultActionSetting,
   emptyCompanyDriverAppConfig,
+  isVisibilityAction,
   mergeActionSettings,
 } from '@/lib/driverAppActions';
 
 const inputClass =
   'w-full p-3 rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none text-sm';
-
-type CompanyConfig = CompanyDriverAppConfig;
 
 export default function DriverAppNotificationsAdmin() {
   const { user } = useAuth();
@@ -31,9 +30,11 @@ export default function DriverAppNotificationsAdmin() {
   const [saving, setSaving] = useState(false);
   const [savingGlobal, setSavingGlobal] = useState(false);
 
+  const [daliaName, setDaliaName] = useState('');
   const [daliaEmail, setDaliaEmail] = useState('');
   const [daliaWhatsapp, setDaliaWhatsapp] = useState('');
-  const [companyConfig, setCompanyConfig] = useState<CompanyConfig>(emptyCompanyDriverAppConfig());
+  const [daliaPhone, setDaliaPhone] = useState('');
+  const [companyConfig, setCompanyConfig] = useState<CompanyDriverAppConfig>(emptyCompanyDriverAppConfig());
   const [actionSettings, setActionSettings] = useState<Record<string, ActionSettingState>>(
     () => mergeActionSettings([]),
   );
@@ -51,13 +52,15 @@ export default function DriverAppNotificationsAdmin() {
   const loadGlobalsAndCompanies = async () => {
     setLoading(true);
     const [globalRes, profilesRes] = await Promise.all([
-      supabase.from('dalia_contact_settings').select('email, whatsapp').eq('id', 'global').maybeSingle(),
+      supabase.from('dalia_contact_settings').select('contact_name, email, whatsapp, phone').eq('id', 'global').maybeSingle(),
       supabase.from('profiles').select('company_name'),
     ]);
 
     if (globalRes.data) {
+      setDaliaName((globalRes.data as { contact_name?: string }).contact_name || '');
       setDaliaEmail(globalRes.data.email || '');
       setDaliaWhatsapp(globalRes.data.whatsapp || '');
+      setDaliaPhone((globalRes.data as { phone?: string }).phone || '');
     }
 
     const unique = [...new Set(
@@ -76,10 +79,16 @@ export default function DriverAppNotificationsAdmin() {
       supabase.from('driver_app_action_settings').select('*').eq('company_name', companyName),
     ]);
 
+    const row = configRes.data as Record<string, unknown> | null;
     setCompanyConfig({
-      dalia_service_enabled: !!configRes.data?.dalia_service_enabled,
-      contact_email: configRes.data?.contact_email || '',
-      contact_whatsapp: configRes.data?.contact_whatsapp || '',
+      ...emptyCompanyDriverAppConfig(),
+      dalia_service_enabled: !!row?.dalia_service_enabled,
+      contact_name: String(row?.contact_name || ''),
+      contact_email: String(row?.contact_email || ''),
+      contact_whatsapp: String(row?.contact_whatsapp || ''),
+      service_phone: String(row?.service_phone || ''),
+      emergency_phone: String(row?.emergency_phone || ''),
+      emergency_timeout_minutes: Number(row?.emergency_timeout_minutes || 10),
     });
     setActionSettings(mergeActionSettings(actionsRes.data || []));
     setLoadingCompany(false);
@@ -96,11 +105,13 @@ export default function DriverAppNotificationsAdmin() {
     setSavingGlobal(true);
     const { error } = await supabase.from('dalia_contact_settings').upsert({
       id: 'global',
+      contact_name: daliaName.trim(),
       email: daliaEmail.trim(),
       whatsapp: daliaWhatsapp.trim(),
+      phone: daliaPhone.trim(),
       updated_at: new Date().toISOString(),
       updated_by: user?.id || null,
-    });
+    } as never);
     setSavingGlobal(false);
     if (error) {
       toast.error('שמירת פרטי דליה נכשלה');
@@ -119,7 +130,11 @@ export default function DriverAppNotificationsAdmin() {
       return {
         company_name: selectedCompany,
         action_key: action.key,
-        visible_to_driver: setting.visible_to_driver,
+        visible_to_driver: isVisibilityAction(action) ? setting.visible_to_driver : true,
+        in_app_enabled: action.hasNotifications ? setting.in_app_enabled : false,
+        in_app_to_fleet_managers: action.hasNotifications ? setting.in_app_to_fleet_managers : false,
+        in_app_to_company_contact: action.hasNotifications ? setting.in_app_to_company_contact : false,
+        in_app_to_dalia: action.hasNotifications ? setting.in_app_to_dalia : false,
         email_enabled: action.hasNotifications ? setting.email_enabled : false,
         email_to_fleet_managers: action.hasNotifications ? setting.email_to_fleet_managers : false,
         email_to_company_contact: action.hasNotifications ? setting.email_to_company_contact : false,
@@ -137,18 +152,23 @@ export default function DriverAppNotificationsAdmin() {
       };
     });
 
+    const timeout = Number(companyConfig.emergency_timeout_minutes);
     const { error: configError } = await supabase.from('driver_app_company_config').upsert({
       company_name: selectedCompany,
       dalia_service_enabled: companyConfig.dalia_service_enabled,
+      contact_name: companyConfig.contact_name.trim(),
       contact_email: companyConfig.contact_email.trim(),
       contact_whatsapp: companyConfig.contact_whatsapp.trim(),
+      service_phone: companyConfig.service_phone.trim(),
+      emergency_phone: companyConfig.emergency_phone.trim(),
+      emergency_timeout_minutes: Number.isFinite(timeout) && timeout > 0 ? Math.round(timeout) : 10,
       updated_at: new Date().toISOString(),
       updated_by: user?.id || null,
-    });
+    } as never);
 
     const { error: actionsError } = await supabase
       .from('driver_app_action_settings')
-      .upsert(actionRows, { onConflict: 'company_name,action_key' });
+      .upsert(actionRows as never, { onConflict: 'company_name,action_key' });
 
     setSaving(false);
     if (configError || actionsError) {
@@ -177,16 +197,16 @@ export default function DriverAppNotificationsAdmin() {
   return (
     <div className="animate-fade-in space-y-6">
       <h1 className="page-header flex items-center gap-3">
-        <Settings2 size={28} /> ניהול אפליקציית נהג והתראות
+        <Settings2 size={28} /> הגדרות אזור נהג
       </h1>
       <p className="text-muted-foreground">
-        שליטה לפי חברה על כפתורי הנהג, נמעני Email / WhatsApp, תנאי שליחה ושירות דליה.
-        ההגדרות נשמרות בלבד — שליחת הודעות אמיתית תתווסף בשלב הבא. המיילים הקיימים למנהל הצי ממשיכים לעבוד כרגיל.
+        שליטה לפי חברה על כפתורי הנהג, אנשי קשר, נמענים וערוצים (מערכת / Email / WhatsApp).
+        WhatsApp חי נשלח רק ב-Staging, לא ב-Production ולא לאתר הפעיל.
       </p>
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto" />
         </div>
       ) : (
         <>
@@ -200,24 +220,20 @@ export default function DriverAppNotificationsAdmin() {
             </p>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
+                <label className="block text-sm font-medium mb-1">שם איש קשר דליה</label>
+                <input className={inputClass} value={daliaName} onChange={(e) => setDaliaName(e.target.value)} placeholder="מוקד דליה" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">טלפון דליה (חירום / מוקד)</label>
+                <input dir="ltr" className={inputClass} value={daliaPhone} onChange={(e) => setDaliaPhone(e.target.value)} placeholder="03-..." />
+              </div>
+              <div>
                 <label className="block text-sm font-medium mb-1">Email דליה קבוע</label>
-                <input
-                  dir="ltr"
-                  className={inputClass}
-                  value={daliaEmail}
-                  onChange={(e) => setDaliaEmail(e.target.value)}
-                  placeholder="dalia@example.com"
-                />
+                <input dir="ltr" className={inputClass} value={daliaEmail} onChange={(e) => setDaliaEmail(e.target.value)} placeholder="dalia@example.com" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">WhatsApp דליה קבוע</label>
-                <input
-                  dir="ltr"
-                  className={inputClass}
-                  value={daliaWhatsapp}
-                  onChange={(e) => setDaliaWhatsapp(e.target.value)}
-                  placeholder="972501234567"
-                />
+                <input dir="ltr" className={inputClass} value={daliaWhatsapp} onChange={(e) => setDaliaWhatsapp(e.target.value)} placeholder="972501234567" />
               </div>
             </div>
             <button
@@ -304,7 +320,7 @@ export default function DriverAppNotificationsAdmin() {
                       <p className="font-bold">שירות טיפול דליה</p>
                       <p className="text-sm text-muted-foreground">
                         {companyConfig.dalia_service_enabled
-                          ? 'ON — ניתן לבחור את דליה כיעד לפי פעולה. לא נשלחות הודעות כעת.'
+                          ? 'ON — ניתן לבחור את דליה כיעד לפי פעולה.'
                           : 'OFF — לא לשלוח לדליה. מנהל הצי וההתנהגות הקיימת של החברה לא נפגעים.'}
                       </p>
                     </div>
@@ -321,21 +337,29 @@ export default function DriverAppNotificationsAdmin() {
                       סימון יעד «דליה» בפעולה יישמר, אבל השירות כבוי עד שיופעל המתג למעלה.
                     </p>
                   )}
-                  <div className="grid md:grid-cols-2 gap-4 pt-2 border-t border-border">
+
+                  <h3 className="font-bold pt-2 border-t border-border flex items-center gap-2">
+                    <User size={16} /> אנשי קשר ונמענים
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">שם איש קשר בחברה</label>
+                      <input
+                        className={inputClass}
+                        value={companyConfig.contact_name}
+                        onChange={(e) => setCompanyConfig((prev) => ({ ...prev, contact_name: e.target.value }))}
+                        placeholder="מנהל תפעול"
+                      />
+                    </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Email יעד — בעל החברה / איש קשר</label>
                       <input
                         dir="ltr"
                         className={inputClass}
                         value={companyConfig.contact_email}
-                        onChange={(e) =>
-                          setCompanyConfig((prev) => ({ ...prev, contact_email: e.target.value }))
-                        }
+                        onChange={(e) => setCompanyConfig((prev) => ({ ...prev, contact_email: e.target.value }))}
                         placeholder="owner@example.com"
                       />
-                      <p className="text-xs text-muted-foreground mt-1">
-                        אין מקור אמין יחיד למייל בעל החברה במערכת — לכן זה שדה יעד ברמת החברה.
-                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">WhatsApp יעד — בעל החברה / איש קשר</label>
@@ -343,10 +367,47 @@ export default function DriverAppNotificationsAdmin() {
                         dir="ltr"
                         className={inputClass}
                         value={companyConfig.contact_whatsapp}
-                        onChange={(e) =>
-                          setCompanyConfig((prev) => ({ ...prev, contact_whatsapp: e.target.value }))
-                        }
+                        onChange={(e) => setCompanyConfig((prev) => ({ ...prev, contact_whatsapp: e.target.value }))}
                         placeholder="9725..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">טלפון שירות</label>
+                      <input
+                        dir="ltr"
+                        className={inputClass}
+                        value={companyConfig.service_phone}
+                        onChange={(e) => setCompanyConfig((prev) => ({ ...prev, service_phone: e.target.value }))}
+                        placeholder="03-..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">טלפון חירום / מוקד</label>
+                      <input
+                        dir="ltr"
+                        className={inputClass}
+                        value={companyConfig.emergency_phone}
+                        onChange={(e) => setCompanyConfig((prev) => ({ ...prev, emergency_phone: e.target.value }))}
+                        placeholder="מספר לחיוג מהנהג"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        זה המספר שיופיע ב«חייג עכשיו למוקד». אין נפילה אוטומטית ל-*8888 או 100.
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">SLA חירום (דקות)</label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={120}
+                        className={inputClass}
+                        value={companyConfig.emergency_timeout_minutes}
+                        onChange={(e) =>
+                          setCompanyConfig((prev) => ({
+                            ...prev,
+                            emergency_timeout_minutes: parseInt(e.target.value, 10) || 10,
+                          }))
+                        }
                       />
                     </div>
                   </div>
@@ -354,6 +415,7 @@ export default function DriverAppNotificationsAdmin() {
 
                 {DRIVER_APP_ACTIONS.map((action) => {
                   const setting = actionSettings[action.key] || defaultActionSetting(action);
+                  const showVisibility = isVisibilityAction(action);
                   return (
                     <section key={action.key} className="card-elevated space-y-4">
                       <div className="flex items-start justify-between gap-4">
@@ -370,19 +432,26 @@ export default function DriverAppNotificationsAdmin() {
                                 רגיש
                               </span>
                             )}
+                            {!showVisibility && (
+                              <span className="text-[11px] font-bold px-2 py-0.5 rounded-lg bg-muted text-muted-foreground">
+                                הפניה בלבד
+                              </span>
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground">{action.description}</p>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-sm font-medium">הצג לנהג</span>
-                          <Switch
-                            checked={setting.visible_to_driver}
-                            onCheckedChange={(checked) => updateAction(action.key, { visible_to_driver: checked })}
-                            aria-label={`הצג לנהג ${action.label}`}
-                          />
-                        </div>
+                        {showVisibility && (
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-sm font-medium">הצג לנהג</span>
+                            <Switch
+                              checked={setting.visible_to_driver}
+                              onCheckedChange={(checked) => updateAction(action.key, { visible_to_driver: checked })}
+                              aria-label={`הצג לנהג ${action.label}`}
+                            />
+                          </div>
+                        )}
                       </div>
-                      {action.safetyWarning && (
+                      {action.safetyWarning && showVisibility && (
                         <div className={`text-sm rounded-xl p-3 ${
                           setting.visible_to_driver
                             ? 'bg-warning/10 text-warning'
@@ -394,110 +463,82 @@ export default function DriverAppNotificationsAdmin() {
                       )}
 
                       {action.hasNotifications ? (
-                        <div className="grid md:grid-cols-2 gap-4 pt-2 border-t border-border">
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <p className="font-bold flex items-center gap-2">
-                                <Mail size={16} /> Email
-                              </p>
-                              <Switch
-                                checked={setting.email_enabled}
-                                onCheckedChange={(checked) => updateAction(action.key, { email_enabled: checked })}
-                                aria-label={`Email ${action.label}`}
-                              />
-                            </div>
-                            <label className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 accent-primary"
-                                checked={setting.email_to_fleet_managers}
-                                onChange={(e) => updateAction(action.key, { email_to_fleet_managers: e.target.checked })}
-                              />
-                              מנהל/י צי הרכב של החברה
-                            </label>
-                            <label className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 accent-primary"
-                                checked={setting.email_to_company_contact}
-                                onChange={(e) => updateAction(action.key, { email_to_company_contact: e.target.checked })}
-                              />
-                              בעל החברה / איש קשר ({companyConfig.contact_email || 'לא הוגדר Email יעד לחברה'})
-                            </label>
-                            <label className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 accent-primary"
-                                checked={setting.email_to_dalia}
-                                onChange={(e) => updateAction(action.key, { email_to_dalia: e.target.checked })}
-                              />
-                              דליה ({daliaEmail || 'לא הוגדר אימייל קבוע'})
-                            </label>
-                            <div>
-                              <label className="block text-xs text-muted-foreground mb-1">יעד נוסף (אופציונלי)</label>
-                              <input
-                                dir="ltr"
-                                className={inputClass}
-                                value={setting.email_extra}
-                                onChange={(e) => updateAction(action.key, { email_extra: e.target.value })}
-                                placeholder="extra@example.com"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <p className="font-bold flex items-center gap-2">
-                                <MessageCircle size={16} /> WhatsApp
-                              </p>
-                              <Switch
-                                checked={setting.whatsapp_enabled}
-                                onCheckedChange={(checked) => updateAction(action.key, { whatsapp_enabled: checked })}
-                                aria-label={`WhatsApp ${action.label}`}
-                              />
-                            </div>
-                            <label className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 accent-primary"
-                                checked={setting.whatsapp_to_dalia}
-                                onChange={(e) => updateAction(action.key, { whatsapp_to_dalia: e.target.checked })}
-                              />
-                              דליה ({daliaWhatsapp || 'לא הוגדר מספר קבוע'})
-                            </label>
-                            <label className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 accent-primary"
-                                checked={setting.whatsapp_to_fleet_managers}
-                                onChange={(e) => updateAction(action.key, { whatsapp_to_fleet_managers: e.target.checked })}
-                              />
-                              מנהל צי
-                            </label>
-                            <label className="flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 accent-primary"
-                                checked={setting.whatsapp_to_company_contact}
-                                onChange={(e) => updateAction(action.key, { whatsapp_to_company_contact: e.target.checked })}
-                              />
-                              בעל החברה / איש קשר ({companyConfig.contact_whatsapp || 'לא הוגדר מספר יעד לחברה'})
-                            </label>
-                            <div>
-                              <label className="block text-xs text-muted-foreground mb-1">יעד נוסף (אופציונלי)</label>
-                              <input
-                                dir="ltr"
-                                className={inputClass}
-                                value={setting.whatsapp_extra}
-                                onChange={(e) => updateAction(action.key, { whatsapp_extra: e.target.value })}
-                                placeholder="9725..."
-                              />
-                            </div>
-                            <p className="text-xs text-muted-foreground">נשמר בלבד. אין שליחת WhatsApp במסך זה.</p>
-                          </div>
+                        <div className="grid md:grid-cols-3 gap-4 pt-2 border-t border-border">
+                          <ChannelBlock
+                            title="מערכת"
+                            icon={<Bell size={16} />}
+                            enabled={setting.in_app_enabled}
+                            onEnabled={(checked) => updateAction(action.key, { in_app_enabled: checked })}
+                            fleet={setting.in_app_to_fleet_managers}
+                            onFleet={(checked) => updateAction(action.key, { in_app_to_fleet_managers: checked })}
+                            company={setting.in_app_to_company_contact}
+                            onCompany={(checked) => updateAction(action.key, { in_app_to_company_contact: checked })}
+                            dalia={setting.in_app_to_dalia}
+                            onDalia={(checked) => updateAction(action.key, { in_app_to_dalia: checked })}
+                            companyLabel={companyConfig.contact_name || companyConfig.contact_email || 'לא הוגדר איש קשר'}
+                            daliaLabel={daliaEmail || daliaName || 'לא הוגדר איש קשר דליה'}
+                            ariaLabel={`מערכת ${action.label}`}
+                          />
+                          <ChannelBlock
+                            title="Email"
+                            icon={<Mail size={16} />}
+                            enabled={setting.email_enabled}
+                            onEnabled={(checked) => updateAction(action.key, { email_enabled: checked })}
+                            fleet={setting.email_to_fleet_managers}
+                            onFleet={(checked) => updateAction(action.key, { email_to_fleet_managers: checked })}
+                            company={setting.email_to_company_contact}
+                            onCompany={(checked) => updateAction(action.key, { email_to_company_contact: checked })}
+                            dalia={setting.email_to_dalia}
+                            onDalia={(checked) => updateAction(action.key, { email_to_dalia: checked })}
+                            companyLabel={companyConfig.contact_email || 'לא הוגדר Email יעד לחברה'}
+                            daliaLabel={daliaEmail || 'לא הוגדר אימייל קבוע'}
+                            ariaLabel={`Email ${action.label}`}
+                            extra={
+                              <div>
+                                <label className="block text-xs text-muted-foreground mb-1">יעד נוסף (אופציונלי)</label>
+                                <input
+                                  dir="ltr"
+                                  className={inputClass}
+                                  value={setting.email_extra}
+                                  onChange={(e) => updateAction(action.key, { email_extra: e.target.value })}
+                                  placeholder="extra@example.com"
+                                />
+                              </div>
+                            }
+                          />
+                          <ChannelBlock
+                            title="WhatsApp"
+                            icon={<MessageCircle size={16} />}
+                            enabled={setting.whatsapp_enabled}
+                            onEnabled={(checked) => updateAction(action.key, { whatsapp_enabled: checked })}
+                            fleet={setting.whatsapp_to_fleet_managers}
+                            onFleet={(checked) => updateAction(action.key, { whatsapp_to_fleet_managers: checked })}
+                            company={setting.whatsapp_to_company_contact}
+                            onCompany={(checked) => updateAction(action.key, { whatsapp_to_company_contact: checked })}
+                            dalia={setting.whatsapp_to_dalia}
+                            onDalia={(checked) => updateAction(action.key, { whatsapp_to_dalia: checked })}
+                            companyLabel={companyConfig.contact_whatsapp || 'לא הוגדר מספר יעד לחברה'}
+                            daliaLabel={daliaWhatsapp || 'לא הוגדר מספר קבוע'}
+                            ariaLabel={`WhatsApp ${action.label}`}
+                            extra={
+                              <>
+                                <div>
+                                  <label className="block text-xs text-muted-foreground mb-1">יעד נוסף (אופציונלי)</label>
+                                  <input
+                                    dir="ltr"
+                                    className={inputClass}
+                                    value={setting.whatsapp_extra}
+                                    onChange={(e) => updateAction(action.key, { whatsapp_extra: e.target.value })}
+                                    placeholder="9725..."
+                                  />
+                                </div>
+                                <p className="text-xs text-muted-foreground">נשלח רק ב-Staging דרך Gupshup הקיים. לא Production.</p>
+                              </>
+                            }
+                          />
 
                           {action.conditions && (
-                            <div className="md:col-span-2 space-y-2 pt-2 border-t border-border">
+                            <div className="md:col-span-3 space-y-2 pt-2 border-t border-border">
                               <p className="font-bold">תנאי לפי {action.conditions.label}</p>
                               <label className="flex items-center gap-2 text-sm">
                                 <input
@@ -558,7 +599,7 @@ export default function DriverAppNotificationsAdmin() {
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground border-t border-border pt-3">
-                          לפעולה זו אין התראת מערכת היום — כאן שולטים רק בהצגה לנהג.
+                          לפעולה זו אין התראת מערכת — כאן שולטים רק בהצגה לנהג.
                         </p>
                       )}
                     </section>
@@ -579,6 +620,62 @@ export default function DriverAppNotificationsAdmin() {
           )}
         </>
       )}
+    </div>
+  );
+}
+
+function ChannelBlock({
+  title,
+  icon,
+  enabled,
+  onEnabled,
+  fleet,
+  onFleet,
+  company,
+  onCompany,
+  dalia,
+  onDalia,
+  companyLabel,
+  daliaLabel,
+  ariaLabel,
+  extra,
+}: {
+  title: string;
+  icon: ReactNode;
+  enabled: boolean;
+  onEnabled: (checked: boolean) => void;
+  fleet: boolean;
+  onFleet: (checked: boolean) => void;
+  company: boolean;
+  onCompany: (checked: boolean) => void;
+  dalia: boolean;
+  onDalia: (checked: boolean) => void;
+  companyLabel: string;
+  daliaLabel: string;
+  ariaLabel: string;
+  extra?: ReactNode;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="font-bold flex items-center gap-2">
+          {icon} {title}
+        </p>
+        <Switch checked={enabled} onCheckedChange={onEnabled} aria-label={ariaLabel} />
+      </div>
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" className="w-4 h-4 accent-primary" checked={fleet} onChange={(e) => onFleet(e.target.checked)} />
+        מנהל/י צי הרכב של החברה
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" className="w-4 h-4 accent-primary" checked={company} onChange={(e) => onCompany(e.target.checked)} />
+        בעל החברה / איש קשר ({companyLabel})
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" className="w-4 h-4 accent-primary" checked={dalia} onChange={(e) => onDalia(e.target.checked)} />
+        דליה ({daliaLabel})
+      </label>
+      {extra}
     </div>
   );
 }

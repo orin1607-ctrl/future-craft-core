@@ -372,22 +372,28 @@ export type Database = {
       }
       dalia_contact_settings: {
         Row: {
+          contact_name: string
           email: string
           id: string
+          phone: string
           updated_at: string
           updated_by: string | null
           whatsapp: string
         }
         Insert: {
+          contact_name?: string
           email?: string
           id?: string
+          phone?: string
           updated_at?: string
           updated_by?: string | null
           whatsapp?: string
         }
         Update: {
+          contact_name?: string
           email?: string
           id?: string
+          phone?: string
           updated_at?: string
           updated_by?: string | null
           whatsapp?: string
@@ -406,6 +412,10 @@ export type Database = {
           email_to_dalia: boolean
           email_to_fleet_managers: boolean
           id: string
+          in_app_enabled: boolean
+          in_app_to_company_contact: boolean
+          in_app_to_dalia: boolean
+          in_app_to_fleet_managers: boolean
           updated_at: string
           updated_by: string | null
           visible_to_driver: boolean
@@ -426,6 +436,10 @@ export type Database = {
           email_to_dalia?: boolean
           email_to_fleet_managers?: boolean
           id?: string
+          in_app_enabled?: boolean
+          in_app_to_company_contact?: boolean
+          in_app_to_dalia?: boolean
+          in_app_to_fleet_managers?: boolean
           updated_at?: string
           updated_by?: string | null
           visible_to_driver?: boolean
@@ -446,6 +460,10 @@ export type Database = {
           email_to_dalia?: boolean
           email_to_fleet_managers?: boolean
           id?: string
+          in_app_enabled?: boolean
+          in_app_to_company_contact?: boolean
+          in_app_to_dalia?: boolean
+          in_app_to_fleet_managers?: boolean
           updated_at?: string
           updated_by?: string | null
           visible_to_driver?: boolean
@@ -461,24 +479,36 @@ export type Database = {
         Row: {
           company_name: string
           contact_email: string
+          contact_name: string
           contact_whatsapp: string
           dalia_service_enabled: boolean
+          emergency_phone: string
+          emergency_timeout_minutes: number
+          service_phone: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
           company_name: string
           contact_email?: string
+          contact_name?: string
           contact_whatsapp?: string
           dalia_service_enabled?: boolean
+          emergency_phone?: string
+          emergency_timeout_minutes?: number
+          service_phone?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
           company_name?: string
           contact_email?: string
+          contact_name?: string
           contact_whatsapp?: string
           dalia_service_enabled?: boolean
+          emergency_phone?: string
+          emergency_timeout_minutes?: number
+          service_phone?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -1213,11 +1243,14 @@ export type Database = {
           category_label: string
           company_name: string
           created_at: string
+          escalated_at: string | null
           id: string
           location: string | null
           notes: string | null
+          notify_dispatched_at: string | null
           resolved_at: string | null
           resolved_by: string | null
+          sla_deadline_at: string | null
           status: string
           target_type: string
           target_value: string
@@ -1230,11 +1263,14 @@ export type Database = {
           category_label?: string
           company_name?: string
           created_at?: string
+          escalated_at?: string | null
           id?: string
           location?: string | null
           notes?: string | null
+          notify_dispatched_at?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          sla_deadline_at?: string | null
           status?: string
           target_type?: string
           target_value?: string
@@ -1247,11 +1283,14 @@ export type Database = {
           category_label?: string
           company_name?: string
           created_at?: string
+          escalated_at?: string | null
           id?: string
           location?: string | null
           notes?: string | null
+          notify_dispatched_at?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          sla_deadline_at?: string | null
           status?: string
           target_type?: string
           target_value?: string
@@ -2831,6 +2870,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string
+          driver_name: string | null
           event_date: string
           event_type: string
           id: string
@@ -2846,6 +2886,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          driver_name?: string | null
           event_date?: string
           event_type?: string
           id?: string
@@ -2861,6 +2902,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          driver_name?: string | null
           event_date?: string
           event_type?: string
           id?: string
@@ -3716,6 +3758,11 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      process_driver_emergency_jobs: { Args: Record<PropertyKey, never>; Returns: number }
+      report_driver_odometer: {
+        Args: { p_odometer: number; p_vehicle_id: string }
+        Returns: string
       }
     }
     Enums: {

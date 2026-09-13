@@ -9,7 +9,9 @@ name: Staging — Driver app notifications
 on:
   push:
     branches:
+      - cursor/driver-area-settings-b784
       - cursor/driver-app-notifications-563b
+      - dev
   workflow_dispatch: {}
 
 permissions:
@@ -58,8 +60,10 @@ jobs:
 
           SQL_FILE_A="supabase/migrations/20260905223000_driver_app_notification_settings.sql"
           SQL_FILE_B="supabase/migrations/20260906120000_driver_app_control_center_expand.sql"
+          SQL_FILE_C="supabase/migrations/20260913200000_driver_area_settings_expand.sql"
           test -f "$SQL_FILE_A"
           test -f "$SQL_FILE_B"
+          test -f "$SQL_FILE_C"
 
           apply_sql() {
             local FILE="$1"
@@ -86,6 +90,27 @@ jobs:
 
           apply_sql "$SQL_FILE_A"
           apply_sql "$SQL_FILE_B"
+          apply_sql "$SQL_FILE_C"
+
+      - name: Deploy notify-driver-event to staging only
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_REF: usfeoerkpcafxxlyuldl
+        run: |
+          set -euo pipefail
+          TOK=$(printf '%s' "${SUPABASE_ACCESS_TOKEN:-}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          if [ -z "$TOK" ]; then
+            echo "::warning::SUPABASE_ACCESS_TOKEN missing. Deploy notify-driver-event in the Staging dashboard."
+            exit 0
+          fi
+          if [ "$STAGING_REF" = "qasomfndnjuixgjmjwcm" ] || [ "$STAGING_REF" = "kuenhflklivaxrmqbsee" ]; then
+            echo "::error::Refused to deploy functions to a production project"
+            exit 1
+          fi
+          npx --yes supabase functions deploy notify-driver-event \
+            --project-ref "$STAGING_REF" \
+            --no-verify-jwt
+          echo "✅ notify-driver-event deployed to staging only"
 
       - name: Verify new tables exist on staging
         env:
