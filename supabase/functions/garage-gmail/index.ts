@@ -363,6 +363,7 @@ Deno.serve(async (req) => {
       return jsonResponse({
         success: true,
         authUrl,
+        clientId: client.clientId,
         redirectUri,
         mailbox: ALLOWED_ACCOUNT,
         clientSource: client.source,
@@ -384,6 +385,7 @@ Deno.serve(async (req) => {
         email: connected ? ALLOWED_ACCOUNT : (resolved.email || null),
         claimsMailboxUntouched: CLAIMS_MAILBOX,
         clientPresent: Boolean(client),
+        clientId: client?.clientId || null,
         clientSource: client?.source || null,
         tokenSource: resolved.source,
         probe: resolved.probe,
