@@ -303,7 +303,7 @@ export default function GarageApp() {
         if (msg.type === 'gm:garageGmailOauthStart') {
           const existing = await fetchExistingGoogleClientId();
           const { data, error } = await supabase.functions.invoke('garage-gmail', {
-            body: { action: 'oauth_start', preferPages: payload.preferPages === true },
+            body: { action: 'oauth_start', preferPages: true },
           });
           const row = (data && typeof data === 'object') ? data as Record<string, unknown> : {};
           const authUrl = String(row.authUrl || '');

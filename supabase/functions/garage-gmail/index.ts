@@ -467,6 +467,30 @@ Deno.serve(async (req) => {
         });
     }
 
+    if (action === "oauth_probe") {
+      const client = oauthClient();
+      if (!client) return jsonResponse({ success: false, error: "oauth_client_missing" }, 503);
+      const params = new URLSearchParams({
+        client_id: client.clientId,
+        redirect_uri: PAGES_REDIRECT,
+        response_type: "code",
+        access_type: "offline",
+        prompt: "consent",
+        login_hint: ALLOWED_ACCOUNT,
+        scope: SCOPES.join(" "),
+        state: "garage-gmail.probe",
+      });
+      return jsonResponse({
+        success: true,
+        clientId: client.clientId,
+        clientSource: client.source,
+        redirectUri: PAGES_REDIRECT,
+        origin: "https://orin1607-ctrl.github.io",
+        authUrl: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`,
+        mailbox: ALLOWED_ACCOUNT,
+      });
+    }
+
     const auth = await requireAuth(req, { roles: ["super_admin"] });
     if ("error" in auth) return auth.error;
 
@@ -474,10 +498,9 @@ Deno.serve(async (req) => {
       const client = oauthClient();
       if (!client) return jsonResponse({ success: false, error: "oauth_client_missing", pending: true }, 503);
       await ensureGarageConnectionTable(sb);
-      const preferPages = body.preferPages === true;
-      const nonce = await makeOauthState(preferPages);
+      const nonce = await makeOauthState(true);
       await saveConnection(sb, { oauth_state: nonce });
-      const redirectUri = preferPages ? PAGES_REDIRECT : FUNCTION_REDIRECT;
+      const redirectUri = PAGES_REDIRECT;
       const params = new URLSearchParams({
         client_id: client.clientId,
         redirect_uri: redirectUri,
