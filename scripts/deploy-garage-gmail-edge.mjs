@@ -33,12 +33,21 @@ function tokenCandidates() {
     .filter((row) => row.value);
 }
 
-async function stagingHttp(token) {
-  const res = await fetch(`https://api.supabase.com/v1/projects/${STAGING_REF}`, {
+function safeMessage(text) {
+  return String(text || '')
+    .replace(/sbp_[A-Za-z0-9]+/g, 'sbp_[redacted]')
+    .replace(/eyJ[A-Za-z0-9_-]{20,}/g, '[jwt]')
+    .slice(0, 180);
+}
+
+async function mgmt(token, path) {
+  const res = await fetch(`https://api.supabase.com/v1${path}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  await res.text().catch(() => '');
-  return res.status;
+  const text = await res.text().catch(() => '');
+  let json = null;
+  try { json = text ? JSON.parse(text) : null; } catch { json = null; }
+  return { status: res.status, json, message: safeMessage(json?.message || json?.error || text) };
 }
 
 async function main() {
@@ -83,23 +92,35 @@ async function main() {
 
   let working = null;
   for (const row of list) {
-    const code = await stagingHttp(row.value);
-    report.candidates.push({ name: row.name, len: row.value.length, staging_http: code });
-    console.log('mgmt', row.name, 'len', row.value.length, 'staging_http', code);
-    if (code === 200 && !working) {
-      working = row;
-    }
+    const project = await mgmt(row.value, `/projects/${STAGING_REF}`);
+    const listed = await mgmt(row.value, '/projects');
+    const refs = Array.isArray(listed.json) ? listed.json.map((p) => String(p.id || p.ref || '')) : [];
+    const seesStaging = refs.includes(STAGING_REF);
+    const seesProduction = refs.includes(PROD_REF);
+    report.candidates.push({
+      name: row.name,
+      len: row.value.length,
+      staging_http: project.status,
+      staging_message: project.message,
+      list_http: listed.status,
+      sees_staging: seesStaging,
+      sees_production: seesProduction,
+    });
+    console.log(
+      'mgmt', row.name, 'len', row.value.length,
+      'staging_http', project.status, project.message || '',
+      'list_http', listed.status,
+      'sees_staging', seesStaging ? 'yes' : 'no',
+      'sees_production', seesProduction ? 'yes' : 'no',
+    );
+    if (!working && (project.status === 200 || seesStaging)) working = row;
+    if (!working && project.status !== 401) working = row;
   }
 
-  if (!working) {
-    report.error = 'management_token_rejected';
-    writeFileSync('test-results/garage-gmail-deploy.json', JSON.stringify(report, null, 2));
-    console.log('NO_WORKING_STAGING_MANAGEMENT_TOKEN');
-    process.exit(2);
-  }
+  if (!working) working = list[0];
 
   report.used = working.name;
-  console.log('using_token_source', working.name);
+  console.log('using_token_source', working.name, 'attempting_functions_deploy');
   const result = spawnSync(
     'npx',
     ['--yes', 'supabase', 'functions', 'deploy', 'garage-gmail', '--project-ref', STAGING_REF, '--use-api'],
@@ -110,7 +131,10 @@ async function main() {
   );
   report.deployed = result.status === 0;
   writeFileSync('test-results/garage-gmail-deploy.json', JSON.stringify(report, null, 2));
-  if (result.status !== 0) process.exit(result.status || 1);
+  if (result.status !== 0) {
+    console.log('NO_WORKING_STAGING_MANAGEMENT_TOKEN');
+    process.exit(result.status || 2);
+  }
   console.log('DEPLOYED garage-gmail on', STAGING_REF);
 }
 
