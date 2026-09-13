@@ -2,6 +2,7 @@
  * Garage Gmail — Oren Car PUBLIC STAGING only.
  * Mailbox: yoni191177@gmail.com
  * Never Claims Gmail function, never Claims token table, never yoni122222, never Claims storage.
+ * Staging deploy after Management token rotation.
  */
 import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";

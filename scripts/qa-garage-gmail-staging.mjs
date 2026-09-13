@@ -120,6 +120,29 @@ async function restTableExists(admin, table) {
   return null;
 }
 
+async function loadStagingServiceRole() {
+  const existing = String(process.env.STAGING_SERVICE_ROLE_KEY || process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  if (existing) {
+    if (jwtRef(existing) && jwtRef(existing) !== STAGING_REF) abort('service role is not Staging');
+    return existing;
+  }
+  const tok = String(process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+  if (!tok) return '';
+  const res = await fetch(`https://api.supabase.com/v1/projects/${STAGING_REF}/api-keys`, {
+    headers: { Authorization: `Bearer ${tok}` },
+  });
+  console.log('mgmt_api_keys_http', res.status);
+  if (res.status !== 200) return '';
+  const keys = await res.json();
+  if (!Array.isArray(keys)) return '';
+  const row = keys.find((k) => k.name === 'service_role' || (k.tags || []).includes('service_role'))
+    || keys.find((k) => String(k.name || '').includes('service'));
+  const srk = String(row?.api_key || '').trim();
+  if (!srk) return '';
+  if (jwtRef(srk) !== STAGING_REF) abort('api-keys service role is not Staging');
+  return srk;
+}
+
 async function createEphemeralSuperAdmin(service, anonKey) {
   const admin = createClient(STAGING_URL, service, { auth: { persistSession: false, autoRefreshToken: false } });
   const userClient = createClient(STAGING_URL, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -156,12 +179,11 @@ async function run() {
   const dbUrl = String(process.env.STAGING_DATABASE_URL || process.env.DATABASE_URL || '').replace(/[\r\n]/g, '').trim();
   let email = String(process.env.TEST_EMAIL || '').trim();
   let password = String(process.env.TEST_PASSWORD || '').trim();
-  const service = String(process.env.STAGING_SERVICE_ROLE_KEY || process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  const service = await loadStagingServiceRole();
 
   guardUrl(viteUrl, 'VITE_SUPABASE_URL');
   if (!anon) anon = stagingAnonFallback();
   if (jwtRef(anon) && jwtRef(anon) !== STAGING_REF) abort('anon key is not Staging');
-  if (service && jwtRef(service) && jwtRef(service) !== STAGING_REF) abort('service role is not Staging');
 
   const report = {
     at: new Date().toISOString(),
