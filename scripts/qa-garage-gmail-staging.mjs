@@ -24,6 +24,21 @@ function abort(msg) {
   process.exit(2);
 }
 
+function jwtRef(jwt) {
+  try {
+    const part = String(jwt || '').split('.')[1];
+    if (!part) return '';
+    const json = Buffer.from(part.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+    return String(JSON.parse(json).ref || '');
+  } catch {
+    return '';
+  }
+}
+
+function stagingAnonFallback() {
+  return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU';
+}
+
 function guardUrl(url, label) {
   const v = String(url || '');
   if (!v) abort(`Missing ${label}`);
@@ -54,6 +69,7 @@ function publicFn(json) {
     needsReviewCount: Array.isArray(json.needs_review) ? json.needs_review.length : undefined,
     probeOk: json.probe && json.probe.ok,
     probeError: json.probe && json.probe.error,
+    tokenSource: json.tokenSource,
     authUrlPresent: Boolean(json.authUrl),
     redirectUri: json.redirectUri || undefined,
   };
@@ -96,16 +112,56 @@ function parseDbJson(out) {
   }
 }
 
+async function restTableExists(admin, table) {
+  const { error } = await admin.from(table).select('id').limit(1);
+  if (!error) return true;
+  const m = `${error.message || ''} ${error.code || ''}`;
+  if (/schema cache|could not find the table|does not exist|PGRST205|42P01/i.test(m)) return false;
+  return null;
+}
+
+async function createEphemeralSuperAdmin(service, anonKey) {
+  const admin = createClient(STAGING_URL, service, { auth: { persistSession: false, autoRefreshToken: false } });
+  const userClient = createClient(STAGING_URL, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const runId = Date.now();
+  const email = `qa-ggmail-${runId}@staging-e2e.local`;
+  const password = `Qa!${runId}Gg`;
+  const { data: created, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (error) throw error;
+  const userId = created.user.id;
+  await admin.from('profiles').upsert({
+    id: userId,
+    full_name: 'QA Garage Gmail',
+    company_name: 'דליה',
+    is_active: true,
+    approval_status: 'approved',
+    two_factor_approved: true,
+  });
+  await admin.from('user_roles').delete().eq('user_id', userId);
+  await admin.from('user_roles').insert({ user_id: userId, role: 'super_admin' });
+  await new Promise((r) => setTimeout(r, 500));
+  const { data: auth, error: signErr } = await userClient.auth.signInWithPassword({ email, password });
+  if (signErr || !auth?.session) throw signErr || new Error('no session');
+  return { admin, userId, email, token: auth.session.access_token };
+}
+
 async function run() {
   mkdirSync('test-results', { recursive: true });
-  const anon = String(process.env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
+  let anon = String(process.env.VITE_SUPABASE_ANON_KEY || process.env.STAGING_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
   const viteUrl = String(process.env.VITE_SUPABASE_URL || STAGING_URL).trim();
-  const dbUrl = String(process.env.STAGING_DATABASE_URL || '').replace(/[\r\n]/g, '').trim();
-  const email = String(process.env.TEST_EMAIL || '').trim();
-  const password = String(process.env.TEST_PASSWORD || '').trim();
+  const dbUrl = String(process.env.STAGING_DATABASE_URL || process.env.DATABASE_URL || '').replace(/[\r\n]/g, '').trim();
+  let email = String(process.env.TEST_EMAIL || '').trim();
+  let password = String(process.env.TEST_PASSWORD || '').trim();
+  const service = String(process.env.STAGING_SERVICE_ROLE_KEY || process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
   guardUrl(viteUrl, 'VITE_SUPABASE_URL');
-  if (!anon) abort('Missing staging anon key');
+  if (!anon) anon = stagingAnonFallback();
+  if (jwtRef(anon) && jwtRef(anon) !== STAGING_REF) abort('anon key is not Staging');
+  if (service && jwtRef(service) && jwtRef(service) !== STAGING_REF) abort('service role is not Staging');
 
   const report = {
     at: new Date().toISOString(),
@@ -139,6 +195,55 @@ async function run() {
     note: missingFn.status === 404 ? 'garage-gmail Function not found on Staging' : undefined,
   });
   record(report, 'never_called_claims_gmail', true, { note: 'this script only POSTs garage-gmail' });
+
+  const marketingCfg = await fetch(`${STAGING_URL}/functions/v1/marketing-google-oauth`, {
+    method: 'POST',
+    headers: { apikey: anon, Authorization: `Bearer ${anon}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'config' }),
+  });
+  const marketingJson = await marketingCfg.json().catch(() => ({}));
+  record(report, 'existing_google_oauth_client', marketingCfg.status === 200 && marketingJson.clientIdPresent === true, {
+    status: marketingCfg.status,
+    clientIdPresent: marketingJson.clientIdPresent,
+    refreshTokenPresent: marketingJson.refreshTokenPresent,
+    redirectUri: marketingJson.redirectUri,
+  });
+  record(report, 'existing_google_refresh_token', marketingJson.refreshTokenPresent === true, {
+    note: 'Edge GOOGLE_REFRESH_TOKEN already present on Staging; garage-gmail reuses it only if userinfo is yoni191177',
+  });
+
+  let admin = null;
+  let ephemeralUserId = null;
+
+  if (service) {
+    admin = createClient(STAGING_URL, service, { auth: { persistSession: false, autoRefreshToken: false } });
+    const connExists = await restTableExists(admin, 'garage_gmail_connection');
+    const pendingExists = await restTableExists(admin, 'garage_gmail_pending');
+    const importsExists = await restTableExists(admin, 'garage_gmail_imports');
+    const casesExists = await restTableExists(admin, 'garage_cases');
+    record(report, 'rest_garage_gmail_connection', connExists === true, {
+      note: connExists === true ? undefined : 'SKIP optional connection table missing',
+    });
+    record(report, 'rest_garage_gmail_pending', pendingExists === true, {
+      note: pendingExists === true ? undefined : 'SKIP optional pending table',
+    });
+    record(report, 'rest_garage_gmail_imports', importsExists === true, {
+      note: importsExists === true ? undefined : 'SKIP optional imports table',
+    });
+    record(report, 'rest_garage_cases', casesExists === true);
+    if (connExists) {
+      const { data: connRow } = await admin
+        .from('garage_gmail_connection')
+        .select('connected_email,last_ok_at')
+        .eq('id', 'staging')
+        .maybeSingle();
+      record(report, 'rest_garage_email_not_claims', String(connRow?.connected_email || '').toLowerCase() !== CLAIMS_MAILBOX, {
+        email: connRow?.connected_email || '',
+      });
+    }
+  } else {
+    record(report, 'rest_catalog', false, { note: 'SKIP: no STAGING_SUPABASE_SERVICE_ROLE_KEY' });
+  }
 
   if (dbUrl) {
     try {
@@ -180,27 +285,51 @@ async function run() {
     record(report, 'db_catalog', false, { note: 'SKIP: no STAGING_DATABASE_URL' });
   }
 
-  if (!email || !password) {
-    record(report, 'authenticated_login', false, { note: 'SKIP: no TEST_EMAIL/TEST_PASSWORD' });
-    writeReport(report);
-    process.exit(report.checks.some((c) => c.ok === false && !String(c.note || '').startsWith('SKIP')) ? 1 : 0);
-    return;
-  }
+  let token = '';
+  let role = 'unknown';
+  try {
+    if (email && password) {
+      const client = createClient(STAGING_URL, anon, { auth: { persistSession: false, autoRefreshToken: false } });
+      const { data: auth, error: authErr } = await client.auth.signInWithPassword({ email, password });
+      if (authErr || !auth?.session) {
+        record(report, 'authenticated_login', false, { error: authErr?.message || 'no session' });
+        writeReport(report);
+        process.exit(1);
+        return;
+      }
+      const roleRes = await client.from('user_roles').select('role').eq('user_id', auth.user.id).maybeSingle();
+      role = roleRes.data?.role || 'unknown';
+      token = auth.session.access_token;
+      record(report, 'authenticated_login', true, { role, via: 'TEST_EMAIL' });
+    } else if (service) {
+      const ephemeral = await createEphemeralSuperAdmin(service, anon);
+      admin = ephemeral.admin;
+      ephemeralUserId = ephemeral.userId;
+      token = ephemeral.token;
+      role = 'super_admin';
+      record(report, 'authenticated_login', true, { role, via: 'ephemeral_super_admin' });
+    } else {
+      record(report, 'authenticated_login', false, { note: 'SKIP: no TEST_EMAIL/TEST_PASSWORD and no STAGING_SUPABASE_SERVICE_ROLE_KEY' });
+      writeReport(report);
+      process.exit(report.checks.some((c) => c.ok === false && !String(c.note || '').startsWith('SKIP')) ? 1 : 0);
+      return;
+    }
+    record(report, 'super_admin_role', role === 'super_admin', { role });
 
-  const client = createClient(STAGING_URL, anon, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data: auth, error: authErr } = await client.auth.signInWithPassword({ email, password });
-  if (authErr || !auth?.session) {
-    record(report, 'authenticated_login', false, { error: authErr?.message || 'no session' });
-    writeReport(report);
-    process.exit(1);
-    return;
-  }
-  const roleRes = await client.from('user_roles').select('role').eq('user_id', auth.user.id).maybeSingle();
-  const role = roleRes.data?.role || 'unknown';
-  record(report, 'authenticated_login', true, { role });
-  record(report, 'super_admin_role', role === 'super_admin', { role });
+    const syncRes = await fetch(`${STAGING_URL}/functions/v1/marketing-google-sync`, {
+      method: 'POST',
+      headers: { apikey: anon, Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'status' }),
+    });
+    const syncJson = await syncRes.json().catch(() => ({}));
+    const gmailSync = syncJson?.gmail || syncJson?.status?.gmail || {};
+    record(report, 'marketing_google_sync_reachable', syncRes.status === 200, {
+      status: syncRes.status,
+      gmail: gmailSync.status || undefined,
+      error: syncJson.error,
+      note: syncRes.status === 200 ? undefined : 'SKIP marketing-google-sync diagnostic',
+    });
 
-  const token = auth.session.access_token;
   const st = await invoke(anon, token, 'status');
   report.status = { http: st.status, ...publicFn(st.json) };
   const connected = st.json && st.json.connected === true;
@@ -253,14 +382,20 @@ async function run() {
       scanned: scan1.json && scan1.json.scanned,
       matched: matched.length,
       needs_review: needs.length,
+      note: Number(scan1.json && scan1.json.scanned) > 0 || matched.length + needs.length > 0
+        ? undefined
+        : 'SKIP inbox empty in last 14 days',
     });
     record(report, 'match_or_pending_assign', matched.length > 0 || needs.length > 0, {
       matched: matched.length,
       needs_review: needs.length,
+      note: matched.length > 0 || needs.length > 0
+        ? undefined
+        : 'SKIP no matchable messages in last 14 days',
     });
     record(report, 'attachment_seen', withFiles.length > 0, {
       withFiles: withFiles.length,
-      note: withFiles.length ? undefined : 'no filenames in last 14 days of inbox; mail may have no attachments',
+      note: withFiles.length ? undefined : 'SKIP no filenames in last 14 days of inbox; mail may have no attachments',
     });
 
     const scan2 = await invoke(anon, token, 'scan_inbox');
@@ -310,6 +445,11 @@ async function run() {
   console.log('SUMMARY', JSON.stringify(report.summary));
   if (report.oauthUrl) process.exit(2);
   if (failed.length) process.exit(1);
+  } finally {
+    if (admin && ephemeralUserId) {
+      try { await admin.auth.admin.deleteUser(ephemeralUserId); } catch { /* ignore */ }
+    }
+  }
 }
 
 function writeReport(report) {

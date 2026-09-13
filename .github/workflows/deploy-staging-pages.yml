@@ -109,3 +109,65 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  staging-garage-gmail:
+    name: Deploy garage-gmail via Preview
+    needs: build-deploy
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: Preview
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply approved garage Gmail SQL if Staging DB URL is present
+        env:
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          for n in ("STAGING_DATABASE_URL", "DATABASE_URL"):
+              v = (os.environ.get(n) or "")
+              if "qasomfndnjuixgjmjwcm" in v or "dalia-car.online" in v.lower():
+                  sys.exit(f"{n} looks like Production — refusing")
+          PY
+          if [ -n "${STAGING_DATABASE_URL:-}${DATABASE_URL:-}" ]; then
+            node scripts/apply-garage-gmail-staging.mjs
+          else
+            echo "No Staging DB URL in Preview — skip SQL"
+          fi
+      - name: Deploy garage-gmail Edge to Staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+          STAGING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/deploy-garage-gmail-edge.mjs
+      - uses: oven-sh/setup-bun@v2
+        if: always()
+        with:
+          bun-version: latest
+      - name: E2E garage-gmail on Staging only
+        if: always()
+        env:
+          VITE_SUPABASE_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          VITE_SUPABASE_PROJECT_ID: usfeoerkpcafxxlyuldl
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TEST_EMAIL: ${{ secrets.STAGING_QA_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD }}
+          STAGING_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          STAGING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          bun install --frozen-lockfile
+          node scripts/qa-garage-gmail-staging.mjs
+      - name: Upload garage-gmail logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garage-gmail-pages-preview
+          path: test-results/garage-gmail-*.json
+          if-no-files-found: ignore

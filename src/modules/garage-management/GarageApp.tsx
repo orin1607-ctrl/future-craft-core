@@ -33,6 +33,7 @@ import {
   type GarageMediaCategoryId,
 } from './garageMedia';
 import { scanGarageMailbox } from './garageMail';
+import { fetchExistingGoogleClientId, isMissingGarageGmailFunction } from './garageGmailBrowser';
 import { supabase } from '@/integrations/supabase/client';
 
 type HostRequest = {
@@ -259,12 +260,29 @@ export default function GarageApp() {
           const scanned = await scanGarageMailbox({
             currentCaseId: String(payload.caseId || caseId || ''),
             actorName: actor?.full_name,
+            googleAccessToken: String(payload.googleAccessToken || ''),
           });
           reply(requestId, scanned);
           return;
         }
         if (msg.type === 'gm:garageGmailStatus') {
           const { data, error } = await supabase.functions.invoke('garage-gmail', { body: { action: 'status' } });
+          if (isMissingGarageGmailFunction(error)) {
+            const existing = await fetchExistingGoogleClientId();
+            reply(requestId, {
+              ok: Boolean(existing.clientId),
+              connected: false,
+              pending: true,
+              mailbox: 'yoni191177@gmail.com',
+              functionMissing: true,
+              browserToken: Boolean(existing.clientId),
+              clientId: existing.clientId,
+              error: existing.clientId
+                ? 'תיבת המוסך עדיין לא מחוברת לסריקה. לחצו לחיבור Google של yoni191177@gmail.com בלבד.'
+                : (existing.error || 'חסר חיבור Google קיים ב-Staging'),
+            });
+            return;
+          }
           const row = (data && typeof data === 'object') ? data as Record<string, unknown> : {};
           reply(requestId, {
             ok: !error,
@@ -281,6 +299,17 @@ export default function GarageApp() {
           const { data, error } = await supabase.functions.invoke('garage-gmail', {
             body: { action: 'oauth_start', preferPages: payload.preferPages === true },
           });
+          if (isMissingGarageGmailFunction(error) || !(data && typeof data === 'object' && (data as { authUrl?: string }).authUrl)) {
+            const existing = await fetchExistingGoogleClientId();
+            reply(requestId, {
+              ok: Boolean(existing.clientId),
+              browserToken: Boolean(existing.clientId),
+              clientId: existing.clientId,
+              mailbox: 'yoni191177@gmail.com',
+              error: existing.clientId ? undefined : (existing.error || (error ? String((error as Error).message || error) : 'oauth_client_missing')),
+            });
+            return;
+          }
           reply(requestId, { ok: !error, ...(data && typeof data === 'object' ? data : {}), error: error ? String((error as Error).message || error) : undefined });
           return;
         }

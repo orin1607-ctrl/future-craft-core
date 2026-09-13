@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { garageMailIsClaimsMailbox, garageMailIsOwnMailbox, matchGarageMail, type GarageMatchCase } from './garageMailMatch';
 import { compareSentAndReturned, detectPricedOrder } from './garagePriceFromMail';
 import { applyMatchedMail, approveDetectedPrice, classifyGarageMailCategory, routeIncomingGarageMail } from './garageMail';
+import { isMissingGarageGmailFunction, parseGoogleClientIdFromAuthUrl } from './garageGmailBrowser';
 
 const openCase: GarageMatchCase = {
   id: 'case-open',
@@ -193,6 +194,15 @@ describe('priced-order detection and worker approval', () => {
     expect(appSrc).toContain('scanGarageMailbox');
     expect(appSrc).not.toContain('claims-gmail');
     expect(appSrc).not.toContain('claims-docs');
+    const browserSrc = readFileSync(resolve('src/modules/garage-management/garageGmailBrowser.ts'), 'utf8');
+    expect(browserSrc).toContain("invoke('marketing-google-oauth'");
+    expect(browserSrc).not.toContain("invoke('claims-gmail'");
+    expect(browserSrc).not.toContain('claims-docs');
+    expect(parseGoogleClientIdFromAuthUrl('https://accounts.google.com/o/oauth2/v2/auth?client_id=abc.apps.googleusercontent.com&x=1')).toBe('abc.apps.googleusercontent.com');
+    expect(parseGoogleClientIdFromAuthUrl('https://example.com/?q=1')).toBe('');
+    expect(isMissingGarageGmailFunction({ message: 'Requested function was not found' })).toBe(true);
+    expect(isMissingGarageGmailFunction({ context: { status: 404 } })).toBe(true);
+    expect(isMissingGarageGmailFunction({ message: 'Forbidden' })).toBe(false);
     const applySrc = readFileSync(resolve('scripts/apply-garage-gmail-staging.mjs'), 'utf8');
     expect(applySrc).toContain('sqlBody');
     expect(applySrc).toContain('usfeoerkpcafxxlyuldl');
