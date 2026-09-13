@@ -744,7 +744,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     </div>
     <div class="btn-row" style="margin-bottom:16px;">
       <button class="btn btn-white" onclick="go('s-compose')">＋ שליחה מהתיק</button>
-      <button class="btn btn-white" type="button" onclick="connectGarageGmail()">חבר yoni191177@gmail.com</button>
+      <button class="btn btn-white" type="button" id="garage-mail-connect-btn" onclick="connectGarageGmail()">חבר yoni191177@gmail.com</button>
       <button class="btn btn-ghost" type="button" onclick="scanGarageMail()">סרוק תיבת מוסך</button>
     </div>
     <div class="tabpanel active" id="c-all">
@@ -2202,7 +2202,6 @@ function go(id){
   if(id==='s-comm'){
     renderCorrespondence();
     markGarageMailRead();
-    prefetchGarageGmailConnect();
   }
   if(currentCase && currentCase.id) schedulePersist();
 }
@@ -3136,12 +3135,29 @@ function renderPriceReviewCard(){
         : '<div class="hint" style="margin:0;">הנתון דורש בדיקה ידנית. לא ממציאים מחיר.</div>'));
 }
 function garageGmailReady(){
+  if(window.__garageGmailServerConnected) return true;
   return !!(window.__garageGmailAccess && window.__garageGmailEmail === 'yoni191177@gmail.com');
 }
 function cacheGarageGmailConnect(res){
   if(!res || typeof res !== 'object') return;
   if(res.clientId) window.__garageGmailClientId = res.clientId;
-  if(res.authUrl) window.__garageGmailAuthUrl = res.authUrl;
+  if(res.authUrl && !window.__garageGmailServerConnected) window.__garageGmailAuthUrl = res.authUrl;
+}
+function applyGarageGmailStatus(res){
+  window.__garageGmailStatusKnown = true;
+  var mailbox = String((res && (res.email || res.mailbox)) || '').toLowerCase();
+  if(/yoni122222/.test(mailbox) || mailbox === 'orin1607@gmail.com'){
+    window.__garageGmailServerConnected = false;
+    return false;
+  }
+  var connected = !!(res && res.connected === true);
+  window.__garageGmailServerConnected = connected;
+  if(connected){
+    window.__garageGmailEmail = 'yoni191177@gmail.com';
+    window.__garageGmailAuthUrl = '';
+  }
+  cacheGarageGmailConnect(res);
+  return connected;
 }
 function garageGmailAuthUrlOk(authUrl){
   var url = String(authUrl || '');
@@ -3152,11 +3168,7 @@ function garageGmailAuthUrlOk(authUrl){
   return true;
 }
 function prefetchGarageGmailConnect(){
-  if(window.__garageGmailAuthUrl) return;
-  var req;
-  try { req = callHost('gm:garageGmailOauthStart', { preferPages: true }); } catch (e) { return; }
-  if(!req || !req.then) return;
-  req.then(function(res){ cacheGarageGmailConnect(res); }).catch(function(){});
+  refreshGarageGmailStatus();
 }
 function renderGarageMailStatus(){
   var box = document.getElementById('garage-mail-status');
@@ -3164,47 +3176,68 @@ function renderGarageMailStatus(){
   if(state.currentScreen !== 's-comm') return;
   box.innerHTML = '<div style="font-weight:700;">תיבת מוסך: yoni191177@gmail.com</div><div class="hint" style="margin:6px 0 0;" id="garage-mail-status-hint">בודק חיבור…</div><div id="garage-mail-connect-row" style="margin-top:10px;"></div>';
   prefetchGarageGmailConnect();
-  refreshGarageGmailStatus();
 }
 function showGarageGmailConnectRow(){
   var row = document.getElementById('garage-mail-connect-row');
   if(row) row.innerHTML = '<button class="btn btn-white" type="button" onclick="connectGarageGmail()">חבר yoni191177@gmail.com</button>';
 }
-function refreshGarageGmailStatus(){
+function paintGarageGmailStatus(connected, errorText){
   var hint = document.getElementById('garage-mail-status-hint');
   var row = document.getElementById('garage-mail-connect-row');
-  if(garageGmailReady()){
-    if(hint) hint.textContent = 'מחובר לסריקה · yoni191177@gmail.com · לא תיבת Claims.';
+  var staticBtn = document.getElementById('garage-mail-connect-btn');
+  if(staticBtn) staticBtn.style.display = connected ? 'none' : '';
+  if(connected){
+    if(hint) hint.textContent = 'מחובר לסריקה אוטומטית · yoni191177@gmail.com · לא תיבת Claims.';
     if(row) row.innerHTML = '';
     return;
   }
+  if(hint) hint.textContent = errorText || 'תיבת המוסך עדיין לא מחוברת לסריקה. לחצו חבר yoni191177@gmail.com — לא תיבת Claims.';
   showGarageGmailConnectRow();
+}
+function finishGarageGmailScanAfterStatus(){
+  if(!window.__garageGmailScanAfterStatus) return;
+  window.__garageGmailScanAfterStatus = false;
+  if(garageGmailReady()) runGarageMailScan();
+  else startGarageGmailReconnect(true);
+}
+function refreshGarageGmailStatus(){
+  if(garageGmailReady()){
+    paintGarageGmailStatus(true);
+    finishGarageGmailScanAfterStatus();
+    return;
+  }
   var req;
   try { req = callHost('gm:garageGmailStatus', {}); } catch (e) {
-    if(hint) hint.textContent = 'תיבת המוסך עדיין לא מחוברת לסריקה. לחצו חבר yoni191177@gmail.com.';
+    window.__garageGmailStatusKnown = true;
+    window.__garageGmailServerConnected = false;
+    paintGarageGmailStatus(false, 'תיבת המוסך עדיין לא מחוברת לסריקה. לחצו חבר yoni191177@gmail.com.');
+    finishGarageGmailScanAfterStatus();
     return;
   }
   if(!req || !req.then){
-    if(hint) hint.textContent = 'תיבת המוסך עדיין לא מחוברת לסריקה. לחצו חבר yoni191177@gmail.com.';
+    window.__garageGmailStatusKnown = true;
+    window.__garageGmailServerConnected = false;
+    paintGarageGmailStatus(false, 'תיבת המוסך עדיין לא מחוברת לסריקה. לחצו חבר yoni191177@gmail.com.');
+    finishGarageGmailScanAfterStatus();
     return;
   }
   req.then(function(res){
-    cacheGarageGmailConnect(res);
-    if(!hint) return;
-    if(res && res.connected){
-      hint.textContent = 'מחובר לסריקה אוטומטית · '+((res.email||'yoni191177@gmail.com'))+' · לא תיבת Claims.';
-      if(row) row.innerHTML = '';
-      return;
-    }
-    hint.textContent = (res && res.error) || 'תיבת המוסך עדיין לא מחוברת לסריקה. לחצו חבר yoni191177@gmail.com — לא תיבת Claims.';
-    showGarageGmailConnectRow();
+    var connected = applyGarageGmailStatus(res);
+    paintGarageGmailStatus(connected, res && res.error);
+    finishGarageGmailScanAfterStatus();
   }).catch(function(){
-    if(hint) hint.textContent = 'תיבת המוסך עדיין לא מחוברת לסריקה. לחצו חבר yoni191177@gmail.com.';
-    showGarageGmailConnectRow();
+    window.__garageGmailStatusKnown = true;
+    window.__garageGmailServerConnected = false;
+    paintGarageGmailStatus(false, 'תיבת המוסך עדיין לא מחוברת לסריקה. לחצו חבר yoni191177@gmail.com.');
+    finishGarageGmailScanAfterStatus();
   });
 }
 function startGarageGmailBrowser(){
-  openGarageGoogleNow(false);
+  if(garageGmailReady()){
+    runGarageMailScan();
+    return;
+  }
+  startGarageGmailReconnect(false);
 }
 function garageGmailConnectPage(authUrl){
   return 'https://orin1607-ctrl.github.io/future-craft-core/oauth/garage-gmail-connect.html#' + encodeURIComponent(authUrl);
@@ -3244,13 +3277,17 @@ function openGarageGoogleAuthUrl(authUrl, targetWindow){
   return openGarageGoogleTarget(authUrl, targetWindow);
 }
 function openGarageGoogleNow(scanAfter, targetWindow){
+  if(window.__garageGmailServerConnected){
+    if(scanAfter) runGarageMailScan();
+    return true;
+  }
   if(scanAfter) window.__garageGmailScanAfter = true;
   if(garageGmailAuthUrlOk(window.__garageGmailAuthUrl)) return openGarageGoogleAuthUrl(window.__garageGmailAuthUrl, targetWindow);
   return false;
 }
-function connectGarageGmail(){
+function startGarageGmailReconnect(scanAfter){
   var popup = openGarageGmailPopupShell();
-  if(openGarageGoogleNow(false, popup)) return;
+  if(openGarageGoogleNow(!!scanAfter, popup)) return;
   var req;
   try { req = callHost('gm:garageGmailOauthStart', { preferPages: true }); } catch (e) {
     closeGarageGmailPopup(popup);
@@ -3262,13 +3299,20 @@ function connectGarageGmail(){
   }
   req.then(function(res){
     cacheGarageGmailConnect(res);
-    if(openGarageGoogleNow(false, popup)) return;
+    if(openGarageGoogleNow(!!scanAfter, popup)) return;
     closeGarageGmailPopup(popup);
     alert((res && res.error) || 'אין קישור OAuth עדיין. חסר חיבור Google ב-Staging.');
   }).catch(function(){
     closeGarageGmailPopup(popup);
     alert('אין קישור OAuth עדיין.');
   });
+}
+function connectGarageGmail(){
+  if(garageGmailReady()){
+    runGarageMailScan();
+    return;
+  }
+  startGarageGmailReconnect(false);
 }
 function approveGarageDetectedPrice(){
   var amount = Number((state.priceReview && state.priceReview.detectedAmount) || 0);
@@ -3417,36 +3461,34 @@ function scanGarageMail(){
     runGarageMailScan();
     return;
   }
-  var popup = openGarageGmailPopupShell();
-  if(openGarageGoogleNow(true, popup)) return;
-  var req;
-  try { req = callHost('gm:garageGmailOauthStart', { preferPages: true }); } catch (e) {
-    closeGarageGmailPopup(popup);
+  if(window.__garageGmailStatusKnown){
+    startGarageGmailReconnect(true);
     return;
   }
-  if(!req || !req.then){
-    closeGarageGmailPopup(popup);
-    return;
-  }
-  req.then(function(res){
-    cacheGarageGmailConnect(res);
-    if(openGarageGoogleNow(true, popup)) return;
-    closeGarageGmailPopup(popup);
-    alert((res && res.error) || 'אין קישור OAuth עדיין. חסר חיבור Google ב-Staging.');
-  }).catch(function(){
-    closeGarageGmailPopup(popup);
-    alert('אין קישור OAuth עדיין.');
-  });
+  window.__garageGmailScanAfterStatus = true;
+  refreshGarageGmailStatus();
 }
 function runGarageMailScan(){
   callHost('gm:scanGarageMail', { caseId: liveCaseId(), googleAccessToken: window.__garageGmailAccess || '' }).then(function(res){
-    var hint = document.getElementById('garage-mail-status-hint');
     if(res && res.pending){
+      window.__garageGmailServerConnected = false;
+      window.__garageGmailStatusKnown = true;
       cacheGarageGmailConnect(res);
-      if(hint) hint.textContent = res.error || 'סריקת תיבת המוסך ממתינה לחיבור yoni191177@gmail.com. לא משתמשים ב-Claims.';
-      if(!openGarageGoogleNow(true)) connectGarageGmail();
+      paintGarageGmailStatus(false, res.error || 'סריקת תיבת המוסך ממתינה לחיבור yoni191177@gmail.com. לא משתמשים ב-Claims.');
+      startGarageGmailReconnect(true);
       return;
     }
+    if(res && res.ok === false){
+      alert((res && res.error) || 'סריקה נכשלה');
+      return;
+    }
+    if(!res){
+      alert('סריקה נכשלה');
+      return;
+    }
+    window.__garageGmailServerConnected = true;
+    window.__garageGmailEmail = 'yoni191177@gmail.com';
+    paintGarageGmailStatus(true);
     if(res && res.appliedThisCase){
       var applied = res.appliedThisCase;
       state.correspondence = Array.isArray(applied.correspondence) ? applied.correspondence.slice() : state.correspondence;

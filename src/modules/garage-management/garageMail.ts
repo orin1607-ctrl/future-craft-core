@@ -254,7 +254,7 @@ export async function probeGarageGmail(): Promise<{ pending: boolean; error: str
     if (mailbox && garageMailIsClaimsMailbox(mailbox)) {
       return { pending: true, error: 'החיבור מצביע לתיבת Claims. לא משתמשים בה לניהול המוסך.' };
     }
-    if (row.connected === true || row.ok === true) {
+    if (row.connected === true) {
       return { pending: false, error: '' };
     }
     return { pending: true, error: GARAGE_GMAIL_PENDING_MESSAGE };
@@ -308,10 +308,13 @@ export async function scanGarageMailbox(input: {
     return { ...empty, error: probe.error };
   }
   const { data, error } = await supabase.functions.invoke('garage-gmail', { body: { action: 'scan_inbox' } });
-  if (error || !data || typeof data !== 'object') {
-    return empty;
+  const payload = (data && typeof data === 'object') ? data as Record<string, unknown> : {};
+  if (payload.pending === true || payload.error === 'gmail_not_connected') {
+    return { ...empty, error: String(payload.message || payload.error || empty.error) };
   }
-  const payload = data as Record<string, unknown>;
+  if (error || !data || typeof data !== 'object') {
+    return { ...empty, pending: false, ok: false, error: 'סריקת תיבת המוסך נכשלה. החיבור נשמר בשרת ולא נפתח Google מחדש.' };
+  }
   const rawMessages = Array.isArray(payload.messages)
     ? payload.messages
     : Array.isArray(payload.imports)

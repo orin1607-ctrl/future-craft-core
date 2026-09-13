@@ -123,7 +123,7 @@ async function loadConnection(sb: ReturnType<typeof admin>) {
     if (isMissingRelation(error)) return null;
     throw new Error(error.message);
   }
-  return data as {
+  let row = data as {
     id: string;
     connected_email: string;
     refresh_token: string;
@@ -131,6 +131,13 @@ async function loadConnection(sb: ReturnType<typeof admin>) {
     last_ok_at?: string;
     revoked_at?: string;
   } | null;
+  if (row?.refresh_token) return row;
+  const byEmail = await sb.from("garage_gmail_connection").select("*").eq("connected_email", ALLOWED_ACCOUNT).limit(1).maybeSingle();
+  if (byEmail.error) {
+    if (isMissingRelation(byEmail.error)) return row;
+    throw new Error(byEmail.error.message);
+  }
+  return (byEmail.data as typeof row) || row;
 }
 
 async function saveConnection(
@@ -527,7 +534,9 @@ Deno.serve(async (req) => {
       const client = oauthClient();
       const resolved = await resolveGarageRefresh(sb, client);
       const connected = Boolean(resolved.refresh);
-      if (connected) await saveConnection(sb, { last_ok_at: new Date().toISOString() });
+      if (connected) {
+        try { await saveConnection(sb, { last_ok_at: new Date().toISOString() }); } catch { /* keep connected even if last_ok_at write fails */ }
+      }
       return jsonResponse({
         success: true,
         ok: connected,

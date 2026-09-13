@@ -688,24 +688,37 @@ describe('garage flow live case binding', () => {
     expect(win.state.workOrderAmount).toBe(1950);
   });
 
-  it('opens Google for yoni191177 when סרוק תיבת מוסך is clicked without a mailbox connection', () => {
+  it('opens Google for yoni191177 when סרוק תיבת מוסך is clicked without a mailbox connection', async () => {
     const win = bootFlow() as Window & {
       applyBootstrap: (payload: Record<string, unknown>) => void;
       go: (id: string) => void;
       scanGarageMail: () => void;
       startGarageGmailBrowser: (clientId: string, scanAfter?: boolean) => void;
       openGarageGoogleAuthUrl: (authUrl: string) => boolean;
+      callHost: (type: string, payload?: Record<string, unknown>) => Promise<Record<string, unknown>>;
       document: Document;
       alert: (msg?: string) => void;
     };
     const alerts: string[] = [];
+    const hostCalls: string[] = [];
     win.alert = (msg?: string) => { alerts.push(String(msg || '')); };
+    win.callHost = (type: string) => {
+      hostCalls.push(type);
+      if (type === 'gm:saveCase' || type === 'gm:listMedia') return Promise.resolve({ ok: true, items: [] });
+      if (type === 'gm:garageGmailStatus') {
+        return Promise.resolve({ connected: false, pending: true, mailbox: 'yoni191177@gmail.com' });
+      }
+      if (type === 'gm:garageGmailOauthStart') {
+        return Promise.resolve({
+          authUrl: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=qa-garage.apps.googleusercontent.com&login_hint=yoni191177%40gmail.com&scope=https://www.googleapis.com/auth/gmail.readonly&redirect_uri=https://orin1607-ctrl.github.io/future-craft-core/oauth/google-callback.html',
+        });
+      }
+      throw new Error(`unexpected host call: ${type}`);
+    };
     let gisClientId = '';
-    let gisScanAfter: boolean | undefined;
     let openedAuthUrl = '';
-    win.startGarageGmailBrowser = (clientId: string, scanAfter?: boolean) => {
+    win.startGarageGmailBrowser = (clientId: string) => {
       gisClientId = clientId;
-      gisScanAfter = scanAfter;
     };
     win.openGarageGoogleAuthUrl = (authUrl: string) => {
       openedAuthUrl = authUrl;
@@ -715,14 +728,82 @@ describe('garage flow live case binding', () => {
     (win as unknown as { __garageGmailAuthUrl: string }).__garageGmailAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=qa-garage.apps.googleusercontent.com&login_hint=yoni191177%40gmail.com&scope=https://www.googleapis.com/auth/gmail.readonly&redirect_uri=https://orin1607-ctrl.github.io/future-craft-core/oauth/google-callback.html';
     win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
     win.go('s-comm');
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(win.document.getElementById('s-comm')?.textContent).toContain('חבר yoni191177@gmail.com');
     expect(win.document.getElementById('s-comm')?.textContent).toContain('סרוק תיבת מוסך');
+    expect(hostCalls).toContain('gm:garageGmailStatus');
+    expect(hostCalls).not.toContain('gm:garageGmailOauthStart');
     win.scanGarageMail();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(openedAuthUrl).toContain('accounts.google.com');
     expect(openedAuthUrl).toContain('yoni191177');
     expect(openedAuthUrl).toContain('gmail.readonly');
     expect(openedAuthUrl).not.toContain('yoni122222');
     expect(gisClientId).toBe('');
     expect(alerts.some((msg) => /עדיין לא מחוברת/.test(msg))).toBe(false);
+  });
+
+  it('scans from the server mailbox without opening Google after yoni191177 is already connected', async () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      go: (id: string) => void;
+      scanGarageMail: () => void;
+      openGarageGoogleAuthUrl: (authUrl: string) => boolean;
+      callHost: (type: string, payload?: Record<string, unknown>) => Promise<Record<string, unknown>>;
+      document: Document;
+      alert: (msg?: string) => void;
+    };
+    const hostCalls: string[] = [];
+    let openedAuthUrl = '';
+    let scanned = 0;
+    win.alert = () => {};
+    win.openGarageGoogleAuthUrl = (authUrl: string) => {
+      openedAuthUrl = authUrl;
+      return true;
+    };
+    win.callHost = (type: string) => {
+      hostCalls.push(type);
+      if (type === 'gm:saveCase' || type === 'gm:listMedia') return Promise.resolve({ ok: true, items: [] });
+      if (type === 'gm:garageGmailStatus') {
+        return Promise.resolve({
+          connected: true,
+          ok: true,
+          email: 'yoni191177@gmail.com',
+          mailbox: 'yoni191177@gmail.com',
+        });
+      }
+      if (type === 'gm:scanGarageMail') {
+        scanned += 1;
+        return Promise.resolve({
+          ok: true,
+          pending: false,
+          matched: [],
+          needs_review: [],
+        });
+      }
+      throw new Error(`unexpected host call: ${type}`);
+    };
+    (win as unknown as { __garageGmailAuthUrl: string }).__garageGmailAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=qa-garage.apps.googleusercontent.com&login_hint=yoni191177%40gmail.com&scope=https://www.googleapis.com/auth/gmail.readonly';
+    win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
+    win.go('s-comm');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(win.document.getElementById('garage-mail-status-hint')?.textContent).toContain('מחובר לסריקה אוטומטית');
+    expect(win.document.getElementById('garage-mail-connect-row')?.innerHTML).toBe('');
+    expect((win.document.getElementById('garage-mail-connect-btn') as HTMLButtonElement | null)?.style.display).toBe('none');
+    expect((win as unknown as { __garageGmailServerConnected: boolean }).__garageGmailServerConnected).toBe(true);
+    win.scanGarageMail();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(openedAuthUrl).toBe('');
+    expect(scanned).toBe(1);
+    expect(hostCalls.filter((type) => type === 'gm:scanGarageMail')).toEqual(['gm:scanGarageMail']);
+    expect(hostCalls).not.toContain('gm:garageGmailOauthStart');
+    win.go('s-case');
+    win.go('s-comm');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    win.scanGarageMail();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(openedAuthUrl).toBe('');
+    expect(scanned).toBe(2);
+    expect(hostCalls).not.toContain('gm:garageGmailOauthStart');
   });
 });

@@ -123,6 +123,9 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('startGarageGmailBrowser');
     expect(approvedSourceHtml).toContain('openGarageGoogleNow');
     expect(approvedSourceHtml).toContain('prefetchGarageGmailConnect');
+    expect(approvedSourceHtml).toContain('__garageGmailServerConnected');
+    expect(approvedSourceHtml).toContain('res.connected === true');
+    expect(approvedSourceHtml).toContain('id="garage-mail-connect-btn"');
     expect(approvedSourceHtml).toContain('garage-gmail-connect.html');
     expect(approvedSourceHtml).toContain("window.open('about:blank', 'garage-gmail-oauth')");
     expect(approvedSourceHtml).toContain("window.open(url, '_top')");

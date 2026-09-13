@@ -290,8 +290,8 @@ export default function GarageApp() {
           reply(requestId, {
             ...row,
             ok: !error || Boolean(clientId),
-            connected: row.connected === true || row.ok === true,
-            pending: row.pending === true || row.connected !== true,
+            connected: row.connected === true,
+            pending: row.connected === true ? false : true,
             email: row.email,
             mailbox: row.mailbox || 'yoni191177@gmail.com',
             clientId,
