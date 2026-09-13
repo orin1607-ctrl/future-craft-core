@@ -22,9 +22,9 @@ b{color:#fff;}
   <h1 id="title">חיבור תיבת מוסך</h1>
   <p id="msg">חייבים Google של <b>yoni191177@gmail.com</b> בלבד.</p>
   <p class="warn">לא orin1607@gmail.com. לא yoni122222@gmail.com (Claims).</p>
-  <p>במסך Google לחצו «השתמש בחשבון אחר» אם מופיע חשבון אחר, והתחברו בדיוק עם yoni191177@gmail.com.</p>
+  <p>Google חייב להיפתח כחלון מלא — לא בתוך מסך המוסך. במסך Google לחצו «השתמש בחשבון אחר» אם מופיע חשבון אחר, והתחברו בדיוק עם yoni191177@gmail.com.</p>
   <button class="btn" id="go" type="button" style="display:none">המשך ל-Google — yoni191177@gmail.com</button>
-  <a id="back" class="btn" href="../" style="display:none">חזרה לניהול המוסך</a>
+  <a id="back" class="btn" href="../garage-management" style="display:none">חזרה לניהול המוסך</a>
 </div>
 <script>
 (function () {
@@ -39,10 +39,28 @@ b{color:#fff;}
     go.style.display = 'none';
     back.style.display = 'inline-block';
   }
-  var raw = '';
-  try { raw = sessionStorage.getItem('gmGarageGmailAuthUrl') || ''; } catch (e) { raw = ''; }
-  if (!raw) raw = decodeURIComponent((location.hash || '').replace(/^#/, ''));
-  var url = String(raw || '');
+  function readAuthUrl() {
+    var raw = '';
+    try { raw = sessionStorage.getItem('gmGarageGmailAuthUrl') || ''; } catch (e) { raw = ''; }
+    if (raw.indexOf('https://accounts.google.com/o/oauth2/v2/auth') === 0) return raw;
+    var hash = (location.hash || '').replace(/^#/, '');
+    if (!hash) return '';
+    var decoded = hash;
+    try { decoded = decodeURIComponent(hash); } catch (e) { decoded = hash; }
+    if (decoded.indexOf('https://accounts.google.com/o/oauth2/v2/auth') === 0) return decoded;
+    if (hash.indexOf('https://accounts.google.com/o/oauth2/v2/auth') === 0) return hash;
+    return decoded;
+  }
+  function inFrame() {
+    try { return !!(window.top && window.top !== window); } catch (e) { return true; }
+  }
+  if (inFrame()) {
+    try {
+      window.top.location.replace(location.href);
+      return;
+    } catch (e) {}
+  }
+  var url = String(readAuthUrl() || '');
   if (url.indexOf('https://accounts.google.com/o/oauth2/v2/auth') !== 0) {
     fail('חסר קישור OAuth תקין לתיבת המוסך.');
     return;
@@ -67,12 +85,32 @@ b{color:#fff;}
     fail('redirect URI חייב להיות GitHub Pages של Staging.');
     return;
   }
-  go.style.display = 'inline-block';
-  go.onclick = function () {
+  function goGoogle() {
     go.disabled = true;
-    var chooser = 'https://accounts.google.com/AccountChooser?Email=' + encodeURIComponent('yoni191177@gmail.com') + '&continue=' + encodeURIComponent(url);
-    location.assign(chooser);
-  };
+    if (inFrame()) {
+      try {
+        window.top.location.assign(url);
+        return;
+      } catch (e) {}
+      try {
+        var popup = window.open(url, 'garage-gmail-oauth');
+        if (popup) {
+          title.textContent = 'Google נפתח בחלון חדש';
+          msg.textContent = 'התחברו בדיוק עם yoni191177@gmail.com. לא orin1607 ולא Claims.';
+          back.style.display = 'inline-block';
+          return;
+        }
+      } catch (e2) {}
+      go.disabled = false;
+      fail('Google לא יכול להיפתח בתוך מסך המוסך. אפשרו חלון קופץ ולחצו שוב על חיבור Gmail.');
+      go.style.display = 'inline-block';
+      return;
+    }
+    location.assign(url);
+  }
+  go.style.display = 'inline-block';
+  go.onclick = goGoogle;
+  if (!inFrame()) goGoogle();
 })();
 </script>
 </body>

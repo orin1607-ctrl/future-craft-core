@@ -37,6 +37,8 @@ describe('garage-management approved source', () => {
     expect(frame).toBeInTheDocument();
     expect(frame.getAttribute('allow')).toContain('camera');
     expect(frame.getAttribute('sandbox')).toContain('allow-popups-to-escape-sandbox');
+    expect(frame.getAttribute('sandbox')).toContain('allow-top-navigation');
+    expect(frame.getAttribute('sandbox')).toContain('allow-top-navigation-by-user-activation');
     expect(frame.srcdoc).toContain('פתח תיק');
     expect(frame.srcdoc).toContain('דליה — לקוחות ישירים');
     expect(frame.srcdoc).toContain('מפת נזקים אינטראקטיבית');
@@ -122,6 +124,9 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('openGarageGoogleNow');
     expect(approvedSourceHtml).toContain('prefetchGarageGmailConnect');
     expect(approvedSourceHtml).toContain('garage-gmail-connect.html');
+    expect(approvedSourceHtml).toContain("window.open('about:blank', 'garage-gmail-oauth')");
+    expect(approvedSourceHtml).toContain("window.open(url, '_top')");
+    expect(approvedSourceHtml).not.toContain('AccountChooser');
     expect(approvedSourceHtml).not.toContain('accounts.google.com/gsi/client');
     expect(approvedSourceHtml).not.toContain('initTokenClient');
     expect(approvedSourceHtml).not.toContain('claims-gmail');

@@ -209,8 +209,12 @@ describe('priced-order detection and worker approval', () => {
     expect(helperSrc).toContain('yoni191177@gmail.com');
     expect(helperSrc).toContain('gmail.readonly');
     expect(helperSrc).toContain('orin1607@gmail.com');
-    expect(helperSrc).toContain('AccountChooser');
+    expect(helperSrc).toContain('accounts.google.com/o/oauth2/v2/auth');
+    expect(helperSrc).toContain('window.top');
+    expect(helperSrc).not.toContain('AccountChooser');
     expect(helperSrc).not.toContain("invoke('claims-gmail'");
+    expect(appSrc).toContain('allow-top-navigation');
+    expect(appSrc).toContain('allow-top-navigation-by-user-activation');
     expect(parseGoogleClientIdFromAuthUrl('https://accounts.google.com/o/oauth2/v2/auth?client_id=abc.apps.googleusercontent.com&x=1')).toBe('abc.apps.googleusercontent.com');
     expect(parseGoogleClientIdFromAuthUrl('https://example.com/?q=1')).toBe('');
     expect(isMissingGarageGmailFunction({ message: 'Requested function was not found' })).toBe(true);
