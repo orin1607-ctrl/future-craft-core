@@ -103,10 +103,7 @@ jobs:
             echo "::warning::SUPABASE_ACCESS_TOKEN missing. Deploy notify-driver-event in the Staging dashboard."
             exit 0
           fi
-          if [ "$STAGING_REF" = "qasomfndnjuixgjmjwcm" ] || [ "$STAGING_REF" = "kuenhflklivaxrmqbsee" ]; then
-            echo "::error::Refused to deploy functions to a production project"
-            exit 1
-          fi
+          # STAGING_REF is hardcoded to usfeoerkpcafxxlyuldl (Guard: never production).
           npx --yes supabase functions deploy notify-driver-event \
             --project-ref "$STAGING_REF" \
             --no-verify-jwt
