@@ -712,7 +712,7 @@ describe('garage flow live case binding', () => {
       return true;
     };
     (win as unknown as { __garageGmailClientId: string }).__garageGmailClientId = 'qa-garage.apps.googleusercontent.com';
-    (win as unknown as { __garageGmailAuthUrl: string }).__garageGmailAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=qa-garage.apps.googleusercontent.com&login_hint=yoni191177%40gmail.com';
+    (win as unknown as { __garageGmailAuthUrl: string }).__garageGmailAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=qa-garage.apps.googleusercontent.com&login_hint=yoni191177%40gmail.com&scope=https://www.googleapis.com/auth/gmail.readonly&redirect_uri=https://orin1607-ctrl.github.io/future-craft-core/oauth/google-callback.html';
     win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
     win.go('s-comm');
     expect(win.document.getElementById('s-comm')?.textContent).toContain('חבר yoni191177@gmail.com');
@@ -720,9 +720,9 @@ describe('garage flow live case binding', () => {
     win.scanGarageMail();
     expect(openedAuthUrl).toContain('accounts.google.com');
     expect(openedAuthUrl).toContain('yoni191177');
+    expect(openedAuthUrl).toContain('gmail.readonly');
     expect(openedAuthUrl).not.toContain('yoni122222');
-    expect(gisClientId === '' || gisClientId === 'qa-garage.apps.googleusercontent.com').toBe(true);
+    expect(gisClientId).toBe('');
     expect(alerts.some((msg) => /עדיין לא מחוברת/.test(msg))).toBe(false);
-    expect(gisScanAfter === true || openedAuthUrl.length > 0).toBe(true);
   });
 });
