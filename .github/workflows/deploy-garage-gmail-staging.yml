@@ -4,9 +4,8 @@ name: Deploy garage-gmail — Staging only
 # Never Production / qasomfndnjuixgjmjwcm / dalia-car.online.
 # Does not deploy claims-gmail. Does not touch claims_gmail_connection.
 #
-# Repo-level SUPABASE_ACCESS_TOKEN currently 401s the Staging Management API.
-# GitHub Environment "Preview" has no protection rules and may hold the working
-# Staging secrets (STAGING_DATABASE_URL / token) that repo workflows were not binding.
+# Uses GitHub secret SUPABASE_ACCESS_TOKEN against Staging usfeoerkpcafxxlyuldl only.
+# Preview environment is optional fallback. Never Production.
 
 on:
   workflow_dispatch: {}
@@ -91,7 +90,7 @@ jobs:
   from-repo:
     name: Deploy via repo secrets
     runs-on: ubuntu-latest
-    continue-on-error: true
+    continue-on-error: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -159,7 +158,10 @@ jobs:
           TEST_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD }}
           STAGING_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
           STAGING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/qa-garage-gmail-staging.mjs
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          sleep 8
+          node scripts/qa-garage-gmail-staging.mjs
       - name: Upload E2E report
         if: always()
         uses: actions/upload-artifact@v4
