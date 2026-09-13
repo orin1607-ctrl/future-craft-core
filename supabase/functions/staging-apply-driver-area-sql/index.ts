@@ -105,16 +105,28 @@ Deno.serve(async (req) => {
         roleCounts[row.role] = (roleCounts[row.role] || 0) + 1;
       }
 
-      const driverCompanies = companies.slice(0, 2);
-      const wanted: Array<{ role: string; company?: string }> = [{ role: 'super_admin' }];
+      const skipCompany = (name: string) =>
+        /^(e2e|qa|staging qa|test|tesy|d|df|dosh44|transportpreview)/i.test(name.trim())
+        || /QA-|Preview-|STRICT|DOC-UX|LIC-|RLS-PROBE/i.test(name);
+
+      const realCompanies = companies.filter((name) => !skipCompany(name));
+      const preferredCompanies = ['אורן קאר', 'חברה 1', 'חברה 2', 'קיבוץ בארי', 'מוסך יוני', 'פרחי בוקי בע"מ']
+        .filter((name) => realCompanies.includes(name));
+      const driverCompanies = (preferredCompanies.length >= 2 ? preferredCompanies : realCompanies).slice(0, 2);
+
+      const wanted: Array<{ role: string; company?: string; email?: string }> = [
+        { role: 'super_admin', email: 'orin1607@gmail.com' },
+      ];
       for (const company of driverCompanies) wanted.push({ role: 'driver', company });
 
       const sessions: Array<Record<string, unknown>> = [];
       for (const want of wanted) {
         const match = (roleRows || []).find((row) => {
           if (row.role !== want.role) return false;
-          if (!want.company) return !!emailById.get(row.user_id);
-          return profileById.get(row.user_id)?.company_name === want.company && !!emailById.get(row.user_id);
+          const email = emailById.get(row.user_id) || '';
+          if (want.email) return email.toLowerCase() === want.email.toLowerCase();
+          if (!want.company) return !!email;
+          return profileById.get(row.user_id)?.company_name === want.company && !!email;
         });
         if (!match) continue;
         const email = emailById.get(match.user_id) || '';
@@ -138,7 +150,8 @@ Deno.serve(async (req) => {
         ok: true,
         inspect: true,
         staging: true,
-        companies,
+        companies: realCompanies,
+        all_company_count: companies.length,
         roleCounts,
         sessions,
         pages: PAGES_REDIRECT,
