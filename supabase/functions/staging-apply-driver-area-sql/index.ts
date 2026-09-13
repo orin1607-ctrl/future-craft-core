@@ -4,6 +4,7 @@
  * Uses a vendored simple-query client because hosted Edge blocks remote imports.
  */
 import { runSql } from './pg_simple.ts';
+import { CONTROL_CENTER_SQL, MIGRATION_SQL } from './sql_bundle.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,8 +15,8 @@ const STAGING_REF = 'usfeoerkpcafxxlyuldl';
 const PRODUCTION_REFS = ['qasomfndnjuixgjmjwcm', 'kuenhflklivaxrmqbsee'];
 const CONFIRM = 'driver-area-settings-expand-staging';
 const SQL_FILES = [
-  'control-center.sql',
-  'migration.sql',
+  ['control-center.sql', CONTROL_CENTER_SQL],
+  ['migration.sql', MIGRATION_SQL],
 ] as const;
 
 function json(body: unknown, status = 200) {
@@ -94,8 +95,10 @@ Deno.serve(async (req) => {
     }
 
     const applied: string[] = [];
-    for (const fileName of SQL_FILES) {
-      const sqlText = await loadSql(fileName);
+    for (const [fileName, sqlText] of SQL_FILES) {
+      if (!sqlText.includes('ALTER TABLE') && !sqlText.includes('CREATE')) {
+        throw new Error(`sql_unexpected:${fileName}`);
+      }
       await runSql(dbUrl, sqlText);
       applied.push(fileName);
     }
