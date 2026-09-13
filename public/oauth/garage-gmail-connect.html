@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>חיבור תיבת מוסך — yoni191177@gmail.com</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Heebo',sans-serif;background:#04091a;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;margin:0;}
+.card{max-width:480px;background:#071022;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:28px;text-align:center;}
+h1{font-size:20px;margin:0 0 8px;}
+p{font-size:14px;color:rgba(255,255,255,.7);line-height:1.6;margin:0 0 12px;}
+b{color:#fff;}
+.err{color:#ef4444;font-weight:700;}
+.warn{color:#fbbf24;font-weight:700;}
+.btn{display:inline-block;margin-top:12px;padding:12px 18px;border:0;border-radius:9px;background:#2563eb;color:#fff;text-decoration:none;font-size:14px;font-weight:700;cursor:pointer;}
+.btn[disabled]{opacity:.5;cursor:default;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1 id="title">חיבור תיבת מוסך</h1>
+  <p id="msg">חייבים Google של <b>yoni191177@gmail.com</b> בלבד.</p>
+  <p class="warn">לא orin1607@gmail.com. לא yoni122222@gmail.com (Claims).</p>
+  <p>במסך Google לחצו «השתמש בחשבון אחר» אם מופיע חשבון אחר, והתחברו בדיוק עם yoni191177@gmail.com.</p>
+  <button class="btn" id="go" type="button" style="display:none">המשך ל-Google — yoni191177@gmail.com</button>
+  <a id="back" class="btn" href="../" style="display:none">חזרה לניהול המוסך</a>
+</div>
+<script>
+(function () {
+  var title = document.getElementById('title');
+  var msg = document.getElementById('msg');
+  var back = document.getElementById('back');
+  var go = document.getElementById('go');
+  function fail(text) {
+    title.textContent = 'שגיאה בחיבור';
+    title.className = 'err';
+    msg.textContent = text;
+    go.style.display = 'none';
+    back.style.display = 'inline-block';
+  }
+  var raw = '';
+  try { raw = sessionStorage.getItem('gmGarageGmailAuthUrl') || ''; } catch (e) { raw = ''; }
+  if (!raw) raw = decodeURIComponent((location.hash || '').replace(/^#/, ''));
+  var url = String(raw || '');
+  if (url.indexOf('https://accounts.google.com/o/oauth2/v2/auth') !== 0) {
+    fail('חסר קישור OAuth תקין לתיבת המוסך.');
+    return;
+  }
+  if (/yoni122222/i.test(url) || /claims-gmail/i.test(url)) {
+    fail('הקישור מצביע לתיבת Claims. לא משתמשים בה לניהול המוסך.');
+    return;
+  }
+  if (/orin1607@gmail\.com/i.test(url)) {
+    fail('הקישור מצביע ל-orin1607@gmail.com. לא מחברים אותו לניהול המוסך.');
+    return;
+  }
+  if (url.indexOf('yoni191177') < 0) {
+    fail('הקישור חייב להיות ל-yoni191177@gmail.com בלבד.');
+    return;
+  }
+  if (url.indexOf('gmail.readonly') < 0) {
+    fail('חסר scope gmail.readonly.');
+    return;
+  }
+  if (url.indexOf('orin1607-ctrl.github.io') < 0) {
+    fail('redirect URI חייב להיות GitHub Pages של Staging.');
+    return;
+  }
+  go.style.display = 'inline-block';
+  go.onclick = function () {
+    go.disabled = true;
+    var chooser = 'https://accounts.google.com/AccountChooser?Email=' + encodeURIComponent('yoni191177@gmail.com') + '&continue=' + encodeURIComponent(url);
+    location.assign(chooser);
+  };
+})();
+</script>
+</body>
+</html>

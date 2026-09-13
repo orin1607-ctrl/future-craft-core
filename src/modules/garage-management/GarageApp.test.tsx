@@ -121,7 +121,9 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('startGarageGmailBrowser');
     expect(approvedSourceHtml).toContain('openGarageGoogleNow');
     expect(approvedSourceHtml).toContain('prefetchGarageGmailConnect');
-    expect(approvedSourceHtml).toContain('accounts.google.com/gsi/client');
+    expect(approvedSourceHtml).toContain('garage-gmail-connect.html');
+    expect(approvedSourceHtml).not.toContain('accounts.google.com/gsi/client');
+    expect(approvedSourceHtml).not.toContain('initTokenClient');
     expect(approvedSourceHtml).not.toContain('claims-gmail');
     expect(approvedSourceHtml).not.toContain('claims-docs');
     expect(approvedSourceHtml).toContain('החל על טופס ההזמנה');

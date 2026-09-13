@@ -186,6 +186,11 @@ describe('priced-order detection and worker approval', () => {
     expect(fnSrc).not.toContain("invoke('claims-gmail'");
     expect(fnSrc).toContain('yoni191177@gmail.com');
     expect(fnSrc).toContain('yoni122222');
+    expect(fnSrc).toContain('prompt: "consent"');
+    expect(fnSrc).not.toContain('select_account');
+    expect(fnSrc).not.toContain('include_granted_scopes');
+    expect(fnSrc).toContain('gmail.readonly');
+    expect(fnSrc).toContain('orin1607-ctrl.github.io/future-craft-core/oauth/google-callback.html');
     expect(mailSrc).toContain("invoke('garage-gmail'");
     expect(mailSrc).not.toContain("invoke('claims-gmail'");
     expect(mailSrc).not.toContain('claims-docs');
@@ -200,6 +205,12 @@ describe('priced-order detection and worker approval', () => {
     expect(browserSrc).toContain("invoke('marketing-google-oauth'");
     expect(browserSrc).not.toContain("invoke('claims-gmail'");
     expect(browserSrc).not.toContain('claims-docs');
+    const helperSrc = readFileSync(resolve('public/oauth/garage-gmail-connect.html'), 'utf8');
+    expect(helperSrc).toContain('yoni191177@gmail.com');
+    expect(helperSrc).toContain('gmail.readonly');
+    expect(helperSrc).toContain('orin1607@gmail.com');
+    expect(helperSrc).toContain('AccountChooser');
+    expect(helperSrc).not.toContain("invoke('claims-gmail'");
     expect(parseGoogleClientIdFromAuthUrl('https://accounts.google.com/o/oauth2/v2/auth?client_id=abc.apps.googleusercontent.com&x=1')).toBe('abc.apps.googleusercontent.com');
     expect(parseGoogleClientIdFromAuthUrl('https://example.com/?q=1')).toBe('');
     expect(isMissingGarageGmailFunction({ message: 'Requested function was not found' })).toBe(true);

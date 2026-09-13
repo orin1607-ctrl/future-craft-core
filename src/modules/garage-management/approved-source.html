@@ -3143,38 +3143,16 @@ function cacheGarageGmailConnect(res){
   if(res.clientId) window.__garageGmailClientId = res.clientId;
   if(res.authUrl) window.__garageGmailAuthUrl = res.authUrl;
 }
-function loadGsiScript(cb){
-  if(window.google && google.accounts && google.accounts.oauth2){
-    if(cb) cb();
-    return;
-  }
-  if(window.__gsiLoading){
-    if(cb){
-      var prev = window.__gsiOnLoad;
-      window.__gsiOnLoad = function(){ if(prev) prev(); cb(); };
-    }
-    return;
-  }
-  window.__gsiLoading = true;
-  var s = document.createElement('script');
-  s.src = 'https://accounts.google.com/gsi/client';
-  s.async = true;
-  s.onload = function(){
-    window.__gsiLoading = false;
-    var extra = window.__gsiOnLoad;
-    window.__gsiOnLoad = null;
-    if(extra) extra();
-    if(cb) cb();
-  };
-  s.onerror = function(){
-    window.__gsiLoading = false;
-    if(cb) alert('טעינת Google Identity נכשלה');
-  };
-  document.head.appendChild(s);
+function garageGmailAuthUrlOk(authUrl){
+  var url = String(authUrl || '');
+  if(url.indexOf('https://accounts.google.com/o/oauth2/v2/auth') !== 0) return false;
+  if(/yoni122222/i.test(url)) return false;
+  if(url.indexOf('yoni191177') < 0) return false;
+  if(url.indexOf('gmail.readonly') < 0) return false;
+  return true;
 }
 function prefetchGarageGmailConnect(){
-  loadGsiScript();
-  if(window.__garageGmailClientId && window.__garageGmailAuthUrl) return;
+  if(window.__garageGmailAuthUrl) return;
   var req;
   try { req = callHost('gm:garageGmailOauthStart', { preferPages: true }); } catch (e) { return; }
   if(!req || !req.then) return;
@@ -3225,82 +3203,27 @@ function refreshGarageGmailStatus(){
     showGarageGmailConnectRow();
   });
 }
-function startGarageGmailBrowser(clientId, scanAfter){
-  function run(){
-    if(!window.google || !google.accounts || !google.accounts.oauth2){
-      if(window.__garageGmailAuthUrl){
-        openGarageGoogleAuthUrl(window.__garageGmailAuthUrl);
-        return;
-      }
-      alert('Google Identity לא נטען. רעננו את הדף.');
-      return;
-    }
-    var client = google.accounts.oauth2.initTokenClient({
-      client_id: clientId,
-      scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email',
-      hint: 'yoni191177@gmail.com',
-      callback: function(resp){
-        if(!resp || !resp.access_token){
-          alert((resp && resp.error) ? String(resp.error) : 'Google לא החזיר access token');
-          return;
-        }
-        fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: 'Bearer ' + resp.access_token } })
-          .then(function(r){ return r.json(); })
-          .then(function(info){
-            var email = String((info && info.email) || '').toLowerCase();
-            if(email.indexOf('yoni122222') >= 0){
-              alert('החיבור מצביע לתיבת Claims. לא משתמשים בה לניהול המוסך.');
-              return;
-            }
-            if(email !== 'yoni191177@gmail.com'){
-              alert('החשבון שאושר הוא '+(email || 'לא ידוע')+'. צריך בדיוק yoni191177@gmail.com.');
-              return;
-            }
-            window.__garageGmailAccess = resp.access_token;
-            window.__garageGmailEmail = email;
-            refreshGarageGmailStatus();
-            if(scanAfter || window.__garageGmailScanAfter){
-              window.__garageGmailScanAfter = false;
-              runGarageMailScan();
-              return;
-            }
-            alert('yoni191177@gmail.com מחובר לסריקה. לוחצים סרוק תיבת מוסך.');
-          });
-      }
-    });
-    client.requestAccessToken({ prompt: 'consent', hint: 'yoni191177@gmail.com' });
-  }
-  if(window.google && google.accounts && google.accounts.oauth2){ run(); return; }
-  loadGsiScript(run);
+function startGarageGmailBrowser(){
+  openGarageGoogleNow(false);
+}
+function garageGmailConnectPage(authUrl){
+  return 'https://orin1607-ctrl.github.io/future-craft-core/oauth/garage-gmail-connect.html#' + encodeURIComponent(authUrl);
 }
 function openGarageGoogleAuthUrl(authUrl){
-  if(!authUrl) return false;
-  var popup = window.open(authUrl, 'garage-gmail-oauth', 'noopener,noreferrer,width=520,height=740');
-  if(!popup){
-    try {
-      if(window.top && window.top !== window) window.top.location.href = authUrl;
-      else window.location.href = authUrl;
-    } catch (e) {
-      window.location.href = authUrl;
-    }
+  if(!garageGmailAuthUrlOk(authUrl)) return false;
+  try { sessionStorage.setItem('gmGarageGmailAuthUrl', authUrl); } catch (e) {}
+  var helper = garageGmailConnectPage(authUrl);
+  try {
+    if(window.top) window.top.location.href = helper;
+    else window.location.href = helper;
+  } catch (e) {
+    window.location.href = helper;
   }
-  alert('נפתח מסך Google. התחברו בדיוק עם yoni191177@gmail.com (לא yoni122222). אחרי האישור חזרו לתיק ולחצו שוב סרוק תיבת מוסך.');
   return true;
 }
 function openGarageGoogleNow(scanAfter){
   if(scanAfter) window.__garageGmailScanAfter = true;
-  var clientId = window.__garageGmailClientId;
-  var authUrl = window.__garageGmailAuthUrl;
-  var gsiReady = window.google && google.accounts && google.accounts.oauth2;
-  if(clientId && gsiReady){
-    startGarageGmailBrowser(clientId, !!scanAfter);
-    return true;
-  }
-  if(authUrl) return openGarageGoogleAuthUrl(authUrl);
-  if(clientId){
-    startGarageGmailBrowser(clientId, !!scanAfter);
-    return true;
-  }
+  if(garageGmailAuthUrlOk(window.__garageGmailAuthUrl)) return openGarageGoogleAuthUrl(window.__garageGmailAuthUrl);
   return false;
 }
 function connectGarageGmail(){
@@ -3310,12 +3233,9 @@ function connectGarageGmail(){
   if(!req || !req.then) return;
   req.then(function(res){
     cacheGarageGmailConnect(res);
-    if(res && res.authUrl){
+    if(openGarageGoogleNow(false)) return;
+    if(res && res.authUrl && garageGmailAuthUrlOk(res.authUrl)){
       openGarageGoogleAuthUrl(res.authUrl);
-      return;
-    }
-    if(res && res.clientId){
-      startGarageGmailBrowser(res.clientId, false);
       return;
     }
     alert((res && res.error) || 'אין קישור OAuth עדיין. חסר חיבור Google ב-Staging.');
