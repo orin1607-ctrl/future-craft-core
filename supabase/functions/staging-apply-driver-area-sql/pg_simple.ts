@@ -24,6 +24,10 @@ function cstring(value: string): Uint8Array {
   return encoder.encode(`${value}\0`);
 }
 
+function readI32(bytes: Uint8Array, offset = 0): number {
+  return new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getInt32(0);
+}
+
 async function readExact(conn: Deno.Conn, length: number): Promise<Uint8Array> {
   const out = new Uint8Array(length);
   let offset = 0;
@@ -38,7 +42,7 @@ async function readExact(conn: Deno.Conn, length: number): Promise<Uint8Array> {
 async function readMessage(conn: Deno.Conn): Promise<{ tag: string; body: Uint8Array }> {
   const header = await readExact(conn, 5);
   const tag = String.fromCharCode(header[0]);
-  const length = new DataView(header.buffer, header.byteOffset, 4).getInt32(1) - 4;
+  const length = readI32(header, 1) - 4;
   const body = length > 0 ? await readExact(conn, length) : new Uint8Array();
   return { tag, body };
 }
@@ -171,7 +175,7 @@ async function saslExchange(conn: Deno.Conn, user: string, password: string, mec
 
   const cont = await readMessage(conn);
   if (cont.tag !== 'R') throw new Error(`auth_continue_tag:${cont.tag}`);
-  const type = new DataView(cont.body.buffer, cont.body.byteOffset).getInt32(0);
+  const type = readI32(cont.body);
   if (type !== 11) throw new Error(`auth_continue_type:${type}`);
   const serverFirst = decoder.decode(cont.body.subarray(4));
   const clientFinal = await scramProof(password, clientFirstBare, serverFirst, nonce);
@@ -180,7 +184,7 @@ async function saslExchange(conn: Deno.Conn, user: string, password: string, mec
   const final = await readMessage(conn);
   if (final.tag === 'E') throw new Error(parseError(final.body));
   if (final.tag !== 'R') throw new Error(`auth_final_tag:${final.tag}`);
-  const finalType = new DataView(final.body.buffer, final.body.byteOffset).getInt32(0);
+  const finalType = readI32(final.body);
   if (finalType !== 12) throw new Error(`auth_final_type:${finalType}`);
 }
 
@@ -192,7 +196,7 @@ async function authenticate(conn: Deno.Conn, user: string, password: string) {
       if (msg.tag === 'Z') return;
       continue;
     }
-    const type = new DataView(msg.body.buffer, msg.body.byteOffset).getInt32(0);
+    const type = readI32(msg.body);
     if (type === 0) return;
     if (type === 3) {
       const passwordMessage = cstring(password);
