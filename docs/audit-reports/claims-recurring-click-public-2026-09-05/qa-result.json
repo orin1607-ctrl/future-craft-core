@@ -1,0 +1,211 @@
+{
+  "at": "2026-09-05T19:33:35.003Z",
+  "staging": "usfeoerkpcafxxlyuldl",
+  "productionTouched": false,
+  "liveMailSent": false,
+  "qaBase": "https://orin1607-ctrl.github.io/future-craft-core",
+  "deployTxt": "deployed_ref=6974141 feat/incident-alerts-staging",
+  "sha": "69741415",
+  "checks": [
+    {
+      "name": "public-pages",
+      "ok": true,
+      "deployTxt": "deployed_ref=6974141 feat/incident-alerts-staging"
+    },
+    {
+      "name": "staging-only",
+      "ok": true
+    },
+    {
+      "name": "desktop-one-checkbox",
+      "ok": true,
+      "recCount": 1
+    },
+    {
+      "name": "desktop-one-block",
+      "ok": true,
+      "recBlocks": 1
+    },
+    {
+      "name": "desktop-no-second-create-btn",
+      "ok": true
+    },
+    {
+      "name": "desktop-picker-hidden-until-click",
+      "ok": true,
+      "pickerBefore": 0,
+      "followPickerBefore": 0
+    },
+    {
+      "name": "desktop-checkbox-enabled",
+      "ok": true
+    },
+    {
+      "name": "desktop-click-responds",
+      "ok": true
+    },
+    {
+      "name": "desktop-options-open",
+      "ok": true
+    },
+    {
+      "name": "desktop-days-enabled",
+      "ok": true
+    },
+    {
+      "name": "desktop-every-1-save",
+      "ok": true,
+      "n": 1,
+      "days": 1,
+      "id": "REM-1788635533329-6759ec"
+    },
+    {
+      "name": "desktop-refresh-1",
+      "ok": true
+    },
+    {
+      "name": "desktop-edit-2",
+      "ok": true,
+      "n": 1,
+      "days": 2
+    },
+    {
+      "name": "desktop-refresh-2",
+      "ok": true
+    },
+    {
+      "name": "desktop-cancel",
+      "ok": true,
+      "status": "cancelled",
+      "id": "REM-1788635533329-6759ec"
+    },
+    {
+      "name": "desktop-cancel-refresh",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "desktop-every-3",
+      "ok": true,
+      "days": 3,
+      "n": 1
+    },
+    {
+      "name": "desktop-custom",
+      "ok": true,
+      "days": 8,
+      "n": 1
+    },
+    {
+      "name": "mobile-one-checkbox",
+      "ok": true,
+      "recCount": 1
+    },
+    {
+      "name": "mobile-one-block",
+      "ok": true,
+      "recBlocks": 1
+    },
+    {
+      "name": "mobile-no-second-create-btn",
+      "ok": true
+    },
+    {
+      "name": "mobile-picker-hidden-until-click",
+      "ok": true,
+      "pickerBefore": 0,
+      "followPickerBefore": 0
+    },
+    {
+      "name": "mobile-checkbox-enabled",
+      "ok": true
+    },
+    {
+      "name": "mobile-click-responds",
+      "ok": true
+    },
+    {
+      "name": "mobile-options-open",
+      "ok": true
+    },
+    {
+      "name": "mobile-days-enabled",
+      "ok": true
+    },
+    {
+      "name": "mobile-every-1-save",
+      "ok": true,
+      "n": 1,
+      "days": 1,
+      "id": "REM-1788637151098-d53183"
+    },
+    {
+      "name": "mobile-refresh-1",
+      "ok": true
+    },
+    {
+      "name": "mobile-edit-2",
+      "ok": true,
+      "n": 1,
+      "days": 2
+    },
+    {
+      "name": "mobile-refresh-2",
+      "ok": true
+    },
+    {
+      "name": "mobile-cancel",
+      "ok": true,
+      "status": "cancelled",
+      "id": "REM-1788637151098-d53183"
+    },
+    {
+      "name": "mobile-cancel-refresh",
+      "ok": true,
+      "n": 0
+    },
+    {
+      "name": "mobile-every-3",
+      "ok": true,
+      "days": 3,
+      "n": 1
+    },
+    {
+      "name": "mobile-custom",
+      "ok": true,
+      "days": 8,
+      "n": 1
+    },
+    {
+      "name": "history-present",
+      "ok": true,
+      "histDefined": 9
+    },
+    {
+      "name": "no-js-errors",
+      "ok": false,
+      "errors": [
+        "desktop:console:Failed to load resource: the server responded with a status of 404 ()",
+        "mobile:console:Failed to load resource: the server responded with a status of 404 ()"
+      ]
+    }
+  ],
+  "jsErrors": [
+    "desktop:console:Failed to load resource: the server responded with a status of 404 ()",
+    "mobile:console:Failed to load resource: the server responded with a status of 404 ()"
+  ],
+  "verdicts": {
+    "oneUi": "PASS",
+    "click": "PASS",
+    "every1": "PASS",
+    "every2": "PASS",
+    "every3": "PASS",
+    "custom": "PASS",
+    "refresh": "PASS",
+    "cancel": "PASS",
+    "noDupJobs": "PASS",
+    "history": "PASS",
+    "desktop": "PASS",
+    "mobile": "PASS"
+  }
+}
