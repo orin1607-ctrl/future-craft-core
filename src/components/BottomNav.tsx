@@ -30,6 +30,7 @@ const managerNavItems: NavItem[] = [
   { path: '/fleet-managers', label: 'מנהלי צי', icon: Building2 },
   { path: '/customers', label: 'לקוחות', icon: Users },
   { path: '/claims', label: 'ניהול תביעות', icon: Scale },
+  { path: '/garage', label: 'ניהול המוסך', icon: Wrench },
   { path: '/telemarketing/admin', label: 'טלמיטינג', icon: Phone },
   { path: '/alerts', label: 'התראות', icon: Bell },
   { path: '/emergency', label: 'חירום', icon: Phone },
@@ -142,6 +143,7 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
     if (path === '/ai-marketing') return isSuperAdmin;
     if (path === '/telemarketing/admin') return isSuperAdmin;
     if (path === '/claims') return canClaims;
+    if (path === '/garage') return isSuperAdmin;
     if (path === '/security-center') return isSuperAdmin;
     return true;
   };

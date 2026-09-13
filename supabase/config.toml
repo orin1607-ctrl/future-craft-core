@@ -100,6 +100,9 @@ verify_jwt = true
 [functions.claims-gmail]
 verify_jwt = false
 
+[functions.garage-gmail]
+verify_jwt = false
+
 [functions.notify-telemarketing-followup]
 verify_jwt = true
 

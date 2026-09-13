@@ -53,6 +53,12 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/telemarketing/admin', 'fleet_manager')).toBe(false);
   });
 
+  it('garage is super_admin only', () => {
+    expect(canAccessRoute('/garage', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/garage', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/garage', 'driver')).toBe(false);
+  });
+
   it('claims route requires grant, not role', () => {
     expect(canAccessRoute('/claims', 'super_admin')).toBe(true);
     expect(canAccessRoute('/claims', 'fleet_manager')).toBe(false);
