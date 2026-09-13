@@ -3209,37 +3209,64 @@ function startGarageGmailBrowser(){
 function garageGmailConnectPage(authUrl){
   return 'https://orin1607-ctrl.github.io/future-craft-core/oauth/garage-gmail-connect.html#' + encodeURIComponent(authUrl);
 }
-function openGarageGoogleAuthUrl(authUrl){
-  if(!garageGmailAuthUrlOk(authUrl)) return false;
-  try { sessionStorage.setItem('gmGarageGmailAuthUrl', authUrl); } catch (e) {}
-  var helper = garageGmailConnectPage(authUrl);
-  try {
-    if(window.top) window.top.location.href = helper;
-    else window.location.href = helper;
-  } catch (e) {
-    window.location.href = helper;
+function closeGarageGmailPopup(targetWindow){
+  if(!targetWindow) return;
+  try { if(!targetWindow.closed) targetWindow.close(); } catch (e) {}
+}
+function openGarageGmailPopupShell(){
+  try { return window.open('about:blank', 'garage-gmail-oauth'); }
+  catch (e) { return null; }
+}
+function openGarageGoogleTarget(url, targetWindow){
+  if(targetWindow && !targetWindow.closed){
+    try { targetWindow.location.replace(url); return true; } catch (e) {}
   }
+  try {
+    var popup = window.open(url, 'garage-gmail-oauth');
+    if(popup) return true;
+  } catch (e) {}
+  try {
+    if(window.top){
+      window.top.location.assign(url);
+      return true;
+    }
+  } catch (e) {}
+  try {
+    window.open(url, '_top');
+    return true;
+  } catch (e) {}
+  try { window.location.assign(url); } catch (e) {}
   return true;
 }
-function openGarageGoogleNow(scanAfter){
+function openGarageGoogleAuthUrl(authUrl, targetWindow){
+  if(!garageGmailAuthUrlOk(authUrl)) return false;
+  try { sessionStorage.setItem('gmGarageGmailAuthUrl', authUrl); } catch (e) {}
+  return openGarageGoogleTarget(garageGmailConnectPage(authUrl), targetWindow);
+}
+function openGarageGoogleNow(scanAfter, targetWindow){
   if(scanAfter) window.__garageGmailScanAfter = true;
-  if(garageGmailAuthUrlOk(window.__garageGmailAuthUrl)) return openGarageGoogleAuthUrl(window.__garageGmailAuthUrl);
+  if(garageGmailAuthUrlOk(window.__garageGmailAuthUrl)) return openGarageGoogleAuthUrl(window.__garageGmailAuthUrl, targetWindow);
   return false;
 }
 function connectGarageGmail(){
-  if(openGarageGoogleNow(false)) return;
+  var popup = openGarageGmailPopupShell();
+  if(openGarageGoogleNow(false, popup)) return;
   var req;
-  try { req = callHost('gm:garageGmailOauthStart', { preferPages: true }); } catch (e) { return; }
-  if(!req || !req.then) return;
+  try { req = callHost('gm:garageGmailOauthStart', { preferPages: true }); } catch (e) {
+    closeGarageGmailPopup(popup);
+    return;
+  }
+  if(!req || !req.then){
+    closeGarageGmailPopup(popup);
+    return;
+  }
   req.then(function(res){
     cacheGarageGmailConnect(res);
-    if(openGarageGoogleNow(false)) return;
-    if(res && res.authUrl && garageGmailAuthUrlOk(res.authUrl)){
-      openGarageGoogleAuthUrl(res.authUrl);
-      return;
-    }
+    if(openGarageGoogleNow(false, popup)) return;
+    closeGarageGmailPopup(popup);
     alert((res && res.error) || 'אין קישור OAuth עדיין. חסר חיבור Google ב-Staging.');
   }).catch(function(){
+    closeGarageGmailPopup(popup);
     alert('אין קישור OAuth עדיין.');
   });
 }
@@ -3390,15 +3417,24 @@ function scanGarageMail(){
     runGarageMailScan();
     return;
   }
-  if(openGarageGoogleNow(true)) return;
+  var popup = openGarageGmailPopupShell();
+  if(openGarageGoogleNow(true, popup)) return;
   var req;
-  try { req = callHost('gm:garageGmailOauthStart', { preferPages: true }); } catch (e) { return; }
-  if(!req || !req.then) return;
+  try { req = callHost('gm:garageGmailOauthStart', { preferPages: true }); } catch (e) {
+    closeGarageGmailPopup(popup);
+    return;
+  }
+  if(!req || !req.then){
+    closeGarageGmailPopup(popup);
+    return;
+  }
   req.then(function(res){
     cacheGarageGmailConnect(res);
-    if(openGarageGoogleNow(true)) return;
+    if(openGarageGoogleNow(true, popup)) return;
+    closeGarageGmailPopup(popup);
     alert((res && res.error) || 'אין קישור OAuth עדיין. חסר חיבור Google ב-Staging.');
   }).catch(function(){
+    closeGarageGmailPopup(popup);
     alert('אין קישור OAuth עדיין.');
   });
 }

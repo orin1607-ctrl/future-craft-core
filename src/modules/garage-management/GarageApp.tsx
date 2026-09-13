@@ -343,7 +343,7 @@ export default function GarageApp() {
         title="ניהול מוסך"
         className="gm-approved-frame"
         srcDoc={approvedSourceHtml}
-        sandbox="allow-scripts allow-modals allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"
+        sandbox="allow-scripts allow-modals allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation"
         allow="camera; microphone; clipboard-write"
         key={caseId || (startCustomer ? 'customer' : startNew ? 'new' : 'home')}
         onLoad={() => { void bootstrap(); }}
