@@ -114,6 +114,30 @@ jobs:
             --project-ref "$STAGING_REF" \
             --no-verify-jwt
           echo "✅ notify-driver-event deployed to staging only"
+          npx --yes supabase functions deploy staging-apply-driver-area-sql \
+            --project-ref "$STAGING_REF" \
+            --no-verify-jwt
+          echo "✅ staging-apply-driver-area-sql deployed to staging only"
+
+      - name: Apply driver-area SQL via staging function (staging only)
+        env:
+          STAGING_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          STAGING_ANON: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU
+        run: |
+          set -euo pipefail
+          CODE=$(curl -sS -o /tmp/apply.json -w "%{http_code}" \
+            -X POST "${STAGING_URL}/functions/v1/staging-apply-driver-area-sql" \
+            -H "apikey: ${STAGING_ANON}" \
+            -H "Authorization: Bearer ${STAGING_ANON}" \
+            -H "Content-Type: application/json" \
+            -d '{"confirm":"driver-area-settings-expand-staging"}')
+          echo "Apply function HTTP: $CODE"
+          cat /tmp/apply.json; echo
+          if [ "$CODE" = "200" ]; then
+            echo "✅ Migration applied on staging via edge function"
+          else
+            echo "::warning::staging-apply-driver-area-sql did not apply (HTTP $CODE). Check SUPABASE_DB_URL on staging or paste the SQL in the Staging SQL Editor."
+          fi
 
       - name: Verify new tables exist on staging
         env:

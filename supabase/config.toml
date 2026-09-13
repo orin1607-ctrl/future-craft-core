@@ -18,6 +18,9 @@ verify_jwt = false
 [functions.notify-driver-event]
 verify_jwt = false
 
+[functions.staging-apply-driver-area-sql]
+verify_jwt = false
+
 [functions.send-supplier-order-email]
 verify_jwt = false
 
