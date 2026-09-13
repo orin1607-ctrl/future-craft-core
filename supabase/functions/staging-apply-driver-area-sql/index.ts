@@ -112,12 +112,22 @@ Deno.serve(async (req) => {
       const realCompanies = companies.filter((name) => !skipCompany(name));
       const preferredCompanies = ['אורן קאר', 'חברה 1', 'חברה 2', 'קיבוץ בארי', 'מוסך יוני', 'פרחי בוקי בע"מ']
         .filter((name) => realCompanies.includes(name));
-      const driverCompanies = (preferredCompanies.length >= 2 ? preferredCompanies : realCompanies).slice(0, 2);
+      const driverCompanyPool = [...preferredCompanies, ...realCompanies.filter((n) => !preferredCompanies.includes(n))];
 
       const wanted: Array<{ role: string; company?: string; email?: string }> = [
         { role: 'super_admin', email: 'orin1607@gmail.com' },
       ];
-      for (const company of driverCompanies) wanted.push({ role: 'driver', company });
+      const seen = new Set<string>();
+      for (const company of driverCompanyPool) {
+        if (wanted.filter((w) => w.role === 'driver').length >= 2) break;
+        const hasDriver = (roleRows || []).some((row) => {
+          if (row.role !== 'driver') return false;
+          return profileById.get(row.user_id)?.company_name === company && !!emailById.get(row.user_id);
+        });
+        if (!hasDriver || seen.has(company)) continue;
+        seen.add(company);
+        wanted.push({ role: 'driver', company });
+      }
 
       const sessions: Array<Record<string, unknown>> = [];
       for (const want of wanted) {
