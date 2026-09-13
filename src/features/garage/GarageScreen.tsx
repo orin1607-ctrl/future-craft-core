@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { invokeGarageGmail, listGarageCases } from './garageGmail';
+import { invokeGarageGmail, listGarageCases, startGarageGmailReconnect } from './garageGmail';
 
 type CaseRow = {
   id: string;
@@ -38,7 +38,7 @@ function fmtBytes(n: number) {
 export function GarageScreen() {
   const [cases, setCases] = useState<CaseRow[]>([]);
   const [curId, setCurId] = useState('');
-  const [status, setStatus] = useState<{ connected?: boolean; email?: string; reconnectRequired?: boolean; sendEnabled?: boolean }>({});
+  const [status, setStatus] = useState<{ connected?: boolean; email?: string; reconnectRequired?: boolean; sendEnabled?: boolean; sendScope?: boolean }>({});
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [history, setHistory] = useState<HistRow[]>([]);
   const [pending, setPending] = useState<Array<Record<string, unknown>>>([]);
@@ -64,6 +64,7 @@ export function GarageScreen() {
       email: r.email,
       reconnectRequired: r.reconnectRequired === true,
       sendEnabled: r.sendEnabled !== false,
+      sendScope: r.sendScope === true,
     });
   }, []);
 
@@ -161,7 +162,18 @@ export function GarageScreen() {
         <h1 className="font-bold text-lg mb-2">ניהול המוסך</h1>
         <div className="text-xs mb-3" data-testid="garage-gmail-status">
           {status.connected ? `מחובר: ${status.email}` : status.reconnectRequired ? 'נדרש חיבור מחדש ל-Google' : 'בודק חיבור…'}
+          {status.connected && status.sendScope !== true ? ' · חסרה הרשאת שליחה' : ''}
         </div>
+        {status.reconnectRequired || status.sendScope !== true ? (
+          <button className="w-full mb-2 rounded-md border px-2 py-1 text-sm" data-testid="garage-gmail-reconnect" disabled={busy} onClick={async () => {
+            setBusy(true);
+            try {
+              const r = await startGarageGmailReconnect();
+              if (r.authUrl) window.location.href = String(r.authUrl);
+              else setMsg(String(r.error || 'לא ניתן לפתוח חיבור Google'));
+            } finally { setBusy(false); }
+          }}>חבר הרשאת שליחה ל-yoni191177</button>
+        ) : null}
         <button className="w-full mb-2 rounded-md border px-2 py-1 text-sm" data-testid="garage-scan" disabled={busy} onClick={async () => {
           setBusy(true);
           try {

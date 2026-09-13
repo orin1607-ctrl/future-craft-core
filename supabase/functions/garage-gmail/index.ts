@@ -9,12 +9,22 @@ import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { extractPriceCandidates, matchIncomingGarage, type MatchCase } from "./matchIncoming.ts";
 
+const STAGING_REF = "usfeoerkpcafxxlyuldl";
 const ALLOWED_ACCOUNT = "yoni191177@gmail.com";
 const FORBIDDEN_ACCOUNTS = new Set(["yoni122222@gmail.com", "orin1607@gmail.com", "orin16007@gmail.com"]);
 const BUCKET = "garage-media";
 const PACKAGE_LIMIT = 18 * 1024 * 1024;
 const MAX_ATTACH = 80;
 const ALLOWED_MIME = /^(image\/(jpeg|png|webp|gif|heic|heif)|application\/pdf)$/i;
+const SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+const SCOPES = [
+  "openid",
+  "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/gmail.readonly",
+  SEND_SCOPE,
+];
+const PAGES_REDIRECT = "https://orin1607-ctrl.github.io/future-craft-core/oauth/google-callback.html";
+const FUNCTION_REDIRECT = `https://${STAGING_REF}.supabase.co/functions/v1/garage-gmail`;
 
 function admin() {
   return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -40,11 +50,112 @@ async function loadConnection(sb: ReturnType<typeof admin>) {
 function oauthApp() {
   const googleId = Deno.env.get("GOOGLE_CLIENT_ID") || "";
   const googleSecret = Deno.env.get("GOOGLE_CLIENT_SECRET") || "";
-  if (googleId && googleSecret) return { clientId: googleId, clientSecret: googleSecret };
+  if (googleId && googleSecret) return { clientId: googleId, clientSecret: googleSecret, source: "GOOGLE" };
   const claimsId = Deno.env.get("CLAIMS_GOOGLE_CLIENT_ID") || "";
   const claimsSecret = Deno.env.get("CLAIMS_GOOGLE_CLIENT_SECRET") || "";
-  if (claimsId && claimsSecret) return { clientId: claimsId, clientSecret: claimsSecret };
+  if (claimsId && claimsSecret) return { clientId: claimsId, clientSecret: claimsSecret, source: "CLAIMS_APP" };
   return null;
+}
+
+async function hmacHex(message: string) {
+  const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "garage-gmail-state";
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function makeOauthState(kind: "pages" | "fn") {
+  const payload = `garage-gmail.${kind}.${crypto.randomUUID()}.${Date.now()}`;
+  return `${payload}.${await hmacHex(payload)}`;
+}
+
+async function oauthStateOk(state: string) {
+  const parts = String(state || "").split(".");
+  if (parts.length !== 5 || parts[0] !== "garage-gmail") return false;
+  if (parts[1] !== "pages" && parts[1] !== "fn") return false;
+  const ts = Number(parts[3] || 0);
+  if (!ts || Math.abs(Date.now() - ts) > 45 * 60 * 1000) return false;
+  const expect = await hmacHex(parts.slice(0, 4).join("."));
+  const sig = parts[4];
+  if (sig.length !== expect.length) return false;
+  let diff = 0;
+  for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ expect.charCodeAt(i);
+  return diff === 0;
+}
+
+function htmlPage(ok: boolean, text: string) {
+  const color = ok ? "#22c55e" : "#ef4444";
+  return new Response(
+    `<!doctype html><meta charset="utf-8"><body dir="rtl" style="font-family:sans-serif;background:#071022;color:#fff;padding:40px;text-align:center">
+     <h1 style="color:${color}">${ok ? "החיבור הצליח" : "שגיאה בחיבור"}</h1>
+     <p>${text}</p><p>אפשר לסגור את החלון ולחזור לניהול המוסך.</p></body>`,
+    { headers: { ...edgeCorsHeaders, "Content-Type": "text/html; charset=utf-8" } },
+  );
+}
+
+async function userinfoEmail(access: string) {
+  const res = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", { headers: { Authorization: `Bearer ${access}` } });
+  const json = await res.json();
+  return String(json.email || "").toLowerCase();
+}
+
+async function tokenHasSendScope(access: string) {
+  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(access)}`);
+  const json = await res.json().catch(() => ({}));
+  return String((json as { scope?: string }).scope || "").includes(SEND_SCOPE);
+}
+
+async function persistGarageMailbox(sb: ReturnType<typeof admin>, refreshToken: string, email: string, scopes: string) {
+  const now = new Date().toISOString();
+  const { data, error } = await sb.from("garage_gmail_connection").update({
+    connected_email: email,
+    refresh_token: refreshToken,
+    revoked_at: null,
+    last_ok_at: now,
+    last_error: null,
+    scopes,
+    updated_at: now,
+  }).eq("id", "staging").select("id");
+  if (error) throw new Error(error.message);
+  if (!data?.length) throw new Error("garage_connection_row_missing");
+}
+
+async function completeOauthCallback(sb: ReturnType<typeof admin>, code: string, state: string, req: Request) {
+  if (!code || !state || !(await oauthStateOk(state))) {
+    return req.method === "GET" ? htmlPage(false, "state לא תואם. פתחו מחדש את חיבור Gmail מניהול המוסך.") : jsonResponse({ success: false, error: "oauth_state_mismatch" }, 400);
+  }
+  const client = oauthApp();
+  if (!client) return jsonResponse({ success: false, error: "oauth_client_missing" }, 503);
+  const redirectUri = state.includes(".pages.") ? PAGES_REDIRECT : FUNCTION_REDIRECT;
+  const tokRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: client.clientId,
+      client_secret: client.clientSecret,
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code",
+    }),
+  });
+  const tok = await tokRes.json();
+  if (!tokRes.ok || !tok.refresh_token) {
+    const msg = String(tok.error_description || tok.error || "no_refresh_token");
+    return req.method === "GET" ? htmlPage(false, msg) : jsonResponse({ success: false, error: msg }, 400);
+  }
+  const email = await userinfoEmail(String(tok.access_token || ""));
+  if (FORBIDDEN_ACCOUNTS.has(email) || email !== ALLOWED_ACCOUNT) {
+    const blocked = `החשבון שאושר הוא ${email || "לא ידוע"}. צריך בדיוק ${ALLOWED_ACCOUNT}. לא yoni122222, לא orin1607, ולא Claims.`;
+    return req.method === "GET" ? htmlPage(false, blocked) : jsonResponse({ success: false, error: "wrong_account", email, message: blocked }, 403);
+  }
+  const hasSend = await tokenHasSendScope(String(tok.access_token || ""));
+  if (!hasSend) {
+    const blocked = "החיבור הצליח אבל חסרה הרשאת Gmail SEND. יש לאשר שליחה בחלון Google.";
+    return req.method === "GET" ? htmlPage(false, blocked) : jsonResponse({ success: false, error: "need_send_scope" }, 403);
+  }
+  await persistGarageMailbox(sb, String(tok.refresh_token), email, String(tok.scope || SCOPES.join(" ")));
+  const ok = `${ALLOWED_ACCOUNT} מחובר לניהול המוסך עם הרשאת שליחה.`;
+  return req.method === "GET" ? htmlPage(true, ok) : jsonResponse({ success: true, connected: true, email, sendScope: true });
 }
 
 async function googleAccessToken(refreshToken: string) {
@@ -511,7 +622,21 @@ Deno.serve(async (req) => {
     if (req.method === "POST") body = await req.json();
   } catch { body = {}; }
   const url = new URL(req.url);
-  const action = String(body.action || url.searchParams.get("action") || "status");
+  let action = String(body.action || url.searchParams.get("action") || "");
+  if (action === "exchange") action = "oauth_callback";
+  if (!action && url.searchParams.get("code") && url.searchParams.get("state")) action = "oauth_callback";
+  if (!action) action = "status";
+
+  if (action === "oauth_callback") {
+    try {
+      const code = String(body.code || url.searchParams.get("code") || "");
+      const state = String(body.state || url.searchParams.get("state") || "");
+      return await completeOauthCallback(sb, code, state, req);
+    } catch (e) {
+      const msg = String((e as Error).message || e);
+      return req.method === "GET" ? htmlPage(false, msg) : jsonResponse({ success: false, error: msg }, 500);
+    }
+  }
 
   if (action === "send" || action === "send_email" || action === "mailto") {
     return jsonResponse({ success: false, blocked: true, reason: "use_send_garage", realEmailSend: false }, 403);
@@ -522,16 +647,46 @@ Deno.serve(async (req) => {
   const { user, role } = auth.ctx;
   if (!(await isStaff(role))) return jsonResponse({ success: false, error: "forbidden" }, 403);
 
+  if (action === "oauth_start") {
+    const client = oauthApp();
+    if (!client) return jsonResponse({ success: false, error: "oauth_client_missing", pending: true }, 503);
+    const fnState = await makeOauthState("fn");
+    const pagesState = await makeOauthState("pages");
+    const common = {
+      client_id: client.clientId,
+      response_type: "code",
+      access_type: "offline",
+      prompt: "consent",
+      include_granted_scopes: "true",
+      login_hint: ALLOWED_ACCOUNT,
+      scope: SCOPES.join(" "),
+    };
+    const fnParams = new URLSearchParams({ ...common, redirect_uri: FUNCTION_REDIRECT, state: fnState });
+    const pagesParams = new URLSearchParams({ ...common, redirect_uri: PAGES_REDIRECT, state: pagesState });
+    return jsonResponse({
+      success: true,
+      authUrl: `https://accounts.google.com/o/oauth2/v2/auth?${fnParams.toString()}`,
+      pagesAuthUrl: `https://accounts.google.com/o/oauth2/v2/auth?${pagesParams.toString()}`,
+      mailbox: ALLOWED_ACCOUNT,
+      redirectUri: FUNCTION_REDIRECT,
+      pagesRedirectUri: PAGES_REDIRECT,
+      note: "יש להתחבר בדיוק עם yoni191177@gmail.com. לא yoni122222 ולא Claims.",
+    });
+  }
+
   if (action === "status") {
     const conn = await loadConnection(sb);
     const { data: settings } = await sb.from("garage_gmail_settings").select("allowed_account, send_enabled, package_limit_bytes").eq("id", "staging").maybeSingle();
+    const { data: connMeta } = await sb.from("garage_gmail_connection").select("scopes").eq("id", "staging").maybeSingle();
+    const sendScope = String(connMeta?.scopes || "").includes(SEND_SCOPE);
     return jsonResponse({
       success: true,
       connected: !!conn,
       email: conn?.connected_email || null,
       accountExpected: ALLOWED_ACCOUNT,
       sendEnabled: settings?.send_enabled !== false,
-      reconnectRequired: !conn,
+      sendScope,
+      reconnectRequired: !conn || !sendScope,
       lastOkAt: conn?.last_ok_at || null,
       packageLimitBytes: Number(settings?.package_limit_bytes || PACKAGE_LIMIT),
       realEmailSend: false,
@@ -843,7 +998,10 @@ Deno.serve(async (req) => {
     if (sendThreadId) sentPayload.threadId = sendThreadId;
     const sent = await gmailPost(access, "messages/send", sentPayload);
     if (!sent.ok) {
-      await sb.from("garage_gmail_outbox").update({ status: "failed", error_text: "gmail_send_failed" }).eq("id", outId);
+      const gmailErr = String(sent.json?.error?.message || sent.json?.error || "");
+      const needSend = sent.status === 403 || /insufficient|access_denied|invalid_scope/i.test(gmailErr);
+      const errCode = needSend ? "need_send_scope" : "gmail_send_failed";
+      await sb.from("garage_gmail_outbox").update({ status: "failed", error_text: errCode }).eq("id", outId);
       await addHistory(sb, {
         caseId,
         type: "send_failed",
@@ -853,7 +1011,7 @@ Deno.serve(async (req) => {
         outboxId: outId,
         payload: { to, subject },
       });
-      return jsonResponse({ success: false, error: "gmail_send_failed", status: sent.status, realEmailSend: false }, 400);
+      return jsonResponse({ success: false, error: errCode, status: sent.status, reconnectRequired: needSend, realEmailSend: false }, 400);
     }
     const gmailMessageId = String(sent.json.id || "");
     const gmailThreadId = String(sent.json.threadId || "");

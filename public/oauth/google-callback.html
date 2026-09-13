@@ -46,6 +46,20 @@ p{font-size:14px;color:rgba(255,255,255,.7);line-height:1.6;margin:0 0 16px;}
     return;
   }
 
+  var state = params.get('state') || '';
+  if (state.indexOf('garage-gmail.') === 0) {
+    var garageFn = 'https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/garage-gmail';
+    fetch(garageFn + '?action=oauth_callback&code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state), {
+      method: 'GET'
+    }).then(function (r) { return r.text(); }).then(function (html) {
+      if (/החיבור הצליח/.test(html)) finish(true, 'yoni191177@gmail.com מחובר לניהול המוסך עם הרשאת שליחה.');
+      else finish(false, 'חיבור Garage Gmail נכשל. פתחו מחדש מניהול המוסך.');
+    }).catch(function (e) {
+      finish(false, 'שגיאת רשת: ' + e.message);
+    });
+    return;
+  }
+
   var staging = null;
   try { staging = JSON.parse(sessionStorage.getItem('coco-google-oauth-pending') || 'null'); } catch (e) { /* ignore */ }
 

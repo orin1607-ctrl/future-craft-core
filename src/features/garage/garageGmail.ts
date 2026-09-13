@@ -26,6 +26,20 @@ export async function invokeGarageGmail(action: string, body: Record<string, unk
   }
 }
 
+export async function startGarageGmailReconnect() {
+  const { data: sess } = await supabase.auth.getSession();
+  const token = sess.session?.access_token;
+  const started = await invokeGarageGmail('oauth_start');
+  if (started.authUrl && token) {
+    sessionStorage.setItem('coco-google-oauth-pending', JSON.stringify({
+      edgeUrl: FN,
+      accessToken: token,
+      anonKey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    }));
+  }
+  return started;
+}
+
 export async function listGarageCases() {
   const { data, error } = await from('garage_cases')
     .select('id, case_number, status, customer_name_snapshot, vehicle_plate_snapshot, vehicle_label_snapshot, gmail_thread_id, updated_at, created_at')
