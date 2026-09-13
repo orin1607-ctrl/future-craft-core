@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog, Megaphone, Warehouse, Scale, Phone } from 'lucide-react';
+import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog, Megaphone, Warehouse, Scale, Phone, Smartphone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -204,6 +204,16 @@ export default function HomeDashboard() {
             icon={Phone}
             title="טלמיטינג"
             subtitle="מאגר לידים · שיוך לעובדים · Follow-up"
+            accent="primary"
+          />
+        )}
+        {isSuperAdmin && (
+          <DashboardCardGate
+            path="/driver-area-settings"
+            to="/driver-area-settings"
+            icon={Smartphone}
+            title="הגדרות אזור נהג"
+            subtitle="כפתורים · התראות · חירום · קילומטראז׳"
             accent="primary"
           />
         )}

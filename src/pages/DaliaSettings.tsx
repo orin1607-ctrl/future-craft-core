@@ -12,12 +12,24 @@ import {
   Settings,
   Shield,
   ShieldCheck,
+  Smartphone,
   Users,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import HomeWorldCard from '@/components/home/HomeWorldCard';
 
 const SETTINGS_SECTIONS = [
+  {
+    title: 'אזור נהג',
+    items: [
+      {
+        to: '/driver-area-settings',
+        icon: Smartphone,
+        title: 'הגדרות אזור נהג',
+        subtitle: 'כפתורי נהג · התראות · חירום · קילומטראז׳ לפי חברה',
+      },
+    ],
+  },
   {
     title: 'מודולים ושדות חובה',
     items: [

@@ -28,6 +28,7 @@ const managerNavItems: NavItem[] = [
   { path: '/transport', label: 'חברות הסעות', icon: Bus },
   { path: '/faults', label: 'תקלות', icon: Wrench },
   { path: '/garage-management', label: 'ניהול מוסך', icon: Warehouse },
+  { path: '/driver-area-settings', label: 'הגדרות אזור נהג', icon: Smartphone },
   { path: '/reports', label: 'דוחות', icon: BarChart3 },
   { path: '/fleet-managers', label: 'מנהלי צי', icon: Building2 },
   { path: '/customers', label: 'לקוחות', icon: Users },
@@ -43,7 +44,6 @@ const adminNavItems: NavItem[] = [
   { path: '/security-center', label: 'מרכז בקרה ואבטחה', icon: Shield },
   { path: '/ai-marketing', label: 'ניהול שיווק', icon: Megaphone },
   { path: '/dalia-settings', label: 'Dalia Settings', icon: SlidersHorizontal },
-  { path: '/driver-app-notifications', label: 'הגדרות אזור נהג', icon: Smartphone },
 ];
 
 const managerCategories = [
@@ -131,7 +131,7 @@ export function DesktopSidebar() {
   const { selectedCompany, setSelectedCompany, companyOptions } = useCompanyScope();
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
     ניווט: true,
-    'מרכז ניהול': false,
+    'מרכז ניהול': true,
   });
   const [companyPickerOpen, setCompanyPickerOpen] = useState(false);
   const unreadCount = useUnreadNotifications();
