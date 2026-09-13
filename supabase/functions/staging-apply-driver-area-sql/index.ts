@@ -1,8 +1,10 @@
 /**
  * Staging-only, additive SQL apply for driver-area settings.
  * Refuses production project refs. Does not accept arbitrary SQL.
- * No top-level imports: a failed postgres client import must not 500 the isolate.
+ * Uses a vendored simple-query client because hosted Edge blocks remote imports.
  */
+import { runSql } from './pg_simple.ts';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -15,8 +17,6 @@ const SQL_FILES = [
   'control-center.sql',
   'migration.sql',
 ] as const;
-const SQL_URL =
-  'https://raw.githubusercontent.com/orin1607-ctrl/future-craft-core/cursor/driver-area-settings-b784/supabase/migrations/20260913200000_driver_area_settings_expand.sql';
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -49,41 +49,20 @@ function pickDbUrl(): string {
   return '';
 }
 
-async function loadSql(fileName: string): Promise<string> {
+function dbUrlHost(dbUrl: string): string {
   try {
-    const text = await Deno.readTextFile(new URL(`./${fileName}`, import.meta.url));
-    if (text.includes('ALTER TABLE') || text.includes('CREATE')) return text;
+    return new URL(dbUrl.replace(/^postgres(ql)?:/, 'http:')).host;
   } catch {
-    // Bundled file missing — fall through.
+    return 'unparseable';
   }
-  if (fileName !== 'migration.sql') {
-    throw new Error(`sql_file_missing:${fileName}`);
-  }
-  const sqlRes = await fetch(SQL_URL);
-  if (!sqlRes.ok) throw new Error(`sql_fetch_failed:${sqlRes.status}`);
-  const sqlText = await sqlRes.text();
-  if (!sqlText.includes('report_driver_odometer')) throw new Error('sql_unexpected');
-  return sqlText;
 }
 
-async function loadPostgres() {
-  const specifiers = [
-    'npm:postgres@3.4.5',
-    'https://esm.sh/postgres@3.4.5',
-    'https://deno.land/x/postgresjs@v3.4.5/mod.js',
-  ];
-  const errors: string[] = [];
-  for (const spec of specifiers) {
-    try {
-      const mod = await import(spec);
-      const fn = mod.default || mod.postgres;
-      if (typeof fn === 'function') return { postgres: fn, spec };
-      errors.push(`${spec}:no-default`);
-    } catch (error) {
-      errors.push(`${spec}:${error instanceof Error ? error.message : 'import_failed'}`);
-    }
+async function loadSql(fileName: string): Promise<string> {
+  const text = await Deno.readTextFile(new URL(`./${fileName}`, import.meta.url));
+  if (!text.includes('ALTER TABLE') && !text.includes('CREATE')) {
+    throw new Error(`sql_unexpected:${fileName}`);
   }
-  throw new Error(`postgres_import_failed:${errors.join('|')}`);
+  return text;
 }
 
 Deno.serve(async (req) => {
@@ -95,7 +74,7 @@ Deno.serve(async (req) => {
       return json({ error: 'refused_production' }, 403);
     }
     if (!supabaseUrl.includes(STAGING_REF)) {
-      return json({ error: 'refused_not_staging', supabaseUrlHost: supabaseUrl.replace(/^https?:\/\//, '').split('/')[0] }, 403);
+      return json({ error: 'refused_not_staging' }, 403);
     }
 
     const body = await req.json().catch(() => ({}));
@@ -111,32 +90,28 @@ Deno.serve(async (req) => {
       return json({ error: 'refused_production_db_url' }, 403);
     }
     if (!dbUrl.includes(STAGING_REF)) {
-      return json({ error: 'refused_not_staging_db_url' }, 403);
+      return json({ error: 'refused_not_staging_db_url', host: dbUrlHost(dbUrl) }, 403);
     }
 
-    const { postgres, spec } = await loadPostgres();
-    const sql = postgres(dbUrl, { max: 1, idle_timeout: 5, connect_timeout: 20, prepare: false });
     const applied: string[] = [];
-    try {
-      for (const fileName of SQL_FILES) {
-        const sqlText = await loadSql(fileName);
-        await sql.unsafe(sqlText);
-        applied.push(fileName);
-      }
-      return json({
-        ok: true,
-        applied,
-        files: ['20260906120000_driver_app_control_center_expand.sql', '20260913200000_driver_area_settings_expand.sql'],
-        postgres: spec,
-        staging: true,
-      });
-    } finally {
-      await sql.end({ timeout: 5 });
+    for (const fileName of SQL_FILES) {
+      const sqlText = await loadSql(fileName);
+      await runSql(dbUrl, sqlText);
+      applied.push(fileName);
     }
+    return json({
+      ok: true,
+      applied,
+      files: [
+        '20260906120000_driver_app_control_center_expand.sql',
+        '20260913200000_driver_area_settings_expand.sql',
+      ],
+      host: dbUrlHost(dbUrl),
+      staging: true,
+    });
   } catch (error) {
     return json({
       error: error instanceof Error ? error.message : 'unexpected',
-      envNames: envNames(),
     }, 500);
   }
 });
