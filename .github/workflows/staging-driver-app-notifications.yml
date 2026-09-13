@@ -116,7 +116,7 @@ jobs:
           URL=$(printf '%s' "${STAGING_DB_URL:-}" | tr -d '\r\n')
           if [ -n "$URL" ]; then
             case "$URL" in
-              *qasomfndnjuixgjmjwcm*|*kuenhflklivaxrmqbsee*)
+              *qasomfndnjuixgjmjwcm*|*kuenhflklivaxrmqbsee*) # Guard: refuse production DB URL
                 echo "::error::Refusing to set a production database URL on staging"
                 exit 1
                 ;;
