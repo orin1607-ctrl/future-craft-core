@@ -322,8 +322,11 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: false, error: "claims_mailbox_forbidden" }, 403);
       }
       if (email !== ALLOWED_ACCOUNT) {
+        const blocked = email === "orin1607@gmail.com"
+          ? `החשבון שאושר הוא orin1607@gmail.com. לא מחברים אותו לניהול המוסך. צריך בדיוק ${ALLOWED_ACCOUNT}.`
+          : `החשבון שאושר הוא ${email || "לא ידוע"}. צריך בדיוק ${ALLOWED_ACCOUNT}. לא orin1607 ולא Claims.`;
         return req.method === "GET"
-          ? htmlPage(false, `החשבון שאושר הוא ${email || "לא ידוע"}. צריך בדיוק ${ALLOWED_ACCOUNT}.`)
+          ? htmlPage(false, blocked)
           : jsonResponse({ success: false, error: "wrong_account", email }, 403);
       }
       await saveConnection(sb, {
@@ -353,7 +356,7 @@ Deno.serve(async (req) => {
         redirect_uri: redirectUri,
         response_type: "code",
         access_type: "offline",
-        prompt: "consent",
+        prompt: "select_account consent",
         login_hint: ALLOWED_ACCOUNT,
         scope: SCOPES.join(" "),
         state: nonce,
