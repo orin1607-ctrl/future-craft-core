@@ -1,9 +1,10 @@
 name: Deploy Staging to GitHub Pages
 
 # Staging deployment to GitHub Pages (dalia-staging Supabase only).
-# - Auto on push to main
-# - Owner-approved: also deploy feat/incident-alerts-staging to Staging Pages (NO merge to main)
-# - Manual workflow_dispatch can deploy any ref without merging to main
+# - Auto on push to main only.
+# - Do NOT auto-deploy feat/incident-alerts-staging: that branch overwrote
+#   the full garage-management UI with a stripped /garage Gmail list.
+# - Manual workflow_dispatch can still deploy any ref without merging to main.
 
 on:
   workflow_dispatch:
@@ -15,7 +16,6 @@ on:
   push:
     branches:
       - main
-      - feat/incident-alerts-staging
 
 permissions:
   contents: read
@@ -29,9 +29,8 @@ concurrency:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-    # Note: do NOT bind job to environment `github-pages` here — that environment
-    # only allows branch `main`, which blocks Owner-approved feature-branch Staging deploys.
-    # Pages deploy still uses pages:write + id-token (below at workflow level).
+    # Do not bind this job to environment `github-pages` (that environment
+    # only allows branch `main`). Pages deploy uses pages:write + id-token.
     steps:
       - name: Resolve deploy ref
         id: ref
