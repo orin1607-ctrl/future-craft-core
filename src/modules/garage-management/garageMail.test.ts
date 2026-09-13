@@ -192,6 +192,8 @@ describe('priced-order detection and worker approval', () => {
     expect(appSrc).toContain('gm:scanGarageMail');
     expect(appSrc).toContain('gm:garageGmailStatus');
     expect(appSrc).toContain('scanGarageMailbox');
+    expect(appSrc).toContain('parseGoogleClientIdFromAuthUrl');
+    expect(appSrc).toContain('allow-popups-to-escape-sandbox');
     expect(appSrc).not.toContain('claims-gmail');
     expect(appSrc).not.toContain('claims-docs');
     const browserSrc = readFileSync(resolve('src/modules/garage-management/garageGmailBrowser.ts'), 'utf8');

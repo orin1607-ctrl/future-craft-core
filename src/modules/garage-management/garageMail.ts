@@ -10,7 +10,7 @@ import {
   type GarageMatchResult,
 } from './garageMailMatch';
 import { compareSentAndReturned, detectPricedOrder, type PriceCompare, type PriceDetection } from './garagePriceFromMail';
-import { readGarageInbox } from './garageGmailBrowser';
+import { readGarageInbox, fetchExistingGoogleClientId } from './garageGmailBrowser';
 import { uploadGarageMedia } from './garageMedia';
 
 export { GARAGE_MAILBOX, CLAIMS_MAILBOX } from './garageMailMatch';
@@ -271,6 +271,7 @@ export async function scanGarageMailbox(input: {
   ok: boolean;
   pending?: boolean;
   error?: string;
+  clientId?: string;
   matched: Array<{ mail: GarageMatchMail; match: GarageMatchResult }>;
   needs_review: Array<{ mail: GarageMatchMail; match: GarageMatchResult }>;
   appliedThisCase: GarageCaseData | null;
@@ -279,6 +280,7 @@ export async function scanGarageMailbox(input: {
     ok: true,
     pending: true as const,
     error: GARAGE_GMAIL_PENDING_MESSAGE,
+    clientId: '',
     matched: [] as Array<{ mail: GarageMatchMail; match: GarageMatchResult }>,
     needs_review: [] as Array<{ mail: GarageMatchMail; match: GarageMatchResult }>,
     appliedThisCase: null as GarageCaseData | null,
@@ -299,6 +301,8 @@ export async function scanGarageMailbox(input: {
       return { ...empty, error: GARAGE_GMAIL_PENDING_MESSAGE };
     }
   }
+  const existing = await fetchExistingGoogleClientId();
+  empty.clientId = existing.clientId;
   const probe = await probeGarageGmail();
   if (probe.pending) {
     return { ...empty, error: probe.error };

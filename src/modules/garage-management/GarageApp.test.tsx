@@ -36,6 +36,7 @@ describe('garage-management approved source', () => {
     const frame = screen.getByTitle('ניהול מוסך') as HTMLIFrameElement;
     expect(frame).toBeInTheDocument();
     expect(frame.getAttribute('allow')).toContain('camera');
+    expect(frame.getAttribute('sandbox')).toContain('allow-popups-to-escape-sandbox');
     expect(frame.srcdoc).toContain('פתח תיק');
     expect(frame.srcdoc).toContain('דליה — לקוחות ישירים');
     expect(frame.srcdoc).toContain('מפת נזקים אינטראקטיבית');
@@ -118,6 +119,8 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain("callHost('gm:scanGarageMail'");
     expect(approvedSourceHtml).toContain('חבר yoni191177@gmail.com');
     expect(approvedSourceHtml).toContain('startGarageGmailBrowser');
+    expect(approvedSourceHtml).toContain('openGarageGoogleNow');
+    expect(approvedSourceHtml).toContain('prefetchGarageGmailConnect');
     expect(approvedSourceHtml).toContain('accounts.google.com/gsi/client');
     expect(approvedSourceHtml).not.toContain('claims-gmail');
     expect(approvedSourceHtml).not.toContain('claims-docs');

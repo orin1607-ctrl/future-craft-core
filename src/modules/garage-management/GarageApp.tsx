@@ -33,7 +33,7 @@ import {
   type GarageMediaCategoryId,
 } from './garageMedia';
 import { scanGarageMailbox } from './garageMail';
-import { fetchExistingGoogleClientId, isMissingGarageGmailFunction } from './garageGmailBrowser';
+import { fetchExistingGoogleClientId, isMissingGarageGmailFunction, parseGoogleClientIdFromAuthUrl } from './garageGmailBrowser';
 import { supabase } from '@/integrations/supabase/client';
 
 type HostRequest = {
@@ -266,51 +266,62 @@ export default function GarageApp() {
           return;
         }
         if (msg.type === 'gm:garageGmailStatus') {
+          const existing = await fetchExistingGoogleClientId();
           const { data, error } = await supabase.functions.invoke('garage-gmail', { body: { action: 'status' } });
+          const row = (data && typeof data === 'object') ? data as Record<string, unknown> : {};
+          const clientId = String(row.clientId || '')
+            || parseGoogleClientIdFromAuthUrl(String(row.authUrl || ''))
+            || existing.clientId;
           if (isMissingGarageGmailFunction(error)) {
-            const existing = await fetchExistingGoogleClientId();
             reply(requestId, {
-              ok: Boolean(existing.clientId),
+              ok: Boolean(clientId),
               connected: false,
               pending: true,
               mailbox: 'yoni191177@gmail.com',
               functionMissing: true,
-              browserToken: Boolean(existing.clientId),
-              clientId: existing.clientId,
-              error: existing.clientId
+              browserToken: Boolean(clientId),
+              clientId,
+              error: clientId
                 ? 'תיבת המוסך עדיין לא מחוברת לסריקה. לחצו לחיבור Google של yoni191177@gmail.com בלבד.'
                 : (existing.error || 'חסר חיבור Google קיים ב-Staging'),
             });
             return;
           }
-          const row = (data && typeof data === 'object') ? data as Record<string, unknown> : {};
           reply(requestId, {
-            ok: !error,
+            ...row,
+            ok: !error || Boolean(clientId),
             connected: row.connected === true || row.ok === true,
             pending: row.pending === true || row.connected !== true,
             email: row.email,
-            mailbox: row.mailbox,
+            mailbox: row.mailbox || 'yoni191177@gmail.com',
+            clientId,
+            browserToken: Boolean(clientId),
             error: error ? String((error as { message?: string }).message || error) : (row.error as string | undefined),
-            ...row,
           });
           return;
         }
         if (msg.type === 'gm:garageGmailOauthStart') {
+          const existing = await fetchExistingGoogleClientId();
           const { data, error } = await supabase.functions.invoke('garage-gmail', {
             body: { action: 'oauth_start', preferPages: payload.preferPages === true },
           });
-          if (isMissingGarageGmailFunction(error) || !(data && typeof data === 'object' && (data as { authUrl?: string }).authUrl)) {
-            const existing = await fetchExistingGoogleClientId();
-            reply(requestId, {
-              ok: Boolean(existing.clientId),
-              browserToken: Boolean(existing.clientId),
-              clientId: existing.clientId,
-              mailbox: 'yoni191177@gmail.com',
-              error: existing.clientId ? undefined : (existing.error || (error ? String((error as Error).message || error) : 'oauth_client_missing')),
-            });
-            return;
-          }
-          reply(requestId, { ok: !error, ...(data && typeof data === 'object' ? data : {}), error: error ? String((error as Error).message || error) : undefined });
+          const row = (data && typeof data === 'object') ? data as Record<string, unknown> : {};
+          const authUrl = String(row.authUrl || '');
+          const clientId = String(row.clientId || '')
+            || parseGoogleClientIdFromAuthUrl(authUrl)
+            || existing.clientId;
+          reply(requestId, {
+            ok: Boolean(clientId || authUrl),
+            browserToken: Boolean(clientId),
+            clientId,
+            authUrl: authUrl || undefined,
+            mailbox: 'yoni191177@gmail.com',
+            redirectUri: row.redirectUri,
+            clientSource: row.clientSource,
+            error: (clientId || authUrl)
+              ? undefined
+              : (existing.error || (error ? String((error as Error).message || error) : 'oauth_client_missing')),
+          });
           return;
         }
       } catch (error) {
@@ -332,7 +343,7 @@ export default function GarageApp() {
         title="ניהול מוסך"
         className="gm-approved-frame"
         srcDoc={approvedSourceHtml}
-        sandbox="allow-scripts allow-modals allow-same-origin allow-downloads allow-popups"
+        sandbox="allow-scripts allow-modals allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox"
         allow="camera; microphone; clipboard-write"
         key={caseId || (startCustomer ? 'customer' : startNew ? 'new' : 'home')}
         onLoad={() => { void bootstrap(); }}

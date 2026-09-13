@@ -687,4 +687,42 @@ describe('garage flow live case binding', () => {
     expect((win.document.getElementById('wo-amount') as HTMLInputElement).value).toBe('1950');
     expect(win.state.workOrderAmount).toBe(1950);
   });
+
+  it('opens Google for yoni191177 when סרוק תיבת מוסך is clicked without a mailbox connection', () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      go: (id: string) => void;
+      scanGarageMail: () => void;
+      startGarageGmailBrowser: (clientId: string, scanAfter?: boolean) => void;
+      openGarageGoogleAuthUrl: (authUrl: string) => boolean;
+      document: Document;
+      alert: (msg?: string) => void;
+    };
+    const alerts: string[] = [];
+    win.alert = (msg?: string) => { alerts.push(String(msg || '')); };
+    let gisClientId = '';
+    let gisScanAfter: boolean | undefined;
+    let openedAuthUrl = '';
+    win.startGarageGmailBrowser = (clientId: string, scanAfter?: boolean) => {
+      gisClientId = clientId;
+      gisScanAfter = scanAfter;
+    };
+    win.openGarageGoogleAuthUrl = (authUrl: string) => {
+      openedAuthUrl = authUrl;
+      return true;
+    };
+    (win as unknown as { __garageGmailClientId: string }).__garageGmailClientId = 'qa-garage.apps.googleusercontent.com';
+    (win as unknown as { __garageGmailAuthUrl: string }).__garageGmailAuthUrl = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=qa-garage.apps.googleusercontent.com&login_hint=yoni191177%40gmail.com';
+    win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
+    win.go('s-comm');
+    expect(win.document.getElementById('s-comm')?.textContent).toContain('חבר yoni191177@gmail.com');
+    expect(win.document.getElementById('s-comm')?.textContent).toContain('סרוק תיבת מוסך');
+    win.scanGarageMail();
+    expect(openedAuthUrl).toContain('accounts.google.com');
+    expect(openedAuthUrl).toContain('yoni191177');
+    expect(openedAuthUrl).not.toContain('yoni122222');
+    expect(gisClientId === '' || gisClientId === 'qa-garage.apps.googleusercontent.com').toBe(true);
+    expect(alerts.some((msg) => /עדיין לא מחוברת/.test(msg))).toBe(false);
+    expect(gisScanAfter === true || openedAuthUrl.length > 0).toBe(true);
+  });
 });
