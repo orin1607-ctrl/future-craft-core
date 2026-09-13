@@ -295,7 +295,7 @@ describe('garage flow live case binding', () => {
     expect(alerts.some((a) => /קילומטראז/.test(a))).toBe(true);
     (win.document.getElementById('intake-km') as HTMLInputElement).value = '12000';
     win.confirmIntake();
-    expect(alerts.some((a) => /5 תמונות/.test(a))).toBe(true);
+    expect(alerts.some((a) => /לוח השעונים|לוח שעונים/.test(a))).toBe(true);
     expect(win.document.getElementById('s-intake')?.textContent).toContain('תמונה נוספת');
     expect(win.document.getElementById('s-intake')?.textContent).toContain('בלי הגבלה');
   });
@@ -422,11 +422,16 @@ describe('garage flow live case binding', () => {
     (win.document.getElementById('intake-km') as HTMLInputElement).value = '48210';
     win.state.intakeAngles = { front: true, rear: true, right: true, left: true, dashboard: false };
     win.confirmIntake();
-    expect(alerts.some((msg) => msg.includes('5 תמונות'))).toBe(true);
+    expect(alerts.some((msg) => /לוח השעונים|לוח שעונים/.test(msg))).toBe(true);
     expect(win.state.intakeDone).toBe(false);
     expect(win.document.getElementById('case-status-badge')?.textContent).not.toBe('הרכב התקבל');
 
     win.state.intakeAngles.dashboard = true;
+    win.confirmIntake();
+    expect(alerts.some((msg) => msg.includes('הרכב התקבל'))).toBe(true);
+    expect(win.state.intakeDone).toBe(false);
+
+    win.document.getElementById('intake-worker-confirm')?.classList.add('checked');
     win.confirmIntake();
     expect(win.state.intakeDone).toBe(true);
     expect(win.state.workStarted).toBe(false);
@@ -632,6 +637,8 @@ describe('garage flow live case binding', () => {
     expect(win.state.extraApprovals[0].status).toBe('sent');
     expect(win.state.extraApprovals[0].approvedAt).toBeFalsy();
     expect(win.document.getElementById('extra-approval-list')?.textContent).toContain('נשלח מהתוכנה');
+    expect(win.document.getElementById('extra-approval-list')?.textContent).toContain('מה נוסף');
+    expect(win.document.getElementById('extra-approval-list')?.textContent).toContain('qa-garage@example.com');
     expect(win.document.getElementById('extra-approval-list')?.textContent).not.toContain('אושר ·');
   });
 
@@ -897,5 +904,20 @@ describe('garage flow live case binding', () => {
     expect(openedAuthUrl).toBe('');
     expect(scanned).toBe(2);
     expect(hostCalls).not.toContain('gm:garageGmailOauthStart');
+  });
+
+  it('shows desktop case identity fields and extra-work history rows without changing Gmail', () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      document: Document;
+    };
+    win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
+    expect(win.document.getElementById('s-case')?.innerHTML).toContain('case-desk');
+    expect(win.document.getElementById('fact-customer')?.textContent).toContain('לקוח בדיקת מוסך QA');
+    expect(win.document.getElementById('fact-vehicle')?.textContent).toContain('99-888-77');
+    expect(win.document.getElementById('fact-case')?.textContent).toContain('GM-2026-0099');
+    expect(win.document.getElementById('q-docs')?.textContent).toContain('מסמך להצעה');
+    expect(approvedSourceHtml).toContain("callHost('gm:sendGarageMail'");
+    expect(approvedSourceHtml).not.toContain('claims-gmail');
   });
 });

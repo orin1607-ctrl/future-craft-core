@@ -227,6 +227,47 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 .doc-page .doc-muted{color:#666; font-size:11px;}
 .doc-row{display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee; font-size:12px;}
 .doc-section-title{font-size:12.5px; font-weight:800; margin:16px 0 8px; text-transform:none; border-bottom:2px solid #111; padding-bottom:4px;}
+.case-desk{display:flex; flex-direction:column; min-height:100%;}
+.case-facts{display:none;}
+.case-contact-line{font-size:12.5px; color:var(--white80); margin-top:4px;}
+.intake-km-card{background:var(--s1); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:16px;}
+#intake-dash-grid{grid-template-columns:1fr;}
+.desk-only{display:none;}
+@media (min-width: 960px){
+  #app{max-width:1180px;}
+  .bottomnav,.sheet,.gal-selectbar{max-width:1180px;}
+  .topbar{padding:16px 24px 12px;}
+  .content{padding:22px 24px 12px;}
+  .home-header{padding:24px 24px 10px;}
+  .big-open{margin:16px 24px;}
+  .section-label{padding-right:24px; padding-left:24px;}
+  #home-status-tabs{margin-left:24px !important; margin-right:24px !important;}
+  #home-cases{display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:0 24px 16px;}
+  .case-card{margin:0;}
+  .case-desk{
+    display:grid;
+    grid-template-columns:minmax(280px,340px) minmax(0,1fr);
+    min-height:100dvh;
+    align-items:stretch;
+  }
+  .case-desk-side{
+    background:var(--s1);
+    border-left:1px solid var(--border);
+  }
+  .case-desk-main{min-width:0; padding-bottom:24px;}
+  #s-case .case-head{position:static; background:transparent; border-bottom:none;}
+  .case-facts{display:grid; gap:8px; padding:0 16px 18px;}
+  .case-fact{display:block; background:var(--s2); border:1px solid var(--border); border-radius:12px; padding:10px 12px;}
+  .case-fact .k{font-size:11px; color:var(--white50);}
+  .case-fact .v{font-size:13.5px; font-weight:700; margin-top:3px; line-height:1.45;}
+  .desk-only{display:block;}
+  #s-case .action-grid{grid-template-columns:repeat(3,1fr); padding:8px 20px 18px;}
+  #s-case .route-block,#s-case .flow-meter,#s-case .status-strip{margin-left:20px; margin-right:20px;}
+  #intake-body-grid{grid-template-columns:repeat(4,1fr);}
+  .photo-grid{grid-template-columns:repeat(4,1fr);}
+  #intake-dash-grid{grid-template-columns:minmax(220px,360px);}
+  .gal-grid{grid-template-columns:repeat(4,1fr);}
+}
 @media print{
   body *{visibility:hidden;}
   #printable, #printable *{visibility:visible;}
@@ -398,9 +439,12 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: CASE HUB ================= -->
 <section class="screen" id="s-case">
+  <div class="case-desk">
+  <aside class="case-desk-side">
   <div class="case-head">
     <div class="idrow"><span class="tag" id="case-number-tag">תיק חדש</span><span class="badge badge-warn" id="case-status-badge">בדיקת רכב</span></div>
     <div class="co-line" id="case-customer-line"></div>
+    <div class="case-contact-line" id="case-contact-line">איש קשר: —</div>
     <div class="veh-line" id="case-vehicle-line"></div>
     <div class="meta">
       <span class="metapill" id="case-worker-pill">עובד</span>
@@ -410,6 +454,15 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="manager-link" onclick="goManager()">← חזרה למסך הניהול</div>
     <div class="pending-banner" id="book-pending-banner-case">הפעלת מסד נתוני המוסך עדיין ממתינה. אפשר לעבור על הזרימה; שמירת לקוח, רכב, תיק ותמונות תתחיל אחרי הרצת ה-SQL ב-Staging.</div>
   </div>
+  <div class="case-facts" aria-hidden="false">
+    <div class="case-fact"><div class="k">לקוח</div><div class="v" id="fact-customer">—</div></div>
+    <div class="case-fact"><div class="k">איש קשר</div><div class="v" id="fact-contact">—</div></div>
+    <div class="case-fact"><div class="k">רכב</div><div class="v" id="fact-vehicle">—</div></div>
+    <div class="case-fact"><div class="k">מספר תיק</div><div class="v" id="fact-case">—</div></div>
+    <div class="case-fact"><div class="k">סטטוס</div><div class="v" id="fact-status">—</div></div>
+  </div>
+  </aside>
+  <div class="case-desk-main">
   <div class="route-block">
     <h2>מה המסלול של התיק?</h2>
     <div class="hint" style="margin-bottom:10px;">העובד בוחר את המסלול בכל תיק. לא נקבע אוטומטית מכרטיס הלקוח.</div>
@@ -467,6 +520,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   </div>
   <div style="padding:16px;">
     <button class="btn btn-danger-ghost" id="close-case-btn" onclick="tryCloseCase()" disabled>סגור תיק</button>
+  </div>
+  </div>
   </div>
 </section>
 <!-- ================= SCREEN: INSPECTION ================= -->
@@ -562,6 +617,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <div class="tab active" onclick="switchTab(this,'q-works')">עבודות</div>
       <div class="tab" onclick="switchTab(this,'q-parts')">חלקים</div>
       <div class="tab" onclick="switchTab(this,'q-photos')">תמונות</div>
+      <div class="tab" onclick="switchTab(this,'q-docs')">מסמכים</div>
     </div>
     <div class="tabpanel active" id="q-works">
       <div id="quote-works-list"></div>
@@ -579,6 +635,12 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <div class="hint" id="quote-photos-empty">אין תמונות בתיק זה עדיין.</div>
       <button class="btn btn-ghost" onclick="pickMedia('quote_photos','תמונה להצעה',true)">📷 צלם להצעה</button>
       <button class="btn btn-ghost" style="margin-top:10px;" onclick="pickMedia('quote_photos','תמונה להצעה',false)">העלה תמונה להצעה</button>
+    </div>
+    <div class="tabpanel" id="q-docs">
+      <div class="hint">מסמכים של אותה הצעת מחיר, באותו תיק מוסך. לא נפתח תיק חדש. שליחה רק במנגנון המייל הקיים.</div>
+      <div class="media-preview-row" id="quote-docs-previews"></div>
+      <div class="hint" id="quote-docs-empty">אין מסמכים להצעה עדיין.</div>
+      <button class="btn btn-ghost" onclick="pickMedia('quotes','מסמך להצעה',false)">＋ מסמך להצעה</button>
     </div>
     <div class="total-box">
       <div class="total-row"><span>סה"כ עבודות</span><span id="tot-works">0 ₪</span></div>
@@ -840,31 +902,34 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <section class="screen" id="s-intake">
   <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>קבלת רכב</h1><div class="sub" data-live="case-sub">קבלת רכב</div></div></div>
   <div class="content">
-    <h2 class="section-title">1. תמונות הרכב — חובה</h2>
+    <h2 class="section-title">1. 4 תמונות חוץ — חובה</h2>
     <div class="bar"></div>
-    <div class="hint">קדמי, אחורי, צד ימין, צד שמאל. בלי ארבע התמונות האלה לא ניתן להשלים קבלה.</div>
+    <div class="hint">קדימה, אחורה, צד ימין, צד שמאל. בלי ארבע התמונות האלה לא ניתן להשלים קבלה, ולא מסומן «הרכב התקבל».</div>
     <div class="photo-grid" style="margin-bottom:16px;" id="intake-body-grid">
-      <div class="photo-slot" data-intake-angle="front" onclick="pickIntakeAngle('front', true)"><div class="cam">📷</div><div class="lbl">קדמי</div></div>
-      <div class="photo-slot" data-intake-angle="rear" onclick="pickIntakeAngle('rear', true)"><div class="cam">📷</div><div class="lbl">אחורי</div></div>
+      <div class="photo-slot" data-intake-angle="front" onclick="pickIntakeAngle('front', true)"><div class="cam">📷</div><div class="lbl">קדימה</div></div>
+      <div class="photo-slot" data-intake-angle="rear" onclick="pickIntakeAngle('rear', true)"><div class="cam">📷</div><div class="lbl">אחורה</div></div>
       <div class="photo-slot" data-intake-angle="right" onclick="pickIntakeAngle('right', true)"><div class="cam">📷</div><div class="lbl">צד ימין</div></div>
       <div class="photo-slot" data-intake-angle="left" onclick="pickIntakeAngle('left', true)"><div class="cam">📷</div><div class="lbl">צד שמאל</div></div>
     </div>
-    <h2 class="section-title">2. קילומטראז'</h2>
+    <h2 class="section-title">2. ק״מ מספרי — חובה</h2>
     <div class="bar"></div>
-    <div class="field"><label>קילומטראז' נוכחי <span class="req">*</span></label>
-      <div class="btn-row" style="align-items:center;">
-        <input id="intake-km" type="number" placeholder="______" inputmode="numeric">
-        <span style="white-space:nowrap; color:var(--white80); font-weight:700;">ק״מ</span>
+    <div class="intake-km-card">
+      <div class="hint" style="margin-bottom:10px;">אזור נפרד מתמונות החוץ. בלי מספר הק״מ אי אפשר להשלים קבלת רכב.</div>
+      <div class="field" style="margin:0;"><label>קילומטראז' נוכחי <span class="req">*</span></label>
+        <div class="btn-row" style="align-items:center;">
+          <input id="intake-km" type="number" placeholder="______" inputmode="numeric" oninput="captureIntakeFields(); updateIntakeConfirmBtn()">
+          <span style="white-space:nowrap; color:var(--white80); font-weight:700;">ק״מ</span>
+        </div>
       </div>
     </div>
-    <h2 class="section-title">3. צילום לוח שעונים / מד קילומטראז' — חובה</h2>
+    <h2 class="section-title">3. צילום לוח שעונים / מחוונים — חובה</h2>
     <div class="bar"></div>
-    <div class="hint">תמונה חמישית נפרדת. לא תחת "תמונה נוספת".</div>
-    <div class="photo-grid" style="margin-bottom:10px; grid-template-columns:1fr;" id="intake-dash-grid">
+    <div class="hint">אזור נפרד. חייבים לראות את הק״מ בתמונה. לא תחת «תמונה נוספת».</div>
+    <div class="photo-grid" style="margin-bottom:10px;" id="intake-dash-grid">
       <div class="photo-slot" data-intake-angle="dashboard" onclick="pickIntakeAngle('dashboard', true)"><div class="cam">📷</div><div class="lbl">לוח שעונים / מד קילומטראז'</div></div>
     </div>
     <div class="progress-pill" id="intake-photo-progress">0 מתוך 5 חובה</div>
-    <div class="hint">5 תמונות חובה לקבלת רכב: 4 זוויות רכב + לוח שעונים, וקילומטראז' מספרי. אחריהן אפשר להוסיף תמונות בלי הגבלה.</div>
+    <div class="hint">5 תמונות חובה לקבלת רכב: 4 תמונות חוץ + צילום לוח שעונים + ק״מ מספרי. אחריהן אפשר להוסיף תמונות בלי הגבלה. «הרכב התקבל» רק אחרי אישור העובד.</div>
     <h2 class="section-title">תמונות נוספות</h2>
     <div class="bar"></div>
     <div class="btn-row" style="margin-bottom:12px;">
@@ -896,7 +961,11 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <div class="sig-clear" onclick="clearSig()">נקה חתימה</div>
     </div>
     <div class="field"><label>שם החותם</label><input id="intake-signer" placeholder="שם מלא"></div>
-    <button class="btn btn-white" onclick="confirmIntake()">אשר קבלת רכב</button>
+    <div class="checkbox-row" id="intake-worker-confirm" onclick="toggleIntakeWorkerConfirm(this)">
+      <div class="checkbox-box"></div>
+      <div>אני מאשר שהקליטה הושלמה — 4 תמונות חוץ, צילום לוח שעונים, וק״מ מספרי. רק אחרי האישור יסומן «הרכב התקבל».</div>
+    </div>
+    <button class="btn btn-white" id="confirm-intake-btn" onclick="confirmIntake()" disabled>אשר קבלת רכב</button>
   </div>
 </section>
 <!-- ================= SCREEN: JOB / FINISH WORK ================= -->
@@ -1056,7 +1125,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <div class="sheet" id="extra-sheet">
   <div class="handle"></div>
   <h3>תוספת עבודה</h3>
-  <div class="hint">נשמרת באותו תיק. שליחה נפתחת כמייל או WhatsApp ידני — זה לא אישור לקוח עד שמסמנים שאושר.</div>
+  <div class="hint">נשמרת באותו תיק מוסך — לא נפתח תיק חדש. שליחה דרך המייל הקיים או WhatsApp. מייל שהתקבל אינו אישור מחיר עד שהעובד מסמן שאושר.</div>
   <div class="field"><label>מה התגלה</label><textarea id="extra-text" placeholder="נזק נוסף / עבודה נוספת"></textarea></div>
   <div class="field"><label>עבודות / חלקים</label><input id="extra-works" placeholder="אופציונלי"></div>
   <div class="field"><label>מחיר נוסף (₪)</label><input id="extra-price" type="number" placeholder="0"></div>
@@ -1269,12 +1338,30 @@ function bindLiveCase(){
   setText('close-vehicle', veh || '—');
   setText('close-case-number', caseNo);
   fillSendFromCase();
+  fillCaseIdentity();
   var shareCompany = document.getElementById('share-company');
   if(shareCompany && !shareCompany.value && liveCustomerName()) shareCompany.value = liveCustomerName();
   var shareName = document.getElementById('share-name');
   if(shareName && !shareName.value && currentCustomer && currentCustomer.contact_person) shareName.value = currentCustomer.contact_person;
   var woDate = document.getElementById('wo-date');
   if(woDate && !woDate.value) woDate.placeholder = new Date().toLocaleDateString('he-IL');
+}
+function contactDisplayText(){
+  var contact = liveSelectedContact();
+  if(contact){
+    return [contact.name, contact.role, contact.phone, contact.email].filter(Boolean).join(' · ');
+  }
+  return (currentCustomer && currentCustomer.contact_person) || '—';
+}
+function fillCaseIdentity(){
+  var contactText = contactDisplayText();
+  setText('case-contact-line', contactText === '—' ? 'איש קשר: —' : ('איש קשר: ' + contactText));
+  setText('fact-customer', liveCustomerName() || '—');
+  setText('fact-contact', contactText);
+  setText('fact-vehicle', liveVehicleLine() || '—');
+  setText('fact-case', liveCaseNumber() || 'תיק חדש');
+  var badge = document.getElementById('case-status-badge');
+  setText('fact-status', badge ? (badge.textContent || '—') : '—');
 }
 function pendingSaveMessage(){
   return 'הפעלת מסד נתוני המוסך עדיין ממתינה. הלקוח, הרכב, התיק והתמונות לא נשמרים עד להרצת ה-SQL ב-Staging.';
@@ -1544,9 +1631,9 @@ function syncAnglesFromMedia(){
   var angles = Object.assign({front:false, rear:false, right:false, left:false, dashboard:false}, state.intakeAngles || {});
   mediaByCategory('angles').forEach(function(item){
     var t = String(item.title || '');
-    if(t.indexOf('דשבורד') !== -1 || t.indexOf('קילומטר') !== -1) angles.dashboard = true;
-    else if(t.indexOf('קדמי') !== -1) angles.front = true;
-    else if(t.indexOf('אחורי') !== -1) angles.rear = true;
+    if(t.indexOf('דשבורד') !== -1 || t.indexOf('לוח שעונים') !== -1 || t.indexOf('קילומטר') !== -1) angles.dashboard = true;
+    else if(t.indexOf('קדימה') !== -1 || t.indexOf('קדמי') !== -1) angles.front = true;
+    else if(t.indexOf('אחורה') !== -1 || t.indexOf('אחורי') !== -1) angles.rear = true;
     else if(t.indexOf('ימין') !== -1) angles.right = true;
     else if(t.indexOf('שמאל') !== -1) angles.left = true;
   });
@@ -1594,7 +1681,7 @@ function pickMedia(category, title, camera){
   input.click();
 }
 function pickIntakeAngle(angle, camera){
-  var titles = {front:'קדמי', rear:'אחורי', right:'צד ימין', left:'צד שמאל', dashboard:'דשבורד / קילומטראז\''};
+  var titles = {front:'קדימה', rear:'אחורה', right:'צד ימין', left:'צד שמאל', dashboard:'לוח שעונים / מד קילומטראז\''};
   uploadCtx = { category: 'angles', title: titles[angle] || angle, angle: angle, finishAngle: '' };
   var input = document.getElementById(camera ? 'gm-file-camera' : 'gm-file-pick');
   if(!input) return;
@@ -2213,10 +2300,10 @@ function toggleAcc(el){ el.classList.toggle('open'); }
 /* ---------- inspection ---------- */
 function togglePhoto(angle){ pickIntakeAngle(angle === 'fl' || angle === 'fr' ? 'front' : (angle === 'rr' ? 'right' : 'left'), true); }
 function photoLabel(angle){
-  return ({fl:'קדמי שמאל', fr:'קדמי ימין', rl:'אחורי שמאל', rr:'אחורי ימין', front:'קדמי', rear:'אחורי', right:'צד ימין', left:'צד שמאל', dashboard:'דשבורד / קילומטראז\''})[angle] || angle;
+  return ({fl:'קדמי שמאל', fr:'קדמי ימין', rl:'אחורי שמאל', rr:'אחורי ימין', front:'קדימה', rear:'אחורה', right:'צד ימין', left:'צד שמאל', dashboard:'לוח שעונים / מד קילומטראז\''})[angle] || angle;
 }
 function renderIntakeAngles(){
-  var labels = {front:'קדמי', rear:'אחורי', right:'צד ימין', left:'צד שמאל', dashboard:'לוח שעונים / מד קילומטראז\''};
+  var labels = {front:'קדימה', rear:'אחורה', right:'צד ימין', left:'צד שמאל', dashboard:'לוח שעונים / מד קילומטראז\''};
   Object.keys(labels).forEach(function(angle){
     var slot = document.querySelector('.photo-slot[data-intake-angle="'+angle+'"]');
     if(!slot) return;
@@ -2224,7 +2311,9 @@ function renderIntakeAngles(){
     var match = mediaByCategory('angles').filter(function(item){
       var t = String(item.title||'');
       if(angle === 'dashboard') return t.indexOf('דשבורד') !== -1 || t.indexOf('לוח שעונים') !== -1 || t.indexOf('קילומטר') !== -1;
-      return t.indexOf(labels[angle].replace(' / ק״מ','')) !== -1;
+      if(angle === 'front') return t.indexOf('קדימה') !== -1 || t.indexOf('קדמי') !== -1;
+      if(angle === 'rear') return t.indexOf('אחורה') !== -1 || t.indexOf('אחורי') !== -1;
+      return t.indexOf(labels[angle]) !== -1;
     })[0];
     slot.classList.toggle('done', done);
     slot.classList.toggle('has-img', !!(match && match.signedUrl));
@@ -2272,6 +2361,12 @@ function renderQuotePhotosFromMedia(){
     photoGrid.appendChild(el);
   });
   if(photosEmpty) photosEmpty.style.display = photoGrid.children.length ? 'none' : 'block';
+  renderQuoteDocsFromMedia();
+}
+function renderQuoteDocsFromMedia(){
+  renderThumbRow('quote-docs-previews', mediaByCategory('quotes'));
+  var empty = document.getElementById('quote-docs-empty');
+  if(empty) empty.style.display = mediaByCategory('quotes').length ? 'none' : 'block';
 }
 function syncPhotoSlots(){ renderIntakeAngles(); }
 function updatePhotoProgress(){
@@ -2927,12 +3022,24 @@ function initSigPad(){
 function clearSig(){ if(sigCtx) sigCtx.clearRect(0,0,document.getElementById('sigpad').width, document.getElementById('sigpad').height); }
 function confirmIntake(){
   captureIntakeFields();
-  if(!state.intakeKm){ alert('יש למלא קילומטראז׳'); return; }
-  if(angleCount() < 5){ alert('יש לצלם לפחות 5 תמונות חובה: קדמי, אחורי, צד ימין, צד שמאל, ולוח מחוונים / דשבורד. אפשר להוסיף תמונות נוספות בלי הגבלה.'); return; }
+  if(!state.intakeKm){ alert('יש למלא קילומטראז׳ מספרי'); return; }
+  if(!(state.intakeAngles && state.intakeAngles.front && state.intakeAngles.rear && state.intakeAngles.right && state.intakeAngles.left)){
+    alert('יש לצלם 4 תמונות חוץ חובה: קדימה, אחורה, צד ימין, צד שמאל.');
+    return;
+  }
+  if(!state.intakeAngles.dashboard){
+    alert('יש לצלם את לוח השעונים / המחוונים שבו רואים את הק״מ.');
+    return;
+  }
+  var confirmRow = document.getElementById('intake-worker-confirm');
+  if(!confirmRow || !confirmRow.classList.contains('checked')){
+    alert('יש לאשר שהקליטה הושלמה לפני סימון «הרכב התקבל».');
+    return;
+  }
   state.intakeDone = true;
   state.signatureCaptured = true;
   state.flowStage = caseRoute() === 'intake_first' ? 'quote' : 'work';
-  addTimelineEvent('הרכב התקבל · 5 תמונות חובה + קילומטראז׳');
+  addTimelineEvent('הרכב התקבל · 4 תמונות חוץ + לוח שעונים + ק״מ · אישור עובד');
   uploadSignatureIfPossible();
   refreshCaseHub();
   if(caseRoute() === 'quote_first'){
@@ -2940,6 +3047,22 @@ function confirmIntake(){
     return;
   }
   go('s-quote');
+}
+function intakeWorkerConfirmed(){
+  var row = document.getElementById('intake-worker-confirm');
+  return !!(row && row.classList.contains('checked'));
+}
+function updateIntakeConfirmBtn(){
+  var btn = document.getElementById('confirm-intake-btn');
+  if(!btn) return;
+  var ready = !!state.intakeKm && angleCount() >= 5 && intakeWorkerConfirmed();
+  btn.disabled = !ready;
+}
+function toggleIntakeWorkerConfirm(el){
+  el.classList.toggle('checked');
+  var box = el.querySelector('.checkbox-box');
+  if(box) box.textContent = el.classList.contains('checked') ? '✓' : '';
+  updateIntakeConfirmBtn();
 }
 function captureIntakeFields(){
   var km = document.getElementById('intake-km');
@@ -3761,12 +3884,14 @@ function renderIntakeSummary(){
   renderIntakeAngles();
   var box = document.getElementById('intake-photo-check');
   if(box){
-    var labels = {front:'קדמי', rear:'אחורי', right:'צד ימין', left:'צד שמאל', dashboard:'לוח שעונים / מד קילומטראז\''};
+    var labels = {front:'קדימה', rear:'אחורה', right:'צד ימין', left:'צד שמאל', dashboard:'לוח שעונים / מד קילומטראז\''};
     box.innerHTML = Object.keys(labels).map(function(angle){
       var ok = !!(state.intakeAngles && state.intakeAngles[angle]);
       return '<div class="doc-row"><span>'+labels[angle]+'</span><span style="color:'+(ok ? 'var(--ok)' : 'var(--white50)')+';">'+(ok ? '✓' : 'חסר')+'</span></div>';
-    }).join('') + '<div class="doc-row"><span>תמונות נוספות</span><span>'+mediaByCategory('intake').length+'</span></div>';
+    }).join('') + '<div class="doc-row"><span>ק״מ מספרי</span><span>'+(state.intakeKm ? esc(state.intakeKm)+' ק״מ' : 'חסר')+'</span></div>'
+      + '<div class="doc-row"><span>תמונות נוספות</span><span>'+mediaByCategory('intake').length+'</span></div>';
   }
+  updateIntakeConfirmBtn();
   var dmg = document.getElementById('intake-damage-summary');
   if(dmg){
     if((state.damageItems || []).length){
@@ -3915,6 +4040,7 @@ function refreshCaseHub(){
   flowMeterText(spec);
   renderExtraApprovals();
   renderCorrespondence();
+  fillCaseIdentity();
   schedulePersist();
 }
 function openExtraApproval(){
@@ -4006,8 +4132,21 @@ function renderExtraApprovals(){
   }
   box.innerHTML = items.map(function(item){
     var pending = extraApprovalIsPending(item);
-    var st = item.approvedAt ? ('אושר' + (item.approvedBy ? (' · '+item.approvedBy) : '')) : (item.status === 'sent_whatsapp' ? 'נפתח WhatsApp — לא אושר' : (item.status === 'sent' || item.status === 'sent_email' ? 'נשלח מהתוכנה — לא אושר' : 'ממתין'));
-    return '<div class="card"><div class="doc-row"><span>'+esc(item.text)+'</span><span>'+money(item.price)+'</span></div><div class="hint" style="margin:6px 0;">'+esc(st)+'</div>'
+    var sentWhen = item.sentAt ? new Date(item.sentAt).toLocaleString('he-IL') : '';
+    var approvedWhen = item.approvedAt ? new Date(item.approvedAt).toLocaleString('he-IL') : '';
+    var st = item.approvedAt
+      ? ('אושר' + (item.approvedBy ? (' · '+item.approvedBy) : '') + (approvedWhen ? (' · '+approvedWhen) : ''))
+      : (item.status === 'sent_whatsapp' ? 'נשלח WhatsApp — ממתין לאישור עובד' : (item.status === 'sent' || item.status === 'sent_email' ? 'נשלח מהתוכנה — ממתין לאישור עובד' : 'ממתין'));
+    return '<div class="card">'
+      + '<div class="doc-row"><span>מה נוסף</span><span>'+esc(item.text || '—')+'</span></div>'
+      + (item.works ? '<div class="doc-row"><span>עבודות / חלקים</span><span>'+esc(item.works)+'</span></div>' : '')
+      + '<div class="doc-row"><span>מחיר</span><span>'+money(item.price)+'</span></div>'
+      + '<div class="doc-row"><span>נשלח אל</span><span>'+esc(item.sentTo || '—')+'</span></div>'
+      + '<div class="doc-row"><span>מתי נשלח</span><span>'+esc(sentWhen || '—')+'</span></div>'
+      + '<div class="doc-row"><span>מי אישר</span><span>'+esc(item.approvedBy || (pending ? 'טרם' : '—'))+'</span></div>'
+      + '<div class="doc-row"><span>מתי אושר</span><span>'+esc(approvedWhen || 'טרם')+'</span></div>'
+      + (item.note ? '<div class="hint" style="margin:6px 0;">הערה: '+esc(item.note)+'</div>' : '')
+      + '<div class="hint" style="margin:6px 0;">'+esc(st)+'</div>'
       + (pending ? '<button class="btn btn-ghost btn-sm" onclick="markExtraApproved(\''+esc(item.id)+'\')">סמן שאושר על ידי הלקוח</button>' : '')
       + '</div>';
   }).join('');

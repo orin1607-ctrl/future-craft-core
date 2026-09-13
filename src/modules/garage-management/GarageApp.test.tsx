@@ -104,6 +104,9 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('capture="environment"');
     expect(approvedSourceHtml).toContain("callHost('gm:uploadMedia'");
     expect(approvedSourceHtml).toContain('5 תמונות חובה לקבלת רכב');
+    expect(approvedSourceHtml).toContain('@media (min-width: 960px)');
+    expect(approvedSourceHtml).toContain('id="q-docs"');
+    expect(approvedSourceHtml).toContain('intake-worker-confirm');
     expect(approvedSourceHtml).toContain('לוח שעונים / מד קילומטראז');
     expect(approvedSourceHtml).toContain('קילומטראז\' נוכחי');
     expect(approvedSourceHtml).toContain('+ הוסף איש קשר');
