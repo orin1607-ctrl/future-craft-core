@@ -356,7 +356,7 @@ Deno.serve(async (req) => {
         redirect_uri: redirectUri,
         response_type: "code",
         access_type: "offline",
-        prompt: "select_account consent",
+        prompt: "consent",
         login_hint: ALLOWED_ACCOUNT,
         scope: SCOPES.join(" "),
         state: nonce,

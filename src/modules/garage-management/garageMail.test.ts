@@ -186,8 +186,8 @@ describe('priced-order detection and worker approval', () => {
     expect(fnSrc).not.toContain("invoke('claims-gmail'");
     expect(fnSrc).toContain('yoni191177@gmail.com');
     expect(fnSrc).toContain('yoni122222');
-    expect(fnSrc).toContain('prompt: "select_account consent"');
-    expect(fnSrc).not.toContain('consent select_account');
+    expect(fnSrc).toContain('prompt: "consent"');
+    expect(fnSrc).not.toContain('select_account');
     expect(fnSrc).not.toContain('include_granted_scopes');
     expect(fnSrc).toContain('gmail.readonly');
     expect(fnSrc).toContain('orin1607-ctrl.github.io/future-craft-core/oauth/google-callback.html');

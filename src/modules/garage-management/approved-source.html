@@ -3213,16 +3213,12 @@ function openGarageGoogleAuthUrl(authUrl){
   if(!garageGmailAuthUrlOk(authUrl)) return false;
   try { sessionStorage.setItem('gmGarageGmailAuthUrl', authUrl); } catch (e) {}
   var helper = garageGmailConnectPage(authUrl);
-  var popup = window.open(helper, 'garage-gmail-oauth', 'noopener,noreferrer,width=520,height=740');
-  if(!popup){
-    try {
-      if(window.top && window.top !== window) window.top.location.href = helper;
-      else window.location.href = helper;
-    } catch (e) {
-      window.location.href = helper;
-    }
+  try {
+    if(window.top) window.top.location.href = helper;
+    else window.location.href = helper;
+  } catch (e) {
+    window.location.href = helper;
   }
-  alert('נפתח מסך חיבור. ב-Google יש לבחור בדיוק yoni191177@gmail.com — לא orin1607 ולא yoni122222. אחרי האישור חזרו לתיק ולחצו שוב סרוק תיבת מוסך.');
   return true;
 }
 function openGarageGoogleNow(scanAfter){
