@@ -117,6 +117,8 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('yoni191177@gmail.com');
     expect(approvedSourceHtml).toContain("callHost('gm:scanGarageMail'");
     expect(approvedSourceHtml).toContain('חבר yoni191177@gmail.com');
+    expect(approvedSourceHtml).toContain('startGarageGmailBrowser');
+    expect(approvedSourceHtml).toContain('accounts.google.com/gsi/client');
     expect(approvedSourceHtml).not.toContain('claims-gmail');
     expect(approvedSourceHtml).not.toContain('claims-docs');
     expect(approvedSourceHtml).toContain('החל על טופס ההזמנה');

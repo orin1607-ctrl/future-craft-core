@@ -3143,6 +3143,11 @@ function renderGarageMailStatus(){
 function refreshGarageGmailStatus(){
   var hint = document.getElementById('garage-mail-status-hint');
   var row = document.getElementById('garage-mail-connect-row');
+  if(window.__garageGmailAccess && window.__garageGmailEmail === 'yoni191177@gmail.com'){
+    if(hint) hint.textContent = 'מחובר לסריקה · yoni191177@gmail.com · לא תיבת Claims.';
+    if(row) row.innerHTML = '';
+    return;
+  }
   var req;
   try { req = callHost('gm:garageGmailStatus', {}); } catch (e) { return; }
   if(!req || !req.then) return;
@@ -3159,11 +3164,59 @@ function refreshGarageGmailStatus(){
     if(hint) hint.textContent = 'תיבת המוסך עדיין לא מחוברת לסריקה אוטומטית.';
   });
 }
+function startGarageGmailBrowser(clientId){
+  function run(){
+    if(!window.google || !google.accounts || !google.accounts.oauth2){
+      alert('Google Identity לא נטען. רעננו את הדף.');
+      return;
+    }
+    var client = google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: 'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email',
+      hint: 'yoni191177@gmail.com',
+      callback: function(resp){
+        if(!resp || !resp.access_token){
+          alert((resp && resp.error) ? String(resp.error) : 'Google לא החזיר access token');
+          return;
+        }
+        fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers: { Authorization: 'Bearer ' + resp.access_token } })
+          .then(function(r){ return r.json(); })
+          .then(function(info){
+            var email = String((info && info.email) || '').toLowerCase();
+            if(email.indexOf('yoni122222') >= 0){
+              alert('החיבור מצביע לתיבת Claims. לא משתמשים בה לניהול המוסך.');
+              return;
+            }
+            if(email !== 'yoni191177@gmail.com'){
+              alert('החשבון שאושר הוא '+(email || 'לא ידוע')+'. צריך בדיוק yoni191177@gmail.com.');
+              return;
+            }
+            window.__garageGmailAccess = resp.access_token;
+            window.__garageGmailEmail = email;
+            refreshGarageGmailStatus();
+            alert('yoni191177@gmail.com מחובר לסריקה. לחצו סרוק תיבת מוסך.');
+          });
+      }
+    });
+    client.requestAccessToken({ prompt: 'consent' });
+  }
+  if(window.google && google.accounts && google.accounts.oauth2){ run(); return; }
+  var s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.async = true;
+  s.onload = run;
+  s.onerror = function(){ alert('טעינת Google Identity נכשלה'); };
+  document.head.appendChild(s);
+}
 function connectGarageGmail(){
   var req;
   try { req = callHost('gm:garageGmailOauthStart', { preferPages: true }); } catch (e) { return; }
   if(!req || !req.then) return;
   req.then(function(res){
+    if(res && res.clientId){
+      startGarageGmailBrowser(res.clientId);
+      return;
+    }
     if(res && res.authUrl){
       window.open(res.authUrl, '_blank', 'noopener,noreferrer');
       alert('נפתח מסך Google. התחברו בדיוק עם yoni191177@gmail.com ואשרו. אחר כך לחצו שוב סרוק תיבת מוסך.');
@@ -3171,6 +3224,10 @@ function connectGarageGmail(){
     }
     try {
       return callHost('gm:garageGmailOauthStart', {}).then(function(res2){
+        if(res2 && res2.clientId){
+          startGarageGmailBrowser(res2.clientId);
+          return;
+        }
         if(res2 && res2.authUrl){
           window.open(res2.authUrl, '_blank', 'noopener,noreferrer');
           alert('נפתח מסך Google. התחברו בדיוק עם yoni191177@gmail.com.');
@@ -3326,7 +3383,7 @@ function assignPendingGarageMail(){
   if(box) box.style.display = 'none';
 }
 function scanGarageMail(){
-  callHost('gm:scanGarageMail', { caseId: liveCaseId() }).then(function(res){
+  callHost('gm:scanGarageMail', { caseId: liveCaseId(), googleAccessToken: window.__garageGmailAccess || '' }).then(function(res){
     var hint = document.getElementById('garage-mail-status-hint');
     if(res && res.pending){
       if(hint) hint.textContent = res.error || 'סריקת תיבת המוסך ממתינה לחיבור נפרד. לא משתמשים ב-Claims.';

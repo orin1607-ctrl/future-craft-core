@@ -10,6 +10,8 @@ import {
   type GarageMatchResult,
 } from './garageMailMatch';
 import { compareSentAndReturned, detectPricedOrder, type PriceCompare, type PriceDetection } from './garagePriceFromMail';
+import { readGarageInbox } from './garageGmailBrowser';
+import { uploadGarageMedia } from './garageMedia';
 
 export { GARAGE_MAILBOX, CLAIMS_MAILBOX } from './garageMailMatch';
 
@@ -264,6 +266,7 @@ export async function probeGarageGmail(): Promise<{ pending: boolean; error: str
 export async function scanGarageMailbox(input: {
   currentCaseId?: string;
   actorName?: string;
+  googleAccessToken?: string;
 }): Promise<{
   ok: boolean;
   pending?: boolean;
@@ -280,6 +283,22 @@ export async function scanGarageMailbox(input: {
     needs_review: [] as Array<{ mail: GarageMatchMail; match: GarageMatchResult }>,
     appliedThisCase: null as GarageCaseData | null,
   };
+  const token = String(input.googleAccessToken || '').trim();
+  if (token) {
+    try {
+      const inbox = await readGarageInbox(token);
+      return await ingestInboxRows(inbox.messages, input);
+    } catch (e) {
+      const msg = String((e as Error).message || e);
+      if (msg.startsWith('wrong_account:')) {
+        return { ...empty, error: `החשבון שאושר הוא ${msg.slice('wrong_account:'.length)}. צריך בדיוק ${GARAGE_MAILBOX}.` };
+      }
+      if (msg === 'claims_mailbox_forbidden') {
+        return { ...empty, error: 'החיבור מצביע לתיבת Claims. לא משתמשים בה לניהול המוסך.' };
+      }
+      return { ...empty, error: GARAGE_GMAIL_PENDING_MESSAGE };
+    }
+  }
   const probe = await probeGarageGmail();
   if (probe.pending) {
     return { ...empty, error: probe.error };
@@ -294,6 +313,13 @@ export async function scanGarageMailbox(input: {
     : Array.isArray(payload.imports)
       ? payload.imports
       : [];
+  return ingestInboxRows(rawMessages, input);
+}
+
+async function ingestInboxRows(
+  rawMessages: unknown[],
+  input: { currentCaseId?: string; actorName?: string },
+) {
   const cases = await listCases();
   const matched: Array<{ mail: GarageMatchMail; match: GarageMatchResult }> = [];
   const needs_review: Array<{ mail: GarageMatchMail; match: GarageMatchResult }> = [];
@@ -301,7 +327,8 @@ export async function scanGarageMailbox(input: {
 
   for (const raw of rawMessages) {
     if (!raw || typeof raw !== 'object') continue;
-    const mail = asGarageScanMail(raw as Record<string, unknown>);
+    const row = raw as Record<string, unknown>;
+    const mail = asGarageScanMail(row);
     if (!mail) continue;
     if (garageMailIsClaimsMailbox(mail.to || '') || garageMailIsClaimsMailbox(mail.from || '')) continue;
     const match = routeIncomingGarageMail(mail, cases);
@@ -316,6 +343,24 @@ export async function scanGarageMailbox(input: {
     const saved = await updateCase(match.caseId, { case_data: applied.data });
     if (match.caseId === input.currentCaseId) {
       appliedThisCase = saved.case_data || applied.data;
+    }
+    const attachments = Array.isArray(row.attachments) ? row.attachments : [];
+    for (const att of attachments.slice(0, 8)) {
+      if (!att || typeof att !== 'object') continue;
+      const file = att as { filename?: string; mime?: string; bytes?: ArrayBuffer };
+      if (!file.bytes || !file.filename) continue;
+      try {
+        await uploadGarageMedia({
+          garageCaseId: match.caseId,
+          category: classifyGarageMailCategory({ subject: mail.subject, filename: file.filename }),
+          title: file.filename,
+          fileName: file.filename,
+          mimeType: file.mime || 'application/octet-stream',
+          bytes: file.bytes,
+        });
+      } catch {
+        /* keep the mail even if one attachment fails */
+      }
     }
   }
 
