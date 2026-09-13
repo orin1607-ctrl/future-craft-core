@@ -165,7 +165,7 @@ describe('garage book helpers', () => {
 
   it('blocks finish work until 4 photos and an approved price exist, without requiring km', () => {
     expect(finishWorkGaps({})).toEqual(expect.arrayContaining([
-      'חסרות תמונות סיום חובה (קדמי, אחורי, ימין, שמאל)',
+      'חסרות תמונות סיום חובה (קדימה, אחורה, ימין, שמאל)',
       'חסר מחיר סופי מאושר לתשלום',
     ]));
     expect(finishWorkGaps({
@@ -200,7 +200,7 @@ describe('garage book helpers', () => {
     expect(closeCaseGaps({ workFinished: true })).toEqual(expect.arrayContaining([
       'המחיר/ההצעה הסופיים אינם ברורים',
       'מצב התשלום לא סומן',
-      'חסרות תמונות סיום חובה (קדמי, אחורי, ימין, שמאל)',
+      'חסרות תמונות סיום חובה (קדימה, אחורה, ימין, שמאל)',
       'חסר קילומטראז׳ במסירה',
       'מסירת הרכב לא בוצעה',
       'מקבל הרכב לא זוהה',

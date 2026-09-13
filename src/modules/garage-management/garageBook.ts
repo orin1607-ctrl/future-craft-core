@@ -70,6 +70,7 @@ export type GarageCaseData = {
   workStarted?: boolean;
     workFinished?: boolean;
     workFinishedAt?: string;
+    workFinishedBy?: string;
     caseClosed?: boolean;
   workExtraPrice?: number;
   currentScreen?: string;
@@ -277,6 +278,7 @@ export function emptyCaseData(): GarageCaseData {
     workStarted: false,
     workFinished: false,
     workFinishedAt: '',
+    workFinishedBy: '',
     caseClosed: false,
     workExtraPrice: 0,
     currentScreen: 's-case',
@@ -420,7 +422,7 @@ export function finishPhotoCount(data: GarageCaseData): number {
 
 export function finishWorkGaps(data: GarageCaseData): string[] {
   const gaps: string[] = [];
-  if (finishPhotoCount(data) < 4) gaps.push('חסרות תמונות סיום חובה (קדמי, אחורי, ימין, שמאל)');
+  if (finishPhotoCount(data) < 4) gaps.push('חסרות תמונות סיום חובה (קדימה, אחורה, ימין, שמאל)');
   if (!hasApprovedPrice(data)) gaps.push('חסר מחיר סופי מאושר לתשלום');
   const pendingExtra = (data.extraApprovals || []).filter(extraApprovalIsPending);
   if (pendingExtra.length) gaps.push('קיימת תוספת עבודה שממתינה לאישור');
@@ -439,7 +441,7 @@ export function closeCaseGaps(data: GarageCaseData): string[] {
     || (data.quoteParts && data.quoteParts.length),
   );
   if (!hasPrice) gaps.push('המחיר/ההצעה הסופיים אינם ברורים');
-  if (finishPhotoCount(data) < 4) gaps.push('חסרות תמונות סיום חובה (קדמי, אחורי, ימין, שמאל)');
+  if (finishPhotoCount(data) < 4) gaps.push('חסרות תמונות סיום חובה (קדימה, אחורה, ימין, שמאל)');
   if (!data.paymentStatus) gaps.push('מצב התשלום לא סומן');
   if (!String(data.deliveryKm || '').trim()) gaps.push('חסר קילומטראז׳ במסירה');
   if (!data.deliveryDone) gaps.push('מסירת הרכב לא בוצעה');

@@ -526,6 +526,7 @@ describe('garage flow live case binding', () => {
         },
       },
       bookPending: false,
+      userName: 'יוסי QA',
     });
     win.go('s-finish');
     expect(win.document.getElementById('s-finish')?.classList.contains('active')).toBe(true);
@@ -551,11 +552,12 @@ describe('garage flow live case binding', () => {
     expect(win.state.workFinished).toBe(true);
     expect(win.state.finishKm).toBe('51200');
     expect(win.state.finishNotes).toBe('נמסר מוכן לנסיעה');
+    expect(win.state.workFinishedBy).toBe('יוסי QA');
     expect(win.state.caseClosed).toBeFalsy();
-    expect(win.document.getElementById('case-status-badge')?.textContent).toBe('העבודה הסתיימה / מוכן למסירה');
+    expect(win.document.getElementById('case-status-badge')?.textContent).toBe('סגור');
     expect(win.document.getElementById('s-case')?.classList.contains('active')).toBe(true);
     const timeline = win.document.getElementById('timeline-content')?.textContent || '';
-    expect(timeline).toContain('סיום עבודה');
+    expect(timeline).toContain('סיום עבודה / סגירת רכב');
     expect(timeline).toContain('ק״מ בסיום 51200');
     expect(timeline).toContain('הערות סיום: נמסר מוכן לנסיעה');
 
@@ -568,6 +570,7 @@ describe('garage flow live case binding', () => {
           workStarted: true,
           workFinished: true,
           workFinishedAt: '2026-09-12T12:00:00.000Z',
+          workFinishedBy: 'יוסי QA',
           finishKm: '51200',
           finishNotes: 'נמסר מוכן לנסיעה',
           finishAngles: { front: true, rear: true, right: true, left: true },
@@ -585,9 +588,10 @@ describe('garage flow live case binding', () => {
     expect(win.state.workFinished).toBe(true);
     expect(win.state.finishKm).toBe('51200');
     expect(win.state.finishNotes).toBe('נמסר מוכן לנסיעה');
+    expect(win.state.workFinishedBy).toBe('יוסי QA');
     expect((win.document.getElementById('finish-km') as HTMLInputElement).value).toBe('51200');
     expect((win.document.getElementById('finish-notes') as HTMLTextAreaElement).value).toBe('נמסר מוכן לנסיעה');
-    expect(win.document.getElementById('case-status-badge')?.textContent).toBe('העבודה הסתיימה / מוכן למסירה');
+    expect(win.document.getElementById('case-status-badge')?.textContent).toBe('סגור');
     expect(win.document.getElementById('timeline-content')?.textContent).toContain('הערות סיום: נמסר מוכן לנסיעה');
 
     win.reopenClosedCase();
@@ -919,5 +923,32 @@ describe('garage flow live case binding', () => {
     expect(win.document.getElementById('q-docs')?.textContent).toContain('מסמך להצעה');
     expect(approvedSourceHtml).toContain("callHost('gm:sendGarageMail'");
     expect(approvedSourceHtml).not.toContain('claims-gmail');
+  });
+
+  it('keeps vehicle documents scoped to the open garage case and never mixes another vehicle', async () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      renderGarageGallery: (id: string) => void;
+      mediaItems: Array<Record<string, string>>;
+      document: Document;
+    };
+    win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    win.mediaItems = [
+      { id: 'keep', garage_case_id: 'qa-case-id-1', category: 'parts_invoices', title: 'חשבונית רכב זה', mime_type: 'application/pdf' },
+      { id: 'drop', garage_case_id: 'other-vehicle-case', category: 'parts_invoices', title: 'חשבונית רכב אחר', mime_type: 'application/pdf' },
+      { id: 'dash', garage_case_id: 'qa-case-id-1', category: 'angles', title: 'לוח שעונים / מד קילומטראז', mime_type: 'image/jpeg' },
+    ];
+    win.renderGarageGallery('qa-case-id-1');
+    const gal = win.document.getElementById('garage-gallery-body')?.textContent || '';
+    expect(gal).toContain('חשבונית רכב זה');
+    expect(gal).not.toContain('חשבונית רכב אחר');
+    expect(gal).toContain('דשבורד / קילומטראז');
+    expect(win.document.getElementById('vehicle-docs-identity')?.textContent).toContain('99-888-77');
+    expect(win.document.getElementById('vehicle-docs-identity')?.textContent).toContain('GM-2026-0099');
+    expect(win.document.querySelector('#s-gallery h1')?.textContent).toBe('מסמכים לרכב');
+    expect(win.document.getElementById('s-case')?.textContent).toContain('מסמכים לרכב בתיק זה');
+    expect(win.document.getElementById('s-finish')?.textContent).toContain('סיום עבודה / סגירת רכב');
+    expect(win.document.getElementById('s-finish')?.textContent).toContain('אין מחיקה');
   });
 });

@@ -111,6 +111,10 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('קילומטראז\' נוכחי');
     expect(approvedSourceHtml).toContain('+ הוסף איש קשר');
     expect(approvedSourceHtml).toContain('סיום עבודה');
+    expect(approvedSourceHtml).toContain('סגירת רכב');
+    expect(approvedSourceHtml).toContain('מסמכים לרכב');
+    expect(approvedSourceHtml).toContain('vehicle-docs-card');
+    expect(approvedSourceHtml).toContain('workFinishedBy');
     expect(approvedSourceHtml).toContain('קילומטראז\' בסיום');
     expect(approvedSourceHtml).toContain('הערות סיום');
     expect(approvedSourceHtml).toContain('תמונות סיום עבודה');

@@ -233,6 +233,12 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 .intake-km-card{background:var(--s1); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:16px;}
 #intake-dash-grid{grid-template-columns:1fr;}
 .desk-only{display:none;}
+.vehicle-docs-card{margin:0 16px 16px; padding:14px; background:var(--s1); border:1px solid var(--border); border-radius:16px;}
+.vehicle-docs-card .vd-id{font-size:13px; font-weight:700; margin:8px 0 12px; line-height:1.45;}
+.vehicle-docs-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px;}
+.vehicle-docs-cell{background:var(--s2); border:1px solid var(--border); border-radius:12px; padding:10px 12px;}
+.vehicle-docs-cell .k{font-size:11px; color:var(--white50);}
+.vehicle-docs-cell .v{font-size:14px; font-weight:800; margin-top:3px;}
 @media (min-width: 960px){
   #app{max-width:1180px;}
   .bottomnav,.sheet,.gal-selectbar{max-width:1180px;}
@@ -267,6 +273,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   .photo-grid{grid-template-columns:repeat(4,1fr);}
   #intake-dash-grid{grid-template-columns:minmax(220px,360px);}
   .gal-grid{grid-template-columns:repeat(4,1fr);}
+  .vehicle-docs-card{margin-left:20px; margin-right:20px;}
+  .vehicle-docs-grid{grid-template-columns:repeat(4,1fr);}
 }
 @media print{
   body *{visibility:hidden;}
@@ -493,11 +501,19 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="act-tile" onclick="go('s-inspect')"><div class="ic">🔍</div><div class="lb">תמונות נזק / הצעה</div><div class="sub" id="tile-inspect-sub">אופציונלי</div></div>
     <div class="act-tile" onclick="go('s-quote')"><div class="ic">📋</div><div class="lb">הצעת מחיר</div><div class="sub" id="tile-quote-sub">טרם נוצרה</div></div>
     <div class="act-tile" onclick="go('s-workorder')"><div class="ic">📦</div><div class="lb">הזמנת עבודה</div><div class="sub" id="tile-wo-sub">ממתין</div></div>
-    <div class="act-tile" onclick="go('s-gallery')"><div class="ic">🖼️</div><div class="lb">גלריה</div><div class="sub" id="tile-gal-sub">אין תמונות שמורות</div></div>
+    <div class="act-tile" onclick="go('s-gallery')"><div class="ic">🖼️</div><div class="lb">מסמכים לרכב</div><div class="sub" id="tile-gal-sub">אין תמונות שמורות</div></div>
     <div class="act-tile" onclick="go('s-comm')"><div class="ic">✉️</div><div class="lb">מיילים / התכתבויות</div><div class="sub" id="tile-comm-sub">אין הודעות</div><span class="dot-alert" id="comm-alert" style="display:none;"></span></div>
     <div class="act-tile" onclick="go('s-share')"><div class="ic">🔗</div><div class="lb">שיתוף מאובטח</div><div class="sub" id="tile-share-sub">—</div></div>
     <div class="act-tile locked" id="tile-intake" onclick="tryIntake()"><div class="ic">🚗</div><div class="lb">קבלת רכב</div><div class="sub" id="tile-intake-sub">נעול עד אישור</div></div>
+    <div class="act-tile" onclick="go('s-finish')"><div class="ic">✅</div><div class="lb">סיום עבודה / סגירת רכב</div><div class="sub" id="tile-finish-sub">4 תמונות + מחיר מאושר</div></div>
     <div class="act-tile" onclick="go('s-timeline')"><div class="ic">🕓</div><div class="lb">היסטוריה</div><div class="sub" id="tile-hist-sub">0 אירועים</div></div>
+  </div>
+  <div class="section-label">מסמכים לרכב בתיק זה</div>
+  <div class="vehicle-docs-card" id="vehicle-docs-card">
+    <div class="hint" style="margin:0;">כל התמונות והמסמכים כאן שייכים לרכב ולתיק הנוכחי בלבד (garage-media לפי garage_case_id). אין ערבוב עם רכב אחר. החומר נשאר אחרי סגירה ובהיסטוריה — בלי מחיקה.</div>
+    <div class="vd-id" id="vehicle-docs-identity">רכב · תיק</div>
+    <div class="vehicle-docs-grid" id="vehicle-docs-grid"></div>
+    <button class="btn btn-ghost" type="button" onclick="go('s-gallery')">פתח מסמכים ותמונות של הרכב</button>
   </div>
   <div class="section-label">כרטיס עבודה מלא</div>
   <div style="padding:0 16px;">
@@ -512,6 +528,10 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="accordion-item" onclick="toggleAcc(this)">
       <div class="accordion-head"><div class="l"><span>📦</span> הזמנות עבודה</div><span class="arrow">‹</span></div>
       <div class="accordion-body" id="acc-wo-body">אין הזמנות עבודה מקושרות עדיין. <span class="open-link" onclick="event.stopPropagation(); go('s-workorder')">פתח ›</span></div>
+    </div>
+    <div class="accordion-item" onclick="toggleAcc(this)">
+      <div class="accordion-head"><div class="l"><span>🗂️</span> מסמכים לרכב</div><span class="arrow">‹</span></div>
+      <div class="accordion-body" id="acc-docs-body">אין קבצים שמורים לרכב בתיק זה עדיין. <span class="open-link" onclick="event.stopPropagation(); go('s-gallery')">פתח ›</span></div>
     </div>
     <div class="accordion-item" onclick="toggleAcc(this)">
       <div class="accordion-head"><div class="l"><span>✉️</span> תקשורת</div><span class="arrow">‹</span></div>
@@ -777,13 +797,13 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: GALLERY ================= -->
 <section class="screen" id="s-gallery">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>גלריית תמונות ומסמכים</h1><div class="sub" id="gallery-case-sub">תיק מוסך</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>מסמכים לרכב</h1><div class="sub" id="gallery-case-sub">תיק מוסך</div></div></div>
   <div class="gal-bar no-print">
     <button class="btn btn-white btn-sm" style="white-space:nowrap;" onclick="pickGalleryMedia(true)">📷 צלם</button>
     <button class="btn btn-ghost btn-sm" style="white-space:nowrap;" onclick="pickGalleryMedia(false)">העלה</button>
   </div>
   <div class="content" id="garage-gallery-body">
-    <div class="hint" id="gallery-pending-hint">תמונות ומסמכים שייכים לתיק המוסך בלבד (garage_case_id). לא ל-claim_id. שמירה אמיתית ממתינה להפעלת מסד המוסך.</div>
+    <div class="hint" id="gallery-pending-hint">תמונות ומסמכים שייכים לרכב ולתיק המוסך הזה בלבד (garage_case_id). לא ל-claim_id ולא לרכב אחר. שמירה ב-garage-media הקיים.</div>
   </div>
   <div class="gal-selectbar" id="gal-selectbar">
     <button class="btn btn-white" onclick="shareSelectedMedia('download')">הורד</button>
@@ -984,14 +1004,14 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     </div>
     <div class="media-preview-row" id="job-work-previews"></div>
     <div class="card" id="extra-approval-list"><div class="hint" style="margin:0;">אין בקשות אישור נוספות עדיין.</div></div>
-    <button class="btn btn-white" onclick="go('s-finish')">סיום עבודה</button>
+    <button class="btn btn-white" onclick="go('s-finish')">סיום עבודה / סגירת רכב</button>
   </div>
 </section>
 <!-- ================= SCREEN: FINISH WORK ================= -->
 <section class="screen" id="s-finish">
-  <div class="topbar"><div class="back" onclick="go('s-job')">→</div><div><h1>סיום עבודה</h1><div class="sub" data-live="case-sub">סיום עבודה</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-job')">→</div><div><h1>סיום עבודה / סגירת רכב</h1><div class="sub" data-live="case-sub">סיום עבודה</div></div></div>
   <div class="content">
-    <div class="hint">סיום עבודה אינו סגירת תיק. אחרי האישור התיק יורד מרשימת הרכבים הפתוחים ועובר לסטטוס סגור / מוכן למסירה. מסירת הרכב וסגירת התיק נשארות בשלב הבא.</div>
+    <div class="hint">סיום עבודה סוגר את הרכב בתיק: הסטטוס הופך ל«סגור», התיק יורד מ«פתוח» ומ«רכב בעבודה», ונשאר בסינון «סגור» ובהיסטוריה. אין מחיקה. תמונות קליטה, תמונות סיום, מסמכים, הצעות, התכתבויות והיסטוריה נשארים בתיק. מסירת הרכב נשארת שלב נפרד אחרי הסגירה.</div>
     <div class="card" id="finish-gaps" style="margin-bottom:16px;"></div>
     <div class="card" style="margin-bottom:18px;">
       <div style="font-weight:700; font-size:14px; margin-bottom:8px;">הזמנה מתומחרת / מחיר מאושר</div>
@@ -1029,7 +1049,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <h2 class="section-title">הערות סיום</h2>
     <div class="bar"></div>
     <div class="field"><label>הערות סיום (לא חובה)</label><textarea id="finish-notes" placeholder="לפי הצורך. אם יש הערה היא נשמרת בתיק ובהיסטוריה." oninput="captureFinishFields()"></textarea></div>
-    <button class="btn btn-white" id="confirm-finish-btn" style="margin-top:8px;" onclick="finishWork()" disabled>סיום עבודה</button>
+    <button class="btn btn-white" id="confirm-finish-btn" style="margin-top:8px;" onclick="finishWork()" disabled>סיום עבודה / סגירת רכב</button>
   </div>
 </section>
 <!-- ================= SCREEN: CLOSE CASE ================= -->
@@ -1227,6 +1247,7 @@ function emptyFlowState(){
     workStarted: false,
     workFinished: false,
     workFinishedAt: '',
+    workFinishedBy: '',
     caseClosed: false,
     workExtraPrice: 0,
     extraApprovals: [],
@@ -1527,17 +1548,25 @@ function setCaseRoute(route){
   refreshCaseHub();
   schedulePersist();
 }
+function isDashboardMediaTitle(title){
+  var t = String(title || '');
+  return t.indexOf('דשבורד') !== -1 || t.indexOf('לוח שעונים') !== -1 || t.indexOf('מחוונים') !== -1 || t.indexOf('קילומטר') !== -1;
+}
 function galleryItemsForTopic(topic){
   if(topic.id === 'dashboard'){
-    return mediaByCategory('angles').filter(function(item){ return String(item.title || '').indexOf('דשבורד') !== -1; });
+    return mediaByCategory('angles').filter(function(item){ return isDashboardMediaTitle(item.title); });
   }
   if(topic.id === 'angles'){
-    return mediaByCategory('angles').filter(function(item){ return String(item.title || '').indexOf('דשבורד') === -1; });
+    return mediaByCategory('angles').filter(function(item){ return !isDashboardMediaTitle(item.title); });
   }
   return mediaByCategory(topic.id);
 }
 function mediaByCategory(cat){
-  return (mediaItems || []).filter(function(item){ return item.category === cat; });
+  var id = liveCaseId();
+  return (mediaItems || []).filter(function(item){
+    if(id && item.garage_case_id && item.garage_case_id !== id) return false;
+    return item.category === cat;
+  });
 }
 function angleCount(){
   var a = state.intakeAngles || {};
@@ -1575,12 +1604,33 @@ function renderThumbRow(elId, items){
     return '<div class="metapill">'+esc(item.title || 'מסמך')+'</div>';
   }).join('');
 }
+function vehicleDocsIdentityText(){
+  return [livePlate(), liveVehicleLabel(), liveCaseNumber() ? ('תיק ' + liveCaseNumber()) : ''].filter(Boolean).join(' · ') || 'רכב · תיק מוסך';
+}
+function renderVehicleDocsCard(){
+  var idEl = document.getElementById('vehicle-docs-identity');
+  if(idEl) idEl.textContent = vehicleDocsIdentityText();
+  var grid = document.getElementById('vehicle-docs-grid');
+  if(grid){
+    var cells = GARAGE_GALLERY_TOPICS.map(function(topic){
+      var n = galleryItemsForTopic(topic).length;
+      return '<div class="vehicle-docs-cell"><div class="k">'+esc(topic.label)+'</div><div class="v">'+n+'</div></div>';
+    }).join('');
+    grid.innerHTML = cells;
+  }
+  var acc = document.getElementById('acc-docs-body');
+  if(acc){
+    acc.innerHTML = (mediaItems.length
+      ? (vehicleDocsIdentityText() + ' · ' + mediaItems.length + ' קבצים שמורים לרכב בתיק זה בלבד.')
+      : 'אין קבצים שמורים לרכב בתיק זה עדיין.') + ' <span class="open-link" onclick="event.stopPropagation(); go(\'s-gallery\')">פתח ›</span>';
+  }
+}
 function renderGarageGallery(caseId){
   var body = document.getElementById('garage-gallery-body');
   var sub = document.getElementById('gallery-case-sub');
-  if(sub) sub.textContent = liveCaseNumber() ? ('תיק מוסך · ' + liveCaseNumber()) : (caseId ? ('תיק מוסך · ' + caseId) : 'תיק מוסך');
+  if(sub) sub.textContent = vehicleDocsIdentityText();
   if(!body) return;
-  var html = '<div class="hint" id="gallery-pending-hint">תמונות ומסמכים שייכים לתיק המוסך בלבד (garage_case_id). לא ל-claim_id. אין שמירה ב-Claims Storage ולא ב-base64.</div>';
+  var html = '<div class="hint" id="gallery-pending-hint">מסמכים ותמונות של '+esc(vehicleDocsIdentityText())+'. שייכים ל-garage_case_id של התיק הזה בלבד. לא ל-claim_id ולא לרכב אחר. אין שמירה ב-Claims Storage ולא ב-base64. החומר נשאר אחרי סגירה.</div>';
   if(mediaPending){
     html += '<div class="hint">שמירה אמיתית ממתינה להרצת SQL של garage-media ב-PUBLIC STAGING בלבד.</div>';
   }
@@ -1602,6 +1652,7 @@ function renderGarageGallery(caseId){
   });
   body.innerHTML = html;
   setText('tile-gal-sub', mediaItems.length ? (mediaItems.length + ' קבצים') : 'אין תמונות שמורות');
+  renderVehicleDocsCard();
   renderThumbRow('inspect-quote-previews', mediaByCategory('quote_photos'));
   renderThumbRow('inspect-damage-previews', mediaByCategory('damage'));
   renderThumbRow('wo-order-previews', mediaByCategory('customer_order'));
@@ -1631,7 +1682,7 @@ function syncAnglesFromMedia(){
   var angles = Object.assign({front:false, rear:false, right:false, left:false, dashboard:false}, state.intakeAngles || {});
   mediaByCategory('angles').forEach(function(item){
     var t = String(item.title || '');
-    if(t.indexOf('דשבורד') !== -1 || t.indexOf('לוח שעונים') !== -1 || t.indexOf('קילומטר') !== -1) angles.dashboard = true;
+    if(t.indexOf('דשבורד') !== -1 || t.indexOf('לוח שעונים') !== -1 || t.indexOf('מחוונים') !== -1 || t.indexOf('קילומטר') !== -1) angles.dashboard = true;
     else if(t.indexOf('קדימה') !== -1 || t.indexOf('קדמי') !== -1) angles.front = true;
     else if(t.indexOf('אחורה') !== -1 || t.indexOf('אחורי') !== -1) angles.rear = true;
     else if(t.indexOf('ימין') !== -1) angles.right = true;
@@ -1896,6 +1947,7 @@ function hydrateCase(loaded){
   state.workStarted = !!data.workStarted;
   state.workFinished = !!data.workFinished;
   state.workFinishedAt = data.workFinishedAt || '';
+  state.workFinishedBy = data.workFinishedBy || '';
   state.caseClosed = !!data.caseClosed;
   state.workExtraPrice = data.workExtraPrice || 0;
   state.extraApprovals = Array.isArray(data.extraApprovals) ? data.extraApprovals.slice() : [];
@@ -1996,6 +2048,7 @@ function schedulePersist(){
       finishNotes: state.finishNotes || '',
       finalApprovedAmount: state.finalApprovedAmount || null,
       workFinishedAt: state.workFinishedAt || '',
+      workFinishedBy: state.workFinishedBy || '',
       reopenHistory: (state.reopenHistory || []).slice(),
       correspondence: (state.correspondence || []).slice(),
       unreadMail: !!state.unreadMail,
@@ -3152,39 +3205,43 @@ function renderFinishGaps(){
   var gaps = finishWorkGaps();
   if(box){
     if(state.workFinished){
-      box.innerHTML = '<div class="hint" style="margin:0; color:var(--ok);">העבודה הסתיימה. התיק מוכן למסירה ואינו ברשימת הרכבים הפתוחים.</div>';
+      box.innerHTML = '<div class="hint" style="margin:0; color:var(--ok);">הרכב סגור. התיק ירד מהרשימה הפעילה ומופיע תחת «סגור». החומר לא נמחק.</div>';
     } else if(!gaps.length){
-      box.innerHTML = '<div class="hint" style="margin:0; color:var(--ok);">אפשר לאשר סיום עבודה. הקילומטראז׳ וההערות אינם חובה.</div>';
+      box.innerHTML = '<div class="hint" style="margin:0; color:var(--ok);">אפשר לאשר סיום עבודה / סגירת רכב. הקילומטראז׳ וההערות אינם חובה.</div>';
     } else {
-      box.innerHTML = '<div style="font-weight:700; margin-bottom:8px;">חסר לסיום עבודה</div>' + gaps.map(function(g){
+      box.innerHTML = '<div style="font-weight:700; margin-bottom:8px;">חסר לסיום עבודה / סגירת רכב</div>' + gaps.map(function(g){
         return '<div class="doc-row"><span>'+esc(g)+'</span><span style="color:var(--danger);">חסר</span></div>';
       }).join('');
     }
   }
   if(btn){
     btn.disabled = state.workFinished || gaps.length > 0;
-    btn.textContent = state.workFinished ? 'העבודה הסתיימה' : 'סיום עבודה';
+    btn.textContent = state.workFinished ? 'הרכב סגור' : 'סיום עבודה / סגירת רכב';
   }
+  var tileSub = document.getElementById('tile-finish-sub');
+  if(tileSub) tileSub.textContent = state.workFinished ? 'סגור' : (gaps.length ? ('חסר: ' + gaps.length) : 'מוכן לסגירה');
 }
 function finishWork(){
   captureFinishFields();
   var gaps = finishWorkGaps();
   if(gaps.length){
-    alert('לא ניתן לסיים את העבודה. חסר:\n• ' + gaps.join('\n• '));
+    alert('לא ניתן לסיים את העבודה / לסגור את הרכב. חסר:\n• ' + gaps.join('\n• '));
     renderFinishGaps();
     return;
   }
   state.workFinished = true;
   state.workFinishedAt = new Date().toISOString();
+  state.workFinishedBy = workerName || '';
   state.finalApprovedAmount = approvedFinalAmount();
-  state.flowStage = 'ready_delivery';
-  var bits = ['סיום עבודה', 'מחיר מאושר ' + money(state.finalApprovedAmount), '4 תמונות סיום'];
+  state.flowStage = 'closed';
+  var bits = ['סיום עבודה / סגירת רכב', 'מחיר מאושר ' + money(state.finalApprovedAmount), '4 תמונות סיום'];
   if((state.finishKm || '').trim()) bits.push('ק״מ בסיום ' + state.finishKm);
+  if(state.workFinishedBy) bits.push(state.workFinishedBy);
   addTimelineEvent(bits.join(' · '));
   if((state.finishNotes || '').trim()) addTimelineEvent('הערות סיום: ' + state.finishNotes);
   refreshCaseHub();
   bindCloseAndFinish();
-  alert('העבודה הסתיימה והתיק מוכן למסירה. הוא ירד מרשימת הרכבים הפתוחים. סגירת התיק נעשית אחרי מסירה.');
+  alert('הרכב נסגר. הסטטוס הוא «סגור». התיק ירד מהרשימה הפעילה ונשאר בהיסטוריה. אין מחיקה.');
   go('s-case');
 }
 function closeCaseGaps(){
@@ -3194,7 +3251,7 @@ function closeCaseGaps(){
   if(!hasPrice) gaps.push('המחיר/ההצעה הסופיים אינם ברורים');
   if((state.extraApprovals || []).filter(extraApprovalIsPending).length) gaps.push('קיימת תוספת עבודה שממתינה לאישור');
   if(!state.paymentStatus) gaps.push('מצב התשלום לא סומן');
-  if(finishAngleCount() < 4) gaps.push('חסרות תמונות סיום חובה (קדמי, אחורי, ימין, שמאל)');
+  if(finishAngleCount() < 4) gaps.push('חסרות תמונות סיום חובה (קדימה, אחורה, ימין, שמאל)');
   if(!(state.deliveryKm || '').trim()) gaps.push('חסר קילומטראז׳ במסירה');
   if(!state.deliveryDone) gaps.push('מסירת הרכב לא בוצעה');
   if(!(state.deliveryRecipient || '').trim()) gaps.push('מקבל הרכב לא זוהה');
@@ -3948,8 +4005,8 @@ function bindCloseAndFinish(){
 }
 function nextActionSpec(){
   var route = caseRoute();
-  if(state.caseClosed) return {status:'הרכב נמסר / התיק נסגר', badge:'badge-muted', label:'התיק סגור', btn:'פתח מחדש', fn:function(){ go('s-close'); }};
-  if(state.workFinished) return {status:'העבודה הסתיימה / מוכן למסירה', badge:'badge-ok', label:'מסירה / סגירת תיק', btn:'המשך', fn:tryCloseCase};
+  if(state.caseClosed) return {status:'סגור', badge:'badge-muted', label:'התיק סגור', btn:'פתח מחדש', fn:function(){ go('s-close'); }};
+  if(state.workFinished) return {status:'סגור', badge:'badge-muted', label:'מסירה / סגירת תיק', btn:'המשך', fn:tryCloseCase};
   if(state.workStarted) return {status:'רכב בעבודה', badge:'badge-accent', label:'המשך עבודה / אישור נוסף', btn:'המשך', fn:function(){ go('s-job'); }};
   if(route === 'quote_first'){
     if(state.intakeDone) return {status:'הרכב התקבל', badge:'badge-accent', label:'התחל עבודה', btn:'המשך', fn:startWork};
@@ -4037,6 +4094,7 @@ function refreshCaseHub(){
   document.getElementById('close-case-btn').textContent = state.caseClosed ? 'תיק סגור — פתיחה מחדש' : 'סגור תיק';
   setText('tile-hist-sub', ((state.timeline || []).length) + ' אירועים');
   setText('tile-gal-sub', mediaItems.length ? (mediaItems.length + ' קבצים') : 'אין תמונות שמורות');
+  renderVehicleDocsCard();
   flowMeterText(spec);
   renderExtraApprovals();
   renderCorrespondence();
