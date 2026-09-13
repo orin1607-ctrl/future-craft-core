@@ -28,9 +28,10 @@ export type GarageMailCard = {
   sent_at: string;
   body_text: string;
   direction: 'incoming' | 'outgoing';
-  source: 'import' | 'mailto' | 'upload';
+  source: 'import' | 'mailto' | 'upload' | 'gmail';
   file_names?: string[];
   unread?: boolean;
+  send_status?: string;
 };
 
 export type GaragePriceReview = {
@@ -372,4 +373,80 @@ async function ingestInboxRows(
   }
 
   return { ok: true, pending: false, matched, needs_review, appliedThisCase };
+}
+
+export async function sendGarageMail(input: {
+  caseId: string;
+  to: string;
+  cc?: string;
+  subject: string;
+  body: string;
+  mediaIds?: string[];
+  kind?: string;
+  threadId?: string;
+}): Promise<{
+  ok: boolean;
+  pending?: boolean;
+  needSendScope?: boolean;
+  error?: string;
+  gmail_message_id?: string;
+  gmail_thread_id?: string;
+  realEmailSend?: boolean;
+  file_names?: string[];
+  appliedThisCase: GarageCaseData | null;
+}> {
+  const fail = {
+    ok: false,
+    pending: false,
+    error: 'שליחת המייל מתיבת המוסך נכשלה.',
+    appliedThisCase: null as GarageCaseData | null,
+  };
+  if (garageMailIsClaimsMailbox(input.to) || garageMailIsClaimsMailbox(input.cc || '')) {
+    return { ...fail, error: 'לא שולחים לתיבת Claims.' };
+  }
+  const { data, error } = await supabase.functions.invoke('garage-gmail', {
+    body: {
+      action: 'send_case',
+      case_id: input.caseId,
+      to: input.to,
+      cc: input.cc || '',
+      subject: input.subject,
+      body: input.body,
+      media_ids: input.mediaIds || [],
+      kind: input.kind || 'mail',
+      thread_id: input.threadId || '',
+    },
+  });
+  const payload = (data && typeof data === 'object') ? data as Record<string, unknown> : {};
+  if (payload.needSendScope === true || payload.error === 'need_send_scope') {
+    return {
+      ok: false,
+      pending: true,
+      needSendScope: true,
+      error: String(payload.message || 'יש לאשר פעם אחת שליחה מתוך התוכנה עבור yoni191177@gmail.com.'),
+      appliedThisCase: null,
+    };
+  }
+  if (payload.pending === true || payload.error === 'gmail_not_connected') {
+    return {
+      ok: false,
+      pending: true,
+      error: String(payload.message || payload.error || GARAGE_GMAIL_PENDING_MESSAGE),
+      appliedThisCase: null,
+    };
+  }
+  if (error || payload.success === false || payload.realEmailSend !== true || !payload.gmail_message_id) {
+    return { ...fail, error: String(payload.message || payload.error || fail.error) };
+  }
+  return {
+    ok: true,
+    pending: false,
+    realEmailSend: true,
+    gmail_message_id: String(payload.gmail_message_id),
+    gmail_thread_id: String(payload.gmail_thread_id || ''),
+    file_names: Array.isArray(payload.file_names) ? payload.file_names.map(String) : [],
+    appliedThisCase: (payload.appliedThisCase && typeof payload.appliedThisCase === 'object')
+      ? payload.appliedThisCase as GarageCaseData
+      : null,
+  };
 }

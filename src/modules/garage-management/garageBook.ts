@@ -133,7 +133,7 @@ export type GarageCaseData = {
       sent_at?: string;
       body_text?: string;
       direction?: 'incoming' | 'outgoing';
-      source?: 'import' | 'mailto' | 'upload';
+      source?: 'import' | 'mailto' | 'upload' | 'gmail';
       file_names?: string[];
       unread?: boolean;
     }>;

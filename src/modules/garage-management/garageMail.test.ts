@@ -201,7 +201,12 @@ describe('priced-order detection and worker approval', () => {
     expect(mailSrc).toContain("invoke('garage-gmail'");
     expect(mailSrc).not.toContain("invoke('claims-gmail'");
     expect(mailSrc).not.toContain('claims-docs');
-    expect(appSrc).toContain('gm:scanGarageMail');
+    expect(appSrc).toContain('gm:sendGarageMail');
+    expect(appSrc).toContain('sendGarageMail');
+    expect(fnSrc).toContain('gmail.send');
+    expect(fnSrc).toContain('send_case');
+    expect(fnSrc).toContain('realEmailSend');
+    expect(fnSrc).not.toContain('.from("claims_gmail_connection")');
     expect(appSrc).toContain('gm:garageGmailStatus');
     expect(appSrc).toContain('scanGarageMailbox');
     expect(appSrc).toContain('parseGoogleClientIdFromAuthUrl');

@@ -32,7 +32,7 @@ import {
   uploadGarageMedia,
   type GarageMediaCategoryId,
 } from './garageMedia';
-import { scanGarageMailbox } from './garageMail';
+import { scanGarageMailbox, sendGarageMail } from './garageMail';
 import { fetchExistingGoogleClientId, isMissingGarageGmailFunction, parseGoogleClientIdFromAuthUrl } from './garageGmailBrowser';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -265,6 +265,20 @@ export default function GarageApp() {
           reply(requestId, scanned);
           return;
         }
+        if (msg.type === 'gm:sendGarageMail') {
+          const sent = await sendGarageMail({
+            caseId: String(payload.caseId || caseId || ''),
+            to: String(payload.to || ''),
+            cc: String(payload.cc || ''),
+            subject: String(payload.subject || ''),
+            body: String(payload.body || ''),
+            mediaIds: Array.isArray(payload.mediaIds) ? payload.mediaIds.map((id) => String(id || '')).filter(Boolean) : [],
+            kind: String(payload.kind || 'mail'),
+            threadId: String(payload.threadId || ''),
+          });
+          reply(requestId, sent);
+          return;
+        }
         if (msg.type === 'gm:garageGmailStatus') {
           const existing = await fetchExistingGoogleClientId();
           const { data, error } = await supabase.functions.invoke('garage-gmail', { body: { action: 'status' } });
@@ -291,6 +305,7 @@ export default function GarageApp() {
             ...row,
             ok: !error || Boolean(clientId),
             connected: row.connected === true,
+            canSend: row.canSend === true,
             pending: row.connected === true ? false : true,
             email: row.email,
             mailbox: row.mailbox || 'yoni191177@gmail.com',

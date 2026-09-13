@@ -591,21 +591,112 @@ describe('garage flow live case binding', () => {
     expect((win.document.getElementById('timeline-content')?.textContent || '')).toContain('תיק נפתח מחדש');
   });
 
-  it('keeps mailto extra-work send from looking like customer approval', () => {
+  it('keeps extra-work email send from looking like customer approval', async () => {
     const win = bootFlow() as Window & {
       applyBootstrap: (payload: Record<string, unknown>) => void;
       sendExtraApproval: (channel: string) => void;
+      callHost: (type: string, payload?: Record<string, unknown>) => Promise<Record<string, unknown>>;
       document: Document;
       state: { extraApprovals: Array<{ status?: string; approvedAt?: string }> };
     };
-    win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
+    win.callHost = (type: string) => {
+      if (type === 'gm:saveCase' || type === 'gm:listMedia' || type === 'gm:garageGmailStatus') {
+        return Promise.resolve({ ok: true, items: [], connected: true, canSend: true });
+      }
+      if (type === 'gm:sendGarageMail') {
+        return Promise.resolve({
+          ok: true,
+          realEmailSend: true,
+          gmail_message_id: 'msg-extra-1',
+          gmail_thread_id: 'thr-extra-1',
+          appliedThisCase: { correspondence: [], timeline: [] },
+        });
+      }
+      throw new Error(`unexpected host call: ${type}`);
+    };
+    win.alert = () => {};
+    (win as unknown as { __garageGmailServerConnected: boolean }).__garageGmailServerConnected = true;
+    (win as unknown as { __garageGmailCanSend: boolean }).__garageGmailCanSend = true;
+    win.applyBootstrap({
+      mode: 'case',
+      loaded: {
+        ...qaCase,
+        customer: { ...qaCase.customer, email: 'qa-garage@example.com' },
+      },
+      bookPending: false,
+    });
     (win.document.getElementById('extra-text') as HTMLTextAreaElement).value = 'תוספת עבודה QA';
     (win.document.getElementById('extra-price') as HTMLInputElement).value = '250';
     win.sendExtraApproval('email');
-    expect(win.state.extraApprovals[0].status).toBe('sent_mailto');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(win.state.extraApprovals[0].status).toBe('sent');
     expect(win.state.extraApprovals[0].approvedAt).toBeFalsy();
-    expect(win.document.getElementById('extra-approval-list')?.textContent).toContain('נפתח מייל');
+    expect(win.document.getElementById('extra-approval-list')?.textContent).toContain('נשלח מהתוכנה');
     expect(win.document.getElementById('extra-approval-list')?.textContent).not.toContain('אושר ·');
+  });
+
+  it('sends composed email through the host instead of mailto', async () => {
+    const win = bootFlow() as Window & {
+      applyBootstrap: (payload: Record<string, unknown>) => void;
+      go: (id: string) => void;
+      sendComposedEmail: () => void;
+      callHost: (type: string, payload?: Record<string, unknown>) => Promise<Record<string, unknown>>;
+      document: Document;
+      alert: (msg?: string) => void;
+    };
+    const sent: Array<Record<string, unknown>> = [];
+    win.alert = () => {};
+    win.callHost = (type: string, payload?: Record<string, unknown>) => {
+      if (type === 'gm:saveCase' || type === 'gm:listMedia' || type === 'gm:garageGmailStatus') {
+        return Promise.resolve({ ok: true, items: [], connected: true, canSend: true });
+      }
+      if (type === 'gm:sendGarageMail') {
+        sent.push(payload || {});
+        return Promise.resolve({
+          ok: true,
+          realEmailSend: true,
+          gmail_message_id: 'msg-send-1',
+          gmail_thread_id: 'thr-send-1',
+          file_names: ['qa.png'],
+          appliedThisCase: {
+            correspondence: [{
+              gmail_message_id: 'msg-send-1',
+              gmail_thread_id: 'thr-send-1',
+              subject: 'הצעת מחיר — GM-2026-0099',
+              from_addr: 'yoni191177@gmail.com',
+              to_addr: 'qa-garage@example.com',
+              body_text: 'שלום',
+              direction: 'outgoing',
+              file_names: ['qa.png'],
+            }],
+            timeline: [{ text: 'נשלח מייל מתוך התוכנה' }],
+            quoteSent: true,
+          },
+        });
+      }
+      throw new Error(`unexpected host call: ${type}`);
+    };
+    (win as unknown as { __garageGmailServerConnected: boolean }).__garageGmailServerConnected = true;
+    (win as unknown as { __garageGmailCanSend: boolean }).__garageGmailCanSend = true;
+    win.applyBootstrap({
+      mode: 'case',
+      loaded: {
+        ...qaCase,
+        customer: { ...qaCase.customer, email: 'qa-garage@example.com' },
+      },
+      bookPending: false,
+    });
+    win.go('s-compose');
+    expect(win.document.getElementById('s-compose')?.textContent).toContain('שלח מייל מהתוכנה');
+    expect(win.document.getElementById('s-compose')?.textContent).not.toContain('פתח שליחה');
+    win.sendComposedEmail();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(sent).toHaveLength(1);
+    expect(sent[0].to).toContain('qa-garage@example.com');
+    expect(String(sent[0].to || '')).not.toContain('yoni122222');
+    expect(win.document.getElementById('s-comm')?.classList.contains('active')).toBe(true);
+    expect(win.document.getElementById('comm-thread-all')?.textContent).toContain('נשלח מתוך התוכנה');
+    expect(win.document.getElementById('comm-thread-all')?.textContent).toContain('qa.png');
   });
 
   it('keeps a mail chain on the case, never auto-applies a priced order, and does not guess ambiguous mail', () => {
@@ -767,6 +858,7 @@ describe('garage flow live case binding', () => {
       if (type === 'gm:garageGmailStatus') {
         return Promise.resolve({
           connected: true,
+          canSend: true,
           ok: true,
           email: 'yoni191177@gmail.com',
           mailbox: 'yoni191177@gmail.com',
@@ -787,7 +879,7 @@ describe('garage flow live case binding', () => {
     win.applyBootstrap({ mode: 'case', loaded: qaCase, bookPending: false });
     win.go('s-comm');
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(win.document.getElementById('garage-mail-status-hint')?.textContent).toContain('מחובר לסריקה אוטומטית');
+    expect(win.document.getElementById('garage-mail-status-hint')?.textContent).toContain('מחובר לסריקה ולשליחה מתוך התוכנה');
     expect(win.document.getElementById('garage-mail-connect-row')?.innerHTML).toBe('');
     expect((win.document.getElementById('garage-mail-connect-btn') as HTMLButtonElement | null)?.style.display).toBe('none');
     expect((win as unknown as { __garageGmailServerConnected: boolean }).__garageGmailServerConnected).toBe(true);

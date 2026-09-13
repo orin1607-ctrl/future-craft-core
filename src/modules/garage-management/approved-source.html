@@ -763,7 +763,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <section class="screen" id="s-compose">
   <div class="topbar"><div class="back" onclick="go('s-comm')">→</div><div><h1>שליחה מהתיק</h1><div class="sub" data-live="case-sub">מייל ברירת מחדל</div></div></div>
   <div class="content">
-    <div class="hint">שליחה ידנית מהתיק (mailto / WhatsApp). תיבת המוסך המיועדת היא yoni191177@gmail.com — לא תיבת Claims. אין שליחה אוטומטית ואין סימון "נשלח" אם לא נשלח.</div>
+    <div class="hint">שליחה מתוך ניהול המוסך דרך yoni191177@gmail.com. לא נפתח Gmail ולא mailto. לא תיבת Claims.</div>
     <div class="field"><label>ערוץ</label>
       <div class="chip-row" id="compose-channel-row">
         <div class="chip selected" data-channel="email" onclick="selChip(this)">Email / מייל</div>
@@ -774,19 +774,20 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="field"><label>CC</label><input id="compose-cc" placeholder="אופציונלי"></div>
     <div class="field"><label>נושא</label><input id="compose-subject" placeholder="נושא"></div>
     <div class="field"><label>תוכן</label><textarea id="compose-body" style="min-height:120px;" placeholder="תוכן המייל"></textarea></div>
-    <div class="field"><label>צירופים לבחירה</label>
-      <div class="hint">הקבצים שנבחרו ייכללו בתיאור. אין שליחת קבצים אוטומטית.</div>
+    <div class="field"><label>צירופים מהתיק</label>
+      <div class="hint">הקבצים שנבחרו יישלחו בפועל מ-yoni191177@gmail.com. לא Claims Storage.</div>
       <div class="chip-row" id="compose-attach-row">
-        <div class="chip selected" data-attach="quote" onclick="this.classList.toggle('selected')">הצעת מחיר</div>
-        <div class="chip" data-attach="order" onclick="this.classList.toggle('selected')">הזמנת הלקוח</div>
-        <div class="chip" data-attach="extra" onclick="this.classList.toggle('selected')">תוספת עבודה</div>
-        <div class="chip" data-attach="photos_all" onclick="this.classList.toggle('selected')">כל התמונות</div>
-        <div class="chip" data-attach="docs_all" onclick="this.classList.toggle('selected')">כל המסמכים</div>
-        <div class="chip" data-attach="selected" onclick="this.classList.toggle('selected')">תמונות / מסמכים נבחרים</div>
-        <div class="chip" data-attach="all" onclick="this.classList.toggle('selected')">כל חומר התיק</div>
+        <div class="chip selected" data-attach="quote" onclick="toggleComposeAttachChip(this)">הצעת מחיר</div>
+        <div class="chip" data-attach="order" onclick="toggleComposeAttachChip(this)">הזמנת הלקוח</div>
+        <div class="chip" data-attach="extra" onclick="toggleComposeAttachChip(this)">תוספת עבודה</div>
+        <div class="chip" data-attach="photos_all" onclick="toggleComposeAttachChip(this)">כל התמונות</div>
+        <div class="chip" data-attach="docs_all" onclick="toggleComposeAttachChip(this)">כל המסמכים</div>
+        <div class="chip" data-attach="selected" onclick="toggleComposeAttachChip(this)">תמונות / מסמכים נבחרים</div>
+        <div class="chip" data-attach="all" onclick="toggleComposeAttachChip(this)">כל חומר התיק</div>
       </div>
+      <div id="compose-file-row" style="margin-top:10px;"></div>
     </div>
-    <button class="btn btn-white" onclick="sendComposedEmail()">פתח שליחה</button>
+    <button class="btn btn-white" id="compose-send-btn" type="button" onclick="sendComposedEmail()">שלח מייל מהתוכנה</button>
   </div>
 </section>
 <!-- ================= SCREEN: SECURE SHARE ================= -->
@@ -795,7 +796,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   <div class="content" id="share-step1">
     <h2 class="section-title">1. מה לשתף?</h2>
     <div class="bar"></div>
-    <div class="hint">החומר תמיד מגיע מאותו garage_case_id. אין תיבת מייל נפרדת למוסך עדיין — השיתוף פותח מייל / WhatsApp ידני.</div>
+    <div class="hint">החומר תמיד מגיע מאותו garage_case_id. מייל נשלח מתוך התוכנה דרך yoni191177@gmail.com — לא mailto ולא תיבת Claims.</div>
     <div class="chip-row" style="margin-bottom:12px;">
       <div class="chip selected" data-pack="quote" onclick="togglePackChip(this)">הצעת מחיר</div>
       <div class="chip selected" data-pack="photos" onclick="togglePackChip(this)">תמונות</div>
@@ -828,7 +829,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="field"><input id="share-link-value" value="" placeholder="הקישור יוצג כאן אחרי יצירה" readonly></div>
     <button class="btn btn-white" onclick="copyShareText()">העתק טקסט</button>
     <button class="btn btn-ghost" style="margin-top:10px;" onclick="openWhatsApp()">📱 שתף ב-WhatsApp</button>
-    <button class="btn btn-ghost" style="margin-top:10px;" onclick="openShareMailto()">שלח במייל ידני</button>
+    <button class="btn btn-ghost" style="margin-top:10px;" onclick="openShareMailto()">שלח מייל מהתוכנה</button>
     <div class="section-label" style="padding-right:0;">היסטוריית שיתוף</div>
     <div class="card" id="share-history">
       <div class="hint" style="margin:0;">אין קישורי שיתוף לתיק זה עדיין.</div>
@@ -1569,6 +1570,7 @@ function callHost(type, payload, buffer){
       if(type === 'gm:listMedia') return resolve({ok:true, items:[], pending:false});
       if(type === 'gm:saveCase') return resolve({ok:true});
       if(type === 'gm:uploadMedia') return reject(new Error('אין מארח להעלאה'));
+      if(type === 'gm:sendGarageMail') return reject(new Error('אין מארח לשליחת מייל'));
       return resolve({ok:true});
     }
     var id = String(++reqSeq);
@@ -1581,7 +1583,7 @@ function callHost(type, payload, buffer){
     }
     setTimeout(function(){
       if(pending[id]){ pending[id].reject(new Error('timeout')); delete pending[id]; }
-    }, type === 'gm:uploadMedia' ? 120000 : 20000);
+    }, type === 'gm:uploadMedia' || type === 'gm:sendGarageMail' ? 120000 : 20000);
   });
 }
 function pickMedia(category, title, camera){
@@ -2525,15 +2527,154 @@ function markQuotePdfCreated(){
   state.quoteCreated = true;
   refreshCaseHub();
 }
+function toggleComposeAttachChip(el){
+  el.classList.toggle('selected');
+  syncComposeFileChecks();
+}
+function mediaMatchesAttach(item, key){
+  var cat = String(item.category || '');
+  var mime = String(item.mime_type || '');
+  if(key === 'all') return true;
+  if(key === 'quote') return cat === 'quotes' || cat === 'quote_photos';
+  if(key === 'order') return cat === 'customer_order';
+  if(key === 'extra') return cat === 'customer_approvals';
+  if(key === 'photos_all') return mime.indexOf('image') === 0 || cat === 'angles' || cat === 'intake' || cat === 'finish' || cat === 'damage' || cat === 'quote_photos';
+  if(key === 'docs_all') return mime.indexOf('image') !== 0;
+  if(key === 'selected') return true;
+  return false;
+}
+function renderComposeAttachments(){
+  var row = document.getElementById('compose-file-row');
+  if(!row) return;
+  if(!(mediaItems || []).length){
+    row.innerHTML = '<div class="hint" style="margin:0;">אין קבצים בתיק לצירוף עדיין. אפשר לשלוח מייל בלי קובץ.</div>';
+    return;
+  }
+  row.innerHTML = mediaItems.map(function(item){
+    return '<label class="chip" style="display:inline-flex;align-items:center;gap:6px;margin:0 0 6px;"><input type="checkbox" data-compose-media="1" data-media-id="'+esc(item.id)+'" data-category="'+esc(item.category || '')+'" data-mime="'+(esc(item.mime_type || ''))+'"> '+esc(item.title || item.category || 'קובץ')+'</label>';
+  }).join('');
+  syncComposeFileChecks();
+}
+function syncComposeFileChecks(){
+  var keys = [];
+  document.querySelectorAll('#compose-attach-row .chip.selected').forEach(function(c){ keys.push(c.getAttribute('data-attach') || ''); });
+  var boxes = document.querySelectorAll('#compose-file-row input[data-compose-media]');
+  boxes.forEach(function(box){
+    var item = { id: box.getAttribute('data-media-id'), category: box.getAttribute('data-category'), mime_type: box.getAttribute('data-mime') };
+    box.checked = keys.some(function(key){ return mediaMatchesAttach(item, key); });
+  });
+}
+function selectedComposeMediaIds(){
+  var ids = [];
+  document.querySelectorAll('#compose-file-row input[data-compose-media]:checked').forEach(function(box){
+    var id = box.getAttribute('data-media-id');
+    if(id) ids.push(id);
+  });
+  return ids.slice(0, 8);
+}
+function lastGarageThreadId(){
+  var cards = state.correspondence || [];
+  for(var i = cards.length - 1; i >= 0; i--){
+    var tid = String(cards[i].gmail_thread_id || '');
+    if(tid && tid.indexOf('mailto-') !== 0) return tid;
+  }
+  return '';
+}
+function applySentCaseData(applied, fallback){
+  if(applied && typeof applied === 'object'){
+    state.correspondence = Array.isArray(applied.correspondence) ? applied.correspondence.slice() : state.correspondence;
+    if(Array.isArray(applied.timeline)) state.timeline = applied.timeline.slice();
+    if(applied.quoteSent) state.quoteSent = true;
+    if(applied.waitingForApproval) state.waitingForApproval = true;
+    if(applied.priceReview) state.priceReview = applied.priceReview;
+  } else if(fallback){
+    appendOutgoingMailCard(fallback.to, fallback.subject, fallback.body, fallback.kind, fallback.files, fallback.messageId, fallback.threadId);
+  }
+  renderCorrespondence();
+  renderTimeline();
+  refreshCaseHub();
+  schedulePersist();
+}
+function sendGarageMailInApp(opts){
+  var to = String((opts && opts.to) || '').trim();
+  var cc = String((opts && opts.cc) || '').trim();
+  var subject = String((opts && opts.subject) || '').trim();
+  var body = String((opts && opts.body) || '').trim();
+  var kind = (opts && opts.kind) || 'mail';
+  var mediaIds = (opts && opts.mediaIds) || [];
+  if(!to || to.indexOf('@') < 0){
+    alert('חסרה כתובת מייל תקינה.');
+    return Promise.resolve(null);
+  }
+  if(/yoni122222/i.test(to) || /yoni122222/i.test(cc)){
+    alert('לא שולחים לתיבת Claims.');
+    return Promise.resolve(null);
+  }
+  if(!subject || !body){
+    alert('חסרים נושא ותוכן.');
+    return Promise.resolve(null);
+  }
+  if(!garageGmailReady()){
+    window.__garageGmailSendAfter = opts;
+    startGarageGmailReconnect(false);
+    return Promise.resolve(null);
+  }
+  if(!window.__garageGmailCanSend){
+    window.__garageGmailSendAfter = opts;
+    startGarageGmailReconnect(false);
+    return Promise.resolve(null);
+  }
+  var btn = document.getElementById('compose-send-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'שולח…'; }
+  return callHost('gm:sendGarageMail', {
+    caseId: liveCaseId(),
+    to: to,
+    cc: cc,
+    subject: subject,
+    body: body,
+    mediaIds: mediaIds,
+    kind: kind,
+    threadId: lastGarageThreadId()
+  }).then(function(res){
+    if(btn){ btn.disabled = false; btn.textContent = 'שלח מייל מהתוכנה'; }
+    if(res && (res.pending || res.needSendScope)){
+      window.__garageGmailCanSend = false;
+      paintGarageGmailStatus(!!window.__garageGmailServerConnected, res.error);
+      window.__garageGmailSendAfter = opts;
+      startGarageGmailReconnect(false);
+      return null;
+    }
+    if(!res || res.ok === false || !res.realEmailSend || !res.gmail_message_id){
+      alert((res && res.error) || 'השליחה נכשלה. המייל לא נשלח.');
+      return null;
+    }
+    window.__garageGmailCanSend = true;
+    window.__garageGmailServerConnected = true;
+    applySentCaseData(res.appliedThisCase, {
+      to: to,
+      subject: subject,
+      body: body,
+      kind: kind,
+      files: res.file_names || [],
+      messageId: res.gmail_message_id,
+      threadId: res.gmail_thread_id
+    });
+    return res;
+  }).catch(function(err){
+    if(btn){ btn.disabled = false; btn.textContent = 'שלח מייל מהתוכנה'; }
+    alert((err && err.message) || 'השליחה נכשלה');
+    return null;
+  });
+}
 function sendQuoteEmail(){
   captureQuoteFields();
   state.quoteCreated = true;
   var to = (currentCustomer && currentCustomer.email) || '';
   var subj = 'הצעת מחיר — ' + (liveCaseNumber() || 'תיק מוסך');
   var body = sharePackText();
-  window.location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(body);
-  appendOutgoingMailCard(to, subj, body, 'quote');
-  openAfterSendSheet();
+  sendGarageMailInApp({ to: to, subject: subj, body: body, kind: 'quote', mediaIds: selectedComposeMediaIds() }).then(function(res){
+    if(res) openAfterSendSheet();
+  });
 }
 function sharePackText(){
   var lines = [
@@ -2577,6 +2718,7 @@ function fillSendFromCase(){
   if(composeTo) composeTo.value = to;
   if(composeSubject) composeSubject.value = subj;
   if(composeBody) composeBody.value = body;
+  renderComposeAttachments();
   var shareEmail = document.getElementById('share-email');
   var shareName = document.getElementById('share-name');
   var shareCompany = document.getElementById('share-company');
@@ -2603,8 +2745,14 @@ function openWhatsApp(){
   addTimelineEvent('נפתח שיתוף WhatsApp ידני (אין שליחה אוטומטית)');
 }
 function openShareMailto(){
-  var to = (currentCustomer && currentCustomer.email) || '';
-  window.location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent('תיק מוסך ' + liveCaseNumber()) + '&body=' + encodeURIComponent(sharePackText());
+  var to = (document.getElementById('share-email') && document.getElementById('share-email').value) || (currentCustomer && currentCustomer.email) || '';
+  sendGarageMailInApp({
+    to: to,
+    subject: 'תיק מוסך ' + liveCaseNumber(),
+    body: sharePackText(),
+    kind: 'mail',
+    mediaIds: selectedComposeMediaIds()
+  });
 }
 function togglePackChip(el){ el.classList.toggle('selected'); }
 function openAfterSendSheet(){
@@ -2833,7 +2981,7 @@ function extraApprovalIsPending(item){
 }
 function extraApprovalSummary(){
   return (state.extraApprovals || []).map(function(x){
-    var st = x.approvedAt ? 'אושר' : (x.status === 'sent_mailto' || x.status === 'sent_whatsapp' ? 'נפתח לשליחה — לא אושר' : 'ממתין');
+    var st = x.approvedAt ? 'אושר' : (x.status === 'sent' || x.status === 'sent_email' || x.status === 'sent_whatsapp' || x.status === 'sent_mailto' ? 'נשלח — לא אושר' : 'ממתין');
     return (x.text || '') + ' · ' + money(x.price || 0) + ' · ' + st;
   }).join(' | ');
 }
@@ -3094,7 +3242,8 @@ function renderCorrespondence(){
     var when = m.sent_at ? new Date(m.sent_at) : new Date();
     var dir = m.direction === 'outgoing' ? 'out' : 'in';
     var files = (m.file_names || []).length ? ('<div class="hint" style="margin:6px 0 0;">קבצים: '+esc((m.file_names||[]).join(', '))+'</div>') : '';
-    return '<div class="bubble '+dir+'"><div class="bmeta">'+esc(m.from_addr || '')+' · '+esc(when.toLocaleString('he-IL'))+(m.unread ? ' · מייל חדש' : '')+'</div><div style="font-weight:700;">'+esc(m.subject || '(ללא נושא)')+'</div><div style="margin-top:4px; white-space:pre-wrap;">'+esc(m.body_text || '')+'</div>'+files+'</div>';
+    var sendSt = m.direction === 'outgoing' ? '<div class="hint" style="margin:6px 0 0;">נשלח מתוך התוכנה · yoni191177@gmail.com</div>' : '';
+    return '<div class="bubble '+dir+'"><div class="bmeta">'+esc(m.from_addr || '')+' · '+esc(when.toLocaleString('he-IL'))+(m.unread ? ' · מייל חדש' : '')+'</div><div style="font-weight:700;">'+esc(m.subject || '(ללא נושא)')+'</div><div style="margin-top:4px; white-space:pre-wrap;">'+esc(m.body_text || '')+'</div>'+files+sendSt+'</div>';
   }).join('');
   if(all){
     all.innerHTML = html;
@@ -3152,9 +3301,10 @@ function applyGarageGmailStatus(res){
   }
   var connected = !!(res && res.connected === true);
   window.__garageGmailServerConnected = connected;
+  window.__garageGmailCanSend = connected && !!(res && res.canSend === true);
   if(connected){
     window.__garageGmailEmail = 'yoni191177@gmail.com';
-    window.__garageGmailAuthUrl = '';
+    if(window.__garageGmailCanSend) window.__garageGmailAuthUrl = '';
   }
   cacheGarageGmailConnect(res);
   return connected;
@@ -3186,15 +3336,28 @@ function paintGarageGmailStatus(connected, errorText){
   var row = document.getElementById('garage-mail-connect-row');
   var staticBtn = document.getElementById('garage-mail-connect-btn');
   if(staticBtn) staticBtn.style.display = connected ? 'none' : '';
-  if(connected){
-    if(hint) hint.textContent = 'מחובר לסריקה אוטומטית · yoni191177@gmail.com · לא תיבת Claims.';
+  if(connected && window.__garageGmailCanSend){
+    if(hint) hint.textContent = 'מחובר לסריקה ולשליחה מתוך התוכנה · yoni191177@gmail.com · לא תיבת Claims.';
     if(row) row.innerHTML = '';
+    return;
+  }
+  if(connected && !window.__garageGmailCanSend){
+    if(hint) hint.textContent = 'התיבה מחוברת לסריקה. יש לאשר פעם אחת שליחה מתוך התוכנה — לא בכל מייל.';
+    if(row) row.innerHTML = '<button class="btn btn-white" type="button" onclick="connectGarageGmail()">אשר שליחה מתוך התוכנה</button>';
     return;
   }
   if(hint) hint.textContent = errorText || 'תיבת המוסך עדיין לא מחוברת לסריקה. לחצו חבר yoni191177@gmail.com — לא תיבת Claims.';
   showGarageGmailConnectRow();
 }
 function finishGarageGmailScanAfterStatus(){
+  if(window.__garageGmailSendAfter){
+    if(garageGmailReady() && window.__garageGmailCanSend){
+      var opts = window.__garageGmailSendAfter;
+      window.__garageGmailSendAfter = null;
+      sendGarageMailInApp(opts);
+    }
+    return;
+  }
   if(!window.__garageGmailScanAfterStatus) return;
   window.__garageGmailScanAfterStatus = false;
   if(garageGmailReady()) runGarageMailScan();
@@ -3390,24 +3553,31 @@ function applyPriceReviewFromMail(mail){
   else addTimelineEvent('ייתכן אישור מחיר — דורש בדיקה ידנית');
   if(compare === 'mismatch') addTimelineEvent('נמצא פער במחיר · '+compareMessage);
 }
-function appendOutgoingMailCard(to, subject, body, kind){
+function appendOutgoingMailCard(to, subject, body, kind, files, messageId, threadId){
   state.correspondence = state.correspondence || [];
-  var id = 'mailto-' + Date.now();
+  var id = messageId || ('gmail-' + Date.now());
   state.correspondence.push({
     id: id,
     gmail_message_id: id,
-    gmail_thread_id: id,
+    gmail_thread_id: threadId || id,
     subject: subject || '',
     from_addr: 'yoni191177@gmail.com',
     to_addr: to || '',
     sent_at: new Date().toISOString(),
     body_text: body || '',
     direction: 'outgoing',
-    source: 'mailto',
-    unread: false
+    source: 'gmail',
+    file_names: files || [],
+    unread: false,
+    send_status: 'sent'
   });
-  if(kind === 'quote') addTimelineEvent('מחיר נשלח / נפתח מייל לשליחה ידנית');
-  else addTimelineEvent('מייל נשלח / נפתח מייל לשליחה ידנית');
+  if(kind === 'quote'){
+    state.quoteSent = true;
+    state.waitingForApproval = true;
+    addTimelineEvent('נשלח מייל מתוך התוכנה · הצעת מחיר');
+  } else {
+    addTimelineEvent('נשלח מייל מתוך התוכנה · '+(subject || 'ללא נושא'));
+  }
   schedulePersist();
   renderCorrespondence();
 }
@@ -3511,6 +3681,7 @@ function runGarageMailScan(){
 }
 function sendComposedEmail(){
   var to = (document.getElementById('compose-to') && document.getElementById('compose-to').value) || (currentCustomer && currentCustomer.email) || '';
+  var cc = (document.getElementById('compose-cc') && document.getElementById('compose-cc').value) || '';
   var subj = (document.getElementById('compose-subject') && document.getElementById('compose-subject').value) || ('תיק מוסך ' + liveCaseNumber());
   var body = (document.getElementById('compose-body') && document.getElementById('compose-body').value) || sharePackText();
   var channel = composeChannel();
@@ -3518,11 +3689,19 @@ function sendComposedEmail(){
     var url = 'https://wa.me/' + (waPhone() || '') + '?text=' + encodeURIComponent(body);
     window.open(url, '_blank');
     addTimelineEvent('נפתח WhatsApp ידני מהתיק · אין שליחה אוטומטית');
-  } else {
-    window.location.href = 'mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subj) + '&body=' + encodeURIComponent(body);
-    appendOutgoingMailCard(to, subj, body, Number(state.workOrderAmount || 0) || quoteGrandTotal() ? 'quote' : 'mail');
+    go('s-comm');
+    return;
   }
-  go('s-comm');
+  sendGarageMailInApp({
+    to: to,
+    cc: cc,
+    subject: subj,
+    body: body,
+    kind: (Number(state.workOrderAmount || 0) || quoteGrandTotal() ? 'quote' : 'mail'),
+    mediaIds: selectedComposeMediaIds()
+  }).then(function(res){
+    if(res) go('s-comm');
+  });
 }
 /* ---------- share ---------- */
 function createShareLink(){
@@ -3758,44 +3937,52 @@ function sendExtraApproval(channel){
   var works = (document.getElementById('extra-works') && document.getElementById('extra-works').value || '').trim();
   var note = (document.getElementById('extra-note') && document.getElementById('extra-note').value || '').trim();
   if(!text){ alert('יש לתאר את מה שהתגלה'); return; }
-  state.extraApprovals = state.extraApprovals || [];
-  var item = {
-    id: 'x'+Date.now(),
-    text: text,
-    works: works,
-    note: note,
-    price: price,
-    at: new Date().toISOString(),
-    sent: true,
-    status: channel === 'whatsapp' ? 'sent_whatsapp' : 'sent_mailto',
-    channel: channel === 'whatsapp' ? 'whatsapp' : 'email',
-    sentAt: new Date().toISOString(),
-    sentTo: channel === 'whatsapp' ? waPhone() : ((currentCustomer && currentCustomer.email) || ''),
-    approvedAt: null,
-    approvedBy: ''
-  };
-  state.extraApprovals.push(item);
-  if(price){
-    state.quoteWorks = state.quoteWorks || [];
-    state.quoteWorks.push({ id: 'w'+Date.now(), part: text, type: 'תוספת עבודה', qty: 1, price: price, desc: 'ממתין לאישור לקוח' });
-    state.quoteCreated = true;
-  }
-  closeExtraApproval();
-  renderExtraApprovals();
-  refreshCaseHub();
-  var body = 'תוספת עבודה לתיק '+liveCaseNumber()+'\n'+text+(works ? ('\nעבודות/חלקים: '+works) : '')+(note ? ('\nהערה: '+note) : '')+'\nמחיר נוסף: '+money(price)+'\nנפתח לשליחה ידנית. זה אינו אישור לקוח.';
-  try {
-    if(channel === 'whatsapp'){
-      window.open('https://wa.me/' + (waPhone() || '') + '?text=' + encodeURIComponent(body), '_blank');
-      addTimelineEvent('נפתח WhatsApp לתוספת עבודה · לא סומן כאישור');
-    } else {
-      var to = (liveSelectedContact() && liveSelectedContact().email) || (currentCustomer && currentCustomer.email) || '';
-      window.location.href = 'mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent('תוספת עבודה · '+liveCaseNumber())+'&body='+encodeURIComponent(body);
-      addTimelineEvent('נפתח מייל ידני לתוספת עבודה · לא סומן כאישור');
+  var body = 'תוספת עבודה לתיק '+liveCaseNumber()+'\n'+text+(works ? ('\nעבודות/חלקים: '+works) : '')+(note ? ('\nהערה: '+note) : '')+'\nמחיר נוסף: '+money(price)+'\nנשלח מתוך התוכנה. זה אינו אישור לקוח.';
+  var finishItem = function(status, sentTo){
+    state.extraApprovals = state.extraApprovals || [];
+    var item = {
+      id: 'x'+Date.now(),
+      text: text,
+      works: works,
+      note: note,
+      price: price,
+      at: new Date().toISOString(),
+      sent: true,
+      status: status,
+      channel: channel === 'whatsapp' ? 'whatsapp' : 'email',
+      sentAt: new Date().toISOString(),
+      sentTo: sentTo || '',
+      approvedAt: null,
+      approvedBy: ''
+    };
+    state.extraApprovals.push(item);
+    if(price){
+      state.quoteWorks = state.quoteWorks || [];
+      state.quoteWorks.push({ id: 'w'+Date.now(), part: text, type: 'תוספת עבודה', qty: 1, price: price, desc: 'ממתין לאישור לקוח' });
+      state.quoteCreated = true;
     }
-  } catch(e){
-    addTimelineEvent('נפתח ערוץ שליחה ידני לתוספת עבודה · לא סומן כאישור');
+    closeExtraApproval();
+    renderExtraApprovals();
+    refreshCaseHub();
+  };
+  if(channel === 'whatsapp'){
+    finishItem('sent_whatsapp', waPhone());
+    try { window.open('https://wa.me/' + (waPhone() || '') + '?text=' + encodeURIComponent(body), '_blank'); } catch(e) {}
+    addTimelineEvent('נפתח WhatsApp לתוספת עבודה · לא סומן כאישור');
+    return;
   }
+  var to = (liveSelectedContact() && liveSelectedContact().email) || (currentCustomer && currentCustomer.email) || '';
+  sendGarageMailInApp({
+    to: to,
+    subject: 'תוספת עבודה · '+liveCaseNumber(),
+    body: body,
+    kind: 'mail',
+    mediaIds: []
+  }).then(function(res){
+    if(!res) return;
+    finishItem('sent', to);
+    addTimelineEvent('נשלח מייל מתוך התוכנה לתוספת עבודה · לא סומן כאישור');
+  });
 }
 function markExtraApproved(id){
   (state.extraApprovals || []).forEach(function(item){
@@ -3819,7 +4006,7 @@ function renderExtraApprovals(){
   }
   box.innerHTML = items.map(function(item){
     var pending = extraApprovalIsPending(item);
-    var st = item.approvedAt ? ('אושר' + (item.approvedBy ? (' · '+item.approvedBy) : '')) : (item.status === 'sent_whatsapp' ? 'נפתח WhatsApp — לא אושר' : (item.status === 'sent_mailto' ? 'נפתח מייל — לא אושר' : 'ממתין'));
+    var st = item.approvedAt ? ('אושר' + (item.approvedBy ? (' · '+item.approvedBy) : '')) : (item.status === 'sent_whatsapp' ? 'נפתח WhatsApp — לא אושר' : (item.status === 'sent' || item.status === 'sent_email' ? 'נשלח מהתוכנה — לא אושר' : 'ממתין'));
     return '<div class="card"><div class="doc-row"><span>'+esc(item.text)+'</span><span>'+money(item.price)+'</span></div><div class="hint" style="margin:6px 0;">'+esc(st)+'</div>'
       + (pending ? '<button class="btn btn-ghost btn-sm" onclick="markExtraApproved(\''+esc(item.id)+'\')">סמן שאושר על ידי הלקוח</button>' : '')
       + '</div>';

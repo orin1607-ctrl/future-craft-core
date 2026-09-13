@@ -118,7 +118,10 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).toContain('Email / מייל');
     expect(approvedSourceHtml).toContain('מיילים / התכתבויות');
     expect(approvedSourceHtml).toContain('yoni191177@gmail.com');
-    expect(approvedSourceHtml).toContain("callHost('gm:scanGarageMail'");
+    expect(approvedSourceHtml).toContain("callHost('gm:sendGarageMail'");
+    expect(approvedSourceHtml).toContain('שלח מייל מהתוכנה');
+    expect(approvedSourceHtml).toContain('sendGarageMailInApp');
+    expect(approvedSourceHtml).not.toContain("window.location.href = 'mailto:'");
     expect(approvedSourceHtml).toContain('חבר yoni191177@gmail.com');
     expect(approvedSourceHtml).toContain('startGarageGmailBrowser');
     expect(approvedSourceHtml).toContain('openGarageGoogleNow');

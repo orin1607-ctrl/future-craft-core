@@ -20,7 +20,11 @@ const SCOPES = [
   "openid",
   "https://www.googleapis.com/auth/userinfo.email",
   "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.send",
 ];
+const SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+const MAX_SEND_FILES = 8;
+const MAX_SEND_BYTES = 12 * 1024 * 1024;
 const PAGES_REDIRECT = "https://orin1607-ctrl.github.io/future-craft-core/oauth/google-callback.html";
 const FUNCTION_REDIRECT = `https://${STAGING_REF}.supabase.co/functions/v1/garage-gmail`;
 const BUCKET = "garage-media";
@@ -374,6 +378,98 @@ async function gmailGet(access: string, path: string) {
   return json;
 }
 
+function emailListOk(raw: string, required: boolean) {
+  const parts = String(raw || "").split(",").map((p) => p.trim()).filter(Boolean);
+  if (!parts.length) return !required;
+  return parts.every((part) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(part) && !garageMailIsClaimsMailbox(part));
+}
+
+function utf8Bytes(s: string) {
+  return new TextEncoder().encode(s);
+}
+
+function bytesToB64(bytes: Uint8Array) {
+  let bin = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin);
+}
+
+function rfc2047(s: string) {
+  if (/^[\x20-\x7e]*$/.test(s)) return s;
+  return `=?UTF-8?B?${bytesToB64(utf8Bytes(s))}?=`;
+}
+
+function wrapB64(b64: string) {
+  return b64.replace(/(.{76})/g, "$1\r\n");
+}
+
+function mimeRaw(input: {
+  from: string;
+  to: string;
+  cc?: string;
+  subject: string;
+  body: string;
+  attachments: Array<{ filename: string; mime: string; bytes: Uint8Array }>;
+}) {
+  const boundary = `gm_${crypto.randomUUID().replace(/-/g, "")}`;
+  const headers = [
+    `From: ${input.from}`,
+    `To: ${input.to}`,
+    input.cc ? `Cc: ${input.cc}` : "",
+    `Subject: ${rfc2047(input.subject)}`,
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+  ].filter(Boolean).join("\r\n");
+  const parts = [
+    `--${boundary}`,
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: base64",
+    "",
+    wrapB64(bytesToB64(utf8Bytes(input.body || ""))),
+  ];
+  for (const att of input.attachments) {
+    const safeName = String(att.filename || "file").replace(/[\r\n"]/g, "_");
+    parts.push(
+      `--${boundary}`,
+      `Content-Type: ${att.mime || "application/octet-stream"}; name="${safeName}"`,
+      `Content-Disposition: attachment; filename="${safeName}"`,
+      "Content-Transfer-Encoding: base64",
+      "",
+      wrapB64(bytesToB64(att.bytes)),
+    );
+  }
+  parts.push(`--${boundary}--`, "");
+  const mime = `${headers}\r\n\r\n${parts.join("\r\n")}`;
+  return bytesToB64(utf8Bytes(mime)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+async function tokenHasSendScope(access: string) {
+  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(access)}`);
+  const json = await res.json().catch(() => ({}));
+  return String((json as { scope?: string }).scope || "").includes(SEND_SCOPE);
+}
+
+async function gmailSend(access: string, raw: string, threadId?: string) {
+  const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${access}`, "Content-Type": "application/json" },
+    body: JSON.stringify(threadId ? { raw, threadId } : { raw }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = String((json as { error?: { message?: string; status?: string } }).error?.message
+      || (json as { error?: string }).error
+      || "gmail_send_failed");
+    const insufficient = /insufficient|insufficientPermissions|access_denied|invalid_grant|invalid_scope/i.test(err);
+    const e = new Error(insufficient ? "need_send_scope" : err.slice(0, 180));
+    throw e;
+  }
+  return json as { id?: string; threadId?: string };
+}
+
 function caseRowsToMatch(rows: Array<Record<string, unknown>>): GarageMatchCase[] {
   return rows.map((c) => {
     const data = (c.case_data && typeof c.case_data === "object") ? c.case_data as Record<string, unknown> : {};
@@ -534,13 +630,21 @@ Deno.serve(async (req) => {
       const client = oauthClient();
       const resolved = await resolveGarageRefresh(sb, client);
       const connected = Boolean(resolved.refresh);
-      if (connected) {
-        try { await saveConnection(sb, { last_ok_at: new Date().toISOString() }); } catch { /* keep connected even if last_ok_at write fails */ }
+      let canSend = false;
+      if (connected && client) {
+        try {
+          const tok = await googleAccessToken(resolved.refresh, client);
+          canSend = await tokenHasSendScope(tok.access);
+          try { await saveConnection(sb, { last_ok_at: new Date().toISOString() }); } catch { /* keep connected even if last_ok_at write fails */ }
+        } catch {
+          canSend = false;
+        }
       }
       return jsonResponse({
         success: true,
         ok: connected,
         connected,
+        canSend,
         pending: !connected,
         mailbox: ALLOWED_ACCOUNT,
         email: connected ? ALLOWED_ACCOUNT : (resolved.email || null),
@@ -702,6 +806,158 @@ Deno.serve(async (req) => {
         messages,
         matched,
         needs_review,
+      });
+    }
+
+    if (action === "send_case") {
+      const client = oauthClient();
+      if (!client) return jsonResponse({ success: false, pending: true, error: "oauth_client_missing" }, 503);
+      const resolved = await resolveGarageRefresh(sb, client);
+      if (!resolved.refresh) {
+        return jsonResponse({
+          success: false,
+          pending: true,
+          error: "gmail_not_connected",
+          message: `תיבת המוסך ${ALLOWED_ACCOUNT} עדיין לא מחוברת. לא משתמשים ב-orin1607 ולא ב-Claims.`,
+        }, 409);
+      }
+      const caseId = String(body.case_id || body.caseId || "");
+      const to = String(body.to || "").trim();
+      const cc = String(body.cc || "").trim();
+      const subject = String(body.subject || "").trim();
+      const text = String(body.body || "").trim();
+      const kind = String(body.kind || "mail");
+      const threadId = String(body.thread_id || body.threadId || "").trim();
+      const mediaIds = Array.isArray(body.media_ids) ? body.media_ids.map((id) => String(id || "")).filter(Boolean) : [];
+      if (!caseId) return jsonResponse({ success: false, error: "case_required" }, 400);
+      if (!emailListOk(to, true) || !emailListOk(cc, false)) {
+        return jsonResponse({ success: false, error: "invalid_recipient", message: "כתובת To/CC לא תקינה, או שהיא תיבת Claims." }, 400);
+      }
+      if (garageMailIsClaimsMailbox(to) || garageMailIsClaimsMailbox(cc) || to.toLowerCase().includes(CLAIMS_MAILBOX) || cc.toLowerCase().includes(CLAIMS_MAILBOX)) {
+        return jsonResponse({ success: false, error: "claims_mailbox_forbidden" }, 403);
+      }
+      if (!subject || !text) return jsonResponse({ success: false, error: "subject_body_required" }, 400);
+      const tok = await googleAccessToken(resolved.refresh, client);
+      if (!(await tokenHasSendScope(tok.access))) {
+        return jsonResponse({
+          success: false,
+          pending: true,
+          needSendScope: true,
+          error: "need_send_scope",
+          message: "יש לאשר פעם אחת שליחה מתוך התוכנה עבור yoni191177@gmail.com. לא נפתח Gmail לכל שליחה.",
+        }, 409);
+      }
+      if (tok.newRefresh) await saveConnection(sb, { refresh_token: tok.newRefresh, last_ok_at: new Date().toISOString() });
+      const { data: loaded } = await sb.from("garage_cases").select("*").eq("id", caseId).maybeSingle();
+      if (!loaded) return jsonResponse({ success: false, error: "case_not_found" }, 404);
+      const attachments: Array<{ filename: string; mime: string; bytes: Uint8Array }> = [];
+      let totalBytes = 0;
+      if (mediaIds.length) {
+        const { data: mediaRows } = await sb.from("garage_media").select("id, title, storage_path, mime_type, byte_size, garage_case_id").in("id", mediaIds.slice(0, MAX_SEND_FILES)).eq("garage_case_id", caseId);
+        for (const row of (mediaRows || []) as Array<Record<string, unknown>>) {
+          const path = String(row.storage_path || "");
+          if (!path || path.includes("..") || !path.startsWith(`${caseId}/`)) continue;
+          const down = await sb.storage.from(BUCKET).download(path);
+          if (down.error || !down.data) continue;
+          const bytes = new Uint8Array(await down.data.arrayBuffer());
+          totalBytes += bytes.byteLength;
+          if (totalBytes > MAX_SEND_BYTES) {
+            return jsonResponse({ success: false, error: "package_too_large", message: "הקבצים גדולים מדי לשליחה במייל." }, 413);
+          }
+          attachments.push({
+            filename: String(row.title || path.split("/").pop() || "file"),
+            mime: String(row.mime_type || "application/octet-stream"),
+            bytes,
+          });
+        }
+      }
+      let sent;
+      try {
+        sent = await gmailSend(tok.access, mimeRaw({
+          from: ALLOWED_ACCOUNT,
+          to,
+          cc,
+          subject,
+          body: text,
+          attachments,
+        }), threadId && !threadId.startsWith("mailto-") ? threadId : "");
+      } catch (e) {
+        const msg = String((e as Error).message || e);
+        if (msg === "need_send_scope") {
+          return jsonResponse({
+            success: false,
+            pending: true,
+            needSendScope: true,
+            error: "need_send_scope",
+            message: "יש לאשר פעם אחת שליחה מתוך התוכנה עבור yoni191177@gmail.com.",
+          }, 409);
+        }
+        throw e;
+      }
+      const messageId = String(sent.id || "");
+      const sentThread = String(sent.threadId || threadId || messageId);
+      if (!messageId) return jsonResponse({ success: false, error: "gmail_did_not_return_id" }, 502);
+      const data = (loaded.case_data && typeof loaded.case_data === "object") ? { ...loaded.case_data as Record<string, unknown> } : {};
+      const cards = Array.isArray(data.correspondence) ? [...data.correspondence as Array<Record<string, unknown>>] : [];
+      const fileNames = attachments.map((a) => a.filename);
+      cards.push({
+        id: messageId,
+        gmail_message_id: messageId,
+        gmail_thread_id: sentThread,
+        subject,
+        from_addr: ALLOWED_ACCOUNT,
+        to_addr: to,
+        sent_at: new Date().toISOString(),
+        body_text: text,
+        direction: "outgoing",
+        source: "gmail",
+        file_names: fileNames,
+        unread: false,
+        send_status: "sent",
+      });
+      data.correspondence = cards;
+      const timeline = Array.isArray(data.timeline) ? [...data.timeline as Array<Record<string, unknown>>] : [];
+      timeline.push({ at: new Date().toISOString(), text: `נשלח מייל מתוך התוכנה · ${subject || "ללא נושא"} · ${ALLOWED_ACCOUNT}` });
+      if (fileNames.length) timeline.push({ at: new Date().toISOString(), text: `צורפו קבצים לשליחה · ${fileNames.join(", ")}` });
+      data.timeline = timeline;
+      if (kind === "quote") {
+        data.quoteSent = true;
+        data.waitingForApproval = true;
+        const sentAmount = Number(data.finalApprovedAmount) || Number(data.workOrderAmount) || null;
+        data.priceReview = {
+          ...((data.priceReview && typeof data.priceReview === "object") ? data.priceReview as Record<string, unknown> : {}),
+          sentAmount: sentAmount && sentAmount > 0 ? sentAmount : (data.priceReview as { sentAmount?: number } | undefined)?.sentAmount ?? null,
+          status: (data.priceReview as { status?: string } | undefined)?.status === "worker_approved"
+            ? "worker_approved"
+            : "waiting_for_price",
+        };
+      }
+      await sb.from("garage_cases").update({ case_data: data }).eq("id", caseId);
+      await softUpsert(sb, "garage_gmail_imports", {
+        garage_case_id: caseId,
+        gmail_message_id: messageId,
+        gmail_thread_id: sentThread,
+        subject,
+        from_addr: ALLOWED_ACCOUNT,
+        to_addr: to,
+        sent_at: new Date().toISOString(),
+        body_text: text,
+        direction: "outgoing",
+        file_names: fileNames,
+      }, "gmail_message_id");
+      await saveConnection(sb, { last_ok_at: new Date().toISOString() });
+      return jsonResponse({
+        success: true,
+        ok: true,
+        pending: false,
+        connected: true,
+        canSend: true,
+        realEmailSend: true,
+        mailbox: ALLOWED_ACCOUNT,
+        gmail_message_id: messageId,
+        gmail_thread_id: sentThread,
+        file_names: fileNames,
+        appliedThisCase: data,
       });
     }
 
