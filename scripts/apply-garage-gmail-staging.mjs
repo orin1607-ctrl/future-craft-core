@@ -21,7 +21,7 @@ function guardDbUrl(url) {
   if (!url.includes(STAGING_REF)) abort('STAGING_DATABASE_URL must contain usfeoerkpcafxxlyuldl');
 }
 
-const dbUrl = String(process.env.STAGING_DATABASE_URL || '').replace(/[\r\n]/g, '').trim();
+const dbUrl = String(process.env.STAGING_DATABASE_URL || process.env.DATABASE_URL || '').replace(/[\r\n]/g, '').trim();
 guardDbUrl(dbUrl);
 const sql = readFileSync(SQL, 'utf8');
 const sqlBody = sql.replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');

@@ -42,6 +42,47 @@ function oauthClient() {
   return null;
 }
 
+function isMissingRelation(error: { message?: string; code?: string } | null | undefined) {
+  const m = `${error?.message || ""} ${error?.code || ""}`;
+  return /schema cache|could not find the table|does not exist|PGRST205|42P01/i.test(m);
+}
+
+async function hmacHex(message: string) {
+  const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "garage-gmail-state";
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function makeOauthState(preferPages: boolean) {
+  const nonce = crypto.randomUUID();
+  const ts = Date.now().toString();
+  const kind = preferPages ? "pages" : "fn";
+  const payload = `garage-gmail.${kind}.${nonce}.${ts}`;
+  return `${payload}.${await hmacHex(payload)}`;
+}
+
+async function oauthStateOk(state: string) {
+  const parts = String(state || "").split(".");
+  if (parts.length !== 5 || parts[0] !== "garage-gmail") return false;
+  if (parts[1] !== "pages" && parts[1] !== "fn") return false;
+  const ts = Number(parts[3] || 0);
+  if (!ts || Math.abs(Date.now() - ts) > 45 * 60 * 1000) return false;
+  const sig = parts[4];
+  const payload = parts.slice(0, 4).join(".");
+  const expect = await hmacHex(payload);
+  if (sig.length !== expect.length) return false;
+  let diff = 0;
+  for (let i = 0; i < sig.length; i++) diff |= sig.charCodeAt(i) ^ expect.charCodeAt(i);
+  return diff === 0;
+}
+
 function htmlPage(ok: boolean, text: string) {
   const color = ok ? "#22c55e" : "#ef4444";
   return new Response(
@@ -77,7 +118,11 @@ async function userinfoEmail(access: string) {
 }
 
 async function loadConnection(sb: ReturnType<typeof admin>) {
-  const { data } = await sb.from("garage_gmail_connection").select("*").eq("id", "staging").maybeSingle();
+  const { data, error } = await sb.from("garage_gmail_connection").select("*").eq("id", "staging").maybeSingle();
+  if (error) {
+    if (isMissingRelation(error)) return null;
+    throw new Error(error.message);
+  }
   return data as {
     id: string;
     connected_email: string;
@@ -104,7 +149,64 @@ async function saveConnection(
     ...patch,
   };
   const { error } = await sb.from("garage_gmail_connection").upsert(row, { onConflict: "id" });
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isMissingRelation(error)) return false;
+    throw new Error(error.message);
+  }
+  return true;
+}
+
+async function softUpsert(
+  sb: ReturnType<typeof admin>,
+  table: "garage_gmail_pending" | "garage_gmail_imports",
+  row: Record<string, unknown>,
+  onConflict: string,
+) {
+  const { error } = await sb.from(table).upsert(row, { onConflict });
+  if (error && !isMissingRelation(error)) {
+    /* keep the scan going even if auxiliary tables fail */
+  }
+}
+
+async function resolveGarageRefresh(
+  sb: ReturnType<typeof admin>,
+  client: { clientId: string; clientSecret: string } | null,
+) {
+  const conn = await loadConnection(sb);
+  if (conn?.refresh_token && String(conn.connected_email || "").toLowerCase() === ALLOWED_ACCOUNT && !conn.revoked_at) {
+    return { refresh: conn.refresh_token, email: ALLOWED_ACCOUNT, source: "table", probe: { ok: true as const } };
+  }
+  const envRefresh = Deno.env.get("GARAGE_GOOGLE_REFRESH_TOKEN") || Deno.env.get("GOOGLE_REFRESH_TOKEN") || "";
+  if (envRefresh && client) {
+    try {
+      const tok = await googleAccessToken(envRefresh, client);
+      const email = await userinfoEmail(tok.access);
+      if (email === ALLOWED_ACCOUNT) {
+        const refresh = tok.newRefresh || envRefresh;
+        await saveConnection(sb, {
+          connected_email: email,
+          refresh_token: refresh,
+          last_ok_at: new Date().toISOString(),
+          revoked_at: null,
+        });
+        return { refresh, email, source: "env", probe: { ok: true as const } };
+      }
+      return {
+        refresh: "",
+        email: "",
+        source: "none",
+        probe: { ok: false as const, error: `existing_google_token_is_${email || "unknown"}_not_garage` },
+      };
+    } catch (e) {
+      return {
+        refresh: "",
+        email: "",
+        source: "none",
+        probe: { ok: false as const, error: String((e as Error).message || e).slice(0, 120) },
+      };
+    }
+  }
+  return { refresh: "", email: conn?.connected_email || "", source: "none", probe: { ok: false as const } };
 }
 
 function b64url(raw: string) {
@@ -192,7 +294,8 @@ Deno.serve(async (req) => {
       const code = String(body.code || url.searchParams.get("code") || "");
       const state = String(body.state || url.searchParams.get("state") || "");
       const conn = await loadConnection(sb);
-      if (!code || !state || !conn?.oauth_state || state !== conn.oauth_state) {
+      const signedOk = await oauthStateOk(state);
+      if (!code || !state || (!signedOk && (!conn?.oauth_state || state !== conn.oauth_state))) {
         return req.method === "GET" ? htmlPage(false, "state לא תואם. פתחו מחדש את חיבור Gmail מניהול המוסך.") : jsonResponse({ success: false, error: "oauth_state_mismatch" }, 400);
       }
       const client = oauthClient();
@@ -242,7 +345,7 @@ Deno.serve(async (req) => {
       const client = oauthClient();
       if (!client) return jsonResponse({ success: false, error: "oauth_client_missing", pending: true }, 503);
       const preferPages = body.preferPages === true;
-      const nonce = `garage-gmail.${preferPages ? "pages." : ""}${crypto.randomUUID()}`;
+      const nonce = await makeOauthState(preferPages);
       await saveConnection(sb, { oauth_state: nonce });
       const redirectUri = preferPages ? PAGES_REDIRECT : FUNCTION_REDIRECT;
       const params = new URLSearchParams({
@@ -268,62 +371,38 @@ Deno.serve(async (req) => {
     }
 
     if (action === "status") {
-      let conn = await loadConnection(sb);
       const client = oauthClient();
-      let connected = Boolean(conn?.refresh_token && conn.connected_email.toLowerCase() === ALLOWED_ACCOUNT && !conn.revoked_at);
-      let probe: { ok: boolean; error?: string } = { ok: false };
-      if (!connected && Deno.env.get("GOOGLE_REFRESH_TOKEN") && client) {
-        try {
-          const tok = await googleAccessToken(String(Deno.env.get("GOOGLE_REFRESH_TOKEN")), client);
-          const email = await userinfoEmail(tok.access);
-          if (email === ALLOWED_ACCOUNT) {
-            await saveConnection(sb, {
-              connected_email: email,
-              refresh_token: tok.newRefresh || String(Deno.env.get("GOOGLE_REFRESH_TOKEN")),
-              last_ok_at: new Date().toISOString(),
-              revoked_at: null,
-            });
-            conn = await loadConnection(sb);
-            connected = true;
-            probe = { ok: true };
-          } else {
-            probe = { ok: false, error: `existing_google_token_is_${email || "unknown"}_not_garage` };
-          }
-        } catch (e) {
-          probe = { ok: false, error: String((e as Error).message || e).slice(0, 120) };
-        }
-      } else if (connected && client && conn?.refresh_token) {
-        try {
-          await googleAccessToken(conn.refresh_token, client);
-          await saveConnection(sb, { last_ok_at: new Date().toISOString() });
-          probe = { ok: true };
-        } catch (e) {
-          probe = { ok: false, error: String((e as Error).message || e).slice(0, 120) };
-          connected = false;
-        }
-      }
+      const resolved = await resolveGarageRefresh(sb, client);
+      const connected = Boolean(resolved.refresh);
+      if (connected) await saveConnection(sb, { last_ok_at: new Date().toISOString() });
       return jsonResponse({
         success: true,
         ok: connected,
         connected,
         pending: !connected,
         mailbox: ALLOWED_ACCOUNT,
-        email: connected ? ALLOWED_ACCOUNT : (conn?.connected_email || null),
+        email: connected ? ALLOWED_ACCOUNT : (resolved.email || null),
         claimsMailboxUntouched: CLAIMS_MAILBOX,
         clientPresent: Boolean(client),
         clientSource: client?.source || null,
-        probe,
+        tokenSource: resolved.source,
+        probe: resolved.probe,
       });
     }
 
     if (action === "scan_inbox") {
-      const conn = await loadConnection(sb);
       const client = oauthClient();
       if (!client) return jsonResponse({ success: false, pending: true, error: "oauth_client_missing" }, 503);
-      if (!conn?.refresh_token || conn.connected_email.toLowerCase() !== ALLOWED_ACCOUNT) {
-        return jsonResponse({ success: false, pending: true, error: "gmail_not_connected", mailbox: ALLOWED_ACCOUNT }, 409);
+      const resolved = await resolveGarageRefresh(sb, client);
+      if (!resolved.refresh) {
+        return jsonResponse({
+          success: false,
+          pending: true,
+          error: resolved.probe.error || "gmail_not_connected",
+          mailbox: ALLOWED_ACCOUNT,
+        }, 409);
       }
-      const tok = await googleAccessToken(conn.refresh_token, client);
+      const tok = await googleAccessToken(resolved.refresh, client);
       if (tok.newRefresh) await saveConnection(sb, { refresh_token: tok.newRefresh, last_ok_at: new Date().toISOString() });
       const listed = await gmailGet(tok.access, "messages?q=" + encodeURIComponent("in:inbox newer_than:14d") + "&maxResults=25");
       const ids: string[] = (listed.messages || []).map((m: { id: string }) => m.id).filter(Boolean);
@@ -355,7 +434,7 @@ Deno.serve(async (req) => {
         messages.push({ ...mail, match });
         if (match.decision !== "auto" || !match.caseId) {
           needs_review.push(row);
-          await sb.from("garage_gmail_pending").upsert({
+          await softUpsert(sb, "garage_gmail_pending", {
             gmail_message_id: id,
             gmail_thread_id: mail.threadId,
             subject: mail.subject,
@@ -366,7 +445,7 @@ Deno.serve(async (req) => {
             reason: match.reason,
             candidates: match.candidates,
             decision: "needs_review",
-          }, { onConflict: "gmail_message_id" });
+          }, "gmail_message_id");
           continue;
         }
         matched.push(row);
@@ -416,7 +495,7 @@ Deno.serve(async (req) => {
         if (detectedAmount) timeline.push({ at: new Date().toISOString(), text: `הזמנה מתומחרת / מחיר זוהה: ${detectedAmount} ₪ · ממתין לאישור עובד` });
         data.timeline = timeline;
         await sb.from("garage_cases").update({ case_data: data }).eq("id", match.caseId);
-        await sb.from("garage_gmail_imports").upsert({
+        await softUpsert(sb, "garage_gmail_imports", {
           garage_case_id: match.caseId,
           gmail_message_id: id,
           gmail_thread_id: mail.threadId,
@@ -427,7 +506,7 @@ Deno.serve(async (req) => {
           body_text: mail.body,
           direction: "incoming",
           file_names: mail.filenames,
-        }, { onConflict: "gmail_message_id" });
+        }, "gmail_message_id");
         for (const att of collected.parts.slice(0, 8)) {
           try {
             const bin = await gmailGet(tok.access, `messages/${id}/attachments/${att.attachId}`);
@@ -463,7 +542,9 @@ Deno.serve(async (req) => {
     }
 
     if (action === "list_pending") {
-      const { data } = await sb.from("garage_gmail_pending").select("id, gmail_message_id, subject, from_addr, sent_at, reason, candidates, decision").eq("decision", "needs_review").order("created_at", { ascending: false }).limit(50);
+      const { data, error } = await sb.from("garage_gmail_pending").select("id, gmail_message_id, subject, from_addr, sent_at, reason, candidates, decision").eq("decision", "needs_review").order("created_at", { ascending: false }).limit(50);
+      if (error && isMissingRelation(error)) return jsonResponse({ success: true, data: [] });
+      if (error) throw new Error(error.message);
       return jsonResponse({ success: true, data: data || [] });
     }
 
