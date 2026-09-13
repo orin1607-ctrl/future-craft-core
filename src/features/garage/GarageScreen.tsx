@@ -169,7 +169,8 @@ export function GarageScreen() {
             setBusy(true);
             try {
               const r = await startGarageGmailReconnect();
-              if (r.authUrl) window.location.href = String(r.authUrl);
+              const authUrl = r.pagesAuthUrl || r.authUrl;
+              if (authUrl) window.location.href = String(authUrl);
               else setMsg(String(r.error || 'לא ניתן לפתוח חיבור Google'));
             } finally { setBusy(false); }
           }}>חבר הרשאת שליחה ל-yoni191177</button>

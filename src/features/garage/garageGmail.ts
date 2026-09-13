@@ -30,7 +30,7 @@ export async function startGarageGmailReconnect() {
   const { data: sess } = await supabase.auth.getSession();
   const token = sess.session?.access_token;
   const started = await invokeGarageGmail('oauth_start');
-  if (started.authUrl && token) {
+  if ((started.pagesAuthUrl || started.authUrl) && token) {
     sessionStorage.setItem('coco-google-oauth-pending', JSON.stringify({
       edgeUrl: FN,
       accessToken: token,

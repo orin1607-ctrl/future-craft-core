@@ -656,7 +656,7 @@ Deno.serve(async (req) => {
       client_id: client.clientId,
       response_type: "code",
       access_type: "offline",
-      prompt: "consent",
+      prompt: "select_account consent",
       include_granted_scopes: "true",
       login_hint: ALLOWED_ACCOUNT,
       scope: SCOPES.join(" "),
@@ -665,10 +665,11 @@ Deno.serve(async (req) => {
     const pagesParams = new URLSearchParams({ ...common, redirect_uri: PAGES_REDIRECT, state: pagesState });
     return jsonResponse({
       success: true,
-      authUrl: `https://accounts.google.com/o/oauth2/v2/auth?${fnParams.toString()}`,
+      authUrl: `https://accounts.google.com/o/oauth2/v2/auth?${pagesParams.toString()}`,
       pagesAuthUrl: `https://accounts.google.com/o/oauth2/v2/auth?${pagesParams.toString()}`,
+      fnAuthUrl: `https://accounts.google.com/o/oauth2/v2/auth?${fnParams.toString()}`,
       mailbox: ALLOWED_ACCOUNT,
-      redirectUri: FUNCTION_REDIRECT,
+      redirectUri: PAGES_REDIRECT,
       pagesRedirectUri: PAGES_REDIRECT,
       note: "יש להתחבר בדיוק עם yoni191177@gmail.com. לא yoni122222 ולא Claims.",
     });
