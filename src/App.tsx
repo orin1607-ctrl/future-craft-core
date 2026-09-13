@@ -135,7 +135,6 @@ import ClaimsPage from "@/pages/ClaimsPage";
 import ClaimsUploadPage from "@/pages/ClaimsUploadPage";
 import ClaimsSharePage from "@/pages/ClaimsSharePage";
 import ClaimsIntakePage from "@/pages/ClaimsIntakePage";
-import GarageJobsPage from "@/pages/GarageJobsPage";
 import GaragePage from "@/pages/GaragePage";
 
 const queryClient = new QueryClient();
@@ -291,7 +290,6 @@ function AppRoutes() {
         <Route path="/telemarketing" element={<TelemarketingAgentPage />} />
         <Route path="/telemarketing/admin" element={<TelemarketingAdminPage />} />
         <Route path="/claims" element={<ClaimsPage />} />
-        <Route path="/garage" element={<GarageJobsPage />} />
         <Route path="/garage" element={<GaragePage />} />
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/faults" element={<Faults />} />
