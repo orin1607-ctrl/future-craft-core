@@ -156,6 +156,119 @@ async function saveConnection(
   return true;
 }
 
+function stagingDbUrl() {
+  const raw = Deno.env.get("SUPABASE_DB_URL") || Deno.env.get("POSTGRES_URL") || Deno.env.get("DATABASE_URL") || "";
+  if (!raw) return "";
+  if (raw.includes(PROD_REF) || /dalia-car\.online/i.test(raw)) return "";
+  if (!raw.includes(STAGING_REF)) return "";
+  return raw;
+}
+
+async function tryExecSql(sb: ReturnType<typeof admin>, query: string) {
+  const attempts = [{ query }, { sql: query }];
+  for (const args of attempts) {
+    const { error } = await sb.rpc("exec_sql", args);
+    if (!error) return true;
+    const msg = `${error.message || ""} ${error.code || ""}`;
+    if (!/could not find the function|PGRST202|schema cache/i.test(msg)) return false;
+  }
+  return false;
+}
+
+async function ensureGarageConnectionTable(sb?: ReturnType<typeof admin>) {
+  const client = sb || admin();
+  const statements = [
+    `CREATE TABLE IF NOT EXISTS public.garage_gmail_connection (
+      id text PRIMARY KEY,
+      connected_email text NOT NULL DEFAULT '',
+      refresh_token text NOT NULL DEFAULT '',
+      oauth_state text NOT NULL DEFAULT '',
+      last_ok_at timestamptz,
+      revoked_at timestamptz,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT garage_gmail_connection_not_claims CHECK (position('yoni122222' in lower(connected_email)) = 0)
+    )`,
+    `ALTER TABLE public.garage_gmail_connection ENABLE ROW LEVEL SECURITY`,
+    `ALTER TABLE public.garage_gmail_connection FORCE ROW LEVEL SECURITY`,
+    `REVOKE ALL ON TABLE public.garage_gmail_connection FROM PUBLIC`,
+    `REVOKE ALL ON TABLE public.garage_gmail_connection FROM anon`,
+    `REVOKE ALL ON TABLE public.garage_gmail_connection FROM authenticated`,
+    `DROP POLICY IF EXISTS garage_gmail_connection_deny_clients ON public.garage_gmail_connection`,
+    `CREATE POLICY garage_gmail_connection_deny_clients ON public.garage_gmail_connection FOR ALL TO authenticated USING (false) WITH CHECK (false)`,
+  ];
+  let rpcOk = true;
+  for (const stmt of statements) {
+    if (!(await tryExecSql(client, stmt))) {
+      rpcOk = false;
+      break;
+    }
+  }
+  if (rpcOk) {
+    const check = await client.from("garage_gmail_connection").select("id").limit(1);
+    if (!check.error || !isMissingRelation(check.error)) return true;
+  }
+  const dbUrl = stagingDbUrl();
+  if (!dbUrl) return false;
+  try {
+    const mod = await import("https://esm.sh/postgres@3.4.5");
+    const postgres = (mod.default || mod) as (url: string, opts?: Record<string, unknown>) => {
+      unsafe: (query: string) => Promise<unknown>;
+      end: (opts?: { timeout?: number }) => Promise<void>;
+    };
+    const sql = postgres(dbUrl, { ssl: "require", max: 1, idle_timeout: 5, connect_timeout: 8 });
+    for (const stmt of statements) await sql.unsafe(stmt);
+    await sql.end({ timeout: 5 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function storeGarageRefreshSecret(refreshToken: string) {
+  const projectRef = Deno.env.get("SUPABASE_PROJECT_REF") || STAGING_REF;
+  if (projectRef === PROD_REF || projectRef.includes(PROD_REF)) return { ok: false as const, error: "production_forbidden" };
+  const accessToken = Deno.env.get("SUPABASE_ACCESS_TOKEN") || "";
+  if (!accessToken) return { ok: false as const, error: "no_access_token" };
+  const res = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/secrets`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify([
+      { name: "GARAGE_GOOGLE_REFRESH_TOKEN", value: refreshToken },
+    ]),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    return { ok: false as const, error: `secrets_api_${res.status}:${err.slice(0, 80)}` };
+  }
+  return { ok: true as const };
+}
+
+async function persistGarageMailbox(sb: ReturnType<typeof admin>, refreshToken: string, email: string) {
+  let table = await saveConnection(sb, {
+    connected_email: email,
+    refresh_token: refreshToken,
+    oauth_state: "",
+    last_ok_at: new Date().toISOString(),
+    revoked_at: null,
+  });
+  if (!table) {
+    await ensureGarageConnectionTable(sb);
+    table = await saveConnection(sb, {
+      connected_email: email,
+      refresh_token: refreshToken,
+      oauth_state: "",
+      last_ok_at: new Date().toISOString(),
+      revoked_at: null,
+    });
+  }
+  const secret = await storeGarageRefreshSecret(refreshToken);
+  return { ok: table || secret.ok, table, secret: secret.ok, secretError: secret.ok ? "" : secret.error };
+}
+
 async function softUpsert(
   sb: ReturnType<typeof admin>,
   table: "garage_gmail_pending" | "garage_gmail_imports",
@@ -176,7 +289,7 @@ async function resolveGarageRefresh(
   if (conn?.refresh_token && String(conn.connected_email || "").toLowerCase() === ALLOWED_ACCOUNT && !conn.revoked_at) {
     return { refresh: conn.refresh_token, email: ALLOWED_ACCOUNT, source: "table", probe: { ok: true as const } };
   }
-  const envRefresh = Deno.env.get("GARAGE_GOOGLE_REFRESH_TOKEN") || Deno.env.get("GOOGLE_REFRESH_TOKEN") || "";
+  const envRefresh = Deno.env.get("GARAGE_GOOGLE_REFRESH_TOKEN") || "";
   if (envRefresh && client) {
     try {
       const tok = await googleAccessToken(envRefresh, client);
@@ -195,7 +308,7 @@ async function resolveGarageRefresh(
         refresh: "",
         email: "",
         source: "none",
-        probe: { ok: false as const, error: `existing_google_token_is_${email || "unknown"}_not_garage` },
+        probe: { ok: false as const, error: "garage_refresh_token_is_not_yoni191177" },
       };
     } catch (e) {
       return {
@@ -327,18 +440,31 @@ Deno.serve(async (req) => {
           : `החשבון שאושר הוא ${email || "לא ידוע"}. צריך בדיוק ${ALLOWED_ACCOUNT}. לא orin1607 ולא Claims.`;
         return req.method === "GET"
           ? htmlPage(false, blocked)
-          : jsonResponse({ success: false, error: "wrong_account", email }, 403);
+          : jsonResponse({ success: false, error: "wrong_account", email, message: blocked }, 403);
       }
-      await saveConnection(sb, {
-        connected_email: email,
-        refresh_token: String(tok.refresh_token),
-        oauth_state: "",
-        last_ok_at: new Date().toISOString(),
-        revoked_at: null,
-      });
+      const persisted = await persistGarageMailbox(sb, String(tok.refresh_token), email);
+      if (!persisted.ok) {
+        const blocked = "החיבור ל-Google הצליח אבל לא נשמר ב-Staging. לא נגענו ב-Claims ולא בטוקן של marketing.";
+        return req.method === "GET"
+          ? htmlPage(false, blocked)
+          : jsonResponse({
+            success: false,
+            error: "persist_failed",
+            message: blocked,
+            table: persisted.table,
+            secret: persisted.secret,
+            secretError: persisted.secretError,
+          }, 503);
+      }
       return req.method === "GET"
         ? htmlPage(true, `${ALLOWED_ACCOUNT} מחובר לסריקת ניהול המוסך.`)
-        : jsonResponse({ success: true, connected: true, email, mailbox: ALLOWED_ACCOUNT });
+        : jsonResponse({
+          success: true,
+          connected: true,
+          email,
+          mailbox: ALLOWED_ACCOUNT,
+          persistedTo: persisted.table ? "table" : "secret",
+        });
     }
 
     const auth = await requireAuth(req, { roles: ["super_admin"] });
@@ -347,6 +473,7 @@ Deno.serve(async (req) => {
     if (action === "oauth_start") {
       const client = oauthClient();
       if (!client) return jsonResponse({ success: false, error: "oauth_client_missing", pending: true }, 503);
+      await ensureGarageConnectionTable(sb);
       const preferPages = body.preferPages === true;
       const nonce = await makeOauthState(preferPages);
       await saveConnection(sb, { oauth_state: nonce });
@@ -402,7 +529,8 @@ Deno.serve(async (req) => {
         return jsonResponse({
           success: false,
           pending: true,
-          error: resolved.probe.error || "gmail_not_connected",
+          error: "gmail_not_connected",
+          message: `תיבת המוסך ${ALLOWED_ACCOUNT} עדיין לא מחוברת לסריקה. לא משתמשים ב-orin1607 ולא ב-Claims.`,
           mailbox: ALLOWED_ACCOUNT,
         }, 409);
       }

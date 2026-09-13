@@ -190,6 +190,11 @@ describe('priced-order detection and worker approval', () => {
     expect(fnSrc).not.toContain('select_account');
     expect(fnSrc).not.toContain('include_granted_scopes');
     expect(fnSrc).toContain('gmail.readonly');
+    expect(fnSrc).toContain('GARAGE_GOOGLE_REFRESH_TOKEN');
+    expect(fnSrc).toContain('persist_failed');
+    expect(fnSrc).toContain('persistGarageMailbox');
+    expect(fnSrc).not.toContain('existing_google_token_is_');
+    expect(fnSrc).not.toContain('Deno.env.get("GOOGLE_REFRESH_TOKEN")');
     expect(fnSrc).toContain('orin1607-ctrl.github.io/future-craft-core/oauth/google-callback.html');
     expect(mailSrc).toContain("invoke('garage-gmail'");
     expect(mailSrc).not.toContain("invoke('claims-gmail'");
@@ -213,6 +218,11 @@ describe('priced-order detection and worker approval', () => {
     expect(helperSrc).toContain('window.top');
     expect(helperSrc).not.toContain('AccountChooser');
     expect(helperSrc).not.toContain("invoke('claims-gmail'");
+    const callbackSrc = readFileSync(resolve('public/oauth/google-callback.html'), 'utf8');
+    expect(callbackSrc).toContain("action: 'oauth_callback'");
+    expect(callbackSrc).toContain('data.message');
+    expect(callbackSrc).toContain('yoni191177@gmail.com');
+    expect(callbackSrc).not.toContain('claims-gmail');
     expect(appSrc).toContain('allow-top-navigation');
     expect(appSrc).toContain('allow-top-navigation-by-user-activation');
     expect(parseGoogleClientIdFromAuthUrl('https://accounts.google.com/o/oauth2/v2/auth?client_id=abc.apps.googleusercontent.com&x=1')).toBe('abc.apps.googleusercontent.com');

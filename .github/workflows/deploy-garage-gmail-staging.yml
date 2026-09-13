@@ -63,16 +63,13 @@ jobs:
               if "qasomfndnjuixgjmjwcm" in v or "dalia-car.online" in v.lower():
                   raise SystemExit(f"{n} looks like Production — refusing")
           PY
-      - name: Apply approved garage Gmail SQL if Staging DB URL is present
+      - name: Apply approved garage Gmail SQL on Staging
         env:
           STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: |
-          if [ -n "${STAGING_DATABASE_URL:-}${DATABASE_URL:-}" ]; then
-            node scripts/apply-garage-gmail-staging.mjs
-          else
-            echo "No Staging DB URL in Preview — skip SQL, function can still scan via existing Edge Google token"
-          fi
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/apply-garage-gmail-staging.mjs
       - name: Deploy garage-gmail Edge to Staging
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -111,15 +108,12 @@ jobs:
               if "qasomfndnjuixgjmjwcm" in v or "dalia-car.online" in v.lower():
                   raise SystemExit(f"{n} looks like Production — refusing")
           PY
-      - name: Apply approved garage Gmail SQL if Staging DB URL is present
+      - name: Apply approved garage Gmail SQL on Staging
         env:
           STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-        run: |
-          if [ -n "${STAGING_DATABASE_URL:-}" ]; then
-            node scripts/apply-garage-gmail-staging.mjs
-          else
-            echo "No STAGING_DATABASE_URL at repo level — skip SQL"
-          fi
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/apply-garage-gmail-staging.mjs
       - name: Deploy garage-gmail Edge to Staging
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

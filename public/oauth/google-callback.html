@@ -60,7 +60,7 @@ p{font-size:14px;color:rgba(255,255,255,.7);line-height:1.6;margin:0 0 16px;}
         back.textContent = 'חזרה לניהול המוסך';
         finish(true, 'תיבת המוסך yoni191177@gmail.com מחוברת לסריקה. לחצו חזרה ואז סרוק תיבת מוסך.');
       }
-      else finish(false, (data && (data.error || data.email)) || 'החלפת קוד Gmail של המוסך נכשלה');
+      else finish(false, (data && (data.message || data.error || data.email)) || 'החלפת קוד Gmail של המוסך נכשלה');
     }).catch(function (e) { finish(false, 'שגיאת רשת: ' + e.message); });
     return;
   }
