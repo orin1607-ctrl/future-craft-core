@@ -1,6 +1,23 @@
 -- Additive driver-area settings (Staging/dev). Does not drop tables, columns,
 -- or policies. Does not touch claims_* or production-only objects.
 
+-- Prerequisite columns from 20260906120000 (IF NOT EXISTS — no-op if already applied).
+ALTER TABLE public.driver_app_company_config
+  ADD COLUMN IF NOT EXISTS contact_email text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS contact_whatsapp text NOT NULL DEFAULT '';
+
+ALTER TABLE public.driver_app_action_settings
+  ADD COLUMN IF NOT EXISTS email_to_company_contact boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS whatsapp_to_fleet_managers boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS whatsapp_to_company_contact boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.vehicle_history
+  ADD COLUMN IF NOT EXISTS assigned_driver_id uuid NULL;
+
+CREATE INDEX IF NOT EXISTS idx_vehicle_history_driver_assignment
+  ON public.vehicle_history (vehicle_id, assigned_driver_id, event_date DESC)
+  WHERE event_type = 'driver_assignment';
+
 -- 1. Contact fields: Dalia global + per-company
 ALTER TABLE public.dalia_contact_settings
   ADD COLUMN IF NOT EXISTS contact_name text NOT NULL DEFAULT '',

@@ -101,6 +101,7 @@ jobs:
       - name: Deploy notify-driver-event to staging only
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
           STAGING_REF: usfeoerkpcafxxlyuldl
         run: |
           set -euo pipefail
@@ -110,6 +111,27 @@ jobs:
             exit 0
           fi
           # STAGING_REF is hardcoded to usfeoerkpcafxxlyuldl (Guard: never production).
+          echo "Staging function secret names (values never printed):"
+          npx --yes supabase secrets list --project-ref "$STAGING_REF" || true
+          URL=$(printf '%s' "${STAGING_DB_URL:-}" | tr -d '\r\n')
+          if [ -n "$URL" ]; then
+            case "$URL" in
+              *qasomfndnjuixgjmjwcm*|*kuenhflklivaxrmqbsee*)
+                echo "::error::Refusing to set a production database URL on staging"
+                exit 1
+                ;;
+              *usfeoerkpcafxxlyuldl*)
+                npx --yes supabase secrets set --project-ref "$STAGING_REF" "SUPABASE_DB_URL=$URL"
+                echo "✅ SUPABASE_DB_URL set on staging functions from GitHub secret STAGING_DB_URL"
+                ;;
+              *)
+                echo "::error::STAGING_DB_URL does not include the staging project ref"
+                exit 1
+                ;;
+            esac
+          else
+            echo "GitHub secret STAGING_DB_URL is not set; edge function will use project-injected DB URL if present"
+          fi
           npx --yes supabase functions deploy notify-driver-event \
             --project-ref "$STAGING_REF" \
             --no-verify-jwt
