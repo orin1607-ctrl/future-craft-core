@@ -37,16 +37,25 @@ async function loadConnection(sb: ReturnType<typeof admin>) {
   return data as { connected_email: string; refresh_token: string; revoked_at: string | null; last_ok_at: string | null };
 }
 
+function oauthApp() {
+  const googleId = Deno.env.get("GOOGLE_CLIENT_ID") || "";
+  const googleSecret = Deno.env.get("GOOGLE_CLIENT_SECRET") || "";
+  if (googleId && googleSecret) return { clientId: googleId, clientSecret: googleSecret };
+  const claimsId = Deno.env.get("CLAIMS_GOOGLE_CLIENT_ID") || "";
+  const claimsSecret = Deno.env.get("CLAIMS_GOOGLE_CLIENT_SECRET") || "";
+  if (claimsId && claimsSecret) return { clientId: claimsId, clientSecret: claimsSecret };
+  return null;
+}
+
 async function googleAccessToken(refreshToken: string) {
-  const clientId = Deno.env.get("CLAIMS_GOOGLE_CLIENT_ID") || "";
-  const clientSecret = Deno.env.get("CLAIMS_GOOGLE_CLIENT_SECRET") || "";
-  if (!clientId || !clientSecret) throw new Error("oauth_app_credentials_missing");
+  const app = oauthApp();
+  if (!app) throw new Error("oauth_app_credentials_missing");
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
+      client_id: app.clientId,
+      client_secret: app.clientSecret,
       refresh_token: refreshToken,
       grant_type: "refresh_token",
     }),

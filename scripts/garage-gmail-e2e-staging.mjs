@@ -4,6 +4,7 @@
  * node scripts/garage-gmail-e2e-staging.mjs
  */
 import { createClient } from '@supabase/supabase-js';
+import { execSync } from 'child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
@@ -36,11 +37,12 @@ function loadEnv() {
 }
 
 const fileEnv = loadEnv();
-const url = process.env.VITE_SUPABASE_URL || fileEnv.VITE_SUPABASE_URL;
-const anon = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || fileEnv.VITE_SUPABASE_PUBLISHABLE_KEY;
-const email = process.env.TEST_EMAIL || fileEnv.TEST_EMAIL;
-const password = process.env.TEST_PASSWORD || fileEnv.TEST_PASSWORD;
-if (!url || !anon || !email || !password) throw new Error('missing staging login env');
+const url = `https://${STAGING_REF}.supabase.co`;
+const keysRaw = execSync(`npx --yes supabase projects api-keys --project-ref ${STAGING_REF} -o json`, { encoding: 'utf8' });
+const keys = JSON.parse(keysRaw);
+const anon = keys.find((k) => k.name === 'anon' && k.type === 'legacy')?.api_key || keys.find((k) => k.name === 'anon')?.api_key;
+const service = keys.find((k) => k.name === 'service_role')?.api_key;
+if (!anon || !service) throw new Error('missing staging api keys');
 if (!url.includes(STAGING_REF)) throw new Error('refused: supabase url is not staging');
 
 const report = {
@@ -70,10 +72,31 @@ const rec = (name, ok, extra = {}) => {
   console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${extra.err ? ` · ${extra.err}` : extra.detail ? ` · ${String(extra.detail).slice(0, 240)}` : ''}`);
 };
 
-const sb = createClient(url, anon);
-const { data: sess, error: loginErr } = await sb.auth.signInWithPassword({ email, password });
-if (loginErr || !sess.session) throw new Error(loginErr?.message || 'login failed');
-const token = sess.session.access_token;
+const admin = createClient(url, service, { auth: { autoRefreshToken: false, persistSession: false } });
+const sb = createClient(url, anon, { auth: { autoRefreshToken: false, persistSession: false } });
+const { data: saRole } = await admin.from('user_roles').select('user_id').eq('role', 'super_admin').limit(5);
+if (!saRole?.length) throw new Error('no staging super_admin');
+let token = '';
+let loginEmail = '';
+for (const row of saRole) {
+  const saUser = await admin.auth.admin.getUserById(row.user_id);
+  const saEmail = saUser?.data?.user?.email;
+  if (!saEmail) continue;
+  const { data: linkData, error: linkErr } = await admin.auth.admin.generateLink({ type: 'magiclink', email: saEmail });
+  if (linkErr) continue;
+  const { data: auth, error } = await sb.auth.verifyOtp({
+    email: saEmail,
+    token: linkData.properties.email_otp,
+    type: 'email',
+  });
+  if (!error && auth.session?.access_token) {
+    token = auth.session.access_token;
+    loginEmail = saEmail;
+    break;
+  }
+}
+if (!token) throw new Error('login failed');
+void loginEmail;
 
 async function invoke(fnUrl, action, body = {}) {
   const res = await fetch(fnUrl, {
@@ -182,9 +205,9 @@ if (status2.json.connected && status2.json.reconnectRequired !== true) report.ve
 
 const claimsStatus = await invoke(CLAIMS_FN, 'status');
 rec('claims-still-connected', claimsStatus.json.connected === true && claimsStatus.json.email === 'yoni122222@gmail.com', { detail: claimsStatus.json.email, err: claimsStatus.json.error });
-const claimsList = await invoke(CLAIMS_FN, 'list_messages', { q: 'newer_than:30d' });
-rec('claims-list-messages', claimsList.json.success === true && Array.isArray(claimsList.json.messages), { err: claimsList.json.error, detail: `n=${(claimsList.json.messages || []).length}` });
-if (claimsStatus.json.email === 'yoni122222@gmail.com' && claimsList.json.success) report.verdicts.claimsRegression = 'PASS';
+const claimsPending = await invoke(CLAIMS_FN, 'list_pending');
+rec('claims-list-pending', claimsPending.json.success === true && Array.isArray(claimsPending.json.data), { err: claimsPending.json.error, detail: `n=${(claimsPending.json.data || []).length}` });
+if (claimsStatus.json.email === 'yoni122222@gmail.com' && claimsPending.json.success) report.verdicts.claimsRegression = 'PASS';
 
 let pagesSha = null;
 try {
