@@ -41,7 +41,7 @@ jobs:
           PRECHECK_VARIABLE_PRESENT: ${{ vars.SUPABASE_STAGING_PRECHECK_TOKEN != '' }}
         run: |
           set -euo pipefail
-          echo "fresh_check_at=2026-09-14T10:14:00Z"
+          echo "fresh_check_at=2026-09-14T10:43:00Z"
           echo "event=${EVENT_NAME}"
           echo "head_repo=${HEAD_REPO}"
           echo "is_fork=${IS_FORK}"

@@ -1,66 +1,15 @@
 {
-  "at": "2026-09-14T10:15:26Z",
+  "at": "2026-09-14T10:43:00Z",
   "target": "usfeoerkpcafxxlyuldl",
   "production_touched": false,
   "read_only": true,
-  "verdict": "STOP_MANAGEMENT_API_403_ON_GET_PROJECT",
+  "verdict": "PENDING_FRESH_PRECHECK_AFTER_PROJECT_READ",
   "token_name": "SUPABASE_STAGING_PRECHECK_TOKEN",
   "ignored_old_token": "SUPABASE_ACCESS_TOKEN",
-  "github_actions": {
-    "run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34832236451",
-    "fresh_check_at": "2026-09-14T10:15:21Z",
-    "precheck_secret_present": true,
-    "other_repo_secret_present": true,
-    "read_only_precheck_step": "ran"
-  },
-  "catalog": {
-    "shop_company_name": {
-      "garage_customers": "missing",
-      "garage_vehicles": "missing",
-      "garage_cases": "missing",
-      "customers_preview": "column garage_customers.shop_company_name does not exist"
-    },
-    "tables": {
-      "garage_customers": "present_grant_denied_to_anon",
-      "garage_vehicles": "present_grant_denied_to_anon",
-      "garage_cases": "present_grant_denied_to_anon",
-      "garage_media": "present_grant_denied_to_anon"
-    }
-  },
-  "identity": {
-    "method": "GET",
-    "path": "/v1/projects/usfeoerkpcafxxlyuldl",
-    "http": 403,
-    "body": {
-      "message": "Your account does not have the necessary privileges to access this endpoint. For more details, refer to our documentation https://supabase.com/docs/guides/platform/access-control"
-    }
-  },
-  "counts": {
-    "garage_cases_total": null,
-    "garage_cases_unambiguous": null,
-    "garage_cases_conflict": null,
-    "garage_cases_no_signal": null,
-    "garage_customers_total": null,
-    "garage_customers_unambiguous": null,
-    "garage_customers_conflict": null,
-    "garage_vehicles_total": null,
-    "garage_vehicles_unambiguous": null,
-    "garage_vehicles_conflict": null,
-    "garage_media_orphan_without_case": null,
-    "state": "blocked",
-    "reason": "STAGING_PRECHECK_TOKEN_UNAUTHORIZED",
-    "query_endpoint_attempted": false
-  },
-  "missing_permission": {
-    "not": "GitHub secret delivery — SUPABASE_STAGING_PRECHECK_TOKEN is now visible to the workflow",
-    "not_2": "Database Read-write (do not add this for PRECHECK)",
-    "endpoint": "GET https://api.supabase.com/v1/projects/usfeoerkpcafxxlyuldl",
-    "http": 403,
-    "actual": "Management API project-read / access-control for GET /v1/projects/{ref}. The PAT cursor-garage-precheck-readonly has Database=READ only; that scope does not authorize this identity endpoint. POST /v1/projects/{ref}/database/query was not attempted because identity failed closed. Permissions were not expanded."
-  },
+  "note": "Owner added Project Settings=Read + Database=Read on a new staging-only PAT and updated the Repository secret. Retriggering SELECT-only PRECHECK. No Migration.",
+  "counts": { "state": "pending" },
   "gate": {
     "migration_run": false,
-    "module_opened_to_fleet_manager": false,
     "pages_deployed": false,
     "live_sha": "0a78f53de31c089c15f0e07b640cca408ab87017"
   }
