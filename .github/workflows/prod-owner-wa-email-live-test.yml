@@ -1,0 +1,285 @@
+# One controlled Production send to the owner only, then restore settings.
+# Company: אכבים. Never קיבוץ בארי. No Hostinger / migrate / function deploy.
+name: Production owner WhatsApp/Email live test
+
+on:
+  push:
+    branches: [cursor/prod-driver-area-only-b784]
+    paths:
+      - '.github/workflows/prod-owner-wa-email-live-test.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: prod-owner-wa-email-live-test
+  cancel-in-progress: false
+
+jobs:
+  live-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Backup settings, owner-only send, restore
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, os, re, time, urllib.parse, urllib.request, urllib.error
+          from datetime import datetime, timezone, timedelta
+
+          SRK = os.environ.get('SRK') or ''
+          ANON = os.environ.get('ANON') or SRK
+          BASE = 'https://qasomfndnjuixgjmjwcm.supabase.co'
+          FN = BASE + '/functions/v1/notify-driver-event'
+          COMPANY = 'אכבים'
+          FORBIDDEN = 'בארי'
+          ACTION = 'fault_urgent'
+          OWNER_EMAIL = 'orin1607@gmail.com'
+          OWNER_WA_RAW = '0534338601'
+          OWNER_WA = '972534338601'
+
+          def norm_phone(v):
+              d = ''.join(c for c in str(v or '') if c.isdigit())
+              if not d:
+                  return ''
+              if d.startswith('0'):
+                  return '972' + d[1:]
+              return d
+
+          def rest(path, method='GET', body=None):
+              h = {
+                  'apikey': SRK,
+                  'Authorization': 'Bearer ' + SRK,
+                  'Accept': 'application/json',
+                  'Prefer': 'return=representation',
+              }
+              data = None
+              if body is not None:
+                  h['Content-Type'] = 'application/json'
+                  data = json.dumps(body, ensure_ascii=False).encode()
+              req = urllib.request.Request(BASE + path, data=data, headers=h, method=method)
+              try:
+                  with urllib.request.urlopen(req, timeout=45) as r:
+                      raw = r.read().decode()
+                      return r.status, json.loads(raw) if raw else None
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      parsed = json.loads(raw)
+                  except Exception:
+                      parsed = {'raw': raw[:600]}
+                  return e.code, parsed
+
+          def invoke(body):
+              req = urllib.request.Request(
+                  FN,
+                  data=json.dumps(body, ensure_ascii=False).encode(),
+                  method='POST',
+                  headers={
+                      'Content-Type': 'application/json',
+                      'apikey': ANON,
+                      'Authorization': 'Bearer ' + ANON,
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      raw = r.read().decode()
+                      return r.status, json.loads(raw) if raw else {}
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      parsed = json.loads(raw)
+                  except Exception:
+                      parsed = {'raw': raw[:600]}
+                  return e.code, parsed
+
+          print('=== OWNER_LIVE_TEST_START ===')
+          if not SRK:
+              print('FATAL no SRK')
+              raise SystemExit(1)
+          if FORBIDDEN in COMPANY:
+              print('FATAL forbidden company')
+              raise SystemExit(1)
+
+          cq = urllib.parse.quote(COMPANY, safe='')
+          aq = urllib.parse.quote(ACTION, safe='')
+
+          st, all_settings = rest(
+              f'/rest/v1/driver_app_action_settings?company_name=eq.{cq}&select=company_name,action_key,email_enabled,whatsapp_enabled,in_app_enabled,email_to_fleet_managers,email_to_company_contact,email_to_dalia,email_extra,whatsapp_to_fleet_managers,whatsapp_to_company_contact,whatsapp_to_dalia,whatsapp_extra,in_app_to_fleet_managers,in_app_to_company_contact,in_app_to_dalia,condition_mode,condition_values'
+          )
+          print('SETTINGS_HTTP', st, 'N', len(all_settings) if isinstance(all_settings, list) else all_settings)
+          if not isinstance(all_settings, list):
+              raise SystemExit(1)
+          for s in all_settings:
+              if FORBIDDEN in str(s.get('company_name') or ''):
+                  print('FATAL settings row for forbidden company')
+                  raise SystemExit(1)
+              print('CURRENT_ACTION', json.dumps({
+                  'action': s.get('action_key'),
+                  'email': s.get('email_enabled'),
+                  'whatsapp': s.get('whatsapp_enabled'),
+                  'in_app': s.get('in_app_enabled'),
+                  'email_to_fm': s.get('email_to_fleet_managers'),
+                  'email_to_contact': s.get('email_to_company_contact'),
+                  'email_to_dalia': s.get('email_to_dalia'),
+                  'email_extra': (s.get('email_extra') or '').strip(),
+                  'wa_to_fm': s.get('whatsapp_to_fleet_managers'),
+                  'wa_to_contact': s.get('whatsapp_to_company_contact'),
+                  'wa_to_dalia': s.get('whatsapp_to_dalia'),
+                  'whatsapp_extra': (s.get('whatsapp_extra') or '').strip(),
+                  'in_app_fm': s.get('in_app_to_fleet_managers'),
+                  'in_app_contact': s.get('in_app_to_company_contact'),
+                  'in_app_dalia': s.get('in_app_to_dalia'),
+              }, ensure_ascii=False))
+
+          st, cfg_rows = rest(f'/rest/v1/driver_app_company_config?company_name=eq.{cq}&select=*')
+          st, dalia = rest('/rest/v1/dalia_contact_settings?id=eq.global&select=email,whatsapp')
+          st, cset = rest(
+              f'/rest/v1/company_settings?company_name=eq.{cq}&select=incident_notify_in_app,incident_notify_email,incident_notify_whatsapp,incident_email_recipients,incident_whatsapp_recipients'
+          )
+          cfg = (cfg_rows[0] if isinstance(cfg_rows, list) and cfg_rows else {}) or {}
+          d0 = (dalia[0] if isinstance(dalia, list) and dalia else {}) or {}
+          print('COMPANY_CONFIG', json.dumps({
+              'company': cfg.get('company_name'),
+              'dalia_service_enabled': cfg.get('dalia_service_enabled'),
+              'contact_email': cfg.get('contact_email'),
+              'contact_whatsapp': cfg.get('contact_whatsapp'),
+          }, ensure_ascii=False))
+          print('DALIA_GLOBAL', json.dumps({'email': d0.get('email'), 'whatsapp': d0.get('whatsapp')}, ensure_ascii=False))
+          print('LEGACY_INCIDENT', json.dumps(cset, ensure_ascii=False)[:800] if cset else cset)
+
+          orig_rows = [s for s in all_settings if s.get('action_key') == ACTION]
+          if not orig_rows:
+              print('FATAL no original action row')
+              raise SystemExit(1)
+          original = orig_rows[0]
+          print('BACKUP_ROW', json.dumps(original, ensure_ascii=False))
+
+          patch = {
+              'email_enabled': True,
+              'whatsapp_enabled': True,
+              'email_to_fleet_managers': False,
+              'email_to_company_contact': False,
+              'email_to_dalia': False,
+              'email_extra': OWNER_EMAIL,
+              'whatsapp_to_fleet_managers': False,
+              'whatsapp_to_company_contact': False,
+              'whatsapp_to_dalia': False,
+              'whatsapp_extra': OWNER_WA_RAW,
+          }
+          planned_emails = [OWNER_EMAIL.lower()]
+          planned_phones = [OWNER_WA]
+          print('PLANNED_EMAILS', planned_emails)
+          print('PLANNED_WHATSAPP', planned_phones)
+          if planned_emails != [OWNER_EMAIL.lower()] or planned_phones != [OWNER_WA]:
+              print('ABORT destination mismatch before patch')
+              raise SystemExit(1)
+
+          restored = False
+          result = None
+          try:
+              st, patched = rest(
+                  f'/rest/v1/driver_app_action_settings?company_name=eq.{cq}&action_key=eq.{aq}',
+                  method='PATCH',
+                  body=patch,
+              )
+              print('PATCH_HTTP', st, json.dumps(patched, ensure_ascii=False)[:1200] if patched else patched)
+              if st not in (200, 204) or not patched:
+                  print('FATAL patch failed')
+                  raise SystemExit(1)
+              row = patched[0] if isinstance(patched, list) else patched
+              if FORBIDDEN in str(row.get('company_name') or ''):
+                  print('FATAL patched forbidden company')
+                  raise SystemExit(1)
+              extra_emails = [p.lower() for p in re.split(r'[,;\s]+', (row.get('email_extra') or '').strip()) if p]
+              extra_phones = [norm_phone(p) for p in re.split(r'[,;\s]+', (row.get('whatsapp_extra') or '').strip()) if p]
+              if row.get('email_to_fleet_managers') or row.get('whatsapp_to_fleet_managers'):
+                  print('ABORT fleet manager recipients enabled')
+                  raise SystemExit(1)
+              if row.get('email_to_dalia') or row.get('whatsapp_to_dalia'):
+                  print('ABORT dalia recipients enabled')
+                  raise SystemExit(1)
+              if row.get('email_to_company_contact') or row.get('whatsapp_to_company_contact'):
+                  print('ABORT company_contact recipients enabled (using extra only)')
+                  raise SystemExit(1)
+              if extra_emails != [OWNER_EMAIL.lower()] or extra_phones != [OWNER_WA]:
+                  print('ABORT extra recipients not owner-only', extra_emails, extra_phones)
+                  raise SystemExit(1)
+
+              body = {
+                  'action_key': ACTION,
+                  'condition_value': 'urgent',
+                  'record': {
+                      'company_name': COMPANY,
+                      'driver_name': 'בדיקת מערכת',
+                      'vehicle_plate': 'SYS-TEST',
+                      'description': 'בדיקת מערכת בלבד – אין לטפל',
+                      'urgency': 'urgent',
+                      'event_number': 'SYS-TEST-OWNER',
+                      'fault_type': 'בדיקת מערכת',
+                  },
+                  'title': 'בדיקת מערכת בלבד – אין לטפל',
+                  'message': 'בדיקת מערכת בלבד – אין לטפל. לא תקלה אמיתית ולא דורש טיפול.',
+                  'link': '/dashboard',
+              }
+              print('INVOKE_COMPANY', COMPANY)
+              print('INVOKE_ACTION', ACTION)
+              print('INVOKE_EMAIL', OWNER_EMAIL)
+              print('INVOKE_WHATSAPP', OWNER_WA_RAW, 'normalized', OWNER_WA)
+              hs, result = invoke(body)
+              print('INVOKE_RESULT', json.dumps({'http': hs, 'body': result}, ensure_ascii=False)[:2000])
+          finally:
+              restore_body = {
+                  'email_enabled': original.get('email_enabled'),
+                  'whatsapp_enabled': original.get('whatsapp_enabled'),
+                  'email_to_fleet_managers': original.get('email_to_fleet_managers'),
+                  'email_to_company_contact': original.get('email_to_company_contact'),
+                  'email_to_dalia': original.get('email_to_dalia'),
+                  'email_extra': original.get('email_extra') or '',
+                  'whatsapp_to_fleet_managers': original.get('whatsapp_to_fleet_managers'),
+                  'whatsapp_to_company_contact': original.get('whatsapp_to_company_contact'),
+                  'whatsapp_to_dalia': original.get('whatsapp_to_dalia'),
+                  'whatsapp_extra': original.get('whatsapp_extra') or '',
+              }
+              st, restored_rows = rest(
+                  f'/rest/v1/driver_app_action_settings?company_name=eq.{cq}&action_key=eq.{aq}',
+                  method='PATCH',
+                  body=restore_body,
+              )
+              print('RESTORE_HTTP', st, json.dumps(restored_rows, ensure_ascii=False)[:1200] if restored_rows else restored_rows)
+              if st in (200, 204) and restored_rows:
+                  now = restored_rows[0] if isinstance(restored_rows, list) else restored_rows
+                  same = all(now.get(k) == restore_body[k] for k in restore_body)
+                  print('RESTORE_MATCH', same)
+                  restored = same
+              else:
+                  print('RESTORE_FAILED keep backup above')
+
+          print('RESTORED', restored)
+          emails_sent = (result or {}).get('emails_sent') if isinstance(result, dict) else None
+          wa_sent = (result or {}).get('whatsapp_sent') if isinstance(result, dict) else None
+          print('EMAILS_SENT', emails_sent)
+          print('WHATSAPP_SENT', wa_sent)
+          print('WHATSAPP_SKIPPED', (result or {}).get('whatsapp_skipped') if isinstance(result, dict) else None)
+
+          since = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
+          st, deliveries = rest(
+              f"/rest/v1/incident_notification_deliveries?or=(recipient.eq.{OWNER_EMAIL},recipient.eq.{OWNER_WA},recipient.eq.{OWNER_WA_RAW})&created_at=gte.{urllib.parse.quote(since)}&select=channel,recipient,status,error_message,provider_message_id,sent_at,company_name,event_number&order=created_at.desc&limit=20"
+          )
+          print('RECENT_DELIVERIES_HTTP', st, 'N', len(deliveries) if isinstance(deliveries, list) else deliveries)
+          if isinstance(deliveries, list):
+              for d in deliveries:
+                  if FORBIDDEN in str(d.get('company_name') or ''):
+                      continue
+                  print('DELIVERY', json.dumps({
+                      'channel': d.get('channel'), 'recipient': d.get('recipient'),
+                      'status': d.get('status'), 'error': str(d.get('error_message') or '')[:200],
+                      'provider_message_id': d.get('provider_message_id'),
+                      'company': d.get('company_name'), 'event': d.get('event_number'),
+                  }, ensure_ascii=False))
+
+          print('=== OWNER_LIVE_TEST_END ===')
+          if not restored:
+              raise SystemExit(1)
+          PY
