@@ -42,7 +42,7 @@ function mgmt(token, path, opts = {}) {
 
 async function run() {
   const sql = readFileSync(SQL_FILE, 'utf8');
-  const body = uncommented(sql);
+  const body = uncommented(sql).replace(/'[^']*'/g, "''");
   if (/\b(ALTER|INSERT|DELETE|CREATE|DROP|TRUNCATE|GRANT|REVOKE|VACUUM|MERGE|COPY|CALL)\b/i.test(body)) {
     abort('Verify SQL is not read-only. Refusing.');
   }
