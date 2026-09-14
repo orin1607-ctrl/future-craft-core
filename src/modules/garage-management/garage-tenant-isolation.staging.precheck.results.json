@@ -1,50 +1,35 @@
 {
-  "at": "2026-09-14T10:44:39Z",
+  "at": "2026-09-14T10:54:13Z",
   "target": "usfeoerkpcafxxlyuldl",
   "production_touched": false,
-  "read_only": true,
-  "verdict": "PRECHECK_READ_OK_NO_MIGRATION",
-  "token_name": "SUPABASE_STAGING_PRECHECK_TOKEN",
-  "ignored_old_token": "SUPABASE_ACCESS_TOKEN",
+  "read_only_precheck_token": true,
+  "verdict": "STOP_MIGRATION_NOT_STARTED_MISSING_STAGING_DATABASE_URL",
   "github_actions": {
-    "run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34834619775",
-    "precheck_secret_present": true,
-    "conclusion": "success"
+    "run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34835437730",
+    "environment": "Preview",
+    "has_staging_database_url": false,
+    "has_database_url": false,
+    "has_staging_supabase_access_token": false,
+    "did_not_use_SUPABASE_ACCESS_TOKEN": true
   },
-  "identity": {
-    "http": 200,
-    "id": "usfeoerkpcafxxlyuldl",
-    "name": "dalia-staging",
-    "region": "ap-south-1",
-    "status": "ACTIVE_HEALTHY"
+  "apply": {
+    "ok": false,
+    "started": false,
+    "rollback": false,
+    "reason": "No write connection. STAGING_DATABASE_URL and DATABASE_URL are empty in Repository and Preview Actions secrets. The PRECHECK PAT is Database READ and cannot ALTER. Isolation SQL was not sent to Postgres."
   },
-  "catalog": {
-    "shop_company_name": {
-      "garage_customers": "missing",
-      "garage_vehicles": "missing",
-      "garage_cases": "missing"
-    }
-  },
-  "counts": {
-    "state": "ok",
-    "via": "SUPABASE_STAGING_PRECHECK_TOKEN",
-    "shop_column_present": false,
-    "cases": { "total": 7, "unambiguous": 7, "conflict": 0, "no_signal": 0 },
-    "customers": { "total": 5, "unambiguous": 4, "conflict": 0, "no_cases": 1, "cases_exist_but_opener_shop_empty": 0 },
-    "vehicles": { "total": 5, "unambiguous_from_own_cases": 5, "conflict": 0, "inherit_from_unambiguous_customer": 0, "no_cases_and_customer_unassigned": 0 },
-    "media": { "table_present": true, "total": 9, "orphan_without_case": 0 }
-  },
-  "interpretation": {
-    "shop_conflicts": 0,
-    "unassigned_customer_without_cases": 1,
-    "unassigned_note": "Fail-closed backfill would leave that 1 customer with shop_company_name='' (super_admin only). It is not a two-shop conflict.",
-    "tenant_sql_applied": false
+  "post_counts": null,
+  "rls": {
+    "tested_with_two_fleet_managers": false,
+    "reason": "SQL not applied; also STAGING_QA_FLEET_A/B not confirmed"
   },
   "gate": {
     "migration_run": false,
     "module_opened_to_fleet_manager": false,
+    "routeAccess_changed": false,
     "pages_deployed": false,
+    "pr_merged": false,
     "live_sha": "0a78f53de31c089c15f0e07b640cca408ab87017",
-    "next": "Owner reviews counts before any isolation SQL"
+    "branch": "cursor/garage-ops-center-tenant-bed0"
   }
 }
