@@ -21,7 +21,7 @@ export const VEHICLE_RENEWAL_LABELS: Record<VehicleRenewalKind, string> = {
 
 /** Lean vehicle columns for expiry / reports (avoids select('*') on large fleets). */
 export const VEHICLE_EXPIRY_SELECT =
-  'id,license_plate,internal_number,company_name,status,manufacturer,model,year,odometer,assigned_driver_id,test_expiry,insurance_expiry,comprehensive_insurance_expiry,third_party_insurance_expiry,insurances';
+  'id,license_plate,internal_number,company_name,status,manufacturer,model,year,odometer,assigned_driver_id,vehicle_type,test_expiry,insurance_expiry,comprehensive_insurance_expiry,third_party_insurance_expiry,insurances';
 
 export function getDaysLeft(dateStr: string | null | undefined): number | null {
   if (!dateStr) return null;
@@ -52,6 +52,7 @@ export interface VehicleExpiryRow {
   company_name?: string | null;
   status?: string | null;
   assigned_driver_id?: string | null;
+  vehicle_type?: string | null;
   test_expiry?: string | null;
   insurance_expiry?: string | null;
   comprehensive_insurance_expiry?: string | null;

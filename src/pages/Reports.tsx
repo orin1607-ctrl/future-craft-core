@@ -28,6 +28,13 @@ import {
   VEHICLE_EXPIRY_SELECT,
   buildVehicleRenewalEvents,
 } from '@/lib/vehicleExpiryShared';
+import { useVehicleTypes } from '@/hooks/useVehicleTypes';
+import {
+  buildPlateToVehicleType,
+  lookupVehicleTypeForPlate,
+  uniqueReportVehicleTypes,
+  vehicleTypeMatches,
+} from '@/lib/reportVehicleType';
 
 interface RawData {
   vehicles: any[];
@@ -113,6 +120,7 @@ export default function Reports() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const companyFilter = useCompanyFilter();
+  const { types: vehicleTypes } = useVehicleTypes();
   const [raw, setRaw] = useState<RawData>({
     vehicles: [], drivers: [], faults: [], accidents: [], expenses: [], serviceOrders: [], supplierOrders: [], inspections: [],
   });
@@ -131,6 +139,7 @@ export default function Reports() {
   const [filterInternal, setFilterInternal] = useState('');
   const [filterDriver, setFilterDriver] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterVehicleType, setFilterVehicleType] = useState('');
 
   useEffect(() => { loadData(); }, [companyFilter]);
 
@@ -197,6 +206,10 @@ export default function Reports() {
     () => [...new Set(raw.drivers.map(d => d.full_name).filter(Boolean))],
     [raw.drivers],
   );
+  const vehicleTypeOptions = useMemo(
+    () => uniqueReportVehicleTypes(raw.vehicles, vehicleTypes),
+    [raw.vehicles, vehicleTypes],
+  );
   const statusOptions = useMemo(() => {
     const set = new Set<string>();
     raw.faults.forEach(f => f.status && set.add(f.status));
@@ -234,6 +247,10 @@ export default function Reports() {
     });
     return map;
   }, [raw.vehicles]);
+  const plateToVehicleType = useMemo(
+    () => buildPlateToVehicleType(raw.vehicles, normalizePlate),
+    [raw.vehicles],
+  );
   const getInternal = (plate: string | null | undefined) =>
     plate ? (plateToInternal[plate] || plateToInternal[normalizePlate(plate)] || '-') : '-';
   const getCompanyForPlate = (plate: string | null | undefined, fallback?: string | null) =>
@@ -261,6 +278,7 @@ export default function Reports() {
     internal?: string | null;
     driver?: string | null;
     status?: string | null;
+    vehicleType?: string | null;
   }) => {
     const company = filterCompany || (user?.role === 'super_admin' ? '' : (companyFilter || ''));
     if (company && opts.company && opts.company !== company) return false;
@@ -280,6 +298,15 @@ export default function Reports() {
     }
     if (filterDriver && opts.driver !== filterDriver) return false;
     if (filterStatus && opts.status !== filterStatus) return false;
+    if (filterVehicleType) {
+      const actualType = lookupVehicleTypeForPlate(
+        opts.plate,
+        plateToVehicleType,
+        normalizePlate,
+        opts.vehicleType,
+      );
+      if (!vehicleTypeMatches(actualType, filterVehicleType, vehicleTypes)) return false;
+    }
     return true;
   };
 
@@ -298,6 +325,7 @@ export default function Reports() {
           plate: v.license_plate,
           internal: v.internal_number,
           status: v.status,
+          vehicleType: v.vehicle_type,
         }),
       ),
       drivers: raw.drivers.filter(d =>
@@ -361,7 +389,8 @@ export default function Reports() {
     };
   }, [
     raw, period, periodMode, filterCompany, filterVehicle, filterInternal, filterDriver,
-    filterStatus, filterVendor, user?.role, companyFilter, plateToInternal, plateToCompany,
+    filterStatus, filterVendor, filterVehicleType, user?.role, companyFilter, plateToInternal,
+    plateToCompany, plateToVehicleType, vehicleTypes,
   ]);
 
   const testsInPeriod = useMemo(
@@ -407,11 +436,13 @@ export default function Reports() {
     setFilterInternal('');
     setFilterDriver('');
     setFilterStatus('');
+    setFilterVehicleType('');
   };
 
   const hasActiveFilters = Boolean(
     filterCompany || filterDateFrom || filterDateTo || filterReportTypes.length > 0 ||
     filterVendor || filterVehicle || filterInternal || filterDriver || filterStatus ||
+    filterVehicleType ||
     periodMode !== 'month',
   );
 
@@ -681,6 +712,18 @@ export default function Reports() {
                 </select>
               </div>
             )}
+            <div>
+              <label className="block text-sm font-medium mb-1">סוג כלי / סוג רכב</label>
+              <SearchableFilterField
+                value={filterVehicleType}
+                onChange={setFilterVehicleType}
+                options={vehicleTypeOptions}
+                placeholder="הכל"
+                searchPlaceholder="חיפוש סוג כלי..."
+                emptyText="לא נמצא סוג כלי"
+                triggerClassName={selectClass}
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium mb-1">מספר רכב</label>
               <SearchableFilterField
