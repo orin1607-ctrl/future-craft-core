@@ -115,13 +115,32 @@ function applyWithPsql(url, sqlFile) {
       port: attempt.port,
       user_has_staging_ref: attempt.userHasStagingRef,
     }));
-    const ident = psqlConnect(attempt.conn, ['-tA', '-c', 'SELECT current_database();'], 30000);
+    const ident = psqlConnect(attempt.conn, ['-tA', '-F', '|', '-c', 'SELECT current_user, session_user, current_database();'], 30000);
     if (ident.status !== 0) {
       lastErr = (ident.stderr || ident.stdout || 'psql identity failed').slice(0, 400);
       console.log('PSQL_TRY_FAIL', lastErr.slice(0, 200));
       continue;
     }
-    console.log('PSQL_CURRENT_DATABASE', String(ident.stdout || '').trim());
+    const identLine = String(ident.stdout || '').trim().split('\n').filter(Boolean).at(-1) || '';
+    const [currentUser, sessionUser, currentDb] = identLine.split('|');
+    const identBlob = `${currentUser || ''}|${sessionUser || ''}|${currentDb || ''}`;
+    if (identBlob.includes(PROD_REF) || /dalia-car\.online/i.test(identBlob)) {
+      abort('Live psql session looks like Production. STOP. SQL not applied.');
+    }
+    const liveHasStaging = Boolean(currentUser?.includes(STAGING_REF) || sessionUser?.includes(STAGING_REF));
+    console.log('PSQL_LIVE_IDENTITY', JSON.stringify({
+      current_user: currentUser || null,
+      session_user: sessionUser || null,
+      current_database: currentDb || null,
+      live_role_has_staging_ref: liveHasStaging,
+      user_has_staging_ref: attempt.userHasStagingRef,
+      production_ref_present: false,
+    }));
+    if (!liveHasStaging && !attempt.userHasStagingRef) {
+      abort('Live identity is not Staging usfeoerkpcafxxlyuldl. STOP. SQL not applied.');
+    }
+    console.log('CONNECTION_IDENTITY_OK', STAGING_REF);
+    console.log('PSQL_CURRENT_DATABASE', currentDb || '');
     const present = psqlConnect(attempt.conn, ['-tA', '-c', "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='garage_customers' AND column_name='shop_company_name');"], 30000);
     if (present.status === 0 && String(present.stdout || '').trim() === 't') {
       console.log('APPLY SKIP already_present shop_company_name — running no DDL this pass');

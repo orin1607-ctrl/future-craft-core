@@ -77,12 +77,62 @@ jobs:
               sys.exit("Neither host nor user identify Staging usfeoerkpcafxxlyuldl. STOP.")
           if "pooler.supabase.com" in host and not staging_in_userinfo:
               sys.exit("Pooler host without Staging tenant in user. STOP.")
+          if host.startswith("db.") and host.endswith(".supabase.co"):
+              sys.exit("Still the direct db host (IPv6-only from Actions). Need Session pooler. STOP. SQL not applied.")
           print("url_scheme", scheme)
           print("url_host", host)
           print("url_port", port or "(default)")
           print("staging_in_host", staging_in_host)
           print("staging_in_userinfo", staging_in_userinfo)
           print("production_ref_present", False)
+          PY
+      - name: Live connection identity (SELECT only, no apply)
+        env:
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, subprocess, sys
+          STAGING = "usfeoerkpcafxxlyuldl"
+          PROD = "qasomfndnjuixgjmjwcm"
+          raw = (os.environ.get("STAGING_DATABASE_URL") or "").strip()
+          if not raw:
+              sys.exit("STAGING_DATABASE_URL is empty. STOP. SQL not applied.")
+          if PROD in raw or "dalia-car.online" in raw.lower():
+              sys.exit("STAGING_DATABASE_URL contains Production. STOP. SQL not applied.")
+          if STAGING not in raw:
+              sys.exit("STAGING_DATABASE_URL does not contain usfeoerkpcafxxlyuldl. STOP. SQL not applied.")
+          env = os.environ.copy()
+          env["PGSSLMODE"] = env.get("PGSSLMODE") or "require"
+          r = subprocess.run(
+              ["psql", raw, "-v", "ON_ERROR_STOP=1", "--no-psqlrc", "-tA", "-F", "|",
+               "-c", "SELECT current_user, session_user, current_database();"],
+              capture_output=True, text=True, timeout=30, env=env,
+          )
+          if r.returncode != 0:
+              print("live_psql_failed")
+              sys.exit("Live psql identity failed. STOP. SQL not applied. Production not touched.")
+          line = (r.stdout or "").strip().splitlines()[-1] if (r.stdout or "").strip() else ""
+          parts = line.split("|")
+          if len(parts) != 3:
+              sys.exit("Live identity result was not current_user|session_user|current_database. STOP.")
+          current_user, session_user, current_db = parts
+          blob = f"{current_user}|{session_user}|{current_db}"
+          if PROD in blob:
+              sys.exit("Live session contains Production ref qasomfndnjuixgjmjwcm. STOP. SQL not applied.")
+          live_staging = STAGING in current_user or STAGING in session_user
+          at = raw.rfind("@")
+          userinfo = raw[:at] if at >= 0 else ""
+          staging_in_userinfo = STAGING in userinfo
+          print("live_current_user", current_user)
+          print("live_session_user", session_user)
+          print("live_current_database", current_db)
+          print("live_role_has_staging_ref", live_staging)
+          print("live_userinfo_has_staging_ref", staging_in_userinfo)
+          print("live_production_ref_present", False)
+          if not live_staging and not staging_in_userinfo:
+              sys.exit("Live identity is not Staging usfeoerkpcafxxlyuldl. STOP. SQL not applied.")
+          print("CONNECTION_IDENTITY_OK", STAGING)
           PY
       - name: Apply Isolation SQL in one transaction
         env:
@@ -93,6 +143,25 @@ jobs:
         env:
           SUPABASE_STAGING_PRECHECK_TOKEN: ${{ secrets.SUPABASE_STAGING_PRECHECK_TOKEN }}
         run: node scripts/verify-garage-tenant-staging.mjs
+      - name: Diagnose isolation QA secret delivery (booleans only)
+        env:
+          HAS_STAGING_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY != '' }}
+          HAS_STAGING_QA_EMAIL: ${{ secrets.STAGING_QA_EMAIL != '' }}
+          HAS_STAGING_QA_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD != '' }}
+          HAS_STAGING_QA_FLEET_A_EMAIL: ${{ secrets.STAGING_QA_FLEET_A_EMAIL != '' }}
+          HAS_STAGING_QA_FLEET_A_PASSWORD: ${{ secrets.STAGING_QA_FLEET_A_PASSWORD != '' }}
+          HAS_STAGING_QA_FLEET_B_EMAIL: ${{ secrets.STAGING_QA_FLEET_B_EMAIL != '' }}
+          HAS_STAGING_QA_FLEET_B_PASSWORD: ${{ secrets.STAGING_QA_FLEET_B_PASSWORD != '' }}
+        run: |
+          set -euo pipefail
+          echo "has_staging_supabase_anon_key=${HAS_STAGING_SUPABASE_ANON_KEY}"
+          echo "has_staging_qa_email=${HAS_STAGING_QA_EMAIL}"
+          echo "has_staging_qa_password=${HAS_STAGING_QA_PASSWORD}"
+          echo "has_staging_qa_fleet_a_email=${HAS_STAGING_QA_FLEET_A_EMAIL}"
+          echo "has_staging_qa_fleet_a_password=${HAS_STAGING_QA_FLEET_A_PASSWORD}"
+          echo "has_staging_qa_fleet_b_email=${HAS_STAGING_QA_FLEET_B_EMAIL}"
+          echo "has_staging_qa_fleet_b_password=${HAS_STAGING_QA_FLEET_B_PASSWORD}"
+          echo "qa_uses_fetch_not_supabase_js=true"
       - name: Role isolation probe (not PASS without two fleet QA users)
         env:
           VITE_SUPABASE_URL: https://usfeoerkpcafxxlyuldl.supabase.co

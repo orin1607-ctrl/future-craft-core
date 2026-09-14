@@ -1,32 +1,47 @@
 {
-  "at": "2026-09-14T11:42:38Z",
+  "at": "2026-09-14T12:10:00Z",
   "target": "usfeoerkpcafxxlyuldl",
   "production_touched": false,
-  "verdict": "STOP_SQL_NOT_STARTED_DIRECT_DB_IPV6_UNREACHABLE",
+  "verdict": "SQL_APPLIED_CONSISTENCY_OK_ISOLATION_NOT_PASS",
   "url_verification": {
     "has_staging_database_url": true,
-    "url_host": "db.usfeoerkpcafxxlyuldl.supabase.co",
+    "url_host": "aws-1-ap-south-1.pooler.supabase.com",
+    "url_port": "5432",
+    "staging_in_host": false,
+    "staging_in_userinfo": true,
     "staging_ref_present": true,
     "production_ref_present": false,
     "ignored_old_token": "SUPABASE_ACCESS_TOKEN"
   },
   "apply": {
-    "ok": false,
-    "started": false,
+    "ok": true,
+    "started": true,
+    "skipped_because_present": true,
     "rollback": false,
-    "reason": "STAGING_DATABASE_URL is the Staging direct host (IPv6-only). GitHub Actions cannot reach it. The shared aws-0-ap-south-1 pooler does not have tenant postgres.usfeoerkpcafxxlyuldl. Isolation SQL was not sent.",
+    "reason": "Session pooler of dalia-staging verified. shop_company_name already present so this pass ran no DDL. SQL_CONSISTENCY_OK.",
     "runs": [
-      "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34839044205",
-      "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34839359005",
-      "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34839546238"
+      "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34841624713"
     ]
   },
-  "needed": "Replace STAGING_DATABASE_URL with the Session pooler URI from the dalia-staging dashboard (host must include usfeoerkpcafxxlyuldl as tenant, must not be Production), or enable IPv4 on that project.",
+  "consistency": {
+    "identity": { "http": 200, "id": "usfeoerkpcafxxlyuldl", "name": "dalia-staging" },
+    "cases": { "total": 7, "assigned": 7, "empty": 0 },
+    "customers": { "total": 5, "assigned": 4, "empty": 1 },
+    "vehicles": { "total": 5, "assigned": 5, "empty": 0 },
+    "media_orphan_without_case": 0,
+    "mismatches": 0,
+    "delete_policies": 0
+  },
+  "isolation": {
+    "pass": false,
+    "reason": "Role probe still requires two fleet_manager QA users. Previous job crashed on missing @supabase/supabase-js before SKIP."
+  },
   "gate": {
-    "migration_run": false,
+    "migration_run": true,
     "pages_deployed": false,
     "pr_merged": false,
     "live_sha": "0a78f53de31c089c15f0e07b640cca408ab87017",
-    "branch": "cursor/garage-ops-center-tenant-bed0"
+    "branch": "cursor/garage-ops-center-tenant-bed0",
+    "garage_management_still_super_admin_only": true
   }
 }

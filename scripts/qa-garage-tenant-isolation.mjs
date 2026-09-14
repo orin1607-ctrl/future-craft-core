@@ -3,11 +3,11 @@
  * Target: usfeoerkpcafxxlyuldl
  * Forbidden: qasomfndnjuixgjmjwcm / dalia-car.online
  *
- * Does not DELETE. Does not touch Claims Gmail. Does not open fleet_manager.
+ * Fetch-only (no @supabase/supabase-js). Does not DELETE rows.
+ * Does not touch Claims Gmail. Does not open fleet_manager UI.
  * Isolation PASS requires two fleet_manager QA users of different companies.
  * Missing QA credentials = SKIP (not PASS). Missing column = FAIL CLOSED.
  */
-import { createClient } from '@supabase/supabase-js';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -63,27 +63,112 @@ async function probeColumn(url, anon) {
   };
 }
 
-async function loginCases(url, anon, email, password) {
-  const client = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error } = await client.auth.signInWithPassword({ email, password });
-  if (error || !data?.session) {
-    throw new Error(error?.message || 'login failed');
-  }
-  const authed = createClient(url, anon, {
-    global: { headers: { Authorization: `Bearer ${data.session.access_token}` } },
-    auth: { persistSession: false, autoRefreshToken: false },
+async function signIn(url, anon, email, password) {
+  const res = await fetch(`${url}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: {
+      apikey: anon,
+      Authorization: `Bearer ${anon}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
   });
-  const { data: profile } = await authed.from('profiles').select('id, role, company_name, full_name').eq('id', data.user.id).maybeSingle();
-  const { data: cases, error: caseErr } = await authed.from('garage_cases').select('id, shop_company_name, case_number').limit(50);
+  const text = await res.text();
+  let body;
+  try { body = JSON.parse(text); } catch { body = { raw: text.slice(0, 240) }; }
+  if (!res.ok || !body?.access_token || !body?.user?.id) {
+    throw new Error(body?.error_description || body?.msg || body?.error || `login HTTP ${res.status}`);
+  }
+  return { token: body.access_token, userId: body.user.id, email };
+}
+
+async function restJson(url, anon, token, path, opts = {}) {
+  const res = await fetch(`${url}/rest/v1/${path}`, {
+    method: opts.method || 'GET',
+    headers: {
+      apikey: anon,
+      Authorization: `Bearer ${token}`,
+      Accept: 'application/json',
+      Prefer: opts.prefer || 'return=representation',
+      ...(opts.body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  const text = await res.text();
+  let body;
+  try { body = text ? JSON.parse(text) : []; } catch { body = { raw: text.slice(0, 240) }; }
+  return { http: res.status, body };
+}
+
+function asRows(body) {
+  return Array.isArray(body) ? body : [];
+}
+
+async function loginSnapshot(url, anon, email, password) {
+  const auth = await signIn(url, anon, email, password);
+  const profileRes = await restJson(url, anon, auth.token, `profiles?id=eq.${auth.userId}&select=id,role,company_name,full_name`);
+  const profile = asRows(profileRes.body)[0] || null;
+  const casesRes = await restJson(url, anon, auth.token, 'garage_cases?select=id,shop_company_name,case_number,customer_id,vehicle_id&limit=100');
+  const customersRes = await restJson(url, anon, auth.token, 'garage_customers?select=id,shop_company_name&limit=100');
+  const vehiclesRes = await restJson(url, anon, auth.token, 'garage_vehicles?select=id,shop_company_name,customer_id&limit=100');
+  const mediaRes = await restJson(url, anon, auth.token, 'garage_media?select=id,case_id&limit=100');
+  const cases = asRows(casesRes.body);
+  const customers = asRows(customersRes.body);
+  const vehicles = asRows(vehiclesRes.body);
+  const media = asRows(mediaRes.body);
+  const company = String(profile?.company_name || '').trim();
   return {
-    userId: data.user.id,
+    token: auth.token,
+    userId: auth.userId,
     email,
     role: profile?.role || null,
-    company_name: profile?.company_name || '',
-    caseIds: (cases || []).map((row) => row.id),
-    shops: [...new Set((cases || []).map((row) => String(row.shop_company_name || '')))],
-    error: caseErr ? String(caseErr.message || caseErr) : null,
+    company_name: company,
+    cases,
+    customers,
+    vehicles,
+    media,
+    caseIds: cases.map((row) => row.id),
+    customerIds: customers.map((row) => row.id),
+    vehicleIds: vehicles.map((row) => row.id),
+    mediaIds: media.map((row) => row.id),
+    shops: [...new Set(cases.map((row) => String(row.shop_company_name || '').trim()))],
+    emptyShopCustomers: customers.filter((row) => !String(row.shop_company_name || '').trim()).length,
+    emptyShopVehicles: vehicles.filter((row) => !String(row.shop_company_name || '').trim()).length,
+    emptyShopCases: cases.filter((row) => !String(row.shop_company_name || '').trim()).length,
+    errors: {
+      profile: profileRes.http >= 400 ? `profiles HTTP ${profileRes.http}` : null,
+      cases: casesRes.http >= 400 ? `cases HTTP ${casesRes.http}` : null,
+      customers: customersRes.http >= 400 ? `customers HTTP ${customersRes.http}` : null,
+      vehicles: vehiclesRes.http >= 400 ? `vehicles HTTP ${vehiclesRes.http}` : null,
+      media: mediaRes.http >= 400 ? `media HTTP ${mediaRes.http}` : null,
+    },
   };
+}
+
+function shopsOnlyOwn(snapshot) {
+  const own = snapshot.company_name;
+  if (!own) return false;
+  const rows = [...snapshot.cases, ...snapshot.customers, ...snapshot.vehicles];
+  return rows.every((row) => String(row.shop_company_name || '').trim() === own);
+}
+
+async function cannotReadId(url, anon, token, table, id) {
+  if (!id) return { skipped: true, hidden: false };
+  const res = await restJson(url, anon, token, `${table}?id=eq.${id}&select=id`);
+  return { skipped: false, hidden: asRows(res.body).length === 0, http: res.http };
+}
+
+async function cannotPatchForeignCase(url, anon, token, foreignCase, foreignShop) {
+  if (!foreignCase) return { skipped: true, blocked: false };
+  const res = await restJson(
+    url,
+    anon,
+    token,
+    `garage_cases?id=eq.${foreignCase}`,
+    { method: 'PATCH', body: { shop_company_name: foreignShop || '' } },
+  );
+  const changed = asRows(res.body).length > 0;
+  return { skipped: false, blocked: !changed, http: res.http, changed };
 }
 
 async function run() {
@@ -97,6 +182,7 @@ async function run() {
     at: new Date().toISOString(),
     target: STAGING_REF,
     production_touched: false,
+    module_opened: false,
     verdict: 'FAIL_CLOSED',
     catalog: null,
     isolation: null,
@@ -130,35 +216,128 @@ async function run() {
     process.exit(3);
   }
 
-  const shopA = await loginCases(url, anon, shopAEmail, shopAPass);
-  const shopB = await loginCases(url, anon, shopBEmail, shopBPass);
+  const shopA = await loginSnapshot(url, anon, shopAEmail, shopAPass);
+  const shopB = await loginSnapshot(url, anon, shopBEmail, shopBPass);
   let superAdmin = null;
   if (superEmail && superPass) {
-    superAdmin = await loginCases(url, anon, superEmail, superPass);
+    superAdmin = await loginSnapshot(url, anon, superEmail, superPass);
   }
 
-  const overlap = shopA.caseIds.filter((id) => shopB.caseIds.includes(id));
-  const sameCompany = shopA.company_name && shopA.company_name === shopB.company_name;
-  const isolated = overlap.length === 0 && !sameCompany && shopA.role === 'fleet_manager' && shopB.role === 'fleet_manager';
+  const aHiddenBCase = await cannotReadId(url, anon, shopA.token, 'garage_cases', shopB.caseIds[0]);
+  const bHiddenACase = await cannotReadId(url, anon, shopB.token, 'garage_cases', shopA.caseIds[0]);
+  const aHiddenBCustomer = await cannotReadId(url, anon, shopA.token, 'garage_customers', shopB.customerIds[0]);
+  const aHiddenBVehicle = await cannotReadId(url, anon, shopA.token, 'garage_vehicles', shopB.vehicleIds[0]);
+  const aHiddenBMedia = await cannotReadId(url, anon, shopA.token, 'garage_media', shopB.mediaIds[0]);
+  const aCannotPatchB = await cannotPatchForeignCase(url, anon, shopA.token, shopB.caseIds[0], shopB.company_name);
+
+  const overlapCases = shopA.caseIds.filter((id) => shopB.caseIds.includes(id));
+  const overlapCustomers = shopA.customerIds.filter((id) => shopB.customerIds.includes(id));
+  const overlapVehicles = shopA.vehicleIds.filter((id) => shopB.vehicleIds.includes(id));
+  const overlapMedia = shopA.mediaIds.filter((id) => shopB.mediaIds.includes(id));
+  const sameCompany = Boolean(shopA.company_name && shopA.company_name === shopB.company_name);
+  const fleetRoles = shopA.role === 'fleet_manager' && shopB.role === 'fleet_manager';
+  const distinctCompanies = Boolean(shopA.company_name && shopB.company_name && !sameCompany);
+  const aOwnOnly = shopsOnlyOwn(shopA);
+  const bOwnOnly = shopsOnlyOwn(shopB);
+  const fleetCannotSeeEmpty =
+    shopA.emptyShopCustomers === 0 &&
+    shopA.emptyShopVehicles === 0 &&
+    shopA.emptyShopCases === 0 &&
+    shopB.emptyShopCustomers === 0 &&
+    shopB.emptyShopVehicles === 0 &&
+    shopB.emptyShopCases === 0;
+  const byIdHidden =
+    (aHiddenBCase.skipped || aHiddenBCase.hidden) &&
+    (bHiddenACase.skipped || bHiddenACase.hidden) &&
+    (aHiddenBCustomer.skipped || aHiddenBCustomer.hidden) &&
+    (aHiddenBVehicle.skipped || aHiddenBVehicle.hidden) &&
+    (aHiddenBMedia.skipped || aHiddenBMedia.hidden);
+  const patchBlocked = aCannotPatchB.skipped || aCannotPatchB.blocked;
+  const hasForeignRowToProbe = Boolean(shopA.caseIds[0] || shopB.caseIds[0] || shopA.customerIds[0] || shopB.customerIds[0]);
+  const superSeesEmpty = superAdmin ? superAdmin.emptyShopCustomers >= 1 : null;
+  const superSeesBothShops = superAdmin
+    ? superAdmin.shops.includes(shopA.company_name) && superAdmin.shops.includes(shopB.company_name)
+    : null;
+
+  const isolated =
+    fleetRoles &&
+    distinctCompanies &&
+    aOwnOnly &&
+    bOwnOnly &&
+    fleetCannotSeeEmpty &&
+    overlapCases.length === 0 &&
+    overlapCustomers.length === 0 &&
+    overlapVehicles.length === 0 &&
+    overlapMedia.length === 0 &&
+    byIdHidden &&
+    patchBlocked &&
+    hasForeignRowToProbe &&
+    (superAdmin ? superSeesEmpty === true : true);
 
   report.isolation = {
-    shopA: { role: shopA.role, company_name: shopA.company_name, caseCount: shopA.caseIds.length, shops: shopA.shops, error: shopA.error },
-    shopB: { role: shopB.role, company_name: shopB.company_name, caseCount: shopB.caseIds.length, shops: shopB.shops, error: shopB.error },
-    superAdmin: superAdmin ? { role: superAdmin.role, caseCount: superAdmin.caseIds.length, error: superAdmin.error } : null,
-    overlapCount: overlap.length,
+    shopA: {
+      role: shopA.role,
+      company_name: shopA.company_name,
+      caseCount: shopA.caseIds.length,
+      customerCount: shopA.customerIds.length,
+      vehicleCount: shopA.vehicleIds.length,
+      mediaCount: shopA.mediaIds.length,
+      shops: shopA.shops,
+      emptyShopCustomers: shopA.emptyShopCustomers,
+      errors: shopA.errors,
+    },
+    shopB: {
+      role: shopB.role,
+      company_name: shopB.company_name,
+      caseCount: shopB.caseIds.length,
+      customerCount: shopB.customerIds.length,
+      vehicleCount: shopB.vehicleIds.length,
+      mediaCount: shopB.mediaIds.length,
+      shops: shopB.shops,
+      emptyShopCustomers: shopB.emptyShopCustomers,
+      errors: shopB.errors,
+    },
+    superAdmin: superAdmin
+      ? {
+          role: superAdmin.role,
+          caseCount: superAdmin.caseIds.length,
+          emptyShopCustomers: superAdmin.emptyShopCustomers,
+          shops: superAdmin.shops,
+          seesEmptyShop: superSeesEmpty,
+          seesBothShops: superSeesBothShops,
+          errors: superAdmin.errors,
+        }
+      : null,
+    overlap: {
+      cases: overlapCases.length,
+      customers: overlapCustomers.length,
+      vehicles: overlapVehicles.length,
+      media: overlapMedia.length,
+    },
+    probes: {
+      aHiddenBCase,
+      bHiddenACase,
+      aHiddenBCustomer,
+      aHiddenBVehicle,
+      aHiddenBMedia,
+      aCannotPatchB,
+    },
     isolated,
   };
 
   if (!isolated) {
     report.verdict = 'FAIL_CLOSED';
-    report.notes.push('Fleet managers can see overlapping cases or are not distinct companies. Do not open /garage-management.');
+    report.notes.push('Fleet managers can see overlapping or empty-shop rows, or by-id/update of the other shop was not blocked. Do not open /garage-management.');
     writeReport(report);
     console.log('FAIL_CLOSED isolation_overlap');
     process.exit(2);
   }
 
   report.verdict = 'PASS';
-  report.notes.push('Isolation PASS on Staging. Frontend still keeps /garage-management super_admin-only until a separate open commit.');
+  report.notes.push('Isolation PASS on Staging (read + no-op foreign PATCH). Frontend still keeps /garage-management super_admin-only until a separate open commit.');
+  if (!superAdmin) {
+    report.notes.push('super_admin QA login was missing; empty-shop visibility for super_admin was not proven this run.');
+  }
   writeReport(report);
   console.log('PASS isolation');
 }
