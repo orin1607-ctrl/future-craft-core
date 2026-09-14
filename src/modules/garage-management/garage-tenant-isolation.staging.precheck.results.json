@@ -1,84 +1,59 @@
 {
-  "at": "2026-09-14T08:18:17.607Z",
+  "at": "2026-09-14T08:59:14Z",
   "target": "usfeoerkpcafxxlyuldl",
   "production_touched": false,
   "read_only": true,
-  "verdict": "CATALOG_ONLY",
+  "verdict": "STOP_MISSING_TOKEN_DELIVERY",
+  "token_name": "SUPABASE_STAGING_PRECHECK_TOKEN",
+  "ignored_old_token": "SUPABASE_ACCESS_TOKEN",
+  "github_actions": {
+    "run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34825490014",
+    "job": "staging-precheck",
+    "secret_in_job": "empty",
+    "has_precheck_token": false
+  },
+  "cloud_agent_env": {
+    "has_precheck_token": false,
+    "injected_secret_names": ["SUPABASE_ACCESS_TOKEN"]
+  },
   "catalog": {
     "shop_company_name": {
       "garage_customers": "missing",
       "garage_vehicles": "missing",
-      "garage_cases": "missing",
-      "customers_preview": "column garage_customers.shop_company_name does not exist"
-    },
-    "tables": {
-      "garage_customers": {
-        "state": "present_grant_denied_to_anon",
-        "http": 401,
-        "preview": "permission denied for table garage_customers"
-      },
-      "garage_vehicles": {
-        "state": "present_grant_denied_to_anon",
-        "http": 401,
-        "preview": "permission denied for table garage_vehicles"
-      },
-      "garage_cases": {
-        "state": "present_grant_denied_to_anon",
-        "http": 401,
-        "preview": "permission denied for table garage_cases"
-      },
-      "garage_media": {
-        "state": "present_grant_denied_to_anon",
-        "http": 401,
-        "preview": "permission denied for table garage_media"
-      },
-      "garage_gmail_connection": {
-        "state": "present_grant_denied_to_anon",
-        "http": 401,
-        "preview": "permission denied for table garage_gmail_connection"
-      },
-      "claims_records": {
-        "state": "present_readable_as_anon",
-        "http": 200,
-        "preview": "[]"
-      }
-    },
-    "storage": {
-      "buckets_visible_to_anon": [
-        "documents"
-      ],
-      "garage_media_bucket": "http_400",
-      "garage_media_preview": "Bucket not found"
+      "garage_cases": "missing"
     }
   },
   "counts": {
+    "garage_cases_total": null,
+    "garage_cases_unambiguous": null,
+    "garage_cases_unassigned": null,
+    "garage_customers_total": null,
+    "garage_customers_unambiguous": null,
+    "garage_customers_conflict": null,
+    "garage_vehicles_total": null,
+    "garage_vehicles_unambiguous": null,
+    "garage_vehicles_conflict": null,
+    "garage_media_orphan_without_case": null,
     "state": "blocked",
-    "reason": "STAGING_MANAGEMENT_API_UNAUTHORIZED"
+    "reason": "SUPABASE_STAGING_PRECHECK_TOKEN was empty in GitHub Actions and missing in the cloud-agent environment. SELECT counts were not executed. Migration was not started."
   },
-  "notes": [
-    "shop_company_name is not on Staging yet. Tenant SQL has not been applied.",
-    "Row counts require authenticated Staging DB read. Anon is GRANT-denied on garage_* (42501).",
-    "SUPABASE_ACCESS_TOKEN rejected (HTTP 401). Counts not available. Catalog probes completed. Production not touched."
-  ],
+  "missing_permission": {
+    "not": "Database Read-write on Supabase (not requested, not used)",
+    "actual_gap": "The read-only token did not reach the PRECHECK process. GitHub Actions env SUPABASE_STAGING_PRECHECK_TOKEN was empty, so Management API was never called with cursor-garage-precheck-readonly.",
+    "needed": [
+      "Repository Actions secret exactly named SUPABASE_STAGING_PRECHECK_TOKEN (not an Environment secret unless the job sets that environment)",
+      "or inject the same token into this Cloud Agent environment as SUPABASE_STAGING_PRECHECK_TOKEN"
+    ],
+    "do_not": [
+      "Do not use SUPABASE_ACCESS_TOKEN",
+      "Do not widen Database to Read-write for PRECHECK",
+      "Do not skip PRECHECK"
+    ]
+  },
   "gate": {
     "migration_run": false,
-    "reason": "STOP: no authenticated Staging read connection. PRECHECK counts were not executed on the same connection that would run Migration. Per owner gate, Migration was not started.",
-    "live_sha": "0a78f53de31c089c15f0e07b640cca408ab87017",
-    "target": "usfeoerkpcafxxlyuldl",
-    "production_touched": false,
     "module_opened_to_fleet_manager": false,
     "pages_deployed": false,
-    "counts": {
-      "garage_cases_total": null,
-      "garage_cases_unambiguous": null,
-      "garage_cases_unassigned": null,
-      "garage_customers_total": null,
-      "garage_customers_unambiguous": null,
-      "garage_customers_conflict": null,
-      "garage_vehicles_total": null,
-      "garage_vehicles_unambiguous": null,
-      "garage_vehicles_conflict": null,
-      "garage_media_orphan_without_case": null
-    }
+    "live_sha": "0a78f53de31c089c15f0e07b640cca408ab87017"
   }
 }
