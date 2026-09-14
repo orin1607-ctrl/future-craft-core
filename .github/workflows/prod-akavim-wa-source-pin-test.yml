@@ -1,7 +1,8 @@
 # Inspect live Gupshup SOURCE, then send ONE WhatsApp only if SOURCE != DESTINATION.
-# Requested test dest (this run): 0546500305 / 972546500305.
-# If that number is also the Gupshup SOURCE, abort before deploy/send.
-# Never Hostinger, migrate, Claims, בארי, or other companies.
+# SOURCE: 0546500305 / 972546500305
+# DESTINATION: 0534338601 / 972534338601
+# Skip Edge deploy — notify-driver-event already live with SOURCE pin + messageId.
+# Never Hostinger, migrate, Claims, בארי, other companies, or global GUPSHUP_SOURCE.
 name: Production Akavim WhatsApp source pin test
 
 on:
@@ -123,8 +124,8 @@ jobs:
         run: |
           set -euo pipefail
           SRC="${{ steps.inspect.outputs.source_normalized }}"
-          DEST="972546500305"
-          DEST_LOCAL="0546500305"
+          DEST="972534338601"
+          DEST_LOCAL="0534338601"
           echo "SOURCE=${SRC:-UNKNOWN}"
           echo "DESTINATION=${DEST} (${DEST_LOCAL})"
           if [ -z "${SRC}" ]; then
@@ -144,7 +145,7 @@ jobs:
           fi
 
       - name: Deploy notify-driver-event only (no Hostinger)
-        if: steps.gate.outputs.allow_send == 'true'
+        if: false
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -177,6 +178,11 @@ jobs:
           OWNER_WA = '972534338601'
           OWNER_WA_RAW = '0534338601'
           APPROVED_SOURCE = '972546500305'
+          if OWNER_WA == APPROVED_SOURCE:
+              raise SystemExit('REFUSE_SEND SOURCE==DESTINATION')
+          print('PRE_SEND_SOURCE', APPROVED_SOURCE)
+          print('PRE_SEND_DESTINATION', OWNER_WA, OWNER_WA_RAW)
+          print('PRE_SEND_COLLISION', False)
 
           def rest(path, method='GET', body=None):
               h = {
@@ -287,6 +293,8 @@ jobs:
                   print('DEST_MISMATCH', dests)
               mids = [x.get('message_id') for x in results if x.get('message_id')]
               print('MESSAGE_IDS', mids)
+              print('SEND_COUNT', 1 if (b.get('whatsapp_sent') or 0) else 0)
+              print('NO_RESEND True')
               def dlr_lookup(mid=None):
                   selects = [
                       'recipient,status,provider_message_id,dlr_event,dlr_error_code,error_message,created_at,updated_at,company_name,payload_excerpt',
@@ -310,6 +318,7 @@ jobs:
 
               time.sleep(20)
               since = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
+              final_rows = None
               if mids:
                   for mid in mids:
                       st, drows = dlr_lookup(mid)
@@ -319,10 +328,28 @@ jobs:
                   st, drows = dlr_lookup(mids[0])
                   print('DLR2_HTTP', st)
                   print('DLR2', json.dumps(drows, ensure_ascii=False)[:1500] if drows else drows)
+                  time.sleep(40)
+                  st, final_rows = dlr_lookup(mids[0])
+                  print('DLR3_HTTP', st)
+                  print('DLR3', json.dumps(final_rows, ensure_ascii=False)[:1500] if final_rows else final_rows)
               else:
-                  st, drows = dlr_lookup()
+                  st, final_rows = dlr_lookup()
                   print('DLR_NO_MID_HTTP', st)
-                  print('DLR_NO_MID', json.dumps(drows, ensure_ascii=False)[:1500] if drows else drows)
+                  print('DLR_NO_MID', json.dumps(final_rows, ensure_ascii=False)[:1500] if final_rows else final_rows)
+              row0 = final_rows[0] if isinstance(final_rows, list) and final_rows else {}
+              stt = str(row0.get('status') or '')
+              ev = str(row0.get('dlr_event') or '')
+              print('DLR_STATUS', stt)
+              print('DLR_EVENT', ev)
+              print('DLR_ERROR', row0.get('dlr_error_code') or row0.get('error_message'))
+              if stt in ('delivered', 'read') or ev.lower() in ('delivered', 'read'):
+                  print('PHONE_DELIVERY_EVIDENCE delivered_or_read')
+              elif stt in ('failed', 'rejected') or ev.lower() in ('failed', 'rejected'):
+                  print('PHONE_DELIVERY_EVIDENCE failed')
+              elif stt in ('sent', 'submitted', 'enqueued'):
+                  print('PHONE_DELIVERY_EVIDENCE not_confirmed_stop_no_resend')
+              else:
+                  print('PHONE_DELIVERY_EVIDENCE unknown_stop_no_resend')
           finally:
               st, restored_rows = rest(
                   f'/rest/v1/driver_app_action_settings?company_name=eq.{cq}&action_key=eq.{aq}',
