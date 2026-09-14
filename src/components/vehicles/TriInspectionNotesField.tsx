@@ -36,10 +36,10 @@ export function TriInspectionNotesField({
             ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
           }, 250);
         }}
-        rows={8}
+        rows={10}
         placeholder="כתבו כאן הערות ארוכות..."
         className={cn(
-          'w-full min-h-[10rem] sm:min-h-[12rem] md:min-h-[14rem]',
+          'w-full min-h-[14rem] sm:min-h-[16rem] md:min-h-[18rem]',
           'p-4 text-base leading-relaxed rounded-xl border-2 border-input bg-background',
           'focus:border-primary focus:outline-none',
           'whitespace-pre-wrap break-words overflow-y-auto resize-y',

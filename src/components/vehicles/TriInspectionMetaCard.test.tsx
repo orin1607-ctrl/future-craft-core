@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { TriInspectionMetaCard } from '@/components/vehicles/TriInspectionMetaCard';
@@ -44,7 +45,19 @@ describe('TriInspectionNotesField', () => {
     const area = screen.getByRole('textbox') as HTMLTextAreaElement;
     expect(area.value).toContain('התחלה של משפט ארוך');
     expect(area.className).toMatch(/whitespace-pre-wrap/);
-    expect(area.className).toMatch(/min-h-/);
+    expect(area.className).toMatch(/min-h-\[14rem\]/);
     expect(area.className).toMatch(/text-base/);
+    expect(area.rows).toBe(10);
+  });
+});
+
+describe('tri inspection form order', () => {
+  it('keeps the large free-text notes block above the digital signature', () => {
+    const src = readFileSync('src/pages/PrivateVehicleInspection.tsx', 'utf8');
+    const notesAt = src.indexOf('<TriInspectionNotesField');
+    const signatureAt = src.indexOf('data-testid="tri-inspection-signature"');
+    expect(notesAt).toBeGreaterThan(0);
+    expect(signatureAt).toBeGreaterThan(notesAt);
+    expect(src).toContain('DigitalSignaturePad');
   });
 });

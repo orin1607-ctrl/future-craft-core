@@ -24,6 +24,7 @@ import IncidentSubmitSuccess from '@/components/incidents/IncidentSubmitSuccess'
 import { formatIsraelDateTime } from '@/lib/incidentEventNumber';
 import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import { uploadDocument } from '@/lib/uploadDocument';
+import { buildStoragePath } from '@/lib/storage';
 
 interface AccidentRow {
   id: string;
@@ -53,6 +54,16 @@ const statusLabels: Record<string, { text: string; cls: string }> = {
 };
 
 type ViewMode = 'list' | 'detail' | 'form' | 'success';
+
+function parseAccidentImages(images: string | null | undefined): string[] {
+  if (!images) return [];
+  try {
+    const parsed = JSON.parse(images);
+    return Array.isArray(parsed) ? parsed : (images ? [images] : []);
+  } catch {
+    return images ? [images] : [];
+  }
+}
 
 export default function Accidents() {
   const navigate = useNavigate();
@@ -92,7 +103,21 @@ export default function Accidents() {
     setSelected(null);
   };
 
-  const afterFormSave = () => {
+  const afterFormSave = (savedId?: string) => {
+    setEditItem(null);
+    if (savedId) {
+      const q = new URLSearchParams();
+      if (vehicleScoped) {
+        if (contextPlate) q.set('plate', contextPlate);
+        if (contextVehicleId) q.set('vehicleId', contextVehicleId);
+        q.set('context', 'vehicle');
+      }
+      q.set('id', savedId);
+      loadAccidents();
+      navigate(`/accidents?${q.toString()}`, { replace: true });
+      setViewMode('detail');
+      return;
+    }
     if (vehicleScoped && contextVehicleId) {
       goBackToHub();
       return;
@@ -102,7 +127,7 @@ export default function Accidents() {
       return;
     }
     setViewMode('list');
-    setEditItem(null);
+    setSelected(null);
     loadAccidents();
   };
   const [accidents, setAccidents] = useState<AccidentRow[]>([]);
@@ -159,10 +184,9 @@ export default function Accidents() {
     const id = searchParams.get('id');
     if (!id || accidents.length === 0) return;
     const found = accidents.find((a) => a.id === id);
-    if (found) {
-      setSelected(found);
-      setViewMode('detail');
-    }
+    if (!found) return;
+    setSelected(found);
+    setViewMode((mode) => (mode === 'form' || mode === 'success' ? mode : 'detail'));
   }, [searchParams, accidents]);
 
   if (viewMode === 'success' && successPayload) {
@@ -177,8 +201,9 @@ export default function Accidents() {
         emailSubject={successPayload.emailSubject}
         emailHtml={successPayload.emailHtml}
         onClose={() => {
+          const savedId = successPayload.id;
           setSuccessPayload(null);
-          afterFormSave();
+          afterFormSave(savedId);
         }}
       />
     );
@@ -248,7 +273,7 @@ export default function Accidents() {
           initialDriverName={driverCtx.driverName || undefined}
           plateLocked={vehicleScoped && !!initialVehiclePlate}
           hubVehicleId={vehicleScoped ? contextVehicleId : undefined}
-          onDone={afterFormSave}
+          onDone={() => afterFormSave(editItem?.id)}
           onCreated={(payload) => {
             setEditItem(null);
             setSuccessPayload(payload);
@@ -308,13 +333,31 @@ export default function Accidents() {
             {a.third_party && <span className="status-badge status-pending">צד ג׳</span>}
           </div>
           {(() => {
-            let imgs: string[] = [];
-            try { imgs = a.images ? JSON.parse(a.images) : []; } catch { if (a.images) imgs = [a.images]; }
-            return imgs.length > 0 ? (
-              <div className="mt-4">
-                <DocumentGallery urls={imgs} title="תמונות מהתאונה" />
+            const imgs = parseAccidentImages(a.images);
+            return (
+              <div className="mt-4" data-testid="accident-images">
+                {imgs.length > 0 ? (
+                  <DocumentGallery urls={imgs} title="תמונות מהתאונה" />
+                ) : (
+                  <p className="text-sm text-muted-foreground mb-2">אין תמונות לתאונה זו</p>
+                )}
+                <AccidentImageUpload
+                  imageUrls={imgs}
+                  onImagesChanged={async (urls) => {
+                    const { error } = await supabase
+                      .from('accidents')
+                      .update({ images: JSON.stringify(urls) })
+                      .eq('id', a.id);
+                    if (error) {
+                      toast.error('שגיאה בשמירת התמונות');
+                      return;
+                    }
+                    setSelected({ ...a, images: JSON.stringify(urls) });
+                    loadAccidents();
+                  }}
+                />
               </div>
-            ) : null;
+            );
           })()}
           <AccidentDocuments accident={a} user={user} />
           {a.notes && <p className="mt-4 p-3 bg-muted rounded-xl text-muted-foreground">{a.notes}</p>}
@@ -443,7 +486,17 @@ export default function Accidents() {
             const st = statusLabels[a.status] || statusLabels.open;
             const identity = findVehicleIdentity(vehicleIdentities, a.vehicle_plate);
             return (
-              <button key={a.id} onClick={() => { setSelected(a); setViewMode('detail'); }} className="card-elevated w-full text-right hover:shadow-lg transition-shadow">
+              <button
+                key={a.id}
+                onClick={() => {
+                  setSelected(a);
+                  setViewMode('detail');
+                  const q = new URLSearchParams(searchParams);
+                  q.set('id', a.id);
+                  navigate(`/accidents?${q.toString()}`);
+                }}
+                className="card-elevated w-full text-right hover:shadow-lg transition-shadow"
+              >
                 <div className="flex items-start gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center flex-shrink-0">
                     <AlertTriangle size={28} className="text-destructive" />
@@ -483,27 +536,105 @@ interface AccidentDocumentVersion {
   created_at: string;
 }
 
+function AccidentImageUpload({
+  imageUrls,
+  onImagesChanged,
+}: {
+  imageUrls: string[];
+  onImagesChanged: (urls: string[]) => void | Promise<void>;
+}) {
+  const { user } = useAuth();
+  const [uploading, setUploading] = useState(false);
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file || !user?.id) return;
+    setUploading(true);
+    const path = buildStoragePath(user.id, 'accidents', file.name);
+    const { error } = await supabase.storage.from('documents').upload(path, file, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: file.type || undefined,
+    });
+    setUploading(false);
+    if (error) {
+      toast.error('שגיאה בהעלאת התמונה: ' + error.message);
+      return;
+    }
+    await onImagesChanged([...imageUrls, path]);
+    toast.success('התמונה הועלתה');
+  };
+
+  return (
+    <label className="mt-3 inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-xl bg-muted px-4 py-3 font-bold hover:bg-muted/80">
+      <Upload size={19} />
+      {uploading ? 'מעלה...' : 'העלאת תמונה'}
+      <input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        disabled={uploading}
+        data-testid="accident-image-upload"
+        onChange={(e) => {
+          void handleFile(e.target.files?.[0]);
+          e.target.value = '';
+        }}
+      />
+    </label>
+  );
+}
+
 function AccidentDocuments({ accident, user }: { accident: AccidentRow; user: any }) {
   const [documents, setDocuments] = useState<AccidentDocumentVersion[]>([]);
   const [loadingDocuments, setLoadingDocuments] = useState(true);
+  const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    let query = supabase
+  const loadDocuments = () => {
+    setLoadingDocuments(true);
+    void supabase
       .from('document_versions')
       .select('id, file_path, public_url, original_name, created_at')
       .eq('entity_type', 'accident')
       .eq('entity_id', accident.id)
-      .order('created_at', { ascending: false });
-    const company = accident.company_name || user?.company_name || '';
-    if (company) query = query.eq('company_name', company);
-    void query.then(({ data }) => {
-      setDocuments((data as AccidentDocumentVersion[]) || []);
-      setLoadingDocuments(false);
-    });
-  }, [accident.id, accident.company_name, user?.company_name]);
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setDocuments((data as AccidentDocumentVersion[]) || []);
+        setLoadingDocuments(false);
+      });
+  };
+
+  useEffect(() => {
+    loadDocuments();
+  }, [accident.id]);
+
+  const handleUploadFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setUploading(true);
+    let allOk = true;
+    for (const file of Array.from(files)) {
+      const result = await uploadDocument({
+        file,
+        storageFolder: 'accident-documents',
+        category: 'accident-document',
+        companyName: accident.company_name || user?.company_name || '',
+        vehiclePlate: accident.vehicle_plate,
+        driverName: accident.driver_name,
+        displayName: `${accident.claim_number || 'תאונה'} — ${file.name}`,
+        documentDate: accident.date?.slice(0, 10),
+        accidentId: accident.id,
+        claimNumber: accident.claim_number,
+      });
+      if (!result.ok) {
+        allOk = false;
+        toast.error(`שגיאה בהעלאת ${file.name}: ${result.error}`);
+      }
+    }
+    setUploading(false);
+    if (allOk) toast.success('המסמך הועלה');
+    loadDocuments();
+  };
 
   return (
-    <div className="mt-4 rounded-xl border border-border p-4">
+    <div className="mt-4 rounded-xl border border-border p-4" data-testid="accident-documents">
       <h2 className="mb-3 flex items-center gap-2 text-lg font-bold">
         <FileText size={20} /> מסמכי תאונה
       </h2>
@@ -523,6 +654,21 @@ function AccidentDocuments({ accident, user }: { accident: AccidentRow; user: an
           ))}
         </div>
       )}
+      <label className="mt-3 inline-flex min-h-[48px] cursor-pointer items-center gap-2 rounded-xl bg-muted px-4 py-3 font-bold hover:bg-muted/80">
+        <Upload size={19} />
+        {uploading ? 'מעלה...' : 'העלאת קובץ'}
+        <input
+          type="file"
+          multiple
+          className="hidden"
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+          disabled={uploading}
+          onChange={(e) => {
+            void handleUploadFiles(e.target.files);
+            e.target.value = '';
+          }}
+        />
+      </label>
     </div>
   );
 }

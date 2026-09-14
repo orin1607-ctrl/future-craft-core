@@ -73,4 +73,16 @@ describe('task 6 accident navigation', () => {
     expect(detail).toContain('כל התאונות');
     expect(detail).toContain('פתח דוח תאונה');
   });
+
+  it('keeps accident_id deep-links from resetting the upload form', () => {
+    const src = readFileSync('src/pages/Accidents.tsx', 'utf8');
+    expect(src).toContain("mode === 'form' || mode === 'success'");
+    expect(src).toContain("q.set('id', savedId)");
+    expect(src).toContain(".eq('entity_type', 'accident')");
+    expect(src).toContain(".eq('entity_id', accident.id)");
+    expect(src).not.toMatch(/query = query\.eq\('company_name', company\)/);
+    expect(src).toContain('העלאת תמונה');
+    expect(src).toContain('העלאת קובץ');
+    expect(src).toContain("folder=\"accidents\"");
+  });
 });
