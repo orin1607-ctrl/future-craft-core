@@ -63,6 +63,8 @@ describe('oren car round-2 display', () => {
     expect(src).toContain("label: 'פתוחות'");
     expect(src).toContain("label: 'דחופות'");
     expect(src).toContain("label: 'עלות משוערת'");
+    expect(src).toContain("'מחלקה'");
+    expect(src).toContain('getDepartment');
   });
 
   it('labels the hub defects button as ניהול ליקויים with the open count', () => {
