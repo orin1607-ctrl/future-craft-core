@@ -4,7 +4,8 @@
 # SOURCE: 0546500305 / 972546500305
 # DESTINATION: 0534338601 / 972534338601
 # Never Hostinger, migrate, Claims, בארי, other companies, or global GUPSHUP_SOURCE.
-# Retry: function-to-function call uses service_role for both apikey and Authorization.
+# One approved send completed 2026-09-14 (messageId 8b6f6e8e-0839-4cf8-96a1-28541b0c9d44).
+# Deploy/send steps are disarmed — do not auto-send again.
 name: Production Akavim WhatsApp source pin test
 
 on:
@@ -147,7 +148,7 @@ jobs:
           fi
 
       - name: Deploy notify-driver-event + send-whatsapp-message (no Hostinger)
-        if: steps.gate.outputs.allow_send == 'true'
+        if: false
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -161,7 +162,7 @@ jobs:
           echo "EDGE_DEPLOY=notify-driver-event OK"
 
       - name: One WhatsApp send to אכבים then restore
-        if: steps.gate.outputs.allow_send == 'true'
+        if: false
         env:
           SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
