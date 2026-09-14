@@ -113,6 +113,11 @@ export function garageMediaObjectPath(input: {
   return `${input.garageCaseId}/${input.category}/${id}.${ext}`;
 }
 
+/** First path segment — same as split_part(storage.objects.name, '/', 1) in tenant SQL. */
+export function garageMediaPathCaseId(storagePath: string): string {
+  return String(storagePath || '').split('/')[0] || '';
+}
+
 export async function uploadGarageMedia(input: {
   garageCaseId: string;
   category: GarageMediaCategoryId;
