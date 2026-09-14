@@ -65,11 +65,83 @@ jobs:
           STAGING_QA_FLEET_A_PASSWORD: ${{ secrets.STAGING_QA_FLEET_A_PASSWORD }}
           STAGING_QA_FLEET_B_EMAIL: ${{ secrets.STAGING_QA_FLEET_B_EMAIL }}
           STAGING_QA_FLEET_B_PASSWORD: ${{ secrets.STAGING_QA_FLEET_B_PASSWORD }}
-        run: node scripts/qa-garage-tenant-isolation.mjs
+        run: |
+          set -euo pipefail
+          if [ -z "${STAGING_QA_EMAIL}" ] || [ -z "${STAGING_QA_PASSWORD}" ]; then
+            echo "repo_super_admin_secrets_missing=true"
+            echo "A/B are repository secrets. super_admin login runs on the Preview env job."
+            exit 0
+          fi
+          node scripts/qa-garage-tenant-isolation.mjs
       - name: Upload Isolation QA report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: garage-tenant-isolation-qa
+          path: test-results/garage-tenant-isolation-qa.json
+          if-no-files-found: ignore
+
+  # Repository secrets have A/B. super_admin may live on Preview (used by Staging Pages QA).
+  # Never Production. Never github-pages. Does not apply SQL or open the module.
+  isolation-qa-preview-env:
+    if: github.ref != 'refs/heads/production' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: Preview
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Guard Staging-only Preview env
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, sys
+          ref = os.environ.get("GITHUB_REF", "")
+          env_name = os.environ.get("GITHUB_ENVIRONMENT") or os.environ.get("GITHUB_JOB") or ""
+          if ref.endswith("/production") or ref.endswith("/main"):
+              sys.exit("Refusing Production/main. Isolation QA is Staging-only.")
+          print("ref_ok", ref)
+          print("job_environment=Preview")
+          print("will_not_use_production_environment=true")
+          print("will_not_apply_sql=true")
+          print("will_not_open_garage_management=true")
+          print("will_not_touch_gmail=true")
+          PY
+      - name: Diagnose Preview env secret delivery (booleans only)
+        env:
+          HAS_STAGING_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY != '' }}
+          HAS_STAGING_QA_EMAIL: ${{ secrets.STAGING_QA_EMAIL != '' }}
+          HAS_STAGING_QA_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD != '' }}
+          HAS_STAGING_QA_FLEET_A_EMAIL: ${{ secrets.STAGING_QA_FLEET_A_EMAIL != '' }}
+          HAS_STAGING_QA_FLEET_A_PASSWORD: ${{ secrets.STAGING_QA_FLEET_A_PASSWORD != '' }}
+          HAS_STAGING_QA_FLEET_B_EMAIL: ${{ secrets.STAGING_QA_FLEET_B_EMAIL != '' }}
+          HAS_STAGING_QA_FLEET_B_PASSWORD: ${{ secrets.STAGING_QA_FLEET_B_PASSWORD != '' }}
+        run: |
+          set -euo pipefail
+          echo "preview_has_staging_supabase_anon_key=${HAS_STAGING_SUPABASE_ANON_KEY}"
+          echo "preview_has_staging_qa_email=${HAS_STAGING_QA_EMAIL}"
+          echo "preview_has_staging_qa_password=${HAS_STAGING_QA_PASSWORD}"
+          echo "preview_has_staging_qa_fleet_a_email=${HAS_STAGING_QA_FLEET_A_EMAIL}"
+          echo "preview_has_staging_qa_fleet_a_password=${HAS_STAGING_QA_FLEET_A_PASSWORD}"
+          echo "preview_has_staging_qa_fleet_b_email=${HAS_STAGING_QA_FLEET_B_EMAIL}"
+          echo "preview_has_staging_qa_fleet_b_password=${HAS_STAGING_QA_FLEET_B_PASSWORD}"
+      - name: Run Isolation QA against Staging from Preview env
+        env:
+          VITE_SUPABASE_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          VITE_SUPABASE_PROJECT_ID: usfeoerkpcafxxlyuldl
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          STAGING_QA_EMAIL: ${{ secrets.STAGING_QA_EMAIL }}
+          STAGING_QA_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD }}
+          STAGING_QA_FLEET_A_EMAIL: ${{ secrets.STAGING_QA_FLEET_A_EMAIL }}
+          STAGING_QA_FLEET_A_PASSWORD: ${{ secrets.STAGING_QA_FLEET_A_PASSWORD }}
+          STAGING_QA_FLEET_B_EMAIL: ${{ secrets.STAGING_QA_FLEET_B_EMAIL }}
+          STAGING_QA_FLEET_B_PASSWORD: ${{ secrets.STAGING_QA_FLEET_B_PASSWORD }}
+        run: node scripts/qa-garage-tenant-isolation.mjs
+      - name: Upload Preview Isolation QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garage-tenant-isolation-qa-preview-env
           path: test-results/garage-tenant-isolation-qa.json
           if-no-files-found: ignore
