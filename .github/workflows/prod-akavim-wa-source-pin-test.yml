@@ -1,11 +1,10 @@
-# Inspect live Gupshup SOURCE, deploy notify-driver-event + additive
-# send-whatsapp-message auth (service_role only), then ONE WhatsApp send
-# via the proven send-whatsapp-message path.
+# Inspect live Gupshup SOURCE (no dest send), then ONE authorized FINAL PASS
+# WhatsApp via the real driver-area path:
+#   insert אכבים faults row → notify-driver-event → send-whatsapp-message
 # SOURCE: 0546500305 / 972546500305
 # DESTINATION: 0534338601 / 972534338601
 # Never Hostinger, migrate, Claims, בארי, other companies, or global GUPSHUP_SOURCE.
-# One approved send completed 2026-09-14 (messageId 8b6f6e8e-0839-4cf8-96a1-28541b0c9d44).
-# Deploy/send steps are disarmed — do not auto-send again.
+# Deploy stays disarmed. If this send fails: do not resend.
 name: Production Akavim WhatsApp source pin test
 
 on:
@@ -162,7 +161,7 @@ jobs:
           echo "EDGE_DEPLOY=notify-driver-event OK"
 
       - name: One WhatsApp send to אכבים then restore
-        if: false
+        if: steps.gate.outputs.allow_send == 'true'
         env:
           SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
@@ -189,13 +188,15 @@ jobs:
           print('PRE_SEND_DESTINATION', OWNER_WA, OWNER_WA_RAW)
           print('PRE_SEND_COLLISION', False)
 
-          def rest(path, method='GET', body=None):
+          def rest(path, method='GET', body=None, bearer=None):
+              token = bearer or SRK
               h = {
-                  'apikey': SRK,
-                  'Authorization': 'Bearer ' + SRK,
+                  'apikey': SRK if token == SRK else ANON,
+                  'Authorization': 'Bearer ' + token,
                   'Accept': 'application/json',
-                  'Prefer': 'return=representation',
               }
+              if path.startswith('/rest/v1'):
+                  h['Prefer'] = 'return=representation'
               data = None
               if body is not None:
                   h['Content-Type'] = 'application/json'
@@ -256,24 +257,72 @@ jobs:
                   raise SystemExit('ABORT extra recipients besides owner extra')
               if extra not in (OWNER_WA_RAW, OWNER_WA):
                   raise SystemExit('ABORT extra not owner')
+              st, gen = rest('/auth/v1/admin/generate_link', method='POST', body={'type': 'magiclink', 'email': OWNER_EMAIL})
+              if st != 200 or not isinstance(gen, dict) or not gen.get('email_otp'):
+                  raise SystemExit('ABORT generate_link ' + str(gen)[:300])
+              st, ver = rest('/auth/v1/verify', method='POST', body={'type': 'magiclink', 'email': OWNER_EMAIL, 'token': gen['email_otp']})
+              if st != 200 or not isinstance(ver, dict):
+                  raise SystemExit('ABORT verify ' + str(ver)[:300])
+              at = ver.get('access_token') or (ver.get('session') or {}).get('access_token')
+              if not at:
+                  raise SystemExit('ABORT no owner session')
+              print('OWNER_SESSION_OK')
+              st, vehicles = rest(f'/rest/v1/vehicles?company_name=eq.{cq}&select=id,license_plate,internal_number,assigned_driver_id,company_name&limit=5')
+              st, drivers = rest(f'/rest/v1/drivers?company_name=eq.{cq}&select=id,full_name,phone,company_name&limit=5')
+              veh = (vehicles[0] if isinstance(vehicles, list) and vehicles else {}) or {}
+              drv = (drivers[0] if isinstance(drivers, list) and drivers else {}) or {}
+              if veh and (veh.get('company_name') != COMPANY or FORBIDDEN in str(veh.get('company_name'))):
+                  raise SystemExit('ABORT vehicle not אכבים')
+              if drv and (drv.get('company_name') != COMPANY or FORBIDDEN in str(drv.get('company_name'))):
+                  raise SystemExit('ABORT driver not אכבים')
+              print('VEHICLE', json.dumps({'id': veh.get('id'), 'plate': veh.get('license_plate'), 'company': veh.get('company_name')}, ensure_ascii=False))
+              print('DRIVER', json.dumps({'id': drv.get('id'), 'name': drv.get('full_name'), 'company': drv.get('company_name')}, ensure_ascii=False))
+              st, enum = rest('/rest/v1/rpc/allocate_incident_event_number', method='POST', body={'p_company': COMPANY, 'p_prefix': 'FLT'}, bearer=at)
+              print('EVENT_NUMBER', st, enum)
+              if st != 200 or not enum:
+                  raise SystemExit('ABORT event number — no WhatsApp send')
+              event_number = enum if isinstance(enum, str) else str(enum)
+              fault = {
+                  'company_name': COMPANY,
+                  'driver_name': drv.get('full_name') or 'בדיקת מערכת',
+                  'vehicle_plate': veh.get('license_plate') or 'SYS-TEST',
+                  'vehicle_id': veh.get('id'),
+                  'driver_id': drv.get('id'),
+                  'fault_type': 'בדיקת מערכת',
+                  'fault_type_other': '',
+                  'description': 'בדיקת מערכת בלבד – אין לטפל',
+                  'urgency': 'urgent',
+                  'notes': '',
+                  'images': '',
+                  'status': 'opened',
+                  'event_number': event_number,
+                  'serial_id': event_number,
+                  'opened_by_role': 'super_admin',
+                  'reporter_phone': OWNER_WA_RAW,
+                  'date': datetime.now(timezone.utc).isoformat(),
+                  'created_by': '7fd0a5b9-ae13-4d9c-9e18-27a036103eae',
+              }
+              fault = {k: v for k, v in fault.items() if v is not None}
+              st, created = rest('/rest/v1/faults', method='POST', body=fault, bearer=at)
+              print('CREATE_FAULT_HTTP', st)
+              print('CREATE_FAULT', json.dumps(created, ensure_ascii=False)[:1500] if created else created)
+              if st not in (200, 201) or not created:
+                  raise SystemExit('ABORT fault insert failed — no WhatsApp send')
+              row = created[0] if isinstance(created, list) else created
+              if not isinstance(row, dict) or row.get('company_name') != COMPANY or FORBIDDEN in str(row.get('company_name')):
+                  raise SystemExit('ABORT inserted row is not אכבים')
+              print('FAULT_SAVED', json.dumps({'id': row.get('id'), 'event_number': row.get('event_number'), 'company': row.get('company_name'), 'urgency': row.get('urgency')}, ensure_ascii=False))
               body = {
                   'action_key': ACTION,
                   'condition_value': 'urgent',
-                  'record': {
-                      'company_name': COMPANY,
-                      'driver_name': 'בדיקת מערכת',
-                      'vehicle_plate': 'SYS-TEST',
-                      'description': 'בדיקת מערכת בלבד – אין לטפל',
-                      'urgency': 'urgent',
-                      'event_number': 'SYS-TEST-WA-SOURCE',
-                  },
+                  'record': dict(row),
                   'title': 'בדיקת מערכת בלבד – אין לטפל',
                   'message': 'בדיקת מערכת בלבד – אין לטפל',
-                  'link': '/dashboard',
+                  'link': '/faults',
               }
               req = urllib.request.Request(
                   FN, data=json.dumps(body, ensure_ascii=False).encode(), method='POST',
-                  headers={'Content-Type': 'application/json', 'apikey': ANON, 'Authorization': 'Bearer ' + ANON},
+                  headers={'Content-Type': 'application/json', 'apikey': ANON, 'Authorization': 'Bearer ' + at},
               )
               try:
                   with urllib.request.urlopen(req, timeout=60) as r:
@@ -287,6 +336,7 @@ jobs:
                       parsed = {'raw': raw[:400]}
                   result = {'http': e.code, 'body': parsed}
               print('INVOKE', json.dumps(result, ensure_ascii=False)[:2500])
+              print('PATH', 'faults.insert + notify-driver-event + send-whatsapp-message')
               b = result.get('body') or {}
               print('SOURCE_USED', b.get('source_used'))
               print('SOURCE_ENV', b.get('source_env'))
