@@ -78,11 +78,13 @@ describe('task 6 accident navigation', () => {
     const src = readFileSync('src/pages/Accidents.tsx', 'utf8');
     expect(src).toContain("mode === 'form' || mode === 'success'");
     expect(src).toContain("q.set('id', savedId)");
-    expect(src).toContain(".eq('entity_type', 'accident')");
-    expect(src).toContain(".eq('entity_id', accident.id)");
-    expect(src).not.toMatch(/query = query\.eq\('company_name', company\)/);
+    expect(src).toContain('loadAccidentAttachedDocuments');
     expect(src).toContain('העלאת תמונה');
     expect(src).toContain('העלאת קובץ');
     expect(src).toContain("folder=\"accidents\"");
+    const docs = readFileSync('src/lib/accidentDocuments.ts', 'utf8');
+    expect(docs).toContain(".eq('entity_type', 'accident')");
+    expect(docs).toContain(".eq('entity_id', accident.id)");
+    expect(docs).not.toMatch(/eq\('company_name'/);
   });
 });

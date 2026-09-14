@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertTriangle, Plus, ArrowRight, Search, Edit2, Mail, Share2, Download, ExternalLink, FileText, Upload } from 'lucide-react';
+import { AlertTriangle, Plus, ArrowRight, Search, Edit2, Mail, Share2, Download, ExternalLink, FileText, Upload, Eye, File } from 'lucide-react';
 import { exportToCsv } from '@/utils/exportCsv';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { useDriverVehicle } from '@/hooks/useDriverVehicle';
-import { DocumentCard, DocumentGallery } from '@/components/documents/DocumentViewer';
+import { DocumentPreviewDialog } from '@/components/documents/DocumentViewer';
 import MultiImageUpload from '@/components/MultiImageUpload';
 import { buildVehicleContextUrl, buildVehicleHubUrl, isVehicleScopedContext, useVehicleUrlContext, readDriverContext } from '@/lib/entityNavContext';
 import {
@@ -23,7 +23,15 @@ import { createAccidentIncident } from '@/lib/incidentCreate';
 import IncidentSubmitSuccess from '@/components/incidents/IncidentSubmitSuccess';
 import { formatIsraelDateTime } from '@/lib/incidentEventNumber';
 import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
-import { uploadDocument } from '@/lib/uploadDocument';
+import {
+  currentAuthUserId,
+  loadAccidentAttachedDocuments,
+  parseAccidentImages,
+  resolveAccidentFileUrl,
+  uploadAccidentAttachedFile,
+  type AccidentAttachedDoc,
+} from '@/lib/accidentDocuments';
+import { fileNameFromDocument, getDocumentKind } from '@/lib/documentDisplayUtils';
 import { buildStoragePath } from '@/lib/storage';
 
 interface AccidentRow {
@@ -54,16 +62,6 @@ const statusLabels: Record<string, { text: string; cls: string }> = {
 };
 
 type ViewMode = 'list' | 'detail' | 'form' | 'success';
-
-function parseAccidentImages(images: string | null | undefined): string[] {
-  if (!images) return [];
-  try {
-    const parsed = JSON.parse(images);
-    return Array.isArray(parsed) ? parsed : (images ? [images] : []);
-  } catch {
-    return images ? [images] : [];
-  }
-}
 
 export default function Accidents() {
   const navigate = useNavigate();
@@ -337,7 +335,7 @@ export default function Accidents() {
             return (
               <div className="mt-4" data-testid="accident-images">
                 {imgs.length > 0 ? (
-                  <DocumentGallery urls={imgs} title="תמונות מהתאונה" />
+                  <AccidentImageGallery urls={imgs} />
                 ) : (
                   <p className="text-sm text-muted-foreground mb-2">אין תמונות לתאונה זו</p>
                 )}
@@ -528,12 +526,173 @@ export default function Accidents() {
   );
 }
 
-interface AccidentDocumentVersion {
-  id: string;
-  file_path: string;
-  public_url: string;
-  original_name: string;
-  created_at: string;
+async function downloadAccidentBlob(urlOrPath: string, fileName: string) {
+  const signed = await resolveAccidentFileUrl(urlOrPath);
+  if (!signed) {
+    toast.error('לא ניתן לפתוח או להוריד את הקובץ');
+    return;
+  }
+  try {
+    const res = await fetch(signed);
+    if (!res.ok) throw new Error(String(res.status));
+    const blob = await res.blob();
+    const href = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = href;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(href);
+  } catch {
+    window.open(signed, '_blank', 'noopener,noreferrer');
+  }
+}
+
+function AccidentThumb({ url, fileName, onOpen }: { url: string; fileName: string; onOpen: () => void }) {
+  const [src, setSrc] = useState('');
+  useEffect(() => {
+    let cancelled = false;
+    void resolveAccidentFileUrl(url).then((next) => {
+      if (!cancelled) setSrc(next);
+    });
+    return () => { cancelled = true; };
+  }, [url]);
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="relative overflow-hidden rounded-xl border border-border aspect-square hover:ring-2 hover:ring-primary/40"
+      title="תצוגה מלאה"
+    >
+      {src ? (
+        <img src={src} alt={fileName} className="h-full w-full object-cover" />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center bg-muted text-xs text-muted-foreground">לחץ לפתיחה</span>
+      )}
+    </button>
+  );
+}
+
+function AccidentImageGallery({ urls }: { urls: string[] }) {
+  const [preview, setPreview] = useState<{ url: string; fileName: string } | null>(null);
+
+  const open = async (url: string, fileName: string) => {
+    const signed = await resolveAccidentFileUrl(url);
+    if (!signed) {
+      toast.error('לא ניתן לפתוח את התמונה');
+      return;
+    }
+    setPreview({ url: signed, fileName });
+  };
+
+  return (
+    <div>
+      <p className="mb-2 text-sm font-medium text-muted-foreground">תמונות מהתאונה ({urls.length})</p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {urls.map((url, i) => {
+          const fileName = fileNameFromDocument(url, `תמונה ${i + 1}`);
+          return (
+            <AccidentThumb
+              key={`${url}-${i}`}
+              url={url}
+              fileName={fileName}
+              onOpen={() => { void open(url, fileName); }}
+            />
+          );
+        })}
+      </div>
+      <DocumentPreviewDialog
+        open={!!preview}
+        url={preview?.url ?? null}
+        fileName={preview?.fileName}
+        onOpenChange={(openDialog) => { if (!openDialog) setPreview(null); }}
+      />
+    </div>
+  );
+}
+
+function AccidentFileCard({
+  url,
+  fileName,
+  meta,
+  compact = false,
+}: {
+  url: string;
+  fileName: string;
+  meta?: ReactNode;
+  compact?: boolean;
+}) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [thumb, setThumb] = useState('');
+  const kind = getDocumentKind(`${fileName} ${url}`);
+
+  useEffect(() => {
+    if (kind !== 'image') return;
+    let cancelled = false;
+    void resolveAccidentFileUrl(url).then((next) => {
+      if (!cancelled) setThumb(next);
+    });
+    return () => { cancelled = true; };
+  }, [kind, url]);
+
+  const open = async () => {
+    const signed = await resolveAccidentFileUrl(url);
+    if (!signed) {
+      toast.error('לא ניתן לפתוח את הקובץ');
+      return;
+    }
+    if (kind === 'image' || kind === 'pdf') {
+      setPreview(signed);
+      return;
+    }
+    await downloadAccidentBlob(signed, fileName);
+  };
+
+  return (
+    <>
+      <div className={`card-elevated flex items-center gap-3 ${compact ? 'p-2.5' : 'p-3'}`}>
+        <button
+          type="button"
+          onClick={() => { void open(); }}
+          className={`${compact ? 'h-14 w-14' : 'h-16 w-16'} shrink-0 overflow-hidden rounded-xl border border-border bg-muted`}
+        >
+          {kind === 'image' && thumb ? (
+            <img src={thumb} alt={fileName} className="h-full w-full object-cover" />
+          ) : kind === 'pdf' ? (
+            <span className="flex h-full w-full flex-col items-center justify-center text-destructive"><FileText size={22} /><span className="text-[10px] font-bold">PDF</span></span>
+          ) : (
+            <span className="flex h-full w-full items-center justify-center"><File size={22} className="text-muted-foreground" /></span>
+          )}
+        </button>
+        <div className="min-w-0 flex-1">
+          <p className={`truncate font-medium ${compact ? 'text-sm' : ''}`}>{fileName}</p>
+          {meta}
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          {(kind === 'image' || kind === 'pdf') && (
+            <button type="button" onClick={() => { void open(); }} className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-info hover:bg-info/10">
+              <Eye size={16} /> צפייה
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => { void downloadAccidentBlob(url, fileName); }}
+            className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+          >
+            <Download size={16} /> הורדה
+          </button>
+        </div>
+      </div>
+      <DocumentPreviewDialog
+        open={!!preview}
+        url={preview}
+        fileName={fileName}
+        onOpenChange={(openDialog) => { if (!openDialog) setPreview(null); }}
+      />
+    </>
+  );
 }
 
 function AccidentImageUpload({
@@ -543,13 +702,17 @@ function AccidentImageUpload({
   imageUrls: string[];
   onImagesChanged: (urls: string[]) => void | Promise<void>;
 }) {
-  const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
 
   const handleFile = async (file: File | undefined) => {
-    if (!file || !user?.id) return;
+    if (!file) return;
+    const userId = await currentAuthUserId();
+    if (!userId) {
+      toast.error('יש להתחבר מחדש לפני העלאת תמונה');
+      return;
+    }
     setUploading(true);
-    const path = buildStoragePath(user.id, 'accidents', file.name);
+    const path = buildStoragePath(userId, 'accidents', file.name);
     const { error } = await supabase.storage.from('documents').upload(path, file, {
       cacheControl: '3600',
       upsert: false,
@@ -584,34 +747,33 @@ function AccidentImageUpload({
 }
 
 function AccidentDocuments({ accident, user }: { accident: AccidentRow; user: any }) {
-  const [documents, setDocuments] = useState<AccidentDocumentVersion[]>([]);
+  const [documents, setDocuments] = useState<AccidentAttachedDoc[]>([]);
   const [loadingDocuments, setLoadingDocuments] = useState(true);
   const [uploading, setUploading] = useState(false);
 
   const loadDocuments = () => {
     setLoadingDocuments(true);
-    void supabase
-      .from('document_versions')
-      .select('id, file_path, public_url, original_name, created_at')
-      .eq('entity_type', 'accident')
-      .eq('entity_id', accident.id)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        setDocuments((data as AccidentDocumentVersion[]) || []);
-        setLoadingDocuments(false);
-      });
+    void loadAccidentAttachedDocuments({
+      id: accident.id,
+      claim_number: accident.claim_number,
+      vehicle_plate: accident.vehicle_plate,
+    }).then(({ docs, error }) => {
+      if (error) toast.error('שגיאה בטעינת מסמכי התאונה');
+      setDocuments(docs);
+      setLoadingDocuments(false);
+    });
   };
 
   useEffect(() => {
     loadDocuments();
-  }, [accident.id]);
+  }, [accident.id, accident.claim_number, accident.vehicle_plate]);
 
   const handleUploadFiles = async (files: FileList | null) => {
     if (!files?.length) return;
     setUploading(true);
     let allOk = true;
     for (const file of Array.from(files)) {
-      const result = await uploadDocument({
+      const result = await uploadAccidentAttachedFile({
         file,
         storageFolder: 'accident-documents',
         category: 'accident-document',
@@ -645,9 +807,9 @@ function AccidentDocuments({ accident, user }: { accident: AccidentRow; user: an
       ) : (
         <div className="space-y-2">
           {documents.map((doc) => (
-            <DocumentCard
+            <AccidentFileCard
               key={doc.id}
-              url={doc.file_path || doc.public_url}
+              url={doc.file_path}
               fileName={doc.original_name}
               meta={<span className="text-xs text-muted-foreground">תביעה {accident.claim_number} · {new Date(accident.date).toLocaleDateString('he-IL')}</span>}
             />
@@ -663,6 +825,7 @@ function AccidentDocuments({ accident, user }: { accident: AccidentRow; user: an
           className="hidden"
           accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
           disabled={uploading}
+          data-testid="accident-file-upload"
           onChange={(e) => {
             void handleUploadFiles(e.target.files);
             e.target.value = '';
@@ -768,7 +931,7 @@ function AccidentForm({
     if (documentFiles.length === 0) return true;
     let allUploaded = true;
     for (const file of documentFiles) {
-      const result = await uploadDocument({
+      const result = await uploadAccidentAttachedFile({
         file,
         storageFolder: 'accident-documents',
         category: 'accident-document',
