@@ -1,0 +1,264 @@
+# Read-only diagnosis of the already-sent Production WhatsApp (no new send).
+name: Production WA missed delivery diagnose
+
+on:
+  push:
+    branches: [cursor/prod-driver-area-only-b784]
+    paths:
+      - '.github/workflows/prod-wa-missed-delivery-diagnose.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: prod-wa-missed-delivery-diagnose
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Read-only lookup of Gupshup DLR for owner number
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MGMT: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, os, re, urllib.parse, urllib.request, urllib.error
+          from datetime import datetime, timezone, timedelta
+
+          SRK = os.environ.get('SRK') or ''
+          MGMT = (os.environ.get('MGMT') or '').strip()
+          MAKE = (os.environ.get('MAKE_API_TOKEN') or '').strip()
+          ZONE = (os.environ.get('MAKE_ZONE') or 'eu2').strip().replace('.make.com','')
+          PROD = 'https://qasomfndnjuixgjmjwcm.supabase.co'
+          STAGING = 'https://usfeoerkpcafxxlyuldl.supabase.co'
+          DEST = '972534338601'
+          DEST_LOCAL = '0534338601'
+          HOOK = 2567320
+          SEND_FROM = datetime(2026, 9, 14, 8, 28, tzinfo=timezone.utc)
+          FROM_MS = int(SEND_FROM.timestamp() * 1000)
+
+          def redact(s):
+              s = str(s or '')
+              s = re.sub(r'sbp_[A-Za-z0-9]+', 'SBP_REDACTED', s)
+              s = re.sub(r'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+', 'JWT_REDACTED', s)
+              return s[:1500]
+
+          def http_json(url, headers, method='GET'):
+              req = urllib.request.Request(url, headers=headers, method=method)
+              try:
+                  with urllib.request.urlopen(req, timeout=45) as r:
+                      raw = r.read().decode()
+                      try:
+                          return r.status, json.loads(raw) if raw else None, raw
+                      except Exception:
+                          return r.status, {'text': raw[:2000]}, raw
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      return e.code, json.loads(raw), raw
+                  except Exception:
+                      return e.code, {'text': raw[:800]}, raw
+
+          def rest(base, path, srk):
+              st, body, _ = http_json(
+                  base + path,
+                  {'apikey': srk, 'Authorization': 'Bearer ' + srk, 'Accept': 'application/json'},
+              )
+              return st, body
+
+          print('=== WA_MISS_DIAG_START ===')
+          print('DEST_CONFIRMED', DEST, 'from', DEST_LOCAL)
+          print('NO_NEW_SEND True')
+          print('SRK_LEN', len(SRK), 'MGMT_LEN', len(MGMT), 'MAKE_LEN', len(MAKE))
+
+          since = SEND_FROM.isoformat()
+          q = (
+              f"/rest/v1/incident_notification_deliveries"
+              f"?or=(recipient.eq.{DEST},recipient.eq.{DEST_LOCAL},recipient.eq.unknown)"
+              f"&created_at=gte.{urllib.parse.quote(since)}"
+              f"&select=id,company_name,incident_kind,event_number,channel,recipient,status,error_message,provider_message_id,dlr_event,dlr_error_code,payload_excerpt,status_history,sent_at,created_at,updated_at"
+              f"&order=created_at.desc&limit=50"
+          )
+          st, rows = rest(PROD, q, SRK)
+          print('PROD_DELIVERIES_HTTP', st, 'N', len(rows) if isinstance(rows, list) else rows)
+          if isinstance(rows, list):
+              for d in rows:
+                  if 'בארי' in str(d.get('company_name') or ''):
+                      print('SKIP_BAERI_ROW')
+                      continue
+                  print('PROD_DELIVERY', json.dumps({
+                      'company': d.get('company_name'),
+                      'kind': d.get('incident_kind'),
+                      'event': d.get('event_number'),
+                      'channel': d.get('channel'),
+                      'recipient': d.get('recipient'),
+                      'status': d.get('status'),
+                      'dlr_event': d.get('dlr_event'),
+                      'dlr_error_code': d.get('dlr_error_code'),
+                      'error': str(d.get('error_message') or '')[:300],
+                      'provider_message_id': d.get('provider_message_id'),
+                      'created_at': d.get('created_at'),
+                      'updated_at': d.get('updated_at'),
+                      'history': d.get('status_history'),
+                      'excerpt': str(d.get('payload_excerpt') or '')[:400],
+                  }, ensure_ascii=False))
+
+          # Broader: any whatsapp row since send, owner dest in payload
+          st, allwa = rest(
+              PROD,
+              f"/rest/v1/incident_notification_deliveries?channel=eq.whatsapp&created_at=gte.{urllib.parse.quote(since)}&select=company_name,recipient,status,provider_message_id,dlr_event,dlr_error_code,error_message,payload_excerpt,created_at&order=created_at.desc&limit=40",
+              SRK,
+          )
+          print('PROD_WA_RECENT_HTTP', st, 'N', len(allwa) if isinstance(allwa, list) else allwa)
+          if isinstance(allwa, list):
+              for d in allwa:
+                  blob = json.dumps(d, ensure_ascii=False)
+                  hit = DEST in blob or DEST_LOCAL in blob or 'Gupshup DLR' in str(d.get('company_name') or '')
+                  print('PROD_WA_ROW', json.dumps({
+                      'hit_owner': hit,
+                      'company': d.get('company_name'),
+                      'recipient': d.get('recipient'),
+                      'status': d.get('status'),
+                      'mid': d.get('provider_message_id'),
+                      'dlr': d.get('dlr_event'),
+                      'err': d.get('dlr_error_code') or d.get('error_message'),
+                      'at': d.get('created_at'),
+                  }, ensure_ascii=False))
+
+          if MGMT:
+              st, fns, _ = http_json(
+                  'https://api.supabase.com/v1/projects/qasomfndnjuixgjmjwcm/functions',
+                  {'Authorization': 'Bearer ' + MGMT, 'Accept': 'application/json'},
+              )
+              names = []
+              if isinstance(fns, list):
+                  names = [str(x.get('slug') or x.get('name') or '') for x in fns]
+              print('PROD_FUNCTIONS_HTTP', st, 'HAS_GUPSHUP_WEBHOOK', 'gupshup-webhook' in names)
+              print('PROD_FN_WA_RELATED', [n for n in names if any(k in n for k in ('gupshup','whatsapp','notify','webhook'))])
+              iso_start = '2026-09-14T08:28:00Z'
+              iso_end = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+              for path in [
+                  f'/projects/qasomfndnjuixgjmjwcm/analytics/endpoints/logs.edge-logs?iso_timestamp_start={urllib.parse.quote(iso_start)}&iso_timestamp_end={urllib.parse.quote(iso_end)}',
+                  f'/projects/qasomfndnjuixgjmjwcm/analytics/endpoints/logs.all?iso_timestamp_start={urllib.parse.quote(iso_start)}&iso_timestamp_end={urllib.parse.quote(iso_end)}',
+              ]:
+                  hs, body, raw = http_json('https://api.supabase.com/v1' + path, {'Authorization': 'Bearer ' + MGMT})
+                  text = raw or json.dumps(body, ensure_ascii=False)
+                  hit = DEST in text or 'notify-driver-event' in text or 'gupshup' in text.lower() or 'messageId' in text
+                  print('MGMT_LOG', path.split('?')[0].split('/')[-1], 'HTTP', hs, 'LEN', len(text), 'HIT', hit)
+                  if hit:
+                      for ln in text.split('\\n'):
+                          if DEST in ln or 'messageId' in ln or '1005' in ln or 'WhatsApp' in ln:
+                              print('LOG_LINE', redact(ln)[:400])
+
+              # Staging service role via management if permitted — DLR orphans often land on Staging webhook
+              st, keys, _ = http_json(
+                  'https://api.supabase.com/v1/projects/usfeoerkpcafxxlyuldl/api-keys',
+                  {'Authorization': 'Bearer ' + MGMT},
+              )
+              print('STAGING_KEYS_HTTP', st)
+              staging_srk = None
+              if isinstance(keys, list):
+                  for k in keys:
+                      tags = k.get('tags') or []
+                      if k.get('name') == 'service_role' or 'service_role' in tags:
+                          staging_srk = k.get('api_key')
+                          break
+              if staging_srk:
+                  st, srows = rest(
+                      STAGING,
+                      f"/rest/v1/incident_notification_deliveries?or=(recipient.eq.{DEST},recipient.eq.{DEST_LOCAL})&created_at=gte.{urllib.parse.quote(since)}&select=company_name,recipient,status,provider_message_id,dlr_event,dlr_error_code,error_message,payload_excerpt,status_history,created_at&order=created_at.desc&limit=30",
+                      staging_srk,
+                  )
+                  print('STAGING_DELIVERIES_HTTP', st, 'N', len(srows) if isinstance(srows, list) else srows)
+                  if isinstance(srows, list):
+                      for d in srows:
+                          print('STAGING_DELIVERY', json.dumps({
+                              'company': d.get('company_name'),
+                              'recipient': d.get('recipient'),
+                              'status': d.get('status'),
+                              'mid': d.get('provider_message_id'),
+                              'dlr': d.get('dlr_event'),
+                              'code': d.get('dlr_error_code'),
+                              'error': str(d.get('error_message') or '')[:300],
+                              'at': d.get('created_at'),
+                              'history': d.get('status_history'),
+                              'excerpt': str(d.get('payload_excerpt') or '')[:400],
+                          }, ensure_ascii=False))
+              else:
+                  print('STAGING_SRK_UNAVAILABLE')
+
+          if MAKE:
+              make_base = f'https://{ZONE}.make.com/api/v2'
+              st, listing, raw = http_json(
+                  f'{make_base}/hooks/{HOOK}/logs?from={FROM_MS}&pg[limit]=50&pg[sortBy]=loggedAt&pg[sortDir]=desc',
+                  {'Authorization': 'Token ' + MAKE, 'Accept': 'application/json'},
+              )
+              logs = []
+              if isinstance(listing, dict):
+                  logs = listing.get('hookLogs') or listing.get('logs') or []
+              print('MAKE_LIST_HTTP', st, 'N', len(logs))
+              owner_events = []
+              for log in logs[:40]:
+                  lid = log.get('id')
+                  hs, detail, _ = http_json(
+                      f'{make_base}/hooks/{HOOK}/logs/{lid}',
+                      {'Authorization': 'Token ' + MAKE, 'Accept': 'application/json'},
+                  )
+                  dlog = (detail or {}).get('hookLog') or (detail or {}).get('log') or detail or {}
+                  data = dlog.get('data') or {}
+                  req = data.get('request') or data
+                  body = req.get('body') if isinstance(req, dict) else data.get('body')
+                  if isinstance(body, str):
+                      try:
+                          body = json.loads(body)
+                      except Exception:
+                          body = {'raw': body[:500]}
+                  blob = json.dumps(body, ensure_ascii=False) if body is not None else ''
+                  if DEST not in blob and DEST_LOCAL not in blob and '534338601' not in blob:
+                      continue
+                  stt = None
+                  try:
+                      stt = body.get('entry', [{}])[0].get('changes', [{}])[0].get('value', {}).get('statuses', [None])[0]
+                  except Exception:
+                      stt = None
+                  ev = {
+                      'loggedAt': log.get('loggedAt'),
+                      'recipient_id': (stt or {}).get('recipient_id') if isinstance(stt, dict) else None,
+                      'status': (stt or {}).get('status') if isinstance(stt, dict) else None,
+                      'gs_id': (stt or {}).get('gs_id') if isinstance(stt, dict) else None,
+                      'id': (stt or {}).get('id') if isinstance(stt, dict) else None,
+                      'error_code': (((stt or {}).get('errors') or [{}])[0].get('code') if isinstance(stt, dict) else None),
+                      'error_details': ((((stt or {}).get('errors') or [{}])[0].get('error_data') or {}).get('details') if isinstance(stt, dict) else None),
+                      'error_title': (((stt or {}).get('errors') or [{}])[0].get('title') if isinstance(stt, dict) else None),
+                      'conversation': (stt or {}).get('conversation') if isinstance(stt, dict) else None,
+                      'payload_type': (body.get('type') if isinstance(body, dict) else None),
+                      'eventType': (body.get('eventType') if isinstance(body, dict) else None),
+                      'excerpt': blob[:800],
+                  }
+                  owner_events.append(ev)
+                  print('MAKE_OWNER_EVENT', json.dumps(ev, ensure_ascii=False)[:1500])
+              print('MAKE_OWNER_EVENT_COUNT', len(owner_events))
+              statuses = [e.get('status') for e in owner_events if e.get('status')]
+              print('MAKE_STATUS_TIMELINE', statuses)
+          else:
+              print('MAKE_TOKEN_MISSING')
+
+          print('CODE_FACTS')
+          print(json.dumps({
+              'send_path': 'notify-driver-event → POST https://api.gupshup.io/wa/api/v1/msg',
+              'message_type': 'session text (type=text), not template',
+              'destination_normalization': '0534338601 → 972534338601',
+              'source_default': '972546500305',
+              'app_default': 'DaliaVehicle',
+              'success_handling': 'HTTP 2xx counted as whatsapp_sent=1; Gupshup JSON/messageId discarded; no incident_notification_deliveries insert',
+              'gupshup_submitted_vs_delivered': 'submitted/HTTP 2xx is queue accept, not handset delivery',
+              'template_required_outside_24h': True,
+              'opt_in_required_for_business_initiated': True,
+              'known_session_fail_code': '1005 user inactive for session message',
+          }, ensure_ascii=False))
+          print('=== WA_MISS_DIAG_END ===')
+          PY
