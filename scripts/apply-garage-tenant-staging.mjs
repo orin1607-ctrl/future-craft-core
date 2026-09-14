@@ -13,6 +13,7 @@
  * Ignores SUPABASE_ACCESS_TOKEN. The read-only PRECHECK token cannot apply DDL.
  */
 import { spawnSync } from 'node:child_process';
+import { lookup } from 'node:dns/promises';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -44,12 +45,26 @@ function writeReportFile(report) {
   writeFileSync(join('test-results', 'garage-tenant-staging-apply.json'), JSON.stringify(report, null, 2));
 }
 
-function applyWithPsql(url, sqlFile) {
+async function psqlEnv(url) {
+  const env = { ...process.env, PGSSLMODE: process.env.PGSSLMODE || 'require' };
+  const hostMatch = url.match(/@([^/?#:]+)/);
+  const host = hostMatch ? hostMatch[1] : '';
+  if (host) {
+    const resolved = await lookup(host, { family: 4 });
+    env.PGHOSTADDR = resolved.address;
+    console.log('PSQL_HOST', host);
+    console.log('PSQL_IPV4', resolved.address);
+  }
+  return env;
+}
+
+async function applyWithPsql(url, sqlFile) {
   guardDbUrl(url);
+  const env = await psqlEnv(url);
   const ident = spawnSync(
     'psql',
     [url, '-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-tA', '-c', 'SELECT current_database();'],
-    { encoding: 'utf8', timeout: 30000, env: { ...process.env } },
+    { encoding: 'utf8', timeout: 30000, env },
   );
   if (ident.status !== 0) {
     throw new Error((ident.stderr || ident.stdout || 'psql identity failed').slice(0, 400));
@@ -58,7 +73,7 @@ function applyWithPsql(url, sqlFile) {
   const res = spawnSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-f', sqlFile], {
     encoding: 'utf8',
     timeout: 180000,
-    env: { ...process.env },
+    env,
   });
   if (res.status !== 0) {
     throw new Error((res.stderr || res.stdout || 'psql failed').slice(0, 800));
@@ -116,7 +131,7 @@ async function run() {
   }
 
   try {
-    applyWithPsql(dbUrl, SQL_FILE);
+    await applyWithPsql(dbUrl, SQL_FILE);
     report.apply = { ok: true, via: 'STAGING_DATABASE_URL_psql' };
     report.identity = { via: 'STAGING_DATABASE_URL', ref: STAGING_REF };
     writeReportFile(report);
@@ -124,7 +139,7 @@ async function run() {
   } catch (e) {
     report.apply = { ok: false, via: 'STAGING_DATABASE_URL_psql', error: String(e.message || e).slice(0, 800) };
     writeReportFile(report);
-    abort('STAGING_DATABASE_URL apply failed (transaction rolled back if mismatch RAISE). Production not touched.');
+    abort(`STAGING_DATABASE_URL apply failed. ${String(e.message || e).slice(0, 400)} Production not touched.`);
   }
 }
 
