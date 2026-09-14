@@ -10,6 +10,7 @@ import ImageUpload from '@/components/ImageUpload';
 import { isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
+import { dispatchDriverEvent } from '@/lib/dispatchDriverEvent';
 
 interface ExpenseRow {
   id: string;
@@ -174,14 +175,25 @@ function ExpenseFormPage({ onDone, onBack, user }: { onDone: () => void; onBack:
   const handleSubmit = async () => {
     if (!isValid) return;
     setLoading(true);
-    const { error } = await supabase.from('expenses').insert({
+    const insertPayload = {
       vehicle_plate: vehiclePlate, driver_name: driverName, category, vendor,
       invoice_number: invoiceNumber, amount: parseFloat(amount) || 0,
       odometer: parseInt(odometer) || 0, notes, image_url: imageUrl || '',
       company_name: user?.company_name || '', created_by: user?.id,
-    });
+    };
+    const { data, error } = await supabase.from('expenses').insert(insertPayload).select('*').single();
     setLoading(false);
-    if (error) { toast.error('שגיאה בשמירה'); } else { toast.success('ההוצאה נשמרה'); onDone(); }
+    if (error) {
+      toast.error('שגיאה בשמירה');
+    } else {
+      toast.success('ההוצאה נשמרה');
+      dispatchDriverEvent({
+        action_key: 'expenses',
+        record: (data || insertPayload) as Record<string, unknown>,
+        link: '/expenses',
+      }).catch(console.error);
+      onDone();
+    }
   };
 
   return (

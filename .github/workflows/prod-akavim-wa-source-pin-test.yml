@@ -1,0 +1,433 @@
+# Session-window send completed 2026-09-14 (messageId 4c7aa808-f1fa-4191-9ca0-1c4b4eb3a09d).
+# Deploy/send steps are disarmed — do not auto-send again.
+# SOURCE: 0546500305 / 972546500305
+# DESTINATION: 0534338601 / 972534338601
+# Never Hostinger, migrate, Claims, בארי, other companies, or global GUPSHUP_SOURCE.
+name: Production Akavim WhatsApp source pin test
+
+on:
+  push:
+    branches: [cursor/prod-driver-area-only-b784]
+    paths:
+      - '.github/workflows/prod-akavim-wa-source-pin-test.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: prod-akavim-wa-source-pin-test
+  cancel-in-progress: false
+
+jobs:
+  inspect-deploy-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Inspect live SOURCE (no real destination send)
+        id: inspect
+        continue-on-error: true
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MGMT: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, os, urllib.request, urllib.error
+          SRK = os.environ['SRK']
+          MGMT = (os.environ.get('MGMT') or '').strip()
+          BASE = 'https://qasomfndnjuixgjmjwcm.supabase.co'
+          APPROVED = '972546500305'
+          OWNER = 'orin1607@gmail.com'
+
+          def req(method, path, body=None, bearer=None):
+              h = {'apikey': SRK, 'Authorization': 'Bearer ' + (bearer or SRK)}
+              data = None
+              if body is not None:
+                  h['Content-Type'] = 'application/json'
+                  data = json.dumps(body).encode()
+              r = urllib.request.Request(BASE + path, data=data, headers=h, method=method)
+              try:
+                  with urllib.request.urlopen(r, timeout=45) as resp:
+                      raw = resp.read().decode()
+                      return resp.status, json.loads(raw) if raw else None
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      return e.code, json.loads(raw)
+                  except Exception:
+                      return e.code, {'raw': raw[:500]}
+
+          print('=== SOURCE_INSPECT_START ===')
+          names = []
+          if MGMT:
+              r = urllib.request.Request(
+                  'https://api.supabase.com/v1/projects/qasomfndnjuixgjmjwcm/secrets',
+                  headers={'Authorization': 'Bearer ' + MGMT, 'Accept': 'application/json'},
+              )
+              try:
+                  with urllib.request.urlopen(r, timeout=30) as resp:
+                      body = json.loads(resp.read().decode() or '[]')
+                      names = [ (x if isinstance(x,str) else x.get('name')) for x in (body or []) ]
+                      print('SECRETS_HTTP', resp.status, 'HAS_GUPSHUP_SOURCE', 'GUPSHUP_SOURCE' in names, 'HAS_SOURCE_NUMBER', 'GUPSHUP_SOURCE_NUMBER' in names, 'HAS_API_KEY', 'GUPSHUP_API_KEY' in names, 'HAS_APP_NAME', 'GUPSHUP_APP_NAME' in names)
+              except urllib.error.HTTPError as e:
+                  print('SECRETS_HTTP', e.code, e.read().decode()[:200])
+
+          st, gen = req('POST', '/auth/v1/admin/generate_link', {'type': 'magiclink', 'email': OWNER})
+          assert st == 200, gen
+          st, ver = req('POST', '/auth/v1/verify', {'type': 'magiclink', 'email': OWNER, 'token': gen['email_otp']})
+          assert st == 200, ver
+          at = ver.get('access_token') or ver['session']['access_token']
+          print('SESSION_OK')
+          st, dbg = req('POST', '/functions/v1/send-whatsapp-message', {'action': 'debug_connection'}, bearer=at)
+          print('DEBUG_HTTP', st)
+          val = (dbg or {}).get('validation') or {}
+          secrets_env = (dbg or {}).get('secrets_env') or {}
+          fields = ((dbg or {}).get('request') or {}).get('body_fields') or {}
+          print('SOURCE_USED', val.get('source_used') or fields.get('source'))
+          print('SOURCE_EXPECTED', val.get('source_expected'))
+          print('SOURCE_MATCH', val.get('source_match'))
+          print('SOURCE_SECRET', secrets_env.get('GUPSHUP_SOURCE_secret'))
+          print('APP_NAME_USED', val.get('app_name_used') or (dbg or {}).get('app_name_used'))
+          print('DESTINATION_IN_PROBE', fields.get('destination'))
+          print('GUPSHUP_HTTP', (dbg or {}).get('gupshup_status') or ((dbg or {}).get('gupshup_response') or {}).get('http_status'))
+          src = str(val.get('source_used') or fields.get('source') or secrets_env.get('GUPSHUP_SOURCE_secret') or '')
+          digits = ''.join(c for c in src if c.isdigit())
+          if digits.startswith('0'):
+              digits = '972' + digits[1:]
+          print('SOURCE_NORMALIZED', digits)
+          print('SOURCE_IS_APPROVED', digits == APPROVED)
+          print('PROBE_WAS_DESTINATION_ZERO', fields.get('destination') in ('0', 0, '0'))
+          st, perm = req('POST', '/functions/v1/send-whatsapp-message', {'action': 'inspect_outbound_permissions'}, bearer=at)
+          print('PERM_HTTP', st)
+          app = (perm or {}).get('app') or {}
+          print('PERM_SOURCE_USED', app.get('source_used'))
+          print('PERM_SOURCE_MATCH', app.get('source_match'))
+          probes = (perm or {}).get('probes') or {}
+          templates = (probes.get('list_approved_templates') or {})
+          print('APPROVED_TEMPLATE_COUNT', templates.get('approved_template_count'))
+          print('APPROVED_TEMPLATES_SAMPLE', json.dumps(templates.get('approved_templates_sample'), ensure_ascii=False)[:800])
+          print('SESSION_PROBE_DEST', ((probes.get('session_msg_auth_probe') or {}).get('body_fields') or {}).get('destination'))
+          print('=== SOURCE_INSPECT_END ===')
+          out = os.environ.get('GITHUB_OUTPUT')
+          if out:
+              with open(out, 'a') as f:
+                  f.write(f'source_normalized={digits}\n')
+                  f.write(f'source_is_approved={str(digits == APPROVED).lower()}\n')
+          PY
+
+      - name: Collision gate — refuse send if SOURCE == DESTINATION
+        id: gate
+        run: |
+          set -euo pipefail
+          SRC="${{ steps.inspect.outputs.source_normalized }}"
+          DEST="972534338601"
+          DEST_LOCAL="0534338601"
+          echo "SOURCE=${SRC:-UNKNOWN}"
+          echo "DESTINATION=${DEST} (${DEST_LOCAL})"
+          if [ -z "${SRC}" ]; then
+            echo "COLLISION=unknown"
+            echo "REFUSE_SEND unknown SOURCE — will not send"
+            echo "allow_send=false" >> "$GITHUB_OUTPUT"
+            echo "collision=unknown" >> "$GITHUB_OUTPUT"
+          elif [ "$SRC" = "$DEST" ]; then
+            echo "COLLISION=true"
+            echo "REFUSE_SEND SOURCE and DESTINATION are the same number"
+            echo "allow_send=false" >> "$GITHUB_OUTPUT"
+            echo "collision=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "COLLISION=false"
+            echo "allow_send=true" >> "$GITHUB_OUTPUT"
+            echo "collision=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy notify-driver-event + send-whatsapp-message (no Hostinger)
+        if: false
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          TOK=$(printf '%s' "${SUPABASE_ACCESS_TOKEN:-}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          export SUPABASE_ACCESS_TOKEN="$TOK"
+          echo "GH_TOKEN_LEN=${#SUPABASE_ACCESS_TOKEN}"
+          npx --yes supabase functions deploy send-whatsapp-message --project-ref qasomfndnjuixgjmjwcm --use-api
+          echo "EDGE_DEPLOY=send-whatsapp-message OK"
+          npx --yes supabase functions deploy notify-driver-event --project-ref qasomfndnjuixgjmjwcm --use-api
+          echo "EDGE_DEPLOY=notify-driver-event OK"
+
+      - name: One WhatsApp send to אכבים then restore
+        if: false
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, os, re, time, urllib.parse, urllib.request, urllib.error
+          from datetime import datetime, timezone, timedelta
+
+          SRK = os.environ['SRK']
+          ANON = os.environ.get('ANON') or SRK
+          BASE = 'https://qasomfndnjuixgjmjwcm.supabase.co'
+          FN = BASE + '/functions/v1/notify-driver-event'
+          COMPANY = 'אכבים'
+          FORBIDDEN = 'בארי'
+          ACTION = 'fault_urgent'
+          OWNER_EMAIL = 'orin1607@gmail.com'
+          OWNER_WA = '972534338601'
+          OWNER_WA_RAW = '0534338601'
+          APPROVED_SOURCE = '972546500305'
+          if OWNER_WA == APPROVED_SOURCE:
+              raise SystemExit('REFUSE_SEND SOURCE==DESTINATION')
+          print('PRE_SEND_SOURCE', APPROVED_SOURCE)
+          print('PRE_SEND_DESTINATION', OWNER_WA, OWNER_WA_RAW)
+          print('PRE_SEND_COLLISION', False)
+
+          def rest(path, method='GET', body=None, bearer=None):
+              token = bearer or SRK
+              h = {
+                  'apikey': SRK if token == SRK else ANON,
+                  'Authorization': 'Bearer ' + token,
+                  'Accept': 'application/json',
+              }
+              if path.startswith('/rest/v1'):
+                  h['Prefer'] = 'return=representation'
+              data = None
+              if body is not None:
+                  h['Content-Type'] = 'application/json'
+                  data = json.dumps(body, ensure_ascii=False).encode()
+              req = urllib.request.Request(BASE + path, data=data, headers=h, method=method)
+              try:
+                  with urllib.request.urlopen(req, timeout=45) as r:
+                      raw = r.read().decode()
+                      return r.status, json.loads(raw) if raw else None
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      return e.code, json.loads(raw)
+                  except Exception:
+                      return e.code, {'raw': raw[:500]}
+
+          print('=== AKAVIM_WA_TEST_START ===')
+          if FORBIDDEN in COMPANY:
+              raise SystemExit('forbidden company')
+          cq = urllib.parse.quote(COMPANY, safe='')
+          aq = urllib.parse.quote(ACTION, safe='')
+          st, rows = rest(f'/rest/v1/driver_app_action_settings?company_name=eq.{cq}&action_key=eq.{aq}&select=*')
+          if not isinstance(rows, list) or not rows:
+              raise SystemExit('missing action row')
+          original = rows[0]
+          print('BACKUP_WHATSAPP', json.dumps({
+              'whatsapp_enabled': original.get('whatsapp_enabled'),
+              'wa_to_fm': original.get('whatsapp_to_fleet_managers'),
+              'wa_to_contact': original.get('whatsapp_to_company_contact'),
+              'wa_to_dalia': original.get('whatsapp_to_dalia'),
+              'whatsapp_extra': original.get('whatsapp_extra'),
+          }, ensure_ascii=False))
+          st, csrows = rest(f'/rest/v1/company_settings?company_name=eq.{cq}&select=company_name,incident_notify_whatsapp,incident_whatsapp_recipients')
+          print('LEGACY_WA_SETTINGS', json.dumps(csrows, ensure_ascii=False)[:800] if csrows else csrows)
+          if isinstance(csrows, list) and csrows and csrows[0].get('incident_notify_whatsapp') is True:
+              raise SystemExit('ABORT legacy notify-accident-email WhatsApp is ON for אכבים — would duplicate')
+          restored = False
+          result = None
+          try:
+              st, patched = rest(
+                  f'/rest/v1/driver_app_action_settings?company_name=eq.{cq}&action_key=eq.{aq}',
+                  method='PATCH',
+                  body={
+                      'whatsapp_enabled': True,
+                      'whatsapp_to_fleet_managers': False,
+                      'whatsapp_to_company_contact': False,
+                      'whatsapp_to_dalia': False,
+                      'whatsapp_extra': OWNER_WA_RAW,
+                  },
+              )
+              print('PATCH_HTTP', st)
+              row = patched[0] if isinstance(patched, list) else patched
+              extra = (row.get('whatsapp_extra') or '').strip()
+              print('PATCH_COMPANY', row.get('company_name'), 'ACTION', row.get('action_key'))
+              if row.get('company_name') != COMPANY or FORBIDDEN in str(row.get('company_name')):
+                  raise SystemExit('ABORT not אכבים')
+              if row.get('whatsapp_to_fleet_managers') or row.get('whatsapp_to_dalia') or row.get('whatsapp_to_company_contact'):
+                  raise SystemExit('ABORT extra recipients besides owner extra')
+              if extra not in (OWNER_WA_RAW, OWNER_WA):
+                  raise SystemExit('ABORT extra not owner')
+              st, gen = rest('/auth/v1/admin/generate_link', method='POST', body={'type': 'magiclink', 'email': OWNER_EMAIL})
+              if st != 200 or not isinstance(gen, dict) or not gen.get('email_otp'):
+                  raise SystemExit('ABORT generate_link ' + str(gen)[:300])
+              st, ver = rest('/auth/v1/verify', method='POST', body={'type': 'magiclink', 'email': OWNER_EMAIL, 'token': gen['email_otp']})
+              if st != 200 or not isinstance(ver, dict):
+                  raise SystemExit('ABORT verify ' + str(ver)[:300])
+              at = ver.get('access_token') or (ver.get('session') or {}).get('access_token')
+              if not at:
+                  raise SystemExit('ABORT no owner session')
+              print('OWNER_SESSION_OK')
+              st, vehicles = rest(f'/rest/v1/vehicles?company_name=eq.{cq}&select=id,license_plate,internal_number,assigned_driver_id,company_name&limit=5')
+              st, drivers = rest(f'/rest/v1/drivers?company_name=eq.{cq}&select=id,full_name,phone,company_name&limit=5')
+              veh = (vehicles[0] if isinstance(vehicles, list) and vehicles else {}) or {}
+              drv = (drivers[0] if isinstance(drivers, list) and drivers else {}) or {}
+              if veh and (veh.get('company_name') != COMPANY or FORBIDDEN in str(veh.get('company_name'))):
+                  raise SystemExit('ABORT vehicle not אכבים')
+              if drv and (drv.get('company_name') != COMPANY or FORBIDDEN in str(drv.get('company_name'))):
+                  raise SystemExit('ABORT driver not אכבים')
+              print('VEHICLE', json.dumps({'id': veh.get('id'), 'plate': veh.get('license_plate'), 'company': veh.get('company_name')}, ensure_ascii=False))
+              print('DRIVER', json.dumps({'id': drv.get('id'), 'name': drv.get('full_name'), 'company': drv.get('company_name')}, ensure_ascii=False))
+              st, enum = rest('/rest/v1/rpc/allocate_incident_event_number', method='POST', body={'p_company': COMPANY, 'p_prefix': 'FLT'}, bearer=at)
+              print('EVENT_NUMBER', st, enum)
+              if st != 200 or not enum:
+                  raise SystemExit('ABORT event number — no WhatsApp send')
+              event_number = enum if isinstance(enum, str) else str(enum)
+              fault = {
+                  'company_name': COMPANY,
+                  'driver_name': drv.get('full_name') or 'בדיקת מערכת',
+                  'vehicle_plate': veh.get('license_plate') or 'SYS-TEST',
+                  'vehicle_id': veh.get('id'),
+                  'driver_id': drv.get('id'),
+                  'fault_type': 'בדיקת מערכת',
+                  'fault_type_other': '',
+                  'description': 'בדיקת מערכת בלבד – אין לטפל',
+                  'urgency': 'urgent',
+                  'notes': '',
+                  'images': '',
+                  'status': 'opened',
+                  'event_number': event_number,
+                  'serial_id': event_number,
+                  'opened_by_role': 'super_admin',
+                  'reporter_phone': OWNER_WA_RAW,
+                  'date': datetime.now(timezone.utc).isoformat(),
+                  'created_by': '7fd0a5b9-ae13-4d9c-9e18-27a036103eae',
+              }
+              fault = {k: v for k, v in fault.items() if v is not None}
+              st, created = rest('/rest/v1/faults', method='POST', body=fault, bearer=at)
+              print('CREATE_FAULT_HTTP', st)
+              print('CREATE_FAULT', json.dumps(created, ensure_ascii=False)[:1500] if created else created)
+              if st not in (200, 201) or not created:
+                  raise SystemExit('ABORT fault insert failed — no WhatsApp send')
+              row = created[0] if isinstance(created, list) else created
+              if not isinstance(row, dict) or row.get('company_name') != COMPANY or FORBIDDEN in str(row.get('company_name')):
+                  raise SystemExit('ABORT inserted row is not אכבים')
+              print('FAULT_SAVED', json.dumps({'id': row.get('id'), 'event_number': row.get('event_number'), 'company': row.get('company_name'), 'urgency': row.get('urgency')}, ensure_ascii=False))
+              body = {
+                  'action_key': ACTION,
+                  'condition_value': 'urgent',
+                  'record': dict(row),
+                  'title': 'בדיקת מערכת בלבד – אין לטפל',
+                  'message': 'בדיקת מערכת בלבד – אין לטפל',
+                  'link': '/faults',
+              }
+              req = urllib.request.Request(
+                  FN, data=json.dumps(body, ensure_ascii=False).encode(), method='POST',
+                  headers={'Content-Type': 'application/json', 'apikey': ANON, 'Authorization': 'Bearer ' + at},
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      raw = r.read().decode()
+                      result = {'http': r.status, 'body': json.loads(raw) if raw else {}}
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      parsed = json.loads(raw)
+                  except Exception:
+                      parsed = {'raw': raw[:400]}
+                  result = {'http': e.code, 'body': parsed}
+              print('INVOKE', json.dumps(result, ensure_ascii=False)[:2500])
+              print('PATH', 'faults.insert + notify-driver-event + send-whatsapp-message')
+              b = result.get('body') or {}
+              print('SOURCE_USED', b.get('source_used'))
+              print('SOURCE_ENV', b.get('source_env'))
+              print('SOURCE_PINNED', b.get('source_pinned'))
+              print('WHATSAPP_SENT', b.get('whatsapp_sent'))
+              print('WHATSAPP_VIA', b.get('whatsapp_via'))
+              print('WHATSAPP_SKIPPED', b.get('whatsapp_skipped'))
+              print('EMAILS_SENT', b.get('emails_sent'))
+              print('WHATSAPP_RESULTS', json.dumps(b.get('whatsapp_results'), ensure_ascii=False)[:1500])
+              if str(b.get('source_used')) != APPROVED_SOURCE:
+                  print('SOURCE_NOT_APPROVED_AFTER_PIN')
+              results = b.get('whatsapp_results') or []
+              dests = [str(x.get('destination')) for x in results]
+              if dests and dests != [OWNER_WA]:
+                  print('DEST_MISMATCH', dests)
+              mids = [x.get('message_id') for x in results if x.get('message_id')]
+              print('MESSAGE_IDS', mids)
+              print('SEND_COUNT', 1 if (b.get('whatsapp_sent') or 0) else 0)
+              print('NO_RESEND True')
+              def dlr_lookup(mid=None):
+                  selects = [
+                      'recipient,status,provider_message_id,dlr_event,dlr_error_code,error_message,created_at,updated_at,company_name,payload_excerpt',
+                      'recipient,status,provider_message_id,error_message,created_at,company_name,payload_excerpt',
+                  ]
+                  last = (None, None)
+                  for sel in selects:
+                      if mid:
+                          path = f"/rest/v1/incident_notification_deliveries?provider_message_id=eq.{urllib.parse.quote(str(mid))}&select={sel}"
+                      else:
+                          path = (
+                              f"/rest/v1/incident_notification_deliveries"
+                              f"?company_name=eq.{cq}&channel=eq.whatsapp&recipient=eq.{OWNER_WA}"
+                              f"&created_at=gte.{urllib.parse.quote(since)}&select={sel}&order=created_at.desc&limit=5"
+                          )
+                      st, drows = rest(path)
+                      last = (st, drows)
+                      if st < 400:
+                          return st, drows
+                  return last
+
+              time.sleep(20)
+              since = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
+              final_rows = None
+              if mids:
+                  for mid in mids:
+                      st, drows = dlr_lookup(mid)
+                      print('DLR1_HTTP', st)
+                      print('DLR1', json.dumps(drows, ensure_ascii=False)[:1500] if drows else drows)
+                  time.sleep(25)
+                  st, drows = dlr_lookup(mids[0])
+                  print('DLR2_HTTP', st)
+                  print('DLR2', json.dumps(drows, ensure_ascii=False)[:1500] if drows else drows)
+                  time.sleep(40)
+                  st, final_rows = dlr_lookup(mids[0])
+                  print('DLR3_HTTP', st)
+                  print('DLR3', json.dumps(final_rows, ensure_ascii=False)[:1500] if final_rows else final_rows)
+              else:
+                  st, final_rows = dlr_lookup()
+                  print('DLR_NO_MID_HTTP', st)
+                  print('DLR_NO_MID', json.dumps(final_rows, ensure_ascii=False)[:1500] if final_rows else final_rows)
+              row0 = final_rows[0] if isinstance(final_rows, list) and final_rows else {}
+              stt = str(row0.get('status') or '')
+              ev = str(row0.get('dlr_event') or '')
+              print('DLR_STATUS', stt)
+              print('DLR_EVENT', ev)
+              print('DLR_ERROR', row0.get('dlr_error_code') or row0.get('error_message'))
+              if stt in ('delivered', 'read') or ev.lower() in ('delivered', 'read'):
+                  print('PHONE_DELIVERY_EVIDENCE delivered_or_read')
+              elif stt in ('failed', 'rejected') or ev.lower() in ('failed', 'rejected'):
+                  print('PHONE_DELIVERY_EVIDENCE failed')
+              elif stt in ('sent', 'submitted', 'enqueued'):
+                  print('PHONE_DELIVERY_EVIDENCE not_confirmed_stop_no_resend')
+              else:
+                  print('PHONE_DELIVERY_EVIDENCE unknown_stop_no_resend')
+          finally:
+              st, restored_rows = rest(
+                  f'/rest/v1/driver_app_action_settings?company_name=eq.{cq}&action_key=eq.{aq}',
+                  method='PATCH',
+                  body={
+                      'whatsapp_enabled': original.get('whatsapp_enabled'),
+                      'whatsapp_to_fleet_managers': original.get('whatsapp_to_fleet_managers'),
+                      'whatsapp_to_company_contact': original.get('whatsapp_to_company_contact'),
+                      'whatsapp_to_dalia': original.get('whatsapp_to_dalia'),
+                      'whatsapp_extra': original.get('whatsapp_extra') or '',
+                  },
+              )
+              print('RESTORE_HTTP', st)
+              if isinstance(restored_rows, list) and restored_rows:
+                  now = restored_rows[0]
+                  restored = (
+                      now.get('whatsapp_enabled') == original.get('whatsapp_enabled')
+                      and (now.get('whatsapp_extra') or '') == (original.get('whatsapp_extra') or '')
+                  )
+              print('RESTORED', restored)
+          print('=== AKAVIM_WA_TEST_END ===')
+          PY

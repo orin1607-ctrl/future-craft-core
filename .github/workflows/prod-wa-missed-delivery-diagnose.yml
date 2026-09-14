@@ -1,0 +1,337 @@
+# Read-only diagnosis of the already-sent Production WhatsApp (no new send).
+# Target messageId: 77b476f9-00bb-4852-b53d-f00d9aefe97c
+# SOURCE 972546500305 / DEST 972534338601
+# Never Hostinger, migrate, Claims, בארי, other companies, GUPSHUP_SOURCE, or a new send.
+name: Production WA missed delivery diagnose
+
+on:
+  push:
+    branches: [cursor/prod-driver-area-only-b784]
+    paths:
+      - '.github/workflows/prod-wa-missed-delivery-diagnose.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: prod-wa-missed-delivery-diagnose
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Read-only Gupshup/DLR lookup for one messageId
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          MGMT: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          MAKE_API_TOKEN: ${{ secrets.MAKE_API_TOKEN }}
+          MAKE_ZONE: ${{ secrets.MAKE_ZONE }}
+          GUPSHUP_API_KEY: ${{ secrets.GUPSHUP_API_KEY }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, os, re, urllib.parse, urllib.request, urllib.error
+          from datetime import datetime, timezone, timedelta
+
+          SRK = os.environ.get('SRK') or ''
+          ANON = os.environ.get('ANON') or SRK
+          MGMT = (os.environ.get('MGMT') or '').strip()
+          MAKE = (os.environ.get('MAKE_API_TOKEN') or '').strip()
+          ZONE = (os.environ.get('MAKE_ZONE') or 'eu2').strip().replace('.make.com','')
+          GSKEY = (os.environ.get('GUPSHUP_API_KEY') or '').strip()
+          PROD = 'https://qasomfndnjuixgjmjwcm.supabase.co'
+          STAGING = 'https://usfeoerkpcafxxlyuldl.supabase.co'
+          DEST = '972534338601'
+          DEST_LOCAL = '0534338601'
+          SOURCE = '972546500305'
+          MID = '77b476f9-00bb-4852-b53d-f00d9aefe97c'
+          APP_ID = '496709e8-b5fc-4de9-9c75-bc87455482dd'
+          APP_NAME = 'DaliaVehicle'
+          HOOK = 2567320
+          SEND_AT = datetime(2026, 9, 14, 11, 38, 7, tzinfo=timezone.utc)
+          WINDOW_START = SEND_AT - timedelta(hours=24)
+          FROM_MS = int((SEND_AT - timedelta(hours=6)).timestamp() * 1000)
+          INBOUND_FROM_MS = int(WINDOW_START.timestamp() * 1000)
+
+          def redact(s):
+              s = str(s or '')
+              s = re.sub(r'sbp_[A-Za-z0-9]+', 'SBP_REDACTED', s)
+              s = re.sub(r'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+', 'JWT_REDACTED', s)
+              s = re.sub(r'(apikey["\s:=]+)[^,\s"]+', r'\1REDACTED', s, flags=re.I)
+              return s[:2000]
+
+          def http_json(url, headers, method='GET', body=None):
+              data = None
+              h = dict(headers)
+              if body is not None:
+                  h['Content-Type'] = h.get('Content-Type') or 'application/json'
+                  data = body if isinstance(body, (bytes, bytearray)) else json.dumps(body).encode()
+              req = urllib.request.Request(url, data=data, headers=h, method=method)
+              try:
+                  with urllib.request.urlopen(req, timeout=45) as r:
+                      raw = r.read().decode()
+                      try:
+                          return r.status, json.loads(raw) if raw else None, raw
+                      except Exception:
+                          return r.status, {'text': raw[:2000]}, raw
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      return e.code, json.loads(raw), raw
+                  except Exception:
+                      return e.code, {'text': raw[:800]}, raw
+              except Exception as e:
+                  return 0, {'error': str(e)[:300]}, ''
+
+          def rest(base, path, srk):
+              st, body, _ = http_json(
+                  base + path,
+                  {'apikey': srk, 'Authorization': 'Bearer ' + srk, 'Accept': 'application/json'},
+              )
+              return st, body
+
+          def gs_get(path):
+              if not GSKEY:
+                  return 0, {'skipped': 'no_gupshup_key'}, ''
+              url = path if path.startswith('http') else 'https://api.gupshup.io' + path
+              return http_json(url, {'apikey': GSKEY, 'Accept': 'application/json'})
+
+          print('=== WA_MISS_DIAG_START ===')
+          print('NO_NEW_SEND True')
+          print('NO_DEPLOY True')
+          print('TARGET_MID', MID)
+          print('SOURCE', SOURCE)
+          print('DEST', DEST, DEST_LOCAL)
+          print('SEND_AT', SEND_AT.isoformat())
+          print('SRK_LEN', len(SRK), 'MGMT_LEN', len(MGMT), 'MAKE_LEN', len(MAKE), 'GSKEY_LEN', len(GSKEY))
+
+          # 1) Production delivery row for this messageId
+          st, row = rest(PROD, f'/rest/v1/incident_notification_deliveries?provider_message_id=eq.{MID}&select=id,company_name,incident_kind,event_number,channel,recipient,status,error_message,provider_message_id,dlr_event,dlr_error_code,payload_excerpt,sent_at,created_at,updated_at,status_history', SRK)
+          print('PROD_BY_MID_HTTP', st)
+          print('PROD_BY_MID', json.dumps(row, ensure_ascii=False)[:2500] if row else row)
+          if isinstance(row, list) and row:
+              r0 = row[0]
+              if 'בארי' in str(r0.get('company_name') or ''):
+                  raise SystemExit('ABORT baeri row')
+              print('LOCAL_STATUS', r0.get('status'))
+              print('LOCAL_DLR_EVENT', r0.get('dlr_event'))
+              print('LOCAL_DLR_CODE', r0.get('dlr_error_code'))
+              print('LOCAL_ERROR', str(r0.get('error_message') or '')[:300])
+              print('LOCAL_COMPANY', r0.get('company_name'))
+              print('LOCAL_EVENT', r0.get('event_number'))
+              print('LOCAL_KIND', r0.get('incident_kind'))
+              print('LOCAL_UPDATED', r0.get('updated_at'))
+              print('LOCAL_CREATED', r0.get('created_at'))
+              hist = r0.get('status_history')
+              print('LOCAL_HISTORY', json.dumps(hist, ensure_ascii=False)[:800] if hist else None)
+              print('NOTE_LOCAL_SENT_IS_HTTP_202_NOT_GUPSHUP_DLR', r0.get('status') == 'sent' and not r0.get('dlr_event'))
+
+          # Same dest recent WA rows (dup check, no baeri)
+          st, bydest = rest(
+              PROD,
+              f"/rest/v1/incident_notification_deliveries?or=(recipient.eq.{DEST},recipient.eq.{DEST_LOCAL})&channel=eq.whatsapp&created_at=gte.{urllib.parse.quote((SEND_AT-timedelta(hours=6)).isoformat())}&select=company_name,recipient,status,provider_message_id,dlr_event,dlr_error_code,error_message,created_at,updated_at,event_number&order=created_at.desc&limit=20",
+              SRK,
+          )
+          print('PROD_WA_BY_DEST_HTTP', st, 'N', len(bydest) if isinstance(bydest, list) else bydest)
+          if isinstance(bydest, list):
+              for d in bydest:
+                  if 'בארי' in str(d.get('company_name') or ''):
+                      print('SKIP_BAERI_ROW')
+                      continue
+                  print('PROD_WA_BY_DEST', json.dumps(d, ensure_ascii=False)[:600])
+
+          # Staging orphan DLR (callback historically pointed here)
+          staging_srk = None
+          if MGMT:
+              st, keys, _ = http_json(
+                  'https://api.supabase.com/v1/projects/usfeoerkpcafxxlyuldl/api-keys',
+                  {'Authorization': 'Bearer ' + MGMT},
+              )
+              print('STAGING_KEYS_HTTP', st)
+              if isinstance(keys, list):
+                  for k in keys:
+                      tags = k.get('tags') or []
+                      if k.get('name') == 'service_role' or 'service_role' in tags:
+                          staging_srk = k.get('api_key')
+                          break
+          if staging_srk:
+              st, srow = rest(STAGING, f'/rest/v1/incident_notification_deliveries?provider_message_id=eq.{MID}&select=company_name,recipient,status,provider_message_id,dlr_event,dlr_error_code,error_message,created_at,updated_at,status_history', staging_srk)
+              print('STAGING_BY_MID_HTTP', st, 'N', len(srow) if isinstance(srow, list) else srow)
+              print('STAGING_BY_MID', json.dumps(srow, ensure_ascii=False)[:1500] if srow else srow)
+              st, sdest = rest(STAGING, f"/rest/v1/incident_notification_deliveries?or=(recipient.eq.{DEST},recipient.eq.{DEST_LOCAL})&created_at=gte.{urllib.parse.quote((SEND_AT-timedelta(hours=6)).isoformat())}&select=company_name,recipient,status,provider_message_id,dlr_event,dlr_error_code,error_message,created_at&order=created_at.desc&limit=20", staging_srk)
+              print('STAGING_DEST_N', len(sdest) if isinstance(sdest, list) else sdest)
+              if isinstance(sdest, list):
+                  for d in sdest:
+                      print('STAGING_DEST', json.dumps(d, ensure_ascii=False)[:500])
+          else:
+              print('STAGING_SRK_UNAVAILABLE')
+
+          # Existing Edge webhooks health + lookup of this mid (GET only)
+          for label, base in [('PROD_HOOK', PROD), ('STAGING_HOOK', STAGING)]:
+              st, body, raw = http_json(
+                  base + '/functions/v1/gupshup-webhook',
+                  {'apikey': ANON, 'Authorization': 'Bearer ' + ANON, 'Accept': 'application/json'},
+              )
+              print(label + '_HEALTH', st, redact(raw)[:300])
+              st, body, raw = http_json(
+                  base + '/functions/v1/gupshup-webhook?check_system_alert=1&gsId=' + urllib.parse.quote(MID),
+                  {'apikey': ANON, 'Authorization': 'Bearer ' + ANON, 'Accept': 'application/json'},
+              )
+              print(label + '_LOOKUP_MID', st, redact(json.dumps(body, ensure_ascii=False) if body is not None else raw)[:800])
+
+          # Gupshup GET-only probes (no /msg POST, no callback PUT)
+          print('=== GUPSHUP_GET_PROBES ===')
+          gs_paths = [
+              ('APP', f'/wa/app/{APP_ID}'),
+              ('APP_ALT', f'/sm/api/v1/app/{APP_NAME}'),
+              ('CALLBACK_WA', f'/wa/app/{APP_ID}/callback'),
+              ('CALLBACK_SM', f'/sm/api/v1/app/{APP_NAME}/callbackUrl'),
+              ('HEALTH', f'/wa/app/{APP_ID}/health'),
+              ('BUSINESS', f'/wa/app/{APP_ID}/business'),
+              ('RATINGS', f'/wa/app/{APP_ID}/ratings'),
+              ('MSG_SM', f'/sm/api/v1/msg/{MID}'),
+              ('MSG_WA', f'/wa/api/v1/msg/{MID}'),
+              ('MSG_APP', f'/wa/app/{APP_ID}/msg/{MID}'),
+              ('MSG_GS', f'/partner/app/{APP_ID}/gs/msg/{MID}'),
+              ('OPTIN_USER', f'/sm/api/v1/app/optin/{APP_NAME}/{DEST}'),
+              ('OPTIN_USERS', f'/sm/api/v1/users/{APP_NAME}/{DEST}'),
+              ('OPTIN_LIST', f'/wa/app/{APP_ID}/optins'),
+              ('OPTIN_APP', f'/sm/api/v1/app/optin/{APP_NAME}'),
+              ('TEMPLATES', f'/wa/app/{APP_ID}/template?pageNo=0&pageSize=20&templateStatus=APPROVED'),
+          ]
+          for name, path in gs_paths:
+              st, body, raw = gs_get(path)
+              text = json.dumps(body, ensure_ascii=False) if body is not None else raw
+              print('GS', name, 'HTTP', st, redact(text)[:900])
+
+          # Make hook: DLR + inbound for this dest / mid
+          print('=== MAKE_HOOK ===')
+          owner_status = []
+          inbound_from_owner = []
+          mid_events = []
+          if MAKE:
+              make_base = f'https://{ZONE}.make.com/api/v2'
+              st, listing, raw = http_json(
+                  f'{make_base}/hooks/{HOOK}/logs?from={INBOUND_FROM_MS}&pg[limit]=80&pg[sortBy]=loggedAt&pg[sortDir]=desc',
+                  {'Authorization': 'Token ' + MAKE, 'Accept': 'application/json'},
+              )
+              logs = []
+              if isinstance(listing, dict):
+                  logs = listing.get('hookLogs') or listing.get('logs') or []
+              print('MAKE_LIST_HTTP', st, 'N', len(logs))
+              for log in logs[:80]:
+                  lid = log.get('id')
+                  hs, detail, _ = http_json(
+                      f'{make_base}/hooks/{HOOK}/logs/{lid}',
+                      {'Authorization': 'Token ' + MAKE, 'Accept': 'application/json'},
+                  )
+                  dlog = (detail or {}).get('hookLog') or (detail or {}).get('log') or detail or {}
+                  data = dlog.get('data') or {}
+                  req = data.get('request') or data
+                  body = req.get('body') if isinstance(req, dict) else data.get('body')
+                  if isinstance(body, str):
+                      try:
+                          body = json.loads(body)
+                      except Exception:
+                          body = {'raw': body[:500]}
+                  blob = json.dumps(body, ensure_ascii=False) if body is not None else ''
+                  hit_mid = MID in blob
+                  hit_dest = DEST in blob or DEST_LOCAL in blob or '534338601' in blob
+                  if not hit_mid and not hit_dest:
+                      continue
+                  stt = None
+                  msgs = None
+                  meta = None
+                  try:
+                      value = body.get('entry', [{}])[0].get('changes', [{}])[0].get('value', {})
+                      statuses = value.get('statuses') or []
+                      stt = statuses[0] if statuses else None
+                      msgs = (value.get('messages') or [None])[0]
+                      meta = value.get('metadata')
+                  except Exception:
+                      pass
+                  ev = {
+                      'loggedAt': log.get('loggedAt'),
+                      'hit_mid': hit_mid,
+                      'payload_type': (body.get('type') if isinstance(body, dict) else None),
+                      'eventType': (body.get('eventType') if isinstance(body, dict) else None),
+                      'status': (stt or {}).get('status') if isinstance(stt, dict) else None,
+                      'recipient_id': (stt or {}).get('recipient_id') if isinstance(stt, dict) else None,
+                      'gs_id': (stt or {}).get('gs_id') if isinstance(stt, dict) else None,
+                      'id': (stt or {}).get('id') if isinstance(stt, dict) else None,
+                      'error_code': (((stt or {}).get('errors') or [{}])[0].get('code') if isinstance(stt, dict) else None),
+                      'error_title': (((stt or {}).get('errors') or [{}])[0].get('title') if isinstance(stt, dict) else None),
+                      'error_details': ((((stt or {}).get('errors') or [{}])[0].get('error_data') or {}).get('details') if isinstance(stt, dict) else None),
+                      'conversation': (stt or {}).get('conversation') if isinstance(stt, dict) else None,
+                      'inbound_from': (msgs or {}).get('from') if isinstance(msgs, dict) else None,
+                      'inbound_type': (msgs or {}).get('type') if isinstance(msgs, dict) else None,
+                      'inbound_ts': (msgs or {}).get('timestamp') if isinstance(msgs, dict) else None,
+                      'display_phone': (meta or {}).get('display_phone_number') if isinstance(meta, dict) else None,
+                      'excerpt': blob[:700],
+                  }
+                  if hit_mid:
+                      mid_events.append(ev)
+                      print('MAKE_MID_EVENT', json.dumps(ev, ensure_ascii=False)[:1500])
+                  if isinstance(stt, dict) and hit_dest:
+                      owner_status.append(ev)
+                  if isinstance(msgs, dict) and str(msgs.get('from') or '') in (DEST, DEST_LOCAL, '534338601'):
+                      inbound_from_owner.append(ev)
+                      print('MAKE_INBOUND_FROM_OWNER', json.dumps(ev, ensure_ascii=False)[:1200])
+              print('MAKE_MID_EVENT_COUNT', len(mid_events))
+              print('MAKE_OWNER_STATUS_COUNT', len(owner_status))
+              print('MAKE_INBOUND_FROM_OWNER_COUNT', len(inbound_from_owner))
+              print('MAKE_MID_STATUS_TIMELINE', [e.get('status') for e in mid_events])
+              last_inbound = inbound_from_owner[0] if inbound_from_owner else None
+              in_session = False
+              if last_inbound and last_inbound.get('inbound_ts'):
+                  try:
+                      ts = int(str(last_inbound['inbound_ts']))
+                      if ts > 10**12:
+                          ts = ts / 1000.0
+                      inbound_at = datetime.fromtimestamp(ts, tz=timezone.utc)
+                      in_session = inbound_at >= WINDOW_START
+                      print('LAST_INBOUND_AT', inbound_at.isoformat(), 'IN_24H_SESSION', in_session)
+                  except Exception as e:
+                      print('INBOUND_TS_PARSE', e)
+              elif last_inbound and last_inbound.get('loggedAt'):
+                  try:
+                      ms = int(last_inbound['loggedAt'])
+                      inbound_at = datetime.fromtimestamp(ms/1000.0, tz=timezone.utc)
+                      in_session = inbound_at >= WINDOW_START
+                      print('LAST_INBOUND_LOGGED', inbound_at.isoformat(), 'IN_24H_SESSION', in_session)
+                  except Exception as e:
+                      print('INBOUND_LOGGED_PARSE', e)
+              else:
+                  print('LAST_INBOUND_AT', None, 'IN_24H_SESSION', False)
+          else:
+              print('MAKE_TOKEN_MISSING')
+
+          if MGMT:
+              iso_start = (SEND_AT - timedelta(minutes=5)).strftime('%Y-%m-%dT%H:%M:%SZ')
+              iso_end = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+              for ref, label in [( 'qasomfndnjuixgjmjwcm', 'PROD'), ('usfeoerkpcafxxlyuldl', 'STAGING')]:
+                  path = f'/projects/{ref}/analytics/endpoints/logs.edge-logs?iso_timestamp_start={urllib.parse.quote(iso_start)}&iso_timestamp_end={urllib.parse.quote(iso_end)}'
+                  hs, body, raw = http_json('https://api.supabase.com/v1' + path, {'Authorization': 'Bearer ' + MGMT})
+                  text = raw or json.dumps(body, ensure_ascii=False)
+                  hit = MID in text or 'gupshup-webhook' in text or DEST in text
+                  print('EDGE_LOGS', label, 'HTTP', hs, 'LEN', len(text), 'HIT', hit)
+                  if hit:
+                      for ln in text.split('\\n'):
+                          if MID in ln or 'gupshup-webhook' in ln or '1005' in ln or '131047' in ln:
+                              print('EDGE_LINE', label, redact(ln)[:400])
+
+          print('=== CONCLUSION_INPUTS ===')
+          print(json.dumps({
+              'message_id': MID,
+              'send_path': 'notify-driver-event → send-whatsapp-message → POST /wa/api/v1/msg session text',
+              'gupshup_accept_http': 202,
+              'local_status_meaning': 'notify-driver-event writes status=sent after HTTP 202; dlr_event stays null until gupshup-webhook updates the row',
+              'template_used': False,
+              'session_endpoint_used': True,
+              'known_session_fail': 'Gupshup 1005 user inactive for session / Meta 131047 outside 24h window',
+              'approved_template_known': 'main_menu MARKETING only — not used for this send',
+              'no_new_send': True,
+          }, ensure_ascii=False))
+          print('=== WA_MISS_DIAG_END ===')
+          PY

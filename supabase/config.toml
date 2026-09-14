@@ -35,6 +35,9 @@ verify_jwt = true
 [functions.notify-service-order-email]
 verify_jwt = true
 
+[functions.notify-driver-event]
+verify_jwt = false
+
 [functions.send-supplier-order-email]
 verify_jwt = true
 

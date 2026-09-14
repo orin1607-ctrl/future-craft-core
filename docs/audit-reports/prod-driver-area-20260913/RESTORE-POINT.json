@@ -1,0 +1,20 @@
+{
+  "created_at": "2026-09-13T23:49:08.809399Z",
+  "live_site": "https://dalia-car.online",
+  "live_commit_before": "172f525c5b1c1ff1aed3525dd3526828a9938c8a",
+  "live_bundle_before": "index-CnkDoqI9.js",
+  "live_deploy_txt": "commit=172f525c5b1c1ff1aed3525dd3526828a9938c8a bundle=index-CnkDoqI9.js at=2026-09-10T14:34:08Z reason=oren-car-code-only-2026-08-10",
+  "git_tag": "restore/prod-before-driver-area-20260913",
+  "git_branch": "cursor/prod-restore-172f525c-b784",
+  "origin_production_branch_sha": "40a145b688be816f549d7e5abbfd4b0e46503ea5",
+  "origin_production_note": "NOT the live website. Live is 172f525c. Do not deploy origin/production or origin/main onto dalia-car.online for this task.",
+  "prod_supabase_ref": "qasomfndnjuixgjmjwcm",
+  "frontend_rollback": "workflow rollback-production-vps.yml restores /root/pre-deploy-dist-*.tgz",
+  "db_rollback": "docs/audit-reports/prod-driver-area-20260913/ROLLBACK.sql plus VPS pg_dump at /root/db-backups/prod-before-driver-area-*.sql.gz created by prod-driver-area-selective.yml before migrate",
+  "migrations_planned": [
+    "20260913220000_prod_driver_area_only.sql — additive driver-area only. No DROP TABLE. No replace of log_vehicle_changes or notify_managers_on_fault."
+  ],
+  "edge_functions_planned": [
+    "notify-driver-event (new). send-whatsapp-message unchanged. notify-accident-email unchanged."
+  ]
+}

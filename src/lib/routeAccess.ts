@@ -41,6 +41,8 @@ const SUPER_ADMIN_ONLY = [
   '/required-fields',
   '/admin/modules',
   '/emergency-settings',
+  '/driver-app-notifications',
+  '/driver-area-settings',
 ];
 
 const FLEET_MANAGER_ROUTES = ['/fleetos-ai'];
