@@ -1,6 +1,6 @@
 {
   "id": "prod-driver-area-selective",
-  "armed": false,
+  "armed": true,
   "phase": "all",
   "requestedAt": "2026-09-13T23:55:00.000Z",
   "requestedBy": "owner",
