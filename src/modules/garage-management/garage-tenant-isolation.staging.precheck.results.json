@@ -1,32 +1,29 @@
 {
-  "at": "2026-09-14T10:54:13Z",
+  "at": "2026-09-14T11:42:38Z",
   "target": "usfeoerkpcafxxlyuldl",
   "production_touched": false,
-  "read_only_precheck_token": true,
-  "verdict": "STOP_MIGRATION_NOT_STARTED_MISSING_STAGING_DATABASE_URL",
-  "github_actions": {
-    "run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34835437730",
-    "environment": "Preview",
-    "has_staging_database_url": false,
-    "has_database_url": false,
-    "has_staging_supabase_access_token": false,
-    "did_not_use_SUPABASE_ACCESS_TOKEN": true
+  "verdict": "STOP_SQL_NOT_STARTED_DIRECT_DB_IPV6_UNREACHABLE",
+  "url_verification": {
+    "has_staging_database_url": true,
+    "url_host": "db.usfeoerkpcafxxlyuldl.supabase.co",
+    "staging_ref_present": true,
+    "production_ref_present": false,
+    "ignored_old_token": "SUPABASE_ACCESS_TOKEN"
   },
   "apply": {
     "ok": false,
     "started": false,
     "rollback": false,
-    "reason": "No write connection. STAGING_DATABASE_URL and DATABASE_URL are empty in Repository and Preview Actions secrets. The PRECHECK PAT is Database READ and cannot ALTER. Isolation SQL was not sent to Postgres."
+    "reason": "STAGING_DATABASE_URL is the Staging direct host (IPv6-only). GitHub Actions cannot reach it. The shared aws-0-ap-south-1 pooler does not have tenant postgres.usfeoerkpcafxxlyuldl. Isolation SQL was not sent.",
+    "runs": [
+      "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34839044205",
+      "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34839359005",
+      "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34839546238"
+    ]
   },
-  "post_counts": null,
-  "rls": {
-    "tested_with_two_fleet_managers": false,
-    "reason": "SQL not applied; also STAGING_QA_FLEET_A/B not confirmed"
-  },
+  "needed": "Replace STAGING_DATABASE_URL with the Session pooler URI from the dalia-staging dashboard (host must include usfeoerkpcafxxlyuldl as tenant, must not be Production), or enable IPv4 on that project.",
   "gate": {
     "migration_run": false,
-    "module_opened_to_fleet_manager": false,
-    "routeAccess_changed": false,
     "pages_deployed": false,
     "pr_merged": false,
     "live_sha": "0a78f53de31c089c15f0e07b640cca408ab87017",
