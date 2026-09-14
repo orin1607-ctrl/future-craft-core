@@ -1,16 +1,50 @@
 {
-  "at": "2026-09-14T10:43:00Z",
+  "at": "2026-09-14T10:44:39Z",
   "target": "usfeoerkpcafxxlyuldl",
   "production_touched": false,
   "read_only": true,
-  "verdict": "PENDING_FRESH_PRECHECK_AFTER_PROJECT_READ",
+  "verdict": "PRECHECK_READ_OK_NO_MIGRATION",
   "token_name": "SUPABASE_STAGING_PRECHECK_TOKEN",
   "ignored_old_token": "SUPABASE_ACCESS_TOKEN",
-  "note": "Owner added Project Settings=Read + Database=Read on a new staging-only PAT and updated the Repository secret. Retriggering SELECT-only PRECHECK. No Migration.",
-  "counts": { "state": "pending" },
+  "github_actions": {
+    "run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34834619775",
+    "precheck_secret_present": true,
+    "conclusion": "success"
+  },
+  "identity": {
+    "http": 200,
+    "id": "usfeoerkpcafxxlyuldl",
+    "name": "dalia-staging",
+    "region": "ap-south-1",
+    "status": "ACTIVE_HEALTHY"
+  },
+  "catalog": {
+    "shop_company_name": {
+      "garage_customers": "missing",
+      "garage_vehicles": "missing",
+      "garage_cases": "missing"
+    }
+  },
+  "counts": {
+    "state": "ok",
+    "via": "SUPABASE_STAGING_PRECHECK_TOKEN",
+    "shop_column_present": false,
+    "cases": { "total": 7, "unambiguous": 7, "conflict": 0, "no_signal": 0 },
+    "customers": { "total": 5, "unambiguous": 4, "conflict": 0, "no_cases": 1, "cases_exist_but_opener_shop_empty": 0 },
+    "vehicles": { "total": 5, "unambiguous_from_own_cases": 5, "conflict": 0, "inherit_from_unambiguous_customer": 0, "no_cases_and_customer_unassigned": 0 },
+    "media": { "table_present": true, "total": 9, "orphan_without_case": 0 }
+  },
+  "interpretation": {
+    "shop_conflicts": 0,
+    "unassigned_customer_without_cases": 1,
+    "unassigned_note": "Fail-closed backfill would leave that 1 customer with shop_company_name='' (super_admin only). It is not a two-shop conflict.",
+    "tenant_sql_applied": false
+  },
   "gate": {
     "migration_run": false,
+    "module_opened_to_fleet_manager": false,
     "pages_deployed": false,
-    "live_sha": "0a78f53de31c089c15f0e07b640cca408ab87017"
+    "live_sha": "0a78f53de31c089c15f0e07b640cca408ab87017",
+    "next": "Owner reviews counts before any isolation SQL"
   }
 }
