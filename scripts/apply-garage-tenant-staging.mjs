@@ -46,6 +46,15 @@ function writeReportFile(report) {
 
 function applyWithPsql(url, sqlFile) {
   guardDbUrl(url);
+  const ident = spawnSync(
+    'psql',
+    [url, '-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-tA', '-c', 'SELECT current_database();'],
+    { encoding: 'utf8', timeout: 30000, env: { ...process.env } },
+  );
+  if (ident.status !== 0) {
+    throw new Error((ident.stderr || ident.stdout || 'psql identity failed').slice(0, 400));
+  }
+  console.log('PSQL_CURRENT_DATABASE', String(ident.stdout || '').trim());
   const res = spawnSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-f', sqlFile], {
     encoding: 'utf8',
     timeout: 180000,
@@ -58,7 +67,7 @@ function applyWithPsql(url, sqlFile) {
 
 async function run() {
   mkdirSync('test-results', { recursive: true });
-  const dbUrl = String(process.env.STAGING_DATABASE_URL || process.env.DATABASE_URL || '').replace(/[\r\n]/g, '').trim();
+  const dbUrl = String(process.env.STAGING_DATABASE_URL || '').replace(/[\r\n]/g, '').trim();
   const applyFlag = String(process.env.APPLY_GARAGE_TENANT_STAGING || '').trim() === '1';
   if (process.env.SUPABASE_ACCESS_TOKEN) {
     console.log('NOTE: SUPABASE_ACCESS_TOKEN is present and will be ignored. Apply uses STAGING_DATABASE_URL only.');
