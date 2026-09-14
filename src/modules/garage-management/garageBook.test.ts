@@ -15,6 +15,7 @@ import {
   garageNextAction,
   hasApprovedPrice,
   isGarageSchemaMissing,
+  isGarageShopColumnMissing,
   isGarageWorkflowColumnMissing,
   notesWithoutContacts,
   normalizePhone,
@@ -147,6 +148,14 @@ describe('garage book helpers', () => {
       message: "Could not find the 'default_workflow' column of 'garage_customers' in the schema cache",
     })).toBe(true);
     expect(isGarageWorkflowColumnMissing({ code: 'PGRST205', message: "Could not find the table 'public.garage_cases'" })).toBe(false);
+  });
+
+  it('detects a missing shop_company_name column without treating it as a missing table', () => {
+    expect(isGarageShopColumnMissing({
+      code: 'PGRST204',
+      message: "Could not find the 'shop_company_name' column of 'garage_customers' in the schema cache",
+    })).toBe(true);
+    expect(isGarageShopColumnMissing({ code: 'PGRST205', message: "Could not find the table 'public.garage_cases'" })).toBe(false);
   });
 
   it('does not encode contacts into customer notes; still reads leftover markers', () => {

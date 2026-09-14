@@ -1,11 +1,17 @@
 -- ============================================================================
--- PROPOSAL ONLY — DO NOT RUN until the owner explicitly approves this gate.
 -- Oren Car PUBLIC STAGING ONLY (dalia-staging / usfeoerkpcafxxlyuldl)
 -- Production / dalia-car.online / qasomfndnjuixgjmjwcm: FORBIDDEN.
 --
--- Not a migration. Not applied. No DELETE. No Claims. No garage-gmail rewrite.
+-- Apply only via: node scripts/apply-garage-tenant-staging.mjs
+-- Requires APPLY_GARAGE_TENANT_STAGING=1 and STAGING_DATABASE_URL
+-- (or a working SUPABASE_ACCESS_TOKEN for usfeoerkpcafxxlyuldl).
+-- Catalog probe on 2026-09-14: column shop_company_name does NOT exist yet.
+--
+-- No DELETE. No Claims. No garage-gmail rewrite.
 -- Does NOT change public.garage_is_staff (stays super_admin only) so
 -- garage_gmail_* and other staff-only objects stay closed to fleet_manager.
+-- Does NOT open /garage-management to fleet_manager (frontend stays closed
+-- until isolation PASS).
 -- ============================================================================
 
 BEGIN;

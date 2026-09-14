@@ -1,0 +1,67 @@
+name: Garage tenant isolation — Staging only
+
+# Applies shop_company_name RLS on Oren Car PUBLIC STAGING
+# (usfeoerkpcafxxlyuldl) only. Never Production / qasomfndnjuixgjmjwcm /
+# dalia-car.online. Never opens /garage-management by itself.
+#
+# Manual only. Do not auto-run on PR/main. SUPABASE_ACCESS_TOKEN currently
+# returns 401 against the Management API; STAGING_DATABASE_URL is required.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply_sql:
+        description: 'Set to 1 to apply tenant SQL on Staging (usfeoerkpcafxxlyuldl only)'
+        required: true
+        default: '0'
+
+permissions:
+  contents: read
+
+jobs:
+  staging-tenant:
+    if: github.ref != 'refs/heads/production'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Guard this is not Production
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, sys
+          ref = os.environ.get("GITHUB_REF", "")
+          if ref.endswith("/production"):
+              sys.exit("Refusing Production branch")
+          print("ref_ok", ref)
+          PY
+      - name: Apply tenant SQL on Staging only
+        env:
+          APPLY_GARAGE_TENANT_STAGING: ${{ github.event.inputs.apply_sql }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: node scripts/apply-garage-tenant-staging.mjs
+      - name: Isolation QA (fail closed if SQL missing)
+        if: always()
+        env:
+          VITE_SUPABASE_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          VITE_SUPABASE_PROJECT_ID: usfeoerkpcafxxlyuldl
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          STAGING_QA_EMAIL: ${{ secrets.STAGING_QA_EMAIL }}
+          STAGING_QA_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD }}
+          STAGING_QA_FLEET_A_EMAIL: ${{ secrets.STAGING_QA_FLEET_A_EMAIL }}
+          STAGING_QA_FLEET_A_PASSWORD: ${{ secrets.STAGING_QA_FLEET_A_PASSWORD }}
+          STAGING_QA_FLEET_B_EMAIL: ${{ secrets.STAGING_QA_FLEET_B_EMAIL }}
+          STAGING_QA_FLEET_B_PASSWORD: ${{ secrets.STAGING_QA_FLEET_B_PASSWORD }}
+        run: node scripts/qa-garage-tenant-isolation.mjs
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garage-tenant-staging
+          path: |
+            test-results/garage-tenant-staging-apply.json
+            test-results/garage-tenant-isolation-qa.json
+          if-no-files-found: ignore

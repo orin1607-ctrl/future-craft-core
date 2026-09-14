@@ -1,5 +1,15 @@
 import { supabase } from '@/integrations/supabase/client';
 import { extractCustomerOrderFields } from './garageOrderExtract';
+import {
+  filterGarageByShop,
+  garageShopVisible,
+  isGarageShopColumnMissing,
+  normalizeShopCompanyName,
+  type GarageShopScope,
+} from './garageTenant';
+
+export { isGarageShopColumnMissing } from './garageTenant';
+export type { GarageShopScope } from './garageTenant';
 
 export type GarageCustomerType = 'private' | 'business' | 'fleet';
 export type GarageRoute = 'quote_first' | 'intake_first';
@@ -31,6 +41,7 @@ export type GarageCustomer = {
   preferred_channel: string;
   notes: string;
   contacts?: GarageContact[];
+  shop_company_name?: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -47,6 +58,7 @@ export type GarageVehicle = {
   vehicle_type: string;
   internal_number: string;
   notes: string;
+  shop_company_name?: string;
 };
 
 export type GarageCaseData = {
@@ -164,6 +176,7 @@ export type GarageCase = {
   vehicle_plate_snapshot: string;
   vehicle_label_snapshot: string;
   case_data: GarageCaseData;
+  shop_company_name?: string;
   created_at?: string;
   updated_at?: string;
   customer?: GarageCustomer | null;
@@ -174,6 +187,7 @@ export type GarageActor = {
   id: string;
   full_name?: string;
   role?: string;
+  company_name?: string;
 };
 
 function tbl(name: string) {
@@ -523,6 +537,32 @@ export function isGarageWorkflowColumnMissing(error: { code?: string; message?: 
     && (code === 'PGRST204' || /does not exist/i.test(message) || /schema cache/i.test(message) || /could not find/i.test(message));
 }
 
+function stampShop(insert: Record<string, unknown>, shop: string | null | undefined) {
+  const value = normalizeShopCompanyName(shop);
+  if (value) insert.shop_company_name = value;
+  return insert;
+}
+
+function omitMissingOptionalColumns(
+  insert: Record<string, unknown>,
+  error: { code?: string; message?: string } | null | undefined,
+): boolean {
+  let omitted = false;
+  if (isGarageContactsColumnMissing(error) && 'contacts' in insert) {
+    delete insert.contacts;
+    omitted = true;
+  }
+  if (isGarageWorkflowColumnMissing(error) && 'default_workflow' in insert) {
+    delete insert.default_workflow;
+    omitted = true;
+  }
+  if (isGarageShopColumnMissing(error) && 'shop_company_name' in insert) {
+    delete insert.shop_company_name;
+    omitted = true;
+  }
+  return omitted;
+}
+
 export const GARAGE_WORKFLOW_PENDING_MESSAGE =
   'שדה שיטת העבודה של הלקוח (default_workflow) עדיין ממתין ל-SQL ב-Staging. תיקים חדשים ייפתחו כהצעת מחיר תחילה עד להרצה.';
 
@@ -536,7 +576,7 @@ export async function probeGarageBook(): Promise<{ ready: boolean; pending: bool
   return { ready: false, pending: false, error: errMessage(error, 'בדיקת ספר המוסך נכשלה') };
 }
 
-export async function searchCustomers(query: string): Promise<GarageCustomer[]> {
+export async function searchCustomers(query: string, scope?: GarageShopScope): Promise<GarageCustomer[]> {
   const q = String(query || '').trim().replace(/[%(),]/g, ' ');
   if (!q) return [];
   const plate = normalizePlate(q);
@@ -579,7 +619,7 @@ export async function searchCustomers(query: string): Promise<GarageCustomer[]> 
       }
     }
   }
-  return customers.map(hydrateCustomer);
+  return filterGarageByShop(customers.map(hydrateCustomer), scope);
 }
 
 export function findDuplicateCustomers(
@@ -635,7 +675,7 @@ export async function createCustomer(
   const contacts = parseCustomerContacts(draft);
   const primary = contacts[0];
   const workflow: GarageRoute = draft.default_workflow === 'intake_first' ? 'intake_first' : 'quote_first';
-  const insert: Record<string, unknown> = {
+  const insert: Record<string, unknown> = stampShop({
     customer_type: draft.customer_type,
     name: draft.name || '',
     company_name: draft.company_name || '',
@@ -649,30 +689,19 @@ export async function createCustomer(
     notes: notesWithoutContacts(draft.notes || ''),
     default_workflow: workflow,
     contacts,
-  };
+  }, draft.shop_company_name);
   const first = await tbl('garage_customers').insert(insert as never).select('*').single();
   if (!first.error) {
     return { customer: hydrateCustomer({ ...(first.data as GarageCustomer), default_workflow: workflow, contacts }), duplicates: [] };
   }
   const retryInsert = { ...insert };
-  let omitted = false;
-  if (isGarageContactsColumnMissing(first.error)) {
-    delete retryInsert.contacts;
-    omitted = true;
-  }
-  if (isGarageWorkflowColumnMissing(first.error)) {
-    delete retryInsert.default_workflow;
-    omitted = true;
-  }
-  if (!omitted) throw new Error(errMessage(first.error, 'שמירת לקוח נכשלה'));
+  if (!omitMissingOptionalColumns(retryInsert, first.error)) throw new Error(errMessage(first.error, 'שמירת לקוח נכשלה'));
   const retry = await tbl('garage_customers').insert(retryInsert as never).select('*').single();
   if (!retry.error) {
     return { customer: hydrateCustomer({ ...(retry.data as GarageCustomer), default_workflow: workflow, contacts }), duplicates: [] };
   }
-  if (isGarageContactsColumnMissing(retry.error) || isGarageWorkflowColumnMissing(retry.error)) {
-    const last = { ...retryInsert };
-    delete last.contacts;
-    delete last.default_workflow;
+  const last = { ...retryInsert };
+  if (omitMissingOptionalColumns(last, retry.error)) {
     const finalTry = await tbl('garage_customers').insert(last as never).select('*').single();
     if (finalTry.error) throw new Error(errMessage(finalTry.error, 'שמירת לקוח נכשלה'));
     return { customer: hydrateCustomer({ ...(finalTry.data as GarageCustomer), default_workflow: workflow, contacts }), duplicates: [] };
@@ -740,7 +769,7 @@ export async function updateCustomerWorkflow(
   });
 }
 
-export async function listVehicles(customerId: string): Promise<GarageVehicle[]> {
+export async function listVehicles(customerId: string, scope?: GarageShopScope): Promise<GarageVehicle[]> {
   const { data, error } = await tbl('garage_vehicles')
     .select('*')
     .eq('customer_id', customerId)
@@ -749,7 +778,7 @@ export async function listVehicles(customerId: string): Promise<GarageVehicle[]>
     if (isGarageSchemaMissing(error)) return [];
     throw new Error(errMessage(error, 'טעינת רכבים נכשלה'));
   }
-  return (data || []) as GarageVehicle[];
+  return filterGarageByShop((data || []) as GarageVehicle[], scope);
 }
 
 export async function findVehicleByPlate(plate: string): Promise<GarageVehicle | null> {
@@ -770,7 +799,7 @@ export async function createVehicle(
   if (existing) {
     throw new Error(`לוחית ${existing.plate} כבר קיימת אצל לקוח במערכת. לא נוצר רכב כפול.`);
   }
-  const insert = {
+  const insert = stampShop({
     customer_id: draft.customer_id,
     plate: draft.plate.trim(),
     make: draft.make || '',
@@ -781,10 +810,17 @@ export async function createVehicle(
     vehicle_type: draft.vehicle_type || '',
     internal_number: draft.internal_number || '',
     notes: draft.notes || '',
-  };
-  const { data, error } = await tbl('garage_vehicles').insert(insert as never).select('*').single();
-  if (error) throw new Error(errMessage(error, 'שמירת רכב נכשלה'));
-  return data as GarageVehicle;
+  }, draft.shop_company_name);
+  const first = await tbl('garage_vehicles').insert(insert as never).select('*').single();
+  if (!first.error) return first.data as GarageVehicle;
+  if (isGarageShopColumnMissing(first.error) && insert.shop_company_name) {
+    const retry = { ...insert };
+    delete retry.shop_company_name;
+    const second = await tbl('garage_vehicles').insert(retry as never).select('*').single();
+    if (second.error) throw new Error(errMessage(second.error, 'שמירת רכב נכשלה'));
+    return second.data as GarageVehicle;
+  }
+  throw new Error(errMessage(first.error, 'שמירת רכב נכשלה'));
 }
 
 export async function createCase(input: {
@@ -792,9 +828,10 @@ export async function createCase(input: {
   vehicle: GarageVehicle;
   actor: GarageActor;
   caseData?: GarageCaseData;
+  shopCompanyName?: string;
 }): Promise<GarageCase> {
   const case_data = sanitizeCaseData(input.caseData || emptyCaseData());
-  const insert = {
+  const insert = stampShop({
     customer_id: input.customer.id,
     vehicle_id: input.vehicle.id,
     status: deriveCaseStatus(case_data),
@@ -804,11 +841,24 @@ export async function createCase(input: {
     vehicle_plate_snapshot: input.vehicle.plate,
     vehicle_label_snapshot: vehicleLabel(input.vehicle),
     case_data,
-  };
-  const { data, error } = await tbl('garage_cases').insert(insert as never).select('*').single();
-  if (error) throw new Error(errMessage(error, 'פתיחת תיק נכשלה'));
+  }, input.shopCompanyName || input.customer.shop_company_name || input.vehicle.shop_company_name || input.actor.company_name);
+  const first = await tbl('garage_cases').insert(insert as never).select('*').single();
+  if (first.error) {
+    if (!(isGarageShopColumnMissing(first.error) && insert.shop_company_name)) {
+      throw new Error(errMessage(first.error, 'פתיחת תיק נכשלה'));
+    }
+    const retry = { ...insert };
+    delete retry.shop_company_name;
+    const second = await tbl('garage_cases').insert(retry as never).select('*').single();
+    if (second.error) throw new Error(errMessage(second.error, 'פתיחת תיק נכשלה'));
+    return {
+      ...(second.data as GarageCase),
+      customer: input.customer,
+      vehicle: input.vehicle,
+    };
+  }
   return {
-    ...(data as GarageCase),
+    ...(first.data as GarageCase),
     customer: input.customer,
     vehicle: input.vehicle,
   };
@@ -834,7 +884,7 @@ export async function updateCase(
   return data as GarageCase;
 }
 
-export async function getCase(caseId: string): Promise<GarageCase | null> {
+export async function getCase(caseId: string, scope?: GarageShopScope): Promise<GarageCase | null> {
   const { data, error } = await tbl('garage_cases').select('*').eq('id', caseId).maybeSingle();
   if (error) {
     if (isGarageSchemaMissing(error)) return null;
@@ -842,6 +892,7 @@ export async function getCase(caseId: string): Promise<GarageCase | null> {
   }
   if (!data) return null;
   const row = data as GarageCase;
+  if (!garageShopVisible(row.shop_company_name, scope)) return null;
   const [{ data: customer }, { data: vehicle }] = await Promise.all([
     tbl('garage_customers').select('*').eq('id', row.customer_id).maybeSingle(),
     tbl('garage_vehicles').select('*').eq('id', row.vehicle_id).maybeSingle(),
@@ -854,7 +905,7 @@ export async function getCase(caseId: string): Promise<GarageCase | null> {
   };
 }
 
-export async function listCases(): Promise<GarageCase[]> {
+export async function listCases(scope?: GarageShopScope): Promise<GarageCase[]> {
   const { data, error } = await tbl('garage_cases')
     .select('*')
     .order('created_at', { ascending: false })
@@ -863,13 +914,13 @@ export async function listCases(): Promise<GarageCase[]> {
     if (isGarageSchemaMissing(error)) return [];
     throw new Error(errMessage(error, 'טעינת תיקים נכשלה'));
   }
-  return ((data || []) as GarageCase[]).map((row) => ({
+  return filterGarageByShop(((data || []) as GarageCase[]).map((row) => ({
     ...row,
     case_data: sanitizeCaseData(row.case_data),
-  }));
+  })), scope);
 }
 
-export async function listCustomerCases(customerId: string): Promise<GarageCase[]> {
+export async function listCustomerCases(customerId: string, scope?: GarageShopScope): Promise<GarageCase[]> {
   const { data, error } = await tbl('garage_cases')
     .select('*')
     .eq('customer_id', customerId)
@@ -878,5 +929,5 @@ export async function listCustomerCases(customerId: string): Promise<GarageCase[
     if (isGarageSchemaMissing(error)) return [];
     throw new Error(errMessage(error, 'טעינת היסטוריית לקוח נכשלה'));
   }
-  return (data || []) as GarageCase[];
+  return filterGarageByShop((data || []) as GarageCase[], scope);
 }

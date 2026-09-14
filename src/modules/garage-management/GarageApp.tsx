@@ -25,6 +25,7 @@ import {
   type GarageRoute,
   type GarageVehicle,
 } from './garageBook';
+import { garageShopScopeOf } from './garageTenant';
 import {
   GARAGE_MEDIA_PENDING_MESSAGE,
   listGarageMedia,
@@ -43,9 +44,9 @@ type HostRequest = {
   buffer?: ArrayBuffer;
 };
 
-function actorOf(user: { id: string; full_name?: string; role?: string } | null): GarageActor | null {
+function actorOf(user: { id: string; full_name?: string; role?: string; company_name?: string } | null): GarageActor | null {
   if (!user?.id) return null;
-  return { id: user.id, full_name: user.full_name, role: user.role };
+  return { id: user.id, full_name: user.full_name, role: user.role, company_name: user.company_name };
 }
 
 function asBookError(error: unknown): string {
@@ -70,6 +71,7 @@ export default function GarageApp() {
   const { user } = useAuth();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const actor = actorOf(user);
+  const shopScope = garageShopScopeOf(user);
 
   const reply = useCallback((requestId: string | undefined, payload: Record<string, unknown>) => {
     iframeRef.current?.contentWindow?.postMessage({ type: 'gm:response', requestId, payload }, '*');
@@ -94,14 +96,14 @@ export default function GarageApp() {
           }, '*');
           return;
         }
-        const loaded = await getCase(caseId);
+        const loaded = await getCase(caseId, shopScope);
         win.postMessage({
           type: 'gm:bootstrap',
           payload: { mode: 'case', caseId, userName: actor.full_name || '', loaded, bookPending: false },
         }, '*');
         return;
       }
-      const cases = probe.pending ? [] : await listCases();
+      const cases = probe.pending ? [] : await listCases(shopScope);
       win.postMessage({
         type: 'gm:bootstrap',
         payload: {
@@ -128,7 +130,7 @@ export default function GarageApp() {
         },
       }, '*');
     }
-  }, [actor, caseId, startCustomer, startNew]);
+  }, [actor, caseId, shopScope, startCustomer, startNew]);
 
   useEffect(() => {
     const onMessage = async (event: MessageEvent<HostRequest>) => {
@@ -142,24 +144,31 @@ export default function GarageApp() {
           return;
         }
         if (msg.type === 'gm:searchCustomers') {
-          const customers = await searchCustomers(String(payload.q || ''));
+          const customers = await searchCustomers(String(payload.q || ''), shopScope);
           reply(requestId, { ok: true, customers });
           return;
         }
         if (msg.type === 'gm:createCustomer') {
           const draft = payload.draft as Parameters<typeof createCustomer>[0];
-          const result = await createCustomer(draft, { force: Boolean(payload.force) });
+          const result = await createCustomer(
+            { ...draft, shop_company_name: draft.shop_company_name || actor?.company_name || '' },
+            { force: Boolean(payload.force) },
+          );
           reply(requestId, { ok: true, ...result, needsConfirm: result.duplicates.length > 0 && !payload.force });
           return;
         }
         if (msg.type === 'gm:listVehicles') {
-          const vehicles = await listVehicles(String(payload.customerId || ''));
-          const history = await listCustomerCases(String(payload.customerId || ''));
+          const vehicles = await listVehicles(String(payload.customerId || ''), shopScope);
+          const history = await listCustomerCases(String(payload.customerId || ''), shopScope);
           reply(requestId, { ok: true, vehicles, history });
           return;
         }
         if (msg.type === 'gm:createVehicle') {
-          const vehicle = await createVehicle(payload.draft as Parameters<typeof createVehicle>[0]);
+          const draft = payload.draft as Parameters<typeof createVehicle>[0];
+          const vehicle = await createVehicle({
+            ...draft,
+            shop_company_name: draft.shop_company_name || actor?.company_name || '',
+          });
           reply(requestId, { ok: true, vehicle });
           return;
         }
@@ -183,6 +192,7 @@ export default function GarageApp() {
             customer,
             vehicle: payload.vehicle as GarageVehicle,
             actor,
+            shopCompanyName: actor.company_name,
             caseData: { ...emptyCaseData(), ...(payload.caseData as object || {}), route },
           });
           reply(requestId, { ok: true, created });
@@ -345,7 +355,7 @@ export default function GarageApp() {
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [actor, bootstrap, caseId, navigate, reply]);
+  }, [actor, bootstrap, caseId, navigate, reply, shopScope]);
 
   useEffect(() => {
     void bootstrap();
