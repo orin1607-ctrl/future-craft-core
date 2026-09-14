@@ -92,15 +92,23 @@ jobs:
           set -euo pipefail
           STAMP=$(date -u +%F-%H%M%S)
           echo "STAMP=$STAMP" >> "$GITHUB_ENV"
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "mkdir -p /root/driver-area-sql /root/db-backups"
-          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+          SSH=(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=6)
+          RSH="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=6"
+          ok=0
+          for attempt in 1 2 3 4 5; do
+            echo "backup_attempt=$attempt"
+            if "${SSH[@]}" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /root/driver-area-sql /root/db-backups"; then
+              ok=1
+              break
+            fi
+            sleep $((attempt * 8))
+          done
+          test "$ok" = "1"
+          rsync -avz -e "$RSH" \
             supabase/migrations/20260913220000_prod_driver_area_only.sql \
             docs/audit-reports/prod-driver-area-20260913/ROLLBACK.sql \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/driver-area-sql/
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+          "${SSH[@]}" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             "STAMP=$STAMP LIVE_BEFORE=$LIVE_BEFORE GITHUB_SHA=${GITHUB_SHA} bash -s" << 'REMOTE'
           set -euo pipefail
           mkdir -p /root/driver-area-sql /root/db-backups
@@ -115,38 +123,11 @@ jobs:
           print(f"postgresql://postgres.{ref}:{urllib.parse.quote(pwd)}@{host}:5432/postgres")
           PY
           )
-          DUMP="/root/db-backups/prod-before-driver-area-${STAMP}.sql"
-          set +e
-          pg_dump "$DB_URL" --schema=public --no-owner --no-privileges > "$DUMP" 2>/tmp/pgdump.err
-          DUMP_RC=$?
-          set -e
-          if [ "$DUMP_RC" -ne 0 ]; then
-            echo "pg_dump_direct_failed"
-            cat /tmp/pgdump.err || true
-            rm -f "$DUMP"
-            if command -v docker >/dev/null 2>&1; then
-              echo "trying docker postgres:17 pg_dump"
-              HOST="${SUPABASE_POOLER_HOST:-aws-1-ap-south-1.pooler.supabase.com}"
-              REF="${SUPABASE_PROJECT_REF:-qasomfndnjuixgjmjwcm}"
-              set +e
-              docker run --rm --network host \
-                -e PGPASSWORD="$SUPABASE_DB_PASSWORD" \
-                postgres:17 \
-                pg_dump -h "$HOST" -p 5432 -U "postgres.${REF}" -d postgres --schema=public --no-owner --no-privileges \
-                > "$DUMP" 2>/tmp/pgdump17.err
-              DUMP_RC=$?
-              set -e
-              if [ "$DUMP_RC" -ne 0 ]; then
-                echo "docker_pg_dump_failed"
-                cat /tmp/pgdump17.err || true
-                rm -f "$DUMP"
-              fi
-            fi
-          fi
-          mkdir -p "/root/db-backups/prod-before-driver-area-${STAMP}"
           SNAP="/root/db-backups/prod-before-driver-area-${STAMP}"
+          mkdir -p "$SNAP"
+          # psql 16 can talk to Postgres 17; pg_dump 16 cannot. Do not pull docker images on the live VPS.
           psql "$DB_URL" -c "\dt public.*" > "$SNAP/tables.txt"
-          psql "$DB_URL" -Atc "select column_name||'|'||data_type from information_schema.columns where table_schema='public' and table_name in ('emergency_logs','vehicle_history','vehicles','driver_app_action_settings','driver_app_company_config','dalia_contact_settings') order by table_name, ordinal_position;" > "$SNAP/columns.txt"
+          psql "$DB_URL" -Atc "select table_name||'.'||column_name||'|'||data_type from information_schema.columns where table_schema='public' and table_name in ('emergency_logs','vehicle_history','vehicles','driver_app_action_settings','driver_app_company_config','dalia_contact_settings') order by table_name, ordinal_position;" > "$SNAP/columns.txt"
           psql "$DB_URL" -c "\\copy public.emergency_logs to '$SNAP/emergency_logs.csv' csv header"
           set +e
           psql "$DB_URL" -c "\\copy public.vehicle_history to '$SNAP/vehicle_history.csv' csv header"
@@ -155,15 +136,10 @@ jobs:
           test -s "$SNAP/tables.txt"
           test -s "$SNAP/emergency_logs.csv"
           test -s "$SNAP/vehicles_odometer.csv"
-          if [ -f "$DUMP" ] && [ -s "$DUMP" ]; then
-            gzip -f "$DUMP"
-            echo "DB_BACKUP=${DUMP}.gz"
-          else
-            echo "DB_BACKUP_FALLBACK=$SNAP (pg_dump client older than server 17; COPY snapshot + ROLLBACK.sql)"
-          fi
           tar czf "${SNAP}.tgz" -C /root/db-backups "prod-before-driver-area-${STAMP}"
           echo "DB_SNAPSHOT=${SNAP}.tgz"
-          ls -lh /root/pre-deploy-dist-${STAMP}.tgz "${SNAP}.tgz" ${DUMP}.gz 2>/dev/null || true
+          echo "DB_ROLLBACK=/root/driver-area-sql/ROLLBACK.sql"
+          ls -lh /root/pre-deploy-dist-${STAMP}.tgz "${SNAP}.tgz"
           psql "$DB_URL" -c "select current_database(), current_user;" | head -5
           echo "TABLES_BEFORE"
           psql "$DB_URL" -c "select to_regclass('public.dalia_contact_settings') as dalia_contact_settings, to_regclass('public.driver_app_company_config') as driver_app_company_config, to_regclass('public.driver_app_action_settings') as driver_app_action_settings;"
@@ -174,7 +150,7 @@ jobs:
         if: ${{ steps.gate.outputs.phase == 'all' || steps.gate.outputs.phase == 'migrate' }}
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=6 \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
           set -euo pipefail
           set -a; source /root/dalia-ops/.env; set +a
@@ -217,16 +193,16 @@ jobs:
         if: ${{ steps.gate.outputs.phase == 'all' || steps.gate.outputs.phase == 'frontend' }}
         run: |
           set -euo pipefail
-          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=6" \
             --delete \
             --filter="P orin-marketing/" \
             --filter="P orin-owner-gate.js" \
             dist/ \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.WEB_ROOT }}/
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=6 \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             "echo 'commit=${{ github.sha }} bundle=${{ steps.bundle.outputs.name }} at=$(date -u +%Y-%m-%dT%H:%M:%SZ) reason=driver-area-only-2026-09-13 before=${{ env.LIVE_BEFORE }}' > /root/future-craft-core/dist/PRODUCTION-DEPLOY.txt"
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=6 \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             "nginx -t && systemctl reload nginx"
 
