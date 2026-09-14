@@ -1,8 +1,8 @@
 {
   "id": "prod-driver-area-selective",
   "armed": true,
-  "phase": "functions",
-  "requestedAt": "2026-09-14T06:56:00.000Z",
+  "phase": "qa",
+  "requestedAt": "2026-09-14T06:59:00.000Z",
   "requestedBy": "owner",
   "hostinger": "do-not-touch",
   "target": "https://dalia-car.online",

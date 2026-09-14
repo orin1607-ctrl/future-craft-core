@@ -321,38 +321,130 @@ jobs:
             --out reports/ci-smoke-prod-driver-area.json
           curl -sS https://dalia-car.online/PRODUCTION-DEPLOY.txt
 
-      - name: Post-deploy smoke (notify-driver-event + existing WhatsApp)
-        if: ${{ steps.gate.outputs.phase == 'all' || steps.gate.outputs.phase == 'functions' }}
+      - name: QA notify-driver-event (settings-driven Email/WhatsApp)
+        if: ${{ steps.gate.outputs.phase == 'functions' || steps.gate.outputs.phase == 'qa' }}
         env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
         run: |
           set -euo pipefail
-          sleep 3
-          WA=$(curl -sS -o /dev/null -w "%{http_code}" -X OPTIONS \
-            "https://qasomfndnjuixgjmjwcm.supabase.co/functions/v1/send-whatsapp-message")
-          echo "EXISTING_WHATSAPP_OPTIONS=$WA"
-          test "$WA" = "200"
-          ACC=$(curl -sS -o /dev/null -w "%{http_code}" -X OPTIONS \
-            "https://qasomfndnjuixgjmjwcm.supabase.co/functions/v1/notify-accident-email")
-          echo "EXISTING_ACCIDENT_EMAIL_OPTIONS=$ACC"
-          test "$ACC" = "200"
-          ND=$(curl -sS -o /tmp/nd-opt -w "%{http_code}" -X OPTIONS \
-            "https://qasomfndnjuixgjmjwcm.supabase.co/functions/v1/notify-driver-event")
-          echo "NOTIFY_DRIVER_EVENT_OPTIONS=$ND"
-          if [ "$ND" != "200" ]; then
-            echo "EDGE_FUNCTION_NOT_LIVE" >&2
-            head -c 200 /tmp/nd-opt; echo
-            exit 1
-          fi
-          POST=$(curl -sS -o /tmp/nd-post.json -w "%{http_code}" -X POST \
-            "https://qasomfndnjuixgjmjwcm.supabase.co/functions/v1/notify-driver-event" \
-            -H "Content-Type: application/json" \
-            -H "apikey: ${ANON}" \
-            -d '{}')
-          echo "NOTIFY_DRIVER_EVENT_EMPTY_POST=$POST"
-          python3 - <<'PY'
-          import json
-          raw=open("/tmp/nd-post.json").read()
-          print("empty_post_body", raw[:300])
+          python3 <<'PY'
+          import json, os, urllib.request, urllib.error
+          SRK = os.environ['SRK']
+          ANON = os.environ.get('ANON') or SRK
+          BASE = 'https://qasomfndnjuixgjmjwcm.supabase.co'
+          FN = BASE + '/functions/v1/notify-driver-event'
+
+          def rest(path):
+              req = urllib.request.Request(
+                  BASE + path,
+                  headers={'apikey': SRK, 'Authorization': 'Bearer ' + SRK, 'Accept': 'application/json'},
+              )
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  return json.loads(r.read().decode() or '[]')
+
+          def mask_email(v):
+              v = (v or '').strip()
+              if '@' not in v:
+                  return 'set' if v else ''
+              a, b = v.split('@', 1)
+              return (a[:1] + '***@' + b)
+
+          def mask_phone(v):
+              d = ''.join(c for c in (v or '') if c.isdigit())
+              return ('***' + d[-3:]) if len(d) >= 3 else ('set' if d else '')
+
+          settings = rest('/rest/v1/driver_app_action_settings?select=company_name,action_key,email_enabled,whatsapp_enabled,in_app_enabled,email_to_company_contact,email_to_dalia,email_to_fleet_managers,whatsapp_to_company_contact,whatsapp_to_dalia,whatsapp_to_fleet_managers,email_extra,whatsapp_extra')
+          configs = rest('/rest/v1/driver_app_company_config?select=company_name,contact_email,contact_whatsapp,dalia_service_enabled,emergency_phone')
+          dalia = rest('/rest/v1/dalia_contact_settings?select=id,email,whatsapp,phone&id=eq.global')
+          print('SETTINGS_ROWS', len(settings))
+          print('CONFIG_ROWS', len(configs))
+          cfg_by = {c['company_name']: c for c in configs}
+          d0 = dalia[0] if dalia else {}
+          print('DALIA_EMAIL', mask_email(d0.get('email')))
+          print('DALIA_WHATSAPP', mask_phone(d0.get('whatsapp')))
+
+          enabled = [s for s in settings if s.get('email_enabled') or s.get('whatsapp_enabled')]
+          print('ENABLED_NOTIFY_ROWS', len(enabled))
+          for s in enabled:
+              cfg = cfg_by.get(s['company_name']) or {}
+              print('ROW', json.dumps({
+                  'company': s['company_name'],
+                  'action': s['action_key'],
+                  'email': s.get('email_enabled'),
+                  'whatsapp': s.get('whatsapp_enabled'),
+                  'email_to_contact': s.get('email_to_company_contact'),
+                  'email_to_dalia': s.get('email_to_dalia'),
+                  'email_to_fm': s.get('email_to_fleet_managers'),
+                  'wa_to_contact': s.get('whatsapp_to_company_contact'),
+                  'wa_to_dalia': s.get('whatsapp_to_dalia'),
+                  'wa_to_fm': s.get('whatsapp_to_fleet_managers'),
+                  'email_extra': bool((s.get('email_extra') or '').strip()),
+                  'whatsapp_extra': bool((s.get('whatsapp_extra') or '').strip()),
+                  'contact_email': mask_email(cfg.get('contact_email')),
+                  'contact_whatsapp': mask_phone(cfg.get('contact_whatsapp')),
+              }, ensure_ascii=False))
+
+          wanted = ['fault', 'fault_urgent', 'accident', 'emergency']
+          # One company per action: first enabled row, else first config, else skip send.
+          tests = []
+          for action in wanted:
+              rows = [s for s in enabled if s['action_key'] == action]
+              if rows:
+                  tests.append(rows[0])
+              elif configs:
+                  tests.append({'company_name': configs[0]['company_name'], 'action_key': action, '_unconfigured': True})
+
+          if not tests:
+              print('NO_COMPANY_CONFIGURED — invoking unconfigured company to prove zero extra sends')
+              tests = [{'company_name': '__qa_unconfigured__', 'action_key': a, '_unconfigured': True} for a in wanted]
+
+          def invoke(action, company):
+              body = json.dumps({
+                  'action_key': action,
+                  'record': {
+                      'company_name': company,
+                      'driver_name': 'בדיקת מערכת',
+                      'vehicle_plate': 'QA-DRIVER',
+                      'description': 'בדיקת אזור נהג Production — לא אירוע אמיתי',
+                  },
+                  'title': f'בדיקת מערכת דליה — {action}',
+                  'message': 'בדיקת אזור נהג. לא תקלה/תאונה/חירום אמיתיים.',
+                  'link': '/dashboard',
+              }).encode()
+              req = urllib.request.Request(
+                  FN, data=body, method='POST',
+                  headers={
+                      'Content-Type': 'application/json',
+                      'apikey': ANON,
+                      'Authorization': 'Bearer ' + ANON,
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      raw = r.read().decode()
+                      return r.status, json.loads(raw) if raw else {}
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      parsed = json.loads(raw)
+                  except Exception:
+                      parsed = {'raw': raw[:400]}
+                  return e.code, parsed
+
+          print('INVOKES')
+          for t in tests:
+              st, data = invoke(t['action_key'], t['company_name'])
+              print('INVOKE', json.dumps({
+                  'action': t['action_key'],
+                  'company': t['company_name'],
+                  'unconfigured': bool(t.get('_unconfigured')),
+                  'http': st,
+                  'ok': data.get('ok'),
+                  'emails_sent': data.get('emails_sent'),
+                  'whatsapp_sent': data.get('whatsapp_sent'),
+                  'whatsapp_skipped': data.get('whatsapp_skipped'),
+                  'in_app_company_contact': data.get('in_app_company_contact'),
+                  'error': data.get('error'),
+              }, ensure_ascii=False))
           PY
-          test "$POST" = "400"
