@@ -81,3 +81,35 @@ jobs:
           name: garage-tenant-precheck
           path: test-results/garage-tenant-precheck.json
           if-no-files-found: ignore
+
+  # If the PAT was saved as a Preview Environment secret, repository-secret
+  # jobs cannot see it. This job never uses Production / github-pages.
+  staging-precheck-preview-env:
+    if: github.ref != 'refs/heads/production'
+    runs-on: ubuntu-latest
+    environment: Preview
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Probe Preview environment for the read-only token
+        env:
+          SUPABASE_STAGING_PRECHECK_TOKEN: ${{ secrets.SUPABASE_STAGING_PRECHECK_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "preview_env_precheck_secret_present=${{ secrets.SUPABASE_STAGING_PRECHECK_TOKEN != '' }}"
+          if [ -z "${SUPABASE_STAGING_PRECHECK_TOKEN}" ]; then
+            echo "Preview environment does not have SUPABASE_STAGING_PRECHECK_TOKEN. Did not query. Did not use SUPABASE_ACCESS_TOKEN."
+            exit 0
+          fi
+          export VITE_SUPABASE_URL=https://usfeoerkpcafxxlyuldl.supabase.co
+          export VITE_SUPABASE_PROJECT_ID=usfeoerkpcafxxlyuldl
+          node scripts/precheck-garage-tenant-staging.mjs
+      - name: Upload Preview-env PRECHECK report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garage-tenant-precheck-preview-env
+          path: test-results/garage-tenant-precheck.json
+          if-no-files-found: ignore

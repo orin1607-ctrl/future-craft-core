@@ -1,17 +1,20 @@
 {
-  "at": "2026-09-14T08:53:00Z",
+  "at": "2026-09-14T09:10:11Z",
   "target": "usfeoerkpcafxxlyuldl",
   "production_touched": false,
   "read_only": true,
-  "verdict": "RETRYING_PRECHECK_AFTER_OWNER_TOKEN_CONFIRMATION",
+  "verdict": "STOP_SECRET_NAME_NOT_IN_REPOSITORY_ACTIONS",
   "token_name": "SUPABASE_STAGING_PRECHECK_TOKEN",
   "ignored_old_token": "SUPABASE_ACCESS_TOKEN",
   "github_actions": {
-    "previous_runs_secret_empty": [
-      "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34825490014",
-      "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34825764233"
-    ],
-    "retry": "push this commit to retrigger pull_request PRECHECK now that owner confirmed the repository secret exists"
+    "run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34826462702",
+    "event": "pull_request",
+    "is_fork": false,
+    "head_repo": "orin1607-ctrl/future-craft-core",
+    "precheck_secret_present": false,
+    "other_repo_secret_present": true,
+    "precheck_variable_present": false,
+    "job_environment": "none"
   },
   "cloud_agent_env": {
     "has_precheck_token": false,
@@ -28,20 +31,35 @@
   "counts": {
     "garage_cases_total": null,
     "garage_cases_unambiguous": null,
-    "garage_cases_unassigned": null,
+    "garage_cases_conflict": null,
+    "garage_cases_no_signal": null,
     "garage_customers_total": null,
     "garage_customers_unambiguous": null,
     "garage_customers_conflict": null,
+    "garage_customers_no_cases": null,
+    "garage_customers_cases_exist_but_opener_shop_empty": null,
     "garage_vehicles_total": null,
     "garage_vehicles_unambiguous": null,
     "garage_vehicles_conflict": null,
     "garage_media_orphan_without_case": null,
-    "state": "pending_retry",
-    "reason": "Owner confirmed cursor-garage-precheck-readonly was saved as SUPABASE_STAGING_PRECHECK_TOKEN. Previous Actions runs still had an empty secret. This revision retriggers read-only PRECHECK. Migration stays blocked until counts return."
+    "state": "blocked",
+    "reason": "SELECT counts were not executed because SUPABASE_STAGING_PRECHECK_TOKEN did not reach the job. Migration was not started."
   },
   "missing_permission": {
-    "not": "Database Read-write on Supabase (not requested, not used)",
-    "status": "unknown_until_retry_job_runs"
+    "not": "Supabase Database Read-write (not requested, not used, do not widen)",
+    "not_2": "GitHub pull_request secret block (other repository Actions secrets ARE visible)",
+    "actual_gap": "GitHub Actions Repository secret exactly named SUPABASE_STAGING_PRECHECK_TOKEN is missing from this job. The PAT cursor-garage-precheck-readonly was never sent to POST /v1/projects/usfeoerkpcafxxlyuldl/database/query.",
+    "needed": [
+      "Settings → Secrets and variables → Actions → Repository secrets → name exactly SUPABASE_STAGING_PRECHECK_TOKEN",
+      "If it was saved under Environment secrets (Preview / github-pages / Production), move it to Repository secrets. Do not bind this PRECHECK job to the Production environment.",
+      "Optional: inject the same token into the Cloud Agent environment as SUPABASE_STAGING_PRECHECK_TOKEN"
+    ],
+    "do_not": [
+      "Do not use SUPABASE_ACCESS_TOKEN",
+      "Do not widen Database to Read-write for PRECHECK",
+      "Do not skip PRECHECK",
+      "Do not apply isolation SQL"
+    ]
   },
   "gate": {
     "migration_run": false,
