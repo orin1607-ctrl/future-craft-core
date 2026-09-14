@@ -69,11 +69,10 @@ async function sendViaSendWhatsAppMessage(opts: {
   error: string | null;
 }> {
   const srk = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-  const anon = Deno.env.get('SUPABASE_ANON_KEY') || srk;
   const res = await fetch(`${opts.supabaseUrl}/functions/v1/send-whatsapp-message`, {
     method: 'POST',
     headers: {
-      apikey: anon,
+      apikey: srk,
       Authorization: `Bearer ${srk}`,
       'Content-Type': 'application/json',
     },

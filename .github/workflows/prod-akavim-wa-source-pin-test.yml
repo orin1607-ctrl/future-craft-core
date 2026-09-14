@@ -4,6 +4,7 @@
 # SOURCE: 0546500305 / 972546500305
 # DESTINATION: 0534338601 / 972534338601
 # Never Hostinger, migrate, Claims, בארי, other companies, or global GUPSHUP_SOURCE.
+# Retry: function-to-function call uses service_role for both apikey and Authorization.
 name: Production Akavim WhatsApp source pin test
 
 on:
