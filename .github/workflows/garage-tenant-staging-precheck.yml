@@ -31,13 +31,40 @@ jobs:
               sys.exit("Refusing Production branch")
           print("ref_ok", ref)
           PY
+      - name: Diagnose secret delivery (booleans only, never print tokens)
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.fork || false }}
+          PRECHECK_SECRET_PRESENT: ${{ secrets.SUPABASE_STAGING_PRECHECK_TOKEN != '' }}
+          OTHER_REPO_SECRET_PRESENT: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
+          PRECHECK_VARIABLE_PRESENT: ${{ vars.SUPABASE_STAGING_PRECHECK_TOKEN != '' }}
+        run: |
+          set -euo pipefail
+          echo "event=${EVENT_NAME}"
+          echo "head_repo=${HEAD_REPO}"
+          echo "is_fork=${IS_FORK}"
+          echo "precheck_secret_present=${PRECHECK_SECRET_PRESENT}"
+          echo "other_repo_secret_present=${OTHER_REPO_SECRET_PRESENT}"
+          echo "precheck_variable_present=${PRECHECK_VARIABLE_PRESENT}"
+          echo "job_environment=none (repository Actions secrets only)"
       - name: Require SUPABASE_STAGING_PRECHECK_TOKEN
         env:
           SUPABASE_STAGING_PRECHECK_TOKEN: ${{ secrets.SUPABASE_STAGING_PRECHECK_TOKEN }}
+          PRECHECK_SECRET_PRESENT: ${{ secrets.SUPABASE_STAGING_PRECHECK_TOKEN != '' }}
+          OTHER_REPO_SECRET_PRESENT: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
+          PRECHECK_VARIABLE_PRESENT: ${{ vars.SUPABASE_STAGING_PRECHECK_TOKEN != '' }}
         run: |
           set -euo pipefail
           if [ -z "${SUPABASE_STAGING_PRECHECK_TOKEN}" ]; then
-            echo "::error::GitHub secret SUPABASE_STAGING_PRECHECK_TOKEN is empty in this job. Add it as a Repository Actions secret with that exact name. If it was saved as an Environment secret, this job has no environment: and cannot see it. Do not use SUPABASE_ACCESS_TOKEN. Production was not touched."
+            echo "::error::GitHub secret SUPABASE_STAGING_PRECHECK_TOKEN is empty in this job. Do not use SUPABASE_ACCESS_TOKEN. Production was not touched."
+            if [ "${PRECHECK_VARIABLE_PRESENT}" = "true" ]; then
+              echo "::error::A Repository VARIABLE with this name exists. Move the PAT to Actions Secrets (not Variables)."
+            elif [ "${OTHER_REPO_SECRET_PRESENT}" = "true" ]; then
+              echo "::error::Other repository Actions secrets are visible, so this is not a pull_request secret-block. The new name is missing from Repository Actions secrets (check Environment secrets on github-pages / Preview / Production, or a typo)."
+            else
+              echo "::error::No repository Actions secrets were visible to this job. Save SUPABASE_STAGING_PRECHECK_TOKEN under Settings → Secrets and variables → Actions → Repository secrets (not an Environment secret unless this job sets that environment)."
+            fi
             exit 3
           fi
           echo "precheck_token_present=true"
