@@ -49,4 +49,6 @@ HomeDashboard, Dashboard.tsx, Vehicles.tsx, garage, claims, customers, reports, 
 ## Live status (2026-09-14)
 - **Frontend live:** `https://dalia-car.online/PRODUCTION-DEPLOY.txt` → `commit=fda4d2821aab4c771aada9e17f6ad7839ccc07c8 bundle=index-C_3rMZ1C.js reason=driver-area-only-2026-09-13 before=172f525c…`
 - **SQL applied:** `20260913220000_prod_driver_area_only.sql` (additive driver-area only)
-- **Edge Function `notify-driver-event`:** not live yet (Management API token on VPS empty; retrying GitHub secret from the Actions runner). Existing `send-whatsapp-message` / `notify-accident-email` / `notify-service-order-email` were **not** redeployed.
+- **Edge Function `notify-driver-event`:** not live (`404`). GitHub `SUPABASE_ACCESS_TOKEN` authenticates but returns **403** (no Owner/Admin privilege on `qasomfndnjuixgjmjwcm`). VPS has no extra token. Existing `send-whatsapp-message` / `notify-accident-email` / `notify-service-order-email` were **not** redeployed (OPTIONS 200).
+- **Stop:** need an Owner-privileged Supabase access token in the GitHub Secret. Do not change Gupshup / existing WhatsApp functions.
+- Full write-up: `FINAL-REPORT.md`
