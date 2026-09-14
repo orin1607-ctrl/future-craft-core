@@ -1,0 +1,452 @@
+# Production diagnosis for company אכבים only.
+# Read-only DB + Edge logs, then at most ONE notify-driver-event invoke
+# to אכבים. Never Hostinger, migrate, functions deploy, or other companies.
+name: Production Akavim notify diagnosis
+
+on:
+  push:
+    branches: [cursor/prod-driver-area-only-b784]
+    paths:
+      - '.github/workflows/prod-akavim-notify-diag.yml'
+  workflow_dispatch:
+    inputs:
+      enable_live_send:
+        description: 'yes = one notify-driver-event to אכבים after diagnosis'
+        required: false
+        default: 'yes'
+
+concurrency:
+  group: prod-akavim-notify-diag
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Diagnose last incident + אכבים settings (then one controlled send)
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          MGMT: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          ENABLE_LIVE_SEND: ${{ github.event.inputs.enable_live_send || 'yes' }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, os, re, time, urllib.parse, urllib.request, urllib.error
+          from datetime import datetime, timezone, timedelta
+
+          SRK = os.environ.get('SRK') or ''
+          ANON = os.environ.get('ANON') or SRK
+          MGMT = (os.environ.get('MGMT') or '').strip()
+          ENABLE = (os.environ.get('ENABLE_LIVE_SEND') or 'yes').strip().lower()
+          BASE = 'https://qasomfndnjuixgjmjwcm.supabase.co'
+          REF = 'qasomfndnjuixgjmjwcm'
+          FN = BASE + '/functions/v1/notify-driver-event'
+          ALLOWED = {'אכבים', 'אקבים'}
+          NEEDLES = ['אכבים', 'אקבים', 'akavim']
+
+          def redact(s):
+              s = str(s or '')
+              s = re.sub(r'sbp_[A-Za-z0-9]+', 'SBP_REDACTED', s)
+              s = re.sub(r'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+', 'JWT_REDACTED', s)
+              s = re.sub(r'(api[_-]?key["\s:=]+)[^,\s"]+', r'\1REDACTED', s, flags=re.I)
+              return s[:1200]
+
+          def rest(path, method='GET', body=None, bearer=None, extra=None):
+              h = {
+                  'apikey': SRK,
+                  'Authorization': 'Bearer ' + (bearer or SRK),
+                  'Accept': 'application/json',
+              }
+              if extra:
+                  h.update(extra)
+              data = None
+              if body is not None:
+                  h['Content-Type'] = 'application/json'
+                  data = json.dumps(body).encode()
+              req = urllib.request.Request(BASE + path, data=data, headers=h, method=method)
+              try:
+                  with urllib.request.urlopen(req, timeout=45) as r:
+                      raw = r.read().decode()
+                      return r.status, json.loads(raw) if raw else None
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      parsed = json.loads(raw)
+                  except Exception:
+                      parsed = {'raw': raw[:500]}
+                  return e.code, parsed
+
+          def mgmt(path):
+              if not MGMT:
+                  return 0, {'error': 'no_mgmt_token'}
+              req = urllib.request.Request(
+                  'https://api.supabase.com/v1' + path,
+                  headers={'Authorization': 'Bearer ' + MGMT, 'Accept': 'application/json'},
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=45) as r:
+                      raw = r.read().decode()
+                      try:
+                          return r.status, json.loads(raw)
+                      except Exception:
+                          return r.status, {'text': raw[:2000]}
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      return e.code, json.loads(raw)
+                  except Exception:
+                      return e.code, {'text': raw[:500]}
+
+          def is_akavim(name):
+              n = (name or '').strip()
+              if n in ALLOWED:
+                  return True
+              low = n.lower()
+              return any(needle.lower() in low for needle in NEEDLES)
+
+          print('=== AKAVIM_DIAG_START ===')
+          print('ENABLE_LIVE_SEND', ENABLE)
+          print('SRK_LEN', len(SRK), 'ANON_LEN', len(ANON), 'MGMT_LEN', len(MGMT))
+          if not SRK:
+              print('FATAL no SRK')
+              raise SystemExit(1)
+
+          st, profiles = rest('/rest/v1/profiles?select=id,full_name,company_name,phone&company_name=not.is.null')
+          print('PROFILES_HTTP', st, 'N', len(profiles) if isinstance(profiles, list) else profiles)
+          companies = []
+          if isinstance(profiles, list):
+              companies = sorted({(p.get('company_name') or '').strip() for p in profiles if (p.get('company_name') or '').strip()})
+          matches = [c for c in companies if is_akavim(c)]
+          print('COMPANY_MATCHES', json.dumps(matches, ensure_ascii=False))
+          resolved = 'אכבים' if 'אכבים' in matches else (matches[0] if matches else 'אכבים')
+          print('RESOLVED_COMPANY', resolved)
+          if resolved not in ALLOWED and not is_akavim(resolved):
+              print('REFUSING_NON_AKAVIM', resolved)
+              raise SystemExit(1)
+
+          cq = urllib.parse.quote(resolved, safe='')
+
+          st, settings = rest(
+              f'/rest/v1/driver_app_action_settings?company_name=eq.{cq}&select=company_name,action_key,visible_to_driver,email_enabled,email_to_fleet_managers,email_to_company_contact,email_to_dalia,email_extra,whatsapp_enabled,whatsapp_to_fleet_managers,whatsapp_to_company_contact,whatsapp_to_dalia,whatsapp_extra,in_app_enabled,in_app_to_fleet_managers,in_app_to_company_contact,in_app_to_dalia,condition_mode,condition_values,updated_at'
+          )
+          print('ACTION_SETTINGS_HTTP', st, 'N', len(settings) if isinstance(settings, list) else settings)
+          st, cfg_rows = rest(f'/rest/v1/driver_app_company_config?company_name=eq.{cq}&select=*')
+          print('COMPANY_CONFIG', json.dumps(cfg_rows, ensure_ascii=False)[:2000] if cfg_rows else cfg_rows)
+          st, dalia = rest('/rest/v1/dalia_contact_settings?id=eq.global&select=*')
+          print('DALIA_CONTACT', json.dumps(dalia, ensure_ascii=False)[:1500] if dalia else dalia)
+          st, cset = rest(
+              f'/rest/v1/company_settings?company_name=eq.{cq}&select=company_name,incident_notify_in_app,incident_notify_email,incident_notify_whatsapp,incident_email_recipients,incident_whatsapp_recipients,whatsapp_enabled'
+          )
+          print('LEGACY_COMPANY_SETTINGS', json.dumps(cset, ensure_ascii=False)[:1500] if cset else cset)
+
+          if isinstance(settings, list):
+              for s in settings:
+                  print('AKAVIM_ACTION', json.dumps({
+                      'action_key': s.get('action_key'),
+                      'email_enabled': s.get('email_enabled'),
+                      'whatsapp_enabled': s.get('whatsapp_enabled'),
+                      'in_app_enabled': s.get('in_app_enabled'),
+                      'email_to_fm': s.get('email_to_fleet_managers'),
+                      'email_to_contact': s.get('email_to_company_contact'),
+                      'email_to_dalia': s.get('email_to_dalia'),
+                      'email_extra': (s.get('email_extra') or '').strip(),
+                      'wa_to_fm': s.get('whatsapp_to_fleet_managers'),
+                      'wa_to_contact': s.get('whatsapp_to_company_contact'),
+                      'wa_to_dalia': s.get('whatsapp_to_dalia'),
+                      'whatsapp_extra': (s.get('whatsapp_extra') or '').strip(),
+                      'in_app_fm': s.get('in_app_to_fleet_managers'),
+                      'in_app_contact': s.get('in_app_to_company_contact'),
+                      'in_app_dalia': s.get('in_app_to_dalia'),
+                      'condition_mode': s.get('condition_mode'),
+                      'condition_values': s.get('condition_values'),
+                      'updated_at': s.get('updated_at'),
+                  }, ensure_ascii=False))
+
+          st, all_settings_n = rest('/rest/v1/driver_app_action_settings?select=company_name,action_key,email_enabled,whatsapp_enabled')
+          if isinstance(all_settings_n, list):
+              enabled_other = [
+                  {'company': r.get('company_name'), 'action': r.get('action_key'), 'email': r.get('email_enabled'), 'wa': r.get('whatsapp_enabled')}
+                  for r in all_settings_n if (r.get('email_enabled') or r.get('whatsapp_enabled')) and not is_akavim(r.get('company_name'))
+              ]
+              print('OTHER_COMPANIES_ENABLED_NOTIFY_COUNT', len(enabled_other))
+              print('ALL_DRIVER_APP_SETTINGS_ROWS', len(all_settings_n))
+
+          st, faults = rest('/rest/v1/faults?select=id,event_number,company_name,urgency,fault_type,description,driver_name,vehicle_plate,status,created_at,date,created_by&order=created_at.desc&limit=15')
+          print('LAST_FAULTS_HTTP', st)
+          if isinstance(faults, list):
+              for f in faults:
+                  row = {
+                      'id': f.get('id'),
+                      'event_number': f.get('event_number'),
+                      'company_name': f.get('company_name'),
+                      'urgency': f.get('urgency'),
+                      'fault_type': f.get('fault_type'),
+                      'status': f.get('status'),
+                      'created_at': f.get('created_at') or f.get('date'),
+                      'akavim': is_akavim(f.get('company_name')),
+                      'description': str(f.get('description') or '')[:80],
+                  }
+                  if not row['akavim']:
+                      row.pop('description', None)
+                  print('FAULT', json.dumps(row, ensure_ascii=False))
+
+          st, ak_faults = rest(
+              f'/rest/v1/faults?company_name=eq.{cq}&select=id,event_number,company_name,urgency,fault_type,description,driver_name,vehicle_plate,status,created_at,date,created_by,reporter_phone&order=created_at.desc&limit=10'
+          )
+          print('AKAVIM_FAULTS_N', len(ak_faults) if isinstance(ak_faults, list) else ak_faults)
+          last_ak_fault = ak_faults[0] if isinstance(ak_faults, list) and ak_faults else None
+          last_any_fault = faults[0] if isinstance(faults, list) and faults else None
+          print('LAST_AKAVIM_FAULT', json.dumps(last_ak_fault, ensure_ascii=False)[:2000] if last_ak_fault else None)
+          print('LAST_ANY_FAULT_COMPANY', (last_any_fault or {}).get('company_name'), 'ID', (last_any_fault or {}).get('id'), 'EVENT', (last_any_fault or {}).get('event_number'))
+
+          st, accidents = rest('/rest/v1/accidents?select=id,event_number,company_name,status,created_at,date&order=created_at.desc&limit=8')
+          if isinstance(accidents, list):
+              for a in accidents:
+                  print('ACCIDENT', json.dumps({'id': a.get('id'), 'event': a.get('event_number'), 'company': a.get('company_name'), 'at': a.get('created_at') or a.get('date'), 'akavim': is_akavim(a.get('company_name'))}, ensure_ascii=False))
+
+          st, emerg = rest('/rest/v1/emergency_logs?select=id,company_name,category_label,status,created_at,sla_deadline_at,notify_dispatched_at,escalated_at&order=created_at.desc&limit=8')
+          if isinstance(emerg, list):
+              for e in emerg:
+                  print('EMERGENCY', json.dumps({
+                      'id': e.get('id'), 'company': e.get('company_name'), 'label': e.get('category_label') if is_akavim(e.get('company_name')) else None,
+                      'at': e.get('created_at'), 'sla': e.get('sla_deadline_at'),
+                      'notify_dispatched_at': e.get('notify_dispatched_at'), 'escalated_at': e.get('escalated_at'),
+                      'akavim': is_akavim(e.get('company_name')),
+                  }, ensure_ascii=False))
+
+          def deliveries_for(incident_id):
+              if not incident_id:
+                  return []
+              st, rows = rest(
+                  f'/rest/v1/incident_notification_deliveries?incident_id=eq.{incident_id}&select=incident_kind,incident_id,event_number,channel,recipient,status,error_message,provider_message_id,sent_at,created_at,company_name&order=created_at.desc'
+              )
+              print('DELIVERIES_HTTP', st, 'incident', incident_id, 'N', len(rows) if isinstance(rows, list) else rows)
+              if not isinstance(rows, list):
+                  return []
+              for d in rows:
+                  rec = d.get('recipient') or ''
+                  if not is_akavim(d.get('company_name')):
+                      rec = (rec[:2] + '***') if rec else ''
+                  print('DELIVERY', json.dumps({
+                      'kind': d.get('incident_kind'), 'channel': d.get('channel'),
+                      'recipient': rec, 'status': d.get('status'),
+                      'error': redact(d.get('error_message')),
+                      'provider_message_id': d.get('provider_message_id'),
+                      'sent_at': d.get('sent_at'), 'created_at': d.get('created_at'),
+                      'event': d.get('event_number'), 'company': d.get('company_name'),
+                  }, ensure_ascii=False))
+              return rows
+
+          print('--- deliveries last any fault ---')
+          if last_any_fault:
+              deliveries_for(last_any_fault.get('id'))
+          print('--- deliveries last akavim fault ---')
+          if last_ak_fault and (not last_any_fault or last_ak_fault.get('id') != last_any_fault.get('id')):
+              deliveries_for(last_ak_fault.get('id'))
+
+          st, roles = rest('/rest/v1/user_roles?role=eq.fleet_manager&select=user_id')
+          fm_ids = [r['user_id'] for r in roles] if isinstance(roles, list) else []
+          ak_managers = []
+          if isinstance(profiles, list):
+              idset = set(fm_ids)
+              ak_managers = [p for p in profiles if p.get('id') in idset and is_akavim(p.get('company_name'))]
+          print('AKAVIM_FLEET_MANAGERS_N', len(ak_managers))
+          st, users_page = rest('/auth/v1/admin/users?per_page=1000', extra={'Content-Type': 'application/json'})
+          users = []
+          if isinstance(users_page, dict):
+              users = users_page.get('users') or []
+          print('AUTH_USERS_HTTP', st, 'N', len(users))
+          by_id = {u.get('id'): u for u in users}
+          for p in ak_managers:
+              u = by_id.get(p.get('id')) or {}
+              print('AKAVIM_FM', json.dumps({
+                  'name': p.get('full_name'),
+                  'email': u.get('email'),
+                  'phone': p.get('phone'),
+                  'company': p.get('company_name'),
+              }, ensure_ascii=False))
+
+          st, sa_roles = rest("/rest/v1/user_roles?role=eq.super_admin&select=user_id")
+          sa_ids = [r['user_id'] for r in sa_roles] if isinstance(sa_roles, list) else []
+          print('SUPER_ADMIN_N', len(sa_ids))
+          for sid in sa_ids:
+              u = by_id.get(sid) or {}
+              p = next((x for x in (profiles or []) if x.get('id') == sid), {}) if isinstance(profiles, list) else {}
+              print('SUPER_ADMIN', json.dumps({
+                  'email': u.get('email'),
+                  'name': p.get('full_name'),
+                  'profile_company': p.get('company_name'),
+                  'phone': p.get('phone'),
+              }, ensure_ascii=False))
+
+          since = (datetime.now(timezone.utc) - timedelta(hours=36)).isoformat()
+          st, notes = rest(
+              f"/rest/v1/driver_notifications?select=id,user_id,type,title,message,link,created_at&created_at=gte.{urllib.parse.quote(since)}&order=created_at.desc&limit=20"
+          )
+          print('DRIVER_NOTIFICATIONS_HTTP', st, 'N', len(notes) if isinstance(notes, list) else notes)
+          if isinstance(notes, list):
+              for n in notes[:20]:
+                  print('IN_APP', json.dumps({
+                      'at': n.get('created_at'), 'type': n.get('type'),
+                      'title': n.get('title'), 'message': str(n.get('message') or '')[:120],
+                      'user_id': n.get('user_id'),
+                  }, ensure_ascii=False))
+
+          iso_start = (datetime.now(timezone.utc) - timedelta(hours=12)).strftime('%Y-%m-%dT%H:%M:%SZ')
+          iso_end = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+          log_paths = [
+              f'/projects/{REF}/functions',
+              f'/projects/{REF}/analytics/endpoints/logs.edge-logs?iso_timestamp_start={urllib.parse.quote(iso_start)}&iso_timestamp_end={urllib.parse.quote(iso_end)}',
+              f'/projects/{REF}/analytics/endpoints/logs.all?iso_timestamp_start={urllib.parse.quote(iso_start)}&iso_timestamp_end={urllib.parse.quote(iso_end)}',
+          ]
+          for pth in log_paths:
+              hs, body = mgmt(pth)
+              text = json.dumps(body, ensure_ascii=False) if not isinstance(body, str) else body
+              hit = 'notify-driver-event' in text or 'gupshup' in text.lower() or 'resend' in text.lower()
+              print('MGMT', pth.split('?')[0], 'HTTP', hs, 'LEN', len(text), 'HIT', hit)
+              if 'functions' in pth and isinstance(body, list):
+                  names = [str(x.get('slug') or x.get('name') or '') for x in body]
+                  print('FN_SLUGS', [n for n in names if 'notify' in n or 'whatsapp' in n])
+                  print('HAS_NOTIFY_DRIVER_EVENT', 'notify-driver-event' in names)
+              if hit:
+                  lines = [ln for ln in text.split('\\n') if 'notify-driver-event' in ln or 'Failed to send' in ln or 'WhatsApp failed' in ln or 'RESEND' in ln or 'gupshup' in ln.lower()]
+                  for ln in lines[:15]:
+                      print('LOG_LINE', redact(ln)[:400])
+                  if not lines:
+                      print('LOG_PREVIEW', redact(text)[:800])
+
+          cfg = (cfg_rows[0] if isinstance(cfg_rows, list) and cfg_rows else {}) or {}
+          d0 = (dalia[0] if isinstance(dalia, list) and dalia else {}) or {}
+          setting_by = {s.get('action_key'): s for s in settings} if isinstance(settings, list) else {}
+
+          def planned_targets(action_key):
+              s = setting_by.get(action_key) or {}
+              emails, phones = [], []
+              email_on = bool(s.get('email_enabled'))
+              wa_on = bool(s.get('whatsapp_enabled'))
+              skip_fm_email = action_key in ('fault', 'fault_urgent', 'accident', 'service_order')
+              if email_on:
+                  if s.get('email_to_fleet_managers') and not skip_fm_email:
+                      for p in ak_managers:
+                          u = by_id.get(p.get('id')) or {}
+                          if u.get('email'):
+                              emails.append(('fleet_manager', u.get('email')))
+                  if s.get('email_to_company_contact') and (cfg.get('contact_email') or '').strip():
+                      emails.append(('company_contact', cfg.get('contact_email').strip()))
+                  if s.get('email_to_dalia') and cfg.get('dalia_service_enabled') and (d0.get('email') or '').strip():
+                      emails.append(('dalia', d0.get('email').strip()))
+                  extra = (s.get('email_extra') or '').strip()
+                  if extra:
+                      for part in re.split(r'[,;\s]+', extra):
+                          if part:
+                              emails.append(('extra', part))
+              if wa_on:
+                  if s.get('whatsapp_to_fleet_managers'):
+                      for p in ak_managers:
+                          if p.get('phone'):
+                              phones.append(('fleet_manager', p.get('phone')))
+                  if s.get('whatsapp_to_company_contact') and (cfg.get('contact_whatsapp') or '').strip():
+                      phones.append(('company_contact', cfg.get('contact_whatsapp').strip()))
+                  if s.get('whatsapp_to_dalia') and cfg.get('dalia_service_enabled') and (d0.get('whatsapp') or '').strip():
+                      phones.append(('dalia', d0.get('whatsapp').strip()))
+                  extra = (s.get('whatsapp_extra') or '').strip()
+                  if extra:
+                      for part in re.split(r'[,;\s]+', extra):
+                          if part:
+                              phones.append(('extra', part))
+              return email_on, wa_on, emails, phones
+
+          print('--- planned notify-driver-event targets for אכבים ---')
+          for action in ['fault', 'fault_urgent', 'accident', 'emergency', 'service_order', 'expenses']:
+              email_on, wa_on, emails, phones = planned_targets(action)
+              print('PLANNED', json.dumps({
+                  'action': action,
+                  'row_exists': action in setting_by,
+                  'email_on': email_on,
+                  'whatsapp_on': wa_on,
+                  'emails': emails,
+                  'whatsapp': phones,
+              }, ensure_ascii=False))
+
+          last_urgency = (last_ak_fault or last_any_fault or {}).get('urgency') if is_akavim((last_ak_fault or last_any_fault or {}).get('company_name')) else (last_ak_fault or {}).get('urgency')
+          inferred_action = 'fault_urgent' if last_urgency in ('urgent', 'critical') else 'fault'
+          if last_ak_fault:
+              inferred_action = 'fault_urgent' if (last_ak_fault.get('urgency') in ('urgent', 'critical')) else 'fault'
+          print('INFERRED_LAST_ACTION_KEY', inferred_action, 'URGENCY', (last_ak_fault or {}).get('urgency'))
+
+          send_action = None
+          for cand in [inferred_action, 'fault_urgent', 'fault', 'emergency', 'accident', 'expenses', 'service_order']:
+              email_on, wa_on, emails, phones = planned_targets(cand)
+              if email_on or wa_on:
+                  send_action = cand
+                  break
+          print('LIVE_SEND_CANDIDATE', send_action)
+
+          live = {'skipped': True, 'reason': 'not_attempted'}
+          if ENABLE not in ('yes', 'true', '1'):
+              live = {'skipped': True, 'reason': 'enable_live_send_false'}
+          elif not send_action:
+              live = {
+                  'skipped': True,
+                  'reason': 'akavim_driver_app_email_and_whatsapp_are_OFF_or_unconfigured',
+                  'note': 'Will not flip settings. notify-driver-event would send 0/0 by design.',
+              }
+          else:
+              email_on, wa_on, emails, phones = planned_targets(send_action)
+              body = {
+                  'action_key': send_action,
+                  'condition_value': 'urgent' if send_action == 'fault_urgent' else None,
+                  'record': {
+                      'company_name': resolved,
+                      'driver_name': 'בדיקת מערכת',
+                      'vehicle_plate': 'SYS-TEST',
+                      'description': 'בדיקת מערכת בלבד – אין לטפל',
+                      'urgency': 'urgent' if send_action == 'fault_urgent' else 'normal',
+                      'event_number': 'SYS-TEST-AKAVIM',
+                      'fault_type': 'בדיקת מערכת',
+                  },
+                  'title': 'בדיקת מערכת בלבד – אין לטפל',
+                  'message': 'בדיקת מערכת בלבד – אין לטפל. לא תקלה אמיתית ולא דורש טיפול.',
+                  'link': '/dashboard',
+              }
+              print('LIVE_SEND_ATTEMPT', json.dumps({
+                  'company': resolved,
+                  'action_key': send_action,
+                  'email_on': email_on,
+                  'whatsapp_on': wa_on,
+                  'emails': emails,
+                  'whatsapp': phones,
+              }, ensure_ascii=False))
+              req = urllib.request.Request(
+                  FN,
+                  data=json.dumps(body).encode(),
+                  method='POST',
+                  headers={
+                      'Content-Type': 'application/json',
+                      'apikey': ANON,
+                      'Authorization': 'Bearer ' + ANON,
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      raw = r.read().decode()
+                      live = {'skipped': False, 'http': r.status, 'body': json.loads(raw) if raw else {}}
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      parsed = json.loads(raw)
+                  except Exception:
+                      parsed = {'raw': raw[:400]}
+                  live = {'skipped': False, 'http': e.code, 'body': parsed}
+              print('LIVE_SEND_RESULT', json.dumps(live, ensure_ascii=False)[:2000])
+              time.sleep(3)
+              hs, body2 = mgmt(
+                  f'/projects/{REF}/analytics/endpoints/logs.edge-logs?iso_timestamp_start={urllib.parse.quote((datetime.now(timezone.utc)-timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ"))}&iso_timestamp_end={urllib.parse.quote(datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))}'
+              )
+              print('POST_SEND_LOGS_HTTP', hs, 'PREVIEW', redact(json.dumps(body2, ensure_ascii=False) if not isinstance(body2, str) else body2)[:1000])
+
+          print('LIVE_SEND_SUMMARY', json.dumps(live, ensure_ascii=False)[:2000])
+          print('=== AKAVIM_DIAG_END ===')
+          PY
