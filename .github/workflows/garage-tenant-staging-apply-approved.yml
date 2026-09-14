@@ -50,7 +50,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import os, re, sys
+          import os, sys
           STAGING = "usfeoerkpcafxxlyuldl"
           PROD = "qasomfndnjuixgjmjwcm"
           raw = os.environ.get("STAGING_DATABASE_URL") or ""
@@ -60,20 +60,28 @@ jobs:
               sys.exit("STAGING_DATABASE_URL contains Production. STOP. SQL not applied.")
           if STAGING not in raw:
               sys.exit("STAGING_DATABASE_URL does not contain usfeoerkpcafxxlyuldl. STOP. SQL not applied.")
+          at = raw.rfind("@")
+          if at < 0:
+              sys.exit("STAGING_DATABASE_URL has no host. STOP.")
+          userinfo = raw[:at]
+          rest = raw[at + 1:]
+          hostport = rest.split("/")[0]
+          host = hostport.split(":")[0].lower()
+          port = hostport.split(":")[1] if ":" in hostport else ""
           scheme = raw.split(":", 1)[0].lower()
-          host = ""
-          m = re.search(r"@([^/?#:]+)", raw)
-          if m:
-              host = m.group(1).lower()
-          if host and PROD in host:
-              sys.exit("Host contains Production ref. STOP.")
-          if host and STAGING not in host:
-              userinfo = raw.split("@", 1)[0]
-              if STAGING not in userinfo:
-                  sys.exit("Host/user do not identify Staging usfeoerkpcafxxlyuldl. STOP.")
+          if PROD in host or PROD in userinfo:
+              sys.exit("Production ref found in host/user. STOP. SQL not applied.")
+          staging_in_host = STAGING in host
+          staging_in_userinfo = STAGING in userinfo
+          if not staging_in_host and not staging_in_userinfo:
+              sys.exit("Neither host nor user identify Staging usfeoerkpcafxxlyuldl. STOP.")
+          if "pooler.supabase.com" in host and not staging_in_userinfo:
+              sys.exit("Pooler host without Staging tenant in user. STOP.")
           print("url_scheme", scheme)
-          print("url_host", host or "(unparsed)")
-          print("staging_ref_present", True)
+          print("url_host", host)
+          print("url_port", port or "(default)")
+          print("staging_in_host", staging_in_host)
+          print("staging_in_userinfo", staging_in_userinfo)
           print("production_ref_present", False)
           PY
       - name: Apply Isolation SQL in one transaction
