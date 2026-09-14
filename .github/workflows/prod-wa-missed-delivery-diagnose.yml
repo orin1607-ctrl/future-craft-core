@@ -80,7 +80,7 @@ jobs:
               f"/rest/v1/incident_notification_deliveries"
               f"?or=(recipient.eq.{DEST},recipient.eq.{DEST_LOCAL},recipient.eq.unknown)"
               f"&created_at=gte.{urllib.parse.quote(since)}"
-              f"&select=id,company_name,incident_kind,event_number,channel,recipient,status,error_message,provider_message_id,dlr_event,dlr_error_code,payload_excerpt,status_history,sent_at,created_at,updated_at"
+              f"&select=id,company_name,incident_kind,event_number,channel,recipient,status,error_message,provider_message_id,dlr_event,dlr_error_code,payload_excerpt,sent_at,created_at,updated_at"
               f"&order=created_at.desc&limit=50"
           )
           st, rows = rest(PROD, q, SRK)
@@ -114,6 +114,25 @@ jobs:
               SRK,
           )
           print('PROD_WA_RECENT_HTTP', st, 'N', len(allwa) if isinstance(allwa, list) else allwa)
+          st, bydest = rest(
+              PROD,
+              f"/rest/v1/incident_notification_deliveries?or=(recipient.eq.{DEST},recipient.eq.{DEST_LOCAL})&channel=eq.whatsapp&select=company_name,recipient,status,provider_message_id,dlr_event,dlr_error_code,error_message,payload_excerpt,created_at&order=created_at.desc&limit=20",
+              SRK,
+          )
+          print('PROD_WA_BY_DEST_HTTP', st, 'N', len(bydest) if isinstance(bydest, list) else bydest)
+          if isinstance(bydest, list):
+              for d in bydest:
+                  print('PROD_WA_BY_DEST', json.dumps({
+                      'company': d.get('company_name'),
+                      'recipient': d.get('recipient'),
+                      'status': d.get('status'),
+                      'mid': d.get('provider_message_id'),
+                      'dlr': d.get('dlr_event'),
+                      'code': d.get('dlr_error_code'),
+                      'error': str(d.get('error_message') or '')[:300],
+                      'at': d.get('created_at'),
+                      'excerpt': str(d.get('payload_excerpt') or '')[:300],
+                  }, ensure_ascii=False))
           if isinstance(allwa, list):
               for d in allwa:
                   blob = json.dumps(d, ensure_ascii=False)
@@ -170,7 +189,7 @@ jobs:
               if staging_srk:
                   st, srows = rest(
                       STAGING,
-                      f"/rest/v1/incident_notification_deliveries?or=(recipient.eq.{DEST},recipient.eq.{DEST_LOCAL})&created_at=gte.{urllib.parse.quote(since)}&select=company_name,recipient,status,provider_message_id,dlr_event,dlr_error_code,error_message,payload_excerpt,status_history,created_at&order=created_at.desc&limit=30",
+                      f"/rest/v1/incident_notification_deliveries?or=(recipient.eq.{DEST},recipient.eq.{DEST_LOCAL})&created_at=gte.{urllib.parse.quote(since)}&select=company_name,recipient,status,provider_message_id,dlr_event,dlr_error_code,error_message,payload_excerpt,created_at&order=created_at.desc&limit=30",
                       staging_srk,
                   )
                   print('STAGING_DELIVERIES_HTTP', st, 'N', len(srows) if isinstance(srows, list) else srows)
