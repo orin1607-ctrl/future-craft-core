@@ -1,16 +1,16 @@
 name: Deploy Staging to GitHub Pages
 
 # Staging deployment to GitHub Pages (dalia-staging Supabase only).
-# One-shot owner-approved publish of PR 112 (Oren Car inactive regressions).
+# One-shot owner-approved publish of Oren Car accident-docs (PR 114) to inactive Pages.
 # Never publishes production, main, or origin/dev.
 
 on:
   workflow_dispatch:
     inputs:
       deploy_ref:
-        description: 'Git ref to build and deploy. Empty = Oren Car PR 112 branch. Never production.'
+        description: 'Git ref to build and deploy. Empty = Oren Car accident-docs branch. Never production.'
         required: false
-        default: 'cursor/oren-car-three-regressions-8234'
+        default: 'cursor/oren-car-accident-docs-8234'
   push:
     branches:
       - cursor/deploy-oren-car-pages-8234
@@ -30,14 +30,14 @@ jobs:
     # Do not bind this job to environment `github-pages` (that environment
     # only allows branch `main`). Pages deploy uses pages:write + id-token.
     steps:
-      - name: Resolve deploy ref (Oren Car PR 112 only)
+      - name: Resolve deploy ref (Oren Car accident-docs only)
         id: ref
         run: |
           set -euo pipefail
           if [ -n "${{ github.event.inputs.deploy_ref }}" ]; then
             REF="${{ github.event.inputs.deploy_ref }}"
           else
-            REF="cursor/oren-car-three-regressions-8234"
+            REF="cursor/oren-car-accident-docs-8234"
           fi
           case "$REF" in
             production|refs/heads/production|*production*|dev|refs/heads/dev|origin/dev|main|refs/heads/main|origin/main)
