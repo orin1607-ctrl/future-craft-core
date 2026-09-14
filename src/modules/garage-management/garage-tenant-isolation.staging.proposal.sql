@@ -114,9 +114,9 @@ UPDATE public.garage_cases gc
 SET shop_company_name = c.shop_company_name
 FROM public.garage_customers c
 JOIN public.garage_vehicles v
-  ON v.id = gc.vehicle_id
- AND v.customer_id = gc.customer_id
+  ON v.customer_id = c.id
 WHERE c.id = gc.customer_id
+  AND v.id = gc.vehicle_id
   AND length(trim(gc.shop_company_name)) = 0
   AND length(trim(c.shop_company_name)) > 0
   AND c.shop_company_name = v.shop_company_name;
