@@ -13,12 +13,12 @@
  * Ignores SUPABASE_ACCESS_TOKEN. The read-only PRECHECK token cannot apply DDL.
  */
 import { spawnSync } from 'node:child_process';
-import { lookup } from 'node:dns/promises';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const STAGING_REF = 'usfeoerkpcafxxlyuldl';
 const PROD_REF = 'qasomfndnjuixgjmjwcm';
+const STAGING_POOLER = 'aws-0-ap-south-1.pooler.supabase.com';
 const SQL_FILE = 'src/modules/garage-management/garage-tenant-isolation.staging.proposal.sql';
 
 function abort(msg) {
@@ -45,32 +45,50 @@ function writeReportFile(report) {
   writeFileSync(join('test-results', 'garage-tenant-staging-apply.json'), JSON.stringify(report, null, 2));
 }
 
-async function psqlEnv(url) {
-  const env = { ...process.env, PGSSLMODE: process.env.PGSSLMODE || 'require' };
-  const hostMatch = url.match(/@([^/?#:]+)/);
-  const host = hostMatch ? hostMatch[1] : '';
-  if (host) {
-    const resolved = await lookup(host, { family: 4 });
-    env.PGHOSTADDR = resolved.address;
-    console.log('PSQL_HOST', host);
-    console.log('PSQL_IPV4', resolved.address);
+function connectionForPsql(url) {
+  guardDbUrl(url);
+  const at = url.lastIndexOf('@');
+  if (at < 0) abort('STAGING_DATABASE_URL has no host. STOP.');
+  const userinfo = url.slice(0, at);
+  const rest = url.slice(at + 1);
+  const hostPort = rest.split('/')[0];
+  const host = hostPort.split(':')[0];
+  const pathAndQuery = rest.includes('/') ? rest.slice(rest.indexOf('/')) : '/postgres';
+  if (host.includes(PROD_REF) || /dalia-car\.online/i.test(host)) {
+    abort('Host is Production. STOP. SQL not applied.');
   }
-  return env;
+  if (host === `db.${STAGING_REF}.supabase.co`) {
+    const schemeEnd = userinfo.indexOf('://');
+    const scheme = userinfo.slice(0, schemeEnd + 3);
+    const up = userinfo.slice(schemeEnd + 3);
+    const user = up.split(':')[0];
+    const pass = up.slice(user.length + 1);
+    const poolUser = user.includes(STAGING_REF) ? user : `${user}.${STAGING_REF}`;
+    console.log('PSQL_VIA staging_pooler_session');
+    console.log('PSQL_HOST', STAGING_POOLER);
+    return `${scheme}${poolUser}:${pass}@${STAGING_POOLER}:5432${pathAndQuery}`;
+  }
+  if (host.endsWith('pooler.supabase.com') && url.includes(STAGING_REF)) {
+    console.log('PSQL_VIA staging_pooler_as_provided');
+    console.log('PSQL_HOST', host);
+    return url;
+  }
+  abort(`Unexpected DB host ${host}. STOP. SQL not applied.`);
 }
 
-async function applyWithPsql(url, sqlFile) {
-  guardDbUrl(url);
-  const env = await psqlEnv(url);
+function applyWithPsql(url, sqlFile) {
+  const conn = connectionForPsql(url);
+  const env = { ...process.env, PGSSLMODE: process.env.PGSSLMODE || 'require' };
   const ident = spawnSync(
     'psql',
-    [url, '-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-tA', '-c', 'SELECT current_database();'],
+    [conn, '-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-tA', '-c', 'SELECT current_database();'],
     { encoding: 'utf8', timeout: 30000, env },
   );
   if (ident.status !== 0) {
     throw new Error((ident.stderr || ident.stdout || 'psql identity failed').slice(0, 400));
   }
   console.log('PSQL_CURRENT_DATABASE', String(ident.stdout || '').trim());
-  const res = spawnSync('psql', [url, '-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-f', sqlFile], {
+  const res = spawnSync('psql', [conn, '-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-f', sqlFile], {
     encoding: 'utf8',
     timeout: 180000,
     env,
@@ -131,7 +149,7 @@ async function run() {
   }
 
   try {
-    await applyWithPsql(dbUrl, SQL_FILE);
+    applyWithPsql(dbUrl, SQL_FILE);
     report.apply = { ok: true, via: 'STAGING_DATABASE_URL_psql' };
     report.identity = { via: 'STAGING_DATABASE_URL', ref: STAGING_REF };
     writeReportFile(report);
