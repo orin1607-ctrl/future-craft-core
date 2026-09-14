@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import DriverDashboard from '@/components/DriverDashboard';
 import PrivateCustomerDashboard from '@/components/PrivateCustomerDashboard';
 import HomeDashboard from '@/components/home/HomeDashboard';
+import GarageOpsHomeDashboard from '@/components/home/GarageOpsHomeDashboard';
 import { useDriverUrlContext } from '@/lib/entityNavContext';
 import { useHiddenButtonsState } from '@/hooks/useHiddenButtons';
 import { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
@@ -43,6 +44,10 @@ export default function Dashboard() {
 
   if (user.role === 'private_customer') {
     return <PrivateCustomerDashboard />;
+  }
+
+  if (user.garageOps) {
+    return <GarageOpsHomeDashboard />;
   }
 
   return <HomeDashboard />;
