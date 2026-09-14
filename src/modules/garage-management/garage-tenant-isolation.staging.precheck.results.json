@@ -1,47 +1,17 @@
 {
-  "at": "2026-09-14T10:05:35Z",
+  "at": "2026-09-14T10:14:00Z",
   "target": "usfeoerkpcafxxlyuldl",
   "production_touched": false,
   "read_only": true,
-  "verdict": "STOP_SECRET_DOES_NOT_EXIST_FOR_ACTIONS",
-  "classification": 1,
-  "classification_label": "The secret does not exist as a Repository Actions secret named SUPABASE_STAGING_PRECHECK_TOKEN (or the name does not match). It is not a workflow delivery block, and no Supabase permission was tested.",
+  "verdict": "FRESH_PRECHECK_AFTER_SECRET_SAVE",
   "token_name": "SUPABASE_STAGING_PRECHECK_TOKEN",
   "ignored_old_token": "SUPABASE_ACCESS_TOKEN",
-  "fresh_run": {
-    "url": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34831362571",
-    "head_sha": "2f46f5569e6f811d89e9dfd63256fa9fc779eb84",
-    "at": "2026-09-14T10:05:32Z",
-    "event": "pull_request",
-    "precheck_secret_present": false,
-    "other_repo_secret_present": true,
-    "precheck_variable_present": false,
-    "preview_env_precheck_secret_present": false,
-    "read_only_precheck_step": "skipped"
-  },
+  "note": "Owner confirmed Repository Actions secret SUPABASE_STAGING_PRECHECK_TOKEN last updated now. Retriggering SELECT-only PRECHECK.",
   "counts": {
-    "garage_cases_total": null,
-    "garage_cases_unambiguous": null,
-    "garage_cases_conflict": null,
-    "garage_cases_no_signal": null,
-    "garage_customers_total": null,
-    "garage_customers_unambiguous": null,
-    "garage_customers_conflict": null,
-    "garage_vehicles_total": null,
-    "garage_vehicles_unambiguous": null,
-    "garage_vehicles_conflict": null,
-    "garage_media_orphan_without_case": null,
-    "state": "blocked",
-    "reason": "Fresh Actions probe: secrets.SUPABASE_STAGING_PRECHECK_TOKEN is empty. SELECT was not executed. Migration was not started."
-  },
-  "missing_permission": {
-    "not": "Supabase Database Read-write",
-    "not_2": "Workflow cannot receive repository secrets",
-    "actual": "Repository Actions secret named exactly SUPABASE_STAGING_PRECHECK_TOKEN is not present (or name mismatch / stored as Environment secret)."
+    "state": "pending"
   },
   "gate": {
     "migration_run": false,
-    "module_opened_to_fleet_manager": false,
     "pages_deployed": false,
     "live_sha": "0a78f53de31c089c15f0e07b640cca408ab87017"
   }
