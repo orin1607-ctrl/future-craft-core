@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone } from 'lucide-react';
+import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Gauge, Smartphone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
 import { useHiddenButtons } from '@/hooks/useHiddenButtons';
+import { useDriverActionVisibility } from '@/hooks/useDriverActionVisibility';
 import { useTransportModule } from '@/hooks/useTransportModule';
 import logo from '@/assets/white-logo.png';
 import { useState } from 'react';
@@ -26,6 +27,7 @@ const managerNavItems: NavItem[] = [
   { path: '/fleetos-ai', label: 'מיקום צי חכם', icon: Radar },
   { path: '/transport', label: 'חברות הסעות', icon: Bus },
   { path: '/faults', label: 'תקלות', icon: Wrench },
+  { path: '/driver-area-settings', label: 'הגדרות אזור נהג', icon: Smartphone },
   { path: '/reports', label: 'דוחות', icon: BarChart3 },
   { path: '/fleet-managers', label: 'מנהלי צי', icon: Building2 },
   { path: '/customers', label: 'לקוחות', icon: Users },
@@ -56,6 +58,7 @@ const driverMobileNav: NavItem[] = [
   { path: '/driver-notifications', label: 'התראות', icon: Bell },
   { path: '/faults', label: 'תקלה', icon: Wrench },
   { path: '/expenses', label: 'חשבוניות', icon: FileText },
+  { path: '/odometer', label: 'ק״מ', icon: Gauge },
 ];
 
 // Private customer mobile bottom nav
@@ -69,6 +72,7 @@ const privateCustomerMobileNav: NavItem[] = [
 export default function BottomNav() {
   const { user } = useAuth();
   const unreadCount = useUnreadNotifications();
+  const { isPathVisible } = useDriverActionVisibility();
 
   const isDriver = user?.role === 'driver';
   const isPrivateCustomer = user?.role === 'private_customer';
@@ -77,7 +81,7 @@ export default function BottomNav() {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t-2 border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)] md:hidden">
       <div className="flex justify-around items-center px-1">
-        {mobileNav.map(item => (
+        {mobileNav.filter((item) => isPathVisible(item.path)).map(item => (
           <NavLink key={item.path} to={item.path}
             className={({ isActive }) => `nav-item-mobile flex-1 relative ${isActive ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
             <item.icon size={26} />
@@ -103,6 +107,7 @@ export function DesktopSidebar() {
   const unreadCount = useUnreadNotifications();
   const hiddenButtons = useHiddenButtons();
   const { enabled: transportEnabled, loading: transportLoading } = useTransportModule();
+  const { isPathVisible } = useDriverActionVisibility();
 
   const isDriver = user?.role === 'driver';
   const isSuperAdmin = user?.role === 'super_admin';
@@ -116,6 +121,7 @@ export function DesktopSidebar() {
     }
     if (path === '/fleetos-ai') return canFleetOS;
     if (path === '/ai-marketing') return isSuperAdmin;
+    if (path === '/driver-app-notifications' || path === '/driver-area-settings') return isSuperAdmin;
     return true;
   };
 
@@ -133,6 +139,7 @@ export function DesktopSidebar() {
     { path: '/handover', label: 'החלפת נהג', icon: RefreshCw },
     { path: '/work-orders', label: 'סידור עבודה', icon: ClipboardList },
     { path: '/history', label: 'היסטוריה טיפולים', icon: History },
+    { path: '/odometer', label: 'דיווח קילומטראז׳', icon: Gauge },
     { path: '/emergency', label: 'שירותי חירום 24/7', icon: Phone },
   ];
 
@@ -192,7 +199,7 @@ export function DesktopSidebar() {
 
       <nav className="flex-1 py-3 overflow-y-auto sidebar-scroll">
         {isDriver ? (
-          driverSidebarItems.map(item => (
+          driverSidebarItems.filter((item) => isPathVisible(item.path)).map(item => (
             <NavLink key={item.path} to={item.path}
               className={({ isActive }) => `flex items-center gap-3 px-6 py-3.5 text-[15px] font-medium transition-colors relative ${isActive ? 'bg-primary-foreground/20 font-bold border-r-4 border-primary-foreground' : 'hover:bg-primary-foreground/10'}`}>
               <item.icon size={20} /><span>{item.label}</span>

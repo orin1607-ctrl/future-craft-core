@@ -1,0 +1,197 @@
+name: Production driver-area selective
+
+# Owner authorized 2026-09-13: six driver-area tasks ONLY onto live SHA 172f525c.
+# Does NOT checkout main/dev/origin/production. Does not use GitHub Environment gate
+# (that gate is for full-main deploys). Always backups VPS + DB before migrate.
+
+on:
+  push:
+    branches: [cursor/prod-driver-area-only-b784]
+    paths:
+      - 'public/project-001/prod-driver-area-deploy.json'
+      - '.github/workflows/prod-driver-area-selective.yml'
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: backup | migrate | functions | frontend | all
+        required: false
+        default: 'all'
+
+concurrency:
+  group: prod-driver-area-selective
+  cancel-in-progress: false
+
+env:
+  PROD_SUPABASE_URL: https://qasomfndnjuixgjmjwcm.supabase.co
+  PROD_SUPABASE_PROJECT_ID: qasomfndnjuixgjmjwcm
+  WEB_ROOT: /root/future-craft-core/dist
+  PRODUCTION_URL: https://dalia-car.online
+  LIVE_BEFORE: 172f525c5b1c1ff1aed3525dd3526828a9938c8a
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gate — armed + this branch only
+        id: gate
+        run: |
+          set -euo pipefail
+          armed=$(node -e "const q=require('./public/project-001/prod-driver-area-deploy.json'); process.stdout.write(String(q.armed===true))")
+          echo "armed=$armed" >> "$GITHUB_OUTPUT"
+          test "$armed" = "true"
+          echo "SHA=${GITHUB_SHA}"
+          git merge-base --is-ancestor "$LIVE_BEFORE" HEAD
+          # Refuse if this commit is origin/main tip (would mean we deployed staging wholesale)
+          if git rev-parse origin/main >/dev/null 2>&1; then
+            MAIN=$(git rev-parse origin/main || true)
+            if [ "$GITHUB_SHA" = "$MAIN" ]; then
+              echo "REFUSING to deploy origin/main wholesale" >&2
+              exit 1
+            fi
+          fi
+          PHASE="${{ github.event.inputs.phase || '' }}"
+          if [ -z "$PHASE" ]; then
+            PHASE=$(node -e "const q=require('./public/project-001/prod-driver-area-deploy.json'); process.stdout.write(q.phase||'all')")
+          fi
+          echo "phase=$PHASE" >> "$GITHUB_OUTPUT"
+          echo "PHASE=$PHASE"
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install + build production frontend
+        if: ${{ steps.gate.outputs.phase == 'all' || steps.gate.outputs.phase == 'frontend' }}
+        env:
+          VITE_SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
+          VITE_SUPABASE_PROJECT_ID: ${{ env.PROD_SUPABASE_PROJECT_ID }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          bun install --frozen-lockfile
+          bun x vite build
+          node scripts/ci-smoke-report.mjs --dist dist --supabase-ref qasomfndnjuixgjmjwcm
+
+      - id: bundle
+        if: ${{ steps.gate.outputs.phase == 'all' || steps.gate.outputs.phase == 'frontend' }}
+        run: |
+          BUNDLE=$(grep -oE 'index-[^"]+\.js' dist/index.html | head -1)
+          echo "name=${BUNDLE}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Backup Production DB + VPS dist (required before migrate)
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +%F-%H%M%S)
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "mkdir -p /root/driver-area-sql /root/db-backups"
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            supabase/migrations/20260913220000_prod_driver_area_only.sql \
+            docs/audit-reports/prod-driver-area-20260913/ROLLBACK.sql \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/root/driver-area-sql/
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "STAMP=$STAMP LIVE_BEFORE=$LIVE_BEFORE GITHUB_SHA=${GITHUB_SHA} bash -s" << 'REMOTE'
+          set -euo pipefail
+          mkdir -p /root/driver-area-sql /root/db-backups
+          tar czf "/root/pre-deploy-dist-${STAMP}.tgz" -C /root/future-craft-core dist
+          echo "FRONTEND_BACKUP=/root/pre-deploy-dist-${STAMP}.tgz"
+          set -a; source /root/dalia-ops/.env; set +a
+          DB_URL=$(python3 - <<'PY'
+          import os, urllib.parse
+          pwd=os.environ["SUPABASE_DB_PASSWORD"]
+          host=os.environ.get("SUPABASE_POOLER_HOST","aws-1-ap-south-1.pooler.supabase.com")
+          ref=os.environ.get("SUPABASE_PROJECT_REF","qasomfndnjuixgjmjwcm")
+          print(f"postgresql://postgres.{ref}:{urllib.parse.quote(pwd)}@{host}:5432/postgres")
+          PY
+          )
+          DUMP="/root/db-backups/prod-before-driver-area-${STAMP}.sql"
+          pg_dump "$DB_URL" --schema=public --no-owner --no-privileges > "$DUMP"
+          gzip -f "$DUMP"
+          echo "DB_BACKUP=${DUMP}.gz"
+          ls -lh "${DUMP}.gz" /root/pre-deploy-dist-${STAMP}.tgz
+          psql "$DB_URL" -c "select current_database(), current_user;" | head -5
+          echo "TABLES_BEFORE"
+          psql "$DB_URL" -c "select to_regclass('public.dalia_contact_settings') as dalia_contact_settings, to_regclass('public.driver_app_company_config') as driver_app_company_config, to_regclass('public.driver_app_action_settings') as driver_app_action_settings;"
+          echo "BACKUP_OK sha_before=$LIVE_BEFORE sha_deploy=$GITHUB_SHA"
+          REMOTE
+
+      - name: Apply isolated driver-area SQL
+        if: ${{ steps.gate.outputs.phase == 'all' || steps.gate.outputs.phase == 'migrate' }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          set -a; source /root/dalia-ops/.env; set +a
+          DB_URL=$(python3 - <<'PY'
+          import os, urllib.parse
+          pwd=os.environ["SUPABASE_DB_PASSWORD"]
+          host=os.environ.get("SUPABASE_POOLER_HOST","aws-1-ap-south-1.pooler.supabase.com")
+          ref=os.environ.get("SUPABASE_PROJECT_REF","qasomfndnjuixgjmjwcm")
+          print(f"postgresql://postgres.{ref}:{urllib.parse.quote(pwd)}@{host}:5432/postgres")
+          PY
+          )
+          test -f /root/driver-area-sql/20260913220000_prod_driver_area_only.sql
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -f /root/driver-area-sql/20260913220000_prod_driver_area_only.sql
+          psql "$DB_URL" -tAc "select to_regclass('public.dalia_contact_settings');" | grep -q dalia_contact_settings
+          psql "$DB_URL" -tAc "select to_regclass('public.driver_app_action_settings');" | grep -q driver_app_action_settings
+          psql "$DB_URL" -tAc "select 1 from information_schema.columns where table_name='emergency_logs' and column_name='sla_deadline_at';" | grep -q 1
+          psql "$DB_URL" -tAc "select 1 from pg_proc where proname='report_driver_odometer';" | grep -q 1
+          echo "MIGRATE_OK"
+          REMOTE
+
+      - uses: actions/setup-node@v4
+        if: ${{ steps.gate.outputs.phase == 'all' || steps.gate.outputs.phase == 'functions' }}
+        with:
+          node-version: '20'
+
+      - name: Deploy notify-driver-event only
+        if: ${{ steps.gate.outputs.phase == 'all' || steps.gate.outputs.phase == 'functions' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
+            echo "EDGE_DEPLOY=SKIPPED_NO_TOKEN" >&2
+            exit 1
+          fi
+          npx --yes supabase functions deploy notify-driver-event --project-ref qasomfndnjuixgjmjwcm --use-api
+          echo "EDGE_DEPLOY=notify-driver-event OK"
+
+      - name: Rsync frontend to Production
+        if: ${{ steps.gate.outputs.phase == 'all' || steps.gate.outputs.phase == 'frontend' }}
+        run: |
+          set -euo pipefail
+          rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+            --delete \
+            --filter="P orin-marketing/" \
+            --filter="P orin-owner-gate.js" \
+            dist/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.WEB_ROOT }}/
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "echo 'commit=${{ github.sha }} bundle=${{ steps.bundle.outputs.name }} at=$(date -u +%Y-%m-%dT%H:%M:%SZ) reason=driver-area-only-2026-09-13 before=${{ env.LIVE_BEFORE }}' > /root/future-craft-core/dist/PRODUCTION-DEPLOY.txt"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "nginx -t && systemctl reload nginx"
+
+      - name: Post-deploy smoke (live)
+        if: ${{ steps.gate.outputs.phase == 'all' || steps.gate.outputs.phase == 'frontend' }}
+        run: |
+          sleep 5
+          node scripts/ci-smoke-report.mjs \
+            --base "${{ env.PRODUCTION_URL }}" \
+            --supabase-ref qasomfndnjuixgjmjwcm \
+            --out reports/ci-smoke-prod-driver-area.json
+          curl -sS https://dalia-car.online/PRODUCTION-DEPLOY.txt

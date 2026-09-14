@@ -1,6 +1,7 @@
 import { allocateIncidentEventNumber, israelNowIso } from '@/lib/incidentEventNumber';
 import { resolveDriver, resolveVehicle } from '@/lib/incidentResolve';
 import { dispatchIncidentNotifications } from '@/lib/incidentNotify';
+import { dispatchDriverEvent } from '@/lib/dispatchDriverEvent';
 import { supabase } from '@/integrations/supabase/client';
 import { faultTypeDisplay } from '@/lib/faultTypes';
 
@@ -80,6 +81,14 @@ export async function createFaultIncident(opts: {
       },
       dryRun: opts.dryRunNotify === true,
     });
+    if (opts.dryRunNotify !== true) {
+      dispatchDriverEvent({
+        action_key: 'fault',
+        condition_value: opts.urgency,
+        record: { ...(data as Record<string, unknown>) },
+        link: '/faults',
+      }).catch((e) => console.error('fault driver-event soft-fail', e));
+    }
   } catch (e) {
     console.error('fault notify soft-fail', e);
     notify = { notifyError: e instanceof Error ? e.message : 'notify failed' } as never;
@@ -156,6 +165,13 @@ export async function createAccidentIncident(opts: {
       },
       dryRun: opts.dryRunNotify === true,
     });
+    if (opts.dryRunNotify !== true) {
+      dispatchDriverEvent({
+        action_key: 'accident',
+        record: { ...(data as Record<string, unknown>) },
+        link: '/accidents',
+      }).catch((e) => console.error('accident driver-event soft-fail', e));
+    }
   } catch (e) {
     console.error('accident notify soft-fail', e);
     notify = { notifyError: e instanceof Error ? e.message : 'notify failed' } as never;

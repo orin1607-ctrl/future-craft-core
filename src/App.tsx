@@ -34,6 +34,8 @@ import ServiceOrders from "@/pages/ServiceOrders";
 import Expenses from "@/pages/Expenses";
 import WorkOrders from "@/pages/WorkOrders";
 import Emergency from "@/pages/Emergency";
+import DriverAppNotificationsAdmin from "@/pages/DriverAppNotificationsAdmin";
+import DriverOdometer from "@/pages/DriverOdometer";
 import DriverNotifications from "@/pages/DriverNotifications";
 import DriverWeeklySchedule from "@/pages/DriverWeeklySchedule";
 import UserManagement from "@/pages/UserManagement";
@@ -272,6 +274,9 @@ function AppRoutes() {
         <Route path="/expenses" element={<Expenses />} />
         <Route path="/work-orders" element={<WorkOrders />} />
         <Route path="/emergency" element={<Emergency />} />
+        <Route path="/driver-app-notifications" element={<DriverAppNotificationsAdmin />} />
+        <Route path="/driver-area-settings" element={<DriverAppNotificationsAdmin />} />
+        <Route path="/odometer" element={<DriverOdometer />} />
         <Route path="/driver-notifications" element={<DriverNotifications />} />
         <Route path="/driver-schedule" element={<DriverWeeklySchedule />} />
         <Route path="/user-management" element={<UserManagement />} />

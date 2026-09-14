@@ -620,6 +620,150 @@ export type Database = {
         }
         Relationships: []
       }
+      dalia_contact_settings: {
+        Row: {
+          contact_name: string
+          email: string
+          id: string
+          phone: string
+          updated_at: string
+          updated_by: string | null
+          whatsapp: string
+        }
+        Insert: {
+          contact_name?: string
+          email?: string
+          id?: string
+          phone?: string
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp?: string
+        }
+        Update: {
+          contact_name?: string
+          email?: string
+          id?: string
+          phone?: string
+          updated_at?: string
+          updated_by?: string | null
+          whatsapp?: string
+        }
+        Relationships: []
+      }
+      driver_app_action_settings: {
+        Row: {
+          action_key: string
+          company_name: string
+          condition_mode: string
+          condition_values: string[]
+          email_enabled: boolean
+          email_extra: string
+          email_to_company_contact: boolean
+          email_to_dalia: boolean
+          email_to_fleet_managers: boolean
+          id: string
+          in_app_enabled: boolean
+          in_app_to_company_contact: boolean
+          in_app_to_dalia: boolean
+          in_app_to_fleet_managers: boolean
+          updated_at: string
+          updated_by: string | null
+          visible_to_driver: boolean
+          whatsapp_enabled: boolean
+          whatsapp_extra: string
+          whatsapp_to_company_contact: boolean
+          whatsapp_to_dalia: boolean
+          whatsapp_to_fleet_managers: boolean
+        }
+        Insert: {
+          action_key: string
+          company_name: string
+          condition_mode?: string
+          condition_values?: string[]
+          email_enabled?: boolean
+          email_extra?: string
+          email_to_company_contact?: boolean
+          email_to_dalia?: boolean
+          email_to_fleet_managers?: boolean
+          id?: string
+          in_app_enabled?: boolean
+          in_app_to_company_contact?: boolean
+          in_app_to_dalia?: boolean
+          in_app_to_fleet_managers?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          visible_to_driver?: boolean
+          whatsapp_enabled?: boolean
+          whatsapp_extra?: string
+          whatsapp_to_company_contact?: boolean
+          whatsapp_to_dalia?: boolean
+          whatsapp_to_fleet_managers?: boolean
+        }
+        Update: {
+          action_key?: string
+          company_name?: string
+          condition_mode?: string
+          condition_values?: string[]
+          email_enabled?: boolean
+          email_extra?: string
+          email_to_company_contact?: boolean
+          email_to_dalia?: boolean
+          email_to_fleet_managers?: boolean
+          id?: string
+          in_app_enabled?: boolean
+          in_app_to_company_contact?: boolean
+          in_app_to_dalia?: boolean
+          in_app_to_fleet_managers?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          visible_to_driver?: boolean
+          whatsapp_enabled?: boolean
+          whatsapp_extra?: string
+          whatsapp_to_company_contact?: boolean
+          whatsapp_to_dalia?: boolean
+          whatsapp_to_fleet_managers?: boolean
+        }
+        Relationships: []
+      }
+      driver_app_company_config: {
+        Row: {
+          company_name: string
+          contact_email: string
+          contact_name: string
+          contact_whatsapp: string
+          dalia_service_enabled: boolean
+          emergency_phone: string
+          emergency_timeout_minutes: number
+          service_phone: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          company_name: string
+          contact_email?: string
+          contact_name?: string
+          contact_whatsapp?: string
+          dalia_service_enabled?: boolean
+          emergency_phone?: string
+          emergency_timeout_minutes?: number
+          service_phone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          company_name?: string
+          contact_email?: string
+          contact_name?: string
+          contact_whatsapp?: string
+          dalia_service_enabled?: boolean
+          emergency_phone?: string
+          emergency_timeout_minutes?: number
+          service_phone?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       dev_tasks: {
         Row: {
           clarification: string | null
@@ -1112,11 +1256,14 @@ export type Database = {
           category_label: string
           company_name: string
           created_at: string
+          escalated_at: string | null
           id: string
           location: string | null
           notes: string | null
+          notify_dispatched_at: string | null
           resolved_at: string | null
           resolved_by: string | null
+          sla_deadline_at: string | null
           status: string
           target_type: string
           target_value: string
@@ -1129,11 +1276,14 @@ export type Database = {
           category_label?: string
           company_name?: string
           created_at?: string
+          escalated_at?: string | null
           id?: string
           location?: string | null
           notes?: string | null
+          notify_dispatched_at?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          sla_deadline_at?: string | null
           status?: string
           target_type?: string
           target_value?: string
@@ -1146,11 +1296,14 @@ export type Database = {
           category_label?: string
           company_name?: string
           created_at?: string
+          escalated_at?: string | null
           id?: string
           location?: string | null
           notes?: string | null
+          notify_dispatched_at?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
+          sla_deadline_at?: string | null
           status?: string
           target_type?: string
           target_value?: string
@@ -2796,6 +2949,54 @@ export type Database = {
           },
         ]
       }
+      vehicle_history: {
+        Row: {
+          assigned_driver_id: string | null
+          company_name: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          driver_name: string | null
+          event_date: string
+          event_type: string
+          id: string
+          odometer: number | null
+          source: string | null
+          title: string
+          vehicle_id: string
+        }
+        Insert: {
+          assigned_driver_id?: string | null
+          company_name?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          driver_name?: string | null
+          event_date?: string
+          event_type: string
+          id?: string
+          odometer?: number | null
+          source?: string | null
+          title: string
+          vehicle_id: string
+        }
+        Update: {
+          assigned_driver_id?: string | null
+          company_name?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          driver_name?: string | null
+          event_date?: string
+          event_type?: string
+          id?: string
+          odometer?: number | null
+          source?: string | null
+          title?: string
+          vehicle_id?: string
+        }
+        Relationships: []
+      }
       vehicles: {
         Row: {
           id: string
@@ -3524,6 +3725,11 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      process_driver_emergency_jobs: { Args: never; Returns: number }
+      report_driver_odometer: {
+        Args: { p_odometer: number; p_vehicle_id: string }
+        Returns: string
       }
     }
     Enums: {

@@ -1,0 +1,29 @@
+{
+  "id": "prod-driver-area-selective",
+  "armed": false,
+  "phase": "all",
+  "requestedAt": "2026-09-13T23:55:00.000Z",
+  "requestedBy": "owner",
+  "target": "https://dalia-car.online",
+  "supabaseRef": "qasomfndnjuixgjmjwcm",
+  "liveCommitBefore": "172f525c5b1c1ff1aed3525dd3526828a9938c8a",
+  "restoreTag": "restore/prod-before-driver-area-20260913",
+  "restoreBranch": "cursor/prod-restore-172f525c-b784",
+  "scope": "six-approved-driver-area-tasks-only",
+  "doNotDeploy": ["origin/main", "origin/dev", "origin/production", "origin/staging"],
+  "forbidden": [
+    "HomeDashboard",
+    "claims",
+    "garage-management",
+    "customers module changes",
+    "reports",
+    "telematics",
+    "notify_managers_on_fault replace",
+    "log_vehicle_changes replace",
+    "send-whatsapp-message",
+    "notify-accident-email"
+  ],
+  "migrations": ["20260913220000_prod_driver_area_only.sql"],
+  "edgeFunctions": ["notify-driver-event"],
+  "note": "Selective port onto live SHA 172f525c. Backup VPS dist + pg_dump before migrate. Rollback SQL in docs/audit-reports/prod-driver-area-20260913/ROLLBACK.sql"
+}

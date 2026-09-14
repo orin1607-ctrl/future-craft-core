@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from 'react-router-dom';
 import BottomNav, { DesktopSidebar } from '@/components/BottomNav';
 import RouteGuard from '@/components/RouteGuard';
+import DriverActionGate from '@/components/DriverActionGate';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import logo from '@/assets/logo.png';
@@ -72,7 +73,9 @@ export default function Layout() {
       {/* Main content */}
       <main className="md:mr-72 pb-24 md:pb-8 p-4 md:p-8">
         <RouteGuard>
-          <Outlet />
+          <DriverActionGate>
+            <Outlet />
+          </DriverActionGate>
         </RouteGuard>
       </main>
 
