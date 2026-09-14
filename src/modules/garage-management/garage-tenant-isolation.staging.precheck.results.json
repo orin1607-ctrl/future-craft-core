@@ -1,0 +1,84 @@
+{
+  "at": "2026-09-14T08:18:17.607Z",
+  "target": "usfeoerkpcafxxlyuldl",
+  "production_touched": false,
+  "read_only": true,
+  "verdict": "CATALOG_ONLY",
+  "catalog": {
+    "shop_company_name": {
+      "garage_customers": "missing",
+      "garage_vehicles": "missing",
+      "garage_cases": "missing",
+      "customers_preview": "column garage_customers.shop_company_name does not exist"
+    },
+    "tables": {
+      "garage_customers": {
+        "state": "present_grant_denied_to_anon",
+        "http": 401,
+        "preview": "permission denied for table garage_customers"
+      },
+      "garage_vehicles": {
+        "state": "present_grant_denied_to_anon",
+        "http": 401,
+        "preview": "permission denied for table garage_vehicles"
+      },
+      "garage_cases": {
+        "state": "present_grant_denied_to_anon",
+        "http": 401,
+        "preview": "permission denied for table garage_cases"
+      },
+      "garage_media": {
+        "state": "present_grant_denied_to_anon",
+        "http": 401,
+        "preview": "permission denied for table garage_media"
+      },
+      "garage_gmail_connection": {
+        "state": "present_grant_denied_to_anon",
+        "http": 401,
+        "preview": "permission denied for table garage_gmail_connection"
+      },
+      "claims_records": {
+        "state": "present_readable_as_anon",
+        "http": 200,
+        "preview": "[]"
+      }
+    },
+    "storage": {
+      "buckets_visible_to_anon": [
+        "documents"
+      ],
+      "garage_media_bucket": "http_400",
+      "garage_media_preview": "Bucket not found"
+    }
+  },
+  "counts": {
+    "state": "blocked",
+    "reason": "STAGING_MANAGEMENT_API_UNAUTHORIZED"
+  },
+  "notes": [
+    "shop_company_name is not on Staging yet. Tenant SQL has not been applied.",
+    "Row counts require authenticated Staging DB read. Anon is GRANT-denied on garage_* (42501).",
+    "SUPABASE_ACCESS_TOKEN rejected (HTTP 401). Counts not available. Catalog probes completed. Production not touched."
+  ],
+  "gate": {
+    "migration_run": false,
+    "reason": "STOP: no authenticated Staging read connection. PRECHECK counts were not executed on the same connection that would run Migration. Per owner gate, Migration was not started.",
+    "live_sha": "0a78f53de31c089c15f0e07b640cca408ab87017",
+    "target": "usfeoerkpcafxxlyuldl",
+    "production_touched": false,
+    "module_opened_to_fleet_manager": false,
+    "pages_deployed": false,
+    "counts": {
+      "garage_cases_total": null,
+      "garage_cases_unambiguous": null,
+      "garage_cases_unassigned": null,
+      "garage_customers_total": null,
+      "garage_customers_unambiguous": null,
+      "garage_customers_conflict": null,
+      "garage_vehicles_total": null,
+      "garage_vehicles_unambiguous": null,
+      "garage_vehicles_conflict": null,
+      "garage_media_orphan_without_case": null
+    }
+  }
+}
