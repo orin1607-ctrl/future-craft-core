@@ -19,6 +19,7 @@ jobs:
       github.event.pull_request.head.ref == 'cursor/garage-ops-center-tenant-bed0' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    environment: Preview
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,24 +37,38 @@ jobs:
           PY
       - name: Install psql
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
-      - name: Require STAGING_DATABASE_URL
+      - name: Diagnose write-url delivery (booleans only)
         env:
-          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          HAS_STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL != '' }}
+          HAS_DATABASE_URL: ${{ secrets.DATABASE_URL != '' }}
+          HAS_STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN != '' }}
         run: |
           set -euo pipefail
-          if [ -z "${STAGING_DATABASE_URL}" ]; then
-            echo "::error::STAGING_DATABASE_URL is empty. Isolation SQL needs a Staging write URL containing usfeoerkpcafxxlyuldl. Did not use SUPABASE_ACCESS_TOKEN. Production not touched."
+          echo "has_staging_database_url=${HAS_STAGING_DATABASE_URL}"
+          echo "has_database_url=${HAS_DATABASE_URL}"
+          echo "has_staging_supabase_access_token=${HAS_STAGING_SUPABASE_ACCESS_TOKEN}"
+          echo "will_not_use_SUPABASE_ACCESS_TOKEN=true"
+      - name: Require Staging write URL
+        env:
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          url="${STAGING_DATABASE_URL:-${DATABASE_URL:-}}"
+          if [ -z "${url}" ]; then
+            echo "::error::No Staging write URL. STAGING_DATABASE_URL and DATABASE_URL are empty. Isolation SQL was not applied. Did not use SUPABASE_ACCESS_TOKEN. Production not touched."
             exit 3
           fi
-          case "${STAGING_DATABASE_URL}" in
-            *qasomfndnjuixgjmjwcm*|*dalia-car.online*) echo "::error::STAGING_DATABASE_URL looks like Production"; exit 2 ;;
+          case "${url}" in
+            *qasomfndnjuixgjmjwcm*|*dalia-car.online*) echo "::error::Write URL looks like Production"; exit 2 ;;
             *usfeoerkpcafxxlyuldl*) echo "staging_db_url_ref_ok" ;;
-            *) echo "::error::STAGING_DATABASE_URL does not contain Staging ref"; exit 2 ;;
+            *) echo "::error::Write URL does not contain Staging ref usfeoerkpcafxxlyuldl"; exit 2 ;;
           esac
       - name: Apply Isolation SQL in one transaction
         env:
           APPLY_GARAGE_TENANT_STAGING: '1'
           STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: node scripts/apply-garage-tenant-staging.mjs
       - name: SQL consistency verify (read-only PRECHECK token)
         env:

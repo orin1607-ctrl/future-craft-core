@@ -58,7 +58,7 @@ function applyWithPsql(url, sqlFile) {
 
 async function run() {
   mkdirSync('test-results', { recursive: true });
-  const dbUrl = String(process.env.STAGING_DATABASE_URL || '').replace(/[\r\n]/g, '').trim();
+  const dbUrl = String(process.env.STAGING_DATABASE_URL || process.env.DATABASE_URL || '').replace(/[\r\n]/g, '').trim();
   const applyFlag = String(process.env.APPLY_GARAGE_TENANT_STAGING || '').trim() === '1';
   if (process.env.SUPABASE_ACCESS_TOKEN) {
     console.log('NOTE: SUPABASE_ACCESS_TOKEN is present and will be ignored. Apply uses STAGING_DATABASE_URL only.');
