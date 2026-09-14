@@ -58,44 +58,77 @@ function connectionForPsql(url) {
     abort('Host is Production. STOP. SQL not applied.');
   }
   if (host === `db.${STAGING_REF}.supabase.co`) {
-    const schemeEnd = userinfo.indexOf('://');
-    const scheme = userinfo.slice(0, schemeEnd + 3);
-    const up = userinfo.slice(schemeEnd + 3);
-    const user = up.split(':')[0];
-    const pass = up.slice(user.length + 1);
-    const poolUser = user.includes(STAGING_REF) ? user : `${user}.${STAGING_REF}`;
-    console.log('PSQL_VIA staging_pooler_session');
-    console.log('PSQL_HOST', STAGING_POOLER);
-    return `${scheme}${poolUser}:${pass}@${STAGING_POOLER}:5432${pathAndQuery}`;
+    console.log('PSQL_VIA staging_pooler_attempts');
+    return {
+      attempts: [
+        buildPoolerConn(url, 6543, true),
+        buildPoolerConn(url, 5432, true),
+        buildPoolerConn(url, 6543, false),
+        buildPoolerConn(url, 5432, false),
+      ],
+    };
   }
   if (host.endsWith('pooler.supabase.com') && url.includes(STAGING_REF)) {
     console.log('PSQL_VIA staging_pooler_as_provided');
-    console.log('PSQL_HOST', host);
-    return url;
+    const port = Number((hostPort.split(':')[1] || '6543'));
+    return {
+      attempts: [{ conn: url, host, port, userHasStagingRef: url.includes(STAGING_REF) }],
+    };
   }
   abort(`Unexpected DB host ${host}. STOP. SQL not applied.`);
 }
 
-function applyWithPsql(url, sqlFile) {
-  const conn = connectionForPsql(url);
-  const env = { ...process.env, PGSSLMODE: process.env.PGSSLMODE || 'require' };
-  const ident = spawnSync(
-    'psql',
-    [conn, '-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-tA', '-c', 'SELECT current_database();'],
-    { encoding: 'utf8', timeout: 30000, env },
-  );
-  if (ident.status !== 0) {
-    throw new Error((ident.stderr || ident.stdout || 'psql identity failed').slice(0, 400));
-  }
-  console.log('PSQL_CURRENT_DATABASE', String(ident.stdout || '').trim());
-  const res = spawnSync('psql', [conn, '-v', 'ON_ERROR_STOP=1', '--no-psqlrc', '-f', sqlFile], {
+function buildPoolerConn(url, port, withProjectUser) {
+  const at = url.lastIndexOf('@');
+  const userinfo = url.slice(0, at);
+  const rest = url.slice(at + 1);
+  const pathAndQuery = rest.includes('/') ? rest.slice(rest.indexOf('/')) : '/postgres';
+  const schemeEnd = userinfo.indexOf('://');
+  const scheme = userinfo.slice(0, schemeEnd + 3);
+  const up = userinfo.slice(schemeEnd + 3);
+  const user = up.split(':')[0];
+  const pass = up.slice(user.length + 1);
+  const poolUser = withProjectUser && !user.includes(STAGING_REF) ? `${user}.${STAGING_REF}` : user;
+  return {
+    conn: `${scheme}${poolUser}:${pass}@${STAGING_POOLER}:${port}${pathAndQuery}`,
+    host: STAGING_POOLER,
+    port,
+    userHasStagingRef: poolUser.includes(STAGING_REF),
+  };
+}
+
+function psqlConnect(conn, extraArgs, timeout) {
+  return spawnSync('psql', [conn, '-v', 'ON_ERROR_STOP=1', '--no-psqlrc', ...extraArgs], {
     encoding: 'utf8',
-    timeout: 180000,
-    env,
+    timeout,
+    env: { ...process.env, PGSSLMODE: process.env.PGSSLMODE || 'require' },
   });
-  if (res.status !== 0) {
-    throw new Error((res.stderr || res.stdout || 'psql failed').slice(0, 800));
+}
+
+function applyWithPsql(url, sqlFile) {
+  const connSpec = connectionForPsql(url);
+  const attempts = connSpec.attempts || [{ conn: connSpec.conn, host: connSpec.host, port: connSpec.port, userHasStagingRef: true }];
+  let lastErr = 'psql failed';
+  for (const attempt of attempts) {
+    console.log('PSQL_TRY', JSON.stringify({
+      host: attempt.host,
+      port: attempt.port,
+      user_has_staging_ref: attempt.userHasStagingRef,
+    }));
+    const ident = psqlConnect(attempt.conn, ['-tA', '-c', 'SELECT current_database();'], 30000);
+    if (ident.status !== 0) {
+      lastErr = (ident.stderr || ident.stdout || 'psql identity failed').slice(0, 400);
+      console.log('PSQL_TRY_FAIL', lastErr.slice(0, 200));
+      continue;
+    }
+    console.log('PSQL_CURRENT_DATABASE', String(ident.stdout || '').trim());
+    const res = psqlConnect(attempt.conn, ['-f', sqlFile], 180000);
+    if (res.status !== 0) {
+      throw new Error((res.stderr || res.stdout || 'psql failed').slice(0, 800));
+    }
+    return;
   }
+  throw new Error(lastErr);
 }
 
 async function run() {
