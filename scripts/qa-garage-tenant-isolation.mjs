@@ -123,14 +123,22 @@ async function signIn(url, anon, email, password) {
   return { token: body.access_token, userId: body.user.id };
 }
 
+function errPreview(res) {
+  if (!res || res.http < 400) return null;
+  const body = res.body || {};
+  return `${res.http} ${String(body.message || body.error || body.raw || '').slice(0, 180)}`;
+}
+
 async function loginSnapshot(url, anon, email, password) {
   const auth = await signIn(url, anon, email, password);
-  const profileRes = await restJson(url, anon, auth.token, `profiles?id=eq.${auth.userId}&select=id,role,company_name,full_name`);
+  const profileRes = await restJson(url, anon, auth.token, `profiles?id=eq.${auth.userId}&select=id,company_name,full_name`);
+  const roleRes = await restJson(url, anon, auth.token, `user_roles?user_id=eq.${auth.userId}&select=role`);
   const profile = asRows(profileRes.body)[0] || null;
+  const roleRow = asRows(roleRes.body)[0] || null;
   const casesRes = await restJson(url, anon, auth.token, 'garage_cases?select=id,shop_company_name,case_number,customer_id,vehicle_id&limit=100');
   const customersRes = await restJson(url, anon, auth.token, 'garage_customers?select=id,shop_company_name&limit=100');
   const vehiclesRes = await restJson(url, anon, auth.token, 'garage_vehicles?select=id,shop_company_name,customer_id&limit=100');
-  const mediaRes = await restJson(url, anon, auth.token, 'garage_media?select=id,case_id&limit=100');
+  const mediaRes = await restJson(url, anon, auth.token, 'garage_media?select=id,garage_case_id&limit=100');
   const cases = asRows(casesRes.body);
   const customers = asRows(customersRes.body);
   const vehicles = asRows(vehiclesRes.body);
@@ -141,7 +149,7 @@ async function loginSnapshot(url, anon, email, password) {
     userId: auth.userId,
     login_ok: true,
     token_staging_only: true,
-    role: profile?.role || null,
+    role: roleRow?.role || null,
     company_name: company,
     cases,
     customers,
@@ -151,6 +159,7 @@ async function loginSnapshot(url, anon, email, password) {
     customerIds: customers.map((row) => row.id),
     vehicleIds: vehicles.map((row) => row.id),
     mediaIds: media.map((row) => row.id),
+    mediaCaseIds: media.map((row) => row.garage_case_id).filter(Boolean),
     shops: [...new Set([
       ...cases.map((row) => String(row.shop_company_name || '').trim()),
       ...customers.map((row) => String(row.shop_company_name || '').trim()),
@@ -160,11 +169,12 @@ async function loginSnapshot(url, anon, email, password) {
     emptyShopVehicles: vehicles.filter((row) => !String(row.shop_company_name || '').trim()).length,
     emptyShopCases: cases.filter((row) => !String(row.shop_company_name || '').trim()).length,
     errors: {
-      profile: profileRes.http >= 400 ? `profiles HTTP ${profileRes.http}` : null,
-      cases: casesRes.http >= 400 ? `cases HTTP ${casesRes.http}` : null,
-      customers: customersRes.http >= 400 ? `customers HTTP ${customersRes.http}` : null,
-      vehicles: vehiclesRes.http >= 400 ? `vehicles HTTP ${vehiclesRes.http}` : null,
-      media: mediaRes.http >= 400 ? `media HTTP ${mediaRes.http}` : null,
+      profile: errPreview(profileRes),
+      role: errPreview(roleRes),
+      cases: errPreview(casesRes),
+      customers: errPreview(customersRes),
+      vehicles: errPreview(vehiclesRes),
+      media: errPreview(mediaRes),
     },
   };
 }
@@ -335,6 +345,14 @@ async function run() {
   const bHiddenAVehicle = await cannotReadId(url, anon, shopB.token, 'garage_vehicles', shopA.vehicleIds[0]);
   const aHiddenBMedia = await cannotReadId(url, anon, shopA.token, 'garage_media', shopB.mediaIds[0]);
   const bHiddenAMedia = await cannotReadId(url, anon, shopB.token, 'garage_media', shopA.mediaIds[0]);
+  const bMediaOfACase = shopA.caseIds[0]
+    ? await restJson(url, anon, shopB.token, `garage_media?garage_case_id=eq.${encodeURIComponent(shopA.caseIds[0])}&select=id`)
+    : { http: null, body: [] };
+  const aMediaOfBCase = shopB.caseIds[0]
+    ? await restJson(url, anon, shopA.token, `garage_media?garage_case_id=eq.${encodeURIComponent(shopB.caseIds[0])}&select=id`)
+    : { http: null, body: [] };
+  const bMediaOfACaseHidden = !shopA.caseIds[0] || asRows(bMediaOfACase.body).length === 0;
+  const aMediaOfBCaseHidden = !shopB.caseIds[0] || asRows(aMediaOfBCase.body).length === 0;
   const aCannotPatchB = await cannotPatchForeignCase(url, anon, shopA.token, shopB.caseIds[0], shopB.company_name);
   const bCannotPatchA = await cannotPatchForeignCase(url, anon, shopB.token, shopA.caseIds[0], shopA.company_name);
 
@@ -401,6 +419,8 @@ async function run() {
     shopFilterHidden &&
     patchBlocked &&
     anonBlocked &&
+    bMediaOfACaseHidden &&
+    aMediaOfBCaseHidden &&
     superRoleOk &&
     superSeesEmpty &&
     superSeesMoreThanFleet;
@@ -441,6 +461,8 @@ async function run() {
       bHiddenAVehicle,
       aHiddenBMedia,
       bHiddenAMedia,
+      bMediaOfACase: { http: bMediaOfACase.http, count: asRows(bMediaOfACase.body).length, hidden: bMediaOfACaseHidden },
+      aMediaOfBCase: { http: aMediaOfBCase.http, count: asRows(aMediaOfBCase.body).length, hidden: aMediaOfBCaseHidden },
       aCannotPatchB,
       bCannotPatchA,
     },
