@@ -2,7 +2,7 @@
 -- Oren Car PUBLIC STAGING ONLY (dalia-staging / usfeoerkpcafxxlyuldl)
 -- Production / dalia-car.online / qasomfndnjuixgjmjwcm: FORBIDDEN.
 --
--- PROPOSAL — DO NOT RUN until the owner explicitly approves this gate.
+-- PROPOSAL — owner approved 2026-09-14 for dalia-staging / usfeoerkpcafxxlyuldl only.
 -- Apply only via: APPLY_GARAGE_TENANT_STAGING=1 node scripts/apply-garage-tenant-staging.mjs
 --
 -- No DELETE of rows. No Claims. No garage-gmail rewrite.

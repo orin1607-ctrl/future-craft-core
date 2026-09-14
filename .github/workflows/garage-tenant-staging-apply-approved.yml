@@ -1,0 +1,100 @@
+name: Garage tenant Isolation SQL — Staging apply (approved)
+
+# Owner-approved Isolation SQL on usfeoerkpcafxxlyuldl only.
+# Uses STAGING_DATABASE_URL (write) + psql transaction.
+# Never SUPABASE_ACCESS_TOKEN. Never Production. Never Pages deploy.
+# Does not open /garage-management. Does not change routeAccess.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  apply-and-verify:
+    if: >
+      github.repository == 'orin1607-ctrl/future-craft-core' &&
+      github.event.pull_request.head.ref == 'cursor/garage-ops-center-tenant-bed0' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Guard Staging-only
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, sys
+          ref = os.environ.get("GITHUB_REF", "")
+          if ref.endswith("/production"):
+              sys.exit("Refusing Production branch")
+          print("ref_ok", ref)
+          PY
+      - name: Install psql
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Require STAGING_DATABASE_URL
+        env:
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${STAGING_DATABASE_URL}" ]; then
+            echo "::error::STAGING_DATABASE_URL is empty. Isolation SQL needs a Staging write URL containing usfeoerkpcafxxlyuldl. Did not use SUPABASE_ACCESS_TOKEN. Production not touched."
+            exit 3
+          fi
+          case "${STAGING_DATABASE_URL}" in
+            *qasomfndnjuixgjmjwcm*|*dalia-car.online*) echo "::error::STAGING_DATABASE_URL looks like Production"; exit 2 ;;
+            *usfeoerkpcafxxlyuldl*) echo "staging_db_url_ref_ok" ;;
+            *) echo "::error::STAGING_DATABASE_URL does not contain Staging ref"; exit 2 ;;
+          esac
+      - name: Apply Isolation SQL in one transaction
+        env:
+          APPLY_GARAGE_TENANT_STAGING: '1'
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+        run: node scripts/apply-garage-tenant-staging.mjs
+      - name: SQL consistency verify (read-only PRECHECK token)
+        env:
+          SUPABASE_STAGING_PRECHECK_TOKEN: ${{ secrets.SUPABASE_STAGING_PRECHECK_TOKEN }}
+        run: node scripts/verify-garage-tenant-staging.mjs
+      - name: Role isolation probe (not PASS without two fleet QA users)
+        env:
+          VITE_SUPABASE_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          VITE_SUPABASE_PROJECT_ID: usfeoerkpcafxxlyuldl
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          STAGING_QA_EMAIL: ${{ secrets.STAGING_QA_EMAIL }}
+          STAGING_QA_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD }}
+          STAGING_QA_FLEET_A_EMAIL: ${{ secrets.STAGING_QA_FLEET_A_EMAIL }}
+          STAGING_QA_FLEET_A_PASSWORD: ${{ secrets.STAGING_QA_FLEET_A_PASSWORD }}
+          STAGING_QA_FLEET_B_EMAIL: ${{ secrets.STAGING_QA_FLEET_B_EMAIL }}
+          STAGING_QA_FLEET_B_PASSWORD: ${{ secrets.STAGING_QA_FLEET_B_PASSWORD }}
+        run: |
+          set -euo pipefail
+          set +e
+          node scripts/qa-garage-tenant-isolation.mjs
+          code=$?
+          set -e
+          echo "isolation_qa_exit=${code}"
+          if [ "${code}" = "2" ]; then
+            echo "::error::Isolation QA fail-closed (SQL missing or overlap). Did not open the module."
+            exit 2
+          fi
+          if [ "${code}" = "3" ]; then
+            echo "Isolation QA skipped: two fleet_manager QA users are missing. Not Isolation PASS."
+            exit 0
+          fi
+          if [ "${code}" != "0" ]; then
+            exit "${code}"
+          fi
+      - name: Upload apply/verify reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garage-tenant-staging-apply
+          path: |
+            test-results/garage-tenant-staging-apply.json
+            test-results/garage-tenant-staging-verify.json
+            test-results/garage-tenant-isolation-qa.json
+          if-no-files-found: ignore
