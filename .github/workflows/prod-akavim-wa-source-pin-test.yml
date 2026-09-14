@@ -1,9 +1,8 @@
-# One authorized send after owner opened the 24h Session
-# (0534338601 → 0546500305). Deploy stays disarmed.
+# Session-window send completed 2026-09-14 (messageId 4c7aa808-f1fa-4191-9ca0-1c4b4eb3a09d).
+# Deploy/send steps are disarmed — do not auto-send again.
 # SOURCE: 0546500305 / 972546500305
 # DESTINATION: 0534338601 / 972534338601
 # Never Hostinger, migrate, Claims, בארי, other companies, or global GUPSHUP_SOURCE.
-# If this send fails: do not resend.
 name: Production Akavim WhatsApp source pin test
 
 on:
@@ -160,7 +159,7 @@ jobs:
           echo "EDGE_DEPLOY=notify-driver-event OK"
 
       - name: One WhatsApp send to אכבים then restore
-        if: steps.gate.outputs.allow_send == 'true'
+        if: false
         env:
           SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
