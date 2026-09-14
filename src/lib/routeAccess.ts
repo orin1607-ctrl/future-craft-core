@@ -56,7 +56,7 @@ const FLEET_MANAGER_ROUTES = ['/fleetos-ai'];
 export function canAccessRoute(
   pathname: string,
   role: AppRole | undefined,
-  extras?: { hasClaimsAccess?: boolean; claimsWorkerOnly?: boolean; garagePhotographer?: boolean },
+  extras?: { hasClaimsAccess?: boolean; claimsWorkerOnly?: boolean; garagePhotographer?: boolean; garageOps?: boolean },
 ): boolean {
   if (!role) return false;
 
@@ -66,6 +66,10 @@ export function canAccessRoute(
   }
   if (path === '/garage' || path.startsWith('/garage/')) {
     return role !== 'private_customer' && role !== 'business_customer' && role !== 'telemarketing_agent';
+  }
+
+  if (path === '/garage-management' || path.startsWith('/garage-management/')) {
+    return role === 'super_admin' || (role === 'fleet_manager' && !!extras?.garageOps);
   }
 
   if (extras?.claimsWorkerOnly) {

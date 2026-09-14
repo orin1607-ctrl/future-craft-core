@@ -4,7 +4,8 @@
  * Do not reuse garage_customers.company_name — that is the customer's legal/business name.
  *
  * Client filters are defense-in-depth. RLS on Staging is the real gate.
- * /garage-management stays super_admin-only until isolation PASS.
+ * /garage-management is open to super_admin and garage-ops fleet_manager (job_title=garage_ops).
+ * Regular fleet_manager stays closed. No new app_role.
  */
 
 export const STAGING_SUPABASE_REF = 'usfeoerkpcafxxlyuldl';

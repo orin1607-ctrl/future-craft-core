@@ -158,7 +158,9 @@ export function DesktopSidebar() {
     if (path === '/telemarketing/admin') return isSuperAdmin;
     if (path === '/security-center') return isSuperAdmin;
     if (path === '/claims') return canClaims;
-    if (path === '/garage-management' || path.startsWith('/garage-management/')) return isSuperAdmin;
+    if (path === '/garage-management' || path.startsWith('/garage-management/')) {
+      return isSuperAdmin || !!user?.garageOps;
+    }
     if (path === '/driver-app-notifications' || path === '/driver-area-settings') return isSuperAdmin;
     return true;
   };
@@ -215,6 +217,8 @@ export function DesktopSidebar() {
               ? 'עובד ניהול תביעות'
               : user?.role === 'super_admin'
                 ? 'מנהל על'
+                : user?.garageOps
+                  ? 'מנהל מוסך'
                 : user?.role === 'fleet_manager'
                   ? 'מנהל צי'
                   : user?.role === 'telemarketing_agent'

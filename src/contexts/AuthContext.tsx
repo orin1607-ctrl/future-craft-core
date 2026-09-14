@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 import type { AuthSessionPayload } from '@/lib/authOtpClient';
 import { applyAuthSession } from '@/lib/authOtpClient';
 import { securityEndSession } from '@/lib/securityAuditClient';
-import { clearAllTeleModes, clearTeleModesForUser } from '@/features/telemarketing/lib/teleEntryMode';
+import { isGarageOpsJobTitle } from '@/lib/garageOps';
 
 export type AppRole = 'driver' | 'fleet_manager' | 'super_admin' | 'private_customer' | 'business_customer' | 'telemarketing_agent';
 
@@ -20,6 +20,7 @@ export interface UserProfile {
   hasClaimsAccess?: boolean;
   claimsWorkerOnly?: boolean;
   garagePhotographer?: boolean;
+  garageOps?: boolean;
 }
 
 interface AuthContextType {
@@ -102,6 +103,7 @@ async function fetchUserProfile(userId: string, email: string, retries = 3): Pro
       hasClaimsAccess,
       claimsWorkerOnly,
       garagePhotographer: String(profile.job_title || '').trim() === 'garage_photographer',
+      garageOps: role === 'fleet_manager' && isGarageOpsJobTitle(profile.job_title),
     };
   }
   return null;

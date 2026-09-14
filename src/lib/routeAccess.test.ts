@@ -77,6 +77,12 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/garage', 'telemarketing_agent')).toBe(false);
   });
 
+  it('garage-ops fleet_manager can open garage-management without a new role', () => {
+    expect(canAccessRoute('/garage-management', 'fleet_manager', { garageOps: true })).toBe(true);
+    expect(canAccessRoute('/claims', 'fleet_manager', { garageOps: true })).toBe(false);
+    expect(canAccessRoute('/claims', 'fleet_manager', { garageOps: true, hasClaimsAccess: true })).toBe(true);
+  });
+
   it('security-center is super_admin only', () => {
     expect(canAccessRoute('/security-center', 'super_admin')).toBe(true);
     expect(canAccessRoute('/security-center', 'fleet_manager')).toBe(false);

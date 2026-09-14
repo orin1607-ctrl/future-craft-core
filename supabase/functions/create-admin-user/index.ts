@@ -22,6 +22,19 @@ const SOCIAL_PROVIDERS = [
   'facebook', 'instagram', 'tiktok', 'linkedin', 'youtube', 'whatsapp_business',
 ];
 
+/** Same sentinel as src/lib/garageOps.ts — existing profiles.job_title, not a new role. */
+const GARAGE_OPS_JOB_TITLE = 'garage_ops';
+const GARAGE_OPS_SEED_HIDDEN_PATHS = [
+  '/vehicles', '/drivers', '/vehicle-tracking', '/fleetos-ai', '/transport', '/faults', '/garage',
+  '/fleet-managers', '/customers', '/telemarketing/admin', '/alerts', '/expiry-approvals',
+  '/emergency', '/internal-chat', '/admin-home', '/security-center', '/ai-marketing',
+  '/dalia-settings', '/user-management', '/expenses', 'driver-hub-dashboard',
+];
+
+function isGarageOpsJobTitle(jobTitle: unknown): boolean {
+  return String(jobTitle || '').trim() === GARAGE_OPS_JOB_TITLE;
+}
+
 function hasMarketingService(st: string | null | undefined): boolean {
   return st === 'marketing_only' || st === 'fleet_and_marketing';
 }
@@ -545,6 +558,80 @@ Deno.serve(async (req) => {
       });
     }
 
+    let garageOpsClaimsGranted = false;
+    let garageOpsButtonsSeeded = false;
+
+    if (role === 'fleet_manager' && isGarageOpsJobTitle(job_title)) {
+      const { data: existingAccess } = await supabaseAdmin
+        .from('claims_access')
+        .select('user_id')
+        .eq('user_id', newUserId)
+        .maybeSingle();
+      if (existingAccess?.user_id) {
+        const { error: accessUpdErr } = await supabaseAdmin
+          .from('claims_access')
+          .update({ worker_only: false })
+          .eq('user_id', newUserId);
+        garageOpsClaimsGranted = !accessUpdErr;
+      } else {
+        const { error: accessInsErr } = await supabaseAdmin
+          .from('claims_access')
+          .insert({ user_id: newUserId, worker_only: false });
+        garageOpsClaimsGranted = !accessInsErr;
+      }
+
+      if (isSuperAdmin && effectiveCompany) {
+        const { data: peerProfiles } = await supabaseAdmin
+          .from('profiles')
+          .select('id, job_title')
+          .eq('company_name', effectiveCompany)
+          .neq('id', newUserId);
+        const peerIds = (peerProfiles || []).map((p: { id: string }) => p.id);
+        let hasRegularFleet = false;
+        if (peerIds.length > 0) {
+          const { data: peerRoles } = await supabaseAdmin
+            .from('user_roles')
+            .select('user_id, role')
+            .in('user_id', peerIds)
+            .eq('role', 'fleet_manager');
+          const fleetPeerIds = new Set((peerRoles || []).map((r: { user_id: string }) => r.user_id));
+          hasRegularFleet = (peerProfiles || []).some((p: { id: string; job_title?: string | null }) => (
+            fleetPeerIds.has(p.id) && !isGarageOpsJobTitle(p.job_title)
+          ));
+        }
+        if (!hasRegularFleet) {
+          const { data: settings } = await supabaseAdmin
+            .from('company_settings')
+            .select('id, hidden_buttons')
+            .eq('company_name', effectiveCompany)
+            .maybeSingle();
+          const currentHidden = (settings?.hidden_buttons as string[] | null) || [];
+          if (currentHidden.length === 0) {
+            if (settings?.id) {
+              const { error: seedErr } = await supabaseAdmin
+                .from('company_settings')
+                .update({ hidden_buttons: [...GARAGE_OPS_SEED_HIDDEN_PATHS] })
+                .eq('id', settings.id);
+              garageOpsButtonsSeeded = !seedErr;
+            } else {
+              const { error: seedErr } = await supabaseAdmin
+                .from('company_settings')
+                .insert({
+                  company_name: effectiveCompany,
+                  hidden_buttons: [...GARAGE_OPS_SEED_HIDDEN_PATHS],
+                  require_driver_assignment: true,
+                  require_insurance_docs: true,
+                  require_no_claims: true,
+                  max_vehicles_without_assignment: 0,
+                  module_transport_enabled: false,
+                });
+              garageOpsButtonsSeeded = !seedErr;
+            }
+          }
+        }
+      }
+    }
+
     if (role === 'driver') {
       const driverEmail = contact_email || email;
       const { error: driverErr } = await supabaseAdmin.from('drivers').upsert(
@@ -732,6 +819,9 @@ Deno.serve(async (req) => {
       success: true,
       user_id: newUserId,
       reused_test_user: reusedTestUser,
+      garage_ops: role === 'fleet_manager' && isGarageOpsJobTitle(job_title),
+      garage_ops_claims_granted: garageOpsClaimsGranted,
+      garage_ops_buttons_seeded: garageOpsButtonsSeeded,
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

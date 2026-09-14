@@ -13,6 +13,7 @@ export default function RouteGuard({ children }: { children: React.ReactNode }) 
     hasClaimsAccess: user.hasClaimsAccess,
     claimsWorkerOnly: user.claimsWorkerOnly,
     garagePhotographer: user.garagePhotographer,
+    garageOps: user.garageOps,
   })) {
     void import('@/lib/securityAuditClient').then(({ securityRecordClientEvent }) => {
       securityRecordClientEvent('unauthorized_page', {

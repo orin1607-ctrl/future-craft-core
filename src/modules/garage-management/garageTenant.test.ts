@@ -78,8 +78,9 @@ describe('garage tenant helpers', () => {
     expect(() => assertStagingSupabaseTarget('https://other.supabase.co')).toThrow(/PUBLIC STAGING/);
   });
 
-  it('keeps /garage-management closed to fleet_manager until isolation PASS', () => {
+  it('opens /garage-management only for garage-ops fleet_manager, not every fleet_manager', () => {
     expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/garage-management', 'fleet_manager', { garageOps: true })).toBe(true);
     expect(canAccessRoute('/garage-management', 'super_admin')).toBe(true);
     expect(canAccessRoute('/garage', 'fleet_manager')).toBe(true);
   });

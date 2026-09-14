@@ -51,8 +51,9 @@ describe('garage tenant isolation proposal contract', () => {
     expect(rollback).toContain('shop_company_name columns in place');
   });
 
-  it('does not open /garage-management to fleet_manager in this step', () => {
+  it('does not open /garage-management to a regular fleet_manager', () => {
     expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/garage-management', 'fleet_manager', { garageOps: true })).toBe(true);
     expect(canAccessRoute('/garage-management', 'super_admin')).toBe(true);
   });
 });

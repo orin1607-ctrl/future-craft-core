@@ -43,6 +43,14 @@ import {
   type AccessCodeSendResult,
 } from '@/lib/edgeFunctionError';
 import { GARAGE_PHOTOGRAPHER_JOB_TITLE } from '@/lib/garagePhotographer';
+import {
+  GARAGE_OPS_JOB_TITLE,
+  GARAGE_OPS_LABEL,
+  FLEET_FOUNDATION_LABEL,
+  GARAGE_OPS_SEED_HIDDEN_PATHS,
+  isGarageOpsJobTitle,
+  shouldSeedGarageOpsHiddenButtons,
+} from '@/lib/garageOps';
 import { cn } from '@/lib/utils';
 import { BUSINESS_CUSTOMER_SERVICE_TYPES } from '@/lib/marketingProvision';
 
@@ -191,7 +199,12 @@ export default function CreateUserWizardDialog({
       nickname: form.nickname || undefined,
       address: form.address || undefined,
       contact_email: form.email || undefined,
-      job_title: userType === 'garage_photographer' ? GARAGE_PHOTOGRAPHER_JOB_TITLE : form.job_title || undefined,
+      job_title:
+        userType === 'garage_photographer'
+          ? GARAGE_PHOTOGRAPHER_JOB_TITLE
+          : userType === 'fleet_manager' && form.fleet_foundation === 'garage_ops'
+            ? GARAGE_OPS_JOB_TITLE
+            : form.job_title || undefined,
       notes: form.notes || undefined,
       permissions: form.permissions || undefined,
       user_number: form.user_number || undefined,
@@ -229,6 +242,52 @@ export default function CreateUserWizardDialog({
 
     const userId = data?.user_id as string | undefined;
     const hadAccessCode = !!accessCode.code;
+
+    if (userId && userType === 'fleet_manager' && form.fleet_foundation === 'garage_ops') {
+      await supabase.from('claims_access' as never).insert({ user_id: userId, worker_only: false } as never);
+      const companyName = String(payload.company_name || '').trim();
+      if (companyName) {
+        const { data: peerProfiles } = await supabase
+          .from('profiles')
+          .select('id, job_title')
+          .eq('company_name', companyName);
+        const peers = (peerProfiles || []).filter((p) => p.id !== userId);
+        let hasRegularFleetPeer = false;
+        if (peers.length > 0) {
+          const { data: peerRoles } = await supabase
+            .from('user_roles')
+            .select('user_id, role')
+            .in('user_id', peers.map((p) => p.id))
+            .eq('role', 'fleet_manager');
+          const fleetIds = new Set((peerRoles || []).map((r) => r.user_id));
+          hasRegularFleetPeer = peers.some((p) => fleetIds.has(p.id) && !isGarageOpsJobTitle(p.job_title));
+        }
+        const { data: settings } = await supabase
+          .from('company_settings')
+          .select('id, hidden_buttons')
+          .eq('company_name', companyName)
+          .maybeSingle();
+        if (shouldSeedGarageOpsHiddenButtons({
+          hasRegularFleetPeer,
+          currentHidden: (settings?.hidden_buttons as string[] | null) || [],
+        })) {
+          const hidden = [...GARAGE_OPS_SEED_HIDDEN_PATHS];
+          if (settings?.id) {
+            await supabase.from('company_settings').update({ hidden_buttons: hidden }).eq('id', settings.id);
+          } else {
+            await supabase.from('company_settings').insert({
+              company_name: companyName,
+              hidden_buttons: hidden,
+              require_driver_assignment: true,
+              require_insurance_docs: true,
+              require_no_claims: true,
+              max_vehicles_without_assignment: 0,
+              module_transport_enabled: false,
+            });
+          }
+        }
+      }
+    }
 
     let report: CreateUserResultReport = {
       userCreated: true,
@@ -331,10 +390,19 @@ export default function CreateUserWizardDialog({
 
   const summaryItems = useMemo(() => {
     if (!userType) return [];
-    return fields.map((fd) => ({
-      label: fd.label,
-      value: form[fd.key] || '—',
-    }));
+    const rows = fields
+      .filter((fd) => !(userType === 'fleet_manager' && form.fleet_foundation === 'garage_ops' && fd.key === 'job_title'))
+      .map((fd) => ({
+        label: fd.label,
+        value: form[fd.key] || '—',
+      }));
+    if (userType === 'fleet_manager') {
+      rows.unshift({
+        label: 'הנחת יסוד',
+        value: form.fleet_foundation === 'garage_ops' ? GARAGE_OPS_LABEL : FLEET_FOUNDATION_LABEL,
+      });
+    }
+    return rows;
   }, [userType, fields, form]);
 
   return (
@@ -407,6 +475,46 @@ export default function CreateUserWizardDialog({
                 עובד צילומי מוסך לא מקבל הרשאת Claims. הוא רואה ב־/garage רק תיקים ששויכו אליו לצילום.
               </div>
             )}
+            {userType === 'fleet_manager' && (
+              <div className="space-y-2 p-3 rounded-xl border" data-testid="fleet-foundation-choice">
+                <p className="text-sm font-bold">הנחת יסוד — לא role חדש</p>
+                <p className="text-xs text-muted-foreground">
+                  שני האפשרויות נשארות אותו סוג משתמש קיים — מנהל צי רכב. הבחירה קובעת רק ברירת מחדל של דשבורד ומודולים.
+                </p>
+                <label className="flex items-start gap-3 p-2 rounded-lg cursor-pointer hover:bg-muted/60">
+                  <input
+                    type="radio"
+                    name="fleet_foundation"
+                    value="fleet"
+                    checked={(form.fleet_foundation || 'fleet') === 'fleet'}
+                    onChange={() => setForm((p) => ({ ...p, fleet_foundation: 'fleet' }))}
+                    className="mt-1 w-4 h-4 accent-primary"
+                    data-testid="fleet-foundation-fleet"
+                  />
+                  <span>
+                    <span className="font-medium">{FLEET_FOUNDATION_LABEL}</span>
+                    <span className="block text-xs text-muted-foreground">ברירת המחדל הקיימת — בלי שינוי כפתורים.</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 p-2 rounded-lg cursor-pointer hover:bg-muted/60">
+                  <input
+                    type="radio"
+                    name="fleet_foundation"
+                    value="garage_ops"
+                    checked={form.fleet_foundation === 'garage_ops'}
+                    onChange={() => setForm((p) => ({ ...p, fleet_foundation: 'garage_ops' }))}
+                    className="mt-1 w-4 h-4 accent-primary"
+                    data-testid="fleet-foundation-garage-ops"
+                  />
+                  <span>
+                    <span className="font-medium">{GARAGE_OPS_LABEL}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      ברירת מחדל: ניהול מוסך + ניהול תביעות + דוחות. אחר כך ניתן להוסיף/להסתיר מודולים לפי חברה.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            )}
 
             {userType === 'driver' && (
               <div className="flex items-center gap-3 p-3 rounded-xl border">
@@ -425,6 +533,7 @@ export default function CreateUserWizardDialog({
 
             {fields.map((fd) => {
               if (fd.key === 'login_email' && form.noEmail) return null;
+              if (userType === 'fleet_manager' && form.fleet_foundation === 'garage_ops' && fd.key === 'job_title') return null;
               if (fd.key === 'company_assigned') {
                 return (
                   <div key={fd.key}>

@@ -2,6 +2,10 @@
  * Dalia Settings → User Management — field schema
  */
 
+import { type FleetFoundation } from './garageOps';
+
+export type { FleetFoundation };
+
 export type UserCreationType =
   | 'private_customer'
   | 'business_customer'
@@ -24,7 +28,7 @@ export const USER_TYPE_LABELS: Record<UserCreationType, string> = {
 export const USER_TYPE_DESCRIPTIONS: Record<UserCreationType, string> = {
   private_customer: 'לקוח פרטי עם גישה לשירותים אישיים',
   business_customer: 'בעל עסק / חברה — שיוך עתידי לרכבים, נהגים ומסמכים',
-  fleet_manager: 'מנהל צי עם הרשאות ניהול לפי חברה',
+  fleet_manager: 'מנהל צי עם הרשאות ניהול לפי חברה — ניתן לבחור הנחת יסוד: צי רכב או מוסך',
   driver: 'נהג עם שיוך לחברה ולרכב',
   telemarketing_agent: 'נציג/ת טלמיטינג — שיחות, דיווח ו-Follow-up בלבד',
   claims_worker: 'עובד Claims בלבד — רואה רק תביעות שהוקצו אליו',
@@ -160,6 +164,7 @@ export type CreateUserFormValues = Partial<Record<FieldKey, string>> & {
   userType?: UserCreationType;
   isActive?: boolean;
   noEmail?: boolean;
+  fleet_foundation?: FleetFoundation;
 };
 
 export const APPROVAL_STATUS_LABELS: Record<string, string> = {
@@ -179,6 +184,7 @@ export const FUTURE_LOGIN_FEATURES = [
 export function emptyFormForType(type: UserCreationType): CreateUserFormValues {
   const base: CreateUserFormValues = { userType: type, isActive: false, noEmail: false };
   if (type === 'business_customer') base.service_type = 'marketing_only';
+  if (type === 'fleet_manager') base.fleet_foundation = 'fleet';
   return base;
 }
 
