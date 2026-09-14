@@ -50,8 +50,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import os, sys
-          from urllib.parse import urlparse, unquote
+          import os, re, sys
           STAGING = "usfeoerkpcafxxlyuldl"
           PROD = "qasomfndnjuixgjmjwcm"
           raw = os.environ.get("STAGING_DATABASE_URL") or ""
@@ -59,18 +58,22 @@ jobs:
               sys.exit("STAGING_DATABASE_URL is empty. Isolation SQL not applied. Did not use SUPABASE_ACCESS_TOKEN.")
           if PROD in raw or "dalia-car.online" in raw.lower():
               sys.exit("STAGING_DATABASE_URL contains Production. STOP. SQL not applied.")
-          parsed = urlparse(raw)
-          host = (parsed.hostname or "").lower()
-          user = unquote(parsed.username or "")
-          combined = f"{host} {user}"
-          if STAGING not in combined:
-              sys.exit("STAGING_DATABASE_URL host/user does not contain usfeoerkpcafxxlyuldl. STOP. SQL not applied.")
-          if PROD in host or PROD in user:
-              sys.exit("STAGING_DATABASE_URL host/user contains Production ref. STOP.")
-          print("url_scheme", parsed.scheme)
-          print("url_host", host)
-          print("url_db", (parsed.path or "").lstrip("/").split("?")[0])
-          print("staging_ref_in_host_or_user", True)
+          if STAGING not in raw:
+              sys.exit("STAGING_DATABASE_URL does not contain usfeoerkpcafxxlyuldl. STOP. SQL not applied.")
+          scheme = raw.split(":", 1)[0].lower()
+          host = ""
+          m = re.search(r"@([^/?#:]+)", raw)
+          if m:
+              host = m.group(1).lower()
+          if host and PROD in host:
+              sys.exit("Host contains Production ref. STOP.")
+          if host and STAGING not in host:
+              userinfo = raw.split("@", 1)[0]
+              if STAGING not in userinfo:
+                  sys.exit("Host/user do not identify Staging usfeoerkpcafxxlyuldl. STOP.")
+          print("url_scheme", scheme)
+          print("url_host", host or "(unparsed)")
+          print("staging_ref_present", True)
           print("production_ref_present", False)
           PY
       - name: Apply Isolation SQL in one transaction
