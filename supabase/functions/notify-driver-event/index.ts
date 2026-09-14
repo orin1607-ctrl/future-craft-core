@@ -6,6 +6,29 @@ const corsHeaders = {
 };
 
 const PRODUCTION_REF = 'qasomfndnjuixgjmjwcm';
+/** Owner-approved Production business WhatsApp (0546500305). Driver-event only — does not change the global Edge secret. */
+const APPROVED_GUPSHUP_SOURCE = '972546500305';
+const APPROVED_GUPSHUP_APP = 'DaliaVehicle';
+
+function normalizeGupshupSource(raw: string): string {
+  const digits = (raw || '').replace(/\D/g, '');
+  if (!digits) return '';
+  if (digits === '0546500305' || digits === '546500305') return APPROVED_GUPSHUP_SOURCE;
+  if (digits.startsWith('0')) return `972${digits.slice(1)}`;
+  return digits;
+}
+
+function resolveDriverEventSource(): { source: string; env_source: string; pinned: boolean } {
+  const envSource = normalizeGupshupSource(
+    Deno.env.get('GUPSHUP_SOURCE') || Deno.env.get('GUPSHUP_SOURCE_NUMBER') || '',
+  );
+  if (!envSource || envSource === APPROVED_GUPSHUP_SOURCE) {
+    return { source: APPROVED_GUPSHUP_SOURCE, env_source: envSource, pinned: !envSource };
+  }
+  // Point-safe: this function always sends from the approved business number.
+  // Global GUPSHUP_SOURCE secret is left unchanged for other Edge functions.
+  return { source: APPROVED_GUPSHUP_SOURCE, env_source: envSource, pinned: true };
+}
 
 /** Live Production Gupshup only — same project as send-whatsapp-message. */
 function isDriverEventWhatsAppAllowed(supabaseUrl: string | undefined): boolean {
@@ -208,6 +231,10 @@ Deno.serve(async (req) => {
     let emailsSent = 0;
     let whatsappSent = 0;
     let whatsappSkipped = '';
+    const whatsappResults: Array<Record<string, unknown>> = [];
+    let sourceUsed = '';
+    let sourceEnv = '';
+    let sourcePinned = false;
 
     if (setting.email_enabled) {
       // Legacy Production already emails fleet managers for fault/accident/service_order.
@@ -321,9 +348,11 @@ Deno.serve(async (req) => {
         console.log('WhatsApp skipped — not live Production Gupshup project');
       } else {
         const apiKey = Deno.env.get('GUPSHUP_API_KEY');
-        // Same source/app as existing send-whatsapp-message — do not introduce a new provider.
-        const source = Deno.env.get('GUPSHUP_SOURCE') || Deno.env.get('GUPSHUP_SOURCE_NUMBER') || '972546500305';
-        const srcName = Deno.env.get('GUPSHUP_APP_NAME') || 'DaliaVehicle';
+        const resolved = resolveDriverEventSource();
+        sourceUsed = resolved.source;
+        sourceEnv = resolved.env_source;
+        sourcePinned = resolved.pinned;
+        const srcName = Deno.env.get('GUPSHUP_APP_NAME') || APPROVED_GUPSHUP_APP;
         if (!apiKey) {
           whatsappSkipped = 'missing_gupshup_key';
           console.error('GUPSHUP_API_KEY is not configured — skipping WhatsApp');
@@ -333,7 +362,7 @@ Deno.serve(async (req) => {
             uniqueWhatsapp.map(async (destination) => {
               const params = new URLSearchParams();
               params.set('channel', 'whatsapp');
-              params.set('source', source);
+              params.set('source', sourceUsed);
               params.set('destination', destination);
               params.set('src.name', srcName);
               params.set('message', JSON.stringify({ type: 'text', text }));
@@ -345,11 +374,47 @@ Deno.serve(async (req) => {
                 },
                 body: params.toString(),
               });
-              if (!res.ok) {
-                console.error(`WhatsApp failed for ${destination}: ${res.status} ${await res.text()}`);
+              const raw = await res.text();
+              let parsed: Record<string, unknown> = {};
+              try {
+                parsed = raw ? JSON.parse(raw) as Record<string, unknown> : {};
+              } catch {
+                parsed = { raw: raw.slice(0, 400) };
+              }
+              const messageId = String(parsed.messageId || parsed.message_id || parsed.id || '');
+              const gupshupStatus = String(parsed.status || '');
+              const okHttp = res.ok;
+              const okStatus = !gupshupStatus || ['submitted', 'success', 'ok'].includes(gupshupStatus.toLowerCase());
+              const result = {
+                destination,
+                source: sourceUsed,
+                http: res.status,
+                gupshup_status: gupshupStatus || null,
+                message_id: messageId || null,
+                error: okHttp && okStatus ? null : String(parsed.message || parsed.error || raw).slice(0, 300),
+              };
+              whatsappResults.push(result);
+              if (messageId) {
+                const { error: insErr } = await supabaseAdmin.from('incident_notification_deliveries').insert({
+                  company_name: companyName || 'notify-driver-event',
+                  incident_kind: 'fault',
+                  incident_id: crypto.randomUUID(),
+                  event_number: String(record.event_number || 'DRV-WA'),
+                  channel: 'whatsapp',
+                  recipient: destination,
+                  status: okHttp && okStatus ? 'submitted' : 'failed',
+                  provider_message_id: messageId,
+                  payload_excerpt: text.slice(0, 400),
+                  error_message: result.error,
+                  sent_at: new Date().toISOString(),
+                });
+                if (insErr) console.error('notify-driver-event delivery insert', insErr);
+              }
+              if (!okHttp || !okStatus) {
+                console.error(`WhatsApp failed for ${destination}: ${res.status} ${raw.slice(0, 400)}`);
                 throw new Error('whatsapp failed');
               }
-              return true;
+              return result;
             }),
           );
           whatsappSent = waResults.filter((r) => r.status === 'fulfilled').length;
@@ -372,6 +437,10 @@ Deno.serve(async (req) => {
         whatsapp_sent: whatsappSent,
         whatsapp_skipped: whatsappSkipped || null,
         in_app_company_contact: inAppCompanyContact,
+        source_used: sourceUsed || null,
+        source_env: sourceEnv || null,
+        source_pinned: sourcePinned,
+        whatsapp_results: whatsappResults,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );

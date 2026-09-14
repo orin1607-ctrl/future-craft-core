@@ -1,0 +1,315 @@
+# Inspect live Gupshup SOURCE, deploy notify-driver-event only (point-safe
+# SOURCE pin + messageId), then ONE WhatsApp send to אכבים / 972534338601.
+# Never Hostinger, migrate, Claims, בארי, or other companies.
+name: Production Akavim WhatsApp source pin test
+
+on:
+  push:
+    branches: [cursor/prod-driver-area-only-b784]
+    paths:
+      - '.github/workflows/prod-akavim-wa-source-pin-test.yml'
+      - 'supabase/functions/notify-driver-event/index.ts'
+  workflow_dispatch: {}
+
+concurrency:
+  group: prod-akavim-wa-source-pin-test
+  cancel-in-progress: false
+
+jobs:
+  inspect-deploy-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Inspect live SOURCE (no real destination send)
+        id: inspect
+        continue-on-error: true
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MGMT: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, os, urllib.request, urllib.error
+          SRK = os.environ['SRK']
+          MGMT = (os.environ.get('MGMT') or '').strip()
+          BASE = 'https://qasomfndnjuixgjmjwcm.supabase.co'
+          APPROVED = '972546500305'
+          OWNER = 'orin1607@gmail.com'
+
+          def req(method, path, body=None, bearer=None):
+              h = {'apikey': SRK, 'Authorization': 'Bearer ' + (bearer or SRK)}
+              data = None
+              if body is not None:
+                  h['Content-Type'] = 'application/json'
+                  data = json.dumps(body).encode()
+              r = urllib.request.Request(BASE + path, data=data, headers=h, method=method)
+              try:
+                  with urllib.request.urlopen(r, timeout=45) as resp:
+                      raw = resp.read().decode()
+                      return resp.status, json.loads(raw) if raw else None
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      return e.code, json.loads(raw)
+                  except Exception:
+                      return e.code, {'raw': raw[:500]}
+
+          print('=== SOURCE_INSPECT_START ===')
+          names = []
+          if MGMT:
+              r = urllib.request.Request(
+                  'https://api.supabase.com/v1/projects/qasomfndnjuixgjmjwcm/secrets',
+                  headers={'Authorization': 'Bearer ' + MGMT, 'Accept': 'application/json'},
+              )
+              try:
+                  with urllib.request.urlopen(r, timeout=30) as resp:
+                      body = json.loads(resp.read().decode() or '[]')
+                      names = [ (x if isinstance(x,str) else x.get('name')) for x in (body or []) ]
+                      print('SECRETS_HTTP', resp.status, 'HAS_GUPSHUP_SOURCE', 'GUPSHUP_SOURCE' in names, 'HAS_SOURCE_NUMBER', 'GUPSHUP_SOURCE_NUMBER' in names, 'HAS_API_KEY', 'GUPSHUP_API_KEY' in names, 'HAS_APP_NAME', 'GUPSHUP_APP_NAME' in names)
+              except urllib.error.HTTPError as e:
+                  print('SECRETS_HTTP', e.code, e.read().decode()[:200])
+
+          st, gen = req('POST', '/auth/v1/admin/generate_link', {'type': 'magiclink', 'email': OWNER})
+          assert st == 200, gen
+          st, ver = req('POST', '/auth/v1/verify', {'type': 'magiclink', 'email': OWNER, 'token': gen['email_otp']})
+          assert st == 200, ver
+          at = ver.get('access_token') or ver['session']['access_token']
+          print('SESSION_OK')
+          st, dbg = req('POST', '/functions/v1/send-whatsapp-message', {'action': 'debug_connection'}, bearer=at)
+          print('DEBUG_HTTP', st)
+          val = (dbg or {}).get('validation') or {}
+          secrets_env = (dbg or {}).get('secrets_env') or {}
+          fields = ((dbg or {}).get('request') or {}).get('body_fields') or {}
+          print('SOURCE_USED', val.get('source_used') or fields.get('source'))
+          print('SOURCE_EXPECTED', val.get('source_expected'))
+          print('SOURCE_MATCH', val.get('source_match'))
+          print('SOURCE_SECRET', secrets_env.get('GUPSHUP_SOURCE_secret'))
+          print('APP_NAME_USED', val.get('app_name_used') or (dbg or {}).get('app_name_used'))
+          print('DESTINATION_IN_PROBE', fields.get('destination'))
+          print('GUPSHUP_HTTP', (dbg or {}).get('gupshup_status') or ((dbg or {}).get('gupshup_response') or {}).get('http_status'))
+          src = str(val.get('source_used') or fields.get('source') or secrets_env.get('GUPSHUP_SOURCE_secret') or '')
+          digits = ''.join(c for c in src if c.isdigit())
+          if digits.startswith('0'):
+              digits = '972' + digits[1:]
+          print('SOURCE_NORMALIZED', digits)
+          print('SOURCE_IS_APPROVED', digits == APPROVED)
+          print('PROBE_WAS_DESTINATION_ZERO', fields.get('destination') in ('0', 0, '0'))
+          st, perm = req('POST', '/functions/v1/send-whatsapp-message', {'action': 'inspect_outbound_permissions'}, bearer=at)
+          print('PERM_HTTP', st)
+          app = (perm or {}).get('app') or {}
+          print('PERM_SOURCE_USED', app.get('source_used'))
+          print('PERM_SOURCE_MATCH', app.get('source_match'))
+          probes = (perm or {}).get('probes') or {}
+          templates = (probes.get('list_approved_templates') or {})
+          print('APPROVED_TEMPLATE_COUNT', templates.get('approved_template_count'))
+          print('APPROVED_TEMPLATES_SAMPLE', json.dumps(templates.get('approved_templates_sample'), ensure_ascii=False)[:800])
+          print('SESSION_PROBE_DEST', ((probes.get('session_msg_auth_probe') or {}).get('body_fields') or {}).get('destination'))
+          print('=== SOURCE_INSPECT_END ===')
+          PY
+
+      - name: Deploy notify-driver-event only (no Hostinger)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          TOK=$(printf '%s' "${SUPABASE_ACCESS_TOKEN:-}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          export SUPABASE_ACCESS_TOKEN="$TOK"
+          echo "GH_TOKEN_LEN=${#SUPABASE_ACCESS_TOKEN}"
+          npx --yes supabase functions deploy notify-driver-event --project-ref qasomfndnjuixgjmjwcm --use-api
+          echo "EDGE_DEPLOY=notify-driver-event OK"
+
+      - name: One WhatsApp send to אכבים / 972534338601 then restore
+        env:
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, os, re, time, urllib.parse, urllib.request, urllib.error
+          from datetime import datetime, timezone, timedelta
+
+          SRK = os.environ['SRK']
+          ANON = os.environ.get('ANON') or SRK
+          BASE = 'https://qasomfndnjuixgjmjwcm.supabase.co'
+          FN = BASE + '/functions/v1/notify-driver-event'
+          COMPANY = 'אכבים'
+          FORBIDDEN = 'בארי'
+          ACTION = 'fault_urgent'
+          OWNER_EMAIL = 'orin1607@gmail.com'
+          OWNER_WA = '972534338601'
+          OWNER_WA_RAW = '0534338601'
+          APPROVED_SOURCE = '972546500305'
+
+          def rest(path, method='GET', body=None):
+              h = {
+                  'apikey': SRK,
+                  'Authorization': 'Bearer ' + SRK,
+                  'Accept': 'application/json',
+                  'Prefer': 'return=representation',
+              }
+              data = None
+              if body is not None:
+                  h['Content-Type'] = 'application/json'
+                  data = json.dumps(body, ensure_ascii=False).encode()
+              req = urllib.request.Request(BASE + path, data=data, headers=h, method=method)
+              try:
+                  with urllib.request.urlopen(req, timeout=45) as r:
+                      raw = r.read().decode()
+                      return r.status, json.loads(raw) if raw else None
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      return e.code, json.loads(raw)
+                  except Exception:
+                      return e.code, {'raw': raw[:500]}
+
+          print('=== AKAVIM_WA_TEST_START ===')
+          if FORBIDDEN in COMPANY:
+              raise SystemExit('forbidden company')
+          cq = urllib.parse.quote(COMPANY, safe='')
+          aq = urllib.parse.quote(ACTION, safe='')
+          st, rows = rest(f'/rest/v1/driver_app_action_settings?company_name=eq.{cq}&action_key=eq.{aq}&select=*')
+          if not isinstance(rows, list) or not rows:
+              raise SystemExit('missing action row')
+          original = rows[0]
+          print('BACKUP_WHATSAPP', json.dumps({
+              'whatsapp_enabled': original.get('whatsapp_enabled'),
+              'wa_to_fm': original.get('whatsapp_to_fleet_managers'),
+              'wa_to_contact': original.get('whatsapp_to_company_contact'),
+              'wa_to_dalia': original.get('whatsapp_to_dalia'),
+              'whatsapp_extra': original.get('whatsapp_extra'),
+          }, ensure_ascii=False))
+          restored = False
+          result = None
+          try:
+              st, patched = rest(
+                  f'/rest/v1/driver_app_action_settings?company_name=eq.{cq}&action_key=eq.{aq}',
+                  method='PATCH',
+                  body={
+                      'whatsapp_enabled': True,
+                      'whatsapp_to_fleet_managers': False,
+                      'whatsapp_to_company_contact': False,
+                      'whatsapp_to_dalia': False,
+                      'whatsapp_extra': OWNER_WA_RAW,
+                  },
+              )
+              print('PATCH_HTTP', st)
+              row = patched[0] if isinstance(patched, list) else patched
+              extra = (row.get('whatsapp_extra') or '').strip()
+              print('PATCH_COMPANY', row.get('company_name'), 'ACTION', row.get('action_key'))
+              if row.get('company_name') != COMPANY or FORBIDDEN in str(row.get('company_name')):
+                  raise SystemExit('ABORT not אכבים')
+              if row.get('whatsapp_to_fleet_managers') or row.get('whatsapp_to_dalia') or row.get('whatsapp_to_company_contact'):
+                  raise SystemExit('ABORT extra recipients besides owner extra')
+              if extra not in (OWNER_WA_RAW, OWNER_WA):
+                  raise SystemExit('ABORT extra not owner')
+              body = {
+                  'action_key': ACTION,
+                  'condition_value': 'urgent',
+                  'record': {
+                      'company_name': COMPANY,
+                      'driver_name': 'בדיקת מערכת',
+                      'vehicle_plate': 'SYS-TEST',
+                      'description': 'בדיקת מערכת בלבד – אין לטפל',
+                      'urgency': 'urgent',
+                      'event_number': 'SYS-TEST-WA-SOURCE',
+                  },
+                  'title': 'בדיקת מערכת בלבד – אין לטפל',
+                  'message': 'בדיקת מערכת בלבד – אין לטפל',
+                  'link': '/dashboard',
+              }
+              req = urllib.request.Request(
+                  FN, data=json.dumps(body, ensure_ascii=False).encode(), method='POST',
+                  headers={'Content-Type': 'application/json', 'apikey': ANON, 'Authorization': 'Bearer ' + ANON},
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      raw = r.read().decode()
+                      result = {'http': r.status, 'body': json.loads(raw) if raw else {}}
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode()
+                  try:
+                      parsed = json.loads(raw)
+                  except Exception:
+                      parsed = {'raw': raw[:400]}
+                  result = {'http': e.code, 'body': parsed}
+              print('INVOKE', json.dumps(result, ensure_ascii=False)[:2500])
+              b = result.get('body') or {}
+              print('SOURCE_USED', b.get('source_used'))
+              print('SOURCE_ENV', b.get('source_env'))
+              print('SOURCE_PINNED', b.get('source_pinned'))
+              print('WHATSAPP_SENT', b.get('whatsapp_sent'))
+              print('EMAILS_SENT', b.get('emails_sent'))
+              print('WHATSAPP_RESULTS', json.dumps(b.get('whatsapp_results'), ensure_ascii=False)[:1500])
+              if str(b.get('source_used')) != APPROVED_SOURCE:
+                  print('SOURCE_NOT_APPROVED_AFTER_PIN')
+              results = b.get('whatsapp_results') or []
+              dests = [str(x.get('destination')) for x in results]
+              if dests and dests != [OWNER_WA]:
+                  print('DEST_MISMATCH', dests)
+              mids = [x.get('message_id') for x in results if x.get('message_id')]
+              print('MESSAGE_IDS', mids)
+              def dlr_lookup(mid=None):
+                  selects = [
+                      'recipient,status,provider_message_id,dlr_event,dlr_error_code,error_message,created_at,updated_at,company_name,payload_excerpt',
+                      'recipient,status,provider_message_id,error_message,created_at,company_name,payload_excerpt',
+                  ]
+                  last = (None, None)
+                  for sel in selects:
+                      if mid:
+                          path = f"/rest/v1/incident_notification_deliveries?provider_message_id=eq.{urllib.parse.quote(str(mid))}&select={sel}"
+                      else:
+                          path = (
+                              f"/rest/v1/incident_notification_deliveries"
+                              f"?company_name=eq.{cq}&channel=eq.whatsapp&recipient=eq.{OWNER_WA}"
+                              f"&created_at=gte.{urllib.parse.quote(since)}&select={sel}&order=created_at.desc&limit=5"
+                          )
+                      st, drows = rest(path)
+                      last = (st, drows)
+                      if st < 400:
+                          return st, drows
+                  return last
+
+              time.sleep(20)
+              since = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
+              if mids:
+                  for mid in mids:
+                      st, drows = dlr_lookup(mid)
+                      print('DLR1_HTTP', st)
+                      print('DLR1', json.dumps(drows, ensure_ascii=False)[:1500] if drows else drows)
+                  time.sleep(25)
+                  st, drows = dlr_lookup(mids[0])
+                  print('DLR2_HTTP', st)
+                  print('DLR2', json.dumps(drows, ensure_ascii=False)[:1500] if drows else drows)
+              else:
+                  st, drows = dlr_lookup()
+                  print('DLR_NO_MID_HTTP', st)
+                  print('DLR_NO_MID', json.dumps(drows, ensure_ascii=False)[:1500] if drows else drows)
+          finally:
+              st, restored_rows = rest(
+                  f'/rest/v1/driver_app_action_settings?company_name=eq.{cq}&action_key=eq.{aq}',
+                  method='PATCH',
+                  body={
+                      'whatsapp_enabled': original.get('whatsapp_enabled'),
+                      'whatsapp_to_fleet_managers': original.get('whatsapp_to_fleet_managers'),
+                      'whatsapp_to_company_contact': original.get('whatsapp_to_company_contact'),
+                      'whatsapp_to_dalia': original.get('whatsapp_to_dalia'),
+                      'whatsapp_extra': original.get('whatsapp_extra') or '',
+                  },
+              )
+              print('RESTORE_HTTP', st)
+              if isinstance(restored_rows, list) and restored_rows:
+                  now = restored_rows[0]
+                  restored = (
+                      now.get('whatsapp_enabled') == original.get('whatsapp_enabled')
+                      and (now.get('whatsapp_extra') or '') == (original.get('whatsapp_extra') or '')
+                  )
+              print('RESTORED', restored)
+          print('=== AKAVIM_WA_TEST_END ===')
+          PY
