@@ -44,8 +44,11 @@ function tokenIsStagingOnly(jwt) {
   const ref = String(payload.ref || '');
   const iss = String(payload.iss || '');
   if (ref && ref !== STAGING_REF) return false;
-  if (iss && !iss.includes(STAGING_REF)) return false;
-  return blob.includes(STAGING_REF) || iss.includes(STAGING_REF) || ref === STAGING_REF;
+  if (iss.includes(PROD_REF) || /dalia-car\.online/i.test(iss)) return false;
+  // Anon/service keys use iss=supabase + ref=<project>. User access tokens use the project URL as iss.
+  if (ref === STAGING_REF) return true;
+  if (iss.includes(STAGING_REF)) return true;
+  return false;
 }
 
 function stagingAnonFallback() {
