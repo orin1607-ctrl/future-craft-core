@@ -1,5 +1,6 @@
-# Inspect live Gupshup SOURCE, deploy notify-driver-event only (point-safe
-# SOURCE pin + messageId), then ONE WhatsApp send to אכבים / 972534338601.
+# Inspect live Gupshup SOURCE, then send ONE WhatsApp only if SOURCE != DESTINATION.
+# Requested test dest (this run): 0546500305 / 972546500305.
+# If that number is also the Gupshup SOURCE, abort before deploy/send.
 # Never Hostinger, migrate, Claims, בארי, or other companies.
 name: Production Akavim WhatsApp source pin test
 
@@ -8,7 +9,6 @@ on:
     branches: [cursor/prod-driver-area-only-b784]
     paths:
       - '.github/workflows/prod-akavim-wa-source-pin-test.yml'
-      - 'supabase/functions/notify-driver-event/index.ts'
   workflow_dispatch: {}
 
 concurrency:
@@ -111,9 +111,40 @@ jobs:
           print('APPROVED_TEMPLATES_SAMPLE', json.dumps(templates.get('approved_templates_sample'), ensure_ascii=False)[:800])
           print('SESSION_PROBE_DEST', ((probes.get('session_msg_auth_probe') or {}).get('body_fields') or {}).get('destination'))
           print('=== SOURCE_INSPECT_END ===')
+          out = os.environ.get('GITHUB_OUTPUT')
+          if out:
+              with open(out, 'a') as f:
+                  f.write(f'source_normalized={digits}\n')
+                  f.write(f'source_is_approved={str(digits == APPROVED).lower()}\n')
           PY
 
+      - name: Collision gate — refuse send if SOURCE == DESTINATION
+        id: gate
+        run: |
+          set -euo pipefail
+          SRC="${{ steps.inspect.outputs.source_normalized }}"
+          DEST="972546500305"
+          DEST_LOCAL="0546500305"
+          echo "SOURCE=${SRC:-UNKNOWN}"
+          echo "DESTINATION=${DEST} (${DEST_LOCAL})"
+          if [ -z "${SRC}" ]; then
+            echo "COLLISION=unknown"
+            echo "REFUSE_SEND unknown SOURCE — will not send"
+            echo "allow_send=false" >> "$GITHUB_OUTPUT"
+            echo "collision=unknown" >> "$GITHUB_OUTPUT"
+          elif [ "$SRC" = "$DEST" ]; then
+            echo "COLLISION=true"
+            echo "REFUSE_SEND SOURCE and DESTINATION are the same number"
+            echo "allow_send=false" >> "$GITHUB_OUTPUT"
+            echo "collision=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "COLLISION=false"
+            echo "allow_send=true" >> "$GITHUB_OUTPUT"
+            echo "collision=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Deploy notify-driver-event only (no Hostinger)
+        if: steps.gate.outputs.allow_send == 'true'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -124,7 +155,8 @@ jobs:
           npx --yes supabase functions deploy notify-driver-event --project-ref qasomfndnjuixgjmjwcm --use-api
           echo "EDGE_DEPLOY=notify-driver-event OK"
 
-      - name: One WhatsApp send to אכבים / 972534338601 then restore
+      - name: One WhatsApp send to אכבים then restore
+        if: steps.gate.outputs.allow_send == 'true'
         env:
           SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
