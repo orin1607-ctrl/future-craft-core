@@ -1,77 +1,14 @@
 {
-  "at": "2026-09-14T09:15:22Z",
+  "at": "2026-09-14T10:04:00Z",
   "target": "usfeoerkpcafxxlyuldl",
   "production_touched": false,
   "read_only": true,
-  "verdict": "STOP_SECRET_NOT_IN_ACTIONS_REPOSITORY_OR_PREVIEW",
+  "verdict": "FRESH_SECRET_PROBE_IN_PROGRESS",
   "token_name": "SUPABASE_STAGING_PRECHECK_TOKEN",
   "ignored_old_token": "SUPABASE_ACCESS_TOKEN",
-  "github_actions": {
-    "run": "https://github.com/orin1607-ctrl/future-craft-core/actions/runs/34826920711",
-    "event": "pull_request",
-    "is_fork": false,
-    "head_repo": "orin1607-ctrl/future-craft-core",
-    "repository_secrets": {
-      "SUPABASE_STAGING_PRECHECK_TOKEN": false,
-      "other_repo_secret_SUPABASE_ACCESS_TOKEN_visible": true,
-      "SUPABASE_STAGING_PRECHECK_TOKEN_as_variable": false
-    },
-    "preview_environment_secret_present": false,
-    "production_environment_not_probed": true,
-    "github_pages_environment_not_probed": true
-  },
-  "cloud_agent_env": {
-    "has_precheck_token": false,
-    "injected_secret_names": ["SUPABASE_ACCESS_TOKEN"],
-    "did_not_use_old_token": true
-  },
-  "catalog": {
-    "shop_company_name": {
-      "garage_customers": "missing",
-      "garage_vehicles": "missing",
-      "garage_cases": "missing"
-    }
-  },
+  "note": "Owner asked for a new check of current Repository Actions secrets. Previous runs are not reused.",
   "counts": {
-    "garage_cases_total": null,
-    "garage_cases_unambiguous": null,
-    "garage_cases_conflict": null,
-    "garage_cases_no_signal": null,
-    "garage_customers_total": null,
-    "garage_customers_unambiguous": null,
-    "garage_customers_conflict": null,
-    "garage_customers_no_cases": null,
-    "garage_customers_cases_exist_but_opener_shop_empty": null,
-    "garage_vehicles_total": null,
-    "garage_vehicles_unambiguous_from_own_cases": null,
-    "garage_vehicles_conflict": null,
-    "garage_vehicles_inherit_from_unambiguous_customer": null,
-    "garage_vehicles_no_cases_and_customer_unassigned": null,
-    "garage_media_total": null,
-    "garage_media_orphan_without_case": null,
-    "state": "blocked",
-    "reason": "SELECT counts were not executed. Management API was never called with cursor-garage-precheck-readonly. Migration was not started."
-  },
-  "missing_permission": {
-    "not": "Supabase Database Read-write (not requested, not missing, do not widen)",
-    "not_2": "GitHub pull_request secret block (other repository Actions secrets ARE visible to this same-repo PR)",
-    "actual_gap": "GitHub Actions cannot see a secret named exactly SUPABASE_STAGING_PRECHECK_TOKEN in Repository secrets or in the Preview environment. Without that delivery, PRECHECK cannot call POST /v1/projects/usfeoerkpcafxxlyuldl/database/query.",
-    "needed": [
-      "GitHub → Settings → Secrets and variables → Actions → Repository secrets → New repository secret",
-      "Name exactly: SUPABASE_STAGING_PRECHECK_TOKEN",
-      "Value: the PAT cursor-garage-precheck-readonly (Database READ on dalia-staging only)",
-      "Not Environment secrets (Production / github-pages / Preview)",
-      "Not Actions Variables",
-      "Not Dependabot / Codespaces secrets",
-      "Optional extra: inject the same name into the Cloud Agent environment so this VM can run PRECHECK locally"
-    ],
-    "do_not": [
-      "Do not use SUPABASE_ACCESS_TOKEN",
-      "Do not widen Database to Read-write for PRECHECK",
-      "Do not skip PRECHECK",
-      "Do not apply isolation SQL",
-      "Do not attach this job to the Production GitHub environment"
-    ]
+    "state": "pending_fresh_run"
   },
   "gate": {
     "migration_run": false,
