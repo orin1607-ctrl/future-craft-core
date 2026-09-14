@@ -42,7 +42,14 @@ async function requireSuperAdmin(req: Request) {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
 
-  const token = authHeader.replace('Bearer ', '');
+  const token = authHeader.replace('Bearer ', '').trim();
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  // Additive: same-project Edge functions (notify-driver-event) may reuse this
+  // proven Gupshup send. Super-admin UI / E2E JWT path is unchanged.
+  if (serviceKey && token === serviceKey) {
+    return { supabaseAdmin, user: { id: 'service_role', email: 'internal@notify-driver-event' } };
+  }
+
   const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
   if (authError || !user) {
     return { error: jsonResponse({ success: false, error: authError?.message || 'Unauthorized' }, 401) };

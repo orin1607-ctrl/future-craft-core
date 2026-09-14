@@ -36,6 +36,8 @@ function isDriverEventWhatsAppAllowed(supabaseUrl: string | undefined): boolean 
 }
 
 const LEGACY_EMAIL_ACTIONS = new Set(['fault', 'fault_urgent', 'accident', 'service_order']);
+/** These events already send WhatsApp via notify-accident-email when company_settings.incident_notify_whatsapp is on. */
+const LEGACY_WHATSAPP_ACTIONS = new Set(['fault', 'fault_urgent', 'accident']);
 
 function escapeHtml(value: unknown): string {
   return String(value ?? '')
@@ -50,6 +52,60 @@ function normalizeWhatsAppDigits(phone: string): string {
   if (!digits) return '';
   if (digits.startsWith('0')) return `972${digits.slice(1)}`;
   return digits;
+}
+
+/** Proven Production path (22.7 / 6.9): send-whatsapp-message → session POST /wa/api/v1/msg. */
+async function sendViaSendWhatsAppMessage(opts: {
+  supabaseUrl: string;
+  destination: string;
+  text: string;
+}): Promise<{
+  destination: string;
+  http: number;
+  success: boolean;
+  message_id: string | null;
+  gupshup_status: string | number | null;
+  gupshup_response: Record<string, unknown> | null;
+  error: string | null;
+}> {
+  const srk = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+  const anon = Deno.env.get('SUPABASE_ANON_KEY') || srk;
+  const res = await fetch(`${opts.supabaseUrl}/functions/v1/send-whatsapp-message`, {
+    method: 'POST',
+    headers: {
+      apikey: anon,
+      Authorization: `Bearer ${srk}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      action: 'send',
+      destination: opts.destination,
+      message: opts.text,
+    }),
+  });
+  const raw = await res.text();
+  let parsed: Record<string, unknown> = {};
+  try {
+    parsed = raw ? JSON.parse(raw) as Record<string, unknown> : {};
+  } catch {
+    parsed = { raw: raw.slice(0, 400) };
+  }
+  const nested = (parsed.gupshup_response && typeof parsed.gupshup_response === 'object')
+    ? parsed.gupshup_response as Record<string, unknown>
+    : parsed;
+  const messageId = String(
+    parsed.message_id || parsed.messageId || nested.messageId || nested.message_id || parsed.id || '',
+  );
+  const success = res.ok && parsed.success !== false;
+  return {
+    destination: opts.destination,
+    http: res.status,
+    success,
+    message_id: messageId || null,
+    gupshup_status: (parsed.gupshup_status as string | number | null) ?? (nested.status as string | null) ?? null,
+    gupshup_response: nested,
+    error: success ? null : String(parsed.error || parsed.message || raw).slice(0, 300),
+  };
 }
 
 type ActionSetting = {
@@ -342,83 +398,84 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (uniqueWhatsapp.length > 0 && LEGACY_WHATSAPP_ACTIONS.has(actionKey)) {
+      const { data: incidentSettings } = await supabaseAdmin
+        .from('company_settings')
+        .select('incident_notify_whatsapp')
+        .eq('company_name', companyName)
+        .maybeSingle();
+      if (incidentSettings?.incident_notify_whatsapp === true) {
+        whatsappSkipped = 'legacy_notify_accident_email';
+        uniqueWhatsapp.length = 0;
+        console.log('WhatsApp skipped — notify-accident-email already owns this event');
+      }
+    }
+
     if (uniqueWhatsapp.length > 0) {
       if (!isDriverEventWhatsAppAllowed(supabaseUrl)) {
         whatsappSkipped = 'not_production_gupshup';
         console.log('WhatsApp skipped — not live Production Gupshup project');
       } else {
-        const apiKey = Deno.env.get('GUPSHUP_API_KEY');
         const resolved = resolveDriverEventSource();
         sourceUsed = resolved.source;
         sourceEnv = resolved.env_source;
         sourcePinned = resolved.pinned;
-        const srcName = Deno.env.get('GUPSHUP_APP_NAME') || APPROVED_GUPSHUP_APP;
-        if (!apiKey) {
-          whatsappSkipped = 'missing_gupshup_key';
-          console.error('GUPSHUP_API_KEY is not configured — skipping WhatsApp');
-        } else {
-          const text = `${title}\n${message}`;
-          const waResults = await Promise.allSettled(
-            uniqueWhatsapp.map(async (destination) => {
-              const params = new URLSearchParams();
-              params.set('channel', 'whatsapp');
-              params.set('source', sourceUsed);
-              params.set('destination', destination);
-              params.set('src.name', srcName);
-              params.set('message', JSON.stringify({ type: 'text', text }));
-              const res = await fetch('https://api.gupshup.io/wa/api/v1/msg', {
-                method: 'POST',
-                headers: {
-                  apikey: apiKey,
-                  'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: params.toString(),
-              });
-              const raw = await res.text();
-              let parsed: Record<string, unknown> = {};
-              try {
-                parsed = raw ? JSON.parse(raw) as Record<string, unknown> : {};
-              } catch {
-                parsed = { raw: raw.slice(0, 400) };
-              }
-              const messageId = String(parsed.messageId || parsed.message_id || parsed.id || '');
-              const gupshupStatus = String(parsed.status || '');
-              const okHttp = res.ok;
-              const okStatus = !gupshupStatus || ['submitted', 'success', 'ok'].includes(gupshupStatus.toLowerCase());
+        const text = `${title}\n${message}`;
+        const waResults = await Promise.allSettled(
+          uniqueWhatsapp.map(async (destination) => {
+            if (destination === sourceUsed || destination === APPROVED_GUPSHUP_SOURCE) {
               const result = {
                 destination,
                 source: sourceUsed,
-                http: res.status,
-                gupshup_status: gupshupStatus || null,
-                message_id: messageId || null,
-                error: okHttp && okStatus ? null : String(parsed.message || parsed.error || raw).slice(0, 300),
+                via: 'send-whatsapp-message',
+                http: 0,
+                gupshup_status: null as string | number | null,
+                message_id: null as string | null,
+                error: 'refused SOURCE==DESTINATION',
               };
               whatsappResults.push(result);
-              if (messageId) {
-                const { error: insErr } = await supabaseAdmin.from('incident_notification_deliveries').insert({
-                  company_name: companyName || 'notify-driver-event',
-                  incident_kind: 'fault',
-                  incident_id: crypto.randomUUID(),
-                  event_number: String(record.event_number || 'DRV-WA'),
-                  channel: 'whatsapp',
-                  recipient: destination,
-                  status: okHttp && okStatus ? 'submitted' : 'failed',
-                  provider_message_id: messageId,
-                  payload_excerpt: text.slice(0, 400),
-                  error_message: result.error,
-                  sent_at: new Date().toISOString(),
-                });
-                if (insErr) console.error('notify-driver-event delivery insert', insErr);
-              }
-              if (!okHttp || !okStatus) {
-                console.error(`WhatsApp failed for ${destination}: ${res.status} ${raw.slice(0, 400)}`);
-                throw new Error('whatsapp failed');
-              }
-              return result;
-            }),
-          );
-          whatsappSent = waResults.filter((r) => r.status === 'fulfilled').length;
-        }
+              throw new Error('whatsapp refused source==destination');
+            }
+            const sent = await sendViaSendWhatsAppMessage({
+              supabaseUrl,
+              destination,
+              text,
+            });
+            const ok = sent.success && !!sent.message_id;
+            const result = {
+              destination,
+              source: sourceUsed,
+              via: 'send-whatsapp-message',
+              http: sent.http,
+              gupshup_status: sent.gupshup_status,
+              message_id: sent.message_id,
+              error: ok ? null : sent.error,
+            };
+            whatsappResults.push(result);
+            if (sent.message_id) {
+              const { error: insErr } = await supabaseAdmin.from('incident_notification_deliveries').insert({
+                company_name: companyName || 'notify-driver-event',
+                incident_kind: 'fault',
+                incident_id: crypto.randomUUID(),
+                event_number: String(record.event_number || 'DRV-WA'),
+                channel: 'whatsapp',
+                recipient: destination,
+                status: ok ? 'sent' : 'failed',
+                provider_message_id: sent.message_id,
+                payload_excerpt: text.slice(0, 400),
+                error_message: result.error,
+                sent_at: new Date().toISOString(),
+              });
+              if (insErr) console.error('notify-driver-event delivery insert', insErr);
+            }
+            if (!ok) {
+              console.error(`WhatsApp failed for ${destination}: ${sent.http} ${sent.error}`);
+              throw new Error('whatsapp failed');
+            }
+            return result;
+          }),
+        );
+        whatsappSent = waResults.filter((r) => r.status === 'fulfilled').length;
       }
     }
 
@@ -440,6 +497,7 @@ Deno.serve(async (req) => {
         source_used: sourceUsed || null,
         source_env: sourceEnv || null,
         source_pinned: sourcePinned,
+        whatsapp_via: whatsappSent > 0 || whatsappResults.length > 0 ? 'send-whatsapp-message' : null,
         whatsapp_results: whatsappResults,
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

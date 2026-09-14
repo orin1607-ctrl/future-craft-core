@@ -1,0 +1,18 @@
+{
+  "created_at": "2026-09-14T10:55:00.000Z",
+  "reason": "Before wiring notify-driver-event WhatsApp through send-whatsapp-message",
+  "git_tag": "restore/prod-before-driver-wa-reuse-20260914",
+  "git_sha_before": "6145e4bdd04897065cad0d038bbf3ef6f4cf8b02",
+  "git_branch": "cursor/prod-driver-area-only-b784",
+  "live_site": "https://dalia-car.online",
+  "prod_supabase_ref": "qasomfndnjuixgjmjwcm",
+  "rollback": "Redeploy notify-driver-event and send-whatsapp-message from SHA 6145e4bd. Do not touch Hostinger. Do not migrate. Do not change GUPSHUP_SOURCE.",
+  "functions_touched_after_this_point": [
+    "notify-driver-event",
+    "send-whatsapp-message (additive service_role auth only — super_admin path unchanged)"
+  ],
+  "functions_not_touched": [
+    "notify-accident-email",
+    "gupshup-webhook"
+  ]
+}

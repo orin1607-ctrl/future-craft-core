@@ -1,7 +1,8 @@
-# Inspect live Gupshup SOURCE, then send ONE WhatsApp only if SOURCE != DESTINATION.
+# Inspect live Gupshup SOURCE, deploy notify-driver-event + additive
+# send-whatsapp-message auth (service_role only), then ONE WhatsApp send
+# via the proven send-whatsapp-message path.
 # SOURCE: 0546500305 / 972546500305
 # DESTINATION: 0534338601 / 972534338601
-# Skip Edge deploy — notify-driver-event already live with SOURCE pin + messageId.
 # Never Hostinger, migrate, Claims, בארי, other companies, or global GUPSHUP_SOURCE.
 name: Production Akavim WhatsApp source pin test
 
@@ -144,8 +145,8 @@ jobs:
             echo "collision=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Deploy notify-driver-event only (no Hostinger)
-        if: false
+      - name: Deploy notify-driver-event + send-whatsapp-message (no Hostinger)
+        if: steps.gate.outputs.allow_send == 'true'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -153,6 +154,8 @@ jobs:
           TOK=$(printf '%s' "${SUPABASE_ACCESS_TOKEN:-}" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
           export SUPABASE_ACCESS_TOKEN="$TOK"
           echo "GH_TOKEN_LEN=${#SUPABASE_ACCESS_TOKEN}"
+          npx --yes supabase functions deploy send-whatsapp-message --project-ref qasomfndnjuixgjmjwcm --use-api
+          echo "EDGE_DEPLOY=send-whatsapp-message OK"
           npx --yes supabase functions deploy notify-driver-event --project-ref qasomfndnjuixgjmjwcm --use-api
           echo "EDGE_DEPLOY=notify-driver-event OK"
 
@@ -223,6 +226,10 @@ jobs:
               'wa_to_dalia': original.get('whatsapp_to_dalia'),
               'whatsapp_extra': original.get('whatsapp_extra'),
           }, ensure_ascii=False))
+          st, csrows = rest(f'/rest/v1/company_settings?company_name=eq.{cq}&select=company_name,incident_notify_whatsapp,incident_whatsapp_recipients')
+          print('LEGACY_WA_SETTINGS', json.dumps(csrows, ensure_ascii=False)[:800] if csrows else csrows)
+          if isinstance(csrows, list) and csrows and csrows[0].get('incident_notify_whatsapp') is True:
+              raise SystemExit('ABORT legacy notify-accident-email WhatsApp is ON for אכבים — would duplicate')
           restored = False
           result = None
           try:
@@ -283,6 +290,8 @@ jobs:
               print('SOURCE_ENV', b.get('source_env'))
               print('SOURCE_PINNED', b.get('source_pinned'))
               print('WHATSAPP_SENT', b.get('whatsapp_sent'))
+              print('WHATSAPP_VIA', b.get('whatsapp_via'))
+              print('WHATSAPP_SKIPPED', b.get('whatsapp_skipped'))
               print('EMAILS_SENT', b.get('emails_sent'))
               print('WHATSAPP_RESULTS', json.dumps(b.get('whatsapp_results'), ensure_ascii=False)[:1500])
               if str(b.get('source_used')) != APPROVED_SOURCE:
