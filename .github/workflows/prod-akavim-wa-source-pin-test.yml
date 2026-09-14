@@ -1,10 +1,8 @@
-# Inspect live Gupshup SOURCE (no dest send), then ONE authorized FINAL PASS
-# WhatsApp via the real driver-area path:
-#   insert אכבים faults row → notify-driver-event → send-whatsapp-message
+# FINAL PASS send completed 2026-09-14 (messageId 77b476f9-00bb-4852-b53d-f00d9aefe97c).
+# Deploy/send steps are disarmed — do not auto-send again.
 # SOURCE: 0546500305 / 972546500305
 # DESTINATION: 0534338601 / 972534338601
 # Never Hostinger, migrate, Claims, בארי, other companies, or global GUPSHUP_SOURCE.
-# Deploy stays disarmed. If this send fails: do not resend.
 name: Production Akavim WhatsApp source pin test
 
 on:
@@ -161,7 +159,7 @@ jobs:
           echo "EDGE_DEPLOY=notify-driver-event OK"
 
       - name: One WhatsApp send to אכבים then restore
-        if: steps.gate.outputs.allow_send == 'true'
+        if: false
         env:
           SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANON: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
