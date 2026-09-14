@@ -1,0 +1,75 @@
+name: Garage tenant Isolation QA — Staging only
+
+# Real RLS/Isolation probe with fleet A, fleet B, and super_admin.
+# Target: usfeoerkpcafxxlyuldl only.
+# Never applies SQL. Never opens /garage-management. Never Production. Never Gmail.
+
+on:
+  push:
+    branches:
+      - cursor/garage-isolation-real-qa-bed0
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  isolation-qa:
+    if: github.ref != 'refs/heads/production' && github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Guard Staging-only
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, sys
+          ref = os.environ.get("GITHUB_REF", "")
+          if ref.endswith("/production") or ref.endswith("/main"):
+              sys.exit("Refusing Production/main. Isolation QA is Staging-only.")
+          print("ref_ok", ref)
+          print("will_not_apply_sql=true")
+          print("will_not_open_garage_management=true")
+          print("will_not_touch_production=true")
+          print("will_not_touch_gmail=true")
+          PY
+      - name: Diagnose isolation QA secret delivery (booleans only)
+        env:
+          HAS_STAGING_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY != '' }}
+          HAS_STAGING_QA_EMAIL: ${{ secrets.STAGING_QA_EMAIL != '' }}
+          HAS_STAGING_QA_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD != '' }}
+          HAS_STAGING_QA_FLEET_A_EMAIL: ${{ secrets.STAGING_QA_FLEET_A_EMAIL != '' }}
+          HAS_STAGING_QA_FLEET_A_PASSWORD: ${{ secrets.STAGING_QA_FLEET_A_PASSWORD != '' }}
+          HAS_STAGING_QA_FLEET_B_EMAIL: ${{ secrets.STAGING_QA_FLEET_B_EMAIL != '' }}
+          HAS_STAGING_QA_FLEET_B_PASSWORD: ${{ secrets.STAGING_QA_FLEET_B_PASSWORD != '' }}
+        run: |
+          set -euo pipefail
+          echo "has_staging_supabase_anon_key=${HAS_STAGING_SUPABASE_ANON_KEY}"
+          echo "has_staging_qa_email=${HAS_STAGING_QA_EMAIL}"
+          echo "has_staging_qa_password=${HAS_STAGING_QA_PASSWORD}"
+          echo "has_staging_qa_fleet_a_email=${HAS_STAGING_QA_FLEET_A_EMAIL}"
+          echo "has_staging_qa_fleet_a_password=${HAS_STAGING_QA_FLEET_A_PASSWORD}"
+          echo "has_staging_qa_fleet_b_email=${HAS_STAGING_QA_FLEET_B_EMAIL}"
+          echo "has_staging_qa_fleet_b_password=${HAS_STAGING_QA_FLEET_B_PASSWORD}"
+      - name: Run Isolation QA against Staging only
+        env:
+          VITE_SUPABASE_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          VITE_SUPABASE_PROJECT_ID: usfeoerkpcafxxlyuldl
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          STAGING_QA_EMAIL: ${{ secrets.STAGING_QA_EMAIL }}
+          STAGING_QA_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD }}
+          STAGING_QA_FLEET_A_EMAIL: ${{ secrets.STAGING_QA_FLEET_A_EMAIL }}
+          STAGING_QA_FLEET_A_PASSWORD: ${{ secrets.STAGING_QA_FLEET_A_PASSWORD }}
+          STAGING_QA_FLEET_B_EMAIL: ${{ secrets.STAGING_QA_FLEET_B_EMAIL }}
+          STAGING_QA_FLEET_B_PASSWORD: ${{ secrets.STAGING_QA_FLEET_B_PASSWORD }}
+        run: node scripts/qa-garage-tenant-isolation.mjs
+      - name: Upload Isolation QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garage-tenant-isolation-qa
+          path: test-results/garage-tenant-isolation-qa.json
+          if-no-files-found: ignore
