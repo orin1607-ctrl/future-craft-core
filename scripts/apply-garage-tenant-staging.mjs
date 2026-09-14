@@ -122,11 +122,16 @@ function applyWithPsql(url, sqlFile) {
       continue;
     }
     console.log('PSQL_CURRENT_DATABASE', String(ident.stdout || '').trim());
+    const present = psqlConnect(attempt.conn, ['-tA', '-c', "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='garage_customers' AND column_name='shop_company_name');"], 30000);
+    if (present.status === 0 && String(present.stdout || '').trim() === 't') {
+      console.log('APPLY SKIP already_present shop_company_name — running no DDL this pass');
+      return { skipped: true };
+    }
     const res = psqlConnect(attempt.conn, ['-f', sqlFile], 180000);
     if (res.status !== 0) {
-      throw new Error((res.stderr || res.stdout || 'psql failed').slice(0, 800));
+      throw new Error((res.stderr || res.stdout || 'psql failed').slice(0, 1600));
     }
-    return;
+    return { skipped: false };
   }
   throw new Error(lastErr);
 }
@@ -182,8 +187,12 @@ async function run() {
   }
 
   try {
-    applyWithPsql(dbUrl, SQL_FILE);
-    report.apply = { ok: true, via: 'STAGING_DATABASE_URL_psql' };
+    const result = applyWithPsql(dbUrl, SQL_FILE);
+    report.apply = {
+      ok: true,
+      via: result?.skipped ? 'already_applied_skip_ddl' : 'STAGING_DATABASE_URL_psql',
+      skipped_because_present: Boolean(result?.skipped),
+    };
     report.identity = { via: 'STAGING_DATABASE_URL', ref: STAGING_REF };
     writeReportFile(report);
     console.log('APPLY OK via STAGING_DATABASE_URL psql');
