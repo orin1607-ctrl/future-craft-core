@@ -4,10 +4,9 @@
  * Forbidden: qasomfndnjuixgjmjwcm / dalia-car.online
  *
  * 1. REST catalog probes (GET only) — always
- * 2. Optional SQL counts if STAGING_DATABASE_URL or a working Management token exists
- * Never ALTER/INSERT/DELETE/CREATE/DROP. Never apply tenant SQL.
+ * 2. SQL counts via SUPABASE_STAGING_PRECHECK_TOKEN only (Database READ on dalia-staging)
+ * Never uses SUPABASE_ACCESS_TOKEN. Never uses Production. Never apply tenant SQL.
  */
-import { spawnSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -135,16 +134,20 @@ async function run() {
   const ref = jwtRef(anon);
   if (ref && ref !== STAGING_REF) abort(`Anon JWT ref ${ref} is not Staging`);
 
-  const token = String(process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
-  const dbUrl = String(process.env.STAGING_DATABASE_URL || '').replace(/[\r\n]/g, '').trim();
+  const precheckToken = String(process.env.SUPABASE_STAGING_PRECHECK_TOKEN || '').replace(/[\r\n]/g, '').trim();
+  if (process.env.SUPABASE_ACCESS_TOKEN) {
+    console.log('NOTE: SUPABASE_ACCESS_TOKEN is present in the environment and will be ignored. PRECHECK uses SUPABASE_STAGING_PRECHECK_TOKEN only.');
+  }
 
   const report = {
     at: new Date().toISOString(),
     target: STAGING_REF,
     production_touched: false,
     read_only: true,
+    token_name: 'SUPABASE_STAGING_PRECHECK_TOKEN',
     verdict: 'CATALOG_ONLY',
     catalog: await catalog(url, anon),
+    identity: null,
     counts: {
       state: 'blocked',
       reason: null,
@@ -156,65 +159,79 @@ async function run() {
   if (shop.garage_customers === 'missing' && shop.garage_vehicles === 'missing' && shop.garage_cases === 'missing') {
     report.notes.push('shop_company_name is not on Staging yet. Tenant SQL has not been applied.');
   }
-  report.notes.push('Row counts require authenticated Staging DB read. Anon is GRANT-denied on garage_* (42501).');
 
   console.log('PRECHECK TARGET', JSON.stringify({
     staging_ref: STAGING_REF,
-    has_staging_database_url: Boolean(dbUrl),
-    has_access_token: Boolean(token),
+    production_ref_forbidden: PROD_REF,
+    has_precheck_token: Boolean(precheckToken),
+    ignored_old_access_token: Boolean(process.env.SUPABASE_ACCESS_TOKEN),
   }));
   console.log('CATALOG', JSON.stringify(report.catalog, null, 2));
 
-  if (dbUrl) {
-    if (dbUrl.includes(PROD_REF) || /dalia-car\.online/i.test(dbUrl)) abort('STAGING_DATABASE_URL looks like Production. Refusing.');
-    if (!dbUrl.includes(STAGING_REF)) abort('STAGING_DATABASE_URL is not Staging usfeoerkpcafxxlyuldl. Refusing.');
-    const res = spawnSync(
-      'npx',
-      ['--yes', 'supabase', 'db', 'query', '--db-url', dbUrl, '-f', SQL_FILE],
-      { encoding: 'utf8', timeout: 120000, env: { ...process.env } },
-    );
-    if (res.status !== 0) {
-      report.counts = { state: 'error', error: String(res.stderr || res.stdout || 'query failed').slice(0, 600) };
-      writeReport(report);
-      abort('Read-only count query failed. Production not touched.');
-    }
-    report.verdict = 'READ';
-    report.counts = { state: 'ok', via: 'STAGING_DATABASE_URL', stdout: String(res.stdout || '').slice(0, 4000) };
+  if (!precheckToken) {
+    report.counts.reason = 'MISSING_SUPABASE_STAGING_PRECHECK_TOKEN';
+    report.notes.push('SUPABASE_STAGING_PRECHECK_TOKEN is not in this environment. Did not use SUPABASE_ACCESS_TOKEN. Production not touched.');
     writeReport(report);
-    console.log(res.stdout);
-    return;
+    console.log('CATALOG_ONLY missing_precheck_token');
+    process.exit(3);
   }
 
-  if (token) {
-    const identRes = await mgmt(token, `/projects/${STAGING_REF}`);
-    if (identRes.status === 401 || identRes.status === 403) {
-      report.counts.reason = 'STAGING_MANAGEMENT_API_UNAUTHORIZED';
-      report.notes.push('SUPABASE_ACCESS_TOKEN rejected (HTTP 401). Counts not available. Catalog probes completed. Production not touched.');
-      writeReport(report);
-      console.log('CATALOG_ONLY counts_blocked');
-      process.exit(3);
-    }
-    const queryRes = await mgmt(token, `/projects/${STAGING_REF}/database/query`, {
-      method: 'POST',
-      body: { query: sql },
-    });
-    const text = await queryRes.text();
-    if (queryRes.status < 200 || queryRes.status >= 300) {
-      report.counts = { state: 'error', http: queryRes.status, body: text.slice(0, 400) };
-      writeReport(report);
-      abort('Read-only count query failed. Production not touched.');
-    }
-    report.verdict = 'READ';
-    report.counts = { state: 'ok', via: 'management_api', body: text.slice(0, 4000) };
+  const identRes = await mgmt(precheckToken, `/projects/${STAGING_REF}`);
+  const identText = await identRes.text();
+  let ident = {};
+  try { ident = identText ? JSON.parse(identText) : {}; } catch { ident = { raw: identText.slice(0, 240) }; }
+  report.identity = {
+    http: identRes.status,
+    id: ident.id || ident.ref || null,
+    name: ident.name || null,
+    region: ident.region || null,
+    status: ident.status || null,
+  };
+  console.log('IDENTITY', JSON.stringify(report.identity));
+
+  if (identRes.status === 401 || identRes.status === 403) {
+    report.counts.reason = 'STAGING_PRECHECK_TOKEN_UNAUTHORIZED';
+    report.counts.http = identRes.status;
+    report.counts.preview = identText.slice(0, 400);
+    report.notes.push(`GET /v1/projects/${STAGING_REF} returned HTTP ${identRes.status}. Need a valid Management token with access to dalia-staging / ${STAGING_REF}. Did not expand permissions. Production not touched.`);
     writeReport(report);
-    console.log(text);
-    return;
+    console.log('FAIL_CLOSED precheck_token_unauthorized');
+    process.exit(3);
+  }
+  if (String(ident.id || ident.ref || '') === PROD_REF || /production/i.test(String(ident.name || ''))) {
+    abort('Identity looks like Production. Refusing.');
+  }
+  if (ident.id && ident.id !== STAGING_REF && ident.ref && ident.ref !== STAGING_REF) {
+    abort(`Unexpected project identity ${ident.id || ident.ref}`);
   }
 
-  report.counts.reason = 'MISSING_STAGING_READ_CREDENTIALS';
+  const queryRes = await mgmt(precheckToken, `/projects/${STAGING_REF}/database/query`, {
+    method: 'POST',
+    body: { query: sql },
+  });
+  const text = await queryRes.text();
+  if (queryRes.status < 200 || queryRes.status >= 300) {
+    report.counts = {
+      state: 'error',
+      http: queryRes.status,
+      preview: text.slice(0, 800),
+      missing_permission: queryRes.status === 401 || queryRes.status === 403
+        ? 'Management API POST /v1/projects/{ref}/database/query (SELECT). Token has Database=READ but this endpoint rejected the call. Do not widen to Read-write; report this gap.'
+        : null,
+    };
+    report.notes.push(`Read-only count query HTTP ${queryRes.status}. Migration was not started.`);
+    writeReport(report);
+    console.log('FAIL_CLOSED query_http', queryRes.status, text.slice(0, 400));
+    process.exit(3);
+  }
+
+  let parsed;
+  try { parsed = JSON.parse(text); } catch { parsed = text; }
+  report.verdict = 'READ';
+  report.counts = { state: 'ok', via: 'SUPABASE_STAGING_PRECHECK_TOKEN', http: queryRes.status, data: parsed };
   writeReport(report);
-  console.log('CATALOG_ONLY missing_db_url');
-  process.exit(3);
+  console.log('PRECHECK COUNTS');
+  console.log(typeof parsed === 'string' ? parsed.slice(0, 4000) : JSON.stringify(parsed, null, 2).slice(0, 4000));
 }
 
 run().catch((e) => {
