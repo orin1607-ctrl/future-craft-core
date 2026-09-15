@@ -94,4 +94,17 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/expenses', 'driver', extras)).toBe(false);
     expect(canAccessRoute('/driver-notifications', 'driver', extras)).toBe(false);
   });
+
+  it('regular fleet_manager still cannot open /garage-management', () => {
+    expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/vehicles', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/reports', 'fleet_manager')).toBe(true);
+  });
+
+  it('super_admin route access is unchanged for fleet home modules', () => {
+    expect(canAccessRoute('/dashboard', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/vehicles', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/user-management', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/dalia-settings', 'super_admin')).toBe(true);
+  });
 });

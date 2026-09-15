@@ -1,0 +1,243 @@
+import { describe, expect, it } from 'vitest';
+import {
+  closeCaseGaps,
+  closedCaseUiStatus,
+  customerDisplayName,
+  defaultRouteForCustomer,
+  deriveCaseStatus,
+  emptyCaseData,
+  encodeContactsInNotes,
+  extractWorkOrderHints,
+  findDuplicateCustomers,
+  finishWorkGaps,
+  garageCaseListStatus,
+  garageListBucket,
+  garageNextAction,
+  hasApprovedPrice,
+  isGarageSchemaMissing,
+  isGarageShopColumnMissing,
+  isGarageWorkflowColumnMissing,
+  notesWithoutContacts,
+  normalizePhone,
+  normalizePlate,
+  parseCustomerContacts,
+  routeLabel,
+  sanitizeCaseData,
+  vehicleLabel,
+} from './garageBook';
+
+describe('garage book helpers', () => {
+  it('normalizes Israeli phones and plates', () => {
+    expect(normalizePhone('050-123-4567')).toBe('0501234567');
+    expect(normalizePhone('+972501234567')).toBe('0501234567');
+    expect(normalizePlate('12-345-67')).toBe('1234567');
+  });
+
+  it('extracts work-order fields from document text only, never from the filename or customer', () => {
+    const hints = extractWorkOrderHints({
+      fileName: 'order-PO-8821-99-888-77-claim-DAL99.pdf',
+      text: [
+        'לקוח: חברת צי QA',
+        'מספר הזמנה: 88900123',
+        'מספר תיק / אסמכתא: TK-4421',
+        'תאריך הזמנה: 12/09/2026',
+      ].join('\n'),
+    });
+    expect(hints.order_number).toBe('88900123');
+    expect(hints.case_ref).toBe('TK-4421');
+    expect(hints.order_date).toBe('12/09/2026');
+    expect(extractWorkOrderHints({ fileName: 'order-PO-8821-claim-DAL99.pdf' }).order_number).toBe('');
+    expect(extractWorkOrderHints({ fileName: 'order-PO-8821-claim-DAL99.pdf' }).case_ref).toBe('');
+  });
+
+  it('warns on duplicate phone / business id / name without merging', () => {
+    const existing = [
+      {
+        id: '1',
+        customer_number: 1281,
+        customer_type: 'business' as const,
+        name: '',
+        company_name: 'חברת בדיקה בע"מ',
+        phone: '03-9001234',
+        second_phone: '',
+        email: '',
+        address: '',
+        business_id: '512345678',
+        contact_person: '',
+        preferred_channel: '',
+        notes: '',
+      },
+    ];
+    expect(findDuplicateCustomers(existing, {
+      customer_type: 'business',
+      name: '',
+      company_name: 'חברת בדיקה בע"מ',
+      phone: '039001234',
+      business_id: '',
+    })).toHaveLength(1);
+    expect(findDuplicateCustomers(existing, {
+      customer_type: 'private',
+      name: 'מישהו אחר',
+      company_name: '',
+      phone: '0500000000',
+      business_id: '512345678',
+    })).toHaveLength(1);
+  });
+
+  it('strips data URLs and base64 from case_data', () => {
+    const cleaned = sanitizeCaseData({
+      quoteCreated: true,
+      signaturePng: 'data:image/png;base64,aaaa',
+      photos: { fl: true, shot: 'data:image/jpeg;base64,bbbb' },
+    });
+    expect(cleaned.quoteCreated).toBe(true);
+    expect((cleaned as { signaturePng?: string }).signaturePng).toBeUndefined();
+    expect((cleaned.photos as { fl?: boolean }).fl).toBe(true);
+    expect((cleaned.photos as { shot?: string }).shot).toBeUndefined();
+  });
+
+  it('derives status from flow flags', () => {
+    expect(deriveCaseStatus(emptyCaseData())).toBe('בדיקת רכב');
+    expect(deriveCaseStatus({ quoteCreated: true })).toBe('הצעה בהכנה');
+    expect(deriveCaseStatus({ quoteSent: true })).toBe('ממתין לאישור');
+    expect(deriveCaseStatus({ waitingForApproval: true })).toBe('ממתין לאישור');
+    expect(deriveCaseStatus({ intakeDone: true, route: 'intake_first' })).toBe('הרכב התקבל');
+    expect(deriveCaseStatus({ workFinished: true })).toBe('סגור');
+    expect(deriveCaseStatus({ caseClosed: true })).toBe('סגור');
+    expect(deriveCaseStatus({ workStarted: true })).toBe('בעבודה');
+    expect(garageListBucket({ workStarted: true })).toBe('in_work');
+    expect(garageListBucket({ workFinished: true })).toBe('closed');
+    expect(garageListBucket({ intakeDone: true })).toBe('open');
+    expect(garageCaseListStatus({ workStarted: true })).toBe('רכב בעבודה');
+    expect(garageCaseListStatus({ workFinished: true })).toBe('סגור');
+    expect(garageCaseListStatus({})).toBe('פתוח');
+    expect(garageListBucket({}, 'מוכן למסירה')).toBe('closed');
+  });
+
+  it('uses the customer default_workflow field and never infers route from customer_type', () => {
+    expect(defaultRouteForCustomer({ customer_type: 'private' })).toBe('quote_first');
+    expect(defaultRouteForCustomer({ customer_type: 'business' })).toBe('quote_first');
+    expect(defaultRouteForCustomer({ customer_type: 'fleet' })).toBe('quote_first');
+    expect(defaultRouteForCustomer({ customer_type: 'fleet', default_workflow: 'intake_first' })).toBe('intake_first');
+    expect(defaultRouteForCustomer({ customer_type: 'business', default_workflow: 'quote_first' })).toBe('quote_first');
+    expect(defaultRouteForCustomer({ customer_type: 'private', default_workflow: 'intake_first' })).toBe('intake_first');
+    expect(routeLabel('quote_first')).toBe('הצעת מחיר תחילה');
+    expect(routeLabel('intake_first')).toBe('קבלת רכב');
+    expect(garageNextAction({ route: 'quote_first' })).toBe('הכנת הצעת מחיר');
+    expect(garageNextAction({ route: 'quote_first', quoteSent: true })).toBe('ממתינים לאישור הלקוח');
+    expect(garageNextAction({ route: 'quote_first', quoteApproved: true })).toBe('קבלת רכב + 5 תמונות');
+    expect(garageNextAction({ route: 'intake_first' })).toBe('העלאת הזמנת לקוח');
+    expect(garageNextAction({ route: 'intake_first', workOrderSaved: true })).toBe('קבלת רכב + 5 תמונות');
+    expect(garageNextAction({ route: 'intake_first', intakeDone: true })).toBe('הכנת הצעת מחיר');
+    expect(garageNextAction({ workFinished: true })).toBe('מסירה / סגירת תיק');
+  });
+
+  it('builds display labels', () => {
+    expect(customerDisplayName({ customer_type: 'private', name: 'ישראל', company_name: '' })).toBe('ישראל');
+    expect(vehicleLabel({ make: 'Toyota', model: 'Corolla', year: 2021 })).toBe('Toyota · Corolla · 2021');
+  });
+
+  it('detects missing garage schema without treating it as a generic failure', () => {
+    expect(isGarageSchemaMissing({ code: 'PGRST205', message: "Could not find the table 'public.garage_cases'" })).toBe(true);
+    expect(isGarageSchemaMissing({ message: 'permission denied' })).toBe(false);
+  });
+
+  it('detects a missing default_workflow column without treating it as a missing table', () => {
+    expect(isGarageWorkflowColumnMissing({
+      code: 'PGRST204',
+      message: "Could not find the 'default_workflow' column of 'garage_customers' in the schema cache",
+    })).toBe(true);
+    expect(isGarageWorkflowColumnMissing({ code: 'PGRST205', message: "Could not find the table 'public.garage_cases'" })).toBe(false);
+  });
+
+  it('detects a missing shop_company_name column without treating it as a missing table', () => {
+    expect(isGarageShopColumnMissing({
+      code: 'PGRST204',
+      message: "Could not find the 'shop_company_name' column of 'garage_customers' in the schema cache",
+    })).toBe(true);
+    expect(isGarageShopColumnMissing({ code: 'PGRST205', message: "Could not find the table 'public.garage_cases'" })).toBe(false);
+  });
+
+  it('does not encode contacts into customer notes; still reads leftover markers', () => {
+    expect(encodeContactsInNotes('הערה רגילה', [
+      { id: 'c1', name: 'רותי', role: 'רכזת', phone: '0501111111', email: 'r@example.com', notes: '' },
+    ])).toBe('הערה רגילה');
+    const leftover = 'הערה רגילה\n<!--gm-contacts:[{"id":"c1","name":"רותי","role":"רכזת","phone":"0501111111","email":"r@example.com","notes":""}]-->';
+    expect(notesWithoutContacts(leftover)).toBe('הערה רגילה');
+    expect(parseCustomerContacts({ notes: leftover, contact_person: '', phone: '', email: '' }).map((c) => c.name)).toEqual(['רותי']);
+    expect(parseCustomerContacts({
+      contacts: [{ id: 'c2', name: 'דנה', role: '', phone: '', email: '', notes: '' }],
+      notes: leftover,
+      contact_person: '',
+    }).map((c) => c.name)).toEqual(['דנה']);
+  });
+
+  it('blocks finish work until 4 photos and an approved price exist, without requiring km', () => {
+    expect(finishWorkGaps({})).toEqual(expect.arrayContaining([
+      'חסרות תמונות סיום חובה (קדימה, אחורה, ימין, שמאל)',
+      'חסר מחיר סופי מאושר לתשלום',
+    ]));
+    expect(finishWorkGaps({
+      finishAngles: { front: true, rear: true, right: true, left: true },
+      quoteCreated: true,
+      quoteWorks: [{ part: 'תיקון', qty: 1, price: 100 }],
+    })).toEqual(['חסר מחיר סופי מאושר לתשלום']);
+    expect(hasApprovedPrice({
+      quoteApproved: true,
+      quoteWorks: [{ part: 'תיקון', qty: 1, price: 100 }],
+    })).toBe(true);
+    expect(finishWorkGaps({
+      finishAngles: { front: true, rear: true, right: true, left: true },
+      quoteApproved: true,
+      quoteWorks: [{ part: 'תיקון', qty: 1, price: 100 }],
+      extraApprovals: [{ text: 'תוספת', price: 50, status: 'sent_mailto' }],
+    })).toEqual(['קיימת תוספת עבודה שממתינה לאישור']);
+    expect(finishWorkGaps({
+      finishAngles: { front: true, rear: true, right: true, left: true },
+      quoteApproved: true,
+      quoteWorks: [{ part: 'תיקון', qty: 1, price: 100 }],
+      extraApprovals: [{ text: 'תוספת', price: 50, status: 'approved', approvedAt: '2026-09-12T12:00:00.000Z' }],
+    })).toEqual([]);
+    expect(finishWorkGaps({
+      finishAngles: { front: true, rear: true, right: true, left: true },
+      workOrderSaved: true,
+      workOrderAmount: 1800,
+    })).toEqual([]);
+  });
+
+  it('blocks case close until finish photos, delivery, payment and signature exist', () => {
+    expect(closeCaseGaps({ workFinished: true })).toEqual(expect.arrayContaining([
+      'המחיר/ההצעה הסופיים אינם ברורים',
+      'מצב התשלום לא סומן',
+      'חסרות תמונות סיום חובה (קדימה, אחורה, ימין, שמאל)',
+      'חסר קילומטראז׳ במסירה',
+      'מסירת הרכב לא בוצעה',
+      'מקבל הרכב לא זוהה',
+      'חסר אישור/חתימת מקבל הרכב',
+    ]));
+    expect(closeCaseGaps({
+      workFinished: true,
+      quoteCreated: true,
+      quoteWorks: [{ part: 'תיקון', qty: 1, price: 100 }],
+      paymentStatus: 'pending',
+      finishAngles: { front: true, rear: true, right: true, left: true },
+      deliveryKm: '50100',
+      deliveryDone: true,
+      deliveryRecipient: 'QA מקבל',
+      deliveryConfirmed: true,
+      extraApprovals: [{ text: 'תוספת', status: 'sent_mailto' }],
+    })).toEqual(['קיימת תוספת עבודה שממתינה לאישור']);
+    expect(closeCaseGaps({
+      workFinished: true,
+      quoteCreated: true,
+      paymentStatus: 'settled',
+      finishAngles: { front: true, rear: true, right: true, left: true },
+      deliveryKm: '50100',
+      deliveryDone: true,
+      deliveryRecipient: 'QA מקבל',
+      deliveryConfirmed: true,
+      extraApprovals: [{ text: 'תוספת', status: 'approved', approvedAt: '2026-09-12T12:00:00.000Z' }],
+    })).toEqual([]);
+    expect(closedCaseUiStatus({ caseClosed: true })).toBe('הרכב נמסר / התיק נסגר');
+  });
+});

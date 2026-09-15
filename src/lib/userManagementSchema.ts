@@ -2,6 +2,8 @@
  * Dalia Settings → User Management — field schema
  */
 
+import type { FleetFoundation } from '@/lib/garageOps';
+
 export type UserCreationType =
   | 'private_customer'
   | 'business_customer'
@@ -161,6 +163,7 @@ export type CreateUserFormValues = Partial<Record<FieldKey, string>> & {
   userType?: UserCreationType;
   isActive?: boolean;
   noEmail?: boolean;
+  fleet_foundation?: FleetFoundation;
 };
 
 export const APPROVAL_STATUS_LABELS: Record<string, string> = {
@@ -180,6 +183,7 @@ export const FUTURE_LOGIN_FEATURES = [
 export function emptyFormForType(type: UserCreationType): CreateUserFormValues {
   const base: CreateUserFormValues = { userType: type, isActive: false, noEmail: false };
   if (type === 'business_customer') base.service_type = 'marketing_only';
+  if (type === 'fleet_manager') base.fleet_foundation = 'fleet';
   return base;
 }
 

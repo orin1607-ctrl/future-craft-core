@@ -5,6 +5,7 @@ import type { AuthSessionPayload } from '@/lib/authOtpClient';
 import { applyAuthSession } from '@/lib/authOtpClient';
 import { securityEndSession } from '@/lib/securityAuditClient';
 import { clearAllTeleModes, clearTeleModesForUser } from '@/features/telemarketing/lib/teleEntryMode';
+import { isGarageOpsJobTitle } from '@/lib/garageOps';
 
 export type AppRole = 'driver' | 'fleet_manager' | 'super_admin' | 'private_customer' | 'business_customer' | 'telemarketing_agent';
 
@@ -20,6 +21,7 @@ export interface UserProfile {
   hasClaimsAccess?: boolean;
   claimsWorkerOnly?: boolean;
   garagePhotographer?: boolean;
+  garageOps?: boolean;
 }
 
 interface AuthContextType {
@@ -30,7 +32,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   signup: (email: string, password: string, metadata: { full_name: string; phone: string; company_name: string; role?: AppRole }) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
-  completeLoginSession: (session: AuthSessionPayload) => Promise<{ error: string | null; role?: AppRole; claimsWorkerOnly?: boolean; garagePhotographer?: boolean }>;
+  completeLoginSession: (session: AuthSessionPayload) => Promise<{ error: string | null; role?: AppRole; claimsWorkerOnly?: boolean; garagePhotographer?: boolean; garageOps?: boolean }>;
   isAuthenticated: boolean;
   isImpersonating: boolean;
   impersonate: (targetUser: UserProfile) => void;
@@ -102,6 +104,7 @@ async function fetchUserProfile(userId: string, email: string, retries = 3): Pro
       hasClaimsAccess,
       claimsWorkerOnly,
       garagePhotographer: String(profile.job_title || '').trim() === 'garage_photographer',
+      garageOps: role === 'fleet_manager' && isGarageOpsJobTitle(profile.job_title),
     };
   }
   return null;
@@ -215,7 +218,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRealUser(profile);
       const { data: { session: s } } = await supabase.auth.getSession();
       setSession(s);
-      return { error: null, role: profile?.role, claimsWorkerOnly: profile?.claimsWorkerOnly, garagePhotographer: profile?.garagePhotographer };
+      return { error: null, role: profile?.role, claimsWorkerOnly: profile?.claimsWorkerOnly, garagePhotographer: profile?.garagePhotographer, garageOps: profile?.garageOps };
     }
     return { error: null };
   };

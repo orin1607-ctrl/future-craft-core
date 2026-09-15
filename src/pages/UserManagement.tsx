@@ -9,6 +9,7 @@ import TwoFactorApprovalSection from '@/components/user-management/TwoFactorAppr
 import AuthAuditLogPanel from '@/components/user-management/AuthAuditLogPanel';
 import { APPROVAL_STATUS_LABELS } from '@/lib/userManagementSchema';
 import { GARAGE_PHOTOGRAPHER_LABEL, isGaragePhotographerJobTitle, openGarageWorkerPortal } from '@/lib/garagePhotographer';
+import { GARAGE_OPS_JOB_TITLE, GARAGE_OPS_LABEL, isGarageOpsJobTitle } from '@/lib/garageOps';
 import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,8 @@ interface ManagedUser {
   hasClaimsAccess: boolean;
   claimsWorkerOnly: boolean;
   garagePhotographer: boolean;
+  garageOps: boolean;
+  job_title: string | null;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -69,7 +72,14 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetting, setResetting] = useState(false);
-  const [editForm, setEditForm] = useState({ full_name: '', phone: '', company_name: '', role: '', is_active: true });
+  const [editForm, setEditForm] = useState({
+    full_name: '',
+    phone: '',
+    company_name: '',
+    role: '',
+    is_active: true,
+    garageOps: false,
+  });
   const [saving, setSaving] = useState(false);
   const [companyOptions, setCompanyOptions] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
@@ -133,6 +143,8 @@ export default function UserManagement() {
       hasClaimsAccess: (roleMap.get(p.id) || '') === 'super_admin' || claimsAccessIds.has(p.id),
       claimsWorkerOnly: claimsWorkerOnlyIds.has(p.id),
       garagePhotographer: isGaragePhotographerJobTitle(p.job_title),
+      garageOps: (roleMap.get(p.id) || '') === 'fleet_manager' && isGarageOpsJobTitle(p.job_title),
+      job_title: p.job_title || null,
     }));
 
     setUsers(mapped);
@@ -171,6 +183,7 @@ export default function UserManagement() {
       company_name: u.company_name,
       role: u.role,
       is_active: u.is_active,
+      garageOps: u.garageOps,
     });
     setEditDialogOpen(true);
   };
@@ -178,6 +191,12 @@ export default function UserManagement() {
   const handleSaveEdit = async () => {
     if (!selectedUser) return;
     setSaving(true);
+    const nextGarageOps = editForm.role === 'fleet_manager' && editForm.garageOps;
+    const nextJobTitle = nextGarageOps
+      ? GARAGE_OPS_JOB_TITLE
+      : isGarageOpsJobTitle(selectedUser.job_title)
+        ? ''
+        : selectedUser.job_title;
     const { data, error } = await supabase.functions.invoke('create-admin-user', {
       body: {
         action: 'update-profile',
@@ -187,8 +206,21 @@ export default function UserManagement() {
         company_name: editForm.company_name,
         role: editForm.role,
         is_active: editForm.is_active,
+        job_title: nextJobTitle,
       },
     });
+    if (!error && !data?.error && nextGarageOps) {
+      const { error: grantErr } = await supabase.rpc('claims_set_access' as never, {
+        p_user_id: selectedUser.id,
+        p_enabled: true,
+        p_worker_only: false,
+      } as never);
+      if (grantErr) {
+        setSaving(false);
+        toast({ title: 'המשתמש עודכן — שגיאה בהרשאת Claims', description: grantErr.message, variant: 'destructive' });
+        return;
+      }
+    }
     setSaving(false);
     if (error || data?.error) {
       const msg = await getEdgeFunctionErrorMessage(error, data);
@@ -198,7 +230,17 @@ export default function UserManagement() {
     setUsers((prev) =>
       prev.map((u) =>
         u.id === selectedUser.id
-          ? { ...u, full_name: editForm.full_name, phone: editForm.phone, company_name: editForm.company_name, role: editForm.role, is_active: editForm.is_active }
+          ? {
+              ...u,
+              full_name: editForm.full_name,
+              phone: editForm.phone,
+              company_name: editForm.company_name,
+              role: editForm.role,
+              is_active: editForm.is_active,
+              garageOps: nextGarageOps,
+              job_title: nextJobTitle || null,
+              hasClaimsAccess: nextGarageOps ? true : u.hasClaimsAccess,
+            }
           : u
       )
     );
@@ -290,6 +332,7 @@ export default function UserManagement() {
       hasClaimsAccess: u.hasClaimsAccess,
       claimsWorkerOnly: u.claimsWorkerOnly,
       garagePhotographer: u.garagePhotographer,
+      garageOps: u.garageOps,
     });
     navigate(u.garagePhotographer ? '/garage' : u.claimsWorkerOnly ? '/claims' : '/dashboard');
   };
@@ -427,7 +470,11 @@ export default function UserManagement() {
                     <TableCell>{u.company_name || '—'}</TableCell>
                     <TableCell dir="ltr" className="text-right">{u.phone || '—'}</TableCell>
                     <TableCell>
-                      {u.garagePhotographer ? (
+                      {u.garageOps ? (
+                        <Badge variant="outline" className="text-xs border-primary/40 text-primary" data-testid={`garage-ops-type-badge-${u.id}`}>
+                          {GARAGE_OPS_LABEL}
+                        </Badge>
+                      ) : u.garagePhotographer ? (
                         <Badge variant="outline" className="text-xs border-primary/40 text-primary" data-testid={`garage-worker-type-badge-${u.id}`}>
                           {GARAGE_PHOTOGRAPHER_LABEL}
                         </Badge>
@@ -668,7 +715,7 @@ export default function UserManagement() {
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1 block">תפקיד</label>
-              <Select value={editForm.role} onValueChange={(val) => setEditForm((f) => ({ ...f, role: val }))}>
+              <Select value={editForm.role} onValueChange={(val) => setEditForm((f) => ({ ...f, role: val, garageOps: val === 'fleet_manager' ? f.garageOps : false }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -679,6 +726,39 @@ export default function UserManagement() {
                 </SelectContent>
               </Select>
             </div>
+            {editForm.role === 'fleet_manager' && (
+              <div className="space-y-2 p-3 rounded-xl border" data-testid="edit-fleet-foundation-choice">
+                <p className="text-sm font-bold">סוג מנהל צי רכב — לא role חדש</p>
+                <label className="flex items-start gap-3 p-2 rounded-lg cursor-pointer hover:bg-muted/60">
+                  <input
+                    type="radio"
+                    name="edit_fleet_foundation"
+                    checked={!editForm.garageOps}
+                    onChange={() => setEditForm((f) => ({ ...f, garageOps: false }))}
+                    className="mt-1 w-4 h-4 accent-primary"
+                    data-testid="edit-fleet-foundation-fleet"
+                  />
+                  <span>
+                    <span className="font-medium">מנהל צי רכב</span>
+                    <span className="block text-xs text-muted-foreground">דשבורד ניהול הצי הרגיל.</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 p-2 rounded-lg cursor-pointer hover:bg-muted/60">
+                  <input
+                    type="radio"
+                    name="edit_fleet_foundation"
+                    checked={editForm.garageOps}
+                    onChange={() => setEditForm((f) => ({ ...f, garageOps: true }))}
+                    className="mt-1 w-4 h-4 accent-primary"
+                    data-testid="edit-fleet-foundation-garage-ops"
+                  />
+                  <span>
+                    <span className="font-medium">{GARAGE_OPS_LABEL}</span>
+                    <span className="block text-xs text-muted-foreground">דשבורד מוסך נפרד עם ניהול מוסך, תביעות ודוחות.</span>
+                  </span>
+                </label>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-foreground">משתמש פעיל</label>
               <div className="flex items-center gap-2">

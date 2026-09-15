@@ -1,0 +1,176 @@
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { Script } from 'node:vm';
+import { describe, expect, it, vi } from 'vitest';
+import GarageApp from './GarageApp';
+import approvedSourceHtml from './approved-source.html?raw';
+
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { id: 'user-1', full_name: 'יוסי', role: 'super_admin' } }),
+}));
+
+vi.mock('./garageBook', async () => {
+  const actual = await vi.importActual<typeof import('./garageBook')>('./garageBook');
+  return {
+    ...actual,
+    listCases: vi.fn(async () => []),
+    getCase: vi.fn(async () => null),
+    probeGarageBook: vi.fn(async () => ({ ready: false, pending: true, error: actual.GARAGE_BOOK_PENDING_MESSAGE })),
+  };
+});
+
+function renderAt(path: string) {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route path="/garage-management/:caseId" element={<GarageApp />} />
+        <Route path="/garage-management" element={<GarageApp />} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
+
+describe('garage-management approved source', () => {
+  it('mounts the approved HTML prototype on the existing route', () => {
+    renderAt('/garage-management');
+    const frame = screen.getByTitle('ניהול מוסך') as HTMLIFrameElement;
+    expect(frame).toBeInTheDocument();
+    expect(frame.getAttribute('allow')).toContain('camera');
+    expect(frame.getAttribute('sandbox')).toContain('allow-popups-to-escape-sandbox');
+    expect(frame.getAttribute('sandbox')).toContain('allow-top-navigation');
+    expect(frame.getAttribute('sandbox')).toContain('allow-top-navigation-by-user-activation');
+    expect(frame.srcdoc).toContain('פתח תיק');
+    expect(frame.srcdoc).toContain('דליה — לקוחות ישירים');
+    expect(frame.srcdoc).toContain('מפת נזקים אינטראקטיבית');
+    expect(frame.srcdoc).toContain('הזמנת עבודה');
+    expect(frame.srcdoc).toContain('שיתוף מאובטח');
+    expect(frame.srcdoc).toContain('קבלת רכב');
+    expect(frame.srcdoc).toContain('מה המסלול של התיק?');
+    expect(frame.srcdoc).toContain('סיום עבודה');
+    expect(frame.srcdoc).toContain('סגירת תיק');
+  });
+
+  it('keeps nested garage-management case ids on the approved source', () => {
+    renderAt('/garage-management/case-1056');
+    expect(screen.getByTitle('ניהול מוסך')).toBeInTheDocument();
+  });
+
+  it('preserves the approved flow screens and persist bridge', () => {
+    expect(approvedSourceHtml).toContain('id="s-home"');
+    expect(approvedSourceHtml).toContain('id="s-choose"');
+    expect(approvedSourceHtml).toContain('id="s-search"');
+    expect(approvedSourceHtml).toContain('id="s-newtype"');
+    expect(approvedSourceHtml).toContain('id="s-newform"');
+    expect(approvedSourceHtml).toContain('id="s-newvehicle"');
+    expect(approvedSourceHtml).toContain('id="s-vehform"');
+    expect(approvedSourceHtml).toContain('id="s-case"');
+    expect(approvedSourceHtml).toContain('function go(id)');
+    expect(approvedSourceHtml).toContain('function createShareLink()');
+    expect(approvedSourceHtml).toContain('function confirmIntake()');
+    expect(approvedSourceHtml).toContain('function confirmCloseCase()');
+    expect(approvedSourceHtml).toContain("callHost('gm:saveCase'");
+    expect(approvedSourceHtml).toContain('saveCustomerAndContinue');
+    expect(approvedSourceHtml).toContain('customerOnly');
+    expect(approvedSourceHtml).toContain('finishCustomerOnlySave');
+    expect(approvedSourceHtml).toContain('הלקוח הוקם בהצלחה');
+    expect(approvedSourceHtml).toContain('שמור לקוח');
+    expect(approvedSourceHtml).toContain('home-cases');
+    expect(approvedSourceHtml).toContain('gm:goManager');
+    expect(approvedSourceHtml).toContain('חזרה למסך הניהול');
+    expect(approvedSourceHtml).toContain('garage_case_id');
+    expect(approvedSourceHtml).toContain('book-pending-banner');
+    expect(approvedSourceHtml).toContain('function schedulePersist()');
+    expect(approvedSourceHtml).toContain('startScreen');
+    expect(approvedSourceHtml).not.toContain('אלדן');
+    expect(approvedSourceHtml).not.toContain('orders@aldan.co.il');
+    expect(approvedSourceHtml).not.toContain('תיק #1056');
+    expect(approvedSourceHtml).not.toContain('12-345-67');
+    expect(approvedSourceHtml).not.toContain('ישראל ישראלי');
+    expect(approvedSourceHtml).not.toContain('רהיטי הצפון');
+    expect(approvedSourceHtml).toContain('function bindLiveCase()');
+    expect(approvedSourceHtml).toContain('quote-works-empty');
+    expect(approvedSourceHtml).toContain('clearCustomerForm');
+    expect(approvedSourceHtml).toContain('מה המסלול של התיק?');
+    expect(approvedSourceHtml).toContain('id="route-opt-quote_first"');
+    expect(approvedSourceHtml).toContain('id="route-opt-intake_first"');
+    expect(approvedSourceHtml).not.toContain('הרכב התקבל / לקוח קבוע');
+    expect(approvedSourceHtml).not.toContain('קבלת רכב תחילה');
+    expect(approvedSourceHtml).not.toContain('הרכב הגיע למוסך');
+    expect(approvedSourceHtml).not.toContain('הרכב מתקבל');
+    expect(approvedSourceHtml).toContain('המלצת מסלול (לא כופה תיק)');
+    expect(approvedSourceHtml).toContain('העובד בוחר את המסלול בכל תיק');
+    expect(approvedSourceHtml).not.toContain('ברירת מחדל מכרטיס הלקוח');
+    expect(approvedSourceHtml).not.toContain('ברירת מחדל לפי סוג הלקוח');
+    expect(approvedSourceHtml).toContain('capture="environment"');
+    expect(approvedSourceHtml).toContain("callHost('gm:uploadMedia'");
+    expect(approvedSourceHtml).toContain('5 תמונות חובה לקבלת רכב');
+    expect(approvedSourceHtml).toContain('@media (min-width: 960px)');
+    expect(approvedSourceHtml).toContain('id="q-docs"');
+    expect(approvedSourceHtml).toContain('intake-worker-confirm');
+    expect(approvedSourceHtml).toContain('לוח שעונים / מד קילומטראז');
+    expect(approvedSourceHtml).toContain('קילומטראז\' נוכחי');
+    expect(approvedSourceHtml).toContain('+ הוסף איש קשר');
+    expect(approvedSourceHtml).toContain('סיום עבודה');
+    expect(approvedSourceHtml).toContain('סגירת רכב');
+    expect(approvedSourceHtml).toContain('מסמכים לרכב');
+    expect(approvedSourceHtml).toContain('vehicle-docs-card');
+    expect(approvedSourceHtml).toContain('workFinishedBy');
+    expect(approvedSourceHtml).toContain('קילומטראז\' בסיום');
+    expect(approvedSourceHtml).toContain('הערות סיום');
+    expect(approvedSourceHtml).toContain('תמונות סיום עבודה');
+    expect(approvedSourceHtml).toContain("data-home-bucket=\"open\"");
+    expect(approvedSourceHtml).toContain("data-home-bucket=\"in_work\"");
+    expect(approvedSourceHtml).toContain("data-home-bucket=\"closed\"");
+    expect(approvedSourceHtml).toContain('אני מאשר שקיבלתי את הרכב');
+    expect(approvedSourceHtml).toContain('Email / מייל');
+    expect(approvedSourceHtml).toContain('מיילים / התכתבויות');
+    expect(approvedSourceHtml).toContain('yoni191177@gmail.com');
+    expect(approvedSourceHtml).toContain("callHost('gm:sendGarageMail'");
+    expect(approvedSourceHtml).toContain('שלח מייל מהתוכנה');
+    expect(approvedSourceHtml).toContain('sendGarageMailInApp');
+    expect(approvedSourceHtml).not.toContain("window.location.href = 'mailto:'");
+    expect(approvedSourceHtml).toContain('חבר yoni191177@gmail.com');
+    expect(approvedSourceHtml).toContain('startGarageGmailBrowser');
+    expect(approvedSourceHtml).toContain('openGarageGoogleNow');
+    expect(approvedSourceHtml).toContain('prefetchGarageGmailConnect');
+    expect(approvedSourceHtml).toContain('__garageGmailServerConnected');
+    expect(approvedSourceHtml).toContain('res.connected === true');
+    expect(approvedSourceHtml).toContain('id="garage-mail-connect-btn"');
+    expect(approvedSourceHtml).toContain('garage-gmail-connect.html');
+    expect(approvedSourceHtml).toContain("window.open('about:blank', 'garage-gmail-oauth')");
+    expect(approvedSourceHtml).toContain("window.open(url, '_top')");
+    expect(approvedSourceHtml).not.toContain('AccountChooser');
+    expect(approvedSourceHtml).not.toContain('accounts.google.com/gsi/client');
+    expect(approvedSourceHtml).not.toContain('initTokenClient');
+    expect(approvedSourceHtml).not.toContain('claims-gmail');
+    expect(approvedSourceHtml).not.toContain('claims-docs');
+    expect(approvedSourceHtml).toContain('החל על טופס ההזמנה');
+    expect(approvedSourceHtml).toContain('לא נשמר אוטומטית לתיק');
+    expect(approvedSourceHtml).toContain('id="wo-scan-date"');
+    expect(approvedSourceHtml).toContain('מספר תיק / אסמכתא');
+    expect(approvedSourceHtml).not.toContain('זיהוי משם הקובץ בלבד');
+    expect(approvedSourceHtml).not.toContain('extractWorkOrderHintsFromName');
+    expect(approvedSourceHtml).toContain('תמונות נזק / הצעת מחיר');
+    expect(approvedSourceHtml).not.toContain('צילומי חובה — 4 זוויות');
+  });
+
+  it('keeps the approved iframe script syntactically valid', () => {
+    const script = approvedSourceHtml.split('<script>')[1]?.split('</script>')[0] || '';
+    expect(script.length).toBeGreaterThan(100);
+    expect(() => new Script(script)).not.toThrow();
+  });
+
+  it('opens a new garage file from /garage-management?new=1', () => {
+    renderAt('/garage-management?new=1');
+    expect(screen.getByTitle('ניהול מוסך')).toBeInTheDocument();
+  });
+
+  it('opens customer-only setup from /garage-management?customer=1', () => {
+    renderAt('/garage-management?customer=1');
+    const frame = screen.getByTitle('ניהול מוסך') as HTMLIFrameElement;
+    expect(frame).toBeInTheDocument();
+    expect(frame.srcdoc).toContain('הקמת לקוח');
+    expect(frame.srcdoc).toContain('שמור לקוח');
+    expect(frame.srcdoc).toContain('לא נפתח תיק עבודה ולא ניתן מספר GM');
+  });
+});
