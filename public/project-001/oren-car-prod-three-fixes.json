@@ -1,6 +1,6 @@
 {
   "id": "oren-car-prod-three-fixes",
-  "armed": true,
+  "armed": false,
   "phase": "frontend",
   "requestedAt": "2026-09-15T09:05:00.000Z",
   "requestedBy": "owner",
