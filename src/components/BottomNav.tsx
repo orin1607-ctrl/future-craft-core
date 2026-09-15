@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Scale, X, Camera } from 'lucide-react';
+import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Scale, X, Camera, Warehouse } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
@@ -26,6 +26,7 @@ const managerNavItems: NavItem[] = [
   { path: '/fleetos-ai', label: 'מיקום צי חכם', icon: Radar },
   { path: '/transport', label: 'חברות הסעות', icon: Bus },
   { path: '/faults', label: 'תקלות', icon: Wrench },
+  { path: '/garage-management', label: 'ניהול מוסך', icon: Warehouse },
   { path: '/reports', label: 'דוחות', icon: BarChart3 },
   { path: '/fleet-managers', label: 'מנהלי צי', icon: Building2 },
   { path: '/customers', label: 'לקוחות', icon: Users },
@@ -142,6 +143,9 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
     if (path === '/ai-marketing') return isSuperAdmin;
     if (path === '/telemarketing/admin') return isSuperAdmin;
     if (path === '/claims') return canClaims;
+    if (path === '/garage-management' || path.startsWith('/garage-management/')) {
+      return !!user?.garageOps;
+    }
     if (path === '/security-center') return isSuperAdmin;
     return true;
   };
@@ -217,6 +221,8 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
               ? 'עובד ניהול תביעות'
               : user?.role === 'super_admin'
                 ? 'מנהל על'
+                : user?.garageOps
+                  ? 'מנהל מוסך'
                 : user?.role === 'fleet_manager'
                   ? 'מנהל צי'
                   : user?.role === 'telemarketing_agent'

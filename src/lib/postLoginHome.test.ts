@@ -9,6 +9,7 @@ describe('homePathForRole', () => {
   it('keeps other roles on dashboard', () => {
     expect(homePathForRole('super_admin')).toBe('/dashboard');
     expect(homePathForRole('driver')).toBe('/dashboard');
+    expect(homePathForRole('fleet_manager')).toBe('/dashboard');
   });
 
   it('sends claims workers to Claims', () => {
