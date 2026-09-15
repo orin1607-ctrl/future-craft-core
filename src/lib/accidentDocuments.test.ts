@@ -29,6 +29,7 @@ describe('accident document association', () => {
       normalizeAccidentFilePath('https://x.supabase.co/storage/v1/object/sign/documents/uid/accidents/a.jpg?token=1'),
     ).toBe('uid/accidents/a.jpg');
     expect(normalizeAccidentFilePath('documents/uid/accidents/a.jpg')).toBe('uid/accidents/a.jpg');
+    expect(normalizeAccidentFilePath('documents/documents/uid/accidents/a.jpg')).toBe('uid/accidents/a.jpg');
   });
 
   it('matches metadata by claim number or the same vehicle plate', () => {

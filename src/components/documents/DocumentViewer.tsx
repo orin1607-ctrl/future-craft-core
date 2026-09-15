@@ -1,12 +1,71 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Download, Eye, File, FileText, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { resolvePrivateDocumentUrl } from '@/lib/accidentDocuments';
 import {
   fileNameFromDocument,
   getDocumentKind,
   isImageDocument,
   triggerDocumentDownload,
 } from '@/lib/documentDisplayUtils';
+
+function useResolvedDocumentUrl(raw: string | null | undefined) {
+  const [resolved, setResolved] = useState('');
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setReady(false);
+    if (!raw) {
+      setResolved('');
+      setReady(true);
+      return;
+    }
+    void resolvePrivateDocumentUrl(raw).then((url) => {
+      if (cancelled) return;
+      setResolved(url);
+      setReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [raw]);
+
+  return { resolved, ready };
+}
+
+export function PrivateDocumentOpenLink({
+  url,
+  className,
+  children,
+}: {
+  url: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <button
+      type="button"
+      className={className}
+      disabled={busy || !url}
+      onClick={async () => {
+        setBusy(true);
+        const signed = await resolvePrivateDocumentUrl(url);
+        setBusy(false);
+        if (!signed) {
+          toast.error('לא ניתן לפתוח את המסמך');
+          return;
+        }
+        window.open(signed, '_blank', 'noopener,noreferrer');
+      }}
+    >
+      {children}
+    </button>
+  );
+}
 
 export function DocumentPreviewDialog({
   open,
@@ -21,6 +80,7 @@ export function DocumentPreviewDialog({
 }) {
   const title = fileName || (url ? fileNameFromDocument(url) : 'תצוגת מסמך');
   const kind = url ? getDocumentKind(`${fileName || ''} ${url}`) : 'other';
+  const { resolved, ready } = useResolvedDocumentUrl(open ? url : null);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -31,17 +91,21 @@ export function DocumentPreviewDialog({
         </DialogHeader>
         {url && (
           <div className="p-4 overflow-auto max-h-[calc(92vh-5rem)]">
-            {kind === 'image' ? (
-              <img src={url} alt={title} className="mx-auto w-full max-h-[75vh] object-contain rounded-lg" />
+            {!ready ? (
+              <p className="text-center text-muted-foreground py-12">טוען מסמך...</p>
+            ) : !resolved ? (
+              <p className="text-center text-muted-foreground py-12">לא ניתן לפתוח את המסמך</p>
+            ) : kind === 'image' ? (
+              <img src={resolved} alt={title} className="mx-auto w-full max-h-[75vh] object-contain rounded-lg" />
             ) : kind === 'pdf' ? (
-              <iframe src={url} title={title} className="w-full h-[75vh] rounded-lg border border-border bg-muted" />
+              <iframe src={resolved} title={title} className="w-full h-[75vh] rounded-lg border border-border bg-muted" />
             ) : (
               <div className="text-center py-12 space-y-4">
                 <File size={48} className="mx-auto text-muted-foreground" />
                 <p className="text-muted-foreground">אין תצוגה מקדימה לסוג קובץ זה</p>
                 <button
                   type="button"
-                  onClick={() => triggerDocumentDownload(url, title)}
+                  onClick={() => triggerDocumentDownload(resolved, title)}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-medium"
                 >
                   <Download size={16} /> הורד קובץ
@@ -95,7 +159,11 @@ function DocumentKindVisual({
         className={`${dims} shrink-0 rounded-xl overflow-hidden border border-border bg-muted hover:ring-2 hover:ring-primary/40 transition-all`}
         title="תצוגה מלאה"
       >
-        <img src={url} alt={fileName || 'תמונה'} className="w-full h-full object-cover" />
+        {url ? (
+          <img src={url} alt={fileName || 'תמונה'} className="w-full h-full object-cover" />
+        ) : (
+          <File size={iconSize} className="text-muted-foreground m-auto" />
+        )}
       </button>
     );
   }
@@ -148,7 +216,13 @@ function DocumentActions({
       )}
       <button
         type="button"
-        onClick={() => triggerDocumentDownload(url, fileName)}
+        onClick={() => {
+          if (!url) {
+            toast.error('לא ניתן לפתוח את המסמך');
+            return;
+          }
+          triggerDocumentDownload(url, fileName);
+        }}
         className={`${btn} text-primary hover:bg-primary/10`}
         title="הורדה"
       >
@@ -182,17 +256,23 @@ export function DocumentCard({
   const fileName = fileNameProp || fileNameFromDocument(url, label || 'מסמך');
   const [previewOpen, setPreviewOpen] = useState(false);
   const kind = getDocumentKind(`${fileName} ${url}`);
+  const { resolved, ready } = useResolvedDocumentUrl(url);
 
   const openPreview = () => {
+    if (!ready) return;
+    if (!resolved) {
+      toast.error('לא ניתן לפתוח את המסמך');
+      return;
+    }
     if (kind === 'image' || kind === 'pdf') setPreviewOpen(true);
-    else triggerDocumentDownload(url, fileName);
+    else triggerDocumentDownload(resolved, fileName);
   };
 
   return (
     <>
       <div className={`card-elevated flex items-center gap-3 ${compact ? 'p-2.5' : 'p-3'}`}>
         <DocumentKindVisual
-          url={url}
+          url={resolved}
           fileName={fileName}
           size={compact ? 'sm' : 'md'}
           onClick={kind === 'image' ? openPreview : undefined}
@@ -202,7 +282,7 @@ export function DocumentCard({
           <p className={`font-medium truncate ${compact ? 'text-sm' : ''}`}>{fileName}</p>
           {meta}
         </div>
-        <DocumentActions url={url} fileName={fileName} onPreview={openPreview} onDelete={onDelete} compact={compact} />
+        <DocumentActions url={resolved} fileName={fileName} onPreview={openPreview} onDelete={onDelete} compact={compact} />
       </div>
       <DocumentPreviewDialog open={previewOpen} url={url} fileName={fileName} onOpenChange={setPreviewOpen} />
     </>
@@ -232,18 +312,10 @@ export function DocumentGallery({
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {urls.map((url, i) => {
           const fileName = fileNames?.[i] || fileNameFromDocument(url, `${title || 'מסמך'} ${i + 1}`);
-          const kind = getDocumentKind(`${fileName} ${url}`);
 
           if (isImageDocument(`${fileName} ${url}`)) {
             return (
-              <button
-                key={`${url}-${i}`}
-                type="button"
-                onClick={() => setPreview({ url, fileName })}
-                className="relative rounded-xl overflow-hidden aspect-square border border-border hover:ring-2 hover:ring-primary/40 transition-all"
-              >
-                <img src={url} alt={fileName} className="w-full h-full object-cover" />
-              </button>
+              <GalleryImage key={`${url}-${i}`} url={url} fileName={fileName} onOpen={() => setPreview({ url, fileName })} />
             );
           }
 
@@ -259,5 +331,22 @@ export function DocumentGallery({
         onOpenChange={(open) => { if (!open) setPreview(null); }}
       />
     </div>
+  );
+}
+
+function GalleryImage({ url, fileName, onOpen }: { url: string; fileName: string; onOpen: () => void }) {
+  const { resolved } = useResolvedDocumentUrl(url);
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="relative rounded-xl overflow-hidden aspect-square border border-border hover:ring-2 hover:ring-primary/40 transition-all"
+    >
+      {resolved ? (
+        <img src={resolved} alt={fileName} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full bg-muted" />
+      )}
+    </button>
   );
 }

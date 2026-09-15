@@ -349,7 +349,6 @@ export async function loadVehicleHubData(
   );
 
   metadataRows.forEach((d: Record<string, string>, idx: number) => {
-    const { data: pub } = supabase.storage.from('documents').getPublicUrl(d.file_path);
     docs.push({
       id: d.id,
       ref: `REF-${String(idx + 1).padStart(3, '0')}`,
@@ -357,7 +356,7 @@ export async function loadVehicleHubData(
       source: d.category || 'מערכת',
       date: d.created_at ? new Date(d.created_at).toLocaleDateString('he-IL') : '—',
       expiry: '—',
-      url: pub.publicUrl,
+      url: d.file_path || d.public_url || undefined,
     });
   });
 
@@ -384,7 +383,7 @@ export async function loadVehicleHubData(
       source: ver.document_type_key || 'מערכת',
       date: ver.created_at ? new Date(ver.created_at).toLocaleDateString('he-IL') : '—',
       expiry: ver.expiry_date ? new Date(ver.expiry_date).toLocaleDateString('he-IL') : '—',
-      url: url || undefined,
+      url: url || ver.file_path || undefined,
     });
   });
 

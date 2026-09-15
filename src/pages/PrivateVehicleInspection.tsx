@@ -339,7 +339,7 @@ export default function PrivateVehicleInspection() {
               className={`text-xl font-black ${lastTriInspectionDisplay(lastTriDate).hasDate ? 'text-foreground' : 'text-muted-foreground'}`}
               data-testid="tri-last-inspection-date"
             >
-              {`בדיקה אחרונה: ${lastTriInspectionDisplay(lastTriDate).dateText}`}
+              {`ביקורת אחרונה: ${lastTriInspectionDisplay(lastTriDate).dateText}`}
             </p>
           </div>
         )}
@@ -382,20 +382,24 @@ export default function PrivateVehicleInspection() {
         </div>
       </div>
 
-      {/* Inspection Table */}
-      <div className="border border-border rounded-xl overflow-hidden mb-6">
+      {/* Inspection Table — horizontal scroll on phone so the left (notes) column is fully reachable */}
+      <div
+        className="border border-border rounded-xl overflow-x-auto mb-6"
+        data-testid="tri-inspection-table"
+      >
+        <div className="min-w-[36rem]">
         {/* Header */}
-        <div className="grid grid-cols-[1fr_60px_60px_1fr] bg-muted/70 text-sm font-bold border-b border-border">
-          <div className="p-2.5 border-l border-border">בדיקה</div>
+        <div className="grid grid-cols-[minmax(8rem,1.2fr)_60px_60px_minmax(9rem,1fr)] bg-muted/70 text-sm font-bold border-b border-border">
+          <div className="p-2.5 border-l border-border min-w-0">בדיקה</div>
           <div className="p-2.5 text-center border-l border-border">תקין</div>
           <div className="p-2.5 text-center border-l border-border">לא תקין</div>
-          <div className="p-2.5">הערות</div>
+          <div className="p-2.5 min-w-0">הערות</div>
         </div>
 
         {/* Rows */}
         {items.map((item, i) => (
-          <div key={i} className={`grid grid-cols-[1fr_60px_60px_1fr] border-b border-border last:border-0 ${item.status === 'defect' ? 'bg-destructive/5' : ''}`}>
-            <div className="p-2.5 text-sm font-medium border-l border-border flex items-center">{item.name}</div>
+          <div key={i} className={`grid grid-cols-[minmax(8rem,1.2fr)_60px_60px_minmax(9rem,1fr)] border-b border-border last:border-0 ${item.status === 'defect' ? 'bg-destructive/5' : ''}`}>
+            <div className="p-2.5 text-sm font-medium border-l border-border flex items-center min-w-0 break-words whitespace-normal">{item.name}</div>
             <div className="p-2.5 border-l border-border flex items-center justify-center">
               <button
                 type="button"
@@ -418,16 +422,17 @@ export default function PrivateVehicleInspection() {
                 ✗
               </button>
             </div>
-            <div className="p-1.5">
+            <div className="p-1.5 min-w-0">
               <input
                 value={item.notes}
                 onChange={e => updateItem(i, 'notes', e.target.value)}
                 placeholder="הערות..."
-                className="w-full p-1.5 text-xs rounded-lg border border-input bg-background focus:border-primary focus:outline-none"
+                className="w-full min-w-[8rem] p-1.5 text-xs rounded-lg border border-input bg-background focus:border-primary focus:outline-none"
               />
             </div>
           </div>
         ))}
+        </div>
       </div>
 
       <div className="mb-6">

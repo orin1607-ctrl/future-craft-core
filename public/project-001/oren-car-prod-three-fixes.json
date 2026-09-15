@@ -1,0 +1,15 @@
+{
+  "id": "oren-car-prod-three-fixes",
+  "armed": false,
+  "phase": "frontend",
+  "requestedAt": "2026-09-15T09:05:00.000Z",
+  "requestedBy": "owner",
+  "target": "https://dalia-car.online",
+  "supabaseRef": "qasomfndnjuixgjmjwcm",
+  "liveCommitBefore": "b467149a3f6b136ab5a4b068477fa80ed577401b",
+  "restoreTag": "restore/prod-before-three-fixes-20260915",
+  "scope": "tri-table-mobile-last-inspection-signed-docs",
+  "codeOnly": true,
+  "doNotMergeToMain": true,
+  "doNotMergeToOriginProduction": true
+}

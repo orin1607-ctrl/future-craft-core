@@ -89,9 +89,12 @@ export async function createDocumentSignedUrl(filePath: string): Promise<string 
 
 export function normalizeAccidentFilePath(urlOrPath: string | null | undefined): string | null {
   if (!urlOrPath) return null;
-  const extracted = extractDocumentsStoragePath(urlOrPath);
+  let extracted = extractDocumentsStoragePath(urlOrPath);
   if (!extracted) return null;
-  return extracted.replace(/^documents\//i, '');
+  while (/^documents\//i.test(extracted)) {
+    extracted = extracted.replace(/^documents\//i, '');
+  }
+  return extracted;
 }
 
 export function accidentDocumentMatches(
@@ -155,6 +158,11 @@ export async function resolveAccidentFileUrl(urlOrPath: string | null | undefine
     return urlOrPath;
   }
   return '';
+}
+
+/** Same signed-URL opener for vehicle license/insurance files stored in the private documents bucket. */
+export async function resolvePrivateDocumentUrl(urlOrPath: string | null | undefined): Promise<string> {
+  return resolveAccidentFileUrl(urlOrPath);
 }
 
 export async function loadAccidentAttachedDocuments(accident: AccidentDocRef): Promise<{
