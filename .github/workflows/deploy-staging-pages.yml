@@ -41,7 +41,7 @@ jobs:
           elif [ "${{ github.ref_name }}" = "cursor/deploy-staging-pages-bed0" ]; then
             # One-off Pages publish of garage-ops overlay on approved Claims SHA 576a08d4.
             # Do not push main (avoids Production waiting).
-            REF="9744a93b573c5f8c7d1ae18b12fc8e508220ec63"
+            REF="816083094bdb1ee0b6fb2aea4fcddb82b4f15d50"
           else
             REF="main"
           fi
