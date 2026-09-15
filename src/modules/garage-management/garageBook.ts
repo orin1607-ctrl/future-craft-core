@@ -204,6 +204,21 @@ export function normalizePlate(raw: string): string {
   return String(raw || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
 }
 
+/** Duplicate plate only inside the same shop. Other shops may reuse the plate. */
+export function findDuplicateVehicleInShop(
+  vehicles: Array<{ plate: string; shop_company_name?: string | null }>,
+  plate: string,
+  shopCompanyName?: string | null,
+): { plate: string; shop_company_name?: string | null } | null {
+  const needle = normalizePlate(plate);
+  const shop = normalizeShopCompanyName(shopCompanyName);
+  if (!needle || !shop) return null;
+  return vehicles.find((row) => (
+    normalizePlate(row.plate) === needle
+    && normalizeShopCompanyName(row.shop_company_name) === shop
+  )) || null;
+}
+
 export type WorkOrderHints = {
   order_number: string;
   case_ref: string;
@@ -781,23 +796,30 @@ export async function listVehicles(customerId: string, scope?: GarageShopScope):
   return filterGarageByShop((data || []) as GarageVehicle[], scope);
 }
 
-export async function findVehicleByPlate(plate: string): Promise<GarageVehicle | null> {
+export async function findVehicleByPlate(
+  plate: string,
+  shopCompanyName?: string | null,
+): Promise<GarageVehicle | null> {
   const needle = normalizePlate(plate);
-  if (!needle) return null;
-  const { data, error } = await tbl('garage_vehicles').select('*').limit(500);
+  const shop = normalizeShopCompanyName(shopCompanyName);
+  if (!needle || !shop) return null;
+  const query = tbl('garage_vehicles').select('*').eq('shop_company_name', shop).limit(500);
+  const { data, error } = await query;
   if (error) {
     if (isGarageSchemaMissing(error)) return null;
+    if (isGarageShopColumnMissing(error)) return null;
     throw new Error(errMessage(error, 'חיפוש רכב נכשל'));
   }
-  return ((data || []) as GarageVehicle[]).find((v) => normalizePlate(v.plate) === needle) || null;
+  const found = findDuplicateVehicleInShop((data || []) as GarageVehicle[], plate, shop);
+  return found ? (found as GarageVehicle) : null;
 }
 
 export async function createVehicle(
   draft: Omit<GarageVehicle, 'id'>,
 ): Promise<GarageVehicle> {
-  const existing = await findVehicleByPlate(draft.plate);
+  const existing = await findVehicleByPlate(draft.plate, draft.shop_company_name);
   if (existing) {
-    throw new Error(`לוחית ${existing.plate} כבר קיימת אצל לקוח במערכת. לא נוצר רכב כפול.`);
+    throw new Error(`לוחית ${existing.plate} כבר קיימת אצל לקוח במוסך זה.`);
   }
   const insert = stampShop({
     customer_id: draft.customer_id,

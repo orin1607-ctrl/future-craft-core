@@ -9,6 +9,7 @@ import {
   encodeContactsInNotes,
   extractWorkOrderHints,
   findDuplicateCustomers,
+  findDuplicateVehicleInShop,
   finishWorkGaps,
   garageCaseListStatus,
   garageListBucket,
@@ -31,6 +32,17 @@ describe('garage book helpers', () => {
     expect(normalizePhone('050-123-4567')).toBe('0501234567');
     expect(normalizePhone('+972501234567')).toBe('0501234567');
     expect(normalizePlate('12-345-67')).toBe('1234567');
+  });
+
+  it('blocks a plate only inside the same shop, not globally', () => {
+    const rows = [
+      { plate: '12-345-67', shop_company_name: 'מוסך ב' },
+      { plate: '12-345-67', shop_company_name: 'מוסך א' },
+    ];
+    expect(findDuplicateVehicleInShop(rows, '12-345-67', 'מוסך א')?.shop_company_name).toBe('מוסך א');
+    expect(findDuplicateVehicleInShop(rows, '12 345 67', 'מוסך ב')?.shop_company_name).toBe('מוסך ב');
+    expect(findDuplicateVehicleInShop(rows, '12-345-67', 'מוסך ג')).toBeNull();
+    expect(findDuplicateVehicleInShop(rows, '12-345-67', '')).toBeNull();
   });
 
   it('extracts work-order fields from document text only, never from the filename or customer', () => {
