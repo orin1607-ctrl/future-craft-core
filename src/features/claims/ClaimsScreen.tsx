@@ -2300,10 +2300,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       return;
     }
     setSync('pend');
-    const r = await apiRef.current.saveClaim({ ...cur, status: newSt, lastStatusNote: note });
+    const r = await apiRef.current.saveClaim({ ...cur, status: newSt, lastStatusNote: note || cur.lastStatusNote || '' });
     if (r.success) {
-      if (note) {
-        await apiRef.current.saveCommEntry({ claimId: cur.id, type: 'note', body: note, note: `סטטוס: ${newSt}` });
+      const typedNote = String(note || '').replace(/\s+/g, ' ').trim();
+      const existingNote = String(cur.lastStatusNote || '').replace(/\s+/g, ' ').trim();
+      if (typedNote && typedNote !== existingNote) {
+        await apiRef.current.saveCommEntry({ claimId: cur.id, type: 'note', body: typedNote, note: `סטטוס: ${newSt}` });
       }
       setModal('moCard');
       await loadAll();
@@ -2359,7 +2361,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         statusChoice,
         manualNote,
         nextDate,
-        note: note || actionText,
+        note,
         continueWork,
         closeTaskId: continueWork === 'done' ? (boundId || undefined) : undefined,
         updateTaskId: continueWork === 'continue' ? (boundId || undefined) : undefined,
@@ -5645,7 +5647,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 </div>
                 <div className="mb" data-testid="treat-center-body" data-treat-id={t.id}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 10, marginBottom: 12 }}>
-                    {([['לקוח', cur.clientName], ['תביעה', displayClaimNum(cur)], ['נושא', t.action || '—'], ['סטטוס טיפול', treatmentStatusHe(t)], ['עדכון אחרון', t.lastStatusNote || t.note || '—'], ['מה צריך לעשות עכשיו', t.lastStatusNote || t.note || t.action || '—'], ['נפתח', t.createdAt || '—'], ['עודכן', t.updatedAt || t.createdAt || '—'], ['מי כתב', t.updatedBy || t.owner || t.createdBy || cur.assigned_to_name || '—'], ['ממתינים', t.workStatus === 'waiting_doc' ? 'למסמך מהלקוח' : t.workStatus === 'waiting_reply' ? 'לתגובת מייל' : '—']] as Array<[string, string]>).map(([k, v]) => (
+                    {([['לקוח', cur.clientName], ['תביעה', displayClaimNum(cur)], ['נושא', t.action || '—'], ['סטטוס טיפול', [treatmentStatusHe(t), cur.lastStatusNote].filter(Boolean).join(' · ') || '—'], ['עדכון אחרון', t.updatedAt || t.createdAt || '—'], ['מה צריך לעשות עכשיו', (t.action && t.action !== cur.lastStatusNote) ? t.action : '—'], ['נפתח', t.createdAt || '—'], ['עודכן', t.updatedAt || t.createdAt || '—'], ['מי כתב', t.updatedBy || t.owner || t.createdBy || cur.assigned_to_name || '—'], ['ממתינים', t.workStatus === 'waiting_doc' ? 'למסמך מהלקוח' : t.workStatus === 'waiting_reply' ? 'לתגובת מייל' : '—']] as Array<[string, string]>).map(([k, v]) => (
                       <div key={k}><div style={{ fontSize: 10, color: 'var(--t3)', fontWeight: 700 }}>{k}</div><div style={{ fontSize: 12.5, fontWeight: 600 }}>{v || '—'}</div></div>
                     ))}
                   </div>
