@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CLOSE_REASONS, STATUS_MANUAL, STATUS_UNCHANGED, TEMPLATES, isClosedStatus, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { CUSTOMER_REQUEST_TEMPLATE_KEY, parseRequestTemplates, type CustomerRequestTemplate } from './customerRequestModel';
 import { VERIFIED_INSURER_DEPTS } from './verifiedInsurerDepts';
-import { customerStatusOf, customerTaskHistoryAction } from './claimWorkAlerts';
+import { customerStatusOf, customerTaskHistoryAction, statusChangeHistoryNote, treatmentUpdatePersist } from './claimWorkAlerts';
 import { inferTreatmentRequest } from './treatmentCenter';
 import { normChannel, type ClaimContact, type ClaimContactChannel, type ContactChannelKind } from './claimContacts';
 
@@ -317,7 +317,7 @@ export function createClaimsApi(actor: ClaimsActor) {
         const { error } = await tbl('claims_records').update(payload as never).eq('id', incoming.id);
         if (error) return { success: false, error: error.message };
         if (existing.status !== incoming.status) {
-          await appendHistory(incoming.id, 'שינוי סטטוס', incoming.lastStatusNote || '', 'status', existing.status, incoming.status);
+          await appendHistory(incoming.id, 'שינוי סטטוס', statusChangeHistoryNote(existing.lastStatusNote, incoming.lastStatusNote), 'status', existing.status, incoming.status);
           await createNotification(incoming.id, 'status', `סטטוס שונה ל: ${incoming.status}`);
         } else {
           await appendHistory(incoming.id, 'עדכון פרטי תיק', '', 'update', '', '');
@@ -449,50 +449,44 @@ export function createClaimsApi(actor: ClaimsActor) {
       if (!c) return { success: false, error: 'תיק לא נמצא' };
       const prevStatus = c.status || '';
       let nextStatus = prevStatus;
-      let historyNote = payload.note || '';
-      if (payload.statusChoice === STATUS_MANUAL) {
-        historyNote = [historyNote, payload.manualNote || ''].filter(Boolean).join(' · ');
-      } else if (payload.statusChoice && payload.statusChoice !== STATUS_UNCHANGED) {
+      if (payload.statusChoice && payload.statusChoice !== STATUS_UNCHANGED && payload.statusChoice !== STATUS_MANUAL) {
         nextStatus = payload.statusChoice;
       }
       const closed = isClosedStatus(nextStatus, c.archived);
       if (!closed && !payload.nextDate) return { success: false, error: 'חובה להגדיר תאריך טיפול הבא' };
+      const persist = treatmentUpdatePersist({
+        action: payload.action,
+        note: payload.note,
+        manualNote: payload.manualNote,
+        statusChoice: payload.statusChoice,
+        closed,
+        existingLastStatusNote: c.lastStatusNote,
+      });
       const patch: Record<string, string> = {
         treatmentPending: '',
         treatmentPendingAction: '',
-        lastTreatmentAction: payload.action,
+        lastTreatmentAction: persist.lastTreatmentAction,
         lastTreatmentAt: nowHe(),
         lastActivityAt: nowHe(),
-        lastStatusNote: historyNote || payload.note || payload.action,
+        lastStatusNote: persist.lastStatusNote,
         nextDate: closed ? '' : payload.nextDate,
-        nextAction: closed ? '' : (c.nextAction || payload.action),
+        nextAction: closed ? '' : (c.nextAction || ''),
         status: nextStatus,
       };
-      if (payload.statusChoice === STATUS_MANUAL && payload.manualNote) {
-        patch.notes = [c.notes, payload.manualNote].filter(Boolean).join('\n');
-      }
       const saved = await patchClaimData(payload.claimId, patch, { status: nextStatus, bumpActivity: true });
       if (!saved.success) return saved;
-      const histNote = [
-        `פעולה: ${payload.action}`,
-        `סטטוס: ${prevStatus} → ${nextStatus}`,
-        `טיפול אחרון: ${patch.lastTreatmentAt}`,
-        closed ? 'תיק סגור — ללא תאריך טיפול הבא' : `טיפול הבא: ${payload.nextDate}`,
-        historyNote ? `הערה: ${historyNote}` : '',
-      ].filter(Boolean).join(' · ');
       void upsertNextTreatmentReminder(payload.claimId, closed ? '' : payload.nextDate, closed).catch(() => undefined);
       if (closed) {
         void this.cancelScheduledMailFollowups(payload.claimId).catch(() => undefined);
       }
-      void appendHistory(payload.claimId, closed ? 'טיפול הושלם' : 'עדכון טיפול', histNote, 'treatment', prevStatus, nextStatus).catch(() => undefined);
+      void appendHistory(payload.claimId, persist.lastTreatmentAction, '', 'treatment', prevStatus, nextStatus).catch(() => undefined);
       let treatmentTaskId = '';
       if (payload.closeTaskId) {
         const { data: closeRow } = await tbl('claims_tasks').select('id, row_data').eq('id', payload.closeTaskId).maybeSingle();
         if (closeRow) {
           const prev = rowFromData((closeRow as { row_data?: Record<string, unknown> }).row_data);
-          const next = { ...prev, id: payload.closeTaskId, claimId: payload.claimId, done: 'true', workStatus: 'done', closedAt: nowHe(), closedBy: actorName, closeReason: payload.note || payload.action || 'טופל — אין המשך' };
+          const next = { ...prev, id: payload.closeTaskId, claimId: payload.claimId, done: 'true', workStatus: 'done', closedAt: nowHe(), closedBy: actorName, closeReason: 'טופל — אין המשך' };
           await tbl('claims_tasks').update({ row_data: next } as never).eq('id', payload.closeTaskId);
-          await appendHistory(payload.claimId, 'טיפול נסגר', `${prev.action || ''} · ${next.closeReason}`, 'treatment', prev.workStatus || '', 'done');
           treatmentTaskId = payload.closeTaskId;
           const listed = await this.listMailFollowups(payload.claimId);
           for (const fu of listed.data || []) {
@@ -517,9 +511,9 @@ export function createClaimsApi(actor: ClaimsActor) {
           treatmentTaskId = existingOpen.id;
           const next = {
             ...existingOpen,
-            action: payload.action || existingOpen.action,
-            note: payload.note || existingOpen.note || '',
-            lastStatusNote: payload.note || payload.action || existingOpen.lastStatusNote || '',
+            action: existingOpen.action || (inferred.type ? inferred.label : 'טיפול'),
+            note: '',
+            lastStatusNote: '',
             updatedAt: nowHe(),
             updatedBy: actorName,
           };
@@ -531,20 +525,19 @@ export function createClaimsApi(actor: ClaimsActor) {
             claimId: payload.claimId,
             kind: 'treatment_item',
             treatmentItem: 'true',
-            action: inferred.label || payload.action,
+            action: inferred.type ? (inferred.label || 'טיפול') : 'טיפול',
             requestType: inferred.type || '',
             requestKind: inferred.kind || 'other',
             workStatus: inferred.kind === 'doc' || inferred.kind === 'sign' ? 'waiting_doc' : 'open',
             docState: inferred.kind === 'doc' || inferred.kind === 'sign' ? 'missing' : '',
             done: 'false',
-            note: payload.note || '',
-            lastStatusNote: payload.note || payload.action || inferred.label || '',
+            note: '',
+            lastStatusNote: '',
             createdAt: nowHe(),
             createdBy: actorName,
             owner: actorName,
           };
           await tbl('claims_tasks').insert({ id, claim_id: payload.claimId, row_data: row } as never);
-          await appendHistory(payload.claimId, 'נוצר טיפול', `${row.action}${row.note ? ` · ${row.note}` : ''}`, 'treatment', '', row.workStatus);
           treatmentTaskId = id;
         }
       }

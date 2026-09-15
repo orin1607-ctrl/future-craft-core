@@ -1,6 +1,6 @@
 /** Claim-row work alerts + customer-request helpers. Reuses existing tasks / followups / notifications. No new tables. */
 
-import { type ClaimRecord } from './claimsConstants';
+import { STATUS_MANUAL, type ClaimRecord } from './claimsConstants';
 import { customerTableLabel } from './customerRequestModel';
 
 export const CUSTOMER_REQUEST_KINDS: Array<{ key: string; label: string }> = [
@@ -153,13 +153,52 @@ function isDocsOrderCopy(s: string) {
   return !t ? false : t === 'תיק ישן / דורש סידור מסמכים' || t.includes('תיק ישן') || t === 'תיק מסודר';
 }
 
-/** Table/list text for last treatment. Does not use docs-order / "תיק ישן". */
+/** Table/list text for last treatment. Does not reuse סטטוס טיפול / lastStatusNote. */
 export function lastTreatmentActionText(c: { lastTreatmentAction?: string; lastStatusNote?: string; lastTreatmentAt?: string }) {
   const action = String(c.lastTreatmentAction || '').replace(/\s+/g, ' ').trim();
   if (action && !isDocsOrderCopy(action)) return action;
-  const note = String(c.lastStatusNote || '').replace(/\s+/g, ' ').trim();
-  if (note && !isDocsOrderCopy(note)) return note;
   return '';
+}
+
+const GENERIC_TREATMENT_ACTIONS = new Set([
+  'עדכון טיפול',
+  'טיפול',
+  'טיפול נסגר',
+  'טיפול הושלם',
+  'טופל — אין המשך',
+]);
+
+function oneLine(s: string | undefined) {
+  return String(s || '').replace(/\s+/g, ' ').trim();
+}
+
+/** Status-change history must not copy the existing סטטוס טיפול sentence. */
+export function statusChangeHistoryNote(prevNote?: string, nextNote?: string) {
+  const prev = oneLine(prevNote);
+  const next = oneLine(nextNote);
+  if (!next || next === prev) return '';
+  return next;
+}
+
+/** One write for עדכון טיפול: user text → lastStatusNote only. */
+export function treatmentUpdatePersist(payload: {
+  action?: string;
+  note?: string;
+  manualNote?: string;
+  statusChoice?: string;
+  closed?: boolean;
+  existingLastStatusNote?: string;
+}): { lastStatusNote: string; lastTreatmentAction: string } {
+  const manual = oneLine(payload.manualNote);
+  const note = oneLine(payload.note);
+  const action = oneLine(payload.action);
+  const typed = payload.statusChoice === STATUS_MANUAL && manual
+    ? manual
+    : note || (payload.closed || GENERIC_TREATMENT_ACTIONS.has(action) ? '' : action);
+  return {
+    lastStatusNote: typed || oneLine(payload.existingLastStatusNote),
+    lastTreatmentAction: payload.closed ? 'טיפול הושלם' : 'עדכון טיפול',
+  };
 }
 
 export function untreatedMailIds(c: ClaimRecord, ctx: AlertContext): string[] {
@@ -206,19 +245,17 @@ export function buildClaimRowAlerts(c: ClaimRecord, ctx: AlertContext): ClaimAle
   const openTreats = claimTasks.filter((t) => isTreatTask(t) && t.done !== 'true' && t.workStatus !== 'done');
   for (const t of openTreats) {
     const name = t.action || 'טיפול';
-    const treatLabel = (t.lastStatusNote || t.note)
-      ? String(t.lastStatusNote || t.note).replace(/\s+/g, ' ').trim().slice(0, 42)
-      : t.replyReceived === 'true'
-        ? `מייל חדש — ${name}`
-        : (t.workStatus === 'doc_received' || t.docState === 'ready')
-          ? `התקבל — לבדיקה: ${name}`
-          : (t.workStatus === 'waiting_doc' || t.docState === 'missing')
-            ? `חסר: ${name}`
-            : name;
+    const treatLabel = t.replyReceived === 'true'
+      ? `מייל חדש — ${name}`
+      : (t.workStatus === 'doc_received' || t.docState === 'ready')
+        ? `התקבל — לבדיקה: ${name}`
+        : (t.workStatus === 'waiting_doc' || t.docState === 'missing')
+          ? `חסר: ${name}`
+          : name;
     add(`treat_${t.id}`, treatLabel || name, t.replyReceived === 'true' || t.workStatus === 'doc_received' ? 'need' : 'wait', {
       taskId: t.id,
       mailIds: t.gmailMessageId ? [t.gmailMessageId] : undefined,
-      why: `טיפול פתוח: ${name}${t.lastStatusNote || t.note ? ` · ${t.lastStatusNote || t.note}` : ''}`,
+      why: `טיפול פתוח: ${name}`,
     });
   }
   if (untreated.length) {
