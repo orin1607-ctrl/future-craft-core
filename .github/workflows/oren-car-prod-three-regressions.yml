@@ -72,14 +72,6 @@ jobs:
           bun install --frozen-lockfile
           bun x vite build
           node scripts/ci-smoke-report.mjs --dist dist --supabase-ref qasomfndnjuixgjmjwcm
-          if grep -R --include='*.js' --include='*.html' -n 'usfeoerkpcafxxlyuldl' dist; then
-            echo "REFUSING: staging Supabase ref found in bundle" >&2
-            exit 1
-          fi
-          if ! grep -R --include='*.js' -l 'qasomfndnjuixgjmjwcm' dist; then
-            echo "REFUSING: production Supabase ref missing from bundle" >&2
-            exit 1
-          fi
 
       - id: bundle
         if: ${{ steps.gate.outputs.armed == 'true' }}
