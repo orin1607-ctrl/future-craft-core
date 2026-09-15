@@ -30,9 +30,13 @@ page.on('console', (msg) => {
   if (msg.type() === 'error') consoleErrors.push(msg.text());
 });
 
-await page.goto(PAGES, { waitUntil: 'domcontentloaded' });
-await page.getByPlaceholder('הכנס אימייל...').fill(email);
-await page.locator('input[type="password"]').fill(password);
+await page.goto(PAGES, { waitUntil: 'networkidle' });
+await page.waitForTimeout(2000);
+await page.screenshot({ path: join(outDir, '00-loaded.png'), fullPage: true });
+const emailInput = page.locator('input[type="email"], input[placeholder*="אימייל"]').first();
+await emailInput.waitFor({ timeout: 20000 });
+await emailInput.fill(email);
+await page.locator('input[type="password"]').first().fill(password);
 await page.getByRole('button', { name: 'התחבר' }).click();
 await page.waitForTimeout(4000);
 await page.screenshot({ path: join(outDir, '01-after-login.png'), fullPage: true });
