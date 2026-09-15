@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - cursor/garage-ops-foundation-bed0
+      - cursor/garage-ops-edit-choice-bed0
   workflow_dispatch: {}
 
 permissions:
@@ -31,7 +32,7 @@ jobs:
           PY
       - name: Run PUBLIC STAGING garage-ops QA
         env:
-          EXPECTED_PAGES_SHA: 043360cb73fc20f4f6094570dea14576d4fb9021
+          EXPECTED_PAGES_SHA: ad2d6e7d7c96f0376198594b14e1d68b65c54620
           VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
           STAGING_QA_EMAIL: ${{ secrets.STAGING_QA_EMAIL }}
           STAGING_QA_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD }}

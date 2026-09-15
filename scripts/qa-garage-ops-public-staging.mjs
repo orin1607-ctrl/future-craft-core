@@ -12,7 +12,7 @@ const PROD_REF = 'qasomfndnjuixgjmjwcm';
 const STAGING_URL = `https://${STAGING_REF}.supabase.co`;
 const PAGES_URL = 'https://orin1607-ctrl.github.io/future-craft-core/';
 const PROD_URL = 'https://dalia-car.online/';
-const EXPECTED_SHA = process.env.EXPECTED_PAGES_SHA || '043360cb73fc20f4f6094570dea14576d4fb9021';
+const EXPECTED_SHA = process.env.EXPECTED_PAGES_SHA || 'ad2d6e7d7c96f0376198594b14e1d68b65c54620';
 
 function abort(msg) {
   console.error('ABORT:', msg);
@@ -153,14 +153,18 @@ report.pages = {
   has_garage_ops: bundle.text.includes('garage_ops'),
   has_garage_dashboard_title: bundle.text.includes('מרכז תפעול למוסך'),
   has_foundation_testid: bundle.text.includes('fleet-foundation-garage-ops'),
+  has_edit_foundation_testid: bundle.text.includes('edit-fleet-foundation-garage-ops'),
+  has_garage_ops_home: bundle.text.includes('garage-ops-home'),
+  staging_ref_count: (bundle.text.match(/usfeoerkpcafxxlyuldl/g) || []).length,
+  production_ref_count: (bundle.text.match(/qasomfndnjuixgjmjwcm/g) || []).length,
 };
 report.production = {
   last_modified: prodLastMod,
   unchanged_from_sep14: /14 Sep 2026 00:15:31/i.test(prodLastMod),
 };
 
-if (!report.pages.sha_ok || !report.pages.has_garage_ops) {
-  report.notes.push('Live Pages is not the garage-ops SHA/bundle. STOP.');
+if (!report.pages.sha_ok || !report.pages.has_garage_ops || !report.pages.has_edit_foundation_testid || report.pages.production_ref_count > 0) {
+  report.notes.push('Live Pages is not the garage-ops edit-choice SHA/bundle. STOP.');
   writeReport(report);
   console.log('FAIL_CLOSED pages', JSON.stringify(report.pages));
   process.exit(2);
@@ -199,6 +203,7 @@ async function profileOf(token, userId) {
   const profile = asRows(profileRes.body)[0] || {};
   return {
     company_name: profile.company_name || '',
+    full_name: profile.full_name || '',
     job_title: profile.job_title || '',
     is_active: profile.is_active,
     role: asRows(roleRes.body)[0]?.role || null,
@@ -303,6 +308,63 @@ if (!report.users.create_regular.ok || !report.users.create_garage.ok) {
   process.exit(2);
 }
 
+const editEmail = `qa.fleet.edit.${stamp}@placeholder.local`;
+const editPass = `QaEdit-${stamp}x`;
+const editCreate = await invokeCreateUser(STAGING_URL, anon, superAuth.token, {
+  email: editEmail,
+  password: editPass,
+  full_name: 'QA עריכת מנהל מוסך',
+  phone: '0500000003',
+  role: 'fleet_manager',
+  company_name: regularCompany,
+  job_title: 'מנהל צי',
+  is_active: false,
+  approval_status: 'pending',
+});
+report.users.create_edit_target = { http: editCreate.http, ok: editCreate.body?.success === true, user_id: editCreate.body?.user_id || null };
+if (!report.users.create_edit_target.ok) {
+  report.notes.push('create-admin-user failed for the edit-target QA user.');
+  writeReport(report);
+  console.log('FAIL_CLOSED create_edit', JSON.stringify(report.users.create_edit_target));
+  process.exit(2);
+}
+
+await invokeCreateUser(STAGING_URL, anon, superAuth.token, {
+  action: 'toggle-active',
+  user_id: report.users.create_edit_target.user_id,
+  is_active: true,
+});
+const editOn = await invokeCreateUser(STAGING_URL, anon, superAuth.token, {
+  action: 'update-profile',
+  user_id: report.users.create_edit_target.user_id,
+  full_name: 'QA עריכת מנהל מוסך',
+  phone: '0500000003',
+  company_name: regularCompany,
+  role: 'fleet_manager',
+  is_active: true,
+  job_title: 'garage_ops',
+});
+const editOnLogin = await signIn(STAGING_URL, anon, editEmail, editPass);
+const editOnProf = await profileOf(editOnLogin.token, editOnLogin.userId);
+const editOff = await invokeCreateUser(STAGING_URL, anon, superAuth.token, {
+  action: 'update-profile',
+  user_id: report.users.create_edit_target.user_id,
+  full_name: 'QA עריכת מנהל מוסך',
+  phone: '0500000003',
+  company_name: regularCompany,
+  role: 'fleet_manager',
+  is_active: true,
+  job_title: '',
+});
+const editOffLogin = await signIn(STAGING_URL, anon, editEmail, editPass);
+const editOffProf = await profileOf(editOffLogin.token, editOffLogin.userId);
+report.users.edit = {
+  update_on_ok: editOn.body?.success === true || editOn.http === 200,
+  after_on: { role: editOnProf.role, job_title: editOnProf.job_title, full_name: editOnProf.full_name },
+  update_off_ok: editOff.body?.success === true || editOff.http === 200,
+  after_off: { role: editOffProf.role, job_title: editOffProf.job_title },
+};
+
 await invokeCreateUser(STAGING_URL, anon, superAuth.token, {
   action: 'toggle-active',
   user_id: report.users.create_regular.user_id,
@@ -390,8 +452,16 @@ const ok =
   && vehiclesHidden
   && asRows(garageSeesA.body).length === 0
   && report.pages.sha_ok
+  && report.pages.has_edit_foundation_testid
+  && report.pages.production_ref_count === 0
   && report.production.unchanged_from_sep14
-  && (report.isolation.leak_blocked !== false);
+  && (report.isolation.leak_blocked !== false)
+  && editOnProf.role === 'fleet_manager'
+  && editOnProf.job_title === 'garage_ops'
+  && editOffProf.role === 'fleet_manager'
+  && editOffProf.job_title !== 'garage_ops'
+  && editOnProf.full_name === 'QA עריכת מנהל מוסך'
+  && editOffProf.full_name === 'QA עריכת מנהל מוסך';
 
 report.checks = {
   regular_still_fleet_manager: regularAfter.role === 'fleet_manager',
@@ -405,6 +475,10 @@ report.checks = {
   pages_sha_live: report.pages.sha_ok,
   production_unchanged: report.production.unchanged_from_sep14,
   isolation_ok: report.isolation.leak_blocked !== false,
+  edit_sets_garage_ops: editOnProf.role === 'fleet_manager' && editOnProf.job_title === 'garage_ops',
+  edit_clears_garage_ops: editOffProf.role === 'fleet_manager' && editOffProf.job_title !== 'garage_ops',
+  bundle_has_edit_choice: report.pages.has_edit_foundation_testid === true,
+  bundle_staging_only: report.pages.production_ref_count === 0,
 };
 
 report.verdict = ok ? 'PASS' : 'FAIL_CLOSED';
