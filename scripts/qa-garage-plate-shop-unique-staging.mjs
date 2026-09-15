@@ -96,7 +96,7 @@ try {
         customer_name_snapshot, vehicle_plate_snapshot, shop_company_name, case_data
       )
       VALUES (
-        $1, $2, 'פתוח', $5, 'QA',
+        $1, $2, 'הצעה בהכנה', $5, 'QA',
         'QA לקוח א', $3, $4,
         jsonb_build_object('route', 'quote_first', 'quoteCreated', true, 'quoteWorks', jsonb_build_array(jsonb_build_object('desc','עבודה','price',100,'qty',1)))
       )
