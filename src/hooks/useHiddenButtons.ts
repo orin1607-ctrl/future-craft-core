@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { effectiveHiddenButtonsForUser } from '@/lib/garageOps';
 
 export { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
 
@@ -20,9 +21,18 @@ export function useHiddenButtonsState(): { hiddenButtons: string[]; ready: boole
       return;
     }
 
+    const apply = (companyHidden: string[] | null | undefined) => {
+      setHiddenButtons(effectiveHiddenButtonsForUser({
+        garageOps: !!user.garageOps,
+        companyHidden,
+        allManageablePaths: MANAGEABLE_BUTTONS.map((b) => b.path),
+      }));
+      setReady(true);
+    };
+
     const companyName = user.company_name;
     if (!companyName) {
-      setReady(true);
+      apply([]);
       return;
     }
 
@@ -33,14 +43,9 @@ export function useHiddenButtonsState(): { hiddenButtons: string[]; ready: boole
       .eq('company_name', companyName)
       .maybeSingle()
       .then(({ data }) => {
-        if (data?.hidden_buttons) {
-          setHiddenButtons(data.hidden_buttons as string[]);
-        } else {
-          setHiddenButtons([]);
-        }
-        setReady(true);
+        apply((data?.hidden_buttons as string[] | undefined) || []);
       });
-  }, [user?.id, user?.company_name, user?.role]);
+  }, [user?.id, user?.company_name, user?.role, user?.garageOps]);
 
   return { hiddenButtons, ready };
 }
@@ -73,6 +78,7 @@ export const MANAGEABLE_BUTTONS = [
   { path: '/fleetos-ai', label: 'מיקום צי חכם (FleetOS)', category: 'ניווט' },
   { path: '/transport', label: 'חברות הסעות', category: 'ניווט' },
   { path: '/faults', label: 'תקלות', category: 'ניווט' },
+  { path: '/garage-management', label: 'ניהול מוסך', category: 'ניווט' },
   { path: '/reports', label: 'דוחות', category: 'ניווט' },
   { path: '/fleet-managers', label: 'מנהלי צי', category: 'ניווט' },
   { path: '/customers', label: 'לקוחות', category: 'ניווט' },

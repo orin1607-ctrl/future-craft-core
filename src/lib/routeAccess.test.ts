@@ -94,4 +94,17 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/expenses', 'driver', extras)).toBe(false);
     expect(canAccessRoute('/driver-notifications', 'driver', extras)).toBe(false);
   });
+
+  it('garage-management is not the photographer /garage portal', () => {
+    expect(canAccessRoute('/garage', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/garage-management', 'super_admin')).toBe(true);
+  });
+
+  it('garage-ops fleet_manager can open garage-management without a new role', () => {
+    expect(canAccessRoute('/garage-management', 'fleet_manager', { garageOps: true })).toBe(true);
+    expect(canAccessRoute('/claims', 'fleet_manager', { garageOps: true })).toBe(false);
+    expect(canAccessRoute('/claims', 'fleet_manager', { garageOps: true, hasClaimsAccess: true })).toBe(true);
+    expect(canAccessRoute('/reports', 'fleet_manager', { garageOps: true })).toBe(true);
+  });
 });

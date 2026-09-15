@@ -112,6 +112,7 @@ const ROUTES = [
   'claims-share',
   'claims-intake',
   'garage',
+  'garage-management',
 ];
 
 let n = 0;

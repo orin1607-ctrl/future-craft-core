@@ -140,6 +140,7 @@ import ClaimsUploadPage from "@/pages/ClaimsUploadPage";
 import ClaimsSharePage from "@/pages/ClaimsSharePage";
 import ClaimsIntakePage from "@/pages/ClaimsIntakePage";
 import GarageJobsPage from "@/pages/GarageJobsPage";
+import GarageApp from "@/modules/garage-management/GarageApp";
 
 const queryClient = new QueryClient();
 
@@ -302,6 +303,8 @@ function AppRoutes() {
         <Route path="/telemarketing" element={<TelemarketingAgentPage />} />
         <Route path="/telemarketing/admin" element={<TelemarketingAdminPage />} />
         <Route path="/claims" element={<ClaimsPage />} />
+        <Route path="/garage-management/:caseId" element={<GarageApp />} />
+        <Route path="/garage-management" element={<GarageApp />} />
         <Route path="/garage" element={<GarageJobsPage />} />
         <Route path="/routes" element={<RoutesPage />} />
         <Route path="/faults" element={<Faults />} />
