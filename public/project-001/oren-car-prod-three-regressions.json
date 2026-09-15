@@ -1,6 +1,6 @@
 {
   "id": "oren-car-prod-three-regressions",
-  "armed": true,
+  "armed": false,
   "phase": "frontend",
   "requestedAt": "2026-09-15T04:40:00.000Z",
   "requestedBy": "owner",
