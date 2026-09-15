@@ -1,19 +1,20 @@
 name: Deploy Staging to GitHub Pages
 
-# Staging deployment to GitHub Pages (dalia-staging Supabase only).
-# Always builds the `dev` branch. Never checks out `production`.
-#
-# Cursor's GitHub App cannot call workflow_dispatch (HTTP 403). The
-# github-pages environment also only allows branch `main`, which would
-# block a job bound to that environment when this trigger branch runs.
-# Push to `cursor/deploy-staging-pages-bed0` is the Cursor-bot deploy
-# path; workflow_dispatch remains for the owner.
+# One-shot restore: republish the approved PUBLIC STAGING content SHA
+# b7b0f68234194f97560c6f805fb60993328f7331
+# Never publishes production, main, or origin/dev.
+# garage-gmail job stays gated to main and will not run on this branch.
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      deploy_ref:
+        description: 'Must be the approved SHA. Never production, main, or dev.'
+        required: false
+        default: 'b7b0f68234194f97560c6f805fb60993328f7331'
   push:
     branches:
-      - cursor/deploy-staging-pages-bed0
+      - cursor/restore-approved-staging-bed0
 
 permissions:
   contents: read
@@ -27,17 +28,50 @@ concurrency:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
-    # Do not bind `environment: github-pages` — that environment only
-    # allows branch `main` and would block this Cursor trigger branch.
+    # Do not bind this job to environment `github-pages` (that environment
+    # only allows branch `main`). Pages deploy uses pages:write + id-token.
     steps:
-      - name: Checkout dev branch
+      - name: Resolve deploy ref (approved SHA only)
+        id: ref
+        run: |
+          set -euo pipefail
+          APPROVED="b7b0f68234194f97560c6f805fb60993328f7331"
+          if [ -n "${{ github.event.inputs.deploy_ref }}" ]; then
+            REF="${{ github.event.inputs.deploy_ref }}"
+          else
+            REF="$APPROVED"
+          fi
+          case "$REF" in
+            production|refs/heads/production|*production*|dev|refs/heads/dev|origin/dev|main|refs/heads/main|origin/main|7fd94ce0*|cursor/oren-car-accident-docs-8234|cursor/garage-ops-choice-bed0)
+              echo "::error::Refusing to publish $REF to GitHub Pages"
+              exit 1
+              ;;
+          esac
+          if [ "$REF" != "$APPROVED" ] && [ "$REF" != "cursor/garage-ops-dashboard-bed0" ]; then
+            echo "::error::Refusing to publish $REF — only approved SHA $APPROVED is allowed"
+            exit 1
+          fi
+          echo "Publishing GitHub Pages from: $APPROVED"
+          echo "value=$APPROVED" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout deploy ref
         uses: actions/checkout@v4
         with:
-          ref: dev
+          ref: ${{ steps.ref.outputs.value }}
           fetch-depth: 1
 
-      - name: Record deploy SHA
-        run: echo "DEPLOY_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Record checked-out SHA
+        run: |
+          set -euo pipefail
+          APPROVED="b7b0f68234194f97560c6f805fb60993328f7331"
+          SHA=$(git rev-parse HEAD)
+          echo "Checked out $SHA"
+          if [ "$SHA" != "$APPROVED" ]; then
+            echo "::error::Checked-out SHA $SHA is not the approved PUBLIC STAGING SHA $APPROVED"
+            exit 1
+          fi
+          echo "DEPLOY_SHA=$SHA" >> "$GITHUB_ENV"
+          printf '%s\n' "$SHA" > /tmp/staging-sha.txt
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -54,12 +88,44 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU
           VITE_BASE_PATH: /future-craft-core/
           VITE_BUILD_COMMIT: ${{ env.DEPLOY_SHA }}
+          VITE_MARKETING_UI_VERSION: v3-mission-25-1-${{ github.run_number }}
         run: |
           bun x vite build
-          # SPA fallback so client-side routes work on GitHub Pages
           cp dist/index.html dist/404.html
+          node scripts/generate-spa-route-shells.mjs dist
+          mkdir -p dist/dev/project-001/dashboard
+          cp dist/index.html dist/dev/project-001/dashboard/index.html
+
+      - name: Copy CO.CO AI Marketing static dashboard
+        run: |
+          mkdir -p dist dist/project-001
+          cp public/coco-marketing-platform.html dist/
+          cp public/ai-marketing-platform.html dist/
+          cp public/dalia-crm-platform.html dist/
+          cp public/dalia-crm.html dist/
+          cp -r public/ai-marketing dist/
+          cp -r public/coco-dalia dist/
+          cp -r public/crm dist/
+          cp dist/index.html dist/ai-marketing/index.html
+          cp -r public/project-001-mockup dist/
+          cp public/project-001/dashboard.json dist/project-001/ 2>/dev/null || true
+          HASH=$(git rev-parse --short HEAD)
+          RUN_VER="v3-mission-25-1-${HASH}"
+          sed -i "s/content=\"STAGING\"/content=\"${HASH}\"/" dist/coco-marketing-platform.html
+          sed -i "s/content=\"STAGING\"/content=\"${HASH}\"/" dist/ai-marketing-platform.html
+          sed -i "s/content=\"STAGING\"/content=\"${HASH}\"/" dist/dalia-crm-platform.html
+          sed -i "s/content=\"v3-mission-25-1\"/content=\"${RUN_VER}\"/" dist/ai-marketing-platform.html
+          sed -i "s/var ver = 'v3-mission-25-1'/var ver = '${RUN_VER}'/" dist/ai-marketing-platform.html
+          sed -i "s/v=v3-mission-25-1/v=${RUN_VER}/g" dist/ai-marketing-platform.html
+          sed -i "s/var VERSION = 'v3-global-filter-unified'/var VERSION = '${RUN_VER}'/" dist/ai-marketing/coco-marketing-unified.js
+          sed -i "s/|| 'v3-mission-25-1'/|| '${RUN_VER}'/" dist/ai-marketing/coco-marketing-crm-bridge.js
+          sed -i "s/v=3-unified-3g/v=${RUN_VER}/g" dist/ai-marketing-platform.html
+          sed -i "s/v=crm-1/v=crm-${HASH}/g" dist/dalia-crm-platform.html
+          test -f dist/index.html || cp public/ai-marketing-platform.html dist/index.html
+          test -f dist/404.html || cp dist/index.html dist/404.html
           touch dist/.nojekyll
-          printf '%s\n' "${DEPLOY_SHA}" > dist/staging-sha.txt
+          echo "deployed_ref=$(git rev-parse --short HEAD) $(git rev-parse --abbrev-ref HEAD)" > dist/STAGING-DEPLOY.txt
+          cp /tmp/staging-sha.txt dist/staging-sha.txt
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
@@ -69,3 +135,65 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  staging-garage-gmail:
+    name: Deploy garage-gmail via Preview
+    needs: build-deploy
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: Preview
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply approved garage Gmail SQL if Staging DB URL is present
+        env:
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          for n in ("STAGING_DATABASE_URL", "DATABASE_URL"):
+              v = (os.environ.get(n) or "")
+              if "qasomfndnjuixgjmjwcm" in v or "dalia-car.online" in v.lower():
+                  sys.exit(f"{n} looks like Production — refusing")
+          PY
+          if [ -n "${STAGING_DATABASE_URL:-}${DATABASE_URL:-}" ]; then
+            node scripts/apply-garage-gmail-staging.mjs
+          else
+            echo "No Staging DB URL in Preview — skip SQL"
+          fi
+      - name: Deploy garage-gmail Edge to Staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+          STAGING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/deploy-garage-gmail-edge.mjs
+      - uses: oven-sh/setup-bun@v2
+        if: always()
+        with:
+          bun-version: latest
+      - name: E2E garage-gmail on Staging only
+        if: always()
+        env:
+          VITE_SUPABASE_URL: https://usfeoerkpcafxxlyuldl.supabase.co
+          VITE_SUPABASE_PROJECT_ID: usfeoerkpcafxxlyuldl
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TEST_EMAIL: ${{ secrets.STAGING_QA_EMAIL }}
+          TEST_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD }}
+          STAGING_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          STAGING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          bun install --frozen-lockfile
+          node scripts/qa-garage-gmail-staging.mjs
+      - name: Upload garage-gmail logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garage-gmail-pages-preview
+          path: test-results/garage-gmail-*.json
+          if-no-files-found: ignore
