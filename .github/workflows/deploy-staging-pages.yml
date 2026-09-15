@@ -39,9 +39,9 @@ jobs:
           if [ -n "${{ github.event.inputs.deploy_ref }}" ]; then
             REF="${{ github.event.inputs.deploy_ref }}"
           elif [ "${{ github.ref_name }}" = "cursor/deploy-staging-pages-bed0" ]; then
-            # One-off Pages publish of garage-ops edit-choice SHA (descended from b7b0f682).
+            # One-off Pages publish of claims treatment-text fix (descended from live ad2d6e7d).
             # Do not push main (avoids Production waiting + garage-gmail job).
-            REF="ad2d6e7d7c96f0376198594b14e1d68b65c54620"
+            REF="70db9a6dfbfa70fac46c1be1bfecdc1b1320f1ce"
           else
             REF="main"
           fi
