@@ -23,6 +23,7 @@ import {
   mailShowsTreatment,
   normalizeFollowupDays,
   lastTreatmentActionText,
+  treatmentUpdatePersist,
 } from './claimWorkAlerts';
 import type { ClaimRecord } from './claimsConstants';
 
@@ -346,7 +347,7 @@ describe('scheduled once mail', () => {
     expect(treat?.taskId).toBe('TSK-LIC');
   });
 
-  it('uses the last treatment update text as the table chip', () => {
+  it('does not copy treatment text into the נדרש טיפול chip', () => {
     const alerts = buildClaimRowAlerts(claim, {
       tasks: [{
         id: 'TSK-NOTE',
@@ -363,7 +364,7 @@ describe('scheduled once mail', () => {
       gmailPending: [],
       scheduledFollowups: [],
     });
-    expect(alerts.find((a) => a.key === 'treat_TSK-NOTE')?.label).toBe('ממתין לדוח שמאי');
+    expect(alerts.find((a) => a.key === 'treat_TSK-NOTE')?.label).toBe('חסר: רישיון נהיגה');
     expect(alerts.filter((a) => a.key.startsWith('treat_')).length).toBe(1);
     expect(alerts.filter((a) => a.label.includes('חסר מסמך')).length).toBe(0);
   });
@@ -397,6 +398,36 @@ describe('scheduled once mail', () => {
   });
 });
 
+describe('treatmentUpdatePersist', () => {
+  it('writes the user text only to lastStatusNote and keeps lastTreatmentAction generic', () => {
+    expect(treatmentUpdatePersist({
+      action: 'נשלח לשמאי',
+      note: 'נשלח לשמאי',
+      statusChoice: '__unchanged__',
+    })).toEqual({
+      lastStatusNote: 'נשלח לשמאי',
+      lastTreatmentAction: 'עדכון טיפול',
+    });
+    expect(treatmentUpdatePersist({
+      action: 'עדכון טיפול',
+      note: 'חסר רישיון',
+      statusChoice: '__unchanged__',
+    })).toEqual({
+      lastStatusNote: 'חסר רישיון',
+      lastTreatmentAction: 'עדכון טיפול',
+    });
+    expect(treatmentUpdatePersist({
+      action: 'עדכון טיפול',
+      manualNote: 'עדכון ידני חד-פעמי',
+      statusChoice: '__manual__',
+      closed: true,
+    })).toEqual({
+      lastStatusNote: 'עדכון ידני חד-פעמי',
+      lastTreatmentAction: 'טיפול הושלם',
+    });
+  });
+});
+
 describe('lastTreatmentActionText', () => {
   it('prefers the last treatment action and never uses docs-order copy', () => {
     expect(lastTreatmentActionText({
@@ -406,7 +437,7 @@ describe('lastTreatmentActionText', () => {
     })).toBe('עדכון טיפול — נשלח לשמאי');
     expect(lastTreatmentActionText({
       lastStatusNote: 'ממתין לתשובת הלקוח',
-    })).toBe('ממתין לתשובת הלקוח');
+    })).toBe('');
     expect(lastTreatmentActionText({})).toBe('');
     expect(lastTreatmentActionText({
       lastTreatmentAction: 'בקשת רישיון',
