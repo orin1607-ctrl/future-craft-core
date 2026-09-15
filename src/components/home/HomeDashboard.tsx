@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog, Megaphone, Scale } from 'lucide-react';
+import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog, Megaphone, Scale, Warehouse } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -150,6 +150,15 @@ export default function HomeDashboard() {
           subtitle="דוחות וניתוחים"
           accent="success"
         />
+        {isSuperAdmin && (
+          <DashboardCardGate
+            path="/garage-management"
+            to="/garage-management"
+            icon={Warehouse}
+            title="ניהול מוסך"
+            subtitle="תיקי עבודה · הצעות · קבלת רכב"
+          />
+        )}
         <DashboardCardGate
           path="/fleet-managers"
           to="/fleet-managers"
