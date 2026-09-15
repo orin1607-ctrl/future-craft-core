@@ -63,3 +63,22 @@ jobs:
           name: garage-ops-public-staging-qa
           path: test-results/garage-ops-public-staging-qa.json
           if-no-files-found: ignore
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install app deps for Playwright
+        run: bun install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: bun x playwright install --with-deps chromium
+      - name: Browser QA regular fleet_manager on PUBLIC STAGING
+        env:
+          STAGING_QA_FLEET_A_EMAIL: ${{ secrets.STAGING_QA_FLEET_A_EMAIL }}
+          STAGING_QA_FLEET_A_PASSWORD: ${{ secrets.STAGING_QA_FLEET_A_PASSWORD }}
+        run: node scripts/qa-garage-ops-browser-staging.mjs
+      - name: Upload browser QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garage-ops-browser-qa
+          path: docs/screenshots/garage-ops-live-qa
+          if-no-files-found: ignore
