@@ -9,7 +9,7 @@ import {
 
 describe('last tri inspection date', () => {
   it('always returns a clear label, including when none was performed', () => {
-    expect(lastTriInspectionDisplay(null).dateText).toBe('אין בדיקה קודמת');
+    expect(lastTriInspectionDisplay(null).dateText).toBe('לא קיימת בדיקה קודמת');
     expect(lastTriInspectionDisplay('').hasDate).toBe(false);
     expect(lastTriInspectionDisplay('2026-03-12').dateText).toBe(formatInspectionDateHe('2026-03-12'));
     expect(lastTriInspectionDisplay('2026-03-12').hasDate).toBe(true);
