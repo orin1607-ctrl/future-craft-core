@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { chromium } from 'playwright';
 
 const PAGES = 'https://orin1607-ctrl.github.io/future-craft-core/';
+const LOGIN = `${PAGES}login`;
 const email = String(process.env.STAGING_QA_FLEET_A_EMAIL || '').trim();
 const password = String(process.env.STAGING_QA_FLEET_A_PASSWORD || '').trim();
 const outDir = 'docs/screenshots/garage-ops-live-qa';
@@ -30,7 +31,7 @@ page.on('console', (msg) => {
   if (msg.type() === 'error') consoleErrors.push(msg.text());
 });
 
-await page.goto(PAGES, { waitUntil: 'networkidle' });
+await page.goto(LOGIN, { waitUntil: 'networkidle' });
 await page.waitForTimeout(2000);
 await page.screenshot({ path: join(outDir, '00-loaded.png'), fullPage: true });
 const emailInput = page.locator('input[type="email"], input[placeholder*="אימייל"]').first();
