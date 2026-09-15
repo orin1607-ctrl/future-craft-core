@@ -636,10 +636,36 @@ function DocStaffFields({ file, allFiles, onSave }: { file: ClaimFile; allFiles:
 }
 
 function StaffUploadZone({ testId, inputId, busy, compact, addLabel, onFiles }: {
-  testId: string; inputId: string; busy: boolean; compact?: boolean; addLabel?: string; onFiles: (files: File[]) => void;
+  testId: string; inputId: string; busy: boolean; compact?: boolean; addLabel?: string; onFiles: (files: File[], titles: string[]) => void;
 }) {
   const [over, setOver] = useState(false);
+  const [pending, setPending] = useState<Array<{ key: string; file: File; title: string }>>([]);
+  const [nameErr, setNameErr] = useState('');
   const label = addLabel || (compact ? '＋ צרף קובץ מהמכשיר' : '＋ הוסף מסמך');
+  const queue = (list: File[]) => {
+    if (busy || !list.length) return;
+    setNameErr('');
+    setPending((prev) => [
+      ...prev,
+      ...list.map((file) => ({
+        key: `${file.name}:${file.size}:${file.lastModified}:${Math.random().toString(36).slice(2, 7)}`,
+        file,
+        title: '',
+      })),
+    ]);
+  };
+  const saveNamed = () => {
+    const missing = pending.find((p) => !p.title.replace(/\s+/g, ' ').trim());
+    if (missing) {
+      setNameErr('חובה לתת שם לכל מסמך לפני השמירה.');
+      return;
+    }
+    const files = pending.map((p) => p.file);
+    const titles = pending.map((p) => p.title.replace(/\s+/g, ' ').trim().slice(0, 120));
+    setPending([]);
+    setNameErr('');
+    onFiles(files, titles);
+  };
   return (
     <div className="docs-up" data-testid={`${testId}-wrap`}>
       <button type="button" className="btn btn-p btn-sm" data-testid={compact ? 'mail-attach-device' : 'docs-add-btn'} disabled={busy} onClick={() => document.getElementById(inputId)?.click()}>{label}</button>
@@ -652,8 +678,7 @@ function StaffUploadZone({ testId, inputId, busy, compact, addLabel, onFiles }: 
         onDrop={(e) => {
           e.preventDefault();
           setOver(false);
-          if (busy) return;
-          onFiles(Array.from(e.dataTransfer.files || []));
+          queue(Array.from(e.dataTransfer.files || []));
         }}
       >
         <input
@@ -665,16 +690,44 @@ function StaffUploadZone({ testId, inputId, busy, compact, addLabel, onFiles }: 
           accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,.pdf,.jpg,.jpeg,.png,.webp,.heic"
           disabled={busy}
           onChange={(e) => {
-            onFiles(Array.from(e.target.files || []));
+            queue(Array.from(e.target.files || []));
             e.target.value = '';
           }}
         />
-        {busy ? 'מעלה…' : 'גרור קבצים לכאן או לחץ להעלאה'}
+        {busy ? 'מעלה…' : 'גרור קבצים לכאן או לחץ להעלאה — חובה לתת שם לפני השמירה'}
       </label>
+      {pending.length ? (
+        <div data-testid={`${testId}-name-form`} style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {pending.map((p, i) => (
+            <div key={p.key} className="fg" style={{ marginBottom: 0 }}>
+              <label className="fl" htmlFor={`${inputId}_title_${i}`}>שם המסמך</label>
+              <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>{p.file.name}</div>
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <input
+                  className="fi"
+                  id={`${inputId}_title_${i}`}
+                  data-testid={`${testId}-name-${i}`}
+                  value={p.title}
+                  required
+                  maxLength={120}
+                  placeholder="חובה — שם ברור למסמך"
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setPending((prev) => prev.map((x) => x.key === p.key ? { ...x, title: v } : x));
+                  }}
+                />
+                <button type="button" className="btn btn-g btn-sm" data-testid={`${testId}-remove-${i}`} disabled={busy} onClick={() => setPending((prev) => prev.filter((x) => x.key !== p.key))}>הסר</button>
+              </div>
+            </div>
+          ))}
+          {nameErr ? <div data-testid={`${testId}-name-err`} style={{ color: 'var(--rd2)', fontSize: 12 }}>{nameErr}</div> : null}
+          <button type="button" className="btn btn-p btn-sm" data-testid={`${testId}-save`} disabled={busy} onClick={saveNamed}>שמור מסמכים</button>
+        </div>
+      ) : null}
       <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>
         {compact
-          ? 'נשמר במסמכי התביעה כ«הועלה על ידינו». ביטול סימון לשליחה לא מוחק את הקובץ.'
-          : 'PDF או תמונה. נשמר פרטית בתיק זה בלבד. מקור: הועלה על ידינו. לא דורס מסמך קיים.'}
+          ? 'נשמר במסמכי התביעה כ«הועלה על ידינו». חובה שם מסמך. ביטול סימון לשליחה לא מוחק את הקובץ.'
+          : 'PDF או תמונה. חובה לתת שם למסמך לפני השמירה. נשמר פרטית בתיק זה בלבד. מקור: הועלה על ידינו. לא דורס מסמך קיים.'}
       </div>
     </div>
   );
@@ -1718,21 +1771,32 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const saveDocStaff = async (file: ClaimFile, patch: Record<string, string | boolean>) => {
-    if (!curId) return;
+    if (!curId) return false;
     const r = await apiRef.current.invokeDocs('update_doc_meta', { claim_id: curId, file_id: file.id, ...patch });
-    if (!r.success) { toast(String(r.error || 'שמירה נכשלה'), 'err'); return; }
+    if (!r.success) { toast(String(r.error || 'שמירה נכשלה'), 'err'); return false; }
     await loadCardData(curId);
+    return true;
   };
 
-  const uploadStaffFiles = async (claimId: string, files: File[], selectForSend = false, extra?: { doc_kind?: string; staff_type?: string; staff_title?: string }) => {
+  const renameClaimDoc = async (file: ClaimFile, title: string) => {
+    const staff_title = String(title || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    if (!staff_title) { toast('חובה לתת שם למסמך', 'err'); return; }
+    const ok = await saveDocStaff(file, { staff_title });
+    if (ok) toast('שם המסמך עודכן');
+  };
+
+  const uploadStaffFiles = async (claimId: string, files: File[], selectForSend = false, extra?: { doc_kind?: string; staff_type?: string; staff_title?: string }, titles?: string[]) => {
     if (!files.length) return [];
     setDocsUploading(true);
     const ids: string[] = [];
     const fails: string[] = [];
     let reused = 0;
     try {
-      for (const file of files) {
-        const up = await apiRef.current.staffUpload(claimId, '', file, extra);
+      for (let i = 0; i < files.length; i += 1) {
+        const file = files[i];
+        const staff_title = String(titles?.[i] ?? extra?.staff_title ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
+        if (titles && !staff_title) { fails.push(`${file.name}: חובה לתת שם למסמך`); continue; }
+        const up = await apiRef.current.staffUpload(claimId, '', file, staff_title ? { ...extra, staff_title } : extra);
         if (!up.success) { fails.push(`${file.name}: ${up.error || 'שגיאה'}`); continue; }
         if (up.reused) reused += 1;
         if (up.file_id) ids.push(up.file_id);
@@ -3536,7 +3600,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       inputId="invoice_staff_files"
                       addLabel="＋ הוסף חשבונית"
                       busy={docsUploading}
-                      onFiles={(files) => { void uploadStaffFiles(cur.id, files, false, { doc_kind: 'garage_invoice' }); }}
+                      onFiles={(files, titles) => { void uploadStaffFiles(cur.id, files, false, { doc_kind: 'garage_invoice' }, titles); }}
                     />
                   </div>
                 );
@@ -3615,6 +3679,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     onDownload={(f) => void downloadClaimFile(cur.id, f as ClaimFile)}
                     onPrint={(f) => void printClaimFile(cur.id, f as ClaimFile)}
                     onShareTopic={(ids) => openSecureShare(ids)}
+                    onRename={(f, title) => void renameClaimDoc(f as ClaimFile, title)}
                   />
                   {docsShareBar(cur)}
                   <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
@@ -3622,7 +3687,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     testId="docs-drop"
                     inputId="docs_staff_files"
                     busy={docsUploading}
-                    onFiles={(files) => { if (cur) void uploadStaffFiles(cur.id, files); }}
+                    onFiles={(files, titles) => { if (cur) void uploadStaffFiles(cur.id, files, false, undefined, titles); }}
                   />
                   {hasUploadLink ? (
                     <div className="cust-link-card" data-testid="cust-link-card">
@@ -4964,7 +5029,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 inputId="mail_staff_files"
                 busy={docsUploading || mailSending}
                 compact
-                onFiles={(files) => { void uploadStaffFiles(curId, files, true); }}
+                onFiles={(files, titles) => { void uploadStaffFiles(curId, files, true, undefined, titles); }}
               />
             ) : null}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>

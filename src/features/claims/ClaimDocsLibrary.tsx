@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { DOC_LIB_CATEGORIES, DOC_LIB_GROUPS, DOC_LIB_SECTIONS, fileDocBucket, filesForLibCategory, libTypeLabel } from './claimDocLibrary';
 
 export type LibFile = {
@@ -26,6 +27,7 @@ type Props = {
   onDownload: (f: LibFile) => void;
   onPrint: (f: LibFile) => void;
   onShareTopic: (ids: string[]) => void;
+  onRename: (f: LibFile, title: string) => void;
 };
 
 function fmtDay(iso?: string) {
@@ -35,8 +37,43 @@ function fmtDay(iso?: string) {
   return new Date(t).toLocaleDateString('he-IL');
 }
 
+function DocRename({ f, label, onRename }: { f: LibFile; label: string; onRename: (f: LibFile, title: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState(label);
+  const [err, setErr] = useState('');
+  return (
+    <div className="doc-lib-rename" data-testid={`docs-rename-wrap-${f.id}`}>
+      <button type="button" className="btn btn-g btn-sm" data-testid={`docs-rename-${f.id}`} onClick={() => { setTitle(label); setErr(''); setOpen((v) => !v); }}>עריכת שם מסמך</button>
+      {open ? (
+        <div data-testid={`docs-rename-form-${f.id}`} style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6, minWidth: 180 }}>
+          <label className="fl" htmlFor={`doc_rename_${f.id}`}>שם המסמך</label>
+          <input
+            className="fi"
+            id={`doc_rename_${f.id}`}
+            data-testid={`docs-rename-input-${f.id}`}
+            value={title}
+            maxLength={120}
+            placeholder="חובה — שם ברור למסמך"
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          {err ? <div style={{ color: 'var(--rd2)', fontSize: 11 }}>{err}</div> : null}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button type="button" className="btn btn-p btn-sm" data-testid={`docs-rename-save-${f.id}`} onClick={() => {
+              const next = title.replace(/\s+/g, ' ').trim();
+              if (!next) { setErr('חובה לתת שם למסמך'); return; }
+              onRename(f, next);
+              setOpen(false);
+            }}>שמור שם</button>
+            <button type="button" className="btn btn-g btn-sm" onClick={() => setOpen(false)}>ביטול</button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function ClaimDocsLibrary({
-  files, picked, category, thumbs, isImage, fileLabel, onCategory, onToggle, onToggleAll, onPreview, onDownload, onPrint, onShareTopic,
+  files, picked, category, thumbs, isImage, fileLabel, onCategory, onToggle, onToggleAll, onPreview, onDownload, onPrint, onShareTopic, onRename,
 }: Props) {
   const visible = filesForLibCategory(files, category);
   const visibleDocs = visible.filter((f) => !isImage(f));
@@ -76,6 +113,7 @@ export default function ClaimDocsLibrary({
               <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, sec.rows)}>Preview</button>
               <button type="button" className="btn btn-g btn-sm" data-testid={`docs-dl-${f.id}`} onClick={() => onDownload(f)}>Download</button>
               <button type="button" className="btn btn-g btn-sm" data-testid={`docs-print-${f.id}`} onClick={() => onPrint(f)}>Print</button>
+              <DocRename f={f} label={fileLabel(f)} onRename={onRename} />
             </div>
           </div>
         ))}
@@ -95,6 +133,7 @@ export default function ClaimDocsLibrary({
                   <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, images)}>Preview</button>
                   <button type="button" className="btn btn-g btn-sm" data-testid={`docs-dl-${f.id}`} onClick={() => onDownload(f)}>Download</button>
                   <button type="button" className="btn btn-g btn-sm" onClick={() => onPrint(f)}>Print</button>
+                  <DocRename f={f} label={fileLabel(f)} onRename={onRename} />
                 </div>
               </div>
             ))}
