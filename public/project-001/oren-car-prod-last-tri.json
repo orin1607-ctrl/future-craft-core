@@ -1,6 +1,6 @@
 {
   "id": "oren-car-prod-last-tri",
-  "armed": false,
+  "armed": true,
   "phase": "frontend",
   "requestedAt": "2026-09-15T08:27:00.000Z",
   "requestedBy": "owner",
