@@ -21,6 +21,13 @@ import { validateTaskFields } from '@/lib/taskFieldValidation';
 import { DEFAULT_INSPECTION_CHECKLIST } from '@/lib/vehicleListDefaults';
 import { loadCompanyListSettings } from '@/lib/companyListSettings';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
+import { TriInspectionNotesField } from '@/components/vehicles/TriInspectionNotesField';
+
+function composeInspectionNotes(odometer: string, generalNotes: string): string {
+  const kmLine = `קילומטראז׳: ${odometer}`;
+  const notes = (generalNotes || '').trim();
+  return notes ? `${kmLine}\n${notes}` : kmLine;
+}
 
 interface VehicleBasic {
   id: string;
@@ -56,6 +63,7 @@ export default function PrivateVehicleInspection() {
     CHECKLIST_ITEMS.map(name => ({ name, status: 'ok', notes: '' }))
   );
   const [loading, setLoading] = useState(false);
+  const [generalNotes, setGeneralNotes] = useState('');
   const [signatureDataUrl, setSignatureDataUrl] = useState('');
   const [hasSignature, setHasSignature] = useState(false);
 
@@ -118,7 +126,7 @@ export default function PrivateVehicleInspection() {
       next_due_date: nextDueDate,
       inspector_name: employeeName,
       overall_status: hasDefects ? 'failed' : 'passed',
-      notes: `קילומטראז׳: ${odometer}`,
+      notes: composeInspectionNotes(odometer, generalNotes),
       company_name: user?.company_name || '',
       created_by: user?.id,
     }).select('id').single();
@@ -378,6 +386,10 @@ export default function PrivateVehicleInspection() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="mb-6">
+        <TriInspectionNotesField value={generalNotes} onChange={setGeneralNotes} />
       </div>
 
       <div className="mb-6" data-testid="tri-inspection-signature">

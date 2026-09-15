@@ -53,10 +53,11 @@ const reportTypes = [
   { value: 'service_orders', label: 'הזמנות' },
   { value: 'vendors', label: 'סיכום לפי ספקים' },
 ];
-const STANDARD_HEADERS = ['מס\' פנימי', 'מספר רכב', 'חברה / לקוח', 'נהג', 'סוג האירוע', 'תאריך', 'סטטוס'];
+const STANDARD_HEADERS = ['מס\' פנימי', 'מחלקה', 'מספר רכב', 'חברה / לקוח', 'נהג', 'סוג האירוע', 'תאריך', 'סטטוס'];
 const OFFICER_INSPECTION_HEADERS = [
   'מספר רכב',
   'מס׳ פנימי',
+  'מחלקה',
   'סוג הביקורת',
   'תאריך הביקורת',
   'מועד הביקורת הבאה',
@@ -137,7 +138,7 @@ export default function Reports() {
   const loadData = async () => {
     setLoading(true);
     const [vRes, dRes, fRes, aRes, eRes, soRes, woRes, iRes] = await Promise.all([
-      applyCompanyScope(supabase.from('vehicles').select(VEHICLE_EXPIRY_SELECT), companyFilter),
+      applyCompanyScope(supabase.from('vehicles').select(`${VEHICLE_EXPIRY_SELECT},department`), companyFilter),
       applyCompanyScope(supabase.from('drivers').select(DRIVER_SELECT), companyFilter),
       applyCompanyScope(supabase.from('faults').select(FAULT_SELECT), companyFilter),
       applyCompanyScope(supabase.from('accidents').select(ACCIDENT_SELECT), companyFilter),
@@ -216,6 +217,16 @@ export default function Reports() {
     });
     return map;
   }, [raw.vehicles]);
+  const plateToDepartment = useMemo(() => {
+    const map: Record<string, string> = {};
+    raw.vehicles.forEach(v => {
+      if (!v.license_plate) return;
+      const department = (v.department || '').trim();
+      map[v.license_plate] = department;
+      map[normalizePlate(v.license_plate)] = department;
+    });
+    return map;
+  }, [raw.vehicles]);
   const plateToCompany = useMemo(() => {
     const map: Record<string, string> = {};
     raw.vehicles.forEach(v => {
@@ -236,6 +247,8 @@ export default function Reports() {
   }, [raw.vehicles]);
   const getInternal = (plate: string | null | undefined) =>
     plate ? (plateToInternal[plate] || plateToInternal[normalizePlate(plate)] || '-') : '-';
+  const getDepartment = (plate: string | null | undefined) =>
+    plate ? (plateToDepartment[plate] || plateToDepartment[normalizePlate(plate)] || '-') : '-';
   const getCompanyForPlate = (plate: string | null | undefined, fallback?: string | null) =>
     fallback || (plate ? plateToCompany[plate] : '') || '-';
   const getVehicleId = (plate: string | null | undefined, fallback?: string | null) =>
@@ -453,10 +466,11 @@ export default function Reports() {
   ];
 
   const standardRow = (r: {
-    internal?: string; plate?: string; company?: string; driver?: string;
+    internal?: string; department?: string; plate?: string; company?: string; driver?: string;
     eventType?: string; date?: string; status?: string;
   }) => [
     r.internal || '-',
+    r.department || (r.plate ? getDepartment(r.plate) : '-') || '-',
     r.plate || '-',
     r.company || '-',
     r.driver || '-',
@@ -514,6 +528,7 @@ export default function Reports() {
           return [
           i.vehicle_plate || '-',
           getInternal(i.vehicle_plate),
+          getDepartment(i.vehicle_plate),
           inspectionTypeLabel(i.inspection_type),
           fmtDate(i.inspection_date),
           i.next_due_date ? fmtDate(i.next_due_date) : '—',
@@ -884,6 +899,7 @@ export default function Reports() {
                   rows={filtered.inspections.map(i => [
                     i.vehicle_plate || '-',
                     getInternal(i.vehicle_plate) || '—',
+                    getDepartment(i.vehicle_plate) || '—',
                     inspectionTypeLabel(i.inspection_type),
                     fmtDate(i.inspection_date),
                     i.next_due_date ? fmtDate(i.next_due_date) : '—',
