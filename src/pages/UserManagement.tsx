@@ -8,6 +8,12 @@ import SettingsBackBar from '@/components/user-management/SettingsBackBar';
 import TwoFactorApprovalSection from '@/components/user-management/TwoFactorApprovalSection';
 import AuthAuditLogPanel from '@/components/user-management/AuthAuditLogPanel';
 import { APPROVAL_STATUS_LABELS } from '@/lib/userManagementSchema';
+import {
+  FLEET_FOUNDATION_LABEL,
+  GARAGE_OPS_LABEL,
+  isGarageOpsJobTitle,
+  jobTitleAfterFleetFoundationChange,
+} from '@/lib/garageOps';
 import { getEdgeFunctionErrorMessage } from '@/lib/edgeFunctionError';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -31,6 +37,7 @@ interface ManagedUser {
   two_factor_approved_at: string | null;
   two_factor_approved_by: string | null;
   two_factor_approved_by_name: string | null;
+  job_title: string | null;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -64,7 +71,14 @@ export default function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<ManagedUser | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetting, setResetting] = useState(false);
-  const [editForm, setEditForm] = useState({ full_name: '', phone: '', company_name: '', role: '', is_active: true });
+  const [editForm, setEditForm] = useState({
+    full_name: '',
+    phone: '',
+    company_name: '',
+    role: '',
+    is_active: true,
+    garageOpsSelected: false,
+  });
   const [saving, setSaving] = useState(false);
   const [companyOptions, setCompanyOptions] = useState<string[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
@@ -85,7 +99,7 @@ export default function UserManagement() {
     
     // Fetch profiles and roles
     const [profilesRes, rolesRes, emailsRes, approversRes] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, phone, company_name, is_active, approval_status, two_factor_approved, two_factor_approved_at, two_factor_approved_by'),
+      supabase.from('profiles').select('id, full_name, phone, company_name, is_active, approval_status, two_factor_approved, two_factor_approved_at, two_factor_approved_by, job_title'),
       supabase.from('user_roles').select('user_id, role'),
       supabase.functions.invoke('create-admin-user', { body: { action: 'list-users' } }),
       supabase.from('profiles').select('id, full_name'),
@@ -116,6 +130,7 @@ export default function UserManagement() {
       two_factor_approved_by_name: p.two_factor_approved_by
         ? approverMap.get(p.two_factor_approved_by) || null
         : null,
+      job_title: p.job_title || null,
     }));
 
     setUsers(mapped);
@@ -149,6 +164,7 @@ export default function UserManagement() {
       company_name: u.company_name,
       role: u.role,
       is_active: u.is_active,
+      garageOpsSelected: u.role === 'fleet_manager' && isGarageOpsJobTitle(u.job_title),
     });
     setEditDialogOpen(true);
   };
@@ -156,6 +172,12 @@ export default function UserManagement() {
   const handleSaveEdit = async () => {
     if (!selectedUser) return;
     setSaving(true);
+    const garageOpsSelected = editForm.role === 'fleet_manager' && editForm.garageOpsSelected;
+    const nextJobTitle = jobTitleAfterFleetFoundationChange({
+      role: editForm.role,
+      garageOpsSelected,
+      currentJobTitle: selectedUser.job_title,
+    });
     const { data, error } = await supabase.functions.invoke('create-admin-user', {
       body: {
         action: 'update-profile',
@@ -165,18 +187,46 @@ export default function UserManagement() {
         company_name: editForm.company_name,
         role: editForm.role,
         is_active: editForm.is_active,
+        ...(nextJobTitle !== undefined ? { job_title: nextJobTitle } : {}),
       },
     });
-    setSaving(false);
     if (error || data?.error) {
+      setSaving(false);
       const msg = await getEdgeFunctionErrorMessage(error, data);
       toast({ title: 'שגיאה', description: msg || 'לא ניתן לעדכן משתמש', variant: 'destructive' });
       return;
     }
+
+    const turningGarageOpsOn = garageOpsSelected && !isGarageOpsJobTitle(selectedUser.job_title);
+    if (turningGarageOpsOn) {
+      const { data: existingAccess } = await supabase
+        .from('claims_access' as never)
+        .select('user_id')
+        .eq('user_id', selectedUser.id)
+        .maybeSingle();
+      if ((existingAccess as { user_id?: string } | null)?.user_id) {
+        await supabase
+          .from('claims_access' as never)
+          .update({ worker_only: false } as never)
+          .eq('user_id', selectedUser.id);
+      } else {
+        await supabase.from('claims_access' as never).insert({ user_id: selectedUser.id, worker_only: false } as never);
+      }
+    }
+
+    setSaving(false);
     setUsers((prev) =>
       prev.map((u) =>
         u.id === selectedUser.id
-          ? { ...u, full_name: editForm.full_name, phone: editForm.phone, company_name: editForm.company_name, role: editForm.role, is_active: editForm.is_active }
+          ? {
+              ...u,
+              full_name: editForm.full_name,
+              phone: editForm.phone,
+              company_name: editForm.company_name,
+              role: editForm.role,
+              is_active: editForm.is_active,
+              job_title: nextJobTitle !== undefined ? (nextJobTitle || null) : u.job_title,
+            }
           : u
       )
     );
@@ -243,6 +293,7 @@ export default function UserManagement() {
   };
 
   const handleImpersonate = (u: ManagedUser) => {
+    const garageOps = u.role === 'fleet_manager' && isGarageOpsJobTitle(u.job_title);
     impersonate({
       id: u.id,
       email: u.email,
@@ -251,6 +302,8 @@ export default function UserManagement() {
       company_name: u.company_name,
       is_active: u.is_active,
       role: u.role as any,
+      garageOps,
+      hasClaimsAccess: garageOps,
     });
     navigate('/dashboard');
   };
@@ -376,16 +429,23 @@ export default function UserManagement() {
                     <TableCell>{u.company_name || '—'}</TableCell>
                     <TableCell dir="ltr" className="text-right">{u.phone || '—'}</TableCell>
                     <TableCell>
-                      <Select value={u.role} onValueChange={(val) => handleRoleChange(u.id, val)}>
-                        <SelectTrigger className="h-8 w-[120px] text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                            <SelectItem key={k} value={k}>{v}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex flex-col items-start gap-1">
+                        <Select value={u.role} onValueChange={(val) => handleRoleChange(u.id, val)}>
+                          <SelectTrigger className="h-8 w-[120px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                              <SelectItem key={k} value={k}>{v}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {u.role === 'fleet_manager' && isGarageOpsJobTitle(u.job_title) && (
+                          <Badge variant="outline" className="text-[10px] border-primary/40 text-primary" data-testid={`garage-ops-badge-${u.id}`}>
+                            {GARAGE_OPS_LABEL}
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge
@@ -577,7 +637,7 @@ export default function UserManagement() {
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-1 block">תפקיד</label>
-              <Select value={editForm.role} onValueChange={(val) => setEditForm((f) => ({ ...f, role: val }))}>
+              <Select value={editForm.role} onValueChange={(val) => setEditForm((f) => ({ ...f, role: val, garageOpsSelected: val === 'fleet_manager' ? f.garageOpsSelected : false }))}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -588,6 +648,46 @@ export default function UserManagement() {
                 </SelectContent>
               </Select>
             </div>
+            {editForm.role === 'fleet_manager' && (
+              <div className="space-y-2 p-3 rounded-xl border" data-testid="edit-fleet-foundation-choice">
+                <p className="text-sm font-bold">הנחת יסוד — לא role חדש</p>
+                <p className="text-xs text-muted-foreground">
+                  שני האפשרויות נשארות אותו סוג משתמש קיים — מנהל צי רכב. הבחירה קובעת רק ברירת מחדל של דשבורד ומודולים.
+                </p>
+                <label className="flex items-start gap-3 p-2 rounded-lg cursor-pointer hover:bg-muted/60">
+                  <input
+                    type="radio"
+                    name="edit_fleet_foundation"
+                    value="fleet"
+                    checked={!editForm.garageOpsSelected}
+                    onChange={() => setEditForm((f) => ({ ...f, garageOpsSelected: false }))}
+                    className="mt-1 w-4 h-4 accent-primary"
+                    data-testid="edit-fleet-foundation-fleet"
+                  />
+                  <span>
+                    <span className="font-medium">{FLEET_FOUNDATION_LABEL}</span>
+                    <span className="block text-xs text-muted-foreground">ברירת המחדל הקיימת — דשבורד מנהל צי רגיל.</span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 p-2 rounded-lg cursor-pointer hover:bg-muted/60">
+                  <input
+                    type="radio"
+                    name="edit_fleet_foundation"
+                    value="garage_ops"
+                    checked={editForm.garageOpsSelected}
+                    onChange={() => setEditForm((f) => ({ ...f, garageOpsSelected: true }))}
+                    className="mt-1 w-4 h-4 accent-primary"
+                    data-testid="edit-fleet-foundation-garage-ops"
+                  />
+                  <span>
+                    <span className="font-medium">{GARAGE_OPS_LABEL}</span>
+                    <span className="block text-xs text-muted-foreground">
+                      ברירת מחדל: ניהול מוסך + ניהול תביעות + דוחות.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-foreground">משתמש פעיל</label>
               <div className="flex items-center gap-2">

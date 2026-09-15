@@ -46,10 +46,6 @@ vi.mock('@/lib/vehicleArchive', () => ({
   applyExcludeArchivedVehicles: async () => ({ count: 0 }),
 }));
 
-vi.mock('@/modules/garage-management/garageBook', () => ({
-  listCases: async () => [],
-}));
-
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: () => ({
@@ -58,34 +54,19 @@ vi.mock('@/integrations/supabase/client', () => ({
   },
 }));
 
-function renderDash() {
-  return render(
-    <MemoryRouter>
-      <HomeDashboard />
-    </MemoryRouter>,
-  );
-}
-
-describe('HomeDashboard garage-ops foundation', () => {
+describe('HomeDashboard fleet home', () => {
   it('keeps the existing fleet home for a regular fleet_manager', async () => {
     authState.user.garageOps = false;
-    authState.user.hasClaimsAccess = false;
-    renderDash();
+    render(
+      <MemoryRouter>
+        <HomeDashboard />
+      </MemoryRouter>,
+    );
     expect(screen.getByText('דליה — מרכז שליטה')).toBeInTheDocument();
     expect(screen.queryByTestId('garage-ops-home-metrics')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('garage-ops-home')).not.toBeInTheDocument();
     expect(screen.getByText('רכבים')).toBeInTheDocument();
+    expect(screen.getByText('נהגים')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('רכבים')).toBeInTheDocument());
-  });
-
-  it('reuses HomeDashboard with garage metrics and the three default modules', async () => {
-    authState.user.garageOps = true;
-    authState.user.hasClaimsAccess = true;
-    renderDash();
-    expect(screen.getByText('מרכז תפעול למוסך')).toBeInTheDocument();
-    expect(screen.getByTestId('garage-ops-home-metrics')).toBeInTheDocument();
-    expect(screen.getByText('ניהול מוסך')).toBeInTheDocument();
-    expect(screen.getByText('ניהול תביעות')).toBeInTheDocument();
-    expect(screen.getByText('דוחות')).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByTestId('garage-ops-metric-due_today')).toHaveTextContent('—'));
   });
 });
