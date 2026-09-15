@@ -1,0 +1,31 @@
+name: Staging garage plate unique per shop
+
+# PUBLIC STAGING only. Replaces garage_vehicles_plate_unique_idx.
+# Never Production. No DELETE. No RLS.
+
+on:
+  push:
+    branches:
+      - cursor/garage-plate-shop-unique-bed0
+
+permissions:
+  contents: read
+
+jobs:
+  apply-staging-index:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Replace plate unique index on Staging only
+        env:
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          STAGING_SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
+          npm install --no-save pg
+          node scripts/apply-garage-plate-shop-unique-staging.mjs
+          node scripts/qa-garage-plate-shop-unique-staging.mjs
