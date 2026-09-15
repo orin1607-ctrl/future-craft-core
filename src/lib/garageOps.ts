@@ -49,6 +49,21 @@ export function isGarageOpsJobTitle(jobTitle?: string | null): boolean {
   return String(jobTitle || '').trim() === GARAGE_OPS_JOB_TITLE;
 }
 
+/** Persist garage-ops via existing profiles.job_title. Clears only the sentinel. */
+export function jobTitleAfterFleetFoundationChange(opts: {
+  role: string;
+  garageOpsSelected: boolean;
+  currentJobTitle?: string | null;
+}): string | undefined {
+  if (opts.role === 'fleet_manager' && opts.garageOpsSelected) {
+    return GARAGE_OPS_JOB_TITLE;
+  }
+  if (isGarageOpsJobTitle(opts.currentJobTitle)) {
+    return '';
+  }
+  return opts.currentJobTitle ?? undefined;
+}
+
 export function fleetFoundationLabel(foundation: FleetFoundation | string | null | undefined): string {
   return foundation === 'garage_ops' ? GARAGE_OPS_LABEL : FLEET_FOUNDATION_LABEL;
 }

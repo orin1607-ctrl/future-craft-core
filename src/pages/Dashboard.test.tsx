@@ -38,6 +38,7 @@ vi.mock('@/components/home/GarageOpsHomeDashboard', () => ({
 
 describe('Dashboard garage-ops switch', () => {
   it('keeps the existing fleet home for a regular fleet_manager', () => {
+    authState.user.role = 'fleet_manager';
     authState.user.garageOps = false;
     render(
       <MemoryRouter>
@@ -49,6 +50,7 @@ describe('Dashboard garage-ops switch', () => {
   });
 
   it('routes a garage-ops fleet_manager to the garage dashboard only', () => {
+    authState.user.role = 'fleet_manager';
     authState.user.garageOps = true;
     render(
       <MemoryRouter>
@@ -57,5 +59,17 @@ describe('Dashboard garage-ops switch', () => {
     );
     expect(screen.getByText('garage-ops-home')).toBeInTheDocument();
     expect(screen.queryByText('fleet-home')).not.toBeInTheDocument();
+  });
+
+  it('keeps super_admin on the existing home dashboard', () => {
+    authState.user.role = 'super_admin';
+    authState.user.garageOps = false;
+    render(
+      <MemoryRouter>
+        <Dashboard />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('fleet-home')).toBeInTheDocument();
+    expect(screen.queryByText('garage-ops-home')).not.toBeInTheDocument();
   });
 });
