@@ -36,6 +36,18 @@ try {
   }
 
   await client.query('BEGIN');
+  const admin = await client.query(`
+    SELECT user_id
+    FROM public.user_roles
+    WHERE role = 'super_admin'
+    LIMIT 1
+  `);
+  const openedBy = admin.rows[0]?.user_id || null;
+  if (!openedBy) throw new Error('no staging super_admin for probe jwt');
+  await client.query(`SELECT set_config('request.jwt.claims', $1, true)`, [
+    JSON.stringify({ sub: openedBy, role: 'authenticated' }),
+  ]);
+
   const custA = await client.query(`
     INSERT INTO public.garage_customers (customer_type, name, phone, shop_company_name)
     VALUES ('private', 'QA לקוח א', '0500000001', $1)
@@ -68,8 +80,8 @@ try {
       VALUES ($1, $2, $3)
     `, [idA, plate, shopA]);
   } catch (e) {
-    sameShopBlocked = /unique|duplicate/i.test(String(e.message || e));
-    result.sameShopError = 'unique_violation';
+    sameShopBlocked = e.code === '23505' || /unique|duplicate/i.test(String(e.message || e));
+    result.sameShopError = String(e.code || e.message || e).slice(0, 80);
   }
   result.sameShopBlocked = sameShopBlocked;
   result.savedShop = createdA.rows[0]?.shop_company_name || null;
@@ -89,8 +101,6 @@ try {
   result.shopBSeesOnlyOwn = visibleToB.rows.length === 1;
   result.shopASeesOwn = visibleToA.rows.length === 1;
 
-  const actor = await client.query('SELECT id FROM auth.users LIMIT 1');
-  const openedBy = actor.rows[0]?.id || null;
   if (openedBy) {
     const opened = await client.query(`
       INSERT INTO public.garage_cases (
