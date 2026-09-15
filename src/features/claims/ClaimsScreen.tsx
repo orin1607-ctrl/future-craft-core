@@ -2310,10 +2310,12 @@ export function ClaimsScreen({ actor, openClaimId, startNewNonce }: { actor: Cla
       return;
     }
     setSync('pend');
-    const r = await apiRef.current.saveClaim({ ...cur, status: newSt, lastStatusNote: note });
+    const r = await apiRef.current.saveClaim({ ...cur, status: newSt, lastStatusNote: note || cur.lastStatusNote || '' });
     if (r.success) {
-      if (note) {
-        await apiRef.current.saveCommEntry({ claimId: cur.id, type: 'note', body: note, note: `סטטוס: ${newSt}` });
+      const typedNote = String(note || '').replace(/\s+/g, ' ').trim();
+      const existingNote = String(cur.lastStatusNote || '').replace(/\s+/g, ' ').trim();
+      if (typedNote && typedNote !== existingNote) {
+        await apiRef.current.saveCommEntry({ claimId: cur.id, type: 'note', body: typedNote, note: `סטטוס: ${newSt}` });
       }
       setModal('moCard');
       await loadAll();
@@ -2369,7 +2371,7 @@ export function ClaimsScreen({ actor, openClaimId, startNewNonce }: { actor: Cla
         statusChoice,
         manualNote,
         nextDate,
-        note: note || actionText,
+        note,
         continueWork,
         closeTaskId: continueWork === 'done' ? (boundId || undefined) : undefined,
         updateTaskId: continueWork === 'continue' ? (boundId || undefined) : undefined,

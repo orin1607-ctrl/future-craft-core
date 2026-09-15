@@ -23,6 +23,7 @@ import {
   mailShowsTreatment,
   normalizeFollowupDays,
   lastTreatmentActionText,
+  statusChangeHistoryNote,
   treatmentUpdatePersist,
 } from './claimWorkAlerts';
 import type { ClaimRecord } from './claimsConstants';
@@ -417,6 +418,14 @@ describe('treatmentUpdatePersist', () => {
       lastTreatmentAction: 'עדכון טיפול',
     });
     expect(treatmentUpdatePersist({
+      action: 'חסר רישיון נהיגה',
+      note: '',
+      statusChoice: '__unchanged__',
+    })).toEqual({
+      lastStatusNote: 'חסר רישיון נהיגה',
+      lastTreatmentAction: 'עדכון טיפול',
+    });
+    expect(treatmentUpdatePersist({
       action: 'עדכון טיפול',
       manualNote: 'עדכון ידני חד-פעמי',
       statusChoice: '__manual__',
@@ -425,6 +434,47 @@ describe('treatmentUpdatePersist', () => {
       lastStatusNote: 'עדכון ידני חד-פעמי',
       lastTreatmentAction: 'טיפול הושלם',
     });
+  });
+
+  it('does not copy or replace סטטוס טיפול on close / generic action', () => {
+    expect(treatmentUpdatePersist({
+      action: 'רישיון נהיגה',
+      note: '',
+      statusChoice: '__unchanged__',
+      closed: true,
+      existingLastStatusNote: 'נשלח לשמאי פעם אחת',
+    })).toEqual({
+      lastStatusNote: 'נשלח לשמאי פעם אחת',
+      lastTreatmentAction: 'טיפול הושלם',
+    });
+    expect(treatmentUpdatePersist({
+      action: 'טיפול נסגר',
+      note: '',
+      statusChoice: 'שולם',
+      closed: true,
+      existingLastStatusNote: 'נשלח לשמאי פעם אחת',
+    })).toEqual({
+      lastStatusNote: 'נשלח לשמאי פעם אחת',
+      lastTreatmentAction: 'טיפול הושלם',
+    });
+    expect(treatmentUpdatePersist({
+      action: 'עדכון טיפול',
+      note: '',
+      statusChoice: '__unchanged__',
+      existingLastStatusNote: 'נשלח לשמאי פעם אחת',
+    })).toEqual({
+      lastStatusNote: 'נשלח לשמאי פעם אחת',
+      lastTreatmentAction: 'עדכון טיפול',
+    });
+  });
+});
+
+describe('statusChangeHistoryNote', () => {
+  it('does not copy the existing סטטוס טיפול sentence into status history', () => {
+    expect(statusChangeHistoryNote('נשלח לשמאי פעם אחת', 'נשלח לשמאי פעם אחת')).toBe('');
+    expect(statusChangeHistoryNote('נשלח לשמאי פעם אחת', '')).toBe('');
+    expect(statusChangeHistoryNote('נשלח לשמאי פעם אחת', 'נשלח לשמאי פעם אחת')).toBe('');
+    expect(statusChangeHistoryNote('נשלח לשמאי פעם אחת', 'עבר לטיפול משפטי')).toBe('עבר לטיפול משפטי');
   });
 });
 

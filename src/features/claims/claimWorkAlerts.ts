@@ -160,6 +160,26 @@ export function lastTreatmentActionText(c: { lastTreatmentAction?: string; lastS
   return '';
 }
 
+const GENERIC_TREATMENT_ACTIONS = new Set([
+  'עדכון טיפול',
+  'טיפול',
+  'טיפול נסגר',
+  'טיפול הושלם',
+  'טופל — אין המשך',
+]);
+
+function oneLine(s: string | undefined) {
+  return String(s || '').replace(/\s+/g, ' ').trim();
+}
+
+/** Status-change history must not copy the existing סטטוס טיפול sentence. */
+export function statusChangeHistoryNote(prevNote?: string, nextNote?: string) {
+  const prev = oneLine(prevNote);
+  const next = oneLine(nextNote);
+  if (!next || next === prev) return '';
+  return next;
+}
+
 /** One write for עדכון טיפול: user text → lastStatusNote only. */
 export function treatmentUpdatePersist(payload: {
   action?: string;
@@ -167,15 +187,16 @@ export function treatmentUpdatePersist(payload: {
   manualNote?: string;
   statusChoice?: string;
   closed?: boolean;
+  existingLastStatusNote?: string;
 }): { lastStatusNote: string; lastTreatmentAction: string } {
-  const manual = String(payload.manualNote || '').replace(/\s+/g, ' ').trim();
-  const note = String(payload.note || '').replace(/\s+/g, ' ').trim();
-  const action = String(payload.action || '').replace(/\s+/g, ' ').trim();
-  const lastStatusNote = payload.statusChoice === STATUS_MANUAL && manual
+  const manual = oneLine(payload.manualNote);
+  const note = oneLine(payload.note);
+  const action = oneLine(payload.action);
+  const typed = payload.statusChoice === STATUS_MANUAL && manual
     ? manual
-    : (note || action);
+    : note || (payload.closed || GENERIC_TREATMENT_ACTIONS.has(action) ? '' : action);
   return {
-    lastStatusNote,
+    lastStatusNote: typed || oneLine(payload.existingLastStatusNote),
     lastTreatmentAction: payload.closed ? 'טיפול הושלם' : 'עדכון טיפול',
   };
 }

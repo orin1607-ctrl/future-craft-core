@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CLOSE_REASONS, STATUS_MANUAL, STATUS_UNCHANGED, TEMPLATES, isClosedStatus, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { CUSTOMER_REQUEST_TEMPLATE_KEY, parseRequestTemplates, type CustomerRequestTemplate } from './customerRequestModel';
 import { VERIFIED_INSURER_DEPTS } from './verifiedInsurerDepts';
-import { customerStatusOf, customerTaskHistoryAction, treatmentUpdatePersist } from './claimWorkAlerts';
+import { customerStatusOf, customerTaskHistoryAction, statusChangeHistoryNote, treatmentUpdatePersist } from './claimWorkAlerts';
 import { inferTreatmentRequest } from './treatmentCenter';
 import { normChannel, type ClaimContact, type ClaimContactChannel, type ContactChannelKind } from './claimContacts';
 
@@ -317,7 +317,7 @@ export function createClaimsApi(actor: ClaimsActor) {
         const { error } = await tbl('claims_records').update(payload as never).eq('id', incoming.id);
         if (error) return { success: false, error: error.message };
         if (existing.status !== incoming.status) {
-          await appendHistory(incoming.id, 'שינוי סטטוס', incoming.lastStatusNote || '', 'status', existing.status, incoming.status);
+          await appendHistory(incoming.id, 'שינוי סטטוס', statusChangeHistoryNote(existing.lastStatusNote, incoming.lastStatusNote), 'status', existing.status, incoming.status);
           await createNotification(incoming.id, 'status', `סטטוס שונה ל: ${incoming.status}`);
         } else {
           await appendHistory(incoming.id, 'עדכון פרטי תיק', '', 'update', '', '');
@@ -460,6 +460,7 @@ export function createClaimsApi(actor: ClaimsActor) {
         manualNote: payload.manualNote,
         statusChoice: payload.statusChoice,
         closed,
+        existingLastStatusNote: c.lastStatusNote,
       });
       const patch: Record<string, string> = {
         treatmentPending: '',
@@ -484,7 +485,7 @@ export function createClaimsApi(actor: ClaimsActor) {
         const { data: closeRow } = await tbl('claims_tasks').select('id, row_data').eq('id', payload.closeTaskId).maybeSingle();
         if (closeRow) {
           const prev = rowFromData((closeRow as { row_data?: Record<string, unknown> }).row_data);
-          const next = { ...prev, id: payload.closeTaskId, claimId: payload.claimId, done: 'true', workStatus: 'done', closedAt: nowHe(), closedBy: actorName, closeReason: persist.lastStatusNote || payload.action || 'טופל — אין המשך' };
+          const next = { ...prev, id: payload.closeTaskId, claimId: payload.claimId, done: 'true', workStatus: 'done', closedAt: nowHe(), closedBy: actorName, closeReason: 'טופל — אין המשך' };
           await tbl('claims_tasks').update({ row_data: next } as never).eq('id', payload.closeTaskId);
           treatmentTaskId = payload.closeTaskId;
           const listed = await this.listMailFollowups(payload.claimId);
