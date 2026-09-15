@@ -1,0 +1,15 @@
+{
+  "id": "oren-car-prod-three-regressions",
+  "armed": false,
+  "phase": "frontend",
+  "requestedAt": "2026-09-15T04:40:00.000Z",
+  "requestedBy": "owner",
+  "target": "https://dalia-car.online",
+  "supabaseRef": "qasomfndnjuixgjmjwcm",
+  "liveCommitBefore": "fda4d2821aab4c771aada9e17f6ad7839ccc07c8",
+  "restoreTag": "restore/prod-before-three-regressions-20260915",
+  "scope": "tri-notes-above-signature + accident-docs-signed-url-final + reports-internal-department",
+  "codeOnly": true,
+  "doNotMergeToMain": true,
+  "doNotMergeToOriginProduction": true
+}
