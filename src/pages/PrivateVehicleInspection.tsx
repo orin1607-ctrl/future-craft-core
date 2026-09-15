@@ -22,6 +22,11 @@ import { DEFAULT_INSPECTION_CHECKLIST } from '@/lib/vehicleListDefaults';
 import { loadCompanyListSettings } from '@/lib/companyListSettings';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { TriInspectionNotesField } from '@/components/vehicles/TriInspectionNotesField';
+import {
+  TRI_SEMI_INSPECTION_TYPE,
+  lastTriInspectionDisplay,
+  pickLatestTriInspectionDate,
+} from '@/lib/triInspectionDisplay';
 
 function composeInspectionNotes(odometer: string, generalNotes: string): string {
   const kmLine = `קילומטראז׳: ${odometer}`;
@@ -63,6 +68,7 @@ export default function PrivateVehicleInspection() {
     CHECKLIST_ITEMS.map(name => ({ name, status: 'ok', notes: '' }))
   );
   const [loading, setLoading] = useState(false);
+  const [lastTriDate, setLastTriDate] = useState<string | null>(null);
   const [generalNotes, setGeneralNotes] = useState('');
   const [signatureDataUrl, setSignatureDataUrl] = useState('');
   const [hasSignature, setHasSignature] = useState(false);
@@ -96,6 +102,28 @@ export default function PrivateVehicleInspection() {
   }, [vehicles, contextPlate, contextVehicleId]);
 
   const selectedVehicle = vehicles.find(v => v.id === vehicleId);
+
+  useEffect(() => {
+    if (!vehicleId) {
+      setLastTriDate(null);
+      return;
+    }
+    let cancelled = false;
+    void supabase
+      .from('vehicle_inspections')
+      .select('inspection_date, inspection_type')
+      .eq('vehicle_id', vehicleId)
+      .eq('inspection_type', TRI_SEMI_INSPECTION_TYPE)
+      .order('inspection_date', { ascending: false })
+      .limit(30)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setLastTriDate(pickLatestTriInspectionDate(data || []));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [vehicleId]);
 
   // Prefill odometer from the vehicle's last known km (vehicles.odometer).
   // User can still edit before save; shouldUpdateOdometer still guards downgrades.
@@ -301,6 +329,20 @@ export default function PrivateVehicleInspection() {
             {vehicles.map(v => <option key={v.id} value={v.id}>{v.license_plate} - {v.manufacturer} {v.model}</option>)}
           </select>
         </div>
+
+        {selectedVehicle && (
+          <div
+            className="rounded-xl border-2 border-primary/20 bg-primary/5 p-4"
+            data-testid="tri-inspection-meta"
+          >
+            <p
+              className={`text-xl font-black ${lastTriInspectionDisplay(lastTriDate).hasDate ? 'text-foreground' : 'text-muted-foreground'}`}
+              data-testid="tri-last-inspection-date"
+            >
+              {`בדיקה אחרונה: ${lastTriInspectionDisplay(lastTriDate).dateText}`}
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div>
