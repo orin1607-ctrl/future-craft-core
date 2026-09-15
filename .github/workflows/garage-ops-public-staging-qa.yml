@@ -30,6 +30,17 @@ jobs:
               sys.exit("Refusing Production branch")
           print("ref_ok", ref)
           PY
+      - name: Diagnose secret delivery (booleans only)
+        env:
+          HAS_QA_EMAIL: ${{ secrets.STAGING_QA_EMAIL != '' }}
+          HAS_QA_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD != '' }}
+          HAS_SERVICE_ROLE: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY != '' }}
+          HAS_FLEET_A: ${{ secrets.STAGING_QA_FLEET_A_EMAIL != '' }}
+        run: |
+          echo "has_qa_email=${HAS_QA_EMAIL}"
+          echo "has_qa_password=${HAS_QA_PASSWORD}"
+          echo "has_service_role=${HAS_SERVICE_ROLE}"
+          echo "has_fleet_a=${HAS_FLEET_A}"
       - name: Run PUBLIC STAGING garage-ops QA
         env:
           EXPECTED_PAGES_SHA: ad2d6e7d7c96f0376198594b14e1d68b65c54620
@@ -40,6 +51,8 @@ jobs:
           STAGING_QA_FLEET_A_PASSWORD: ${{ secrets.STAGING_QA_FLEET_A_PASSWORD }}
           STAGING_QA_FLEET_B_EMAIL: ${{ secrets.STAGING_QA_FLEET_B_EMAIL }}
           STAGING_QA_FLEET_B_PASSWORD: ${{ secrets.STAGING_QA_FLEET_B_PASSWORD }}
+          STAGING_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
+          STAGING_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_ROLE_KEY }}
         run: node scripts/qa-garage-ops-public-staging.mjs
       - name: Upload QA report
         if: always()

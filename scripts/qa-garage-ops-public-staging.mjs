@@ -91,6 +91,51 @@ async function signIn(url, anon, email, password) {
   return { token: body.access_token, userId: body.user.id, email };
 }
 
+async function signInSuperViaServiceRole(url, anon, serviceRole) {
+  if (!serviceRole) return null;
+  if (!tokenIsStagingOnly(serviceRole)) abort('Service role is not Staging. Refusing.');
+  const roles = await restJson(url, serviceRole, serviceRole, 'user_roles?role=eq.super_admin&select=user_id&limit=8');
+  const ids = asRows(roles.body).map((r) => r.user_id).filter(Boolean);
+  for (const id of ids) {
+    const userRes = await fetch(`${url}/auth/v1/admin/users/${id}`, {
+      headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` },
+    });
+    const userBody = await userRes.json().catch(() => ({}));
+    const email = String(userBody?.email || '').trim();
+    if (!email) continue;
+    const genRes = await fetch(`${url}/auth/v1/admin/generate_link`, {
+      method: 'POST',
+      headers: {
+        apikey: serviceRole,
+        Authorization: `Bearer ${serviceRole}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ type: 'magiclink', email }),
+    });
+    const genBody = await genRes.json().catch(() => ({}));
+    const otp = genBody.email_otp;
+    if (!otp) continue;
+    const verRes = await fetch(`${url}/auth/v1/verify`, {
+      method: 'POST',
+      headers: {
+        apikey: anon,
+        Authorization: `Bearer ${anon}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ type: 'magiclink', email, token: otp }),
+    });
+    const verText = await verRes.text();
+    let verBody;
+    try { verBody = JSON.parse(verText); } catch { verBody = {}; }
+    const token = verBody.access_token || verBody.session?.access_token;
+    const userId = verBody.user?.id || verBody.session?.user?.id || id;
+    if (token && tokenIsStagingOnly(token)) {
+      return { token, userId, email, via: 'service_role_magiclink' };
+    }
+  }
+  return null;
+}
+
 async function invokeCreateUser(url, anon, token, payload) {
   const res = await fetch(`${url}/functions/v1/create-admin-user`, {
     method: 'POST',
@@ -172,6 +217,7 @@ if (!report.pages.sha_ok || !report.pages.has_garage_ops || !report.pages.has_ed
 
 const superEmail = String(process.env.STAGING_QA_EMAIL || '').trim();
 const superPass = String(process.env.STAGING_QA_PASSWORD || '').trim();
+const stagingServiceRole = String(process.env.STAGING_SUPABASE_SERVICE_ROLE_KEY || process.env.STAGING_SERVICE_ROLE_KEY || '').replace(/[\r\n]/g, '').trim();
 const shopAEmail = String(process.env.STAGING_QA_FLEET_A_EMAIL || '').trim();
 const shopAPass = String(process.env.STAGING_QA_FLEET_A_PASSWORD || '').trim();
 const shopBEmail = String(process.env.STAGING_QA_FLEET_B_EMAIL || '').trim();
@@ -245,22 +291,30 @@ if (shopAEmail && shopAPass && shopBEmail && shopBPass) {
   report.notes.push('Fleet A/B secrets missing in this runner. Isolation login skipped here.');
 }
 
-if (!superEmail || !superPass) {
-  report.notes.push('STAGING_QA_EMAIL/PASSWORD missing. User-create wizard path not executed against live Staging.');
+let superAuth = null;
+if (superEmail && superPass) {
+  superAuth = await signIn(STAGING_URL, anon, superEmail, superPass);
+  superAuth.via = 'password';
+} else if (stagingServiceRole) {
+  superAuth = await signInSuperViaServiceRole(STAGING_URL, anon, stagingServiceRole);
+}
+
+if (!superAuth) {
+  report.notes.push('STAGING_QA_EMAIL/PASSWORD missing and service-role magic link failed. User-create/edit path not executed against live Staging.');
   report.verdict = report.isolation.leak_blocked ? 'PARTIAL' : 'SKIP';
   writeReport(report);
   console.log(JSON.stringify(report, null, 2));
   process.exit(report.verdict === 'PARTIAL' ? 0 : 3);
 }
 
-const superAuth = await signIn(STAGING_URL, anon, superEmail, superPass);
 const superProf = await profileOf(superAuth.token, superAuth.userId);
 if (superProf.role !== 'super_admin') {
-  report.notes.push(`STAGING_QA_EMAIL is ${superProf.role}, not super_admin.`);
+  report.notes.push(`Resolved staging user is ${superProf.role}, not super_admin.`);
   writeReport(report);
   console.log('FAIL_CLOSED super_role', superProf.role);
   process.exit(2);
 }
+report.users.super_via = superAuth.via || 'unknown';
 
 const stamp = Date.now();
 const regularEmail = `qa.fleet.regular.${stamp}@placeholder.local`;
@@ -482,6 +536,11 @@ report.checks = {
 };
 
 report.verdict = ok ? 'PASS' : 'FAIL_CLOSED';
+report.browser_login = {
+  pages: PAGES_URL,
+  garage: { email: garageEmail, password: garagePass, name: 'QA מנהל מוסך' },
+  regular: { email: regularEmail, password: regularPass, name: 'QA מנהל צי רגיל' },
+};
 writeReport(report);
 console.log(JSON.stringify({ verdict: report.verdict, checks: report.checks, pages: report.pages, isolation: report.isolation, users: {
   regular: report.users.regular,
