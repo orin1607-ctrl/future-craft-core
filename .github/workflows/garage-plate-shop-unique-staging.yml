@@ -28,3 +28,4 @@ jobs:
           test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
           npm install --no-save pg
           node scripts/apply-garage-plate-shop-unique-staging.mjs
+          node scripts/qa-garage-plate-shop-unique-staging.mjs
