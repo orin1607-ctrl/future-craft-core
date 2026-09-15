@@ -20,14 +20,13 @@ export function TriInspectionMetaCard({
       data-testid="tri-inspection-meta"
     >
       <div>
-        <p className="text-sm font-medium text-muted-foreground">בדיקה אחרונה</p>
         <p
           className={cn('text-xl font-black', last.hasDate ? 'text-foreground' : 'text-muted-foreground')}
           data-testid="tri-last-inspection-date"
         >
-          {last.dateText}
+          {`בדיקה אחרונה: ${last.dateText}`}
         </p>
-        <p className="text-xs text-muted-foreground mt-0.5">התאריך שבו בוצעה בדיקת התלת האחרונה בפועל</p>
+        <p className="text-xs text-muted-foreground mt-0.5">התאריך שבו בוצעה בדיקת התלת-חצי האחרונה בפועל</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>

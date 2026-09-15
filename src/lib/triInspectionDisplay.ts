@@ -21,7 +21,7 @@ export function lastTriInspectionDisplay(iso: string | null | undefined): {
 } {
   const dateText = formatInspectionDateHe(iso);
   return {
-    dateText: dateText || 'אין בדיקה קודמת',
+    dateText: dateText || 'לא קיימת בדיקה קודמת',
     hasDate: Boolean(dateText),
   };
 }

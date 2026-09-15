@@ -15,18 +15,20 @@ describe('TriInspectionMetaCard', () => {
       />,
     );
     expect(screen.getByTestId('tri-last-inspection-date').textContent).toBe(
-      formatInspectionDateHe('2026-03-12'),
+      `בדיקה אחרונה: ${formatInspectionDateHe('2026-03-12')}`,
     );
     expect(screen.getByTestId('tri-internal-number').textContent).toContain('OC-17');
     expect(screen.getByTestId('tri-vehicle-year').textContent).toBe('2019');
-    expect(screen.getByText('בדיקה אחרונה')).toBeTruthy();
+    expect(screen.getByText(/בדיקה אחרונה:/)).toBeTruthy();
     expect(screen.getByText('מספר פנימי')).toBeTruthy();
     expect(screen.getByText('שנת הרכב')).toBeTruthy();
   });
 
-  it('shows אין בדיקה קודמת when no tri inspection was performed yet', () => {
+  it('shows לא קיימת בדיקה קודמת when no tri inspection was performed yet', () => {
     render(<TriInspectionMetaCard lastInspectionDate={null} internalNumber="" year={null} />);
-    expect(screen.getByTestId('tri-last-inspection-date').textContent).toBe('אין בדיקה קודמת');
+    expect(screen.getByTestId('tri-last-inspection-date').textContent).toBe(
+      'בדיקה אחרונה: לא קיימת בדיקה קודמת',
+    );
     expect(screen.getByTestId('tri-vehicle-year').textContent).toBe('—');
   });
 });
@@ -59,5 +61,8 @@ describe('tri inspection form order', () => {
     expect(notesAt).toBeGreaterThan(0);
     expect(signatureAt).toBeGreaterThan(notesAt);
     expect(src).toContain('DigitalSignaturePad');
+    expect(src).toContain('TriInspectionMetaCard');
+    expect(src).toContain("eq('inspection_type', TRI_SEMI_INSPECTION_TYPE)");
+    expect(src).toContain('pickLatestTriInspectionDate');
   });
 });
