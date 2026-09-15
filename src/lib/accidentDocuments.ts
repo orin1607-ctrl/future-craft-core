@@ -52,7 +52,6 @@ export function normalizePlateKey(plate: string | null | undefined): string {
   return (plate || '').replace(/[-\s]/g, '').toLowerCase();
 }
 
-/** Existing private-bucket path extractor used only by accident file open/download. */
 export function extractDocumentsStoragePath(urlOrPath: string | null | undefined): string | null {
   if (!urlOrPath) return null;
   const raw = urlOrPath.trim();
@@ -70,7 +69,6 @@ export function extractDocumentsStoragePath(urlOrPath: string | null | undefined
   }
 }
 
-/** Existing private documents bucket signed URL. Does not use getPublicUrl. */
 export async function createDocumentSignedUrl(filePath: string): Promise<string | null> {
   const path = extractDocumentsStoragePath(filePath);
   if (!path) return null;
