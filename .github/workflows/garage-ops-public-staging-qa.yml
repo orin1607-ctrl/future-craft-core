@@ -1,6 +1,7 @@
 name: Garage-ops PUBLIC STAGING QA
 
 # Login/create-user/isolation checks against live Pages + dalia-staging only.
+# Preview environment is used only to read existing Staging QA secrets.
 # Never Production. Never dalia-car.online deploy. No DELETE. No Gmail changes.
 
 on:
@@ -16,6 +17,7 @@ permissions:
 jobs:
   qa:
     runs-on: ubuntu-latest
+    environment: Preview
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
