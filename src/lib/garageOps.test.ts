@@ -9,6 +9,7 @@ import {
   fleetFoundationLabel,
   garageOpsDefaultHiddenButtons,
   isGarageOpsJobTitle,
+  jobTitleAfterFleetFoundationChange,
   shouldSeedGarageOpsHiddenButtons,
 } from './garageOps';
 
@@ -73,6 +74,34 @@ describe('garage ops foundation (existing fleet_manager)', () => {
       companyHidden: ['/claims', '/vehicles'],
       allManageablePaths: ['/vehicles', '/garage-management', '/claims', '/reports'],
     })).toEqual(['/claims', '/vehicles']);
+  });
+
+  it('sets job_title=garage_ops only for fleet_manager garage-ops and clears only that sentinel', () => {
+    expect(jobTitleAfterFleetFoundationChange({
+      role: 'fleet_manager',
+      garageOpsSelected: true,
+      currentJobTitle: 'מנהל צי',
+    })).toBe(GARAGE_OPS_JOB_TITLE);
+    expect(jobTitleAfterFleetFoundationChange({
+      role: 'fleet_manager',
+      garageOpsSelected: false,
+      currentJobTitle: GARAGE_OPS_JOB_TITLE,
+    })).toBe('');
+    expect(jobTitleAfterFleetFoundationChange({
+      role: 'fleet_manager',
+      garageOpsSelected: false,
+      currentJobTitle: 'מנהל צי',
+    })).toBe('מנהל צי');
+    expect(jobTitleAfterFleetFoundationChange({
+      role: 'driver',
+      garageOpsSelected: false,
+      currentJobTitle: GARAGE_OPS_JOB_TITLE,
+    })).toBe('');
+    expect(jobTitleAfterFleetFoundationChange({
+      role: 'super_admin',
+      garageOpsSelected: true,
+      currentJobTitle: null,
+    })).toBeUndefined();
   });
 
   it('opens /garage-management only for garage-ops fleet_manager, not every fleet_manager', () => {

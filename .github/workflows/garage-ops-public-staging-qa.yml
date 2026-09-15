@@ -1,0 +1,49 @@
+name: Garage-ops PUBLIC STAGING QA
+
+# Login/create-user/isolation checks against live Pages + dalia-staging only.
+# Never Production. Never dalia-car.online deploy. No DELETE. No Gmail changes.
+
+on:
+  push:
+    branches:
+      - cursor/garage-ops-foundation-bed0
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Guard Staging-only
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          ref = os.environ.get("GITHUB_REF", "")
+          if ref.endswith("/production"):
+              sys.exit("Refusing Production branch")
+          print("ref_ok", ref)
+          PY
+      - name: Run PUBLIC STAGING garage-ops QA
+        env:
+          EXPECTED_PAGES_SHA: 043360cb73fc20f4f6094570dea14576d4fb9021
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+          STAGING_QA_EMAIL: ${{ secrets.STAGING_QA_EMAIL }}
+          STAGING_QA_PASSWORD: ${{ secrets.STAGING_QA_PASSWORD }}
+          STAGING_QA_FLEET_A_EMAIL: ${{ secrets.STAGING_QA_FLEET_A_EMAIL }}
+          STAGING_QA_FLEET_A_PASSWORD: ${{ secrets.STAGING_QA_FLEET_A_PASSWORD }}
+          STAGING_QA_FLEET_B_EMAIL: ${{ secrets.STAGING_QA_FLEET_B_EMAIL }}
+          STAGING_QA_FLEET_B_PASSWORD: ${{ secrets.STAGING_QA_FLEET_B_PASSWORD }}
+        run: node scripts/qa-garage-ops-public-staging.mjs
+      - name: Upload QA report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garage-ops-public-staging-qa
+          path: test-results/garage-ops-public-staging-qa.json
+          if-no-files-found: ignore

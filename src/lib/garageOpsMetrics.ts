@@ -1,6 +1,7 @@
 import {
   extraApprovalIsPending,
   garageListBucket,
+  garageNextAction,
   type GarageCase,
   type GarageCaseData,
 } from '@/modules/garage-management/garageBook';
@@ -127,4 +128,51 @@ export function computeGarageOpsMetrics(input: {
       available: true,
     },
   ];
+}
+
+export type GarageOpsQueueItem = {
+  id: string;
+  href: string;
+  title: string;
+  meta: string;
+  nextAction: string;
+};
+
+type QueueCase = Pick<
+  GarageCase,
+  | 'id'
+  | 'case_number'
+  | 'status'
+  | 'customer_name_snapshot'
+  | 'vehicle_plate_snapshot'
+  | 'vehicle_label_snapshot'
+  | 'case_data'
+>;
+
+function toQueueItem(row: QueueCase): GarageOpsQueueItem {
+  const data = caseDataOf(row);
+  return {
+    id: row.id,
+    href: `/garage-management/${row.id}`,
+    title: String(row.case_number || row.id),
+    meta: [row.vehicle_plate_snapshot, row.vehicle_label_snapshot, row.customer_name_snapshot]
+      .map((part) => String(part || '').trim())
+      .filter(Boolean)
+      .join(' · '),
+    nextAction: garageNextAction(data),
+  };
+}
+
+export function buildGarageOpsWorkQueues(cases: QueueCase[], limit = 8): {
+  openFiles: GarageOpsQueueItem[];
+  inWork: GarageOpsQueueItem[];
+  waitingApproval: GarageOpsQueueItem[];
+} {
+  const rows = cases || [];
+  const take = (list: QueueCase[]) => list.slice(0, limit).map(toQueueItem);
+  return {
+    openFiles: take(rows.filter((row) => !isClosedCase(row))),
+    inWork: take(rows.filter((row) => garageListBucket(caseDataOf(row), row.status) === 'in_work')),
+    waitingApproval: take(rows.filter(quoteWaiting)),
+  };
 }
