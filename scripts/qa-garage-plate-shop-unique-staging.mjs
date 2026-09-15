@@ -72,18 +72,6 @@ try {
     RETURNING id, plate, shop_company_name
   `, [idA, plate, shopA]);
   result.crossShopAllowed = createdA.rows[0]?.shop_company_name === shopA;
-
-  let sameShopBlocked = false;
-  try {
-    await client.query(`
-      INSERT INTO public.garage_vehicles (customer_id, plate, shop_company_name)
-      VALUES ($1, $2, $3)
-    `, [idA, plate, shopA]);
-  } catch (e) {
-    sameShopBlocked = e.code === '23505' || /unique|duplicate/i.test(String(e.message || e));
-    result.sameShopError = String(e.code || e.message || e).slice(0, 80);
-  }
-  result.sameShopBlocked = sameShopBlocked;
   result.savedShop = createdA.rows[0]?.shop_company_name || null;
 
   const visibleToB = await client.query(`
@@ -119,11 +107,23 @@ try {
       && opened.rows[0]?.shop_company_name === shopA;
   }
 
-  if (!result.crossShopAllowed || !result.sameShopBlocked || !result.shopBSeesOnlyOwn || !result.shopASeesOwn) {
-    throw new Error(`probe failed ${JSON.stringify(result)}`);
-  }
   if (openedBy && (!result.caseOpened || !result.reachedQuote)) {
     throw new Error(`case/quote probe failed ${JSON.stringify(result)}`);
+  }
+
+  let sameShopBlocked = false;
+  try {
+    await client.query(`
+      INSERT INTO public.garage_vehicles (customer_id, plate, shop_company_name)
+      VALUES ($1, $2, $3)
+    `, [idA, plate, shopA]);
+  } catch (e) {
+    sameShopBlocked = e.code === '23505' || /unique|duplicate/i.test(String(e.message || e));
+    result.sameShopError = String(e.code || e.message || e).slice(0, 80);
+  }
+  result.sameShopBlocked = sameShopBlocked;
+  if (!result.crossShopAllowed || !result.sameShopBlocked || !result.shopBSeesOnlyOwn || !result.shopASeesOwn) {
+    throw new Error(`probe failed ${JSON.stringify(result)}`);
   }
 
   await client.query('ROLLBACK');
