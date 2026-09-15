@@ -1,0 +1,132 @@
+name: Oren Car Production three approved fixes
+
+# Owner authorized 2026-09-15: three Production fixes ONLY onto live SHA b467149a.
+# 1) tri table mobile scroll  2) last inspection copy  3) signed-URL document open
+# Frontend code-only. Does NOT checkout main/dev/origin/production.
+# Does not migrate, alter schema, change RLS, Storage, Auth, or data.
+
+on:
+  push:
+    branches: [cursor/oren-car-prod-three-fixes-8234]
+    paths:
+      - 'public/project-001/oren-car-prod-three-fixes.json'
+      - '.github/workflows/oren-car-prod-three-fixes.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: oren-car-prod-three-fixes
+  cancel-in-progress: false
+
+env:
+  PROD_SUPABASE_URL: https://qasomfndnjuixgjmjwcm.supabase.co
+  PROD_SUPABASE_PROJECT_ID: qasomfndnjuixgjmjwcm
+  WEB_ROOT: /root/future-craft-core/dist
+  PRODUCTION_URL: https://dalia-car.online
+  LIVE_BEFORE: b467149a3f6b136ab5a4b068477fa80ed577401b
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gate — armed + this branch + live ancestor only
+        id: gate
+        run: |
+          set -euo pipefail
+          armed=$(node -e "const q=require('./public/project-001/oren-car-prod-three-fixes.json'); process.stdout.write(String(q.armed===true))")
+          echo "armed=$armed" >> "$GITHUB_OUTPUT"
+          echo "SHA=${GITHUB_SHA}"
+          if [ "$armed" != "true" ]; then
+            echo "not armed — skip deploy"
+            exit 0
+          fi
+          git merge-base --is-ancestor "$LIVE_BEFORE" HEAD
+          if git rev-parse origin/main >/dev/null 2>&1; then
+            MAIN=$(git rev-parse origin/main || true)
+            if [ "$GITHUB_SHA" = "$MAIN" ]; then
+              echo "REFUSING to deploy origin/main wholesale" >&2
+              exit 1
+            fi
+          fi
+          if git rev-parse origin/production >/dev/null 2>&1; then
+            PROD=$(git rev-parse origin/production || true)
+            if [ "$GITHUB_SHA" = "$PROD" ]; then
+              echo "REFUSING to deploy origin/production wholesale" >&2
+              exit 1
+            fi
+          fi
+
+      - uses: oven-sh/setup-bun@v2
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+
+      - name: Install + build production frontend
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        env:
+          VITE_SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
+          VITE_SUPABASE_PROJECT_ID: ${{ env.PROD_SUPABASE_PROJECT_ID }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          bun install --frozen-lockfile
+          bun x vite build
+          node scripts/ci-smoke-report.mjs --dist dist --supabase-ref qasomfndnjuixgjmjwcm
+
+      - id: bundle
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        run: |
+          BUNDLE=$(grep -oE 'index-[^"]+\.js' dist/index.html | head -1)
+          echo "name=${BUNDLE}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup SSH
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Backup VPS dist then rsync frontend
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +%F-%H%M%S)
+          SSH=(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=6)
+          RSH="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=6"
+          ok=0
+          for attempt in 1 2 3 4 5; do
+            echo "backup_attempt=$attempt"
+            if "${SSH[@]}" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+              "tar czf /root/pre-deploy-dist-${STAMP}.tgz -C /root/future-craft-core dist && echo BACKUP=/root/pre-deploy-dist-${STAMP}.tgz"; then
+              ok=1
+              break
+            fi
+            sleep $((attempt * 8))
+          done
+          test "$ok" = "1"
+          rsync -avz -e "$RSH" \
+            --delete \
+            --filter="P orin-marketing/" \
+            --filter="P orin-owner-gate.js" \
+            dist/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.WEB_ROOT }}/
+          "${SSH[@]}" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "echo 'commit=${{ github.sha }} bundle=${{ steps.bundle.outputs.name }} at=$(date -u +%Y-%m-%dT%H:%M:%SZ) reason=three-approved-fixes-code-only-2026-09-15 before=${{ env.LIVE_BEFORE }}' > /root/future-craft-core/dist/PRODUCTION-DEPLOY.txt"
+          "${SSH[@]}" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "nginx -t && systemctl reload nginx"
+
+      - uses: actions/setup-node@v4
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        with:
+          node-version: '20'
+
+      - name: Post-deploy smoke (live)
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        run: |
+          sleep 5
+          node scripts/ci-smoke-report.mjs \
+            --base "${{ env.PRODUCTION_URL }}" \
+            --supabase-ref qasomfndnjuixgjmjwcm \
+            --out reports/ci-smoke-oren-car-three-fixes.json

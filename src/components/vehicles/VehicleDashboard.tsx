@@ -12,6 +12,7 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
+import { PrivateDocumentOpenLink } from '@/components/documents/DocumentViewer';
 import {
   loadDashboardDrillDown,
   type DashboardDrillDown,
@@ -372,14 +373,12 @@ export default function VehicleDashboard({
           <p className="text-xs font-bold text-muted-foreground mb-1">רישיון</p>
           <DetailList items={[{ label: 'רישיון רכב — קובץ', value: v.license_doc_url ? 'מצורף' : 'חסר' }]} />
           {v.license_doc_url ? (
-            <a
-              href={v.license_doc_url}
-              target="_blank"
-              rel="noreferrer"
-              className="block text-sm font-bold text-primary underline mt-2"
+            <PrivateDocumentOpenLink
+              url={v.license_doc_url}
+              className="block text-sm font-bold text-primary underline mt-2 text-right"
             >
               פתח רישיון רכב
-            </a>
+            </PrivateDocumentOpenLink>
           ) : null}
         </div>
         {insAlertsOn &&
@@ -392,17 +391,22 @@ export default function VehicleDashboard({
               <p className="text-xs mt-1">{g.action}</p>
             </div>
           ))}
-        {(v.insurance_doc_url || v.comprehensive_insurance_doc_url) && (
+        {(v.insurance_doc_url || v.comprehensive_insurance_doc_url || v.third_party_insurance_doc_url) && (
           <div className="mt-2 space-y-1">
             {v.insurance_doc_url ? (
-              <a href={v.insurance_doc_url} target="_blank" rel="noreferrer" className="block text-sm font-bold text-primary underline">
+              <PrivateDocumentOpenLink url={v.insurance_doc_url} className="block text-sm font-bold text-primary underline text-right">
                 פתח ביטוח חובה
-              </a>
+              </PrivateDocumentOpenLink>
             ) : null}
             {v.comprehensive_insurance_doc_url ? (
-              <a href={v.comprehensive_insurance_doc_url} target="_blank" rel="noreferrer" className="block text-sm font-bold text-primary underline">
+              <PrivateDocumentOpenLink url={v.comprehensive_insurance_doc_url} className="block text-sm font-bold text-primary underline text-right">
                 פתח ביטוח מקיף
-              </a>
+              </PrivateDocumentOpenLink>
+            ) : null}
+            {v.third_party_insurance_doc_url ? (
+              <PrivateDocumentOpenLink url={v.third_party_insurance_doc_url} className="block text-sm font-bold text-primary underline text-right">
+                פתח ביטוח צד ג׳
+              </PrivateDocumentOpenLink>
             ) : null}
           </div>
         )}
@@ -419,6 +423,7 @@ export default function VehicleDashboard({
       v.license_doc_url && { name: 'רישיון רכב', url: v.license_doc_url },
       v.insurance_doc_url && { name: 'ביטוח חובה', url: v.insurance_doc_url },
       v.comprehensive_insurance_doc_url && { name: 'ביטוח מקיף', url: v.comprehensive_insurance_doc_url },
+      v.third_party_insurance_doc_url && { name: 'ביטוח צד ג׳', url: v.third_party_insurance_doc_url },
     ].filter(Boolean) as { name: string; url: string }[];
 
     return (
@@ -428,15 +433,13 @@ export default function VehicleDashboard({
           <div className="mb-3">
             <p className="text-xs font-bold mb-2">מסמכים במערכת</p>
             {uploaded.map((d) => (
-              <a
+              <PrivateDocumentOpenLink
                 key={d.name}
-                href={d.url}
-                target="_blank"
-                rel="noreferrer"
-                className="block text-sm py-1 font-bold text-primary underline"
+                url={d.url}
+                className="block text-sm py-1 font-bold text-primary underline text-right"
               >
                 ✓ {d.name} — פתח
-              </a>
+              </PrivateDocumentOpenLink>
             ))}
           </div>
         )}

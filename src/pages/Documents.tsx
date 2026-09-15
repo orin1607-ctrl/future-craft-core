@@ -67,10 +67,6 @@ interface DocMeta {
   accident_id?: string;
 }
 
-function docPublicUrl(filePath: string) {
-  return supabase.storage.from('documents').getPublicUrl(filePath).data.publicUrl;
-}
-
 export default function Documents() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -550,7 +546,7 @@ export default function Documents() {
           {filteredDocs.map(doc => (
             <DocumentCard
               key={doc.id}
-              url={docPublicUrl(doc.file_path)}
+              url={doc.file_path}
               fileName={doc.original_name || undefined}
               meta={(
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-0.5">
