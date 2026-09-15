@@ -263,7 +263,7 @@ export default function GarageApp() {
           return;
         }
         if (msg.type === 'gm:goManager') {
-          navigate('/claims?tab=garage');
+          navigate(user?.garageOps ? '/garage-management' : '/claims?tab=garage');
           return;
         }
         if (msg.type === 'gm:scanGarageMail') {
@@ -355,7 +355,7 @@ export default function GarageApp() {
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [actor, bootstrap, caseId, navigate, reply, shopScope]);
+  }, [actor, bootstrap, caseId, navigate, reply, shopScope, user?.garageOps]);
 
   useEffect(() => {
     void bootstrap();
