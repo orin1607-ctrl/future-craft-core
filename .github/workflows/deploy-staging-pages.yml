@@ -41,7 +41,7 @@ jobs:
           elif [ "${{ github.ref_name }}" = "cursor/deploy-staging-pages-bed0" ]; then
             # One-off Pages publish of claims treatment-text fix (descended from live ad2d6e7d).
             # Do not push main (avoids Production waiting + garage-gmail job).
-            REF="70db9a6dfbfa70fac46c1be1bfecdc1b1320f1ce"
+            REF="e7979fcd1d8ea2b3683e5c43382a9fc30c8e8bbb"
           else
             REF="main"
           fi
