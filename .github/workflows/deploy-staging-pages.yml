@@ -1,21 +1,20 @@
 name: Deploy Staging to GitHub Pages
 
-# Staging deployment to GitHub Pages (dalia-staging Supabase only).
-# Always publishes origin/main. Never publishes origin/dev or production.
-# Cursor cannot workflow_dispatch; push to cursor/deploy-staging-pages-bed0
-# rebuilds origin/main. Push to main also rebuilds origin/main.
+# One-shot restore: republish the approved PUBLIC STAGING content SHA
+# b7b0f68234194f97560c6f805fb60993328f7331
+# Never publishes production, main, or origin/dev.
+# garage-gmail job stays gated to main and will not run on this branch.
 
 on:
   workflow_dispatch:
     inputs:
       deploy_ref:
-        description: 'Git ref to build and deploy. Empty = origin/main. Never production or dev.'
+        description: 'Must be the approved SHA. Never production, main, or dev.'
         required: false
-        default: 'main'
+        default: 'b7b0f68234194f97560c6f805fb60993328f7331'
   push:
     branches:
-      - main
-      - cursor/deploy-staging-pages-bed0
+      - cursor/restore-approved-staging-bed0
 
 permissions:
   contents: read
@@ -32,27 +31,28 @@ jobs:
     # Do not bind this job to environment `github-pages` (that environment
     # only allows branch `main`). Pages deploy uses pages:write + id-token.
     steps:
-      - name: Resolve deploy ref (main only)
+      - name: Resolve deploy ref (approved SHA only)
         id: ref
         run: |
           set -euo pipefail
+          APPROVED="b7b0f68234194f97560c6f805fb60993328f7331"
           if [ -n "${{ github.event.inputs.deploy_ref }}" ]; then
             REF="${{ github.event.inputs.deploy_ref }}"
-          elif [ "${{ github.ref_name }}" = "cursor/deploy-staging-pages-bed0" ]; then
-            # Approved one-off: publish garage-ops dashboard to PUBLIC STAGING.
-            # Do not push main (avoids Production waiting + garage-gmail job).
-            REF="cursor/garage-ops-dashboard-bed0"
           else
-            REF="main"
+            REF="$APPROVED"
           fi
           case "$REF" in
-            production|refs/heads/production|*production*|dev|refs/heads/dev|origin/dev)
+            production|refs/heads/production|*production*|dev|refs/heads/dev|origin/dev|main|refs/heads/main|origin/main|7fd94ce0*|cursor/oren-car-accident-docs-8234|cursor/garage-ops-choice-bed0)
               echo "::error::Refusing to publish $REF to GitHub Pages"
               exit 1
               ;;
           esac
-          echo "Publishing GitHub Pages from: $REF"
-          echo "value=$REF" >> "$GITHUB_OUTPUT"
+          if [ "$REF" != "$APPROVED" ] && [ "$REF" != "cursor/garage-ops-dashboard-bed0" ]; then
+            echo "::error::Refusing to publish $REF — only approved SHA $APPROVED is allowed"
+            exit 1
+          fi
+          echo "Publishing GitHub Pages from: $APPROVED"
+          echo "value=$APPROVED" >> "$GITHUB_OUTPUT"
 
       - name: Checkout deploy ref
         uses: actions/checkout@v4
@@ -63,8 +63,13 @@ jobs:
       - name: Record checked-out SHA
         run: |
           set -euo pipefail
+          APPROVED="b7b0f68234194f97560c6f805fb60993328f7331"
           SHA=$(git rev-parse HEAD)
           echo "Checked out $SHA"
+          if [ "$SHA" != "$APPROVED" ]; then
+            echo "::error::Checked-out SHA $SHA is not the approved PUBLIC STAGING SHA $APPROVED"
+            exit 1
+          fi
           echo "DEPLOY_SHA=$SHA" >> "$GITHUB_ENV"
           printf '%s\n' "$SHA" > /tmp/staging-sha.txt
 
