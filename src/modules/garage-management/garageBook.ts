@@ -852,13 +852,24 @@ export async function createCase(input: {
   caseData?: GarageCaseData;
   shopCompanyName?: string;
 }): Promise<GarageCase> {
+  // The displayed actor may be impersonated; RLS requires the real authenticated author.
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error('אין משתמש מאומת לפתיחת תיק. יש להתחבר מחדש.');
+  const authorId = authData.user.id;
+  let authorName = input.actor.full_name || '';
+  if (authorId !== input.actor.id) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles').select('full_name').eq('id', authorId).single();
+    if (profileError) throw new Error('לא ניתן לאמת את פרטי פותח התיק.');
+    authorName = profile?.full_name || '';
+  }
   const case_data = sanitizeCaseData(input.caseData || emptyCaseData());
   const insert = stampShop({
     customer_id: input.customer.id,
     vehicle_id: input.vehicle.id,
     status: deriveCaseStatus(case_data),
-    opened_by: input.actor.id,
-    opened_by_name: input.actor.full_name || '',
+    opened_by: authorId,
+    opened_by_name: authorName,
     customer_name_snapshot: customerDisplayName(input.customer),
     vehicle_plate_snapshot: input.vehicle.plate,
     vehicle_label_snapshot: vehicleLabel(input.vehicle),
