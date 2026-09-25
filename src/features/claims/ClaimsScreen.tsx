@@ -2004,6 +2004,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     setEventFormSig('');
     setDocPickIds([]);
     setDocLibCat('all');
+    setDocs({ requests: [], files: [] });
+    setGalleryUrls({});
     setDocsReady(false);
     if (typeof window !== 'undefined' && window.matchMedia('(max-width: 700px), (max-width: 920px) and (max-height: 500px)').matches) setCardSnapCollapsed(true);
     await loadCardData(id);
