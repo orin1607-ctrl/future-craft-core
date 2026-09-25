@@ -1,3 +1,4 @@
+import ClaimImage from './ClaimImage';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, addRecurringDays, buildClaimRowAlerts, canMarkMailTaskDone, customerStatusLabel, customerStatusOf, defaultRecurringFirstLocal, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isRecurringMailFollowup, isScheduledOnceMail, lastTreatmentActionText, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringFirstPlannedAt, recurringLabel, resolveRecurringFirstRun, shortStatusNote, untreatedMailIds, type ClaimAlert, type RecurringFirstSendMode } from './claimWorkAlerts';
@@ -818,7 +819,7 @@ function InCardPreview({ file, onClose, pos, canPrev, canNext, onPrev, onNext }:
         <button className="btn btn-g btn-sm" data-testid="doc-preview-close" onClick={onClose}>סגור תצוגה</button>
       </div>
       {img
-        ? <img className="doc-preview-img" src={file.url} alt={file.name} />
+        ? <ClaimImage className="doc-preview-img" src={file.url} alt={file.name} mime={file.mime} preview />
         : <iframe className="doc-preview-frame" title={file.name} src={file.url} />}
     </div>
   );
@@ -1828,7 +1829,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       return;
     }
     if (cardTab === 'docs') {
-      const preview = docs.files.filter((f) => isImageFile(f)).slice(0, 80);
+      const preview = docs.files.filter((f) => isImageFile(f));
       if (preview.length) void loadGalleryThumbs(curId, preview);
     }
     if (cardTab === 'tasks') {
@@ -3506,7 +3507,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <div className="gal-grid">
                           {pack.photos.map((f) => (
                             <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f, pack.photos)}>
-                              {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>{f.original_name}</span>}
+                              {galleryUrls[f.id] ? <ClaimImage src={galleryUrls[f.id]} alt={f.original_name} mime={f.mime_type} /> : <span>{f.original_name}</span>}
                             </button>
                           ))}
                         </div>
@@ -3518,7 +3519,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <div className="gal-grid">
                           {untaggedPhotos.map((f) => (
                             <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f, untaggedPhotos)}>
-                              {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>{f.original_name}</span>}
+                              {galleryUrls[f.id] ? <ClaimImage src={galleryUrls[f.id]} alt={f.original_name} mime={f.mime_type} /> : <span>{f.original_name}</span>}
                             </button>
                           ))}
                         </div>
@@ -3921,7 +3922,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             <div className="gal-grid" data-testid={`claim-doc-gal-${t.key}`}>
                               {matched.filter(isImageFile).map((f) => (
                                 <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f, matched.filter(isImageFile))}>
-                                  {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>{f.original_name}</span>}
+                                  {galleryUrls[f.id] ? <ClaimImage src={galleryUrls[f.id]} alt={f.original_name} mime={f.mime_type} /> : <span>{f.original_name}</span>}
                                 </button>
                               ))}
                             </div>
@@ -4230,7 +4231,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                     <div className="gal-grid">
                                       {photos.map((f) => (
                                         <button key={f.id} className="gal-item" title={f.original_name} onClick={() => void openInCard(cur.id, f, photos)}>
-                                          {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>{f.original_name}</span>}
+                                          {galleryUrls[f.id] ? <ClaimImage src={galleryUrls[f.id]} alt={f.original_name} mime={f.mime_type} /> : <span>{f.original_name}</span>}
                                         </button>
                                       ))}
                                     </div>
@@ -4397,7 +4398,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                             <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '6px 0' }}>
                               {isImageFile(ready) ? (
                                 <button type="button" className="pick-thumb" onClick={() => void openInCard(cur.id, ready)}>
-                                  {galleryUrls[ready.id] ? <img src={galleryUrls[ready.id]} alt="" /> : <span>📷</span>}
+                                  {galleryUrls[ready.id] ? <ClaimImage src={galleryUrls[ready.id]} alt={ready.original_name} mime={ready.mime_type} /> : <span>📷</span>}
                                 </button>
                               ) : null}
                               <span style={{ fontSize: 12 }}>{fileLabel(ready)} · {sourceHe(ready.source)}</span>
@@ -5080,7 +5081,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                         <input type="checkbox" data-testid={`mail-file-${f.id}`} disabled={mailSending} checked={sendIds.includes(f.id)} onChange={() => toggleSendId(f.id)} />
                         {isImageFile(f) ? (
                           <button type="button" className="pick-thumb" data-testid={`mail-file-thumb-${f.id}`} title="תצוגה — לא מסמן לשליחה" onClick={() => { if (curId) void openInCard(curId, f); }}>
-                            {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>📷</span>}
+                            {galleryUrls[f.id] ? <ClaimImage src={galleryUrls[f.id]} alt={f.original_name} mime={f.mime_type} /> : <span>📷</span>}
                           </button>
                         ) : (
                           <span className="pick-thumb" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'default' }}>PDF</span>
@@ -5101,7 +5102,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 <div>
                   {docs.files.filter((f) => sendIds.includes(f.id)).map((f) => (
                     <div key={f.id} className="pick-row" data-testid={`mail-selected-${f.id}`}>
-                      {isImageFile(f) && galleryUrls[f.id] ? <img className="pick-thumb" src={galleryUrls[f.id]} alt="" /> : null}
+                      {isImageFile(f) && galleryUrls[f.id] ? <ClaimImage className="pick-thumb" src={galleryUrls[f.id]} alt={f.original_name} mime={f.mime_type} /> : null}
                       <span>{fileLabel(f)}</span>
                       <span className="pick-sz">{fmtBytes(Number(f.byte_size || 0))}</span>
                       <button type="button" className="btn btn-g btn-sm" onClick={() => toggleSendId(f.id)}>בטל</button>
@@ -5897,7 +5898,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     }} />
                     {img ? (
                       <button type="button" className="pick-thumb" data-testid={`treat-docs-thumb-${f.id}`} onClick={() => cur && void openInCard(cur.id, f, docs.files.filter(isImageFile))}>
-                        {galleryUrls[f.id] ? <img src={galleryUrls[f.id]} alt={f.original_name} /> : <span>📷</span>}
+                        {galleryUrls[f.id] ? <ClaimImage src={galleryUrls[f.id]} alt={f.original_name} mime={f.mime_type} /> : <span>📷</span>}
                       </button>
                     ) : null}
                     <div style={{ flex: 1, minWidth: 0 }}>

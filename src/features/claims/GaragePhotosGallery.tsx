@@ -1,3 +1,4 @@
+import ClaimImage from './ClaimImage';
 import { useMemo, useState } from 'react';
 import {
   DEFAULT_SHARE_TTL,
@@ -112,7 +113,7 @@ export default function GaragePhotosGallery({
             ) : null}
             {p.url ? (
               <button type="button" className="garage-thumb-open" onClick={() => onPreview(p)} data-testid={`garage-preview-${p.id}`}>
-                <img src={p.url} alt={p.original_name} />
+                <ClaimImage src={p.url} alt={p.original_name} />
               </button>
             ) : <span>{p.original_name}</span>}
             {p.url ? (

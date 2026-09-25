@@ -1,3 +1,4 @@
+import ClaimImage from './ClaimImage';
 import { useState } from 'react';
 import { DOC_LIB_CATEGORIES, DOC_LIB_GROUPS, DOC_LIB_SECTIONS, fileDocBucket, filesForLibCategory, libTypeLabel } from './claimDocLibrary';
 
@@ -126,7 +127,7 @@ export default function ClaimDocsLibrary({
                   <span>{fileLabel(f)}</span>
                 </label>
                 <button type="button" className="doc-lib-thumb" onClick={() => onPreview(f, images)}>
-                  {thumbs[f.id] ? <img src={thumbs[f.id]} alt={f.original_name} /> : <span>📷</span>}
+                  {thumbs[f.id] ? <ClaimImage src={thumbs[f.id]} alt={f.original_name} mime={f.mime_type} /> : <span>📷</span>}
                 </button>
                 <div className="doc-lib-meta">{libTypeLabel(f)} · {fmtDay(f.created_at)}</div>
                 <div className="doc-lib-acts">

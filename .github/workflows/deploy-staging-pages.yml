@@ -65,7 +65,7 @@ jobs:
           VITE_BUILD_COMMIT: ${{ github.sha }}
           VITE_MARKETING_UI_VERSION: v3-mission-25-1-${{ github.run_number }}
         run: |
-          bun x vite build
+          bun x vite build --mode staging
           cp dist/index.html dist/404.html
           node scripts/generate-spa-route-shells.mjs dist
           mkdir -p dist/dev/project-001/dashboard
