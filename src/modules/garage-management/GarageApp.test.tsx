@@ -1,12 +1,18 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Script } from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 import GarageApp from './GarageApp';
 import approvedSourceHtml from './approved-source.html?raw';
 
+const authUser: { id: string; full_name: string; role: string; garageOps?: boolean } = {
+  id: 'user-1',
+  full_name: 'יוסי',
+  role: 'super_admin',
+};
+
 vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 'user-1', full_name: 'יוסי', role: 'super_admin' } }),
+  useAuth: () => ({ user: authUser }),
 }));
 
 vi.mock('./garageBook', async () => {
@@ -25,6 +31,8 @@ function renderAt(path: string) {
       <Routes>
         <Route path="/garage-management/:caseId" element={<GarageApp />} />
         <Route path="/garage-management" element={<GarageApp />} />
+        <Route path="/dashboard" element={<div>מרכז תפעול למוסך</div>} />
+        <Route path="/claims" element={<div>claims garage tab</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -48,6 +56,20 @@ describe('garage-management approved source', () => {
     expect(frame.srcdoc).toContain('מה המסלול של התיק?');
     expect(frame.srcdoc).toContain('סיום עבודה');
     expect(frame.srcdoc).toContain('סגירת תיק');
+  });
+
+  it('returns from direct customers to the garage ops center (/dashboard) for garage-ops users', async () => {
+    authUser.garageOps = true;
+    try {
+      renderAt('/garage-management');
+      const frame = screen.getByTitle('ניהול מוסך') as HTMLIFrameElement;
+      await act(async () => {
+        window.dispatchEvent(new MessageEvent('message', { data: { type: 'gm:goOpsCenter' }, source: frame.contentWindow }));
+      });
+      expect(await screen.findByText('מרכז תפעול למוסך')).toBeInTheDocument();
+    } finally {
+      authUser.garageOps = false;
+    }
   });
 
   it('keeps nested garage-management case ids on the approved source', () => {
@@ -97,7 +119,7 @@ describe('garage-management approved source', () => {
     expect(approvedSourceHtml).not.toContain('קבלת רכב תחילה');
     expect(approvedSourceHtml).not.toContain('הרכב הגיע למוסך');
     expect(approvedSourceHtml).not.toContain('הרכב מתקבל');
-    expect(approvedSourceHtml).toContain('המלצת מסלול (לא כופה תיק)');
+    expect(approvedSourceHtml).toContain('המלצת מסלול ללקוח');
     expect(approvedSourceHtml).toContain('העובד בוחר את המסלול בכל תיק');
     expect(approvedSourceHtml).not.toContain('ברירת מחדל מכרטיס הלקוח');
     expect(approvedSourceHtml).not.toContain('ברירת מחדל לפי סוג הלקוח');

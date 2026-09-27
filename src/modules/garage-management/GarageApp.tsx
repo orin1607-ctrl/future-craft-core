@@ -273,6 +273,10 @@ export default function GarageApp() {
           navigate(user?.garageOps ? '/garage-management' : '/claims?tab=garage');
           return;
         }
+        if (msg.type === 'gm:goOpsCenter') {
+          navigate(user?.garageOps ? '/dashboard' : '/claims?tab=garage');
+          return;
+        }
         if (msg.type === 'gm:scanGarageMail') {
           const scanned = await scanGarageMailbox({
             currentCaseId: String(payload.caseId || caseId || ''),

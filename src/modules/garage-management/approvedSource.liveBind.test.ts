@@ -127,8 +127,8 @@ describe('garage flow live case binding', () => {
       document: Document;
     };
     win.startNewCustomer('fleet');
-    expect(win.document.getElementById('cust-wf-quote_first')?.classList.contains('sel')).toBe(true);
-    expect(win.document.getElementById('cust-wf-intake_first')?.classList.contains('sel')).toBe(false);
+    expect(win.document.getElementById('exist-wf-quote_first')?.classList.contains('sel')).toBe(true);
+    expect(win.document.getElementById('exist-wf-intake_first')?.classList.contains('sel')).toBe(false);
 
     const fleetQuote = {
       ...qaCase,
@@ -327,6 +327,37 @@ describe('garage flow live case binding', () => {
     expect(fields[fields.length - 1]).toBe(notesField);
     // notes come right before the next action
     expect(notesField?.compareDocumentPosition(addVehicle)).toBe(4);
+    // preferred channel sits directly before notes
+    const channelField = form.querySelector('[data-channel]')?.closest('.field');
+    expect(fields[fields.length - 2]).toBe(channelField);
+    // route choices are not on the customer step, only in the case hub
+    expect(form.textContent).not.toContain('המלצת מסלול');
+    expect(form.textContent).not.toContain('הצעת מחיר תחילה');
+    expect(form.textContent).not.toContain('קבלת רכב');
+    expect(form.querySelector('.route-opt')).toBeNull();
+    const hub = win.document.getElementById('s-case')?.textContent || '';
+    expect(hub).toContain('הצעת מחיר תחילה');
+    expect(hub).toContain('קבלת רכב');
+  });
+
+  it('direct-customers home returns to the garage ops center, open-case returns to direct customers', () => {
+    const { win } = bootOpenCase();
+    const posted: Array<{ type?: string }> = [];
+    const originalPost = win.parent.postMessage.bind(win.parent);
+    win.parent.postMessage = ((data: unknown, targetOrigin?: string, transfer?: Transferable[]) => {
+      posted.push((data || {}) as { type?: string });
+      return originalPost(data, targetOrigin as string, transfer);
+    }) as typeof win.parent.postMessage;
+    const opsBack = win.document.querySelector('#s-home [data-testid="gm-ops-center-back"]') as HTMLElement;
+    expect(opsBack.textContent).toContain('חזרה למרכז תפעול המוסך');
+    opsBack.click();
+    expect(posted.map((m) => m.type)).toEqual(['gm:goOpsCenter']);
+    win.go('s-choose');
+    const back = win.document.querySelector('#s-choose [data-testid="gm-dash-home"]') as HTMLElement;
+    expect(back.textContent).toContain('חזרה ללקוחות ישירים');
+    back.click();
+    expect(win.document.getElementById('s-home')?.classList.contains('active')).toBe(true);
+    expect(posted.map((m) => m.type)).toEqual(['gm:goOpsCenter']);
   });
 
   for (const type of ['private', 'business', 'fleet']) {
@@ -529,8 +560,8 @@ describe('garage flow live case binding', () => {
     expect(intake).not.toContain('הרכב מתקבל');
     expect(intake).not.toContain('הרכב הגיע למוסך');
     expect(intake).not.toContain('קבלת רכב תחילה');
-    expect(win.document.getElementById('cust-wf-intake_first')?.textContent).toContain('קבלת רכב');
-    expect(win.document.getElementById('cust-wf-intake_first')?.textContent).not.toContain('קבלת רכב תחילה');
+    expect(win.document.getElementById('exist-wf-intake_first')?.textContent).toContain('קבלת רכב');
+    expect(win.document.getElementById('exist-wf-intake_first')?.textContent).not.toContain('קבלת רכב תחילה');
     expect(win.document.getElementById('case-status-badge')?.textContent).toBe('בדיקת רכב');
   });
 
