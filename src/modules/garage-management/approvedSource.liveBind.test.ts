@@ -272,6 +272,145 @@ describe('garage flow live case binding', () => {
     expect(win.document.getElementById('s-newvehicle')?.classList.contains('active')).toBe(true);
   });
 
+  type OpenCaseWin = Window & {
+    applyBootstrap: (payload: Record<string, unknown>) => void;
+    startNewCustomer: (type: string) => void;
+    continueToVehicleStep: (force: boolean) => void;
+    saveVehicleAndCreateCase: () => void;
+    returnToGarageDashboard: () => void;
+    backFromVehicleForm: () => void;
+    go: (id: string) => void;
+    callHost: (type: string, payload?: Record<string, unknown>) => Promise<Record<string, unknown>>;
+    alert: (msg?: string) => void;
+    document: Document;
+  };
+
+  function bootOpenCase(duplicates: unknown[] = []) {
+    const win = bootFlow() as unknown as OpenCaseWin;
+    const calls: Array<{ type: string; payload: Record<string, unknown> }> = [];
+    win.alert = () => {};
+    win.callHost = (type: string, payload: Record<string, unknown> = {}) => {
+      calls.push({ type, payload });
+      if (type === 'gm:checkCustomerDuplicates') return Promise.resolve({ duplicates });
+      if (type === 'gm:createCustomer') {
+        const draft = payload.draft as Record<string, unknown>;
+        return Promise.resolve({ customer: { ...draft, id: 'cust-new-qa', customer_number: 1500 }, duplicates: [], needsConfirm: false });
+      }
+      if (type === 'gm:createVehicle') {
+        const draft = payload.draft as Record<string, unknown>;
+        return Promise.resolve({ vehicle: { ...draft, id: 'veh-new-qa' } });
+      }
+      if (type === 'gm:createCase') {
+        return Promise.resolve({ created: { id: 'case-new-qa', case_number: 'GM-2026-0500', case_data: {} } });
+      }
+      if (type === 'gm:saveCase' || type === 'gm:listMedia') return Promise.resolve({ ok: true, items: [] });
+      return Promise.resolve({ ok: true });
+    };
+    win.applyBootstrap({ mode: 'home', cases: [], startScreen: 's-home', bookPending: false });
+    return { win, calls };
+  }
+
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+  const active = (win: OpenCaseWin, id: string) => win.document.getElementById(id)?.classList.contains('active');
+
+  it('new customer form: notes last, + הוסף רכב instead of + הוסף איש קשר', () => {
+    const { win } = bootOpenCase();
+    win.startNewCustomer('private');
+    const form = win.document.getElementById('s-newform') as HTMLElement;
+    expect(form.textContent).not.toContain('+ הוסף איש קשר');
+    const addVehicle = win.document.getElementById('cust-add-vehicle-btn') as HTMLElement;
+    expect(addVehicle.textContent).toBe('+ הוסף רכב');
+    expect(addVehicle.style.display).toBe('');
+    expect((win.document.getElementById('cust-save-btn') as HTMLElement).style.display).toBe('none');
+    const fields = Array.from(form.querySelectorAll('.content > .field'));
+    const notesField = win.document.getElementById('cust-notes')?.closest('.field');
+    expect(fields[fields.length - 1]).toBe(notesField);
+    // notes come right before the next action
+    expect(notesField?.compareDocumentPosition(addVehicle)).toBe(4);
+  });
+
+  for (const type of ['private', 'business', 'fleet']) {
+    it(`${type}: customer → notes → + הוסף רכב → vehicle → אישור, only then the case hub`, async () => {
+      const { win, calls } = bootOpenCase();
+      win.startNewCustomer(type);
+      (win.document.getElementById('cust-name') as HTMLInputElement).value = `לקוח QA ${type}`;
+      (win.document.getElementById('cust-phone') as HTMLInputElement).value = '0501500150';
+      (win.document.getElementById('cust-notes') as HTMLTextAreaElement).value = 'הערת QA';
+      win.continueToVehicleStep(false);
+      await tick();
+      expect(active(win, 's-vehform')).toBe(true);
+      expect(active(win, 's-case')).toBe(false);
+      expect(calls.map((c) => c.type)).toEqual(['gm:checkCustomerDuplicates']);
+
+      win.backFromVehicleForm();
+      expect(active(win, 's-newform')).toBe(true);
+      expect((win.document.getElementById('cust-name') as HTMLInputElement).value).toBe(`לקוח QA ${type}`);
+      win.continueToVehicleStep(false);
+      await tick();
+
+      win.saveVehicleAndCreateCase();
+      await tick();
+      expect(active(win, 's-case')).toBe(false);
+      expect(calls.some((c) => c.type === 'gm:createCustomer')).toBe(false);
+
+      (win.document.getElementById('veh-plate') as HTMLInputElement).value = '12-345-67';
+      (win.document.getElementById('veh-make') as HTMLInputElement).value = 'Mazda';
+      win.saveVehicleAndCreateCase();
+      await tick();
+      await tick();
+      await tick();
+      const types = calls.map((c) => c.type);
+      expect(types.filter((t) => t === 'gm:createCustomer')).toHaveLength(1);
+      expect(types.indexOf('gm:createCustomer')).toBeLessThan(types.indexOf('gm:createVehicle'));
+      expect(types.indexOf('gm:createVehicle')).toBeLessThan(types.indexOf('gm:createCase'));
+      const customerDraft = calls.find((c) => c.type === 'gm:createCustomer')?.payload.draft as Record<string, unknown>;
+      expect(customerDraft.customer_type).toBe(type);
+      expect(customerDraft.notes).toBe('הערת QA');
+      const vehicleDraft = calls.find((c) => c.type === 'gm:createVehicle')?.payload.draft as Record<string, unknown>;
+      expect(vehicleDraft.customer_id).toBe('cust-new-qa');
+      expect(vehicleDraft.plate).toBe('12-345-67');
+      expect(active(win, 's-case')).toBe(true);
+    });
+  }
+
+
+  it('shows existing-customer duplicates on + הוסף רכב without creating anything', async () => {
+    const { win, calls } = bootOpenCase([{ id: 'cust-old', customer_number: 7, name: 'קיים', phone: '0501500150' }]);
+    win.startNewCustomer('business');
+    (win.document.getElementById('cust-name') as HTMLInputElement).value = 'קיים';
+    (win.document.getElementById('cust-phone') as HTMLInputElement).value = '0501500150';
+    win.continueToVehicleStep(false);
+    await tick();
+    expect(active(win, 's-newform')).toBe(true);
+    expect(win.document.getElementById('cust-dupes')?.textContent).toContain('לקוח קיים #7');
+    expect(calls.map((c) => c.type)).toEqual(['gm:checkCustomerDuplicates']);
+  });
+
+  it('returns to the garage dashboard from every open-case screen without creating customer, vehicle or case', async () => {
+    const shell = bootFlow();
+    for (const screen of ['s-choose', 's-search', 's-newtype', 's-newform', 's-newvehicle', 's-vehform']) {
+      expect(shell.document.querySelector(`#${screen} [data-testid="gm-dash-home"]`)).toBeTruthy();
+    }
+    const { win, calls } = bootOpenCase();
+    win.go('s-choose');
+    win.startNewCustomer('fleet');
+    (win.document.getElementById('cust-name') as HTMLInputElement).value = 'לא לשמור';
+    (win.document.getElementById('cust-phone') as HTMLInputElement).value = '0509999999';
+    win.continueToVehicleStep(false);
+    await tick();
+    (win.document.getElementById('veh-plate') as HTMLInputElement).value = '99-999-99';
+    win.returnToGarageDashboard();
+    await tick();
+    expect(active(win, 's-home')).toBe(true);
+    expect(calls.map((c) => c.type).filter((t) => /create/.test(t))).toEqual([]);
+    expect((win.document.getElementById('cust-name') as HTMLInputElement).value).toBe('');
+    expect((win.document.getElementById('veh-plate') as HTMLInputElement).value).toBe('');
+    win.saveVehicleAndCreateCase();
+    await tick();
+    expect(calls.map((c) => c.type).filter((t) => /create/.test(t))).toEqual([]);
+  });
+
+
   it('blocks intake until mileage and 5 required photos including dashboard, and keeps extras unlimited', () => {
     const win = bootFlow() as Window & {
       applyBootstrap: (payload: Record<string, unknown>) => void;
@@ -466,7 +605,8 @@ describe('garage flow live case binding', () => {
     });
     expect(win.document.getElementById('route-opt-quote_first')?.classList.contains('sel')).toBe(true);
     expect(win.document.getElementById('s-case')?.textContent).toContain('העובד בוחר את המסלול בכל תיק');
-    expect(win.document.getElementById('s-newform')?.textContent).toContain('+ הוסף איש קשר');
+    expect(win.document.getElementById('s-newform')?.textContent).not.toContain('+ הוסף איש קשר');
+    expect(win.document.getElementById('s-newvehicle')?.textContent).toContain('+ הוסף איש קשר');
     win.finishWork();
     expect(win.state.workFinished).toBeFalsy();
     expect(alerts.some((msg) => /לא ניתן לסיים את העבודה/.test(msg))).toBe(true);

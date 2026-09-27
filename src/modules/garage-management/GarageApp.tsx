@@ -8,6 +8,7 @@ import {
   createCase,
   createCustomer,
   createVehicle,
+  detectCustomerDuplicates,
   emptyCaseData,
   getCase,
   GARAGE_WORKFLOW_PENDING_MESSAGE,
@@ -155,6 +156,12 @@ export default function GarageApp() {
             { force: Boolean(payload.force) },
           );
           reply(requestId, { ok: true, ...result, needsConfirm: result.duplicates.length > 0 && !payload.force });
+          return;
+        }
+        if (msg.type === 'gm:checkCustomerDuplicates') {
+          const draft = payload.draft as Parameters<typeof detectCustomerDuplicates>[0];
+          const duplicates = await detectCustomerDuplicates(draft);
+          reply(requestId, { ok: true, duplicates });
           return;
         }
         if (msg.type === 'gm:listVehicles') {
