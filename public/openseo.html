@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>דליה – מרכז השיווק והפרסום · OpenSEO (תצוגת הדגמה)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* OpenSEO – מודול בתוך "דליה – מרכז השיווק והפרסום".
+   תצוגת הדגמה בלבד: נתונים בדויים, בלי API, בלי שירות בתשלום, בלי מסד נתונים. */
+:root{
+  --bg:#f4f6f9; --card:#fff; --fg:#152033; --muted:#5a6679; --faint:#97a1b1; --line:#e0e5ec; --soft:#eef1f6;
+  --navy:#10294b; --navy-2:#1b3b66; --blue:#2462b8; --blue-t:#e8f0fb;
+  --up:#1f7a4d; --up-t:#e3f4ea; --down:#b3361f; --down-t:#fbe8e4; --warn:#8a5a00; --warn-t:#fdf1d8;
+  --ai:#5b3f9a; --ai-t:#efe9f9; --gsc:#0e6f7a; --gsc-t:#e2f3f4;
+  --r:12px; --r-s:8px;
+  --float:0 0 0 1px rgba(16,41,75,.06),0 10px 28px -8px rgba(16,41,75,.28);
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1522; --card:#141d2c; --fg:#e7ecf4; --muted:#a4afc0; --faint:#6c788b; --line:#253146; --soft:#1a2436;
+  --navy:#dbe5f3; --navy-2:#c3d1e6; --blue:#8db6ee; --blue-t:#17243a;
+  --up:#7fd1a4; --up-t:#12291d; --down:#f1a08f; --down-t:#2d1713; --warn:#e9c47b; --warn-t:#2b2312;
+  --ai:#c8b2f0; --ai-t:#241c36; --gsc:#7fd3dc; --gsc-t:#10292c;
+}}
+:root[data-theme="dark"]{
+  --bg:#0e1522; --card:#141d2c; --fg:#e7ecf4; --muted:#a4afc0; --faint:#6c788b; --line:#253146; --soft:#1a2436;
+  --navy:#dbe5f3; --navy-2:#c3d1e6; --blue:#8db6ee; --blue-t:#17243a;
+  --up:#7fd1a4; --up-t:#12291d; --down:#f1a08f; --down-t:#2d1713; --warn:#e9c47b; --warn-t:#2b2312;
+  --ai:#c8b2f0; --ai-t:#241c36; --gsc:#7fd3dc; --gsc-t:#10292c;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"Heebo",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-size:15px;line-height:1.5}
+a{color:var(--blue)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.num{font-variant-numeric:tabular-nums}
+.ltr{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.muted{color:var(--muted)} .faint{color:var(--faint)} .sm{font-size:13px} .xs{font-size:12px}
+.b{font-weight:600}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.grow{flex:1}
+.stack{display:flex;flex-direction:column;gap:16px}
+.mt{margin-top:12px} .mt-s{margin-top:6px} .m0{margin:0}
+
+/* ---------- מסגרת מינימלית (לא מעטפת) ---------- */
+.frame{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:44px;padding:6px 20px;background:var(--card);border-bottom:1px dashed var(--line);font-size:13px;color:var(--muted)}
+.frame .brand{font-weight:700;color:var(--navy)}
+.frame .ctx{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:var(--r-s);background:var(--soft);color:var(--fg);cursor:not-allowed}
+.shared{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:6px;font-size:11.5px;font-weight:600;color:var(--blue);border:1px dashed var(--blue);background:var(--blue-t);white-space:nowrap}
+.demo-note{padding:6px 20px;font-size:12.5px;background:var(--warn-t);color:var(--warn)}
+/* ---------- כותרת המודול ---------- */
+.mod-head{background:var(--card);border-bottom:1px solid var(--line);padding:16px 20px 0}
+.mod-title{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mod-title h1{margin:0;font-size:24px;letter-spacing:-.01em}
+.mod-title .sub{color:var(--muted);font-size:14px}
+.site-pick{display:inline-flex;align-items:center;gap:8px}
+.site-pick select{height:34px;border-radius:var(--r-s);border:0;box-shadow:inset 0 0 0 1px var(--line);background:var(--card);padding:0 10px;font-weight:500}
+.tabs{display:flex;gap:2px;overflow-x:auto;margin-top:12px;scrollbar-width:thin}
+.tabs button{flex-shrink:0;height:40px;padding:0 12px;border:0;background:none;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;font-size:14px;white-space:nowrap}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-selected="true"]{color:var(--navy);border-bottom-color:var(--navy);font-weight:600}
+.tabs .grp{width:1px;background:var(--line);margin:10px 6px;flex-shrink:0}
+.content{padding:20px;max-width:1360px;margin:0 auto}
+@media (max-width:700px){.content{padding:14px}.mod-head{padding:12px 14px 0}.frame{padding:6px 14px}}
+
+/* ---------- רכיבים ---------- */
+.card{background:var(--card);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line)}
+.zone{padding:16px;border-bottom:1px solid var(--line)}
+.zone:last-child{border-bottom:0}
+.zone.soft{background:var(--soft)}
+.zone.soft:last-child{border-radius:0 0 var(--r) var(--r)}
+h2.t{margin:0;font-size:17px;font-weight:600}
+h3.t{margin:0;font-size:15px;font-weight:600}
+.head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:var(--r-s);border:0;background:var(--card);box-shadow:inset 0 0 0 1px var(--line),0 1px 2px rgba(16,41,75,.06);cursor:pointer;font-size:14px;font-weight:500;white-space:nowrap}
+.btn:hover:not(:disabled){background:var(--soft)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.pri{background:var(--navy);color:#fff;box-shadow:none}
+:root[data-theme="dark"] .btn.pri{color:#0e1522}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.pri{color:#0e1522}}
+.btn.pri:hover:not(:disabled){background:var(--navy-2)}
+.btn.ghost{background:none;box-shadow:none;color:var(--muted)}
+.btn.ghost:hover:not(:disabled){background:var(--soft);color:var(--fg)}
+.btn.danger{color:var(--down)}
+.btn.sm{height:28px;padding:0 9px;font-size:13px}
+.btn.ic{width:30px;padding:0}
+.input{width:100%;height:36px;padding:0 10px;border-radius:var(--r-s);border:0;background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}
+textarea.input{height:auto;padding:8px 10px;line-height:1.55;resize:vertical}
+.input:focus{outline:none;box-shadow:inset 0 0 0 2px var(--blue)}
+select.input{width:auto}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+label.f .input{color:var(--fg)}
+.fields{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.chip{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--soft);color:var(--muted);font-size:12px;white-space:nowrap}
+.badge{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:500;white-space:nowrap;background:var(--soft);color:var(--muted)}
+.badge.up{background:var(--up-t);color:var(--up)} .badge.down{background:var(--down-t);color:var(--down)} .badge.warn{background:var(--warn-t);color:var(--warn)} .badge.info{background:var(--blue-t);color:var(--blue)}
+/* סימון מקור הנתון */
+.src{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:5px;font-size:11px;font-weight:600;white-space:nowrap;vertical-align:middle}
+.src.real{background:var(--up-t);color:var(--up)}
+.src.gsc{background:var(--gsc-t);color:var(--gsc)}
+.src.crawl{background:var(--blue-t);color:var(--blue)}
+.src.ai{background:var(--ai-t);color:var(--ai)}
+.src.none{background:var(--warn-t);color:var(--warn)}
+.src.unv{background:var(--soft);color:var(--muted);box-shadow:inset 0 0 0 1px var(--line)}
+.src.calc{background:var(--soft);color:var(--fg)}
+.orig{display:inline-flex;height:18px;align-items:center;padding:0 6px;border-radius:4px;font-size:10.5px;font-weight:600;background:var(--soft);color:var(--muted);vertical-align:middle}
+.orig.new{background:var(--navy);color:#fff}
+:root[data-theme="dark"] .orig.new{color:#0e1522}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .orig.new{color:#0e1522}}
+.notice{display:flex;gap:8px;align-items:flex-start;padding:9px 12px;border-radius:var(--r-s);font-size:14px}
+.notice.ok{background:var(--up-t);color:var(--up)} .notice.warn{background:var(--warn-t);color:var(--warn)} .notice.info{background:var(--blue-t);color:var(--blue)} .notice.err{background:var(--down-t);color:var(--down)}
+.empty{padding:32px 16px;text-align:center;color:var(--muted);font-size:14px}
+.empty .t{font-weight:600;color:var(--fg);font-size:15px}
+.seg{display:inline-flex;padding:2px;border-radius:var(--r-s);background:var(--soft);flex-wrap:wrap}
+.seg button{height:30px;padding:0 10px;border:0;border-radius:6px;background:none;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--fg);box-shadow:0 1px 2px rgba(16,41,75,.14)}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))} .g3{grid-template-columns:repeat(3,minmax(0,1fr))} .g4{grid-template-columns:repeat(4,minmax(0,1fr))} .g6{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media (max-width:1000px){.g4,.g6{grid-template-columns:repeat(3,minmax(0,1fr))}.g3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.g2,.g3,.g4{grid-template-columns:1fr}.g6{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{padding:14px 16px}
+.stat .v{font-size:26px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:13px;color:var(--muted);margin-top:4px}
+.stat .m{font-size:12px;color:var(--faint);margin-top:2px}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{height:38px;padding:0 12px;text-align:right;font-size:12.5px;font-weight:500;color:var(--muted);border-bottom:1px solid var(--line);white-space:nowrap;background:var(--card)}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:hover td{background:var(--soft)}
+tbody tr:last-child td{border-bottom:0}
+.linkish{border:0;background:none;padding:0;cursor:pointer;color:var(--fg);font-weight:500;text-align:right}
+.linkish:hover{color:var(--blue);text-decoration:underline}
+.pos{display:inline-flex;min-width:34px;height:24px;align-items:center;justify-content:center;border-radius:6px;font-weight:600;font-size:13px;font-variant-numeric:tabular-nums;background:var(--soft)}
+.pos.t3{background:var(--up-t);color:var(--up)} .pos.t10{background:var(--blue-t);color:var(--blue)} .pos.t20{background:var(--warn-t);color:var(--warn)}
+.delta{font-weight:600;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.delta.up{color:var(--up)} .delta.down{color:var(--down)} .delta.eq{color:var(--faint)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+.filters .input{height:32px;font-size:13px}
+.filters .search{width:240px;max-width:100%}
+.bar{height:8px;border-radius:4px;background:var(--soft);overflow:hidden}
+.bar>span{display:block;height:100%;background:var(--navy)}
+
+/* ---------- רצף האתר → פעולות (הרכיב המרכזי של המסך) ---------- */
+.flow{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:0;background:var(--card);border-radius:var(--r);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
+.flow button{position:relative;border:0;background:none;text-align:right;padding:14px 14px 14px 22px;cursor:pointer;border-left:1px solid var(--line);min-width:0}
+.flow button:last-child{border-left:0}
+.flow button:hover{background:var(--soft)}
+.flow .k{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.flow .k b{display:inline-flex;width:18px;height:18px;border-radius:50%;background:var(--navy);color:#fff;font-size:10.5px;align-items:center;justify-content:center;flex-shrink:0}
+:root[data-theme="dark"] .flow .k b{color:#0e1522}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .flow .k b{color:#0e1522}}
+.flow .v{font-size:22px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flow .d{font-size:12px;color:var(--faint);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flow button::after{content:"";position:absolute;left:-7px;top:50%;width:12px;height:12px;background:var(--card);border-top:1px solid var(--line);border-left:1px solid var(--line);transform:translateY(-50%) rotate(-45deg);z-index:1}
+.flow button:last-child::after{display:none}
+.flow button:hover::after{background:var(--soft)}
+@media (max-width:1100px){.flow{grid-template-columns:repeat(4,minmax(0,1fr))}.flow button:nth-child(4){border-left:0}.flow button:nth-child(4)::after{display:none}.flow button:nth-child(-n+4){border-bottom:1px solid var(--line)}}
+@media (max-width:560px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}.flow button{border-bottom:1px solid var(--line)}.flow button:nth-child(even){border-left:0}.flow button::after{display:none}}
+
+/* ---------- מגירה, חלון, תפריט ---------- */
+.scrim{position:fixed;inset:0;background:rgba(10,20,35,.38);z-index:40}
+.drawer{position:fixed;top:0;bottom:0;left:0;width:min(680px,100%);background:var(--bg);z-index:41;box-shadow:var(--float);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px)}
+.drawer-h{display:flex;align-items:center;gap:8px;padding:14px 18px;background:var(--card);border-bottom:1px solid var(--line)}
+.drawer-b{overflow:auto;padding:16px 18px;flex:1;display:flex;flex-direction:column;gap:14px}
+.modal{position:fixed;z-index:41;top:50%;left:50%;transform:translate(-50%,-50%);width:min(560px,calc(100% - 24px));max-height:calc(100% - 40px);overflow:auto}
+.chain{display:flex;flex-direction:column;gap:0}
+.chain .step{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:12px 0;border-bottom:1px dashed var(--line)}
+.chain .step:last-child{border-bottom:0}
+.chain .n{width:24px;height:24px;border-radius:50%;background:var(--navy);color:#fff;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center}
+:root[data-theme="dark"] .chain .n{color:#0e1522}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chain .n{color:#0e1522}}
+.chain .lbl{font-size:12px;color:var(--muted)}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:60;background:var(--navy);color:#fff;padding:10px 16px;border-radius:var(--r-s);font-size:14px;box-shadow:var(--float);max-width:calc(100% - 32px)}
+:root[data-theme="dark"] .toast{color:#0e1522}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .toast{color:#0e1522}}
+.demo-ctl{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:35}
+.demo-ctl .panel{position:absolute;bottom:40px;left:0;width:290px;background:var(--card);border-radius:var(--r);box-shadow:var(--float);padding:14px;display:flex;flex-direction:column;gap:8px}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:14px}
+.check input{margin-top:4px;accent-color:var(--navy)}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--line);border-radius:var(--r-s);overflow:hidden}
+.cal .h{background:var(--soft);text-align:center;font-size:12px;color:var(--muted);padding:4px 0}
+.cal .c{background:var(--card);min-height:88px;padding:4px}
+.cal .c .d{font-size:11px;color:var(--muted);padding:0 3px}
+.cal .c button{display:block;width:100%;margin-top:3px;text-align:right;font-size:11px;border:0;border-radius:4px;padding:3px 5px;background:var(--blue-t);color:var(--blue);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal .c button.pub{background:var(--up-t);color:var(--up)}
+.cal .c button.fail{background:var(--down-t);color:var(--down)}
+.prose{font-size:14px;line-height:1.7}
+.prose h2{font-size:16px;margin:14px 0 6px} .prose h3{font-size:15px;margin:12px 0 4px} .prose p{margin:0 0 8px}
+.pill-list{display:flex;flex-wrap:wrap;gap:6px}
+svg.chart{width:100%;height:auto;direction:ltr;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-inline-end:4px;vertical-align:middle}
+code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:var(--soft);padding:1px 5px;border-radius:4px;direction:ltr;unicode-bidi:isolate}
+</style>
+</head>
+<body>
+<div class="frame" role="note">
+  <a href="./dalia-marketing-center.html" class="btn ghost sm" id="backToCenterBtn" style="text-decoration:none;margin-inline-end:8px">← חזרה למרכז השיווק</a>
+  <span class="brand">דליה – מרכז השיווק והפרסום</span>
+  <span class="ctx" title="נקבע במעטפת המשותפת">חברה פעילה: דליה פתרונות תפעול ותחזוקה לרכב ▾</span>
+  <span class="shared">מעטפת משותפת – תחובר בשלב האינטגרציה</span>
+  <span class="grow"></span>
+  <button class="btn ghost sm" data-act="points">נקודות חיבור לדליה</button>
+  <button class="btn ghost sm" data-act="theme">מצב כהה/בהיר</button>
+</div>
+<div class="demo-note">תצוגת הדגמה: כל האתרים, המיקומים, המתחרים והנתונים בדויים (דומיינים .example). שום דבר לא מחובר ל-Google, ל-SerpAPI, ל-WordPress או למסד נתונים.</div>
+<header class="mod-head">
+  <div class="mod-title">
+    <h1>OpenSEO</h1><span class="sub">קידום אורגני של אתרי החברה</span>
+    <span class="grow"></span>
+    <label class="site-pick sm muted">אתר: <select id="sitePick" aria-label="בחירת אתר"></select></label>
+  </div>
+  <nav class="tabs" role="tablist" id="tabs" aria-label="לשוניות OpenSEO"></nav>
+</header>
+<main class="content" id="view"></main>
+<div id="overlay"></div>
+<div class="demo-ctl" id="demoCtl"></div>
+<div id="toast" class="toast" hidden></div>
+<script>
+"use strict";
+/* ============================================================
+   נתוני הדגמה. כל מספר כאן בדוי.
+   לכל נתון יש מקור (src), כדי להבחין בין נתון אמיתי, הערכת AI ונתון חסר.
+   ============================================================ */
+const NOW = Date.now(), DAY = 86400000;
+const WEEKS = 12;
+const weekLabel = i => { const d = new Date(NOW - (WEEKS-1-i)*7*DAY); return `${d.getDate()}/${d.getMonth()+1}`; };
+
+/* אתרים — משויכים לחברה הפעילה שמגיעה מהמעטפת (לא מערכת חברות חדשה) */
+const SITES = [
+  {id:"s1", name:"האתר של דליה", domain:"dalia-demo.example", platform:"WordPress", market:"ישראל · עברית (gl=il, hl=iw)",
+   conn:{serp:true, gsc:false, wp:true, crawl:true}, lastCrawl:NOW-2*DAY, lastRank:NOW-1*DAY, created:NOW-120*DAY},
+  {id:"s2", name:"מוסך דליה – ראשון לציון", domain:"garage-dalia.example", platform:"אתר ללא WordPress", market:"ישראל · עברית (gl=il, hl=iw)",
+   conn:{serp:true, gsc:false, wp:false, crawl:true}, lastCrawl:NOW-6*DAY, lastRank:NOW-3*DAY, created:NOW-60*DAY}
+];
+
+/* מתחרים אורגניים לכל אתר */
+const COMPETITORS = {
+  s1:[
+    {domain:"fleet-pro.example", name:"פליט פרו"},
+    {domain:"car-service-il.example", name:"קאר סרוויס"},
+    {domain:"leasing-hub.example", name:"ליסינג האב"},
+    {domain:"garage-center.example", name:"גראז׳ סנטר"}
+  ],
+  s2:[
+    {domain:"garage-rishon.example", name:"מוסך ראשון"},
+    {domain:"auto-fix.example", name:"אוטו פיקס"},
+    {domain:"speed-garage.example", name:"ספיד מוסך"}
+  ]
+};
+
+/* היסטוריית מיקום: 12 שבועות. null = לא נמצא ב-100 המקומות הראשונים */
+function hist(a, b, seed, lostUntil){
+  const out = [];
+  for (let i=0;i<WEEKS;i++){
+    if (a == null && b == null){ out.push(null); continue; }
+    if (a == null){ out.push(i < (lostUntil ?? WEEKS-2) ? null : b + (WEEKS-1-i)*2); continue; }
+    const t = i/(WEEKS-1), base = a + (b-a)*t;
+    const noise = ((seed*7 + i*13) % 5) - 2;
+    out.push(Math.max(1, Math.round(base + (i === WEEKS-1 ? 0 : noise*(base>10?1:.5)))));
+  }
+  if (a != null && b != null) out[WEEKS-2] = Math.round(a + (b-a)*0.55);
+  out[WEEKS-1] = b;
+  return out;
+}
+/* [מילה, קבוצה, כוונה, מיקום לפני 12 שבועות, מיקום היום, נפח (null = אין נתון מאומת), עמוד מדורג, מיקומי מתחרים] */
+const KW_RAW = {
+  s1:[
+    ["ניהול צי רכב","ניהול צי","commercial",18,9,1900,"/fleet-management",[3,7,null,15]],
+    ["תחזוקת צי רכבים","תחזוקה","commercial",14,6,880,"/fleet-maintenance",[2,9,12,5]],
+    ["מוסך לציי רכב","מוסך","transactional",9,4,390,"/garage",[6,1,null,3]],
+    ["מערכת לניהול צי רכב","ניהול צי","commercial",35,22,720,"/fleet-management",[1,15,8,null]],
+    ["קצין רכב חיצוני","ניהול צי","commercial",null,null,260,"",[4,null,11,null]],
+    ["טיפול לרכב חברה","תחזוקה","transactional",7,11,480,"/company-car-service",[5,3,null,8]],
+    ["תיקון רכב ליסינג","מוסך","transactional",22,17,590,"/leasing-repairs",[9,4,2,6]],
+    ["ניהול תאונות רכב חברה","תאונות","commercial",12,3,null,"/accidents",[8,null,14,null]],
+    ["רכב חלופי לעסקים","שירותים","transactional",null,28,320,"/replacement-car",[3,12,1,null]],
+    ["החלפת צמיגים לצי רכב","תחזוקה","transactional",6,5,170,"/tires",[11,null,null,2]],
+    ["טסט לרכב חברה","שירותים","informational",16,19,null,"/annual-test",[2,5,null,7]],
+    ["עלות תחזוקת רכב","תוכן","informational",42,31,1300,"/blog/maintenance-cost",[6,3,10,14]],
+    ["איסוף רכב למוסך","שירותים","transactional",5,2,210,"/pickup",[7,null,null,4]],
+    ["מיקור חוץ לניהול צי רכב","ניהול צי","commercial",27,14,null,"/outsourcing",[2,null,6,null]],
+    ["ביטוח צי רכב","תאונות","commercial",null,null,900,"",[null,8,4,null]],
+    ["ניהול ק״מ לרכבי חברה","ניהול צי","informational",60,48,null,"/blog/mileage",[5,null,9,null]],
+    ["בדיקת רכב לפני טסט","תוכן","informational",13,8,1100,"/blog/pre-test",[4,2,null,6]],
+    ["שירותי תחזוקה לרכב","תחזוקה","commercial",3,2,640,"/",[4,6,null,1]],
+    ["מוסך מורשה ליסינג","מוסך","transactional",8,15,450,"/garage",[3,2,5,4]],
+    ["חיסכון בדלק לצי רכב","תוכן","informational","unchecked",null,null,"",null],
+    ["דוח עלויות צי רכב","תוכן","informational","unchecked",null,null,"",null]
+  ],
+  s2:[
+    ["מוסך בראשון לציון","מקומי","transactional",12,7,590,"/",[3,5,1]],
+    ["טיפול 10,000 ק״מ","טיפולים","transactional",20,16,320,"/service",[8,null,4]],
+    ["תיקון מזגן לרכב","טיפולים","transactional",null,35,480,"/ac",[6,2,9]],
+    ["מוסך מומחה לרכב היברידי","טיפולים","commercial",9,6,140,"/hybrid",[null,3,7]],
+    ["בדיקת בלמים","טיפולים","transactional",25,30,260,"/brakes",[4,11,2]],
+    ["פחחות וצבע בראשון","מקומי","transactional",null,null,880,"",[2,4,6]],
+    ["טסט לרכב בראשון לציון","מקומי","transactional","unchecked",null,null,"",null]
+  ]
+};
+let KID = 0;
+const KEYWORDS = [];
+for (const sid of Object.keys(KW_RAW)){
+  KW_RAW[sid].forEach(([kw,group,intent,a,b,vol,url,comp], i) => {
+    const unchecked = a === "unchecked";
+    KEYWORDS.push({
+      id:"k"+(++KID), site:sid, kw, group, intent, status:"tracking",
+      vol, volSrc: vol == null ? null : "kp",
+      hist: unchecked ? null : hist(a, b, i+1, a==null && b!=null ? WEEKS-2 : undefined),
+      url, checked: unchecked ? null : NOW - (1 + i%3)*DAY,
+      comp: comp ? Object.fromEntries(COMPETITORS[sid].map((c,j) => [c.domain, comp[j]])) : null,
+      gsc: unchecked || b == null ? null : {clicks: Math.round((vol||200) * (b<=3?.18:b<=10?.05:.008)), impr: Math.round((vol||200)*(b<=10?.9:.35))},
+      added: NOW - (90 - i*3)*DAY
+    });
+  });
+}
+/* מילים שהמתחרים מדורגים עליהן ואנחנו לא עוקבים אחריהן (מתוך SERP של המתחרה) */
+const COMP_ONLY = {
+  s1:{
+    "fleet-pro.example":[["תוכנה לניהול צי רכב",2,"/software"],["GPS לרכבי חברה",4,"/gps"],["נוהל רכב חברה",6,"/blog/company-car-policy"],["הדרכת נהגים לחברות",5,"/driver-training"]],
+    "car-service-il.example":[["מוסך 24 שעות",3,"/24-7"],["גרירה לרכב חברה",7,"/towing"],["טיפול רכב עד הבית",2,"/mobile-service"]],
+    "leasing-hub.example":[["ליסינג תפעולי לעסקים",1,"/operational-leasing"],["השוואת חברות ליסינג",3,"/compare"],["החזרת רכב ליסינג",8,"/return"]],
+    "garage-center.example":[["מוסך לרכבים חשמליים",4,"/ev"],["החלפת בלמים מחיר",6,"/brakes-price"]]
+  },
+  s2:{
+    "garage-rishon.example":[["מוסך בשבת ראשון לציון",2,"/saturday"],["טיפול שנתי לרכב מחיר",5,"/annual"]],
+    "auto-fix.example":[["אבחון תקלות ממוחשב",3,"/diagnostics"],["החלפת מצבר",4,"/battery"]],
+    "speed-garage.example":[["מוסך מהיר בראשון",1,"/"],["כיוון פרונט",6,"/alignment"]]
+  }
+};
+
+/* עמודי האתר (נתוני סורק – הדגמה) */
+const PAGES = {
+  s1:[
+    {url:"/",title:"דליה – שירותי תחזוקה ותפעול לרכבי חברה וציי רכב",meta:"דליה מלווה ציי רכב בישראל: תחזוקה, מוסך, טיפול בתאונות ורכב חלופי – במקום אחד.",h1:"שירותי תחזוקה לציי רכב",words:820,inL:0,outL:14,status:200,index:true,alt:0,lcp:2.1},
+    {url:"/fleet-management",title:"ניהול צי רכב לעסקים",meta:"",h1:"ניהול צי רכב",words:640,inL:9,outL:6,status:200,index:true,alt:3,lcp:3.4},
+    {url:"/fleet-maintenance",title:"תחזוקת צי רכבים – תוכנית טיפולים מלאה לכל הרכבים בחברה שלכם, בלי כאב ראש",meta:"תחזוקת צי רכבים מקצועית.",h1:"תחזוקת צי רכבים",words:1100,inL:7,outL:5,status:200,index:true,alt:0,lcp:2.4},
+    {url:"/garage",title:"מוסך לציי רכב ומוסך מורשה ליסינג",meta:"מוסך המתמחה בציי רכב ובחברות ליסינג, עם איסוף והחזרה.",h1:"",words:510,inL:6,outL:4,status:200,index:true,alt:1,lcp:null},
+    {url:"/company-car-service",title:"טיפול לרכב חברה",meta:"טיפול לרכב חברה – תיאום, איסוף והחזרה, ודיווח מלא לקצין הרכב של החברה, כולל תמונות, הצעת מחיר מפורטת ואישור לפני כל עבודה.",h1:"טיפול לרכב חברה",words:260,inL:3,outL:2,status:200,index:true,alt:2,lcp:4.1},
+    {url:"/accidents",title:"ניהול תאונות רכב חברה",meta:"ליווי מלא אחרי תאונה: שמאי, מוסך, רכב חלופי ומול חברת הביטוח.",h1:"ניהול תאונות",words:930,inL:5,outL:6,status:200,index:true,alt:0,lcp:2.2},
+    {url:"/replacement-car",title:"רכב חלופי לעסקים",meta:"",h1:"רכב חלופי",words:180,inL:0,outL:1,status:200,index:true,alt:0,lcp:null},
+    {url:"/blog/maintenance-cost",title:"כמה עולה תחזוקת רכב? מדריך 2026",meta:"פירוט עלויות תחזוקה שנתיות לרכב פרטי ולרכב חברה.",h1:"כמה עולה תחזוקת רכב",words:1450,inL:2,outL:8,status:200,index:true,alt:4,lcp:2.9},
+    {url:"/blog/mileage",title:"ניהול ק״מ",meta:"איך לעקוב אחרי קילומטראז׳ של רכבי חברה.",h1:"ניהול ק״מ לרכבי חברה",words:390,inL:1,outL:3,status:200,index:true,alt:0,lcp:2.0},
+    {url:"/old-services",title:"שירותים",meta:"",h1:"שירותים",words:90,inL:2,outL:0,status:404,index:false,alt:0,lcp:null},
+    {url:"/leasing",title:"ליסינג",meta:"",h1:"",words:0,inL:4,outL:0,status:301,index:false,alt:0,lcp:null,redirect:"/leasing-repairs"}
+  ],
+  s2:[
+    {url:"/",title:"מוסך דליה ראשון לציון",meta:"מוסך מורשה בראשון לציון.",h1:"מוסך דליה",words:540,inL:0,outL:8,status:200,index:true,alt:2,lcp:3.8},
+    {url:"/service",title:"טיפולים תקופתיים",meta:"",h1:"טיפולים",words:310,inL:3,outL:2,status:200,index:true,alt:0,lcp:2.6},
+    {url:"/ac",title:"תיקון מזגן לרכב",meta:"תיקון ומילוי גז למזגן רכב.",h1:"תיקון מזגן",words:220,inL:1,outL:1,status:200,index:true,alt:1,lcp:null},
+    {url:"/brakes",title:"בדיקת בלמים",meta:"",h1:"",words:150,inL:0,outL:1,status:200,index:true,alt:0,lcp:null}
+  ]
+};
+
+/* ---- OpenSEO המקורי: תוכניות תוכן ומאמרים (content_plans, posts) ---- */
+const PLANS = [
+  {id:1,site:"s1",name:"ניהול צי רכב לעסקים",keyword:"ניהול צי רכב",audience:"קציני רכב ומנהלי תפעול",notes:"עמוד עמוד-תווך ומדריכים תומכים. שפה פשוטה.",created:NOW-40*DAY},
+  {id:2,site:"s1",name:"עלויות ותחזוקה",keyword:"עלות תחזוקת רכב",audience:"סמנכ״לי כספים בחברות עם צי",notes:"",created:NOW-25*DAY},
+  {id:3,site:"s2",name:"שירותי מוסך מקומי",keyword:"מוסך בראשון לציון",audience:"תושבי ראשון לציון",notes:"",created:NOW-15*DAY}
+];
+const iso = ms => new Date(ms).toISOString();
+const P = (id,site,plan,title,keyword,status,schedOff,pubOff,rank,err) => ({
+  id, site, plan_id:plan, title, keyword,
+  meta_description:`${title}: מה חשוב לדעת, כמה זה עולה ואיך לבחור נכון – מדריך מעשי לחברות עם צי רכב.`,
+  content_html:`<h2>התשובה הקצרה</h2><p>${keyword} – זה מה שכל מנהל צי צריך לדעת לפני שהוא בוחר ספק.</p><h2>מה לבדוק</h2><p>זמינות, איסוף והחזרה, דיווח מסודר ומחיר קבוע לכל טיפול.</p><h2>שאלות נפוצות</h2><h3>כמה זמן זה לוקח?</h3><p>ברוב המקרים יום עבודה אחד.</p>`,
+  status, scheduled_at: schedOff==null?null:iso(NOW+schedOff*DAY), published_at: pubOff==null?null:iso(NOW+pubOff*DAY),
+  published_url: status==="published" ? `https://${SITES.find(s=>s.id===site).domain}/blog/${id}` : null,
+  error: err||null, rank: rank===undefined?null:rank, rank_checked_at: status==="published" && rank!==undefined ? iso(NOW-DAY) : null,
+  created_at: iso(NOW-(30-id)*DAY), updated_at: iso(NOW-(10-id%5)*DAY)
+});
+const POSTS = [
+  P(1,"s1",1,"ניהול צי רכב: המדריך המלא לחברות","ניהול צי רכב","published",-21,-21,9),
+  P(2,"s1",2,"כמה עולה תחזוקת רכב חברה בשנה","עלות תחזוקת רכב","published",-14,-14,null),
+  P(3,"s1",1,"מיקור חוץ לניהול צי: מתי זה משתלם","מיקור חוץ לניהול צי רכב","published",-7,-7),
+  P(4,"s1",1,"7 טעויות בניהול תאונות של רכבי חברה","ניהול תאונות רכב חברה","scheduled",3,null),
+  P(5,"s1",2,"בדיקת רכב לפני טסט: רשימת בדיקה","בדיקת רכב לפני טסט","scheduled",10,null),
+  P(6,"s1",null,"רכב חלופי לעסקים: איך זה עובד","רכב חלופי לעסקים","draft",null,null),
+  P(7,"s1",1,"מה עושה קצין רכב חיצוני","קצין רכב חיצוני","draft",null,null),
+  P(8,"s1",2,"חיסכון בדלק לצי רכב – 10 צעדים","חיסכון בדלק לצי רכב","failed",-2,null,undefined,"WordPress החזיר 401: סיסמת האפליקציה לא תקינה"),
+  P(9,"s2",3,"מוסך בראשון לציון: מה לבדוק לפני שבוחרים","מוסך בראשון לציון","published",-9,-9,7),
+  P(10,"s2",3,"תיקון מזגן לרכב לפני הקיץ","תיקון מזגן לרכב","draft",null,null)
+];
+</script>
+<script>
+"use strict";
+/* ================= מצב ================= */
+const S = {
+  tab:"overview", site:"s1",
+  live:{serp:true, gsc:false, wp:true, ai:true},   // מצב החיבורים – כלי הדגמה בלבד
+  kwq:"", kwGroup:"", kwBucket:"", kwMove:"", kwStatus:"", kwIntent:"", kwSel:new Set(), kwSort:"pos", addOpen:false,
+  rankKw:null, comp:null, cmpView:"shared",
+  oppType:"", techSev:"", pageFilter:"", demoOpen:false,
+  drawer:null, modal:null,
+  research:{seed:"",audience:"",busy:false,result:null, coSeed:"",coBusy:false,coResult:null, planForm:null, drafting:null},
+  produce:{keyword:"",plan:"",busy:false,topic:"",ideas:[],ideasBusy:false},
+  compose:null, publish:{start:"",cadence:"1",month:null,busy:false},
+  measure:{busy:false,note:null}, optimize:{postId:null,busy:false,src:null,sugs:[],applied:0},
+  pageOpt:{url:null,sugs:[]}
+};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => n == null ? "—" : Number(n).toLocaleString("he-IL");
+const fdate = ms => { if (!ms) return "—"; const d = new Date(ms); return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()}`; };
+const fdt = ms => { if (!ms) return "—"; const d = new Date(ms); return `${fdate(d)} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; };
+const site = () => SITES.find(s => s.id === S.site);
+const siteKw = () => KEYWORDS.filter(k => k.site === S.site);
+const comps = () => COMPETITORS[S.site] || [];
+function toast(t){ const el = $("#toast"); el.textContent = t; el.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => el.hidden = true, 3200); }
+
+/* ---- תגי מקור הנתון ---- */
+const SRC = {
+  serp:  () => `<span class="src real" title="נתון חי מתוצאות גוגל דרך SerpAPI. בתצוגה: ערך הדגמה">SerpAPI · הדגמה</span>`,
+  gsc:   () => `<span class="src gsc" title="נתון מ-Google Search Console. בתצוגה: ערך הדגמה">Search Console · הדגמה</span>`,
+  kp:    () => `<span class="src real" title="נפח חיפוש מספק נתוני מילות מפתח (למשל DataForSEO / Keyword Planner). בתצוגה: ערך הדגמה">נפח · הדגמה</span>`,
+  crawl: () => `<span class="src crawl" title="נתון מסריקת האתר. בתצוגה: ערך הדגמה">סורק · הדגמה</span>`,
+  ai:    () => `<span class="src ai" title="ניתוח או הערכה של AI. לא נתון עובדתי">הערכת AI</span>`,
+  calc:  () => `<span class="src calc" title="חישוב של OpenSEO מתוך נתונים קיימים">חישוב</span>`,
+  none:  () => `<span class="src none">טרם נבדק</span>`,
+  unv:   () => `<span class="src unv">אין נתון מאומת</span>`
+};
+const ORIG = () => `<span class="orig" title="קיים בקוד OpenSEO המקורי">מקור</span>`;
+const NEW = () => `<span class="orig new" title="תוספת עבור דליה">תוספת</span>`;
+const SHARED = (t="חיבור למערכת המשותפת – ימומש בשלב האינטגרציה") => `<span class="shared" title="${esc(t)}">מערכת משותפת</span>`;
+
+/* ---- מדדים של מילת מפתח ---- */
+const cur = k => k.hist ? k.hist[WEEKS-1] : undefined;          // undefined = טרם נבדק; null = לא ב-100
+const prev = k => k.hist ? k.hist[WEEKS-2] : undefined;
+function change(k){
+  const c = cur(k), p = prev(k);
+  if (c === undefined) return {t:"unchecked"};
+  if (c == null && p == null) return {t:"none"};
+  if (p == null) return {t:"new"};
+  if (c == null) return {t:"lost"};
+  return {t: p-c > 0 ? "up" : p-c < 0 ? "down" : "eq", v: p-c};
+}
+function posHtml(p){
+  if (p === undefined) return SRC.none();
+  if (p == null) return `<span class="pos" title="לא נמצא ב-100 המקומות הראשונים">100+</span>`;
+  return `<span class="pos ${p<=3?"t3":p<=10?"t10":p<=20?"t20":""}">${p}</span>`;
+}
+function deltaHtml(k){
+  const c = change(k);
+  if (c.t === "unchecked") return `<span class="faint">—</span>`;
+  if (c.t === "none") return `<span class="delta eq">—</span>`;
+  if (c.t === "new") return `<span class="badge up">חדש</span>`;
+  if (c.t === "lost") return `<span class="badge down">נפל מהדירוג</span>`;
+  if (c.t === "eq") return `<span class="delta eq">0</span>`;
+  return `<span class="delta ${c.t}">${c.t==="up"?"▲":"▼"} ${Math.abs(c.v)}</span>`;
+}
+function bestComp(k){
+  if (!k.comp) return null;
+  let best = null;
+  for (const [d,p] of Object.entries(k.comp)) if (p != null && (!best || p < best.p)) best = {d,p};
+  return best;
+}
+const compName = d => (Object.values(COMPETITORS).flat().find(c => c.domain === d)?.name) || d;
+/* פעולה מומלצת: כללים קבועים (לא AI) על בסיס הנתונים */
+function action(k){
+  const c = cur(k), ch = change(k), b = bestComp(k);
+  if (c === undefined) return {t:"הפעל בדיקת מיקום", why:"אין עדיין מיקום מאומת למילה הזו."};
+  if (c == null) return b && b.p <= 10 ? {t:"צור עמוד ייעודי למילה", why:`${compName(b.d)} במקום ${b.p}, ולנו אין עמוד מדורג.`} : {t:"בדוק אם כדאי לקדם", why:"אף אחד מהמתחרים לא בעשירייה הראשונה."};
+  if (ch.t === "down" && Math.abs(ch.v) >= 3) return {t:"בדוק את הירידה", why:`ירידה של ${Math.abs(ch.v)} מקומות בשבוע האחרון. בדוק שינויים בעמוד ומי עקף אותנו.`};
+  if (c <= 3) return {t:"שמור על המיקום", why:"בטופ 3. עדכון תוכן תקופתי ומעקב אחרי מתחרים."};
+  if (c <= 10) return {t:"שפר כותרת, תיאור וקישורים פנימיים", why:"בעמוד הראשון אבל מחוץ לטופ 3 — שיפור CTR ורלוונטיות יכול לקדם."};
+  if (c <= 20) return {t:"הרחב ועדכן את העמוד", why:"בעמוד השני — קרוב לעמוד הראשון. הרחבת תוכן ותשובות לשאלות מחפשים."};
+  return {t:"תוכן ייעודי + קישורים פנימיים", why:"רחוק מהעמוד הראשון. נדרש עמוד חזק יותר או תוכן תומך."};
+}
+
+/* ================= גרפים (SVG, ללא ספריות) ================= */
+function lineChart(series, labels, {h=200, max=null, invert=true} = {}){
+  const W = 640, H = h, L = 34, R = 12, T = 12, B = 26;
+  const vals = series.flatMap(s => s.data).filter(v => v != null);
+  const top = max ?? Math.max(10, Math.ceil((Math.max(...vals, 10)) / 10) * 10);
+  const x = i => L + (W-L-R) * (labels.length === 1 ? .5 : i/(labels.length-1));
+  const y = v => invert ? T + (H-T-B) * ((v-1)/(top-1)) : T + (H-T-B) * (1 - v/top);
+  const ticks = invert ? [1, Math.round(top/4), Math.round(top/2), Math.round(top*3/4), top] : [0, top/2, top].map(Math.round);
+  let g = ticks.map(t => `<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)"/><text x="${L-6}" y="${y(t)+4}" font-size="10" text-anchor="end" fill="var(--faint)">${t}</text>`).join("");
+  if (invert) g += `<rect x="${L}" y="${y(1)}" width="${W-L-R}" height="${Math.max(0,y(10.5)-y(1))}" fill="var(--up-t)" opacity=".55"/><text x="${W-R-4}" y="${y(1)+12}" font-size="10" text-anchor="end" fill="var(--up)">עמוד ראשון</text>`;
+  g += labels.map((l,i) => i % Math.ceil(labels.length/6) === 0 || i === labels.length-1 ? `<text x="${x(i)}" y="${H-8}" font-size="10" text-anchor="middle" fill="var(--faint)">${l}</text>` : "").join("");
+  for (const s of series){
+    let d = "", pen = false;
+    s.data.forEach((v,i) => { if (v == null){ pen = false; return; } d += `${pen?"L":"M"}${x(i).toFixed(1)},${y(Math.min(v,top)).toFixed(1)} `; pen = true; });
+    g += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.w||2}" ${s.dash?'stroke-dasharray="5 4"':""} stroke-linejoin="round" stroke-linecap="round"/>`;
+    const li = s.data.length-1 - [...s.data].reverse().findIndex(v => v != null);
+    if (li < s.data.length && s.data[li] != null) g += `<circle cx="${x(li)}" cy="${y(Math.min(s.data[li],top))}" r="3.5" fill="${s.color}"/>`;
+  }
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="גרף מיקומים">${g}</svg>`;
+}
+function spark(data){
+  if (!data) return `<span class="faint xs">—</span>`;
+  const W = 84, H = 24, v = data.filter(x => x != null); if (!v.length) return `<span class="faint xs">—</span>`;
+  const mx = Math.max(...v, 10), mn = Math.min(...v, 1);
+  const x = i => 2 + (W-4)*i/(data.length-1), y = p => 2 + (H-4)*((p-mn)/Math.max(1,mx-mn));
+  let d = "", pen = false; data.forEach((p,i) => { if (p == null){ pen = false; return; } d += `${pen?"L":"M"}${x(i).toFixed(1)},${y(p).toFixed(1)} `; pen = true; });
+  const c = change({hist:data}).t;
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="direction:ltr" aria-hidden="true"><path d="${d}" fill="none" stroke="${c==="down"||c==="lost"?"var(--down)":"var(--up)"}" stroke-width="1.6"/></svg>`;
+}
+function bars(items, {h=140}={}){
+  const W = 640, H = h, max = Math.max(1, ...items.map(i => i.v)), bw = (W-20)/items.length;
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="גרף עמודות">${items.map((it,i) => {
+    const bh = (H-30) * it.v / max; return `<rect x="${10+i*bw+2}" y="${H-20-bh}" width="${Math.max(2,bw-4)}" height="${bh}" rx="2" fill="${it.c||"var(--navy)"}" opacity=".85"><title>${esc(it.l)}: ${it.v}</title></rect>${items.length<=14?`<text x="${10+i*bw+bw/2}" y="${H-6}" font-size="10" text-anchor="middle" fill="var(--faint)">${esc(it.l)}</text>`:""}`; }).join("")}</svg>`;
+}
+
+/* ================= מסגרת: לשוניות ואתר ================= */
+const TABS = [
+  ["overview","סקירת SEO"],["sites","ניהול אתרים"],["keywords","ניהול מילות מפתח"],["research","מחקר מילות מפתח"],
+  ["ranks","מיקומים והיסטוריה"],["competitors","מתחרים והשוואה"],["opps","הזדמנויות"],["tech","ביקורת טכנית ועמודים"],
+  "|",["produce","יצירת תוכן"],["publish","פרסום"],["measure","מדידה"],["optimize","אופטימיזציה"]
+];
+function renderTabs(){
+  $("#tabs").innerHTML = TABS.map(t => t === "|" ? `<span class="grp" aria-hidden="true"></span>` : `<button role="tab" data-tab="${t[0]}" aria-selected="${S.tab===t[0]}">${t[1]}</button>`).join("");
+  $("#sitePick").innerHTML = SITES.map(s => `<option value="${s.id}" ${s.id===S.site?"selected":""}>${esc(s.name)} · ${esc(s.domain)}</option>`).join("");
+}
+
+/* ================= מדדי אתר ================= */
+function siteMetrics(sid = S.site){
+  const ks = KEYWORDS.filter(k => k.site === sid && k.status === "tracking");
+  const checked = ks.filter(k => k.hist);
+  const ranked = checked.filter(k => cur(k) != null);
+  const avg = ranked.length ? ranked.reduce((a,k) => a+cur(k),0)/ranked.length : null;
+  const avgPrev = (() => { const r = checked.filter(k => prev(k) != null); return r.length ? r.reduce((a,k)=>a+prev(k),0)/r.length : null; })();
+  const up = checked.filter(k => change(k).t === "up" || change(k).t === "new").length;
+  const down = checked.filter(k => change(k).t === "down" || change(k).t === "lost").length;
+  const gaps = gapList(sid).length;
+  const opps = oppList(sid).length;
+  const issues = techIssues(sid);
+  return {total:ks.length, checked:checked.length, unchecked:ks.length-checked.length, ranked:ranked.length,
+    top3:ranked.filter(k=>cur(k)<=3).length, top10:ranked.filter(k=>cur(k)<=10).length, avg, avgPrev, up, down, gaps, opps,
+    issues:issues.length, critical:issues.filter(i=>i.sev==="high").length, comps:(COMPETITORS[sid]||[]).length};
+}
+
+/* ================= סקירת SEO ================= */
+function vOverview(){
+  const s = site(), m = siteMetrics();
+  const movers = siteKw().filter(k => k.hist).map(k => ({k, c:change(k)})).filter(x => x.c.t==="up"||x.c.t==="down"||x.c.t==="new"||x.c.t==="lost")
+    .sort((a,b) => Math.abs(b.c.v||20) - Math.abs(a.c.v||20)).slice(0,6);
+  const opps = oppList().slice(0,5);
+  const avgSeries = Array.from({length:WEEKS}, (_,i) => { const r = siteKw().filter(k => k.hist && k.hist[i] != null); return r.length ? Math.round(r.reduce((a,k)=>a+k.hist[i],0)/r.length*10)/10 : null; });
+  const top10Series = Array.from({length:WEEKS}, (_,i) => siteKw().filter(k => k.hist && k.hist[i] != null && k.hist[i] <= 10).length);
+  return `
+  <div class="stack">
+    <div class="head"><div><h2 class="t">${esc(s.name)} <span class="muted sm ltr">${esc(s.domain)}</span></h2>
+      <p class="sm muted m0 mt-s">מעקב אחרון: ${fdt(s.lastRank)} · סריקה אחרונה: ${fdt(s.lastCrawl)} · שוק: ${esc(s.market)}</p></div>
+      <span class="row">${NEW()} <span class="xs muted">דשבורד של המודול בלבד — הדשבורד הראשי שייך למעטפת</span></span></div>
+
+    <nav class="flow" aria-label="מהאתר ועד הפעולות">
+      ${[["sites","האתר",s.domain.split(".")[0],"1 אתר פעיל"],
+         ["keywords","מילות מפתח",m.total,`${m.unchecked} טרם נבדקו`],
+         ["ranks","בגוגל",m.avg?"#"+m.avg.toFixed(1):"—",`${m.top10} בעמוד הראשון`],
+         ["ranks","שינוי",`${m.up} ↑  ${m.down} ↓`,"עלו / ירדו השבוע"],
+         ["competitors","מתחרים",m.comps,"מתחרים אורגניים"],
+         ["competitors","פערים",m.gaps,"מילים שיש להם ולנו אין",{cmp:"gap"}],
+         ["opps","הזדמנויות",m.opps,"לפי עדיפות"],
+         ["opps","מה לעשות",Math.min(m.opps,5)+" פעולות","מומלצות השבוע"]]
+        .map(([tab,k,v,d,extra],i) => `<button data-tab="${tab}" ${extra?`data-cmpview="${extra.cmp}"`:""}><span class="k"><b>${i+1}</b>${k}</span><span class="v ${i===0?"sm":""}" style="${i===0?"font-size:16px":""}">${esc(v)}</span><span class="d">${esc(d)}</span></button>`).join("")}
+    </nav>
+
+    <div class="grid g6">
+      ${[["מילים במעקב",m.total,`${m.checked} נבדקו`],["בטופ 3",m.top3,"מילים"],["בעמוד הראשון",m.top10,`מתוך ${m.checked}`],
+         ["מיקום ממוצע",m.avg?m.avg.toFixed(1):"—",m.avgPrev?`לפני שבוע: ${m.avgPrev.toFixed(1)}`:""],["בעיות טכניות",m.issues,`${m.critical} חמורות`],["הזדמנויות",m.opps,"פתוחות"]]
+        .map(([l,v,mm]) => `<div class="card stat"><div class="v">${v}</div><div class="l">${l}</div><div class="m">${mm}</div></div>`).join("")}
+    </div>
+
+    <div class="grid g2">
+      <div class="card"><div class="zone"><div class="head"><h3 class="t">מגמת מיקום ממוצע · 12 שבועות</h3>${SRC.serp()}</div>
+        <div class="mt">${lineChart([{data:avgSeries,color:"var(--navy)"}], Array.from({length:WEEKS},(_,i)=>weekLabel(i)))}</div>
+        <p class="xs muted m0">ככל שהקו נמוך יותר — המיקום טוב יותר. מילים במקום 100+ לא נכללות בממוצע.</p></div></div>
+      <div class="card"><div class="zone"><div class="head"><h3 class="t">מילים בעמוד הראשון לאורך זמן</h3>${SRC.calc()}</div>
+        <div class="mt">${bars(top10Series.map((v,i)=>({v,l:weekLabel(i)})))}</div></div></div>
+    </div>
+
+    <div class="grid g2">
+      <div class="card"><div class="zone"><div class="head"><h3 class="t">התזוזות הגדולות השבוע</h3><button class="btn ghost sm" data-tab="ranks">לכל המיקומים</button></div></div>
+        ${movers.length ? `<div class="tbl-wrap"><table><thead><tr><th>מילת מפתח</th><th>עכשיו</th><th>שינוי</th><th>עמוד</th></tr></thead><tbody>
+          ${movers.map(({k}) => `<tr><td><button class="linkish" data-kw="${k.id}">${esc(k.kw)}</button></td><td>${posHtml(cur(k))}</td><td>${deltaHtml(k)}</td><td class="xs muted ltr">${esc(k.url||"—")}</td></tr>`).join("")}
+        </tbody></table></div>` : `<div class="empty">אין תזוזות השבוע.</div>`}</div>
+      <div class="card"><div class="zone"><div class="head"><h3 class="t">מה לעשות עכשיו</h3><button class="btn ghost sm" data-tab="opps">לכל ההזדמנויות</button></div></div>
+        ${opps.map(o => `<div class="zone" style="padding-block:12px"><div class="row"><span class="badge ${o.prio==="גבוהה"?"down":o.prio==="בינונית"?"warn":""}">${o.prio}</span><span class="b sm">${esc(o.title)}</span></div>
+          <p class="xs muted m0 mt-s">${esc(o.why)}</p></div>`).join("")}</div>
+    </div>
+
+    <div class="card"><div class="zone"><div class="head"><h3 class="t">מקורות הנתונים של האתר</h3>${SHARED()}</div>
+      <div class="grid g4 mt">${connCards(s)}</div>
+      <p class="xs muted m0 mt">המפתחות וההרשאות לכל חיבור מנוהלים באזור ההגדרות המרכזי. OpenSEO רואה רק "מחובר / לא מחובר".</p></div></div>
+  </div>`;
+}
+function connCards(s){
+  const c = [
+    ["SerpAPI","מיקומים, מתחרים ושאלות מחפשים",S.live.serp && s.conn.serp],
+    ["Google Search Console","קליקים, חשיפות, CTR ומיקום ממוצע",S.live.gsc],
+    ["WordPress","פרסום מאמרים",S.live.wp && s.conn.wp, s.conn.wp?null:"לא רלוונטי לאתר הזה"],
+    ["סורק האתר","ביקורת טכנית ועמודים",s.conn.crawl]
+  ];
+  return c.map(([n,d,on,na]) => `<div class="card" style="padding:12px"><div class="row"><span class="b sm">${n}</span><span class="grow"></span>${na?`<span class="badge">${na}</span>`:on?`<span class="badge up">מחובר · הדגמה</span>`:`<span class="badge warn">לא מחובר</span>`}</div><p class="xs muted m0 mt-s">${d}</p></div>`).join("");
+}
+
+/* ================= ניהול אתרים ================= */
+function vSites(){
+  return `<div class="stack">
+    <div class="head"><div><h2 class="t">ניהול אתרים ${NEW()}</h2><p class="sm muted m0 mt-s">האתרים של החברה הפעילה. החברה עצמה, המשתמשים וההרשאות מגיעים מדליה.</p></div>
+      <button class="btn pri" data-act="addSite">+ הוספת אתר</button></div>
+    ${S.modal === "addSite" ? "" : ""}
+    <div class="grid g2">${SITES.map(s => { const m = siteMetrics(s.id); return `
+      <div class="card"><div class="zone"><div class="head"><div><h3 class="t">${esc(s.name)}</h3><span class="sm muted ltr">${esc(s.domain)}</span></div>
+        <span class="row">${s.id===S.site?`<span class="badge info">האתר הנבחר</span>`:`<button class="btn sm" data-site="${s.id}">עבור לאתר</button>`}</span></div>
+        <p class="xs muted m0 mt-s">${esc(s.platform)} · ${esc(s.market)} · נוסף ${fdate(s.created)}</p></div>
+        <div class="zone"><div class="grid g4">
+          ${[["מילים במעקב",m.total],["בעמוד הראשון",m.top10],["מיקום ממוצע",m.avg?m.avg.toFixed(1):"—"],["בעיות",m.issues]].map(([l,v]) => `<div><div class="b num" style="font-size:20px">${v}</div><div class="xs muted">${l}</div></div>`).join("")}
+        </div></div>
+        <div class="zone"><div class="grid g2">${connCards(s)}</div></div>
+        <div class="zone soft"><div class="row"><span class="xs muted">מעקב מיקומים: ${fdt(s.lastRank)} · סריקה: ${fdt(s.lastCrawl)}</span><span class="grow"></span>
+          <button class="btn sm" data-crawl="${s.id}">סרוק עכשיו</button><button class="btn ghost sm danger" data-rmsite="${s.id}" ${SITES.length<2?"disabled":""}>הסר</button></div></div>
+      </div>`; }).join("")}</div>
+    <div class="notice info">חיבור אתר ל-Search Console ול-WordPress מתבצע באזור ההגדרות המרכזי (API). ${SHARED()}</div>
+  </div>`;
+}
+
+/* ================= ניהול מילות מפתח ================= */
+function kwFiltered(){
+  const q = S.kwq.trim();
+  let ks = siteKw().filter(k =>
+    (!q || k.kw.includes(q) || (k.url||"").includes(q)) &&
+    (!S.kwGroup || k.group === S.kwGroup) &&
+    (!S.kwStatus || k.status === S.kwStatus) &&
+    (!S.kwIntent || k.intent === S.kwIntent) &&
+    (!S.kwMove || (S.kwMove==="up" ? ["up","new"].includes(change(k).t) : S.kwMove==="down" ? ["down","lost"].includes(change(k).t) : change(k).t === S.kwMove)) &&
+    (!S.kwBucket || (() => { const c = cur(k); if (S.kwBucket==="unchecked") return c === undefined; if (c === undefined) return false;
+      if (S.kwBucket==="none") return c == null; if (c == null) return false;
+      return S.kwBucket==="3" ? c<=3 : S.kwBucket==="10" ? c>3&&c<=10 : S.kwBucket==="20" ? c>10&&c<=20 : c>20; })()));
+  const pv = k => { const c = cur(k); return c === undefined ? 1e6 : c == null ? 1e5 : c; };
+  const sorters = {pos:(a,b)=>pv(a)-pv(b), change:(a,b)=>((change(b).v??-99)-(change(a).v??-99)), vol:(a,b)=>(b.vol??-1)-(a.vol??-1), kw:(a,b)=>a.kw.localeCompare(b.kw,"he")};
+  return ks.sort(sorters[S.kwSort]);
+}
+const INTENT = {informational:"מידע",commercial:"השוואה",transactional:"רכישה",navigational:"ניווט"};
+function vKeywords(){
+  const groups = [...new Set(siteKw().map(k => k.group))];
+  const list = kwFiltered();
+  const sel = S.kwSel;
+  return `<div class="stack">
+    <div class="head"><div><h2 class="t">ניהול מילות מפתח ${NEW()}</h2>
+      <p class="sm muted m0 mt-s">המילים נשמרות במאגר מילות המפתח המשותף של מרכז השיווק. OpenSEO מוסיף עליהן את נתוני ה-SEO: מיקום, היסטוריה, עמוד מדורג ומתחרים. ${SHARED("מאגר מילות המפתח המשותף (רכיב 3) – ימומש בשלב האינטגרציה")}</p></div>
+      <div class="row"><button class="btn" data-act="checkRanks" ${S.live.serp?"":"disabled"} title="${S.live.serp?"בודק 10 מילים שנבדקו הכי מזמן (כמו במקור)":"חבר SerpAPI כדי לבדוק מיקומים"}">בדוק מיקומים</button>
+        <button class="btn pri" data-act="toggleAdd">+ הוספת מילים</button></div></div>
+    ${S.addOpen ? `<div class="card"><div class="zone"><h3 class="t">הוספת מילות מפתח למעקב</h3>
+      <div class="fields mt"><label class="f" style="flex:2;min-width:240px">מילה בכל שורה<textarea class="input" id="addKw" rows="3" placeholder="טיפול לרכב חשמלי&#10;מוסך לרכבי ליסינג"></textarea></label>
+        <label class="f">קבוצה<input class="input" id="addGroup" list="grpList" placeholder="קבוצה קיימת או חדשה"><datalist id="grpList">${groups.map(g=>`<option value="${esc(g)}">`).join("")}</datalist></label>
+        <button class="btn pri" data-act="addKw">הוסף</button><button class="btn ghost" data-act="toggleAdd">ביטול</button></div>
+      <p class="xs muted m0 mt-s">מילה חדשה מופיעה כ"טרם נבדק" עד בדיקת המיקום הראשונה. נפח חיפוש יופיע רק ממקור נתונים אמיתי.</p></div></div>` : ""}
+    <div class="card">
+      <div class="filters">
+        <input class="input search" id="kwq" placeholder="חיפוש מילה או עמוד…" value="${esc(S.kwq)}" aria-label="חיפוש">
+        <select class="input" data-f="kwGroup" aria-label="קבוצה"><option value="">כל הקבוצות</option>${groups.map(g=>`<option ${S.kwGroup===g?"selected":""}>${esc(g)}</option>`).join("")}</select>
+        <select class="input" data-f="kwBucket" aria-label="מיקום"><option value="">כל המיקומים</option>${[["3","טופ 3"],["10","4–10"],["20","11–20"],["21","21–100"],["none","לא מדורג (100+)"],["unchecked","טרם נבדק"]].map(([v,l])=>`<option value="${v}" ${S.kwBucket===v?"selected":""}>${l}</option>`).join("")}</select>
+        <select class="input" data-f="kwMove" aria-label="שינוי"><option value="">כל השינויים</option>${[["up","עלייה (כולל חדש)"],["down","ירידה (כולל נפל)"],["eq","ללא שינוי"],["new","נכנס לדירוג"],["lost","נפל מהדירוג"]].map(([v,l])=>`<option value="${v}" ${S.kwMove===v?"selected":""}>${l}</option>`).join("")}</select>
+        <select class="input" data-f="kwIntent" aria-label="כוונה"><option value="">כל הכוונות</option>${Object.entries(INTENT).map(([v,l])=>`<option value="${v}" ${S.kwIntent===v?"selected":""}>${l}</option>`).join("")}</select>
+        <select class="input" data-f="kwStatus" aria-label="סטטוס"><option value="">כל הסטטוסים</option><option value="tracking" ${S.kwStatus==="tracking"?"selected":""}>במעקב</option><option value="paused" ${S.kwStatus==="paused"?"selected":""}>מושהה</option></select>
+        <select class="input" data-f="kwSort" aria-label="מיון">${[["pos","מיון: מיקום"],["change","מיון: שינוי"],["vol","מיון: נפח"],["kw","מיון: א–ת"]].map(([v,l])=>`<option value="${v}" ${S.kwSort===v?"selected":""}>${l}</option>`).join("")}</select>
+        ${(S.kwq||S.kwGroup||S.kwBucket||S.kwMove||S.kwIntent||S.kwStatus)?`<button class="btn ghost sm" data-act="clearKw">נקה</button>`:""}
+        <span class="grow"></span><span class="xs muted">${list.length} מילים</span>
+      </div>
+      ${sel.size ? `<div class="filters" style="background:var(--blue-t)"><span class="sm b">${sel.size} נבחרו</span>
+        <select class="input" id="moveGroup"><option value="">העבר לקבוצה…</option>${groups.map(g=>`<option>${esc(g)}</option>`).join("")}</select>
+        <button class="btn sm" data-act="bulkPause">השהה / חדש מעקב</button><button class="btn sm danger" data-act="bulkRemove">הסר מהמעקב</button><button class="btn ghost sm" data-act="clearSel">בטל בחירה</button></div>` : ""}
+      <div class="tbl-wrap"><table>
+        <thead><tr><th style="width:28px"><input type="checkbox" data-act="selAll" aria-label="בחר הכל" ${list.length && list.every(k=>sel.has(k.id))?"checked":""}></th>
+          <th>מילת מפתח</th><th>מיקום</th><th>קודם</th><th>שינוי</th><th>12 שבועות</th><th>עמוד מדורג</th><th>המתחרה המוביל</th><th>נפח</th>${S.live.gsc?`<th>קליקים / חשיפות ${SRC.gsc()}</th>`:""}<th>סטטוס</th><th>פעולה מומלצת</th></tr></thead>
+        <tbody>${list.map(k => { const b = bestComp(k), a = action(k); return `<tr>
+          <td><input type="checkbox" data-sel="${k.id}" ${sel.has(k.id)?"checked":""} aria-label="בחר ${esc(k.kw)}"></td>
+          <td><button class="linkish" data-kw="${k.id}">${esc(k.kw)}</button><div class="xs muted">${esc(k.group)} · ${INTENT[k.intent]}</div></td>
+          <td>${posHtml(cur(k))}</td><td>${k.hist ? (prev(k)==null?`<span class="faint sm">100+</span>`:`<span class="num sm muted">${prev(k)}</span>`) : `<span class="faint">—</span>`}</td>
+          <td>${deltaHtml(k)}</td><td>${spark(k.hist)}</td>
+          <td class="xs ltr">${k.url ? `<button class="linkish xs" data-page="${esc(k.url)}">${esc(k.url)}</button>` : `<span class="faint">אין עמוד</span>`}</td>
+          <td class="sm">${b ? `${esc(compName(b.d))} ${posHtml(b.p)}` : k.comp ? `<span class="faint">אף מתחרה בטופ 100</span>` : SRC.none()}</td>
+          <td class="sm">${k.vol != null ? `<span class="num">${fmt(k.vol)}</span>` : SRC.unv()}</td>
+          ${S.live.gsc?`<td class="sm num">${k.gsc?`${fmt(k.gsc.clicks)} / ${fmt(k.gsc.impr)}`:SRC.unv()}</td>`:""}
+          <td>${k.status==="tracking"?`<span class="badge info">במעקב</span>`:`<span class="badge">מושהה</span>`}</td>
+          <td class="sm" style="min-width:200px">${esc(a.t)}</td></tr>`; }).join("") || `<tr><td colspan="12"><div class="empty">אין מילים שתואמות לסינון.</div></td></tr>`}</tbody></table></div>
+      <div class="zone soft"><div class="row xs muted"><span>נפח: ${SRC.kp()} = ממקור נתונים, ${SRC.unv()} = אין עדיין מקור. OpenSEO המקורי מסווג רק רמת קושי ב-AI ואינו מציג נפח.</span></div></div>
+    </div>
+  </div>`;
+}
+
+/* ================= מסלול מילת מפתח (מגירה) ================= */
+function kwDrawer(k){
+  const s = SITES.find(x => x.id === k.site), c = cur(k), b = bestComp(k), a = action(k);
+  const serp = [{d:s.domain, name:"האתר שלנו", p:c, us:true}, ...(COMPETITORS[k.site]).map(x => ({d:x.domain, name:x.name, p:k.comp?.[x.domain]}))]
+    .sort((x,y) => (x.p ?? 999) - (y.p ?? 999));
+  const above = k.comp && c != null ? Object.entries(k.comp).filter(([,p]) => p != null && p < c).length : null;
+  const series = [{data:k.hist||[], color:"var(--navy)", w:2.5}, ...(k.comp ? COMPETITORS[k.site].filter(x => k.comp[x.domain] != null).slice(0,2).map((x,i) => ({data:Array.from({length:WEEKS},(_,j)=> j<WEEKS-1 ? Math.max(1,k.comp[x.domain]+((j+i)%3)-1) : k.comp[x.domain]), color:i?"var(--warn)":"var(--down)", dash:true, w:1.5})) : [])];
+  return `<div class="scrim" data-act="close"></div><aside class="drawer" role="dialog" aria-label="מסלול מילת מפתח">
+    <div class="drawer-h"><div><div class="xs muted">מסלול מילת מפתח ${NEW()}</div><strong>${esc(k.kw)}</strong></div><span class="grow"></span><button class="btn ghost ic" data-act="close" aria-label="סגור">✕</button></div>
+    <div class="drawer-b"><div class="card"><div class="zone chain">
+      <div class="step"><span class="n">1</span><div><div class="lbl">האתר</div><div class="b">${esc(s.name)} <span class="ltr muted sm">${esc(s.domain)}</span></div></div></div>
+      <div class="step"><span class="n">2</span><div><div class="lbl">מילת המפתח</div><div class="row"><span class="b">${esc(k.kw)}</span><span class="chip">${esc(k.group)}</span><span class="chip">${INTENT[k.intent]}</span></div>
+        <div class="sm mt-s">נפח חיפוש חודשי: ${k.vol!=null?`<b class="num">${fmt(k.vol)}</b> ${SRC.kp()}`:SRC.unv()}</div></div></div>
+      <div class="step"><span class="n">3</span><div><div class="lbl">המיקום בגוגל</div><div class="row">${posHtml(c)} ${c!==undefined?SRC.serp():""} <span class="xs muted">נבדק: ${fdt(k.checked)}</span></div>
+        ${k.url?`<div class="sm mt-s">עמוד מדורג: <button class="linkish ltr" data-page="${esc(k.url)}">${esc(k.url)}</button></div>`:`<div class="sm mt-s muted">אין עמוד שמדורג על המילה.</div>`}</div></div>
+      <div class="step"><span class="n">4</span><div style="min-width:0"><div class="lbl">שינוי במיקום</div><div class="row">${deltaHtml(k)} <span class="sm muted">לעומת השבוע הקודם (${k.hist?(prev(k)??"100+"):"—"})</span></div>
+        ${k.hist?`<div class="mt">${lineChart(series, Array.from({length:WEEKS},(_,i)=>weekLabel(i)), {h:170})}</div><div class="legend"><span><i style="background:var(--navy)"></i>אנחנו</span>${series.slice(1).map((x,i)=>`<span><i style="background:${x.color}"></i>${esc(COMPETITORS[k.site].filter(y=>k.comp[y.domain]!=null)[i].name)} (מקווקו)</span>`).join("")}</div>`:`<p class="sm muted m0 mt-s">אין היסטוריה — המילה טרם נבדקה.</p>`}</div></div>
+      <div class="step"><span class="n">5</span><div style="min-width:0"><div class="lbl">המתחרים בתוצאות</div>
+        ${k.comp?`<table class="mt-s"><tbody>${serp.map(x => `<tr><td style="width:50px">${x.us?posHtml(x.p):x.p!=null?posHtml(x.p):`<span class="pos">100+</span>`}</td><td class="${x.us?"b":""}">${esc(x.name)} <span class="xs muted ltr">${esc(x.d)}</span></td></tr>`).join("")}</tbody></table>`:SRC.none()}</div></div>
+      <div class="step"><span class="n">6</span><div><div class="lbl">הפער</div><div class="sm">${c===undefined?"אי אפשר לחשב פער לפני בדיקת מיקום.":c==null?(b?`אין לנו עמוד מדורג. ${esc(compName(b.d))} במקום ${b.p}.`:"אף אחד מהמתחרים לא מדורג."):above?`${above} מתחרים מעלינו. המוביל: ${esc(compName(b.d))} במקום ${b.p}.`:"אנחנו מעל כל המתחרים שבמעקב."} ${SRC.calc()}</div></div></div>
+      <div class="step"><span class="n">7</span><div><div class="lbl">ההזדמנות</div><div class="sm">${esc(oppFor(k)?.title || "אין הזדמנות פתוחה למילה הזו.")}</div></div></div>
+      <div class="step"><span class="n">8</span><div><div class="lbl">מה לעשות</div><div class="b sm">${esc(a.t)}</div><p class="xs muted m0 mt-s">${esc(a.why)} (כלל קבוע של OpenSEO, לא ניחוש של AI)</p>
+        <div class="row mt">${k.url?`<button class="btn sm" data-optpage="${esc(k.url)}">אופטימיזציה לעמוד</button>`:""}<button class="btn sm" data-draftkw="${esc(k.kw)}">צור טיוטת מאמר</button>
+          <button class="btn ghost sm" data-act="task" title="משימות והתראות שייכות למעטפת">+ משימה ${SHARED()}</button></div></div></div>
+    </div></div>
+    <div class="row"><button class="btn sm" data-toggle-kw="${k.id}">${k.status==="tracking"?"השהה מעקב":"חדש מעקב"}</button><button class="btn ghost sm danger" data-rmkw="${k.id}">הסר מהמעקב</button></div>
+    </div></aside>`;
+}
+</script>
+<script>
+"use strict";
+/* ================= פערים, הזדמנויות, בעיות טכניות ================= */
+function gapList(sid = S.site){
+  const out = [];
+  KEYWORDS.filter(k => k.site === sid && k.hist && cur(k) == null && k.comp).forEach(k => {
+    const b = bestComp(k); if (b && b.p <= 20) out.push({kw:k.kw, d:b.d, p:b.p, tracked:true, kid:k.id, url:null});
+  });
+  Object.entries(COMP_ONLY[sid] || {}).forEach(([d, arr]) => arr.forEach(([kw,p,url]) => {
+    if (!KEYWORDS.some(k => k.site === sid && k.kw === kw)) out.push({kw, d, p, tracked:false, url});
+  }));
+  return out.sort((a,b) => a.p - b.p);
+}
+function techIssues(sid = S.site){
+  const out = [], pages = PAGES[sid] || [];
+  const titles = {};
+  pages.forEach(p => { if (p.status === 200) titles[p.title] = (titles[p.title]||0) + 1; });
+  pages.forEach(p => {
+    const add = (sev,type,detail,fix) => out.push({sev,type,url:p.url,detail,fix});
+    if (p.status === 404) return add("high","עמוד שבור (404)","העמוד מחזיר 404 ויש אליו קישורים פנימיים.","להפנות (301) לעמוד רלוונטי ולעדכן את הקישורים.");
+    if (p.status === 301) return add("med","הפניה בקישור פנימי",`העמוד מפנה אל ${p.redirect}. ${p.inL} קישורים פנימיים עוברים דרך הפניה.`,"לעדכן את הקישורים לכתובת הסופית.");
+    if (!p.title) add("high","כותרת חסרה","לעמוד אין תגית title.","לכתוב כותרת עם מילת המפתח הראשית.");
+    else if (p.title.length > 60) add("med","כותרת ארוכה",`${p.title.length} תווים — גוגל יקצר אותה.`,"לקצר ל-50–60 תווים.");
+    else if (p.title.length < 20) add("low","כותרת קצרה",`${p.title.length} תווים בלבד.`,"להרחיב ולהוסיף את מילת המפתח ותועלת.");
+    if (!p.meta) add("med","תיאור מטא חסר","גוגל ייצור תיאור בעצמו מתוך העמוד.","לכתוב תיאור של 120–155 תווים.");
+    else if (p.meta.length > 160) add("low","תיאור מטא ארוך",`${p.meta.length} תווים.`,"לקצר ל-155 תווים.");
+    else if (p.meta.length < 50) add("low","תיאור מטא קצר",`${p.meta.length} תווים.`,"להרחיב ולהוסיף קריאה לפעולה.");
+    if (!p.h1) add("med","H1 חסר","לעמוד אין כותרת ראשית.","להוסיף H1 אחד עם מילת המפתח.");
+    if (p.words < 300) add(p.words < 200 ? "high":"med","תוכן דל",`${p.words} מילים.`,"להרחיב תוכן ולענות על שאלות המחפשים.");
+    if (p.inL === 0 && p.url !== "/") add("high","עמוד יתום","אין אליו קישורים פנימיים — קשה לגוגל ולגולשים למצוא אותו.","לקשר אליו מעמודים קשורים ומהתפריט.");
+    if (p.alt > 0) add("low","תמונות בלי alt",`${p.alt} תמונות בלי טקסט חלופי.`,"להוסיף alt תיאורי.");
+    if (p.lcp != null && p.lcp > 2.5) add(p.lcp > 4 ? "high":"med","טעינה איטית (LCP)",`${p.lcp} שניות בנייד.`,"לדחוס תמונות ולהקטין קוד שחוסם טעינה.");
+    if (titles[p.title] > 1) add("med","כותרת כפולה","אותה כותרת בכמה עמודים.","לכתוב כותרת ייחודית לכל עמוד.");
+  });
+  return out;
+}
+const SEV = {high:["חמורה","down"],med:["בינונית","warn"],low:["נמוכה",""]};
+function oppList(sid = S.site){
+  const o = [];
+  KEYWORDS.filter(k => k.site === sid && k.status === "tracking").forEach(k => {
+    const c = cur(k), ch = change(k);
+    if (ch.t === "down" && Math.abs(ch.v) >= 3) o.push({type:"drop",prio:"גבוהה",score:90+Math.abs(ch.v),title:`ירידה ב"${k.kw}" – לבדוק ולתקן`,why:`ירד ${Math.abs(ch.v)} מקומות למקום ${c}.`,kid:k.id,kw:k.kw,url:k.url});
+    else if (c != null && c >= 4 && c <= 20) o.push({type:"quick",prio:c<=10||(k.vol||0)>=500?"גבוהה":"בינונית",score:70-(c)+(k.vol||0)/100,title:`"${k.kw}" קרוב לפסגה – מקום ${c}`,why:`${c<=10?"בעמוד הראשון מחוץ לטופ 3":"בעמוד השני"}. ${k.vol!=null?`נפח ${fmt(k.vol)}.`:"נפח: אין נתון מאומת."}`,kid:k.id,kw:k.kw,url:k.url});
+    else if (c === undefined) o.push({type:"check",prio:"נמוכה",score:5,title:`בדיקת מיקום ל"${k.kw}"`,why:"המילה במעקב אבל טרם נבדקה.",kid:k.id,kw:k.kw});
+  });
+  gapList(sid).slice(0,8).forEach(g => o.push({type:"gap",prio:g.p<=5?"גבוהה":"בינונית",score:60-g.p,title:`פער: "${g.kw}"`,why:`${compName(g.d)} במקום ${g.p}${g.url?` (${g.url})`:""}. אין לנו עמוד מדורג.`,kw:g.kw,kid:g.kid,d:g.d,tracked:g.tracked}));
+  const byUrl = {}; techIssues(sid).filter(i => i.sev === "high").forEach(i => byUrl[i.url] = (byUrl[i.url]||0)+1);
+  Object.entries(byUrl).forEach(([url,n]) => { const ks = KEYWORDS.filter(k => k.site===sid && k.url===url); o.push({type:"tech",prio:ks.length?"גבוהה":"בינונית",score:ks.length?75:40,title:`תיקון טכני בעמוד ${url}`,why:`${n} בעיות חמורות${ks.length?` בעמוד שמדורג על ${ks.length} מילים`:""}.`,url}); });
+  return o.sort((a,b) => b.score - a.score);
+}
+const oppFor = k => oppList(k.site).find(o => o.kid === k.id);
+const OPP_T = {quick:"קרוב לפסגה",drop:"ירידה",gap:"פער מול מתחרה",tech:"תיקון טכני",check:"חסר נתון",content:"תוכן חדש"};
+
+/* ================= מחקר מילות מפתח (מקור + תוספות) ================= */
+const DIFF = {Low:["נמוך","up"],Medium:["בינוני","warn"],High:["גבוה","down"]};
+function fakeDiscovery(seed, audience){
+  const s = seed.trim(), a = audience.trim();
+  const rows = [
+    [`${s} מחיר`,"commercial","Medium","השוואת מחירים ומה כלול"],
+    [`${s} לעסקים`,"commercial","High","דגש על חברות וציי רכב"],
+    [`איך לבחור ${s}`,"informational","Low","מדריך בחירה עם רשימת בדיקה"],
+    [`${s} המלצות`,"commercial","Medium","ריכוז שאלות לפני החלטה"],
+    [`${s} בראשון לציון`,"transactional","Low","עמוד מקומי"],
+    [`מה ההבדל בין ${s} לליסינג`,"informational","Low","שאלה אמיתית של מחפשים"],
+    [`כמה זמן לוקח ${s}`,"informational","Low","תשובה קצרה + FAQ"],
+    [`${s} ${a || "לחברות קטנות"}`,"commercial","Medium","זווית לפי קהל היעד"],
+    [`${s} אונליין`,"transactional","Medium","הזמנה ותיאום מרחוק"],
+    [`האם כדאי ${s}`,"informational","Low","שיקולי עלות-תועלת"]
+  ];
+  return {source: S.live.serp ? "live" : "ai", ideas: rows.map(([keyword,intent,difficulty,angle]) => ({keyword,intent,difficulty,angle}))};
+}
+function vResearch(){
+  const R = S.research, live = S.live.serp, plans = PLANS.filter(p => p.site === S.site);
+  const tracked = kw => siteKw().some(k => k.kw === kw);
+  return `<div class="stack">
+  <div class="card"><div class="zone"><div class="head"><h3 class="t">גילוי מילות מפתח ${ORIG()}</h3>${live?`<span class="badge up">חי · SerpAPI (הדגמה)</span>`:`<span class="badge">הערכת AI</span>`}</div>
+    <div class="fields mt"><label class="f" style="flex:1;min-width:220px">נושא או מילת מפתח<input class="input" id="rSeed" value="${esc(R.seed)}" placeholder="תחזוקת צי רכב"></label>
+      <label class="f" style="width:220px">קהל יעד (לא חובה)<input class="input" id="rAud" value="${esc(R.audience)}" placeholder="קציני רכב"></label>
+      <button class="btn pri" data-act="discover" ${R.busy?"disabled":""}>${R.busy?"מחפש…":"גלה מילים"}</button></div>
+    <p class="xs muted m0 mt-s">${live?"שולף חיפושים קשורים ושאלות \"אנשים שואלים גם\" מתוצאות גוגל, ו-AI מסווג כוונה וקושי על בסיס התוצאות.":"SerpAPI לא מחובר: הרעיונות מוערכים על ידי AI ומסומנים כך — אף פעם לא מוצגים כנתון חי."} בדליה החיפוש יוגדר לישראל ולעברית ${NEW()}.</p></div>
+    ${R.result ? `<div class="zone"><div class="row"><span class="b sm">הזדמנויות · ${R.result.ideas.length}</span>${R.result.source==="live"?SRC.serp():SRC.ai()}<span class="xs muted">רמת הקושי: ${SRC.ai()} (כמו במקור). נפח: ${SRC.unv()} עד חיבור מקור נפחים.</span></div>
+      <div class="tbl-wrap mt"><table><thead><tr><th>מילת מפתח</th><th>כוונה</th><th>קושי</th><th>הזדמנות</th><th>נפח</th><th></th></tr></thead><tbody>
+      ${R.result.ideas.map(i => `<tr><td class="b">${esc(i.keyword)}</td><td><span class="chip">${INTENT[i.intent]}</span></td><td><span class="badge ${DIFF[i.difficulty][1]}">${DIFF[i.difficulty][0]}</span></td><td class="sm muted">${esc(i.angle)}</td><td>${SRC.unv()}</td>
+        <td style="white-space:nowrap"><button class="btn sm" data-draftkw="${esc(i.keyword)}">טיוטה</button> ${tracked(i.keyword)?`<span class="badge info">במעקב</span>`:`<button class="btn sm" data-trackkw="${esc(i.keyword)}" title="נשמר גם במאגר המשותף">+ למעקב ${NEW()}</button>`}</td></tr>`).join("")}
+      </tbody></table></div></div>` : ""}
+  </div>
+
+  <div class="card"><div class="zone"><h3 class="t">מתחרים בתוצאות החיפוש (SERP) ${ORIG()}</h3>
+    <div class="fields mt"><label class="f" style="flex:1;min-width:220px">מילת מפתח לניתוח<input class="input" id="rCo" value="${esc(R.coSeed)}" placeholder="מוסך לציי רכב"></label>
+      <button class="btn" data-act="analyzeSerp" ${!live||R.coBusy?"disabled":""} title="${live?"":"חבר SerpAPI כדי לראות מי מדורג"}">${R.coBusy?"מנתח…":"נתח"}</button></div>
+    ${!live?`<p class="xs m0 mt-s" style="color:var(--warn)">ניתוח מתחרים קורא את הדירוג החי בגוגל, ואי אפשר להעריך אותו. חבר SerpAPI בהגדרות.</p>`:""}</div>
+    ${R.coResult ? `<div class="zone"><div class="row"><span class="b sm">מדורגים עכשיו · "${esc(R.coResult.seed)}"</span>${SRC.serp()}</div>
+      <div class="tbl-wrap mt"><table><thead><tr><th>#</th><th>דומיין</th><th>כותרת</th><th></th></tr></thead><tbody>
+      ${R.coResult.rows.map(r => `<tr><td>${posHtml(r.p)}</td><td class="${r.us?"b":""} ltr">${esc(r.d)}${r.us?` <span class="badge info">אנחנו</span>`:""}</td><td class="sm muted">${esc(r.title)}</td><td>${!r.us && !comps().some(c=>c.domain===r.d)?`<button class="btn sm" data-addcomp="${esc(r.d)}">+ למתחרים ${NEW()}</button>`:""}</td></tr>`).join("")}
+      </tbody></table></div></div>
+      <div class="zone"><span class="b sm">פערי תוכן · מה עוד המחפשים שואלים</span> ${SRC.serp()}
+      <div class="tbl-wrap mt"><table><tbody>${R.coResult.gaps.map(g => `<tr><td>${esc(g)}</td><td style="width:90px"><button class="btn sm" data-draftkw="${esc(g)}">טיוטה</button></td></tr>`).join("")}</tbody></table></div></div>` : ""}
+  </div>
+
+  <div class="card"><div class="zone"><div class="head"><h3 class="t">תוכניות תוכן · ${plans.length} ${ORIG()}</h3><button class="btn" data-act="newPlan">+ תוכנית חדשה</button></div></div>
+    ${R.planForm ? `<div class="zone"><div class="grid g4">
+      <label class="f">אשכול / נושא עמוד-תווך<input class="input" data-pf="name" value="${esc(R.planForm.name)}" placeholder="ניהול צי רכב"></label>
+      <label class="f">מילת מפתח ראשית<input class="input" data-pf="keyword" value="${esc(R.planForm.keyword)}"></label>
+      <label class="f">קהל יעד<input class="input" data-pf="audience" value="${esc(R.planForm.audience)}"></label>
+      <label class="f">הערות<input class="input" data-pf="notes" value="${esc(R.planForm.notes)}"></label></div>
+      <div class="row mt" style="justify-content:flex-end"><button class="btn" data-act="cancelPlan">ביטול</button><button class="btn pri" data-act="savePlan">${R.planForm.id?"שמור":"צור תוכנית"}</button></div></div>` : ""}
+    ${plans.length ? `<div class="tbl-wrap"><table><thead><tr><th>אשכול</th><th>מילה ראשית</th><th>קהל</th><th>הערות</th><th>מאמרים</th><th></th></tr></thead><tbody>
+      ${plans.map(p => `<tr><td class="b">${esc(p.name)}</td><td>${p.keyword?`<span class="chip">${esc(p.keyword)}</span>`:"—"}</td><td class="sm muted">${esc(p.audience||"—")}</td><td class="sm muted">${esc(p.notes||"—")}</td><td class="num">${POSTS.filter(x=>x.plan_id===p.id).length}</td>
+        <td style="white-space:nowrap"><button class="btn sm" data-tab="produce" data-plan="${p.id}">הפק תוכן ←</button> <button class="btn ghost sm" data-editplan="${p.id}" title="PUT /api/plans קיים בשרת המקורי">ערוך</button> <button class="btn ghost sm danger" data-rmplan="${p.id}">מחק</button></td></tr>`).join("")}
+    </tbody></table></div>` : `<div class="empty"><div class="t">אין עדיין תוכניות תוכן</div>תוכנית מקבצת מאמרים סביב נושא עמוד-תווך כדי לבנות סמכות נושאית.</div>`}
+  </div></div>`;
+}
+
+/* ================= מיקומים והיסטוריה ================= */
+function vRanks(){
+  const ks = siteKw().filter(k => k.hist);
+  const buckets = [["טופ 3",k=>cur(k)!=null&&cur(k)<=3,"var(--up)"],["4–10",k=>cur(k)>3&&cur(k)<=10,"var(--blue)"],["11–20",k=>cur(k)>10&&cur(k)<=20,"var(--warn)"],["21–50",k=>cur(k)>20&&cur(k)<=50,"var(--faint)"],["51–100",k=>cur(k)>50,"var(--faint)"],["100+",k=>cur(k)==null,"var(--line)"]];
+  const rk = KEYWORDS.find(k => k.id === S.rankKw && k.site === S.site) || ks[0];
+  const win = ks.filter(k => ["up","new"].includes(change(k).t)).sort((a,b)=>(change(b).v??50)-(change(a).v??50)).slice(0,5);
+  const lose = ks.filter(k => ["down","lost"].includes(change(k).t)).sort((a,b)=>(change(a).v??-50)-(change(b).v??-50)).slice(0,5);
+  return `<div class="stack">
+    <div class="head"><div><h2 class="t">מיקומים והיסטוריה</h2><p class="sm muted m0 mt-s">מיקום נוכחי, מיקום קודם והיסטוריה שבועית לכל מילה. ${ORIG()} במקור: רק מיקום אחרון, רק לעשירייה הראשונה. ${NEW()} כאן: היסטוריה ועומק של 100 מקומות.</p></div>
+      <button class="btn" data-act="checkRanks" ${S.live.serp?"":"disabled"}>בדוק מיקומים</button></div>
+    <div class="card"><div class="zone"><div class="head"><h3 class="t">התפלגות המיקומים היום</h3>${SRC.serp()}</div>
+      <div class="grid g6 mt">${buckets.map(([l,f,c]) => { const n = ks.filter(f).length; return `<div><div class="b num" style="font-size:22px">${n}</div><div class="xs muted">${l}</div><div class="bar mt-s"><span style="width:${ks.length?n/ks.length*100:0}%;background:${c}"></span></div></div>`; }).join("")}</div>
+      <p class="xs muted m0 mt">${siteKw().length - ks.length} מילים נוספות ${SRC.none()}.</p></div></div>
+    <div class="card"><div class="zone"><div class="head"><h3 class="t">היסטוריית מיקום</h3>
+      <select class="input" id="rankKw" aria-label="בחירת מילה">${ks.map(k => `<option value="${k.id}" ${rk&&k.id===rk.id?"selected":""}>${esc(k.kw)}</option>`).join("")}</select></div>
+      ${rk ? `<div class="mt">${lineChart([{data:rk.hist,color:"var(--navy)",w:2.5}], Array.from({length:WEEKS},(_,i)=>weekLabel(i)))}</div>
+        <div class="tbl-wrap"><table><thead><tr><th>שבוע</th>${rk.hist.map((_,i)=>`<th class="num">${weekLabel(i)}</th>`).join("")}</tr></thead><tbody><tr><td class="b">מיקום</td>${rk.hist.map(v=>`<td class="num">${v??"100+"}</td>`).join("")}</tr></tbody></table></div>
+        <div class="row mt"><button class="btn sm" data-kw="${rk.id}">פתח מסלול מלא למילה</button></div>` : `<div class="empty">אין מילים שנבדקו.</div>`}</div></div>
+    <div class="grid g2">${[["העליות הגדולות",win],["הירידות הגדולות",lose]].map(([t,arr]) => `
+      <div class="card"><div class="zone"><h3 class="t">${t}</h3></div>${arr.length?`<div class="tbl-wrap"><table><tbody>${arr.map(k=>`<tr><td><button class="linkish" data-kw="${k.id}">${esc(k.kw)}</button></td><td>${posHtml(cur(k))}</td><td>${deltaHtml(k)}</td><td>${spark(k.hist)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">אין.</div>`}</div>`).join("")}</div>
+    <div class="card"><div class="zone"><div class="head"><h3 class="t">מיקום ממוצע של מאמרים שפורסמו ${ORIG()}</h3><button class="btn ghost sm" data-tab="measure">למדידה</button></div>
+      <p class="sm muted m0 mt-s">מעקב המיקומים של OpenSEO המקורי (למאמרים שפורסמו דרך המודול) מוצג בלשונית "מדידה" בדיוק כמו במקור.</p></div></div>
+  </div>`;
+}
+
+/* ================= מתחרים והשוואה ================= */
+const CTR = p => p==null?0:p===1?.3:p===2?.16:p===3?.1:p<=10?.04:p<=20?.01:0;
+function vis(sid, domain, us){
+  const ks = KEYWORDS.filter(k => k.site === sid && k.hist);
+  return Math.round(ks.reduce((a,k) => a + CTR(us ? cur(k) : k.comp?.[domain]) * (k.vol || 100), 0));
+}
+function vCompetitors(){
+  const cs = comps(), s = site();
+  if (!S.comp || !cs.some(c => c.domain === S.comp)) S.comp = cs[0]?.domain || null;
+  const c = cs.find(x => x.domain === S.comp);
+  const ks = siteKw().filter(k => k.hist && k.comp);
+  const rows = c ? ks.map(k => ({k, us:cur(k), them:k.comp[c.domain]})) : [];
+  const shared = rows.filter(r => r.us != null && r.them != null);
+  const weWin = shared.filter(r => r.us < r.them), theyWin = shared.filter(r => r.them < r.us);
+  const onlyUs = rows.filter(r => r.us != null && r.them == null);
+  const gap = c ? [...rows.filter(r => r.us == null && r.them != null).map(r => ({kw:r.k.kw, p:r.them, kid:r.k.id, url:"", tracked:true})),
+    ...(COMP_ONLY[S.site]?.[c.domain] || []).map(([kw,p,url]) => ({kw,p,url,tracked:siteKw().some(k=>k.kw===kw)}))].sort((a,b)=>a.p-b.p) : [];
+  const views = [["shared","משותפות",shared.length],["weWin","אנחנו מובילים",weWin.length],["theyWin","הם מובילים",theyWin.length],["gap","יש להם ולנו אין",gap.length],["onlyUs","רק לנו",onlyUs.length]];
+  const cmpRow = r => `<tr><td><button class="linkish" data-kw="${r.k.id}">${esc(r.k.kw)}</button></td><td>${posHtml(r.us)}</td><td>${r.them!=null?posHtml(r.them):`<span class="pos">100+</span>`}</td>
+    <td>${r.us!=null&&r.them!=null?`<span class="delta ${r.us<r.them?"up":r.us>r.them?"down":"eq"}">${r.us<r.them?"אנחנו +"+(r.them-r.us):r.us>r.them?"הם +"+(r.us-r.them):"שוויון"}</span>`:"—"}</td>
+    <td class="xs ltr">${esc(r.k.url||"—")}</td><td class="sm">${esc(action(r.k).t)}</td></tr>`;
+  const table = S.cmpView === "gap"
+    ? `<table><thead><tr><th>מילת מפתח</th><th>המיקום שלהם</th><th>העמוד שלהם</th><th>מקור</th><th></th></tr></thead><tbody>${gap.map(g => `<tr><td class="b">${esc(g.kw)}</td><td>${posHtml(g.p)}</td><td class="xs ltr">${esc(g.url||"—")}</td><td>${g.tracked?SRC.serp():`<span class="src real" title="מתוך מילות המתחרה — ידרוש ספק נתונים (למשל DataForSEO) בפיתוח">מילות מתחרה · הדגמה</span>`}</td>
+        <td style="white-space:nowrap"><button class="btn sm" data-draftkw="${esc(g.kw)}">צור תוכן</button> ${g.tracked?"":`<button class="btn sm" data-trackkw="${esc(g.kw)}">+ למעקב</button>`}</td></tr>`).join("") || `<tr><td colspan="5"><div class="empty">אין פערים מול המתחרה הזה.</div></td></tr>`}</tbody></table>`
+    : `<table><thead><tr><th>מילת מפתח</th><th>אנחנו</th><th>${esc(c?.name||"")}</th><th>מי מוביל</th><th>העמוד שלנו</th><th>פעולה</th></tr></thead><tbody>${({shared,weWin,theyWin,onlyUs})[S.cmpView].map(cmpRow).join("") || `<tr><td colspan="6"><div class="empty">אין מילים בקטגוריה הזו.</div></td></tr>`}</tbody></table>`;
+  const theirPages = c ? [...new Map([...ks.filter(k=>k.comp[c.domain]!=null&&k.comp[c.domain]<=10).map(k=>[k.kw,{kw:k.kw,p:k.comp[c.domain],our:k.url,ourP:cur(k)}]), ...(COMP_ONLY[S.site]?.[c.domain]||[]).map(([kw,p,url])=>[kw,{kw,p,url,our:"",ourP:null}])]).values()].slice(0,8) : [];
+  return `<div class="stack">
+    <div class="head"><div><h2 class="t">מתחרים אורגניים ${NEW()}</h2><p class="sm muted m0 mt-s">מתחרים שמופיעים איתנו בתוצאות על אותן מילים. במקור קיים רק ניתוח SERP למילה בודדת (בלשונית "מחקר").</p></div>
+      <div class="row"><input class="input" id="newComp" placeholder="domain.co.il" style="width:180px" dir="ltr"><button class="btn" data-act="addComp">+ מתחרה</button></div></div>
+    <div class="card"><div class="tbl-wrap"><table><thead><tr><th>אתר</th><th>מילים משותפות</th><th>הם מובילים</th><th>אנחנו מובילים</th><th>נראות משוערת ${SRC.calc()}</th><th></th></tr></thead><tbody>
+      <tr style="background:var(--blue-t)"><td class="b">${esc(s.name)} <span class="xs muted ltr">${esc(s.domain)}</span> <span class="badge info">אנחנו</span></td><td>—</td><td>—</td><td>—</td><td class="num b">${fmt(vis(S.site,null,true))}</td><td></td></tr>
+      ${cs.map(x => { const r = ks.filter(k => cur(k)!=null && k.comp[x.domain]!=null); return `<tr><td><span class="b">${esc(x.name)}</span> <span class="xs muted ltr">${esc(x.domain)}</span></td><td class="num">${r.length}</td><td class="num">${r.filter(k=>k.comp[x.domain]<cur(k)).length}</td><td class="num">${r.filter(k=>cur(k)<k.comp[x.domain]).length}</td><td class="num">${fmt(vis(S.site,x.domain))}</td>
+        <td style="white-space:nowrap"><button class="btn sm" data-cmp="${x.domain}" ${x.domain===S.comp?"disabled":""}>השווה</button> <button class="btn ghost sm danger" data-rmcomp="${x.domain}">הסר</button></td></tr>`; }).join("")}
+    </tbody></table></div><div class="zone soft xs muted">נראות משוערת = סכום (נפח × שיעור הקלקה צפוי לפי מיקום). חישוב פנימי על נתוני המיקום, לא נתון תנועה אמיתי.</div></div>
+
+    ${c ? `<div class="card"><div class="zone"><div class="head"><h2 class="t">השוואת מתחרים: ${esc(s.name)} מול ${esc(c.name)}</h2>
+        <select class="input" id="cmpPick" aria-label="מתחרה">${cs.map(x=>`<option value="${x.domain}" ${x.domain===S.comp?"selected":""}>${esc(x.name)}</option>`).join("")}</select></div>
+      <div class="grid g4 mt">${[["מילים משותפות",shared.length],["אנחנו מובילים",weWin.length],["הם מובילים",theyWin.length],["יש להם ולנו אין",gap.length]].map(([l,v])=>`<div class="card stat"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("")}</div></div>
+      <div class="filters"><div class="seg" role="group">${views.map(([v,l,n])=>`<button data-cmpview="${v}" aria-pressed="${S.cmpView===v}">${l} (${n})</button>`).join("")}</div></div>
+      <div class="tbl-wrap">${table}</div></div>
+
+    <div class="grid g2">
+      <div class="card"><div class="zone"><div class="head"><h3 class="t">השוואת עמודים ותוכן</h3>${SRC.calc()}</div></div>
+        <div class="tbl-wrap"><table><thead><tr><th>מילה</th><th>העמוד שלהם</th><th>העמוד שלנו</th></tr></thead><tbody>
+        ${theirPages.map(p=>`<tr><td class="sm">${esc(p.kw)}</td><td>${posHtml(p.p)} <span class="xs ltr muted">${esc(p.url||"")}</span></td><td>${p.our?`${posHtml(p.ourP)} <span class="xs ltr muted">${esc(p.our)}</span>`:`<span class="badge down">אין עמוד</span>`}</td></tr>`).join("")}
+        </tbody></table></div></div>
+      <div class="card"><div class="zone"><div class="head"><h3 class="t">פעולות מומלצות מול ${esc(c.name)}</h3>${SRC.ai()}</div>
+        <p class="xs muted m0 mt-s">ה-AI מנתח את טבלאות ההשוואה במסך ואינו מוסיף מספרים משלו.</p></div>
+        ${[gap[0]&&`ליצור עמוד ייעודי ל"${gap[0].kw}" — הם במקום ${gap[0].p} ולנו אין עמוד.`,
+           theyWin[0]&&`לחזק את ${theyWin[0].k.url||"העמוד"} על "${theyWin[0].k.kw}": הם במקום ${theyWin[0].them}, אנחנו ${theyWin[0].us}. להוסיף שאלות נפוצות וקישורים פנימיים.`,
+           gap[1]&&`להוסיף ל"${gap[1].kw}" מאמר תומך שמקשר לעמוד-התווך.`,
+           weWin[0]&&`לשמור על "${weWin[0].k.kw}" (אנחנו ${weWin[0].us}, הם ${weWin[0].them}) — עדכון תוכן רבעוני.`]
+          .filter(Boolean).map((t,i)=>`<div class="zone" style="padding-block:10px"><div class="row"><span class="badge ${i<2?"down":"warn"}">${i<2?"גבוהה":"בינונית"}</span><span class="sm">${esc(t)}</span></div></div>`).join("")}
+      </div>
+    </div>` : `<div class="empty">אין מתחרים לאתר הזה. הוסף מתחרה או מצא מתחרים בלשונית "מחקר".</div>`}
+  </div>`;
+}
+
+/* ================= הזדמנויות ================= */
+function vOpps(){
+  const all = oppList(), list = all.filter(o => !S.oppType || o.type === S.oppType);
+  const types = [...new Set(all.map(o => o.type))];
+  return `<div class="stack">
+    <div class="head"><div><h2 class="t">הזדמנויות ${NEW()}</h2><p class="sm muted m0 mt-s">מחושב מהמיקומים, מהמתחרים ומהבדיקה הטכנית לפי כללים קבועים. ה-AI לא מחליט מה אמת — הוא רק מציע ניסוח ותוכן.</p></div></div>
+    <div class="card"><div class="filters"><div class="seg" role="group"><button data-opp="" aria-pressed="${!S.oppType}">הכל (${all.length})</button>${types.map(t=>`<button data-opp="${t}" aria-pressed="${S.oppType===t}">${OPP_T[t]} (${all.filter(o=>o.type===t).length})</button>`).join("")}</div></div>
+      ${list.map(o => `<div class="zone"><div class="row"><span class="badge ${o.prio==="גבוהה"?"down":o.prio==="בינונית"?"warn":""}">${o.prio}</span><span class="chip">${OPP_T[o.type]}</span><span class="b">${esc(o.title)}</span></div>
+        <p class="sm muted m0 mt-s">${esc(o.why)}</p>
+        <div class="row mt">${o.kid?`<button class="btn sm" data-kw="${o.kid}">מסלול המילה</button>`:""}
+          ${o.type==="gap"||o.type==="quick"?`<button class="btn sm" data-draftkw="${esc(o.kw)}">${o.type==="gap"?"צור עמוד/מאמר":"צור תוכן תומך"}</button>`:""}
+          ${o.url?`<button class="btn sm" data-optpage="${esc(o.url)}">אופטימיזציה לעמוד</button>`:""}
+          ${o.type==="gap"&&!o.tracked?`<button class="btn sm" data-trackkw="${esc(o.kw)}">+ למעקב</button>`:""}
+          ${o.type==="check"?`<button class="btn sm" data-act="checkRanks" ${S.live.serp?"":"disabled"}>בדוק מיקומים</button>`:""}
+          <button class="btn ghost sm" data-act="task">+ משימה ${SHARED()}</button></div></div>`).join("") || `<div class="empty">אין הזדמנויות בסינון הזה.</div>`}
+    </div></div>`;
+}
+
+/* ================= ביקורת טכנית ועמודים ================= */
+function vTech(){
+  const issues = techIssues(), pages = PAGES[S.site] || [];
+  const score = Math.max(0, 100 - issues.reduce((a,i)=>a+(i.sev==="high"?8:i.sev==="med"?4:1),0));
+  const byType = {}; issues.forEach(i => byType[i.type] = (byType[i.type]||0)+1);
+  const list = issues.filter(i => !S.techSev || i.sev === S.techSev);
+  const pageRows = pages.filter(p => !S.pageFilter || (S.pageFilter==="issues" ? issues.some(i=>i.url===p.url) : S.pageFilter==="noindex" ? !p.index : true));
+  return `<div class="stack">
+    <div class="head"><div><h2 class="t">ביקורת טכנית ועמודים ${NEW()}</h2><p class="sm muted m0 mt-s">לא קיים ב-OpenSEO המקורי. נדרש סורק אתרים ו-PageSpeed בשלב הפיתוח. סריקה אחרונה: ${fdt(site().lastCrawl)}</p></div>
+      <button class="btn" data-crawl="${S.site}">סרוק עכשיו</button></div>
+    <div class="grid g4">
+      <div class="card stat"><div class="v">${score}</div><div class="l">ציון בריאות ${SRC.calc()}</div><div class="bar mt-s"><span style="width:${score}%;background:${score>=80?"var(--up)":score>=60?"var(--warn)":"var(--down)"}"></span></div></div>
+      ${[["high","חמורות"],["med","בינוניות"],["low","נמוכות"]].map(([k,l])=>`<div class="card stat"><div class="v">${issues.filter(i=>i.sev===k).length}</div><div class="l">בעיות ${l}</div></div>`).join("")}
+    </div>
+    <div class="card"><div class="zone"><div class="head"><h3 class="t">בעיות לפי סוג</h3>${SRC.crawl()}</div><div class="pill-list mt">${Object.entries(byType).map(([t,n])=>`<span class="chip">${esc(t)} · ${n}</span>`).join("")}</div></div>
+      <div class="filters"><div class="seg" role="group"><button data-sev="" aria-pressed="${!S.techSev}">הכל</button>${Object.entries(SEV).map(([k,[l]])=>`<button data-sev="${k}" aria-pressed="${S.techSev===k}">${l}</button>`).join("")}</div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>חומרה</th><th>בעיה</th><th>עמוד</th><th>פירוט</th><th>איך לתקן</th></tr></thead><tbody>
+        ${list.map(i=>`<tr><td><span class="badge ${SEV[i.sev][1]}">${SEV[i.sev][0]}</span></td><td class="b sm">${esc(i.type)}</td><td><button class="linkish xs ltr" data-page="${esc(i.url)}">${esc(i.url)}</button></td><td class="sm muted">${esc(i.detail)}</td><td class="sm">${esc(i.fix)}</td></tr>`).join("")}
+      </tbody></table></div></div>
+    <div class="card"><div class="zone"><div class="head"><h3 class="t">עמודי האתר</h3>${SRC.crawl()}</div></div>
+      <div class="filters"><div class="seg" role="group">${[["","כל העמודים"],["issues","דורשים טיפול"],["noindex","לא באינדקס"]].map(([v,l])=>`<button data-pf-filter="${v}" aria-pressed="${S.pageFilter===v}">${l}</button>`).join("")}</div></div>
+      <div class="tbl-wrap"><table><thead><tr><th>עמוד</th><th>סטטוס</th><th>כותרת</th><th>תיאור</th><th>מילים</th><th>קישורים נכנסים</th><th>מילים מדורגות</th><th>LCP נייד</th><th>בעיות</th></tr></thead><tbody>
+        ${pageRows.map(p => { const n = issues.filter(i=>i.url===p.url).length, kws = KEYWORDS.filter(k=>k.site===S.site&&k.url===p.url); return `<tr>
+          <td><button class="linkish ltr sm" data-page="${esc(p.url)}">${esc(p.url)}</button></td><td><span class="badge ${p.status===200?"up":p.status===404?"down":"warn"}">${p.status}</span></td>
+          <td class="sm num">${p.title?p.title.length+" תווים":"—"}</td><td class="sm num">${p.meta?p.meta.length+" תווים":`<span class="badge warn">חסר</span>`}</td>
+          <td class="num sm">${fmt(p.words)}</td><td class="num sm">${p.inL}</td><td class="num sm">${kws.length}</td>
+          <td class="sm">${p.lcp!=null?`<span class="num">${p.lcp} ש׳</span>`:SRC.none()}</td><td>${n?`<span class="badge ${issues.some(i=>i.url===p.url&&i.sev==="high")?"down":"warn"}">${n}</span>`:`<span class="badge up">תקין</span>`}</td></tr>`; }).join("")}
+      </tbody></table></div>
+      <div class="zone soft xs muted">LCP מגיע מ-PageSpeed / Core Web Vitals. עמוד שלא נבדק מסומן "טרם נבדק".</div></div>
+  </div>`;
+}
+function pageDrawer(url){
+  const p = (PAGES[S.site]||[]).find(x => x.url === url) || {url,title:"",meta:"",h1:"",words:null,inL:null,status:null};
+  const issues = techIssues().filter(i => i.url === url), kws = KEYWORDS.filter(k => k.site===S.site && k.url === url);
+  const po = S.pageOpt.url === url ? S.pageOpt.sugs : [];
+  return `<div class="scrim" data-act="close"></div><aside class="drawer" role="dialog" aria-label="ניתוח עמוד">
+    <div class="drawer-h"><div><div class="xs muted">ניתוח עמוד ${NEW()}</div><strong class="ltr">${esc(site().domain+url)}</strong></div><span class="grow"></span><button class="btn ghost ic" data-act="close" aria-label="סגור">✕</button></div>
+    <div class="drawer-b">
+      <div class="card"><div class="zone"><div class="head"><h3 class="t">מה יש בעמוד</h3>${SRC.crawl()}</div>
+        <dl style="display:grid;grid-template-columns:110px 1fr;gap:6px 12px;margin:10px 0 0;font-size:14px">
+          <dt class="muted">כותרת</dt><dd class="m0">${esc(p.title)||"—"} <span class="xs muted">(${(p.title||"").length})</span></dd>
+          <dt class="muted">תיאור מטא</dt><dd class="m0">${esc(p.meta)||`<span class="badge warn">חסר</span>`}</dd>
+          <dt class="muted">H1</dt><dd class="m0">${esc(p.h1)||`<span class="badge warn">חסר</span>`}</dd>
+          <dt class="muted">מילים</dt><dd class="m0 num">${fmt(p.words)}</dd>
+          <dt class="muted">קישורים נכנסים</dt><dd class="m0 num">${p.inL ?? "—"}</dd></dl></div></div>
+      <div class="card"><div class="zone"><h3 class="t">מילים שהעמוד מדורג עליהן</h3></div>${kws.length?`<div class="tbl-wrap"><table><tbody>${kws.map(k=>`<tr><td><button class="linkish" data-kw="${k.id}">${esc(k.kw)}</button></td><td>${posHtml(cur(k))}</td><td>${deltaHtml(k)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">אין מילים במעקב שמדורגות על העמוד.</div>`}</div>
+      <div class="card"><div class="zone"><h3 class="t">בעיות</h3></div>${issues.length?issues.map(i=>`<div class="zone" style="padding-block:10px"><div class="row"><span class="badge ${SEV[i.sev][1]}">${SEV[i.sev][0]}</span><span class="b sm">${esc(i.type)}</span></div><p class="sm muted m0 mt-s">${esc(i.detail)} ${esc(i.fix)}</p></div>`).join(""):`<div class="empty">לא נמצאו בעיות.</div>`}</div>
+      <div class="card"><div class="zone"><div class="head"><h3 class="t">הצעות לשיפור העמוד</h3>${SRC.ai()}</div>
+        <p class="xs muted m0 mt-s">הצעות מבוססות על מילות העמוד ועל ה-SERP החי, בדומה לאופטימיזציה של המקור — אבל לכל עמוד באתר ולא רק למאמרים שנוצרו במודול.</p>
+        <button class="btn pri mt" data-pageopt="${esc(url)}" ${S.live.ai?"":"disabled"}>נתח עמוד</button></div>
+        ${po.map((s,i)=>`<div class="zone"><div class="row"><span class="badge ${s.type==="meta"?"warn":""}">${s.type==="meta"?"תיאור מטא":s.type==="title"?"כותרת":"פרק חדש"}</span><span class="b sm">${esc(s.label)}</span></div>
+          <p class="sm m0 mt-s" style="background:var(--soft);padding:6px 8px;border-radius:6px">${esc(s.value)}</p><p class="xs muted m0 mt-s">${esc(s.why)}</p>
+          <div class="row mt"><button class="btn sm" data-copy="${esc(s.value)}">העתק</button><button class="btn ghost sm" data-act="task">+ משימה לצוות האתר ${SHARED()}</button></div></div>`).join("")}
+      </div>
+    </div></aside>`;
+}
+</script>
+<script>
+"use strict";
+const sitePosts = () => POSTS.filter(p => p.site === S.site);
+const STATUS_HE = {draft:["טיוטה",""],scheduled:["מתוזמן","info"],published:["פורסם","up"],failed:["נכשל","down"]};
+const stBadge = st => `<span class="badge ${STATUS_HE[st][1]}">${STATUS_HE[st][0]}</span>`;
+const planName = id => PLANS.find(p => p.id === id)?.name || "—";
+let PID = 100;
+function aiArticle(keyword, title){
+  const t = title || `${keyword}: כל מה שצריך לדעת`;
+  return {title:t, meta_description:`${t} — מדריך מעשי: מה לבדוק, כמה זה עולה ואיך לבחור נכון.`.slice(0,155),
+    content_html:`<h2>התשובה הקצרה</h2><p>${esc(keyword)} הוא נושא שכל מנהל צי רכב פוגש. כאן תמצאו תשובה ישירה ואחריה הפירוט.</p><h2>מה חשוב לבדוק</h2><p>זמינות, שקיפות מחירים, איסוף והחזרה ודיווח מסודר.</p><h2>טעויות נפוצות</h2><p>בחירה לפי מחיר בלבד, בלי לבדוק זמני השבתה.</p><h2>שאלות נפוצות</h2><h3>כמה זמן זה לוקח?</h3><p>לרוב יום עבודה אחד.</p>`};
+}
+function generate(keyword, title, plan){
+  if (!S.live.ai){ toast("AI לא מחובר — חבר מנוע AI בהגדרות המרכזיות"); return null; }
+  const a = aiArticle(keyword, title);
+  const p = {id:++PID, site:S.site, plan_id:plan||null, keyword, ...a, status:"draft", scheduled_at:null, published_at:null, published_url:null, error:null, rank:null, rank_checked_at:null, created_at:new Date().toISOString(), updated_at:new Date().toISOString(), aiDraft:true};
+  POSTS.unshift(p); return p;
+}
+
+/* ================= יצירת תוכן (Produce) ================= */
+function vProduce(){
+  if (S.compose) return vComposer();
+  const R = S.produce, plans = PLANS.filter(p => p.site === S.site), drafts = sitePosts().filter(p => p.status === "draft");
+  return `<div class="stack">
+    <div class="card"><div class="zone"><div class="head"><h3 class="t">יצירת מאמר ${ORIG()}</h3><button class="btn ghost sm" data-act="newCompose">+ מאמר ריק</button></div>
+      <div class="fields mt"><label class="f" style="flex:1;min-width:220px">מילת מפתח יעד<input class="input" id="pKw" value="${esc(R.keyword)}" placeholder="תחזוקת צי רכבים לחברות"></label>
+        <label class="f">תוכנית תוכן (לא חובה)<select class="input" id="pPlan"><option value="">ללא תוכנית</option>${plans.map(p=>`<option value="${p.id}" ${String(R.plan)===String(p.id)?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label>
+        <button class="btn pri" data-act="genArticle" ${R.busy?"disabled":""}>${R.busy?"יוצר…":"צור מאמר"}</button></div>
+      <p class="xs muted m0 mt-s">יוצר טיוטה ממוקדת-אדם (כותרת, תיאור, HTML סמנטי) ${SRC.ai()}. הטקסט נכתב בעברית ${NEW()} — במקור ההנחיות באנגלית.</p></div>
+      <div class="zone"><h3 class="t">רעיונות מנושא ${ORIG()}</h3>
+      <div class="fields mt"><label class="f" style="flex:1;min-width:220px">נושא או אשכול<input class="input" id="pTopic" value="${esc(R.topic)}" placeholder="ניהול צי רכב"></label>
+        <button class="btn" data-act="genIdeas" ${R.ideasBusy?"disabled":""}>${R.ideasBusy?"מייצר…":"צור רעיונות"}</button></div>
+      ${R.ideas.length?`<div class="tbl-wrap mt"><table><thead><tr><th>רעיון למאמר</th><th></th></tr></thead><tbody>${R.ideas.map((t,i)=>`<tr><td>${esc(t)}</td><td style="width:90px"><button class="btn sm" data-idea="${i}">טיוטה</button></td></tr>`).join("")}</tbody></table></div>`:""}</div></div>
+    <div class="card"><div class="zone"><h3 class="t">טיוטות · ${drafts.length} ${ORIG()}</h3></div>
+      ${drafts.length?`<div class="tbl-wrap"><table><thead><tr><th>כותרת</th><th>מילת מפתח</th><th>תוכנית</th><th>עודכן</th><th></th></tr></thead><tbody>
+        ${drafts.map(p=>`<tr><td><button class="linkish" data-edit="${p.id}">${esc(p.title||"ללא כותרת")}</button>${p.aiDraft?` ${SRC.ai()}`:""}</td><td><span class="chip">${esc(p.keyword)}</span></td><td class="sm muted">${esc(planName(p.plan_id))}</td><td class="sm num muted">${fdt(Date.parse(p.updated_at))}</td>
+          <td style="white-space:nowrap"><button class="btn ghost sm" data-edit="${p.id}">ערוך</button><button class="btn ghost sm danger" data-rmpost="${p.id}">מחק</button></td></tr>`).join("")}
+      </tbody></table></div><div class="zone soft" style="text-align:left"><button class="btn ghost sm" data-tab="publish">תזמון הטיוטות בלשונית פרסום ←</button></div>`
+      :`<div class="empty"><div class="t">אין עדיין טיוטות</div>צור מאמר למעלה — הוא יופיע כאן כטיוטה לעריכה ולתזמון.</div>`}</div>
+  </div>`;
+}
+function vComposer(){
+  const c = S.compose, existing = POSTS.find(p => p.id === c.id), plans = PLANS.filter(p => p.site === S.site);
+  const wp = S.live.wp && site().conn.wp;
+  return `<div class="stack" style="max-width:900px">
+    <div class="row"><button class="btn ghost sm" data-act="closeCompose">→ חזרה</button><h2 class="t">${existing?"עריכת מאמר":"מאמר חדש"}</h2>${existing?stBadge(existing.status):""} ${ORIG()}</div>
+    ${!existing?`<div class="card"><div class="zone"><h3 class="t">יצירה</h3><div class="grid g2 mt">
+      <label class="f">מילת מפתח יעד<input class="input" data-cf="keyword" value="${esc(c.keyword)}"></label>
+      <label class="f">תוכנית תוכן<select class="input" data-cf="plan_id"><option value="">ללא תוכנית</option>${plans.map(p=>`<option value="${p.id}" ${String(c.plan_id)===String(p.id)?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label></div>
+      <label class="f mt">כותרת עבודה / זווית (לא חובה)<input class="input" data-cf="title" value="${esc(c.title)}" placeholder="השאר ריק כדי שה-AI יבחר"></label>
+      <div class="row mt" style="justify-content:space-between"><span class="xs muted">יוצר טיוטה שאפשר לערוך למטה.</span><button class="btn" data-act="composeGen">צור מאמר</button></div></div></div>`:""}
+    <div class="card"><div class="zone stack" style="gap:12px"><h3 class="t">המאמר</h3>
+      <label class="f">כותרת<input class="input" data-cf="title" value="${esc(c.title)}"></label>
+      <label class="f">תיאור מטא <span class="xs faint">(${c.meta_description.length} תווים)</span><textarea class="input" rows="2" data-cf="meta_description">${esc(c.meta_description)}</textarea></label>
+      <label class="f">תוכן (HTML)<textarea class="input" rows="10" dir="rtl" style="font-family:ui-monospace,Menlo,monospace;font-size:12px" data-cf="content_html" placeholder="צור למעלה, או כתוב HTML סמנטי כאן.">${esc(c.content_html)}</textarea></label></div>
+      ${c.content_html.trim()?`<div class="zone"><span class="b sm">תצוגה מקדימה</span><div class="prose mt-s">${c.content_html}</div></div>`:""}
+      <div class="zone"><span class="b sm">פרסום</span><div class="fields mt" style="justify-content:space-between">
+        <label class="f">תזמון (לא חובה — מתפרסם אוטומטית ל-WordPress)<input type="datetime-local" class="input" data-cf="scheduled_at" value="${esc(c.scheduled_at)}"></label>
+        <div class="row"><button class="btn" data-act="composePublish" ${!c.content_html.trim()||!wp?"disabled":""} title="${wp?"":"חבר WordPress כדי לפרסם"}">פרסם עכשיו</button>
+          <button class="btn pri" data-act="composeSave">${c.scheduled_at?"תזמן":"שמור טיוטה"}</button></div></div>
+        ${!wp?`<p class="xs m0 mt-s" style="color:var(--warn)">${site().conn.wp?"WordPress לא מחובר.":"לאתר הזה אין WordPress — אפשר לשמור ולהעתיק, בלי פרסום אוטומטי."}</p>`:""}</div></div>
+  </div>`;
+}
+
+/* ================= פרסום (Publish) ================= */
+function vPublish(){
+  const posts = sitePosts(), drafts = posts.filter(p=>p.status==="draft"), sched = posts.filter(p=>p.status==="scheduled"), pub = posts.filter(p=>p.status==="published"), failed = posts.filter(p=>p.status==="failed");
+  const wp = S.live.wp && site().conn.wp;
+  const month = S.publish.month || (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; })();
+  S.publish.month = month;
+  const [y,m] = month.split("-").map(Number), first = new Date(y,m-1,1).getDay(), days = new Date(y,m,0).getDate();
+  const cells = [...Array(first).fill(null), ...Array.from({length:days},(_,i)=>i+1)]; while (cells.length % 7) cells.push(null);
+  const onDay = d => posts.filter(p => { const t = p.published_at || p.scheduled_at; if (!t) return false; const x = new Date(t); return x.getFullYear()===y && x.getMonth()===m-1 && x.getDate()===d; });
+  const tbl = (title, rows, when, act) => `<div class="card"><div class="zone"><h3 class="t">${title} · ${rows.length}</h3></div>${rows.length?`<div class="tbl-wrap"><table><thead><tr><th>כותרת</th><th>מילת מפתח</th><th>${when[0]}</th><th></th></tr></thead><tbody>${rows.map(p=>`<tr><td><button class="linkish" data-edit="${p.id}">${esc(p.title)}</button>${p.error?`<div class="xs" style="color:var(--down)">${esc(p.error)}</div>`:""}</td><td><span class="chip">${esc(p.keyword)}</span></td><td class="sm num muted">${fdt(Date.parse(p[when[1]]||""))}</td><td style="white-space:nowrap">${act(p)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">${title==="מתוזמנים"?"תזמן טיוטות למעלה כדי להכניס אותן לתור הפרסום.":"אין."}</div>`}</div>`;
+  return `<div class="stack">
+    <div class="card"><div class="zone"><h3 class="t">תזמון טיוטות · ${drafts.length} מוכנות ${ORIG()}</h3>
+      <div class="fields mt"><label class="f">תאריך התחלה<input type="datetime-local" class="input" id="pubStart" value="${esc(S.publish.start)}"></label>
+        <label class="f">תדירות<select class="input" id="pubCad">${[["1","כל יום"],["2","כל יומיים"],["7","כל שבוע"]].map(([v,l])=>`<option value="${v}" ${S.publish.cadence===v?"selected":""}>${l}</option>`).join("")}</select></label>
+        <button class="btn pri" data-act="scheduleDrafts" ${!drafts.length?"disabled":""}>תזמן ${drafts.length} טיוטות</button></div>
+      <p class="xs muted m0 mt-s">כל טיוטה מקבלת תאריך בשעה 09:00, אחת לכל מרווח. ${!wp?`<span style="color:var(--warn)">WordPress לא מחובר לאתר הזה — מאמרים מתוזמנים לא יתפרסמו.</span>`:""}</p>
+      <p class="xs muted m0 mt-s">פרסום לאתר חי הוא פעולה רגישה: בדליה הוא יעבור דרך הרשאות ואישור ${SHARED("הרשאות ואישורים – ימומש בשלב האינטגרציה")}</p></div></div>
+    <div class="card"><div class="zone"><div class="head"><h3 class="t">לוח שנה ${ORIG()}</h3>
+      <div class="row"><button class="btn ghost ic" data-month="1" aria-label="חודש הבא">‹</button><span class="b sm" style="min-width:120px;text-align:center">${new Date(y,m-1,1).toLocaleDateString("he-IL",{month:"long",year:"numeric"})}</span><button class="btn ghost ic" data-month="-1" aria-label="חודש קודם">›</button></div></div>
+      <div class="cal mt">${["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"].map(d=>`<div class="h">${d}</div>`).join("")}${cells.map(d=>`<div class="c">${d?`<div class="d num">${d}</div>${onDay(d).map(p=>`<button class="${p.status==="published"?"pub":p.status==="failed"?"fail":""}" data-edit="${p.id}" title="${esc(p.title)}">${esc(p.title)}</button>`).join("")}`:""}</div>`).join("")}</div>
+      <div class="legend mt"><span><i style="background:var(--blue-t)"></i>מתוזמן</span><span><i style="background:var(--up-t)"></i>פורסם</span><span><i style="background:var(--down-t)"></i>נכשל</span></div></div></div>
+    ${tbl("מתוזמנים", sched, ["מתוזמן ל","scheduled_at"], p => `<button class="btn sm" data-pubnow="${p.id}" ${wp?"":"disabled"}>פרסם עכשיו</button> <button class="btn ghost sm" data-unsched="${p.id}">בטל תזמון</button>`)}
+    ${tbl("נכשלו", failed, ["ניסיון אחרון","scheduled_at"], p => `<button class="btn sm" data-pubnow="${p.id}" ${wp?"":"disabled"}>נסה שוב ${NEW()}</button>`)}
+    ${tbl("פורסמו", pub, ["פורסם","published_at"], p => p.published_url?`<a class="btn ghost sm" href="#" data-liveurl="${esc(p.published_url)}">צפה באתר ↗</a>`:"")}
+  </div>`;
+}
+
+/* ================= מדידה (Measure) ================= */
+function vMeasure(){
+  const posts = sitePosts(), st = k => posts.filter(p => p.status === k).length;
+  const total = posts.length, pubRate = total ? Math.round(st("published")/total*100) : 0;
+  const tracked = posts.filter(p => p.status==="published" && p.keyword), onP1 = tracked.filter(p => p.rank != null), top3 = onP1.filter(p => p.rank <= 3);
+  const best = onP1.reduce((m,p) => m==null||p.rank<m ? p.rank : m, null);
+  const last = tracked.map(p => p.rank_checked_at).filter(Boolean).sort().pop();
+  const daily = Array.from({length:30},(_,i) => { const d = new Date(NOW-(29-i)*DAY); const n = posts.filter(p => p.scheduled_at && new Date(p.scheduled_at).toDateString() === d.toDateString()).length; return {v:n, l:`${d.getDate()}/${d.getMonth()+1}`}; });
+  const avgSeries = Array.from({length:WEEKS}, (_,i) => { const r = siteKw().filter(k => k.hist && k.hist[i] != null); return r.length ? Math.round(r.reduce((a,k)=>a+k.hist[i],0)/r.length*10)/10 : null; });
+  const gscT = siteKw().filter(k => k.gsc).reduce((a,k) => ({c:a.c+k.gsc.clicks, i:a.i+k.gsc.impr}), {c:0,i:0});
+  return `<div class="stack">
+    <div class="card"><div class="zone"><h3 class="t">צינור התוכן ${ORIG()}</h3>
+      <div class="grid g6 mt">${[["מאמרים",total,`${PLANS.filter(p=>p.site===S.site).length} תוכניות`],["טיוטות",st("draft")],["מתוזמנים",st("scheduled")],["פורסמו",st("published"),`${pubRate}% מהסך`],["נכשלו",st("failed")],["תוכניות תוכן",PLANS.filter(p=>p.site===S.site).length]].map(([l,v,mm])=>`<div><div class="b num" style="font-size:24px">${v}</div><div class="xs muted">${l}</div>${mm?`<div class="xs faint">${mm}</div>`:""}</div>`).join("")}</div></div></div>
+    <div class="card"><div class="zone"><div class="head"><h3 class="t">מיקומי מאמרים שפורסמו ${ORIG()}</h3>
+      <div class="row">${last?`<span class="xs faint">נבדק ${fdt(Date.parse(last))}</span>`:""}<button class="btn sm" data-act="checkPostRanks" ${!S.live.serp||!tracked.length?"disabled":""}>בדוק מיקומים</button></div></div>
+      ${!S.live.serp?`<p class="sm muted m0 mt">חבר SerpAPI כדי לעקוב אחרי מיקומי המאמרים בגוגל — המיקום נקרא מתוצאות חיות ואי אפשר להעריך אותו.</p>`:!tracked.length?`<div class="empty">פרסם מאמרים כדי לעקוב כאן אחרי המיקום שלהם.</div>`:`
+      <div class="grid g4 mt">${[["מילים במעקב",tracked.length],["בעמוד הראשון",onP1.length,`מתוך ${tracked.length}`],["בטופ 3",top3.length],["המיקום הטוב ביותר",best!=null?"#"+best:"—"]].map(([l,v,mm])=>`<div class="card stat"><div class="v">${v}</div><div class="l">${l}</div>${mm?`<div class="m">${mm}</div>`:""}</div>`).join("")}</div>
+      ${S.measure.note?`<p class="xs muted m0 mt">${esc(S.measure.note)}</p>`:""}
+      <div class="tbl-wrap mt"><table><thead><tr><th>מאמר</th><th>מילת מפתח</th><th>מיקום</th><th>נבדק</th></tr></thead><tbody>${tracked.map(p=>`<tr><td class="b">${esc(p.title)}</td><td><span class="chip">${esc(p.keyword)}</span></td><td>${!p.rank_checked_at?`<span class="faint">—</span>`:p.rank==null?`<span class="badge">לא בטופ 10</span>`:`<span class="badge ${p.rank<=3?"up":"warn"}">#${p.rank}</span>`}</td><td class="sm num muted">${p.rank_checked_at?fdate(Date.parse(p.rank_checked_at)):"—"}</td></tr>`).join("")}</tbody></table></div>
+      <p class="xs muted m0 mt-s">כמו במקור: בדיקה של עד 10 מאמרים בכל הפעלה, לפי מי שנבדק הכי מזמן. ${SRC.serp()}</p>`}</div></div>
+    <div class="grid g2">
+      <div class="card"><div class="zone"><div class="head"><h3 class="t">התקדמות הקידום ${NEW()}</h3>${SRC.serp()}</div><p class="xs muted m0 mt-s">מיקום ממוצע של כל המילים במעקב.</p>${lineChart([{data:avgSeries,color:"var(--navy)"}], Array.from({length:WEEKS},(_,i)=>weekLabel(i)),{h:170})}</div></div>
+      <div class="card"><div class="zone"><div class="head"><h3 class="t">Search Console ${NEW()}</h3>${S.live.gsc?SRC.gsc():SRC.none()}</div>
+        ${S.live.gsc?`<div class="grid g3 mt">${[["קליקים",fmt(gscT.c)],["חשיפות",fmt(gscT.i)],["CTR",(gscT.i?(gscT.c/gscT.i*100).toFixed(1):"0")+"%"]].map(([l,v])=>`<div><div class="b num" style="font-size:22px">${v}</div><div class="xs muted">${l}</div></div>`).join("")}</div><p class="xs muted m0 mt">28 הימים האחרונים. במקור זה מופיע רק כתוכנית עתידית.</p>`
+        :`<p class="sm muted m0 mt">לא מחובר. אחרי חיבור יוצגו קליקים, חשיפות, CTR ומיקום ממוצע אמיתי לכל מילה ועמוד. החיבור מתבצע בהגדרות המרכזיות.</p>`}</div></div>
+    </div>
+    <div class="card"><div class="zone"><h3 class="t">פעילות פרסום · 30 ימים אחרונים ${ORIG()}</h3>${daily.some(d=>d.v)?`<div class="mt">${bars(daily)}</div>`:`<div class="empty">אין עדיין פעילות מתוזמנת.</div>`}</div></div>
+    ${posts.some(p=>p.status==="published")?`<div class="card"><div class="zone"><h3 class="t">פורסמו לאחרונה ${ORIG()}</h3></div><div class="tbl-wrap"><table><thead><tr><th>כותרת</th><th>מילת מפתח</th><th>פורסם</th></tr></thead><tbody>${posts.filter(p=>p.status==="published").slice(0,8).map(p=>`<tr><td class="b">${esc(p.title)}</td><td><span class="chip">${esc(p.keyword)}</span></td><td class="sm num muted">${fdate(Date.parse(p.published_at))}</td></tr>`).join("")}</tbody></table></div></div>`:""}
+  </div>`;
+}
+
+/* ================= אופטימיזציה (Optimize) ================= */
+function vOptimize(){
+  const O = S.optimize, editable = sitePosts().filter(p => p.content_html.trim());
+  if (!editable.some(p => p.id === O.postId)) O.postId = (editable.find(p => p.status==="published") || editable[0])?.id ?? null;
+  const post = editable.find(p => p.id === O.postId);
+  return `<div class="stack">
+    <div class="card"><div class="zone"><h3 class="t">שיפור מאמר ${ORIG()}</h3>
+      ${!editable.length?`<div class="empty"><div class="t">אין עדיין מאמרים לשיפור</div>צור ושמור מאמר ביצירת תוכן.</div>`:`
+      <div class="fields mt"><label class="f" style="flex:1;min-width:260px">מאמר<select class="input" id="optPost" style="width:100%">${editable.map(p=>`<option value="${p.id}" ${p.id===O.postId?"selected":""}>${esc(p.title)}${p.status==="published"?" · פורסם":""}</option>`).join("")}</select></label>
+        <button class="btn pri" data-act="optAnalyze" ${O.busy||!S.live.ai?"disabled":""} title="${S.live.ai?"":"חבר מנוע AI"}">${O.busy?"מנתח…":"נתח"}</button></div>
+      <p class="xs muted m0 mt-s">${S.live.serp?"ההצעות מבוססות על ה-SERP החי של מילת המפתח — המתחרים האמיתיים והשאלות שהמחפשים שואלים.":"SerpAPI לא מחובר — ההצעות יהיו AI בלבד ויסומנו כך."}</p>`}</div>
+      ${O.applied?`<div class="zone"><div class="notice ok"><span>הוחלו ${O.applied} שינויים על המאמר.</span><span class="grow"></span><button class="btn sm" data-tab="publish">פרסם מחדש בלשונית פרסום ←</button></div></div>`:""}
+      ${O.sugs.length?`<div class="zone"><div class="row"><span class="b sm">הצעות · ${O.sugs.length}</span>${O.src==="live"?SRC.serp():SRC.ai()}</div>
+        ${O.sugs.map((s,i)=>`<div class="card mt" style="padding:12px"><div class="row"><span class="badge ${s.type==="meta"?"warn":""}">${s.type==="meta"?"תיאור מטא":"פרק חדש"}</span><span class="b sm">${esc(s.label)}</span><span class="grow"></span>
+          <button class="btn pri sm" data-apply="${i}">החל</button><button class="btn ghost sm ic" data-dismiss="${i}" aria-label="דחה">✕</button></div>
+          <p class="xs muted m0 mt-s">${esc(s.why)}</p>${s.type==="meta"?`<p class="sm m0 mt-s" style="background:var(--soft);padding:6px 8px;border-radius:6px">${esc(s.value)}</p>`:`<div class="prose mt-s" style="box-shadow:inset 0 0 0 1px var(--line);border-radius:8px;padding:8px 12px">${s.value}</div>`}</div>`).join("")}</div>`:""}
+    </div>
+    <div class="card"><div class="zone"><div class="head"><h3 class="t">אופטימיזציה לעמודי האתר ${NEW()}</h3><button class="btn ghost sm" data-tab="tech">לביקורת העמודים</button></div>
+      <p class="sm muted m0 mt-s">במקור אפשר לשפר רק מאמרים שנוצרו במודול. בדליה אפשר לנתח כל עמוד באתר: כותרת, תיאור ופרקים חסרים, לפי המילים שהעמוד מדורג עליהן.</p>
+      <div class="pill-list mt">${(PAGES[S.site]||[]).filter(p=>p.status===200).map(p=>`<button class="btn sm" data-optpage="${esc(p.url)}"><span class="ltr">${esc(p.url)}</span></button>`).join("")}</div></div></div>
+  </div>`;
+}
+function optSuggestions(post){
+  const qs = ["כמה עולה", "כמה זמן לוקח", "האם זה מתאים לחברה קטנה"];
+  return [
+    {type:"meta", label:"תיאור מטא חד יותר", value:`${post.keyword}: מה כלול, כמה זה עולה ואיך לבחור ספק — מדריך קצר לחברות עם צי רכב. בדקו לפני שמחליטים.`.slice(0,155), why:"התיאור הנוכחי כללי. בתוצאות, שלושת המובילים מציינים מחיר ומה כלול."},
+    {type:"section", label:`מענה לשאלה: "${qs[0]} ${post.keyword}?"`, value:`<h2>${qs[0]} ${esc(post.keyword)}?</h2><p>המחיר תלוי במספר הרכבים ובהיקף השירות. כדאי לבקש הצעה שמפרטת מה כלול ומה לא.</p>`, why:"שאלה שמופיעה ב\"אנשים שואלים גם\" ואינה מקבלת מענה במאמר."},
+    {type:"section", label:`מענה לשאלה: "${qs[1]}?"`, value:`<h2>${qs[1]}?</h2><p>ברוב המקרים יום עבודה אחד, כולל איסוף והחזרה.</p>`, why:"שני מתחרים בעשירייה הראשונה עונים על השאלה הזו."}
+  ];
+}
+
+/* ================= חלונות ================= */
+const POINTS = [
+  ["החברה הפעילה","OpenSEO מקבל מזהה חברה מהמעטפת. כל אתר, מילה, מתחרה, מאמר ובדיקה משויכים לחברה.","customers / טבלת שיוך קיימת"],
+  ["משתמשים והרשאות","צפייה, עריכה, מחיקה, פרסום, אישור וניהול חיבורים — לפי תשתית ההרשאות של דליה.","user_roles"],
+  ["מאגר מילות מפתח משותף","המילים עצמן נשמרות במאגר המשותף. OpenSEO שומר רק נתוני SEO: מיקום, היסטוריה, עמוד ומתחרים.","רכיב 3"],
+  ["חיבורי API","SerpAPI / DataForSEO, Search Console, WordPress, PageSpeed — מפתחות ברמת דליה / חברה / מודול. OpenSEO רואה רק סטטוס.","אזור ההגדרות"],
+  ["מנועי AI","יצירת תוכן והצעות אופטימיזציה דרך מנוע ה-AI שהוגדר לחברה.","אזור ההגדרות"],
+  ["תקציבים וקרדיטים","דיווח על כל קריאה בתשלום (בדיקת מיקום, מחקר, AI) לפני ואחרי ביצוע.","אזור ההגדרות"],
+  ["אישורים","פרסום לאתר חי ושינוי באתר דורשים אישור לפי מדיניות.","approval_requests"],
+  ["משימות והתראות","\"+ משימה\", ירידות חדות ובעיות חמורות נשלחים למעטפת.","מעטפת"],
+  ["יומן פעילות","כל פעולה (הוספת מילה, פרסום, החלת הצעה) נרשמת ביומן המרכזי.","security_audit_events"],
+  ["סיכום לדשבורד הראשי","מילים בעמוד הראשון, שינוי שבועי, הזדמנויות פתוחות ובעיות חמורות.","רכיב 1"],
+  ["תזמון משימות","בדיקות מיקום שבועיות, סריקות ופרסום מתוזמן (במקור: תור Clawnify).","טרם נבדק (pg_cron / Edge Functions)"]
+];
+function renderOverlay(){
+  const el = $("#overlay");
+  if (!S.drawer && !S.modal){ el.innerHTML = ""; return; }
+  if (S.drawer?.type === "kw"){ const k = KEYWORDS.find(x => x.id === S.drawer.id); el.innerHTML = k ? kwDrawer(k) : ""; return; }
+  if (S.drawer?.type === "page"){ el.innerHTML = pageDrawer(S.drawer.url); return; }
+  if (S.modal === "points") el.innerHTML = `<div class="scrim" data-act="close"></div><div class="card modal" role="dialog" aria-label="נקודות חיבור">
+    <div class="zone"><div class="head"><h2 class="t">נקודות חיבור לדליה</h2><button class="btn ghost ic" data-act="close" aria-label="סגור">✕</button></div>
+    <p class="sm muted m0 mt-s">כל אלה שייכים למערכת המשותפת ולא ייבנו בתוך OpenSEO. <b>חיבור למערכת המשותפת – ימומש בשלב האינטגרציה.</b></p></div>
+    ${POINTS.map(([t,d,r])=>`<div class="zone" style="padding-block:10px"><div class="row"><span class="b sm">${t}</span><span class="grow"></span><span class="chip">${esc(r)}</span></div><p class="xs muted m0 mt-s">${esc(d)}</p></div>`).join("")}</div>`;
+  if (S.modal === "addSite") el.innerHTML = `<div class="scrim" data-act="close"></div><div class="card modal" role="dialog" aria-label="הוספת אתר">
+    <div class="zone"><h2 class="t">הוספת אתר לחברה</h2><p class="xs muted m0 mt-s">האתר ישויך לחברה הפעילה. החיבורים עצמם (Search Console, WordPress) מוגדרים אחר כך בהגדרות המרכזיות.</p></div>
+    <div class="zone stack" style="gap:12px"><label class="f">שם האתר<input class="input" id="nsName" placeholder="אתר הסניף בצפון"></label>
+      <label class="f">דומיין<input class="input" dir="ltr" id="nsDomain" placeholder="example.co.il"></label>
+      <label class="f">פלטפורמה<select class="input" id="nsPlat" style="width:100%"><option>WordPress</option><option>אתר ללא WordPress</option></select></label>
+      <label class="f">שוק החיפוש<select class="input" style="width:100%"><option>ישראל · עברית (gl=il, hl=iw)</option><option>ישראל · אנגלית</option></select></label></div>
+    <div class="zone row" style="justify-content:flex-end"><button class="btn ghost" data-act="close">ביטול</button><button class="btn pri" data-act="saveSite">הוסף אתר</button></div></div>`;
+  if (S.modal?.type === "confirmPub"){ const p = POSTS.find(x => x.id === S.modal.id); el.innerHTML = `<div class="scrim" data-act="close"></div><div class="card modal" role="dialog" aria-label="אישור פרסום">
+    <div class="zone"><h2 class="t">לפרסם לאתר החי?</h2><p class="sm m0 mt">"${esc(p.title)}" יתפרסם ב-<span class="ltr">${esc(site().domain)}</span>.</p>
+    <p class="xs muted m0 mt-s">בהדגמה לא נשלח דבר. בדליה הפעולה תבדוק הרשאה ותעבור אישור לפי מדיניות החברה ${SHARED()}</p></div>
+    <div class="zone row" style="justify-content:flex-end"><button class="btn ghost" data-act="close">ביטול</button><button class="btn pri" data-act="doPublish">פרסם (הדגמה)</button></div></div>`; }
+}
+function renderDemo(){
+  $("#demoCtl").innerHTML = `${S.demoOpen?`<div class="panel"><div class="head"><span class="b sm">בקרת הדגמה</span><span class="src ai">לא קיים במערכת</span></div>
+    <p class="xs muted m0">מדמה מצבי חיבור כדי לראות איך כל מסך מתנהג.</p>
+    ${[["serp","SerpAPI (מיקומים ו-SERP)"],["gsc","Google Search Console"],["wp","WordPress"],["ai","מנוע AI"]].map(([k,l])=>`<label class="check"><input type="checkbox" data-live="${k}" ${S.live[k]?"checked":""}> ${l}</label>`).join("")}</div>`:""}
+    <button class="btn" data-act="demo" style="box-shadow:var(--float)">⚙ בקרת הדגמה</button>`;
+}
+
+/* ================= רינדור ================= */
+const VIEWS = {overview:vOverview, sites:vSites, keywords:vKeywords, research:vResearch, ranks:vRanks, competitors:vCompetitors, opps:vOpps, tech:vTech, produce:vProduce, publish:vPublish, measure:vMeasure, optimize:vOptimize};
+function render(){ renderTabs(); $("#view").innerHTML = VIEWS[S.tab](); bindInputs(); renderOverlay(); renderDemo(); }
+function go(tab){ S.tab = tab; S.compose = tab === "produce" ? S.compose : null; history.replaceState(null,"","#"+tab); render(); window.scrollTo(0,0); }
+function bindInputs(){
+  const on = (id, fn, ev="input") => { const e = $(id); if (e) e.addEventListener(ev, fn); };
+  on("#kwq", e => { S.kwq = e.target.value; clearTimeout(bindInputs.t); bindInputs.t = setTimeout(() => { const pos = e.target.selectionStart; render(); const n = $("#kwq"); n.focus(); n.setSelectionRange(pos,pos); }, 250); });
+  document.querySelectorAll("[data-f]").forEach(s => s.onchange = e => { S[s.dataset.f] = e.target.value; render(); });
+  on("#moveGroup", e => { if (!e.target.value) return; KEYWORDS.forEach(k => { if (S.kwSel.has(k.id)) k.group = e.target.value; }); toast(`${S.kwSel.size} מילים הועברו לקבוצה "${e.target.value}"`); S.kwSel.clear(); render(); }, "change");
+  on("#rSeed", e => S.research.seed = e.target.value); on("#rAud", e => S.research.audience = e.target.value); on("#rCo", e => S.research.coSeed = e.target.value);
+  document.querySelectorAll("[data-pf]").forEach(i => i.oninput = e => S.research.planForm[i.dataset.pf] = e.target.value);
+  on("#rankKw", e => { S.rankKw = e.target.value; render(); }, "change");
+  on("#cmpPick", e => { S.comp = e.target.value; render(); }, "change");
+  on("#pKw", e => S.produce.keyword = e.target.value); on("#pPlan", e => S.produce.plan = e.target.value, "change"); on("#pTopic", e => S.produce.topic = e.target.value);
+  document.querySelectorAll("[data-cf]").forEach(i => i.addEventListener(i.tagName==="SELECT"?"change":"input", e => { S.compose[i.dataset.cf] = e.target.value; if (i.dataset.cf==="scheduled_at") render(); }));
+  on("#pubStart", e => S.publish.start = e.target.value); on("#pubCad", e => S.publish.cadence = e.target.value, "change");
+  on("#optPost", e => { S.optimize = {postId:+e.target.value,busy:false,src:null,sugs:[],applied:0}; render(); }, "change");
+  [["#rSeed","discover"],["#rCo","analyzeSerp"],["#pKw","genArticle"],["#pTopic","genIdeas"]].forEach(([id,act]) => on(id, e => { if (e.key==="Enter") document.querySelector(`[data-act="${act}"]`)?.click(); }, "keydown"));
+}
+function trackKw(kw, group="ממחקר"){
+  if (siteKw().some(k => k.kw === kw)) return;
+  KEYWORDS.push({id:"k"+(++KID), site:S.site, kw, group, intent:"informational", status:"tracking", vol:null, volSrc:null, hist:null, url:"", checked:null, comp:null, gsc:null, added:Date.now()});
+}
+function checkRanks(){
+  const batch = siteKw().filter(k => k.status==="tracking").sort((a,b) => (a.checked||0) - (b.checked||0)).slice(0,10);
+  batch.forEach((k,i) => {
+    if (!k.hist){ const p = 15 + (k.kw.length*7 + i*11) % 60; k.hist = Array(WEEKS-1).fill(null).concat([p]); k.comp = Object.fromEntries(comps().map((c,j) => [c.domain, (k.kw.length+j*5)%3 ? 3+(k.kw.length*j)%20 : null])); }
+    k.checked = Date.now();
+  });
+  site().lastRank = Date.now();
+  const left = siteKw().filter(k => !k.hist).length;
+  toast(`נבדקו ${batch.length} מילים${left?` · ${left} עדיין לא נבדקו — הפעל שוב`:""} (הדגמה)`);
+  render();
+}
+
+/* ================= אירועים ================= */
+document.addEventListener("click", e => {
+  const t = e.target.closest("button,a,input[type=checkbox]"); if (!t) return;
+  const d = t.dataset;
+  if (d.tab){ if (d.cmpview) S.cmpView = d.cmpview; if (d.plan) S.produce.plan = d.plan; S.drawer = null; return go(d.tab); }
+  if (d.kw){ S.drawer = {type:"kw", id:d.kw}; return renderOverlay(); }
+  if (d.page){ S.drawer = {type:"page", url:d.page}; return renderOverlay(); }
+  if (d.site){ S.site = d.site; S.kwSel.clear(); S.comp = null; S.optimize.postId = null; return render(); }
+  if (d.sel){ S.kwSel.has(d.sel) ? S.kwSel.delete(d.sel) : S.kwSel.add(d.sel); return render(); }
+  if (d.cmp){ S.comp = d.cmp; return render(); }
+  if (d.cmpview){ S.cmpView = d.cmpview; return render(); }
+  if (d.opp !== undefined){ S.oppType = d.opp; return render(); }
+  if (d.sev !== undefined){ S.techSev = d.sev; return render(); }
+  if (d.pfFilter !== undefined){ S.pageFilter = d.pfFilter; return render(); }
+  if (d.live){ S.live[d.live] = t.checked; return render(); }
+  if (d.draftkw){ const p = generate(d.draftkw); if (p){ S.drawer = null; S.compose = {...p}; toast("נוצרה טיוטה (הדגמה)"); go("produce"); } return; }
+  if (d.trackkw){ trackKw(d.trackkw); toast(`"${d.trackkw}" נוסף למעקב ולמאגר המשותף (הדגמה)`); return render(); }
+  if (d.addcomp){ comps().push({domain:d.addcomp, name:d.addcomp}); toast("המתחרה נוסף"); return render(); }
+  if (d.rmcomp){ COMPETITORS[S.site] = comps().filter(c => c.domain !== d.rmcomp); return render(); }
+  if (d.optpage){ S.drawer = {type:"page", url:d.optpage}; return renderOverlay(); }
+  if (d.pageopt){ const p = (PAGES[S.site]||[]).find(x=>x.url===d.pageopt) || {}; const k = KEYWORDS.find(x=>x.site===S.site&&x.url===d.pageopt);
+    S.pageOpt = {url:d.pageopt, sugs:[
+      {type:"title",label:"כותרת חדשה",value:`${k?.kw||p.h1||"שירותי תחזוקה"} לחברות | דליה`.slice(0,60),why:`הכותרת הנוכחית: ${(p.title||"").length} תווים. מומלץ 50–60 עם מילת המפתח בהתחלה.`},
+      {type:"meta",label:"תיאור מטא",value:`${k?.kw||"השירות"} לחברות וציי רכב: איסוף והחזרה, מחיר קבוע ודיווח מלא. תאמו עכשיו.`.slice(0,155),why:p.meta?`התיאור הנוכחי ${p.meta.length} תווים.`:"לעמוד אין תיאור."},
+      {type:"section",label:"פרק שאלות נפוצות",value:"שאלות נפוצות: כמה זה עולה? כמה זמן לוקח? האם יש רכב חלופי?",why:"שאלות שמופיעות בתוצאות החיפוש ואין להן מענה בעמוד."}]};
+    return renderOverlay(); }
+  if (d.copy){ navigator.clipboard?.writeText(d.copy).catch(()=>{}); return toast("הועתק"); }
+  if (d.toggleKw){ const k = KEYWORDS.find(x=>x.id===d.toggleKw); k.status = k.status==="tracking"?"paused":"tracking"; renderOverlay(); return render(); }
+  if (d.rmkw){ const i = KEYWORDS.findIndex(x=>x.id===d.rmkw); const kw = KEYWORDS[i].kw; KEYWORDS.splice(i,1); S.drawer = null; toast(`"${kw}" הוסרה מהמעקב של OpenSEO (נשארת במאגר המשותף)`); return render(); }
+  if (d.crawl){ const s = SITES.find(x=>x.id===d.crawl); s.lastCrawl = Date.now(); toast(`הסריקה של ${s.domain} הסתיימה (הדגמה)`); return render(); }
+  if (d.rmsite){ if (SITES.length < 2) return; const i = SITES.findIndex(x=>x.id===d.rmsite); SITES.splice(i,1); if (S.site===d.rmsite) S.site = SITES[0].id; return render(); }
+  if (d.editplan){ const p = PLANS.find(x=>x.id===+d.editplan); S.research.planForm = {...p}; return render(); }
+  if (d.rmplan){ const i = PLANS.findIndex(x=>x.id===+d.rmplan); PLANS.splice(i,1); POSTS.forEach(p => { if (p.plan_id===+d.rmplan) p.plan_id = null; }); return render(); }
+  if (d.idea !== undefined){ const title = S.produce.ideas[+d.idea]; const p = generate(S.produce.topic || title, title, S.produce.plan); if (p){ S.compose = {...p}; render(); } return; }
+  if (d.edit){ const p = POSTS.find(x=>x.id===+d.edit); S.compose = {...p, scheduled_at: p.scheduled_at && p.status==="scheduled" ? p.scheduled_at.slice(0,16) : ""}; S.drawer = null; return go("produce"); }
+  if (d.rmpost){ POSTS.splice(POSTS.findIndex(x=>x.id===+d.rmpost),1); return render(); }
+  if (d.pubnow){ S.modal = {type:"confirmPub", id:+d.pubnow}; return renderOverlay(); }
+  if (d.unsched){ const p = POSTS.find(x=>x.id===+d.unsched); p.status = "draft"; p.scheduled_at = null; return render(); }
+  if (d.liveurl){ e.preventDefault(); return toast("בהדגמה אין אתר חי"); }
+  if (d.month){ const [y,m] = S.publish.month.split("-").map(Number); const n = new Date(y, m-1+ +d.month, 1); S.publish.month = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}`; return render(); }
+  if (d.apply !== undefined){ const O = S.optimize, s = O.sugs[+d.apply], p = POSTS.find(x=>x.id===O.postId);
+    if (s.type==="meta") p.meta_description = s.value; else p.content_html += "\n" + s.value; p.updated_at = new Date().toISOString();
+    O.sugs.splice(+d.apply,1); O.applied++; return render(); }
+  if (d.dismiss !== undefined){ S.optimize.sugs.splice(+d.dismiss,1); return render(); }
+  switch (d.act){
+    case "close": S.drawer = null; S.modal = null; return renderOverlay();
+    case "points": S.modal = "points"; return renderOverlay();
+    case "theme": { const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme==="dark" : matchMedia("(prefers-color-scheme: dark)").matches; r.dataset.theme = dark ? "light" : "dark"; return; }
+    case "demo": S.demoOpen = !S.demoOpen; return renderDemo();
+    case "task": return toast("המשימה תישלח למערכת המשימות של המעטפת (בשלב האינטגרציה)");
+    case "addSite": S.modal = "addSite"; return renderOverlay();
+    case "saveSite": { const dm = ($("#nsDomain").value||"").trim().toLowerCase().replace(/^https?:\/\//,"").replace(/\/.*$/,""); if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(dm)) return toast("דומיין לא תקין");
+      const id = "s"+(SITES.length+1+Math.floor(Math.random()*1000)); const wpP = $("#nsPlat").value === "WordPress";
+      SITES.push({id, name:$("#nsName").value.trim()||dm, domain:dm, platform:$("#nsPlat").value, market:"ישראל · עברית (gl=il, hl=iw)", conn:{serp:true,gsc:false,wp:wpP,crawl:true}, lastCrawl:null, lastRank:null, created:Date.now()});
+      COMPETITORS[id] = []; PAGES[id] = []; S.modal = null; S.site = id; toast("האתר נוסף. מילים יופיעו אחרי שתוסיף אותן למעקב."); return render(); }
+    case "checkRanks": return checkRanks();
+    case "toggleAdd": S.addOpen = !S.addOpen; return render();
+    case "addKw": { const lines = ($("#addKw").value||"").split("\n").map(s=>s.trim()).filter(Boolean); const g = ($("#addGroup").value||"").trim() || "כללי";
+      lines.forEach(l => trackKw(l, g)); S.addOpen = false; toast(`${lines.length} מילים נוספו — מסומנות "טרם נבדק"`); return render(); }
+    case "clearKw": Object.assign(S, {kwq:"",kwGroup:"",kwBucket:"",kwMove:"",kwIntent:"",kwStatus:""}); return render();
+    case "selAll": { const list = kwFiltered(); const all = list.every(k => S.kwSel.has(k.id)); list.forEach(k => all ? S.kwSel.delete(k.id) : S.kwSel.add(k.id)); return render(); }
+    case "clearSel": S.kwSel.clear(); return render();
+    case "bulkPause": KEYWORDS.forEach(k => { if (S.kwSel.has(k.id)) k.status = k.status==="tracking"?"paused":"tracking"; }); S.kwSel.clear(); return render();
+    case "bulkRemove": { const n = S.kwSel.size; for (let i=KEYWORDS.length-1;i>=0;i--) if (S.kwSel.has(KEYWORDS[i].id)) KEYWORDS.splice(i,1); S.kwSel.clear(); toast(`${n} מילים הוסרו מהמעקב`); return render(); }
+    case "discover": { const R = S.research; if (!R.seed.trim()) return; R.busy = true; render(); setTimeout(() => { R.result = fakeDiscovery(R.seed, R.audience); R.busy = false; render(); }, 600); return; }
+    case "analyzeSerp": { const R = S.research; if (!R.coSeed.trim()) return; R.coBusy = true; render(); setTimeout(() => {
+        const cs = comps(), us = site().domain;
+        const rows = [...cs.map((c,i) => ({d:c.domain, p:[1,3,5,8][i]||9, title:`${R.coSeed} – ${c.name}`})), {d:us, p:4, title:`${R.coSeed} | ${site().name}`, us:true}, {d:"he.wikipedia.org",p:2,title:R.coSeed+" – ויקיפדיה"},{d:"forum-cars.example",p:6,title:"שרשור: "+R.coSeed},{d:"new-competitor.example",p:7,title:R.coSeed+" במחיר קבוע"}].sort((a,b)=>a.p-b.p).slice(0,10);
+        R.coResult = {seed:R.coSeed, rows, gaps:[`כמה עולה ${R.coSeed}`,`${R.coSeed} ליד הבית`,`מה ההבדל בין ${R.coSeed} למוסך רגיל`,`האם ${R.coSeed} כולל רכב חלופי`]}; R.coBusy = false; render(); }, 600); return; }
+    case "newPlan": S.research.planForm = {name:"",keyword:"",audience:"",notes:""}; return render();
+    case "cancelPlan": S.research.planForm = null; return render();
+    case "savePlan": { const f = S.research.planForm; if (!f.name.trim()) return toast("יש לתת שם לתוכנית");
+      if (f.id) Object.assign(PLANS.find(p=>p.id===f.id), f); else PLANS.push({...f, id:Date.now()%100000, site:S.site, created:Date.now()});
+      S.research.planForm = null; return render(); }
+    case "addComp": { const v = ($("#newComp").value||"").trim().toLowerCase(); if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(v)) return toast("דומיין לא תקין"); comps().push({domain:v,name:v}); S.comp = v; toast("המתחרה נוסף. המיקומים שלו יופיעו אחרי בדיקת המיקומים הבאה."); return render(); }
+    case "genArticle": { const R = S.produce; if (!R.keyword.trim()) return; R.busy = true; render(); setTimeout(() => { R.busy = false; const p = generate(R.keyword.trim(), null, R.plan); if (p){ S.compose = {...p}; R.keyword = ""; } render(); }, 700); return; }
+    case "genIdeas": { const R = S.produce; if (!R.topic.trim()) return; if (!S.live.ai) return toast("AI לא מחובר"); R.ideasBusy = true; render(); setTimeout(() => { const t = R.topic.trim();
+        R.ideas = [`${t}: המדריך המלא לחברות`,`7 טעויות נפוצות ב${t}`,`${t} מול מיקור חוץ: מה משתלם יותר`,`כמה עולה ${t} בשנה`,`רשימת בדיקה: ${t} לפני סוף השנה`,`איך לבחור ספק ל${t}`,`${t} לחברות קטנות: מאיפה מתחילים`,`שאלות ותשובות על ${t}`]; R.ideasBusy = false; render(); }, 600); return; }
+    case "newCompose": S.compose = {id:null, keyword:"", plan_id:"", title:"", meta_description:"", content_html:"", scheduled_at:""}; return render();
+    case "closeCompose": S.compose = null; return render();
+    case "composeGen": { const c = S.compose; if (!c.keyword.trim()) return toast("הזן מילת מפתח"); const p = generate(c.keyword.trim(), c.title.trim()||null, c.plan_id); if (p) S.compose = {...p, scheduled_at:""}; return render(); }
+    case "composeSave": case "composePublish": {
+      const c = S.compose; const sched = c.scheduled_at ? new Date(c.scheduled_at).toISOString() : null;
+      let p = POSTS.find(x => x.id === c.id);
+      const status = sched ? "scheduled" : p?.status === "published" ? "published" : "draft";
+      const data = {title:c.title, keyword:c.keyword, plan_id:c.plan_id?+c.plan_id:null, meta_description:c.meta_description, content_html:c.content_html, status, scheduled_at:sched, updated_at:new Date().toISOString()};
+      if (p) Object.assign(p, data); else { p = {id:++PID, site:S.site, published_at:null, published_url:null, error:null, rank:null, rank_checked_at:null, created_at:new Date().toISOString(), ...data}; POSTS.unshift(p); }
+      if (d.act === "composePublish"){ S.modal = {type:"confirmPub", id:p.id}; S.compose = null; render(); return renderOverlay(); }
+      S.compose = null; toast(sched ? "המאמר תוזמן (הדגמה)" : "הטיוטה נשמרה"); return render(); }
+    case "doPublish": { const p = POSTS.find(x=>x.id===S.modal.id); Object.assign(p, {status:"published", published_at:new Date().toISOString(), published_url:`https://${site().domain}/blog/${p.id}`, error:null}); S.modal = null; toast("פורסם (הדגמה — לא נשלח דבר)"); return render(); }
+    case "scheduleDrafts": { const drafts = sitePosts().filter(p=>p.status==="draft"); const start = S.publish.start ? Date.parse(S.publish.start) : Date.now()+DAY, step = +S.publish.cadence*DAY;
+      drafts.forEach((p,i) => { const dt = new Date(start + i*step); dt.setHours(9,0,0,0); p.status = "scheduled"; p.scheduled_at = dt.toISOString(); });
+      toast(`${drafts.length} טיוטות תוזמנו`); return render(); }
+    case "checkPostRanks": { const tr = sitePosts().filter(p=>p.status==="published"&&p.keyword).sort((a,b)=>(a.rank_checked_at||"").localeCompare(b.rank_checked_at||"")).slice(0,10);
+      tr.forEach(p => { const k = siteKw().find(x=>x.kw===p.keyword); const c = k ? cur(k) : undefined; p.rank = c != null && c <= 10 ? c : (k ? null : 6); p.rank_checked_at = new Date().toISOString(); });
+      const left = sitePosts().filter(p=>p.status==="published"&&p.keyword&&!p.rank_checked_at).length;
+      S.measure.note = `נבדקו ${tr.length} מאמרים${left?` · ${left} עדיין לא נבדקו — הפעל שוב`:""}.`; return render(); }
+    case "optAnalyze": { const O = S.optimize, p = POSTS.find(x=>x.id===O.postId); O.busy = true; O.applied = 0; O.sugs = []; render(); setTimeout(() => { O.busy = false; O.sugs = optSuggestions(p); O.src = S.live.serp ? "live" : "ai"; render(); }, 700); return; }
+  }
+});
+document.addEventListener("change", e => { if (e.target.id === "sitePick"){ S.site = e.target.value; S.kwSel.clear(); S.comp = null; S.optimize.postId = null; S.compose = null; render(); } });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && (S.drawer || S.modal)){ S.drawer = null; S.modal = null; renderOverlay(); } });
+
+const h = location.hash.slice(1); if (VIEWS[h]) S.tab = h;
+</script>
+<script>
+"use strict";
+/* ============================================================
+   חיבור אתר — אשף הוספה, מרכז חיבורים לכל אתר ופס מצב.
+   בהדגמה: כל בדיקה מדומה. שום בקשה לא נשלחת לאתר, ל-Google או ל-WordPress.
+   מפתחות וסיסמאות לא מוזנים כאן — הם נשמרים רק בצד השרת, דרך אזור ההגדרות המרכזי.
+   ============================================================ */
+const hash = s => { let h = 0; for (const ch of String(s)) h = (h*31 + ch.charCodeAt(0))|0; return Math.abs(h); };
+const CONN = {
+  s1:{
+    verify:{state:"ok", method:"dns", at:NOW-110*DAY, record:"dalia-seo-verify=7f3c9a21e4"},
+    gsc:{state:"off"},
+    wp:{state:"warn", url:"https://dalia-demo.example/wp-json", user:"dalia-seo", at:NOW-DAY, perms:["יצירת פוסטים","העלאת תמונות","עריכת קטגוריות"], error:"פרסום אחד נכשל ב-401 לפני יומיים (סיסמת אפליקציה). בדיקה חוזרת עברה."},
+    rank:{state:"ok", provider:"SerpAPI", owner:"dalia", location:"ישראל", city:"", device:"מחשב + נייד", freq:"שבועי", depth:100, at:NOW-DAY},
+    crawl:{state:"ok", sitemap:"https://dalia-demo.example/sitemap_index.xml", maxPages:500, freq:"שבועי", exclude:"/wp-admin, /cart", robots:true, at:NOW-2*DAY, pages:11},
+    psi:{state:"partial", at:NOW-2*DAY, note:"נבדקו 7 מתוך 11 עמודים"}
+  },
+  s2:{
+    verify:{state:"ok", method:"meta", at:NOW-58*DAY, record:'<meta name="dalia-seo-verify" content="c81b02f6">'},
+    gsc:{state:"off"},
+    wp:{state:"na"},
+    rank:{state:"ok", provider:"SerpAPI", owner:"dalia", location:"ישראל", city:"ראשון לציון", device:"נייד", freq:"שבועי", depth:100, at:NOW-3*DAY},
+    crawl:{state:"ok", sitemap:"https://garage-dalia.example/sitemap.xml", maxPages:100, freq:"חודשי", exclude:"", robots:true, at:NOW-6*DAY, pages:4},
+    psi:{state:"off"}
+  }
+};
+const CSTATE = {ok:["מחובר · הדגמה","up"], warn:["מחובר עם אזהרה","warn"], off:["לא מחובר","warn"], err:["שגיאה","down"], na:["לא רלוונטי",""], partial:["חלקי","warn"], pending:["ממתין לאימות","info"]};
+const cs = s => `<span class="badge ${CSTATE[s][1]}">${CSTATE[s][0]}</span>`;
+const CONN_DEF = [
+  ["verify","אימות בעלות על האתר","מוכיח שהאתר שייך לחברה. בלי אימות אין Search Console ואין סריקה מלאה."],
+  ["gsc","Google Search Console","קליקים, חשיפות, CTR, מיקום ממוצע ומצב אינדוקס — הנתון האמיתי של גוגל על האתר."],
+  ["rank","מקור מיקומים (SERP)","בדיקת מיקום בגוגל לכל מילה, מתחרים ושאלות מחפשים."],
+  ["crawl","סריקת האתר","עמודים, כותרות, תיאורים, קישורים ובעיות טכניות."],
+  ["psi","PageSpeed / Core Web Vitals","מהירות טעינה בנייד ובמחשב."],
+  ["wp","WordPress","פרסום מאמרים מהמודול ישירות לאתר."]
+];
+function ci(sid){ if (!CONN[sid]) CONN[sid] = {verify:{state:"off"},gsc:{state:"off"},wp:{state:"off"},rank:{state:"off"},crawl:{state:"off"},psi:{state:"off"}}; return CONN[sid]; }
+function syncConn(sid){ const c = ci(sid), s = SITES.find(x=>x.id===sid); if (!s) return;
+  s.conn = {serp:["ok","warn"].includes(c.rank.state), gsc:c.gsc.state==="ok", wp:["ok","warn"].includes(c.wp.state), crawl:["ok","partial"].includes(c.crawl.state)}; }
+SITES.forEach(s => syncConn(s.id));
+
+/* ---- פס מצב חיבורים (קיים במקור: ConnectionStatus) ---- */
+function renderStrip(){
+  let el = $("#connStrip");
+  if (!el){ el = document.createElement("div"); el.id = "connStrip"; $(".mod-head").appendChild(el); }
+  const c = ci(S.site), s = site();
+  const dot = on => `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${on?"var(--up)":"var(--faint)"}"></span>`;
+  el.innerHTML = `<div class="row xs muted" style="gap:14px;padding:8px 0;border-top:1px solid var(--line);margin-top:0">
+    ${ORIG()}
+    <span class="row" style="gap:5px">${dot(S.live.ai)} יצירת AI ${S.live.ai?"מוכנה":"כבויה"}</span>
+    <span class="row" style="gap:5px">${dot(S.live.wp && s.conn.wp)} WordPress ${c.wp.state==="na"?"לא רלוונטי":S.live.wp && s.conn.wp?"מחובר":"לא מחובר"}</span>
+    <span class="row" style="gap:5px">${dot(S.live.serp && s.conn.serp)} מחקר חי (SERP) ${S.live.serp && s.conn.serp?"מחובר":"לא מחובר"}</span>
+    ${NEW()}<span class="row" style="gap:5px">${dot(c.gsc.state==="ok")} Search Console ${c.gsc.state==="ok"?"מחובר":"לא מחובר"}</span>
+    <span class="row" style="gap:5px">${dot(c.verify.state==="ok")} בעלות ${c.verify.state==="ok"?"מאומתת":"לא מאומתת"}</span>
+    <span class="grow"></span><button class="btn ghost sm" data-conncenter="${S.site}">מרכז החיבורים של האתר</button></div>`;
+}
+
+/* ---- כרטיסי חיבור (מחליף את הגרסה הקודמת) ---- */
+function connCards(s){
+  const c = ci(s.id);
+  return CONN_DEF.filter(([k]) => k !== "psi").map(([k,n,d]) => {
+    let st = c[k].state;
+    if (k==="rank" && !S.live.serp) st = "off";
+    if (k==="wp" && !S.live.wp && st!=="na") st = "off";
+    return `<button class="card" data-conncenter="${s.id}" data-focus="${k}" style="padding:12px;text-align:right;border:0;cursor:pointer;background:var(--card)">
+      <div class="row"><span class="b sm">${n}</span><span class="grow"></span>${cs(st)}</div><p class="xs muted m0 mt-s">${d}</p></button>`;
+  }).join("");
+}
+
+/* ---- ניהול אתרים (מחליף) ---- */
+function vSites2(){
+  return `<div class="stack">
+    <div class="head"><div><h2 class="t">ניהול אתרים ${NEW()}</h2><p class="sm muted m0 mt-s">האתרים של החברה הפעילה וכל החיבורים שלהם. החברה, המשתמשים וההרשאות מגיעים מדליה.</p></div>
+      <button class="btn pri" data-wiz="open">+ חיבור אתר חדש</button></div>
+    ${SITES.map(s => { const m = siteMetrics(s.id), c = ci(s.id);
+      const ready = CONN_DEF.filter(([k]) => ["ok","warn","partial","na"].includes(c[k].state)).length;
+      return `<div class="card">
+      <div class="zone"><div class="head"><div><h3 class="t">${esc(s.name)} <span class="sm muted ltr">${esc(s.domain)}</span></h3>
+        <p class="xs muted m0 mt-s">${esc(s.platform)} · ${esc(s.market)} · נוסף ${fdate(s.created)}</p></div>
+        <div class="row">${s.id===S.site?`<span class="badge info">האתר הנבחר</span>`:`<button class="btn sm" data-site="${s.id}">עבור לאתר</button>`}<button class="btn sm" data-conncenter="${s.id}">מרכז חיבורים</button></div></div>
+        <div class="row mt"><span class="sm">חיבורים פעילים: <b class="num">${ready}/${CONN_DEF.length}</b></span><div class="bar" style="width:160px"><span style="width:${ready/CONN_DEF.length*100}%"></span></div></div></div>
+      <div class="zone"><div class="grid g4">${[["מילים במעקב",m.total],["בעמוד הראשון",m.top10],["מיקום ממוצע",m.avg?m.avg.toFixed(1):"—"],["בעיות טכניות",m.issues]].map(([l,v]) => `<div><div class="b num" style="font-size:20px">${v}</div><div class="xs muted">${l}</div></div>`).join("")}</div></div>
+      <div class="zone"><div class="grid g3">${connCards(s)}</div></div>
+      <div class="zone soft"><div class="row"><span class="xs muted">מיקומים: ${fdt(s.lastRank)} · סריקה: ${fdt(s.lastCrawl)}</span><span class="grow"></span>
+        <button class="btn sm" data-crawl="${s.id}">סרוק עכשיו</button><button class="btn ghost sm danger" data-rmsite="${s.id}" ${SITES.length<2?"disabled":""}>נתק והסר</button></div></div>
+    </div>`; }).join("")}
+    <div class="notice info"><span>מפתחות, סיסמאות והרשאות OAuth לא נשמרים ב-OpenSEO. הם נשמרים בצד השרת דרך אזור ההגדרות המרכזי, ו-OpenSEO מקבל רק את מצב החיבור. ${SHARED()}</span></div>
+  </div>`;
+}
+VIEWS.sites = vSites2;
+
+/* ---- מרכז החיבורים של אתר (מגירה) ---- */
+function connCenter(sid, focus){
+  const s = SITES.find(x=>x.id===sid), c = ci(sid);
+  const block = (k, body, actions) => { const [,n,d] = CONN_DEF.find(x=>x[0]===k); return `<div class="card" id="cc-${k}" ${focus===k?'style="box-shadow:inset 0 0 0 2px var(--blue)"':""}>
+    <div class="zone"><div class="head"><h3 class="t">${n}</h3>${cs(c[k].state)}</div><p class="xs muted m0 mt-s">${d}</p></div>
+    <div class="zone">${body}</div><div class="zone soft"><div class="row">${actions}</div></div></div>`; };
+  const kv = rows => `<dl style="display:grid;grid-template-columns:130px 1fr;gap:6px 12px;margin:0;font-size:14px">${rows.filter(Boolean).map(([a,b])=>`<dt class="muted">${a}</dt><dd class="m0">${b}</dd>`).join("")}</dl>`;
+  const V = c.verify, G = c.gsc, W = c.wp, R = c.rank, C = c.crawl, X = c.psi;
+  return `<div class="scrim" data-act="close"></div><aside class="drawer" role="dialog" aria-label="מרכז חיבורים">
+  <div class="drawer-h"><div><div class="xs muted">מרכז החיבורים ${NEW()}</div><strong>${esc(s.name)} <span class="ltr muted sm">${esc(s.domain)}</span></strong></div><span class="grow"></span><button class="btn ghost ic" data-act="close" aria-label="סגור">✕</button></div>
+  <div class="drawer-b">
+    <div class="notice info"><span>כל הבדיקות בהדגמה מדומות. בפיתוח, כל כפתור "חבר" פותח חיבור מאובטח דרך אזור ההגדרות המרכזי ${SHARED()}</span></div>
+    ${block("verify", V.state==="ok" ? kv([["שיטה",({dns:"רשומת DNS (TXT)",meta:"תגית meta בעמוד הבית",file:"קובץ HTML בשורש האתר",gsc:"דרך Search Console"})[V.method]],["ערך האימות",`<code>${esc(V.record)}</code>`],["אומת",fdt(V.at)]])
+        : `<p class="sm m0">האתר עדיין לא מאומת. בחר שיטה בשלב האימות של אשף החיבור.</p>`,
+      `<button class="btn sm" data-ctest="verify|${sid}">בדוק שוב</button>${V.state!=="ok"?`<button class="btn pri sm" data-wiz="verify|${sid}">אמת עכשיו</button>`:""}`)}
+    ${block("gsc", G.state==="ok" ? kv([["נכס",`<code>${esc(G.property)}</code>`],["הרשאה","קריאה בלבד"],["חשבון Google",esc(G.account)],["סנכרון אחרון",fdt(G.at)],["נתונים","קליקים, חשיפות, CTR, מיקום ממוצע, אינדוקס, sitemaps"]])
+        : `<p class="sm m0">לא מחובר. בלי Search Console אין קליקים וחשיפות אמיתיים — המסכים מציגים "טרם נבדק".</p>${V.state!=="ok"?`<p class="xs m0 mt-s" style="color:var(--warn)">נדרש קודם אימות בעלות.</p>`:""}`,
+      G.state==="ok" ? `<button class="btn sm" data-ctest="gsc|${sid}">סנכרן עכשיו</button><button class="btn ghost sm danger" data-cdisc="gsc|${sid}">נתק</button>`
+        : `<button class="btn pri sm" data-gsc="${sid}" ${V.state!=="ok"?"disabled":""}>התחבר עם Google</button>`)}
+    ${block("rank", R.state==="off" ? `<p class="sm m0">אין מקור מיקומים. בלי מקור כזה אין מיקומים, מתחרים והיסטוריה — ו-AI לא ממלא את החסר.</p>`
+        : kv([["ספק",`${esc(R.provider)} <span class="xs muted">(${R.owner==="dalia"?"חיבור של דליה":"חיבור של החברה"})</span>`],["מיקום החיפוש",`${esc(R.location)}${R.city?" · "+esc(R.city):""} · עברית`],["מכשיר",esc(R.device)],["תדירות",esc(R.freq)],["עומק","100 תוצאות"],["בדיקה אחרונה",fdt(R.at)],["עלות משוערת",`<span class="src ai">הערכה</span> ${siteKw().length} מילים × ${R.freq==="יומי"?30:4} בדיקות בחודש — יאושר מול התקציב ${SHARED("תקציבים וקרדיטים – ימומש בשלב האינטגרציה")}`]]),
+      `<button class="btn sm" data-wiz="rank|${sid}">ערוך הגדרות</button><button class="btn sm" data-ctest="rank|${sid}">בדיקת ניסיון</button>`)}
+    ${block("crawl", kv([["Sitemap",C.sitemap?`<span class="ltr sm">${esc(C.sitemap)}</span>`:"—"],["עמודים שנסרקו",C.pages??"—"],["מקסימום עמודים",C.maxPages??"—"],["תדירות",esc(C.freq||"—")],["החרגות",C.exclude?`<span class="ltr sm">${esc(C.exclude)}</span>`:"אין"],["מכבד robots.txt",C.robots?"כן":"לא"],["סריקה אחרונה",fdt(C.at)]]),
+      `<button class="btn sm" data-crawl="${sid}">סרוק עכשיו</button><button class="btn sm" data-wiz="crawl|${sid}">ערוך הגדרות</button>`)}
+    ${block("psi", X.state==="off" ? `<p class="sm m0">לא הופעל. עמודים יציגו LCP "טרם נבדק".</p>` : kv([["מצב",esc(X.note||"")],["בדיקה אחרונה",fdt(X.at)]]),
+      `<button class="btn sm" data-ctest="psi|${sid}">${X.state==="off"?"הפעל":"בדוק את כל העמודים"}</button>`)}
+    ${block("wp", W.state==="na" ? `<p class="sm m0">האתר לא בנוי על WordPress. אפשר ליצור תוכן ולהעתיק אותו, בלי פרסום אוטומטי.</p>`
+        : W.state==="off" ? `<p class="sm m0">לא מחובר. פרסום ותזמון מאמרים לא יעבדו.</p>`
+        : kv([["כתובת REST",`<span class="ltr sm">${esc(W.url)}</span>`],["משתמש",esc(W.user)],["סיסמת אפליקציה",`<span class="badge">שמורה בצד השרת</span>`],["הרשאות",W.perms.join(" · ")],["בדיקה אחרונה",fdt(W.at)],W.error&&["הערה",`<span style="color:var(--warn)">${esc(W.error)}</span>`]]),
+      W.state==="na" ? `<button class="btn sm" data-wpna="${sid}">האתר כן על WordPress</button>` : W.state==="off" ? `<button class="btn pri sm" data-wiz="wp|${sid}">חבר WordPress</button>`
+        : `<button class="btn sm" data-ctest="wp|${sid}">בדוק חיבור</button><button class="btn sm" data-wiz="wp|${sid}">החלף פרטי חיבור</button><button class="btn ghost sm danger" data-cdisc="wp|${sid}">נתק</button>`)}
+    <div class="card"><div class="zone"><h3 class="t">יומן חיבור</h3></div><div class="tbl-wrap"><table><tbody>
+      ${[[V.at,"אימות בעלות הושלם"],[R.at,"בדיקת מיקומים הושלמה"],[C.at,"סריקה הושלמה"],W.at&&[W.at,"בדיקת WordPress עברה"],W.error&&[NOW-2*DAY,"WordPress: שגיאת 401 בפרסום"]].filter(Boolean).filter(x=>x[0]).sort((a,b)=>b[0]-a[0]).map(([t,l])=>`<tr><td class="xs num muted" style="width:130px">${fdt(t)}</td><td class="sm">${esc(l)}</td></tr>`).join("")}
+    </tbody></table></div><div class="zone soft xs muted">בדליה היומן נכתב ליומן הפעילות המרכזי ${SHARED()}</div></div>
+  </div></aside>`;
+}
+
+/* ---- אשף חיבור אתר ---- */
+const WIZ_STEPS = ["פרטי האתר","אימות בעלות","Search Console","מקור מיקומים","סריקה","WordPress","סיכום"];
+function newWiz(){ return {step:0, siteId:null, name:"", domain:"", plat:"WordPress", market:"il-he", city:"", check:null,
+  vmethod:"dns", vstate:"idle", gsc:"idle", gscProp:"", rankProv:"SerpAPI", rankOwner:"dalia", device:"both", freq:"weekly",
+  sitemap:"", maxPages:500, crawlFreq:"weekly", exclude:"/wp-admin, /cart", robots:true, crawlNow:true,
+  wpUrl:"", wpUser:"", wpState:"idle", err:null}; }
+function wizView(){
+  const w = S.wiz, st = w.step, dom = w.domain || "example.co.il";
+  const nav = `<div class="row" style="gap:4px;flex-wrap:wrap">${WIZ_STEPS.map((l,i)=>`<span class="chip" style="${i===st?"background:var(--navy);color:#fff":i<st?"background:var(--up-t);color:var(--up)":""}">${i<st?"✓ ":""}${i+1}. ${l}</span>`).join("")}</div>`;
+  let body = "";
+  if (st === 0) body = `
+    <label class="f">כתובת האתר<input class="input" dir="ltr" data-w="domain" value="${esc(w.domain)}" placeholder="dalia-c.com"></label>
+    <label class="f">שם לתצוגה<input class="input" data-w="name" value="${esc(w.name)}" placeholder="האתר הראשי"></label>
+    <div class="grid g2"><label class="f">פלטפורמה<select class="input" data-w="plat" style="width:100%">${["WordPress","Wix","Shopify","אתר מותאם / אחר"].map(p=>`<option ${w.plat===p?"selected":""}>${p}</option>`).join("")}</select></label>
+      <label class="f">שוק החיפוש<select class="input" data-w="market" style="width:100%"><option value="il-he" ${w.market==="il-he"?"selected":""}>ישראל · עברית (gl=il, hl=iw)</option><option value="il-en" ${w.market==="il-en"?"selected":""}>ישראל · אנגלית</option></select></label></div>
+    <label class="f">עיר למיקום מקומי (לא חובה)<input class="input" data-w="city" value="${esc(w.city)}" placeholder="ראשון לציון"></label>
+    <div class="row"><button class="btn" data-wa="probe">בדוק את האתר</button><span class="xs muted">בודק שהאתר עונה, HTTPS, robots.txt ו-sitemap.</span></div>
+    ${w.check?`<div class="card" style="padding:10px 12px">${w.check.map(([ok,l])=>`<div class="sm">${ok?"✓":"⚠"} ${esc(l)}</div>`).join("")}<div class="xs muted mt-s">תוצאות הדגמה</div></div>`:""}`;
+  if (st === 1) body = `
+    <p class="sm m0">אימות מוכיח שהאתר שייך לחברה. בחר שיטה אחת:</p>
+    <div class="seg" role="group">${[["dns","רשומת DNS"],["meta","תגית meta"],["file","קובץ HTML"],["gsc","דרך Search Console"]].map(([v,l])=>`<button data-wv="${v}" aria-pressed="${w.vmethod===v}">${l}</button>`).join("")}</div>
+    <div class="card" style="padding:12px">${({
+      dns:`<p class="sm m0">הוסף רשומת TXT אצל ספק הדומיין של <span class="ltr">${esc(dom)}</span>:</p><p class="m0 mt-s"><code>dalia-seo-verify=${(hash(dom)%1e10).toString(16)}</code></p><p class="xs muted m0 mt-s">עדכון DNS יכול לקחת עד כמה שעות.</p>`,
+      meta:`<p class="sm m0">הדבק בתוך &lt;head&gt; של עמוד הבית:</p><p class="m0 mt-s"><code>&lt;meta name="dalia-seo-verify" content="${(hash(dom)%1e8).toString(16)}"&gt;</code></p>`,
+      file:`<p class="sm m0">העלה לשורש האתר קובץ בשם:</p><p class="m0 mt-s"><code>dalia-${(hash(dom)%1e6).toString(16)}.html</code></p>`,
+      gsc:`<p class="sm m0">אם האתר כבר מאומת ב-Search Console, האימות יתבצע אוטומטית בשלב הבא.</p>`})[w.vmethod]}</div>
+    <div class="row"><button class="btn" data-wa="verify">בדוק אימות</button>${w.vstate==="ok"?`<span class="badge up">✓ מאומת (הדגמה)</span>`:w.vstate==="pending"?`<span class="badge info">בודק…</span>`:""}<button class="btn ghost sm" data-wa="skip">אמת מאוחר יותר</button></div>`;
+  if (st === 2) body = `
+    <p class="sm m0">Search Console נותן את הנתונים האמיתיים של גוגל על האתר: קליקים, חשיפות, CTR, מיקום ממוצע ומצב אינדוקס.</p>
+    ${w.gsc==="ok" ? `<label class="f">בחר נכס<select class="input" data-w="gscProp" style="width:100%">${[`sc-domain:${dom}`,`https://${dom}/`,`https://www.${dom}/`].map(p=>`<option ${w.gscProp===p?"selected":""}>${esc(p)}</option>`).join("")}</select></label>
+       <div class="notice ok"><span>החשבון חובר בהרשאת קריאה בלבד (הדגמה).</span></div>`
+      : `<div class="row"><button class="btn pri" data-wa="gsc" ${w.vstate!=="ok"&&w.vmethod!=="gsc"?"disabled":""}>התחבר עם Google</button><button class="btn ghost sm" data-wa="skip">דלג — אחבר אחר כך</button></div>
+         ${w.vstate!=="ok"&&w.vmethod!=="gsc"?`<p class="xs m0" style="color:var(--warn)">נדרש קודם אימות בעלות (שלב 2).</p>`:""}
+         <p class="xs muted m0">בפועל ייפתח חלון ההתחברות של Google. ה-token נשמר בצד השרת בלבד ${SHARED()}</p>`}`;
+  if (st === 3) body = `
+    <p class="sm m0">מאיפה יגיעו המיקומים בגוגל. AI לא יכול להחליף את המקור הזה.</p>
+    <div class="grid g2"><label class="f">ספק<select class="input" data-w="rankProv" style="width:100%"><option ${w.rankProv==="SerpAPI"?"selected":""}>SerpAPI</option><option ${w.rankProv==="DataForSEO"?"selected":""}>DataForSEO</option></select></label>
+      <label class="f">בעלות על החיבור<select class="input" data-w="rankOwner" style="width:100%"><option value="dalia" ${w.rankOwner==="dalia"?"selected":""}>חיבור של דליה</option><option value="company" ${w.rankOwner==="company"?"selected":""}>מפתח של החברה</option></select></label>
+      <label class="f">מכשיר<select class="input" data-w="device" style="width:100%"><option value="both" ${w.device==="both"?"selected":""}>מחשב + נייד</option><option value="mobile" ${w.device==="mobile"?"selected":""}>נייד</option><option value="desktop" ${w.device==="desktop"?"selected":""}>מחשב</option></select></label>
+      <label class="f">תדירות<select class="input" data-w="freq" style="width:100%"><option value="weekly" ${w.freq==="weekly"?"selected":""}>שבועי</option><option value="daily" ${w.freq==="daily"?"selected":""}>יומי</option></select></label></div>
+    <p class="xs muted m0">מיקום החיפוש: ${w.market==="il-he"?"ישראל · עברית":"ישראל · אנגלית"}${w.city?" · "+esc(w.city):""} · עומק 100 תוצאות.</p>
+    <div class="notice warn"><span>שירות בתשלום. לא יופעל בלי אישור ובלי תקציב פנוי ${SHARED("תקציבים ואישורים – ימומש בשלב האינטגרציה")}</span></div>`;
+  if (st === 4) body = `
+    <label class="f">כתובת Sitemap<input class="input" dir="ltr" data-w="sitemap" value="${esc(w.sitemap || `https://${dom}/sitemap.xml`)}"></label>
+    <div class="grid g2"><label class="f">מקסימום עמודים<input class="input" type="number" min="10" max="5000" data-w="maxPages" value="${w.maxPages}"></label>
+      <label class="f">תדירות<select class="input" data-w="crawlFreq" style="width:100%"><option value="weekly" ${w.crawlFreq==="weekly"?"selected":""}>שבועי</option><option value="monthly" ${w.crawlFreq==="monthly"?"selected":""}>חודשי</option></select></label></div>
+    <label class="f">נתיבים להחרגה<input class="input" dir="ltr" data-w="exclude" value="${esc(w.exclude)}"></label>
+    <label class="check"><input type="checkbox" data-w="robots" ${w.robots?"checked":""}> לכבד את robots.txt</label>
+    <label class="check"><input type="checkbox" data-w="crawlNow" ${w.crawlNow?"checked":""}> להתחיל סריקה מיד אחרי החיבור</label>`;
+  if (st === 5) body = w.plat !== "WordPress" ? `<div class="notice info"><span>האתר על ${esc(w.plat)}. פרסום אוטומטי זמין רק ל-WordPress (כמו במקור). אפשר ליצור תוכן ולהעתיק אותו.</span></div>` : `
+    <p class="sm m0">פרסום מאמרים ישירות לאתר, דרך ה-REST API של WordPress עם סיסמת אפליקציה.</p>
+    <label class="f">כתובת האתר<input class="input" dir="ltr" data-w="wpUrl" value="${esc(w.wpUrl || `https://${dom}`)}"></label>
+    <label class="f">שם משתמש ב-WordPress<input class="input" dir="ltr" data-w="wpUser" value="${esc(w.wpUser)}" placeholder="seo-editor"></label>
+    <div class="card" style="padding:12px"><div class="row"><span class="b sm">סיסמת אפליקציה</span><span class="badge">לא מוזנת כאן</span></div>
+      <p class="xs muted m0 mt-s">יוצרים ב-WordPress: משתמשים ← פרופיל ← Application Passwords. הסיסמה מוזנת רק בחלון המאובטח של אזור ההגדרות ונשמרת בצד השרת, לא בדפדפן ${SHARED()}</p>
+      <button class="btn sm mt" data-wa="wpSecure">פתח חלון מאובטח (הדגמה)</button></div>
+    <div class="row"><button class="btn" data-wa="wpTest" ${w.wpState==="secret"||w.wpState==="ok"?"":"disabled"}>בדוק חיבור</button>
+      ${w.wpState==="ok"?`<span class="badge up">✓ REST API עונה · המשתמש יכול ליצור פוסטים (הדגמה)</span>`:w.wpState==="secret"?`<span class="badge info">הסיסמה נשמרה בצד השרת</span>`:""}<button class="btn ghost sm" data-wa="skip">דלג</button></div>`;
+  if (st === 6) body = `<table><tbody>${[
+      ["אתר",`${esc(w.name||dom)} <span class="ltr muted">${esc(dom)}</span>`],["פלטפורמה",esc(w.plat)],["שוק",`${w.market==="il-he"?"ישראל · עברית":"ישראל · אנגלית"}${w.city?" · "+esc(w.city):""}`],
+      ["אימות בעלות",w.vstate==="ok"?cs("ok"):cs("pending")],["Search Console",w.gsc==="ok"?`${cs("ok")} <code>${esc(w.gscProp||`sc-domain:${dom}`)}</code>`:cs("off")],
+      ["מקור מיקומים",`${esc(w.rankProv)} · ${w.freq==="daily"?"יומי":"שבועי"} · ${({both:"מחשב + נייד",mobile:"נייד",desktop:"מחשב"})[w.device]}`],
+      ["סריקה",`עד ${w.maxPages} עמודים · ${w.crawlFreq==="weekly"?"שבועי":"חודשי"}`],["WordPress",w.plat!=="WordPress"?cs("na"):w.wpState==="ok"?cs("ok"):cs("off")]
+    ].map(([a,b])=>`<tr><td class="muted sm" style="width:130px">${a}</td><td class="sm">${b}</td></tr>`).join("")}</tbody></table>
+    <p class="xs muted m0">אחרי החיבור: מוסיפים מילות מפתח במעקב, ומוסיפים מתחרים או מאתרים אותם מתוצאות החיפוש.</p>`;
+  return `<div class="scrim"></div><div class="card modal" role="dialog" aria-label="חיבור אתר" style="width:min(680px,calc(100% - 24px))">
+    <div class="zone"><div class="head"><h2 class="t">${w.siteId?"עדכון חיבור":"חיבור אתר חדש"} ${NEW()}</h2><button class="btn ghost ic" data-wa="close" aria-label="סגור">✕</button></div><div class="mt">${nav}</div></div>
+    <div class="zone stack" style="gap:12px"><h3 class="t">${st+1}. ${WIZ_STEPS[st]}</h3>${body}${w.err?`<p class="sm m0" style="color:var(--down)" role="alert">${esc(w.err)}</p>`:""}</div>
+    <div class="zone row"><button class="btn ghost" data-wa="back" ${st===0?"disabled":""}>→ הקודם</button><span class="grow"></span>
+      ${st<6?`<button class="btn pri" data-wa="next">הבא ←</button>`:`<button class="btn pri" data-wa="finish">${w.siteId?"שמור":"חבר את האתר"}</button>`}</div></div>`;
+}
+
+/* ---- חלונות: הרחבה של renderOverlay ---- */
+const _baseOverlay = renderOverlay;
+window.renderOverlay = function(){
+  if (S.wiz){ $("#overlay").innerHTML = wizView(); bindWiz(); return; }
+  if (S.drawer?.type === "conn"){ $("#overlay").innerHTML = connCenter(S.drawer.id, S.drawer.focus); if (S.drawer.focus) document.getElementById("cc-"+S.drawer.focus)?.scrollIntoView({block:"center"}); return; }
+  _baseOverlay();
+};
+function bindWiz(){
+  document.querySelectorAll("[data-w]").forEach(i => i.addEventListener(i.tagName==="SELECT"||i.type==="checkbox"?"change":"input", e => {
+    const k = i.dataset.w; S.wiz[k] = i.type==="checkbox" ? i.checked : i.type==="number" ? +i.value : i.value;
+    if (["market","plat"].includes(k)) renderOverlay();
+  }));
+}
+const _baseRender = render;
+window.render = function(){ _baseRender(); renderStrip(); };
+
+/* ---- אירועים של החיבורים (שלב capture, לפני המאזין הראשי) ---- */
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  const d = t.dataset, stop = () => { e.stopImmediatePropagation(); e.preventDefault(); };
+  if (d.act === "addSite"){ stop(); S.wiz = newWiz(); return renderOverlay(); }
+  if (d.conncenter){ stop(); S.drawer = {type:"conn", id:d.conncenter, focus:d.focus||null}; return renderOverlay(); }
+  if (d.wiz){ stop();
+    if (d.wiz === "open"){ S.wiz = newWiz(); return renderOverlay(); }
+    const [part, sid] = d.wiz.split("|"), s = SITES.find(x=>x.id===sid), c = ci(sid);
+    S.wiz = {...newWiz(), siteId:sid, name:s.name, domain:s.domain, plat:s.platform==="WordPress"?"WordPress":"אתר מותאם / אחר", city:c.rank.city||"",
+      vstate:c.verify.state==="ok"?"ok":"idle", gsc:c.gsc.state==="ok"?"ok":"idle", sitemap:c.crawl.sitemap||"", maxPages:c.crawl.maxPages||500, wpUrl:c.wp.url?.replace("/wp-json","")||"", wpUser:c.wp.user||"", wpState:["ok","warn"].includes(c.wp.state)?"ok":"idle",
+      step:({verify:1,gsc:2,rank:3,crawl:4,wp:5})[part] ?? 0};
+    S.drawer = null; return renderOverlay(); }
+  if (d.ctest){ stop(); const [k,sid] = d.ctest.split("|"), c = ci(sid);
+    if (k==="psi"){ c.psi = {state:"ok", at:Date.now(), note:"כל העמודים נבדקו"}; }
+    else { c[k].at = Date.now(); if (k==="wp" && c.wp.state==="warn"){ c.wp.state = "ok"; c.wp.error = null; } if (k==="gsc") c.gsc.at = Date.now(); }
+    syncConn(sid); toast("הבדיקה עברה (הדגמה)"); render(); return renderOverlay(); }
+  if (d.cdisc){ stop(); const [k,sid] = d.cdisc.split("|"); ci(sid)[k] = {state:"off"}; syncConn(sid); toast("החיבור נותק (הדגמה)"); render(); return renderOverlay(); }
+  if (d.gsc){ stop(); const s = SITES.find(x=>x.id===d.gsc); ci(d.gsc).gsc = {state:"ok", property:`sc-domain:${s.domain}`, account:"seo@dalia-demo.example", at:Date.now()}; S.live.gsc = true; syncConn(d.gsc); toast("Search Console חובר (הדגמה)"); render(); return renderOverlay(); }
+  if (d.wpna){ stop(); ci(d.wpna).wp = {state:"off"}; const s = SITES.find(x=>x.id===d.wpna); s.platform = "WordPress"; syncConn(d.wpna); render(); return renderOverlay(); }
+  if (d.wv){ stop(); S.wiz.vmethod = d.wv; S.wiz.vstate = S.wiz.vstate==="ok"?"ok":"idle"; return renderOverlay(); }
+  if (d.wa){ stop(); const w = S.wiz; w.err = null;
+    const dom = (w.domain||"").trim().toLowerCase().replace(/^https?:\/\//,"").replace(/\/.*$/,"").replace(/^www\./,"");
+    switch (d.wa){
+      case "close": S.wiz = null; return renderOverlay();
+      case "probe": if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(dom)){ w.err = "כתובת לא תקינה. לדוגמה: dalia-c.com"; break; }
+        w.domain = dom; w.check = [[true,"האתר עונה (200)"],[true,"HTTPS תקין"],[true,"robots.txt נמצא"],[hash(dom)%3!==0,hash(dom)%3!==0?`sitemap נמצא: https://${dom}/sitemap.xml`:"sitemap לא נמצא — אפשר להזין ידנית בשלב הסריקה"],[true, w.plat==="WordPress"?"זוהה WordPress (/wp-json עונה)":"לא זוהה WordPress"]]; break;
+      case "verify": w.vstate = "pending"; renderOverlay(); setTimeout(() => { if (S.wiz){ S.wiz.vstate = "ok"; renderOverlay(); } }, 700); return;
+      case "gsc": w.gsc = "ok"; w.gscProp = `sc-domain:${dom||w.domain}`; if (w.vmethod==="gsc") w.vstate = "ok"; break;
+      case "wpSecure": w.wpState = "secret"; break;
+      case "wpTest": w.wpState = "ok"; break;
+      case "skip": w.step = Math.min(6, w.step+1); break;
+      case "back": w.step = Math.max(0, w.step-1); break;
+      case "next":
+        if (w.step === 0){ if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(dom)){ w.err = "הזן כתובת אתר תקינה."; break; }
+          if (!w.siteId && SITES.some(s => s.domain === dom)){ w.err = "האתר כבר מחובר לחברה."; break; } w.domain = dom; }
+        w.step = Math.min(6, w.step+1); break;
+      case "finish": {
+        let sid = w.siteId;
+        if (!sid){ sid = "s" + (Date.now()%100000); SITES.push({id:sid, name:w.name.trim()||dom, domain:dom, platform:w.plat, market:w.market==="il-he"?"ישראל · עברית (gl=il, hl=iw)":"ישראל · אנגלית (gl=il, hl=en)", conn:{}, lastCrawl:null, lastRank:null, created:Date.now()}); COMPETITORS[sid] = []; PAGES[sid] = []; }
+        const c = ci(sid), s = SITES.find(x=>x.id===sid);
+        s.platform = w.plat;
+        c.verify = w.vstate==="ok" ? {state:"ok", method:w.vmethod, at:Date.now(), record: c.verify.record || `dalia-seo-verify=${(hash(dom)%1e10).toString(16)}`} : {state:"pending", method:w.vmethod};
+        c.gsc = w.gsc==="ok" ? {state:"ok", property:w.gscProp||`sc-domain:${dom}`, account:"seo@dalia-demo.example", at:Date.now()} : {state:"off"};
+        c.rank = {state:"ok", provider:w.rankProv, owner:w.rankOwner, location:"ישראל", city:w.city, device:({both:"מחשב + נייד",mobile:"נייד",desktop:"מחשב"})[w.device], freq:w.freq==="daily"?"יומי":"שבועי", depth:100, at:c.rank.at||null};
+        c.crawl = {state:"ok", sitemap:w.sitemap||`https://${dom}/sitemap.xml`, maxPages:w.maxPages, freq:w.crawlFreq==="weekly"?"שבועי":"חודשי", exclude:w.exclude, robots:w.robots, at:w.crawlNow?Date.now():c.crawl.at, pages:(PAGES[sid]||[]).length};
+        c.wp = w.plat!=="WordPress" ? {state:"na"} : w.wpState==="ok" ? {state:"ok", url:(w.wpUrl||`https://${dom}`)+"/wp-json", user:w.wpUser||"seo-editor", at:Date.now(), perms:["יצירת פוסטים","העלאת תמונות"]} : {state:"off"};
+        if (w.crawlNow) s.lastCrawl = Date.now();
+        if (w.gsc==="ok") S.live.gsc = true;
+        syncConn(sid); S.wiz = null; S.site = sid; S.tab = "sites";
+        toast(w.siteId ? "החיבור עודכן (הדגמה)" : "האתר חובר (הדגמה). הוסף מילות מפתח כדי להתחיל מעקב.");
+        render(); return;
+      }
+    }
+    return renderOverlay();
+  }
+}, true);
+
+// Listen to navigation from parent or handle back button
+const backBtn = document.getElementById("backToCenterBtn");
+if (backBtn) {
+  backBtn.addEventListener("click", e => {
+    if (window.parent && window.parent !== window) {
+      e.preventDefault();
+      window.parent.postMessage({ type: "dalia-nav", go: "dashboard" }, "*");
+    }
+  });
+}
+
+// Receive context updates from parent ShellBridge if embedded
+window.addEventListener("message", e => {
+  if (e.data && e.data.type === "dalia-context") {
+    if (e.data.siteId && SITES.some(s => s.id === e.data.siteId)) {
+      S.site = e.data.siteId;
+      render();
+    }
+  }
+});
+
+render();
+</script>
+</body>
+</html>
