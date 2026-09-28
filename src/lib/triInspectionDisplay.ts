@@ -26,12 +26,22 @@ export function lastTriInspectionDisplay(iso: string | null | undefined): {
   };
 }
 
+/** Local calendar day as YYYY-MM-DD (no UTC shift). */
+export function localTodayYmd(now: Date = new Date()): string {
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${m}-${d}`;
+}
+
+/** Latest tri/semi inspection actually performed (today or earlier) — never a future date. */
 export function pickLatestTriInspectionDate(
   rows: Array<{ inspection_date?: string | null; inspection_type?: string | null }>,
+  today: string = localTodayYmd(),
 ): string | null {
   const dates = rows
     .filter((r) => r.inspection_type === TRI_SEMI_INSPECTION_TYPE && r.inspection_date)
     .map((r) => String(r.inspection_date).slice(0, 10))
+    .filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day) && day <= today)
     .sort((a, b) => b.localeCompare(a));
   return dates[0] || null;
 }
