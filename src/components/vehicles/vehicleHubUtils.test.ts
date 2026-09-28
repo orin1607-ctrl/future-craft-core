@@ -9,7 +9,7 @@ describe('getInspectionDashboardCard', () => {
       inspection_date: '2026-08-16',
       next_due_date: '2026-11-16',
     })).toEqual({
-      label: 'בדיקה תלת חודשית',
+      label: 'בדיקה תלת חודשית הבאה',
       nextDueDate: '2026-11-16',
     });
   });
@@ -20,7 +20,7 @@ describe('getInspectionDashboardCard', () => {
       inspection_date: '2026-08-16',
       next_due_date: '2027-02-16',
     })).toEqual({
-      label: 'בדיקה חצי שנתית',
+      label: 'בדיקה חצי שנתית הבאה',
       nextDueDate: '2027-02-16',
     });
   });
@@ -30,7 +30,7 @@ describe('getInspectionDashboardCard', () => {
       inspection_type: 'semi_annual',
       inspection_date: '2026-08-16',
       next_due_date: '2027-02-16',
-    })?.label).toBe('בדיקה חצי שנתית');
+    })?.label).toBe('בדיקה חצי שנתית הבאה');
   });
 
   it('derives a three-month due date when the saved next due equals the performed date', () => {
@@ -39,7 +39,7 @@ describe('getInspectionDashboardCard', () => {
       inspection_date: '2026-08-16',
       next_due_date: null,
     })).toEqual({
-      label: 'בדיקה תלת חודשית',
+      label: 'בדיקה תלת חודשית הבאה',
       nextDueDate: addCalendarMonths('2026-08-16', 3),
     });
   });
@@ -52,7 +52,7 @@ describe('getInspectionDashboardCard', () => {
     });
     expect(card?.nextDueDate).toBe(addCalendarMonths('2026-08-24', 3));
     expect(card?.nextDueDate).not.toBe('2026-08-24');
-    expect(card?.label).toBe('בדיקה תלת חודשית');
+    expect(card?.label).toBe('בדיקה תלת חודשית הבאה');
   });
 
   it('uses the vehicle next-inspection date when it is later than a stale row', () => {
@@ -61,7 +61,7 @@ describe('getInspectionDashboardCard', () => {
       inspection_date: '2026-08-24',
       next_due_date: '2026-08-24',
     }, '2027-02-24')).toEqual({
-      label: 'בדיקה חצי שנתית',
+      label: 'בדיקה חצי שנתית הבאה',
       nextDueDate: '2027-02-24',
     });
   });

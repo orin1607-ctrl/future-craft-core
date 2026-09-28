@@ -45,6 +45,10 @@ import {
   statusLabel,
   type InspectionDashboardCard,
 } from '@/components/vehicles/vehicleHubUtils';
+import {
+  pickLatestPerformedInspectionDate,
+  TRI_FAMILY_INSPECTION_TYPES,
+} from '@/lib/triInspectionDisplay';
 import { fetchCompanyVehicleHubDisplay } from '@/lib/companyVehicleHubDisplay';
 import {
   loadVehicleHubData,
@@ -243,6 +247,7 @@ export default function VehicleHub({
   const [savingDepartment, setSavingDepartment] = useState(false);
   const savingDepartmentRef = useRef(false);
   const [inspectionSchedule, setInspectionSchedule] = useState<InspectionDashboardCard | null>(null);
+  const [lastInspectionDate, setLastInspectionDate] = useState<string | null>(null);
   const [inspectionRefreshKey, setInspectionRefreshKey] = useState(0);
   const [showRecentActions, setShowRecentActions] = useState(true);
   const [latestInsurer, setLatestInsurer] = useState<string | null>(null);
@@ -418,11 +423,12 @@ export default function VehicleHub({
 
   useEffect(() => {
     if (previewMode && previewHubExtras) {
+      setLastInspectionDate(null);
       const previewDueDate = previewHubExtras.semiInspection || previewHubExtras.triInspection;
       setInspectionSchedule(
         previewDueDate
           ? {
-              label: previewHubExtras.semiInspection ? 'בדיקה חצי שנתית' : 'בדיקה תלת חודשית',
+              label: previewHubExtras.semiInspection ? 'בדיקה חצי שנתית הבאה' : 'בדיקה תלת חודשית הבאה',
               nextDueDate: previewDueDate,
             }
           : null,
@@ -445,6 +451,7 @@ export default function VehicleHub({
       .then(({ data }) => {
         const row = pickInspectionForDashboard(data || []);
         setInspectionSchedule(getInspectionDashboardCard(row, v.next_inspection_date));
+        setLastInspectionDate(pickLatestPerformedInspectionDate(data || [], TRI_FAMILY_INSPECTION_TYPES));
       });
   }, [v.id, v.next_inspection_date, previewMode, previewHubExtras, inspectionRefreshKey]);
 
@@ -1032,6 +1039,7 @@ export default function VehicleHub({
           <VehicleDashboard
             vehicle={v}
             inspectionSchedule={inspectionSchedule}
+            lastInspectionDate={lastInspectionDate}
             latestInsurer={latestInsurer}
             openIssuesCount={openIssuesCount}
             onJumpTo={jumpFromDashboard}

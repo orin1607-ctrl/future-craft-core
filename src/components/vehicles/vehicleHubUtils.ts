@@ -58,24 +58,24 @@ export function getInspectionDashboardCard(
   if (!nextDueDate) return null;
 
   if (inspection?.inspection_type === 'semi_annual') {
-    return { label: 'בדיקה חצי שנתית', nextDueDate };
+    return { label: 'בדיקה חצי שנתית הבאה', nextDueDate };
   }
   if (inspection?.inspection_type === 'quarterly') {
-    return { label: 'בדיקה תלת חודשית', nextDueDate };
+    return { label: 'בדיקה תלת חודשית הבאה', nextDueDate };
   }
 
   const inspectionDate = ymd(inspection?.inspection_date);
   if (!inspectionDate) {
-    return { label: 'בדיקת תלת / חצי', nextDueDate };
+    return { label: 'בדיקת תלת / חצי הבאה', nextDueDate };
   }
 
   const sixMonthDate = addCalendarMonths(inspectionDate, 6);
   const threeMonthDate = addCalendarMonths(inspectionDate, 3);
   if (nextDueDate === sixMonthDate) {
-    return { label: 'בדיקה חצי שנתית', nextDueDate };
+    return { label: 'בדיקה חצי שנתית הבאה', nextDueDate };
   }
   if (nextDueDate === threeMonthDate) {
-    return { label: 'בדיקה תלת חודשית', nextDueDate };
+    return { label: 'בדיקה תלת חודשית הבאה', nextDueDate };
   }
 
   const intervalDays = Math.round(
@@ -84,7 +84,7 @@ export function getInspectionDashboardCard(
       / 86400000,
   );
   return {
-    label: intervalDays >= 135 ? 'בדיקה חצי שנתית' : 'בדיקה תלת חודשית',
+    label: intervalDays >= 135 ? 'בדיקה חצי שנתית הבאה' : 'בדיקה תלת חודשית הבאה',
     nextDueDate,
   };
 }

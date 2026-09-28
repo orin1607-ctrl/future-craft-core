@@ -24,6 +24,7 @@ import {
 import { loadCompanyGapAlertsSettings } from '@/lib/companyGapAlertsSettings';
 import { buildGapAlertDetailRows } from '@/lib/gapAlertsDisplay';
 import { countMissingDocs } from '@/lib/vehicleHistory';
+import { lastTriInspectionDisplay } from '@/lib/triInspectionDisplay';
 import { addCustomVehicleGap, resolveCustomVehicleGap } from '@/lib/vehicleEventLog';
 import {
   DEFAULT_GAP_ALERT_ITEMS,
@@ -124,6 +125,7 @@ function SectionLabel({ children }: { children: string }) {
 export default function VehicleDashboard({
   vehicle: v,
   inspectionSchedule,
+  lastInspectionDate = null,
   latestInsurer,
   openIssuesCount,
   onJumpTo,
@@ -137,6 +139,8 @@ export default function VehicleDashboard({
 }: {
   vehicle: VehicleHubVehicle;
   inspectionSchedule: InspectionDashboardCard | null;
+  /** Date of the last tri/semi inspection actually performed (never a future date). */
+  lastInspectionDate?: string | null;
   latestInsurer: string | null;
   openIssuesCount: number;
   onJumpTo?: (section: 'details' | 'actions' | 'history' | 'manage', tab?: HubTabId) => void;
@@ -673,8 +677,9 @@ export default function VehicleDashboard({
             onClick={() => openDrill('service')}
           />
           <DashTile label='ק"מ נוכחי' value={(v.odometer || 0).toLocaleString()} />
+          <DashTile label="ביקורת אחרונה" value={lastTriInspectionDisplay(lastInspectionDate).dateText} />
           <DashTile
-            label={inspectionSchedule?.label || 'בדיקת תלת / חצי'}
+            label={inspectionSchedule?.label || 'בדיקת תלת / חצי הבאה'}
             value={formatExpiry(inspectionSchedule?.nextDueDate || null)}
             warn={
               inspectionSchedule?.nextDueDate
