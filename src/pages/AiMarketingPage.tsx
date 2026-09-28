@@ -185,11 +185,8 @@ export default function AiMarketingPage() {
         <span className="font-semibold truncate">CO.CO — מנהל שיווק AI</span>
 
         <Link
-
-          to="/admin-home"
-
+          to="/dashboard"
           className="inline-flex items-center gap-1 text-white/70 hover:text-white whitespace-nowrap"
-
         >
 
           חזרה לדליה

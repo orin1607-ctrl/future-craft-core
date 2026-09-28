@@ -10,6 +10,7 @@ import { CompanyScopeProvider } from "@/contexts/CompanyScopeContext";
 import ThemeToggle from "@/components/ThemeToggle";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
+import AiMarketingPage from "@/pages/AiMarketingPage";
 import Dashboard from "@/pages/Dashboard";
 import Vehicles from "@/pages/Vehicles";
 import Drivers from "@/pages/Drivers";
@@ -259,14 +260,9 @@ function AppRoutes() {
       <Route path="/dev/project-001/dashboard" element={<Project001Dashboard />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-      {/* Legacy marketing route → permanent Orin פרסום (static nginx path) */}
-      <Route
-        path="/ai-marketing"
-        element={
-          <LegacyMarketingRedirect />
-        }
-      />
-      <Route path="/dalia-crm" element={<LegacyMarketingRedirect />} />
+      {/* Marketing platform route */}
+      <Route path="/ai-marketing" element={<AiMarketingPage />} />
+      <Route path="/dalia-crm" element={<AiMarketingPage />} />
       <Route path="/claims-upload" element={<ClaimsUploadPage />} />
       <Route path="/claims-share" element={<ClaimsSharePage />} />
       <Route path="/claims-intake" element={<ClaimsIntakePage />} />
