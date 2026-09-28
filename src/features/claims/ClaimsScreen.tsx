@@ -452,7 +452,7 @@ function typeMatchesRequest(t: ClaimDocType, r: DocRequest) {
   return names.includes(r.label);
 }
 
-function filesForDocType(t: ClaimDocType, files: ClaimFile[], requests: DocRequest[]) {
+export function filesForDocType(t: ClaimDocType, files: ClaimFile[], requests: DocRequest[]) {
   const ids = new Set(requests.filter((r) => typeMatchesRequest(t, r)).map((r) => r.id));
   return files.filter((f) => {
     if (t.docKind && f.doc_kind === t.docKind) return true;
@@ -465,7 +465,7 @@ function filesForDocType(t: ClaimDocType, files: ClaimFile[], requests: DocReque
   });
 }
 
-function docTypeStatus(t: ClaimDocType, files: ClaimFile[], requests: DocRequest[], hasLink: boolean) {
+export function docTypeStatus(t: ClaimDocType, files: ClaimFile[], requests: DocRequest[], hasLink: boolean) {
   const matched = filesForDocType(t, files, requests);
   const reqs = requests.filter((r) => typeMatchesRequest(t, r));
   const requested = reqs.some((r) => r.status === 'requested');
@@ -497,7 +497,7 @@ function classifyDoc(f: ClaimFile) {
   return 'other';
 }
 
-function isImageFile(f: ClaimFile) {
+export function isImageFile(f: ClaimFile) {
   const n = `${f.original_name || ''}`;
   const mime = `${f.mime_type || ''}`.toLowerCase();
   return mime.startsWith('image/') || /\.(jpe?g|png|gif|webp|heic|heif|tiff?)$/i.test(n);
@@ -507,7 +507,7 @@ function fileMeta(f: ClaimFile): Record<string, string> {
   return f.doc_meta && typeof f.doc_meta === 'object' ? f.doc_meta : {};
 }
 
-function effectiveKind(f: ClaimFile) {
+export function effectiveKind(f: ClaimFile) {
   if (f.doc_kind && f.doc_kind !== 'general') return f.doc_kind;
   return 'general';
 }
@@ -542,7 +542,7 @@ const DOC_FILE_STATUSES: Array<{ key: string; label: string }> = [
   { key: 'needs_update', label: 'נדרש עדכון' },
 ];
 
-function kindHe(k: string) {
+export function kindHe(k: string) {
   const map: Record<string, string> = {
     surveyor_report: 'דוח שמאי',
     surveyor_photo: 'תמונת שמאי',
@@ -552,7 +552,7 @@ function kindHe(k: string) {
   return map[k] || '';
 }
 
-function fileLabel(f: ClaimFile) {
+export function fileLabel(f: ClaimFile) {
   const t = fileMeta(f).staff_title;
   return t || f.original_name;
 }
@@ -734,7 +734,7 @@ function StaffUploadZone({ testId, inputId, busy, compact, addLabel, onFiles }: 
   );
 }
 
-function surveyorBundle(files: ClaimFile[], imports: Array<Record<string, unknown>> = []) {
+export function surveyorBundle(files: ClaimFile[], imports: Array<Record<string, unknown>> = []) {
   const photos = files.filter((f) => f.doc_kind === 'surveyor_photo');
   const tagged = files.filter((f) => f.doc_kind === 'surveyor_report');
   const taggedAtt = files.filter((f) => f.doc_kind === 'surveyor_attachment');
@@ -768,7 +768,7 @@ function surveyorBundle(files: ClaimFile[], imports: Array<Record<string, unknow
   return { reports, photos, attachments: [...attById.values()] };
 }
 
-function invoiceFiles(files: ClaimFile[]) {
+export function invoiceFiles(files: ClaimFile[]) {
   return files.filter((f) => f.doc_kind === 'garage_invoice');
 }
 

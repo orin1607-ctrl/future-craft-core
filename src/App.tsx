@@ -136,6 +136,8 @@ import TelemarketingAgentPage from "@/pages/TelemarketingAgentPage";
 import TelemarketingAdminPage from "@/pages/TelemarketingAdminPage";
 import TransportHubPage from "@/pages/TransportHubPage";
 import ClaimsPage from "@/pages/ClaimsPage";
+import ClaimsNewPage from "@/pages/ClaimsNewPage";
+import { isClaimsV2Enabled } from "@/features/claims-v2/claimsV2Flag";
 import ClaimsUploadPage from "@/pages/ClaimsUploadPage";
 import ClaimsSharePage from "@/pages/ClaimsSharePage";
 import ClaimsIntakePage from "@/pages/ClaimsIntakePage";
@@ -303,6 +305,7 @@ function AppRoutes() {
         <Route path="/telemarketing" element={<TelemarketingAgentPage />} />
         <Route path="/telemarketing/admin" element={<TelemarketingAdminPage />} />
         <Route path="/claims" element={<ClaimsPage />} />
+        {isClaimsV2Enabled() ? <Route path="/claims/new-ui" element={<ClaimsNewPage />} /> : null}
         <Route path="/garage-management/:caseId" element={<GarageApp />} />
         <Route path="/garage-management" element={<GarageApp />} />
         <Route path="/garage" element={<GarageJobsPage />} />
