@@ -1,0 +1,15 @@
+{
+  "id": "oren-car-prod-last-inspection",
+  "armed": true,
+  "phase": "frontend",
+  "requestedAt": "2026-09-28T09:00:00.000Z",
+  "requestedBy": "owner",
+  "target": "https://dalia-car.online",
+  "supabaseRef": "qasomfndnjuixgjmjwcm",
+  "liveCommitBefore": "e624ed90264151738cc4d83012ba7b09f6a7ccac",
+  "restoreTag": "restore/prod-before-last-inspection-20260928",
+  "scope": "tri-last-inspection-no-future-date",
+  "codeOnly": true,
+  "doNotMergeToMain": true,
+  "doNotMergeToOriginProduction": true
+}
