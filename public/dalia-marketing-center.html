@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>דליה – מרכז השיווק והפרסום (דמו)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --head:#0A2352; --head-2:#0F2E68; --blue:#1F6FE0; --blue-soft:#E4EEFC;
+  --bg:#EEF2F7; --surface:#FFFFFF; --line:#DCE3EC; --ink:#0E1A2E; --muted:#5B6B82;
+  --ok:#17875A; --ok-soft:#E3F4EC; --warn:#B8700A; --warn-soft:#FBF0DC; --bad:#C23B3B; --bad-soft:#FBE6E6;
+  --demo:#7A4BD1; --demo-soft:#EFE8FB;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --head:#081A3D; --head-2:#0D2552; --blue:#5B9BF5; --blue-soft:#15294A;
+    --bg:#0A1426; --surface:#111E36; --line:#22324F; --ink:#E8EEF7; --muted:#93A3BC;
+    --ok:#4CC792; --ok-soft:#113327; --warn:#E6A94A; --warn-soft:#3A2A10; --bad:#EF7B7B; --bad-soft:#3D1818;
+    --demo:#B596F0; --demo-soft:#2A1E45;
+  }
+}
+:root[data-theme="dark"]{
+  --head:#081A3D; --head-2:#0D2552; --blue:#5B9BF5; --blue-soft:#15294A;
+  --bg:#0A1426; --surface:#111E36; --line:#22324F; --ink:#E8EEF7; --muted:#93A3BC;
+  --ok:#4CC792; --ok-soft:#113327; --warn:#E6A94A; --warn-soft:#3A2A10; --bad:#EF7B7B; --bad-soft:#3D1818;
+  --demo:#B596F0; --demo-soft:#2A1E45;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Heebo","Assistant","Arial Hebrew",Arial,sans-serif;font-size:15px;line-height:1.5}
+button,select{font:inherit;color:inherit}
+a{color:var(--blue)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+svg.i{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- top bar ---------- */
+.top{background:var(--head);color:#fff}
+.top-in{display:flex;align-items:center;gap:12px;padding:10px 20px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;margin-inline-end:auto}
+.brand-mark{width:32px;height:32px;border-radius:8px;background:#fff;color:var(--head);display:grid;place-items:center;font-weight:800}
+.brand small{display:block;font-weight:400;font-size:12px;opacity:.7}
+.top .ghost{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:6px 10px;text-decoration:none;font-size:13px;cursor:pointer}
+.user{display:flex;align-items:center;gap:8px;font-size:13px}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--blue);display:grid;place-items:center;font-weight:700;color:#fff}
+.user select{background:var(--head-2);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:4px 6px;font-size:12px}
+
+/* ---------- context lens (the heart of the shell) ---------- */
+.lens{background:var(--head-2);color:#fff;border-top:1px solid rgba(255,255,255,.08)}
+.lens-in{padding:14px 20px 16px;display:grid;grid-template-columns:minmax(220px,1.4fr) repeat(3,minmax(140px,1fr)) auto;gap:10px;align-items:end}
+.lens label{display:block;font-size:12px;opacity:.75;margin-bottom:4px}
+.lens select{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:10px;padding:9px 10px}
+.lens select option{color:#0E1A2E}
+.lens .cust select{font-size:17px;font-weight:700;padding:10px 12px;background:#fff;color:var(--head);border-color:#fff}
+.lens .reset{background:transparent;border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:10px;padding:9px 12px;cursor:pointer;white-space:nowrap}
+.demo-strip{background:var(--demo-soft);color:var(--demo);font-size:13px;padding:6px 20px;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--line)}
+.demo-strip b{font-weight:700}
+
+/* ---------- layout ---------- */
+.shell{display:grid;grid-template-columns:250px 1fr;min-height:60vh}
+nav.side{background:var(--surface);border-inline-start:1px solid var(--line);padding:14px 10px;position:sticky;top:env(safe-area-inset-top,0px);align-self:start;max-height:100vh;overflow:auto}
+.nav-group{font-size:12px;color:var(--muted);padding:12px 10px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;text-align:start;background:none;border:0;border-radius:8px;padding:8px 10px;cursor:pointer;color:var(--ink)}
+.nav-item:hover{background:var(--bg)}
+.nav-item.on{background:var(--blue-soft);color:var(--blue);font-weight:700}
+.nav-item.off{opacity:.45}
+.nav-item .tag{margin-inline-start:auto;font-size:11px;color:var(--muted);font-weight:400}
+main{padding:22px 24px 40px;min-width:0}
+
+/* ---------- headings & blocks ---------- */
+.hello{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 24px;margin-bottom:18px}
+.hello h1{margin:0;font-size:26px;line-height:1.2;font-weight:800}
+.hello p{margin:4px 0 0;color:var(--muted)}
+.facts{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.facts b{color:var(--ink);font-size:15px}
+section.block{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;min-width:0}
+.block h2{margin:0 0 12px;font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px}
+.block h2 .count{font-size:12px;font-weight:500;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+.grid2 > section.block{margin-bottom:0}
+.stack{display:grid;gap:16px;margin-bottom:16px}
+
+/* KPI pulse: one strip, not a card per number */
+.pulse{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden;margin-bottom:16px}
+.kpi{padding:14px 16px;border-inline-start:1px solid var(--line);cursor:pointer;background:none;border-top:0;border-bottom:0;border-inline-end:0;text-align:start}
+.kpi:hover{background:var(--bg)}
+.kpi .v{font-size:26px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:13px;color:var(--muted)}
+.kpi .m{font-size:12px;color:var(--blue);display:flex;align-items:center;gap:4px;margin-top:4px}
+.kpi .m svg{width:14px;height:14px}
+
+/* modules */
+.mods{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.mod{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface);text-align:start;cursor:pointer;display:flex;flex-direction:column;gap:6px;min-height:118px}
+.mod:hover{border-color:var(--blue)}
+.mod.dim{opacity:.4}
+.mod.locked{cursor:not-allowed;background:var(--bg)}
+.mod-top{display:flex;align-items:center;gap:8px;font-weight:700}
+.mod-ico{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--blue-soft);color:var(--blue)}
+.mod-en{font-size:12px;color:var(--muted);font-weight:400}
+.mod-sum{font-size:13px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;border-radius:999px;padding:2px 8px;font-weight:500;width:max-content}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.demo{background:var(--demo-soft);color:var(--demo)}
+.chip.mute{background:var(--bg);color:var(--muted)}
+
+/* lists */
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:flex-start}
+.list li:first-child{border-top:0}
+.dot{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--bg);color:var(--muted);flex:none}
+.dot svg{width:16px;height:16px}
+.li-main{flex:1;min-width:0}
+.li-title{font-weight:500}
+.li-meta{font-size:12px;color:var(--muted)}
+.li-act{display:flex;gap:6px;flex:none}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer}
+.btn.pri{background:var(--head);border-color:var(--head);color:#fff}
+.empty{color:var(--muted);font-size:14px;padding:10px 0}
+
+/* budgets */
+.bud{display:grid;gap:12px}
+.bud-row{display:grid;grid-template-columns:130px 1fr 150px;gap:10px;align-items:center;font-size:14px}
+.bar{height:10px;border-radius:99px;background:var(--bg);overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--blue);border-radius:99px}
+.bar i.warn{background:var(--warn)} .bar i.bad{background:var(--bad)}
+.bud-n{font-size:12.5px;color:var(--muted);text-align:end;font-variant-numeric:tabular-nums}
+.note{font-size:12.5px;color:var(--muted);margin-top:10px}
+
+/* shared site context */
+.link-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.node{border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--bg);font-size:14px}
+.node b{display:block}
+.node.site{border-color:var(--blue);background:var(--blue-soft)}
+.arrow{color:var(--muted)}
+
+/* admin tiles */
+.admin{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.admin button{display:flex;gap:10px;align-items:center;text-align:start;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px;cursor:pointer}
+.admin button:hover{border-color:var(--blue)}
+
+/* module page */
+.crumbs{font-size:13px;color:var(--muted);margin-bottom:10px}
+.crumbs button{background:none;border:0;color:var(--blue);cursor:pointer;padding:0}
+pre.json{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:12.5px;overflow-x:auto;direction:ltr;text-align:left;margin:0;max-height:420px}
+.placeholder{border:2px dashed var(--line);border-radius:14px;padding:26px;text-align:center;color:var(--muted)}
+.placeholder h3{margin:0 0 6px;color:var(--ink)}
+
+.mount{text-align:center;padding:28px 16px;border:2px dashed var(--line);border-radius:14px;background:var(--bg)}
+.mount-ico{width:52px;height:52px;border-radius:14px;margin:0 auto 10px;display:grid;place-items:center;background:var(--blue-soft);color:var(--blue)}
+.mount-ico svg{width:26px;height:26px}
+.mount h3{margin:0 0 6px;font-size:18px}
+.mount p{margin:0 auto 14px;color:var(--muted);max-width:52ch}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+dl.ctx{display:grid;grid-template-columns:110px 1fr;gap:8px 12px;margin:0;font-size:14px}
+dl.ctx dt{color:var(--muted)} dl.ctx dd{margin:0;font-weight:500}
+details.tech{margin-top:12px;font-size:13px}
+details.tech summary{cursor:pointer;color:var(--blue);margin-bottom:8px}
+
+/* ---------- responsive ---------- */
+@media (max-width:980px){
+  .lens-in{grid-template-columns:1fr 1fr}
+  .lens .cust{grid-column:1 / -1}
+  .lens .reset{grid-column:1 / -1}
+  .grid2{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .shell{grid-template-columns:1fr}
+  nav.side{position:static;max-height:none;border-inline-start:0;border-bottom:1px solid var(--line);display:flex;overflow-x:auto;gap:4px;padding:8px}
+  .nav-group{display:none}
+  .nav-item{white-space:nowrap;width:auto}
+  .nav-item .tag{display:none}
+  main{padding:16px 14px 32px}
+  .top-in{padding:10px 14px}
+  .lens-in{padding:12px 14px 14px}
+  .demo-strip{padding:6px 14px}
+  .hello h1{font-size:22px}
+  .bud-row{grid-template-columns:1fr;gap:4px}
+  .bud-n{text-align:start}
+  .li-act{flex-direction:column}
+}
+@media (prefers-reduced-motion:no-preference){
+  main.swap{animation:fade .18s ease-out}
+  @keyframes fade{from{opacity:.4}to{opacity:1}}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand"><div class="brand-mark">ד</div><div>מרכז השיווק והפרסום<small>מערכת דליה · 3 רכיבים משותפים ו-9 מודולים</small></div></div>
+    <a class="ghost" href="https://dalia-car.online" target="_blank" rel="noopener">
+      <svg class="i" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>חזרה למערכת דליה</a>
+    <div class="user">
+      <div class="avatar" id="avatar">י</div>
+      <div>
+        <div id="userName">יוני אטיאס</div>
+        <select id="roleSel" aria-label="צפייה לפי תפקיד (דמו)"></select>
+      </div>
+    </div>
+  </div>
+  <div class="lens">
+    <div class="lens-in">
+      <div class="cust"><label for="fCust">חברה / לקוח פעיל</label><select id="fCust"></select></div>
+      <div><label for="fSite">אתר</label><select id="fSite"></select></div>
+      <div><label for="fMod">מודול</label><select id="fMod"></select></div>
+      <div><label for="fPer">תקופה</label>
+        <select id="fPer"><option value="7">7 ימים אחרונים</option><option value="30" selected>30 ימים אחרונים</option><option value="90">90 ימים אחרונים</option></select></div>
+      <button class="reset" id="fReset">ניקוי סינון</button>
+    </div>
+  </div>
+</header>
+<div class="demo-strip"><b>מצב דמו.</b> כל הלקוחות, המספרים, הפעילות והעלויות כאן הם נתוני דוגמה. אין חיבור לדליה, ל-Supabase או לשירות חיצוני.</div>
+
+<div class="shell">
+  <nav class="side" id="nav" aria-label="ניווט ראשי"></nav>
+  <main id="main"></main>
+</div>
+
+<script>
+/* =========================================================
+   1. ICONS
+   ========================================================= */
+const IC = {
+  home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+  leads:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>',
+  seo:'<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/>',
+  page:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
+  crm:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 5a3 3 0 010 6M21 20c0-2.6-1.6-4.8-4-5.6"/>',
+  ads:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  design:'<path d="M12 3a9 9 0 100 18c1.2 0 2-.8 2-2 0-1.4 1-2 2.2-2H18a3 3 0 003-3c0-6-4-11-9-11z"/><circle cx="7.5" cy="11" r="1"/><circle cx="11" cy="7" r="1"/><circle cx="15.5" cy="8.5" r="1"/>',
+  studio:'<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+  posts:'<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.5M8.2 13.2l7.6 4.5"/>',
+  mascot:'<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5c1 1.3 2.2 2 3.5 2s2.5-.7 3.5-2"/><circle cx="9" cy="10" r=".8"/><circle cx="15" cy="10" r=".8"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-2.9-1.2l-.1.1a2 2 0 11-2.8-2.8l.1-.1A1.7 1.7 0 003 15H3a2 2 0 110-4h.1a1.7 1.7 0 001.2-2.9l-.1-.1a2 2 0 112.8-2.8l.1.1A1.7 1.7 0 0010 4V3a2 2 0 114 0v.1a1.7 1.7 0 002.9 1.2l.1-.1a2 2 0 112.8 2.8l-.1.1A1.7 1.7 0 0021 11h.1a2 2 0 110 4H21a1.7 1.7 0 00-1.6 0z"/>',
+  keywords:'<path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/>',
+  bell:'<path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/>',
+  check:'<path d="M20 6L9 17l-5-5"/>',
+  lock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
+  left:'<path d="M15 18l-6-6 6-6"/>'
+};
+const icon = (k, cls='i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[k]||''}</svg>`;
+
+/* =========================================================
+   2. MODULE REGISTRY  —  single source for menu, dashboard, routing
+      Adding a module later = adding one entry + one adapter.
+   ========================================================= */
+/* connection.status: 'not_connected' | 'demo' | 'connected'
+   connection.entry:  where the REAL module interface will be mounted later (null = not yet) */
+const MODULES = [
+  {id:'leads',  he:'איתור לקוחות ולידים',   en:'OpenProspector', siteScoped:false, connection:{status:'demo',          entry:null}, works:['crm']},
+  {id:'seo',    he:'קידום אורגני SEO',      en:'OpenSEO',        siteScoped:true,  connection:{status:'demo',          entry:null}, works:['page','studio']},
+  {id:'page',   he:'בניית אתרים',           en:'OpenPage',       siteScoped:true,  connection:{status:'demo',          entry:null}, works:['seo','design']},
+  {id:'crm',    he:'ניהול לקוחות CRM',      en:'OpenCRM',        siteScoped:false, connection:{status:'not_connected', entry:null}, works:['leads']},
+  {id:'ads',    he:'ניתוח קמפיינים ופרסום', en:'OpenAdsReport',  siteScoped:true,  connection:{status:'not_connected', entry:null}, works:['design','seo']},
+  {id:'design', he:'עיצוב גרפי',            en:'OpenDesign',     siteScoped:false, connection:{status:'not_connected', entry:null}, works:['posts','page']},
+  {id:'studio', he:'סטודיו AI',             en:'OpenStudio',     siteScoped:false, connection:{status:'not_connected', entry:null}, works:['posts','seo']},
+  {id:'posts',  he:'פוסטים ורשתות חברתיות', en:'OpenPost',       siteScoped:false, connection:{status:'not_connected', entry:null}, works:['studio','design']},
+  {id:'mascot', he:'דמות מותג',             en:'OpenMascot',     siteScoped:false, connection:{status:'not_connected', entry:null}, works:['design','posts']}
+];
+const CONN_LABEL = {not_connected:'טרם חובר למעטפת', demo:'ממשק דמו / בפיתוח – טרם חובר', connected:'מחובר'};
+const connChip = m => `<span class="chip ${m.connection.status==='connected'?'ok':m.connection.status==='demo'?'demo':'mute'}">${CONN_LABEL[m.connection.status]}</span>`;
+const SHARED = [
+  {id:'settings', he:'הגדרות', desc:'חברות ומודולים, משתמשים והרשאות, API, מנועי AI, תקציבים וקרדיטים', adminOnly:true},
+  {id:'keywords', he:'ניהול מילות מפתח', desc:'מאגר משותף לכל המודולים, לפי לקוח ואתר', adminOnly:false}
+];
+const modById = id => MODULES.find(m => m.id === id);
+
+/* =========================================================
+   3. DEMO TENANTS & USERS  (placeholder for Dalia customers/profiles/roles)
+   ========================================================= */
+const CUSTOMERS = [
+  {id:'c1', name:'דליה פתרונות תפעול ותחזוקה לרכב', plan:'מרכז מלא',
+   modules:['leads','seo','page','crm','ads','design','studio','posts','mascot'],
+   sites:[{id:'s1',name:'האתר הראשי',domain:'dalia-c.com'},{id:'s2',name:'עמוד ניהול צי רכב',domain:'fleet.example-dalia.co.il'}]},
+  {id:'c2', name:'גל-ים הובלות (דמו)', plan:'לידים ופרסום',
+   modules:['leads','crm','ads','posts'],
+   sites:[{id:'s3',name:'אתר החברה',domain:'galyam-demo.co.il'}]},
+  {id:'c3', name:'מוסך הצפון (דמו)', plan:'נוכחות דיגיטלית',
+   modules:['seo','page','design','studio','posts'],
+   sites:[{id:'s4',name:'אתר המוסך',domain:'hatzafon-demo.co.il'},{id:'s5',name:'דף מבצעים',domain:'promo.hatzafon-demo.co.il'}]},
+  {id:'c4', name:'קליניקת שקד (דמו)', plan:'SEO ומותג',
+   modules:['seo','page','leads','mascot'],
+   sites:[{id:'s6',name:'אתר הקליניקה',domain:'shaked-demo.co.il'}]}
+];
+const ROLES = [
+  {id:'super',   he:'מנהל-על דליה',   customers:'all',       modules:null,            admin:true},
+  {id:'manager', he:'מנהל חברה',       customers:['c2','c3'], modules:null,            admin:true},
+  {id:'user',    he:'משתמש רגיל',      customers:['c3'],      modules:['seo','posts'], admin:false}
+];
+
+/* =========================================================
+   4. DEMO DATA GENERATOR  (deterministic per customer/site/module/period)
+   ========================================================= */
+function seed(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296}}
+const rint = (r,a,b) => Math.floor(a + r()*(b-a+1));
+const fmt = n => n.toLocaleString('he-IL');
+const nis = n => '₪' + fmt(Math.round(n));
+
+/* =========================================================
+   5. MODULE CONTRACT
+      getSummary(ctx) -> { kpi:{label,value}, status:{tone,text}, line, events[], tasks[], approvals[], usage[] }
+      Dashboard ONLY consumes this shape. Real modules will implement it.
+   ========================================================= */
+const EVENT_TPL = {
+  leads: ['נמצאו {n} לידים חדשים בחיפוש "חברות הובלה במרכז"','{n} לידים יוצאו לקובץ CSV','ריצת איתור הסתיימה עם {n} חברות'],
+  seo:   ['{n} מילות מפתח השתפרו באתר {site}','סריקה טכנית של {site} הושלמה, נמצאו {n} בעיות','נוספה תוכנית קידום לחודש הבא'],
+  page:  ['טיוטת עמוד חדש נשמרה ב-{site}','{n} עדכוני תוכן ממתינים לפרסום ב-{site}','תבנית העמוד הוחלפה לגרסה בעברית'],
+  crm:   ['נוצרו {n} כרטיסי לקוח חדשים','{n} עסקאות עברו לשלב הצעת מחיר','משימת מעקב נסגרה'],
+  ads:   ['התקבל עדכון קמפיין עבור {site}','עלות לליד ירדה ב-{n}%','קמפיין חדש נוצר כטיוטה'],
+  design:['הושלמו {n} עיצובים לרשתות','באנר ראשי עודכן','{n} עיצובים ממתינים לאישור'],
+  studio:['נוצרו {n} טקסטים שיווקיים','נוצר מאמר טיוטה לבלוג','{n} תמונות נוצרו ב-AI'],
+  posts: ['{n} פוסטים תוזמנו לשבוע הבא','פוסט פורסם בפייסבוק (דמו)','{n} תגובות חדשות ממתינות'],
+  mascot:['נוצרו {n} תוצרים לדמות המותג','עודכנה תנוחה חדשה לדמות','מדריך סגנון הדמות עודכן']
+};
+const KPI_LABEL = {leads:'לידים חדשים',seo:'מילות מפתח השתפרו',page:'עדכוני אתר ממתינים',crm:'עסקאות פתוחות',ads:'הוצאה משוערת',design:'עיצובים שהושלמו',studio:'תכנים שנוצרו',posts:'פוסטים מתוזמנים',mascot:'תוצרים לדמות'};
+
+function adapterSummary(modId, ctx){
+  const m = modById(modId);
+  const cust = ctx.customer;
+  const sites = m.siteScoped ? (ctx.siteId==='all' ? cust.sites : cust.sites.filter(s=>s.id===ctx.siteId)) : cust.sites;
+  const r = seed(cust.id + modId + (m.siteScoped ? ctx.siteId : '') + ctx.days);
+  const scale = ctx.days/30;
+  let v = Math.max(0, Math.round(rint(r,3,40) * scale * (m.siteScoped ? sites.length : 1)));
+  if(modId==='ads') v = Math.round(rint(r,900,6000) * scale);
+  const tone = r() < .18 ? 'warn' : 'ok';
+  const statusText = tone==='warn' ? 'דורש טיפול' : 'תקין';
+
+  const events = [];
+  const nEv = Math.max(1, Math.round(rint(r,2,5) * Math.min(1.6, scale+.4)));
+  for(let i=0;i<nEv;i++){
+    const site = sites[rint(r,0,sites.length-1)];
+    const tpl = EVENT_TPL[modId][rint(r,0,2)];
+    const daysAgo = Math.floor(r()*ctx.days);
+    const hour = rint(r,8,19);
+    events.push({module:modId, siteId:m.siteScoped?site.id:null,
+      text: tpl.replace('{n}', rint(r,2,25)).replace('{site}', site.domain),
+      ts: Date.now() - daysAgo*864e5 - hour*36e5});
+  }
+  const tasks = r() < .7 ? [{module:modId, text:{leads:'לסנן ולאשר רשימת לידים לפני ייצוא',seo:'לתקן כותרות כפולות ב-'+sites[0].domain,page:'לבדוק טיוטת עמוד לפני פרסום',crm:'לחזור ל-3 לקוחות שלא נענו',ads:'לבדוק חריגה בעלות לקליק',design:'לבחור גרסת באנר',studio:'לעבור על טקסטים שנוצרו',posts:'להשלים לוח פרסום לשבוע',mascot:'לאשר תנוחה חדשה לדמות'}[modId], due:rint(r,0,6)}] : [];
+  const approvals = r() < .45 ? [{module:modId, text:{leads:'ייצוא 40 לידים לקובץ',seo:'שינוי מטא-תיאור ב-6 עמודים',page:'פרסום עמוד חדש ב-'+sites[0].domain,crm:'שליחת מייל מעקב ל-12 לקוחות',ads:'הגדלת תקציב קמפיין ב-₪500',design:'העלאת באנר לאתר',studio:'פרסום מאמר בבלוג',posts:'פרסום 3 פוסטים ברשתות',mascot:'שימוש בדמות בקמפיין'}[modId]}] : [];
+  const usage = [{provider: modId==='leads' ? 'Google Places' : 'מנוע AI', module:modId, est: rint(r,20,260)*scale}];
+
+  return {
+    module: modId,
+    kpi: {label: KPI_LABEL[modId], value: modId==='ads' ? nis(v) : fmt(v)},
+    status: {tone, text: statusText},
+    line: m.siteScoped ? (ctx.siteId==='all' ? `${sites.length} אתרים בחשבון` : `אתר: ${sites[0].domain}`) : 'ברמת הלקוח',
+    events, tasks, approvals, usage
+  };
+}
+
+/* =========================================================
+   6. STATE, CONTEXT & PERMISSIONS
+   ========================================================= */
+const state = {role:'super', customerId:'c1', siteId:'all', moduleFilter:'all', days:30, view:'dashboard'};
+const role = () => ROLES.find(x=>x.id===state.role);
+const visibleCustomers = () => role().customers==='all' ? CUSTOMERS : CUSTOMERS.filter(c=>role().customers.includes(c.id));
+const customer = () => CUSTOMERS.find(c=>c.id===state.customerId);
+/* company access (module bought) AND user access (allowed to enter) */
+function moduleAccess(modId){
+  const companyHas = customer().modules.includes(modId);
+  const userMay = role().modules===null || role().modules.includes(modId);
+  return {companyHas, userMay, ok: companyHas && userMay};
+}
+/* The one context object every module receives */
+function buildContext(modId){
+  const c = customer();
+  const site = state.siteId==='all' ? null : c.sites.find(s=>s.id===state.siteId);
+  return {
+    contractVersion: '0.1-demo',
+    customer: {id:c.id, name:c.name, plan:c.plan},
+    site: site ? {id:site.id, name:site.name, domain:site.domain} : null,
+    sitesAvailable: c.sites.map(s=>({id:s.id, domain:s.domain})),
+    user: {name:'יוני אטיאס', role:role().id, roleLabel:role().he},
+    permissions: {canEnter: moduleAccess(modId).ok, canManageSettings: role().admin, actions:'טרם נבדק מול מערכת ההרשאות של דליה'},
+    activeModules: c.modules,
+    period: {days: state.days},
+    locale: {lang:'he', dir:'rtl'},
+    ai: {engine:'יוגדר באזור ההגדרות', source:'demo'},
+    budget: {source:'demo', note:'מקור אמת: אזור ההגדרות'}
+  };
+}
+/* ShellBridge — the single frontend connection layer between the shell and every module.
+   Frontend only. No real API, backend or tables are assumed. */
+const ShellBridge = {
+  listeners: [],
+  getContext: modId => buildContext(modId),                 // module asks: who/what/where am I working on
+  onContextChange(fn){ this.listeners.push(fn); },          // module is told when customer/site/period change
+  notify(){ this.listeners.forEach(fn=>{ try{fn(state)}catch(e){} }); },
+  reportSummary: (modId, summary) => summary,               // module returns KPI/status/events/tasks/approvals/usage
+  mount(modId){ const m=modById(modId); return m.connection.entry ? 'mount real interface here' : null; }
+};
+window.ShellBridge = ShellBridge;
+
+function summaries(){
+  const ctx = {customer:customer(), siteId:state.siteId, days:state.days};
+  return MODULES.filter(m=>moduleAccess(m.id).ok)
+    .filter(m=>state.moduleFilter==='all' || state.moduleFilter===m.id)
+    .map(m=>adapterSummary(m.id, ctx));
+}
+
+/* =========================================================
+   7. RENDER
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
+function ago(ts){const d=Math.floor((Date.now()-ts)/864e5);return d===0?'היום':d===1?'אתמול':`לפני ${d} ימים`}
+
+function renderFilters(){
+  $('#roleSel').innerHTML = ROLES.map(r=>`<option value="${r.id}" ${r.id===state.role?'selected':''}>צפייה כ: ${r.he} (דמו)</option>`).join('');
+  const vc = visibleCustomers();
+  if(!vc.find(c=>c.id===state.customerId)) state.customerId = vc[0].id;
+  const cSel = $('#fCust');
+  cSel.innerHTML = vc.map(c=>`<option value="${c.id}" ${c.id===state.customerId?'selected':''}>${esc(c.name)}</option>`).join('');
+  cSel.disabled = vc.length===1;
+  const c = customer();
+  if(state.siteId!=='all' && !c.sites.find(s=>s.id===state.siteId)) state.siteId='all';
+  $('#fSite').innerHTML = `<option value="all">כל האתרים (${c.sites.length})</option>` + c.sites.map(s=>`<option value="${s.id}" ${s.id===state.siteId?'selected':''}>${esc(s.domain)}</option>`).join('');
+  const allowed = MODULES.filter(m=>moduleAccess(m.id).ok);
+  if(state.moduleFilter!=='all' && !allowed.find(m=>m.id===state.moduleFilter)) state.moduleFilter='all';
+  $('#fMod').innerHTML = `<option value="all">כל המודולים</option>` + allowed.map(m=>`<option value="${m.id}" ${m.id===state.moduleFilter?'selected':''}>${m.he}</option>`).join('');
+  $('#fPer').value = String(state.days);
+}
+
+function renderNav(){
+  const item = (id, label, ic, extra='', on=false, off=false) =>
+    `<button class="nav-item ${on?'on':''} ${off?'off':''}" data-go="${id}">${icon(ic)}<span>${label}</span>${extra}</button>`;
+  let h = item('dashboard','דשבורד ראשי','home','',state.view==='dashboard');
+  h += `<div class="nav-group">המערכות שלי</div>`;
+  MODULES.forEach(m=>{
+    const a = moduleAccess(m.id);
+    if(!a.companyHas) return;                         // not purchased: not shown as available
+    h += item('m/'+m.id, m.he, m.id, a.userMay?'':`<span class="tag">אין הרשאה</span>`, state.view==='m/'+m.id, !a.userMay);
+  });
+  h += `<div class="nav-group">ניהול והגדרות</div>`;
+  SHARED.forEach(s=>{
+    if(s.adminOnly && !role().admin) return;
+    h += item(s.id, s.he, s.id, '', state.view===s.id);
+  });
+  $('#nav').innerHTML = h;
+}
+
+function renderDashboard(){
+  const c = customer();
+  const sums = summaries();
+  const allowedCount = MODULES.filter(m=>moduleAccess(m.id).ok).length;
+  const siteLabel = state.siteId==='all' ? `${c.sites.length} אתרים` : c.sites.find(s=>s.id===state.siteId).domain;
+
+  const events = sums.flatMap(s=>s.events)
+    .filter(e=>state.siteId==='all' || e.siteId===null || e.siteId===state.siteId)
+    .sort((a,b)=>b.ts-a.ts).slice(0,8);
+  const tasks = sums.flatMap(s=>s.tasks).sort((a,b)=>a.due-b.due);
+  const approvals = sums.flatMap(s=>s.approvals);
+
+  const usageBy = {};
+  sums.flatMap(s=>s.usage).forEach(u=>{usageBy[u.provider]=(usageBy[u.provider]||0)+u.est});
+  const planned = {'מנוע AI': 1200*state.days/30, 'Google Places': 400*state.days/30};
+
+  const seo = moduleAccess('seo').ok, page = moduleAccess('page').ok;
+  const activeSite = state.siteId==='all' ? c.sites[0] : c.sites.find(s=>s.id===state.siteId);
+
+  return `
+  <div class="hello">
+    <div><h1>${esc(c.name)}</h1><p>תמונת מצב משולבת של כל פעילות השיווק ללקוח הזה</p></div>
+    <div class="facts">
+      <div>חבילה<br><b>${esc(c.plan)}</b></div>
+      <div>מודולים פעילים לך<br><b>${allowedCount} מתוך ${c.modules.length}</b></div>
+      <div>אתרים<br><b>${esc(siteLabel)}</b></div>
+      <div>תקופה<br><b>${state.days} ימים</b></div>
+    </div>
+  </div>
+
+  ${sums.length ? `<div class="pulse" role="list">
+    ${sums.map(s=>`<button class="kpi" role="listitem" data-go="m/${s.module}">
+      <div class="v">${s.kpi.value}</div><div class="l">${s.kpi.label}</div>
+      <div class="m">${icon(s.module)}${modById(s.module).he}</div></button>`).join('')}
+  </div>` : `<section class="block"><div class="empty">אין מודולים פעילים שמותר לך לראות אצל הלקוח הזה.</div></section>`}
+
+  <section class="block">
+    <h2>המערכות שלי <span class="count">מודולים שהלקוח רכש, לפי ההרשאות שלך</span></h2>
+    <div class="mods">
+      ${MODULES.map(m=>{
+        const a = moduleAccess(m.id);
+        const s = sums.find(x=>x.module===m.id);
+        const dim = state.moduleFilter!=='all' && state.moduleFilter!==m.id;
+        if(!a.companyHas) return `<div class="mod locked" aria-disabled="true">
+            <div class="mod-top"><div class="mod-ico">${icon(m.id)}</div><div>${m.he}<div class="mod-en">${m.en}</div></div></div>
+            <span class="chip mute">${icon('lock')}לא פעיל אצל הלקוח</span></div>`;
+        if(!a.userMay) return `<div class="mod locked" aria-disabled="true">
+            <div class="mod-top"><div class="mod-ico">${icon(m.id)}</div><div>${m.he}<div class="mod-en">${m.en}</div></div></div>
+            <span class="chip mute">${icon('lock')}אין לך הרשאה</span></div>`;
+        return `<button class="mod ${dim?'dim':''}" data-go="m/${m.id}">
+            <div class="mod-top"><div class="mod-ico">${icon(m.id)}</div><div>${m.he}<div class="mod-en">${m.en}</div></div></div>
+            <div class="mod-sum">${s ? `${s.kpi.label}: <b>${s.kpi.value}</b><br>${s.line}` : 'מסונן כעת'}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">${s?`<span class="chip ${s.status.tone}">${s.status.text}</span>`:''}${connChip(m)}</div>
+          </button>`;
+      }).join('')}
+    </div>
+  </section>
+
+  <div class="grid2">
+    <section class="block">
+      <h2>פעילות אחרונה <span class="count">${events.length} אירועים</span></h2>
+      ${events.length ? `<ul class="list">${events.map(e=>`<li>
+          <div class="dot">${icon(e.module)}</div>
+          <div class="li-main"><div class="li-title">${esc(e.text)}</div>
+          <div class="li-meta">${modById(e.module).he} · ${ago(e.ts)}</div></div></li>`).join('')}</ul>`
+        : `<div class="empty">אין פעילות בתקופה ובסינון שנבחרו. נסו להרחיב את התקופה.</div>`}
+    </section>
+    <div class="stack" style="margin:0">
+      <section class="block" style="margin:0">
+        <h2>ממתין לאישור <span class="count">${approvals.length}</span></h2>
+        ${approvals.length ? `<ul class="list">${approvals.map(a=>`<li>
+          <div class="dot">${icon(a.module)}</div>
+          <div class="li-main"><div class="li-title">${esc(a.text)}</div><div class="li-meta">${modById(a.module).he}</div></div>
+          <div class="li-act"><button class="btn pri" data-demo="אושר">אישור</button><button class="btn" data-demo="נדחה">דחייה</button></div></li>`).join('')}</ul>`
+          : `<div class="empty">אין פעולות שממתינות לאישור.</div>`}
+      </section>
+      <section class="block" style="margin:0">
+        <h2>${icon('bell')}משימות והתראות <span class="count">${tasks.length}</span></h2>
+        ${tasks.length ? `<ul class="list">${tasks.map(t=>`<li>
+          <div class="dot">${icon(t.module)}</div>
+          <div class="li-main"><div class="li-title">${esc(t.text)}</div>
+          <div class="li-meta">${modById(t.module).he} · ${t.due===0?'להיום':'בעוד '+t.due+' ימים'}</div></div></li>`).join('')}</ul>`
+          : `<div class="empty">אין משימות פתוחות.</div>`}
+      </section>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <section class="block">
+      <h2>תקציבים ושימוש <span class="count">עלות משוערת מול תקציב מתוכנן</span></h2>
+      <div class="bud">
+        ${Object.keys(usageBy).length ? Object.entries(usageBy).map(([p,est])=>{
+          const pl = planned[p] || 500; const pct = Math.min(100, Math.round(est/pl*100));
+          const cls = pct>=90?'bad':pct>=70?'warn':'';
+          return `<div class="bud-row"><div>${p}</div><div class="bar"><i class="${cls}" style="width:${pct}%"></i></div>
+            <div class="bud-n">${nis(est)} מתוך ${nis(pl)} (${pct}%)</div></div>`;}).join('')
+          : `<div class="empty">אין שימוש בתקופה שנבחרה.</div>`}
+      </div>
+      <div class="note"><span class="chip demo">הערכה – דמו</span> אלה אינם חיובים בפועל. הגדרת התקציב תתבצע באזור ההגדרות; הדשבורד רק מציג.</div>
+    </section>
+
+    <section class="block">
+      <h2>אתר פעיל משותף</h2>
+      <div class="link-row">
+        <div class="node"><b>${esc(c.name.split(' (')[0])}</b>לקוח</div><span class="arrow">${icon('left')}</span>
+        <div class="node site"><b>${esc(activeSite.domain)}</b>${state.siteId==='all'?'אתר ראשון מתוך '+c.sites.length:'האתר שנבחר'}</div>
+      </div>
+      <div class="link-row" style="margin-top:10px">
+        <div class="node" style="${seo?'':'opacity:.45'}"><b>OpenSEO</b>${seo?'מנתח ומנהל SEO':'לא פעיל כאן'}</div>
+        <div class="node" style="${page?'':'opacity:.45'}"><b>OpenPage</b>${page?'עבודה על האתר':'לא פעיל כאן'}</div>
+      </div>
+      <div class="link-row" style="margin-top:12px">
+        ${seo?`<button class="btn pri" data-pick="${activeSite.id}" data-go="m/seo">כניסה ל-OpenSEO</button>`:''}
+        ${page?`<button class="btn" data-pick="${activeSite.id}" data-go="m/page">כניסה ל-OpenPage</button>`:''}
+      </div>
+      <div class="note">שני המודולים מקבלים מהמעטפת את אותו לקוח ואותו אתר. אין לאף אחד מהם בחירת לקוח או רשימת אתרים משלו.</div>
+    </section>
+  </div>
+
+  <section class="block" style="margin-top:16px">
+    <h2>ניהול והגדרות</h2>
+    <div class="admin">
+      ${SHARED.map(s=>{
+        const locked = s.adminOnly && !role().admin;
+        return `<button data-go="${locked?'':s.id}" ${locked?'aria-disabled="true" style="opacity:.45;cursor:not-allowed"':''}>
+          <div class="mod-ico">${icon(s.id)}</div><div><b>${s.he}</b><div class="mod-sum">${locked?'זמין למנהלים בלבד':s.desc}</div></div></button>`;}).join('')}
+    </div>
+  </section>`;
+}
+
+/* Module connection point — NOT a replacement interface.
+   When a real module is connected, ShellBridge.mount() will load it here and hand it the same context. */
+function renderModulePage(modId){
+  const m = modById(modId), a = moduleAccess(modId), c = customer();
+  const crumbs = `<div class="crumbs"><button data-go="dashboard">דשבורד ראשי</button> / ${m.he}</div>`;
+  if(!a.ok) return crumbs + `<section class="block"><div class="placeholder"><h3>${icon('lock')} אין גישה למודול</h3>
+    ${!a.companyHas?'המודול אינו פעיל אצל הלקוח הזה.':'אין לך הרשאה להיכנס למודול הזה.'}<br>
+    <small>בחיבור האמיתי הגישה תיאכף גם בצד השרת, לא רק בממשק.</small></div></section>`;
+
+  const ctx = buildContext(modId);
+  const needSite = m.siteScoped && state.siteId==='all';
+  const site = ctx.site;
+  const partners = m.works.map(modById).filter(p=>moduleAccess(p.id).ok);
+
+  return crumbs + `
+  <div class="hello">
+    <div><h1>${m.he}</h1><p>${m.en}</p></div>
+    <div>${connChip(m)}</div>
+  </div>
+
+  ${needSite ? `<section class="block">
+    <h2>בחרו אתר לעבודה</h2>
+    <p class="mod-sum" style="margin:0 0 10px">${m.he} עובד על אתר מסוים. האתר שתבחרו יישאר פעיל גם כשתעברו למודול אחר.</p>
+    <div class="admin">${c.sites.map(s=>`<button data-site="${s.id}"><div class="mod-ico">${icon('page')}</div><div><b>${esc(s.domain)}</b><div class="mod-sum">${esc(s.name)}</div></div></button>`).join('')}</div>
+  </section>` : ''}
+
+  <section class="block">
+    <div class="mount" id="mount-${m.id}">
+      <div class="mount-ico">${icon(m.id)}</div>
+      <h3>כאן ייפתח הממשק האמיתי של ${m.en}</h3>
+      <p>המעטפת לא מחליפה את הממשק של המודול. היא רק פותחת אותו ומעבירה לו את ההקשר שכבר בחרתם.</p>
+      <button class="btn pri" disabled title="יופעל כשהממשק יחובר">פתיחת הממשק – טרם חובר</button>
+    </div>
+  </section>
+
+  <div class="grid2">
+    <section class="block">
+      <h2>ההקשר שיועבר לממשק</h2>
+      <dl class="ctx">
+        <dt>לקוח פעיל</dt><dd>${esc(c.name)}</dd>
+        <dt>אתר פעיל</dt><dd>${site ? esc(site.domain) : m.siteScoped ? '<span class="chip warn">טרם נבחר</span>' : 'כל אתרי הלקוח (המודול עובד ברמת הלקוח)'}</dd>
+        <dt>משתמש</dt><dd>${esc(ctx.user.name)} · ${esc(ctx.user.roleLabel)}</dd>
+        <dt>הרשאות</dt><dd>כניסה מותרת · פעולות פנימיות: <span class="chip mute">טרם נבדק מול דליה</span></dd>
+        <dt>תקופה</dt><dd>${state.days} ימים אחרונים</dd>
+      </dl>
+      <details class="tech"><summary>פרטים טכניים לחיבור (Context)</summary>
+        <pre class="json">${esc(JSON.stringify(ctx,null,2))}</pre></details>
+    </section>
+
+    <section class="block">
+      <h2>עובד יחד עם</h2>
+      ${partners.length ? `<p class="mod-sum" style="margin:0 0 10px">מעבר למודולים האלה שומר על אותו לקוח${m.siteScoped?' ואותו אתר':''}. לא צריך לבחור מחדש.</p>
+      <div class="admin">${partners.map(p=>`<button data-go="m/${p.id}"><div class="mod-ico">${icon(p.id)}</div><div><b>${p.he}</b><div class="mod-sum">${p.en}${site&&p.siteScoped?' · '+esc(site.domain):''}</div></div></button>`).join('')}</div>`
+      : `<div class="empty">אין כרגע מודולים משלימים פעילים אצל הלקוח הזה.</div>`}
+      <details class="tech" style="margin-top:14px"><summary>מה המודול יחזיר לדשבורד (דוגמה)</summary>
+        <pre class="json">${esc(JSON.stringify(adapterSummary(modId,{customer:c,siteId:state.siteId,days:state.days}),(k,v)=>k==='ts'?new Date(v).toISOString().slice(0,10):v,2))}</pre></details>
+    </section>
+  </div>`;
+}
+
+function renderShared(id){
+  const s = SHARED.find(x=>x.id===id);
+  const crumbs = `<div class="crumbs"><button data-go="dashboard">דשבורד ראשי</button> / ${s.he}</div>`;
+  if(s.adminOnly && !role().admin) return crumbs + `<section class="block"><div class="placeholder"><h3>אין גישה</h3>אזור זה זמין למנהלים בלבד.</div></section>`;
+  const sections = id==='settings'
+    ? ['סקירה כללית','חברות ומודולים','משתמשים והרשאות','תפריטים וכפתורים','חיבורי API','מנועי AI','תקציבים וקרדיטים','שימוש ועלויות','הגדרות לפי מודול','רמות אוטומציה','התראות מערכת','יומן פעילות ושינויים']
+    : ['מילות מפתח כלליות','לפי לקוח','לפי אתר','לפי מודול','קטגוריות וסטטוס','מקור ושימוש'];
+  return crumbs + `<div class="hello"><div><h1>${s.he}</h1><p>${esc(customer().name)} · ${s.desc}</p></div></div>
+  <section class="block"><div class="placeholder"><h3>אזור משותף – יפותח בצ׳אט הייעודי</h3>
+  הכניסה הזו והכניסה מהדשבורד מובילות לאותו מקום. זה מקור האמת היחיד להגדרות המשותפות.</div></section>
+  <section class="block"><h2>מבנה מתוכנן</h2><div class="admin">${sections.map(x=>`<button disabled style="cursor:default"><div><b>${x}</b><div class="mod-sum">טרם פותח</div></div></button>`).join('')}</div></section>`;
+}
+
+function render(){
+  renderFilters(); renderNav();
+  const v = state.view;
+  const main = $('#main');
+  main.innerHTML = v==='dashboard' ? renderDashboard() : v.startsWith('m/') ? renderModulePage(v.slice(2)) : renderShared(v);
+  ShellBridge.notify();
+  main.classList.remove('swap'); void main.offsetWidth; main.classList.add('swap');
+  $('#avatar').textContent = 'י';
+}
+
+/* =========================================================
+   8. EVENTS
+   ========================================================= */
+function go(view){ if(!view) return; state.view = view; location.hash = view==='dashboard' ? '' : view; render(); window.scrollTo({top:0}); }
+document.addEventListener('click', e=>{
+  const g = e.target.closest('[data-go]'); if(g && g.dataset.go){ if(g.dataset.pick) state.siteId = g.dataset.pick; go(g.dataset.go); return; }
+  const sp = e.target.closest('[data-site]'); if(sp){ state.siteId = sp.dataset.site; render(); return; }
+  const d = e.target.closest('[data-demo]');
+  if(d){ const li = d.closest('li'); li.querySelector('.li-act').innerHTML = `<span class="chip demo">${d.dataset.demo} (דמו)</span>`; }
+});
+$('#fCust').addEventListener('change', e=>{ state.customerId=e.target.value; state.siteId='all'; state.moduleFilter='all'; render(); });
+$('#fSite').addEventListener('change', e=>{ state.siteId=e.target.value; render(); });
+$('#fMod').addEventListener('change', e=>{ state.moduleFilter=e.target.value; render(); });
+$('#fPer').addEventListener('change', e=>{ state.days=+e.target.value; render(); });
+$('#fReset').addEventListener('click', ()=>{ state.siteId='all'; state.moduleFilter='all'; state.days=30; render(); });
+$('#roleSel').addEventListener('change', e=>{ state.role=e.target.value; state.view='dashboard'; render(); });
+window.addEventListener('hashchange', ()=>{ const h=location.hash.slice(1)||'dashboard'; if(h!==state.view){ state.view=h; render(); } });
+
+// Hook return-to-dalia link to safely navigate back in Staging/embedded contexts
+const daliaExitBtn = document.querySelector('a.ghost');
+if (daliaExitBtn) {
+  daliaExitBtn.addEventListener('click', (e) => {
+    if (window.parent && window.parent !== window) {
+      e.preventDefault();
+      window.parent.postMessage({ type: 'dalia-coco-exit', path: '/dashboard' }, '*');
+    } else {
+      var h = location.hostname;
+      if (h.indexOf('github.io') >= 0 || h === 'localhost' || h === '127.0.0.1') {
+        e.preventDefault();
+        location.href = './#/dashboard';
+      }
+    }
+  });
+}
+
+// Listen to parent postMessage for scope synchronization
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'dalia-coco-scope') {
+    if (e.data.selectedCompany && e.data.selectedCompany.name) {
+      const match = CUSTOMERS.find(c => c.name.includes(e.data.selectedCompany.name) || e.data.selectedCompany.name.includes(c.name));
+      if (match && match.id !== state.customerId) {
+        state.customerId = match.id;
+        state.siteId = 'all';
+        render();
+      }
+    }
+  }
+});
+
+state.view = location.hash.slice(1) || 'dashboard';
+render();
+</script>
+</body>
+</html>

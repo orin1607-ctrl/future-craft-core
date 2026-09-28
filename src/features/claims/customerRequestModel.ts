@@ -27,7 +27,7 @@ export type CustomerRequestTemplate = {
 };
 
 export function fillClaimPlaceholders(text: string, claim: Record<string, string>) {
-  return String(text || '').replace(/\{\{(\w+)\}\}/g, (_, k) => String(claim[k] || '').trim());
+  return String(text || '').replace(/\{\{(\w+)\}\}/g, (_, k) => String(claim[k] || (k === 'plate' ? '__________' : '')).trim());
 }
 
 export function todayHeDate() {
@@ -76,6 +76,17 @@ export const DEFAULT_REQUEST_TEMPLATES: CustomerRequestTemplate[] = [
     letterSubject: 'תביעה {{claimNum}} — מסמך חסר',
     letterBody:
       'שלום {{clientName}},\n\nבהמשך לתביעה {{claimNum}} עבור רכב {{plate}}, נבקש להעלות בקישור את המסמך החסר.\n\nתודה על שיתוף הפעולה.',
+    needsSignature: false,
+    builtin: true,
+  },
+  {
+    id: 'tpl-submit-docs-insurer',
+    name: 'העברת מסמכים להמשך טיפול בתביעה',
+    kind: 'free',
+    letterTo: '{{insCompany}}',
+    letterSubject: 'העברת מסמכים להמשך טיפול בתביעה – רישיון רכב {{plate}}',
+    letterBody:
+      'שלום רב,\n\nבהמשך לטיפול בתביעה, מצורפים המסמכים המבוקשים:\n\n• טופס הסכמת הנהג למסירת פרטי רישיון נהיגה.\n• צילום צבעוני של תעודת הזהות של בעל הרכב.\n• אישור ניהול חשבון / פרטי חשבון בנק.\n• מכתב מהמשעבד המתייחס להגבלה ברכב / בפוליסה.\n\nאבקש לאשר את קבלת המסמכים ולהמשיך בטיפול בתביעה.\n\nככל שנדרש מסמך נוסף, אנא עדכנו אותי.\n\nתודה רבה,\n\nיוני אטיאס\nדליה – פתרונות תפעול ותחזוקה לרכב',
     needsSignature: false,
     builtin: true,
   },

@@ -51,6 +51,14 @@ const DEFAULT_TEMPLATES: StoredEmailTemplate[] = [
     category: 'סידורי עבודה',
     variables: ['driver_name', 'title', 'scheduled_date', 'scheduled_time', 'location'],
   },
+  {
+    id: 'claim_submit_docs',
+    name: 'העברת מסמכים להמשך טיפול בתביעה',
+    subject: 'העברת מסמכים להמשך טיפול בתביעה – רישיון רכב {{vehicle_plate}}',
+    body: 'שלום רב,\n\nבהמשך לטיפול בתביעה, מצורפים המסמכים המבוקשים:\n\n• טופס הסכמת הנהג למסירת פרטי רישיון נהיגה.\n• צילום צבעוני של תעודת הזהות של בעל הרכב.\n• אישור ניהול חשבון / פרטי חשבון בנק.\n• מכתב מהמשעבד המתייחס להגבלה ברכב / בפוליסה.\n\nאבקש לאשר את קבלת המסמכים ולהמשיך בטיפול בתביעה.\n\nככל שנדרש מסמך נוסף, אנא עדכנו אותי.\n\nתודה רבה,\n\nיוני אטיאס\nדליה – פתרונות תפעול ותחזוקה לרכב',
+    category: 'תביעות',
+    variables: ['vehicle_plate', 'claim_number', 'client_name'],
+  },
 ];
 
 export default function EmailTemplates() {

@@ -1074,7 +1074,7 @@ export function createClaimsApi(actor: ClaimsActor) {
     async fillTemplate(templateKey: string, claimData: Record<string, string>) {
       const tpl = TEMPLATES[templateKey];
       if (!tpl) return { success: false, error: 'תבנית לא נמצאה' };
-      const fill = (s: string) => s.replace(/\{\{(\w+)\}\}/g, (_, k) => claimData[k] || '');
+      const fill = (s: string) => s.replace(/\{\{(\w+)\}\}/g, (_, k) => claimData[k] || (k === 'plate' ? '__________' : ''));
       return {
         success: true,
         subject: tpl.subject ? fill(tpl.subject) : '',

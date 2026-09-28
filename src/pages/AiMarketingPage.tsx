@@ -28,11 +28,13 @@ export default function AiMarketingPage() {
 
   const navigate = useNavigate();
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const customerId = searchParams.get('customer');
 
   const tab = searchParams.get('tab');
+
+  const mode = searchParams.get('mode') || 'center';
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -172,45 +174,56 @@ export default function AiMarketingPage() {
   if (build) qs.set('b', build.replace(/[^a-f0-9]/gi, '').slice(0, 12));
   if (customerId) qs.set('customer', customerId);
   if (tab) qs.set('tab', tab);
-  const src = `${base}ai-marketing-platform.html${qs.toString() ? `?${qs.toString()}` : ''}`;
-
-
+  const targetFile = mode === 'coco' ? 'ai-marketing-platform.html' : 'dalia-marketing-center.html';
+  const src = `${base}${targetFile}${qs.toString() ? `?${qs.toString()}` : ''}`;
 
   return (
-
     <div className="fixed inset-0 z-50 flex flex-col bg-[#04091a]">
-
       <div className="flex items-center justify-between gap-3 px-3 py-1.5 border-b border-white/10 bg-[#071022] text-xs shrink-0 text-white">
-
-        <span className="font-semibold truncate">CO.CO — מנהל שיווק AI</span>
+        <div className="flex items-center gap-2">
+          <span className="font-semibold truncate">דליה — מרכז השיווק והפרסום</span>
+          <div className="flex items-center rounded bg-white/10 p-0.5 text-[11px]">
+            <button
+              type="button"
+              onClick={() => {
+                const n = new URLSearchParams(searchParams);
+                n.delete('mode');
+                setSearchParams(n);
+              }}
+              className={`px-2 py-0.5 rounded transition-colors ${mode !== 'coco' ? 'bg-blue-600 text-white font-medium' : 'text-white/60 hover:text-white'}`}
+            >
+              מרכז השיווק (חדש)
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const n = new URLSearchParams(searchParams);
+                n.set('mode', 'coco');
+                setSearchParams(n);
+              }}
+              className={`px-2 py-0.5 rounded transition-colors ${mode === 'coco' ? 'bg-blue-600 text-white font-medium' : 'text-white/60 hover:text-white'}`}
+            >
+              ממשק CO.CO
+            </button>
+          </div>
+        </div>
 
         <Link
           to="/dashboard"
           className="inline-flex items-center gap-1 text-white/70 hover:text-white whitespace-nowrap"
         >
-
           חזרה לדליה
-
           <ArrowRight size={14} className="rotate-180" />
-
         </Link>
-
       </div>
 
       <iframe
-
         ref={iframeRef}
-
-        title="ניהול שיווק — CO.CO דליה"
-
+        title="מרכז השיווק והפרסום — דליה"
         src={src}
-
         className="flex-1 w-full border-0 min-h-0"
-
         allow="clipboard-read; clipboard-write"
-
       />
-
     </div>
 
   );
