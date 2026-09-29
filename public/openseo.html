@@ -493,6 +493,25 @@ const P = (id,site,plan,title,keyword,status,schedOff,pubOff,rank,err) => ({
   created_at: iso(NOW-(30-id)*DAY), updated_at: iso(NOW-(10-id%5)*DAY)
 });
 const POSTS = [
+  {
+    id: 999,
+    site: "s1",
+    plan_id: 1,
+    title: "[בדיקת ניסיון - טיוטה בלבד] מדריך תפעול ותחזוקת רכב לעסקים",
+    keyword: "תחזוקת צי רכב",
+    meta_description: "מאמר בדיקה מבוקר של מערכת OpenSEO עבור dalia-c.com. במצב טיוטה בלבד.",
+    content_html: "<h2>[בדיקה בלבד] מהו ניהול צי רכב מקצועי?</h2><p>זהו מאמר בדיקה מבוקר אחד בלבד שנוצר מתוך מערכת OpenSEO לצורך אימות תהליך העברת טיוטות.</p><h3>שאלות נפוצות</h3><p>המאמר נמצא במצב Draft בלבד ואינו מפורסם באתר.</p>",
+    status: "draft",
+    scheduled_at: null,
+    published_at: null,
+    published_url: null,
+    error: null,
+    rank: null,
+    rank_checked_at: null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    aiDraft: false
+  },
   P(1,"s1",1,"ניהול צי רכב: המדריך המלא לחברות","ניהול צי רכב","published",-21,-21,9),
   P(2,"s1",2,"כמה עולה תחזוקת רכב חברה בשנה","עלות תחזוקת רכב","published",-14,-14,null),
   P(3,"s1",1,"מיקור חוץ לניהול צי: מתי זה משתלם","מיקור חוץ לניהול צי רכב","published",-7,-7),
