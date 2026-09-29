@@ -1,50 +1,50 @@
 {
-  "timestamp": "2026-06-21T19:57:28.850Z",
-  "account": "orin1607@gmail.com",
+  "timestamp": "2026-09-29T07:56:31.059Z",
+  "account": null,
   "gcp": {
-    "project_name": "Project001AIMarketing",
-    "project_id": "project001aimarketing"
+    "project_name": "My First Project",
+    "project_id": "burnished-craft-466809-v1"
   },
   "connections": {
+    "oauth": {
+      "ok": false,
+      "error": "invalid_grant"
+    },
     "gsc": {
-      "ok": true,
-      "siteUrl": "https://dalia-c.com/",
-      "permission": "siteOwner",
-      "sites": 3
+      "ok": false,
+      "error": "invalid_grant"
     },
     "ga4": {
-      "ok": true,
-      "property": "properties/427711798",
-      "rows": 1
+      "ok": false,
+      "error": "invalid_grant"
     },
     "sheets": {
-      "ok": true,
-      "spreadsheet_id": "1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+      "ok": false,
+      "error": "invalid_grant"
     },
     "drive": {
-      "ok": true,
-      "email": "orin1607@gmail.com"
+      "ok": false,
+      "error": "invalid_grant"
     },
     "docs": {
-      "ok": true,
-      "documentId": "15NDGq_Db7w9iWcLol4UkEU5cb6DnUOE_cBW4AHi9oSA",
-      "note": "test doc — delete manually"
+      "ok": false,
+      "error": "invalid_grant"
     },
     "gmail": {
       "ok": true,
       "note": "send scope"
     },
     "apps_script": {
-      "ok": true
+      "ok": false,
+      "error": "invalid_grant"
     },
     "gbp_accounts": {
       "ok": false,
-      "error": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:484351148380'.",
-      "code": 429
+      "error": "invalid_grant"
     }
   },
   "openai": {
     "configured": true
   },
-  "ok": true
+  "ok": false
 }
