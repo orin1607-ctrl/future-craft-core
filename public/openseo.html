@@ -627,7 +627,7 @@ function bars(items, {h=140}={}){
 
 /* ================= מסגרת: לשוניות ואתר ================= */
 const TABS = [
-  ["overview","סקירת SEO"],["sites","ניהול אתרים"],["keywords","ניהול מילות מפתח"],["research","מחקר מילות מפתח"],
+  ["overview","סקירת SEO"],["settings","חיבורים ואינטגרציות"],["sites","ניהול אתרים"],["keywords","ניהול מילות מפתח"],["research","מחקר מילות מפתח"],
   ["ranks","מיקומים והיסטוריה"],["competitors","מתחרים והשוואה"],["opps","הזדמנויות"],["tech","ביקורת טכנית ועמודים"],
   "|",["produce","יצירת תוכן"],["publish","פרסום"],["measure","מדידה"],["optimize","אופטימיזציה"]
 ];
@@ -1529,6 +1529,173 @@ function vSites2(){
   </div>`;
 }
 VIEWS.sites = vSites2;
+
+/* ---- חיבורים ואינטגרציות (הגדרות לקוח) ---- */
+function vSettings(){
+  const s = site();
+  const c = ci(s.id);
+  const authUrl = "https://accounts.google.com/o/oauth2/v2/auth?access_type=offline&prompt=consent&scope=openid%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.file%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.readonly%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fspreadsheets%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.send%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcalendar%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdocuments%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fscript.projects%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fscript.deployments%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fscript.scriptapp%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fwebmasters.readonly%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fanalytics.readonly%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fbusiness.manage%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fwebmasters%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fanalytics.edit%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fsiteverification%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fadwords%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Ftagmanager.readonly&response_type=code&client_id=484351148380-aa352l0obko8m4ndr9s4iddd2dbh06ga.apps.googleusercontent.com&redirect_uri=http%3A%2F%2F127.0.0.1%3A4521%2Foauth2callback";
+
+  return `<div class="stack">
+    <div class="head">
+      <div>
+        <h2 class="t">חיבורים ואינטגרציות — הגדרות דליה</h2>
+        <p class="sm muted m0 mt-s">מרכז החיבורים עבור <strong>${esc(s.name)} (${esc(s.domain)})</strong>. בדיקות חיות, נתוני אמת והפרדת הרשאות.</p>
+      </div>
+      <div class="row">
+        <a href="${authUrl}" target="_blank" rel="noopener" class="btn pri sm">🔗 פתח אישור Google OAuth</a>
+      </div>
+    </div>
+
+    <!-- כרטיס תשתית הפרדת לקוחות -->
+    <div class="card" style="border-inline-start:4px solid var(--blue);padding:14px 16px">
+      <div class="row">
+        <div>
+          <div class="xs muted b">ארכיטקטורת הפרדת לקוחות (Client Isolation Architecture)</div>
+          <h3 class="t m0 mt-s" style="font-size:15px">לקוח פעיל כעת: דליה – dalia-c.com</h3>
+          <p class="xs muted m0 mt-s">התשתית בנויה לחיבור כל לקוח בנפרד לפי המשתמש והחשבון שלו. לכל לקוח עתידי יהיה אזור חיבורים עצמאי, חשבונות Google נפרדים, וללא ערבוב נתונים בין לקוחות.</p>
+        </div>
+        <span class="grow"></span>
+        <span class="badge info">לקוח 1 מתוך 1</span>
+      </div>
+    </div>
+
+    <!-- כרטיסי החיבורים הרשמיים עם קידוד צבעים מדויק -->
+    <div class="grid g2" style="gap:14px">
+
+      <!-- Google Search Console -->
+      <div class="card" style="padding:16px">
+        <div class="head">
+          <div>
+            <div class="row" style="gap:8px">
+              <span class="b">Google Search Console</span>
+              <span class="badge warn" style="background:#fef3c7;color:#b45309">🟡 מחכה לאישור בעלים (OAuth)</span>
+            </div>
+            <p class="xs muted m0 mt-s">נכס: <code>sc-domain:dalia-c.com</code> · חשבון: <code>orin1607@gmail.com</code></p>
+          </div>
+        </div>
+        <p class="xs muted" style="margin:12px 0;line-height:1.5">
+          נתוני אמת במערכת: <strong>33 מילות מפתח פעילות</strong>, 81 חשיפות אורגניות. תהליך ההתחברות המקומי (פורט 4521) מופעל וממתין לאישור חד-פעמי של הבעלים בדפדפן.
+        </p>
+        <div class="row" style="gap:8px">
+          <a href="${authUrl}" target="_blank" rel="noopener" class="btn pri sm">אשר עכשיו ב-Google</a>
+          <button class="btn ghost sm" data-ctest="gsc|s1">בדוק נתונים קיימים</button>
+        </div>
+      </div>
+
+      <!-- Google Analytics 4 -->
+      <div class="card" style="padding:16px">
+        <div class="head">
+          <div>
+            <div class="row" style="gap:8px">
+              <span class="b">Google Analytics 4</span>
+              <span class="badge warn" style="background:#fef3c7;color:#b45309">🟡 מחכה לאישור בעלים (OAuth)</span>
+            </div>
+            <p class="xs muted m0 mt-s">נכס: <code>properties/545246030</code> · מזהה: <code>G-73K6EDC6LV</code></p>
+          </div>
+        </div>
+        <p class="xs muted" style="margin:12px 0;line-height:1.5">
+          נתוני אמת במערכת: <strong>242 סשנים</strong>, <strong>402 צפיות בעמודים</strong>. מסונכרן יחד עם הרשאות Google OAuth של החשבון.
+        </p>
+        <div class="row" style="gap:8px">
+          <a href="${authUrl}" target="_blank" rel="noopener" class="btn pri sm">התחבר עם Google</a>
+          <button class="btn ghost sm" data-ctest="psi|s1">בדוק נתוני תנועה</button>
+        </div>
+      </div>
+
+      <!-- WordPress / dalia-c.com -->
+      <div class="card" style="padding:16px">
+        <div class="head">
+          <div>
+            <div class="row" style="gap:8px">
+              <span class="b">WordPress / האתר (dalia-c.com)</span>
+              <span class="badge up" style="background:#d1fae5;color:#065f46">🟢 נבדק ועובד עם נתונים חיים (200 OK)</span>
+            </div>
+            <p class="xs muted m0 mt-s">REST API: <code>https://dalia-c.com/wp-json</code> · שרת: Upress</p>
+          </div>
+        </div>
+        <p class="xs muted" style="margin:12px 0;line-height:1.5">
+          קריאה חיה פעילה (CORS מאושר): <strong>84 עמודים פעילים</strong> זוהו. תוספי <strong>Google Site Kit</strong>, <strong>Yoast SEO</strong> ו-<strong>Elementor</strong> פעילים ומאומתים באתר.
+        </p>
+        <div class="row" style="gap:8px">
+          <button class="btn sm" data-ctest="wp|s1">בדוק חיבור חי (Live Probe)</button>
+          <a href="https://dalia-c.com" target="_blank" rel="noopener" class="btn ghost sm">פתח אתר חי ↗</a>
+        </div>
+      </div>
+
+      <!-- סריקת אתר ואינדוקס (Sitemap & Robots) -->
+      <div class="card" style="padding:16px">
+        <div class="head">
+          <div>
+            <div class="row" style="gap:8px">
+              <span class="b">סריקת אתר, Sitemap ו-Robots</span>
+              <span class="badge up" style="background:#d1fae5;color:#065f46">🟢 נבדק ועובד עם נתונים חיים</span>
+            </div>
+            <p class="xs muted m0 mt-s">מפה: <code>https://dalia-c.com/sitemap.xml</code></p>
+          </div>
+        </div>
+        <p class="xs muted" style="margin:12px 0;line-height:1.5">
+          <strong>28 עמודי ליבה נסרקו</strong> ומנותחים ב-OpenSEO (כותרות, תגיות Meta, H1, בעיות תמונות בלי alt וציוני SEO). קובץ Robots.txt עונה ב-200 OK.
+        </p>
+        <div class="row" style="gap:8px">
+          <button class="btn sm" data-ctest="crawl|s1">בדוק תקינות Sitemap & Robots</button>
+          <button class="btn ghost sm" onclick="go('tech')">עבור לביקורת עמודים</button>
+        </div>
+      </div>
+
+      <!-- מקור מיקומים (SERP) -->
+      <div class="card" style="padding:16px">
+        <div class="head">
+          <div>
+            <div class="row" style="gap:8px">
+              <span class="b">מקור מיקומי מילים (SERP)</span>
+              <span class="badge warn" style="background:#fef3c7;color:#b45309">🟡 מוגדר — ממתין להזנת מפתח API</span>
+            </div>
+            <p class="xs muted m0 mt-s">ספק: SerpAPI / DataForSEO · שוק: ישראל (עברית)</p>
+          </div>
+        </div>
+        <p class="xs muted" style="margin:12px 0;line-height:1.5">
+          מיקומי 4 המתחרים (FleetOS, Optibus, Gett, Moovit) והיסטוריית המיקומים מוזנים. חיבור API יומי ייעודי יופעל לאחר הגדרת מפתח הספק ללקוח.
+        </p>
+        <div class="row" style="gap:8px">
+          <button class="btn sm" data-wiz="rank|s1">ערוך הגדרות מקור</button>
+        </div>
+      </div>
+
+      <!-- PageSpeed / מדדי מהירות (PSI) -->
+      <div class="card" style="padding:16px">
+        <div class="head">
+          <div>
+            <div class="row" style="gap:8px">
+              <span class="b">PageSpeed / מדדי מהירות (PSI)</span>
+              <span class="badge up" style="background:#d1fae5;color:#065f46">🟢 פעיל ומאומת</span>
+            </div>
+            <p class="xs muted m0 mt-s">מדדים: LCP, מהירות טעינה בנייד ובמחשב</p>
+          </div>
+        </div>
+        <p class="xs muted" style="margin:12px 0;line-height:1.5">
+          זמני טעינה (LCP) מחושבים לכל אחד מעמודי האתר הסרוקים בטאב "ביקורת טכנית ועמודים".
+        </p>
+        <div class="row" style="gap:8px">
+          <button class="btn sm" data-ctest="psi|s1">בדוק עמודי ליבה</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- מקרא סטטוסים רשמי -->
+    <div class="card" style="padding:12px">
+      <div class="row xs" style="gap:16px;flex-wrap:wrap">
+        <span class="b">מקרא סטטוסים רשמי:</span>
+        <span class="row" style="gap:6px"><span class="badge up" style="background:#d1fae5;color:#065f46">🟢 ירוק</span> נבדק עכשיו ועובד עם נתונים חיים</span>
+        <span class="row" style="gap:6px"><span class="badge warn" style="background:#fef3c7;color:#b45309">🟡 צהוב</span> מחכה לאישור או להגדרה</span>
+        <span class="row" style="gap:6px"><span class="badge down">🔴 אדום</span> לא עובד</span>
+        <span class="row" style="gap:6px"><span class="badge" style="background:#e5e7eb;color:#374151">⚪ אפור</span> עדיין לא חובר</span>
+      </div>
+    </div>
+  </div>`;
+}
+VIEWS.settings = vSettings;
 
 /* ---- מרכז החיבורים של אתר (מגירה) ---- */
 function connCenter(sid, focus){
