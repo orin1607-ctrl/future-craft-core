@@ -1,5 +1,18 @@
 [
   {
+    "id": "ai-1790690328317",
+    "timestamp": "2026-09-29T13:58:48.317Z",
+    "count": 1,
+    "items": [
+      {
+        "priority": "high",
+        "title": "הפעל Search Console API",
+        "detail": "לאחר הפעלה, הרץ sync כדי למשוך מילות מפתח ועמודים.",
+        "status": "recommendation_only"
+      }
+    ]
+  },
+  {
     "id": "ai-1782467303111",
     "timestamp": "2026-06-26T09:48:23.111Z",
     "count": 1,

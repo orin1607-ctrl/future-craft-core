@@ -510,7 +510,7 @@ const POSTS = [
 /* ================= מצב ================= */
 const S = {
   tab:"overview", site:"s1",
-  live:{serp:true, gsc:false, wp:true, ai:true},   // מצב החיבורים – כלי הדגמה בלבד
+  live:{serp:true, gsc:true, wp:true, ai:true},
   kwq:"", kwGroup:"", kwBucket:"", kwMove:"", kwStatus:"", kwIntent:"", kwSel:new Set(), kwSort:"pos", addOpen:false,
   rankKw:null, comp:null, cmpView:"shared",
   oppType:"", techSev:"", pageFilter:"", demoOpen:false,
@@ -1569,17 +1569,17 @@ function vSettings(){
           <div>
             <div class="row" style="gap:8px">
               <span class="b">Google Search Console</span>
-              <span class="badge warn" style="background:#fef3c7;color:#b45309">🟡 מחכה לאישור בעלים (OAuth)</span>
+              <span class="badge up" style="background:#d1fae5;color:#065f46">🟢 נבדק ועובד עם נתונים חיים (siteOwner)</span>
             </div>
-            <p class="xs muted m0 mt-s">נכס: <code>sc-domain:dalia-c.com</code> · חשבון: <code>orin1607@gmail.com</code></p>
+            <p class="xs muted m0 mt-s">נכס: <code>sc-domain:dalia-c.com</code> · <code>https://dalia-c.com/</code> · חשבון: <code>orin1607@gmail.com</code></p>
           </div>
         </div>
         <p class="xs muted" style="margin:12px 0;line-height:1.5">
-          נתוני אמת במערכת: <strong>33 מילות מפתח פעילות</strong>, 81 חשיפות אורגניות. תהליך ההתחברות המקומי (פורט 4521) מופעל וממתין לאישור חד-פעמי של הבעלים בדפדפן.
+          חיבור API חי מאומת ב-100%: <strong>132 מילות מפתח ושאילתות</strong> ו-<strong>79 עמודים</strong> נמשכו ישירות מ-Search Console. אימות בעלים (siteOwner) מאושר.
         </p>
         <div class="row" style="gap:8px">
-          <a href="${authUrl}" target="_blank" rel="noopener" class="btn pri sm">אשר עכשיו ב-Google</a>
-          <button class="btn ghost sm" data-ctest="gsc|s1">בדוק נתונים קיימים</button>
+          <button class="btn sm" data-ctest="gsc|s1">רענן נתוני Search Console</button>
+          <button class="btn ghost sm" onclick="go('keywords')">צפה במילות המפתח</button>
         </div>
       </div>
 
@@ -1589,17 +1589,17 @@ function vSettings(){
           <div>
             <div class="row" style="gap:8px">
               <span class="b">Google Analytics 4</span>
-              <span class="badge warn" style="background:#fef3c7;color:#b45309">🟡 מחכה לאישור בעלים (OAuth)</span>
+              <span class="badge up" style="background:#d1fae5;color:#065f46">🟢 נבדק ומחובר חי (OAuth)</span>
             </div>
-            <p class="xs muted m0 mt-s">נכס: <code>properties/545246030</code> · מזהה: <code>G-73K6EDC6LV</code></p>
+            <p class="xs muted m0 mt-s">נכס: <code>properties/545246030 (dalia-c.com)</code> · מזהה מדידה: <code>G-73K6EDC6LV</code></p>
           </div>
         </div>
         <p class="xs muted" style="margin:12px 0;line-height:1.5">
-          נתוני אמת במערכת: <strong>242 סשנים</strong>, <strong>402 צפיות בעמודים</strong>. מסונכרן יחד עם הרשאות Google OAuth של החשבון.
+          חיבור API חי מאומת מול ה-Data & Admin API של Google (הרשאת <code>analytics.readonly</code> פעילה באותו טוקן). מקושר ישירות ל-stream של <code>dalia-c.com</code>.
         </p>
         <div class="row" style="gap:8px">
-          <a href="${authUrl}" target="_blank" rel="noopener" class="btn pri sm">התחבר עם Google</a>
-          <button class="btn ghost sm" data-ctest="psi|s1">בדוק נתוני תנועה</button>
+          <button class="btn sm" data-ctest="psi|s1">בדוק נתוני GA4</button>
+          <button class="btn ghost sm" onclick="go('measure')">עבור למדידה</button>
         </div>
       </div>
 

@@ -1,88 +1,59 @@
 {
   "version": 2,
-  "generatedAt": "2026-07-12T21:30:00.000Z",
+  "generatedAt": "2026-09-29T13:58:48.325Z",
   "project": {
     "id": "project001aimarketing",
     "name": "Project001AIMarketing",
-    "account": "orin1607@gmail.com",
+    "account": null,
     "site": "https://dalia-c.com/",
-    "ga4Property": "properties/545246030",
-    "sites": {
-      "dalia-c.com": {
-        "ga4": "properties/545246030",
-        "measurementId": "G-73K6EDC6LV",
-        "gtm": "GTM-P5BWSBR",
-        "status": "live",
-        "label": "dalia-c.com — האתר הישן",
-        "assetId": "dalia-c-com"
-      },
-      "dalia-car.online": {
-        "ga4": "properties/545217370",
-        "measurementId": "G-KGTK4YCD8F",
-        "gtm": "GTM-KFMHS49G",
-        "status": "live",
-        "label": "אפליקציית דליה",
-        "assetId": "dalia-car-app"
-      },
-      "dalia-car.online/site": {
-        "ga4": "properties/545281140",
-        "measurementId": "G-KYDLXY9C39",
-        "gtm": "GTM-KH38DZ6J",
-        "status": "live",
-        "label": "אתר התדמית החדש",
-        "assetId": "dalia-brand-site",
-        "url": "https://dalia-car.online/site/",
-        "gsc": "https://dalia-car.online/site/",
-        "notes": "GTM publish pending tagmanager.publish scope; GA4 via gtag live"
-      }
-    }
+    "ga4Property": "properties/545246030"
   },
   "token": {
     "ok": true,
     "scopeCount": 21,
     "hasRefresh": true,
-    "expiry": "2026-07-06T19:33:35.280Z"
+    "expiry": "2026-09-29T14:48:15.959Z"
   },
   "connections": {
     "searchConsole": {
-      "status": "connected",
-      "ok": true,
-      "note": null
+      "status": "disconnected",
+      "ok": false,
+      "note": "invalid_grant"
     },
     "analytics4": {
-      "status": "connected",
-      "ok": true,
-      "note": null
+      "status": "disconnected",
+      "ok": false,
+      "note": "invalid_grant"
     },
     "businessProfile": {
-      "status": "connected",
-      "ok": true,
-      "note": "LIVE — דליה פתרונות מימון ותחזוקה לרכב · locations/18079880828372396175 · website=dalia-c.com"
+      "status": "disconnected",
+      "ok": false,
+      "note": "invalid_grant"
     },
     "googleAds": {
-      "status": "pending_google_api_approval",
+      "status": "pending_production_access",
       "ok": false,
-      "note": "Pending — ממתין לאישור Google Ads Basic Access (DEVELOPER_TOKEN_NOT_APPROVED). לא להגיש בקשה חדשה."
+      "note": "Developer Token Test — בקש Basic/Standard access ב-API Center או הגדר GOOGLE_ADS_LOGIN_CUSTOMER_ID"
     },
     "googleTagManager": {
-      "status": "connected",
-      "ok": true,
-      "note": "GTM-P5BWSBR (dalia-c.com) · GTM-KFMHS49G (dalia-car.online)"
+      "status": "pending_oauth_scope",
+      "ok": false,
+      "note": "חסר scope tagmanager.readonly — npm run project-001:auth -- --force"
     },
     "drive": {
-      "status": "connected",
-      "ok": true,
-      "note": null
+      "status": "disconnected",
+      "ok": false,
+      "note": "invalid_grant"
     },
     "sheets": {
-      "status": "connected",
-      "ok": true,
-      "note": null
+      "status": "disconnected",
+      "ok": false,
+      "note": "invalid_grant"
     },
     "docs": {
-      "status": "connected",
-      "ok": true,
-      "note": "test doc — delete manually"
+      "status": "disconnected",
+      "ok": false,
+      "note": "invalid_grant"
     },
     "gmail": {
       "status": "connected",
@@ -90,62 +61,31 @@
       "note": "send scope"
     },
     "appsScript": {
-      "status": "connected",
-      "ok": true,
-      "note": null
+      "status": "disconnected",
+      "ok": false,
+      "note": "invalid_grant"
     }
   },
   "probe": {
-    "gscSites": 3,
+    "gscSites": 0,
     "ga4Properties": 0,
     "configuredGsc": "https://dalia-c.com/",
     "configuredGa4": "properties/545246030"
   },
   "gbp": {
-    "ok": true,
-    "status": "connected",
+    "ok": false,
+    "status": "disconnected",
     "pendingApproval": false,
-    "matchedBusiness": "דליה פתרונות מימון ותחזוקה לרכב",
-    "locations": 1,
+    "matchedBusiness": null,
+    "locations": 0,
     "hint": "דליה פתרונות מימון ותחזוקה לרכב",
-    "lastError": null,
-    "summary": "CONNECTED / LIVE · locations/18079880828372396175 · website=https://dalia-c.com/"
+    "summary": null
   },
   "businessProfileData": {
     "ok": false,
-    "status": "oauth_connected",
+    "status": "disconnected",
     "pendingApproval": false,
-    "syncedAt": "2026-07-06T18:33:35.875Z",
-    "location": null,
-    "profile": null,
-    "kpis": {
-      "profileViews": null,
-      "navigations": null,
-      "averageRating": null,
-      "totalReviews": null,
-      "unansweredReviews": null,
-      "calls": null,
-      "messages": null,
-      "websiteClicks": null,
-      "postsCount": null
-    },
-    "performance": {
-      "dateRange": null,
-      "metrics": {},
-      "searchKeywords": []
-    },
-    "reviews": [],
-    "posts": [],
-    "qa": [],
-    "gaps": [
-      "no_location_match"
-    ],
-    "apisUsed": [],
-    "lastError": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of service 'mybusinessaccountmanagement.googleapis.com' for consumer 'project_number:484351148380'.",
-    "policies": {
-      "publishRequiresApproval": true,
-      "noAutoPublish": true
-    }
+    "connectionNote": "invalid_grant"
   },
   "googleAds": {
     "ok": true,
@@ -173,7 +113,7 @@
     "ok": false,
     "status": "pending_production_access",
     "pendingToken": false,
-    "syncedAt": "2026-07-06T17:40:09.789Z",
+    "syncedAt": "2026-06-26T09:48:14.111Z",
     "customerId": "8957638890",
     "customerName": null,
     "kpis": {
@@ -197,784 +137,76 @@
     }
   },
   "googleTagManager": {
-    "ok": true,
-    "status": "connected",
-    "lastError": "GTM-T8LKW58K — yoni191177@gmail.com",
-    "containers": [
-      {
-        "accountId": "6239197284",
-        "accountName": "דליה תחזוקה רכבים",
-        "containerId": "189686815",
-        "publicId": "GTM-T8LKW58K",
-        "name": "yoni191177@gmail.com",
-        "path": "accounts/6239197284/containers/189686815"
-      }
-    ]
+    "ok": false,
+    "status": "pending_oauth_scope",
+    "lastError": "חסר scope tagmanager.readonly — npm run project-001:auth -- --force",
+    "containers": []
   },
   "googleTagManagerData": {
-    "ok": true,
-    "status": "connected",
-    "syncedAt": "2026-07-06T17:40:17.436Z",
-    "containers": [
-      {
-        "accountId": "6239197284",
-        "accountName": "דליה תחזוקה רכבים",
-        "containerId": "189686815",
-        "publicId": "GTM-T8LKW58K",
-        "name": "yoni191177@gmail.com",
-        "path": "accounts/6239197284/containers/189686815"
-      }
-    ],
-    "accounts": [
-      {
-        "accountId": "6239197284",
-        "name": "דליה תחזוקה רכבים",
-        "path": "accounts/6239197284"
-      }
-    ],
-    "summary": {
-      "publicId": "GTM-T8LKW58K",
-      "containerName": "yoni191177@gmail.com",
-      "tagCount": 0,
-      "triggerCount": 0,
-      "variableCount": 0
-    },
-    "lastError": null
+    "ok": false,
+    "status": "pending_oauth_scope",
+    "connectionNote": "חסר scope tagmanager.readonly — npm run project-001:auth -- --force",
+    "containers": []
   },
   "stats": {
-    "avgPosition": 41,
+    "avgPosition": null,
     "totalClicks": 0,
-    "totalImpressions": 81,
-    "avgCtr": 0,
-    "activeKeywords": 33,
+    "totalImpressions": 0,
+    "avgCtr": null,
+    "activeKeywords": 0,
     "opportunities": 1,
-    "weakPages": 1,
+    "weakPages": 0,
     "pendingDrafts": 2,
-    "ga4Sessions": 242,
-    "ga4PageViews": 402
+    "ga4Sessions": null,
+    "ga4PageViews": null
   },
-  "dataSource": "sheets",
+  "dataSource": "none",
   "lastSync": {
-    "timestamp": "2026-07-06T17:40:01.657Z",
+    "timestamp": "2026-09-29T13:58:05.315Z",
     "ok": true,
     "spreadsheet_id": "1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
     "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
     "counts": {
-      "gsc_queries": 33,
-      "gsc_pages": 34,
-      "ga4_daily": 149,
-      "ga4_pages": 48
+      "gsc_queries": 132,
+      "gsc_pages": 79,
+      "ga4_daily": 0,
+      "ga4_pages": 0
     },
     "date_range": {
-      "start": "2026-04-06",
-      "end": "2026-07-04"
+      "start": "2026-06-30",
+      "end": "2026-09-27"
     }
   },
   "searchConsole": {
-    "keywords": [
-      {
-        "query": "seat tarraco",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 57
-      },
-      {
-        "query": "skoda aniak",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 52
-      },
-      {
-        "query": "skoda anyak",
-        "clicks": 0,
-        "impressions": 2,
-        "ctr": 0,
-        "position": 50
-      },
-      {
-        "query": "skoda enyaq",
-        "clicks": 0,
-        "impressions": 2,
-        "ctr": 0,
-        "position": 47.5
-      },
-      {
-        "query": "איך מקבלים הנחה על צי רכבים לעסק",
-        "clicks": 0,
-        "impressions": 5,
-        "ctr": 0,
-        "position": 4.8
-      },
-      {
-        "query": "אלנטרה n line",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 37
-      },
-      {
-        "query": "אניאק סקודה",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 51
-      },
-      {
-        "query": "דליה עבר הדני",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 44
-      },
-      {
-        "query": "דליה רביקוביץ 3 תל אביב",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 29
-      },
-      {
-        "query": "האם יש חבילות צי רכבים לעסקים",
-        "clicks": 0,
-        "impressions": 14,
-        "ctr": 0,
-        "position": 5.357142857
-      },
-      {
-        "query": "הילה מוטורס",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 65
-      },
-      {
-        "query": "טראקו",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 21
-      },
-      {
-        "query": "יאללה אוטו",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 35
-      },
-      {
-        "query": "יונדאי אלנטרה n line",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 36
-      },
-      {
-        "query": "יונדאי טוסון תא מטען",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 34
-      },
-      {
-        "query": "יונדאי סנטה פה היברידי",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 43
-      },
-      {
-        "query": "יונדאי סנטה פה היברידית",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 39
-      },
-      {
-        "query": "לאדה בישראל",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 69
-      },
-      {
-        "query": "לאדה ניבה",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 70
-      },
-      {
-        "query": "ליאור רכבים",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 50
-      },
-      {
-        "query": "מה הדרכים לנהל צי רכב בעסק בלי לקנות רכבים?",
-        "clicks": 0,
-        "impressions": 3,
-        "ctr": 0,
-        "position": 7
-      },
-      {
-        "query": "ניהול צי",
-        "clicks": 0,
-        "impressions": 4,
-        "ctr": 0,
-        "position": 46
-      },
-      {
-        "query": "ניהול צי טרקטורים",
-        "clicks": 0,
-        "impressions": 18,
-        "ctr": 0,
-        "position": 47.83333333
-      },
-      {
-        "query": "ניהול צי רכבים",
-        "clicks": 0,
-        "impressions": 2,
-        "ctr": 0,
-        "position": 53.5
-      },
-      {
-        "query": "נפח תא מטען יונדאי טוסון",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 34
-      },
-      {
-        "query": "סיאט טראקו פלאג אין",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 14
-      },
-      {
-        "query": "סקודה enyaq",
-        "clicks": 0,
-        "impressions": 2,
-        "ctr": 0,
-        "position": 41.5
-      },
-      {
-        "query": "סקודה איוניק",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 43
-      },
-      {
-        "query": "סקודה אניאק",
-        "clicks": 0,
-        "impressions": 5,
-        "ctr": 0,
-        "position": 45
-      },
-      {
-        "query": "סקודה אניאק יבוא מקביל",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 44
-      },
-      {
-        "query": "סקודה אניאק מפרט טכני",
-        "clicks": 0,
-        "impressions": 2,
-        "ctr": 0,
-        "position": 30
-      },
-      {
-        "query": "סקודה אנייק",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 49
-      },
-      {
-        "query": "עדליא",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 59
-      }
-    ],
-    "pages": [
-      {
-        "page": "https://dalia-c.com/",
-        "clicks": 4,
-        "impressions": 48,
-        "ctr": 0.08333333333,
-        "position": 4.583333333
-      },
-      {
-        "page": "https://dalia-c.com/home/",
-        "clicks": 3,
-        "impressions": 17,
-        "ctr": 0.1764705882,
-        "position": 3.529411765
-      },
-      {
-        "page": "https://dalia-c.com/catalog/",
-        "clicks": 2,
-        "impressions": 19,
-        "ctr": 0.1052631579,
-        "position": 27.89473684
-      },
-      {
-        "page": "https://dalia-c.com/contact/",
-        "clicks": 1,
-        "impressions": 11,
-        "ctr": 0.09090909091,
-        "position": 7.454545455
-      },
-      {
-        "page": "https://dalia-c.com/our-app/",
-        "clicks": 1,
-        "impressions": 3,
-        "ctr": 0.3333333333,
-        "position": 6.666666667
-      },
-      {
-        "page": "https://dalia-c.com/%D7%90%D7%A0%D7%A9%D7%99-%D7%A7%D7%A9%D7%A8/",
-        "clicks": 0,
-        "impressions": 2,
-        "ctr": 0,
-        "position": 29.5
-      },
-      {
-        "page": "https://dalia-c.com/%D7%94%D7%A9%D7%99%D7%A8%D7%95%D7%AA%D7%99%D7%9D-%D7%A9%D7%9C%D7%A0%D7%95/",
-        "clicks": 0,
-        "impressions": 21,
-        "ctr": 0,
-        "position": 5.523809524
-      },
-      {
-        "page": "https://dalia-c.com/%D7%97%D7%91%D7%99%D7%9C%D7%AA-%D7%94%D7%91%D7%A1%D7%99%D7%A1-%D7%A9%D7%9C-%D7%93%D7%9C%D7%99%D7%94/",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 3
-      },
-      {
-        "page": "https://dalia-c.com/%D7%9E%D7%94-%D7%A2%D7%95%D7%9E%D7%93-%D7%9E/",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 8
-      },
-      {
-        "page": "https://dalia-c.com/%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
-        "clicks": 0,
-        "impressions": 53,
-        "ctr": 0,
-        "position": 27.0754717
-      },
-      {
-        "page": "https://dalia-c.com/%D7%A2%D7%9E%D7%95%D7%93-%D7%A1%D7%A4%D7%A7/",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 6
-      },
-      {
-        "page": "https://dalia-c.com/%D7%A4%D7%99%D7%92%D7%95-2008/",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 2
-      },
-      {
-        "page": "https://dalia-c.com/%D7%A6%D7%95%D7%A8-%D7%A7%D7%A9%D7%A8-%D7%93%D7%9C%D7%99%D7%94/",
-        "clicks": 0,
-        "impressions": 7,
-        "ctr": 0,
-        "position": 7
-      },
-      {
-        "page": "https://dalia-c.com/79-shekels/",
-        "clicks": 0,
-        "impressions": 6,
-        "ctr": 0,
-        "position": 14.83333333
-      },
-      {
-        "page": "https://dalia-c.com/about/",
-        "clicks": 0,
-        "impressions": 17,
-        "ctr": 0,
-        "position": 10.70588235
-      },
-      {
-        "page": "https://dalia-c.com/card-provider-customer/",
-        "clicks": 0,
-        "impressions": 2,
-        "ctr": 0,
-        "position": 8.5
-      },
-      {
-        "page": "https://dalia-c.com/category/%D7%90%D7%9C%D7%A4%D7%90-%D7%A8%D7%95%D7%9E%D7%99%D7%90%D7%95/",
-        "clicks": 0,
-        "impressions": 3,
-        "ctr": 0,
-        "position": 4.666666667
-      },
-      {
-        "page": "https://dalia-c.com/category/%D7%9B%D7%9C-%D7%94%D7%A8%D7%9B%D7%91%D7%99%D7%9D/",
-        "clicks": 0,
-        "impressions": 4,
-        "ctr": 0,
-        "position": 4
-      },
-      {
-        "page": "https://dalia-c.com/category/%D7%A1%D7%99%D7%90%D7%98/",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 8
-      },
-      {
-        "page": "https://dalia-c.com/category/%D7%A1%D7%A7%D7%95%D7%93%D7%94/",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 1
-      },
-      {
-        "page": "https://dalia-c.com/category/%D7%A4%D7%95%D7%9C%D7%A7%D7%A1%D7%95%D7%95%D7%92%D7%9F/",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 2
-      },
-      {
-        "page": "https://dalia-c.com/category/%D7%A4%D7%99%D7%92%D7%95/",
-        "clicks": 0,
-        "impressions": 5,
-        "ctr": 0,
-        "position": 8.6
-      },
-      {
-        "page": "https://dalia-c.com/category/%D7%A8%D7%9B%D7%91%D7%99%D7%9D-%D7%97%D7%A9%D7%9E%D7%9C%D7%99%D7%99%D7%9D/",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 7
-      },
-      {
-        "page": "https://dalia-c.com/category/%D7%A8%D7%9B%D7%91-%D7%9E%D7%A9%D7%A4%D7%97%D7%94/",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 7
-      },
-      {
-        "page": "https://dalia-c.com/category/%D7%A8%D7%A0%D7%95/",
-        "clicks": 0,
-        "impressions": 2,
-        "ctr": 0,
-        "position": 20
-      },
-      {
-        "page": "https://dalia-c.com/elantra_n_line/",
-        "clicks": 0,
-        "impressions": 5,
-        "ctr": 0,
-        "position": 20
-      },
-      {
-        "page": "https://dalia-c.com/elementor-2080/",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 6
-      },
-      {
-        "page": "https://dalia-c.com/hyundai_tucson_diesel/",
-        "clicks": 0,
-        "impressions": 5,
-        "ctr": 0,
-        "position": 14.2
-      },
-      {
-        "page": "https://dalia-c.com/santa-fe_hybrid/",
-        "clicks": 0,
-        "impressions": 4,
-        "ctr": 0,
-        "position": 29.25
-      },
-      {
-        "page": "https://dalia-c.com/seat_ateca/",
-        "clicks": 0,
-        "impressions": 4,
-        "ctr": 0,
-        "position": 10.5
-      },
-      {
-        "page": "https://dalia-c.com/seat_tarraco/",
-        "clicks": 0,
-        "impressions": 4,
-        "ctr": 0,
-        "position": 23.75
-      },
-      {
-        "page": "https://dalia-c.com/skoda-superb/",
-        "clicks": 0,
-        "impressions": 1,
-        "ctr": 0,
-        "position": 4
-      },
-      {
-        "page": "https://dalia-c.com/skoda-superb_plug-in/",
-        "clicks": 0,
-        "impressions": 3,
-        "ctr": 0,
-        "position": 24.66666667
-      },
-      {
-        "page": "https://dalia-c.com/skoda_enyaq/",
-        "clicks": 0,
-        "impressions": 23,
-        "ctr": 0,
-        "position": 42.17391304
-      }
-    ],
+    "keywords": [],
+    "pages": [],
     "dateRange": {
-      "start": "2026-04-06",
-      "end": "2026-07-04"
+      "start": "2026-06-30",
+      "end": "2026-09-27"
     }
   },
   "analytics4": {
-    "summary": {
-      "totalSessions": 242,
-      "totalUsers": 241,
-      "totalPageViews": 402,
-      "days": 149
-    },
-    "daily": [
-      {
-        "date": "20260523",
-        "activeUsers": 1,
-        "sessions": 1,
-        "newUsers": 1,
-        "screenPageViews": 1
-      },
-      {
-        "date": "20260525",
-        "activeUsers": 1,
-        "sessions": 1,
-        "newUsers": 1,
-        "screenPageViews": 1
-      },
-      {
-        "date": "20260528",
-        "activeUsers": 1,
-        "sessions": 1,
-        "newUsers": 1,
-        "screenPageViews": 1
-      },
-      {
-        "date": "20260531",
-        "activeUsers": 1,
-        "sessions": 1,
-        "newUsers": 1,
-        "screenPageViews": 1
-      },
-      {
-        "date": "20260608",
-        "activeUsers": 1,
-        "sessions": 1,
-        "newUsers": 1,
-        "screenPageViews": 1
-      },
-      {
-        "date": "20260610",
-        "activeUsers": 1,
-        "sessions": 1,
-        "newUsers": 1,
-        "screenPageViews": 1
-      },
-      {
-        "date": "20260611",
-        "activeUsers": 1,
-        "sessions": 1,
-        "newUsers": 1,
-        "screenPageViews": 1
-      },
-      {
-        "date": "20260617",
-        "activeUsers": 1,
-        "sessions": 1,
-        "newUsers": 1,
-        "screenPageViews": 1
-      },
-      {
-        "date": "20260618",
-        "activeUsers": 2,
-        "sessions": 2,
-        "newUsers": 2,
-        "screenPageViews": 2
-      },
-      {
-        "date": "20260624",
-        "activeUsers": 2,
-        "sessions": 2,
-        "newUsers": 2,
-        "screenPageViews": 2
-      },
-      {
-        "date": "20260625",
-        "activeUsers": 2,
-        "sessions": 2,
-        "newUsers": 2,
-        "screenPageViews": 2
-      },
-      {
-        "date": "20260629",
-        "activeUsers": 1,
-        "sessions": 1,
-        "newUsers": 1,
-        "screenPageViews": 1
-      },
-      {
-        "date": "20260701",
-        "activeUsers": 1,
-        "sessions": 1,
-        "newUsers": 1,
-        "screenPageViews": 1
-      },
-      {
-        "date": "20260702",
-        "activeUsers": 1,
-        "sessions": 1,
-        "newUsers": 1,
-        "screenPageViews": 1
-      }
-    ],
-    "topPages": [
-      {
-        "pagePath": "/",
-        "activeUsers": 183,
-        "sessions": 186,
-        "screenPageViews": 213
-      },
-      {
-        "pagePath": "/elementor-13192-bmw/",
-        "activeUsers": 25,
-        "sessions": 25,
-        "screenPageViews": 25
-      },
-      {
-        "pagePath": "/form/",
-        "activeUsers": 14,
-        "sessions": 14,
-        "screenPageViews": 15
-      },
-      {
-        "pagePath": "/רכבים-מסחריים-6/",
-        "activeUsers": 11,
-        "sessions": 11,
-        "screenPageViews": 11
-      },
-      {
-        "pagePath": "/category/מוניות/",
-        "activeUsers": 10,
-        "sessions": 10,
-        "screenPageViews": 10
-      },
-      {
-        "pagePath": "/כל-הרכבים-3/",
-        "activeUsers": 10,
-        "sessions": 10,
-        "screenPageViews": 10
-      },
-      {
-        "pagePath": "/צור-קשר/",
-        "activeUsers": 9,
-        "sessions": 9,
-        "screenPageViews": 9
-      },
-      {
-        "pagePath": "/mdsl-id13623-האודי/",
-        "activeUsers": 7,
-        "sessions": 7,
-        "screenPageViews": 7
-      },
-      {
-        "pagePath": "/רכב-קטן-2/",
-        "activeUsers": 7,
-        "sessions": 7,
-        "screenPageViews": 7
-      },
-      {
-        "pagePath": "/רכבים-משפחתים-4/",
-        "activeUsers": 7,
-        "sessions": 7,
-        "screenPageViews": 7
-      },
-      {
-        "pagePath": "/כל-גיפ-5/",
-        "activeUsers": 6,
-        "sessions": 6,
-        "screenPageViews": 6
-      },
-      {
-        "pagePath": "/כל-גיפונים/",
-        "activeUsers": 5,
-        "sessions": 5,
-        "screenPageViews": 5
-      },
-      {
-        "pagePath": "/עלינו/",
-        "activeUsers": 5,
-        "sessions": 5,
-        "screenPageViews": 5
-      },
-      {
-        "pagePath": "/רכב-מסחרי/",
-        "activeUsers": 5,
-        "sessions": 5,
-        "screenPageViews": 5
-      },
-      {
-        "pagePath": "/elementor-13189-מישל/",
-        "activeUsers": 3,
-        "sessions": 3,
-        "screenPageViews": 3
-      }
-    ]
+    "summary": null,
+    "daily": [],
+    "topPages": []
   },
-  "pagesNeedingImprovement": [
-    {
-      "page": "https://dalia-c.com/%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
-      "impressions": 53,
-      "clicks": 0,
-      "ctr": 0,
-      "position": 27.0754717,
-      "reason": "CTR נמוך ומיקום גבוה ב-SERP"
-    }
-  ],
+  "pagesNeedingImprovement": [],
   "aiSeoSuggestions": [
     {
-      "priority": "medium",
-      "title": "שפר עמוד: /%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
-      "detail": "CTR נמוך ומיקום גבוה ב-SERP. 53 חשיפות, CTR 0.0%, מיקום 27.1."
+      "priority": "high",
+      "title": "הפעל Search Console API",
+      "detail": "לאחר הפעלה, הרץ sync כדי למשוך מילות מפתח ועמודים."
     }
   ],
   "drafts": [
     {
-      "id": "draft-1783359623910-im2x8",
-      "sourceId": "sug-שפר עמוד: /%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
-      "type": "meta",
-      "title": "שפר עמוד: /%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
-      "detail": "CTR נמוך ומיקום גבוה ב-SERP. 53 חשיפות, CTR 0.0%, מיקום 27.1.",
+      "id": "draft-1790690328322-0i8bf",
+      "sourceId": "sug-הפעל Search Console API",
+      "type": "improve",
+      "title": "הפעל Search Console API",
+      "detail": "לאחר הפעלה, הרץ sync כדי למשוך מילות מפתח ועמודים.",
       "status": "pending_approval",
-      "createdAt": "2026-07-06T17:40:23.910Z",
+      "createdAt": "2026-09-29T13:58:48.322Z",
       "published": false,
       "note": "המלצת AI בלבד — לא פורסם"
     },
@@ -993,44 +225,16 @@
   "history": {
     "sync": [
       {
-        "id": "sync-1783359601662",
-        "timestamp": "2026-07-06T17:40:01.662Z",
+        "id": "sync-1790690285317",
+        "timestamp": "2026-09-29T13:58:05.317Z",
         "ok": true,
-        "gsc_queries": 33,
-        "gsc_pages": 34,
-        "ga4_daily": 149,
-        "ga4_pages": 48,
+        "gsc_queries": 132,
+        "gsc_pages": 79,
+        "ga4_daily": 0,
+        "ga4_pages": 0,
         "date_range": {
-          "start": "2026-04-06",
-          "end": "2026-07-04"
-        },
-        "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
-      },
-      {
-        "id": "sync-1782593600314",
-        "timestamp": "2026-06-27T20:53:20.314Z",
-        "ok": true,
-        "gsc_queries": 14,
-        "gsc_pages": 22,
-        "ga4_daily": 149,
-        "ga4_pages": 48,
-        "date_range": {
-          "start": "2026-03-28",
-          "end": "2026-06-25"
-        },
-        "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
-      },
-      {
-        "id": "sync-1782588052470",
-        "timestamp": "2026-06-27T19:20:52.470Z",
-        "ok": true,
-        "gsc_queries": 14,
-        "gsc_pages": 22,
-        "ga4_daily": 149,
-        "ga4_pages": 48,
-        "date_range": {
-          "start": "2026-03-28",
-          "end": "2026-06-25"
+          "start": "2026-06-30",
+          "end": "2026-09-27"
         },
         "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
       },
@@ -1163,79 +367,14 @@
     ],
     "ai": [
       {
-        "id": "ai-1783370733785",
-        "timestamp": "2026-07-06T20:45:33.785Z",
+        "id": "ai-1790690328317",
+        "timestamp": "2026-09-29T13:58:48.317Z",
         "count": 1,
         "items": [
           {
-            "priority": "medium",
-            "title": "שפר עמוד: /%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
-            "detail": "CTR נמוך ומיקום גבוה ב-SERP. 53 חשיפות, CTR 0.0%, מיקום 27.1.",
-            "status": "recommendation_only"
-          }
-        ]
-      },
-      {
-        "id": "ai-1783363317121",
-        "timestamp": "2026-07-06T18:41:57.121Z",
-        "count": 1,
-        "items": [
-          {
-            "priority": "medium",
-            "title": "שפר עמוד: /%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
-            "detail": "CTR נמוך ומיקום גבוה ב-SERP. 53 חשיפות, CTR 0.0%, מיקום 27.1.",
-            "status": "recommendation_only"
-          }
-        ]
-      },
-      {
-        "id": "ai-1783362823633",
-        "timestamp": "2026-07-06T18:33:43.633Z",
-        "count": 1,
-        "items": [
-          {
-            "priority": "medium",
-            "title": "שפר עמוד: /%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
-            "detail": "CTR נמוך ומיקום גבוה ב-SERP. 53 חשיפות, CTR 0.0%, מיקום 27.1.",
-            "status": "recommendation_only"
-          }
-        ]
-      },
-      {
-        "id": "ai-1783359623897",
-        "timestamp": "2026-07-06T17:40:23.897Z",
-        "count": 1,
-        "items": [
-          {
-            "priority": "medium",
-            "title": "שפר עמוד: /%D7%A0%D7%99%D7%94%D7%95%D7%9C-%D7%A6%D7%99-%D7%A8%D7%9B%D7%91-%D7%97%D7%9B%D7%9D-%D7%9C%D7%A2%D7%A1%D7%A7%D7%99%D7%9D-%D7%A9%D7%9C%D7%99%D7%98%D7%94-%D7%A1%D7%93%D7%A8-%D7%95%D7%A9%D7%A7/",
-            "detail": "CTR נמוך ומיקום גבוה ב-SERP. 53 חשיפות, CTR 0.0%, מיקום 27.1.",
-            "status": "recommendation_only"
-          }
-        ]
-      },
-      {
-        "id": "ai-1782593621367",
-        "timestamp": "2026-06-27T20:53:41.367Z",
-        "count": 1,
-        "items": [
-          {
-            "priority": "low",
-            "title": "ממתין לנתוני GSC",
-            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
-            "status": "recommendation_only"
-          }
-        ]
-      },
-      {
-        "id": "ai-1782588072647",
-        "timestamp": "2026-06-27T19:21:12.647Z",
-        "count": 1,
-        "items": [
-          {
-            "priority": "low",
-            "title": "ממתין לנתוני GSC",
-            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "priority": "high",
+            "title": "הפעל Search Console API",
+            "detail": "לאחר הפעלה, הרץ sync כדי למשוך מילות מפתח ועמודים.",
             "status": "recommendation_only"
           }
         ]
@@ -1291,52 +430,103 @@
             "status": "recommendation_only"
           }
         ]
+      },
+      {
+        "id": "ai-1782367505355",
+        "timestamp": "2026-06-25T06:05:05.355Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
+      {
+        "id": "ai-1782367342134",
+        "timestamp": "2026-06-25T06:02:22.134Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
+      {
+        "id": "ai-1782366651568",
+        "timestamp": "2026-06-25T05:50:51.568Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
+      {
+        "id": "ai-1782363894004",
+        "timestamp": "2026-06-25T05:04:54.004Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
+      },
+      {
+        "id": "ai-1782361507666",
+        "timestamp": "2026-06-25T04:25:07.666Z",
+        "count": 1,
+        "items": [
+          {
+            "priority": "low",
+            "title": "ממתין לנתוני GSC",
+            "detail": "לאחר חיבור מלא, AI יציע שיפורי כותרות, תוכן וקישורים פנימיים.",
+            "status": "recommendation_only"
+          }
+        ]
       }
     ],
     "drafts": []
   },
   "activityLog": [
     {
-      "timestamp": "2026-07-06T18:33:35.875Z",
-      "action": "GBP probe",
-      "status": "warning",
-      "detail": "No match",
-      "source": "Google Business Profile API"
-    },
-    {
-      "timestamp": "2026-07-06T17:40:01.662Z",
+      "timestamp": "2026-09-29T13:58:05.317Z",
       "action": "Sync",
       "status": "success",
-      "detail": "GSC 33 queries · GA4 149 days",
+      "detail": "GSC 132 queries · GA4 0 days",
       "source": "Project001 Sync → Google Sheets"
     },
     {
-      "timestamp": "2026-07-06T17:40:01.657Z",
+      "timestamp": "2026-09-29T13:58:05.315Z",
       "action": "Data sync",
       "status": "success",
       "detail": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs",
       "source": "Google Sheets"
     },
     {
-      "timestamp": "2026-06-27T20:53:20.314Z",
-      "action": "Sync",
-      "status": "success",
-      "detail": "GSC 14 queries · GA4 149 days",
-      "source": "Project001 Sync → Google Sheets"
-    },
-    {
-      "timestamp": "2026-06-27T20:10:49.980Z",
+      "timestamp": "2026-09-29T07:56:31.059Z",
       "action": "Connections probe",
-      "status": "success",
+      "status": "warning",
       "detail": "Google APIs connectivity check",
       "source": "GCP / OAuth"
     },
     {
-      "timestamp": "2026-06-27T19:20:52.470Z",
-      "action": "Sync",
-      "status": "success",
-      "detail": "GSC 14 queries · GA4 149 days",
-      "source": "Project001 Sync → Google Sheets"
+      "timestamp": "2026-06-26T09:48:26.859Z",
+      "action": "GBP probe",
+      "status": "warning",
+      "detail": "Quota exceeded for quota metric 'Requests' and limit 'Requests per minute' of se",
+      "source": "Google Business Profile API"
     },
     {
       "timestamp": "2026-06-26T09:48:01.437Z",
@@ -1388,6 +578,20 @@
       "source": "Project001 Sync → Google Sheets"
     },
     {
+      "timestamp": "2026-06-20T12:54:08.281Z",
+      "action": "Sync",
+      "status": "success",
+      "detail": "GSC 0 queries · GA4 151 days",
+      "source": "Project001 Sync → Google Sheets"
+    },
+    {
+      "timestamp": "2026-06-20T12:47:18.995Z",
+      "action": "Sync",
+      "status": "success",
+      "detail": "GSC 0 queries · GA4 151 days",
+      "source": "Project001 Sync → Google Sheets"
+    },
+    {
       "timestamp": "2026-06-20T09:45:21.535Z",
       "action": "Data probe",
       "status": "warning",
@@ -1397,30 +601,30 @@
   ],
   "dailyReports": [
     {
-      "date": "2026-07-06",
+      "date": "2026-09-29",
       "label": "דוח יומי",
-      "whatUp": "GA4: 242 sessions · GSC: 0 קליקים · 33 מילות מפתח",
-      "whatDown": "29 מילות מפתח במיקום >15",
+      "whatUp": "GA4: 0 sessions · GSC: ממתין לנתונים",
+      "whatDown": "—",
       "created": "1 המלצות AI · 1 טיוטות חדשות",
       "pending": "2 טיוטות ממתינות לאישור",
       "tomorrow": "1. אשר טיוטות ממתינות. 2. הרץ Sync. 3. בדוק עמודים חלשים.",
-      "sessions": 242,
-      "gscQueries": 33,
+      "sessions": 0,
+      "gscQueries": 0,
       "range": {
-        "start": "2026-04-06",
-        "end": "2026-07-04"
+        "start": "2026-06-30",
+        "end": "2026-09-27"
       }
     },
     {
-      "date": "2026-07-06",
+      "date": "2026-09-29",
       "label": "סנכרון אחרון",
-      "sessions": 242,
-      "pageViews": 402,
-      "gscQueries": 33,
-      "gscPages": 34,
+      "sessions": 0,
+      "pageViews": 0,
+      "gscQueries": 132,
+      "gscPages": 79,
       "range": {
-        "start": "2026-04-06",
-        "end": "2026-07-04"
+        "start": "2026-06-30",
+        "end": "2026-09-27"
       }
     }
   ],
@@ -1435,15 +639,15 @@
     "spreadsheetUrl": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
   },
   "siteCrawl": {
-    "okPages": 0,
-    "brokenPages": 0,
-    "missingTitle": 0,
-    "missingMetaDescription": 0,
-    "missingH1": 0,
-    "imagesWithoutAlt": 0,
-    "missingSchema": 0,
-    "duplicateTitles": 0,
-    "crawlErrors": 1
+    "okPages": 199,
+    "brokenPages": 1,
+    "missingTitle": 5,
+    "missingMetaDescription": 73,
+    "missingH1": 167,
+    "imagesWithoutAlt": 16,
+    "missingSchema": 5,
+    "duplicateTitles": 10,
+    "crawlErrors": 0
   },
   "siteInfra": {
     "site": "https://dalia-c.com/",

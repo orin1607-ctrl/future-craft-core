@@ -189,8 +189,8 @@ function waitForAuthCode() {
     server.on('error', reject);
     setTimeout(() => {
       server.close();
-      reject(new Error('OAuth timeout (30 min) — try again'));
-    }, 30 * 60 * 1000);
+      reject(new Error('OAuth timeout (120 min) — try again'));
+    }, 120 * 60 * 1000);
   });
 }
 
