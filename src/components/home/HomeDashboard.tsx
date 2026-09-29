@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog, Megaphone, Scale, Warehouse } from 'lucide-react';
+import { Car, Users, Radio, Building2, BarChart3, Shield, Radar, Bus, UserCog, Megaphone, Scale, Warehouse, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -184,6 +184,16 @@ export default function HomeDashboard() {
             icon={Megaphone}
             title="ניהול שיווק"
             subtitle="שיווק · Google · AI — מערכת אחת"
+            accent="primary"
+          />
+        )}
+        {isSuperAdmin && (
+          <DashboardCardGate
+            path="/ai-marketing-2"
+            to="/ai-marketing-2"
+            icon={Sparkles}
+            title="ניהול שיווק 2"
+            subtitle="מרכז השיווק והפרסום החדש · מותאם למובייל"
             accent="primary"
           />
         )}

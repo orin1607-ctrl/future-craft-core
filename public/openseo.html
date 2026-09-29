@@ -196,11 +196,134 @@ svg.chart{width:100%;height:auto;direction:ltr;display:block}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted)}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-inline-end:4px;vertical-align:middle}
 code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:var(--soft);padding:1px 5px;border-radius:4px;direction:ltr;unicode-bidi:isolate}
+
+/* ---------- Mobile Responsive Enhancements (360px - 768px) ---------- */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+* {
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  body { font-size: 14px; }
+  .frame {
+    padding: 8px 10px;
+    gap: 6px;
+    font-size: 12px;
+  }
+  .frame #backToCenterBtn {
+    width: 100%;
+    margin: 0 0 4px 0 !important;
+    text-align: center;
+    background: var(--soft);
+    font-weight: 600;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .frame .brand { font-size: 13px; }
+  .frame .ctx { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; }
+  .frame .shared { font-size: 10.5px; }
+  .demo-note { padding: 6px 10px; font-size: 11.5px; line-height: 1.4; }
+
+  .mod-head { padding: 12px 10px 0; }
+  .mod-title { flex-direction: column; align-items: stretch; gap: 8px; }
+  .mod-title h1 { font-size: 20px; }
+  .mod-title .sub { font-size: 12px; }
+  .site-pick { width: 100%; }
+  .site-pick select { width: 100%; height: 38px; font-size: 13.5px; }
+
+  .tabs {
+    gap: 4px;
+    margin-top: 8px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button {
+    height: 38px;
+    padding: 0 12px;
+    font-size: 13px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tabs .grp { display: none; }
+
+  .content { padding: 10px 8px; max-width: 100%; }
+  .card { border-radius: 10px; }
+  .zone { padding: 12px 10px; }
+  h2.t { font-size: 16px; }
+  h3.t { font-size: 14px; }
+
+  .grid { gap: 10px; }
+  .g2, .g3, .g4 { grid-template-columns: 1fr !important; }
+  .g6 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+  .flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .flow button {
+    padding: 10px 8px !important;
+    border-bottom: 1px solid var(--line);
+  }
+  .flow button:nth-child(even) { border-left: 0 !important; }
+  .flow button::after { display: none !important; }
+  .flow .k { font-size: 11px; gap: 4px; }
+  .flow .k b { width: 16px; height: 16px; font-size: 9.5px; }
+  .flow .v { font-size: 18px; margin-top: 2px; }
+  .flow .d { font-size: 11px; }
+
+  .btn { min-height: 36px; padding: 0 10px; font-size: 13px; }
+  .btn.sm { min-height: 30px; padding: 0 8px; font-size: 12px; }
+  .input { height: 40px; font-size: 14px; }
+  .filters { padding: 10px; gap: 6px; }
+  .filters .search { width: 100% !important; max-width: 100%; }
+
+  .stat { padding: 10px 12px; }
+  .stat .v { font-size: 20px; }
+  .stat .l { font-size: 12px; }
+
+  .tbl-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    max-width: 100%;
+  }
+  .tbl-wrap table {
+    min-width: 480px;
+  }
+
+  .modal {
+    width: calc(100% - 16px) !important;
+    max-height: calc(100% - 24px) !important;
+    border-radius: 12px;
+  }
+  .drawer {
+    width: 100% !important;
+  }
+  .toast {
+    max-width: calc(100% - 20px);
+    font-size: 13px;
+  }
+  .demo-ctl { display: none; }
+}
+
+@media (max-width: 400px) {
+  .flow .v { font-size: 16px; }
+  .mod-title h1 { font-size: 18px; }
+  .tabs button { padding: 0 8px; font-size: 12.5px; }
+  .g6 { grid-template-columns: 1fr !important; }
+  .flow { grid-template-columns: 1fr 1fr !important; }
+}
+
 </style>
 </head>
 <body>
 <div class="frame" role="note">
-  <a href="./dalia-marketing-center.html" class="btn ghost sm" id="backToCenterBtn" style="text-decoration:none;margin-inline-end:8px">← חזרה למרכז השיווק</a>
+  <a href="./dalia-marketing-center-v2.html" class="btn ghost sm" id="backToCenterBtn" style="text-decoration:none;margin-inline-end:8px">← חזרה לניהול שיווק 2</a>
   <span class="brand">דליה – מרכז השיווק והפרסום</span>
   <span class="ctx" title="נקבע במעטפת המשותפת">חברה פעילה: דליה פתרונות תפעול ותחזוקה לרכב ▾</span>
   <span class="shared">מעטפת משותפת – תחובר בשלב האינטגרציה</span>
@@ -703,7 +826,7 @@ function kwDrawer(k){
       <div class="step"><span class="n">4</span><div style="min-width:0"><div class="lbl">שינוי במיקום</div><div class="row">${deltaHtml(k)} <span class="sm muted">לעומת השבוע הקודם (${k.hist?(prev(k)??"100+"):"—"})</span></div>
         ${k.hist?`<div class="mt">${lineChart(series, Array.from({length:WEEKS},(_,i)=>weekLabel(i)), {h:170})}</div><div class="legend"><span><i style="background:var(--navy)"></i>אנחנו</span>${series.slice(1).map((x,i)=>`<span><i style="background:${x.color}"></i>${esc(COMPETITORS[k.site].filter(y=>k.comp[y.domain]!=null)[i].name)} (מקווקו)</span>`).join("")}</div>`:`<p class="sm muted m0 mt-s">אין היסטוריה — המילה טרם נבדקה.</p>`}</div></div>
       <div class="step"><span class="n">5</span><div style="min-width:0"><div class="lbl">המתחרים בתוצאות</div>
-        ${k.comp?`<table class="mt-s"><tbody>${serp.map(x => `<tr><td style="width:50px">${x.us?posHtml(x.p):x.p!=null?posHtml(x.p):`<span class="pos">100+</span>`}</td><td class="${x.us?"b":""}">${esc(x.name)} <span class="xs muted ltr">${esc(x.d)}</span></td></tr>`).join("")}</tbody></table>`:SRC.none()}</div></div>
+        ${k.comp?`<div class="tbl-wrap"><table class="mt-s"><tbody>${serp.map(x => `<tr><td style="width:50px">${x.us?posHtml(x.p):x.p!=null?posHtml(x.p):`<span class="pos">100+</span>`}</td><td class="${x.us?"b":""}">${esc(x.name)} <span class="xs muted ltr">${esc(x.d)}</span></td></tr>`).join("")}</tbody></table></div>`:SRC.none()}</div></div>
       <div class="step"><span class="n">6</span><div><div class="lbl">הפער</div><div class="sm">${c===undefined?"אי אפשר לחשב פער לפני בדיקת מיקום.":c==null?(b?`אין לנו עמוד מדורג. ${esc(compName(b.d))} במקום ${b.p}.`:"אף אחד מהמתחרים לא מדורג."):above?`${above} מתחרים מעלינו. המוביל: ${esc(compName(b.d))} במקום ${b.p}.`:"אנחנו מעל כל המתחרים שבמעקב."} ${SRC.calc()}</div></div></div>
       <div class="step"><span class="n">7</span><div><div class="lbl">ההזדמנות</div><div class="sm">${esc(oppFor(k)?.title || "אין הזדמנות פתוחה למילה הזו.")}</div></div></div>
       <div class="step"><span class="n">8</span><div><div class="lbl">מה לעשות</div><div class="b sm">${esc(a.t)}</div><p class="xs muted m0 mt-s">${esc(a.why)} (כלל קבוע של OpenSEO, לא ניחוש של AI)</p>
@@ -1506,12 +1629,12 @@ function wizView(){
       <button class="btn sm mt" data-wa="wpSecure">פתח חלון מאובטח (הדגמה)</button></div>
     <div class="row"><button class="btn" data-wa="wpTest" ${w.wpState==="secret"||w.wpState==="ok"?"":"disabled"}>בדוק חיבור</button>
       ${w.wpState==="ok"?`<span class="badge up">✓ REST API עונה · המשתמש יכול ליצור פוסטים (הדגמה)</span>`:w.wpState==="secret"?`<span class="badge info">הסיסמה נשמרה בצד השרת</span>`:""}<button class="btn ghost sm" data-wa="skip">דלג</button></div>`;
-  if (st === 6) body = `<table><tbody>${[
+  if (st === 6) body = `<div class="tbl-wrap"><table><tbody>${[
       ["אתר",`${esc(w.name||dom)} <span class="ltr muted">${esc(dom)}</span>`],["פלטפורמה",esc(w.plat)],["שוק",`${w.market==="il-he"?"ישראל · עברית":"ישראל · אנגלית"}${w.city?" · "+esc(w.city):""}`],
       ["אימות בעלות",w.vstate==="ok"?cs("ok"):cs("pending")],["Search Console",w.gsc==="ok"?`${cs("ok")} <code>${esc(w.gscProp||`sc-domain:${dom}`)}</code>`:cs("off")],
       ["מקור מיקומים",`${esc(w.rankProv)} · ${w.freq==="daily"?"יומי":"שבועי"} · ${({both:"מחשב + נייד",mobile:"נייד",desktop:"מחשב"})[w.device]}`],
       ["סריקה",`עד ${w.maxPages} עמודים · ${w.crawlFreq==="weekly"?"שבועי":"חודשי"}`],["WordPress",w.plat!=="WordPress"?cs("na"):w.wpState==="ok"?cs("ok"):cs("off")]
-    ].map(([a,b])=>`<tr><td class="muted sm" style="width:130px">${a}</td><td class="sm">${b}</td></tr>`).join("")}</tbody></table>
+    ].map(([a,b])=>`<tr><td class="muted sm" style="width:130px">${a}</td><td class="sm">${b}</td></tr>`).join("")}</tbody></table></div>
     <p class="xs muted m0">אחרי החיבור: מוסיפים מילות מפתח במעקב, ומוסיפים מתחרים או מאתרים אותם מתוצאות החיפוש.</p>`;
   return `<div class="scrim"></div><div class="card modal" role="dialog" aria-label="חיבור אתר" style="width:min(680px,calc(100% - 24px))">
     <div class="zone"><div class="head"><h2 class="t">${w.siteId?"עדכון חיבור":"חיבור אתר חדש"} ${NEW()}</h2><button class="btn ghost ic" data-wa="close" aria-label="סגור">✕</button></div><div class="mt">${nav}</div></div>

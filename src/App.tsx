@@ -11,6 +11,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
 import AiMarketingPage from "@/pages/AiMarketingPage";
+import AiMarketingV2Page from "@/pages/AiMarketingV2Page";
 import Dashboard from "@/pages/Dashboard";
 import Vehicles from "@/pages/Vehicles";
 import Drivers from "@/pages/Drivers";
@@ -260,9 +261,11 @@ function AppRoutes() {
       <Route path="/dev/project-001/dashboard" element={<Project001Dashboard />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-      {/* Marketing platform route */}
+      {/* Marketing platform routes */}
       <Route path="/ai-marketing" element={<AiMarketingPage />} />
       <Route path="/dalia-crm" element={<AiMarketingPage />} />
+      <Route path="/ai-marketing-2" element={<AiMarketingV2Page />} />
+      <Route path="/marketing-v2" element={<AiMarketingV2Page />} />
       <Route path="/claims-upload" element={<ClaimsUploadPage />} />
       <Route path="/claims-share" element={<ClaimsSharePage />} />
       <Route path="/claims-intake" element={<ClaimsIntakePage />} />
