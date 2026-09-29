@@ -78,3 +78,18 @@ export function fmtBytes(n?: number) {
   if (n < 1024 * 1024) return `${Math.max(1, Math.round(n / 1024))}KB`;
   return `${(n / 1024 / 1024).toFixed(1)}MB`;
 }
+
+/** Days from today to a claim date (ISO or dd/mm/yyyy), same meaning as the current dashboard. */
+export function daysFromToday(v: string): number | null {
+  const s = String(v || '').trim();
+  if (!s) return null;
+  let d: Date | null = null;
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const he = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{2,4})/);
+  if (iso) d = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]), 12);
+  else if (he) d = new Date(he[3].length === 2 ? 2000 + Number(he[3]) : Number(he[3]), Number(he[2]) - 1, Number(he[1]), 12);
+  else { const x = new Date(s); d = Number.isNaN(x.getTime()) ? null : x; }
+  if (!d) return null;
+  const t = new Date(); t.setHours(12, 0, 0, 0); d.setHours(12, 0, 0, 0);
+  return Math.round((d.getTime() - t.getTime()) / 86400000);
+}

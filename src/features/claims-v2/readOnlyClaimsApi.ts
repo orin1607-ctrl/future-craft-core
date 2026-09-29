@@ -14,7 +14,15 @@ export const READ_DOCS_ACTIONS = [
   'list_garage_reviews',
   'signed_url',
   'signed_urls',
+  'reveal_link',
 ] as const;
+
+/**
+ * Explicitly NOT allowed although they look like reads: every claims-gmail action that talks
+ * to the Gmail API (preview_sent, list_messages, suggest_reply, package_preview, …) first
+ * updates claims_gmail_connection (last_ok_at / rotated token). That is a write.
+ */
+export const BLOCKED_LOOKALIKE_READS = ['preview_sent', 'list_messages', 'suggest_reply', 'package_preview', 'read_message', 'scopes'] as const;
 
 export class ReadOnlyViolation extends Error {
   constructor(what: string) {
@@ -34,6 +42,12 @@ type ReadApi = Pick<ClaimsApi,
   | 'listMailFollowups'
   | 'listScheduledMailFollowups'
   | 'listAssignees'
+  | 'getReportData'
+  | 'getInactiveClaims'
+  | 'getTemplates'
+  | 'fillTemplate'
+  | 'exportClaimSummary'
+  | 'exportExternalSummary'
   | 'invokeGmail'
   | 'invokeDocs'
 >;
@@ -52,6 +66,12 @@ export function createReadOnlyClaimsApi(api: ReadApi) {
     listMailFollowups: (claimId?: string | null) => api.listMailFollowups(claimId),
     listScheduledMailFollowups: () => api.listScheduledMailFollowups(),
     listAssignees: () => api.listAssignees(),
+    getReportData: () => api.getReportData(),
+    getInactiveClaims: (days: number) => api.getInactiveClaims(days),
+    getTemplates: () => api.getTemplates(),
+    fillTemplate: (key: string, claim: Record<string, string>) => api.fillTemplate(key, claim),
+    exportClaimSummary: (claimId: string) => api.exportClaimSummary(claimId),
+    exportExternalSummary: (claimId: string, extra?: { mailBody?: string; docNames?: string[] }) => api.exportExternalSummary(claimId, extra),
     invokeGmail(action: string, body: Record<string, unknown> = {}) {
       if (!(READ_GMAIL_ACTIONS as readonly string[]).includes(action)) throw new ReadOnlyViolation(`claims-gmail:${action}`);
       // status with probe:true refreshes the OAuth token and writes; never send it.

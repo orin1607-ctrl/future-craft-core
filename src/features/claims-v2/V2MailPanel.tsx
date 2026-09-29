@@ -1,16 +1,23 @@
 import { useMemo, useState } from 'react';
-import type { ClaimRecord } from '@/features/claims/claimsConstants';
+import { CLAIM_DOC_TYPES, type ClaimRecord } from '@/features/claims/claimsConstants';
 import { detectMailRequests, type AlertContext } from '@/features/claims/claimWorkAlerts';
 import { gmailOpenHref } from '@/features/claims/claimMailThread';
-import { treatmentLabelOf, isOpenTreatment } from '@/features/claims/treatmentCenter';
+import { parseFromAddr } from '@/features/claims/claimContacts';
+import { isOpenTreatment, treatmentLabelOf } from '@/features/claims/treatmentCenter';
+import { docTypeStatus } from '@/features/claims/ClaimsScreen';
 import { buildMailView, mailViewCounts, rowMatches, sectionOf, type MailFilter, type MailRowView, type ThreadView } from './claimMailView';
 import type { CardData, ClaimFileRow } from './useClaimsV2Data';
+import type { CardTab } from './V2ClaimCard';
 import { fmtFull, fmtWhen } from './v2Model';
+import { Locked } from './v2Ui';
+
+/** Send-journal tracking labels as shown in the current journal (display only). */
+const TRACK_HE: Record<string, string> = { sent: 'נשלח', waiting_reply: 'ממתין לתשובה', reply_received: 'התקבלה תשובה', needs_action: 'דורש טיפול נוסף', done: 'הושלם' };
 
 function stateChip(r: MailRowView) {
   switch (r.state) {
     case 'need': return <span className="chip c-need">דורש טיפול</span>;
-    case 'reply': return <span className="chip c-reply">תשובה חזרה – לבדוק</span>;
+    case 'reply': return <span className="chip c-reply">תשובה התקבלה – לבדוק</span>;
     case 'treating': return <span className="chip c-treat">בטיפול</span>;
     case 'handled': return <span className="chip c-done">טופל</span>;
     case 'waiting': return <span className="chip c-wait">ממתין לתשובה</span>;
@@ -23,7 +30,7 @@ function stateChip(r: MailRowView) {
 function threadChip(t: ThreadView) {
   if (t.state === 'act') {
     const reply = t.mails.some((m) => m.state === 'reply');
-    return <span className={`chip ${reply ? 'c-reply' : 'c-need'}`}>{reply ? 'תשובה חזרה – לבדוק' : 'דורש טיפול'}</span>;
+    return <span className={`chip ${reply ? 'c-reply' : 'c-need'}`}>{reply ? 'תשובה התקבלה – לבדוק' : 'דורש טיפול'}</span>;
   }
   if (t.state === 'treating') return <span className="chip c-treat">בטיפול</span>;
   if (t.state === 'wait') return <span className="chip c-wait">ממתין לתשובה{t.last.due ? ` · עד ${fmtWhen(t.last.due)}` : ''}</span>;
@@ -31,29 +38,37 @@ function threadChip(t: ThreadView) {
   return <span className="chip c-done">טופל / לידיעה</span>;
 }
 
-export default function V2MailPanel({ claim, card, alertCtx, ownMailbox, pending, onOpenFile, onOldUi }: {
+/** "קיים בתיק / חסר" for a request found in the mail text, using the existing doc-type status. */
+function requestPresence(label: string, card: CardData) {
+  const t = CLAIM_DOC_TYPES.find((d) => d.label === label || d.aliases.includes(label) || d.label.includes(label) || label.includes(d.label));
+  if (!t) return null;
+  const st = docTypeStatus(t, card.files, card.requests, Boolean(card.uploadLink?.active));
+  return st.key === 'exists' || st.key === 'received' ? { ok: true, text: 'קיים בתיק' } : { ok: false, text: st.label };
+}
+
+export default function V2MailPanel({ claim, card, alertCtx, ownMailbox, pending, onOpenFile, onGoTab, onOldUi }: {
   claim: ClaimRecord;
   card: CardData;
   alertCtx: AlertContext;
   ownMailbox: string;
   pending: Array<Record<string, unknown>>;
   onOpenFile: (f: ClaimFileRow) => void;
+  onGoTab: (t: CardTab) => void;
   onOldUi: () => void;
 }) {
   const [filter, setFilter] = useState<MailFilter>('all');
   const [q, setQ] = useState('');
   const view = useMemo(() => buildMailView({
-    claim,
-    imports: card.imports,
-    sends: card.sends,
-    ownMailbox,
-    ctx: alertCtx,
-    contacts: card.contacts,
-    files: card.files,
+    claim, imports: card.imports, sends: card.sends, ownMailbox, ctx: alertCtx, contacts: card.contacts, files: card.files,
   }), [claim, card, alertCtx, ownMailbox]);
   const counts = mailViewCounts(view.threads);
   const [openThreads, setOpenThreads] = useState<Record<string, boolean>>({});
   const [openMail, setOpenMail] = useState<Record<string, boolean>>({});
+  const stateByMid = useMemo(() => {
+    const m = new Map<string, MailRowView>();
+    for (const t of view.threads) for (const r of t.mails) if (r.mail.gmail_message_id) m.set(r.mail.gmail_message_id, r);
+    return m;
+  }, [view]);
 
   const visible = view.threads
     .map((t) => ({ t, rows: t.mails.filter((r) => rowMatches(r, filter, q)) }))
@@ -64,23 +79,30 @@ export default function V2MailPanel({ claim, card, alertCtx, ownMailbox, pending
     { key: 'rest', title: 'טופל ולידיעה', cls: '' },
   ];
   const assignedPending = pending.filter((p) => String(p.assigned_claim_id || '') === claim.id && !p.imported_at);
+  const knownEmails = new Set(card.contacts.flatMap((c) => c.channels.filter((ch) => ch.kind === 'email').map((ch) => ch.value_norm)));
 
   const isThreadOpen = (t: ThreadView) => openThreads[t.key] ?? (t.state === 'act' || t.state === 'treating');
-  const isMailOpen = (t: ThreadView, r: MailRowView, rows: MailRowView[]) => {
+  const isMailOpen = (r: MailRowView, rows: MailRowView[]) => {
     const mid = r.mail.gmail_message_id || r.mail.id;
     if (openMail[mid] !== undefined) return openMail[mid];
     return r === rows[rows.length - 1] || r.state === 'need' || r.state === 'reply';
   };
 
-  const renderMail = (t: ThreadView, r: MailRowView, rows: MailRowView[]) => {
+  const renderMail = (r: MailRowView, rows: MailRowView[]) => {
     const m = r.mail;
     const mid = m.gmail_message_id || m.id;
-    const open = isMailOpen(t, r, rows);
+    const open = isMailOpen(r, rows);
     const files = card.files.filter((f) => m.gmail_message_id && f.gmail_message_id === m.gmail_message_id);
     const mailTasks = card.tasks.filter((x) => x.gmailMessageId && x.gmailMessageId === m.gmail_message_id);
     const detected = m.direction === 'incoming' ? detectMailRequests(`${m.subject || ''}\n${m.body_text || ''}`) : [];
     const gmailHref = gmailOpenHref({ threadId: m.gmail_thread_id, messageId: m.gmail_message_id, authUser: ownMailbox });
     const dirLbl = m.direction === 'incoming' ? 'נכנס' : 'יוצא';
+    const sender = parseFromAddr(m.from_addr);
+    const unknownSender = m.direction === 'incoming' && sender.email && !knownEmails.has(sender.email);
+    const reqList = detected.map((d) => {
+      const p = requestPresence(d.label, card);
+      return <div key={d.type}>• {d.label}{p ? <> — <b style={{ color: p.ok ? 'var(--ok)' : 'var(--wait)' }}>{p.text}</b></> : null}</div>;
+    });
     return (
       <div key={m.id} data-v2-mail={mid}>
         <button type="button" className={`v2-mrow${open ? ' open' : ''}`} aria-expanded={open} onClick={() => setOpenMail((p) => ({ ...p, [mid]: !open }))}>
@@ -93,15 +115,17 @@ export default function V2MailPanel({ claim, card, alertCtx, ownMailbox, pending
         {open ? (
           <div className="v2-mbody">
             <div className="v2-mb-head">
-              <span><b>{m.direction === 'incoming' ? 'מאת' : 'נשלח אל'}</b> {m.direction === 'incoming' ? m.from_addr : m.to_addr}</span>
-              {m.cc_addr ? <span><b>עותק</b> {m.cc_addr}</span> : null}
+              <span><b>מאת</b> <span dir="ltr">{m.from_addr || (m.direction === 'outgoing' ? ownMailbox : '—')}</span></span>
+              <span><b>אל</b> <span dir="ltr">{m.to_addr || '—'}</span></span>
+              {m.cc_addr ? <span><b>עותק</b> <span dir="ltr">{m.cc_addr}</span></span> : null}
               <span><b>תאריך</b> {fmtFull(m.sent_at)}</span>
               {m.send_no ? <span><b>שליחה</b> #{m.send_no}</span> : null}
             </div>
+            <div style={{ fontWeight: 700 }}>{m.subject || '(ללא נושא)'}</div>
             {(r.state === 'need' || r.state === 'reply') ? (
               <div className={`v2-need${r.state === 'reply' ? ' reply' : ''}`}>
                 <h4>{r.state === 'reply' ? 'תשובה למייל ששלחת – עדיין מסומנת לטיפול' : 'המייל מסומן "דורש טיפול" בתיק'}</h4>
-                {detected.length ? detected.map((d) => <div key={d.type}>• {d.label}</div>) : <div>אין בקשה מזוהה בטקסט. פתחו את המייל והחליטו מה לעשות.</div>}
+                {reqList.length ? reqList : <div>אין בקשה מזוהה בטקסט.</div>}
               </div>
             ) : r.state === 'treating' ? (
               <div className="v2-need info"><h4>מקושר לטיפול פתוח</h4>
@@ -111,8 +135,8 @@ export default function V2MailPanel({ claim, card, alertCtx, ownMailbox, pending
               <div className="v2-need wait"><h4>{r.state === 'overdue' ? 'עבר מועד המעקב – עדיין אין תשובה' : `ממתין לתשובה${r.due ? ` עד ${fmtFull(r.due)}` : ''}`}</h4>
                 <div>לפי מעקב השליחה ביומן השליחות.</div>
               </div>
-            ) : detected.length ? (
-              <div className="v2-need info"><h4>בקשה שזוהתה בטקסט</h4>{detected.map((d) => <div key={d.type}>• {d.label}</div>)}</div>
+            ) : reqList.length ? (
+              <div className="v2-need info"><h4>בקשה שזוהתה בטקסט</h4>{reqList}</div>
             ) : null}
             {String(m.body_text || '').trim().length > 2
               ? <pre className="v2-mb-text">{m.body_text}</pre>
@@ -121,27 +145,25 @@ export default function V2MailPanel({ claim, card, alertCtx, ownMailbox, pending
               <div className="v2-files">{files.map((f) => <button type="button" key={f.id} className="v2-file" onClick={() => onOpenFile(f)}>📎 {f.original_name}</button>)}</div>
             ) : m.file_names?.length ? (
               <div className="v2-files">{m.file_names.map((n) => <span key={n} className="v2-file">📎 {n}</span>)}</div>
-            ) : null}
-            {m.staff_note ? <div className="v2-need info"><h4>הערה פנימית</h4><div style={{ whiteSpace: 'pre-wrap' }}>{m.staff_note}</div></div> : null}
+            ) : <div className="v2-hint">אין קבצים מצורפים שמורים למייל זה</div>}
+            <div className="v2-need info">
+              <h4>הערה פנימית</h4>
+              <div style={{ whiteSpace: 'pre-wrap' }}>{m.staff_note || <span className="v2-hint">אין הערה</span>}</div>
+              <div className="v2-actions" style={{ marginTop: 6 }}><Locked label="ערוך הערה" /></div>
+            </div>
             {mailTasks.length ? (
-              <div className="v2-hint">משימות מהמייל: {mailTasks.map((x) => x.action || treatmentLabelOf(x)).filter(Boolean).join(' · ')}</div>
+              <div className="v2-actions">
+                <span className="v2-hint">משימות מהמייל:</span>
+                {mailTasks.map((x) => <button type="button" key={x.id} className="chip c-info" onClick={() => onGoTab('work')}>{x.action || treatmentLabelOf(x)}</button>)}
+              </div>
             ) : null}
             <div className="v2-acts">
               {gmailHref ? <a className="v2-btn sm" href={gmailHref} target="_blank" rel="noopener noreferrer">פתח ב-Gmail</a> : null}
-              {m.direction === 'incoming' ? (
-                <>
-                  <button type="button" className="v2-btn sm" disabled title="זמין בממשק הקיים">השב</button>
-                  <button type="button" className="v2-btn sm" disabled title="זמין בממשק הקיים">השב לכולם</button>
-                  {(r.state === 'need' || r.state === 'reply') ? (
-                    <>
-                      <button type="button" className="v2-btn sm" disabled title="זמין בממשק הקיים">קראתי – טופל</button>
-                      <button type="button" className="v2-btn sm" disabled title="זמין בממשק הקיים">השאר להמשך</button>
-                      <button type="button" className="v2-btn sm" disabled title="זמין בממשק הקיים">המשך כטיפול</button>
-                    </>
-                  ) : null}
-                </>
-              ) : null}
-              <button type="button" className="v2-btn sm" disabled title="זמין בממשק הקיים">העבר</button>
+              {m.direction === 'incoming' ? <><Locked label="השב" className="v2-btn sm pri" /><Locked label="השב לכולם" /></> : null}
+              <Locked label="העבר" />
+              {(r.state === 'need' || r.state === 'reply') ? <><Locked label="קראתי – טופל" /><Locked label="השאר להמשך" /><Locked label="המשך כטיפול" /></> : null}
+              {m.direction === 'incoming' ? <Locked label="תגובה מוצעת" /> : null}
+              {unknownSender ? <Locked label="+ שמור שולח באנשי קשר" /> : null}
               <button type="button" className="v2-btn ghost sm" onClick={onOldUi}>לביצוע בממשק הקיים ↩</button>
             </div>
             <details className="v2-tech">
@@ -177,6 +199,7 @@ export default function V2MailPanel({ claim, card, alertCtx, ownMailbox, pending
           ))}
         </div>
         <input className="v2-input" style={{ width: 240 }} placeholder="חיפוש במיילים של התיק" aria-label="חיפוש במיילים של התיק" value={q} onChange={(e) => setQ(e.target.value)} />
+        <span style={{ marginInlineStart: 'auto', display: 'inline-flex', gap: 8 }}><Locked label="✉ מייל חדש" className="v2-btn sm pri" /><Locked label="בקשה ללקוח" /></span>
       </div>
       <div className="v2-summary">
         <span className="s-need"><b>{counts.act}</b> דורשים ממך פעולה</span>
@@ -186,10 +209,11 @@ export default function V2MailPanel({ claim, card, alertCtx, ownMailbox, pending
       </div>
       {view.missingNeedIds.length ? (
         <div className="v2-need" style={{ marginBottom: 12 }}>
-          <h4>{view.missingNeedIds.length} מיילים מסומנים לטיפול אך עדיין לא מופיעים ברשימה</h4>
+          <h4>{view.missingNeedIds.length} מיילים מסומנים לטיפול אך עדיין לא נקלטו בתיק</h4>
           {view.missingNeedIds.map((id) => {
             const t = alertCtx.tasks.find((x) => x.gmailMessageId === id);
-            return <div key={id}>• {t?.action || 'מייל חדש'}</div>;
+            const href = gmailOpenHref({ threadId: t?.gmailThreadId, messageId: id, authUser: ownMailbox });
+            return <div key={id}>• {t?.action || 'מייל חדש'}{href ? <> · <a href={href} target="_blank" rel="noopener noreferrer">פתח ב-Gmail</a></> : null}</div>;
           })}
         </div>
       ) : null}
@@ -217,7 +241,7 @@ export default function V2MailPanel({ claim, card, alertCtx, ownMailbox, pending
                     <span className="v2-th-last"><b>{t.last.mail.direction === 'outgoing' ? 'אני' : t.last.who}:</b> {t.last.snippet}</span>
                     <span className="v2-th-side"><span className="v2-when">{fmtWhen(t.last.mail.sent_at)}</span>{threadChip(t)}<span className="v2-chev">{open ? 'סגור ▲' : 'פתח ▼'}</span></span>
                   </button>
-                  {open ? <div className="v2-mails">{rows.map((r) => renderMail(t, r, rows))}</div> : null}
+                  {open ? <div className="v2-mails">{rows.map((r) => renderMail(r, rows))}</div> : null}
                 </div>
               );
             })}
@@ -230,26 +254,27 @@ export default function V2MailPanel({ claim, card, alertCtx, ownMailbox, pending
           <div className="v2-list" style={{ marginTop: 10 }}>
             {card.sends.length === 0 ? <div className="v2-hint">אין שליחות מתועדות בתיק</div> : card.sends.map((s) => {
               const names = Array.isArray(s.file_names) ? (s.file_names as string[]) : [];
+              const row = stateByMid.get(String(s.gmail_message_id || ''));
+              const track = String(s.track_status || '');
               return (
                 <div className="v2-item" key={String(s.id)}>
-                  <div className="v2-item-h"><b>שליחה #{String(s.send_no || '—')} · {String(s.subject || '')}</b><span className="v2-when">{fmtFull(s.sent_at)}</span></div>
-                  <div className="v2-hint">אל {String(s.to_addr || '—')}{s.track_due ? ` · מעקב עד ${fmtFull(s.track_due)}` : ''}</div>
-                  <div className="v2-hint">מסמכים: {names.length ? names.join(', ') : 'ללא מצורפים'}</div>
+                  <div className="v2-item-h"><b>שליחה #{String(s.send_no || '—')} · {String(s.subject || '')}</b><span className="v2-chips">{row ? stateChip(row) : null}<span className="chip c-info">{TRACK_HE[track] || track || 'נשלח'}</span></span></div>
+                  <div className="v2-hint">{fmtFull(s.sent_at)} · אל {String(s.to_addr || '—')}{s.track_due ? ` · מעקב עד ${fmtFull(s.track_due)}` : ''}</div>
+                  <div className="v2-hint">מסמכים שנשלחו: {names.length ? names.join(', ') : 'ללא מצורפים'}</div>
+                  <div className="v2-actions">
+                    {gmailOpenHref({ threadId: s.gmail_thread_id, messageId: s.gmail_message_id, authUser: ownMailbox })
+                      ? <a className="v2-btn sm" href={gmailOpenHref({ threadId: s.gmail_thread_id, messageId: s.gmail_message_id, authUser: ownMailbox }) || '#'} target="_blank" rel="noopener noreferrer">פתח ב-Gmail</a> : null}
+                    <Locked label="עדכן מעקב" />
+                  </div>
                 </div>
               );
             })}
           </div>
         </details>
         <details>
-          <summary>מעקבי מייל ומיילים מתוזמנים ({card.followups.length})</summary>
-          <div className="v2-list" style={{ marginTop: 10 }}>
-            {card.followups.length === 0 ? <div className="v2-hint">אין מעקב מייל בתיק</div> : card.followups.map((f) => (
-              <div className="v2-item" key={f.id}>
-                <div className="v2-item-h"><b>{f.mail_subject || '(ללא נושא)'}</b><span className="chip c-info">{f.status}</span></div>
-                <div className="v2-hint">אל {f.mail_to || '—'}{f.next_run_at ? ` · הבא ${fmtFull(f.next_run_at)}` : ''}{f.repeat_every_days ? ` · כל ${f.repeat_every_days} ימים` : ''}</div>
-              </div>
-            ))}
-          </div>
+          <summary>ייבוא מייל מ-Gmail</summary>
+          <div className="v2-note" style={{ marginTop: 8 }}>ייבוא ידני של מייל שלא שויך אוטומטית, עם כל המצורפים.</div>
+          <div className="v2-actions" style={{ marginTop: 8 }}><Locked label="בחירת מייל לייבוא" /></div>
         </details>
       </div>
     </div>

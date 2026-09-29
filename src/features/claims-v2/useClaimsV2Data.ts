@@ -47,6 +47,7 @@ export function useClaimsV2Data(actor: ClaimsActor) {
   const [followups, setFollowups] = useState<MailFollowupRow[]>([]);
   const [garageReviews, setGarageReviews] = useState<Record<string, { review_status?: string }>>({});
   const [ownMailbox, setOwnMailbox] = useState('');
+  const [gmail, setGmail] = useState<{ connected: boolean; email: string; lastScanAt: string; sendEnabled: boolean | null }>({ connected: false, email: '', lastScanAt: '', sendEnabled: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [card, setCard] = useState<CardData | null>(null);
@@ -81,8 +82,9 @@ export function useClaimsV2Data(actor: ClaimsActor) {
         for (const row of g.reviews) if (row?.claim_id) map[row.claim_id] = { review_status: String(row.review_status || '') };
       }
       setGarageReviews(map);
-      const s = st as { email?: string | null; accountExpected?: string | null };
+      const s = st as { email?: string | null; accountExpected?: string | null; connected?: boolean; lastScanAt?: string | null; sendEnabled?: boolean };
       setOwnMailbox(String(s?.email || s?.accountExpected || '').toLowerCase());
+      setGmail({ connected: Boolean(s?.connected), email: String(s?.email || ''), lastScanAt: String(s?.lastScanAt || ''), sendEnabled: typeof s?.sendEnabled === 'boolean' ? s.sendEnabled : null });
       if (!cr.success && cr.error) setError(`טעינת תביעות נכשלה: ${cr.error}`);
     } catch (e) {
       setError(String((e as Error).message || e));
@@ -144,10 +146,28 @@ export function useClaimsV2Data(actor: ClaimsActor) {
     return out;
   }, [api]);
 
-  const signedUrl = useCallback(async (claimId: string, fileId: string) => {
-    const r = await api.invokeDocs('signed_url', { claim_id: claimId, file_id: fileId }).catch(() => ({}));
+  const signedUrl = useCallback(async (claimId: string, fileId: string, download?: { filename: string }) => {
+    const body: Record<string, unknown> = { claim_id: claimId, file_id: fileId };
+    if (download) { body.purpose = 'download'; body.filename = download.filename || 'document'; }
+    const r = await api.invokeDocs('signed_url', body).catch(() => ({}));
     return String((r as { url?: string }).url || '');
   }, [api]);
+
+  /** Existing customer upload link only (reveal_link reads; it never creates or rotates). */
+  const revealLink = useCallback(async (claimId: string) => {
+    const r = await api.invokeDocs('reveal_link', { claim_id: claimId }).catch(() => ({}));
+    const x = r as { success?: boolean; token?: string; url?: string; error?: string };
+    return { ok: Boolean(x.success && (x.token || x.url)), token: String(x.token || ''), url: String(x.url || ''), error: String(x.error || '') };
+  }, [api]);
+
+  const reports = useMemo(() => ({
+    data: () => api.getReportData(),
+    inactive: (days: number) => api.getInactiveClaims(days),
+    templates: () => api.getTemplates(),
+    fill: (key: string, claim: Record<string, string>) => api.fillTemplate(key, claim),
+    internalSummary: (claimId: string) => api.exportClaimSummary(claimId),
+    externalSummary: (claimId: string, extra?: { mailBody?: string; docNames?: string[] }) => api.exportExternalSummary(claimId, extra),
+  }), [api]);
 
   const alertCtx = useMemo<AlertContext>(() => {
     const merged = new Map<string, ClaimRecord>();
@@ -166,7 +186,7 @@ export function useClaimsV2Data(actor: ClaimsActor) {
     claims, notifs, tasks, reminders, pending, followups, ownMailbox,
     loading, error, loadAll,
     card, cardLoading, loadCard,
-    signedUrls, signedUrl,
+    signedUrls, signedUrl, revealLink, reports, gmail,
     alertCtx,
   };
 }

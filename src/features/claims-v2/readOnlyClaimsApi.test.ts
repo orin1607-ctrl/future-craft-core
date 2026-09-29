@@ -8,6 +8,8 @@ function fakeApi() {
     getClaims: vi.fn(ok), getNotifications: vi.fn(ok), getTasks: vi.fn(ok), getReminders: vi.fn(ok),
     getHistory: vi.fn(ok), getCommLog: vi.fn(ok), listClaimContacts: vi.fn(ok), listMailFollowups: vi.fn(ok),
     listScheduledMailFollowups: vi.fn(ok), listAssignees: vi.fn(ok),
+    getReportData: vi.fn(ok), getInactiveClaims: vi.fn(ok), getTemplates: vi.fn(ok), fillTemplate: vi.fn(ok),
+    exportClaimSummary: vi.fn(ok), exportExternalSummary: vi.fn(ok),
     invokeGmail: vi.fn(ok), invokeDocs: vi.fn(ok),
   };
 }
@@ -25,10 +27,12 @@ describe('read-only claims API for the new UI', () => {
   it('blocks every write / send action before it reaches the service', () => {
     const api = fakeApi();
     const ro = createReadOnlyClaimsApi(api as never);
-    for (const a of ['send_claim', 'send', 'send_email', 'scan_inbox', 'import_message', 'assign_pending', 'update_import_note', 'update_send_track', 'ensure_mail_tasks', 'revoke', 'create_draft']) {
+    for (const a of ['send_claim', 'send', 'send_email', 'scan_inbox', 'import_message', 'assign_pending', 'update_import_note', 'update_send_track', 'ensure_mail_tasks', 'revoke', 'create_draft',
+      // look like reads but refresh/persist the Gmail connection
+      'preview_sent', 'list_messages', 'suggest_reply', 'package_preview', 'read_message']) {
       expect(() => ro.invokeGmail(a)).toThrow(ReadOnlyViolation);
     }
-    for (const a of ['staff_upload', 'create_link', 'create_share', 'revoke_share', 'reset_request', 'update_doc_meta']) {
+    for (const a of ['staff_upload', 'create_link', 'revoke_link', 'create_share', 'revoke_share', 'reset_request', 'update_doc_meta', 'set_doc_kind', 'save_doc_requests', 'assign_garage_worker', 'unassign_garage_worker', 'garage_review_approve', 'garage_review_needs_update']) {
       expect(() => ro.invokeDocs(a)).toThrow(ReadOnlyViolation);
     }
     expect(() => ro.invokeGmail('status', { probe: true })).toThrow(ReadOnlyViolation);
