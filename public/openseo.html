@@ -535,7 +535,7 @@ const S = {
   oppType:"", techSev:"", pageFilter:"", demoOpen:false,
   drawer:null, modal:null,
   research:{seed:"",audience:"",busy:false,result:null, coSeed:"",coBusy:false,coResult:null, planForm:null, drafting:null},
-  produce:{keyword:"",plan:"",busy:false,topic:"",ideas:[],ideasBusy:false},
+  produce:{keyword:"",plan:"",length:"long",busy:false,lastError:null,topic:"",ideas:[],ideasBusy:false},
   compose:null, publish:{start:"",cadence:"1",month:null,busy:false},
   measure:{busy:false,note:null}, optimize:{postId:null,busy:false,src:null,sugs:[],applied:0},
   pageOpt:{url:null,sugs:[]}
@@ -1147,18 +1147,29 @@ function vProduce(){
   if (S.compose) return vComposer();
   const R = S.produce, plans = PLANS.filter(p => p.site === S.site), drafts = sitePosts().filter(p => p.status === "draft");
   return `<div class="stack">
-    <div class="card"><div class="zone"><div class="head"><h3 class="t">יצירת מאמר ${ORIG()}</h3><button class="btn ghost sm" data-act="newCompose">+ מאמר ריק</button></div>
-      <div class="fields mt"><label class="f" style="flex:1;min-width:220px">מילת מפתח יעד<input class="input" id="pKw" value="${esc(R.keyword)}" placeholder="תחזוקת צי רכבים לחברות"></label>
+    <div class="card"><div class="zone"><div class="head"><h3 class="t">יצירת מאמר עם Gemini AI</h3><button class="btn ghost sm" data-act="newCompose">+ מאמר ריק</button></div>
+      <div class="fields mt"><label class="f" style="flex:1;min-width:220px">מילת מפתח יעד<input class="input" id="pKw" value="${esc(R.keyword)}" placeholder="למשל: מה עושה קצין רכב"></label>
+        <label class="f">אורך מאמר<select class="input" id="pLength">
+          <option value="long" ${R.length==="long"||!R.length?"selected":""}>ארוך ומעמיק (1,500–2,500 מילים · מומלץ ל-SEO)</option>
+          <option value="medium" ${R.length==="medium"?"selected":""}>בינוני (800–1,200 מילים)</option>
+          <option value="short" ${R.length==="short"?"selected":""}>קצר (350–500 מילים)</option>
+        </select></label>
         <label class="f">תוכנית תוכן (לא חובה)<select class="input" id="pPlan"><option value="">ללא תוכנית</option>${plans.map(p=>`<option value="${p.id}" ${String(R.plan)===String(p.id)?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label>
-        <button class="btn pri" data-act="genArticle" ${R.busy?"disabled":""}>${R.busy?"יוצר…":"צור מאמר"}</button></div>
-      <p class="xs muted m0 mt-s">יוצר טיוטה ממוקדת-אדם (כותרת, תיאור, HTML סמנטי) ${SRC.ai()}. הטקסט נכתב בעברית ${NEW()} — במקור ההנחיות באנגלית.</p></div>
+        <button class="btn pri" data-act="genArticle" ${R.busy?"disabled":""}>${R.busy?"יוצר עם Gemini…":"צור מאמר"}</button></div>
+      <p class="xs muted m0 mt-s">יוצר טיוטה מקיפה בעברית תקינה, RTL וכותרות H2/H3 מובנות דרך Google Gemini API. המאמר נשמר כטיוטה לבדיקה לפני פרסום.</p>
+      ${R.lastError ? `<div class="zone mt-s" style="background:var(--down-t);border-radius:var(--r-s);border:1px solid var(--down);padding:10px 14px">
+        <div class="row" style="color:var(--down);font-weight:600"><span>⚠ שגיאת Gemini API:</span></div>
+        <p class="sm m0 mt-s" style="color:var(--down);font-family:ui-monospace,Menlo,monospace;word-break:break-word">${esc(R.lastError)}</p>
+        <p class="xs muted m0 mt-s">התוכן לא נוצר — המערכת לא החליפה לתוכן דמו כדי לשמור על דיווח אמת.</p>
+      </div>` : ""}
+    </div>
       <div class="zone"><h3 class="t">רעיונות מנושא ${ORIG()}</h3>
       <div class="fields mt"><label class="f" style="flex:1;min-width:220px">נושא או אשכול<input class="input" id="pTopic" value="${esc(R.topic)}" placeholder="ניהול צי רכב"></label>
         <button class="btn" data-act="genIdeas" ${R.ideasBusy?"disabled":""}>${R.ideasBusy?"מייצר…":"צור רעיונות"}</button></div>
       ${R.ideas.length?`<div class="tbl-wrap mt"><table><thead><tr><th>רעיון למאמר</th><th></th></tr></thead><tbody>${R.ideas.map((t,i)=>`<tr><td>${esc(t)}</td><td style="width:90px"><button class="btn sm" data-idea="${i}">טיוטה</button></td></tr>`).join("")}</tbody></table></div>`:""}</div></div>
     <div class="card"><div class="zone"><h3 class="t">טיוטות · ${drafts.length} ${ORIG()}</h3></div>
-      ${drafts.length?`<div class="tbl-wrap"><table><thead><tr><th>כותרת</th><th>מילת מפתח</th><th>תוכנית</th><th>עודכן</th><th></th></tr></thead><tbody>
-        ${drafts.map(p=>`<tr><td><button class="linkish" data-edit="${p.id}">${esc(p.title||"ללא כותרת")}</button>${p.aiDraft?` ${SRC.ai()}`:""}</td><td><span class="chip">${esc(p.keyword)}</span></td><td class="sm muted">${esc(planName(p.plan_id))}</td><td class="sm num muted">${fdt(Date.parse(p.updated_at))}</td>
+      ${drafts.length?`<div class="tbl-wrap"><table><thead><tr><th>כותרת</th><th>מילת מפתח</th><th>תוכנית</th><th>מילים</th><th>עודכן</th><th></th></tr></thead><tbody>
+        ${drafts.map(p=>`<tr><td><button class="linkish" data-edit="${p.id}">${esc(p.title||"ללא כותרת")}</button>${p.aiDraft?` <span class="badge ${p.aiModel?'ai':''}" title="${p.aiModel||'AI'}">${p.aiModel ? esc(p.aiModel.replace('models/','')) : 'AI'}</span>`:""}</td><td><span class="chip">${esc(p.keyword)}</span></td><td class="sm muted">${esc(planName(p.plan_id))}</td><td class="sm num muted">${p.word_count ? fmt(p.word_count) : (p.content_html ? p.content_html.replace(/<[^>]+>/g,' ').trim().split(/\s+/).length : '—')}</td><td class="sm num muted">${fdt(Date.parse(p.updated_at))}</td>
           <td style="white-space:nowrap"><button class="btn ghost sm" data-edit="${p.id}">ערוך</button><button class="btn ghost sm danger" data-rmpost="${p.id}">מחק</button></td></tr>`).join("")}
       </tbody></table></div><div class="zone soft" style="text-align:left"><button class="btn ghost sm" data-tab="publish">תזמון הטיוטות בלשונית פרסום ←</button></div>`
       :`<div class="empty"><div class="t">אין עדיין טיוטות</div>צור מאמר למעלה — הוא יופיע כאן כטיוטה לעריכה ולתזמון.</div>`}</div>
@@ -1167,17 +1178,21 @@ function vProduce(){
 function vComposer(){
   const c = S.compose, existing = POSTS.find(p => p.id === c.id), plans = PLANS.filter(p => p.site === S.site);
   const wp = S.live.wp && site().conn.wp;
+  const wordCount = c.word_count || (c.content_html ? c.content_html.replace(/<[^>]+>/g,' ').trim().split(/\s+/).length : 0);
   return `<div class="stack" style="max-width:900px">
-    <div class="row"><button class="btn ghost sm" data-act="closeCompose">→ חזרה</button><h2 class="t">${existing?"עריכת מאמר":"מאמר חדש"}</h2>${existing?stBadge(existing.status):""} ${ORIG()}</div>
-    ${!existing?`<div class="card"><div class="zone"><h3 class="t">יצירה</h3><div class="grid g2 mt">
+    <div class="row"><button class="btn ghost sm" data-act="closeCompose">→ חזרה</button><h2 class="t">${existing?"עריכת מאמר":"מאמר חדש"}</h2>${existing?stBadge(existing.status):""} ${c.aiModel?`<span class="badge ai">Gemini (${esc(c.aiModel.replace('models/',''))})</span>`:""}</div>
+    ${!existing?`<div class="card"><div class="zone"><h3 class="t">יצירה עם Gemini AI</h3><div class="grid g2 mt">
       <label class="f">מילת מפתח יעד<input class="input" data-cf="keyword" value="${esc(c.keyword)}"></label>
-      <label class="f">תוכנית תוכן<select class="input" data-cf="plan_id"><option value="">ללא תוכנית</option>${plans.map(p=>`<option value="${p.id}" ${String(c.plan_id)===String(p.id)?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label></div>
-      <label class="f mt">כותרת עבודה / זווית (לא חובה)<input class="input" data-cf="title" value="${esc(c.title)}" placeholder="השאר ריק כדי שה-AI יבחר"></label>
-      <div class="row mt" style="justify-content:space-between"><span class="xs muted">יוצר טיוטה שאפשר לערוך למטה.</span><button class="btn" data-act="composeGen">צור מאמר</button></div></div></div>`:""}
-    <div class="card"><div class="zone stack" style="gap:12px"><h3 class="t">המאמר</h3>
+      <label class="f">אורך מאמר<select class="input" data-cf="length"><option value="long" ${c.length==="long"||!c.length?"selected":""}>ארוך ומעמיק (1,500–2,500 מילים)</option><option value="medium" ${c.length==="medium"?"selected":""}>בינוני (800–1,200 מילים)</option><option value="short" ${c.length==="short"?"selected":""}>קצר (350–500 מילים)</option></select></label>
+      <label class="f">תוכנית תוכן<select class="input" data-cf="plan_id"><option value="">ללא תוכנית</option>${plans.map(p=>`<option value="${p.id}" ${String(c.plan_id)===String(p.id)?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label>
+      <label class="f">כותרת עבודה / זווית (לא חובה)<input class="input" data-cf="title" value="${esc(c.title)}" placeholder="השאר ריק כדי ש-Gemini יבחר"></label></div>
+      <div class="row mt" style="justify-content:space-between"><span class="xs muted">יוצר טיוטה בעברית תקנית. לא מפרסם אוטומטית.</span><button class="btn pri" data-act="composeGen" ${S.produce.busy?"disabled":""}>${S.produce.busy?"יוצר עם Gemini…":"צור מאמר"}</button></div>
+      ${S.produce.lastError?`<div class="zone mt-s" style="background:var(--down-t);border-radius:var(--r-s);border:1px solid var(--down);padding:8px 12px"><p class="xs m0" style="color:var(--down);font-family:ui-monospace,Menlo,monospace;word-break:break-word">⚠ ${esc(S.produce.lastError)}</p></div>`:""}
+    </div></div>`:""}
+    <div class="card"><div class="zone stack" style="gap:12px"><div class="head"><h3 class="t">המאמר</h3><span class="badge ${wordCount>800?'up':''}">מונה מילים: ${fmt(wordCount)}</span></div>
       <label class="f">כותרת<input class="input" data-cf="title" value="${esc(c.title)}"></label>
       <label class="f">תיאור מטא <span class="xs faint">(${c.meta_description.length} תווים)</span><textarea class="input" rows="2" data-cf="meta_description">${esc(c.meta_description)}</textarea></label>
-      <label class="f">תוכן (HTML)<textarea class="input" rows="10" dir="rtl" style="font-family:ui-monospace,Menlo,monospace;font-size:12px" data-cf="content_html" placeholder="צור למעלה, או כתוב HTML סמנטי כאן.">${esc(c.content_html)}</textarea></label></div>
+      <label class="f">תוכן (HTML)<textarea class="input" rows="12" dir="rtl" style="font-family:ui-monospace,Menlo,monospace;font-size:12px" data-cf="content_html" placeholder="צור למעלה, או כתוב HTML סמנטי כאן.">${esc(c.content_html)}</textarea></label></div>
       ${c.content_html.trim()?`<div class="zone"><span class="b sm">תצוגה מקדימה</span><div class="prose mt-s">${c.content_html}</div></div>`:""}
       <div class="zone"><span class="b sm">פרסום</span><div class="fields mt" style="justify-content:space-between">
         <label class="f">תזמון (לא חובה — מתפרסם אוטומטית ל-WordPress)<input type="datetime-local" class="input" data-cf="scheduled_at" value="${esc(c.scheduled_at)}"></label>
@@ -1331,7 +1346,7 @@ function bindInputs(){
   document.querySelectorAll("[data-pf]").forEach(i => i.oninput = e => S.research.planForm[i.dataset.pf] = e.target.value);
   on("#rankKw", e => { S.rankKw = e.target.value; render(); }, "change");
   on("#cmpPick", e => { S.comp = e.target.value; render(); }, "change");
-  on("#pKw", e => S.produce.keyword = e.target.value); on("#pPlan", e => S.produce.plan = e.target.value, "change"); on("#pTopic", e => S.produce.topic = e.target.value);
+  on("#pKw", e => S.produce.keyword = e.target.value); on("#pPlan", e => S.produce.plan = e.target.value, "change"); on("#pLength", e => S.produce.length = e.target.value, "change"); on("#pTopic", e => S.produce.topic = e.target.value);
   document.querySelectorAll("[data-cf]").forEach(i => i.addEventListener(i.tagName==="SELECT"?"change":"input", e => { S.compose[i.dataset.cf] = e.target.value; if (i.dataset.cf==="scheduled_at") render(); }));
   on("#pubStart", e => S.publish.start = e.target.value); on("#pubCad", e => S.publish.cadence = e.target.value, "change");
   on("#optPost", e => { S.optimize = {postId:+e.target.value,busy:false,src:null,sugs:[],applied:0}; render(); }, "change");
@@ -1428,12 +1443,116 @@ document.addEventListener("click", e => {
       if (f.id) Object.assign(PLANS.find(p=>p.id===f.id), f); else PLANS.push({...f, id:Date.now()%100000, site:S.site, created:Date.now()});
       S.research.planForm = null; return render(); }
     case "addComp": { const v = ($("#newComp").value||"").trim().toLowerCase(); if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(v)) return toast("דומיין לא תקין"); comps().push({domain:v,name:v}); S.comp = v; toast("המתחרה נוסף. המיקומים שלו יופיעו אחרי בדיקת המיקומים הבאה."); return render(); }
-    case "genArticle": { const R = S.produce; if (!R.keyword.trim()) return; R.busy = true; render(); setTimeout(() => { R.busy = false; const p = generate(R.keyword.trim(), null, R.plan); if (p){ S.compose = {...p}; R.keyword = ""; } render(); }, 700); return; }
+    case "genArticle": {
+      const R = S.produce;
+      if (!R.keyword.trim()) return toast("יש להזין מילת מפתח יעד");
+      R.busy = true;
+      R.lastError = null;
+      render();
+      fetch('/api/project-001/generate-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          keyword: R.keyword.trim(),
+          length: R.length || 'long',
+          plan: R.plan || null
+        })
+      })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        R.busy = false;
+        if (res.ok && data.ok) {
+          R.lastError = null;
+          const p = {
+            id: ++PID,
+            site: S.site,
+            plan_id: R.plan || null,
+            keyword: R.keyword.trim(),
+            title: data.title,
+            meta_description: data.meta_description,
+            content_html: data.content_html,
+            word_count: data.word_count,
+            length: data.length_requested || R.length || 'long',
+            status: "draft",
+            scheduled_at: null,
+            published_at: null,
+            published_url: null,
+            error: null,
+            rank: null,
+            rank_checked_at: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            aiDraft: true,
+            aiModel: data.model || "gemini-3.8-flash"
+          };
+          POSTS.unshift(p);
+          S.compose = { ...p };
+          R.keyword = "";
+          toast(`✓ מאמר נוצר בהצלחה עם Gemini (${data.word_count} מילים) — טיוטה לבדיקה ואישור`);
+        } else {
+          const errMsg = data.error || `שגיאת שרת (${res.status})`;
+          R.lastError = errMsg;
+          toast(`❌ שגיאת Gemini: ${errMsg}`, 9000);
+        }
+        render();
+      })
+      .catch(err => {
+        R.busy = false;
+        R.lastError = `שגיאת תקשורת: ${err.message}`;
+        toast(`❌ תקשורת נכשלה: ${err.message}`, 9000);
+        render();
+      });
+      return;
+    }
     case "genIdeas": { const R = S.produce; if (!R.topic.trim()) return; if (!S.live.ai) return toast("AI לא מחובר"); R.ideasBusy = true; render(); setTimeout(() => { const t = R.topic.trim();
         R.ideas = [`${t}: המדריך המלא לחברות`,`7 טעויות נפוצות ב${t}`,`${t} מול מיקור חוץ: מה משתלם יותר`,`כמה עולה ${t} בשנה`,`רשימת בדיקה: ${t} לפני סוף השנה`,`איך לבחור ספק ל${t}`,`${t} לחברות קטנות: מאיפה מתחילים`,`שאלות ותשובות על ${t}`]; R.ideasBusy = false; render(); }, 600); return; }
-    case "newCompose": S.compose = {id:null, keyword:"", plan_id:"", title:"", meta_description:"", content_html:"", scheduled_at:""}; return render();
+    case "newCompose": S.compose = {id:null, keyword:"", plan_id:"", length:"long", title:"", meta_description:"", content_html:"", scheduled_at:""}; return render();
     case "closeCompose": S.compose = null; return render();
-    case "composeGen": { const c = S.compose; if (!c.keyword.trim()) return toast("הזן מילת מפתח"); const p = generate(c.keyword.trim(), c.title.trim()||null, c.plan_id); if (p) S.compose = {...p, scheduled_at:""}; return render(); }
+    case "composeGen": {
+      const c = S.compose;
+      if (!c.keyword.trim()) return toast("הזן מילת מפתח");
+      const R = S.produce;
+      R.busy = true;
+      R.lastError = null;
+      render();
+      fetch('/api/project-001/generate-article', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          keyword: c.keyword.trim(),
+          title: c.title.trim() || null,
+          length: c.length || 'long',
+          plan: c.plan_id || null
+        })
+      })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        R.busy = false;
+        if (res.ok && data.ok) {
+          R.lastError = null;
+          c.title = data.title;
+          c.meta_description = data.meta_description;
+          c.content_html = data.content_html;
+          c.word_count = data.word_count;
+          c.aiDraft = true;
+          c.aiModel = data.model;
+          c.updated_at = new Date().toISOString();
+          toast(`✓ תוכן עודכן עם Gemini (${data.word_count} מילים)`);
+        } else {
+          const errMsg = data.error || `שגיאת שרת (${res.status})`;
+          R.lastError = errMsg;
+          toast(`❌ שגיאת Gemini: ${errMsg}`, 9000);
+        }
+        render();
+      })
+      .catch(err => {
+        R.busy = false;
+        R.lastError = `שגיאת תקשורת: ${err.message}`;
+        toast(`❌ תקשורת נכשלה: ${err.message}`, 9000);
+        render();
+      });
+      return;
+    }
     case "composeSave": case "composePublish": {
       const c = S.compose; const sched = c.scheduled_at ? new Date(c.scheduled_at).toISOString() : null;
       let p = POSTS.find(x => x.id === c.id);

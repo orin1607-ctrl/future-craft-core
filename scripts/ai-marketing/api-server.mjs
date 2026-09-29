@@ -12,6 +12,7 @@ import { appendUiAction, readUiActions } from './sheets-ui.mjs';
 import { loadDrafts, updateDraftStatus } from '../project-001/_lib/history.mjs';
 import { loadOpenAIKey } from './_lib/openai-env.mjs';
 import { handleAiChat, openAiHealth } from './handle-ai-chat.mjs';
+import { generateArticleWithGemini } from '../project-001/gemini-article-service.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..', '..');
@@ -176,6 +177,17 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, { ok: true, message: 'סנכרון הושלם', data: coco });
       } catch (e) {
         return json(res, 500, { ok: false, message: e.message });
+      }
+    }
+
+    if ((req.url === '/api/project-001/generate-article' || req.url === '/api/ai/generate-article') && req.method === 'POST') {
+      try {
+        const body = JSON.parse(await readBody(req) || '{}');
+        const { keyword, title, length, plan, audience } = body;
+        const result = await generateArticleWithGemini({ keyword, title, length, plan, audience });
+        return json(res, result.ok ? 200 : (result.status || 500), result);
+      } catch (e) {
+        return json(res, 500, { ok: false, error: String(e.message || e) });
       }
     }
 
