@@ -23,7 +23,16 @@ export async function generateArticleWithGemini({
     };
   }
 
-  const model = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+  const defaultModels = [
+    process.env.GEMINI_MODEL,
+    'gemini-3.5-flash',
+    'gemini-3.6-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-3.8-flash'
+  ].filter(Boolean);
+  // remove duplicates while preserving order
+  const candidateModels = [...new Set(defaultModels)];
+
   const kw = keyword.trim();
   const workTitle = title ? title.trim() : `${kw}: המדריך המקיף`;
 
@@ -74,6 +83,7 @@ export async function generateArticleWithGemini({
 - שלב את מילת המפתח הראשית "${kw}" באופן טבעי בכותרת, בפסקה הראשונה, בחלק מכותרות ה-H2 ובגוף הטקסט.
 - קהל היעד: ${audience}.
 - שמור על הטון המקצועי והסמכותי של דליה.
+- דגש קריטי לתקינות JSON: בכל תגיות ה-HTML או הטקסט, השתמש בגרש בודד (') או במירכאות עבריות (״) עבור attributes וציטוטים פנימיים, כדי להימנע משגיאות תחביר של מירכאות כפולות בתוך ה-JSON.
 
 ${lengthGuide}
 
@@ -90,100 +100,132 @@ ${lengthGuide}
 כותרת עבודה מוצעת: "${workTitle}"
 אורך נדרש: "${length}"`;
 
-  try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
-    
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        contents: [
-          { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userContent}` }] }
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: length === 'long' ? 8192 : length === 'medium' ? 4096 : 2048,
-          responseMimeType: 'application/json'
-        }
-      })
-    });
+  let lastErrorResult = null;
 
-    const data = await response.json();
-
-    if (!response.ok || data.error) {
-      const err = data.error || {};
-      const statusText = err.status || `HTTP_${response.status}`;
-      const message = err.message || 'שגיאה לא ידועה מ-Gemini API';
-      return {
-        ok: false,
-        status: response.status,
-        model,
-        errorCode: err.code || response.status,
-        errorStatus: statusText,
-        error: `שגיאת Gemini API (${statusText}): ${message}`
-      };
-    }
-
-    const candidate = data.candidates?.[0];
-    const rawText = candidate?.content?.parts?.[0]?.text;
-
-    if (!rawText) {
-      return {
-        ok: false,
-        model,
-        error: 'תשובת Gemini התקבלה ריקה (ללא תוכן)'
-      };
-    }
-
-    let parsed = null;
+  for (const currentModel of candidateModels) {
     try {
-      parsed = JSON.parse(rawText);
-    } catch {
-      // If wrapped in ```json ... ```
-      const cleaned = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${encodeURIComponent(key)}`;
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [
+            { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userContent}` }] }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: length === 'long' ? 8192 : length === 'medium' ? 4096 : 2048,
+            responseMimeType: 'application/json'
+          }
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        const err = data.error || {};
+        const statusText = err.status || `HTTP_${response.status}`;
+        const message = err.message || 'שגיאה לא ידועה מ-Gemini API';
+        
+        lastErrorResult = {
+          ok: false,
+          status: response.status,
+          model: currentModel,
+          errorCode: err.code || response.status,
+          errorStatus: statusText,
+          error: `שגיאת Gemini API (${statusText}) במודל ${currentModel}: ${message}`
+        };
+
+        // If high demand spike (503 / UNAVAILABLE), try next model in fallback list
+        if (response.status === 503 || statusText === 'UNAVAILABLE' || response.status === 429) {
+          continue;
+        }
+        return lastErrorResult;
+      }
+
+      const candidate = data.candidates?.[0];
+      const rawText = candidate?.content?.parts?.[0]?.text;
+
+      if (!rawText) {
+        lastErrorResult = {
+          ok: false,
+          model: currentModel,
+          error: `תשובת Gemini (${currentModel}) התקבלה ריקה (ללא תוכן)`
+        };
+        continue;
+      }
+
+      let parsed = null;
+      let cleaned = rawText.trim();
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+      }
+
       try {
         parsed = JSON.parse(cleaned);
       } catch (parseErr) {
+        // Fallback: fix trailing commas or braces
+        const fixedTrailing = cleaned.replace(/,\s*([}\]])/g, '$1').replace(/\}\s*\}\s*$/, '}');
+        try {
+          parsed = JSON.parse(fixedTrailing);
+        } catch (_) {
+          // Robust regex extraction
+          const titleMatch = cleaned.match(/"title"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+          const metaMatch = cleaned.match(/"meta_description"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+          const contentMatch = cleaned.match(/"content_html"\s*:\s*"([\s\S]*?)"\s*(?:,\s*"word_count"|\s*\}[\s\S]*$)/);
+
+          if (contentMatch) {
+            parsed = {
+              title: titleMatch ? titleMatch[1].replace(/\\"/g, '"') : workTitle,
+              meta_description: metaMatch ? metaMatch[1].replace(/\\"/g, '"') : '',
+              content_html: contentMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\t/g, '\t')
+            };
+          } else {
+            return {
+              ok: false,
+              model: currentModel,
+              error: `שגיאה בפענוח JSON מתשובת Gemini: ${parseErr.message}`,
+              rawText
+            };
+          }
+        }
+      }
+
+      if (!parsed || !parsed.content_html) {
         return {
           ok: false,
-          model,
-          error: `שגיאה בפענוח JSON מתשובת Gemini: ${parseErr.message}`,
-          rawText
+          model: currentModel,
+          error: 'תשובת Gemini אינה מכילה את השדה content_html הנדרש',
+          parsed
         };
       }
-    }
 
-    if (!parsed || !parsed.content_html) {
+      // Calculate actual words in content_html
+      const plainText = parsed.content_html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const actualWordCount = plainText ? plainText.split(/\s+/).length : 0;
+
       return {
+        ok: true,
+        model: currentModel,
+        title: parsed.title || workTitle,
+        meta_description: (parsed.meta_description || '').slice(0, 160),
+        content_html: parsed.content_html,
+        word_count: actualWordCount,
+        length_requested: length,
+        keyword: kw
+      };
+
+    } catch (networkErr) {
+      lastErrorResult = {
         ok: false,
-        model,
-        error: 'תשובת Gemini אינה מכילה את השדה content_html הנדרש',
-        parsed
+        model: currentModel,
+        error: `שגיאת תקשורת מול Gemini API (${currentModel}): ${networkErr.message}`
       };
     }
-
-    // Calculate actual words in content_html
-    const plainText = parsed.content_html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-    const actualWordCount = plainText ? plainText.split(' ').length : 0;
-
-    return {
-      ok: true,
-      model,
-      title: parsed.title || workTitle,
-      meta_description: (parsed.meta_description || '').slice(0, 160),
-      content_html: parsed.content_html,
-      word_count: actualWordCount,
-      length_requested: length,
-      keyword: kw
-    };
-
-  } catch (networkErr) {
-    return {
-      ok: false,
-      model,
-      error: `שגיאת תקשורת מול Gemini API: ${networkErr.message}`
-    };
   }
+
+  return lastErrorResult || { ok: false, error: 'כל מודלי Gemini נכשלו או לא היו זמינים' };
 }
