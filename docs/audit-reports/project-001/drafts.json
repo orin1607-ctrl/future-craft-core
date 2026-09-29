@@ -1,5 +1,16 @@
 [
   {
+    "id": "draft-1790690328322-0i8bf",
+    "sourceId": "sug-הפעל Search Console API",
+    "type": "improve",
+    "title": "הפעל Search Console API",
+    "detail": "לאחר הפעלה, הרץ sync כדי למשוך מילות מפתח ועמודים.",
+    "status": "pending_approval",
+    "createdAt": "2026-09-29T13:58:48.322Z",
+    "published": false,
+    "note": "המלצת AI בלבד — לא פורסם"
+  },
+  {
     "id": "draft-1781959643196-m9068",
     "sourceId": "sug-ממתין לנתוני GSC",
     "type": "article",

@@ -1,5 +1,19 @@
 [
   {
+    "id": "sync-1790690285317",
+    "timestamp": "2026-09-29T13:58:05.317Z",
+    "ok": true,
+    "gsc_queries": 132,
+    "gsc_pages": 79,
+    "ga4_daily": 0,
+    "ga4_pages": 0,
+    "date_range": {
+      "start": "2026-06-30",
+      "end": "2026-09-27"
+    },
+    "spreadsheet_url": "https://docs.google.com/spreadsheets/d/1_7PP3HVv0jxSR6Twc7PXI372fFlQS3O5Woip8YxAHEs"
+  },
+  {
     "id": "sync-1782467281437",
     "timestamp": "2026-06-26T09:48:01.437Z",
     "ok": true,
