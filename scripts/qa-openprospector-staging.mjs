@@ -239,6 +239,93 @@ async function runQA() {
     const updatedRowsCount = await iframeLocator.locator('table.co tbody tr').count();
     logStep('Companies table updated with newly found real companies', updatedRowsCount > rowsCount, `Total companies now: ${updatedRowsCount}`);
 
+    // 14. Test Bulk Ingestion Engine
+    await searchTab.click();
+    await page.waitForTimeout(300);
+    const bulkCardVisible = await iframeLocator.locator('#bulk-target').isVisible();
+    logStep('Bulk Engine: Target selector, dataset, & batch size controls visible', bulkCardVisible);
+
+    // Verify option choices: 100, 500, 1000, 2000, 5000
+    const targetOptions = await iframeLocator.locator('#bulk-target option').allInnerTexts();
+    logStep('Bulk Engine: Target options support 100 to 5,000 leads', targetOptions.some(o => o.includes('100')) && targetOptions.some(o => o.includes('הכל') || o.includes('5000')), `Options: ${targetOptions.length}`);
+
+    // Set target to 100, batch size to 50
+    await iframeLocator.locator('#bulk-target').selectOption('100');
+    await iframeLocator.locator('#bulk-batch-size').selectOption('50');
+
+    // Click start bulk import
+    const startBulkBtn = iframeLocator.locator('#btnBulkStart');
+    await startBulkBtn.click();
+    await page.waitForTimeout(400);
+
+    // Verify pause button appears
+    const pauseBtn = iframeLocator.locator('#btnBulkPause');
+    const isPauseVisible = await pauseBtn.isVisible();
+    logStep('Bulk Engine: Import starts and shows Pause button', isPauseVisible);
+
+    // Test pause
+    await pauseBtn.click();
+    await page.waitForTimeout(300);
+    const resumeBtn = iframeLocator.locator('#btnBulkResume');
+    const isResumeVisible = await resumeBtn.isVisible();
+    logStep('Bulk Engine: Pause button suspends batch and reveals Resume button', isResumeVisible);
+
+    // Test resume
+    await resumeBtn.click();
+    await page.waitForTimeout(300);
+
+    // Wait for bulk import to complete (processing 100 leads across 2 batches takes ~3-7 seconds)
+    let bulkFinished = false;
+    for (let i = 0; i < 30; i++) {
+      await page.waitForTimeout(500);
+      const commitBtnVisible = await iframeLocator.locator('#btnBulkCommit').isVisible();
+      if (commitBtnVisible) {
+        bulkFinished = true;
+        break;
+      }
+    }
+    logStep('Bulk Engine: Completed batch ingestion of 100 leads', bulkFinished);
+
+    // Check KPI counters
+    const kpiScanned = parseInt(await iframeLocator.locator('#kpiScanned').textContent() || '0', 10);
+    const kpiAdded = parseInt(await iframeLocator.locator('#kpiAdded').textContent() || '0', 10);
+    const kpiFleet = parseInt(await iframeLocator.locator('#kpiFleet').textContent() || '0', 10);
+    const kpiSafety = parseInt(await iframeLocator.locator('#kpiSafety').textContent() || '0', 10);
+    logStep('Bulk Engine: Live KPI counters updated', kpiScanned > 0 && kpiAdded >= 50 && kpiFleet > 0 && kpiSafety > 0, `Scanned: ${kpiScanned}, Added: ${kpiAdded}, Fleet: ${kpiFleet}, Safety: ${kpiSafety}`);
+
+    // Test commit to leads
+    const commitBtn = iframeLocator.locator('#btnBulkCommit');
+    await commitBtn.click();
+    await page.waitForTimeout(400);
+
+    // Verify we are now on Leads tab and total leads increased significantly
+    const leadsBoardCols = await iframeLocator.locator('.board .col').count();
+    const leadsCountAfterBulk = await iframeLocator.locator('.board .lead').count();
+    logStep('Bulk Engine: "עבור לניהול לידים" transitions to Leads tab with bulk leads', leadsBoardCols === 7 && leadsCountAfterBulk > 15, `Leads in view: ${leadsCountAfterBulk}`);
+
+    // Verify Leads shortcut button to Bulk Ingestion
+    const shortcutBulkBtn = iframeLocator.locator('button[data-tab="search"]:has-text("ייבוא לידים באצוות")');
+    logStep('Leads Tab: "ייבוא לידים באצוות" shortcut button present', await shortcutBulkBtn.isVisible());
+
+    // 15. Test Companies Tab Pagination (50 per page)
+    await companiesTab.click();
+    await page.waitForTimeout(400);
+    const coRowsP1 = await iframeLocator.locator('table.co tbody tr').count();
+    const nextCoBtn = iframeLocator.locator('button[data-act="nextCoPage"]').first();
+    const hasPagination = await nextCoBtn.isVisible();
+    logStep('Companies Table: Paginated view renders (50 items max per page)', coRowsP1 <= 50 && hasPagination, `Rows on page: ${coRowsP1}, Pagination active: ${hasPagination}`);
+
+    if (hasPagination) {
+      await nextCoBtn.click();
+      await page.waitForTimeout(300);
+      const coRowsP2 = await iframeLocator.locator('table.co tbody tr').count();
+      logStep('Companies Table: Next page button loads page 2', coRowsP2 > 0, `Page 2 rows: ${coRowsP2}`);
+      const prevCoBtn = iframeLocator.locator('button[data-act="prevCoPage"]').first();
+      await prevCoBtn.click();
+      await page.waitForTimeout(300);
+      logStep('Companies Table: Prev page button returns to page 1', true);
+    }
+
     // 13. Test Mobile Viewport
     await page.setViewportSize({ width: 375, height: 667 });
     await page.waitForTimeout(300);

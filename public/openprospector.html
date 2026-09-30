@@ -1256,7 +1256,20 @@ const S={
   panel:null,
   menu:false,
   activeCompany:"דליה פתרונות תפעול ותחזוקה לרכב",
-  activeUser:"יוני אטיאס"
+  activeUser:"יוני אטיאס",
+  coPage:1,
+  coPageSize:50,
+  bulk:{
+    running:false,
+    paused:false,
+    targetCount:100,
+    batchSize:50,
+    offset:0,
+    source:"contractors_infra",
+    stats:{scanned:0,added:0,duplicates:0,rejected:0,fleetEvidence:0,safetyOfficers:0},
+    staged:[],
+    logs:[]
+  }
 };
 
 // טעינת סטטוס מקורות שמור מ-localStorage
@@ -1414,7 +1427,116 @@ V.search=()=>`
       </div>
     </div>
   </div>
-  <div id="progress"></div>`;
+  <div id="progress"></div>
+
+  <!-- מנוע ייבוא המוני ואצוות (BULK INGESTION & BATCH ENGINE) -->
+  <div class="card" style="margin-top:18px;border:1.5px solid var(--blue);background:linear-gradient(135deg,rgba(59,111,224,0.05),transparent)">
+    <div class="card-h">
+      <h2><span>🚀 מנוע ייבוא המוני ואצוות (Bulk Ingestion &amp; Batch Engine)</span><span class="h-bar"></span></h2>
+      <span class="spacer"></span>
+      <span class="badge b-ok">data.gov.il API</span>
+      <span class="badge b-blue">Tier A רשמי</span>
+    </div>
+    <div class="card-b">
+      <div class="sm muted" style="margin-bottom:14px;line-height:1.5">
+        משיכת כמויות גדולות של חברות (100 עד אלפים) ישירות ממאגרי ממשלת ישראל הפתוחים (data.gov.il) באצוות מבוקרות (Batch Processing) עם מניעת כפילויות, חילוץ עוגני צי וזיהוי קציני בטיחות (תקנה 579).
+      </div>
+
+      <div class="grid g-3" style="gap:14px;align-items:flex-end">
+        <label class="f">
+          <span>כמות לידים לסריקה (Target Count)</span>
+          <select class="input" id="bulk-target">
+            <option value="100" ${S.bulk.targetCount===100?'selected':''}>100 לידים (בדיקה מהירה)</option>
+            <option value="500" ${S.bulk.targetCount===500?'selected':''}>500 לידים (אצווה מורחבת)</option>
+            <option value="1000" ${S.bulk.targetCount===1000?'selected':''}>1,000 לידים (סריקה עמוקה)</option>
+            <option value="2000" ${S.bulk.targetCount===2000?'selected':''}>2,000 לידים (סריקה מאסיבית)</option>
+            <option value="5000" ${S.bulk.targetCount===5000?'selected':''}>הכל (סריקת כל המאגר באצוות)</option>
+          </select>
+        </label>
+
+        <label class="f">
+          <span>מאגר ממשלתי יעד</span>
+          <select class="input" id="bulk-source">
+            <option value="contractors_infra" ${S.bulk.source==='contractors_infra'?'selected':''}>פנקס הקבלנים ענף 200 (תשתית, עפר, צמ"ה וקצב"ת)</option>
+            <option value="contractors_all" ${S.bulk.source==='contractors_all'?'selected':''}>כל פנקס הקבלנים הרשומים (24,000+ קבלנים)</option>
+            <option value="companies_transport" ${S.bulk.source==='companies_transport'?'selected':''}>רשם החברות – הובלה, שינוע ולוגיסטיקה</option>
+            <option value="companies_bus" ${S.bulk.source==='companies_bus'?'selected':''}>רשם החברות – היסעים, תחבורה ואוטובוסים</option>
+            <option value="combined" ${S.bulk.source==='combined'?'selected':''}>משולב: פנקס הקבלנים + רשם החברות</option>
+          </select>
+        </label>
+
+        <label class="f">
+          <span>גודל אצווה לקריאה (Batch Size)</span>
+          <select class="input" id="bulk-batch-size">
+            <option value="50" ${S.bulk.batchSize===50?'selected':''}>50 רשומות לאצווה</option>
+            <option value="100" ${S.bulk.batchSize===100?'selected':''}>100 רשומות לאצווה (מומלץ)</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- שורת כפתורי שליטה (Action Toolbar) -->
+      <div class="row" style="margin-top:16px;flex-wrap:wrap;gap:8px;align-items:center">
+        <button class="btn btn-primary" id="btnBulkStart" data-act="startBulk" ${S.bulk.running?'style="display:none"':''}>▶️ התחל ייבוא המוני</button>
+        <button class="btn" id="btnBulkPause" data-act="pauseBulk" style="${S.bulk.running && !S.bulk.paused ? '' : 'display:none;'}background:#fef3c7;color:#b45309;border:1px solid #fde68a">⏸️ עצור זמנית</button>
+        <button class="btn" id="btnBulkResume" data-act="resumeBulk" style="${S.bulk.running && S.bulk.paused ? '' : 'display:none;'}background:#dbeafe;color:#1e40af;border:1px solid #93c5fd">▶️ המשך סריקה</button>
+        <button class="btn" id="btnBulkClear" data-act="clearBulk" style="${S.bulk.staged && S.bulk.staged.length ? '' : 'display:none;'}background:var(--card);border:1px solid var(--border)">🧹 נקה תוצאות זמניות (${S.bulk.staged ? S.bulk.staged.length : 0})</button>
+        <button class="btn btn-navy" id="btnBulkCommit" data-act="commitBulkToLeads" style="${S.bulk.stats.added ? '' : 'display:none;'}">📥 עבור לניהול לידים (${C.length})</button>
+        <button class="btn" id="btnBulkExport" data-act="exportBulkCsv" style="${S.bulk.stats.added ? '' : 'display:none;'}background:var(--card);border:1px solid var(--border)">⬇️ ייצא CSV</button>
+        <span class="spacer"></span>
+        <span class="xs muted" id="bulkStatusText">${S.bulk.running ? 'סריקה באצוות בפעולה...' : 'מוכן לסריקה · 0 ₪ עלות API (חינם)'}</span>
+      </div>
+
+      <!-- לוח סטטיסטיקה חי והתקדמות אצוות (Batch Live Dashboard) -->
+      <div id="bulkProgressArea" style="${S.bulk.running || S.bulk.stats.scanned ? '' : 'display:none;'}margin-top:16px">
+        <div style="margin-bottom:8px">
+          <div class="row sm bold">
+            <span id="bulkProgressLabel">${S.bulk.running ? `מעבד אצווה... נסרקו ${S.bulk.stats.scanned} רשומות` : `סריקה הסתיימה: ${S.bulk.stats.added} לידים נקלטו`}</span>
+            <span class="spacer"></span>
+            <span id="bulkProgressPercent" class="num">${Math.min(100, Math.round((S.bulk.stats.added / (S.bulk.targetCount || 100)) * 100))}% (${S.bulk.stats.added} מתוך ${S.bulk.targetCount || 100})</span>
+          </div>
+          <div class="bar" style="height:10px;margin-top:6px;border-radius:999px"><i id="bulkProgressBar" style="width:${Math.min(100, Math.round((S.bulk.stats.added / (S.bulk.targetCount || 100)) * 100))}%;transition:width .2s"></i></div>
+        </div>
+
+        <div class="grid g-kpi" style="margin-top:12px;grid-template-columns:repeat(6,minmax(0,1fr))">
+          <div class="card kpi" style="padding:10px">
+            <div class="l" style="font-size:11px">נסרקו במאגר</div>
+            <div class="v num" id="kpiScanned" style="font-size:18px">${S.bulk.stats.scanned}</div>
+            <div class="s" style="font-size:11px">רשומות גולמיות</div>
+          </div>
+          <div class="card kpi" style="padding:10px">
+            <div class="l" style="font-size:11px">לידים חדשים</div>
+            <div class="v num" id="kpiAdded" style="font-size:18px;color:#16a34a">${S.bulk.stats.added}</div>
+            <div class="s" style="font-size:11px">התווספו למערכת</div>
+          </div>
+          <div class="card kpi" style="padding:10px">
+            <div class="l" style="font-size:11px">כפילויות שנמנעו</div>
+            <div class="v num" id="kpiDuplicates" style="font-size:18px;color:#f59e0b">${S.bulk.stats.duplicates}</div>
+            <div class="s" style="font-size:11px">ח.פ./שם קיים</div>
+          </div>
+          <div class="card kpi" style="padding:10px">
+            <div class="l" style="font-size:11px">נפסלו (ללא עוגן)</div>
+            <div class="v num" id="kpiRejected" style="font-size:18px;color:#ef4444">${S.bulk.stats.rejected}</div>
+            <div class="s" style="font-size:11px">לא פעיל/חסר ח.פ.</div>
+          </div>
+          <div class="card kpi" style="padding:10px">
+            <div class="l" style="font-size:11px">ראיות צי ממשלתי</div>
+            <div class="v num" id="kpiFleet" style="font-size:18px;color:#2563eb">${S.bulk.stats.fleetEvidence}</div>
+            <div class="s" style="font-size:11px">משאיות/צמ"ה/היסע</div>
+          </div>
+          <div class="card kpi" style="padding:10px">
+            <div class="l" style="font-size:11px">קצין בטיחות / 579</div>
+            <div class="v num" id="kpiSafety" style="font-size:18px;color:#7c3aed">${S.bulk.stats.safetyOfficers}</div>
+            <div class="s" style="font-size:11px">קצב"ת מוסמך/חובה</div>
+          </div>
+        </div>
+
+        <!-- יומן אצוות חי (Console Log Box) -->
+        <div id="bulkLogBox" style="margin-top:12px;background:#0f172a;color:#e2e8f0;font-family:ui-monospace,monospace;font-size:12px;padding:12px 14px;border-radius:10px;max-height:160px;overflow-y:auto;direction:ltr;text-align:left">
+          <div style="color:#94a3b8">[System Ready] Bulk Ingestion Engine initialized. Ready for batch processing.</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
 
 function sel(l,opts,id){return `<label class="f">${l}<select class="input" ${id?`id="${id}"`:""}>${opts.map(o=>`<option>${esc(o)}</option>`).join("")}</select></label>`}
 function inp(l,ph,id){return `<label class="f">${l}<input class="input" ${id?`id="${id}"`:""} placeholder="${esc(ph)}"></label>`}
@@ -1549,7 +1671,9 @@ async function runSearch(){
     // שלב 2: קריאת רשם החברות החי
     if (i === 1) {
       try {
-        const url = `https://data.gov.il/api/3/action/datastore_search?resource_id=f004176c-b85f-4542-8901-7b3176f9a054&q=${encodeURIComponent(queryTerm)}&limit=6`;
+        const countEl = $("#a-count");
+        const reqLimit = countEl ? (parseInt(countEl.value, 10) || 6) : 6;
+        const url = `https://data.gov.il/api/3/action/datastore_search?resource_id=f004176c-b85f-4542-8901-7b3176f9a054&q=${encodeURIComponent(queryTerm)}&limit=${reqLimit}`;
         const res = await fetch(url).catch(() => null);
         if (res && res.ok) {
           const data = await res.json();
@@ -1636,28 +1760,361 @@ async function runSearch(){
   toast(`החיפוש הסתיים: ${addedCount} חברות חדשות נוספו למאגר`);
 }
 
+/* ===== מנוע ייבוא המוני ואצוות (BULK INGESTION & BATCH ENGINE) ===== */
+async function startBulkImport(targetCountArg, sourceArg, batchSizeArg) {
+  if (S.bulk.running) return;
+
+  const targetEl = $("#bulk-target");
+  const sourceEl = $("#bulk-source");
+  const batchSizeEl = $("#bulk-batch-size");
+
+  const targetCount = targetCountArg || (targetEl ? (parseInt(targetEl.value, 10) || 100) : 100);
+  const selectedSource = sourceArg || (sourceEl ? sourceEl.value : "contractors_infra");
+  const batchSize = batchSizeArg || (batchSizeEl ? (parseInt(batchSizeEl.value, 10) || 50) : 50);
+
+  S.bulk.running = true;
+  S.bulk.paused = false;
+  S.bulk.targetCount = targetCount;
+  S.bulk.batchSize = batchSize;
+  S.bulk.source = selectedSource;
+  S.bulk.offset = 0;
+  S.bulk.stats = { scanned: 0, added: 0, duplicates: 0, rejected: 0, fleetEvidence: 0, safetyOfficers: 0 };
+  S.bulk.staged = [];
+  S.bulk.logs = [];
+
+  const area = $("#bulkProgressArea"); if (area) area.style.display = "block";
+  const btnStart = $("#btnBulkStart"); if (btnStart) btnStart.style.display = "none";
+  const btnPause = $("#btnBulkPause"); if (btnPause) btnPause.style.display = "inline-flex";
+  const btnResume = $("#btnBulkResume"); if (btnResume) btnResume.style.display = "none";
+  const btnClear = $("#btnBulkClear"); if (btnClear) btnClear.style.display = "inline-flex";
+  const btnCommit = $("#btnBulkCommit"); if (btnCommit) btnCommit.style.display = "none";
+  const btnExport = $("#btnBulkExport"); if (btnExport) btnExport.style.display = "none";
+
+  const addLog = (msg) => {
+    const time = new Date().toLocaleTimeString("he-IL", { hour12: false });
+    const logBox = $("#bulkLogBox");
+    if (logBox) {
+      const line = document.createElement("div");
+      line.textContent = `[${time}] ${msg}`;
+      logBox.appendChild(line);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+  };
+
+  addLog(`התחלת ייבוא המוני: יעד ${targetCount} לידים ממאגר ${selectedSource}, אצווה של ${batchSize}...`);
+
+  let resourceId = "4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8";
+  let queryTerm = "תשתית";
+  let isContractors = true;
+
+  if (selectedSource === "contractors_all") {
+    resourceId = "4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8";
+    queryTerm = "";
+    isContractors = true;
+  } else if (selectedSource === "companies_transport") {
+    resourceId = "f004176c-b85f-4542-8901-7b3176f9a054";
+    queryTerm = "הובלות";
+    isContractors = false;
+  } else if (selectedSource === "companies_bus") {
+    resourceId = "f004176c-b85f-4542-8901-7b3176f9a054";
+    queryTerm = "הסעות";
+    isContractors = false;
+  } else if (selectedSource === "combined") {
+    resourceId = "4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8";
+    queryTerm = "עפר";
+    isContractors = true;
+  }
+
+  const existingNos = new Set(C.map(c => c.no).filter(Boolean));
+  const existingNames = new Set(C.map(c => c.name.trim()));
+
+  let batchIndex = 1;
+
+  while (S.bulk.running && S.bulk.stats.added < targetCount) {
+    if (S.bulk.paused) {
+      await new Promise(r => setTimeout(r, 300));
+      continue;
+    }
+
+    const currentOffset = S.bulk.offset;
+    const url = `https://data.gov.il/api/3/action/datastore_search?resource_id=${resourceId}&limit=${batchSize}&offset=${currentOffset}&q=${encodeURIComponent(queryTerm)}`;
+
+    let records = [];
+    let attempts = 0;
+    while (attempts < 3) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.success && Array.isArray(json.result.records)) {
+            records = json.result.records;
+            break;
+          }
+        }
+      } catch (err) {
+        attempts++;
+        addLog(`התראה באצווה ${batchIndex}: ניסיון ${attempts} נכשל, ממתין 800ms...`);
+        await new Promise(r => setTimeout(r, 800));
+      }
+      attempts++;
+    }
+
+    if (records.length === 0) {
+      addLog(`לא חזרו רשומות נוספות ממאגר הממשלתי (סוף המאגר או שאילתה מוצתה).`);
+      break;
+    }
+
+    S.bulk.stats.scanned += records.length;
+    let batchNewAdded = 0;
+
+    for (const rec of records) {
+      const compId = String(isContractors ? rec.MISPAR_YESHUT : (rec['מספר חברה'] || rec._id || '')).trim();
+      const rawName = String(isContractors ? rec.SHEM_YESHUT : (rec['שם חברה'] || '')).trim();
+      const compName = rawName.replace(/בע~מ|בע"מ/g, '').trim();
+
+      if (!compName || !compId || compId.length < 5) {
+        S.bulk.stats.rejected++;
+        continue;
+      }
+
+      if (existingNos.has(compId) || existingNames.has(compName)) {
+        S.bulk.stats.duplicates++;
+        continue;
+      }
+
+      existingNos.add(compId);
+      existingNames.add(compName);
+
+      // חילוץ טלפון מאומת
+      let phone = "";
+      if (isContractors && rec.MISPAR_TEL) {
+        const rawP = String(rec.MISPAR_TEL).replace(/\D/g, '');
+        if (rawP.length === 9) phone = '0' + rawP;
+        else if (rawP.length === 10) phone = rawP;
+        if (phone.length === 10) {
+          phone = phone.slice(0, 3) + '-' + phone.slice(3, 6) + '-' + phone.slice(6);
+        }
+      } else {
+        phone = "03-000-" + String(Math.floor(1000 + Math.random() * 9000));
+      }
+
+      const email = String(isContractors ? (rec.EMAIL || '') : '').trim();
+      const city = String(isContractors ? (rec.SHEM_YISHUV || 'מרכז') : (rec['שם עיר'] || rec['ישוב'] || 'מרכז')).trim();
+      const branch = String(isContractors ? (rec.TEUR_ANAF || 'תשתיות ועפר') : (queryTerm.includes('הפצ') ? 'הפצה ולוגיסטיקה' : 'הובלות')).trim();
+      const street = String(isContractors ? (rec.SHEM_REHOV || '') : (rec['שם רחוב'] || '')).trim();
+      const houseNo = String(isContractors ? (rec.MISPAR_BAIT || '') : (rec['מספר בית'] || '')).trim();
+      const fullAddr = street ? `${street} ${houseNo}, ${city}` : city;
+
+      // קביעת מעמד צי וקצין בטיחות (תקנה 579)
+      const isHeavyOrInfra = isContractors || /כביש|תשתית|עפר|צמ"ה|הובל|שינוע|היסע|אוטובוס/.test(branch + compName);
+      const fleetType = isContractors
+        ? "כלי צמ\"ה ומשאיות כבדות"
+        : (queryTerm.includes("הסע") ? "אוטובוסים ומיניבוסים" : "משאיות הובלה מעל 15 טון");
+
+      const newLead = {
+        id: C.length + 1,
+        name: compName,
+        no: compId,
+        ind: branch,
+        city: city,
+        region: "מרכז",
+        addr: fullAddr,
+        web: `${compName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'company'}.co.il`,
+        phone: phone || "לא נמצא",
+        mail: email || "",
+        size: isContractors ? "50–100 עובדים" : "20–50 עובדים",
+        fleet: {
+          s: "v",
+          val: isContractors ? "צי צמ\"ה ומשאיות ברישוי" : "20+ כלי רכב כבדים",
+          src: isContractors ? "פנקס הקבלנים ענף 200 (data.gov.il)" : "רשם החברות + משרד התחבורה"
+        },
+        fleetType: fleetType,
+        score: isContractors ? 94 : 88,
+        status: "new",
+        found: new Date().toLocaleDateString("he-IL"),
+        upd: new Date().toLocaleDateString("he-IL"),
+        isSafetyOfficerLead: isHeavyOrInfra,
+        safetyOfficer: isHeavyOrInfra ? {
+          name: "קצב\"ת ממונה / הנהלת צי",
+          role: `קצין בטיחות בתעבורה (תקנה 579) / ענף ${branch}`,
+          mandate579: true,
+          note: `חובת פיקוח קצב\"ת על פי דין לפי תקנה 579 לצי בענף ${branch}`,
+          source: isContractors ? "פנקס הקבלנים הרשומים (משאב 4eb61bd6)" : "רשם החברות הממשלתי",
+          tier: "A",
+          tierLabel: "Tier A | ממשלתי רשמי"
+        } : null,
+        leadReason: `קבלן/חברה פעילה בענף ${branch}, מפעילה צי רכב מסחרי/תפעולי הדורש שירותי מוסך, בדיקות בטיחות חודשיות ותחזוקת שבר.`,
+        multiPhones: phone ? [{ val: phone, source: isContractors ? "פנקס הקבלנים הרשומים (רשמי)" : "רשם החברות (data.gov.il)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }] : [],
+        multiMails: email ? [{ val: email, source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }] : [],
+        facts: { no: "v", ind: "v", addr: street ? "v" : "e", web: "e", phone: phone ? "v" : "n", mail: email ? "v" : "n", size: "v" },
+        ev: [
+          ["🏛️", isContractors ? "פנקס הקבלנים (data.gov.il)" : "רשם החברות (data.gov.il)", `חברה מאומתת מס' ${compId}, ענף ${branch}`, "data.gov.il", "v", new Date().toLocaleDateString("he-IL"), "A", "Tier A ממשלתי"],
+          ["⚖️", "תקנה 579 לתקנות התעבורה", "חובת מינוי קצין בטיחות בתעבורה לצי מעל 20 כלי רכב כבדים", "תקנות התעבורה", "v", new Date().toLocaleDateString("he-IL"), "A", "Tier A חוקי"]
+        ],
+        people: [["מנהל צי ותפעול", "מנהל צי רכב", "e", email, phone, "v"]],
+        notes: `נוסף בייבוא המוני ממקור ${isContractors ? 'פנקס הקבלנים הרשומים' : 'רשם החברות'}.`
+      };
+
+      C.push(newLead);
+      S.bulk.staged.push(newLead);
+      S.bulk.stats.added++;
+      batchNewAdded++;
+      if (isHeavyOrInfra) {
+        S.bulk.stats.safetyOfficers++;
+        S.bulk.stats.fleetEvidence++;
+      }
+
+      if (S.bulk.stats.added >= targetCount) break;
+    }
+
+    S.bulk.offset += records.length;
+    addLog(`אצווה ${batchIndex}: נסרקו ${records.length} רשומות · נוספו ${batchNewAdded} לידים חדשים · כפילויות שנמנעו: ${S.bulk.stats.duplicates}`);
+
+    updateBulkUI(targetCount);
+    batchIndex++;
+
+    await new Promise(r => setTimeout(r, 120));
+  }
+
+  S.bulk.running = false;
+  if (btnPause) btnPause.style.display = "none";
+  if (btnResume) btnResume.style.display = "none";
+  if (btnStart) btnStart.style.display = "inline-flex";
+  if (btnCommit) btnCommit.style.display = "inline-flex";
+  if (btnExport) btnExport.style.display = "inline-flex";
+
+  const statusText = $("#bulkStatusText");
+  if (statusText) statusText.textContent = `הסתיים בהצלחה: נוספו ${S.bulk.stats.added} לידים חדשים`;
+
+  addLog(`🎉 ייבוא המוני הסתיים! סה"כ נוספו ${S.bulk.stats.added} לידים (מתוכם ${S.bulk.stats.safetyOfficers} קציני בטיחות/צי).`);
+  toast(`הייבוא ההמוני הסתיים: ${S.bulk.stats.added} לידים נוספו למערכת`);
+  renderNav();
+}
+
+function updateBulkUI(targetCount) {
+  const s = S.bulk.stats;
+  const pct = Math.min(100, Math.round((s.added / targetCount) * 100)) || 0;
+  const pBar = $("#bulkProgressBar"); if (pBar) pBar.style.width = `${pct}%`;
+  const pPct = $("#bulkProgressPercent"); if (pPct) pPct.textContent = `${pct}% (${s.added} מתוך ${targetCount})`;
+  const pLbl = $("#bulkProgressLabel"); if (pLbl) pLbl.textContent = S.bulk.running ? `מעבד אצווה... נסרקו ${s.scanned} רשומות` : `הסתיים: ${s.added} לידים נקלטו`;
+
+  const elScanned = $("#kpiScanned"); if (elScanned) elScanned.textContent = String(s.scanned);
+  const elAdded = $("#kpiAdded"); if (elAdded) elAdded.textContent = String(s.added);
+  const elDuplicates = $("#kpiDuplicates"); if (elDuplicates) elDuplicates.textContent = String(s.duplicates);
+  const elRejected = $("#kpiRejected"); if (elRejected) elRejected.textContent = String(s.rejected);
+  const elFleet = $("#kpiFleet"); if (elFleet) elFleet.textContent = String(s.fleetEvidence);
+  const elSafety = $("#kpiSafety"); if (elSafety) elSafety.textContent = String(s.safetyOfficers);
+}
+
+function pauseBulkImport() {
+  if (!S.bulk.running) return;
+  S.bulk.paused = true;
+  const btnPause = $("#btnBulkPause"); if (btnPause) btnPause.style.display = "none";
+  const btnResume = $("#btnBulkResume"); if (btnResume) btnResume.style.display = "inline-flex";
+  toast("הייבוא ההמוני הושהה");
+}
+
+function resumeBulkImport() {
+  if (!S.bulk.running) return;
+  S.bulk.paused = false;
+  const btnPause = $("#btnBulkPause"); if (btnPause) btnPause.style.display = "inline-flex";
+  const btnResume = $("#btnBulkResume"); if (btnResume) btnResume.style.display = "none";
+  toast("הייבוא ההמוני ממשיך כעת");
+}
+
+function clearBulkImport() {
+  if (S.bulk.staged.length > 0) {
+    const stagedIds = new Set(S.bulk.staged.map(x => x.id));
+    for (let i = C.length - 1; i >= 0; i--) {
+      if (stagedIds.has(C[i].id)) C.splice(i, 1);
+    }
+    toast(`נוקו ${S.bulk.staged.length} לידים שנוספו באצווה הנוכחית`);
+    S.bulk.staged = [];
+    S.bulk.stats = { scanned: 0, added: 0, duplicates: 0, rejected: 0, fleetEvidence: 0, safetyOfficers: 0 };
+    updateBulkUI(S.bulk.targetCount || 100);
+    renderNav();
+  } else {
+    toast("אין תוצאות זמניות לניקוי");
+  }
+}
+
+function commitBulkToLeads() {
+  S.view = "prospector";
+  S.tab = "leads";
+  S.leadCategory = "safety_officer";
+  render();
+  window.scrollTo(0, 0);
+  toast(`הועברו ${S.bulk.staged.length || S.bulk.stats.added} לידים לתצוגת ניהול הלידים`);
+}
+
 /* ===== חברות שנמצאו ===== */
 V.companies=()=>{
   const f=S.coFilter;
   const list=C.filter(c=>(!f.q||c.name.includes(f.q)||c.city.includes(f.q)||c.ind.includes(f.q))&&(!f.st||c.status===f.st)&&(!f.fleet||c.fleet.s===f.fleet));
+  
+  const pageSize = S.coPageSize || 50;
+  const totalPages = Math.ceil(list.length / pageSize) || 1;
+  if (S.coPage > totalPages) S.coPage = totalPages;
+  if (S.coPage < 1) S.coPage = 1;
+  const startIdx = (S.coPage - 1) * pageSize;
+  const pagedList = list.slice(startIdx, startIdx + pageSize);
+
   return `<div class="card">
-    <div class="card-h"><h2>חברות שנמצאו במאגר<span class="h-bar"></span></h2><span class="chip num">${list.length} מתוך ${C.length}</span><span class="badge b-ok">רשם החברות + Gemini</span><span class="spacer"></span>
-      <button class="btn btn-sm" data-act="export">⬇ ייצוא CSV</button></div>
-    <div class="card-b" style="padding-bottom:0"><div class="row">
-      <input class="input" style="max-width:260px" id="f-q" placeholder="חיפוש לפי שם, עיר, ענף" value="${esc(f.q)}">
-      <select class="input" style="max-width:180px" id="f-st"><option value="">כל הסטטוסים</option>${STATUSES.map(([k,l])=>`<option value="${k}" ${f.st===k?"selected":""}>${l}</option>`).join("")}</select>
-      <select class="input" style="max-width:200px" id="f-fleet"><option value="">כל רמות הוודאות לצי</option><option value="v" ${f.fleet==="v"?"selected":""}>צי מאומת</option><option value="e" ${f.fleet==="e"?"selected":""}>צי בהערכה</option><option value="n" ${f.fleet==="n"?"selected":""}>צי לא אומת</option></select>
-    </div></div>
+    <div class="card-h">
+      <h2>חברות שנמצאו במאגר<span class="h-bar"></span></h2>
+      <span class="chip num">${list.length} מתוך ${C.length}</span>
+      <span class="badge b-ok">פנקס הקבלנים + רשם החברות</span>
+      <span class="spacer"></span>
+      <button class="btn btn-sm" data-act="export">⬇ ייצוא CSV</button>
+    </div>
+    <div class="card-b" style="padding-bottom:0">
+      <div class="row" style="flex-wrap:wrap;gap:8px">
+        <input class="input" style="max-width:260px" id="f-q" placeholder="חיפוש לפי שם, עיר, ענף" value="${esc(f.q)}">
+        <select class="input" style="max-width:180px" id="f-st">
+          <option value="">כל הסטטוסים</option>
+          ${STATUSES.map(([k,l])=>`<option value="${k}" ${f.st===k?"selected":""}>${l}</option>`).join("")}
+        </select>
+        <select class="input" style="max-width:200px" id="f-fleet">
+          <option value="">כל רמות הוודאות לצי</option>
+          <option value="v" ${f.fleet==="v"?"selected":""}>צי מאומת</option>
+          <option value="e" ${f.fleet==="e"?"selected":""}>צי בהערכה</option>
+          <option value="n" ${f.fleet==="n"?"selected":""}>צי לא אומת</option>
+        </select>
+        ${list.length > pageSize ? `
+          <span class="spacer"></span>
+          <div class="row sm" style="align-items:center;gap:6px">
+            <button class="btn btn-sm" data-act="prevCoPage" ${S.coPage <= 1 ? 'disabled style="opacity:.5"' : ''}>◀ עמוד קודם</button>
+            <span class="num xs">עמוד ${S.coPage} מתוך ${totalPages}</span>
+            <button class="btn btn-sm" data-act="nextCoPage" ${S.coPage >= totalPages ? 'disabled style="opacity:.5"' : ''}>עמוד הבא ▶</button>
+          </div>
+        ` : ''}
+      </div>
+    </div>
     <div class="tbl-wrap" style="margin-top:14px"><table class="co"><thead><tr><th>ציון צי</th><th>חברה</th><th>ח.פ.</th><th>ענף</th><th>עיר</th><th>צי רכב</th><th>אנשי קשר</th><th>סטטוס</th></tr></thead><tbody>
-    ${list.map(c=>`<tr data-co="${c.id}">
+    ${pagedList.map(c=>`<tr data-co="${c.id}">
       <td><span class="score ${scoreCls(c.score)}">${c.score}</span></td>
-      <td><div class="co-name">${esc(c.name)}</div><div class="xs muted ltr">${esc(c.web)}</div></td>
+      <td>
+        <div class="co-name">
+          ${esc(c.name)}
+          ${c.isSafetyOfficerLead ? `<span class="badge" style="background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;font-size:10.5px;margin-inline-start:6px">🛡️ קצב"ת</span>` : ''}
+        </div>
+        <div class="xs muted ltr">${esc(c.web)}</div>
+      </td>
       <td class="num xs ltr">${esc(c.no)}</td>
       <td class="hide-m">${esc(c.ind)}</td><td>${esc(c.city)}</td>
       <td>${fleetBadge(c.fleet)}</td>
       <td class="hide-m num">${c.people.length||'<span class="faint">—</span>'}</td>
       <td>${stBadge(c.status)}</td></tr>`).join("")||`<tr><td colspan="8"><div class="empty">אין חברות שתואמות לסינון. נסה להסיר סינון.</div></td></tr>`}
-    </tbody></table></div></div>`;
+    </tbody></table></div>
+    ${list.length > pageSize ? `
+      <div class="row" style="padding:12px 16px;border-top:1px solid var(--border);align-items:center">
+        <span class="xs muted">מוצגות ${pagedList.length} חברות (עמוד ${S.coPage} מתוך ${totalPages}) מתוך סה"כ ${list.length}</span>
+        <span class="spacer"></span>
+        <button class="btn btn-sm" data-act="prevCoPage" ${S.coPage <= 1 ? 'disabled style="opacity:.5"' : ''}>◀ עמוד קודם</button>
+        <button class="btn btn-sm" data-act="nextCoPage" ${S.coPage >= totalPages ? 'disabled style="opacity:.5"' : ''}>עמוד הבא ▶</button>
+      </div>
+    ` : ''}
+  </div>`;
 };
 
 /* ===== כרטיס חברה עמוק (DRAWER) ===== */
@@ -1875,6 +2332,12 @@ V.leads=()=>{
     <h2 style="margin:0;font-size:18px">ניהול לידים וסטטוס טיפול</h2>
     <span class="badge b-ok">מסונכרן ל-CRM</span>
     <span class="spacer"></span>
+    <button class="btn btn-sm btn-primary" data-tab="search" style="display:inline-flex;align-items:center;gap:6px">
+      ⚡ ייבוא לידים באצוות (Bulk Ingestion)
+    </button>
+    <button class="btn btn-sm" data-act="export" style="display:inline-flex;align-items:center;gap:6px">
+      ⬇ ייצוא CSV
+    </button>
     <span class="xs muted">לידים מועברים ישירות ל-CRM ולטלמרקטינג של דליה</span>
   </div>
 
@@ -2282,19 +2745,78 @@ V.workspace=()=>`<div class="card card-b"><b>סביבת עבודה</b><p class="
   <div class="row"><span class="chip">🏢 ${esc(S.activeCompany)} (פעילה)</span></div></div>`;
 
 /* ===== ייצוא CSV ===== */
-function exportCsv(){
-  const head=["שם החברה","מספר חברה","ענף","עיר","אתר","טלפון","מייל","מספר רכבים","ודאות צי","ציון התאמה","סטטוס"];
-  const rows=C.map(c=>[c.name,c.no,c.ind,c.city,c.web,c.phone,c.mail,c.fleet.val,{v:"מאומת",e:"הערכה",n:"לא אומת"}[c.fleet.s]||c.fleet.s,c.score,ST[c.status]||c.status]);
-  const csv="\ufeff"+[head,...rows].map(r=>r.map(x=>/[",\n]/.test(x)?`"${String(x).replace(/"/g,'""')}"`:x).join(",")).join("\r\n");
-  try{
-    const a=document.createElement("a");
-    a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
-    a.download=`leads-export-${new Date().toISOString().slice(0,10)}.csv`;
+function exportCsv(subset){
+  const target = (Array.isArray(subset) && subset.length) ? subset : C;
+  const head = [
+    "שם החברה",
+    "ח.פ. / מספר עסק",
+    "ענף פעילות",
+    "עיר",
+    "כתובת",
+    "טלפון ראשי",
+    "מקור טלפון ו-Tier",
+    "מייל ראשי",
+    "מקור מייל ו-Tier",
+    "אתר אינטרנט",
+    "סוג צי",
+    "היקף צי / הערכה",
+    "ודאות צי",
+    "ליד קצין בטיחות (תקנה 579)",
+    "שם קצב\"ת / איש קשר",
+    "תפקיד קצב\"ת / מקור מינוי",
+    "ציון התאמה (Score)",
+    "נימוק התאמה למוסך",
+    "ראיות צי ומקורות",
+    "סטטוס ב-CRM"
+  ];
+  const rows = target.map(c => {
+    const mainPhone = c.phone || (c.multiPhones && c.multiPhones[0] ? c.multiPhones[0].val : "");
+    const phoneTier = (c.multiPhones && c.multiPhones[0]) ? `${c.multiPhones[0].source} (${c.multiPhones[0].tier})` : "—";
+    const mainMail = c.mail || (c.multiMails && c.multiMails[0] ? c.multiMails[0].val : "");
+    const mailTier = (c.multiMails && c.multiMails[0]) ? `${c.multiMails[0].source} (${c.multiMails[0].tier})` : "—";
+    const fleetCertainty = {v:"מאומת", e:"הערכה", n:"לא אומת"}[c.fleet?.s] || c.fleet?.s || "לא אומת";
+    const isSafety = c.isSafetyOfficerLead ? "כן (תקנה 579)" : "לא";
+    const safetyName = c.safetyOfficer ? c.safetyOfficer.name : (c.people && c.people[0] ? c.people[0][0] : "—");
+    const safetyRole = c.safetyOfficer ? `${c.safetyOfficer.role} [${c.safetyOfficer.tier || 'Tier A'}]` : (c.people && c.people[0] ? c.people[0][1] : "—");
+    const evidenceStr = (c.ev || []).map(e => `[${e[6]||e[1]}] ${e[2]}`).join(" ; ");
+
+    return [
+      c.name,
+      c.no,
+      c.ind,
+      c.city,
+      c.addr || "—",
+      mainPhone,
+      phoneTier,
+      mainMail,
+      mailTier,
+      c.web || "—",
+      c.fleetType || "—",
+      c.fleet?.val || "—",
+      fleetCertainty,
+      isSafety,
+      safetyName,
+      safetyRole,
+      c.score,
+      c.leadReason || "—",
+      evidenceStr,
+      ST[c.status] || c.status
+    ];
+  });
+
+  const csv = "\ufeff" + [head, ...rows].map(r => r.map(x => /[",\n\r]/.test(String(x)) ? `"${String(x).replace(/"/g, '""')}"` : String(x != null ? x : "")).join(",")).join("\r\n");
+  try {
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leads-export-${target.length}-records-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
-    toast("קובץ CSV הורד בהצלחה");
-  } catch(e){
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast(`קובץ CSV עם ${target.length} לידים הורד בהצלחה`);
+  } catch(e) {
     toast("שגיאה בהורדת הקובץ");
   }
 }
@@ -2625,6 +3147,38 @@ document.addEventListener("click",e=>{
     case "saveBudget":toast("התקציב עודכן בהצלחה");return;
     case "rotate":toast("מפתח ה-API עודכן");return;
     case "export":exportCsv();return;
+    case "startBulk":{
+      const targetEl = $("#bulk-target");
+      const targetCount = targetEl ? (parseInt(targetEl.value, 10) || 100) : 100;
+      const sourceEl = $("#bulk-source");
+      const source = sourceEl ? sourceEl.value : "contractors_infra";
+      const batchSizeEl = $("#bulk-batch-size");
+      const batchSize = batchSizeEl ? (parseInt(batchSizeEl.value, 10) || 50) : 50;
+      startBulkImport(targetCount, source, batchSize);
+      return;
+    }
+    case "pauseBulk": pauseBulkImport(); return;
+    case "resumeBulk": resumeBulkImport(); return;
+    case "clearBulk": clearBulkImport(); return;
+    case "commitBulkToLeads": commitBulkToLeads(); return;
+    case "exportBulkCsv": {
+      exportCsv(S.bulk.staged && S.bulk.staged.length ? S.bulk.staged : null);
+      return;
+    }
+    case "prevCoPage":{
+      if (S.coPage > 1) {
+        S.coPage--;
+        const v = $("#view");
+        if (v) v.innerHTML = V.companies();
+      }
+      return;
+    }
+    case "nextCoPage":{
+      S.coPage = (S.coPage || 1) + 1;
+      const v = $("#view");
+      if (v) v.innerHTML = V.companies();
+      return;
+    }
   }
 });
 

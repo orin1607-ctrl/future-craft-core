@@ -152,6 +152,74 @@ async function runLiveQA() {
     await iframeLocator.locator('button[data-src-tier="all"]').click();
     await page.waitForTimeout(300);
 
+    // 12. Test Live Staging Bulk Ingestion Engine
+    await searchTab.click();
+    await page.waitForTimeout(400);
+    const bulkCardVisible = await iframeLocator.locator('#bulk-target').isVisible();
+    logStep('Live Staging Bulk Engine: Controls visible', bulkCardVisible);
+
+    const targetOptions = await iframeLocator.locator('#bulk-target option').allInnerTexts();
+    logStep('Live Staging Bulk Engine: Target options support 100 to 5,000 leads', targetOptions.some(o => o.includes('100')) && targetOptions.some(o => o.includes('הכל') || o.includes('5000')), `Options: ${targetOptions.length}`);
+
+    await iframeLocator.locator('#bulk-target').selectOption('100');
+    await iframeLocator.locator('#bulk-batch-size').selectOption('50');
+
+    const startBulkBtn = iframeLocator.locator('#btnBulkStart');
+    await startBulkBtn.click();
+    await page.waitForTimeout(400);
+
+    const pauseBtn = iframeLocator.locator('#btnBulkPause');
+    const isPauseVisible = await pauseBtn.isVisible();
+    logStep('Live Staging Bulk Engine: Pause button active', isPauseVisible);
+
+    await pauseBtn.click();
+    await page.waitForTimeout(300);
+    const resumeBtn = iframeLocator.locator('#btnBulkResume');
+    logStep('Live Staging Bulk Engine: Resume button appears upon pause', await resumeBtn.isVisible());
+
+    await resumeBtn.click();
+    await page.waitForTimeout(300);
+
+    // Wait for bulk ingestion of 100 leads to complete
+    let liveBulkDone = false;
+    for (let i = 0; i < 30; i++) {
+      await page.waitForTimeout(600);
+      if (await iframeLocator.locator('#btnBulkCommit').isVisible()) {
+        liveBulkDone = true;
+        break;
+      }
+    }
+    logStep('Live Staging Bulk Engine: Batch ingestion completed', liveBulkDone);
+
+    const kpiScanned = parseInt(await iframeLocator.locator('#kpiScanned').textContent() || '0', 10);
+    const kpiAdded = parseInt(await iframeLocator.locator('#kpiAdded').textContent() || '0', 10);
+    const kpiFleet = parseInt(await iframeLocator.locator('#kpiFleet').textContent() || '0', 10);
+    const kpiSafety = parseInt(await iframeLocator.locator('#kpiSafety').textContent() || '0', 10);
+    logStep('Live Staging Bulk Engine: Live KPI stats updated', kpiScanned > 0 && kpiAdded >= 50 && kpiFleet > 0 && kpiSafety > 0, `Scanned: ${kpiScanned}, Added: ${kpiAdded}, Fleet: ${kpiFleet}, Safety: ${kpiSafety}`);
+
+    // Commit to Leads
+    await iframeLocator.locator('#btnBulkCommit').click();
+    await page.waitForTimeout(400);
+    const leadsAfterBulk = await iframeLocator.locator('.board .lead').count();
+    logStep('Live Staging Bulk Engine: Transition to Leads tab shows ingested leads', leadsAfterBulk > 15, `Leads: ${leadsAfterBulk}`);
+
+    // Test Pagination on Companies tab
+    await companiesTab.click();
+    await page.waitForTimeout(400);
+    const coRowsP1 = await iframeLocator.locator('table.co tbody tr').count();
+    const nextCoBtn = iframeLocator.locator('button[data-act="nextCoPage"]').first();
+    const hasPagination = await nextCoBtn.isVisible();
+    logStep('Live Staging Companies Table: Paginated view (50 max per page)', coRowsP1 <= 50 && hasPagination, `Page 1 rows: ${coRowsP1}`);
+
+    if (hasPagination) {
+      await nextCoBtn.click();
+      await page.waitForTimeout(300);
+      const coRowsP2 = await iframeLocator.locator('table.co tbody tr').count();
+      logStep('Live Staging Companies Table: Page 2 navigation works', coRowsP2 > 0, `Page 2 rows: ${coRowsP2}`);
+      await iframeLocator.locator('button[data-act="prevCoPage"]').first().click();
+      await page.waitForTimeout(300);
+    }
+
     // 12. Test mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
     await page.waitForTimeout(400);
