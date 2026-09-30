@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>דליה | מרכז שיווק ופרסום – איתור לקוחות עסקיים ולידים (OpenProspector)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy-950:#04091a;--navy-900:#071022;--navy-800:#0a1830;--navy-700:#0d1f3c;--navy-600:#15305c;
+  --blue:#2563EB;--blue-600:#1d4fd8;--blue-100:#e7efff;--blue-50:#f3f7ff;
+  --bg:#f1f4f9;--card:#ffffff;--text:#0f172a;--muted:#64748b;--faint:#94a3b8;--border:#e2e8f0;--soft:#f8fafc;
+  --ok:#16a34a;--ok-bg:#e8f7ee;--est:#b45309;--est-bg:#fdf3e2;--no:#64748b;--no-bg:#eef2f6;--bad:#dc2626;--bad-bg:#fdecec;
+  --shadow:0 1px 2px rgba(15,23,42,.05),0 4px 16px -6px rgba(15,23,42,.10);
+  --r:14px;--r-sm:10px;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#04091a;--card:#0a1830;--text:#f1f5f9;--muted:#a8b4c7;--faint:#6b7a91;--border:rgba(255,255,255,.10);--soft:#0d1f3c;
+  --blue-100:rgba(37,99,235,.22);--blue-50:rgba(37,99,235,.10);
+  --ok-bg:rgba(22,163,74,.18);--est-bg:rgba(217,119,6,.18);--no-bg:rgba(148,163,184,.14);--bad-bg:rgba(220,38,38,.18);
+  --ok:#4ade80;--est:#fbbf24;--no:#a8b4c7;--bad:#f87171;--shadow:none;
+}}
+:root[data-theme="dark"]{
+  --bg:#04091a;--card:#0a1830;--text:#f1f5f9;--muted:#a8b4c7;--faint:#6b7a91;--border:rgba(255,255,255,.10);--soft:#0d1f3c;
+  --blue-100:rgba(37,99,235,.22);--blue-50:rgba(37,99,235,.10);
+  --ok-bg:rgba(22,163,74,.18);--est-bg:rgba(217,119,6,.18);--no-bg:rgba(148,163,184,.14);--bad-bg:rgba(220,38,38,.18);
+  --ok:#4ade80;--est:#fbbf24;--no:#a8b4c7;--bad:#f87171;--shadow:none;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;height:100%}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{overflow-x:clip;background:var(--bg);color:var(--text);font-family:Heebo,"Segoe UI",Arial,sans-serif;font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:6px}
+.ltr{direction:ltr;unicode-bidi:isolate;display:inline-block}
+.num{font-variant-numeric:tabular-nums}
+.m-only{display:none!important}
+@media (max-width:860px){.m-only{display:inline-flex!important}}
+.muted{color:var(--muted)}.faint{color:var(--faint)}.sm{font-size:13px}.xs{font-size:12px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* פס תצוגה / מודעות מערכת */
+.preview-bar{background:#fff7e6;color:#7a4b00;border-bottom:1px solid #f3dfb4;padding:7px 18px;font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.preview-bar b{font-weight:700}
+.preview-bar button{margin-inline-start:auto;background:none;border:0;color:inherit;text-decoration:underline;cursor:pointer;font-size:13px}
+:root[data-theme="dark"] .preview-bar{background:#2a1f07;color:#f7d58b;border-color:#4a3810}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .preview-bar{background:#2a1f07;color:#f7d58b;border-color:#4a3810}}
+
+/* מעטפת */
+.app{display:flex;min-height:calc(100vh - 36px)}
+.side{width:264px;flex-shrink:0;background:var(--navy-950);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.brand .logo{font-size:26px;font-weight:800;letter-spacing:-.01em;line-height:1}
+.brand .logo span{display:block;width:34px;height:3px;background:#fff;border-radius:2px;margin-top:8px}
+.brand .sub{font-size:12.5px;color:rgba(255,255,255,.55);margin-top:10px}
+.nav{padding:12px 10px 20px;flex:1}
+.nav-cap{font-size:11.5px;color:rgba(255,255,255,.42);padding:12px 12px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;color:rgba(255,255,255,.78);padding:9px 12px;border-radius:10px;cursor:pointer;text-align:start;font-size:14px}
+.nav-item svg{flex-shrink:0;opacity:.85}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-item[aria-current="page"]{background:var(--blue);color:#fff}
+.nav-item[aria-disabled="true"]{color:rgba(255,255,255,.38);cursor:default}
+.nav-item[aria-disabled="true"]:hover{background:none}
+.soon{margin-inline-start:auto;font-size:10.5px;border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:0 7px;color:rgba(255,255,255,.45)}
+.side-foot{padding:14px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:12.5px;color:rgba(255,255,255,.55)}
+.side-foot b{color:#fff;font-weight:600;display:block;font-size:13.5px}
+
+main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:12px 24px;position:sticky;top:0;z-index:20}
+.top h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.01em}
+.crumb{font-size:12.5px;color:var(--muted)}
+.top .grow{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;padding:5px 12px;font-size:13px;background:var(--card);cursor:pointer;white-space:nowrap}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.menu-btn{display:none;border:0;background:none;padding:6px;cursor:pointer;color:var(--text)}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--navy-700);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;flex-shrink:0}
+.tabs{display:flex;gap:4px;padding:0 24px;background:var(--card);border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{border:0;background:none;padding:12px 14px;font-size:14.5px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab[aria-selected="true"]{color:var(--blue);border-color:var(--blue);font-weight:600}
+.content{padding:24px;max-width:1320px;width:100%;margin:0 auto}
+
+/* רכיבים */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
+.card-h{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.card-h h2,.card-h h3{margin:0;font-size:16.5px;font-weight:700}
+.card-b{padding:18px}
+.h-bar{display:block;width:28px;height:3px;background:var(--blue);border-radius:2px;margin-top:6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;padding:0 16px;border-radius:10px;border:1px solid var(--border);background:var(--card);cursor:pointer;font-weight:500;font-size:14px;white-space:nowrap}
+.btn:hover{background:var(--soft)}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-600)}
+.btn-navy{background:var(--navy-800);border-color:var(--navy-800);color:#fff}
+.btn-navy:hover{background:var(--navy-700)}
+.btn-ghost{border-color:transparent;background:none;color:var(--muted)}
+.btn-sm{height:32px;padding:0 12px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.input,select.input,textarea.input{width:100%;height:40px;border:1px solid var(--border);border-radius:10px;padding:0 12px;background:var(--card);font-size:14.5px}
+textarea.input{height:auto;padding:12px;resize:vertical;line-height:1.55}
+.input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-100)}
+label.f{display:block;font-size:13px;color:var(--muted);font-weight:500}
+label.f .input{margin-top:6px}
+.badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 10px;font-size:12.5px;font-weight:500;white-space:nowrap}
+.b-ok{background:var(--ok-bg);color:var(--ok)}.b-est{background:var(--est-bg);color:var(--est)}.b-no{background:var(--no-bg);color:var(--no)}.b-blue{background:var(--blue-100);color:var(--blue)}.b-bad{background:var(--bad-bg);color:var(--bad)}
+.chip{display:inline-flex;align-items:center;gap:5px;background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:2px 8px;font-size:12.5px;color:var(--muted);white-space:nowrap}
+.grid{display:grid;gap:18px}
+.grid>*{min-width:0}
+.g-kpi{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g-2{grid-template-columns:1.4fr 1fr}
+.g-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.kpi{padding:16px 18px}
+.kpi .l{font-size:13px;color:var(--muted)}
+.kpi .v{font-size:28px;font-weight:700;letter-spacing:-.02em;margin-top:2px}
+.kpi .s{font-size:12.5px;color:var(--muted)}
+.bar{height:8px;border-radius:999px;background:var(--soft);border:1px solid var(--border);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--blue);border-radius:999px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.spacer{flex:1}
+.demo-tag{font-size:11.5px;color:#7a4b00;background:#fff7e6;border:1px solid #f3dfb4;border-radius:6px;padding:1px 7px;white-space:nowrap}
+:root[data-theme="dark"] .demo-tag{background:#2a1f07;color:#f7d58b;border-color:#4a3810}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .demo-tag{background:#2a1f07;color:#f7d58b;border-color:#4a3810}}
+
+/* טבלאות */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:start;font-weight:500;color:var(--muted);font-size:13px;padding:11px 14px;border-bottom:1px solid var(--border);white-space:nowrap;background:var(--soft)}
+td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr{cursor:pointer}
+tbody tr:hover{background:var(--blue-50)}
+tr:last-child td{border-bottom:0}
+.co-name{font-weight:600}
+.score{display:inline-flex;align-items:center;justify-content:center;width:38px;height:26px;border-radius:8px;font-weight:700;font-size:13px}
+.s-hi{background:var(--ok-bg);color:var(--ok)}.s-mid{background:var(--blue-100);color:var(--blue)}.s-lo{background:var(--no-bg);color:var(--no)}
+
+/* חיפוש */
+.hero-search{background:linear-gradient(160deg,var(--navy-900),var(--navy-700));color:#fff;border-radius:18px;padding:26px;border:1px solid rgba(255,255,255,.08)}
+.hero-search h2{margin:0;font-size:22px;font-weight:700}
+.hero-search p{margin:6px 0 0;color:rgba(255,255,255,.7);font-size:14.5px}
+.hero-search textarea{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);color:#fff;border-radius:12px;width:100%;padding:14px;margin-top:16px;min-height:88px;resize:vertical;font-size:15.5px;line-height:1.6}
+.hero-search textarea::placeholder{color:rgba(255,255,255,.45)}
+.hero-search textarea:focus{outline:none;border-color:#6b9bff;box-shadow:0 0 0 3px rgba(37,99,235,.35)}
+.ex{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.ex button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.88);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer}
+.ex button:hover{background:rgba(255,255,255,.14)}
+.hero-actions{display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap}
+.hero-actions .btn-primary{height:42px}
+.engine-note{font-size:13px;color:rgba(255,255,255,.65)}
+.adv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.toggle{display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;user-select:none}
+.switch{width:40px;height:23px;border-radius:999px;background:var(--border);position:relative;flex-shrink:0;transition:background .15s}
+.switch::after{content:"";position:absolute;top:3px;right:3px;width:17px;height:17px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:right .15s}
+input:checked + .switch{background:var(--blue)}
+input:checked + .switch::after{right:20px}
+.toggle input{position:absolute;opacity:0;pointer-events:none}
+.interp{border:1px dashed var(--blue);background:var(--blue-50);border-radius:12px;padding:14px 16px}
+.interp .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.interp .chips span{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:3px 10px;font-size:13px}
+.steps{display:grid;gap:10px}
+.step{display:flex;align-items:center;gap:12px;font-size:14.5px}
+.step .ic{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--border);flex-shrink:0;font-size:12px;color:var(--muted)}
+.step.done .ic{background:var(--ok);border-color:var(--ok);color:#fff}
+.step.run .ic{border-color:var(--blue);border-top-color:transparent;animation:spin .8s linear infinite}
+.step.wait{color:var(--faint)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.est-box{display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:var(--soft);border:1px solid var(--border);border-radius:12px;padding:12px 16px;font-size:14px}
+
+/* כרטיס חברה */
+.overlay{position:fixed;inset:0;background:rgba(4,9,26,.45);z-index:50;display:flex;justify-content:flex-start}
+.panel{background:var(--bg);width:min(980px,100vw);height:100%;overflow:auto;box-shadow:0 0 40px rgba(0,0,0,.25);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.panel-h{background:var(--navy-950);color:#fff;padding:20px 24px;position:sticky;top:0;z-index:2}
+.panel-h h2{margin:0;font-size:22px;font-weight:700}
+.panel-h .meta{color:rgba(255,255,255,.65);font-size:13.5px;margin-top:4px}
+.panel-h .x{background:rgba(255,255,255,.1);border:0;color:#fff;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:18px}
+.panel-b{padding:20px 24px 40px;display:grid;gap:18px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
+.fld{padding:12px 16px;border-bottom:1px solid var(--border);border-inline-start:1px solid var(--border);min-width:0}
+.fld:nth-child(2n){border-inline-start:0}
+.fld .k{font-size:12.5px;color:var(--muted)}
+.fld .v{font-weight:500;margin-top:2px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;overflow-wrap:anywhere}
+.fld .src{font-size:12px;color:var(--faint);margin-top:3px}
+.ev{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.ev:last-child{border-bottom:0}
+.ev .src-ic{width:34px;height:34px;border-radius:10px;background:var(--blue-100);color:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
+.contact{display:flex;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer}
+.contact:hover{background:var(--blue-50)}
+.contact:last-child{border-bottom:0}
+.contact .av{width:38px;height:38px;border-radius:50%;background:var(--navy-700);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
+.timeline{display:grid;gap:0}
+.tl{display:flex;gap:12px;padding:10px 0;position:relative}
+.tl::before{content:"";position:absolute;top:30px;bottom:-10px;right:6px;width:2px;background:var(--border)}
+.tl:last-child::before{display:none}
+.tl .d{width:14px;height:14px;border-radius:50%;background:var(--blue);margin-top:4px;flex-shrink:0;box-shadow:0 0 0 3px var(--blue-100)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:13px}
+
+/* לידים */
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(230px,1fr);gap:14px;overflow-x:auto;padding-bottom:6px}
+.col{background:var(--soft);border:1px solid var(--border);border-radius:var(--r);padding:10px;min-height:200px}
+.col-h{display:flex;align-items:center;gap:8px;padding:4px 6px 10px;font-weight:600;font-size:14px}
+.col-h .n{margin-inline-start:auto;font-size:12.5px;color:var(--muted);font-weight:500}
+.lead{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer;box-shadow:var(--shadow)}
+.lead:hover{border-color:var(--blue)}
+.lead .t{font-weight:600;font-size:14.5px}
+.lead select{margin-top:8px;height:32px;font-size:13px}
+
+/* מנועי AI */
+.ai-card{padding:18px;display:grid;gap:12px}
+.ai-logo{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px;flex-shrink:0}
+.seg{display:inline-flex;background:var(--soft);border:1px solid var(--border);border-radius:10px;padding:3px}
+.seg button{border:0;background:none;padding:6px 12px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08);font-weight:500}
+.key-row{display:flex;gap:8px;align-items:center}
+.key-row .input{direction:ltr;text-align:left;font-family:ui-monospace,monospace;font-size:13px}
+
+/* עלויות */
+.chart{display:flex;align-items:flex-end;gap:6px;height:150px;padding-top:10px}
+.chart .c{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+.chart .c i{width:100%;max-width:28px;border-radius:6px 6px 2px 2px;background:var(--blue);display:block}
+.chart .c i.est{background:repeating-linear-gradient(135deg,var(--blue-100),var(--blue-100) 4px,transparent 4px,transparent 8px);border:1px dashed var(--blue)}
+.chart .c span{font-size:11px;color:var(--muted)}
+
+.toast{position:fixed;bottom:calc(22px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--navy-900);color:#fff;padding:10px 18px;border-radius:12px;z-index:80;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:92vw}
+.empty{text-align:center;padding:40px 16px;color:var(--muted)}
+
+/* מובייל והתאמה ל-Embedded Mode */
+.scrim{display:none}
+body.is-embedded .preview-bar{display:none}
+body.is-embedded .side{display:none!important}
+body.is-embedded .menu-btn{display:none!important}
+body.is-embedded .top{top:0;padding:10px 16px}
+body.is-embedded .content{padding:16px;max-width:100%}
+
+@media (max-width:1080px){.g-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.adv{grid-template-columns:repeat(2,minmax(0,1fr))}.g-3{grid-template-columns:1fr 1fr}}
+@media (max-width:860px){
+  .side{position:fixed;top:0;right:0;z-index:60;transform:translateX(100%);visibility:hidden;transition:transform .2s,visibility .2s;padding-top:env(safe-area-inset-top,0px)}
+  .side.open{transform:none;visibility:visible}
+  .scrim.open{display:block;position:fixed;inset:0;background:rgba(4,9,26,.5);z-index:55}
+  .menu-btn{display:inline-flex}
+  .top{padding:10px 14px;top:0}
+  .top .hide-m{display:none}
+  .tabs{padding:0 10px}
+  .content{padding:14px}
+  .g-2,.g-3{grid-template-columns:1fr}
+  .fields{grid-template-columns:1fr}
+  .fld{border-inline-start:0}
+  .panel-h,.panel-b{padding-left:16px;padding-right:16px}
+  table.co thead{display:none}
+  table.co,table.co tbody,table.co tr,table.co td{display:block;width:100%}
+  table.co tr{padding:12px 14px;border-bottom:1px solid var(--border)}
+  table.co td{border:0;padding:2px 0}
+  table.co td.hide-m{display:none}
+  .hero-search{padding:18px}
+  th.hm,td.hm{display:none}
+}
+@media (max-width:520px){.g-kpi{grid-template-columns:1fr 1fr}.adv{grid-template-columns:1fr}.kpi .v{font-size:24px}.g-3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="preview-bar" role="note">
+  <b>סביבת STAGING: מודול איתור לקוחות ולידים</b>
+  <span>פועל במעטפת ניהול שיווק 2. חברות, ספקים ועלויות מסונכרנים לפי החברה הפעילה.</span>
+  <button type="button" data-act="theme">מצב כהה/בהיר</button>
+</div>
+<div class="app">
+  <div class="scrim" id="scrim" data-act="closeMenu"></div>
+  <aside class="side" id="side" aria-label="תפריט מרכז שיווק ופרסום">
+    <div class="brand"><div class="logo">דליה<span></span></div><div class="sub">מרכז שיווק ופרסום</div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot"><b>יוני אטיאס</b>מנהל שיווק ופרסום · דליה</div>
+  </aside>
+  <main>
+    <header class="top">
+      <button class="menu-btn" data-act="openMenu" aria-label="פתח תפריט"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <div><div class="crumb" id="crumb">מרכז שיווק ופרסום</div><h1 id="title">איתור לקוחות עסקיים</h1></div>
+      <span class="grow"></span>
+      <button class="pill hide-m" data-go="workspace" id="currentCompanyBtn" title="החלפת חברה (סביבת עבודה)">🏢 חברה: דליה פתרונות</button>
+      <button class="pill" data-go="ai"><span class="dot"></span><span id="engineLabel">Gemini</span></button>
+      <div class="avatar" id="userAvatar" title="יוני אטיאס">יא</div>
+    </header>
+    <div class="tabs" id="tabs" role="tablist"></div>
+    <div class="content" id="view"></div>
+  </main>
+</div>
+<div id="panel"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+"use strict";
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=n=>Number(n).toLocaleString("he-IL");
+const ic={
+  dash:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
+  target:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>',
+  dot:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>',
+  ai:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.5"/></svg>',
+  coin:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>',
+  db:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg>',
+  gear:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+};
+
+/* ===== תפריט מרכז השיווק ===== */
+const MENU=[
+  ["dash","דשבורד שיווק ופרסום",ic.dash,0],["prospector","איתור לקוחות עסקיים",ic.target,1],
+  ["seo","קידום אתרים בגוגל",ic.dot,0],["kw","מחקר מילות מפתח",ic.dot,0],["rank","מעקב מיקומים בגוגל",ic.dot,0],["comp","ניתוח מתחרים",ic.dot,0],
+  ["crm","ניהול לקוחות שיווקיים",ic.dot,0],["camp","ניהול קמפיינים",ic.dot,0],["design","עיצוב גרפי",ic.dot,0],["img","יצירת תמונות AI",ic.dot,0],
+  ["social","רשתות חברתיות",ic.dot,0],["assist","עוזר AI",ic.dot,0],
+  ["ai","ניהול מנועי AI",ic.ai,1],["providers","ניהול ספקי מידע",ic.db,1],["costs","עלויות וקרדיטים",ic.coin,1],["settings","הגדרות חברה",ic.gear,0],["admin","חברות ומשתמשים",ic.gear,0],
+];
+const GROUPS=[["שיווק",["dash","prospector","seo","kw","rank","comp","crm","camp","design","img","social","assist"]],["ניהול",["ai","providers","costs","settings","admin"]]];
+
+/* ===== נתוני מאגר ובסיס לידים ===== */
+const REGIONS=["כל הארץ","צפון","חיפה והקריות","שרון","מרכז","ירושלים","שפלה","דרום"];
+const INDUSTRIES=["הפצה ולוגיסטיקה","שירות וטכנאי שטח","בנייה ותשתיות","אחזקה ותפעול מבנים","מזון וקמעונאות","הובלות","תקשורת והתקנות","השכרה וליסינג"];
+const STATUSES=[["new","חדש"],["review","בבדיקה"],["contacted","נוצר קשר"],["meeting","נקבעה פגישה"],["quote","הצעת מחיר"],["won","הפך ללקוח"],["irrelevant","לא רלוונטי"]];
+const ST=Object.fromEntries(STATUSES);
+
+// נתוני חברות התחלתיים
+const C=[
+ {id:1,name:"נתיב הצפון הפצה",no:"99-0001201",ind:"הפצה ולוגיסטיקה",city:"חיפה",region:"חיפה והקריות",addr:"דרך העצמאות 00, חיפה",web:"netiv-north.example",phone:"04-000-0101",mail:"info@netiv-north.example",size:"100–250 עובדים",fleet:{s:"v",val:"62 רכבים",src:"דף 'אודות' באתר החברה"},score:92,status:"meeting",found:"21.09.2026",upd:"24.09.2026",
+  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"v",size:"e"},
+  ev:[["🌐","אתר החברה","\"צי של 62 משאיות ומסחריות\" – דף אודות","netiv-north.example/about","v","18.09.2026"],["💼","מודעת דרושים","מגייסת רכז/ת צי רכב","jobs-board.example/…/8812","v","15.09.2026"],["🏛️","רשם החברות","חברה פעילה, מס' 99-0001201","data.gov.il","v","21.09.2026"]],
+  people:[["אורית בן דוד","מנהלת צי רכב","v","orit@netiv-north.example","04-000-0102","v"],["יוסי מזרחי","סמנכ״ל תפעול","e","","", "n"]],notes:"מתעניינים בהוזלת עלויות מוסך. פגישה ביום ה' 10:00."},
+ {id:2,name:"קור-טק מיזוג ושירות",no:"99-0001202",ind:"שירות וטכנאי שטח",city:"חולון",region:"מרכז",addr:"המלאכה 00, חולון",web:"cortech.example",phone:"03-000-0202",mail:"service@cortech.example",size:"50–100 עובדים",fleet:{s:"e",val:"כ-45 רכבים (הערכה)",src:"מבוסס על '45 טכנאי שטח' באתר"},score:88,status:"contacted",found:"21.09.2026",upd:"23.09.2026",
+  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"e",size:"e"},
+  ev:[["🌐","אתר החברה","\"45 טכנאי שטח ברחבי הארץ\"","cortech.example","e","19.09.2026"],["📍","Google Maps","עסק פעיל, 4.6 כוכבים, טלפון מאומת","maps (place_id)","v","21.09.2026"]],
+  people:[["משה אברהם","מנהל צי ושירות","v","moshe@cortech.example","03-000-0203","e"]],notes:""},
+ {id:3,name:"אבן יסוד תשתיות",no:"99-0001203",ind:"בנייה ותשתיות",city:"באר שבע",region:"דרום",addr:"לא נמצא",web:"even-yesod.example",phone:"08-000-0303",mail:"",size:"250+ עובדים",fleet:{s:"n",val:"מספר רכבים לא אומת",src:"נמצאה ראיה לצי, ללא מספר"},score:81,status:"new",found:"22.09.2026",upd:"22.09.2026",
+  facts:{no:"v",ind:"v",addr:"n",web:"v",phone:"v",mail:"n",size:"e"},
+  ev:[["📰","כתבה","זכתה במכרז תשתיות עירוני","news.example/…/4471","v","02.09.2026"],["💼","מודעת דרושים","קצין/ת בטיחות בתעבורה","jobs-board.example/…/9120","v","17.09.2026"]],
+  people:[["דני פרץ","מנהל לוגיסטיקה וציוד","e","","08-000-0304","e"]],notes:""},
+ {id:4,name:"גל-אקספרס שליחויות",no:"99-0001204",ind:"הפצה ולוגיסטיקה",city:"ראשון לציון",region:"מרכז",addr:"הזית 00, ראשון לציון",web:"gal-express.example",phone:"03-000-0404",mail:"office@gal-express.example",size:"50–100 עובדים",fleet:{s:"e",val:"30–40 רכבים (הערכה)",src:"צילומי צי בדף הבית + 2 סניפים"},score:84,status:"quote",found:"20.09.2026",upd:"25.09.2026",
+  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"v",size:"e"},
+  ev:[["🌐","אתר החברה","פתיחת מרכז מיון שני","gal-express.example/news","v","10.09.2026"]],
+  people:[["רונן אזולאי","מנהל תפעול","v","ronen@gal-express.example","03-000-0405","v"],["מיכל שטרן","אחראית רכש","v","michal@gal-express.example","","n"]],notes:"נשלחה הצעת מחיר לחבילה 3."},
+ {id:5,name:"סיבים ישראל התקנות",no:"99-0001205",ind:"תקשורת והתקנות",city:"מודיעין",region:"מרכז",addr:"המדע 00, מודיעין",web:"sivim-il.example",phone:"08-000-0505",mail:"",size:"100–250 עובדים",fleet:{s:"e",val:"כ-60 רכבים (הערכה)",src:"גיוס 30 טכנאים חדשים + צי קיים"},score:86,status:"review",found:"22.09.2026",upd:"22.09.2026",
+  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"n",size:"e"},
+  ev:[["💼","מודעות דרושים","30 משרות טכנאי שטח עם רכב צמוד","jobs-board.example/…/7781","v","20.09.2026"]],
+  people:[["גיל שמעוני","מנהל צי רכב","e","","", "n"]],notes:""},
+ {id:6,name:"טעמי הגליל מזון",no:"99-0001206",ind:"מזון וקמעונאות",city:"כרמיאל",region:"צפון",addr:"אזור תעשייה, כרמיאל",web:"taamei-galil.example",phone:"04-000-0606",mail:"info@taamei-galil.example",size:"250+ עובדים",fleet:{s:"v",val:"25 משאיות קירור",src:"כתבה כלכלית"},score:79,status:"new",found:"23.09.2026",upd:"23.09.2026",
+  facts:{no:"v",ind:"v",addr:"e",web:"v",phone:"v",mail:"v",size:"v"},
+  ev:[["📰","כתבה כלכלית","הרחבת קווי הפצה עם 25 משאיות קירור","news.example/…/5503","v","05.09.2026"]],
+  people:[["סיגל ביטון","מנהלת לוגיסטיקה","v","sigal@taamei-galil.example","04-000-0607","e"]],notes:""},
+ {id:7,name:"מובילי השרון",no:"99-0001207",ind:"הובלות",city:"נתניה",region:"שרון",addr:"לא נמצא",web:"movilei-sharon.example",phone:"09-000-0707",mail:"",size:"20–50 עובדים",fleet:{s:"n",val:"מספר רכבים לא אומת",src:"לא נמצאה ראיה למספר"},score:68,status:"new",found:"23.09.2026",upd:"23.09.2026",
+  facts:{no:"v",ind:"v",addr:"n",web:"v",phone:"v",mail:"n",size:"e"},
+  ev:[["📍","Google Maps","חברת הובלות פעילה בנתניה","maps (place_id)","v","23.09.2026"]],
+  people:[],notes:""},
+ {id:8,name:"אלקטרו-שטח",no:"לא נמצא",ind:"שירות וטכנאי שטח",city:"קריית גת",region:"דרום",addr:"לא נמצא",web:"electro-field.example",phone:"08-000-0808",mail:"",size:"לא נמצא",fleet:{s:"n",val:"מספר רכבים לא אומת",src:"—"},score:55,status:"irrelevant",found:"20.09.2026",upd:"21.09.2026",
+  facts:{no:"n",ind:"e",addr:"n",web:"v",phone:"v",mail:"n",size:"n"},
+  ev:[["🌐","אתר החברה","שירותי חשמל לעסקים","electro-field.example","e","20.09.2026"]],
+  people:[],notes:"פחות מ-5 רכבים לפי שיחה."},
+];
+
+const RUNS=[
+  {q:"חברות הפצה באזור המרכז עם 20 רכבים ומעלה",when:"היום, 09:12",st:"done",found:14,fit:9,engine:"Gemini",cost:"₪6.40"},
+  {q:"חברות שמפרסמות דרושים לקצין בטיחות בתעבורה",when:"אתמול, 16:40",st:"done",found:11,fit:7,engine:"Gemini",cost:"₪4.10"},
+  {q:"חברות שירות עם טכנאי שטח בשפלה",when:"22.09, 11:05",st:"run",found:6,fit:0,engine:"Claude",cost:"₪1.20"},
+];
+
+const AI=[
+  {id:"gemini",name:"Gemini",org:"Google",color:"#3b6fe0",letter:"G",on:true,def:true,model:"gemini-2.5-flash",models:["gemini-2.5-flash","gemini-3-flash","gemini-3.1-pro"],mode:"dalia",key:"",limit:300,used:42,status:"ok"},
+  {id:"claude",name:"Claude",org:"Anthropic",color:"#c2703d",letter:"C",on:true,def:false,model:"claude-sonnet-5",models:["claude-sonnet-5","claude-haiku-4-5","claude-opus-5"],mode:"dalia",key:"",limit:300,used:112,status:"ok"},
+  {id:"openai",name:"ChatGPT",org:"OpenAI",color:"#10a37f",letter:"G",on:true,def:false,model:"gpt-5-mini",models:["gpt-5-mini","gpt-5","gpt-4.1"],mode:"own",key:"sk-••••••••••••3fA9",limit:150,used:38,status:"ok"},
+  {id:"grok",name:"Grok",org:"xAI",color:"#1f2937",letter:"X",on:false,def:false,model:"grok-4",models:["grok-4","grok-4-fast"],mode:"own",key:"",limit:100,used:0,status:"off"},
+];
+
+const S={view:"prospector",tab:"dash",leadFilter:"",coFilter:{q:"",st:"",fleet:""},searching:false,results:false,panel:null,menu:false,activeCompany:"דליה פתרונות תפעול ותחזוקה לרכב",activeUser:"יוני אטיאס"};
+
+/* ===== עזרים לתצוגה ===== */
+const conf={v:['<span class="badge b-ok">✓ מאומת</span>'],e:['<span class="badge b-est">≈ הערכה</span>'],n:['<span class="badge b-no">לא נמצא</span>']};
+const cBadge=s=>conf[s][0];
+const fleetBadge=f=>f.s==="v"?`<span class="badge b-ok">✓ ${esc(f.val)}</span>`:f.s==="e"?`<span class="badge b-est">≈ ${esc(f.val)}</span>`:`<span class="badge b-no">${esc(f.val)}</span>`;
+const scoreCls=s=>s>=80?"s-hi":s>=65?"s-mid":"s-lo";
+const stBadge=s=>{const m={new:"b-blue",review:"b-no",contacted:"b-blue",meeting:"b-est",quote:"b-est",won:"b-ok",irrelevant:"b-no"};return `<span class="badge ${m[s]}">${ST[s]}</span>`};
+function toast(t){const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2800)}
+const engine=()=>AI.find(a=>a.def)||AI[0];
+
+/* ===== זיהוי סביבת IFRAME (EMBEDDED) ===== */
+const isEmbedded = window.parent && window.parent !== window;
+if (isEmbedded) {
+  document.body.classList.add("is-embedded");
+}
+
+/* ===== ניווט ===== */
+function renderNav(){
+  const byId=Object.fromEntries(MENU.map(m=>[m[0],m]));
+  const navEl=$("#nav");
+  if(navEl){
+    navEl.innerHTML=GROUPS.map(([cap,ids])=>`<div class="nav-cap">${cap}</div>`+ids.map(id=>{const [k,l,i,active]=byId[id];
+      return active?`<button class="nav-item" data-go="${k}" ${S.view===k?'aria-current="page"':""}>${i}<span>${l}</span></button>`
+        :`<div class="nav-item" aria-disabled="true">${i}<span>${l}</span><span class="soon">בקרוב</span></div>`}).join("")).join("");
+  }
+  const elLbl=$("#engineLabel");
+  if(elLbl) elLbl.textContent=engine().name;
+}
+
+const TABS=[["dash","דשבורד"],["search","חיפוש חדש"],["companies","חברות שנמצאו"],["leads","ניהול לידים"]];
+function renderTabs(){
+  const t=$("#tabs");
+  if(S.view!=="prospector"){t.hidden=true;return}
+  t.hidden=false;
+  t.innerHTML=TABS.map(([k,l])=>`<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${l}</button>`).join("");
+}
+
+function render(){
+  renderNav();renderTabs();
+  const titles={prospector:"איתור לקוחות עסקיים",ai:"ניהול מנועי AI",costs:"שימוש, עלויות וקרדיטים",providers:"ניהול ספקי מידע",workspace:"סביבת עבודה"};
+  const titEl=$("#title");
+  if(titEl) titEl.textContent=titles[S.view]||"איתור לקוחות עסקיים";
+  const viewEl=$("#view");
+  if(viewEl) viewEl.innerHTML=(V[S.view==="prospector"?S.tab:S.view]||V.dash)();
+  renderPanel();
+}
+
+function go(v){
+  S.view=v;S.menu=false;
+  const side=$("#side"), scrim=$("#scrim");
+  if(side) side.classList.remove("open");
+  if(scrim) scrim.classList.remove("open");
+  render();
+  window.scrollTo(0,0);
+}
+
+const V={};
+/* ===== דשבורד ===== */
+V.dash=()=>{
+  const counts=Object.fromEntries(STATUSES.map(([k])=>[k,C.filter(c=>c.status===k).length]));
+  return `
+  <div class="grid g-kpi">
+    ${kpi("חיפושים החודש","12","3 פעילים השבוע")}
+    ${kpi("חברות שנמצאו","148","61 מתאימות לקריטריונים")}
+    ${kpi("אנשי קשר","93","64 מיילים · 41 טלפונים")}
+    ${kpi("עלות החודש","₪186","מתוך תקציב ₪600",31)}
+  </div>
+  <div class="grid g-2" style="margin-top:18px">
+    <div class="card">
+      <div class="card-h"><h2>חיפושים אחרונים<span class="h-bar"></span></h2><span class="spacer"></span><button class="btn btn-primary btn-sm" data-tab="search">+ חיפוש חדש</button></div>
+      <div class="tbl-wrap"><table><thead><tr><th>בקשה</th><th>סטטוס</th><th>נמצאו</th><th class="hm">מתאימות</th><th class="hm">מנוע</th><th>עלות</th></tr></thead><tbody>
+      ${RUNS.map(r=>`<tr data-tab="companies"><td><div class="co-name">${esc(r.q)}</div><div class="xs muted">${r.when}</div></td>
+        <td>${r.st==="done"?'<span class="badge b-ok">הסתיים</span>':'<span class="badge b-blue">בתהליך…</span>'}</td>
+        <td class="num">${r.found}</td><td class="num hm">${r.fit}</td><td class="hm">${r.engine}</td><td class="num">${r.cost}</td></tr>`).join("")}
+      </tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>מצב הלידים<span class="h-bar"></span></h2><span class="spacer"></span><button class="btn btn-ghost btn-sm" data-tab="leads">לניהול לידים</button></div>
+      <div class="card-b" style="display:grid;gap:12px">
+        ${STATUSES.map(([k,l])=>`<div><div class="row sm"><span>${l}</span><span class="spacer"></span><span class="num muted">${counts[k]}</span></div><div class="bar" style="margin-top:5px"><i style="width:${Math.max(4,counts[k]/C.length*100)}%"></i></div></div>`).join("")}
+      </div>
+    </div>
+  </div>
+  <div class="grid g-3" style="margin-top:18px">
+    <div class="card card-b"><div class="sm muted">רמת ודאות בנתונים</div>
+      <div class="legend" style="margin-top:10px"><span class="badge b-ok">✓ מאומת 58%</span><span class="badge b-est">≈ הערכה 27%</span><span class="badge b-no">לא נמצא 15%</span></div>
+      <p class="xs muted" style="margin:10px 0 0">נתון "מאומת" מופיע רק כשיש קישור למקור. מספר רכבים לא מוצג כמספר בלי ראיה.</p></div>
+    <div class="card card-b"><div class="sm muted">מנוע AI פעיל</div><div style="font-size:20px;font-weight:700;margin-top:4px">${engine().name} · <span class="sm muted ltr">${engine().model}</span></div>
+      <button class="btn btn-sm" style="margin-top:10px" data-go="ai">החלפת מנוע</button></div>
+    <div class="card card-b"><div class="sm muted">ספקי מידע בתשלום</div><div style="font-size:20px;font-weight:700;margin-top:4px">כבויים (חיסכון)</div>
+      <p class="xs muted" style="margin:6px 0 0">הפעלה דורשת אישור מנהל ותקציב מוגדר.</p></div>
+  </div>`;
+};
+function kpi(l,v,s,pct){return `<div class="card kpi"><div class="l">${l}</div><div class="v num">${v}</div><div class="s">${s}</div>${pct!=null?`<div class="bar" style="margin-top:8px"><i style="width:${pct}%"></i></div>`:""}</div>`}
+
+/* ===== חיפוש ===== */
+V.search=()=>`
+  <div class="hero-search">
+    <h2>מה תרצה למצוא היום?</h2>
+    <p>כתוב בעברית חופשית. ה-AI יתרגם את הבקשה לקריטריונים, תוכל לתקן אותם לפני שהחיפוש מתחיל.</p>
+    <textarea id="q" aria-label="בקשת חיפוש חופשית" placeholder="לדוגמה: מצא לי 50 חברות הפצה באזור המרכז עם 20 רכבים ומעלה, ואת מנהל הצי שלהן"></textarea>
+    <div class="ex">
+      ${["מצא 100 חברות בישראל עם צי של לפחות 5 רכבים","חברות הפצה במרכז עם 20 רכבים ומעלה","חברות שמפרסמות דרושים למנהל צי רכב או קצין בטיחות"].map(x=>`<button type="button" data-ex="${esc(x)}">${esc(x)}</button>`).join("")}
+    </div>
+    <div class="hero-actions">
+      <button class="btn btn-primary" data-act="interpret">✦ נתח בקשה ב-AI</button>
+      <span class="engine-note">מנוע: ${engine().name} · <span class="ltr">${engine().model}</span> · <button class="btn-ghost" style="color:#9cbcff;background:none;border:0;cursor:pointer;text-decoration:underline" data-go="ai">החלף</button></span>
+    </div>
+  </div>
+  <div id="interp"></div>
+  <div class="card" style="margin-top:18px">
+    <div class="card-h"><h2>חיפוש מתקדם<span class="h-bar"></span></h2><span class="spacer"></span><span class="xs muted">כל השדות אופציונליים</span></div>
+    <div class="card-b">
+      <div class="adv">
+        ${sel("מדינה",["ישראל"])}${sel("אזור",REGIONS,"a-region")}${inp("עיר","למשל: ראשון לציון","a-city")}${sel("ענף פעילות",["כל הענפים",...INDUSTRIES],"a-ind")}
+        ${sel("גודל חברה",["כל הגדלים","עד 20 עובדים","20–50","50–100","100–250","250+"])}${inp("מספר עובדים (מינימום)","למשל: 20")}
+        ${sel("גודל צי משוער",["5+ רכבים","10+","20+","50+","100+"],"a-fleet")}${sel("סוג רכבים",["כל הסוגים","מסחריות","משאיות","רכבי שירות","רכבי מנהלים","חשמליים"])}
+        ${sel("תפקיד איש קשר",["מנהל צי רכב","קצין רכב","קצין בטיחות בתעבורה","מנהל תפעול","מנהל לוגיסטיקה","מנהל רכש","מנכ״ל","בעל העסק"])}
+        ${sel("מספר חברות",["20","50","100","200"],"a-count")}${inp("מילות מפתח","למשל: קירור, שטח, התקנות")}
+        <div style="display:flex;align-items:flex-end"><label class="toggle"><input type="checkbox" id="a-jobs" checked><span class="switch"></span>רק חברות שמפרסמות דרושים</label></div>
+      </div>
+      <div class="est-box" style="margin-top:18px">
+        <span>💰 עלות משוערת: <b class="num">₪7–12</b> ל-50 חברות</span>
+        <span class="muted sm">אימות ברשם החברות + Google Places + סריקת דרושים.</span>
+        <span class="spacer"></span>
+        <span class="sm">יתרת תקציב: <b class="num">₪414</b></span>
+        <button class="btn btn-primary" data-act="run">הפעל חיפוש</button>
+      </div>
+    </div>
+  </div>
+  <div id="progress"></div>`;
+function sel(l,opts,id){return `<label class="f">${l}<select class="input" ${id?`id="${id}"`:""}>${opts.map(o=>`<option>${esc(o)}</option>`).join("")}</select></label>`}
+function inp(l,ph,id){return `<label class="f">${l}<input class="input" ${id?`id="${id}"`:""} placeholder="${esc(ph)}"></label>`}
+
+function interpret(){
+  const q=($("#q").value||"").trim();
+  if(!q){toast("כתוב בקשה או בחר דוגמה");return}
+  const m=q.match(/\d+/g)||[];
+  const count=m.find(x=>+x>=20)||"50", fleet=(q.match(/(\d+)\s*רכב/)||[])[1]||"5";
+  const region=REGIONS.find(r=>q.includes(r.replace("ה",""))||q.includes(r))||(q.includes("מרכז")?"מרכז":"כל הארץ");
+  const ind=q.includes("הפצ")?"הפצה ולוגיסטיקה":q.includes("שירות")||q.includes("טכנא")?"שירות וטכנאי שטח":q.includes("בני")?"בנייה ותשתיות":"כל הענפים";
+  const role=q.includes("קצין בטיחות")?"קצין בטיחות בתעבורה":q.includes("צי")?"מנהל צי רכב":"מנהל תפעול";
+  const jobs=q.includes("דרושים");
+  $("#interp").innerHTML=`<div class="interp" style="margin-top:18px">
+    <div class="row"><b>כך ה-AI הבין את הבקשה</b><span class="demo-tag">מנותח ב-STAGING</span><span class="spacer"></span><button class="btn btn-sm" data-act="applyInterp">העבר לחיפוש המתקדם</button></div>
+    <div class="chips"><span>מדינה: ישראל</span><span>אזור: ${esc(region)}</span><span>ענף: ${esc(ind)}</span><span>צי: ${esc(fleet)}+ רכבים</span><span>איש קשר: ${esc(role)}</span><span>כמות: ${esc(count)} חברות</span>${jobs?"<span>מפרסמות דרושים</span>":""}</div>
+    <p class="xs muted" style="margin:10px 0 0">בחיפוש האמיתי, גודל הצי ייבדק מול ראיות. חברה בלי ראיה תסומן "מספר רכבים לא אומת" ולא תקבל מספר שגוי.</p></div>`;
+  S._interp={region,ind,fleet,count,jobs};
+}
+function applyInterp(){
+  const i=S._interp;if(!i)return;
+  const set=(id,v)=>{const el=$("#"+id);if(!el)return;const o=[...el.options].find(o=>o.text===v||o.text.startsWith(v));if(o)el.value=o.value};
+  set("a-region",i.region);set("a-ind",i.ind);set("a-fleet",i.fleet+"+");set("a-count",i.count);$("#a-jobs").checked=i.jobs;
+  toast("הקריטריונים הועברו לחיפוש המתקדם");$(".card .adv").scrollIntoView({behavior:"smooth",block:"center"});
+}
+const STEPS=["תכנון החיפוש לפי הבקשה","איתור חברות (Google Maps, חיפוש ברשת, אתרי דרושים)","אימות ברשם החברות הממשלתי","קריאת אתרי החברות וסריקת עמודי אודות","חילוץ נתונים וראיות לצי רכב (קצין בטיחות, טכנאים)","איתור אנשי קשר ומקבלי החלטות"];
+async function runSearch(){
+  if(S.searching)return;S.searching=true;
+  const box=$("#progress");
+  const draw=(i)=>box.innerHTML=`<div class="card" style="margin-top:18px"><div class="card-h"><h2>החיפוש בתהליך<span class="h-bar"></span></h2><span class="spacer"></span><span class="demo-tag">סריקה ב-STAGING</span></div>
+    <div class="card-b"><div class="steps">${STEPS.map((s,k)=>`<div class="step ${k<i?"done":k===i?"run":"wait"}"><span class="ic">${k<i?"✓":""}</span>${s}</div>`).join("")}</div>
+    ${i>=STEPS.length?`<div class="est-box" style="margin-top:16px"><span>נמצאו <b>8</b> חברות מתאימות בדוגמה</span><span class="muted sm">עלות בפועל: <b class="num">₪2.90</b></span><span class="spacer"></span><button class="btn btn-primary" data-tab="companies">לרשימת החברות</button></div>`:""}</div></div>`;
+  for(let i=0;i<=STEPS.length;i++){draw(i);if(i<STEPS.length)await new Promise(r=>setTimeout(r,650))}
+  S.searching=false;
+}
+
+/* ===== חברות ===== */
+V.companies=()=>{
+  const f=S.coFilter;
+  const list=C.filter(c=>(!f.q||c.name.includes(f.q)||c.city.includes(f.q)||c.ind.includes(f.q))&&(!f.st||c.status===f.st)&&(!f.fleet||c.fleet.s===f.fleet));
+  return `<div class="card">
+    <div class="card-h"><h2>חברות שנמצאו<span class="h-bar"></span></h2><span class="chip num">${list.length} מתוך ${C.length}</span><span class="demo-tag">מאגר פעיל</span><span class="spacer"></span>
+      <button class="btn btn-sm" data-act="export">⬇ ייצוא CSV</button></div>
+    <div class="card-b" style="padding-bottom:0"><div class="row">
+      <input class="input" style="max-width:260px" id="f-q" placeholder="חיפוש לפי שם, עיר, ענף" value="${esc(f.q)}">
+      <select class="input" style="max-width:180px" id="f-st"><option value="">כל הסטטוסים</option>${STATUSES.map(([k,l])=>`<option value="${k}" ${f.st===k?"selected":""}>${l}</option>`).join("")}</select>
+      <select class="input" style="max-width:200px" id="f-fleet"><option value="">כל רמות הוודאות לצי</option><option value="v" ${f.fleet==="v"?"selected":""}>צי מאומת</option><option value="e" ${f.fleet==="e"?"selected":""}>צי בהערכה</option><option value="n" ${f.fleet==="n"?"selected":""}>צי לא אומת</option></select>
+    </div></div>
+    <div class="tbl-wrap" style="margin-top:14px"><table class="co"><thead><tr><th>התאמה</th><th>חברה</th><th>ענף</th><th>עיר</th><th>צי רכב</th><th>אנשי קשר</th><th>סטטוס</th></tr></thead><tbody>
+    ${list.map(c=>`<tr data-co="${c.id}">
+      <td class="hide-m"><span class="score ${scoreCls(c.score)}">${c.score}</span></td>
+      <td><div class="co-name"><span class="score ${scoreCls(c.score)} m-only" style="margin-inline-end:8px">${c.score}</span>${esc(c.name)}</div><div class="xs muted ltr">${esc(c.web)}</div></td>
+      <td class="hide-m">${esc(c.ind)}</td><td>${esc(c.city)}</td>
+      <td>${fleetBadge(c.fleet)}</td>
+      <td class="hide-m num">${c.people.length||'<span class="faint">—</span>'}</td>
+      <td>${stBadge(c.status)}</td></tr>`).join("")||`<tr><td colspan="7"><div class="empty">אין חברות שתואמות לסינון. נסה להסיר סינון.</div></td></tr>`}
+    </tbody></table></div></div>`;
+};
+
+/* ===== כרטיס חברה / איש קשר ===== */
+function renderPanel(){
+  const el=$("#panel");
+  if(!S.panel){el.innerHTML="";return}
+  const c=C.find(x=>x.id===S.panel.co);
+  el.innerHTML=`<div class="overlay" data-act="closePanel"><div class="panel" role="dialog" aria-modal="true" aria-label="כרטיס חברה" data-stop>${S.panel.person!=null?personCard(c,c.people[S.panel.person]):companyCard(c)}</div></div>`;
+}
+function fld(k,v,s,src){return `<div class="fld"><div class="k">${k}</div><div class="v">${v} ${s?cBadge(s):""}</div>${src?`<div class="src">${src}</div>`:""}</div>`}
+function companyCard(c){
+  const val=(x,s)=>s==="n"?'<span class="faint">לא נמצא</span>':esc(x);
+  return `<div class="panel-h"><div class="row" style="align-items:flex-start"><div style="flex:1;min-width:0">
+      <div class="row"><h2>${esc(c.name)}</h2><span class="score ${scoreCls(c.score)}" style="background:rgba(255,255,255,.12);color:#fff">${c.score}</span></div>
+      <div class="meta">${esc(c.ind)} · ${esc(c.city)} · נמצאה ${c.found} · עודכנה ${c.upd}</div></div>
+      <button class="x" data-act="closePanel" aria-label="סגור">✕</button></div>
+      <div class="row" style="margin-top:14px">
+        <select class="input" style="max-width:190px;height:36px;background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.2)" data-status="${c.id}">${STATUSES.map(([k,l])=>`<option value="${k}" ${c.status===k?"selected":""} style="color:#0f172a">${l}</option>`).join("")}</select>
+        <button class="btn btn-sm" style="background:#fff;color:#0a1830;border-color:#fff" data-act="toCrm" data-co-id="${c.id}">העבר ל-CRM</button>
+        <button class="btn btn-sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.3)" data-act="toTele" data-co-id="${c.id}">העבר לטלמרקטינג</button>
+      </div></div>
+    <div class="panel-b">
+      <div class="card"><div class="card-h"><h3>פרטי החברה<span class="h-bar"></span></h3><span class="spacer"></span><div class="legend"><span class="badge b-ok">✓ מאומת</span><span class="badge b-est">≈ הערכה</span><span class="badge b-no">לא נמצא</span></div></div>
+        <div class="fields">
+          ${fld("שם החברה",esc(c.name),"v","רשם החברות")}
+          ${fld("מספר חברה (ח.פ.)",`<span class="ltr num">${val(c.no,c.facts.no)}</span>`,c.facts.no,c.facts.no==="v"?"רשם החברות הממשלתי (data.gov.il)":"")}
+          ${fld("תחום פעילות",esc(c.ind),c.facts.ind,"אתר החברה")}
+          ${fld("כתובת",val(c.addr,c.facts.addr),c.facts.addr,c.facts.addr!=="n"?"רשם החברות":"")}
+          ${fld("עיר",esc(c.city),"v","")}
+          ${fld("אתר אינטרנט",`<span class="ltr">${esc(c.web)}</span>`,c.facts.web,"")}
+          ${fld("טלפון עסקי",`<span class="ltr num">${val(c.phone,c.facts.phone)}</span>`,c.facts.phone,c.facts.phone==="v"?"Google Places":"")}
+          ${fld("מייל כללי",c.mail?`<span class="ltr">${esc(c.mail)}</span>`:'<span class="faint">לא נמצא</span>',c.facts.mail,c.mail?"דף 'צור קשר'":"")}
+          ${fld("גודל חברה",val(c.size,c.facts.size),c.facts.size,c.facts.size==="e"?"לפי מספר משרות ופרופיל החברה":"")}
+          ${fld("מספר רכבים",fleetBadge(c.fleet),"",esc(c.fleet.src))}
+        </div></div>
+      <div class="grid g-2">
+        <div class="card"><div class="card-h"><h3>ראיות ומקורות מידע<span class="h-bar"></span></h3><span class="spacer"></span><span class="chip">${c.ev.length} מקורות</span></div>
+          ${c.ev.map(([i,t,d,u,s,dt])=>`<div class="ev"><div class="src-ic">${i}</div><div style="flex:1;min-width:0"><div class="row"><b class="sm">${esc(t)}</b>${cBadge(s)}<span class="spacer"></span><span class="xs muted num">${dt}</span></div>
+            <div class="sm" style="margin-top:2px">${esc(d)}</div><div class="xs faint ltr" style="margin-top:2px">${esc(u)}</div></div></div>`).join("")}</div>
+        <div class="card"><div class="card-h"><h3>אנשי קשר ומקבלי החלטות<span class="h-bar"></span></h3><span class="spacer"></span><button class="btn btn-sm" data-act="enrich">איתור פרטי קשר</button></div>
+          ${c.people.length?c.people.map((p,i)=>`<div class="contact" data-person="${i}"><div class="av">${esc(p[0][0])}</div><div style="flex:1;min-width:0"><div class="row"><b class="sm">${esc(p[0])}</b>${cBadge(p[2])}</div><div class="xs muted">${esc(p[1])}</div></div><span class="faint">‹</span></div>`).join("")
+            :'<div class="empty sm">עדיין לא נמצאו אנשי קשר.<br>אפשר להפעיל איתור (דורש אישור לספק בתשלום).</div>'}</div>
+      </div>
+      <div class="card"><div class="card-h"><h3>הערות על החברה<span class="h-bar"></span></h3></div><div class="card-b">
+        <textarea class="input" rows="3" id="notes" placeholder="הוסף הערה על החברה">${esc(c.notes)}</textarea>
+        <div class="row" style="margin-top:10px"><span class="xs muted">נמצאה: ${c.found} · עדכון אחרון: ${c.upd}</span><span class="spacer"></span><button class="btn btn-navy btn-sm" data-act="saveNote">שמור הערה</button></div></div></div>
+    </div>`;
+}
+function personCard(c,p){
+  const [name,role,rs,mail,phone,ps]=p;
+  return `<div class="panel-h"><div class="row" style="align-items:flex-start"><div style="flex:1">
+      <button class="btn btn-sm" style="background:rgba(255,255,255,.1);color:#fff;border-color:transparent;margin-bottom:10px" data-act="backCo">→ חזרה לכרטיס החברה</button>
+      <h2>${esc(name)}</h2><div class="meta">${esc(role)} · ${esc(c.name)}</div></div>
+      <button class="x" data-act="closePanel" aria-label="סגור">✕</button></div></div>
+    <div class="panel-b">
+      <div class="card"><div class="card-h"><h3>פרטי איש הקשר<span class="h-bar"></span></h3></div><div class="fields">
+        ${fld("שם",esc(name),rs,rs==="v"?"אתר החברה":"חיפוש ברשת")}
+        ${fld("תפקיד",esc(role),rs,"")}
+        ${fld("חברה",esc(c.name),"v","")}
+        ${fld("טלפון עסקי",phone?`<span class="ltr num">${esc(phone)}</span>`:'<span class="faint">לא נמצא</span>',phone?ps:"n",phone?"ספק מידע: Findymail":"")}
+        ${fld("מייל עסקי",mail?`<span class="ltr">${esc(mail)}</span>`:'<span class="faint">לא נמצא</span>',mail?"v":"n",mail?"אומת · מטמון 90 יום":"")}
+        ${fld("סטטוס אימות",rs==="v"?'<span class="badge b-ok">✓ מאומת</span>':'<span class="badge b-est">דורש אימות</span>',"","")}
+      </div></div>
+      <div class="grid g-2">
+        <div class="card"><div class="card-h"><h3>היסטוריית טיפול<span class="h-bar"></span></h3></div><div class="card-b"><div class="timeline">
+          <div class="tl"><span class="d"></span><div><b class="sm">נמצא בחיפוש</b><div class="xs muted">${c.found} · ${RUNS[0].engine}</div></div></div>
+          <div class="tl"><span class="d"></span><div><b class="sm">מייל אומת</b><div class="xs muted">22.09.2026 · 1 קרדיט</div></div></div>
+          <div class="tl"><span class="d"></span><div><b class="sm">שיחה ראשונה</b><div class="xs muted">23.09.2026 · "מבקש הצעה לחבילה 3"</div></div></div>
+        </div></div></div>
+        <div class="card"><div class="card-h"><h3>הערות<span class="h-bar"></span></h3></div><div class="card-b"><textarea class="input" rows="5" placeholder="הערה על איש הקשר"></textarea>
+          <div class="row" style="margin-top:10px"><span class="spacer"></span><button class="btn btn-navy btn-sm" data-act="saveNote">שמור</button></div></div></div>
+      </div>
+    </div>`;
+}
+
+/* ===== לידים (לוח קנבן) ===== */
+V.leads=()=>`
+  <div class="row" style="margin-bottom:14px"><h2 style="margin:0;font-size:18px">ניהול לידים וסטטוס טיפול</h2><span class="demo-tag">מסונכרן ל-CRM</span><span class="spacer"></span>
+    <span class="xs muted">לידים שאושרו עוברים ישירות ל-CRM ולטלמרקטינג של דליה</span></div>
+  <div class="board">
+    ${STATUSES.map(([k,l])=>{const list=C.filter(c=>c.status===k);return `<div class="col"><div class="col-h">${l}<span class="n num">${list.length}</span></div>
+      ${list.map(c=>`<div class="lead" data-co="${c.id}"><div class="t">${esc(c.name)}</div><div class="xs muted">${esc(c.city)} · ${esc(c.ind)}</div>
+        <div style="margin-top:6px">${fleetBadge(c.fleet)}</div>
+        <select class="input" data-status="${c.id}" aria-label="שינוי סטטוס">${STATUSES.map(([kk,ll])=>`<option value="${kk}" ${kk===k?"selected":""}>${ll}</option>`).join("")}</select></div>`).join("")||'<div class="empty xs">אין לידים</div>'}
+    </div>`}).join("")}
+  </div>`;
+
+/* ===== מנועי AI ===== */
+V.ai=()=>`
+  <div class="card card-b" style="margin-bottom:18px"><div class="row"><div><b>מנוע ברירת מחדל: ${engine().name}</b><div class="sm muted">משמש את כל מודולי מרכז השיווק, אלא אם הוגדר אחרת במודול.</div></div><span class="spacer"></span>
+    <span class="sm muted">🔒 מפתחות נשמרים ב-Supabase Vault ולא נחשפים בדפדפן</span></div></div>
+  <div class="grid g-2" style="grid-template-columns:repeat(auto-fill,minmax(300px,1fr))">
+  ${AI.map(a=>`<div class="card ai-card">
+    <div class="row"><div class="ai-logo" style="background:${a.color}">${a.letter}</div><div><b>${a.name}</b><div class="xs muted">${a.org}</div></div><span class="spacer"></span>
+      <label class="toggle" title="הפעלה/כיבוי"><input type="checkbox" data-ai-on="${a.id}" ${a.on?"checked":""}><span class="switch"></span></label></div>
+    <label class="f">מודל<select class="input ltr" style="text-align:left" data-ai-model="${a.id}" ${a.on?"":"disabled"}>${a.models.map(m=>`<option ${m===a.model?"selected":""}>${m}</option>`).join("")}</select></label>
+    <div><div class="xs muted" style="margin-bottom:6px">מפתח API</div>
+      <div class="seg" role="group"><button aria-pressed="${a.mode==="own"}" data-ai-mode="${a.id}:own">מפתח של החברה</button><button aria-pressed="${a.mode==="dalia"}" data-ai-mode="${a.id}:dalia">מפתח דליה</button></div></div>
+    ${a.mode==="own"?`<div class="key-row"><input class="input" value="${esc(a.key)}" placeholder="הדבק מפתח API" ${a.on?"":"disabled"} aria-label="מפתח API"><button class="btn btn-sm" data-act="rotate">החלף</button></div>
+      <div class="xs muted">החברה משלמת ישירות ל-${a.org}. מוצגים רק 4 תווים אחרונים.</div>`
+      :`<div class="xs muted" style="background:var(--soft);border:1px solid var(--border);border-radius:10px;padding:10px">החיוב דרך דליה לפי חבילת השירות. המפתח של דליה לא נחשף לחברה.</div>`}
+    <div><div class="row xs"><span class="muted">שימוש החודש</span><span class="spacer"></span><span class="num">₪${a.used} / ₪${a.limit}</span></div><div class="bar" style="margin-top:5px"><i style="width:${Math.min(100,a.used/a.limit*100)}%"></i></div></div>
+    <div class="row">
+      <button class="btn btn-sm" data-test="${a.id}" ${a.on?"":"disabled"}>בדיקת חיבור</button>
+      ${a.def?'<span class="badge b-blue">ברירת מחדל</span>':`<button class="btn btn-ghost btn-sm" data-def="${a.id}" ${a.on?"":"disabled"}>קבע כברירת מחדל</button>`}
+      <span class="spacer"></span>${a.status==="ok"&&a.on?'<span class="badge b-ok">מחובר</span>':'<span class="badge b-no">כבוי</span>'}
+    </div></div>`).join("")}
+  </div>`;
+
+/* ===== ספקי מידע ===== */
+V.providers=()=>{
+  const P=[["Tavily","חיפוש ברשת","פעיל","b-ok","₪0.03 לחיפוש"],["Google Places","עסקים לפי אזור וענף","פעיל","b-ok","5,000 חינם בחודש"],["רשם החברות (data.gov.il)","אימות רשמי","פעיל","b-ok","חינם ומורשה"],["Firecrawl","קריאת אתרים מורכבים","גיבוי בלבד","b-blue","לפי דף"],["Findymail","איתור מיילים","כבוי – דורש אישור","b-no","בתשלום"],["Prospeo","מיילים וטלפונים","כבוי – דורש אישור","b-no","בתשלום"],["Lusha","ספק ישראלי (מתאם חדש)","בבדיקה","b-est","בתשלום"]];
+  return `<div class="card"><div class="card-h"><h2>ספקי מידע ואימות<span class="h-bar"></span></h2><span class="spacer"></span><span class="sm muted">ספק בתשלום לא מופעל בלי אישור ותקציב</span></div>
+  <div class="tbl-wrap"><table><thead><tr><th>ספק</th><th>שימוש</th><th>מצב</th><th>תמחור</th><th></th></tr></thead><tbody>
+  ${P.map(p=>`<tr><td><b>${p[0]}</b></td><td>${p[1]}</td><td><span class="badge ${p[3]}">${p[2]}</span></td><td class="sm muted">${p[4]}</td><td><button class="btn btn-sm" data-act="${p[3]==="b-no"?"approve":"noop"}">${p[3]==="b-no"?"בקש אישור":"הגדרות"}</button></td></tr>`).join("")}
+  </tbody></table></div></div>
+  <p class="xs muted" style="margin-top:12px">שרשרת הספקים המדורגת (Waterfall), המטמון ל-90 יום ויומן העלויות נלקחים מהקוד המקורי של OpenProspector.</p>`;
+};
+
+/* ===== עלויות ===== */
+V.costs=()=>{
+  const days=[12,18,9,22,31,14,26,8,19,27,11,24,33,16];
+  const max=Math.max(...days);
+  const rows=[["AI (Gemini / Claude / ChatGPT)","₪112.40","₪128","נמדד"],["חיפוש ברשת (Tavily)","₪21.60","₪24","נמדד"],["Google Places","₪0.00","₪0","בתוך המכסה"],["Firecrawl","₪3.20","₪5","נמדד"],["ספקי מידע (מיילים / טלפונים)","₪48.80","₪60","נמדד"]];
+  return `<div class="grid g-kpi">
+    ${kpi("עלות החודש","₪186","נמדד בפועל",31)}${kpi("תקציב חודשי","₪600","עצירה אוטומטית ב-100%")}${kpi("יתרת קרדיטים","1,240","קרדיטים לספקי מידע")}${kpi("עלות ממוצעת לחברה","₪1.26","148 חברות החודש")}
+  </div>
+  <div class="grid g-2" style="margin-top:18px">
+    <div class="card"><div class="card-h"><h2>צריכה יומית<span class="h-bar"></span></h2><span class="spacer"></span><div class="legend xs"><span><i style="display:inline-block;width:10px;height:10px;background:var(--blue);border-radius:3px"></i> נמדד</span><span><i style="display:inline-block;width:10px;height:10px;border:1px dashed var(--blue);border-radius:3px"></i> משוער</span></div></div>
+      <div class="card-b"><div class="chart">${days.map((d,i)=>`<div class="c"><i class="${i>=12?"est":""}" style="height:${d/max*100}%"></i><span class="num">${i+13}</span></div>`).join("")}</div></div></div>
+    <div class="card"><div class="card-h"><h2>פילוח לפי שירות<span class="h-bar"></span></h2></div>
+      <div class="tbl-wrap"><table><thead><tr><th>שירות</th><th>בפועל</th><th>תחזית חודשית</th></tr></thead><tbody>
+      ${rows.map(r=>`<tr style="cursor:default"><td>${r[0]}<div class="xs muted">${r[3]}</div></td><td class="num"><b>${r[1]}</b></td><td class="num muted">${r[2]}</td></tr>`).join("")}
+      </tbody></table></div></div>
+  </div>
+  <div class="grid g-kpi" style="margin-top:18px">
+    ${kpi("חיפושים","12","")}${kpi("חברות שנמצאו","148","")}${kpi("מיילים שנמצאו","64","")}${kpi("טלפונים שנמצאו","41","")}
+  </div>
+  <div class="card card-b" style="margin-top:18px"><div class="row"><b>הגדרת תקציב</b><span class="spacer"></span>
+    <label class="f" style="display:flex;align-items:center;gap:8px">תקציב חודשי (₪)<input class="input num" style="width:120px;margin:0" value="600"></label>
+    <label class="toggle"><input type="checkbox" checked><span class="switch"></span>עצור שירותים בתשלום בהגעה לתקציב</label>
+    <button class="btn btn-navy btn-sm" data-act="saveBudget">שמור</button></div></div>`;
+};
+V.workspace=()=>`<div class="card card-b"><b>סביבת עבודה</b><p class="sm muted">כל חברה רואה רק את החיפושים, החברות, אנשי הקשר, העלויות וחיבורי ה-AI שלה. סביבת העבודה מסונכרנת מול מעטפת ניהול שיווק 2.</p>
+  <div class="row"><span class="chip">🏢 ${esc(S.activeCompany)} (פעילה)</span></div></div>`;
+
+/* ===== ייצוא CSV ===== */
+function exportCsv(){
+  const head=["שם החברה","מספר חברה","ענף","עיר","אתר","טלפון","מייל","מספר רכבים","ודאות צי","סטטוס"];
+  const rows=C.map(c=>[c.name,c.no,c.ind,c.city,c.web,c.phone,c.mail,c.fleet.val,{v:"מאומת",e:"הערכה",n:"לא אומת"}[c.fleet.s],ST[c.status]]);
+  const csv="\ufeff"+[head,...rows].map(r=>r.map(x=>/[",\n]/.test(x)?`"${String(x).replace(/"/g,'""')}"`:x).join(",")).join("\r\n");
+  try{
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+    a.download=`leads-export-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast("קובץ CSV הורד בהצלחה");
+  } catch(e){
+    toast("שגיאה בהורדת הקובץ");
+  }
+}
+
+/* ===== תקשורת עם מעטפת ניהול שיווק 2 (ShellBridge Listener) ===== */
+window.addEventListener("message", e => {
+  if (!e.data) return;
+  if (e.data.type === "dalia-context") {
+    if (e.data.customerName) {
+      S.activeCompany = e.data.customerName;
+      const b = $("#currentCompanyBtn");
+      if (b) b.textContent = `🏢 חברה: ${e.data.customerName}`;
+    }
+  }
+  if (e.data.type === "dalia-coco-scope") {
+    if (e.data.selectedCompany && e.data.selectedCompany.name) {
+      S.activeCompany = e.data.selectedCompany.name;
+      const b = $("#currentCompanyBtn");
+      if (b) b.textContent = `🏢 חברה: ${e.data.selectedCompany.name}`;
+    }
+  }
+});
+
+/* ===== אירועים ===== */
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-go],[data-tab],[data-act],[data-co],[data-person],[data-ex],[data-test],[data-def],[data-ai-mode]");
+  if(e.target.closest("[data-stop]")&&!t)return;
+  if(!t)return;
+  const d=t.dataset;
+  if(d.act==="closePanel"&&t.classList.contains("overlay")&&e.target!==t)return;
+  if(d.go){
+    if(d.go==="dash" && isEmbedded){
+      window.parent.postMessage({ type: "dalia-nav", go: "dashboard" }, "*");
+      return;
+    }
+    go(d.go);
+    return;
+  }
+  if(d.tab){S.view="prospector";S.tab=d.tab;S.panel=null;render();window.scrollTo(0,0);return}
+  if(d.co&&!e.target.closest("select")){S.panel={co:+d.co};renderPanel();return}
+  if(d.person!=null){S.panel.person=+d.person;renderPanel();return}
+  if(d.ex){$("#q").value=d.ex;interpret();return}
+  if(d.test){t.disabled=true;t.textContent="בודק…";setTimeout(()=>{t.disabled=false;t.textContent="בדיקת חיבור";toast("החיבור למנוע תקין")},900);return}
+  if(d.def){AI.forEach(a=>a.def=a.id===d.def);render();toast("מנוע ברירת המחדל עודכן בהצלחה");return}
+  if(d.aiMode){const [id,m]=d.aiMode.split(":");AI.find(a=>a.id===id).mode=m;render();return}
+  switch(d.act){
+    case "theme":{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;r.dataset.theme=dark?"light":"dark";return}
+    case "openMenu":$("#side").classList.add("open");$("#scrim").classList.add("open");return;
+    case "closeMenu":$("#side").classList.remove("open");$("#scrim").classList.remove("open");return;
+    case "interpret":interpret();return;
+    case "applyInterp":applyInterp();return;
+    case "run":runSearch();return;
+    case "closePanel":S.panel=null;renderPanel();return;
+    case "backCo":delete S.panel.person;renderPanel();return;
+    case "toCrm":{
+      const coId = d.coId || (S.panel ? S.panel.co : null);
+      const co = C.find(x => x.id === +coId);
+      toast(`הליד "${co ? co.name : ''}" הועבר בהצלחה ל-CRM של דליה`);
+      return;
+    }
+    case "toTele":{
+      const coId = d.coId || (S.panel ? S.panel.co : null);
+      const co = C.find(x => x.id === +coId);
+      toast(`הליד "${co ? co.name : ''}" הועבר בהצלחה לרשימת הטלמרקטינג של דליה`);
+      return;
+    }
+    case "enrich":toast("איתור פרטי קשר מתקדמים מופעל באישור מנהל");return;
+    case "approve":toast("נשלחה בקשת אישור למנהל");return;
+    case "saveNote":toast("ההערה נשמרה בהצלחה");return;
+    case "saveBudget":toast("התקציב עודכן בהצלחה");return;
+    case "rotate":toast("מפתח ה-API עודכן");return;
+    case "export":exportCsv();return;
+  }
+});
+
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset.status){const c=C.find(x=>x.id===+t.dataset.status);c.status=t.value;toast(`הסטטוס עודכן: ${ST[t.value]}`);if(S.view==="prospector"&&S.tab==="leads")$("#view").innerHTML=V.leads();else if(S.tab==="companies")$("#view").innerHTML=V.companies();return}
+  if(t.dataset.aiOn){const a=AI.find(x=>x.id===t.dataset.aiOn);a.on=t.checked;a.status=t.checked?"ok":"off";if(!t.checked&&a.def){a.def=false;AI.find(x=>x.on).def=true}render();return}
+  if(t.dataset.aiModel){AI.find(x=>x.id===t.dataset.aiModel).model=t.value;renderNav();return}
+  if(t.id==="f-st"||t.id==="f-fleet"){S.coFilter[t.id==="f-st"?"st":"fleet"]=t.value;$("#view").innerHTML=V.companies();}
+});
+
+document.addEventListener("input",e=>{
+  if(e.target.id==="f-q"){S.coFilter.q=e.target.value;clearTimeout(S._t);S._t=setTimeout(()=>{$("#view").innerHTML=V.companies();const i=$("#f-q");if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)}
+});
+
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.panel){S.panel=null;renderPanel()}});
+render();
+</script>
+</body>
+</html>

@@ -472,7 +472,7 @@ const icon = (k, cls='i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidde
 /* connection.status: 'not_connected' | 'demo' | 'connected'
    connection.entry:  where the REAL module interface will be mounted later (null = not yet) */
 const MODULES = [
-  {id:'leads',  he:'איתור לקוחות ולידים',   en:'OpenProspector', siteScoped:false, connection:{status:'demo',          entry:null}, works:['crm']},
+  {id:'leads',  he:'איתור לקוחות ולידים',   en:'OpenProspector', siteScoped:false, connection:{status:'connected',     entry:'./openprospector.html'}, works:['crm']},
   {id:'seo',    he:'דליה SEO',             en:'Dalia SEO',      siteScoped:true,  connection:{status:'connected',     entry:'./openseo.html'}, works:['page','studio']},
   {id:'page',   he:'בניית אתרים',           en:'OpenPage',       siteScoped:true,  connection:{status:'demo',          entry:null}, works:['seo','design']},
   {id:'crm',    he:'ניהול לקוחות CRM',      en:'OpenCRM',        siteScoped:false, connection:{status:'not_connected', entry:null}, works:['leads']},
@@ -617,6 +617,18 @@ const ShellBridge = {
     if (seoFrame && seoFrame.contentWindow) {
       try {
         seoFrame.contentWindow.postMessage({ type: 'dalia-context', siteId: state.siteId, customerId: state.customerId }, '*');
+      } catch(e) {}
+    }
+    const leadsFrame = document.querySelector('#module-frame-leads');
+    if (leadsFrame && leadsFrame.contentWindow) {
+      try {
+        leadsFrame.contentWindow.postMessage({
+          type: 'dalia-context',
+          siteId: state.siteId,
+          customerId: state.customerId,
+          customerName: customer() ? customer().name : 'דליה פתרונות',
+          user: state.role
+        }, '*');
       } catch(e) {}
     }
   },

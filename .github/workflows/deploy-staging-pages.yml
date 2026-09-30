@@ -80,6 +80,7 @@ jobs:
           cp public/dalia-crm.html dist/
           cp public/dalia-marketing-center-v2.html dist/ 2>/dev/null || true
           cp public/openseo.html dist/ 2>/dev/null || true
+          cp public/openprospector.html dist/ 2>/dev/null || true
           cp -r public/ai-marketing dist/
           cp -r public/coco-dalia dist/
           cp -r public/crm dist/
