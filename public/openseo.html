@@ -991,7 +991,11 @@ const POSTS = [
     "created_at": "2026-09-30T04:23:52.111Z",
     "updated_at": "2026-09-30T04:23:52.112Z",
     "aiDraft": true,
-    "aiModel": "gemini-3.5-flash"
+    "aiModel": "gemini-3.5-flash",
+    "wp_draft_id": 6255,
+    "wp_status": "draft",
+    "wp_preview_url": "https://dalia-c.com/?p=6255&preview=true",
+    "wp_edit_url": "https://dalia-c.com/wp-admin/post.php?post=6255&action=edit"
   },
   {
     id: 999,
@@ -1670,7 +1674,7 @@ function vProduce(){
     <div class="card"><div class="zone"><h3 class="t">טיוטות · ${drafts.length} ${ORIG()}</h3></div>
       ${drafts.length?`<div class="tbl-wrap"><table><thead><tr><th>כותרת</th><th>מילת מפתח</th><th>תוכנית</th><th>מילים</th><th>עודכן</th><th></th></tr></thead><tbody>
         ${drafts.map(p=>`<tr><td><button class="linkish" data-edit="${p.id}">${esc(p.title||"ללא כותרת")}</button>${p.aiDraft?` <span class="badge ${p.aiModel?'ai':''}" title="${p.aiModel||'AI'}">${p.aiModel ? esc(p.aiModel.replace('models/','')) : 'AI'}</span>`:""}</td><td><span class="chip">${esc(p.keyword)}</span></td><td class="sm muted">${esc(planName(p.plan_id))}</td><td class="sm num muted">${p.word_count ? fmt(p.word_count) : (p.content_html ? p.content_html.replace(/<[^>]+>/g,' ').trim().split(/\s+/).length : '—')}</td><td class="sm num muted">${fdt(Date.parse(p.updated_at))}</td>
-          <td style="white-space:nowrap"><button class="btn ghost sm" data-edit="${p.id}">ערוך</button><button class="btn ghost sm danger" data-rmpost="${p.id}">מחק</button></td></tr>`).join("")}
+          <td style="white-space:nowrap">${p.wp_draft_id ? `<button class="btn ghost sm" data-openwp="${p.id}" style="color:var(--blue);border-color:var(--blue);margin-left:4px" title="תצוגה באתר dalia-c.com">🔗 תצוגה באתר</button>` : ""}<button class="btn ghost sm" data-edit="${p.id}">ערוך</button><button class="btn ghost sm danger" data-rmpost="${p.id}">מחק</button></td></tr>`).join("")}
       </tbody></table></div><div class="zone soft" style="text-align:left"><button class="btn ghost sm" data-tab="publish">תזמון הטיוטות בלשונית פרסום ←</button></div>`
       :`<div class="empty"><div class="t">אין עדיין טיוטות</div>צור מאמר למעלה — הוא יופיע כאן כטיוטה לעריכה ולתזמון.</div>`}</div>
   </div>`;
@@ -1680,7 +1684,7 @@ function vComposer(){
   const wp = S.live.wp && site().conn.wp;
   const wordCount = c.word_count || (c.content_html ? c.content_html.replace(/<[^>]+>/g,' ').trim().split(/\s+/).length : 0);
   return `<div class="stack" style="max-width:900px">
-    <div class="row"><button class="btn ghost sm" data-act="closeCompose">→ חזרה</button><h2 class="t">${existing?"עריכת מאמר":"מאמר חדש"}</h2>${existing?stBadge(existing.status):""} ${c.aiModel?`<span class="badge ai">Gemini (${esc(c.aiModel.replace('models/',''))})</span>`:""}<span class="grow"></span><button class="btn sm" data-act="sitePreview" style="display:inline-flex;align-items:center;gap:6px;background:var(--blue-t);color:var(--blue);border:1px solid var(--blue);font-weight:600">🌐 תצוגה מקדימה באתר</button></div>
+    <div class="row"><button class="btn ghost sm" data-act="closeCompose">→ חזרה</button><h2 class="t">${existing?"עריכת מאמר":"מאמר חדש"}</h2>${existing?stBadge(existing.status):""} ${c.aiModel?`<span class="badge ai">Gemini (${esc(c.aiModel.replace('models/',''))})</span>`:""}<span class="grow"></span>${(c.wp_draft_id || (existing && existing.wp_draft_id)) ? `<span class="badge" style="background:#e8f0fe;color:#1a73e8;font-weight:600">WP טיוטה #${c.wp_draft_id || existing.wp_draft_id}</span>` : ""}<span class="grow"></span><button class="btn sm" data-act="openWpPreview" style="display:inline-flex;align-items:center;gap:6px;background:var(--blue-t);color:var(--blue);border:1px solid var(--blue);font-weight:700">🔗 תצוגה באתר</button><button class="btn sm ghost" data-act="sitePreview" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border)">👁️ הדמיה מקומית</button></div>
     ${!existing?`<div class="card"><div class="zone"><h3 class="t">יצירה עם Gemini AI</h3><div class="grid g2 mt">
       <label class="f">מילת מפתח יעד<input class="input" data-cf="keyword" value="${esc(c.keyword)}"></label>
       <label class="f">אורך מאמר<select class="input" data-cf="length"><option value="long" ${c.length==="long"||!c.length?"selected":""}>ארוך ומעמיק (1,500–2,500 מילים)</option><option value="medium" ${c.length==="medium"?"selected":""}>בינוני (800–1,200 מילים)</option><option value="short" ${c.length==="short"?"selected":""}>קצר (350–500 מילים)</option></select></label>
@@ -1696,7 +1700,7 @@ function vComposer(){
       ${c.content_html.trim()?`<div class="zone"><span class="b sm">תצוגה מקדימה</span><div class="prose mt-s">${c.content_html}</div></div>`:""}
       <div class="zone"><span class="b sm">פרסום</span><div class="fields mt" style="justify-content:space-between">
         <label class="f">תזמון (לא חובה — מתפרסם אוטומטית ל-WordPress)<input type="datetime-local" class="input" data-cf="scheduled_at" value="${esc(c.scheduled_at)}"></label>
-        <div class="row"><button class="btn ghost sm" data-act="sitePreview" style="display:inline-flex;align-items:center;gap:6px">🌐 תצוגה מקדימה באתר</button>
+        <div class="row"><button class="btn sm" data-act="openWpPreview" style="display:inline-flex;align-items:center;gap:6px;background:var(--blue-t);color:var(--blue);border:1px solid var(--blue);font-weight:700">🔗 תצוגה באתר</button><button class="btn ghost sm" data-act="sitePreview" style="display:inline-flex;align-items:center;gap:6px">👁️ הדמיה מקומית</button>
           <button class="btn" data-act="composePublish" ${!c.content_html.trim()||!wp?"disabled":""} title="${wp?"":"חבר WordPress כדי לפרסם"}">פרסם עכשיו</button>
           <button class="btn pri" data-act="composeSave">${c.scheduled_at?"תזמן":"שמור טיוטה"}</button></div></div>
         ${!wp?`<p class="xs m0 mt-s" style="color:var(--warn)">${site().conn.wp?"WordPress לא מחובר.":"לאתר הזה אין WordPress — אפשר לשמור ולהעתיק, בלי פרסום אוטומטי."}</p>`:""}</div></div>
@@ -1922,6 +1926,48 @@ function renderOverlay(){
     </div>`;
     return;
   }
+
+  if (S.modal?.type === "wpPreview") {
+    const post = S.modal.post || S.compose || POSTS.find(p=>p.id===1001) || {};
+    const wpDraftId = post.wp_draft_id || 6255;
+    const previewUrl = post.wp_preview_url || ("https://dalia-c.com/?p=" + wpDraftId + "&preview=true");
+    const editUrl = post.wp_edit_url || ("https://dalia-c.com/wp-admin/post.php?post=" + wpDraftId + "&action=edit");
+
+    el.innerHTML = `
+    <div class="scrim" data-act="close"></div>
+    <div class="site-preview-modal" role="dialog" aria-label="תצוגה מקדימה באתר dalia-c.com" style="display:flex;flex-direction:column;max-width:1200px;width:95vw;height:90vh;margin:auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.3)">
+      <div class="site-preview-bar" style="background:#0f172a;color:#fff;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1e293b;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="background:#2563eb;color:#fff;font-weight:700;font-size:12px;padding:3px 8px;border-radius:4px">WORDPRESS DRAFT</span>
+          <span style="font-weight:700;font-size:15px;color:#f8fafc">תצוגה מקדימה באתר dalia-c.com</span>
+          <span style="background:rgba(255,255,255,0.12);color:#94a3b8;font-size:12px;padding:2px 8px;border-radius:12px">טיוטה #${wpDraftId}</span>
+          <span style="background:rgba(245,158,11,0.18);color:#fbbf24;font-size:12px;padding:2px 8px;border-radius:12px;font-weight:600">🔒 טיוטה פרטית — לא פורסם לציבור</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <a href="${previewUrl}" target="_blank" rel="noopener noreferrer" class="btn sm pri" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-weight:600;background:#2563eb;color:#fff;padding:6px 14px;border-radius:6px">פתח בלשונית חדשה באתר dalia-c.com ↗</a>
+          <a href="${editUrl}" target="_blank" rel="noopener noreferrer" class="btn sm ghost" style="text-decoration:none;color:#cbd5e1;border:1px solid #475569;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px">עריכה ב-WP Admin ↗</a>
+          <button class="btn ghost ic" data-act="close" aria-label="סגור תצוגה מקדימה" style="color:#94a3b8;font-size:18px;line-height:1;padding:4px 8px">✕</button>
+        </div>
+      </div>
+
+      <div style="background:#fef3c7;border-bottom:1px solid #fde68a;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;font-size:13px;color:#92400e;gap:12px;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:8px;line-height:1.4">
+          <span style="font-size:18px">🛡️</span>
+          <div>
+            <strong>אבטחת WordPress ותצוגת טיוטות:</strong> 
+            הטיוטה נוצרה בהצלחה במצב <code>draft</code> סגור. טיוטות ב-WordPress אינן פתוחות לציבור ומחייבות אימות דפדפן (Cookies). 
+            מדיניות אבטחת דפדפנים מודרנית (SameSite Cookies) אינה מעבירה עוגיות כניסה בתוך מסגרות צד-שלישי (iFrame). לכן, לצפייה מלאה בתבנית האמיתית של האתר (Elementor, Header, Footer ופונטים) — פתח ישירות בלשונית נפרדת.
+          </div>
+        </div>
+        <a href="${previewUrl}" target="_blank" rel="noopener noreferrer" class="btn sm" style="white-space:nowrap;background:#d97706;color:#fff;font-weight:700;border:none;padding:6px 14px;border-radius:6px;text-decoration:none">פתח ישירות באתר ↗</a>
+      </div>
+
+      <div style="flex:1;position:relative;background:#f1f5f9;overflow:hidden">
+        <iframe src="${previewUrl}" style="width:100%;height:100%;border:none;background:#fff" title="תצוגת WordPress באתר dalia-c.com" sandbox="allow-same-origin allow-scripts allow-forms allow-popups"></iframe>
+      </div>
+    </div>`;
+    return;
+  }
   if (S.drawer?.type === "kw"){ const k = KEYWORDS.find(x => x.id === S.drawer.id); el.innerHTML = k ? kwDrawer(k) : ""; return; }
   if (S.drawer?.type === "page"){ el.innerHTML = pageDrawer(S.drawer.url); return; }
   if (S.modal === "points") el.innerHTML = `<div class="scrim" data-act="close"></div><div class="card modal" role="dialog" aria-label="נקודות חיבור">
@@ -2017,6 +2063,8 @@ document.addEventListener("click", e => {
   if (d.rmplan){ const i = PLANS.findIndex(x=>x.id===+d.rmplan); PLANS.splice(i,1); POSTS.forEach(p => { if (p.plan_id===+d.rmplan) p.plan_id = null; }); return render(); }
   if (d.idea !== undefined){ const title = S.produce.ideas[+d.idea]; const p = generate(S.produce.topic || title, title, S.produce.plan); if (p){ S.compose = {...p}; render(); } return; }
   if (d.prevdevice){ if (S.modal?.type === "sitePreview"){ S.modal.device = d.prevdevice; return renderOverlay(); } }
+  if (d.openwp){ const p = POSTS.find(x=>x.id===+d.openwp); if (p){ S.modal = { type: "wpPreview", post: { ...p } }; return renderOverlay(); } }
+  if (d.act === "openWpPreview"){ const existing = POSTS.find(p=>p.id===S.compose?.id); const post = S.compose ? { ...existing, ...S.compose } : (POSTS.find(p=>p.id===1001) || {}); S.modal = { type: "wpPreview", post }; return renderOverlay(); }
   if (d.act === "sitePreview"){ S.modal = { type: "sitePreview", device: S.modal?.device || "desktop", post: { ...S.compose } }; return renderOverlay(); }
   if (d.edit){ const p = POSTS.find(x=>x.id===+d.edit); S.compose = {...p, scheduled_at: p.scheduled_at && p.status==="scheduled" ? p.scheduled_at.slice(0,16) : ""}; S.drawer = null; return go("produce"); }
   if (d.rmpost){ POSTS.splice(POSTS.findIndex(x=>x.id===+d.rmpost),1); return render(); }
