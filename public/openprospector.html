@@ -1905,6 +1905,14 @@ async function startBulkImport(targetCountArg, sourceArg, batchSizeArg) {
       const houseNo = String(isContractors ? (rec.MISPAR_BAIT || '') : (rec['מספר בית'] || '')).trim();
       const fullAddr = street ? `${street} ${houseNo}, ${city}` : city;
 
+      // חילוץ איש מקצוע / קצין בטיחות רשום מהרישיון הממשלתי (OVDIM)
+      const rawOvdim = isContractors && rec.OVDIM ? String(rec.OVDIM).trim() : '';
+      let namedOfficer = '';
+      if (rawOvdim && rawOvdim !== 'לא צוין' && rawOvdim !== '-') {
+        const parts = rawOvdim.split(/[-–;,]/).map(s => s.trim()).filter(Boolean);
+        if (parts.length > 0) namedOfficer = parts[0];
+      }
+
       // קביעת מעמד צי וקצין בטיחות (תקנה 579)
       const isHeavyOrInfra = isContractors || /כביש|תשתית|עפר|צמ"ה|הובל|שינוע|היסע|אוטובוס/.test(branch + compName);
       const fleetType = isContractors
@@ -1935,10 +1943,11 @@ async function startBulkImport(targetCountArg, sourceArg, batchSizeArg) {
         upd: new Date().toLocaleDateString("he-IL"),
         isSafetyOfficerLead: isHeavyOrInfra,
         safetyOfficer: isHeavyOrInfra ? {
-          name: "קצב\"ת ממונה / הנהלת צי",
-          role: `קצין בטיחות בתעבורה (תקנה 579) / ענף ${branch}`,
+          name: namedOfficer || "קצב\"ת ממונה / הנהלת צי",
+          role: namedOfficer ? `קצין בטיחות / מנהל מקצועי מוסמך (פנקס הקבלנים ענף ${branch})` : `קצין בטיחות בתעבורה (תקנה 579) / ענף ${branch}`,
+          status: namedOfficer ? "v" : "e",
           mandate579: true,
-          note: `חובת פיקוח קצב\"ת על פי דין לפי תקנה 579 לצי בענף ${branch}`,
+          note: namedOfficer ? `איש מקצוע מוסמך הרשום ברישיון הקבלן הממשלתי: ${namedOfficer}. חובת פיקוח קצב\"ת לפי תקנה 579.` : `חובת פיקוח קצב\"ת על פי דין לפי תקנה 579 לצי בענף ${branch}`,
           source: isContractors ? "פנקס הקבלנים הרשומים (משאב 4eb61bd6)" : "רשם החברות הממשלתי",
           tier: "A",
           tierLabel: "Tier A | ממשלתי רשמי"
@@ -1951,7 +1960,11 @@ async function startBulkImport(targetCountArg, sourceArg, batchSizeArg) {
           ["🏛️", isContractors ? "פנקס הקבלנים (data.gov.il)" : "רשם החברות (data.gov.il)", `חברה מאומתת מס' ${compId}, ענף ${branch}`, "data.gov.il", "v", new Date().toLocaleDateString("he-IL"), "A", "Tier A ממשלתי"],
           ["⚖️", "תקנה 579 לתקנות התעבורה", "חובת מינוי קצין בטיחות בתעבורה לצי מעל 20 כלי רכב כבדים", "תקנות התעבורה", "v", new Date().toLocaleDateString("he-IL"), "A", "Tier A חוקי"]
         ],
-        people: [["מנהל צי ותפעול", "מנהל צי רכב", "e", email, phone, "v"]],
+        people: namedOfficer ? [
+          [namedOfficer, `קצין בטיחות / מנהל מקצועי מוסמך`, "v", email, phone, "v"]
+        ] : [
+          ["מנהל צי ותפעול", "מנהל צי רכב", "e", email, phone, "v"]
+        ],
         notes: `נוסף בייבוא המוני ממקור ${isContractors ? 'פנקס הקבלנים הרשומים' : 'רשם החברות'}.`
       };
 
