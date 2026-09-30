@@ -58,7 +58,7 @@ async function runLiveQA() {
     await connTab.click();
     await page.waitForTimeout(500);
     const connCardsCount = await iframeLocator.locator('.conn-card').count();
-    logStep('Live Staging: Connections tab renders 6 provider cards', connCardsCount === 6, `Cards: ${connCardsCount}`);
+    logStep('Live Staging: Connections tab renders 10 provider cards', connCardsCount === 10, `Cards: ${connCardsCount}`);
 
     // Test live data.gov.il connection
     const govTestBtn = iframeLocator.locator('#conn-gov button[data-test-conn="gov"]');

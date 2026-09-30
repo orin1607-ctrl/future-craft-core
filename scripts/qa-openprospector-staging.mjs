@@ -128,7 +128,7 @@ async function runQA() {
     await connTab.click();
     await page.waitForTimeout(400);
     const connCardsCount = await iframeLocator.locator('.conn-card').count();
-    logStep('Tab: "חיבורים ו-APIs" renders all 6 provider cards', connCardsCount === 6, `Cards: ${connCardsCount}`);
+    logStep('Tab: "חיבורים ו-APIs" renders all 10 provider cards', connCardsCount === 10, `Cards: ${connCardsCount}`);
 
     // Test data.gov.il connection test button
     const govTestBtn = iframeLocator.locator('#conn-gov button[data-test-conn="gov"]');

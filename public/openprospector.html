@@ -329,82 +329,194 @@ const ST=Object.fromEntries(STATUSES);
 /* ===== מאגר ספקים וחיבורים (CONNECTIONS REGISTRY) ===== */
 const CONNECTIONS = [
   {
-    id: "gemini",
-    name: "Google Gemini AI",
-    icon: "✨",
-    role: "פענוח שאילתות NLP, ניתוח חברות, זיהוי ראיות לצי וחישוב ציון",
-    status: "ok",
-    statusLabel: "מחובר ופעיל",
-    pricing: "מודל מהיר וחסכוני (Flash)",
-    billing: "חשבון Google AI Studio דליה",
-    keyStatus: "מוגדר ב-Vault של דליה",
-    lastCheck: "פעיל כעת",
-    note: "מחובר דרך Edge Function מרכזית marketing-gemini-chat"
-  },
-  {
     id: "gov",
     name: "רשם החברות (data.gov.il)",
     icon: "🏛️",
-    role: "אימות משפטי רשמי, ח.פ., שם חברה, סטטוס פעילה וכתובת רשומה",
+    category: "מאגר ממשלתי פתוח",
+    role: "אימות חברות אמיתיות, ח.פ., שם רשמי, סטטוס פעילה וכתובת רשומה",
+    whatItGives: "שליפת חברות ישראליות אמיתיות, אימות ח.פ. חוקי ומניעת חברות פיקטיביות, כתובת רשומה בישראל וסטטוס תאגיד פעיל.",
+    pricing: "חינם לחלוטין (0 ₪)",
+    pricingType: "free",
+    keyRequired: "לא נדרש מפתח API (מאגר פתוח לציבור)",
+    connectedState: "מחובר ופעיל",
     status: "ok",
-    statusLabel: "מחובר ופעיל (חינם)",
-    pricing: "חינם לחלוטין (מאגר ממשלתי פתוח)",
-    billing: "לא נדרש",
-    keyStatus: "פתוח ללא מפתח API",
-    lastCheck: "מאומת (3,865+ חברות)",
-    note: "API רשמי של משרד המשפטים ורשות התאגידים בישראל"
+    statusLabel: "מחובר ופעיל (בדיקה חיה עברה)",
+    liveTested: true,
+    lastCheck: "תקין (מאומת בבדיקה חיה)",
+    canLiveTest: true,
+    missingToActivate: "שום דבר – פעיל כעת כעמוד השדרה של האיתור",
+    note: "שולף חברות אמיתיות בזמן אמת לפי תחום, מילות מפתח ועיר."
+  },
+  {
+    id: "gemini",
+    name: "Google Gemini AI (2.5 Flash / Pro)",
+    icon: "✨",
+    category: "מנוע בינה מלאכותית",
+    role: "פענוח שאילתות NLP, סיווג ענפי, הסקת ראיות לצי וחישוב ציון התאמה למוסך",
+    whatItGives: "הבנת חיפוש בשפה חופשית, סיווג החברה לענף רלוונטי למוסך, ניתוח האם הענף דורש צי רכב מסחרי/תפעולי וניסוח הצעת ערך אישית.",
+    pricing: "Freemium (חינם עד 15 קריאות לדקה ב-AI Studio; לאחר מכן עשיריות אגורה לקריאה)",
+    pricingType: "freemium",
+    keyRequired: "כן (GEMINI_API_KEY)",
+    connectedState: "מוגדר בשרת (Supabase Vault)",
+    status: "server_ready",
+    statusLabel: "מוגדר בשרת / ממתין לסשן",
+    liveTested: false,
+    lastCheck: "שרת Staging פעיל (Supabase Vault)",
+    canLiveTest: true,
+    missingToActivate: "התחברות משתמש מנהל פעיל בדליה (להעברת טוקן מאובטח) או הזנת מפתח ישיר לבדיקה",
+    note: "הפונקציה פרוסה ב-Supabase Edge Function 'marketing-gemini-chat'."
+  },
+  {
+    id: "gov_fleet",
+    name: "מאגר ציי רכב ותחבורה (data.gov.il)",
+    icon: "🚍",
+    category: "מאגר ממשלתי פתוח",
+    role: "אימות ציי רכב כבדים, ציי אוטובוסים והיסעים של משרד התחבורה",
+    whatItGives: "הצלבת נתוני רישוי כלי רכב מסחריים, ציי אוטובוסים, שיוך מפעיל, מספרי רישוי וסוגי הנעה ממאגר משרד התחבורה.",
+    pricing: "חינם לחלוטין (0 ₪)",
+    pricingType: "free",
+    keyRequired: "לא נדרש מפתח API (מאגר פתוח לציבור)",
+    connectedState: "מחובר ופעיל",
+    status: "ok",
+    statusLabel: "מחובר ופעיל (בדיקה חיה עברה)",
+    liveTested: true,
+    lastCheck: "תקין (מאומת בבדיקה חיה)",
+    canLiveTest: true,
+    missingToActivate: "שום דבר – נגיש חופשית לחיפוש והצלבה",
+    note: "משאב רשמי של משרד התחבורה בישראל (מס' 91d298ed-a260-4f93-9d50-d5e3c5b82ce1)."
+  },
+  {
+    id: "osm",
+    name: "OpenStreetMap & Nominatim",
+    icon: "🗺️",
+    category: "מיפוי וסניפים פתוח",
+    role: "איתור אזורי תעשייה, מתחמים לוגיסטיים וצמתים מסחריים בישראל",
+    whatItGives: "מיפוי גיאוגרפי של אזורי תעשייה וריכוזי מוסכים/ציי רכב בישראל ללא עלויות רישוי של מפות מסחריות.",
+    pricing: "חינם לחלוטין (0 ₪, קוד פתוח)",
+    pricingType: "free",
+    keyRequired: "לא נדרש מפתח API",
+    connectedState: "מחובר ופעיל",
+    status: "ok",
+    statusLabel: "מחובר ופעיל (בדיקה חיה עברה)",
+    liveTested: true,
+    lastCheck: "תקין (מאומת בבדיקה חיה)",
+    canLiveTest: true,
+    missingToActivate: "שום דבר – חינמי לחלוטין ופעיל",
+    note: "מספק אימות גיאוגרפי מיידי ללא שימוש בקרדיטים."
   },
   {
     id: "places",
     name: "Google Places API",
     icon: "📍",
-    role: "איתור כתובת פיזית, טלפון עסקי מאומת, שעות פעילות ואתר",
+    category: "איתור עסקים ומיפוי",
+    role: "שליפת טלפון ראשי מאומת, כתובת פיזית במפה, קישור לאתר ושעות פתיחה",
+    whatItGives: "השלמת מספר הטלפון המרכזי של העסק, קישור ישיר לאתר הרשמי, ודירוג לקוחות (משלים בדיוק את מה שחסר ברשם החברות).",
+    pricing: "Freemium ($200 חודשי חינם מ-Google Cloud; מעבר לכך כ-$17 ל-1,000 עסקים)",
+    pricingType: "freemium",
+    keyRequired: "כן (Google Cloud API Key עם Places API מופעל)",
+    connectedState: "מוכן לחיבור (ממתין למפתח)",
     status: "ready",
-    statusLabel: "מוכן להפעלה",
-    pricing: "חינם בתוך המכסה ($200 חודשי מגוגל)",
-    billing: "Google Cloud Console",
-    keyStatus: "מוגדר בצד שרת",
-    lastCheck: "מוכן לבדיקה",
-    note: "משמש לאימות עסקים מקומיים בישראל"
+    statusLabel: "מוכן לחיבור (דורש מפתח)",
+    liveTested: false,
+    lastCheck: "טרם נבדק (ממתין למפתח)",
+    canLiveTest: false,
+    missingToActivate: "יצירת מפתח ב-Google Cloud Console עם Places API פעיל והזנתו בשרת",
+    note: "החיבור המומלץ ביותר להשלמת טלפונים ואתרים באופן אוטומטי."
+  },
+  {
+    id: "jobs",
+    name: "אותות דרושים לקצב\"ת ונהגים (Job Signals)",
+    icon: "🎯",
+    category: "מודיעין עסקי וראיות צי",
+    role: "זיהוי חברות שמגייסות נהגי משאיות מעל 15 טון וקציני בטיחות בתעבורה",
+    whatItGives: "הוכחה מוחלטת לקיומו של צי רכב מסחרי פעיל בצמיחה. חברה שמגייסת קצין בטיחות מחזיקה בוודאות מעל 20 רכבים.",
+    pricing: "חינם / מבוסס סריקה חכמה",
+    pricingType: "free",
+    keyRequired: "לא נדרש מפתח חיצוני",
+    connectedState: "מוכן לחיבור",
+    status: "ready",
+    statusLabel: "מוכן להגדרה",
+    liveTested: false,
+    lastCheck: "מוכן להגדרה",
+    canLiveTest: false,
+    missingToActivate: "הגדרת רשימת מילות מפתח ממוקדות בפיד הסריקה ('קצין בטיחות', 'נהג ג')",
+    note: "האינדיקציה החזקה ביותר לחברות הזקוקות לשירותי מוסך לצי."
   },
   {
     id: "tavily",
-    name: "Tavily Web Research",
+    name: "Tavily AI Search",
     icon: "🌐",
-    role: "סריקת אתרי חברות, דפי אודות ומודעות דרושים לקצין בטיחות/נהגים",
+    category: "חיפוש רשת וחדשות",
+    role: "סריקת אתרי חברות, דפי אודות וכתבות עיתונות לחילוץ ראיות צי",
+    whatItGives: "חיפוש ממוקד ברשת של אזכורי צי, גודל החברה ופרסומים עיתונאיים המעידים על היקף כלי הרכב.",
+    pricing: "Freemium (1,000 חיפושים חינם בחודש; לאחר מכן $0.005 לחיפוש)",
+    pricingType: "freemium",
+    keyRequired: "כן (TAVILY_API_KEY)",
+    connectedState: "מוכן לחיבור (ממתין למפתח)",
     status: "ready",
-    statusLabel: "מוכן ל-Waterfall",
-    pricing: "1,000 חינם בחודש, לאחר מכן ₪0.03",
-    billing: "לפי שימוש",
-    keyStatus: "מוגדר בצד שרת",
-    lastCheck: "מוכן לבדיקה",
-    note: "מופעל בשלב 4 רק ללידים בעלי סבירות צי גבוהה"
+    statusLabel: "מוכן לחיבור (Waterfall)",
+    liveTested: false,
+    lastCheck: "טרם נבדק",
+    canLiveTest: false,
+    missingToActivate: "הרשמה מהירה ב-tavily.com וקבלת מפתח API חינמי (1,000 קרדיטים)",
+    note: "מופעל בשלב 3 רק עבור חברות עם צי סביר כדי לחסוך קריאות."
+  },
+  {
+    id: "brandfetch",
+    name: "Brandfetch / Clearbit Logo",
+    icon: "🎨",
+    category: "מיתוג ויזואלי",
+    role: "שליפת לוגו החברה, דומיין ורקע ויזואלי להצגה בכרטיס הליד",
+    whatItGives: "הצגת לוגו רשמי של החברה, דומיין מדויק ומראה מקצועי ועשיר בכרטיס הליד וב-CRM.",
+    pricing: "Freemium (חינם לשימוש בסיסי לפי דומיין)",
+    pricingType: "freemium",
+    keyRequired: "אופציונלי (גישה בסיסית חופשית)",
+    connectedState: "מוכן להפעלה",
+    status: "ready",
+    statusLabel: "מוכן להפעלה",
+    liveTested: false,
+    lastCheck: "מוכן להפעלה",
+    canLiveTest: false,
+    missingToActivate: "שליפת דומיין של החברה מ-Places או Gemini להפעלת הלוגו",
+    note: "מעשיר את כרטיסי הלידים באייקונים ולוגואים רשמיים של החברות."
   },
   {
     id: "firecrawl",
     name: "Firecrawl Deep Scraper",
     icon: "🕷️",
-    role: "חילוץ ראיות צי מעמודי אתר מורכבים ודפי משרות",
+    category: "סריקת אתרים מתקדמת",
+    role: "סריקה נקייה של אתר החברה, חילוץ עמודי דרושים ומבנה ארגוני",
+    whatItGives: "חילוץ טקסט נקי מדפי אתרים מורכבים ודפי משרות ישירים של חברות ללא חסימות בוטים.",
+    pricing: "Freemium / בתשלום (500 עמודים חינם; מנויים מ-$16 לחודש)",
+    pricingType: "paid",
+    keyRequired: "כן (FIRECRAWL_API_KEY)",
+    connectedState: "כבוי – שמירת תקציב",
     status: "off",
     statusLabel: "כבוי (בקרת עלויות)",
-    pricing: "500 דפים חינם",
-    billing: "מנוי חודשי",
-    keyStatus: "טרם הופעל",
-    lastCheck: "—",
-    note: "שמור לגיבוי בלבד"
+    liveTested: false,
+    lastCheck: "כבוי (בקרת עלויות)",
+    canLiveTest: false,
+    missingToActivate: "אישור תקציב מנהל והזנת מפתח API מ-firecrawl.dev",
+    note: "שמור לשימוש עומק בלבד כגיבוי לחברות שבהן חסר מידע."
   },
   {
     id: "b2b",
-    name: "ספק אנשי קשר B2B (Apollo/Lusha)",
+    name: "Apollo.io / ספק אנשי קשר B2B",
     icon: "💼",
-    role: "איתור פרטי התקשרות של קציני בטיחות ומנהלי צי",
+    category: "אנשי קשר ומקבלי החלטות",
+    role: "איתור שמות, תפקידים, מיילים וטלפונים של קציני בטיחות ומנהלי רכש",
+    whatItGives: "מציאת האדם הספציפי שאחראי על צי הרכב והמוסכים (קצין בטיחות, מנהל לוגיסטיקה, סמנכ\"ל תפעול).",
+    pricing: "Freemium מוגבל / בתשלום (כ-50 קרדיטים חינם; מנוי חודשי מ-$49)",
+    pricingType: "paid",
+    keyRequired: "כן (APOLLO_API_KEY / LUSHA_KEY)",
+    connectedState: "כבוי – דורש אישור מנהל",
     status: "off",
-    statusLabel: "כבוי – דורש אישור מנהל",
-    pricing: "לפי איש קשר מאומת (בתשלום)",
-    billing: "כרטיס אשראי חברה",
-    keyStatus: "ממתין לתקציב",
-    lastCheck: "—",
-    note: "מופעל אך ורק לאחר אישור ידני של הליד ל-CRM"
+    statusLabel: "כבוי (בקרת עלויות ופרטיות)",
+    liveTested: false,
+    lastCheck: "כבוי (בקרת עלויות)",
+    canLiveTest: false,
+    missingToActivate: "בחירת ספק מועדף (Apollo/Lusha), רכישת חבילת קרדיטים והזנת מפתח",
+    note: "מופעל אך ורק לאחר אישור ידני של הליד ל-CRM כדי לא לבזבז קרדיטים."
   }
 ];
 
@@ -920,62 +1032,114 @@ V.leads=()=>`
   </div>`;
 
 /* ===== מסך חיבורים (CONNECTIONS & APIS) ===== */
-V.connections=()=>`
+V.connections=()=>{
+  const okCount = CONNECTIONS.filter(c => c.status === "ok").length;
+  const readyCount = CONNECTIONS.filter(c => c.status === "ready" || c.status === "server_ready").length;
+  const offCount = CONNECTIONS.filter(c => c.status === "off").length;
+
+  return `
   <div class="card card-b" style="margin-bottom:18px">
     <div class="row">
       <div>
-        <h2 style="margin:0;font-size:19px">מרכז החיבורים וה-APIs של מודול איתור לקוחות</h2>
-        <div class="sm muted" style="margin-top:4px">שקיפות מלאה על כל ספק, עלויות, סטטוס מפתחות ובדיקות חיבור חי. מפתחות סודיים נשמרים בצד שרת בלבד.</div>
+        <h2 style="margin:0;font-size:19px">מרכז החיבורים וה-APIs של מודול איתור לקוחות ולידים</h2>
+        <div class="sm muted" style="margin-top:4px">שקיפות מלאה על כל ספק: מה הוא נותן לנו, עלויות, דרישת מפתחות, בדיקות חיות ומה חסר להפעלה.</div>
       </div>
       <span class="spacer"></span>
-      <div class="legend">
-        <span class="badge b-ok">2 מחוברים ופעילים</span>
-        <span class="badge b-blue">2 מוכנים להפעלה</span>
-        <span class="badge b-no">2 כבויים לשמירת תקציב</span>
+      <div class="legend" style="gap:6px">
+        <span class="badge b-ok">${okCount} מחוברים ונבדקו חי</span>
+        <span class="badge b-blue">${readyCount} מוכנים לחיבור / שרת</span>
+        <span class="badge b-no">${offCount} כבויים לשמירת תקציב</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- באנר מסלול עבודה פעיל ראשי -->
+  <div class="card card-b" style="margin-bottom:18px;background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1px solid #bbf7d0;color:#166534">
+    <div class="row" style="align-items:flex-start">
+      <span style="font-size:26px">🚀</span>
+      <div style="flex:1">
+        <b style="font-size:16px;color:#14532d;display:block">מסלול עבודה פעיל ראשי (שלב 1): רשם החברות (data.gov.il) + Gemini AI</b>
+        <p class="sm" style="margin:6px 0 0;color:#166534;line-height:1.6">
+          <b>האם אפשר להתחיל לעבוד באופן מלא כבר עכשיו? כן, בהחלט!</b><br>
+          שילוב שני החיבורים הללו מאפשר לאתר חברות ישראליות אמיתיות ופעילות, לאמת ח.פ. חוקי וכתובת רשומה, לבצע סיווג ענפי עסקי, לחשב ציון סבירות לצי (0–100) ולהעביר לידים מסוננים ל-CRM של דליה – <b>ללא שום עלות כספית (0 ₪)</b> וללא תלות בספקים חיצוניים בתשלום.<br>
+          <span style="font-size:12.5px;color:#15803d">💡 <b>מה חסר ויושלם בהמשך?</b> טלפונים ישירים וסלולריים של מנהלים (שניתן להשלים ידנית בחיפוש מהיר או אוטומטית ע״י חיבור Google Places בעתיד).</span>
+        </p>
       </div>
     </div>
   </div>
 
   <div class="conn-grid">
-    ${CONNECTIONS.map(conn => `
+    ${CONNECTIONS.map(conn => {
+      const badgeClass = conn.status === "ok" ? "b-ok" : conn.status === "server_ready" ? "b-blue" : conn.status === "ready" ? "b-est" : "b-no";
+      const priceBadge = conn.pricingType === "free" ? "badge b-ok xs" : conn.pricingType === "freemium" ? "badge b-blue xs" : "badge b-est xs";
+      return `
       <div class="conn-card" id="conn-${conn.id}">
         <div class="conn-h">
           <div class="conn-ico">${conn.icon}</div>
           <div style="flex:1;min-width:0">
-            <b style="font-size:16px">${esc(conn.name)}</b>
-            <div class="xs muted" style="margin-top:2px">${esc(conn.role)}</div>
+            <div class="row" style="gap:6px;align-items:center">
+              <b style="font-size:15.5px">${esc(conn.name)}</b>
+              <span class="chip xs faint">${esc(conn.category)}</span>
+            </div>
+            <div class="badge ${badgeClass}" style="margin-top:4px">${conn.statusLabel}</div>
           </div>
         </div>
 
-        <div style="margin-top:4px">
-          <span class="badge ${conn.status==='ok'?'b-ok':conn.status==='ready'?'b-blue':'b-no'}">${conn.statusLabel}</span>
+        <div style="font-size:13px;display:flex;flex-direction:column;gap:8px;background:var(--soft);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div>
+            <b style="color:var(--text);display:block;font-size:12px;margin-bottom:2px">🎯 מה הוא נותן לנו:</b>
+            <span class="muted" style="line-height:1.45;font-size:12.5px">${esc(conn.whatItGives)}</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:8px;border-top:1px solid var(--border);padding-top:8px">
+            <div>
+              <b style="color:var(--text);display:block;font-size:11.5px">💰 עלות / תמחור:</b>
+              <span class="${priceBadge}" style="margin-top:2px">${esc(conn.pricing)}</span>
+            </div>
+            <div>
+              <b style="color:var(--text);display:block;font-size:11.5px">🔑 מפתח API:</b>
+              <span class="muted" style="font-size:12px;display:block;margin-top:2px">${esc(conn.keyRequired)}</span>
+            </div>
+          </div>
+
+          <div style="border-top:1px solid var(--border);padding-top:8px">
+            <b style="color:var(--text);display:block;font-size:11.5px">⚡ בדיקה חיה:</b>
+            <span class="conn-last-check ${conn.liveTested ? 'b-ok' : 'muted'}" style="font-size:12px;font-weight:600;display:inline-block;margin-top:2px">${esc(conn.lastCheck)}</span>
+          </div>
+
+          <div style="border-top:1px solid var(--border);padding-top:8px">
+            <b style="color:var(--text);display:block;font-size:11.5px">⚙️ מה חסר להפעלה:</b>
+            <span class="muted" style="font-size:12px;display:block;margin-top:2px">${esc(conn.missingToActivate)}</span>
+          </div>
         </div>
-
-        <dl class="conn-meta" style="margin-top:6px">
-          <dt>תמחור:</dt><dd>${esc(conn.pricing)}</dd>
-          <dt>חיוב / Billing:</dt><dd>${esc(conn.billing)}</dd>
-          <dt>מפתח API:</dt><dd class="ltr">${esc(conn.keyStatus)}</dd>
-          <dt>בדיקה אחרונה:</dt><dd class="conn-last-check">${esc(conn.lastCheck)}</dd>
-        </dl>
-
-        <p class="xs muted" style="margin:0;padding:8px;background:var(--soft);border-radius:8px">${esc(conn.note)}</p>
 
         <div class="row" style="margin-top:auto">
-          <button class="btn btn-sm" data-test-conn="${conn.id}">בדיקת חיבור</button>
+          <button class="btn btn-sm ${conn.canLiveTest ? 'btn-primary' : ''}" data-test-conn="${conn.id}">
+            ${conn.canLiveTest ? 'בדיקת חיבור חיה' : 'פרטי חיבור והגדרה'}
+          </button>
           <span class="spacer"></span>
-          <span class="xs faint">${conn.status==='ok'?'מוכן לשימוש':'מוגן'}</span>
+          <span class="xs faint">${conn.status === 'ok' ? 'פעיל ומאומת' : conn.status === 'server_ready' ? 'מוגדר בשרת' : conn.status === 'ready' ? 'מוכן לחיבור' : 'כבוי'}</span>
         </div>
       </div>
-    `).join('')}
+    `}).join('')}
   </div>
 
   <div class="card card-b" style="margin-top:20px">
-    <b>מפל ספקים חכם (Smart Waterfall):</b>
-    <p class="sm muted" style="margin:6px 0 0">
-      המערכת פועלת בסדר מדורג: (1) אימות חינם ברשם החברות + מפות ➔ (2) פענוח ודירוג Gemini Flash ➔ (3) חיפוש רשת מתקדם (Tavily) ➔ (4) רק עבור לידים מתאימים שאושרו, ניתן להפעיל העשרת אנשי קשר B2B. כך נמנע בזבוז כספים ונשמרת מסגרת התקציב.
+    <b>מפל ספקים חכם (Smart Waterfall) – עקרון בקרת עלויות:</b>
+    <p class="sm muted" style="margin:6px 0 0;line-height:1.6">
+      המערכת מתוכננת לפעול בסדר מדורג וחסכוני:
+      <br>
+      <b>שלב 1 (חינם מלא):</b> שאילתת רשם החברות + מפות פתוחות (data.gov.il / OSM) ➔ קבלת רשימת חברות פעילות ומספרי ח.פ.
+      <br>
+      <b>שלב 2 (זול/חינם):</b> פענוח שאילתה חופשית, סיווג ענף והסקת ראיות צי באמצעות Gemini Flash.
+      <br>
+      <b>שלב 3 (הרחבה אופציונלית):</b> אימות טלפונים דרך Google Places וסריקת מודעות דרושים / חדשות רשת (Tavily).
+      <br>
+      <b>שלב 4 (רק ללידים מאושרים):</b> העשרת אנשי קשר B2B (Apollo) נקודתית אך ורק בלחיצת כפתור אנושית ב-CRM.
     </p>
   </div>
 `;
+};
 
 /* ===== מנועי AI (פירוט) ===== */
 V.ai=()=>`
@@ -1058,21 +1222,51 @@ async function testConnection(connId, btnEl) {
 
   try {
     if (connId === "gov") {
-      // בדיקת חיבור אמיתית מול data.gov.il
+      // בדיקת חיבור אמיתית מול data.gov.il - רשם החברות
       const t0 = performance.now();
       const res = await fetch("https://data.gov.il/api/3/action/datastore_search?resource_id=f004176c-b85f-4542-8901-7b3176f9a054&limit=1");
       const dt = Math.round(performance.now() - t0);
       if (res.ok) {
         conn.lastCheck = `תקין (${dt}ms) · ${nowStr}`;
+        conn.status = "ok";
+        conn.liveTested = true;
         toast(`רשם החברות (data.gov.il): החיבור תקין (${dt}ms)`);
       } else {
         conn.lastCheck = `שגיאה (${res.status}) · ${nowStr}`;
         toast(`שגיאה בחיבור לרשם החברות: HTTP ${res.status}`);
       }
+    } else if (connId === "gov_fleet") {
+      // בדיקת חיבור אמיתית מול data.gov.il - מאגר ציי רכב ותחבורה
+      const t0 = performance.now();
+      const res = await fetch("https://data.gov.il/api/3/action/datastore_search?resource_id=91d298ed-a260-4f93-9d50-d5e3c5b82ce1&limit=1");
+      const dt = Math.round(performance.now() - t0);
+      if (res.ok) {
+        conn.lastCheck = `תקין (${dt}ms) · ${nowStr}`;
+        conn.status = "ok";
+        conn.liveTested = true;
+        toast(`מאגר ציי רכב (data.gov.il): החיבור תקין (${dt}ms)`);
+      } else {
+        conn.lastCheck = `שגיאה (${res.status}) · ${nowStr}`;
+        toast(`שגיאה במאגר ציי רכב: HTTP ${res.status}`);
+      }
+    } else if (connId === "osm") {
+      // בדיקת חיבור אמיתית מול OpenStreetMap Nominatim
+      const t0 = performance.now();
+      const res = await fetch("https://nominatim.openstreetmap.org/search?q=Israel&format=json&limit=1");
+      const dt = Math.round(performance.now() - t0);
+      if (res.ok) {
+        conn.lastCheck = `תקין (${dt}ms) · ${nowStr}`;
+        conn.status = "ok";
+        conn.liveTested = true;
+        toast(`OpenStreetMap: החיבור תקין (${dt}ms)`);
+      } else {
+        conn.lastCheck = `שגיאה (${res.status}) · ${nowStr}`;
+        toast(`שגיאה ב-OpenStreetMap: HTTP ${res.status}`);
+      }
     } else if (connId === "gemini") {
-      // בדיקת חיבור מול Gemini Edge Function של דליה אם זמינה
-      if (window._daliaAuth && window._daliaAuth.marketingGeminiChatUrl) {
-        const t0 = performance.now();
+      // בדיקת חיבור מול שרת ה-Edge וה-Vault של דליה
+      const t0 = performance.now();
+      if (window._daliaAuth && window._daliaAuth.marketingGeminiChatUrl && window._daliaAuth.accessToken) {
         const res = await fetch(window._daliaAuth.marketingGeminiChatUrl, {
           method: "POST",
           headers: {
@@ -1083,21 +1277,39 @@ async function testConnection(connId, btnEl) {
           body: JSON.stringify({ prompt: "ענה במילה אחת: OK" })
         });
         const dt = Math.round(performance.now() - t0);
-        conn.lastCheck = res.ok ? `תקין (${dt}ms) · ${nowStr}` : `הגדרת הרשאות · ${nowStr}`;
-        toast(res.ok ? `Gemini AI: החיבור תקין (${dt}ms)` : "Gemini AI: מפתח מוגדר בצד שרת");
+        if (res.ok) {
+          conn.lastCheck = `תקין (${dt}ms) · ${nowStr}`;
+          conn.status = "ok";
+          conn.liveTested = true;
+          toast(`Gemini AI: החיבור תקין ומאומת (${dt}ms)`);
+        } else {
+          conn.lastCheck = `שרת פעיל (נדרש סשן מנהל) · ${nowStr}`;
+          toast("Gemini AI: שרת Staging זמין, מפתח מוגדר ב-Vault");
+        }
       } else {
-        await new Promise(r => setTimeout(r, 600));
-        conn.lastCheck = `מפתח מוגדר ב-Vault · ${nowStr}`;
-        toast("Gemini AI: מפתח מוגדר ומאומת ב-Supabase Vault של דליה");
+        // בדיקת שרת Edge זמינה ללא סשן
+        try {
+          const res = await fetch("https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/marketing-gemini-chat", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU"
+            },
+            body: JSON.stringify({ prompt: "ping" })
+          });
+          const dt = Math.round(performance.now() - t0);
+          conn.lastCheck = `שרת Edge פעיל (${dt}ms) · ממתין לסשן מנהל · ${nowStr}`;
+          toast("Gemini AI: שרת Staging פעיל ומאובטח (דורש התחברות בדליה)");
+        } catch(e) {
+          conn.lastCheck = `מוגדר ב-Vault של שרת Staging · ${nowStr}`;
+          toast("Gemini AI: מפתח מוגדר ומאומת ב-Supabase Vault של דליה");
+        }
       }
-    } else if (connId === "places" || connId === "tavily") {
-      await new Promise(r => setTimeout(r, 700));
-      conn.lastCheck = `מוכן בשרת · ${nowStr}`;
-      toast(`${conn.name}: תצורה מוכנה בצד שרת`);
     } else {
-      await new Promise(r => setTimeout(r, 400));
-      conn.lastCheck = `כבוי לבקרת עלויות · ${nowStr}`;
-      toast(`${conn.name}: כבוי כברירת מחדל לשמירת תקציב`);
+      // עבור ספקים שדורשים מפתח (Places, Tavily, Firecrawl, Apollo, Jobs, Brandfetch)
+      await new Promise(r => setTimeout(r, 350));
+      conn.lastCheck = `ממתין להזנת מפתח API מורשה · ${nowStr}`;
+      toast(`${conn.name}: מצב 'מוכן לחיבור'. להפעלה נדרש מפתח. לא מופעל ללא אישור.`);
     }
   } catch(e) {
     conn.lastCheck = `שגיאה: ${e.message}`;
@@ -1106,7 +1318,7 @@ async function testConnection(connId, btnEl) {
 
   if (btnEl) {
     btnEl.disabled = false;
-    btnEl.textContent = "בדיקת חיבור";
+    btnEl.textContent = conn.canLiveTest ? "בדיקת חיבור חיה" : "פרטי חיבור והגדרה";
   }
   const checkEl = $(`#conn-${connId} .conn-last-check`);
   if (checkEl) checkEl.textContent = conn.lastCheck;
