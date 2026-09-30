@@ -140,8 +140,8 @@ async function runLiveQA() {
     // 12. Test mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
     await page.waitForTimeout(400);
-    const mobileCoTable = await iframeLocator.locator('.board').isVisible();
-    logStep('Live Staging: Mobile (375x667) renders cleanly and responsively', mobileCoTable);
+    const isMobileResponsive = await iframeLocator.locator('.card').first().isVisible();
+    logStep('Live Staging: Mobile (375x667) renders cleanly and responsively', isMobileResponsive);
 
     await page.screenshot({ path: path.resolve('dist/live-staging-prospector-mobile.png') });
     await page.setViewportSize({ width: 1280, height: 800 });

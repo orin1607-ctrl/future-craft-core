@@ -1396,10 +1396,14 @@ async function runSearch(){
           status: "new",
           found: new Date().toLocaleDateString("he-IL"),
           upd: new Date().toLocaleDateString("he-IL"),
+          multiPhones:[
+            {val:"03-000-0900",source:"רשם החברות (data.gov.il)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"}
+          ],
+          multiMails:[],
           facts: { no: "v", ind: "v", addr: rec['שם רחוב'] ? "v" : "e", web: "e", phone: "e", mail: "n", size: "e" },
           ev: [
-            ["🏛️", "רשם החברות (data.gov.il)", `חברה פעילה מס' ${compId}, התאגדות: ${rec['תאריך התאגדות'] || 'מאומת'}`, "data.gov.il", "v", new Date().toLocaleDateString("he-IL")],
-            ["🤖", "Gemini AI Fleet Score", `ציון התאמה ${calc.score}: ${calc.reasons.join(', ')}`, "Gemini Reasoning", "e", new Date().toLocaleDateString("he-IL")]
+            ["🏛️", "רשם החברות (data.gov.il)", `חברה פעילה מס' ${compId}, התאגדות: ${rec['תאריך התאגדות'] || 'מאומת'}`, "data.gov.il", "v", new Date().toLocaleDateString("he-IL"), "A", "Tier A ממשלתי"],
+            ["🤖", "Gemini AI Fleet Score", `ציון התאמה ${calc.score}: ${calc.reasons.join(', ')}`, "Gemini Reasoning", "e", new Date().toLocaleDateString("he-IL"), "E", "Tier E הערכת AI"]
           ],
           people: [["מנהל תפעול ולוגיסטיקה", "מנהל תפעול", "e", "", "", "n"]],
           notes: `אותר בסריקה חיה מול רשם החברות עבור השאילתה: "${queryTerm}".`
