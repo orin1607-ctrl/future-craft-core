@@ -103,7 +103,7 @@ async function runLiveQA() {
     const toastText = await iframeLocator.locator('#toast').textContent().catch(() => '');
     logStep('Live Staging: "העבר ל-CRM" toast triggers', toastText.includes('CRM'), `Toast: ${toastText}`);
 
-    // 10. Test Kanban Leads board
+    // 10. Test Kanban Leads board & Safety Officer Category
     await iframeLocator.locator('button[data-act="closePanel"]').click();
     await page.waitForTimeout(300);
     const leadsTab = iframeLocator.locator('.tabs button[data-tab="leads"]');
@@ -111,6 +111,21 @@ async function runLiveQA() {
     await page.waitForTimeout(300);
     const colsCount = await iframeLocator.locator('.board .col').count();
     logStep('Live Staging: Leads Kanban board displays pipeline columns', colsCount === 7, `Columns: ${colsCount}`);
+
+    // Verify Safety Officer Category Filter & Regulation 579 Banner
+    const safetyCatBtn = iframeLocator.locator('button[data-lead-cat="safety_officer"]');
+    const isSafetyCatVisible = await safetyCatBtn.isVisible();
+    const safetyCatText = await safetyCatBtn.textContent().catch(() => '');
+    logStep('Live Staging: "קצין רכב / קצין בטיחות" category filter present', isSafetyCatVisible && safetyCatText.includes('קצין רכב'), `Text: ${safetyCatText.trim()}`);
+
+    const safetyBanner = await iframeLocator.locator('.card-b:has-text("קצין בטיחות בתעבורה (תקנה 579)")').isVisible().catch(() => false);
+    logStep('Live Staging: Regulation 579 statutory mandate banner visible in leads', safetyBanner);
+
+    const safetyBadges = await iframeLocator.locator('.lead:has-text("קצין בטיחות"), .lead:has-text("קצב")').count();
+    logStep('Live Staging: Kanban cards display safety officer badges', safetyBadges > 0, `Cards with badges: ${safetyBadges}`);
+
+    const safetyLeadsCount = await iframeLocator.locator('.board .lead').count();
+    logStep('Live Staging: Filtered "קצין רכב / קצין בטיחות" leads count', safetyLeadsCount === 13, `Count: ${safetyLeadsCount}`);
 
     // 11. Test Sources Tab (21 Data Sources Matrix & Tiers)
     const sourcesTab = iframeLocator.locator('.tabs button[data-tab="sources"]');

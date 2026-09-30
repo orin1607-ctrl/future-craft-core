@@ -54,3 +54,4 @@ public/coco-media/**/*.png
 public/coco-media/**/*.jpg
 public/coco-media/**/*.webp
 !.gitkeep
+supabase/.temp/

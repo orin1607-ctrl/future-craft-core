@@ -129,6 +129,45 @@ async function runQA() {
     const columnsCount = await iframeLocator.locator('.board .col').count();
     logStep('Tab: "ניהול לידים" Kanban board renders', columnsCount === 7, `Columns: ${columnsCount}`);
 
+    // Verify Safety Officer category filter & banner
+    const safetyCatBtn = iframeLocator.locator('button[data-lead-cat="safety_officer"]');
+    const isSafetyCatVisible = await safetyCatBtn.isVisible();
+    const safetyCatText = await safetyCatBtn.textContent().catch(() => '');
+    logStep('Leads: "קצין רכב / קצין בטיחות" category filter present', isSafetyCatVisible && safetyCatText.includes('קצין רכב'), `Text: ${safetyCatText.trim()}`);
+
+    const safetyBanner = await iframeLocator.locator('.card-b:has-text("קצין בטיחות בתעבורה (תקנה 579)")').isVisible().catch(() => false);
+    logStep('Leads: Regulation 579 statutory mandate banner visible', safetyBanner);
+
+    const safetyBadges = await iframeLocator.locator('.lead:has-text("קצין בטיחות"), .lead:has-text("קצב")').count();
+    logStep('Leads: Kanban cards show safety officer badges', safetyBadges > 0, `Cards with badges: ${safetyBadges}`);
+
+    // Test switching categories
+    const allCatBtn = iframeLocator.locator('button[data-lead-cat="all"]');
+    await allCatBtn.click();
+    await page.waitForTimeout(300);
+    const allLeadsCount = await iframeLocator.locator('.board .lead').count();
+    logStep('Leads: Switching to "כל הלידים" displays all leads', allLeadsCount >= 18, `Count: ${allLeadsCount}`);
+
+    // Switch back to safety officer category
+    await safetyCatBtn.click();
+    await page.waitForTimeout(300);
+    const filteredSafetyCount = await iframeLocator.locator('.board .lead').count();
+    logStep('Leads: Filtered "קצין רכב / קצין בטיחות" leads count', filteredSafetyCount === 13, `Count: ${filteredSafetyCount}`);
+
+    // Click a lead card in the board to verify drawer contents
+    const leadCard = iframeLocator.locator('.board .lead[data-co="10"] .t').first();
+    await leadCard.click();
+    await page.waitForTimeout(400);
+    const drawerText = await iframeLocator.locator('#panel .panel').textContent().catch(() => '');
+    const drawerSafetyBox = drawerText.includes('עמוס לוי');
+    const drawerMandateBadge = drawerText.includes('תקנה 579');
+    const drawerLeadReason = drawerText.includes('למה החברה נחשבת ליד רלוונטי למוסך דליה');
+    logStep('Drawer: Safety Officer Box, Regulation 579, & Rationale rendered', drawerSafetyBox && drawerMandateBadge && drawerLeadReason, 'Verified on lead #10 (אביב לוגיסטיקה)');
+
+    // Close drawer
+    await iframeLocator.locator('button[data-act="closePanel"]').click();
+    await page.waitForTimeout(300);
+
     // 11. Test Connections Tab
     const connTab = iframeLocator.locator('.tabs button[data-tab="connections"]');
     await connTab.click();
