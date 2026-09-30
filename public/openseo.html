@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>דליה – מרכז השיווק והפרסום · OpenSEO (תצוגת הדגמה)</title>
+<title>דליה – מרכז השיווק והפרסום · דליה SEO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -319,11 +319,467 @@ html, body {
   .flow { grid-template-columns: 1fr 1fr !important; }
 }
 
+
+/* ===== דליה SEO - Official Branded Footer ===== */
+.dalia-site-footer {
+  margin-top: 50px;
+  background: var(--surface, #ffffff);
+  border-top: 1px solid var(--line, #e2e8f0);
+  color: var(--text, #1e293b);
+  padding: 36px 24px 24px;
+  font-family: inherit;
+  direction: rtl;
+}
+.dalia-footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1.2fr;
+  gap: 36px;
+}
+.dalia-footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dalia-footer-logo {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+  align-self: flex-start;
+}
+.dalia-footer-tagline {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--muted, #64748b);
+  margin: 0;
+  max-width: 420px;
+}
+.dalia-footer-col h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #0f172a);
+  margin: 0 0 10px;
+}
+.dalia-footer-col p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted, #64748b);
+  margin: 0;
+}
+.dalia-footer-col a {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+.dalia-footer-col a:hover {
+  text-decoration: underline;
+  color: var(--pri, #0284c7);
+}
+.dalia-footer-bottom {
+  max-width: 1200px;
+  margin: 24px auto 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--line, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--muted, #64748b);
+}
+.dalia-footer-bottom a {
+  color: var(--muted, #64748b);
+  text-decoration: underline;
+}
+@media (max-width: 768px) {
+  .dalia-footer-inner {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .dalia-footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ===== Real Website Simulation Preview Modal ===== */
+.site-preview-modal {
+  position: fixed;
+  inset: 2vh 2vw;
+  background: #f1f5f9;
+  z-index: 1000;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 60px -15px rgba(0,0,0,0.5);
+  border: 1px solid var(--line);
+}
+.site-preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.site-preview-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.site-preview-badge {
+  font-weight: 700;
+  font-size: 14px;
+  color: #08102a;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.site-preview-note {
+  font-size: 12px;
+  color: #64748b;
+  background: #f8fafc;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+.site-preview-dev-switch {
+  display: flex;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 8px;
+}
+.site-preview-dev-switch .btn {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.site-preview-canvas {
+  flex: 1;
+  overflow-y: auto;
+  background: #e2e8f0;
+  padding: 24px 16px;
+  display: flex;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.site-preview-viewport {
+  width: 100%;
+  max-width: 1180px;
+  background: #ffffff;
+  min-height: 100%;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+}
+.site-preview-canvas.mobile-mode .site-preview-viewport {
+  max-width: 390px;
+  border: 10px solid #0f172a;
+  border-radius: 36px;
+  box-shadow: 0 20px 45px rgba(0,0,0,0.3);
+  margin: 0 auto;
+}
+.dalia-mock-header {
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 14px 24px;
+}
+.dalia-mock-header-in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.dalia-mock-logo {
+  height: 42px;
+  width: auto;
+  object-fit: contain;
+}
+.dalia-mock-nav {
+  display: flex;
+  gap: 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.site-preview-canvas.mobile-mode .dalia-mock-nav {
+  display: none;
+}
+.dalia-mock-cta-btn {
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: default;
+}
+.site-preview-canvas.mobile-mode .dalia-mock-cta-btn {
+  font-size: 11px;
+  padding: 6px 10px;
+}
+.dalia-mock-crumbs {
+  background: #f8fafc;
+  padding: 10px 24px;
+  font-size: 12px;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+}
+.dalia-mock-crumbs .sep {
+  margin: 0 4px;
+  color: #cbd5e1;
+}
+.dalia-mock-crumbs .cur {
+  color: #0f172a;
+  font-weight: 600;
+}
+.dalia-mock-main {
+  flex: 1;
+  padding: 36px 24px;
+  max-width: 860px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+.site-preview-canvas.mobile-mode .dalia-mock-main {
+  padding: 20px 14px;
+}
+.dalia-mock-h1 {
+  font-family: 'Assistant', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: #08102a;
+  line-height: 1.3;
+  margin: 0 0 16px;
+}
+.site-preview-canvas.mobile-mode .dalia-mock-h1 {
+  font-size: 23px;
+}
+.dalia-mock-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #64748b;
+  padding-bottom: 18px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.dalia-mock-chip {
+  background: #f1f5f9;
+  color: #334155;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 12px;
+}
+.dalia-mock-chip.draft {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+.dalia-mock-lead-box {
+  background: #f0f7ff;
+  border-right: 4px solid #1d4ed8;
+  padding: 16px 20px;
+  border-radius: 4px 8px 8px 4px;
+  margin-bottom: 28px;
+}
+.dalia-mock-lead-box .lead-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e40af;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.dalia-mock-lead-box p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #1e3a8a;
+  font-weight: 500;
+}
+.dalia-mock-body {
+  font-family: 'Assistant', sans-serif;
+  color: #334155;
+  font-size: 16.5px;
+  line-height: 1.85;
+}
+.site-preview-canvas.mobile-mode .dalia-mock-body {
+  font-size: 15px;
+  line-height: 1.75;
+}
+.dalia-mock-body h2 {
+  font-family: 'Assistant', sans-serif;
+  color: #08102a;
+  font-size: 24px;
+  font-weight: 700;
+  margin: 36px 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+  line-height: 1.35;
+}
+.site-preview-canvas.mobile-mode .dalia-mock-body h2 {
+  font-size: 19px;
+  margin: 28px 0 10px;
+}
+.dalia-mock-body h3 {
+  font-family: 'Assistant', sans-serif;
+  color: #0f172a;
+  font-size: 19px;
+  font-weight: 600;
+  margin: 24px 0 10px;
+  line-height: 1.4;
+}
+.site-preview-canvas.mobile-mode .dalia-mock-body h3 {
+  font-size: 17px;
+}
+.dalia-mock-body p {
+  margin: 0 0 18px;
+}
+.dalia-mock-body strong {
+  color: #08102a;
+  font-weight: 700;
+}
+.dalia-mock-body ul, .dalia-mock-body ol {
+  padding-right: 24px;
+  margin: 0 0 20px;
+}
+.dalia-mock-body li {
+  margin-bottom: 8px;
+}
+.dalia-mock-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+  font-size: 14.5px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.site-preview-canvas.mobile-mode .dalia-mock-body table {
+  font-size: 12px;
+  display: block;
+  overflow-x: auto;
+}
+.dalia-mock-body th {
+  background: #08102a;
+  color: #ffffff;
+  padding: 12px 14px;
+  text-align: right;
+  font-weight: 700;
+}
+.dalia-mock-body td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #334155;
+}
+.dalia-mock-body tr:nth-child(even) td {
+  background: #f8fafc;
+}
+.dalia-mock-cta-box {
+  background: linear-gradient(135deg, #08102a 0%, #1e3a8a 100%);
+  color: #ffffff;
+  padding: 32px 24px;
+  border-radius: 12px;
+  margin-top: 45px;
+  text-align: center;
+}
+.dalia-mock-cta-box h3 {
+  color: #ffffff;
+  font-size: 22px;
+  margin: 0 0 10px;
+}
+.dalia-mock-cta-box p {
+  color: #e2e8f0;
+  font-size: 15px;
+  max-width: 580px;
+  margin: 0 auto 20px;
+}
+.dalia-mock-cta-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.dalia-mock-phone-btn {
+  background: #f59e0b;
+  color: #08102a;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 10px 20px;
+  border-radius: 6px;
+  text-decoration: none;
+  display: inline-block;
+}
+.dalia-mock-hours {
+  font-size: 13px;
+  color: #cbd5e1;
+}
+.dalia-mock-footer {
+  background: #08102a;
+  color: #ffffff;
+  padding: 36px 24px 20px;
+  margin-top: 40px;
+}
+.dalia-mock-footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.site-preview-canvas.mobile-mode .dalia-mock-footer-grid {
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+.dalia-mock-footer-logo {
+  height: 40px;
+  width: auto;
+  filter: brightness(0) invert(1);
+  margin-bottom: 10px;
+}
+.dalia-mock-footer h4 {
+  color: #f8fafc;
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+.dalia-mock-footer p {
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+.dalia-mock-footer-bottom {
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin-top: 20px;
+  padding-top: 14px;
+  font-size: 12px;
+  color: #64748b;
+  display: flex;
+  justify-content: space-between;
+  max-width: 900px;
+  margin-inline: auto;
+}
+
 </style>
 </head>
 <body>
 <div class="frame" role="note">
-  <a href="./dalia-marketing-center-v2.html" class="btn ghost sm" id="backToCenterBtn" style="text-decoration:none;margin-inline-end:8px">← חזרה לניהול שיווק 2</a>
+  <a href="./dalia-marketing-center-v2.html" class="btn ghost sm" id="backToCenterBtn" style="text-decoration:none;margin-inline-end:8px">← חזרה לניהול שיווק</a>
   <span class="brand">דליה – מרכז השיווק והפרסום</span>
   <span class="ctx" title="נקבע במעטפת המשותפת">חברה פעילה: דליה פתרונות תפעול ותחזוקה לרכב ▾</span>
   <span class="shared">מעטפת משותפת – תחובר בשלב האינטגרציה</span>
@@ -334,13 +790,35 @@ html, body {
 <div class="demo-note">תצוגת הדגמה: כל האתרים, המיקומים, המתחרים והנתונים בדויים (דומיינים .example). שום דבר לא מחובר ל-Google, ל-SerpAPI, ל-WordPress או למסד נתונים.</div>
 <header class="mod-head">
   <div class="mod-title">
-    <h1>OpenSEO</h1><span class="sub">קידום אורגני של אתרי החברה</span>
+    <h1>דליה SEO</h1><span class="sub">קידום אורגני של אתרי החברה</span>
     <span class="grow"></span>
     <label class="site-pick sm muted">אתר: <select id="sitePick" aria-label="בחירת אתר"></select></label>
   </div>
-  <nav class="tabs" role="tablist" id="tabs" aria-label="לשוניות OpenSEO"></nav>
+  <nav class="tabs" role="tablist" id="tabs" aria-label="לשוניות דליה SEO"></nav>
 </header>
 <main class="content" id="view"></main>
+
+<footer class="dalia-site-footer" dir="rtl" aria-label="תחתית האתר של דליה">
+  <div class="dalia-footer-inner">
+    <div class="dalia-footer-brand">
+      <img src="https://dalia-c.com/wp-content/uploads/2022/01/logo-png.png" alt="דליה פתרונות מימון ותפעול לרכב" class="dalia-footer-logo" />
+      <p class="dalia-footer-tagline"><strong>דליה פתרונות מימון ותפעול לרכב</strong><br>מובילים בניהול ציי רכב, תפעול, אחזקה ובטיחות בתעבורה לעסקים וחברות בישראל.</p>
+    </div>
+    <div class="dalia-footer-col">
+      <h4>שעות פעילות</h4>
+      <p>ימים א׳–ה׳: 09:00 – 17:00<br>ימי שישי וערבי חג: 09:00 – 13:00</p>
+    </div>
+    <div class="dalia-footer-col">
+      <h4>יצירת קשר</h4>
+      <p>כתובת: פלוטיצקי 3, ראשון לציון<br>טלפון: <a href="tel:0534338601">053-4338601</a><br>אימייל: <a href="mailto:dalia@dalia-c.com">dalia@dalia-c.com</a></p>
+    </div>
+  </div>
+  <div class="dalia-footer-bottom">
+    <span>© כל הזכויות שמורות לדליה פתרונות מימון ותפעול לרכב</span>
+    <span>Made by <a href="https://www.s-lerman.com/" target="_blank" rel="noopener">s-lerman</a></span>
+  </div>
+</footer>
+
 <div id="overlay"></div>
 <div class="demo-ctl" id="demoCtl"></div>
 <div id="toast" class="toast" hidden></div>
@@ -579,11 +1057,11 @@ const SRC = {
   kp:    () => `<span class="src real" title="נפח חיפוש מספק נתוני מילות מפתח (למשל DataForSEO / Keyword Planner). בתצוגה: ערך הדגמה">נפח · הדגמה</span>`,
   crawl: () => `<span class="src crawl" title="נתון מסריקת האתר. בתצוגה: ערך הדגמה">סורק · הדגמה</span>`,
   ai:    () => `<span class="src ai" title="ניתוח או הערכה של AI. לא נתון עובדתי">הערכת AI</span>`,
-  calc:  () => `<span class="src calc" title="חישוב של OpenSEO מתוך נתונים קיימים">חישוב</span>`,
+  calc:  () => `<span class="src calc" title="חישוב של דליה SEO מתוך נתונים קיימים">חישוב</span>`,
   none:  () => `<span class="src none">טרם נבדק</span>`,
   unv:   () => `<span class="src unv">אין נתון מאומת</span>`
 };
-const ORIG = () => `<span class="orig" title="קיים בקוד OpenSEO המקורי">מקור</span>`;
+const ORIG = () => `<span class="orig" title="קיים בקוד דליה SEO המקורי">מקור</span>`;
 const NEW = () => `<span class="orig new" title="תוספת עבור דליה">תוספת</span>`;
 const SHARED = (t="חיבור למערכת המשותפת – ימומש בשלב האינטגרציה") => `<span class="shared" title="${esc(t)}">מערכת משותפת</span>`;
 
@@ -746,7 +1224,7 @@ function vOverview(){
 
     <div class="card"><div class="zone"><div class="head"><h3 class="t">מקורות הנתונים של האתר</h3>${SHARED()}</div>
       <div class="grid g4 mt">${connCards(s)}</div>
-      <p class="xs muted m0 mt">המפתחות וההרשאות לכל חיבור מנוהלים באזור ההגדרות המרכזי. OpenSEO רואה רק "מחובר / לא מחובר".</p></div></div>
+      <p class="xs muted m0 mt">המפתחות וההרשאות לכל חיבור מנוהלים באזור ההגדרות המרכזי. דליה SEO רואה רק "מחובר / לא מחובר".</p></div></div>
   </div>`;
 }
 function connCards(s){
@@ -803,7 +1281,7 @@ function vKeywords(){
   const sel = S.kwSel;
   return `<div class="stack">
     <div class="head"><div><h2 class="t">ניהול מילות מפתח ${NEW()}</h2>
-      <p class="sm muted m0 mt-s">המילים נשמרות במאגר מילות המפתח המשותף של מרכז השיווק. OpenSEO מוסיף עליהן את נתוני ה-SEO: מיקום, היסטוריה, עמוד מדורג ומתחרים. ${SHARED("מאגר מילות המפתח המשותף (רכיב 3) – ימומש בשלב האינטגרציה")}</p></div>
+      <p class="sm muted m0 mt-s">המילים נשמרות במאגר מילות המפתח המשותף של מרכז השיווק. דליה SEO מוסיף עליהן את נתוני ה-SEO: מיקום, היסטוריה, עמוד מדורג ומתחרים. ${SHARED("מאגר מילות המפתח המשותף (רכיב 3) – ימומש בשלב האינטגרציה")}</p></div>
       <div class="row"><button class="btn" data-act="checkRanks" ${S.live.serp?"":"disabled"} title="${S.live.serp?"בודק 10 מילים שנבדקו הכי מזמן (כמו במקור)":"חבר SerpAPI כדי לבדוק מיקומים"}">בדוק מיקומים</button>
         <button class="btn pri" data-act="toggleAdd">+ הוספת מילים</button></div></div>
     ${S.addOpen ? `<div class="card"><div class="zone"><h3 class="t">הוספת מילות מפתח למעקב</h3>
@@ -866,7 +1344,7 @@ function kwDrawer(k){
         ${k.comp?`<div class="tbl-wrap"><table class="mt-s"><tbody>${serp.map(x => `<tr><td style="width:50px">${x.us?posHtml(x.p):x.p!=null?posHtml(x.p):`<span class="pos">100+</span>`}</td><td class="${x.us?"b":""}">${esc(x.name)} <span class="xs muted ltr">${esc(x.d)}</span></td></tr>`).join("")}</tbody></table></div>`:SRC.none()}</div></div>
       <div class="step"><span class="n">6</span><div><div class="lbl">הפער</div><div class="sm">${c===undefined?"אי אפשר לחשב פער לפני בדיקת מיקום.":c==null?(b?`אין לנו עמוד מדורג. ${esc(compName(b.d))} במקום ${b.p}.`:"אף אחד מהמתחרים לא מדורג."):above?`${above} מתחרים מעלינו. המוביל: ${esc(compName(b.d))} במקום ${b.p}.`:"אנחנו מעל כל המתחרים שבמעקב."} ${SRC.calc()}</div></div></div>
       <div class="step"><span class="n">7</span><div><div class="lbl">ההזדמנות</div><div class="sm">${esc(oppFor(k)?.title || "אין הזדמנות פתוחה למילה הזו.")}</div></div></div>
-      <div class="step"><span class="n">8</span><div><div class="lbl">מה לעשות</div><div class="b sm">${esc(a.t)}</div><p class="xs muted m0 mt-s">${esc(a.why)} (כלל קבוע של OpenSEO, לא ניחוש של AI)</p>
+      <div class="step"><span class="n">8</span><div><div class="lbl">מה לעשות</div><div class="b sm">${esc(a.t)}</div><p class="xs muted m0 mt-s">${esc(a.why)} (כלל קבוע של דליה SEO, לא ניחוש של AI)</p>
         <div class="row mt">${k.url?`<button class="btn sm" data-optpage="${esc(k.url)}">אופטימיזציה לעמוד</button>`:""}<button class="btn sm" data-draftkw="${esc(k.kw)}">צור טיוטת מאמר</button>
           <button class="btn ghost sm" data-act="task" title="משימות והתראות שייכות למעטפת">+ משימה ${SHARED()}</button></div></div></div>
     </div></div>
@@ -1008,7 +1486,7 @@ function vRanks(){
     <div class="grid g2">${[["העליות הגדולות",win],["הירידות הגדולות",lose]].map(([t,arr]) => `
       <div class="card"><div class="zone"><h3 class="t">${t}</h3></div>${arr.length?`<div class="tbl-wrap"><table><tbody>${arr.map(k=>`<tr><td><button class="linkish" data-kw="${k.id}">${esc(k.kw)}</button></td><td>${posHtml(cur(k))}</td><td>${deltaHtml(k)}</td><td>${spark(k.hist)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">אין.</div>`}</div>`).join("")}</div>
     <div class="card"><div class="zone"><div class="head"><h3 class="t">מיקום ממוצע של מאמרים שפורסמו ${ORIG()}</h3><button class="btn ghost sm" data-tab="measure">למדידה</button></div>
-      <p class="sm muted m0 mt-s">מעקב המיקומים של OpenSEO המקורי (למאמרים שפורסמו דרך המודול) מוצג בלשונית "מדידה" בדיוק כמו במקור.</p></div></div>
+      <p class="sm muted m0 mt-s">מעקב המיקומים של דליה SEO (למאמרים שפורסמו דרך המודול) מוצג בלשונית "מדידה" בדיוק כמו במקור.</p></div></div>
   </div>`;
 }
 
@@ -1096,7 +1574,7 @@ function vTech(){
   const list = issues.filter(i => !S.techSev || i.sev === S.techSev);
   const pageRows = pages.filter(p => !S.pageFilter || (S.pageFilter==="issues" ? issues.some(i=>i.url===p.url) : S.pageFilter==="noindex" ? !p.index : true));
   return `<div class="stack">
-    <div class="head"><div><h2 class="t">ביקורת טכנית ועמודים ${NEW()}</h2><p class="sm muted m0 mt-s">לא קיים ב-OpenSEO המקורי. נדרש סורק אתרים ו-PageSpeed בשלב הפיתוח. סריקה אחרונה: ${fdt(site().lastCrawl)}</p></div>
+    <div class="head"><div><h2 class="t">ביקורת טכנית ועמודים ${NEW()}</h2><p class="sm muted m0 mt-s">לא קיים ב-דליה SEO המקורי. נדרש סורק אתרים ו-PageSpeed בשלב הפיתוח. סריקה אחרונה: ${fdt(site().lastCrawl)}</p></div>
       <button class="btn" data-crawl="${S.site}">סרוק עכשיו</button></div>
     <div class="grid g4">
       <div class="card stat"><div class="v">${score}</div><div class="l">ציון בריאות ${SRC.calc()}</div><div class="bar mt-s"><span style="width:${score}%;background:${score>=80?"var(--up)":score>=60?"var(--warn)":"var(--down)"}"></span></div></div>
@@ -1202,7 +1680,7 @@ function vComposer(){
   const wp = S.live.wp && site().conn.wp;
   const wordCount = c.word_count || (c.content_html ? c.content_html.replace(/<[^>]+>/g,' ').trim().split(/\s+/).length : 0);
   return `<div class="stack" style="max-width:900px">
-    <div class="row"><button class="btn ghost sm" data-act="closeCompose">→ חזרה</button><h2 class="t">${existing?"עריכת מאמר":"מאמר חדש"}</h2>${existing?stBadge(existing.status):""} ${c.aiModel?`<span class="badge ai">Gemini (${esc(c.aiModel.replace('models/',''))})</span>`:""}</div>
+    <div class="row"><button class="btn ghost sm" data-act="closeCompose">→ חזרה</button><h2 class="t">${existing?"עריכת מאמר":"מאמר חדש"}</h2>${existing?stBadge(existing.status):""} ${c.aiModel?`<span class="badge ai">Gemini (${esc(c.aiModel.replace('models/',''))})</span>`:""}<span class="grow"></span><button class="btn sm" data-act="sitePreview" style="display:inline-flex;align-items:center;gap:6px;background:var(--blue-t);color:var(--blue);border:1px solid var(--blue);font-weight:600">🌐 תצוגה מקדימה באתר</button></div>
     ${!existing?`<div class="card"><div class="zone"><h3 class="t">יצירה עם Gemini AI</h3><div class="grid g2 mt">
       <label class="f">מילת מפתח יעד<input class="input" data-cf="keyword" value="${esc(c.keyword)}"></label>
       <label class="f">אורך מאמר<select class="input" data-cf="length"><option value="long" ${c.length==="long"||!c.length?"selected":""}>ארוך ומעמיק (1,500–2,500 מילים)</option><option value="medium" ${c.length==="medium"?"selected":""}>בינוני (800–1,200 מילים)</option><option value="short" ${c.length==="short"?"selected":""}>קצר (350–500 מילים)</option></select></label>
@@ -1218,7 +1696,8 @@ function vComposer(){
       ${c.content_html.trim()?`<div class="zone"><span class="b sm">תצוגה מקדימה</span><div class="prose mt-s">${c.content_html}</div></div>`:""}
       <div class="zone"><span class="b sm">פרסום</span><div class="fields mt" style="justify-content:space-between">
         <label class="f">תזמון (לא חובה — מתפרסם אוטומטית ל-WordPress)<input type="datetime-local" class="input" data-cf="scheduled_at" value="${esc(c.scheduled_at)}"></label>
-        <div class="row"><button class="btn" data-act="composePublish" ${!c.content_html.trim()||!wp?"disabled":""} title="${wp?"":"חבר WordPress כדי לפרסם"}">פרסם עכשיו</button>
+        <div class="row"><button class="btn ghost sm" data-act="sitePreview" style="display:inline-flex;align-items:center;gap:6px">🌐 תצוגה מקדימה באתר</button>
+          <button class="btn" data-act="composePublish" ${!c.content_html.trim()||!wp?"disabled":""} title="${wp?"":"חבר WordPress כדי לפרסם"}">פרסם עכשיו</button>
           <button class="btn pri" data-act="composeSave">${c.scheduled_at?"תזמן":"שמור טיוטה"}</button></div></div>
         ${!wp?`<p class="xs m0 mt-s" style="color:var(--warn)">${site().conn.wp?"WordPress לא מחובר.":"לאתר הזה אין WordPress — אפשר לשמור ולהעתיק, בלי פרסום אוטומטי."}</p>`:""}</div></div>
   </div>`;
@@ -1315,10 +1794,10 @@ function optSuggestions(post){
 
 /* ================= חלונות ================= */
 const POINTS = [
-  ["החברה הפעילה","OpenSEO מקבל מזהה חברה מהמעטפת. כל אתר, מילה, מתחרה, מאמר ובדיקה משויכים לחברה.","customers / טבלת שיוך קיימת"],
+  ["החברה הפעילה","דליה SEO מקבל מזהה חברה מהמעטפת. כל אתר, מילה, מתחרה, מאמר ובדיקה משויכים לחברה.","customers / טבלת שיוך קיימת"],
   ["משתמשים והרשאות","צפייה, עריכה, מחיקה, פרסום, אישור וניהול חיבורים — לפי תשתית ההרשאות של דליה.","user_roles"],
-  ["מאגר מילות מפתח משותף","המילים עצמן נשמרות במאגר המשותף. OpenSEO שומר רק נתוני SEO: מיקום, היסטוריה, עמוד ומתחרים.","רכיב 3"],
-  ["חיבורי API","SerpAPI / DataForSEO, Search Console, WordPress, PageSpeed — מפתחות ברמת דליה / חברה / מודול. OpenSEO רואה רק סטטוס.","אזור ההגדרות"],
+  ["מאגר מילות מפתח משותף","המילים עצמן נשמרות במאגר המשותף. דליה SEO שומר רק נתוני SEO: מיקום, היסטוריה, עמוד ומתחרים.","רכיב 3"],
+  ["חיבורי API","SerpAPI / DataForSEO, Search Console, WordPress, PageSpeed — מפתחות ברמת דליה / חברה / מודול. דליה SEO רואה רק סטטוס.","אזור ההגדרות"],
   ["מנועי AI","יצירת תוכן והצעות אופטימיזציה דרך מנוע ה-AI שהוגדר לחברה.","אזור ההגדרות"],
   ["תקציבים וקרדיטים","דיווח על כל קריאה בתשלום (בדיקת מיקום, מחקר, AI) לפני ואחרי ביצוע.","אזור ההגדרות"],
   ["אישורים","פרסום לאתר חי ושינוי באתר דורשים אישור לפי מדיניות.","approval_requests"],
@@ -1330,11 +1809,124 @@ const POINTS = [
 function renderOverlay(){
   const el = $("#overlay");
   if (!S.drawer && !S.modal){ el.innerHTML = ""; return; }
+
+  if (S.modal?.type === "sitePreview") {
+    const post = S.modal.post || S.compose || POSTS.find(p=>p.id===1001) || {};
+    const dev = S.modal.device || "desktop";
+    const wordCount = post.word_count || (post.content_html ? post.content_html.replace(/<[^>]+>/g,' ').trim().split(/\s+/).length : 0);
+    const readMin = Math.max(1, Math.round(wordCount / 220));
+
+    el.innerHTML = `
+    <div class="scrim" data-act="close"></div>
+    <div class="site-preview-modal" role="dialog" aria-label="תצוגה מקדימה של המאמר באתר">
+      <div class="site-preview-bar">
+        <div class="site-preview-title">
+          <span class="site-preview-badge">🌐 הדמיית אתר dalia-c.com</span>
+          <span class="site-preview-note">טיוטה בלבד — לא פורסם, ללא כתיבה ל-WordPress</span>
+        </div>
+        <div class="site-preview-dev-switch">
+          <button class="btn sm ${dev==='desktop'?'pri':''}" data-prevdevice="desktop">💻 תצוגת מחשב</button>
+          <button class="btn sm ${dev==='mobile'?'pri':''}" data-prevdevice="mobile">📱 תצוגת טלפון</button>
+        </div>
+        <button class="btn ghost ic" data-act="close" aria-label="סגור תצוגה מקדימה">✕</button>
+      </div>
+
+      <div class="site-preview-canvas ${dev==='mobile'?'mobile-mode':''}">
+        <div class="site-preview-viewport">
+          
+          <!-- Authentic Dalia Top Header -->
+          <header class="dalia-mock-header">
+            <div class="dalia-mock-header-in">
+              <div class="dalia-mock-logo-link">
+                <img src="https://dalia-c.com/wp-content/uploads/2022/01/logo-png.png" alt="דליה פתרונות מימון ותפעול לרכב" class="dalia-mock-logo" />
+              </div>
+              <nav class="dalia-mock-nav">
+                <span>מה עומד מאחורי החברה?</span>
+                <span>קצת עלינו</span>
+                <span>האפליקציה שלנו</span>
+                <span>מימון, שירות ואחריות</span>
+                <span>איך זה עובד?</span>
+                <span>צור קשר</span>
+              </nav>
+              <div class="dalia-mock-cta-btn">לשאלון הצעת מחיר מהירה</div>
+            </div>
+          </header>
+
+          <!-- Breadcrumbs -->
+          <div class="dalia-mock-crumbs">
+            <div>
+              <span>בית</span> <span class="sep">/</span> <span>בלוג ומדריכים</span> <span class="sep">/</span> <span class="cur">${esc(post.title)}</span>
+            </div>
+          </div>
+
+          <!-- Main Article Container -->
+          <main class="dalia-mock-main">
+            <article class="dalia-mock-article">
+              <h1 class="dalia-mock-h1">${esc(post.title)}</h1>
+              
+              <div class="dalia-mock-meta">
+                <span>📅 עודכן: ${fdate(Date.now())}</span>
+                <span>⏱️ זמן קריאה: כ-${readMin} דקות (${fmt(wordCount)} מילים)</span>
+                <span class="dalia-mock-chip">מילת מפתח: ${esc(post.keyword || 'קצין רכב')}</span>
+                <span class="dalia-mock-chip draft">טיוטה לבדיקה לפני פרסום</span>
+              </div>
+
+              ${post.meta_description ? `
+              <div class="dalia-mock-lead-box">
+                <div class="lead-title">תקציר המדריך (Meta Description):</div>
+                <p>${esc(post.meta_description)}</p>
+              </div>
+              ` : ''}
+
+              <!-- Body HTML Content -->
+              <div class="dalia-mock-body">
+                ${post.content_html}
+              </div>
+
+              <!-- Dalia Contact CTA Box -->
+              <div class="dalia-mock-cta-box">
+                <h3>רוצים לנהל את צי הרכב בראש שקט?</h3>
+                <p>המומחים של <strong>דליה פתרונות רכב לחברות</strong> עומדים לרשותכם עם ליווי מקצועי, קציני בטיחות מוסמכים והתייעלות תקציבית מוכחת.</p>
+                <div class="dalia-mock-cta-actions">
+                  <a href="tel:0534338601" class="dalia-mock-phone-btn">📞 חייגו עכשיו: 053-4338601</a>
+                  <span class="dalia-mock-hours">ימים א׳–ה׳ 09:00–17:00</span>
+                </div>
+              </div>
+            </article>
+          </main>
+
+          <!-- Authentic Dalia Footer -->
+          <footer class="dalia-mock-footer">
+            <div class="dalia-mock-footer-grid">
+              <div class="dalia-mock-col">
+                <img src="https://dalia-c.com/wp-content/uploads/2022/01/logo-png.png" alt="דליה פתרונות רכב" class="dalia-mock-footer-logo" />
+                <p>דליה פתרונות מימון ותפעול לרכב — ניהול ציי רכב, תפעול, אחזקה ובטיחות בתעבורה לעסקים וחברות בישראל.</p>
+              </div>
+              <div class="dalia-mock-col">
+                <h4>שעות פעילות</h4>
+                <p>ימים א׳–ה׳: 09:00 – 17:00<br>ימי שישי וערבי חג: 09:00 – 13:00</p>
+              </div>
+              <div class="dalia-mock-col">
+                <h4>יצירת קשר</h4>
+                <p>כתובת: פלוטיצקי 3, ראשון לציון<br>טלפון: 053-4338601<br>אימייל: dalia@dalia-c.com</p>
+              </div>
+            </div>
+            <div class="dalia-mock-footer-bottom">
+              <span>© כל הזכויות שמורות לדליה פתרונות מימון ותפעול לרכב</span>
+              <span>Made by s-lerman</span>
+            </div>
+          </footer>
+
+        </div>
+      </div>
+    </div>`;
+    return;
+  }
   if (S.drawer?.type === "kw"){ const k = KEYWORDS.find(x => x.id === S.drawer.id); el.innerHTML = k ? kwDrawer(k) : ""; return; }
   if (S.drawer?.type === "page"){ el.innerHTML = pageDrawer(S.drawer.url); return; }
   if (S.modal === "points") el.innerHTML = `<div class="scrim" data-act="close"></div><div class="card modal" role="dialog" aria-label="נקודות חיבור">
     <div class="zone"><div class="head"><h2 class="t">נקודות חיבור לדליה</h2><button class="btn ghost ic" data-act="close" aria-label="סגור">✕</button></div>
-    <p class="sm muted m0 mt-s">כל אלה שייכים למערכת המשותפת ולא ייבנו בתוך OpenSEO. <b>חיבור למערכת המשותפת – ימומש בשלב האינטגרציה.</b></p></div>
+    <p class="sm muted m0 mt-s">כל אלה שייכים למערכת המשותפת ולא ייבנו בתוך דליה SEO. <b>חיבור למערכת המשותפת – ימומש בשלב האינטגרציה.</b></p></div>
     ${POINTS.map(([t,d,r])=>`<div class="zone" style="padding-block:10px"><div class="row"><span class="b sm">${t}</span><span class="grow"></span><span class="chip">${esc(r)}</span></div><p class="xs muted m0 mt-s">${esc(d)}</p></div>`).join("")}</div>`;
   if (S.modal === "addSite") el.innerHTML = `<div class="scrim" data-act="close"></div><div class="card modal" role="dialog" aria-label="הוספת אתר">
     <div class="zone"><h2 class="t">הוספת אתר לחברה</h2><p class="xs muted m0 mt-s">האתר ישויך לחברה הפעילה. החיבורים עצמם (Search Console, WordPress) מוגדרים אחר כך בהגדרות המרכזיות.</p></div>
@@ -1418,12 +2010,14 @@ document.addEventListener("click", e => {
     return renderOverlay(); }
   if (d.copy){ navigator.clipboard?.writeText(d.copy).catch(()=>{}); return toast("הועתק"); }
   if (d.toggleKw){ const k = KEYWORDS.find(x=>x.id===d.toggleKw); k.status = k.status==="tracking"?"paused":"tracking"; renderOverlay(); return render(); }
-  if (d.rmkw){ const i = KEYWORDS.findIndex(x=>x.id===d.rmkw); const kw = KEYWORDS[i].kw; KEYWORDS.splice(i,1); S.drawer = null; toast(`"${kw}" הוסרה מהמעקב של OpenSEO (נשארת במאגר המשותף)`); return render(); }
+  if (d.rmkw){ const i = KEYWORDS.findIndex(x=>x.id===d.rmkw); const kw = KEYWORDS[i].kw; KEYWORDS.splice(i,1); S.drawer = null; toast(`"${kw}" הוסרה מהמעקב של דליה SEO (נשארת במאגר המשותף)`); return render(); }
   if (d.crawl){ const s = SITES.find(x=>x.id===d.crawl); s.lastCrawl = Date.now(); toast(`הסריקה של ${s.domain} הסתיימה (הדגמה)`); return render(); }
   if (d.rmsite){ if (SITES.length < 2) return; const i = SITES.findIndex(x=>x.id===d.rmsite); SITES.splice(i,1); if (S.site===d.rmsite) S.site = SITES[0].id; return render(); }
   if (d.editplan){ const p = PLANS.find(x=>x.id===+d.editplan); S.research.planForm = {...p}; return render(); }
   if (d.rmplan){ const i = PLANS.findIndex(x=>x.id===+d.rmplan); PLANS.splice(i,1); POSTS.forEach(p => { if (p.plan_id===+d.rmplan) p.plan_id = null; }); return render(); }
   if (d.idea !== undefined){ const title = S.produce.ideas[+d.idea]; const p = generate(S.produce.topic || title, title, S.produce.plan); if (p){ S.compose = {...p}; render(); } return; }
+  if (d.prevdevice){ if (S.modal?.type === "sitePreview"){ S.modal.device = d.prevdevice; return renderOverlay(); } }
+  if (d.act === "sitePreview"){ S.modal = { type: "sitePreview", device: S.modal?.device || "desktop", post: { ...S.compose } }; return renderOverlay(); }
   if (d.edit){ const p = POSTS.find(x=>x.id===+d.edit); S.compose = {...p, scheduled_at: p.scheduled_at && p.status==="scheduled" ? p.scheduled_at.slice(0,16) : ""}; S.drawer = null; return go("produce"); }
   if (d.rmpost){ POSTS.splice(POSTS.findIndex(x=>x.id===+d.rmpost),1); return render(); }
   if (d.pubnow){ S.modal = {type:"confirmPub", id:+d.pubnow}; return renderOverlay(); }
@@ -1685,7 +2279,7 @@ function vSites2(){
       <div class="zone soft"><div class="row"><span class="xs muted">מיקומים: ${fdt(s.lastRank)} · סריקה: ${fdt(s.lastCrawl)}</span><span class="grow"></span>
         <button class="btn sm" data-crawl="${s.id}">סרוק עכשיו</button><button class="btn ghost sm danger" data-rmsite="${s.id}" ${SITES.length<2?"disabled":""}>נתק והסר</button></div></div>
     </div>`; }).join("")}
-    <div class="notice info"><span>מפתחות, סיסמאות והרשאות OAuth לא נשמרים ב-OpenSEO. הם נשמרים בצד השרת דרך אזור ההגדרות המרכזי, ו-OpenSEO מקבל רק את מצב החיבור. ${SHARED()}</span></div>
+    <div class="notice info"><span>מפתחות, סיסמאות והרשאות OAuth לא נשמרים ב-דליה SEO. הם נשמרים בצד השרת דרך אזור ההגדרות המרכזי, ו-OpenSEO מקבל רק את מצב החיבור. ${SHARED()}</span></div>
   </div>`;
 }
 VIEWS.sites = vSites2;
@@ -1795,7 +2389,7 @@ function vSettings(){
           </div>
         </div>
         <p class="xs muted" style="margin:12px 0;line-height:1.5">
-          <strong>28 עמודי ליבה נסרקו</strong> ומנותחים ב-OpenSEO (כותרות, תגיות Meta, H1, בעיות תמונות בלי alt וציוני SEO). קובץ Robots.txt עונה ב-200 OK.
+          <strong>28 עמודי ליבה נסרקו</strong> ומנותחים ב-דליה SEO (כותרות, תגיות Meta, H1, בעיות תמונות בלי alt וציוני SEO). קובץ Robots.txt עונה ב-200 OK.
         </p>
         <div class="row" style="gap:8px">
           <button class="btn sm" data-ctest="crawl|s1">בדוק תקינות Sitemap & Robots</button>

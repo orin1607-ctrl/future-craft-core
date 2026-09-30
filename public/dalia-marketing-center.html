@@ -256,7 +256,7 @@ const icon = (k, cls='i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidde
    connection.entry:  where the REAL module interface will be mounted later (null = not yet) */
 const MODULES = [
   {id:'leads',  he:'איתור לקוחות ולידים',   en:'OpenProspector', siteScoped:false, connection:{status:'demo',          entry:null}, works:['crm']},
-  {id:'seo',    he:'קידום אורגני SEO',      en:'OpenSEO',        siteScoped:true,  connection:{status:'connected',     entry:'./openseo.html'}, works:['page','studio']},
+  {id:'seo',    he:'דליה SEO',             en:'Dalia SEO',      siteScoped:true,  connection:{status:'connected',     entry:'./openseo.html'}, works:['page','studio']},
   {id:'page',   he:'בניית אתרים',           en:'OpenPage',       siteScoped:true,  connection:{status:'demo',          entry:null}, works:['seo','design']},
   {id:'crm',    he:'ניהול לקוחות CRM',      en:'OpenCRM',        siteScoped:false, connection:{status:'not_connected', entry:null}, works:['leads']},
   {id:'ads',    he:'ניתוח קמפיינים ופרסום', en:'OpenAdsReport',  siteScoped:true,  connection:{status:'not_connected', entry:null}, works:['design','seo']},
@@ -564,11 +564,11 @@ function renderDashboard(){
         <div class="node site"><b>${esc(activeSite.domain)}</b>${state.siteId==='all'?'אתר ראשון מתוך '+c.sites.length:'האתר שנבחר'}</div>
       </div>
       <div class="link-row" style="margin-top:10px">
-        <div class="node" style="${seo?'':'opacity:.45'}"><b>OpenSEO</b>${seo?'מנתח ומנהל SEO':'לא פעיל כאן'}</div>
+        <div class="node" style="${seo?'':'opacity:.45'}"><b>דליה SEO</b>${seo?'מנתח ומנהל SEO':'לא פעיל כאן'}</div>
         <div class="node" style="${page?'':'opacity:.45'}"><b>OpenPage</b>${page?'עבודה על האתר':'לא פעיל כאן'}</div>
       </div>
       <div class="link-row" style="margin-top:12px">
-        ${seo?`<button class="btn pri" data-pick="${activeSite.id}" data-go="m/seo">כניסה ל-OpenSEO</button>`:''}
+        ${seo?`<button class="btn pri" data-pick="${activeSite.id}" data-go="m/seo">כניסה ל-דליה SEO</button>`:''}
         ${page?`<button class="btn" data-pick="${activeSite.id}" data-go="m/page">כניסה ל-OpenPage</button>`:''}
       </div>
       <div class="note">שני המודולים מקבלים מהמעטפת את אותו לקוח ואותו אתר. אין לאף אחד מהם בחירת לקוח או רשימת אתרים משלו.</div>

@@ -301,6 +301,90 @@ html, body {
   .hello h1 { font-size: 17px; }
 }
 
+/* Dalia Official Branded Footer */
+.dalia-site-footer {
+  margin-top: 40px;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  color: var(--text);
+  padding: 32px 24px 20px;
+  font-family: inherit;
+  direction: rtl;
+}
+.dalia-footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1.2fr;
+  gap: 32px;
+}
+.dalia-footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dalia-footer-logo {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+  align-self: flex-start;
+}
+.dalia-footer-tagline {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin: 0;
+  max-width: 380px;
+}
+.dalia-footer-col h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 10px;
+}
+.dalia-footer-col p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin: 0;
+}
+.dalia-footer-col a {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+.dalia-footer-col a:hover {
+  text-decoration: underline;
+  color: var(--pri);
+}
+.dalia-footer-bottom {
+  max-width: 1200px;
+  margin: 24px auto 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.dalia-footer-bottom a {
+  color: var(--muted);
+  text-decoration: underline;
+}
+@media (max-width: 768px) {
+  .dalia-footer-inner {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .dalia-footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -336,6 +420,27 @@ html, body {
   <main id="main"></main>
 </div>
 
+<footer class="dalia-site-footer" dir="rtl" aria-label="תחתית האתר של דליה">
+  <div class="dalia-footer-inner">
+    <div class="dalia-footer-brand">
+      <img src="https://dalia-c.com/wp-content/uploads/2022/01/logo-png.png" alt="דליה פתרונות מימון ותפעול לרכב" class="dalia-footer-logo" />
+      <p class="dalia-footer-tagline"><strong>דליה פתרונות מימון ותפעול לרכב</strong><br>מובילים בניהול ציי רכב, תפעול, אחזקה ובטיחות בתעבורה לעסקים וחברות בישראל.</p>
+    </div>
+    <div class="dalia-footer-col">
+      <h4>שעות פעילות</h4>
+      <p>ימים א׳–ה׳: 09:00 – 17:00<br>ימי שישי וערבי חג: 09:00 – 13:00</p>
+    </div>
+    <div class="dalia-footer-col">
+      <h4>יצירת קשר</h4>
+      <p>כתובת: פלוטיצקי 3, ראשון לציון<br>טלפון: <a href="tel:0534338601">053-4338601</a><br>אימייל: <a href="mailto:dalia@dalia-c.com">dalia@dalia-c.com</a></p>
+    </div>
+  </div>
+  <div class="dalia-footer-bottom">
+    <span>© כל הזכויות שמורות לדליה פתרונות מימון ותפעול לרכב</span>
+    <span>Made by <a href="https://www.s-lerman.com/" target="_blank" rel="noopener">s-lerman</a></span>
+  </div>
+</footer>
+
 <script>
 /* =========================================================
    1. ICONS
@@ -368,7 +473,7 @@ const icon = (k, cls='i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidde
    connection.entry:  where the REAL module interface will be mounted later (null = not yet) */
 const MODULES = [
   {id:'leads',  he:'איתור לקוחות ולידים',   en:'OpenProspector', siteScoped:false, connection:{status:'demo',          entry:null}, works:['crm']},
-  {id:'seo',    he:'קידום אורגני SEO',      en:'OpenSEO',        siteScoped:true,  connection:{status:'connected',     entry:'./openseo.html'}, works:['page','studio']},
+  {id:'seo',    he:'דליה SEO',             en:'Dalia SEO',      siteScoped:true,  connection:{status:'connected',     entry:'./openseo.html'}, works:['page','studio']},
   {id:'page',   he:'בניית אתרים',           en:'OpenPage',       siteScoped:true,  connection:{status:'demo',          entry:null}, works:['seo','design']},
   {id:'crm',    he:'ניהול לקוחות CRM',      en:'OpenCRM',        siteScoped:false, connection:{status:'not_connected', entry:null}, works:['leads']},
   {id:'ads',    he:'ניתוח קמפיינים ופרסום', en:'OpenAdsReport',  siteScoped:true,  connection:{status:'not_connected', entry:null}, works:['design','seo']},
@@ -676,11 +781,11 @@ function renderDashboard(){
         <div class="node site"><b>${esc(activeSite.domain)}</b>${state.siteId==='all'?'אתר ראשון מתוך '+c.sites.length:'האתר שנבחר'}</div>
       </div>
       <div class="link-row" style="margin-top:10px">
-        <div class="node" style="${seo?'':'opacity:.45'}"><b>OpenSEO</b>${seo?'מנתח ומנהל SEO':'לא פעיל כאן'}</div>
+        <div class="node" style="${seo?'':'opacity:.45'}"><b>דליה SEO</b>${seo?'מנתח ומנהל SEO':'לא פעיל כאן'}</div>
         <div class="node" style="${page?'':'opacity:.45'}"><b>OpenPage</b>${page?'עבודה על האתר':'לא פעיל כאן'}</div>
       </div>
       <div class="link-row" style="margin-top:12px">
-        ${seo?`<button class="btn pri" data-pick="${activeSite.id}" data-go="m/seo">כניסה ל-OpenSEO</button>`:''}
+        ${seo?`<button class="btn pri" data-pick="${activeSite.id}" data-go="m/seo">כניסה ל-דליה SEO</button>`:''}
         ${page?`<button class="btn" data-pick="${activeSite.id}" data-go="m/page">כניסה ל-OpenPage</button>`:''}
       </div>
       <div class="note">שני המודולים מקבלים מהמעטפת את אותו לקוח ואותו אתר. אין לאף אחד מהם בחירת לקוח או רשימת אתרים משלו.</div>
