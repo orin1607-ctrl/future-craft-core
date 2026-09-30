@@ -91,6 +91,12 @@ async function runLiveQA() {
     const coName = await iframeLocator.locator('#panel h2').textContent().catch(() => '');
     logStep('Live Staging: Company detail drawer opens with Fleet Evidence', panelVisible, `Company: ${coName}`);
 
+    // Verify cross-check toolbar and tier badges
+    const crossCheckBtns = await iframeLocator.locator('#panel .cross-btn').count();
+    logStep('Live Staging: One-click cross-check toolbar present (144, d.co.il, LinkedIn, WA)', crossCheckBtns >= 4, `Buttons: ${crossCheckBtns}`);
+    const tierBadgesInDrawer = await iframeLocator.locator('#panel .tier-badge').count();
+    logStep('Live Staging: Tier badges visible on contact fields / evidence', tierBadgesInDrawer > 0, `Badges: ${tierBadgesInDrawer}`);
+
     // 9. Test toCrm toast
     await iframeLocator.locator('button[data-act="toCrm"]').click();
     await page.waitForTimeout(300);
@@ -106,7 +112,32 @@ async function runLiveQA() {
     const colsCount = await iframeLocator.locator('.board .col').count();
     logStep('Live Staging: Leads Kanban board displays pipeline columns', colsCount === 7, `Columns: ${colsCount}`);
 
-    // 11. Test mobile viewport
+    // 11. Test Sources Tab (21 Data Sources Matrix & Tiers)
+    const sourcesTab = iframeLocator.locator('.tabs button[data-tab="sources"]');
+    await sourcesTab.click();
+    await page.waitForTimeout(400);
+    const sourcesCount = await iframeLocator.locator('[id^="src-row-"]').count();
+    logStep('Live Staging: Sources tab renders 21 data sources', sourcesCount === 21, `Sources: ${sourcesCount}`);
+
+    // Verify regulation banners
+    const safetyBannerText = await iframeLocator.locator('.card-b:has-text("579")').textContent().catch(() => '');
+    logStep('Live Staging: Safety Officers Regulation 579 banner displayed', safetyBannerText.includes('579') && safetyBannerText.includes('meida@mot.gov.il'));
+
+    const b144BannerText = await iframeLocator.locator('.card-b:has-text("144")').textContent().catch(() => '');
+    logStep('Live Staging: 144 / d.co.il Manual Cross-Check policy banner displayed', b144BannerText.includes('Scraping') || b144BannerText.includes('הצלבה ידנית'));
+
+    // Test Tier Filter (Tier A)
+    const tierABtn = iframeLocator.locator('button[data-src-tier="A"]');
+    await tierABtn.click();
+    await page.waitForTimeout(300);
+    const tierACount = await iframeLocator.locator('[id^="src-row-"]').count();
+    logStep('Live Staging: Filtering by Tier A shows 6 official government sources', tierACount === 6, `Tier A sources: ${tierACount}`);
+
+    // Reset filter
+    await iframeLocator.locator('button[data-src-tier="all"]').click();
+    await page.waitForTimeout(300);
+
+    // 12. Test mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
     await page.waitForTimeout(400);
     const mobileCoTable = await iframeLocator.locator('.board').isVisible();

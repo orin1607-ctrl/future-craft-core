@@ -107,6 +107,12 @@ async function runQA() {
     const panelCoName = await iframeLocator.locator('#panel h2').textContent().catch(() => '');
     logStep('Drawer: Company detail panel opens', panelVisible, `Company: ${panelCoName}`);
 
+    // Verify cross-check toolbar and tier badges in drawer
+    const crossCheckBtns = await iframeLocator.locator('#panel .cross-btn').count();
+    logStep('Drawer: One-click cross-check toolbar present (144, d.co.il, LinkedIn, WA)', crossCheckBtns >= 4, `Buttons: ${crossCheckBtns}`);
+    const tierBadgesInDrawer = await iframeLocator.locator('#panel .tier-badge').count();
+    logStep('Drawer: Tier badges visible on contact fields / evidence', tierBadgesInDrawer > 0, `Badges: ${tierBadgesInDrawer}`);
+
     // 9. Test CRM transfer action
     const toCrmBtn = iframeLocator.locator('button[data-act="toCrm"]');
     await toCrmBtn.click();
@@ -137,7 +143,48 @@ async function runQA() {
     const govStatusText = await iframeLocator.locator('#conn-gov .conn-last-check').textContent();
     logStep('Test Connection: data.gov.il live test responds', govStatusText.includes('תקין') || govStatusText.includes('ms'), `Status: ${govStatusText}`);
 
-    // 12. Test Live Search Run (data.gov.il live query)
+    // 12. Test Sources Tab (21 Data Sources Matrix & Tiers)
+    const sourcesTab = iframeLocator.locator('.tabs button[data-tab="sources"]');
+    await sourcesTab.click();
+    await page.waitForTimeout(400);
+    const sourcesCount = await iframeLocator.locator('[id^="src-row-"]').count();
+    logStep('Tab: "מקורות מידע" renders 21 data sources', sourcesCount === 21, `Sources: ${sourcesCount}`);
+
+    // Verify regulation banners
+    const safetyBannerText = await iframeLocator.locator('.card-b:has-text("579")').textContent().catch(() => '');
+    logStep('Sources Tab: Safety Officers Regulation 579 banner displayed', safetyBannerText.includes('579') && safetyBannerText.includes('meida@mot.gov.il'));
+
+    const b144BannerText = await iframeLocator.locator('.card-b:has-text("144")').textContent().catch(() => '');
+    logStep('Sources Tab: 144 / d.co.il Manual Cross-Check policy banner displayed', b144BannerText.includes('Scraping') || b144BannerText.includes('הצלבה ידנית'));
+
+    // Test Tier Filter (Tier A)
+    const tierABtn = iframeLocator.locator('button[data-src-tier="A"]');
+    await tierABtn.click();
+    await page.waitForTimeout(300);
+    const tierACount = await iframeLocator.locator('[id^="src-row-"]').count();
+    logStep('Sources Tab: Filtering by Tier A shows 6 official government sources', tierACount === 6, `Tier A sources: ${tierACount}`);
+
+    // Reset filter
+    await iframeLocator.locator('button[data-src-tier="all"]').click();
+    await page.waitForTimeout(300);
+
+    // Test 3-way toggle on a source
+    const toggleActiveBtn = iframeLocator.locator('[data-toggle-src="b2b_apollo"][data-set-status="active"]');
+    await toggleActiveBtn.click();
+    await page.waitForTimeout(300);
+    const apolloRowText = await iframeLocator.locator('#src-row-b2b_apollo').textContent();
+    logStep('Sources Tab: 3-way toggle updates status to Active', apolloRowText.includes('פעיל'));
+
+    // Test Live Source Verification (data.gov.il contractors registry)
+    const testContractorsBtn = iframeLocator.locator('button[data-test-src="gov_contractors"]');
+    if (await testContractorsBtn.isVisible()) {
+      await testContractorsBtn.click();
+      await page.waitForTimeout(1200);
+      const contractorsStatus = await iframeLocator.locator('#src-row-gov_contractors .src-last-check').textContent();
+      logStep('Sources Tab: Live check of פנקס הקבלנים responds with live latency', contractorsStatus.includes('תקין') || contractorsStatus.includes('ms'), `Status: ${contractorsStatus}`);
+    }
+
+    // 13. Test Live Search Run (data.gov.il live query)
     await searchTab.click();
     await page.waitForTimeout(300);
     const runBtn = iframeLocator.locator('#btnRun');
