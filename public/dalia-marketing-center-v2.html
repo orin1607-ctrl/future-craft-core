@@ -995,6 +995,17 @@ window.addEventListener('message', (e) => {
         render();
       }
     }
+    const leadsFrame = document.querySelector('#module-frame-leads');
+    if (leadsFrame && leadsFrame.contentWindow) {
+      try { leadsFrame.contentWindow.postMessage(e.data, '*'); } catch(err) {}
+    }
+  }
+  if (e.data && e.data.type === 'dalia-coco-auth') {
+    window._daliaAuth = e.data;
+    const leadsFrame = document.querySelector('#module-frame-leads');
+    if (leadsFrame && leadsFrame.contentWindow) {
+      try { leadsFrame.contentWindow.postMessage(e.data, '*'); } catch(err) {}
+    }
   }
 });
 

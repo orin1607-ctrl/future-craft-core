@@ -123,10 +123,38 @@ async function runQA() {
     const columnsCount = await iframeLocator.locator('.board .col').count();
     logStep('Tab: "ניהול לידים" Kanban board renders', columnsCount === 7, `Columns: ${columnsCount}`);
 
-    // 11. Test Mobile Viewport
-    await page.setViewportSize({ width: 375, height: 667 });
+    // 11. Test Connections Tab
+    const connTab = iframeLocator.locator('.tabs button[data-tab="connections"]');
+    await connTab.click();
+    await page.waitForTimeout(400);
+    const connCardsCount = await iframeLocator.locator('.conn-card').count();
+    logStep('Tab: "חיבורים ו-APIs" renders all 6 provider cards', connCardsCount === 6, `Cards: ${connCardsCount}`);
+
+    // Test data.gov.il connection test button
+    const govTestBtn = iframeLocator.locator('#conn-gov button[data-test-conn="gov"]');
+    await govTestBtn.click();
+    await page.waitForTimeout(1000);
+    const govStatusText = await iframeLocator.locator('#conn-gov .conn-last-check').textContent();
+    logStep('Test Connection: data.gov.il live test responds', govStatusText.includes('תקין') || govStatusText.includes('ms'), `Status: ${govStatusText}`);
+
+    // 12. Test Live Search Run (data.gov.il live query)
+    await searchTab.click();
     await page.waitForTimeout(300);
+    const runBtn = iframeLocator.locator('#btnRun');
+    await runBtn.click();
+    // Wait for the 6-step progress to complete
+    await page.waitForTimeout(3800);
+    const progressDone = await iframeLocator.locator('#progress .est-box').isVisible();
+    logStep('Live Search: data.gov.il + Fleet Scoring search completed', progressDone);
+
+    // Verify companies list grew
     await companiesTab.click();
+    await page.waitForTimeout(300);
+    const updatedRowsCount = await iframeLocator.locator('table.co tbody tr').count();
+    logStep('Companies table updated with newly found real companies', updatedRowsCount > rowsCount, `Total companies now: ${updatedRowsCount}`);
+
+    // 13. Test Mobile Viewport
+    await page.setViewportSize({ width: 375, height: 667 });
     await page.waitForTimeout(300);
     const isMobileResponsive = await iframeLocator.locator('table.co').isVisible();
     logStep('Mobile: 375px responsive layout renders cleanly', isMobileResponsive);

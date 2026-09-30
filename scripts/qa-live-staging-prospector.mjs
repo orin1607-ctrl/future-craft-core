@@ -39,37 +39,77 @@ async function runLiveQA() {
     const iframeTitle = await iframeLocator.locator('#title').textContent().catch(() => '');
     logStep('Live Staging: OpenProspector iframe rendered with title', iframeTitle.includes('איתור לקוחות'), `Title: ${iframeTitle}`);
 
-    // 5. Test search tab
+    // 5. Test search tab & NLP Interpret
     const searchTab = iframeLocator.locator('.tabs button[data-tab="search"]');
     await searchTab.click();
     await page.waitForTimeout(400);
     const searchArea = await iframeLocator.locator('#q').isVisible();
     logStep('Live Staging: Search tab query box is functional', searchArea);
 
-    // 6. Test companies tab & row drawer
+    const exButton = iframeLocator.locator('button[data-ex]').first();
+    await exButton.click();
+    await iframeLocator.locator('button[data-act="interpret"]').click();
+    await page.waitForTimeout(400);
+    const interpVisible = await iframeLocator.locator('#interp .interp').isVisible();
+    logStep('Live Staging: NLP Interpret generates query chips', interpVisible);
+
+    // 6. Test Connections Tab
+    const connTab = iframeLocator.locator('.tabs button[data-tab="connections"]');
+    await connTab.click();
+    await page.waitForTimeout(500);
+    const connCardsCount = await iframeLocator.locator('.conn-card').count();
+    logStep('Live Staging: Connections tab renders 6 provider cards', connCardsCount === 6, `Cards: ${connCardsCount}`);
+
+    // Test live data.gov.il connection
+    const govTestBtn = iframeLocator.locator('#conn-gov button[data-test-conn="gov"]');
+    await govTestBtn.click();
+    await page.waitForTimeout(1500);
+    const govStatusText = await iframeLocator.locator('#conn-gov .conn-last-check').textContent();
+    logStep('Live Staging: data.gov.il live API check succeeds', govStatusText.includes('תקין') || govStatusText.includes('ms'), `Status: ${govStatusText}`);
+
+    // 7. Test Live Search Run (data.gov.il live query)
+    await searchTab.click();
+    await page.waitForTimeout(400);
+    const runBtn = iframeLocator.locator('#btnRun');
+    await runBtn.click();
+    // Wait for the search steps to finish
+    await page.waitForTimeout(4500);
+    const progressDone = await iframeLocator.locator('#progress .est-box').isVisible();
+    logStep('Live Staging: Search run completed with live data.gov.il query', progressDone);
+
+    // 8. Test companies tab & row drawer
     const companiesTab = iframeLocator.locator('.tabs button[data-tab="companies"]');
     await companiesTab.click();
     await page.waitForTimeout(400);
     const rowsCount = await iframeLocator.locator('table.co tbody tr').count();
-    logStep('Live Staging: Companies tab loaded rows', rowsCount >= 8, `Rows: ${rowsCount}`);
+    logStep('Live Staging: Companies tab loaded active companies (with real data.gov.il records)', rowsCount >= 8, `Rows: ${rowsCount}`);
 
     const firstRow = iframeLocator.locator('table.co tbody tr').first();
     await firstRow.click();
     await page.waitForTimeout(400);
     const panelVisible = await iframeLocator.locator('#panel .panel').isVisible();
     const coName = await iframeLocator.locator('#panel h2').textContent().catch(() => '');
-    logStep('Live Staging: Company detail drawer opens', panelVisible, `Company: ${coName}`);
+    logStep('Live Staging: Company detail drawer opens with Fleet Evidence', panelVisible, `Company: ${coName}`);
 
-    // 7. Test toCrm toast
+    // 9. Test toCrm toast
     await iframeLocator.locator('button[data-act="toCrm"]').click();
     await page.waitForTimeout(300);
     const toastText = await iframeLocator.locator('#toast').textContent().catch(() => '');
     logStep('Live Staging: "העבר ל-CRM" toast triggers', toastText.includes('CRM'), `Toast: ${toastText}`);
 
-    // 8. Test mobile viewport
+    // 10. Test Kanban Leads board
+    await iframeLocator.locator('button[data-act="closePanel"]').click();
+    await page.waitForTimeout(300);
+    const leadsTab = iframeLocator.locator('.tabs button[data-tab="leads"]');
+    await leadsTab.click();
+    await page.waitForTimeout(300);
+    const colsCount = await iframeLocator.locator('.board .col').count();
+    logStep('Live Staging: Leads Kanban board displays pipeline columns', colsCount === 7, `Columns: ${colsCount}`);
+
+    // 11. Test mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
     await page.waitForTimeout(400);
-    const mobileCoTable = await iframeLocator.locator('table.co').isVisible();
+    const mobileCoTable = await iframeLocator.locator('.board').isVisible();
     logStep('Live Staging: Mobile (375x667) renders cleanly and responsively', mobileCoTable);
 
     await page.screenshot({ path: path.resolve('dist/live-staging-prospector-mobile.png') });
