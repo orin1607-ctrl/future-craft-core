@@ -981,6 +981,7 @@ try {
 }
 
 const ENR_KEYS = ["id","company_name","company_hp","phone","email","website","industry","fleet_type","status","certified_professional",
+  "address","city","missing_fields","updated_at",
   "company_active_status","phone_secondary","email_direct","contact_form_url","public_whatsapp","linkedin_company",
   "contact_name","contact_role","contact_phone","contact_email","contact_linkedin",
   "fleet_exists","fleet_size","fleet_size_status","fleet_types","fleet_manager_name","fleet_manager_source",
@@ -995,6 +996,8 @@ function mapDbRowToLead(row, idx) {
   const enr = {};
   ENR_KEYS.forEach(k => { if (row[k] !== undefined) enr[k] = row[k]; });
   enr.field_status = { manual: (row.field_status && row.field_status.manual) || {} };
+  /* research findings (Gemini etc.) are evidence objects {field,value,source,url,status,found_at}; legacy array rows stay in c.ev */
+  enr.evidence = (Array.isArray(row.evidence) ? row.evidence : []).filter(x => x && typeof x === "object" && !Array.isArray(x));
   const rc = row.registry_check;
   if (rc) enr.registry_check = {
     checked_at: rc.checked_at,
@@ -1007,6 +1010,15 @@ function mapDbRowToLead(row, idx) {
     p.dbId = row.id;
     p.status = row.status || p.status || "new";
     p.notes = row.notes || p.notes || "";
+    /* Supabase columns win over the original import snapshot, so research updates show after reload */
+    const col = (v, old) => (v != null && String(v).trim() !== "" ? v : old);
+    p.name = col(row.company_name, p.name);
+    p.phone = col(row.phone, p.phone);
+    p.mail = col(row.email, p.mail);
+    p.web = col(row.website, p.web);
+    p.addr = col(row.address, p.addr);
+    p.city = col(row.city, p.city);
+    p.ind = col(row.industry, p.ind);
     p.enr = enr;
     return p;
   }
@@ -1023,10 +1035,10 @@ function mapDbRowToLead(row, idx) {
     web: row.website || "",
     phone: row.phone || "לא נמצא",
     mail: row.email || "",
-    size: row.company_size || "50–100 עובדים",
-    fleet: row.fleet_info || { s: "v", val: "צי צמ\"ה ומשאיות ברישוי", src: "פנקס הקבלנים ענף 200" },
-    fleetType: row.fleet_type || "כלי צמ\"ה ומשאיות כבדות",
-    score: row.score || 93,
+    size: row.company_size || "",
+    fleet: { s: "n", val: "טרם נמצא מידע על צי", src: "" },
+    fleetType: row.fleet_type || "",
+    score: row.score || 0,
     status: row.status || "new",
     found: row.found_date || "01.10.2026",
     upd: row.updated_date || "01.10.2026",
@@ -1034,7 +1046,7 @@ function mapDbRowToLead(row, idx) {
     certifiedProfessional: row.certified_professional,
     safetyOfficer: row.safety_officer,
     leadReason: row.lead_reason || "",
-    facts: row.facts || { no: "v", ind: "v", addr: "v", web: "n", phone: row.phone ? "v" : "n", mail: row.email ? "v" : "n", size: "v" },
+    facts: row.facts || { no: "n", ind: "n", addr: "n", web: "n", phone: "n", mail: "n", size: "n" },
     ev: row.evidence || [],
     people: row.people || [],
     multiPhones: row.multi_phones || [],
@@ -1177,6 +1189,7 @@ async function saveLeadEnrichment(lead, patch, okMsg) {
   if (error) { console.warn("[Prospector] enrichment save failed:", error.message); toast("שגיאה בשמירה ל-Supabase: " + error.message); return false; }
   Object.assign(lead.enr, patch);
   lead.enr.field_status = { manual: (patch.field_status && patch.field_status.manual) || {} };
+  if (typeof _qCache !== "undefined") _qCache.delete(lead.enr);
   if (patch.website !== undefined) lead.web = patch.website || "";
   persistProspectorData();
   toast(okMsg || "נשמר ב-Supabase STAGING");
@@ -1949,7 +1962,7 @@ const S={
   tab:"dash",
   leadFilter:"",
   leadCategory:"safety_officer",
-  coFilter:{q:"",st:"",fleet:"",stage:""},
+  coFilter:{q:"",st:"",fleet:"",stage:"",phone:"",mail:"",contact:"",ready:"",missing:"",quality:"",city:"",ind:""},
   srcFilter:"all",
   searching:false,
   results:false,
@@ -2008,17 +2021,66 @@ const cBadge=s=>conf[s]?conf[s][0]:conf.n[0];
 /* מצב קצב"ת: OVDIM, פנקס הקבלנים, היקף צי או הערכת AI אינם הוכחה לקצין בטיחות או לחובת תקנה 579 */
 const SO_NOT_PROOF=/OVDIM|פנקס הקבלנים|איש מקצוע כשיר|Gemini|AI|הערכה/i;
 /* ===== אימות וסיווג לידים (כללים משותפים: openprospector-qualify.js) ===== */
-const QF=c=>window.OPQualify&&c.enr?OPQualify.evaluate(c.enr):null;
+/* evaluate() is pure over c.enr – cached per enr object, invalidated on save */
+const _qCache=new WeakMap();
+const QF=c=>{if(!window.OPQualify||!c.enr)return null;let q=_qCache.get(c.enr);if(!q){q=OPQualify.evaluate(c.enr);_qCache.set(c.enr,q)}return q};
 const STAGE_STY={basic:"b-no",review:"b-est",verified:"b-blue",qualified:"b-blue",quality:"b-ok",ready:"b-ok",rejected:"b-bad"};
 const stageOf=c=>{const q=QF(c);return q?q.lead_stage:"basic"};
 const stageBadge=(c,size)=>{const q=QF(c);const st=q?q.lead_stage:"basic";return `<span class="badge ${STAGE_STY[st]||"b-no"}" style="font-size:${size||10.5}px" title="${q&&q.blockers.length?esc("חסר למוכן לפנייה: "+q.blockers.join(", ")):""}">${st==="ready"?"✅ ":""}${window.OPQualify?OPQualify.STAGE_LABEL[st]:st}</span>`};
 const FS_BADGE={v:'<span class="badge b-ok">✓ מאומת</span>',f:'<span class="badge b-est">≈ נמצא – דורש אימות</span>',n:'<span class="badge b-no">חסר</span>'};
-function fleetCell(c){
-  const q=QF(c); if(!q) return fleetBadge(c.fleet);
+/* צי רכב: מאומת רק עם מקור; גודל צי רק אם נמצא – לעולם לא נתון ישן/placeholder */
+function fleetInfo(c){
+  const q=QF(c);
+  if(!q) return {s:"n",label:"טרם נמצא מידע על צי",size:"גודל צי: לא ידוע",src:"",sizeS:"n",sizeSrc:""};
   const f=q.field_status.fleet, sz=q.field_status.fleet_size;
-  if(f.s==="v") return `<span class="badge b-ok">✓ ${sz.s==="v"?esc(sz.val)+" כלים":"צי קיים – גודל לא ידוע"}</span>`;
-  if(f.s==="f") return `<span class="badge b-est">≈ אינדיקציה לצי – דורש אימות</span>`;
-  return `<span class="badge b-no">${esc(f.val||"אין מידע על צי")}</span>`;
+  const label=f.s==="v"?"צי רכב מאומת":f.s==="f"?"אינדיקציה לצי – דורש אימות":(f.src===OPQ_MANUAL?f.val:"טרם נמצא מידע על צי");
+  const size=sz.s==="v"?`גודל צי: ${sz.val}`:sz.s==="f"?`גודל צי: ${sz.val} (דורש אימות)`:"גודל צי: לא ידוע";
+  return {s:f.s,label,size,src:f.s!=="n"?f.src:"",sizeS:sz.s,sizeSrc:sz.s!=="n"?sz.src:""};
+}
+const OPQ_MANUAL="אימות ידני";
+function fleetCell(c,noSize){
+  const f=fleetInfo(c), sty=f.s==="v"?"b-ok":f.s==="f"?"b-est":"b-no";
+  return `<span class="badge ${sty}" ${f.src?`title="מקור: ${esc(f.src)}"`:""}>${f.s==="v"?"✓ ":f.s==="f"?"≈ ":""}${esc(f.label)}</span>${noSize?"":`<div class="xs muted" style="margin-top:2px">${esc(f.size)}</div>`}`;
+}
+/* קצין בטיחות / קצין רכב: טרם אותר · אותר – דורש אימות · מאומת עם מקור */
+function officerCell(c,key){
+  const q=QF(c), x=q&&q.field_status[key];
+  if(!x||x.s==="n") return '<span class="faint">טרם אותר</span>';
+  if(x.s==="v") return `<span class="badge b-ok" style="font-size:10px">✓ ${esc(x.val)}</span><div class="xs faint">מאומת · ${esc(x.src)}</div>`;
+  return `<span class="badge b-est" style="font-size:10px">≈ ${esc(x.val)}</span><div class="xs faint">אותר – דורש אימות${x.src?" · "+esc(x.src):""}</div>`;
+}
+/* ערך שדה + מצב אימות (✓ / דורש אימות / —) */
+function fsVal(c,k,ltr){
+  const q=QF(c), x=q&&q.field_status[k];
+  if(!x||x.s==="n"||!String(x.val??"").trim()) return '<span class="faint">—</span>';
+  return `<span class="${ltr?"ltr":""}">${esc(String(x.val))}</span>${x.s==="v"?' <span class="badge b-ok" style="font-size:9px" title="'+esc(x.src||"")+'">✓</span>':' <span class="badge b-est" style="font-size:9px" title="'+esc(x.src||"")+'">דורש אימות</span>'}`;
+}
+const QUAL_STY={high:"b-ok",medium:"b-est",low:"b-no"};
+const qualityBadge=(c,size)=>{const q=QF(c);if(!q)return "";return `<span class="badge ${QUAL_STY[q.lead_quality]}" style="font-size:${size||10.5}px" title="לפי כללים קבועים בלבד (טלפון, רלוונטיות, מקור, צי) – לא AI">איכות: ${OPQualify.QUALITY_LABEL[q.lead_quality]}</span>`};
+const VER_LABEL={verified:"מאומת",partial:"אימות חלקי",unverified:"לא מאומת"};
+const verifBadge=(c,size)=>{const q=QF(c);if(!q)return "";const v=q.verification_status;return `<span class="badge ${v==="verified"?"b-ok":v==="partial"?"b-est":"b-no"}" style="font-size:${size||10.5}px" title="${esc(q.source_list.join(" + ")||"ללא מקור רשמי")}">${VER_LABEL[v]}</span>`};
+/* "מה חסר" – נגזר מ-missing_fields (אותם כללים שנשמרים בעמודה) */
+const missingOf=c=>{const q=QF(c);return q?q.missing_fields.map(k=>OPQualify.missingLabel(k,q.field_status[k].s)):[]};
+const lastCheck=c=>{const e=c.enr||{};return [e.verification_date,e.registry_check&&e.registry_check.checked_at,...(e.evidence||[]).map(x=>x.found_at)].filter(Boolean).map(x=>String(x).slice(0,10)).sort().pop()||""};
+/* מוכן לפנייה = ready_for_contact=true ב-Supabase וגם הכללים מאשרים */
+const isReady=c=>{const q=QF(c);return !!(c.enr&&c.enr.ready_for_contact===true&&q&&q.ready_for_contact)};
+/* מועמד להעשרה בתשלום: ביקשו העשרה, או ליד מתאים/איכותי שחסר לו איש קשר או מייל */
+const isPaidCandidate=(c,q)=>!!q&&q.lead_stage!=="rejected"&&(!!(c.enr&&c.enr.enrichment_requested)||(["qualified","quality"].includes(q.lead_stage)&&(q.field_status.contact_name.s==="n"||q.field_status.email.s==="n")));
+function leadStats(){
+  const s={total:C.length,stage:{},ready:0,noPhone:0,noMail:0,noContact:0,fleetUnverified:0,paidCand:0,quality:{high:0,medium:0,low:0},noEnr:0};
+  C.forEach(c=>{const q=QF(c);
+    if(!q){s.noEnr++;s.stage.basic=(s.stage.basic||0)+1;s.noPhone++;s.noMail++;s.noContact++;s.fleetUnverified++;s.quality.low++;return}
+    const fs=q.field_status;
+    s.stage[q.lead_stage]=(s.stage[q.lead_stage]||0)+1;
+    if(isReady(c))s.ready++;
+    if(fs.phone.s==="n")s.noPhone++;
+    if(fs.email.s==="n")s.noMail++;
+    if(fs.contact_name.s==="n")s.noContact++;
+    if(fs.fleet.s!=="v")s.fleetUnverified++;
+    if(isPaidCandidate(c,q))s.paidCand++;
+    s.quality[q.lead_quality]++;
+  });
+  return s;
 }
 function soState(c){
   const so=c.safetyOfficer||{};
@@ -2046,7 +2108,7 @@ function soBadge(c,size){
   return `<span class="badge" style="${sty};font-size:${size||10.5}px;margin-inline-start:6px" ${soNamed(c)?`title="מקור: ${esc(soSource(c))}"`:""}>🛡️ ${SO_LABEL[st]}${soNamed(c)?`: ${esc(soName(c))}`:""}</span>`;
 }
 /* סיווג רשומה: אף ליד לא מסומן "מאומת" אוטומטית – רק דגל leadVerified מפורש */
-const recordBadges=c=>`${(c.ev||[]).some(e=>e[6]==="A")?'<span class="badge b-blue" style="font-size:10px">רשומה ממקור אמיתי</span>':""} ${c.leadVerified===true?'<span class="badge b-ok" style="font-size:10px">ליד מאומת</span>':'<span class="badge b-est" style="font-size:10px">ליד לבדיקה</span>'}`;
+const recordBadges=c=>`${stageBadge(c,10)} ${verifBadge(c,10)} ${qualityBadge(c,10)}`;
 const fleetBadge=f=>f.s==="v"?`<span class="badge b-ok">✓ ${esc(f.val)}</span>`:f.s==="e"?`<span class="badge b-est">≈ ${esc(f.val)}</span>`:`<span class="badge b-no">${esc(f.val)}</span>`;
 const scoreCls=s=>s>=80?"s-hi":s>=65?"s-mid":"s-lo";
 const stBadge=s=>{const m={new:"b-blue",review:"b-no",contacted:"b-blue",meeting:"b-est",quote:"b-est",won:"b-ok",irrelevant:"b-no"};return `<span class="badge ${m[s]||'b-no'}">${ST[s]||s}</span>`};
@@ -2119,12 +2181,37 @@ const V={};
 /* ===== דשבורד ===== */
 V.dash=()=>{
   const counts=Object.fromEntries(STATUSES.map(([k])=>[k,C.filter(c=>c.status===k).length]));
+  const ls=leadStats(), st=k=>ls.stage[k]||0;
+  const srcNote=S.remoteStatus==="connected"?`מחושב מ-${ls.total} לידים שנטענו כעת מ-Supabase STAGING`:`⚠️ Supabase לא זמין – המונים מחושבים מ-cache מקומי (${ls.total})`;
+  const tile=(l,v,sub,sty)=>`<div class="card kpi" style="${sty||""}"><div class="l">${l}</div><div class="v num">${v}</div>${sub?`<div class="s">${sub}</div>`:""}</div>`;
   return `
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-h"><h2>מצב הלידים – אימות והעשרה<span class="h-bar"></span></h2><span class="spacer"></span><span class="xs muted">${srcNote}</span></div>
+    <div class="card-b" style="padding-top:0">
+      <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
+        ${tile("סה\"כ לידים",ls.total)}
+        ${tile("לידים לבדיקה",st("review"),"נמצאו ברשם – טלפון לא אומת")}
+        ${tile("לידים מאומתים",st("verified"),"רשם + טלפון מאומת")}
+        ${tile("לידים מתאימים",st("qualified"),"מאומת + רלוונטי לצי")}
+        ${tile("לידים איכותיים",st("quality"),"מתאים + 2 שדות מאומתים")}
+        ${tile("מוכנים לפנייה",ls.ready,"ready_for_contact = true","border-color:#86efac")}
+        ${tile("חסר טלפון",ls.noPhone)}
+        ${tile("חסר מייל",ls.noMail)}
+        ${tile("חסר איש קשר",ls.noContact)}
+        ${tile("חסר אימות צי",ls.fleetUnverified)}
+        ${tile("מועמדים להעשרה בתשלום",ls.paidCand,"מתאים/איכותי בלי איש קשר או מייל, או שהתבקשה העשרה")}
+      </div>
+      <div class="row xs muted" style="margin-top:10px;gap:10px;flex-wrap:wrap">
+        <span>רשומה בסיסית: <b class="num">${st("basic")}</b></span><span>לא מתאים: <b class="num">${st("rejected")}</b></span>
+        <span>איכות גבוהה / בינונית / נמוכה: <b class="num">${ls.quality.high} / ${ls.quality.medium} / ${ls.quality.low}</b></span>
+      </div>
+    </div>
+  </div>
   <div class="grid g-kpi">
     ${kpi("חיפושים החודש",String(RUNS.length),"פעילים ב-STAGING")}
-    ${kpi("חברות שנמצאו",String(C.length),`${C.filter(c=>c.score>=80).length} מתאימות בציון 80+`)}
+    ${kpi("חברות שנמצאו",String(C.length),`${st("qualified")+st("quality")+st("ready")} מתאימות לפי כללי האימות`)}
     ${kpi("מועמדים לבדיקת קצב\"ת",String(C.filter(c=>soState(c)).length),`${C.filter(soNamed).length} קצינים אותרו · ${C.filter(soVerified).length} מאומתים`)}
-    ${kpi("אימות רשמי (data.gov.il)",String(C.filter(c=>c.facts.no==="v").length),"חברות מאומתות ח.פ.")}
+    ${kpi("אומתו ברשם (data.gov.il)",String(C.filter(c=>{const q=QF(c);return q&&q.tier==="A"}).length),"פנקס הקבלנים / רשם החברות")}
   </div>
   <div class="grid g-2" style="margin-top:18px">
     <div class="card">
@@ -2144,8 +2231,9 @@ V.dash=()=>{
   </div>
   <div class="grid g-3" style="margin-top:18px">
     <div class="card card-b"><div class="sm muted">רמת ודאות בנתונים</div>
-      <div class="legend" style="margin-top:10px"><span class="badge b-ok">✓ מאומת 62%</span><span class="badge b-est">≈ הערכה 25%</span><span class="badge b-no">לא נמצא 13%</span></div>
-      <p class="xs muted" style="margin:10px 0 0">נתון "מאומת" מופיע רק כשיש קישור למקור. מספר רכבים לא מוצג כמספר בלי ראיה.</p></div>
+      ${(()=>{let v=0,f=0,n=0;C.forEach(c=>{const q=QF(c);if(!q)return;["phone","email","website","contact_name","fleet"].forEach(k=>{const x=q.field_status[k].s;x==="v"?v++:x==="f"?f++:n++})});const t=v+f+n||1;
+        return `<div class="legend" style="margin-top:10px"><span class="badge b-ok">✓ מאומת ${Math.round(v/t*100)}%</span><span class="badge b-est">≈ דורש אימות ${Math.round(f/t*100)}%</span><span class="badge b-no">חסר ${Math.round(n/t*100)}%</span></div>`})()}
+      <p class="xs muted" style="margin:10px 0 0">טלפון, מייל, אתר, איש קשר וצי – מחושב מהנתונים. "מאומת" מופיע רק כשיש מקור. גודל צי לא מוצג בלי ראיה.</p></div>
     <div class="card card-b"><div class="sm muted">מנוע AI פעיל</div><div style="font-size:20px;font-weight:700;margin-top:4px">${engine().name} · <span class="sm muted ltr">${engine().model}</span></div>
       <button class="btn btn-sm" style="margin-top:10px" data-tab="connections">הגדרות חיבורים</button></div>
     <div class="card card-b"><div class="sm muted">ספקי מידע ואימות</div><div style="font-size:20px;font-weight:700;margin-top:4px">data.gov.il + Gemini פעילים</div>
@@ -2870,17 +2958,39 @@ function commitBulkToLeads() {
 }
 
 /* ===== חברות שנמצאו ===== */
+const CO_FILTERS=["st","fleet","stage","phone","mail","contact","ready","missing","quality","city","ind"];
+function coMatch(c,f){
+  const q=QF(c), fs=q?q.field_status:null, s=k=>fs&&fs[k]?fs[k].s:"n";
+  const yn=(v,on)=>!v||(v==="yes"?on:!on);
+  const t=f.q.trim();
+  return (!t||c.name.includes(t)||c.city.includes(t)||c.ind.includes(t)||String(c.no||"").includes(t)||(c.enr&&String(c.enr.contact_name||"").includes(t)))
+    &&(!f.st||c.status===f.st)
+    &&(!f.fleet||s("fleet")===f.fleet)
+    &&(!f.stage||(q?q.lead_stage:"basic")===f.stage)
+    &&yn(f.phone,s("phone")!=="n")&&yn(f.mail,s("email")!=="n")&&yn(f.contact,s("contact_name")!=="n")
+    &&yn(f.ready,isReady(c))
+    &&(!f.missing||(f.missing==="required"?(!q||q.blockers.length>0):f.missing==="any"?(!q||q.missing_fields.length>0):(q&&q.missing_fields.length===0)))
+    &&(!f.quality||(q?q.lead_quality:"low")===f.quality)
+    &&(!f.city||c.city===f.city)&&(!f.ind||c.ind===f.ind);
+}
 V.companies=()=>{
   const f=S.coFilter;
-  const fleetKey=c=>{const q=QF(c);return q?q.field_status.fleet.s:(c.fleet&&c.fleet.s)};
-  const list=C.filter(c=>(!f.q||c.name.includes(f.q)||c.city.includes(f.q)||c.ind.includes(f.q)||String(c.no||"").includes(f.q.trim()))&&(!f.st||c.status===f.st)&&(!f.fleet||fleetKey(c)===f.fleet)&&(!f.stage||stageOf(c)===f.stage));
-  
+  const list=C.filter(c=>coMatch(c,f));
+  const active=CO_FILTERS.filter(k=>f[k]).length+(f.q?1:0);
+  const uniq=key=>[...new Set(C.map(c=>c[key]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"he"));
+  const opt=(id,l,opts)=>`<select class="input" style="max-width:170px;height:34px;font-size:12.5px" id="f-${id}"><option value="">${l}</option>${opts.map(([v,t])=>`<option value="${esc(v)}" ${f[id]===v?"selected":""}>${esc(t)}</option>`).join("")}</select>`;
+  const YN=(y,n)=>[["yes",y],["no",n]];
+
   const pageSize = S.coPageSize || 50;
   const totalPages = Math.ceil(list.length / pageSize) || 1;
   if (S.coPage > totalPages) S.coPage = totalPages;
   if (S.coPage < 1) S.coPage = 1;
   const startIdx = (S.coPage - 1) * pageSize;
   const pagedList = list.slice(startIdx, startIdx + pageSize);
+  const pager = list.length > pageSize ? `<div class="row sm" style="align-items:center;gap:6px">
+      <button class="btn btn-sm" data-act="prevCoPage" ${S.coPage <= 1 ? 'disabled style="opacity:.5"' : ''}>◀ עמוד קודם</button>
+      <span class="num xs">עמוד ${S.coPage} מתוך ${totalPages}</span>
+      <button class="btn btn-sm" data-act="nextCoPage" ${S.coPage >= totalPages ? 'disabled style="opacity:.5"' : ''}>עמוד הבא ▶</button></div>` : "";
 
   return `<div class="card">
     <div class="card-h">
@@ -2894,54 +3004,45 @@ V.companies=()=>{
     </div>
     <div class="card-b" style="padding-bottom:0">
       <div class="row" style="flex-wrap:wrap;gap:8px">
-        <input class="input" style="max-width:260px" id="f-q" placeholder="חיפוש לפי שם, ח.פ., עיר, ענף" value="${esc(f.q)}">
-        <select class="input" style="max-width:180px" id="f-st">
-          <option value="">כל הסטטוסים</option>
-          ${STATUSES.map(([k,l])=>`<option value="${k}" ${f.st===k?"selected":""}>${l}</option>`).join("")}
-        </select>
-        <select class="input" style="max-width:200px" id="f-fleet">
-          <option value="">כל מצבי הצי</option>
-          <option value="v" ${f.fleet==="v"?"selected":""}>צי מאומת</option>
-          <option value="f" ${f.fleet==="f"?"selected":""}>אינדיקציה לצי – דורש אימות</option>
-          <option value="n" ${f.fleet==="n"?"selected":""}>אין מידע על צי</option>
-        </select>
-        <select class="input" style="max-width:190px" id="f-stage">
-          <option value="">כל שלבי הליד</option>
-          ${(window.OPQualify?OPQualify.STAGES:[]).map(([k,l])=>`<option value="${k}" ${f.stage===k?"selected":""}>${l}</option>`).join("")}
-        </select>
-        ${list.length > pageSize ? `
-          <span class="spacer"></span>
-          <div class="row sm" style="align-items:center;gap:6px">
-            <button class="btn btn-sm" data-act="prevCoPage" ${S.coPage <= 1 ? 'disabled style="opacity:.5"' : ''}>◀ עמוד קודם</button>
-            <span class="num xs">עמוד ${S.coPage} מתוך ${totalPages}</span>
-            <button class="btn btn-sm" data-act="nextCoPage" ${S.coPage >= totalPages ? 'disabled style="opacity:.5"' : ''}>עמוד הבא ▶</button>
-          </div>
-        ` : ''}
+        <input class="input" style="max-width:260px;height:34px" id="f-q" placeholder="חיפוש לפי שם, ח.פ., עיר, ענף, איש קשר" value="${esc(f.q)}">
+        ${opt("stage","כל שלבי הליד",(window.OPQualify?OPQualify.STAGES:[]))}
+        ${opt("ready","מוכן לפנייה – הכל",YN("מוכן לפנייה","לא מוכן לפנייה"))}
+        ${opt("quality","כל רמות האיכות",[["high","איכות גבוהה"],["medium","איכות בינונית"],["low","איכות נמוכה"]])}
+        ${opt("missing","חסר מידע – הכל",[["required","חסר מידע חובה"],["any","חסר מידע כלשהו"],["none","לא חסר מידע"]])}
+        ${opt("phone","טלפון – הכל",YN("יש טלפון","אין טלפון"))}
+        ${opt("mail","מייל – הכל",YN("יש מייל","אין מייל"))}
+        ${opt("contact","איש קשר – הכל",YN("יש איש קשר","אין איש קשר"))}
+        ${opt("fleet","כל מצבי הצי",[["v","צי מאומת"],["f","אינדיקציה לצי – דורש אימות"],["n","אין מידע על צי"]])}
+        ${opt("city","כל הערים",uniq("city").map(x=>[x,x]))}
+        ${opt("ind","כל התחומים",uniq("ind").map(x=>[x,x]))}
+        ${opt("st","כל סטטוסי הטיפול",STATUSES)}
+        ${active?`<button class="btn btn-sm" data-act="clearCoFilters">✕ נקה סינון (${active})</button>`:""}
+        <span class="spacer"></span>${pager}
       </div>
     </div>
-    <div class="tbl-wrap" style="margin-top:14px"><table class="co"><thead><tr><th>ציון צי</th><th>חברה</th><th>ח.פ.</th><th>ענף</th><th>עיר</th><th>צי רכב</th><th>אנשי קשר</th><th>שלב ליד</th><th>סטטוס</th></tr></thead><tbody>
-    ${pagedList.map(c=>`<tr data-co="${c.id}">
-      <td><span class="score ${scoreCls(c.score)}">${c.score}</span></td>
-      <td>
-        <div class="co-name">
-          ${esc(c.name)}
-          ${soBadge(c)}
-        </div>
-        <div class="xs muted ltr">${esc(c.web)}</div>
+    <div class="tbl-wrap" style="margin-top:14px"><table class="co"><thead><tr>
+      <th>חברה</th><th>טלפון</th><th class="hide-m">מייל</th><th class="hide-m">עיר · תחום</th><th>צי רכב</th>
+      <th class="hide-m">איש קשר</th><th class="hide-m">קצב"ת / קצין רכב</th><th>שלב · אימות · איכות</th><th class="hide-m">מה חסר</th><th class="hide-m">בדיקה אחרונה</th></tr></thead><tbody>
+    ${pagedList.map(c=>{const q=QF(c), miss=missingOf(c), e=c.enr||{};
+      return `<tr data-co="${c.id}">
+      <td style="min-width:170px">
+        <div class="co-name">${esc(c.name)}</div>
+        <div class="xs muted"><span class="ltr num">${esc(c.no||"")}</span>${c.web||e.website?` · <span class="ltr">${esc(c.web||e.website)}</span>`:""}</div>
       </td>
-      <td class="num xs ltr">${esc(c.no)}</td>
-      <td class="hide-m">${esc(c.ind)}</td><td>${esc(c.city)}</td>
-      <td>${fleetCell(c)}</td>
-      <td class="hide-m num">${c.enr&&c.enr.contact_name?esc(c.enr.contact_name):'<span class="faint">—</span>'}</td>
-      <td>${stageBadge(c)}</td>
-      <td>${stBadge(c.status)}</td></tr>`).join("")||`<tr><td colspan="9"><div class="empty">אין חברות שתואמות לסינון. נסה להסיר סינון.</div></td></tr>`}
+      <td class="xs" style="white-space:nowrap">${fsVal(c,"phone",true)}</td>
+      <td class="xs hide-m">${fsVal(c,"email",true)}</td>
+      <td class="xs hide-m">${esc(c.city)}<div class="faint">${esc(c.ind)}</div></td>
+      <td class="xs">${fleetCell(c)}</td>
+      <td class="xs hide-m">${e.contact_name?fsVal(c,"contact_name")+(e.contact_role?`<div class="faint">${esc(e.contact_role)}</div>`:""):'<span class="faint">טרם אותר</span>'}</td>
+      <td class="xs hide-m"><div>קצב"ת: ${officerCell(c,"safety_officer")}</div><div style="margin-top:3px">קצין רכב: ${officerCell(c,"fleet_manager")}</div></td>
+      <td><div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">${stageBadge(c)}${verifBadge(c)}${qualityBadge(c)}</div></td>
+      <td class="xs hide-m" title="${esc(miss.join(", "))}">${miss.length?`<span class="badge b-est" style="font-size:10px">${miss.length} חסרים</span><div class="faint" style="margin-top:2px">${esc(miss.slice(0,3).join(", "))}${miss.length>3?"…":""}</div>`:'<span class="badge b-ok" style="font-size:10px">לא חסר</span>'}</td>
+      <td class="num xs hide-m">${esc(lastCheck(c)||"—")}</td></tr>`}).join("")||`<tr><td colspan="10"><div class="empty">אין חברות שתואמות לסינון. נסה להסיר סינון.</div></td></tr>`}
     </tbody></table></div>
-    ${list.length > pageSize ? `
+    ${pager ? `
       <div class="row" style="padding:12px 16px;border-top:1px solid var(--border);align-items:center">
         <span class="xs muted">מוצגות ${pagedList.length} חברות (עמוד ${S.coPage} מתוך ${totalPages}) מתוך סה"כ ${list.length}</span>
-        <span class="spacer"></span>
-        <button class="btn btn-sm" data-act="prevCoPage" ${S.coPage <= 1 ? 'disabled style="opacity:.5"' : ''}>◀ עמוד קודם</button>
-        <button class="btn btn-sm" data-act="nextCoPage" ${S.coPage >= totalPages ? 'disabled style="opacity:.5"' : ''}>עמוד הבא ▶</button>
+        <span class="spacer"></span>${pager}
       </div>
     ` : ''}
   </div>`;
@@ -2961,7 +3062,7 @@ function fld(k,v,s,src){return `<div class="fld"><div class="k">${k}</div><div c
 const CRM_HANDOFF_ENABLED=false; /* העברה בפועל ל-crm_leads כבויה – דורשת אישור מפורש */
 const HANDOFF_LABEL={pending_approval:"ממתין לאישור העברה",approved:"אושר להעברה",sent:"הועבר",cancelled:"בוטל"};
 function crmHandoffBtn(c,compact){
-  const q=QF(c), ready=!!(q&&q.ready_for_contact), hs=c.enr&&c.enr.crm_handoff_status;
+  const ready=isReady(c), hs=c.enr&&c.enr.crm_handoff_status;
   if(hs) return `<span class="badge b-blue" style="font-size:${compact?10.5:12}px">📤 ${HANDOFF_LABEL[hs]||hs}</span>`;
   const tip=ready?"רישום בקשה להעברה לפולו-אפ / CRM – לא נשלח עד אישור":"זמין רק לליד במצב 'מוכן לפנייה'";
   return compact
@@ -2974,25 +3075,62 @@ function buildCrmLeadPayload(c){
   return {company_name:c.name,contact_name:e.contact_name||null,phone:c.phone,email:c.mail||null,source:"openprospector",status:"new",
     service_type:"fleet_garage",notes:c.notes||"",metadata:{company_hp:c.no,prospect_lead_id:e.id,lead_stage:e.lead_stage,source_list:e.source_list||[],verification_date:e.verification_date||null}};
 }
+/* סדר התצוגה של "מידע שנמצא" */
+const FOUND_ROWS=[["phone","טלפון",1],["email","מייל",1],["website","אתר",1],["address","כתובת"],["industry","תחום פעילות"],
+  ["contact_name","איש קשר"],["contact_role","תפקיד"],["contact_phone","טלפון איש קשר",1],["contact_email","מייל איש קשר",1],
+  ["contact_linkedin","LinkedIn איש קשר",1],["linkedin_company","LinkedIn חברה",1],
+  ["fleet","צי רכב"],["fleet_size","גודל צי"],["fleet_types","סוגי רכבים"],["fleet_manager","קצין רכב / מנהל צי"],["safety_officer","קצין בטיחות"],
+  ["company","חברה (רישום רשמי)"],["hp","ח.פ."],["source","מקור הרשומה"],["relevance","רלוונטיות לצי"]];
 function enrichmentSection(c){
   const q=QF(c);
   if(!q) return `<div class="card" style="margin-bottom:14px"><div class="card-b xs muted">מידע אימות עדיין לא נטען מ-Supabase עבור ליד זה.</div></div>`;
   const e=c.enr, fs=q.field_status, m=fs.manual||{};
-  const row=([k,l,kind])=>{const x=fs[k]||{s:"n"};return `<tr><td class="sm">${l}${kind==="required"?' <span class="xs" style="color:var(--bad)">*</span>':""}</td><td>${FS_BADGE[x.s]}</td><td class="sm">${esc(String(x.val||""))||'<span class="faint">—</span>'}</td><td class="xs muted">${esc(x.src||"")}</td></tr>`};
+  const REQ=Object.fromEntries(OPQualify.FIELDS.map(([k,,kind])=>[k,kind]));
+  const fl=fleetInfo(c);
+  const shown=(k,x)=>k==="fleet"?esc(fl.label):k==="fleet_size"?esc(fl.size):esc(String(x.val??""));
+  const row=([k,l,ltr])=>{const x=fs[k]||{s:"n"};const v=x.s==="n"&&k!=="fleet"&&k!=="fleet_size"?"":shown(k,x);
+    return `<tr><td class="sm">${l}${REQ[k]==="required"?' <span class="xs" style="color:var(--bad)">*</span>':""}</td><td class="sm ${ltr?"ltr":""}">${v||'<span class="faint">—</span>'}</td><td>${FS_BADGE[x.s]}</td><td class="xs muted">${x.s==="n"?"":esc(x.src||(k==="source"?x.val:"ללא מקור"))}</td></tr>`};
+  const miss=missingOf(c);
   const chk=(id,on,label)=>`<label class="xs" style="display:inline-flex;gap:4px;align-items:center"><input type="checkbox" id="${id}" ${on?"checked":""}> ${label}</label>`;
   const inp=(id,val,ph,type)=>`<input class="input" style="height:32px;font-size:12.5px;max-width:200px" id="${id}" type="${type||"text"}" value="${esc(val==null?"":String(val))}" placeholder="${ph}">`;
+  const box=(title,body)=>`<div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--soft)"><div class="xs bold" style="margin-bottom:6px">${title}</div>${body}</div>`;
+  const kv=(k,v,ltr)=>`<div class="xs" style="margin-top:2px"><span class="muted">${k}:</span> <span class="${ltr?"ltr":""}">${v}</span></div>`;
+  const research=(e.evidence||[]);
   return `<div class="card" style="margin-bottom:14px;border:1.5px solid var(--border)">
-    <div class="card-h"><h3>מידע חסר / אימות<span class="h-bar"></span></h3><span class="spacer"></span>${stageBadge(c,12)}
-      <span class="badge b-no" style="font-size:11px">איכות: ${{high:"גבוהה",medium:"בינונית",low:"נמוכה"}[q.lead_quality]}</span></div>
+    <div class="card-h"><h3>מידע שנמצא<span class="h-bar"></span></h3><span class="spacer"></span>${stageBadge(c,12)} ${verifBadge(c,11)} ${qualityBadge(c,11)}</div>
     <div class="card-b" style="padding-top:0;display:grid;gap:10px">
       ${q.ready_for_contact?'<div class="badge b-ok" style="padding:8px 10px">✅ עומד בכל תנאי החובה – מוכן לפנייה</div>'
         :`<div style="background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12.5px"><b>חסר כדי להגיע ל"מוכן לפנייה":</b> ${esc(q.blockers.join(", "))}</div>`}
       ${q.rejected_reason?`<div class="badge b-bad" style="padding:8px 10px">⛔ ${esc(q.rejected_reason)}</div>`:""}
       ${(fs.warnings||[]).map(w=>`<div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:6px 10px;font-size:12px">⚠️ ${esc(w)}</div>`).join("")}
-      <div class="tbl-wrap"><table class="co"><thead><tr><th>שדה</th><th>מצב</th><th>ערך</th><th>מקור</th></tr></thead><tbody>
-        ${OPQualify.FIELDS.map(row).join("")}
+
+      <div class="grid g-3" style="gap:10px">
+        ${box("🚚 צי רכב",`<div>${fleetCell(c,true)}</div>${kv("גודל",esc(fl.size.replace("גודל צי: ","")))}${fs.fleet_types.s!=="n"?kv("סוגי רכבים",esc(fs.fleet_types.val)):""}${kv("מקור",esc(fl.src||"—"))}`)}
+        ${box("👤 איש קשר",e.contact_name
+          ?`<div class="sm bold">${esc(e.contact_name)} ${FS_BADGE[fs.contact_name.s]}</div>${kv("תפקיד",esc(e.contact_role||"—"))}${kv("טלפון",esc(e.contact_phone||"—"),1)}${kv("מייל",esc(e.contact_email||"—"),1)}${kv("LinkedIn",e.contact_linkedin?`<a href="${esc(e.contact_linkedin)}" target="_blank" rel="noopener noreferrer">פרופיל</a>`:"—")}${kv("מקור",esc(fs.contact_name.src||"ללא מקור"))}`
+          :'<div class="sm faint">איש קשר טרם אותר</div>')}
+        ${box("🛡️ קצין בטיחות / קצין רכב",`<div class="xs muted">קצין בטיחות:</div><div>${officerCell(c,"safety_officer")}</div><div class="xs muted" style="margin-top:6px">קצין רכב / מנהל צי:</div><div>${officerCell(c,"fleet_manager")}</div>`)}
+      </div>
+
+      <div class="tbl-wrap"><table class="co"><thead><tr><th>שדה</th><th>ערך</th><th>סטטוס אימות</th><th>מקור</th></tr></thead><tbody>
+        ${FOUND_ROWS.map(row).join("")}
+        <tr><td class="sm">תאריך בדיקה</td><td class="sm num">${esc(lastCheck(c)||"—")}</td><td></td><td class="xs muted">${e.verification_date?"תאריך אימות אחרון":""}</td></tr>
       </tbody></table></div>
-      <div class="xs muted">* שדה חובה ל"מוכן לפנייה". גודל צי לעולם אינו מוערך – רק ערך שאומת. איש מקצוע מפנקס הקבלנים (OVDIM) אינו קצין בטיחות.</div>
+      <div class="xs muted">* שדה חובה ל"מוכן לפנייה". "מאומת" מוצג רק עם מקור. גודל צי לעולם אינו מוערך. איש מקצוע מפנקס הקבלנים (OVDIM) אינו קצין בטיחות.</div>
+
+      <div style="border:1.5px solid ${miss.length?"#fde68a":"#bbf7d0"};background:${miss.length?"#fffbeb":"#f0fdf4"};border-radius:10px;padding:10px 12px">
+        <div class="sm bold" style="margin-bottom:6px">מה חסר לליד ${miss.length?`(${miss.length})`:""}</div>
+        ${miss.length?`<div class="row" style="gap:6px;flex-wrap:wrap">${miss.map(x=>`<span class="badge ${x.startsWith("חסר אימות")?"b-est":"b-no"}" style="font-size:11.5px">${esc(x)}</span>`).join("")}</div>`:'<div class="sm" style="color:#166534">✓ לא חסר מידע</div>'}
+      </div>
+
+      ${research.length?`<details style="border:1px solid var(--border);border-radius:10px;padding:8px 12px" open>
+        <summary class="sm bold" style="cursor:pointer">🔎 ממצאי מחקר ומקורות (${research.length})</summary>
+        <div class="tbl-wrap" style="margin-top:8px"><table class="co"><thead><tr><th>שדה</th><th>ערך</th><th>סטטוס</th><th>מקור</th><th>תאריך</th></tr></thead><tbody>
+        ${research.map(r=>`<tr><td class="xs">${esc((OPQualify.MISSING_SHORT[r.field]||r.field||""))}</td><td class="xs">${esc(String(r.value??""))}</td>
+          <td>${OPQualify.isVerifiedFinding(r)?FS_BADGE.v:FS_BADGE.f}</td>
+          <td class="xs">${esc(r.source||"ללא מקור")}${r.url?` · <a class="ltr" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">קישור</a>`:""}</td><td class="xs num">${esc(String(r.found_at||"").slice(0,10))}</td></tr>`).join("")}
+        </tbody></table></div></details>`:""}
+
       <details style="border:1px solid var(--border);border-radius:10px;padding:8px 12px">
         <summary class="sm bold" style="cursor:pointer">✍️ עדכון ואימות ידני (נשמר ב-Supabase STAGING)</summary>
         <div style="display:grid;gap:8px;margin-top:10px">
@@ -3073,9 +3211,8 @@ function companyCard(c){
                 <div class="xs muted" style="margin-top:2px">${soVerified(c) ? "אומת – מקור: " + esc(soSource(c)) : (soNamed(c) ? "נמצא ברשומה – דורש אימות (מקור רשום: " + esc(soSource(c)) + ")" : 'נדרשת בדיקה – אין מקור מפורש לקצין או לחובת מינוי')}</div>
               </div>
               <div>
-                <div class="xs muted">סוג הצי והיקף:</div>
-                <div class="bold" style="font-size:14px;color:var(--text);margin-top:2px">${esc(c.fleetType || 'משאיות / כלי רכב כבדים')}</div>
-                <div class="xs muted" style="margin-top:2px">היקף: ${esc(c.fleet?.val || 'לא צוין')}</div>
+                <div class="xs muted">צי רכב:</div>
+                <div style="margin-top:2px">${fleetCell(c)}</div>
               </div>
             </div>
             ${c.safetyOfficer?.note ? `
@@ -3104,78 +3241,15 @@ function companyCard(c){
         </div>
       ` : ''}
 
-      <div class="card"><div class="card-h"><h3>פרטי החברה והאימות<span class="h-bar"></span></h3><span class="spacer"></span><div class="legend"><span class="badge b-ok">✓ מאומת</span><span class="badge b-est">≈ הערכה</span><span class="badge b-no">לא נמצא</span></div></div>
-        <div class="fields">
-          ${fld("שם החברה",esc(c.name),"v","רשם החברות הממשלתי")}
-          ${fld("מספר חברה (ח.פ.)",`<span class="ltr num">${val(c.no,c.facts.no)}</span>`,c.facts.no,c.facts.no==="v"?"רשם החברות הממשלתי (data.gov.il)":"")}
-          ${fld("תחום פעילות",esc(c.ind),c.facts.ind,"אתר החברה")}
-          ${fld("סוג צי רכב",esc(c.fleetType || "מסחרי / תפעולי"),"v","משרד התחבורה / פנקס הקבלנים")}
-          ${fld("כתובת",val(c.addr,c.facts.addr),c.facts.addr,c.facts.addr!=="n"?"רשם החברות":"")}
-          ${fld("עיר",esc(c.city),"v","")}
-          ${fld("אתר אינטרנט",`<span class="ltr">${esc(c.web)}</span>`,c.facts.web,"")}
-
-          ${c.multiPhones && c.multiPhones.length ? `
-            <div class="fld" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--soft)">
-              <div class="k" style="margin-bottom:6px">📞 טלפונים עסקיים ומקורותיהם (Multi-Source Numbers)</div>
-              <div class="v" style="display:flex;flex-direction:column;gap:8px">
-                ${c.multiPhones.map(p => `
-                  <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap">
-                    <span class="ltr num bold" style="font-size:14px;color:var(--text)">${esc(p.val)}</span>
-                    <span class="tier-badge tier-${p.tier.toLowerCase()}">${esc(p.tierLabel || ('Tier ' + p.tier))}</span>
-                    <span class="xs muted">מקור: ${esc(p.source)}</span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : fld("טלפון עסקי",`<span class="ltr num">${val(c.phone,c.facts.phone)}</span>`,c.facts.phone,c.facts.phone==="v"?"Google Places":"")}
-
-          ${c.multiMails && c.multiMails.length ? `
-            <div class="fld" style="grid-column:1/-1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--soft)">
-              <div class="k" style="margin-bottom:6px">✉️ כתובות דוא"ל ומקורותיהן (Multi-Source Emails)</div>
-              <div class="v" style="display:flex;flex-direction:column;gap:8px">
-                ${c.multiMails.map(m => `
-                  <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap">
-                    <span class="ltr bold" style="font-size:13px;color:var(--text)">${esc(m.val)}</span>
-                    <span class="tier-badge tier-${m.tier.toLowerCase()}">${esc(m.tierLabel || ('Tier ' + m.tier))}</span>
-                    <span class="xs muted">מקור: ${esc(m.source)}</span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-          ` : fld("מייל כללי",c.mail?`<span class="ltr">${esc(c.mail)}</span>`:'<span class="faint">לא נמצא</span>',c.facts.mail,c.mail?"דף 'צור קשר'":"")}
-
-          ${fld("גודל חברה",val(c.size,c.facts.size),c.facts.size,c.facts.size==="e"?"לפי פרופיל החברה":"")}
-          ${fld("מספר רכבים וראיות צי",fleetBadge(c.fleet),"",esc(c.fleet.src))}
-        </div></div>
-      <div class="grid g-2">
-        <div class="card"><div class="card-h"><h3>ראיות ומקורות מידע (Fleet Evidence)<span class="h-bar"></span></h3><span class="spacer"></span><span class="chip">${c.ev.length} ראיות</span></div>
-          <div class="card-b" style="padding-top:0">
-            <div style="display:grid;gap:8px">
-              ${c.ev.map(([i,t,d,u,s,dt,tier,tierLbl])=>{
-                /* תקנה 579 מוצגת כמאומתת רק כשקיים מקור מפורש לחובה או לקצין */
-                const inferred579 = /תקנה 579/.test(t) && !soVerified(c);
-                return `<div class="ev" style="margin:0;border:1px solid var(--border);border-radius:10px;padding:10px 12px">
-                <div class="src-ic" style="font-size:20px">${i}</div>
-                <div style="flex:1;min-width:0">
-                  <div class="row" style="flex-wrap:wrap;gap:6px;align-items:center">
-                    <b class="sm" style="color:var(--text)">${esc(t)}</b>${cBadge(inferred579 ? "e" : s)}
-                    ${inferred579 ? `<span class="badge b-est">הסקה – חובה לא הוכחה לחברה זו</span>` : (tier ? `<span class="tier-badge tier-${tier.toLowerCase()}">${esc(tierLbl || ('Tier ' + tier))}</span>` : '')}
-                    <span class="spacer"></span>
-                    <span class="xs muted num">${dt}</span>
-                  </div>
-                  <div class="sm" style="margin-top:4px">${esc(d)}</div>
-                  <div class="xs faint ltr" style="margin-top:2px">${esc(u)}</div>
-                </div></div>`;}).join("")}
-            </div>
-            <div class="xs muted" style="margin-top:10px;padding:8px 10px;background:var(--soft);border-radius:8px">
-              ℹ️ כל מקור נשמר בנפרד ללא ערבוב. <b>הערכת AI (Gemini)</b> מוגדרת כ-<b>Tier E (משוער)</b> בלבד ואינה מוצגת כעובדה.
-            </div>
-          </div>
-        </div>
-        <div class="card"><div class="card-h"><h3>אנשי קשר ומקבלי החלטות<span class="h-bar"></span></h3><span class="spacer"></span><button class="btn btn-sm" data-act="enrich">איתור פרטי קשר</button></div>
-          ${c.people.length?c.people.map((p,i)=>`<div class="contact" data-person="${i}"><div class="av">${esc(p[0][0])}</div><div style="flex:1;min-width:0"><div class="row"><b class="sm">${esc(p[0])}</b>${cBadge(p[2])}</div><div class="xs muted">${esc(p[1])}</div></div><span class="faint">‹</span></div>`).join("")
-            :'<div class="empty sm">עדיין לא נמצאו אנשי קשר.<br>אפשר להפעיל איתור (דורש אישור לספק בתשלום).</div>'}</div>
-      </div>
+      ${(c.ev||[]).length?`<details class="card" style="padding:10px 14px">
+        <summary class="sm bold" style="cursor:pointer">📁 נתונים מהרשומה המקורית (${c.ev.length}) – לא אומתו מחדש, אינם מוצגים כמאומתים</summary>
+        <div style="display:grid;gap:8px;margin-top:10px">
+          ${c.ev.filter(Array.isArray).map(([i,t,d,u,,dt])=>`<div class="ev" style="margin:0;border:1px solid var(--border);border-radius:10px;padding:8px 12px">
+            <div class="src-ic" style="font-size:18px">${i}</div>
+            <div style="flex:1;min-width:0"><div class="row" style="gap:6px;align-items:center;flex-wrap:wrap"><b class="sm">${esc(t)}</b><span class="badge b-no" style="font-size:10px">נתון ישן – דורש אימות</span><span class="spacer"></span><span class="xs muted num">${esc(dt||"")}</span></div>
+            <div class="xs" style="margin-top:2px">${esc(d)}</div><div class="xs faint ltr">${esc(u)}</div></div></div>`).join("")}
+          ${c.certifiedProfessional?`<div class="xs" style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:6px 10px;color:#92400e">👷 איש מקצוע ברישיון הקבלן (OVDIM): ${esc(c.certifiedProfessional.name)} – אינו איש קשר מאומת ואינו קצין בטיחות</div>`:""}
+        </div></details>`:""}
       <div class="card"><div class="card-h"><h3>הערות על החברה<span class="h-bar"></span></h3></div><div class="card-b">
         <textarea class="input" rows="3" id="notes" placeholder="הוסף הערה על החברה">${esc(c.notes)}</textarea>
         <div class="row" style="margin-top:10px"><span class="xs muted">נמצאה: ${c.found} · עדכון אחרון: ${c.upd}</span><span class="spacer"></span><button class="btn btn-navy btn-sm" data-act="saveNote">שמור הערה</button></div></div></div>
@@ -3229,9 +3303,11 @@ V.leads=()=>{
   }
   /* תצוגת שלבי ליד: "ready" = מוכן לפנייה, "stage:<key>" = כל שלב אחר */
   const stageKey = cat === "ready" ? "ready" : (cat.startsWith("stage:") ? cat.slice(6) : "");
-  if (stageKey) filteredC = C.filter(c => stageOf(c) === stageKey);
+  /* "מוכן לפנייה" = ready_for_contact=true ב-Supabase (וגם הכללים מאשרים) */
+  if (stageKey) filteredC = C.filter(c => stageKey === "ready" ? isReady(c) : stageOf(c) === stageKey);
   const stageCounts = {};
   C.forEach(c => { const s = stageOf(c); stageCounts[s] = (stageCounts[s] || 0) + 1; });
+  stageCounts.ready = C.filter(isReady).length;
 
   return `
   <!-- כותרת ראשית וסנכרון CRM -->
@@ -3351,10 +3427,7 @@ V.leads=()=>{
             ` : ''}
 
             <div style="margin-top:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-              <span class="badge" style="background:var(--soft);color:var(--text);border:1px solid var(--border);font-size:11px">
-                ${esc(c.fleetType || 'צי מסחרי')}
-              </span>
-              ${fleetBadge(c.fleet)}
+              ${fleetCell(c,true)}
             </div>
 
             <div class="row" style="margin-top:8px;gap:6px;align-items:center">
@@ -3383,6 +3456,9 @@ function stageTable(list, stageKey) {
   S.stPage = Math.min(Math.max(1, S.stPage || 1), pages);
   const page = list.slice((S.stPage - 1) * pageSize, S.stPage * pageSize);
   const stLabel = window.OPQualify ? OPQualify.STAGE_LABEL[stageKey] : stageKey;
+  /* ready_for_contact ב-DB שאינו תואם לכללים – מוצג כהתראה, לא כליד מוכן */
+  const readyMismatch = stageKey === "ready" ? C.filter(c => { const q = QF(c); return c.enr && q && (c.enr.ready_for_contact === true) !== q.ready_for_contact; }).length : 0;
+  const mismatchNote = readyMismatch ? `<div class="xs" style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:6px 10px;margin:8px 16px">⚠️ ${readyMismatch} לידים: ready_for_contact ב-Supabase אינו תואם לכללי האימות – לא מוצגים כאן עד לבדיקה</div>` : "";
   const pager = list.length > pageSize ? `<div class="row sm" style="gap:6px;align-items:center">
       <button class="btn btn-sm" data-act="stPrev" ${S.stPage <= 1 ? "disabled" : ""}>◀ עמוד קודם</button>
       <span class="num xs">עמוד ${S.stPage} מתוך ${pages}</span>
@@ -3392,7 +3468,7 @@ function stageTable(list, stageKey) {
     const blk = {};
     C.forEach(c => { const q = QF(c); if (q && q.lead_stage !== "rejected") q.blockers.forEach(b => blk[b] = (blk[b] || 0) + 1); });
     const top = Object.entries(blk).sort((a, b) => b[1] - a[1]);
-    return `<div class="card"><div class="card-b">
+    return `<div class="card">${mismatchNote}<div class="card-b">
       <h3 style="margin:0 0 6px">אין כרגע לידים בשלב "${esc(stLabel)}"</h3>
       ${stageKey === "ready" ? `<div class="sm muted" style="line-height:1.6">ליד מוכן לפנייה רק כשכל תנאי החובה מאומתים: חברה רשומה, ח.פ., מקור, טלפון תקין ומאומת, צי רכב מאומת, רלוונטיות לדליה, ללא כפילות וללא פסילה.
         <br>גודל צי לא מוערך ולא מומצא – יש לאמת צי בשיחה או ממקור מפורש ("מידע חסר / אימות" בכרטיס הליד).</div>
@@ -3401,10 +3477,10 @@ function stageTable(list, stageKey) {
   }
   return `<div class="card">
     <div class="card-h"><h2>${stageKey === "ready" ? "✅ מוכן לפנייה" : esc(stLabel)}<span class="h-bar"></span></h2><span class="chip num">${list.length} לידים</span>
-      <span class="xs muted">ללא העברה אוטומטית ל-CRM</span><span class="spacer"></span>${pager}</div>
+      <span class="xs muted">ללא העברה אוטומטית ל-CRM</span><span class="spacer"></span>${pager}</div>${mismatchNote}
     <div class="tbl-wrap"><table class="co"><thead><tr>
       <th>חברה</th><th>ח.פ.</th><th>טלפון</th><th>מייל</th><th>אתר</th><th>כתובת</th><th>תחום</th><th>צי</th><th>גודל צי</th>
-      <th>איש קשר</th><th>תפקיד</th><th>קצב"ת (מאומת)</th><th>מקור</th><th>רמת אימות</th><th>תאריך בדיקה</th><th>הערות</th><th></th></tr></thead><tbody>
+      <th>איש קשר</th><th>תפקיד</th><th>קצב"ת</th><th>מקור</th><th>רמת אימות</th><th>תאריך אימות</th><th>הערות</th><th>פולו-אפ / CRM</th></tr></thead><tbody>
       ${page.map(c => { const q = QF(c) || { field_status: {}, source_list: [] }; const fs = q.field_status; const e = c.enr || {};
         const cell = (k, v) => `${esc(String(v || "")) || '<span class="faint">—</span>'}${fs[k] && fs[k].s === "f" ? ' <span class="badge b-est" style="font-size:9.5px">דורש אימות</span>' : ""}`;
         return `<tr data-co="${c.id}">
@@ -3415,13 +3491,13 @@ function stageTable(list, stageKey) {
         <td class="ltr xs">${cell("website", c.web || e.website)}</td>
         <td class="xs">${esc(c.addr || "")}</td>
         <td class="xs">${esc((fs.relevance && fs.relevance.val) || c.ind)}</td>
-        <td>${fleetCell(c)}</td>
-        <td class="num xs">${fs.fleet_size && fs.fleet_size.s === "v" ? esc(String(fs.fleet_size.val)) : '<span class="faint">לא ידוע</span>'}</td>
+        <td>${fleetCell(c, true)}</td>
+        <td class="num xs">${fs.fleet_size && fs.fleet_size.s !== "n" ? esc(String(fs.fleet_size.val)) + (fs.fleet_size.s === "f" ? ' <span class="badge b-est" style="font-size:9.5px">דורש אימות</span>' : "") : '<span class="faint">לא ידוע</span>'}</td>
         <td class="xs">${cell("contact_name", e.contact_name)}</td>
         <td class="xs">${cell("contact_role", e.contact_role)}</td>
-        <td class="xs">${soVerified(c) ? esc(soName(c)) + `<div class="faint">${esc(soSource(c))}</div>` : '<span class="faint">—</span>'}</td>
+        <td class="xs">${officerCell(c, "safety_officer")}</td>
         <td class="xs">${esc((q.source_list || []).join(" + ") || "—")}</td>
-        <td class="xs">${{ verified: "מאומת", partial: "חלקי", unverified: "לא מאומת" }[e.verification_status] || "—"} · Tier ${esc(q.tier || "—")}</td>
+        <td class="xs">${verifBadge(c, 10)} · Tier ${esc(q.tier || "—")}</td>
         <td class="num xs">${esc(e.verification_date || "—")}</td>
         <td class="xs">${esc(c.notes || "")}</td>
         <td>${crmHandoffBtn(c, true)}</td></tr>`; }).join("")}
@@ -3769,8 +3845,8 @@ function exportCsv(subset){
     const mainMail = c.mail || (c.multiMails && c.multiMails[0] ? c.multiMails[0].val : "");
     const mailTier = (c.multiMails && c.multiMails[0]) ? `${c.multiMails[0].source} (${c.multiMails[0].tier})` : "—";
     const q = QF(c);
-    const fleetStatus = q ? (q.field_status.fleet.s === "v" ? "צי קיים (מאומת)" : OPQualify.FLEET_SIZE_LABEL[q.fleet_size_status]) : "לא אומת";
-    const fleetSize = q && q.field_status.fleet_size.s === "v" ? q.field_status.fleet_size.val : "לא ידוע";
+    const fleetStatus = fleetInfo(c).label;
+    const fleetSize = q && q.field_status.fleet_size.s !== "n" ? q.field_status.fleet_size.val + (q.field_status.fleet_size.s === "f" ? " (דורש אימות)" : "") : "לא ידוע";
     const soSt = soState(c);
     const isSafety = SO_LABEL[soSt] || "לא";
     const safetyName = soNamed(c) ? soName(c) : "לא אותר";
@@ -3789,7 +3865,7 @@ function exportCsv(subset){
       mainMail,
       mailTier,
       c.web || "—",
-      c.fleetType || "—",
+      q && q.field_status.fleet_types.s !== "n" ? q.field_status.fleet_types.val : "—",
       fleetStatus,
       fleetSize,
       isSafety,
@@ -3800,8 +3876,8 @@ function exportCsv(subset){
       evidenceStr,
       ST[c.status] || c.status,
       q ? OPQualify.STAGE_LABEL[q.lead_stage] : "—",
-      q && q.ready_for_contact ? "כן" : "לא",
-      q ? q.missing_fields.map(k => fieldLbl[k] || k).join(" ; ") : "—",
+      isReady(c) ? "כן" : "לא",
+      q ? missingOf(c).join(" ; ") : "—",
       q ? q.source_list.join(" ; ") : "—",
       (c.enr && c.enr.verification_date) || "—"
     ];
@@ -4121,12 +4197,18 @@ document.addEventListener("click",e=>{
     case "run":runSearch();return;
     case "closePanel":S.panel=null;renderPanel();return;
     case "backCo":delete S.panel.person;renderPanel();return;
+    case "clearCoFilters":{
+      S.coFilter = { q: "", ...Object.fromEntries(CO_FILTERS.map(k => [k, ""])) };
+      S.coPage = 1;
+      $("#view").innerHTML = V.companies();
+      return;
+    }
     case "toCrm":{
       /* רישום בקשה בלבד (crm_handoff_status=pending_approval). אין כתיבה ל-crm_leads */
       const co = C.find(x => x.id === +(d.coId || (S.panel ? S.panel.co : 0)));
       if (!co) return;
       const q = QF(co);
-      if (!q || !q.ready_for_contact) { toast("ניתן להעביר לפולו-אפ רק ליד במצב 'מוכן לפנייה'"); return; }
+      if (!q || !isReady(co)) { toast("ניתן להעביר לפולו-אפ רק ליד במצב 'מוכן לפנייה'"); return; }
       saveLeadEnrichment(co, { crm_handoff_status: "pending_approval", crm_handoff_requested_at: new Date().toISOString() },
         `"${co.name}" נרשם כממתין לאישור העברה לפולו-אפ / CRM – לא הועבר בפועל`);
       return;
@@ -4246,7 +4328,7 @@ document.addEventListener("change",e=>{
   }
   if(t.dataset.aiOn){const a=AI.find(x=>x.id===t.dataset.aiOn);a.on=t.checked;a.status=t.checked?"ok":"off";if(!t.checked&&a.def){a.def=false;AI.find(x=>x.on).def=true}render();return}
   if(t.dataset.aiModel){AI.find(x=>x.id===t.dataset.aiModel).model=t.value;renderNav();return}
-  if(t.id==="f-st"||t.id==="f-fleet"||t.id==="f-stage"){S.coFilter[{"f-st":"st","f-fleet":"fleet","f-stage":"stage"}[t.id]]=t.value;S.coPage=1;$("#view").innerHTML=V.companies();}
+  if(t.id&&t.id.startsWith("f-")&&CO_FILTERS.includes(t.id.slice(2))){S.coFilter[t.id.slice(2)]=t.value;S.coPage=1;$("#view").innerHTML=V.companies();}
 });
 
 document.addEventListener("input",e=>{

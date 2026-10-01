@@ -42,7 +42,22 @@
     ["fleet_manager", "קצין רכב / מנהל צי", "desired"],
     ["safety_officer", "קצין בטיחות", "desired"],
     ["verification_date", "תאריך אימות", "info"],
+    /* displayed in "מידע שנמצא" only – never blockers or missing */
+    ["address", "כתובת", "extra"],
+    ["industry", "תחום פעילות", "extra"],
+    ["contact_phone", "טלפון איש קשר", "extra"],
+    ["contact_email", "מייל איש קשר", "extra"],
+    ["contact_linkedin", "LinkedIn איש קשר", "extra"],
+    ["linkedin_company", "LinkedIn חברה", "extra"],
   ];
+
+  /* short labels for the "מה חסר לליד" list: n -> "חסר X", f -> "חסר אימות X" */
+  const MISSING_SHORT = {
+    company: "רישום חברה", hp: "ח.פ.", source: "מקור", phone: "טלפון", fleet: "צי", relevance: "רלוונטיות",
+    email: "מייל", website: "אתר", contact_name: "איש קשר", contact_role: "תפקיד", fleet_size: "גודל צי",
+    fleet_types: "סוגי רכבים", fleet_manager: "קצין רכב", safety_officer: "קצין בטיחות",
+  };
+  const missingLabel = (key, s) => (s === "f" ? "חסר אימות " : "חסר ") + (MISSING_SHORT[key] || key);
 
   const SRC_CONTRACTORS = "פנקס הקבלנים (data.gov.il)";
   const SRC_COMPANIES = "רשם החברות (data.gov.il)";
@@ -50,6 +65,29 @@
 
   /* OVDIM, contractor licence, fleet guesses and AI are never proof of a safety officer */
   const NOT_SAFETY_PROOF = /OVDIM|פנקס הקבלנים|איש מקצוע כשיר|Gemini|\bAI\b|הערכה/i;
+
+  /* A research finding is "verified" only when it cites a concrete, non-AI source (name + URL) */
+  const AI_SOURCE = /Gemini|\bAI\b|GPT|Claude|הערכה|הסקה/i;
+
+  /* Research findings (e.g. Gemini) live in prospect_leads.evidence as objects:
+   *   { field, value, source, url, status: "found"|"verified", found_at }
+   * Legacy evidence rows are arrays and are ignored here. */
+  const EV_ALIAS = { fleet_exists: "fleet", safety_officer_name: "safety_officer", fleet_manager_name: "fleet_manager",
+    contact: "contact_name", email_general: "email", phone_primary: "phone" };
+  function isVerifiedFinding(e) {
+    return !!e && e.status === "verified" && has(e.source) && has(e.url) && !AI_SOURCE.test(String(e.source));
+  }
+  function findings(row) {
+    const out = {};
+    (Array.isArray(row.evidence) ? row.evidence : []).forEach((e) => {
+      if (!e || Array.isArray(e) || typeof e !== "object" || !e.field) return;
+      const k = EV_ALIAS[e.field] || e.field;
+      const cur = out[k], ok = isVerifiedFinding(e), curOk = isVerifiedFinding(cur);
+      if (!cur || (ok && !curOk) || (ok === curOk && String(e.found_at || "") > String(cur.found_at || ""))) out[k] = e;
+    });
+    return out;
+  }
+  const findingSrc = (e) => (e ? [e.source, e.url].filter(has).join(" · ") + (e.found_at ? ` (${String(e.found_at).slice(0, 10)})` : "") : "");
 
   /* Activity that plausibly runs heavy vehicles / machinery – an indication only, never proof */
   const RELEVANT_RE = /כביש|תשתי|פיתוח|עפר|חפיר|חציב|הובל|שינוע|היסע|אוטובוס|תחבור|צמ"?ה|משאי|מנוף|סלילה|גשר|מחצב|לוגיסט/;
@@ -80,6 +118,14 @@
     const manual = (row.field_status && row.field_status.manual) || {};
     const fs = {};
     const warnings = [];
+    const ev = findings(row);
+    /* value present -> v (manual or verified finding), else f with the finding's source when there is one */
+    const found = (key, val, manualKey) => {
+      if (!has(val)) return fieldOf("n");
+      if (manualKey && manual[manualKey]) return fieldOf("v", val, SRC_MANUAL);
+      if (isVerifiedFinding(ev[key])) return fieldOf("v", val, findingSrc(ev[key]));
+      return fieldOf("f", val, findingSrc(ev[key]));
+    };
 
     const inContractors = !!con.found;
     const inCompanies = !!co.found;
@@ -106,7 +152,8 @@
     if (!has(row.phone) || !validPhone(row.phone)) fs.phone = fieldOf("n", has(row.phone) ? row.phone + " (לא תקין)" : "");
     else if (manual.phone) fs.phone = fieldOf("v", row.phone, `${SRC_MANUAL} (${manual.phone.by || ""} ${manual.phone.at || ""})`.trim());
     else if (regPhones.includes(phone)) fs.phone = fieldOf("v", row.phone, SRC_CONTRACTORS);
-    else fs.phone = fieldOf("f", row.phone, "לא תואם לפנקס הקבלנים");
+    else if (isVerifiedFinding(ev.phone)) fs.phone = fieldOf("v", row.phone, findingSrc(ev.phone));
+    else fs.phone = fieldOf("f", row.phone, findingSrc(ev.phone) || "לא תואם לפנקס הקבלנים");
 
     // email
     const regMails = conRecs.map((r) => String(r.email || "").trim().toLowerCase()).filter(Boolean);
@@ -114,16 +161,27 @@
     if (!mail) fs.email = fieldOf("n");
     else if (manual.email) fs.email = fieldOf("v", row.email, SRC_MANUAL);
     else if (regMails.includes(mail)) fs.email = fieldOf("v", row.email, SRC_CONTRACTORS);
-    else fs.email = fieldOf("f", row.email, "לא תואם לפנקס הקבלנים");
+    else if (isVerifiedFinding(ev.email)) fs.email = fieldOf("v", row.email, findingSrc(ev.email));
+    else fs.email = fieldOf("f", row.email, findingSrc(ev.email) || "לא תואם לפנקס הקבלנים");
 
-    fs.website = has(row.website) ? fieldOf(manual.website ? "v" : "f", row.website, manual.website ? SRC_MANUAL : "") : fieldOf("n");
-    fs.contact_name = has(row.contact_name) ? fieldOf(manual.contact ? "v" : "f", row.contact_name, manual.contact ? SRC_MANUAL : "") : fieldOf("n");
-    fs.contact_role = has(row.contact_role) ? fieldOf(manual.contact ? "v" : "f", row.contact_role, manual.contact ? SRC_MANUAL : "") : fieldOf("n");
+    fs.website = found("website", row.website, "website");
+    fs.contact_name = found("contact_name", row.contact_name, "contact");
+    fs.contact_role = found(ev.contact_role ? "contact_role" : "contact_name", row.contact_role, "contact");
+    fs.contact_phone = found(ev.contact_phone ? "contact_phone" : "contact_name", row.contact_phone, "contact");
+    fs.contact_email = found(ev.contact_email ? "contact_email" : "contact_name", row.contact_email, "contact");
+    fs.contact_linkedin = found("contact_linkedin", row.contact_linkedin);
+    fs.linkedin_company = found("linkedin_company", row.linkedin_company);
+    fs.address = has(row.address)
+      ? fieldOf(isVerifiedFinding(ev.address) ? "v" : "f", row.address, findingSrc(ev.address) || "נתוני רשומה")
+      : fieldOf("n");
 
     // relevance – activity branches from the registry, else stored industry/name
     const activityText = [conRecs.map((r) => r.anaf).join(" "), row.industry, row.company_name, row.fleet_type].join(" ");
     const relevant = RELEVANT_RE.test(activityText);
-    fs.relevance = relevant ? fieldOf(conRecs.length ? "v" : "f", conRecs.map((r) => r.anaf).filter(Boolean).join(", ") || row.industry) : fieldOf("n");
+    const anaf = conRecs.map((r) => r.anaf).filter(Boolean).join(", ");
+    fs.relevance = relevant ? fieldOf(conRecs.length ? "v" : "f", anaf || row.industry, conRecs.length ? SRC_CONTRACTORS : "") : fieldOf("n");
+    fs.industry = anaf ? fieldOf("v", anaf, SRC_CONTRACTORS)
+      : has(row.industry) ? fieldOf("f", row.industry, findingSrc(ev.industry) || "נתוני רשומה") : fieldOf("n");
 
     // fleet – never inferred as fact; size is never estimated
     let fleetSizeStatus;
@@ -133,6 +191,12 @@
     } else if (row.fleet_exists === false && manual.fleet) {
       fs.fleet = fieldOf("n", "אין צי (אומת ידנית)", SRC_MANUAL);
       fleetSizeStatus = "unknown";
+    } else if (row.fleet_exists === true && isVerifiedFinding(ev.fleet)) {
+      fs.fleet = fieldOf("v", "צי קיים", findingSrc(ev.fleet));
+      fleetSizeStatus = Number.isInteger(row.fleet_size) && row.fleet_size > 0 && isVerifiedFinding(ev.fleet_size) ? "verified" : "exists_size_unknown";
+    } else if (row.fleet_exists === true) {
+      fs.fleet = fieldOf("f", FLEET_SIZE_LABEL.indication_needs_verification, findingSrc(ev.fleet) || "ללא מקור");
+      fleetSizeStatus = "indication_needs_verification";
     } else if (relevant) {
       fs.fleet = fieldOf("f", FLEET_SIZE_LABEL.indication_needs_verification, "תחום פעילות בפנקס");
       fleetSizeStatus = "indication_needs_verification";
@@ -140,23 +204,28 @@
       fs.fleet = fieldOf("n");
       fleetSizeStatus = "unknown";
     }
-    fs.fleet_size = fleetSizeStatus === "verified" ? fieldOf("v", row.fleet_size, SRC_MANUAL) : fieldOf("n", FLEET_SIZE_LABEL[fleetSizeStatus]);
+    const sizeKnown = Number.isInteger(row.fleet_size) && row.fleet_size > 0;
+    if (fleetSizeStatus === "verified") fs.fleet_size = fieldOf("v", row.fleet_size, manual.fleet ? SRC_MANUAL : findingSrc(ev.fleet_size));
+    else if (sizeKnown && fs.fleet.s !== "n") fs.fleet_size = fieldOf("f", row.fleet_size, findingSrc(ev.fleet_size) || "ללא מקור");
+    else fs.fleet_size = fieldOf("n", FLEET_SIZE_LABEL[fleetSizeStatus]);
     const types = Array.isArray(row.fleet_types) ? row.fleet_types.filter(Boolean) : [];
-    fs.fleet_types = types.length ? fieldOf(manual.fleet ? "v" : "f", types.join(", "), manual.fleet ? SRC_MANUAL : "") : fieldOf("n");
+    fs.fleet_types = !types.length ? fieldOf("n")
+      : manual.fleet ? fieldOf("v", types.join(", "), SRC_MANUAL)
+      : fieldOf(isVerifiedFinding(ev.fleet_types) ? "v" : "f", types.join(", "), findingSrc(ev.fleet_types));
 
-    fs.fleet_manager = has(row.fleet_manager_name)
-      ? fieldOf(manual.fleet_manager && has(row.fleet_manager_source) ? "v" : "f", row.fleet_manager_name, row.fleet_manager_source || "")
-      : fieldOf("n");
+    const fmSrc = row.fleet_manager_source || findingSrc(ev.fleet_manager);
+    const fmVerified = (manual.fleet_manager && has(row.fleet_manager_source)) || isVerifiedFinding(ev.fleet_manager);
+    fs.fleet_manager = has(row.fleet_manager_name) ? fieldOf(fmVerified ? "v" : "f", row.fleet_manager_name, fmSrc) : fieldOf("n");
 
     // safety officer – explicit, verified, non-OVDIM source only
-    const soSource = String(row.safety_officer_source || "");
+    const soSource = String(row.safety_officer_source || findingSrc(ev.safety_officer) || "");
     const soProofOk = has(soSource) && !NOT_SAFETY_PROOF.test(soSource);
     const certName = row.certified_professional && row.certified_professional.name;
     if (!has(row.safety_officer_name)) fs.safety_officer = fieldOf("n");
     else if (certName && normName(certName) === normName(row.safety_officer_name)) {
       fs.safety_officer = fieldOf("n", "", "OVDIM אינו קצין בטיחות");
       warnings.push("שם קצין הבטיחות זהה לאיש המקצוע (OVDIM) – לא נחשב קצין בטיחות");
-    } else if (row.safety_officer_verified && soProofOk) fs.safety_officer = fieldOf("v", row.safety_officer_name, soSource);
+    } else if ((row.safety_officer_verified || isVerifiedFinding(ev.safety_officer)) && soProofOk) fs.safety_officer = fieldOf("v", row.safety_officer_name, soSource);
     else fs.safety_officer = fieldOf("f", row.safety_officer_name, soSource);
 
     fs.verification_date = row.verification_date ? fieldOf("v", row.verification_date) : fieldOf("n");
@@ -184,8 +253,8 @@
       fs.fleet.s === "v" && relevant && !opts.duplicate && !rejectedReason;
     const desiredKeys = ["email", "website", "contact_name", "contact_role", "fleet_size", "fleet_manager", "safety_officer"];
     const desiredVerified = desiredKeys.filter((k) => fs[k].s === "v").length;
-    const desiredPresent = desiredKeys.filter((k) => fs[k].s !== "n").length;
 
+    const fleetGood = fs.fleet.s === "v" || (row.fleet_exists === true && !!ev.fleet && has(ev.fleet.source) && !AI_SOURCE.test(String(ev.fleet.source)));
     const isVerified = registryConfirmed && fs.phone.s === "v";
     const isQualified = isVerified && relevant;
     let stage;
@@ -197,7 +266,7 @@
     else if (registryConfirmed) stage = "review";
     else stage = "basic";
 
-    const missing = FIELDS.filter(([k, , kind]) => kind !== "info" && fs[k] && fs[k].s !== "v").map(([k]) => k);
+    const missing = FIELDS.filter(([k, , kind]) => (kind === "required" || kind === "desired") && fs[k] && fs[k].s !== "v").map(([k]) => k);
     const blockers = FIELDS.filter(([k, , kind]) => kind === "required" && fs[k] && fs[k].s !== "v").map(([, l]) => l);
     if (opts.duplicate) blockers.push("כפילות");
     if (rejectedReason) blockers.push("נפסל");
@@ -212,13 +281,19 @@
       company_active_status: co.status || (inContractors ? "רשום בפנקס הקבלנים" : null),
       fleet_size_status: fleetSizeStatus,
       lead_stage: stage,
-      lead_quality: desiredPresent >= 4 ? "high" : desiredPresent >= 2 ? "medium" : "low",
+      /* rule-based only: high = verified phone + relevance + official source + sourced fleet indication
+         (verified fleet, or fleet_exists with a non-AI source – the activity keyword alone is not enough);
+         medium = phone present + relevance; low = everything else */
+      lead_quality: fs.phone.s === "v" && relevant && registryConfirmed && fleetGood ? "high"
+        : fs.phone.s !== "n" && relevant ? "medium" : "low",
       ready_for_contact: stage === "ready",
       rejected_reason: rejectedReason || null,
       relevant,
     };
   }
 
-  const api = { STAGES, STAGE_LABEL, FLEET_SIZE_LABEL, FIELD_STATUS_LABEL, FIELDS, NOT_SAFETY_PROOF, normPhone, validPhone, evaluate };
+  const QUALITY_LABEL = { high: "גבוהה", medium: "בינונית", low: "נמוכה" };
+  const api = { STAGES, STAGE_LABEL, FLEET_SIZE_LABEL, FIELD_STATUS_LABEL, QUALITY_LABEL, FIELDS, MISSING_SHORT, missingLabel,
+    NOT_SAFETY_PROOF, normPhone, validPhone, isVerifiedFinding, evaluate };
   root.OPQualify = api;
 })(typeof window !== "undefined" ? window : globalThis);
