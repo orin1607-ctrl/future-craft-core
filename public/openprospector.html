@@ -1905,6 +1905,25 @@ function setSourceStatus(id, newStatus) {
 /* ===== עזרים לתצוגה ===== */
 const conf={v:['<span class="badge b-ok">✓ מאומת</span>'],e:['<span class="badge b-est">≈ הערכה</span>'],n:['<span class="badge b-no">לא נמצא</span>']};
 const cBadge=s=>conf[s]?conf[s][0]:conf.n[0];
+/* מצב קצב"ת: OVDIM, פנקס הקבלנים, היקף צי או הערכת AI אינם הוכחה לקצין בטיחות או לחובת תקנה 579 */
+const SO_NOT_PROOF=/OVDIM|פנקס הקבלנים|איש מקצוע כשיר|Gemini|AI|הערכה/i;
+function soState(c){
+  const so=c.safetyOfficer||{};
+  const explicit=so.status==="v"&&!!so.source&&!SO_NOT_PROOF.test(`${so.source} ${so.role||""}`);
+  const named=explicit&&so.name&&!/^טרם/.test(so.name)&&so.name!==(c.certifiedProfessional&&c.certifiedProfessional.name);
+  if(named) return "found";
+  if(explicit&&so.mandate579) return "mandate";
+  return (c.isSafetyOfficerLead||so.mandate579)?"candidate":"";
+}
+const SO_LABEL={found:"קצין בטיחות אותר",mandate:"חובת קצב\"ת מאומתת",candidate:"מועמד לבדיקת קצב\"ת"};
+function soBadge(c,size){
+  const st=soState(c);if(!st)return "";
+  const so=c.safetyOfficer||{};
+  const sty=st==="candidate"?"background:#fffbeb;color:#92400e;border:1px solid #fde68a":"background:#f0fdf4;color:#166534;border:1px solid #bbf7d0";
+  return `<span class="badge" style="${sty};font-size:${size||10.5}px;margin-inline-start:6px" ${st==="found"?`title="מקור: ${esc(so.source)}"`:""}>🛡️ ${SO_LABEL[st]}${st==="found"?`: ${esc(so.name)}`:""}</span>`;
+}
+/* סיווג רשומה: אף ליד לא מסומן "מאומת" אוטומטית – רק דגל leadVerified מפורש */
+const recordBadges=c=>`${(c.ev||[]).some(e=>e[6]==="A")?'<span class="badge b-blue" style="font-size:10px">רשומה ממקור אמיתי</span>':""} ${c.leadVerified===true?'<span class="badge b-ok" style="font-size:10px">ליד מאומת</span>':'<span class="badge b-est" style="font-size:10px">ליד לבדיקה</span>'}`;
 const fleetBadge=f=>f.s==="v"?`<span class="badge b-ok">✓ ${esc(f.val)}</span>`:f.s==="e"?`<span class="badge b-est">≈ ${esc(f.val)}</span>`:`<span class="badge b-no">${esc(f.val)}</span>`;
 const scoreCls=s=>s>=80?"s-hi":s>=65?"s-mid":"s-lo";
 const stBadge=s=>{const m={new:"b-blue",review:"b-no",contacted:"b-blue",meeting:"b-est",quote:"b-est",won:"b-ok",irrelevant:"b-no"};return `<span class="badge ${m[s]||'b-no'}">${ST[s]||s}</span>`};
@@ -1981,7 +2000,7 @@ V.dash=()=>{
   <div class="grid g-kpi">
     ${kpi("חיפושים החודש",String(RUNS.length),"פעילים ב-STAGING")}
     ${kpi("חברות שנמצאו",String(C.length),`${C.filter(c=>c.score>=80).length} מתאימות בציון 80+`)}
-    ${kpi("לידי קצין רכב / קצב\"ת",String(C.filter(c=>c.isSafetyOfficerLead).length),"חברות עם קצב\"ת / צי 20+")}
+    ${kpi("מועמדים לבדיקת קצב\"ת",String(C.filter(c=>soState(c)).length),`${C.filter(c=>soState(c)==="found").length} קצינים אותרו · ${C.filter(c=>soState(c)&&soState(c)!=="candidate").length} חובה מאומתת`)}
     ${kpi("אימות רשמי (data.gov.il)",String(C.filter(c=>c.facts.no==="v").length),"חברות מאומתות ח.פ.")}
   </div>
   <div class="grid g-2" style="margin-top:18px">
@@ -2778,7 +2797,7 @@ V.companies=()=>{
       <td>
         <div class="co-name">
           ${esc(c.name)}
-          ${c.isSafetyOfficerLead ? `<span class="badge" style="background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;font-size:10.5px;margin-inline-start:6px">🛡️ קצב"ת</span>` : ''}
+          ${soBadge(c)}
         </div>
         <div class="xs muted ltr">${esc(c.web)}</div>
       </td>
@@ -2813,11 +2832,12 @@ function companyCard(c){
   const val=(x,s)=>s==="n"?'<span class="faint">לא נמצא</span>':esc(x);
   return `<div class="panel-h"><div class="row" style="align-items:flex-start"><div style="flex:1;min-width:0">
       <div class="row"><h2>${esc(c.name)}</h2><span class="score ${scoreCls(c.score)}" style="background:rgba(255,255,255,.12);color:#fff">${c.score}</span></div>
-      <div class="meta">${esc(c.ind)} · ${esc(c.city)} · נמצאה ${c.found} · עודכנה ${c.upd}</div></div>
+      <div class="meta">${esc(c.ind)} · ${esc(c.city)} · נמצאה ${c.found} · עודכנה ${c.upd}</div>
+      <div style="margin-top:6px">${recordBadges(c)}</div></div>
       <button class="x" data-act="closePanel" aria-label="סגור">✕</button></div>
       <div class="row" style="margin-top:14px;flex-wrap:wrap;gap:8px">
         <select class="input" style="max-width:190px;height:36px;background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.2)" data-status="${c.id}">${STATUSES.map(([k,l])=>`<option value="${k}" ${c.status===k?"selected":""} style="color:#0f172a">${l}</option>`).join("")}</select>
-        <button class="btn btn-sm" style="background:#fff;color:#0a1830;border-color:#fff" data-act="toCrm" data-co-id="${c.id}">העבר ל-CRM</button>
+        <button class="btn btn-sm" style="background:#fff;color:#0a1830;border-color:#fff" data-act="toCrm" data-co-id="${c.id}" title="מסמן את הליד כמוכן להעברה ל-CRM – לא נשלח ל-CRM">סמן כמוכן ל-CRM</button>
         <button class="btn btn-sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.3)" data-act="toTele" data-co-id="${c.id}">העבר לטלמרקטינג</button>
       </div></div>
     <div class="panel-b">
@@ -2844,32 +2864,32 @@ function companyCard(c){
         </div>
       </div>
 
-      ${c.isSafetyOfficerLead || c.safetyOfficer ? `
+      ${soState(c) ? `
         <div class="card" style="border:1.5px solid #93c5fd;background:linear-gradient(135deg,rgba(59,111,224,0.06),rgba(255,255,255,0.02));margin-bottom:14px;border-radius:12px">
           <div class="card-h" style="border-bottom:1px solid #bfdbfe;padding:12px 16px">
             <h3 style="margin:0;display:flex;align-items:center;gap:8px;color:#1e3a8a;font-size:15px">
               <span>🛡️ קצין רכב / קצין בטיחות בתעבורה (קצב"ת)</span>
-              ${c.safetyOfficer?.tier ? `<span class="tier-badge tier-${c.safetyOfficer.tier.toLowerCase()}">${esc(c.safetyOfficer.tierLabel || ('Tier ' + c.safetyOfficer.tier))}</span>` : ''}
+              ${soState(c) !== "candidate" && c.safetyOfficer?.tier ? `<span class="tier-badge tier-${c.safetyOfficer.tier.toLowerCase()}">${esc(c.safetyOfficer.tierLabel || ('Tier ' + c.safetyOfficer.tier))}</span>` : ''}
             </h3>
             <span class="spacer"></span>
-            ${c.safetyOfficer?.mandate579 ? `<span class="badge b-ok" style="font-weight:700">✓ חובת מינוי לפי תקנה 579</span>` : ''}
+            ${soState(c) === "candidate" ? `<span class="badge b-est" style="font-weight:700">≈ מועמד לבדיקת קצב"ת – חובת תקנה 579 לא הוכחה</span>` : `<span class="badge b-ok" style="font-weight:700">✓ ${SO_LABEL[soState(c)]}</span>`}
           </div>
           <div class="card-b" style="padding:12px 16px;display:grid;gap:10px">
             <div class="grid g-2" style="gap:12px">
               <div>
-                <div class="xs muted">קצין בטיחות / מנהל צי ממונה:</div>
-                <div class="bold" style="font-size:14.5px;color:var(--text);margin-top:2px">${esc(c.safetyOfficer?.name || 'לא צוין שם')}</div>
-                <div class="xs muted" style="margin-top:2px">${esc(c.safetyOfficer?.role || 'קצין בטיחות בתעבורה')}</div>
+                <div class="xs muted">קצין בטיחות:</div>
+                <div class="bold" style="font-size:14.5px;color:var(--text);margin-top:2px">${soState(c) === "found" ? esc(c.safetyOfficer.name) : 'לא אותר קצין בטיחות בשם'}</div>
+                <div class="xs muted" style="margin-top:2px">${soState(c) === "found" ? esc(c.safetyOfficer.role || 'קצין בטיחות בתעבורה') : (soState(c) === "mandate" ? 'חובת מינוי מבוססת מקור מפורש' : 'נדרשת בדיקה – אין מקור מפורש לקצין או לחובת מינוי')}</div>
               </div>
               <div>
                 <div class="xs muted">סוג הצי והיקף:</div>
                 <div class="bold" style="font-size:14px;color:var(--text);margin-top:2px">${esc(c.fleetType || 'משאיות / כלי רכב כבדים')}</div>
-                <div class="xs muted" style="margin-top:2px">היקף: ${esc(c.fleet?.val || 'מאומת')}</div>
+                <div class="xs muted" style="margin-top:2px">היקף: ${esc(c.fleet?.val || 'לא צוין')}</div>
               </div>
             </div>
             ${c.safetyOfficer?.note ? `
               <div style="background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12.5px">
-                <b>פירוט ומעמד פיקוח:</b> ${esc(c.safetyOfficer.note)}
+                <b>${soState(c) === "candidate" ? 'הערה (הסקה – לא מאומת):' : 'פירוט ומעמד פיקוח:'}</b> ${esc(c.safetyOfficer.note)}
               </div>
             ` : ''}
             ${c.certifiedProfessional ? `
@@ -2879,9 +2899,9 @@ function companyCard(c){
               </div>
             ` : ''}
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)">
-              <span><b>מקור המידע:</b> ${esc(c.safetyOfficer?.source || 'מאגרי משרד התחבורה / פנקס הקבלנים')}</span>
+              <span><b>${soState(c) === "candidate" ? 'מקור הרשומה:' : 'מקור המידע:'}</b> ${esc(c.safetyOfficer?.source || '—')}</span>
               <span>•</span>
-              <span><b>תאריך אימות:</b> ${esc(c.upd || c.found || '30.09.2026')}</span>
+              <span><b>${soState(c) === "candidate" ? 'תאריך עדכון:' : 'תאריך אימות:'}</b> ${esc(c.upd || c.found || '—')}</span>
             </div>
             ${c.leadReason ? `
               <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-top:2px">
@@ -2940,18 +2960,21 @@ function companyCard(c){
         <div class="card"><div class="card-h"><h3>ראיות ומקורות מידע (Fleet Evidence)<span class="h-bar"></span></h3><span class="spacer"></span><span class="chip">${c.ev.length} ראיות</span></div>
           <div class="card-b" style="padding-top:0">
             <div style="display:grid;gap:8px">
-              ${c.ev.map(([i,t,d,u,s,dt,tier,tierLbl])=>`<div class="ev" style="margin:0;border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+              ${c.ev.map(([i,t,d,u,s,dt,tier,tierLbl])=>{
+                /* תקנה 579 מוצגת כמאומתת רק כשקיים מקור מפורש לחובה או לקצין */
+                const inferred579 = /תקנה 579/.test(t) && soState(c) === "candidate";
+                return `<div class="ev" style="margin:0;border:1px solid var(--border);border-radius:10px;padding:10px 12px">
                 <div class="src-ic" style="font-size:20px">${i}</div>
                 <div style="flex:1;min-width:0">
                   <div class="row" style="flex-wrap:wrap;gap:6px;align-items:center">
-                    <b class="sm" style="color:var(--text)">${esc(t)}</b>${cBadge(s)}
-                    ${tier ? `<span class="tier-badge tier-${tier.toLowerCase()}">${esc(tierLbl || ('Tier ' + tier))}</span>` : ''}
+                    <b class="sm" style="color:var(--text)">${esc(t)}</b>${cBadge(inferred579 ? "e" : s)}
+                    ${inferred579 ? `<span class="badge b-est">הסקה – חובה לא הוכחה לחברה זו</span>` : (tier ? `<span class="tier-badge tier-${tier.toLowerCase()}">${esc(tierLbl || ('Tier ' + tier))}</span>` : '')}
                     <span class="spacer"></span>
                     <span class="xs muted num">${dt}</span>
                   </div>
                   <div class="sm" style="margin-top:4px">${esc(d)}</div>
                   <div class="xs faint ltr" style="margin-top:2px">${esc(u)}</div>
-                </div></div>`).join("")}
+                </div></div>`;}).join("")}
             </div>
             <div class="xs muted" style="margin-top:10px;padding:8px 10px;background:var(--soft);border-radius:8px">
               ℹ️ כל מקור נשמר בנפרד ללא ערבוב. <b>הערכת AI (Gemini)</b> מוגדרת כ-<b>Tier E (משוער)</b> בלבד ואינה מוצגת כעובדה.
@@ -3018,7 +3041,7 @@ V.leads=()=>{
   <!-- כותרת ראשית וסנכרון CRM -->
   <div class="row" style="margin-bottom:12px;align-items:center;flex-wrap:wrap;gap:8px">
     <h2 style="margin:0;font-size:18px">ניהול לידים וסטטוס טיפול</h2>
-    <span class="badge b-ok">מסונכרן ל-CRM</span>
+    <span class="badge b-blue">מוכן להעברה ל-CRM</span>
     <span class="spacer"></span>
     <button class="btn btn-sm btn-primary" data-tab="search" style="display:inline-flex;align-items:center;gap:6px">
       ⚡ ייבוא לידים באצוות (Bulk Ingestion)
@@ -3032,14 +3055,14 @@ V.leads=()=>{
     <label class="btn btn-sm" style="cursor:pointer;margin:0;display:inline-flex;align-items:center;gap:6px" title="שחזר לידים מקובץ גיבוי JSON">
       📂 שחזור JSON<input type="file" id="jsonBackupInputLeads" accept=".json" style="display:none" data-act="importBackup">
     </label>
-    <span class="xs muted">לידים מועברים ישירות ל-CRM ולטלמרקטינג של דליה</span>
+    <span class="xs muted">אין סנכרון אוטומטי ל-CRM – העברה ידנית בלבד, ליד אחר ליד</span>
   </div>
 
   <!-- סרגל סינון קטגוריות ראשי (Category Filter Bar) -->
   <div class="row" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px">
     <span class="xs bold" style="color:var(--text);margin-inline-end:4px">קטגוריות ממוקדות:</span>
     <button class="btn btn-sm" style="${cat==='safety_officer'?'background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="safety_officer">
-      🛡️ קצין רכב / קצין בטיחות (${safetyCount})
+      🛡️ מועמדים לבדיקת קצב"ת (${safetyCount})
     </button>
     <button class="btn btn-sm" style="${cat==='all'?'background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="all">
       📋 כל הלידים (${C.length})
@@ -3064,15 +3087,18 @@ V.leads=()=>{
         <div style="flex:1;min-width:280px">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:22px">🛡️</span>
-            <h3 style="margin:0;font-size:16px;color:#1e3a8a">רשימת חברות עם קצין בטיחות בתעבורה / קצין רכב מוסמך</h3>
-            <span class="badge b-ok" style="font-weight:700">${safetyCount} לידים מאומתים</span>
+            <h3 style="margin:0;font-size:16px;color:#1e3a8a">מועמדים לבדיקת קצין בטיחות בתעבורה (קצב"ת)</h3>
+            <span class="badge b-est" style="font-weight:700">${safetyCount} לידים לבדיקה</span>
+            <span class="badge b-ok" style="font-weight:700">${filteredC.filter(c => soState(c) === "found").length} קצינים אותרו</span>
+            <span class="badge b-ok" style="font-weight:700">${filteredC.filter(c => soState(c) !== "candidate").length} חובת קצב"ת מאומתת</span>
           </div>
           <div class="sm" style="margin-top:8px;line-height:1.5;color:var(--text)">
-            חברות אלו מפעילות ציים של 20+ משאיות, אוטובוסים או צמ"ה, ומחויבות על פי דין במינוי <b>קצין בטיחות בתעבורה (תקנה 579)</b> ובביצוע בדיקות תקינות תקופתיות.
-            מקבלי ההחלטות וקציני הרכב פועלים מול מוסכים מורשים להסדרי טיפולים, רישוי שנתי ותחזוקת שבר ומנע.
+            חברות אלו מופיעות במאגרים רשמיים (פנקס הקבלנים, מאגרי רכב כבד / צמ"ה / אוטובוסים) ונראות רלוונטיות לבדיקה.
+            חובת מינוי <b>קצין בטיחות בתעבורה (תקנה 579)</b> <b>לא הוכחה</b> עבורן, אלא אם מסומן במפורש "חובת קצב"ת מאומתת" או "קצין בטיחות אותר".
+            איש מקצוע כשיר מפנקס הקבלנים (OVDIM) אינו קצין בטיחות.
           </div>
           <div class="xs muted" style="margin-top:6px;display:flex;gap:12px;flex-wrap:wrap">
-            <span>✓ <b>100% חברות אמיתיות</b> מאומתות ח.פ.</span>
+            <span>✓ <b>רשומות ממקור אמיתי</b> (ח.פ. ממאגר רשמי)</span>
             <span>✓ נתונים רשמיים ממאגרי <b>data.gov.il</b> ופנקס הקבלנים</span>
             <span>✓ ללא שמות מומצאים (Tier A/B)</span>
             <span>✓ מדרג מהימנות שקוף לכל טלפון ומייל</span>
@@ -3107,14 +3133,10 @@ V.leads=()=>{
             </div>
             <div class="xs muted" style="margin-top:2px">${esc(c.city)} · ${esc(c.ind)}</div>
 
-            ${c.isSafetyOfficerLead ? `
-              <div style="margin-top:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-                <span class="badge" style="background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;font-size:11px;font-weight:600">
-                  🛡️ ${c.safetyOfficer && c.safetyOfficer.name ? esc(c.safetyOfficer.name) : 'קצין בטיחות'}
-                </span>
-                ${c.safetyOfficer?.mandate579 ? `<span class="badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;font-size:10px">תקנה 579</span>` : ''}
-              </div>
+            ${soState(c) ? `
+              <div style="margin-top:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">${soBadge(c,10.5)}</div>
             ` : ''}
+            <div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">${recordBadges(c)}</div>
 
             ${c.certifiedProfessional ? `
               <div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
@@ -3135,8 +3157,8 @@ V.leads=()=>{
               <select class="input" style="flex:1;height:30px;font-size:12px;padding:2px 8px" data-status="${c.id}" aria-label="שינוי סטטוס">
                 ${STATUSES.map(([kk,ll])=>`<option value="${kk}" ${kk===k?"selected":""}>${ll}</option>`).join("")}
               </select>
-              <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;white-space:nowrap;background:var(--card);border:1px solid var(--border)" data-act="toCrm" data-co-id="${c.id}" title="העבר ישירות ל-CRM">
-                📥 CRM
+              <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;white-space:nowrap;background:var(--card);border:1px solid var(--border)" data-act="toCrm" data-co-id="${c.id}" title="סמן כמוכן להעברה ל-CRM (לא נשלח ל-CRM)">
+                📥 מוכן ל-CRM
               </button>
             </div>
           </div>
@@ -3487,9 +3509,10 @@ function exportCsv(subset){
     const mainMail = c.mail || (c.multiMails && c.multiMails[0] ? c.multiMails[0].val : "");
     const mailTier = (c.multiMails && c.multiMails[0]) ? `${c.multiMails[0].source} (${c.multiMails[0].tier})` : "—";
     const fleetCertainty = {v:"מאומת", e:"הערכה", n:"לא אומת"}[c.fleet?.s] || c.fleet?.s || "לא אומת";
-    const isSafety = c.isSafetyOfficerLead ? "כן (תקנה 579)" : "לא";
-    const safetyName = c.safetyOfficer ? c.safetyOfficer.name : (c.people && c.people[0] ? c.people[0][0] : "—");
-    const safetyRole = c.safetyOfficer ? `${c.safetyOfficer.role} [${c.safetyOfficer.tier || 'Tier A'}]` : (c.people && c.people[0] ? c.people[0][1] : "—");
+    const soSt = soState(c);
+    const isSafety = SO_LABEL[soSt] || "לא";
+    const safetyName = soSt === "found" ? c.safetyOfficer.name : "לא אותר";
+    const safetyRole = soSt === "found" ? `${c.safetyOfficer.role} [${c.safetyOfficer.source}]` : "—";
     const evidenceStr = (c.ev || []).map(e => `[${e[6]||e[1]}] ${e[2]}`).join(" ; ");
 
     return [
@@ -3836,7 +3859,7 @@ document.addEventListener("click",e=>{
         co.status = "review";
         persistProspectorData();
         updateRemoteLeadStatus(co.id, co.status);
-        toast(`הליד "${co.name}" (ח.פ. ${co.no}) הועבר בהצלחה ל-CRM של דליה בסטטוס 'בבדיקה'`);
+        toast(`הליד "${co.name}" (ח.פ. ${co.no}) סומן 'בבדיקה' – מוכן להעברה ל-CRM (לא נשלח ל-CRM)`);
         if(S.view==="prospector" && S.tab==="leads") { const v=$("#view"); if(v) v.innerHTML=V.leads(); }
         else if(S.tab==="companies") { const v=$("#view"); if(v) v.innerHTML=V.companies(); }
         if(S.panel) renderPanel();
