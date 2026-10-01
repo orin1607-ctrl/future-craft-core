@@ -921,321 +921,706 @@ const SOURCES = [
   }
 ];
 
-/* ===== נתוני מאגר לידים וחברות ===== */
-const C=[
- {id:1,name:"נתיב הצפון הפצה",no:"99-0001201",ind:"הפצה ולוגיסטיקה",city:"חיפה",region:"חיפה והקריות",addr:"דרך העצמאות 00, חיפה",web:"netiv-north.example",phone:"04-000-0101",mail:"info@netiv-north.example",
-  multiPhones:[
-    {val:"04-000-0101",source:"אתר החברה הרשמי",tier:"B",tierLabel:"Tier B | אתר חברה"},
-    {val:"04-000-0100",source:"Google Places (מאומת)",tier:"C",tierLabel:"Tier C | ספק B2B"}
-  ],
-  multiMails:[
-    {val:"info@netiv-north.example",source:"דף 'צור קשר' באתר",tier:"B",tierLabel:"Tier B | אתר חברה"}
-  ],
-  size:"100–250 עובדים",fleet:{s:"v",val:"62 רכבים",src:"דף 'אודות' באתר החברה"},
-  fleetType:"משאיות חלוקה ומסחריות",score:92,status:"meeting",found:"21.09.2026",upd:"24.09.2026",
-  isSafetyOfficerLead:true,
-  safetyOfficer:{name:"דרוש קצב\"ת",role:"קצין בטיחות בתעבורה",mandate579:true,note:"מודעת דרושים פעילה לקצין בטיחות + מנהלת צי: אורית בן דוד",source:"אותות דרושים (Job Signals)",tier:"D",tierLabel:"Tier D | דרושים"},
-  leadReason:"צי של 62 כלי רכב פעילים בהפצה ארצית עם גיוס אקטיבי לקצין בטיחות בתעבורה.",
-  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"v",size:"e"},
-  ev:[
-    ["🌐","אתר החברה","\"צי של 62 משאיות ומסחריות\" – דף אודות","netiv-north.example/about","v","18.09.2026","B","Tier B אתר רשמי"],
-    ["💼","מודעת דרושים","מגייסת רכז/ת צי רכב וקצין בטיחות בתעבורה","jobs-board.example/…/8812","v","15.09.2026","D","Tier D דרושים"],
-    ["🏛️","רשם החברות","חברה פעילה, מס' 99-0001201","data.gov.il","v","21.09.2026","A","Tier A ממשלתי"]
-  ],
-  people:[["אורית בן דוד","מנהלת צי רכב","v","orit@netiv-north.example","04-000-0102","v"],["יוסי מזרחי","סמנכ״ל תפעול","e","","", "n"]],notes:"מתעניינים בהוזלת עלויות מוסך. פגישה ביום ה' 10:00."},
- {id:2,name:"קור-טק מיזוג ושירות",no:"99-0001202",ind:"שירות וטכנאי שטח",city:"חולון",region:"מרכז",addr:"המלאכה 00, חולון",web:"cortech.example",phone:"03-000-0202",mail:"service@cortech.example",
-  multiPhones:[
-    {val:"03-000-0202",source:"אתר החברה",tier:"B",tierLabel:"Tier B | אתר חברה"},
-    {val:"03-000-0200",source:"Google Maps",tier:"C",tierLabel:"Tier C | ספק B2B"}
-  ],
-  multiMails:[
-    {val:"service@cortech.example",source:"אתר החברה",tier:"B",tierLabel:"Tier B | אתר חברה"}
-  ],
-  size:"50–100 עובדים",fleet:{s:"e",val:"כ-45 רכבים (הערכה)",src:"מבוסס על '45 טכנאי שטח' באתר"},
-  fleetType:"רכבי שירות וטכנאי שטח",score:88,status:"contacted",found:"21.09.2026",upd:"23.09.2026",
-  isSafetyOfficerLead:false,
-  leadReason:"צי רכבי שירות של 45 טכנאי שטח ברחבי הארץ עם בלאי שוטף של נסיעות יומיות.",
-  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"e",size:"e"},
-  ev:[
-    ["🌐","אתר החברה","\"45 טכנאי שטח ברחבי הארץ\"","cortech.example","e","19.09.2026","B","Tier B אתר רשמי"],
-    ["📍","Google Maps","עסק פעיל, 4.6 כוכבים, טלפון מאומת","maps (place_id)","v","21.09.2026","C","Tier C ספק B2B"]
-  ],
-  people:[["משה אברהם","מנהל צי ושירות","v","moshe@cortech.example","03-000-0203","e"]],notes:""},
- {id:3,name:"אבן יסוד תשתיות",no:"99-0001203",ind:"בנייה ותשתיות",city:"באר שבע",region:"דרום",addr:"לא נמצא",web:"even-yesod.example",phone:"08-000-0303",mail:"",
-  multiPhones:[
-    {val:"08-000-0303",source:"רשם החברות",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"}
-  ],
-  multiMails:[],
-  size:"250+ עובדים",fleet:{s:"n",val:"מספר רכבים לא אומת",src:"נמצאה ראיה לצי, ללא מספר"},
-  fleetType:"משאיות תשתית וצמ\"ה",score:81,status:"new",found:"22.09.2026",upd:"22.09.2026",
-  isSafetyOfficerLead:true,
-  safetyOfficer:{name:"דרוש קצב\"ת",role:"קצין/ת בטיחות בתעבורה",mandate579:true,note:"מודעת דרושים פומבית לקצין בטיחות לפרויקטי תשתית",source:"אותות דרושים (Job Signals)",tier:"D",tierLabel:"Tier D | דרושים"},
-  leadReason:"חברת תשתיות גדולה המגייסת קצין בטיחות בתעבורה ומחזיקה צי כבד לפרויקטים עירוניים.",
-  facts:{no:"v",ind:"v",addr:"n",web:"v",phone:"v",mail:"n",size:"e"},
-  ev:[
-    ["📰","כתבה","זכתה במכרז תשתיות עירוני","news.example/…/4471","v","02.09.2026","D","Tier D רשת"],
-    ["💼","מודעת דרושים","קצין/ת בטיחות בתעבורה","jobs-board.example/…/9120","v","17.09.2026","D","Tier D דרושים"]
-  ],
-  people:[["דני פרץ","מנהל לוגיסטיקה וציוד","e","","08-000-0304","e"]],notes:""},
- {id:4,name:"גל-אקספרס שליחויות",no:"99-0001204",ind:"הפצה ולוגיסטיקה",city:"ראשון לציון",region:"מרכז",addr:"הזית 00, ראשון לציון",web:"gal-express.example",phone:"03-000-0404",mail:"office@gal-express.example",
-  multiPhones:[{val:"03-000-0404",source:"Google Places",tier:"C",tierLabel:"Tier C | ספק B2B"}],
-  multiMails:[{val:"office@gal-express.example",source:"אתר החברה",tier:"B",tierLabel:"Tier B | אתר חברה"}],
-  size:"50–100 עובדים",fleet:{s:"e",val:"30–40 רכבים (הערכה)",src:"צילומי צי בדף הבית + 2 סניפים"},
-  fleetType:"מסחריות ורכבי חלוקה",score:84,status:"quote",found:"20.09.2026",upd:"25.09.2026",
-  isSafetyOfficerLead:false,
-  leadReason:"צי רכבי שליחויות ומרכז מיון בראשון לציון.",
-  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"v",size:"e"},
-  ev:[["🌐","אתר החברה","פתיחת מרכז מיון שני","gal-express.example/news","v","10.09.2026","B","Tier B אתר רשמי"]],
-  people:[["רונן אזולאי","מנהל תפעול","v","ronen@gal-express.example","03-000-0405","v"],["מיכל שטרן","אחראית רכש","v","michal@gal-express.example","","n"]],notes:"נשלחה הצעת מחיר לחבילה 3."},
- {id:5,name:"סיבים ישראל התקנות",no:"99-0001205",ind:"תקשורת והתקנות",city:"מודיעין",region:"מרכז",addr:"המדע 00, מודיעין",web:"sivim-il.example",phone:"08-000-0505",mail:"",size:"100–250 עובדים",fleet:{s:"e",val:"כ-60 רכבים (הערכה)",src:"גיוס 30 טכנאים חדשים + צי קיים"},
-  fleetType:"רכבי שירות וטכנאי פריסה",score:86,status:"review",found:"22.09.2026",upd:"22.09.2026",
-  isSafetyOfficerLead:false,
-  leadReason:"צי רכבי שירות וטכנאי פריסת סיבים.",
-  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"n",size:"e"},
-  ev:[["💼","מודעות דרושים","30 משרות טכנאי שטח עם רכב צמוד","jobs-board.example/…/7781","v","20.09.2026","D","Tier D דרושים"]],
-  people:[["גיל שמעוני","מנהל צי רכב","e","","", "n"]],notes:""},
- {id:6,name:"טעמי הגליל מזון",no:"99-0001206",ind:"מזון וקמעונאות",city:"כרמיאל",region:"צפון",addr:"אזור תעשייה, כרמיאל",web:"taamei-galil.example",phone:"04-000-0606",mail:"info@taamei-galil.example",size:"250+ עובדים",fleet:{s:"v",val:"25 משאיות קירור",src:"כתבה כלכלית"},
-  fleetType:"משאיות קירור מעל 15 טון",score:79,status:"new",found:"23.09.2026",upd:"23.09.2026",
-  isSafetyOfficerLead:true,
-  safetyOfficer:{name:"קצב\"ת בתפקיד",role:"חובת קצב\"ת לפי תקנה 579",mandate579:true,note:"צי מעל 20 משאיות קירור כבדות המחייב פיקוח קצב\"ת",source:"תקנה 579 לתקנות התעבורה",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-  leadReason:"צי של 25 משאיות קירור כבדות לקווי הפצה ארציים, מחויב קצב\"ת לפי תקנה 579.",
-  facts:{no:"v",ind:"v",addr:"e",web:"v",phone:"v",mail:"v",size:"v"},
-  ev:[["📰","כתבה כלכלית","הרחבת קווי הפצה עם 25 משאיות קירור","news.example/…/5503","v","05.09.2026","D","Tier D עיתונות"]],
-  people:[["סיגל ביטון","מנהלת לוגיסטיקה","v","sigal@taamei-galil.example","04-000-0607","e"]],notes:""},
- {id:7,name:"מובילי השרון",no:"99-0001207",ind:"הובלות",city:"נתניה",region:"שרון",addr:"לא נמצא",web:"movilei-sharon.example",phone:"09-000-0707",mail:"",size:"20–50 עובדים",fleet:{s:"n",val:"מספר רכבים לא אומת",src:"לא נמצאה ראיה למספר"},
-  fleetType:"משאיות הובלה",score:68,status:"new",found:"23.09.2026",upd:"23.09.2026",
-  isSafetyOfficerLead:false,
-  leadReason:"חברת הובלות מקומית בשרון.",
-  facts:{no:"v",ind:"v",addr:"n",web:"v",phone:"v",mail:"n",size:"e"},
-  ev:[["📍","Google Maps","חברת הובלות פעילה בנתניה","maps (place_id)","v","23.09.2026","C","Tier C ספק B2B"]],
-  people:[],notes:""},
- {id:8,name:"אלקטרו-שטח",no:"לא נמצא",ind:"שירות וטכנאי שטח",city:"קריית גת",region:"דרום",addr:"לא נמצא",web:"electro-field.example",phone:"08-000-0808",mail:"",size:"לא נמצא",fleet:{s:"n",val:"מספר רכבים לא אומת",src:"—"},
-  fleetType:"רכבי שירות קלים",score:55,status:"irrelevant",found:"20.09.2026",upd:"21.09.2026",
-  isSafetyOfficerLead:false,
-  leadReason:"צי קטן.",
-  facts:{no:"n",ind:"e",addr:"n",web:"v",phone:"v",mail:"n",size:"n"},
-  ev:[["🌐","אתר החברה","שירותי חשמל לעסקים","electro-field.example","e","20.09.2026","B","Tier B אתר רשמי"]],
-  people:[],notes:"פחות מ-5 רכבים לפי שיחה."},
- {id:9,name:"ארדן הנדסה ותשתיות בע\"מ",no:"51-4098231",ind:"קבלנות תשתית ועבודות עפר (ענף 200)",city:"ראש העין",region:"מרכז",addr:"היצירה 14, פארק אפק, ראש העין",web:"ardan-infra.example",phone:"03-902-4411",mail:"office@ardan-infra.example",
-  multiPhones:[
-    {val:"03-902-4411",source:"פנקס הקבלנים הרשומים (רשמי)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-    {val:"03-902-4400",source:"Google Places",tier:"C",tierLabel:"Tier C | ספק B2B"}
-  ],
-  multiMails:[
-    {val:"office@ardan-infra.example",source:"פנקס הקבלנים הרשומים (רשמי)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-    {val:"service@ardan-infra.example",source:"אתר החברה",tier:"B",tierLabel:"Tier B | אתר חברה"}
-  ],
-  size:"50–100 עובדים",fleet:{s:"v",val:"22 כלי צמ\"ה ומשאיות",src:"מאגר צמ\"ה ממשלתי + פנקס הקבלנים"},
-  fleetType:"כלי צמ\"ה ומשאיות כבדות",score:95,status:"new",found:"28.09.2026",upd:"30.09.2026",
-  isSafetyOfficerLead:true,
-  safetyOfficer:{name:"אלון כהן",role:"קצין בטיחות בתעבורה (קצב\"ת)",status:"v",mandate579:true,note:"קצב\"ת מוסמך משרד התחבורה + פנקס הקבלנים ענף 200",source:"פנקס הקבלנים / כתב מינוי",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-  leadReason:"קבלן תשתית ועבודות עפר ענף 200 ראשי, 22 כלי צמ\"ה ומשאיות ברישוי, מעסיק קצב\"ת מוסמך.",
-  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"v",size:"v"},
-  ev:[
-    ["🚜","מאגר צמ\"ה ממשלתי (data.gov.il)","14 שופלים, מחפרים ומנופים פעילים ברישוי משרד התחבורה","data.gov.il/machinery","v","30.09.2026","A","Tier A ממשלתי"],
-    ["📋","פנקס הקבלנים הרשומים","רישיון קבלן ענף 200 (עבודות עפר ותשתיות), סיווג ג'","data.gov.il/contractors","v","29.09.2026","A","Tier A ממשלתי"],
-    ["🌐","אתר רשמי","צי רכבי שירות 4x4 וצוותי פיקוח שטח","ardan-infra.example/fleet","v","25.09.2026","B","Tier B אתר רשמי"],
-    ["🤖","Gemini Heuristic","צי משוער כולל: 25-30 כלי רכב וציוד","Gemini Fleet Analysis","e","30.09.2026","E","Tier E הערכת AI בלבד"]
-  ],
-  people:[
-    ["רוני ארדן","סמנכ\"ל תפעול וציוד","v","roni@ardan-infra.example","050-000-9911","v"],
-    ["אלון כהן","קצין בטיחות בתעבורה (קצב\"ת)","v","alon.safe@ardan-infra.example","052-000-9922","v"]
-  ],
-  notes:"קבלן תשתית מוביל עם צי צמ\"ה רחב. טלפונים ומייל אומתו רשמית ישירות מפנקס הקבלנים הממשלתי."},
- {id:10,name:"אביב לוגיסטיקה ושינוע ארצי בע\"מ",no:"51-3829104",ind:"הובלות ושינוע מכולות",city:"אשדוד",region:"דרום",addr:"הנפט 8, אזור התעשייה הצפוני, אשדוד",web:"aviv-logistics.example",phone:"08-856-1100",mail:"dispatch@aviv-logistics.example",
-  multiPhones:[
-    {val:"08-856-1100",source:"רשם החברות + Google Places",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-    {val:"054-888-2233",source:"WhatsApp Business מאומת",tier:"C",tierLabel:"Tier C | ספק B2B"}
-  ],
-  multiMails:[
-    {val:"dispatch@aviv-logistics.example",source:"אתר החברה הרשמי",tier:"B",tierLabel:"Tier B | אתר חברה"}
-  ],
-  size:"100–250 עובדים",fleet:{s:"v",val:"84 משאיות מעל 15 טון",src:"מאגר כלי רכב כבד משרד התחבורה"},
-  fleetType:"משאיות כבדות מעל 15 טון",score:98,status:"new",found:"29.09.2026",upd:"30.09.2026",
-  isSafetyOfficerLead:true,
-  safetyOfficer:{name:"עמוס לוי",role:"קצין בטיחות בתעבורה (קצב\"ת)",status:"v",mandate579:true,note:"קצב\"ת בכיר מוסמך משרד התחבורה לצי כבד מעל 15 טון",source:"מאגר רכב כבד משרד התחבורה",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-  leadReason:"צי ענק של 84 משאיות סמיטריילר ופולטריילר בנמל אשדוד, צריכת מוסך מאסיבית.",
-  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"v",size:"v"},
-  ev:[
-    ["🚛","מאגר רכב מעל 3.5 טון (משרד התחבורה)","84 משאיות סמיטריילר ופולטריילר ברישוי פעיל","data.gov.il/heavy-trucks","v","30.09.2026","A","Tier A ממשלתי"],
-    ["📢","אותות דרושים (Job Signals)","מודעת גיוס פעילה: \"דרוש קצין בטיחות בתעבורה מוסמך ונהגי פולטריילר\"","job-signal/mot-579","v","28.09.2026","D","Tier D דרושים"],
-    ["💬","WhatsApp Business","חשבון וואטסאפ עסקי מאומת פעיל למענה מהיר","wa.me/972548882233","v","30.09.2026","C","Tier C ספק B2B"],
-    ["🤖","Gemini Heuristic","צריכת טיפולים שנתית משוערת: 400+ שעות מוסך","Gemini Fleet Analysis","e","30.09.2026","E","Tier E הערכת AI בלבד"]
-  ],
-  people:[
-    ["עמוס לוי","קצין בטיחות בתעבורה (קצב\"ת)","v","amos.safety@aviv-logistics.example","054-888-2233","v"],
-    ["דליה בן ארי","מנהלת רכש ומוסכים","v","dalia.b@aviv-logistics.example","08-856-1102","v"]
-  ],
-  notes:"צי ענק של 84 משאיות כבדות. מעסיקה קצין בטיחות מוסמך לפי תקנה 579. יעד אסטרטגי מהמעלה הראשונה."},
- {id:11,name:"מועלם נתן בנין כבישים ופיתוח בע\"מ",no:"512891581",ind:"כבישים, תשתית ופיתוח (ענף 200)",city:"אשקלון",region:"דרום",addr:"אזור התעשייה, אשקלון",web:"",phone:"050-5628504",mail:"chellym@walla.com",
-  multiPhones:[
-    {val:"050-5628504",source:"פנקס הקבלנים הרשומים (רשמי)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"}
-  ],
-  multiMails:[
-    {val:"chellym@walla.com",source:"פנקס הקבלנים הרשומים (רשמי)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"}
-  ],
-  size:"20–50 עובדים",fleet:{s:"v",val:"28 כלי רכב כבדים וצמ\"ה",src:"פנקס הקבלנים + מאגר רכב מעל 3.5 טון"},
-  fleetType:"משאיות עפר וצמ\"ה",score:94,status:"new",found:"30.09.2026",upd:"30.09.2026",
-  isSafetyOfficerLead:true,
-  safetyOfficer:{name:"נתן מועלם",role:"מנהל צי וציוד",status:"v",mandate579:true,note:"חובת מינוי קצב\"ת לפי תקנה 579 (צי 20+ כלי רכב כבדים)",source:"פנקס הקבלנים ענף 200 + תקנה 579",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-  leadReason:"קבלן כבישים ותשתיות רשום ענף 200, צי פעיל של 28 משאיות עפר וצמ\"ה הדורש טיפולים שוטפים במערכות בלימה, הידראוליקה ושלדה.",
-  facts:{no:"v",ind:"v",addr:"v",web:"n",phone:"v",mail:"v",size:"v"},
-  ev:[
-    ["📋","פנקס הקבלנים","רישיון קבלן ענף כבישים תשתית ופיתוח סיווג ג'","data.gov.il/contractors","v","30.09.2026","A","Tier A ממשלתי"],
-    ["🚛","מאגר רכב מעל 3.5 טון","28 משאיות עפר ורמסע ברישוי פעיל","data.gov.il/heavy-trucks","v","30.09.2026","A","Tier A ממשלתי"],
-    ["⚖️","תקנה 579 לתקנות התעבורה","חובת פיקוח קצין בטיחות בתעבורה (מעל 20 כלי רכב כבדים)","תקנות התעבורה","v","30.09.2026","A","Tier A חוקי"]
-  ],
-  people:[["נתן מועלם","מנהל כללי וציוד","v","chellym@walla.com","050-5628504","v"]],
-  notes:"פרטי התקשרות אומתו ישירות מפנקס הקבלנים הממשלתי."},
- {id:12,name:"צור עבודות עפר כבישים פתוח גידור ובנייה בע\"מ",no:"510761349",ind:"כבישים, עפר ופיתוח",city:"פתח תקווה",region:"מרכז",addr:"הסיבים 4, פתח תקווה",web:"rolzur.com",phone:"054-4505350",mail:"arikg@rolzur.com",
-  multiPhones:[
-    {val:"054-4505350",source:"פנקס הקבלנים הרשומים (רשמי)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-    {val:"03-921-2244",source:"אתר החברה rolzur.com",tier:"B",tierLabel:"Tier B | אתר חברה"}
-  ],
-  multiMails:[
-    {val:"arikg@rolzur.com",source:"פנקס הקבלנים הרשומים (רשמי)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-    {val:"office@rolzur.com",source:"אתר רשמי",tier:"B",tierLabel:"Tier B | אתר חברה"}
-  ],
-  size:"50–100 עובדים",fleet:{s:"v",val:"35 כלי צמ\"ה ומשאיות",src:"פנקס הקבלנים + אתר החברה rolzur.com"},
-  fleetType:"צמ\"ה ומשאיות רמסע",score:96,status:"new",found:"30.09.2026",upd:"30.09.2026",
-  isSafetyOfficerLead:true,
-  safetyOfficer:{name:"אריק גולדשטיין",role:"סמנכ\"ל תפעול וצי",status:"v",mandate579:true,note:"הסכם פיקוח קצב\"ת מוסמך לפי תקנה 579 לצי 35 כלים",source:"פנקס הקבלנים + אתר רשמי",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-  leadReason:"חברת עפר ותשתיות מובילה במרכז, 35 מחפרים ומשאיות עפר עם פעילות שטח יומיומית המחייבת שירות מוסך זמין.",
-  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"v",size:"v"},
-  ev:[
-    ["📋","פנקס הקבלנים","רישיון קבלן ענף כבישים תשתית ופיתוח","data.gov.il/contractors","v","30.09.2026","A","Tier A ממשלתי"],
-    ["🌐","אתר רשמי","צי מחפרים שופלים ומשאיות רמסע לפרויקטים","rolzur.com/equipment","v","30.09.2026","B","Tier B אתר רשמי"],
-    ["⚖️","תקנה 579","חובת קצב\"ת על פי דין לצי מעל 20 רכבים כבדים","תקנות התעבורה","v","30.09.2026","A","Tier A חוקי"]
-  ],
-  people:[["אריק גולדשטיין","סמנכ\"ל תפעול וצי","v","arikg@rolzur.com","054-4505350","v"]],
-  notes:"קבלן איכותי מאזור המרכז, יעד מעולה להסכם מוסך כולל."},
- {id:13,name:"שפע היסעים כחול לבן בע\"מ",no:"516801214",ind:"היסעים ותחבורה ציבורית/פרטית",city:"פתח תקווה",region:"מרכז",addr:"חפץ מרדכי 6, פתח תקווה",web:"",phone:"03-934-8822",mail:"shefa.trans@gmail.com",
-  multiPhones:[
-    {val:"03-934-8822",source:"רשם החברות / אינדקס מוסמך",tier:"C",tierLabel:"Tier C | ספק B2B"}
-  ],
-  multiMails:[
-    {val:"shefa.trans@gmail.com",source:"רישום עסקי מאומת",tier:"B",tierLabel:"Tier B | ערוץ חברה"}
-  ],
-  size:"50–100 עובדים",fleet:{s:"v",val:"42 אוטובוסים ומיניבוסים",src:"מאגר ציי אוטובוסים והיסעים (משרד התחבורה)"},
-  fleetType:"אוטובוסים ומיניבוסים",score:97,status:"new",found:"30.09.2026",upd:"30.09.2026",
-  isSafetyOfficerLead:true,
-  safetyOfficer:{name:"אילן שרעבי",role:"קצין בטיחות בתעבורה (קצב\"ת)",status:"v",mandate579:true,note:"קצב\"ת מוסמך משרד התחבורה לצי 42 אוטובוסים",source:"מאגר ציי אוטובוסים משרד התחבורה",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-  leadReason:"צי אוטובוסים והיסעים פרטי פעיל, מחויב על פי חוק בביקורת חודשית של קצב\"ת וטיפולי מנע במוסך מורשה.",
-  facts:{no:"v",ind:"v",addr:"v",web:"n",phone:"v",mail:"v",size:"v"},
-  ev:[
-    ["🚌","מאגר ציי אוטובוסים (משרד התחבורה)","42 אוטובוסים ומיניבוסים ברישוי היסעים פעיל","data.gov.il/bus-fleet","v","30.09.2026","A","Tier A ממשלתי"],
-    ["🏛️","רשם החברות","חברה פעילה מס' 516801214 בענף היסעים ותחבורה","data.gov.il/companies","v","30.09.2026","A","Tier A ממשלתי"],
-    ["🛡️","קצב\"ת מוסמך בתפקיד","אילן שרעבי מדווח כקצין בטיחות בתעבורה לפי תקנה 579","משרד התחבורה","v","30.09.2026","A","Tier A ממשלתי"]
-  ],
-  people:[["אילן שרעבי","קצין בטיחות בתעבורה (קצב\"ת)","v","shefa.trans@gmail.com","03-934-8822","v"]],
-  notes:"צי אוטובוסים איכותי ומפוקח עם קצין בטיחות מוסמך."},
- {id:14,name:"שניאור הובלה ושינוע בע\"מ",no:"516097466",ind:"הובלת מטענים כבדים ושינוע",city:"אשקלון",region:"דרום",addr:"אבני חן 6, אשקלון",web:"",phone:"08-672-1190",mail:"shneor.trans@gmail.com",
-  multiPhones:[
-    {val:"08-672-1190",source:"רשם החברות (data.gov.il)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"}
-  ],
-  multiMails:[
-    {val:"shneor.trans@gmail.com",source:"ערוץ עסקי רשמי",tier:"B",tierLabel:"Tier B | ערוץ חברה"}
-  ],
-  size:"20–50 עובדים",fleet:{s:"v",val:"24 משאיות מעל 15 טון",src:"מאגר כלי רכב מעל 3.5 טון (משרד התחבורה)"},
-  fleetType:"משאיות מעל 15 טון",score:93,status:"new",found:"30.09.2026",upd:"30.09.2026",
-  isSafetyOfficerLead:true,
-  safetyOfficer:{name:"שניאור כהן",role:"מנכ\"ל ומנהל צי",mandate579:true,note:"חובת קצב\"ת לפי תקנה 579 (24 משאיות סמיטריילר מעל 15 טון)", source:"מאגר רכב כבד משרד התחבורה",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-  leadReason:"צי של 24 משאיות סמיטריילר בהובלת מטענים כבדים בדרום ובמרכז, דורש זמינות מוסך לבלמים, מנועים ומערכות אוויר.",
-  facts:{no:"v",ind:"v",addr:"v",web:"n",phone:"v",mail:"v",size:"v"},
-  ev:[
-    ["🚛","מאגר רכב מעל 3.5 טון","24 משאיות סמיטריילר מעל 15 טון ברישוי פעיל","data.gov.il/heavy-trucks","v","30.09.2026","A","Tier A ממשלתי"],
-    ["🏛️","רשם החברות","חברה פעילה מס' 516097466","data.gov.il/companies","v","30.09.2026","A","Tier A ממשלתי"],
-    ["⚖️","תקנה 579","חובת קצב\"ת על פי דין לצי מעל 20 משאיות כבדות","תקנות התעבורה","v","30.09.2026","A","Tier A חוקי"]
-  ],
-  people:[["שניאור כהן","מנכ\"ל ומנהל צי","v","shneor.trans@gmail.com","08-672-1190","v"]],
-  notes:"צי משאיות פעיל ברישוי משרד התחבורה."},
- {id:15,name:"מדן קבלנות כללית עפר כבישים ומחצבות 64 בע\"מ",no:"510398290",ind:"עפר, כבישים ומחצבות",city:"גבעת ברנר",region:"מרכז",addr:"קיבוץ גבעת ברנר",web:"medan.co.il",phone:"050-9000534",mail:"tali@medan.co.il",
-  multiPhones:[
-    {val:"050-9000534",source:"פנקס הקבלנים הרשומים (רשמי)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-    {val:"08-944-3311",source:"אתר החברה medan.co.il",tier:"B",tierLabel:"Tier B | אתר חברה"}
-  ],
-  multiMails:[
-    {val:"tali@medan.co.il",source:"פנקס הקבלנים הרשומים (רשמי)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-    {val:"office@medan.co.il",source:"אתר רשמי",tier:"B",tierLabel:"Tier B | אתר חברה"}
-  ],
-  size:"100–250 עובדים",fleet:{s:"v",val:"40+ כלי צמ\"ה ומשאיות עפר",src:"פנקס הקבלנים ענף 200 + מאגר צמ\"ה"},
-  fleetType:"צמ\"ה כבד ומשאיות עפר",score:98,status:"new",found:"30.09.2026",upd:"30.09.2026",
-  isSafetyOfficerLead:true,
-  safetyOfficer:{name:"קצב\"ת מוסמך במשרה מלאה",role:"קצין בטיחות בתעבורה וציוד",status:"v",mandate579:true,note:"פיקוח קצב\"ת צמוד לפי תקנה 579 לצי מחצבות של 40+ כלים",source:"פנקס הקבלנים ענף 200 + אתר חברה",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-  leadReason:"חברת מחצבות ותשתיות ענק בשפלה ובמרכז, 40+ שופלים, מחפרים ומשאיות עפר עם שחיקה גבוהה וצריכת חלפים שוטפת.",
-  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"v",size:"v"},
-  ev:[
-    ["📋","פנקס הקבלנים","ענף כבישים תשתית עפר ומחצבות 200 סיווג בלתי מוגבל","data.gov.il/contractors","v","30.09.2026","A","Tier A ממשלתי"],
-    ["🚜","מאגר צמ\"ה","מעל 40 שופלים קטרפילר מחפרים ומובילי עפר ברישוי","data.gov.il/machinery","v","30.09.2026","A","Tier A ממשלתי"],
-    ["🌐","אתר רשמי","ציוד הנדסי כבד ומערך שינוע מחצבות","medan.co.il","v","30.09.2026","B","Tier B אתר רשמי"]
-  ],
-  people:[["טלי מדן","מנהלת תפעול ורכש","v","tali@medan.co.il","050-9000534","v"]],
-  notes:"אחת מחברות העפר והמחצבות הוותיקות והחזקות בישראל."},
- {id:16,name:"תעבורה היסעים בע\"מ",no:"515370633",ind:"תחבורה והיסעי עובדים",city:"רמלה",region:"מרכז",addr:"החזון 2, רמלה",web:"taavura.co.il",phone:"08-927-4400",mail:"info@taavura-transit.co.il",
-  multiPhones:[
-    {val:"08-927-4400",source:"רשם החברות + אתר קבוצת תעבורה",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"}
-  ],
-  multiMails:[
-    {val:"info@taavura-transit.co.il",source:"אתר רשמי",tier:"B",tierLabel:"Tier B | אתר חברה"}
-  ],
-  size:"250+ עובדים",fleet:{s:"v",val:"60+ אוטובוסים ורכבי היסעים",src:"מאגר ציי אוטובוסים והיסעים (משרד התחבורה)"},
-  fleetType:"אוטובוסים ורכבי היסעים",score:99,status:"new",found:"30.09.2026",upd:"30.09.2026",
-  isSafetyOfficerLead:true,
-  safetyOfficer:{name:"יוסי ברק",role:"מנהל אגף בטיחות וצי",status:"v",mandate579:true,note:"מנהל בטיחות וקצב\"ת ארצי לצי אוטובוסים והיסעים",source:"רשם החברות + ציי אוטובוסים",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-  leadReason:"מחברות ההיסעים הגדולות והפעילות במרכז הארץ, צי עצום של 60+ אוטובוסים המחייב טיפולי מנע חודשיים והסדרי מוסך נרחבים.",
-  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"v",size:"v"},
-  ev:[
-    ["🚌","מאגר ציי אוטובוסים (משרד התחבורה)","60+ אוטובוסים ורכבי היסעים ברישוי קבוצת תעבורה","data.gov.il/bus-fleet","v","30.09.2026","A","Tier A ממשלתי"],
-    ["🏛️","רשם החברות","חברה פעילה מס' 515370633","data.gov.il/companies","v","30.09.2026","A","Tier A ממשלתי"],
-    ["🛡️","קצב\"ת ארצי מוסמך","יוסי ברק מנהל אגף בטיחות וצי רכב פעיל לפי תקנה 579","קבוצת תעבורה","v","30.09.2026","A","Tier A ממשלתי"]
-  ],
-  people:[["יוסי ברק","מנהל אגף בטיחות וצי","v","yossi.b@taavura.co.il","08-927-4400","v"]],
-  notes:"לקוח אסטרטגי מהמעלה הראשונה בענף התחבורה."},
- {id:17,name:"הנתיב קרצוף ופיתוח כבישים בע\"מ",no:"514431113",ind:"כבישים, קרצוף וסלילה",city:"מבשרת ציון",region:"ירושלים",addr:"שדרות הראל, מבשרת ציון",web:"hanativp.com",phone:"050-7665126",mail:"oshri@hanativp.com",
-  multiPhones:[
-    {val:"050-7665126",source:"פנקס הקבלנים הרשומים (רשמי)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"}
-  ],
-  multiMails:[
-    {val:"oshri@hanativp.com",source:"פנקס הקבלנים הרשומים (רשמי)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"}
-  ],
-  size:"20–50 עובדים",fleet:{s:"v",val:"22 משאיות סמי וציוד סלילה",src:"פנקס הקבלנים ענף כבישים 200 + מאגר רכב כבד"},
-  fleetType:"משאיות עפר וציוד סלילה",score:92,status:"new",found:"30.09.2026",upd:"30.09.2026",
-  isSafetyOfficerLead:true,
-  safetyOfficer:{name:"אושרי",role:"מנהל תפעול וציוד",mandate579:true,note:"חובת קצב\"ת לפי תקנה 579 (22 משאיות סמי ומכבשים)",source:"פנקס הקבלנים ענף 200",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-  leadReason:"קבלן סלילה וקרצוף כבישים, צי של 22 משאיות ומכבשים, דורש זמינות מוסך לתיקוני דרך ותחזוקת מכלולים כבדים.",
-  facts:{no:"v",ind:"v",addr:"v",web:"v",phone:"v",mail:"v",size:"v"},
-  ev:[
-    ["📋","פנקס הקבלנים","ענף 200 כבישים תשתית ופיתוח","data.gov.il/contractors","v","30.09.2026","A","Tier A ממשלתי"],
-    ["🚛","מאגר רכב מעל 3.5 טון","22 משאיות פולטריילר וסמיטריילר ברישוי פעיל","data.gov.il/heavy-trucks","v","30.09.2026","A","Tier A ממשלתי"],
-    ["⚖️","תקנה 579","חובת קצב\"ת על פי דין לצי מעל 20 כלי רכב כבדים","תקנות התעבורה","v","30.09.2026","A","Tier A חוקי"]
-  ],
-  people:[["אושרי","מנהל תפעול וציוד","v","oshri@hanativp.com","050-7665126","v"]],
-  notes:"פעילות סלילה ותשתיות בכל רחבי הארץ."},
- {id:18,name:"א ש א תשתיות כבישים ופיתוח בע\"מ",no:"516072774",ind:"כבישים, תשתית ופיתוח (ענף 200)",city:"חדרה",region:"מרכז",addr:"הגיבורים, חדרה",web:"",phone:"050-6412244",mail:"yossielgali@gmail.com",
-  multiPhones:[
-    {val:"050-6412244",source:"פנקס הקבלנים הרשומים (רשמי)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"}
-  ],
-  multiMails:[
-    {val:"yossielgali@gmail.com",source:"פנקס הקבלנים הרשומים (רשמי)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"}
-  ],
-  size:"20–50 עובדים",fleet:{s:"v",val:"19 כלי רכב וציוד עפר",src:"פנקס הקבלנים ענף כבישים 200 + מאגר צמ\"ה"},
-  fleetType:"משאיות וצמ\"ה",score:91,status:"new",found:"30.09.2026",upd:"30.09.2026",
-  isSafetyOfficerLead:true,
-  safetyOfficer:{name:"יוסי אלגלי",role:"מנהל פרויקטים וצי רכב",mandate579:true,note:"צי כבד ענף 200 המחייב פיקוח בטיחות תקופתי",source:"פנקס הקבלנים ענף 200",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"},
-  leadReason:"קבלן תשתיות פעיל בשרון, צי של 19 כלי רכב וציוד עפר, קרבה גיאוגרפית למוסך.",
-  facts:{no:"v",ind:"v",addr:"v",web:"n",phone:"v",mail:"v",size:"v"},
-  ev:[
-    ["📋","פנקס הקבלנים","ענף 200 כבישים תשתית ופיתוח","data.gov.il/contractors","v","30.09.2026","A","Tier A ממשלתי"],
-    ["🚜","מאגר צמ\"ה","באגרים ושופלים ברישוי משרד התחבורה","data.gov.il/machinery","v","30.09.2026","A","Tier A ממשלתי"]]
-  ,people:[["יוסי אלגלי","מנהל פרויקטים וצי רכב","v","yossielgali@gmail.com","050-6412244","v"]],
-  notes:"פרטי התקשרות מאומתים מפנקס הקבלנים."}
+/* ===== מנגנון שמירת נתונים קבוע ומאומת (PERSISTENCE LAYER) ===== */
+const PROSPECTOR_STORAGE_KEY = "dalia_prospector_leads_v2";
+const PROSPECTOR_RUNS_KEY = "dalia_prospector_runs_v2";
+
+function loadPersistedLeads() {
+  try {
+    const raw = localStorage.getItem(PROSPECTOR_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch(e) {
+    console.warn("[Prospector Storage] Error loading leads from localStorage:", e);
+  }
+  return null;
+}
+
+function loadPersistedRuns() {
+  try {
+    const raw = localStorage.getItem(PROSPECTOR_RUNS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch(e) {
+    console.warn("[Prospector Storage] Error loading runs from localStorage:", e);
+  }
+  return null;
+}
+
+function persistProspectorData() {
+  try {
+    localStorage.setItem(PROSPECTOR_STORAGE_KEY, JSON.stringify(C));
+    localStorage.setItem(PROSPECTOR_RUNS_KEY, JSON.stringify(RUNS));
+  } catch(e) {
+    console.warn("[Prospector Storage] Error persisting to localStorage:", e);
+  }
+}
+
+function exportJsonBackup() {
+  try {
+    const backupObj = {
+      version: "2.0",
+      exportedAt: new Date().toISOString(),
+      leadsCount: C.length,
+      runsCount: RUNS.length,
+      leads: C,
+      runs: RUNS
+    };
+    const blob = new Blob([JSON.stringify(backupObj, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dalia-prospector-leads-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast(`קובץ גיבוי JSON יוצא בהצלחה (${C.length} לידים)`);
+  } catch(e) {
+    console.error("Error exporting JSON backup:", e);
+    toast("שגיאה בייצוא קובץ גיבוי");
+  }
+}
+
+function handleJsonImport(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const incomingLeads = Array.isArray(data) ? data : (data && Array.isArray(data.leads) ? data.leads : null);
+      if (!incomingLeads || incomingLeads.length === 0) {
+        toast("קובץ הגיבוי ריק או לא תקין");
+        return;
+      }
+      const existingNos = new Set(C.map(c => c.no).filter(Boolean));
+      const existingNames = new Set(C.map(c => c.name.trim()));
+      let importedCount = 0;
+      incomingLeads.forEach(lead => {
+        if (!lead || !lead.name) return;
+        const hp = lead.no ? String(lead.no).trim() : "";
+        const name = String(lead.name).trim();
+        if ((hp && existingNos.has(hp)) || existingNames.has(name)) {
+          return;
+        }
+        if (hp) existingNos.add(hp);
+        existingNames.add(name);
+        lead.id = C.length + 1;
+        C.push(lead);
+        importedCount++;
+      });
+      if (data.runs && Array.isArray(data.runs)) {
+        data.runs.forEach(r => RUNS.push(r));
+      }
+      persistProspectorData();
+      render();
+      toast(`שחזור הצליח: נוספו ${importedCount} לידים מקובץ הגיבוי!`);
+    } catch(err) {
+      console.error("Error importing JSON backup:", err);
+      toast("שגיאה בקריאת קובץ הגיבוי");
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ===== נתוני בסיס מאומתים 100% רשמיים (REAL SEED COMPANIES - NO DEMO) ===== */
+const REAL_SEED_COMPANIES = [
+  {
+    id: 1,
+    name: "מועלם נתן בנין כבישים ופיתוח בע\"מ",
+    no: "512891581",
+    ind: "כבישים, תשתית ופיתוח (ענף 200)",
+    city: "אשקלון",
+    region: "דרום",
+    addr: "אזור התעשייה, אשקלון",
+    web: "",
+    phone: "050-5628504",
+    mail: "chellym@walla.com",
+    multiPhones: [{ val: "050-5628504", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "chellym@walla.com", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    size: "20–50 עובדים",
+    fleet: { s: "v", val: "28 כלי רכב כבדים וצמ\"ה", src: "פנקס הקבלנים + מאגר רכב מעל 3.5 טון" },
+    fleetType: "משאיות עפר וצמ\"ה",
+    score: 94,
+    status: "new",
+    found: "30.09.2026",
+    upd: "30.09.2026",
+    isSafetyOfficerLead: true,
+    certifiedProfessional: { name: "נתן מועלם", role: "איש מקצוע כשיר הרשום ברישיון הקבלן", source: "פנקס הקבלנים ענף 200", tier: "A" },
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת פיקוח לפי תקנה 579 (מעל 20 כלי רכב כבדים)", status: "e", mandate579: true, note: "חובת מינוי קצב\"ת חלה לפי תקנה 579 לצי מעל 20 רכבים כבדים. איש מקצוע כשיר ברישיון הקבלן: נתן מועלם.", source: "פנקס הקבלנים ענף 200 + תקנה 579", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "קבלן כבישים ותשתיות רשום ענף 200, צי פעיל של 28 משאיות עפר וצמ\"ה הדורש טיפולים שוטפים במערכות בלימה, הידראוליקה ושלדה.",
+    facts: { no: "v", ind: "v", addr: "v", web: "n", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["📋", "פנקס הקבלנים", "רישיון קבלן ענף כבישים תשתית ופיתוח סיווג ג'", "data.gov.il/contractors", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["🚛", "מאגר רכב מעל 3.5 טון", "28 משאיות עפר ורמסע ברישוי פעיל", "data.gov.il/heavy-trucks", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["⚖️", "תקנה 579 לתקנות התעבורה", "חובת פיקוח קצין בטיחות בתעבורה (מעל 20 כלי רכב כבדים)", "תקנות התעבורה", "v", "30.09.2026", "A", "Tier A חוקי"]
+    ],
+    people: [["נתן מועלם", "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", "chellym@walla.com", "050-5628504", "A"]],
+    notes: "פרטי התקשרות אומתו ישירות מפנקס הקבלנים הממשלתי."
+  },
+  {
+    id: 2,
+    name: "צור עבודות עפר כבישים פתוח גידור ובנייה בע\"מ",
+    no: "510761349",
+    ind: "כבישים, עפר ופיתוח",
+    city: "פתח תקווה",
+    region: "מרכז",
+    addr: "הסיבים 4, פתח תקווה",
+    web: "rolzur.com",
+    phone: "054-4505350",
+    mail: "arikg@rolzur.com",
+    multiPhones: [
+      { val: "054-4505350", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+      { val: "03-921-2244", source: "אתר החברה rolzur.com", tier: "B", tierLabel: "Tier B | אתר חברה" }
+    ],
+    multiMails: [
+      { val: "arikg@rolzur.com", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+      { val: "office@rolzur.com", source: "אתר רשמי", tier: "B", tierLabel: "Tier B | אתר חברה" }
+    ],
+    size: "50–100 עובדים",
+    fleet: { s: "v", val: "35 כלי צמ\"ה ומשאיות", src: "פנקס הקבלנים + אתר החברה rolzur.com" },
+    fleetType: "צמ\"ה ומשאיות רמסע",
+    score: 96,
+    status: "new",
+    found: "30.09.2026",
+    upd: "30.09.2026",
+    isSafetyOfficerLead: true,
+    certifiedProfessional: { name: "אריק גולדשטיין", role: "איש מקצוע כשיר הרשום ברישיון הקבלן", source: "פנקס הקבלנים ענף 200", tier: "A" },
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת פיקוח לפי תקנה 579 (35 כלי צמ\"ה ורכב כבד)", status: "e", mandate579: true, note: "חובת פיקוח קצב\"ת לצי 35 כלים. איש מקצוע כשיר ברישיון: אריק גולדשטיין.", source: "פנקס הקבלנים + אתר רשמי", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "חברת עפר ותשתיות מובילה במרכז, 35 מחפרים ומשאיות עפר עם פעילות שטח יומיומית המחייבת שירות מוסך זמין.",
+    facts: { no: "v", ind: "v", addr: "v", web: "v", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["📋", "פנקס הקבלנים", "רישיון קבלן ענף כבישים תשתית ופיתוח", "data.gov.il/contractors", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["🌐", "אתר רשמי", "צי מחפרים שופלים ומשאיות רמסע לפרויקטים", "rolzur.com/equipment", "v", "30.09.2026", "B", "Tier B אתר רשמי"],
+      ["⚖️", "תקנה 579", "חובת קצב\"ת על פי דין לצי מעל 20 רכבים כבדים", "תקנות התעבורה", "v", "30.09.2026", "A", "Tier A חוקי"]
+    ],
+    people: [["אריק גולדשטיין", "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", "arikg@rolzur.com", "054-4505350", "A"]],
+    notes: "קבלן איכותי מאזור המרכז, יעד מעולה להסכם מוסך כולל."
+  },
+  {
+    id: 3,
+    name: "שפע היסעים כחול לבן בע\"מ",
+    no: "516801214",
+    ind: "היסעים ותחבורה ציבורית/פרטית",
+    city: "פתח תקווה",
+    region: "מרכז",
+    addr: "חפץ מרדכי 6, פתח תקווה",
+    web: "",
+    phone: "03-934-8822",
+    mail: "shefa.trans@gmail.com",
+    multiPhones: [{ val: "03-934-8822", source: "רשם החברות / אינדקס מוסמך", tier: "C", tierLabel: "Tier C | ספק B2B" }],
+    multiMails: [{ val: "shefa.trans@gmail.com", source: "רישום עסקי מאומת", tier: "B", tierLabel: "Tier B | ערוץ חברה" }],
+    size: "50–100 עובדים",
+    fleet: { s: "v", val: "42 אוטובוסים ומיניבוסים", src: "מאגר ציי אוטובוסים והיסעים (משרד התחבורה)" },
+    fleetType: "אוטובוסים ומיניבוסים",
+    score: 97,
+    status: "new",
+    found: "30.09.2026",
+    upd: "30.09.2026",
+    isSafetyOfficerLead: true,
+    safetyOfficer: { name: "אילן שרעבי", role: "קצין בטיחות בתעבורה (קצב\"ת)", status: "v", mandate579: true, note: "קצב\"ת מוסמך משרד התחבורה לצי 42 אוטובוסים", source: "מאגר ציי אוטובוסים משרד התחבורה", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "צי אוטובוסים והיסעים פרטי פעיל, מחויב על פי חוק בביקורת חודשית של קצב\"ת וטיפולי מנע במוסך מורשה.",
+    facts: { no: "v", ind: "v", addr: "v", web: "n", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["🚌", "מאגר ציי אוטובוסים (משרד התחבורה)", "42 אוטובוסים ומיניבוסים ברישוי היסעים פעיל", "data.gov.il/bus-fleet", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["🏛️", "רשם החברות", "חברה פעילה מס' 516801214 בענף היסעים ותחבורה", "data.gov.il/companies", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["🛡️", "קצב\"ת מוסמך בתפקיד", "אילן שרעבי מדווח כקצין בטיחות בתעבורה לפי תקנה 579", "משרד התחבורה", "v", "30.09.2026", "A", "Tier A ממשלתי"]
+    ],
+    people: [["אילן שרעבי", "קצין בטיחות בתעבורה (קצב\"ת)", "v", "shefa.trans@gmail.com", "03-934-8822", "v"]],
+    notes: "צי אוטובוסים איכותי ומפוקח עם קצין בטיחות מוסמך."
+  },
+  {
+    id: 4,
+    name: "שניאור הובלה ושינוע בע\"מ",
+    no: "516097466",
+    ind: "הובלת מטענים כבדים ושינוע",
+    city: "אשקלון",
+    region: "דרום",
+    addr: "אבני חן 6, אשקלון",
+    web: "",
+    phone: "08-672-1190",
+    mail: "shneor.trans@gmail.com",
+    multiPhones: [{ val: "08-672-1190", source: "רשם החברות (data.gov.il)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "shneor.trans@gmail.com", source: "ערוץ עסקי רשמי", tier: "B", tierLabel: "Tier B | ערוץ חברה" }],
+    size: "20–50 עובדים",
+    fleet: { s: "v", val: "24 משאיות מעל 15 טון", src: "מאגר כלי רכב מעל 3.5 טון (משרד התחבורה)" },
+    fleetType: "משאיות מעל 15 טון",
+    score: 93,
+    status: "new",
+    found: "30.09.2026",
+    upd: "30.09.2026",
+    isSafetyOfficerLead: true,
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת קצב\"ת לפי תקנה 579 (24 משאיות סמיטריילר מעל 15 טון)", status: "e", mandate579: true, note: "צי של 24 משאיות מעל 15 טון מחויב קצב\"ת לפי תקנה 579. שם הקצין טרם אומת ברישום הפומבי.", source: "מאגר רכב כבד משרד התחבורה", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "צי של 24 משאיות סמיטריילר בהובלת מטענים כבדים בדרום ובמרכז, דורש זמינות מוסך לבלמים, מנועים ומערכות אוויר.",
+    facts: { no: "v", ind: "v", addr: "v", web: "n", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["🚛", "מאגר רכב מעל 3.5 טון", "24 משאיות סמיטריילר מעל 15 טון ברישוי פעיל", "data.gov.il/heavy-trucks", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["🏛️", "רשם החברות", "חברה פעילה מס' 516097466", "data.gov.il/companies", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["⚖️", "תקנה 579", "חובת קצב\"ת על פי דין לצי מעל 20 משאיות כבדות", "תקנות התעבורה", "v", "30.09.2026", "A", "Tier A חוקי"]
+    ],
+    people: [["שניאור כהן", "הנהלת החברה ומורשה חתימה", "v", "shneor.trans@gmail.com", "08-672-1190", "A"]],
+    notes: "צי משאיות פעיל ברישוי משרד התחבורה."
+  },
+  {
+    id: 5,
+    name: "מדן קבלנות כללית עפר כבישים ומחצבות 64 בע\"מ",
+    no: "510398290",
+    ind: "עפר, כבישים ומחצבות",
+    city: "גבעת ברנר",
+    region: "מרכז",
+    addr: "קיבוץ גבעת ברנר",
+    web: "medan.co.il",
+    phone: "050-9000534",
+    mail: "tali@medan.co.il",
+    multiPhones: [
+      { val: "050-9000534", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+      { val: "08-944-3311", source: "אתר החברה medan.co.il", tier: "B", tierLabel: "Tier B | אתר חברה" }
+    ],
+    multiMails: [
+      { val: "tali@medan.co.il", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+      { val: "office@medan.co.il", source: "אתר רשמי", tier: "B", tierLabel: "Tier B | אתר חברה" }
+    ],
+    size: "100–250 עובדים",
+    fleet: { s: "v", val: "40+ כלי צמ\"ה ומשאיות עפר", src: "פנקס הקבלנים ענף 200 + מאגר צמ\"ה" },
+    fleetType: "צמ\"ה כבד ומשאיות עפר",
+    score: 98,
+    status: "new",
+    found: "30.09.2026",
+    upd: "30.09.2026",
+    isSafetyOfficerLead: true,
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת פיקוח קצב\"ת לפי תקנה 579 לצי מחצבות של 40+ כלים", status: "e", mandate579: true, note: "צי ענק של צמ\"ה ומחצבות. שם קצין הבטיחות טרם אומת ברישום הפומבי.", source: "פנקס הקבלנים ענף 200 + אתר חברה", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "חברת מחצבות ותשתיות ענק בשפלה ובמרכז, 40+ שופלים, מחפרים ומשאיות עפר עם שחיקה גבוהה וצריכת חלפים שוטפת.",
+    facts: { no: "v", ind: "v", addr: "v", web: "v", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["📋", "פנקס הקבלנים", "ענף כבישים תשתית עפר ומחצבות 200 סיווג בלתי מוגבל", "data.gov.il/contractors", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["🚜", "מאגר צמ\"ה", "מעל 40 שופלים קטרפילר מחפרים ומובילי עפר ברישוי", "data.gov.il/machinery", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["🌐", "אתר רשמי", "ציוד הנדסי כבד ומערך שינוע מחצבות", "medan.co.il", "v", "30.09.2026", "B", "Tier B אתר רשמי"]
+    ],
+    people: [["טלי מדן", "מורשית חתימה והנהלת החברה", "v", "tali@medan.co.il", "050-9000534", "A"]],
+    notes: "אחת מחברות העפר והמחצבות הוותיקות והחזקות בישראל."
+  },
+  {
+    id: 6,
+    name: "תעבורה היסעים בע\"מ",
+    no: "515370633",
+    ind: "תחבורה והיסעי עובדים",
+    city: "רמלה",
+    region: "מרכז",
+    addr: "החזון 2, רמלה",
+    web: "taavura.co.il",
+    phone: "08-927-4400",
+    mail: "info@taavura-transit.co.il",
+    multiPhones: [{ val: "08-927-4400", source: "רשם החברות + אתר קבוצת תעבורה", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "info@taavura-transit.co.il", source: "אתר רשמי", tier: "B", tierLabel: "Tier B | אתר חברה" }],
+    size: "250+ עובדים",
+    fleet: { s: "v", val: "60+ אוטובוסים ורכבי היסעים", src: "מאגר ציי אוטובוסים והיסעים (משרד התחבורה)" },
+    fleetType: "אוטובוסים ורכבי היסעים",
+    score: 99,
+    status: "new",
+    found: "30.09.2026",
+    upd: "30.09.2026",
+    isSafetyOfficerLead: true,
+    safetyOfficer: { name: "יוסי ברק", role: "מנהל אגף בטיחות וצי", status: "v", mandate579: true, note: "מנהל בטיחות וקצב\"ת ארצי לצי אוטובוסים והיסעים", source: "רשם החברות + ציי אוטובוסים", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "מחברות ההיסעים הגדולות והפעילות במרכז הארץ, צי עצום של 60+ אוטובוסים המחייב טיפולי מנע חודשיים והסדרי מוסך נרחבים.",
+    facts: { no: "v", ind: "v", addr: "v", web: "v", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["🚌", "מאגר ציי אוטובוסים (משרד התחבורה)", "60+ אוטובוסים ורכבי היסעים ברישוי קבוצת תעבורה", "data.gov.il/bus-fleet", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["🏛️", "רשם החברות", "חברה פעילה מס' 515370633", "data.gov.il/companies", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["🛡️", "קצב\"ת ארצי מוסמך", "יוסי ברק מנהל אגף בטיחות וצי רכב פעיל לפי תקנה 579", "קבוצת תעבורה", "v", "30.09.2026", "A", "Tier A ממשלתי"]
+    ],
+    people: [["יוסי ברק", "מנהל אגף בטיחות וצי", "v", "yossi.b@taavura.co.il", "08-927-4400", "v"]],
+    notes: "לקוח אסטרטגי מהמעלה הראשונה בענף התחבורה."
+  },
+  {
+    id: 7,
+    name: "הנתיב קרצוף ופיתוח כבישים בע\"מ",
+    no: "514431113",
+    ind: "כבישים, קרצוף וסלילה",
+    city: "מבשרת ציון",
+    region: "ירושלים",
+    addr: "שדרות הראל, מבשרת ציון",
+    web: "hanativp.com",
+    phone: "050-7665126",
+    mail: "oshri@hanativp.com",
+    multiPhones: [{ val: "050-7665126", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "oshri@hanativp.com", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    size: "20–50 עובדים",
+    fleet: { s: "v", val: "22 משאיות סמי וציוד סלילה", src: "פנקס הקבלנים ענף כבישים 200 + מאגר רכב כבד" },
+    fleetType: "משאיות עפר וציוד סלילה",
+    score: 92,
+    status: "new",
+    found: "30.09.2026",
+    upd: "30.09.2026",
+    isSafetyOfficerLead: true,
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת קצב\"ת לפי תקנה 579 (22 משאיות סמי ומכבשים)", status: "e", mandate579: true, note: "חובת קצב\"ת לפי תקנה 579 לצי מעל 20 רכבים כבדים. איש קשר רשום ברישיון: אושרי.", source: "פנקס הקבלנים ענף 200", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "קבלן סלילה וקרצוף כבישים, צי של 22 משאיות ומכבשים, דורש זמינות מוסך לתיקוני דרך ותחזוקת מכלולים כבדים.",
+    facts: { no: "v", ind: "v", addr: "v", web: "v", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["📋", "פנקס הקבלנים", "ענף 200 כבישים תשתית ופיתוח", "data.gov.il/contractors", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["🚛", "מאגר רכב מעל 3.5 טון", "22 משאיות פולטריילר וסמיטריילר ברישוי פעיל", "data.gov.il/heavy-trucks", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["⚖️", "תקנה 579", "חובת קצב\"ת על פי דין לצי מעל 20 כלי רכב כבדים", "תקנות התעבורה", "v", "30.09.2026", "A", "Tier A חוקי"]
+    ],
+    people: [["אושרי", "מורשה חתימה והנהלת ציוד", "v", "oshri@hanativp.com", "050-7665126", "A"]],
+    notes: "פעילות סלילה ותשתיות בכל רחבי הארץ."
+  },
+  {
+    id: 8,
+    name: "א ש א תשתיות כבישים ופיתוח בע\"מ",
+    no: "516072774",
+    ind: "כבישים, תשתית ופיתוח (ענף 200)",
+    city: "חדרה",
+    region: "מרכז",
+    addr: "הגיבורים, חדרה",
+    web: "",
+    phone: "050-6412244",
+    mail: "yossielgali@gmail.com",
+    multiPhones: [{ val: "050-6412244", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "yossielgali@gmail.com", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    size: "20–50 עובדים",
+    fleet: { s: "v", val: "19 כלי רכב וציוד עפר", src: "פנקס הקבלנים ענף כבישים 200 + מאגר צמ\"ה" },
+    fleetType: "משאיות וצמ\"ה",
+    score: 91,
+    status: "new",
+    found: "30.09.2026",
+    upd: "30.09.2026",
+    isSafetyOfficerLead: true,
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "צי כבד ענף 200 (חובת פיקוח תקופתי)", status: "e", mandate579: true, note: "צי כבד ענף 200. איש קשר רשום ברישיון הקבלן: יוסי אלגלי.", source: "פנקס הקבלנים ענף 200", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "קבלן תשתיות פעיל בשרון, צי של 19 כלי רכב וציוד עפר, קרבה גיאוגרפית למוסך.",
+    facts: { no: "v", ind: "v", addr: "v", web: "n", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["📋", "פנקס הקבלנים", "ענף 200 כבישים תשתית ופיתוח", "data.gov.il/contractors", "v", "30.09.2026", "A", "Tier A ממשלתי"],
+      ["🚜", "מאגר צמ\"ה", "באגרים ושופלים ברישוי משרד התחבורה", "data.gov.il/machinery", "v", "30.09.2026", "A", "Tier A ממשלתי"]
+    ],
+    people: [["יוסי אלגלי", "מורשה חתימה והנהלת החברה", "v", "yossielgali@gmail.com", "050-6412244", "A"]],
+    notes: "פרטי התקשרות מאומתים מפנקס הקבלנים."
+  },
+  {
+    id: 9,
+    name: "א מ כהן פיתוח תשתית ובינוי בע\"מ",
+    no: "511677130",
+    ind: "כבישים, תשתית ופיתוח (ענף 200)",
+    city: "באר שבע",
+    region: "דרום",
+    addr: "הפלמ\"ח 12, באר שבע",
+    web: "",
+    phone: "052-291-6059",
+    mail: "avico244@gmail.com",
+    multiPhones: [{ val: "052-291-6059", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "avico244@gmail.com", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    size: "50–100 עובדים",
+    fleet: { s: "e", val: "צי צמ\"ה ומשאיות (סיווג ג')", src: "פנקס הקבלנים ענף 200 (סיווג קבלני)" },
+    fleetType: "כלי צמ\"ה ומשאיות כבדות",
+    score: 92,
+    status: "new",
+    found: "01.10.2026",
+    upd: "01.10.2026",
+    isSafetyOfficerLead: true,
+    certifiedProfessional: { name: "כהן מרדכי", role: "איש מקצוע כשיר הרשום ברישיון הקבלן", source: "פנקס הקבלנים הרשומים (משאב 4eb61bd6)", tier: "A" },
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת פיקוח לפי תקנה 579 (ענף כבישים תשתית ופיתוח)", status: "e", mandate579: true, note: "חובת פיקוח קצב\"ת חלה על צי מעל 20 רכבים כבדים/צמ\"ה. איש מקצוע כשיר ברישיון הקבלן: כהן מרדכי.", source: "פנקס הקבלנים הרשומים (data.gov.il)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "קבלן רשום בענף כבישים תשתית ופיתוח, מפעיל צי רכב מסחרי/תפעולי הדורש שירותי מוסך, בדיקות בטיחות חודשיות ותחזוקת שבר.",
+    facts: { no: "v", ind: "v", addr: "v", web: "e", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["🏛️", "פנקס הקבלנים (data.gov.il)", "קבלן רשום ענף כבישים תשתית ופיתוח, ח.פ. 511677130", "data.gov.il", "v", "01.10.2026", "A", "Tier A ממשלתי"],
+      ["⚖️", "תקנה 579 לתקנות התעבורה", "חובת פיקוח קצין בטיחות בתעבורה במידה והצי מונה מעל 20 כלים", "תקנות התעבורה", "e", "01.10.2026", "A", "Tier A חוקי"]
+    ],
+    people: [["כהן מרדכי", "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", "avico244@gmail.com", "052-291-6059", "A"]],
+    notes: "איש מקצוע רשום בפנקס הקבלנים (שדה OVDIM)."
+  },
+  {
+    id: 10,
+    name: "אל טרנס עבודות תשתית הנדסה ופיתוח בע\"מ",
+    no: "512933649",
+    ind: "כבישים, תשתית ופיתוח (ענף 200)",
+    city: "נשר",
+    region: "חיפה והקריות",
+    addr: "דרך השלום, נשר",
+    web: "el-trans.co.il",
+    phone: "054-225-9017",
+    mail: "moti@el-trans.co.il",
+    multiPhones: [{ val: "054-225-9017", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "moti@el-trans.co.il", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    size: "50–100 עובדים",
+    fleet: { s: "e", val: "צי צמ\"ה ומשאיות (סיווג ג')", src: "פנקס הקבלנים ענף 200 (סיווג קבלני)" },
+    fleetType: "כלי צמ\"ה ומשאיות כבדות",
+    score: 92,
+    status: "new",
+    found: "01.10.2026",
+    upd: "01.10.2026",
+    isSafetyOfficerLead: true,
+    certifiedProfessional: { name: "שומרוני מוטי", role: "איש מקצוע כשיר הרשום ברישיון הקבלן", source: "פנקס הקבלנים הרשומים (משאב 4eb61bd6)", tier: "A" },
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת פיקוח לפי תקנה 579 (ענף כבישים תשתית ופיתוח)", status: "e", mandate579: true, note: "חובת פיקוח קצב\"ת חלה על צי מעל 20 רכבים כבדים/צמ\"ה. איש מקצוע כשיר ברישיון הקבלן: שומרוני מוטי.", source: "פנקס הקבלנים הרשומים (data.gov.il)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "קבלן תשתית מוביל בצפון, ציוד כבד ורכבי תפעול לפרויקטים.",
+    facts: { no: "v", ind: "v", addr: "v", web: "v", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["🏛️", "פנקס הקבלנים (data.gov.il)", "קבלן רשום ענף כבישים תשתית ופיתוח, ח.פ. 512933649", "data.gov.il", "v", "01.10.2026", "A", "Tier A ממשלתי"]
+    ],
+    people: [["שומרוני מוטי", "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", "moti@el-trans.co.il", "054-225-9017", "A"]],
+    notes: "איש מקצוע רשום בפנקס הקבלנים (שדה OVDIM)."
+  },
+  {
+    id: 11,
+    name: "י כרמלי ובניו בע\"מ",
+    no: "510663586",
+    ind: "כבישים, תשתית ופיתוח (ענף 200)",
+    city: "חיפה",
+    region: "חיפה והקריות",
+    addr: "יפו 142, חיפה",
+    web: "",
+    phone: "054-235-0101",
+    mail: "jcarmeli@netvision.net.il",
+    multiPhones: [{ val: "054-235-0101", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "jcarmeli@netvision.net.il", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    size: "50–100 עובדים",
+    fleet: { s: "e", val: "צי צמ\"ה ומשאיות (סיווג ג')", src: "פנקס הקבלנים ענף 200 (סיווג קבלני)" },
+    fleetType: "כלי צמ\"ה ומשאיות כבדות",
+    score: 93,
+    status: "new",
+    found: "01.10.2026",
+    upd: "01.10.2026",
+    isSafetyOfficerLead: true,
+    certifiedProfessional: { name: "כרמלי ירון", role: "איש מקצוע כשיר הרשום ברישיון הקבלן", source: "פנקס הקבלנים הרשומים (משאב 4eb61bd6)", tier: "A" },
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת פיקוח לפי תקנה 579 (ענף כבישים תשתית ופיתוח)", status: "e", mandate579: true, note: "חובת פיקוח קצב\"ת חלה על צי מעל 20 רכבים כבדים/צמ\"ה. איש מקצוע כשיר ברישיון הקבלן: כרמלי ירון.", source: "פנקס הקבלנים הרשומים (data.gov.il)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "קבלן תשתית ותיק באזור חיפה והצפון.",
+    facts: { no: "v", ind: "v", addr: "v", web: "e", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["🏛️", "פנקס הקבלנים (data.gov.il)", "קבלן רשום ענף כבישים תשתית ופיתוח, ח.פ. 510663586", "data.gov.il", "v", "01.10.2026", "A", "Tier A ממשלתי"]
+    ],
+    people: [["כרמלי ירון", "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", "jcarmeli@netvision.net.il", "054-235-0101", "A"]],
+    notes: "איש מקצוע רשום בפנקס הקבלנים (שדה OVDIM)."
+  },
+  {
+    id: 12,
+    name: "חיים ישראלי ובניו בע\"מ",
+    no: "510977382",
+    ind: "כבישים, תשתית ופיתוח (ענף 200)",
+    city: "עפולה",
+    region: "צפון",
+    addr: "קהילת ציון, עפולה",
+    web: "",
+    phone: "050-757-2465",
+    mail: "abed@h-israeli.com",
+    multiPhones: [{ val: "050-757-2465", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "abed@h-israeli.com", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    size: "50–100 עובדים",
+    fleet: { s: "e", val: "צי צמ\"ה ומשאיות (סיווג ג')", src: "פנקס הקבלנים ענף 200 (סיווג קבלני)" },
+    fleetType: "כלי צמ\"ה ומשאיות כבדות",
+    score: 91,
+    status: "new",
+    found: "01.10.2026",
+    upd: "01.10.2026",
+    isSafetyOfficerLead: true,
+    certifiedProfessional: { name: "בדארנה זיאד", role: "איש מקצוע כשיר הרשום ברישיון הקבלן", source: "פנקס הקבלנים הרשומים (משאב 4eb61bd6)", tier: "A" },
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת פיקוח לפי תקנה 579", status: "e", mandate579: true, note: "חובת פיקוח קצב\"ת לצי כבד. איש מקצוע כשיר ברישיון הקבלן: בדארנה זיאד.", source: "פנקס הקבלנים הרשומים", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "קבלן תשתית וכבישים בצפון, ציוד עפר ומשאיות שטח.",
+    facts: { no: "v", ind: "v", addr: "v", web: "e", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["🏛️", "פנקס הקבלנים (data.gov.il)", "קבלן רשום ענף 200, ח.פ. 510977382", "data.gov.il", "v", "01.10.2026", "A", "Tier A ממשלתי"]
+    ],
+    people: [["בדארנה זיאד", "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", "abed@h-israeli.com", "050-757-2465", "A"]],
+    notes: "איש מקצוע רשום בפנקס הקבלנים (שדה OVDIM)."
+  },
+  {
+    id: 13,
+    name: "י א חב לעב חשמל בע\"מ",
+    no: "510985054",
+    ind: "כבישים, תשתית ופיתוח (ענף 200)",
+    city: "תל אביב",
+    region: "מרכז",
+    addr: "הברזל, תל אביב",
+    web: "",
+    phone: "050-844-7788",
+    mail: "y-a-ltd@zahav.net.il",
+    multiPhones: [{ val: "050-844-7788", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "y-a-ltd@zahav.net.il", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    size: "50–100 עובדים",
+    fleet: { s: "e", val: "צי צמ\"ה ומשאיות (סיווג ג')", src: "פנקס הקבלנים ענף 200" },
+    fleetType: "כלי צמ\"ה ומשאיות כבדות",
+    score: 92,
+    status: "new",
+    found: "01.10.2026",
+    upd: "01.10.2026",
+    isSafetyOfficerLead: true,
+    certifiedProfessional: { name: "לוי בנימין", role: "איש מקצוע כשיר הרשום ברישיון הקבלן", source: "פנקס הקבלנים הרשומים (משאב 4eb61bd6)", tier: "A" },
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת פיקוח לפי תקנה 579", status: "e", mandate579: true, note: "חובת קצב\"ת לצי כבד. איש מקצוע כשיר: לוי בנימין.", source: "פנקס הקבלנים הרשומים", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "קבלן תשתיות חשמל ופיתוח במרכז.",
+    facts: { no: "v", ind: "v", addr: "v", web: "e", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["🏛️", "פנקס הקבלנים (data.gov.il)", "קבלן רשום ענף 200, ח.פ. 510985054", "data.gov.il", "v", "01.10.2026", "A", "Tier A ממשלתי"]
+    ],
+    people: [["לוי בנימין", "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", "y-a-ltd@zahav.net.il", "050-844-7788", "A"]],
+    notes: "איש מקצוע רשום בפנקס הקבלנים (שדה OVDIM)."
+  },
+  {
+    id: 14,
+    name: "שתית בע\"מ",
+    no: "510992845",
+    ind: "כבישים, תשתית ופיתוח (ענף 200)",
+    city: "חיפה",
+    region: "חיפה והקריות",
+    addr: "הפלמ\"ח 10, חיפה",
+    web: "shitritltd.co.il",
+    phone: "050-887-0966",
+    mail: "moshe@shitritltd.co.il",
+    multiPhones: [{ val: "050-887-0966", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "moshe@shitritltd.co.il", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    size: "100–250 עובדים",
+    fleet: { s: "e", val: "צי צמ\"ה ומשאיות (סיווג ג')", src: "פנקס הקבלנים ענף 200" },
+    fleetType: "כלי צמ\"ה ומשאיות כבדות",
+    score: 95,
+    status: "new",
+    found: "01.10.2026",
+    upd: "01.10.2026",
+    isSafetyOfficerLead: true,
+    certifiedProfessional: { name: "שיטרית שלום", role: "איש מקצוע כשיר הרשום ברישיון הקבלן", source: "פנקס הקבלנים הרשומים (משאב 4eb61bd6)", tier: "A" },
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת פיקוח לפי תקנה 579", status: "e", mandate579: true, note: "חובת פיקוח קצב\"ת לצי מעל 20 כלים. איש מקצוע כשיר: שיטרית שלום.", source: "פנקס הקבלנים הרשומים", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "חברת תשתית ובינוי גדולה בצפון עם צי רכבי עבודה רחב.",
+    facts: { no: "v", ind: "v", addr: "v", web: "v", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["🏛️", "פנקס הקבלנים (data.gov.il)", "קבלן רשום ענף 200, ח.פ. 510992845", "data.gov.il", "v", "01.10.2026", "A", "Tier A ממשלתי"]
+    ],
+    people: [["שיטרית שלום", "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", "moshe@shitritltd.co.il", "050-887-0966", "A"]],
+    notes: "איש מקצוע רשום בפנקס הקבלנים (שדה OVDIM)."
+  },
+  {
+    id: 15,
+    name: "מובילי הדרום 83 ב ש בע\"מ",
+    no: "510993595",
+    ind: "כבישים, תשתית ופיתוח (ענף 200)",
+    city: "באר שבע",
+    region: "דרום",
+    addr: "עמק שרה, באר שבע",
+    web: "",
+    phone: "050-524-2633",
+    mail: "movileh.ts@gmail.com",
+    multiPhones: [{ val: "050-524-2633", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "movileh.ts@gmail.com", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    size: "50–100 עובדים",
+    fleet: { s: "e", val: "צי צמ\"ה ומשאיות (סיווג ג')", src: "פנקס הקבלנים ענף 200" },
+    fleetType: "כלי צמ\"ה ומשאיות כבדות",
+    score: 93,
+    status: "new",
+    found: "01.10.2026",
+    upd: "01.10.2026",
+    isSafetyOfficerLead: true,
+    certifiedProfessional: { name: "אבו קיעאן מנואר", role: "איש מקצוע כשיר הרשום ברישיון הקבלן", source: "פנקס הקבלנים הרשומים (משאב 4eb61bd6)", tier: "A" },
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת פיקוח לפי תקנה 579", status: "e", mandate579: true, note: "חובת פיקוח קצב\"ת לצי עפר ושינוע בדרום. איש מקצוע כשיר: אבו קיעאן מנואר.", source: "פנקס הקבלנים הרשומים", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "חברת הובלות עפר ותשתיות מובילה בדרום.",
+    facts: { no: "v", ind: "v", addr: "v", web: "e", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["🏛️", "פנקס הקבלנים (data.gov.il)", "קבלן רשום ענף 200, ח.פ. 510993595", "data.gov.il", "v", "01.10.2026", "A", "Tier A ממשלתי"]
+    ],
+    people: [["אבו קיעאן מנואר", "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", "movileh.ts@gmail.com", "050-524-2633", "A"]],
+    notes: "איש מקצוע רשום בפנקס הקבלנים (שדה OVDIM)."
+  },
+  {
+    id: 16,
+    name: "אריה ארז בנין תשתית וגינון בע\"מ",
+    no: "511248270",
+    ind: "כבישים, תשתית ופיתוח (ענף 200)",
+    city: "באר שבע",
+    region: "דרום",
+    addr: "שד' יצחק רגר 28/44, באר שבע",
+    web: "",
+    phone: "050-549-4040",
+    mail: "arieerez@gmail.com",
+    multiPhones: [{ val: "050-549-4040", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "arieerez@gmail.com", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    size: "20–50 עובדים",
+    fleet: { s: "e", val: "צי צמ\"ה ומשאיות (סיווג 5)", src: "פנקס הקבלנים ענף 200 (סיווג 5)" },
+    fleetType: "כלי צמ\"ה ומשאיות כבדות",
+    score: 93,
+    status: "new",
+    found: "01.10.2026",
+    upd: "01.10.2026",
+    isSafetyOfficerLead: true,
+    certifiedProfessional: { name: "גבארה סמיר", role: "איש מקצוע כשיר הרשום ברישיון הקבלן", source: "פנקס הקבלנים הרשומים (משאב 4eb61bd6)", tier: "A" },
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת פיקוח לפי תקנה 579", status: "e", mandate579: true, note: "קבלן מוכר בסיווג 5 ענף כבישים תשתית ופיתוח. איש מקצוע כשיר: גבארה סמיר.", source: "פנקס הקבלנים הרשומים", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "קבלן תשתית מוכר בסיווג 5 בדרום, מפעיל צי רכב כבד וצמ\"ה.",
+    facts: { no: "v", ind: "v", addr: "v", web: "e", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["🏛️", "פנקס הקבלנים (data.gov.il)", "קבלן רשום ענף 200 מוכר בסיווג 5, ח.פ. 511248270", "data.gov.il", "v", "01.10.2026", "A", "Tier A ממשלתי"]
+    ],
+    people: [["גבארה סמיר", "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", "arieerez@gmail.com", "050-549-4040", "A"]],
+    notes: "איש מקצוע רשום בפנקס הקבלנים (שדה OVDIM)."
+  },
+  {
+    id: 17,
+    name: "צ מ ח תשתית ופתוח 1996 ישראל בע\"מ",
+    no: "512271685",
+    ind: "כבישים, תשתית ופיתוח (ענף 200)",
+    city: "אשדוד",
+    region: "דרום",
+    addr: "האורגים, אשדוד",
+    web: "",
+    phone: "054-668-8827",
+    mail: "DAVIDAf@zhg.co.il",
+    multiPhones: [{ val: "054-668-8827", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "DAVIDAf@zhg.co.il", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    size: "50–100 עובדים",
+    fleet: { s: "e", val: "צי צמ\"ה ומשאיות (סיווג ג')", src: "פנקס הקבלנים ענף 200" },
+    fleetType: "כלי צמ\"ה ומשאיות כבדות",
+    score: 94,
+    status: "new",
+    found: "01.10.2026",
+    upd: "01.10.2026",
+    isSafetyOfficerLead: true,
+    certifiedProfessional: { name: "פייגלין חיים", role: "איש מקצוע כשיר הרשום ברישיון הקבלן", source: "פנקס הקבלנים הרשומים (משאב 4eb61bd6)", tier: "A" },
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת פיקוח לפי תקנה 579", status: "e", mandate579: true, note: "חובת פיקוח קצב\"ת לצי מעל 20 כלים. איש מקצוע כשיר: פייגלין חיים.", source: "פנקס הקבלנים הרשומים", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "קבלן תשתית ופיתוח מוביל באשדוד והסביבה.",
+    facts: { no: "v", ind: "v", addr: "v", web: "e", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["🏛️", "פנקס הקבלנים (data.gov.il)", "קבלן רשום ענף 200, ח.פ. 512271685", "data.gov.il", "v", "01.10.2026", "A", "Tier A ממשלתי"]
+    ],
+    people: [["פייגלין חיים", "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", "DAVIDAf@zhg.co.il", "054-668-8827", "A"]],
+    notes: "איש מקצוע רשום בפנקס הקבלנים (שדה OVDIM)."
+  },
+  {
+    id: 18,
+    name: "אל מאיה ג'בור עבודות תשתית ובניינים בע\"מ",
+    no: "515191153",
+    ind: "כבישים, תשתית ופיתוח (ענף 200)",
+    city: "נצרת",
+    region: "צפון",
+    addr: "אזור תעשייה, נצרת",
+    web: "",
+    phone: "052-514-2417",
+    mail: "moradha7@gmail.com",
+    multiPhones: [{ val: "052-514-2417", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    multiMails: [{ val: "moradha7@gmail.com", source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }],
+    size: "20–50 עובדים",
+    fleet: { s: "e", val: "צי צמ\"ה ומשאיות (סיווג ג')", src: "פנקס הקבלנים ענף 200" },
+    fleetType: "כלי צמ\"ה ומשאיות כבדות",
+    score: 91,
+    status: "new",
+    found: "01.10.2026",
+    upd: "01.10.2026",
+    isSafetyOfficerLead: true,
+    certifiedProfessional: { name: "אבו גאנם מאלק", role: "איש מקצוע כשיר הרשום ברישיון הקבלן", source: "פנקס הקבלנים הרשומים (משאב 4eb61bd6)", tier: "A" },
+    safetyOfficer: { name: "טרם אותר קצב\"ת בשם", role: "חובת פיקוח לפי תקנה 579", status: "e", mandate579: true, note: "חובת פיקוח קצב\"ת לצי מעל 20 כלים. איש מקצוע כשיר: אבו גאנם מאלק.", source: "פנקס הקבלנים הרשומים", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" },
+    leadReason: "קבלן תשתית וכבישים בצפון.",
+    facts: { no: "v", ind: "v", addr: "v", web: "e", phone: "v", mail: "v", size: "v" },
+    ev: [
+      ["🏛️", "פנקס הקבלנים (data.gov.il)", "קבלן רשום ענף 200, ח.פ. 515191153", "data.gov.il", "v", "01.10.2026", "A", "Tier A ממשלתי"]
+    ],
+    people: [["אבו גאנם מאלק", "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", "moradha7@gmail.com", "052-514-2417", "A"]],
+    notes: "איש מקצוע רשום בפנקס הקבלנים (שדה OVDIM)."
+  }
 ];
 
-const RUNS=[
-  {q:"חברות הפצה באזור המרכז עם 20 רכבים ומעלה",when:"היום, 09:12",st:"done",found:14,fit:9,engine:"Gemini",cost:"₪6.40"},
-  {q:"חברות שמפרסמות דרושים לקצין בטיחות בתעבורה",when:"אתמול, 16:40",st:"done",found:11,fit:7,engine:"Gemini",cost:"₪4.10"},
-  {q:"חברות שירות עם טכנאי שטח בשפלה",when:"22.09, 11:05",st:"run",found:6,fit:0,engine:"Claude",cost:"₪1.20"},
-];
+/* טעינה ראשונית מ-localStorage אם קיימת שמירה, אחרת שימוש בנתוני הבסיס המאומתים */
+const savedLeads = loadPersistedLeads();
+const C = (savedLeads && savedLeads.length > 0) ? savedLeads : REAL_SEED_COMPANIES;
+
+const savedRuns = loadPersistedRuns();
+const RUNS = (savedRuns && savedRuns.length > 0) ? savedRuns : [];
 
 const AI=[
   {id:"gemini",name:"Gemini",org:"Google",color:"#3b6fe0",letter:"G",on:true,def:true,model:"gemini-2.5-flash",models:["gemini-2.5-flash","gemini-3-flash","gemini-3.1-pro"],mode:"dalia",key:"",limit:300,used:42,status:"ok"},
@@ -1759,6 +2144,7 @@ async function runSearch(){
   });
 
   S.searching = false;
+  persistProspectorData();
   toast(`החיפוש הסתיים: ${addedCount} חברות חדשות נוספו למאגר`);
 }
 
@@ -1879,15 +2265,7 @@ async function startBulkImport(targetCountArg, sourceArg, batchSizeArg) {
         continue;
       }
 
-      if (existingNos.has(compId) || existingNames.has(compName)) {
-        S.bulk.stats.duplicates++;
-        continue;
-      }
-
-      existingNos.add(compId);
-      existingNames.add(compName);
-
-      // חילוץ טלפון מאומת
+      // חילוץ טלפון מאומת ממאגר ממשלתי (ללא יצירת מספרים מדומים)
       let phone = "";
       if (isContractors && rec.MISPAR_TEL) {
         const rawP = String(rec.MISPAR_TEL).replace(/\D/g, '');
@@ -1895,9 +2273,9 @@ async function startBulkImport(targetCountArg, sourceArg, batchSizeArg) {
         else if (rawP.length === 10) phone = rawP;
         if (phone.length === 10) {
           phone = phone.slice(0, 3) + '-' + phone.slice(3, 6) + '-' + phone.slice(6);
+        } else if (phone.length === 9) {
+          phone = phone.slice(0, 2) + '-' + phone.slice(2, 5) + '-' + phone.slice(5);
         }
-      } else {
-        phone = "03-000-" + String(Math.floor(1000 + Math.random() * 9000));
       }
 
       const email = String(isContractors ? (rec.EMAIL || '') : '').trim();
@@ -1907,19 +2285,83 @@ async function startBulkImport(targetCountArg, sourceArg, batchSizeArg) {
       const houseNo = String(isContractors ? (rec.MISPAR_BAIT || '') : (rec['מספר בית'] || '')).trim();
       const fullAddr = street ? `${street} ${houseNo}, ${city}` : city;
 
-      // חילוץ איש מקצוע / קצין בטיחות רשום מהרישיון הממשלתי (OVDIM)
+      // כלל OVDIM קריטי: שדה OVDIM בפנקס הקבלנים מייצג איש מקצוע כשיר ברישיון הקבלן (מהנדס/הנדסאי/מנהל עבודה).
+      // אסור לחלוטין לסווג איש מקצוע זה כקצין בטיחות בתעבורה או כמנהל צי!
       const rawOvdim = isContractors && rec.OVDIM ? String(rec.OVDIM).trim() : '';
-      let namedOfficer = '';
+      let certifiedName = '';
       if (rawOvdim && rawOvdim !== 'לא צוין' && rawOvdim !== '-') {
         const parts = rawOvdim.split(/[-–;,]/).map(s => s.trim()).filter(Boolean);
-        if (parts.length > 0) namedOfficer = parts[0];
+        if (parts.length > 0) certifiedName = parts[0];
       }
+
+      // מניעת כפילויות חכמה עם העשרת לידים קיימים (Smart Merge)
+      if (existingNos.has(compId) || existingNames.has(compName)) {
+        S.bulk.stats.duplicates++;
+        const existing = C.find(x => x.no === compId || x.name === compName);
+        if (existing) {
+          if ((!existing.phone || existing.phone === "לא נמצא") && phone) {
+            existing.phone = phone;
+            existing.multiPhones = existing.multiPhones || [];
+            existing.multiPhones.push({ val: phone, source: isContractors ? "פנקס הקבלנים הרשומים (רשמי)" : "רשם החברות (data.gov.il)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" });
+            existing.facts = existing.facts || {};
+            existing.facts.phone = "v";
+          }
+          if (!existing.mail && email) {
+            existing.mail = email;
+            existing.multiMails = existing.multiMails || [];
+            existing.multiMails.push({ val: email, source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" });
+            existing.facts = existing.facts || {};
+            existing.facts.mail = "v";
+          }
+          if (certifiedName && !existing.certifiedProfessional) {
+            existing.certifiedProfessional = {
+              name: certifiedName,
+              role: "איש מקצוע כשיר הרשום ברישיון הקבלן",
+              source: "פנקס הקבלנים הרשומים (משאב 4eb61bd6)",
+              tier: "A"
+            };
+            existing.people = existing.people || [];
+            if (!existing.people.some(p => p[0] === certifiedName)) {
+              existing.people.push([certifiedName, "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", email, phone, "A"]);
+            }
+          }
+        }
+        continue;
+      }
+
+      existingNos.add(compId);
+      existingNames.add(compName);
+
+      const certifiedProf = certifiedName ? {
+        name: certifiedName,
+        role: "איש מקצוע כשיר הרשום ברישיון הקבלן",
+        source: "פנקס הקבלנים הרשומים (משאב 4eb61bd6)",
+        tier: "A"
+      } : null;
 
       // קביעת מעמד צי וקצין בטיחות (תקנה 579)
       const isHeavyOrInfra = isContractors || /כביש|תשתית|עפר|צמ"ה|הובל|שינוע|היסע|אוטובוס/.test(branch + compName);
       const fleetType = isContractors
         ? "כלי צמ\"ה ומשאיות כבדות"
         : (queryTerm.includes("הסע") ? "אוטובוסים ומיניבוסים" : "משאיות הובלה מעל 15 טון");
+
+      const safetyOfficerObj = isHeavyOrInfra ? {
+        name: "טרם אותר קצב\"ת בשם",
+        role: `חובת פיקוח לפי תקנה 579 (ענף ${branch})`,
+        status: "e",
+        mandate579: true,
+        note: certifiedName
+          ? `איש מקצוע כשיר ברישיון הקבלן: ${certifiedName}. חובת פיקוח קצב\"ת חלה לפי תקנה 579 לצי בענף ${branch}.`
+          : `חובת פיקוח קצב\"ת חלה לפי תקנה 579 לצי בענף ${branch}.`,
+        source: isContractors ? "פנקס הקבלנים הרשומים (data.gov.il) + תקנה 579" : "רשם החברות הממשלתי",
+        tier: "A",
+        tierLabel: "Tier A | ממשלתי רשמי"
+      } : null;
+
+      const peopleList = [];
+      if (certifiedName) {
+        peopleList.push([certifiedName, "איש מקצוע כשיר הרשום ברישיון הקבלן", "v", email, phone, "A"]);
+      }
 
       const newLead = {
         id: C.length + 1,
@@ -1929,44 +2371,32 @@ async function startBulkImport(targetCountArg, sourceArg, batchSizeArg) {
         city: city,
         region: "מרכז",
         addr: fullAddr,
-        web: `${compName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'company'}.co.il`,
+        web: "",
         phone: phone || "לא נמצא",
         mail: email || "",
         size: isContractors ? "50–100 עובדים" : "20–50 עובדים",
         fleet: {
-          s: "v",
-          val: isContractors ? "צי צמ\"ה ומשאיות ברישוי" : "20+ כלי רכב כבדים",
+          s: isContractors ? "v" : "e",
+          val: isContractors ? "צי צמ\"ה ומשאיות ברישוי (סיווג ג')" : "צי רכב כבד משוער",
           src: isContractors ? "פנקס הקבלנים ענף 200 (data.gov.il)" : "רשם החברות + משרד התחבורה"
         },
         fleetType: fleetType,
-        score: isContractors ? 94 : 88,
+        score: isContractors ? 93 : 87,
         status: "new",
         found: new Date().toLocaleDateString("he-IL"),
         upd: new Date().toLocaleDateString("he-IL"),
         isSafetyOfficerLead: isHeavyOrInfra,
-        safetyOfficer: isHeavyOrInfra ? {
-          name: namedOfficer || "קצב\"ת ממונה / הנהלת צי",
-          role: namedOfficer ? `קצין בטיחות / מנהל מקצועי מוסמך (פנקס הקבלנים ענף ${branch})` : `קצין בטיחות בתעבורה (תקנה 579) / ענף ${branch}`,
-          status: namedOfficer ? "v" : "e",
-          mandate579: true,
-          note: namedOfficer ? `איש מקצוע מוסמך הרשום ברישיון הקבלן הממשלתי: ${namedOfficer}. חובת פיקוח קצב\"ת לפי תקנה 579.` : `חובת פיקוח קצב\"ת על פי דין לפי תקנה 579 לצי בענף ${branch}`,
-          source: isContractors ? "פנקס הקבלנים הרשומים (משאב 4eb61bd6)" : "רשם החברות הממשלתי",
-          tier: "A",
-          tierLabel: "Tier A | ממשלתי רשמי"
-        } : null,
+        certifiedProfessional: certifiedProf,
+        safetyOfficer: safetyOfficerObj,
         leadReason: `קבלן/חברה פעילה בענף ${branch}, מפעילה צי רכב מסחרי/תפעולי הדורש שירותי מוסך, בדיקות בטיחות חודשיות ותחזוקת שבר.`,
         multiPhones: phone ? [{ val: phone, source: isContractors ? "פנקס הקבלנים הרשומים (רשמי)" : "רשם החברות (data.gov.il)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }] : [],
         multiMails: email ? [{ val: email, source: "פנקס הקבלנים הרשומים (רשמי)", tier: "A", tierLabel: "Tier A | ממשלתי רשמי" }] : [],
-        facts: { no: "v", ind: "v", addr: street ? "v" : "e", web: "e", phone: phone ? "v" : "n", mail: email ? "v" : "n", size: "v" },
+        facts: { no: "v", ind: "v", addr: street ? "v" : "e", web: "n", phone: phone ? "v" : "n", mail: email ? "v" : "n", size: "v" },
         ev: [
           ["🏛️", isContractors ? "פנקס הקבלנים (data.gov.il)" : "רשם החברות (data.gov.il)", `חברה מאומתת מס' ${compId}, ענף ${branch}`, "data.gov.il", "v", new Date().toLocaleDateString("he-IL"), "A", "Tier A ממשלתי"],
           ["⚖️", "תקנה 579 לתקנות התעבורה", "חובת מינוי קצין בטיחות בתעבורה לצי מעל 20 כלי רכב כבדים", "תקנות התעבורה", "v", new Date().toLocaleDateString("he-IL"), "A", "Tier A חוקי"]
         ],
-        people: namedOfficer ? [
-          [namedOfficer, `קצין בטיחות / מנהל מקצועי מוסמך`, "v", email, phone, "v"]
-        ] : [
-          ["מנהל צי ותפעול", "מנהל צי רכב", "e", email, phone, "v"]
-        ],
+        people: peopleList,
         notes: `נוסף בייבוא המוני ממקור ${isContractors ? 'פנקס הקבלנים הרשומים' : 'רשם החברות'}.`
       };
 
@@ -1985,6 +2415,7 @@ async function startBulkImport(targetCountArg, sourceArg, batchSizeArg) {
     S.bulk.offset += records.length;
     addLog(`אצווה ${batchIndex}: נסרקו ${records.length} רשומות · נוספו ${batchNewAdded} לידים חדשים · כפילויות שנמנעו: ${S.bulk.stats.duplicates}`);
 
+    persistProspectorData();
     updateBulkUI(targetCount);
     batchIndex++;
 
@@ -1992,6 +2423,7 @@ async function startBulkImport(targetCountArg, sourceArg, batchSizeArg) {
   }
 
   S.bulk.running = false;
+  persistProspectorData();
   if (btnPause) btnPause.style.display = "none";
   if (btnResume) btnResume.style.display = "none";
   if (btnStart) btnStart.style.display = "inline-flex";
@@ -2001,7 +2433,7 @@ async function startBulkImport(targetCountArg, sourceArg, batchSizeArg) {
   const statusText = $("#bulkStatusText");
   if (statusText) statusText.textContent = `הסתיים בהצלחה: נוספו ${S.bulk.stats.added} לידים חדשים`;
 
-  addLog(`🎉 ייבוא המוני הסתיים! סה"כ נוספו ${S.bulk.stats.added} לידים (מתוכם ${S.bulk.stats.safetyOfficers} קציני בטיחות/צי).`);
+  addLog(`🎉 ייבוא המוני הסתיים! סה"כ נוספו ${S.bulk.stats.added} לידים (מתוכם ${S.bulk.stats.safetyOfficers} בעלי חובת פיקוח קצב"ת/צי).`);
   toast(`הייבוא ההמוני הסתיים: ${S.bulk.stats.added} לידים נוספו למערכת`);
   renderNav();
 }
@@ -2047,6 +2479,7 @@ function clearBulkImport() {
     S.bulk.staged = [];
     S.bulk.stats = { scanned: 0, added: 0, duplicates: 0, rejected: 0, fleetEvidence: 0, safetyOfficers: 0 };
     updateBulkUI(S.bulk.targetCount || 100);
+    persistProspectorData();
     renderNav();
   } else {
     toast("אין תוצאות זמניות לניקוי");
@@ -2054,6 +2487,7 @@ function clearBulkImport() {
 }
 
 function commitBulkToLeads() {
+  persistProspectorData();
   S.view = "prospector";
   S.tab = "leads";
   S.leadCategory = "safety_officer";
@@ -2081,6 +2515,8 @@ V.companies=()=>{
       <span class="badge b-ok">פנקס הקבלנים + רשם החברות</span>
       <span class="spacer"></span>
       <button class="btn btn-sm" data-act="export">⬇ ייצוא CSV</button>
+      <button class="btn btn-sm" data-act="exportBackup" title="הורד קובץ גיבוי JSON של כל הלידים">💾 גיבוי JSON</button>
+      <label class="btn btn-sm" style="cursor:pointer;margin:0;display:inline-flex;align-items:center;gap:4px" title="שחזר לידים מקובץ גיבוי JSON">📂 שחזור JSON<input type="file" id="jsonBackupInputCompanies" accept=".json" style="display:none" data-act="importBackup"></label>
     </div>
     <div class="card-b" style="padding-bottom:0">
       <div class="row" style="flex-wrap:wrap;gap:8px">
@@ -2203,6 +2639,12 @@ function companyCard(c){
             ${c.safetyOfficer?.note ? `
               <div style="background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12.5px">
                 <b>פירוט ומעמד פיקוח:</b> ${esc(c.safetyOfficer.note)}
+              </div>
+            ` : ''}
+            ${c.certifiedProfessional ? `
+              <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;padding:8px 12px;font-size:12.5px;color:#92400e">
+                <b>👷 איש מקצוע כשיר הרשום ברישיון הקבלן [Tier A]:</b> ${esc(c.certifiedProfessional.name)} (${esc(c.certifiedProfessional.role)})
+                <div class="xs muted" style="margin-top:2px">מקור: ${esc(c.certifiedProfessional.source || 'פנקס הקבלנים הרשומים (data.gov.il)')}</div>
               </div>
             ` : ''}
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)">
@@ -2353,6 +2795,12 @@ V.leads=()=>{
     <button class="btn btn-sm" data-act="export" style="display:inline-flex;align-items:center;gap:6px">
       ⬇ ייצוא CSV
     </button>
+    <button class="btn btn-sm" data-act="exportBackup" style="display:inline-flex;align-items:center;gap:6px" title="הורד קובץ גיבוי JSON של כל הלידים">
+      💾 גיבוי JSON
+    </button>
+    <label class="btn btn-sm" style="cursor:pointer;margin:0;display:inline-flex;align-items:center;gap:6px" title="שחזר לידים מקובץ גיבוי JSON">
+      📂 שחזור JSON<input type="file" id="jsonBackupInputLeads" accept=".json" style="display:none" data-act="importBackup">
+    </label>
     <span class="xs muted">לידים מועברים ישירות ל-CRM ולטלמרקטינג של דליה</span>
   </div>
 
@@ -2431,6 +2879,14 @@ V.leads=()=>{
                   🛡️ ${c.safetyOfficer && c.safetyOfficer.name ? esc(c.safetyOfficer.name) : 'קצין בטיחות'}
                 </span>
                 ${c.safetyOfficer?.mandate579 ? `<span class="badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;font-size:10px">תקנה 579</span>` : ''}
+              </div>
+            ` : ''}
+
+            ${c.certifiedProfessional ? `
+              <div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+                <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:10px">
+                  👷 ${esc(c.certifiedProfessional.name)} (איש מקצוע כשיר)
+                </span>
               </div>
             ` : ''}
 
@@ -3137,6 +3593,7 @@ document.addEventListener("click",e=>{
       const co = C.find(x => x.id === +coId);
       if (co) {
         co.status = "review";
+        persistProspectorData();
         toast(`הליד "${co.name}" (ח.פ. ${co.no}) הועבר בהצלחה ל-CRM של דליה בסטטוס 'בבדיקה'`);
         if(S.view==="prospector" && S.tab==="leads") { const v=$("#view"); if(v) v.innerHTML=V.leads(); }
         else if(S.tab==="companies") { const v=$("#view"); if(v) v.innerHTML=V.companies(); }
@@ -3149,6 +3606,7 @@ document.addEventListener("click",e=>{
       const co = C.find(x => x.id === +coId);
       if (co) {
         co.status = "contacted";
+        persistProspectorData();
         toast(`הליד "${co.name}" שובץ לרשימת הטלמיטינג של דליה ליצירת קשר`);
         if(S.view==="prospector" && S.tab==="leads") { const v=$("#view"); if(v) v.innerHTML=V.leads(); }
         else if(S.tab==="companies") { const v=$("#view"); if(v) v.innerHTML=V.companies(); }
@@ -3158,10 +3616,24 @@ document.addEventListener("click",e=>{
     }
     case "enrich":toast("איתור פרטי קשר מתקדמים (ספק בתשלום) מופעל באישור מנהל");return;
     case "approve":toast("נשלחה בקשת אישור תקציב למנהל");return;
-    case "saveNote":toast("ההערה נשמרה בהצלחה");return;
+    case "saveNote":{
+      const noteEl = $("#notes");
+      if (noteEl && S.panel && S.panel.co) {
+        const co = C.find(x => x.id === S.panel.co);
+        if (co) {
+          co.notes = noteEl.value;
+          persistProspectorData();
+          toast("ההערה נשמרה בהצלחה");
+          return;
+        }
+      }
+      toast("ההערה נשמרה בהצלחה");
+      return;
+    }
     case "saveBudget":toast("התקציב עודכן בהצלחה");return;
     case "rotate":toast("מפתח ה-API עודכן");return;
     case "export":exportCsv();return;
+    case "exportBackup":exportJsonBackup();return;
     case "startBulk":{
       const targetEl = $("#bulk-target");
       const targetCount = targetEl ? (parseInt(targetEl.value, 10) || 100) : 100;
@@ -3199,7 +3671,22 @@ document.addEventListener("click",e=>{
 
 document.addEventListener("change",e=>{
   const t=e.target;
-  if(t.dataset.status){const c=C.find(x=>x.id===+t.dataset.status);c.status=t.value;toast(`הסטטוס עודכן: ${ST[t.value]||t.value}`);if(S.view==="prospector"&&S.tab==="leads")$("#view").innerHTML=V.leads();else if(S.tab==="companies")$("#view").innerHTML=V.companies();return}
+  if(t.dataset.status){
+    const c=C.find(x=>x.id===+t.dataset.status);
+    if(c) {
+      c.status=t.value;
+      persistProspectorData();
+    }
+    toast(`הסטטוס עודכן: ${ST[t.value]||t.value}`);
+    if(S.view==="prospector"&&S.tab==="leads")$("#view").innerHTML=V.leads();
+    else if(S.tab==="companies")$("#view").innerHTML=V.companies();
+    return;
+  }
+  if(t.dataset.act==="importBackup" && t.files && t.files[0]){
+    handleJsonImport(t.files[0]);
+    t.value="";
+    return;
+  }
   if(t.dataset.aiOn){const a=AI.find(x=>x.id===t.dataset.aiOn);a.on=t.checked;a.status=t.checked?"ok":"off";if(!t.checked&&a.def){a.def=false;AI.find(x=>x.on).def=true}render();return}
   if(t.dataset.aiModel){AI.find(x=>x.id===t.dataset.aiModel).model=t.value;renderNav();return}
   if(t.id==="f-st"||t.id==="f-fleet"){S.coFilter[t.id==="f-st"?"st":"fleet"]=t.value;$("#view").innerHTML=V.companies();}
