@@ -413,7 +413,7 @@ html, body {
     </div>
   </div>
 </header>
-<div class="demo-strip"><b>מצב דמו.</b> כל הלקוחות, המספרים, הפעילות והעלויות כאן הם נתוני דוגמה. אין חיבור לדליה, ל-Supabase או לשירות חיצוני.</div>
+<div class="demo-strip" id="demoStrip"><b>מצב דמו.</b> כל הלקוחות, המספרים, הפעילות והעלויות כאן הם נתוני דוגמה. אין חיבור לדליה, ל-Supabase או לשירות חיצוני.</div>
 
 <div class="shell">
   <nav class="side" id="nav" aria-label="ניווט ראשי"></nav>
@@ -941,6 +941,8 @@ function render(){
   const v = state.view;
   const main = $('#main');
   main.innerHTML = v==='dashboard' ? renderDashboard() : v.startsWith('m/') ? renderModulePage(v.slice(2)) : renderShared(v);
+  // OpenProspector reads real leads from Supabase STAGING, so the demo notice does not apply to it
+  const strip = $('#demoStrip'); if (strip) strip.style.display = (v==='m/leads') ? 'none' : '';
   ShellBridge.notify();
   main.classList.remove('swap'); void main.offsetWidth; main.classList.add('swap');
   $('#avatar').textContent = 'י';

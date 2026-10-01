@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --navy-950:#04091a;--navy-900:#071022;--navy-800:#0a1830;--navy-700:#0d1f3c;--navy-600:#15305c;
@@ -302,6 +303,7 @@ body.is-embedded .content{padding:16px;max-width:100%}
       <button class="menu-btn" data-act="openMenu" aria-label="פתח תפריט"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       <div><div class="crumb" id="crumb">מרכז שיווק ופרסום</div><h1 id="title">איתור לקוחות עסקיים</h1></div>
       <span class="grow"></span>
+      <div id="cloudSyncStatus" style="display:inline-flex;align-items:center;margin-inline-end:8px"></div>
       <button class="pill hide-m" data-go="workspace" id="currentCompanyBtn" title="החלפת חברה (סביבת עבודה)">🏢 חברה: דליה פתרונות</button>
       <button class="pill" data-tab="connections"><span class="dot"></span><span id="engineLabel">Gemini AI</span></button>
       <div class="avatar" id="userAvatar" title="יוני אטיאס">יא</div>
@@ -961,6 +963,212 @@ function persistProspectorData() {
     localStorage.setItem(PROSPECTOR_RUNS_KEY, JSON.stringify(RUNS));
   } catch(e) {
     console.warn("[Prospector Storage] Error persisting to localStorage:", e);
+  }
+}
+
+/* ===== סנכרון מרכזי בענן Supabase STAGING (CENTRAL PERSISTENCE) ===== */
+const SUPABASE_STAGING_URL = "https://usfeoerkpcafxxlyuldl.supabase.co";
+const SUPABASE_STAGING_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU";
+
+let sbClient = null;
+try {
+  if (window.supabase && typeof window.supabase.createClient === "function") {
+    sbClient = window.supabase.createClient(SUPABASE_STAGING_URL, SUPABASE_STAGING_ANON);
+  }
+} catch(e) {
+  console.warn("[Prospector] Supabase client init error:", e);
+}
+
+function mapDbRowToLead(row, idx) {
+  if (row.raw_payload && typeof row.raw_payload === "object" && row.raw_payload.name) {
+    const p = row.raw_payload;
+    p.id = idx + 1;
+    p.dbId = row.id;
+    p.status = row.status || p.status || "new";
+    p.notes = row.notes || p.notes || "";
+    return p;
+  }
+  return {
+    id: idx + 1,
+    dbId: row.id,
+    name: row.company_name,
+    no: row.company_hp,
+    ind: row.industry || "תשתיות ועפר",
+    city: row.city || "מרכז",
+    region: row.region || "מרכז",
+    addr: row.address || "",
+    web: row.website || "",
+    phone: row.phone || "לא נמצא",
+    mail: row.email || "",
+    size: row.company_size || "50–100 עובדים",
+    fleet: row.fleet_info || { s: "v", val: "צי צמ\"ה ומשאיות ברישוי", src: "פנקס הקבלנים ענף 200" },
+    fleetType: row.fleet_type || "כלי צמ\"ה ומשאיות כבדות",
+    score: row.score || 93,
+    status: row.status || "new",
+    found: row.found_date || "01.10.2026",
+    upd: row.updated_date || "01.10.2026",
+    isSafetyOfficerLead: !!row.is_safety_officer_lead,
+    certifiedProfessional: row.certified_professional,
+    safetyOfficer: row.safety_officer,
+    leadReason: row.lead_reason || "",
+    facts: row.facts || { no: "v", ind: "v", addr: "v", web: "n", phone: row.phone ? "v" : "n", mail: row.email ? "v" : "n", size: "v" },
+    ev: row.evidence || [],
+    people: row.people || [],
+    multiPhones: row.multi_phones || [],
+    multiMails: row.multi_mails || [],
+    notes: row.notes || ""
+  };
+}
+
+async function syncWithRemoteSupabase() {
+  if (typeof S !== "undefined") {
+    S.remoteStatus = "syncing";
+    renderNav();
+  }
+
+  // 1. Try Supabase Staging DB query via anon key
+  if (sbClient) {
+    try {
+      // PostgREST caps each response (max-rows=1000), so page through the table
+      const PAGE = 1000;
+      let data = [], error = null;
+      for (let from = 0; ; from += PAGE) {
+        const res = await sbClient
+          .from("prospect_leads")
+          .select("*")
+          .order("lead_number", { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (res.error) { error = res.error; break; }
+        data = data.concat(res.data || []);
+        if (!res.data || res.data.length < PAGE) break;
+      }
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        console.log(`[Prospector] Successfully loaded ${data.length} leads from Supabase STAGING!`);
+        const mapped = data.map((r, i) => mapDbRowToLead(r, i));
+        // Leads that exist only in the local cache (added offline) are pushed to the DB, not lost
+        const remoteHp = new Set(mapped.map(l => String(l.no || "").trim()).filter(Boolean));
+        const remoteNames = new Set(mapped.map(l => String(l.name || "").trim()));
+        const localOnly = C.filter(l => {
+          const hp = String(l.no || "").trim();
+          if (!hp || remoteHp.has(hp) || remoteNames.has(String(l.name || "").trim())) return false;
+          return !String(l.phone || "").startsWith("03-000-");
+        });
+        C.length = 0;
+        mapped.forEach(l => C.push(l));
+        localOnly.forEach(l => { l.id = C.length + 1; C.push(l); });
+        if (localOnly.length) upsertBatchToRemoteSupabase(localOnly);
+        persistProspectorData();
+        if (typeof S !== "undefined") {
+          S.remoteStatus = "connected";
+          S.remoteCount = C.length;
+        }
+        render();
+        return;
+      } else if (error) {
+        console.warn("[Prospector] Supabase query notice:", error.message);
+      }
+    } catch(err) {
+      console.warn("[Prospector] Supabase fetch error:", err);
+    }
+  }
+
+  // 2. Fallback: bundled JSON file if DB query failed (e.g. offline) and the local cache is empty/small
+  if (C.length < 100) try {
+    const res = await fetch("./data/prospector-real-leads-618.json");
+    if (res.ok) {
+      const jsonData = await res.json();
+      if (Array.isArray(jsonData) && jsonData.length > 0) {
+        console.log(`[Prospector] Loaded ${jsonData.length} leads from JSON seed file!`);
+        C.length = 0;
+        jsonData.forEach(l => C.push(l));
+        persistProspectorData();
+        if (typeof S !== "undefined") {
+          S.remoteStatus = "json_fallback";
+          S.remoteCount = C.length;
+        }
+        render();
+        return;
+      }
+    }
+  } catch(e) {
+    console.warn("[Prospector] Local JSON fetch failed:", e);
+  }
+
+  // 3. Fallback to localStorage or default
+  if (typeof S !== "undefined") {
+    S.remoteStatus = (C.length >= 100) ? "cached" : "offline";
+    renderNav();
+  }
+}
+
+async function updateRemoteLeadStatus(leadId, newStatus) {
+  if (!sbClient) return;
+  const lead = C.find(x => x.id === +leadId);
+  if (!lead || !lead.no) return;
+  try {
+    const { error } = await sbClient
+      .from("prospect_leads")
+      .update({ status: newStatus, updated_date: new Date().toLocaleDateString("he-IL"), updated_at: new Date().toISOString() })
+      .eq("company_hp", lead.no);
+    if (error) console.warn("[Prospector] Remote update failed:", error.message);
+  } catch(e) {
+    console.warn("[Prospector] Remote status update error:", e);
+  }
+}
+
+async function updateRemoteLeadNote(leadId, noteText) {
+  if (!sbClient) return;
+  const lead = C.find(x => x.id === +leadId);
+  if (!lead || !lead.no) return;
+  try {
+    const { error } = await sbClient
+      .from("prospect_leads")
+      .update({ notes: noteText, updated_date: new Date().toLocaleDateString("he-IL"), updated_at: new Date().toISOString() })
+      .eq("company_hp", lead.no);
+    if (error) console.warn("[Prospector] Remote update failed:", error.message);
+  } catch(e) {
+    console.warn("[Prospector] Remote note update error:", e);
+  }
+}
+
+async function upsertBatchToRemoteSupabase(stagedLeads) {
+  if (!sbClient || !Array.isArray(stagedLeads) || stagedLeads.length === 0) return;
+  try {
+    const rows = stagedLeads.map(l => ({
+      company_name: l.name,
+      company_hp: l.no || null,
+      industry: l.ind || "",
+      city: l.city || "",
+      region: l.region || "",
+      address: l.addr || "",
+      website: l.web || "",
+      phone: l.phone || "",
+      email: l.mail || "",
+      company_size: l.size || "",
+      fleet_info: l.fleet || {},
+      fleet_type: l.fleetType || "",
+      score: l.score || 90,
+      status: l.status || "new",
+      found_date: l.found || "",
+      updated_date: l.upd || "",
+      is_safety_officer_lead: !!l.isSafetyOfficerLead,
+      certified_professional: l.certifiedProfessional || null,
+      safety_officer: l.safetyOfficer || null,
+      lead_reason: l.leadReason || "",
+      facts: l.facts || {},
+      evidence: l.ev || [],
+      people: l.people || [],
+      multi_phones: l.multiPhones || [],
+      multi_mails: l.multiMails || [],
+      notes: l.notes || "",
+      raw_payload: l
+    }));
+    const { error } = await sbClient.from("prospect_leads").upsert(rows, { onConflict: "company_hp" });
+    if (error) { console.warn("[Prospector] Supabase upsert failed:", error.message); return; }
+    console.log(`[Prospector] Successfully synced ${rows.length} new leads to Supabase STAGING!`);
+  } catch(e) {
+    console.warn("[Prospector] Supabase upsert error:", e);
   }
 }
 
@@ -1642,6 +1850,9 @@ const S={
   menu:false,
   activeCompany:"דליה פתרונות תפעול ותחזוקה לרכב",
   activeUser:"יוני אטיאס",
+  remoteStatus:"initializing",
+  remoteCount:0,
+  leadsLimit:40,
   coPage:1,
   coPageSize:50,
   bulk:{
@@ -1712,6 +1923,19 @@ function renderNav(){
   }
   const elLbl=$("#engineLabel");
   if(elLbl) elLbl.textContent=engine().name;
+
+  const syncEl = $("#cloudSyncStatus");
+  if (syncEl) {
+    if (S.remoteStatus === "connected") {
+      syncEl.innerHTML = `<span class="badge b-ok" style="font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px" title="מסונכרן בזמן אמת ל-Supabase STAGING (public.prospect_leads)">🟢 ענן Supabase Staging פעיל (${C.length} לידים)</span>`;
+    } else if (S.remoteStatus === "syncing") {
+      syncEl.innerHTML = `<span class="badge" style="background:#fef3c7;color:#b45309;font-size:12px;display:inline-flex;align-items:center;gap:5px">🔄 מסנכרן מול Supabase...</span>`;
+    } else if (S.remoteStatus === "json_fallback") {
+      syncEl.innerHTML = `<span class="badge b-blue" style="font-size:12px;display:inline-flex;align-items:center;gap:5px">📦 מאגר ענן מקומי (${C.length} לידים)</span>`;
+    } else {
+      syncEl.innerHTML = `<span class="badge b-ok" style="font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px">🟢 ${C.length} לידים</span>`;
+    }
+  }
 }
 
 function renderTabs(){
@@ -2097,7 +2321,7 @@ async function runSearch(){
           region: "מרכז",
           addr: rec['שם רחוב'] ? `${rec['שם רחוב']} ${rec['מספר בית'] || ''}, ${city}` : city,
           web: `${compName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'company'}.co.il`,
-          phone: "03-000-0900",
+          phone: "לא נמצא",
           mail: "",
           size: "20–50 עובדים",
           fleet: { s: calc.certainty, val: calc.fleetVal, src: "רשם החברות + הערכת ענף" },
@@ -2105,11 +2329,9 @@ async function runSearch(){
           status: "new",
           found: new Date().toLocaleDateString("he-IL"),
           upd: new Date().toLocaleDateString("he-IL"),
-          multiPhones:[
-            {val:"03-000-0900",source:"רשם החברות (data.gov.il)",tier:"A",tierLabel:"Tier A | ממשלתי רשמי"}
-          ],
+          multiPhones:[],
           multiMails:[],
-          facts: { no: "v", ind: "v", addr: rec['שם רחוב'] ? "v" : "e", web: "e", phone: "e", mail: "n", size: "e" },
+          facts: { no: "v", ind: "v", addr: rec['שם רחוב'] ? "v" : "e", web: "e", phone: "n", mail: "n", size: "e" },
           ev: [
             ["🏛️", "רשם החברות (data.gov.il)", `חברה פעילה מס' ${compId}, התאגדות: ${rec['תאריך התאגדות'] || 'מאומת'}`, "data.gov.il", "v", new Date().toLocaleDateString("he-IL"), "A", "Tier A ממשלתי"],
             ["🤖", "Gemini AI Fleet Score", `ציון התאמה ${calc.score}: ${calc.reasons.join(', ')}`, "Gemini Reasoning", "e", new Date().toLocaleDateString("he-IL"), "E", "Tier E הערכת AI"]
@@ -2859,13 +3081,16 @@ V.leads=()=>{
   <div class="board">
     ${STATUSES.map(([k,l])=>{
       const list = filteredC.filter(c => c.status === k);
+      const limit = S.leadsLimit || 40;
+      const visibleList = list.slice(0, limit);
+      const hasMore = list.length > limit;
       return `
       <div class="col">
         <div class="col-h">
           <span>${l}</span>
           <span class="n num">${list.length}</span>
         </div>
-        ${list.map(c=>`
+        ${visibleList.map(c=>`
           <div class="lead" data-co="${c.id}" style="position:relative">
             <div class="row" style="align-items:flex-start;justify-content:space-between;gap:6px">
               <div class="t" style="flex:1;min-width:0">${esc(c.name)}</div>
@@ -2907,6 +3132,13 @@ V.leads=()=>{
             </div>
           </div>
         `).join("") || '<div class="empty xs">אין לידים בשלב זה</div>'}
+        ${hasMore ? `
+          <div style="text-align:center;padding:8px 4px">
+            <button class="btn btn-sm" data-act="showMoreLeads" style="width:100%;font-size:12px;background:var(--soft);border:1px solid var(--border)">
+              ➕ הצג עוד (${visibleList.length} מתוך ${list.length})
+            </button>
+          </div>
+        ` : ''}
       </div>`;
     }).join("")}
   </div>`;
@@ -3594,6 +3826,7 @@ document.addEventListener("click",e=>{
       if (co) {
         co.status = "review";
         persistProspectorData();
+        updateRemoteLeadStatus(co.id, co.status);
         toast(`הליד "${co.name}" (ח.פ. ${co.no}) הועבר בהצלחה ל-CRM של דליה בסטטוס 'בבדיקה'`);
         if(S.view==="prospector" && S.tab==="leads") { const v=$("#view"); if(v) v.innerHTML=V.leads(); }
         else if(S.tab==="companies") { const v=$("#view"); if(v) v.innerHTML=V.companies(); }
@@ -3607,6 +3840,7 @@ document.addEventListener("click",e=>{
       if (co) {
         co.status = "contacted";
         persistProspectorData();
+        updateRemoteLeadStatus(co.id, co.status);
         toast(`הליד "${co.name}" שובץ לרשימת הטלמיטינג של דליה ליצירת קשר`);
         if(S.view==="prospector" && S.tab==="leads") { const v=$("#view"); if(v) v.innerHTML=V.leads(); }
         else if(S.tab==="companies") { const v=$("#view"); if(v) v.innerHTML=V.companies(); }
@@ -3623,6 +3857,7 @@ document.addEventListener("click",e=>{
         if (co) {
           co.notes = noteEl.value;
           persistProspectorData();
+          updateRemoteLeadNote(co.id, co.notes);
           toast("ההערה נשמרה בהצלחה");
           return;
         }
@@ -3647,7 +3882,13 @@ document.addEventListener("click",e=>{
     case "pauseBulk": pauseBulkImport(); return;
     case "resumeBulk": resumeBulkImport(); return;
     case "clearBulk": clearBulkImport(); return;
-    case "commitBulkToLeads": commitBulkToLeads(); return;
+    case "commitBulkToLeads": upsertBatchToRemoteSupabase((S.bulk.staged || []).slice()); commitBulkToLeads(); return;
+    case "showMoreLeads":{
+      S.leadsLimit = (S.leadsLimit || 40) + 40;
+      const v = $("#view");
+      if (v) v.innerHTML = V.leads();
+      return;
+    }
     case "exportBulkCsv": {
       exportCsv(S.bulk.staged && S.bulk.staged.length ? S.bulk.staged : null);
       return;
@@ -3676,6 +3917,7 @@ document.addEventListener("change",e=>{
     if(c) {
       c.status=t.value;
       persistProspectorData();
+      updateRemoteLeadStatus(c.id, c.status);
     }
     toast(`הסטטוס עודכן: ${ST[t.value]||t.value}`);
     if(S.view==="prospector"&&S.tab==="leads")$("#view").innerHTML=V.leads();
@@ -3698,6 +3940,8 @@ document.addEventListener("input",e=>{
 
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.panel){S.panel=null;renderPanel()}});
 render();
+/* Supabase STAGING is the source of truth; localStorage only renders the first paint */
+syncWithRemoteSupabase();
 </script>
 </body>
 </html>
