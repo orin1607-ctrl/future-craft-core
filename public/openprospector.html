@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="openprospector-qualify.js?v=enrich-1"></script>
 <style>
 :root{
   --navy-950:#04091a;--navy-900:#071022;--navy-800:#0a1830;--navy-700:#0d1f3c;--navy-600:#15305c;
@@ -979,16 +980,38 @@ try {
   console.warn("[Prospector] Supabase client init error:", e);
 }
 
+const ENR_KEYS = ["id","company_name","company_hp","phone","email","website","industry","fleet_type","status","certified_professional",
+  "company_active_status","phone_secondary","email_direct","contact_form_url","public_whatsapp","linkedin_company",
+  "contact_name","contact_role","contact_phone","contact_email","contact_linkedin",
+  "fleet_exists","fleet_size","fleet_size_status","fleet_types","fleet_manager_name","fleet_manager_source",
+  "safety_officer_name","safety_officer_source","safety_officer_verified",
+  "verification_status","verification_date","source_list","registry_check","tier",
+  "lead_stage","lead_quality","ready_for_contact","rejected_reason",
+  "crm_handoff_status","crm_handoff_requested_at","enrichment_source","enrichment_status","enrichment_cost","enrichment_requested"];
 function mapDbRowToLead(row, idx) {
-  if (row.raw_payload && typeof row.raw_payload === "object" && row.raw_payload.name) {
-    const p = row.raw_payload;
+  /* enrichment / qualification columns travel with the lead as c.enr – only what the rules need,
+     so the localStorage cache stays small (computed field_status is rebuilt; only manual provenance is kept) */
+  const raw_payload = row.raw_payload;
+  const enr = {};
+  ENR_KEYS.forEach(k => { if (row[k] !== undefined) enr[k] = row[k]; });
+  enr.field_status = { manual: (row.field_status && row.field_status.manual) || {} };
+  const rc = row.registry_check;
+  if (rc) enr.registry_check = {
+    checked_at: rc.checked_at,
+    contractors: { found: !!(rc.contractors && rc.contractors.found), records: ((rc.contractors && rc.contractors.records) || []).map(r => ({ anaf: r.anaf, phone: r.phone, email: r.email, ovdim: r.ovdim })) },
+    companies: { found: !!(rc.companies && rc.companies.found), status: rc.companies && rc.companies.status }
+  };
+  if (raw_payload && typeof raw_payload === "object" && raw_payload.name) {
+    const p = raw_payload;
     p.id = idx + 1;
     p.dbId = row.id;
     p.status = row.status || p.status || "new";
     p.notes = row.notes || p.notes || "";
+    p.enr = enr;
     return p;
   }
   return {
+    enr,
     id: idx + 1,
     dbId: row.id,
     name: row.company_name,
@@ -1139,6 +1162,83 @@ async function updateRemoteLeadNote(leadId, noteText) {
   }
 }
 
+/* עדכון עמודות העשרה/סיווג של ליד ב-Supabase (מקור האמת). מחשב מחדש שלב ליד לפני השמירה. */
+async function saveLeadEnrichment(lead, patch, okMsg) {
+  if (!sbClient || !lead.enr || !lead.enr.id) { toast("שגיאה: Supabase STAGING לא זמין – השינוי לא נשמר"); return false; }
+  const merged = { ...lead.enr, ...patch };
+  const q = window.OPQualify ? OPQualify.evaluate(merged) : null;
+  if (q) Object.assign(patch, {
+    field_status: q.field_status, missing_fields: q.missing_fields, source_list: q.source_list, tier: q.tier,
+    verification_status: q.verification_status, fleet_size_status: q.fleet_size_status, lead_stage: q.lead_stage,
+    lead_quality: q.lead_quality, ready_for_contact: q.ready_for_contact, rejected_reason: q.rejected_reason
+  });
+  patch.updated_at = new Date().toISOString();
+  const { error } = await sbClient.from("prospect_leads").update(patch).eq("id", lead.enr.id);
+  if (error) { console.warn("[Prospector] enrichment save failed:", error.message); toast("שגיאה בשמירה ל-Supabase: " + error.message); return false; }
+  Object.assign(lead.enr, patch);
+  lead.enr.field_status = { manual: (patch.field_status && patch.field_status.manual) || {} };
+  if (patch.website !== undefined) lead.web = patch.website || "";
+  persistProspectorData();
+  toast(okMsg || "נשמר ב-Supabase STAGING");
+  const v = $("#view");
+  if (v && S.tab === "leads") v.innerHTML = V.leads(); else if (v && S.tab === "companies") v.innerHTML = V.companies();
+  if (S.panel) renderPanel();
+  return true;
+}
+
+function saveManualVerification(lead) {
+  const val = id => { const el = $("#" + id); return el ? el.value.trim() : ""; };
+  const on = id => { const el = $("#" + id); return !!(el && el.checked); };
+  const by = val("en-by") || S.activeUser, at = new Date().toISOString().slice(0, 10), stamp = { by, at };
+  const e = lead.enr || {};
+  const manual = { ...((e.field_status && e.field_status.manual) || {}) };
+  const patch = {};
+  const setManual = (key, isOn, extra) => { if (isOn) manual[key] = { ...stamp, ...(extra || {}) }; else delete manual[key]; };
+
+  setManual("phone", on("en-phone-v"));
+  setManual("email", on("en-mail-v"));
+
+  const fleet = val("en-fleet");
+  const sizeRaw = val("en-fleet-size");
+  if (sizeRaw && !(/^\d+$/.test(sizeRaw) && +sizeRaw > 0)) { toast("גודל צי חייב להיות מספר שלם חיובי, או ריק אם לא ידוע"); return; }
+  if (sizeRaw && fleet !== "yes") { toast("אפשר להזין גודל צי רק כשהצי אומת כקיים"); return; }
+  patch.fleet_exists = fleet === "yes" ? true : fleet === "no" ? false : null;
+  patch.fleet_size = fleet === "yes" && sizeRaw ? +sizeRaw : null;
+  patch.fleet_types = val("en-fleet-types") ? val("en-fleet-types").split(",").map(s => s.trim()).filter(Boolean) : null;
+  setManual("fleet", !!fleet);
+
+  patch.contact_name = val("en-contact-name") || null;
+  patch.contact_role = val("en-contact-role") || null;
+  patch.contact_phone = val("en-contact-phone") || null;
+  patch.contact_email = val("en-contact-email") || null;
+  setManual("contact", on("en-contact-v") && !!patch.contact_name);
+
+  patch.website = val("en-website") || "";
+  setManual("website", on("en-web-v") && !!patch.website);
+
+  patch.fleet_manager_name = val("en-fm-name") || null;
+  patch.fleet_manager_source = val("en-fm-src") || null;
+  setManual("fleet_manager", on("en-fm-v") && !!patch.fleet_manager_name && !!patch.fleet_manager_source);
+
+  /* קצין בטיחות: אימות רק עם שם + מקור מפורש שאינו OVDIM / פנקס הקבלנים / AI */
+  patch.safety_officer_name = val("en-so-name") || null;
+  patch.safety_officer_source = val("en-so-src") || null;
+  const certName = lead.certifiedProfessional && lead.certifiedProfessional.name;
+  if (on("en-so-v")) {
+    if (!patch.safety_officer_name || !patch.safety_officer_source) { toast("אימות קצין בטיחות דורש שם ומקור מפורש"); return; }
+    if (OPQualify.NOT_SAFETY_PROOF.test(patch.safety_officer_source)) { toast("המקור אינו הוכחה לקצין בטיחות (OVDIM / פנקס הקבלנים / AI)"); return; }
+    if (certName && certName.replace(/\s/g, "") === patch.safety_officer_name.replace(/\s/g, "")) { toast("איש המקצוע מה-OVDIM אינו קצין בטיחות"); return; }
+  }
+  patch.safety_officer_verified = on("en-so-v");
+
+  if (on("en-reject")) { manual.rejected = { ...stamp, reason: val("en-reject-reason") || "סומן ידנית כלא מתאים" }; patch.rejected_reason = manual.rejected.reason; }
+  else { delete manual.rejected; if (e.field_status && e.field_status.manual && e.field_status.manual.rejected) patch.rejected_reason = null; }
+
+  patch.field_status = { ...(e.field_status || {}), manual };
+  patch.verification_date = at;
+  saveLeadEnrichment(lead, patch, "האימות נשמר ב-Supabase STAGING");
+}
+
 async function upsertBatchToRemoteSupabase(stagedLeads) {
   if (!sbClient || !Array.isArray(stagedLeads) || stagedLeads.length === 0) return;
   try {
@@ -1169,7 +1269,7 @@ async function upsertBatchToRemoteSupabase(stagedLeads) {
       multi_phones: l.multiPhones || [],
       multi_mails: l.multiMails || [],
       notes: l.notes || "",
-      raw_payload: l
+      raw_payload: (({ enr, ...rest }) => rest)(l)
     }));
     const { error } = await sbClient.from("prospect_leads").upsert(rows, { onConflict: "company_hp" });
     if (error) { console.warn("[Prospector] Supabase upsert failed:", error.message); return; }
@@ -1849,7 +1949,7 @@ const S={
   tab:"dash",
   leadFilter:"",
   leadCategory:"safety_officer",
-  coFilter:{q:"",st:"",fleet:""},
+  coFilter:{q:"",st:"",fleet:"",stage:""},
   srcFilter:"all",
   searching:false,
   results:false,
@@ -1907,20 +2007,43 @@ const conf={v:['<span class="badge b-ok">✓ מאומת</span>'],e:['<span class
 const cBadge=s=>conf[s]?conf[s][0]:conf.n[0];
 /* מצב קצב"ת: OVDIM, פנקס הקבלנים, היקף צי או הערכת AI אינם הוכחה לקצין בטיחות או לחובת תקנה 579 */
 const SO_NOT_PROOF=/OVDIM|פנקס הקבלנים|איש מקצוע כשיר|Gemini|AI|הערכה/i;
+/* ===== אימות וסיווג לידים (כללים משותפים: openprospector-qualify.js) ===== */
+const QF=c=>window.OPQualify&&c.enr?OPQualify.evaluate(c.enr):null;
+const STAGE_STY={basic:"b-no",review:"b-est",verified:"b-blue",qualified:"b-blue",quality:"b-ok",ready:"b-ok",rejected:"b-bad"};
+const stageOf=c=>{const q=QF(c);return q?q.lead_stage:"basic"};
+const stageBadge=(c,size)=>{const q=QF(c);const st=q?q.lead_stage:"basic";return `<span class="badge ${STAGE_STY[st]||"b-no"}" style="font-size:${size||10.5}px" title="${q&&q.blockers.length?esc("חסר למוכן לפנייה: "+q.blockers.join(", ")):""}">${st==="ready"?"✅ ":""}${window.OPQualify?OPQualify.STAGE_LABEL[st]:st}</span>`};
+const FS_BADGE={v:'<span class="badge b-ok">✓ מאומת</span>',f:'<span class="badge b-est">≈ נמצא – דורש אימות</span>',n:'<span class="badge b-no">חסר</span>'};
+function fleetCell(c){
+  const q=QF(c); if(!q) return fleetBadge(c.fleet);
+  const f=q.field_status.fleet, sz=q.field_status.fleet_size;
+  if(f.s==="v") return `<span class="badge b-ok">✓ ${sz.s==="v"?esc(sz.val)+" כלים":"צי קיים – גודל לא ידוע"}</span>`;
+  if(f.s==="f") return `<span class="badge b-est">≈ אינדיקציה לצי – דורש אימות</span>`;
+  return `<span class="badge b-no">${esc(f.val||"אין מידע על צי")}</span>`;
+}
 function soState(c){
   const so=c.safetyOfficer||{};
+  const q=QF(c);
+  if(q){
+    const s=q.field_status.safety_officer.s;
+    if(s==="v") return "found";
+    if(s==="f") return "found_unverified";
+    return (c.isSafetyOfficerLead||so.mandate579)?"candidate":"";
+  }
   const explicit=so.status==="v"&&!!so.source&&!SO_NOT_PROOF.test(`${so.source} ${so.role||""}`);
   const named=explicit&&so.name&&!/^טרם/.test(so.name)&&so.name!==(c.certifiedProfessional&&c.certifiedProfessional.name);
-  if(named) return "found";
-  if(explicit&&so.mandate579) return "mandate";
+  if(named) return "found_unverified";
   return (c.isSafetyOfficerLead||so.mandate579)?"candidate":"";
 }
-const SO_LABEL={found:"קצין בטיחות אותר",mandate:"חובת קצב\"ת מאומתת",candidate:"מועמד לבדיקת קצב\"ת"};
+/* "חובת קצב"ת מאומתת" נגזרת רק מקצין בטיחות מאומת עם מקור מפורש */
+const soVerified=c=>soState(c)==="found";
+const soNamed=c=>["found","found_unverified"].includes(soState(c));
+const soName=c=>(c.enr&&c.enr.safety_officer_name)||(c.safetyOfficer&&c.safetyOfficer.name)||"";
+const soSource=c=>(c.enr&&c.enr.safety_officer_source)||(c.safetyOfficer&&c.safetyOfficer.source)||"";
+const SO_LABEL={found:"קצין בטיחות אותר ואומת",found_unverified:"קצין בטיחות אותר – דורש אימות",mandate:"חובת קצב\"ת מאומתת",candidate:"מועמד לבדיקת קצב\"ת"};
 function soBadge(c,size){
   const st=soState(c);if(!st)return "";
-  const so=c.safetyOfficer||{};
-  const sty=st==="candidate"?"background:#fffbeb;color:#92400e;border:1px solid #fde68a":"background:#f0fdf4;color:#166534;border:1px solid #bbf7d0";
-  return `<span class="badge" style="${sty};font-size:${size||10.5}px;margin-inline-start:6px" ${st==="found"?`title="מקור: ${esc(so.source)}"`:""}>🛡️ ${SO_LABEL[st]}${st==="found"?`: ${esc(so.name)}`:""}</span>`;
+  const sty=st==="found"?"background:#f0fdf4;color:#166534;border:1px solid #bbf7d0":"background:#fffbeb;color:#92400e;border:1px solid #fde68a";
+  return `<span class="badge" style="${sty};font-size:${size||10.5}px;margin-inline-start:6px" ${soNamed(c)?`title="מקור: ${esc(soSource(c))}"`:""}>🛡️ ${SO_LABEL[st]}${soNamed(c)?`: ${esc(soName(c))}`:""}</span>`;
 }
 /* סיווג רשומה: אף ליד לא מסומן "מאומת" אוטומטית – רק דגל leadVerified מפורש */
 const recordBadges=c=>`${(c.ev||[]).some(e=>e[6]==="A")?'<span class="badge b-blue" style="font-size:10px">רשומה ממקור אמיתי</span>':""} ${c.leadVerified===true?'<span class="badge b-ok" style="font-size:10px">ליד מאומת</span>':'<span class="badge b-est" style="font-size:10px">ליד לבדיקה</span>'}`;
@@ -2000,7 +2123,7 @@ V.dash=()=>{
   <div class="grid g-kpi">
     ${kpi("חיפושים החודש",String(RUNS.length),"פעילים ב-STAGING")}
     ${kpi("חברות שנמצאו",String(C.length),`${C.filter(c=>c.score>=80).length} מתאימות בציון 80+`)}
-    ${kpi("מועמדים לבדיקת קצב\"ת",String(C.filter(c=>soState(c)).length),`${C.filter(c=>soState(c)==="found").length} קצינים אותרו · ${C.filter(c=>soState(c)&&soState(c)!=="candidate").length} חובה מאומתת`)}
+    ${kpi("מועמדים לבדיקת קצב\"ת",String(C.filter(c=>soState(c)).length),`${C.filter(soNamed).length} קצינים אותרו · ${C.filter(soVerified).length} מאומתים`)}
     ${kpi("אימות רשמי (data.gov.il)",String(C.filter(c=>c.facts.no==="v").length),"חברות מאומתות ח.פ.")}
   </div>
   <div class="grid g-2" style="margin-top:18px">
@@ -2749,7 +2872,8 @@ function commitBulkToLeads() {
 /* ===== חברות שנמצאו ===== */
 V.companies=()=>{
   const f=S.coFilter;
-  const list=C.filter(c=>(!f.q||c.name.includes(f.q)||c.city.includes(f.q)||c.ind.includes(f.q))&&(!f.st||c.status===f.st)&&(!f.fleet||c.fleet.s===f.fleet));
+  const fleetKey=c=>{const q=QF(c);return q?q.field_status.fleet.s:(c.fleet&&c.fleet.s)};
+  const list=C.filter(c=>(!f.q||c.name.includes(f.q)||c.city.includes(f.q)||c.ind.includes(f.q)||String(c.no||"").includes(f.q.trim()))&&(!f.st||c.status===f.st)&&(!f.fleet||fleetKey(c)===f.fleet)&&(!f.stage||stageOf(c)===f.stage));
   
   const pageSize = S.coPageSize || 50;
   const totalPages = Math.ceil(list.length / pageSize) || 1;
@@ -2770,16 +2894,20 @@ V.companies=()=>{
     </div>
     <div class="card-b" style="padding-bottom:0">
       <div class="row" style="flex-wrap:wrap;gap:8px">
-        <input class="input" style="max-width:260px" id="f-q" placeholder="חיפוש לפי שם, עיר, ענף" value="${esc(f.q)}">
+        <input class="input" style="max-width:260px" id="f-q" placeholder="חיפוש לפי שם, ח.פ., עיר, ענף" value="${esc(f.q)}">
         <select class="input" style="max-width:180px" id="f-st">
           <option value="">כל הסטטוסים</option>
           ${STATUSES.map(([k,l])=>`<option value="${k}" ${f.st===k?"selected":""}>${l}</option>`).join("")}
         </select>
         <select class="input" style="max-width:200px" id="f-fleet">
-          <option value="">כל רמות הוודאות לצי</option>
+          <option value="">כל מצבי הצי</option>
           <option value="v" ${f.fleet==="v"?"selected":""}>צי מאומת</option>
-          <option value="e" ${f.fleet==="e"?"selected":""}>צי בהערכה</option>
-          <option value="n" ${f.fleet==="n"?"selected":""}>צי לא אומת</option>
+          <option value="f" ${f.fleet==="f"?"selected":""}>אינדיקציה לצי – דורש אימות</option>
+          <option value="n" ${f.fleet==="n"?"selected":""}>אין מידע על צי</option>
+        </select>
+        <select class="input" style="max-width:190px" id="f-stage">
+          <option value="">כל שלבי הליד</option>
+          ${(window.OPQualify?OPQualify.STAGES:[]).map(([k,l])=>`<option value="${k}" ${f.stage===k?"selected":""}>${l}</option>`).join("")}
         </select>
         ${list.length > pageSize ? `
           <span class="spacer"></span>
@@ -2791,7 +2919,7 @@ V.companies=()=>{
         ` : ''}
       </div>
     </div>
-    <div class="tbl-wrap" style="margin-top:14px"><table class="co"><thead><tr><th>ציון צי</th><th>חברה</th><th>ח.פ.</th><th>ענף</th><th>עיר</th><th>צי רכב</th><th>אנשי קשר</th><th>סטטוס</th></tr></thead><tbody>
+    <div class="tbl-wrap" style="margin-top:14px"><table class="co"><thead><tr><th>ציון צי</th><th>חברה</th><th>ח.פ.</th><th>ענף</th><th>עיר</th><th>צי רכב</th><th>אנשי קשר</th><th>שלב ליד</th><th>סטטוס</th></tr></thead><tbody>
     ${pagedList.map(c=>`<tr data-co="${c.id}">
       <td><span class="score ${scoreCls(c.score)}">${c.score}</span></td>
       <td>
@@ -2803,9 +2931,10 @@ V.companies=()=>{
       </td>
       <td class="num xs ltr">${esc(c.no)}</td>
       <td class="hide-m">${esc(c.ind)}</td><td>${esc(c.city)}</td>
-      <td>${fleetBadge(c.fleet)}</td>
-      <td class="hide-m num">${c.people.length||'<span class="faint">—</span>'}</td>
-      <td>${stBadge(c.status)}</td></tr>`).join("")||`<tr><td colspan="8"><div class="empty">אין חברות שתואמות לסינון. נסה להסיר סינון.</div></td></tr>`}
+      <td>${fleetCell(c)}</td>
+      <td class="hide-m num">${c.enr&&c.enr.contact_name?esc(c.enr.contact_name):'<span class="faint">—</span>'}</td>
+      <td>${stageBadge(c)}</td>
+      <td>${stBadge(c.status)}</td></tr>`).join("")||`<tr><td colspan="9"><div class="empty">אין חברות שתואמות לסינון. נסה להסיר סינון.</div></td></tr>`}
     </tbody></table></div>
     ${list.length > pageSize ? `
       <div class="row" style="padding:12px 16px;border-top:1px solid var(--border);align-items:center">
@@ -2828,6 +2957,66 @@ function renderPanel(){
 }
 function fld(k,v,s,src){return `<div class="fld"><div class="k">${k}</div><div class="v">${v} ${s?cBadge(s):""}</div>${src?`<div class="src">${src}</div>`:""}</div>`}
 
+/* ===== מידע חסר / אימות (העשרת ליד) ===== */
+const CRM_HANDOFF_ENABLED=false; /* העברה בפועל ל-crm_leads כבויה – דורשת אישור מפורש */
+const HANDOFF_LABEL={pending_approval:"ממתין לאישור העברה",approved:"אושר להעברה",sent:"הועבר",cancelled:"בוטל"};
+function crmHandoffBtn(c,compact){
+  const q=QF(c), ready=!!(q&&q.ready_for_contact), hs=c.enr&&c.enr.crm_handoff_status;
+  if(hs) return `<span class="badge b-blue" style="font-size:${compact?10.5:12}px">📤 ${HANDOFF_LABEL[hs]||hs}</span>`;
+  const tip=ready?"רישום בקשה להעברה לפולו-אפ / CRM – לא נשלח עד אישור":"זמין רק לליד במצב 'מוכן לפנייה'";
+  return compact
+    ? `<button class="btn btn-sm" style="padding:4px 8px;font-size:11px;white-space:nowrap;background:var(--card);border:1px solid var(--border)${ready?"":";opacity:.45"}" data-act="toCrm" data-co-id="${c.id}" title="${tip}" ${ready?"":"disabled"}>📤 לפולו-אפ</button>`
+    : `<button class="btn btn-sm" style="background:#fff;color:#0a1830;border-color:#fff${ready?"":";opacity:.5"}" data-act="toCrm" data-co-id="${c.id}" title="${tip}" ${ready?"":"disabled"}>📤 העבר לפולו-אפ / CRM</button>`;
+}
+/* תשתית בלבד: מיפוי ליד לטבלת crm_leads הקיימת. לא נשלח כל עוד CRM_HANDOFF_ENABLED=false */
+function buildCrmLeadPayload(c){
+  const e=c.enr||{};
+  return {company_name:c.name,contact_name:e.contact_name||null,phone:c.phone,email:c.mail||null,source:"openprospector",status:"new",
+    service_type:"fleet_garage",notes:c.notes||"",metadata:{company_hp:c.no,prospect_lead_id:e.id,lead_stage:e.lead_stage,source_list:e.source_list||[],verification_date:e.verification_date||null}};
+}
+function enrichmentSection(c){
+  const q=QF(c);
+  if(!q) return `<div class="card" style="margin-bottom:14px"><div class="card-b xs muted">מידע אימות עדיין לא נטען מ-Supabase עבור ליד זה.</div></div>`;
+  const e=c.enr, fs=q.field_status, m=fs.manual||{};
+  const row=([k,l,kind])=>{const x=fs[k]||{s:"n"};return `<tr><td class="sm">${l}${kind==="required"?' <span class="xs" style="color:var(--bad)">*</span>':""}</td><td>${FS_BADGE[x.s]}</td><td class="sm">${esc(String(x.val||""))||'<span class="faint">—</span>'}</td><td class="xs muted">${esc(x.src||"")}</td></tr>`};
+  const chk=(id,on,label)=>`<label class="xs" style="display:inline-flex;gap:4px;align-items:center"><input type="checkbox" id="${id}" ${on?"checked":""}> ${label}</label>`;
+  const inp=(id,val,ph,type)=>`<input class="input" style="height:32px;font-size:12.5px;max-width:200px" id="${id}" type="${type||"text"}" value="${esc(val==null?"":String(val))}" placeholder="${ph}">`;
+  return `<div class="card" style="margin-bottom:14px;border:1.5px solid var(--border)">
+    <div class="card-h"><h3>מידע חסר / אימות<span class="h-bar"></span></h3><span class="spacer"></span>${stageBadge(c,12)}
+      <span class="badge b-no" style="font-size:11px">איכות: ${{high:"גבוהה",medium:"בינונית",low:"נמוכה"}[q.lead_quality]}</span></div>
+    <div class="card-b" style="padding-top:0;display:grid;gap:10px">
+      ${q.ready_for_contact?'<div class="badge b-ok" style="padding:8px 10px">✅ עומד בכל תנאי החובה – מוכן לפנייה</div>'
+        :`<div style="background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12.5px"><b>חסר כדי להגיע ל"מוכן לפנייה":</b> ${esc(q.blockers.join(", "))}</div>`}
+      ${q.rejected_reason?`<div class="badge b-bad" style="padding:8px 10px">⛔ ${esc(q.rejected_reason)}</div>`:""}
+      ${(fs.warnings||[]).map(w=>`<div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:6px 10px;font-size:12px">⚠️ ${esc(w)}</div>`).join("")}
+      <div class="tbl-wrap"><table class="co"><thead><tr><th>שדה</th><th>מצב</th><th>ערך</th><th>מקור</th></tr></thead><tbody>
+        ${OPQualify.FIELDS.map(row).join("")}
+      </tbody></table></div>
+      <div class="xs muted">* שדה חובה ל"מוכן לפנייה". גודל צי לעולם אינו מוערך – רק ערך שאומת. איש מקצוע מפנקס הקבלנים (OVDIM) אינו קצין בטיחות.</div>
+      <details style="border:1px solid var(--border);border-radius:10px;padding:8px 12px">
+        <summary class="sm bold" style="cursor:pointer">✍️ עדכון ואימות ידני (נשמר ב-Supabase STAGING)</summary>
+        <div style="display:grid;gap:8px;margin-top:10px">
+          <div class="row" style="gap:8px;flex-wrap:wrap">${chk("en-phone-v",!!m.phone,"הטלפון אומת ידנית (שיחה)")} ${chk("en-mail-v",!!m.email,"המייל אומת ידנית")}</div>
+          <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><span class="xs bold">צי רכב:</span>
+            <select class="input" id="en-fleet" style="height:32px;max-width:200px;font-size:12.5px"><option value="">לא אומת</option><option value="yes" ${m.fleet&&e.fleet_exists===true?"selected":""}>צי קיים – אומת</option><option value="no" ${m.fleet&&e.fleet_exists===false?"selected":""}>אין צי – אומת</option></select>
+            ${inp("en-fleet-size",e.fleet_size,"גודל צי מאומת (ריק = לא ידוע)","number")} ${inp("en-fleet-types",(e.fleet_types||[]).join(", "),"סוגי כלים, מופרדים בפסיק")}</div>
+          <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><span class="xs bold">איש קשר:</span>
+            ${inp("en-contact-name",e.contact_name,"שם")} ${inp("en-contact-role",e.contact_role,"תפקיד")} ${inp("en-contact-phone",e.contact_phone,"טלפון")} ${inp("en-contact-email",e.contact_email,"מייל")} ${chk("en-contact-v",!!m.contact,"אומת")}</div>
+          <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><span class="xs bold">אתר:</span> ${inp("en-website",c.web||e.website,"https://")} ${chk("en-web-v",!!m.website,"אומת")}</div>
+          <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><span class="xs bold">קצין רכב / מנהל צי:</span> ${inp("en-fm-name",e.fleet_manager_name,"שם")} ${inp("en-fm-src",e.fleet_manager_source,"מקור")} ${chk("en-fm-v",!!m.fleet_manager,"אומת")}</div>
+          <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><span class="xs bold">קצין בטיחות:</span> ${inp("en-so-name",e.safety_officer_name,"שם")} ${inp("en-so-src",e.safety_officer_source,"מקור מפורש (לא OVDIM)")} ${chk("en-so-v",!!e.safety_officer_verified,"אומת")}</div>
+          <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">${chk("en-reject",!!m.rejected,"לא מתאים")} ${inp("en-reject-reason",m.rejected?m.rejected.reason:"","סיבה")}</div>
+          <div class="row" style="gap:8px;align-items:center"><span class="xs bold">נבדק ע"י:</span> ${inp("en-by",S.activeUser,"שם הבודק")}
+            <button class="btn btn-sm btn-primary" data-act="saveEnrichment" data-co-id="${c.id}">💾 שמור אימות</button></div>
+        </div>
+      </details>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)">
+        <span>💳 העשרה בתשלום (Apollo / Lusha): <b>לא מחובר</b> · מצב: ${esc(e.enrichment_status||"לא התבקש")}</span>
+        ${e.enrichment_requested?"":`<button class="btn btn-sm" data-act="requestEnrichment" data-co-id="${c.id}" title="רישום בקשה בלבד – אין קריאה לשירות בתשלום">סמן לבקשת העשרה</button>`}
+      </div>
+    </div></div>`;
+}
+
 function companyCard(c){
   const val=(x,s)=>s==="n"?'<span class="faint">לא נמצא</span>':esc(x);
   return `<div class="panel-h"><div class="row" style="align-items:flex-start"><div style="flex:1;min-width:0">
@@ -2837,7 +3026,7 @@ function companyCard(c){
       <button class="x" data-act="closePanel" aria-label="סגור">✕</button></div>
       <div class="row" style="margin-top:14px;flex-wrap:wrap;gap:8px">
         <select class="input" style="max-width:190px;height:36px;background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.2)" data-status="${c.id}">${STATUSES.map(([k,l])=>`<option value="${k}" ${c.status===k?"selected":""} style="color:#0f172a">${l}</option>`).join("")}</select>
-        <button class="btn btn-sm" style="background:#fff;color:#0a1830;border-color:#fff" data-act="toCrm" data-co-id="${c.id}" title="מסמן את הליד כמוכן להעברה ל-CRM – לא נשלח ל-CRM">סמן כמוכן ל-CRM</button>
+        ${crmHandoffBtn(c)}
         <button class="btn btn-sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.3)" data-act="toTele" data-co-id="${c.id}">העבר לטלמרקטינג</button>
       </div></div>
     <div class="panel-b">
@@ -2864,22 +3053,24 @@ function companyCard(c){
         </div>
       </div>
 
+      ${enrichmentSection(c)}
+
       ${soState(c) ? `
         <div class="card" style="border:1.5px solid #93c5fd;background:linear-gradient(135deg,rgba(59,111,224,0.06),rgba(255,255,255,0.02));margin-bottom:14px;border-radius:12px">
           <div class="card-h" style="border-bottom:1px solid #bfdbfe;padding:12px 16px">
             <h3 style="margin:0;display:flex;align-items:center;gap:8px;color:#1e3a8a;font-size:15px">
               <span>🛡️ קצין רכב / קצין בטיחות בתעבורה (קצב"ת)</span>
-              ${soState(c) !== "candidate" && c.safetyOfficer?.tier ? `<span class="tier-badge tier-${c.safetyOfficer.tier.toLowerCase()}">${esc(c.safetyOfficer.tierLabel || ('Tier ' + c.safetyOfficer.tier))}</span>` : ''}
+              ${soVerified(c) && c.safetyOfficer?.tier ? `<span class="tier-badge tier-${c.safetyOfficer.tier.toLowerCase()}">${esc(c.safetyOfficer.tierLabel || ('Tier ' + c.safetyOfficer.tier))}</span>` : ''}
             </h3>
             <span class="spacer"></span>
-            ${soState(c) === "candidate" ? `<span class="badge b-est" style="font-weight:700">≈ מועמד לבדיקת קצב"ת – חובת תקנה 579 לא הוכחה</span>` : `<span class="badge b-ok" style="font-weight:700">✓ ${SO_LABEL[soState(c)]}</span>`}
+            ${!soVerified(c) ? `<span class="badge b-est" style="font-weight:700">≈ ${soNamed(c) ? SO_LABEL.found_unverified + " – חובת תקנה 579 לא הוכחה" : "מועמד לבדיקת קצב\"ת – חובת תקנה 579 לא הוכחה"}</span>` : `<span class="badge b-ok" style="font-weight:700">✓ ${SO_LABEL[soState(c)]}</span>`}
           </div>
           <div class="card-b" style="padding:12px 16px;display:grid;gap:10px">
             <div class="grid g-2" style="gap:12px">
               <div>
                 <div class="xs muted">קצין בטיחות:</div>
-                <div class="bold" style="font-size:14.5px;color:var(--text);margin-top:2px">${soState(c) === "found" ? esc(c.safetyOfficer.name) : 'לא אותר קצין בטיחות בשם'}</div>
-                <div class="xs muted" style="margin-top:2px">${soState(c) === "found" ? esc(c.safetyOfficer.role || 'קצין בטיחות בתעבורה') : (soState(c) === "mandate" ? 'חובת מינוי מבוססת מקור מפורש' : 'נדרשת בדיקה – אין מקור מפורש לקצין או לחובת מינוי')}</div>
+                <div class="bold" style="font-size:14.5px;color:var(--text);margin-top:2px">${soNamed(c) ? esc(soName(c)) : 'לא אותר קצין בטיחות בשם'}</div>
+                <div class="xs muted" style="margin-top:2px">${soVerified(c) ? "אומת – מקור: " + esc(soSource(c)) : (soNamed(c) ? "נמצא ברשומה – דורש אימות (מקור רשום: " + esc(soSource(c)) + ")" : 'נדרשת בדיקה – אין מקור מפורש לקצין או לחובת מינוי')}</div>
               </div>
               <div>
                 <div class="xs muted">סוג הצי והיקף:</div>
@@ -2889,7 +3080,7 @@ function companyCard(c){
             </div>
             ${c.safetyOfficer?.note ? `
               <div style="background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12.5px">
-                <b>${soState(c) === "candidate" ? 'הערה (הסקה – לא מאומת):' : 'פירוט ומעמד פיקוח:'}</b> ${esc(c.safetyOfficer.note)}
+                <b>${!soVerified(c) ? 'הערה (הסקה – לא מאומת):' : 'פירוט ומעמד פיקוח:'}</b> ${esc(c.safetyOfficer.note)}
               </div>
             ` : ''}
             ${c.certifiedProfessional ? `
@@ -2899,9 +3090,9 @@ function companyCard(c){
               </div>
             ` : ''}
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted)">
-              <span><b>${soState(c) === "candidate" ? 'מקור הרשומה:' : 'מקור המידע:'}</b> ${esc(c.safetyOfficer?.source || '—')}</span>
+              <span><b>${!soVerified(c) ? 'מקור הרשומה:' : 'מקור המידע:'}</b> ${esc(c.safetyOfficer?.source || '—')}</span>
               <span>•</span>
-              <span><b>${soState(c) === "candidate" ? 'תאריך עדכון:' : 'תאריך אימות:'}</b> ${esc(c.upd || c.found || '—')}</span>
+              <span><b>${!soVerified(c) ? 'תאריך עדכון:' : 'תאריך אימות:'}</b> ${esc(c.upd || c.found || '—')}</span>
             </div>
             ${c.leadReason ? `
               <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;margin-top:2px">
@@ -2962,7 +3153,7 @@ function companyCard(c){
             <div style="display:grid;gap:8px">
               ${c.ev.map(([i,t,d,u,s,dt,tier,tierLbl])=>{
                 /* תקנה 579 מוצגת כמאומתת רק כשקיים מקור מפורש לחובה או לקצין */
-                const inferred579 = /תקנה 579/.test(t) && soState(c) === "candidate";
+                const inferred579 = /תקנה 579/.test(t) && !soVerified(c);
                 return `<div class="ev" style="margin:0;border:1px solid var(--border);border-radius:10px;padding:10px 12px">
                 <div class="src-ic" style="font-size:20px">${i}</div>
                 <div style="flex:1;min-width:0">
@@ -3036,6 +3227,11 @@ V.leads=()=>{
   } else if (cat === "buses") {
     filteredC = C.filter(c => c.fleetType && (c.fleetType.includes("אוטובוס") || c.fleetType.includes("היסע")));
   }
+  /* תצוגת שלבי ליד: "ready" = מוכן לפנייה, "stage:<key>" = כל שלב אחר */
+  const stageKey = cat === "ready" ? "ready" : (cat.startsWith("stage:") ? cat.slice(6) : "");
+  if (stageKey) filteredC = C.filter(c => stageOf(c) === stageKey);
+  const stageCounts = {};
+  C.forEach(c => { const s = stageOf(c); stageCounts[s] = (stageCounts[s] || 0) + 1; });
 
   return `
   <!-- כותרת ראשית וסנכרון CRM -->
@@ -3076,8 +3272,15 @@ V.leads=()=>{
     <button class="btn btn-sm" style="${cat==='buses'?'background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="buses">
       🚌 אוטובוסים והיסעים (${busCount})
     </button>
+    <button class="btn btn-sm" style="${cat==='ready'?'background:#15803d;color:#fff;border-color:#15803d;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="ready">
+      ✅ מוכן לפנייה (${stageCounts.ready || 0})
+    </button>
     <span class="spacer"></span>
     <span class="chip num" style="font-size:12px">מוצגים ${filteredC.length} לידים</span>
+  </div>
+  <div class="row" style="margin:-6px 0 14px;flex-wrap:wrap;gap:6px;align-items:center">
+    <span class="xs bold" style="margin-inline-end:4px">שלבי ליד:</span>
+    ${(window.OPQualify ? OPQualify.STAGES : []).map(([k, l]) => `<button class="badge ${STAGE_STY[k]}" style="cursor:pointer;font-size:11.5px;border:${stageKey===k?'2px solid currentColor':'1px solid transparent'}" data-lead-cat="${k==='ready'?'ready':'stage:'+k}">${l} · ${stageCounts[k] || 0}</button>`).join("")}
   </div>
 
   ${cat === "safety_officer" ? `
@@ -3089,8 +3292,8 @@ V.leads=()=>{
             <span style="font-size:22px">🛡️</span>
             <h3 style="margin:0;font-size:16px;color:#1e3a8a">מועמדים לבדיקת קצין בטיחות בתעבורה (קצב"ת)</h3>
             <span class="badge b-est" style="font-weight:700">${safetyCount} לידים לבדיקה</span>
-            <span class="badge b-ok" style="font-weight:700">${filteredC.filter(c => soState(c) === "found").length} קצינים אותרו</span>
-            <span class="badge b-ok" style="font-weight:700">${filteredC.filter(c => soState(c) !== "candidate").length} חובת קצב"ת מאומתת</span>
+            <span class="badge b-est" style="font-weight:700">${filteredC.filter(soNamed).length} קצינים אותרו (דורש אימות: ${filteredC.filter(c => soNamed(c) && !soVerified(c)).length})</span>
+            <span class="badge b-ok" style="font-weight:700">${filteredC.filter(soVerified).length} חובת קצב"ת מאומתת</span>
           </div>
           <div class="sm" style="margin-top:8px;line-height:1.5;color:var(--text)">
             חברות אלו מופיעות במאגרים רשמיים (פנקס הקבלנים, מאגרי רכב כבד / צמ"ה / אוטובוסים) ונראות רלוונטיות לבדיקה.
@@ -3112,6 +3315,7 @@ V.leads=()=>{
     </div>
   ` : ''}
 
+  ${stageKey ? stageTable(filteredC, stageKey) : `
   <!-- לוח KANBAN לניהול הלידים -->
   <div class="board">
     ${STATUSES.map(([k,l])=>{
@@ -3157,9 +3361,7 @@ V.leads=()=>{
               <select class="input" style="flex:1;height:30px;font-size:12px;padding:2px 8px" data-status="${c.id}" aria-label="שינוי סטטוס">
                 ${STATUSES.map(([kk,ll])=>`<option value="${kk}" ${kk===k?"selected":""}>${ll}</option>`).join("")}
               </select>
-              <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;white-space:nowrap;background:var(--card);border:1px solid var(--border)" data-act="toCrm" data-co-id="${c.id}" title="סמן כמוכן להעברה ל-CRM (לא נשלח ל-CRM)">
-                📥 מוכן ל-CRM
-              </button>
+              ${crmHandoffBtn(c,true)}
             </div>
           </div>
         `).join("") || '<div class="empty xs">אין לידים בשלב זה</div>'}
@@ -3172,8 +3374,61 @@ V.leads=()=>{
         ` : ''}
       </div>`;
     }).join("")}
-  </div>`;
+  </div>`}`;
 };
+
+/* ===== מסך "מוכן לפנייה" / שלב ליד (טבלה, 50 בעמוד) ===== */
+function stageTable(list, stageKey) {
+  const pageSize = 50, pages = Math.max(1, Math.ceil(list.length / pageSize));
+  S.stPage = Math.min(Math.max(1, S.stPage || 1), pages);
+  const page = list.slice((S.stPage - 1) * pageSize, S.stPage * pageSize);
+  const stLabel = window.OPQualify ? OPQualify.STAGE_LABEL[stageKey] : stageKey;
+  const pager = list.length > pageSize ? `<div class="row sm" style="gap:6px;align-items:center">
+      <button class="btn btn-sm" data-act="stPrev" ${S.stPage <= 1 ? "disabled" : ""}>◀ עמוד קודם</button>
+      <span class="num xs">עמוד ${S.stPage} מתוך ${pages}</span>
+      <button class="btn btn-sm" data-act="stNext" ${S.stPage >= pages ? "disabled" : ""}>עמוד הבא ▶</button></div>` : "";
+  if (!list.length) {
+    /* למה אין לידים בשלב: החסמים הנפוצים בכל המאגר */
+    const blk = {};
+    C.forEach(c => { const q = QF(c); if (q && q.lead_stage !== "rejected") q.blockers.forEach(b => blk[b] = (blk[b] || 0) + 1); });
+    const top = Object.entries(blk).sort((a, b) => b[1] - a[1]);
+    return `<div class="card"><div class="card-b">
+      <h3 style="margin:0 0 6px">אין כרגע לידים בשלב "${esc(stLabel)}"</h3>
+      ${stageKey === "ready" ? `<div class="sm muted" style="line-height:1.6">ליד מוכן לפנייה רק כשכל תנאי החובה מאומתים: חברה רשומה, ח.פ., מקור, טלפון תקין ומאומת, צי רכב מאומת, רלוונטיות לדליה, ללא כפילות וללא פסילה.
+        <br>גודל צי לא מוערך ולא מומצא – יש לאמת צי בשיחה או ממקור מפורש ("מידע חסר / אימות" בכרטיס הליד).</div>
+        <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:10px">${top.map(([b, n]) => `<span class="badge b-est">${esc(b)}: ${n} לידים</span>`).join("")}</div>` : ""}
+    </div></div>`;
+  }
+  return `<div class="card">
+    <div class="card-h"><h2>${stageKey === "ready" ? "✅ מוכן לפנייה" : esc(stLabel)}<span class="h-bar"></span></h2><span class="chip num">${list.length} לידים</span>
+      <span class="xs muted">ללא העברה אוטומטית ל-CRM</span><span class="spacer"></span>${pager}</div>
+    <div class="tbl-wrap"><table class="co"><thead><tr>
+      <th>חברה</th><th>ח.פ.</th><th>טלפון</th><th>מייל</th><th>אתר</th><th>כתובת</th><th>תחום</th><th>צי</th><th>גודל צי</th>
+      <th>איש קשר</th><th>תפקיד</th><th>קצב"ת (מאומת)</th><th>מקור</th><th>רמת אימות</th><th>תאריך בדיקה</th><th>הערות</th><th></th></tr></thead><tbody>
+      ${page.map(c => { const q = QF(c) || { field_status: {}, source_list: [] }; const fs = q.field_status; const e = c.enr || {};
+        const cell = (k, v) => `${esc(String(v || "")) || '<span class="faint">—</span>'}${fs[k] && fs[k].s === "f" ? ' <span class="badge b-est" style="font-size:9.5px">דורש אימות</span>' : ""}`;
+        return `<tr data-co="${c.id}">
+        <td><b>${esc(c.name)}</b><div>${stageBadge(c, 9.5)}</div></td>
+        <td class="num xs ltr">${esc(c.no)}</td>
+        <td class="ltr xs">${cell("phone", fs.phone && fs.phone.s !== "n" ? c.phone : "")}</td>
+        <td class="ltr xs">${cell("email", c.mail)}</td>
+        <td class="ltr xs">${cell("website", c.web || e.website)}</td>
+        <td class="xs">${esc(c.addr || "")}</td>
+        <td class="xs">${esc((fs.relevance && fs.relevance.val) || c.ind)}</td>
+        <td>${fleetCell(c)}</td>
+        <td class="num xs">${fs.fleet_size && fs.fleet_size.s === "v" ? esc(String(fs.fleet_size.val)) : '<span class="faint">לא ידוע</span>'}</td>
+        <td class="xs">${cell("contact_name", e.contact_name)}</td>
+        <td class="xs">${cell("contact_role", e.contact_role)}</td>
+        <td class="xs">${soVerified(c) ? esc(soName(c)) + `<div class="faint">${esc(soSource(c))}</div>` : '<span class="faint">—</span>'}</td>
+        <td class="xs">${esc((q.source_list || []).join(" + ") || "—")}</td>
+        <td class="xs">${{ verified: "מאומת", partial: "חלקי", unverified: "לא מאומת" }[e.verification_status] || "—"} · Tier ${esc(q.tier || "—")}</td>
+        <td class="num xs">${esc(e.verification_date || "—")}</td>
+        <td class="xs">${esc(c.notes || "")}</td>
+        <td>${crmHandoffBtn(c, true)}</td></tr>`; }).join("")}
+    </tbody></table></div>
+    ${pager ? `<div class="row" style="padding:10px 16px;border-top:1px solid var(--border)"><span class="spacer"></span>${pager}</div>` : ""}
+  </div>`;
+}
 
 /* ===== מרכז מקורות מידע ומאגרים (SOURCES INTELLIGENCE MATRIX) ===== */
 V.sources = () => {
@@ -3493,26 +3748,34 @@ function exportCsv(subset){
     "מקור מייל ו-Tier",
     "אתר אינטרנט",
     "סוג צי",
-    "היקף צי / הערכה",
-    "ודאות צי",
+    "צי (סטטוס אימות)",
+    "גודל צי",
     "ליד קצין בטיחות (תקנה 579)",
     "שם קצב\"ת / איש קשר",
     "תפקיד קצב\"ת / מקור מינוי",
     "ציון התאמה (Score)",
     "נימוק התאמה למוסך",
     "ראיות צי ומקורות",
-    "סטטוס ב-CRM"
+    "סטטוס טיפול",
+    "שלב ליד",
+    "מוכן לפנייה",
+    "שדות חסרים / דורשים אימות",
+    "מקורות אימות",
+    "תאריך אימות"
   ];
   const rows = target.map(c => {
     const mainPhone = c.phone || (c.multiPhones && c.multiPhones[0] ? c.multiPhones[0].val : "");
     const phoneTier = (c.multiPhones && c.multiPhones[0]) ? `${c.multiPhones[0].source} (${c.multiPhones[0].tier})` : "—";
     const mainMail = c.mail || (c.multiMails && c.multiMails[0] ? c.multiMails[0].val : "");
     const mailTier = (c.multiMails && c.multiMails[0]) ? `${c.multiMails[0].source} (${c.multiMails[0].tier})` : "—";
-    const fleetCertainty = {v:"מאומת", e:"הערכה", n:"לא אומת"}[c.fleet?.s] || c.fleet?.s || "לא אומת";
+    const q = QF(c);
+    const fleetStatus = q ? (q.field_status.fleet.s === "v" ? "צי קיים (מאומת)" : OPQualify.FLEET_SIZE_LABEL[q.fleet_size_status]) : "לא אומת";
+    const fleetSize = q && q.field_status.fleet_size.s === "v" ? q.field_status.fleet_size.val : "לא ידוע";
     const soSt = soState(c);
     const isSafety = SO_LABEL[soSt] || "לא";
-    const safetyName = soSt === "found" ? c.safetyOfficer.name : "לא אותר";
-    const safetyRole = soSt === "found" ? `${c.safetyOfficer.role} [${c.safetyOfficer.source}]` : "—";
+    const safetyName = soNamed(c) ? soName(c) : "לא אותר";
+    const safetyRole = soNamed(c) ? `${soVerified(c) ? "מאומת" : "דורש אימות"} [${soSource(c)}]` : "—";
+    const fieldLbl = Object.fromEntries((window.OPQualify ? OPQualify.FIELDS : []).map(([k, l]) => [k, l]));
     const evidenceStr = (c.ev || []).map(e => `[${e[6]||e[1]}] ${e[2]}`).join(" ; ");
 
     return [
@@ -3527,15 +3790,20 @@ function exportCsv(subset){
       mailTier,
       c.web || "—",
       c.fleetType || "—",
-      c.fleet?.val || "—",
-      fleetCertainty,
+      fleetStatus,
+      fleetSize,
       isSafety,
       safetyName,
       safetyRole,
       c.score,
       c.leadReason || "—",
       evidenceStr,
-      ST[c.status] || c.status
+      ST[c.status] || c.status,
+      q ? OPQualify.STAGE_LABEL[q.lead_stage] : "—",
+      q && q.ready_for_contact ? "כן" : "לא",
+      q ? q.missing_fields.map(k => fieldLbl[k] || k).join(" ; ") : "—",
+      q ? q.source_list.join(" ; ") : "—",
+      (c.enr && c.enr.verification_date) || "—"
     ];
   });
 
@@ -3804,6 +4072,7 @@ document.addEventListener("click",e=>{
   
   if(d.leadCat) {
     S.leadCategory = d.leadCat;
+    S.stPage = 1;
     const viewEl = $("#view");
     if (viewEl) viewEl.innerHTML = V.leads();
     return;
@@ -3853,17 +4122,24 @@ document.addEventListener("click",e=>{
     case "closePanel":S.panel=null;renderPanel();return;
     case "backCo":delete S.panel.person;renderPanel();return;
     case "toCrm":{
-      const coId = d.coId || (S.panel ? S.panel.co : null);
-      const co = C.find(x => x.id === +coId);
-      if (co) {
-        co.status = "review";
-        persistProspectorData();
-        updateRemoteLeadStatus(co.id, co.status);
-        toast(`הליד "${co.name}" (ח.פ. ${co.no}) סומן 'בבדיקה' – מוכן להעברה ל-CRM (לא נשלח ל-CRM)`);
-        if(S.view==="prospector" && S.tab==="leads") { const v=$("#view"); if(v) v.innerHTML=V.leads(); }
-        else if(S.tab==="companies") { const v=$("#view"); if(v) v.innerHTML=V.companies(); }
-        if(S.panel) renderPanel();
-      }
+      /* רישום בקשה בלבד (crm_handoff_status=pending_approval). אין כתיבה ל-crm_leads */
+      const co = C.find(x => x.id === +(d.coId || (S.panel ? S.panel.co : 0)));
+      if (!co) return;
+      const q = QF(co);
+      if (!q || !q.ready_for_contact) { toast("ניתן להעביר לפולו-אפ רק ליד במצב 'מוכן לפנייה'"); return; }
+      saveLeadEnrichment(co, { crm_handoff_status: "pending_approval", crm_handoff_requested_at: new Date().toISOString() },
+        `"${co.name}" נרשם כממתין לאישור העברה לפולו-אפ / CRM – לא הועבר בפועל`);
+      return;
+    }
+    case "saveEnrichment":{
+      const co = C.find(x => x.id === +d.coId);
+      if (co) saveManualVerification(co);
+      return;
+    }
+    case "requestEnrichment":{
+      const co = C.find(x => x.id === +d.coId);
+      if (co) saveLeadEnrichment(co, { enrichment_requested: true, enrichment_status: "requested_pending_approval" },
+        "נרשמה בקשת העשרה – לא בוצעה קריאה לשירות בתשלום");
       return;
     }
     case "toTele":{
@@ -3925,6 +4201,13 @@ document.addEventListener("click",e=>{
       exportCsv(S.bulk.staged && S.bulk.staged.length ? S.bulk.staged : null);
       return;
     }
+    case "stPrev":
+    case "stNext":{
+      S.stPage = (S.stPage || 1) + (d.act === "stNext" ? 1 : -1);
+      const v = $("#view");
+      if (v) v.innerHTML = V.leads();
+      return;
+    }
     case "prevCoPage":{
       if (S.coPage > 1) {
         S.coPage--;
@@ -3963,11 +4246,11 @@ document.addEventListener("change",e=>{
   }
   if(t.dataset.aiOn){const a=AI.find(x=>x.id===t.dataset.aiOn);a.on=t.checked;a.status=t.checked?"ok":"off";if(!t.checked&&a.def){a.def=false;AI.find(x=>x.on).def=true}render();return}
   if(t.dataset.aiModel){AI.find(x=>x.id===t.dataset.aiModel).model=t.value;renderNav();return}
-  if(t.id==="f-st"||t.id==="f-fleet"){S.coFilter[t.id==="f-st"?"st":"fleet"]=t.value;$("#view").innerHTML=V.companies();}
+  if(t.id==="f-st"||t.id==="f-fleet"||t.id==="f-stage"){S.coFilter[{"f-st":"st","f-fleet":"fleet","f-stage":"stage"}[t.id]]=t.value;S.coPage=1;$("#view").innerHTML=V.companies();}
 });
 
 document.addEventListener("input",e=>{
-  if(e.target.id==="f-q"){S.coFilter.q=e.target.value;clearTimeout(S._t);S._t=setTimeout(()=>{$("#view").innerHTML=V.companies();const i=$("#f-q");if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)}
+  if(e.target.id==="f-q"){S.coFilter.q=e.target.value;S.coPage=1;clearTimeout(S._t);S._t=setTimeout(()=>{$("#view").innerHTML=V.companies();const i=$("#f-q");if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)}
 });
 
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.panel){S.panel=null;renderPanel()}});
