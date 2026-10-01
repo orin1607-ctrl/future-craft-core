@@ -1067,11 +1067,18 @@ async function syncWithRemoteSupabase() {
         return;
       } else if (error) {
         console.warn("[Prospector] Supabase query notice:", error.message);
+        if (typeof S !== "undefined") S.remoteError = error.message;
+      } else if (typeof S !== "undefined") {
+        S.remoteError = "public.prospect_leads ריקה";
       }
     } catch(err) {
       console.warn("[Prospector] Supabase fetch error:", err);
+      if (typeof S !== "undefined") S.remoteError = String(err && err.message || err);
     }
+  } else if (typeof S !== "undefined") {
+    S.remoteError = "ספריית Supabase לא נטענה";
   }
+  toast("שגיאה: Supabase STAGING לא זמין – הלידים לא נטענו מהשרת" + (C.length >= 100 ? " (מוצג גיבוי מקומי)" : ""));
 
   // 2. Fallback: bundled JSON file if DB query failed (e.g. offline) and the local cache is empty/small
   if (C.length < 100) try {
@@ -1928,12 +1935,14 @@ function renderNav(){
   if (syncEl) {
     if (S.remoteStatus === "connected") {
       syncEl.innerHTML = `<span class="badge b-ok" style="font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px" title="מסונכרן בזמן אמת ל-Supabase STAGING (public.prospect_leads)">🟢 ענן Supabase Staging פעיל (${C.length} לידים)</span>`;
-    } else if (S.remoteStatus === "syncing") {
+    } else if (S.remoteStatus === "syncing" || S.remoteStatus === "initializing") {
       syncEl.innerHTML = `<span class="badge" style="background:#fef3c7;color:#b45309;font-size:12px;display:inline-flex;align-items:center;gap:5px">🔄 מסנכרן מול Supabase...</span>`;
     } else if (S.remoteStatus === "json_fallback") {
-      syncEl.innerHTML = `<span class="badge b-blue" style="font-size:12px;display:inline-flex;align-items:center;gap:5px">📦 מאגר ענן מקומי (${C.length} לידים)</span>`;
+      syncEl.innerHTML = `<span class="badge b-bad" style="font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px" title="${esc(S.remoteError || "")}">⚠️ Supabase לא זמין – מוצג קובץ גיבוי סטטי (${C.length} לידים)</span>`;
+    } else if (S.remoteStatus === "cached") {
+      syncEl.innerHTML = `<span class="badge b-bad" style="font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px" title="${esc(S.remoteError || "")}">⚠️ Supabase לא זמין – מוצג cache מקומי (${C.length} לידים)</span>`;
     } else {
-      syncEl.innerHTML = `<span class="badge b-ok" style="font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px">🟢 ${C.length} לידים</span>`;
+      syncEl.innerHTML = `<span class="badge b-bad" style="font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px" title="${esc(S.remoteError || "")}">⛔ Supabase לא זמין – לא נטענו לידים מהשרת</span>`;
     }
   }
 }
