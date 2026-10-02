@@ -284,6 +284,85 @@ body.is-embedded .content{padding:16px;max-width:100%}
   th.hm,td.hm{display:none}
 }
 @media (max-width:520px){.g-kpi{grid-template-columns:1fr 1fr}.adv{grid-template-columns:1fr}.kpi .v{font-size:24px}.g-3{grid-template-columns:1fr}.conn-grid{grid-template-columns:1fr}}
+
+/* ===== OpenProspector – טלפון / טאבלט (Desktop ללא שינוי) ===== */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.co-filters{display:contents}
+.co-open{display:none}
+@media (max-width:860px){table.co td.co-last .co-last-d{display:none}.hide-m-btn{display:none!important}}
+@media (max-width:860px){
+  /* כותרת עליונה: עוטפת במקום לגלוש; סטטוס הסנכרון בשורה משלו */
+  .top{flex-wrap:wrap;gap:6px 8px}
+  .top h1{font-size:17px;line-height:1.25}
+  .top .crumb{font-size:11.5px}
+  .top .grow{display:none}
+  .top>div:nth-of-type(1){flex:1;min-width:0}
+  #cloudSyncStatus{order:10;flex-basis:100%;margin:0!important}
+  #cloudSyncStatus .badge{white-space:normal;font-size:11.5px!important;line-height:1.35;padding:3px 10px}
+  .menu-btn{min-width:44px;min-height:44px;align-items:center;justify-content:center}
+  .preview-bar{padding:6px 14px;font-size:12px}
+  .preview-bar span{display:none}
+  .preview-bar button{min-height:36px}
+  .tab{padding:12px 12px;min-height:44px}
+  .card-h{padding:12px 14px}
+  .card-b{padding:14px}
+  /* מגע: גובה מינימלי לכפתורים ושדות */
+  .btn,.btn-sm{min-height:40px}
+  .pill{min-height:36px}
+  button.badge{min-height:36px}
+  .cross-btn{min-height:38px;padding:6px 12px;font-size:12.5px}
+  .input,select.input{height:42px!important;font-size:16px}
+  .lead select{height:40px!important}
+  .side .nav-item{min-height:44px}
+  .ex button,#view button[data-tab]{min-height:38px}
+  .toggle{min-height:40px}
+  /* חברות שנמצאו: חיפוש ברוחב מלא, פילטרים מתקפלים */
+  #f-q{max-width:none!important;flex-basis:100%;height:44px!important}
+  .co-filters{display:none}
+  .co-filters.open{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;flex-basis:100%}
+  .co-filters select.input{max-width:none!important}
+  .co-pager{flex-basis:100%;justify-content:space-between}
+  /* טבלאות -> כרטיסים עם תוויות */
+  .tbl-wrap{overflow-x:visible}
+  table.co tr{background:var(--card)}
+  table.co td[data-label]{display:flex!important;flex-wrap:wrap;align-items:baseline;gap:2px 6px;padding:4px 0;overflow-wrap:anywhere}
+  table.co td.hide-m[data-label]{display:none!important}
+  table.co td[data-label]::before{content:attr(data-label);flex:0 0 96px;color:var(--muted);font-size:12px;font-weight:500}
+  table.co td[data-label]>div{flex-basis:100%;padding-inline-start:102px}
+  table.co td[data-label]>div:first-child{flex-basis:auto;padding-inline-start:0}
+  table.co td.co-main{padding-bottom:6px}
+  .co-open{display:flex;margin-top:8px}
+  .co-open .btn{width:100%}
+  table.co .badge{white-space:normal}
+  /* כרטיס ליד */
+  .panel-h{padding-top:14px;padding-bottom:14px;position:static}
+  .panel-h h2{font-size:18px;overflow-wrap:anywhere}
+  .panel-h .x{width:44px;height:44px;flex-shrink:0}
+  .panel-b{gap:14px;padding-top:14px}
+  #panel .input{max-width:none!important}
+  #panel details .row>.input{flex:1 1 100%}
+  #panel table.co.kv tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:10px 12px}
+  #panel table.co.kv td:nth-child(1){grid-column:1/-1;font-weight:600}
+  #panel table.co.kv td:nth-child(2){grid-column:1;overflow-wrap:anywhere}
+  #panel table.co.kv td:nth-child(3){grid-column:2;grid-row:2}
+  #panel table.co.kv td:nth-child(4){grid-column:1/-1;overflow-wrap:anywhere}
+  .ev{flex-wrap:wrap}
+  /* שורות flex מוטמעות (באנרים, כותרות) נעטפות במקום להרחיב את המסך */
+  #view [style*="display:flex"],#panel [style*="display:flex"]{flex-wrap:wrap}
+  #view [style*="min-width:280px"]{min-width:0!important}
+  #view .badge,#panel .badge{white-space:normal}
+  .board{grid-auto-columns:minmax(260px,85vw);scroll-snap-type:x mandatory}
+  .board .col{scroll-snap-align:start}
+}
+@media (max-width:520px){
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tiles .kpi{padding:12px}
+  .tiles .kpi .v{font-size:22px}
+  .top .pill:not(.keep-m){display:none}
+  .co-filters.open{grid-template-columns:1fr}
+  table.co td[data-label]::before{flex-basis:84px}
+  table.co td[data-label]>div{padding-inline-start:90px}
+}
 </style>
 </head>
 <body>
@@ -2188,7 +2267,7 @@ V.dash=()=>{
   <div class="card" style="margin-bottom:18px">
     <div class="card-h"><h2>מצב הלידים – אימות והעשרה<span class="h-bar"></span></h2><span class="spacer"></span><span class="xs muted">${srcNote}</span></div>
     <div class="card-b" style="padding-top:0">
-      <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">
+      <div class="tiles">
         ${tile("סה\"כ לידים",ls.total)}
         ${tile("לידים לבדיקה",st("review"),"נמצאו ברשם – טלפון לא אומת")}
         ${tile("לידים מאומתים",st("verified"),"רשם + טלפון מאומת")}
@@ -2987,7 +3066,7 @@ V.companies=()=>{
   if (S.coPage < 1) S.coPage = 1;
   const startIdx = (S.coPage - 1) * pageSize;
   const pagedList = list.slice(startIdx, startIdx + pageSize);
-  const pager = list.length > pageSize ? `<div class="row sm" style="align-items:center;gap:6px">
+  const pager = list.length > pageSize ? `<div class="row sm co-pager" style="align-items:center;gap:6px">
       <button class="btn btn-sm" data-act="prevCoPage" ${S.coPage <= 1 ? 'disabled style="opacity:.5"' : ''}>◀ עמוד קודם</button>
       <span class="num xs">עמוד ${S.coPage} מתוך ${totalPages}</span>
       <button class="btn btn-sm" data-act="nextCoPage" ${S.coPage >= totalPages ? 'disabled style="opacity:.5"' : ''}>עמוד הבא ▶</button></div>` : "";
@@ -3004,7 +3083,10 @@ V.companies=()=>{
     </div>
     <div class="card-b" style="padding-bottom:0">
       <div class="row" style="flex-wrap:wrap;gap:8px">
-        <input class="input" style="max-width:260px;height:34px" id="f-q" placeholder="חיפוש לפי שם, ח.פ., עיר, ענף, איש קשר" value="${esc(f.q)}">
+        <input class="input" style="max-width:260px;height:34px" id="f-q" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="חיפוש לפי שם, ח.פ., עיר, ענף, איש קשר" value="${esc(f.q)}">
+        <button class="btn btn-sm m-only" data-act="toggleFilters" aria-expanded="${S.coFiltersOpen?"true":"false"}" aria-controls="coFilters">${S.coFiltersOpen?"▲ הסתר סינון":"▼ סינון"}${active?` (${active})`:""}</button>
+        ${active?`<button class="btn btn-sm m-only" data-act="clearCoFilters">✕ נקה סינון</button>`:""}
+        <div class="co-filters ${S.coFiltersOpen?"open":""}" id="coFilters">
         ${opt("stage","כל שלבי הליד",(window.OPQualify?OPQualify.STAGES:[]))}
         ${opt("ready","מוכן לפנייה – הכל",YN("מוכן לפנייה","לא מוכן לפנייה"))}
         ${opt("quality","כל רמות האיכות",[["high","איכות גבוהה"],["medium","איכות בינונית"],["low","איכות נמוכה"]])}
@@ -3016,7 +3098,8 @@ V.companies=()=>{
         ${opt("city","כל הערים",uniq("city").map(x=>[x,x]))}
         ${opt("ind","כל התחומים",uniq("ind").map(x=>[x,x]))}
         ${opt("st","כל סטטוסי הטיפול",STATUSES)}
-        ${active?`<button class="btn btn-sm" data-act="clearCoFilters">✕ נקה סינון (${active})</button>`:""}
+        </div>
+        ${active?`<button class="btn btn-sm hide-m-btn" data-act="clearCoFilters">✕ נקה סינון (${active})</button>`:""}
         <span class="spacer"></span>${pager}
       </div>
     </div>
@@ -3025,19 +3108,19 @@ V.companies=()=>{
       <th class="hide-m">איש קשר</th><th class="hide-m">קצב"ת / קצין רכב</th><th>שלב · אימות · איכות</th><th class="hide-m">מה חסר</th><th class="hide-m">בדיקה אחרונה</th></tr></thead><tbody>
     ${pagedList.map(c=>{const q=QF(c), miss=missingOf(c), e=c.enr||{};
       return `<tr data-co="${c.id}">
-      <td style="min-width:170px">
+      <td class="co-main" style="min-width:170px">
         <div class="co-name">${esc(c.name)}</div>
-        <div class="xs muted"><span class="ltr num">${esc(c.no||"")}</span>${c.web||e.website?` · <span class="ltr">${esc(c.web||e.website)}</span>`:""}</div>
+        <div class="xs muted">ח.פ. <span class="ltr num">${esc(c.no||"")}</span>${c.web||e.website?` · <span class="ltr">${esc(c.web||e.website)}</span>`:""}</div>
       </td>
-      <td class="xs" style="white-space:nowrap">${fsVal(c,"phone",true)}</td>
-      <td class="xs hide-m">${fsVal(c,"email",true)}</td>
-      <td class="xs hide-m">${esc(c.city)}<div class="faint">${esc(c.ind)}</div></td>
-      <td class="xs">${fleetCell(c)}</td>
+      <td class="xs" data-label="טלפון" style="white-space:nowrap">${fsVal(c,"phone",true)}</td>
+      <td class="xs" data-label="מייל">${fsVal(c,"email",true)}</td>
+      <td class="xs" data-label="עיר · תחום">${esc(c.city)}<div class="faint">${esc(c.ind)}</div></td>
+      <td class="xs" data-label="צי רכב">${fleetCell(c)}</td>
       <td class="xs hide-m">${e.contact_name?fsVal(c,"contact_name")+(e.contact_role?`<div class="faint">${esc(e.contact_role)}</div>`:""):'<span class="faint">טרם אותר</span>'}</td>
       <td class="xs hide-m"><div>קצב"ת: ${officerCell(c,"safety_officer")}</div><div style="margin-top:3px">קצין רכב: ${officerCell(c,"fleet_manager")}</div></td>
-      <td><div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">${stageBadge(c)}${verifBadge(c)}${qualityBadge(c)}</div></td>
-      <td class="xs hide-m" title="${esc(miss.join(", "))}">${miss.length?`<span class="badge b-est" style="font-size:10px">${miss.length} חסרים</span><div class="faint" style="margin-top:2px">${esc(miss.slice(0,3).join(", "))}${miss.length>3?"…":""}</div>`:'<span class="badge b-ok" style="font-size:10px">לא חסר</span>'}</td>
-      <td class="num xs hide-m">${esc(lastCheck(c)||"—")}</td></tr>`}).join("")||`<tr><td colspan="10"><div class="empty">אין חברות שתואמות לסינון. נסה להסיר סינון.</div></td></tr>`}
+      <td data-label="שלב · איכות"><div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">${stageBadge(c)}${verifBadge(c)}${qualityBadge(c)}</div></td>
+      <td class="xs" data-label="מה חסר" title="${esc(miss.join(", "))}">${miss.length?`<span class="badge b-est" style="font-size:10px">${miss.length} חסרים</span><div class="faint" style="margin-top:2px">${esc(miss.slice(0,3).join(", "))}${miss.length>3?"…":""}</div>`:'<span class="badge b-ok" style="font-size:10px">לא חסר</span>'}</td>
+      <td class="num xs co-last"><span class="co-last-d">${esc(lastCheck(c)||"—")}</span><div class="co-open"><button class="btn btn-sm" type="button">פתח ליד ›</button></div></td></tr>`}).join("")||`<tr><td colspan="10"><div class="empty">אין חברות שתואמות לסינון. נסה להסיר סינון.</div></td></tr>`}
     </tbody></table></div>
     ${pager ? `
       <div class="row" style="padding:12px 16px;border-top:1px solid var(--border);align-items:center">
@@ -3112,7 +3195,7 @@ function enrichmentSection(c){
         ${box("🛡️ קצין בטיחות / קצין רכב",`<div class="xs muted">קצין בטיחות:</div><div>${officerCell(c,"safety_officer")}</div><div class="xs muted" style="margin-top:6px">קצין רכב / מנהל צי:</div><div>${officerCell(c,"fleet_manager")}</div>`)}
       </div>
 
-      <div class="tbl-wrap"><table class="co"><thead><tr><th>שדה</th><th>ערך</th><th>סטטוס אימות</th><th>מקור</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table class="co kv"><thead><tr><th>שדה</th><th>ערך</th><th>סטטוס אימות</th><th>מקור</th></tr></thead><tbody>
         ${FOUND_ROWS.map(row).join("")}
         <tr><td class="sm">תאריך בדיקה</td><td class="sm num">${esc(lastCheck(c)||"—")}</td><td></td><td class="xs muted">${e.verification_date?"תאריך אימות אחרון":""}</td></tr>
       </tbody></table></div>
@@ -3126,9 +3209,9 @@ function enrichmentSection(c){
       ${research.length?`<details style="border:1px solid var(--border);border-radius:10px;padding:8px 12px" open>
         <summary class="sm bold" style="cursor:pointer">🔎 ממצאי מחקר ומקורות (${research.length})</summary>
         <div class="tbl-wrap" style="margin-top:8px"><table class="co"><thead><tr><th>שדה</th><th>ערך</th><th>סטטוס</th><th>מקור</th><th>תאריך</th></tr></thead><tbody>
-        ${research.map(r=>`<tr><td class="xs">${esc((OPQualify.MISSING_SHORT[r.field]||r.field||""))}</td><td class="xs">${esc(String(r.value??""))}</td>
-          <td>${OPQualify.isVerifiedFinding(r)?FS_BADGE.v:FS_BADGE.f}</td>
-          <td class="xs">${esc(r.source||"ללא מקור")}${r.url?` · <a class="ltr" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">קישור</a>`:""}</td><td class="xs num">${esc(String(r.found_at||"").slice(0,10))}</td></tr>`).join("")}
+        ${research.map(r=>`<tr><td class="xs" data-label="שדה">${esc((OPQualify.MISSING_SHORT[r.field]||r.field||""))}</td><td class="xs" data-label="ערך">${esc(String(r.value??""))}</td>
+          <td data-label="סטטוס">${OPQualify.isVerifiedFinding(r)?FS_BADGE.v:FS_BADGE.f}</td>
+          <td class="xs" data-label="מקור">${esc(r.source||"ללא מקור")}${r.url?` · <a class="ltr" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">קישור</a>`:""}</td><td class="xs num" data-label="תאריך">${esc(String(r.found_at||"").slice(0,10))}</td></tr>`).join("")}
         </tbody></table></div></details>`:""}
 
       <details style="border:1px solid var(--border);border-radius:10px;padding:8px 12px">
@@ -3484,23 +3567,23 @@ function stageTable(list, stageKey) {
       ${page.map(c => { const q = QF(c) || { field_status: {}, source_list: [] }; const fs = q.field_status; const e = c.enr || {};
         const cell = (k, v) => `${esc(String(v || "")) || '<span class="faint">—</span>'}${fs[k] && fs[k].s === "f" ? ' <span class="badge b-est" style="font-size:9.5px">דורש אימות</span>' : ""}`;
         return `<tr data-co="${c.id}">
-        <td><b>${esc(c.name)}</b><div>${stageBadge(c, 9.5)}</div></td>
-        <td class="num xs ltr">${esc(c.no)}</td>
-        <td class="ltr xs">${cell("phone", fs.phone && fs.phone.s !== "n" ? c.phone : "")}</td>
-        <td class="ltr xs">${cell("email", c.mail)}</td>
-        <td class="ltr xs">${cell("website", c.web || e.website)}</td>
-        <td class="xs">${esc(c.addr || "")}</td>
-        <td class="xs">${esc((fs.relevance && fs.relevance.val) || c.ind)}</td>
-        <td>${fleetCell(c, true)}</td>
-        <td class="num xs">${fs.fleet_size && fs.fleet_size.s !== "n" ? esc(String(fs.fleet_size.val)) + (fs.fleet_size.s === "f" ? ' <span class="badge b-est" style="font-size:9.5px">דורש אימות</span>' : "") : '<span class="faint">לא ידוע</span>'}</td>
-        <td class="xs">${cell("contact_name", e.contact_name)}</td>
-        <td class="xs">${cell("contact_role", e.contact_role)}</td>
-        <td class="xs">${officerCell(c, "safety_officer")}</td>
-        <td class="xs">${esc((q.source_list || []).join(" + ") || "—")}</td>
-        <td class="xs">${verifBadge(c, 10)} · Tier ${esc(q.tier || "—")}</td>
-        <td class="num xs">${esc(e.verification_date || "—")}</td>
-        <td class="xs">${esc(c.notes || "")}</td>
-        <td>${crmHandoffBtn(c, true)}</td></tr>`; }).join("")}
+        <td class="co-main"><b>${esc(c.name)}</b><div>${stageBadge(c, 9.5)}</div></td>
+        <td class="num xs" data-label="ח.פ."><span class="ltr">${esc(c.no)}</span></td>
+        <td class="xs" data-label="טלפון"><span class="ltr">${cell("phone", fs.phone && fs.phone.s !== "n" ? c.phone : "")}</span></td>
+        <td class="xs" data-label="מייל"><span class="ltr">${cell("email", c.mail)}</span></td>
+        <td class="xs hide-m" data-label="אתר"><span class="ltr">${cell("website", c.web || e.website)}</span></td>
+        <td class="xs hide-m" data-label="כתובת">${esc(c.addr || "")}</td>
+        <td class="xs hide-m" data-label="תחום">${esc((fs.relevance && fs.relevance.val) || c.ind)}</td>
+        <td data-label="צי">${fleetCell(c, true)}</td>
+        <td class="num xs" data-label="גודל צי">${fs.fleet_size && fs.fleet_size.s !== "n" ? esc(String(fs.fleet_size.val)) + (fs.fleet_size.s === "f" ? ' <span class="badge b-est" style="font-size:9.5px">דורש אימות</span>' : "") : '<span class="faint">לא ידוע</span>'}</td>
+        <td class="xs" data-label="איש קשר">${cell("contact_name", e.contact_name)}</td>
+        <td class="xs" data-label="תפקיד">${cell("contact_role", e.contact_role)}</td>
+        <td class="xs" data-label="קצב&quot;ת">${officerCell(c, "safety_officer")}</td>
+        <td class="xs" data-label="מקור">${esc((q.source_list || []).join(" + ") || "—")}</td>
+        <td class="xs hide-m" data-label="רמת אימות">${verifBadge(c, 10)} · Tier ${esc(q.tier || "—")}</td>
+        <td class="num xs" data-label="תאריך אימות">${esc(e.verification_date || "—")}</td>
+        <td class="xs hide-m" data-label="הערות">${esc(c.notes || "")}</td>
+        <td class="co-actions">${crmHandoffBtn(c, true)}</td></tr>`; }).join("")}
     </tbody></table></div>
     ${pager ? `<div class="row" style="padding:10px 16px;border-top:1px solid var(--border)"><span class="spacer"></span>${pager}</div>` : ""}
   </div>`;
@@ -4197,6 +4280,11 @@ document.addEventListener("click",e=>{
     case "run":runSearch();return;
     case "closePanel":S.panel=null;renderPanel();return;
     case "backCo":delete S.panel.person;renderPanel();return;
+    case "toggleFilters":{
+      S.coFiltersOpen = !S.coFiltersOpen;
+      $("#view").innerHTML = V.companies();
+      return;
+    }
     case "clearCoFilters":{
       S.coFilter = { q: "", ...Object.fromEntries(CO_FILTERS.map(k => [k, ""])) };
       S.coPage = 1;
