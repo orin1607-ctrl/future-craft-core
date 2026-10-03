@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="openprospector-qualify.js?v=enrich-1"></script>
+<script src="openprospector-enrich.js?v=batch-1"></script>
 <style>
 :root{
   --navy-950:#04091a;--navy-900:#071022;--navy-800:#0a1830;--navy-700:#0d1f3c;--navy-600:#15305c;
@@ -2043,6 +2044,7 @@ const S={
   leadFilter:"",
   leadCategory:"safety_officer",
   coFilter:{q:"",st:"",fleet:"",stage:"",phone:"",mail:"",contact:"",ready:"",missing:"",quality:"",city:"",ind:""},
+  en:{batch:null,items:[],audit:[],loaded:false,loading:false,running:false,stop:false,open:null,sel:{},err:"",user:"",userId:null,grounding:true},
   srcFilter:"all",
   searching:false,
   results:false,
@@ -2202,7 +2204,7 @@ if (isEmbedded) {
 }
 
 /* ===== ניווט וטאבים ===== */
-const TABS=[["dash","דשבורד"],["search","חיפוש חדש"],["companies","חברות שנמצאו"],["leads","ניהול לידים"],["sources","מקורות מידע"],["connections","חיבורים ו-APIs"]];
+const TABS=[["dash","דשבורד"],["search","חיפוש חדש"],["companies","חברות שנמצאו"],["leads","ניהול לידים"],["enrich","העשרת לידים"],["sources","מקורות מידע"],["connections","חיבורים ו-APIs"]];
 
 function renderNav(){
   const byId=Object.fromEntries(MENU.map(m=>[m[0],m]));
@@ -2240,7 +2242,7 @@ function renderTabs(){
 
 function render(){
   renderNav();renderTabs();
-  const titles={prospector:"איתור לקוחות עסקיים",ai:"ניהול מנועי AI",costs:"שימוש, עלויות וקרדיטים",providers:"ניהול ספקי מידע",sources:"מרכז מקורות מידע ומאגרים",connections:"חיבורים ו-APIs",workspace:"סביבת עבודה"};
+  const titles={prospector:"איתור לקוחות עסקיים",enrich:"העשרת לידים – Gemini",ai:"ניהול מנועי AI",costs:"שימוש, עלויות וקרדיטים",providers:"ניהול ספקי מידע",sources:"מרכז מקורות מידע ומאגרים",connections:"חיבורים ו-APIs",workspace:"סביבת עבודה"};
   const titEl=$("#title");
   if(titEl) titEl.textContent=titles[S.view==="prospector"?S.tab:S.view]||"איתור לקוחות עסקיים";
   const viewEl=$("#view");
@@ -3237,6 +3239,7 @@ function enrichmentSection(c){
         <span>💳 העשרה בתשלום (Apollo / Lusha): <b>לא מחובר</b> · מצב: ${esc(e.enrichment_status||"לא התבקש")}</span>
         ${e.enrichment_requested?"":`<button class="btn btn-sm" data-act="requestEnrichment" data-co-id="${c.id}" title="רישום בקשה בלבד – אין קריאה לשירות בתשלום">סמן לבקשת העשרה</button>`}
       </div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--muted)">${typeof enLeadCardRow==="function"?enLeadCardRow(c):""}</div>
     </div></div>`;
 }
 
@@ -4039,7 +4042,7 @@ async function userSession() {
       const { data } = await sbClient.auth.getSession();
       const ss = data && data.session;
       if (ss && ss.access_token && jwtRole(ss.access_token) === "authenticated")
-        return { accessToken: ss.access_token, email: (ss.user && ss.user.email) || "", source: "Supabase session" };
+        return { accessToken: ss.access_token, email: (ss.user && ss.user.email) || "", userId: (ss.user && ss.user.id) || null, source: "Supabase session" };
     }
   } catch (e) { /* storage blocked – try relay */ }
   const a = daliaAuth();
@@ -4292,6 +4295,317 @@ window.addEventListener("message", e => {
   }
 });
 
+/* ===== העשרת לידים עם Gemini – Batch (DRY RUN: שום ליד לא מתעדכן בלי אישור אנושי) ===== */
+const EN_FN = `${SUPABASE_STAGING_URL}/functions/v1/prospector-enrich`;
+const EN_STY = { queued: "b-blue", running: "b-est", done: "b-ok", failed: "b-bad", manual_review: "b-est" };
+const enNow = () => new Date().toISOString();
+const enLead = it => C.find(c => c.enr && c.enr.id === it.lead_id);
+const enItemOf = c => c && c.enr && S.en.items.find(i => i.lead_id === c.enr.id);
+function enQueueLabel(c) { const it = enItemOf(c); return it ? OPEnrich.ITEM_STATUS[it.status] + (it.decision ? ` · ${OPEnrich.DECISION_LABEL[it.decision]}` : "") : OPEnrich.ITEM_STATUS.none; }
+function renderEnrich() { const v = $("#view"); if (v && S.view === "prospector" && S.tab === "enrich") v.innerHTML = V.enrich(); if (S.panel) renderPanel(); }
+
+async function enAudit(action, extra) {
+  const b = S.en.batch || {};
+  const row = { action, actor_email: S.en.user || null, batch_id: (extra && extra.batch_id) || b.id || null, item_id: (extra && extra.item_id) || null,
+    lead_id: (extra && extra.lead_id) || null, model: (extra && extra.model) || b.model || null, details: (extra && extra.details) || {} };
+  const { data, error } = await sbClient.from("prospect_enrichment_audit").insert(row).select().single();
+  if (error) { console.warn("[Enrich] audit failed:", error.message); return; }
+  S.en.audit.unshift(data);
+}
+async function enLoad() {
+  S.en.loading = true;
+  const sess = await userSession();
+  S.en.user = sess ? (sess.email || sess.source) : "";
+  S.en.userId = sess ? sess.userId || null : null;
+  if (!sess || !sbClient) { S.en.loaded = true; S.en.loading = false; renderEnrich(); return; }
+  const { data: batches, error } = await sbClient.from("prospect_enrichment_batches").select("*").neq("status", "cancelled").order("created_at", { ascending: false }).limit(1);
+  if (error) { S.en.err = "שגיאה בטעינת התור: " + error.message; S.en.loaded = true; S.en.loading = false; renderEnrich(); return; }
+  S.en.batch = (batches && batches[0]) || null;
+  S.en.items = []; S.en.audit = [];
+  if (S.en.batch) {
+    const [it, au] = await Promise.all([
+      sbClient.from("prospect_enrichment_items").select("*").eq("batch_id", S.en.batch.id).order("created_at", { ascending: true }),
+      sbClient.from("prospect_enrichment_audit").select("*").eq("batch_id", S.en.batch.id).order("at", { ascending: false }).limit(60),
+    ]);
+    S.en.items = it.data || []; S.en.audit = au.data || [];
+  }
+  S.en.loaded = true; S.en.loading = false;
+  renderEnrich();
+}
+async function enUpdBatch(patch) {
+  patch.updated_at = enNow();
+  const { data, error } = await sbClient.from("prospect_enrichment_batches").update(patch).eq("id", S.en.batch.id).select().single();
+  if (error) throw new Error("עדכון Batch נכשל: " + error.message);
+  S.en.batch = data;
+}
+async function enUpdItem(it, patch) {
+  patch.updated_at = enNow();
+  const { data, error } = await sbClient.from("prospect_enrichment_items").update(patch).eq("id", it.id).select().single();
+  if (error) throw new Error("עדכון ליד בתור נכשל: " + error.message);
+  Object.assign(it, data);
+}
+function enOpenIds() { return new Set(S.en.items.map(i => i.lead_id)); }
+async function enEnsureBatch() {
+  if (S.en.batch && S.en.batch.status === "draft") return true;
+  if (S.en.batch && ["running", "paused"].includes(S.en.batch.status)) { toast("יש Batch פתוח – סיים או סגור אותו לפני Batch חדש"); return false; }
+  const { data, error } = await sbClient.from("prospect_enrichment_batches").insert({
+    name: `Batch בדיקה ${new Date().toLocaleDateString("he-IL")}`, dry_run: true, grounding: S.en.grounding !== false,
+    max_leads: OPEnrich.MAX_BATCH, created_by_email: S.en.user || null,
+  }).select().single();
+  if (error) { toast("יצירת Batch נכשלה: " + error.message); return false; }
+  S.en.batch = data; S.en.items = []; S.en.audit = [];
+  await enAudit("batch_created", { details: { dry_run: true, grounding: data.grounding, max_leads: data.max_leads } });
+  return true;
+}
+async function enAdd(leads, why) {
+  if (!(await enEnsureBatch())) return 0;
+  const open = enOpenIds();
+  let added = 0;
+  for (const c of leads) {
+    if (S.en.items.length >= S.en.batch.max_leads) { toast(`ה-Batch מלא (${S.en.batch.max_leads})`); break; }
+    const e = OPEnrich.eligibility(c.enr, open);
+    if (!e.ok) { if (leads.length === 1) toast(`לא נוסף: ${e.reason}`); continue; }
+    const { data, error } = await sbClient.from("prospect_enrichment_items").insert({ batch_id: S.en.batch.id, lead_id: c.enr.id, company_hp: c.enr.company_hp || c.no }).select().single();
+    if (error) { toast("הוספה נכשלה: " + error.message); break; }
+    S.en.items.push(data); open.add(c.enr.id); added++;
+    await enAudit("lead_added", { item_id: data.id, lead_id: c.enr.id, details: { company: c.name, hp: c.no, why } });
+  }
+  renderEnrich();
+  return added;
+}
+async function enRemove(it) {
+  if (it.status !== "queued" || it.attempts > 0) { toast("אפשר להסיר רק ליד שעוד לא נבדק"); return; }
+  const { error } = await sbClient.from("prospect_enrichment_items").delete().eq("id", it.id);
+  if (error) { toast("הסרה נכשלה: " + error.message); return; }
+  S.en.items = S.en.items.filter(i => i.id !== it.id);
+  await enAudit("lead_removed", { item_id: it.id, lead_id: it.lead_id, details: { hp: it.company_hp } });
+  renderEnrich();
+}
+/* קריאה אחת ל-Gemini עבור ליד אחד, דרך השרת (user JWT, super_admin, המפתח נשאר בשרת) */
+async function enCall(payload, grounding) {
+  const sess = await userSession();
+  if (!sess) return { ok: false, http: 401, reason: "", message: "לא מחובר", data: {} };
+  try {
+    const res = await fetch(EN_FN, { method: "POST", headers: { "Content-Type": "application/json", "apikey": SUPABASE_STAGING_ANON, "Authorization": `Bearer ${sess.accessToken}` },
+      body: JSON.stringify({ lead: payload, grounding }) });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok) return { ok: true, http: 200, data };
+    return { ok: false, http: data.upstream_status || res.status, reason: `${data.upstream_reason || ""} ${data.error || ""}`, message: String(data.error || "").slice(0, 200), data };
+  } catch (e) { return { ok: false, http: 0, reason: "", message: String(e && e.message || e), data: {} }; }
+}
+async function enRun() {
+  if (S.en.running || !S.en.batch) return;
+  const b = S.en.batch;
+  const todo = S.en.items.filter(i => i.status === "queued" || i.status === "running").length;
+  if (!todo) { toast("אין לידים שממתינים להעשרה"); return; }
+  if (!confirm(`DRY RUN: יבוצעו עד ${todo} קריאות ל-Gemini (קריאה אחת לליד${b.grounding ? ", כולל חיפוש Google" : ""}).\nשום ליד לא יתעדכן בלי אישור שלך. להמשיך?`)) return;
+  S.en.running = true; S.en.stop = false; S.en.err = "";
+  try {
+    for (const it of S.en.items.filter(i => i.status === "running")) await enUpdItem(it, { status: "queued" }); // stopped mid-call earlier
+    await enAudit(b.enrichment_started_at ? "run_resumed" : "run_started", { details: { dry_run: true, grounding: b.grounding, queued: todo } });
+    await enUpdBatch({ status: "running", enrichment_started_at: b.enrichment_started_at || enNow() });
+    renderEnrich();
+    for (let pass = 0; pass < OPEnrich.MAX_ATTEMPTS && !S.en.stop; pass++) {
+      for (const it of S.en.items) {
+        if (S.en.stop) break;
+        if (it.status !== "queued") continue;
+        if (it.attempts >= OPEnrich.MAX_ATTEMPTS) { await enUpdItem(it, { status: "failed", error: "מוצו הניסיונות" }); continue; }
+        const lead = enLead(it);
+        if (!lead) { await enUpdItem(it, { status: "failed", error: "הליד לא נמצא במאגר" }); continue; }
+        const payload = OPEnrich.buildPayload(lead.enr);
+        await enUpdItem(it, { status: "running", attempts: it.attempts + 1, started_at: enNow(), request_payload: payload });
+        renderEnrich();
+        const r = await enCall(payload, S.en.batch.grounding);
+        const usage = r.data && r.data.usage, tokens = usage ? usage.totalTokenCount || 0 : 0, model = (r.data && r.data.model) || S.en.batch.model || null;
+        const cost = OPEnrich.estimateCost(usage);
+        await enUpdBatch({ request_count: (S.en.batch.request_count || 0) + 1, tokens_used: (S.en.batch.tokens_used || 0) + tokens, model,
+          estimated_cost: cost == null ? S.en.batch.estimated_cost : Number(S.en.batch.estimated_cost || 0) + cost });
+        const base = { request_count: (it.request_count || 0) + 1, tokens_used: (it.tokens_used || 0) + tokens, model, finished_at: enNow() };
+        if (!r.ok) {
+          const cls = OPEnrich.classifyError(r.http, r.reason);
+          const retry = cls.retry && it.attempts < OPEnrich.MAX_ATTEMPTS && !cls.stop;
+          /* account-level stop (402/429/401/403/404): the lead was not researched – back to the queue, attempt not counted */
+          const back = cls.stop ? { status: "queued", attempts: Math.max(0, it.attempts - 1) } : { status: retry ? "queued" : "failed" };
+          await enUpdItem(it, { ...base, ...back, error: `${cls.label}${r.message ? " · " + r.message : ""}` });
+          await enAudit("call_failed", { item_id: it.id, lead_id: it.lead_id, model, details: { http: r.http, label: cls.label, retry } });
+          if (cls.stop) { S.en.err = cls.label; S.en.stop = true; }
+          renderEnrich();
+          continue;
+        }
+        const v = OPEnrich.validateResponse(r.data.text, lead.enr);
+        if (!v.ok) {
+          await enUpdItem(it, { ...base, status: "failed", error: v.error, validation: { warnings: v.warnings }, grounding: { sources: r.data.sources || [] } });
+          await enAudit("call_invalid", { item_id: it.id, lead_id: it.lead_id, model, details: { error: v.error, tokens } });
+        } else {
+          const d = OPEnrich.diff(lead.enr, v.findings);
+          const review = v.needsReview || d.some(f => f.change === "conflict");
+          await enUpdItem(it, { ...base, status: review ? "manual_review" : "done", error: null,
+            findings: { findings: d, notFound: v.notFound, missing_fields: v.missing_fields, notes: v.notes },
+            validation: { warnings: v.warnings }, grounding: { sources: r.data.sources || [], queries: r.data.queries || [] } });
+          await enAudit("call_ok", { item_id: it.id, lead_id: it.lead_id, model, details: { tokens, findings: d.length, not_found: v.notFound.length, review } });
+        }
+        renderEnrich();
+      }
+    }
+    const left = S.en.items.filter(i => i.status === "queued").length;
+    await enUpdBatch(S.en.stop || left ? { status: "paused" } : { status: "done", enrichment_finished_at: enNow() });
+    await enAudit(S.en.stop ? "run_stopped" : "run_finished", { details: { left, error: S.en.err || null } });
+  } catch (e) {
+    S.en.err = String(e && e.message || e);
+    try { await enUpdBatch({ status: "paused" }); } catch (x) { /* keep error */ }
+  }
+  S.en.running = false;
+  renderEnrich();
+}
+function enChosen(it, mode) {
+  const all = ((it.findings && it.findings.findings) || []).filter(f => f.change !== "conflict");
+  if (mode === "verified") return all.filter(f => f.status === "verified" && f.source && f.url);
+  const sel = S.en.sel[it.id] || {};
+  return all.filter(f => sel[f.field] !== false);
+}
+async function enApprove(it, mode) {
+  if (it.decision) return false;
+  const lead = enLead(it);
+  const chosen = enChosen(it, mode);
+  if (!lead || !chosen.length) { if (mode !== "verified") toast("לא נבחרו ממצאים לאישור"); return false; }
+  const { data: cur, error } = await sbClient.from("prospect_leads").select("evidence").eq("id", lead.enr.id).single();
+  if (error) { toast("קריאת הליד נכשלה: " + error.message); return false; }
+  const { patch, evidence, conflicts } = OPEnrich.buildPatch(lead.enr, chosen, { model: it.model, batchId: it.batch_id });
+  patch.evidence = [...(Array.isArray(cur && cur.evidence) ? cur.evidence : []), ...evidence];
+  patch.enrichment_source = "gemini";
+  patch.verification_date = enNow().slice(0, 10);
+  const ok = await saveLeadEnrichment(lead, patch, `"${lead.name}": ${evidence.length} ממצאים נשמרו אחרי אישור`);
+  if (!ok) return false;
+  lead.enr.evidence = patch.evidence.filter(x => x && typeof x === "object" && !Array.isArray(x));
+  if (patch.phone) lead.phone = patch.phone; if (patch.email) lead.mail = patch.email; if (patch.address) lead.addr = patch.address;
+  const total = ((it.findings && it.findings.findings) || []).length;
+  await enUpdItem(it, { decision: chosen.length >= total ? "approved" : "partial", decided_at: enNow(), decided_by: S.en.userId,
+    applied: { fields: Object.keys(patch).filter(k => k !== "evidence"), evidence: evidence.length, conflicts } });
+  await enAudit("approved", { item_id: it.id, lead_id: it.lead_id, model: it.model, details: { mode,
+    findings: chosen.map(f => ({ field: f.field, value: f.value, source: f.source, url: f.url, status: f.status })), conflicts } });
+  return true;
+}
+async function enReject(it) {
+  if (it.decision) return;
+  await enUpdItem(it, { decision: "rejected", decided_at: enNow(), decided_by: S.en.userId });
+  await enAudit("rejected", { item_id: it.id, lead_id: it.lead_id, model: it.model, details: { findings: ((it.findings && it.findings.findings) || []).length } });
+  renderEnrich();
+}
+const enPending = () => S.en.items.filter(i => !i.decision && ["done", "manual_review"].includes(i.status));
+const enUnsourced = () => enPending().reduce((n, i) => n + enChosen(i, "all").filter(f => !f.source || !f.url).length, 0);
+
+V.enrich = () => {
+  if (!window.OPEnrich) return `<div class="card card-b">מודול ההעשרה לא נטען.</div>`;
+  if (!S.en.loaded) { if (!S.en.loading) enLoad(); return `<div class="card card-b">טוען תור העשרה…</div>`; }
+  if (!S.en.user) return `<div class="card card-b" style="border:1.5px solid #fde68a">
+    <h2 style="margin:0 0 6px;font-size:17px">🔒 נדרשת התחברות super_admin</h2>
+    <div class="sm muted" style="line-height:1.6">התור, ה-Dry Run והאישורים זמינים רק למשתמש מחובר עם הרשאת super_admin.<br>
+    התחבר ל-ai-marketing-2 ופתח "איתור לקוחות ולידים" דרך מרכז השיווק.</div>
+    <button class="btn btn-sm" style="margin-top:10px" data-act="enReload">🔄 בדוק שוב</button></div>`;
+  const b = S.en.batch, items = S.en.items, sm = OPEnrich.summarize(items);
+  const processed = items.filter(i => !["queued", "running"].includes(i.status)).length;
+  const pct = items.length ? Math.round(processed / items.length * 100) : 0;
+  const tile = (l, v, sub) => `<div class="card kpi"><div class="l">${l}</div><div class="v num">${v}</div>${sub ? `<div class="s">${sub}</div>` : ""}</div>`;
+  const pending = enPending(), unsourced = enUnsourced();
+  const verifiedCount = pending.reduce((n, i) => n + enChosen(i, "verified").length, 0);
+  const canEdit = b && b.status === "draft" && !S.en.running;
+  const btns = [];
+  if (!b || ["done", "cancelled"].includes(b.status)) btns.push(`<button class="btn btn-primary" data-act="enPick20">🎯 בחר Batch בדיקה של ${OPEnrich.MAX_BATCH}</button>`);
+  if (b && b.status === "draft") btns.push(`<button class="btn btn-sm" data-act="enPick20">🎯 השלם ל-${b.max_leads} אוטומטית</button>`);
+  if (b && ["draft", "paused"].includes(b.status) && !S.en.running) btns.push(`<button class="btn btn-primary" data-act="enRun" ${items.some(i => i.status === "queued" || i.status === "running") ? "" : "disabled"}>${b.status === "paused" ? "▶ המשך (Resume)" : "▶ הפעל Batch (DRY RUN)"}</button>`);
+  if (S.en.running) btns.push(`<button class="btn" style="border-color:var(--bad);color:var(--bad)" data-act="enStop">⏹ עצור</button>`);
+  if (b && !S.en.running && !["done", "cancelled"].includes(b.status)) btns.push(`<button class="btn btn-sm btn-ghost" data-act="enCancel">סגור Batch</button>`);
+  const row = it => {
+    const c = enLead(it), f = (it.findings && it.findings.findings) || [], open = S.en.open === it.id;
+    return `<tr data-act="enToggle" data-item="${it.id}" style="cursor:pointer">
+      <td class="co-main"><b>${esc(c ? c.name : it.company_hp)}</b><div class="xs muted ltr">${esc(it.company_hp || "")}</div></td>
+      <td data-label="סטטוס"><span class="badge ${EN_STY[it.status] || "b-no"}">${OPEnrich.ITEM_STATUS[it.status]}</span>${it.decision ? ` <span class="badge ${it.decision === "rejected" ? "b-bad" : "b-ok"}">${OPEnrich.DECISION_LABEL[it.decision]}</span>` : ""}</td>
+      <td class="num xs" data-label="ממצאים">${f.length}${f.filter(x => x.status === "verified").length ? ` <span class="xs" style="color:var(--ok)">(${f.filter(x => x.status === "verified").length} מאומתים)</span>` : ""}</td>
+      <td class="num xs" data-label="בלי מקור">${f.filter(x => !x.source || !x.url).length || "—"}</td>
+      <td class="num xs" data-label="טוקנים">${it.tokens_used || "—"}</td>
+      <td class="xs" data-label="שגיאה">${it.error ? `<span style="color:var(--bad)">${esc(it.error)}</span>` : "—"}</td>
+      <td class="co-actions">${canEdit && it.status === "queued" && !it.attempts ? `<button class="btn btn-sm" data-act="enRemove" data-item="${it.id}">הסר</button>` : `<span class="xs muted">${open ? "▲" : "▼"} פרטים</span>`}</td></tr>
+      ${open ? `<tr><td colspan="7" style="background:var(--soft);cursor:default">${enPreview(it)}</td></tr>` : ""}`;
+  };
+  return `
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-h"><h2>בדיקת העשרה – Batch<span class="h-bar"></span></h2>
+      ${b ? `<span class="chip">${esc(b.name)}</span><span class="badge ${b.status === "running" ? "b-est" : b.status === "done" ? "b-ok" : "b-blue"}">${{ draft: "טיוטה", running: "רץ", paused: "מושהה", done: "הסתיים", cancelled: "בוטל" }[b.status]}</span>` : ""}
+      <span class="badge b-ok" title="Gemini לא כותב ללידים. תוצאות נשמרות רק בתור ההעשרה ומוצגות לאישור">🧪 DRY RUN – אין כתיבה לליד בלי אישור</span>
+      <span class="spacer"></span><span class="xs muted">משתמש: <span class="ltr">${esc(S.en.user)}</span></span></div>
+    <div class="card-b" style="display:grid;gap:12px">
+      <div class="row" style="gap:8px;flex-wrap:wrap">${btns.join("")}
+        <label class="xs" style="display:inline-flex;gap:6px;align-items:center;min-height:40px"><input type="checkbox" id="en-grounding" ${(b ? b.grounding : S.en.grounding !== false) ? "checked" : ""} ${b && b.status !== "draft" ? "disabled" : ""}> חיפוש Google (Grounding) – עשוי לחייב לפי תמחור Google</label></div>
+      ${canEdit ? `<div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><input class="input" id="en-hp" style="max-width:220px" inputmode="numeric" placeholder="הוסף ליד לפי ח.פ."><button class="btn btn-sm" data-act="enAddHp">➕ הוסף</button>
+        <span class="xs muted">${items.length}/${b.max_leads} ב-Batch · אפשר גם "➕ הוסף ל-Batch" מכרטיס ליד</span></div>` : ""}
+      ${S.en.err ? `<div style="background:var(--bad-bg);color:var(--bad);border-radius:8px;padding:8px 12px;font-size:13px">⛔ ${esc(S.en.err)}</div>` : ""}
+      ${b ? `<div><div class="row xs muted" style="justify-content:space-between"><span>התקדמות: ${processed}/${items.length}${S.en.running ? " · רץ…" : ""}</span><span>${pct}%</span></div><div class="bar" style="margin-top:4px"><i style="width:${pct}%"></i></div></div>` : ""}
+      <div class="tiles">
+        ${tile("לידים ב-Batch", sm.total, `${sm.queued} ממתינים · ${sm.running} בתהליך`)}
+        ${tile("הושלמו", sm.done, `${sm.manual_review} דורשים בדיקה ידנית`)}
+        ${tile("נכשלו", sm.failed)}
+        ${tile("טלפונים שנמצאו", sm.phones)}${tile("מיילים", sm.emails)}${tile("אתרים", sm.websites)}${tile("אנשי קשר", sm.contacts)}
+        ${tile("אינדיקציה לצי", sm.fleetIndication)}${tile("גודל צי מאומת", sm.fleetSizeVerified)}${tile("קצין רכב / בטיחות", sm.officers)}
+        ${tile("אושרו / נדחו", `${sm.approved} / ${sm.rejected}`)}
+      </div>
+      <div class="row xs muted" style="gap:14px;flex-wrap:wrap">
+        <span>מודל: <b class="ltr">${esc((b && b.model) || "gemini-3.8-flash (GEMINI_MODEL)")}</b></span>
+        <span>קריאות: <b class="num">${(b && b.request_count) || 0}</b></span><span>טוקנים: <b class="num">${(b && b.tokens_used) || 0}</b></span>
+        <span>עלות משוערת: <b>${b && b.estimated_cost != null ? "$" + Number(b.estimated_cost).toFixed(4) : "לא ידוע – מחיר המודל לא הוגדר"}</b></span>
+        <span>התחלה: ${esc(b && b.enrichment_started_at ? new Date(b.enrichment_started_at).toLocaleString("he-IL") : "—")}</span>
+        <span>סיום: ${esc(b && b.enrichment_finished_at ? new Date(b.enrichment_finished_at).toLocaleString("he-IL") : "—")}</span>
+        <span>מגבלות: עד ${OPEnrich.MAX_BATCH} לידים · קריאה אחת לליד · ניסיון חוזר אחד בשגיאה זמנית · עצירה אוטומטית ב-402/429/403</span>
+      </div>
+    </div>
+  </div>
+  ${b ? `<div class="card" style="margin-bottom:16px">
+    <div class="card-h"><h3>לידים ב-Batch<span class="h-bar"></span></h3><span class="spacer"></span>
+      <button class="btn btn-sm btn-primary" data-act="enApproveVerified" ${verifiedCount && !S.en.running ? "" : "disabled"}>✔ אשר את כל המאומתים (${verifiedCount})</button>
+      <button class="btn btn-sm" data-act="enApproveAll" ${pending.length && !unsourced && !S.en.running ? "" : "disabled"} title="${unsourced ? `חסום: ${unsourced} ממצאים בלי מקור/URL` : ""}">אשר הכול${unsourced ? ` (חסום – ${unsourced} בלי מקור)` : ""}</button></div>
+    <div class="tbl-wrap"><table class="co"><thead><tr><th>חברה</th><th>סטטוס</th><th>ממצאים</th><th>בלי מקור</th><th>טוקנים</th><th>שגיאה</th><th></th></tr></thead><tbody>
+      ${items.map(row).join("") || `<tr><td colspan="7"><div class="empty">ה-Batch ריק. לחץ "בחר Batch בדיקה" או הוסף לידים.</div></td></tr>`}
+    </tbody></table></div></div>` : ""}
+  <div class="card"><div class="card-h"><h3>יומן פעולות (Audit)<span class="h-bar"></span></h3><span class="xs muted">נשמר ב-Supabase · ללא מפתחות API</span></div>
+    <div class="tbl-wrap"><table class="co"><thead><tr><th>זמן</th><th>משתמש</th><th>פעולה</th><th>מודל</th><th>פרטים</th></tr></thead><tbody>
+      ${S.en.audit.slice(0, 40).map(a => `<tr style="cursor:default"><td class="xs num" data-label="זמן">${esc(new Date(a.at).toLocaleString("he-IL"))}</td><td class="xs ltr" data-label="משתמש">${esc(a.actor_email || "")}</td>
+        <td class="xs" data-label="פעולה">${esc(a.action)}</td><td class="xs ltr" data-label="מודל">${esc(a.model || "")}</td><td class="xs" data-label="פרטים" style="max-width:420px;overflow-wrap:anywhere">${esc(JSON.stringify(a.details || {}).slice(0, 220))}</td></tr>`).join("") || `<tr><td colspan="5"><div class="empty">אין פעולות עדיין</div></td></tr>`}
+    </tbody></table></div></div>`;
+};
+function enPreview(it) {
+  const f = (it.findings && it.findings.findings) || [], w = (it.validation && it.validation.warnings) || [], src = (it.grounding && it.grounding.sources) || [];
+  const sel = S.en.sel[it.id] || {}, decided = !!it.decision;
+  const CH = { new: "חדש", same: "זהה לקיים", conflict: "סותר ערך קיים – לא יידרס" };
+  const st = s => s === "verified" ? '<span class="badge b-ok">✓ מאומת</span>' : '<span class="badge b-est">≈ נמצא – דורש אימות</span>';
+  return `<div style="display:grid;gap:10px;padding:6px 2px">
+    ${it.error ? `<div class="sm" style="color:var(--bad)">⛔ ${esc(it.error)}</div>` : ""}
+    ${f.length ? `<div class="tbl-wrap"><table class="co kv2"><thead><tr><th></th><th>שדה</th><th>לפני</th><th>אחרי</th><th>סטטוס</th><th>מקור</th><th>URL</th><th>שינוי</th></tr></thead><tbody>
+      ${f.map(x => `<tr style="cursor:default"><td data-label="אשר"><input type="checkbox" data-en-sel="${it.id}" data-field="${x.field}" ${x.change === "conflict" || decided ? "disabled" : ""} ${x.change !== "conflict" && sel[x.field] !== false ? "checked" : ""} aria-label="כלול באישור"></td>
+        <td class="sm" data-label="שדה"><b>${esc(OPEnrich.FIELD_LABEL[x.field] || x.field)}</b></td>
+        <td class="xs" data-label="לפני">${esc(OPEnrich.show(x.before)) || '<span class="faint">ריק</span>'}</td>
+        <td class="xs" data-label="אחרי"><b>${esc(OPEnrich.show(x.value))}</b>${(x.reasons || []).length ? `<div class="faint">${esc(x.reasons.join(" · "))}</div>` : ""}</td>
+        <td data-label="סטטוס">${st(x.status)}</td><td class="xs" data-label="מקור">${esc(x.source || "—")}</td>
+        <td class="xs" data-label="URL">${x.url ? `<a class="ltr" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.url.replace(/^https?:\/\//, "").slice(0, 40))}</a>` : "—"}</td>
+        <td class="xs" data-label="שינוי">${CH[x.change] || ""}</td></tr>`).join("")}</tbody></table></div>`
+      : `<div class="sm muted">${it.status === "done" || it.status === "manual_review" ? "Gemini לא מצא מידע עם מקור לליד זה." : "אין עדיין תוצאות."}</div>`}
+    ${(it.findings && it.findings.notFound && it.findings.notFound.length) ? `<div class="xs muted">לא נמצא: ${esc(it.findings.notFound.map(k => OPEnrich.FIELD_LABEL[k] || k).join(", "))}</div>` : ""}
+    ${w.length ? `<div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:6px 10px;font-size:12px">${w.map(x => "⚠️ " + esc(x)).join("<br>")}</div>` : ""}
+    ${it.findings && it.findings.notes ? `<div class="xs muted">הערות Gemini: ${esc(it.findings.notes)}</div>` : ""}
+    ${src.length ? `<div class="xs muted">מקורות חיפוש: ${src.slice(0, 8).map(s => `<a href="${esc(s.uri)}" target="_blank" rel="noopener noreferrer">${esc(s.title || "מקור")}</a>`).join(" · ")}</div>` : ""}
+    ${!decided && ["done", "manual_review"].includes(it.status) ? `<div class="row" style="gap:8px"><button class="btn btn-sm btn-primary" data-act="enApprove" data-item="${it.id}" ${f.some(x => x.change !== "conflict") ? "" : "disabled"}>✔ אשר ליד (ממצאים מסומנים)</button>
+      <button class="btn btn-sm" data-act="enReject" data-item="${it.id}">✖ דחה</button><span class="xs muted">אישור כותב ל-Supabase רק שדות ריקים; ערך קיים לעולם לא נדרס. שלב הליד ו"מוכן לפנייה" מחושבים מחדש לפי הכללים.</span></div>` : ""}
+    ${it.applied ? `<div class="xs" style="color:var(--ok)">נשמר: ${esc((it.applied.fields || []).join(", ") || "ראיות בלבד")}${(it.applied.conflicts || []).length ? ` · ${it.applied.conflicts.length} סתירות לא נכתבו` : ""}</div>` : ""}
+  </div>`;
+}
+/* מצב התור בכרטיס ליד */
+function enLeadCardRow(c) {
+  if (window.OPEnrich && !S.en.loaded && !S.en.loading) enLoad();
+  if (!window.OPEnrich || !S.en.loaded || !S.en.user) return `<span>🤖 העשרת Gemini: <b>${S.en.user === "" && S.en.loaded ? "נדרשת התחברות" : "—"}</b></span>`;
+  const it = enItemOf(c), b = S.en.batch, draft = b && b.status === "draft";
+  return `<span>🤖 העשרת Gemini: <b>${esc(enQueueLabel(c))}</b></span>
+    ${!it && (!b || draft || ["done", "cancelled"].includes(b.status)) ? `<button class="btn btn-sm" data-act="enAddLead" data-co-id="${c.id}">➕ הוסף ל-Batch</button>` : ""}
+    ${it && draft && it.status === "queued" && !it.attempts ? `<button class="btn btn-sm" data-act="enRemoveLead" data-co-id="${c.id}">הסר מה-Batch</button>` : ""}`;
+}
+
 /* ===== אירועים ===== */
 document.addEventListener("click",e=>{
   const t=e.target.closest("[data-go],[data-tab],[data-act],[data-co],[data-person],[data-ex],[data-test],[data-def],[data-ai-mode],[data-test-conn],[data-test-src],[data-toggle-src],[data-src-tier],[data-lead-cat]");
@@ -4360,6 +4674,42 @@ document.addEventListener("click",e=>{
       S.coFilter = { q: "", ...Object.fromEntries(CO_FILTERS.map(k => [k, ""])) };
       S.coPage = 1;
       $("#view").innerHTML = V.companies();
+      return;
+    }
+    case "enReload": S.en.loaded = false; S.en.err = ""; enLoad(); return;
+    case "enPick20": {
+      const open = enOpenIds();
+      const rows = C.filter(c => c.enr && c.enr.id).map(c => c.enr);
+      const need = OPEnrich.MAX_BATCH - (S.en.batch && S.en.batch.status === "draft" ? S.en.items.length : 0);
+      const pick = OPEnrich.selectBatch(rows, open, need).map(r => C.find(c => c.enr === r));
+      enAdd(pick, "auto_pick").then(n => toast(`נוספו ${n} לידים ל-Batch (לא הופעל Gemini)`));
+      return;
+    }
+    case "enAddHp": {
+      const hp = (($("#en-hp") || {}).value || "").replace(/\D/g, "");
+      const c = C.find(x => String(x.no || "").replace(/\D/g, "") === hp);
+      if (!c || !c.enr) { toast("ח.פ. לא נמצא במאגר"); return; }
+      enAdd([c], "manual");
+      return;
+    }
+    case "enAddLead": { const c = C.find(x => x.id === +d.coId); if (c) enAdd([c], "lead_card"); return; }
+    case "enRemoveLead": { const c = C.find(x => x.id === +d.coId); const it = enItemOf(c); if (it) enRemove(it); return; }
+    case "enRemove": { const it = S.en.items.find(i => i.id === d.item); if (it) enRemove(it); return; }
+    case "enToggle": S.en.open = S.en.open === d.item ? null : d.item; renderEnrich(); return;
+    case "enRun": enRun(); return;
+    case "enStop": S.en.stop = true; toast("עוצר אחרי הקריאה הנוכחית…"); return;
+    case "enCancel": {
+      if (!confirm("לסגור את ה-Batch? לידים שלא אושרו לא ייכתבו.")) return;
+      enUpdBatch({ status: "cancelled" }).then(() => enAudit("batch_cancelled", {})).then(() => { S.en.batch = null; S.en.items = []; renderEnrich(); }).catch(e => toast(String(e.message || e)));
+      return;
+    }
+    case "enApprove": { const it = S.en.items.find(i => i.id === d.item); if (it) enApprove(it, "selected").then(() => renderEnrich()); return; }
+    case "enReject": { const it = S.en.items.find(i => i.id === d.item); if (it) enReject(it); return; }
+    case "enApproveVerified":
+    case "enApproveAll": {
+      const mode = d.act === "enApproveAll" ? "all" : "verified";
+      if (mode === "all" && enUnsourced()) { toast("אי אפשר לאשר הכול: יש ממצאים בלי מקור/URL"); return; }
+      (async () => { let n = 0; for (const it of enPending()) if (await enApprove(it, mode)) n++; toast(`אושרו ${n} לידים`); renderEnrich(); })();
       return;
     }
     case "toCrm":{
@@ -4468,6 +4818,8 @@ document.addEventListener("click",e=>{
 
 document.addEventListener("change",e=>{
   const t=e.target;
+  if(t.id==="en-grounding"){S.en.grounding=t.checked;if(S.en.batch&&S.en.batch.status==="draft")enUpdBatch({grounding:t.checked}).then(()=>enAudit("grounding_changed",{details:{grounding:t.checked}})).catch(x=>toast(String(x.message||x)));return}
+  if(t.dataset.enSel){const m=S.en.sel[t.dataset.enSel]||(S.en.sel[t.dataset.enSel]={});m[t.dataset.field]=t.checked;return}
   if(t.dataset.status){
     const c=C.find(x=>x.id===+t.dataset.status);
     if(c) {
