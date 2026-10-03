@@ -4,13 +4,40 @@ import { loadGeminiKey } from './_lib/ai-env.mjs';
  * Gemini Article Generator for Dalia / OpenSEO
  * Connects directly to Google Generative Language API using GEMINI_API_KEY from .env.openai
  */
+/** Drop img/figure tags. Used only when an approved outline was sent — the legacy call is unchanged. */
+export function stripGeneratedImages(html) {
+  return String(html || '')
+    .replace(/<figure\b[^>]*>[\s\S]*?<\/figure>/gi, '')
+    .replace(/<img\b[^>]*>/gi, '');
+}
+
+export function normalizeOutlineHeadings(headings, h2Count) {
+  const list = Array.isArray(headings) ? headings : [];
+  const cleaned = list.map((h) => {
+    const h2 = String(h?.h2 || h?.text || '').trim();
+    const h3s = Array.isArray(h?.h3s) ? h.h3s.map((x) => String(x || '').trim()).filter(Boolean) : [];
+    return h2 ? { h2, h3s } : null;
+  }).filter(Boolean);
+  const n = Number(h2Count);
+  if (n > 0) return cleaned.slice(0, n);
+  return cleaned;
+}
+
 export async function generateArticleWithGemini({
   keyword,
   title = null,
   length = 'long', // 'short' | 'medium' | 'long'
   plan = null,
-  audience = 'מנהלי ציי רכב, בעלי חברות, מנהלי רכש וקציני בטיחות בתעבורה'
-}) {
+  audience = 'מנהלי ציי רכב, בעלי חברות, מנהלי רכש וקציני בטיחות בתעבורה',
+  action = 'article',
+  word_count = null,
+  h2_count = null,
+  meta_description = '',
+  outline = null
+} = {}) {
+  if (action === 'outline') {
+    return generateOutlineWithGemini({ keyword, title, length, audience, word_count, h2_count, meta_description });
+  }
   if (!keyword || !keyword.trim()) {
     return { ok: false, error: 'לא צוינה מילת מפתח ליצירת המאמר' };
   }
@@ -95,10 +122,27 @@ ${lengthGuide}
   "word_count": מספר_מילים_משוער
 }`;
 
-  const userContent = `אנא כתוב עכשיו את המאמר המלא עבור:
+  let userContent = `אנא כתוב עכשיו את המאמר המלא עבור:
 מילת מפתח: "${kw}"
 כותרת עבודה מוצעת: "${workTitle}"
 אורך נדרש: "${length}"`;
+
+  const outlineHeadings = outline && Array.isArray(outline.headings) ? outline.headings : [];
+  if (outlineHeadings.length) {
+    const lines = outlineHeadings.map((h, i) => {
+      const h3s = Array.isArray(h.h3s) ? h.h3s.filter(Boolean) : [];
+      const sub = h3s.map((x) => `  - H3: ${x}`).join('\n');
+      return `H2 ${i + 1}: ${h.h2 || h.text || ''}${sub ? `\n${sub}` : ''}`;
+    }).join('\n');
+    userContent += `\n\nמבנה מאושר שחובה לעקוב אחריו, בלי לשנות את סדר הכותרות:\n${lines}\nאל תכלול תגיות img, figure, או כתובות URL של תמונות. התמונות מנוהלות בנפרד ואינן חלק מ-content_html.`;
+    const approvedMeta = (outline.meta_description || meta_description || '').trim();
+    if (approvedMeta) {
+      userContent += `\nתיאור מטא מאושר (אפשר לדייק מעט, עד 155 תווים): ${approvedMeta}`;
+    }
+  }
+  if (word_count && Number(word_count) > 0) {
+    userContent += `\nמספר מילים יעד: ${Number(word_count)}.`;
+  }
 
   let lastErrorResult = null;
 
@@ -203,16 +247,20 @@ ${lengthGuide}
         };
       }
 
+      let contentHtml = parsed.content_html;
+      if (outlineHeadings.length) contentHtml = stripGeneratedImages(contentHtml);
+
       // Calculate actual words in content_html
-      const plainText = parsed.content_html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const plainText = contentHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
       const actualWordCount = plainText ? plainText.split(/\s+/).length : 0;
 
       return {
         ok: true,
+        action: 'article',
         model: currentModel,
         title: parsed.title || workTitle,
         meta_description: (parsed.meta_description || '').slice(0, 160),
-        content_html: parsed.content_html,
+        content_html: contentHtml,
         word_count: actualWordCount,
         length_requested: length,
         keyword: kw
@@ -227,5 +275,123 @@ ${lengthGuide}
     }
   }
 
+  return lastErrorResult || { ok: false, error: 'כל מודלי Gemini נכשלו או לא היו זמינים' };
+}
+
+/**
+ * Suggest an article outline only. Does not write content_html and does not create images.
+ * The legacy article call never enters this function.
+ */
+async function generateOutlineWithGemini({
+  keyword,
+  title = null,
+  length = 'long',
+  audience = 'מנהלי ציי רכב, בעלי חברות, מנהלי רכש וקציני בטיחות בתעבורה',
+  word_count = null,
+  h2_count = null,
+  meta_description = ''
+}) {
+  if (!keyword || !String(keyword).trim()) {
+    return { ok: false, error: 'לא צוינה מילת מפתח ליצירת המאמר' };
+  }
+  const key = loadGeminiKey();
+  if (!key) {
+    return { ok: false, error: 'מפתח GEMINI_API_KEY חסר בקובץ .env.openai. אנא הגדר מפתח תקין.' };
+  }
+  const candidateModels = [
+    process.env.GEMINI_MODEL,
+    'gemini-3.5-flash',
+    'gemini-3.6-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-3.8-flash'
+  ].filter(Boolean);
+  const models = [...new Set(candidateModels)];
+  const kw = String(keyword).trim();
+  const n = Math.max(1, Math.min(12, Number(h2_count) || (length === 'short' ? 3 : length === 'medium' ? 5 : 6)));
+  const systemPrompt = `אתה עורך SEO בעברית עבור "דליה פתרונות רכב לחברות".
+החזר אך ורק JSON תקין של תוכנית מאמר, בלי גוף מאמר ובלי תמונות.
+אל תכלול content_html, תגיות img, או כתובות URL.
+קהל היעד: ${audience}.
+מבנה:
+{
+  "title": "כותרת בעברית",
+  "meta_description": "עד 155 תווים",
+  "headings": [{ "h2": "כותרת H2", "h3s": ["כותרת H3"] }],
+  "word_count": 800
+}
+מספר כותרות H2: בדיוק ${n}. לכל H2 עד שתי כותרות H3, רק אם הן נחוצות.`;
+  let userContent = `מילת מפתח: "${kw}"
+אורך: "${length}"
+כותרת עבודה: "${title ? String(title).trim() : ''}"
+תיאור מטא קיים: "${meta_description ? String(meta_description).trim() : ''}"`;
+  if (word_count && Number(word_count) > 0) userContent += `\nמספר מילים יעד: ${Number(word_count)}`;
+
+  let lastErrorResult = null;
+  for (const currentModel of models) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${encodeURIComponent(key)}`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${userContent}` }] }],
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 2048,
+            responseMimeType: 'application/json'
+          }
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        const err = data.error || {};
+        const statusText = err.status || `HTTP_${response.status}`;
+        const message = err.message || 'שגיאה לא ידועה מ-Gemini API';
+        lastErrorResult = {
+          ok: false,
+          status: response.status,
+          model: currentModel,
+          errorCode: err.code || response.status,
+          errorStatus: statusText,
+          error: `שגיאת Gemini API (${statusText}) במודל ${currentModel}: ${message}`
+        };
+        if (response.status === 503 || statusText === 'UNAVAILABLE' || response.status === 429) continue;
+        return lastErrorResult;
+      }
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) {
+        lastErrorResult = { ok: false, model: currentModel, error: `תשובת Gemini (${currentModel}) התקבלה ריקה (ללא תוכן)` };
+        continue;
+      }
+      let cleaned = rawText.trim();
+      if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+      let parsed = null;
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch (parseErr) {
+        try { parsed = JSON.parse(cleaned.replace(/,\s*([}\]])/g, '$1')); }
+        catch (_) {
+          return { ok: false, model: currentModel, error: `שגיאה בפענוח JSON מתשובת Gemini: ${parseErr.message}` };
+        }
+      }
+      const headings = normalizeOutlineHeadings(parsed?.headings, n);
+      if (!headings.length) {
+        return { ok: false, model: currentModel, error: 'תשובת Gemini אינה מכילה כותרות H2', parsed };
+      }
+      return {
+        ok: true,
+        action: 'outline',
+        model: currentModel,
+        title: parsed.title || (title ? String(title).trim() : `${kw}: המדריך המקיף`),
+        meta_description: String(parsed.meta_description || meta_description || '').slice(0, 160),
+        headings,
+        word_count: Number(parsed.word_count) || (Number(word_count) || null),
+        keyword: kw,
+        length_requested: length
+      };
+    } catch (networkErr) {
+      lastErrorResult = { ok: false, model: currentModel, error: `שגיאת תקשורת מול Gemini API (${currentModel}): ${networkErr.message}` };
+    }
+  }
   return lastErrorResult || { ok: false, error: 'כל מודלי Gemini נכשלו או לא היו זמינים' };
 }

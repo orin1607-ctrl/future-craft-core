@@ -85,8 +85,10 @@ export function project001ApiPlugin() {
         if (url === '/api/project-001/generate-article' && req.method === 'POST') {
           try {
             const body = await readBody(req);
-            const { keyword, title, length, plan, audience } = body;
-            const result = await generateArticleWithGemini({ keyword, title, length, plan, audience });
+            const { keyword, title, length, plan, audience, action, word_count, h2_count, meta_description, outline } = body;
+            const result = await generateArticleWithGemini({
+              keyword, title, length, plan, audience, action, word_count, h2_count, meta_description, outline
+            });
             json(res, result.ok ? 200 : (result.status || 500), result);
           } catch (e) {
             json(res, 500, { ok: false, error: String(e.message || e) });
