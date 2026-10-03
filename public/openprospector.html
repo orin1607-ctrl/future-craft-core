@@ -2480,14 +2480,14 @@ async function interpret(){
 
   let parsed = null;
   // ניסיון לקרוא ל-Edge Function של דליה אם זמינה
-  const _auth = daliaAuth();
-  if (_auth && _auth.marketingGeminiChatUrl && _auth.accessToken) {
+  const _auth = await userSession();
+  if (_auth) {
     try {
-      const res = await fetch(_auth.marketingGeminiChatUrl, {
+      const res = await fetch(`${SUPABASE_STAGING_URL}/functions/v1/marketing-gemini-chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "apikey": _auth.anonKey,
+          "apikey": SUPABASE_STAGING_ANON,
           "Authorization": `Bearer ${_auth.accessToken}`
         },
         body: JSON.stringify({
@@ -3861,6 +3861,7 @@ function geminiCard(conn) {
           ${row("סטטוס:", `<span class="badge ${st.cls}" style="font-size:13px">${st.txt}</span>`)}
           ${row("המודל הפעיל:", `<span class="ltr bold">${esc(conn.model || "—")}</span> <span class="xs faint">${conn.modelFromServer ? "(דווח ע\"י השרת בבדיקה)" : "(הגדרת GEMINI_MODEL ב-STAGING)"}</span>`)}
           ${row("בדיקה אחרונה:", `<span class="conn-last-check">${esc(conn.tested ? conn.lastCheck : "לא בוצעה בדיקה בסשן הזה")}</span>`)}
+          ${conn.lastResult ? row("פרטי הבדיקה:", `HTTP <b class="num">${conn.lastResult.http || "—"}</b> · זמן תגובה <b class="num">${conn.lastResult.ms || 0}ms</b> · שעה <span class="num">${esc(conn.lastResult.at || "")}</span>${conn.lastResult.user ? ` · משתמש: <span class="ltr">${esc(conn.lastResult.user)}</span>` : ""}`) : ""}
           ${row("מפתח API:", "GEMINI_API_KEY – שמור בשרת בלבד, לא נחשף בדפדפן")}
         </div>
         <div class="row" style="margin-top:auto">
@@ -4024,6 +4025,28 @@ function daliaAuth() {
   } catch (e) { /* parent from another origin – not accessible */ }
   return window._daliaAuth || null;
 }
+/* תפקיד ה-JWT (anon / authenticated / service_role) – פענוח מקומי בלבד, הטוקן לא נרשם ולא נשמר */
+function jwtRole(token) {
+  try { return JSON.parse(atob(String(token).split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).role || ""; } catch (e) { return ""; }
+}
+/* Session של משתמש אמיתי בלבד, בלי תלות בתזמון:
+   1) ה-session של Supabase שאפליקציית דליה כבר שמרה באותו origin (אותו storage, מתרענן אוטומטית)
+   2) session שהועבר ממרכז השיווק (postMessage מאותו origin / parent)
+   anon / service_role לעולם לא נשלחים כ-session */
+async function userSession() {
+  try {
+    if (sbClient) {
+      const { data } = await sbClient.auth.getSession();
+      const ss = data && data.session;
+      if (ss && ss.access_token && jwtRole(ss.access_token) === "authenticated")
+        return { accessToken: ss.access_token, email: (ss.user && ss.user.email) || "", source: "Supabase session" };
+    }
+  } catch (e) { /* storage blocked – try relay */ }
+  const a = daliaAuth();
+  if (a && a.accessToken && jwtRole(a.accessToken) === "authenticated")
+    return { accessToken: a.accessToken, email: "", source: "מרכז השיווק" };
+  return null;
+}
 /* פענוח תוצאת בדיקת Gemini: upstream_status = תשובת Google; בלעדיו – שגיאת הרשאה של שרת ה-Edge */
 function geminiTestResult(res, data) {
   if (!res) return { ok: false, label: "❌ Gemini לא זמין כרגע" };
@@ -4040,22 +4063,25 @@ function geminiTestResult(res, data) {
   return { ok: false, label: "❌ Gemini לא זמין כרגע" };
 }
 async function geminiLiveTest() {
-  const auth = daliaAuth() || {};
+  const sess = await userSession();
+  const at = new Date().toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  if (!sess) return { ok: false, label: "❌ לא מחובר – התחבר לדליה ופתח את המודול דרך מרכז השיווק", http: 0, ms: 0, model: "", at, user: "" };
   const t0 = performance.now();
   let res = null, data = {};
   try {
-    res = await fetch(auth.marketingGeminiChatUrl || `${SUPABASE_STAGING_URL}/functions/v1/marketing-gemini-chat`, {
+    /* כתובת קבועה של STAGING – לא מקבלים כתובת מהודעה חיצונית, כדי שה-token לא יישלח ליעד אחר */
+    res = await fetch(`${SUPABASE_STAGING_URL}/functions/v1/marketing-gemini-chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "apikey": auth.anonKey || SUPABASE_STAGING_ANON,
-        "Authorization": `Bearer ${auth.accessToken || SUPABASE_STAGING_ANON}`
+        "apikey": SUPABASE_STAGING_ANON,
+        "Authorization": `Bearer ${sess.accessToken}`
       },
       body: JSON.stringify({ prompt: "החזר רק את המילה OK" })
     });
     data = await res.json().catch(() => ({}));
   } catch (e) { res = null; }
-  return { ...geminiTestResult(res, data), http: res ? (data.upstream_status || res.status) : 0, ms: Math.round(performance.now() - t0), model: (data && data.model) || "" };
+  return { ...geminiTestResult(res, data), http: res ? (data.upstream_status || res.status) : 0, ms: Math.round(performance.now() - t0), model: (data && data.model) || "", at, user: sess.email || sess.source };
 }
 async function testConnection(connId, btnEl) {
   if (btnEl) {
@@ -4116,6 +4142,7 @@ async function testConnection(connId, btnEl) {
       conn.tested = true;
       if (r.model) { conn.model = r.model; conn.modelFromServer = true; }
       conn.lastCheck = `${r.label}${r.http ? ` (HTTP ${r.http}, ${r.ms}ms)` : ""} · ${nowStr}`;
+      conn.lastResult = r;
       toast(`Gemini AI: ${r.label}`);
     } else {
       // עבור ספקים שדורשים מפתח (Places, Tavily, Firecrawl, Apollo, Jobs, Brandfetch)
@@ -4244,7 +4271,8 @@ async function testSource(srcId, btnEl) {
 
 /* ===== תקשורת עם מעטפת ניהול שיווק 2 (ShellBridge Listener) ===== */
 window.addEventListener("message", e => {
-  if (!e.data) return;
+  /* רק הודעות מאותו origin (מרכז השיווק / אפליקציית דליה). session לעולם לא מתקבל מ-origin זר */
+  if (e.origin !== location.origin || !e.data) return;
   if (e.data.type === "dalia-context") {
     if (e.data.customerName) {
       S.activeCompany = e.data.customerName;
