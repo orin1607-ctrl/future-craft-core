@@ -44,10 +44,11 @@ Deno.serve(async (req) => {
     }
     contents.push({ role: "user", parts: [{ text: prompt.trim() }] });
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    // key travels in a header, never in the URL (keeps it out of logs / traces)
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: sys }] },
         contents,
@@ -57,8 +58,15 @@ Deno.serve(async (req) => {
 
     const data = await res.json();
     if (!res.ok) {
-      console.error("marketing-gemini-chat:", res.status, data);
-      return jsonResponse({ ok: false, error: data.error?.message || `HTTP ${res.status}` }, 500);
+      console.error("marketing-gemini-chat:", res.status, data?.error?.status, model);
+      // upstream_status lets callers tell bad key / missing model / quota apart
+      return jsonResponse({
+        ok: false,
+        error: data.error?.message || `HTTP ${res.status}`,
+        upstream_status: res.status,
+        upstream_reason: data.error?.status || null,
+        model,
+      }, 500);
     }
 
     const text = data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";

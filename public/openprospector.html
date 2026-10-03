@@ -3984,6 +3984,37 @@ function exportCsv(subset){
 }
 
 /* ===== בדיקת חיבור חי לספק (TEST CONNECTION) ===== */
+/* פענוח תוצאת בדיקת Gemini: upstream_status = תשובת Google; בלעדיו – שגיאת הרשאה של שרת ה-Edge */
+function geminiTestResult(res, data) {
+  if (!res) return { ok: false, label: "❌ Gemini לא זמין כרגע" };
+  const up = data && data.upstream_status, reason = `${(data && data.upstream_reason) || ""} ${(data && data.error) || ""}`;
+  if (res.ok && data.ok && /\bOK\b/i.test(String(data.reply || data.text || ""))) return { ok: true, label: `✅ Gemini מחובר ומאומת${data.model ? ` (${data.model})` : ""}` };
+  if (res.ok && data.ok) return { ok: false, label: "❌ Gemini החזיר תשובה לא צפויה" };
+  if (up === 429) return { ok: false, label: "⚠️ המכסה הסתיימה / Quota exceeded" };
+  if (up === 404) return { ok: false, label: `❌ המודל לא זמין${data.model ? ` (${data.model})` : ""}` };
+  if (up === 401 || up === 403 || (up === 400 && /API_KEY|API key/i.test(reason))) return { ok: false, label: "❌ מפתח Gemini לא תקין / לא מורשה" };
+  if (!up && res.status === 401) return { ok: false, label: "❌ לא מחובר – נדרשת התחברות" };
+  if (!up && res.status === 403) return { ok: false, label: "❌ אין הרשאה / המשתמש אינו מורשה (נדרש super_admin)" };
+  return { ok: false, label: "❌ Gemini לא זמין כרגע" };
+}
+async function geminiLiveTest() {
+  const auth = window._daliaAuth || {};
+  const t0 = performance.now();
+  let res = null, data = {};
+  try {
+    res = await fetch(auth.marketingGeminiChatUrl || `${SUPABASE_STAGING_URL}/functions/v1/marketing-gemini-chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": auth.anonKey || SUPABASE_STAGING_ANON,
+        "Authorization": `Bearer ${auth.accessToken || SUPABASE_STAGING_ANON}`
+      },
+      body: JSON.stringify({ prompt: "החזר רק את המילה OK" })
+    });
+    data = await res.json().catch(() => ({}));
+  } catch (e) { res = null; }
+  return { ...geminiTestResult(res, data), http: res ? (data.upstream_status || res.status) : 0, ms: Math.round(performance.now() - t0) };
+}
 async function testConnection(connId, btnEl) {
   if (btnEl) {
     btnEl.disabled = true;
@@ -4036,47 +4067,12 @@ async function testConnection(connId, btnEl) {
         toast(`שגיאה ב-OpenStreetMap: HTTP ${res.status}`);
       }
     } else if (connId === "gemini") {
-      // בדיקת חיבור מול שרת ה-Edge וה-Vault של דליה
-      const t0 = performance.now();
-      if (window._daliaAuth && window._daliaAuth.marketingGeminiChatUrl && window._daliaAuth.accessToken) {
-        const res = await fetch(window._daliaAuth.marketingGeminiChatUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": window._daliaAuth.anonKey,
-            "Authorization": `Bearer ${window._daliaAuth.accessToken}`
-          },
-          body: JSON.stringify({ prompt: "ענה במילה אחת: OK" })
-        });
-        const dt = Math.round(performance.now() - t0);
-        if (res.ok) {
-          conn.lastCheck = `תקין (${dt}ms) · ${nowStr}`;
-          conn.status = "ok";
-          conn.liveTested = true;
-          toast(`Gemini AI: החיבור תקין ומאומת (${dt}ms)`);
-        } else {
-          conn.lastCheck = `שרת פעיל (נדרש סשן מנהל) · ${nowStr}`;
-          toast("Gemini AI: שרת Staging זמין, מפתח מוגדר ב-Vault");
-        }
-      } else {
-        // בדיקת שרת Edge זמינה ללא סשן
-        try {
-          const res = await fetch("https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/marketing-gemini-chat", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU"
-            },
-            body: JSON.stringify({ prompt: "ping" })
-          });
-          const dt = Math.round(performance.now() - t0);
-          conn.lastCheck = `שרת Edge פעיל (${dt}ms) · ממתין לסשן מנהל · ${nowStr}`;
-          toast("Gemini AI: שרת Staging פעיל ומאובטח (דורש התחברות בדליה)");
-        } catch(e) {
-          conn.lastCheck = `מוגדר ב-Vault של שרת Staging · ${nowStr}`;
-          toast("Gemini AI: מפתח מוגדר ומאומת ב-Supabase Vault של דליה");
-        }
-      }
+      /* בדיקה אמיתית דרך marketing-gemini-chat (אותו נתיב שהמודול משתמש בו). הצלחה מוצגת רק אם Gemini ענה OK */
+      const r = await geminiLiveTest();
+      conn.status = r.ok ? "ok" : "error";
+      conn.liveTested = r.ok;
+      conn.lastCheck = `${r.label}${r.http ? ` (HTTP ${r.http}, ${r.ms}ms)` : ""} · ${nowStr}`;
+      toast(`Gemini AI: ${r.label}`);
     } else {
       // עבור ספקים שדורשים מפתח (Places, Tavily, Firecrawl, Apollo, Jobs, Brandfetch)
       await new Promise(r => setTimeout(r, 350));
@@ -4178,9 +4174,10 @@ async function testSource(srcId, btnEl) {
         s.lastCheck = `שגיאה (${res.status}) · ${nowStr}`;
       }
     } else if (srcId === "gemini_ai") {
-      s.lastCheck = `שרת Staging פעיל · מפתח ב-Vault · ${nowStr}`;
-      s.liveTested = true;
-      toast("Gemini AI: שרת Staging פעיל, מנוע הערכה מוכן");
+      const r = await geminiLiveTest();
+      s.lastCheck = `${r.label}${r.http ? ` (HTTP ${r.http}, ${r.ms}ms)` : ""} · ${nowStr}`;
+      s.liveTested = r.ok;
+      toast(`Gemini AI: ${r.label}`);
     } else {
       await new Promise(r => setTimeout(r, 300));
       s.lastCheck = `נבדקו דרישות חיבור · ${nowStr}`;
