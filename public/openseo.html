@@ -404,6 +404,31 @@ html, body {
   }
 }
 
+/* ===== תוכנית מאמר ותמונות (יצירת תוכן) ===== */
+.article-plan-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(240px,.8fr);gap:14px;align-items:start}
+.plan-h2-card,.plan-image-card{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;background:var(--card)}
+.plan-summary{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--soft)}
+.plan-summary ol,.plan-summary ul{margin:6px 0 0;padding-right:18px}
+.article-plan select.input{width:100%}
+.plan-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dalia-plan-fig,.dalia-plan-hero{margin:16px 0 22px}
+.dalia-plan-fig img,.dalia-plan-hero img{width:100%;max-height:420px;object-fit:cover;border-radius:10px;display:block;background:#f8fafc}
+.dalia-plan-fig figcaption,.dalia-plan-hero figcaption{font-size:13px;color:#64748b;margin-top:6px}
+.dalia-plan-ph{border:1px dashed #94a3b8;background:#f8fafc;border-radius:10px;min-height:110px;display:flex;align-items:center;justify-content:center;color:#475569;font-size:14px;padding:16px;text-align:center}
+.dalia-plan-outline{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin:0 0 18px}
+.dalia-plan-outline ol{margin:8px 0 0;padding-right:18px}
+.dalia-plan-ai-slot{margin-top:18px;padding:10px 12px;border:1px dashed #cbd5e1;border-radius:8px}
+.plan-file{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:800px){
+  .article-plan-grid{grid-template-columns:1fr}
+}
+@media (max-width:420px){
+  .plan-actions{flex-direction:column;align-items:stretch}
+  .plan-actions .btn{width:100%}
+  .plan-image-card .fields,.plan-h2-card .fields{flex-direction:column;align-items:stretch}
+  .article-plan label.f{min-width:0}
+}
+
 /* ===== Real Website Simulation Preview Modal ===== */
 .site-preview-modal {
   position: fixed;
@@ -1039,7 +1064,7 @@ const S = {
   oppType:"", techSev:"", pageFilter:"", demoOpen:false,
   drawer:null, modal:null,
   research:{seed:"",audience:"",busy:false,result:null, coSeed:"",coBusy:false,coResult:null, planForm:null, drafting:null},
-  produce:{keyword:"",plan:"",length:"long",busy:false,lastError:null,topic:"",ideas:[],ideasBusy:false},
+  produce:{keyword:"",plan:"",length:"long",busy:false,lastError:null,topic:"",ideas:[],ideasBusy:false,wordCount:"",h2Count:""},
   compose:null, publish:{start:"",cadence:"1",month:null,busy:false},
   measure:{busy:false,note:null}, optimize:{postId:null,busy:false,src:null,sugs:[],applied:0},
   pageOpt:{url:null,sugs:[]}
@@ -1646,6 +1671,243 @@ function generate(keyword, title, plan){
   POSTS.unshift(p); return p;
 }
 
+/* ================= תוכנית מאמר ותמונות (הרחבה; לא מחליפה טיוטות ישנות) ================= */
+const LENGTH_H2 = { short: 3, medium: 5, long: 6 };
+const LENGTH_LABEL = { short: "קצר (350–500 מילים)", medium: "בינוני (800–1,200 מילים)", long: "ארוך (1,500–2,500 מילים)" };
+const IMAGE_MODE_LABEL = { none: "ללא תמונות", hero: "תמונה ראשית בלבד", hero_inline: "תמונה ראשית + תמונות בתוך המאמר", custom: "מספר מותאם אישית" };
+function planUid(prefix){ return prefix + Math.random().toString(36).slice(2, 9); }
+function defaultH2Count(length){ return LENGTH_H2[length] || 4; }
+function clonePlan(plan){ return JSON.parse(JSON.stringify(plan)); }
+function articlePlanOf(post){
+  const p = post && post.article_plan;
+  return p && typeof p === "object" ? p : null;
+}
+function planGate(c){
+  return !!(c && c.article_plan && c.article_plan.flow === "plan" && !c.article_plan.approved);
+}
+function blankImage(role){
+  return { id: planUid("img"), role, prompt: "", alt: "", placement: role === "hero" ? "hero" : "after_h2", afterH2: 0, src: "", fileName: "" };
+}
+function createArticlePlan(seed){
+  const length = seed.length || "long";
+  let n = parseInt(seed.h2_count, 10);
+  if (!n || n < 1) n = defaultH2Count(length);
+  n = Math.min(12, Math.max(1, n));
+  return {
+    flow: "plan",
+    approved: false,
+    keyword: seed.keyword || "",
+    title: seed.title || "",
+    meta_description: seed.meta_description || "",
+    length,
+    word_count: seed.word_count || "",
+    h2_mode: "manual",
+    headings: Array.from({ length: n }, () => ({ id: planUid("h"), text: "", h3s: [] })),
+    images: { mode: "none", custom_count: 3, items: [] }
+  };
+}
+function setHeadingCount(plan, n){
+  n = Math.max(1, Math.min(12, n|0));
+  while (plan.headings.length < n) plan.headings.push({ id: planUid("h"), text: "", h3s: [] });
+  while (plan.headings.length > n) plan.headings.pop();
+}
+function applyImageMode(plan, mode){
+  const images = plan.images;
+  images.mode = mode;
+  if (mode === "none"){ images.items = []; return; }
+  let count = 1;
+  if (mode === "hero") count = 1;
+  else if (mode === "hero_inline") count = 1 + Math.max(1, Math.min(3, plan.headings.length || 1));
+  else count = Math.max(0, Math.min(12, parseInt(images.custom_count, 10) || 0));
+  const prev = images.items || [];
+  const items = [];
+  for (let i = 0; i < count; i++){
+    const old = prev[i];
+    const oldRole = old ? old.role : "";
+    let role = oldRole || "inline";
+    if (mode === "hero" || (mode === "hero_inline" && i === 0) || (mode === "custom" && i === 0 && !old)) role = "hero";
+    else if (old && old.role === "hero" && i > 0 && mode !== "custom") role = "inline";
+    const base = old ? Object.assign({}, old, { role: role }) : blankImage(role === "hero" ? "hero" : "inline");
+    base.role = role;
+    if (base.role === "hero") base.placement = "hero";
+    else if (base.placement === "hero") base.placement = "after_h2";
+    items.push(base);
+  }
+  images.items = items;
+}
+function imagePlacementLabel(img, plan){
+  if (!img) return "—";
+  if (img.role === "hero" || img.placement === "hero") return "ראש המאמר";
+  if (img.placement === "ai") return "AI יבחר מיקום";
+  const h = plan.headings[Number(img.afterH2)];
+  return "אחרי H2: " + ((h && h.text) || ("#" + (Number(img.afterH2) + 1)));
+}
+function planSummaryInner(plan){
+  const imgs = plan.images?.items || [];
+  const words = String(plan.word_count || "").trim();
+  const heads = plan.headings.map((h, i) => `<li><strong>${esc(h.text || "H2 ללא שם")}</strong>${(h.h3s || []).length ? `<ul>${h.h3s.map(t => `<li>${esc(t || "H3 ללא שם")}</li>`).join("")}</ul>` : ""}</li>`).join("");
+  const imgRows = imgs.length ? imgs.map(img => `<li>${esc(img.role === "hero" ? "Hero" : "Inline")} · ${esc(imagePlacementLabel(img, plan))}${img.alt ? ` · Alt: ${esc(img.alt)}` : ""}${img.fileName ? ` · ${esc(img.fileName)}` : ""}</li>`).join("") : `<li>אין תמונות</li>`;
+  return `<div class="b sm">תוכנית מאמר ${plan.approved ? `<span class="badge up">מאושרת</span>` : `<span class="badge warn">ממתינה לאישור</span>`}</div>
+    <dl class="sm" style="display:grid;grid-template-columns:92px 1fr;gap:4px 8px;margin:8px 0 0">
+      <dt class="muted">כותרת</dt><dd class="m0">${esc(plan.title || "—")}</dd>
+      <dt class="muted">מילת מפתח</dt><dd class="m0">${esc(plan.keyword || "—")}</dd>
+      <dt class="muted">מטא</dt><dd class="m0">${esc(plan.meta_description || "—")}</dd>
+      <dt class="muted">אורך</dt><dd class="m0">${esc(LENGTH_LABEL[plan.length] || plan.length || "—")}</dd>
+      <dt class="muted">מילים</dt><dd class="m0">${words ? esc(words) : "לפי האורך, בלי מספר מדויק"}</dd>
+      <dt class="muted">תמונות</dt><dd class="m0">${imgs.length} · ${esc(IMAGE_MODE_LABEL[plan.images?.mode] || "ללא תמונות")}</dd>
+    </dl>
+    <div class="b xs mt">H2 / H3</div><ol class="sm">${heads || "<li>אין כותרות</li>"}</ol>
+    <div class="b xs mt">תמונות ומיקום</div><ul class="sm">${imgRows}</ul>`;
+}
+function refreshPlanSummary(){
+  const el = document.getElementById("planSummary");
+  const plan = S.compose && S.compose.article_plan;
+  if (el && plan) el.innerHTML = planSummaryInner(plan);
+}
+function findPlanImage(id){
+  const items = S.compose?.article_plan?.images?.items || [];
+  return items.find(i => i.id === id) || null;
+}
+function figureHtml(img){
+  const alt = img.alt || "";
+  const cap = alt ? `<figcaption>${esc(alt)}</figcaption>` : (img.prompt ? `<figcaption>${esc(img.prompt)}</figcaption>` : "");
+  if (img.src) return `<figure class="dalia-plan-fig" data-img-role="${esc(img.role)}"><img src="${esc(img.src)}" alt="${esc(alt)}" />${cap}</figure>`;
+  const label = img.role === "hero" ? "תמונה ראשית" : "תמונה בתוך המאמר";
+  const place = img.placement === "ai" ? " · מיקום ייקבע על ידי AI" : "";
+  return `<figure class="dalia-plan-fig is-placeholder" data-img-role="${esc(img.role)}"><div class="dalia-plan-ph">${label}${place}${img.fileName ? "" : " · אין קובץ עדיין"}</div>${cap}</figure>`;
+}
+function heroFigureHtml(post){
+  const plan = articlePlanOf(post);
+  if (!plan) return "";
+  const heroes = (plan.images?.items || []).filter(i => i.role === "hero");
+  if (!heroes.length) return "";
+  return `<div class="dalia-plan-hero">${heroes.map(figureHtml).join("")}</div>`;
+}
+function planOutlineHtml(plan){
+  if (!plan || !plan.headings || !plan.headings.length) return "";
+  return `<div class="dalia-plan-outline"><div class="b sm">מבנה H2 / H3</div><ol>${plan.headings.map(h => `<li><strong>${esc(h.text || "H2")}</strong>${(h.h3s || []).length ? `<ul>${h.h3s.map(t => `<li>${esc(t || "H3")}</li>`).join("")}</ul>` : ""}</li>`).join("")}</ol></div>`;
+}
+function outlineAsBody(plan){
+  const inline = (plan.images?.items || []).filter(i => i.role !== "hero");
+  let out = "";
+  plan.headings.forEach((h, idx) => {
+    out += `<h2>${esc(h.text || "כותרת H2")}</h2>`;
+    inline.filter(i => i.placement !== "ai" && Number(i.afterH2) === idx).forEach(i => { out += figureHtml(i); });
+    (h.h3s || []).forEach(t => { out += `<h3>${esc(t || "כותרת H3")}</h3>`; });
+  });
+  const pending = inline.filter(i => i.placement === "ai" || (i.placement !== "ai" && !plan.headings[Number(i.afterH2)]));
+  if (pending.length) out += `<div class="dalia-plan-ai-slot"><p>מיקום שטרם נקבע בתוך המאמר:</p>${pending.map(figureHtml).join("")}</div>`;
+  return out;
+}
+function previewBodyHtml(post){
+  const html = post?.content_html || "";
+  const plan = articlePlanOf(post);
+  if (!plan) return html;
+  const inline = (plan.images?.items || []).filter(i => i.role !== "hero");
+  if (!html.trim()) return plan.headings?.length ? outlineAsBody(plan) : html;
+  if (!inline.length) return html;
+  const wrap = document.createElement("div");
+  wrap.innerHTML = html;
+  const h2s = [...wrap.querySelectorAll("h2")];
+  const groups = new Map();
+  const pending = [];
+  inline.forEach(img => {
+    if (img.placement === "ai"){ pending.push(img); return; }
+    const idx = Number(img.afterH2);
+    if (!h2s[idx]){ pending.push(img); return; }
+    if (!groups.has(idx)) groups.set(idx, []);
+    groups.get(idx).push(img);
+  });
+  [...groups.keys()].sort((a, b) => b - a).forEach(idx => {
+    h2s[idx].insertAdjacentHTML("afterend", groups.get(idx).map(figureHtml).join(""));
+  });
+  if (pending.length) wrap.insertAdjacentHTML("beforeend", `<div class="dalia-plan-ai-slot"><p>מיקום ייקבע על ידי AI בשלב הבא — לא נקבע עכשיו:</p>${pending.map(figureHtml).join("")}</div>`);
+  return wrap.innerHTML;
+}
+function h2SelectOptions(headings, selected){
+  const sel = Number(selected);
+  return headings.map((h, i) => `<option value="${i}"${sel === i ? " selected" : ""}>${i + 1}. ${esc(h.text || "H2 ללא שם")}</option>`).join("");
+}
+function vArticlePlan(c){
+  const plan = c.article_plan;
+  if (!plan) return "";
+  const locked = !!plan.approved;
+  const dis = locked ? "disabled" : "";
+  const ro = locked ? "readonly" : "";
+  const h2Mode = plan.h2_mode || "manual";
+  const headings = plan.headings || [];
+  const images = plan.images || { mode: "none", items: [] };
+  return `<div class="card article-plan" id="articlePlan"><div class="zone stack" style="gap:12px">
+    <div class="head"><h3 class="t">תוכנית מאמר</h3>${locked ? `<span class="badge up">מאושרת</span>` : `<span class="badge warn">לפני יצירת המאמר</span>`}<span class="grow"></span><span class="xs muted">בלי תמונת AI ובלי כתיבה ל-WordPress</span></div>
+    <p class="xs muted m0">אפשר לערוך את התוכנית. המאמר המלא נוצר רק אחרי אישור. תמונות לא נכנסות ל-HTML של Gemini.</p>
+    <div class="article-plan-grid">
+      <div class="stack" style="gap:12px">
+        <div class="fields">
+          <label class="f" style="flex:1;min-width:180px">מילת מפתח<input class="input" data-pfld="keyword" value="${esc(plan.keyword)}" ${ro}></label>
+          <label class="f" style="flex:1;min-width:180px">כותרת<input class="input" data-pfld="title" value="${esc(plan.title)}" ${ro}></label>
+        </div>
+        <label class="f">Meta Description <span class="xs faint">(${(plan.meta_description || "").length} תווים)</span><textarea class="input" rows="2" data-pfld="meta_description" ${ro}>${esc(plan.meta_description)}</textarea></label>
+        <div class="fields">
+          <label class="f">אורך<select class="input" data-pfld="length" ${dis}>
+            <option value="short" ${plan.length==="short"?"selected":""}>קצר (350–500)</option>
+            <option value="medium" ${plan.length==="medium"?"selected":""}>בינוני (800–1,200)</option>
+            <option value="long" ${plan.length==="long"||!plan.length?"selected":""}>ארוך (1,500–2,500)</option>
+          </select></label>
+          <label class="f">מספר מילים מדויק <span class="xs faint">(אופציונלי)</span><input class="input" data-pfld="word_count" inputmode="numeric" value="${esc(plan.word_count || "")}" placeholder="למשל 1200" ${ro}></label>
+          <label class="f">מספר H2<input class="input" id="planH2Count" inputmode="numeric" value="${headings.length}" ${ro}></label>
+        </div>
+        <div>
+          <div class="b sm">כותרות H2</div>
+          <div class="seg mt-s" role="group" aria-label="מקור כותרות H2">
+            <button type="button" data-act="planH2Mode" data-mode="manual" aria-pressed="${h2Mode==="manual"}" ${dis}>אני כותב</button>
+            <button type="button" data-act="planH2Mode" data-mode="ai" aria-pressed="${h2Mode==="ai"}" ${dis}>AI מציע</button>
+            <button type="button" data-act="planH2Mode" data-mode="ai_edit" aria-pressed="${h2Mode==="ai_edit"}" ${dis}>AI מציע ואני עורך</button>
+          </div>
+          ${h2Mode!=="manual" ? `<div class="row mt-s"><button type="button" class="btn sm" data-act="planSuggest" ${S.produce.busy||locked?"disabled":""}>${S.produce.busy?"מציע כותרות…":"הצע כותרות עם AI"}</button><span class="xs muted">טקסט בלבד. לא נוצרת תמונה.</span></div>` : `<p class="xs muted m0 mt-s">מצב כתיבה עצמית — בלי קריאת AI לכותרות.</p>`}
+        </div>
+        <div id="planHeadings">${headings.map((h, i) => `<div class="plan-h2-card" data-hid="${esc(h.id)}">
+          <div class="row"><span class="b sm">H2 ${i + 1}</span><span class="grow"></span>
+            <button type="button" class="btn ghost sm" data-act="planAddH3" data-hid="${esc(h.id)}" ${dis}>+ H3</button>
+            <button type="button" class="btn ghost sm danger" data-act="planRemoveH2" data-hid="${esc(h.id)}" ${dis}>מחק H2</button></div>
+          <input class="input mt-s" data-h2="${esc(h.id)}" value="${esc(h.text)}" placeholder="כותרת H2" ${ro}>
+          ${(h.h3s || []).map((t, j) => `<div class="row mt-s"><input class="input" data-h3="${esc(h.id)}" data-h3i="${j}" value="${esc(t)}" placeholder="כותרת H3" ${ro}><button type="button" class="btn ghost sm danger" data-act="planRemoveH3" data-hid="${esc(h.id)}" data-h3i="${j}" ${dis}>מחק</button></div>`).join("")}
+        </div>`).join("")}</div>
+        <div class="plan-actions"><button type="button" class="btn sm" data-act="planAddH2" ${dis}>+ H2</button></div>
+        <div>
+          <div class="b sm">תמונות</div>
+          <div class="seg mt-s" role="group" aria-label="מצב תמונות">
+            ${[["none","ללא תמונות"],["hero","תמונה ראשית בלבד"],["hero_inline","ראשית + בתוך המאמר"],["custom","מספר מותאם"]].map(([k, lab]) => `<button type="button" data-act="planImgMode" data-mode="${k}" aria-pressed="${images.mode===k}" ${dis}>${lab}</button>`).join("")}
+          </div>
+          ${images.mode==="custom" ? `<label class="f mt">מספר תמונות<input class="input" id="planImgCount" inputmode="numeric" value="${esc(images.custom_count)}" ${ro}></label>` : ""}
+          <p class="xs muted m0 mt-s">העלאה מהמחשב בלבד. הכפתור "צור תמונה עם AI" שמור לשלב הבא ואינו מבצע קריאה.</p>
+          ${(images.items || []).map(img => `<div class="plan-image-card" data-iid="${esc(img.id)}">
+            <div class="row"><span class="b sm">${img.role==="hero"?"Hero":"Inline"}</span><span class="grow"></span>
+              <button type="button" class="btn ghost sm danger" data-act="planRemoveImage" data-iid="${esc(img.id)}" ${dis}>מחיקה</button></div>
+            <div class="fields mt-s">
+              <label class="f">סוג<select class="input" data-img="${esc(img.id)}" data-ifld="role" ${dis}><option value="hero" ${img.role==="hero"?"selected":""}>Hero</option><option value="inline" ${img.role==="inline"?"selected":""}>Inline</option></select></label>
+              ${img.role==="hero" ? `<label class="f">מיקום<input class="input" value="ראש המאמר" readonly></label>` : `<label class="f">מיקום<select class="input" data-img="${esc(img.id)}" data-ifld="placement" ${dis}><option value="after_h2" ${img.placement!=="ai"?"selected":""}>אחרי H2</option><option value="ai" ${img.placement==="ai"?"selected":""}>AI יבחר מיקום</option></select></label>
+              <label class="f">אחרי איזה H2<select class="input" data-img="${esc(img.id)}" data-ifld="afterH2" ${dis||img.placement==="ai"?"disabled":""}>${h2SelectOptions(headings, img.afterH2)}</select></label>`}
+            </div>
+            <label class="f mt-s">Prompt<textarea class="input" rows="2" data-img="${esc(img.id)}" data-ifld="prompt" ${ro}>${esc(img.prompt)}</textarea></label>
+            <label class="f mt-s">Alt Text<input class="input" data-img="${esc(img.id)}" data-ifld="alt" value="${esc(img.alt)}" ${ro}></label>
+            <div class="mt-s">${img.src ? `<img src="${esc(img.src)}" alt="${esc(img.alt)}" style="max-width:100%;max-height:140px;object-fit:cover;border-radius:8px">` : `<div class="dalia-plan-ph">אין תצוגה עדיין</div>`}</div>
+            <div class="plan-actions mt-s">
+              <label class="btn sm">${img.src ? "החלפה" : "העלאה מהמחשב"}<input class="plan-file" type="file" accept="image/*" data-plan-file="${esc(img.id)}" ${dis}></label>
+              <button type="button" class="btn sm" data-act="planAiImage" data-iid="${esc(img.id)}" disabled title="שלב הבא: אין קריאה ליצירת תמונה בשלב זה">צור תמונה עם AI</button>
+              <button type="button" class="btn sm ghost" data-act="sitePreview">Preview</button>
+            </div>
+          </div>`).join("")}
+        </div>
+        <div class="plan-actions">
+          ${locked ? `<button type="button" class="btn" data-act="editPlan">ערוך תוכנית</button>` : `<button type="button" class="btn pri" data-act="approvePlan">אשר תוכנית</button>`}
+          <span class="xs muted">${locked ? "התוכנית נעולה עד לעריכה מחדש." : "לפני האישור אי אפשר ליצור את המאמר המלא בזרימה הזו."}</span>
+        </div>
+      </div>
+      <div class="plan-summary" id="planSummary">${planSummaryInner(plan)}</div>
+    </div>
+  </div></div>`;
+}
+
 /* ================= יצירת תוכן (Produce) ================= */
 function vProduce(){
   if (S.compose) return vComposer();
@@ -1658,9 +1920,16 @@ function vProduce(){
           <option value="medium" ${R.length==="medium"?"selected":""}>בינוני (800–1,200 מילים)</option>
           <option value="short" ${R.length==="short"?"selected":""}>קצר (350–500 מילים)</option>
         </select></label>
-        <label class="f">תוכנית תוכן (לא חובה)<select class="input" id="pPlan"><option value="">ללא תוכנית</option>${plans.map(p=>`<option value="${p.id}" ${String(R.plan)===String(p.id)?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label>
-        <button class="btn pri" data-act="genArticle" ${R.busy?"disabled":""}>${R.busy?"יוצר עם Gemini…":"צור מאמר"}</button></div>
-      <p class="xs muted m0 mt-s">יוצר טיוטה מקיפה בעברית תקינה, RTL וכותרות H2/H3 מובנות דרך Google Gemini API. המאמר נשמר כטיוטה לבדיקה לפני פרסום.</p>
+        <label class="f">תוכנית תוכן (לא חובה)<select class="input" id="pPlan"><option value="">ללא תוכנית</option>${plans.map(p=>`<option value="${p.id}" ${String(R.plan)===String(p.id)?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label></div>
+      <div class="fields mt">
+        <label class="f">מספר מילים מדויק <span class="xs faint">(אופציונלי)</span><input class="input" id="pWords" inputmode="numeric" value="${esc(R.wordCount||"")}" placeholder="למשל 1200"></label>
+        <label class="f">מספר H2<input class="input" id="pH2" inputmode="numeric" value="${esc(R.h2Count||"")}" placeholder="ברירת מחדל לפי האורך"></label>
+      </div>
+      <div class="row mt plan-actions">
+        <button class="btn pri" data-act="openArticlePlan" ${R.busy?"disabled":""}>תוכנית מאמר</button>
+        <button class="btn" data-act="genArticle" ${R.busy?"disabled":""}>${R.busy?"יוצר עם Gemini…":"צור מאמר"}</button>
+      </div>
+      <p class="xs muted m0 mt-s">בזרימה החדשה המאמר המלא נוצר רק אחרי אישור תוכנית המאמר. "צור מאמר" נשאר למסלול הקיים ויוצר טיוטה ישירות בעברית, RTL וכותרות H2/H3. אין פרסום אוטומטי.</p>
       ${R.lastError ? `<div class="zone mt-s" style="background:var(--down-t);border-radius:var(--r-s);border:1px solid var(--down);padding:10px 14px">
         <div class="row" style="color:var(--down);font-weight:600"><span>⚠ שגיאת Gemini API:</span></div>
         <p class="sm m0 mt-s" style="color:var(--down);font-family:ui-monospace,Menlo,monospace;word-break:break-word">${esc(R.lastError)}</p>
@@ -1683,21 +1952,24 @@ function vComposer(){
   const c = S.compose, existing = POSTS.find(p => p.id === c.id), plans = PLANS.filter(p => p.site === S.site);
   const wp = S.live.wp && site().conn.wp;
   const wordCount = c.word_count || (c.content_html ? c.content_html.replace(/<[^>]+>/g,' ').trim().split(/\s+/).length : 0);
-  return `<div class="stack" style="max-width:900px">
+  const gated = planGate(c);
+  const localPreview = (c.content_html || "").trim() || articlePlanOf(c);
+  return `<div class="stack" style="max-width:980px">
     <div class="row"><button class="btn ghost sm" data-act="closeCompose">→ חזרה</button><h2 class="t">${existing?"עריכת מאמר":"מאמר חדש"}</h2>${existing?stBadge(existing.status):""} ${c.aiModel?`<span class="badge ai">Gemini (${esc(c.aiModel.replace('models/',''))})</span>`:""}<span class="grow"></span>${(c.wp_draft_id || (existing && existing.wp_draft_id)) ? `<span class="badge" style="background:#e8f0fe;color:#1a73e8;font-weight:600">WP טיוטה #${c.wp_draft_id || existing.wp_draft_id}</span>` : ""}<span class="grow"></span><button class="btn sm" data-act="openWpPreview" style="display:inline-flex;align-items:center;gap:6px;background:var(--blue-t);color:var(--blue);border:1px solid var(--blue);font-weight:700">🔗 תצוגה באתר</button><button class="btn sm ghost" data-act="sitePreview" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border)">👁️ הדמיה מקומית</button></div>
+    ${c.article_plan ? vArticlePlan(c) : ""}
     ${!existing?`<div class="card"><div class="zone"><h3 class="t">יצירה עם Gemini AI</h3><div class="grid g2 mt">
       <label class="f">מילת מפתח יעד<input class="input" data-cf="keyword" value="${esc(c.keyword)}"></label>
       <label class="f">אורך מאמר<select class="input" data-cf="length"><option value="long" ${c.length==="long"||!c.length?"selected":""}>ארוך ומעמיק (1,500–2,500 מילים)</option><option value="medium" ${c.length==="medium"?"selected":""}>בינוני (800–1,200 מילים)</option><option value="short" ${c.length==="short"?"selected":""}>קצר (350–500 מילים)</option></select></label>
       <label class="f">תוכנית תוכן<select class="input" data-cf="plan_id"><option value="">ללא תוכנית</option>${plans.map(p=>`<option value="${p.id}" ${String(c.plan_id)===String(p.id)?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label>
       <label class="f">כותרת עבודה / זווית (לא חובה)<input class="input" data-cf="title" value="${esc(c.title)}" placeholder="השאר ריק כדי ש-Gemini יבחר"></label></div>
-      <div class="row mt" style="justify-content:space-between"><span class="xs muted">יוצר טיוטה בעברית תקנית. לא מפרסם אוטומטית.</span><button class="btn pri" data-act="composeGen" ${S.produce.busy?"disabled":""}>${S.produce.busy?"יוצר עם Gemini…":"צור מאמר"}</button></div>
+      <div class="row mt" style="justify-content:space-between"><span class="xs muted">${gated?"יש לאשר את תוכנית המאמר לפני יצירת המאמר המלא.":"יוצר טיוטה בעברית תקנית. לא מפרסם אוטומטית."}</span><button class="btn pri" id="composeGenBtn" data-act="composeGen" ${S.produce.busy||gated?"disabled":""}>${S.produce.busy?"יוצר עם Gemini…":gated?"אשר תוכנית כדי ליצור מאמר":"צור מאמר"}</button></div>
       ${S.produce.lastError?`<div class="zone mt-s" style="background:var(--down-t);border-radius:var(--r-s);border:1px solid var(--down);padding:8px 12px"><p class="xs m0" style="color:var(--down);font-family:ui-monospace,Menlo,monospace;word-break:break-word">⚠ ${esc(S.produce.lastError)}</p></div>`:""}
     </div></div>`:""}
     <div class="card"><div class="zone stack" style="gap:12px"><div class="head"><h3 class="t">המאמר</h3><span class="badge ${wordCount>800?'up':''}">מונה מילים: ${fmt(wordCount)}</span></div>
       <label class="f">כותרת<input class="input" data-cf="title" value="${esc(c.title)}"></label>
       <label class="f">תיאור מטא <span class="xs faint">(${c.meta_description.length} תווים)</span><textarea class="input" rows="2" data-cf="meta_description">${esc(c.meta_description)}</textarea></label>
       <label class="f">תוכן (HTML)<textarea class="input" rows="12" dir="rtl" style="font-family:ui-monospace,Menlo,monospace;font-size:12px" data-cf="content_html" placeholder="צור למעלה, או כתוב HTML סמנטי כאן.">${esc(c.content_html)}</textarea></label></div>
-      ${c.content_html.trim()?`<div class="zone"><span class="b sm">תצוגה מקדימה</span><div class="prose mt-s">${c.content_html}</div></div>`:""}
+      ${localPreview?`<div class="zone"><span class="b sm">תצוגה מקדימה</span>${articlePlanOf(c)?planOutlineHtml(articlePlanOf(c)):""}${heroFigureHtml(c)}<div class="prose mt-s">${previewBodyHtml(c)}</div></div>`:""}
       <div class="zone"><span class="b sm">פרסום</span><div class="fields mt" style="justify-content:space-between">
         <label class="f">תזמון (לא חובה — מתפרסם אוטומטית ל-WordPress)<input type="datetime-local" class="input" data-cf="scheduled_at" value="${esc(c.scheduled_at)}"></label>
         <div class="row"><button class="btn sm" data-act="openWpPreview" style="display:inline-flex;align-items:center;gap:6px;background:var(--blue-t);color:var(--blue);border:1px solid var(--blue);font-weight:700">🔗 תצוגה באתר</button><button class="btn ghost sm" data-act="sitePreview" style="display:inline-flex;align-items:center;gap:6px">👁️ הדמיה מקומית</button>
@@ -1819,6 +2091,10 @@ function renderOverlay(){
     const dev = S.modal.device || "desktop";
     const wordCount = post.word_count || (post.content_html ? post.content_html.replace(/<[^>]+>/g,' ').trim().split(/\s+/).length : 0);
     const readMin = Math.max(1, Math.round(wordCount / 220));
+    const previewPlan = articlePlanOf(post);
+    const previewOutline = previewPlan ? planOutlineHtml(previewPlan) : "";
+    const previewHero = heroFigureHtml(post);
+    const previewBody = previewBodyHtml(post);
 
     el.innerHTML = `
     <div class="scrim" data-act="close"></div>
@@ -1882,9 +2158,11 @@ function renderOverlay(){
               </div>
               ` : ''}
 
+              ${previewOutline}
+              ${previewHero}
               <!-- Body HTML Content -->
               <div class="dalia-mock-body">
-                ${post.content_html}
+                ${previewBody}
               </div>
 
               <!-- Dalia Contact CTA Box -->
@@ -2007,10 +2285,84 @@ function bindInputs(){
   on("#rankKw", e => { S.rankKw = e.target.value; render(); }, "change");
   on("#cmpPick", e => { S.comp = e.target.value; render(); }, "change");
   on("#pKw", e => S.produce.keyword = e.target.value); on("#pPlan", e => S.produce.plan = e.target.value, "change"); on("#pLength", e => S.produce.length = e.target.value, "change"); on("#pTopic", e => S.produce.topic = e.target.value);
-  document.querySelectorAll("[data-cf]").forEach(i => i.addEventListener(i.tagName==="SELECT"?"change":"input", e => { S.compose[i.dataset.cf] = e.target.value; if (i.dataset.cf==="scheduled_at") render(); }));
+  on("#pWords", e => S.produce.wordCount = e.target.value); on("#pH2", e => S.produce.h2Count = e.target.value);
+  bindPlanInputs();
+  document.querySelectorAll("[data-cf]").forEach(i => i.addEventListener(i.tagName==="SELECT"?"change":"input", e => {
+    S.compose[i.dataset.cf] = e.target.value;
+    const plan = S.compose.article_plan;
+    if (plan && (i.dataset.cf === "keyword" || i.dataset.cf === "title" || i.dataset.cf === "meta_description" || i.dataset.cf === "length")) {
+      plan[i.dataset.cf] = e.target.value;
+      refreshPlanSummary();
+    }
+    if (i.dataset.cf==="scheduled_at") render();
+  }));
   on("#pubStart", e => S.publish.start = e.target.value); on("#pubCad", e => S.publish.cadence = e.target.value, "change");
   on("#optPost", e => { S.optimize = {postId:+e.target.value,busy:false,src:null,sugs:[],applied:0}; render(); }, "change");
-  [["#rSeed","discover"],["#rCo","analyzeSerp"],["#pKw","genArticle"],["#pTopic","genIdeas"]].forEach(([id,act]) => on(id, e => { if (e.key==="Enter") document.querySelector(`[data-act="${act}"]`)?.click(); }, "keydown"));
+  [["#rSeed","discover"],["#rCo","analyzeSerp"],["#pKw","openArticlePlan"],["#pTopic","genIdeas"]].forEach(([id,act]) => on(id, e => { if (e.key==="Enter") document.querySelector(`[data-act="${act}"]`)?.click(); }, "keydown"));
+}
+function bindPlanInputs(){
+  const plan = S.compose && S.compose.article_plan;
+  if (!plan || plan.approved) return;
+  document.querySelectorAll("[data-pfld]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", e => {
+    const key = el.dataset.pfld;
+    plan[key] = e.target.value;
+    if (key === "keyword") S.compose.keyword = e.target.value;
+    if (key === "title") S.compose.title = e.target.value;
+    if (key === "meta_description") S.compose.meta_description = e.target.value;
+    if (key === "length") S.compose.length = e.target.value;
+    refreshPlanSummary();
+  }));
+  document.querySelectorAll("[data-h2]").forEach(el => el.addEventListener("input", e => {
+    const h = plan.headings.find(x => x.id === el.dataset.h2);
+    if (h) h.text = e.target.value;
+    refreshPlanSummary();
+  }));
+  document.querySelectorAll("[data-h3]").forEach(el => el.addEventListener("input", e => {
+    const h = plan.headings.find(x => x.id === el.dataset.h3);
+    const i = +el.dataset.h3i;
+    if (h && h.h3s && i >= 0) h.h3s[i] = e.target.value;
+    refreshPlanSummary();
+  }));
+  document.querySelectorAll("[data-img][data-ifld]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", e => {
+    const img = findPlanImage(el.dataset.img);
+    if (!img) return;
+    const key = el.dataset.ifld;
+    img[key] = key === "afterH2" ? Number(e.target.value) : e.target.value;
+    if (key === "role"){
+      img.placement = img.role === "hero" ? "hero" : (img.placement === "hero" ? "after_h2" : img.placement);
+      render();
+      return;
+    }
+    if (key === "placement"){ render(); return; }
+    refreshPlanSummary();
+  }));
+  const h2c = document.getElementById("planH2Count");
+  if (h2c) h2c.addEventListener("change", e => {
+    const n = parseInt(e.target.value, 10);
+    if (!n) return;
+    setHeadingCount(plan, n);
+    render();
+  });
+  const ic = document.getElementById("planImgCount");
+  if (ic) ic.addEventListener("change", e => {
+    plan.images.custom_count = Math.max(0, Math.min(12, parseInt(e.target.value, 10) || 0));
+    applyImageMode(plan, "custom");
+    render();
+  });
+  document.querySelectorAll("[data-plan-file]").forEach(inp => inp.addEventListener("change", e => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (!file.type || file.type.indexOf("image/") !== 0) return toast("יש לבחור קובץ תמונה");
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = findPlanImage(inp.dataset.planFile);
+      if (!img) return;
+      img.src = String(reader.result || "");
+      img.fileName = file.name;
+      render();
+    };
+    reader.readAsDataURL(file);
+  }));
 }
 function trackKw(kw, group="ממחקר"){
   if (siteKw().some(k => k.kw === kw)) return;
@@ -2066,7 +2418,7 @@ document.addEventListener("click", e => {
   if (d.openwp){ const p = POSTS.find(x=>x.id===+d.openwp); if (p){ S.modal = { type: "wpPreview", post: { ...p } }; return renderOverlay(); } }
   if (d.act === "openWpPreview"){ const existing = POSTS.find(p=>p.id===S.compose?.id); const post = S.compose ? { ...existing, ...S.compose } : (POSTS.find(p=>p.id===1001) || {}); S.modal = { type: "wpPreview", post }; return renderOverlay(); }
   if (d.act === "sitePreview"){ S.modal = { type: "sitePreview", device: S.modal?.device || "desktop", post: { ...S.compose } }; return renderOverlay(); }
-  if (d.edit){ const p = POSTS.find(x=>x.id===+d.edit); S.compose = {...p, scheduled_at: p.scheduled_at && p.status==="scheduled" ? p.scheduled_at.slice(0,16) : ""}; S.drawer = null; return go("produce"); }
+  if (d.edit){ const p = POSTS.find(x=>x.id===+d.edit); S.compose = {...p, scheduled_at: p.scheduled_at && p.status==="scheduled" ? p.scheduled_at.slice(0,16) : "", article_plan: p.article_plan ? clonePlan(p.article_plan) : undefined}; S.drawer = null; return go("produce"); }
   if (d.rmpost){ POSTS.splice(POSTS.findIndex(x=>x.id===+d.rmpost),1); return render(); }
   if (d.pubnow){ S.modal = {type:"confirmPub", id:+d.pubnow}; return renderOverlay(); }
   if (d.unsched){ const p = POSTS.find(x=>x.id===+d.unsched); p.status = "draft"; p.scheduled_at = null; return render(); }
@@ -2107,6 +2459,150 @@ document.addEventListener("click", e => {
       if (f.id) Object.assign(PLANS.find(p=>p.id===f.id), f); else PLANS.push({...f, id:Date.now()%100000, site:S.site, created:Date.now()});
       S.research.planForm = null; return render(); }
     case "addComp": { const v = ($("#newComp").value||"").trim().toLowerCase(); if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(v)) return toast("דומיין לא תקין"); comps().push({domain:v,name:v}); S.comp = v; toast("המתחרה נוסף. המיקומים שלו יופיעו אחרי בדיקת המיקומים הבאה."); return render(); }
+    case "openArticlePlan": {
+      const R = S.produce;
+      if (!R.keyword.trim()) return toast("יש להזין מילת מפתח יעד");
+      const plan = createArticlePlan({
+        keyword: R.keyword.trim(),
+        length: R.length || "long",
+        word_count: R.wordCount || "",
+        h2_count: R.h2Count || ""
+      });
+      S.compose = {
+        id: null, keyword: plan.keyword, plan_id: R.plan || "", length: plan.length,
+        title: "", meta_description: "", content_html: "", scheduled_at: "", article_plan: plan
+      };
+      return render();
+    }
+    case "planH2Mode": {
+      const plan = S.compose && S.compose.article_plan;
+      if (!plan || plan.approved) return;
+      plan.h2_mode = d.mode || "manual";
+      return render();
+    }
+    case "planImgMode": {
+      const plan = S.compose && S.compose.article_plan;
+      if (!plan || plan.approved) return;
+      applyImageMode(plan, d.mode || "none");
+      return render();
+    }
+    case "planAddH2": {
+      const plan = S.compose && S.compose.article_plan;
+      if (!plan || plan.approved) return;
+      if (plan.headings.length >= 12) return toast("אפשר עד 12 כותרות H2");
+      plan.headings.push({ id: planUid("h"), text: "", h3s: [] });
+      return render();
+    }
+    case "planRemoveH2": {
+      const plan = S.compose && S.compose.article_plan;
+      if (!plan || plan.approved) return;
+      if (plan.headings.length <= 1) return toast("נדרשת לפחות כותרת H2 אחת");
+      const idx = plan.headings.findIndex(h => h.id === d.hid);
+      if (idx < 0) return;
+      plan.headings.splice(idx, 1);
+      (plan.images.items || []).forEach(img => {
+        if (img.role === "hero" || img.placement === "ai") return;
+        if (Number(img.afterH2) === idx) img.afterH2 = Math.max(0, idx - 1);
+        else if (Number(img.afterH2) > idx) img.afterH2 = Number(img.afterH2) - 1;
+      });
+      return render();
+    }
+    case "planAddH3": {
+      const plan = S.compose && S.compose.article_plan;
+      if (!plan || plan.approved) return;
+      const h = plan.headings.find(x => x.id === d.hid);
+      if (!h) return;
+      h.h3s = h.h3s || [];
+      if (h.h3s.length >= 8) return toast("אפשר עד 8 כותרות H3 לפרק");
+      h.h3s.push("");
+      return render();
+    }
+    case "planRemoveH3": {
+      const plan = S.compose && S.compose.article_plan;
+      if (!plan || plan.approved) return;
+      const h = plan.headings.find(x => x.id === d.hid);
+      if (!h || !h.h3s) return;
+      h.h3s.splice(+d.h3i, 1);
+      return render();
+    }
+    case "planRemoveImage": {
+      const plan = S.compose && S.compose.article_plan;
+      if (!plan || plan.approved) return;
+      plan.images.items = (plan.images.items || []).filter(i => i.id !== d.iid);
+      plan.images.custom_count = plan.images.items.length;
+      plan.images.mode = plan.images.items.length ? "custom" : "none";
+      return render();
+    }
+    case "planAiImage":
+      return toast("יצירת תמונה עם AI תחובר בשלב הבא. לא בוצעה קריאה.");
+    case "approvePlan": {
+      const c = S.compose, plan = c && c.article_plan;
+      if (!plan) return;
+      if (!(plan.keyword || "").trim()) return toast("יש להזין מילת מפתח");
+      if (!plan.headings.some(h => (h.text || "").trim())) return toast("יש למלא לפחות כותרת H2 אחת, או לבקש הצעת AI");
+      plan.approved = true;
+      c.keyword = plan.keyword.trim();
+      c.title = plan.title || c.title || "";
+      c.meta_description = plan.meta_description || "";
+      c.length = plan.length || c.length || "long";
+      if (String(plan.word_count || "").trim()) c.word_count = Number(plan.word_count);
+      toast("תוכנית המאמר אושרה. אפשר ליצור את המאמר המלא.");
+      return render();
+    }
+    case "editPlan": {
+      if (S.compose && S.compose.article_plan) S.compose.article_plan.approved = false;
+      return render();
+    }
+    case "planSuggest": {
+      const c = S.compose, plan = c && c.article_plan;
+      if (!plan || plan.approved) return;
+      if (plan.h2_mode === "manual") return toast("במצב כתיבה עצמית אין קריאת AI");
+      const kw = (plan.keyword || c.keyword || "").trim();
+      if (!kw) return toast("יש להזין מילת מפתח");
+      const R = S.produce;
+      R.busy = true;
+      R.lastError = null;
+      render();
+      fetch("/api/project-001/generate-article", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "outline",
+          keyword: kw,
+          title: plan.title || null,
+          length: plan.length || "long",
+          word_count: plan.word_count ? Number(plan.word_count) : undefined,
+          h2_count: plan.headings.length,
+          meta_description: plan.meta_description || ""
+        })
+      })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        R.busy = false;
+        if (res.ok && data.ok && data.action === "outline") {
+          R.lastError = null;
+          plan.headings = (data.headings || []).map(h => ({ id: planUid("h"), text: h.h2 || "", h3s: h.h3s || [] }));
+          if (!plan.headings.length) plan.headings = [{ id: planUid("h"), text: "", h3s: [] }];
+          if (!plan.title && data.title) { plan.title = data.title; c.title = data.title; }
+          if (!plan.meta_description && data.meta_description) { plan.meta_description = data.meta_description; c.meta_description = data.meta_description; }
+          if (!plan.word_count && data.word_count) plan.word_count = data.word_count;
+          plan.approved = false;
+          toast("התקבלו " + plan.headings.length + " כותרות. אפשר לערוך לפני האישור.");
+        } else {
+          const errMsg = data.error || ("שגיאת שרת (" + res.status + ")");
+          R.lastError = errMsg;
+          toast("שגיאת Gemini: " + errMsg);
+        }
+        render();
+      })
+      .catch(err => {
+        R.busy = false;
+        R.lastError = "שגיאת תקשורת: " + err.message;
+        toast("תקשורת נכשלה: " + err.message);
+        render();
+      });
+      return;
+    }
     case "genArticle": {
       const R = S.produce;
       if (!R.keyword.trim()) return toast("יש להזין מילת מפתח יעד");
@@ -2174,20 +2670,34 @@ document.addEventListener("click", e => {
     case "closeCompose": S.compose = null; return render();
     case "composeGen": {
       const c = S.compose;
+      if (planGate(c)) return toast("יש לאשר את תוכנית המאמר לפני יצירת המאמר המלא");
       if (!c.keyword.trim()) return toast("הזן מילת מפתח");
       const R = S.produce;
       R.busy = true;
       R.lastError = null;
       render();
+      const payload = {
+        keyword: c.keyword.trim(),
+        title: c.title.trim() || null,
+        length: c.length || 'long',
+        plan: c.plan_id || null
+      };
+      if (c.article_plan && c.article_plan.approved) {
+        payload.action = "article";
+        payload.title = (c.article_plan.title || c.title || "").trim() || null;
+        payload.length = c.article_plan.length || payload.length;
+        payload.meta_description = c.article_plan.meta_description || "";
+        if (c.article_plan.word_count) payload.word_count = Number(c.article_plan.word_count);
+        payload.outline = {
+          title: c.article_plan.title || "",
+          meta_description: c.article_plan.meta_description || "",
+          headings: (c.article_plan.headings || []).map(h => ({ h2: h.text || "", h3s: h.h3s || [] }))
+        };
+      }
       fetch('/api/project-001/generate-article', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keyword: c.keyword.trim(),
-          title: c.title.trim() || null,
-          length: c.length || 'long',
-          plan: c.plan_id || null
-        })
+        body: JSON.stringify(payload)
       })
       .then(async res => {
         const data = await res.json().catch(() => ({}));
@@ -2222,6 +2732,9 @@ document.addEventListener("click", e => {
       let p = POSTS.find(x => x.id === c.id);
       const status = sched ? "scheduled" : p?.status === "published" ? "published" : "draft";
       const data = {title:c.title, keyword:c.keyword, plan_id:c.plan_id?+c.plan_id:null, meta_description:c.meta_description, content_html:c.content_html, status, scheduled_at:sched, updated_at:new Date().toISOString()};
+      if (c.length) data.length = c.length;
+      if (c.word_count) data.word_count = c.word_count;
+      if (c.article_plan) data.article_plan = clonePlan(c.article_plan);
       if (p) Object.assign(p, data); else { p = {id:++PID, site:S.site, published_at:null, published_url:null, error:null, rank:null, rank_checked_at:null, created_at:new Date().toISOString(), ...data}; POSTS.unshift(p); }
       if (d.act === "composePublish"){ S.modal = {type:"confirmPub", id:p.id}; S.compose = null; render(); return renderOverlay(); }
       S.compose = null; toast(sched ? "המאמר תוזמן (הדגמה)" : "הטיוטה נשמרה"); return render(); }
