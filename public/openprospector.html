@@ -2480,14 +2480,15 @@ async function interpret(){
 
   let parsed = null;
   // ניסיון לקרוא ל-Edge Function של דליה אם זמינה
-  if (window._daliaAuth && window._daliaAuth.marketingGeminiChatUrl) {
+  const _auth = daliaAuth();
+  if (_auth && _auth.marketingGeminiChatUrl && _auth.accessToken) {
     try {
-      const res = await fetch(window._daliaAuth.marketingGeminiChatUrl, {
+      const res = await fetch(_auth.marketingGeminiChatUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "apikey": window._daliaAuth.anonKey,
-          "Authorization": `Bearer ${window._daliaAuth.accessToken}`
+          "apikey": _auth.anonKey,
+          "Authorization": `Bearer ${_auth.accessToken}`
         },
         body: JSON.stringify({
           prompt: `נתח את בקשת החיפוש לאיתור לקוחות עם צי רכב בישראל: "${q}". החזר אובייקט JSON בלבד בפורמט: {"region":"מרכז|צפון|דרום|כל הארץ","industry":"הפצה ולוגיסטיקה|שירות וטכנאי שטח|הובלות|בנייה ותשתיות|כל הענפים","fleet":5,"role":"מנהל צי רכב|קצין בטיחות בתעבורה|מנהל תפעול","count":20,"jobs":true,"keyword":"מילת מפתח"}`
@@ -4013,6 +4014,16 @@ function exportCsv(subset){
 }
 
 /* ===== בדיקת חיבור חי לספק (TEST CONNECTION) ===== */
+/* Session של המשתמש המחובר: נשלח מה-Marketing Center ב-postMessage. אם ההודעה נשלחה לפני שה-iframe נטען,
+   קוראים את אותו session שה-Marketing Center כבר שמר (אותו origin) – בלי לעקוף בדיקת הרשאות בשרת */
+function daliaAuth() {
+  if (window._daliaAuth && window._daliaAuth.accessToken) return window._daliaAuth;
+  try {
+    const p = window.parent !== window && window.parent._daliaAuth;
+    if (p && p.accessToken) return p;
+  } catch (e) { /* parent from another origin – not accessible */ }
+  return window._daliaAuth || null;
+}
 /* פענוח תוצאת בדיקת Gemini: upstream_status = תשובת Google; בלעדיו – שגיאת הרשאה של שרת ה-Edge */
 function geminiTestResult(res, data) {
   if (!res) return { ok: false, label: "❌ Gemini לא זמין כרגע" };
@@ -4023,11 +4034,13 @@ function geminiTestResult(res, data) {
   if (up === 404) return { ok: false, label: `❌ המודל לא זמין${data.model ? ` (${data.model})` : ""}` };
   if (up === 401 || up === 403 || (up === 400 && /API_KEY|API key/i.test(reason))) return { ok: false, label: "❌ מפתח Gemini לא תקין / לא מורשה" };
   if (!up && res.status === 401) return { ok: false, label: "❌ לא מחובר – נדרשת התחברות" };
+  if (!up && res.status === 403 && /session required/i.test(reason)) return { ok: false, label: "❌ אין הרשאה – לא התקבל session של משתמש מחובר (פתח דרך מרכז השיווק אחרי התחברות)" };
+  if (!up && res.status === 403 && /inactive/i.test(reason)) return { ok: false, label: "❌ אין הרשאה – החשבון אינו פעיל" };
   if (!up && res.status === 403) return { ok: false, label: "❌ אין הרשאה / המשתמש אינו מורשה (נדרש super_admin)" };
   return { ok: false, label: "❌ Gemini לא זמין כרגע" };
 }
 async function geminiLiveTest() {
-  const auth = window._daliaAuth || {};
+  const auth = daliaAuth() || {};
   const t0 = performance.now();
   let res = null, data = {};
   try {
