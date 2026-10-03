@@ -450,7 +450,8 @@ const CONNECTIONS = [
   },
   {
     id: "gemini",
-    name: "Google Gemini AI (2.5 Flash / Pro)",
+    name: "Gemini AI",
+    model: "gemini-3.8-flash", /* ערך GEMINI_MODEL ב-STAGING; מתעדכן מתשובת הבדיקה */
     icon: "✨",
     category: "מנוע בינה מלאכותית",
     role: "פענוח שאילתות NLP, סיווג ענפי, הסקת ראיות לצי וחישוב ציון התאמה למוסך",
@@ -3769,6 +3770,7 @@ V.connections=()=>{
 
   <div class="conn-grid">
     ${CONNECTIONS.map(conn => {
+      if (conn.id === "gemini") return geminiCard(conn);
       const badgeClass = conn.status === "ok" ? "b-ok" : conn.status === "server_ready" ? "b-blue" : conn.status === "ready" ? "b-est" : "b-no";
       const priceBadge = conn.pricingType === "free" ? "badge b-ok xs" : conn.pricingType === "freemium" ? "badge b-blue xs" : "badge b-est xs";
       return `
@@ -3839,6 +3841,33 @@ V.connections=()=>{
   </div>
 `;
 };
+
+/* כרטיס Gemini: מצב אמיתי בלבד (טרם נבדק / מחובר / לא מחובר), מודל פעיל וכפתור בדיקה */
+function geminiCard(conn) {
+  const st = !conn.tested ? { cls: "b-no", txt: "טרם נבדק – לחץ \"בדיקת חיבור\"" }
+    : conn.status === "ok" ? { cls: "b-ok", txt: "✅ מחובר ומאומת" } : { cls: "b-bad", txt: "❌ לא מחובר" };
+  const row = (k, v) => `<div style="display:grid;grid-template-columns:110px minmax(0,1fr);gap:8px;align-items:baseline"><span class="xs muted">${k}</span><span class="sm" style="overflow-wrap:anywhere">${v}</span></div>`;
+  return `
+      <div class="conn-card" id="conn-gemini" style="border:2px solid ${conn.status === "ok" ? "#86efac" : "var(--blue)"}">
+        <div class="conn-h">
+          <div class="conn-ico">✨</div>
+          <div style="flex:1;min-width:0">
+            <b style="font-size:17px">Gemini AI</b>
+            <div class="xs muted">מנוע AI · Supabase Edge Function <span class="ltr">marketing-gemini-chat</span> · STAGING</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;background:var(--soft);border:1px solid var(--border);border-radius:10px;padding:12px">
+          ${row("סטטוס:", `<span class="badge ${st.cls}" style="font-size:13px">${st.txt}</span>`)}
+          ${row("המודל הפעיל:", `<span class="ltr bold">${esc(conn.model || "—")}</span> <span class="xs faint">${conn.modelFromServer ? "(דווח ע\"י השרת בבדיקה)" : "(הגדרת GEMINI_MODEL ב-STAGING)"}</span>`)}
+          ${row("בדיקה אחרונה:", `<span class="conn-last-check">${esc(conn.tested ? conn.lastCheck : "לא בוצעה בדיקה בסשן הזה")}</span>`)}
+          ${row("מפתח API:", "GEMINI_API_KEY – שמור בשרת בלבד, לא נחשף בדפדפן")}
+        </div>
+        <div class="row" style="margin-top:auto">
+          <button class="btn btn-primary" data-test-conn="gemini">בדיקת חיבור</button>
+          <span class="xs muted" style="flex:1;min-width:160px">שולח "החזר רק את המילה OK". דורש התחברות super_admin. Google Places הוא חיבור נפרד.</span>
+        </div>
+      </div>`;
+}
 
 /* ===== מנועי AI (פירוט) ===== */
 V.ai=()=>`
@@ -4013,7 +4042,7 @@ async function geminiLiveTest() {
     });
     data = await res.json().catch(() => ({}));
   } catch (e) { res = null; }
-  return { ...geminiTestResult(res, data), http: res ? (data.upstream_status || res.status) : 0, ms: Math.round(performance.now() - t0) };
+  return { ...geminiTestResult(res, data), http: res ? (data.upstream_status || res.status) : 0, ms: Math.round(performance.now() - t0), model: (data && data.model) || "" };
 }
 async function testConnection(connId, btnEl) {
   if (btnEl) {
@@ -4071,6 +4100,8 @@ async function testConnection(connId, btnEl) {
       const r = await geminiLiveTest();
       conn.status = r.ok ? "ok" : "error";
       conn.liveTested = r.ok;
+      conn.tested = true;
+      if (r.model) { conn.model = r.model; conn.modelFromServer = true; }
       conn.lastCheck = `${r.label}${r.http ? ` (HTTP ${r.http}, ${r.ms}ms)` : ""} · ${nowStr}`;
       toast(`Gemini AI: ${r.label}`);
     } else {
@@ -4086,10 +4117,12 @@ async function testConnection(connId, btnEl) {
 
   if (btnEl) {
     btnEl.disabled = false;
-    btnEl.textContent = conn.canLiveTest ? "בדיקת חיבור חיה" : "פרטי חיבור והגדרה";
+    btnEl.textContent = connId === "gemini" ? "בדיקת חיבור" : conn.canLiveTest ? "בדיקת חיבור חיה" : "פרטי חיבור והגדרה";
   }
   const checkEl = $(`#conn-${connId} .conn-last-check`);
   if (checkEl) checkEl.textContent = conn.lastCheck;
+  const gEl = connId === "gemini" && $("#conn-gemini");
+  if (gEl) gEl.outerHTML = geminiCard(conn);
 }
 
 /* ===== בדיקת מקור מידע חי (TEST SOURCE) ===== */
