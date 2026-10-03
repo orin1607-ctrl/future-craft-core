@@ -4,6 +4,7 @@ name: Deploy Staging to GitHub Pages
 # - Auto on push to main
 # - Owner-approved: also deploy feat/incident-alerts-staging to Staging Pages (NO merge to main)
 # - Manual workflow_dispatch can deploy any ref without merging to main
+# - Push to codex/garage-open-case-flow-staging publishes the inactive Pages site only.
 
 on:
   workflow_dispatch:
@@ -16,6 +17,7 @@ on:
     branches:
       - main
       - feat/incident-alerts-staging
+      - codex/garage-open-case-flow-staging
 
 permissions:
   contents: read
