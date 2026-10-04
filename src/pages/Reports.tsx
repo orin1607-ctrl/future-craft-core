@@ -28,6 +28,7 @@ import {
   VEHICLE_EXPIRY_SELECT,
   buildVehicleRenewalEvents,
 } from '@/lib/vehicleExpiryShared';
+import { excludeArchivedVehicles } from '@/lib/vehicleArchive';
 import { useVehicleTypes } from '@/hooks/useVehicleTypes';
 import {
   buildPlateToVehicleType,
@@ -407,7 +408,7 @@ export default function Reports() {
   ]);
 
   const testsInPeriod = useMemo(
-    () => buildVehicleRenewalEvents(filtered.vehicles, {
+    () => buildVehicleRenewalEvents(excludeArchivedVehicles(filtered.vehicles), {
       from: period.from,
       to: period.to,
       driverById,
