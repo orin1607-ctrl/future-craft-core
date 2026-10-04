@@ -28,7 +28,11 @@ import {
   VEHICLE_EXPIRY_SELECT,
   buildVehicleRenewalEvents,
 } from '@/lib/vehicleExpiryShared';
-import { excludeArchivedVehicles } from '@/lib/vehicleArchive';
+import {
+  findVehicleForTestsEvent,
+  isArchivedOnTestsReport,
+  vehiclesForTestsReport,
+} from '@/lib/testsReportActiveVehicles';
 import { useVehicleTypes } from '@/hooks/useVehicleTypes';
 import {
   buildPlateToVehicleType,
@@ -408,14 +412,15 @@ export default function Reports() {
   ]);
 
   const testsInPeriod = useMemo(
-    () => buildVehicleRenewalEvents(excludeArchivedVehicles(filtered.vehicles), {
+    () => buildVehicleRenewalEvents(vehiclesForTestsReport(filtered.vehicles), {
       from: period.from,
       to: period.to,
       driverById,
       kinds: ['test'],
     }).filter(e => !filterDriver || e.driverName === filterDriver)
-      .filter(e => !filterStatus || e.status === filterStatus),
-    [filtered.vehicles, period, driverById, filterDriver, filterStatus],
+      .filter(e => !filterStatus || e.status === filterStatus)
+      .filter(e => !isArchivedOnTestsReport(findVehicleForTestsEvent(raw.vehicles, e))),
+    [filtered.vehicles, raw.vehicles, period, driverById, filterDriver, filterStatus],
   );
 
   const insuranceInPeriod = useMemo(
@@ -531,10 +536,14 @@ export default function Reports() {
     };
 
     if (showReport('ops_tests')) {
-      pushBlock('טסטים', testsInPeriod.map(e => standardRow({
-        internal: e.internalNumber, plate: e.vehiclePlate, company: e.companyName,
-        driver: e.driverName, eventType: e.eventType, date: fmtDate(e.date), status: e.status,
-      })));
+      pushBlock('טסטים', testsInPeriod.map(e => {
+        const archived = isArchivedOnTestsReport(findVehicleForTestsEvent(raw.vehicles, e));
+        return standardRow({
+          internal: e.internalNumber, plate: e.vehiclePlate, company: e.companyName,
+          driver: e.driverName, eventType: e.eventType, date: fmtDate(e.date),
+          status: archived ? 'ארכיון' : e.status,
+        });
+      }));
     }
     if (showReport('ops_treatments') || showReport('faults')) {
       pushBlock('טיפולים', filtered.faults.map(f => standardRow({
@@ -907,15 +916,29 @@ export default function Reports() {
                 color="bg-primary/10 text-primary"
                 headline={formatSummaryHeadline(testsInPeriod.length, 'טסטים', period.labelSuffix)}
                 expanded={expandedReport === 'ops_tests'}
+                dataArchiveFilter="tests-v2"
               />
             }
             table={
               <DetailTable
                 headers={STANDARD_HEADERS}
-                rows={testsInPeriod.map(e => standardRow({
-                  internal: e.internalNumber, plate: e.vehiclePlate, company: e.companyName,
-                  driver: e.driverName, eventType: e.eventType, date: fmtDate(e.date), status: e.status,
-                }))}
+                rows={testsInPeriod.map(e => {
+                  const archived = isArchivedOnTestsReport(findVehicleForTestsEvent(raw.vehicles, e));
+                  return standardRow({
+                    internal: e.internalNumber, plate: e.vehiclePlate, company: e.companyName,
+                    driver: e.driverName, eventType: e.eventType, date: fmtDate(e.date),
+                    status: archived ? 'ארכיון' : e.status,
+                  }).map((cell, idx) => (
+                    idx === 7 && archived
+                      ? <span key="archive-badge" className="inline-flex rounded-md bg-amber-400 px-2 py-0.5 text-sm font-black text-amber-950">{cell}</span>
+                      : cell
+                  ));
+                })}
+                rowClassNames={testsInPeriod.map(e => (
+                  isArchivedOnTestsReport(findVehicleForTestsEvent(raw.vehicles, e))
+                    ? 'bg-amber-200 text-amber-950 font-bold'
+                    : undefined
+                ))}
               />
             }
           />
@@ -1332,15 +1355,16 @@ function ExpandableReport({ expanded, onToggle, card, table }: {
   );
 }
 
-function SummaryCard({ icon: Icon, color, headline, expanded, openLabel }: {
+function SummaryCard({ icon: Icon, color, headline, expanded, openLabel, dataArchiveFilter }: {
   icon: any;
   color: string;
   headline: string;
   expanded?: boolean;
   openLabel?: string;
+  dataArchiveFilter?: string;
 }) {
   return (
-    <div className="card-elevated hover:shadow-lg transition-shadow">
+    <div className="card-elevated hover:shadow-lg transition-shadow" data-archive-filter={dataArchiveFilter}>
       <div className="flex items-center gap-3">
         <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center shrink-0', color)}>
           <Icon size={24} />
@@ -1385,10 +1409,12 @@ function DetailTable({
   headers,
   rows,
   internalColumnIndex = 0,
+  rowClassNames,
 }: {
   headers: string[];
   rows: React.ReactNode[][];
   internalColumnIndex?: number;
+  rowClassNames?: Array<string | undefined>;
 }) {
   if (rows.length === 0) {
     return (
@@ -1409,7 +1435,7 @@ function DetailTable({
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className="border-b border-border/50 hover:bg-muted/40">
+            <tr key={i} className={cn('border-b border-border/50 hover:bg-muted/40', rowClassNames?.[i])}>
               {row.map((cell, j) => (
                 <td key={j} className="p-3 whitespace-nowrap">
                   {j === internalColumnIndex && typeof cell === 'string' && cell !== '-' && cell !== '—'

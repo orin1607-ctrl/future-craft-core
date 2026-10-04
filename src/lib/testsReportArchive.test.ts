@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { excludeArchivedVehicles } from './vehicleArchive';
 import { buildVehicleRenewalEvents } from './vehicleExpiryShared';
+import {
+  findVehicleForTestsEvent,
+  isArchivedOnTestsReport,
+  vehiclesForTestsReport,
+} from './testsReportActiveVehicles';
 
 /** Same filter the tests report applies before counting and listing. */
 function testsInPeriod(vehicles: Parameters<typeof buildVehicleRenewalEvents>[0], from: Date, to: Date) {
-  return buildVehicleRenewalEvents(excludeArchivedVehicles(vehicles), {
+  const events = buildVehicleRenewalEvents(vehiclesForTestsReport(vehicles), {
     from,
     to,
     kinds: ['test'],
   });
+  return events.filter((event) => !isArchivedOnTestsReport(findVehicleForTestsEvent(vehicles, event)));
 }
 
 describe('tests report archive filter', () => {
@@ -37,6 +42,13 @@ describe('tests report archive filter', () => {
       status: 'in_service',
       test_expiry: '2026-11-05',
     },
+    {
+      id: 'v-he-archive',
+      internal_number: '300',
+      license_plate: '33-333-33',
+      status: 'ארכיון',
+      test_expiry: '2026-11-12',
+    },
   ];
 
   it('keeps an archived November vehicle in the unfiltered builder', () => {
@@ -52,6 +64,13 @@ describe('tests report archive filter', () => {
     const events = testsInPeriod(vehicles, novemberFrom, novemberTo);
     expect(events.map((e) => e.internalNumber)).toEqual(['200', '100']);
     expect(events.some((e) => e.internalNumber === '484')).toBe(false);
+    expect(events.some((e) => e.internalNumber === '300')).toBe(false);
     expect(events).toHaveLength(2);
+  });
+
+  it('treats Hebrew ארכיון as archived on the existing status field', () => {
+    expect(isArchivedOnTestsReport({ status: 'ארכיון' })).toBe(true);
+    expect(isArchivedOnTestsReport({ status: 'archived' })).toBe(true);
+    expect(isArchivedOnTestsReport({ status: 'active' })).toBe(false);
   });
 });
