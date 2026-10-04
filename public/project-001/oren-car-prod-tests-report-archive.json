@@ -1,0 +1,15 @@
+{
+  "id": "oren-car-prod-tests-report-archive",
+  "armed": true,
+  "phase": "frontend",
+  "requestedAt": "2026-10-04T21:15:00.000Z",
+  "requestedBy": "owner",
+  "target": "https://dalia-car.online",
+  "supabaseRef": "qasomfndnjuixgjmjwcm",
+  "liveCommitBefore": "da5a00bb7516f34d052fa4e486b343e24b5ded91",
+  "restoreTag": "restore/prod-before-tests-report-archive-f602",
+  "scope": "tests-report-exclude-archived-vehicles",
+  "codeOnly": true,
+  "doNotMergeToMain": true,
+  "doNotMergeToOriginProduction": true
+}
