@@ -941,6 +941,12 @@ function render(){
   const v = state.view;
   const main = $('#main');
   main.innerHTML = v==='dashboard' ? renderDashboard() : v.startsWith('m/') ? renderModulePage(v.slice(2)) : renderShared(v);
+  const leadsFrame = main.querySelector('#module-frame-leads');
+  if (leadsFrame) {
+    leadsFrame.addEventListener('load', () => {
+      if (window._daliaAuth) leadsFrame.contentWindow.postMessage(window._daliaAuth, location.origin);
+    }, { once: true });
+  }
   // OpenProspector reads real leads from Supabase STAGING, so the demo notice does not apply to it
   const strip = $('#demoStrip'); if (strip) strip.style.display = (v==='m/leads') ? 'none' : '';
   ShellBridge.notify();
