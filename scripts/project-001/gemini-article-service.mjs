@@ -161,7 +161,7 @@ ${lengthGuide}
           ],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: length === 'long' ? 8192 : length === 'medium' ? 4096 : 2048,
+            maxOutputTokens: 8192,
             responseMimeType: 'application/json'
           }
         })
@@ -337,7 +337,7 @@ async function generateOutlineWithGemini({
           contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${userContent}` }] }],
           generationConfig: {
             temperature: 0.4,
-            maxOutputTokens: 2048,
+            maxOutputTokens: 8192,
             responseMimeType: 'application/json'
           }
         })

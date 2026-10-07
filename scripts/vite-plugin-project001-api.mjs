@@ -2,6 +2,7 @@ import { execSync } from 'child_process';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { generateArticleWithGemini } from './project-001/gemini-article-service.mjs';
+import { generateImageWithGemini } from './project-001/gemini-image-service.mjs';
 
 const ROOT = process.cwd();
 
@@ -89,6 +90,18 @@ export function project001ApiPlugin() {
             const result = await generateArticleWithGemini({
               keyword, title, length, plan, audience, action, word_count, h2_count, meta_description, outline
             });
+            json(res, result.ok ? 200 : (result.status || 500), result);
+          } catch (e) {
+            json(res, 500, { ok: false, error: String(e.message || e) });
+          }
+          return;
+        }
+
+        if (url === '/api/project-001/generate-image' && req.method === 'POST') {
+          try {
+            const body = await readBody(req);
+            const { prompt, role, keyword, title, h2Context } = body;
+            const result = await generateImageWithGemini({ prompt, role, keyword, title, h2Context });
             json(res, result.ok ? 200 : (result.status || 500), result);
           } catch (e) {
             json(res, 500, { ok: false, error: String(e.message || e) });
