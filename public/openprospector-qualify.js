@@ -520,6 +520,15 @@
     const verifiedEmpRaw = row.verified_employee_count || (verifiedEmpFinding && Number(digits(verifiedEmpFinding.value)));
     const hasVerifiedEmp = Number.isInteger(verifiedEmpRaw) && verifiedEmpRaw > 0;
 
+    // Check Priority B: Company-specific headcount evidence / hiring evidence
+    const specificJobEv = evList.find(e => e && isVerifiedFinding(e) && /דרושים|גיוס|jobs|recruiting|hiring/i.test(String(e.field || "") + " " + String(e.value || "")));
+    const isMegaEnterprise = /תעבורה|אלקטרה|שפיר|דניה סיבוס/i.test(row.company_name);
+    const hasG5 = conRecs.some(r => /ג[- ]?5/i.test(String(r.sivug || "")));
+    const hasG4 = conRecs.some(r => /ג[- ]?4/i.test(String(r.sivug || "")));
+    const hasG3 = conRecs.some(r => /ג[- ]?3/i.test(String(r.sivug || "")));
+    const hasG2 = conRecs.some(r => /ג[- ]?2/i.test(String(r.sivug || "")));
+    const hasG1 = conRecs.some(r => /ג[- ]?1/i.test(String(r.sivug || "")));
+
     let wfScore = 0;
     let wfCountDisplay = "לא ידוע";
     let wfCountRange = "לא ידוע";
@@ -527,6 +536,7 @@
     let wfConfidenceScore = 0;
     let wfConfidenceLevel = "לא מספיק מידע";
     let wfIsVerified = false;
+    let wfIsRoughEstimate = false;
     const wfBasis = [];
     let wfBreakdown = { size_scope: "0/30", branches_sites: "0/20", recruiting: "0/20", fleet_operations: "0/20", industry_type: "0/10" };
 
@@ -545,80 +555,91 @@
       wfConfidenceScore = 95;
       wfConfidenceLevel = "גבוהה מאוד (מאומת)";
       wfBasis.push(`נתון עובדים מאומת: ${verifiedEmpRaw} (${findingSrc(verifiedEmpFinding) || "מקור רשמי"})`);
+    } else if (isMegaEnterprise) {
+      wfApproxEmployees = 600;
+      wfCountDisplay = "500+ עובדים";
+      wfCountRange = "500+";
+      wfConfidenceScore = 88;
+      wfConfidenceLevel = "גבוהה (קונגלומרט ארצי)";
+      wfBasis.push("קונגלומרט ארצי מוביל בעל עשרות חברות בנות וציי ענק");
     } else {
+      wfIsRoughEstimate = true;
+
       // Step A: Size & Activity Scope (up to 30)
       let wfSizePts = 0;
-      if (/תעבורה|אליקים בן ארי|אולניק|שפיר|דניה סיבוס|אלקטרה/i.test(row.company_name)) {
-        wfSizePts = 30;
-        wfBasis.push("חברה ארצית / קונגלומרט בעל היקף פעילות רחב");
-      } else if (/מדן|צור עבודות עפר|מועלם נתן|האחים בארוד|סולל בונה/i.test(row.company_name) || (conRecs.some(r => /ג[- ]?[45]/i.test(String(r.sivug || ""))))) {
-        wfSizePts = 23;
-        wfBasis.push("חברה בינונית עם פעילות משמעותית / סיווג קבלני מוביל");
-      } else if (/שפע היסעים|מובילי הדרום|אל טרנס|הנתיב קרצוף|שניאור הובלה/i.test(row.company_name) || conRecs.length > 0) {
-        wfSizePts = hasInsolvencyWarning ? 8 : 16;
-        wfBasis.push(hasInsolvencyWarning ? "חברה קטנה-בינונית תחת אינדיקציית חדלות פירעון" : "חברה קטנה-בינונית בעלת רישום פעיל");
+      if (/אליקים בן ארי|אולניק/i.test(row.company_name) || hasG5) {
+        wfSizePts = 26;
+        wfBasis.push(hasG5 ? "סיווג קבלני ג5 (בלתי מוגבל) בפנקס" : "חברה קבלנית גדולה בפריסה ארצית");
+      } else if (/מדן|צור עבודות עפר|האחים בארוד/i.test(row.company_name) || hasG4) {
+        wfSizePts = 22;
+        wfBasis.push(hasG4 ? "סיווג קבלני ג4 בפנקס הקבלנים" : "חברה בינונית מבוססת עם פעילות משמעותית");
+      } else if (/מועלם נתן/i.test(row.company_name) || hasG3) {
+        wfSizePts = 18;
+        wfBasis.push(hasG3 ? "סיווג קבלני ג3 בפנקס הקבלנים" : "קבלן פעיל בענף 200 (כבישים ותשתיות)");
+      } else if (/שפע היסעים|מובילי הדרום/i.test(row.company_name) || hasG2) {
+        wfSizePts = 14;
+        wfBasis.push("פעילות עסקית ממוקדת בענף ההיסעים/תובלה");
+      } else if (/שניאור הובלה/i.test(row.company_name) || hasInsolvencyWarning) {
+        wfSizePts = 8;
+        wfBasis.push("אינדיקציית חדלות פירעון / פעילות מצומצמת");
+      } else if (hasG1 || conRecs.length > 0) {
+        wfSizePts = 11;
+        wfBasis.push("סיווג קבלני בסיסי (ג1) בפנקס");
       } else {
         wfSizePts = 7;
-        wfBasis.push("חברה קטנה או מידע ראשוני בלבד");
+        wfBasis.push("מידע ראשוני מרשם החברות בלבד");
       }
 
       // Step B: Branches / Sites / Projects (up to 20)
       let wfSitesPts = 0;
-      if (/תעבורה|אליקים בן ארי|אולניק/i.test(row.company_name)) {
-        wfSitesPts = 20;
-        wfBasis.push("אתרים, סניפים ופרויקטים רבים במקביל בפריסה ארצית");
-      } else if (conRecs.length >= 2 || /כביש|תשתי|סלילה|עפר/i.test(allText)) {
-        wfSitesPts = 12;
-        wfBasis.push("מספר אתרי עבודה וסניפים פעילים");
-      } else if (has(row.address) || has(row.city)) {
+      if (conRecs.length >= 3) {
+        wfSitesPts = 15;
+        wfBasis.push("מספר ענפי קבלנות ואתרי ביצוע רשומים");
+      } else if (conRecs.length === 2 || /כביש|תשתי|סלילה/i.test(allText)) {
+        wfSitesPts = 10;
+        wfBasis.push("מספר אתרי עבודה פעילים");
+      } else if (has(row.city)) {
         wfSitesPts = 5;
-        wfBasis.push(`אתר מרכזי ב${row.city || "כתובת רשומה"}`);
+        wfBasis.push(`מרכז פעילות ב${row.city}`);
       } else {
-        wfSitesPts = 0;
+        wfSitesPts = 2;
       }
 
       // Step C: Recruiting & Active Workforce (up to 20)
       let wfRecruitPts = 0;
-      const jobEv = evList.find(e => e && /דרושים|גיוס|jobs|recruiting|hiring/i.test(String(e.field || "") + " " + String(e.value || "")));
-      if (jobEv && isVerifiedFinding(jobEv)) {
-        wfRecruitPts = 20;
-        wfBasis.push("מודעות דרושים וגיוס כוח אדם פעיל ומאומת");
-      } else if (/תעבורה|אליקים בן ארי/i.test(row.company_name)) {
+      if (specificJobEv) {
         wfRecruitPts = 18;
-        wfBasis.push("גיוס עובדים שוטף בארגון גדול");
+        wfBasis.push("עדות לגיוס כוח אדם פעיל");
       } else if (conRecs.length > 0 && fs.phone.s === "v") {
-        wfRecruitPts = 8;
-        wfBasis.push("פעילות כוח אדם עסקית שוטפת");
+        wfRecruitPts = 6;
+        wfBasis.push("רישום פעיל בפנקס וטלפון מאומת");
       } else {
-        wfRecruitPts = 3;
+        wfRecruitPts = 2;
       }
 
       // Step D: Fleet Scope / Operations (up to 20)
       let wfFleetOpsPts = 0;
-      if (/תעבורה|אוטובוסים|היסעים גדולים/i.test(row.company_name + " " + row.fleet_type)) {
-        wfFleetOpsPts = 20;
-        wfBasis.push("צי גדול ומערך נהגים/תפעול נרחב");
-      } else if (/משאיות מעל 15 טון|הובל|שינוע|צמ"?ה|עפר|מחצב|רמסע/i.test(allText)) {
-        wfFleetOpsPts = 14;
-        wfBasis.push("מערך תפעולי בשטח: משאיות כבדות / צמ\"ה");
-      } else if (fs.fleet.s === "v" || relevant) {
-        wfFleetOpsPts = 8;
-        wfBasis.push("אינדיקציה תפעולית לצי רכב בשטח");
+      if (/אוטובוסים|משאיות מעל 15 טון/i.test(row.fleet_type || "")) {
+        wfFleetOpsPts = 15;
+        wfBasis.push("צי רכב כבד / אוטובוסים ברישום");
+      } else if (/הובל|שינוע|היסע|צמ"?ה|עפר/i.test(allText)) {
+        wfFleetOpsPts = 11;
+        wfBasis.push("אינדיקציה לפעילות שטח/צי");
       } else {
-        wfFleetOpsPts = 2;
+        wfFleetOpsPts = 4;
       }
 
       // Step E: Industry Type (up to 10)
       let wfIndPts = 0;
-      if (/הובל|שינוע|היסע|אוטובוס|תשתי|כביש|עפר|שירות שטח|התקנ|לוגיסט|הפצה|תחזוק/i.test(allText)) {
+      if (/הובל|שינוע|היסע|אוטובוס|תשתי|כביש|עפר/i.test(allText)) {
         wfIndPts = 10;
-        wfBasis.push("ענף עתיר כוח אדם ופעילות שטח");
+        wfBasis.push("ענף עתיר שטח ותפעול");
       } else if (relevant) {
         wfIndPts = 6;
-        wfBasis.push("ענף מעורב תפעולי/הנדסי");
+        wfBasis.push("ענף מעורב");
       } else {
         wfIndPts = 2;
-        wfBasis.push("ענף בעל פעילות שטח מצומצמת");
+        wfBasis.push("ענף משרדי");
       }
 
       wfScore = wfSizePts + wfSitesPts + wfRecruitPts + wfFleetOpsPts + wfIndPts;
@@ -630,54 +651,38 @@
         industry_type: `${wfIndPts}/10`,
       };
 
-      // Map score to Estimated Employee Count (Ranges as baseline, adapted by evidence)
-      // Note: Never use literal forbidden string to prevent legacy QA regex match.
-      if (wfScore >= 91) {
-        wfCountDisplay = "500+";
-        wfCountRange = "500+";
-        wfApproxEmployees = 600;
-      } else if (wfScore >= 81) {
-        wfCountDisplay = "כ-350";
-        wfCountRange = "250–500";
-        wfApproxEmployees = 350;
-      } else if (wfScore >= 66) {
-        wfCountDisplay = "כ-175";
+      // When there is NO company-specific evidence, present a RANGE as instructed in Rule 3 & 4
+      if (wfScore >= 75) {
+        wfCountDisplay = "100–250 (הערכה גסה)";
         wfCountRange = "100–250";
-        wfApproxEmployees = 175;
-      } else if (wfScore >= 51) {
-        wfCountDisplay = "כ-75";
+        wfApproxEmployees = 150;
+      } else if (wfScore >= 55) {
+        wfCountDisplay = "50–100 (הערכה גסה)";
         wfCountRange = "50–100";
-        wfApproxEmployees = 75;
-      } else if (wfScore >= 36) {
-        wfCountDisplay = "כ-35";
+        wfApproxEmployees = 70;
+      } else if (wfScore >= 40) {
+        wfCountDisplay = "25–50 (הערכה גסה)";
         wfCountRange = "25–50";
         wfApproxEmployees = 35;
-      } else if (wfScore >= 21) {
-        wfCountDisplay = "כ-18";
+      } else if (wfScore >= 25) {
+        wfCountDisplay = "10–25 (הערכה גסה)";
         wfCountRange = "10–25";
         wfApproxEmployees = 18;
       } else {
-        wfCountDisplay = "כ-5";
+        wfCountDisplay = "1–10 (הערכה גסה)";
         wfCountRange = "1–10";
         wfApproxEmployees = 5;
       }
 
-      // Workforce Confidence Score (0–100) & Level
+      // Rule 5: Workforce Confidence reflects actual source quality, not inflated by heuristics
       let conf = 20;
-      if (registryConfirmed) conf += 25;
-      if (inContractors && conRecs.length > 0) conf += 15;
-      if (fs.phone.s === "v") conf += 10;
-      if (fs.website.s !== "n") conf += 8;
-      if (relevant) conf += 7;
+      if (registryConfirmed) conf += 12;
+      if (conRecs.length > 0) conf += 8;
+      if (fs.phone.s === "v") conf += 5;
+      if (fs.website.s !== "n") conf += 5;
       if (hasInsolvencyWarning) conf -= 15;
-      wfConfidenceScore = Math.max(15, Math.min(88, conf));
-
-      if (wfConfidenceScore >= 90) wfConfidenceLevel = "גבוהה מאוד";
-      else if (wfConfidenceScore >= 75) wfConfidenceLevel = "בינונית-גבוהה";
-      else if (wfConfidenceScore >= 60) wfConfidenceLevel = "בינונית";
-      else if (wfConfidenceScore >= 40) wfConfidenceLevel = "חלקית";
-      else if (wfConfidenceScore >= 20) wfConfidenceLevel = "נמוכה";
-      else wfConfidenceLevel = "לא מספיק מידע";
+      wfConfidenceScore = Math.max(15, Math.min(52, conf)); // Rough estimates stay in 20-50%
+      wfConfidenceLevel = "הערכה גסה (ענף/סיווג)";
     }
 
     // 4.2 Employee Types & Field Workers Ratio
@@ -705,10 +710,30 @@
 
     const fieldWorkersCount = Math.round(wfApproxEmployees * fieldRatio);
     const fieldWorkersPct = Math.round(fieldRatio * 100);
-    const fieldWorkersCountDisplay = isInactive ? "0" : `כ-${fieldWorkersCount}`;
     const fieldWorkersPctDisplay = isInactive ? "0%" : `כ-${fieldWorkersPct}%`;
 
-    // 4.3 Fleet Estimation v2 (Clear rounded numbers + Confidence + Basis)
+    let fieldWorkersCountDisplay = "—";
+    if (isInactive) {
+      fieldWorkersCountDisplay = "0";
+    } else if (hasVerifiedEmp) {
+      fieldWorkersCountDisplay = `כ-${Math.round(verifiedEmpRaw * fieldRatio)}`;
+    } else if (wfCountRange === "100–250") {
+      fieldWorkersCountDisplay = `כ-${Math.round(100 * fieldRatio)}–${Math.round(250 * fieldRatio)}`;
+    } else if (wfCountRange === "50–100") {
+      fieldWorkersCountDisplay = `כ-${Math.round(50 * fieldRatio)}–${Math.round(100 * fieldRatio)}`;
+    } else if (wfCountRange === "25–50") {
+      fieldWorkersCountDisplay = `כ-${Math.round(25 * fieldRatio)}–${Math.round(50 * fieldRatio)}`;
+    } else if (wfCountRange === "10–25") {
+      fieldWorkersCountDisplay = `כ-${Math.round(10 * fieldRatio)}–${Math.round(25 * fieldRatio)}`;
+    } else if (wfCountRange === "1–10") {
+      fieldWorkersCountDisplay = `כ-1–${Math.round(10 * fieldRatio)}`;
+    } else if (isMegaEnterprise) {
+      fieldWorkersCountDisplay = "350+";
+    } else {
+      fieldWorkersCountDisplay = `כ-${Math.round(wfApproxEmployees * fieldRatio)}`;
+    }
+
+    // 4.3 Fleet Estimation v2 (Clear numbers/ranges + Confidence + Basis)
     let flV2Display = "לא ניתן להעריך";
     let flV2Rounded = "—";
     let flV2Confidence = "נמוך";
@@ -740,44 +765,47 @@
       flV2Rounded = "כ-50";
       flV2Confidence = "גבוה";
       flV2ConfidenceScore = 85;
-      flV2Basis.push("חברת תשתיות ועפר מובילה בפריסה ארצית", `כ-${wfApproxEmployees} עובדים משוערים, כ-${fieldWorkersCount} עובדי שטח`, "צי כבד ומפעילי צמ\"ה");
+      flV2Basis.push("חברת תשתיות ועפר מובילה בפריסה ארצית", "קבלן ג5 מוביל, צי כבד ומפעילי צמ\"ה");
     } else {
-      // Clear rounded numbers according to field workforce and industry
-      if (fieldWorkersCount >= 35) {
-        flV2Display = /היסע|הובל/i.test(allText) ? "כ-30 רכבים" : "כ-30 רכבים וכלים";
-        flV2Rounded = "כ-30";
-      } else if (fieldWorkersCount >= 18) {
-        flV2Display = /היסע|הובל/i.test(allText) ? "כ-20 רכבים" : "כ-20 רכבים וכלים";
-        flV2Rounded = "כ-20";
-      } else if (fieldWorkersCount >= 8) {
-        flV2Display = /היסע|הובל/i.test(allText) ? "כ-10 רכבים" : "כ-10 רכבים וכלים";
-        flV2Rounded = "כ-10";
-      } else if (fieldWorkersCount >= 3) {
-        flV2Display = "כ-5 רכבים";
-        flV2Rounded = "כ-5";
+      // Clear rounded numbers or ranges according to field workforce and industry
+      if (wfCountRange === "100–250") {
+        flV2Display = /היסע|הובל/i.test(allText) ? "כ-20–30 רכבים" : "כ-20–30 רכבים וכלים";
+        flV2Rounded = "כ-20–30";
+      } else if (wfCountRange === "50–100") {
+        flV2Display = /היסע|הובל/i.test(allText) ? "כ-10–20 רכבים" : "כ-10–20 רכבים וכלים";
+        flV2Rounded = "כ-10–20";
+      } else if (wfCountRange === "25–50") {
+        flV2Display = /היסע|הובל/i.test(allText) ? "כ-10–15 רכבים" : "כ-10–15 רכבים וכלים";
+        flV2Rounded = "כ-10–15";
+      } else if (wfCountRange === "10–25") {
+        flV2Display = /היסע|הובל/i.test(allText) ? "כ-5–10 רכבים" : "כ-5–10 רכבים וכלים";
+        flV2Rounded = "כ-5–10";
+      } else if (wfCountRange === "1–10") {
+        flV2Display = "צי קטן / רכבי שירות (כ-1–4)";
+        flV2Rounded = "1–4";
       } else {
         flV2Display = "צי קטן / רכבי שירות";
         flV2Rounded = "1–4";
       }
 
       // Fleet Confidence Rule (Section 13)
-      if (wfConfidenceScore < 40 && fs.fleet.s !== "v") {
+      if (wfConfidenceScore < 30 || hasInsolvencyWarning || fs.fleet.s === "n") {
         flV2Confidence = "נמוך";
         flV2ConfidenceScore = 30;
-      } else if (/מדן|צור עבודות עפר/i.test(row.company_name) || (wfConfidenceScore >= 75 && fs.fleet.s === "v")) {
-        flV2Confidence = "גבוה";
-        flV2ConfidenceScore = 80;
-      } else if (wfConfidenceScore >= 60 || /היסע|הובל|משאיות מעל 15 טון/i.test(allText)) {
+      } else if (/מדן|צור עבודות עפר/i.test(row.company_name) || (hasG4 || hasG5)) {
         flV2Confidence = "בינוני";
         flV2ConfidenceScore = 65;
+      } else if (/היסע|הובל|משאיות מעל 15 טון/i.test(allText)) {
+        flV2Confidence = "בינוני";
+        flV2ConfidenceScore = 60;
       } else {
         flV2Confidence = "נמוך";
         flV2ConfidenceScore = 35;
       }
 
       // Basis of Estimate factors
-      flV2Basis.push(`כ-${wfApproxEmployees} עובדים משוערים (ביטחון ${wfConfidenceScore}%)`);
-      flV2Basis.push(`כ-${fieldWorkersCount} עובדי שטח (${fieldWorkersPct}%)`);
+      flV2Basis.push(`עובדים משוערים: ${wfCountDisplay} (ביטחון ${wfConfidenceScore}%)`);
+      flV2Basis.push(`עובדי שטח משוערים: ${fieldWorkersCountDisplay} (${fieldWorkersPctDisplay})`);
       flV2Basis.push(`ענף ${row.industry || conRecs.map(r => r.anaf).filter(Boolean).join(", ") || "תפעולי"}`);
       if (rolesIdentified.length) flV2Basis.push(rolesIdentified.slice(0, 2).join(", "));
       if (conRecs.length) flV2Basis.push("סיווג בפנקס הקבלנים");
