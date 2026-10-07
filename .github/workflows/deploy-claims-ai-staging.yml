@@ -1,0 +1,117 @@
+name: Deploy claims AI to Staging
+
+# Manual only. Staging Supabase usfeoerkpcafxxlyuldl.
+# Applies the claims AI conversation tables and deploys help-ai-chat.
+# Does not deploy GitHub Pages, Production, or project qasomfndnjuixgjmjwcm.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-claims-ai-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Guard Staging only
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" != "production"
+          test "${GITHUB_REF_NAME}" != "main"
+          test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
+
+      - name: Apply claims AI migration and deploy help-ai-chat
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = await import('node:fs');
+          const { execSync } = await import('node:child_process');
+          const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+          const STAGING = 'usfeoerkpcafxxlyuldl';
+          const PROD = 'qasomfndnjuixgjmjwcm';
+          if (!token) throw new Error('MISSING_TOKEN');
+          if (STAGING === PROD) throw new Error('ABORT_PROD');
+          const out = {
+            env: 'staging',
+            project: STAGING,
+            production_touched: false,
+            sha: execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim(),
+          };
+
+          async function mgmt(path, opts = {}) {
+            const res = await fetch(`https://api.supabase.com/v1${path}`, {
+              method: opts.method || 'GET',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: opts.body ? JSON.stringify(opts.body) : undefined,
+            });
+            const text = await res.text();
+            let json = null;
+            try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text.slice(0, 400) }; }
+            return { status: res.status, json, text: text.slice(0, 800) };
+          }
+
+          const probe = await mgmt(`/projects/${STAGING}`);
+          const ref = probe.json?.ref || probe.json?.id || '';
+          if (ref && ref !== STAGING) throw new Error(`ABORT_UNEXPECTED_PROJECT:${ref}`);
+          if (String(probe.text).includes(PROD)) throw new Error('ABORT_PROD_BODY');
+          out.project_probe_http = probe.status;
+
+          const sql = fs.readFileSync('supabase/migrations/20261007180000_claims_ai_conversations_staging.sql', 'utf8');
+          if (sql.includes(PROD)) throw new Error('ABORT_SQL_MENTIONS_PROD');
+          let mig = await mgmt(`/projects/${STAGING}/database/query`, { method: 'POST', body: { query: sql } });
+          out.migration_http = mig.status;
+          out.migration_preview = mig.text.slice(0, 300);
+          if (mig.status < 200 || mig.status >= 300) {
+            process.env.SUPABASE_ACCESS_TOKEN = token;
+            try {
+              const cli = execSync(
+                `npx --yes supabase db query --project-ref ${STAGING} -f supabase/migrations/20261007180000_claims_ai_conversations_staging.sql`,
+                { encoding: 'utf8', timeout: 180000 },
+              );
+              out.migration_cli = cli.slice(-400);
+              out.migration_http = 200;
+            } catch (err) {
+              out.migration_cli_error = String(err.stderr || err.message || err).slice(0, 500);
+              throw new Error(`MIGRATION_FAILED http=${mig.status}`);
+            }
+          }
+
+          const verify = await mgmt(`/projects/${STAGING}/database/query`, {
+            method: 'POST',
+            body: {
+              query: `select to_regclass('public.claims_ai_conversations')::text as conversations, to_regclass('public.claims_ai_messages')::text as messages, current_database() as db`,
+            },
+          });
+          out.verify_http = verify.status;
+          out.verify = verify.json;
+          const blob = JSON.stringify(verify.json || '');
+          if (!blob.includes('claims_ai_conversations') || !blob.includes('claims_ai_messages')) {
+            throw new Error(`TABLES_MISSING ${verify.text.slice(0, 300)}`);
+          }
+
+          process.env.SUPABASE_ACCESS_TOKEN = token;
+          const dep = execSync(
+            `npx --yes supabase functions deploy help-ai-chat --project-ref ${STAGING} --use-api`,
+            { encoding: 'utf8', timeout: 180000 },
+          );
+          if (dep.includes(PROD)) throw new Error('ABORT_DEPLOY_LOG_MENTIONS_PROD');
+          out.deploy_preview = dep.slice(-240);
+          out.function = 'help-ai-chat';
+          console.log(JSON.stringify(out, null, 2));
+          NODE
