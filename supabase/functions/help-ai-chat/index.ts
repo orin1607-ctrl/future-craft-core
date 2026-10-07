@@ -308,22 +308,25 @@ async function loadClaimsContext(
   if (!data) return { error: true, status: 403, message: "אין גישה לתיק הזה" };
 
   const row = (data.row_data && typeof data.row_data === "object" ? data.row_data : {}) as Record<string, unknown>;
-  const claimNum = claimText(row.claimNum) || "טרם התקבל";
+  const claimNum = claimText(row.claimNum) || claimText(data.id) || "טרם התקבל";
   const plate = claimText(data.plate) || claimText(row.plate);
   const model = claimText(row.carModel);
   const vehicle = [plate, model].filter(Boolean).join(" · ") || "—";
   const text = [
     "אתה עוזר דליה בתוך מודול ניהול תביעות.",
-    "התיק הפתוח עכשיו הוא המקור היחיד. אל תשתמש בפרטים של תיק אחר גם אם הופיעו קודם בשיחה.",
-    `claim_id: ${claimText(data.id)}`,
+    "התיק הפתוח עכשיו הוא המקור היחיד למידע על התביעה. אל תשתמש בפרטים של תיק אחר גם אם הופיעו קודם בשיחה.",
+    `מזהה תיק (claim_id): ${claimText(data.id)}`,
     `מספר תביעה: ${claimNum}`,
     `רכב: ${vehicle}`,
     `לקוח: ${claimText(data.client_name) || claimText(row.clientName) || "—"}`,
     `חברת ביטוח: ${claimText(row.insCompany) || "—"}`,
     `סטטוס: ${claimText(data.status) || "—"}`,
-    "אין בשלב הזה כלי כתיבה. אל תשלח מייל, אל תשנה סטטוס, ואל תסגור משימה.",
-    "אם מתבקשת פעולת כתיבה — תאר מה היה עומד לקרות ובקש אישור. אל תבצע.",
-    "חיפוש מיילים, מסמכים ותמונות מתוך התיק עדיין לא מחובר. אם שואלים עליהם, אמור זאת במפורש ואל תמציא תוכן.",
+    "",
+    "הנחיות חשובות:",
+    "- כששואלים 'על איזה תיק אני עובד עכשיו?' או שאלות דומות על התיק הפתוח, ענה במפורש בעברית עם פרטי התיק הפתוח (מספר תביעה, רכב, לקוח, חברת ביטוח וסטטוס).",
+    "- אין בשלב הזה כלי כתיבה. אל תשלח מייל, אל תשנה סטטוס, ואל תסגור משימה.",
+    "- אם מתבקשת פעולת כתיבה — תאר מה היה עומד לקרות ובקש אישור. אל תבצע.",
+    "- חיפוש מיילים, מסמכים ותמונות מתוך התיק עדיין לא מחובר ישירות לצ'אט. אם שואלים עליהם, אמור זאת במפורש ואל תמציא תוכן.",
   ].join("\n");
   return { text };
 }
@@ -350,31 +353,118 @@ function gatewayFailure(status: number, text: string): { error: string; status: 
   return { error: `שגיאה בשירות AI (${status}${detail ? `: ${detail}` : ""})`, status: status === 401 || status === 403 ? status : 500 };
 }
 
-async function openGatewayChat(
+async function callGemini(
   apiKey: string,
-  chatMessages: Array<Record<string, unknown>>,
-): Promise<{ firstResponse: Response; model: string; withTools: boolean } | { error: string; status: number }> {
-  let last = gatewayFailure(500, "");
-  for (const model of CHAT_MODELS) {
-    for (const withTools of [true, false]) {
-      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          messages: chatMessages,
-          stream: false,
-          ...(withTools ? { tools: DATA_TOOLS } : {}),
-        }),
-      });
-      if (res.ok) return { firstResponse: res, model, withTools };
-      const text = await res.text();
-      console.error("AI gateway error:", res.status, model, withTools, text.slice(0, 300));
-      last = gatewayFailure(res.status, text);
-      if (res.status === 401 || res.status === 403 || res.status === 429 || res.status === 402) return last;
+  preferredModel: string,
+  systemInstruction: string,
+  messages: Array<{ role: string; content: string }>,
+): Promise<{ text: string; model: string } | { error: string; status: number }> {
+  const modelCandidates = Array.from(new Set([
+    preferredModel,
+    "gemini-3.8-flash",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+  ].filter(Boolean)));
+
+  const contents: Array<{ role: "user" | "model"; parts: [{ text: string }] }> = [];
+  for (const m of messages) {
+    if (!m || !m.content) continue;
+    const role: "user" | "model" = m.role === "assistant" || m.role === "model" ? "model" : "user";
+    const text = String(m.content).trim();
+    if (!text) continue;
+    if (contents.length > 0 && contents[contents.length - 1].role === role) {
+      contents[contents.length - 1].parts[0].text += `\n${text}`;
+    } else {
+      contents.push({ role, parts: [{ text }] });
     }
   }
-  return last;
+
+  if (contents.length === 0) {
+    contents.push({ role: "user", parts: [{ text: "שלום" }] });
+  } else if (contents[0].role === "model") {
+    contents.unshift({ role: "user", parts: [{ text: "שלום" }] });
+  }
+
+  let lastError = { error: "שגיאה בתקשורת עם Gemini", status: 500 };
+
+  for (const model of modelCandidates) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemInstruction }] },
+          contents,
+          generationConfig: {
+            temperature: 0.65,
+            maxOutputTokens: 2048,
+          },
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
+        if (text) {
+          return { text, model };
+        }
+      }
+
+      const errText = await res.text();
+      console.error(`Gemini error with model ${model} (${res.status}):`, errText.slice(0, 200));
+
+      if (res.status === 429) {
+        return { error: "מגבלת בקשות, נסה שוב בעוד דקה", status: 429 };
+      }
+      if (res.status === 401 || res.status === 403) {
+        return { error: `שגיאת הרשאה בחיבור ל-Gemini (${res.status})`, status: res.status };
+      }
+      lastError = { error: `שגיאה בשירות Gemini (${res.status})`, status: res.status >= 400 && res.status < 500 ? res.status : 500 };
+    } catch (e) {
+      console.error(`Gemini network error with model ${model}:`, e);
+      lastError = { error: e instanceof Error ? e.message : "שגיאת רשת בחיבור ל-Gemini", status: 500 };
+    }
+  }
+
+  return lastError;
+}
+
+function streamTextAsSse(replyText: string): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        const words = replyText.split(" ");
+        for (let i = 0; i < words.length; i++) {
+          const piece = (i === 0 ? "" : " ") + words[i];
+          const payload = JSON.stringify({
+            choices: [{ delta: { content: piece } }],
+          });
+          controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
+          if (i % 2 === 0 && i < words.length - 1) {
+            await new Promise((r) => setTimeout(r, 10));
+          }
+        }
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      ...corsHeaders,
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+  });
 }
 
 Deno.serve(async (req) => {
@@ -393,8 +483,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    const GEMINI_API_KEY = (Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
+    const GEMINI_MODEL = (Deno.env.get("GEMINI_MODEL") || "gemini-3.8-flash").trim();
     const LOVABLE_API_KEY = (Deno.env.get("LOVABLE_API_KEY") || "").trim();
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    if (!GEMINI_API_KEY && !LOVABLE_API_KEY) {
+      throw new Error("AI service is not configured (missing GEMINI_API_KEY)");
+    }
 
     const supabase = ctx.supabaseUser;
     const companyScope = resolveCompanyScope(ctx, company_name);
@@ -414,7 +509,7 @@ Deno.serve(async (req) => {
       }
       claimBlock = loaded.text;
     } else if (module === "claims") {
-      claimBlock = "המשתמש במודול ניהול תביעות ואין תיק פתוח. אל תניח פרטים של תיק קודם. אם השאלה היא על מייל, מסמך או תמונה של תיק — בקש לפתוח את התיק.";
+      claimBlock = "המשתמש במודול ניהול תביעות ואין תיק פתוח כרגע. אל תניח פרטים של תיק קודם. אם השאלה היא על מייל, מסמך, תמונה או פרטי תיק ספציפי — בקש לפתוח את התיק.";
     }
 
     const fullSysPrompt = [
@@ -423,6 +518,22 @@ Deno.serve(async (req) => {
       claimBlock ? `--- תיק פתוח (נטען בשרת לפי הרשאת המשתמש) ---\n${claimBlock}` : "",
     ].filter(Boolean).join("\n\n");
 
+    // Primary: Google Gemini
+    if (GEMINI_API_KEY) {
+      const geminiResult = await callGemini(GEMINI_API_KEY, GEMINI_MODEL, fullSysPrompt, messages);
+      if ("error" in geminiResult) {
+        // If Gemini failed and Lovable key is available, try Lovable
+        if (!LOVABLE_API_KEY) {
+          return new Response(JSON.stringify({ error: geminiResult.error }), {
+            status: geminiResult.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } else {
+        return streamTextAsSse(geminiResult.text);
+      }
+    }
+
+    // Secondary / fallback: Lovable AI Gateway
     const chatMessages = [{ role: "system", content: fullSysPrompt }, ...messages];
     const opened = await openGatewayChat(LOVABLE_API_KEY, chatMessages);
     if ("error" in opened) {

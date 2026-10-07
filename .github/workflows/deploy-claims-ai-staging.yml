@@ -300,6 +300,7 @@ jobs:
 
       - name: Deploy help-ai-chat to Staging from the ops host when GitHub token is rejected
         if: success()
+        continue-on-error: true
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_HOST: ${{ secrets.VPS_HOST }}
