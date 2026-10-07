@@ -328,6 +328,54 @@ async function loadClaimsContext(
   return { text };
 }
 
+const CHAT_MODELS = [
+  "google/gemini-3-flash-preview",
+  "google/gemini-3.8-flash",
+  "google/gemini-2.5-flash",
+];
+
+function gatewayFailure(status: number, text: string): { error: string; status: number } {
+  let detail = "";
+  try {
+    const parsed = JSON.parse(text);
+    detail = String(parsed?.error?.message || parsed?.message || parsed?.error || "");
+  } catch {
+    detail = text;
+  }
+  detail = detail.replace(/sk-[A-Za-z0-9_\-]+/g, "[key]").replace(/sbp_[A-Za-z0-9]+/g, "[key]").slice(0, 160);
+  if (status === 429) return { error: "מגבלת בקשות, נסה שוב בעוד דקה", status: 429 };
+  if (status === 402) return { error: "נדרש תשלום - יש להוסיף קרדיטים ל-Lovable AI", status: 402 };
+  return { error: `שגיאה בשירות AI (${status}${detail ? `: ${detail}` : ""})`, status: status === 401 || status === 403 ? status : 500 };
+}
+
+async function openGatewayChat(
+  apiKey: string,
+  chatMessages: Array<Record<string, unknown>>,
+): Promise<{ firstResponse: Response; model: string; withTools: boolean } | { error: string; status: number }> {
+  let last = gatewayFailure(500, "");
+  for (const model of CHAT_MODELS) {
+    for (const withTools of [true, false]) {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model,
+          messages: chatMessages,
+          stream: false,
+          ...(withTools ? { tools: DATA_TOOLS } : {}),
+        }),
+      });
+      if (res.ok) return { firstResponse: res, model, withTools };
+      const text = await res.text();
+      console.error("AI gateway error:", res.status, model, withTools, text.slice(0, 300));
+      last = gatewayFailure(res.status, text);
+      if (res.status === 401 || res.status === 403 || res.status === 429 || res.status === 402) return last;
+      if (res.status !== 400 && res.status !== 404) break;
+    }
+  }
+  return last;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -344,7 +392,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = (Deno.env.get("LOVABLE_API_KEY") || "").trim();
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const supabase = ctx.supabaseUser;
@@ -374,37 +422,14 @@ Deno.serve(async (req) => {
       claimBlock ? `--- תיק פתוח (נטען בשרת לפי הרשאת המשתמש) ---\n${claimBlock}` : "",
     ].filter(Boolean).join("\n\n");
 
-    const firstResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [{ role: "system", content: fullSysPrompt }, ...messages],
-        tools: DATA_TOOLS,
-        stream: false,
-      }),
-    });
-
-    if (!firstResponse.ok) {
-      if (firstResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "מגבלת בקשות, נסה שוב בעוד דקה" }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (firstResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "נדרש תשלום - יש להוסיף קרדיטים ל-Lovable AI" }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await firstResponse.text();
-      console.error("AI gateway error:", firstResponse.status, t);
-      return new Response(JSON.stringify({ error: "שגיאה בשירות AI" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const chatMessages = [{ role: "system", content: fullSysPrompt }, ...messages];
+    const opened = await openGatewayChat(LOVABLE_API_KEY, chatMessages);
+    if ("error" in opened) {
+      return new Response(JSON.stringify({ error: opened.error }), {
+        status: opened.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const { firstResponse, model, withTools } = opened;
 
     const firstResult = await firstResponse.json();
     const firstChoice = firstResult.choices?.[0];
@@ -422,7 +447,7 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
+          model,
           messages: [
             { role: "system", content: fullSysPrompt },
             ...messages,
@@ -446,8 +471,9 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model,
         messages: [{ role: "system", content: fullSysPrompt }, ...messages],
+        ...(withTools ? { tools: DATA_TOOLS } : {}),
         stream: true,
       }),
     });

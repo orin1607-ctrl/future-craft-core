@@ -41,6 +41,8 @@ jobs:
       - name: Apply claims AI migration and deploy help-ai-chat
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
           STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
           STAGING_SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_SUPABASE_DB_PASSWORD }}
         run: |
@@ -52,7 +54,18 @@ jobs:
           const STAGING = 'usfeoerkpcafxxlyuldl';
           const PROD = 'qasomfndnjuixgjmjwcm';
           if (STAGING === PROD) throw new Error('ABORT_PROD');
-          const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
+          function cleanToken(raw) {
+            let t = String(raw || '').replace(/[\r\n]/g, '').trim();
+            if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) t = t.slice(1, -1).trim();
+            if (/^bearer\s+/i.test(t)) t = t.replace(/^bearer\s+/i, '').trim();
+            return t;
+          }
+          const token = cleanToken(process.env.SUPABASE_ACCESS_TOKEN);
+          const tokenCandidates = [
+            ['github_access_token', token],
+            ['staging_access_token', cleanToken(process.env.STAGING_SUPABASE_ACCESS_TOKEN)],
+            ['supabase_pat', cleanToken(process.env.SUPABASE_PAT)],
+          ].filter((pair, index, all) => pair[1] && all.findIndex((item) => item[1] === pair[1]) === index);
           const out = {
             env: 'staging',
             project: STAGING,
@@ -142,7 +155,11 @@ jobs:
             });
             const probeText = await probe.text();
             if (probeText.includes(PROD)) throw new Error('ABORT_TOKEN_BODY_MENTIONS_PROD');
-            if (!probe.ok) return { label, ok: false, probe: probe.status };
+            if (!probe.ok) {
+              let message = probeText.slice(0, 160);
+              try { message = JSON.parse(probeText)?.message || message; } catch { /* keep text */ }
+              return { label, ok: false, probe: probe.status, message, token_len: clean.length, token_kind: clean.startsWith('sbp_') ? 'sbp' : clean.startsWith('eyJ') ? 'jwt' : 'other' };
+            }
             let project = null;
             try { project = JSON.parse(probeText); } catch { project = {}; }
             if (project?.ref && project.ref !== STAGING) throw new Error(`ABORT_TOKEN_PROJECT:${project.ref}`);
@@ -157,10 +174,14 @@ jobs:
 
           const deployAttempts = [];
           let deployed = null;
-          if (token) {
-            try { deployed = await deployFunction(token, 'github_access_token'); }
-            catch (e) { deployAttempts.push({ label: 'github_access_token', error: String(e.message || e).slice(0, 240) }); }
-            if (deployed && deployed.ok !== true) { deployAttempts.push(deployed); deployed = null; }
+          for (const [label, candidate] of tokenCandidates) {
+            try {
+              const result = await deployFunction(candidate, label);
+              if (result.ok) { deployed = result; break; }
+              deployAttempts.push(result);
+            } catch (e) {
+              deployAttempts.push({ label, error: String(e.message || e).slice(0, 240) });
+            }
           }
 
           if (!deployed && direct) {
