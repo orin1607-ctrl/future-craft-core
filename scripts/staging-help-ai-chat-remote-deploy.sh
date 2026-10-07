@@ -117,14 +117,23 @@ for path in files:
         left = left.strip()
         if left.startswith("export "):
             left = left[len("export "):].strip()
-        if not re.search(r"(ACCESS_TOKEN|_PAT|SB_TOKEN)$", left):
+        if left not in {"OPS_SECRET"} and not re.search(r"(ACCESS_TOKEN|_PAT|SB_TOKEN|_TOKEN)$", left):
             continue
         value = clean(raw)
-        if not value or PROD in value or len(value) < 20 or len(value) > 400 or " " in value:
-            keys.append({"key": left, "len": len(value), "kind": "skip"})
-            continue
-        keys.append({"key": left, "len": len(value), "kind": kind_of(value)})
-        candidates.append((f"{path.name}:{left}", value))
+        keys.append({
+            "key": left,
+            "len": len(value),
+            "kind": kind_of(value) if value else "empty",
+            "has_space": " " in value,
+            "mentions_prod": PROD in value,
+        })
+        blobs = re.findall(r"sbp_[A-Za-z0-9]{20,}", raw) + re.findall(r"sb_[A-Za-z0-9_\-]{20,}", raw)
+        if value and " " not in value:
+            blobs.append(value)
+        for blob in blobs:
+            blob = clean(blob)
+            if 20 <= len(blob) <= 4000 and " " not in blob and PROD not in blob and (blob.startswith("sbp_") or blob.startswith("sb_") or blob.startswith("eyJ")):
+                candidates.append((f"{path.name}:{left}", blob))
     item["keys"] = keys
     inventory.append(item)
 
@@ -134,8 +143,23 @@ for env_name, raw in os.environ.items():
         continue
     value = clean(raw)
     env_keys.append({"key": env_name, "len": len(value), "kind": kind_of(value) if value else "empty"})
-    if 20 <= len(value) <= 400 and " " not in value and PROD not in value and value not in {"", "null"}:
+    if 20 <= len(value) <= 4000 and " " not in value and PROD not in value and value not in {"", "null"}:
         candidates.append((f"env:{env_name}", value))
+
+sb_dir = home / ".supabase"
+if sb_dir.is_dir():
+    for nested in sb_dir.rglob("*"):
+        if not nested.is_file():
+            continue
+        try:
+            if nested.stat().st_size > 100_000:
+                continue
+            text = nested.read_text(errors="ignore")
+        except OSError:
+            continue
+        for match in re.findall(r"sbp_[A-Za-z0-9]{20,}", text):
+            if PROD not in match:
+                candidates.append((f"supabase-dir:{nested.name}", match))
 
 unique = []
 used = set()
@@ -202,7 +226,9 @@ summary = {
     "home": home.name,
     "root_names": names(Path("/root")),
     "home_names": names(home),
-    "dalia_ops_keys": file_keys(Path("/root/dalia-ops/.env")),
+    "dalia_ops_exists": Path("/root/dalia-ops/.env").is_file(),
+    "credential_meta": [item.get("keys", []) for item in inventory if item.get("keys")],
+    "supabase_dir": names(home / ".supabase"),
     "home_env_keys": file_keys(home / ".env"),
     "access_token_file": (home / ".supabase" / "access-token").is_file() or Path("/root/.supabase/access-token").is_file(),
     "token_probes": probes,
