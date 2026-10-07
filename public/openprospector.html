@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="openprospector-qualify.js?v=enrich-1"></script>
-<script src="openprospector-enrich.js?v=batch-1"></script>
+<script src="openprospector-qualify.js?v=scoring-20261007-1"></script>
+<script src="openprospector-enrich.js?v=scoring-20261007-1"></script>
 <style>
 :root{
   --navy-950:#04091a;--navy-900:#071022;--navy-800:#0a1830;--navy-700:#0d1f3c;--navy-600:#15305c;
@@ -1069,6 +1069,7 @@ const ENR_KEYS = ["id","company_name","company_hp","phone","email","website","in
   "safety_officer_name","safety_officer_source","safety_officer_verified",
   "verification_status","verification_date","source_list","registry_check","tier",
   "lead_stage","lead_quality","ready_for_contact","rejected_reason",
+  "people","multi_phones","multi_mails",
   "crm_handoff_status","crm_handoff_requested_at","enrichment_source","enrichment_status","enrichment_cost","enrichment_requested"];
 function mapDbRowToLead(row, idx) {
   /* enrichment / qualification columns travel with the lead as c.enr – only what the rules need,
@@ -1076,6 +1077,9 @@ function mapDbRowToLead(row, idx) {
   const raw_payload = row.raw_payload;
   const enr = {};
   ENR_KEYS.forEach(k => { if (row[k] !== undefined) enr[k] = row[k]; });
+  enr.people = Array.isArray(row.people) ? row.people : [];
+  enr.multi_phones = Array.isArray(row.multi_phones) ? row.multi_phones : [];
+  enr.multi_mails = Array.isArray(row.multi_mails) ? row.multi_mails : [];
   enr.field_status = { manual: (row.field_status && row.field_status.manual) || {} };
   /* research findings (Gemini etc.) are evidence objects {field,value,source,url,status,found_at}; legacy array rows stay in c.ev */
   enr.evidence = (Array.isArray(row.evidence) ? row.evidence : []).filter(x => x && typeof x === "object" && !Array.isArray(x));
@@ -2142,6 +2146,31 @@ const qualityBadge=(c,size)=>{const q=QF(c);if(!q)return "";return `<span class=
 const VER_LABEL={verified:"מאומת",partial:"אימות חלקי",unverified:"לא מאומת"};
 const verifBadge=(c,size)=>{const q=QF(c);if(!q)return "";const v=q.verification_status;return `<span class="badge ${v==="verified"?"b-ok":v==="partial"?"b-est":"b-no"}" style="font-size:${size||10.5}px" title="${esc(q.source_list.join(" + ")||"ללא מקור רשמי")}">${VER_LABEL[v]}</span>`};
 const aiBadge=(c,size)=>{const q=QF(c);if(!q)return "";const b=q.ai_status_badge;const sty=b==="verified"?"b-ok":b==="partial"||b==="missing_info"?"b-est":"b-no";return `<span class="badge ${sty}" style="font-size:${size||10}px" title="${esc(q.ai_status_label||"")}">${esc(q.ai_status_label||"❌ AI לא אומת")}</span>`};
+const bpBadge=(c,size)=>{
+  const q=QF(c);if(!q)return "";
+  const bp=q.business_potential_score||0;
+  const sty=bp>=80?"b-ok":bp>=60?"b-blue":bp>=40?"b-est":"b-no";
+  const icon=bp>=80?"🔥 ":bp>=60?"✅ ":bp>=40?"🟡 ":"⚪ ";
+  return `<span class="badge ${sty}" style="font-size:${size||10}px;font-weight:700" title="${esc(q.business_potential_breakdown_label||'')}">${icon}פוטנציאל: ${bp}/100</span>`;
+};
+const crBadge=(c,size)=>{
+  const q=QF(c);if(!q)return "";
+  const b=q.contact_readiness_badge||"b-no";
+  return `<span class="badge ${b}" style="font-size:${size||10}px" title="ציון מוכנות לפנייה: ${q.contact_readiness_score}/100">${esc(q.contact_readiness_label||"לא מוכן")} (${q.contact_readiness_score||0})</span>`;
+};
+const extBadge=(c,size)=>{
+  const q=QF(c);if(!q||!q.external_enrichment)return "";
+  const rec=q.external_enrichment.recommendation;
+  const sty=rec==="מומלץ מאוד"?"b-ok":rec==="מומלץ"?"b-blue":rec.includes("אפשרי")?"b-est":"b-no";
+  return `<span class="badge ${sty}" style="font-size:${size||10}px" title="${esc(q.external_enrichment.reason||'')}">${esc(rec)}</span>`;
+};
+const prefContactCell=(c)=>{
+  const q=QF(c);if(!q)return '<span class="faint">טרם אותר</span>';
+  const pc=q.preferred_contact;
+  if(!pc) return '<span class="faint">טרם אותר</span>';
+  const extra=q.contacts_count>1?` <span class="badge b-blue" style="font-size:9.5px">+${q.contacts_count-1} נוספים</span>`:'';
+  return `<div><span class="bold">${esc(pc.name)}</span>${extra}</div>${pc.role?`<div class="faint" style="font-size:10px">${esc(pc.role)}</div>`:''}`;
+};
 /* "מה חסר" – נגזר מ-missing_fields (אותם כללים שנשמרים בעמודה) */
 const missingOf=c=>{const q=QF(c);return q?q.missing_fields.map(k=>OPQualify.missingLabel(k,q.field_status[k].s)):[]};
 const lastCheck=c=>{const e=c.enr||{};return [e.verification_date,e.registry_check&&e.registry_check.checked_at,...(e.evidence||[]).map(x=>x.found_at)].filter(Boolean).map(x=>String(x).slice(0,10)).sort().pop()||""};
@@ -3116,14 +3145,27 @@ V.companies=()=>{
       <td class="co-main" style="min-width:170px">
         <div class="co-name">${esc(c.name)}</div>
         <div class="xs muted">ח.פ. <span class="ltr num">${esc(c.no||"")}</span>${c.web||e.website?` · <span class="ltr">${esc(c.web||e.website)}</span>`:""}</div>
+        <div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">${bpBadge(c)}</div>
       </td>
-      <td class="xs" data-label="טלפון" style="white-space:nowrap">${fsVal(c,"phone",true)}</td>
-      <td class="xs" data-label="מייל">${fsVal(c,"email",true)}</td>
-      <td class="xs" data-label="עיר · תחום">${esc(c.city)}<div class="faint">${esc(c.ind)}</div></td>
-      <td class="xs" data-label="צי רכב">${fleetCell(c)}</td>
-      <td class="xs hide-m">${e.contact_name?fsVal(c,"contact_name")+(e.contact_role?`<div class="faint">${esc(e.contact_role)}</div>`:""):'<span class="faint">טרם אותר</span>'}</td>
-      <td class="xs hide-m"><div>קצב"ת: ${officerCell(c,"safety_officer")}</div><div style="margin-top:3px">קצין רכב: ${officerCell(c,"fleet_manager")}</div></td>
-      <td data-label="שלב · איכות"><div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">${stageBadge(c)}${verifBadge(c)}${aiBadge(c)}${qualityBadge(c)}</div></td>
+      <td class="xs" data-label="טלפון" style="white-space:nowrap">
+        <div>${fsVal(c,"phone",true)}</div>
+        <div style="margin-top:3px">${crBadge(c)}</div>
+      </td>
+      <td class="xs hide-m" data-label="מייל">${fsVal(c,"email",true)}</td>
+      <td class="xs hide-m" data-label="עיר · תחום">${esc(c.city)}<div class="faint">${esc(c.ind)}</div></td>
+      <td class="xs" data-label="צי רכב">
+        <div>${fleetCell(c)}</div>
+        ${q&&q.estimated_fleet_size&&q.estimated_fleet_size!=="לא ניתן להעריך"?`<div class="faint" style="font-size:10px;margin-top:2px">הערכה: ${esc(q.estimated_fleet_size)} (${esc(q.fleet_estimate_confidence)})</div>`:""}
+      </td>
+      <td class="xs hide-m" data-label="איש קשר">
+        <div>${prefContactCell(c)}</div>
+        ${q&&q.channels_summary?`<div class="faint" style="font-size:9.5px;margin-top:2px">${esc(q.channels_summary)}</div>`:""}
+      </td>
+      <td class="xs hide-m" data-label="קצב&quot;ת / קצין רכב">
+        <div>קצב"ת: ${officerCell(c,"safety_officer")}</div>
+        <div style="margin-top:3px">קצין רכב: ${officerCell(c,"fleet_manager")}${q&&q.fleet_officer_probability?`<span class="badge ${q.fleet_officer_probability>=75?'b-ok':q.fleet_officer_probability>=50?'b-blue':'b-est'}" style="font-size:9.5px;margin-right:4px" title="${esc(q.fleet_officer_legal_note||"")}">${q.fleet_officer_probability}% (${esc(q.fleet_officer_status)})</span>`:""}</div>
+      </td>
+      <td data-label="שלב · איכות"><div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">${stageBadge(c)}${verifBadge(c)}${extBadge(c)}${aiBadge(c)}${qualityBadge(c)}</div></td>
       <td class="xs" data-label="מה חסר" title="${esc(miss.join(", "))}">${miss.length?`<span class="badge b-est" style="font-size:10px">${miss.length} חסרים</span><div class="faint" style="margin-top:2px">${esc(miss.slice(0,3).join(", "))}${miss.length>3?"…":""}</div>`:'<span class="badge b-ok" style="font-size:10px">לא חסר</span>'}</td>
       <td class="num xs co-last"><span class="co-last-d">${esc(lastCheck(c)||"—")}</span><div class="co-open"><button class="btn btn-sm" type="button">פתח ליד ›</button></div></td></tr>`}).join("")||`<tr><td colspan="10"><div class="empty">אין חברות שתואמות לסינון. נסה להסיר סינון.</div></td></tr>`}
     </tbody></table></div>
@@ -3192,42 +3234,95 @@ function enrichmentSection(c){
       ${q.rejected_reason?`<div class="badge b-bad" style="padding:8px 10px">⛔ ${esc(q.rejected_reason)}</div>`:""}
       ${(fs.warnings||[]).map(w=>`<div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:6px 10px;font-size:12px">⚠️ ${esc(w)}</div>`).join("")}
 
-      <div style="border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--card);display:grid;gap:8px">
-        <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap">
-          <span class="bold" style="font-size:13px">🤖 סטטוס בדיקת AI:</span>
-          ${aiBadge(c,12)}
-          <span class="chip num" style="font-size:11px">AI Checked: ${q.ai_checked ? "כן" : "לא"}</span>
-          <span class="spacer"></span>
-          <span class="xs bold">שלמות נתונים:</span>
-          <span class="badge ${q.completeness_score>=80?"b-ok":q.completeness_score>=60?"b-blue":q.completeness_score>=40?"b-est":"b-no"}" style="font-size:11px">
-            ציון ${q.completeness_score}/100 (${q.missing_data_pct}% חסר · ${esc(q.missing_level_label||"")})
-          </span>
+      <div style="border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--card);display:grid;gap:10px">
+        <div class="xs bold muted" style="letter-spacing:.5px">🎯 שלושת הציונים המופרדים (0–100):</div>
+        <div class="grid g-3" style="gap:10px">
+          <div style="background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+            <div class="xs muted">🌟 פוטנציאל עסקי</div>
+            <div class="bold" style="font-size:15px;margin:3px 0">${bpBadge(c,12)}</div>
+            <div class="xs faint" style="line-height:1.4">${esc(q.business_potential_breakdown_label||"")}</div>
+          </div>
+          <div style="background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+            <div class="xs muted">📊 שלמות נתונים</div>
+            <div class="bold" style="font-size:15px;margin:3px 0">ציון ${q.completeness_score||0}/100</div>
+            <div class="xs faint">${q.missing_data_pct||0}% חסר · ${esc(q.missing_level_label||"")}</div>
+          </div>
+          <div style="background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:8px 10px">
+            <div class="xs muted">📞 מוכנות לפנייה</div>
+            <div class="bold" style="font-size:15px;margin:3px 0">${crBadge(c,11.5)}</div>
+            <div class="xs faint">${esc(q.contact_readiness_label||"")}</div>
+          </div>
         </div>
-        <div class="row" style="gap:8px;flex-wrap:wrap;font-size:12px;align-items:center">
+
+        <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:8px">
+          <span class="bold" style="font-size:12.5px">🤖 בדיקת AI:</span>
+          ${aiBadge(c,11)}
+          <span class="chip num" style="font-size:10.5px">AI Checked: ${q.ai_checked ? "כן" : "לא"}</span>
+          <span class="spacer"></span>
           <span><b>פעולה מומלצת:</b> <span class="badge b-blue" style="font-size:11px">${esc(q.next_action||"")}</span></span>
           <span style="color:var(--border)">|</span>
           <span><b>מוכן לפנייה:</b> ${q.ready_for_contact ? '<span class="badge b-ok" style="font-size:11px">TRUE</span>' : '<span class="badge b-no" style="font-size:11px">FALSE</span>'}</span>
         </div>
+
         ${q.external_enrichment ? `
         <div style="background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.5">
           <div class="row" style="gap:6px;align-items:center;margin-bottom:3px">
             <span class="bold">💳 העשרה חיצונית בתשלום:</span>
-            <span class="badge ${q.external_enrichment.recommendation==='מומלץ'?'b-ok':q.external_enrichment.recommendation==='מומלץ מאוד'?'b-ok':'b-est'}" style="font-size:10.5px">${esc(q.external_enrichment.recommendation)}</span>
+            ${extBadge(c, 11)}
             <span class="xs muted">· כדאי להשקיע: <b>${q.external_enrichment.worth_paying ? 'כן' : 'לא'}</b></span>
           </div>
-          <div class="xs muted">${esc(q.external_enrichment.reason)} ${esc(q.external_enrichment.worth_paying_reason)}</div>
+          <div class="xs muted">${esc(q.external_enrichment.reason)} ${esc(q.external_enrichment.worth_paying_reason||"")}</div>
           ${q.external_enrichment.missing_fields && q.external_enrichment.missing_fields.length ? `<div class="xs" style="margin-top:4px"><b>שדות מבוקשים להעשרה:</b> <code>${esc(q.external_enrichment.missing_fields.join(", "))}</code></div>` : ''}
         </div>
         ` : ''}
       </div>
 
       <div class="grid g-3" style="gap:10px">
-        ${box("🚚 צי רכב",`<div>${fleetCell(c,true)}</div>${kv("גודל",esc(fl.size.replace("גודל צי: ","")))}${fs.fleet_types.s!=="n"?kv("סוגי רכבים",esc(fs.fleet_types.val)):""}${kv("מקור",esc(fl.src||"—"))}`)}
-        ${box("👤 איש קשר",e.contact_name
-          ?`<div class="sm bold">${esc(e.contact_name)} ${FS_BADGE[fs.contact_name.s]}</div>${kv("תפקיד",esc(e.contact_role||"—"))}${kv("טלפון",esc(e.contact_phone||"—"),1)}${kv("מייל",esc(e.contact_email||"—"),1)}${kv("LinkedIn",e.contact_linkedin?`<a href="${esc(e.contact_linkedin)}" target="_blank" rel="noopener noreferrer">פרופיל</a>`:"—")}${kv("מקור",esc(fs.contact_name.src||"ללא מקור"))}`
-          :'<div class="sm faint">איש קשר טרם אותר</div>')}
-        ${box("🛡️ קצין בטיחות / קצין רכב",`<div class="xs muted">קצין בטיחות:</div><div>${officerCell(c,"safety_officer")}</div><div class="xs muted" style="margin-top:6px">קצין רכב / מנהל צי:</div><div>${officerCell(c,"fleet_manager")}</div>`)}
+        ${box("🚚 צי רכב והערכה",`
+          <div>${fleetCell(c,true)}</div>
+          ${kv("גודל צי",esc(fl.size.replace("גודל צי: ","")))}
+          ${kv("הערכת גודל", q.estimated_fleet_size ? `<span class="badge b-blue" style="font-size:10.5px">${esc(q.estimated_fleet_size)} (${esc(q.fleet_estimate_confidence)})</span>` : "לא ניתן להעריך")}
+          ${kv("סטטוס הערכה", q.fleet_is_estimate ? '<span class="xs faint">הערכה בלבד (ללא מספר מאומת)</span>' : '<span class="xs bold" style="color:var(--ok)">מספר מאומת רשמי</span>')}
+          ${fs.fleet_types.s!=="n"?kv("סוגי רכבים",esc(fs.fleet_types.val)):""}
+          ${kv("מקור הצי",esc(fl.src||"—"))}
+        `)}
+        ${box("👤 איש קשר", (()=>{
+          if (q.contacts_list && q.contacts_list.length) {
+            return q.contacts_list.map((ct, idx) => `
+              <div style="border-bottom:${idx < q.contacts_list.length - 1 ? '1px solid var(--border)' : 'none'};padding-bottom:5px;margin-bottom:5px">
+                <div class="sm bold">${esc(ct.name)} ${ct.is_decision_maker ? '<span class="badge b-ok" style="font-size:9px">מקבל החלטות</span>' : ''}</div>
+                ${ct.role ? kv("תפקיד", esc(ct.role)) : ''}
+                ${ct.phone ? kv("טלפון", esc(ct.phone), 1) : ''}
+                ${ct.email ? kv("מייל", esc(ct.email), 1) : ''}
+              </div>
+            `).join("");
+          }
+          return e.contact_name
+            ? `<div class="sm bold">${esc(e.contact_name)} ${FS_BADGE[fs.contact_name.s]}</div>${kv("תפקיד",esc(e.contact_role||"—"))}${kv("טלפון",esc(e.contact_phone||"—"),1)}${kv("מייל",esc(e.contact_email||"—"),1)}${kv("LinkedIn",e.contact_linkedin?`<a href="${esc(e.contact_linkedin)}" target="_blank" rel="noopener noreferrer">פרופיל</a>`:"—")}${kv("מקור",esc(fs.contact_name.src||"ללא מקור"))}`
+            : '<div class="sm faint">איש קשר טרם אותר</div>';
+        })())}
+        ${box("🛡️ ניהול צי ובטיחות",`
+          <div class="xs muted">הסתברות לקצין רכב / מנהל צי:</div>
+          <div style="margin:2px 0"><span class="badge ${q.fleet_officer_probability>=75?'b-ok':q.fleet_officer_probability>=50?'b-blue':'b-est'}" style="font-size:10.5px">${q.fleet_officer_probability}% (${esc(q.fleet_officer_status)})</span></div>
+          <div class="xs faint" style="margin-bottom:6px">${esc(q.fleet_officer_legal_note||"")}</div>
+          <div class="xs muted">קצין בטיחות (קצב"ת):</div><div>${officerCell(c,"safety_officer")}</div>
+          <div class="xs muted" style="margin-top:6px">קצין רכב / מנהל צי:</div><div>${officerCell(c,"fleet_manager")}</div>
+        `)}
       </div>
+
+      ${(q.valid_phones_list && q.valid_phones_list.length) || (q.valid_mails_list && q.valid_mails_list.length) ? `
+      <div style="border:1px solid var(--border);border-radius:10px;padding:8px 12px;background:var(--soft);display:grid;gap:6px">
+        <div class="xs bold">📞 ערוצי התקשרות שנמצאו:</div>
+        <div class="row" style="gap:12px;flex-wrap:wrap">
+          ${q.valid_phones_list && q.valid_phones_list.length ? `
+            <div><span class="xs muted">טלפונים:</span> ${q.valid_phones_list.map(p=>`<a class="badge b-blue ltr" href="tel:${esc(p.val)}" style="font-size:10.5px;margin:2px">${esc(p.val)}${p.type==='mobile'?' (נייד)':''}</a>`).join(" ")}</div>
+          ` : ''}
+          ${q.valid_mails_list && q.valid_mails_list.length ? `
+            <div><span class="xs muted">מיילים:</span> ${q.valid_mails_list.map(m=>`<a class="badge b-blue ltr" href="mailto:${esc(m)}" style="font-size:10.5px;margin:2px">${esc(m)}</a>`).join(" ")}</div>
+          ` : ''}
+        </div>
+      </div>
+      ` : ''}
 
       <div class="tbl-wrap"><table class="co kv"><thead><tr><th>שדה</th><th>ערך</th><th>סטטוס אימות</th><th>מקור</th></tr></thead><tbody>
         ${FOUND_ROWS.map(row).join("")}
