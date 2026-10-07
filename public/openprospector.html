@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="openprospector-qualify.js?v=scoring-20261007-1"></script>
-<script src="openprospector-enrich.js?v=scoring-20261007-1"></script>
+<script src="openprospector-qualify.js?v=workforce-fleet-v2"></script>
+<script src="openprospector-enrich.js?v=workforce-fleet-v2"></script>
 <style>
 :root{
   --navy-950:#04091a;--navy-900:#071022;--navy-800:#0a1830;--navy-700:#0d1f3c;--navy-600:#15305c;
@@ -3155,10 +3155,12 @@ V.companies=()=>{
       <td class="xs hide-m" data-label="עיר · תחום">${esc(c.city)}<div class="faint">${esc(c.ind)}</div></td>
       <td class="xs" data-label="צי רכב">
         <div>${fleetCell(c)}</div>
-        ${q&&q.estimated_fleet_size&&q.estimated_fleet_size!=="לא ניתן להעריך"?`<div class="faint" style="font-size:10px;margin-top:2px">הערכה: ${esc(q.estimated_fleet_size)} (${esc(q.fleet_estimate_confidence)})</div>`:""}
+        <div style="font-size:10px;margin-top:2px;color:var(--text)" title="עובדי שטח משוערים: ${esc(q&&q.workforce_estimate?q.workforce_estimate.field_workers_count_display:'—')} (${esc(q&&q.workforce_estimate?q.workforce_estimate.field_workers_pct_display:'—')})">👥 <b>עובדים:</b> ${esc(q&&q.workforce_estimate?q.workforce_estimate.employee_count_display:'לא ידוע')} <span class="faint">· ביטחון ${q&&q.workforce_estimate?q.workforce_estimate.workforce_confidence_score:0}%</span></div>
+        <div style="font-size:10px;margin-top:1px;color:var(--text)" title="${esc(q&&q.fleet_estimate_v2?q.fleet_estimate_v2.basis_of_estimate_label:'')}">🚚 <b>צי:</b> ${esc(q&&q.fleet_estimate_v2?q.fleet_estimate_v2.fleet_size_display:q.estimated_fleet_size||'—')} <span class="faint">· ביטחון ${esc(q&&q.fleet_estimate_v2?q.fleet_estimate_v2.fleet_confidence:q.fleet_estimate_confidence||'—')}</span></div>
       </td>
       <td class="xs hide-m" data-label="איש קשר">
         <div>${prefContactCell(c)}</div>
+        ${q&&q.contacts_count>1?`<div style="margin-top:2px"><span class="badge b-blue" style="font-size:9.5px" title="סה&quot;כ ${q.contacts_count} אנשי קשר ברשומה">+${q.contacts_count-1} נוספים</span></div>`:""}
         ${q&&q.channels_summary?`<div class="faint" style="font-size:9.5px;margin-top:2px">${esc(q.channels_summary)}</div>`:""}
       </td>
       <td class="xs hide-m" data-label="קצב&quot;ת / קצין רכב">
@@ -3254,6 +3256,43 @@ function enrichmentSection(c){
           </div>
         </div>
 
+        <!-- שורת Workforce / Fleet Summary (סעיף 17) -->
+        <div style="background:var(--soft);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:grid;gap:8px">
+          <div class="row" style="align-items:center;gap:6px">
+            <span class="bold" style="font-size:12px">👥 כוח אדם וצי רכב (Workforce & Fleet v2):</span>
+            <span class="spacer"></span>
+            ${q.workforce_estimate&&q.workforce_estimate.is_verified ? '<span class="badge b-ok" style="font-size:9.5px">✓ עובדים מאומת</span>' : '<span class="badge b-est" style="font-size:9.5px">הערכה מבוססת Evidence</span>'}
+          </div>
+          <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;font-size:11.5px">
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
+              <span class="muted xs">עובדים:</span> <b>${esc(q.workforce_estimate?q.workforce_estimate.employee_count_display:"לא ידוע")}</b>
+            </div>
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
+              <span class="muted xs">Workforce Confidence:</span> <b>${q.workforce_estimate?q.workforce_estimate.workforce_confidence_score:0}/100</b> <span class="xs faint">(${esc(q.workforce_estimate?q.workforce_estimate.workforce_confidence_level:"")})</span>
+            </div>
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
+              <span class="muted xs">עובדי שטח:</span> <b>${esc(q.workforce_estimate?q.workforce_estimate.field_workers_count_display:"—")}</b> <span class="xs faint">(${esc(q.workforce_estimate?q.workforce_estimate.field_workers_pct_display:"")})</span>
+            </div>
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
+              <span class="muted xs">הערכת צי:</span> <b>${esc(q.fleet_estimate_v2?q.fleet_estimate_v2.fleet_size_display:q.estimated_fleet_size||"")}</b>
+            </div>
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
+              <span class="muted xs">Fleet Confidence:</span> <b>${esc(q.fleet_estimate_v2?q.fleet_estimate_v2.fleet_confidence:q.fleet_estimate_confidence||"")}</b>
+            </div>
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
+              <span class="muted xs">קצין רכב:</span> <b>${q.fleet_officer_probability}%</b>
+            </div>
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
+              <span class="muted xs">העשרה חיצונית:</span> <b>${esc(q.external_enrichment ? q.external_enrichment.recommendation : "לא נדרש")}</b>
+            </div>
+          </div>
+          ${q.fleet_estimate_v2&&q.fleet_estimate_v2.basis_of_estimate_label ? `
+          <div class="xs faint" style="border-top:1px dashed var(--border);padding-top:4px">
+            <b>בסיס ההערכה:</b> ${esc(q.fleet_estimate_v2.basis_of_estimate_label)}
+          </div>
+          ` : ''}
+        </div>
+
         <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:8px">
           <span class="bold" style="font-size:12.5px">🤖 בדיקת AI:</span>
           ${aiBadge(c,11)}
@@ -3278,11 +3317,15 @@ function enrichmentSection(c){
       </div>
 
       <div class="grid g-3" style="gap:10px">
-        ${box("🚚 צי רכב והערכה",`
+        ${box("🚚 צי רכב וכוח אדם (Workforce & Fleet v2)",`
           <div>${fleetCell(c,true)}</div>
           ${kv("גודל צי",esc(fl.size.replace("גודל צי: ","")))}
-          ${kv("הערכת גודל", q.estimated_fleet_size ? `<span class="badge b-blue" style="font-size:10.5px">${esc(q.estimated_fleet_size)} (${esc(q.fleet_estimate_confidence)})</span>` : "לא ניתן להעריך")}
-          ${kv("סטטוס הערכה", q.fleet_is_estimate ? '<span class="xs faint">הערכה בלבד (ללא מספר מאומת)</span>' : '<span class="xs bold" style="color:var(--ok)">מספר מאומת רשמי</span>')}
+          ${kv("הערכת צי", q.fleet_estimate_v2 ? `<span class="badge b-blue" style="font-size:10.5px">${esc(q.fleet_estimate_v2.fleet_size_display)} (${esc(q.fleet_estimate_v2.fleet_confidence)})</span>` : (q.estimated_fleet_size || "לא ניתן להעריך"))}
+          ${kv("סטטוס הערכת צי", q.fleet_estimate_v2&&!q.fleet_estimate_v2.fleet_is_estimate ? '<span class="xs bold" style="color:var(--ok)">מספר מאומת רשמי</span>' : '<span class="xs faint">הערכה מבוססת Evidence</span>')}
+          ${q.workforce_estimate ? kv("הערכת עובדים", `<span class="bold">${esc(q.workforce_estimate.employee_count_display)}</span> <span class="xs faint">(ביטחון: ${q.workforce_estimate.workforce_confidence_score}%)</span>`) : ""}
+          ${q.workforce_estimate ? kv("עובדי שטח", `<span class="bold">${esc(q.workforce_estimate.field_workers_count_display)}</span> <span class="xs faint">(${esc(q.workforce_estimate.field_workers_pct_display)})</span>`) : ""}
+          ${q.workforce_estimate&&q.workforce_estimate.roles_identified&&q.workforce_estimate.roles_identified.length ? kv("תפקידים בשטח", `<span class="xs">${esc(q.workforce_estimate.roles_identified.join(", "))}</span>`) : ""}
+          ${q.fleet_estimate_v2&&q.fleet_estimate_v2.basis_of_estimate_label ? kv("בסיס ההערכה", `<span class="xs faint">${esc(q.fleet_estimate_v2.basis_of_estimate_label)}</span>`) : ""}
           ${fs.fleet_types.s!=="n"?kv("סוגי רכבים",esc(fs.fleet_types.val)):""}
           ${kv("מקור הצי",esc(fl.src||"—"))}
         `)}
