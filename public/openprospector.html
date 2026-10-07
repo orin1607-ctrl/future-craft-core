@@ -5421,7 +5421,7 @@ document.addEventListener("click",e=>{
   if(d.tab){
     S.view="prospector";S.tab=d.tab;S.panel=null;render();window.scrollTo(0,0);return;
   }
-  if(d.co&&!e.target.closest("select")&&!e.target.closest("[data-act]")){S.panel={co:+d.co};renderPanel();return}
+  if(d.co&&!e.target.closest("input")&&!e.target.closest("select")&&!e.target.closest("a")&&!e.target.closest("[data-act]")){S.panel={co:+d.co};renderPanel();return}
   if(d.person!=null){S.panel.person=+d.person;renderPanel();return}
   if(d.ex){$("#q").value=d.ex;interpret();return}
   if(d.test){t.disabled=true;t.textContent="בודק…";setTimeout(()=>{t.disabled=false;t.textContent="בדיקת חיבור";toast("החיבור למנוע תקין")},800);return}
