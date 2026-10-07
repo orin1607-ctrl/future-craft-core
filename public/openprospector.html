@@ -4473,6 +4473,7 @@ function enQueueLabel(c) { const it = enItemOf(c); return it ? OPEnrich.ITEM_STA
 function renderEnrich() { const v = $("#view"); if (v && S.view === "prospector" && S.tab === "enrich") v.innerHTML = V.enrich(); if (S.panel) renderPanel(); }
 
 async function enAudit(action, extra) {
+  if (!sbClient || (S.en.batch && String(S.en.batch.id).startsWith("local-"))) return;
   const b = S.en.batch || {};
   const row = { action, actor_email: S.en.user || null, batch_id: (extra && extra.batch_id) || b.id || null, item_id: (extra && extra.item_id) || null,
     lead_id: (extra && extra.lead_id) || null, model: (extra && extra.model) || b.model || null, details: (extra && extra.details) || {} };
@@ -4483,9 +4484,40 @@ async function enAudit(action, extra) {
 async function enLoad() {
   S.en.loading = true;
   const sess = await userSession();
-  S.en.user = sess ? (sess.email || sess.source) : "";
+  S.en.user = sess ? (sess.email || sess.source) : "מצב הדגמה (DRY RUN)";
   S.en.userId = sess ? sess.userId || null : null;
-  if (!sess || !sbClient) { S.en.loaded = true; S.en.loading = false; renderEnrich(); return; }
+  S.en.isGuest = !sess;
+  if (!sess || !sbClient) {
+    if (!S.en.batch) {
+      const open = new Set();
+      const rows = C.filter(c => c.enr && c.enr.id).map(c => c.enr);
+      const pick = OPEnrich.selectBatch(rows, open, OPEnrich.MAX_BATCH).map(r => C.find(c => c.enr === r)).filter(Boolean);
+      S.en.batch = {
+        id: "local-dryrun",
+        name: `Batch בדיקה (DRY RUN) ${new Date().toLocaleDateString("he-IL")}`,
+        status: "draft",
+        dry_run: true,
+        grounding: true,
+        max_leads: OPEnrich.MAX_BATCH,
+        created_by_email: "preview",
+        created_at: enNow()
+      };
+      S.en.items = pick.map(c => ({
+        id: "item-" + c.enr.id,
+        batch_id: "local-dryrun",
+        lead_id: c.enr.id,
+        company_hp: c.enr.company_hp || c.no,
+        status: "queued",
+        attempts: 0,
+        created_at: enNow()
+      }));
+      S.en.audit = [];
+    }
+    S.en.loaded = true;
+    S.en.loading = false;
+    renderEnrich();
+    return;
+  }
   const { data: batches, error } = await sbClient.from("prospect_enrichment_batches").select("*").neq("status", "cancelled").order("created_at", { ascending: false }).limit(1);
   if (error) { S.en.err = "שגיאה בטעינת התור: " + error.message; S.en.loaded = true; S.en.loading = false; renderEnrich(); return; }
   S.en.batch = (batches && batches[0]) || null;
@@ -4502,12 +4534,20 @@ async function enLoad() {
 }
 async function enUpdBatch(patch) {
   patch.updated_at = enNow();
+  if (!sbClient || (S.en.batch && String(S.en.batch.id).startsWith("local-"))) {
+    if (S.en.batch) Object.assign(S.en.batch, patch);
+    return;
+  }
   const { data, error } = await sbClient.from("prospect_enrichment_batches").update(patch).eq("id", S.en.batch.id).select().single();
   if (error) throw new Error("עדכון Batch נכשל: " + error.message);
   S.en.batch = data;
 }
 async function enUpdItem(it, patch) {
   patch.updated_at = enNow();
+  if (!sbClient || (S.en.batch && String(S.en.batch.id).startsWith("local-"))) {
+    Object.assign(it, patch);
+    return;
+  }
   const { data, error } = await sbClient.from("prospect_enrichment_items").update(patch).eq("id", it.id).select().single();
   if (error) throw new Error("עדכון ליד בתור נכשל: " + error.message);
   Object.assign(it, data);
@@ -4595,6 +4635,10 @@ async function enCall(payload, grounding) {
   } catch (e) { return { ok: false, http: 0, reason: "", message: String(e && e.message || e), data: {} }; }
 }
 async function enRun() {
+  if (S.en.isGuest || !S.en.userId) {
+    toast("🔒 מצב DRY RUN בלבד – הפעלת קריאות Gemini בפועל דורשת התחברות super_admin דרך מרכז השיווק");
+    return;
+  }
   if (S.en.running || !S.en.batch) return;
   const b = S.en.batch;
   const todo = S.en.items.filter(i => i.status === "queued" || i.status === "running").length;
@@ -4665,6 +4709,10 @@ function enChosen(it, mode) {
   return all.filter(f => sel[f.field] !== false);
 }
 async function enApprove(it, mode) {
+  if (S.en.isGuest || !S.en.userId) {
+    toast("🔒 מצב DRY RUN – שמירת ממצאים ל-DB דורשת התחברות super_admin");
+    return false;
+  }
   if (it.decision) return false;
   const lead = enLead(it);
   const chosen = enChosen(it, mode);
@@ -4698,11 +4746,9 @@ const enUnsourced = () => enPending().reduce((n, i) => n + enChosen(i, "all").fi
 V.enrich = () => {
   if (!window.OPEnrich) return `<div class="card card-b">מודול ההעשרה לא נטען.</div>`;
   if (!S.en.loaded) { if (!S.en.loading) enLoad(); return `<div class="card card-b">טוען תור העשרה…</div>`; }
-  if (!S.en.user) return `<div class="card card-b" style="border:1.5px solid #fde68a">
-    <h2 style="margin:0 0 6px;font-size:17px">🔒 נדרשת התחברות super_admin</h2>
-    <div class="sm muted" style="line-height:1.6">התור, ה-Dry Run והאישורים זמינים רק למשתמש מחובר עם הרשאת super_admin.<br>
-    התחבר ל-ai-marketing-2 ופתח "איתור לקוחות ולידים" דרך מרכז השיווק.</div>
-    <button class="btn btn-sm" style="margin-top:10px" data-act="enReload">🔄 בדוק שוב</button></div>`;
+  const guestBanner = S.en.isGuest ? `<div style="background:#eff6ff;border:1.5px solid #bfdbfe;color:#1e40af;padding:12px 16px;border-radius:10px;margin-bottom:16px;font-size:13.5px;line-height:1.6">
+    🧪 <b>מצב DRY RUN פעיל (סימולציה מלאה)</b> — מוצגת תוכנית העבודה ל-20 הלידים בעלי הפוטנציאל הגבוה ביותר, פרטי הקשר הקיימים (DO NOT SEARCH), ומה ש-Gemini מתוכנן לחפש עבורם (Target Fields). שום קריאה לא מבוצעת ושום מידע לא נכתב ל-DB.
+  </div>` : "";
   const b = S.en.batch, items = S.en.items, sm = OPEnrich.summarize(items);
   const processed = items.filter(i => !["queued", "running"].includes(i.status)).length;
   const pct = items.length ? Math.round(processed / items.length * 100) : 0;
@@ -4737,6 +4783,7 @@ V.enrich = () => {
       ${open ? `<tr><td colspan="7" style="background:var(--soft);cursor:default">${enPreview(it)}</td></tr>` : ""}`;
   };
   return `
+  ${guestBanner}
   <div class="card" style="margin-bottom:16px">
     <div class="card-h"><h2>בדיקת העשרה – Batch<span class="h-bar"></span></h2>
       ${b ? `<span class="chip">${esc(b.name)}</span><span class="badge ${b.status === "running" ? "b-est" : b.status === "done" ? "b-ok" : "b-blue"}">${{ draft: "טיוטה", running: "רץ", paused: "מושהה", done: "הסתיים", cancelled: "בוטל" }[b.status]}</span>` : ""}
