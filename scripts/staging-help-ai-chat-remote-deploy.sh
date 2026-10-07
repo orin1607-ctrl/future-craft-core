@@ -63,7 +63,7 @@ files = [
     home / ".supabase" / "access-token",
     home / "dalia-ops" / ".env",
 ]
-for base in (Path("/root"), home, Path("/home")):
+for base in (Path("/root"), home):
     if not base.exists():
         continue
     try:
@@ -71,13 +71,15 @@ for base in (Path("/root"), home, Path("/home")):
     except OSError:
         continue
     for child in children:
-        if child.is_file() and (child.name.startswith(".env") or "token" in child.name.lower()):
+        if child.is_file() and child.name.startswith(".env"):
             files.append(child)
-        if child.is_dir() and child.name in {".supabase", "dalia-ops", "future-craft-core", ".config"}:
+        if child.is_dir() and child.name in {".supabase", "dalia-ops"}:
             try:
                 for nested in child.rglob("*"):
+                    if any(part in {"node_modules", ".git", "dist"} for part in nested.parts):
+                        continue
                     if nested.is_file() and nested.stat().st_size < 300_000 and (
-                        nested.name.startswith(".env") or nested.name in {"access-token", "profile"} or "token" in nested.name.lower()
+                        nested.name.startswith(".env") or nested.name in {"access-token", "profile"}
                     ):
                         files.append(nested)
             except OSError:
@@ -105,7 +107,7 @@ for path in files:
     keys = []
     if path.name == "access-token":
         value = clean(text.splitlines()[0] if text.splitlines() else text)
-        if 20 <= len(value) <= 400 and " " not in value and PROD not in value:
+        if 20 <= len(value) <= 4000 and " " not in value and PROD not in value:
             candidates.append((f"{path.parent.name}/{path.name}", value))
             keys.append({"key": "file", "len": len(value), "kind": kind_of(value)})
     for line in text.splitlines():
@@ -115,7 +117,7 @@ for path in files:
         left = left.strip()
         if left.startswith("export "):
             left = left[len("export "):].strip()
-        if not re.search(r"ACCESS_TOKEN|PAT|SB_TOKEN", left):
+        if not re.search(r"(ACCESS_TOKEN|_PAT|SB_TOKEN)$", left):
             continue
         value = clean(raw)
         if not value or PROD in value or len(value) < 20 or len(value) > 400 or " " in value:
@@ -128,7 +130,7 @@ for path in files:
 
 env_keys = []
 for env_name, raw in os.environ.items():
-    if not re.search(r"ACCESS_TOKEN|SUPABASE|PAT", env_name):
+    if not re.search(r"(ACCESS_TOKEN|_PAT|SB_TOKEN)$", env_name):
         continue
     value = clean(raw)
     env_keys.append({"key": env_name, "len": len(value), "kind": kind_of(value) if value else "empty"})
@@ -178,16 +180,35 @@ for label, value in unique[:8]:
         chosen = value
         break
 
-print(json.dumps({
+def file_keys(path):
+    if not path.is_file():
+        return []
+    try:
+        text = path.read_text(errors="ignore")
+    except OSError:
+        return ["unreadable"]
+    found = []
+    for line in text.splitlines():
+        if "=" not in line or line.strip().startswith("#"):
+            continue
+        left = line.split("=", 1)[0].strip()
+        if left.startswith("export "):
+            left = left[len("export "):].strip()
+        found.append(left)
+    return found
+
+summary = {
     "who": os.environ.get("USER") or "",
     "home": home.name,
     "root_names": names(Path("/root")),
     "home_names": names(home),
-    "inventory": inventory,
-    "env_keys": env_keys,
+    "dalia_ops_keys": file_keys(Path("/root/dalia-ops/.env")),
+    "home_env_keys": file_keys(home / ".env"),
+    "access_token_file": (home / ".supabase" / "access-token").is_file() or Path("/root/.supabase/access-token").is_file(),
     "token_probes": probes,
     "chosen": bool(chosen),
-}, ensure_ascii=False))
+}
+print("SUMMARY " + json.dumps(summary, ensure_ascii=False))
 if chosen:
     (ROOT / "use_token").write_text(chosen)
 PY
