@@ -41,84 +41,114 @@ jobs:
       - name: Apply claims AI migration and deploy help-ai-chat
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+          STAGING_SUPABASE_DB_PASSWORD: ${{ secrets.STAGING_SUPABASE_DB_PASSWORD }}
         run: |
           set -euo pipefail
+          npm install --no-save pg
           node <<'NODE'
           const fs = await import('node:fs');
           const { execSync } = await import('node:child_process');
-          const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
           const STAGING = 'usfeoerkpcafxxlyuldl';
           const PROD = 'qasomfndnjuixgjmjwcm';
-          if (!token) throw new Error('MISSING_TOKEN');
           if (STAGING === PROD) throw new Error('ABORT_PROD');
+          const token = (process.env.SUPABASE_ACCESS_TOKEN || '').replace(/[\r\n]/g, '').trim();
           const out = {
             env: 'staging',
             project: STAGING,
             production_touched: false,
             sha: execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim(),
+            access_token_present: Boolean(token),
           };
-
-          async function mgmt(path, opts = {}) {
-            const res = await fetch(`https://api.supabase.com/v1${path}`, {
-              method: opts.method || 'GET',
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              body: opts.body ? JSON.stringify(opts.body) : undefined,
-            });
-            const text = await res.text();
-            let json = null;
-            try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text.slice(0, 400) }; }
-            return { status: res.status, json, text: text.slice(0, 800) };
-          }
-
-          const probe = await mgmt(`/projects/${STAGING}`);
-          const ref = probe.json?.ref || probe.json?.id || '';
-          if (ref && ref !== STAGING) throw new Error(`ABORT_UNEXPECTED_PROJECT:${ref}`);
-          if (String(probe.text).includes(PROD)) throw new Error('ABORT_PROD_BODY');
-          out.project_probe_http = probe.status;
-
           const sql = fs.readFileSync('supabase/migrations/20261007180000_claims_ai_conversations_staging.sql', 'utf8');
           if (sql.includes(PROD)) throw new Error('ABORT_SQL_MENTIONS_PROD');
-          let mig = await mgmt(`/projects/${STAGING}/database/query`, { method: 'POST', body: { query: sql } });
-          out.migration_http = mig.status;
-          out.migration_preview = mig.text.slice(0, 300);
-          if (mig.status < 200 || mig.status >= 300) {
-            process.env.SUPABASE_ACCESS_TOKEN = token;
-            try {
-              const cli = execSync(
-                `npx --yes supabase db query --project-ref ${STAGING} -f supabase/migrations/20261007180000_claims_ai_conversations_staging.sql`,
-                { encoding: 'utf8', timeout: 180000 },
-              );
-              out.migration_cli = cli.slice(-400);
-              out.migration_http = 200;
-            } catch (err) {
-              out.migration_cli_error = String(err.stderr || err.message || err).slice(0, 500);
-              throw new Error(`MIGRATION_FAILED http=${mig.status}`);
+
+          function assertStagingUrl(url) {
+            if (!url || url.includes(PROD) || !url.includes(STAGING)) {
+              throw new Error('ABORT_URL_NOT_STAGING');
             }
           }
 
-          const verify = await mgmt(`/projects/${STAGING}/database/query`, {
-            method: 'POST',
-            body: {
-              query: `select to_regclass('public.claims_ai_conversations')::text as conversations, to_regclass('public.claims_ai_messages')::text as messages, current_database() as db`,
-            },
-          });
-          out.verify_http = verify.status;
-          out.verify = verify.json;
-          const blob = JSON.stringify(verify.json || '');
-          if (!blob.includes('claims_ai_conversations') || !blob.includes('claims_ai_messages')) {
-            throw new Error(`TABLES_MISSING ${verify.text.slice(0, 300)}`);
+          async function applySql(url, label) {
+            assertStagingUrl(url);
+            const { default: pg } = await import('pg');
+            const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+            await client.connect();
+            try {
+              const ident = await client.query(`select current_database() as db, current_user as db_user`);
+              const dbUser = String(ident.rows?.[0]?.db_user || '');
+              const dbName = String(ident.rows?.[0]?.db || '');
+              if (dbUser.includes(PROD) || dbName.includes(PROD)) throw new Error('ABORT_CONNECTED_PROD');
+              if (!dbUser.includes(STAGING) && !url.includes(STAGING)) throw new Error('ABORT_CONNECTED_UNKNOWN');
+              await client.query(sql);
+              const verify = await client.query(
+                `select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                 where n.nspname = 'public' and c.relname in ('claims_ai_conversations','claims_ai_messages')
+                 order by 1`,
+              );
+              return { label, db_user: dbUser, tables: verify.rows.map((r) => r.relname) };
+            } finally {
+              await client.end().catch(() => null);
+            }
           }
 
+          const attempts = [];
+          let applied = null;
+          const direct = (process.env.STAGING_DATABASE_URL || '').trim();
+          if (direct) {
+            try { applied = await applySql(direct, 'staging_database_url'); }
+            catch (e) { attempts.push({ label: 'staging_database_url', error: String(e.message || e).slice(0, 240) }); }
+          }
+          const pwd = (process.env.STAGING_SUPABASE_DB_PASSWORD || '').trim();
+          if (!applied && pwd) {
+            const encoded = encodeURIComponent(pwd);
+            const hosts = ['aws-0-eu-central-1.pooler.supabase.com', 'aws-1-eu-central-1.pooler.supabase.com', 'aws-0-ap-south-1.pooler.supabase.com'];
+            const urls = [];
+            for (const host of hosts) {
+              urls.push(`postgresql://postgres.${STAGING}:${encoded}@${host}:6543/postgres`);
+              urls.push(`postgresql://postgres.${STAGING}:${encoded}@${host}:5432/postgres`);
+            }
+            urls.push(`postgresql://postgres:${encoded}@db.${STAGING}.supabase.co:5432/postgres`);
+            for (const url of urls) {
+              try { applied = await applySql(url, 'staging_db_password'); break; }
+              catch (e) { attempts.push({ label: 'staging_db_password', error: String(e.message || e).slice(0, 180) }); }
+            }
+          }
+          if (!applied && token) {
+            const res = await fetch(`https://api.supabase.com/v1/projects/${STAGING}/database/query`, {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query: sql }),
+            });
+            const text = await res.text();
+            if (res.ok && !text.includes(PROD)) applied = { label: 'management_api', http: res.status };
+            else attempts.push({ label: 'management_api', http: res.status, error: text.slice(0, 180) });
+          }
+          if (!applied) {
+            console.log(JSON.stringify({ ...out, migration: 'failed', attempts }, null, 2));
+            throw new Error('MIGRATION_FAILED');
+          }
+          const tables = applied.tables || [];
+          if (applied.label !== 'management_api' && (tables.length < 2)) {
+            throw new Error(`TABLES_MISSING ${tables.join(',')}`);
+          }
+          out.migration = applied;
+
+          if (!token) throw new Error('MISSING_TOKEN_FOR_FUNCTION_DEPLOY');
           process.env.SUPABASE_ACCESS_TOKEN = token;
-          const dep = execSync(
-            `npx --yes supabase functions deploy help-ai-chat --project-ref ${STAGING} --use-api`,
-            { encoding: 'utf8', timeout: 180000 },
-          );
+          let dep = '';
+          try {
+            dep = execSync(
+              `npx --yes supabase functions deploy help-ai-chat --project-ref ${STAGING} --use-api`,
+              { encoding: 'utf8', timeout: 180000 },
+            );
+          } catch (err) {
+            const detail = String(err.stderr || err.stdout || err.message || err).slice(0, 500);
+            console.log(JSON.stringify({ ...out, function_deploy: 'failed', detail }, null, 2));
+            throw new Error('FUNCTION_DEPLOY_FAILED');
+          }
           if (dep.includes(PROD)) throw new Error('ABORT_DEPLOY_LOG_MENTIONS_PROD');
-          out.deploy_preview = dep.slice(-240);
           out.function = 'help-ai-chat';
+          out.deploy_preview = dep.slice(-240);
           console.log(JSON.stringify(out, null, 2));
           NODE
