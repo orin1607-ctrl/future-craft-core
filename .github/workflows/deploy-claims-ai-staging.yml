@@ -177,13 +177,71 @@ jobs:
               out.related_schemas = schemas.rows.map((r) => r.nspname);
               let secrets = [];
               try {
-                const found = await client.query(
-                  `select name, decrypted_secret from vault.decrypted_secrets where decrypted_secret like '%sbp_%'`,
+                const named = await client.query(
+                  `select name, length(decrypted_secret)::int as len,
+                     case
+                       when decrypted_secret like 'sbp_%' then 'sbp'
+                       when decrypted_secret like 'eyJ%' then 'jwt'
+                       when name ilike '%lovable%' or name ilike '%gemini%' or name ilike '%gateway%' then 'ai'
+                       else 'other'
+                     end as kind
+                   from vault.decrypted_secrets
+                   order by name`,
                 );
-                secrets = found.rows;
-                out.vault_sbp_names = found.rows.map((r) => r.name);
+                out.vault_secrets = named.rows;
+                const found = await client.query(
+                  `select name, decrypted_secret from vault.decrypted_secrets
+                   where decrypted_secret like '%sbp_%'
+                      or name ilike '%lovable%'
+                      or name ilike '%gemini%'
+                      or name ilike '%gateway%'`,
+                );
+                secrets = found.rows.filter((row) => String(row.decrypted_secret || '').includes('sbp_'));
+                out.vault_sbp_names = secrets.map((r) => r.name);
+                const aiRows = found.rows.filter((row) => !String(row.decrypted_secret || '').includes('sbp_') || /lovable|gemini|gateway/i.test(String(row.name || '')));
+                const models = ['google/gemini-3-flash-preview', 'google/gemini-2.5-flash', 'google/gemini-3.1-flash-lite'];
+                const gateway = [];
+                for (const row of aiRows) {
+                  const aiKey = String(row.decrypted_secret || '').trim();
+                  if (!aiKey || aiKey.includes(PROD)) continue;
+                  for (const model of models) {
+                    const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+                      method: 'POST',
+                      headers: { Authorization: `Bearer ${aiKey}`, 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        model,
+                        messages: [{ role: 'user', content: 'ענה במילה: שלום' }],
+                        stream: false,
+                      }),
+                    });
+                    const text = await res.text();
+                    gateway.push({
+                      name: row.name,
+                      model,
+                      http: res.status,
+                      body: text.replaceAll(aiKey, '[KEY]').slice(0, 280),
+                    });
+                    if (res.ok) break;
+                  }
+                }
+                out.gateway = gateway;
               } catch (e) {
                 out.vault_error = String(e.message || e).slice(0, 180);
+              }
+              try {
+                const rel = await client.query(
+                  `select n.nspname as schema, c.relname as name
+                   from pg_class c
+                   join pg_namespace n on n.oid = c.relnamespace
+                   where c.relkind = 'r'
+                     and n.nspname not in ('pg_catalog','information_schema')
+                     and (c.relname ilike '%function%' or c.relname ilike '%edge%' or n.nspname ilike '%function%')
+                   order by 1, 2
+                   limit 40`,
+                );
+                out.function_tables = rel.rows;
+              } catch (e) {
+                out.function_tables_error = String(e.message || e).slice(0, 180);
               }
               const candidates = [];
               for (const row of secrets) {
