@@ -6,6 +6,13 @@ name: Deploy claims AI to Staging
 
 on:
   workflow_dispatch: {}
+  push:
+    branches:
+      - codex/garage-open-case-flow-staging
+    paths:
+      - '.github/workflows/deploy-claims-ai-staging.yml'
+      - 'supabase/migrations/20261007180000_claims_ai_conversations_staging.sql'
+      - 'supabase/functions/help-ai-chat/**'
 
 permissions:
   contents: read
