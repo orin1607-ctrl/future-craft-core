@@ -37,7 +37,7 @@ async function verifyLive() {
   console.log(`[PASS] Selection bar visible: ${selBarVisible}, text: ${selBarText.replace(/\n/g, ' ')}`);
 
   // 5. Open AI Dispatch Modal
-  await page.click('button[data-act="openAiDispatchModal"]');
+  await page.click('button[data-act="openAiDispatch"]');
   await page.waitForSelector('#modalRoot .modal-card');
   const aiModalText = await page.locator('#modalRoot .modal-card').innerText();
   console.log(`[PASS] AI Dispatch modal opened live. Text snippet: ${aiModalText.slice(0, 100).replace(/\n/g, ' ')}`);
@@ -48,7 +48,7 @@ async function verifyLive() {
   await page.click('button[data-act="closeAiDispatchModal"]');
 
   // 6. Open External Dispatch Modal
-  await page.click('button[data-act="openExtDispatchModal"]');
+  await page.click('button[data-act="openExtDispatch"]');
   await page.waitForSelector('#modalRoot .modal-card');
   const extModalText = await page.locator('#modalRoot .modal-card').innerText();
   console.log(`[PASS] External Dispatch modal opened live. TEST MODE: ${extModalText.includes('TEST MODE')}`);
