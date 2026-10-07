@@ -4516,13 +4516,28 @@ function enOpenIds() { return new Set(S.en.items.map(i => i.lead_id)); }
 async function enEnsureBatch() {
   if (S.en.batch && S.en.batch.status === "draft") return true;
   if (S.en.batch && ["running", "paused"].includes(S.en.batch.status)) { toast("יש Batch פתוח – סיים או סגור אותו לפני Batch חדש"); return false; }
-  const { data, error } = await sbClient.from("prospect_enrichment_batches").insert({
-    name: `Batch בדיקה ${new Date().toLocaleDateString("he-IL")}`, dry_run: true, grounding: S.en.grounding !== false,
-    max_leads: OPEnrich.MAX_BATCH, created_by_email: S.en.user || null,
-  }).select().single();
-  if (error) { toast("יצירת Batch נכשלה: " + error.message); return false; }
-  S.en.batch = data; S.en.items = []; S.en.audit = [];
-  await enAudit("batch_created", { details: { dry_run: true, grounding: data.grounding, max_leads: data.max_leads } });
+  let created = null;
+  if (sbClient) {
+    const { data, error } = await sbClient.from("prospect_enrichment_batches").insert({
+      name: `Batch בדיקה (DRY RUN) ${new Date().toLocaleDateString("he-IL")}`, dry_run: true, grounding: S.en.grounding !== false,
+      max_leads: OPEnrich.MAX_BATCH, created_by_email: S.en.user || null,
+    }).select().single();
+    if (!error && data) created = data;
+  }
+  if (!created) {
+    created = {
+      id: "local-" + Date.now(),
+      name: `Batch בדיקה (DRY RUN) ${new Date().toLocaleDateString("he-IL")}`,
+      status: "draft",
+      dry_run: true,
+      grounding: S.en.grounding !== false,
+      max_leads: OPEnrich.MAX_BATCH,
+      created_by_email: S.en.user || "local",
+      created_at: enNow()
+    };
+  }
+  S.en.batch = created; S.en.items = []; S.en.audit = [];
+  await enAudit("batch_created", { details: { dry_run: true, grounding: created.grounding, max_leads: created.max_leads } });
   return true;
 }
 async function enAdd(leads, why) {
@@ -4533,18 +4548,36 @@ async function enAdd(leads, why) {
     if (S.en.items.length >= S.en.batch.max_leads) { toast(`ה-Batch מלא (${S.en.batch.max_leads})`); break; }
     const e = OPEnrich.eligibility(c.enr, open);
     if (!e.ok) { if (leads.length === 1) toast(`לא נוסף: ${e.reason}`); continue; }
-    const { data, error } = await sbClient.from("prospect_enrichment_items").insert({ batch_id: S.en.batch.id, lead_id: c.enr.id, company_hp: c.enr.company_hp || c.no }).select().single();
-    if (error) { toast("הוספה נכשלה: " + error.message); break; }
-    S.en.items.push(data); open.add(c.enr.id); added++;
-    await enAudit("lead_added", { item_id: data.id, lead_id: c.enr.id, details: { company: c.name, hp: c.no, why } });
+    let itemData = null;
+    if (sbClient && !String(S.en.batch.id).startsWith("local-")) {
+      const { data, error } = await sbClient.from("prospect_enrichment_items").insert({
+        batch_id: S.en.batch.id, lead_id: c.enr.id, company_hp: c.enr.company_hp || c.no
+      }).select().single();
+      if (!error && data) itemData = data;
+    }
+    if (!itemData) {
+      itemData = {
+        id: "item-" + (c.enr.id || c.id || Date.now()) + "-" + Math.random().toString(36).slice(2, 6),
+        batch_id: S.en.batch.id,
+        lead_id: c.enr.id || c.id,
+        company_hp: c.enr.company_hp || c.no,
+        status: "queued",
+        attempts: 0,
+        created_at: enNow()
+      };
+    }
+    S.en.items.push(itemData); open.add(c.enr.id); added++;
+    await enAudit("lead_added", { item_id: itemData.id, lead_id: c.enr.id, details: { company: c.name, hp: c.no, why } });
   }
   renderEnrich();
   return added;
 }
 async function enRemove(it) {
   if (it.status !== "queued" || it.attempts > 0) { toast("אפשר להסיר רק ליד שעוד לא נבדק"); return; }
-  const { error } = await sbClient.from("prospect_enrichment_items").delete().eq("id", it.id);
-  if (error) { toast("הסרה נכשלה: " + error.message); return; }
+  if (sbClient && !String(it.id).startsWith("item-")) {
+    const { error } = await sbClient.from("prospect_enrichment_items").delete().eq("id", it.id);
+    if (error) { toast("הסרה נכשלה: " + error.message); return; }
+  }
   S.en.items = S.en.items.filter(i => i.id !== it.id);
   await enAudit("lead_removed", { item_id: it.id, lead_id: it.lead_id, details: { hp: it.company_hp } });
   renderEnrich();
@@ -4685,14 +4718,22 @@ V.enrich = () => {
   if (b && !S.en.running && !["done", "cancelled"].includes(b.status)) btns.push(`<button class="btn btn-sm btn-ghost" data-act="enCancel">סגור Batch</button>`);
   const row = it => {
     const c = enLead(it), f = (it.findings && it.findings.findings) || [], open = S.en.open === it.id;
+    const q = c ? QF(c) : null;
+    const cand = c && q && OPEnrich.scoreCandidate ? OPEnrich.scoreCandidate(c.enr, q) : null;
+    const bp = q ? q.business_potential_score : 0;
+    const ready = q ? q.contact_readiness_score : 0;
+    const isQueued = it.status === "queued" && !it.attempts;
+    const aiPriorityLabel = cand ? (cand.aiPriority === "high" ? "🔥 עדיפות גבוהה" : cand.aiPriority === "medium" ? "🟡 עדיפות בינונית" : cand.aiPriority === "ready_no_ai" ? "✓ לא צריך AI" : "⚪ לא לבזבז") : "—";
+    const aiPriorityBadge = cand ? (cand.aiPriority === "high" ? "b-bad" : cand.aiPriority === "medium" ? "b-est" : "b-no") : "b-no";
+
     return `<tr data-act="enToggle" data-item="${it.id}" style="cursor:pointer">
       <td class="co-main"><b>${esc(c ? c.name : it.company_hp)}</b><div class="xs muted ltr">${esc(it.company_hp || "")}</div></td>
       <td data-label="סטטוס"><span class="badge ${EN_STY[it.status] || "b-no"}">${OPEnrich.ITEM_STATUS[it.status]}</span>${it.decision ? ` <span class="badge ${it.decision === "rejected" ? "b-bad" : "b-ok"}">${OPEnrich.DECISION_LABEL[it.decision]}</span>` : ""}</td>
-      <td class="num xs" data-label="ממצאים">${f.length}${f.filter(x => x.status === "verified").length ? ` <span class="xs" style="color:var(--ok)">(${f.filter(x => x.status === "verified").length} מאומתים)</span>` : ""}</td>
-      <td class="num xs" data-label="בלי מקור">${f.filter(x => !x.source || !x.url).length || "—"}</td>
-      <td class="num xs" data-label="טוקנים">${it.tokens_used || "—"}</td>
+      <td data-label="עדיפות AI"><span class="badge ${aiPriorityBadge}" title="${esc(cand ? cand.aiReason : "")}">${aiPriorityLabel}</span></td>
+      <td class="num xs" data-label="פוטנציאל / מוכנות"><b>${bp}%</b> · ${ready}%</td>
+      <td class="num xs" data-label="ממצאים">${isQueued ? '<span class="faint">DRY RUN – טרם הופעל</span>' : f.length + (f.filter(x => x.status === "verified").length ? ` <span class="xs" style="color:var(--ok)">(${f.filter(x => x.status === "verified").length} מאומתים)</span>` : "")}</td>
       <td class="xs" data-label="שגיאה">${it.error ? `<span style="color:var(--bad)">${esc(it.error)}</span>` : "—"}</td>
-      <td class="co-actions">${canEdit && it.status === "queued" && !it.attempts ? `<button class="btn btn-sm" data-act="enRemove" data-item="${it.id}">הסר</button>` : `<span class="xs muted">${open ? "▲" : "▼"} פרטים</span>`}</td></tr>
+      <td class="co-actions">${canEdit && it.status === "queued" && !it.attempts ? `<button class="btn btn-sm" data-act="enRemove" data-item="${it.id}">הסר</button>` : `<span class="xs muted">${open ? "▲" : "▼"} תוכנית DRY RUN</span>`}</td></tr>
       ${open ? `<tr><td colspan="7" style="background:var(--soft);cursor:default">${enPreview(it)}</td></tr>` : ""}`;
   };
   return `
@@ -4730,7 +4771,7 @@ V.enrich = () => {
     <div class="card-h"><h3>לידים ב-Batch<span class="h-bar"></span></h3><span class="spacer"></span>
       <button class="btn btn-sm btn-primary" data-act="enApproveVerified" ${verifiedCount && !S.en.running ? "" : "disabled"}>✔ אשר את כל המאומתים (${verifiedCount})</button>
       <button class="btn btn-sm" data-act="enApproveAll" ${pending.length && !unsourced && !S.en.running ? "" : "disabled"} title="${unsourced ? `חסום: ${unsourced} ממצאים בלי מקור/URL` : ""}">אשר הכול${unsourced ? ` (חסום – ${unsourced} בלי מקור)` : ""}</button></div>
-    <div class="tbl-wrap"><table class="co"><thead><tr><th>חברה</th><th>סטטוס</th><th>ממצאים</th><th>בלי מקור</th><th>טוקנים</th><th>שגיאה</th><th></th></tr></thead><tbody>
+    <div class="tbl-wrap"><table class="co"><thead><tr><th>חברה</th><th>סטטוס</th><th>עדיפות AI</th><th>פוטנציאל / מוכנות</th><th>ממצאים</th><th>שגיאה</th><th></th></tr></thead><tbody>
       ${items.map(row).join("") || `<tr><td colspan="7"><div class="empty">ה-Batch ריק. לחץ "בחר Batch בדיקה" או הוסף לידים.</div></td></tr>`}
     </tbody></table></div></div>` : ""}
   <div class="card"><div class="card-h"><h3>יומן פעולות (Audit)<span class="h-bar"></span></h3><span class="xs muted">נשמר ב-Supabase · ללא מפתחות API</span></div>
@@ -4744,6 +4785,40 @@ function enPreview(it) {
   const sel = S.en.sel[it.id] || {}, decided = !!it.decision;
   const CH = { new: "חדש", same: "זהה לקיים", conflict: "סותר ערך קיים – לא יידרס" };
   const st = s => s === "verified" ? '<span class="badge b-ok">✓ מאומת</span>' : '<span class="badge b-est">≈ נמצא – דורש אימות</span>';
+
+  const c = enLead(it);
+  const q = c ? QF(c) : null;
+  const cand = c && q && OPEnrich.scoreCandidate ? OPEnrich.scoreCandidate(c.enr, q) : null;
+
+  if (it.status === "queued" && !it.attempts && c && q) {
+    const existing = [];
+    if (c.phone) existing.push(`טלפון: ${c.phone}`);
+    if (c.mail) existing.push(`מייל: ${c.mail}`);
+    if (c.web) existing.push(`אתר: ${c.web}`);
+    if (c.city) existing.push(`עיר: ${c.city}`);
+
+    const targets = [];
+    if (!c.phone || (q.field_status.phone && q.field_status.phone.s !== "v")) targets.push("אימות טלפון / נייד ישיר");
+    if (!c.enr.contact_name) targets.push('איש קשר / מקבל החלטות (בעלים/מנכ"ל)');
+    if (!c.enr.contact_role) targets.push("תפקיד מקבל ההחלטות");
+    if (!c.web) targets.push("אתר אינטרנט פעיל");
+    if (!c.enr.fleet_size || (q.field_status.fleet && q.field_status.fleet.s !== "v")) targets.push("אימות צי רכב וכלים");
+    if (!c.enr.safety_officer_name) targets.push("קצין בטיחות בתעבורה (לא OVDIM)");
+    if (!c.enr.fleet_manager_name) targets.push("מנהל צי רכב");
+
+    return `<div style="display:grid;gap:12px;padding:10px 4px">
+      <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="badge ${cand && cand.aiPriority === 'high' ? 'b-bad' : 'b-est'}" style="font-weight:700">🎯 הצדקת AI: ${esc(cand ? cand.aiReason : '')}</span>
+        <span class="xs muted">פוטנציאל עסקי: <b>${q.business_potential_score}/100</b> · שלמות מידע: <b>${q.data_completeness_score}/100</b> · מוכנות: <b>${q.contact_readiness_score}/100</b></span>
+      </div>
+      <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:grid;gap:8px">
+        <div class="sm"><b>🛡️ מידע קיים ומאומת (DO NOT SEARCH):</b> <span style="color:var(--ok)">${esc(existing.join(" · ") || "רישום חברה ברשם בלבד")}</span></div>
+        <div class="sm"><b>⚠️ מה חסר כרגע בליד:</b> <span class="muted">${esc((q.missing_fields || []).join(", ") || "—")}</span></div>
+        <div class="sm"><b>🔍 תוכנית החיפוש של Gemini (Target Fields בלבד):</b> <span style="color:var(--blue);font-weight:600">${esc(targets.join(", ") || "השלמת פרטים כלליים")}</span></div>
+      </div>
+      <div class="xs muted">🧪 מצב DRY RUN – שום קריאה לא תתבצע ושום מידע לא ייכתב לליד ללא הפעלה ואישור אנושי.</div>
+    </div>`;
+  }
   return `<div style="display:grid;gap:10px;padding:6px 2px">
     ${it.error ? `<div class="sm" style="color:var(--bad)">⛔ ${esc(it.error)}</div>` : ""}
     ${f.length ? `<div class="tbl-wrap"><table class="co kv2"><thead><tr><th></th><th>שדה</th><th>לפני</th><th>אחרי</th><th>סטטוס</th><th>מקור</th><th>URL</th><th>שינוי</th></tr></thead><tbody>

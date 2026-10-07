@@ -101,18 +101,49 @@
     if (q.rejected_reason) return { ok: false, reason: q.rejected_reason, q };
     return { ok: true, reason: "", q };
   }
-  /* prefers: qualified/quality, phone present, contact missing, fleet not verified, company active */
+  /* prefers: Business Potential 80+ with missing data, qualified/quality, phone present, contact missing, fleet not verified, company active */
   function scoreCandidate(row, q) {
     const fs = q.field_status;
     const active = (row.registry_check && row.registry_check.companies && row.registry_check.companies.status === "פעילה") ||
       row.company_active_status === "פעילה" || !!(row.registry_check && row.registry_check.contractors && row.registry_check.contractors.found);
     let s = 0;
+    const bp = q.business_potential_score || 0;
+    const comp = q.data_completeness_score || 0;
+    const ready = q.contact_readiness_score || 0;
+
+    // AI Hierarchy: BP 80+ top priority, 60-79 medium, <60 low
+    if (bp >= 80) s += 100;
+    else if (bp >= 60) s += 40;
+    else s += 5;
+
     if (["qualified", "quality"].includes(q.lead_stage)) s += 50;
     if (fs.phone.s === "v") s += 20; else if (fs.phone.s === "f") s += 10;
-    if (fs.contact_name.s === "n") s += 10;
-    if (fs.fleet.s !== "v") s += 10;
+    if (fs.contact_name.s === "n") s += 25; // prefers missing contact
+    if (fs.fleet.s !== "v") s += 25;        // prefers unverified fleet
+    if (comp <= 50 || ready <= 50) s += 15; // prefers incomplete leads
     if (active) s += 10;
-    return { s, active };
+
+    // AI Priority Assessment
+    let aiPriority = "low";
+    let aiReason = "";
+    if (q.lead_stage === "rejected" || !active || q.has_insolvency_warning) {
+      aiPriority = "none";
+      aiReason = "חברה לא פעילה / בפירוק / נפסלה – לא לשלוח ל-AI";
+    } else if (bp >= 80 && (comp < 70 || ready < 70)) {
+      aiPriority = "high";
+      aiReason = "פוטנציאל עסקי 80+ עם מידע חסר – עדיפות גבוהה ביותר ל-AI";
+    } else if (bp >= 60 && (comp < 60 || ready < 70)) {
+      aiPriority = "medium";
+      aiReason = "פוטנציאל עסקי 60–79 וחסר מידע מהותי – מומלץ ל-AI";
+    } else if (ready >= 80 && comp >= 70) {
+      aiPriority = "ready_no_ai";
+      aiReason = "המידע קיים ומאומת ברמה גבוהה – לא צריך AI";
+    } else {
+      aiPriority = "low";
+      aiReason = "פוטנציאל מתחת ל-60 – לא לבזבז AI אוטומטית";
+    }
+
+    return { s, active, bp, comp, ready, aiPriority, aiReason };
   }
   function selectBatch(rows, openLeadIds, max) {
     max = Math.min(max || MAX_BATCH, MAX_BATCH);
@@ -322,6 +353,6 @@
 
   root.OPEnrich = {
     MAX_BATCH, MAX_ATTEMPTS, PRICES, ITEM_STATUS, DECISION_LABEL, FIELD_COL, FIELD_LABEL, RESPONSE_SCHEMA,
-    eligibility, selectBatch, buildPayload, extractJson, validateResponse, diff, buildPatch, summarize, estimateCost, classifyError, show,
+    eligibility, scoreCandidate, selectBatch, buildPayload, extractJson, validateResponse, diff, buildPatch, summarize, estimateCost, classifyError, show,
   };
 })(typeof window !== "undefined" ? window : globalThis);
