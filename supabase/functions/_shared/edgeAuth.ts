@@ -94,13 +94,13 @@ export async function requireAuth(
     return { error: jsonResponse({ error: 'Unauthorized' }, 401) };
   }
 
-  const { data: roleRow } = await supabaseAdmin
+  const { data: roleRows } = await supabaseAdmin
     .from('user_roles')
     .select('role')
-    .eq('user_id', user.id)
-    .maybeSingle();
+    .eq('user_id', user.id);
 
-  const role = roleRow?.role as AppRole | undefined;
+  const roles = (roleRows || []).map((r) => r.role as AppRole);
+  const role = roles.includes('super_admin') ? 'super_admin' : (roles[0] as AppRole | undefined);
   if (!role) {
     return { error: jsonResponse({ error: 'Forbidden — no role assigned' }, 403) };
   }

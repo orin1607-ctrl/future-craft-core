@@ -1,5 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { edgeCorsHeaders, requireAuth, resolveCompanyScope } from "../_shared/edgeAuth.ts";
+import {
+  CLAIMS_GEMINI_TOOLS,
+  CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS,
+  executeClaimsPendingAction,
+  executeClaimsTool,
+  recordAiAudit,
+  type ClaimsPendingAction,
+} from "./claimsTools.ts";
 
 const corsHeaders = edgeCorsHeaders;
 
@@ -23,103 +31,86 @@ const SYSTEM_PROMPT = `אתה עוזר AI חכם למערכת ניהול צי ר
 - כשמפנה למסך — הוסף [[nav:/path]] (למשל [[nav:/vehicles]])
 - אם לא יודע - אמור זאת בגלוי, אל תמציא`;
 
-const DATA_TOOLS = [
+const FLEET_GEMINI_TOOLS = [
   {
-    type: "function",
-    function: {
-      name: "get_vehicles_stats",
-      description: "סטטיסטיקת רכבים: סך הכל, לפי סטטוס, רכבים עם טסט/ביטוח שעומדים לפוג",
-      parameters: {
-        type: "object",
-        properties: {
-          company_name: { type: "string", description: "סנן לפי שם חברה" },
-          days_until_expiry: { type: "number", description: "כמה ימים קדימה לבדוק תפוגות (ברירת מחדל 30)" },
+    functionDeclarations: [
+      {
+        name: "get_vehicles_stats",
+        description: "סטטיסטיקת רכבים: סך הכל, לפי סטטוס, רכבים עם טסט/ביטוח שעומדים לפוג",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            company_name: { type: "STRING", description: "סנן לפי שם חברה" },
+            days_until_expiry: { type: "NUMBER", description: "כמה ימים קדימה לבדוק תפוגות (ברירת מחדל 30)" },
+          },
         },
       },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_drivers_stats",
-      description: "סטטיסטיקת נהגים: סך הכל, פעילים, רישיונות שעומדים לפוג",
-      parameters: {
-        type: "object",
-        properties: {
-          company_name: { type: "string" },
+      {
+        name: "get_drivers_stats",
+        description: "סטטיסטיקת נהגים: סך הכל, פעילים, רישיונות שעומדים לפוג",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            company_name: { type: "STRING" },
+          },
         },
       },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_faults_stats",
-      description: "סטטיסטיקת תקלות: לפי סטטוס, דחיפות, תקופה אחרונה",
-      parameters: {
-        type: "object",
-        properties: {
-          company_name: { type: "string" },
-          days: { type: "number", description: "מספר ימים אחורה (ברירת מחדל 7)" },
+      {
+        name: "get_faults_stats",
+        description: "סטטיסטיקת תקלות: לפי סטטוס, דחיפות, תקופה אחרונה",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            company_name: { type: "STRING" },
+            days: { type: "NUMBER", description: "מספר ימים אחורה (ברירת מחדל 7)" },
+          },
         },
       },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_accidents_stats",
-      description: "סטטיסטיקת תאונות: סך הכל ולפי תקופה",
-      parameters: {
-        type: "object",
-        properties: {
-          company_name: { type: "string" },
-          days: { type: "number" },
+      {
+        name: "get_accidents_stats",
+        description: "סטטיסטיקת תאונות: סך הכל ולפי תקופה",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            company_name: { type: "STRING" },
+            days: { type: "NUMBER" },
+          },
         },
       },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_service_orders_stats",
-      description: "סטטיסטיקת הזמנות שירות: ממתינות, בטיפול, הושלמו",
-      parameters: {
-        type: "object",
-        properties: {
-          company_name: { type: "string" },
+      {
+        name: "get_service_orders_stats",
+        description: "סטטיסטיקת הזמנות שירות: ממתינות, בטיפול, הושלמו",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            company_name: { type: "STRING" },
+          },
         },
       },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_expenses_stats",
-      description: "סיכום הוצאות לפי קטגוריה ותקופה",
-      parameters: {
-        type: "object",
-        properties: {
-          company_name: { type: "string" },
-          days: { type: "number", description: "מספר ימים אחורה (ברירת מחדל 30)" },
+      {
+        name: "get_expenses_stats",
+        description: "סיכום הוצאות לפי קטגוריה ותקופה",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            company_name: { type: "STRING" },
+            days: { type: "NUMBER", description: "מספר ימים אחורה (ברירת מחדל 30)" },
+          },
         },
       },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "get_alerts_count",
-      description: "מספר התראות פעילות במערכת",
-      parameters: {
-        type: "object",
-        properties: { company_name: { type: "string" } },
+      {
+        name: "get_alerts_count",
+        description: "מספר התראות פעילות במערכת",
+        parameters: {
+          type: "OBJECT",
+          properties: { company_name: { type: "STRING" } },
+        },
       },
-    },
+    ],
   },
 ];
 
-async function executeToolCall(
+async function executeFleetTool(
   name: string,
   args: Record<string, unknown>,
   supabase: ReturnType<typeof createClient>,
@@ -183,7 +174,7 @@ async function executeToolCall(
         if (error) return JSON.stringify({ error: error.message });
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - days);
-        const recent = (data || []).filter(f => new Date(f.created_at) >= cutoff);
+        const recent = (data || []).filter((f) => new Date(f.created_at) >= cutoff);
         const statusBreakdown: Record<string, number> = {};
         const urgencyBreakdown: Record<string, number> = {};
         for (const f of data || []) {
@@ -207,7 +198,7 @@ async function executeToolCall(
         if (error) return JSON.stringify({ error: error.message });
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - days);
-        const recent = (data || []).filter(a => new Date(a.created_at) >= cutoff);
+        const recent = (data || []).filter((a) => new Date(a.created_at) >= cutoff);
         const statusBreakdown: Record<string, number> = {};
         for (const a of data || []) {
           statusBreakdown[a.status || "unknown"] = (statusBreakdown[a.status || "unknown"] || 0) + 1;
@@ -246,7 +237,7 @@ async function executeToolCall(
         if (error) return JSON.stringify({ error: error.message });
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - days);
-        const recent = (data || []).filter(e => e.date && new Date(e.date) >= cutoff);
+        const recent = (data || []).filter((e) => e.date && new Date(e.date) >= cutoff);
         const byCategory: Record<string, { count: number; total: number }> = {};
         let totalAmount = 0;
         for (const e of recent) {
@@ -269,7 +260,7 @@ async function executeToolCall(
         if (company) q = q.eq("company_name", company);
         const { data, error } = await q;
         if (error) return JSON.stringify({ error: error.message });
-        const active = (data || []).filter(a => a.is_active);
+        const active = (data || []).filter((a) => a.is_active);
         const typeBreakdown: Record<string, number> = {};
         for (const a of active) {
           typeBreakdown[a.alert_type || "unknown"] = (typeBreakdown[a.alert_type || "unknown"] || 0) + 1;
@@ -322,35 +313,13 @@ async function loadClaimsContext(
     `חברת ביטוח: ${claimText(row.insCompany) || "—"}`,
     `סטטוס: ${claimText(data.status) || "—"}`,
     "",
-    "הנחיות חשובות:",
+    "הנחיות לפעולה בתיק:",
     "- כששואלים 'על איזה תיק אני עובד עכשיו?' או שאלות דומות על התיק הפתוח, ענה במפורש בעברית עם פרטי התיק הפתוח (מספר תביעה, רכב, לקוח, חברת ביטוח וסטטוס).",
-    "- אין בשלב הזה כלי כתיבה. אל תשלח מייל, אל תשנה סטטוס, ואל תסגור משימה.",
-    "- אם מתבקשת פעולת כתיבה — תאר מה היה עומד לקרות ובקש אישור. אל תבצע.",
-    "- חיפוש מיילים, מסמכים ותמונות מתוך התיק עדיין לא מחובר ישירות לצ'אט. אם שואלים עליהם, אמור זאת במפורש ואל תמציא תוכן.",
+    "- יש לך כלים ייעודיים לקריאת מיילים (חיפוש, מייל אחרון, בדיקת מענה מביטוח, מיילים ללקוח, קריאת תוכן וטיוטה), הצגת תמונות ומסמכים, ובדיקת קישורי שיתוף. השתמש בהם לקבלת מידע עדכני.",
+    "- לפעולות כתיבה (שליחת מייל, יצירת קישור שיתוף, ביטול קישור, שינוי סטטוס, יצירת משימה, סגירת משימה, הוספת הערה) — השתמש תמיד בכלי ה-Preview המתאים. כלי ה-Preview יציג כרטיס אישור למשתמש.",
+    "- הסבר בעברית ברורה מה הכנת עבור המשתמש, ובקש ממנו לאשר את הפעולה.",
   ].join("\n");
   return { text };
-}
-
-const CHAT_MODELS = [
-  "google/gemini-3.8-flash",
-  "google/gemini-3.7-flash",
-  "google/gemini-3.6-flash",
-  "google/gemini-2.5-flash",
-  "google/gemini-3-flash-preview",
-];
-
-function gatewayFailure(status: number, text: string): { error: string; status: number } {
-  let detail = "";
-  try {
-    const parsed = JSON.parse(text);
-    detail = String(parsed?.error?.message || parsed?.message || parsed?.error || "");
-  } catch {
-    detail = text;
-  }
-  detail = detail.replace(/sk-[A-Za-z0-9_\-]+/g, "[key]").replace(/sbp_[A-Za-z0-9]+/g, "[key]").slice(0, 160);
-  if (status === 429) return { error: "מגבלת בקשות, נסה שוב בעוד דקה", status: 429 };
-  if (status === 402) return { error: "נדרש תשלום - יש להוסיף קרדיטים ל-Lovable AI", status: 402 };
-  return { error: `שגיאה בשירות AI (${status}${detail ? `: ${detail}` : ""})`, status: status === 401 || status === 403 ? status : 500 };
 }
 
 async function callGemini(
@@ -358,7 +327,9 @@ async function callGemini(
   preferredModel: string,
   systemInstruction: string,
   messages: Array<{ role: string; content: string }>,
-): Promise<{ text: string; model: string } | { error: string; status: number }> {
+  tools?: unknown[],
+  onToolCall?: (name: string, args: Record<string, unknown>) => Promise<{ result: unknown; preview?: ClaimsPendingAction }>,
+): Promise<{ text: string; model: string; pendingAction?: ClaimsPendingAction | null } | { error: string; status: number }> {
   const modelCandidates = Array.from(new Set([
     preferredModel,
     "gemini-3.8-flash",
@@ -367,64 +338,113 @@ async function callGemini(
     "gemini-1.5-flash",
   ].filter(Boolean)));
 
-  const contents: Array<{ role: "user" | "model"; parts: [{ text: string }] }> = [];
+  const initialContents: Array<any> = [];
   for (const m of messages) {
     if (!m || !m.content) continue;
     const role: "user" | "model" = m.role === "assistant" || m.role === "model" ? "model" : "user";
     const text = String(m.content).trim();
     if (!text) continue;
-    if (contents.length > 0 && contents[contents.length - 1].role === role) {
-      contents[contents.length - 1].parts[0].text += `\n${text}`;
+    if (initialContents.length > 0 && initialContents[initialContents.length - 1].role === role) {
+      initialContents[initialContents.length - 1].parts[0].text += `\n${text}`;
     } else {
-      contents.push({ role, parts: [{ text }] });
+      initialContents.push({ role, parts: [{ text }] });
     }
   }
 
-  if (contents.length === 0) {
-    contents.push({ role: "user", parts: [{ text: "שלום" }] });
-  } else if (contents[0].role === "model") {
-    contents.unshift({ role: "user", parts: [{ text: "שלום" }] });
+  if (initialContents.length === 0) {
+    initialContents.push({ role: "user", parts: [{ text: "שלום" }] });
+  } else if (initialContents[0].role === "model") {
+    initialContents.unshift({ role: "user", parts: [{ text: "שלום" }] });
   }
 
   let lastError = { error: "שגיאה בתקשורת עם Gemini", status: 500 };
 
   for (const model of modelCandidates) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey,
-        },
-        body: JSON.stringify({
+      const contents = JSON.parse(JSON.stringify(initialContents));
+      let maxTurns = 6;
+      let accumulatedPendingAction: ClaimsPendingAction | null = null;
+      let modelResponded = false;
+
+      while (maxTurns > 0) {
+        maxTurns--;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+        const payload: Record<string, unknown> = {
           systemInstruction: { parts: [{ text: systemInstruction }] },
           contents,
           generationConfig: {
             temperature: 0.65,
             maxOutputTokens: 2048,
           },
-        }),
-      });
+        };
+        if (tools && tools.length > 0) {
+          payload.tools = tools;
+        }
 
-      if (res.ok) {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          console.error(`Gemini error with model ${model} (${res.status}):`, errText.slice(0, 250));
+          if (res.status === 429) {
+            return { error: "מגבלת בקשות, נסה שוב בעוד דקה", status: 429 };
+          }
+          if (res.status === 401 || res.status === 403) {
+            return { error: `שגיאת הרשאה בחיבור ל-Gemini (${res.status})`, status: res.status };
+          }
+          lastError = { error: `שגיאה בשירות Gemini (${res.status})`, status: res.status >= 400 && res.status < 500 ? res.status : 500 };
+          break; // Try next model candidate
+        }
+
         const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.map((p: { text?: string }) => p.text || "").join("") || "";
+        const candidate = data.candidates?.[0];
+        const parts = candidate?.content?.parts || [];
+
+        const functionCallPart = parts.find((p: any) => p.functionCall);
+        if (functionCallPart && onToolCall) {
+          const fc = functionCallPart.functionCall;
+          const fnName = fc.name;
+          const fnArgs = fc.args || {};
+
+          const toolRes = await onToolCall(fnName, fnArgs);
+          if (toolRes && typeof toolRes === "object" && toolRes.preview) {
+            accumulatedPendingAction = toolRes.preview;
+          }
+
+          // Push model turn preserving exact thoughtSignature
+          contents.push({
+            role: "model",
+            parts: [functionCallPart],
+          });
+
+          // Push function response turn with role 'user'
+          contents.push({
+            role: "user",
+            parts: [{
+              functionResponse: {
+                name: fnName,
+                response: { result: toolRes && "result" in toolRes ? toolRes.result : toolRes },
+              },
+            }],
+          });
+          continue;
+        }
+
+        const text = parts.map((p: any) => p.text || "").join("").trim();
         if (text) {
-          return { text, model };
+          modelResponded = true;
+          return { text, model, pendingAction: accumulatedPendingAction };
         }
       }
 
-      const errText = await res.text();
-      console.error(`Gemini error with model ${model} (${res.status}):`, errText.slice(0, 200));
-
-      if (res.status === 429) {
-        return { error: "מגבלת בקשות, נסה שוב בעוד דקה", status: 429 };
-      }
-      if (res.status === 401 || res.status === 403) {
-        return { error: `שגיאת הרשאה בחיבור ל-Gemini (${res.status})`, status: res.status };
-      }
-      lastError = { error: `שגיאה בשירות Gemini (${res.status})`, status: res.status >= 400 && res.status < 500 ? res.status : 500 };
+      if (modelResponded) break;
     } catch (e) {
       console.error(`Gemini network error with model ${model}:`, e);
       lastError = { error: e instanceof Error ? e.message : "שגיאת רשת בחיבור ל-Gemini", status: 500 };
@@ -434,7 +454,7 @@ async function callGemini(
   return lastError;
 }
 
-function streamTextAsSse(replyText: string): Response {
+function streamTextAsSse(replyText: string, pendingAction?: ClaimsPendingAction | null): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -442,8 +462,10 @@ function streamTextAsSse(replyText: string): Response {
         const words = replyText.split(" ");
         for (let i = 0; i < words.length; i++) {
           const piece = (i === 0 ? "" : " ") + words[i];
+          const isLast = i === words.length - 1;
           const payload = JSON.stringify({
             choices: [{ delta: { content: piece } }],
+            ...(isLast && pendingAction ? { pending_action: pendingAction } : {}),
           });
           controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
           if (i % 2 === 0 && i < words.length - 1) {
@@ -475,134 +497,132 @@ Deno.serve(async (req) => {
     if ("error" in auth) return auth.error;
     const { ctx } = auth;
 
-    const { messages, company_name, page_context, claim_id, module } = await req.json();
+    const body = await req.json();
+    const { action, messages, company_name, page_context, claim_id, module, pending_action, conversation_id } = body;
 
+    const supabase = ctx.supabaseUser;
+    const userId = ctx.user.id;
+    const actorName = String(ctx.user.user_metadata?.full_name || ctx.user.email || "משתמש מערכת");
+    const authHeader = req.headers.get("Authorization") || "";
+
+    // Action 1: Execute Pending Action (confirmed by user)
+    if (action === "execute_pending_action") {
+      if (!pending_action || !pending_action.action_type) {
+        return new Response(JSON.stringify({ error: "Missing pending_action" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const execResult = await executeClaimsPendingAction(
+        supabase,
+        pending_action,
+        userId,
+        actorName,
+        authHeader,
+      );
+      return new Response(JSON.stringify(execResult), {
+        status: execResult.success ? 200 : 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Action 2: Cancel Pending Action (rejected by user)
+    if (action === "cancel_pending_action") {
+      const claimTarget = String(claim_id || pending_action?.parameters?.claim_id || "");
+      await recordAiAudit(supabase, {
+        userId,
+        userName: actorName,
+        claimId: claimTarget || null,
+        conversationId: conversation_id || null,
+        toolName: pending_action?.tool_name || "unknown",
+        actionType: pending_action?.action_type || "unknown",
+        previewSummary: pending_action?.summary || "בוטל ע''י המשתמש",
+        executionAction: "cancel",
+        status: "cancelled",
+      });
+      return new Response(JSON.stringify({ success: true, message: "הפעולה בוטלה" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Chat processing
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "Messages array is required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const GEMINI_API_KEY = (Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
     const GEMINI_MODEL = (Deno.env.get("GEMINI_MODEL") || "gemini-3.8-flash").trim();
-    const LOVABLE_API_KEY = (Deno.env.get("LOVABLE_API_KEY") || "").trim();
 
-    if (!GEMINI_API_KEY && !LOVABLE_API_KEY) {
+    if (!GEMINI_API_KEY) {
       throw new Error("AI service is not configured (missing GEMINI_API_KEY)");
     }
 
-    const supabase = ctx.supabaseUser;
     const companyScope = resolveCompanyScope(ctx, company_name);
-
-    const sysPrompt = companyScope
-      ? `${SYSTEM_PROMPT}\n\nהמשתמש משויך לחברה: "${companyScope}". כשאתה קורא לפונקציות נתונים, סנן תמיד לפי החברה הזו.`
-      : SYSTEM_PROMPT;
-
     const claimId = typeof claim_id === "string" ? claim_id.trim() : "";
+    const isClaimsModule = module === "claims" || !!claimId;
+
     let claimBlock = "";
     if (claimId) {
       const loaded = await loadClaimsContext(supabase, claimId);
       if ("error" in loaded) {
         return new Response(JSON.stringify({ error: loaded.message }), {
-          status: loaded.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: loaded.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       claimBlock = loaded.text;
-    } else if (module === "claims") {
+    } else if (isClaimsModule) {
       claimBlock = "המשתמש במודול ניהול תביעות ואין תיק פתוח כרגע. אל תניח פרטים של תיק קודם. אם השאלה היא על מייל, מסמך, תמונה או פרטי תיק ספציפי — בקש לפתוח את התיק.";
     }
 
+    const basePrompt = companyScope
+      ? `${SYSTEM_PROMPT}\n\nהמשתמש משויך לחברה: "${companyScope}".`
+      : SYSTEM_PROMPT;
+
     const fullSysPrompt = [
-      sysPrompt,
+      isClaimsModule ? CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS : basePrompt,
       page_context ? `--- הקשר מסך נוכחי ---\n${page_context}` : "",
       claimBlock ? `--- תיק פתוח (נטען בשרת לפי הרשאת המשתמש) ---\n${claimBlock}` : "",
     ].filter(Boolean).join("\n\n");
 
-    // Primary: Google Gemini
-    if (GEMINI_API_KEY) {
-      const geminiResult = await callGemini(GEMINI_API_KEY, GEMINI_MODEL, fullSysPrompt, messages);
-      if ("error" in geminiResult) {
-        // If Gemini failed and Lovable key is available, try Lovable
-        if (!LOVABLE_API_KEY) {
-          return new Response(JSON.stringify({ error: geminiResult.error }), {
-            status: geminiResult.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-      } else {
-        return streamTextAsSse(geminiResult.text);
+    const tools = isClaimsModule && claimId
+      ? CLAIMS_GEMINI_TOOLS
+      : (!isClaimsModule ? FLEET_GEMINI_TOOLS : undefined);
+
+    const onToolCall = async (toolName: string, toolArgs: Record<string, unknown>) => {
+      if (isClaimsModule && claimId) {
+        return await executeClaimsTool(toolName, toolArgs, supabase, claimId, userId, actorName);
       }
-    }
+      const fleetRes = await executeFleetTool(toolName, toolArgs, supabase, companyScope);
+      return { result: fleetRes };
+    };
 
-    // Secondary / fallback: Lovable AI Gateway
-    const chatMessages = [{ role: "system", content: fullSysPrompt }, ...messages];
-    const opened = await openGatewayChat(LOVABLE_API_KEY, chatMessages);
-    if ("error" in opened) {
-      return new Response(JSON.stringify({ error: opened.error }), {
-        status: opened.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const { firstResponse, model, withTools } = opened;
+    const geminiResult = await callGemini(
+      GEMINI_API_KEY,
+      GEMINI_MODEL,
+      fullSysPrompt,
+      messages,
+      tools,
+      onToolCall,
+    );
 
-    const firstResult = await firstResponse.json();
-    const firstChoice = firstResult.choices?.[0];
-
-    if (firstChoice?.finish_reason === "tool_calls" || firstChoice?.message?.tool_calls?.length > 0) {
-      const toolCalls = firstChoice.message.tool_calls;
-      const toolResults = [];
-      for (const tc of toolCalls) {
-        const args = typeof tc.function.arguments === "string" ? JSON.parse(tc.function.arguments) : tc.function.arguments;
-        const result = await executeToolCall(tc.function.name, args, supabase, companyScope);
-        toolResults.push({ role: "tool", tool_call_id: tc.id, content: result });
-      }
-
-      const secondResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: fullSysPrompt },
-            ...messages,
-            firstChoice.message,
-            ...toolResults,
-          ],
-          stream: true,
-        }),
-      });
-      if (!secondResponse.ok) {
-        const failed = gatewayFailure(secondResponse.status, await secondResponse.text());
-        return new Response(JSON.stringify({ error: failed.error }), {
-          status: failed.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      return new Response(secondResponse.body, {
-        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    if ("error" in geminiResult) {
+      return new Response(JSON.stringify({ error: geminiResult.error }), {
+        status: geminiResult.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const streamResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "system", content: fullSysPrompt }, ...messages],
-        ...(withTools ? { tools: DATA_TOOLS } : {}),
-        stream: true,
-      }),
-    });
-    if (!streamResponse.ok) {
-      const failed = gatewayFailure(streamResponse.status, await streamResponse.text());
-      return new Response(JSON.stringify({ error: failed.error }), {
-        status: failed.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    return new Response(streamResponse.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
-    });
+    return streamTextAsSse(geminiResult.text, geminiResult.pendingAction);
   } catch (e) {
     console.error("help-ai-chat error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

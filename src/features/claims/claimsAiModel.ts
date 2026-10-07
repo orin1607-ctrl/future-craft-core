@@ -35,6 +35,9 @@ export type ClaimsAiPendingAction = {
   preview_id: string;
   summary: string;
   tool_name: string;
+  action_type?: string;
+  status?: 'pending' | 'executed' | 'cancelled';
+  parameters?: Record<string, unknown>;
 };
 
 const EMPTY = '—';
@@ -91,8 +94,11 @@ export function pendingActionOf(metadata: Record<string, unknown> | null | undef
   const preview_id = String(row.preview_id || '').trim();
   const summary = String(row.summary || '').trim();
   const tool_name = String(row.tool_name || '').trim();
+  const action_type = String(row.action_type || '').trim();
+  const status = (row.status as 'pending' | 'executed' | 'cancelled') || 'pending';
+  const parameters = row.parameters && typeof row.parameters === 'object' ? (row.parameters as Record<string, unknown>) : undefined;
   if (!preview_id || !summary) return null;
-  return { preview_id, summary, tool_name };
+  return { preview_id, summary, tool_name, action_type, status, parameters };
 }
 
 export function activeConversationStorageKey(userId: string, claimId: string | null): string {

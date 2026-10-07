@@ -76,7 +76,8 @@ async function streamHelpAi(input: {
   claimId: string | null;
   companyName: string | null;
   onDelta: (full: string) => void;
-}): Promise<string> {
+  onPendingAction?: (pending: ClaimsAiPendingAction) => void;
+}): Promise<{ text: string; pendingAction: ClaimsAiPendingAction | null }> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error('יש להתחבר למערכת');
 
@@ -109,6 +110,8 @@ async function streamHelpAi(input: {
   const decoder = new TextDecoder();
   let full = '';
   let buffer = '';
+  let receivedPendingAction: ClaimsAiPendingAction | null = null;
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -131,6 +134,21 @@ async function streamHelpAi(input: {
             full += delta;
             input.onDelta(full);
           }
+          if (parsed.pending_action) {
+            const rawPending = parsed.pending_action as Record<string, unknown>;
+            const pendingObj: ClaimsAiPendingAction = {
+              preview_id: String(rawPending.preview_id || ''),
+              summary: String(rawPending.summary || ''),
+              tool_name: String(rawPending.tool_name || ''),
+              action_type: String(rawPending.action_type || ''),
+              status: 'pending',
+              parameters: (rawPending.parameters && typeof rawPending.parameters === 'object')
+                ? (rawPending.parameters as Record<string, unknown>)
+                : undefined,
+            };
+            receivedPendingAction = pendingObj;
+            input.onPendingAction?.(pendingObj);
+          }
         } catch {
           buffer = `${line}\n${buffer}`;
           break;
@@ -140,7 +158,7 @@ async function streamHelpAi(input: {
     }
   }
   if (!full.trim()) throw new Error('תשובה ריקה מהשרת');
-  return full;
+  return { text: full, pendingAction: receivedPendingAction };
 }
 
 export function ClaimsAiWorkspace({
@@ -167,6 +185,7 @@ export function ClaimsAiWorkspace({
   const [showList, setShowList] = useState(false);
   const [banner, setBanner] = useState('');
   const [pendingDelete, setPendingDelete] = useState<ClaimsAiConversation | null>(null);
+  const [executingActionId, setExecutingActionId] = useState<string | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRec | null>(null);
   const sendRef = useRef<(text: string, source: 'text' | 'voice') => Promise<void>>(async () => {});
@@ -268,6 +287,7 @@ export function ClaimsAiWorkspace({
       setMessages(history);
 
       let draft = '';
+      let pendingFromStream: ClaimsAiPendingAction | null = null;
       const answer = await streamHelpAi({
         messages: messagesForModel(history),
         claimId,
@@ -281,15 +301,23 @@ export function ClaimsAiWorkspace({
             content: full,
             created_at: new Date().toISOString(),
             tool_name: null,
-            metadata: {},
+            metadata: pendingFromStream ? { pending_action: pendingFromStream } : {},
           }]);
+        },
+        onPendingAction: (pending) => {
+          pendingFromStream = pending;
         },
       });
       const saved = await insertClaimsAiMessage({
         conversationId,
         role: 'assistant',
-        content: answer || draft,
-        metadata: { claim_id: claimId, model: 'help-ai-chat' },
+        content: answer.text || draft,
+        tool_name: answer.pendingAction?.tool_name || null,
+        metadata: {
+          claim_id: claimId,
+          model: 'help-ai-chat',
+          ...(answer.pendingAction ? { pending_action: answer.pendingAction } : {}),
+        },
       });
       if (saved.error || !saved.data) throw new Error(saved.error?.message || 'שמירת התשובה נכשלה');
       setMessages([...history, saved.data]);
@@ -316,6 +344,126 @@ export function ClaimsAiWorkspace({
   useEffect(() => {
     sendRef.current = sendMessage;
   }, [sendMessage]);
+
+  const handleConfirmPending = useCallback(async (msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => {
+    setExecutingActionId(msg.id);
+    setBanner('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('יש להתחבר למערכת');
+
+      const resp = await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          action: 'execute_pending_action',
+          claim_id: claimId,
+          conversation_id: activeId,
+          pending_action: pending,
+        }),
+      });
+
+      const result = await resp.json().catch(() => ({ error: 'שגיאה בפענוח תשובת השרת' }));
+      if (!resp.ok || result.success === false) {
+        throw new Error(result.message || result.error || 'ביצוע הפעולה נכשל');
+      }
+
+      const confirmText = `✅ ${result.message || 'הפעולה בוצעה בהצלחה'}`;
+      let confirmedRow: ClaimsAiMessage | null = null;
+      if (activeId) {
+        const confirmed = await insertClaimsAiMessage({
+          conversationId: activeId,
+          role: 'assistant',
+          content: confirmText,
+          metadata: {
+            claim_id: claimId,
+            executed_action: pending.action_type,
+            preview_id: pending.preview_id,
+          },
+        });
+        confirmedRow = confirmed.data || null;
+      }
+
+      setMessages((prev) =>
+        prev
+          .map((m) =>
+            m.id === msg.id
+              ? {
+                  ...m,
+                  metadata: {
+                    ...m.metadata,
+                    pending_action: { ...pending, status: 'executed' as const },
+                  },
+                }
+              : m
+          )
+          .concat(confirmedRow ? [confirmedRow] : [])
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'שגיאה בביצוע הפעולה';
+      setBanner(message);
+    } finally {
+      setExecutingActionId(null);
+    }
+  }, [activeId, claimId]);
+
+  const handleCancelPending = useCallback(async (msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => {
+    setBanner('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        await fetch(CHAT_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action: 'cancel_pending_action',
+            claim_id: claimId,
+            conversation_id: activeId,
+            pending_action: pending,
+          }),
+        });
+      }
+
+      let cancelRow: ClaimsAiMessage | null = null;
+      if (activeId) {
+        const cancelMsg = await insertClaimsAiMessage({
+          conversationId: activeId,
+          role: 'assistant',
+          content: `❌ הפעולה בוטלה על ידי המשתמש (${pending.summary})`,
+          metadata: {
+            claim_id: claimId,
+            cancelled_action: pending.action_type,
+            preview_id: pending.preview_id,
+          },
+        });
+        cancelRow = cancelMsg.data || null;
+      }
+
+      setMessages((prev) =>
+        prev
+          .map((m) =>
+            m.id === msg.id
+              ? {
+                  ...m,
+                  metadata: {
+                    ...m.metadata,
+                    pending_action: { ...pending, status: 'cancelled' as const },
+                  },
+                }
+              : m
+          )
+          .concat(cancelRow ? [cancelRow] : [])
+      );
+    } catch (err) {
+      console.error('Cancel action error:', err);
+    }
+  }, [activeId, claimId]);
 
   const toggleMic = () => {
     const Ctor = speechCtor();
@@ -466,15 +614,46 @@ export function ClaimsAiWorkspace({
                   {toolError ? <div className="claims-ai-tool-err">הכלי נכשל: {toolError}</div> : null}
                   {pending ? (
                     <div className="claims-ai-preview" data-testid="claims-ai-preview">
-                      <div>עומד להתבצע: {pending.summary}</div>
-                      <div className="claims-ai-preview-acts">
-                        <button
-                          type="button"
-                          className="btn btn-p btn-sm"
-                          onClick={() => setBanner('האישור נקלט. ביצוע כתיבה עדיין לא מחובר בשלב הזה, והפעולה לא רצה.')}
-                        >אישור</button>
-                        <button type="button" className="btn btn-g btn-sm" onClick={() => setBanner('הפעולה בוטלה. שום דבר לא השתנה בתיק.')}>ביטול</button>
+                      <div className="claims-ai-preview-head" style={{ fontWeight: 600, marginBottom: 4 }}>
+                        {pending.status === 'executed'
+                          ? '✅ פעולה בוצעה בהצלחה:'
+                          : pending.status === 'cancelled'
+                          ? '❌ פעולה בוטלה:'
+                          : '⚠️ עומד להתבצע (נדרש אישורך):'}
                       </div>
+                      <div className="claims-ai-preview-summary">{pending.summary}</div>
+                      {pending.status === 'executed' ? (
+                        <div style={{ color: 'var(--c-emerald, #10b981)', fontSize: '0.85rem', marginTop: 6 }}>
+                          הפעולה בוצעה במערכת ונשמרה בתיק.
+                        </div>
+                      ) : pending.status === 'cancelled' ? (
+                        <div style={{ color: 'var(--c-muted, #94a3b8)', fontSize: '0.85rem', marginTop: 6 }}>
+                          הפעולה בוטלה ולא שונה דבר בתיק.
+                        </div>
+                      ) : executingActionId === msg.id ? (
+                        <div className="claims-ai-status" style={{ marginTop: 6 }}>מבצע את הפעולה...</div>
+                      ) : (
+                        <div className="claims-ai-preview-acts" style={{ marginTop: 8 }}>
+                          <button
+                            type="button"
+                            className="btn btn-p btn-sm"
+                            data-testid="claims-ai-confirm-btn"
+                            disabled={!!executingActionId}
+                            onClick={() => void handleConfirmPending(msg, pending)}
+                          >
+                            אישור
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-g btn-sm"
+                            data-testid="claims-ai-cancel-btn"
+                            disabled={!!executingActionId}
+                            onClick={() => void handleCancelPending(msg, pending)}
+                          >
+                            ביטול
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : null}
                   {msg.role === 'assistant' && msg.metadata.error !== true && typeof window.speechSynthesis !== 'undefined' ? (
