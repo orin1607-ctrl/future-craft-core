@@ -74,8 +74,17 @@
    * Legacy evidence rows are arrays and are ignored here. */
   const EV_ALIAS = { fleet_exists: "fleet", safety_officer_name: "safety_officer", fleet_manager_name: "fleet_manager",
     contact: "contact_name", email_general: "email", phone_primary: "phone" };
+
+  /* Material fields (safety officer, contact role, insolvency, liquidation, legal status, ownership)
+   * require an authoritative official government source or company's own official site to be "verified".
+   * Private third-party directories or legal blogs are kept as "found" (דורש אימות). */
+  const MATERIAL_FIELDS = new Set(["safety_officer", "safety_officer_name", "contact_role", "role", "legal_status", "insolvency", "liquidation", "ownership"]);
+  const OFFICIAL_SOURCE = /gov\.il|court|רשם החברות|פנקס הקבלנים|משרד התחבורה|הנהלת בתי המשפט|מאגר רשמי|אתר רשמי|אתר החברה|official/i;
   function isVerifiedFinding(e) {
-    return !!e && e.status === "verified" && has(e.source) && has(e.url) && !AI_SOURCE.test(String(e.source));
+    if (!e || e.status !== "verified" || !has(e.source) || !has(e.url) || AI_SOURCE.test(String(e.source))) return false;
+    const k = EV_ALIAS[e.field] || e.field;
+    if (MATERIAL_FIELDS.has(k) && !OFFICIAL_SOURCE.test(String(e.source) + " " + String(e.url))) return false;
+    return true;
   }
   function findings(row) {
     const out = {};
@@ -271,9 +280,121 @@
     if (opts.duplicate) blockers.push("כפילות");
     if (rejectedReason) blockers.push("נפסל");
 
+    /* AI check & findings analysis */
+    const evList = Array.isArray(row.evidence) ? row.evidence : [];
+    const aiEvidence = evList.filter((e) => e && typeof e === "object" && !Array.isArray(e) && (e.by === "gemini" || e.field));
+    const hasAiChecked = aiEvidence.length > 0;
+    let aiStatusLabel = "❌ AI לא אומת";
+    let aiStatusBadge = "unverified";
+    if (hasAiChecked) {
+      const verifiedAiFindings = aiEvidence.filter((e) => isVerifiedFinding(e));
+      if (verifiedAiFindings.length >= 2) {
+        aiStatusLabel = "✅ AI נבדק ואומת";
+        aiStatusBadge = "verified";
+      } else if (aiEvidence.some((e) => e.status === "verified" || e.status === "found")) {
+        aiStatusLabel = "🟡 AI נבדק חלקית";
+        aiStatusBadge = "partial";
+      } else {
+        aiStatusLabel = "⚠️ AI נבדק – חסר מידע";
+        aiStatusBadge = "missing_info";
+      }
+    }
+
+    /* 10 core fields evaluated for Data Completeness Score */
+    const isMobile = has(fs.contact_phone?.val) || (fs.phone.s === "v" && String(row.phone || "").startsWith("05"));
+    const isEmailOk = fs.email.s === "v" || has(fs.contact_email?.val);
+    const isDecisionMaker = /מנכ"?ל|בעלים|דירקטור|מנהל צי|קצין רכב|סמנכ"?ל|שותף|CEO|Owner/i.test(String(fs.contact_role?.val || ""));
+    const coreChecks = [
+      fs.hp.s === "v",
+      fs.phone.s === "v",
+      isMobile,
+      isEmailOk,
+      fs.address.s !== "n",
+      fs.website.s !== "n",
+      fs.contact_name.s !== "n",
+      isDecisionMaker,
+      fs.fleet.s === "v",
+      fs.fleet_size.s === "v" || (Number.isInteger(row.fleet_size) && row.fleet_size > 0),
+    ];
+    const completenessScore = coreChecks.filter(Boolean).length * 10;
+    const missingDataPct = 100 - completenessScore;
+
+    let missingLevelLabel = "כמעט אין מידע שימושי";
+    if (missingDataPct <= 20) missingLevelLabel = "מצב טוב";
+    else if (missingDataPct <= 40) missingLevelLabel = "חסר מעט מידע";
+    else if (missingDataPct <= 60) missingLevelLabel = "חסר מידע משמעותי";
+    else if (missingDataPct <= 80) missingLevelLabel = "ליד חלש";
+
+    /* Detailed Hebrew missing labels */
+    const detailedMissing = [];
+    const extMissingFields = [];
+    if (fs.phone.s === "n") { detailedMissing.push("חסר טלפון חברה"); extMissingFields.push("phone"); }
+    if (!isMobile) { detailedMissing.push("חסר פלאפון / נייד"); extMissingFields.push("mobile_phone"); }
+    if (!has(fs.contact_phone?.val)) { detailedMissing.push("חסר טלפון ישיר"); extMissingFields.push("direct_phone"); }
+    if (!isEmailOk) { detailedMissing.push("חסר אימייל"); extMissingFields.push("email"); }
+    if (fs.contact_name.s === "n") { detailedMissing.push("חסר איש קשר"); extMissingFields.push("contact_name"); }
+    if (fs.contact_role.s === "n") { detailedMissing.push("חסר תפקיד"); extMissingFields.push("role"); }
+    if (!isDecisionMaker) { detailedMissing.push("חסר מקבל החלטות"); extMissingFields.push("decision_maker"); }
+    if (fs.fleet_size.s === "n") { detailedMissing.push("חסר גודל חברה / גודל צי"); extMissingFields.push("company_size"); }
+    if (fs.fleet.s !== "v") { detailedMissing.push("חסרה אינדיקציה מאומתת לצי רכב"); extMissingFields.push("fleet_indication"); }
+    if (fs.website.s === "n") { detailedMissing.push("חסר אתר אינטרנט"); }
+
+    /* Legal / Insolvency Check */
+    const hasInsolvencyWarning = /חדלות פירעון|פירוק|כינוס/i.test(String(row.notes || "")) ||
+      (Array.isArray(row.evidence) && row.evidence.some((e) => e && typeof e === "object" && /חדלות פירעון|פירוק/i.test(String(e.value || "") + " " + String(e.field || ""))));
+
+    /* Next Recommended Action */
+    let nextAction = "לבצע בדיקה ידנית";
+    if (stage === "ready") nextAction = "מוכן לפנייה";
+    else if (rejectedReason) nextAction = "לא מומלץ להמשיך להשקיע בליד";
+    else if (hasInsolvencyWarning) nextAction = "לבצע בדיקה ידנית (אימות חדלות פירעון ממקור רשמי)";
+    else if (fs.phone.s === "n") nextAction = "להשלים טלפון חברה";
+    else if (!isMobile) nextAction = "להשלים פלאפון";
+    else if (fs.contact_name.s === "n") nextAction = "לאתר איש קשר";
+    else if (!isDecisionMaker) nextAction = "לאתר מקבל החלטות";
+    else if (fs.fleet.s !== "v") nextAction = "לבדוק צי רכב";
+    else if (!hasAiChecked) nextAction = "לבצע חיפוש נוסף ב-Gemini";
+    else nextAction = "לבצע enrichment נוסף";
+
+    /* External Enrichment Decision */
+    let extRec = "לא נדרש";
+    let extReason = "";
+    let worthPaying = false;
+    let worthPayingReason = "";
+
+    if (stage === "ready" && isDecisionMaker && isMobile) {
+      extRec = "לא נדרש";
+      extReason = "הליד עומד בכל תנאי החובה, מאומת ברשומות וכולל פרטי קשר מלאים.";
+      worthPaying = false;
+      worthPayingReason = "המידע הקיים שלם ומספק לפנייה ישירה; אין צורך בהוצאה כספית נוספת.";
+    } else if (hasInsolvencyWarning) {
+      extRec = "לא כדאי להשקיע";
+      extReason = "קיימת אינדיקציה לחדלות פירעון – דורש אימות ממקור רשמי לפני כל השקעה כספית.";
+      worthPaying = false;
+      worthPayingReason = "לא להשקיע ב-enrichment בתשלום לפני אימות ממקור רשמי.";
+    } else if (registryConfirmed && relevant && !rejectedReason && (!isDecisionMaker || fs.contact_name.s === "n" || !isMobile)) {
+      extRec = fs.phone.s === "n" ? "מומלץ מאוד" : "מומלץ";
+      extReason = fs.phone.s === "n"
+        ? "החברה אמיתית בעלת פוטנציאל לצי רכב, אך חסר טלפון חברה תקין ופרטי איש קשר ישיר."
+        : "החברה אותרה ואומתה כחברה אמיתית בעלת פוטנציאל לצי רכב, אך חסרים פרטי איש קשר ישיר / מקבל החלטות שלא אותרו במקורות חינמיים.";
+      worthPaying = true;
+      worthPayingReason = "החברה אמיתית ורלוונטית לפעילות המוסך; השגת נייד ישיר של מקבל החלטות תגדיל מהותית את סיכויי הסגירה.";
+    } else if (!relevant || rejectedReason) {
+      extRec = "לא כדאי להשקיע";
+      extReason = rejectedReason ? `הליד נפסל: ${rejectedReason}` : "אין זיקה או רלוונטיות לציי רכב מסחריים/כבדים.";
+      worthPaying = false;
+      worthPayingReason = "הליד אינו מתאים לקהל היעד של מוסך צי רכב; השקעת כסף תוביל לבזבוז תקציב.";
+    } else {
+      extRec = "אפשרי";
+      extReason = "הליד במעקב; מומלץ למצות תחילה בדיקה מול Gemini ובדיקה ידנית לפני פנייה לשירות בתשלום.";
+      worthPaying = false;
+      worthPayingReason = "עדיף לבדוק קודם שיחה לטלפון הקיים או בדיקה ידנית חינמית.";
+    }
+
     return {
       field_status: { ...fs, manual, warnings },
       missing_fields: missing,
+      detailed_missing_fields: detailedMissing,
       blockers,
       source_list: sources,
       tier: registryConfirmed ? "A" : "C",
@@ -289,6 +410,26 @@
       ready_for_contact: stage === "ready",
       rejected_reason: rejectedReason || null,
       relevant,
+
+      /* AI Evaluation & Verification */
+      ai_checked: hasAiChecked,
+      ai_status_label: aiStatusLabel,
+      ai_status_badge: aiStatusBadge,
+
+      /* Completeness & Missing Level */
+      completeness_score: completenessScore,
+      missing_data_pct: missingDataPct,
+      missing_level_label: missingLevelLabel,
+
+      /* Action & External Enrichment */
+      next_action: nextAction,
+      external_enrichment: {
+        recommendation: extRec,
+        reason: extReason,
+        missing_fields: extMissingFields,
+        worth_paying: worthPaying,
+        worth_paying_reason: worthPayingReason,
+      },
     };
   }
 

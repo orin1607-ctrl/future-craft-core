@@ -227,6 +227,14 @@
         }
         if (g.status === "verified" && Q().NOT_SAFETY_PROOF.test(`${g.source} ${g.url}`)) { g.status = "found"; g.reasons.push("המקור אינו הוכחה לקצין בטיחות"); }
       }
+      /* Material fields require an official / government or official company site to be verified */
+      if (["safety_officer_name", "contact_role"].includes(field) && g.status === "verified") {
+        const isOfficial = /gov\.il|court|רשם החברות|פנקס הקבלנים|משרד התחבורה|אתר רשמי|אתר החברה/i.test(`${g.source} ${g.url}`);
+        if (!isOfficial) {
+          g.status = "found";
+          g.reasons.push("מידע מהותי ממקור שאינו רשמי – נדרש אימות ממקור רשמי");
+        }
+      }
       if (field === "fleet_size" && g.status !== "verified") g.reasons.push("גודל צי ללא מקור מאומת – לא יוצג כמאומת");
       if (!g.source && !g.url) g.reasons.push("ללא מקור – נמצא, דורש אימות");
       const cur = best[field];

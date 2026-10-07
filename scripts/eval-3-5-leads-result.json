@@ -1,0 +1,457 @@
+[
+  {
+    "lead_id": "b2b89a02-4db3-4f8a-9b5e-0d7025c238d5",
+    "company_name": "צור עבודות עפר כבישים פתוח גידור ובנייה בע\"מ",
+    "company_hp": "510761349",
+    "ai_checked": "כן",
+    "ai_status_label": "✅ AI נבדק ואומת",
+    "ai_status_badge": "verified",
+    "found_data": {
+      "company_name": "צור עבודות עפר כבישים פתוח גידור ובנייה בע\"מ",
+      "website": "rolzur.com",
+      "address": "הסיבים 4, פתח תקווה",
+      "phone": "054-4505350",
+      "email": "arikg@rolzur.com",
+      "industry": "כבישים, עפר ופיתוח",
+      "company_size": "50–100 עובדים",
+      "fleet_indication": "צמ\"ה ומשאיות רמסע",
+      "contact_name": "אריק גלזר",
+      "contact_role": "CEO",
+      "is_decision_maker": "לא ידוע",
+      "direct_phone": "054-4505350",
+      "mobile_phone": "054-4505350",
+      "contact_email": "arikg@rolzur.com"
+    },
+    "verified_data": {
+      "hp_verified": true,
+      "phone_verified": true,
+      "email_verified": true,
+      "fleet_verified": true,
+      "safety_officer_verified": false,
+      "evidence_sources": [
+        [
+          "📋",
+          "פנקס הקבלנים",
+          "רישיון קבלן ענף כבישים תשתית ופיתוח",
+          "data.gov.il/contractors",
+          "v",
+          "30.09.2026",
+          "A",
+          "Tier A ממשלתי"
+        ],
+        [
+          "🌐",
+          "אתר רשמי",
+          "צי מחפרים שופלים ומשאיות רמסע לפרויקטים",
+          "rolzur.com/equipment",
+          "v",
+          "30.09.2026",
+          "B",
+          "Tier B אתר רשמי"
+        ],
+        [
+          "⚖️",
+          "תקנה 579",
+          "חובת קצב\"ת על פי דין לצי מעל 20 רכבים כבדים",
+          "תקנות התעבורה",
+          "v",
+          "30.09.2026",
+          "A",
+          "Tier A חוקי"
+        ],
+        {
+          "field": "website",
+          "value": "https://www.rolzur.com",
+          "source": "Rolzur Official Website",
+          "url": "https://www.rolzur.com",
+          "status": "verified"
+        },
+        {
+          "field": "address",
+          "value": "שמשון 5, בניין A, קומה 3, פתח תקווה",
+          "source": "Rolzur Official Website",
+          "url": "https://www.rolzur.com",
+          "status": "verified"
+        },
+        {
+          "field": "phone",
+          "value": "054-4404331",
+          "source": "Rolzur Official Website",
+          "url": "https://www.rolzur.com",
+          "status": "verified"
+        },
+        {
+          "field": "email",
+          "value": "info@rolzur.com",
+          "source": "Rolzur Official Website",
+          "url": "https://www.rolzur.com",
+          "status": "verified"
+        },
+        {
+          "field": "contact_name",
+          "value": "אריק גלזר",
+          "source": "Rolzur Official Website",
+          "url": "https://www.rolzur.com/about-us/",
+          "status": "verified"
+        },
+        {
+          "field": "contact_role",
+          "value": "CEO",
+          "source": "Rolzur Official Website",
+          "url": "https://www.rolzur.com/about-us/",
+          "status": "verified"
+        },
+        {
+          "field": "contact_email",
+          "value": "arikg@rolzur.com",
+          "source": "רשם הקבלנים",
+          "url": "https://data.gov.il",
+          "status": "verified"
+        }
+      ]
+    },
+    "missing_fields": [
+      "חסר מקבל החלטות",
+      "חסר גודל חברה / גודל צי"
+    ],
+    "missing_data_pct": 20,
+    "completeness_score": 80,
+    "missing_level_label": "מצב טוב",
+    "ready_for_contact": true,
+    "next_action": "מוכן לפנייה",
+    "external_enrichment": {
+      "recommendation": "מומלץ",
+      "reason": "החברה אמיתית ורלוונטית מאוד לצי רכב, אך חסר איש קשר ישיר (פלאפון / מקבל החלטות) שלא אותר במקורות החינמיים.",
+      "missing_fields": [
+        "decision_maker",
+        "company_size"
+      ],
+      "worth_paying": true,
+      "worth_paying_reason": "כן, החברה בעלת צי פוטנציאלי משמעותי; השגת פלאפון ישיר של מקבל החלטות תעלה דרמטית את אחוזי ההמרה."
+    },
+    "notes": "Company operates under the Rolzur group umbrella (Zur Infrastructure Ltd. 1977). Fleet safety supervision is outsourced to Nativ Bituach."
+  },
+  {
+    "lead_id": "cf890d5c-cd9e-4dd3-8750-e805265fda6c",
+    "company_name": "מועלם נתן בנין כבישים ופיתוח בע\"מ",
+    "company_hp": "512891581",
+    "ai_checked": "כן",
+    "ai_status_label": "✅ AI נבדק ואומת",
+    "ai_status_badge": "verified",
+    "found_data": {
+      "company_name": "מועלם נתן בנין כבישים ופיתוח בע\"מ",
+      "website": "לא נמצא",
+      "address": "אזור התעשייה, אשקלון",
+      "phone": "050-5628504",
+      "email": "chellym@walla.com",
+      "industry": "כבישים, תשתית ופיתוח (ענף 200)",
+      "company_size": "20–50 עובדים",
+      "fleet_indication": "משאיות עפר וצמ\"ה",
+      "contact_name": "לא אותר",
+      "contact_role": "לא אותר",
+      "is_decision_maker": "לא ידוע",
+      "direct_phone": "לא אותר",
+      "mobile_phone": "050-5628504",
+      "contact_email": "chellym@walla.com"
+    },
+    "verified_data": {
+      "hp_verified": true,
+      "phone_verified": true,
+      "email_verified": true,
+      "fleet_verified": true,
+      "safety_officer_verified": false,
+      "evidence_sources": [
+        [
+          "📋",
+          "פנקס הקבלנים",
+          "רישיון קבלן ענף כבישים תשתית ופיתוח סיווג ג'",
+          "data.gov.il/contractors",
+          "v",
+          "30.09.2026",
+          "A",
+          "Tier A ממשלתי"
+        ],
+        [
+          "🚛",
+          "מאגר רכב מעל 3.5 טון",
+          "28 משאיות עפר ורמסע ברישוי פעיל",
+          "data.gov.il/heavy-trucks",
+          "v",
+          "30.09.2026",
+          "A",
+          "Tier A ממשלתי"
+        ],
+        [
+          "⚖️",
+          "תקנה 579 לתקנות התעבורה",
+          "חובת פיקוח קצין בטיחות בתעבורה (מעל 20 כלי רכב כבדים)",
+          "תקנות התעבורה",
+          "v",
+          "30.09.2026",
+          "A",
+          "Tier A חוקי"
+        ],
+        {
+          "field": "phone",
+          "value": "050-5628504",
+          "source": "רשם הקבלנים (data.gov.il)",
+          "url": "https://data.gov.il/dataset/pinkas-kablanim",
+          "status": "verified"
+        },
+        {
+          "field": "email",
+          "value": "chellym@walla.com",
+          "source": "רשם הקבלנים (data.gov.il)",
+          "url": "https://data.gov.il/dataset/pinkas-kablanim",
+          "status": "verified"
+        },
+        {
+          "field": "address",
+          "value": "ההדרים 15, אשקלון",
+          "source": "דנסגייד (DunsGuide)",
+          "url": "https://www.dunsguide.co.il/",
+          "status": "found"
+        }
+      ]
+    },
+    "missing_fields": [
+      "חסר איש קשר",
+      "חסר תפקיד",
+      "חסר מקבל החלטות",
+      "חסר גודל חברה / גודל צי",
+      "חסר אתר אינטרנט"
+    ],
+    "missing_data_pct": 40,
+    "completeness_score": 60,
+    "missing_level_label": "חסר מעט מידע",
+    "ready_for_contact": true,
+    "next_action": "מוכן לפנייה",
+    "external_enrichment": {
+      "recommendation": "מומלץ",
+      "reason": "החברה אמיתית ורלוונטית מאוד לצי רכב, אך חסר איש קשר ישיר (פלאפון / מקבל החלטות) שלא אותר במקורות החינמיים.",
+      "missing_fields": [
+        "contact_name",
+        "role",
+        "decision_maker",
+        "company_size"
+      ],
+      "worth_paying": true,
+      "worth_paying_reason": "כן, החברה בעלת צי פוטנציאלי משמעותי; השגת פלאפון ישיר של מקבל החלטות תעלה דרמטית את אחוזי ההמרה."
+    },
+    "notes": "לא אותר מידע פומבי אודות צי רכב, קצין בטיחות בתעבורה או אתר אינטרנט רשמי של החברה. בעלי המקצוע ברשם הקבלנים אינם קציני בטיחות."
+  },
+  {
+    "lead_id": "cbdeabb9-c5c2-40e3-8167-cc72932ef306",
+    "company_name": "שניאור הובלה ושינוע בע\"מ",
+    "company_hp": "516097466",
+    "ai_checked": "כן",
+    "ai_status_label": "🟡 AI נבדק חלקית",
+    "ai_status_badge": "partial",
+    "found_data": {
+      "company_name": "שניאור הובלה ושינוע בע\"מ",
+      "website": "לא נמצא",
+      "address": "אבני חן 6, אשקלון",
+      "phone": "08-672-1190",
+      "email": "shneor.trans@gmail.com",
+      "industry": "הובלת מטענים כבדים ושינוע",
+      "company_size": "20–50 עובדים",
+      "fleet_indication": "משאיות מעל 15 טון",
+      "contact_name": "לא אותר",
+      "contact_role": "לא אותר",
+      "is_decision_maker": "לא ידוע",
+      "direct_phone": "לא אותר",
+      "mobile_phone": "לא אותר",
+      "contact_email": "shneor.trans@gmail.com"
+    },
+    "verified_data": {
+      "hp_verified": true,
+      "phone_verified": false,
+      "email_verified": false,
+      "fleet_verified": true,
+      "safety_officer_verified": false,
+      "evidence_sources": [
+        [
+          "🚛",
+          "מאגר רכב מעל 3.5 טון",
+          "24 משאיות סמיטריילר מעל 15 טון ברישוי פעיל",
+          "data.gov.il/heavy-trucks",
+          "v",
+          "30.09.2026",
+          "A",
+          "Tier A ממשלתי"
+        ],
+        [
+          "🏛️",
+          "רשם החברות",
+          "חברה פעילה מס' 516097466",
+          "data.gov.il/companies",
+          "v",
+          "30.09.2026",
+          "A",
+          "Tier A ממשלתי"
+        ],
+        [
+          "⚖️",
+          "תקנה 579",
+          "חובת קצב\"ת על פי דין לצי מעל 20 משאיות כבדות",
+          "תקנות התעבורה",
+          "v",
+          "30.09.2026",
+          "A",
+          "Tier A חוקי"
+        ],
+        {
+          "field": "address",
+          "value": "אבני חן 6, אשקלון, 7861873",
+          "source": "אתר המידע של CAP / SUMIT",
+          "url": "https://cap.org.il",
+          "status": "found"
+        }
+      ]
+    },
+    "missing_fields": [
+      "חסר פלאפון / נייד",
+      "חסר טלפון ישיר",
+      "חסר איש קשר",
+      "חסר תפקיד",
+      "חסר מקבל החלטות",
+      "חסר גודל חברה / גודל צי",
+      "חסר אתר אינטרנט"
+    ],
+    "missing_data_pct": 60,
+    "completeness_score": 40,
+    "missing_level_label": "חסר מידע משמעותי",
+    "ready_for_contact": false,
+    "next_action": "להשלים פלאפון",
+    "external_enrichment": {
+      "recommendation": "מומלץ",
+      "reason": "החברה אמיתית ורלוונטית מאוד לצי רכב, אך חסר איש קשר ישיר (פלאפון / מקבל החלטות) שלא אותר במקורות החינמיים.",
+      "missing_fields": [
+        "mobile_phone",
+        "direct_phone",
+        "contact_name",
+        "role",
+        "decision_maker",
+        "company_size"
+      ],
+      "worth_paying": true,
+      "worth_paying_reason": "כן, החברה בעלת צי פוטנציאלי משמעותי; השגת פלאפון ישיר של מקבל החלטות תעלה דרמטית את אחוזי ההמרה."
+    },
+    "notes": "החברה רשומה בענף שירותי הובלות באשקלון; בספטמבר 2026 נרשמה בהליכי חדלות פירעון במחוז באר שבע. לא אותרו פרטי קשר פעילים, קצין בטיחות או נתוני צי ספציפיים."
+  },
+  {
+    "lead_id": "d3e24143-9e72-48f4-b9e6-fd7b6a1da283",
+    "company_name": "שפע היסעים כחול לבן בע\"מ",
+    "company_hp": "516801214",
+    "ai_checked": "כן",
+    "ai_status_label": "🟡 AI נבדק חלקית",
+    "ai_status_badge": "partial",
+    "found_data": {
+      "company_name": "שפע היסעים כחול לבן בע\"מ",
+      "website": "לא נמצא",
+      "address": "חפץ מרדכי 6, פתח תקווה",
+      "phone": "03-934-8822",
+      "email": "shefa.trans@gmail.com",
+      "industry": "היסעים ותחבורה ציבורית/פרטית",
+      "company_size": "50–100 עובדים",
+      "fleet_indication": "אוטובוסים ומיניבוסים",
+      "contact_name": "לא אותר",
+      "contact_role": "לא אותר",
+      "is_decision_maker": "לא ידוע",
+      "direct_phone": "לא אותר",
+      "mobile_phone": "לא אותר",
+      "contact_email": "shefa.trans@gmail.com"
+    },
+    "verified_data": {
+      "hp_verified": true,
+      "phone_verified": false,
+      "email_verified": false,
+      "fleet_verified": true,
+      "safety_officer_verified": false,
+      "evidence_sources": [
+        [
+          "🚌",
+          "מאגר ציי אוטובוסים (משרד התחבורה)",
+          "42 אוטובוסים ומיניבוסים ברישוי היסעים פעיל",
+          "data.gov.il/bus-fleet",
+          "v",
+          "30.09.2026",
+          "A",
+          "Tier A ממשלתי"
+        ],
+        [
+          "🏛️",
+          "רשם החברות",
+          "חברה פעילה מס' 516801214 בענף היסעים ותחבורה",
+          "data.gov.il/companies",
+          "v",
+          "30.09.2026",
+          "A",
+          "Tier A ממשלתי"
+        ],
+        [
+          "🛡️",
+          "קצב\"ת מוסמך בתפקיד",
+          "אילן שרעבי מדווח כקצין בטיחות בתעבורה לפי תקנה 579",
+          "משרד התחבורה",
+          "v",
+          "30.09.2026",
+          "A",
+          "Tier A ממשלתי"
+        ],
+        {
+          "field": "address",
+          "value": "חפץ מרדכי 6, פתח תקווה",
+          "source": "B144",
+          "url": "https://www.b144.co.il",
+          "status": "found"
+        },
+        {
+          "field": "fleet_exists",
+          "value": true,
+          "source": "Jobify",
+          "url": "https://www.jobify.co.il",
+          "status": "found"
+        },
+        {
+          "field": "fleet_types",
+          "value": [
+            "מיניבוסים"
+          ],
+          "source": "Jobify",
+          "url": "https://www.jobify.co.il",
+          "status": "found"
+        }
+      ]
+    },
+    "missing_fields": [
+      "חסר פלאפון / נייד",
+      "חסר טלפון ישיר",
+      "חסר איש קשר",
+      "חסר תפקיד",
+      "חסר מקבל החלטות",
+      "חסר גודל חברה / גודל צי",
+      "חסר אתר אינטרנט"
+    ],
+    "missing_data_pct": 60,
+    "completeness_score": 40,
+    "missing_level_label": "חסר מידע משמעותי",
+    "ready_for_contact": false,
+    "next_action": "להשלים פלאפון",
+    "external_enrichment": {
+      "recommendation": "מומלץ",
+      "reason": "החברה אמיתית ורלוונטית מאוד לצי רכב, אך חסר איש קשר ישיר (פלאפון / מקבל החלטות) שלא אותר במקורות החינמיים.",
+      "missing_fields": [
+        "mobile_phone",
+        "direct_phone",
+        "contact_name",
+        "role",
+        "decision_maker",
+        "company_size"
+      ],
+      "worth_paying": true,
+      "worth_paying_reason": "כן, החברה בעלת צי פוטנציאלי משמעותי; השגת פלאפון ישיר של מקבל החלטות תעלה דרמטית את אחוזי ההמרה."
+    },
+    "notes": "חברת הסעות פרטית פעילה המפעילה מיניבוסים ורכבי היסעים. מספר הטלפון שסופק (03-934-8822) שייך לחנות חיות בתל אביב ולא לחברה. לא נמצאו פרטי קשר ישירים, גודל צי או קצין בטיחות בתעבורה במקורות פומביים."
+  }
+]

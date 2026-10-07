@@ -2141,6 +2141,7 @@ const QUAL_STY={high:"b-ok",medium:"b-est",low:"b-no"};
 const qualityBadge=(c,size)=>{const q=QF(c);if(!q)return "";return `<span class="badge ${QUAL_STY[q.lead_quality]}" style="font-size:${size||10.5}px" title="לפי כללים קבועים בלבד (טלפון, רלוונטיות, מקור, צי) – לא AI">איכות: ${OPQualify.QUALITY_LABEL[q.lead_quality]}</span>`};
 const VER_LABEL={verified:"מאומת",partial:"אימות חלקי",unverified:"לא מאומת"};
 const verifBadge=(c,size)=>{const q=QF(c);if(!q)return "";const v=q.verification_status;return `<span class="badge ${v==="verified"?"b-ok":v==="partial"?"b-est":"b-no"}" style="font-size:${size||10.5}px" title="${esc(q.source_list.join(" + ")||"ללא מקור רשמי")}">${VER_LABEL[v]}</span>`};
+const aiBadge=(c,size)=>{const q=QF(c);if(!q)return "";const b=q.ai_status_badge;const sty=b==="verified"?"b-ok":b==="partial"||b==="missing_info"?"b-est":"b-no";return `<span class="badge ${sty}" style="font-size:${size||10}px" title="${esc(q.ai_status_label||"")}">${esc(q.ai_status_label||"❌ AI לא אומת")}</span>`};
 /* "מה חסר" – נגזר מ-missing_fields (אותם כללים שנשמרים בעמודה) */
 const missingOf=c=>{const q=QF(c);return q?q.missing_fields.map(k=>OPQualify.missingLabel(k,q.field_status[k].s)):[]};
 const lastCheck=c=>{const e=c.enr||{};return [e.verification_date,e.registry_check&&e.registry_check.checked_at,...(e.evidence||[]).map(x=>x.found_at)].filter(Boolean).map(x=>String(x).slice(0,10)).sort().pop()||""};
@@ -3122,7 +3123,7 @@ V.companies=()=>{
       <td class="xs" data-label="צי רכב">${fleetCell(c)}</td>
       <td class="xs hide-m">${e.contact_name?fsVal(c,"contact_name")+(e.contact_role?`<div class="faint">${esc(e.contact_role)}</div>`:""):'<span class="faint">טרם אותר</span>'}</td>
       <td class="xs hide-m"><div>קצב"ת: ${officerCell(c,"safety_officer")}</div><div style="margin-top:3px">קצין רכב: ${officerCell(c,"fleet_manager")}</div></td>
-      <td data-label="שלב · איכות"><div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">${stageBadge(c)}${verifBadge(c)}${qualityBadge(c)}</div></td>
+      <td data-label="שלב · איכות"><div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">${stageBadge(c)}${verifBadge(c)}${aiBadge(c)}${qualityBadge(c)}</div></td>
       <td class="xs" data-label="מה חסר" title="${esc(miss.join(", "))}">${miss.length?`<span class="badge b-est" style="font-size:10px">${miss.length} חסרים</span><div class="faint" style="margin-top:2px">${esc(miss.slice(0,3).join(", "))}${miss.length>3?"…":""}</div>`:'<span class="badge b-ok" style="font-size:10px">לא חסר</span>'}</td>
       <td class="num xs co-last"><span class="co-last-d">${esc(lastCheck(c)||"—")}</span><div class="co-open"><button class="btn btn-sm" type="button">פתח ליד ›</button></div></td></tr>`}).join("")||`<tr><td colspan="10"><div class="empty">אין חברות שתואמות לסינון. נסה להסיר סינון.</div></td></tr>`}
     </tbody></table></div>
@@ -3190,6 +3191,35 @@ function enrichmentSection(c){
         :`<div style="background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12.5px"><b>חסר כדי להגיע ל"מוכן לפנייה":</b> ${esc(q.blockers.join(", "))}</div>`}
       ${q.rejected_reason?`<div class="badge b-bad" style="padding:8px 10px">⛔ ${esc(q.rejected_reason)}</div>`:""}
       ${(fs.warnings||[]).map(w=>`<div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:6px 10px;font-size:12px">⚠️ ${esc(w)}</div>`).join("")}
+
+      <div style="border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;background:var(--card);display:grid;gap:8px">
+        <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="bold" style="font-size:13px">🤖 סטטוס בדיקת AI:</span>
+          ${aiBadge(c,12)}
+          <span class="chip num" style="font-size:11px">AI Checked: ${q.ai_checked ? "כן" : "לא"}</span>
+          <span class="spacer"></span>
+          <span class="xs bold">שלמות נתונים:</span>
+          <span class="badge ${q.completeness_score>=80?"b-ok":q.completeness_score>=60?"b-blue":q.completeness_score>=40?"b-est":"b-no"}" style="font-size:11px">
+            ציון ${q.completeness_score}/100 (${q.missing_data_pct}% חסר · ${esc(q.missing_level_label||"")})
+          </span>
+        </div>
+        <div class="row" style="gap:8px;flex-wrap:wrap;font-size:12px;align-items:center">
+          <span><b>פעולה מומלצת:</b> <span class="badge b-blue" style="font-size:11px">${esc(q.next_action||"")}</span></span>
+          <span style="color:var(--border)">|</span>
+          <span><b>מוכן לפנייה:</b> ${q.ready_for_contact ? '<span class="badge b-ok" style="font-size:11px">TRUE</span>' : '<span class="badge b-no" style="font-size:11px">FALSE</span>'}</span>
+        </div>
+        ${q.external_enrichment ? `
+        <div style="background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12px;line-height:1.5">
+          <div class="row" style="gap:6px;align-items:center;margin-bottom:3px">
+            <span class="bold">💳 העשרה חיצונית בתשלום:</span>
+            <span class="badge ${q.external_enrichment.recommendation==='מומלץ'?'b-ok':q.external_enrichment.recommendation==='מומלץ מאוד'?'b-ok':'b-est'}" style="font-size:10.5px">${esc(q.external_enrichment.recommendation)}</span>
+            <span class="xs muted">· כדאי להשקיע: <b>${q.external_enrichment.worth_paying ? 'כן' : 'לא'}</b></span>
+          </div>
+          <div class="xs muted">${esc(q.external_enrichment.reason)} ${esc(q.external_enrichment.worth_paying_reason)}</div>
+          ${q.external_enrichment.missing_fields && q.external_enrichment.missing_fields.length ? `<div class="xs" style="margin-top:4px"><b>שדות מבוקשים להעשרה:</b> <code>${esc(q.external_enrichment.missing_fields.join(", "))}</code></div>` : ''}
+        </div>
+        ` : ''}
+      </div>
 
       <div class="grid g-3" style="gap:10px">
         ${box("🚚 צי רכב",`<div>${fleetCell(c,true)}</div>${kv("גודל",esc(fl.size.replace("גודל צי: ","")))}${fs.fleet_types.s!=="n"?kv("סוגי רכבים",esc(fs.fleet_types.val)):""}${kv("מקור",esc(fl.src||"—"))}`)}
@@ -3504,7 +3534,7 @@ V.leads=()=>{
             ${soState(c) ? `
               <div style="margin-top:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">${soBadge(c,10.5)}</div>
             ` : ''}
-            <div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">${recordBadges(c)}</div>
+            <div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">${recordBadges(c)} ${aiBadge(c, 9.5)}</div>
 
             ${c.certifiedProfessional ? `
               <div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
