@@ -288,9 +288,18 @@ jobs:
 
           if (!deployed) {
             console.log(JSON.stringify({ ...out, function_deploy: 'failed', deployAttempts }, null, 2));
-            throw new Error('FUNCTION_DEPLOY_FAILED');
+          } else {
+            out.function = 'help-ai-chat';
+            out.deploy = { label: deployed.label, probe: deployed.probe, preview: deployed.deploy_preview };
+            console.log(JSON.stringify(out, null, 2));
           }
-          out.function = 'help-ai-chat';
-          out.deploy = { label: deployed.label, probe: deployed.probe, preview: deployed.deploy_preview };
-          console.log(JSON.stringify(out, null, 2));
+          fs.writeFileSync('claims-ai-deploy-status.json', JSON.stringify({ function_deployed: Boolean(deployed) }));
           NODE
+
+      - name: Deploy help-ai-chat to Staging from the ops host when GitHub token is rejected
+        if: success()
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: node scripts/deploy-help-ai-chat-staging-from-ops-host.mjs

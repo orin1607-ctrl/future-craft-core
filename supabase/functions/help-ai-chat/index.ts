@@ -329,9 +329,11 @@ async function loadClaimsContext(
 }
 
 const CHAT_MODELS = [
-  "google/gemini-3-flash-preview",
   "google/gemini-3.8-flash",
+  "google/gemini-3.7-flash",
+  "google/gemini-3.6-flash",
   "google/gemini-2.5-flash",
+  "google/gemini-3-flash-preview",
 ];
 
 function gatewayFailure(status: number, text: string): { error: string; status: number } {
@@ -370,7 +372,6 @@ async function openGatewayChat(
       console.error("AI gateway error:", res.status, model, withTools, text.slice(0, 300));
       last = gatewayFailure(res.status, text);
       if (res.status === 401 || res.status === 403 || res.status === 429 || res.status === 402) return last;
-      if (res.status !== 400 && res.status !== 404) break;
     }
   }
   return last;
@@ -458,8 +459,9 @@ Deno.serve(async (req) => {
         }),
       });
       if (!secondResponse.ok) {
-        return new Response(JSON.stringify({ error: "שגיאה בשירות AI" }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        const failed = gatewayFailure(secondResponse.status, await secondResponse.text());
+        return new Response(JSON.stringify({ error: failed.error }), {
+          status: failed.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       return new Response(secondResponse.body, {
@@ -478,8 +480,9 @@ Deno.serve(async (req) => {
       }),
     });
     if (!streamResponse.ok) {
-      return new Response(JSON.stringify({ error: "שגיאה בשירות AI" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const failed = gatewayFailure(streamResponse.status, await streamResponse.text());
+      return new Response(JSON.stringify({ error: failed.error }), {
+        status: failed.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     return new Response(streamResponse.body, {
