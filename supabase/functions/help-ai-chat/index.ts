@@ -289,6 +289,45 @@ async function executeToolCall(
   }
 }
 
+function claimText(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  return String(value).trim();
+}
+
+/** Loads the open claim with the caller's JWT so RLS / claims_can_work_claim applies. */
+async function loadClaimsContext(
+  supabase: ReturnType<typeof createClient>,
+  claimId: string,
+): Promise<{ text: string } | { error: true; status: number; message: string }> {
+  const { data, error } = await supabase
+    .from("claims_records")
+    .select("id, plate, client_name, status, row_data")
+    .eq("id", claimId)
+    .maybeSingle();
+  if (error) return { error: true, status: 500, message: "לא ניתן לטעון את התיק" };
+  if (!data) return { error: true, status: 403, message: "אין גישה לתיק הזה" };
+
+  const row = (data.row_data && typeof data.row_data === "object" ? data.row_data : {}) as Record<string, unknown>;
+  const claimNum = claimText(row.claimNum) || "טרם התקבל";
+  const plate = claimText(data.plate) || claimText(row.plate);
+  const model = claimText(row.carModel);
+  const vehicle = [plate, model].filter(Boolean).join(" · ") || "—";
+  const text = [
+    "אתה עוזר דליה בתוך מודול ניהול תביעות.",
+    "התיק הפתוח עכשיו הוא המקור היחיד. אל תשתמש בפרטים של תיק אחר גם אם הופיעו קודם בשיחה.",
+    `claim_id: ${claimText(data.id)}`,
+    `מספר תביעה: ${claimNum}`,
+    `רכב: ${vehicle}`,
+    `לקוח: ${claimText(data.client_name) || claimText(row.clientName) || "—"}`,
+    `חברת ביטוח: ${claimText(row.insCompany) || "—"}`,
+    `סטטוס: ${claimText(data.status) || "—"}`,
+    "אין בשלב הזה כלי כתיבה. אל תשלח מייל, אל תשנה סטטוס, ואל תסגור משימה.",
+    "אם מתבקשת פעולת כתיבה — תאר מה היה עומד לקרות ובקש אישור. אל תבצע.",
+    "חיפוש מיילים, מסמכים ותמונות מתוך התיק עדיין לא מחובר. אם שואלים עליהם, אמור זאת במפורש ואל תמציא תוכן.",
+  ].join("\n");
+  return { text };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -297,7 +336,7 @@ Deno.serve(async (req) => {
     if ("error" in auth) return auth.error;
     const { ctx } = auth;
 
-    const { messages, company_name, page_context } = await req.json();
+    const { messages, company_name, page_context, claim_id, module } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "Messages array is required" }), {
@@ -315,9 +354,25 @@ Deno.serve(async (req) => {
       ? `${SYSTEM_PROMPT}\n\nהמשתמש משויך לחברה: "${companyScope}". כשאתה קורא לפונקציות נתונים, סנן תמיד לפי החברה הזו.`
       : SYSTEM_PROMPT;
 
-    const fullSysPrompt = page_context
-      ? `${sysPrompt}\n\n--- הקשר מסך נוכחי ---\n${page_context}`
-      : sysPrompt;
+    const claimId = typeof claim_id === "string" ? claim_id.trim() : "";
+    let claimBlock = "";
+    if (claimId) {
+      const loaded = await loadClaimsContext(supabase, claimId);
+      if ("error" in loaded) {
+        return new Response(JSON.stringify({ error: loaded.message }), {
+          status: loaded.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      claimBlock = loaded.text;
+    } else if (module === "claims") {
+      claimBlock = "המשתמש במודול ניהול תביעות ואין תיק פתוח. אל תניח פרטים של תיק קודם. אם השאלה היא על מייל, מסמך או תמונה של תיק — בקש לפתוח את התיק.";
+    }
+
+    const fullSysPrompt = [
+      sysPrompt,
+      page_context ? `--- הקשר מסך נוכחי ---\n${page_context}` : "",
+      claimBlock ? `--- תיק פתוח (נטען בשרת לפי הרשאת המשתמש) ---\n${claimBlock}` : "",
+    ].filter(Boolean).join("\n\n");
 
     const firstResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

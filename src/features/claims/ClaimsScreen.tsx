@@ -22,6 +22,8 @@ import { isGaragePhoto, type GarageAssignment } from './claimGarage';
 import { sharePublicUrl } from './claimSecureShare';
 import { downloadRemoteFile } from './claimFileDownload';
 import { emailsUnknownToDirectory, parseFromAddr, phoneUnknownToDirectory, type ClaimContact } from './claimContacts';
+import { claimContextFromRecord } from './claimsAiModel';
+import { ClaimsAiWorkspace } from './ClaimsAiWorkspace';
 import './claims.css';
 
 const ST_CSS: Record<string, string> = {
@@ -840,6 +842,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [insCoFil, setInsCoFil] = useState('');
   const [handlerFil, setHandlerFil] = useState('');
   const [curId, setCurId] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
   const [cardTab, setCardTab] = useState('comm');
   const [cardMore, setCardMore] = useState(false);
   const [sbOpen, setSbOpen] = useState(false);
@@ -2758,6 +2761,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <div className="tb">
           <button type="button" className="sb-open-btn" data-testid="claims-sb-open" aria-label="פתח תפריט תביעות" onClick={() => setSbOpen(true)}>☰ תפריט</button>
           <div className="tb-logo"><span className="tba">דליה</span><span className="tbb">ניהול תביעות</span></div>
+          <button type="button" className="btn claims-ai-launch" data-testid="claims-ai-open" onClick={() => setAiOpen(true)}>דליה AI</button>
           <button className="btn btn-p btn-sm tb-new" data-testid="claims-open-new" onClick={openNew}>＋ תיק חדש</button>
           <div className="tb-sep" />
           <div className="tb-nav">
@@ -3231,6 +3235,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <span aria-hidden>{cardSnapCollapsed ? '▾' : '▴'}</span>
                   </button>
                 ) : null}
+                <button type="button" className="btn claims-ai-launch btn-sm" data-testid="claims-ai-open-claim" onClick={() => setAiOpen(true)}><span className="claims-ai-launch-label">דליה AI</span><span className="claims-ai-launch-short" aria-hidden>AI</span></button>
                 <button className="btn btn-g btn-sm" data-testid="claims-edit-btn" onClick={() => startEdit(cur.id)}>ערוך</button>
                 <button className="mcl" onClick={() => setModal(null)}>✕</button>
               </div>
@@ -6153,6 +6158,15 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           </div>
         </div>
       </div>
+
+      <ClaimsAiWorkspace
+        key={modal === 'moCard' && cur ? cur.id : 'none'}
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        claim={modal === 'moCard' && cur ? claimContextFromRecord(cur) : null}
+        userId={actor.id}
+        companyName={null}
+      />
 
       <div className="toasts">
         {toasts.map((t) => <div key={t.id} className={`toast ${t.type}`}>{t.type === 'err' ? '❌ ' : t.type === 'inf' ? 'ℹ️ ' : '✅ '}{t.msg}</div>)}
