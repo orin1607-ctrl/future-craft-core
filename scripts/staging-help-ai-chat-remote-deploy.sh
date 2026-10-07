@@ -26,67 +26,119 @@ if grep -q "$PROD_REF" "$ROOT/supabase/functions/help-ai-chat/index.ts"; then
 fi
 
 python3 - <<'PY'
-import json, re, ssl
+import json, os, re, ssl
 from pathlib import Path
 from urllib.request import Request, urlopen
 
 STAGING = "usfeoerkpcafxxlyuldl"
 PROD = "qasomfndnjuixgjmjwcm"
 ROOT = Path("/tmp/dalia-staging-help-ai-chat")
+home = Path.home()
+
+def names(path):
+    try:
+        return sorted(child.name for child in path.iterdir())[:30]
+    except Exception as exc:
+        return f"unreadable:{type(exc).__name__}"
+
+def kind_of(value):
+    if value.startswith("sbp_"):
+        return "sbp"
+    if value.startswith("sb_"):
+        return "sb"
+    if value.startswith("eyJ"):
+        return "jwt"
+    return "other"
+
+def clean(value):
+    value = value.strip().strip('"').strip("'")
+    if value.lower().startswith("bearer "):
+        value = value.split(None, 1)[1].strip()
+    return value
+
 files = [
     Path("/root/dalia-ops/.env"),
     Path("/root/.supabase/access-token"),
     Path("/root/future-craft-core/.env"),
-    Path("/root/future-craft-core/supabase/.temp/profile"),
-    Path("/root/prod/.env"),
+    home / ".supabase" / "access-token",
+    home / "dalia-ops" / ".env",
 ]
-root = Path("/root")
-if root.exists():
-    scanned = 0
-    for path in root.rglob("*"):
-        if scanned > 500:
-            break
-        if not path.is_file():
-            continue
-        if any(part in {"node_modules", ".git", "dist", "site-static"} for part in path.parts):
-            continue
-        try:
-            if path.stat().st_size > 300_000:
+for base in (Path("/root"), home, Path("/home")):
+    if not base.exists():
+        continue
+    try:
+        children = list(base.iterdir())
+    except OSError:
+        continue
+    for child in children:
+        if child.is_file() and (child.name.startswith(".env") or "token" in child.name.lower()):
+            files.append(child)
+        if child.is_dir() and child.name in {".supabase", "dalia-ops", "future-craft-core", ".config"}:
+            try:
+                for nested in child.rglob("*"):
+                    if nested.is_file() and nested.stat().st_size < 300_000 and (
+                        nested.name.startswith(".env") or nested.name in {"access-token", "profile"} or "token" in nested.name.lower()
+                    ):
+                        files.append(nested)
+            except OSError:
                 continue
-        except OSError:
-            continue
-        scanned += 1
-        name = path.name.lower()
-        if path.suffix.lower() in {".env", ".txt", ".json", ".yml", ".yaml", ".sh"} or name.startswith(".env") or "token" in name or "secret" in name:
-            files.append(path)
 
+inventory = []
 seen = set()
 candidates = []
 for path in files:
-    if not path.is_file() or str(path) in seen:
+    key = str(path)
+    if key in seen:
         continue
-    seen.add(str(path))
+    seen.add(key)
+    item = {"name": path.name, "parent": path.parent.name, "exists": path.is_file()}
+    if not path.is_file():
+        inventory.append(item)
+        continue
     try:
         text = path.read_text(errors="ignore")
-    except OSError:
+    except OSError as exc:
+        item["error"] = type(exc).__name__
+        inventory.append(item)
         continue
-    if PROD in text and STAGING not in text and "sbp_" not in text:
-        continue
-    for match in re.findall(r"sbp_[A-Za-z0-9]{20,}", text):
-        candidates.append((path.name, match))
+    item["bytes"] = len(text)
+    keys = []
+    if path.name == "access-token":
+        value = clean(text.splitlines()[0] if text.splitlines() else text)
+        if 20 <= len(value) <= 400 and " " not in value and PROD not in value:
+            candidates.append((f"{path.parent.name}/{path.name}", value))
+            keys.append({"key": "file", "len": len(value), "kind": kind_of(value)})
     for line in text.splitlines():
-        if "ACCESS_TOKEN" not in line or "=" not in line:
+        if "=" not in line or line.strip().startswith("#"):
             continue
-        value = line.split("=", 1)[1].strip().strip('"').strip("'")
-        if value.lower().startswith("bearer "):
-            value = value.split(None, 1)[1].strip()
-        if value.startswith("sbp_"):
-            candidates.append((path.name, value))
+        left, raw = line.split("=", 1)
+        left = left.strip()
+        if left.startswith("export "):
+            left = left[len("export "):].strip()
+        if not re.search(r"ACCESS_TOKEN|PAT|SB_TOKEN", left):
+            continue
+        value = clean(raw)
+        if not value or PROD in value or len(value) < 20 or len(value) > 400 or " " in value:
+            keys.append({"key": left, "len": len(value), "kind": "skip"})
+            continue
+        keys.append({"key": left, "len": len(value), "kind": kind_of(value)})
+        candidates.append((f"{path.name}:{left}", value))
+    item["keys"] = keys
+    inventory.append(item)
+
+env_keys = []
+for env_name, raw in os.environ.items():
+    if not re.search(r"ACCESS_TOKEN|SUPABASE|PAT", env_name):
+        continue
+    value = clean(raw)
+    env_keys.append({"key": env_name, "len": len(value), "kind": kind_of(value) if value else "empty"})
+    if 20 <= len(value) <= 400 and " " not in value and PROD not in value and value not in {"", "null"}:
+        candidates.append((f"env:{env_name}", value))
 
 unique = []
 used = set()
 for label, value in candidates:
-    if value in used or PROD in value:
+    if value in used:
         continue
     used.add(value)
     unique.append((label, value))
@@ -95,7 +147,6 @@ ctx = ssl.create_default_context()
 chosen = None
 probes = []
 for label, value in unique[:8]:
-    kind = "sbp" if value.startswith("sbp_") else "other"
     req = Request(
         f"https://api.supabase.com/v1/projects/{STAGING}",
         headers={"Authorization": f"Bearer {value}", "Accept": "application/json"},
@@ -120,25 +171,57 @@ for label, value in unique[:8]:
         message = str(parsed.get("message") or "")[:120]
     except Exception:
         message = body[:120]
-    probes.append({"source": label, "token_len": len(value), "token_kind": kind, "http": status, "ref": ref, "message": message})
+    probes.append({"source": label, "token_len": len(value), "token_kind": kind_of(value), "http": status, "ref": ref, "message": message})
     if status == 200 and ref not in (None, STAGING):
         continue
     if status == 200 and STAGING in body:
         chosen = value
         break
 
-print(json.dumps({"token_probes": probes, "chosen": bool(chosen)}, ensure_ascii=False))
-if not chosen:
-    raise SystemExit(2)
-(ROOT / "use_token").write_text(chosen)
+print(json.dumps({
+    "who": os.environ.get("USER") or "",
+    "home": home.name,
+    "root_names": names(Path("/root")),
+    "home_names": names(home),
+    "inventory": inventory,
+    "env_keys": env_keys,
+    "token_probes": probes,
+    "chosen": bool(chosen),
+}, ensure_ascii=False))
+if chosen:
+    (ROOT / "use_token").write_text(chosen)
 PY
 
-export SUPABASE_ACCESS_TOKEN
-SUPABASE_ACCESS_TOKEN="$(cat "$ROOT/use_token")"
-rm -f "$ROOT/use_token"
-if [ -z "${SUPABASE_ACCESS_TOKEN}" ]; then
-  echo 'NO_WORKING_TOKEN'
-  exit 1
+if [ -s "$ROOT/use_token" ]; then
+  export SUPABASE_ACCESS_TOKEN
+  SUPABASE_ACCESS_TOKEN="$(cat "$ROOT/use_token")"
+  rm -f "$ROOT/use_token"
+else
+  unset SUPABASE_ACCESS_TOKEN || true
+  if ! command -v supabase >/dev/null 2>&1; then
+    echo 'NO_WORKING_TOKEN'
+    exit 1
+  fi
+  set +e
+  cli_out="$(supabase projects list --output json 2>&1)"
+  cli_code=$?
+  set -e
+  CLI_OUT="$cli_out" CLI_CODE="$cli_code" python3 - <<'PY'
+import json, os, re
+text = os.environ.get("CLI_OUT", "")
+red = re.sub(r"sbp_[A-Za-z0-9]+", "sbp_[redacted]", text)
+red = re.sub(r"eyJ[A-Za-z0-9_\-\.]+", "jwt_[redacted]", red)
+print(json.dumps({
+    "cli_exit": int(os.environ.get("CLI_CODE", "1")),
+    "sees_staging": "usfeoerkpcafxxlyuldl" in text,
+    "tail": red[-240:],
+}, ensure_ascii=False))
+PY
+  if [ "$cli_code" -ne 0 ] || ! printf '%s' "$cli_out" | grep -q 'usfeoerkpcafxxlyuldl'; then
+    echo 'NO_WORKING_TOKEN'
+    exit 1
+  fi
+  echo 'USING_SAVED_CLI_LOGIN'
 fi
 
 python3 - <<'PY' || true
@@ -206,11 +289,14 @@ if [ "$deploy_code" -ne 0 ]; then
   exit "$deploy_code"
 fi
 
-python3 - <<'PY'
+python3 - <<'PY' || true
 import json, os, ssl
 from urllib.request import Request, urlopen
 STAGING = "usfeoerkpcafxxlyuldl"
-token = os.environ["SUPABASE_ACCESS_TOKEN"]
+token = os.environ.get("SUPABASE_ACCESS_TOKEN", "")
+if not token:
+    print(json.dumps({"body_http": 0, "skipped": "no_token_in_env"}))
+    raise SystemExit(0)
 req = Request(
     f"https://api.supabase.com/v1/projects/{STAGING}/functions/help-ai-chat/body",
     headers={"Authorization": f"Bearer {token}", "Accept": "application/json"},

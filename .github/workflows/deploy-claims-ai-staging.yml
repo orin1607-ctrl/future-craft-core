@@ -13,6 +13,8 @@ on:
       - '.github/workflows/deploy-claims-ai-staging.yml'
       - 'supabase/migrations/20261007180000_claims_ai_conversations_staging.sql'
       - 'supabase/functions/help-ai-chat/**'
+      - 'scripts/staging-help-ai-chat-remote-deploy.sh'
+      - 'scripts/deploy-help-ai-chat-staging-from-ops-host.mjs'
 
 permissions:
   contents: read
