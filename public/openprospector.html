@@ -169,6 +169,16 @@ input:checked + .switch::after{right:20px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .est-box{display:flex;gap:16px;flex-wrap:wrap;align-items:center;background:var(--soft);border:1px solid var(--border);border-radius:12px;padding:12px 16px;font-size:14px}
 
+/* מודלים של Pre-Dispatch ובחירה מרובה */
+.modal-overlay{position:fixed;inset:0;background:rgba(4,9,26,.65);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-card{background:var(--card);color:var(--text);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.35);width:min(680px,100vw);max-height:90vh;overflow-y:auto;border:1px solid var(--border);display:flex;flex-direction:column}
+.modal-h{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--soft)}
+.modal-h h3{margin:0;font-size:16.5px;font-weight:700}
+.modal-b{padding:20px;display:grid;gap:14px;line-height:1.5}
+.modal-f{padding:14px 20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;gap:10px;background:var(--soft)}
+.selection-bar{animation:fadeIn .2s ease-in-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+
 /* כרטיס חברה */
 .overlay{position:fixed;inset:0;background:rgba(4,9,26,.45);z-index:50;display:flex;justify-content:flex-start}
 .panel{background:var(--bg);width:min(980px,100vw);height:100%;overflow:auto;box-shadow:0 0 40px rgba(0,0,0,.25);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -394,6 +404,7 @@ body.is-embedded .content{padding:16px;max-width:100%}
   </main>
 </div>
 <div id="panel"></div>
+<div id="modalRoot"></div>
 <div id="toast" class="toast" hidden></div>
 
 <script>
@@ -2047,7 +2058,13 @@ const S={
   tab:"dash",
   leadFilter:"",
   leadCategory:"safety_officer",
-  coFilter:{q:"",st:"",fleet:"",stage:"",phone:"",mail:"",contact:"",ready:"",missing:"",quality:"",city:"",ind:""},
+  coFilter:{q:"",st:"",fleet:"",stage:"",phone:"",mail:"",contact:"",ready:"",missing:"",quality:"",city:"",ind:"",qualColor:"",wfStatus:"",missingField:""},
+  selectedCoIds:new Set(),
+  aiDispatchModal:null,
+  extDispatchModal:null,
+  discoveredSources:[],
+  discoveredSourcesLoading:false,
+  discoveredSourcesLoaded:false,
   en:{batch:null,items:[],audit:[],loaded:false,loading:false,running:false,stop:false,open:null,sel:{},err:"",user:"",userId:null,grounding:true},
   srcFilter:"all",
   searching:false,
@@ -2234,7 +2251,7 @@ if (isEmbedded) {
 }
 
 /* ===== ניווט וטאבים ===== */
-const TABS=[["dash","דשבורד"],["search","חיפוש חדש"],["companies","חברות שנמצאו"],["leads","ניהול לידים"],["enrich","העשרת לידים"],["sources","מקורות מידע"],["connections","חיבורים ו-APIs"]];
+const TABS=[["dash","דשבורד"],["search","חיפוש חדש"],["companies","חברות שנמצאו"],["leads","ניהול לידים"],["enrich","העשרת לידים"],["sources","מקורות מידע"],["discovered_sources","מקורות שהתגלו"],["connections","חיבורים ו-APIs"]];
 
 function renderNav(){
   const byId=Object.fromEntries(MENU.map(m=>[m[0],m]));
@@ -2272,12 +2289,13 @@ function renderTabs(){
 
 function render(){
   renderNav();renderTabs();
-  const titles={prospector:"איתור לקוחות עסקיים",enrich:"העשרת לידים – Gemini",ai:"ניהול מנועי AI",costs:"שימוש, עלויות וקרדיטים",providers:"ניהול ספקי מידע",sources:"מרכז מקורות מידע ומאגרים",connections:"חיבורים ו-APIs",workspace:"סביבת עבודה"};
+  const titles={prospector:"איתור לקוחות עסקיים",enrich:"העשרת לידים – Gemini",ai:"ניהול מנועי AI",costs:"שימוש, עלויות וקרדיטים",providers:"ניהול ספקי מידע",sources:"מרכז מקורות מידע ומאגרים",discovered_sources:"מקורות מידע חדשים שהתגלו (Source Discovery)",connections:"חיבורים ו-APIs",workspace:"סביבת עבודה"};
   const titEl=$("#title");
   if(titEl) titEl.textContent=titles[S.view==="prospector"?S.tab:S.view]||"איתור לקוחות עסקיים";
   const viewEl=$("#view");
   if(viewEl) viewEl.innerHTML=(V[S.view==="prospector"?S.tab:S.view]||V.dash)();
   renderPanel();
+  renderModals();
 }
 
 function go(v){
@@ -3071,7 +3089,19 @@ function commitBulkToLeads() {
 }
 
 /* ===== חברות שנמצאו ===== */
-const CO_FILTERS=["st","fleet","stage","phone","mail","contact","ready","missing","quality","city","ind"];
+const CO_FILTERS=["st","fleet","stage","phone","mail","contact","ready","missing","quality","city","ind","qualColor","wfStatus","missingField"];
+function checkMissingField(c, q, fs, mf) {
+  if (!q) return false;
+  if (mf === "contact") return !fs || fs.contact_name.s === "n";
+  if (mf === "phone") return !fs || fs.phone.s === "n";
+  if (mf === "mobile") return !q.has_mobile_phone;
+  if (mf === "email") return !fs || fs.email.s === "n";
+  if (mf === "website") return !c.web && !(c.enr && c.enr.website);
+  if (mf === "fleet_manager") return !(c.enr && c.enr.fleet_manager_name);
+  if (mf === "safety_officer") return !(c.enr && c.enr.safety_officer_name);
+  if (mf === "fleet") return !fs || fs.fleet.s !== "v";
+  return true;
+}
 function coMatch(c,f){
   const q=QF(c), fs=q?q.field_status:null, s=k=>fs&&fs[k]?fs[k].s:"n";
   const yn=(v,on)=>!v||(v==="yes"?on:!on);
@@ -3084,7 +3114,10 @@ function coMatch(c,f){
     &&yn(f.ready,isReady(c))
     &&(!f.missing||(f.missing==="required"?(!q||q.blockers.length>0):f.missing==="any"?(!q||q.missing_fields.length>0):(q&&q.missing_fields.length===0)))
     &&(!f.quality||(q?q.lead_quality:"low")===f.quality)
-    &&(!f.city||c.city===f.city)&&(!f.ind||c.ind===f.ind);
+    &&(!f.city||c.city===f.city)&&(!f.ind||c.ind===f.ind)
+    &&(!f.qualColor||(q?q.lead_quality_color:"red")===f.qualColor)
+    &&(!f.wfStatus||(q?q.workflow_status:"new")===f.wfStatus)
+    &&(!f.missingField||checkMissingField(c,q,fs,f.missingField));
 }
 V.companies=()=>{
   const f=S.coFilter;
@@ -3105,22 +3138,47 @@ V.companies=()=>{
       <span class="num xs">עמוד ${S.coPage} מתוך ${totalPages}</span>
       <button class="btn btn-sm" data-act="nextCoPage" ${S.coPage >= totalPages ? 'disabled style="opacity:.5"' : ''}>עמוד הבא ▶</button></div>` : "";
 
+  const pageAllSelected = pagedList.length > 0 && pagedList.every(c => S.selectedCoIds.has(c.id));
+
+  const selectionBar = S.selectedCoIds.size > 0 ? `
+    <div class="selection-bar" style="background:#0f172a;color:#fff;border-radius:10px;padding:10px 16px;margin:10px 0 14px 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap;box-shadow:0 4px 14px rgba(0,0,0,0.18)">
+      <span class="bold" style="font-size:13.5px;display:flex;align-items:center;gap:6px">
+        <span>✓ נבחרו</span>
+        <span class="badge b-blue" style="font-size:12px;padding:2px 8px;font-weight:700">${S.selectedCoIds.size}</span>
+        <span>חברות</span>
+      </span>
+      <button class="btn btn-sm" data-act="selectAllFiltered" style="background:rgba(255,255,255,0.14);color:#fff;border-color:transparent;font-size:12px">בחר את כל ${list.length} המסוננות</button>
+      <button class="btn btn-sm" data-act="clearCoSelection" style="background:transparent;color:#94a3b8;border-color:rgba(255,255,255,0.2);font-size:12px">✕ נקה בחירה</button>
+      <span class="spacer"></span>
+      <button class="btn btn-sm btn-primary" data-act="openAiDispatch" style="background:#6366f1;color:#fff;border-color:#6366f1;font-weight:700;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(99,102,241,0.4)">
+        ✨ העבר נבחרים להעשרת AI (${S.selectedCoIds.size})
+      </button>
+      <button class="btn btn-sm" data-act="openExtDispatch" style="background:#0284c7;color:#fff;border-color:#0284c7;font-weight:700;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(2,132,199,0.4)">
+        🌐 העבר נבחרים להעשרה חיצונית (${S.selectedCoIds.size})
+      </button>
+    </div>` : "";
+
   return `<div class="card">
     <div class="card-h">
       <h2>חברות שנמצאו במאגר<span class="h-bar"></span></h2>
       <span class="chip num">${list.length} מתוך ${C.length}</span>
       <span class="badge b-ok">פנקס הקבלנים + רשם החברות</span>
       <span class="spacer"></span>
+      <button class="btn btn-sm" data-act="exportExternalCandidates" style="border-color:#0284c7;color:#0284c7" title="ייצוא רשימת לידים מועמדים להעשרה חיצונית כקובץ CSV">⬇ ייצוא מועמדים להעשרה חיצונית (CSV)</button>
       <button class="btn btn-sm" data-act="export">⬇ ייצוא CSV</button>
       <button class="btn btn-sm" data-act="exportBackup" title="הורד קובץ גיבוי JSON של כל הלידים">💾 גיבוי JSON</button>
       <label class="btn btn-sm" style="cursor:pointer;margin:0;display:inline-flex;align-items:center;gap:4px" title="שחזר לידים מקובץ גיבוי JSON">📂 שחזור JSON<input type="file" id="jsonBackupInputCompanies" accept=".json" style="display:none" data-act="importBackup"></label>
     </div>
     <div class="card-b" style="padding-bottom:0">
+      ${selectionBar}
       <div class="row" style="flex-wrap:wrap;gap:8px">
         <input class="input" style="max-width:260px;height:34px" id="f-q" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="חיפוש לפי שם, ח.פ., עיר, ענף, איש קשר" value="${esc(f.q)}">
         <button class="btn btn-sm m-only" data-act="toggleFilters" aria-expanded="${S.coFiltersOpen?"true":"false"}" aria-controls="coFilters">${S.coFiltersOpen?"▲ הסתר סינון":"▼ סינון"}${active?` (${active})`:""}</button>
         ${active?`<button class="btn btn-sm m-only" data-act="clearCoFilters">✕ נקה סינון</button>`:""}
         <div class="co-filters ${S.coFiltersOpen?"open":""}" id="coFilters">
+        ${opt("qualColor","איכות ליד – הכל",[["green","🟢 איכותי / מוכן לפנייה"],["yellow","🟡 טוב להשקעה"],["red","🔴 לא כדאי להשקיע"]])}
+        ${opt("wfStatus","סטטוס זרימה – הכל",Object.entries(OPQualify.WORKFLOW_STATUS_LABELS).map(([k,l])=>[k,l]))}
+        ${opt("missingField","שדה חסר – הכל",[["contact","חסר איש קשר"],["phone","חסר טלפון"],["mobile","חסר נייד ישיר"],["email","חסר מייל"],["website","חסר אתר חברה"],["fleet_manager","חסר מנהל צי"],["safety_officer","חסר קצין בטיחות"],["fleet","חסר אימות צי"]])}
         ${opt("stage","כל שלבי הליד",(window.OPQualify?OPQualify.STAGES:[]))}
         ${opt("ready","מוכן לפנייה – הכל",YN("מוכן לפנייה","לא מוכן לפנייה"))}
         ${opt("quality","כל רמות האיכות",[["high","איכות גבוהה"],["medium","איכות בינונית"],["low","איכות נמוכה"]])}
@@ -3138,10 +3196,12 @@ V.companies=()=>{
       </div>
     </div>
     <div class="tbl-wrap" style="margin-top:14px"><table class="co"><thead><tr>
+      <th style="width:36px;text-align:center"><input type="checkbox" id="co-select-all" title="בחר את כל המוצגים בעמוד" ${pageAllSelected ? "checked" : ""}></th>
       <th>חברה</th><th>טלפון</th><th class="hide-m">מייל</th><th class="hide-m">עיר · תחום</th><th>צי רכב</th>
-      <th class="hide-m">איש קשר</th><th class="hide-m">קצב"ת / קצין רכב</th><th>שלב · אימות · איכות</th><th class="hide-m">מה חסר</th><th class="hide-m">בדיקה אחרונה</th></tr></thead><tbody>
+      <th class="hide-m">איש קשר</th><th class="hide-m">קצב"ת / קצין רכב</th><th>שלב · אימות · איכות</th><th class="hide-m">מה חסר ולמה</th><th class="hide-m">בדיקה אחרונה</th></tr></thead><tbody>
     ${pagedList.map(c=>{const q=QF(c), miss=missingOf(c), e=c.enr||{};
       return `<tr data-co="${c.id}">
+      <td style="text-align:center;width:36px"><input type="checkbox" class="co-cb" data-co-id="${c.id}" ${S.selectedCoIds.has(c.id) ? "checked" : ""}></td>
       <td class="co-main" style="min-width:170px">
         <div class="co-name">${esc(c.name)}</div>
         <div class="xs muted">ח.פ. <span class="ltr num">${esc(c.no||"")}</span>${c.web||e.website?` · <span class="ltr">${esc(c.web||e.website)}</span>`:""}</div>
@@ -3167,9 +3227,18 @@ V.companies=()=>{
         <div>קצב"ת: ${officerCell(c,"safety_officer")}</div>
         <div style="margin-top:3px">קצין רכב: ${officerCell(c,"fleet_manager")}${q&&q.fleet_officer_probability?`<span class="badge ${q.fleet_officer_probability>=75?'b-ok':q.fleet_officer_probability>=50?'b-blue':'b-est'}" style="font-size:9.5px;margin-right:4px" title="${esc(q.fleet_officer_legal_note||"")}">${q.fleet_officer_probability}% (${esc(q.fleet_officer_status)})</span>`:""}</div>
       </td>
-      <td data-label="שלב · איכות"><div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">${stageBadge(c)}${verifBadge(c)}${extBadge(c)}${aiBadge(c)}${qualityBadge(c)}</div></td>
-      <td class="xs" data-label="מה חסר" title="${esc(miss.join(", "))}">${miss.length?`<span class="badge b-est" style="font-size:10px">${miss.length} חסרים</span><div class="faint" style="margin-top:2px">${esc(miss.slice(0,3).join(", "))}${miss.length>3?"…":""}</div>`:'<span class="badge b-ok" style="font-size:10px">לא חסר</span>'}</td>
-      <td class="num xs co-last"><span class="co-last-d">${esc(lastCheck(c)||"—")}</span><div class="co-open"><button class="btn btn-sm" type="button">פתח ליד ›</button></div></td></tr>`}).join("")||`<tr><td colspan="10"><div class="empty">אין חברות שתואמות לסינון. נסה להסיר סינון.</div></td></tr>`}
+      <td data-label="שלב · איכות · Workflow">
+        <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
+          <span class="badge ${q&&q.lead_quality_color==='green'?'b-ok':q&&q.lead_quality_color==='yellow'?'b-est':'b-bad'}" style="font-size:10px;font-weight:700">${esc(q?q.lead_quality_label:'—')}</span>
+          <span class="badge ${q?q.workflow_status_badge:'b-no'}" style="font-size:10px">${esc(q?q.workflow_status_label:'חדש')}</span>
+          ${stageBadge(c)}${verifBadge(c)}
+        </div>
+      </td>
+      <td class="xs hide-m" data-label="מה חסר ולמה" title="${esc(q?q.why_not_green:'')}">
+        <div class="bold" style="font-size:10.5px">${esc(q?q.missing_fields_reason:(miss.join(', ')||'לא חסר'))}</div>
+        <div class="xs faint" style="margin-top:2px;line-height:1.2">${esc(q?q.why_not_green:'')}</div>
+      </td>
+      <td class="num xs co-last"><span class="co-last-d">${esc(lastCheck(c)||"—")}</span><div class="co-open"><button class="btn btn-sm" type="button">פתח ליד ›</button></div></td></tr>`}).join("")||`<tr><td colspan="11"><div class="empty">אין חברות שתואמות לסינון. נסה להסיר סינון.</div></td></tr>`}
     </tbody></table></div>
     ${pager ? `
       <div class="row" style="padding:12px 16px;border-top:1px solid var(--border);align-items:center">
@@ -3229,8 +3298,19 @@ function enrichmentSection(c){
   const kv=(k,v,ltr)=>`<div class="xs" style="margin-top:2px"><span class="muted">${k}:</span> <span class="${ltr?"ltr":""}">${v}</span></div>`;
   const research=(e.evidence||[]);
   return `<div class="card" style="margin-bottom:14px;border:1.5px solid var(--border)">
-    <div class="card-h"><h3>מידע שנמצא<span class="h-bar"></span></h3><span class="spacer"></span>${stageBadge(c,12)} ${verifBadge(c,11)} ${qualityBadge(c,11)}</div>
+    <div class="card-h">
+      <h3>מידע שנמצא<span class="h-bar"></span></h3>
+      <span class="spacer"></span>
+      <span class="badge ${q.lead_quality_color==='green'?'b-ok':q.lead_quality_color==='yellow'?'b-est':'b-bad'}" style="font-size:11px;font-weight:700">איכות: ${esc(q.lead_quality_label)}</span>
+      <span class="badge ${q.workflow_status_badge}" style="font-size:11px;font-weight:700">זרימה: ${esc(q.workflow_status_label)}</span>
+      ${stageBadge(c,12)} ${verifBadge(c,11)}
+    </div>
     <div class="card-b" style="padding-top:0;display:grid;gap:10px">
+      ${q.lead_quality_color!=='green'?`
+        <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:8px;padding:8px 12px;font-size:12.5px;color:#92400e">
+          <b>💡 למה הליד אינו ירוק (Why Not Green):</b> ${esc(q.why_not_green)}
+        </div>`:''
+      }
       ${q.ready_for_contact?'<div class="badge b-ok" style="padding:8px 10px">✅ עומד בכל תנאי החובה – מוכן לפנייה</div>'
         :`<div style="background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12.5px"><b>חסר כדי להגיע ל"מוכן לפנייה":</b> ${esc(q.blockers.join(", "))}</div>`}
       ${q.rejected_reason?`<div class="badge b-bad" style="padding:8px 10px">⛔ ${esc(q.rejected_reason)}</div>`:""}
@@ -3385,6 +3465,36 @@ function enrichmentSection(c){
           <td data-label="סטטוס">${OPQualify.isVerifiedFinding(r)?FS_BADGE.v:FS_BADGE.f}</td>
           <td class="xs" data-label="מקור">${esc(r.source||"ללא מקור")}${r.url?` · <a class="ltr" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">קישור</a>`:""}</td><td class="xs num" data-label="תאריך">${esc(String(r.found_at||"").slice(0,10))}</td></tr>`).join("")}
         </tbody></table></div></details>`:""}
+
+      <details style="border:1px solid var(--border);border-radius:10px;padding:8px 12px" open>
+        <summary class="sm bold" style="cursor:pointer">📜 היסטוריית מקורות שנבדקו לליד (Persisted Source History - ${(q.source_history||[]).length})</summary>
+        <div class="tbl-wrap" style="margin-top:8px"><table class="co">
+          <thead><tr><th>שם מקור</th><th>כתובת URL</th><th>סוג מקור</th><th>שדה</th><th>ערך</th><th>סטטוס אימות</th><th>תאריך</th></tr></thead>
+          <tbody>
+          ${(q.source_history||[]).map(sh=>`<tr>
+            <td class="xs bold">${esc(sh.source_name)}</td>
+            <td class="xs">${sh.url?`<a href="${esc(sh.url)}" target="_blank" rel="noopener noreferrer" class="ltr">קישור</a>`:'<span class="faint">—</span>'}</td>
+            <td class="xs"><span class="badge ${sh.source_type==='official_registry'?'b-ok':'b-blue'}">${esc(sh.source_type)}</span></td>
+            <td class="xs">${esc(OPQualify.MISSING_SHORT[sh.field]||sh.field)}</td>
+            <td class="xs ltr">${esc(sh.value||'—')}</td>
+            <td class="xs">${FS_BADGE[sh.status==='verified'?'v':sh.status==='found'?'f':'n']}</td>
+            <td class="xs num">${esc(String(sh.found_at||'—').slice(0,10))}</td></tr>`).join("")||'<tr><td colspan="7" class="xs muted">טרם תועדו מקורות לליד זה</td></tr>'}
+          </tbody></table></div>
+        <div class="xs muted" style="margin-top:6px">✓ כל מקור שסומן כנבדק (already_checked) נשמר ברשומה ולא ייבדק שוב במחזורי העשרה עתידיים.</div>
+      </details>
+
+      <details style="border:1px solid var(--border);border-radius:10px;padding:8px 12px">
+        <summary class="sm bold" style="cursor:pointer">🕒 היסטוריית סטטוסי טיפול (Status History - ${(q.status_history||[]).length})</summary>
+        <div class="tbl-wrap" style="margin-top:8px"><table class="co">
+          <thead><tr><th>תאריך וזמן</th><th>סטטוס</th><th>גורם (Actor)</th><th>סיבה</th></tr></thead>
+          <tbody>
+          ${(q.status_history||[]).map(sh=>`<tr>
+            <td class="xs num">${esc(String(sh.timestamp||'—').replace('T',' ').slice(0,19))}</td>
+            <td class="xs"><span class="badge ${OPQualify.WORKFLOW_STATUS_LABELS[sh.status]?'b-blue':'b-est'}">${esc(OPQualify.WORKFLOW_STATUS_LABELS[sh.status]||sh.status)}</span></td>
+            <td class="xs">${esc(sh.actor||'system')}</td>
+            <td class="xs">${esc(sh.reason||'—')}</td></tr>`).join("")}
+          </tbody></table></div>
+      </details>
 
       <details style="border:1px solid var(--border);border-radius:10px;padding:8px 12px">
         <summary class="sm bold" style="cursor:pointer">✍️ עדכון ואימות ידני (נשמר ב-Supabase STAGING)</summary>
@@ -3901,6 +4011,377 @@ V.sources = () => {
     }).join('')}
   </div>
   `;
+};
+
+/* ===== עזרים להורדת קבצים ===== */
+function downloadTextFile(content, fileName, mimeType) {
+  const blob = new Blob([content], { type: mimeType || "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ===== מודלים של Pre-Dispatch ובחירה מרובה ===== */
+function renderModals() {
+  const root = $("#modalRoot");
+  if (!root) return;
+  if (S.aiDispatchModal) {
+    root.innerHTML = renderAiDispatchModal(S.aiDispatchModal);
+  } else if (S.extDispatchModal) {
+    root.innerHTML = renderExtDispatchModal(S.extDispatchModal);
+  } else {
+    root.innerHTML = "";
+  }
+}
+
+function renderAiDispatchModal(m) {
+  return `<div class="modal-overlay" data-act="closeAiDispatchModal">
+    <div class="modal-card" data-stop>
+      <div class="modal-h">
+        <h3>✨ העברת לידים נבחרים להעשרת AI (Gemini Incremental)</h3>
+        <button class="x" data-act="closeAiDispatchModal">✕</button>
+      </div>
+      <div class="modal-b">
+        <div class="row" style="gap:10px;flex-wrap:wrap">
+          <div style="flex:1;background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div class="xs muted">סה"כ נבחרו</div>
+            <div class="bold" style="font-size:18px">${m.selectedLeads.length}</div>
+          </div>
+          <div style="flex:1;background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div class="xs muted">🆕 חדשים להעשרה</div>
+            <div class="bold" style="font-size:18px;color:var(--ok)">${m.newLeads.length}</div>
+          </div>
+          <div style="flex:1;background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div class="xs muted">⚠️ נבדקו בעבר ב-AI</div>
+            <div class="bold" style="font-size:18px;color:${m.alreadyCheckedLeads.length ? 'var(--est)' : 'var(--text)'}">${m.alreadyCheckedLeads.length}</div>
+          </div>
+          <div style="flex:1;background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+            <div class="xs muted">⏳ ממתינים / בתהליך</div>
+            <div class="bold" style="font-size:18px;color:var(--blue)">${m.inQueueLeads.length}</div>
+          </div>
+        </div>
+
+        ${m.alreadyCheckedLeads.length > 0 ? `
+          <div style="background:#fffbeb;border:1.5px solid #fde68a;color:#92400e;border-radius:10px;padding:12px;font-size:12.5px;display:grid;gap:6px">
+            <div class="bold">⚠️ אזהרת מניעת כפילויות (Duplicate Protection):</div>
+            <div>זוהו <b>${m.alreadyCheckedLeads.length}</b> לידים שכבר עברו העשרת AI בעבר. כדי למנוע בזבוז קרדיטים מיותר, ברירת המחדל היא לדלג עליהם ולשלוח רק לידים חדשים.</div>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:700;margin-top:4px">
+              <input type="checkbox" id="ai-allow-resend" ${m.allowResend ? 'checked' : ''} data-act="toggleAiResend">
+              אישור מפורש לשליחה חוזרת ("העבר שוב להעשרה")
+            </label>
+          </div>
+        ` : ''}
+
+        <div style="background:var(--soft);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px">
+          <div class="bold" style="margin-bottom:4px">🔍 עקרון Incremental Enrichment:</div>
+          <div>Gemini יחפש <b>אך ורק</b> שדות חסרים (טלפון ישיר, נייד, איש קשר, מייל, אתר, קצב"ת, אימות צי). מידע מאומת קיים מסומן כ-<code>DO NOT SEARCH</code> ולעולם לא יידרס.</div>
+        </div>
+
+        <div style="max-height:160px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px">
+          <table class="co" style="font-size:11.5px">
+            <thead>
+              <tr><th>חברה</th><th>ח.פ.</th><th>סטטוס נוכחי</th><th>מה חסר</th></tr>
+            </thead>
+            <tbody>
+              ${m.selectedLeads.map(c => {
+                const q = QF(c);
+                const isChecked = m.alreadyCheckedLeads.includes(c);
+                const isInQ = m.inQueueLeads.includes(c);
+                return `<tr>
+                  <td class="bold">${esc(c.name)}</td>
+                  <td class="num">${esc(c.no || '')}</td>
+                  <td><span class="badge ${isChecked ? 'b-est' : isInQ ? 'b-blue' : 'b-no'}">${isChecked ? 'נבדק בעבר' : isInQ ? 'ממתין' : 'חדש'}</span></td>
+                  <td class="xs faint">${esc(q ? q.missing_fields_reason : '—')}</td>
+                </tr>`;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-f">
+        <button class="btn btn-sm" data-act="closeAiDispatchModal">ביטול</button>
+        <button class="btn btn-sm btn-primary" data-act="confirmAiDispatch" style="background:#6366f1;color:#fff;border-color:#6366f1;font-weight:700">
+          🚀 אשר והעבר להעשרת AI
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderExtDispatchModal(m) {
+  return `<div class="modal-overlay" data-act="closeExtDispatchModal">
+    <div class="modal-card" data-stop style="width:min(680px,100vw)">
+      <div class="modal-h">
+        <h3>🌐 העברת נבחרים להעשרה חיצונית (External Provider)</h3>
+        <button class="x" data-act="closeExtDispatchModal">✕</button>
+      </div>
+      <div class="modal-b">
+        <div style="background:#eff6ff;border:1.5px solid #93c5fd;color:#1e3a8a;border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.5">
+          <div class="bold" style="font-size:13px;margin-bottom:2px">🛡️ סביבת STAGING – מצב בדיקה (TEST MODE / DRY RUN בלבד)</div>
+          <div>לא מבוצע חיוב כספי, לא נשלחים API Keys אמיתיים של ספקים בתשלום. המערכת מייצרת מיפוי מלא (Mapped Payload), מאמתת מניעת כפילויות ומאפשרת ייצוא לקובץ או סימולציה.</div>
+        </div>
+
+        <div class="row" style="gap:12px;align-items:center;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <label class="xs bold" style="display:block;margin-bottom:4px">בחר ספק חיצוני:</label>
+            <select class="input" id="ext-provider-select" style="height:36px;font-size:13px" data-act="changeExtProvider">
+              <option value="apollo_b2b" ${m.provider==='apollo_b2b'?'selected':''}>Apollo B2B (Data Provider API) [TEST MODE]</option>
+              <option value="lusha_b2b" ${m.provider==='lusha_b2b'?'selected':''}>Lusha Enterprise Data [TEST MODE]</option>
+              <option value="bdi_israel" ${m.provider==='bdi_israel'?'selected':''}>BDI Coface Israel (צי רכב ועסקים) [TEST MODE]</option>
+              <option value="generic_webhook" ${m.provider==='generic_webhook'?'selected':''}>Custom CRM / Webhook [TEST MODE]</option>
+            </select>
+          </div>
+          <div style="flex:1;min-width:180px;background:var(--soft);border:1px solid var(--border);border-radius:8px;padding:8px 12px">
+            <div class="xs muted">סה"כ נבחרו לפעולה</div>
+            <div class="bold" style="font-size:16px">${m.selectedLeads.length} חברות</div>
+            <div class="xs faint">${m.alreadySentToProviderCount ? `⚠️ ${m.alreadySentToProviderCount} כבר נשלחו לספק זה` : '✓ אין כפילויות מול ספק זה'}</div>
+          </div>
+        </div>
+
+        ${m.alreadySentToProviderCount > 0 ? `
+          <div style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:10px 12px;font-size:12px">
+            <b>⚠️ מניעת כפילויות מול ספק:</b> ${m.alreadySentToProviderCount} לידים כבר סומנו כנשלחו לספק זה בעבר.
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin-top:4px;font-weight:700">
+              <input type="checkbox" id="ext-allow-resend" ${m.allowResend ? 'checked' : ''} data-act="toggleExtResend">
+              אשר שליחה חוזרת מפורשת לספק זה
+            </label>
+          </div>
+        ` : ''}
+
+        <div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:var(--soft);font-size:12px">
+          <div class="bold" style="margin-bottom:4px">📋 שדות יעד שיישלחו לספק (חסרים בלבד):</div>
+          <div class="row" style="gap:4px;flex-wrap:wrap">
+            ${(OPEnrich.PROVIDERS[m.provider] ? OPEnrich.PROVIDERS[m.provider].supported_fields : ["contact_name", "contact_phone"]).map(f => `<span class="badge b-blue" style="font-size:10.5px">${esc(OPQualify.MISSING_SHORT[f] || f)}</span>`).join(" ")}
+          </div>
+          <div class="xs faint" style="margin-top:6px">🔒 שדות מאומתים שכבר קיימים (טלפון, מייל, ח.פ.) מועברים כ-Verified Reference ולא יחויבו שוב.</div>
+        </div>
+
+        ${m.dryRunResult ? `
+          <div style="border:1.5px solid #86efac;background:#f0fdf4;border-radius:8px;padding:10px 12px;font-size:12px;display:grid;gap:6px">
+            <div class="bold" style="color:#166534">✅ תוצאת סימולציית DRY RUN (ללא עלות):</div>
+            <div class="xs">ספק: <b>${esc(m.dryRunResult.provider)}</b> · Request ID: <code>${esc(m.dryRunResult.request_id)}</code></div>
+            <div class="xs">סטטוס: <b>${esc(m.dryRunResult.status)}</b> · שדות: ${esc((m.dryRunResult.requested_fields || []).join(", "))}</div>
+            <pre style="background:#fff;border:1px solid #bbf7d0;border-radius:6px;padding:8px;font-size:11px;overflow-x:auto;max-height:120px;direction:ltr;text-align:left">${esc(JSON.stringify(m.dryRunResult.payload, null, 2))}</pre>
+          </div>
+        ` : ''}
+      </div>
+      <div class="modal-f" style="flex-wrap:wrap">
+        <button class="btn btn-sm" data-act="closeExtDispatchModal">סגור</button>
+        <button class="btn btn-sm" data-act="runExtDryRun" style="border-color:#0284c7;color:#0284c7" title="בדיקת סימולציה של הבקשה">
+          🧪 בצע סימולציית DRY RUN
+        </button>
+        <button class="btn btn-sm" data-act="exportExtSelected" style="border-color:#10b981;color:#047857" title="ייצוא רשימת הנבחרים כקובץ CSV">
+          ⬇ ייצוא CSV של הנבחרים
+        </button>
+        <button class="btn btn-sm btn-primary" data-act="confirmExtDispatch" style="background:#0284c7;color:#fff;border-color:#0284c7;font-weight:700">
+          📤 סמן כנשלח לספק חיצוני
+        </button>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ===== מרכז גילוי מקורות חדשים (SOURCE DISCOVERY HUB - Section 22-26) ===== */
+async function fetchDiscoveredSources() {
+  if (S.discoveredSourcesLoading) return;
+  S.discoveredSourcesLoading = true;
+  try {
+    const res = await fetch(`${SUPABASE_STAGING_URL}/rest/v1/prospect_discovered_sources?select=*&order=discovered_at.desc`, {
+      headers: { apikey: SUPABASE_STAGING_ANON, Authorization: `Bearer ${SUPABASE_STAGING_ANON}` }
+    });
+    if (res.ok) {
+      S.discoveredSources = await res.json();
+      S.discoveredSourcesLoaded = true;
+    }
+  } catch (e) {
+    console.error("Failed to load discovered sources:", e);
+  } finally {
+    S.discoveredSourcesLoading = false;
+    if (S.tab === "discovered_sources") {
+      const v = $("#view");
+      if (v) v.innerHTML = V.discovered_sources();
+    }
+  }
+}
+
+async function approveDiscoveredSource(id) {
+  try {
+    const res = await fetch(`${SUPABASE_STAGING_URL}/rest/v1/prospect_discovered_sources?id=eq.${id}`, {
+      method: "PATCH",
+      headers: {
+        apikey: SUPABASE_STAGING_ANON,
+        Authorization: `Bearer ${SUPABASE_STAGING_ANON}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        status: "approved_permanent",
+        reviewed_at: new Date().toISOString(),
+        review_notes: `אושר כמקור חינמי קבוע ע"י ${S.activeUser}`
+      })
+    });
+    if (res.ok) {
+      toast("המקור אושר בהצלחה כמקור חינמי קבוע במערכת (STAGING)");
+      await fetchDiscoveredSources();
+    } else {
+      toast("שגיאה באישור מקור");
+    }
+  } catch (e) {
+    toast(String(e.message || e));
+  }
+}
+
+async function rejectDiscoveredSource(id) {
+  try {
+    const res = await fetch(`${SUPABASE_STAGING_URL}/rest/v1/prospect_discovered_sources?id=eq.${id}`, {
+      method: "PATCH",
+      headers: {
+        apikey: SUPABASE_STAGING_ANON,
+        Authorization: `Bearer ${SUPABASE_STAGING_ANON}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify({
+        status: "rejected",
+        reviewed_at: new Date().toISOString(),
+        review_notes: `נדחה ע"י ${S.activeUser}`
+      })
+    });
+    if (res.ok) {
+      toast("המקור נדחה");
+      await fetchDiscoveredSources();
+    } else {
+      toast("שגיאה בעדכון מקור");
+    }
+  } catch (e) {
+    toast(String(e.message || e));
+  }
+}
+
+async function addTestDiscoveredSource() {
+  const testSource = {
+    source_name: "אינדקס תחבורה והיסעים בישראל",
+    url: "https://www.transport-israel-index.co.il/companies/shefa-shuttles-" + Date.now().toString(36),
+    domain: "transport-israel-index.co.il",
+    source_type: "gemini_grounding",
+    field_types: ["fleet_size", "contact_phone"],
+    leads_helped_count: 1,
+    sample_lead_name: "שפע היסעים כחול לבן בע\"מ",
+    status: "new",
+    review_notes: "התגלה ע\"י Gemini Grounding במהלך מחקר חברות היסעים",
+    reusable: true
+  };
+  try {
+    const res = await fetch(`${SUPABASE_STAGING_URL}/rest/v1/prospect_discovered_sources`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_STAGING_ANON,
+        Authorization: `Bearer ${SUPABASE_STAGING_ANON}`,
+        "Content-Type": "application/json",
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify(testSource)
+    });
+    if (res.ok) {
+      toast("נוסף מקור חדש לבדיקה בהצלחה (STAGING)");
+      await fetchDiscoveredSources();
+    } else {
+      toast("שגיאה בהוספת מקור לבדיקה");
+    }
+  } catch (e) {
+    toast(String(e.message || e));
+  }
+}
+
+V.discovered_sources = () => {
+  if (!S.discoveredSourcesLoaded && !S.discoveredSourcesLoading) {
+    fetchDiscoveredSources();
+  }
+  const list = S.discoveredSources || [];
+  const statusLabels = {
+    new: "חדש לבדיקה",
+    under_review: "בבדיקה",
+    approved_permanent: "מאושר כמקור קבוע",
+    rejected: "נדחה"
+  };
+  const statusBadges = {
+    new: "b-blue",
+    under_review: "b-est",
+    approved_permanent: "b-ok",
+    rejected: "b-bad"
+  };
+
+  return `<div class="card">
+    <div class="card-h">
+      <h2>מקורות מידע חדשים שהתגלו (Source Discovery Hub)<span class="h-bar"></span></h2>
+      <span class="chip num">${list.length} מקורות</span>
+      <span class="badge b-est">אין אישור אוטומטי (No Auto-Approval)</span>
+      <span class="badge b-ok">STAGING Database</span>
+      <span class="spacer"></span>
+      <button class="btn btn-sm" data-act="refreshDiscoveredSources">🔄 רענן מקורות</button>
+      <button class="btn btn-sm" data-act="addTestDiscoveredSource" title="הדגם גילוי מקור חדש מתהליך ההעשרה">➕ הדגם מקור חדש</button>
+    </div>
+    <div class="card-b" style="display:grid;gap:12px">
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;color:#1e3a8a;font-size:12.5px;line-height:1.5">
+        <b>💡 עקרון גילוי המקורות (Section 22–26):</b> כאשר Gemini מבצע Grounding ומוצא מקורות חיצוניים בעלי ערך, הם נרשמים כאן כ"מקורות חדשים לבדיקה". מקור חדש <b>אינו</b> הופך למקור קבוע באופן אוטומטי, אלא מחייב בדיקה ידנית ואישור. לאחר אישור, המקור יירשם במאגר המקורות המאושרים.
+      </div>
+
+      ${S.discoveredSourcesLoading ? `
+        <div style="padding:40px;text-align:center;color:var(--muted)">🔄 טוען מקורות מ-Supabase STAGING...</div>
+      ` : list.length === 0 ? `
+        <div class="empty" style="padding:40px;text-align:center">
+          <div style="font-size:24px;margin-bottom:8px">🌐</div>
+          <div class="bold">אין מקורות חדשים הממתינים לבדיקה כרגע</div>
+          <div class="xs muted" style="margin-top:4px">כאשר Gemini Incremental יגלה מקורות חדשים במהלך מחקר, הם יופיעו כאן אוטומטית.</div>
+          <div style="margin-top:14px">
+            <button class="btn btn-sm" data-act="addTestDiscoveredSource">➕ הוסף מקור לדוגמה (שפע היסעים)</button>
+          </div>
+        </div>
+      ` : `
+        <div class="tbl-wrap">
+          <table class="co">
+            <thead>
+              <tr>
+                <th>שם מקור</th>
+                <th>כתובת URL</th>
+                <th>סוג מקור</th>
+                <th>שדות שמספק</th>
+                <th>ליד שבו התגלה</th>
+                <th>לידים שנעזרו</th>
+                <th>סטטוס אישור</th>
+                <th>הערות בדיקה</th>
+                <th>תאריך גילוי</th>
+                <th>פעולות</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${list.map(s => `
+                <tr data-source-id="${esc(s.id)}">
+                  <td class="bold sm">${esc(s.source_name)}</td>
+                  <td class="xs ltr">${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.domain || s.url)}</a>` : '—'}</td>
+                  <td class="xs"><span class="badge b-blue">${esc(s.source_type || 'web_grounding')}</span></td>
+                  <td class="xs">${(s.field_types || []).map(f => `<span class="chip" style="font-size:10px;margin:1px">${esc(OPQualify.MISSING_SHORT[f] || f)}</span>`).join(" ") || 'כללי'}</td>
+                  <td class="xs">${esc(s.sample_lead_name || '—')}</td>
+                  <td class="xs num" style="text-align:center">${s.leads_helped_count || 1}</td>
+                  <td class="xs"><span class="badge ${statusBadges[s.status] || 'b-blue'}">${esc(statusLabels[s.status] || s.status)}</span></td>
+                  <td class="xs faint">${esc(s.review_notes || '—')}</td>
+                  <td class="xs num">${esc(String(s.discovered_at || '').slice(0, 10))}</td>
+                  <td class="xs" style="white-space:nowrap">
+                    ${s.status !== 'approved_permanent' ? `<button class="btn btn-sm" style="background:#16a34a;color:#fff;border-color:#16a34a;padding:3px 7px;font-size:11px" data-act="approveDiscoveredSource" data-src-id="${esc(s.id)}" title="אשר כמקור חינמי קבוע">✓ אשר</button>` : ''}
+                    ${s.status !== 'rejected' ? `<button class="btn btn-sm" style="background:#dc2626;color:#fff;border-color:#dc2626;padding:3px 7px;font-size:11px;margin-inline-start:4px" data-act="rejectDiscoveredSource" data-src-id="${esc(s.id)}" title="דחה מקור">✕ דחה</button>` : ''}
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `}
+    </div>
+  </div>`;
 };
 
 /* ===== מסך חיבורים (CONNECTIONS & APIS) ===== */
@@ -5103,11 +5584,215 @@ document.addEventListener("click",e=>{
       if (v) v.innerHTML = V.companies();
       return;
     }
+    case "selectAllFiltered":{
+      const list = C.filter(c => coMatch(c, S.coFilter));
+      list.forEach(c => S.selectedCoIds.add(c.id));
+      const v = $("#view");
+      if (v) v.innerHTML = V.companies();
+      return;
+    }
+    case "clearCoSelection":{
+      S.selectedCoIds.clear();
+      const v = $("#view");
+      if (v) v.innerHTML = V.companies();
+      return;
+    }
+    case "openAiDispatch":{
+      const selectedLeads = C.filter(c => S.selectedCoIds.has(c.id));
+      if (!selectedLeads.length) { toast("בחר לפחות ליד אחד להעברה"); return; }
+      const newLeads = selectedLeads.filter(c => !c.enr || !c.enr.enrichment_status || c.enr.enrichment_status === "new");
+      const alreadyCheckedLeads = selectedLeads.filter(c => c.enr && (c.enr.enrichment_status === "completed" || String(c.enr.enrichment_status).startsWith("ai_") || c.enr.enrichment_source === "gemini_incremental"));
+      const inQueueLeads = selectedLeads.filter(c => c.enr && ["queued_for_ai", "sent_to_ai", "ai_processing", "queued", "running"].includes(c.enr.enrichment_status));
+      S.aiDispatchModal = { selectedLeads, newLeads, alreadyCheckedLeads, inQueueLeads, allowResend: false };
+      renderModals();
+      return;
+    }
+    case "closeAiDispatchModal":{
+      S.aiDispatchModal = null;
+      renderModals();
+      return;
+    }
+    case "toggleAiResend":{
+      if (S.aiDispatchModal) {
+        const cb = $("#ai-allow-resend");
+        S.aiDispatchModal.allowResend = cb ? cb.checked : !S.aiDispatchModal.allowResend;
+      }
+      return;
+    }
+    case "confirmAiDispatch":{
+      if (!S.aiDispatchModal) return;
+      const m = S.aiDispatchModal;
+      const cb = $("#ai-allow-resend");
+      const allowResend = cb ? cb.checked : m.allowResend;
+      const toSend = allowResend ? m.selectedLeads : m.newLeads;
+      if (!toSend.length) {
+        toast("כל הלידים שנבחרו כבר נבדקו בעבר. סמן אישור שליחה חוזרת כדי להעבירם שוב.");
+        return;
+      }
+      toSend.forEach(c => {
+        c.enr = c.enr || { id: c.id, company_name: c.name, company_hp: c.no };
+        const prevStatus = c.enr.enrichment_status || "new";
+        c.enr.enrichment_status = "queued_for_ai";
+        c.enr.enrichment_source = "gemini_incremental";
+        c.enr.enrichment_batch_id = "batch-" + Date.now();
+        c.enr.enrichment_actor = S.activeUser;
+        c.enr.raw_payload = c.enr.raw_payload || {};
+        c.enr.raw_payload.status_history = c.enr.raw_payload.status_history || [];
+        c.enr.raw_payload.status_history.push({
+          previous_status: prevStatus,
+          new_status: "queued_for_ai",
+          timestamp: new Date().toISOString(),
+          actor: S.activeUser,
+          reason: "העברה להעשרת AI (Incremental) דרך בחירה מרובה",
+          source: "gemini_incremental"
+        });
+      });
+      enAdd(toSend, "bulk_selection");
+      S.selectedCoIds.clear();
+      S.aiDispatchModal = null;
+      renderModals();
+      toast(`הועברו ${toSend.length} לידים לתור העשרת AI`);
+      if (S.tab === "companies") $("#view").innerHTML = V.companies();
+      return;
+    }
+    case "openExtDispatch":{
+      const selectedLeads = C.filter(c => S.selectedCoIds.has(c.id));
+      if (!selectedLeads.length) { toast("בחר לפחות ליד אחד להעברה"); return; }
+      const provider = "apollo_b2b";
+      const alreadySentToProviderCount = selectedLeads.filter(c => c.enr && c.enr.external_provider === provider).length;
+      S.extDispatchModal = { selectedLeads, provider, alreadySentToProviderCount, allowResend: false, dryRunResult: null };
+      renderModals();
+      return;
+    }
+    case "closeExtDispatchModal":{
+      S.extDispatchModal = null;
+      renderModals();
+      return;
+    }
+    case "changeExtProvider":{
+      const sel = $("#ext-provider-select");
+      if (sel && S.extDispatchModal) {
+        S.extDispatchModal.provider = sel.value;
+        S.extDispatchModal.alreadySentToProviderCount = S.extDispatchModal.selectedLeads.filter(c => c.enr && c.enr.external_provider === sel.value).length;
+        S.extDispatchModal.dryRunResult = null;
+        renderModals();
+      }
+      return;
+    }
+    case "toggleExtResend":{
+      if (S.extDispatchModal) {
+        const cb = $("#ext-allow-resend");
+        S.extDispatchModal.allowResend = cb ? cb.checked : !S.extDispatchModal.allowResend;
+      }
+      return;
+    }
+    case "runExtDryRun":{
+      if (!S.extDispatchModal) return;
+      const m = S.extDispatchModal;
+      const lead = m.selectedLeads[0];
+      if (!lead) return;
+      OPEnrich.sendExternalLead(lead, null, m.provider, { dryRun: true }).then(res => {
+        m.dryRunResult = res;
+        renderModals();
+        toast("סימולציית DRY RUN הושלמה בהצלחה (ללא עלות)");
+      });
+      return;
+    }
+    case "exportExtSelected":{
+      if (!S.extDispatchModal) return;
+      const csv = OPEnrich.exportExternalCandidates(S.extDispatchModal.selectedLeads);
+      downloadTextFile(csv, `prospector_selected_external_${Date.now()}.csv`, "text/csv;charset=utf-8;");
+      toast(`יוצאו ${S.extDispatchModal.selectedLeads.length} לידים נבחרים ל-CSV`);
+      return;
+    }
+    case "confirmExtDispatch":{
+      if (!S.extDispatchModal) return;
+      const m = S.extDispatchModal;
+      const cb = $("#ext-allow-resend");
+      const allowResend = cb ? cb.checked : m.allowResend;
+      const toSend = allowResend ? m.selectedLeads : m.selectedLeads.filter(c => !(c.enr && c.enr.external_provider === m.provider));
+      if (!toSend.length) {
+        toast("כל הלידים שנבחרו כבר נשלחו לספק זה. סמן אישור שליחה חוזרת להעברה נוספת.");
+        return;
+      }
+      toSend.forEach(c => {
+        c.enr = c.enr || { id: c.id, company_name: c.name, company_hp: c.no };
+        const prevStatus = c.enr.enrichment_status || "candidate_external";
+        c.enr.enrichment_status = "sent_to_external";
+        c.enr.external_provider = m.provider;
+        c.enr.external_sent_at = new Date().toISOString();
+        c.enr.raw_payload = c.enr.raw_payload || {};
+        c.enr.raw_payload.status_history = c.enr.raw_payload.status_history || [];
+        c.enr.raw_payload.status_history.push({
+          previous_status: prevStatus,
+          new_status: "sent_to_external",
+          timestamp: new Date().toISOString(),
+          actor: S.activeUser,
+          reason: `נשלח לספק חיצוני ${m.provider} (DRY RUN / STAGING)`,
+          source: "external_provider"
+        });
+      });
+      S.selectedCoIds.clear();
+      S.extDispatchModal = null;
+      renderModals();
+      toast(`סומנו ${toSend.length} לידים כנשלחו לספק ${m.provider}`);
+      if (S.tab === "companies") $("#view").innerHTML = V.companies();
+      return;
+    }
+    case "exportExternalCandidates":{
+      const candidates = C.filter(c => {
+        const q = QF(c);
+        return q && (q.workflow_status === "candidate_external" || (q.business_potential_score >= 60 && q.contact_readiness_score < 80));
+      });
+      if (!candidates.length) { toast("לא נמצאו מועמדים מתאימים להעשרה חיצונית"); return; }
+      const csv = OPEnrich.exportExternalCandidates(candidates);
+      downloadTextFile(csv, `prospector_external_candidates_${new Date().toISOString().slice(0, 10)}.csv`, "text/csv;charset=utf-8;");
+      toast(`יוצאו ${candidates.length} מועמדים להעשרה חיצונית כקובץ CSV`);
+      return;
+    }
+    case "refreshDiscoveredSources":{
+      fetchDiscoveredSources();
+      return;
+    }
+    case "approveDiscoveredSource":{
+      if (d.srcId) approveDiscoveredSource(d.srcId);
+      return;
+    }
+    case "rejectDiscoveredSource":{
+      if (d.srcId) rejectDiscoveredSource(d.srcId);
+      return;
+    }
+    case "addTestDiscoveredSource":{
+      addTestDiscoveredSource();
+      return;
+    }
   }
 });
 
 document.addEventListener("change",e=>{
   const t=e.target;
+  if(t.classList && t.classList.contains("co-cb")){
+    const id = +t.dataset.coId;
+    if(t.checked) S.selectedCoIds.add(id);
+    else S.selectedCoIds.delete(id);
+    const v = $("#view");
+    if(v) v.innerHTML = V.companies();
+    return;
+  }
+  if(t.id==="co-select-all"){
+    const list = C.filter(c => coMatch(c, S.coFilter));
+    const pageSize = S.coPageSize || 50;
+    const startIdx = (S.coPage - 1) * pageSize;
+    const pagedList = list.slice(startIdx, startIdx + pageSize);
+    if(t.checked){
+      pagedList.forEach(c => S.selectedCoIds.add(c.id));
+    } else {
+      pagedList.forEach(c => S.selectedCoIds.delete(c.id));
+    }
+    const v = $("#view");
+    if(v) v.innerHTML = V.companies();
+    return;
+  }
   if(t.id==="en-grounding"){S.en.grounding=t.checked;if(S.en.batch&&S.en.batch.status==="draft")enUpdBatch({grounding:t.checked}).then(()=>enAudit("grounding_changed",{details:{grounding:t.checked}})).catch(x=>toast(String(x.message||x)));return}
   if(t.dataset.enSel){const m=S.en.sel[t.dataset.enSel]||(S.en.sel[t.dataset.enSel]={});m[t.dataset.field]=t.checked;return}
   if(t.dataset.status){

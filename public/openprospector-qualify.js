@@ -915,12 +915,163 @@
     else if (!hasAiChecked) nextAction = "לבצע חיפוש נוסף ב-Gemini";
     else nextAction = "לבצע enrichment נוסף";
 
+    /* --- Lead Quality: Color Classification (Green / Yellow / Red) --- */
+    let leadQualityColor = "yellow";
+    let leadQualityLabel = "🟡 ליד טוב";
+    if (isInactive || businessPotentialScore < 40 || rejectedReason) {
+      leadQualityColor = "red";
+      leadQualityLabel = "🔴 לא כדאי להשקיע";
+    } else if (stage === "ready" || (businessPotentialScore >= 80 && contactReadinessScore >= 70) || (businessPotentialScore >= 60 && contactReadinessScore >= 80)) {
+      leadQualityColor = "green";
+      leadQualityLabel = stage === "ready" ? "🟢 מוכן לפנייה" : "🟢 ליד איכותי";
+    } else {
+      leadQualityColor = "yellow";
+      if (worthPaying || extRec === "מומלץ מאוד" || (businessPotentialScore >= 60 && hasAiChecked && (missing.length > 0 || detailedMissing.length > 0))) {
+        leadQualityLabel = "🟡 מועמד להעשרה חיצונית";
+      } else {
+        leadQualityLabel = "🟡 ליד טוב להשקעה";
+      }
+    }
+
+    /* --- Workflow Status: Distinct Process Lifecycle --- */
+    const rawEnrStatus = String(row.enrichment_status || "").trim().toLowerCase();
+    const rawCrmStatus = String(row.crm_handoff_status || "").trim().toLowerCase();
+    let workflowStatus = "new";
+    let workflowStatusLabel = "חדש";
+    let workflowStatusBadge = "b-no";
+
+    if (rawEnrStatus === "sent_to_external" || rawCrmStatus === "sent") {
+      workflowStatus = "sent_to_external";
+      workflowStatusLabel = "נשלח להעשרה חיצונית";
+      workflowStatusBadge = "b-est";
+    } else if (rawEnrStatus === "external_processing") {
+      workflowStatus = "external_processing";
+      workflowStatusLabel = "ספק בבדיקה";
+      workflowStatusBadge = "b-est";
+    } else if (rawEnrStatus === "external_completed") {
+      workflowStatus = "external_completed";
+      workflowStatusLabel = "התקבלה תשובה";
+      workflowStatusBadge = "b-ok";
+    } else if (rawEnrStatus === "external_selected") {
+      workflowStatus = "external_selected";
+      workflowStatusLabel = "נבחר להעשרה חיצונית";
+      workflowStatusBadge = "b-blue";
+    } else if (rawEnrStatus === "candidate_external") {
+      workflowStatus = "candidate_external";
+      workflowStatusLabel = "מועמד להעשרה חיצונית";
+      workflowStatusBadge = "b-est";
+    } else if (rawEnrStatus === "sent_to_ai" || rawEnrStatus === "running") {
+      workflowStatus = "sent_to_ai";
+      workflowStatusLabel = "נשלח להעשרת AI";
+      workflowStatusBadge = "b-blue";
+    } else if (rawEnrStatus === "queued_for_ai" || rawEnrStatus === "queued") {
+      workflowStatus = "queued_for_ai";
+      workflowStatusLabel = "ממתין להעשרת AI";
+      workflowStatusBadge = "b-blue";
+    } else if (rawEnrStatus === "ai_processing") {
+      workflowStatus = "ai_processing";
+      workflowStatusLabel = "AI בבדיקה";
+      workflowStatusBadge = "b-est";
+    } else if (hasAiChecked) {
+      const verifiedAiFindings = aiEvidence.filter((e) => isVerifiedFinding(e));
+      if (verifiedAiFindings.length >= 2) {
+        workflowStatus = "ai_verified";
+        workflowStatusLabel = "AI נבדק ואומת";
+        workflowStatusBadge = "b-ok";
+      } else if (aiEvidence.some((e) => e.status === "verified" || e.status === "found")) {
+        if (businessPotentialScore >= 60 && contactReadinessScore < 80) {
+          workflowStatus = "candidate_external";
+          workflowStatusLabel = "מועמד להעשרה חיצונית";
+          workflowStatusBadge = "b-est";
+        } else {
+          workflowStatus = "ai_partially_verified";
+          workflowStatusLabel = "AI נבדק חלקית";
+          workflowStatusBadge = "b-est";
+        }
+      } else {
+        if (businessPotentialScore >= 60) {
+          workflowStatus = "candidate_external";
+          workflowStatusLabel = "מועמד להעשרה חיצונית";
+          workflowStatusBadge = "b-est";
+        } else {
+          workflowStatus = "ai_missing_info";
+          workflowStatusLabel = "AI נבדק – חסר מידע";
+          workflowStatusBadge = "b-no";
+        }
+      }
+    } else if (stage === "ready") {
+      workflowStatus = "ready_for_contact";
+      workflowStatusLabel = "מוכן לפנייה";
+      workflowStatusBadge = "b-ok";
+    } else if (leadQualityColor === "red") {
+      workflowStatus = "not_worth_investing";
+      workflowStatusLabel = "לא כדאי להשקיע";
+      workflowStatusBadge = "b-bad";
+    } else {
+      workflowStatus = "new";
+      workflowStatusLabel = "חדש";
+      workflowStatusBadge = "b-no";
+    }
+
+    /* --- Why not green / Detailed Missing Reason --- */
+    let whyNotGreen = "";
+    if (leadQualityColor === "green") {
+      whyNotGreen = "הליד עומד במלוא דרישות הפוטנציאל והמוכנות לפנייה.";
+    } else if (leadQualityColor === "red") {
+      whyNotGreen = isInactive ? "החברה אינה פעילה או בפירוק." : "פוטנציאל עסקי נמוך (פחות מ-40%) אינו מצדיק השקעת משאבים כעת.";
+    } else {
+      const missingBits = [];
+      if (fs.phone.s === "n") missingBits.push("טלפון חברה");
+      else if (!isMobile) missingBits.push("נייד ישיר");
+      if (fs.contact_name.s === "n") missingBits.push("איש קשר");
+      if (!isDecisionMaker) missingBits.push("מקבל החלטות בכיר");
+      if (fs.fleet.s !== "v") missingBits.push("אימות צי רכב");
+      whyNotGreen = `פוטנציאל עסקי טוב (${businessPotentialScore}%), אך חסרים: ${missingBits.join(", ") || "השלמת פרטים ישירים"}.`;
+    }
+
+    /* --- Source History --- */
+    const sourceHistory = [];
+    const seenSrcKeys = new Set();
+    evList.forEach((e) => {
+      if (e && typeof e === "object" && !Array.isArray(e)) {
+        const sName = e.src || e.source || "מאגר רשמי";
+        const sUrl = e.url || "";
+        const sField = e.field || "general";
+        const k = `${sName}__${sUrl}__${sField}`;
+        if (!seenSrcKeys.has(k)) {
+          seenSrcKeys.add(k);
+          sourceHistory.push({
+            source_name: sName,
+            url: sUrl,
+            source_type: e.by === "gemini" ? "ai_grounding" : "official_registry",
+            field: sField,
+            value: String(e.val || e.value || ""),
+            status: e.status || (e.s === "v" ? "verified" : e.s === "f" ? "partial" : "found"),
+            found_at: e.found_at || e.at || row.verification_date || null,
+            already_checked: true,
+          });
+        }
+      }
+    });
+
+    /* --- Status History --- */
+    const statusHistory = Array.isArray(row.raw_payload?.status_history)
+      ? row.raw_payload.status_history
+      : [
+          { status: "new", timestamp: row.created_at || row.found_date || "2026-10-01", actor: "system", reason: "קליטת ליד" },
+          ...(row.enrichment_status ? [{ status: workflowStatus, timestamp: row.updated_at || new Date().toISOString(), actor: "system", reason: "עדכון העשרה" }] : [])
+        ];
+
     return {
       field_status: { ...fs, manual, warnings },
       missing_fields: missing,
       detailed_missing_fields: detailedMissing,
+      missing_fields_reason: detailedMissing.join(", ") || "לא חסרים פרטים מהותיים",
+      why_not_green: whyNotGreen,
       blockers,
       source_list: sources,
+      source_history: sourceHistory,
+      status_history: statusHistory,
       tier: registryConfirmed ? "A" : "C",
       verification_status: isVerified ? "verified" : registryConfirmed ? "partial" : "unverified",
       company_active_status: co.status || (inContractors ? "רשום בפנקס הקבלנים" : null),
@@ -928,6 +1079,11 @@
       lead_stage: stage,
       lead_quality: fs.phone.s === "v" && relevant && registryConfirmed && fleetGood ? "high"
         : fs.phone.s !== "n" && relevant ? "medium" : "low",
+      lead_quality_color: leadQualityColor,
+      lead_quality_label: leadQualityLabel,
+      workflow_status: workflowStatus,
+      workflow_status_label: workflowStatusLabel,
+      workflow_status_badge: workflowStatusBadge,
       ready_for_contact: stage === "ready",
       rejected_reason: rejectedReason || null,
       relevant,
@@ -1019,7 +1175,24 @@
   }
 
   const QUALITY_LABEL = { high: "גבוהה", medium: "בינונית", low: "נמוכה" };
-  const api = { STAGES, STAGE_LABEL, FLEET_SIZE_LABEL, FIELD_STATUS_LABEL, QUALITY_LABEL, FIELDS, MISSING_SHORT, missingLabel,
+  const LEAD_QUALITY_LABELS = { green: "🟢 ליד איכותי / מוכן לפנייה", yellow: "🟡 ליד טוב להשקעה", red: "🔴 לא כדאי להשקיע" };
+  const WORKFLOW_STATUS_LABELS = {
+    new: "חדש",
+    queued_for_ai: "ממתין להעשרת AI",
+    sent_to_ai: "נשלח להעשרת AI",
+    ai_processing: "AI בבדיקה",
+    ai_verified: "AI נבדק ואומת",
+    ai_partially_verified: "AI נבדק חלקית",
+    ai_missing_info: "AI נבדק – חסר מידע",
+    candidate_external: "מועמד להעשרה חיצונית",
+    external_selected: "נבחר להעשרה חיצונית",
+    sent_to_external: "נשלח להעשרה חיצונית",
+    external_processing: "ספק בבדיקה",
+    external_completed: "התקבלה תשובה",
+    ready_for_contact: "מוכן לפנייה",
+    not_worth_investing: "לא כדאי להשקיע"
+  };
+  const api = { STAGES, STAGE_LABEL, FLEET_SIZE_LABEL, FIELD_STATUS_LABEL, QUALITY_LABEL, LEAD_QUALITY_LABELS, WORKFLOW_STATUS_LABELS, FIELDS, MISSING_SHORT, missingLabel,
     NOT_SAFETY_PROOF, normPhone, validPhone, isVerifiedFinding, evaluate };
   root.OPQualify = api;
 })(typeof window !== "undefined" ? window : globalThis);

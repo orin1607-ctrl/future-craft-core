@@ -92,11 +92,14 @@
   }
 
   /* ---------- 1. eligibility & batch selection ---------- */
-  /* row = prospect_leads row (snake_case, c.enr in the page); openLeadIds = leads already in an open batch */
+  /* row = prospect_leads row (snake_case, c.enr in the page); openLeadIds = leads already in an open batch (Set or Array) */
   function eligibility(row, openLeadIds) {
     const q = Q().evaluate(row);
     if (!row.id) return { ok: false, reason: "אין מזהה ליד", q };
-    if (openLeadIds && openLeadIds.has(row.id)) return { ok: false, reason: "כבר בתור העשרה", q };
+    if (openLeadIds) {
+      const already = typeof openLeadIds.has === "function" ? openLeadIds.has(row.id) : (Array.isArray(openLeadIds) ? openLeadIds.includes(row.id) : false);
+      if (already) return { ok: false, reason: "כבר בתור העשרה", q };
+    }
     if (q.lead_stage === "rejected") return { ok: false, reason: "לא מתאים", q };
     if (q.rejected_reason) return { ok: false, reason: q.rejected_reason, q };
     return { ok: true, reason: "", q };
@@ -351,8 +354,182 @@
     return { stop: false, retry: false, label: `❌ שגיאה (HTTP ${http})` };
   }
 
+  /* ---------- 6. External Provider Adapter Interface (Section 15-19) ---------- */
+  const PROVIDERS = {
+    apollo_b2b: {
+      provider_name: "apollo_b2b",
+      label: "Apollo.io B2B Intelligence",
+      api_base_url: "https://api.apollo.io/v1",
+      auth_type: "bearer_token",
+      secret_reference: "SUPABASE_SECRET_APOLLO_KEY",
+      enabled: false,
+      test_mode: true,
+      supports_single: true,
+      supports_batch: true,
+      supported_fields: ["contact_name", "contact_phone", "contact_email", "contact_role", "fleet_manager_name"],
+    },
+    lusha_b2b: {
+      provider_name: "lusha_b2b",
+      label: "Lusha Enterprise Data",
+      api_base_url: "https://api.lusha.com/v2",
+      auth_type: "api_key_header",
+      secret_reference: "SUPABASE_SECRET_LUSHA_KEY",
+      enabled: false,
+      test_mode: true,
+      supports_single: true,
+      supports_batch: true,
+      supported_fields: ["contact_name", "contact_phone", "contact_email", "contact_role"],
+    },
+    bdi_israel: {
+      provider_name: "bdi_israel",
+      label: "BDI Coface Israel (צי רכב ועסקים)",
+      api_base_url: "https://api.bdi.co.il/v1",
+      auth_type: "oauth2",
+      secret_reference: "SUPABASE_SECRET_BDI_TOKEN",
+      enabled: false,
+      test_mode: true,
+      supports_single: true,
+      supports_batch: true,
+      supported_fields: ["fleet_size", "fleet_types", "company_active_status", "contact_name", "contact_role"],
+    },
+    generic_webhook: {
+      provider_name: "generic_webhook",
+      label: "Custom CRM / Webhook",
+      api_base_url: "https://webhook.site/placeholder",
+      auth_type: "header_secret",
+      secret_reference: "SUPABASE_SECRET_WEBHOOK_KEY",
+      enabled: false,
+      test_mode: true,
+      supports_single: true,
+      supports_batch: true,
+      supported_fields: ["contact_name", "contact_phone", "contact_email", "fleet_size"],
+    },
+  };
+
+  async function testConnection(providerKey, opts) {
+    opts = opts || {};
+    const p = PROVIDERS[providerKey] || PROVIDERS.apollo_b2b;
+    // TEST MODE / DRY RUN: simulated check without paid network billing
+    await new Promise((r) => setTimeout(r, 400));
+    return {
+      ok: true,
+      provider: p.provider_name,
+      label: p.label,
+      test_mode: true,
+      latency_ms: 120,
+      status_text: `חיבור תקין לממשק ${p.label} (מצב סימולציה / TEST MODE בלבד – ללא חיוב)`,
+    };
+  }
+
+  function mapRequest(lead, fields, providerKey) {
+    const q = Q().evaluate(lead);
+    const existing = [];
+    if (lead.phone) existing.push({ type: "phone", val: lead.phone, verified: true });
+    if (lead.email) existing.push({ type: "email", val: lead.email, verified: true });
+    if (lead.website) existing.push({ type: "website", val: lead.website, verified: true });
+
+    return {
+      company_name: lead.company_name || lead.name,
+      company_hp: String(lead.company_hp || lead.no || ""),
+      city: lead.city || "",
+      address: lead.address || "",
+      industry: lead.industry || lead.ind || "",
+      already_verified_do_not_search: existing,
+      target_missing_fields_only: fields || q.missing_fields,
+      business_potential_score: q.business_potential_score,
+      contact_readiness_score: q.contact_readiness_score,
+      provider: providerKey || "apollo_b2b",
+      requested_at: new Date().toISOString(),
+    };
+  }
+
+  async function sendExternalLead(lead, fields, providerKey, opts) {
+    opts = opts || {};
+    const req = mapRequest(lead, fields, providerKey);
+    // DRY RUN: Does NOT hit paid endpoints. Generates persistent external candidate record.
+    return {
+      ok: true,
+      dry_run: true,
+      test_mode: true,
+      request_id: `ext-${providerKey}-${lead.id || Date.now()}`,
+      provider: providerKey,
+      requested_fields: req.target_missing_fields_only,
+      status: "sent_to_external",
+      sent_at: new Date().toISOString(),
+      message: `הליד הוכן בהצלחה להעברה לספק ${providerKey} (מצב DRY RUN / סימולציה – ללא עלות)`,
+      payload: req,
+    };
+  }
+
+  /* ---------- 7. Source Discovery Engine (Section 22-24) ---------- */
+  function extractDomain(url) {
+    try {
+      const u = new URL(url);
+      return u.hostname.replace(/^www\./, "");
+    } catch {
+      return String(url || "").split("/")[0].replace(/^www\./, "");
+    }
+  }
+
+  function discoverSources(groundingSources, lead, findings) {
+    if (!Array.isArray(groundingSources) || !groundingSources.length) return [];
+    const discovered = [];
+    const seen = new Set();
+    groundingSources.forEach((s) => {
+      const url = s.uri || s.url;
+      if (!url || seen.has(url)) return;
+      seen.add(url);
+      const domain = extractDomain(url);
+      discovered.push({
+        source_name: s.title || domain,
+        url,
+        domain,
+        source_type: "gemini_grounding",
+        field_types: findings ? findings.map((f) => f.field).filter(Boolean) : [],
+        sample_lead_id: lead ? lead.id : null,
+        sample_lead_name: lead ? (lead.company_name || lead.name) : null,
+        discovered_by: "gemini_grounding",
+        discovered_at: new Date().toISOString(),
+        status: "new",
+        reusable: true,
+      });
+    });
+    return discovered;
+  }
+
+  /* ---------- 8. Export External Candidates (Section 12) ---------- */
+  function exportExternalCandidates(candidates) {
+    const header = [
+      "שם חברה", "ח.פ.", "עיר", "תחום", "פוטנציאל עסקי", "שלמות מידע", "מוכנות לפנייה",
+      "איכות ליד", "מצב טיפול", "טלפונים קיימים", "מיילים קיימים", "אנשי קשר קיימים",
+      "מה בדיוק חסר", "למה מומלץ ספק חיצוני", "מקורות שנבדקו"
+    ];
+    const rows = candidates.map((c) => {
+      const q = Q().evaluate(c.enr || c);
+      return [
+        `"${(c.name || c.company_name || "").replace(/"/g, '""')}"`,
+        `"${c.no || c.company_hp || ""}"`,
+        `"${(c.city || "").replace(/"/g, '""')}"`,
+        `"${(c.ind || c.industry || "").replace(/"/g, '""')}"`,
+        q.business_potential_score || 0,
+        q.data_completeness_score || 0,
+        q.contact_readiness_score || 0,
+        `"${q.lead_quality_label || ""}"`,
+        `"${q.workflow_status_label || ""}"`,
+        `"${(q.valid_phones_list || []).map((p) => p.val || p).join(" ; ")}"`,
+        `"${(q.valid_mails_list || []).join(" ; ")}"`,
+        `"${(q.contacts_list || []).map((x) => x.name + (x.role ? ` (${x.role})` : "")).join(" ; ")}"`,
+        `"${(q.detailed_missing_fields || []).join(" ; ")}"`,
+        `"${(q.external_enrichment?.reason || q.why_not_green || "").replace(/"/g, '""')}"`,
+        `"${(q.source_list || []).join(" + ")}"`,
+      ].join(",");
+    });
+    return "\uFEFF" + [header.join(","), ...rows].join("\r\n");
+  }
+
   root.OPEnrich = {
     MAX_BATCH, MAX_ATTEMPTS, PRICES, ITEM_STATUS, DECISION_LABEL, FIELD_COL, FIELD_LABEL, RESPONSE_SCHEMA,
+    PROVIDERS, testConnection, mapRequest, sendExternalLead, discoverSources, exportExternalCandidates,
     eligibility, scoreCandidate, selectBatch, buildPayload, extractJson, validateResponse, diff, buildPatch, summarize, estimateCost, classifyError, show,
   };
 })(typeof window !== "undefined" ? window : globalThis);
