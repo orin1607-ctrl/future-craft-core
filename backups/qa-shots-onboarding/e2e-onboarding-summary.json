@@ -1,0 +1,52 @@
+{
+  "timestamp": "2026-10-08T23:12:52.606Z",
+  "passCount": 9,
+  "total": 9,
+  "results": [
+    {
+      "name": "Test 1: Duplicate Check Tool",
+      "pass": true,
+      "details": "Response length: 297"
+    },
+    {
+      "name": "Test 2: General Mode Onboarding Preview Card",
+      "pass": true,
+      "details": "Action: create_claim_from_onboarding, Plate: 886081199, Missing count: 5"
+    },
+    {
+      "name": "Test 3: Execute Onboarding (Claim, Customer, Gallery, Docs, Audit)",
+      "pass": true,
+      "details": "New Claim: DAL-2026-0243, Docs saved: 2, Gallery photo present: true"
+    },
+    {
+      "name": "Test 4: Numbered Documents List in Open Claim",
+      "pass": true,
+      "details": "Response length: 231"
+    },
+    {
+      "name": "Test 5: Number Selection to Email Preview Card",
+      "pass": true,
+      "details": "To: yoni122222@gmail.com, Files: 2"
+    },
+    {
+      "name": "Test 6: Secure Share Link Creation & Copyable URL",
+      "pass": true,
+      "details": "Share verified in DB for recipient: שמאי משה"
+    },
+    {
+      "name": "Test 7: Email Send Execution via Gmail API & Outbox Audit",
+      "pass": true,
+      "details": "Outbox status: sent, Message ID: 1a11dca0944d1a52"
+    },
+    {
+      "name": "Test 8: Save Additional Attachment to Open Claim",
+      "pass": true,
+      "details": "New Document ID in DB: CDM-1791501155386-DL6JN, Kind: general"
+    },
+    {
+      "name": "Test 9: Duplicate Detection Warning on Existing Plate/Customer",
+      "pass": true,
+      "details": "Warning in text: true, Card warning: true"
+    }
+  ]
+}

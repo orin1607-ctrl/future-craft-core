@@ -884,7 +884,7 @@ Deno.serve(async (req) => {
         return await executeClaimsTool(toolName, toolArgs, supabase, claimId, userId, actorName, attachments);
       }
       if (isClaimsModule && !claimId) {
-        return await executeClaimsGeneralTool(toolName, toolArgs, supabase, userId, actorName);
+        return await executeClaimsGeneralTool(toolName, toolArgs, supabase, userId, actorName, attachments);
       }
       const fleetRes = await executeFleetTool(toolName, toolArgs, supabase, companyScope);
       return { result: fleetRes };

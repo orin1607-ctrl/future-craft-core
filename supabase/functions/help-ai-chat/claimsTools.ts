@@ -348,6 +348,138 @@ export const CLAIMS_GEMINI_TOOLS = [
           required: ["customer_name"],
         },
       },
+      {
+        name: "check_claim_and_customer_duplicates",
+        description: "בדיקת כפילויות לפני פתיחת תיק או לקוח חדש: בודק לקוחות קיימים (לפי ת\"ז/ח\"פ, טלפון, אימייל או שם) ותביעות קיימות (לפי מספר רכב או מספר תביעה).",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            client_name: {
+              type: "STRING",
+              description: "שם הלקוח לבדיקה (אופציונלי)",
+            },
+            client_phone: {
+              type: "STRING",
+              description: "מספר טלפון של הלקוח (אופציונלי)",
+            },
+            client_email: {
+              type: "STRING",
+              description: "אימייל של הלקוח (אופציונלי)",
+            },
+            business_id: {
+              type: "STRING",
+              description: "ת\"ז או ח\"פ של הלקוח (אופציונלי)",
+            },
+            plate: {
+              type: "STRING",
+              description: "מספר רישוי של הרכב (אופציונלי)",
+            },
+            claim_number: {
+              type: "STRING",
+              description: "מספר תביעה בביטוח (אופציונלי)",
+            },
+          },
+        },
+      },
+      {
+        name: "preview_save_attachment_to_claim",
+        description: "הכנת תצוגה מקדימה (Preview) לשמירת תמונות או מסמכים שהועלו בצ'אט ישירות לתוך תיק התביעה הפתוח. תמונות ישמרו לגלריית התיק ומסמכים לספריית המסמכים. דורש אישור מפורש של המשתמש לפני שמירה.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            description: {
+              type: "STRING",
+              description: "תיאור הקבצים לשמירה (למשל: 'רישיון רכב מעודכן', 'תמונות מוקד נזק ימני')",
+            },
+            doc_kind: {
+              type: "STRING",
+              description: "סוג המסמך: 'driver_license', 'insurance_policy', 'surveyor_report', 'damage_photos', 'invoice', או 'general'",
+            },
+          },
+        },
+      },
+      {
+        name: "preview_create_claim_from_onboarding",
+        description: "הכנת תצוגה מקדימה (Preview) לפתיחת תיק תביעה חדש וקליטת לקוח מתוך מסמכים ותמונות שהועלו בצ'אט. מציג את פרטי הלקוח, הרכב, התביעה, המסמכים שהועלו, וסימון 'חסר' עבור כל פרט שלא זוהה בוודאות. מציג אזהרת כפילות אם נמצא לקוח או תיק קיים. דורש אישור מפורש של המשתמש לפני ביצוע.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            client_name: {
+              type: "STRING",
+              description: "שם הלקוח המלא (חובה, או 'חסר')",
+            },
+            client_phone: {
+              type: "STRING",
+              description: "מספר טלפון (או 'חסר')",
+            },
+            client_email: {
+              type: "STRING",
+              description: "אימייל (או 'חסר')",
+            },
+            business_id: {
+              type: "STRING",
+              description: "ת\"ז / ח\"פ (או 'חסר')",
+            },
+            customer_type: {
+              type: "STRING",
+              description: "סוג לקוח: 'private' או 'company'",
+            },
+            existing_customer_id: {
+              type: "STRING",
+              description: "מזהה לקוח קיים במערכת (אם זוהתה כפילות)",
+            },
+            plate: {
+              type: "STRING",
+              description: "מספר רישוי הרכב (חובה, או 'חסר')",
+            },
+            make: {
+              type: "STRING",
+              description: "יצרן הרכב (או 'חסר')",
+            },
+            model: {
+              type: "STRING",
+              description: "דגם הרכב (או 'חסר')",
+            },
+            year: {
+              type: "STRING",
+              description: "שנת ייצור הרכב (או 'חסר')",
+            },
+            insurance_company: {
+              type: "STRING",
+              description: "חברת הביטוח (או 'חסר')",
+            },
+            claim_number: {
+              type: "STRING",
+              description: "מספר תביעה בביטוח (או 'חסר')",
+            },
+            accident_date: {
+              type: "STRING",
+              description: "תאריך אירוע התאונה (או 'חסר')",
+            },
+            surveyor: {
+              type: "STRING",
+              description: "שם השמאי (או 'חסר')",
+            },
+            garage: {
+              type: "STRING",
+              description: "שם המוסך (ברירת מחדל 'מוסך אורן')",
+            },
+            damage_description: {
+              type: "STRING",
+              description: "תיאור הנזק ומוקדי הפגיעה (או 'חסר')",
+            },
+            third_party: {
+              type: "STRING",
+              description: "פרטי צד ג' (או 'חסר')",
+            },
+            status: {
+              type: "STRING",
+              description: "סטטוס התחלתי (ברירת מחדל 'חדש')",
+            },
+          },
+          required: ["client_name", "plate"],
+        },
+      },
     ],
   },
 ];
@@ -481,6 +613,121 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
           required: ["query"],
         },
       },
+      {
+        name: "check_claim_and_customer_duplicates",
+        description: "בדיקת כפילויות לפני פתיחת תיק או לקוח חדש: בודק לקוחות קיימים (לפי ת\"ז/ח\"פ, טלפון, אימייל או שם) ותביעות קיימות (לפי מספר רכב או מספר תביעה).",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            client_name: {
+              type: "STRING",
+              description: "שם הלקוח לבדיקה (אופציונלי)",
+            },
+            client_phone: {
+              type: "STRING",
+              description: "מספר טלפון של הלקוח (אופציונלי)",
+            },
+            client_email: {
+              type: "STRING",
+              description: "אימייל של הלקוח (אופציונלי)",
+            },
+            business_id: {
+              type: "STRING",
+              description: "ת\"ז או ח\"פ של הלקוח (אופציונלי)",
+            },
+            plate: {
+              type: "STRING",
+              description: "מספר רישוי של הרכב (אופציונלי)",
+            },
+            claim_number: {
+              type: "STRING",
+              description: "מספר תביעה בביטוח (אופציונלי)",
+            },
+          },
+        },
+      },
+      {
+        name: "preview_create_claim_from_onboarding",
+        description: "הכנת תצוגה מקדימה (Preview) לפתיחת תיק תביעה חדש וקליטת לקוח מתוך מסמכים ותמונות שהועלו בצ'אט. מציג את פרטי הלקוח, הרכב, התביעה, המסמכים שהועלו, וסימון 'חסר' עבור כל פרט שלא זוהה בוודאות. מציג אזהרת כפילות אם נמצא לקוח או תיק קיים. דורש אישור מפורש של המשתמש לפני ביצוע.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            client_name: {
+              type: "STRING",
+              description: "שם הלקוח המלא (חובה, או 'חסר')",
+            },
+            client_phone: {
+              type: "STRING",
+              description: "מספר טלפון (או 'חסר')",
+            },
+            client_email: {
+              type: "STRING",
+              description: "אימייל (או 'חסר')",
+            },
+            business_id: {
+              type: "STRING",
+              description: "ת\"ז / ח\"פ (או 'חסר')",
+            },
+            customer_type: {
+              type: "STRING",
+              description: "סוג לקוח: 'private' או 'company'",
+            },
+            existing_customer_id: {
+              type: "STRING",
+              description: "מזהה לקוח קיים במערכת (אם זוהתה כפילות)",
+            },
+            plate: {
+              type: "STRING",
+              description: "מספר רישוי הרכב (חובה, או 'חסר')",
+            },
+            make: {
+              type: "STRING",
+              description: "יצרן הרכב (או 'חסר')",
+            },
+            model: {
+              type: "STRING",
+              description: "דגם הרכב (או 'חסר')",
+            },
+            year: {
+              type: "STRING",
+              description: "שנת ייצור הרכב (או 'חסר')",
+            },
+            insurance_company: {
+              type: "STRING",
+              description: "חברת הביטוח (או 'חסר')",
+            },
+            claim_number: {
+              type: "STRING",
+              description: "מספר תביעה בביטוח (או 'חסר')",
+            },
+            accident_date: {
+              type: "STRING",
+              description: "תאריך אירוע התאונה (או 'חסר')",
+            },
+            surveyor: {
+              type: "STRING",
+              description: "שם השמאי (או 'חסר')",
+            },
+            garage: {
+              type: "STRING",
+              description: "שם המוסך (ברירת מחדל 'מוסך אורן')",
+            },
+            damage_description: {
+              type: "STRING",
+              description: "תיאור הנזק ומוקדי הפגיעה (או 'חסר')",
+            },
+            third_party: {
+              type: "STRING",
+              description: "פרטי צד ג' (או 'חסר')",
+            },
+            status: {
+              type: "STRING",
+              description: "סטטוס התחלתי (ברירת מחדל 'חדש')",
+            },
+          },
+          required: ["client_name", "plate"],
+        },
+      },
     ],
   },
 ];
@@ -492,27 +739,37 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 אתה עוזר AI תפעולי חכם של דליה במודול ניהול תביעות (תיק פתוח).
 התפקיד שלך הוא לסייע למשתמש לעבוד על התיק הפתוח בכל פעולה:
 1. מיילים בתיק (Gmail): חיפוש מיילים, הצגת המייל האחרון, בדיקה האם חברת הביטוח ענתה, בדיקה האם נשלח מייל ללקוח, קריאת שרשורים והכנת טיוטות מענה.
-2. תמונות ומסמכים: הצגת כל התמונות והמסמכים הקיימים בתיק (שמאות, חשבוניות, רישיון רכב, תמונות שמאי, תמונות מוסך).
-3. בדיקת חוסרים: בדיקה מקיפה מה חסר בתיק (רישיון, שמאי, חשבונית, טופס הודעה, צד ג') באמצעות הכלי get_missing_claim_documents.
-4. גורם מטפל והיסטוריה: בירור מי טיפל בתיק והצגת היסטוריית פעולות באמצעות get_claim_handler_and_history.
-5. פעולה הבאה: בדיקת פעולה הבאה ומשימות ממתינות באמצעות get_claim_next_action.
-6. קישורי שיתוף: הצגת קישורים פעילים, יצירת קישורי שיתוף מאובטחים חדשים לשמאי/ביטוח/לקוח, וביטול קישורים.
-7. שליחת מיילים: שליחת מיילים ללקוח או לחברת הביטוח עם קבצים מצורפים מתוך התיק.
-8. תפעול התיק: שינוי סטטוס, יצירת וסגירת משימות, הוספת הערות בתיק.
-9. לקוחות: יצירת לקוח חדש (preview_create_customer), עדכון טלפון/מייל (preview_update_claim_client_contact), קישור לקוח לתביעה (preview_link_client_to_claim).
+2. תמונות ומסמכים:
+   - הצגת כל התמונות והמסמכים הקיימים בתיק (שמאות, חשבוניות, רישיון רכב, תמונות שמאי, תמונות מוסך) באמצעות list_claim_documents.
+   - כאשר המשתמש שואל "איזה מסמכים יש בתיק?", "תראי לי את כל התמונות", "איזה מסמכים חסרים?", "יש פוליסה בתיק?", "יש רישיון רכב?", "יש תמונות נזק?":
+     קרא לכלי list_claim_documents (או get_missing_claim_documents).
+     הצג למשתמש רשימה ממוספרת ברורה ונקייה, לדוגמה:
+     1. רישיון רכב (car_license.pdf)
+     2. פוליסת ביטוח (policy.pdf)
+     3. תמונת נזק קדמי (damage_front.jpg)
+     4. דו"ח שמאי (surveyor_report.pdf)
+     ציין בפני המשתמש שהוא יכול לבחור מסמכים לפי המספרים שלהם (לדוגמה: "שלח ללקוח 1 ו-2" או "תכין קישור עבור 1 ו-3").
+   - בחירת מסמכים לפי מספרים:
+     כאשר המשתמש כותב "שלח ללקוח 1, 2 ו-5" או "תכין קישור לתמונות 1 ו-3" או "שלח ל-X מסמכים 1 ו-2":
+     אם עדיין לא שלפת את רשימת המסמכים בשיחה, קרא קודם לכלי list_claim_documents לקבלת רשימת המסמכים וה-file_ids שלהם.
+     זהה את המספרים שצוינו (למשל: 1, 2), מפה אותם למזהי הקבצים (file_ids) המתאימים מתוך הרשימה הממוספרת, וקרא מיידית לכלי המתאים:
+     • לשליחת מייל: preview_send_claim_email עם to (כתובת המייל שצוינה או מייל הלקוח/שמאי מהתיק) ו-file_ids שנבחרו.
+     • ליצירת קישור שיתוף: preview_create_claim_share_link עם recipient_name ו-file_ids שנבחרו.
+3. שמירת קבצים שהועלו בצ'אט לתיק הפתוח:
+   - אם המשתמש מצרף קובץ/תמונה בצ'אט (למשל: "זה דו\"ח שמאי...", "שמור את זה בתיק", "זה רישיון הרכב החדש", "תוסיף את התמונות האלה לתיק"):
+     חובה לקרוא מיידית לכלי preview_save_attachment_to_claim עם תיאור וסוג המסמך (doc_kind). הפעולה תציג כרטיס Preview לאישור המשתמש, ולאחר אישור תישמר ישירות לגלריה/ספריית המסמכים של התיק.
+4. בדיקת חוסרים: בדיקה מקיפה מה חסר בתיק (רישיון, שמאי, חשבונית, טופס הודעה, צד ג') באמצעות הכלי get_missing_claim_documents.
+5. גורם מטפל והיסטוריה: בירור מי טיפל בתיק והצגת היסטוריית פעולות באמצעות get_claim_handler_and_history.
+6. פעולה הבאה: בדיקת פעולה הבאה ומשימות ממתינות באמצעות get_claim_next_action.
+7. קישורי שיתוף: הצגת קישורים פעילים, יצירת קישורי שיתוף מאובטחים חדשים לשמאי/ביטוח/לקוח (preview_create_claim_share_link), וביטול קישורים (preview_revoke_claim_share_link).
+8. שליחת מיילים: שליחת מיילים ללקוח או לחברת הביטוח עם קבצים מצורפים מתוך התיק (preview_send_claim_email).
+9. תפעול התיק: שינוי סטטוס (preview_update_claim_status), יצירת וסגירת משימות (preview_create_claim_task, preview_close_claim_task), הוספת הערות בתיק (preview_add_claim_note).
+10. לקוחות: יצירת לקוח חדש (preview_create_customer), עדכון טלפון/מייל (preview_update_claim_client_contact), קישור לקוח לתביעה (preview_link_client_to_claim), ובדיקת כפילויות (check_claim_and_customer_duplicates).
 
 כללי בטיחות ואישורים קריטיים:
-- קבצים ותמונות שמצורפים בצ'אט (Vision & Document Understanding):
-  המשתמש יכול לצרף תמונות (JPG, JPEG, PNG, WEBP) ומסמכי PDF ישירות בצ'אט.
-  כאשר מצורפת תמונה או מסמך והמשתמש שואל שאלות (למשל: "מה רואים בתמונה?", "איזה נזק יש ברכב?", "תקרא לי את המסמך", "מה חסר במסמך?"):
-  נתח את התמונה או המסמך ביסודיות ובמקצועיות, זהה את הרכב, את מוקדי הנזק (פגוש, כנף, פנס, דלת, שריטות, מעיכות וכו'), חומרת הפגיעה, או את פרטי המסמך (תאריכים, סכומים, מספרי תביעה/פוליסה), וענה בעברית מפורטת וברורה.
-- שליחת קבצים מצורפים במייל:
-  אם המשתמש מבקש לשלוח במייל תמונה או מסמך שצירף (למשל: "שלח את התמונה שצירפתי במייל לשמאי / לחברת הביטוח"), השתמש בכלי preview_send_claim_email והקפד לכלול את מזהה הקובץ (file_id) ברשימת file_ids.
-- פעולות קריאה (READ): כגון חיפוש מיילים, בדיקת מענה מביטוח, רשימת תמונות/מסמכים, בדיקת חוסרים, בדיקת קישורים, מי טיפל — מבוצעות באופן אוטומטי מיידי דרך הכלים הרלוונטיים. ענה תמיד בעברית ברורה ותמציתית עם הנתונים האמיתיים שנשלפו.
-- פעולות כתיבה (WRITE / SEND / REVOKE / UPDATE): כגון שליחת מייל, יצירת קישור שיתוף, ביטול קישור, שינוי סטטוס תיק, יצירת משימה, סגירת משימה, הוספת הערה, יצירת/עדכון לקוח — אסור לבצע ישירות ללא אישור!
+- פעולות קריאה (READ): כגון חיפוש מיילים, בדיקת מענה מביטוח, רשימת תמונות/מסמכים, בדיקת חוסרים, בדיקת קישורים, מי טיפל, בדיקת כפילויות — מבוצעות באופן אוטומטי מיידי דרך הכלים הרלוונטיים. ענה תמיד בעברית ברורה ותמציתית עם הנתונים האמיתיים שנשלפו.
+- פעולות כתיבה (WRITE / SEND / REVOKE / UPDATE): כגון שליחת מייל, יצירת קישור שיתוף, שמירת מסמכים לתיק, ביטול קישור, שינוי סטטוס תיק, יצירת משימה, סגירת משימה, הוספת הערה, יצירת/עדכון לקוח — אסור לבצע ישירות ללא אישור!
 - עבור כל פעולת כתיבה, חובה לקרוא לכלי ה-Preview המתאים.
-- כאשר המשתמש מבקש להכין שליחה או לשלוח מייל עם מסמכים/תמונות מתוך התיק (כגון חשבונית, שמאות, תמונות נזק):
-  בדוק תחילה את רשימת המסמכים בתיק באמצעות get_claim_documents ומייד קרא ל-preview_send_claim_email עם הנמען (to), נושא מתאים, ורשימת מזהי הקבצים הרלוונטיים (file_ids). אל תקרא תוכן של מיילים ישנים אחד אחד כשנדרשת רק שליחת מסמכים.
 - כלי ה-Preview מכין את הפעולה ומציג למשתמש כרטיס אישור אינטראקטיבי בממשק. בתשובתך, הסבר בעברית מה הכנת ובקש מהמשתמש ללחוץ על "אישור" כדי לבצע.
 - לעולם אל תמציא מידע שאינו קיים בתיק. השתמש תמיד בכלים לקבלת נתונים חיים.
 `;
@@ -520,33 +777,54 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
 אתה עוזר AI תפעולי וניהולי חכם של דליה במודול ניהול תביעות (מצב כללי - Claims General).
 המשתמש נמצא כעת במסך הראשי של ניהול תביעות, ללא תיק פתוח ספציפי.
-התפקיד שלך הוא לספק סקירה מלאה, נתונים סטטיסטיים, ותשובות מדויקות על כלל תיקי התביעות, המיילים והמשימות:
-1. סקירת תביעות וסטטיסטיקות:
+התפקיד שלך הוא לנהל את תהליך התביעות, לפתוח תיקים חדשים, לקלוט לקוחות, ולספק נתונים על כלל התיקים:
+
+1. פתיחת תיק חדש וקליטת לקוח מתוך מסמכים (AI Claim & Customer Onboarding):
+   כאשר המשתמש מעלה מסמכים ותמונות בצ'אט (רישיון רכב, פוליסת ביטוח, דוח שמאי, חשבוניות, תמונות נזק) ומבקש לפתוח תיק ("פתח לי תיק חדש מהמסמכים שהעליתי", "תיצור תיק ללקוח הזה", "פתח תביעה מהרישיון והתמונות"):
+   א. נתח ביסודיות את כל המסמכים והתמונות שצורפו בצ'אט.
+   ב. זהה וחלץ:
+      • לקוח: שם מלא, טלפון, אימייל, ת"ז / ח"פ.
+      • רכב: מספר רישוי, יצרן, דגם, שנת ייצור.
+      • תביעה: חברת ביטוח, מספר תביעה, תאריך אירוע תאונה, שמאי, מוסך, תיאור הנזק ומוקדי הפגיעה, צד ג'.
+      • מסמכים: רשימת כל הקבצים שצורפו (תמונות נזק יסומנו לגלריה, מסמכי PDF וטפסים יסומנו לספריית המסמכים).
+   ג. בדיקת כפילויות חובה:
+      הפעל את הכלי check_claim_and_customer_duplicates עם שם הלקוח, טלפון, ת"ז, מספר רישוי ומספר תביעה שחולצו.
+      אם נמצא לקוח קיים - סמן את existing_customer_id כדי לקשר אליו ולא ליצור כפילות.
+      אם נמצא תיק תביעה קיים לרכב זה - הוסף אזהרה ברורה למשתמש.
+   ד. מניעת הזיות (Strict No-Hallucination):
+      כל פרט שלא זוהה בוודאות מתוך המסמכים - חובה לסמן כ-"חסר"! לעולם אל תמציא מספרי טלפון, ת"ז, דגמים או חברות ביטוח.
+   ה. קרא לכלי preview_create_claim_from_onboarding עם כל השדות שחולצו, רשימת החוסרים והכפילויות.
+   ו. הכלי יציג כרטיס אישור (Preview) מסודר למשתמש. לאחר לחיצת "אישור" של המשתמש:
+      המערכת תיצור את הלקוח (אם אינו קיים), תקדם את מונה התביעות (DAL-YYYY-XXXX), תיצור את תיק התביעה ב-claims_records, תשמור את כל הקבצים והתמונות ב-claims-docs וב-claims_documents (תמונות לגלריה, מסמכים לספרייה), ותתעד Audit מלא.
+
+2. סקירת תביעות וסטטיסטיקות:
    - כמות תביעות כוללת, תביעות פתוחות, סגורות, בארכיון (get_claims_summary, count_claims).
    - חלוקה לפי סטטוסים (get_claims_by_status).
    - חלוקה לפי חברות ביטוח (get_claims_summary).
    - תביעות שנפתחו היום (get_claims_created_today).
    - תביעות אחרונות שנפתחו (get_recent_claims).
    - תיקים שדורשים טיפול דחוף (get_claims_needing_attention).
-2. פעילות ומיילים יומיים (Gmail):
+
+3. פעילות ומיילים יומיים (Gmail):
    - כמה מיילים נכנסו היום (count_today_incoming_emails).
    - כמה מיילים יצאו היום (count_today_outgoing_emails).
    - רשימת המיילים של היום (get_today_claim_emails).
    - מיילים נכנסים שטרם טופלו (get_unhandled_claim_emails).
    - סיכום פעילות היום בניהול תביעות (get_today_claim_activity).
-3. משימות במערכת:
+
+4. משימות במערכת:
    - סיכום משימות פתוחות בכלל התיקים (get_open_tasks_summary).
-4. חיפוש תביעות:
+
+5. חיפוש תביעות:
    - חיפוש לפי מספר רכב, שם לקוח, מספר תביעה, חברת ביטוח (search_claims).
-5. קבצים ותמונות מצורפים (Vision & Document Understanding):
-   - אם המשתמש מצרף תמונה (JPG/PNG/WEBP) או מסמך (PDF) ושואל עליהם (למשל: "מה הנזק ברכב הזה?", "מה כתוב במסמך?"):
-     נתח את התמונה/מסמך במלוא המקצועיות, תאר את הנזק והרכב או את תוכן המסמך בעברית מפורטת.
-   - שים לב: במצב כללי (ללא תיק פתוח), הקובץ אינו משויך אוטומטית לתיק תביעה. אם המשתמש מבקש לשלוח אותו או לשייך אותו לתיק, הנחה אותו לפתוח תחילה את תיק התביעה המתאים.
+
+6. בדיקת כפילויות ישירה:
+   - בדיקת כפילויות לקוח או תיק (check_claim_and_customer_duplicates).
 
 כללי פעולה קריטיים:
 - ענה תמיד בעברית ברורה, מקצועית ומסודרת.
 - השתמש תמיד בכלים הייעודיים לקבלת נתונים אמיתיים. לעולם אל תנחש או תמציא מספרים או שמות.
-- אם המשתמש שואל שאלה שדורשת תיק פתוח ספציפי (כגון 'תראה לי את התמונות בתיק' או 'שלח מייל לשמאי בתיק'), הסבר לו בנימוס שכעת הוא במצב סקירה כללית, ועליו לפתוח את התיק הרלוונטי כדי לבצע פעולות פרטניות בו.
+- כל פעולת יצירה או שינוי דורשת כרטיס Preview ואישור מפורש של המשתמש לפני ביצוע.
 `;
 
 export function normalizeShareRecipientKind(kind: string): string {
@@ -563,6 +841,535 @@ export function normalizeShareRecipientKind(kind: string): string {
 // -------------------------------------------------------------
 // 4. AUDIT LOGGING HELPER
 // -------------------------------------------------------------
+
+// -------------------------------------------------------------
+// ONBOARDING & STORAGE HELPERS
+// -------------------------------------------------------------
+function getAdminClient() {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) return null;
+  return createClient(url, key);
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  const clean = base64.replace(/^data:[^;]+;base64,/, "").trim();
+  const binaryString = atob(clean);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes;
+}
+
+async function sha256Hex(buf: Uint8Array): Promise<string> {
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function sanitizeFileName(name: string): string {
+  const dot = name.lastIndexOf(".");
+  const base = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot + 1).toLowerCase().replace(/[^a-z0-9]/g, "") : "";
+  const safeBase = base.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/_+/g, "_").slice(0, 60) || "file";
+  return ext ? `${safeBase}.${ext}` : safeBase;
+}
+
+function sanitizeDbDocKind(kind: string | undefined, isPhoto: boolean): string {
+  if (isPhoto) return "garage_photo";
+  const k = String(kind || "").toLowerCase().trim();
+  const allowed = [
+    "general",
+    "surveyor_report",
+    "surveyor_photo",
+    "surveyor_attachment",
+    "garage_invoice",
+    "garage_photo",
+  ];
+  if (allowed.includes(k)) return k;
+  if (k === "invoice") return "garage_invoice";
+  return "general";
+}
+
+function classifyAttachment(name: string, mime: string) {
+  const lowerName = name.toLowerCase();
+  const lowerMime = mime.toLowerCase();
+  const isImg = lowerMime.startsWith("image/") || /\.(jpe?g|png|webp|heic)$/i.test(lowerName);
+
+  if (isImg) {
+    return {
+      doc_kind: "garage_photo",
+      staff_type: "garage_photos",
+      category: "תמונת נזק / רכב (תישמר בגלריה)",
+      is_photo: true,
+    };
+  }
+  if (lowerName.includes("רישיון") || lowerName.includes("license")) {
+    return {
+      doc_kind: "general",
+      staff_type: "driver_license",
+      category: "רישיון רכב / נהג",
+      is_photo: false,
+    };
+  }
+  if (lowerName.includes("פוליס") || lowerName.includes("policy") || lowerName.includes("ביטוח") || lowerName.includes("insur")) {
+    return {
+      doc_kind: "general",
+      staff_type: "policy",
+      category: "פוליסת ביטוח",
+      is_photo: false,
+    };
+  }
+  if (lowerName.includes("שמאי") || lowerName.includes("surveyor") || lowerName.includes("report")) {
+    return {
+      doc_kind: "surveyor_report",
+      staff_type: "surveyor_report",
+      category: "דו\"ח שמאי",
+      is_photo: false,
+    };
+  }
+  if (lowerName.includes("חשבונית") || lowerName.includes("invoice")) {
+    return {
+      doc_kind: "garage_invoice",
+      staff_type: "garage_invoice",
+      category: "חשבונית מוסך",
+      is_photo: false,
+    };
+  }
+  return {
+    doc_kind: "general",
+    staff_type: "general",
+    category: "מסמך כללי",
+    is_photo: false,
+  };
+}
+
+function formatDocLabel(d: { original_name?: string; mime_type?: string; doc_kind?: string; doc_meta?: any }): string {
+  const kind = String(d.doc_kind || "").toLowerCase();
+  const name = String(d.original_name || "").toLowerCase();
+  const mime = String(d.mime_type || "").toLowerCase();
+  const meta = (d.doc_meta && typeof d.doc_meta === "object" ? d.doc_meta : {}) as Record<string, any>;
+  const staffType = String(meta.staff_type || "").toLowerCase();
+
+  if (kind === "driver_license" || staffType.includes("license") || name.includes("רישיון") || name.includes("license")) {
+    return "רישיון רכב / נהג";
+  }
+  if (kind === "insurance_policy" || staffType.includes("policy") || name.includes("פוליס") || name.includes("policy")) {
+    return "פוליסת ביטוח";
+  }
+  if (kind === "surveyor_report" || staffType.includes("surveyor_report") || name.includes("שמאי") || name.includes("שמאות")) {
+    return "דו\"ח שמאי";
+  }
+  if (kind === "invoice" || staffType.includes("invoice") || name.includes("חשבונית") || name.includes("invoice")) {
+    return "חשבונית מוסך";
+  }
+  if (kind === "garage_photo" || kind === "surveyor_photo" || staffType.includes("photo") || mime.startsWith("image/") || /\.(jpe?g|png|webp|heic)$/i.test(name)) {
+    return "תמונת נזק / רכב";
+  }
+  return d.original_name || "מסמך";
+}
+
+async function checkDuplicatesHelper(
+  supabase: ReturnType<typeof createClient>,
+  args: {
+    client_name?: string;
+    client_phone?: string;
+    client_email?: string;
+    business_id?: string;
+    plate?: string;
+    claim_number?: string;
+  }
+) {
+  const cleanPhone = String(args.client_phone || "").replace(/\D/g, "");
+  const cleanPlate = String(args.plate || "").replace(/[^0-9a-zA-Z]/g, "").toUpperCase();
+  const cleanBusinessId = String(args.business_id || "").replace(/\D/g, "");
+  const clientName = String(args.client_name || "").trim();
+  const clientEmail = String(args.client_email || "").trim().toLowerCase();
+  const claimNum = String(args.claim_number || "").trim();
+
+  const matchedCustomers: Array<{
+    id: string;
+    name: string;
+    phone: string;
+    email: string;
+    business_id?: string;
+    reason: string;
+  }> = [];
+
+  // 1. Search customers
+  if (cleanBusinessId && cleanBusinessId.length >= 5 && cleanBusinessId !== "חסר") {
+    const { data: byBiz } = await supabase
+      .from("customers")
+      .select("id, name, phone, email, business_id")
+      .eq("business_id", cleanBusinessId)
+      .limit(5);
+    for (const c of byBiz || []) {
+      if (!matchedCustomers.some((x) => x.id === c.id)) {
+        matchedCustomers.push({
+          id: c.id,
+          name: c.name,
+          phone: c.phone || "",
+          email: c.email || "",
+          business_id: c.business_id || "",
+          reason: `תעודת זהות / ח"פ תואם (${cleanBusinessId})`,
+        });
+      }
+    }
+  }
+
+  if (cleanPhone && cleanPhone.length >= 7 && cleanPhone !== "חסר") {
+    const { data: byPhone } = await supabase
+      .from("customers")
+      .select("id, name, phone, email, business_id")
+      .ilike("phone", `%${cleanPhone.slice(-7)}%`)
+      .limit(5);
+    for (const c of byPhone || []) {
+      if (!matchedCustomers.some((x) => x.id === c.id)) {
+        matchedCustomers.push({
+          id: c.id,
+          name: c.name,
+          phone: c.phone || "",
+          email: c.email || "",
+          business_id: c.business_id || "",
+          reason: `מספר טלפון תואם (${c.phone})`,
+        });
+      }
+    }
+  }
+
+  if (clientEmail && clientEmail.includes("@") && clientEmail !== "חסר") {
+    const { data: byEmail } = await supabase
+      .from("customers")
+      .select("id, name, phone, email, business_id")
+      .ilike("email", clientEmail)
+      .limit(5);
+    for (const c of byEmail || []) {
+      if (!matchedCustomers.some((x) => x.id === c.id)) {
+        matchedCustomers.push({
+          id: c.id,
+          name: c.name,
+          phone: c.phone || "",
+          email: c.email || "",
+          business_id: c.business_id || "",
+          reason: `כתובת מייל תואמת (${c.email})`,
+        });
+      }
+    }
+  }
+
+  if (clientName && clientName.length >= 3 && clientName !== "חסר") {
+    const { data: byName } = await supabase
+      .from("customers")
+      .select("id, name, phone, email, business_id")
+      .ilike("name", `%${clientName}%`)
+      .limit(5);
+    for (const c of byName || []) {
+      if (!matchedCustomers.some((x) => x.id === c.id)) {
+        matchedCustomers.push({
+          id: c.id,
+          name: c.name,
+          phone: c.phone || "",
+          email: c.email || "",
+          business_id: c.business_id || "",
+          reason: `שם לקוח תואם (${c.name})`,
+        });
+      }
+    }
+  }
+
+  // 2. Search claims_records
+  const matchedClaims: Array<{
+    id: string;
+    plate: string;
+    client_name: string;
+    status: string;
+    created_at?: string;
+    reason: string;
+  }> = [];
+
+  if (cleanPlate && cleanPlate.length >= 5 && cleanPlate !== "חסר") {
+    const { data: byPlate } = await supabase
+      .from("claims_records")
+      .select("id, plate, client_name, status, created_at")
+      .ilike("plate", `%${cleanPlate}%`)
+      .limit(5);
+    for (const cl of byPlate || []) {
+      matchedClaims.push({
+        id: cl.id,
+        plate: cl.plate || "",
+        client_name: cl.client_name || "",
+        status: cl.status || "",
+        created_at: cl.created_at,
+        reason: `מספר רישוי רכב תואם (${cl.plate})`,
+      });
+    }
+  }
+
+  if (claimNum && claimNum.length >= 3 && claimNum !== "חסר") {
+    const { data: allClaims } = await supabase
+      .from("claims_records")
+      .select("id, plate, client_name, status, created_at, row_data")
+      .limit(100);
+    for (const cl of allClaims || []) {
+      const rd = (cl.row_data && typeof cl.row_data === "object" ? cl.row_data : {}) as Record<string, unknown>;
+      const cNum = String(rd.claimNumber || rd.insClaim || rd.claimNum || cl.id);
+      if (cNum.includes(claimNum) && !matchedClaims.some((x) => x.id === cl.id)) {
+        matchedClaims.push({
+          id: cl.id,
+          plate: cl.plate || "",
+          client_name: cl.client_name || "",
+          status: cl.status || "",
+          created_at: cl.created_at,
+          reason: `מספר תביעה תואם (${claimNum})`,
+        });
+      }
+    }
+  }
+
+  return {
+    has_duplicates: matchedCustomers.length > 0 || matchedClaims.length > 0,
+    duplicate_customer_found: matchedCustomers.length > 0,
+    matched_customers: matchedCustomers,
+    duplicate_claim_found: matchedClaims.length > 0,
+    matched_claims: matchedClaims,
+    summary_message: (matchedCustomers.length > 0 || matchedClaims.length > 0)
+      ? `נמצאו כפילויות אפשריות: ${matchedCustomers.length} לקוחות מתאימים, ${matchedClaims.length} תביעות מתאימות.`
+      : `לא נמצאו כפילויות במערכת (הלקוח והתביעה חדשים).`,
+  };
+}
+
+async function handlePreviewSaveAttachmentToClaim(
+  supabase: ReturnType<typeof createClient>,
+  claimId: string,
+  args: Record<string, unknown>,
+  userId: string,
+  userName: string,
+  attachments?: any[],
+) {
+  const desc = String(args.description || "הוספת קבצים לתיק מתוך הצ'אט").trim();
+  const docKind = String(args.doc_kind || "general").trim();
+  const chatFiles = (attachments || []).filter((a) => a && (a.data_base64 || a.dataBase64 || a.name));
+
+  if (chatFiles.length === 0) {
+    return {
+      result: {
+        error: "לא זוהו קבצים מצורפים בהודעת הצ'אט לשמירה בתיק. יש לצרף קובץ או תמונה כדי לשמור אותם בתיק.",
+      },
+    };
+  }
+
+  const previewId = `P-SAVE-${Date.now()}`;
+  const filesList = chatFiles.map((f, i) => {
+    const isPhoto = (f.mime_type || f.mimeType || "").startsWith("image/") || /\.(jpe?g|png|webp|heic)$/i.test(f.name);
+    return `${i + 1}. ${f.name} (${isPhoto ? "תמונה לגלריה" : "מסמך לספרייה"})`;
+  }).join("\n");
+
+  const summary = `שמירת ${chatFiles.length} קבצים בתיק ${claimId}:\n${filesList}\nתיאור: ${desc}`;
+
+  const preview: ClaimsPendingAction = {
+    preview_id: previewId,
+    summary,
+    tool_name: "preview_save_attachment_to_claim",
+    action_type: "save_attachment_to_claim",
+    parameters: {
+      claim_id: claimId,
+      description: desc,
+      doc_kind: docKind,
+      files: chatFiles.map((f) => ({
+        name: f.name,
+        mime_type: f.mime_type || f.mimeType || "application/octet-stream",
+        byte_size: f.byte_size || f.size || 0,
+        data_base64: f.data_base64 || f.dataBase64 || "",
+        doc_kind: docKind,
+      })),
+    },
+  };
+
+  await recordAiAudit(supabase, {
+    userId,
+    userName,
+    claimId,
+    toolName: "preview_save_attachment_to_claim",
+    actionType: "save_attachment_to_claim",
+    previewSummary: summary,
+    previewPayload: preview.parameters,
+    status: "preview_created",
+  });
+
+  return {
+    result: {
+      preview_id: previewId,
+      status: "pending_approval",
+      message: "הוכנה תצוגה מקדימה לשמירת הקבצים בתיק. נדרש אישור המשתמש לביצוע.",
+      details: {
+        claim_id: claimId,
+        files_count: chatFiles.length,
+        files_names: chatFiles.map((f) => f.name),
+        description: desc,
+      },
+    },
+    preview,
+  };
+}
+
+async function handlePreviewCreateClaimFromOnboarding(
+  supabase: ReturnType<typeof createClient>,
+  args: Record<string, unknown>,
+  userId: string,
+  userName: string,
+  attachments?: any[],
+) {
+  const norm = (v: unknown): string => {
+    if (!v) return "חסר";
+    const s = String(v).trim();
+    if (!s || s === "null" || s === "undefined" || s === "לא צוין" || s === "unknown" || s === "N/A") return "חסר";
+    return s;
+  };
+
+  const clientName = norm(args.client_name);
+  const clientPhone = norm(args.client_phone);
+  const clientEmail = norm(args.client_email);
+  const businessId = norm(args.business_id);
+  const customerType = String(args.customer_type || "private").trim();
+  const existingCustId = args.existing_customer_id ? String(args.existing_customer_id).trim() : "";
+
+  const plate = norm(args.plate);
+  const make = norm(args.make);
+  const model = norm(args.model);
+  const year = norm(args.year);
+
+  const insuranceCompany = norm(args.insurance_company);
+  const claimNumber = norm(args.claim_number);
+  const accidentDate = norm(args.accident_date);
+  const surveyor = norm(args.surveyor);
+  const garage = args.garage ? String(args.garage).trim() : "מוסך אורן";
+  const damageDescription = norm(args.damage_description);
+  const thirdParty = norm(args.third_party);
+  const status = args.status ? String(args.status).trim() : "חדש";
+
+  const missingFields: string[] = [];
+  if (clientName === "חסר") missingFields.push("שם לקוח");
+  if (clientPhone === "חסר") missingFields.push("טלפון לקוח");
+  if (clientEmail === "חסר") missingFields.push("אימייל לקוח");
+  if (businessId === "חסר") missingFields.push("ת\"ז / ח\"פ לקוח");
+  if (plate === "חסר") missingFields.push("מספר רישוי");
+  if (make === "חסר") missingFields.push("יצרן רכב");
+  if (model === "חסר") missingFields.push("דגם רכב");
+  if (year === "חסר") missingFields.push("שנת ייצור");
+  if (insuranceCompany === "חסר") missingFields.push("חברת ביטוח");
+  if (claimNumber === "חסר") missingFields.push("מספר תביעה בביטוח");
+  if (accidentDate === "חסר") missingFields.push("תאריך אירוע");
+  if (surveyor === "חסר") missingFields.push("שם שמאי");
+  if (damageDescription === "חסר") missingFields.push("תיאור נזק ומוקדי פגיעה");
+
+  // Check duplicates
+  const dupCheck = await checkDuplicatesHelper(supabase, {
+    client_name: clientName,
+    client_phone: clientPhone,
+    client_email: clientEmail,
+    business_id: businessId,
+    plate: plate,
+    claim_number: claimNumber,
+  });
+
+  const chatFiles = (attachments || []).filter((a) => a && (a.data_base64 || a.dataBase64 || a.name));
+  const classifiedFiles = chatFiles.map((f, idx) => {
+    const classification = classifyAttachment(f.name || `קובץ_${idx + 1}`, f.mime_type || f.mimeType || "");
+    return {
+      name: f.name || `קובץ_${idx + 1}`,
+      mime_type: f.mime_type || f.mimeType || "application/octet-stream",
+      byte_size: f.byte_size || f.size || 0,
+      data_base64: f.data_base64 || f.dataBase64 || "",
+      doc_kind: classification.doc_kind,
+      staff_type: classification.staff_type,
+      category: classification.category,
+      is_photo: classification.is_photo,
+    };
+  });
+
+  const previewId = `P-ONBOARD-${Date.now()}`;
+  let summary = `📋 פתיחת תיק תביעה חדש וקליטת לקוח מתוך מסמכים:
+👤 לקוח: ${clientName} | טלפון: ${clientPhone} | מייל: ${clientEmail} | ת"ז/ח"פ: ${businessId}
+🚗 רכב: מספר רישוי ${plate} | יצרן: ${make} | דגם: ${model} | שנה: ${year}
+🏢 תביעה: ביטוח: ${insuranceCompany} | מס' תביעה: ${claimNumber} | תאריך אירוע: ${accidentDate}
+🔧 מוסך: ${garage} | שמאי: ${surveyor}
+💥 נזק: ${damageDescription}
+📁 קבצים שיצורפו לתיק (${classifiedFiles.length}):
+${classifiedFiles.length > 0 ? classifiedFiles.map((f, i) => `${i + 1}. ${f.name} — ${f.category}`).join("\n") : "לא הועלו קבצים"}
+${missingFields.length > 0 ? `⚠️ שדות חסרים שסומנו כ-"חסר": ${missingFields.join(", ")}` : "✨ כל השדות זוהו בהצלחה."}`;
+
+  if (dupCheck.has_duplicates) {
+    summary += `\n⚠️ אזהרת כפילות במערכת:\n`;
+    if (dupCheck.matched_customers.length > 0) {
+      summary += dupCheck.matched_customers.map((c) => `• לקוח קיים במערכת: ${c.name} (${c.reason}) - מזהה: ${c.id}`).join("\n") + "\n";
+    }
+    if (dupCheck.matched_claims.length > 0) {
+      summary += dupCheck.matched_claims.map((cl) => `• תיק תביעה קיים: ${cl.id} (${cl.reason}) - סטטוס: ${cl.status}`).join("\n");
+    }
+  }
+
+  const preview: ClaimsPendingAction = {
+    preview_id: previewId,
+    summary,
+    tool_name: "preview_create_claim_from_onboarding",
+    action_type: "create_claim_from_onboarding",
+    parameters: {
+      client: {
+        name: clientName,
+        phone: clientPhone,
+        email: clientEmail,
+        business_id: businessId,
+        customer_type: customerType,
+        existing_customer_id: existingCustId || (dupCheck.matched_customers[0]?.id || null),
+      },
+      vehicle: {
+        plate,
+        make,
+        model,
+        year,
+      },
+      claim: {
+        insurance_company: insuranceCompany,
+        claim_number: claimNumber,
+        accident_date: accidentDate,
+        surveyor,
+        garage,
+        damage_description: damageDescription,
+        third_party: thirdParty,
+        status,
+      },
+      files: classifiedFiles,
+      missing_fields: missingFields,
+      duplicates: dupCheck,
+    },
+  };
+
+  await recordAiAudit(supabase, {
+    userId,
+    userName,
+    toolName: "preview_create_claim_from_onboarding",
+    actionType: "create_claim_from_onboarding",
+    previewSummary: summary,
+    previewPayload: preview.parameters,
+    status: "preview_created",
+  });
+
+  return {
+    result: {
+      preview_id: previewId,
+      status: "pending_approval",
+      message: "הוכנה תצוגה מקדימה לפתיחת תיק תביעה ולקוח. נדרש אישור המשתמש לביצוע.",
+      client_name: clientName,
+      plate,
+      missing_fields: missingFields,
+      duplicates_found: dupCheck.has_duplicates,
+      files_count: classifiedFiles.length,
+    },
+    preview,
+  };
+}
+
+
 export async function recordAiAudit(
   supabase: ReturnType<typeof createClient>,
   entry: {
@@ -1047,7 +1854,7 @@ export async function executeClaimsTool(
 
         const { data: docs } = await supabase
           .from("claims_documents")
-          .select("id, original_name, mime_type, byte_size, doc_kind, created_at, source")
+          .select("id, original_name, mime_type, byte_size, doc_kind, doc_meta, created_at, source")
           .eq("claim_id", claimId)
           .order("created_at", { ascending: false });
 
@@ -1062,9 +1869,13 @@ export async function executeClaimsTool(
           filtered = filtered.filter((d) =>
             String(d.mime_type || "").includes("pdf") ||
             String(d.doc_kind || "").includes("report") ||
-            String(d.doc_kind || "").includes("invoice")
+            String(d.doc_kind || "").includes("invoice") ||
+            String(d.doc_kind || "").includes("license") ||
+            String(d.doc_kind || "").includes("policy")
           );
         }
+
+        const numberedList = filtered.map((d, idx) => `${idx + 1}. ${formatDocLabel(d)} (${d.original_name})`);
 
         await recordAiAudit(supabase, {
           userId,
@@ -1080,9 +1891,13 @@ export async function executeClaimsTool(
             claim_id: claimId,
             filter: filterType,
             total_count: filtered.length,
-            documents: filtered.map((d) => ({
+            selection_instruction: "ניתן לבחור מסמכים לפי מספרם (לדוגמה: 'שלח ללקוח 1 ו-2' או 'תכין קישור לתמונות 3 ו-4').",
+            numbered_list: numberedList,
+            documents: filtered.map((d, idx) => ({
+              index: idx + 1,
               id: d.id,
               name: d.original_name,
+              label: formatDocLabel(d),
               mime: d.mime_type,
               size: d.byte_size,
               kind: d.doc_kind || "מסמך",
@@ -1090,6 +1905,36 @@ export async function executeClaimsTool(
             })),
           },
         };
+      }
+
+      case "check_claim_and_customer_duplicates": {
+        const dupResult = await checkDuplicatesHelper(supabase, {
+          client_name: String(args.client_name || ""),
+          client_phone: String(args.client_phone || ""),
+          client_email: String(args.client_email || ""),
+          business_id: String(args.business_id || ""),
+          plate: String(args.plate || ""),
+          claim_number: String(args.claim_number || ""),
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "check_duplicates",
+          status: "success",
+        });
+
+        return { result: dupResult };
+      }
+
+      case "preview_save_attachment_to_claim": {
+        return await handlePreviewSaveAttachmentToClaim(supabase, claimId, args, userId, userName, attachments);
+      }
+
+      case "preview_create_claim_from_onboarding": {
+        return await handlePreviewCreateClaimFromOnboarding(supabase, args, userId, userName, attachments);
       }
 
       case "get_missing_claim_documents": {
@@ -1836,6 +2681,7 @@ export async function executeClaimsGeneralTool(
   supabase: ReturnType<typeof createClient>,
   userId: string,
   userName: string,
+  attachments?: any[],
 ): Promise<{ result: unknown; preview?: ClaimsPendingAction }> {
   try {
     const todayStart = getTodayStart();
@@ -2413,6 +3259,31 @@ export async function executeClaimsGeneralTool(
             claims: matched,
           },
         };
+      }
+
+      case "check_claim_and_customer_duplicates": {
+        const dupResult = await checkDuplicatesHelper(supabase, {
+          client_name: String(args.client_name || ""),
+          client_phone: String(args.client_phone || ""),
+          client_email: String(args.client_email || ""),
+          business_id: String(args.business_id || ""),
+          plate: String(args.plate || ""),
+          claim_number: String(args.claim_number || ""),
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          toolName: name,
+          actionType: "check_duplicates",
+          status: "success",
+        });
+
+        return { result: dupResult };
+      }
+
+      case "preview_create_claim_from_onboarding": {
+        return await handlePreviewCreateClaimFromOnboarding(supabase, args, userId, userName, attachments);
       }
 
       default:
@@ -3035,6 +3906,330 @@ export async function executeClaimsPendingAction(
         return {
           success: true,
           message: `הלקוח "${customer_name}" קושר בהצלחה לתיק התביעה`,
+        };
+      }
+
+            case "create_claim_from_onboarding": {
+        const { client, vehicle, claim, files } = parameters as {
+          client: {
+            name: string;
+            phone: string;
+            email: string;
+            business_id: string;
+            customer_type?: string;
+            existing_customer_id?: string | null;
+          };
+          vehicle: {
+            plate: string;
+            make: string;
+            model: string;
+            year: string;
+          };
+          claim: {
+            insurance_company: string;
+            claim_number: string;
+            accident_date: string;
+            surveyor: string;
+            garage: string;
+            damage_description: string;
+            third_party: string;
+            status: string;
+          };
+          files?: Array<{
+            name: string;
+            mime_type: string;
+            byte_size?: number;
+            data_base64?: string;
+            doc_kind?: string;
+            staff_type?: string;
+          }>;
+        };
+
+        // 1. Customer Handling
+        let customerId = client.existing_customer_id || null;
+        let customerName = client.name !== "חסר" ? client.name : "לקוח חדש";
+
+        if (!customerId) {
+          const dup = await checkDuplicatesHelper(supabase, {
+            client_name: client.name !== "חסר" ? client.name : "",
+            client_phone: client.phone !== "חסר" ? client.phone : "",
+            client_email: client.email !== "חסר" ? client.email : "",
+            business_id: client.business_id !== "חסר" ? client.business_id : "",
+          });
+
+          if (dup.matched_customers.length > 0) {
+            customerId = dup.matched_customers[0].id;
+            customerName = dup.matched_customers[0].name;
+          } else {
+            const { data: newCust, error: custErr } = await supabase.from("customers").insert({
+              name: customerName,
+              phone: client.phone !== "חסר" ? (client.phone || "") : "",
+              email: client.email !== "חסר" ? (client.email || "") : "",
+              business_id: client.business_id !== "חסר" ? (client.business_id || null) : null,
+              customer_type: client.customer_type || "private",
+              notes: "נוצר דרך דליה AI Onboarding בתביעות",
+              status: "active",
+              company_name: "Oren Car",
+              created_by: userId,
+            }).select().single();
+
+            if (!custErr && newCust?.id) {
+              customerId = newCust.id;
+            }
+          }
+        }
+
+        // 2. Claim Counter Bump
+        const { data: cfgRow } = await supabase
+          .from("claims_config")
+          .select("key, value")
+          .eq("key", "CLAIM_COUNTER")
+          .maybeSingle();
+
+        const curCount = parseInt(String(cfgRow?.value || "0"), 10);
+        const nextCount = curCount + 1;
+        await supabase.from("claims_config").upsert({
+          key: "CLAIM_COUNTER",
+          value: String(nextCount),
+          updated_at: new Date().toISOString(),
+        });
+
+        const newClaimId = `DAL-${new Date().getFullYear()}-${String(nextCount).padStart(4, "0")}`;
+        const nowStr = new Date().toLocaleString("he-IL");
+
+        // 3. Claims Record
+        const rowData: Record<string, unknown> = {
+          id: newClaimId,
+          clientName: customerName,
+          clientPhone: client.phone !== "חסר" ? client.phone : "",
+          clientEmail: client.email !== "חסר" ? client.email : "",
+          clientBusinessId: client.business_id !== "חסר" ? client.business_id : "",
+          customerId: customerId || null,
+          plate: vehicle.plate !== "חסר" ? vehicle.plate : "",
+          carManufacturer: vehicle.make !== "חסר" ? vehicle.make : "",
+          carModel: vehicle.model !== "חסר" ? vehicle.model : "",
+          carYear: vehicle.year !== "חסר" ? vehicle.year : "",
+          insCompany: claim.insurance_company !== "חסר" ? claim.insurance_company : "",
+          claimNumber: claim.claim_number !== "חסר" ? claim.claim_number : "",
+          insClaim: claim.claim_number !== "חסר" ? claim.claim_number : "",
+          accidentDate: claim.accident_date !== "חסר" ? claim.accident_date : "",
+          surveyorName: claim.surveyor !== "חסר" ? claim.surveyor : "",
+          garageName: claim.garage || "מוסך אורן",
+          damageDescription: claim.damage_description !== "חסר" ? claim.damage_description : "",
+          thirdPartyName: claim.third_party !== "חסר" ? claim.third_party : "",
+          status: claim.status || "חדש",
+          source: "Dalia AI Onboarding",
+          docsOrderStatus: "organized",
+          createdAt: nowStr,
+          updatedAt: nowStr,
+          lastActivityAt: nowStr,
+          createdByName: userName || "דליה AI",
+          updatedByName: userName || "דליה AI",
+          assigned_to: userId,
+          assigned_to_name: userName,
+        };
+
+        const { error: insErr } = await supabase.from("claims_records").insert({
+          id: newClaimId,
+          plate: vehicle.plate !== "חסר" ? vehicle.plate : null,
+          client_name: customerName,
+          status: claim.status || "חדש",
+          company_name: claim.insurance_company !== "חסר" ? claim.insurance_company : "Oren Car",
+          row_data: rowData,
+          created_by: userId,
+          created_by_name: userName,
+          updated_by: userId,
+          updated_by_name: userName,
+          assigned_to: userId,
+          assigned_to_name: userName,
+          assigned_at: new Date().toISOString(),
+          last_activity_at: new Date().toISOString(),
+        });
+
+        if (insErr) {
+          return {
+            success: false,
+            error: insErr.message,
+            message: `שגיאה ביצירת תיק התביעה: ${insErr.message}`,
+          };
+        }
+
+        // 4. Save attachments to claims-docs bucket and claims_documents table
+        const adminSb = getAdminClient() || supabase;
+        let savedFilesCount = 0;
+        const savedDocIds: string[] = [];
+
+        for (let i = 0; i < (files || []).length; i++) {
+          const f = files[i];
+          if (!f.data_base64) continue;
+          const buf = base64ToBytes(f.data_base64);
+          const digest = await sha256Hex(buf);
+          const safeName = sanitizeFileName(f.name || `file_${i + 1}`);
+          const path = `${newClaimId}/staff/F-${Date.now()}-${i}-${safeName}`;
+          let mime = String(f.mime_type || "application/octet-stream").toLowerCase();
+          if (mime === "image/jpg") mime = "image/jpeg";
+
+          const { error: upErr } = await adminSb.storage.from("claims-docs").upload(path, buf, {
+            contentType: mime,
+            upsert: false,
+          });
+          if (upErr) console.error("Upload file error:", upErr);
+
+          const fileId = `CDM-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+          const isPhoto = mime.startsWith("image/") || /\.(jpe?g|png|webp|heic)$/i.test(safeName);
+          const docKind = sanitizeDbDocKind(f.doc_kind, isPhoto);
+          const staffType = isPhoto ? "garage_photos" : (f.staff_type || f.doc_kind || "general");
+
+          const { error: insDocErr } = await adminSb.from("claims_documents").insert({
+            id: fileId,
+            claim_id: newClaimId,
+            storage_path: path,
+            original_name: f.name || safeName,
+            mime_type: mime,
+            byte_size: buf.length,
+            source: "staff",
+            uploaded_by: userId,
+            uploaded_by_name: userName,
+            doc_kind: docKind,
+            doc_meta: {
+              staff_type: staffType,
+              staff_title: f.name || safeName,
+            },
+            content_sha256: digest,
+          });
+
+          if (!insDocErr) {
+            savedFilesCount++;
+            savedDocIds.push(fileId);
+          }
+        }
+
+        // 5. Audit & History
+        await supabase.from("claims_history").insert({
+          id: `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+          claim_id: newClaimId,
+          row_data: {
+            action: "פתיחת תיק חדש דרך דליה AI",
+            note: `תיק תביעה נפתח אוטומטית ממסמכים שהועלו בצ'אט. לקוח: ${customerName}, רכב: ${vehicle.plate}. נשמרו ${savedFilesCount} קבצים.`,
+            type: "claim_onboarding",
+            by: userName || "דליה AI",
+            at: nowStr,
+          },
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId: newClaimId,
+          toolName: "preview_create_claim_from_onboarding",
+          actionType: "create_claim_from_onboarding",
+          previewSummary: summary,
+          previewPayload: parameters,
+          approvedBy: userId,
+          approvedByName: userName,
+          executionAction: "create_claim_from_onboarding",
+          status: "executed",
+        });
+
+        return {
+          success: true,
+          claim_id: newClaimId,
+          customer_id: customerId,
+          files_count: savedFilesCount,
+          message: `תיק תביעה חדש ${newClaimId} נפתח בהצלחה עבור הלקוח ${customerName} (רכב ${vehicle.plate})! נוספו ${savedFilesCount} קבצים (תמונות לגלריה ומסמכים לספרייה).`,
+        };
+      }
+
+      case "save_attachment_to_claim": {
+        const { claim_id, files, description, doc_kind } = parameters as {
+          claim_id: string;
+          files: Array<{ name: string; mime_type: string; data_base64: string; doc_kind?: string }>;
+          description?: string;
+          doc_kind?: string;
+        };
+
+        const targetClaimId = claimId || claim_id;
+        if (!targetClaimId) {
+          return { success: false, error: "missing_claim_id", message: "חסר מזהה תיק תביעה" };
+        }
+
+        const adminSb = getAdminClient() || supabase;
+        let savedCount = 0;
+
+        for (let i = 0; i < (files || []).length; i++) {
+          const f = files[i];
+          if (!f.data_base64) continue;
+          const buf = base64ToBytes(f.data_base64);
+          const digest = await sha256Hex(buf);
+          const safeName = sanitizeFileName(f.name || `file_${i + 1}`);
+          const path = `${targetClaimId}/staff/F-${Date.now()}-${i}-${safeName}`;
+          let mime = String(f.mime_type || "application/octet-stream").toLowerCase();
+          if (mime === "image/jpg") mime = "image/jpeg";
+
+          const { error: upErr } = await adminSb.storage.from("claims-docs").upload(path, buf, {
+            contentType: mime,
+            upsert: false,
+          });
+          if (upErr) console.error("Save attachment storage upload error:", upErr);
+
+          const fileId = `CDM-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+          const isPhoto = mime.startsWith("image/") || /\.(jpe?g|png|webp|heic)$/i.test(safeName);
+          const chosenKind = sanitizeDbDocKind(f.doc_kind || doc_kind, isPhoto);
+          const chosenStaffType = isPhoto ? "garage_photos" : (f.doc_kind || doc_kind || "general");
+
+          const { error: insErr } = await adminSb.from("claims_documents").insert({
+            id: fileId,
+            claim_id: targetClaimId,
+            storage_path: path,
+            original_name: f.name || safeName,
+            mime_type: mime,
+            byte_size: buf.length,
+            source: "staff",
+            uploaded_by: userId,
+            uploaded_by_name: userName,
+            doc_kind: chosenKind,
+            doc_meta: {
+              staff_type: chosenStaffType,
+              staff_title: description || f.name || safeName,
+            },
+            content_sha256: digest,
+          });
+
+          if (!insErr) {
+            savedCount++;
+          }
+        }
+
+        await supabase.from("claims_history").insert({
+          id: `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+          claim_id: targetClaimId,
+          row_data: {
+            action: "הוספת מסמכים לתיק מצ'אט דליה AI",
+            note: `${description || "קבצים נוספו דרך הצ'אט"}: נשמרו ${savedCount} קבצים.`,
+            type: "docs_added_from_chat",
+            by: userName || "דליה AI",
+            at: new Date().toLocaleString("he-IL"),
+          },
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId: targetClaimId,
+          toolName: "preview_save_attachment_to_claim",
+          actionType: "save_attachment_to_claim",
+          previewSummary: summary,
+          previewPayload: parameters,
+          approvedBy: userId,
+          approvedByName: userName,
+          executionAction: "save_attachment_to_claim",
+          status: "executed",
+        });
+
+        return {
+          success: true,
+          message: `נשמרו בהצלחה ${savedCount} קבצים בתיק ${targetClaimId} (נוספו לגלריה ולספריית המסמכים).`,
+          files_count: savedCount,
         };
       }
 
