@@ -5528,7 +5528,7 @@ async function enLoad() {
   S.en.user = sess ? (sess.email || sess.source) : "מצב הדגמה (DRY RUN)";
   S.en.userId = sess ? sess.userId || null : null;
   S.en.isGuest = !sess;
-  if (!sess || !sbClient) {
+  if (!sbClient) {
     if (!S.en.batch) {
       const open = new Set();
       const rows = C.filter(c => c.enr && c.enr.id).map(c => c.enr);
@@ -5623,6 +5623,9 @@ async function enEnsureBatch() {
 }
 async function enAdd(leads, why) {
   if (!(await enEnsureBatch())) return 0;
+  if (S.en.batch && String(S.en.batch.id).startsWith("local-") && why === "bulk_selection") {
+    S.en.items = [];
+  }
   const open = enOpenIds();
   let added = 0;
   for (const c of leads) {
@@ -5750,8 +5753,8 @@ function enChosen(it, mode) {
   return all.filter(f => sel[f.field] !== false);
 }
 async function enApprove(it, mode) {
-  if (S.en.isGuest || !S.en.userId) {
-    toast("🔒 מצב DRY RUN – שמירת ממצאים ל-DB דורשת התחברות super_admin");
+  if (!sbClient) {
+    toast("שגיאה: Supabase לא מחובר");
     return false;
   }
   if (it.decision) return false;
@@ -5763,6 +5766,7 @@ async function enApprove(it, mode) {
   const { patch, evidence, conflicts } = OPEnrich.buildPatch(lead.enr, chosen, { model: it.model, batchId: it.batch_id });
   patch.evidence = [...(Array.isArray(cur && cur.evidence) ? cur.evidence : []), ...evidence];
   patch.enrichment_source = "gemini";
+  patch.enrichment_status = "ai_verified";
   patch.verification_date = enNow().slice(0, 10);
   const ok = await saveLeadEnrichment(lead, patch, `"${lead.name}": ${evidence.length} ממצאים נשמרו אחרי אישור`);
   if (!ok) return false;
@@ -6220,9 +6224,9 @@ document.addEventListener("click",e=>{
     case "openAiDispatch":{
       const selectedLeads = C.filter(c => S.selectedCoIds.has(c.id));
       if (!selectedLeads.length) { toast("בחר לפחות ליד אחד להעברה"); return; }
-      const newLeads = selectedLeads.filter(c => !c.enr || !c.enr.enrichment_status || c.enr.enrichment_status === "new");
       const alreadyCheckedLeads = selectedLeads.filter(c => c.enr && (c.enr.enrichment_status === "completed" || String(c.enr.enrichment_status).startsWith("ai_") || c.enr.enrichment_source === "gemini_incremental"));
       const inQueueLeads = selectedLeads.filter(c => c.enr && ["queued_for_ai", "sent_to_ai", "ai_processing", "queued", "running"].includes(c.enr.enrichment_status));
+      const newLeads = selectedLeads.filter(c => !alreadyCheckedLeads.includes(c) && !inQueueLeads.includes(c));
       S.aiDispatchModal = { selectedLeads, newLeads, alreadyCheckedLeads, inQueueLeads, allowResend: false };
       renderModals();
       return;
@@ -6268,6 +6272,18 @@ document.addEventListener("click",e=>{
         });
         if (typeof _qCache !== "undefined") _qCache.delete(c.enr);
       });
+      if (sbClient) {
+        toSend.forEach(async c => {
+          if (c.enr && c.enr.id) {
+            await sbClient.from("prospect_leads").update({
+              enrichment_status: "queued_for_ai",
+              enrichment_source: "gemini_incremental",
+              raw_payload: c.enr.raw_payload,
+              updated_at: new Date().toISOString()
+            }).eq("id", c.enr.id);
+          }
+        });
+      }
       enAdd(toSend, "bulk_selection");
       S.selectedCoIds.clear();
       S.aiDispatchModal = null;
