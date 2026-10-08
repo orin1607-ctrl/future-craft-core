@@ -1150,7 +1150,7 @@ function toast(t){ const el = $("#toast"); el.textContent = t; el.hidden = false
 
 /* ---- תגי מקור הנתון ---- */
 const SRC = {
-  serp:  () => `<span class="src real" title="נתון חי מתוצאות גוגל דרך SerpAPI. בתצוגה: ערך הדגמה">SerpAPI · הדגמה</span>`,
+  serp:  () => (S.site === "s1" && typeof hasRealGsc === "function" && hasRealGsc()) ? `<span class="src gsc" title="מיקום ממוצע מ-Google Search Console (לא בדיקת SERP)">Search Console · מיקום ממוצע</span>` : `<span class="src real" title="נתון חי מתוצאות גוגל דרך SerpAPI. בתצוגה: ערך הדגמה">SerpAPI · הדגמה</span>`,
   gsc:   () => (S.site === "s1" && typeof hasRealGsc === "function" && hasRealGsc()) ? `<span class="src gsc" title="נתון מקובץ ייצוא Search Console">Search Console · אמיתי</span>` : `<span class="src gsc" title="נתון מ-Google Search Console. בתצוגה: ערך הדגמה">Search Console · הדגמה</span>`,
   kp:    () => `<span class="src real" title="נפח חיפוש מספק נתוני מילות מפתח (למשל DataForSEO / Keyword Planner). בתצוגה: ערך הדגמה">נפח · הדגמה</span>`,
   crawl: () => (S.site === "s1" && REAL.scan) ? `<span class="src crawl" title="סריקת GET אמיתית של dalia-c.com">סורק · אמיתי (${esc(fdt(Date.parse(REAL.scan.scannedAt)))})</span>` : `<span class="src crawl" title="נתון מסריקת האתר. בתצוגה: ערך הדגמה">סורק · הדגמה</span>`,
@@ -1163,16 +1163,17 @@ const SRC = {
    מקורות אמת (dalia-c.com). כל סטטוס ירוק כאן נקבע רק אחרי בדיקה אמיתית בטעינת הדף.
    מה שלא נבדק עכשיו — צהוב/אדום/אפור. אין "ירוק" רק כי קיים מפתח או קובץ.
    ============================================================ */
-const REAL = {checkedAt:null, wp:null, robots:null, sitemap:null, scan:null, gscExport:null, ai:null};
+const REAL = {checkedAt:null, wp:null, robots:null, sitemap:null, scan:null, google:null, ai:null};
+const GOOGLE_FRESH_DAYS = 3;
+const googleAgeDays = () => REAL.google ? (Date.now() - Date.parse(REAL.google.fetchedAt)) / DAY : Infinity;
 const STALE_SCAN_DAYS = 14;
 
 async function probeRealSources(){
   const tryFetch = async (url, init) => { try { const r = await fetch(url, init); return r; } catch (e) { return {ok:false, status:0, error:e.message}; } };
-  const [wpPages, wpPosts, scan, dash, ai] = await Promise.all([
+  const [wpPages, wpPosts, scan, ai] = await Promise.all([
     tryFetch("https://dalia-c.com/wp-json/wp/v2/pages?per_page=1&_fields=id"),
     tryFetch("https://dalia-c.com/wp-json/wp/v2/posts?per_page=1&_fields=id"),
     tryFetch("./project-001/seo-scan-latest.json?t=" + Date.now()),
-    tryFetch("./project-001/dashboard.json?t=" + Date.now()),
     tryFetch(SEO_AI_FN + "status", {headers:{"Authorization":"Bearer " + SEO_AI_ANON, "apikey":SEO_AI_ANON}})
   ]);
   const now = Date.now();
@@ -1185,10 +1186,6 @@ async function probeRealSources(){
   // their status comes from the server-side scan.
   REAL.robots = REAL.scan?.robots ? {ok:REAL.scan.robots.status === 200, status:REAL.scan.robots.status, fromScan:true} : null;
   REAL.sitemap = REAL.scan ? {ok:REAL.scan.sitemaps.some(x => x.status === 200), status:REAL.scan.sitemaps.find(x => x.status)?.status, fromScan:true} : null;
-  try {
-    const d = dash.ok ? await dash.json() : null;
-    REAL.gscExport = d ? {generatedAt:d.generatedAt, gsc:d.connections?.searchConsole || null, ga4:d.connections?.analytics4 || null, keywords:(d.searchConsole?.keywords||[]).length} : null;
-  } catch (_) { REAL.gscExport = null; }
   try { REAL.ai = ai.ok ? {ok:true, ...(await ai.json())} : {ok:false, status:ai.status}; } catch (_) { REAL.ai = {ok:false}; }
   applyRealSources();
 }
@@ -1201,10 +1198,12 @@ function applyRealSources(){
   c.wp = REAL.wp?.ok
     ? {...c.wp, state:"live", at:REAL.wp.at, error:null}
     : {...c.wp, state:"err", at:REAL.wp?.at, error:`WordPress REST לא ענה (${REAL.wp?.status || "רשת"})`};
-  const g = REAL.gscExport?.gsc;
-  c.gsc = {...c.gsc, state: g?.ok ? "stale" : "err", at: REAL.gscExport ? Date.parse(REAL.gscExport.generatedAt) : null,
-    error: g?.ok ? null : `Search Console מנותק: ${g?.note || "אין קובץ ייצוא"} — נדרש חיבור Google מחדש`};
-  c.verify = {...c.verify, state:"stale"};
+  const gg = REAL.google?.gsc;
+  c.gsc = {...c.gsc, property:"sc-domain:dalia-c.com", account: REAL.google?.account || c.gsc.account,
+    state: gg?.ok ? (googleAgeDays() <= GOOGLE_FRESH_DAYS ? "api" : "stale") : "err",
+    at: REAL.google ? Date.parse(REAL.google.fetchedAt) : null,
+    error: gg?.ok ? null : `Search Console: ${gg?.error || "אין ייצוא נתונים"}`};
+  c.verify = {...c.verify, state: gg?.ok ? "api" : "stale", at: c.gsc.at, record:"siteOwner ב-Search Console (אומת בקריאת API)"};
   c.rank = {state:"off"};
   c.psi = {state:"off"};
   if (REAL.scan){
@@ -1216,6 +1215,10 @@ function applyRealSources(){
       words: null, inL: null, outL: p.internalLinks ?? null, status: p.httpStatus, index: !p.noindex,
       alt: p.imagesMissingAlt || 0, lcp: null, real: true
     }));
+    // Search Console clicks/impressions per page (same 12-week export)
+    const norm = u => (u || "/").replace(/\/+$/, "") || "/";
+    const gp = new Map((REAL.google?.gsc?.ok ? REAL.google.gsc.pages : []).map(x => [norm(x.page), x]));
+    PAGES.s1.forEach(p => { const g = gp.get(norm(p.url)); p.gsc = g ? {clicks:g.clicks, impr:g.impressions, pos:g.position} : null; });
   } else {
     c.crawl = {...c.crawl, state:"off"};
   }
@@ -1224,11 +1227,19 @@ function applyRealSources(){
   S.live.serp = false;  // אין ספק SERP — אין מיקומים חיים
   syncConn("s1");
   const note = $("#dataNote");
-  if (note) note.innerHTML = `מצב נתונים (נבדק ${fdt(REAL.checkedAt)}): <b>אמיתי</b> — WordPress ${REAL.wp?.ok?"✓":"✗"}, סריקת האתר ${REAL.scan?"✓ ("+fdt(Date.parse(REAL.scan.scannedAt))+")":"✗"}, טיוטות ויצירת תוכן. <b>הדגמה</b> — מילות מפתח, מיקומים, היסטוריה, מתחרים, הזדמנויות ונפחי חיפוש. Search Console ו-GA4 מנותקים. אין ספק SERP.`;
+  const gscOk = REAL.google?.gsc?.ok, ga4 = REAL.google?.ga4;
+  if (note) note.innerHTML = `מצב נתונים (נבדק ${fdt(REAL.checkedAt)}): <b>אמיתי</b> — Search Console ${gscOk?`✓ (${fmt(REAL.google.gsc.queries.length)} שאילתות, ${fmt(REAL.google.gsc.pages.length)} עמודים · נמשך ${fdt(Date.parse(REAL.google.fetchedAt))})`:"✗"}, WordPress ${REAL.wp?.ok?"✓":"✗"}, סריקת האתר ${REAL.scan?"✓":"✗"}, טיוטות. <b>חסר</b> — GA4 ${ga4?.hasData?"✓":"(אין נתונים בנכס)"}, ספק SERP. <b>הדגמה</b> — מתחרים, מחקר מילים ואופטימיזציה.`;
   render();
 }
 
 /* פס מקור נתונים בראש כל מסך — מה אמיתי ומה הדגמה, בלי לנחש */
+const REAL_GSC_TABS = {
+  overview:"מילים, קליקים, חשיפות ומיקום ממוצע מ-Search Console. \"מיקום\" = המיקום הממוצע של 28 הימים האחרונים, \"קודם\" = 28 הימים שלפניהם. נתוני מתחרים אינם זמינים (אין ספק SERP).",
+  keywords:"\"מיקום\" = מיקום ממוצע ב-28 הימים האחרונים, \"קודם\" = 28 הימים שלפניהם, הגרף = ממוצע שבועי. קליקים/חשיפות = 12 שבועות. נפח חיפוש ומתחרים אינם זמינים (אין ספק SERP). \"—\" = אין חשיפות בתקופה.",
+  ranks:"המיקומים הם המיקום הממוצע מ-Search Console (לא בדיקת SERP של מילה בודדת).",
+  opps:"ההזדמנויות מחושבות ממילות Search Console אמיתיות. הזדמנויות מסוג \"פער מול מתחרה\" אינן זמינות — אין ספק SERP.",
+  measure:"נתוני Search Console במסך אמיתיים. מיקומי המאמרים שפורסמו הם דוגמאות."
+};
 const DEMO_TABS = {
   overview:"המספרים בסקירה (מילים, מיקומים, מגמה, הזדמנויות) מחושבים מרשימת מילות מפתח לדוגמה — לא מ-Google.",
   keywords:"רשימת המילים, המיקומים, ההיסטוריה, הנפח והמתחרה המוביל הם נתוני הדגמה. Search Console מנותק ואין ספק SERP.",
@@ -1242,7 +1253,10 @@ const DEMO_TABS = {
 };
 function dataStrip(tab){
   if (S.site !== "s1") return `<div class="notice warn" style="margin-bottom:12px"><span>אתר הדגמה (${esc(site().domain)}) — כל הנתונים בדויים.</span></div>`;
-  if (tab === "keywords" && hasRealGsc()) return `<div class="notice info" style="margin-bottom:12px"><span><b>מילים, קליקים, חשיפות ומיקום ממוצע מ-Search Console</b> (ייצוא ${fdt(Date.parse(REAL.gscExport?.generatedAt))}). היסטוריה, נפח חיפוש ומתחרים אינם זמינים — אין ספק SERP.</span></div>`;
+  if (hasRealGsc() && REAL_GSC_TABS[tab]){
+    const g = REAL.google.gsc;
+    return `<div class="notice ok" style="margin-bottom:12px"><span><b>נתוני Google Search Console אמיתיים</b> · ${fdt(Date.parse(REAL.google.fetchedAt))} · תקופה ${esc(g.range.startDate)} – ${esc(g.range.endDate)}. ${REAL_GSC_TABS[tab]}</span></div>`;
+  }
   if (DEMO_TABS[tab]) return `<div class="notice warn" style="margin-bottom:12px"><span><b>נתוני הדגמה במסך זה.</b> ${DEMO_TABS[tab]}</span></div>`;
   if (tab === "produce" && !S.compose) return `<div class="notice info" style="margin-bottom:12px"><span>הטיוטה האמיתית היא <b>"מה עושה קצין רכב?"</b> (קיימת גם כטיוטה ב-WordPress, מזהה 6255 — לא מתפרסמת מכאן). שאר הטיוטות ברשימה הן דוגמאות. הטיוטות נשמרות בדפדפן הזה בלבד.</span></div>`;
   if (tab === "tech") return REAL.scan
@@ -1256,8 +1270,8 @@ const NEW = () => `<span class="orig new" title="תוספת עבור דליה">�
 const SHARED = (t="חיבור למערכת המשותפת – ימומש בשלב האינטגרציה") => `<span class="shared" title="${esc(t)}">מערכת משותפת</span>`;
 
 /* ---- מדדים של מילת מפתח ---- */
-const cur = k => k.hist ? k.hist[WEEKS-1] : undefined;          // undefined = טרם נבדק; null = לא ב-100
-const prev = k => k.hist ? k.hist[WEEKS-2] : undefined;
+const cur = k => k.real ? (k.last28 ? k.last28.position : null) : k.hist ? k.hist[WEEKS-1] : undefined;          // undefined = טרם נבדק; null = לא ב-100
+const prev = k => k.real ? (k.prev28 ? k.prev28.position : null) : k.hist ? k.hist[WEEKS-2] : undefined;
 function change(k){
   const c = cur(k), p = prev(k);
   if (c === undefined) return {t:"unchecked"};
@@ -1268,7 +1282,7 @@ function change(k){
 }
 function posHtml(p){
   if (p === undefined) return SRC.none();
-  if (p == null) return `<span class="pos" title="לא נמצא ב-100 המקומות הראשונים">100+</span>`;
+  if (p == null) return (S.site === "s1" && hasRealGsc()) ? `<span class="pos faint" title="אין חשיפות ב-Search Console בתקופה">—</span>` : `<span class="pos" title="לא נמצא ב-100 המקומות הראשונים">100+</span>`;
   return `<span class="pos ${p<=3?"t3":p<=10?"t10":p<=20?"t20":""}">${p}</span>`;
 }
 function deltaHtml(k){
@@ -1796,11 +1810,11 @@ function vTech(){
       </tbody></table></div></div>
     <div class="card"><div class="zone"><div class="head"><h3 class="t">עמודי האתר</h3>${SRC.crawl()}</div></div>
       <div class="filters"><div class="seg" role="group">${[["","כל העמודים"],["issues","דורשים טיפול"],["noindex","לא באינדקס"]].map(([v,l])=>`<button data-pf-filter="${v}" aria-pressed="${S.pageFilter===v}">${l}</button>`).join("")}</div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>עמוד</th><th>סטטוס</th><th>כותרת</th><th>תיאור</th>${pages.some(p=>p.real)?"<th>H1 / H2 / H3</th><th>קישורים פנימיים יוצאים</th>":"<th>מילים</th><th>קישורים נכנסים</th><th>מילים מדורגות</th>"}<th>LCP נייד</th><th>בעיות</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table><thead><tr><th>עמוד</th><th>סטטוס</th><th>כותרת</th><th>תיאור</th>${pages.some(p=>p.real)?`<th>H1 / H2 / H3</th><th>קישורים פנימיים יוצאים</th>${hasRealGsc()?"<th>Search Console · קליקים / חשיפות (12 שב׳)</th>":""}`:"<th>מילים</th><th>קישורים נכנסים</th><th>מילים מדורגות</th>"}<th>LCP נייד</th><th>בעיות</th></tr></thead><tbody>
         ${pageRows.map(p => { const n = issues.filter(i=>i.url===p.url).length, kws = KEYWORDS.filter(k=>k.site===S.site&&k.url===p.url); return `<tr>
           <td><button class="linkish ltr sm" data-page="${esc(p.url)}">${esc(p.url)}</button></td><td><span class="badge ${p.status===200?"up":p.status===404?"down":"warn"}">${p.status}</span></td>
           <td class="sm num">${p.title?p.title.length+" תווים":"—"}</td><td class="sm num">${p.meta?p.meta.length+" תווים":`<span class="badge warn">חסר</span>`}</td>
-          ${p.real?`<td class="num sm">${p.h1Count} / ${p.h2Count} / ${p.h3Count}</td><td class="num sm">${fmt(p.outL)}</td>`:`<td class="num sm">${fmt(p.words)}</td><td class="num sm">${p.inL}</td><td class="num sm">${kws.length}</td>`}
+          ${p.real?`<td class="num sm">${p.h1Count} / ${p.h2Count} / ${p.h3Count}</td><td class="num sm">${fmt(p.outL)}</td>${hasRealGsc()?`<td class="num sm">${p.gsc?`${fmt(p.gsc.clicks)} / ${fmt(p.gsc.impr)}`:`<span class="faint">אין חשיפות</span>`}</td>`:""}`:`<td class="num sm">${fmt(p.words)}</td><td class="num sm">${p.inL}</td><td class="num sm">${kws.length}</td>`}
           <td class="sm">${p.lcp!=null?`<span class="num">${p.lcp} ש׳</span>`:SRC.none()}</td><td>${n?`<span class="badge ${issues.some(i=>i.url===p.url&&i.sev==="high")?"down":"warn"}">${n}</span>`:`<span class="badge up">תקין</span>`}</td></tr>`; }).join("")}
       </tbody></table></div>
       <div class="zone soft xs muted">LCP מגיע מ-PageSpeed / Core Web Vitals. עמוד שלא נבדק מסומן "טרם נבדק".</div></div>
@@ -2443,7 +2457,7 @@ function vMeasure(){
   const last = tracked.map(p => p.rank_checked_at).filter(Boolean).sort().pop();
   const daily = Array.from({length:30},(_,i) => { const d = new Date(NOW-(29-i)*DAY); const n = posts.filter(p => p.scheduled_at && new Date(p.scheduled_at).toDateString() === d.toDateString()).length; return {v:n, l:`${d.getDate()}/${d.getMonth()+1}`}; });
   const avgSeries = Array.from({length:WEEKS}, (_,i) => { const r = siteKw().filter(k => k.hist && k.hist[i] != null); return r.length ? Math.round(r.reduce((a,k)=>a+k.hist[i],0)/r.length*10)/10 : null; });
-  const gscT = siteKw().filter(k => k.gsc).reduce((a,k) => ({c:a.c+k.gsc.clicks, i:a.i+k.gsc.impr}), {c:0,i:0});
+  const gscT = (S.site === "s1" && REAL.google?.gsc?.ok) ? {c:REAL.google.gsc.totals.clicks, i:REAL.google.gsc.totals.impressions} : siteKw().filter(k => k.gsc).reduce((a,k) => ({c:a.c+k.gsc.clicks, i:a.i+k.gsc.impr}), {c:0,i:0});
   return `<div class="stack">
     <div class="card"><div class="zone"><h3 class="t">צינור התוכן ${ORIG()}</h3>
       <div class="grid g6 mt">${[["מאמרים",total,`${PLANS.filter(p=>p.site===S.site).length} תוכניות`],["טיוטות",st("draft")],["מתוזמנים",st("scheduled")],["פורסמו",st("published"),`${pubRate}% מהסך`],["נכשלו",st("failed")],["תוכניות תוכן",PLANS.filter(p=>p.site===S.site).length]].map(([l,v,mm])=>`<div><div class="b num" style="font-size:24px">${v}</div><div class="xs muted">${l}</div>${mm?`<div class="xs faint">${mm}</div>`:""}</div>`).join("")}</div></div></div>
@@ -2457,7 +2471,7 @@ function vMeasure(){
     <div class="grid g2">
       <div class="card"><div class="zone"><div class="head"><h3 class="t">התקדמות הקידום ${NEW()}</h3>${SRC.serp()}</div><p class="xs muted m0 mt-s">מיקום ממוצע של כל המילים במעקב.</p>${lineChart([{data:avgSeries,color:"var(--navy)"}], Array.from({length:WEEKS},(_,i)=>weekLabel(i)),{h:170})}</div></div>
       <div class="card"><div class="zone"><div class="head"><h3 class="t">Search Console ${NEW()}</h3>${S.live.gsc?SRC.gsc():SRC.none()}</div>
-        ${S.live.gsc?`<div class="grid g3 mt">${[["קליקים",fmt(gscT.c)],["חשיפות",fmt(gscT.i)],["CTR",(gscT.i?(gscT.c/gscT.i*100).toFixed(1):"0")+"%"]].map(([l,v])=>`<div><div class="b num" style="font-size:22px">${v}</div><div class="xs muted">${l}</div></div>`).join("")}</div><p class="xs muted m0 mt">28 הימים האחרונים. במקור זה מופיע רק כתוכנית עתידית.</p>`
+        ${S.live.gsc?`<div class="grid g3 mt">${[["קליקים",fmt(gscT.c)],["חשיפות",fmt(gscT.i)],["CTR",(gscT.i?(gscT.c/gscT.i*100).toFixed(1):"0")+"%"]].map(([l,v])=>`<div><div class="b num" style="font-size:22px">${v}</div><div class="xs muted">${l}</div></div>`).join("")}</div><p class="xs muted m0 mt">${S.site==="s1"&&REAL.google?.gsc?.ok?`כל האתר, ${esc(REAL.google.gsc.range.startDate)} – ${esc(REAL.google.gsc.range.endDate)} (Search Console API).`:"28 הימים האחרונים. במקור זה מופיע רק כתוכנית עתידית."}</p>`
         :`<p class="sm muted m0 mt">לא מחובר. אחרי חיבור יוצגו קליקים, חשיפות, CTR ומיקום ממוצע אמיתי לכל מילה ועמוד. החיבור מתבצע בהגדרות המרכזיות.</p>`}</div></div>
     </div>
     <div class="card"><div class="zone"><h3 class="t">פעילות פרסום · 30 ימים אחרונים ${ORIG()}</h3>${daily.some(d=>d.v)?`<div class="mt">${bars(daily)}</div>`:`<div class="empty">אין עדיין פעילות מתוזמנת.</div>`}</div></div>
@@ -3839,7 +3853,7 @@ const CONN = {
     psi:{state:"off"}
   }
 };
-const CSTATE = {live:["מחובר · נבדק עכשיו","up"], stale:["נתונים ישנים / לא נבדק עכשיו","warn"], checking:["בודק…","info"], ok:["מחובר · הדגמה","up"], warn:["מחובר עם אזהרה","warn"], off:["לא מחובר","warn"], err:["שגיאה","down"], na:["לא רלוונטי",""], partial:["חלקי","warn"], pending:["ממתין לאימות","info"]};
+const CSTATE = {api:["מחובר · נתוני API אמיתיים","up"], live:["מחובר · נבדק עכשיו","up"], stale:["נתונים ישנים / לא נבדק עכשיו","warn"], checking:["בודק…","info"], ok:["מחובר · הדגמה","up"], warn:["מחובר עם אזהרה","warn"], off:["לא מחובר","warn"], err:["שגיאה","down"], na:["לא רלוונטי",""], partial:["חלקי","warn"], pending:["ממתין לאימות","info"]};
 const cs = s => `<span class="badge ${CSTATE[s][1]}">${CSTATE[s][0]}</span>`;
 const CONN_DEF = [
   ["verify","אימות בעלות על האתר","מוכיח שהאתר שייך לחברה. בלי אימות אין Search Console ואין סריקה מלאה."],
@@ -3851,7 +3865,7 @@ const CONN_DEF = [
 ];
 function ci(sid){ if (!CONN[sid]) CONN[sid] = {verify:{state:"off"},gsc:{state:"off"},wp:{state:"off"},rank:{state:"off"},crawl:{state:"off"},psi:{state:"off"}}; return CONN[sid]; }
 function syncConn(sid){ const c = ci(sid), s = SITES.find(x=>x.id===sid); if (!s) return;
-  s.conn = {serp:["ok","warn"].includes(c.rank.state), gsc:["ok","live"].includes(c.gsc.state), wp:["ok","warn","live"].includes(c.wp.state), crawl:["ok","partial","live","stale"].includes(c.crawl.state)}; }
+  s.conn = {serp:["ok","warn"].includes(c.rank.state), gsc:["ok","live","api"].includes(c.gsc.state), wp:["ok","warn","live"].includes(c.wp.state), crawl:["ok","partial","live","stale"].includes(c.crawl.state)}; }
 SITES.forEach(s => syncConn(s.id));
 
 /* ---- פס מצב חיבורים (קיים במקור: ConnectionStatus) ---- */
@@ -3865,8 +3879,8 @@ function renderStrip(){
     <span class="row" style="gap:5px">${dot(S.live.ai)} יצירת AI ${S.live.ai?"מוכנה":"כבויה"}</span>
     <span class="row" style="gap:5px">${dot(S.live.wp && s.conn.wp)} WordPress ${c.wp.state==="na"?"לא רלוונטי":S.live.wp && s.conn.wp?"מחובר":"לא מחובר"}</span>
     <span class="row" style="gap:5px">${dot(S.live.serp && s.conn.serp)} מחקר חי (SERP) ${S.live.serp && s.conn.serp?"מחובר":"לא מחובר"}</span>
-    ${NEW()}<span class="row" style="gap:5px">${dot(c.gsc.state==="ok")} Search Console ${c.gsc.state==="ok"?"מחובר":"לא מחובר"}</span>
-    <span class="row" style="gap:5px">${dot(c.verify.state==="ok")} בעלות ${c.verify.state==="ok"?"מאומתת":"לא מאומתת"}</span>
+    ${NEW()}<span class="row" style="gap:5px">${dot(["ok","api"].includes(c.gsc.state))} Search Console ${["ok","api"].includes(c.gsc.state)?"מחובר":"לא מחובר"}</span>
+    <span class="row" style="gap:5px">${dot(["ok","api"].includes(c.verify.state))} בעלות ${["ok","api"].includes(c.verify.state)?"מאומתת":"לא מאומתת"}</span>
     <span class="grow"></span><button class="btn ghost sm" data-conncenter="${S.site}">מרכז החיבורים של האתר</button></div>`;
 }
 
@@ -3917,19 +3931,21 @@ function settingsCards(){
     <div class="head"><div><div class="row" style="gap:8px;flex-wrap:wrap"><span class="b">${title}</span>${badge}</div>${sub?`<p class="xs muted m0 mt-s">${sub}</p>`:""}</div></div>
     <p class="xs muted" style="margin:12px 0;line-height:1.5">${body}</p>${actions?`<div class="row" style="gap:8px;flex-wrap:wrap">${actions}</div>`:""}</div>`;
   if (!REAL.checkedAt) return `<div class="card" style="padding:16px"><span class="badge info">בודק את מקורות הנתונים עכשיו…</span></div>`;
-  const ex = REAL.gscExport, exAt = ex ? fdt(Date.parse(ex.generatedAt)) : "—";
-  const gscB = ex?.gsc?.ok ? B.yellow("נתונים מקובץ ייצוא — לא נבדק עכשיו") : B.red("מנותק");
-  const ga4B = ex?.ga4?.ok ? B.yellow("נתונים מקובץ ייצוא — לא נבדק עכשיו") : B.red("מנותק");
+  const G = REAL.google, gs = G?.gsc, ga = G?.ga4, gAt = G ? fdt(Date.parse(G.fetchedAt)) : "—", fresh = googleAgeDays() <= GOOGLE_FRESH_DAYS;
+  const gscB = !gs ? B.grey("אין ייצוא") : !gs.ok ? B.red("קריאת API נכשלה") : fresh ? B.green(`API אומת · ${gAt}`) : B.yellow(`נתונים ישנים · ${gAt}`);
+  const ga4B = !ga ? B.grey("אין ייצוא") : !ga.apiOk ? B.red("קריאת API נכשלה") : ga.hasData ? (fresh ? B.green(`API אומת · ${gAt}`) : B.yellow(`נתונים ישנים · ${gAt}`)) : B.yellow("מחובר · אין נתונים בנכס");
   const sc = REAL.scan, age = scanAgeDays();
   const ai = REAL.ai;
   return [
-    card("Google Search Console", gscB, `נכס: <code>sc-domain:dalia-c.com</code> · ייצוא אחרון: ${exAt}`,
-      ex?.gsc?.ok ? `בקובץ הייצוא ${fmt(ex.keywords)} שאילתות. הדף לא יכול לבדוק את Google ישירות.`
-        : `החיבור ל-Google נכשל: <code>${esc(ex?.gsc?.note || "אין קובץ ייצוא")}</code>. אין קליקים, חשיפות או מיקומים אמיתיים במערכת עד לחיבור מחדש.`,
-      `<button class="btn sm" data-ctest="gsc|s1">בדוק מצב</button>`),
-    card("Google Analytics 4", ga4B, `נכס: <code>properties/545246030</code> · ייצוא אחרון: ${exAt}`,
-      ex?.ga4?.ok ? "נתונים מקובץ הייצוא בלבד." : `החיבור ל-Google נכשל: <code>${esc(ex?.ga4?.note || "אין קובץ ייצוא")}</code>. אין נתוני תנועה אמיתיים במערכת.`,
-      `<button class="btn sm" data-ctest="psi|s1">בדוק מצב</button>`),
+    card("Google Search Console", gscB, `נכס: <code>sc-domain:dalia-c.com</code> · חשבון: <code>${esc(G?.account||"—")}</code>`,
+      gs?.ok ? `נמשך מ-API של Google (קריאה בלבד) ב-${gAt}, תקופה ${esc(gs.range.startDate)} – ${esc(gs.range.endDate)}: <strong>${fmt(gs.queries.length)} שאילתות</strong>, <strong>${fmt(gs.pages.length)} עמודים</strong>, ${fmt(gs.totals.clicks)} קליקים, ${fmt(gs.totals.impressions)} חשיפות, CTR ${(gs.totals.ctr*100).toFixed(2)}%, מיקום ממוצע ${gs.totals.position?.toFixed(1)}. עדכון: <code>node scripts/dalia-seo/export-google-data.mjs</code>.`
+        : `הקריאה נכשלה: <code>${esc(gs?.error || "אין קובץ ייצוא")}</code>.`,
+      `<button class="btn sm" data-ctest="gsc|s1">פרטי הבדיקה</button><button class="btn ghost sm" onclick="go('keywords')">למילות המפתח</button>`),
+    card("Google Analytics 4", ga4B, `נכס: <code>${esc(ga?.property||"properties/545246030")}</code> · מזהה: <code>${esc(ga?.measurementId||"—")}</code>`,
+      !ga ? "אין ייצוא." : !ga.apiOk ? `הקריאה נכשלה: <code>${esc(ga.error||"")}</code>`
+        : ga.hasData ? `28 ימים: ${fmt(ga.last28d?.sessions)} סשנים, ${fmt(ga.last28d?.pageViews)} צפיות.`
+        : `קריאת ה-API הצליחה, אבל בנכס הזה <strong>אין אף סשן מעולם</strong>. האתר החי שולח נתונים דרך <code>${esc(ga.siteGtm||"GTM")}</code> אל <code>${esc((ga.siteMeasurementIds||[]).join(", ")||"—")}</code> — נכס GA4 אחר שלחשבון המחובר אין אליו גישה. לתיקון: לקבל הרשאת צפייה לנכס הזה, או להוסיף את <code>${esc(ga.measurementId||"")}</code> ל-GTM של האתר (שינוי באתר החי — דורש אישור).`,
+      `<button class="btn sm" data-ctest="psi|s1">פרטי הבדיקה</button>`),
     card("WordPress / dalia-c.com", REAL.wp?.ok ? B.green("נבדק עכשיו · קריאה בלבד") : B.red("לא ענה"), `REST API: <code>https://dalia-c.com/wp-json</code> · נבדק ${fdt(REAL.wp?.at)}`,
       REAL.wp?.ok ? `נקרא עכשיו מה-REST הציבורי: <strong>${fmt(REAL.wp.pages)} עמודים</strong> ו-<strong>${fmt(REAL.wp.posts)} פוסטים</strong> שפורסמו. דליה SEO לא כותבת לאתר — אין פרסום ואין העלאת מדיה מכאן.`
         : `קריאת ה-REST נכשלה (${esc(String(REAL.wp?.status||REAL.wp?.error||"רשת"))}).`,
@@ -4143,8 +4159,8 @@ document.addEventListener("click", e => {
         });
         return;
       }
-      if (k==="gsc"){ toast(`Search Console לא נבדק: ${REAL.gscExport?.gsc?.note || "אין חיבור"} (ייצוא אחרון ${fdt(Date.parse(REAL.gscExport?.generatedAt))}). נדרש לחבר את Google מחדש — לא מוצגים נתונים חיים.`, 9000); return; }
-      if (k==="psi"){ toast("PageSpeed / GA4 לא מחוברים לדף הזה — אין בדיקה חיה. LCP ונתוני GA4 לא מוצגים.", 8000); return; }
+      if (k==="gsc"){ const gs = REAL.google?.gsc; toast(gs?.ok ? `Search Console: קריאת API הצליחה ב-${fdt(Date.parse(REAL.google.fetchedAt))} — ${fmt(gs.queries.length)} שאילתות, ${fmt(gs.pages.length)} עמודים. הדף לא קורא ל-Google ישירות (הטוקן נשמר רק בשרת/במחשב); העדכון רץ מסקריפט הייצוא.` : `Search Console: ${gs?.error || "אין ייצוא"}`, 10000); return; }
+      if (k==="psi"){ const ga = REAL.google?.ga4; toast(ga?.apiOk ? (ga.hasData ? "GA4: קריאת API הצליחה ויש נתונים." : `GA4: קריאת API הצליחה אבל הנכס ריק — האתר שולח ל-${(ga.siteMeasurementIds||[]).join(", ")}.`) : "GA4 לא נקרא.", 9000); return; }
       if (k==="rank"){ toast("אין ספק SERP מוגדר — אין בדיקת מיקומים אמיתית.", 7000); return; }
     }
     if (k==="psi"){ c.psi = {state:"ok", at:Date.now(), note:"כל העמודים נבדקו"}; }
@@ -4213,35 +4229,28 @@ window.addEventListener("message", e => {
 });
 
 async function loadRealOpenSeoData() {
+  // Real Search Console data exported by scripts/dalia-seo/export-google-data.mjs (read-only API calls).
   try {
-    // 1. Fetch dashboard.json (real Search Console & GA4 data)
-    const dashRes = await fetch('./project-001/dashboard.json').catch(() => null);
-    if (dashRes && dashRes.ok) {
-      const dash = await dashRes.json();
-      if (dash && dash.searchConsole && Array.isArray(dash.searchConsole.keywords) && dash.searchConsole.keywords.length) {
-        // Only fields Search Console really returns. No invented history, volume, competitor rank or URL.
-        const realKws = dash.searchConsole.keywords.map((k, idx) => {
-          const pos = k.position != null ? Math.max(1, Math.round(k.position)) : null;
-          const h = Array(WEEKS).fill(null); h[WEEKS - 1] = pos;
-          return {
-            id: "k_real_" + (idx + 1), site: "s1", kw: k.query, group: "Search Console", intent: "informational",
-            status: "tracking", vol: null, volSrc: null, hist: h, url: k.page ? String(k.page).replace(/^https?:\/\/[^\/]+/, "") : "",
-            checked: dash.generatedAt ? Date.parse(dash.generatedAt) : null, comp: null,
-            gsc: { clicks: k.clicks || 0, impr: k.impressions || 0, pos: k.position }, added: dash.generatedAt ? Date.parse(dash.generatedAt) : Date.now(), real: true
-          };
-        });
-        if (realKws.length) {
-          const s2Kws = KEYWORDS.filter(k => k.site === "s2");
-          KEYWORDS.length = 0;
-          KEYWORDS.push(...realKws, ...s2Kws);
-        }
-      }
+    const res = await fetch("./project-001/seo-google-latest.json?t=" + Date.now());
+    const g = res.ok ? await res.json() : null;
+    REAL.google = g;
+    if (g?.gsc?.ok && g.gsc.queries.length) {
+      const fetched = Date.parse(g.fetchedAt);
+      const intentOf = q => /^(איך|מה|האם|למה|מתי|כמה|מי)\s|\?/.test(q) ? "informational" : /דליה|dalia/i.test(q) ? "navigational" : "commercial";
+      const realKws = g.gsc.queries.map((q, idx) => ({
+        id: "k_gsc_" + (idx + 1), site: "s1", kw: q.query, group: "Search Console", intent: intentOf(q.query), status: "tracking",
+        vol: null, volSrc: null, hist: q.hist && q.hist.length === WEEKS ? q.hist : null, url: q.page || "",
+        checked: fetched, comp: null, real: true, last28: q.last28, prev28: q.prev28,
+        gsc: { clicks: q.clicks, impr: q.impressions, ctr: q.ctr, pos: q.position }, added: fetched
+      }));
+      const others = KEYWORDS.filter(k => k.site !== "s1");
+      KEYWORDS.length = 0;
+      KEYWORDS.push(...realKws, ...others);
+      SITES.find(x => x.id === "s1").lastRank = fetched;
     }
   } catch (e) {
-    console.warn("OpenSEO: could not load dashboard.json", e);
+    console.warn("Dalia SEO: could not load seo-google-latest.json", e);
   }
-
-  render();
 }
 
 render();
