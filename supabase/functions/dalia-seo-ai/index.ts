@@ -253,15 +253,27 @@ async function image(b: any) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors(req) });
+  // Browser-only: a missing Origin (curl/scripts) is rejected too. Origin can still be spoofed, so this is
+  // NOT authentication — see the security note in the QA report before adding paid credit.
   const origin = req.headers.get("origin");
-  if (origin && !ALLOWED_ORIGINS.includes(origin)) return json(req, 403, { ok: false, error: "origin_not_allowed" });
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) return json(req, 403, { ok: false, error: "origin_not_allowed" });
   const route = new URL(req.url).pathname.split("/").filter(Boolean).pop();
   try {
     if (route === "status" && req.method === "GET") {
       return json(req, 200, { ok: true, hasKey: !!geminiKey(), textModels: TEXT_MODELS, imageModels: IMAGE_MODELS });
     }
     if (req.method !== "POST") return json(req, 405, { ok: false, error: "method_not_allowed" });
-    const body = await req.json().catch(() => ({}));
+    const raw = await req.text();
+    if (raw.length > 20000) return json(req, 413, { ok: false, error: "request_too_large" });
+    let body: any = {};
+    try { body = raw ? JSON.parse(raw) : {}; } catch (_) { return json(req, 400, { ok: false, error: "invalid_json" }); }
+    // Cost guards: bounded prompt sizes and article length.
+    for (const k of ["prompt", "keyword", "title", "h2Context", "meta_description", "audience"]) {
+      if (body[k] != null) body[k] = String(body[k]).slice(0, k === "prompt" ? 1500 : 300);
+    }
+    if (body.word_count != null) body.word_count = Math.min(4000, Math.max(0, Number(body.word_count) || 0));
+    if (body.h2_count != null) body.h2_count = Math.min(12, Math.max(0, Number(body.h2_count) || 0));
+    if (body.outline?.headings) body.outline.headings = body.outline.headings.slice(0, 12);
     let result: any;
     if (route === "generate-article") result = await article(body);
     else if (route === "generate-image") result = await image(body);

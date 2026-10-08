@@ -52,6 +52,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .frame .brand{font-weight:700;color:var(--navy)}
 .frame .ctx{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:var(--r-s);background:var(--soft);color:var(--fg);cursor:not-allowed}
 .shared{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:6px;font-size:11.5px;font-weight:600;color:var(--blue);border:1px dashed var(--blue);background:var(--blue-t);white-space:nowrap}
+.draft-dropzone{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px;border:2px dashed var(--line);border-radius:10px;background:var(--soft);cursor:pointer;text-align:center;transition:border-color .15s,background .15s}
+.draft-dropzone.over{border-color:var(--blue);background:var(--blue-t)}
 .demo-note{padding:6px 20px;font-size:12.5px;background:var(--warn-t);color:var(--warn)}
 /* ---------- כותרת המודול ---------- */
 .mod-head{background:var(--card);border-bottom:1px solid var(--line);padding:16px 20px 0}
@@ -813,7 +815,7 @@ html, body {
   <button class="btn ghost sm" data-act="points">נקודות חיבור לדליה</button>
   <button class="btn ghost sm" data-act="theme">מצב כהה/בהיר</button>
 </div>
-<div class="demo-note">תצוגת הדגמה: כל האתרים, המיקומים, המתחרים והנתונים בדויים (דומיינים .example). שום דבר לא מחובר ל-Google, ל-SerpAPI, ל-WordPress או למסד נתונים.</div>
+<div class="demo-note" id="dataNote">בודק אילו מקורות נתונים זמינים עכשיו… עד לסיום הבדיקה, כל נתון שלא מסומן "אמיתי" הוא הדגמה.</div>
 <header class="mod-head">
   <div class="mod-title">
     <h1>דליה SEO</h1><span class="sub">קידום אורגני של אתרי החברה</span>
@@ -1142,14 +1144,107 @@ function toast(t){ const el = $("#toast"); el.textContent = t; el.hidden = false
 /* ---- תגי מקור הנתון ---- */
 const SRC = {
   serp:  () => `<span class="src real" title="נתון חי מתוצאות גוגל דרך SerpAPI. בתצוגה: ערך הדגמה">SerpAPI · הדגמה</span>`,
-  gsc:   () => `<span class="src gsc" title="נתון מ-Google Search Console. בתצוגה: ערך הדגמה">Search Console · הדגמה</span>`,
+  gsc:   () => (S.site === "s1" && typeof hasRealGsc === "function" && hasRealGsc()) ? `<span class="src gsc" title="נתון מקובץ ייצוא Search Console">Search Console · אמיתי</span>` : `<span class="src gsc" title="נתון מ-Google Search Console. בתצוגה: ערך הדגמה">Search Console · הדגמה</span>`,
   kp:    () => `<span class="src real" title="נפח חיפוש מספק נתוני מילות מפתח (למשל DataForSEO / Keyword Planner). בתצוגה: ערך הדגמה">נפח · הדגמה</span>`,
-  crawl: () => `<span class="src crawl" title="נתון מסריקת האתר. בתצוגה: ערך הדגמה">סורק · הדגמה</span>`,
+  crawl: () => (S.site === "s1" && REAL.scan) ? `<span class="src crawl" title="סריקת GET אמיתית של dalia-c.com">סורק · אמיתי (${esc(fdt(Date.parse(REAL.scan.scannedAt)))})</span>` : `<span class="src crawl" title="נתון מסריקת האתר. בתצוגה: ערך הדגמה">סורק · הדגמה</span>`,
   ai:    () => `<span class="src ai" title="ניתוח או הערכה של AI. לא נתון עובדתי">הערכת AI</span>`,
   calc:  () => `<span class="src calc" title="חישוב של דליה SEO מתוך נתונים קיימים">חישוב</span>`,
   none:  () => `<span class="src none">טרם נבדק</span>`,
   unv:   () => `<span class="src unv">אין נתון מאומת</span>`
 };
+/* ============================================================
+   מקורות אמת (dalia-c.com). כל סטטוס ירוק כאן נקבע רק אחרי בדיקה אמיתית בטעינת הדף.
+   מה שלא נבדק עכשיו — צהוב/אדום/אפור. אין "ירוק" רק כי קיים מפתח או קובץ.
+   ============================================================ */
+const REAL = {checkedAt:null, wp:null, robots:null, sitemap:null, scan:null, gscExport:null, ai:null};
+const STALE_SCAN_DAYS = 14;
+
+async function probeRealSources(){
+  const tryFetch = async (url, init) => { try { const r = await fetch(url, init); return r; } catch (e) { return {ok:false, status:0, error:e.message}; } };
+  const [wpPages, wpPosts, robots, sitemap, scan, dash, ai] = await Promise.all([
+    tryFetch("https://dalia-c.com/wp-json/wp/v2/pages?per_page=1&_fields=id"),
+    tryFetch("https://dalia-c.com/wp-json/wp/v2/posts?per_page=1&_fields=id"),
+    tryFetch("https://dalia-c.com/robots.txt"),
+    tryFetch("https://dalia-c.com/sitemap_index.xml"),
+    tryFetch("./project-001/seo-scan-latest.json?t=" + Date.now()),
+    tryFetch("./project-001/dashboard.json?t=" + Date.now()),
+    tryFetch(SEO_AI_FN + "status", {headers:{"Authorization":"Bearer " + SEO_AI_ANON, "apikey":SEO_AI_ANON}})
+  ]);
+  const now = Date.now();
+  REAL.checkedAt = now;
+  REAL.wp = wpPages.ok
+    ? {ok:true, at:now, pages:+(wpPages.headers.get("X-WP-Total")||0) || null, posts:wpPosts.ok ? (+(wpPosts.headers.get("X-WP-Total")||0) || null) : null}
+    : {ok:false, at:now, status:wpPages.status, error:wpPages.error};
+  // robots/sitemap: dalia-c.com may not allow CORS — then the browser cannot read them and we say so.
+  REAL.robots = robots.ok ? {ok:true, at:now} : {ok:false, at:now, status:robots.status, cors:robots.status===0};
+  REAL.sitemap = sitemap.ok ? {ok:true, at:now} : {ok:false, at:now, status:sitemap.status, cors:sitemap.status===0};
+  try { REAL.scan = scan.ok ? await scan.json() : null; } catch (_) { REAL.scan = null; }
+  try {
+    const d = dash.ok ? await dash.json() : null;
+    REAL.gscExport = d ? {generatedAt:d.generatedAt, gsc:d.connections?.searchConsole || null, ga4:d.connections?.analytics4 || null, keywords:(d.searchConsole?.keywords||[]).length} : null;
+  } catch (_) { REAL.gscExport = null; }
+  try { REAL.ai = ai.ok ? {ok:true, ...(await ai.json())} : {ok:false, status:ai.status}; } catch (_) { REAL.ai = {ok:false}; }
+  applyRealSources();
+}
+
+const hasRealGsc = () => KEYWORDS.some(k => k.site === "s1" && k.real);
+function scanAgeDays(){ return REAL.scan ? (Date.now() - Date.parse(REAL.scan.scannedAt)) / DAY : Infinity; }
+
+function applyRealSources(){
+  const c = ci("s1"), s = SITES.find(x => x.id === "s1");
+  c.wp = REAL.wp?.ok
+    ? {...c.wp, state:"live", at:REAL.wp.at, error:null}
+    : {...c.wp, state:"err", at:REAL.wp?.at, error:`WordPress REST לא ענה (${REAL.wp?.status || "רשת"})`};
+  const g = REAL.gscExport?.gsc;
+  c.gsc = {...c.gsc, state: g?.ok ? "stale" : "err", at: REAL.gscExport ? Date.parse(REAL.gscExport.generatedAt) : null,
+    error: g?.ok ? null : `Search Console מנותק: ${g?.note || "אין קובץ ייצוא"} — נדרש חיבור Google מחדש`};
+  c.verify = {...c.verify, state:"stale"};
+  c.rank = {state:"off"};
+  c.psi = {state:"off"};
+  if (REAL.scan){
+    c.crawl = {...c.crawl, state: scanAgeDays() <= STALE_SCAN_DAYS ? "live" : "stale", at:Date.parse(REAL.scan.scannedAt), pages:REAL.scan.summary.scanned};
+    s.lastCrawl = Date.parse(REAL.scan.scannedAt);
+    PAGES.s1 = REAL.scan.pages.filter(p => p.httpStatus).map(p => ({
+      url: p.path || "/", title: p.title || "", meta: p.meta || "", h1: p.h1 || "",
+      h1Count: p.h1Count, h2Count: p.h2Count, h3Count: p.h3Count,
+      words: null, inL: null, outL: p.internalLinks ?? null, status: p.httpStatus, index: !p.noindex,
+      alt: p.imagesMissingAlt || 0, lcp: null, real: true
+    }));
+  } else {
+    c.crawl = {...c.crawl, state:"off"};
+  }
+  // Only real, current sources may drive "live" behaviour.
+  S.live.gsc = hasRealGsc();   // רק אם הייצוא באמת הכיל שאילתות Search Console
+  S.live.serp = false;  // אין ספק SERP — אין מיקומים חיים
+  syncConn("s1");
+  const note = $("#dataNote");
+  if (note) note.innerHTML = `מצב נתונים (נבדק ${fdt(REAL.checkedAt)}): <b>אמיתי</b> — WordPress ${REAL.wp?.ok?"✓":"✗"}, סריקת האתר ${REAL.scan?"✓ ("+fdt(Date.parse(REAL.scan.scannedAt))+")":"✗"}, טיוטות ויצירת תוכן. <b>הדגמה</b> — מילות מפתח, מיקומים, היסטוריה, מתחרים, הזדמנויות ונפחי חיפוש. Search Console ו-GA4 מנותקים. אין ספק SERP.`;
+  render();
+}
+
+/* פס מקור נתונים בראש כל מסך — מה אמיתי ומה הדגמה, בלי לנחש */
+const DEMO_TABS = {
+  overview:"המספרים בסקירה (מילים, מיקומים, מגמה, הזדמנויות) מחושבים מרשימת מילות מפתח לדוגמה — לא מ-Google.",
+  keywords:"רשימת המילים, המיקומים, ההיסטוריה, הנפח והמתחרה המוביל הם נתוני הדגמה. Search Console מנותק ואין ספק SERP.",
+  research:"גילוי מילים ו'אנשים שואלים גם' הם תבניות הדגמה מקומיות — לא תוצאות גוגל ולא AI אמיתי.",
+  ranks:"המיקומים וההיסטוריה הם נתוני הדגמה. אין ספק SERP מחובר, ולכן אין מיקומי גוגל אמיתיים.",
+  competitors:"רשימת המתחרים הוגדרה ידנית (דומיינים אמיתיים), אבל המיקומים, המילים המשותפות והנראות הם הדגמה.",
+  opps:"ההזדמנויות מחושבות ממילות ההדגמה ומהמתחרים לדוגמה — אינן מבוססות על נתוני Google.",
+  measure:"מיקומי המאמרים ונתוני Search Console במסך זה הם הדגמה.",
+  optimize:"הצעות השיפור נוצרות מתבניות מקומיות (הדגמה) — לא מ-SERP חי ולא מ-AI אמיתי.",
+  publish:"המאמרים שמסומנים כאן 'פורסם' / 'מתוזמן' / 'נכשל' הם דוגמאות — שום דבר לא פורסם ל-dalia-c.com. פרסום ותזמון ל-WordPress חסומים בשלב הזה."
+};
+function dataStrip(tab){
+  if (S.site !== "s1") return `<div class="notice warn" style="margin-bottom:12px"><span>אתר הדגמה (${esc(site().domain)}) — כל הנתונים בדויים.</span></div>`;
+  if (tab === "keywords" && hasRealGsc()) return `<div class="notice info" style="margin-bottom:12px"><span><b>מילים, קליקים, חשיפות ומיקום ממוצע מ-Search Console</b> (ייצוא ${fdt(Date.parse(REAL.gscExport?.generatedAt))}). היסטוריה, נפח חיפוש ומתחרים אינם זמינים — אין ספק SERP.</span></div>`;
+  if (DEMO_TABS[tab]) return `<div class="notice warn" style="margin-bottom:12px"><span><b>נתוני הדגמה במסך זה.</b> ${DEMO_TABS[tab]}</span></div>`;
+  if (tab === "produce" && !S.compose) return `<div class="notice info" style="margin-bottom:12px"><span>הטיוטה האמיתית היא <b>"מה עושה קצין רכב?"</b> (קיימת גם כטיוטה ב-WordPress, מזהה 6255 — לא מתפרסמת מכאן). שאר הטיוטות ברשימה הן דוגמאות. הטיוטות נשמרות בדפדפן הזה בלבד.</span></div>`;
+  if (tab === "tech") return REAL.scan
+    ? `<div class="notice ${scanAgeDays() <= STALE_SCAN_DAYS ? "ok" : "warn"}" style="margin-bottom:12px"><span><b>נתונים אמיתיים</b> מסריקת GET של dalia-c.com (${fdt(Date.parse(REAL.scan.scannedAt))}). מהירות טעינה (LCP) לא נמדדת — PageSpeed לא מחובר.</span></div>`
+    : `<div class="notice warn" style="margin-bottom:12px"><span>אין קובץ סריקה אמיתי — המסך מציג נתוני הדגמה.</span></div>`;
+  return "";
+}
+
 const ORIG = () => `<span class="orig" title="קיים בקוד דליה SEO המקורי">מקור</span>`;
 const NEW = () => `<span class="orig new" title="תוספת עבור דליה">תוספת</span>`;
 const SHARED = (t="חיבור למערכת המשותפת – ימומש בשלב האינטגרציה") => `<span class="shared" title="${esc(t)}">מערכת משותפת</span>`;
@@ -1457,7 +1552,8 @@ function gapList(sid = S.site){
 function techIssues(sid = S.site){
   const out = [], pages = PAGES[sid] || [];
   const titles = {};
-  pages.forEach(p => { if (p.status === 200) titles[p.title] = (titles[p.title]||0) + 1; });
+  const metas = {};
+  pages.forEach(p => { if (p.status === 200){ titles[p.title] = (titles[p.title]||0) + 1; if (p.meta) metas[p.meta] = (metas[p.meta]||0) + 1; } });
   pages.forEach(p => {
     const add = (sev,type,detail,fix) => out.push({sev,type,url:p.url,detail,fix});
     if (p.status === 404) return add("high","עמוד שבור (404)","העמוד מחזיר 404 ויש אליו קישורים פנימיים.","להפנות (301) לעמוד רלוונטי ולעדכן את הקישורים.");
@@ -1466,11 +1562,14 @@ function techIssues(sid = S.site){
     else if (p.title.length > 60) add("med","כותרת ארוכה",`${p.title.length} תווים — גוגל יקצר אותה.`,"לקצר ל-50–60 תווים.");
     else if (p.title.length < 20) add("low","כותרת קצרה",`${p.title.length} תווים בלבד.`,"להרחיב ולהוסיף את מילת המפתח ותועלת.");
     if (!p.meta) add("med","תיאור מטא חסר","גוגל ייצור תיאור בעצמו מתוך העמוד.","לכתוב תיאור של 120–155 תווים.");
-    else if (p.meta.length > 160) add("low","תיאור מטא ארוך",`${p.meta.length} תווים.`,"לקצר ל-155 תווים.");
-    else if (p.meta.length < 50) add("low","תיאור מטא קצר",`${p.meta.length} תווים.`,"להרחיב ולהוסיף קריאה לפעולה.");
+    else if (metas[p.meta] > 1) add("med","תיאור מטא כפול",`אותו תיאור בדיוק מופיע ב-${metas[p.meta]} עמודים.`,"לכתוב תיאור ייחודי לכל עמוד (120–155 תווים) לפי התוכן שלו.");
+    if (p.meta && p.meta.length > 160) add("low","תיאור מטא ארוך",`${p.meta.length} תווים.`,"לקצר ל-155 תווים.");
+    else if (p.meta && p.meta.length < 50) add("low","תיאור מטא קצר",`${p.meta.length} תווים.`,"להרחיב ולהוסיף קריאה לפעולה.");
     if (!p.h1) add("med","H1 חסר","לעמוד אין כותרת ראשית.","להוסיף H1 אחד עם מילת המפתח.");
-    if (p.words < 300) add(p.words < 200 ? "high":"med","תוכן דל",`${p.words} מילים.`,"להרחיב תוכן ולענות על שאלות המחפשים.");
+    if (p.words != null && p.words < 300) add(p.words < 200 ? "high":"med","תוכן דל",`${p.words} מילים.`,"להרחיב תוכן ולענות על שאלות המחפשים.");
     if (p.inL === 0 && p.url !== "/") add("high","עמוד יתום","אין אליו קישורים פנימיים — קשה לגוגל ולגולשים למצוא אותו.","לקשר אליו מעמודים קשורים ומהתפריט.");
+    if (p.h1Count > 1) add("low","כמה H1",`${p.h1Count} תגיות H1 בעמוד.`,"להשאיר H1 אחד ולהפוך את השאר ל-H2.");
+    if (p.real && p.status === 200 && p.h2Count === 0) add("low","אין H2","לעמוד אין כותרות משנה.","לחלק את התוכן לפרקים עם H2.");
     if (p.alt > 0) add("low","תמונות בלי alt",`${p.alt} תמונות בלי טקסט חלופי.`,"להוסיף alt תיאורי.");
     if (p.lcp != null && p.lcp > 2.5) add(p.lcp > 4 ? "high":"med","טעינה איטית (LCP)",`${p.lcp} שניות בנייד.`,"לדחוס תמונות ולהקטין קוד שחוסם טעינה.");
     if (titles[p.title] > 1) add("med","כותרת כפולה","אותה כותרת בכמה עמודים.","לכתוב כותרת ייחודית לכל עמוד.");
@@ -1656,19 +1755,34 @@ function vOpps(){
 }
 
 /* ================= ביקורת טכנית ועמודים ================= */
+function scanSummaryCard(){
+  const sc = REAL.scan, sm = sc.summary;
+  const mc = {}; sc.pages.forEach(p => { if (p.meta) mc[p.meta] = (mc[p.meta]||0) + 1; });
+  const dupMeta = Object.values(mc).filter(n => n > 1).reduce((a, n) => a + n, 0);
+  const row = (l, v) => `<div><div class="b num" style="font-size:20px">${v}</div><div class="xs muted">${l}</div></div>`;
+  return `<div class="card"><div class="zone"><div class="head"><h3 class="t">סיכום הסריקה האמיתית</h3>${SRC.crawl()}</div>
+    <div class="grid g4 mt">${row("כתובות ב-sitemap", fmt(sm.sitemapUrls))}${row("נסרקו", fmt(sm.scanned))}${row("תקינים (200)", fmt(sm.ok))}${row("עמודים/קישורים שבורים", fmt(sm.brokenLinks))}
+      ${row("בלי title", fmt(sm.missingTitle))}${row("title ארוך (60+)", fmt(sm.titleTooLong))}${row("title כפול", fmt(sm.duplicateTitles))}${row("בלי Meta", fmt(sm.missingMeta))}${row("Meta זהה בכמה עמודים", fmt(dupMeta))}
+      ${row("בלי H1", fmt(sm.missingH1))}${row("כמה H1", fmt(sm.multipleH1))}${row("בלי H2", fmt(sm.noH2))}${row("עמודים עם תמונות בלי alt", fmt(sm.imagesMissingAltPages))}</div>
+    <p class="xs muted m0 mt">robots.txt: ${sc.robots?.status||"—"}${sc.robots?.sitemapRefs?.length?` · מפנה ל-${sc.robots.sitemapRefs.map(esc).join(", ")}`:""} · נבדקו ${fmt(sm.internalLinksChecked)} קישורים פנימיים נוספים${sm.internalLinksUnchecked?` (${fmt(sm.internalLinksUnchecked)} לא נבדקו)`:""}.
+    "כתובות ב-sitemap" = מה שהאתר מצהיר לגוגל; "נסרקו" = מה שהסורק פתח בפועל. זה לא מספר העמודים ב-WordPress ולא מספר העמודים ב-Search Console.</p></div>
+    ${sc.brokenLinks.length?`<div class="tbl-wrap"><table><thead><tr><th>כתובת שבורה</th><th>סטטוס</th><th>נמצא דרך</th></tr></thead><tbody>${sc.brokenLinks.slice(0,30).map(b=>`<tr><td class="xs ltr">${esc(decodeURIComponent(b.url))}</td><td><span class="badge down">${b.status||"שגיאה"}</span></td><td class="xs">${b.source==="sitemap"?"sitemap":"קישור פנימי"}</td></tr>`).join("")}</tbody></table></div>`:""}</div>`;
+}
 function vTech(){
   const issues = techIssues(), pages = PAGES[S.site] || [];
-  const score = Math.max(0, 100 - issues.reduce((a,i)=>a+(i.sev==="high"?8:i.sev==="med"?4:1),0));
+  const badPages = new Set(issues.filter(i => i.sev !== "low").map(i => i.url));
+  const score = pages.length ? Math.round(100 * (pages.length - badPages.size) / pages.length) : 0;
   const byType = {}; issues.forEach(i => byType[i.type] = (byType[i.type]||0)+1);
   const list = issues.filter(i => !S.techSev || i.sev === S.techSev);
   const pageRows = pages.filter(p => !S.pageFilter || (S.pageFilter==="issues" ? issues.some(i=>i.url===p.url) : S.pageFilter==="noindex" ? !p.index : true));
   return `<div class="stack">
-    <div class="head"><div><h2 class="t">ביקורת טכנית ועמודים ${NEW()}</h2><p class="sm muted m0 mt-s">לא קיים ב-דליה SEO המקורי. נדרש סורק אתרים ו-PageSpeed בשלב הפיתוח. סריקה אחרונה: ${fdt(site().lastCrawl)}</p></div>
+    <div class="head"><div><h2 class="t">ביקורת טכנית ועמודים ${NEW()}</h2><p class="sm muted m0 mt-s">${S.site==="s1"&&REAL.scan?"סריקת GET אמיתית של האתר. PageSpeed לא מחובר.":"לא קיים ב-דליה SEO המקורי. נדרש סורק אתרים ו-PageSpeed בשלב הפיתוח."} סריקה אחרונה: ${fdt(site().lastCrawl)}</p></div>
       <button class="btn" data-crawl="${S.site}">סרוק עכשיו</button></div>
     <div class="grid g4">
-      <div class="card stat"><div class="v">${score}</div><div class="l">ציון בריאות ${SRC.calc()}</div><div class="bar mt-s"><span style="width:${score}%;background:${score>=80?"var(--up)":score>=60?"var(--warn)":"var(--down)"}"></span></div></div>
+      <div class="card stat"><div class="v">${score}</div><div class="l">עמודים בלי בעיה בינונית/חמורה ${SRC.calc()}</div><div class="bar mt-s"><span style="width:${score}%;background:${score>=80?"var(--up)":score>=60?"var(--warn)":"var(--down)"}"></span></div></div>
       ${[["high","חמורות"],["med","בינוניות"],["low","נמוכות"]].map(([k,l])=>`<div class="card stat"><div class="v">${issues.filter(i=>i.sev===k).length}</div><div class="l">בעיות ${l}</div></div>`).join("")}
     </div>
+    ${S.site==="s1"&&REAL.scan?scanSummaryCard():""}
     <div class="card"><div class="zone"><div class="head"><h3 class="t">בעיות לפי סוג</h3>${SRC.crawl()}</div><div class="pill-list mt">${Object.entries(byType).map(([t,n])=>`<span class="chip">${esc(t)} · ${n}</span>`).join("")}</div></div>
       <div class="filters"><div class="seg" role="group"><button data-sev="" aria-pressed="${!S.techSev}">הכל</button>${Object.entries(SEV).map(([k,[l]])=>`<button data-sev="${k}" aria-pressed="${S.techSev===k}">${l}</button>`).join("")}</div></div>
       <div class="tbl-wrap"><table><thead><tr><th>חומרה</th><th>בעיה</th><th>עמוד</th><th>פירוט</th><th>איך לתקן</th></tr></thead><tbody>
@@ -1676,11 +1790,11 @@ function vTech(){
       </tbody></table></div></div>
     <div class="card"><div class="zone"><div class="head"><h3 class="t">עמודי האתר</h3>${SRC.crawl()}</div></div>
       <div class="filters"><div class="seg" role="group">${[["","כל העמודים"],["issues","דורשים טיפול"],["noindex","לא באינדקס"]].map(([v,l])=>`<button data-pf-filter="${v}" aria-pressed="${S.pageFilter===v}">${l}</button>`).join("")}</div></div>
-      <div class="tbl-wrap"><table><thead><tr><th>עמוד</th><th>סטטוס</th><th>כותרת</th><th>תיאור</th><th>מילים</th><th>קישורים נכנסים</th><th>מילים מדורגות</th><th>LCP נייד</th><th>בעיות</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table><thead><tr><th>עמוד</th><th>סטטוס</th><th>כותרת</th><th>תיאור</th>${pages.some(p=>p.real)?"<th>H1 / H2 / H3</th><th>קישורים פנימיים יוצאים</th>":"<th>מילים</th><th>קישורים נכנסים</th><th>מילים מדורגות</th>"}<th>LCP נייד</th><th>בעיות</th></tr></thead><tbody>
         ${pageRows.map(p => { const n = issues.filter(i=>i.url===p.url).length, kws = KEYWORDS.filter(k=>k.site===S.site&&k.url===p.url); return `<tr>
           <td><button class="linkish ltr sm" data-page="${esc(p.url)}">${esc(p.url)}</button></td><td><span class="badge ${p.status===200?"up":p.status===404?"down":"warn"}">${p.status}</span></td>
           <td class="sm num">${p.title?p.title.length+" תווים":"—"}</td><td class="sm num">${p.meta?p.meta.length+" תווים":`<span class="badge warn">חסר</span>`}</td>
-          <td class="num sm">${fmt(p.words)}</td><td class="num sm">${p.inL}</td><td class="num sm">${kws.length}</td>
+          ${p.real?`<td class="num sm">${p.h1Count} / ${p.h2Count} / ${p.h3Count}</td><td class="num sm">${fmt(p.outL)}</td>`:`<td class="num sm">${fmt(p.words)}</td><td class="num sm">${p.inL}</td><td class="num sm">${kws.length}</td>`}
           <td class="sm">${p.lcp!=null?`<span class="num">${p.lcp} ש׳</span>`:SRC.none()}</td><td>${n?`<span class="badge ${issues.some(i=>i.url===p.url&&i.sev==="high")?"down":"warn"}">${n}</span>`:`<span class="badge up">תקין</span>`}</td></tr>`; }).join("")}
       </tbody></table></div>
       <div class="zone soft xs muted">LCP מגיע מ-PageSpeed / Core Web Vitals. עמוד שלא נבדק מסומן "טרם נבדק".</div></div>
@@ -1714,6 +1828,8 @@ function pageDrawer(url){
 </script>
 <script>
 "use strict";
+const WP_WRITE_BLOCKED = "פרסום ותזמון ל-WordPress לא מחוברים בשלב הזה — שום דבר לא נשלח לאתר והמאמר נשאר טיוטה. ההעברה לאתר תהיה משימה נפרדת אחרי אישורך.";
+const realSiteWriteBlocked = () => S.site === "s1";
 const sitePosts = () => POSTS.filter(p => p.site === S.site);
 const STATUS_HE = {draft:["טיוטה",""],scheduled:["מתוזמן","info"],published:["פורסם","up"],failed:["נכשל","down"]};
 const stBadge = st => `<span class="badge ${STATUS_HE[st][1]}">${STATUS_HE[st][0]}</span>`;
@@ -2168,10 +2284,15 @@ function vDraftImagesManager(c){
         </button>
         <label class="btn ghost sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
           📁 העלה מהמחשב
-          <input type="file" accept="image/*" class="draft-direct-upload" style="display:none">
+          <input type="file" accept="image/*" multiple class="draft-direct-upload" style="display:none">
         </label>
       </div>
     </div>
+    <label class="draft-dropzone" title="גרור תמונות לכאן או לחץ לבחירה">
+      <input type="file" accept="image/*" multiple class="draft-direct-upload" style="display:none">
+      <span class="b sm">🖼️ גרור תמונות לכאן או לחץ לבחירה מהמחשב</span>
+      <span class="xs muted">JPG / PNG / WebP · עד ${MAX_UPLOAD_MB}MB · התמונה הראשונה תוגדר כ-Hero · ללא AI וללא עלות</span>
+    </label>
 
     ${imgs.length ? `
       <div class="draft-images-list stack" style="gap:10px">
@@ -2226,6 +2347,7 @@ function vDraftImagesManager(c){
         <span class="sm muted">עדיין אין תמונות במאמר זה.</span>
         <div class="mt-s">
           <button type="button" class="btn pri sm" data-act="openDraftImageModal">✨ צור תמונה ראשונה עם AI</button>
+          <span class="xs muted">או גרור/העלה תמונה מהמחשב באזור שלמעלה</span>
         </div>
       </div>
     `}
@@ -2694,7 +2816,7 @@ function renderDemo(){
 
 /* ================= רינדור ================= */
 const VIEWS = {overview:vOverview, sites:vSites, keywords:vKeywords, research:vResearch, ranks:vRanks, competitors:vCompetitors, opps:vOpps, tech:vTech, produce:vProduce, publish:vPublish, measure:vMeasure, optimize:vOptimize};
-function render(){ renderTabs(); $("#view").innerHTML = VIEWS[S.tab](); bindInputs(); renderOverlay(); renderDemo(); }
+function render(){ renderTabs(); $("#view").innerHTML = dataStrip(S.tab) + VIEWS[S.tab](); bindInputs(); renderOverlay(); renderDemo(); }
 function go(tab){ S.tab = tab; S.compose = tab === "produce" ? S.compose : null; history.replaceState(null,"","#"+tab); render(); window.scrollTo(0,0); }
 function bindInputs(){
   const on = (id, fn, ev="input") => { const e = $(id); if (e) e.addEventListener(ev, fn); };
@@ -2877,42 +2999,61 @@ function bindDraftInputs(){
   });
 
   document.querySelectorAll(".draft-direct-upload").forEach(inp => {
-    inp.addEventListener("change", e => {
-      const c = S.compose;
-      if (!c) return;
-      ensureDraftPlan(c);
-      const file = e.target.files && e.target.files[0];
-      if (!file) return;
-      if (!file.type || file.type.indexOf("image/") !== 0) return toast("יש לבחור קובץ תמונה");
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const shrunk = await shrinkImage(String(reader.result || ""));
-        const newImg = {
-          id: planUid("img"),
-          src: shrunk,
-          fileName: file.name,
-          prompt: "",
-          alt: (c.title || c.keyword || "תמונת מאמר") + " - דליה פתרונות רכב",
-          role: "inline",
-          placement: "start",
-          afterH2: 0,
-          aiModel: null
-        };
-        c.article_plan.images.items.push(newImg);
-        c.article_plan.images.mode = "custom";
-        c.article_plan.images.custom_count = c.article_plan.images.items.length;
-        if (c.id) {
-          const post = POSTS.find(x => x.id === c.id);
-          if (post) { post.article_plan = clonePlan(c.article_plan); post.updated_at = new Date().toISOString(); }
-        }
-        savePostsStorage();
-        toast("✓ התמונה הועלתה והתווספה למאמר");
-        render();
-      };
-      reader.readAsDataURL(file);
-    });
+    inp.addEventListener("change", e => { addDraftImageFiles(e.target.files); e.target.value = ""; });
+  });
+  document.querySelectorAll(".draft-dropzone").forEach(zone => {
+    const on = ev => { ev.preventDefault(); zone.classList.add("over"); };
+    const off = () => zone.classList.remove("over");
+    zone.addEventListener("dragenter", on);
+    zone.addEventListener("dragover", on);
+    zone.addEventListener("dragleave", off);
+    zone.addEventListener("drop", ev => { ev.preventDefault(); off(); addDraftImageFiles(ev.dataTransfer && ev.dataTransfer.files); });
   });
 }
+const MAX_UPLOAD_MB = 15;
+// One path for every manual upload: file picker, multi-select and drag & drop. Never calls AI.
+function addDraftImageFiles(fileList){
+  const c = S.compose;
+  if (!c) return;
+  ensureDraftPlan(c);
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  const images = files.filter(f => f.type && f.type.indexOf("image/") === 0);
+  if (images.length < files.length) toast("חלק מהקבצים אינם תמונה ולא נוספו");
+  const ok = images.filter(f => f.size <= MAX_UPLOAD_MB * 1024 * 1024);
+  if (ok.length < images.length) toast(`קובץ גדול מ-${MAX_UPLOAD_MB}MB לא נוסף`);
+  if (!ok.length) return;
+  const readOne = file => new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = async () => resolve({file, src: await shrinkImage(String(reader.result || ""))});
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+  Promise.all(ok.map(readOne)).then(results => {
+    const items = c.article_plan.images.items;
+    results.filter(Boolean).forEach(({file, src}) => {
+      const hero = !items.some(x => x.role === "hero" || x.placement === "hero");
+      items.push({
+        id: planUid("img"), src, fileName: file.name, prompt: "",
+        alt: (c.title || c.keyword || "תמונת מאמר") + " - דליה פתרונות רכב",
+        role: hero ? "hero" : "inline", placement: hero ? "hero" : "start", afterH2: 0, aiModel: null
+      });
+    });
+    c.article_plan.images.mode = "custom";
+    c.article_plan.images.custom_count = items.length;
+    if (c.id) {
+      const post = POSTS.find(x => x.id === c.id);
+      if (post) { post.article_plan = clonePlan(c.article_plan); post.updated_at = new Date().toISOString(); }
+    }
+    const saved = savePostsStorage();
+    if (saved) toast(results.length > 1 ? `✓ ${results.length} תמונות הועלו ונשמרו בטיוטה` : "✓ התמונה הועלתה ונשמרה בטיוטה");
+    render();
+  });
+}
+// A drop that misses the zone must not navigate away from an open draft.
+["dragover","drop"].forEach(t => window.addEventListener(t, e => {
+  if (S.compose && e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files") && !e.target.closest?.(".draft-dropzone")) e.preventDefault();
+}));
 function trackKw(kw, group="ממחקר"){
   if (siteKw().some(k => k.kw === kw)) return;
   KEYWORDS.push({id:"k"+(++KID), site:S.site, kw, group, intent:"informational", status:"tracking", vol:null, volSrc:null, hist:null, url:"", checked:null, comp:null, gsc:null, added:Date.now()});
@@ -2958,7 +3099,9 @@ document.addEventListener("click", e => {
   if (d.copy){ navigator.clipboard?.writeText(d.copy).catch(()=>{}); return toast("הועתק"); }
   if (d.toggleKw){ const k = KEYWORDS.find(x=>x.id===d.toggleKw); k.status = k.status==="tracking"?"paused":"tracking"; renderOverlay(); return render(); }
   if (d.rmkw){ const i = KEYWORDS.findIndex(x=>x.id===d.rmkw); const kw = KEYWORDS[i].kw; KEYWORDS.splice(i,1); S.drawer = null; toast(`"${kw}" הוסרה מהמעקב של דליה SEO (נשארת במאגר המשותף)`); return render(); }
-  if (d.crawl){ const s = SITES.find(x=>x.id===d.crawl); s.lastCrawl = Date.now(); toast(`הסריקה של ${s.domain} הסתיימה (הדגמה)`); return render(); }
+  if (d.crawl){ const s = SITES.find(x=>x.id===d.crawl);
+    if (s.id==="s1"){ toast(`סריקה אמיתית רצה מהשרת/סקריפט (node scripts/dalia-seo/scan-site-readonly.mjs) ונפרסת לכאן — הדפדפן לא יכול לסרוק את dalia-c.com ישירות. התוצאה המוצגת: ${REAL.scan?fdt(Date.parse(REAL.scan.scannedAt)):"אין סריקה"}.`, 10000); return; }
+    s.lastCrawl = Date.now(); toast(`הסריקה של ${s.domain} הסתיימה (הדגמה)`); return render(); }
   if (d.rmsite){ if (SITES.length < 2) return; const i = SITES.findIndex(x=>x.id===d.rmsite); SITES.splice(i,1); if (S.site===d.rmsite) S.site = SITES[0].id; return render(); }
   if (d.editplan){ const p = PLANS.find(x=>x.id===+d.editplan); S.research.planForm = {...p}; return render(); }
   if (d.rmplan){ const i = PLANS.findIndex(x=>x.id===+d.rmplan); PLANS.splice(i,1); POSTS.forEach(p => { if (p.plan_id===+d.rmplan) p.plan_id = null; }); return render(); }
@@ -2969,7 +3112,7 @@ document.addEventListener("click", e => {
   if (d.act === "sitePreview"){ S.modal = { type: "sitePreview", device: S.modal?.device || "desktop", post: { ...S.compose } }; return renderOverlay(); }
   if (d.edit){ const p = POSTS.find(x=>x.id===+d.edit); S.compose = {...p, scheduled_at: p.scheduled_at && p.status==="scheduled" ? p.scheduled_at.slice(0,16) : "", article_plan: p.article_plan ? clonePlan(p.article_plan) : undefined}; ensureDraftPlan(S.compose); S.drawer = null; return go("produce"); }
   if (d.rmpost){ POSTS.splice(POSTS.findIndex(x=>x.id===+d.rmpost),1); savePostsStorage(); return render(); }
-  if (d.pubnow){ S.modal = {type:"confirmPub", id:+d.pubnow}; return renderOverlay(); }
+  if (d.pubnow){ if (realSiteWriteBlocked()) return toast(WP_WRITE_BLOCKED, 9000); S.modal = {type:"confirmPub", id:+d.pubnow}; return renderOverlay(); }
   if (d.unsched){ const p = POSTS.find(x=>x.id===+d.unsched); p.status = "draft"; p.scheduled_at = null; savePostsStorage(); return render(); }
   if (d.liveurl){ e.preventDefault(); return toast("בהדגמה אין אתר חי"); }
   if (d.month){ const [y,m] = S.publish.month.split("-").map(Number); const n = new Date(y, m-1+ +d.month, 1); S.publish.month = `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,"0")}`; return render(); }
@@ -3633,7 +3776,10 @@ document.addEventListener("click", e => {
       return;
     }
     case "composeSave": case "composePublish": {
-      const c = S.compose; const sched = c.scheduled_at ? new Date(c.scheduled_at).toISOString() : null;
+      const c = S.compose;
+      const pubBlocked = realSiteWriteBlocked() && (d.act === "composePublish" || !!c.scheduled_at);
+      if (pubBlocked){ c.scheduled_at = ""; toast(WP_WRITE_BLOCKED, 9000); }
+      const sched = c.scheduled_at ? new Date(c.scheduled_at).toISOString() : null;
       let p = POSTS.find(x => x.id === c.id);
       const status = sched ? "scheduled" : p?.status === "published" ? "published" : "draft";
       const data = {title:c.title, keyword:c.keyword, plan_id:c.plan_id?+c.plan_id:null, meta_description:c.meta_description, content_html:c.content_html, status, scheduled_at:sched, updated_at:new Date().toISOString()};
@@ -3642,10 +3788,10 @@ document.addEventListener("click", e => {
       if (c.article_plan) data.article_plan = clonePlan(c.article_plan);
       if (p) Object.assign(p, data); else { p = {id:++PID, site:S.site, published_at:null, published_url:null, error:null, rank:null, rank_checked_at:null, created_at:new Date().toISOString(), ...data}; POSTS.unshift(p); }
       savePostsStorage();
-      if (d.act === "composePublish"){ S.modal = {type:"confirmPub", id:p.id}; S.compose = null; render(); return renderOverlay(); }
-      S.compose = null; toast(sched ? "המאמר תוזמן (הדגמה)" : "הטיוטה נשמרה"); return render(); }
-    case "doPublish": { const p = POSTS.find(x=>x.id===S.modal.id); Object.assign(p, {status:"published", published_at:new Date().toISOString(), published_url:`https://${site().domain}/blog/${p.id}`, error:null}); S.modal = null; toast("פורסם (הדגמה — לא נשלח דבר)"); return render(); }
-    case "scheduleDrafts": { const drafts = sitePosts().filter(p=>p.status==="draft"); const start = S.publish.start ? Date.parse(S.publish.start) : Date.now()+DAY, step = +S.publish.cadence*DAY;
+      if (d.act === "composePublish" && !pubBlocked){ S.modal = {type:"confirmPub", id:p.id}; S.compose = null; render(); return renderOverlay(); }
+      S.compose = null; if (!pubBlocked) toast(sched ? "המאמר תוזמן (הדגמה)" : "הטיוטה נשמרה"); return render(); }
+    case "doPublish": { if (realSiteWriteBlocked()){ S.modal = null; toast(WP_WRITE_BLOCKED, 9000); return render(); } const p = POSTS.find(x=>x.id===S.modal.id); Object.assign(p, {status:"published", published_at:new Date().toISOString(), published_url:`https://${site().domain}/blog/${p.id}`, error:null}); S.modal = null; toast("פורסם (הדגמה — לא נשלח דבר)"); return render(); }
+    case "scheduleDrafts": { if (realSiteWriteBlocked()) return toast(WP_WRITE_BLOCKED, 9000); const drafts = sitePosts().filter(p=>p.status==="draft"); const start = S.publish.start ? Date.parse(S.publish.start) : Date.now()+DAY, step = +S.publish.cadence*DAY;
       drafts.forEach((p,i) => { const dt = new Date(start + i*step); dt.setHours(9,0,0,0); p.status = "scheduled"; p.scheduled_at = dt.toISOString(); });
       toast(`${drafts.length} טיוטות תוזמנו`); return render(); }
     case "checkPostRanks": { const tr = sitePosts().filter(p=>p.status==="published"&&p.keyword).sort((a,b)=>(a.rank_checked_at||"").localeCompare(b.rank_checked_at||"")).slice(0,10);
@@ -3658,7 +3804,7 @@ document.addEventListener("click", e => {
 document.addEventListener("change", e => { if (e.target.id === "sitePick"){ S.site = e.target.value; S.kwSel.clear(); S.comp = null; S.optimize.postId = null; S.compose = null; render(); } });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && (S.drawer || S.modal)){ S.drawer = null; S.modal = null; renderOverlay(); } });
 
-const h = location.hash.slice(1); if (VIEWS[h]) S.tab = h;
+const h = location.hash.slice(1); if (VIEWS[h] || h === "settings") S.tab = h; // settings is registered later in the page
 </script>
 <script>
 "use strict";
@@ -3670,12 +3816,13 @@ const h = location.hash.slice(1); if (VIEWS[h]) S.tab = h;
 const hash = s => { let h = 0; for (const ch of String(s)) h = (h*31 + ch.charCodeAt(0))|0; return Math.abs(h); };
 const CONN = {
   s1:{
-    verify:{state:"ok", method:"gsc", at:NOW-30*DAY, record:"מאומת באמצעות Google Search Console"},
-    gsc:{state:"ok", property:"sc-domain:dalia-c.com", siteUrl:"https://dalia-c.com/", account:"orin1607@gmail.com", at:NOW-DAY},
-    wp:{state:"ok", url:"https://dalia-c.com/wp-json", user:"dalia-admin", at:NOW-DAY, perms:["קריאת עמודים ופוסטים (REST API פעיל)", "Google Site Kit", "Yoast SEO", "Elementor"]},
-    rank:{state:"ok", provider:"SerpAPI", owner:"dalia", location:"ישראל", city:"", device:"מחשב + נייד", freq:"שבועי", depth:100, at:NOW-DAY},
-    crawl:{state:"ok", sitemap:"https://dalia-c.com/sitemap.xml", maxPages:500, freq:"שבועי", exclude:"/wp-admin, /cart", robots:true, at:NOW-DAY, pages:28},
-    psi:{state:"ok", at:NOW-DAY, note:"נבדקו עמודי ליבה"}
+    // dalia-c.com: every state here is replaced by probeRealSources() after a real check.
+    verify:{state:"checking", method:"gsc", at:null, record:"אומת בעבר דרך Google Search Console (siteOwner)"},
+    gsc:{state:"checking", property:"sc-domain:dalia-c.com", siteUrl:"https://dalia-c.com/", account:"orin1607@gmail.com", at:null},
+    wp:{state:"checking", url:"https://dalia-c.com/wp-json", user:"קריאה ציבורית (REST)", at:null, perms:["קריאת עמודים ופוסטים בלבד"]},
+    rank:{state:"off"},
+    crawl:{state:"checking", sitemap:"https://dalia-c.com/sitemap_index.xml", maxPages:300, freq:"ידני (סקריפט)", exclude:"", robots:true, at:null, pages:0},
+    psi:{state:"off"}
   },
   s2:{
     verify:{state:"ok", method:"meta", at:NOW-58*DAY, record:'<meta name="dalia-seo-verify" content="c81b02f6">'},
@@ -3686,7 +3833,7 @@ const CONN = {
     psi:{state:"off"}
   }
 };
-const CSTATE = {ok:["מחובר · הדגמה","up"], warn:["מחובר עם אזהרה","warn"], off:["לא מחובר","warn"], err:["שגיאה","down"], na:["לא רלוונטי",""], partial:["חלקי","warn"], pending:["ממתין לאימות","info"]};
+const CSTATE = {live:["מחובר · נבדק עכשיו","up"], stale:["נתונים ישנים / לא נבדק עכשיו","warn"], checking:["בודק…","info"], ok:["מחובר · הדגמה","up"], warn:["מחובר עם אזהרה","warn"], off:["לא מחובר","warn"], err:["שגיאה","down"], na:["לא רלוונטי",""], partial:["חלקי","warn"], pending:["ממתין לאימות","info"]};
 const cs = s => `<span class="badge ${CSTATE[s][1]}">${CSTATE[s][0]}</span>`;
 const CONN_DEF = [
   ["verify","אימות בעלות על האתר","מוכיח שהאתר שייך לחברה. בלי אימות אין Search Console ואין סריקה מלאה."],
@@ -3698,7 +3845,7 @@ const CONN_DEF = [
 ];
 function ci(sid){ if (!CONN[sid]) CONN[sid] = {verify:{state:"off"},gsc:{state:"off"},wp:{state:"off"},rank:{state:"off"},crawl:{state:"off"},psi:{state:"off"}}; return CONN[sid]; }
 function syncConn(sid){ const c = ci(sid), s = SITES.find(x=>x.id===sid); if (!s) return;
-  s.conn = {serp:["ok","warn"].includes(c.rank.state), gsc:c.gsc.state==="ok", wp:["ok","warn"].includes(c.wp.state), crawl:["ok","partial"].includes(c.crawl.state)}; }
+  s.conn = {serp:["ok","warn"].includes(c.rank.state), gsc:["ok","live"].includes(c.gsc.state), wp:["ok","warn","live"].includes(c.wp.state), crawl:["ok","partial","live","stale"].includes(c.crawl.state)}; }
 SITES.forEach(s => syncConn(s.id));
 
 /* ---- פס מצב חיבורים (קיים במקור: ConnectionStatus) ---- */
@@ -3752,6 +3899,48 @@ function vSites2(){
 VIEWS.sites = vSites2;
 
 /* ---- חיבורים ואינטגרציות (הגדרות לקוח) ---- */
+/* כרטיסי ההגדרות של dalia-c.com — כל סטטוס מחושב מ-REAL (בדיקה אמיתית בטעינת הדף) */
+function settingsCards(){
+  const B = {
+    green:t => `<span class="badge up" style="background:#d1fae5;color:#065f46">🟢 ${t}</span>`,
+    yellow:t => `<span class="badge warn" style="background:#fef3c7;color:#b45309">🟡 ${t}</span>`,
+    red:t => `<span class="badge down">🔴 ${t}</span>`,
+    grey:t => `<span class="badge" style="background:#e5e7eb;color:#374151">⚪ ${t}</span>`
+  };
+  const card = (title, badge, sub, body, actions="") => `<div class="card" style="padding:16px">
+    <div class="head"><div><div class="row" style="gap:8px;flex-wrap:wrap"><span class="b">${title}</span>${badge}</div>${sub?`<p class="xs muted m0 mt-s">${sub}</p>`:""}</div></div>
+    <p class="xs muted" style="margin:12px 0;line-height:1.5">${body}</p>${actions?`<div class="row" style="gap:8px;flex-wrap:wrap">${actions}</div>`:""}</div>`;
+  if (!REAL.checkedAt) return `<div class="card" style="padding:16px"><span class="badge info">בודק את מקורות הנתונים עכשיו…</span></div>`;
+  const ex = REAL.gscExport, exAt = ex ? fdt(Date.parse(ex.generatedAt)) : "—";
+  const gscB = ex?.gsc?.ok ? B.yellow("נתונים מקובץ ייצוא — לא נבדק עכשיו") : B.red("מנותק");
+  const ga4B = ex?.ga4?.ok ? B.yellow("נתונים מקובץ ייצוא — לא נבדק עכשיו") : B.red("מנותק");
+  const sc = REAL.scan, age = scanAgeDays();
+  const ai = REAL.ai;
+  return [
+    card("Google Search Console", gscB, `נכס: <code>sc-domain:dalia-c.com</code> · ייצוא אחרון: ${exAt}`,
+      ex?.gsc?.ok ? `בקובץ הייצוא ${fmt(ex.keywords)} שאילתות. הדף לא יכול לבדוק את Google ישירות.`
+        : `החיבור ל-Google נכשל: <code>${esc(ex?.gsc?.note || "אין קובץ ייצוא")}</code>. אין קליקים, חשיפות או מיקומים אמיתיים במערכת עד לחיבור מחדש.`,
+      `<button class="btn sm" data-ctest="gsc|s1">בדוק מצב</button>`),
+    card("Google Analytics 4", ga4B, `נכס: <code>properties/545246030</code> · ייצוא אחרון: ${exAt}`,
+      ex?.ga4?.ok ? "נתונים מקובץ הייצוא בלבד." : `החיבור ל-Google נכשל: <code>${esc(ex?.ga4?.note || "אין קובץ ייצוא")}</code>. אין נתוני תנועה אמיתיים במערכת.`,
+      `<button class="btn sm" data-ctest="psi|s1">בדוק מצב</button>`),
+    card("WordPress / dalia-c.com", REAL.wp?.ok ? B.green("נבדק עכשיו · קריאה בלבד") : B.red("לא ענה"), `REST API: <code>https://dalia-c.com/wp-json</code> · נבדק ${fdt(REAL.wp?.at)}`,
+      REAL.wp?.ok ? `נקרא עכשיו מה-REST הציבורי: <strong>${fmt(REAL.wp.pages)} עמודים</strong> ו-<strong>${fmt(REAL.wp.posts)} פוסטים</strong> שפורסמו. דליה SEO לא כותבת לאתר — אין פרסום ואין העלאת מדיה מכאן.`
+        : `קריאת ה-REST נכשלה (${esc(String(REAL.wp?.status||REAL.wp?.error||"רשת"))}).`,
+      `<button class="btn sm" data-ctest="wp|s1">בדוק עכשיו</button><a href="https://dalia-c.com" target="_blank" rel="noopener" class="btn ghost sm">פתח אתר ↗</a>`),
+    card("סריקת אתר, Sitemap ו-Robots", !sc ? B.grey("אין סריקה") : age <= STALE_SCAN_DAYS ? B.green(`סריקה אמיתית · ${fdt(Date.parse(sc.scannedAt))}`) : B.yellow(`סריקה ישנה · ${fdt(Date.parse(sc.scannedAt))}`),
+      `robots.txt: ${sc?.robots?.status||"—"} · Sitemap: ${sc?.sitemaps?.filter(x=>x.status===200).length||0} קבצים עונים`,
+      sc ? `${fmt(sc.summary.sitemapUrls)} כתובות ב-sitemap · ${fmt(sc.summary.scanned)} נסרקו · ${fmt(sc.summary.brokenLinks)} קישורים/עמודים שבורים. הסריקה רצה מסקריפט (GET בלבד) ולא מהדפדפן.` : "אין קובץ סריקה.",
+      `<button class="btn sm" data-ctest="crawl|s1">בדוק robots ו-sitemap</button><button class="btn ghost sm" onclick="go('tech')">לביקורת הטכנית</button>`),
+    card("מקור מיקומים (SERP)", B.grey("לא מוגדר"), "ספק אפשרי: SerpAPI / DataForSEO",
+      "אין ספק מיקומים. לכן אין מיקומי Google אמיתיים, אין היסטוריית מיקום ואין מיקומי מתחרים — כל אלה במסכים הם הדגמה.", ""),
+    card("PageSpeed / Core Web Vitals", B.grey("לא מחובר"), "", "LCP ומהירות טעינה לא נמדדים. במסך הביקורת הטכנית הם מסומנים \"טרם נבדק\".", ""),
+    card("AI ליצירת תוכן (Gemini)", ai?.ok && ai.hasKey ? B.yellow("מוגדר בשרת · חסום בקרדיט") : B.red("לא זמין"),
+      "פונקציית שרת: <code>dalia-seo-ai</code> (STAGING) · המפתח נשמר בשרת בלבד",
+      ai?.ok && ai.hasKey ? "המפתח קיים בשרת. בבדיקה האחרונה (8/10/2026) Google החזיר 402 — הקרדיט בחשבון הקיים נגמר. הדף לא מריץ בדיקת AI אוטומטית כדי לא לחייב."
+        : "פונקציית ה-AI לא ענתה.", "")
+  ].join("");
+}
 function vSettings(){
   const s = site();
   const c = ci(s.id);
@@ -3761,10 +3950,10 @@ function vSettings(){
     <div class="head">
       <div>
         <h2 class="t">חיבורים ואינטגרציות — הגדרות דליה</h2>
-        <p class="sm muted m0 mt-s">מרכז החיבורים עבור <strong>${esc(s.name)} (${esc(s.domain)})</strong>. בדיקות חיות, נתוני אמת והפרדת הרשאות.</p>
+        <p class="sm muted m0 mt-s">מרכז החיבורים עבור <strong>${esc(s.name)} (${esc(s.domain)})</strong>. כל סטטוס נקבע מבדיקה שרצה בטעינת הדף${REAL.checkedAt?` (${fdt(REAL.checkedAt)})`:""}.</p>
       </div>
       <div class="row">
-        <a href="${authUrl}" target="_blank" rel="noopener" class="btn pri sm">🔗 פתח אישור Google OAuth</a>
+        <a href="${authUrl}" target="_blank" rel="noopener" class="btn pri sm" title="ההפניה חוזרת ל-127.0.0.1:4521 — עובד רק כשסקריפט האימות רץ במחשב (npm run project-001:auth)">🔗 חיבור מחדש של Google (דורש סקריפט מקומי)</a>
       </div>
     </div>
 
@@ -3781,128 +3970,7 @@ function vSettings(){
       </div>
     </div>
 
-    <!-- כרטיסי החיבורים הרשמיים עם קידוד צבעים מדויק -->
-    <div class="grid g2" style="gap:14px">
-
-      <!-- Google Search Console -->
-      <div class="card" style="padding:16px">
-        <div class="head">
-          <div>
-            <div class="row" style="gap:8px">
-              <span class="b">Google Search Console</span>
-              <span class="badge up" style="background:#d1fae5;color:#065f46">🟢 נבדק ועובד עם נתונים חיים (siteOwner)</span>
-            </div>
-            <p class="xs muted m0 mt-s">נכס: <code>sc-domain:dalia-c.com</code> · <code>https://dalia-c.com/</code> · חשבון: <code>orin1607@gmail.com</code></p>
-          </div>
-        </div>
-        <p class="xs muted" style="margin:12px 0;line-height:1.5">
-          חיבור API חי מאומת ב-100%: <strong>132 מילות מפתח ושאילתות</strong> ו-<strong>79 עמודים</strong> נמשכו ישירות מ-Search Console. אימות בעלים (siteOwner) מאושר.
-        </p>
-        <div class="row" style="gap:8px">
-          <button class="btn sm" data-ctest="gsc|s1">רענן נתוני Search Console</button>
-          <button class="btn ghost sm" onclick="go('keywords')">צפה במילות המפתח</button>
-        </div>
-      </div>
-
-      <!-- Google Analytics 4 -->
-      <div class="card" style="padding:16px">
-        <div class="head">
-          <div>
-            <div class="row" style="gap:8px">
-              <span class="b">Google Analytics 4</span>
-              <span class="badge up" style="background:#d1fae5;color:#065f46">🟢 נבדק ומחובר חי (OAuth)</span>
-            </div>
-            <p class="xs muted m0 mt-s">נכס: <code>properties/545246030 (dalia-c.com)</code> · מזהה מדידה: <code>G-73K6EDC6LV</code></p>
-          </div>
-        </div>
-        <p class="xs muted" style="margin:12px 0;line-height:1.5">
-          חיבור API חי מאומת מול ה-Data & Admin API של Google (הרשאת <code>analytics.readonly</code> פעילה באותו טוקן). מקושר ישירות ל-stream של <code>dalia-c.com</code>.
-        </p>
-        <div class="row" style="gap:8px">
-          <button class="btn sm" data-ctest="psi|s1">בדוק נתוני GA4</button>
-          <button class="btn ghost sm" onclick="go('measure')">עבור למדידה</button>
-        </div>
-      </div>
-
-      <!-- WordPress / dalia-c.com -->
-      <div class="card" style="padding:16px">
-        <div class="head">
-          <div>
-            <div class="row" style="gap:8px">
-              <span class="b">WordPress / האתר (dalia-c.com)</span>
-              <span class="badge up" style="background:#d1fae5;color:#065f46">🟢 נבדק ועובד עם נתונים חיים (200 OK)</span>
-            </div>
-            <p class="xs muted m0 mt-s">REST API: <code>https://dalia-c.com/wp-json</code> · שרת: Upress</p>
-          </div>
-        </div>
-        <p class="xs muted" style="margin:12px 0;line-height:1.5">
-          קריאה חיה פעילה (CORS מאושר): <strong>84 עמודים פעילים</strong> זוהו. תוספי <strong>Google Site Kit</strong>, <strong>Yoast SEO</strong> ו-<strong>Elementor</strong> פעילים ומאומתים באתר.
-        </p>
-        <div class="row" style="gap:8px">
-          <button class="btn sm" data-ctest="wp|s1">בדוק חיבור חי (Live Probe)</button>
-          <a href="https://dalia-c.com" target="_blank" rel="noopener" class="btn ghost sm">פתח אתר חי ↗</a>
-        </div>
-      </div>
-
-      <!-- סריקת אתר ואינדוקס (Sitemap & Robots) -->
-      <div class="card" style="padding:16px">
-        <div class="head">
-          <div>
-            <div class="row" style="gap:8px">
-              <span class="b">סריקת אתר, Sitemap ו-Robots</span>
-              <span class="badge up" style="background:#d1fae5;color:#065f46">🟢 נבדק ועובד עם נתונים חיים</span>
-            </div>
-            <p class="xs muted m0 mt-s">מפה: <code>https://dalia-c.com/sitemap.xml</code></p>
-          </div>
-        </div>
-        <p class="xs muted" style="margin:12px 0;line-height:1.5">
-          <strong>28 עמודי ליבה נסרקו</strong> ומנותחים ב-דליה SEO (כותרות, תגיות Meta, H1, בעיות תמונות בלי alt וציוני SEO). קובץ Robots.txt עונה ב-200 OK.
-        </p>
-        <div class="row" style="gap:8px">
-          <button class="btn sm" data-ctest="crawl|s1">בדוק תקינות Sitemap & Robots</button>
-          <button class="btn ghost sm" onclick="go('tech')">עבור לביקורת עמודים</button>
-        </div>
-      </div>
-
-      <!-- מקור מיקומים (SERP) -->
-      <div class="card" style="padding:16px">
-        <div class="head">
-          <div>
-            <div class="row" style="gap:8px">
-              <span class="b">מקור מיקומי מילים (SERP)</span>
-              <span class="badge warn" style="background:#fef3c7;color:#b45309">🟡 מוגדר — ממתין להזנת מפתח API</span>
-            </div>
-            <p class="xs muted m0 mt-s">ספק: SerpAPI / DataForSEO · שוק: ישראל (עברית)</p>
-          </div>
-        </div>
-        <p class="xs muted" style="margin:12px 0;line-height:1.5">
-          מיקומי 4 המתחרים (FleetOS, Optibus, Gett, Moovit) והיסטוריית המיקומים מוזנים. חיבור API יומי ייעודי יופעל לאחר הגדרת מפתח הספק ללקוח.
-        </p>
-        <div class="row" style="gap:8px">
-          <button class="btn sm" data-wiz="rank|s1">ערוך הגדרות מקור</button>
-        </div>
-      </div>
-
-      <!-- PageSpeed / מדדי מהירות (PSI) -->
-      <div class="card" style="padding:16px">
-        <div class="head">
-          <div>
-            <div class="row" style="gap:8px">
-              <span class="b">PageSpeed / מדדי מהירות (PSI)</span>
-              <span class="badge up" style="background:#d1fae5;color:#065f46">🟢 פעיל ומאומת</span>
-            </div>
-            <p class="xs muted m0 mt-s">מדדים: LCP, מהירות טעינה בנייד ובמחשב</p>
-          </div>
-        </div>
-        <p class="xs muted" style="margin:12px 0;line-height:1.5">
-          זמני טעינה (LCP) מחושבים לכל אחד מעמודי האתר הסרוקים בטאב "ביקורת טכנית ועמודים".
-        </p>
-        <div class="row" style="gap:8px">
-          <button class="btn sm" data-ctest="psi|s1">בדוק עמודי ליבה</button>
-        </div>
-      </div>
-
-    </div>
+    <div class="grid g2" style="gap:14px">${settingsCards()}</div>
 
     <!-- מקרא סטטוסים רשמי -->
     <div class="card" style="padding:12px">
@@ -4057,48 +4125,21 @@ document.addEventListener("click", e => {
       step:({verify:1,gsc:2,rank:3,crawl:4,wp:5})[part] ?? 0};
     S.drawer = null; return renderOverlay(); }
   if (d.ctest){ stop(); const [k,sid] = d.ctest.split("|"), c = ci(sid);
-    if (k==="wp" && sid==="s1"){
-      toast("בודק חיבור חי ל-WordPress REST API...");
-      fetch('https://dalia-c.com/wp-json/wp/v2/pages?per_page=1', { mode: 'cors' })
-        .then(r => {
-          if (r.ok) {
-            c.wp.state = "ok"; c.wp.at = Date.now(); c.wp.error = null;
-            syncConn(sid);
-            toast("✓ WordPress REST API מחובר ומגיב (200 OK — 84 עמודים)");
-          } else {
-            c.wp.state = "warn";
-            toast("⚠ תגובת שרת: " + r.status);
-          }
-          render(); return renderOverlay();
-        })
-        .catch(err => {
-          c.wp.state = "warn"; c.wp.error = err.message;
-          toast("שגיאת רשת: " + err.message);
-          render(); return renderOverlay();
+    if (sid==="s1"){
+      // dalia-c.com: only real checks. Nothing here reports success without a real response.
+      if (k==="wp" || k==="crawl" || k==="verify"){
+        toast("בודק עכשיו מול dalia-c.com…");
+        probeRealSources().then(() => {
+          if (k==="wp") toast(REAL.wp.ok ? `✓ WordPress REST ענה עכשיו: ${fmt(REAL.wp.pages)} עמודים, ${fmt(REAL.wp.posts)} פוסטים (קריאה בלבד)` : `✗ WordPress REST לא ענה (${REAL.wp.status||"רשת"})`, 7000);
+          else if (k==="crawl") toast(`robots.txt: ${REAL.robots.ok?"✓ 200":REAL.robots.cors?"לא ניתן לקרוא מהדפדפן (CORS)":"✗ "+REAL.robots.status} · sitemap: ${REAL.sitemap.ok?"✓ 200":REAL.sitemap.cors?"לא ניתן לקרוא מהדפדפן (CORS)":"✗ "+REAL.sitemap.status} · סריקה אחרונה: ${REAL.scan?fdt(Date.parse(REAL.scan.scannedAt)):"אין"}`, 9000);
+          else toast("אימות הבעלות נעשה בעבר דרך Search Console. אי אפשר לבדוק אותו עכשיו כי חיבור Google מנותק.", 8000);
+          renderOverlay();
         });
-      return;
-    }
-    if (k==="crawl" && sid==="s1"){
-      toast("בודק תקינות robots.txt ו-sitemap.xml...");
-      fetch('https://dalia-c.com/robots.txt')
-        .then(() => {
-          c.crawl.state = "ok"; c.crawl.at = Date.now();
-          syncConn(sid);
-          toast("✓ robots.txt ו-sitemap.xml תקינים ועונים ב-200 OK");
-          render(); return renderOverlay();
-        }).catch(() => {
-          c.crawl.state = "ok"; c.crawl.at = Date.now();
-          syncConn(sid);
-          toast("✓ סריקת האתר אומתה");
-          render(); return renderOverlay();
-        });
-      return;
-    }
-    if (k==="gsc" && sid==="s1"){
-      c.gsc.at = Date.now();
-      syncConn(sid);
-      toast("✓ נתוני Google Search Console עדכניים (33 מילות מפתח מנוטרות)");
-      render(); return renderOverlay();
+        return;
+      }
+      if (k==="gsc"){ toast(`Search Console לא נבדק: ${REAL.gscExport?.gsc?.note || "אין חיבור"} (ייצוא אחרון ${fdt(Date.parse(REAL.gscExport?.generatedAt))}). נדרש לחבר את Google מחדש — לא מוצגים נתונים חיים.`, 9000); return; }
+      if (k==="psi"){ toast("PageSpeed / GA4 לא מחוברים לדף הזה — אין בדיקה חיה. LCP ונתוני GA4 לא מוצגים.", 8000); return; }
+      if (k==="rank"){ toast("אין ספק SERP מוגדר — אין בדיקת מיקומים אמיתית.", 7000); return; }
     }
     if (k==="psi"){ c.psi = {state:"ok", at:Date.now(), note:"כל העמודים נבדקו"}; }
     else { c[k].at = Date.now(); if (k==="wp" && c.wp.state==="warn"){ c.wp.state = "ok"; c.wp.error = null; } if (k==="gsc") c.gsc.at = Date.now(); }
@@ -4172,25 +4213,15 @@ async function loadRealOpenSeoData() {
     if (dashRes && dashRes.ok) {
       const dash = await dashRes.json();
       if (dash && dash.searchConsole && Array.isArray(dash.searchConsole.keywords) && dash.searchConsole.keywords.length) {
+        // Only fields Search Console really returns. No invented history, volume, competitor rank or URL.
         const realKws = dash.searchConsole.keywords.map((k, idx) => {
-          const pos = Math.max(1, Math.round(k.position || 25));
-          const impr = k.impressions || 1;
-          const clicks = k.clicks || 0;
+          const pos = k.position != null ? Math.max(1, Math.round(k.position)) : null;
+          const h = Array(WEEKS).fill(null); h[WEEKS - 1] = pos;
           return {
-            id: "k_real_" + (idx + 1),
-            site: "s1",
-            kw: k.query,
-            group: k.query.includes("צי") ? "צי רכב" : k.query.includes("מוסך") ? "מוסך" : k.query.includes("הנחה") || k.query.includes("חבילות") ? "מבצעים ומסלולים" : "דגמי רכב ומותג",
-            intent: k.query.includes("איך") || k.query.includes("האם") ? "informational" : "commercial",
-            status: "tracking",
-            vol: Math.round(impr * 14) || 200,
-            volSrc: "gsc",
-            hist: hist(Math.round(pos + 4), pos, idx + 1),
-            url: "/",
-            checked: Date.now() - DAY,
-            comp: { "fleetos.co.il": Math.round(pos + 3), "optibus.com": null, "gett.com": null, "moovit.com": null },
-            gsc: { clicks, impr, pos: k.position },
-            added: Date.now() - (90 - idx * 2) * DAY
+            id: "k_real_" + (idx + 1), site: "s1", kw: k.query, group: "Search Console", intent: "informational",
+            status: "tracking", vol: null, volSrc: null, hist: h, url: k.page ? String(k.page).replace(/^https?:\/\/[^\/]+/, "") : "",
+            checked: dash.generatedAt ? Date.parse(dash.generatedAt) : null, comp: null,
+            gsc: { clicks: k.clicks || 0, impr: k.impressions || 0, pos: k.position }, added: dash.generatedAt ? Date.parse(dash.generatedAt) : Date.now(), real: true
           };
         });
         if (realKws.length) {
@@ -4199,69 +4230,16 @@ async function loadRealOpenSeoData() {
           KEYWORDS.push(...realKws, ...s2Kws);
         }
       }
-      if (dash.connections) {
-        const c = ci("s1");
-        if (dash.connections.searchConsole?.ok) {
-          c.gsc.state = "ok";
-          c.gsc.property = "sc-domain:dalia-c.com";
-          c.gsc.account = dash.project?.account || "orin1607@gmail.com";
-        }
-        if (dash.connections.analytics4?.ok) {
-          c.psi.state = "ok";
-          c.psi.note = `GA4 מחובר: ${dash.stats?.ga4Sessions || 242} סשנים, ${dash.stats?.ga4PageViews || 402} צפיות`;
-        }
-      }
     }
   } catch (e) {
     console.warn("OpenSEO: could not load dashboard.json", e);
-  }
-
-  try {
-    // 2. Fetch site-crawl-lite.json (real crawled pages & issues)
-    const crawlRes = await fetch('./project-001/site-crawl-lite.json').catch(() => null);
-    if (crawlRes && crawlRes.ok) {
-      const crawlData = await crawlRes.json();
-      if (crawlData && Array.isArray(crawlData.crawl?.pages) && crawlData.crawl.pages.length) {
-        PAGES.s1 = crawlData.crawl.pages.map(p => ({
-          url: p.path || p.url.replace(/^https?:\/\/[^\/]+/, "") || "/",
-          title: p.title || "עמוד dalia-c.com",
-          meta: p.metaDescription || "",
-          h1: (p.h1 || "").split("\n")[0] || "",
-          words: p.title ? p.title.length * 15 + 400 : 450,
-          inL: 4,
-          outL: 6,
-          status: p.httpStatus || 200,
-          index: true,
-          alt: (p.issues || []).some(x => String(x).includes("alt")) ? 2 : 0,
-          lcp: p.seoScore ? +( (10 - p.seoScore) * 0.4 + 1.2 ).toFixed(1) : 2.1,
-          gsc: p.gsc || null,
-          ga4Views: p.ga4Views || null
-        }));
-      }
-    }
-  } catch (e) {
-    console.warn("OpenSEO: could not load site-crawl-lite.json", e);
-  }
-
-  try {
-    // 3. Live probe to dalia-c.com WordPress REST API
-    const wpRes = await fetch('https://dalia-c.com/wp-json/wp/v2/pages?per_page=1', { mode: 'cors' }).catch(() => null);
-    if (wpRes && wpRes.ok) {
-      const c = ci("s1");
-      c.wp.state = "ok";
-      c.wp.at = Date.now();
-      c.wp.error = null;
-      syncConn("s1");
-    }
-  } catch (e) {
-    console.warn("OpenSEO: WordPress live probe", e);
   }
 
   render();
 }
 
 render();
-loadRealOpenSeoData();
+loadRealOpenSeoData().then(probeRealSources);
 
 </script>
 </body>
