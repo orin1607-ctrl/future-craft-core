@@ -1395,8 +1395,8 @@ function vOverview(){
          ["keywords","מילות מפתח",m.total,`${m.unchecked} טרם נבדקו`],
          ["ranks","בגוגל",m.avg?"#"+m.avg.toFixed(1):"—",`${m.top10} בעמוד הראשון`],
          ["ranks","שינוי",`${m.up} ↑  ${m.down} ↓`,"עלו / ירדו השבוע"],
-         ["competitors","מתחרים",m.comps,"מתחרים אורגניים"],
-         ["competitors","פערים",m.gaps,"מילים שיש להם ולנו אין",{cmp:"gap"}],
+         ["competitors","מתחרים",(S.site==="s1"&&hasRealGsc())?"—":m.comps,(S.site==="s1"&&hasRealGsc())?"דורש ספק SERP":"מתחרים אורגניים"],
+         ["competitors","פערים",(S.site==="s1"&&hasRealGsc())?"—":m.gaps,(S.site==="s1"&&hasRealGsc())?"דורש ספק SERP":"מילים שיש להם ולנו אין",{cmp:"gap"}],
          ["opps","הזדמנויות",m.opps,"לפי עדיפות"],
          ["opps","מה לעשות",Math.min(m.opps,5)+" פעולות","מומלצות השבוע"]]
         .map(([tab,k,v,d,extra],i) => `<button data-tab="${tab}" ${extra?`data-cmpview="${extra.cmp}"`:""}><span class="k"><b>${i+1}</b>${k}</span><span class="v ${i===0?"sm":""}" style="${i===0?"font-size:16px":""}">${esc(v)}</span><span class="d">${esc(d)}</span></button>`).join("")}
@@ -1514,10 +1514,10 @@ function vKeywords(){
         <tbody>${list.map(k => { const b = bestComp(k), a = action(k); return `<tr>
           <td><input type="checkbox" data-sel="${k.id}" ${sel.has(k.id)?"checked":""} aria-label="בחר ${esc(k.kw)}"></td>
           <td><button class="linkish" data-kw="${k.id}">${esc(k.kw)}</button><div class="xs muted">${esc(k.group)} · ${INTENT[k.intent]}</div></td>
-          <td>${posHtml(cur(k))}</td><td>${k.hist ? (prev(k)==null?`<span class="faint sm">100+</span>`:`<span class="num sm muted">${prev(k)}</span>`) : `<span class="faint">—</span>`}</td>
+          <td>${posHtml(cur(k))}</td><td>${k.hist ? (prev(k)==null?`<span class="faint sm">${k.real?"—":"100+"}</span>`:`<span class="num sm muted">${prev(k)}</span>`) : `<span class="faint">—</span>`}</td>
           <td>${deltaHtml(k)}</td><td>${spark(k.hist)}</td>
           <td class="xs ltr">${k.url ? `<button class="linkish xs" data-page="${esc(k.url)}">${esc(k.url)}</button>` : `<span class="faint">אין עמוד</span>`}</td>
-          <td class="sm">${b ? `${esc(compName(b.d))} ${posHtml(b.p)}` : k.comp ? `<span class="faint">אף מתחרה בטופ 100</span>` : SRC.none()}</td>
+          <td class="sm">${b ? `${esc(compName(b.d))} ${posHtml(b.p)}` : k.comp ? `<span class="faint">אף מתחרה בטופ 100</span>` : k.real ? `<span class="faint xs" title="דורש ספק SERP">אין מקור</span>` : SRC.none()}</td>
           <td class="sm">${k.vol != null ? `<span class="num">${fmt(k.vol)}</span>` : SRC.unv()}</td>
           ${S.live.gsc?`<td class="sm num">${k.gsc?`${fmt(k.gsc.clicks)} / ${fmt(k.gsc.impr)}`:SRC.unv()}</td>`:""}
           <td>${k.status==="tracking"?`<span class="badge info">במעקב</span>`:`<span class="badge">מושהה</span>`}</td>
@@ -1564,6 +1564,7 @@ function gapList(sid = S.site){
   KEYWORDS.filter(k => k.site === sid && k.hist && cur(k) == null && k.comp).forEach(k => {
     const b = bestComp(k); if (b && b.p <= 20) out.push({kw:k.kw, d:b.d, p:b.p, tracked:true, kid:k.id, url:null});
   });
+  if (sid === "s1" && hasRealGsc()) return out.sort((a,b) => a.p - b.p);
   Object.entries(COMP_ONLY[sid] || {}).forEach(([d, arr]) => arr.forEach(([kw,p,url]) => {
     if (!KEYWORDS.some(k => k.site === sid && k.kw === kw)) out.push({kw, d, p, tracked:false, url});
   }));
