@@ -442,6 +442,20 @@
       preferredContact = [...normalizedContacts].sort((a, b) => getPriority(a) - getPriority(b))[0];
     }
 
+    if (fs.contact_name.s === "n" && normalizedContacts.length > 0) {
+      const topC = preferredContact || normalizedContacts[0];
+      fs.contact_name = fieldOf(topC.status || (topC.tier === "A" ? "v" : "f"), topC.name, topC.tier === "A" ? SRC_CONTRACTORS : "פנקס הקבלנים / רשומה");
+      if (fs.contact_role.s === "n" && topC.role) {
+        fs.contact_role = fieldOf("f", topC.role, "רשומה");
+      }
+      if (fs.contact_phone.s === "n" && topC.phone) {
+        fs.contact_phone = fieldOf(validPhone(topC.phone) ? "v" : "f", topC.phone, "איש קשר");
+      }
+      if (fs.contact_email.s === "n" && topC.email) {
+        fs.contact_email = fieldOf("f", topC.email, "איש קשר");
+      }
+    }
+
     // Channels collection
     const rawMultiPhones = Array.isArray(row.multi_phones) ? row.multi_phones : [];
     const validPhonesList = [];
@@ -461,6 +475,16 @@
     rawMultiMails.forEach(m => {
       const v = typeof m === "object" ? m.val : m;
       if (has(v) && !validMailsList.includes(v)) validMailsList.push(v);
+    });
+
+    // Also include phone and email from parsed contacts
+    normalizedContacts.forEach(ct => {
+      if (ct.phone && validPhone(ct.phone) && !validPhonesList.some(x => normPhone(x.val) === normPhone(ct.phone))) {
+        validPhonesList.push({ val: ct.phone, type: String(ct.phone).startsWith("05") ? "mobile" : "landline", tier: ct.tier || "B" });
+      }
+      if (ct.email && String(ct.email).includes("@") && !validMailsList.includes(ct.email)) {
+        validMailsList.push(ct.email);
+      }
     });
 
     const mobileCount = validPhonesList.filter(p => p.type === "mobile").length;
@@ -926,11 +950,7 @@
       leadQualityLabel = stage === "ready" ? "🟢 מוכן לפנייה" : "🟢 ליד איכותי";
     } else {
       leadQualityColor = "yellow";
-      if (worthPaying || extRec === "מומלץ מאוד" || (businessPotentialScore >= 60 && hasAiChecked && (missing.length > 0 || detailedMissing.length > 0))) {
-        leadQualityLabel = "🟡 מועמד להעשרה חיצונית";
-      } else {
-        leadQualityLabel = "🟡 ליד טוב להשקעה";
-      }
+      leadQualityLabel = "🟡 ליד טוב להשקעה";
     }
 
     /* --- Workflow Status: Distinct Process Lifecycle --- */
@@ -1192,7 +1212,55 @@
     ready_for_contact: "מוכן לפנייה",
     not_worth_investing: "לא כדאי להשקיע"
   };
+  function hasAnyValidPhone(row, q) {
+    if (q && Array.isArray(q.valid_phones_list) && q.valid_phones_list.length > 0) return true;
+    const e = (row && row.enr) || row || {};
+    const candidates = [row?.phone, e.phone, e.phone_secondary, e.mobile, e.direct_phone, e.contact_phone, e.public_whatsapp];
+    for (const p of candidates) {
+      if (p && validPhone(p)) return true;
+    }
+    const mp = Array.isArray(row?.multiPhones) ? row.multiPhones : (Array.isArray(e.multi_phones) ? e.multi_phones : []);
+    for (const item of mp) {
+      const val = typeof item === "object" ? item?.val : item;
+      if (val && !String(val).includes("שגוי") && validPhone(val)) return true;
+    }
+    const people = Array.isArray(row?.people) ? row.people : (Array.isArray(e.people) ? e.people : (Array.isArray(e.contacts) ? e.contacts : []));
+    for (const p of people) {
+      const ph = Array.isArray(p) ? p[4] : p?.phone;
+      if (ph && validPhone(ph)) return true;
+    }
+    return false;
+  }
+
+  function hasAnyRealContact(row, q) {
+    if (q && Array.isArray(q.contacts_list) && q.contacts_list.length > 0) {
+      if (q.contacts_list.some(ct => ct && String(ct.name || "").trim() && String(ct.name).trim() !== "לא נמצא")) return true;
+    }
+    const e = (row && row.enr) || row || {};
+    if (e.contact_name && String(e.contact_name).trim() && String(e.contact_name).trim() !== "לא נמצא") return true;
+    if (row?.contact_name && String(row.contact_name).trim() && String(row.contact_name).trim() !== "לא נמצא") return true;
+    const people = Array.isArray(row?.people) ? row.people : (Array.isArray(e.people) ? e.people : (Array.isArray(e.contacts) ? e.contacts : []));
+    for (const p of people) {
+      const n = Array.isArray(p) ? p[0] : (p?.name || p?.contact_name);
+      if (n && String(n).trim() && String(n).trim() !== "לא נמצא") return true;
+    }
+    return false;
+  }
+
+  function hasAnyValidEmail(row, q) {
+    if (q && Array.isArray(q.valid_mails_list) && q.valid_mails_list.length > 0) return true;
+    const e = (row && row.enr) || row || {};
+    if (row?.mail && String(row.mail).includes("@")) return true;
+    if (e.email && String(e.email).includes("@")) return true;
+    const mm = Array.isArray(row?.multiMails) ? row.multiMails : (Array.isArray(e.multi_mails) ? e.multi_mails : []);
+    for (const item of mm) {
+      const val = typeof item === "object" ? item?.val : item;
+      if (val && String(val).includes("@")) return true;
+    }
+    return false;
+  }
+
   const api = { STAGES, STAGE_LABEL, FLEET_SIZE_LABEL, FIELD_STATUS_LABEL, QUALITY_LABEL, LEAD_QUALITY_LABELS, WORKFLOW_STATUS_LABELS, FIELDS, MISSING_SHORT, missingLabel,
-    NOT_SAFETY_PROOF, normPhone, validPhone, isVerifiedFinding, evaluate };
+    NOT_SAFETY_PROOF, normPhone, validPhone, isVerifiedFinding, evaluate, hasAnyValidPhone, hasAnyRealContact, hasAnyValidEmail };
   root.OPQualify = api;
 })(typeof window !== "undefined" ? window : globalThis);

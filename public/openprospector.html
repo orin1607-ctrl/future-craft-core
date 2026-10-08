@@ -374,6 +374,31 @@ body.is-embedded .content{padding:16px;max-width:100%}
   table.co td[data-label]::before{flex-basis:84px}
   table.co td[data-label]>div{padding-inline-start:90px}
 }
+
+/* עוזר AI - Slide-over Chat Panel */
+.ai-chat-overlay{position:fixed;inset:0;background:rgba(4,9,26,.45);z-index:60;display:flex;justify-content:flex-end;backdrop-filter:blur(2px)}
+.ai-chat-panel{background:var(--bg);width:min(460px,100vw);height:100%;display:flex;flex-direction:column;box-shadow:-6px 0 35px rgba(0,0,0,.3);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);border-inline-start:1px solid var(--border)}
+.ai-chat-h{background:linear-gradient(135deg,#1e1b4b,#312e81);color:#fff;padding:16px 20px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 10px rgba(0,0,0,.15);flex-shrink:0}
+.ai-chat-h h3{margin:0;font-size:16px;font-weight:700}
+.ai-chat-h .x{background:rgba(255,255,255,.14);border:0;color:#fff;width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center}
+.ai-chat-ctx{background:#e0e7ff;border:1px solid #c7d2fe;color:#3730a3;border-radius:8px;padding:8px 12px;font-size:12.5px;display:flex;align-items:center;justify-content:space-between;margin:12px 16px 0;flex-shrink:0}
+:root[data-theme="dark"] .ai-chat-ctx{background:#1e1b4b;border-color:#3730a3;color:#c7d2fe}
+.ai-chat-b{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+.ai-msg{max-width:90%;padding:10px 14px;border-radius:14px;font-size:13.5px;line-height:1.55;word-break:break-word}
+.ai-msg.bot{background:var(--card);border:1px solid var(--border);color:var(--text);align-self:flex-start;border-bottom-inline-start-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.ai-msg.user{background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;align-self:flex-end;border-bottom-inline-end-radius:4px;box-shadow:0 2px 8px rgba(79,70,229,.25)}
+.ai-prompt-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ai-chip{background:var(--soft);border:1px solid var(--border);color:var(--text);font-size:11.5px;padding:4px 10px;border-radius:999px;cursor:pointer;transition:all .15s}
+.ai-chip:hover{background:var(--blue-50);border-color:var(--blue);color:var(--blue)}
+.ai-action-card{background:var(--soft);border:1.5px solid #6366f1;border-radius:10px;padding:12px 14px;margin-top:8px;display:grid;gap:8px}
+.ai-action-card .title{font-weight:700;font-size:13.5px;color:var(--text);display:flex;align-items:center;gap:6px}
+.ai-action-card .desc{font-size:12px;color:var(--muted);line-height:1.4}
+.ai-action-card .btns{display:flex;gap:8px;margin-top:4px}
+.ai-chat-f{border-top:1px solid var(--border);padding:12px 16px;background:var(--card);display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.ai-chat-input-row{display:flex;gap:8px}
+.ai-chat-input{flex:1;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);padding:0 12px;font-size:13.5px}
+.ai-chat-input:focus{outline:2px solid #6366f1;outline-offset:1px}
+@media (max-width:600px){.ai-chat-panel{width:100vw!important}}
 </style>
 </head>
 <body>
@@ -395,6 +420,7 @@ body.is-embedded .content{padding:16px;max-width:100%}
       <div><div class="crumb" id="crumb">מרכז שיווק ופרסום</div><h1 id="title">איתור לקוחות עסקיים</h1></div>
       <span class="grow"></span>
       <div id="cloudSyncStatus" style="display:inline-flex;align-items:center;margin-inline-end:8px"></div>
+      <button class="pill" data-act="openAiChat" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-weight:700;border:none;box-shadow:0 2px 8px rgba(79,70,229,0.35);cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="פתח עוזר AI לניתוח לידים ותובנות">🤖 עוזר AI</button>
       <button class="pill hide-m" data-go="workspace" id="currentCompanyBtn" title="החלפת חברה (סביבת עבודה)">🏢 חברה: דליה פתרונות</button>
       <button class="pill" data-tab="connections"><span class="dot"></span><span id="engineLabel">Gemini AI</span></button>
       <div class="avatar" id="userAvatar" title="יוני אטיאס">יא</div>
@@ -404,6 +430,7 @@ body.is-embedded .content{padding:16px;max-width:100%}
   </main>
 </div>
 <div id="panel"></div>
+<div id="aiChatRoot"></div>
 <div id="modalRoot"></div>
 <div id="toast" class="toast" hidden></div>
 
@@ -2078,6 +2105,10 @@ const S={
   leadsLimit:40,
   coPage:1,
   coPageSize:50,
+  aiChatOpen:false,
+  aiChatMessages:[],
+  aiChatContextLead:null,
+  aiChatPendingAction:null,
   bulk:{
     running:false,
     paused:false,
@@ -2296,6 +2327,7 @@ function render(){
   if(viewEl) viewEl.innerHTML=(V[S.view==="prospector"?S.tab:S.view]||V.dash)();
   renderPanel();
   renderModals();
+  renderAiChat();
 }
 
 function go(v){
@@ -3092,32 +3124,77 @@ function commitBulkToLeads() {
 const CO_FILTERS=["st","fleet","stage","phone","mail","contact","ready","missing","quality","city","ind","qualColor","wfStatus","missingField"];
 function checkMissingField(c, q, fs, mf) {
   if (!q) return false;
-  if (mf === "contact") return !fs || fs.contact_name.s === "n";
-  if (mf === "phone") return !fs || fs.phone.s === "n";
+  if (mf === "contact") return !OPQualify.hasAnyRealContact(c, q);
+  if (mf === "phone") return !OPQualify.hasAnyValidPhone(c, q);
   if (mf === "mobile") return !q.has_mobile_phone;
-  if (mf === "email") return !fs || fs.email.s === "n";
+  if (mf === "email") return !OPQualify.hasAnyValidEmail(c, q);
   if (mf === "website") return !c.web && !(c.enr && c.enr.website);
   if (mf === "fleet_manager") return !(c.enr && c.enr.fleet_manager_name);
   if (mf === "safety_officer") return !(c.enr && c.enr.safety_officer_name);
   if (mf === "fleet") return !fs || fs.fleet.s !== "v";
   return true;
 }
-function coMatch(c,f){
-  const q=QF(c), fs=q?q.field_status:null, s=k=>fs&&fs[k]?fs[k].s:"n";
-  const yn=(v,on)=>!v||(v==="yes"?on:!on);
-  const t=f.q.trim();
-  return (!t||c.name.includes(t)||c.city.includes(t)||c.ind.includes(t)||String(c.no||"").includes(t)||(c.enr&&String(c.enr.contact_name||"").includes(t)))
-    &&(!f.st||c.status===f.st)
-    &&(!f.fleet||s("fleet")===f.fleet)
-    &&(!f.stage||(q?q.lead_stage:"basic")===f.stage)
-    &&yn(f.phone,s("phone")!=="n")&&yn(f.mail,s("email")!=="n")&&yn(f.contact,s("contact_name")!=="n")
-    &&yn(f.ready,isReady(c))
-    &&(!f.missing||(f.missing==="required"?(!q||q.blockers.length>0):f.missing==="any"?(!q||q.missing_fields.length>0):(q&&q.missing_fields.length===0)))
-    &&(!f.quality||(q?q.lead_quality:"low")===f.quality)
-    &&(!f.city||c.city===f.city)&&(!f.ind||c.ind===f.ind)
-    &&(!f.qualColor||(q?q.lead_quality_color:"red")===f.qualColor)
-    &&(!f.wfStatus||(q?q.workflow_status:"new")===f.wfStatus)
-    &&(!f.missingField||checkMissingField(c,q,fs,f.missingField));
+function coMatch(c, f) {
+  const q = QF(c), fs = q ? q.field_status : null, s = k => fs && fs[k] ? fs[k].s : "n";
+  const yn = (v, on) => !v || (v === "yes" ? on : !on);
+  const t = (f.q || "").trim().toLowerCase();
+
+  if (t) {
+    const inName = (c.name || "").toLowerCase().includes(t);
+    const inCity = (c.city || "").toLowerCase().includes(t);
+    const inInd = (c.ind || "").toLowerCase().includes(t);
+    const inNo = String(c.no || "").toLowerCase().includes(t);
+    const inEnrContact = (c.enr && String(c.enr.contact_name || "")).toLowerCase().includes(t);
+    const inContacts = q && Array.isArray(q.contacts_list) && q.contacts_list.some(ct =>
+      String(ct.name || "").toLowerCase().includes(t) ||
+      String(ct.role || "").toLowerCase().includes(t) ||
+      String(ct.phone || "").includes(t)
+    );
+    const inPeople = Array.isArray(c.people) && c.people.some(p => {
+      const pName = Array.isArray(p) ? p[0] : (p?.name || p?.contact_name);
+      return String(pName || "").toLowerCase().includes(t);
+    });
+    const inPhone = String(c.phone || "").includes(t) || (c.enr && String(c.enr.phone || "").includes(t));
+    if (!(inName || inCity || inInd || inNo || inEnrContact || inContacts || inPeople || inPhone)) {
+      return false;
+    }
+  }
+
+  if (f.st && c.status !== f.st) return false;
+  if (f.fleet && s("fleet") !== f.fleet) return false;
+  if (f.stage && (q ? q.lead_stage : "basic") !== f.stage) return false;
+
+  if (!yn(f.phone, OPQualify.hasAnyValidPhone(c, q))) return false;
+  if (!yn(f.mail, OPQualify.hasAnyValidEmail(c, q))) return false;
+  if (!yn(f.contact, OPQualify.hasAnyRealContact(c, q))) return false;
+  if (!yn(f.ready, isReady(c))) return false;
+
+  if (f.missing) {
+    if (f.missing === "required" && (!q || q.blockers.length === 0)) return false;
+    if (f.missing === "any" && (!q || q.missing_fields.length === 0)) return false;
+    if (f.missing === "none" && (!q || q.missing_fields.length > 0)) return false;
+  }
+
+  if (f.quality && (q ? q.lead_quality : "low") !== f.quality) return false;
+  if (f.city && c.city !== f.city) return false;
+  if (f.ind && c.ind !== f.ind) return false;
+
+  if (f.qualColor && (q ? q.lead_quality_color : "red") !== f.qualColor) return false;
+
+  if (f.wfStatus) {
+    const curWf = (q ? q.workflow_status : (c.enr?.enrichment_status || "new"));
+    if (f.wfStatus === "sent_to_ai") {
+      if (curWf !== "sent_to_ai" && curWf !== "queued_for_ai" && c.enr?.enrichment_status !== "sent_to_ai" && c.enr?.enrichment_status !== "queued_for_ai") {
+        return false;
+      }
+    } else {
+      if (curWf !== f.wfStatus) return false;
+    }
+  }
+
+  if (f.missingField && !checkMissingField(c, q, fs, f.missingField)) return false;
+
+  return true;
 }
 V.companies=()=>{
   const f=S.coFilter;
@@ -3532,6 +3609,7 @@ function companyCard(c){
         <select class="input" style="max-width:190px;height:36px;background:rgba(255,255,255,.08);color:#fff;border-color:rgba(255,255,255,.2)" data-status="${c.id}">${STATUSES.map(([k,l])=>`<option value="${k}" ${c.status===k?"selected":""} style="color:#0f172a">${l}</option>`).join("")}</select>
         ${crmHandoffBtn(c)}
         <button class="btn btn-sm" style="background:transparent;color:#fff;border-color:rgba(255,255,255,.3)" data-act="toTele" data-co-id="${c.id}">העבר לטלמרקטינג</button>
+        <button class="btn btn-sm" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;font-weight:600;box-shadow:0 2px 8px rgba(99,102,241,0.4)" data-act="askAiAboutLead" data-co-id="${c.id}">🤖 שאל את ה-AI על ליד זה</button>
       </div></div>
     <div class="panel-b">
       <!-- שורת הצלבה ידנית מהירה בחוק (One-Click Cross-Check Toolbar) -->
@@ -4183,6 +4261,488 @@ function renderExtDispatchModal(m) {
       </div>
     </div>
   </div>`;
+}
+
+/* ===== עוזר AI כללי (General AI Assistant - OpenProspector) ===== */
+function initAiChatWelcome() {
+  S.aiChatMessages = [
+    {
+      role: "assistant",
+      text: `שלום יוני! 👋 אני עוזר ה-AI של OpenProspector.
+אני מחובר ישירות לנתוני המאגר החי ב-STAGING (${C.length} חברות).
+אני יכול לענות על שאלות סטטיסטיות, לנתח לידים ספציפיים, להמליץ על לידים מובילים ולהכין פעולות העשרה לאישורך.`
+    }
+  ];
+}
+
+function appendAiContextLeadIntro(lead) {
+  const q = QF(lead);
+  const qCol = q ? q.lead_quality_color : "yellow";
+  const colIcon = qCol === "green" ? "🟢" : qCol === "yellow" ? "🟡" : "🔴";
+  const bp = q ? q.business_potential_score : lead.score;
+  const cr = q ? q.contact_readiness_score : 0;
+  S.aiChatMessages.push({
+    role: "assistant",
+    text: `🔍 **פוקוס על ליד:** **${esc(lead.name)}** (ח.פ. ${lead.no || "לא צוין"})
+איכות: ${colIcon} ${q ? q.lead_quality_label : ""} | פוטנציאל עסקי: **${bp}%** | מוכנות לפנייה: **${cr}%**
+עיר: ${lead.city || "לא ידוע"} | תחום: ${lead.ind || "כללי"}
+
+${q && q.why_not_green ? `📌 **סטטוס איכות:** ${q.why_not_green}` : ""}
+${q && q.detailed_missing_fields && q.detailed_missing_fields.length ? `⚠️ **מה חסר:** ${q.detailed_missing_fields.join(", ")}` : ""}`,
+    chips: [
+      "למה הליד הזה צהוב?",
+      "מה חסר לליד זה?",
+      "האם כדאי להעביר להעשרת AI?",
+      "האם כדאי לשלוח לספק חיצוני?"
+    ]
+  });
+}
+
+function handleAiUserMessage(userText) {
+  if (!userText || !userText.trim()) return;
+  const qText = userText.trim();
+  S.aiChatMessages.push({ role: "user", text: qText });
+  renderAiChat();
+
+  const b = $("#aiChatBody");
+  if (b) b.scrollTop = b.scrollHeight;
+
+  setTimeout(() => {
+    const reply = processAiQuery(qText);
+    S.aiChatMessages.push(reply);
+    renderAiChat();
+    const b2 = $("#aiChatBody");
+    if (b2) b2.scrollTop = b2.scrollHeight;
+  }, 100);
+}
+
+function processAiQuery(query) {
+  const q = query.toLowerCase();
+  const ctx = S.aiChatContextLead;
+
+  // 1. Context-specific queries for active lead
+  if (ctx && (q.includes("למה") || q.includes("איכות") || q.includes("ירוק") || q.includes("צהוב") || q.includes("אדום"))) {
+    const lq = QF(ctx);
+    return {
+      role: "assistant",
+      text: `🏢 **ניתוח איכות עבור: ${ctx.name}**
+צבע סיווג: **${lq?.lead_quality_label || "צהוב"}**
+ציון פוטנציאל עסקי: **${lq?.business_potential_score || 0}%**
+ציון מוכנות לפנייה: **${lq?.contact_readiness_score || 0}%**
+
+📌 **הסיבה שהליד אינו ירוק (מוכן לפנייה):**
+${lq?.why_not_green || "הליד חסר פרטים מהותיים לפנייה."}
+
+⚠️ **חסמים עיקריים (Blockers):**
+${lq?.blockers && lq.blockers.length ? lq.blockers.map(b => "• " + b).join("\n") : "אין חסמים קריטיים, אך צי הרכב או ערוצי הקשר טרם אומתו במלואם."}
+
+🎯 **המלצה:** ${lq?.external_enrichment_recommendation === "מומלץ מאוד" ? "מומלץ להעביר להעשרה חיצונית או AI" : "מומלץ להעשרת AI משלימה (Incremental)"}`,
+      chips: ["מה חסר לליד זה?", "האם כדאי להעביר להעשרת AI?"]
+    };
+  }
+
+  if (ctx && (q.includes("מה חסר") || q.includes("שדות") || q.includes("פרטים") || q.includes("חסרים"))) {
+    const lq = QF(ctx);
+    const missing = lq?.detailed_missing_fields || [];
+    return {
+      role: "assistant",
+      text: `📋 **רשימת שדות חסרים עבור: ${ctx.name}**
+
+${missing.length ? missing.map(m => "• " + m).join("\n") : "• לא חסרים שדות בסיסיים, אך נדרש אימות צי או קצין רכב."}
+
+• טלפון: ${OPQualify.hasAnyValidPhone(ctx, lq) ? "✅ קיים" : "❌ חסר"}
+• איש קשר: ${OPQualify.hasAnyRealContact(ctx, lq) ? "✅ קיים" : "❌ חסר"}
+• מייל: ${OPQualify.hasAnyValidEmail(ctx, lq) ? "✅ קיים" : "❌ חסר"}
+• אתר אינטרנט: ${ctx.web || ctx.enr?.website ? "✅ קיים" : "❌ חסר"}
+• מנהל צי / קצב"ת: ${ctx.enr?.fleet_manager_name || ctx.enr?.safety_officer_name ? "✅ קיים" : "❌ חסר"}`,
+      chips: ["האם כדאי להעביר להעשרת AI?", "למה הליד הזה צהוב?"]
+    };
+  }
+
+  if (ctx && (q.includes("לשלוח ל-ai") || q.includes("להעביר ל-ai") || q.includes("העשרת ai") || q.includes("ai"))) {
+    const lq = QF(ctx);
+    return {
+      role: "assistant",
+      text: `✨ **המלצה להעשרת AI עבור: ${ctx.name}**
+פוטנציאל עסקי: **${lq?.business_potential_score || 0}%** (${lq?.business_potential_score >= 60 ? "גבוה ומצדיק השקעה" : "בינוני"})
+העשרה ב-Gemini מתבצעת במודל Incremental (השלמת חסר בלבד, ללא דריסת מידע קיים).
+
+האם ברצונך להעביר ליד זה לתור העשרת AI ב-STAGING?`,
+      actionCard: {
+        id: "dispatch_ai_single_" + ctx.id,
+        type: "dispatch_ai",
+        title: "🚀 העברת ליד בודד לתור העשרת AI",
+        description: `העברת ${ctx.name} (ח.פ. ${ctx.no || ""}) לתור העשרת Gemini Incremental ב-STAGING.`,
+        leads: [ctx]
+      }
+    };
+  }
+
+  // 2. Aggregate stats queries ("כמה", "סטטיסטיקה", "סיכום", "דוח")
+  if (q.includes("סטטיסטיקה") || q.includes("סיכום") || q.includes("דוח") || (q.includes("כמה") && q.includes("לידים"))) {
+    const total = C.length;
+    const greens = C.filter(c => QF(c)?.lead_quality_color === "green").length;
+    const yellows = C.filter(c => QF(c)?.lead_quality_color === "yellow").length;
+    const reds = C.filter(c => QF(c)?.lead_quality_color === "red").length;
+    const hasPhone = C.filter(c => OPQualify.hasAnyValidPhone(c, QF(c))).length;
+    const noPhone = total - hasPhone;
+    const hasContact = C.filter(c => OPQualify.hasAnyRealContact(c, QF(c))).length;
+    const noContact = total - hasContact;
+    const hasMail = C.filter(c => OPQualify.hasAnyValidEmail(c, QF(c))).length;
+    const noMail = total - hasMail;
+    const ready = C.filter(c => isReady(c)).length;
+    const sentAi = C.filter(c => ["sent_to_ai", "queued_for_ai"].includes(QF(c)?.workflow_status) || ["sent_to_ai", "queued_for_ai"].includes(c.enr?.enrichment_status)).length;
+    const candExt = C.filter(c => QF(c)?.workflow_status === "candidate_external").length;
+
+    return {
+      role: "assistant",
+      text: `📊 **תמונת מצב עדכנית ממאגר STAGING:**
+
+• **סה"כ חברות במאגר:** **${total}**
+• **חלוקת איכות ליד:**
+  - 🟢 **איכותי / מוכן:** ${greens} (${Math.round(greens/total*100)}%)
+  - 🟡 **טוב להשקעה:** ${yellows} (${Math.round(yellows/total*100)}%)
+  - 🔴 **לא כדאי להשקיע:** ${reds} (${Math.round(reds/total*100)}%)
+
+• **שלמות ערוצי תקשורת (Single Source of Truth):**
+  - 📞 **יש טלפון:** ${hasPhone} | **חסר טלפון:** ${noPhone}
+  - 👤 **יש איש קשר:** ${hasContact} | **חסר איש קשר:** ${noContact}
+  - ✉️ **יש מייל:** ${hasMail} | **חסר מייל:** ${noMail}
+
+• **סטטוס זרימה ותהליכים:**
+  - ✅ **מוכנים לפנייה (Ready):** ${ready}
+  - ✨ **נשלחו / ממתינים ל-AI:** ${sentAi}
+  - 🌐 **מועמדים להעשרה חיצונית:** ${candExt}`,
+      chips: [
+        "כמה לידים בלי טלפון יש?",
+        "למה יש כל כך הרבה לידים צהובים?",
+        "תמליץ על 5 הלידים המובילים ביותר"
+      ]
+    };
+  }
+
+  // 3. Queries about Missing Phone
+  if (q.includes("בלי טלפון") || q.includes("חסר טלפון") || q.includes("אין טלפון") || (q.includes("כמה") && q.includes("טלפון"))) {
+    const noPhoneList = C.filter(c => !OPQualify.hasAnyValidPhone(c, QF(c)));
+    return {
+      role: "assistant",
+      text: `📞 ישנן כרגע **${noPhoneList.length} חברות ללא מספר טלפון תקין** במאגר (מתוך ${C.length}).
+596 חברות כוללות לפחות טלפון אחד מאומת.
+חברות אלו מועמדות מצוינות להעשרת AI (Gemini Incremental) או חיפוש במקורות חיצוניים.`,
+      actionFilter: { key: "phone", val: "no", label: `🔍 סנן והצג בטבלה ${noPhoneList.length} חברות ללא טלפון` },
+      chips: ["תציע לידים להעשרה ב-AI", "כמה לידים בלי איש קשר?"]
+    };
+  }
+
+  // 4. Queries about Missing Contact
+  if (q.includes("בלי איש קשר") || q.includes("חסר איש קשר") || q.includes("אין איש קשר") || (q.includes("כמה") && q.includes("איש קשר"))) {
+    const noContactList = C.filter(c => !OPQualify.hasAnyRealContact(c, QF(c)));
+    return {
+      role: "assistant",
+      text: `👤 ישנן כרגע **${noContactList.length} חברות ללא איש קשר מזוהה** ברשומה (מתוך ${C.length}).
+ל-606 חברות יש איש קשר מאומת מתוך פנקס הקבלנים או הרשומה הרשמית.`,
+      actionFilter: { key: "contact", val: "no", label: `🔍 סנן והצג בטבלה ${noContactList.length} חברות ללא איש קשר` },
+      chips: ["כמה לידים בלי טלפון?", "תמליץ על 5 הלידים המובילים"]
+    };
+  }
+
+  // 5. Queries about Yellow leads ("צהוב", "צהובים")
+  if (q.includes("צהוב") || q.includes("צהובים") || q.includes("טוב להשקעה")) {
+    const yellows = C.filter(c => QF(c)?.lead_quality_color === "yellow");
+    return {
+      role: "assistant",
+      text: `🟡 **ניתוח ${yellows.length} הלידים המסווגים כצהובים (טוב להשקעה):**
+
+ליד מסווג כצהוב כאשר יש לו **פוטנציאל עסקי טוב (40% ומעלה)**, אך הוא עדיין אינו מוכן לחלוטין לפנייה (Contact Readiness מתחת ל-80%).
+
+**הסיבות העיקריות לחוסר שלמות:**
+1. חסר אימות צי רכב מול מקור מוסמך (חובה למוכנות לפנייה).
+2. חסר מספר נייד ישיר של מקבל החלטות (יש טלפון קווי אך לא סלולרי).
+3. חסר מנהל צי רכב או קצין בטיחות בתעבורה (קצב"ת) מאומת.
+
+💡 **המלצה:** ניתן להעביר לידים אלו להעשרת Gemini ממוקדת כדי להשלים את החסר.`,
+      actionFilter: { key: "qualColor", val: "yellow", label: `🔍 סנן והצג בטבלה ${yellows.length} לידים צהובים` },
+      chips: ["תציע לידים ששווה להעביר ל-AI", "מי הם 5 הלידים המובילים?"]
+    };
+  }
+
+  // 6. Top 5 leads recommendation
+  if (q.includes("מובילים") || q.includes("הכי טובים") || q.includes("המלצה") || q.includes("תמליץ")) {
+    const top5 = [...C]
+      .sort((a, b) => {
+        const qa = QF(a), qb = QF(b);
+        const bpa = qa?.business_potential_score || a.score || 0;
+        const bpb = qb?.business_potential_score || b.score || 0;
+        if (bpb !== bpa) return bpb - bpa;
+        const cra = qa?.contact_readiness_score || 0;
+        const crb = qb?.contact_readiness_score || 0;
+        return crb - cra;
+      })
+      .slice(0, 5);
+
+    const rows = top5.map((c, i) => {
+      const q = QF(c);
+      return `${i+1}. **${esc(c.name)}** (ח.פ. ${c.no || "—"})
+   • פוטנציאל עסקי: **${q?.business_potential_score || c.score}%** | מוכנות: **${q?.contact_readiness_score || 0}%**
+   • עיר: ${c.city || "לא ידוע"} | תחום: ${c.ind || "כללי"}`;
+    }).join("\n\n");
+
+    return {
+      role: "assistant",
+      text: `⭐ **5 הלידים המובילים ביותר במאגר (לפי פוטנציאל ומוכנות):**\n\n${rows}`,
+      chips: ["הראה לי את כל הירוקים", "כמה לידים חסרי טלפון יש?"]
+    };
+  }
+
+  // 7. Request to send to AI
+  if (q.includes("שלח ל-ai") || q.includes("להעביר ל-ai") || q.includes("העשרת ai") || q.includes("להעשיר ב-ai") || q.includes("העבר ל-ai")) {
+    const candidates = C.filter(c => {
+      const q = QF(c);
+      return q && q.lead_quality_color === "yellow" && !c.enr?.enrichment_status && (q.business_potential_score >= 50);
+    }).slice(0, 10);
+
+    return {
+      role: "assistant",
+      text: `✨ איתרתי **${candidates.length} לידים צהובים איכותיים** (פוטנציאל עסקי 50%+) שמומלצים להעשרת AI (Gemini Incremental).
+
+הפעולה תסמן אותם כ-**"ממתין להעשרת AI"** ותוסיף אותם לתור העבודה ב-STAGING.
+
+**נדרש אישורך המפורש לפני ביצוע:**`,
+      actionCard: {
+        id: "dispatch_ai_bulk_" + Date.now(),
+        type: "dispatch_ai",
+        title: `🚀 העברת ${candidates.length} לידים לתור העשרת AI`,
+        description: `העברת ${candidates.length} לידים צהובים עם פוטנציאל גבוה לתור העשרת Gemini ב-STAGING.`,
+        leads: candidates
+      }
+    };
+  }
+
+  // 8. Request to send to external provider
+  if (q.includes("ספק חיצוני") || q.includes("העשרה חיצונית") || q.includes("apollo") || q.includes("חיצוני")) {
+    const candidates = C.filter(c => {
+      const q = QF(c);
+      return q && (q.workflow_status === "candidate_external" || (q.business_potential_score >= 60 && q.contact_readiness_score < 80));
+    }).slice(0, 10);
+
+    return {
+      role: "assistant",
+      text: `🌐 איתרתי **${candidates.length} לידים מועמדים להעשרה חיצונית (External Provider)**.
+פוטנציאל עסקי גבוה (60%+), מוכנות נמוכה (פחות מ-80%).
+
+בסביבת STAGING מופעל מצב DRY RUN בלבד (ללא עלויות וללא פנייה אמיתית לספק בתשלום).
+
+**נדרש אישורך המפורש לסימון הלידים:**`,
+      actionCard: {
+        id: "dispatch_ext_bulk_" + Date.now(),
+        type: "dispatch_ext",
+        title: `🌐 סימון ${candidates.length} לידים כנשלחו לספק חיצוני (DRY RUN)`,
+        description: `סימון לידים מועמדים כנשלחו לספק Apollo B2B לצורך מעקב זרימה ב-STAGING.`,
+        leads: candidates
+      }
+    };
+  }
+
+  // Default fallback response
+  return {
+    role: "assistant",
+    text: `אני כאן לעזור לך לנהל ולנתח את מאגר הלידים ב-STAGING (${C.length} חברות).
+תוכל לשאול אותי שאלות כמו:
+• "תן סיכום סטטיסטי של כל הלידים"
+• "כמה לידים בלי טלפון יש?"
+• "למה יש כל כך הרבה לידים צהובים?"
+• "תמליץ על 5 הלידים המובילים"
+• "תציע לידים להעשרת AI"`,
+    chips: [
+      "תן סיכום סטטיסטי של כל הלידים",
+      "כמה לידים בלי טלפון יש?",
+      "למה יש כל כך הרבה לידים צהובים?",
+      "תמליץ על 5 הלידים המובילים"
+    ]
+  };
+}
+
+function executeAiChatAction(actIdx) {
+  const msg = S.aiChatMessages.find(m => m.actionCard && m.actionCard.idx === actIdx);
+  if (!msg || !msg.actionCard) {
+    toast("הפעולה אינה זמינה עוד או שפג תוקפה");
+    return;
+  }
+  const ac = msg.actionCard;
+  if (ac.executed) {
+    toast("פעולה זו כבר בוצעה");
+    return;
+  }
+
+  if (ac.type === "dispatch_ai") {
+    const toSend = ac.leads;
+    toSend.forEach(c => {
+      c.enr = c.enr || { id: c.id, company_name: c.name, company_hp: c.no };
+      const prevStatus = c.enr.enrichment_status || "new";
+      c.enr.enrichment_status = "queued_for_ai";
+      c.enr.enrichment_source = "gemini_incremental";
+      c.enr.enrichment_batch_id = "batch-" + Date.now();
+      c.enr.enrichment_actor = S.activeUser;
+      c.enr.raw_payload = c.enr.raw_payload || {};
+      c.enr.raw_payload.status_history = c.enr.raw_payload.status_history || [];
+      c.enr.raw_payload.status_history.push({
+        previous_status: prevStatus,
+        new_status: "queued_for_ai",
+        timestamp: new Date().toISOString(),
+        actor: S.activeUser,
+        reason: "העברה להעשרת AI דרך עוזר AI",
+        source: "ai_assistant"
+      });
+      if (typeof _qCache !== "undefined") _qCache.delete(c.enr);
+    });
+    enAdd(toSend, "ai_assistant");
+    ac.executed = true;
+    toast(`הועברו ${toSend.length} לידים לתור העשרת AI`);
+    S.aiChatMessages.push({
+      role: "assistant",
+      text: `✅ **בוצע בהצלחה!** הועברו ${toSend.length} לידים לתור העשרת AI ב-STAGING.
+הלידים מופיעים כעת תחת פילטר **"נשלח להעשרת AI"** וסטטוס הזרימה עודכן ללא דריסת מידע קיים.`,
+      actionFilter: { key: "wfStatus", val: "sent_to_ai", label: "🔍 הצג לידים אלו בטבלה (נשלח להעשרת AI)" }
+    });
+    if (S.tab === "companies") {
+      const v = $("#view");
+      if (v) v.innerHTML = V.companies();
+    }
+  } else if (ac.type === "dispatch_ext") {
+    const toSend = ac.leads;
+    toSend.forEach(c => {
+      c.enr = c.enr || { id: c.id, company_name: c.name, company_hp: c.no };
+      const prevStatus = c.enr.enrichment_status || "candidate_external";
+      c.enr.enrichment_status = "sent_to_external";
+      c.enr.external_provider = "apollo_b2b";
+      c.enr.external_sent_at = new Date().toISOString();
+      c.enr.raw_payload = c.enr.raw_payload || {};
+      c.enr.raw_payload.status_history = c.enr.raw_payload.status_history || [];
+      c.enr.raw_payload.status_history.push({
+        previous_status: prevStatus,
+        new_status: "sent_to_external",
+        timestamp: new Date().toISOString(),
+        actor: S.activeUser,
+        reason: "נשלח לספק חיצוני דרך עוזר AI (STAGING DRY RUN)",
+        source: "ai_assistant"
+      });
+      if (typeof _qCache !== "undefined") _qCache.delete(c.enr);
+    });
+    ac.executed = true;
+    toast(`סומנו ${toSend.length} לידים כנשלחו לספק חיצוני`);
+    S.aiChatMessages.push({
+      role: "assistant",
+      text: `✅ **בוצע בהצלחה!** סומנו ${toSend.length} לידים כנשלחו לספק חיצוני (DRY RUN ב-STAGING).`,
+      actionFilter: { key: "wfStatus", val: "sent_to_external", label: "🔍 הצג לידים שנשלחו לספק חיצוני" }
+    });
+    if (S.tab === "companies") {
+      const v = $("#view");
+      if (v) v.innerHTML = V.companies();
+    }
+  }
+  renderAiChat();
+}
+
+function cancelAiChatAction(actIdx) {
+  const msg = S.aiChatMessages.find(m => m.actionCard && m.actionCard.idx === actIdx);
+  if (msg && msg.actionCard) {
+    msg.actionCard.cancelled = true;
+    toast("הפעולה בוטלה");
+    S.aiChatMessages.push({
+      role: "assistant",
+      text: `✕ הפעולה בוטלה על פי בקשתך. לא בוצעו שינויים בנתונים.`
+    });
+    renderAiChat();
+  }
+}
+
+function renderAiChat() {
+  const root = $("#aiChatRoot");
+  if (!root) return;
+  if (!S.aiChatOpen) {
+    root.innerHTML = "";
+    return;
+  }
+
+  const ctxLead = S.aiChatContextLead;
+  let actionCounter = 0;
+
+  root.innerHTML = `
+    <div class="ai-chat-overlay" data-act="closeAiChat">
+      <div class="ai-chat-panel" data-stop>
+        <div class="ai-chat-h">
+          <div style="font-size:22px">🤖</div>
+          <div style="flex:1">
+            <h3 style="margin:0;font-size:15px;line-height:1.2">עוזר AI – OpenProspector</h3>
+            <div style="font-size:11px;opacity:0.8">Gemini Assistant · STAGING Mode</div>
+          </div>
+          <button class="x" data-act="closeAiChat" aria-label="סגור עוזר AI">✕</button>
+        </div>
+
+        ${ctxLead ? `
+          <div class="ai-chat-ctx">
+            <span>🎯 <b>פוקוס:</b> ${esc(ctxLead.name)} (${esc(ctxLead.no || "ח.פ.")})</span>
+            <button class="btn btn-sm btn-ghost" data-act="aiChatClearContext" style="padding:2px 6px;font-size:11px;height:auto">✕ הסר פוקוס</button>
+          </div>
+        ` : ""}
+
+        <div class="ai-chat-b" id="aiChatBody">
+          ${S.aiChatMessages.map(m => {
+            const isBot = m.role === "assistant";
+            if (m.actionCard && m.actionCard.idx == null) {
+              m.actionCard.idx = ++actionCounter;
+            }
+            return `
+              <div class="ai-msg ${isBot ? 'bot' : 'user'}">
+                <div style="white-space:pre-wrap">${esc(m.text).replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</div>
+                ${m.actionFilter ? `
+                  <div style="margin-top:8px">
+                    <button class="btn btn-sm" data-act="aiChatApplyFilter" data-filter-key="${esc(m.actionFilter.key)}" data-filter-val="${esc(m.actionFilter.val)}" style="background:var(--blue-50);color:var(--blue);border-color:var(--blue);font-weight:600;font-size:12px">
+                      ${esc(m.actionFilter.label)}
+                    </button>
+                  </div>
+                ` : ""}
+                ${m.actionCard ? `
+                  <div class="ai-action-card">
+                    <div class="title">${esc(m.actionCard.title)}</div>
+                    <div class="desc">${esc(m.actionCard.description)}</div>
+                    ${m.actionCard.executed ? `
+                      <span class="badge b-ok" style="font-size:11px;margin-top:4px">✓ בוצע בהצלחה</span>
+                    ` : m.actionCard.cancelled ? `
+                      <span class="badge b-no" style="font-size:11px;margin-top:4px">✕ פעולה בוטלה</span>
+                    ` : `
+                      <div class="btns">
+                        <button class="btn btn-sm btn-primary" data-act="aiChatConfirmAction" data-action-idx="${m.actionCard.idx}" style="background:#6366f1;border-color:#6366f1;color:#fff;font-weight:700">🚀 אשר ביצוע</button>
+                        <button class="btn btn-sm" data-act="aiChatCancelAction" data-action-idx="${m.actionCard.idx}">✕ בטל</button>
+                      </div>
+                    `}
+                  </div>
+                ` : ""}
+                ${m.chips && m.chips.length ? `
+                  <div class="ai-prompt-chips">
+                    ${m.chips.map(ch => `<button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="${esc(ch)}">${esc(ch)}</button>`).join("")}
+                  </div>
+                ` : ""}
+              </div>
+            `;
+          }).join("")}
+        </div>
+
+        <div class="ai-chat-f">
+          <div class="ai-prompt-chips" style="margin-bottom:4px">
+            <button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="תן סיכום סטטיסטי של כל הלידים">📊 סיכום כללי</button>
+            <button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="כמה לידים בלי טלפון יש?">📞 חסרי טלפון</button>
+            <button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="למה יש כל כך הרבה לידים צהובים?">🟡 ניתוח צהובים</button>
+            <button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="תמליץ על 5 הלידים המובילים ביותר">⭐ 5 המובילים</button>
+          </div>
+          <div class="ai-chat-input-row">
+            <input class="ai-chat-input" id="aiChatInput" placeholder="שאל שאלה על הלידים או בקש המלצה..." autocomplete="off">
+            <button type="button" class="btn btn-primary" data-act="aiChatSend" style="background:#4f46e5;border-color:#4f46e5;color:#fff;font-weight:700;padding:0 14px">שלח</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 /* ===== מרכז גילוי מקורות חדשים (SOURCE DISCOVERY HUB - Section 22-26) ===== */
@@ -5447,6 +6007,66 @@ document.addEventListener("click",e=>{
       $("#view").innerHTML = V.companies();
       return;
     }
+    case "openAiChat":{
+      S.aiChatOpen = true;
+      if (!S.aiChatMessages.length) initAiChatWelcome();
+      renderAiChat();
+      return;
+    }
+    case "closeAiChat":{
+      S.aiChatOpen = false;
+      renderAiChat();
+      return;
+    }
+    case "askAiAboutLead":{
+      const coId = +d.coId;
+      const lead = C.find(x => x.id === coId);
+      if (lead) {
+        S.aiChatOpen = true;
+        S.aiChatContextLead = lead;
+        appendAiContextLeadIntro(lead);
+        renderAiChat();
+      }
+      return;
+    }
+    case "aiChatClearContext":{
+      S.aiChatContextLead = null;
+      renderAiChat();
+      return;
+    }
+    case "aiChatQuickPrompt":{
+      handleAiUserMessage(d.prompt || "");
+      return;
+    }
+    case "aiChatSend":{
+      const inp = $("#aiChatInput");
+      if (inp && inp.value.trim()) {
+        const val = inp.value.trim();
+        inp.value = "";
+        handleAiUserMessage(val);
+      }
+      return;
+    }
+    case "aiChatApplyFilter":{
+      if (d.filterKey && S.coFilter) {
+        S.coFilter[d.filterKey] = d.filterVal || "";
+        S.coPage = 1;
+        toast(`הופעל סינון: ${d.filterKey}=${d.filterVal}`);
+        if (S.tab === "companies") {
+          const v = $("#view");
+          if (v) v.innerHTML = V.companies();
+        }
+      }
+      return;
+    }
+    case "aiChatConfirmAction":{
+      executeAiChatAction(+d.actionIdx);
+      return;
+    }
+    case "aiChatCancelAction":{
+      cancelAiChatAction(+d.actionIdx);
+      return;
+    }
     case "enReload": S.en.loaded = false; S.en.err = ""; enLoad(); return;
     case "enPick20": {
       const open = enOpenIds();
@@ -5646,6 +6266,7 @@ document.addEventListener("click",e=>{
           reason: "העברה להעשרת AI (Incremental) דרך בחירה מרובה",
           source: "gemini_incremental"
         });
+        if (typeof _qCache !== "undefined") _qCache.delete(c.enr);
       });
       enAdd(toSend, "bulk_selection");
       S.selectedCoIds.clear();
@@ -5731,6 +6352,7 @@ document.addEventListener("click",e=>{
           reason: `נשלח לספק חיצוני ${m.provider} (DRY RUN / STAGING)`,
           source: "external_provider"
         });
+        if (typeof _qCache !== "undefined") _qCache.delete(c.enr);
       });
       S.selectedCoIds.clear();
       S.extDispatchModal = null;
@@ -5821,7 +6443,21 @@ document.addEventListener("input",e=>{
   if(e.target.id==="f-q"){S.coFilter.q=e.target.value;S.coPage=1;clearTimeout(S._t);S._t=setTimeout(()=>{$("#view").innerHTML=V.companies();const i=$("#f-q");if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)}
 });
 
-document.addEventListener("keydown",e=>{if(e.key==="Escape"&&S.panel){S.panel=null;renderPanel()}});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Enter" && e.target && e.target.id==="aiChatInput"){
+    e.preventDefault();
+    const val = e.target.value.trim();
+    if(val){
+      e.target.value = "";
+      handleAiUserMessage(val);
+    }
+    return;
+  }
+  if(e.key==="Escape"){
+    if(S.aiChatOpen){S.aiChatOpen=false;renderAiChat();return}
+    if(S.panel){S.panel=null;renderPanel();return}
+  }
+});
 render();
 /* Supabase STAGING is the source of truth; localStorage only renders the first paint */
 syncWithRemoteSupabase();
