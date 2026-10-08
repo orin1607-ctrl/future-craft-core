@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: false, error: "GEMINI_API_KEY is not configured" }, 500);
     }
 
-    const model = Deno.env.get("GEMINI_MODEL") || "gemini-2.0-flash";
+    const model = Deno.env.get("GEMINI_MODEL") || "gemini-3.8-flash";
     const ctxBlock = clientContext
       ? `\n\nהקשר לקוח:\n${JSON.stringify(clientContext, null, 2).slice(0, 3000)}`
       : "";

@@ -1,0 +1,93 @@
+name: Deploy OpenProspector AI to Staging
+
+# Manual or path push. Staging Supabase usfeoerkpcafxxlyuldl only.
+# Deploys marketing-gemini-chat and prospector-enrich. Does not touch Production.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - codex/garage-open-case-flow-staging
+    paths:
+      - '.github/workflows/deploy-openprospector-ai-staging.yml'
+      - 'supabase/functions/marketing-gemini-chat/**'
+      - 'supabase/functions/prospector-enrich/**'
+      - 'scripts/probe-openprospector-gemini-staging.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-openprospector-ai-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Guard Staging only
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" != "production"
+          test "${GITHUB_REF_NAME}" != "main"
+          test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
+
+      - name: Deploy Gemini functions to Staging and probe
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const { execSync } = await import('node:child_process');
+          const STAGING = 'usfeoerkpcafxxlyuldl';
+          const PROD = 'qasomfndnjuixgjmjwcm';
+          function cleanToken(raw) {
+            let t = String(raw || '').replace(/[\r\n]/g, '').trim();
+            if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) t = t.slice(1, -1).trim();
+            if (/^bearer\s+/i.test(t)) t = t.replace(/^bearer\s+/i, '').trim();
+            return t;
+          }
+          const tokenCandidates = [
+            ['github_access_token', cleanToken(process.env.SUPABASE_ACCESS_TOKEN)],
+            ['staging_access_token', cleanToken(process.env.STAGING_SUPABASE_ACCESS_TOKEN)],
+            ['supabase_pat', cleanToken(process.env.SUPABASE_PAT)],
+          ].filter((pair, index, all) => pair[1] && all.findIndex((item) => item[1] === pair[1]) === index);
+          if (!tokenCandidates.length) throw new Error('NO_STAGING_ACCESS_TOKEN');
+
+          async function deployWith(accessToken, label) {
+            const clean = String(accessToken || '').trim();
+            if (!clean || clean.includes(PROD)) return { label, ok: false, error: 'empty_or_prod' };
+            const probe = await fetch(`https://api.supabase.com/v1/projects/${STAGING}`, {
+              headers: { Authorization: `Bearer ${clean}` },
+            });
+            const probeText = await probe.text();
+            if (probeText.includes(PROD)) throw new Error('ABORT_TOKEN_BODY_MENTIONS_PROD');
+            if (!probe.ok) return { label, ok: false, probe: probe.status };
+            process.env.SUPABASE_ACCESS_TOKEN = clean;
+            execSync(`npx --yes supabase@2.20.12 secrets set GEMINI_MODEL=gemini-3.8-flash --project-ref ${STAGING}`, { encoding: 'utf8', timeout: 120000 });
+            for (const fn of ['marketing-gemini-chat', 'prospector-enrich']) {
+              const dep = execSync(`npx --yes supabase@2.20.12 functions deploy ${fn} --project-ref ${STAGING} --use-api`, { encoding: 'utf8', timeout: 180000 });
+              if (dep.includes(PROD)) throw new Error('ABORT_DEPLOY_LOG_MENTIONS_PROD');
+            }
+            return { label, ok: true };
+          }
+
+          let deployed = null;
+          const attempts = [];
+          for (const [label, candidate] of tokenCandidates) {
+            const result = await deployWith(candidate, label);
+            attempts.push({ label, ok: result.ok, probe: result.probe || null });
+            if (result.ok) { deployed = result; break; }
+          }
+          console.log(JSON.stringify({ project: STAGING, production_touched: false, attempts, deployed: !!deployed }, null, 2));
+          if (!deployed) throw new Error('DEPLOY_FAILED');
+          execSync('node scripts/probe-openprospector-gemini-staging.mjs', { stdio: 'inherit', timeout: 180000 });
+          NODE

@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
 
     const apiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY");
     if (!apiKey) return jsonResponse({ ok: false, error: "GEMINI_API_KEY is not configured" }, 500);
-    const model = Deno.env.get("GEMINI_MODEL") || "gemini-2.0-flash";
+    const model = Deno.env.get("GEMINI_MODEL") || "gemini-3.8-flash";
     const grounding = body?.grounding !== false;
 
     const reqBody: Record<string, unknown> = {

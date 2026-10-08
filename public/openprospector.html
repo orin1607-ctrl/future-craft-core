@@ -4424,7 +4424,8 @@ async function askGeminiFreeform(question) {
       return { role: "assistant", text: String(data.reply || data.text) };
     }
     const http = data.upstream_status || res.status;
-    return { role: "assistant", text: `${judged.label}\nקוד: ${http || "—"}. לא בוצע שינוי בנתונים.` };
+    const serverMsg = String(data.error || "").replace(/AIza[\w\-]+|AQ\.[\w\-]+/g, "").slice(0, 220);
+    return { role: "assistant", text: `${judged.label}\nקוד: ${http || "—"}${serverMsg ? `\n${serverMsg}` : ""}\nלא בוצע שינוי בנתונים.` };
   } catch (e) {
     return { role: "assistant", text: "Gemini לא זמין כרגע. לא בוצע שינוי בנתונים." };
   }
@@ -5345,9 +5346,9 @@ function geminiTestResult(res, data) {
   const up = data && data.upstream_status, reason = `${(data && data.upstream_reason) || ""} ${(data && data.error) || ""}`;
   if (res.ok && data.ok && /\bOK\b/i.test(String(data.reply || data.text || ""))) return { ok: true, label: `✅ Gemini מחובר ומאומת${data.model ? ` (${data.model})` : ""}` };
   if (res.ok && data.ok) return { ok: false, label: "❌ Gemini החזיר תשובה לא צפויה" };
-  if (up === 402) return { ok: false, label: "⚠️ חיוב Gemini לא פעיל (HTTP 402). לא שונה אמצעי תשלום." };
+  if (up === 402 || /prepayment|credits are depleted|RESOURCE_EXHAUSTED|billing/i.test(reason)) return { ok: false, label: "⚠️ המפתח של Gemini קיים, אבל הקרדיטים ב-Google AI Studio נגמרו (HTTP 402). לא שונה אמצעי תשלום." };
   if (up === 429) return { ok: false, label: "⚠️ המכסה הסתיימה / Quota exceeded" };
-  if (up === 404) return { ok: false, label: `❌ המודל לא זמין${data.model ? ` (${data.model})` : ""}` };
+  if (up === 404 || /no longer available|NOT_FOUND/i.test(reason)) return { ok: false, label: `❌ המודל לא זמין${data.model ? ` (${data.model})` : ""}. המודל הפעיל הוא gemini-3.8-flash.` };
   if (up === 401 || up === 403 || (up === 400 && /API_KEY|API key/i.test(reason))) return { ok: false, label: "❌ מפתח Gemini לא תקין / לא מורשה" };
   if (!up && res.status === 401) return { ok: false, label: "❌ לא מחובר – נדרשת התחברות" };
   if (!up && res.status === 403 && /session required/i.test(reason)) return { ok: false, label: "❌ אין הרשאה – לא התקבל session של משתמש מחובר (פתח דרך מרכז השיווק אחרי התחברות)" };
