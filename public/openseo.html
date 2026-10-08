@@ -1057,6 +1057,15 @@ const POSTS = [
 <script>
 "use strict";
 /* ================= מצב ================= */
+// Dalia SEO AI: local dev uses the Vite middleware; public staging (no server) uses the
+// staging-only Supabase edge function. The Gemini key stays server-side in both cases.
+const SEO_AI_FN = "https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/dalia-seo-ai/";
+const SEO_AI_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU";
+function seoApiFetch(path, init){
+  if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return fetch(path, init);
+  const route = path.split("/").pop();
+  return fetch(SEO_AI_FN + route, {...init, headers:{...(init && init.headers), "Authorization":"Bearer " + SEO_AI_ANON, "apikey":SEO_AI_ANON}});
+}
 const S = {
   tab:"overview", site:"s1",
   live:{serp:true, gsc:true, wp:true, ai:true},
@@ -3020,7 +3029,7 @@ document.addEventListener("click", e => {
       const h = headings[Number(S.modal.afterH2)];
       if (h) h2Text = (h.text || "").trim();
     }
-    fetch('/api/project-001/generate-image', {
+    seoApiFetch('/api/project-001/generate-image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -3310,7 +3319,7 @@ document.addEventListener("click", e => {
         if (h) h2Text = (h.text || "").trim();
       }
       const promptToUse = (img.prompt || "").trim() || defaultImagePrompt(img.role, plan, Number(img.afterH2));
-      fetch('/api/project-001/generate-image', {
+      seoApiFetch('/api/project-001/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3367,7 +3376,7 @@ document.addEventListener("click", e => {
           }
           const promptToUse = (img.prompt || "").trim() || defaultImagePrompt(img.role, plan, Number(img.afterH2));
           try {
-            const res = await fetch('/api/project-001/generate-image', {
+            const res = await seoApiFetch('/api/project-001/generate-image', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ prompt: promptToUse, role: img.role, keyword: kw, title, h2Context: h2Text })
@@ -3420,7 +3429,7 @@ document.addEventListener("click", e => {
       R.busy = true;
       R.lastError = null;
       render();
-      fetch("/api/project-001/generate-article", {
+      seoApiFetch("/api/project-001/generate-article", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -3466,7 +3475,7 @@ document.addEventListener("click", e => {
       R.busy = true;
       R.lastError = null;
       render();
-      fetch('/api/project-001/generate-article', {
+      seoApiFetch('/api/project-001/generate-article', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3551,7 +3560,7 @@ document.addEventListener("click", e => {
           headings: (c.article_plan.headings || []).map(h => ({ h2: h.text || "", h3s: h.h3s || [] }))
         };
       }
-      fetch('/api/project-001/generate-article', {
+      seoApiFetch('/api/project-001/generate-article', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
