@@ -332,28 +332,56 @@ async function callGemini(
   messages: Array<{ role: string; content: string }>,
   tools?: unknown[],
   onToolCall?: (name: string, args: Record<string, unknown>) => Promise<{ result: unknown; preview?: ClaimsPendingAction }>,
+  attachments?: Array<{ name: string; mime_type: string; data_base64?: string; file_id?: string; byte_size?: number }>,
 ): Promise<{ text: string; model: string; pendingAction?: ClaimsPendingAction | null } | { error: string; status: number }> {
   const modelCandidates = Array.from(new Set([
     preferredModel,
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-2.5-flash",
-    "gemini-1.5-pro",
     "gemini-3.8-flash",
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
     "gemini-3.7-flash",
     "gemini-flash-latest",
+    "gemini-flash-lite-latest",
   ].filter(Boolean)));
 
   const initialContents: Array<any> = [];
-  for (const m of messages) {
+  for (let i = 0; i < messages.length; i++) {
+    const m = messages[i];
     if (!m || !m.content) continue;
     const role: "user" | "model" = m.role === "assistant" || m.role === "model" ? "model" : "user";
     const text = String(m.content).trim();
     if (!text) continue;
-    if (initialContents.length > 0 && initialContents[initialContents.length - 1].role === role) {
+    const isLastUserTurn = (role === "user") && (i === messages.length - 1 || messages.slice(i + 1).every((rem) => rem.role !== "user"));
+
+    const parts: Array<any> = [{ text }];
+    if (isLastUserTurn && attachments && attachments.length > 0) {
+      let attachmentNote = "\n[קבצים מצורפים על ידי המשתמש להודעה זו:\n";
+      for (const att of attachments) {
+        attachmentNote += `- ${att.name} (${att.mime_type}${att.file_id ? `, מזהה בתיק: ${att.file_id}` : ""})\n`;
+        if (att.data_base64) {
+          let mime = att.mime_type.toLowerCase();
+          if (mime === "image/jpg") mime = "image/jpeg";
+          const cleanBase64 = att.data_base64.replace(/^data:[^;]+;base64,/, "");
+          if (["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(mime)) {
+            parts.push({
+              inlineData: {
+                mimeType: mime,
+                data: cleanBase64,
+              },
+            });
+          }
+        }
+      }
+      attachmentNote += "]";
+      parts[0].text += attachmentNote;
+    }
+
+    if (initialContents.length > 0 && initialContents[initialContents.length - 1].role === role && (!isLastUserTurn || !attachments || attachments.length === 0)) {
       initialContents[initialContents.length - 1].parts[0].text += `\n${text}`;
     } else {
-      initialContents.push({ role, parts: [{ text }] });
+      initialContents.push({ role, parts });
     }
   }
 
@@ -479,7 +507,8 @@ async function callGemini(
     }
   }
 
-  return { error: `שגיאה בתקשורת עם שירות Gemini: ${JSON.stringify(attemptErrors)}`, status: 500 };
+  console.error("Gemini all candidates failed:", attemptErrors);
+  return { error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.", status: 500 };
 }
 
 function geminiToolsToAnthropic(geminiTools?: unknown[]): any[] {
@@ -527,28 +556,67 @@ async function callClaude(
   messages: Array<{ role: string; content: string }>,
   geminiTools?: unknown[],
   onToolCall?: (name: string, args: Record<string, unknown>) => Promise<{ result: unknown; preview?: ClaimsPendingAction }>,
+  attachments?: Array<{ name: string; mime_type: string; data_base64?: string; file_id?: string; byte_size?: number }>,
 ): Promise<{ text: string; model: string; pendingAction?: ClaimsPendingAction | null } | { error: string; status: number }> {
   const modelCandidates = Array.from(new Set([
+    "claude-haiku-5-5",
     preferredModel,
-    "claude-haiku-4-5-20251001",
-    "claude-sonnet-4-6",
-    "claude-sonnet-5",
+    "claude-3-5-haiku-20241022",
+    "claude-3-haiku-20240307",
+    "claude-3-5-sonnet-20241022",
+    "claude-3-7-sonnet-20250219",
   ].filter(Boolean)));
 
   const anthropicTools = geminiToolsToAnthropic(geminiTools);
 
   const initialClaudeMessages: Array<{ role: "user" | "assistant"; content: any }> = [];
-  for (const m of messages) {
+  for (let i = 0; i < messages.length; i++) {
+    const m = messages[i];
     if (!m || !m.content) continue;
     const role: "user" | "assistant" = m.role === "assistant" || m.role === "model" ? "assistant" : "user";
     const text = String(m.content).trim();
     if (!text) continue;
-    if (initialClaudeMessages.length > 0 && initialClaudeMessages[initialClaudeMessages.length - 1].role === role) {
-      if (typeof initialClaudeMessages[initialClaudeMessages.length - 1].content === "string") {
-        initialClaudeMessages[initialClaudeMessages.length - 1].content += `\n${text}`;
+    const isLastUserTurn = (role === "user") && (i === messages.length - 1 || messages.slice(i + 1).every((rem) => rem.role !== "user"));
+
+    if (isLastUserTurn && attachments && attachments.length > 0) {
+      let attachmentNote = `\n[קבצים מצורפים:\n`;
+      const blocks: any[] = [];
+      for (const att of attachments) {
+        attachmentNote += `- ${att.name} (${att.mime_type}${att.file_id ? `, מזהה בתיק: ${att.file_id}` : ""})\n`;
+        if (att.data_base64) {
+          let mime = att.mime_type.toLowerCase();
+          if (mime === "image/jpg") mime = "image/jpeg";
+          const cleanBase64 = att.data_base64.replace(/^data:[^;]+;base64,/, "");
+          if (["image/jpeg", "image/png", "image/webp", "image/gif"].includes(mime)) {
+            blocks.push({
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mime,
+                data: cleanBase64,
+              },
+            });
+          } else if (mime === "application/pdf") {
+            blocks.push({
+              type: "document",
+              source: {
+                type: "base64",
+                media_type: "application/pdf",
+                data: cleanBase64,
+              },
+            });
+          }
+        }
       }
+      attachmentNote += `]`;
+      blocks.unshift({ type: "text", text: `${text}${attachmentNote}` });
+      initialClaudeMessages.push({ role: "user", content: blocks });
     } else {
-      initialClaudeMessages.push({ role, content: text });
+      if (initialClaudeMessages.length > 0 && initialClaudeMessages[initialClaudeMessages.length - 1].role === role && typeof initialClaudeMessages[initialClaudeMessages.length - 1].content === "string") {
+        initialClaudeMessages[initialClaudeMessages.length - 1].content += `\n${text}`;
+      } else {
+        initialClaudeMessages.push({ role, content: text });
+      }
     }
   }
 
@@ -557,6 +625,8 @@ async function callClaude(
   } else if (initialClaudeMessages[0].role === "assistant") {
     initialClaudeMessages.unshift({ role: "user", content: "שלום" });
   }
+
+  const attemptErrors: Array<{ model: string; status: number; text: string }> = [];
 
   for (const model of modelCandidates) {
     try {
@@ -590,6 +660,7 @@ async function callClaude(
         if (!res.ok) {
           const errText = await res.text();
           console.error(`Claude error with model ${model} (${res.status}):`, errText.slice(0, 250));
+          attemptErrors.push({ model, status: res.status, text: errText.slice(0, 200) });
           break;
         }
 
@@ -648,11 +719,14 @@ async function callClaude(
           pendingAction: accumulatedPendingAction,
         };
       }
+      attemptErrors.push({ model, status: 200, text: "No response text" });
     } catch (e) {
       console.error(`Claude network error with model ${model}:`, e);
+      attemptErrors.push({ model, status: 500, text: e instanceof Error ? e.message : String(e) });
     }
   }
 
+  console.error("Claude all candidates failed:", attemptErrors);
   return { error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.", status: 500 };
 }
 
@@ -700,7 +774,7 @@ Deno.serve(async (req) => {
     const { ctx } = auth;
 
     const body = await req.json();
-    const { action, messages, company_name, page_context, claim_id, module, pending_action, conversation_id } = body;
+    const { action, messages, company_name, page_context, claim_id, module, pending_action, conversation_id, attachments } = body;
 
     const supabase = ctx.supabaseUser;
     const userId = ctx.user.id;
@@ -751,6 +825,11 @@ Deno.serve(async (req) => {
 
 
 
+    const GEMINI_API_KEY = (Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
+    const GEMINI_MODEL = (Deno.env.get("GEMINI_MODEL") || "gemini-3.8-flash").trim();
+    const OPENAI_API_KEY = (Deno.env.get("OPENAI_API_KEY") || "").trim();
+    const CLAUDE_API_KEY = (Deno.env.get("CLAUDE_API_KEY") || Deno.env.get("ANTHROPIC_API_KEY") || "").trim();
+
     // Chat processing
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "Messages array is required" }), {
@@ -758,9 +837,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const GEMINI_API_KEY = (Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_AI_API_KEY") || "").trim();
-    const GEMINI_MODEL = (Deno.env.get("GEMINI_MODEL") || "gemini-3.8-flash").trim();
 
     if (!GEMINI_API_KEY) {
       throw new Error("AI service is not configured (missing GEMINI_API_KEY)");
@@ -805,7 +881,7 @@ Deno.serve(async (req) => {
 
     const onToolCall = async (toolName: string, toolArgs: Record<string, unknown>) => {
       if (isClaimsModule && claimId) {
-        return await executeClaimsTool(toolName, toolArgs, supabase, claimId, userId, actorName);
+        return await executeClaimsTool(toolName, toolArgs, supabase, claimId, userId, actorName, attachments);
       }
       if (isClaimsModule && !claimId) {
         return await executeClaimsGeneralTool(toolName, toolArgs, supabase, userId, actorName);
@@ -821,22 +897,28 @@ Deno.serve(async (req) => {
       messages,
       tools,
       onToolCall,
+      attachments,
     );
 
     let finalResult = geminiResult;
-    const CLAUDE_API_KEY = (Deno.env.get("CLAUDE_API_KEY") || Deno.env.get("ANTHROPIC_API_KEY") || "").trim();
     if ("error" in finalResult && CLAUDE_API_KEY) {
       console.warn("Gemini call returned error, falling back to Claude:", finalResult.error);
       const claudeResult = await callClaude(
         CLAUDE_API_KEY,
-        "claude-haiku-4-5-20251001",
+        "claude-haiku-5-5",
         fullSysPrompt,
         messages,
         tools,
         onToolCall,
+        attachments,
       );
       if (!("error" in claudeResult)) {
         finalResult = claudeResult;
+      } else {
+        finalResult = {
+          error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.",
+          status: 500,
+        };
       }
     }
 

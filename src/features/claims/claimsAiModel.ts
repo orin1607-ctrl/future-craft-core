@@ -40,6 +40,16 @@ export type ClaimsAiPendingAction = {
   parameters?: Record<string, unknown>;
 };
 
+export type ClaimsAiAttachment = {
+  id?: string;
+  name: string;
+  mime_type: string;
+  byte_size: number;
+  file_id?: string;
+  data_base64?: string;
+  preview_url?: string;
+};
+
 const EMPTY = '—';
 
 export function claimContextFromRecord(c: Pick<ClaimRecord, 'id'> & Partial<ClaimRecord>): ClaimsAiClaimContext {

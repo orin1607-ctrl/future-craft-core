@@ -92,4 +92,46 @@ describe('ClaimsAiWorkspace', () => {
     });
     expect(screen.queryByText('דנה לוי')).not.toBeInTheDocument();
   });
+
+  it('renders attach button and file input for photo/document uploads', async () => {
+    render(
+      <div className="claims-root">
+        <ClaimsAiWorkspace open onClose={() => {}} claim={claimA} userId="user-1" companyName={null} />
+      </div>,
+    );
+    expect(screen.getByTestId('claims-ai-attach-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('claims-ai-file-input')).toBeInTheDocument();
+  });
+
+  it('renders attachments in message history when present in metadata', async () => {
+    listClaimsAiMessages.mockResolvedValue({
+      data: [
+        {
+          id: 'm1',
+          conversation_id: 'conv-1',
+          role: 'user',
+          content: 'תבדוק את הקובץ המצורף',
+          created_at: '2026-10-07T08:01:00Z',
+          tool_name: null,
+          metadata: {
+            attachments: [
+              { name: 'damage_front.jpg', mime_type: 'image/jpeg', byte_size: 204800, file_id: 'CDM-001' },
+              { name: 'surveyor_report.pdf', mime_type: 'application/pdf', byte_size: 512000, file_id: 'CDM-002' },
+            ],
+          },
+        },
+      ],
+      error: null,
+    });
+
+    render(
+      <div className="claims-root">
+        <ClaimsAiWorkspace open onClose={() => {}} claim={claimA} userId="user-1" companyName={null} />
+      </div>,
+    );
+
+    expect(await screen.findByText('damage_front.jpg')).toBeInTheDocument();
+    expect(screen.getByText('surveyor_report.pdf')).toBeInTheDocument();
+    expect(screen.getByTestId('claims-ai-msg-attachments')).toBeInTheDocument();
+  });
 });

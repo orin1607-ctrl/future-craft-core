@@ -502,6 +502,12 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 9. לקוחות: יצירת לקוח חדש (preview_create_customer), עדכון טלפון/מייל (preview_update_claim_client_contact), קישור לקוח לתביעה (preview_link_client_to_claim).
 
 כללי בטיחות ואישורים קריטיים:
+- קבצים ותמונות שמצורפים בצ'אט (Vision & Document Understanding):
+  המשתמש יכול לצרף תמונות (JPG, JPEG, PNG, WEBP) ומסמכי PDF ישירות בצ'אט.
+  כאשר מצורפת תמונה או מסמך והמשתמש שואל שאלות (למשל: "מה רואים בתמונה?", "איזה נזק יש ברכב?", "תקרא לי את המסמך", "מה חסר במסמך?"):
+  נתח את התמונה או המסמך ביסודיות ובמקצועיות, זהה את הרכב, את מוקדי הנזק (פגוש, כנף, פנס, דלת, שריטות, מעיכות וכו'), חומרת הפגיעה, או את פרטי המסמך (תאריכים, סכומים, מספרי תביעה/פוליסה), וענה בעברית מפורטת וברורה.
+- שליחת קבצים מצורפים במייל:
+  אם המשתמש מבקש לשלוח במייל תמונה או מסמך שצירף (למשל: "שלח את התמונה שצירפתי במייל לשמאי / לחברת הביטוח"), השתמש בכלי preview_send_claim_email והקפד לכלול את מזהה הקובץ (file_id) ברשימת file_ids.
 - פעולות קריאה (READ): כגון חיפוש מיילים, בדיקת מענה מביטוח, רשימת תמונות/מסמכים, בדיקת חוסרים, בדיקת קישורים, מי טיפל — מבוצעות באופן אוטומטי מיידי דרך הכלים הרלוונטיים. ענה תמיד בעברית ברורה ותמציתית עם הנתונים האמיתיים שנשלפו.
 - פעולות כתיבה (WRITE / SEND / REVOKE / UPDATE): כגון שליחת מייל, יצירת קישור שיתוף, ביטול קישור, שינוי סטטוס תיק, יצירת משימה, סגירת משימה, הוספת הערה, יצירת/עדכון לקוח — אסור לבצע ישירות ללא אישור!
 - עבור כל פעולת כתיבה, חובה לקרוא לכלי ה-Preview המתאים.
@@ -532,6 +538,10 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
    - סיכום משימות פתוחות בכלל התיקים (get_open_tasks_summary).
 4. חיפוש תביעות:
    - חיפוש לפי מספר רכב, שם לקוח, מספר תביעה, חברת ביטוח (search_claims).
+5. קבצים ותמונות מצורפים (Vision & Document Understanding):
+   - אם המשתמש מצרף תמונה (JPG/PNG/WEBP) או מסמך (PDF) ושואל עליהם (למשל: "מה הנזק ברכב הזה?", "מה כתוב במסמך?"):
+     נתח את התמונה/מסמך במלוא המקצועיות, תאר את הנזק והרכב או את תוכן המסמך בעברית מפורטת.
+   - שים לב: במצב כללי (ללא תיק פתוח), הקובץ אינו משויך אוטומטית לתיק תביעה. אם המשתמש מבקש לשלוח אותו או לשייך אותו לתיק, הנחה אותו לפתוח תחילה את תיק התביעה המתאים.
 
 כללי פעולה קריטיים:
 - ענה תמיד בעברית ברורה, מקצועית ומסודרת.
@@ -614,6 +624,7 @@ export async function executeClaimsTool(
   claimId: string,
   userId: string,
   userName: string,
+  attachments?: Array<{ name: string; mime_type: string; data_base64?: string; file_id?: string; byte_size?: number }>,
 ): Promise<{ result: unknown; preview?: ClaimsPendingAction }> {
   try {
     switch (name) {
@@ -1307,6 +1318,17 @@ export async function executeClaimsTool(
 
         if (!subject) {
           subject = `תיק תביעה ${claimNum} - רכב ${plate} - מסמכים ותמונות ממוסך אורן`;
+        }
+
+        const attachedFileIds = (attachments || []).map((a) => a.file_id).filter(Boolean) as string[];
+        if (attachedFileIds.length > 0) {
+          if (fileIds.length === 0) {
+            fileIds = [...attachedFileIds];
+          } else {
+            for (const fid of attachedFileIds) {
+              if (!fileIds.includes(fid)) fileIds.push(fid);
+            }
+          }
         }
 
         if (fileIds.length === 0) {

@@ -191,6 +191,123 @@
   font-size: 13px;
 }
 
+.claims-root .claims-ai-attachments-tray {
+  margin: 0 16px 8px;
+  padding: 8px 12px;
+  background: var(--bg3);
+  border: 1px solid var(--br2);
+  border-radius: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.claims-root .claims-ai-attachment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: 8px;
+  padding: 4px 8px;
+  max-width: 260px;
+}
+.claims-root .claims-ai-attachment-thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--br2);
+}
+.claims-root .claims-ai-attachment-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+.claims-root .claims-ai-attachment-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.claims-root .claims-ai-attachment-name {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: ltr;
+  text-align: right;
+  color: var(--t);
+}
+.claims-root .claims-ai-attachment-size {
+  font-size: 10px;
+  color: var(--t3);
+}
+.claims-root .claims-ai-attachment-remove {
+  background: transparent;
+  border: 0;
+  color: var(--t3);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+  font-weight: bold;
+  line-height: 1;
+}
+.claims-root .claims-ai-attachment-remove:hover {
+  color: var(--rd);
+}
+.claims-root .claims-ai-icon.attach {
+  font-size: 20px;
+}
+.claims-root .claims-ai-msg-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.claims-root .claims-ai-msg-att-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 4px 8px;
+  max-width: 240px;
+}
+.claims-root .claims-ai-row.assistant .claims-ai-msg-att-badge {
+  background: var(--bg4);
+  border: 1px solid var(--br2);
+}
+.claims-root .claims-ai-msg-att-thumb {
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.claims-root .claims-ai-msg-att-icon {
+  font-size: 18px;
+}
+.claims-root .claims-ai-msg-att-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.claims-root .claims-ai-msg-att-name {
+  font-size: 11px;
+  font-weight: 600;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: ltr;
+}
+.claims-root .claims-ai-msg-att-size {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
 @media (max-width: 760px) {
   .claims-root .claims-ai-workspace { grid-template-columns: 1fr; }
   .claims-root .claims-ai-side { display: none; }
@@ -198,4 +315,17 @@
   .claims-root .claims-ai-workspace.show-list .claims-ai-main { display: none; }
   .claims-root .claims-ai-launch-label { display: none; }
   .claims-root .claims-ai-launch-short { display: inline; }
+  .claims-root .claims-ai-attachments-tray {
+    margin: 0 8px 6px;
+    padding: 6px 8px;
+  }
+  .claims-root .claims-ai-composer {
+    padding: 8px 10px 12px;
+    gap: 6px;
+  }
+  .claims-root .claims-ai-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 16px;
+  }
 }

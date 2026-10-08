@@ -7,9 +7,11 @@ import {
   messagesForModel,
   pendingActionOf,
   titleFromFirstMessage,
+  type ClaimsAiAttachment,
   type ClaimsAiClaimContext,
   type ClaimsAiConversation,
   type ClaimsAiMessage,
+  type ClaimsAiPendingAction,
 } from './claimsAiModel';
 import {
   archiveClaimsAiConversation,
@@ -21,6 +23,65 @@ import {
   renameClaimsAiConversation,
 } from './claimsAiStore';
 import './claims-ai.css';
+
+interface StagedAttachment {
+  id: string;
+  file: File;
+  name: string;
+  size: number;
+  mimeType: string;
+  previewUrl?: string;
+}
+
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const res = reader.result as string;
+      const base64 = res.includes(',') ? res.split(',')[1] : res;
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function formatFileSize(bytes: number): string {
+  if (!bytes || bytes <= 0) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function uploadChatAttachmentToClaim(claimId: string, file: File): Promise<{ success: boolean; file_id?: string; error?: string }> {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const form = new FormData();
+    form.set('action', 'staff_upload');
+    form.set('claim_id', claimId);
+    form.set('file', file);
+    form.set('doc_kind', file.type.startsWith('image/') ? 'surveyor_photo' : 'general');
+    form.set('staff_type', file.type.startsWith('image/') ? 'damage_photos' : 'other');
+    form.set('staff_title', file.name);
+
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-docs`, {
+      method: 'POST',
+      headers: {
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: form,
+    });
+    const json = (await res.json().catch(() => ({}))) as Record<string, unknown> & { success?: boolean; file_id?: string; error?: string };
+    if (!res.ok || json.success === false) {
+      return { success: false, error: json.error || `HTTP ${res.status}` };
+    }
+    return { success: true, file_id: String(json.file_id || '') };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
 
 type SpeechResult = { isFinal: boolean; 0: { transcript: string } };
 type SpeechRec = {
@@ -75,6 +136,7 @@ async function streamHelpAi(input: {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   claimId: string | null;
   companyName: string | null;
+  attachments?: Array<{ name: string; mime_type: string; byte_size: number; file_id?: string; data_base64?: string }>;
   onDelta: (full: string) => void;
   onPendingAction?: (pending: ClaimsAiPendingAction) => void;
 }): Promise<{ text: string; pendingAction: ClaimsAiPendingAction | null }> {
@@ -92,6 +154,7 @@ async function streamHelpAi(input: {
       company_name: input.companyName,
       module: 'claims',
       claim_id: input.claimId,
+      attachments: input.attachments,
     }),
   });
 
@@ -186,12 +249,82 @@ export function ClaimsAiWorkspace({
   const [banner, setBanner] = useState('');
   const [pendingDelete, setPendingDelete] = useState<ClaimsAiConversation | null>(null);
   const [executingActionId, setExecutingActionId] = useState<string | null>(null);
+  const [stagedAttachments, setStagedAttachments] = useState<StagedAttachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRec | null>(null);
   const sendRef = useRef<(text: string, source: 'text' | 'voice') => Promise<void>>(async () => {});
 
   useEffect(() => {
     setMicOk(!!speechCtor() && !!window.isSecureContext);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stagedAttachments.forEach((a) => {
+        if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+      });
+    };
+  }, [stagedAttachments]);
+
+  const addFilesToStaged = useCallback((files: File[]) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'application/pdf'];
+    const newStaged: StagedAttachment[] = [];
+    const errors: string[] = [];
+
+    for (const f of files) {
+      const mime = f.type.toLowerCase();
+      const ext = f.name.split('.').pop()?.toLowerCase() || '';
+      const isImageExt = ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
+      const isPdfExt = ext === 'pdf';
+
+      if (!allowed.includes(mime) && !isImageExt && !isPdfExt) {
+        errors.push(`הקובץ "${f.name}" אינו נתמך (נתמכים: JPG, PNG, WEBP, PDF)`);
+        continue;
+      }
+      if (f.size > 15 * 1024 * 1024) {
+        errors.push(`הקובץ "${f.name}" גדול מדי (מקסימום 15MB)`);
+        continue;
+      }
+
+      const isImage = mime.startsWith('image/') || isImageExt;
+      const previewUrl = isImage ? URL.createObjectURL(f) : undefined;
+      newStaged.push({
+        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        file: f,
+        name: f.name,
+        size: f.size,
+        mimeType: mime || (isPdfExt ? 'application/pdf' : 'image/jpeg'),
+        previewUrl,
+      });
+    }
+
+    if (errors.length > 0) {
+      setBanner(errors.join('\n'));
+    } else {
+      setBanner('');
+    }
+
+    if (newStaged.length > 0) {
+      setStagedAttachments((prev) => [...prev, ...newStaged]);
+    }
+  }, []);
+
+  const handleFilesSelected = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    addFilesToStaged(Array.from(files));
+    e.target.value = '';
+  }, [addFilesToStaged]);
+
+  const removeStagedAttachment = useCallback((id: string) => {
+    setStagedAttachments((prev) => {
+      const item = prev.find((a) => a.id === id);
+      if (item?.previewUrl) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
+      return prev.filter((a) => a.id !== id);
+    });
   }, []);
 
   const loadList = useCallback(async () => {
@@ -215,6 +348,7 @@ export function ClaimsAiWorkspace({
     if (!open) return;
     setMessages([]);
     setInput('');
+    setStagedAttachments([]);
     setPendingDelete(null);
     void loadList();
   }, [open, loadList]);
@@ -252,8 +386,12 @@ export function ClaimsAiWorkspace({
 
   const sendMessage = useCallback(async (text: string, source: 'text' | 'voice') => {
     const trimmed = text.trim();
-    if (!trimmed || loading) return;
+    if ((!trimmed && stagedAttachments.length === 0) || loading) return;
+    const effectiveText = trimmed || (stagedAttachments.length === 1 ? 'צירפתי קובץ לבדיקה' : 'צירפתי קבצים לבדיקה');
+    const filesToUpload = [...stagedAttachments];
+
     setInput('');
+    setStagedAttachments([]);
     setLoading(true);
     setBanner('');
     let conversationId = activeId;
@@ -262,7 +400,7 @@ export function ClaimsAiWorkspace({
         const created = await createClaimsAiConversation({
           userId,
           claimId,
-          title: titleFromFirstMessage(trimmed),
+          title: titleFromFirstMessage(effectiveText),
         });
         if (created.error || !created.data) throw new Error(created.error?.message || 'יצירת השיחה נכשלה');
         conversationId = created.data.id;
@@ -271,16 +409,59 @@ export function ClaimsAiWorkspace({
         writeActiveId(userId, claimId, conversationId);
       } else if ((conversations.find((row) => row.id === conversationId)?.title || 'שיחה חדשה') === 'שיחה חדשה'
         && messages.filter((m) => m.role === 'user').length === 0) {
-        const title = titleFromFirstMessage(trimmed);
+        const title = titleFromFirstMessage(effectiveText);
         await renameClaimsAiConversation(conversationId, title);
         setConversations((prev) => prev.map((row) => row.id === conversationId ? { ...row, title } : row));
+      }
+
+      const finalAttachments: Array<{
+        name: string;
+        mime_type: string;
+        byte_size: number;
+        file_id?: string;
+        data_base64?: string;
+        preview_url?: string;
+      }> = [];
+
+      for (const staged of filesToUpload) {
+        try {
+          const base64 = await readFileAsBase64(staged.file);
+          let fileId: string | undefined = undefined;
+          if (claimId) {
+            const upRes = await uploadChatAttachmentToClaim(claimId, staged.file);
+            if (upRes.success && upRes.file_id) {
+              fileId = upRes.file_id;
+            }
+          }
+          finalAttachments.push({
+            name: staged.name,
+            mime_type: staged.mimeType,
+            byte_size: staged.size,
+            file_id: fileId,
+            data_base64: base64,
+            preview_url: staged.previewUrl,
+          });
+        } catch (err) {
+          console.error('Failed reading/uploading attachment:', staged.name, err);
+        }
       }
 
       const userSaved = await insertClaimsAiMessage({
         conversationId,
         role: 'user',
-        content: trimmed,
-        metadata: { claim_id: claimId, source },
+        content: effectiveText,
+        metadata: {
+          claim_id: claimId,
+          source,
+          attachments: finalAttachments.map((a) => ({
+            name: a.name,
+            mime_type: a.mime_type,
+            byte_size: a.byte_size,
+            file_id: a.file_id,
+            preview_url: a.preview_url,
+            data_base64: a.mime_type.startsWith('image/') ? a.data_base64 : undefined,
+          })),
+        },
       });
       if (userSaved.error || !userSaved.data) throw new Error(userSaved.error?.message || 'שמירת ההודעה נכשלה');
       const history = [...messages, userSaved.data];
@@ -292,6 +473,13 @@ export function ClaimsAiWorkspace({
         messages: messagesForModel(history),
         claimId,
         companyName,
+        attachments: finalAttachments.map((a) => ({
+          name: a.name,
+          mime_type: a.mime_type,
+          byte_size: a.byte_size,
+          file_id: a.file_id,
+          data_base64: a.data_base64,
+        })),
         onDelta: (full) => {
           draft = full;
           setMessages([...history, {
@@ -339,7 +527,7 @@ export function ClaimsAiWorkspace({
     } finally {
       setLoading(false);
     }
-  }, [activeId, claimId, companyName, conversations, loading, messages, userId]);
+  }, [activeId, claimId, companyName, conversations, loading, messages, stagedAttachments, userId]);
 
   useEffect(() => {
     sendRef.current = sendMessage;
@@ -593,7 +781,7 @@ export function ClaimsAiWorkspace({
               <span>סטטוס <b>{claim.status}</b></span>
             </>
           ) : (
-            <span>📊 <b>ניהול תביעות כללי</b> · סקירת כלל התביעות, מיילים ומשימות במערכת</span>
+            <span>📊 <b>ניהול תביעות כללי</b> (אין תיק פתוח) · סקירת כלל התביעות, מיילים ומשימות במערכת</span>
           )}
         </div>
 
@@ -609,9 +797,29 @@ export function ClaimsAiWorkspace({
           {messages.map((msg) => {
             const pending = pendingActionOf(msg.metadata);
             const toolError = typeof msg.metadata.tool_error === 'string' ? msg.metadata.tool_error : '';
+            const msgAttachments = Array.isArray(msg.metadata?.attachments) ? (msg.metadata.attachments as any[]) : [];
             return (
               <div key={msg.id} className={`claims-ai-row ${msg.role}${msg.metadata.error === true ? ' error' : ''}`}>
                 <div className="claims-ai-bubble">
+                  {msgAttachments.length > 0 ? (
+                    <div className="claims-ai-msg-attachments" data-testid="claims-ai-msg-attachments">
+                      {msgAttachments.map((att: any, idx: number) => (
+                        <div key={idx} className="claims-ai-msg-att-badge" data-testid={`claims-ai-msg-attachment-${idx}`}>
+                          {att.data_base64 && String(att.mime_type || '').startsWith('image/') ? (
+                            <img src={`data:${att.mime_type};base64,${att.data_base64}`} alt={att.name} className="claims-ai-msg-att-thumb" />
+                          ) : att.preview_url ? (
+                            <img src={att.preview_url} alt={att.name} className="claims-ai-msg-att-thumb" />
+                          ) : (
+                            <span className="claims-ai-msg-att-icon">📄</span>
+                          )}
+                          <div className="claims-ai-msg-att-info">
+                            <span className="claims-ai-msg-att-name" title={att.name}>{att.name}</span>
+                            {att.byte_size ? <span className="claims-ai-msg-att-size">{formatFileSize(att.byte_size)}</span> : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   {msg.content}
                   {toolError ? <div className="claims-ai-tool-err">הכלי נכשל: {toolError}</div> : null}
                   {pending ? (
@@ -668,6 +876,34 @@ export function ClaimsAiWorkspace({
           {loading ? <div className="claims-ai-status" data-testid="claims-ai-loading">דליה חושבת…</div> : null}
         </div>
 
+        {stagedAttachments.length > 0 ? (
+          <div className="claims-ai-attachments-tray" data-testid="claims-ai-attachments-tray">
+            {stagedAttachments.map((att) => (
+              <div key={att.id} className="claims-ai-attachment-badge" data-testid={`claims-ai-attachment-badge-${att.id}`}>
+                {att.previewUrl ? (
+                  <img src={att.previewUrl} alt={att.name} className="claims-ai-attachment-thumb" />
+                ) : (
+                  <span className="claims-ai-attachment-icon">📄</span>
+                )}
+                <div className="claims-ai-attachment-info">
+                  <span className="claims-ai-attachment-name" title={att.name}>{att.name}</span>
+                  <span className="claims-ai-attachment-size">{formatFileSize(att.size)}</span>
+                </div>
+                <button
+                  type="button"
+                  className="claims-ai-attachment-remove"
+                  data-testid={`claims-ai-remove-attachment-${att.id}`}
+                  title="הסר קובץ"
+                  aria-label={`הסר קובץ ${att.name}`}
+                  onClick={() => removeStagedAttachment(att.id)}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
         <form
           className="claims-ai-composer"
           onSubmit={(e) => {
@@ -675,6 +911,24 @@ export function ClaimsAiWorkspace({
             void sendMessage(input, 'text');
           }}
         >
+          <input
+            type="file"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            multiple
+            accept="image/jpeg,image/png,image/webp,image/jpg,application/pdf"
+            data-testid="claims-ai-file-input"
+            onChange={handleFilesSelected}
+          />
+          <button
+            type="button"
+            className="claims-ai-icon attach"
+            data-testid="claims-ai-attach-btn"
+            disabled={loading}
+            title="צרף קובץ / תמונה"
+            aria-label="צרף קובץ / תמונה"
+            onClick={() => fileInputRef.current?.click()}
+          >📎</button>
           <button
             type="button"
             className={`claims-ai-icon${listening ? ' live' : ''}`}
@@ -698,7 +952,12 @@ export function ClaimsAiWorkspace({
               }
             }}
           />
-          <button type="submit" className="claims-ai-icon send" data-testid="claims-ai-send" disabled={loading || !input.trim()}>שלח</button>
+          <button
+            type="submit"
+            className="claims-ai-icon send"
+            data-testid="claims-ai-send"
+            disabled={loading || (!input.trim() && stagedAttachments.length === 0)}
+          >שלח</button>
         </form>
       </section>
     </div>
