@@ -39,30 +39,14 @@ if (String(block.project_id || creds.web?.project_id || '') !== 'oren-car-claims
   throw new Error('refused: credentials are not from oren-car-claims');
 }
 
-const tmpWork = join(process.env.TEMP || '/tmp', 'fcc-claims-gmail-oauth-store');
-mkdirSync(tmpWork, { recursive: true });
-mkdirSync(join(tmpWork, 'supabase', 'migrations'), { recursive: true });
+import { createClient } from '@supabase/supabase-js';
 
-function dbQuery(sql) {
-  const tmp = join(tmpWork, 'q.sql');
-  writeFileSync(tmp, sql, 'utf8');
-  return execSync(`npx --yes supabase db query --linked --workdir "${tmpWork}" -f "${tmp}"`, {
-    encoding: 'utf8',
-    stdio: 'pipe',
-    timeout: 120000,
-  });
-}
-function sqlLit(v) {
-  return `'${String(v ?? '').replace(/'/g, "''")}'`;
-}
-
-execSync(`npx --yes supabase link --project-ref ${STAGING_REF} --workdir "${tmpWork}" --yes`, {
-  encoding: 'utf8',
-  stdio: 'pipe',
+const keys = JSON.parse(execSync(`npx --yes supabase projects api-keys --project-ref ${STAGING_REF} -o json`, { encoding: 'utf8' }));
+const serviceRoleKey = keys.find((k) => k.name === 'service_role')?.api_key;
+if (!serviceRoleKey) throw new Error('missing service_role key for staging');
+const admin = createClient(`https://${STAGING_REF}.supabase.co`, serviceRoleKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
 });
-const linked = readFileSync(join(tmpWork, 'supabase', '.temp', 'project-ref'), 'utf8').trim();
-if (linked === PROD_REF) throw new Error('refused: production');
-if (linked !== STAGING_REF) throw new Error(`unexpected ref ${linked}`);
 
 const state = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
@@ -161,27 +145,17 @@ const server = createServer(async (req, res) => {
     if (!granted.includes('gmail.readonly') || !granted.includes('gmail.compose')) {
       throw new Error(`missing_scope:${granted}`);
     }
-    dbQuery(`
-INSERT INTO public.claims_gmail_connection (id, connected_email, refresh_token, scopes, google_sub, connected_at, revoked_at, last_ok_at)
-VALUES (
-  'staging',
-  ${sqlLit(email)},
-  ${sqlLit(tokens.refresh_token)},
-  ${sqlLit(granted)},
-  ${sqlLit(me.id || '')},
-  now(),
-  NULL,
-  now()
-)
-ON CONFLICT (id) DO UPDATE SET
-  connected_email = EXCLUDED.connected_email,
-  refresh_token = EXCLUDED.refresh_token,
-  scopes = EXCLUDED.scopes,
-  google_sub = EXCLUDED.google_sub,
-  connected_at = now(),
-  revoked_at = NULL,
-  last_ok_at = now();
-`);
+    const { error: upsertErr } = await admin.from('claims_gmail_connection').upsert({
+      id: 'staging',
+      connected_email: email,
+      refresh_token: tokens.refresh_token,
+      scopes: granted,
+      google_sub: me.id || '',
+      connected_at: new Date().toISOString(),
+      revoked_at: null,
+      last_ok_at: new Date().toISOString(),
+    });
+    if (upsertErr) throw upsertErr;
     writeFileSync(join(OUT, 'oauth-connect.json'), JSON.stringify({
       at: new Date().toISOString(),
       ok: true,

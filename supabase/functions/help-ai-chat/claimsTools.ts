@@ -9,6 +9,9 @@ export interface ClaimsPendingAction {
   parameters: Record<string, unknown>;
 }
 
+// -------------------------------------------------------------
+// 1. CLAIMS_GEMINI_TOOLS (Inside Open Claim mode - claimId != "")
+// -------------------------------------------------------------
 export const CLAIMS_GEMINI_TOOLS = [
   {
     functionDeclarations: [
@@ -129,8 +132,37 @@ export const CLAIMS_GEMINI_TOOLS = [
         },
       },
       {
+        name: "get_missing_claim_documents",
+        description: "בדיקה מקיפה מה חסר בתיק הפתוח: סורק את כל המסמכים שהועלו ומשווה מול דרישות החובה (רישיון רכב, דוח שמאי, חשבונית מוסך, טופס הודעה/הצהרת נהג, תמונות נזק, פרטי צד ג')",
+        parameters: {
+          type: "OBJECT",
+          properties: {},
+        },
+      },
+      {
+        name: "get_claim_handler_and_history",
+        description: "בירור מי טיפל בתיק: מחזיר את פרטי העובד המטפל, מי פתח את התיק, ואת היסטוריית הפעולות האחרונות שנרשמו בתיק",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            limit: {
+              type: "NUMBER",
+              description: "מספר פעולות אחרונות להצגה (ברירת מחדל 10)",
+            },
+          },
+        },
+      },
+      {
+        name: "get_claim_next_action",
+        description: "בירור מה הפעולה הבאה בתיק: מחזיר את מועד היעד הבא, תיאור הפעולה הבאה ומשימות פתוחות הממתינות לביצוע",
+        parameters: {
+          type: "OBJECT",
+          properties: {},
+        },
+      },
+      {
         name: "preview_send_claim_email",
-        description: "הכנת תצוגה מקדימה (Preview) לשליחת מייל מתוך התיק דרך Gmail. אם לא צוינו נושא, גוף או מזהי קבצים, המערכת תבחר אוטומטית נושא מתאים, גוף מקצועי ואת תמונות התיק. דורש אישור מפורש של המשתמש לפני שליחה בפועל.",
+        description: "הכנת תצוגה מקדימה (Preview) לשליחת מייל מתוך התיק דרך Gmail. אם לא צוינו נושא, גוף או מזהי קבצים, המערכת תבחר אוטומטית נושא מתאים, גוף מקצועי ואת תמונות/מסמכי התיק. דורש אישור מפורש של המשתמש לפני שליחה בפועל.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -215,7 +247,7 @@ export const CLAIMS_GEMINI_TOOLS = [
           properties: {
             new_status: {
               type: "STRING",
-              description: "הסטטוס החדש המבוקש",
+              description: "הסטטוס החדש המבוקש (למשל: 'חדש', 'בטיפול מוסך', 'ממתין למסמכים', 'ממתין לשמאי', 'ממתין לביטוח', 'הושלם')",
             },
             reason: {
               type: "STRING",
@@ -267,27 +299,297 @@ export const CLAIMS_GEMINI_TOOLS = [
           required: ["note"],
         },
       },
+      {
+        name: "preview_create_customer",
+        description: "הכנת תצוגה מקדימה לפתיחת לקוח חדש במערכת הלקוחות (שם, טלפון, מייל, סוג לקוח). דורש אישור מפורש של המשתמש.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            name: {
+              type: "STRING",
+              description: "שם הלקוח המלא (חובה)",
+            },
+            phone: {
+              type: "STRING",
+              description: "מספר טלפון של הלקוח",
+            },
+            email: {
+              type: "STRING",
+              description: "כתובת אימייל של הלקוח",
+            },
+            customer_type: {
+              type: "STRING",
+              description: "סוג לקוח: 'private' (פרטי) או 'company' (עסקי)",
+            },
+            notes: {
+              type: "STRING",
+              description: "הערות ללקוח",
+            },
+          },
+          required: ["name"],
+        },
+      },
+      {
+        name: "preview_update_claim_client_contact",
+        description: "הכנת תצוגה מקדימה לעדכון פרטי התקשרות (טלפון או מייל) של לקוח התיק הפתוח. דורש אישור מפורש של המשתמש.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            phone: {
+              type: "STRING",
+              description: "מספר טלפון מעודכן",
+            },
+            email: {
+              type: "STRING",
+              description: "כתובת מייל מעודכנת",
+            },
+            reason: {
+              type: "STRING",
+              description: "סיבת העדכון",
+            },
+          },
+        },
+      },
+      {
+        name: "preview_link_client_to_claim",
+        description: "הכנת תצוגה מקדימה לקישור לקוח קיים ממערכת הלקוחות לתיק התביעה הנוכחי. דורש אישור מפורש של המשתמש.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            customer_name: {
+              type: "STRING",
+              description: "שם הלקוח לקישור",
+            },
+            customer_id: {
+              type: "STRING",
+              description: "מזהה הלקוח (אם ידוע)",
+            },
+          },
+          required: ["customer_name"],
+        },
+      },
     ],
   },
 ];
 
+// -------------------------------------------------------------
+// 2. CLAIMS_GENERAL_GEMINI_TOOLS (General Claims mode - no claimId)
+// -------------------------------------------------------------
+export const CLAIMS_GENERAL_GEMINI_TOOLS = [
+  {
+    functionDeclarations: [
+      {
+        name: "get_claims_summary",
+        description: "סיכום מקיף של תיקי התביעות במערכת: סך הכל תיקים, התפלגות לפי סטטוסים, התפלגות לפי חברות ביטוח, ותיקים הדורשים טיפול",
+        parameters: {
+          type: "OBJECT",
+          properties: {},
+        },
+      },
+      {
+        name: "count_claims",
+        description: "ספירת תביעות עם אפשרות לסינון לפי סטטוס, חברת ביטוח, תאריך פתיחה, או תיקים הדורשים טיפול",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            status: {
+              type: "STRING",
+              description: "סינון לפי סטטוס (אופציונלי)",
+            },
+            insurance_company: {
+              type: "STRING",
+              description: "סינון לפי חברת ביטוח (אופציונלי)",
+            },
+            created_today_only: {
+              type: "BOOLEAN",
+              description: "האם לספור רק תביעות שנפתחו היום (ברירת מחדל false)",
+            },
+            needing_attention_only: {
+              type: "BOOLEAN",
+              description: "האם לספור רק תביעות הדורשות טיפול (ברירת מחדל false)",
+            },
+          },
+        },
+      },
+      {
+        name: "get_claims_by_status",
+        description: "שליפת תביעות לפי סטטוס מסוים (למשל 'חדש', 'בטיפול מוסך', 'ממתין למסמכים', 'ממתין לביטוח', 'הושלם') או רשימת כלל התביעות מקובצות לפי סטטוס",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            status: {
+              type: "STRING",
+              description: "סטטוס מבוקש (אם ריק - מחזיר חלוקה של כלל הסטטוסים)",
+            },
+            limit: {
+              type: "NUMBER",
+              description: "מקסימום תוצאות (ברירת מחדל 15)",
+            },
+          },
+        },
+      },
+      {
+        name: "get_claims_created_today",
+        description: "שליפת כל התביעות שנפתחו היום במערכת כולל מספר תביעה, מספר רכב, שם לקוח, חברת ביטוח וסטטוס",
+        parameters: {
+          type: "OBJECT",
+          properties: {},
+        },
+      },
+      {
+        name: "get_recent_claims",
+        description: "שליפת התביעות האחרונות שנפתחו במערכת (ברירת מחדל 5) עם פרטים מלאים",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            limit: {
+              type: "NUMBER",
+              description: "מספר תביעות אחרונות להצגה (ברירת מחדל 5)",
+            },
+          },
+        },
+      },
+      {
+        name: "get_claims_needing_attention",
+        description: "איתור תיקים הדורשים טיפול מיידי (תיקים במצב ממתין, תיקים עם משימות פתוחות, או תיקים ללא פעילות בימים האחרונים)",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            limit: {
+              type: "NUMBER",
+              description: "מקסימום תיקים להצגה (ברירת מחדל 10)",
+            },
+          },
+        },
+      },
+      {
+        name: "get_open_tasks_summary",
+        description: "סיכום כלל המשימות הפתוחות במערכת ניהול התביעות, כולל פירוט משימות, תאריכי יעד ושיוך לתיקים",
+        parameters: {
+          type: "OBJECT",
+          properties: {},
+        },
+      },
+      {
+        name: "get_today_claim_activity",
+        description: "סיכום הפעילות שהתרחשה היום בניהול תביעות (עדכוני סטטוס, הערות שנרשמו, מיילים שנכנסו ופעולות AI)",
+        parameters: {
+          type: "OBJECT",
+          properties: {},
+        },
+      },
+      {
+        name: "count_today_incoming_emails",
+        description: "ספירת כמות המיילים שנכנסו היום לניהול התביעות מ-Gmail",
+        parameters: {
+          type: "OBJECT",
+          properties: {},
+        },
+      },
+      {
+        name: "count_today_outgoing_emails",
+        description: "ספירת כמות המיילים שיצאו היום מניהול התביעות",
+        parameters: {
+          type: "OBJECT",
+          properties: {},
+        },
+      },
+      {
+        name: "get_today_claim_emails",
+        description: "רשימת המיילים הנכנסים והיוצאים שנרשמו היום במערכת התביעות (שולח, נמען, נושא, שעה ושיוך לתביעה)",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            limit: {
+              type: "NUMBER",
+              description: "מקסימום תוצאות (ברירת מחדל 20)",
+            },
+          },
+        },
+      },
+      {
+        name: "get_unhandled_claim_emails",
+        description: "רשימת מיילים נכנסים מ-Gmail שטרם טופלו (ללא מענה, ללא משימה פתוחה או הדורשים בדיקה)",
+        parameters: {
+          type: "OBJECT",
+          properties: {},
+        },
+      },
+      {
+        name: "search_claims",
+        description: "חיפוש חופשי של תביעות לפי מספר רכב, שם לקוח, מספר תביעה, פוליסה, שמאי או חברת ביטוח",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            query: {
+              type: "STRING",
+              description: "מחרוזת החיפוש",
+            },
+          },
+          required: ["query"],
+        },
+      },
+    ],
+  },
+];
+
+// -------------------------------------------------------------
+// 3. SYSTEM PROMPTS
+// -------------------------------------------------------------
 export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
-אתה עוזר AI תפעולי חכם של דליה במודול ניהול תביעות.
+אתה עוזר AI תפעולי חכם של דליה במודול ניהול תביעות (תיק פתוח).
 התפקיד שלך הוא לסייע למשתמש לעבוד על התיק הפתוח בכל פעולה:
 1. מיילים בתיק (Gmail): חיפוש מיילים, הצגת המייל האחרון, בדיקה האם חברת הביטוח ענתה, בדיקה האם נשלח מייל ללקוח, קריאת שרשורים והכנת טיוטות מענה.
 2. תמונות ומסמכים: הצגת כל התמונות והמסמכים הקיימים בתיק (שמאות, חשבוניות, רישיון רכב, תמונות שמאי, תמונות מוסך).
-3. קישורי שיתוף: הצגת קישורים פעילים, יצירת קישורי שיתוף מאובטחים חדשים לשמאי/ביטוח/לקוח, וביטול קישורים.
-4. שליחת מיילים: שליחת מיילים ללקוח או לחברת הביטוח עם קבצים מצורפים מתוך התיק.
-5. תפעול התיק: שינוי סטטוס, יצירת וסגירת משימות, הוספת הערות בתיק.
+3. בדיקת חוסרים: בדיקה מקיפה מה חסר בתיק (רישיון, שמאי, חשבונית, טופס הודעה, צד ג') באמצעות הכלי get_missing_claim_documents.
+4. גורם מטפל והיסטוריה: בירור מי טיפל בתיק והצגת היסטוריית פעולות באמצעות get_claim_handler_and_history.
+5. פעולה הבאה: בדיקת פעולה הבאה ומשימות ממתינות באמצעות get_claim_next_action.
+6. קישורי שיתוף: הצגת קישורים פעילים, יצירת קישורי שיתוף מאובטחים חדשים לשמאי/ביטוח/לקוח, וביטול קישורים.
+7. שליחת מיילים: שליחת מיילים ללקוח או לחברת הביטוח עם קבצים מצורפים מתוך התיק.
+8. תפעול התיק: שינוי סטטוס, יצירת וסגירת משימות, הוספת הערות בתיק.
+9. לקוחות: יצירת לקוח חדש (preview_create_customer), עדכון טלפון/מייל (preview_update_claim_client_contact), קישור לקוח לתביעה (preview_link_client_to_claim).
 
 כללי בטיחות ואישורים קריטיים:
-- פעולות קריאה (READ): כגון חיפוש מיילים, בדיקת מענה מביטוח, רשימת תמונות/מסמכים, בדיקת קישורים — מבוצעות באופן אוטומטי מיידי דרך הכלים הרלוונטיים. ענה תמיד בעברית ברורה ותמציתית עם הנתונים האמיתיים שנשלפו.
-- פעולות כתיבה (WRITE / SEND / REVOKE / UPDATE): כגון שליחת מייל, יצירת קישור שיתוף, ביטול קישור, שינוי סטטוס תיק, יצירת משימה, סגירת משימה, הוספת הערה — אסור לבצע ישירות ללא אישור!
-- עבור כל פעולת כתיבה, חובה לקרוא לכלי ה-Preview המתאים (preview_send_claim_email, preview_create_claim_share_link, וכו').
+- פעולות קריאה (READ): כגון חיפוש מיילים, בדיקת מענה מביטוח, רשימת תמונות/מסמכים, בדיקת חוסרים, בדיקת קישורים, מי טיפל — מבוצעות באופן אוטומטי מיידי דרך הכלים הרלוונטיים. ענה תמיד בעברית ברורה ותמציתית עם הנתונים האמיתיים שנשלפו.
+- פעולות כתיבה (WRITE / SEND / REVOKE / UPDATE): כגון שליחת מייל, יצירת קישור שיתוף, ביטול קישור, שינוי סטטוס תיק, יצירת משימה, סגירת משימה, הוספת הערה, יצירת/עדכון לקוח — אסור לבצע ישירות ללא אישור!
+- עבור כל פעולת כתיבה, חובה לקרוא לכלי ה-Preview המתאים.
+- כאשר המשתמש מבקש להכין שליחה או לשלוח מייל עם מסמכים/תמונות מתוך התיק (כגון חשבונית, שמאות, תמונות נזק):
+  בדוק תחילה את רשימת המסמכים בתיק באמצעות get_claim_documents ומייד קרא ל-preview_send_claim_email עם הנמען (to), נושא מתאים, ורשימת מזהי הקבצים הרלוונטיים (file_ids). אל תקרא תוכן של מיילים ישנים אחד אחד כשנדרשת רק שליחת מסמכים.
 - כלי ה-Preview מכין את הפעולה ומציג למשתמש כרטיס אישור אינטראקטיבי בממשק. בתשובתך, הסבר בעברית מה הכנת ובקש מהמשתמש ללחוץ על "אישור" כדי לבצע.
 - לעולם אל תמציא מידע שאינו קיים בתיק. השתמש תמיד בכלים לקבלת נתונים חיים.
 `;
 
+export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
+אתה עוזר AI תפעולי וניהולי חכם של דליה במודול ניהול תביעות (מצב כללי - Claims General).
+המשתמש נמצא כעת במסך הראשי של ניהול תביעות, ללא תיק פתוח ספציפי.
+התפקיד שלך הוא לספק סקירה מלאה, נתונים סטטיסטיים, ותשובות מדויקות על כלל תיקי התביעות, המיילים והמשימות:
+1. סקירת תביעות וסטטיסטיקות:
+   - כמות תביעות כוללת, תביעות פתוחות, סגורות, בארכיון (get_claims_summary, count_claims).
+   - חלוקה לפי סטטוסים (get_claims_by_status).
+   - חלוקה לפי חברות ביטוח (get_claims_summary).
+   - תביעות שנפתחו היום (get_claims_created_today).
+   - תביעות אחרונות שנפתחו (get_recent_claims).
+   - תיקים שדורשים טיפול דחוף (get_claims_needing_attention).
+2. פעילות ומיילים יומיים (Gmail):
+   - כמה מיילים נכנסו היום (count_today_incoming_emails).
+   - כמה מיילים יצאו היום (count_today_outgoing_emails).
+   - רשימת המיילים של היום (get_today_claim_emails).
+   - מיילים נכנסים שטרם טופלו (get_unhandled_claim_emails).
+   - סיכום פעילות היום בניהול תביעות (get_today_claim_activity).
+3. משימות במערכת:
+   - סיכום משימות פתוחות בכלל התיקים (get_open_tasks_summary).
+4. חיפוש תביעות:
+   - חיפוש לפי מספר רכב, שם לקוח, מספר תביעה, חברת ביטוח (search_claims).
+
+כללי פעולה קריטיים:
+- ענה תמיד בעברית ברורה, מקצועית ומסודרת.
+- השתמש תמיד בכלים הייעודיים לקבלת נתונים אמיתיים. לעולם אל תנחש או תמציא מספרים או שמות.
+- אם המשתמש שואל שאלה שדורשת תיק פתוח ספציפי (כגון 'תראה לי את התמונות בתיק' או 'שלח מייל לשמאי בתיק'), הסבר לו בנימוס שכעת הוא במצב סקירה כללית, ועליו לפתוח את התיק הרלוונטי כדי לבצע פעולות פרטניות בו.
+`;
+
+// -------------------------------------------------------------
+// 4. AUDIT LOGGING HELPER
+// -------------------------------------------------------------
 export async function recordAiAudit(
   supabase: ReturnType<typeof createClient>,
   entry: {
@@ -333,6 +635,15 @@ export async function recordAiAudit(
   }
 }
 
+function getTodayStart(): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
+// -------------------------------------------------------------
+// 5. TOOL EXECUTION: Open Claim Mode (executeClaimsTool)
+// -------------------------------------------------------------
 export async function executeClaimsTool(
   name: string,
   args: Record<string, unknown>,
@@ -390,24 +701,30 @@ export async function executeClaimsTool(
           }));
         }
 
-        let combined = [...imports, ...outbox].sort((a, b) => {
-          return new Date(String(b.sent_at || 0)).getTime() - new Date(String(a.sent_at || 0)).getTime();
-        });
-
+        let combined = [...imports, ...outbox];
         if (query) {
-          combined = combined.filter((m) => {
-            const subj = String(m.subject || "").toLowerCase();
-            const snip = String(m.snippet || "").toLowerCase();
-            const from = String(m.from || "").toLowerCase();
-            const to = String(m.to || "").toLowerCase();
-            return subj.includes(query) || snip.includes(query) || from.includes(query) || to.includes(query);
-          });
+          combined = combined.filter((m) =>
+            String(m.subject || "").toLowerCase().includes(query) ||
+            String(m.snippet || "").toLowerCase().includes(query) ||
+            String(m.from || "").toLowerCase().includes(query) ||
+            String(m.to || "").toLowerCase().includes(query)
+          );
         }
+        combined.sort((a, b) => new Date(String(b.sent_at || "")).getTime() - new Date(String(a.sent_at || "")).getTime());
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "search_emails",
+          status: "success",
+        });
 
         return {
           result: {
             claim_id: claimId,
-            total_found: combined.length,
+            found_count: combined.length,
             emails: combined.slice(0, limit),
           },
         };
@@ -415,25 +732,25 @@ export async function executeClaimsTool(
 
       case "get_latest_claim_email": {
         const direction = String(args.direction || "any").toLowerCase();
-        let latestImport: Record<string, unknown> | null = null;
-        let latestOutbox: Record<string, unknown> | null = null;
+        let latestInbound: Record<string, unknown> | null = null;
+        let latestOutbound: Record<string, unknown> | null = null;
 
         if (direction === "inbound" || direction === "any") {
           const { data } = await supabase
             .from("claims_gmail_imports")
-            .select("id, from_addr, to_addr, subject, body_text, sent_at, attachment_count")
+            .select("id, gmail_message_id, gmail_thread_id, from_addr, to_addr, subject, body_text, sent_at, attachment_count")
             .eq("claim_id", claimId)
             .order("sent_at", { ascending: false })
             .limit(1)
             .maybeSingle();
           if (data) {
-            latestImport = {
+            latestInbound = {
               id: data.id,
               direction: "inbound",
               from: data.from_addr,
               to: data.to_addr,
               subject: data.subject,
-              snippet: (data.body_text || "").slice(0, 400),
+              body_snippet: (data.body_text || "").slice(0, 400),
               sent_at: data.sent_at,
               attachments: data.attachment_count || 0,
             };
@@ -443,19 +760,19 @@ export async function executeClaimsTool(
         if (direction === "outbound" || direction === "any") {
           const { data } = await supabase
             .from("claims_gmail_outbox")
-            .select("id, to_addr, subject, body_text, sent_at, status, file_ids")
+            .select("id, gmail_message_id, gmail_thread_id, to_addr, subject, body_text, sent_at, status, file_ids")
             .eq("claim_id", claimId)
             .order("sent_at", { ascending: false })
             .limit(1)
             .maybeSingle();
           if (data) {
-            latestOutbox = {
+            latestOutbound = {
               id: data.id,
               direction: "outbound",
               from: "מוסך אורן",
               to: data.to_addr,
               subject: data.subject,
-              snippet: (data.body_text || "").slice(0, 400),
+              body_snippet: (data.body_text || "").slice(0, 400),
               sent_at: data.sent_at,
               status: data.status,
               attachments: Array.isArray(data.file_ids) ? data.file_ids.length : 0,
@@ -463,198 +780,243 @@ export async function executeClaimsTool(
           }
         }
 
-        let chosen = latestImport;
-        if (direction === "outbound") chosen = latestOutbox;
-        else if (direction === "any" && latestOutbox && latestImport) {
-          const importTime = new Date(String(latestImport.sent_at || 0)).getTime();
-          const outboxTime = new Date(String(latestOutbox.sent_at || 0)).getTime();
-          chosen = outboxTime > importTime ? latestOutbox : latestImport;
-        } else if (direction === "any" && latestOutbox) {
-          chosen = latestOutbox;
+        let selected = latestInbound || latestOutbound;
+        if (direction === "inbound") selected = latestInbound;
+        else if (direction === "outbound") selected = latestOutbound;
+        else if (latestInbound && latestOutbound) {
+          const tIn = new Date(String(latestInbound.sent_at || "")).getTime();
+          const tOut = new Date(String(latestOutbound.sent_at || "")).getTime();
+          selected = tIn >= tOut ? latestInbound : latestOutbound;
         }
 
-        if (!chosen) {
-          return { result: { found: false, message: "לא נמצאו מיילים בתיק הזה" } };
-        }
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "get_latest_email",
+          status: "success",
+        });
 
-        return { result: { found: true, email: chosen } };
+        return {
+          result: {
+            claim_id: claimId,
+            has_email: !!selected,
+            latest_email: selected,
+          },
+        };
       }
 
       case "read_email_content": {
         const emailId = String(args.email_id || "").trim();
-        const dir = String(args.direction || "").toLowerCase();
+        const direction = String(args.direction || "").toLowerCase();
 
-        if (dir === "outbound") {
+        if (!emailId) {
+          return { result: { error: "email_id is required" } };
+        }
+
+        let emailData: Record<string, unknown> | null = null;
+        if (direction !== "outbound") {
           const { data } = await supabase
-            .from("claims_gmail_outbox")
-            .select("id, to_addr, subject, body_text, sent_at, status, file_ids")
+            .from("claims_gmail_imports")
+            .select("*")
             .eq("id", emailId)
             .eq("claim_id", claimId)
             .maybeSingle();
-          if (!data) return { result: { error: "מייל יוצא לא נמצא" } };
-          return {
-            result: {
+          if (data) {
+            emailData = {
+              id: data.id,
+              direction: "inbound",
+              from: data.from_addr,
+              to: data.to_addr,
+              cc: data.cc_addr,
+              subject: data.subject,
+              body: data.body_text,
+              sent_at: data.sent_at,
+              attachments_count: data.attachment_count || 0,
+            };
+          }
+        }
+
+        if (!emailData && direction !== "inbound") {
+          const { data } = await supabase
+            .from("claims_gmail_outbox")
+            .select("*")
+            .eq("id", emailId)
+            .eq("claim_id", claimId)
+            .maybeSingle();
+          if (data) {
+            emailData = {
               id: data.id,
               direction: "outbound",
               from: "מוסך אורן",
               to: data.to_addr,
+              cc: data.cc_addr,
               subject: data.subject,
               body: data.body_text,
               sent_at: data.sent_at,
               status: data.status,
               file_ids: data.file_ids,
-            },
-          };
+            };
+          }
         }
 
-        const { data } = await supabase
-          .from("claims_gmail_imports")
-          .select("id, from_addr, to_addr, subject, body_text, sent_at, attachment_count, headers_preview")
-          .eq("id", emailId)
-          .eq("claim_id", claimId)
-          .maybeSingle();
-
-        if (!data) return { result: { error: "מייל נכנס לא נמצא" } };
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "read_email_content",
+          status: "success",
+        });
 
         return {
           result: {
-            id: data.id,
-            direction: "inbound",
-            from: data.from_addr,
-            to: data.to_addr,
-            subject: data.subject,
-            body: data.body_text,
-            sent_at: data.sent_at,
-            attachment_count: data.attachment_count || 0,
+            claim_id: claimId,
+            found: !!emailData,
+            email: emailData,
           },
         };
       }
 
       case "get_email_attachments": {
         const emailId = String(args.email_id || "").trim();
-        const { data } = await supabase
+        if (!emailId) {
+          return { result: { error: "email_id is required" } };
+        }
+
+        const { data: docs } = await supabase
           .from("claims_documents")
-          .select("id, original_name, doc_kind, mime_type, created_at")
-          .eq("claim_id", claimId)
-          .eq("source", "gmail");
+          .select("id, original_name, mime_type, byte_size, storage_path, created_at, source")
+          .eq("claim_id", claimId);
+
+        const emailAttachments = (docs || []).filter((d) => {
+          return d.source === "gmail" || (d.storage_path && d.storage_path.includes(emailId));
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "get_email_attachments",
+          status: "success",
+        });
 
         return {
           result: {
             claim_id: claimId,
             email_id: emailId,
-            attachments: (data || []).map((d) => ({
-              id: d.id,
-              filename: d.original_name,
-              kind: d.doc_kind,
-              mime_type: d.mime_type,
-              uploaded_at: d.created_at,
+            count: emailAttachments.length,
+            attachments: emailAttachments.map((a) => ({
+              id: a.id,
+              name: a.original_name,
+              size_bytes: a.byte_size,
+              mime_type: a.mime_type,
             })),
           },
         };
       }
 
       case "check_insurance_reply": {
-        const { data: claim } = await supabase
-          .from("claims_records")
-          .select("id, plate, client_name, row_data")
-          .eq("id", claimId)
-          .maybeSingle();
-
-        const insCompany = (claim?.row_data && typeof claim.row_data === "object"
-          ? String((claim.row_data as Record<string, unknown>).insCompany || "")
-          : "").trim();
-
-        const { data: imports } = await supabase
+        const { data } = await supabase
           .from("claims_gmail_imports")
-          .select("id, from_addr, subject, body_text, sent_at")
+          .select("id, from_addr, to_addr, subject, body_text, sent_at, attachment_count")
           .eq("claim_id", claimId)
           .order("sent_at", { ascending: false });
 
-        const insuranceKeywords = [
-          "shlomo", "six", "faxtviot", "migdal", "clal", "menora", "phoenix", "fenix",
-          "ayalon", "harel", "we-sure", "direct", "bitoach", "ביטוח", "שירביט",
-          insCompany.toLowerCase(),
-        ].filter(Boolean);
-
-        const matching = (imports || []).filter((m) => {
+        const insuranceKeywords = ["ביטוח", "שומרה", "מגדל", "כלל", "הראל", "הפניקס", "שלמה", "איילון", "מנורה", "shlomo", "migdal", "clal", "harel", "fnx", "menora", "ayalon"];
+        const insuranceMails = (data || []).filter((m) => {
           const from = String(m.from_addr || "").toLowerCase();
           const subj = String(m.subject || "").toLowerCase();
-          return insuranceKeywords.some((kw) => kw.length > 2 && (from.includes(kw) || subj.includes(kw)));
+          return insuranceKeywords.some((kw) => from.includes(kw) || subj.includes(kw));
         });
 
-        if (matching.length === 0) {
-          return {
-            result: {
-              replied: false,
-              insurance_company: insCompany || "לא הוגדרה",
-              message: "לא נמצאו הודעות מחברת הביטוח בתיק זה",
-            },
-          };
-        }
+        const latestReply = insuranceMails[0] || null;
 
-        const latest = matching[0];
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "check_insurance_reply",
+          status: "success",
+        });
+
         return {
           result: {
-            replied: true,
-            insurance_company: insCompany || "זוהתה מהמייל",
-            latest_reply_date: latest.sent_at,
-            from: latest.from_addr,
-            subject: latest.subject,
-            snippet: (latest.body_text || "").slice(0, 300),
-            total_replies_found: matching.length,
+            claim_id: claimId,
+            insurance_replied: !!latestReply,
+            replies_count: insuranceMails.length,
+            latest_reply: latestReply ? {
+              from: latestReply.from_addr,
+              date: latestReply.sent_at,
+              subject: latestReply.subject,
+              summary: (latestReply.body_text || "").slice(0, 300),
+              attachments: latestReply.attachment_count || 0,
+            } : null,
           },
         };
       }
 
       case "check_customer_email_sent": {
-        const { data: claim } = await supabase
+        const { data: rec } = await supabase
           .from("claims_records")
-          .select("id, client_name, row_data")
+          .select("client_name, row_data")
           .eq("id", claimId)
           .maybeSingle();
 
-        const row = (claim?.row_data && typeof claim.row_data === "object" ? claim.row_data : {}) as Record<string, unknown>;
-        const clientEmail = String(row.clientEmail || row.email || "").trim().toLowerCase();
-        const clientName = String(claim?.client_name || row.clientName || "").trim();
+        const row = (rec?.row_data && typeof rec.row_data === "object" ? rec.row_data : {}) as Record<string, unknown>;
+        const clientEmail = String(row.clientEmail || "").trim().toLowerCase();
+        const clientName = String(rec?.client_name || row.clientName || "");
 
-        const { data: sends } = await supabase
+        const { data: outbox } = await supabase
           .from("claims_gmail_outbox")
           .select("id, to_addr, subject, body_text, sent_at, status")
           .eq("claim_id", claimId)
           .order("sent_at", { ascending: false });
 
-        const matches = (sends || []).filter((s) => {
-          const to = String(s.to_addr || "").toLowerCase();
-          if (clientEmail && to.includes(clientEmail)) return true;
-          return true; // Any outbox on this claim
+        const customerMails = (outbox || []).filter((m) => {
+          const to = String(m.to_addr || "").toLowerCase();
+          return clientEmail && to.includes(clientEmail);
+        });
+
+        const latestSent = customerMails[0] || (outbox && outbox[0]) || null;
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "check_customer_email_sent",
+          status: "success",
         });
 
         return {
           result: {
-            client_name: clientName,
-            client_email: clientEmail || "לא מוגדר במפורש בכרטיס",
-            sent: matches.length > 0,
-            total_sent: matches.length,
-            latest_sent: matches[0]
-              ? {
-                  date: matches[0].sent_at,
-                  to: matches[0].to_addr,
-                  subject: matches[0].subject,
-                  status: matches[0].status,
-                }
-              : null,
+            claim_id: claimId,
+            customer_name: clientName,
+            customer_email: clientEmail || "לא מוגדרת כתובת מייל בתיק",
+            email_sent: !!latestSent,
+            sent_count: customerMails.length,
+            latest_email: latestSent ? {
+              to: latestSent.to_addr,
+              date: latestSent.sent_at,
+              subject: latestSent.subject,
+              status: latestSent.status,
+            } : null,
           },
         };
       }
 
       case "draft_email_reply": {
-        let importId = String(args.import_id || "").trim();
+        const importId = String(args.import_id || "").trim();
         let targetImport: Record<string, unknown> | null = null;
 
         if (importId) {
           const { data } = await supabase
             .from("claims_gmail_imports")
-            .select("id, from_addr, subject, body_text, sent_at")
+            .select("*")
             .eq("id", importId)
             .eq("claim_id", claimId)
             .maybeSingle();
@@ -662,7 +1024,7 @@ export async function executeClaimsTool(
         } else {
           const { data } = await supabase
             .from("claims_gmail_imports")
-            .select("id, from_addr, subject, body_text, sent_at")
+            .select("*")
             .eq("claim_id", claimId)
             .order("sent_at", { ascending: false })
             .limit(1)
@@ -671,99 +1033,286 @@ export async function executeClaimsTool(
         }
 
         if (!targetImport) {
-          return { result: { error: "לא נמצא מייל נכנס להכנת תשובה" } };
+          return {
+            result: {
+              success: false,
+              message: "לא נמצא מייל נכנס בתיק לניסוח תשובה",
+            },
+          };
         }
 
-        const subj = String(targetImport.subject || "").trim();
-        const replySubj = subj.toLowerCase().startsWith("re:") ? subj : `Re: ${subj}`;
-        const quote = String(targetImport.body_text || "").slice(0, 300);
+        const replyTo = targetImport.from_addr;
+        const subject = String(targetImport.subject || "").startsWith("Re:")
+          ? targetImport.subject
+          : `Re: ${targetImport.subject || "פנייה בנושא תביעה"}`;
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "draft_email_reply",
+          status: "success",
+        });
 
         return {
           result: {
-            import_id: targetImport.id,
-            to: targetImport.from_addr,
-            subject: replySubj,
+            claim_id: claimId,
+            reply_to: replyTo,
+            subject,
+            in_reply_to_message_id: targetImport.gmail_message_id,
             original_date: targetImport.sent_at,
-            quoted_snippet: quote,
-            suggested_opening: "שלום,\nבהמשך לפנייתכם בנושא תביעה זו,",
+            original_snippet: (targetImport.body_text || "").slice(0, 200),
+            suggested_opening: "שלום רב,\\nבהמשך לפנייתכם בנושא תביעה זו, להלן המידע והמסמכים הנדרשים:",
           },
         };
       }
 
       case "list_claim_documents": {
         const filterType = String(args.filter_type || "all").toLowerCase();
-        const { data } = await supabase
+
+        const { data: docs } = await supabase
           .from("claims_documents")
-          .select("id, original_name, doc_kind, mime_type, source, created_at")
+          .select("id, original_name, mime_type, byte_size, doc_kind, created_at, source")
           .eq("claim_id", claimId)
           .order("created_at", { ascending: false });
 
-        let rows = data || [];
+        let filtered = docs || [];
         if (filterType === "photos") {
-          rows = rows.filter((d) => {
-            const m = String(d.mime_type || "").toLowerCase();
-            const k = String(d.doc_kind || "").toLowerCase();
-            return m.startsWith("image/") || k.includes("photo") || k.includes("garage_photo") || k.includes("damage");
-          });
+          filtered = filtered.filter((d) =>
+            String(d.mime_type || "").startsWith("image/") ||
+            String(d.doc_kind || "").includes("photo") ||
+            /\.(jpe?g|png|webp|heic|heif)$/i.test(d.original_name || "")
+          );
         } else if (filterType === "docs") {
-          rows = rows.filter((d) => {
-            const m = String(d.mime_type || "").toLowerCase();
-            return m === "application/pdf" || !m.startsWith("image/");
-          });
+          filtered = filtered.filter((d) =>
+            String(d.mime_type || "").includes("pdf") ||
+            String(d.doc_kind || "").includes("report") ||
+            String(d.doc_kind || "").includes("invoice")
+          );
         }
 
-        return {
-          result: {
-            claim_id: claimId,
-            filter_applied: filterType,
-            total_count: rows.length,
-            files: rows.map((r) => ({
-              id: r.id,
-              name: r.original_name,
-              kind: r.doc_kind,
-              mime_type: r.mime_type,
-              is_photo: String(r.mime_type || "").startsWith("image/"),
-              uploaded_at: r.created_at,
-            })),
-          },
-        };
-      }
-
-      case "list_claim_share_links": {
-        const { data } = await supabase
-          .from("claims_share_links")
-          .select("id, recipient_name, recipient_kind, file_ids, expires_at, revoked_at, created_at, open_count")
-          .eq("claim_id", claimId)
-          .order("created_at", { ascending: false });
-
-        const now = Date.now();
-        const links = (data || []).map((l) => {
-          const filesCount = Array.isArray(l.file_ids) ? l.file_ids.length : 0;
-          const isRevoked = !!l.revoked_at;
-          const isExpired = new Date(l.expires_at).getTime() <= now;
-          const status = isRevoked ? "revoked" : isExpired ? "expired" : "active";
-          return {
-            id: l.id,
-            recipient_name: l.recipient_name,
-            recipient_kind: l.recipient_kind,
-            files_count: filesCount,
-            expires_at: l.expires_at,
-            status,
-            opened_times: l.open_count || 0,
-            created_at: l.created_at,
-          };
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "list_documents",
+          status: "success",
         });
 
         return {
           result: {
             claim_id: claimId,
-            total: links.length,
-            links,
+            filter: filterType,
+            total_count: filtered.length,
+            documents: filtered.map((d) => ({
+              id: d.id,
+              name: d.original_name,
+              mime: d.mime_type,
+              size: d.byte_size,
+              kind: d.doc_kind || "מסמך",
+              created_at: d.created_at,
+            })),
           },
         };
       }
 
-      // PREVIEW / WRITE TOOLS
+      case "get_missing_claim_documents": {
+        const { data: docs } = await supabase
+          .from("claims_documents")
+          .select("id, original_name, mime_type, doc_kind")
+          .eq("claim_id", claimId);
+
+        const allDocs = docs || [];
+        const hasLicense = allDocs.some((d) =>
+          d.doc_kind === "car_license" || /רישיון.*רכב|רשיון.*רכב|license/i.test(d.original_name || "")
+        );
+        const hasPhotos = allDocs.some((d) =>
+          String(d.mime_type || "").startsWith("image/") ||
+          d.doc_kind === "damage_photo" ||
+          d.doc_kind === "surveyor_photo"
+        );
+        const hasSurveyorReport = allDocs.some((d) =>
+          d.doc_kind === "surveyor_report" || /שמאי|שמאות|אומדן/i.test(d.original_name || "")
+        );
+        const hasInvoice = allDocs.some((d) =>
+          d.doc_kind === "garage_invoice" || /חשבונית|קבלה/i.test(d.original_name || "")
+        );
+        const hasDeclaration = allDocs.some((d) =>
+          d.doc_kind === "claim_declaration" || /הודעה|הצהרה|טופס.*תאונה/i.test(d.original_name || "")
+        );
+
+        const requirements = [
+          { item: "רישיון רכב בתוקף", present: hasLicense, required: true },
+          { item: "תמונות נזק ומוקד", present: hasPhotos, required: true },
+          { item: "דוח / הערכת שמאי", present: hasSurveyorReport, required: true },
+          { item: "חשבונית תיקון מוסך", present: hasInvoice, required: true },
+          { item: "טופס הודעה על תאונה / הצהרת מבוטח", present: hasDeclaration, required: true },
+        ];
+
+        const missing = requirements.filter((r) => !r.present).map((r) => r.item);
+        const present = requirements.filter((r) => r.present).map((r) => r.item);
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "get_missing_documents",
+          status: "success",
+        });
+
+        return {
+          result: {
+            claim_id: claimId,
+            is_complete: missing.length === 0,
+            present_documents: present,
+            missing_documents: missing,
+            total_documents_in_claim: allDocs.length,
+            recommendation: missing.length === 0
+              ? "כל מסמכי החובה קיימים בתיק! התיק מוכן להמשך טיפול/סגירה מול חברת הביטוח."
+              : `יש להשלים בתיק: ${missing.join(", ")}.`,
+          },
+        };
+      }
+
+      case "get_claim_handler_and_history": {
+        const limit = Math.min(Number(args.limit || 10), 30);
+        const { data: claimRow } = await supabase
+          .from("claims_records")
+          .select("id, assigned_to_name, created_by_name, created_at, status")
+          .eq("id", claimId)
+          .maybeSingle();
+
+        const { data: hist } = await supabase
+          .from("claims_history")
+          .select("id, row_data, created_at")
+          .eq("claim_id", claimId)
+          .order("created_at", { ascending: false })
+          .limit(limit);
+
+        const historyItems = (hist || []).map((h) => {
+          const rd = (h.row_data && typeof h.row_data === "object" ? h.row_data : {}) as Record<string, unknown>;
+          return {
+            id: h.id,
+            action: rd.action || "פעולה",
+            by: rd.by || "מערכת",
+            note: rd.note || "",
+            type: rd.type || "general",
+            at: rd.at || h.created_at,
+          };
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "get_handler_and_history",
+          status: "success",
+        });
+
+        return {
+          result: {
+            claim_id: claimId,
+            assigned_handler: claimRow?.assigned_to_name || "טרם שויך עובד מטפל",
+            opened_by: claimRow?.created_by_name || "מערכת",
+            opened_at: claimRow?.created_at,
+            current_status: claimRow?.status,
+            recent_activity: historyItems,
+          },
+        };
+      }
+
+      case "get_claim_next_action": {
+        const { data: claimRow } = await supabase
+          .from("claims_records")
+          .select("id, row_data, status")
+          .eq("id", claimId)
+          .maybeSingle();
+
+        const rd = (claimRow?.row_data && typeof claimRow.row_data === "object" ? claimRow.row_data : {}) as Record<string, unknown>;
+
+        const { data: tasks } = await supabase
+          .from("claims_tasks")
+          .select("id, row_data, created_at")
+          .eq("claim_id", claimId);
+
+        const openTasks = (tasks || []).filter((t) => {
+          const trd = (t.row_data && typeof t.row_data === "object" ? t.row_data : {}) as Record<string, unknown>;
+          return String(trd.done || "").toLowerCase() !== "true" && String(trd.workStatus || "").toLowerCase() !== "done";
+        }).map((t) => {
+          const trd = t.row_data as Record<string, unknown>;
+          return {
+            id: t.id,
+            action: trd.action || "משימה",
+            note: trd.note || "",
+            created_at: t.created_at,
+          };
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "get_next_action",
+          status: "success",
+        });
+
+        return {
+          result: {
+            claim_id: claimId,
+            next_action_title: rd.nextAction || "לא הוגדרה פעולה הבאה ידנית",
+            next_date: rd.nextDate || null,
+            open_tasks_count: openTasks.length,
+            open_tasks: openTasks,
+            status: claimRow?.status,
+          },
+        };
+      }
+
+      case "list_claim_share_links": {
+        const { data: shares } = await supabase
+          .from("claims_share_links")
+          .select("id, recipient_name, recipient_kind, recipient_email, recipient_phone, expires_at, revoked_at, created_at, created_by_name")
+          .eq("claim_id", claimId)
+          .order("created_at", { ascending: false });
+
+        const now = new Date();
+        const formatted = (shares || []).map((s) => ({
+          id: s.id,
+          recipient: s.recipient_name,
+          kind: s.recipient_kind,
+          email: s.recipient_email,
+          phone: s.recipient_phone,
+          is_active: !s.revoked_at && new Date(s.expires_at) > now,
+          expires_at: s.expires_at,
+          created_at: s.created_at,
+          created_by: s.created_by_name,
+        }));
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "list_share_links",
+          status: "success",
+        });
+
+        return {
+          result: {
+            claim_id: claimId,
+            total_links: formatted.length,
+            active_links: formatted.filter((x) => x.is_active),
+            all_links: formatted,
+          },
+        };
+      }
+
+      // PREVIEW TOOLS (Write operations)
       case "preview_send_claim_email": {
         let to = String(args.to || "").trim();
         const cc = String(args.cc || "").trim();
@@ -771,52 +1320,54 @@ export async function executeClaimsTool(
         let body = String(args.body || "").trim();
         let fileIds = Array.isArray(args.file_ids) ? (args.file_ids as string[]) : [];
 
+        const { data: claimRec } = await supabase
+          .from("claims_records")
+          .select("id, plate, client_name, row_data")
+          .eq("id", claimId)
+          .maybeSingle();
+
+        const claimRow = (claimRec?.row_data && typeof claimRec.row_data === "object" ? claimRec.row_data : {}) as Record<string, unknown>;
+        const claimNum = String(claimRow.claimNum || claimId);
+        const plate = String(claimRec?.plate || claimRow.plate || "");
+
         if (!to) {
-          const { data: claim } = await supabase
-            .from("claims_records")
-            .select("client_name, row_data")
-            .eq("id", claimId)
-            .maybeSingle();
-          const row = (claim?.row_data && typeof claim.row_data === "object" ? claim.row_data : {}) as Record<string, unknown>;
-          to = String(row.clientEmail || row.email || "").trim() || (claim?.client_name ? `${claim.client_name}` : "לקוח התיק");
+          to = String(claimRow.insEmail || claimRow.clientEmail || "").trim();
+        }
+
+        if (!to) {
+          return {
+            result: {
+              error: "נדרשת כתובת מייל של הנמען. אנא ציין למי לשלוח את המייל.",
+            },
+          };
         }
 
         if (!subject) {
-          subject = `מסמכים ותמונות עבור תביעה ${claimId}`;
-        }
-        if (!body) {
-          body = "שלום,\nמצורפים המסמכים והתמונות בנושא תביעה זו.\nבברכה,\nמוסך אורן";
+          subject = `תיק תביעה ${claimNum} - רכב ${plate} - מסמכים ותמונות ממוסך אורן`;
         }
 
         if (fileIds.length === 0) {
-          const { data: docs } = await supabase
-            .from("claims_documents")
-            .select("id, original_name, mime_type, doc_kind")
-            .eq("claim_id", claimId)
-            .order("created_at", { ascending: false });
-          const photos = (docs || []).filter((d) => {
-            const m = String(d.mime_type || "").toLowerCase();
-            const k = String(d.doc_kind || "").toLowerCase();
-            return m.startsWith("image/") || k.includes("photo") || k.includes("damage");
-          });
-          const chosen = photos.length > 0 ? photos : (docs || []);
-          fileIds = chosen.slice(0, 15).map((d) => d.id);
-        }
-
-        let fileNames: string[] = [];
-        if (fileIds.length > 0) {
-          const { data: docs } = await supabase
+          const { data: defaultDocs } = await supabase
             .from("claims_documents")
             .select("id, original_name")
             .eq("claim_id", claimId)
-            .in("id", fileIds);
-          fileNames = (docs || []).map((d) => d.original_name);
+            .limit(15);
+          if (defaultDocs && defaultDocs.length > 0) {
+            fileIds = defaultDocs.map((d) => d.id);
+          }
         }
 
-        const previewId = crypto.randomUUID();
-        const summary = `שליחת מייל אל ${to} בנושא "${subject}" (${fileIds.length > 0 ? `${fileIds.length} קבצים מצורפים: ${fileNames.join(", ")}` : "ללא קבצים מצורפים"})`;
+        if (!body) {
+          body = `שלום רב,
+מצורפים בזאת מסמכים ותמונות עבור תיק תביעה ${claimNum} (רכב ${plate}).
+בברכה,
+מוסך אורן`;
+        }
 
-        const pendingAction: ClaimsPendingAction = {
+        const previewId = `P-SEND-${Date.now()}`;
+        const summary = `שליחת מייל אל ${to} (נושא: "${subject}", ${fileIds.length} קבצים מצורפים)`;
+
+        const preview: ClaimsPendingAction = {
           preview_id: previewId,
           summary,
           tool_name: name,
@@ -824,11 +1375,10 @@ export async function executeClaimsTool(
           parameters: {
             claim_id: claimId,
             to,
-            cc,
+            cc: cc || null,
             subject,
             body,
             file_ids: fileIds,
-            file_names: fileNames,
           },
         };
 
@@ -839,61 +1389,50 @@ export async function executeClaimsTool(
           toolName: name,
           actionType: "send_email",
           previewSummary: summary,
-          previewPayload: pendingAction.parameters,
+          previewPayload: preview.parameters,
           status: "preview_created",
         });
 
         return {
           result: {
-            is_preview: true,
             preview_id: previewId,
-            summary,
-            status: "waiting_for_user_approval",
-            message: "התצוגה המקדימה מוכנה. הפעולה תבוצע רק לאחר שהמשתמש יאשר אותה במפורש בצ'אט.",
+            status: "pending_approval",
+            message: "הוכנה תצוגה מקדימה לשליחת המייל. נדרש אישור המשתמש לביצוע.",
+            details: {
+              to,
+              cc: cc || "ללא",
+              subject,
+              body_excerpt: body.slice(0, 300),
+              attachments_count: fileIds.length,
+            },
           },
-          preview: pendingAction,
+          preview,
         };
       }
 
       case "preview_create_claim_share_link": {
         const recipientName = String(args.recipient_name || "").trim();
-        const recipientKind = String(args.recipient_kind || "surveyor").trim();
+        const recipientKind = String(args.recipient_kind || "other").trim();
         const recipientEmail = String(args.recipient_email || "").trim();
         const recipientPhone = String(args.recipient_phone || "").trim();
-        let fileIds = Array.isArray(args.file_ids) ? (args.file_ids as string[]) : [];
         const ttlHours = Number(args.ttl_hours || 72);
-
-        if (!recipientName) return { result: { error: "שם נמען חובה" } };
+        let fileIds = Array.isArray(args.file_ids) ? (args.file_ids as string[]) : [];
 
         if (fileIds.length === 0) {
-          const { data: docs } = await supabase
+          const { data: defaultDocs } = await supabase
             .from("claims_documents")
-            .select("id, original_name, mime_type, doc_kind")
+            .select("id")
             .eq("claim_id", claimId)
-            .order("created_at", { ascending: false });
-          const photos = (docs || []).filter((d) => {
-            const m = String(d.mime_type || "").toLowerCase();
-            const k = String(d.doc_kind || "").toLowerCase();
-            return m.startsWith("image/") || k.includes("photo") || k.includes("damage");
-          });
-          const chosen = photos.length > 0 ? photos : (docs || []);
-          fileIds = chosen.slice(0, 20).map((d) => d.id);
+            .limit(20);
+          if (defaultDocs && defaultDocs.length > 0) {
+            fileIds = defaultDocs.map((d) => d.id);
+          }
         }
 
-        if (fileIds.length === 0) return { result: { error: "לא נמצאו קבצים בתיק לשיתוף" } };
+        const previewId = `P-SHARE-${Date.now()}`;
+        const summary = `יצירת קישור שיתוף עבור "${recipientName}" לתוקף של ${ttlHours} שעות (${fileIds.length} קבצים)`;
 
-        let fileNames: string[] = [];
-        const { data: docs } = await supabase
-          .from("claims_documents")
-          .select("id, original_name")
-          .eq("claim_id", claimId)
-          .in("id", fileIds);
-        fileNames = (docs || []).map((d) => d.original_name);
-
-        const previewId = crypto.randomUUID();
-        const summary = `יצירת קישור שיתוף מאובטח עבור ${recipientName} (${fileIds.length} קבצים: ${fileNames.join(", ")}, תוקף: ${ttlHours} שעות)`;
-
-        const pendingAction: ClaimsPendingAction = {
+        const preview: ClaimsPendingAction = {
           preview_id: previewId,
           summary,
           tool_name: name,
@@ -902,10 +1441,9 @@ export async function executeClaimsTool(
             claim_id: claimId,
             recipient_name: recipientName,
             recipient_kind: recipientKind,
-            recipient_email: recipientEmail,
-            recipient_phone: recipientPhone,
+            recipient_email: recipientEmail || null,
+            recipient_phone: recipientPhone || null,
             file_ids: fileIds,
-            file_names: fileNames,
             ttl_hours: ttlHours,
           },
         };
@@ -917,38 +1455,32 @@ export async function executeClaimsTool(
           toolName: name,
           actionType: "create_share_link",
           previewSummary: summary,
-          previewPayload: pendingAction.parameters,
+          previewPayload: preview.parameters,
           status: "preview_created",
         });
 
         return {
           result: {
-            is_preview: true,
             preview_id: previewId,
-            summary,
-            status: "waiting_for_user_approval",
-            message: "התצוגה המקדימה מוכנה. הפעולה תבוצע רק לאחר שהמשתמש יאשר אותה במפורש בצ'אט.",
+            status: "pending_approval",
+            message: "הוכנה תצוגה מקדימה ליצירת קישור שיתוף. נדרש אישור המשתמש לביצוע.",
+            details: {
+              recipient_name: recipientName,
+              recipient_kind: recipientKind,
+              ttl_hours: ttlHours,
+              files_count: fileIds.length,
+            },
           },
-          preview: pendingAction,
+          preview,
         };
       }
 
       case "preview_revoke_claim_share_link": {
         const shareId = String(args.share_id || "").trim();
-        if (!shareId) return { result: { error: "מזהה קישור שיתוף חובה" } };
+        const previewId = `P-REVOKE-${Date.now()}`;
+        const summary = `ביטול קישור שיתוף מאובטח (מזהה: ${shareId})`;
 
-        const { data: share } = await supabase
-          .from("claims_share_links")
-          .select("id, recipient_name")
-          .eq("id", shareId)
-          .eq("claim_id", claimId)
-          .maybeSingle();
-
-        const recName = share?.recipient_name || shareId;
-        const previewId = crypto.randomUUID();
-        const summary = `ביטול קישור השיתוף המאובטח עבור ${recName} (מזהה: ${shareId})`;
-
-        const pendingAction: ClaimsPendingAction = {
+        const preview: ClaimsPendingAction = {
           preview_id: previewId,
           summary,
           tool_name: name,
@@ -956,7 +1488,6 @@ export async function executeClaimsTool(
           parameters: {
             claim_id: claimId,
             share_id: shareId,
-            recipient_name: recName,
           },
         };
 
@@ -967,45 +1498,44 @@ export async function executeClaimsTool(
           toolName: name,
           actionType: "revoke_share_link",
           previewSummary: summary,
-          previewPayload: pendingAction.parameters,
+          previewPayload: preview.parameters,
           status: "preview_created",
         });
 
         return {
           result: {
-            is_preview: true,
             preview_id: previewId,
-            summary,
-            status: "waiting_for_user_approval",
+            status: "pending_approval",
+            message: "הוכנה תצוגה מקדימה לביטול הקישור. נדרש אישור המשתמש לביצוע.",
+            share_id: shareId,
           },
-          preview: pendingAction,
+          preview,
         };
       }
 
       case "preview_update_claim_status": {
         const newStatus = String(args.new_status || "").trim();
-        const reason = String(args.reason || "").trim();
-        if (!newStatus) return { result: { error: "סטטוס חדש חובה" } };
+        const reason = String(args.reason || "בקשת משתמש").trim();
 
-        const { data: claim } = await supabase
+        const { data: currentRec } = await supabase
           .from("claims_records")
-          .select("id, status")
+          .select("status")
           .eq("id", claimId)
           .maybeSingle();
 
-        const oldStatus = claim?.status || "לא ידוע";
-        const previewId = crypto.randomUUID();
-        const summary = `שינוי סטטוס התיק מ-"${oldStatus}" ל-"${newStatus}"${reason ? ` (סיבה: ${reason})` : ""}`;
+        const currentStatus = currentRec?.status || "לא ידוע";
+        const previewId = `P-STATUS-${Date.now()}`;
+        const summary = `שינוי סטטוס התיק מ-"${currentStatus}" ל-"${newStatus}" (סיבה: ${reason})`;
 
-        const pendingAction: ClaimsPendingAction = {
+        const preview: ClaimsPendingAction = {
           preview_id: previewId,
           summary,
           tool_name: name,
           action_type: "update_status",
           parameters: {
             claim_id: claimId,
-            old_status: oldStatus,
             new_status: newStatus,
+            old_status: currentStatus,
             reason,
           },
         };
@@ -1017,29 +1547,29 @@ export async function executeClaimsTool(
           toolName: name,
           actionType: "update_status",
           previewSummary: summary,
-          previewPayload: pendingAction.parameters,
+          previewPayload: preview.parameters,
           status: "preview_created",
         });
 
         return {
           result: {
-            is_preview: true,
             preview_id: previewId,
-            summary,
-            status: "waiting_for_user_approval",
+            status: "pending_approval",
+            message: "הוכנה תצוגה מקדימה לעדכון הסטטוס. נדרש אישור המשתמש לביצוע.",
+            current_status: currentStatus,
+            new_status: newStatus,
+            reason,
           },
-          preview: pendingAction,
+          preview,
         };
       }
 
       case "preview_create_claim_task": {
         const taskDescription = String(args.task_description || "").trim();
-        if (!taskDescription) return { result: { error: "תיאור משימה חובה" } };
-
-        const previewId = crypto.randomUUID();
+        const previewId = `P-TASK-${Date.now()}`;
         const summary = `יצירת משימה חדשה בתיק: "${taskDescription}"`;
 
-        const pendingAction: ClaimsPendingAction = {
+        const preview: ClaimsPendingAction = {
           preview_id: previewId,
           summary,
           tool_name: name,
@@ -1057,38 +1587,27 @@ export async function executeClaimsTool(
           toolName: name,
           actionType: "create_task",
           previewSummary: summary,
-          previewPayload: pendingAction.parameters,
+          previewPayload: preview.parameters,
           status: "preview_created",
         });
 
         return {
           result: {
-            is_preview: true,
             preview_id: previewId,
-            summary,
-            status: "waiting_for_user_approval",
+            status: "pending_approval",
+            message: "הוכנה תצוגה מקדימה ליצירת המשימה. נדרש אישור המשתמש לביצוע.",
+            task_description: taskDescription,
           },
-          preview: pendingAction,
+          preview,
         };
       }
 
       case "preview_close_claim_task": {
         const taskId = String(args.task_id || "").trim();
-        if (!taskId) return { result: { error: "מזהה משימה חובה" } };
+        const previewId = `P-CLOSETASK-${Date.now()}`;
+        const summary = `סגירת משימה בתיק (מזהה: ${taskId})`;
 
-        const { data: task } = await supabase
-          .from("claims_tasks")
-          .select("id, row_data")
-          .eq("id", taskId)
-          .eq("claim_id", claimId)
-          .maybeSingle();
-
-        const taskRow = (task?.row_data && typeof task.row_data === "object" ? task.row_data : {}) as Record<string, unknown>;
-        const taskDesc = String(taskRow.action || taskId);
-        const previewId = crypto.randomUUID();
-        const summary = `סגירת משימה בתיק: "${taskDesc}"`;
-
-        const pendingAction: ClaimsPendingAction = {
+        const preview: ClaimsPendingAction = {
           preview_id: previewId,
           summary,
           tool_name: name,
@@ -1096,7 +1615,6 @@ export async function executeClaimsTool(
           parameters: {
             claim_id: claimId,
             task_id: taskId,
-            task_description: taskDesc,
           },
         };
 
@@ -1107,29 +1625,27 @@ export async function executeClaimsTool(
           toolName: name,
           actionType: "close_task",
           previewSummary: summary,
-          previewPayload: pendingAction.parameters,
+          previewPayload: preview.parameters,
           status: "preview_created",
         });
 
         return {
           result: {
-            is_preview: true,
             preview_id: previewId,
-            summary,
-            status: "waiting_for_user_approval",
+            status: "pending_approval",
+            message: "הוכנה תצוגה מקדימה לסגירת המשימה. נדרש אישור המשתמש לביצוע.",
+            task_id: taskId,
           },
-          preview: pendingAction,
+          preview,
         };
       }
 
       case "preview_add_claim_note": {
         const note = String(args.note || "").trim();
-        if (!note) return { result: { error: "תוכן הערה חובה" } };
+        const previewId = `P-NOTE-${Date.now()}`;
+        const summary = `הוספת הערה לתיק: "${note}"`;
 
-        const previewId = crypto.randomUUID();
-        const summary = `הוספת הערה להיסטוריית התיק: "${note}"`;
-
-        const pendingAction: ClaimsPendingAction = {
+        const preview: ClaimsPendingAction = {
           preview_id: previewId,
           summary,
           tool_name: name,
@@ -1147,18 +1663,171 @@ export async function executeClaimsTool(
           toolName: name,
           actionType: "add_note",
           previewSummary: summary,
-          previewPayload: pendingAction.parameters,
+          previewPayload: preview.parameters,
           status: "preview_created",
         });
 
         return {
           result: {
-            is_preview: true,
             preview_id: previewId,
-            summary,
-            status: "waiting_for_user_approval",
+            status: "pending_approval",
+            message: "הוכנה תצוגה מקדימה להוספת ההערה. נדרש אישור המשתמש לביצוע.",
+            note,
           },
-          preview: pendingAction,
+          preview,
+        };
+      }
+
+      case "preview_create_customer": {
+        const nameCust = String(args.name || "").trim();
+        const phone = String(args.phone || "").trim();
+        const email = String(args.email || "").trim();
+        const customerType = String(args.customer_type || "private").trim();
+        const notes = String(args.notes || "").trim();
+
+        const previewId = `P-CUST-${Date.now()}`;
+        const summary = `יצירת לקוח חדש במערכת: "${nameCust}" (טלפון: ${phone || "—"}, מייל: ${email || "—"})`;
+
+        const preview: ClaimsPendingAction = {
+          preview_id: previewId,
+          summary,
+          tool_name: name,
+          action_type: "create_customer",
+          parameters: {
+            name: nameCust,
+            phone: phone || null,
+            email: email || null,
+            customer_type: customerType,
+            notes: notes || null,
+          },
+        };
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "create_customer",
+          previewSummary: summary,
+          previewPayload: preview.parameters,
+          status: "preview_created",
+        });
+
+        return {
+          result: {
+            preview_id: previewId,
+            status: "pending_approval",
+            message: "הוכנה תצוגה מקדימה ליצירת הלקוח. נדרש אישור המשתמש לביצוע.",
+            customer_name: nameCust,
+            phone: phone || "—",
+            email: email || "—",
+          },
+          preview,
+        };
+      }
+
+      case "preview_update_claim_client_contact": {
+        const phone = String(args.phone || "").trim();
+        const email = String(args.email || "").trim();
+        const reason = String(args.reason || "בקשת משתמש").trim();
+
+        const previewId = `P-UPDATECONTACT-${Date.now()}`;
+        const summary = `עדכון פרטי קשר ללקוח התיק (${phone ? `טלפון: ${phone} ` : ""}${email ? `מייל: ${email}` : ""})`;
+
+        const preview: ClaimsPendingAction = {
+          preview_id: previewId,
+          summary,
+          tool_name: name,
+          action_type: "update_claim_client_contact",
+          parameters: {
+            claim_id: claimId,
+            phone: phone || null,
+            email: email || null,
+            reason,
+          },
+        };
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "update_claim_client_contact",
+          previewSummary: summary,
+          previewPayload: preview.parameters,
+          status: "preview_created",
+        });
+
+        return {
+          result: {
+            preview_id: previewId,
+            status: "pending_approval",
+            message: "הוכנה תצוגה מקדימה לעדכון פרטי הלקוח. נדרש אישור המשתמש לביצוע.",
+            phone: phone || "ללא שינוי",
+            email: email || "ללא שינוי",
+          },
+          preview,
+        };
+      }
+
+      case "preview_link_client_to_claim": {
+        const custName = String(args.customer_name || "").trim();
+        const custId = String(args.customer_id || "").trim();
+
+        let foundCust: Record<string, unknown> | null = null;
+        if (custId) {
+          const { data } = await supabase.from("customers").select("*").eq("id", custId).maybeSingle();
+          foundCust = data;
+        } else if (custName) {
+          const { data } = await supabase.from("customers").select("*").ilike("name", `%${custName}%`).limit(1).maybeSingle();
+          foundCust = data;
+        }
+
+        if (!foundCust) {
+          return {
+            result: {
+              error: `לא נמצא לקוח במערכת התואם ל-"${custName || custId}". אנא בדוק את שם הלקוח או פתח לקוח חדש.`,
+            },
+          };
+        }
+
+        const previewId = `P-LINKCUST-${Date.now()}`;
+        const summary = `קישור הלקוח "${foundCust.name}" (טלפון: ${foundCust.phone || "—"}) לתיק התביעה הנוכחי`;
+
+        const preview: ClaimsPendingAction = {
+          preview_id: previewId,
+          summary,
+          tool_name: name,
+          action_type: "link_client_to_claim",
+          parameters: {
+            claim_id: claimId,
+            customer_id: foundCust.id,
+            customer_name: foundCust.name,
+            phone: foundCust.phone || null,
+            email: foundCust.email || null,
+          },
+        };
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "link_client_to_claim",
+          previewSummary: summary,
+          previewPayload: preview.parameters,
+          status: "preview_created",
+        });
+
+        return {
+          result: {
+            preview_id: previewId,
+            status: "pending_approval",
+            message: "הוכנה תצוגה מקדימה לקישור הלקוח לתיק. נדרש אישור המשתמש לביצוע.",
+            customer_name: foundCust.name,
+            customer_id: foundCust.id,
+          },
+          preview,
         };
       }
 
@@ -1166,59 +1835,671 @@ export async function executeClaimsTool(
         return { result: { error: `כלי לא מוכר: ${name}` } };
     }
   } catch (err) {
-    console.error(`Error executing tool ${name}:`, err);
-    return { result: { error: err instanceof Error ? err.message : "שגיאה בביצוע הכלי" } };
+    console.error("executeClaimsTool error:", err);
+    return {
+      result: { error: err instanceof Error ? err.message : "שגיאה בביצוע הכלי" },
+    };
   }
 }
 
-export async function executeClaimsPendingAction(
+// -------------------------------------------------------------
+// 6. TOOL EXECUTION: General Claims Mode (executeClaimsGeneralTool)
+// -------------------------------------------------------------
+export async function executeClaimsGeneralTool(
+  name: string,
+  args: Record<string, unknown>,
   supabase: ReturnType<typeof createClient>,
-  pending: ClaimsPendingAction,
   userId: string,
   userName: string,
-  authHeader: string,
-): Promise<{ success: boolean; message: string; data?: unknown; error?: string }> {
-  const { action_type, parameters, preview_id, summary } = pending;
-  const claimId = String(parameters.claim_id || "");
-
-  if (!claimId) {
-    return { success: false, message: "מזהה תיק חסר", error: "missing_claim_id" };
-  }
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-
+): Promise<{ result: unknown; preview?: ClaimsPendingAction }> {
   try {
-    switch (action_type) {
-      case "send_email": {
-        const to = String(parameters.to || "");
-        const cc = String(parameters.cc || "");
-        const subject = String(parameters.subject || "");
-        const body = String(parameters.body || "");
-        const fileIds = Array.isArray(parameters.file_ids) ? parameters.file_ids : [];
+    const todayStart = getTodayStart();
 
-        // Call claims-gmail edge function with caller's auth header
-        const res = await fetch(`${supabaseUrl}/functions/v1/claims-gmail`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: authHeader,
-          },
-          body: JSON.stringify({
-            action: "send_claim",
-            confirm: true,
-            claim_id: claimId,
-            to,
-            cc,
-            subject,
-            body,
-            file_ids: fileIds,
-            idempotency_key: `ai-send-${preview_id.slice(0, 16)}`,
-          }),
+    switch (name) {
+      case "get_claims_summary": {
+        const { data: recs } = await supabase
+          .from("claims_records")
+          .select("id, status, company_name, row_data, created_at, last_activity_at");
+
+        const activeRecs = (recs || []).filter((r) => {
+          const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+          return !rd.deletedAt;
         });
 
-        const data = await res.json().catch(() => ({ error: "שגיאה בתשובה משרת המייל" }));
-        if (!res.ok || data.success === false) {
-          const errMsg = data.error || data.message || `שגיאת שליחה ${res.status}`;
+        const statusCounts: Record<string, number> = {};
+        const insurerCounts: Record<string, number> = {};
+        let needingAttention = 0;
+        let todayCount = 0;
+
+        const nowMs = Date.now();
+        const sevenDaysAgo = nowMs - (7 * 24 * 60 * 60 * 1000);
+
+        for (const r of activeRecs) {
+          const st = r.status || "חדש";
+          statusCounts[st] = (statusCounts[st] || 0) + 1;
+
+          const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+          const ins = String(r.company_name || rd.insCompany || "אחר");
+          insurerCounts[ins] = (insurerCounts[ins] || 0) + 1;
+
+          if (st.includes("ממתין") || (r.last_activity_at && new Date(r.last_activity_at).getTime() < sevenDaysAgo && st !== "הושלם")) {
+            needingAttention += 1;
+          }
+
+          if (r.created_at && new Date(r.created_at).getTime() >= new Date(todayStart).getTime()) {
+            todayCount += 1;
+          }
+        }
+
+        const { count: tasksCount } = await supabase
+          .from("claims_tasks")
+          .select("id", { count: "exact", head: true });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          toolName: name,
+          actionType: "get_claims_summary",
+          status: "success",
+        });
+
+        return {
+          result: {
+            total_active_claims: activeRecs.length,
+            claims_opened_today: todayCount,
+            claims_needing_attention: needingAttention,
+            total_tasks_in_system: tasksCount || 0,
+            status_breakdown: statusCounts,
+            insurance_company_breakdown: insurerCounts,
+          },
+        };
+      }
+
+      case "count_claims": {
+        const filterStatus = String(args.status || "").trim();
+        const filterInsurer = String(args.insurance_company || "").trim();
+        const todayOnly = Boolean(args.created_today_only);
+        const attentionOnly = Boolean(args.needing_attention_only);
+
+        const { data: recs } = await supabase
+          .from("claims_records")
+          .select("id, status, company_name, row_data, created_at, last_activity_at");
+
+        let filtered = (recs || []).filter((r) => {
+          const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+          return !rd.deletedAt;
+        });
+
+        if (filterStatus) {
+          filtered = filtered.filter((r) => String(r.status || "").toLowerCase().includes(filterStatus.toLowerCase()));
+        }
+        if (filterInsurer) {
+          filtered = filtered.filter((r) => {
+            const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+            const ins = String(r.company_name || rd.insCompany || "");
+            return ins.toLowerCase().includes(filterInsurer.toLowerCase());
+          });
+        }
+        if (todayOnly) {
+          filtered = filtered.filter((r) => r.created_at && new Date(r.created_at).getTime() >= new Date(todayStart).getTime());
+        }
+        if (attentionOnly) {
+          filtered = filtered.filter((r) => String(r.status || "").includes("ממתין"));
+        }
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          toolName: name,
+          actionType: "count_claims",
+          status: "success",
+        });
+
+        return {
+          result: {
+            count: filtered.length,
+            applied_filters: {
+              status: filterStatus || null,
+              insurance_company: filterInsurer || null,
+              today_only: todayOnly,
+              attention_only: attentionOnly,
+            },
+          },
+        };
+      }
+
+      case "get_claims_by_status": {
+        const requestedStatus = String(args.status || "").trim();
+        const limit = Math.min(Number(args.limit || 15), 50);
+
+        const { data: recs } = await supabase
+          .from("claims_records")
+          .select("id, plate, client_name, status, company_name, row_data, created_at")
+          .order("created_at", { ascending: false });
+
+        const activeRecs = (recs || []).filter((r) => {
+          const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+          return !rd.deletedAt;
+        });
+
+        if (requestedStatus) {
+          const matched = activeRecs.filter((r) =>
+            String(r.status || "").toLowerCase().includes(requestedStatus.toLowerCase())
+          ).slice(0, limit).map((r) => {
+            const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+            return {
+              id: r.id,
+              claim_num: rd.claimNum || r.id,
+              plate: r.plate || rd.plate,
+              client: r.client_name || rd.clientName,
+              status: r.status,
+              insurer: r.company_name || rd.insCompany,
+              created_at: r.created_at,
+            };
+          });
+
+          return {
+            result: {
+              status_filter: requestedStatus,
+              count: matched.length,
+              claims: matched,
+            },
+          };
+        }
+
+        // Return group breakdown
+        const grouped: Record<string, number> = {};
+        for (const r of activeRecs) {
+          const st = r.status || "חדש";
+          grouped[st] = (grouped[st] || 0) + 1;
+        }
+
+        return {
+          result: {
+            total_active: activeRecs.length,
+            by_status: grouped,
+          },
+        };
+      }
+
+      case "get_claims_created_today": {
+        const { data: recs } = await supabase
+          .from("claims_records")
+          .select("id, plate, client_name, status, company_name, row_data, created_at, created_by_name")
+          .gte("created_at", todayStart)
+          .order("created_at", { ascending: false });
+
+        const activeRecs = (recs || []).filter((r) => {
+          const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+          return !rd.deletedAt;
+        }).map((r) => {
+          const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+          return {
+            id: r.id,
+            claim_num: rd.claimNum || r.id,
+            plate: r.plate || rd.plate,
+            client: r.client_name || rd.clientName,
+            status: r.status,
+            insurer: r.company_name || rd.insCompany,
+            opened_at: r.created_at,
+            opened_by: r.created_by_name,
+          };
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          toolName: name,
+          actionType: "get_claims_created_today",
+          status: "success",
+        });
+
+        return {
+          result: {
+            count_today: activeRecs.length,
+            claims: activeRecs,
+          },
+        };
+      }
+
+      case "get_recent_claims": {
+        const limit = Math.min(Number(args.limit || 5), 20);
+
+        const { data: recs } = await supabase
+          .from("claims_records")
+          .select("id, plate, client_name, status, company_name, row_data, created_at, assigned_to_name")
+          .order("created_at", { ascending: false })
+          .limit(limit * 2);
+
+        const activeRecs = (recs || []).filter((r) => {
+          const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+          return !rd.deletedAt;
+        }).slice(0, limit).map((r) => {
+          const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+          return {
+            id: r.id,
+            claim_num: rd.claimNum || r.id,
+            plate: r.plate || rd.plate,
+            client: r.client_name || rd.clientName,
+            status: r.status,
+            insurer: r.company_name || rd.insCompany,
+            assigned_to: r.assigned_to_name || "לא משויך",
+            created_at: r.created_at,
+          };
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          toolName: name,
+          actionType: "get_recent_claims",
+          status: "success",
+        });
+
+        return {
+          result: {
+            count: activeRecs.length,
+            claims: activeRecs,
+          },
+        };
+      }
+
+      case "get_claims_needing_attention": {
+        const limit = Math.min(Number(args.limit || 10), 20);
+
+        const { data: recs } = await supabase
+          .from("claims_records")
+          .select("id, plate, client_name, status, company_name, row_data, last_activity_at, created_at")
+          .order("created_at", { ascending: false });
+
+        const nowMs = Date.now();
+        const attentionList: Array<Record<string, unknown>> = [];
+
+        for (const r of recs || []) {
+          const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+          if (rd.deletedAt) continue;
+
+          const st = r.status || "חדש";
+          const reasons: string[] = [];
+
+          if (st === "ממתין למסמכים") reasons.push("ממתין להשלמת מסמכים מהלקוח/מוסך");
+          else if (st === "ממתין לשמאי") reasons.push("ממתין לשומה או דוח שמאי");
+          else if (st === "ממתין לביטוח") reasons.push("ממתין למענה/אישור מחברת הביטוח");
+
+          if (r.last_activity_at) {
+            const daysSinceActivity = (nowMs - new Date(r.last_activity_at).getTime()) / (1000 * 60 * 60 * 24);
+            if (daysSinceActivity > 5 && st !== "הושלם") {
+              reasons.push(`ללא פעילות מעל ${Math.round(daysSinceActivity)} ימים`);
+            }
+          }
+
+          if (reasons.length > 0) {
+            attentionList.push({
+              id: r.id,
+              claim_num: rd.claimNum || r.id,
+              plate: r.plate || rd.plate,
+              client: r.client_name || rd.clientName,
+              status: st,
+              insurer: r.company_name || rd.insCompany,
+              attention_reasons: reasons,
+              last_activity: r.last_activity_at,
+            });
+          }
+        }
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          toolName: name,
+          actionType: "get_claims_needing_attention",
+          status: "success",
+        });
+
+        return {
+          result: {
+            total_needing_attention: attentionList.length,
+            claims: attentionList.slice(0, limit),
+          },
+        };
+      }
+
+      case "get_open_tasks_summary": {
+        const { data: tasks } = await supabase
+          .from("claims_tasks")
+          .select("id, claim_id, row_data, created_at")
+          .order("created_at", { ascending: false });
+
+        const openList: Array<Record<string, unknown>> = [];
+        for (const t of tasks || []) {
+          const rd = (t.row_data && typeof t.row_data === "object" ? t.row_data : {}) as Record<string, unknown>;
+          if (String(rd.done || "").toLowerCase() === "true" || String(rd.workStatus || "").toLowerCase() === "done") {
+            continue;
+          }
+          openList.push({
+            id: t.id,
+            claim_id: t.claim_id,
+            action: rd.action || "משימה",
+            source: rd.source || "ידני",
+            note: rd.note || "",
+            created_at: t.created_at,
+          });
+        }
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          toolName: name,
+          actionType: "get_open_tasks_summary",
+          status: "success",
+        });
+
+        return {
+          result: {
+            total_open_tasks: openList.length,
+            tasks: openList.slice(0, 20),
+          },
+        };
+      }
+
+      case "get_today_claim_activity": {
+        const { data: hist } = await supabase
+          .from("claims_history")
+          .select("id, claim_id, row_data, created_at")
+          .gte("created_at", todayStart)
+          .order("created_at", { ascending: false })
+          .limit(25);
+
+        const timeline = (hist || []).map((h) => {
+          const rd = (h.row_data && typeof h.row_data === "object" ? h.row_data : {}) as Record<string, unknown>;
+          return {
+            id: h.id,
+            claim_id: h.claim_id,
+            action: rd.action || "פעולה",
+            by: rd.by || "מערכת",
+            note: rd.note || "",
+            time: rd.at || h.created_at,
+          };
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          toolName: name,
+          actionType: "get_today_claim_activity",
+          status: "success",
+        });
+
+        return {
+          result: {
+            activity_count_today: timeline.length,
+            timeline,
+          },
+        };
+      }
+
+      case "count_today_incoming_emails": {
+        const { count } = await supabase
+          .from("claims_gmail_imports")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", todayStart);
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          toolName: name,
+          actionType: "count_today_incoming_emails",
+          status: "success",
+        });
+
+        return {
+          result: {
+            incoming_emails_today: count || 0,
+            date: new Date().toLocaleDateString("he-IL"),
+          },
+        };
+      }
+
+      case "count_today_outgoing_emails": {
+        const { count } = await supabase
+          .from("claims_gmail_outbox")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", todayStart);
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          toolName: name,
+          actionType: "count_today_outgoing_emails",
+          status: "success",
+        });
+
+        return {
+          result: {
+            outgoing_emails_today: count || 0,
+            date: new Date().toLocaleDateString("he-IL"),
+          },
+        };
+      }
+
+      case "get_today_claim_emails": {
+        const limit = Math.min(Number(args.limit || 20), 40);
+
+        const { data: imp } = await supabase
+          .from("claims_gmail_imports")
+          .select("id, claim_id, from_addr, to_addr, subject, sent_at, created_at, attachment_count")
+          .gte("created_at", todayStart)
+          .order("created_at", { ascending: false });
+
+        const { data: out } = await supabase
+          .from("claims_gmail_outbox")
+          .select("id, claim_id, to_addr, subject, sent_at, created_at, status")
+          .gte("created_at", todayStart)
+          .order("created_at", { ascending: false });
+
+        const allEmails = [
+          ...(imp || []).map((m) => ({
+            id: m.id,
+            direction: "inbound",
+            claim_id: m.claim_id,
+            from: m.from_addr,
+            to: m.to_addr,
+            subject: m.subject,
+            time: m.sent_at || m.created_at,
+            attachments: m.attachment_count || 0,
+          })),
+          ...(out || []).map((m) => ({
+            id: m.id,
+            direction: "outbound",
+            claim_id: m.claim_id,
+            from: "מוסך אורן",
+            to: m.to_addr,
+            subject: m.subject,
+            time: m.sent_at || m.created_at,
+            status: m.status,
+          })),
+        ].sort((a, b) => new Date(String(b.time || "")).getTime() - new Date(String(a.time || "")).getTime());
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          toolName: name,
+          actionType: "get_today_claim_emails",
+          status: "success",
+        });
+
+        return {
+          result: {
+            total_today: allEmails.length,
+            emails: allEmails.slice(0, limit),
+          },
+        };
+      }
+
+      case "get_unhandled_claim_emails": {
+        const { data: imp } = await supabase
+          .from("claims_gmail_imports")
+          .select("id, claim_id, from_addr, to_addr, subject, snippet, body_text, sent_at, created_at")
+          .order("created_at", { ascending: false })
+          .limit(30);
+
+        const { data: out } = await supabase
+          .from("claims_gmail_outbox")
+          .select("claim_id");
+
+        const repliedClaimIds = new Set((out || []).map((o) => o.claim_id).filter(Boolean));
+
+        const unhandled = (imp || []).filter((m) => !repliedClaimIds.has(m.claim_id)).slice(0, 15).map((m) => ({
+          id: m.id,
+          claim_id: m.claim_id,
+          from: m.from_addr,
+          subject: m.subject,
+          snippet: m.snippet || (m.body_text || "").slice(0, 150),
+          received_at: m.sent_at || m.created_at,
+        }));
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          toolName: name,
+          actionType: "get_unhandled_claim_emails",
+          status: "success",
+        });
+
+        return {
+          result: {
+            unhandled_count: unhandled.length,
+            emails: unhandled,
+          },
+        };
+      }
+
+      case "search_claims": {
+        const q = String(args.query || "").trim().toLowerCase();
+        if (!q) {
+          return { result: { error: "יש לציין מחרוזת חיפוש (query)" } };
+        }
+
+        const { data: recs } = await supabase
+          .from("claims_records")
+          .select("id, plate, client_name, status, company_name, row_data, created_at")
+          .order("created_at", { ascending: false });
+
+        const matched = (recs || []).filter((r) => {
+          const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+          if (rd.deletedAt) return false;
+
+          const idMatch = String(r.id || "").toLowerCase().includes(q);
+          const plateMatch = String(r.plate || rd.plate || "").toLowerCase().includes(q);
+          const clientMatch = String(r.client_name || rd.clientName || "").toLowerCase().includes(q);
+          const insMatch = String(r.company_name || rd.insCompany || "").toLowerCase().includes(q);
+          const carMatch = String(rd.carModel || rd.carMake || "").toLowerCase().includes(q);
+          const policyMatch = String(rd.policyNum || "").toLowerCase().includes(q);
+          const surveyorMatch = String(rd.surveyor || "").toLowerCase().includes(q);
+
+          return idMatch || plateMatch || clientMatch || insMatch || carMatch || policyMatch || surveyorMatch;
+        }).slice(0, 15).map((r) => {
+          const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+          return {
+            id: r.id,
+            claim_num: rd.claimNum || r.id,
+            plate: r.plate || rd.plate,
+            client: r.client_name || rd.clientName,
+            status: r.status,
+            insurer: r.company_name || rd.insCompany,
+            car_model: rd.carModel,
+            policy_num: rd.policyNum,
+            created_at: r.created_at,
+          };
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          toolName: name,
+          actionType: "search_claims",
+          userPrompt: q,
+          status: "success",
+        });
+
+        return {
+          result: {
+            query: q,
+            matches_count: matched.length,
+            claims: matched,
+          },
+        };
+      }
+
+      default:
+        return { result: { error: `כלי כללי לא מוכר: ${name}` } };
+    }
+  } catch (err) {
+    console.error("executeClaimsGeneralTool error:", err);
+    return {
+      result: { error: err instanceof Error ? err.message : "שגיאה בביצוע הכלי הכללי" },
+    };
+  }
+}
+
+// -------------------------------------------------------------
+// 7. EXECUTION OF CONFIRMED PENDING ACTIONS
+// -------------------------------------------------------------
+export async function executeClaimsPendingAction(
+  supabase: ReturnType<typeof createClient>,
+  claimIdOrPendingAction: string | ClaimsPendingAction,
+  userIdOrPendingAction: string | ClaimsPendingAction,
+  userNameOrUserId?: string,
+  maybePendingActionOrUserName?: ClaimsPendingAction | string,
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    let claimId = "";
+    let userId = "";
+    let userName = "";
+    let pendingAction: ClaimsPendingAction;
+
+    if (claimIdOrPendingAction && typeof claimIdOrPendingAction === "object" && "action_type" in claimIdOrPendingAction) {
+      pendingAction = claimIdOrPendingAction as ClaimsPendingAction;
+      userId = String(userIdOrPendingAction || "");
+      userName = String(userNameOrUserId || "");
+      claimId = String(maybePendingActionOrUserName || (pendingAction.parameters as any)?.claim_id || "");
+    } else {
+      claimId = String(claimIdOrPendingAction || "");
+      userId = String(userIdOrPendingAction || "");
+      userName = String(userNameOrUserId || "");
+      pendingAction = (maybePendingActionOrUserName || {}) as ClaimsPendingAction;
+    }
+
+    if (!claimId && (pendingAction?.parameters as any)?.claim_id) {
+      claimId = String((pendingAction.parameters as any).claim_id);
+    }
+
+    const { action_type, parameters, summary } = pendingAction;
+
+    switch (action_type) {
+      case "send_email": {
+        const { to, cc, subject, body, file_ids } = parameters as {
+          to: string;
+          cc?: string | null;
+          subject: string;
+          body: string;
+          file_ids?: string[];
+        };
+
+        const res = await supabase.functions.invoke("claims-gmail", {
+          body: {
+            action: "send_claim",
+            claim_id: claimId,
+            to,
+            cc: cc || undefined,
+            subject,
+            body,
+            file_ids: file_ids || [],
+            confirm: true,
+          },
+        });
+
+        if (res.error || !res.data?.success) {
+          const errMsg = res.data?.error || res.error?.message || "שליחת המייל דרך Gmail נכשלה";
           await recordAiAudit(supabase, {
             userId,
             userName,
@@ -1229,7 +2510,7 @@ export async function executeClaimsPendingAction(
             previewPayload: parameters,
             approvedBy: userId,
             approvedByName: userName,
-            executionAction: "send_claim",
+            executionAction: "send_email",
             status: "failed",
             errorMessage: errMsg,
           });
@@ -1246,40 +2527,41 @@ export async function executeClaimsPendingAction(
           previewPayload: parameters,
           approvedBy: userId,
           approvedByName: userName,
-          executionAction: "send_claim",
-          stateAfter: { outbox_id: data.outbox_id, gmail_message_id: data.gmail_message_id },
+          executionAction: "send_email",
           status: "executed",
         });
 
         return {
           success: true,
-          message: `המייל נשלח בהצלחה דרך Gmail אל ${to}`,
-          data,
+          message: `המייל נשלח בהצלחה לנמען ${to}`,
         };
       }
 
       case "create_share_link": {
-        const res = await fetch(`${supabaseUrl}/functions/v1/claims-docs`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: authHeader,
-          },
-          body: JSON.stringify({
+        const { recipient_name, recipient_kind, recipient_email, recipient_phone, file_ids, ttl_hours } = parameters as {
+          recipient_name: string;
+          recipient_kind: string;
+          recipient_email?: string | null;
+          recipient_phone?: string | null;
+          file_ids?: string[];
+          ttl_hours?: number;
+        };
+
+        const res = await supabase.functions.invoke("claims-docs", {
+          body: {
             action: "create_share",
             claim_id: claimId,
-            recipient_name: parameters.recipient_name,
-            recipient_kind: parameters.recipient_kind,
-            recipient_email: parameters.recipient_email || "",
-            recipient_phone: parameters.recipient_phone || "",
-            file_ids: parameters.file_ids,
-            ttl_hours: parameters.ttl_hours || 72,
-          }),
+            recipient_name,
+            recipient_kind,
+            recipient_email: recipient_email || undefined,
+            recipient_phone: recipient_phone || undefined,
+            file_ids: file_ids || [],
+            ttl_hours: ttl_hours || 72,
+          },
         });
 
-        const data = await res.json().catch(() => ({ error: "שגיאה ביצירת הקישור" }));
-        if (!res.ok || data.success === false) {
-          const errMsg = data.error || data.message || `שגיאה ${res.status}`;
+        if (res.error || !res.data?.success) {
+          const errMsg = res.data?.error || res.error?.message || "יצירת קישור השיתוף נכשלה";
           await recordAiAudit(supabase, {
             userId,
             userName,
@@ -1290,10 +2572,11 @@ export async function executeClaimsPendingAction(
             previewPayload: parameters,
             approvedBy: userId,
             approvedByName: userName,
+            executionAction: "create_share_link",
             status: "failed",
             errorMessage: errMsg,
           });
-          return { success: false, message: `יצירת הקישור נכשלה: ${errMsg}`, error: errMsg };
+          return { success: false, message: `יצירת קישור השיתוף נכשלה: ${errMsg}`, error: errMsg };
         }
 
         await recordAiAudit(supabase, {
@@ -1306,35 +2589,29 @@ export async function executeClaimsPendingAction(
           previewPayload: parameters,
           approvedBy: userId,
           approvedByName: userName,
-          executionAction: "create_share",
-          stateAfter: { share_id: data.id, url: data.url },
+          executionAction: "create_share_link",
           status: "executed",
         });
 
         return {
           success: true,
-          message: `קישור השיתוף המאובטח נוצר בהצלחה עבור ${parameters.recipient_name}`,
-          data,
+          message: `קישור שיתוף מאובטח נוצר בהצלחה עבור ${recipient_name}`,
         };
       }
 
       case "revoke_share_link": {
-        const res = await fetch(`${supabaseUrl}/functions/v1/claims-docs`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: authHeader,
-          },
-          body: JSON.stringify({
+        const { share_id } = parameters as { share_id: string };
+
+        const res = await supabase.functions.invoke("claims-docs", {
+          body: {
             action: "revoke_share",
             claim_id: claimId,
-            share_id: parameters.share_id,
-          }),
+            share_id,
+          },
         });
 
-        const data = await res.json().catch(() => ({ error: "שגיאה בביטול הקישור" }));
-        if (!res.ok || data.success === false) {
-          const errMsg = data.error || data.message || `שגיאה ${res.status}`;
+        if (res.error || !res.data?.success) {
+          const errMsg = res.data?.error || res.error?.message || "ביטול קישור השיתוף נכשל";
           await recordAiAudit(supabase, {
             userId,
             userName,
@@ -1342,10 +2619,14 @@ export async function executeClaimsPendingAction(
             toolName: "preview_revoke_claim_share_link",
             actionType: "revoke_share_link",
             previewSummary: summary,
+            previewPayload: parameters,
+            approvedBy: userId,
+            approvedByName: userName,
+            executionAction: "revoke_share_link",
             status: "failed",
             errorMessage: errMsg,
           });
-          return { success: false, message: `ביטול הקישור נכשל: ${errMsg}`, error: errMsg };
+          return { success: false, message: `ביטול קישור השיתוף נכשל: ${errMsg}`, error: errMsg };
         }
 
         await recordAiAudit(supabase, {
@@ -1355,29 +2636,44 @@ export async function executeClaimsPendingAction(
           toolName: "preview_revoke_claim_share_link",
           actionType: "revoke_share_link",
           previewSummary: summary,
+          previewPayload: parameters,
           approvedBy: userId,
           approvedByName: userName,
-          executionAction: "revoke_share",
+          executionAction: "revoke_share_link",
           status: "executed",
         });
 
         return {
           success: true,
           message: `קישור השיתוף בוטל בהצלחה`,
-          data,
         };
       }
 
       case "update_status": {
-        const newStatus = String(parameters.new_status || "");
-        const oldStatus = String(parameters.old_status || "");
-        const reason = String(parameters.reason || "");
+        const { new_status, reason, old_status } = parameters as {
+          new_status: string;
+          reason?: string;
+          old_status?: string;
+        };
+
+        const { data: cur } = await supabase
+          .from("claims_records")
+          .select("row_data")
+          .eq("id", claimId)
+          .maybeSingle();
+
+        const rd = (cur?.row_data && typeof cur.row_data === "object" ? cur.row_data : {}) as Record<string, unknown>;
+        const patchRd = { ...rd, status: new_status };
 
         const { error: updErr } = await supabase
           .from("claims_records")
           .update({
-            status: newStatus,
+            status: new_status,
+            row_data: patchRd,
             updated_at: new Date().toISOString(),
+            updated_by: userId,
+            updated_by_name: userName,
+            last_activity_at: new Date().toISOString(),
           })
           .eq("id", claimId);
 
@@ -1385,18 +2681,15 @@ export async function executeClaimsPendingAction(
           return { success: false, message: `עדכון הסטטוס נכשל: ${updErr.message}`, error: updErr.message };
         }
 
-        const histId = `H-${Date.now()}`;
         await supabase.from("claims_history").insert({
-          id: histId,
+          id: `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
           claim_id: claimId,
           row_data: {
-            action: "שינוי סטטוס ע''י דליה AI",
-            note: reason || `עודכן מ-${oldStatus} ל-${newStatus}`,
-            type: "status_change",
-            valueBefore: oldStatus,
-            valueAfter: newStatus,
+            action: `עדכון סטטוס: ${new_status}`,
+            note: reason || "עודכן דרך דליה AI",
+            type: "status_update",
             by: userName || "דליה AI",
-            at: new Date().toISOString(),
+            at: new Date().toLocaleString("he-IL"),
           },
         });
 
@@ -1410,54 +2703,41 @@ export async function executeClaimsPendingAction(
           previewPayload: parameters,
           approvedBy: userId,
           approvedByName: userName,
-          stateBefore: { status: oldStatus },
-          stateAfter: { status: newStatus },
           executionAction: "update_status",
+          stateBefore: { status: old_status },
+          stateAfter: { status: new_status },
           status: "executed",
         });
 
         return {
           success: true,
-          message: `סטטוס התיק עודכן בהצלחה ל-"${newStatus}"`,
+          message: `סטטוס התיק עודכן בהצלחה ל-"${new_status}"`,
         };
       }
 
       case "create_task": {
-        const taskDesc = String(parameters.task_description || "");
-        const taskId = `TSK-${Date.now()}`;
+        const { task_description } = parameters as { task_description: string };
+        const taskId = `TSK-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
         const taskRow = {
           id: taskId,
-          claimId: claimId,
-          action: taskDesc,
-          done: false,
+          done: "false",
           workStatus: "open",
+          action: task_description,
+          claimId,
+          source: `דליה AI (${userName || "משתמש"})`,
           createdAt: new Date().toISOString(),
-          createdBy: userName || "דליה AI",
-          owner: userName || "דליה AI",
         };
 
-        const { error: insErr } = await supabase.from("claims_tasks").insert({
+        const { error: taskErr } = await supabase.from("claims_tasks").insert({
           id: taskId,
           claim_id: claimId,
           row_data: taskRow,
         });
 
-        if (insErr) {
-          return { success: false, message: `יצירת המשימה נכשלה: ${insErr.message}`, error: insErr.message };
+        if (taskErr) {
+          return { success: false, message: `יצירת המשימה נכשלה: ${taskErr.message}`, error: taskErr.message };
         }
-
-        await supabase.from("claims_history").insert({
-          id: `H-${Date.now()}`,
-          claim_id: claimId,
-          row_data: {
-            action: "יצירת משימה ע''י דליה AI",
-            note: taskDesc,
-            type: "task_create",
-            by: userName || "דליה AI",
-            at: new Date().toISOString(),
-          },
-        });
 
         await recordAiAudit(supabase, {
           userId,
@@ -1469,55 +2749,48 @@ export async function executeClaimsPendingAction(
           previewPayload: parameters,
           approvedBy: userId,
           approvedByName: userName,
-          stateAfter: { task_id: taskId, action: taskDesc },
           executionAction: "create_task",
           status: "executed",
         });
 
         return {
           success: true,
-          message: `המשימה "${taskDesc}" נוצרה בהצלחה`,
-          data: { taskId },
+          message: `המשימה "${task_description}" נוצרה בהצלחה בתיק`,
         };
       }
 
       case "close_task": {
-        const taskId = String(parameters.task_id || "");
-        const { data: existing } = await supabase
+        const { task_id } = parameters as { task_id: string };
+
+        const { data: curTask } = await supabase
           .from("claims_tasks")
-          .select("id, row_data")
-          .eq("id", taskId)
+          .select("row_data")
+          .eq("id", task_id)
           .eq("claim_id", claimId)
           .maybeSingle();
 
-        const row = (existing?.row_data && typeof existing.row_data === "object" ? existing.row_data : {}) as Record<string, unknown>;
-        const updatedRow = {
-          ...row,
-          done: true,
-          workStatus: "done",
-          closedAt: new Date().toISOString(),
-          closedBy: userName || "דליה AI",
-        };
+        const trd = (curTask?.row_data && typeof curTask.row_data === "object" ? curTask.row_data : {}) as Record<string, unknown>;
+        const patchTrd = { ...trd, done: "true", workStatus: "done", closedAt: new Date().toISOString() };
 
-        const { error: updErr } = await supabase
+        const { error: closeErr } = await supabase
           .from("claims_tasks")
-          .update({ row_data: updatedRow })
-          .eq("id", taskId)
+          .update({ row_data: patchTrd })
+          .eq("id", task_id)
           .eq("claim_id", claimId);
 
-        if (updErr) {
-          return { success: false, message: `סגירת המשימה נכשלה: ${updErr.message}`, error: updErr.message };
+        if (closeErr) {
+          return { success: false, message: `סגירת המשימה נכשלה: ${closeErr.message}`, error: closeErr.message };
         }
 
         await supabase.from("claims_history").insert({
-          id: `H-${Date.now()}`,
+          id: `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
           claim_id: claimId,
           row_data: {
-            action: "סגירת משימה ע''י דליה AI",
-            note: String(row.action || taskId),
-            type: "task_close",
+            action: "סגירת משימה",
+            note: `משימה ${task_id} נסגרה דרך דליה AI`,
+            type: "task_closed",
             by: userName || "דליה AI",
-            at: new Date().toISOString(),
+            at: new Date().toLocaleString("he-IL"),
           },
         });
 
@@ -1542,8 +2815,8 @@ export async function executeClaimsPendingAction(
       }
 
       case "add_note": {
-        const note = String(parameters.note || "");
-        const histId = `H-${Date.now()}`;
+        const { note } = parameters as { note: string };
+        const histId = `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
         const { error: insErr } = await supabase.from("claims_history").insert({
           id: histId,
@@ -1553,7 +2826,7 @@ export async function executeClaimsPendingAction(
             note,
             type: "ai_note",
             by: userName || "דליה AI",
-            at: new Date().toISOString(),
+            at: new Date().toLocaleString("he-IL"),
           },
         });
 
@@ -1578,6 +2851,193 @@ export async function executeClaimsPendingAction(
         return {
           success: true,
           message: `ההערה נוספה בהצלחה להיסטוריית התיק`,
+        };
+      }
+
+      case "create_customer": {
+        const { name: nameCust, phone, email, customer_type, notes } = parameters as {
+          name: string;
+          phone?: string | null;
+          email?: string | null;
+          customer_type?: string;
+          notes?: string | null;
+        };
+
+        const { data: newCust, error: custErr } = await supabase.from("customers").insert({
+          name: nameCust,
+          phone: phone || "",
+          email: email || "",
+          customer_type: customer_type || "private",
+          notes: notes || "נוצר דרך דליה AI במודול תביעות",
+          status: "active",
+          company_name: "Oren Car",
+          created_by: userId,
+        }).select().single();
+
+        if (custErr) {
+          return { success: false, message: `פתיחת הלקוח נכשלה: ${custErr.message}`, error: custErr.message };
+        }
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId: claimId || null,
+          toolName: "preview_create_customer",
+          actionType: "create_customer",
+          previewSummary: summary,
+          previewPayload: parameters,
+          approvedBy: userId,
+          approvedByName: userName,
+          executionAction: "create_customer",
+          status: "executed",
+        });
+
+        return {
+          success: true,
+          message: `לקוח חדש "${nameCust}" נפתח בהצלחה במערכת הלקוחות`,
+        };
+      }
+
+      case "update_claim_client_contact": {
+        const { phone, email, reason } = parameters as {
+          phone?: string | null;
+          email?: string | null;
+          reason?: string;
+        };
+
+        const { data: cur } = await supabase
+          .from("claims_records")
+          .select("row_data, client_name")
+          .eq("id", claimId)
+          .maybeSingle();
+
+        const rd = (cur?.row_data && typeof cur.row_data === "object" ? cur.row_data : {}) as Record<string, unknown>;
+        const patchRd = { ...rd };
+        if (phone) patchRd.clientPhone = phone;
+        if (email) patchRd.clientEmail = email;
+
+        const { error: updErr } = await supabase
+          .from("claims_records")
+          .update({
+            row_data: patchRd,
+            updated_at: new Date().toISOString(),
+            updated_by: userId,
+            updated_by_name: userName,
+            last_activity_at: new Date().toISOString(),
+          })
+          .eq("id", claimId);
+
+        if (updErr) {
+          return { success: false, message: `עדכון פרטי הלקוח נכשל: ${updErr.message}`, error: updErr.message };
+        }
+
+        // Also update customers table if matched
+        if (cur?.client_name) {
+          const patchCust: Record<string, string> = {};
+          if (phone) patchCust.phone = phone;
+          if (email) patchCust.email = email;
+          await supabase.from("customers").update(patchCust).eq("name", cur.client_name);
+        }
+
+        await supabase.from("claims_history").insert({
+          id: `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+          claim_id: claimId,
+          row_data: {
+            action: "עדכון פרטי קשר ללקוח",
+            note: `עודכן ע"י דליה AI: ${phone ? `טלפון: ${phone} ` : ""}${email ? `מייל: ${email}` : ""}`,
+            type: "client_contact_updated",
+            by: userName || "דליה AI",
+            at: new Date().toLocaleString("he-IL"),
+          },
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: "preview_update_claim_client_contact",
+          actionType: "update_claim_client_contact",
+          previewSummary: summary,
+          previewPayload: parameters,
+          approvedBy: userId,
+          approvedByName: userName,
+          executionAction: "update_claim_client_contact",
+          status: "executed",
+        });
+
+        return {
+          success: true,
+          message: `פרטי ההתקשרות של הלקוח עודכנו בהצלחה בתיק`,
+        };
+      }
+
+      case "link_client_to_claim": {
+        const { customer_id, customer_name, phone, email } = parameters as {
+          customer_id?: string;
+          customer_name: string;
+          phone?: string | null;
+          email?: string | null;
+        };
+
+        const { data: cur } = await supabase
+          .from("claims_records")
+          .select("row_data")
+          .eq("id", claimId)
+          .maybeSingle();
+
+        const rd = (cur?.row_data && typeof cur.row_data === "object" ? cur.row_data : {}) as Record<string, unknown>;
+        const patchRd = {
+          ...rd,
+          clientName: customer_name,
+          clientPhone: phone || rd.clientPhone,
+          clientEmail: email || rd.clientEmail,
+        };
+
+        const { error: updErr } = await supabase
+          .from("claims_records")
+          .update({
+            client_name: customer_name,
+            row_data: patchRd,
+            updated_at: new Date().toISOString(),
+            updated_by: userId,
+            updated_by_name: userName,
+            last_activity_at: new Date().toISOString(),
+          })
+          .eq("id", claimId);
+
+        if (updErr) {
+          return { success: false, message: `קישור הלקוח לתיק נכשל: ${updErr.message}`, error: updErr.message };
+        }
+
+        await supabase.from("claims_history").insert({
+          id: `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
+          claim_id: claimId,
+          row_data: {
+            action: "קישור לקוח לתיק",
+            note: `קושר לקוח: ${customer_name}`,
+            type: "client_linked",
+            by: userName || "דליה AI",
+            at: new Date().toLocaleString("he-IL"),
+          },
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: "preview_link_client_to_claim",
+          actionType: "link_client_to_claim",
+          previewSummary: summary,
+          previewPayload: parameters,
+          approvedBy: userId,
+          approvedByName: userName,
+          executionAction: "link_client_to_claim",
+          status: "executed",
+        });
+
+        return {
+          success: true,
+          message: `הלקוח "${customer_name}" קושר בהצלחה לתיק התביעה`,
         };
       }
 

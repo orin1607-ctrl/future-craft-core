@@ -593,7 +593,7 @@ export function ClaimsAiWorkspace({
               <span>סטטוס <b>{claim.status}</b></span>
             </>
           ) : (
-            <span>אין תיק פתוח. השיחה לא משויכת לתיק קודם.</span>
+            <span>📊 <b>ניהול תביעות כללי</b> · סקירת כלל התביעות, מיילים ומשימות במערכת</span>
           )}
         </div>
 
@@ -601,7 +601,9 @@ export function ClaimsAiWorkspace({
           {banner ? <div className="claims-ai-bubble" data-testid="claims-ai-error" style={{ border: '1px solid var(--rd2)' }}>{banner}</div> : null}
           {messages.length === 0 && !loading ? (
             <div className="claims-ai-empty">
-              שאלו בשפה חופשית על התיק הפתוח. ההודעות נשמרות ב-Staging ונשארות אחרי סגירת החלון.
+              {claim
+                ? 'שאלו בשפה חופשית על התיק הפתוח. ההודעות נשמרות ב-Staging ונשארות אחרי סגירת החלון.'
+                : 'שאלו בשפה חופשית על כלל התביעות, סיכומים, מיילים מהיום, ומשימות פתוחות במערכת.'}
             </div>
           ) : null}
           {messages.map((msg) => {

@@ -2,9 +2,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { edgeCorsHeaders, requireAuth, resolveCompanyScope } from "../_shared/edgeAuth.ts";
 import {
   CLAIMS_GEMINI_TOOLS,
+  CLAIMS_GENERAL_GEMINI_TOOLS,
   CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS,
+  CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS,
   executeClaimsPendingAction,
   executeClaimsTool,
+  executeClaimsGeneralTool,
   recordAiAudit,
   type ClaimsPendingAction,
 } from "./claimsTools.ts";
@@ -333,9 +336,8 @@ async function callGemini(
   const modelCandidates = Array.from(new Set([
     preferredModel,
     "gemini-3.8-flash",
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
+    "gemini-3.7-flash",
+    "gemini-flash-latest",
   ].filter(Boolean)));
 
   const initialContents: Array<any> = [];
@@ -357,14 +359,15 @@ async function callGemini(
     initialContents.unshift({ role: "user", parts: [{ text: "שלום" }] });
   }
 
-  let lastError = { error: "שגיאה בתקשורת עם Gemini", status: 500 };
+  const attemptErrors: Array<{ model: string; status: number; text: string }> = [];
 
   for (const model of modelCandidates) {
     try {
       const contents = JSON.parse(JSON.stringify(initialContents));
-      let maxTurns = 6;
+      let maxTurns = 12;
       let accumulatedPendingAction: ClaimsPendingAction | null = null;
       let modelResponded = false;
+      let lastCandidateData: any = null;
 
       while (maxTurns > 0) {
         maxTurns--;
@@ -393,18 +396,19 @@ async function callGemini(
         if (!res.ok) {
           const errText = await res.text();
           console.error(`Gemini error with model ${model} (${res.status}):`, errText.slice(0, 250));
+          attemptErrors.push({ model, status: res.status, text: errText.slice(0, 200) });
           if (res.status === 429) {
             return { error: "מגבלת בקשות, נסה שוב בעוד דקה", status: 429 };
           }
           if (res.status === 401 || res.status === 403) {
             return { error: `שגיאת הרשאה בחיבור ל-Gemini (${res.status})`, status: res.status };
           }
-          lastError = { error: `שגיאה בשירות Gemini (${res.status})`, status: res.status >= 400 && res.status < 500 ? res.status : 500 };
           break; // Try next model candidate
         }
 
         const data = await res.json();
         const candidate = data.candidates?.[0];
+        lastCandidateData = candidate || data;
         const parts = candidate?.content?.parts || [];
 
         const functionCallPart = parts.find((p: any) => p.functionCall);
@@ -437,21 +441,41 @@ async function callGemini(
           continue;
         }
 
-        const text = parts.map((p: any) => p.text || "").join("").trim();
+        // If there's an accumulated pending action and the model stopped or returned no text,
+        // create a helpful default message
+        const textParts = parts.filter((p: any) => !p.thought && typeof p.text === "string").map((p: any) => p.text);
+        const text = textParts.join("").trim() || parts.map((p: any) => p.text || "").join("").trim();
         if (text) {
           modelResponded = true;
           return { text, model, pendingAction: accumulatedPendingAction };
+        } else if (accumulatedPendingAction) {
+          modelResponded = true;
+          return {
+            text: `הכנתי עבורך תצוגה מקדימה לפעולה: ${accumulatedPendingAction.summary}. אנא אשר או בטל את הפעולה בכרטיס המצורף.`,
+            model,
+            pendingAction: accumulatedPendingAction,
+          };
         }
       }
 
+      if (!modelResponded && accumulatedPendingAction) {
+        modelResponded = true;
+        return {
+          text: `הכנתי עבורך תצוגה מקדימה לפעולה: ${accumulatedPendingAction.summary}. אנא אשר או בטל את הפעולה בכרטיס המצורף.`,
+          model,
+          pendingAction: accumulatedPendingAction,
+        };
+      }
+
       if (modelResponded) break;
+      attemptErrors.push({ model, status: 200, text: `No text after turns: ${JSON.stringify(lastCandidateData).slice(0, 200)}` });
     } catch (e) {
       console.error(`Gemini network error with model ${model}:`, e);
-      lastError = { error: e instanceof Error ? e.message : "שגיאת רשת בחיבור ל-Gemini", status: 500 };
+      attemptErrors.push({ model, status: 500, text: e instanceof Error ? e.message : String(e) });
     }
   }
 
-  return lastError;
+  return { error: "שגיאה בתקשורת עם שירות Gemini. אנא נסה שוב בעוד מספר שניות.", status: 500 };
 }
 
 function streamTextAsSse(replyText: string, pendingAction?: ClaimsPendingAction | null): Response {
@@ -513,12 +537,13 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      const claimTarget = String(claim_id || pending_action?.parameters?.claim_id || "");
       const execResult = await executeClaimsPendingAction(
         supabase,
-        pending_action,
+        claimTarget,
         userId,
         actorName,
-        authHeader,
+        pending_action,
       );
       return new Response(JSON.stringify(execResult), {
         status: execResult.success ? 200 : 400,
@@ -576,26 +601,34 @@ Deno.serve(async (req) => {
       }
       claimBlock = loaded.text;
     } else if (isClaimsModule) {
-      claimBlock = "המשתמש במודול ניהול תביעות ואין תיק פתוח כרגע. אל תניח פרטים של תיק קודם. אם השאלה היא על מייל, מסמך, תמונה או פרטי תיק ספציפי — בקש לפתוח את התיק.";
+      claimBlock = `--- מצב ניהול תביעות כללי (Claims General) ---
+המשתמש נמצא במסך הראשי של מודול ניהול תביעות (ללא תיק פתוח).
+התפקיד שלך הוא לספק מידע וסטטיסטיקות על כלל תיקי התביעות, סיכומי סטטוסים, תביעות שנפתחו היום, מיילים נכנסים ויוצאים של היום, משימות פתוחות, חיפוש תביעות ותיקים שדורשים טיפול.
+השתמש בכלים הייעודיים (get_claims_summary, count_claims, get_claims_by_status, get_claims_created_today, get_recent_claims, get_claims_needing_attention, get_open_tasks_summary, get_today_claim_activity, count_today_incoming_emails, count_today_outgoing_emails, get_today_claim_emails, get_unhandled_claim_emails, search_claims) כדי לקבל נתונים מדויקים ואמיתיים בלבד. אל תנחש נתונים.`;
     }
 
     const basePrompt = companyScope
       ? `${SYSTEM_PROMPT}\n\nהמשתמש משויך לחברה: "${companyScope}".`
       : SYSTEM_PROMPT;
 
+    const claimsPrompt = claimId ? CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS : CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS;
+
     const fullSysPrompt = [
-      isClaimsModule ? CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS : basePrompt,
+      isClaimsModule ? claimsPrompt : basePrompt,
       page_context ? `--- הקשר מסך נוכחי ---\n${page_context}` : "",
-      claimBlock ? `--- תיק פתוח (נטען בשרת לפי הרשאת המשתמש) ---\n${claimBlock}` : "",
+      claimBlock ? `--- הקשר מודול ניהול תביעות ---\n${claimBlock}` : "",
     ].filter(Boolean).join("\n\n");
 
-    const tools = isClaimsModule && claimId
-      ? CLAIMS_GEMINI_TOOLS
-      : (!isClaimsModule ? FLEET_GEMINI_TOOLS : undefined);
+    const tools = isClaimsModule
+      ? (claimId ? CLAIMS_GEMINI_TOOLS : CLAIMS_GENERAL_GEMINI_TOOLS)
+      : FLEET_GEMINI_TOOLS;
 
     const onToolCall = async (toolName: string, toolArgs: Record<string, unknown>) => {
       if (isClaimsModule && claimId) {
         return await executeClaimsTool(toolName, toolArgs, supabase, claimId, userId, actorName);
+      }
+      if (isClaimsModule && !claimId) {
+        return await executeClaimsGeneralTool(toolName, toolArgs, supabase, userId, actorName);
       }
       const fleetRes = await executeFleetTool(toolName, toolArgs, supabase, companyScope);
       return { result: fleetRes };
