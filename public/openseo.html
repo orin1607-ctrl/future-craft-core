@@ -1510,7 +1510,7 @@ function vKeywords(){
         <button class="btn sm" data-act="bulkPause">השהה / חדש מעקב</button><button class="btn sm danger" data-act="bulkRemove">הסר מהמעקב</button><button class="btn ghost sm" data-act="clearSel">בטל בחירה</button></div>` : ""}
       <div class="tbl-wrap"><table>
         <thead><tr><th style="width:28px"><input type="checkbox" data-act="selAll" aria-label="בחר הכל" ${list.length && list.every(k=>sel.has(k.id))?"checked":""}></th>
-          <th>מילת מפתח</th><th>מיקום</th><th>קודם</th><th>שינוי</th><th>12 שבועות</th><th>עמוד מדורג</th><th>המתחרה המוביל</th><th>נפח</th>${S.live.gsc?`<th>קליקים / חשיפות ${SRC.gsc()}</th>`:""}<th>סטטוס</th><th>פעולה מומלצת</th></tr></thead>
+          <th>מילת מפתח</th><th>מיקום</th><th>קודם</th><th>שינוי</th><th>12 שבועות</th><th>עמוד מדורג</th><th>המתחרה המוביל</th><th>נפח</th>${S.live.gsc?`<th>קליקים / חשיפות${hasRealGsc()&&S.site==="s1"?" · CTR · מיקום (12 שב׳)":""} ${SRC.gsc()}</th>`:""}<th>סטטוס</th><th>פעולה מומלצת</th></tr></thead>
         <tbody>${list.map(k => { const b = bestComp(k), a = action(k); return `<tr>
           <td><input type="checkbox" data-sel="${k.id}" ${sel.has(k.id)?"checked":""} aria-label="בחר ${esc(k.kw)}"></td>
           <td><button class="linkish" data-kw="${k.id}">${esc(k.kw)}</button><div class="xs muted">${esc(k.group)} · ${INTENT[k.intent]}</div></td>
@@ -1519,7 +1519,7 @@ function vKeywords(){
           <td class="xs ltr">${k.url ? `<button class="linkish xs" data-page="${esc(k.url)}">${esc(k.url)}</button>` : `<span class="faint">אין עמוד</span>`}</td>
           <td class="sm">${b ? `${esc(compName(b.d))} ${posHtml(b.p)}` : k.comp ? `<span class="faint">אף מתחרה בטופ 100</span>` : k.real ? `<span class="faint xs" title="דורש ספק SERP">אין מקור</span>` : SRC.none()}</td>
           <td class="sm">${k.vol != null ? `<span class="num">${fmt(k.vol)}</span>` : SRC.unv()}</td>
-          ${S.live.gsc?`<td class="sm num">${k.gsc?`${fmt(k.gsc.clicks)} / ${fmt(k.gsc.impr)}`:SRC.unv()}</td>`:""}
+          ${S.live.gsc?`<td class="sm num">${k.gsc?`${fmt(k.gsc.clicks)} / ${fmt(k.gsc.impr)}${k.real?`<div class="xs muted">CTR ${((k.gsc.ctr||0)*100).toFixed(1)}% · מיקום ${k.gsc.pos}</div>`:""}`:SRC.unv()}</td>`:""}
           <td>${k.status==="tracking"?`<span class="badge info">במעקב</span>`:`<span class="badge">מושהה</span>`}</td>
           <td class="sm" style="min-width:200px">${esc(a.t)}</td></tr>`; }).join("") || `<tr><td colspan="12"><div class="empty">אין מילים שתואמות לסינון.</div></td></tr>`}</tbody></table></div>
       <div class="zone soft"><div class="row xs muted"><span>נפח: ${SRC.kp()} = ממקור נתונים, ${SRC.unv()} = אין עדיין מקור. OpenSEO המקורי מסווג רק רמת קושי ב-AI ואינו מציג נפח.</span></div></div>
