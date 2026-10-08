@@ -1168,11 +1168,9 @@ const STALE_SCAN_DAYS = 14;
 
 async function probeRealSources(){
   const tryFetch = async (url, init) => { try { const r = await fetch(url, init); return r; } catch (e) { return {ok:false, status:0, error:e.message}; } };
-  const [wpPages, wpPosts, robots, sitemap, scan, dash, ai] = await Promise.all([
+  const [wpPages, wpPosts, scan, dash, ai] = await Promise.all([
     tryFetch("https://dalia-c.com/wp-json/wp/v2/pages?per_page=1&_fields=id"),
     tryFetch("https://dalia-c.com/wp-json/wp/v2/posts?per_page=1&_fields=id"),
-    tryFetch("https://dalia-c.com/robots.txt"),
-    tryFetch("https://dalia-c.com/sitemap_index.xml"),
     tryFetch("./project-001/seo-scan-latest.json?t=" + Date.now()),
     tryFetch("./project-001/dashboard.json?t=" + Date.now()),
     tryFetch(SEO_AI_FN + "status", {headers:{"Authorization":"Bearer " + SEO_AI_ANON, "apikey":SEO_AI_ANON}})
@@ -1182,10 +1180,11 @@ async function probeRealSources(){
   REAL.wp = wpPages.ok
     ? {ok:true, at:now, pages:+(wpPages.headers.get("X-WP-Total")||0) || null, posts:wpPosts.ok ? (+(wpPosts.headers.get("X-WP-Total")||0) || null) : null}
     : {ok:false, at:now, status:wpPages.status, error:wpPages.error};
-  // robots/sitemap: dalia-c.com may not allow CORS — then the browser cannot read them and we say so.
-  REAL.robots = robots.ok ? {ok:true, at:now} : {ok:false, at:now, status:robots.status, cors:robots.status===0};
-  REAL.sitemap = sitemap.ok ? {ok:true, at:now} : {ok:false, at:now, status:sitemap.status, cors:sitemap.status===0};
   try { REAL.scan = scan.ok ? await scan.json() : null; } catch (_) { REAL.scan = null; }
+  // dalia-c.com does not allow CORS for robots.txt / sitemap, so the browser cannot read them;
+  // their status comes from the server-side scan.
+  REAL.robots = REAL.scan?.robots ? {ok:REAL.scan.robots.status === 200, status:REAL.scan.robots.status, fromScan:true} : null;
+  REAL.sitemap = REAL.scan ? {ok:REAL.scan.sitemaps.some(x => x.status === 200), status:REAL.scan.sitemaps.find(x => x.status)?.status, fromScan:true} : null;
   try {
     const d = dash.ok ? await dash.json() : null;
     REAL.gscExport = d ? {generatedAt:d.generatedAt, gsc:d.connections?.searchConsole || null, ga4:d.connections?.analytics4 || null, keywords:(d.searchConsole?.keywords||[]).length} : null;
@@ -4138,7 +4137,7 @@ document.addEventListener("click", e => {
         toast("בודק עכשיו מול dalia-c.com…");
         probeRealSources().then(() => {
           if (k==="wp") toast(REAL.wp.ok ? `✓ WordPress REST ענה עכשיו: ${fmt(REAL.wp.pages)} עמודים, ${fmt(REAL.wp.posts)} פוסטים (קריאה בלבד)` : `✗ WordPress REST לא ענה (${REAL.wp.status||"רשת"})`, 7000);
-          else if (k==="crawl") toast(`robots.txt: ${REAL.robots.ok?"✓ 200":REAL.robots.cors?"לא ניתן לקרוא מהדפדפן (CORS)":"✗ "+REAL.robots.status} · sitemap: ${REAL.sitemap.ok?"✓ 200":REAL.sitemap.cors?"לא ניתן לקרוא מהדפדפן (CORS)":"✗ "+REAL.sitemap.status} · סריקה אחרונה: ${REAL.scan?fdt(Date.parse(REAL.scan.scannedAt)):"אין"}`, 9000);
+          else if (k==="crawl") toast(REAL.scan ? `לפי הסריקה מ-${fdt(Date.parse(REAL.scan.scannedAt))}: robots.txt ${REAL.robots?.ok?"✓ 200":"✗ "+(REAL.robots?.status||"—")} · sitemap ${REAL.sitemap?.ok?"✓ 200":"✗"} (${fmt(REAL.scan.summary.sitemapUrls)} כתובות). הדפדפן לא יכול לקרוא אותם ישירות (CORS של האתר).` : "אין סריקה — הרץ את סקריפט הסריקה.", 9000);
           else toast("אימות הבעלות נעשה בעבר דרך Search Console. אי אפשר לבדוק אותו עכשיו כי חיבור Google מנותק.", 8000);
           renderOverlay();
         });
