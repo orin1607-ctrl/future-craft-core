@@ -84,18 +84,10 @@ export const CLAIMS_GEMINI_TOOLS = [
       {
         name: "check_insurance_reply",
         description: "בדיקה האם חברת הביטוח ענתה לתיק, מתי ענתה, ומה היה תוכן התשובה האחרונה",
-        parameters: {
-          type: "OBJECT",
-          properties: {},
-        },
       },
       {
         name: "check_customer_email_sent",
         description: "בדיקה האם נשלח מייל ללקוח התיק, מתי נשלח, מה היה הנושא ומה הסטטוס",
-        parameters: {
-          type: "OBJECT",
-          properties: {},
-        },
       },
       {
         name: "draft_email_reply",
@@ -126,18 +118,10 @@ export const CLAIMS_GEMINI_TOOLS = [
       {
         name: "list_claim_share_links",
         description: "רשימת קישורי שיתוף פעילים והיסטוריים שנוצרו עבור התיק (עבור שמאי, ביטוח, לקוח)",
-        parameters: {
-          type: "OBJECT",
-          properties: {},
-        },
       },
       {
         name: "get_missing_claim_documents",
         description: "בדיקה מקיפה מה חסר בתיק הפתוח: סורק את כל המסמכים שהועלו ומשווה מול דרישות החובה (רישיון רכב, דוח שמאי, חשבונית מוסך, טופס הודעה/הצהרת נהג, תמונות נזק, פרטי צד ג')",
-        parameters: {
-          type: "OBJECT",
-          properties: {},
-        },
       },
       {
         name: "get_claim_handler_and_history",
@@ -155,10 +139,6 @@ export const CLAIMS_GEMINI_TOOLS = [
       {
         name: "get_claim_next_action",
         description: "בירור מה הפעולה הבאה בתיק: מחזיר את מועד היעד הבא, תיאור הפעולה הבאה ומשימות פתוחות הממתינות לביצוע",
-        parameters: {
-          type: "OBJECT",
-          properties: {},
-        },
       },
       {
         name: "preview_send_claim_email",
@@ -381,10 +361,6 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
       {
         name: "get_claims_summary",
         description: "סיכום מקיף של תיקי התביעות במערכת: סך הכל תיקים, התפלגות לפי סטטוסים, התפלגות לפי חברות ביטוח, ותיקים הדורשים טיפול",
-        parameters: {
-          type: "OBJECT",
-          properties: {},
-        },
       },
       {
         name: "count_claims",
@@ -431,10 +407,6 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
       {
         name: "get_claims_created_today",
         description: "שליפת כל התביעות שנפתחו היום במערכת כולל מספר תביעה, מספר רכב, שם לקוח, חברת ביטוח וסטטוס",
-        parameters: {
-          type: "OBJECT",
-          properties: {},
-        },
       },
       {
         name: "get_recent_claims",
@@ -465,34 +437,18 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
       {
         name: "get_open_tasks_summary",
         description: "סיכום כלל המשימות הפתוחות במערכת ניהול התביעות, כולל פירוט משימות, תאריכי יעד ושיוך לתיקים",
-        parameters: {
-          type: "OBJECT",
-          properties: {},
-        },
       },
       {
         name: "get_today_claim_activity",
         description: "סיכום הפעילות שהתרחשה היום בניהול תביעות (עדכוני סטטוס, הערות שנרשמו, מיילים שנכנסו ופעולות AI)",
-        parameters: {
-          type: "OBJECT",
-          properties: {},
-        },
       },
       {
         name: "count_today_incoming_emails",
         description: "ספירת כמות המיילים שנכנסו היום לניהול התביעות מ-Gmail",
-        parameters: {
-          type: "OBJECT",
-          properties: {},
-        },
       },
       {
         name: "count_today_outgoing_emails",
         description: "ספירת כמות המיילים שיצאו היום מניהול התביעות",
-        parameters: {
-          type: "OBJECT",
-          properties: {},
-        },
       },
       {
         name: "get_today_claim_emails",
@@ -510,10 +466,6 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
       {
         name: "get_unhandled_claim_emails",
         description: "רשימת מיילים נכנסים מ-Gmail שטרם טופלו (ללא מענה, ללא משימה פתוחה או הדורשים בדיקה)",
-        parameters: {
-          type: "OBJECT",
-          properties: {},
-        },
       },
       {
         name: "search_claims",
@@ -586,6 +538,17 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
 - השתמש תמיד בכלים הייעודיים לקבלת נתונים אמיתיים. לעולם אל תנחש או תמציא מספרים או שמות.
 - אם המשתמש שואל שאלה שדורשת תיק פתוח ספציפי (כגון 'תראה לי את התמונות בתיק' או 'שלח מייל לשמאי בתיק'), הסבר לו בנימוס שכעת הוא במצב סקירה כללית, ועליו לפתוח את התיק הרלוונטי כדי לבצע פעולות פרטניות בו.
 `;
+
+export function normalizeShareRecipientKind(kind: string): string {
+  const k = String(kind || "").trim().toLowerCase();
+  if (k === "surveyor" || k.includes("שמאי")) return "surveyor";
+  if (k === "lawyer" || k.includes("עו\"ד") || k.includes("עורך דין")) return "lawyer";
+  if (k === "insurer" || k.includes("ביטוח") || k.includes("חברת ביטוח")) return "insurer";
+  if (k === "agent" || k.includes("סוכן")) return "agent";
+  if (k === "client" || k.includes("לקוח")) return "client";
+  if (["surveyor", "lawyer", "insurer", "agent", "client", "other"].includes(k)) return k;
+  return "other";
+}
 
 // -------------------------------------------------------------
 // 4. AUDIT LOGGING HELPER
@@ -1412,7 +1375,7 @@ export async function executeClaimsTool(
 
       case "preview_create_claim_share_link": {
         const recipientName = String(args.recipient_name || "").trim();
-        const recipientKind = String(args.recipient_kind || "other").trim();
+        const recipientKind = normalizeShareRecipientKind(String(args.recipient_kind || "other"));
         const recipientEmail = String(args.recipient_email || "").trim();
         const recipientPhone = String(args.recipient_phone || "").trim();
         const ttlHours = Number(args.ttl_hours || 72);
@@ -2485,6 +2448,8 @@ export async function executeClaimsPendingAction(
           file_ids?: string[];
         };
 
+        const idempotencyKey = `IDEMP-${Date.now()}-${Math.random().toString(36).slice(2, 9).toUpperCase()}`;
+
         const res = await supabase.functions.invoke("claims-gmail", {
           body: {
             action: "send_claim",
@@ -2494,6 +2459,7 @@ export async function executeClaimsPendingAction(
             subject,
             body,
             file_ids: file_ids || [],
+            idempotency_key: idempotencyKey,
             confirm: true,
           },
         });
@@ -2531,9 +2497,10 @@ export async function executeClaimsPendingAction(
           status: "executed",
         });
 
+        const msgId = res.data?.message_id || res.data?.gmail_message_id || "";
         return {
           success: true,
-          message: `המייל נשלח בהצלחה לנמען ${to}`,
+          message: `המייל נשלח בהצלחה לנמען ${to}${msgId ? ` (מזהה: ${msgId})` : ""}`,
         };
       }
 
@@ -2547,12 +2514,14 @@ export async function executeClaimsPendingAction(
           ttl_hours?: number;
         };
 
+        const normalizedKind = normalizeShareRecipientKind(recipient_kind);
+
         const res = await supabase.functions.invoke("claims-docs", {
           body: {
             action: "create_share",
             claim_id: claimId,
             recipient_name,
-            recipient_kind,
+            recipient_kind: normalizedKind,
             recipient_email: recipient_email || undefined,
             recipient_phone: recipient_phone || undefined,
             file_ids: file_ids || [],
@@ -2593,9 +2562,15 @@ export async function executeClaimsPendingAction(
           status: "executed",
         });
 
+        const token = res.data?.token || "";
+        const shareUrl = token ? `https://orin1607-ctrl.github.io/future-craft-core/claims-share?t=${token}` : "";
+        const displayMsg = shareUrl
+          ? `קישור שיתוף מאובטח נוצר בהצלחה עבור ${recipient_name}:\n${shareUrl}`
+          : `קישור שיתוף מאובטח נוצר בהצלחה עבור ${recipient_name}`;
+
         return {
           success: true,
-          message: `קישור שיתוף מאובטח נוצר בהצלחה עבור ${recipient_name}`,
+          message: displayMsg,
         };
       }
 

@@ -335,6 +335,10 @@ async function callGemini(
 ): Promise<{ text: string; model: string; pendingAction?: ClaimsPendingAction | null } | { error: string; status: number }> {
   const modelCandidates = Array.from(new Set([
     preferredModel,
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-2.5-flash",
+    "gemini-1.5-pro",
     "gemini-3.8-flash",
     "gemini-3.7-flash",
     "gemini-flash-latest",
@@ -428,9 +432,9 @@ async function callGemini(
             parts: [functionCallPart],
           });
 
-          // Push function response turn with role 'user'
+          // Push function response turn with role 'function'
           contents.push({
-            role: "user",
+            role: "function",
             parts: [{
               functionResponse: {
                 name: fnName,
@@ -475,7 +479,181 @@ async function callGemini(
     }
   }
 
-  return { error: "שגיאה בתקשורת עם שירות Gemini. אנא נסה שוב בעוד מספר שניות.", status: 500 };
+  return { error: `שגיאה בתקשורת עם שירות Gemini: ${JSON.stringify(attemptErrors)}`, status: 500 };
+}
+
+function geminiToolsToAnthropic(geminiTools?: unknown[]): any[] {
+  if (!geminiTools || !Array.isArray(geminiTools)) return [];
+  const result: any[] = [];
+  for (const item of geminiTools) {
+    const group = item as { functionDeclarations?: Array<{ name: string; description?: string; parameters?: { type?: string; properties?: Record<string, any>; required?: string[] } }> };
+    for (const fn of (group.functionDeclarations || [])) {
+      const tool: any = {
+        name: fn.name,
+        description: fn.description || "",
+        input_schema: {
+          type: "object",
+          properties: {},
+        },
+      };
+      if (fn.parameters && fn.parameters.properties && Object.keys(fn.parameters.properties).length > 0) {
+        const props: Record<string, any> = {};
+        for (const [k, v] of Object.entries(fn.parameters.properties as Record<string, any>)) {
+          const rawType = String(v.type || "STRING").toLowerCase();
+          const propSchema: any = {
+            type: rawType === "number" ? "number" : rawType === "boolean" ? "boolean" : rawType === "array" ? "array" : "string",
+            description: v.description || "",
+          };
+          if (rawType === "array" && v.items) {
+            propSchema.items = { type: String(v.items.type || "string").toLowerCase() };
+          }
+          props[k] = propSchema;
+        }
+        tool.input_schema.properties = props;
+        if (Array.isArray(fn.parameters.required) && fn.parameters.required.length > 0) {
+          tool.input_schema.required = fn.parameters.required;
+        }
+      }
+      result.push(tool);
+    }
+  }
+  return result;
+}
+
+async function callClaude(
+  apiKey: string,
+  preferredModel: string,
+  systemInstruction: string,
+  messages: Array<{ role: string; content: string }>,
+  geminiTools?: unknown[],
+  onToolCall?: (name: string, args: Record<string, unknown>) => Promise<{ result: unknown; preview?: ClaimsPendingAction }>,
+): Promise<{ text: string; model: string; pendingAction?: ClaimsPendingAction | null } | { error: string; status: number }> {
+  const modelCandidates = Array.from(new Set([
+    preferredModel,
+    "claude-haiku-4-5-20251001",
+    "claude-sonnet-4-6",
+    "claude-sonnet-5",
+  ].filter(Boolean)));
+
+  const anthropicTools = geminiToolsToAnthropic(geminiTools);
+
+  const initialClaudeMessages: Array<{ role: "user" | "assistant"; content: any }> = [];
+  for (const m of messages) {
+    if (!m || !m.content) continue;
+    const role: "user" | "assistant" = m.role === "assistant" || m.role === "model" ? "assistant" : "user";
+    const text = String(m.content).trim();
+    if (!text) continue;
+    if (initialClaudeMessages.length > 0 && initialClaudeMessages[initialClaudeMessages.length - 1].role === role) {
+      if (typeof initialClaudeMessages[initialClaudeMessages.length - 1].content === "string") {
+        initialClaudeMessages[initialClaudeMessages.length - 1].content += `\n${text}`;
+      }
+    } else {
+      initialClaudeMessages.push({ role, content: text });
+    }
+  }
+
+  if (initialClaudeMessages.length === 0) {
+    initialClaudeMessages.push({ role: "user", content: "שלום" });
+  } else if (initialClaudeMessages[0].role === "assistant") {
+    initialClaudeMessages.unshift({ role: "user", content: "שלום" });
+  }
+
+  for (const model of modelCandidates) {
+    try {
+      const claudeMessages = JSON.parse(JSON.stringify(initialClaudeMessages));
+      let maxTurns = 10;
+      let accumulatedPendingAction: ClaimsPendingAction | null = null;
+      let modelResponded = false;
+
+      while (maxTurns > 0) {
+        maxTurns--;
+        const payload: Record<string, unknown> = {
+          model,
+          max_tokens: 2048,
+          system: systemInstruction,
+          messages: claudeMessages,
+        };
+        if (anthropicTools && anthropicTools.length > 0) {
+          payload.tools = anthropicTools;
+        }
+
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          console.error(`Claude error with model ${model} (${res.status}):`, errText.slice(0, 250));
+          break;
+        }
+
+        const data = await res.json();
+        const contentBlocks = Array.isArray(data.content) ? data.content : [];
+        const toolUseBlocks = contentBlocks.filter((b: any) => b.type === "tool_use");
+
+        if (toolUseBlocks.length > 0 && onToolCall) {
+          claudeMessages.push({
+            role: "assistant",
+            content: contentBlocks,
+          });
+
+          const toolResults: any[] = [];
+          for (const tub of toolUseBlocks) {
+            const toolRes = await onToolCall(tub.name, (tub.input as Record<string, unknown>) || {});
+            if (toolRes && typeof toolRes === "object" && toolRes.preview) {
+              accumulatedPendingAction = toolRes.preview;
+            }
+            toolResults.push({
+              type: "tool_result",
+              tool_use_id: tub.id,
+              content: JSON.stringify(toolRes && "result" in toolRes ? toolRes.result : toolRes),
+            });
+          }
+
+          claudeMessages.push({
+            role: "user",
+            content: toolResults,
+          });
+          continue;
+        }
+
+        const textParts = contentBlocks
+          .filter((b: any) => b.type === "text" && typeof b.text === "string")
+          .map((b: any) => b.text);
+        const text = textParts.join("").trim();
+
+        if (text) {
+          modelResponded = true;
+          return { text, model, pendingAction: accumulatedPendingAction };
+        } else if (accumulatedPendingAction) {
+          modelResponded = true;
+          return {
+            text: `הכנתי עבורך תצוגה מקדימה לפעולה: ${accumulatedPendingAction.summary}. אנא אשר או בטל את הפעולה בכרטיס המצורף.`,
+            model,
+            pendingAction: accumulatedPendingAction,
+          };
+        }
+      }
+
+      if (!modelResponded && accumulatedPendingAction) {
+        return {
+          text: `הכנתי עבורך תצוגה מקדימה לפעולה: ${accumulatedPendingAction.summary}. אנא אשר או בטל את הפעולה בכרטיס המצורף.`,
+          model,
+          pendingAction: accumulatedPendingAction,
+        };
+      }
+    } catch (e) {
+      console.error(`Claude network error with model ${model}:`, e);
+    }
+  }
+
+  return { error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.", status: 500 };
 }
 
 function streamTextAsSse(replyText: string, pendingAction?: ClaimsPendingAction | null): Response {
@@ -571,6 +749,8 @@ Deno.serve(async (req) => {
       });
     }
 
+
+
     // Chat processing
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: "Messages array is required" }), {
@@ -643,14 +823,31 @@ Deno.serve(async (req) => {
       onToolCall,
     );
 
-    if ("error" in geminiResult) {
-      return new Response(JSON.stringify({ error: geminiResult.error }), {
-        status: geminiResult.status,
+    let finalResult = geminiResult;
+    const CLAUDE_API_KEY = (Deno.env.get("CLAUDE_API_KEY") || Deno.env.get("ANTHROPIC_API_KEY") || "").trim();
+    if ("error" in finalResult && CLAUDE_API_KEY) {
+      console.warn("Gemini call returned error, falling back to Claude:", finalResult.error);
+      const claudeResult = await callClaude(
+        CLAUDE_API_KEY,
+        "claude-haiku-4-5-20251001",
+        fullSysPrompt,
+        messages,
+        tools,
+        onToolCall,
+      );
+      if (!("error" in claudeResult)) {
+        finalResult = claudeResult;
+      }
+    }
+
+    if ("error" in finalResult) {
+      return new Response(JSON.stringify({ error: finalResult.error }), {
+        status: finalResult.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return streamTextAsSse(geminiResult.text, geminiResult.pendingAction);
+    return streamTextAsSse(finalResult.text, finalResult.pendingAction);
   } catch (e) {
     console.error("help-ai-chat error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
