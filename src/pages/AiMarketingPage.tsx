@@ -62,6 +62,8 @@ export default function AiMarketingPage() {
 
           accessToken: session.access_token,
 
+          refreshToken: session.refresh_token,
+
           supabaseUrl,
 
           anonKey,
@@ -74,7 +76,7 @@ export default function AiMarketingPage() {
 
         },
 
-        '*',
+        window.location.origin,
 
       );
 
@@ -92,7 +94,7 @@ export default function AiMarketingPage() {
 
       },
 
-      '*',
+      window.location.origin,
 
     );
 
@@ -102,7 +104,7 @@ export default function AiMarketingPage() {
 
         { type: 'dalia-coco-open-customer', customerId },
 
-        '*',
+        window.location.origin,
 
       );
 
@@ -110,7 +112,7 @@ export default function AiMarketingPage() {
 
     if (tab === 'crm') {
 
-      iframe.contentWindow.postMessage({ type: 'dalia-coco-open-crm' }, '*');
+      iframe.contentWindow.postMessage({ type: 'dalia-coco-open-crm' }, window.location.origin);
 
     }
 
@@ -126,6 +128,11 @@ export default function AiMarketingPage() {
 
     const onMessage = (e: MessageEvent) => {
 
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type === 'dalia-coco-auth-request') {
+        pushToIframe();
+        return;
+      }
       if (e.data?.type === 'dalia-coco-exit') {
 
         const path = typeof e.data.path === 'string' ? e.data.path : '/admin-home';

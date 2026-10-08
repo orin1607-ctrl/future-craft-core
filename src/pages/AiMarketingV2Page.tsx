@@ -29,13 +29,14 @@ export default function AiMarketingV2Page() {
         {
           type: 'dalia-coco-auth',
           accessToken: session.access_token,
+          refreshToken: session.refresh_token,
           supabaseUrl,
           anonKey,
           marketingChatUrl: `${supabaseUrl}/functions/v1/marketing-ai-chat`,
           marketingGeminiChatUrl: `${supabaseUrl}/functions/v1/marketing-gemini-chat`,
           marketingClaudeChatUrl: `${supabaseUrl}/functions/v1/marketing-claude-chat`,
         },
-        '*',
+        window.location.origin,
       );
     }
     iframe.contentWindow.postMessage(
@@ -44,7 +45,7 @@ export default function AiMarketingV2Page() {
         selectedCompany,
         companyOptions,
       },
-      '*',
+      window.location.origin,
     );
   }, [selectedCompany, companyOptions]);
 
@@ -58,6 +59,11 @@ export default function AiMarketingV2Page() {
       }
     };
     window.addEventListener('message', onMessage);
+    const onAuthRequest = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type === 'dalia-coco-auth-request') pushToIframe();
+    };
+    window.addEventListener('message', onAuthRequest);
     iframe.addEventListener('load', pushToIframe);
     pushToIframe();
     const onFocus = () => pushToIframe();
@@ -65,6 +71,7 @@ export default function AiMarketingV2Page() {
     return () => {
       window.removeEventListener('message', onMessage);
       iframe.removeEventListener('load', pushToIframe);
+      window.removeEventListener('message', onAuthRequest);
       window.removeEventListener('focus', onFocus);
     };
   }, [pushToIframe, navigate]);

@@ -181,7 +181,8 @@ input:checked + .switch::after{right:20px}
 
 /* כרטיס חברה */
 .overlay{position:fixed;inset:0;background:rgba(4,9,26,.45);z-index:50;display:flex;justify-content:flex-start}
-.panel{background:var(--bg);width:min(980px,100vw);height:100%;overflow:auto;box-shadow:0 0 40px rgba(0,0,0,.25);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.panel{background:var(--bg);width:min(980px,100%);max-width:100vw;height:100%;overflow:auto;box-shadow:0 0 40px rgba(0,0,0,.25);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.panel-b,.panel-b *{overflow-wrap:anywhere}
 .panel-h{background:var(--navy-950);color:#fff;padding:20px 24px;position:sticky;top:0;z-index:2}
 .panel-h h2{margin:0;font-size:22px;font-weight:700}
 .panel-h .meta{color:rgba(255,255,255,.65);font-size:13.5px;margin-top:4px}
@@ -280,7 +281,7 @@ body.is-embedded .content{padding:16px;max-width:100%}
   .menu-btn{display:inline-flex}
   .top{padding:10px 14px;top:0}
   .top .hide-m{display:none}
-  .tabs{padding:0 10px}
+  .tabs{padding:0 10px;flex-wrap:wrap;overflow:visible}
   .content{padding:14px}
   .g-2,.g-3{grid-template-columns:1fr}
   .fields{grid-template-columns:1fr}
@@ -412,7 +413,7 @@ body.is-embedded .content{padding:16px;max-width:100%}
   <aside class="side" id="side" aria-label="תפריט מרכז שיווק ופרסום">
     <div class="brand"><div class="logo">דליה<span></span></div><div class="sub">מרכז שיווק ופרסום</div></div>
     <nav class="nav" id="nav"></nav>
-    <div class="side-foot"><b>יוני אטיאס</b>מנהל שיווק ופרסום · דליה</div>
+    <div class="side-foot" id="sideUser"><b>בודק חיבור…</b>סשן דליה</div>
   </aside>
   <main>
     <header class="top">
@@ -420,6 +421,7 @@ body.is-embedded .content{padding:16px;max-width:100%}
       <div><div class="crumb" id="crumb">מרכז שיווק ופרסום</div><h1 id="title">איתור לקוחות עסקיים</h1></div>
       <span class="grow"></span>
       <div id="cloudSyncStatus" style="display:inline-flex;align-items:center;margin-inline-end:8px"></div>
+      <button class="pill" id="authBtn" type="button" data-act="login" title="התחברות לדליה כדי להפעיל את Gemini">התחבר לדליה</button>
       <button class="pill" data-act="openAiChat" style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-weight:700;border:none;box-shadow:0 2px 8px rgba(79,70,229,0.35);cursor:pointer;display:inline-flex;align-items:center;gap:6px" title="פתח עוזר AI לניתוח לידים ותובנות">🤖 עוזר AI</button>
       <button class="pill hide-m" data-go="workspace" id="currentCompanyBtn" title="החלפת חברה (סביבת עבודה)">🏢 חברה: דליה פתרונות</button>
       <button class="pill" data-tab="connections"><span class="dot"></span><span id="engineLabel">Gemini AI</span></button>
@@ -1215,7 +1217,7 @@ async function syncWithRemoteSupabase() {
         C.length = 0;
         mapped.forEach(l => C.push(l));
         localOnly.forEach(l => { l.id = C.length + 1; C.push(l); });
-        if (localOnly.length) upsertBatchToRemoteSupabase(localOnly);
+        if (localOnly.length) S.pendingLocalOnly = localOnly.length;
         persistProspectorData();
         if (typeof S !== "undefined") {
           S.remoteStatus = "connected";
@@ -1376,7 +1378,16 @@ function saveManualVerification(lead) {
 }
 
 async function upsertBatchToRemoteSupabase(stagedLeads) {
-  if (!sbClient || !Array.isArray(stagedLeads) || stagedLeads.length === 0) return;
+  if (!Array.isArray(stagedLeads) || stagedLeads.length === 0) return { ok: false, error: "empty" };
+  const sess = await userSession();
+  if (!sess || !window.supabase) {
+    toast("שמירה ל-Supabase דורשת התחברות לדליה. החברות נשארו במסך בלבד.");
+    return { ok: false, error: "no_session" };
+  }
+  const client = window.supabase.createClient(SUPABASE_STAGING_URL, SUPABASE_STAGING_ANON, {
+    global: { headers: { Authorization: "Bearer " + sess.accessToken } },
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+  });
   try {
     const rows = stagedLeads.map(l => ({
       company_name: l.name,
@@ -1386,12 +1397,12 @@ async function upsertBatchToRemoteSupabase(stagedLeads) {
       region: l.region || "",
       address: l.addr || "",
       website: l.web || "",
-      phone: l.phone || "",
+      phone: l.phone && l.phone !== "לא ידוע" ? l.phone : "",
       email: l.mail || "",
-      company_size: l.size || "",
+      company_size: l.size && l.size !== "לא ידוע" ? l.size : "",
       fleet_info: l.fleet || {},
       fleet_type: l.fleetType || "",
-      score: l.score || 90,
+      score: Number.isFinite(+l.score) ? +l.score : 0,
       status: l.status || "new",
       found_date: l.found || "",
       updated_date: l.upd || "",
@@ -1407,11 +1418,14 @@ async function upsertBatchToRemoteSupabase(stagedLeads) {
       notes: l.notes || "",
       raw_payload: (({ enr, ...rest }) => rest)(l)
     }));
-    const { error } = await sbClient.from("prospect_leads").upsert(rows, { onConflict: "company_hp" });
-    if (error) { console.warn("[Prospector] Supabase upsert failed:", error.message); return; }
-    console.log(`[Prospector] Successfully synced ${rows.length} new leads to Supabase STAGING!`);
+    const { error } = await client.from("prospect_leads").upsert(rows, { onConflict: "company_hp" });
+    if (error) { toast("השמירה נחסמה: " + error.message); return { ok: false, error: error.message }; }
+    stagedLeads.forEach(l => { l.searchStaged = false; });
+    toast(`נשמרו ${rows.length} חברות ב-Supabase Staging`);
+    return { ok: true };
   } catch(e) {
-    console.warn("[Prospector] Supabase upsert error:", e);
+    toast("שגיאה בשמירה");
+    return { ok: false, error: String(e && e.message || e) };
   }
 }
 
@@ -2107,6 +2121,7 @@ const S={
   coPageSize:50,
   aiChatOpen:false,
   aiChatMessages:[],
+  aiChatSeq:0,
   aiChatContextLead:null,
   aiChatPendingAction:null,
   bulk:{
@@ -2199,7 +2214,7 @@ const bpBadge=(c,size)=>{
   const bp=q.business_potential_score||0;
   const sty=bp>=80?"b-ok":bp>=60?"b-blue":bp>=40?"b-est":"b-no";
   const icon=bp>=80?"🔥 ":bp>=60?"✅ ":bp>=40?"🟡 ":"⚪ ";
-  return `<span class="badge ${sty}" style="font-size:${size||10}px;font-weight:700" title="${esc(q.business_potential_breakdown_label||'')}">${icon}פוטנציאל: ${bp}/100</span>`;
+  return `<span class="badge ${sty}" style="font-size:${size||10}px;font-weight:700" title="${esc(q.business_potential_breakdown_label||'')}">${icon}ציון פנימי: ${bp}/100</span>`;
 };
 const crBadge=(c,size)=>{
   const q=QF(c);if(!q)return "";
@@ -2380,7 +2395,7 @@ V.dash=()=>{
       <div class="card-h"><h2>חיפושים אחרונים<span class="h-bar"></span></h2><span class="spacer"></span><button class="btn btn-primary btn-sm" data-tab="search">+ חיפוש חדש</button></div>
       <div class="tbl-wrap"><table><thead><tr><th>בקשה</th><th>סטטוס</th><th>נמצאו</th><th class="hm">מתאימות</th><th class="hm">מנוע</th><th>עלות</th></tr></thead><tbody>
       ${RUNS.map(r=>`<tr data-tab="companies"><td><div class="co-name">${esc(r.q)}</div><div class="xs muted">${r.when}</div></td>
-        <td>${r.st==="done"?'<span class="badge b-ok">הסתיים</span>':'<span class="badge b-blue">בתהליך…</span>'}</td>
+        <td>${r.st==="done"?'<span class="badge b-ok">הסתיים</span>':r.st==="error"?'<span class="badge b-bad">נכשל</span>':'<span class="badge b-blue">בתהליך…</span>'}</td>
         <td class="num">${r.found}</td><td class="num hm">${r.fit}</td><td class="hm">${r.engine}</td><td class="num">${r.cost}</td></tr>`).join("")}
       </tbody></table></div>
     </div>
@@ -2398,8 +2413,8 @@ V.dash=()=>{
       <p class="xs muted" style="margin:10px 0 0">טלפון, מייל, אתר, איש קשר וצי – מחושב מהנתונים. "מאומת" מופיע רק כשיש מקור. גודל צי לא מוצג בלי ראיה.</p></div>
     <div class="card card-b"><div class="sm muted">מנוע AI פעיל</div><div style="font-size:20px;font-weight:700;margin-top:4px">${engine().name} · <span class="sm muted ltr">${engine().model}</span></div>
       <button class="btn btn-sm" style="margin-top:10px" data-tab="connections">הגדרות חיבורים</button></div>
-    <div class="card card-b"><div class="sm muted">ספקי מידע ואימות</div><div style="font-size:20px;font-weight:700;margin-top:4px">data.gov.il + Gemini פעילים</div>
-      <p class="xs muted" style="margin:6px 0 0">ספקי צד ג' בתשלום כבויים לשמירה על התקציב.</p></div>
+    <div class="card card-b"><div class="sm muted">ספקי מידע ואימות</div><div style="font-size:20px;font-weight:700;margin-top:4px">רשם החברות פעיל</div>
+      <p class="xs muted" style="margin:6px 0 0">Gemini זמין אחרי התחברות מנהל. ספקי צד ג' בתשלום כבויים.</p></div>
   </div>`;
 };
 function kpi(l,v,s,pct){return `<div class="card kpi"><div class="l">${l}</div><div class="v num">${v}</div><div class="s">${s}</div>${pct!=null?`<div class="bar" style="margin-top:8px"><i style="width:${pct}%"></i></div>`:""}</div>`}
@@ -2408,7 +2423,7 @@ function kpi(l,v,s,pct){return `<div class="card kpi"><div class="l">${l}</div><
 V.search=()=>`
   <div class="hero-search">
     <h2>מה תרצה למצוא היום?</h2>
-    <p>כתוב בעברית חופשית. מנוע Gemini יתרגם את הבקשה לקריטריונים, ויסרוק חברות פעילות ברשם החברות הממשלתי.</p>
+    <p>כתוב בעברית. אם יש סשן מנהל, Gemini מפרש את הבקשה. הסריקה עצמה רצה מול רשם החברות ב-data.gov.il ומציגה רק רשומות שחזרו.</p>
     <textarea id="q" aria-label="בקשת חיפוש חופשית" placeholder="לדוגמה: מצא לי 20 חברות הובלה או הפצה במרכז עם 10 רכבים ומעלה, ומנהל צי רכב"></textarea>
     <div class="ex">
       ${["חברות הובלה במרכז עם צי רכב","חברות הפצה ולוגיסטיקה פעילות בישראל","חברות שמפרסמות דרושים לקצין בטיחות בתעבורה","חברות שירות וטכנאי שטח עם רכבים"].map(x=>`<button type="button" data-ex="${esc(x)}">${esc(x)}</button>`).join("")}
@@ -2432,9 +2447,8 @@ V.search=()=>`
       </div>
       <div class="est-box" style="margin-top:18px">
         <span>🏛️ מקור אימות: <b class="num">data.gov.il (חינם ומורשה)</b></span>
-        <span class="muted sm">Gemini ינתח ראיות צי וימנע כפילויות מול ה-CRM.</span>
+        <span class="muted sm">מוצגות רק חברות שחזרו מהרשם. שדה חסר נשאר "לא ידוע".</span>
         <span class="spacer"></span>
-        <span class="sm">יתרת תקציב: <b class="num">₪414</b></span>
         <button class="btn btn-primary" data-act="run" id="btnRun">הפעל חיפוש חי</button>
       </div>
     </div>
@@ -2579,7 +2593,7 @@ async function interpret(){
       const data = await res.json();
       if (data.ok && data.reply) {
         const match = data.reply.match(/\{[\s\S]*\}/);
-        if (match) parsed = JSON.parse(match[0]);
+        if (match) { parsed = JSON.parse(match[0]); parsed.source = "gemini"; }
       }
     } catch(e) {
       console.warn("Gemini edge fallback:", e.message);
@@ -2595,16 +2609,17 @@ async function interpret(){
     const ind = q.includes("הובל") ? "הובלות" : q.includes("הפצ") || q.includes("לוגיסט") ? "הפצה ולוגיסטיקה" : q.includes("שירות") || q.includes("טכנא") ? "שירות וטכנאי שטח" : q.includes("בני") || q.includes("תשתית") ? "בנייה ותשתיות" : "כל הענפים";
     const role = q.includes("קצין בטיחות") ? "קצין בטיחות בתעבורה" : q.includes("צי") ? "מנהל צי רכב" : "מנהל תפעול";
     const jobs = q.includes("דרושים") || q.includes("קצין בטיחות");
-    const keyword = q.includes("קירור") ? "קירור" : q.includes("מנוף") ? "מנוף" : (ind !== "כל הענפים" ? ind.split(" ")[0] : "הובלות");
-    parsed = { region, industry: ind, fleet, role, count, jobs, keyword };
+    const keyword = q.includes("קירור") ? "קירור" : q.includes("מנוף") ? "מנוף" : (ind !== "כל הענפים" ? ind.split(" ")[0] : (q.split(/\s+/).find(w => w.length > 2) || ""));
+    if (!keyword) { if(btn){btn.disabled=false; btn.textContent="✦ נתח בקשה ב-Gemini";} toast("לא זוהתה מילת חיפוש בבקשה"); return; }
+    parsed = { region, industry: ind, fleet, role, count, jobs, keyword, source: "local" };
   }
 
   if(btn){btn.disabled=false; btn.textContent="✦ נתח בקשה ב-Gemini";}
 
   $("#interp").innerHTML=`<div class="interp" style="margin-top:18px">
-    <div class="row"><b>פענוח Gemini AI: קריטריוני חיפוש מחולצים</b><span class="badge b-ok">Gemini Flash</span><span class="spacer"></span><button class="btn btn-sm" data-act="applyInterp">העבר לחיפוש המתקדם</button></div>
+    <div class="row"><b>${parsed.source==="gemini"?"פענוח Gemini":"פענוח מקומי מהטקסט שכתבת"}</b><span class="badge ${parsed.source==="gemini"?"b-ok":"b-est"}">${parsed.source==="gemini"?"Gemini":"בלי קריאת Gemini"}</span><span class="spacer"></span><button class="btn btn-sm" data-act="applyInterp">העבר לחיפוש המתקדם</button></div>
     <div class="chips"><span>מדינה: ישראל</span><span>אזור: ${esc(parsed.region)}</span><span>ענף: ${esc(parsed.industry)}</span><span>צי משוער: ${esc(parsed.fleet)}+ רכבים</span><span>איש קשר יעד: ${esc(parsed.role)}</span><span>כמות: ${esc(parsed.count)} חברות</span>${parsed.jobs?"<span>עוגן: סריקת דרושים לקצין בטיחות</span>":""}<span>מילת מפתח למאגר: ${esc(parsed.keyword||'הובלות')}</span></div>
-    <p class="xs muted" style="margin:10px 0 0">החיפוש יפעיל אימות חי ברשם החברות (data.gov.il), יסרוק ראיות צי רכב וימנע כפילויות מול ה-CRM.</p></div>`;
+    <p class="xs muted" style="margin:10px 0 0">החיפוש שולף חברות אמיתיות מרשם החברות. הוא לא ממציא אתר, איש קשר, מספר עובדים או גודל צי.</p></div>`;
   S._interp = parsed;
 }
 
@@ -2658,118 +2673,154 @@ function calculateFleetScore(company) {
 }
 
 /* ===== ביצוע חיפוש חי עם רשם החברות הממשלתי (DATA.GOV.IL) ===== */
-const STEPS=[
-  "פענוח הבקשה באמצעות Gemini AI",
-  "אימות מול רשם החברות הממשלתי (data.gov.il)",
-  "בדיקת מניעת כפילויות מול מאגר ה-CRM",
-  "חישוב ציון התאמת צי רכב (Fleet Probability Score)",
-  "חילוץ ראיות וסיווג רמת ודאות",
-  "עדכון מאגר הלידים במערכת"
+const SEARCH_STEPS=[
+  "בדיקת מילת החיפוש",
+  "שליפה מרשם החברות (data.gov.il)",
+  "השוואת ח.פ. לרשימת הלידים",
+  "סימון שדות חסרים כלא ידוע"
 ];
+
+function registryHit(rec){
+  const hp = String(rec["מספר חברה"] || "").replace(/\D/g, "");
+  const name = String(rec["שם חברה"] || "").replace(/בע~מ|בע״מ|בע"מ/g, "").trim();
+  if (!hp || hp.length < 5 || !name) return null;
+  const cityRaw = String(rec["שם עיר"] || rec["ישוב"] || "").trim();
+  const street = String(rec["שם רחוב"] || "").trim();
+  const house = String(rec["מספר בית"] || "").trim();
+  const purpose = String(rec["מטרת החברה"] || "").trim();
+  const status = String(rec["סטטוס חברה"] || "").trim();
+  return {
+    no: hp,
+    name,
+    city: cityRaw || "לא ידוע",
+    addr: street ? `${street}${house ? " " + house : ""}${cityRaw ? ", " + cityRaw : ""}` : "לא ידוע",
+    ind: purpose ? purpose.slice(0, 120) : "לא ידוע",
+    status: status || "לא ידוע",
+    incorporated: String(rec["תאריך התאגדות"] || "").trim() || "לא ידוע",
+    addrKnown: !!street
+  };
+}
+
+function renderSearchHits(meta){
+  const hits = S.searchHits || [];
+  const rows = hits.map(h => `<tr>
+    <td><input type="checkbox" class="hit-cb" value="${esc(h.no)}" ${h.already || h.adopted ? "disabled" : ""}></td>
+    <td><div class="co-name">${esc(h.name)}</div><div class="xs muted">ח.פ. <span class="ltr num">${esc(h.no)}</span></div></td>
+    <td>${esc(h.status)}</td>
+    <td>${esc(h.city)}</td>
+    <td class="xs">${esc(h.ind)}</td>
+    <td>${h.already || h.adopted ? '<span class="badge b-ok">כבר ברשימת הלידים</span>' : '<span class="badge b-est">חדש — לא הועבר</span>'}</td>
+  </tr>`).join("");
+  return `<div class="card" style="margin-top:16px"><div class="card-h"><h2>תוצאות הרשם<span class="h-bar"></span></h2><span class="spacer"></span><span class="badge b-blue">${hits.length} רשומות</span></div>
+    <div class="card-b">
+      <p class="sm">${esc(meta)}</p>
+      <p class="xs muted">אתר, טלפון, איש קשר, מספר עובדים וגודל צי: לא ידוע — הרשם לא החזיר אותם בשאילתה הזו. אין הערכה.</p>
+      ${hits.length ? `<div class="tbl-wrap"><table><thead><tr><th></th><th>חברה</th><th>סטטוס ברשם</th><th>עיר</th><th>מטרה</th><th>העברה</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="row" style="margin-top:12px"><button class="btn btn-primary" type="button" data-act="adoptHits">הוסף את המסומנות לרשימת הלידים</button><span class="xs muted">נדרש אישור. השמירה ל-Supabase נפרדת ודורשת התחברות.</span></div>` : `<div class="empty">לא נמצאו חברות לשאילתה הזו.</div>`}
+    </div></div>`;
+}
 
 async function runSearch(){
   if(S.searching) return;
+  const queryTerm = (($("#a-kw") && $("#a-kw").value.trim()) || (S._interp && S._interp.keyword) || ($("#q") && $("#q").value.trim()) || "").replace(/\s+/g, " ").trim();
+  if (!queryTerm) { toast("כתוב מילת חיפוש או נתח בקשה לפני הסריקה"); return; }
   S.searching = true;
   const box = $("#progress");
-  const queryTerm = ($("#a-kw") ? $("#a-kw").value.trim() : "") || (S._interp ? S._interp.keyword : "") || "הובלות";
-  
   const draw=(i, extra="")=>box.innerHTML=`<div class="card" style="margin-top:18px"><div class="card-h"><h2>החיפוש בתהליך<span class="h-bar"></span></h2><span class="spacer"></span><span class="badge b-blue">סריקה חיה</span></div>
-    <div class="card-b"><div class="steps">${STEPS.map((s,k)=>`<div class="step ${k<i?"done":k===i?"run":"wait"}"><span class="ic">${k<i?"✓":""}</span>${s}</div>`).join("")}</div>
+    <div class="card-b"><div class="steps">${SEARCH_STEPS.map((s,k)=>`<div class="step ${k<i?"done":k===i?"run":"wait"}"><span class="ic">${k<i?"✓":""}</span>${s}</div>`).join("")}</div>
     ${extra}</div></div>`;
 
+  const countEl = $("#a-count");
+  const reqLimit = Math.min(100, Math.max(1, countEl ? (parseInt(countEl.value, 10) || 10) : 10));
   let newRecords = [];
-
-  for(let i=0; i<STEPS.length; i++){
-    draw(i);
-    // שלב 2: קריאת רשם החברות החי
-    if (i === 1) {
-      try {
-        const countEl = $("#a-count");
-        const reqLimit = countEl ? (parseInt(countEl.value, 10) || 6) : 6;
-        const url = `https://data.gov.il/api/3/action/datastore_search?resource_id=f004176c-b85f-4542-8901-7b3176f9a054&q=${encodeURIComponent(queryTerm)}&limit=${reqLimit}`;
-        const res = await fetch(url).catch(() => null);
-        if (res && res.ok) {
-          const data = await res.json();
-          if (data && data.success && Array.isArray(data.result.records)) {
-            newRecords = data.result.records;
-          }
-        }
-      } catch(e) {
-        console.warn("data.gov.il search notice:", e.message);
-      }
+  let fetchError = "";
+  draw(1);
+  try {
+    const url = `https://data.gov.il/api/3/action/datastore_search?resource_id=f004176c-b85f-4542-8901-7b3176f9a054&q=${encodeURIComponent(queryTerm)}&limit=${reqLimit}`;
+    const res = await fetch(url);
+    if (!res.ok) fetchError = "HTTP " + res.status;
+    else {
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.result && data.result.records)) newRecords = data.result.records;
+      else fetchError = "התשובה מהרשם אינה תקינה";
     }
-    await new Promise(r => setTimeout(r, 450));
+  } catch (e) {
+    fetchError = e && e.message ? e.message : "שגיאת רשת";
   }
 
-  // עיבוד החברות שחזרו ומניעת כפילויות
-  let addedCount = 0;
-  if (newRecords.length > 0) {
-    newRecords.forEach((rec, idx) => {
-      const compId = String(rec['מספר חברה'] || rec._id);
-      const compName = (rec['שם חברה'] || '').replace(/בע~מ|בע"מ/g, '').trim();
-      
-      // מניעת כפילות
-      const exists = C.some(existing => existing.no === compId || existing.name === compName);
-      if (!exists && compName) {
-        const city = rec['שם עיר'] || rec['ישוב'] || "מרכז";
-        const calc = calculateFleetScore({ name: compName, desc: rec['מטרת החברה'] || '', status: rec['סטטוס חברה'], city });
-        
-        const newCo = {
-          id: C.length + 1,
-          name: compName,
-          no: compId,
-          ind: queryTerm.includes("הפצ") ? "הפצה ולוגיסטיקה" : "הובלות",
-          city: city,
-          region: "מרכז",
-          addr: rec['שם רחוב'] ? `${rec['שם רחוב']} ${rec['מספר בית'] || ''}, ${city}` : city,
-          web: `${compName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'company'}.co.il`,
-          phone: "לא נמצא",
-          mail: "",
-          size: "20–50 עובדים",
-          fleet: { s: calc.certainty, val: calc.fleetVal, src: "רשם החברות + הערכת ענף" },
-          score: calc.score,
-          status: "new",
-          found: new Date().toLocaleDateString("he-IL"),
-          upd: new Date().toLocaleDateString("he-IL"),
-          multiPhones:[],
-          multiMails:[],
-          facts: { no: "v", ind: "v", addr: rec['שם רחוב'] ? "v" : "e", web: "e", phone: "n", mail: "n", size: "e" },
-          ev: [
-            ["🏛️", "רשם החברות (data.gov.il)", `חברה פעילה מס' ${compId}, התאגדות: ${rec['תאריך התאגדות'] || 'מאומת'}`, "data.gov.il", "v", new Date().toLocaleDateString("he-IL"), "A", "Tier A ממשלתי"],
-            ["🤖", "Gemini AI Fleet Score", `ציון התאמה ${calc.score}: ${calc.reasons.join(', ')}`, "Gemini Reasoning", "e", new Date().toLocaleDateString("he-IL"), "E", "Tier E הערכת AI"]
-          ],
-          people: [["מנהל תפעול ולוגיסטיקה", "מנהל תפעול", "e", "", "", "n"]],
-          notes: `אותר בסריקה חיה מול רשם החברות עבור השאילתה: "${queryTerm}".`
-        };
-        C.unshift(newCo);
-        addedCount++;
-      }
-    });
-  }
-
-  // סיכום ריצה
-  draw(STEPS.length, `
-    <div class="est-box" style="margin-top:16px">
-      <span>🎉 נמצאו <b>${newRecords.length || 6}</b> חברות ברשם החברות · <b>${addedCount || 4}</b> חברות חדשות נוספו (ללא כפילויות)</span>
-      <span class="muted sm">אימות ח.פ. רשמי ומאומת במלואו</span>
-      <span class="spacer"></span>
-      <button class="btn btn-primary" data-tab="companies">לרשימת החברות המעודכנת (${C.length})</button>
-    </div>
-  `);
+  const seen = new Set();
+  const hits = [];
+  newRecords.forEach(rec => {
+    const row = registryHit(rec);
+    if (!row || seen.has(row.no)) return;
+    seen.add(row.no);
+    const already = C.some(existing => String(existing.no || "").replace(/\D/g, "") === row.no);
+    hits.push({ ...row, already, adopted: already });
+  });
+  S.searchHits = hits;
+  const fresh = hits.filter(h => !h.already).length;
+  const meta = fetchError
+    ? `השליפה נכשלה (${fetchError}). נמצאו 0 חברות.`
+    : `נמצאו ${hits.length} חברות ברשם עבור "${queryTerm}". ${fresh} עדיין לא ברשימת הלידים. ${hits.length - fresh} כבר קיימות.`;
+  draw(SEARCH_STEPS.length, renderSearchHits(meta));
 
   RUNS.unshift({
     q: queryTerm + " (רשם החברות)",
     when: "עכשיו",
-    st: "done",
-    found: newRecords.length || 6,
-    fit: addedCount || 4,
-    engine: "Gemini + Gov",
-    cost: "₪0.00 (חינם)"
+    st: fetchError ? "error" : "done",
+    found: hits.length,
+    fit: fresh,
+    engine: "data.gov.il",
+    cost: "₪0 (מאגר פתוח)"
   });
-
+  try { localStorage.setItem(PROSPECTOR_RUNS_KEY, JSON.stringify(RUNS)); } catch (e) { /* התצוגה נשארת גם בלי cache */ }
   S.searching = false;
+  toast(fetchError ? "החיפוש נכשל: " + fetchError : `החיפוש הסתיים: ${hits.length} חברות אמיתיות`);
+}
+
+function adoptSearchHits(){
+  const selected = [...document.querySelectorAll(".hit-cb:checked")].map(el => el.value);
+  if (!selected.length) { toast("סמן חברות להעברה"); return; }
+  const picks = (S.searchHits || []).filter(h => selected.includes(h.no) && !h.already && !h.adopted);
+  if (!picks.length) { toast("החברות שסומנו כבר נמצאות ברשימה"); return; }
+  const preview = picks.slice(0, 6).map(h => h.name).join("\n");
+  if (!confirm(`להוסיף ${picks.length} חברות לרשימת הלידים במסך הזה?\n\n${preview}\n\nלא נכתב עדיין ל-Supabase.`)) return;
+  const created = [];
+  picks.forEach(h => {
+    const lead = {
+      id: C.length + 1,
+      name: h.name,
+      no: h.no,
+      ind: h.ind,
+      city: h.city,
+      region: "לא ידוע",
+      addr: h.addr,
+      web: "",
+      phone: "לא ידוע",
+      mail: "",
+      size: "לא ידוע",
+      fleet: { s: "n", val: "לא ידוע", src: "" },
+      score: 0,
+      status: "new",
+      found: new Date().toLocaleDateString("he-IL"),
+      upd: new Date().toLocaleDateString("he-IL"),
+      multiPhones: [],
+      multiMails: [],
+      facts: { no: "v", ind: h.ind === "לא ידוע" ? "n" : "v", addr: h.addrKnown ? "v" : "n", web: "n", phone: "n", mail: "n", size: "n" },
+      ev: [["🏛️", "רשם החברות (data.gov.il)", `ח.פ. ${h.no}, סטטוס: ${h.status}, התאגדות: ${h.incorporated}`, "https://data.gov.il/dataset/ica_companies", "v", new Date().toLocaleDateString("he-IL"), "A", "Tier A ממשלתי"]],
+      people: [],
+      notes: "נוסף מרשם החברות. שדות שלא חזרו מהרשם נשארו לא ידוע.",
+      searchStaged: true
+    };
+    C.unshift(lead);
+    created.push(lead);
+    h.adopted = true;
+  });
   persistProspectorData();
-  toast(`החיפוש הסתיים: ${addedCount} חברות חדשות נוספו למאגר`);
+  toast(`${created.length} חברות נוספו לרשימה במסך. הן יישמרו ב-Supabase רק אחרי אישור נפרד.`);
+  if (confirm("לשמור את החברות החדשות ב-Supabase Staging עכשיו? הפעולה דורשת משתמש מחובר.")) {
+    upsertBatchToRemoteSupabase(created);
+  }
 }
 
 /* ===== מנוע ייבוא המוני ואצוות (BULK INGESTION & BATCH ENGINE) ===== */
@@ -3282,6 +3333,8 @@ V.companies=()=>{
       <td class="co-main" style="min-width:170px">
         <div class="co-name">${esc(c.name)}</div>
         <div class="xs muted">ח.פ. <span class="ltr num">${esc(c.no||"")}</span>${c.web||e.website?` · <span class="ltr">${esc(c.web||e.website)}</span>`:""}</div>
+        ${e.crm_handoff_status==="pending_approval"?'<div style="margin-top:4px"><span class="badge b-est">ממתין לאישור העברה ל-CRM</span></div>':""}
+        ${e.crm_handoff_status==="sent"?'<div style="margin-top:4px"><span class="badge b-ok">הועבר ל-CRM</span></div>':""}
         <div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">${bpBadge(c)}</div>
       </td>
       <td class="xs" data-label="טלפון" style="white-space:nowrap">
@@ -3292,8 +3345,8 @@ V.companies=()=>{
       <td class="xs hide-m" data-label="עיר · תחום">${esc(c.city)}<div class="faint">${esc(c.ind)}</div></td>
       <td class="xs" data-label="צי רכב">
         <div>${fleetCell(c)}</div>
-        <div style="font-size:10px;margin-top:2px;color:var(--text)" title="עובדי שטח משוערים: ${esc(q&&q.workforce_estimate?q.workforce_estimate.field_workers_count_display:'—')} (${esc(q&&q.workforce_estimate?q.workforce_estimate.field_workers_pct_display:'—')})">👥 <b>עובדים:</b> ${esc(q&&q.workforce_estimate?q.workforce_estimate.employee_count_display:'לא ידוע')} <span class="faint">· ביטחון ${q&&q.workforce_estimate?q.workforce_estimate.workforce_confidence_score:0}%</span></div>
-        <div style="font-size:10px;margin-top:1px;color:var(--text)" title="${esc(q&&q.fleet_estimate_v2?q.fleet_estimate_v2.basis_of_estimate_label:'')}">🚚 <b>צי:</b> ${esc(q&&q.fleet_estimate_v2?q.fleet_estimate_v2.fleet_size_display:q.estimated_fleet_size||'—')} <span class="faint">· ביטחון ${esc(q&&q.fleet_estimate_v2?q.fleet_estimate_v2.fleet_confidence:q.fleet_estimate_confidence||'—')}</span></div>
+        <div style="font-size:10px;margin-top:2px;color:var(--text)">👥 <b>עובדים:</b> ${q&&q.workforce_estimate&&q.workforce_estimate.is_verified?esc(q.workforce_estimate.employee_count_display):"לא ידוע"}</div>
+        <div style="font-size:10px;margin-top:1px;color:var(--text)">🚚 <b>גודל צי:</b> ${q&&q.fleet_estimate_v2&&q.fleet_estimate_v2.is_verified?esc(q.fleet_estimate_v2.fleet_size_display):"לא ידוע"}</div>
       </td>
       <td class="xs hide-m" data-label="איש קשר">
         <div>${prefContactCell(c)}</div>
@@ -3378,7 +3431,7 @@ function enrichmentSection(c){
     <div class="card-h">
       <h3>מידע שנמצא<span class="h-bar"></span></h3>
       <span class="spacer"></span>
-      <span class="badge ${q.lead_quality_color==='green'?'b-ok':q.lead_quality_color==='yellow'?'b-est':'b-bad'}" style="font-size:11px;font-weight:700">איכות: ${esc(q.lead_quality_label)}</span>
+      <span class="badge ${QUAL_STY[q.lead_quality]||"b-no"}" style="font-size:11px;font-weight:700" title="אותו סיווג איכות כמו בדשבורד">איכות: ${esc(OPQualify.QUALITY_LABEL[q.lead_quality]||q.lead_quality)}</span>
       <span class="badge ${q.workflow_status_badge}" style="font-size:11px;font-weight:700">זרימה: ${esc(q.workflow_status_label)}</span>
       ${stageBadge(c,12)} ${verifBadge(c,11)}
     </div>
@@ -3418,36 +3471,27 @@ function enrichmentSection(c){
           <div class="row" style="align-items:center;gap:6px">
             <span class="bold" style="font-size:12px">👥 כוח אדם וצי רכב (Workforce & Fleet v2):</span>
             <span class="spacer"></span>
-            ${q.workforce_estimate&&q.workforce_estimate.is_verified ? '<span class="badge b-ok" style="font-size:9.5px">✓ עובדים מאומת</span>' : '<span class="badge b-est" style="font-size:9.5px">הערכה מבוססת Evidence</span>'}
+            ${q.workforce_estimate&&q.workforce_estimate.is_verified ? '<span class="badge b-ok" style="font-size:9.5px">✓ עובדים מאומת</span>' : '<span class="badge b-no" style="font-size:9.5px">אין מקור — לא מוצגת הערכה</span>'}
           </div>
           <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center;font-size:11.5px">
             <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
-              <span class="muted xs">עובדים:</span> <b>${esc(q.workforce_estimate?q.workforce_estimate.employee_count_display:"לא ידוע")}</b>
+              <span class="muted xs">עובדים:</span> <b>${q.workforce_estimate&&q.workforce_estimate.is_verified?esc(q.workforce_estimate.employee_count_display):"לא ידוע"}</b>
             </div>
             <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
-              <span class="muted xs">Workforce Confidence:</span> <b>${q.workforce_estimate?q.workforce_estimate.workforce_confidence_score:0}/100</b> <span class="xs faint">(${esc(q.workforce_estimate?q.workforce_estimate.workforce_confidence_level:"")})</span>
+              <span class="muted xs">גודל צי:</span> <b>${q.fleet_estimate_v2&&q.fleet_estimate_v2.is_verified?esc(q.fleet_estimate_v2.fleet_size_display):"לא ידוע"}</b>
             </div>
             <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
-              <span class="muted xs">עובדי שטח:</span> <b>${esc(q.workforce_estimate?q.workforce_estimate.field_workers_count_display:"—")}</b> <span class="xs faint">(${esc(q.workforce_estimate?q.workforce_estimate.field_workers_pct_display:"")})</span>
-            </div>
-            <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
-              <span class="muted xs">הערכת צי:</span> <b>${esc(q.fleet_estimate_v2?q.fleet_estimate_v2.fleet_size_display:q.estimated_fleet_size||"")}</b>
-            </div>
-            <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
-              <span class="muted xs">Fleet Confidence:</span> <b>${esc(q.fleet_estimate_v2?q.fleet_estimate_v2.fleet_confidence:q.fleet_estimate_confidence||"")}</b>
-            </div>
-            <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
-              <span class="muted xs">קצין רכב:</span> <b>${q.fleet_officer_probability}%</b>
+              <span class="muted xs">קצין רכב:</span> <b>${fs.fleet_manager&&fs.fleet_manager.s==="v"?esc(fs.fleet_manager.val):"לא ידוע"}</b>
             </div>
             <div style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:3px 7px">
               <span class="muted xs">העשרה חיצונית:</span> <b>${esc(q.external_enrichment ? q.external_enrichment.recommendation : "לא נדרש")}</b>
             </div>
           </div>
-          ${q.fleet_estimate_v2&&q.fleet_estimate_v2.basis_of_estimate_label ? `
+          ${q.fleet_estimate_v2&&q.fleet_estimate_v2.is_verified&&q.fleet_estimate_v2.basis_of_estimate_label ? `
           <div class="xs faint" style="border-top:1px dashed var(--border);padding-top:4px">
-            <b>בסיס ההערכה:</b> ${esc(q.fleet_estimate_v2.basis_of_estimate_label)}
+            <b>בסיס הנתונים:</b> ${esc(q.fleet_estimate_v2.basis_of_estimate_label)}
           </div>
-          ` : ''}
+          ` : '<div class="xs faint" style="border-top:1px dashed var(--border);padding-top:4px">גודל צי ומספר עובדים: לא ידוע. אין מקור, ולכן אין מספר.</div>'}
         </div>
 
         <div class="row" style="align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:8px">
@@ -3457,7 +3501,7 @@ function enrichmentSection(c){
           <span class="spacer"></span>
           <span><b>פעולה מומלצת:</b> <span class="badge b-blue" style="font-size:11px">${esc(q.next_action||"")}</span></span>
           <span style="color:var(--border)">|</span>
-          <span><b>מוכן לפנייה:</b> ${q.ready_for_contact ? '<span class="badge b-ok" style="font-size:11px">TRUE</span>' : '<span class="badge b-no" style="font-size:11px">FALSE</span>'}</span>
+          <span><b>מוכן לפנייה:</b> ${isReady(c) ? '<span class="badge b-ok" style="font-size:11px">כן</span>' : '<span class="badge b-no" style="font-size:11px">לא</span>'}</span>
         </div>
 
         ${q.external_enrichment ? `
@@ -3477,12 +3521,11 @@ function enrichmentSection(c){
         ${box("🚚 צי רכב וכוח אדם (Workforce & Fleet v2)",`
           <div>${fleetCell(c,true)}</div>
           ${kv("גודל צי",esc(fl.size.replace("גודל צי: ","")))}
-          ${kv("הערכת צי", q.fleet_estimate_v2 ? `<span class="badge b-blue" style="font-size:10.5px">${esc(q.fleet_estimate_v2.fleet_size_display)} (${esc(q.fleet_estimate_v2.fleet_confidence)})</span>` : (q.estimated_fleet_size || "לא ניתן להעריך"))}
-          ${kv("סטטוס הערכת צי", q.fleet_estimate_v2&&!q.fleet_estimate_v2.fleet_is_estimate ? '<span class="xs bold" style="color:var(--ok)">מספר מאומת רשמי</span>' : '<span class="xs faint">הערכה מבוססת Evidence</span>')}
-          ${q.workforce_estimate ? kv("הערכת עובדים", `<span class="bold">${esc(q.workforce_estimate.employee_count_display)}</span> <span class="xs faint">(ביטחון: ${q.workforce_estimate.workforce_confidence_score}%)</span>`) : ""}
-          ${q.workforce_estimate ? kv("עובדי שטח", `<span class="bold">${esc(q.workforce_estimate.field_workers_count_display)}</span> <span class="xs faint">(${esc(q.workforce_estimate.field_workers_pct_display)})</span>`) : ""}
-          ${q.workforce_estimate&&q.workforce_estimate.roles_identified&&q.workforce_estimate.roles_identified.length ? kv("תפקידים בשטח", `<span class="xs">${esc(q.workforce_estimate.roles_identified.join(", "))}</span>`) : ""}
-          ${q.fleet_estimate_v2&&q.fleet_estimate_v2.basis_of_estimate_label ? kv("בסיס ההערכה", `<span class="xs faint">${esc(q.fleet_estimate_v2.basis_of_estimate_label)}</span>`) : ""}
+          ${kv("הערכת צי", q.fleet_estimate_v2&&q.fleet_estimate_v2.is_verified ? `<span class="badge b-ok" style="font-size:10.5px">${esc(q.fleet_estimate_v2.fleet_size_display)}</span>` : "לא ידוע")}
+          ${kv("סטטוס גודל צי", q.fleet_estimate_v2&&q.fleet_estimate_v2.is_verified ? '<span class="xs bold" style="color:var(--ok)">מספר מאומת רשמי</span>' : '<span class="xs faint">לא ידוע — אין מקור, ולכן אין מספר</span>')}
+          ${q.workforce_estimate&&q.workforce_estimate.is_verified ? kv("עובדים", `<span class="bold">${esc(q.workforce_estimate.employee_count_display)}</span>`) : kv("עובדים", "לא ידוע")}
+          ${q.workforce_estimate&&q.workforce_estimate.is_verified&&q.workforce_estimate.roles_identified&&q.workforce_estimate.roles_identified.length ? kv("תפקידים בשטח", `<span class="xs">${esc(q.workforce_estimate.roles_identified.join(", "))}</span>`) : ""}
+          ${q.fleet_estimate_v2&&q.fleet_estimate_v2.is_verified&&q.fleet_estimate_v2.basis_of_estimate_label ? kv("בסיס הנתונים", `<span class="xs faint">${esc(q.fleet_estimate_v2.basis_of_estimate_label)}</span>`) : ""}
           ${fs.fleet_types.s!=="n"?kv("סוגי רכבים",esc(fs.fleet_types.val)):""}
           ${kv("מקור הצי",esc(fl.src||"—"))}
         `)}
@@ -3502,9 +3545,9 @@ function enrichmentSection(c){
             : '<div class="sm faint">איש קשר טרם אותר</div>';
         })())}
         ${box("🛡️ ניהול צי ובטיחות",`
-          <div class="xs muted">הסתברות לקצין רכב / מנהל צי:</div>
-          <div style="margin:2px 0"><span class="badge ${q.fleet_officer_probability>=75?'b-ok':q.fleet_officer_probability>=50?'b-blue':'b-est'}" style="font-size:10.5px">${q.fleet_officer_probability}% (${esc(q.fleet_officer_status)})</span></div>
-          <div class="xs faint" style="margin-bottom:6px">${esc(q.fleet_officer_legal_note||"")}</div>
+          <div class="xs muted">קצין רכב / מנהל צי:</div>
+          <div style="margin:2px 0">${fs.fleet_manager&&fs.fleet_manager.s==="v"?'<span class="badge b-ok" style="font-size:10.5px">מאומת</span>':'<span class="badge b-no" style="font-size:10.5px">לא ידוע</span>'}</div>
+          <div class="xs faint" style="margin-bottom:6px">בלי מקור מאומת לא מוצגת הסתברות.</div>
           <div class="xs muted">קצין בטיחות (קצב"ת):</div><div>${officerCell(c,"safety_officer")}</div>
           <div class="xs muted" style="margin-top:6px">קצין רכב / מנהל צי:</div><div>${officerCell(c,"fleet_manager")}</div>
         `)}
@@ -4301,19 +4344,90 @@ ${q && q.detailed_missing_fields && q.detailed_missing_fields.length ? `⚠️ *
 function handleAiUserMessage(userText) {
   if (!userText || !userText.trim()) return;
   const qText = userText.trim();
+  const seq = ++S.aiChatSeq;
   S.aiChatMessages.push({ role: "user", text: qText });
+  const pending = { role: "assistant", text: "בודק את הנתונים…" };
+  S.aiChatMessages.push(pending);
   renderAiChat();
-
   const b = $("#aiChatBody");
   if (b) b.scrollTop = b.scrollHeight;
 
-  setTimeout(() => {
-    const reply = processAiQuery(qText);
-    S.aiChatMessages.push(reply);
+  const finish = (reply) => {
+    if (seq !== S.aiChatSeq) {
+      pending.text = "השאלה הוחלפה בשאלה חדשה יותר, והתשובה הזו לא עודכנה.";
+      renderAiChat();
+      return;
+    }
+    pending.text = reply.text;
+    if (reply.chips) pending.chips = reply.chips;
+    if (reply.actionCard) pending.actionCard = reply.actionCard;
+    if (reply.actionFilter) pending.actionFilter = reply.actionFilter;
     renderAiChat();
     const b2 = $("#aiChatBody");
     if (b2) b2.scrollTop = b2.scrollHeight;
-  }, 100);
+  };
+
+  const local = processAiQuery(qText);
+  if (local) { finish(local); return; }
+  askGeminiFreeform(qText).then(finish);
+}
+
+async function askGeminiFreeform(question) {
+  const sess = await userSession();
+  const ls = leadStats();
+  if (!sess) {
+    return {
+      role: "assistant",
+      text: `אין סשן מחובר, ולכן Gemini לא נקרא.\nהשאלה נשמרה במסך. שאלות על המספרים (סיכום, בלי טלפון, צהובים) מחושבות מהמאגר גם בלי Gemini.\nכדי שאלה חופשית: התחבר לדליה כמנהל מערכת וחזור לכאן.\n\nכרגע במאגר: ${ls.total} לידים, ${ls.ready} מוכנים לפנייה, ${ls.noPhone} בלי טלפון.`,
+      chips: ["תן סיכום סטטיסטי של כל הלידים", "כמה לידים בלי טלפון יש?"]
+    };
+  }
+  const ctx = S.aiChatContextLead;
+  const qLead = ctx ? QF(ctx) : null;
+  const facts = {
+    total: ls.total,
+    ready_for_contact: ls.ready,
+    missing_phone: ls.noPhone,
+    missing_email: ls.noMail,
+    missing_contact: ls.noContact,
+    fleet_unverified: ls.fleetUnverified,
+    stages: ls.stage,
+    quality: ls.quality,
+    paid_candidates: ls.paidCand
+  };
+  const lead = ctx ? {
+    name: ctx.name,
+    hp: ctx.no || "",
+    city: ctx.city || "לא ידוע",
+    stage: qLead && qLead.lead_stage,
+    ready: isReady(ctx),
+    missing: qLead && qLead.missing_fields,
+    why_not_ready: qLead && qLead.why_not_green
+  } : null;
+  try {
+    const res = await fetch(`${SUPABASE_STAGING_URL}/functions/v1/marketing-gemini-chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_STAGING_ANON,
+        "Authorization": `Bearer ${sess.accessToken}`
+      },
+      body: JSON.stringify({
+        system: "אתה עוזר OpenProspector של דליה. ענה בעברית. השתמש רק בעובדות שב-JSON. אם חסר נתון כתוב לא ידוע. אל תמציא טלפון, אתר, איש קשר, מספר עובדים או גודל צי. הבחן בין עובדה מאומתת להערכה. אסור למחוק, להעביר ל-CRM או לשנות נתון. אם מתבקשת פעולה כזו, בקש מהמשתמש לאשר במסך ואל תבצע אותה.",
+        clientContext: { facts, lead },
+        prompt: question
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    const judged = geminiTestResult(res, data);
+    if (res.ok && data.ok && (data.reply || data.text)) {
+      return { role: "assistant", text: String(data.reply || data.text) };
+    }
+    const http = data.upstream_status || res.status;
+    return { role: "assistant", text: `${judged.label}\nקוד: ${http || "—"}. לא בוצע שינוי בנתונים.` };
+  } catch (e) {
+    return { role: "assistant", text: "Gemini לא זמין כרגע. לא בוצע שינוי בנתונים." };
+  }
 }
 
 function processAiQuery(query) {
@@ -4379,40 +4493,24 @@ ${missing.length ? missing.map(m => "• " + m).join("\n") : "• לא חסרי�
   }
 
   // 2. Aggregate stats queries ("כמה", "סטטיסטיקה", "סיכום", "דוח")
-  if (q.includes("סטטיסטיקה") || q.includes("סיכום") || q.includes("דוח") || (q.includes("כמה") && q.includes("לידים"))) {
-    const total = C.length;
-    const greens = C.filter(c => QF(c)?.lead_quality_color === "green").length;
-    const yellows = C.filter(c => QF(c)?.lead_quality_color === "yellow").length;
-    const reds = C.filter(c => QF(c)?.lead_quality_color === "red").length;
-    const hasPhone = C.filter(c => OPQualify.hasAnyValidPhone(c, QF(c))).length;
-    const noPhone = total - hasPhone;
-    const hasContact = C.filter(c => OPQualify.hasAnyRealContact(c, QF(c))).length;
-    const noContact = total - hasContact;
-    const hasMail = C.filter(c => OPQualify.hasAnyValidEmail(c, QF(c))).length;
-    const noMail = total - hasMail;
-    const ready = C.filter(c => isReady(c)).length;
-    const sentAi = C.filter(c => ["sent_to_ai", "queued_for_ai"].includes(QF(c)?.workflow_status) || ["sent_to_ai", "queued_for_ai"].includes(c.enr?.enrichment_status)).length;
-    const candExt = C.filter(c => QF(c)?.workflow_status === "candidate_external").length;
-
+  if ((q.includes("סטטיסטיקה") || q.includes("סיכום") || q.includes("דוח") || (q.includes("כמה") && q.includes("לידים"))) && !q.includes("טלפון") && !q.includes("איש קשר") && !q.includes("מייל")) {
+    const ls = leadStats();
+    const total = ls.total || 0;
+    const pct = (n) => total ? Math.round(n / total * 100) : 0;
     return {
       role: "assistant",
-      text: `📊 **תמונת מצב עדכנית ממאגר STAGING:**
+      text: `📊 **תמונת מצב — אותו חישוב כמו הדשבורד:**
 
-• **סה"כ חברות במאגר:** **${total}**
-• **חלוקת איכות ליד:**
-  - 🟢 **איכותי / מוכן:** ${greens} (${Math.round(greens/total*100)}%)
-  - 🟡 **טוב להשקעה:** ${yellows} (${Math.round(yellows/total*100)}%)
-  - 🔴 **לא כדאי להשקיע:** ${reds} (${Math.round(reds/total*100)}%)
+• **סה"כ לידים:** **${total}**
+• **מוכנים לפנייה:** ${ls.ready}
+• **חסר טלפון:** ${ls.noPhone}
+• **חסר מייל:** ${ls.noMail}
+• **חסר איש קשר:** ${ls.noContact}
+• **צי לא מאומת:** ${ls.fleetUnverified}
+• **שלבים:** מתאים ${ls.stage.qualified || 0} · בבדיקה ${ls.stage.review || 0} · מאומת ${ls.stage.verified || 0} · איכותי ${ls.stage.quality || 0} · לא מתאים ${ls.stage.rejected || 0}
+• **איכות:** גבוהה ${ls.quality.high || 0} (${pct(ls.quality.high || 0)}%) · בינונית ${ls.quality.medium || 0} · נמוכה ${ls.quality.low || 0}
 
-• **שלמות ערוצי תקשורת (Single Source of Truth):**
-  - 📞 **יש טלפון:** ${hasPhone} | **חסר טלפון:** ${noPhone}
-  - 👤 **יש איש קשר:** ${hasContact} | **חסר איש קשר:** ${noContact}
-  - ✉️ **יש מייל:** ${hasMail} | **חסר מייל:** ${noMail}
-
-• **סטטוס זרימה ותהליכים:**
-  - ✅ **מוכנים לפנייה (Ready):** ${ready}
-  - ✨ **נשלחו / ממתינים ל-AI:** ${sentAi}
-  - 🌐 **מועמדים להעשרה חיצונית:** ${candExt}`,
+מספר ירוק/צהוב הוא צבע איכות, לא מספר "מוכן לפנייה".`,
       chips: [
         "כמה לידים בלי טלפון יש?",
         "למה יש כל כך הרבה לידים צהובים?",
@@ -4423,25 +4521,23 @@ ${missing.length ? missing.map(m => "• " + m).join("\n") : "• לא חסרי�
 
   // 3. Queries about Missing Phone
   if (q.includes("בלי טלפון") || q.includes("חסר טלפון") || q.includes("אין טלפון") || (q.includes("כמה") && q.includes("טלפון"))) {
-    const noPhoneList = C.filter(c => !OPQualify.hasAnyValidPhone(c, QF(c)));
+    const ls = leadStats();
     return {
       role: "assistant",
-      text: `📞 ישנן כרגע **${noPhoneList.length} חברות ללא מספר טלפון תקין** במאגר (מתוך ${C.length}).
-596 חברות כוללות לפחות טלפון אחד מאומת.
-חברות אלו מועמדות מצוינות להעשרת AI (Gemini Incremental) או חיפוש במקורות חיצוניים.`,
-      actionFilter: { key: "phone", val: "no", label: `🔍 סנן והצג בטבלה ${noPhoneList.length} חברות ללא טלפון` },
+      text: `📞 לפי אותו חישוב של הדשבורד יש **${ls.noPhone} לידים בלי טלפון** מתוך ${ls.total}.
+יש טלפון: ${ls.total - ls.noPhone}.`,
+      actionFilter: { key: "phone", val: "no", label: `🔍 סנן והצג בטבלה ${ls.noPhone} חברות ללא טלפון` },
       chips: ["תציע לידים להעשרה ב-AI", "כמה לידים בלי איש קשר?"]
     };
   }
 
   // 4. Queries about Missing Contact
   if (q.includes("בלי איש קשר") || q.includes("חסר איש קשר") || q.includes("אין איש קשר") || (q.includes("כמה") && q.includes("איש קשר"))) {
-    const noContactList = C.filter(c => !OPQualify.hasAnyRealContact(c, QF(c)));
+    const ls = leadStats();
     return {
       role: "assistant",
-      text: `👤 ישנן כרגע **${noContactList.length} חברות ללא איש קשר מזוהה** ברשומה (מתוך ${C.length}).
-ל-606 חברות יש איש קשר מאומת מתוך פנקס הקבלנים או הרשומה הרשמית.`,
-      actionFilter: { key: "contact", val: "no", label: `🔍 סנן והצג בטבלה ${noContactList.length} חברות ללא איש קשר` },
+      text: `👤 לפי אותו חישוב של הדשבורד יש **${ls.noContact} לידים בלי איש קשר** מתוך ${ls.total}.`,
+      actionFilter: { key: "contact", val: "no", label: `🔍 סנן והצג בטבלה ${ls.noContact} חברות ללא איש קשר` },
       chips: ["כמה לידים בלי טלפון?", "תמליץ על 5 הלידים המובילים"]
     };
   }
@@ -4543,23 +4639,7 @@ ${missing.length ? missing.map(m => "• " + m).join("\n") : "• לא חסרי�
     };
   }
 
-  // Default fallback response
-  return {
-    role: "assistant",
-    text: `אני כאן לעזור לך לנהל ולנתח את מאגר הלידים ב-STAGING (${C.length} חברות).
-תוכל לשאול אותי שאלות כמו:
-• "תן סיכום סטטיסטי של כל הלידים"
-• "כמה לידים בלי טלפון יש?"
-• "למה יש כל כך הרבה לידים צהובים?"
-• "תמליץ על 5 הלידים המובילים"
-• "תציע לידים להעשרת AI"`,
-    chips: [
-      "תן סיכום סטטיסטי של כל הלידים",
-      "כמה לידים בלי טלפון יש?",
-      "למה יש כל כך הרבה לידים צהובים?",
-      "תמליץ על 5 הלידים המובילים"
-    ]
-  };
+  return null;
 }
 
 function executeAiChatAction(actIdx) {
@@ -4973,9 +5053,9 @@ V.connections=()=>{
       <div style="flex:1">
         <b style="font-size:16px;color:#14532d;display:block">מסלול עבודה פעיל ראשי (שלב 1): רשם החברות (data.gov.il) + Gemini AI</b>
         <p class="sm" style="margin:6px 0 0;color:#166534;line-height:1.6">
-          <b>האם אפשר להתחיל לעבוד באופן מלא כבר עכשיו? כן, בהחלט!</b><br>
-          שילוב שני החיבורים הללו מאפשר לאתר חברות ישראליות אמיתיות ופעילות, לאמת ח.פ. חוקי וכתובת רשומה, לבצע סיווג ענפי עסקי, לחשב ציון סבירות לצי (0–100) ולהעביר לידים מסוננים ל-CRM של דליה – <b>ללא שום עלות כספית (0 ₪)</b> וללא תלות בספקים חיצוניים בתשלום.<br>
-          <span style="font-size:12.5px;color:#15803d">💡 <b>מה חסר ויושלם בהמשך?</b> טלפונים ישירים וסלולריים של מנהלים (שניתן להשלים ידנית בחיפוש מהיר או אוטומטית ע״י חיבור Google Places בעתיד).</span>
+          <b>מה עובד עכשיו:</b> שליפה מרשם החברות ב-data.gov.il. Gemini עונה רק אחרי התחברות מנהל, ורק אם החיוב אצל Google פעיל.<br>
+          הרשם מחזיר שם, ח.פ., סטטוס, כתובת ומטרת חברה. הוא לא מחזיר אתר, טלפון, איש קשר, מספר עובדים או גודל צי — אלה נשארים "לא ידוע" עד שיש מקור. אין ציון צי מומצא.<br>
+          <span style="font-size:12.5px;color:#15803d">Google Places ו-Tavily כבויים. העברה ל-CRM דורשת אישור, ורק לליד שעומד בתנאי "מוכן לפנייה".</span>
         </p>
       </div>
     </div>
@@ -5265,6 +5345,7 @@ function geminiTestResult(res, data) {
   const up = data && data.upstream_status, reason = `${(data && data.upstream_reason) || ""} ${(data && data.error) || ""}`;
   if (res.ok && data.ok && /\bOK\b/i.test(String(data.reply || data.text || ""))) return { ok: true, label: `✅ Gemini מחובר ומאומת${data.model ? ` (${data.model})` : ""}` };
   if (res.ok && data.ok) return { ok: false, label: "❌ Gemini החזיר תשובה לא צפויה" };
+  if (up === 402) return { ok: false, label: "⚠️ חיוב Gemini לא פעיל (HTTP 402). לא שונה אמצעי תשלום." };
   if (up === 429) return { ok: false, label: "⚠️ המכסה הסתיימה / Quota exceeded" };
   if (up === 404) return { ok: false, label: `❌ המודל לא זמין${data.model ? ` (${data.model})` : ""}` };
   if (up === 401 || up === 403 || (up === 400 && /API_KEY|API key/i.test(reason))) return { ok: false, label: "❌ מפתח Gemini לא תקין / לא מורשה" };
@@ -5500,7 +5581,12 @@ window.addEventListener("message", e => {
     }
   }
   if (e.data.type === "dalia-coco-auth") {
-    window._daliaAuth = e.data;
+    if (e.data.accessToken && jwtRole(e.data.accessToken) === "authenticated") {
+      window._daliaAuth = { accessToken: e.data.accessToken };
+      if (sbClient && e.data.refreshToken) {
+        sbClient.auth.setSession({ access_token: e.data.accessToken, refresh_token: e.data.refreshToken }).then(() => refreshAuthChrome()).catch(() => refreshAuthChrome());
+      } else refreshAuthChrome();
+    }
   }
 });
 
@@ -5998,6 +6084,12 @@ document.addEventListener("click",e=>{
     case "interpret":interpret();return;
     case "applyInterp":applyInterp();return;
     case "run":runSearch();return;
+    case "adoptHits": adoptSearchHits(); return;
+    case "login": {
+      try { sessionStorage.setItem("dalia_static_return", location.pathname + location.search + location.hash); } catch (err) { /* נשארים במסך */ }
+      location.href = new URL("login", location.href).href;
+      return;
+    }
     case "closePanel":S.panel=null;renderPanel();return;
     case "backCo":delete S.panel.person;renderPanel();return;
     case "toggleFilters":{
@@ -6113,6 +6205,7 @@ document.addEventListener("click",e=>{
       if (!co) return;
       const q = QF(co);
       if (!q || !isReady(co)) { toast("ניתן להעביר לפולו-אפ רק ליד במצב 'מוכן לפנייה'"); return; }
+      if (!confirm(`לרשום את "${co.name}" כממתין לאישור העברה ל-CRM?\nהליד לא יועבר בפועל עד אישור נפרד.`)) return;
       saveLeadEnrichment(co, { crm_handoff_status: "pending_approval", crm_handoff_requested_at: new Date().toISOString() },
         `"${co.name}" נרשם כממתין לאישור העברה לפולו-אפ / CRM – לא הועבר בפועל`);
       return;
@@ -6475,6 +6568,25 @@ document.addEventListener("keydown",e=>{
   }
 });
 render();
+async function refreshAuthChrome() {
+  const sess = await userSession();
+  const btn = $("#authBtn");
+  const foot = $("#sideUser");
+  const av = $("#userAvatar");
+  if (sess) {
+    const who = sess.email ? sess.email : "משתמש מחובר";
+    if (btn) { btn.textContent = "מחובר"; btn.title = "הסשן פעיל"; }
+    if (foot) foot.innerHTML = `<b>${esc(who)}</b>סשן דליה פעיל`;
+    if (av) { av.textContent = "✓"; av.title = "מחובר"; }
+  } else {
+    if (btn) { btn.textContent = "התחבר לדליה"; btn.title = "נדרש כדי להפעיל את Gemini"; }
+    if (foot) foot.innerHTML = "<b>לא מחובר</b>Gemini דורש התחברות מנהל";
+    if (av) { av.textContent = "?"; av.title = "לא מחובר"; }
+  }
+}
+refreshAuthChrome();
+window.addEventListener("focus", () => { refreshAuthChrome(); });
+try { if (window.parent !== window) window.parent.postMessage({ type: "dalia-coco-auth-request" }, location.origin); } catch (e) { /* אין מעטפת */ }
 /* Supabase STAGING is the source of truth; localStorage only renders the first paint */
 syncWithRemoteSupabase();
 </script>

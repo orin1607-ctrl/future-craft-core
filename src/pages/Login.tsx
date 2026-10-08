@@ -19,6 +19,19 @@ function goAfterLogin(
   navigate: (path: string) => void,
   extras?: { claimsWorkerOnly?: boolean; garagePhotographer?: boolean },
 ) {
+  try {
+    const back = sessionStorage.getItem('dalia_static_return');
+    sessionStorage.removeItem('dalia_static_return');
+    if (back) {
+      const u = new URL(back, window.location.origin);
+      if (u.origin === window.location.origin && /\/(openprospector|dalia-marketing-center-v2)\.html$/.test(u.pathname)) {
+        window.location.assign(u.pathname + u.search + u.hash);
+        return;
+      }
+    }
+  } catch {
+    /* ממשיכים למסלול הרגיל */
+  }
   if (extras?.garagePhotographer) {
     consumePostLoginRedirect('/garage');
     navigate('/garage');

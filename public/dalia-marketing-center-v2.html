@@ -1018,6 +1018,9 @@ window.addEventListener('message', (e) => {
 });
 
 state.view = location.hash.slice(1) || 'dashboard';
+if (window.parent !== window) {
+  try { window.parent.postMessage({ type: 'dalia-coco-auth-request' }, location.origin); } catch (e) { /* אין מעטפת */ }
+}
 render();
 </script>
 </body>
