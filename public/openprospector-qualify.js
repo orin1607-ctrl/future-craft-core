@@ -390,31 +390,40 @@
     /* --- 2. Contacts & Channels Parsing (Multiple contacts, no overwrite) --- */
     const rawPeople = Array.isArray(row.people) ? row.people : [];
     const normalizedContacts = [];
+    const DM_ROLES_RE = /מנכ"?ל|מנהל כללי|בעל|בעלים|דירקטור|מורשה חתימה|מורשית חתימה|הנהל|מנהל תפעול|תפעול|מנהל צי|קצין רכב|קצין בטיחות|קצב"?ת|מנהל רכש|רכש|מנהל מכירות|מנהל כספים|CFO|COO|CEO|שותף/i;
+    const stopWordsCo = new Set(["חברה", "בעמ", "ישראל", "קבלנות", "עבודות", "כללית", "הנדסה", "פיתוח", "בניין", "מסחר", "שירותים", "תשתיות", "תשתית", "הובלות", "הסעות", "היסעים", "אחזקות", "השקעות", "קבוצת", "אחים", "ובניו", "ובניובעמ", "בע\"מ"]);
+    const coTokens = String(row.company_name || "").split(/[\s,.'"\-–()]+/g).map(s => s.trim()).filter(s => s.length >= 3 && !stopWordsCo.has(s));
+
+    function checkOwnerMatch(cName) {
+      if (!cName) return false;
+      const nTokens = String(cName).split(/[\s,.'"\-–()]+/g).map(s => s.trim()).filter(s => s.length >= 3);
+      return nTokens.some(nt => coTokens.includes(nt));
+    }
+
     rawPeople.forEach((p) => {
       if (!p) return;
-      if (Array.isArray(p)) {
-        normalizedContacts.push({
-          name: p[0] || "",
-          role: p[1] || "",
-          status: p[2] || "f",
-          email: p[3] || "",
-          phone: p[4] || "",
-          tier: p[5] || "B",
-          is_decision_maker: /מנכ"?ל|בעלים|דירקטור|מורשה חתימה|הנהלה|מנהל צי|סמנכ"?ל|שותף|CEO|Owner/i.test(String(p[1] || ""))
-        });
-      } else if (typeof p === "object") {
-        normalizedContacts.push({
-          name: p.name || "",
-          role: p.role || "",
-          status: p.status || "f",
-          email: p.email || "",
-          phone: p.phone || "",
-          tier: p.tier || "B",
-          is_decision_maker: /מנכ"?ל|בעלים|דירקטור|מורשה חתימה|הנהלה|מנהל צי|סמנכ"?ל|שותף|CEO|Owner/i.test(String(p.role || ""))
-        });
-      }
+      const cName = Array.isArray(p) ? (p[0] || "") : (p.name || "");
+      const cRole = Array.isArray(p) ? (p[1] || "") : (p.role || "");
+      const cStatus = Array.isArray(p) ? (p[2] || "f") : (p.status || "f");
+      const cEmail = Array.isArray(p) ? (p[3] || "") : (p.email || "");
+      const cPhone = Array.isArray(p) ? (p[4] || "") : (p.phone || "");
+      const cTier = Array.isArray(p) ? (p[5] || "B") : (p.tier || "B");
+      const isDm = DM_ROLES_RE.test(cRole);
+      const isOwner = checkOwnerMatch(cName);
+      normalizedContacts.push({
+        name: cName,
+        role: cRole,
+        status: cStatus,
+        email: cEmail,
+        phone: cPhone,
+        tier: cTier,
+        is_decision_maker: isDm,
+        is_owner_indicated: isOwner,
+      });
     });
     if (!normalizedContacts.length && has(row.contact_name)) {
+      const isDm = DM_ROLES_RE.test(row.contact_role || "");
+      const isOwner = checkOwnerMatch(row.contact_name);
       normalizedContacts.push({
         name: row.contact_name,
         role: row.contact_role || "",
@@ -422,7 +431,8 @@
         email: row.contact_email || "",
         phone: row.contact_phone || "",
         tier: "B",
-        is_decision_maker: /מנכ"?ל|בעלים|דירקטור|מורשה חתימה|הנהלה|מנהל צי|סמנכ"?ל|שותף|CEO|Owner/i.test(String(row.contact_role || ""))
+        is_decision_maker: isDm,
+        is_owner_indicated: isOwner,
       });
     }
 
@@ -431,7 +441,7 @@
     if (normalizedContacts.length) {
       const getPriority = (c) => {
         const r = String(c.role || "");
-        if (/בעלים|מנכ"?ל|דירקטור|CEO|Owner/i.test(r)) return 1;
+        if (/בעלים|מנכ"?ל|דירקטור|CEO|Owner/i.test(r) || c.is_owner_indicated) return 1;
         if (/תפעול|לוגיסטיקה/i.test(r)) return 2;
         if (/מנהל צי|קצין רכב|בטיחות/i.test(r)) return 3;
         if (/כספים|CFO/i.test(r)) return 4;
@@ -939,18 +949,41 @@
     else if (!hasAiChecked) nextAction = "לבצע חיפוש נוסף ב-Gemini";
     else nextAction = "לבצע enrichment נוסף";
 
-    /* --- Lead Quality: Color Classification (Green / Yellow / Red) --- */
+    /* --- Lead Quality: Color Classification (Green / Yellow / Red) according to User Rules --- */
+    const hasVerifiedCompany = registryConfirmed && Boolean(row.company_hp) && fs.company.s === "v" && fs.hp.s === "v";
+    const hasVerifiedPhone = fs.phone.s === "v";
+    const hasVerifiedEmail = fs.email.s === "v";
+    const isDaliaFit = relevant && businessPotentialScore >= 60;
+    const hasFleet5Plus = !isInactive && (
+      (Number.isInteger(row.fleet_size) && row.fleet_size >= 5) ||
+      ["100+", "כ-50", "כ-20–30", "כ-10–20", "כ-10–15", "כ-5–10"].includes(flV2Rounded)
+    );
+    const isNotDisqualified = !isInactive && !rejectedReason;
+
+    // Condition for Green: Meets ALL 6 mandatory rules
+    const isGreen = hasVerifiedCompany && hasVerifiedPhone && hasVerifiedEmail && isDaliaFit && hasFleet5Plus && isNotDisqualified;
+
+    // Condition for Green+ (Quality Plus):
+    // A Green lead that meets all readiness criteria AND has identified decision-maker contact(s)
+    const hasStrictDecisionMaker = normalizedContacts.some(c => c.is_decision_maker);
+    const hasOwnerDecisionMaker = normalizedContacts.some(c => c.is_owner_indicated);
+    const isQualityPlus = isGreen && (hasStrictDecisionMaker || hasOwnerDecisionMaker);
+
     let leadQualityColor = "yellow";
     let leadQualityLabel = "🟡 ליד טוב";
-    if (isInactive || businessPotentialScore < 40 || rejectedReason) {
+
+    if (isInactive || rejectedReason || !relevant) {
       leadQualityColor = "red";
       leadQualityLabel = "🔴 לא כדאי להשקיע";
-    } else if (stage === "ready" || (businessPotentialScore >= 80 && contactReadinessScore >= 70) || (businessPotentialScore >= 60 && contactReadinessScore >= 80)) {
+      stage = "rejected";
+    } else if (isGreen) {
       leadQualityColor = "green";
-      leadQualityLabel = stage === "ready" ? "🟢 מוכן לפנייה" : "🟢 ליד איכותי";
+      leadQualityLabel = isQualityPlus ? "🟢 ליד איכותי+ ⭐" : "🟢 מוכן לפנייה";
+      stage = "ready";
     } else {
       leadQualityColor = "yellow";
-      leadQualityLabel = "🟡 ליד טוב להשקעה";
+      leadQualityLabel = "🟡 ליד טוב (דורש השלמה)";
+      if (stage === "ready") stage = isQualified ? "qualified" : "review";
     }
 
     /* --- Workflow Status: Distinct Process Lifecycle --- */
@@ -1036,17 +1069,19 @@
     /* --- Why not green / Detailed Missing Reason --- */
     let whyNotGreen = "";
     if (leadQualityColor === "green") {
-      whyNotGreen = "הליד עומד במלוא דרישות הפוטנציאל והמוכנות לפנייה.";
+      whyNotGreen = isQualityPlus
+        ? "ליד איכותי+ מוכן לפנייה: חברה וזהות מאומתים, טלפון ומייל עסקיים מאומתים, פוטנציאל צי 5+, ומקבל החלטות / בעלים מזוהה."
+        : "מוכן לפנייה: חברה מאומתת ברשם, טלפון ומייל עסקיים מאומתים, פוטנציאל צי 5+, ללא עילת פסילה.";
     } else if (leadQualityColor === "red") {
-      whyNotGreen = isInactive ? "החברה אינה פעילה או בפירוק." : "פוטנציאל עסקי נמוך (פחות מ-40%) אינו מצדיק השקעת משאבים כעת.";
+      whyNotGreen = rejectedReason || (isInactive ? "החברה אינה פעילה ברשם החברות (בהליכי פירוק/חיסול)." : "החברה אינה מתאימה לשירותי תחזוקת ציי רכב.");
     } else {
       const missingBits = [];
-      if (fs.phone.s === "n") missingBits.push("טלפון חברה");
-      else if (!isMobile) missingBits.push("נייד ישיר");
-      if (fs.contact_name.s === "n") missingBits.push("איש קשר");
-      if (!isDecisionMaker) missingBits.push("מקבל החלטות בכיר");
-      if (fs.fleet.s !== "v") missingBits.push("אימות צי רכב");
-      whyNotGreen = `פוטנציאל עסקי טוב (${businessPotentialScore}%), אך חסרים: ${missingBits.join(", ") || "השלמת פרטים ישירים"}.`;
+      if (!hasVerifiedPhone) missingBits.push("טלפון עסקי מאומת");
+      if (!hasVerifiedEmail) missingBits.push("אימייל עסקי מאומת");
+      if (!hasFleet5Plus) missingBits.push("אינדיקציה לצי של 5+ רכבים");
+      if (!isDaliaFit) missingBits.push("התאמה לשירותי דליה (פוטנציאל עסקי)");
+      if (!hasVerifiedCompany) missingBits.push("אימות זהות החברה מול רשם רשמי");
+      whyNotGreen = `פוטנציאל עסקי טוב (${businessPotentialScore}%), אך עדיין חסר: ${missingBits.join(" + ") || "השלמת פרטי מוכנות"}.`;
     }
 
     /* --- Source History --- */
@@ -1097,14 +1132,18 @@
       company_active_status: co.status || (inContractors ? "רשום בפנקס הקבלנים" : null),
       fleet_size_status: fleetSizeStatus,
       lead_stage: stage,
-      lead_quality: fs.phone.s === "v" && relevant && registryConfirmed && fleetGood ? "high"
-        : fs.phone.s !== "n" && relevant ? "medium" : "low",
+      lead_quality: leadQualityColor === "green" ? "high" : (leadQualityColor === "yellow" ? "medium" : "low"),
       lead_quality_color: leadQualityColor,
       lead_quality_label: leadQualityLabel,
+      is_quality_plus: isQualityPlus,
+      quality_badge: isQualityPlus ? "ירוק+" : (leadQualityColor === "green" ? "ירוק" : ""),
+      quality_tier_label: isQualityPlus ? "ליד איכותי+ ⭐" : (leadQualityColor === "green" ? "מוכן לפנייה" : (leadQualityColor === "yellow" ? "ליד טוב (דורש השלמה)" : "לא מתאים")),
+      has_strict_decision_maker: hasStrictDecisionMaker,
+      has_owner_match: hasOwnerDecisionMaker,
       workflow_status: workflowStatus,
       workflow_status_label: workflowStatusLabel,
       workflow_status_badge: workflowStatusBadge,
-      ready_for_contact: stage === "ready",
+      ready_for_contact: leadQualityColor === "green",
       rejected_reason: rejectedReason || null,
       relevant,
 
@@ -1135,6 +1174,23 @@
 
       /* Workforce Estimation v2 */
       workforce_estimate: {
+        is_verified: wfIsVerified,
+        approx_employees: wfApproxEmployees,
+        employee_count_display: wfCountDisplay,
+        employee_count_range: wfCountRange,
+        workforce_confidence_score: wfConfidenceScore,
+        workforce_confidence_level: wfConfidenceLevel,
+        workforce_estimate_score: wfScore,
+        workforce_breakdown: wfBreakdown,
+        roles_identified: rolesIdentified,
+        field_workers_count: fieldWorkersCount,
+        field_workers_count_display: fieldWorkersCountDisplay,
+        field_workers_pct: fieldWorkersPct,
+        field_workers_pct_display: fieldWorkersPctDisplay,
+        basis: wfBasis,
+        basis_label: wfBasis.join(" · "),
+      },
+      workforce_estimate_v2: {
         is_verified: wfIsVerified,
         approx_employees: wfApproxEmployees,
         employee_count_display: wfCountDisplay,
@@ -1260,7 +1316,662 @@
     return false;
   }
 
+  const CITY_TO_REGION = {
+    "חיפה": "חיפה", "קריות": "חיפה", "עכו": "צפון", "נהריה": "צפון", "נצרת": "צפון", "נוף הגליל": "צפון",
+    "טבריה": "צפון", "עפולה": "צפון", "כרמיאל": "צפון", "צפת": "צפון", "קרית שמונה": "צפון", "סכנין": "צפון",
+    "שפרעם": "צפון", "אם אל-פחם": "צפון", "אום אל-פחם": "צפון", "באקה אל גרביה": "צפון", "מגדל העמק": "צפון", "יקנעם": "צפון",
+    "תל אביב": "תל אביב", "תל אביב - יפו": "תל אביב", "תל אביב יפו": "תל אביב", "יפו": "תל אביב", "רמת גן": "תל אביב", "גבעתיים": "תל אביב",
+    "בני ברק": "תל אביב", "חולון": "תל אביב", "בת ים": "תל אביב", "הרצליה": "תל אביב", "רמת השרון": "תל אביב",
+    "פתח תקווה": "מרכז", "ראשון לציון": "מרכז", "רחובות": "מרכז", "נס ציונה": "מרכז", "לוד": "מרכז", "רמלה": "מרכז",
+    "מודיעין": "מרכז", "מודיעין מכבים רעות": "מרכז", "כפר סבא": "מרכז", "רעננה": "מרכז", "הוד השרון": "מרכז",
+    "ראש העין": "מרכז", "נתניה": "מרכז", "כפר יונה": "מרכז", "אבן יהודה": "מרכז", "טייבה": "מרכז", "טירה": "מרכז",
+    "ירושלים": "ירושלים", "בית שמש": "ירושלים", "מבשרת ציון": "ירושלים", "מעלה אדומים": "ירושלים", "ביתר עילית": "ירושלים",
+    "באר שבע": "דרום", "אשדוד": "דרום", "אשקלון": "דרום", "קרית גת": "דרום", "שדרות": "דרום", "נתיבות": "דרום",
+    "אופקים": "דרום", "דימונה": "דרום", "ערד": "דרום", "אילת": "דרום", "קרית מלאכי": "דרום", "רהט": "דרום",
+    "אריאל": "יהודה ושומרון", "מודיעין עילית": "יהודה ושומרון", "גבעת זאב": "יהודה ושומרון", "אפרת": "יהודה ושומרון"
+  };
+
+  function cityToRegion(city) {
+    if (!city || typeof city !== "string") return "לא ידוע";
+    const c = city.trim();
+    if (CITY_TO_REGION[c]) return CITY_TO_REGION[c];
+    for (const [k, reg] of Object.entries(CITY_TO_REGION)) {
+      if (c.includes(k) || k.includes(c)) return reg;
+    }
+    return "לא ידוע";
+  }
+
+  function normalizeCompanyHp(input) {
+    if (!input) return "";
+    const clean = String(input).replace(/\D/g, "");
+    if (clean.length === 0) return "";
+    if (clean.length < 7 || clean.length > 9) return clean;
+    return clean.padStart(9, "0");
+  }
+
+  function isValidIsraeliCompanyNumber(input) {
+    const norm = normalizeCompanyHp(input);
+    if (norm.length !== 9) return false;
+    let sum = 0;
+    for (let i = 0; i < 9; i++) {
+      let digit = Number(norm[i]);
+      let step = digit * ((i % 2) + 1);
+      sum += step > 9 ? step - 9 : step;
+    }
+    return sum % 10 === 0;
+  }
+
+  const KEYWORD_INDUSTRY_MAP = [
+    {
+      term: "תשתיות",
+      industries: ["כבישים תשתית ופיתוח", "עבודות תשתית"],
+      fleetType: "כלי צמ\"ה ומשאיות כבדות",
+      category: "construction_infra",
+      priority: 1,
+      active: true,
+      minFleetPotential: 5,
+      description: "קבלני תשתית המחזיקים ציוד כבד, מחפרים ומשאיות"
+    },
+    {
+      term: "עפר",
+      industries: ["עבודות עפר", "חפירה ומילוי"],
+      fleetType: "כלי צמ\"ה ומשאיות כבדות",
+      category: "earthmoving",
+      priority: 1,
+      active: true,
+      minFleetPotential: 5,
+      description: "קבלני עפר וחציבה עם ציי שופלים ופולטריילרים"
+    },
+    {
+      term: "כבישים",
+      industries: ["סלילת כבישים", "כבישים תשתית ופיתוח"],
+      fleetType: "כלי צמ\"ה ומשאיות כבדות",
+      category: "roads",
+      priority: 2,
+      active: true,
+      minFleetPotential: 5,
+      description: "סלילת כבישים וגשרים המחייבים קצין בטיחות בתעבורה"
+    },
+    {
+      term: "הובלות",
+      industries: ["הובלה יבשתית", "הובלה כבדה ומנופים"],
+      fleetType: "משאיות הובלה מעל 15 טון",
+      category: "transport",
+      priority: 2,
+      active: true,
+      minFleetPotential: 5,
+      description: "חברות הובלה מסחרית ושינוע מכולות"
+    },
+    {
+      term: "הפצה",
+      industries: ["הפצה ולוגיסטיקה", "שילוח מסחרי"],
+      fleetType: "משאיות חלוקה ומסחריות",
+      category: "distribution",
+      priority: 3,
+      active: true,
+      minFleetPotential: 5,
+      description: "ציי חלוקה יומיים ומרכזים לוגיסטיים"
+    },
+    {
+      term: "הסעות",
+      industries: ["היסעים ותחבורה", "הסעות עובדים ותלמידים"],
+      fleetType: "אוטובוסים ומיניבוסים",
+      category: "buses",
+      priority: 3,
+      active: true,
+      minFleetPotential: 5,
+      description: "מפעילי היסעים ואוטובוסים פרטיים"
+    },
+    {
+      term: "בטון",
+      industries: ["הובלת בטון", "מפעלי בטון ומערבלים"],
+      fleetType: "מערבלי בטון ומשאבות",
+      category: "concrete",
+      priority: 4,
+      active: true,
+      minFleetPotential: 5,
+      description: "מערבלי בטון ומשאבות בטון כבדות"
+    },
+    {
+      term: "מנופים",
+      industries: ["עבודות מנוף והנפה", "הובלות מנוף"],
+      fleetType: "משאיות מנוף וציוד הרמה",
+      category: "cranes",
+      priority: 4,
+      active: true,
+      minFleetPotential: 5,
+      description: "משאיות מנוף וציוד הרמה המחייבים תחזוקת שבר ואישורי מהנדס"
+    },
+    {
+      term: "קירור",
+      industries: ["הובלה בקירור", "שינוע מזון וטמפרטורה מבוקרת"],
+      fleetType: "משאיות קירור",
+      category: "refrigerated",
+      priority: 5,
+      active: true,
+      minFleetPotential: 5,
+      description: "משאיות קירור עם יחידות קירור רגישות"
+    }
+  ];
+
+  const DATA_CLASSIFICATION = {
+    VERIFIED: "מאומת",
+    ESTIMATE: "הערכה",
+    UNKNOWN: "לא ידוע"
+  };
+
+  const DEFAULT_DOMAINS = [
+    {
+      id: "transport",
+      name: "הובלות",
+      description: "חברות הובלה יבשתית, שינוע כבד ומנופים",
+      fleetType: "משאיות כבדות ומנופים",
+      minFleetPotential: 5,
+      active: true,
+      keywords: [
+        { word: "הובלות", active: true },
+        { word: "הובלה כבדה", active: true },
+        { word: "מנוף", active: true },
+        { word: "שינוע", active: true },
+        { word: "הובלת מטענים", active: true },
+        { word: "משאיות", active: true }
+      ]
+    },
+    {
+      id: "logistics",
+      name: "לוגיסטיקה",
+      description: "מרכזים לוגיסטיים, שילוח ואחסנה",
+      fleetType: "משאיות חלוקה ורכבי שילוח",
+      minFleetPotential: 5,
+      active: true,
+      keywords: [
+        { word: "לוגיסטיקה", active: true },
+        { word: "שילוח", active: true },
+        { word: "מרכז הפצה", active: true },
+        { word: "אחסנה", active: true },
+        { word: "בלדרות", active: true },
+        { word: "קירור", active: true }
+      ]
+    },
+    {
+      id: "infra",
+      name: "תשתיות",
+      description: "קבלני תשתיות, עפר, סלילה וכבישים (ענף 200)",
+      fleetType: "כלי צמ\"ה, שופלים ומשאיות עפר",
+      minFleetPotential: 5,
+      active: true,
+      keywords: [
+        { word: "תשתיות", active: true },
+        { word: "עבודות עפר", active: true },
+        { word: "סלילה", active: true },
+        { word: "כבישים", active: true },
+        { word: "צמ\"ה", active: true },
+        { word: "חפירות", active: true },
+        { word: "פיתוח", active: true }
+      ]
+    },
+    {
+      id: "service_tech",
+      name: "שירות וטכנאים",
+      description: "שירות שטח, טכנאים, מיזוג ואחזקה שוטפת",
+      fleetType: "מסחריות שירות ורכבי טכנאי",
+      minFleetPotential: 5,
+      active: true,
+      keywords: [
+        { word: "שירות שטח", active: true },
+        { word: "טכנאים", active: true },
+        { word: "מיזוג אוויר", active: true },
+        { word: "אינסטלציה", active: true },
+        { word: "מעליות", active: true },
+        { word: "גנרטורים", active: true }
+      ]
+    },
+    {
+      id: "security",
+      name: "אבטחה",
+      description: "חברות אבטחה, סיור, מוקד ומיגון",
+      fleetType: "ניידות סיור ורכבי שטח",
+      minFleetPotential: 5,
+      active: true,
+      keywords: [
+        { word: "אבטחה", active: true },
+        { word: "שמירה", active: true },
+        { word: "מוקד", active: true },
+        { word: "סיור", active: true },
+        { word: "ניידות סיור", active: true },
+        { word: "מיגון", active: true }
+      ]
+    },
+    {
+      id: "cleaning_maint",
+      name: "ניקיון ואחזקה",
+      description: "אחזקת מבנים, ניהול מתחמים ופוליש",
+      fleetType: "מסחריות תפעול וציוד ניקוי",
+      minFleetPotential: 5,
+      active: true,
+      keywords: [
+        { word: "ניקיון", active: true },
+        { word: "אחזקת מבנים", active: true },
+        { word: "ניהול מבנים", active: true },
+        { word: "אחזקה", active: true },
+        { word: "פוליש", active: true }
+      ]
+    },
+    {
+      id: "food_dist",
+      name: "מזון והפצה",
+      description: "הפצת מזון, שינוע בטמפרטורה מבוקרת ומשקאות",
+      fleetType: "משאיות קירור ומסחריות חלוקה",
+      minFleetPotential: 5,
+      active: true,
+      keywords: [
+        { word: "הפצת מזון", active: true },
+        { word: "חלוקה", active: true },
+        { word: "מזון", active: true },
+        { word: "קירור", active: true },
+        { word: "משקאות", active: true },
+        { word: "מאפיות", active: true }
+      ]
+    },
+    {
+      id: "passenger_trans",
+      name: "הסעות",
+      description: "היסעים, תחבורה, אוטובוסים ומיניבוסים",
+      fleetType: "אוטובוסים, מיניבוסים ורכבי היסע",
+      minFleetPotential: 5,
+      active: true,
+      keywords: [
+        { word: "הסעות", active: true },
+        { word: "היסעים", active: true },
+        { word: "אוטובוסים", active: true },
+        { word: "מיניבוס", active: true },
+        { word: "הסעות תלמידים", active: true },
+        { word: "הסעות עובדים", active: true }
+      ]
+    },
+    {
+      id: "commercial_vans",
+      name: "מסחריות",
+      description: "ציי רכבים מסחריים קלים, ואנים וטנדרים",
+      fleetType: "מסחריות קלות ורכבי עבודה",
+      minFleetPotential: 5,
+      active: true,
+      keywords: [
+        { word: "מסחריות", active: true },
+        { word: "ואן", active: true },
+        { word: "טנדרים", active: true },
+        { word: "רכב מסחרי", active: true },
+        { word: "רכבי עבודה", active: true }
+      ]
+    },
+    {
+      id: "rental_leasing",
+      name: "השכרה וליסינג",
+      description: "השכרת רכב, ליסינג תפעולי והשכרת משאיות",
+      fleetType: "ציי השכרה וליסינג מסחרי",
+      minFleetPotential: 5,
+      active: true,
+      keywords: [
+        { word: "השכרת רכב", active: true },
+        { word: "ליסינג", active: true },
+        { word: "השכרת משאיות", active: true },
+        { word: "רכב להשכרה", active: true }
+      ]
+    }
+  ];
+
+  let _domainsCache = null;
+  const DOMAINS_STORAGE_KEY = "dalia_prospector_domains_v2";
+
+  const OPDomainKeywords = {
+    DEFAULT_DOMAINS,
+    STORAGE_KEY: DOMAINS_STORAGE_KEY,
+    getDomains() {
+      if (_domainsCache) return _domainsCache;
+      try {
+        if (typeof localStorage !== "undefined") {
+          const stored = localStorage.getItem(DOMAINS_STORAGE_KEY);
+          if (stored) {
+            _domainsCache = JSON.parse(stored);
+            if (Array.isArray(_domainsCache) && _domainsCache.length > 0) {
+              return _domainsCache;
+            }
+          }
+        }
+      } catch(e) {}
+      _domainsCache = JSON.parse(JSON.stringify(DEFAULT_DOMAINS));
+      return _domainsCache;
+    },
+    saveDomains(domains) {
+      _domainsCache = domains;
+      try {
+        if (typeof localStorage !== "undefined") {
+          localStorage.setItem(DOMAINS_STORAGE_KEY, JSON.stringify(domains));
+        }
+      } catch(e) {}
+      return _domainsCache;
+    },
+    addDomain({ name, description = "", fleetType = "רכבי עבודה ומסחריות", minFleetPotential = 5, keywords = [] }) {
+      if (!name || !name.trim()) throw new Error("שם תחום הינו שדה חובה");
+      const domains = this.getDomains();
+      const cleanName = name.trim();
+      if (domains.some(d => d.name === cleanName)) throw new Error("תחום בשם זה כבר קיים");
+      const id = "custom_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+      const kwList = Array.isArray(keywords)
+        ? keywords.map(k => typeof k === "string" ? { word: k.trim(), active: true } : { word: k.word.trim(), active: k.active !== false })
+        : [];
+      const newDomain = {
+        id,
+        name: cleanName,
+        description: description.trim(),
+        fleetType: fleetType.trim(),
+        minFleetPotential: Number(minFleetPotential) || 5,
+        active: true,
+        keywords: kwList,
+        isCustom: true
+      };
+      domains.push(newDomain);
+      this.saveDomains(domains);
+      return newDomain;
+    },
+    updateDomain(id, updates = {}) {
+      const domains = this.getDomains();
+      const d = domains.find(x => x.id === id || x.name === id);
+      if (!d) return null;
+      if (updates.name && updates.name.trim()) d.name = updates.name.trim();
+      if (updates.description !== undefined) d.description = String(updates.description).trim();
+      if (updates.fleetType !== undefined) d.fleetType = String(updates.fleetType).trim();
+      if (updates.minFleetPotential !== undefined) d.minFleetPotential = Number(updates.minFleetPotential) || 5;
+      if (updates.active !== undefined) d.active = !!updates.active;
+      this.saveDomains(domains);
+      return d;
+    },
+    deleteDomain(id) {
+      let domains = this.getDomains();
+      domains = domains.filter(x => x.id !== id && x.name !== id);
+      this.saveDomains(domains);
+      return domains;
+    },
+    toggleDomain(id, active) {
+      const domains = this.getDomains();
+      const d = domains.find(x => x.id === id || x.name === id);
+      if (d) {
+        d.active = active !== undefined ? !!active : !d.active;
+        this.saveDomains(domains);
+      }
+      return d;
+    },
+    addKeyword(domainIdOrName, word) {
+      if (!word || !word.trim()) return null;
+      const cleanWord = word.trim();
+      const domains = this.getDomains();
+      const d = domains.find(x => x.id === domainIdOrName || x.name === domainIdOrName);
+      if (!d) return null;
+      if (!Array.isArray(d.keywords)) d.keywords = [];
+      const existing = d.keywords.find(k => k.word === cleanWord);
+      if (existing) {
+        existing.active = true;
+      } else {
+        d.keywords.push({ word: cleanWord, active: true });
+      }
+      this.saveDomains(domains);
+      return d;
+    },
+    toggleKeyword(domainIdOrName, word, active) {
+      const cleanWord = (word || "").trim();
+      const domains = this.getDomains();
+      const d = domains.find(x => x.id === domainIdOrName || x.name === domainIdOrName);
+      if (!d || !Array.isArray(d.keywords)) return null;
+      const k = d.keywords.find(kw => kw.word === cleanWord);
+      if (k) {
+        k.active = active !== undefined ? !!active : !k.active;
+        this.saveDomains(domains);
+      }
+      return d;
+    },
+    deleteKeyword(domainIdOrName, word) {
+      const cleanWord = (word || "").trim();
+      const domains = this.getDomains();
+      const d = domains.find(x => x.id === domainIdOrName || x.name === domainIdOrName);
+      if (!d || !Array.isArray(d.keywords)) return null;
+      d.keywords = d.keywords.filter(kw => kw.word !== cleanWord);
+      this.saveDomains(domains);
+      return d;
+    },
+    assignKeywordToMultipleDomains(word, domainIdsOrNames) {
+      if (!word || !word.trim() || !Array.isArray(domainIdsOrNames)) return [];
+      const cleanWord = word.trim();
+      const domains = this.getDomains();
+      const updated = [];
+      domainIdsOrNames.forEach(target => {
+        const d = domains.find(x => x.id === target || x.name === target);
+        if (d) {
+          if (!Array.isArray(d.keywords)) d.keywords = [];
+          const existing = d.keywords.find(k => k.word === cleanWord);
+          if (existing) existing.active = true;
+          else d.keywords.push({ word: cleanWord, active: true });
+          updated.push(d);
+        }
+      });
+      this.saveDomains(domains);
+      return updated;
+    },
+    getKeywordsForDomain(domainIdOrName, onlyActive = true) {
+      const domains = this.getDomains();
+      const d = domains.find(x => x.id === domainIdOrName || x.name === domainIdOrName);
+      if (!d || !Array.isArray(d.keywords)) return [];
+      return d.keywords.filter(k => !onlyActive || k.active).map(k => k.word);
+    },
+    getAllActiveKeywords() {
+      const domains = this.getDomains().filter(d => d.active);
+      const set = new Set();
+      domains.forEach(d => {
+        (d.keywords || []).filter(k => k.active).forEach(k => set.add(k.word));
+      });
+      return Array.from(set);
+    },
+    findDomainsForKeyword(word) {
+      const cleanWord = (word || "").trim();
+      const domains = this.getDomains();
+      return domains.filter(d => (d.keywords || []).some(k => k.word === cleanWord));
+    },
+    resetToDefaults() {
+      _domainsCache = JSON.parse(JSON.stringify(DEFAULT_DOMAINS));
+      try {
+        if (typeof localStorage !== "undefined") {
+          localStorage.removeItem(DOMAINS_STORAGE_KEY);
+        }
+      } catch(e) {}
+      return _domainsCache;
+    }
+  };
+
+  /* ===== משימה 3: הגדרות סבבים, טווחי עובדים, נוסחת פוטנציאל ומניעת כפילויות ===== */
+  const WORKFORCE_RANGES = [
+    { id: "1-10", label: "1–10 עובדים", min: 1, max: 10 },
+    { id: "11-50", label: "11–50 עובדים", min: 11, max: 50 },
+    { id: "51-200", label: "51–200 עובדים", min: 51, max: 200 },
+    { id: "201-500", label: "201–500 עובדים", min: 201, max: 500 },
+    { id: "501-1000", label: "501–1,000 עובדים", min: 501, max: 1000 },
+    { id: "1000plus", label: "מעל 1,000 עובדים", min: 1001, max: Infinity },
+    { id: "unknown", label: "לא ידוע", min: 0, max: 0 }
+  ];
+
+  const WORKFORCE_STATUS_LABELS = {
+    reported: "מדווח על ידי החברה",
+    estimated: "מוערך על ידי מקור עסקי",
+    cross_referenced: "מוצלב בין מקורות",
+    unknown: "לא ידוע"
+  };
+
+  const DISCOVERY_BATCHES = [
+    {
+      id: "all",
+      label: "כל החברות (תצוגה מאוחדת)",
+      name: "כל החברות",
+      date: "01/10/2026 – 09/10/2026",
+      expectedCount: 1618
+    },
+    {
+      id: "batch_1",
+      label: "לידים – קבלנים ותשתיות",
+      name: "לידים – קבלנים ותשתיות",
+      date: "01/10/2026",
+      expectedCount: 618,
+      source: "פנקס הקבלנים ומאגרים רשמיים (רשמי)",
+      status: "completed"
+    },
+    {
+      id: "batch_2",
+      label: "לידים – חברות לפי עובדים",
+      name: "לידים – חברות לפי עובדים",
+      date: "09/10/2026",
+      expectedCount: 1000,
+      source: "פנקס הקבלנים הרשומים (data.gov.il)",
+      status: "completed"
+    },
+    {
+      id: "future",
+      label: "סבבים עתידיים",
+      name: "סבבים עתידיים",
+      date: "מתוכנן",
+      expectedCount: 0,
+      source: "מקורות מתוכננים",
+      status: "planned"
+    }
+  ];
+
+  /* נוסחת דירוג פוטנציאל לסבבי איתור (סעיף 8) */
+  function calculatePotentialScore(c) {
+    if (!c) return { total_score: 0, tier: "low", tier_label: "פוטנציאל נמוך", breakdown: {} };
+    const allText = [c.name, c.company_name, c.ind, c.industry, c.fleetType, c.fleet_type, c.leadReason, c.lead_reason].filter(Boolean).join(" ");
+    
+    // 1. התאמת תחום פעילות (30%)
+    let actPts = 40;
+    if (/הובל|שינוע|הפצה|לוגיסטיק|שילוח|היסע|אוטובוס|תחבור|עפר|תשתי|כביש|סלילה|גשר/i.test(allText)) {
+      actPts = 100;
+    } else if (/צמ"?ה|משאי|מנוף|בנייה|בניה|קבלנ|אבטחה|שמירה|ניקיון|אחזקה|מיזוג|קירור|חשמל|מעליות|אינסטלצ/i.test(allText)) {
+      actPts = 85;
+    } else if (/שירות|טכנאי|התקנות|מפעל|תעשיי|מסחרי/i.test(allText)) {
+      actPts = 65;
+    }
+
+    // 2. מספר עובדים (25%)
+    let wfPts = 20;
+    const wf = c.workforce_estimate || (c.enr && c.enr.workforce_estimate) || {};
+    const empCount = c.employee_count || c.approx_employees || wf.approx_employees || 0;
+    const empRange = c.employee_range || wf.employee_count_range || "";
+    if (empCount >= 500 || /500\+|501|1,000|1000/i.test(empRange)) {
+      wfPts = 100;
+    } else if (empCount >= 200 || /201|250/i.test(empRange)) {
+      wfPts = 85;
+    } else if (empCount >= 50 || /51|100/i.test(empRange)) {
+      wfPts = 70;
+    } else if (empCount >= 11 || /11|25/i.test(empRange)) {
+      wfPts = 50;
+    } else if (empCount >= 1 || /1–10|1-10/i.test(empRange)) {
+      wfPts = 30;
+    } else if (c.size && c.size !== "לא ידוע") {
+      wfPts = 45;
+    }
+
+    // 3. אינדיקציות לפעילות רכבים (20%)
+    let flPts = 20;
+    const flV2 = c.fleet_estimate_v2 || (c.enr && c.enr.fleet_estimate_v2) || {};
+    const flSize = c.fleet_size || flV2.fleet_size_approx || 0;
+    if ((flSize >= 5 && c.fleet_exists) || /אוטובוס|היסע|משאי|מוביל|צמ"?ה/i.test(allText)) {
+      flPts = 100;
+    } else if (flSize >= 5 || (flV2.fleet_count_rounded && !["0", "1–4"].includes(flV2.fleet_count_rounded))) {
+      flPts = 85;
+    } else if (actPts >= 80) {
+      flPts = 65;
+    } else if (flSize >= 1) {
+      flPts = 35;
+    }
+
+    // 4. איכות ואימות פרטי קשר (15%)
+    let ctPts = 10;
+    const hasPhone = !!(c.phone && validPhone(c.phone) && c.phone !== "לא ידוע");
+    const hasEmail = !!(c.mail || c.email) && String(c.mail || c.email).includes("@");
+    const hasContact = !!(c.contact_name || (c.people && c.people.length > 0) || c.certifiedProfessional || (c.contacts && c.contacts.length > 0));
+    if (hasPhone && hasEmail && hasContact) {
+      ctPts = 100;
+    } else if (hasPhone && hasEmail) {
+      ctPts = 85;
+    } else if (hasPhone) {
+      ctPts = 60;
+    } else if (hasEmail) {
+      ctPts = 40;
+    }
+
+    // 5. התאמה גיאוגרפית (10%)
+    let geoPts = 40;
+    const region = c.region || cityToRegion(c.city || "") || "";
+    if (/מרכז|תל אביב|שפלה|ירושלים/i.test(region)) {
+      geoPts = 100;
+    } else if (/שרון|חיפה/i.test(region)) {
+      geoPts = 80;
+    } else if (/צפון|דרום|יהודה/i.test(region)) {
+      geoPts = 60;
+    }
+
+    const total = Math.round(actPts * 0.30 + wfPts * 0.25 + flPts * 0.20 + ctPts * 0.15 + geoPts * 0.10);
+    const tier = total >= 80 ? "high" : total >= 60 ? "medium" : "low";
+    const tierLabel = tier === "high" ? "פוטנציאל גבוה" : tier === "medium" ? "פוטנציאל בינוני" : "פוטנציאל נמוך";
+
+    return {
+      total_score: total,
+      tier,
+      tier_label: tierLabel,
+      breakdown: {
+        activity: actPts,
+        workforce: wfPts,
+        fleet: flPts,
+        contact: ctPts,
+        geo: geoPts
+      }
+    };
+  }
+
+  /* מניעת כפילויות מול מאגר קיים (סעיף 9) */
+  function cleanCorpName(s) {
+    return String(s || "")
+      .replace(/(בע"מ|בעמ|בע''מ|בע״מ|ltd|limited|שותפות)/gi, "")
+      .replace(/[\s"'~`׳״.-]/g, "")
+      .trim();
+  }
+
+  function checkDuplicate(cand, existingList) {
+    if (!cand || !Array.isArray(existingList)) return { isDuplicate: false, matchedWith: null, reason: "" };
+    const candHp = normalizeCompanyHp(cand.no || cand.company_hp || cand.identitynumber || cand.MISPAR_YESHUT);
+    const candRawName = normName(cand.name || cand.company_name || cand.SHEM_YESHUT || cand.companyname);
+    const candCleanName = cleanCorpName(cand.name || cand.company_name || cand.SHEM_YESHUT || cand.companyname);
+    const candWeb = String(cand.web || cand.website || "").trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, "").replace(/\/.*$/, "");
+
+    for (const ex of existingList) {
+      const exHp = normalizeCompanyHp(ex.no || ex.company_hp);
+      if (candHp && exHp && candHp === exHp) {
+        return { isDuplicate: true, matchedWith: ex, reason: `ח.פ. זהה (${candHp})` };
+      }
+      const exRawName = normName(ex.name || ex.company_name);
+      const exCleanName = cleanCorpName(ex.name || ex.company_name);
+      if ((candRawName && exRawName && candRawName === exRawName) ||
+          (candCleanName && exCleanName && candCleanName.length >= 4 && candCleanName === exCleanName)) {
+        return { isDuplicate: true, matchedWith: ex, reason: `שם חברה זהה (${ex.name || cand.name})` };
+      }
+      const exWeb = String(ex.web || ex.website || "").trim().toLowerCase().replace(/^https?:\/\/(www\.)?/, "").replace(/\/.*$/, "");
+      if (candWeb && exWeb && candWeb.length > 4 && candWeb === exWeb) {
+        return { isDuplicate: true, matchedWith: ex, reason: `כתובת אתר/דומיין זהה (${candWeb})` };
+      }
+    }
+    return { isDuplicate: false, matchedWith: null, reason: "" };
+  }
+
   const api = { STAGES, STAGE_LABEL, FLEET_SIZE_LABEL, FIELD_STATUS_LABEL, QUALITY_LABEL, LEAD_QUALITY_LABELS, WORKFLOW_STATUS_LABELS, FIELDS, MISSING_SHORT, missingLabel,
-    NOT_SAFETY_PROOF, normPhone, validPhone, isVerifiedFinding, evaluate, hasAnyValidPhone, hasAnyRealContact, hasAnyValidEmail };
+    NOT_SAFETY_PROOF, normPhone, validPhone, isVerifiedFinding, evaluate, hasAnyValidPhone, hasAnyRealContact, hasAnyValidEmail,
+    normalizeCompanyHp, isValidIsraeliCompanyNumber, CITY_TO_REGION, cityToRegion, KEYWORD_INDUSTRY_MAP, DATA_CLASSIFICATION,
+    DEFAULT_DOMAINS, OPDomainKeywords, normName, cleanCorpName,
+    WORKFORCE_RANGES, WORKFORCE_STATUS_LABELS, DISCOVERY_BATCHES, calculatePotentialScore, checkDuplicate };
   root.OPQualify = api;
 })(typeof window !== "undefined" ? window : globalThis);
+
