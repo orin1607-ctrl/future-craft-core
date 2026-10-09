@@ -69,8 +69,8 @@ function geminiKey() {
 
 // In-memory rate limiting and daily usage tracking per container
 const rateLimits = new Map<string, { minuteWindow: number[]; dayCount: number; dayTimestamp: number }>();
-const MAX_PER_MINUTE = 30;
-const MAX_PER_DAY = 250;
+const MAX_PER_MINUTE = 10;
+const MAX_PER_DAY = 30;
 
 function checkRateLimit(clientId: string): { ok: boolean; reason?: string } {
   const now = Date.now();
@@ -85,10 +85,10 @@ function checkRateLimit(clientId: string): { ok: boolean; reason?: string } {
   }
   record.minuteWindow = record.minuteWindow.filter((t) => now - t < 60000);
   if (record.minuteWindow.length >= MAX_PER_MINUTE) {
-    return { ok: false, reason: "מגבלת בקשות לדקה (Rate Limit: 30/min). אנא המתן מספר שניות." };
+    return { ok: false, reason: "מגבלת בקשות לדקה (Rate Limit: 10/min). אנא המתן מספר שניות." };
   }
   if (record.dayCount >= MAX_PER_DAY) {
-    return { ok: false, reason: "הגעת למגבלת הבקשות היומית המירבית (250 בקשות). אנא נסה שוב מחר." };
+    return { ok: false, reason: "הגעת למגבלת הבקשות היומית המירבית (30 בקשות). אנא נסה שוב מחר." };
   }
   record.minuteWindow.push(now);
   record.dayCount++;

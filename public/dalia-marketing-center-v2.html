@@ -2,6 +2,9 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>דליה – ניהול שיווק 2 (STAGING)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -676,6 +679,9 @@ function renderNav(){
     const a = moduleAccess(m.id);
     if(!a.companyHas) return;                         // not purchased: not shown as available
     h += item('m/'+m.id, m.he, m.id, a.userMay?'':`<span class="tag">אין הרשאה</span>`, state.view==='m/'+m.id, !a.userMay);
+    if(m.id==='seo' && a.userMay){
+      h += `<button class="nav-item ${state.view==='m/seo?tab=assistant'?'on':''}" data-go="m/seo?tab=assistant" style="padding-inline-start:34px;font-size:12.5px;color:#7c3aed;font-weight:600"><span style="margin-inline-end:6px">🤖</span><span>יועץ AI ומשימות SEO</span></button>`;
+    }
   });
   h += `<div class="nav-group">ניהול והגדרות</div>`;
   SHARED.forEach(s=>{
@@ -737,7 +743,7 @@ function renderDashboard(){
         return `<button class="mod ${dim?'dim':''}" data-go="m/${m.id}">
             <div class="mod-top"><div class="mod-ico">${icon(m.id)}</div><div>${m.he}<div class="mod-en">${m.en}</div></div></div>
             <div class="mod-sum">${s ? `${s.kpi.label}: <b>${s.kpi.value}</b><br>${s.line}` : 'מסונן כעת'}</div>
-            <div style="display:flex;gap:6px;flex-wrap:wrap">${s?`<span class="chip ${s.status.tone}">${s.status.text}</span>`:''}${connChip(m)}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${s?`<span class="chip ${s.status.tone}">${s.status.text}</span>`:''}${connChip(m)}${m.id==='seo'?`<span class="chip ok" style="background:#f3e8ff;color:#7c3aed;font-weight:700">🤖 יועץ AI ומשימות</span>`:''}</div>
           </button>`;
       }).join('')}
     </div>
@@ -798,6 +804,7 @@ function renderDashboard(){
       </div>
       <div class="link-row" style="margin-top:12px">
         ${seo?`<button class="btn pri" data-pick="${activeSite.id}" data-go="m/seo">כניסה ל-דליה SEO</button>`:''}
+        ${seo?`<button class="btn" data-pick="${activeSite.id}" data-go="m/seo?tab=assistant" style="background:#7c3aed;color:#fff;font-weight:700">🤖 יועץ AI ומשימות SEO</button>`:''}
         ${page?`<button class="btn" data-pick="${activeSite.id}" data-go="m/page">כניסה ל-OpenPage</button>`:''}
       </div>
       <div class="note">שני המודולים מקבלים מהמעטפת את אותו לקוח ואותו אתר. אין לאף אחד מהם בחירת לקוח או רשימת אתרים משלו.</div>
@@ -817,9 +824,12 @@ function renderDashboard(){
 
 /* Module connection point — NOT a replacement interface.
    When a real module is connected, ShellBridge.mount() will load it here and hand it the same context. */
-function renderModulePage(modId){
+function renderModulePage(rawModId){
+  const [modId, query] = (rawModId || '').split('?');
   const m = modById(modId), a = moduleAccess(modId), c = customer();
-  const crumbs = `<div class="crumbs"><button data-go="dashboard">דשבורד ראשי</button> / ${m.he}</div>`;
+  if(!m) return `<div class="crumbs"><button data-go="dashboard">דשבורד ראשי</button></div><section class="block"><div class="empty">מודול לא נמצא</div></section>`;
+  const isAiTab = query && query.includes('assistant');
+  const crumbs = `<div class="crumbs"><button data-go="dashboard">דשבורד ראשי</button> / ${m.he}${isAiTab ? ' / 🤖 יועץ AI ומשימות' : ''}</div>`;
   if(!a.ok) return crumbs + `<section class="block"><div class="placeholder"><h3>${icon('lock')} אין גישה למודול</h3>
     ${!a.companyHas?'המודול אינו פעיל אצל הלקוח הזה.':'אין לך הרשאה להיכנס למודול הזה.'}<br>
     <small>בחיבור האמיתי הגישה תיאכף גם בצד השרת, לא רק בממשק.</small></div></section>`;
@@ -828,6 +838,12 @@ function renderModulePage(modId){
   const needSite = m.siteScoped && state.siteId==='all';
   const site = ctx.site;
   const partners = m.works.map(modById).filter(p=>moduleAccess(p.id).ok);
+
+  let iframeSrc = m.connection.entry;
+  if (iframeSrc) {
+    const sep = iframeSrc.includes('?') ? '&' : '?';
+    iframeSrc = query ? `${iframeSrc}${sep}${query}&_t=${Date.now()}` : `${iframeSrc}${sep}_t=${Date.now()}`;
+  }
 
   if (m.connection.status === 'connected' && m.connection.entry) {
     return crumbs + `
@@ -838,7 +854,15 @@ function renderModulePage(modId){
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         ${connChip(m)}
-        <a href="${m.connection.entry}" target="_blank" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+        ${m.id === 'seo' ? `
+          <button class="btn" id="btnOpenSeoAiTab" style="background:#7c3aed;color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:6px" onclick="const f=document.querySelector('#module-frame-seo');if(f)f.src='./openseo.html?tab=assistant&_t='+Date.now();">
+            <span>🤖 פתח יועץ AI ומשימות</span>
+          </button>
+          <button class="btn" id="btnOpenSeoOverviewTab" style="display:inline-flex;align-items:center;gap:6px" onclick="const f=document.querySelector('#module-frame-seo');if(f)f.src='./openseo.html?tab=overview&_t='+Date.now();">
+            <span>📊 סקירת SEO</span>
+          </button>
+        ` : ''}
+        <a href="${iframeSrc}" target="_blank" class="btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">
           <span>פתיחה בלשונית נפרדת</span>
           <svg style="width:14px;height:14px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
         </a>
@@ -853,7 +877,7 @@ function renderModulePage(modId){
     </section>` : ''}
 
     <section class="block" style="padding:0; overflow:hidden; border-radius:14px; background:var(--surface); border:1px solid var(--line); margin-bottom:16px">
-      <iframe id="module-frame-${m.id}" src="${m.connection.entry}" style="width:100%; height:82vh; min-height:580px; border:0; display:block;" title="${m.en} Interface"></iframe>
+      <iframe id="module-frame-${m.id}" src="${iframeSrc}" style="width:100%; height:82vh; min-height:580px; border:0; display:block;" title="${m.en} Interface"></iframe>
     </section>
 
     <div class="grid2">
