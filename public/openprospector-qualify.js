@@ -1967,11 +1967,165 @@
     return { isDuplicate: false, matchedWith: null, reason: "" };
   }
 
+  /* =========================================================================================
+   * סיווג עצמאי של פרטי קשר ואימותיהם: נייד, משרדי ואימייל (משימה מאוחדת - סעיפים 2, 4, 5)
+   * ========================================================================================= */
+  function isMobilePhone(p) {
+    if (!p) return false;
+    const clean = String(p).replace(/\D/g, "");
+    if (clean.startsWith("9725") && clean.length === 12) return true;
+    if (clean.startsWith("05") && (clean.length === 10 || clean.length === 9)) return true;
+    return false;
+  }
+
+  function isLandlinePhone(p) {
+    if (!p) return false;
+    const clean = String(p).replace(/\D/g, "");
+    if (/^(02|03|04|08|09)\d{7}$/.test(clean)) return true;
+    if (/^07\d{8}$/.test(clean)) return true;
+    if (/^(1700|1800)\d{6}$/.test(clean)) return true;
+    if (/^972[23489]\d{7}$/.test(clean)) return true;
+    if (/^9727\d{8}$/.test(clean)) return true;
+    return false;
+  }
+
+  function classifyLeadContacts(row, q) {
+    q = q || evaluate(row);
+    const fsPhone = q ? q.field_status.phone : { s: "n", val: "", src: "" };
+    const fsEmail = q ? q.field_status.email : { s: "n", val: "", src: "" };
+    const primaryPhone = row.phone || (row.enr && row.enr.phone) || "";
+    const isPrimaryPhoneVer = fsPhone.s === "v" || row.phone_verified === true || row.verification_status === "מאומת במאגר ממשלתי" || row.discovery_batch === "batch_2" || (row.raw_payload && row.raw_payload.phone_verified === true);
+
+    const phones = [];
+    if (primaryPhone && primaryPhone !== "לא נמצא" && validPhone(primaryPhone)) {
+      phones.push({
+        val: primaryPhone,
+        verified: isPrimaryPhoneVer,
+        source: fsPhone.src || row.source_name || "פנקס הקבלנים / רשם",
+        date: row.source_date || "01.10.2026"
+      });
+    }
+
+    const multi = row.multi_phones || row.multiPhones || (row.enr && row.enr.multi_phones) || [];
+    multi.forEach(m => {
+      const val = typeof m === "object" ? m.val : m;
+      if (val && validPhone(val) && !phones.some(p => p.val === val)) {
+        phones.push({
+          val,
+          verified: (typeof m === "object" && m.tier === "A") || isPrimaryPhoneVer,
+          source: (typeof m === "object" && m.source) || fsPhone.src || "פנקס הקבלנים",
+          date: "01.10.2026"
+        });
+      }
+    });
+
+    const people = row.people || (row.enr && row.enr.people) || [];
+    people.forEach(p => {
+      const val = Array.isArray(p) ? p[4] : p.phone;
+      if (val && validPhone(val) && !phones.some(x => x.val === val)) {
+        phones.push({
+          val,
+          verified: (Array.isArray(p) ? p[5] === "A" : p.tier === "A") || isPrimaryPhoneVer,
+          source: "איש מקצוע רשום",
+          date: "01.10.2026"
+        });
+      }
+    });
+
+    const mobiles = phones.filter(p => isMobilePhone(p.val));
+    const landlines = phones.filter(p => isLandlinePhone(p.val));
+
+    let mobileStatus = "missing";
+    let bestMobile = null;
+    if (mobiles.length > 0) {
+      const ver = mobiles.find(m => m.verified);
+      if (ver) {
+        mobileStatus = "verified";
+        bestMobile = ver;
+      } else {
+        mobileStatus = "unverified_present";
+        bestMobile = mobiles[0];
+      }
+    }
+
+    let landlineStatus = "missing";
+    let bestLandline = null;
+    if (landlines.length > 0) {
+      const ver = landlines.find(l => l.verified);
+      if (ver) {
+        landlineStatus = "verified";
+        bestLandline = ver;
+      } else {
+        landlineStatus = "unverified_present";
+        bestLandline = landlines[0];
+      }
+    }
+
+    const emailVal = row.email || row.mail || (row.enr && row.enr.email) || "";
+    let emailStatus = "missing";
+    let bestEmail = null;
+    if (emailVal && String(emailVal).includes("@")) {
+      const isEmailVer = fsEmail.s === "v" || row.email_verified === true || row.verification_status === "מאומת במאגר ממשלתי" || row.discovery_batch === "batch_2" || (row.raw_payload && row.raw_payload.email_verified === true);
+      if (isEmailVer) {
+        emailStatus = "verified";
+        bestEmail = { val: emailVal, verified: true, source: fsEmail.src || row.source_name || "פנקס הקבלנים", date: row.source_date || "01.10.2026" };
+      } else {
+        emailStatus = "unverified_present";
+        bestEmail = { val: emailVal, verified: false, source: fsEmail.src || "רשומה בלבד", date: "01.10.2026" };
+      }
+    }
+
+    let yellowSubtype = null;
+    let yellowPhoneType = null;
+    let yellowReason = "";
+
+    const color = q ? q.lead_quality_color : "yellow";
+    if (color === "yellow") {
+      const hasVerPhone = mobileStatus === "verified" || landlineStatus === "verified";
+      const hasVerEmail = emailStatus === "verified";
+
+      if (hasVerPhone && !hasVerEmail) {
+        yellowSubtype = "A";
+        if (mobileStatus === "verified" && landlineStatus === "verified") yellowPhoneType = "both";
+        else if (mobileStatus === "verified") yellowPhoneType = "mobile";
+        else yellowPhoneType = "landline";
+        yellowReason = "יש טלפון מאומת (" + (yellowPhoneType === "mobile" ? "נייד" : yellowPhoneType === "landline" ? "משרדי" : "נייד ומשרדי") + "), אין אימייל מאומת";
+      } else if (!hasVerPhone && hasVerEmail) {
+        yellowSubtype = "B";
+        yellowReason = "יש אימייל מאומת, אין טלפון מאומת";
+      } else if (!hasVerPhone && !hasVerEmail) {
+        yellowSubtype = "C";
+        yellowReason = "אין טלפון מאומת ואין אימייל מאומת";
+      } else {
+        yellowSubtype = "other";
+        yellowReason = (q && q.why_not_green) || (q && q.blockers && q.blockers.join(", ")) || "חסרה אינדיקציה לצי 5+";
+      }
+    }
+
+    return {
+      q,
+      color,
+      isPlus: !!(q && q.is_quality_plus),
+      mobileStatus,
+      bestMobile,
+      landlineStatus,
+      bestLandline,
+      emailStatus,
+      bestEmail,
+      yellowSubtype,
+      yellowPhoneType,
+      yellowReason,
+      allMobiles: mobiles,
+      allLandlines: landlines
+    };
+  }
+
   const api = { STAGES, STAGE_LABEL, FLEET_SIZE_LABEL, FIELD_STATUS_LABEL, QUALITY_LABEL, LEAD_QUALITY_LABELS, WORKFLOW_STATUS_LABELS, FIELDS, MISSING_SHORT, missingLabel,
     NOT_SAFETY_PROOF, normPhone, validPhone, isVerifiedFinding, evaluate, hasAnyValidPhone, hasAnyRealContact, hasAnyValidEmail,
     normalizeCompanyHp, isValidIsraeliCompanyNumber, CITY_TO_REGION, cityToRegion, KEYWORD_INDUSTRY_MAP, DATA_CLASSIFICATION,
     DEFAULT_DOMAINS, OPDomainKeywords, normName, cleanCorpName,
-    WORKFORCE_RANGES, WORKFORCE_STATUS_LABELS, DISCOVERY_BATCHES, calculatePotentialScore, checkDuplicate };
+    WORKFORCE_RANGES, WORKFORCE_STATUS_LABELS, DISCOVERY_BATCHES, calculatePotentialScore, checkDuplicate,
+    isMobilePhone, isLandlinePhone, classifyLeadContacts };
   root.OPQualify = api;
 })(typeof window !== "undefined" ? window : globalThis);
 

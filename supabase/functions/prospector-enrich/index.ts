@@ -29,6 +29,19 @@ Answer schema:
 "source":"<source name>","url":"<https://...>","status":"found"|"verified"|"not_found","evidence":"<short quote>","found_at":"YYYY-MM-DD"}],
 "missing_fields":["<fields still missing>"],"notes":"<short>"}`;
 
+function isValidIsraeliCompanyNumber(hp: string | number): boolean {
+  const s = String(hp ?? "").replace(/\D/g, "");
+  if (!s || s.length > 9) return false;
+  const padded = s.padStart(9, "0");
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    let digit = Number(padded[i]) * ((i % 2) + 1);
+    if (digit > 9) digit -= 9;
+    sum += digit;
+  }
+  return sum % 10 === 0;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: edgeCorsHeaders });
   try {
@@ -42,6 +55,9 @@ Deno.serve(async (req) => {
     }
     if (!lead.company_name || !/^\d{6,10}$/.test(String(lead.company_hp || ""))) {
       return jsonResponse({ ok: false, error: "lead.company_name and a numeric lead.company_hp are required" }, 400);
+    }
+    if (!isValidIsraeliCompanyNumber(lead.company_hp)) {
+      return jsonResponse({ ok: false, error: "Invalid Israeli company number (ח.פ. checksum failed)" }, 400);
     }
     const leadJson = JSON.stringify(lead);
     if (leadJson.length > 12000) return jsonResponse({ ok: false, error: "lead payload too large" }, 413);

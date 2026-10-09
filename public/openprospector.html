@@ -401,6 +401,14 @@ body.is-embedded .content{padding:16px;max-width:100%}
 .ai-chat-input{flex:1;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);padding:0 12px;font-size:13.5px}
 .ai-chat-input:focus{outline:2px solid #6366f1;outline-offset:1px}
 @media (max-width:600px){.ai-chat-panel{width:100vw!important}}
+/* ===== OpenProspector Clickable Dashboard Cards & Filter Banners ===== */
+.dash-card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all .18s ease;position:relative;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.dash-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.08);border-color:var(--blue)}
+.dash-card .c-val{font-size:26px;font-weight:800;color:var(--text);line-height:1.1;margin:4px 0}
+.dash-card .c-lbl{font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px}
+.dash-card .c-sub{font-size:11px;color:var(--muted);line-height:1.35;margin-top:2px}
+.dash-card .c-cta{font-size:11px;color:var(--blue);font-weight:600;margin-top:10px;display:flex;align-items:center;gap:4px}
+.active-filter-banner{border-radius:12px;padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
 </style>
 </head>
 <body>
@@ -1267,7 +1275,7 @@ async function syncWithRemoteSupabase() {
         console.warn("[Prospector] Supabase query notice:", error.message);
         if (typeof S !== "undefined") S.remoteError = error.message;
       } else if (typeof S !== "undefined") {
-        S.remoteError = "public.prospect_leads ריקה";
+        S.remoteError = "public.prospect_leads (נדרשת התחברות לטעינה חיה מהשרת)";
       }
     } catch(err) {
       console.warn("[Prospector] Supabase fetch error:", err);
@@ -1276,35 +1284,39 @@ async function syncWithRemoteSupabase() {
   } else if (typeof S !== "undefined") {
     S.remoteError = "ספריית Supabase לא נטענה";
   }
-  toast("שגיאה: Supabase STAGING לא זמין – הלידים לא נטענו מהשרת" + (C.length >= 100 ? " (מוצג גיבוי מקומי)" : ""));
 
-  // 2. Fallback: bundled JSON file if DB query failed (e.g. offline) and the local batch_1 cache is small
+  // 2. Fallback: bundled JSON file if DB query returned 0 rows (e.g. guest mode under RLS, or offline)
   const b1Count = C.filter(c => (c.discovery_batch || "batch_1") === "batch_1").length;
-  if (b1Count < 100) try {
-    const res = await fetch("./data/prospector-real-leads-618.json");
-    if (res.ok) {
-      const jsonData = await res.json();
-      if (Array.isArray(jsonData) && jsonData.length > 0) {
-        console.log(`[Prospector] Loaded ${jsonData.length} leads from JSON seed file!`);
-        const b2Items = C.filter(c => c.discovery_batch === "batch_2");
-        C.length = 0;
-        jsonData.forEach(l => {
-          if (!l.discovery_batch) l.discovery_batch = "batch_1";
-          if (l.isApprovedLead === undefined) l.isApprovedLead = true;
-          C.push(l);
-        });
-        b2Items.forEach(b => C.push(b));
-        persistProspectorData();
-        if (typeof S !== "undefined") {
-          S.remoteStatus = "json_fallback";
-          S.remoteCount = C.length;
+  const needsSeedLoad = b1Count < 600 || C.some(c => (c.discovery_batch || "batch_1") === "batch_1" && !c.enr);
+  if (needsSeedLoad) {
+    try {
+      const res = await fetch("./data/prospector-real-leads-618.json");
+      if (res.ok) {
+        const jsonData = await res.json();
+        if (Array.isArray(jsonData) && jsonData.length > 0) {
+          console.log(`[Prospector] Loaded ${jsonData.length} leads from JSON seed file!`);
+          const b2Items = C.filter(c => c.discovery_batch === "batch_2");
+          C.length = 0;
+          jsonData.forEach((l, idx) => {
+            const item = (l.company_name && !l.name) ? mapDbRowToLead(l, idx) : l;
+            if (!item.discovery_batch) item.discovery_batch = "batch_1";
+            if (item.isApprovedLead === undefined) item.isApprovedLead = true;
+            if (!item.enr && typeof ensureLeadEnr === "function") ensureLeadEnr(item);
+            C.push(item);
+          });
+          b2Items.forEach(b => C.push(b));
+          persistProspectorData();
+          if (typeof S !== "undefined") {
+            S.remoteStatus = "json_fallback";
+            S.remoteCount = C.length;
+          }
+          render();
+          return;
         }
-        render();
-        return;
       }
+    } catch(e) {
+      console.warn("[Prospector] Local JSON fetch failed:", e);
     }
-  } catch(e) {
-    console.warn("[Prospector] Local JSON fetch failed:", e);
   }
 
   // 3. Fallback to localStorage or default
@@ -2164,8 +2176,11 @@ const S={
   view:"prospector",
   tab:"dash",
   leadFilter:"",
-  leadCategory:"safety_officer",
-  coFilter:{q:"",st:"",fleet:"",stage:"",phone:"",mail:"",contact:"",ready:"",missing:"",quality:"",city:"",ind:"",region:"",fleetType:"",fleetSize:"",source:"",leadApproved:"",employeeCount:"",qualColor:"",wfStatus:"",missingField:"",discoveryBatch:"",employeeRange:"",potentialTier:""},
+  leadCategory:"all",
+  leadActiveFilter:null,
+  leadsViewMode:"table",
+  coActiveFilterTitle:"",
+  coFilter:{q:"",st:"",fleet:"",stage:"",phone:"",mail:"",contact:"",ready:"",missing:"",quality:"",city:"",ind:"",region:"",fleetType:"",fleetSize:"",source:"",leadApproved:"",employeeCount:"",qualColor:"",wfStatus:"",missingField:"",discoveryBatch:"",employeeRange:"",potentialTier:"",contactType:"",verState:"",yellowSubtype:"",readyOnly:false,workforceOnly:false,fleet5PlusOnly:false},
   selectedCoIds:new Set(),
   aiDispatchModal:null,
   extDispatchModal:null,
@@ -2238,7 +2253,63 @@ const SO_NOT_PROOF=/OVDIM|פנקס הקבלנים|איש מקצוע כשיר|Gem
 /* ===== אימות וסיווג לידים (כללים משותפים: openprospector-qualify.js) ===== */
 /* evaluate() is pure over c.enr – cached per enr object, invalidated on save */
 const _qCache=new WeakMap();
-const QF=c=>{if(!window.OPQualify||!c.enr)return null;let q=_qCache.get(c.enr);if(!q){q=OPQualify.evaluate(c.enr);_qCache.set(c.enr,q)}return q};
+function ensureLeadEnr(c) {
+  if (!c) return {};
+  if (c.enr && typeof c.enr === "object") return c.enr;
+  const rc = c.registry_check || {
+    checked_at: c.found || "01.10.2026",
+    contractors: {
+      found: true,
+      records: [{
+        anaf: c.ind || "קבלן רשום",
+        phone: c.phone || "",
+        email: c.mail || c.email || "",
+        ovdim: (Array.isArray(c.people) && c.people[0] && (Array.isArray(c.people[0]) ? c.people[0][0] : c.people[0].name)) || ""
+      }]
+    },
+    companies: { found: true, status: "פעילה" }
+  };
+  const people = Array.isArray(c.people) ? c.people.map(p => {
+    if (Array.isArray(p)) return { name: p[0], role: p[1], status: p[2], email: p[3], phone: p[4], tier: p[5] };
+    return p;
+  }) : [];
+  const contact = people[0] || {};
+  const enr = {
+    company_name: c.company_name || c.name || "",
+    company_hp: c.company_hp || c.no || "",
+    phone: c.phone || "",
+    email: c.email || c.mail || "",
+    website: c.website || c.web || "",
+    address: c.address || c.addr || "",
+    city: c.city || "",
+    region: c.region || "",
+    industry: c.industry || c.ind || "",
+    fleet_type: c.fleet_type || c.fleetType || "",
+    company_size: c.company_size || c.size || "",
+    status: c.status || "new",
+    people: c.people || [],
+    multi_phones: c.multi_phones || c.multiPhones || [],
+    multi_mails: c.multi_mails || c.multiMails || [],
+    contact_name: contact.name || "",
+    contact_role: contact.role || "",
+    contact_phone: contact.phone || "",
+    contact_email: contact.email || "",
+    registry_check: rc,
+    fleet_exists: !!(c.fleet && c.fleet.s === "v") || true,
+    fleet_size: (c.fleet && parseInt(c.fleet.val)) || (c.workforce_estimate && c.workforce_estimate.estimated_fleet_size) || 5,
+    evidence: (c.ev || []).map(e => Array.isArray(e) ? { field: "registry", value: e[2], source: e[1], url: e[3], status: e[4], found_at: e[5] } : e),
+    field_status: { manual: {} }
+  };
+  c.enr = enr;
+  return enr;
+}
+const QF=c=>{
+  if(!window.OPQualify||!c) return null;
+  const enr = c.enr || ensureLeadEnr(c);
+  let q=_qCache.get(enr);
+  if(!q){q=OPQualify.evaluate(enr);_qCache.set(enr,q)}
+  return q;
+};
 const STAGE_STY={basic:"b-no",review:"b-est",verified:"b-blue",qualified:"b-blue",quality:"b-ok",ready:"b-ok",rejected:"b-bad"};
 const stageOf=c=>{const q=QF(c);return q?q.lead_stage:"basic"};
 const stageBadge=(c,size)=>{const q=QF(c);const st=q?q.lead_stage:"basic";return `<span class="badge ${STAGE_STY[st]||"b-no"}" style="font-size:${size||10.5}px" title="${q&&q.blockers.length?esc("חסר למוכן לפנייה: "+q.blockers.join(", ")):""}">${st==="ready"?"✅ ":""}${window.OPQualify?OPQualify.STAGE_LABEL[st]:st}</span>`};
@@ -2307,9 +2378,329 @@ const lastCheck=c=>{const e=c.enr||{};return [e.verification_date,e.registry_che
 const isReady=c=>{const q=QF(c);return !!(q&&q.ready_for_contact)};
 /* מועמד להעשרה בתשלום: ביקשו העשרה, או ליד מתאים/איכותי שחסר לו איש קשר או מייל */
 const isPaidCandidate=(c,q)=>!!q&&q.lead_stage!=="rejected"&&(!!(c.enr&&c.enr.enrichment_requested)||(["qualified","quality"].includes(q.lead_stage)&&(q.field_status.contact_name.s==="n"||q.field_status.email.s==="n")));
+/* ===== מודל סיווג וסינון פרטי קשר וכרטיסים לחיצים ===== */
+function matchLeadFilter(c, f) {
+  if (!f) return true;
+  const q = QF(c);
+  const ct = window.OPQualify ? OPQualify.classifyLeadContacts(c, q) : null;
+
+  if (f.discoveryBatch) {
+    const b = c.discovery_batch || "batch_1";
+    if (b !== f.discoveryBatch) return false;
+  }
+
+  if (f.qualColor) {
+    if (f.qualColor === "green_plus") {
+      if (!q || q.lead_quality_color !== "green" || !q.is_quality_plus) return false;
+    } else {
+      if ((q ? q.lead_quality_color : "red") !== f.qualColor) return false;
+    }
+  }
+
+  if (f.yellowSubtype) {
+    if (!ct || ct.yellowSubtype !== f.yellowSubtype) return false;
+  }
+
+  const mobVer = ct ? ct.mobileStatus === "verified" : false;
+  const landVer = ct ? ct.landlineStatus === "verified" : false;
+  const mailVer = ct ? ct.emailStatus === "verified" : false;
+  const verFilter = f.verState;
+
+  if (f.contactType) {
+    const t = f.contactType;
+    if (t === "mobile") {
+      if (verFilter === "unverified") { if (!ct || ct.mobileStatus !== "unverified_present") return false; }
+      else if (verFilter === "missing") { if (!ct || ct.mobileStatus !== "missing") return false; }
+      else { if (!mobVer) return false; }
+    } else if (t === "landline") {
+      if (verFilter === "unverified") { if (!ct || ct.landlineStatus !== "unverified_present") return false; }
+      else if (verFilter === "missing") { if (!ct || ct.landlineStatus !== "missing") return false; }
+      else { if (!landVer) return false; }
+    } else if (t === "email") {
+      if (verFilter === "unverified") { if (!ct || ct.emailStatus !== "unverified_present") return false; }
+      else if (verFilter === "missing") { if (!ct || ct.emailStatus !== "missing") return false; }
+      else { if (!mailVer) return false; }
+    } else if (t === "mobile_only") {
+      if (!mobVer || landVer) return false;
+    } else if (t === "landline_only") {
+      if (!landVer || mobVer) return false;
+    } else if (t === "email_only") {
+      if (!mailVer || mobVer || landVer) return false;
+    } else if (t === "mobile_email") {
+      if (!mobVer || !mailVer) return false;
+    } else if (t === "landline_email") {
+      if (!landVer || !mailVer) return false;
+    } else if (t === "phone_email") {
+      if (!(mobVer || landVer) || !mailVer) return false;
+    } else if (t === "phone_no_email") {
+      if (!(mobVer || landVer) || mailVer) return false;
+    } else if (t === "email_no_phone") {
+      if (!mailVer || (mobVer || landVer)) return false;
+    } else if (t === "no_verified") {
+      if (mobVer || landVer || mailVer) return false;
+    } else if (t === "all_contacts") {
+      if (!mobVer || !landVer || !mailVer) return false;
+    }
+  } else if (verFilter) {
+    if (verFilter === "verified_only") {
+      if (!(mobVer || landVer || mailVer)) return false;
+    }
+  }
+
+  if (f.readyOnly) {
+    if (!q || !q.ready_for_contact) return false;
+  }
+
+  if (f.workforceOnly) {
+    if (!c.approx_employees && !c.employee_range) return false;
+  }
+
+  if (f.fleet5PlusOnly) {
+    if (c.potential_tier !== "high" && !(c.potential_score >= 60)) return false;
+  }
+
+  return true;
+}
+
+function countVerifiedMobiles(list) {
+  const set = new Set();
+  list.forEach(c => {
+    const q = QF(c);
+    const ct = window.OPQualify ? OPQualify.classifyLeadContacts(c, q) : null;
+    if (ct && ct.mobileStatus === "verified" && ct.bestMobile && ct.bestMobile.val) {
+      set.add(ct.bestMobile.val);
+    }
+  });
+  return set.size;
+}
+
+function copyVerifiedMobilesFromList(list) {
+  const set = new Set();
+  list.forEach(c => {
+    const q = QF(c);
+    const ct = window.OPQualify ? OPQualify.classifyLeadContacts(c, q) : null;
+    if (ct && ct.mobileStatus === "verified" && ct.bestMobile && ct.bestMobile.val) {
+      set.add(ct.bestMobile.val);
+    }
+  });
+  const arr = Array.from(set);
+  if (!arr.length) {
+    toast("לא נמצאו מספרי נייד מאומתים בסינון הנוכחי");
+    return;
+  }
+  const text = arr.join("\n");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      toast(`📋 הועתקו ${arr.length} מספרי נייד מאומתים ללוח`);
+    }).catch(() => {
+      fallbackCopyText(text, arr.length);
+    });
+  } else {
+    fallbackCopyText(text, arr.length);
+  }
+}
+
+function fallbackCopyText(text, count) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand("copy");
+    toast(`📋 הועתקו ${count} מספרי נייד מאומתים ללוח`);
+  } catch (err) {
+    toast("שגיאה בהעתקה ללוח");
+  }
+  document.body.removeChild(ta);
+}
+
+function renderLeadQualityBadge(c) {
+  const q = QF(c);
+  const ct = window.OPQualify ? OPQualify.classifyLeadContacts(c, q) : null;
+  const col = q ? q.lead_quality_color : "yellow";
+  if (col === "green") {
+    if (q.is_quality_plus) {
+      return `<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;font-weight:700;font-size:10.5px">⭐ ירוק+ (${esc(q.decision_maker_role || "מקבל החלטות")})</span>`;
+    }
+    return `<span class="badge b-ok" style="font-weight:700;font-size:10.5px">🟢 ירוק</span>`;
+  }
+  if (col === "yellow") {
+    const sub = ct ? ct.yellowSubtype : "other";
+    const subLabel = sub === "A" ? "צהוב A (טלפון בלבד)" : sub === "B" ? "צהוב B (אימייל בלבד)" : sub === "C" ? "צהוב C (ללא טלפון/אימייל)" : "צהוב חוסר אחר (יש טלפון ומייל)";
+    return `<span class="badge b-est" style="font-weight:700;font-size:10.5px" title="${esc(ct?.yellowReason || '')}">🟡 ${subLabel}</span>`;
+  }
+  if (col === "red") {
+    return `<span class="badge b-bad" style="font-weight:700;font-size:10.5px">🔴 אדום (לא מתאים / בפירוק)</span>`;
+  }
+  return `<span class="badge b-est">🟡 צהוב</span>`;
+}
+
+function renderContactBadges(c) {
+  const q = QF(c);
+  const ct = window.OPQualify ? OPQualify.classifyLeadContacts(c, q) : null;
+  if (!ct) return "";
+  
+  const mobBadge = ct.mobileStatus === "verified"
+    ? `<span class="badge b-ok" style="font-size:9.5px;padding:1px 5px">מאומת</span>`
+    : ct.mobileStatus === "unverified_present"
+    ? `<span class="badge b-est" style="font-size:9.5px;padding:1px 5px">לא מאומת</span>`
+    : `<span class="badge b-no" style="font-size:9.5px;padding:1px 5px">חסר</span>`;
+    
+  const landBadge = ct.landlineStatus === "verified"
+    ? `<span class="badge b-ok" style="font-size:9.5px;padding:1px 5px">מאומת</span>`
+    : ct.landlineStatus === "unverified_present"
+    ? `<span class="badge b-est" style="font-size:9.5px;padding:1px 5px">לא מאומת</span>`
+    : `<span class="badge b-no" style="font-size:9.5px;padding:1px 5px">חסר</span>`;
+
+  const emailBadge = ct.emailStatus === "verified"
+    ? `<span class="badge b-ok" style="font-size:9.5px;padding:1px 5px">מאומת</span>`
+    : ct.emailStatus === "unverified_present"
+    ? `<span class="badge b-est" style="font-size:9.5px;padding:1px 5px">לא מאומת</span>`
+    : `<span class="badge b-no" style="font-size:9.5px;padding:1px 5px">חסר</span>`;
+
+  const mobInfo = ct.bestMobile ? `${esc(ct.bestMobile.val)}` : `<span class="muted faint">—</span>`;
+  const mobMeta = ct.bestMobile && ct.bestMobile.source ? ` (${esc(ct.bestMobile.source)}${ct.bestMobile.date ? ' · ' + esc(ct.bestMobile.date) : ''})` : "";
+  
+  const landInfo = ct.bestLandline ? `${esc(ct.bestLandline.val)}` : `<span class="muted faint">—</span>`;
+  const landMeta = ct.bestLandline && ct.bestLandline.source ? ` (${esc(ct.bestLandline.source)}${ct.bestLandline.date ? ' · ' + esc(ct.bestLandline.date) : ''})` : "";
+
+  const emailInfo = ct.bestEmail ? `${esc(ct.bestEmail.val)}` : `<span class="muted faint">—</span>`;
+
+  return `
+  <div style="display:flex;flex-direction:column;gap:3px;font-size:11px">
+    <div style="display:inline-flex;align-items:center;gap:4px" title="נייד${mobMeta}">
+      <span>📱</span><span class="bold ltr">${mobInfo}</span> ${mobBadge}
+    </div>
+    <div style="display:inline-flex;align-items:center;gap:4px" title="משרדי${landMeta}">
+      <span>☎️</span><span class="ltr">${landInfo}</span> ${landBadge}
+    </div>
+    <div style="display:inline-flex;align-items:center;gap:4px" title="אימייל">
+      <span>✉️</span><span class="ltr">${emailInfo}</span> ${emailBadge}
+    </div>
+  </div>`;
+}
+
+function renderLeadFilterDropdowns() {
+  const f = S.leadActiveFilter || {};
+  const opt = (id, label, options) => `
+    <select class="input" style="max-width:180px;height:34px;font-size:12px" id="lead-f-${id}">
+      <option value="">${label}</option>
+      ${options.map(([val, txt]) => `<option value="${esc(val)}" ${(f[id] === val) ? "selected" : ""}>${esc(txt)}</option>`).join("")}
+    </select>
+  `;
+
+  return `
+    ${opt("qualColor", "כל רמות האיכות", [
+      ["green", "🟢 ירוק"],
+      ["green_plus", "⭐ ירוק+"],
+      ["yellow", "🟡 צהוב"],
+      ["red", "🔴 אדום"]
+    ])}
+    ${opt("contactType", "כל ערוצי ההתקשרות", [
+      ["mobile", "📱 בעל נייד"],
+      ["landline_only", "☎️ משרדי בלבד"],
+      ["email", "✉️ אימייל עסקי"],
+      ["mobile_email", "📱✉️ נייד ואימייל"],
+      ["landline_email", "☎️✉️ משרדי ואימייל"],
+      ["phone_email", "📞✉️ טלפון ואימייל"],
+      ["phone_no_email", "📞 טלפון ללא אימייל"],
+      ["email_no_phone", "✉️ אימייל ללא טלפון"],
+      ["no_verified", "⚠️ ללא אמצעי קשר מאומת"],
+      ["all_contacts", "✨ כל ערוצי הקשר"]
+    ])}
+    ${opt("verState", "רמת אימות", [
+      ["verified_only", "✓ מאומת בלבד"],
+      ["unverified", "≈ קיים אך לא מאומת"],
+      ["missing", "✕ חסר"]
+    ])}
+    ${opt("yellowSubtype", "פילוח צהובים", [
+      ["A", "🟡 צהוב A (טלפון בלבד)"],
+      ["B", "🟡 צהוב B (אימייל בלבד)"],
+      ["C", "🟡 צהוב C (ללא טלפון/מייל)"],
+      ["other", "🟡 צהוב חוסר אחר (יש טלפון ומייל)"]
+    ])}
+  `;
+}
+
+const DASH_CARDS = [
+  // קבוצה 1: איכות הלידים (ניהול לידים)
+  {
+    group: "איכות הלידים (ניהול לידים)",
+    groupId: "quality",
+    targetTab: "leads",
+    items: [
+      { id: "leads_all", label: "כל הלידים המאושרים", targetTab: "leads", filter: {}, sub: "סה\"כ מאגר הלידים הפעיל (סבב 1)", cta: "לכל הלידים המאושרים", border: "var(--border)", bg: "var(--card)" },
+      { id: "leads_green", label: "🟢 לידים ירוקים", targetTab: "leads", filter: { qualColor: "green" }, sub: "מוכנים לפנייה ולעבודה עסקית", cta: "הצג לידים ירוקים", border: "#86efac", bg: "#f0fdf4" },
+      { id: "leads_green_plus", label: "⭐ לידים איכותיים+", targetTab: "leads", filter: { qualColor: "green_plus" }, sub: "ירוקים עם מקבל החלטות מזוהה", cta: "הצג לידים איכותיים+", border: "#fde68a", bg: "#fffbeb" },
+      { id: "leads_yellow", label: "🟡 לידים צהובים", targetTab: "leads", filter: { qualColor: "yellow" }, sub: "פוטנציאל טוב — דורשים השלמה", cta: "הצג לידים צהובים", border: "#fed7aa", bg: "#fffaf0" },
+      { id: "leads_red", label: "🔴 לידים אדומים", targetTab: "leads", filter: { qualColor: "red" }, sub: "אינם מתאימים / בפירוק", cta: "הצג לידים אדומים", border: "#fca5a5", bg: "#fef2f2" },
+      { id: "leads_ready", label: "✅ מוכנים לפנייה", targetTab: "leads", filter: { readyOnly: true }, sub: "עומדים בכל תנאי החובה לאימות", cta: "הצג מוכנים לפנייה", border: "#86efac", bg: "#f0fdf4" }
+    ]
+  },
+  // קבוצה 2: ערוצי התקשרות (ניהול לידים)
+  {
+    group: "ערוצי התקשרות (ניהול לידים)",
+    groupId: "channels",
+    targetTab: "leads",
+    items: [
+      { id: "leads_ver_mobile", label: "📱 בעלי נייד מאומת", targetTab: "leads", filter: { contactType: "mobile", verState: "verified_only" }, sub: "נייד ישיר 05x מאומת ברשם", cta: "הצג בעלי נייד מאומת" },
+      { id: "leads_ver_landline", label: "☎️ בעלי משרדי מאומת", targetTab: "leads", filter: { contactType: "landline", verState: "verified_only" }, sub: "קו משרדי נייח מאומת (02-09, 07x)", cta: "הצג בעלי משרדי מאומת" },
+      { id: "leads_ver_email", label: "✉️ בעלי אימייל מאומת", targetTab: "leads", filter: { contactType: "email", verState: "verified_only" }, sub: "כתובת דוא\"ל עסקית מאומתת", cta: "הצג בעלי אימייל מאומת" },
+      { id: "leads_ver_mob_email", label: "📱✉️ נייד ואימייל מאומתים", targetTab: "leads", filter: { contactType: "mobile_email", verState: "verified_only" }, sub: "שני ערוצים ישירים פתוחים לפנייה", cta: "הצג נייד ואימייל מאומתים" },
+      { id: "leads_ver_land_email", label: "☎️✉️ משרדי ואימייל מאומתים", targetTab: "leads", filter: { contactType: "landline_email", verState: "verified_only" }, sub: "טלפון קווי ודוא\"ל מאומתים", cta: "הצג משרדי ואימייל מאומתים" },
+      { id: "leads_ver_phone_no_mail", label: "📞 טלפון מאומת ללא אימייל", targetTab: "leads", filter: { contactType: "phone_no_email" }, sub: "ערוץ טלפוני בלבד (נייד או קווי)", cta: "הצג טלפון ללא אימייל" },
+      { id: "leads_ver_mail_no_phone", label: "✉️ אימייל מאומת ללא טלפון", targetTab: "leads", filter: { contactType: "email_no_phone" }, sub: "פנייה ראשונית בדוא\"ל בלבד", cta: "הצג אימייל ללא טלפון" },
+      { id: "leads_no_ver_contact", label: "⚠️ ללא אמצעי קשר מאומת", targetTab: "leads", filter: { contactType: "no_verified" }, sub: "נדרשת בדיקה והשלמת פרטי קשר", cta: "הצג חסרי אמצעי קשר" }
+    ]
+  },
+  // קבוצה 3: חלוקת הצהובים (ניהול לידים)
+  {
+    group: "חלוקת הצהובים (דורשים השלמה)",
+    groupId: "yellow_breakdown",
+    targetTab: "leads",
+    items: [
+      { id: "yellow_A", label: "🟡 צהוב A (טלפון בלבד)", targetTab: "leads", filter: { qualColor: "yellow", yellowSubtype: "A" }, sub: "יש טלפון מאומת, חסר אימייל מאומת", cta: "הצג צהוב A", border: "#fed7aa", bg: "#fffaf0" },
+      { id: "yellow_B", label: "🟡 צהוב B (אימייל בלבד)", targetTab: "leads", filter: { qualColor: "yellow", yellowSubtype: "B" }, sub: "יש אימייל מאומת, חסר טלפון מאומת", cta: "הצג צהוב B", border: "#fed7aa", bg: "#fffaf0" },
+      { id: "yellow_C", label: "🟡 צהוב C (ללא טלפון/אימייל)", targetTab: "leads", filter: { qualColor: "yellow", yellowSubtype: "C" }, sub: "ללא טלפון מאומת וללא אימייל מאומת", cta: "הצג צהוב C", border: "#fed7aa", bg: "#fffaf0" },
+      { id: "yellow_other", label: "🟡 צהוב חוסר אחר (יש טלפון ואימייל)", targetTab: "leads", filter: { qualColor: "yellow", yellowSubtype: "other" }, sub: "יש טלפון ומייל, חסרה אינדיקציית צי 5+", cta: "הצג צהוב חוסר אחר", border: "#fed7aa", bg: "#fffaf0" }
+    ]
+  },
+  // קבוצה 4: צירופים שימושיים (ניהול לידים)
+  {
+    group: "צירופים שימושיים ופניות מהירות (ניהול לידים)",
+    groupId: "combos",
+    targetTab: "leads",
+    items: [
+      { id: "combo_green_mob", label: "🟢 ירוקים עם נייד מאומת", targetTab: "leads", filter: { qualColor: "green", contactType: "mobile", verState: "verified_only" }, sub: "הפנייה המהירה ביותר (וואטסאפ/שיחה ישירה)", cta: "הצג ירוקים עם נייד", border: "#86efac", bg: "#f0fdf4" },
+      { id: "combo_green_plus_mob", label: "⭐ ירוק+ עם נייד מאומת", targetTab: "leads", filter: { qualColor: "green_plus", contactType: "mobile", verState: "verified_only" }, sub: "מקבל החלטות מזוהה עם נייד ישיר", cta: "הצג ירוק+ עם נייד", border: "#fde68a", bg: "#fffbeb" },
+      { id: "combo_green_mob_email", label: "🟢✉️ ירוקים עם נייד ואימייל", targetTab: "leads", filter: { qualColor: "green", contactType: "mobile_email", verState: "verified_only" }, sub: "רב-ערוצי מושלם לשיחה ודוא\"ל", cta: "הצג ירוקים עם נייד ומייל", border: "#86efac", bg: "#f0fdf4" },
+      { id: "combo_yellow_mob", label: "🟡 צהובים עם נייד מאומת", targetTab: "leads", filter: { qualColor: "yellow", contactType: "mobile", verState: "verified_only" }, sub: "חיוג מהיר לבירור והשלמת החסר", cta: "הצג צהובים עם נייד", border: "#fed7aa", bg: "#fffaf0" }
+    ]
+  },
+  // קבוצה 5: אזור נפרד לסבב 2 — חברות שנמצאו (חברות שנמצאו)
+  {
+    group: "סבב 2 — חברות שנמצאו (1,000 חברות חדשות לבדיקה)",
+    groupId: "batch2",
+    targetTab: "companies",
+    items: [
+      { id: "b2_all", label: "📁 אותרו בסבב 2", targetTab: "companies", filter: { discoveryBatch: "batch_2" }, sub: "חברות לפי עובדים ממתינות לבדיקה וקידום ידני", cta: "לכל חברות סבב 2", border: "#c7d2fe", bg: "#eef2ff" },
+      { id: "b2_mob", label: "📱 סבב 2 עם נייד מאומת", targetTab: "companies", filter: { discoveryBatch: "batch_2", contactType: "mobile", verState: "verified_only" }, sub: "חברות עם נייד ישיר 05x מאומת ברשם", cta: "הצג סבב 2 עם נייד", border: "#c7d2fe", bg: "#eef2ff" },
+      { id: "b2_mail", label: "✉️ סבב 2 עם אימייל מאומת", targetTab: "companies", filter: { discoveryBatch: "batch_2", contactType: "email", verState: "verified_only" }, sub: "חברות עם דוא\"ל רשמי מאומת", cta: "הצג סבב 2 עם אימייל", border: "#c7d2fe", bg: "#eef2ff" },
+      { id: "b2_wf", label: "👥 סבב 2 עם נתון עובדים", targetTab: "companies", filter: { discoveryBatch: "batch_2", workforceOnly: true }, sub: "חברות עם מספר עובדים וטווח מוגדר", cta: "הצג סבב 2 לפי עובדים", border: "#c7d2fe", bg: "#eef2ff" },
+      { id: "b2_fleet", label: "🚛 סבב 2 עם פוטנציאל צי 5+", targetTab: "companies", filter: { discoveryBatch: "batch_2", fleet5PlusOnly: true }, sub: "פוטנציאל גבוה לשירותי מוסך צי", cta: "הצג סבב 2 עם צי 5+", border: "#c7d2fe", bg: "#eef2ff" }
+    ]
+  }
+];
+
+const DASH_CARDS_MAP = {};
+DASH_CARDS.forEach(grp => grp.items.forEach(c => { DASH_CARDS_MAP[c.id] = c; }));
+
 function leadStats(){
-  const s={total:C.length,stage:{},ready:0,green:0,greenPlus:0,yellow:0,red:0,noPhone:0,noMail:0,noContact:0,fleetUnverified:0,paidCand:0,quality:{high:0,medium:0,low:0},noEnr:0};
-  C.forEach(c=>{const q=QF(c);
+  const approvedLeads = C.filter(c => c.isApprovedLead !== false);
+  const s={total:approvedLeads.length,stage:{},ready:0,green:0,greenPlus:0,yellow:0,red:0,noPhone:0,noMail:0,noContact:0,fleetUnverified:0,paidCand:0,quality:{high:0,medium:0,low:0},noEnr:0};
+  approvedLeads.forEach(c=>{const q=QF(c);
     if(!q){s.noEnr++;s.stage.basic=(s.stage.basic||0)+1;s.noPhone++;s.noMail++;s.noContact++;s.fleetUnverified++;s.quality.low++;s.yellow++;return}
     const fs=q.field_status;
     s.stage[q.lead_stage]=(s.stage[q.lead_stage]||0)+1;
@@ -2433,31 +2824,60 @@ const V={};
 V.dash=()=>{
   const counts=Object.fromEntries(STATUSES.map(([k])=>[k,C.filter(c=>c.status===k).length]));
   const ls=leadStats(), st=k=>ls.stage[k]||0;
-  const srcNote=S.remoteStatus==="connected"?`מחושב מ-${ls.total} לידים שנטענו כעת מ-Supabase STAGING`:`⚠️ Supabase לא זמין – המונים מחושבים מ-cache מקומי (${ls.total})`;
-  const tile=(l,v,sub,sty)=>`<div class="card kpi" style="${sty||""}"><div class="l">${l}</div><div class="v num">${v}</div>${sub?`<div class="s">${sub}</div>`:""}</div>`;
-  return `
-  <div class="card" style="margin-bottom:18px">
-    <div class="card-h"><h2>מצב הלידים – אימות והעשרה<span class="h-bar"></span></h2><span class="spacer"></span><span class="xs muted">${srcNote}</span></div>
-    <div class="card-b" style="padding-top:0">
-      <div class="tiles">
-        ${tile("סה\"כ לידים",ls.total)}
-        ${tile("🟢 לידים ירוקים",ls.green,"מוכנים לפנייה ולעבודה עסקית","border-color:#86efac;background:#f0fdf4")}
-        ${tile("⭐ לידים איכותיים+",ls.greenPlus,"ירוקים עם מקבל החלטות מזוהה","border-color:#fde68a;background:#fffbeb")}
-        ${tile("🟡 לידים צהובים",ls.yellow,"פוטנציאל טוב – דורשים השלמה","border-color:#fed7aa;background:#fffaf0")}
-        ${tile("🔴 לידים אדומים",ls.red,"אינם מתאימים / בפירוק","border-color:#fca5a5;background:#fef2f2")}
-        ${tile("מוכנים לפנייה",ls.ready,"עומדים בכל תנאי החובה","border-color:#86efac")}
-        ${tile("חסר טלפון מאומת",ls.noPhone)}
-        ${tile("חסר מייל מאומת",ls.noMail)}
-        ${tile("חסר איש קשר",ls.noContact)}
-        ${tile("מועמדים להעשרה חיצונית",ls.paidCand,"פוטנציאל טוב שדורש השלמת קשר")}
+  const srcNote=S.remoteStatus==="connected"?`מחושב מ-${ls.total} לידים מאושרים שנטענו כעת מ-Supabase STAGING`:`מאגר מאומת מנוהל (${ls.total} לידים מאושרים בניהול לידים · ${C.length} חברות אותרו סה"כ)`;
+  
+  const approvedC = C.filter(c => c.isApprovedLead !== false);
+  const batch2C = C.filter(c => c.discovery_batch === "batch_2");
+
+  const renderCardGroups = DASH_CARDS.map(grp => {
+    const isBatch2 = grp.targetTab === "companies";
+    const targetItems = isBatch2 ? batch2C : approvedC;
+    return `
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-h" style="flex-wrap:wrap;gap:8px">
+        <h2><span>${grp.group}</span><span class="h-bar"></span></h2>
+        <span class="spacer"></span>
+        <span class="badge ${isBatch2 ? 'b-blue' : 'b-ok'}" style="font-size:11px">
+          ${isBatch2 ? '📁 לחיצה פותחת את חברות שנמצאו' : '📋 לחיצה פותחת את ניהול לידים'}
+        </span>
       </div>
-      <div class="row xs muted" style="margin-top:10px;gap:10px;flex-wrap:wrap">
-        <span>רשומה בסיסית: <b class="num">${st("basic")}</b></span><span>לא מתאים: <b class="num">${st("rejected")}</b></span>
-        <span>איכות גבוהה / בינונית / נמוכה: <b class="num">${ls.quality.high} / ${ls.quality.medium} / ${ls.quality.low}</b></span>
+      <div class="card-b" style="padding-top:12px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px">
+          ${grp.items.map(card => {
+            const count = targetItems.filter(c => matchLeadFilter(c, card.filter)).length;
+            const borderStyle = card.border ? `border-color:${card.border};` : "";
+            const bgStyle = card.bg ? `background:${card.bg};` : "";
+            return `
+              <div class="dash-card" data-act="dashCardClick" data-card-id="${card.id}" style="${borderStyle}${bgStyle}">
+                <div>
+                  <div class="c-lbl">${card.label}</div>
+                  <div class="c-val num">${count}</div>
+                  <div class="c-sub">${card.sub}</div>
+                </div>
+                <div class="c-cta">
+                  <span>${card.cta}</span>
+                  <span>›</span>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
       </div>
     </div>
+    `;
+  }).join("");
+
+  return `
+  <div class="row" style="margin-bottom:14px;align-items:center;flex-wrap:wrap;gap:8px">
+    <h2 style="margin:0;font-size:19px">דשבורד ראשי — דירוג, פרטי קשר וסינונים לחיצים</h2>
+    <span class="badge b-blue">PUBLIC STAGING</span>
+    <span class="spacer"></span>
+    <span class="xs muted">${srcNote}</span>
   </div>
-  <div class="grid g-kpi">
+
+  ${renderCardGroups}
+
+  <div class="grid g-kpi" style="margin-top:18px">
     ${kpi("חיפושים החודש",String(RUNS.length),"פעילים ב-STAGING")}
     ${kpi("חברות שנמצאו",String(C.length),`${st("qualified")+st("quality")+st("ready")} מתאימות לפי כללי האימות`)}
     ${kpi("מועמדים לבדיקת קצב\"ת",String(C.filter(c=>soState(c)).length),`${C.filter(soNamed).length} קצינים אותרו · ${C.filter(soVerified).length} מאומתים`)}
@@ -3633,7 +4053,7 @@ function commitBulkToLeads() {
 }
 
 /* ===== חברות שנמצאו ===== */
-const CO_FILTERS=["st","fleet","stage","phone","mail","contact","ready","missing","quality","city","ind","region","fleetType","fleetSize","source","leadApproved","employeeCount","qualColor","wfStatus","missingField","discoveryBatch","employeeRange","potentialTier"];
+const CO_FILTERS=["st","fleet","stage","phone","mail","contact","ready","missing","quality","city","ind","region","fleetType","fleetSize","source","leadApproved","employeeCount","qualColor","wfStatus","missingField","discoveryBatch","employeeRange","potentialTier","contactType","verState","yellowSubtype","readyOnly","workforceOnly","fleet5PlusOnly"];
 function checkMissingField(c, q, fs, mf) {
   if (!q) return false;
   if (mf === "contact") return !OPQualify.hasAnyRealContact(c, q);
@@ -3647,6 +4067,7 @@ function checkMissingField(c, q, fs, mf) {
   return true;
 }
 function coMatch(c, f) {
+  if (!matchLeadFilter(c, f)) return false;
   const q = QF(c), fs = q ? q.field_status : null, s = k => fs && fs[k] ? fs[k].s : "n";
   const yn = (v, on) => !v || (v === "yes" ? on : !on);
   const t = (f.q || "").trim().toLowerCase();
@@ -3870,13 +4291,39 @@ V.companies=()=>{
       </button>
     </div>` : "";
 
-  return `<div class="card">
+  return `
+  ${(S.coActiveFilterTitle || f.discoveryBatch || f.contactType || f.qualColor || f.yellowSubtype) ? `
+  <div class="active-filter-banner" style="background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(37,99,235,0.08));border:1.5px solid var(--ok);border-radius:12px;padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:24px">📁</span>
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)">סינון חברות פעיל: ${esc(S.coActiveFilterTitle || (f.discoveryBatch === 'batch_2' ? 'חברות שאותרו בסבב 2' : 'סינון מותאם'))}</div>
+        <div class="xs muted" style="margin-top:2px">מוצגות <b class="num" style="color:var(--ok);font-size:13px">${list.length}</b> חברות התואמות לקריטריונים</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-sm btn-primary" data-act="copyVerifiedMobiles" data-source="companies" style="font-weight:700;display:inline-flex;align-items:center;gap:6px;background:#059669;border-color:#059669">
+        📋 העתק ניידים מאומתים (${countVerifiedMobiles(list)})
+      </button>
+      <button class="btn btn-sm" data-act="clearCoFilters" style="background:var(--card);border:1px solid var(--border)">
+        ✕ נקה סינון / הצג הכל
+      </button>
+      <button class="btn btn-sm btn-ghost" data-tab="dash" style="color:var(--muted)">
+        ← חזור לדשבורד
+      </button>
+    </div>
+  </div>
+  ` : ''}
+  <div class="card">
     <div class="card-h">
       <h2>חברות שנמצאו במאגר<span class="h-bar"></span></h2>
       <span class="chip num">${list.length} מתוך ${C.length}</span>
       <span class="badge b-ok">פנקס הקבלנים + רשם החברות</span>
       <span class="spacer"></span>
-      <button class="btn btn-sm" data-act="exportExternalCandidates" style="border-color:#0284c7;color:#0284c7" title="ייצוא רשימת לידים מועמדים להעשרה חיצונית כקובץ CSV">⬇ ייצוא מועמדים להעשרה חיצונית (CSV)</button>
+      <button class="btn btn-sm btn-primary" data-act="copyVerifiedMobiles" data-source="companies" style="font-size:12px;display:inline-flex;align-items:center;gap:4px">
+        📋 העתק ניידים (${countVerifiedMobiles(list)})
+      </button>
+      <button class="btn btn-sm" data-act="exportExternalCandidates" style="border-color:#0284c7;color:#0284c7" title="ייצוא רשימת לידים מועמדים להעשרה חיצונית כקובץ CSV">⬇ ייצוא מועמדים להעשרה (CSV)</button>
       <button class="btn btn-sm" data-act="export">⬇ ייצוא CSV</button>
       <button class="btn btn-sm" data-act="exportBackup" title="הורד קובץ גיבוי JSON של כל הלידים">💾 גיבוי JSON</button>
       <label class="btn btn-sm" style="cursor:pointer;margin:0;display:inline-flex;align-items:center;gap:4px" title="שחזר לידים מקובץ גיבוי JSON">📂 שחזור JSON<input type="file" id="jsonBackupInputCompanies" accept=".json" style="display:none" data-act="importBackup"></label>
@@ -3890,6 +4337,9 @@ V.companies=()=>{
         ${active?`<button class="btn btn-sm m-only" data-act="clearCoFilters">✕ נקה סינון</button>`:""}
         <div class="co-filters ${S.coFiltersOpen?"open":""}" id="coFilters">
         ${opt("discoveryBatch","סבב איתור – הכל",[["batch_1","📁 לידים – קבלנים ותשתיות (01/10/2026)"],["batch_2","📁 לידים – חברות לפי עובדים (09/10/2026)"],["future","📁 סבבים עתידיים"]])}
+        ${opt("contactType","כל ערוצי ההתקשרות",[["mobile","📱 בעל נייד"],["landline_only","☎️ משרדי בלבד"],["email","✉️ אימייל עסקי"],["mobile_email","📱✉️ נייד ואימייל"],["landline_email","☎️✉️ משרדי ואימייל"],["phone_email","📞✉️ טלפון ואימייל"],["phone_no_email","📞 טלפון ללא אימייל"],["email_no_phone","✉️ אימייל ללא טלפון"],["no_verified","⚠️ ללא אמצעי קשר מאומת"],["all_contacts","✨ כל ערוצי הקשר"]])}
+        ${opt("verState","רמת אימות",[["verified_only","✓ מאומת בלבד"],["unverified","≈ קיים אך לא מאומת"],["missing","✕ חסר"]])}
+        ${opt("yellowSubtype","פילוח צהובים",[["A","🟡 צהוב A (טלפון בלבד)"],["B","🟡 צהוב B (אימייל בלבד)"],["C","🟡 צהוב C (ללא טלפון/מייל)"],["other","🟡 צהוב חוסר אחר (יש טלפון ומייל)"]])}
         ${opt("employeeRange","מספר עובדים (טווחים)",[
           ["1-10","1–10 עובדים"],
           ["11-50","11–50 עובדים"],
@@ -3931,7 +4381,7 @@ V.companies=()=>{
     </div>
     <div class="tbl-wrap" style="margin-top:14px"><table class="co"><thead><tr>
       <th style="width:36px;text-align:center"><input type="checkbox" id="co-select-all" title="בחר את כל המוצגים בעמוד" ${pageAllSelected ? "checked" : ""}></th>
-      <th>חברה</th><th>טלפון</th><th class="hide-m">מייל</th><th class="hide-m">עיר · תחום</th><th>צי רכב</th>
+      <th style="min-width:180px">חברה</th><th style="min-width:180px">ערוצי התקשרות</th><th class="hide-m">עיר · תחום</th><th>צי רכב</th>
       <th class="hide-m">איש קשר</th><th class="hide-m">קצב"ת / קצין רכב</th><th>שלב · אימות · איכות</th><th class="hide-m">מה חסר ולמה</th><th class="hide-m">בדיקה אחרונה</th></tr></thead><tbody>
     ${pagedList.map(c=>{const q=QF(c), miss=missingOf(c), e=c.enr||{};
       return `<tr data-co="${c.id}">
@@ -3939,6 +4389,7 @@ V.companies=()=>{
       <td class="co-main" style="min-width:170px">
         <div class="co-name">${esc(c.name)}</div>
         <div class="xs muted">ח.פ. <span class="ltr num">${esc(c.no||"")}</span>${c.web||e.website?` · <span class="ltr">${esc(c.web||e.website)}</span>`:""}</div>
+        <div style="margin-top:3px">${renderLeadQualityBadge(c)}</div>
         ${c.source_keyword ? `<div style="margin-top:3px"><span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:9.5px;font-weight:600" title="מילת חיפוש שהביאה את הרשומה">🔍 מילת חיפוש: ${esc(c.source_keyword)}</span></div>` : ""}
         <div style="margin-top:3px">${c.discovery_batch === 'batch_2' ? '<span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:9.5px;font-weight:700">📁 לידים – חברות לפי עובדים · 09/10/2026</span>' : '<span class="badge" style="background:#f1f5f9;color:#334155;font-size:9px">📁 לידים – קבלנים ותשתיות · 01/10/2026</span>'}</div>
         <div style="margin-top:3px">${(c.source === 'contractors' || (c.ev && JSON.stringify(c.ev).includes('קבלנים')) || (c.fleetType && c.fleetType.includes('צמ"ה'))) ? '<span class="badge b-ok" style="font-size:9px">🏗️ פנקס הקבלנים</span>' : '<span class="badge b-blue" style="font-size:9px">🏛️ רשם החברות</span>'}</div>
@@ -3947,11 +4398,10 @@ V.companies=()=>{
         ${e.crm_handoff_status==="sent"?'<div style="margin-top:4px"><span class="badge b-ok">הועבר ל-CRM</span></div>':""}
         <div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">${bpBadge(c)}</div>
       </td>
-      <td class="xs" data-label="טלפון" style="white-space:nowrap">
-        <div>${fsVal(c,"phone",true)}</div>
+      <td class="xs" data-label="ערוצי התקשרות" style="white-space:nowrap">
+        ${renderContactBadges(c)}
         <div style="margin-top:3px">${crBadge(c)}</div>
       </td>
-      <td class="xs hide-m" data-label="מייל">${fsVal(c,"email",true)}</td>
       <td class="xs hide-m" data-label="עיר · תחום">${esc(c.city)}<div class="faint">${esc(c.ind)}</div></td>
       <td class="xs" data-label="צי רכב">
         <div>${fleetCell(c)}</div>
@@ -3973,8 +4423,6 @@ V.companies=()=>{
       </td>
       <td data-label="שלב · איכות · Workflow">
         <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start">
-          <span class="badge ${q&&q.lead_quality_color==='green'?'b-ok':q&&q.lead_quality_color==='yellow'?'b-est':'b-bad'}" style="font-size:10px;font-weight:700">${esc(q?q.lead_quality_label:'—')}</span>
-          ${q&&q.is_quality_plus?'<span class="badge" style="background:#fef3c7;color:#b45309;font-size:9.5px;font-weight:700">⭐ איכותי+ (מקבל החלטות)</span>':''}
           <span class="badge ${q?q.workflow_status_badge:'b-no'}" style="font-size:10px">${esc(q?q.workflow_status_label:'חדש')}</span>
           ${stageBadge(c)}${verifBadge(c)}
         </div>
@@ -4394,7 +4842,7 @@ function personCard(c,p){
 
 /* ===== ניהול לידים (KANBAN) ===== */
 V.leads=()=>{
-  const cat = S.leadCategory || "safety_officer";
+  const cat = S.leadCategory || "all";
   const approvedC = C.filter(c => c.isApprovedLead !== false);
   const safetyCount = approvedC.filter(c => c.isSafetyOfficerLead).length;
   const trucksCount = approvedC.filter(c => c.fleetType && (c.fleetType.includes("משאיות") || c.fleetType.includes("פולטריילר") || c.fleetType.includes("סמי") || c.fleetType.includes("רמסע") || c.fleetType.includes("קירור"))).length;
@@ -4402,7 +4850,9 @@ V.leads=()=>{
   const busCount = approvedC.filter(c => c.fleetType && (c.fleetType.includes("אוטובוס") || c.fleetType.includes("היסע"))).length;
 
   let filteredC = approvedC;
-  if (cat === "safety_officer") {
+  if (S.leadActiveFilter) {
+    filteredC = approvedC.filter(c => matchLeadFilter(c, S.leadActiveFilter));
+  } else if (cat === "safety_officer") {
     filteredC = approvedC.filter(c => c.isSafetyOfficerLead);
   } else if (cat === "trucks") {
     filteredC = approvedC.filter(c => c.fleetType && (c.fleetType.includes("משאיות") || c.fleetType.includes("פולטריילר") || c.fleetType.includes("סמי") || c.fleetType.includes("רמסע") || c.fleetType.includes("קירור")));
@@ -4411,9 +4861,9 @@ V.leads=()=>{
   } else if (cat === "buses") {
     filteredC = approvedC.filter(c => c.fleetType && (c.fleetType.includes("אוטובוס") || c.fleetType.includes("היסע")));
   }
+
   /* תצוגת שלבי ליד: "ready" = מוכן לפנייה, "stage:<key>" = כל שלב אחר */
-  const stageKey = cat === "ready" ? "ready" : (cat.startsWith("stage:") ? cat.slice(6) : "");
-  /* "מוכן לפנייה" = ready_for_contact=true ב-Supabase (וגם הכללים מאשרים) */
+  const stageKey = (!S.leadActiveFilter && cat === "ready") ? "ready" : (!S.leadActiveFilter && cat.startsWith("stage:") ? cat.slice(6) : "");
   if (stageKey) filteredC = approvedC.filter(c => stageKey === "ready" ? isReady(c) : stageOf(c) === stageKey);
   const stageCounts = {};
   approvedC.forEach(c => { const s = stageOf(c); stageCounts[s] = (stageCounts[s] || 0) + 1; });
@@ -4440,25 +4890,62 @@ V.leads=()=>{
     <span class="xs muted">אין סנכרון אוטומטי ל-CRM – העברה ידנית בלבד, ליד אחר ליד</span>
   </div>
 
+  ${S.leadActiveFilter ? `
+  <div class="active-filter-banner" style="background:linear-gradient(135deg,rgba(37,99,235,0.08),rgba(16,185,129,0.08));border:1.5px solid var(--blue);border-radius:12px;padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:24px">🎯</span>
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--text)">סינון פעיל: ${esc(S.leadActiveFilter.label || "סינון מותאם")}</div>
+        <div class="xs muted" style="margin-top:2px">מוצגים <b class="num" style="color:var(--blue);font-size:13px">${filteredC.length}</b> לידים מאושרים התואמים לקריטריונים</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-sm btn-primary" data-act="copyVerifiedMobiles" data-source="leads" style="font-weight:700;display:inline-flex;align-items:center;gap:6px">
+        📋 העתק ניידים מאומתים (${countVerifiedMobiles(filteredC)})
+      </button>
+      <button class="btn btn-sm" data-act="clearLeadFilter" style="background:var(--card);border:1px solid var(--border)">
+        ✕ נקה סינון / הצג הכל
+      </button>
+      <button class="btn btn-sm btn-ghost" data-tab="dash" style="color:var(--muted)">
+        ← חזור לדשבורד
+      </button>
+    </div>
+  </div>
+  ` : ''}
+
+  <!-- סרגל סינון מהיר והחלפת תצוגה -->
+  <div class="row" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px">
+    <span class="xs bold" style="color:var(--text);margin-inline-end:4px">🔍 סינון מתקדם:</span>
+    ${renderLeadFilterDropdowns()}
+    <span class="spacer"></span>
+    <div class="seg" style="margin-inline-end:6px">
+      <button class="btn btn-sm ${S.leadsViewMode==='table'?'btn-primary':''}" style="${S.leadsViewMode==='table'?'background:var(--blue);color:#fff':''}" data-act="setLeadsViewMode" data-mode="table">📋 טבלה</button>
+      <button class="btn btn-sm ${S.leadsViewMode==='kanban'?'btn-primary':''}" style="${S.leadsViewMode==='kanban'?'background:var(--blue);color:#fff':''}" data-act="setLeadsViewMode" data-mode="kanban">📊 לוח (Kanban)</button>
+    </div>
+    <button class="btn btn-sm btn-primary" data-act="copyVerifiedMobiles" data-source="leads" style="font-size:12px;display:inline-flex;align-items:center;gap:4px">
+      📋 העתק ניידים (${countVerifiedMobiles(filteredC)})
+    </button>
+  </div>
+
   <!-- סרגל סינון קטגוריות ראשי (Category Filter Bar) -->
   <div class="row" style="margin-bottom:14px;flex-wrap:wrap;gap:8px;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px">
     <span class="xs bold" style="color:var(--text);margin-inline-end:4px">קטגוריות ממוקדות:</span>
-    <button class="btn btn-sm" style="${cat==='safety_officer'?'background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="safety_officer">
+    <button class="btn btn-sm" style="${(!S.leadActiveFilter && cat==='safety_officer')?'background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="safety_officer">
       🛡️ מועמדים לבדיקת קצב"ת (${safetyCount})
     </button>
-    <button class="btn btn-sm" style="${cat==='all'?'background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="all">
+    <button class="btn btn-sm" style="${(!S.leadActiveFilter && cat==='all')?'background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="all">
       📋 כל הלידים (${approvedC.length})
     </button>
-    <button class="btn btn-sm" style="${cat==='trucks'?'background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="trucks">
+    <button class="btn btn-sm" style="${(!S.leadActiveFilter && cat==='trucks')?'background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="trucks">
       🚛 ציי משאיות כבדות (${trucksCount})
     </button>
-    <button class="btn btn-sm" style="${cat==='machinery'?'background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="machinery">
+    <button class="btn btn-sm" style="${(!S.leadActiveFilter && cat==='machinery')?'background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="machinery">
       🚜 כלי צמ"ה ועפר (${machineryCount})
     </button>
-    <button class="btn btn-sm" style="${cat==='buses'?'background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="buses">
+    <button class="btn btn-sm" style="${(!S.leadActiveFilter && cat==='buses')?'background:#1d4ed8;color:#fff;border-color:#1d4ed8;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="buses">
       🚌 אוטובוסים והיסעים (${busCount})
     </button>
-    <button class="btn btn-sm" style="${cat==='ready'?'background:#15803d;color:#fff;border-color:#15803d;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="ready">
+    <button class="btn btn-sm" style="${(!S.leadActiveFilter && cat==='ready')?'background:#15803d;color:#fff;border-color:#15803d;font-weight:700':'background:var(--soft);color:var(--text);border:1px solid var(--border)'}" data-lead-cat="ready">
       ✅ מוכן לפנייה (${stageCounts.ready || 0})
     </button>
     <span class="spacer"></span>
@@ -4469,7 +4956,7 @@ V.leads=()=>{
     ${(window.OPQualify ? OPQualify.STAGES : []).map(([k, l]) => `<button class="badge ${STAGE_STY[k]}" style="cursor:pointer;font-size:11.5px;border:${stageKey===k?'2px solid currentColor':'1px solid transparent'}" data-lead-cat="${k==='ready'?'ready':'stage:'+k}">${l} · ${stageCounts[k] || 0}</button>`).join("")}
   </div>
 
-  ${cat === "safety_officer" ? `
+  ${(!S.leadActiveFilter && cat === "safety_officer") ? `
     <!-- באנר הסבר ומעמד חוקי: קצין רכב / קצין בטיחות בתעבורה (תקנה 579) -->
     <div class="card card-b" style="border:1.5px solid #93c5fd;background:linear-gradient(135deg,rgba(59,111,224,0.08),rgba(255,255,255,0.02));margin-bottom:16px;border-radius:12px;padding:14px 18px">
       <div class="row" style="flex-wrap:wrap;gap:12px;align-items:flex-start">
@@ -4501,7 +4988,7 @@ V.leads=()=>{
     </div>
   ` : ''}
 
-  ${stageKey ? stageTable(filteredC, stageKey) : `
+  ${(S.leadsViewMode !== "kanban" || stageKey) ? stageTable(filteredC, S.leadActiveFilter ? S.leadActiveFilter.label : (stageKey ? (window.OPQualify ? OPQualify.STAGE_LABEL[stageKey] : stageKey) : "רשימת לידים מאושרים")) : `
   <!-- לוח KANBAN לניהול הלידים -->
   <div class="board">
     ${STATUSES.map(([k,l])=>{
@@ -4522,6 +5009,14 @@ V.leads=()=>{
               <span class="score ${scoreCls(c.score)}" style="font-size:11px;padding:1px 6px">${c.score}</span>
             </div>
             <div class="xs muted" style="margin-top:2px">${esc(c.city)} · ${esc(c.ind)}</div>
+
+            <div style="margin-top:5px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+              ${renderLeadQualityBadge(c)}
+            </div>
+
+            <div style="margin-top:6px">
+              ${renderContactBadges(c)}
+            </div>
 
             ${soState(c) ? `
               <div style="margin-top:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">${soBadge(c,10.5)}</div>
@@ -4563,59 +5058,83 @@ V.leads=()=>{
   </div>`}`;
 };
 
-/* ===== מסך "מוכן לפנייה" / שלב ליד (טבלה, 50 בעמוד) ===== */
-function stageTable(list, stageKey) {
+/* ===== מסך טבלה לניהול לידים (50 בעמוד) ===== */
+function stageTable(list, stageTitle) {
   const pageSize = 50, pages = Math.max(1, Math.ceil(list.length / pageSize));
   S.stPage = Math.min(Math.max(1, S.stPage || 1), pages);
   const page = list.slice((S.stPage - 1) * pageSize, S.stPage * pageSize);
-  const stLabel = window.OPQualify ? OPQualify.STAGE_LABEL[stageKey] : stageKey;
-  /* ready_for_contact ב-DB שאינו תואם לכללים – מוצג כהתראה, לא כליד מוכן */
-  const readyMismatch = stageKey === "ready" ? C.filter(c => { const q = QF(c); return c.enr && q && (c.enr.ready_for_contact === true) !== q.ready_for_contact; }).length : 0;
-  const mismatchNote = readyMismatch ? `<div class="xs" style="background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:8px;padding:6px 10px;margin:8px 16px">⚠️ ${readyMismatch} לידים: ready_for_contact ב-Supabase אינו תואם לכללי האימות – לא מוצגים כאן עד לבדיקה</div>` : "";
+  const titleDisplay = stageTitle || "רשימת לידים מאושרים";
   const pager = list.length > pageSize ? `<div class="row sm" style="gap:6px;align-items:center">
       <button class="btn btn-sm" data-act="stPrev" ${S.stPage <= 1 ? "disabled" : ""}>◀ עמוד קודם</button>
       <span class="num xs">עמוד ${S.stPage} מתוך ${pages}</span>
       <button class="btn btn-sm" data-act="stNext" ${S.stPage >= pages ? "disabled" : ""}>עמוד הבא ▶</button></div>` : "";
   if (!list.length) {
-    /* למה אין לידים בשלב: החסמים הנפוצים בכל המאגר */
-    const blk = {};
-    C.forEach(c => { const q = QF(c); if (q && q.lead_stage !== "rejected") q.blockers.forEach(b => blk[b] = (blk[b] || 0) + 1); });
-    const top = Object.entries(blk).sort((a, b) => b[1] - a[1]);
-    return `<div class="card">${mismatchNote}<div class="card-b">
-      <h3 style="margin:0 0 6px">אין כרגע לידים בשלב "${esc(stLabel)}"</h3>
-      ${stageKey === "ready" ? `<div class="sm muted" style="line-height:1.6">ליד מוכן לפנייה רק כשכל תנאי החובה מאומתים: חברה רשומה, ח.פ., מקור, טלפון תקין ומאומת, צי רכב מאומת, רלוונטיות לדליה, ללא כפילות וללא פסילה.
-        <br>גודל צי לא מוערך ולא מומצא – יש לאמת צי בשיחה או ממקור מפורש ("מידע חסר / אימות" בכרטיס הליד).</div>
-        <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:10px">${top.map(([b, n]) => `<span class="badge b-est">${esc(b)}: ${n} לידים</span>`).join("")}</div>` : ""}
+    return `<div class="card"><div class="card-b">
+      <h3 style="margin:0 0 6px">אין לידים התואמים לסינון "${esc(titleDisplay)}"</h3>
+      <div class="sm muted">נסה לנקות את הסינון או לבחור חיתוך אחר.</div>
+      <div style="margin-top:10px">
+        <button class="btn btn-sm" data-act="clearLeadFilter">✕ נקה סינון</button>
+      </div>
     </div></div>`;
   }
   return `<div class="card">
-    <div class="card-h"><h2>${stageKey === "ready" ? "✅ מוכן לפנייה" : esc(stLabel)}<span class="h-bar"></span></h2><span class="chip num">${list.length} לידים</span>
-      <span class="xs muted">ללא העברה אוטומטית ל-CRM</span><span class="spacer"></span>${pager}</div>${mismatchNote}
+    <div class="card-h" style="flex-wrap:wrap;gap:8px">
+      <h2><span>${esc(titleDisplay)}</span><span class="h-bar"></span></h2>
+      <span class="chip num">${list.length} לידים</span>
+      <span class="xs muted">סבב 1 · מאגר מאומת מנוהל</span>
+      <span class="spacer"></span>
+      <button class="btn btn-sm btn-primary" data-act="copyVerifiedMobiles" data-source="leads" style="font-size:12px;display:inline-flex;align-items:center;gap:4px">
+        📋 העתק ניידים (${countVerifiedMobiles(list)})
+      </button>
+      ${pager}
+    </div>
     <div class="tbl-wrap"><table class="co"><thead><tr>
-      <th>חברה</th><th>ח.פ.</th><th>טלפון</th><th>מייל</th><th>אתר</th><th>כתובת</th><th>תחום</th><th>צי</th><th>גודל צי</th>
-      <th>איש קשר</th><th>תפקיד</th><th>קצב"ת</th><th>מקור</th><th>רמת אימות</th><th>תאריך אימות</th><th>הערות</th><th>פולו-אפ / CRM</th></tr></thead><tbody>
-      ${page.map(c => { const q = QF(c) || { field_status: {}, source_list: [] }; const fs = q.field_status; const e = c.enr || {};
+      <th style="min-width:180px">חברה ואיכות ליד</th>
+      <th style="min-width:190px">ערוצי התקשרות</th>
+      <th>עיר · תחום</th>
+      <th>צי רכב</th>
+      <th>גודל צי</th>
+      <th>איש קשר</th>
+      <th>קצב"ת</th>
+      <th>מקור ואימות</th>
+      <th>פולו-אפ / CRM</th></tr></thead><tbody>
+      ${page.map(c => {
+        const q = QF(c) || { field_status: {}, source_list: [] };
+        const fs = q.field_status || {};
+        const e = c.enr || {};
         const cell = (k, v) => `${esc(String(v || "")) || '<span class="faint">—</span>'}${fs[k] && fs[k].s === "f" ? ' <span class="badge b-est" style="font-size:9.5px">דורש אימות</span>' : ""}`;
         return `<tr data-co="${c.id}">
-        <td class="co-main"><b>${esc(c.name)}</b><div>${stageBadge(c, 9.5)}</div></td>
-        <td class="num xs" data-label="ח.פ."><span class="ltr">${esc(c.no)}</span></td>
-        <td class="xs" data-label="טלפון"><span class="ltr">${cell("phone", fs.phone && fs.phone.s !== "n" ? c.phone : "")}</span></td>
-        <td class="xs" data-label="מייל"><span class="ltr">${cell("email", c.mail)}</span></td>
-        <td class="xs hide-m" data-label="אתר"><span class="ltr">${cell("website", c.web || e.website)}</span></td>
-        <td class="xs hide-m" data-label="כתובת">${esc(c.addr || "")}</td>
-        <td class="xs hide-m" data-label="תחום">${esc((fs.relevance && fs.relevance.val) || c.ind)}</td>
+        <td class="co-main">
+          <b>${esc(c.name)}</b>
+          <div class="xs muted">ח.פ. <span class="ltr num">${esc(c.no)}</span></div>
+          <div style="margin-top:4px">${renderLeadQualityBadge(c)}</div>
+        </td>
+        <td class="xs" data-label="ערוצי התקשרות">
+          ${renderContactBadges(c)}
+        </td>
+        <td class="xs hide-m" data-label="עיר · תחום">${esc(c.city || "")}<div class="faint">${esc((fs.relevance && fs.relevance.val) || c.ind)}</div></td>
         <td data-label="צי">${fleetCell(c, true)}</td>
-        <td class="num xs" data-label="גודל צי">${fs.fleet_size && fs.fleet_size.s !== "n" ? esc(String(fs.fleet_size.val)) + (fs.fleet_size.s === "f" ? ' <span class="badge b-est" style="font-size:9.5px">דורש אימות</span>' : "") : '<span class="faint">לא ידוע</span>'}</td>
-        <td class="xs" data-label="איש קשר">${cell("contact_name", e.contact_name)}</td>
-        <td class="xs" data-label="תפקיד">${cell("contact_role", e.contact_role)}</td>
+        <td class="num xs" data-label="גודל צי">${fs.fleet_size && fs.fleet_size.s !== "n" ? esc(String(fs.fleet_size.val)) : '<span class="faint">לא ידוע</span>'}</td>
+        <td class="xs" data-label="איש קשר">
+          <div>${cell("contact_name", e.contact_name)}</div>
+          ${e.contact_role ? `<div class="faint xs">${esc(e.contact_role)}</div>` : ''}
+        </td>
         <td class="xs" data-label="קצב&quot;ת">${officerCell(c, "safety_officer")}</td>
-        <td class="xs" data-label="מקור">${esc((q.source_list || []).join(" + ") || "—")}</td>
-        <td class="xs hide-m" data-label="רמת אימות">${verifBadge(c, 10)} · Tier ${esc(q.tier || "—")}</td>
-        <td class="num xs" data-label="תאריך אימות">${esc(e.verification_date || "—")}</td>
-        <td class="xs hide-m" data-label="הערות">${esc(c.notes || "")}</td>
-        <td class="co-actions">${crmHandoffBtn(c, true)}</td></tr>`; }).join("")}
+        <td class="xs hide-m" data-label="מקור ואימות">
+          <div class="xs">${esc((q.source_list || []).join(" + ") || "—")}</div>
+          <div style="margin-top:2px">${verifBadge(c, 10)}</div>
+        </td>
+        <td class="co-actions">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <select class="input" style="height:28px;font-size:11.5px;padding:2px 6px" data-status="${c.id}" aria-label="שינוי סטטוס">
+              ${STATUSES.map(([kk,ll])=>`<option value="${kk}" ${kk===c.status?"selected":""}>${ll}</option>`).join("")}
+            </select>
+            ${crmHandoffBtn(c, true)}
+          </div>
+        </td></tr>`;
+      }).join("")}
     </tbody></table></div>
-    ${pager ? `<div class="row" style="padding:10px 16px;border-top:1px solid var(--border)"><span class="spacer"></span>${pager}</div>` : ""}
+    ${pager ? `<div class="row" style="padding:10px 16px;border-top:1px solid var(--border);align-items:center"><span class="xs muted">מוצגים ${page.length} לידים מתוך ${list.length}</span><span class="spacer"></span>${pager}</div>` : ""}
   </div>`;
 }
 
@@ -7618,6 +8137,54 @@ document.addEventListener("click",e=>{
       runSearch();
       return;
     }
+    case "dashCardClick":{
+      const cardId = d.cardId;
+      const card = DASH_CARDS_MAP[cardId];
+      if (!card) return;
+      if (card.targetTab === "companies") {
+        S.view = "prospector";
+        S.tab = "companies";
+        S.coFilter = { q: "", ...Object.fromEntries(CO_FILTERS.map(k => [k, ""])), ...card.filter };
+        S.coActiveFilterTitle = card.label;
+        S.coPage = 1;
+        render();
+        window.scrollTo(0, 0);
+      } else {
+        S.view = "prospector";
+        S.tab = "leads";
+        S.leadActiveFilter = { id: card.id, label: card.label, ...card.filter };
+        S.leadCategory = "all";
+        S.leadsViewMode = "table";
+        S.stPage = 1;
+        render();
+        window.scrollTo(0, 0);
+      }
+      return;
+    }
+    case "clearLeadFilter":{
+      S.leadActiveFilter = null;
+      S.stPage = 1;
+      render();
+      toast("הסינון בוטל — מוצגים כל הלידים");
+      return;
+    }
+    case "setLeadsViewMode":{
+      S.leadsViewMode = d.mode || "table";
+      render();
+      return;
+    }
+    case "copyVerifiedMobiles":{
+      const src = d.source;
+      let targetList = [];
+      if (src === "companies") {
+        targetList = C.filter(c => coMatch(c, S.coFilter));
+      } else {
+        const approvedC = C.filter(c => c.isApprovedLead !== false);
+        targetList = S.leadActiveFilter ? approvedC.filter(c => matchLeadFilter(c, S.leadActiveFilter)) : approvedC;
+      }
+      copyVerifiedMobilesFromList(targetList);
+      return;
+    }
     case "goToCompaniesTab":{
       S.view = "prospector";
       S.tab = "companies";
@@ -8194,7 +8761,16 @@ document.addEventListener("change",e=>{
   }
   if(t.dataset.aiOn){const a=AI.find(x=>x.id===t.dataset.aiOn);a.on=t.checked;a.status=t.checked?"ok":"off";if(!t.checked&&a.def){a.def=false;AI.find(x=>x.on).def=true}render();return}
   if(t.dataset.aiModel){AI.find(x=>x.id===t.dataset.aiModel).model=t.value;renderNav();return}
-  if(t.id&&t.id.startsWith("f-")&&CO_FILTERS.includes(t.id.slice(2))){S.coFilter[t.id.slice(2)]=t.value;S.coPage=1;$("#view").innerHTML=V.companies();}
+  if(t.id&&t.id.startsWith("f-")&&CO_FILTERS.includes(t.id.slice(2))){S.coFilter[t.id.slice(2)]=t.value;S.coPage=1;$("#view").innerHTML=V.companies();return;}
+  if(t.id&&t.id.startsWith("lead-f-")){
+    const k = t.id.slice(7);
+    if(!S.leadActiveFilter) S.leadActiveFilter = {};
+    S.leadActiveFilter[k] = t.value;
+    S.leadActiveFilter.label = "סינון מותאם";
+    S.stPage = 1;
+    $("#view").innerHTML = V.leads();
+    return;
+  }
 });
 
 document.addEventListener("input",e=>{
