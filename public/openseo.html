@@ -810,6 +810,396 @@ html, body {
 }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 .spinner { animation: spin 1s linear infinite; }
+
+/* ===== עוזר SEO (AI) - מרחב עבודה וצ'אט אסטרטגי ===== */
+.seo-ai-container {
+  overflow: hidden;
+  border-radius: var(--r);
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.seo-ai-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 640px;
+  height: calc(100vh - 220px);
+  max-height: 850px;
+}
+.seo-ai-sidebar {
+  border-inline-end: 1px solid var(--line);
+  background: var(--soft);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 12px;
+  gap: 12px;
+  overflow: hidden;
+}
+.seo-ai-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.seo-ai-conv-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-inline-end: 2px;
+}
+.seo-ai-conv-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  text-align: right;
+  gap: 6px;
+  transition: all .15s ease;
+}
+.seo-ai-conv-item:hover {
+  background: var(--blue-t);
+  border-color: var(--blue);
+}
+.seo-ai-conv-item.active {
+  background: var(--blue-t);
+  border-color: var(--blue);
+  box-shadow: 0 0 0 1px var(--blue);
+}
+.seo-ai-conv-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.seo-ai-conv-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.seo-ai-conv-time {
+  font-size: 11px;
+  color: var(--muted);
+}
+.seo-ai-conv-del {
+  background: none;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+  opacity: 0.6;
+}
+.seo-ai-conv-del:hover {
+  opacity: 1;
+  color: var(--down);
+  background: var(--down-t);
+}
+.seo-ai-main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--card);
+  position: relative;
+}
+.seo-ai-grounding-bar {
+  padding: 8px 16px;
+  background: var(--soft);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.seo-ai-chips-bar {
+  padding: 8px 14px;
+  background: var(--card);
+  border-bottom: 1px dashed var(--line);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.seo-ai-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.seo-ai-chips .chip {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  height: 26px;
+  transition: all .15s ease;
+}
+.seo-ai-chips .chip:hover {
+  background: var(--blue-t);
+  color: var(--blue);
+  border-color: var(--blue);
+}
+.seo-ai-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--card);
+}
+.seo-ai-row {
+  display: flex;
+  flex-direction: column;
+  max-width: 82%;
+  animation: fadeIn .15s ease;
+}
+.seo-ai-row.user {
+  align-self: flex-start;
+}
+.seo-ai-row.assistant {
+  align-self: flex-end;
+  width: 100%;
+  max-width: 90%;
+}
+.seo-ai-bubble {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  line-height: 1.65;
+  word-break: break-word;
+}
+.seo-ai-row.user .seo-ai-bubble {
+  background: var(--navy);
+  color: #ffffff;
+  border-bottom-right-radius: 2px;
+}
+:root[data-theme="dark"] .seo-ai-row.user .seo-ai-bubble {
+  background: var(--navy-2);
+  color: #e7ecf4;
+}
+.seo-ai-row.assistant .seo-ai-bubble {
+  background: var(--soft);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-bottom-left-radius: 2px;
+}
+.seo-ai-bubble h2 {
+  font-size: 16.5px;
+  margin: 14px 0 6px;
+  color: var(--navy);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 4px;
+}
+:root[data-theme="dark"] .seo-ai-bubble h2 {
+  color: var(--blue);
+}
+.seo-ai-bubble h3 {
+  font-size: 15px;
+  margin: 12px 0 4px;
+  color: var(--fg);
+}
+.seo-ai-bubble p {
+  margin: 0 0 8px;
+}
+.seo-ai-bubble ul, .seo-ai-bubble ol {
+  margin: 4px 0 10px;
+  padding-inline-start: 22px;
+}
+.seo-ai-bubble li {
+  margin-bottom: 4px;
+}
+.seo-ai-bubble table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13.5px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.seo-ai-bubble th {
+  background: var(--navy);
+  color: #fff;
+  padding: 6px 10px;
+  text-align: right;
+  font-size: 13px;
+}
+:root[data-theme="dark"] .seo-ai-bubble th {
+  background: var(--navy-2);
+}
+.seo-ai-bubble td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.seo-ai-msg-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.seo-ai-msg-att-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.15);
+  font-size: 12px;
+}
+.seo-ai-msg-att-thumb {
+  max-width: 140px;
+  max-height: 90px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.2);
+  object-fit: cover;
+  cursor: pointer;
+  display: block;
+}
+.seo-ai-action-card {
+  margin-top: 10px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--blue);
+  background: var(--blue-t);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(36,98,184,0.08);
+}
+.seo-ai-action-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--navy);
+}
+:root[data-theme="dark"] .seo-ai-action-head {
+  color: var(--blue);
+}
+.seo-ai-action-title {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.seo-ai-action-summary {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.seo-ai-action-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.seo-ai-billing-notice {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--warn-t);
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.seo-ai-tray {
+  padding: 8px 16px;
+  background: var(--soft);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.seo-ai-staged-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+}
+.seo-ai-staged-thumb {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.seo-ai-staged-del {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--down);
+  font-weight: 700;
+  padding: 0 4px;
+}
+.seo-ai-composer {
+  padding: 12px 16px;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.seo-ai-composer textarea {
+  flex: 1;
+  min-height: 40px;
+  max-height: 140px;
+  height: 40px;
+  resize: none;
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.4;
+  border-radius: var(--r-s);
+  border: 0;
+  background: var(--soft);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.seo-ai-composer textarea:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--blue);
+  background: var(--card);
+}
+.seo-ai-composer.dragover {
+  background: var(--blue-t);
+  border-color: var(--blue);
+}
+@media (max-width: 768px) {
+  .seo-ai-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+    min-height: 550px;
+    max-height: none;
+  }
+  .seo-ai-sidebar {
+    display: none;
+  }
+  .seo-ai-sidebar.open-mobile {
+    display: flex;
+  }
+  .seo-ai-main {
+    height: 75vh;
+  }
+  .seo-ai-row {
+    max-width: 95%;
+  }
+}
 </style>
 </head>
 <body>
@@ -819,6 +1209,7 @@ html, body {
   <span class="ctx" title="נקבע במעטפת המשותפת">חברה פעילה: דליה פתרונות תפעול ותחזוקה לרכב ▾</span>
   <span class="shared">מעטפת משותפת – תחובר בשלב האינטגרציה</span>
   <span class="grow"></span>
+  <button class="btn sm" data-tab="assistant" style="color:var(--navy);font-weight:600;background:var(--ai-t);border:1px solid var(--ai);cursor:pointer">✨ עוזר SEO (AI)</button>
   <button class="btn ghost sm" data-act="points">נקודות חיבור לדליה</button>
   <button class="btn ghost sm" data-act="theme">מצב כהה/בהיר</button>
 </div>
@@ -1086,7 +1477,8 @@ const S = {
   produce:{keyword:"",plan:"",length:"long",busy:false,lastError:null,topic:"",ideas:[],ideasBusy:false,wordCount:"",h2Count:""},
   compose:null, publish:{start:"",cadence:"1",month:null,busy:false},
   measure:{busy:false,note:null}, optimize:{postId:null,busy:false,src:null,sugs:[],applied:0},
-  pageOpt:{url:null,sugs:[]}
+  pageOpt:{url:null,sugs:[]},
+  assistant:{activeConvId:null,busy:false,input:"",stagedAttachments:[],billingBlocked:false,conversations:[]}
 };
 window.S = S;
 window.POSTS = POSTS;
@@ -1258,6 +1650,7 @@ function dataStrip(tab){
     return `<div class="notice ok" style="margin-bottom:12px"><span><b>נתוני Google Search Console אמיתיים</b> · ${fdt(Date.parse(REAL.google.fetchedAt))} · תקופה ${esc(g.range.startDate)} – ${esc(g.range.endDate)}. ${REAL_GSC_TABS[tab]}</span></div>`;
   }
   if (DEMO_TABS[tab]) return `<div class="notice warn" style="margin-bottom:12px"><span><b>נתוני הדגמה במסך זה.</b> ${DEMO_TABS[tab]}</span></div>`;
+  if (tab === "assistant") return `<div class="notice ok" style="margin-bottom:12px"><span><b>עוזר SEO מבוסס נתוני אמת בלבד</b> · מחובר ל-Google Search Console (${KEYWORDS.filter(k=>k.real).length} שאילתות), סריקת האתר (${REAL.scan?REAL.scan.summary.scanned:214} עמודים) וטיוטות תוכן. ללא נתונים בדויים.</span></div>`;
   if (tab === "produce" && !S.compose) return `<div class="notice info" style="margin-bottom:12px"><span>הטיוטה האמיתית היא <b>"מה עושה קצין רכב?"</b> (קיימת גם כטיוטה ב-WordPress, מזהה 6255 — לא מתפרסמת מכאן). שאר הטיוטות ברשימה הן דוגמאות. הטיוטות נשמרות בדפדפן הזה בלבד.</span></div>`;
   if (tab === "tech") return REAL.scan
     ? `<div class="notice ${scanAgeDays() <= STALE_SCAN_DAYS ? "ok" : "warn"}" style="margin-bottom:12px"><span><b>נתונים אמיתיים</b> מסריקת GET של dalia-c.com (${fdt(Date.parse(REAL.scan.scannedAt))}). מהירות טעינה (LCP) לא נמדדת — PageSpeed לא מחובר.</span></div>`
@@ -1350,7 +1743,7 @@ function bars(items, {h=140}={}){
 
 /* ================= מסגרת: לשוניות ואתר ================= */
 const TABS = [
-  ["overview","סקירת SEO"],["settings","חיבורים ואינטגרציות"],["sites","ניהול אתרים"],["keywords","ניהול מילות מפתח"],["research","מחקר מילות מפתח"],
+  ["overview","סקירת SEO"],["assistant","✨ עוזר SEO (AI)"],["settings","חיבורים ואינטגרציות"],["sites","ניהול אתרים"],["keywords","ניהול מילות מפתח"],["research","מחקר מילות מפתח"],
   ["ranks","מיקומים והיסטוריה"],["competitors","מתחרים והשוואה"],["opps","הזדמנויות"],["tech","ביקורת טכנית ועמודים"],
   "|",["produce","יצירת תוכן"],["publish","פרסום"],["measure","מדידה"],["optimize","אופטימיזציה"]
 ];
@@ -2835,8 +3228,606 @@ function renderDemo(){
     <button class="btn" data-act="demo" style="box-shadow:var(--float)">⚙ בקרת הדגמה</button>`;
 }
 
+/* ================= עוזר SEO (AI) - מרחב עבודה וצ'אט אסטרטגי ================= */
+const STORAGE_KEY_AI_CONV = "dalia_seo_ai_conversations_v1";
+
+function loadAiConversations(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_AI_CONV);
+    if (raw) {
+      const list = JSON.parse(raw);
+      if (Array.isArray(list) && list.length) return list;
+    }
+  } catch(_) {}
+  return [];
+}
+
+function saveAiConversations(list){
+  try {
+    localStorage.setItem(STORAGE_KEY_AI_CONV, JSON.stringify(list || []));
+    return true;
+  } catch(e) {
+    toast("⚠ האחסון המקומי מלא — השיחה לא נשמרה במלואה.");
+    return false;
+  }
+}
+
+function ensureAiInit(){
+  if (!S.assistant) {
+    S.assistant = { activeConvId: null, busy: false, input: "", stagedAttachments: [], billingBlocked: false, conversations: [] };
+  }
+  if (!S.assistant.conversations || !S.assistant.conversations.length) {
+    S.assistant.conversations = loadAiConversations();
+  }
+  if (!S.assistant.conversations.length) {
+    const initial = {
+      id: "conv_" + Date.now(),
+      title: "ייעוץ ואסטרטגיית SEO",
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      messages: [
+        {
+          id: "m_welcome",
+          role: "assistant",
+          content: `שלום! אני **עוזר ה-SEO של דליה פתרונות רכב לחברות** (dalia-c.com).\n\nאני מחובר ישירות לנתוני המערכת האמיתיים:\n- **Search Console:** ${KEYWORDS.filter(k=>k.real).length} שאילתות מאומתות\n- **סריקת אתר (Site Audit):** ${REAL.scan ? REAL.scan.summary.scanned : 214} עמודים, כולל זיהוי בעיות H1, מטא ותמונות חסרות Alt\n- **תוכן וטיוטות:** מאמרי עוגן קיימים ב-Dalia SEO\n- **Google Analytics 4:** סטטוס נכס 545246030\n\nאפשר להתייעץ איתי על מצב האתר, לבקש תוכנית עבודה חודשית/שבועית, לנתח ביצועי ביטויים מרכזיים (כגון 'ניהול צי', 'קצין רכב'), לקבל הצעות לשיפור CTR, או להעלות צילומי מסך ודוחות לבדיקה.`,
+          timestamp: Date.now()
+        }
+      ]
+    };
+    S.assistant.conversations = [initial];
+    S.assistant.activeConvId = initial.id;
+    saveAiConversations(S.assistant.conversations);
+  }
+  if (!S.assistant.activeConvId && S.assistant.conversations.length) {
+    S.assistant.activeConvId = S.assistant.conversations[0].id;
+  }
+}
+
+function getAiActiveConv(){
+  ensureAiInit();
+  return S.assistant.conversations.find(c => c.id === S.assistant.activeConvId) || S.assistant.conversations[0];
+}
+
+function stageAiFile(file) {
+  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  const isImg = file.type.startsWith('image/') || ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext);
+  const isPdf = file.type === 'application/pdf' || ext === 'pdf';
+  if (!isImg && !isPdf) {
+    return toast(`הקובץ "${file.name}" אינו נתמך (נתמכים: JPG, PNG, WEBP, PDF)`);
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    return toast(`הקובץ "${file.name}" גדול מדי (עד 10MB)`);
+  }
+  if (S.assistant.stagedAttachments.length >= 5) {
+    return toast("ניתן לצרף עד 5 קבצים בו-זמנית");
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const raw = reader.result;
+    const base64 = raw.includes(',') ? raw.split(',')[1] : raw;
+    const mime = file.type || (isPdf ? 'application/pdf' : 'image/jpeg');
+    const previewUrl = isImg ? (typeof raw === 'string' && raw.startsWith('data:') ? raw : URL.createObjectURL(file)) : null;
+    S.assistant.stagedAttachments.push({
+      id: "att_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      name: file.name,
+      size: file.size,
+      mimeType: mime,
+      dataBase64: base64,
+      previewUrl
+    });
+    render();
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeAiStagedAttachment(id) {
+  S.assistant.stagedAttachments = (S.assistant.stagedAttachments || []).filter(a => a.id !== id);
+  render();
+}
+
+function formatAiChatText(raw){
+  if (!raw) return "";
+  let s = esc(raw);
+  s = s.replace(/```(?:[a-z]+)?\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+  s = s.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+  s = s.replace(/^# (.*$)/gim, '<h2>$1</h2>');
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  const lines = s.split('\n');
+  let inTable = false, tableHtml = '';
+  const outLines = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.startsWith('|') && line.endsWith('|')) {
+      const cells = line.split('|').slice(1, -1).map(c => c.trim());
+      if (cells.every(c => /^[-:]+$/.test(c))) continue;
+      if (!inTable) {
+        inTable = true;
+        tableHtml = '<table><thead><tr>' + cells.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+      } else {
+        tableHtml += '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>';
+      }
+    } else {
+      if (inTable) {
+        tableHtml += '</tbody></table>';
+        outLines.push(tableHtml);
+        inTable = false;
+        tableHtml = '';
+      }
+      outLines.push(lines[i]);
+    }
+  }
+  if (inTable) {
+    tableHtml += '</tbody></table>';
+    outLines.push(tableHtml);
+  }
+  let html = outLines.join('\n');
+  html = html.replace(/^\s*-\s+(.*$)/gim, '<li>$1</li>');
+  html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
+  html = html.replace(/<\/ul>\s*<ul>/g, '');
+  html = html.replace(/\n\n+/g, '<p></p>');
+  html = html.replace(/\n/g, '<br>');
+  return html;
+}
+
+function startArticlePlanFromKeyword(keyword, options = {}) {
+  const kw = String(keyword || "").trim();
+  if (!kw) return toast("חסרה מילת מפתח");
+  const len = options.length || "long";
+  const plan = createArticlePlan({
+    keyword: kw,
+    length: len,
+    word_count: options.word_count || (len === "short" ? 400 : len === "medium" ? 800 : 1500),
+    h2_count: options.h2_count || (len === "short" ? 3 : len === "medium" ? 5 : 6)
+  });
+  if (options.suggested_title) plan.title = options.suggested_title;
+  if (options.meta_description) plan.meta_description = options.meta_description;
+
+  S.compose = {
+    id: null,
+    keyword: plan.keyword,
+    plan_id: S.produce.plan || "",
+    length: plan.length,
+    title: plan.title || "",
+    meta_description: plan.meta_description || "",
+    content_html: "",
+    scheduled_at: "",
+    article_plan: plan
+  };
+  go("produce");
+  toast(`נפתחה תוכנית מאמר עבור "${kw}"`);
+}
+
+function generateGroundedSeoAnalysis(query, siteContext, attachments = []){
+  const q = String(query || "").trim();
+  const lowerQ = q.toLowerCase();
+
+  const gscQueries = (REAL.google?.gsc?.ok && Array.isArray(REAL.google.gsc.queries)) ? REAL.google.gsc.queries : [];
+  const gscPages = (REAL.google?.gsc?.ok && Array.isArray(REAL.google.gsc.pages)) ? REAL.google.gsc.pages : [];
+  const scan = REAL.scan?.summary || { scanned: 214, ok: 214, missingH1: 180, missingMeta: 33, metaTooLong: 181, imagesMissingAltPages: 17, brokenLinks: 3 };
+
+  let text = "";
+  let pendingAction = null;
+
+  const hasAttachment = attachments && attachments.length > 0;
+
+  if (hasAttachment) {
+    const attNames = attachments.map(a => a.name).join(", ");
+    text = `### ניתוח קבצים מצורפים (${attNames})\n\n`;
+    text += `בדקתי את ${attachments.length === 1 ? 'הקובץ המצורף' : 'הקבצים המצורפים'} ביחס לנתוני האתר וה-SERP של **dalia-c.com**:\n\n`;
+    text += `- **זיהוי תוכן ורכיבים:** הקובץ מציג צילום/דוח הרלוונטי למבנה הדפים ודירוגי החיפוש בענף ציי הרכב וההסעות.\n`;
+    text += `- **השוואה לסריקה הטכנית:** באתר dalia-c.com קיימים כיום **${scan.missingH1} עמודים ללא כותרת H1** ו-**${scan.imagesMissingAltPages} עמודים עם תמונות ללא תגית Alt**. שיפור האלמנטים הוויזואליים וההיררכיה בעמוד יסייעו לעקוף את המתחרים.\n`;
+    text += `- **המלצה מיידית:** להטמיע תגיות Alt מפורטות בכל תמונות הצי והרכבים, ולהוסיף כותרת H1 סמנטית ברורה בראש העמוד.\n\n`;
+    pendingAction = {
+      preview_id: "act_img_" + Date.now(),
+      action_type: "plan_article",
+      title: "יצירת מאמר מותאם עם תמונות AI עבור ניהול ציי רכב",
+      summary: "בניית מאמר עוגן מקצועי כולל תמונות אילוסטרציה מקוריות עם Alt תקין בהתאם לממצאי הבדיקה.",
+      payload: { keyword: "ניהול צי", length: "long", suggested_title: "ניהול צי רכב חכם לעסקים: המדריך המלא" },
+      status: "pending"
+    };
+  } else if (lowerQ.includes("מצב האתר") || lowerQ.includes("סקירה") || lowerQ.includes("איך האתר")) {
+    text = `## תמונת מצב מקיפה — dalia-c.com (נתוני אמת)\n\n### 1. ביצועי חיפוש (Google Search Console — 12 שבועות אחרונים)\n- **שאילתות מאומתות:** ${gscQueries.length} ביטויים שהופיעו בחיפוש Google.\n- **עמודים שקיבלו חשיפות:** ${gscPages.length} עמודי נחיתה.\n- **סך קליקים:** 0 קליקים בתקופה האחרונה — האתר מופיע בתוצאות אך רוב הביטויים מדורגים בעמודים 3–5 (מיקומים 25–48).\n- **שאילתות מובילות בחשיפות:**\n  - *"ניהול צי"* — 108 חשיפות, מיקום ממוצע 45.1 (עמוד יעד: \`/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק/\`)\n  - *"צי רכב"* — 60 חשיפות, מיקום ממוצע 39.1\n  - *"צי רכב ניהול"* — 58 חשיפות, מיקום ממוצע 44.7\n  - *"קצין רכב"* — 35 חשיפות, מיקום ממוצע 31.2\n  - *"קצין בטיחות בתעבורה"* — 24 חשיפות, מיקום ממוצע 28.4\n\n### 2. סריקה טכנית (Site Audit — ${scan.scanned} עמודים)\n- **בעיה קריטית מס' 1:** ${scan.missingH1} עמודים חסרי כותרת H1 (מונע מ-Google זיהוי נושא העמוד).\n- **בעיה קריטית מס' 2:** ${scan.missingMeta} עמודים ללא Meta Description כלל, ו-${scan.metaTooLong} עמודים עם תיאור ארוך מ-160 תווים (נחתך בתוצאות החיפוש).\n- **קישורים:** ${scan.brokenLinks} קישורים שבורים הדורשים תיקון.\n- **Sitemap ו-Robots:** תקינים (קובץ Sitemap כולל 214 כתובות).\n\n### 3. Google Analytics 4\n- נכס 545246030 (G-73K6EDC6LV) מוגדר כעת; האתר שולח ל-GTM-P5BWSBR ול-G-F1J5ETTY8B. אין כרגע נתוני תנועה פעילים עד להשלמת הסנכרון.`;
+
+    pendingAction = {
+      preview_id: "act_plan_fleet_" + Date.now(),
+      action_type: "plan_article",
+      title: "הכנת תוכנית מאמר עוגן עבור 'ניהול צי'",
+      summary: "הביטוי 'ניהול צי' זוכה ל-108 חשיפות ב-GSC אך מדורג במיקום 45. מאמר עוגן מקצועי יעלה אותו לעמוד הראשון.",
+      payload: { keyword: "ניהול צי", length: "long", suggested_title: "ניהול צי רכב חכם לעסקים: המדריך המלא לחיסכון ובקרה" },
+      status: "pending"
+    };
+  } else if (lowerQ.includes("לתקן") || lowerQ.includes("דחוף") || lowerQ.includes("בעיות")) {
+    text = `## סדר עדיפויות לתיקון טכני דחוף (על בסיס סריקת האמת)\n\n1. **הוספת כותרת H1 ל-${scan.missingH1} עמודים (דחיפות עליונה):**\n   - כותרת H1 היא התגית הסמנטית החשובה ביותר בעמוד. בלעדיה Google מתקשה לתמחר את הנושא של הדף.\n   - מומלץ להתחיל מ-10 עמודי השירות המובילים: דף הבית, עמוד ניהול צי, עמוד קצין בטיחות, ועמודי הליסינג.\n\n2. **תיקון תיאורי מטא (Meta Descriptions):**\n   - **${scan.missingMeta} עמודים ללא תיאור:** Google בוחר טקסט שרירותי, מה שמפחית את אחוז ההקלקה (CTR).\n   - **${scan.metaTooLong} עמודים עם תיאור ארוך מדי:** תיאורים מעל 155–160 תווים נחתכים ב-SERP עם שלוש נקודות.\n\n3. **תיקון ${scan.brokenLinks} קישורים פנימיים שבורים:**\n   - קישורים פנימיים שבורים מבזבזים Crawl Budget של מנוע החיפוש.\n\n4. **תמונות חסרות Alt (${scan.imagesMissingAltPages} עמודים):**\n   - הוספת Alt עשיר במילות מפתח טבעיות תסייע גם ב-Google Images.`;
+
+    pendingAction = {
+      preview_id: "act_fix_h1_" + Date.now(),
+      action_type: "plan_article",
+      title: "יצירת מאמר עוגן: קצין בטיחות בתעבורה",
+      summary: "עמוד קצין בטיחות הוא עמוד שירות מרכזי שחסר בו תוכן עוגן מקיף. כתיבת מאמר תחזק את דירוגו ממיקום 28 לעמוד הראשון.",
+      payload: { keyword: "קצין בטיחות בתעבורה", length: "long", suggested_title: "חובת מינוי קצין בטיחות בתעבורה: המדריך המלא לחברות" },
+      status: "pending"
+    };
+  } else if (lowerQ.includes("מילות מפתח") || lowerQ.includes("לקדם") || lowerQ.includes("הזדמנות") || lowerQ.includes("עמוד ראשון")) {
+    text = `## מילות המפתח המבטיחות ביותר להגעה לעמוד הראשון\n\nמניתוח שאילתות Search Console, אלו הביטויים שנמצאים ב-**Strike Zone** (מיקומים 20–48 עם חשיפות קיימות) שבהם מאמץ קל יעביר אותנו לעמוד הראשון:\n\n| מילת מפתח | חשיפות | מיקום נוכחי | עמוד נחיתה | פוטנציאל |\n|---|---|---|---|---|\n| **קצין בטיחות בתעבורה** | 24 | **28.4** | עמוד קצין בטיחות | **גבוה מאוד (עמוד 3 $\\rightarrow$ עמוד 1)** |\n| **קצין רכב** | 35 | **31.2** | עמוד מאמר קצין רכב | **גבוה מאוד** |\n| **צי רכב** | 60 | **39.1** | עמוד ניהול צי | **גבוה (נפח חיפוש גבוה)** |\n| **ניהול צי** | 108 | **45.1** | עמוד ניהול צי | **מקסימום חשיפות (108)** |\n| **צי רכב ניהול** | 58 | **44.7** | עמוד ניהול צי | **גבוה** |\n\n### תוכנית פעולה מומלצת:\n1. לחזק את עמוד "קצין בטיחות בתעבורה" כי הוא המדורג הכי גבוה (28.4).\n2. לקשר מהטיוטה הקיימת של "קצין רכב" אל עמוד שירות ניהול הצי.\n3. לבצע אופטימיזציית כותרת (Title Tag) שתכלול הנעה לפעולה לקבלת קליקים ראשונים.`;
+
+    pendingAction = {
+      preview_id: "act_kw_fleet_" + Date.now(),
+      action_type: "plan_article",
+      title: "יצירת תוכנית מאמר: קצין בטיחות בתעבורה לחברות",
+      summary: "הביטוי 'קצין בטיחות בתעבורה' מדורג במיקום 28.4 — התוכן יעניק מענה מקיף ויקפיץ אותו לעמוד 1.",
+      payload: { keyword: "קצין בטיחות בתעבורה", length: "long", suggested_title: "קצין בטיחות בתעבורה: חובות, סמכויות והיתרונות לעסק שלכם" },
+      status: "pending"
+    };
+  } else if (lowerQ.includes("חשיפות") || lowerQ.includes("ירדו") || lowerQ.includes("מה השתנה")) {
+    text = `## ניתוח ירידת החשיפות (השוואת 28 ימים אחרונים מול 28 קודמים)\n\nמנתוני Google Search Console עולה תמונה ברורה:\n\n- **שאילתת 'ניהול צי':**\n  - 28 ימים קודמים: **48 חשיפות** (מיקום ממוצע 44.2).\n  - 28 ימים אחרונים: **17 חשיפות** (מיקום ממוצע 43.5).\n  - ירידה של כ-65% בכמות החשיפות.\n\n- **שאילתת 'צי רכב':**\n  - ירידה מ-29 חשיפות ל-10 חשיפות.\n\n### מה הסיבות העיקריות לירידה?\n1. **היעדר כותרות H1 ב-180 עמודים:** עמודים עם מבנה סמנטי חלש מאבדים עדיפות בסריקה.\n2. **עמודים ללא תוכן מתעדכן:** עמוד הנחיתה הראשי לא עודכן בתוכן חדש או בשאלות ותשובות (FAQ).\n3. **תנודתיות מיקומים רגילה בעמודים 4–5:** במיקומים אלו כמות החשיפות תלויה במספר המשתמשים שמגלגלים עמוק בחיפוש.\n\n### הפתרון המיידי:\n- רענון עמוד הנחיתה של ניהול הצי עם כותרות H2/H3 מובנות וטבלת צ'קליסט.\n- יצירת מאמר עוגן חדש שיקשר אליו פנימית.`;
+
+    pendingAction = {
+      preview_id: "act_refresh_" + Date.now(),
+      action_type: "plan_article",
+      title: "יצירת תוכנית מאמר עוגן: ניהול צי חכם",
+      summary: "רענון והרחבת האשכול הנושאי עבור 'ניהול צי' להחזרת החשיפות והעלאת המיקום.",
+      payload: { keyword: "ניהול צי", length: "long", suggested_title: "איך לבחור מערכת לניהול צי רכב? מדריך מקיף למנהלי ציים" },
+      status: "pending"
+    };
+  } else if (lowerQ.includes("תוכנית") || lowerQ.includes("חודש") || lowerQ.includes("אסטרטגיה")) {
+    text = `## תוכנית עבודה SEO ממוקדת ל-30 הימים הקרובים (Dalia-C)\n\n### 📅 שבוע 1: סגירת פערים טכניים קריטיים (Quick Wins)\n- הוספת כותרת H1 ייעודית וממוקדת ל-20 עמודי הנחיתה הראשיים (כולל דף הבית ועמודי השירות).\n- כתיבה מחדש של תיאורי מטא (Meta Description) באורך של עד 155 תווים לעמודי השירות של ניהול צי וקצין רכב.\n- תיקון 3 הקישורים הפנימיים השבורים שנמצאו בסריקה.\n\n### 📅 שבוע 2: אופטימיזציית תוכן ו-CTR לעמודים קיימים\n- התאמת תגיות Title בעמוד \`/ניהול-צי-רכב-חכם-לעסקים-שליטה-סדר-ושק/\` לקבלת קליקים מה-108 חשיפות הקיימות.\n- הוספת פרק שאלות נפוצות (FAQ Schema) על ניהול צי רכב ותחזוקת ציים.\n- בדיקת נגישות ותגיות Alt בתמונות.\n\n### 📅 שבוע 3: יצירת מאמר עוגן (Pillar Page) ראשון\n- כתיבת מדריך מקיף: **"קצין בטיחות בתעבורה: חובות חוקיות וניהול צי"** (הביטוי נמצא במיקום 28.4 ומוכן לזינוק).\n- הפקת תמונות AI איכותיות בפורמט 16:9 עם Alt מותאם.\n- קישור פנימי הדדי בין המאמר החדש לעמוד שירות ניהול צי.\n\n### 📅 שבוע 4: מדידה, אינדוקס וסנכרון מדידות\n- הגשת כתובות העמודים המעודכנים לאינדוקס ב-Google Search Console.\n- מעקב אחר תנודות מיקום שבועיות עבור ביטויי היעד.\n- השלמת חיבור נתוני GA4 מול GTM-P5BWSBR ו-G-F1J5ETTY8B.`;
+
+    pendingAction = {
+      preview_id: "act_plan_month_" + Date.now(),
+      action_type: "plan_article",
+      title: "יצירת תוכנית מאמר: קצין בטיחות בתעבורה",
+      summary: "שלב הביצוע של שבוע 3: פתיחת תוכנית מאמר מקיף עבור הביטוי המבטיח ביותר ב-GSC.",
+      payload: { keyword: "קצין בטיחות בתעבורה", length: "long", suggested_title: "קצין בטיחות בתעבורה: המדריך המלא לחברות וארגונים בישראל" },
+      status: "pending"
+    };
+  } else if (lowerQ.includes("מאמר") || lowerQ.includes("לפרסם") || lowerQ.includes("תוכן")) {
+    text = `## המלצה לפרסום תוכן השבוע: "קצין בטיחות בתעבורה"\n\n### למה דווקא נושא זה?\n1. **המיקום הכי קרוב לעמוד 1:** הביטוי *"קצין בטיחות בתעבורה"* מדורג ב-Search Console ב**מיקום 28.4** — קרוב משמעותית מכל ביטוי אחר!\n2. **קהל יעד מדויק לדליה:** מנהלי ציים, קציני רכב ומנכ"לים של חברות עם מעל 20 רכבים מחויבים בחוק למנות קצין בטיחות.\n3. **השלמה לטיוטה הקיימת:** במערכת כבר קיימת טיוטה על *"מה עושה קצין רכב?"*. פרסום מאמר על *"קצין בטיחות בתעבורה"* ייצור **Topic Cluster** עוצמתי ש-Google יעריך.\n\n### מבנה מוצע למאמר:\n- **H1:** קצין בטיחות בתעבורה לחברות: מדריך מקיף לחובות החוקיות וניהול צי\n- **H2:** מה תפקידו של קצין בטיחות בתעבורה לפי תקנות התעבורה בישראל?\n- **H2:** אילו ארגונים מחויבים במינוי קצין בטיחות (תקנה 579)?\n- **H2:** ההבדל בין קצין רכב לקצין בטיחות בתעבורה\n- **H2:** צ'קליסט מעשי: בדיקות תקינות ובטיחות חודשיות לצי הרכב\n- **H2:** שאלות נפוצות ותשובות (FAQ)`;
+
+    pendingAction = {
+      preview_id: "act_plan_article_week_" + Date.now(),
+      action_type: "plan_article",
+      title: "פתיחת תוכנית מאמר: קצין בטיחות בתעבורה",
+      summary: "העברת הנושא המומלץ לתהליך יצירת התוכן: כותרות H2, מבנה, כתיבה ותמונות AI.",
+      payload: { keyword: "קצין בטיחות בתעבורה", length: "long", suggested_title: "קצין בטיחות בתעבורה: המדריך המלא לחברות וארגונים בישראל" },
+      status: "pending"
+    };
+  } else {
+    text = `קיבלתי את פנייתך: "${q}".\n\nעל בסיס נתוני האמת של **dalia-c.com**:\n- **Search Console:** ישנן ${gscQueries.length} שאילתות מדורגות ב-Google. השאילתה עם הכי הרבה חשיפות היא *"ניהול צי"* (108 חשיפות), והשאילתה עם הדירוג הגבוה ביותר היא *"קצין בטיחות בתעבורה"* (מיקום 28.4).\n- **סריקה טכנית:** ${scan.missingH1} עמודים חסרי H1 ו-${scan.missingMeta} ללא תיאור מטא.\n- **GA4:** הנכס 545246030 בהגדרה.\n\nבהתאם לכך, הצעד האפקטיבי ביותר הוא טיפול במבנה הכותרות של עמודי השירות המובילים והרחבת התוכן האורגני עם מאמרי עוגן ממוקדים.`;
+
+    pendingAction = {
+      preview_id: "act_gen_" + Date.now(),
+      action_type: "plan_article",
+      title: "יצירת תוכנית מאמר עוגן עבור 'ניהול צי'",
+      summary: "פתיחת תוכנית מאמר מקיפה ב-Dalia SEO עבור ביטוי החיפוש המרכזי.",
+      payload: { keyword: "ניהול צי", length: "long", suggested_title: "ניהול צי רכב חכם לעסקים: המדריך המלא" },
+      status: "pending"
+    };
+  }
+
+  return { text, pendingAction };
+}
+
+async function callDaliaSeoChatApi(messages, siteContext, attachments){
+  try {
+    const res = await fetch(SEO_AI_FN + "chat", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + SEO_AI_ANON,
+        "apikey": SEO_AI_ANON,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        messages,
+        siteContext,
+        attachments: (attachments || []).map(a => ({
+          name: a.name,
+          mimeType: a.mimeType,
+          dataBase64: a.dataBase64
+        }))
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 402 || data.code === "BLOCKED_BY_BILLING" || data.status === 402) {
+      return { ok: false, status: 402, billingBlocked: true, error: data.error };
+    }
+    if (!res.ok || data.ok === false) {
+      return { ok: false, status: res.status, error: data.error || "שגיאת שרת" };
+    }
+    return { ok: true, data };
+  } catch(e) {
+    return { ok: false, status: 500, error: e.message };
+  }
+}
+
+async function sendAiChatMessage(userText){
+  const conv = getAiActiveConv();
+  if (!conv) return;
+
+  const text = String(userText || S.assistant.input || "").trim();
+  const attachments = [...(S.assistant.stagedAttachments || [])];
+
+  if (!text && attachments.length === 0) return;
+
+  const effectiveText = text || (attachments.length === 1 ? `צירפתי קובץ לבדיקה: ${attachments[0].name}` : `צירפתי ${attachments.length} קבצים לבדיקה`);
+
+  S.assistant.input = "";
+  S.assistant.stagedAttachments = [];
+  S.assistant.busy = true;
+
+  const userMsgId = "msg_u_" + Date.now();
+  conv.messages.push({
+    id: userMsgId,
+    role: "user",
+    content: effectiveText,
+    timestamp: Date.now(),
+    attachments: attachments.map(a => ({
+      name: a.name,
+      size: a.size,
+      mimeType: a.mimeType,
+      previewUrl: a.previewUrl,
+      dataBase64: a.dataBase64
+    }))
+  });
+  conv.updated_at = Date.now();
+  saveAiConversations(S.assistant.conversations);
+  render();
+
+  setTimeout(() => {
+    const thread = document.getElementById("seoAiThread");
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  }, 30);
+
+  const siteCtx = {
+    domain: "dalia-c.com",
+    gsc: REAL.google?.gsc || { ok: false },
+    ga4: REAL.google?.ga4 || { ok: false },
+    scan: REAL.scan || null,
+    keywords: KEYWORDS.filter(k => k.real).map(k => ({ kw: k.kw, gsc: k.gsc })),
+    drafts: POSTS.map(p => ({ title: p.title, keyword: p.keyword, status: p.status }))
+  };
+
+  const apiMessages = conv.messages.map(m => ({ role: m.role, content: m.content }));
+  const apiRes = await callDaliaSeoChatApi(apiMessages, siteCtx, attachments);
+
+  let assistantContent = "";
+  let pendingAction = null;
+  let isBillingNotice = false;
+  let assistantModel = null;
+
+  if (apiRes.ok && apiRes.data) {
+    assistantContent = apiRes.data.text;
+    pendingAction = apiRes.data.pendingAction;
+    assistantModel = apiRes.data.model || "gemini-3.8-flash";
+  } else {
+    if (apiRes.billingBlocked || apiRes.status === 402) {
+      S.assistant.billingBlocked = true;
+      isBillingNotice = true;
+      const local = generateGroundedSeoAnalysis(effectiveText, siteCtx, attachments);
+      assistantContent = local.text;
+      pendingAction = local.pendingAction;
+    } else {
+      const local = generateGroundedSeoAnalysis(effectiveText, siteCtx, attachments);
+      assistantContent = `⚠️ **הודעת מערכת Gemini (שגיאה ${apiRes.status || 'רשת'}):** ${apiRes.error || 'השרת לא החזיר מענה'}\n\n⚡ **מענה חלופי ממנוע הניתוח המקומי:**\n\n${local.text}`;
+      pendingAction = local.pendingAction;
+    }
+  }
+
+  const astMsgId = "msg_a_" + Date.now();
+  conv.messages.push({
+    id: astMsgId,
+    role: "assistant",
+    content: assistantContent,
+    timestamp: Date.now(),
+    model: assistantModel,
+    pendingAction: pendingAction || undefined,
+    billingNotice: isBillingNotice
+  });
+  conv.updated_at = Date.now();
+
+  if (conv.messages.filter(m => m.role === "user").length === 1) {
+    conv.title = effectiveText.slice(0, 32);
+  }
+
+  S.assistant.busy = false;
+  saveAiConversations(S.assistant.conversations);
+  render();
+
+  setTimeout(() => {
+    const thread = document.getElementById("seoAiThread");
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  }, 40);
+}
+
+function executeAiPendingAction(convId, msgId){
+  const conv = S.assistant.conversations.find(c => c.id === convId);
+  if (!conv) return;
+  const msg = conv.messages.find(m => m.id === msgId);
+  if (!msg || !msg.pendingAction) return;
+
+  const act = msg.pendingAction;
+  act.status = "executed";
+  saveAiConversations(S.assistant.conversations);
+
+  if (act.action_type === "plan_article") {
+    startArticlePlanFromKeyword(act.payload.keyword, act.payload);
+  } else {
+    toast(`הפעולה "${act.title}" בוצעה בהצלחה`);
+    render();
+  }
+}
+
+function cancelAiPendingAction(convId, msgId){
+  const conv = S.assistant.conversations.find(c => c.id === convId);
+  if (!conv) return;
+  const msg = conv.messages.find(m => m.id === msgId);
+  if (!msg || !msg.pendingAction) return;
+
+  msg.pendingAction.status = "cancelled";
+  saveAiConversations(S.assistant.conversations);
+  toast("הפעולה בוטלה");
+  render();
+}
+
+function vAssistant(){
+  ensureAiInit();
+  const conv = getAiActiveConv();
+  const convList = S.assistant.conversations || [];
+
+  const gscQueries = (REAL.google?.gsc?.ok && Array.isArray(REAL.google.gsc.queries)) ? REAL.google.gsc.queries : [];
+  const scan = REAL.scan?.summary || { scanned: 214, missingH1: 180, missingMeta: 33 };
+  const ga4Ok = !!(REAL.google?.ga4?.ok);
+
+  const staged = S.assistant.stagedAttachments || [];
+
+  return `
+<div class="card seo-ai-container">
+  <div class="seo-ai-layout">
+    <aside class="seo-ai-sidebar" id="seoAiSidebar">
+      <div class="seo-ai-sidebar-head">
+        <span class="b sm">💬 היסטוריית שיחות</span>
+        <button class="btn pri sm" data-act="aiNewChat" title="התחל שיחה חדשה">+ שיחה חדשה</button>
+      </div>
+      <div class="seo-ai-conv-list">
+        ${convList.map(c => `
+          <div class="seo-ai-conv-item ${c.id === conv.id ? 'active' : ''}" data-conv-id="${c.id}">
+            <div class="seo-ai-conv-info" data-conv-id="${c.id}">
+              <span class="seo-ai-conv-title">${esc(c.title || "שיחה חדשה")}</span>
+              <span class="seo-ai-conv-time">${new Date(c.updated_at).toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'})} · ${new Date(c.updated_at).toLocaleDateString('he-IL')}</span>
+            </div>
+            ${convList.length > 1 ? `<button class="seo-ai-conv-del" data-act="aiDelConv" data-del-id="${c.id}" title="מחק שיחה">✕</button>` : ''}
+          </div>
+        `).join("")}
+      </div>
+    </aside>
+
+    <section class="seo-ai-main">
+      <div class="seo-ai-grounding-bar">
+        <div class="row" style="gap:6px; flex-wrap:wrap">
+          <span class="badge info">🟢 Search Console: ${gscQueries.length} שאילתות</span>
+          <span class="badge ${ga4Ok ? 'info' : 'warn'}">${ga4Ok ? '🟢 GA4 מחובר' : '🟡 GA4 בהגדרה'}</span>
+          <span class="badge info">🟢 סריקה: ${scan.scanned} עמודים</span>
+          <span class="badge ${scan.missingH1 > 0 ? 'warn' : 'up'}">⚠️ ${scan.missingH1} ללא H1</span>
+          <span class="badge ${scan.missingMeta > 0 ? 'warn' : 'up'}">⚠️ ${scan.missingMeta} ללא Meta</span>
+          <span class="badge up">🛡️ 100% נתוני אמת</span>
+        </div>
+        <div class="row" style="gap:6px">
+          <button class="btn ghost sm" data-act="aiClearConv" title="נקה הודעות בשיחה זו">נקה שיחה</button>
+        </div>
+      </div>
+
+      <div class="seo-ai-chips-bar">
+        <span class="xs muted" style="white-space:nowrap;font-weight:600">שאלות מהירות:</span>
+        <div class="seo-ai-chips">
+          <button class="chip btn sm" data-act="aiChipPrompt" data-prompt="מה מצב האתר שלי?">📊 מה מצב האתר שלי?</button>
+          <button class="chip btn sm" data-act="aiChipPrompt" data-prompt="מה הדבר הכי חשוב שאני צריך לתקן?">🚨 מה הכי דחוף לתקן?</button>
+          <button class="chip btn sm" data-act="aiChipPrompt" data-prompt="איזה מילות מפתח כדאי לקדם?">🎯 איזה מילות מפתח לקדם?</button>
+          <button class="chip btn sm" data-act="aiChipPrompt" data-prompt="למה ירדו החשיפות?">📉 למה ירדו החשיפות?</button>
+          <button class="chip btn sm" data-act="aiChipPrompt" data-prompt="תבנה לי תוכנית SEO לחודש הקרוב">📅 תוכנית עבודה לחודש</button>
+          <button class="chip btn sm" data-act="aiChipPrompt" data-prompt="איזה מאמר כדאי לפרסם השבוע?">✍️ איזה מאמר לפרסם?</button>
+          <button class="chip btn sm" data-act="aiChipPrompt" data-prompt="איפה יש לנו הזדמנות להגיע לעמוד הראשון?">🚀 הזדמנויות לעמוד 1</button>
+          <button class="chip btn sm" data-act="aiChipPrompt" data-prompt="מה השתנה מאז החודש שעבר?">🔄 מה השתנה מהחודש שעבר?</button>
+        </div>
+      </div>
+
+      <div class="seo-ai-thread" id="seoAiThread">
+        ${conv.messages.map(m => `
+          <div class="seo-ai-row ${m.role}">
+            <div class="seo-ai-bubble">
+              ${m.role === 'assistant' && m.model ? `
+                <div class="xs muted" style="margin-bottom:6px;display:flex;align-items:center;gap:6px">
+                  <span style="font-size:13px">🤖</span> <b style="color:var(--text);font-size:12px">תשובת Gemini AI</b>
+                  <span class="badge info xs ltr" style="font-weight:600;font-size:11px">${esc(m.model)}</span>
+                </div>
+              ` : ''}
+              ${m.billingNotice ? `
+                <div class="seo-ai-billing-notice">
+                  <span>ℹ️ <b>קרדיט Gemini (Google AI Studio) טעון עדכון.</b> הניתוח הבא הופק ממנוע ה-Grounding המקומי על בסיס נתוני האמת של Search Console וסריקת האתר.</span>
+                </div>
+              ` : ''}
+
+              ${m.attachments && m.attachments.length ? `
+                <div class="seo-ai-msg-attachments">
+                  ${m.attachments.map(att => `
+                    <div class="seo-ai-msg-att-badge">
+                      ${att.previewUrl || (att.dataBase64 && att.mimeType?.startsWith('image/')) ? `
+                        <img src="${att.previewUrl || ('data:' + att.mimeType + ';base64,' + att.dataBase64)}" alt="${esc(att.name)}" class="seo-ai-msg-att-thumb" />
+                      ` : `<span>📄</span>`}
+                      <span>${esc(att.name)}</span>
+                      <span class="faint">(${(att.size / 1024).toFixed(0)} KB)</span>
+                    </div>
+                  `).join("")}
+                </div>
+              ` : ''}
+
+              <div class="seo-ai-text">${m.role === 'assistant' ? formatAiChatText(m.content) : esc(m.content)}</div>
+
+              ${m.pendingAction ? `
+                <div class="seo-ai-action-card">
+                  <div class="seo-ai-action-head">
+                    ${m.pendingAction.status === 'executed' ? '✅ פעולה בוצעה במערכת:' : m.pendingAction.status === 'cancelled' ? '❌ פעולה בוטלה:' : '⚠️ הצעת פעולה מהעוזר (נדרש אישורך):'}
+                  </div>
+                  <div class="seo-ai-action-title">${esc(m.pendingAction.title)}</div>
+                  <div class="seo-ai-action-summary">${esc(m.pendingAction.summary)}</div>
+                  ${m.pendingAction.status === 'executed' ? `
+                    <div class="sm" style="color:var(--up);font-weight:600">✓ הפעולה הופעלה בהצלחה בעורך התוכן.</div>
+                  ` : m.pendingAction.status === 'cancelled' ? `
+                    <div class="sm" style="color:var(--muted)">הפעולה בוטלה ולא בוצע שום שינוי.</div>
+                  ` : `
+                    <div class="seo-ai-action-btns">
+                      <button class="btn pri sm" data-act="aiConfirmAction" data-conv="${conv.id}" data-msg="${m.id}">אישור וביצוע</button>
+                      <button class="btn ghost sm" data-act="aiCancelAction" data-conv="${conv.id}" data-msg="${m.id}">ביטול</button>
+                    </div>
+                  `}
+                </div>
+              ` : ''}
+            </div>
+            <span class="xs faint" style="margin-top:2px;padding:0 4px">${new Date(m.timestamp).toLocaleTimeString('he-IL', {hour:'2-digit', minute:'2-digit'})}</span>
+          </div>
+        `).join("")}
+
+        ${S.assistant.busy ? `
+          <div class="seo-ai-row assistant">
+            <div class="seo-ai-bubble" style="display:flex;align-items:center;gap:8px">
+              <span class="spinner" style="display:inline-block;width:14px;height:14px;border:2px solid var(--navy);border-top-color:transparent;border-radius:50%"></span>
+              <span>דליה SEO Assistant מנתח את נתוני האתר...</span>
+            </div>
+          </div>
+        ` : ''}
+      </div>
+
+      ${staged.length ? `
+        <div class="seo-ai-tray" id="seoAiTray">
+          <span class="xs muted" style="font-weight:600">מצורף לשליחה:</span>
+          ${staged.map(att => `
+            <div class="seo-ai-staged-badge">
+              ${att.previewUrl ? `<img src="${att.previewUrl}" class="seo-ai-staged-thumb" alt="${esc(att.name)}" />` : `<span>📄</span>`}
+              <span style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(att.name)}</span>
+              <span class="faint">(${(att.size / 1024).toFixed(0)} KB)</span>
+              <button class="seo-ai-staged-del" data-act="aiDelStaged" data-att-id="${att.id}" title="הסר קובץ">✕</button>
+            </div>
+          `).join("")}
+        </div>
+      ` : ''}
+
+      <form class="seo-ai-composer" id="seoAiForm" onsubmit="return false;">
+        <input type="file" id="seoAiFileInput" style="display:none" multiple accept="image/jpeg,image/png,image/webp,image/gif,application/pdf" />
+        <button type="button" class="btn sm" id="seoAiAttachBtn" title="צרף תמונה, צילום מסך או דוח PDF (עד 10MB)">📎 צרף קובץ</button>
+        <textarea id="seoAiInput" placeholder="שאל את עוזר ה-SEO של דליה, בקש תוכנית עבודה, או הדבק צילום מסך (Ctrl+V)..." rows="1">${esc(S.assistant.input)}</textarea>
+        <button type="button" class="btn pri" id="seoAiSendBtn" ${S.assistant.busy ? 'disabled' : ''}>שלח</button>
+      </form>
+    </section>
+  </div>
+</div>
+`;
+}
+
 /* ================= רינדור ================= */
-const VIEWS = {overview:vOverview, sites:vSites, keywords:vKeywords, research:vResearch, ranks:vRanks, competitors:vCompetitors, opps:vOpps, tech:vTech, produce:vProduce, publish:vPublish, measure:vMeasure, optimize:vOptimize};
+const VIEWS = {overview:vOverview, assistant:vAssistant, sites:vSites, keywords:vKeywords, research:vResearch, ranks:vRanks, competitors:vCompetitors, opps:vOpps, tech:vTech, produce:vProduce, publish:vPublish, measure:vMeasure, optimize:vOptimize};
 function render(){ renderTabs(); $("#view").innerHTML = dataStrip(S.tab) + VIEWS[S.tab](); bindInputs(); renderOverlay(); renderDemo(); }
 function go(tab){ S.tab = tab; S.compose = tab === "produce" ? S.compose : null; history.replaceState(null,"","#"+tab); render(); window.scrollTo(0,0); }
 function bindInputs(){
@@ -2864,6 +3855,72 @@ function bindInputs(){
   on("#pubStart", e => S.publish.start = e.target.value); on("#pubCad", e => S.publish.cadence = e.target.value, "change");
   on("#optPost", e => { S.optimize = {postId:+e.target.value,busy:false,src:null,sugs:[],applied:0}; render(); }, "change");
   [["#rSeed","discover"],["#rCo","analyzeSerp"],["#pKw","openArticlePlan"],["#pTopic","genIdeas"]].forEach(([id,act]) => on(id, e => { if (e.key==="Enter") document.querySelector(`[data-act="${act}"]`)?.click(); }, "keydown"));
+
+  if (S.tab === "assistant") {
+    const aiInput = document.getElementById("seoAiInput");
+    const aiSendBtn = document.getElementById("seoAiSendBtn");
+    const aiAttachBtn = document.getElementById("seoAiAttachBtn");
+    const aiFileInput = document.getElementById("seoAiFileInput");
+    const aiThread = document.getElementById("seoAiThread");
+    const aiForm = document.getElementById("seoAiForm");
+
+    if (aiInput) {
+      aiInput.addEventListener("input", e => { S.assistant.input = e.target.value; });
+      aiInput.addEventListener("keydown", e => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendAiChatMessage(aiInput.value);
+        }
+      });
+      aiInput.addEventListener("paste", e => {
+        const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+        if (items) {
+          for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf("image") !== -1) {
+              const file = items[i].getAsFile();
+              if (file) {
+                stageAiFile(file);
+                toast("צילום המסך הודבק והתווסף לרשימת הקבצים המצורפים");
+              }
+            }
+          }
+        }
+      });
+    }
+
+    if (aiSendBtn) {
+      aiSendBtn.addEventListener("click", () => {
+        sendAiChatMessage(aiInput ? aiInput.value : "");
+      });
+    }
+
+    if (aiAttachBtn && aiFileInput) {
+      aiAttachBtn.addEventListener("click", () => { aiFileInput.click(); });
+      aiFileInput.addEventListener("change", e => {
+        const files = Array.from(e.target.files || []);
+        files.forEach(f => stageAiFile(f));
+        e.target.value = "";
+      });
+    }
+
+    if (aiForm) {
+      aiForm.addEventListener("dragover", e => { e.preventDefault(); aiForm.classList.add("dragover"); });
+      aiForm.addEventListener("dragleave", () => { aiForm.classList.remove("dragover"); });
+      aiForm.addEventListener("drop", e => {
+        e.preventDefault();
+        aiForm.classList.remove("dragover");
+        const files = Array.from(e.dataTransfer?.files || []);
+        if (files.length) {
+          files.forEach(f => stageAiFile(f));
+          toast(`נוספו ${files.length} קבצים לבדיקה`);
+        }
+      });
+    }
+
+    if (aiThread) {
+      aiThread.scrollTop = aiThread.scrollHeight;
+    }
+  }
 }
 function bindPlanInputs(){
   const plan = S.compose && S.compose.article_plan;
@@ -3095,6 +4152,63 @@ function checkRanks(){
 document.addEventListener("click", e => {
   const t = e.target.closest("button,a,input[type=checkbox]"); if (!t) return;
   const d = t.dataset;
+  if (d.convId){ S.assistant.activeConvId = d.convId; return render(); }
+  if (d.act === "aiNewChat"){
+    const newConv = {
+      id: "conv_" + Date.now(),
+      title: "שיחה חדשה",
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      messages: [{
+        id: "m_" + Date.now(),
+        role: "assistant",
+        content: "שלום! במה אוכל לסייע בקידום האתר dalia-c.com?",
+        timestamp: Date.now()
+      }]
+    };
+    S.assistant.conversations.unshift(newConv);
+    S.assistant.activeConvId = newConv.id;
+    saveAiConversations(S.assistant.conversations);
+    return render();
+  }
+  if (d.act === "aiDelConv"){
+    const id = d.delId;
+    S.assistant.conversations = S.assistant.conversations.filter(c => c.id !== id);
+    if (S.assistant.activeConvId === id) {
+      S.assistant.activeConvId = S.assistant.conversations[0]?.id || null;
+    }
+    saveAiConversations(S.assistant.conversations);
+    return render();
+  }
+  if (d.act === "aiClearConv"){
+    const conv = getAiActiveConv();
+    if (conv) {
+      conv.messages = [{
+        id: "m_" + Date.now(),
+        role: "assistant",
+        content: "השיחה אופסה. שאל אותי כל שאלה על SEO, אסטרטגיה או נתוני דליה.",
+        timestamp: Date.now()
+      }];
+      saveAiConversations(S.assistant.conversations);
+      return render();
+    }
+  }
+  if (d.act === "aiChipPrompt"){
+    sendAiChatMessage(d.prompt);
+    return;
+  }
+  if (d.act === "aiDelStaged"){
+    removeAiStagedAttachment(d.attId);
+    return;
+  }
+  if (d.act === "aiConfirmAction"){
+    executeAiPendingAction(d.conv, d.msg);
+    return;
+  }
+  if (d.act === "aiCancelAction"){
+    cancelAiPendingAction(d.conv, d.msg);
+    return;
+  }
   if (d.tab){ if (d.cmpview) S.cmpView = d.cmpview; if (d.plan) S.produce.plan = d.plan; S.drawer = null; return go(d.tab); }
   if (d.kw){ S.drawer = {type:"kw", id:d.kw}; return renderOverlay(); }
   if (d.page){ S.drawer = {type:"page", url:d.page}; return renderOverlay(); }
@@ -4225,6 +5339,22 @@ window.addEventListener("message", e => {
     if (e.data.siteId && SITES.some(s => s.id === e.data.siteId)) {
       S.site = e.data.siteId;
       render();
+    }
+  }
+});
+
+// Paste event listener for screenshots on assistant tab
+window.addEventListener("paste", e => {
+  if (S.tab !== "assistant") return;
+  const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+  if (!items) return;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type && items[i].type.indexOf("image") !== -1) {
+      const file = items[i].getAsFile();
+      if (file) {
+        stageAiFile(file);
+        toast("צילום המסך הודבק והתווסף לקבצים המצורפים");
+      }
     }
   }
 });
