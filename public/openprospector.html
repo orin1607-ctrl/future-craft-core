@@ -4307,15 +4307,46 @@ function renderExtDispatchModal(m) {
 }
 
 /* ===== עוזר AI כללי (General AI Assistant - OpenProspector) ===== */
+function loadAiChatHistory() {
+  try {
+    const raw = sessionStorage.getItem("op_ai_chat_history_v2");
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length > 0) return arr;
+    }
+  } catch (e) {}
+  return null;
+}
+
+function saveAiChatHistory() {
+  try {
+    sessionStorage.setItem("op_ai_chat_history_v2", JSON.stringify(S.aiChatMessages.slice(-50)));
+  } catch (e) {}
+}
+
 function initAiChatWelcome() {
+  const saved = loadAiChatHistory();
+  if (saved && saved.length > 0) {
+    S.aiChatMessages = saved;
+    return;
+  }
   S.aiChatMessages = [
     {
       role: "assistant",
-      text: `שלום יוני! 👋 אני עוזר ה-AI של OpenProspector.
-אני מחובר ישירות לנתוני המאגר החי ב-STAGING (${C.length} חברות).
-אני יכול לענות על שאלות סטטיסטיות, לנתח לידים ספציפיים, להמליץ על לידים מובילים ולהכין פעולות העשרה לאישורך.`
+      text: `שלום יוני! 👋 אני עוזר ה-AI של OpenProspector לניהול ציי רכב.
+אני מחובר ישירות לנתוני המאגר החי ב-STAGING (${C.length} חברות) ולרשם החברות הממשלתי.
+
+תוכל לבקש ממני בשפה חופשית בעברית:
+• 🔍 "תמצא לי 20 חברות הובלה באזור המרכז"
+• 🚚 "חפש עסקים שיש להם לפחות 5 רכבים"
+• ⚖️ "מי החברות המחויבות בתקנה 579 (קצין בטיחות)?"
+• 📞 "תציג רק חברות עם מספר טלפון"
+• ⭐ "תכין לי רשימה של 10 החברות הכי טובות"
+• 📥 "תכין לי העברה של החברות שבחרתי לרשימת הלידים"
+• 💼 "תכין לי תוכנית עבודה לפנייה לחברות"`
     }
   ];
+  saveAiChatHistory();
 }
 
 function appendAiContextLeadIntro(lead) {
@@ -4339,37 +4370,59 @@ ${q && q.detailed_missing_fields && q.detailed_missing_fields.length ? `⚠️ *
       "האם כדאי לשלוח לספק חיצוני?"
     ]
   });
+  saveAiChatHistory();
 }
 
 function handleAiUserMessage(userText) {
   if (!userText || !userText.trim()) return;
   const qText = userText.trim();
+  if (S.aiChatBusy) return;
+  S.aiChatBusy = true;
   const seq = ++S.aiChatSeq;
   S.aiChatMessages.push({ role: "user", text: qText });
-  const pending = { role: "assistant", text: "בודק את הנתונים…" };
+  const pending = { role: "assistant", text: "בודק את הנתונים ומעבד תשובה…" };
   S.aiChatMessages.push(pending);
+  saveAiChatHistory();
   renderAiChat();
   const b = $("#aiChatBody");
   if (b) b.scrollTop = b.scrollHeight;
 
   const finish = (reply) => {
+    S.aiChatBusy = false;
     if (seq !== S.aiChatSeq) {
       pending.text = "השאלה הוחלפה בשאלה חדשה יותר, והתשובה הזו לא עודכנה.";
+      saveAiChatHistory();
       renderAiChat();
       return;
     }
     pending.text = reply.text;
-    if (reply.chips) pending.chips = reply.chips;
-    if (reply.actionCard) pending.actionCard = reply.actionCard;
-    if (reply.actionFilter) pending.actionFilter = reply.actionFilter;
+    pending.chips = reply.chips || null;
+    pending.actionCard = reply.actionCard || null;
+    pending.actionFilter = reply.actionFilter || null;
+    pending.retryPrompt = reply.retryPrompt || null;
+    saveAiChatHistory();
     renderAiChat();
     const b2 = $("#aiChatBody");
     if (b2) b2.scrollTop = b2.scrollHeight;
+    const inp = $("#aiChatInput");
+    if (inp) inp.focus();
   };
 
-  const local = processAiQuery(qText);
-  if (local) { finish(local); return; }
-  askGeminiFreeform(qText).then(finish);
+  try {
+    const local = processAiQuery(qText);
+    if (local) { finish(local); return; }
+  } catch(e) {
+    console.error("[Prospector Query Error]", e);
+  }
+
+  askGeminiFreeform(qText).then(finish).catch(err => {
+    finish({
+      role: "assistant",
+      text: `⚠️ שגיאה בלתי צפויה: ${esc(err.message || String(err))}.\n\nהשיחה נשמרה בצורה מאובטחת.`,
+      chips: ["🔄 נסה שוב", "תמליץ על 5 הלידים המובילים ביותר לדליה"],
+      retryPrompt: qText
+    });
+  });
 }
 
 /* ===== מנוע הבינה העסקית וההמלצות של דליה (DALIA FLEET INTELLIGENCE & RECOMMENDATION ENGINE) ===== */
@@ -4381,7 +4434,7 @@ function scoreLeadForDaliaFleet(c) {
   if (/משאיות|עפר|צמ"ה|צמה|רמסע|סמיטריילר|כבדים/.test(fText)) s += 35;
   if (/הובל|שינוע|לוגיסטיקה|עפר|תשתיות|כבישים|מחצבות/.test(indText)) s += 25;
   if (c.isSafetyOfficerLead || (c.safetyOfficer && c.safetyOfficer.mandate579)) s += 20;
-  if (c.phone && c.phone !== "n") s += 15;
+  if (c.phone && c.phone !== "לא נמצא" && c.phone !== "n") s += 15;
   if (c.people && c.people.length > 0) s += 15;
   const q = QF(c);
   if (q && q.business_potential_score) s += Math.round(q.business_potential_score / 5);
@@ -4395,22 +4448,27 @@ function findCompanyInQuery(q) {
     const found = C.find(c => c.no && String(c.no).includes(hpMatch[0]));
     if (found) return found;
   }
+  const isBroad = /(?:תמצא|חפש|תסנן|תציג|תראה|רשימ|המלצ|כמה|עסקים|חברות הובלה|חברות לוגיסטיקה)/.test(q);
+  const isExplicitCompany = /(?:חברת|חברה|כרטיס|עבור|של|דוסייה)\s+([^\s]+)/.test(q);
+  if (isBroad && !isExplicitCompany) return null;
+
   const stopWords = new Set([
     "חברת", "חברה", "של", "על", "מי", "מה", "איך", "האם", "ליד", "לידים", "פרטים", "נתח", "הסבר",
     "אינפורמציה", "טוב", "טובה", "טובים", "טובות", "יותר", "הכי", "עבור", "תספר", "המצב", "כמה",
     "רוצה", "לדעת", "תן", "תמליץ", "תמליצי", "המלצה", "המלצות", "רכב", "צי", "ציי", "רכבים", "משאית",
     "משאיות", "הובלה", "הובלות", "הובלת", "שינוע", "עפר", "תשתית", "תשתיות", "כביש", "כבישים",
     "לוגיסטיקה", "קבלן", "קבלני", "קבלנים", "דרום", "בדרום", "מרכז", "במרכז", "צפון", "בצפון",
-    "שפלה", "בשפלה", "באר", "שבע", "אשקלון", "אשדוד", "תל", "אביב", "חיפה", "שירות", "שירותים",
-    "שירותי", "מוסך", "מוסכים", "דליה", "אורן", "קאר", "הצעת", "ערך", "תקנה", "בטיחות", "לי", "לו",
-    "לה", "לנו", "להם", "עוד", "בין", "רק", "גם", "את", "אתה", "אתם", "היא", "הוא", "הם", "מתאים",
-    "מתאימה", "מתאימות", "מתאימים", "המתאים", "המתאימה", "המתאימים", "המתאימות", "רשימה", "רשימת",
-    "אנא", "בבקשה", "איזה", "אילו", "אפשר", "אשמח", "כל", "הכל", "יש", "אין"
+    "שפלה", "בשפלה", "באר", "שבע", "אשקלון", "אשדוד", "תל", "אביב", "חיפה", "חולון", "ראשון", "לציון",
+    "שירות", "שירותים", "שירותי", "מוסך", "מוסכים", "דליה", "אורן", "קאר", "הצעת", "ערך", "תקנה",
+    "בטיחות", "לי", "לו", "לה", "לנו", "להם", "עוד", "בין", "רק", "גם", "את", "אתה", "אתם", "היא",
+    "הוא", "הם", "מתאים", "מתאימה", "מתאימות", "מתאימים", "המתאים", "המתאימה", "המתאימים", "המתאימות",
+    "רשימה", "רשימת", "אנא", "בבקשה", "איזה", "אילו", "אפשר", "אשמח", "כל", "הכל", "יש", "אין",
+    "באזור", "אזור", "מציג", "תמצא", "חפש", "עסקים", "פוטנציאל"
   ]);
   const cleanQ = q.replace(/[?!,.:;""''״׳]/g, " ").trim();
   const words = cleanQ.split(/\s+/).map(w => w.trim()).filter(w => w.length >= 3 && !stopWords.has(w));
   if (!words.length) return null;
-  
+
   let best = null;
   let bestScore = 0;
   for (const c of C) {
@@ -4436,27 +4494,36 @@ function buildCompanyDossier(c) {
   const q = QF(c);
   const fleetStr = (c.fleet && c.fleet.val) || c.fleetType || "צי רכבי עבודה ומסחריות";
   const fleetSrc = (c.fleet && c.fleet.src) || "רשם החברות / משרד התחבורה";
-  const reason = c.leadReason || `חברה פעילה בענף ${c.ind || "מסחרי"} המחזיקה בצי של ${fleetStr}. העבודה השוטפת מייצרת שחיקה מואצת של מערכות בלימה, הידראוליקה ושלדה, ומחייבת הסכם שירות מוסך להקטנת השבתות.`;
-  const safety = (c.safetyOfficer && c.safetyOfficer.note) || (c.isSafetyOfficerLead ? "חלה חובת פיקוח קצין בטיחות בתעבורה לפי תקנה 579 (צי רכב כבד)." : "צי מסחרי הזקוק לתחזוקה מונעת וביקורות תקופתיות.");
-  
+  const isFleetVerified = !!(c.fleet && c.fleet.src);
+  const fleetNotice = isFleetVerified ? `מאומת מול ${fleetSrc}` : "משוער על בסיס ענף הפעילות (הערה: צי משוער אינו נתון מאומת)";
+  const reason = c.leadReason || `חברה פעילה בענף ${c.ind || "מסחרי"} עם צפי לצי של ${fleetStr}. דליה מספקת מעטפת ניהול צי מקיפה, טיפולים שוטפים, תחזוקה מונעת וצמצום ימי השבתה (Downtime).`;
+  const safety = (c.safetyOfficer && c.safetyOfficer.note) || (c.isSafetyOfficerLead ? "חלה חובת פיקוח קצין בטיחות בתעבורה לפי תקנה 579 (צי רכב כבד מעל 20 רכבים)." : "צי מסחרי הזקוק לתחזוקה מונעת שוטפת, ביקורות חורף והכנה למבחני רישוי שנתיים.");
+
   const contacts = (c.people && c.people.length)
     ? c.people.map(p => `• **${p[0]}** (${p[1]}) — טלפון: \`${p[4] || "—"}\` | מייל: \`${p[3] || "—"}\` (${p[5] ? "Tier " + p[5] : "רשמי"})`).join("\n")
     : `• טלפון ראשי: \`${c.phone || "—"}\` | מייל: \`${c.mail || "—"}\``;
 
   const evList = (c.ev && c.ev.length)
     ? c.ev.map(e => `• ${Array.isArray(e) ? `${e[0] || "✓"} **${e[1]}**: ${e[2]} (${e[3] || "data.gov.il"})` : `• **${e.source || e.field}**: ${e.value} (${e.url || ""})`}`).join("\n")
-    : "• רשם החברות (data.gov.il/companies)";
+    : "• רשם החברות הממשלתי (data.gov.il)";
+
+  const missingList = [];
+  if (!OPQualify.hasAnyValidPhone(c, q)) missingList.push("טלפון מאומת");
+  if (!OPQualify.hasAnyRealContact(c, q)) missingList.push("איש קשר בכיר");
+  if (!c.web && !(c.enr && c.enr.website)) missingList.push("אתר אינטרנט");
+  if (!isFleetVerified) missingList.push("אימות גודל צי ממשלתי");
+  if (!c.enr?.safety_officer_name && (c.isSafetyOfficerLead || c.safetyOfficer?.mandate579)) missingList.push("שם קצין בטיחות מכהן (קצב\"ת)");
 
   return {
     role: "assistant",
-    text: `🏢 **תיק חברה וניתוח התאמה לדליה: ${c.name}**
+    text: `🏢 **תיק חברה וניתוח התאמה לניהול ציים דליה: ${c.name}**
 • **ח.פ.:** \`${c.no || "—"}\` | **עיר ואזור:** ${c.city || "—"} (${c.region || "—"}) | **ענף:** ${c.ind || "—"}
-• **צי רכב מאומת:** **${fleetStr}**
-• **מקור נתוני הצי:** ${fleetSrc}
-• **דירוג איכות ופוטנציאל:** פוטנציאל **${q?.business_potential_score || c.score || 50}%** | מוכנות **${q?.contact_readiness_score || 0}%** (${q?.lead_quality_label || "פעיל"})
+• **צי רכב:** **${fleetStr}** (${fleetNotice})
+• **דירוג איכות ופוטנציאל:** פוטנציאל עסקי **${q?.business_potential_score || c.score || 50}%** | מוכנות לפנייה **${q?.contact_readiness_score || 0}%** (${q?.lead_quality_label || "פעיל"})
 
-🎯 **נימוק והתאמה לשירותי מוסך וניהול צי דליה:**
+🎯 **נימוק והתאמה לשירותי ניהול ציים ותפעול דליה:**
 ${reason}
+*(הבהרה: דליה אינה מוסך. דליה מספקת שירותי ניהול, תחזוקה, תפעול ופיקוח בטיחות לציי רכב עסקיים מעל 5 רכבים).*
 
 ⚖️ **סטטוס קצין בטיחות בתעבורה (תקנה 579):**
 ${safety}
@@ -4464,13 +4531,169 @@ ${safety}
 📞 **אנשי קשר מאומתים לפנייה:**
 ${contacts}
 
+⚠️ **שדות שטרם אומתו:**
+${missingList.length ? missingList.map(m => `• ${m}`).join("\n") : "• כל השדות הבסיסיים אומתו במלואם."}
+
 📋 **שרשרת ראיות ממשלתיות מאומתות (Evidence Chain):**
 ${evList}
 
 💡 **פעולה מומלצת לפנייה:**
-מומלץ ליצור קשר ישיר עם מקבל ההחלטות ולהציע הסכם מסגרת לטיפולים שוטפים, בדיקות תקופתיות והכנה למבחני רישוי שנתיים (טסט) להקטנת זמני השבתה (Downtime).`,
-    chips: ["תמליץ על עוד חברות דומות", "מי מחויבת בתקנה 579?", "תמליץ על 5 הלידים המובילים"],
-    actionFilter: { key: "q", val: c.name.split(" ")[0] || "", label: `🔍 הצג את ${c.name.split(" ")[0]} בטבלת הלידים` }
+מומלץ ליצור קשר ישיר עם מקבל ההחלטות ולהציע הסכם מסגרת לניהול ותחזוקת הצי, ליווי קצב"ת, בדיקות תקופתיות והכנה למבחני רישוי שנתיים להקטנת זמני השבתה (Downtime).`,
+    chips: ["תמליץ על עוד חברות דומות", "מי מחויבת בתקנה 579?", "תכין לי העברה לרשימת הלידים"],
+    actionFilter: { key: "q", val: c.name.split(" ")[0] || "", label: `🔍 הצג את ${c.name.split(" ")[0]} בטבלה` }
+  };
+}
+
+function executeConversationalSearch(userQuery) {
+  const q = userQuery.toLowerCase();
+
+  // 1. Target count
+  const countMatch = q.match(/\b(\d+)\s*(?:חברות|לידים|עסקים)?/);
+  let targetCount = countMatch ? Math.min(50, Math.max(1, parseInt(countMatch[1], 10))) : (q.includes("תמצא") ? 20 : (q.includes("10") ? 10 : 5));
+
+  // 2. Industry
+  let industry = "";
+  let indLabel = "כל הענפים";
+  if (q.includes("הובל") || q.includes("שינוע") || q.includes("משאית") || q.includes("משאיות")) {
+    industry = "הובל";
+    indLabel = "הובלה ושינוע";
+  } else if (q.includes("לוגיסט") || q.includes("הפצ") || q.includes("שליח")) {
+    industry = "לוגיסט";
+    indLabel = "לוגיסטיקה והפצה";
+  } else if (q.includes("עפר") || q.includes("תשתית") || q.includes("כביש") || q.includes("מחצב") || q.includes("בניי") || q.includes("בניה")) {
+    industry = "תשתית";
+    indLabel = "תשתיות, עפר וכבישים";
+  } else if (q.includes("הסע") || q.includes("היסע") || q.includes("אוטובוס")) {
+    industry = "הסע";
+    indLabel = "היסעים ותחבורה";
+  } else if (q.includes("שירות") || q.includes("טכנא")) {
+    industry = "שירות";
+    indLabel = "שירות וטכנאי שטח";
+  }
+
+  // 3. Location / Region / Cities
+  let city = "";
+  let region = "";
+  if (q.includes("ראשון לציון") || q.includes("ראשל\"צ") || q.includes("ראשלצ")) city = "ראשון לציון";
+  else if (q.includes("חולון")) city = "חולון";
+  else if (q.includes("תל אביב") || q.includes("ת\"א")) city = "תל אביב";
+  else if (q.includes("פתח תקווה") || q.includes("פ\"ת")) city = "פתח תקווה";
+  else if (q.includes("אשדוד")) city = "אשדוד";
+  else if (q.includes("אשקלון")) city = "אשקלון";
+  else if (q.includes("באר שבע")) city = "באר שבע";
+  else if (q.includes("חיפה")) city = "חיפה";
+
+  if (!city) {
+    if (q.includes("מרכז") || q.includes("במרכז")) region = "מרכז";
+    else if (q.includes("דרום") || q.includes("בדרום")) region = "דרום";
+    else if (q.includes("צפון") || q.includes("בצפון")) region = "צפון";
+    else if (q.includes("שפלה") || q.includes("בשפלה")) region = "שפלה";
+  }
+
+  const dualCities = [];
+  if (q.includes("ראשון לציון") || q.includes("ראשל\"צ")) dualCities.push("ראשון לציון");
+  if (q.includes("חולון")) dualCities.push("חולון");
+
+  // 4. Fleet requirements
+  const minFleet20 = q.includes("20 רכבים") || q.includes("מעל 20") || q.includes("20+");
+  const minFleet5 = q.includes("5 רכבים") || q.includes("לפחות 5") || q.includes("5+");
+
+  // 5. Not yet in leads filter
+  const notInLeads = q.includes("לא נמצאות ברשימת הלידים") || q.includes("עוד לא נמצאות") || q.includes("שעוד לא") || q.includes("שלא ברשימת הלידים");
+
+  // Filter against C (the 618 leads in STAGING)
+  let list = [...C];
+
+  if (notInLeads) {
+    list = list.filter(c => c.status === "new");
+  }
+
+  if (dualCities.length > 0) {
+    list = list.filter(c => dualCities.some(dc => (c.city || "").includes(dc)));
+  } else if (city) {
+    list = list.filter(c => (c.city || "").includes(city));
+  } else if (region) {
+    list = list.filter(c => (c.region || "").includes(region) || (c.city || "").includes(region));
+  }
+
+  if (industry) {
+    list = list.filter(c => (c.ind || "").includes(industry) || (c.leadReason || "").includes(industry) || (c.name || "").includes(industry));
+  }
+
+  if (minFleet20) {
+    list = list.filter(c => c.isSafetyOfficerLead || (c.safetyOfficer && c.safetyOfficer.mandate579) || /משאיות|צמ"ה|סמיטריילר|כבדים/.test((c.fleet?.val || "") + (c.fleetType || "")));
+  }
+
+  // Score and sort
+  list.sort((a, b) => scoreLeadForDaliaFleet(b) - scoreLeadForDaliaFleet(a));
+
+  const totalFound = list.length;
+  const matches = list.slice(0, targetCount);
+
+  if (!matches.length) {
+    return {
+      role: "assistant",
+      text: `🔍 לא אותרו חברות התואמות במדויק את כל תנאי החיפוש בתוך מאגר ${C.length} הלידים ב-STAGING.
+(חיפשת: ${indLabel} | ${city ? `עיר: ${city}` : (region ? `אזור: ${region}` : "כל הארץ")}${minFleet20 ? " | צי 20+ רכבים" : ""}).
+
+💡 **המלצה:** נסה להרחיב את החיפוש לאזור גיאוגרפי סמוך או לכלל ענפי התחבורה והתשתיות.`,
+      chips: ["תמליץ על 5 הלידים המובילים לדליה", "תמצא 20 חברות הובלה במרכז", "מי מחויבת בתקנה 579?"]
+    };
+  }
+
+  let criteriaLabel = [];
+  if (industry) criteriaLabel.push(`בענף ${indLabel}`);
+  if (dualCities.length) criteriaLabel.push(`באזור ${dualCities.join(" ו")}`);
+  else if (city) criteriaLabel.push(`בעיר ${city}`);
+  else if (region) criteriaLabel.push(`באזור ${region}`);
+  if (minFleet20) criteriaLabel.push(`עם פוטנציאל לצי של מעל 20 רכבים (תקנה 579)`);
+  else if (minFleet5) criteriaLabel.push(`עם לפחות 5 רכבים`);
+  if (notInLeads) criteriaLabel.push(`שטרם הועברו לרשימת הלידים`);
+
+  const criteriaText = criteriaLabel.length ? criteriaLabel.join(" · ") : "המתאימות לשירותי דליה";
+
+  const cardsText = matches.map((c, i) => {
+    const qf = QF(c);
+    const fVal = (c.fleet && c.fleet.val) || c.fleetType || "צי רכבי עבודה ומסחריות";
+    const isFleetVerified = !!(c.fleet && c.fleet.src);
+    const fleetStatus = isFleetVerified ? `✅ מאומת מול ${c.fleet.src}` : `📊 הערכת ענף (הערה: צי משוער אינו נתון מאומת)`;
+    const phone = c.phone && c.phone !== "לא נמצא" ? `\`${c.phone}\`` : "❌ טרם אותר";
+    const contact = (c.people && c.people[0]) ? `${c.people[0][0]} (${c.people[0][1]})` : (c.enr?.contact_name || "קצין רכב / מנהל תפעול");
+    const missing = [];
+    if (!OPQualify.hasAnyValidPhone(c, qf)) missing.push("טלפון");
+    if (!OPQualify.hasAnyRealContact(c, qf)) missing.push("איש קשר");
+    if (!isFleetVerified) missing.push("אימות גודל צי ממשלתי");
+    if (!c.enr?.safety_officer_name && (c.isSafetyOfficerLead || c.safetyOfficer?.mandate579)) missing.push("קצב\"ת בשם");
+
+    return `🏢 **${i + 1}. ${c.name}** (ח.פ. \`${c.no || "—"}\`)
+• **עיר וענף:** ${c.city || "—"} (${c.region || "—"}) · ${c.ind || "—"}
+• **צי רכב:** **${fVal}** (${fleetStatus})
+• **התאמה לשירותי דליה:** ${c.leadReason || "חברה בעלת צי עבודה מסחרי הדורשת שירותי ניהול, תחזוקה שוטפת וצמצום זמני השבתה."}
+• **איש קשר וטלפון:** ${contact} | טלפון: ${phone}
+• **פרטים חסרים לאימות:** ${missing.length ? missing.join(", ") : "נתונים בסיסיים שלמים"}
+• **עדיפות לפנייה:** ${qf?.lead_quality_color === "green" ? "🟢 עדיפות עליונה" : "🟡 עדיפות שנייה (דורש העשרה)"}`;
+  }).join("\n\n---\n\n");
+
+  const actionFilter = industry
+    ? { key: "ind", val: industry, label: `🔍 סנן ${matches.length} חברות אלו בטבלה` }
+    : (region ? { key: "city", val: region, label: `🔍 סנן לפי אזור ${region}` } : undefined);
+
+  return {
+    role: "assistant",
+    text: `🔍 **תוצאות איתור אמיתיות ממאגר 618 הלידים ב-STAGING:**
+אותרו **${totalFound} חברות אמיתיות** ${criteriaText} (מוצגות ${matches.length} המובילות):
+
+${cardsText}
+
+💡 **התאמה עסקית מקיפה לדליה:**
+דליה מספקת מעטפת ניהול, תחזוקה, תפעול ופיקוח בטיחות (תקנה 579) לציי רכב עסקיים מעל 5 רכבים כדי למנוע השבתת רכבים (Downtime). דליה אינה מוסך.`,
+    chips: [
+      "תסנן לי את החברות המתאימות",
+      "תציג רק חברות עם מספר טלפון",
+      "תכין לי העברה של החברות שבחרתי לרשימת הלידים",
+      "תכין לי תוכנית עבודה לפנייה לחברות"
+    ],
+    actionFilter
   };
 }
 
@@ -4491,24 +4714,26 @@ function buildDaliaRecommendations(filterOpts = {}) {
     return {
       role: "assistant",
       text: "לא נמצאו חברות התואמות בדיוק את הסינון המבוקש במאגר 618 הלידים. נסה לחפש ענף אחר או אזור גיאוגרפי רחב יותר.",
-      chips: ["תמליץ על 5 הלידים המובילים ביותר", "הצג חברות הובלה ותשתיות"]
+      chips: ["תמליץ על 5 הלידים המובילים לדליה", "הצג חברות הובלה ותשתיות"]
     };
   }
 
   const items = scored.map((c, i) => {
     const fStr = (c.fleet && c.fleet.val) || c.fleetType || "צי רכבי עבודה";
+    const isFleetVerified = !!(c.fleet && c.fleet.src);
+    const fleetStatus = isFleetVerified ? `מקור: ${c.fleet.src}` : `הערכת ענף (צי משוער אינו נתון מאומת)`;
     const person = (c.people && c.people[0]) ? `${c.people[0][0]} (${c.people[0][1]}) - ${c.people[0][4] || c.phone || ""}` : (c.phone || "בדיקת טלפון");
     const topEv = (c.ev && c.ev[0]) ? (Array.isArray(c.ev[0]) ? `${c.ev[0][1]}: ${c.ev[0][2]}` : `${c.ev[0].source}: ${c.ev[0].value}`) : "רשם החברות הממשלתי";
 
     return `🔷 **${i + 1}. ${c.name}** (ח.פ. \`${c.no || "—"}\`)
 • **עיר וענף:** ${c.city || "—"} (${c.region || "—"}) · ${c.ind || "—"}
-• **צי רכב מאומת:** **${fStr}** (מקור: ${(c.fleet && c.fleet.src) || "משרד התחבורה"})
-• **למה היא מתאימה לשירותי דליה:** ${c.leadReason || "צי עבודה כבד עם שחיקת בלמים ומערכות אוויר, הדורש מוסך קבוע עם מענה מהיר."}
+• **צי רכב:** **${fStr}** (${fleetStatus})
+• **למה היא מתאימה לשירותי דליה:** ${c.leadReason || "צי עבודה כבד הדורש ניהול שוטף, תחזוקה מונעת וצמצום זמני השבתה."}
 • **איש קשר זמין:** ${person}
 • **ראיה ממשלתית מאומתת:** ${topEv}`;
   }).join("\n\n---\n\n");
 
-  let filterLabel = "לשירותי מוסך וניהול ציים של דליה";
+  let filterLabel = "לשירותי ניהול ציים ותפעול של דליה";
   if (filterOpts.industry && filterOpts.region) {
     filterLabel = `בענף ${filterOpts.industry} באזור ${filterOpts.region}`;
   } else if (filterOpts.industry) {
@@ -4530,11 +4755,12 @@ function buildDaliaRecommendations(filterOpts = {}) {
 ${items}
 
 💡 **נימוק אסטרטגי כללי לדליה:**
-חברות אלו מאופיינות בציי משאיות וצמ"ה מעל 3.5 טון ו-15 טון, שבהם כל יום השבתה מייצר נזק כספי של אלפי שקלים. מוסך דליה מספק מענה מקיף של טיפולי מנע, מערכות בלימה, הידראוליקה, בדיקות חורף והכנה לרישוי שנתי (טסט).`,
+חברות אלו מפעילות ציי משאיות, מסחריות וצמ"ה מעל 5 רכבים, שבהם כל יום השבתה מייצר נזק כספי כבד. דליה מספקת מענה מקיף של ניהול ציים, טיפולי מנע, פיקוח קצין בטיחות (תקנה 579), בדיקות חורף והכנה לרישוי שנתי (טסט) ללא השבתת הצי. דליה אינה מוסך.`,
     chips: [
       "מי מחויבת בתקנה 579 (קצין בטיחות)?",
       "תמליץ על חברות הובלה בדרום",
-      "איך כדאי לפנות למנהלי ציים אלו?"
+      "איך כדאי לפנות למנהלי ציים אלו?",
+      "תכין לי העברה של החברות שבחרתי לרשימת הלידים"
     ],
     actionFilter
   };
@@ -4549,7 +4775,7 @@ function buildRegulation579Analysis() {
 
   return {
     role: "assistant",
-    text: `⚖️ **ניתוח חברות תחת תקנה 579 לתקנות התעבורה (חובת קצין בטיחות):**
+    text: `⚖️ **ניתוח חברות תחת תקנה 579 לתקנות התעבורה (חובת קצין בטיחות בתעבורה):**
 
 לפי תקנה 579, כל מפעל או חברה המחזיקה מעל 20 כלי רכב כבדים/מסחריים מחויבת בהעסקת **קצין בטיחות בתעבורה (קצב"ת)** מוסמך.
 
@@ -4561,10 +4787,10 @@ function buildRegulation579Analysis() {
 ${topList}
 
 💡 **הזדמנות עסקית עבור דליה:**
-בחברות שבהן טרם אותר קצב"ת מכהן, דליה יכולה להציע חבילה משולבת: שירותי מוסך ואחזקת צי יחד עם פיקוח בטיחות תעבורה מוסמך!`,
+בחברות שבהן טרם אותר קצב"ת מכהן, דליה יכולה להציע חבילת ניהול צי משולבת: פיקוח קצב"ת מוסמך יחד עם מעטפת תחזוקה מונעת וצמצום ימי השבתה! (דליה אינה מוסך).`,
     chips: [
       "תמליץ על חברות עם צי מעל 20 רכבים",
-      "מי החברות המובילות בדרום?",
+      "תסנן לי את החברות המתאימות",
       "איך לפנות למנהלי ציים אלו?"
     ]
   };
@@ -4573,68 +4799,208 @@ ${topList}
 function buildDaliaSalesGuidance() {
   return {
     role: "assistant",
-    text: `💼 **מדריך פנייה וטיעוני מכירה למנהלי ציים (Dalia Fleet Pitch):**
+    text: `💼 **מדריך פנייה ותוכנית עבודה מול מנהלי ציים עסקיים (Dalia Fleet Outreach Plan):**
 
 1. **הכאב המרכזי של מנהל הצי:**
-   • **השבתת רכב (Downtime):** משאית שעומדת במוסך יומיים עולה לחברה אלפי שקלים באובדן עבודה ואי-עמידה בזמני אספקה.
-   • **פתרון דליה:** התחייבות לזמינות מיידית, טיפולים מהירים (Same-Day) ותיאום תור מראש ללא המתנה.
+   • **השבתת רכב (Downtime):** רכב עבודה או משאית מושבתת עולה לחברה אלפי שקלים ליום באובדן עבודה ואי-עמידה בזמני אספקה.
+   • **הפתרון של דליה:** דליה אינה מוסך – דליה מספקת מעטפת ניהול, תחזוקה, תפעול וליווי קצב"ת המבטיחה זמינות צי מרבית, תיאום טיפולים מראש ותיעוד ממוחשב.
 
-2. **בטיחות ותקנות משרד התחבורה:**
+2. **בטיחות ותקנות משרד התחבורה (תקנה 579):**
    • **הכנה לטסט וביקורות חורף:** ליווי מלא של בדיקות בלמים ממוחשבות, בדיקות זיהום אוויר, ותיעוד מסודר לספר הטיפולים.
-   • **קצין בטיחות בתעבורה (תקנה 579):** סיוע מול דרישות הקצב"ת ודוחות בטיחות חודשיים.
+   • **קצין בטיחות בתעבורה (קצב"ת):** ליווי שוטף מול דרישות החוק ודוחות בטיחות חודשיים.
 
 3. **שקיפות וחיסכון בעלויות:**
-   • הצעת מחיר שקופה מראש לטיפולים שוטפים, חלפים מקוריים ותואמים איכותיים, וריכוז חשבוניות חודשי נוח.`,
+   • הצעת מחיר שקופה מראש לטיפולים שוטפים, חלפים איכותיים וריכוז חשבוניות חודשי נוח.
+
+4. **סדר פעולות לפנייה:**
+   • שלב 1: פנייה למנהל התפעול / קצין הרכב עם הצגת שירותי ניהול הצי.
+   • שלב 2: הצעת פיילוט ל-5 רכבים לבחינת השירות וחיסכון בזמני השבתה.`,
     chips: [
-      "תמליץ על 5 הלידים המובילים ביותר",
-      "חברות הובלה בדרום",
-      "מי מחויבת בתקנה 579?"
+      "תמליץ על 5 הלידים המובילים ביותר לדליה",
+      "חברות הובלה במרכז",
+      "מי מחויבת בתקנה 579?",
+      "תכין לי העברה של החברות שבחרתי לרשימת הלידים"
     ]
   };
 }
 
-function evaluateDaliaLeadIntelligence(query) {
-  const q = (query || "").toLowerCase();
+function executeNaturalQuery(userQuery, isFallback = false) {
+  const q = (userQuery || "").trim().toLowerCase();
+  const ctx = S.aiChatContextLead;
 
-  // A. Regulation 579 / Safety officer
+  // 1. Filter by phone
+  if (q.includes("רק חברות עם") && q.includes("טלפון") || q.includes("תציג רק חברות עם מספר טלפון") || (q.includes("סנן") && q.includes("טלפון") && !q.includes("בלי") && !q.includes("חסר") && !q.includes("אין"))) {
+    S.coFilter.phone = "yes";
+    S.coPage = 1;
+    S.view = "prospector";
+    S.tab = "companies";
+    render();
+    const withPhoneCount = C.filter(c => OPQualify.hasAnyValidPhone(c, QF(c))).length;
+    return {
+      role: "assistant",
+      text: `📞 **הופעל סינון בטבלה:** מוצגות כעת **${withPhoneCount} חברות עם מספר טלפון מאומת** מתוך ${C.length}.\n\nהתצוגה עברה ללשונית "חברות שנמצאו".`,
+      chips: ["תסנן לי את החברות המתאימות", "תכין לי רשימה של 10 החברות הכי טובות", "הכן העברה לרשימת הלידים"],
+      actionFilter: { key: "phone", val: "yes", label: "🔍 הצג חברות עם טלפון" }
+    };
+  }
+
+  // 2. Filter suitable companies
+  if (q.includes("תסנן לי את החברות המתאימות") || (q.includes("סנן") && q.includes("מתאימ"))) {
+    S.coFilter.qualColor = "green";
+    S.coPage = 1;
+    S.view = "prospector";
+    S.tab = "companies";
+    render();
+    const greenCount = C.filter(c => QF(c)?.lead_quality_color === "green").length;
+    return {
+      role: "assistant",
+      text: `🎯 **הופעל סינון בטבלה:** מוצגות **${greenCount} חברות מובילות (סיווג ירוק)** עם פוטנציאל עסקי גבוה ומוכנות לפנייה ישירה לדליה.\n\nהתצוגה עברה ללשונית "חברות שנמצאו".`,
+      chips: ["תציג רק חברות עם מספר טלפון", "תכין לי רשימה של 10 החברות הכי טובות", "תכין לי תוכנית עבודה לפנייה לחברות"],
+      actionFilter: { key: "qualColor", val: "green", label: "🔍 הצג חברות ירוקות" }
+    };
+  }
+
+  // 3. Companies not yet in leads
+  if (q.includes("עדיין לא הועברו") || q.includes("עוד לא הועברו") || q.includes("שלא הועברו ללידים") || q.includes("שטרם הועברו")) {
+    S.coFilter.st = "new";
+    S.coPage = 1;
+    S.view = "prospector";
+    S.tab = "companies";
+    render();
+    const newCount = C.filter(c => c.status === "new").length;
+    return {
+      role: "assistant",
+      text: `📋 **הופעל סינון בטבלה:** מוצגות **${newCount} חברות במאגר בסטטוס 'חדש'** שטרם הועברו לתהליך העבודה וניהול הלידים.\n\nהתצוגה עברה ללשונית "חברות שנמצאו".`,
+      chips: ["תכין לי העברה של החברות שבחרתי לרשימת הלידים", "תכין לי רשימה של 10 החברות הכי טובות", "סנן רק עם טלפון"],
+      actionFilter: { key: "st", val: "new", label: "🔍 הצג חברות חדשות שטרם הועברו" }
+    };
+  }
+
+  // 4. Open company card
+  if (q.includes("פתח לי את הכרטיס") || q.includes("פתח כרטיס") || q.includes("הצג כרטיס")) {
+    let targetCo = S.aiChatContextLead;
+    if (!targetCo) {
+      targetCo = findCompanyInQuery(userQuery);
+    }
+    if (!targetCo) {
+      targetCo = [...C].sort((a, b) => scoreLeadForDaliaFleet(b) - scoreLeadForDaliaFleet(a))[0];
+    }
+    if (targetCo) {
+      S.panel = { co: targetCo.id };
+      renderPanel();
+      return {
+        role: "assistant",
+        text: `🏢 **כרטיס החברה נפתח בהצלחה:**\nפתחתי את כרטיס החברה של **${targetCo.name}** (ח.פ. \`${targetCo.no || "—"}\`).\nהכרטיס מוצג כעת על המסך עם מלוא הנתונים המאומתים, אנשי הקשר ושרשרת הראיות.`,
+        chips: ["למה הליד הזה צהוב?", "מה חסר לליד זה?", "תמליץ על עוד חברות דומות"]
+      };
+    }
+  }
+
+  // 5. Prepare lead transfer with Preview and Confirmation
+  if (q.includes("העברה של החברות") || q.includes("העברה לרשימת הלידים") || q.includes("העבר לרשימת הלידים") || q.includes("העבר ללידים") || q.includes("הכן העברה")) {
+    let candidates = [];
+    if (S.selectedCoIds && S.selectedCoIds.size > 0) {
+      candidates = C.filter(c => S.selectedCoIds.has(c.id));
+    }
+    if (!candidates.length && ctx) {
+      candidates = [ctx];
+    }
+    if (!candidates.length) {
+      candidates = C.filter(c => c.status === "new").sort((a, b) => scoreLeadForDaliaFleet(b) - scoreLeadForDaliaFleet(a)).slice(0, 5);
+    }
+
+    const itemsSummary = candidates.map((c, i) => `${i+1}. **${c.name}** (ח.פ. \`${c.no || "—"}\`) · ${c.city || "—"} · ${c.ind || "—"}`).join("\n");
+
+    return {
+      role: "assistant",
+      text: `📥 **תצוגה מקדימה להעברת ${candidates.length} חברות לרשימת הלידים (Preview):**
+
+להלן החברות שהוכנו להעברה מתצוגת איתור לסטטוס **"בבדיקה" (Review)** בניהול הלידים:
+
+${itemsSummary}
+
+⚠️ **אבטחה ושליטה:** פעולה זו אינה שומרת דבר באופן אוטומטי. הנתונים לא ישתנו ללא אישורך המפורש בלחיצה על הכפתור מטה. שום ליד קיים לא יימחק.`,
+      actionCard: {
+        id: "transfer_leads_" + Date.now(),
+        type: "transfer_to_leads",
+        title: `📥 אישור העברת ${candidates.length} חברות לרשימת הלידים`,
+        description: `שינוי סטטוס החברות הנבחרות ל'בבדיקה' בניהול הלידים ושמירה מקומית ב-STAGING.`,
+        leads: candidates
+      },
+      chips: ["בטל העברה", "תכין לי תוכנית עבודה לפנייה לחברות", "תסנן לי את החברות המתאימות"]
+    };
+  }
+
+  // 6. Top 10 list
+  if (q.includes("10 החברות הכי טובות") || q.includes("רשימה של 10") || q.includes("עשר החברות") || (q.includes("10") && q.includes("מוביל"))) {
+    const top10 = [...C].sort((a, b) => scoreLeadForDaliaFleet(b) - scoreLeadForDaliaFleet(a)).slice(0, 10);
+    const listStr = top10.map((c, i) => {
+      const fVal = (c.fleet && c.fleet.val) || c.fleetType || "צי מסחרי";
+      const fSrc = (c.fleet && c.fleet.src) ? `(מאומת: ${c.fleet.src})` : "(הערכת ענף)";
+      const person = (c.people && c.people[0]) ? `${c.people[0][0]} (${c.people[0][1]}) - ${c.people[0][4] || c.phone || ""}` : (c.phone || "—");
+      return `🔹 **${i+1}. ${c.name}** (ח.פ. \`${c.no || "—"}\`)
+   • עיר: ${c.city || "—"} | ענף: ${c.ind || "—"}
+   • צי רכב: **${fVal}** ${fSrc}
+   • איש קשר: ${person}
+   • התאמה לדליה: ${c.leadReason || "צי עבודה הדורש טיפולים שוטפים וצמצום זמני השבתה."}`;
+    }).join("\n\n");
+
+    return {
+      role: "assistant",
+      text: `⭐ **10 החברות המובילות ביותר במאגר לשירותי ניהול ציים של דליה:**
+
+${listStr}
+
+💡 **למה חברות אלו נבחרו:**
+חברות אלו מחזיקות בצי רכבי עבודה כבדים/מסחריים, בעלות פוטנציאל עסקי מעל 80%, ומאפשרות לדליה לספק מענה מלא: ניהול טיפולים שוטפים, עמידה בתקנות תעבורה, וצמצום ימי השבתה (Downtime). דליה אינה מוסך.`,
+      chips: ["תכין לי העברה של החברות שבחרתי לרשימת הלידים", "תכין לי תוכנית עבודה לפנייה לחברות", "תציג רק חברות עם מספר טלפון"]
+    };
+  }
+
+  // 7. Outreach plan
+  if (q.includes("תוכנית עבודה") || q.includes("תכנית עבודה") || q.includes("איך לפנות") || q.includes("תסריט פנייה") || q.includes("מדריך פנייה")) {
+    return buildDaliaSalesGuidance();
+  }
+
+  // 8. Regulation 579
   if (q.includes("579") || q.includes("קצין בטיחות") || q.includes("קצב\"ת") || q.includes("קצבת")) {
     return buildRegulation579Analysis();
   }
 
-  // B. Sales strategy and guidance
-  if (q.includes("איך לפנות") || q.includes("תסריט") || q.includes("טיעוני") || q.includes("מכירות") || q.includes("הצעת ערך")) {
-    return buildDaliaSalesGuidance();
-  }
-
-  // C. Specific Company queries: Explicit company questions or HP or active lead context
-  const foundCo = findCompanyInQuery(query);
-  const isExplicitRecommendation = q.includes("תמליץ") || q.includes("המלצה") || q.includes("הכי טוב") || q.includes("כל הלידים") || q.includes("מוביל") || q.includes("רשימ");
-  if (foundCo && !isExplicitRecommendation) {
+  // 9. Specific Company
+  const isSearchIntent = q.includes("תמצא") || q.includes("חפש") || q.includes("תציג") || q.includes("רשימ") || q.includes("המלצ") || q.includes("כמה");
+  const foundCo = findCompanyInQuery(userQuery);
+  if (foundCo && !isSearchIntent) {
     return buildCompanyDossier(foundCo);
   }
 
-  // D. Filtered Recommendations: Region & Industry combinations
-  const filterOpts = {};
-  if (q.includes("דרום") || q.includes("אשקלון") || q.includes("אשדוד") || q.includes("באר שבע")) filterOpts.region = "דרום";
-  else if (q.includes("מרכז") || q.includes("תל אביב") || q.includes("פתח תקווה") || q.includes("חולון")) filterOpts.region = "מרכז";
-  else if (q.includes("צפון") || q.includes("חיפה")) filterOpts.region = "צפון";
-  else if (q.includes("שפלה") || q.includes("רחובות") || q.includes("רמלה") || q.includes("לוד")) filterOpts.region = "שפלה";
-
-  if (q.includes("הובל") || q.includes("שינוע")) filterOpts.industry = "הובל";
-  else if (q.includes("עפר") || q.includes("תשתית") || q.includes("כביש") || q.includes("בניי") || q.includes("בניה")) filterOpts.industry = "תשתית";
-  else if (q.includes("לוגיסט") || q.includes("הפצ") || q.includes("שליח")) filterOpts.industry = "לוגיסט";
-
-  if (filterOpts.region || filterOpts.industry) {
-    return buildDaliaRecommendations(filterOpts);
+  // 10. Conversational Search
+  if (isSearchIntent || q.includes("הובל") || q.includes("לוגיסט") || q.includes("עפר") || q.includes("תשתית") || q.includes("רכבים") || q.includes("לקוחות פוטנציאליים")) {
+    return executeConversationalSearch(userQuery);
   }
 
-  // E. If found company was explicitly asked for (e.g. "חברת מועלם" or HP)
-  if (foundCo && (q.includes("חברת") || q.match(/\b\d{8,9}\b/))) {
-    return buildCompanyDossier(foundCo);
+  // 11. Recommendations
+  if (q.includes("תמליץ") || q.includes("המלצה") || q.includes("המלצות") || q.includes("5 הלידים המובילים") || q.includes("לידים מומלצים")) {
+    return buildDaliaRecommendations();
   }
 
-  // F. General Dalia Fleet Recommendations
-  return buildDaliaRecommendations();
+  if (isFallback) {
+    if (q.includes("שלום") || q.includes("היי") || q.includes("בוקר") || q.includes("ערב") || q.includes("לעזור") || q.includes("מי אתה") || q.includes("מה אתה")) {
+      return {
+        role: "assistant",
+        text: `👋 **שלום! אני עוזר ה-AI של OpenProspector לניהול ציי רכב דליה.**\n\nאני כאן כדי לסייע לך לאתר לקוחות עסקיים, לנתח ציי רכב ולייצר פניות אפקטיביות.\n*(הבהרה: דליה אינה מוסך — דליה מספקת שירותי ניהול ציים, תחזוקה מונעת, ליווי קצב"ת לפי תקנה 579 וצמצום זמני השבתה לחברות עם 5 רכבים ומעלה).*\n\n🎯 **איך אני יכול לעזור לך עכשיו:**\n• **חיפוש וסינון:** *"תמצא לי 20 חברות הובלה במרכז"*, *"סנן חברות עם לפחות 5 רכבים"*, או *"תציג רק חברות עם מספר טלפון"*.\n• **המלצות ממוקדות:** *"תמליץ על 5 הלידים המובילים ביותר לדליה"* או *"מי מחויבת בתקנה 579?"*.\n• **תחקור חברה ספציפית:** שאל אותי על חברה מסוימת (למשל *"מה אתה יודע על מדן קבלנות?"* או *"פתח לי את הכרטיס"*).\n• **העברה לניהול לידים:** *"תכין לי העברה לרשימת הלידים"* (כולל תצוגה מקדימה ואישור).\n• **הכנה לפנייה:** *"תכין לי תוכנית עבודה לפנייה לחברות"*.`,
+        chips: [
+          "תמליץ על 5 הלידים המובילים ביותר לדליה",
+          "תמצא לי 20 חברות הובלה באזור המרכז",
+          "תסנן לי את החברות המתאימות",
+          "מי מחויבת בתקנה 579?"
+        ]
+      };
+    }
+    return buildDaliaRecommendations();
+  }
+
+  return null;
 }
 
 async function askGeminiFreeform(question) {
@@ -4664,49 +5030,91 @@ async function askGeminiFreeform(question) {
   } : null;
 
   if (sess) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 22000);
     try {
-      const res = await fetch(`${SUPABASE_STAGING_URL}/functions/v1/marketing-gemini-chat`, {
+      let res = await fetch(`${SUPABASE_STAGING_URL}/functions/v1/marketing-gemini-chat`, {
         method: "POST",
+        signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
           "apikey": SUPABASE_STAGING_ANON,
           "Authorization": `Bearer ${sess.accessToken}`
         },
         body: JSON.stringify({
-          system: "אתה עוזר OpenProspector של דליה לניהול ציי רכב. ענה בעברית מקצועית. השתמש רק בעובדות שב-JSON. הבחן בין עובדה מאומתת להערכה. המלץ על חברות המתאימות לשירותי דליה ומוסך אורן קאר עם נימוקים וראיות.",
+          system: "אתה עוזר OpenProspector של דליה לניהול ציי רכב. ענה בעברית מקצועית. דליה מספקת שירותי ניהול, תחזוקה, תפעול ופיקוח בטיחות (תקנה 579) לציי רכב עסקיים (5 רכבים ומעלה). דליה אינה מוסך. השתמש רק בעובדות שב-JSON. הבחן בין עובדה מאומתת להערכה. המלץ על חברות המתאימות לשירותי דליה עם נימוקים וראיות.",
           clientContext: { facts, lead },
           prompt: question
         })
       });
+      clearTimeout(timeoutId);
+
+      // If token expired (401), try one silent refresh and retry
+      if (res.status === 401 && sbClient) {
+        try {
+          const { data: refData } = await sbClient.auth.refreshSession();
+          if (refData && refData.session && refData.session.access_token) {
+            sess.accessToken = refData.session.access_token;
+            res = await fetch(`${SUPABASE_STAGING_URL}/functions/v1/marketing-gemini-chat`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "apikey": SUPABASE_STAGING_ANON,
+                "Authorization": `Bearer ${sess.accessToken}`
+              },
+              body: JSON.stringify({
+                system: "אתה עוזר OpenProspector של דליה לניהול ציי רכב. ענה בעברית מקצועית. דליה מספקת שירותי ניהול, תחזוקה, תפעול ופיקוח בטיחות (תקנה 579) לציי רכב עסקיים (5 רכבים ומעלה). דליה אינה מוסך. השתמש רק בעובדות שב-JSON. הבחן בין עובדה מאומתת להערכה. המלץ על חברות המתאימות לשירותי דליה עם נימוקים וראיות.",
+                clientContext: { facts, lead },
+                prompt: question
+              })
+            });
+          }
+        } catch (rfErr) {
+          console.warn("[Prospector] Retry after refresh failed:", rfErr);
+        }
+      }
+
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok && (data.reply || data.text)) {
-        return { role: "assistant", text: String(data.reply || data.text) };
+        return {
+          role: "assistant",
+          text: `🤖 **תשובת Gemini AI (מודל חי ב-STAGING):**\n\n${String(data.reply || data.text)}`,
+          chips: ["תמליץ על 5 הלידים המובילים ביותר לדליה", "מי מחויבת בתקנה 579?", "תכין לי תוכנית עבודה לפנייה לחברות"]
+        };
       }
+
       const judged = geminiTestResult(res, data);
-      const fallback = evaluateDaliaLeadIntelligence(question);
+      const fallback = executeNaturalQuery(question, true);
       const http = data.upstream_status || res.status;
       return {
         role: "assistant",
-        text: `⚠️ ${judged.label} (קוד: ${http || "—"})\n\n${fallback.text}`,
-        chips: fallback.chips,
+        text: `⚠️ **הודעת מערכת Gemini (קוד ${http || "—"}):** ${judged.label}\n\n⚡ **מענה חלופי ממנוע הניתוח והאיתור המקומי של דליה:**\n\n${fallback.text}`,
+        chips: fallback.chips || ["🔄 נסה שוב", "תמליץ על 5 הלידים המובילים לדליה"],
         actionFilter: fallback.actionFilter,
-        actionCard: fallback.actionCard
+        actionCard: fallback.actionCard,
+        retryPrompt: question
       };
     } catch (e) {
-      const fallback = evaluateDaliaLeadIntelligence(question);
+      clearTimeout(timeoutId);
+      const isTimeout = e.name === "AbortError";
+      const errMsg = isTimeout ? "הקריאה ל-Gemini חרגה ממגבלת הזמן (Timeout של 22 שניות)" : (e.message || "שגיאת רשת");
+      const fallback = executeNaturalQuery(question, true);
       return {
         role: "assistant",
-        text: `⚠️ שגיאת תקשורת עם Gemini ב-STAGING. מנוע הלידים של דליה מספק את הניתוח מהמאגר המאומת:\n\n${fallback.text}`,
-        chips: fallback.chips,
-        actionFilter: fallback.actionFilter
+        text: `⚠️ **שגיאת תקשורת עם Gemini ב-STAGING (${errMsg}):**\n\n⚡ **מענה חלופי ממנוע הניתוח והאיתור המקומי של דליה:**\n\n${fallback.text}`,
+        chips: fallback.chips || ["🔄 נסה שוב", "תמליץ על 5 הלידים המובילים ביותר לדליה"],
+        actionFilter: fallback.actionFilter,
+        actionCard: fallback.actionCard,
+        retryPrompt: question
       };
     }
   }
 
-  const fallback = evaluateDaliaLeadIntelligence(question);
+  // Without session: Full local mode
+  const fallback = executeNaturalQuery(question, true);
   return {
     role: "assistant",
-    text: `ℹ️ מצב תצוגה פתוח (מנוע הלידים וההמלצות של דליה פועל ישירות מול 618 הלידים המאומתים):\n\n${fallback.text}`,
+    text: `ℹ️ **מצב תצוגה פתוח (מנוע הלידים וההמלצות של דליה פועל ישירות מול 618 הלידים המאומתים):**\n\n${fallback.text}`,
     chips: fallback.chips,
     actionFilter: fallback.actionFilter,
     actionCard: fallback.actionCard
@@ -4797,7 +5205,7 @@ ${missing.length ? missing.map(m => "• " + m).join("\n") : "• לא חסרי�
       chips: [
         "כמה לידים בלי טלפון יש?",
         "למה יש כל כך הרבה לידים צהובים?",
-        "תמליץ על 5 הלידים המובילים ביותר"
+        "תמליץ על 5 הלידים המובילים ביותר לדליה"
       ]
     };
   }
@@ -4821,7 +5229,7 @@ ${missing.length ? missing.map(m => "• " + m).join("\n") : "• לא חסרי�
       role: "assistant",
       text: `👤 לפי אותו חישוב של הדשבורד יש **${ls.noContact} לידים בלי איש קשר** מתוך ${ls.total}.`,
       actionFilter: { key: "contact", val: "no", label: `🔍 סנן והצג בטבלה ${ls.noContact} חברות ללא איש קשר` },
-      chips: ["כמה לידים בלי טלפון?", "תמליץ על 5 הלידים המובילים"]
+      chips: ["כמה לידים בלי טלפון?", "תמליץ על 5 הלידים המובילים לדליה"]
     };
   }
 
@@ -4846,7 +5254,7 @@ ${missing.length ? missing.map(m => "• " + m).join("\n") : "• לא חסרי�
   }
 
   // 6. Direct delegate to Dalia Lead Intelligence Engine (Recommendations, Company Dossiers, 579, Regions, Industries)
-  return evaluateDaliaLeadIntelligence(query);
+  return executeNaturalQuery(query, false);
 }
 
 function executeAiChatAction(actIdx) {
@@ -4861,7 +5269,30 @@ function executeAiChatAction(actIdx) {
     return;
   }
 
-  if (ac.type === "dispatch_ai") {
+  if (ac.type === "transfer_to_leads") {
+    const toSend = ac.leads || [];
+    toSend.forEach(c => {
+      c.status = "review";
+      if (typeof updateRemoteLeadStatus === "function") {
+        updateRemoteLeadStatus(c.id, c.status);
+      }
+    });
+    persistProspectorData();
+    ac.executed = true;
+    toast(`הועברו ${toSend.length} חברות לסטטוס 'בבדיקה' בניהול הלידים`);
+    S.aiChatMessages.push({
+      role: "assistant",
+      text: `✅ **ההעברה בוצעה בהצלחה!**
+הועברו ${toSend.length} חברות לניהול הלידים בסטטוס **"בבדיקה" (Review)**.
+הנתונים נשמרו בסביבת STAGING מבלי למחוק או לפגוע בלידים קיימים.`,
+      chips: ["פתח את לשונית ניהול לידים", "תכין לי תוכנית עבודה לפנייה לחברות", "תסנן לי את החברות המתאימות"],
+      actionFilter: { key: "st", val: "review", label: "🔍 הצג חברות אלו בטבלה (סטטוס בבדיקה)" }
+    });
+    if (S.tab === "companies" || S.tab === "leads") {
+      const v = $("#view");
+      if (v) v.innerHTML = V[S.tab] ? V[S.tab]() : V.companies();
+    }
+  } else if (ac.type === "dispatch_ai") {
     const toSend = ac.leads;
     toSend.forEach(c => {
       c.enr = c.enr || { id: c.id, company_name: c.name, company_hp: c.no };
@@ -4954,6 +5385,90 @@ function renderAiChat() {
   const ctxLead = S.aiChatContextLead;
   let actionCounter = 0;
 
+  const panel = root.querySelector(".ai-chat-panel");
+  if (panel) {
+    // 1. Context bar
+    let ctxEl = panel.querySelector(".ai-chat-ctx");
+    if (ctxLead) {
+      if (!ctxEl) {
+        ctxEl = document.createElement("div");
+        ctxEl.className = "ai-chat-ctx";
+        const hEl = panel.querySelector(".ai-chat-h");
+        if (hEl) hEl.after(ctxEl);
+      }
+      ctxEl.innerHTML = `
+        <span>🎯 <b>פוקוס:</b> ${esc(ctxLead.name)} (${esc(ctxLead.no || "ח.פ.")})</span>
+        <button class="btn btn-sm btn-ghost" data-act="aiChatClearContext" style="padding:2px 6px;font-size:11px;height:auto">✕ הסר פוקוס</button>
+      `;
+    } else if (ctxEl) {
+      ctxEl.remove();
+    }
+
+    // 2. Messages
+    const bodyEl = panel.querySelector("#aiChatBody");
+    if (bodyEl) {
+      bodyEl.innerHTML = S.aiChatMessages.map(m => {
+        const isBot = m.role === "assistant";
+        if (m.actionCard && m.actionCard.idx == null) {
+          m.actionCard.idx = ++actionCounter;
+        }
+        return `
+          <div class="ai-msg ${isBot ? 'bot' : 'user'}">
+            <div style="white-space:pre-wrap">${esc(m.text).replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:4px;font-family:monospace">$1</code>')}</div>
+            ${m.actionFilter ? `
+              <div style="margin-top:8px">
+                <button class="btn btn-sm" data-act="aiChatApplyFilter" data-filter-key="${esc(m.actionFilter.key)}" data-filter-val="${esc(m.actionFilter.val)}" style="background:var(--blue-50);color:var(--blue);border-color:var(--blue);font-weight:600;font-size:12px">
+                  ${esc(m.actionFilter.label)}
+                </button>
+              </div>
+            ` : ""}
+            ${m.actionCard ? `
+              <div class="ai-action-card">
+                <div class="title">${esc(m.actionCard.title)}</div>
+                <div class="desc">${esc(m.actionCard.description)}</div>
+                ${m.actionCard.executed ? `
+                  <span class="badge b-ok" style="font-size:11px;margin-top:4px">✓ בוצע בהצלחה</span>
+                ` : m.actionCard.cancelled ? `
+                  <span class="badge b-no" style="font-size:11px;margin-top:4px">✕ פעולה בוטלה</span>
+                ` : `
+                  <div class="btns">
+                    <button class="btn btn-sm btn-primary" data-act="aiChatConfirmAction" data-action-idx="${m.actionCard.idx}" style="background:#6366f1;border-color:#6366f1;color:#fff;font-weight:700">🚀 אשר ביצוע</button>
+                    <button class="btn btn-sm" data-act="aiChatCancelAction" data-action-idx="${m.actionCard.idx}">✕ בטל</button>
+                  </div>
+                `}
+              </div>
+            ` : ""}
+            ${m.retryPrompt ? `
+              <div style="margin-top:6px">
+                <button class="btn btn-sm btn-ghost" data-act="aiChatRetry" data-prompt="${esc(m.retryPrompt)}" style="border:1px solid #cbd5e1;font-size:11px;padding:3px 8px">🔄 נסה שוב</button>
+              </div>
+            ` : ""}
+            ${m.chips && m.chips.length ? `
+              <div class="ai-prompt-chips">
+                ${m.chips.map(ch => `<button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="${esc(ch)}">${esc(ch)}</button>`).join("")}
+              </div>
+            ` : ""}
+          </div>
+        `;
+      }).join("");
+      bodyEl.scrollTop = bodyEl.scrollHeight;
+    }
+
+    // 3. Input & Send Button status
+    const inp = panel.querySelector("#aiChatInput");
+    const sendBtn = panel.querySelector('[data-act="aiChatSend"]');
+    if (inp) {
+      inp.disabled = S.aiChatBusy;
+      inp.placeholder = S.aiChatBusy ? "מעבד תשובה מ-Gemini..." : "שאל שאלה על הלידים או בקש המלצה...";
+    }
+    if (sendBtn) {
+      sendBtn.disabled = S.aiChatBusy;
+      sendBtn.textContent = S.aiChatBusy ? "מעבד..." : "שלח";
+    }
+    return;
+  }
+
+  // Initial Full Render
   root.innerHTML = `
     <div class="ai-chat-overlay" data-act="closeAiChat">
       <div class="ai-chat-panel" data-stop>
@@ -4963,6 +5478,7 @@ function renderAiChat() {
             <h3 style="margin:0;font-size:15px;line-height:1.2">עוזר AI – OpenProspector</h3>
             <div style="font-size:11px;opacity:0.8">Gemini Assistant · STAGING Mode</div>
           </div>
+          <button class="btn btn-sm btn-ghost" data-act="aiChatClearHistory" title="איפוס שיחה" style="font-size:11px;padding:2px 6px;margin-left:4px;color:#64748b;background:transparent;border:none">🗑️</button>
           <button class="x" data-act="closeAiChat" aria-label="סגור עוזר AI">✕</button>
         </div>
 
@@ -5005,6 +5521,11 @@ function renderAiChat() {
                     `}
                   </div>
                 ` : ""}
+                ${m.retryPrompt ? `
+                  <div style="margin-top:6px">
+                    <button class="btn btn-sm btn-ghost" data-act="aiChatRetry" data-prompt="${esc(m.retryPrompt)}" style="border:1px solid #cbd5e1;font-size:11px;padding:3px 8px">🔄 נסה שוב</button>
+                  </div>
+                ` : ""}
                 ${m.chips && m.chips.length ? `
                   <div class="ai-prompt-chips">
                     ${m.chips.map(ch => `<button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="${esc(ch)}">${esc(ch)}</button>`).join("")}
@@ -5017,19 +5538,27 @@ function renderAiChat() {
 
         <div class="ai-chat-f">
           <div class="ai-prompt-chips" style="margin-bottom:4px">
-            <button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="תן סיכום סטטיסטי של כל הלידים">📊 סיכום כללי</button>
+            <button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="תמליץ על 5 הלידים המובילים ביותר לדליה">⭐ 5 המובילים</button>
+            <button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="תמצא לי 20 חברות הובלה באזור המרכז">🚚 20 הובלה מרכז</button>
+            <button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="תסנן לי את החברות המתאימות">🎯 סנן מתאימות</button>
             <button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="כמה לידים בלי טלפון יש?">📞 חסרי טלפון</button>
-            <button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="למה יש כל כך הרבה לידים צהובים?">🟡 ניתוח צהובים</button>
-            <button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="תמליץ על 5 הלידים המובילים ביותר">⭐ 5 המובילים</button>
+            <button class="ai-chip" data-act="aiChatQuickPrompt" data-prompt="מי מחויבת בתקנה 579?">⚖️ תקנה 579</button>
           </div>
           <div class="ai-chat-input-row">
-            <input class="ai-chat-input" id="aiChatInput" placeholder="שאל שאלה על הלידים או בקש המלצה..." autocomplete="off">
-            <button type="button" class="btn btn-primary" data-act="aiChatSend" style="background:#4f46e5;border-color:#4f46e5;color:#fff;font-weight:700;padding:0 14px">שלח</button>
+            <input class="ai-chat-input" id="aiChatInput" placeholder="${S.aiChatBusy ? 'מעבד תשובה מ-Gemini...' : 'שאל שאלה על הלידים או בקש המלצה...'}" ${S.aiChatBusy ? 'disabled' : ''} autocomplete="off">
+            <button type="button" class="btn btn-primary" data-act="aiChatSend" ${S.aiChatBusy ? 'disabled' : ''} style="background:#4f46e5;border-color:#4f46e5;color:#fff;font-weight:700;padding:0 14px">${S.aiChatBusy ? 'מעבד...' : 'שלח'}</button>
           </div>
         </div>
       </div>
     </div>
   `;
+
+  const inp = $("#aiChatInput");
+  if (inp && !S.aiChatBusy) {
+    inp.focus();
+  }
+  const b = $("#aiChatBody");
+  if (b) b.scrollTop = b.scrollHeight;
 }
 
 /* ===== מרכז גילוי מקורות חדשים (SOURCE DISCOVERY HUB - Section 22-26) ===== */
@@ -5536,9 +6065,23 @@ async function userSession() {
   try {
     if (sbClient) {
       const { data } = await sbClient.auth.getSession();
-      const ss = data && data.session;
-      if (ss && ss.access_token && jwtRole(ss.access_token) === "authenticated")
-        return { accessToken: ss.access_token, email: (ss.user && ss.user.email) || "", userId: (ss.user && ss.user.id) || null, source: "Supabase session" };
+      let ss = data && data.session;
+      if (ss && ss.access_token) {
+        // רענון טוקן אוטומטי אם פג תוקף או יפוג בדקה הקרובה
+        const expMs = (ss.expires_at || 0) * 1000;
+        if (expMs && expMs - Date.now() < 60000) {
+          try {
+            const { data: refData, error: refErr } = await sbClient.auth.refreshSession();
+            if (!refErr && refData && refData.session) {
+              ss = refData.session;
+            }
+          } catch (e) {
+            console.warn("[Prospector] Silent token refresh notice:", e);
+          }
+        }
+        if (ss.access_token && jwtRole(ss.access_token) === "authenticated")
+          return { accessToken: ss.access_token, email: (ss.user && ss.user.email) || "", userId: (ss.user && ss.user.id) || null, source: "Supabase session" };
+      }
     }
   } catch (e) { /* storage blocked – try relay */ }
   const a = daliaAuth();
@@ -6236,11 +6779,17 @@ function enLeadCardRow(c) {
 
 /* ===== אירועים ===== */
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-go],[data-tab],[data-act],[data-co],[data-person],[data-ex],[data-test],[data-def],[data-ai-mode],[data-test-conn],[data-test-src],[data-toggle-src],[data-src-tier],[data-lead-cat]");
-  if(e.target.closest("[data-stop]")&&!t)return;
-  if(!t)return;
+  const stopEl = e.target.closest("[data-stop]");
+  let t = e.target.closest("[data-go],[data-tab],[data-act],[data-co],[data-person],[data-ex],[data-test],[data-def],[data-ai-mode],[data-test-conn],[data-test-src],[data-toggle-src],[data-src-tier],[data-lead-cat]");
+  if (stopEl && t && !stopEl.contains(t)) {
+    // Prevent actions outside data-stop (like overlay dismiss) from being triggered by clicks inside the panel
+    t = null;
+  }
+  if(stopEl && !t) return;
+  if(!t) return;
   const d=t.dataset;
   if(d.act==="closePanel"&&t.classList.contains("overlay")&&e.target!==t)return;
+  if(d.act==="closeAiChat"&&t.classList.contains("ai-chat-overlay")&&e.target!==t)return;
   
   if(d.leadCat) {
     S.leadCategory = d.leadCat;
@@ -6341,9 +6890,38 @@ document.addEventListener("click",e=>{
       handleAiUserMessage(d.prompt || "");
       return;
     }
+    case "aiChatRetry":{
+      handleAiUserMessage(d.prompt || "");
+      return;
+    }
+    case "aiChatClearHistory":{
+      S.aiChatMessages = [];
+      try { sessionStorage.removeItem("op_ai_chat_history_v2"); } catch(e){}
+      initAiChatWelcome();
+      renderAiChat();
+      toast("היסטוריית השיחה אופסה");
+      return;
+    }
+    case "aiChatOpenCard":{
+      const coId = +d.coId;
+      const co = C.find(x => x.id === coId);
+      if (co) {
+        S.panel = { co: co.id };
+        renderPanel();
+        toast(`נפתח כרטיס ${co.name}`);
+      }
+      return;
+    }
+    case "aiChatGoToLeads":{
+      S.view = "prospector";
+      S.tab = "leads";
+      render();
+      toast("מעבר לניהול לידים");
+      return;
+    }
     case "aiChatSend":{
       const inp = $("#aiChatInput");
-      if (inp && inp.value.trim()) {
+      if (inp && inp.value.trim() && !S.aiChatBusy) {
         const val = inp.value.trim();
         inp.value = "";
         handleAiUserMessage(val);
@@ -6355,10 +6933,9 @@ document.addEventListener("click",e=>{
         S.coFilter[d.filterKey] = d.filterVal || "";
         S.coPage = 1;
         toast(`הופעל סינון: ${d.filterKey}=${d.filterVal}`);
-        if (S.tab === "companies") {
-          const v = $("#view");
-          if (v) v.innerHTML = V.companies();
-        }
+        S.view = "prospector";
+        S.tab = "companies";
+        render();
       }
       return;
     }
@@ -6763,7 +7340,7 @@ document.addEventListener("keydown",e=>{
   if(e.key==="Enter" && e.target && e.target.id==="aiChatInput"){
     e.preventDefault();
     const val = e.target.value.trim();
-    if(val){
+    if(val && !S.aiChatBusy){
       e.target.value = "";
       handleAiUserMessage(val);
     }

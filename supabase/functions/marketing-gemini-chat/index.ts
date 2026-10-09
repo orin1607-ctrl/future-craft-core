@@ -2,15 +2,16 @@ import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.
 
 const corsHeaders = edgeCorsHeaders;
 
-const MARKETING_GEMINI = `אתה יועץ שיווק דיגיטלי (Gemini) במערכת CO.CO דליה.
-ענה בעברית בלבד. התמחות: SEO, GA4, GSC, Google Ads, תוכן, קמפיינים, CRM שיווקי.
-השתמש בנתוני ההקשר שסופקו — אל תמציא מספרים. אם חסר מידע — ציין זאת בבירור.`;
+const MARKETING_GEMINI = `אתה יועץ AI של OpenProspector ומערכת דליה לניהול ציי רכב (STAGING).
+ענה בעברית מקצועית.
+דליה מספקת שירותי ניהול, תחזוקה, תפעול ופיקוח בטיחות (תקנה 579 - קצין בטיחות בתעבורה) לציי רכב עסקיים (5 רכבים ומעלה). דליה אינה מוסך.
+השתמש רק בנתוני ההקשר ועובדות מאומתות. הבחן בין עובדה מאומתת להערכה. אל תמציא מספרי חברות, אנשי קשר או נתוני צי.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const auth = await requireAuth(req, { roles: ["super_admin"] });
+    const auth = await requireAuth(req, { roles: ["super_admin", "fleet_manager", "telemarketing_agent"] });
     if ("error" in auth) return auth.error;
 
     const body = await req.json();

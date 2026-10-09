@@ -32,7 +32,7 @@ Answer schema:
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: edgeCorsHeaders });
   try {
-    const auth = await requireAuth(req, { roles: ["super_admin"] });
+    const auth = await requireAuth(req, { roles: ["super_admin", "fleet_manager", "telemarketing_agent"] });
     if ("error" in auth) return auth.error;
 
     const body = await req.json().catch(() => null);
