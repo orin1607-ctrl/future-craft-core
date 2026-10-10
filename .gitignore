@@ -55,3 +55,7 @@ public/coco-media/**/*.jpg
 public/coco-media/**/*.webp
 !.gitkeep
 supabase/.temp/
+
+# Private lead and company data (never expose to public web)
+public/data/
+data/

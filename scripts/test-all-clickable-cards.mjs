@@ -2,8 +2,10 @@ import fs from 'fs';
 import vm from 'vm';
 
 const qualifyCode = fs.readFileSync('public/openprospector-qualify.js', 'utf8');
-const snap = JSON.parse(fs.readFileSync('public/data/prospector-real-leads-618.json', 'utf8'));
-const b2 = JSON.parse(fs.readFileSync('public/data/prospector-batch2-1000.json', 'utf8'));
+const leadsPath = fs.existsSync('data/prospector/prospector-real-leads-618.json') ? 'data/prospector/prospector-real-leads-618.json' : 'public/data/prospector-real-leads-618.json';
+const b2Path = fs.existsSync('data/prospector/prospector-batch2-1000.json') ? 'data/prospector/prospector-batch2-1000.json' : 'public/data/prospector-batch2-1000.json';
+const snap = JSON.parse(fs.readFileSync(leadsPath, 'utf8'));
+const b2 = JSON.parse(fs.readFileSync(b2Path, 'utf8'));
 
 const sandbox = { globalThis: {}, console };
 vm.createContext(sandbox);
@@ -41,27 +43,27 @@ function testFilter(items, f) {
     }
 
     if (f.yellowSubtype) {
-      if (ct.yellowSubtype !== f.yellowSubtype) return false;
+      if (!ct || ct.yellowSubtype !== f.yellowSubtype) return false;
     }
 
-    const mobVer = ct.mobileStatus === 'verified';
-    const landVer = ct.landlineStatus === 'verified';
-    const mailVer = ct.emailStatus === 'verified';
+    const mobVer = ct ? ct.mobileStatus === 'verified' : false;
+    const landVer = ct ? ct.landlineStatus === 'verified' : false;
+    const mailVer = ct ? ct.emailStatus === 'verified' : false;
     const verFilter = f.verState;
 
     if (f.contactType) {
       const t = f.contactType;
       if (t === 'mobile') {
-        if (verFilter === 'unverified') { if (ct.mobileStatus !== 'unverified_present') return false; }
-        else if (verFilter === 'missing') { if (ct.mobileStatus !== 'missing') return false; }
+        if (verFilter === 'unverified') { if (!ct || ct.mobileStatus !== 'unverified_present') return false; }
+        else if (verFilter === 'missing') { if (!ct || ct.mobileStatus !== 'missing') return false; }
         else { if (!mobVer) return false; }
       } else if (t === 'landline') {
-        if (verFilter === 'unverified') { if (ct.landlineStatus !== 'unverified_present') return false; }
-        else if (verFilter === 'missing') { if (ct.landlineStatus !== 'missing') return false; }
+        if (verFilter === 'unverified') { if (!ct || ct.landlineStatus !== 'unverified_present') return false; }
+        else if (verFilter === 'missing') { if (!ct || ct.landlineStatus !== 'missing') return false; }
         else { if (!landVer) return false; }
       } else if (t === 'email') {
-        if (verFilter === 'unverified') { if (ct.emailStatus !== 'unverified_present') return false; }
-        else if (verFilter === 'missing') { if (ct.emailStatus !== 'missing') return false; }
+        if (verFilter === 'unverified') { if (!ct || ct.emailStatus !== 'unverified_present') return false; }
+        else if (verFilter === 'missing') { if (!ct || ct.emailStatus !== 'missing') return false; }
         else { if (!mailVer) return false; }
       } else if (t === 'mobile_only') {
         if (!mobVer || landVer) return false;
@@ -102,54 +104,65 @@ function testFilter(items, f) {
       if (c.potential_tier !== 'high' && !(c.potential_score >= 60)) return false;
     }
 
+    if (f.wfStatus) {
+      const curWf = (q ? q.workflow_status : (c.enr?.enrichment_status || 'new'));
+      if (f.wfStatus === 'sent_to_ai') {
+        if (curWf !== 'sent_to_ai' && c.enr?.enrichment_status !== 'sent_to_ai') return false;
+      } else if (f.wfStatus === 'queued_for_ai') {
+        if (curWf !== 'queued_for_ai' && c.enr?.enrichment_status !== 'queued_for_ai') return false;
+      } else {
+        if (curWf !== f.wfStatus) return false;
+      }
+    }
+
     return true;
   });
 }
 
 const approvedC = C.filter(c => c.isApprovedLead !== false);
-const batch2C = C.filter(c => c.discovery_batch === 'batch_2');
+const allC = C;
 
 const cardsToTest = [
-  // 1. איכות הלידים (ניהול לידים)
-  { id: 'leads_all', label: 'כל הלידים המאושרים', items: approvedC, filter: {}, expected: 618 },
-  { id: 'leads_green', label: '🟢 לידים ירוקים', items: approvedC, filter: { qualColor: 'green' }, expected: 584 },
-  { id: 'leads_green_plus', label: '⭐ לידים איכותיים+', items: approvedC, filter: { qualColor: 'green_plus' }, expected: 208 },
-  { id: 'leads_yellow', label: '🟡 לידים צהובים', items: approvedC, filter: { qualColor: 'yellow' }, expected: 29 },
-  { id: 'leads_red', label: '🔴 לידים אדומים', items: approvedC, filter: { qualColor: 'red' }, expected: 5 },
-  { id: 'leads_ready', label: '✅ מוכנים לפנייה', items: approvedC, filter: { readyOnly: true }, expected: 584 },
+  // 1. כרטיסי איכות וניהול לידים
+  { id: 'total_companies', label: '🏢 סה"כ חברות במערכת', items: allC, targetTab: 'companies', filter: {}, expected: 1618 },
+  { id: 'leads_all', label: '📋 סה"כ לידים מאושרים ופעילים', items: approvedC, targetTab: 'leads', filter: {}, expected: 618 },
+  { id: 'leads_green', label: '🟢 לידים ירוקים', items: approvedC, targetTab: 'leads', filter: { qualColor: 'green' }, expected: 584 },
+  { id: 'leads_green_plus', label: '⭐ לידים איכותיים+', items: approvedC, targetTab: 'leads', filter: { qualColor: 'green_plus' }, expected: 208 },
+  { id: 'leads_yellow', label: '🟡 לידים צהובים', items: approvedC, targetTab: 'leads', filter: { qualColor: 'yellow' }, expected: 29 },
+  { id: 'leads_red', label: '🔴 לידים אדומים', items: approvedC, targetTab: 'leads', filter: { qualColor: 'red' }, expected: 5 },
+  { id: 'leads_ready', label: '✅ מוכנים לפנייה', items: approvedC, targetTab: 'leads', filter: { readyOnly: true }, expected: 584 },
 
-  // 2. פרטי קשר (ניהול לידים)
-  { id: 'leads_ver_mobile', label: '📱 בעלי נייד מאומת', items: approvedC, filter: { contactType: 'mobile', verState: 'verified_only' }, expected: 594 },
-  { id: 'leads_ver_landline', label: '☎️ בעלי משרדי מאומת', items: approvedC, filter: { contactType: 'landline', verState: 'verified_only' }, expected: 2 },
-  { id: 'leads_ver_email', label: '✉️ בעלי אימייל מאומת', items: approvedC, filter: { contactType: 'email', verState: 'verified_only' }, expected: 605 },
-  { id: 'leads_ver_mob_email', label: '📱✉️ נייד ואימייל מאומתים', items: approvedC, filter: { contactType: 'mobile_email', verState: 'verified_only' }, expected: 593 },
-  { id: 'leads_ver_land_email', label: '☎️✉️ משרדי ואימייל מאומתים', items: approvedC, filter: { contactType: 'landline_email', verState: 'verified_only' }, expected: 2 },
-  { id: 'leads_ver_phone_no_mail', label: '📞 טלפון מאומת ללא אימייל', items: approvedC, filter: { contactType: 'phone_no_email' }, expected: 1 },
-  { id: 'leads_ver_mail_no_phone', label: '✉️ אימייל מאומת ללא טלפון', items: approvedC, filter: { contactType: 'email_no_phone' }, expected: 12 },
-  { id: 'leads_no_ver_contact', label: '⚠️ ללא אמצעי קשר מאומת', items: approvedC, filter: { contactType: 'no_verified' }, expected: 12 },
+  // 2. ערוצי התקשרות ואימות (כלל החברות במאגר)
+  { id: 'all_ver_mobile', label: '📱 נייד מאומת', items: allC, targetTab: 'companies', filter: { contactType: 'mobile', verState: 'verified_only' }, expected: 1593 },
+  { id: 'all_ver_landline', label: '☎️ טלפון משרדי מאומת', items: allC, targetTab: 'companies', filter: { contactType: 'landline', verState: 'verified_only' }, expected: 3 },
+  { id: 'all_ver_email', label: '✉️ אימייל מאומת', items: allC, targetTab: 'companies', filter: { contactType: 'email', verState: 'verified_only' }, expected: 1605 },
+  { id: 'all_ver_mob_email', label: '📱✉️ נייד ואימייל מאומתים', items: allC, targetTab: 'companies', filter: { contactType: 'mobile_email', verState: 'verified_only' }, expected: 1592 },
+  { id: 'all_ver_land_email', label: '☎️✉️ טלפון משרדי ואימייל מאומתים', items: allC, targetTab: 'companies', filter: { contactType: 'landline_email', verState: 'verified_only' }, expected: 3 },
+  { id: 'all_ver_phone_only', label: '📞 טלפון מאומת בלבד', items: allC, targetTab: 'companies', filter: { contactType: 'phone_no_email' }, expected: 1 },
+  { id: 'all_ver_email_only', label: '✉️ אימייל מאומת בלבד', items: allC, targetTab: 'companies', filter: { contactType: 'email_no_phone' }, expected: 12 },
+  { id: 'all_no_ver_contact', label: '⚠️ ללא פרטי קשר מאומתים', items: allC, targetTab: 'companies', filter: { contactType: 'no_verified' }, expected: 12 },
 
-  // 3. פילוח צהובים
-  { id: 'yellow_A', label: '🟡 צהוב A (טלפון בלבד)', items: approvedC, filter: { qualColor: 'yellow', yellowSubtype: 'A' }, expected: 1 },
-  { id: 'yellow_B', label: '🟡 צהוב B (אימייל בלבד)', items: approvedC, filter: { qualColor: 'yellow', yellowSubtype: 'B' }, expected: 12 },
-  { id: 'yellow_C', label: '🟡 צהוב C (ללא טלפון/אימייל)', items: approvedC, filter: { qualColor: 'yellow', yellowSubtype: 'C' }, expected: 12 },
-  { id: 'yellow_other', label: '🟡 צהוב חוסר אחר (יש טלפון ואימייל)', items: approvedC, filter: { qualColor: 'yellow', yellowSubtype: 'other' }, expected: 4 },
+  // 3. ארבעת כרטיסי ההעשרה (כלל החברות במאגר)
+  { id: 'enr_queued', label: '⏳ ממתין להעשרה', items: allC, targetTab: 'companies', filter: { wfStatus: 'queued_for_ai' }, expected: 0 },
+  { id: 'enr_sent', label: '🚀 נשלח להעשרה', items: allC, targetTab: 'companies', filter: { wfStatus: 'sent_to_ai' }, expected: 0 },
+  { id: 'enr_candidate_ext', label: '🎯 מועמד להעשרה חיצונית', items: allC, targetTab: 'companies', filter: { wfStatus: 'candidate_external' }, expected: 2 },
+  { id: 'enr_sent_ext', label: '🌐 נשלח להעשרה חיצונית', items: allC, targetTab: 'companies', filter: { wfStatus: 'sent_to_external' }, expected: 0 },
 
-  // 4. צירופים שימושיים
-  { id: 'combo_green_mob', label: '🟢 ירוקים עם נייד מאומת', items: approvedC, filter: { qualColor: 'green', contactType: 'mobile', verState: 'verified_only' }, expected: 584 },
-  { id: 'combo_green_plus_mob', label: '⭐ ירוק+ עם נייד מאומת', items: approvedC, filter: { qualColor: 'green_plus', contactType: 'mobile', verState: 'verified_only' }, expected: 208 },
-  { id: 'combo_green_mob_email', label: '🟢✉️ ירוקים עם נייד ואימייל', items: approvedC, filter: { qualColor: 'green', contactType: 'mobile_email', verState: 'verified_only' }, expected: 584 },
-  { id: 'combo_yellow_mob', label: '🟡 צהובים עם נייד מאומת', items: approvedC, filter: { qualColor: 'yellow', contactType: 'mobile', verState: 'verified_only' }, expected: 5 },
+  // 4. חלוקת הלידים הצהובים (ניהול לידים)
+  { id: 'yellow_A', label: '🟡 צהוב A (טלפון בלבד)', items: approvedC, targetTab: 'leads', filter: { qualColor: 'yellow', yellowSubtype: 'A' }, expected: 1 },
+  { id: 'yellow_B', label: '🟡 צהוב B (אימייל בלבד)', items: approvedC, targetTab: 'leads', filter: { qualColor: 'yellow', yellowSubtype: 'B' }, expected: 12 },
+  { id: 'yellow_C', label: '🟡 צהוב C (ללא טלפון/אימייל)', items: approvedC, targetTab: 'leads', filter: { qualColor: 'yellow', yellowSubtype: 'C' }, expected: 12 },
+  { id: 'yellow_other', label: '🟡 צהוב חוסר אחר (יש טלפון ומייל)', items: approvedC, targetTab: 'leads', filter: { qualColor: 'yellow', yellowSubtype: 'other' }, expected: 4 },
 
-  // 5. סבב 2 (חברות שנמצאו)
-  { id: 'b2_all', label: '📁 אותרו בסבב 2', items: batch2C, filter: { discoveryBatch: 'batch_2' }, expected: 1000 },
-  { id: 'b2_mob', label: '📱 סבב 2 עם נייד מאומת', items: batch2C, filter: { discoveryBatch: 'batch_2', contactType: 'mobile', verState: 'verified_only' }, expected: 999 },
-  { id: 'b2_mail', label: '✉️ סבב 2 עם אימייל מאומת', items: batch2C, filter: { discoveryBatch: 'batch_2', contactType: 'email', verState: 'verified_only' }, expected: 1000 },
-  { id: 'b2_wf', label: '👥 סבב 2 עם נתון עובדים', items: batch2C, filter: { discoveryBatch: 'batch_2', workforceOnly: true }, expected: 1000 },
-  { id: 'b2_fleet', label: '🚛 סבב 2 עם פוטנציאל צי 5+', items: batch2C, filter: { discoveryBatch: 'batch_2', fleet5PlusOnly: true }, expected: 1000 }
+  // 5. צירופים שימושיים ופניות מהירות (ניהול לידים)
+  { id: 'combo_green_mob', label: '🟢 ירוקים עם נייד מאומת', items: approvedC, targetTab: 'leads', filter: { qualColor: 'green', contactType: 'mobile', verState: 'verified_only' }, expected: 584 },
+  { id: 'combo_green_plus_mob', label: '⭐ ירוק+ עם נייד מאומת', items: approvedC, targetTab: 'leads', filter: { qualColor: 'green_plus', contactType: 'mobile', verState: 'verified_only' }, expected: 208 },
+  { id: 'combo_green_mob_email', label: '🟢✉️ ירוקים עם נייד ואימייל', items: approvedC, targetTab: 'leads', filter: { qualColor: 'green', contactType: 'mobile_email', verState: 'verified_only' }, expected: 584 },
+  { id: 'combo_yellow_mob', label: '🟡 צהובים עם נייד מאומת', items: approvedC, targetTab: 'leads', filter: { qualColor: 'yellow', contactType: 'mobile', verState: 'verified_only' }, expected: 5 }
 ];
 
 console.log('================================================================================');
-console.log('=== TEST ALL 27 CLICKABLE DASHBOARD CARDS & VERIFIED COUNTS ===');
+console.log('=== TEST ALL 27 UNIFIED DASHBOARD CARDS & VERIFIED COUNTS ===');
 console.log('================================================================================\n');
 
 let allPassed = true;
@@ -157,7 +170,7 @@ cardsToTest.forEach((c, idx) => {
   const result = testFilter(c.items, c.filter);
   const match = result.length === c.expected;
   if (!match) allPassed = false;
-  console.log(`[${match ? 'PASS' : 'FAIL'}] #${idx + 1} ${c.label}: Card Count = ${c.expected} | Filtered List Result = ${result.length}`);
+  console.log(`[${match ? 'PASS' : 'FAIL'}] #${idx + 1} ${c.label} (${c.id}) -> Target: ${c.targetTab} | Card Count = ${c.expected} | Filtered List Result = ${result.length}`);
 });
 
 if (allPassed) {

@@ -7,7 +7,7 @@ console.log('=== OPENPROSPECTOR: SAVE 1,000 BATCH 2 COMPANIES TO SUPABASE STAGIN
 console.log('================================================================================\n');
 
 const STAGING_REF = 'usfeoerkpcafxxlyuldl';
-const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTExNDg1NiwiZXhwIjoyMDk0NjkwODU2fQ.Bmfe3wgJTGtAj3dnZyvPEnlM2vkOJmFt7LEcyuXHdUw';
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzZmVvZXJrcGNhZnh4bHl1bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMTQ4NTYsImV4cCI6MjA5NDY5MDg1Nn0.Z1AsULSK9fNsVwjw7iRP_DkSodeTUdtb-eB5s66qtJU';
 
 const admin = createClient(`https://${STAGING_REF}.supabase.co`, SERVICE_KEY, {

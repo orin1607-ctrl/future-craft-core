@@ -83,6 +83,7 @@ jobs:
           cp public/dalia-marketing-center-v2.html dist/ 2>/dev/null || true
           cp public/openseo.html dist/ 2>/dev/null || true
           cp public/openprospector.html dist/ 2>/dev/null || true
+          cp public/openprospector-qualify.js dist/ 2>/dev/null || true
           cp -r public/ai-marketing dist/
           cp -r public/coco-dalia dist/
           cp -r public/crm dist/
@@ -103,6 +104,8 @@ jobs:
           sed -i "s/v=crm-1/v=crm-${HASH}/g" dist/dalia-crm-platform.html
           test -f dist/index.html || cp public/ai-marketing-platform.html dist/index.html
           test -f dist/404.html || cp dist/index.html dist/404.html
+          # Security Gate: strip any potential lead data directory from the build output
+          rm -rf dist/data 2>/dev/null || true
           touch dist/.nojekyll
           echo "deployed_ref=$(git rev-parse --short HEAD) $(git rev-parse --abbrev-ref HEAD)" > dist/STAGING-DEPLOY.txt
 

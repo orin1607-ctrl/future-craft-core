@@ -1989,6 +1989,164 @@
     return false;
   }
 
+  function getContactVerificationSources(row, contactType, contactVal) {
+    if (!contactVal || contactVal === "לא נמצא") return [];
+    row = row || {};
+    const cleanPhone = normPhone(contactVal);
+    const lowerMail = String(contactVal).toLowerCase().trim();
+    const sourcesMap = new Map();
+
+    function addSource(id, name, type, url, date, confidence) {
+      if (!sourcesMap.has(id)) {
+        sourcesMap.set(id, { id, name, type, url: url || "", date: date || "01.10.2026", confidence: confidence || "מאומת רשמית" });
+      }
+    }
+
+    // 1. פנקס הקבלנים (data.gov.il) - בדיקה ישירה של פרט הקשר המדויק
+    const con = (row.registry_check && row.registry_check.contractors) || {};
+    let inContractors = false;
+    if (con.records && Array.isArray(con.records)) {
+      inContractors = con.records.some(r => {
+        if (contactType === "email") return r.email && r.email.toLowerCase().trim() === lowerMail;
+        const rp = normPhone(r.phone);
+        return rp && (rp.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(rp.slice(-7)));
+      });
+    }
+    // אם מקור החברה הרשמי הוא פנקס הקבלנים ופרט הקשר הראשי תואם
+    if (!inContractors && (row.source === "contractors" || (row.source_name && row.source_name.includes("פנקס הקבלנים")))) {
+      if (contactType === "email") {
+        const rowMail = (row.email || row.mail || "").toLowerCase().trim();
+        if (rowMail && rowMail === lowerMail) inContractors = true;
+      } else {
+        const rp = normPhone(row.phone);
+        if (rp && (rp.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(rp.slice(-7)))) inContractors = true;
+      }
+    }
+    // בדיקה באנשי מקצוע הרשומים ברישיון הקבלן
+    if (!inContractors && Array.isArray(row.people)) {
+      inContractors = row.people.some(p => {
+        const pRole = Array.isArray(p) ? p[1] : (p && p.role);
+        const isLic = pRole && (String(pRole).includes("רישיון הקבלן") || String(pRole).includes("איש מקצוע כשיר"));
+        if (!isLic) return false;
+        if (contactType === "email") {
+          const pm = (Array.isArray(p) ? p[3] : (p && p.email) || "").toLowerCase().trim();
+          return pm && pm === lowerMail;
+        } else {
+          const pp = normPhone(Array.isArray(p) ? p[4] : (p && p.phone));
+          return pp && (pp.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(pp.slice(-7)));
+        }
+      });
+    }
+
+    if (inContractors) {
+      addSource(
+        "gov_contractors",
+        "פנקס הקבלנים הרשומים (data.gov.il)",
+        "מאגר ממשלתי רשמי — משרד הבינוי והשיכון",
+        "https://data.gov.il/dataset/contractors",
+        (row.registry_check && row.registry_check.checked_at ? row.registry_check.checked_at.slice(0, 10) : "01.10.2026"),
+        "רשמי (Tier A)"
+      );
+    }
+
+    // 2. רשם החברות (data.gov.il / ica) - בדיקה ישירה של פרט הקשר המדויק
+    const comp = (row.registry_check && row.registry_check.companies) || {};
+    let inCompanies = false;
+    if (comp && comp.found) {
+      if (contactType === "email" && comp.email && comp.email.toLowerCase().trim() === lowerMail) inCompanies = true;
+      if (contactType !== "email" && comp.phone) {
+        const cp = normPhone(comp.phone);
+        if (cp && (cp.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(cp.slice(-7)))) inCompanies = true;
+      }
+    }
+    if (!inCompanies && (row.source === "companies" || (row.source_name && row.source_name.includes("רשם החברות")))) {
+      if (contactType === "email") {
+        const rowMail = (row.email || row.mail || "").toLowerCase().trim();
+        if (rowMail && rowMail === lowerMail) inCompanies = true;
+      } else {
+        const cp = normPhone(row.phone);
+        if (cp && (cp.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(cp.slice(-7)))) inCompanies = true;
+      }
+    }
+    if (inCompanies) {
+      addSource(
+        "gov_companies",
+        "רשם החברות (data.gov.il)",
+        "מאגר ממשלתי רשמי — משרד המשפטים",
+        "https://data.gov.il/dataset/ica-companies",
+        (row.source_date || (row.registry_check && row.registry_check.checked_at ? row.registry_check.checked_at.slice(0, 10) : "01.10.2026")),
+        "רשמי (Tier A)"
+      );
+    }
+
+    // 3. אתר האינטרנט הרשמי של החברה - רק אם פרט הקשר המדויק אומת ספציפית באתר!
+    const multi = row.multi_phones || row.multiPhones || (row.enr && row.enr.multi_phones) || [];
+    multi.forEach(m => {
+      if (typeof m === "object" && m.val) {
+        const mp = normPhone(m.val);
+        if (mp && (mp.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(mp.slice(-7)))) {
+          if (m.source && (m.source.includes("אתר החברה") || m.source.includes("אתר רשמי") || m.tier === "B")) {
+            addSource(
+              "company_website",
+              m.source || "אתר החברה הרשמי",
+              "ערוץ דיגיטלי ישיר של התאגיד",
+              (row.website ? (row.website.startsWith("http") ? row.website : "https://" + row.website) : ""),
+              "01.10.2026",
+              "אימות ישיר (אתר החברה)"
+            );
+          }
+        }
+      }
+    });
+
+    // בדיקת ראיות (evidence) ספציפיות לפרט הקשר מהאתר
+    const evList = Array.isArray(row.evidence) ? row.evidence : [];
+    evList.forEach(e => {
+      if (!e || e.status !== "verified") return;
+      const ef = e.field || "";
+      if (contactType === "email" && ef.includes("mail")) {
+        const evMail = String(e.value || "").toLowerCase().trim();
+        if (evMail === lowerMail && (String(e.source || "").includes("אתר") || String(e.url || "").includes("http"))) {
+          addSource(
+            "company_website",
+            e.source || "אתר החברה הרשמי",
+            "ערוץ דיגיטלי ישיר של התאגיד",
+            e.url || "",
+            String(e.found_at || "01.10.2026").slice(0, 10),
+            "אימות ישיר (אתר החברה)"
+          );
+        }
+      } else if (contactType !== "email" && (ef.includes("phone") || ef.includes("contact"))) {
+        const ep = normPhone(e.value);
+        if (ep && (ep.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(ep.slice(-7))) && (String(e.source || "").includes("אתר") || String(e.url || "").includes("http"))) {
+          addSource(
+            "company_website",
+            e.source || "אתר החברה הרשמי",
+            "ערוץ דיגיטלי ישיר של התאגיד",
+            e.url || "",
+            String(e.found_at || "01.10.2026").slice(0, 10),
+            "אימות ישיר (אתר החברה)"
+          );
+        }
+      }
+    });
+
+    // 4. אימות ישיר / ידני בלבד
+    const man = (row.field_status && row.field_status.manual) || {};
+    if (man[contactType === "email" ? "email" : "phone"] || (contactType !== "email" && man.phone_verified)) {
+      addSource(
+        "manual_audit",
+        "אימות ישיר / טלפוני (צוות אופטימיזציה דליה)",
+        "בדיקה טלפונית ישירה",
+        "",
+        "01.10.2026",
+        "אימות אנושי"
+      );
+    }
+
+    return Array.from(sourcesMap.values());
+  }
+
   function classifyLeadContacts(row, q) {
     q = q || evaluate(row);
     const fsPhone = q ? q.field_status.phone : { s: "n", val: "", src: "" };
@@ -2010,10 +2168,12 @@
     multi.forEach(m => {
       const val = typeof m === "object" ? m.val : m;
       if (val && validPhone(val) && !phones.some(p => p.val === val)) {
+        // Individual verification: only verified if m specifically has tier === "A" or official company site (tier B)
+        const isMultiVer = typeof m === "object" && (m.tier === "A" || m.tier === "B" || (m.source && m.source.includes("אתר החברה")) || m.verified === true);
         phones.push({
           val,
-          verified: (typeof m === "object" && m.tier === "A") || isPrimaryPhoneVer,
-          source: (typeof m === "object" && m.source) || fsPhone.src || "פנקס הקבלנים",
+          verified: isMultiVer,
+          source: (typeof m === "object" && m.source) || "אינדקס מקושר",
           date: "01.10.2026"
         });
       }
@@ -2023,10 +2183,12 @@
     people.forEach(p => {
       const val = Array.isArray(p) ? p[4] : p.phone;
       if (val && validPhone(val) && !phones.some(x => x.val === val)) {
+        // Individual verification: only verified if p specifically has tier === "A" or verified flag
+        const isPersonVer = Array.isArray(p) ? (p[5] === "A" || p[2] === "v") : (p.tier === "A" || p.verified === true);
         phones.push({
           val,
-          verified: (Array.isArray(p) ? p[5] === "A" : p.tier === "A") || isPrimaryPhoneVer,
-          source: "איש מקצוע רשום",
+          verified: isPersonVer,
+          source: "איש מקצוע רשום ברישיון הקבלן",
           date: "01.10.2026"
         });
       }
@@ -2075,6 +2237,17 @@
       }
     }
 
+    // Attach independent verification sources to each contact
+    if (bestMobile) {
+      bestMobile.sources = bestMobile.verified ? getContactVerificationSources(row, "mobile", bestMobile.val) : [];
+    }
+    if (bestLandline) {
+      bestLandline.sources = bestLandline.verified ? getContactVerificationSources(row, "landline", bestLandline.val) : [];
+    }
+    if (bestEmail) {
+      bestEmail.sources = bestEmail.verified ? getContactVerificationSources(row, "email", bestEmail.val) : [];
+    }
+
     let yellowSubtype = null;
     let yellowPhoneType = null;
     let yellowReason = "";
@@ -2112,6 +2285,12 @@
       bestLandline,
       emailStatus,
       bestEmail,
+      mobileSources: bestMobile ? bestMobile.sources : [],
+      landlineSources: bestLandline ? bestLandline.sources : [],
+      emailSources: bestEmail ? bestEmail.sources : [],
+      mobileSourcesCount: bestMobile && bestMobile.sources ? bestMobile.sources.length : 0,
+      landlineSourcesCount: bestLandline && bestLandline.sources ? bestLandline.sources.length : 0,
+      emailSourcesCount: bestEmail && bestEmail.sources ? bestEmail.sources.length : 0,
       yellowSubtype,
       yellowPhoneType,
       yellowReason,
@@ -2125,7 +2304,7 @@
     normalizeCompanyHp, isValidIsraeliCompanyNumber, CITY_TO_REGION, cityToRegion, KEYWORD_INDUSTRY_MAP, DATA_CLASSIFICATION,
     DEFAULT_DOMAINS, OPDomainKeywords, normName, cleanCorpName,
     WORKFORCE_RANGES, WORKFORCE_STATUS_LABELS, DISCOVERY_BATCHES, calculatePotentialScore, checkDuplicate,
-    isMobilePhone, isLandlinePhone, classifyLeadContacts };
+    isMobilePhone, isLandlinePhone, getContactVerificationSources, classifyLeadContacts };
   root.OPQualify = api;
 })(typeof window !== "undefined" ? window : globalThis);
 

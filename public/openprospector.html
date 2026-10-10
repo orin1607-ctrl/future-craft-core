@@ -10,7 +10,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="openprospector-qualify.js?v=workforce-fleet-v2-calibrated"></script>
 <script src="openprospector-enrich.js?v=workforce-fleet-v2"></script>
-<script src="data/prospector-batch2-1000.js"></script>
 <style>
 :root{
   --navy-950:#04091a;--navy-900:#071022;--navy-800:#0a1830;--navy-700:#0d1f3c;--navy-600:#15305c;
@@ -1098,9 +1097,6 @@ function loadPersistedBatch2() {
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
   } catch(e) {}
-  if (typeof window !== "undefined" && Array.isArray(window.BATCH2_SEED_COMPANIES) && window.BATCH2_SEED_COMPANIES.length > 0) {
-    return window.BATCH2_SEED_COMPANIES;
-  }
   return null;
 }
 
@@ -1232,14 +1228,20 @@ async function syncWithRemoteSupabase() {
     renderNav();
   }
 
-  // 1. Try Supabase Staging DB query via anon key
+  // 1. Try Supabase Staging DB query via authenticated user session
   if (sbClient) {
     try {
+      const sess = (typeof userSession === "function") ? await userSession() : null;
+      const client = (sess && sess.accessToken) ? window.supabase.createClient(SUPABASE_STAGING_URL, SUPABASE_STAGING_ANON, {
+        global: { headers: { Authorization: "Bearer " + sess.accessToken } },
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+      }) : sbClient;
+
       // PostgREST caps each response (max-rows=1000), so page through the table
       const PAGE = 1000;
       let data = [], error = null;
       for (let from = 0; ; from += PAGE) {
-        const res = await sbClient
+        const res = await client
           .from("prospect_leads")
           .select("*")
           .order("lead_number", { ascending: true })
@@ -1250,20 +1252,10 @@ async function syncWithRemoteSupabase() {
       }
 
       if (!error && Array.isArray(data) && data.length > 0) {
-        console.log(`[Prospector] Successfully loaded ${data.length} leads from Supabase STAGING!`);
+        console.log(`[Prospector] Successfully loaded ${data.length} leads from Supabase STAGING via authenticated session!`);
         const mapped = data.map((r, i) => mapDbRowToLead(r, i));
-        // Leads that exist only in the local cache (added offline) are pushed to the DB, not lost
-        const remoteHp = new Set(mapped.map(l => String(l.no || "").trim()).filter(Boolean));
-        const remoteNames = new Set(mapped.map(l => String(l.name || "").trim()));
-        const localOnly = C.filter(l => {
-          const hp = String(l.no || "").trim();
-          if (!hp || remoteHp.has(hp) || remoteNames.has(String(l.name || "").trim())) return false;
-          return !String(l.phone || "").startsWith("03-000-");
-        });
         C.length = 0;
         mapped.forEach(l => C.push(l));
-        localOnly.forEach(l => { l.id = C.length + 1; C.push(l); });
-        if (localOnly.length) S.pendingLocalOnly = localOnly.length;
         persistProspectorData();
         if (typeof S !== "undefined") {
           S.remoteStatus = "connected";
@@ -1275,7 +1267,7 @@ async function syncWithRemoteSupabase() {
         console.warn("[Prospector] Supabase query notice:", error.message);
         if (typeof S !== "undefined") S.remoteError = error.message;
       } else if (typeof S !== "undefined") {
-        S.remoteError = "public.prospect_leads (נדרשת התחברות לטעינה חיה מהשרת)";
+        S.remoteError = "נדרשת התחברות לטעינה חיה מ-Supabase STAGING (RLS מגן על הנתונים)";
       }
     } catch(err) {
       console.warn("[Prospector] Supabase fetch error:", err);
@@ -1285,43 +1277,9 @@ async function syncWithRemoteSupabase() {
     S.remoteError = "ספריית Supabase לא נטענה";
   }
 
-  // 2. Fallback: bundled JSON file if DB query returned 0 rows (e.g. guest mode under RLS, or offline)
-  const b1Count = C.filter(c => (c.discovery_batch || "batch_1") === "batch_1").length;
-  const needsSeedLoad = b1Count < 600 || C.some(c => (c.discovery_batch || "batch_1") === "batch_1" && !c.enr);
-  if (needsSeedLoad) {
-    try {
-      const res = await fetch("./data/prospector-real-leads-618.json");
-      if (res.ok) {
-        const jsonData = await res.json();
-        if (Array.isArray(jsonData) && jsonData.length > 0) {
-          console.log(`[Prospector] Loaded ${jsonData.length} leads from JSON seed file!`);
-          const b2Items = C.filter(c => c.discovery_batch === "batch_2");
-          C.length = 0;
-          jsonData.forEach((l, idx) => {
-            const item = (l.company_name && !l.name) ? mapDbRowToLead(l, idx) : l;
-            if (!item.discovery_batch) item.discovery_batch = "batch_1";
-            if (item.isApprovedLead === undefined) item.isApprovedLead = true;
-            if (!item.enr && typeof ensureLeadEnr === "function") ensureLeadEnr(item);
-            C.push(item);
-          });
-          b2Items.forEach(b => C.push(b));
-          persistProspectorData();
-          if (typeof S !== "undefined") {
-            S.remoteStatus = "json_fallback";
-            S.remoteCount = C.length;
-          }
-          render();
-          return;
-        }
-      }
-    } catch(e) {
-      console.warn("[Prospector] Local JSON fetch failed:", e);
-    }
-  }
-
-  // 3. Fallback to localStorage or default
+  // 2. Strict Security: No public JSON fallback. Guest access cannot view unauthenticated leads.
   if (typeof S !== "undefined") {
-    S.remoteStatus = (C.length >= 100) ? "cached" : "offline";
+    S.remoteStatus = (C.length >= 100) ? "cached" : "unauthenticated";
     renderNav();
   }
 }
@@ -2141,7 +2099,7 @@ const REAL_SEED_COMPANIES = [
 
 /* טעינה ראשונית מ-localStorage אם קיימת שמירה, אחרת שימוש בנתוני הבסיס המאומתים */
 const savedLeads = loadPersistedLeads();
-const C = (savedLeads && savedLeads.length > 0) ? savedLeads : REAL_SEED_COMPANIES;
+const C = (savedLeads && savedLeads.length > 0) ? savedLeads : [];
 
 // Tag all baseline leads with batch_1 if not set, and default isApprovedLead = true
 C.forEach(c => {
@@ -2180,8 +2138,9 @@ const S={
   leadActiveFilter:null,
   leadsViewMode:"table",
   coActiveFilterTitle:"",
-  coFilter:{q:"",st:"",fleet:"",stage:"",phone:"",mail:"",contact:"",ready:"",missing:"",quality:"",city:"",ind:"",region:"",fleetType:"",fleetSize:"",source:"",leadApproved:"",employeeCount:"",qualColor:"",wfStatus:"",missingField:"",discoveryBatch:"",employeeRange:"",potentialTier:"",contactType:"",verState:"",yellowSubtype:"",readyOnly:false,workforceOnly:false,fleet5PlusOnly:false},
+  coFilter:{q:"",st:"",fleet:"",stage:"",phone:"",mail:"",contact:"",ready:"",missing:"",quality:"",city:"",ind:"",region:"",fleetType:"",fleetSize:"",source:"",leadApproved:"",employeeCount:"",qualColor:"",wfStatus:"",missingField:"",discoveryBatch:"",employeeRange:"",potentialTier:"",contactType:"",verState:"",yellowSubtype:"",readyOnly:false,workforceOnly:false,fleet5PlusOnly:false,srcCountMobile:"",srcCountLandline:"",srcCountEmail:""},
   selectedCoIds:new Set(),
+  contactSourcesModal:null,
   aiDispatchModal:null,
   extDispatchModal:null,
   discoveredSources:[],
@@ -2459,6 +2418,44 @@ function matchLeadFilter(c, f) {
     if (c.potential_tier !== "high" && !(c.potential_score >= 60)) return false;
   }
 
+  if (f.srcCountMobile) {
+    const sc = (ct && ct.bestMobile && Array.isArray(ct.bestMobile.sources)) ? ct.bestMobile.sources.length : (ct && ct.mobileStatus === "verified" ? 1 : 0);
+    if (f.srcCountMobile === "4+") {
+      if (sc < 4) return false;
+    } else {
+      if (sc !== Number(f.srcCountMobile)) return false;
+    }
+  }
+
+  if (f.srcCountLandline) {
+    const sc = (ct && ct.bestLandline && Array.isArray(ct.bestLandline.sources)) ? ct.bestLandline.sources.length : (ct && ct.landlineStatus === "verified" ? 1 : 0);
+    if (f.srcCountLandline === "4+") {
+      if (sc < 4) return false;
+    } else {
+      if (sc !== Number(f.srcCountLandline)) return false;
+    }
+  }
+
+  if (f.srcCountEmail) {
+    const sc = (ct && ct.bestEmail && Array.isArray(ct.bestEmail.sources)) ? ct.bestEmail.sources.length : (ct && ct.emailStatus === "verified" ? 1 : 0);
+    if (f.srcCountEmail === "4+") {
+      if (sc < 4) return false;
+    } else {
+      if (sc !== Number(f.srcCountEmail)) return false;
+    }
+  }
+
+  if (f.wfStatus) {
+    const curWf = (q ? q.workflow_status : (c.enr?.enrichment_status || "new"));
+    if (f.wfStatus === "sent_to_ai") {
+      if (curWf !== "sent_to_ai" && c.enr?.enrichment_status !== "sent_to_ai") return false;
+    } else if (f.wfStatus === "queued_for_ai") {
+      if (curWf !== "queued_for_ai" && c.enr?.enrichment_status !== "queued_for_ai") return false;
+    } else {
+      if (curWf !== f.wfStatus) return false;
+    }
+  }
+
   return true;
 }
 
@@ -2542,41 +2539,43 @@ function renderContactBadges(c) {
   const ct = window.OPQualify ? OPQualify.classifyLeadContacts(c, q) : null;
   if (!ct) return "";
   
+  const mobSrcCount = (ct.bestMobile && Array.isArray(ct.bestMobile.sources)) ? ct.bestMobile.sources.length : (ct.mobileStatus === "verified" ? 1 : 0);
+  const mobSrcLabel = mobSrcCount === 1 ? "מקור 1" : `${mobSrcCount} מקורות`;
   const mobBadge = ct.mobileStatus === "verified"
-    ? `<span class="badge b-ok" style="font-size:9.5px;padding:1px 5px">מאומת</span>`
+    ? `<span class="badge b-ok pointer" data-act="showContactSources" data-lead-id="${c.id}" data-contact-type="mobile" style="font-size:9.5px;padding:2px 6px;cursor:pointer" title="לחץ לצפייה ברשימת מקורות האימות">נייד — ${mobSrcLabel} ℹ️</span>`
     : ct.mobileStatus === "unverified_present"
-    ? `<span class="badge b-est" style="font-size:9.5px;padding:1px 5px">לא מאומת</span>`
-    : `<span class="badge b-no" style="font-size:9.5px;padding:1px 5px">חסר</span>`;
+    ? `<span class="badge b-est" style="font-size:9.5px;padding:1px 5px" title="קיים רישום אך טרם אומת במאגר רשמי">נייד — לא מאומת</span>`
+    : `<span class="badge b-no" style="font-size:9.5px;padding:1px 5px" title="לא נמצא מספר נייד">נייד — חסר</span>`;
     
+  const landSrcCount = (ct.bestLandline && Array.isArray(ct.bestLandline.sources)) ? ct.bestLandline.sources.length : (ct.landlineStatus === "verified" ? 1 : 0);
+  const landSrcLabel = landSrcCount === 1 ? "מקור 1" : `${landSrcCount} מקורות`;
   const landBadge = ct.landlineStatus === "verified"
-    ? `<span class="badge b-ok" style="font-size:9.5px;padding:1px 5px">מאומת</span>`
+    ? `<span class="badge b-ok pointer" data-act="showContactSources" data-lead-id="${c.id}" data-contact-type="landline" style="font-size:9.5px;padding:2px 6px;cursor:pointer" title="לחץ לצפייה ברשימת מקורות האימות">משרדי — ${landSrcLabel} ℹ️</span>`
     : ct.landlineStatus === "unverified_present"
-    ? `<span class="badge b-est" style="font-size:9.5px;padding:1px 5px">לא מאומת</span>`
-    : `<span class="badge b-no" style="font-size:9.5px;padding:1px 5px">חסר</span>`;
+    ? `<span class="badge b-est" style="font-size:9.5px;padding:1px 5px" title="קיים רישום אך טרם אומת במאגר רשמי">משרדי — לא מאומת</span>`
+    : `<span class="badge b-no" style="font-size:9.5px;padding:1px 5px" title="לא נמצא טלפון משרדי">משרדי — חסר</span>`;
 
+  const emailSrcCount = (ct.bestEmail && Array.isArray(ct.bestEmail.sources)) ? ct.bestEmail.sources.length : (ct.emailStatus === "verified" ? 1 : 0);
+  const emailSrcLabel = emailSrcCount === 1 ? "מקור 1" : `${emailSrcCount} מקורות`;
   const emailBadge = ct.emailStatus === "verified"
-    ? `<span class="badge b-ok" style="font-size:9.5px;padding:1px 5px">מאומת</span>`
+    ? `<span class="badge b-ok pointer" data-act="showContactSources" data-lead-id="${c.id}" data-contact-type="email" style="font-size:9.5px;padding:2px 6px;cursor:pointer" title="לחץ לצפייה ברשימת מקורות האימות">אימייל — ${emailSrcLabel} ℹ️</span>`
     : ct.emailStatus === "unverified_present"
-    ? `<span class="badge b-est" style="font-size:9.5px;padding:1px 5px">לא מאומת</span>`
-    : `<span class="badge b-no" style="font-size:9.5px;padding:1px 5px">חסר</span>`;
+    ? `<span class="badge b-est" style="font-size:9.5px;padding:1px 5px" title="קיים רישום אך טרם אומת במאגר רשמי">אימייל — לא מאומת</span>`
+    : `<span class="badge b-no" style="font-size:9.5px;padding:1px 5px" title="לא נמצאה כתובת אימייל">אימייל — חסר</span>`;
 
   const mobInfo = ct.bestMobile ? `${esc(ct.bestMobile.val)}` : `<span class="muted faint">—</span>`;
-  const mobMeta = ct.bestMobile && ct.bestMobile.source ? ` (${esc(ct.bestMobile.source)}${ct.bestMobile.date ? ' · ' + esc(ct.bestMobile.date) : ''})` : "";
-  
   const landInfo = ct.bestLandline ? `${esc(ct.bestLandline.val)}` : `<span class="muted faint">—</span>`;
-  const landMeta = ct.bestLandline && ct.bestLandline.source ? ` (${esc(ct.bestLandline.source)}${ct.bestLandline.date ? ' · ' + esc(ct.bestLandline.date) : ''})` : "";
-
   const emailInfo = ct.bestEmail ? `${esc(ct.bestEmail.val)}` : `<span class="muted faint">—</span>`;
 
   return `
   <div style="display:flex;flex-direction:column;gap:3px;font-size:11px">
-    <div style="display:inline-flex;align-items:center;gap:4px" title="נייד${mobMeta}">
+    <div style="display:inline-flex;align-items:center;gap:4px">
       <span>📱</span><span class="bold ltr">${mobInfo}</span> ${mobBadge}
     </div>
-    <div style="display:inline-flex;align-items:center;gap:4px" title="משרדי${landMeta}">
+    <div style="display:inline-flex;align-items:center;gap:4px">
       <span>☎️</span><span class="ltr">${landInfo}</span> ${landBadge}
     </div>
-    <div style="display:inline-flex;align-items:center;gap:4px" title="אימייל">
+    <div style="display:inline-flex;align-items:center;gap:4px">
       <span>✉️</span><span class="ltr">${emailInfo}</span> ${emailBadge}
     </div>
   </div>`;
@@ -2621,75 +2620,93 @@ function renderLeadFilterDropdowns() {
       ["C", "🟡 צהוב C (ללא טלפון/מייל)"],
       ["other", "🟡 צהוב חוסר אחר (יש טלפון ומייל)"]
     ])}
+    ${opt("srcCountMobile", "מקורות נייד — הכל", [
+      ["1", "📱 נייד — מקור 1"],
+      ["2", "📱 נייד — 2 מקורות"],
+      ["3", "📱 נייד — 3 מקורות"],
+      ["4+", "📱 נייד — 4+ מקורות"]
+    ])}
+    ${opt("srcCountLandline", "מקורות משרדי — הכל", [
+      ["1", "☎️ משרדי — מקור 1"],
+      ["2", "☎️ משרדי — 2 מקורות"],
+      ["3", "☎️ משרדי — 3 מקורות"],
+      ["4+", "☎️ משרדי — 4+ מקורות"]
+    ])}
+    ${opt("srcCountEmail", "מקורות אימייל — הכל", [
+      ["1", "✉️ אימייל — מקור 1"],
+      ["2", "✉️ אימייל — 2 מקורות"],
+      ["3", "✉️ אימייל — 3 מקורות"],
+      ["4+", "✉️ אימייל — 4+ מקורות"]
+    ])}
   `;
 }
 
 const DASH_CARDS = [
-  // קבוצה 1: איכות הלידים (ניהול לידים)
+  // קבוצה 1: כרטיסי איכות וניהול לידים
   {
-    group: "איכות הלידים (ניהול לידים)",
+    group: "כרטיסי איכות וניהול לידים",
     groupId: "quality",
     targetTab: "leads",
     items: [
-      { id: "leads_all", label: "כל הלידים המאושרים", targetTab: "leads", filter: {}, sub: "סה\"כ מאגר הלידים הפעיל (סבב 1)", cta: "לכל הלידים המאושרים", border: "var(--border)", bg: "var(--card)" },
-      { id: "leads_green", label: "🟢 לידים ירוקים", targetTab: "leads", filter: { qualColor: "green" }, sub: "מוכנים לפנייה ולעבודה עסקית", cta: "הצג לידים ירוקים", border: "#86efac", bg: "#f0fdf4" },
-      { id: "leads_green_plus", label: "⭐ לידים איכותיים+", targetTab: "leads", filter: { qualColor: "green_plus" }, sub: "ירוקים עם מקבל החלטות מזוהה", cta: "הצג לידים איכותיים+", border: "#fde68a", bg: "#fffbeb" },
-      { id: "leads_yellow", label: "🟡 לידים צהובים", targetTab: "leads", filter: { qualColor: "yellow" }, sub: "פוטנציאל טוב — דורשים השלמה", cta: "הצג לידים צהובים", border: "#fed7aa", bg: "#fffaf0" },
-      { id: "leads_red", label: "🔴 לידים אדומים", targetTab: "leads", filter: { qualColor: "red" }, sub: "אינם מתאימים / בפירוק", cta: "הצג לידים אדומים", border: "#fca5a5", bg: "#fef2f2" },
-      { id: "leads_ready", label: "✅ מוכנים לפנייה", targetTab: "leads", filter: { readyOnly: true }, sub: "עומדים בכל תנאי החובה לאימות", cta: "הצג מוכנים לפנייה", border: "#86efac", bg: "#f0fdf4" }
+      { id: "total_companies", label: "🏢 סה\"כ חברות במערכת", targetTab: "companies", pool: "all", filter: {}, sub: "כלל החברות שנמצאו במאגר (סבב 1 וסבב 2)", cta: "לכל החברות במאגר", border: "#cbd5e1", bg: "var(--card)" },
+      { id: "leads_all", label: "📋 סה\"כ לידים מאושרים ופעילים", targetTab: "leads", pool: "approved", filter: {}, sub: "מאגר הלידים הפעיל שאושר לניהול לידים", cta: "לכל הלידים המאושרים", border: "var(--border)", bg: "var(--card)" },
+      { id: "leads_green", label: "🟢 לידים ירוקים", targetTab: "leads", pool: "approved", filter: { qualColor: "green" }, sub: "מוכנים לפנייה ולעבודה עסקית", cta: "הצג לידים ירוקים", border: "#86efac", bg: "#f0fdf4" },
+      { id: "leads_green_plus", label: "⭐ לידים איכותיים+", targetTab: "leads", pool: "approved", filter: { qualColor: "green_plus" }, sub: "ירוקים עם מקבל החלטות מזוהה", cta: "הצג לידים איכותיים+", border: "#fde68a", bg: "#fffbeb" },
+      { id: "leads_yellow", label: "🟡 לידים צהובים", targetTab: "leads", pool: "approved", filter: { qualColor: "yellow" }, sub: "פוטנציאל טוב — דורשים השלמה", cta: "הצג לידים צהובים", border: "#fed7aa", bg: "#fffaf0" },
+      { id: "leads_red", label: "🔴 לידים אדומים", targetTab: "leads", pool: "approved", filter: { qualColor: "red" }, sub: "אינם מתאימים / בפירוק", cta: "הצג לידים אדומים", border: "#fca5a5", bg: "#fef2f2" },
+      { id: "leads_ready", label: "✅ מוכנים לפנייה", targetTab: "leads", pool: "approved", filter: { readyOnly: true }, sub: "עומדים בכל תנאי החובה לאימות", cta: "הצג מוכנים לפנייה", border: "#86efac", bg: "#f0fdf4" }
     ]
   },
-  // קבוצה 2: ערוצי התקשרות (ניהול לידים)
+  // קבוצה 2: ערוצי התקשרות ואימות (כלל החברות במאגר)
   {
-    group: "ערוצי התקשרות (ניהול לידים)",
+    group: "ערוצי התקשרות ואימות (כלל החברות במאגר)",
     groupId: "channels",
-    targetTab: "leads",
+    targetTab: "companies",
     items: [
-      { id: "leads_ver_mobile", label: "📱 בעלי נייד מאומת", targetTab: "leads", filter: { contactType: "mobile", verState: "verified_only" }, sub: "נייד ישיר 05x מאומת ברשם", cta: "הצג בעלי נייד מאומת" },
-      { id: "leads_ver_landline", label: "☎️ בעלי משרדי מאומת", targetTab: "leads", filter: { contactType: "landline", verState: "verified_only" }, sub: "קו משרדי נייח מאומת (02-09, 07x)", cta: "הצג בעלי משרדי מאומת" },
-      { id: "leads_ver_email", label: "✉️ בעלי אימייל מאומת", targetTab: "leads", filter: { contactType: "email", verState: "verified_only" }, sub: "כתובת דוא\"ל עסקית מאומתת", cta: "הצג בעלי אימייל מאומת" },
-      { id: "leads_ver_mob_email", label: "📱✉️ נייד ואימייל מאומתים", targetTab: "leads", filter: { contactType: "mobile_email", verState: "verified_only" }, sub: "שני ערוצים ישירים פתוחים לפנייה", cta: "הצג נייד ואימייל מאומתים" },
-      { id: "leads_ver_land_email", label: "☎️✉️ משרדי ואימייל מאומתים", targetTab: "leads", filter: { contactType: "landline_email", verState: "verified_only" }, sub: "טלפון קווי ודוא\"ל מאומתים", cta: "הצג משרדי ואימייל מאומתים" },
-      { id: "leads_ver_phone_no_mail", label: "📞 טלפון מאומת ללא אימייל", targetTab: "leads", filter: { contactType: "phone_no_email" }, sub: "ערוץ טלפוני בלבד (נייד או קווי)", cta: "הצג טלפון ללא אימייל" },
-      { id: "leads_ver_mail_no_phone", label: "✉️ אימייל מאומת ללא טלפון", targetTab: "leads", filter: { contactType: "email_no_phone" }, sub: "פנייה ראשונית בדוא\"ל בלבד", cta: "הצג אימייל ללא טלפון" },
-      { id: "leads_no_ver_contact", label: "⚠️ ללא אמצעי קשר מאומת", targetTab: "leads", filter: { contactType: "no_verified" }, sub: "נדרשת בדיקה והשלמת פרטי קשר", cta: "הצג חסרי אמצעי קשר" }
+      { id: "all_ver_mobile", label: "📱 נייד מאומת", targetTab: "companies", pool: "all", filter: { contactType: "mobile", verState: "verified_only" }, sub: "נייד ישיר 05x מאומת ברשם מכלל המאגר", cta: "הצג חברות עם נייד מאומת" },
+      { id: "all_ver_landline", label: "☎️ טלפון משרדי מאומת", targetTab: "companies", pool: "all", filter: { contactType: "landline", verState: "verified_only" }, sub: "קו משרדי נייח מאומת (02-09, 07x)", cta: "הצג חברות עם משרדי מאומת" },
+      { id: "all_ver_email", label: "✉️ אימייל מאומת", targetTab: "companies", pool: "all", filter: { contactType: "email", verState: "verified_only" }, sub: "כתובת דוא\"ל עסקית מאומתת מכלל המאגר", cta: "הצג חברות עם אימייל מאומת" },
+      { id: "all_ver_mob_email", label: "📱✉️ נייד ואימייל מאומתים", targetTab: "companies", pool: "all", filter: { contactType: "mobile_email", verState: "verified_only" }, sub: "שני ערוצים ישירים פתוחים לפנייה", cta: "הצג נייד ואימייל מאומתים" },
+      { id: "all_ver_land_email", label: "☎️✉️ טלפון משרדי ואימייל מאומתים", targetTab: "companies", pool: "all", filter: { contactType: "landline_email", verState: "verified_only" }, sub: "טלפון קווי ודוא\"ל מאומתים", cta: "הצג משרדי ואימייל מאומתים" },
+      { id: "all_ver_phone_only", label: "📞 טלפון מאומת בלבד", targetTab: "companies", pool: "all", filter: { contactType: "phone_no_email" }, sub: "טלפון מאומת (נייד או קווי) ללא אימייל מאומת", cta: "הצג טלפון ללא אימייל" },
+      { id: "all_ver_email_only", label: "✉️ אימייל מאומת בלבד", targetTab: "companies", pool: "all", filter: { contactType: "email_no_phone" }, sub: "אימייל מאומת ללא טלפון מאומת", cta: "הצג אימייל ללא טלפון" },
+      { id: "all_no_ver_contact", label: "⚠️ ללא פרטי קשר מאומתים", targetTab: "companies", pool: "all", filter: { contactType: "no_verified" }, sub: "חברות שנדרשת עבורן השלמת פרטי התקשרות", cta: "הצג חסרי אמצעי קשר" }
     ]
   },
-  // קבוצה 3: חלוקת הצהובים (ניהול לידים)
+  // קבוצה 3: ארבעת כרטיסי ההעשרה (כלל החברות במאגר)
   {
-    group: "חלוקת הצהובים (דורשים השלמה)",
+    group: "סטטוסי העשרת מידע (כלל החברות במאגר)",
+    groupId: "enrichment",
+    targetTab: "companies",
+    items: [
+      { id: "enr_queued", label: "⏳ ממתין להעשרה", targetTab: "companies", pool: "all", filter: { wfStatus: "queued_for_ai" }, sub: "חברות הממתינות בתור להעשרת AI", cta: "הצג ממתינות להעשרה", border: "#c7d2fe", bg: "#eef2ff" },
+      { id: "enr_sent", label: "🚀 נשלח להעשרה", targetTab: "companies", pool: "all", filter: { wfStatus: "sent_to_ai" }, sub: "חברות שנשלחו בפועל לעיבוד AI", cta: "הצג שנשלחו להעשרה", border: "#c7d2fe", bg: "#eef2ff" },
+      { id: "enr_candidate_ext", label: "🎯 מועמד להעשרה חיצונית", targetTab: "companies", pool: "all", filter: { wfStatus: "candidate_external" }, sub: "חברות עם פוטנציאל עסקי גבוה הדורשות העשרה חיצונית", cta: "הצג מועמדים להעשרה חיצונית", border: "#bae6fd", bg: "#f0f9ff" },
+      { id: "enr_sent_ext", label: "🌐 נשלח להעשרה חיצונית", targetTab: "companies", pool: "all", filter: { wfStatus: "sent_to_external" }, sub: "חברות שנשלחו בפועל לספק העשרה חיצוני (Apollo/B2B)", cta: "הצג שנשלחו להעשרה חיצונית", border: "#bae6fd", bg: "#f0f9ff" }
+    ]
+  },
+  // קבוצה 4: חלוקת הלידים הצהובים (ניהול לידים)
+  {
+    group: "חלוקת הלידים הצהובים (ניהול לידים)",
     groupId: "yellow_breakdown",
     targetTab: "leads",
     items: [
-      { id: "yellow_A", label: "🟡 צהוב A (טלפון בלבד)", targetTab: "leads", filter: { qualColor: "yellow", yellowSubtype: "A" }, sub: "יש טלפון מאומת, חסר אימייל מאומת", cta: "הצג צהוב A", border: "#fed7aa", bg: "#fffaf0" },
-      { id: "yellow_B", label: "🟡 צהוב B (אימייל בלבד)", targetTab: "leads", filter: { qualColor: "yellow", yellowSubtype: "B" }, sub: "יש אימייל מאומת, חסר טלפון מאומת", cta: "הצג צהוב B", border: "#fed7aa", bg: "#fffaf0" },
-      { id: "yellow_C", label: "🟡 צהוב C (ללא טלפון/אימייל)", targetTab: "leads", filter: { qualColor: "yellow", yellowSubtype: "C" }, sub: "ללא טלפון מאומת וללא אימייל מאומת", cta: "הצג צהוב C", border: "#fed7aa", bg: "#fffaf0" },
-      { id: "yellow_other", label: "🟡 צהוב חוסר אחר (יש טלפון ואימייל)", targetTab: "leads", filter: { qualColor: "yellow", yellowSubtype: "other" }, sub: "יש טלפון ומייל, חסרה אינדיקציית צי 5+", cta: "הצג צהוב חוסר אחר", border: "#fed7aa", bg: "#fffaf0" }
+      { id: "yellow_A", label: "🟡 צהוב A (טלפון בלבד)", targetTab: "leads", pool: "approved", filter: { qualColor: "yellow", yellowSubtype: "A" }, sub: "יש טלפון מאומת, חסר אימייל מאומת", cta: "הצג צהוב A", border: "#fed7aa", bg: "#fffaf0" },
+      { id: "yellow_B", label: "🟡 צהוב B (אימייל בלבד)", targetTab: "leads", pool: "approved", filter: { qualColor: "yellow", yellowSubtype: "B" }, sub: "יש אימייל מאומת, חסר טלפון מאומת", cta: "הצג צהוב B", border: "#fed7aa", bg: "#fffaf0" },
+      { id: "yellow_C", label: "🟡 צהוב C (ללא טלפון/אימייל)", targetTab: "leads", pool: "approved", filter: { qualColor: "yellow", yellowSubtype: "C" }, sub: "ללא טלפון מאומת וללא אימייל מאומת", cta: "הצג צהוב C", border: "#fed7aa", bg: "#fffaf0" },
+      { id: "yellow_other", label: "🟡 צהוב חוסר אחר (יש טלפון ואימייל)", targetTab: "leads", pool: "approved", filter: { qualColor: "yellow", yellowSubtype: "other" }, sub: "יש טלפון ומייל, חסרה אינדיקציית צי 5+", cta: "הצג צהוב חוסר אחר", border: "#fed7aa", bg: "#fffaf0" }
     ]
   },
-  // קבוצה 4: צירופים שימושיים (ניהול לידים)
+  // קבוצה 5: צירופים שימושיים ופניות מהירות (ניהול לידים)
   {
     group: "צירופים שימושיים ופניות מהירות (ניהול לידים)",
     groupId: "combos",
     targetTab: "leads",
     items: [
-      { id: "combo_green_mob", label: "🟢 ירוקים עם נייד מאומת", targetTab: "leads", filter: { qualColor: "green", contactType: "mobile", verState: "verified_only" }, sub: "הפנייה המהירה ביותר (וואטסאפ/שיחה ישירה)", cta: "הצג ירוקים עם נייד", border: "#86efac", bg: "#f0fdf4" },
-      { id: "combo_green_plus_mob", label: "⭐ ירוק+ עם נייד מאומת", targetTab: "leads", filter: { qualColor: "green_plus", contactType: "mobile", verState: "verified_only" }, sub: "מקבל החלטות מזוהה עם נייד ישיר", cta: "הצג ירוק+ עם נייד", border: "#fde68a", bg: "#fffbeb" },
-      { id: "combo_green_mob_email", label: "🟢✉️ ירוקים עם נייד ואימייל", targetTab: "leads", filter: { qualColor: "green", contactType: "mobile_email", verState: "verified_only" }, sub: "רב-ערוצי מושלם לשיחה ודוא\"ל", cta: "הצג ירוקים עם נייד ומייל", border: "#86efac", bg: "#f0fdf4" },
-      { id: "combo_yellow_mob", label: "🟡 צהובים עם נייד מאומת", targetTab: "leads", filter: { qualColor: "yellow", contactType: "mobile", verState: "verified_only" }, sub: "חיוג מהיר לבירור והשלמת החסר", cta: "הצג צהובים עם נייד", border: "#fed7aa", bg: "#fffaf0" }
-    ]
-  },
-  // קבוצה 5: אזור נפרד לסבב 2 — חברות שנמצאו (חברות שנמצאו)
-  {
-    group: "סבב 2 — חברות שנמצאו (1,000 חברות חדשות לבדיקה)",
-    groupId: "batch2",
-    targetTab: "companies",
-    items: [
-      { id: "b2_all", label: "📁 אותרו בסבב 2", targetTab: "companies", filter: { discoveryBatch: "batch_2" }, sub: "חברות לפי עובדים ממתינות לבדיקה וקידום ידני", cta: "לכל חברות סבב 2", border: "#c7d2fe", bg: "#eef2ff" },
-      { id: "b2_mob", label: "📱 סבב 2 עם נייד מאומת", targetTab: "companies", filter: { discoveryBatch: "batch_2", contactType: "mobile", verState: "verified_only" }, sub: "חברות עם נייד ישיר 05x מאומת ברשם", cta: "הצג סבב 2 עם נייד", border: "#c7d2fe", bg: "#eef2ff" },
-      { id: "b2_mail", label: "✉️ סבב 2 עם אימייל מאומת", targetTab: "companies", filter: { discoveryBatch: "batch_2", contactType: "email", verState: "verified_only" }, sub: "חברות עם דוא\"ל רשמי מאומת", cta: "הצג סבב 2 עם אימייל", border: "#c7d2fe", bg: "#eef2ff" },
-      { id: "b2_wf", label: "👥 סבב 2 עם נתון עובדים", targetTab: "companies", filter: { discoveryBatch: "batch_2", workforceOnly: true }, sub: "חברות עם מספר עובדים וטווח מוגדר", cta: "הצג סבב 2 לפי עובדים", border: "#c7d2fe", bg: "#eef2ff" },
-      { id: "b2_fleet", label: "🚛 סבב 2 עם פוטנציאל צי 5+", targetTab: "companies", filter: { discoveryBatch: "batch_2", fleet5PlusOnly: true }, sub: "פוטנציאל גבוה לשירותי מוסך צי", cta: "הצג סבב 2 עם צי 5+", border: "#c7d2fe", bg: "#eef2ff" }
+      { id: "combo_green_mob", label: "🟢 ירוקים עם נייד מאומת", targetTab: "leads", pool: "approved", filter: { qualColor: "green", contactType: "mobile", verState: "verified_only" }, sub: "הפנייה המהירה ביותר (וואטסאפ/שיחה ישירה)", cta: "הצג ירוקים עם נייד", border: "#86efac", bg: "#f0fdf4" },
+      { id: "combo_green_plus_mob", label: "⭐ ירוק+ עם נייד מאומת", targetTab: "leads", pool: "approved", filter: { qualColor: "green_plus", contactType: "mobile", verState: "verified_only" }, sub: "מקבל החלטות מזוהה עם נייד ישיר", cta: "הצג ירוק+ עם נייד", border: "#fde68a", bg: "#fffbeb" },
+      { id: "combo_green_mob_email", label: "🟢✉️ ירוקים עם נייד ואימייל", targetTab: "leads", pool: "approved", filter: { qualColor: "green", contactType: "mobile_email", verState: "verified_only" }, sub: "רב-ערוצי מושלם לשיחה ודוא\"ל", cta: "הצג ירוקים עם נייד ומייל", border: "#86efac", bg: "#f0fdf4" },
+      { id: "combo_yellow_mob", label: "🟡 צהובים עם נייד מאומת", targetTab: "leads", pool: "approved", filter: { qualColor: "yellow", contactType: "mobile", verState: "verified_only" }, sub: "חיוג מהיר לבירור והשלמת החסר", cta: "הצג צהובים עם נייד", border: "#fed7aa", bg: "#fffaf0" }
     ]
   }
 ];
@@ -2827,23 +2844,23 @@ V.dash=()=>{
   const srcNote=S.remoteStatus==="connected"?`מחושב מ-${ls.total} לידים מאושרים שנטענו כעת מ-Supabase STAGING`:`מאגר מאומת מנוהל (${ls.total} לידים מאושרים בניהול לידים · ${C.length} חברות אותרו סה"כ)`;
   
   const approvedC = C.filter(c => c.isApprovedLead !== false);
-  const batch2C = C.filter(c => c.discovery_batch === "batch_2");
+  const allC = C;
 
   const renderCardGroups = DASH_CARDS.map(grp => {
-    const isBatch2 = grp.targetTab === "companies";
-    const targetItems = isBatch2 ? batch2C : approvedC;
+    const isCompanies = grp.targetTab === "companies";
     return `
     <div class="card" style="margin-bottom:18px">
       <div class="card-h" style="flex-wrap:wrap;gap:8px">
         <h2><span>${grp.group}</span><span class="h-bar"></span></h2>
         <span class="spacer"></span>
-        <span class="badge ${isBatch2 ? 'b-blue' : 'b-ok'}" style="font-size:11px">
-          ${isBatch2 ? '📁 לחיצה פותחת את חברות שנמצאו' : '📋 לחיצה פותחת את ניהול לידים'}
+        <span class="badge ${isCompanies ? 'b-blue' : 'b-ok'}" style="font-size:11px">
+          ${isCompanies ? '📁 לחיצה פותחת את חברות שנמצאו' : '📋 לחיצה פותחת את ניהול לידים'}
         </span>
       </div>
       <div class="card-b" style="padding-top:12px">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px">
           ${grp.items.map(card => {
+            const targetItems = card.pool === "all" ? allC : approvedC;
             const count = targetItems.filter(c => matchLeadFilter(c, card.filter)).length;
             const borderStyle = card.border ? `border-color:${card.border};` : "";
             const bgStyle = card.bg ? `background:${card.bg};` : "";
@@ -2867,7 +2884,20 @@ V.dash=()=>{
     `;
   }).join("");
 
+  const authNotice = (C.length === 0) ? `
+  <div class="card" style="margin-bottom:18px;background:linear-gradient(135deg,#f8fafc,#eff6ff);border:1px solid #bfdbfe;padding:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-radius:12px">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="font-size:32px">🔒</div>
+      <div>
+        <div style="font-weight:700;font-size:16px;color:#1e3a8a">דשבורד OpenProspector מאובטח</div>
+        <div style="color:#475569;font-size:13px;margin-top:2px">נתוני הלידים והחברות מוגנים ב-Supabase RLS. לצפייה במאגר המלא (1,618 חברות) יש להתחבר עם משתמש מורשה.</div>
+      </div>
+    </div>
+    <button class="btn btn-pri" type="button" data-act="login" style="padding:10px 22px;font-size:14px;font-weight:700;white-space:nowrap">🔑 התחבר למערכת</button>
+  </div>` : '';
+
   return `
+  ${authNotice}
   <div class="row" style="margin-bottom:14px;align-items:center;flex-wrap:wrap;gap:8px">
     <h2 style="margin:0;font-size:19px">דשבורד ראשי — דירוג, פרטי קשר וסינונים לחיצים</h2>
     <span class="badge b-blue">PUBLIC STAGING</span>
@@ -4053,7 +4083,7 @@ function commitBulkToLeads() {
 }
 
 /* ===== חברות שנמצאו ===== */
-const CO_FILTERS=["st","fleet","stage","phone","mail","contact","ready","missing","quality","city","ind","region","fleetType","fleetSize","source","leadApproved","employeeCount","qualColor","wfStatus","missingField","discoveryBatch","employeeRange","potentialTier","contactType","verState","yellowSubtype","readyOnly","workforceOnly","fleet5PlusOnly"];
+const CO_FILTERS=["st","fleet","stage","phone","mail","contact","ready","missing","quality","city","ind","region","fleetType","fleetSize","source","leadApproved","employeeCount","qualColor","wfStatus","missingField","discoveryBatch","employeeRange","potentialTier","contactType","verState","yellowSubtype","readyOnly","workforceOnly","fleet5PlusOnly","srcCountMobile","srcCountLandline","srcCountEmail"];
 function checkMissingField(c, q, fs, mf) {
   if (!q) return false;
   if (mf === "contact") return !OPQualify.hasAnyRealContact(c, q);
@@ -4292,7 +4322,7 @@ V.companies=()=>{
     </div>` : "";
 
   return `
-  ${(S.coActiveFilterTitle || f.discoveryBatch || f.contactType || f.qualColor || f.yellowSubtype) ? `
+  ${(S.coActiveFilterTitle || f.discoveryBatch || f.contactType || f.qualColor || f.yellowSubtype || f.wfStatus) ? `
   <div class="active-filter-banner" style="background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(37,99,235,0.08));border:1.5px solid var(--ok);border-radius:12px;padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
     <div style="display:flex;align-items:center;gap:10px">
       <span style="font-size:24px">📁</span>
@@ -4340,6 +4370,9 @@ V.companies=()=>{
         ${opt("contactType","כל ערוצי ההתקשרות",[["mobile","📱 בעל נייד"],["landline_only","☎️ משרדי בלבד"],["email","✉️ אימייל עסקי"],["mobile_email","📱✉️ נייד ואימייל"],["landline_email","☎️✉️ משרדי ואימייל"],["phone_email","📞✉️ טלפון ואימייל"],["phone_no_email","📞 טלפון ללא אימייל"],["email_no_phone","✉️ אימייל ללא טלפון"],["no_verified","⚠️ ללא אמצעי קשר מאומת"],["all_contacts","✨ כל ערוצי הקשר"]])}
         ${opt("verState","רמת אימות",[["verified_only","✓ מאומת בלבד"],["unverified","≈ קיים אך לא מאומת"],["missing","✕ חסר"]])}
         ${opt("yellowSubtype","פילוח צהובים",[["A","🟡 צהוב A (טלפון בלבד)"],["B","🟡 צהוב B (אימייל בלבד)"],["C","🟡 צהוב C (ללא טלפון/מייל)"],["other","🟡 צהוב חוסר אחר (יש טלפון ומייל)"]])}
+        ${opt("srcCountMobile","מקורות נייד — הכל",[["1","📱 נייד — מקור 1"],["2","📱 נייד — 2 מקורות"],["3","📱 נייד — 3 מקורות"],["4+","📱 נייד — 4+ מקורות"]])}
+        ${opt("srcCountLandline","מקורות משרדי — הכל",[["1","☎️ משרדי — מקור 1"],["2","☎️ משרדי — 2 מקורות"],["3","☎️ משרדי — 3 מקורות"],["4+","☎️ משרדי — 4+ מקורות"]])}
+        ${opt("srcCountEmail","מקורות אימייל — הכל",[["1","✉️ אימייל — מקור 1"],["2","✉️ אימייל — 2 מקורות"],["3","✉️ אימייל — 3 מקורות"],["4+","✉️ אימייל — 4+ מקורות"]])}
         ${opt("employeeRange","מספר עובדים (טווחים)",[
           ["1-10","1–10 עובדים"],
           ["11-50","11–50 עובדים"],
@@ -5295,13 +5328,104 @@ function downloadTextFile(content, fileName, mimeType) {
 function renderModals() {
   const root = $("#modalRoot");
   if (!root) return;
-  if (S.aiDispatchModal) {
+  if (S.contactSourcesModal) {
+    root.innerHTML = renderContactSourcesModal(S.contactSourcesModal);
+  } else if (S.aiDispatchModal) {
     root.innerHTML = renderAiDispatchModal(S.aiDispatchModal);
   } else if (S.extDispatchModal) {
     root.innerHTML = renderExtDispatchModal(S.extDispatchModal);
   } else {
     root.innerHTML = "";
   }
+}
+
+function renderContactSourcesModal(m) {
+  const sources = m.sources || [];
+  const srcCount = sources.length;
+  let confidenceBadge = "";
+  let confidenceText = "";
+
+  if (srcCount === 1) {
+    confidenceBadge = `<span class="badge b-ok" style="font-size:12px;padding:3px 10px">רמת ביטחון: מקור רשמי מאומת (1)</span>`;
+    confidenceText = "הנתון אומת במאגר ממשלתי רשמי. החברה תקפה, מאושרת ואינה נפסלת בגלל מקור יחיד.";
+  } else if (srcCount === 2) {
+    confidenceBadge = `<span class="badge b-ok" style="font-size:12px;padding:3px 10px">רמת ביטחון: הצלבה דו-מקורית (2)</span>`;
+    confidenceText = "הנתון אומת והוצלב ב-2 מאגרים בלתי תלויים.";
+  } else if (srcCount === 3) {
+    confidenceBadge = `<span class="badge b-ok" style="font-size:12px;padding:3px 10px">רמת ביטחון גבוהה מאוד (3 מקורות)</span>`;
+    confidenceText = "הנתון מאומת ומוצלב מ-3 מקורות מידע עצמאיים.";
+  } else if (srcCount >= 4) {
+    confidenceBadge = `<span class="badge b-ok" style="font-size:12px;padding:3px 10px">רמת ביטחון מירבית (4+ מקורות)</span>`;
+    confidenceText = "הנתון מאומת ומוצלב מ-4 מקורות עצמאיים ומעלה.";
+  } else {
+    confidenceBadge = `<span class="badge b-est" style="font-size:12px;padding:3px 10px">רמת ביטחון: לא מאומת</span>`;
+    confidenceText = "פרט הקשר קיים ברישום אך טרם אומת במאגר רשמי עצמאי.";
+  }
+
+  const rows = sources.length > 0 ? sources.map(s => `
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:10px 12px;font-weight:600">${esc(s.name)}</td>
+      <td style="padding:10px 12px;color:var(--muted)">${esc(s.type || "מאגר נתונים")}</td>
+      <td style="padding:10px 12px;white-space:nowrap">${esc(s.date || "—")}</td>
+      <td style="padding:10px 12px;text-align:left">
+        ${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" class="btn btn-sm" style="font-size:11px;padding:2px 8px;text-decoration:none">פתח מקור ↗</a>` : `<span class="muted faint">רישום פנימי</span>`}
+      </td>
+    </tr>
+  `).join("") : `
+    <tr><td colspan="4" style="padding:14px;text-align:center;color:var(--muted)">אין מקורות אימות מתועדים עבור פריט זה</td></tr>
+  `;
+
+  return `
+  <div class="modal-overlay" data-act="closeContactSourcesModal">
+    <div class="modal-card" style="max-width:720px;width:100%" data-stop>
+      <div class="modal-h" style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h3 style="margin:0">📋 מקורות אימות עצמאיים — ${esc(m.contactTitle)}</h3>
+          <div class="xs muted" style="margin-top:4px">${esc(m.companyName)} · ח.פ. <span class="ltr">${esc(m.companyHp || "—")}</span></div>
+        </div>
+        <button class="x" data-act="closeContactSourcesModal" style="border:0;background:none;font-size:18px;cursor:pointer">✕</button>
+      </div>
+      <div class="modal-b" style="display:flex;flex-direction:column;gap:16px;padding:20px">
+        <div style="background:var(--soft);border:1px solid var(--border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <div class="xs muted">פרט קשר שנבדק:</div>
+            <div class="bold ltr" style="font-size:17px;letter-spacing:0.5px">${esc(m.contactVal)}</div>
+          </div>
+          <div>
+            ${confidenceBadge}
+          </div>
+        </div>
+
+        <div style="font-size:12.5px;color:var(--muted);background:#f8fafc;padding:10px 14px;border-radius:8px;border:1px solid #e2e8f0;line-height:1.5">
+          ℹ️ <b>הערת מהימנות:</b> ${esc(confidenceText)}
+        </div>
+
+        <div>
+          <div class="bold" style="font-size:14px;margin-bottom:8px">רשימת מקורות האימות (${sources.length}):</div>
+          <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
+            <table style="width:100%;border-collapse:collapse;font-size:12.5px;text-align:right">
+              <thead>
+                <tr style="background:var(--soft);border-bottom:1px solid var(--border);color:var(--muted)">
+                  <th style="padding:8px 12px">שם המקור</th>
+                  <th style="padding:8px 12px">סיווג / סמכות</th>
+                  <th style="padding:8px 12px">תאריך אימות</th>
+                  <th style="padding:8px 12px;text-align:left">אסמכתא</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="xs muted" style="border-top:1px solid var(--border);padding-top:12px;display:flex;align-items:center;justify-content:space-between">
+          <span>🔒 אימות עצמאי: מקורות המשכפלים זה את זה אוחדו למקור יחיד למניעת הטיה.</span>
+          <button class="btn btn-sm btn-navy" data-act="closeContactSourcesModal">סגור</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
 }
 
 function renderAiDispatchModal(m) {
@@ -8230,6 +8354,7 @@ document.addEventListener("click",e=>{
     }
     case "clearCoFilters":{
       S.coFilter = { q: "", ...Object.fromEntries(CO_FILTERS.map(k => [k, ""])) };
+      S.coActiveFilterTitle = "";
       S.coPage = 1;
       $("#view").innerHTML = V.companies();
       return;
@@ -8540,6 +8665,48 @@ document.addEventListener("click",e=>{
       renderModals();
       return;
     }
+    case "showContactSources":{
+      const leadId = d.leadId;
+      const contactType = d.contactType;
+      const lead = C.find(x => String(x.id) === String(leadId));
+      if (!lead) return;
+      const q = QF(lead);
+      const ct = window.OPQualify ? OPQualify.classifyLeadContacts(lead, q) : null;
+      if (!ct) return;
+      let contactObj = null;
+      let contactTitle = "";
+      if (contactType === "mobile") {
+        contactObj = ct.bestMobile;
+        contactTitle = "טלפון נייד ישיר";
+      } else if (contactType === "landline") {
+        contactObj = ct.bestLandline;
+        contactTitle = "טלפון משרדי / קווי";
+      } else if (contactType === "email") {
+        contactObj = ct.bestEmail;
+        contactTitle = "כתובת דוא\"ל עסקית";
+      }
+      if (!contactObj) {
+        toast("אין פרטי קשר זמינים עבור רשומה זו");
+        return;
+      }
+      S.contactSourcesModal = {
+        leadId,
+        companyName: lead.name || lead.company_name,
+        companyHp: lead.no || lead.company_hp,
+        contactType,
+        contactTitle,
+        contactVal: contactObj.val,
+        verified: contactObj.verified,
+        sources: contactObj.sources || []
+      };
+      renderModals();
+      return;
+    }
+    case "closeContactSourcesModal":{
+      S.contactSourcesModal = null;
+      renderModals();
+      return;
+    }
     case "closeAiDispatchModal":{
       S.aiDispatchModal = null;
       renderModals();
@@ -8788,6 +8955,7 @@ document.addEventListener("keydown",e=>{
     return;
   }
   if(e.key==="Escape"){
+    if(S.contactSourcesModal){S.contactSourcesModal=null;renderModals();return}
     if(S.aiChatOpen){S.aiChatOpen=false;renderAiChat();return}
     if(S.panel){S.panel=null;renderPanel();return}
   }
