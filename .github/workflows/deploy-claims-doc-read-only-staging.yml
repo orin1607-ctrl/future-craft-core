@@ -1,0 +1,61 @@
+name: Staging claims-doc-read only
+
+# Deploys claims-doc-read (server-side document reading) to dalia-staging (usfeoerkpcafxxlyuldl) only.
+# Runs ONLY when a tag deploy/claims-doc-read-staging/<name> is pushed — never on a branch push.
+# Deploying does not start reading: the function is off until claims_config switches are set and a
+# schedule is created (docs/audit-reports/claims-doc-autoread-2026-10-12/activation.sql), each by approval.
+# Refuses to deploy with the customer-documents gate on, unless the tag name contains "customer-approved".
+# Uses STAGING_SUPABASE_ACCESS_TOKEN only. No migration, no other function, no Production.
+
+on:
+  push:
+    tags:
+      - 'deploy/claims-doc-read-staging/*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-claims-doc-read-only-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Guard Staging only and the customer-documents gate
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_TYPE}" = "tag"
+          case "${GITHUB_REF_NAME}" in
+            deploy/claims-doc-read-staging/*) ;;
+            *) echo "Unexpected ref ${GITHUB_REF_NAME}" >&2; exit 1 ;;
+          esac
+          test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
+          JOB=supabase/functions/_shared/claimDocumentReadJob.ts
+          if grep -q "export const DOCUMENT_READ_CUSTOMER_DOCS = false;" "$JOB"; then
+            echo "customer documents gate: off (pilot allowlist only)"
+          else
+            case "${GITHUB_REF_NAME}" in
+              *customer-approved*) echo "customer documents gate: on (tag says approved)" ;;
+              *) echo "DOCUMENT_READ_CUSTOMER_DOCS is on but the tag is not marked customer-approved" >&2; exit 1 ;;
+            esac
+          fi
+          if grep -qiE "generativelanguage|GEMINI_API_KEY|api\.anthropic|api\.openai" supabase/functions/claims-doc-read/index.ts supabase/functions/_shared/claimDocumentReadRun.ts; then
+            echo "claims-doc-read must not call an AI service" >&2; exit 1
+          fi
+
+      - name: Deploy claims-doc-read to Staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          npx --yes supabase functions deploy claims-doc-read --project-ref usfeoerkpcafxxlyuldl --use-api --no-verify-jwt
