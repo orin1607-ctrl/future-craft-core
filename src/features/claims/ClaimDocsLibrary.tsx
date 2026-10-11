@@ -30,6 +30,7 @@ type Props = {
   onPrint: (f: LibFile) => void;
   onShareTopic: (ids: string[]) => void;
   onRename: (f: LibFile, title: string) => void;
+  onPrepareRead?: (f: LibFile) => string | Promise<string>;
 };
 
 function fmtDay(iso?: string) {
@@ -74,20 +75,35 @@ function DocRename({ f, label, onRename }: { f: LibFile; label: string; onRename
   );
 }
 
-function DocumentReadNote({ f }: { f: LibFile }) {
+function DocumentReadNote({ f, onPrepareRead }: { f: LibFile; onPrepareRead?: (f: LibFile) => string | Promise<string> }) {
+  const [plan, setPlan] = useState('');
   const caption = documentReadCaption(f.doc_meta);
-  if (!caption) return null;
+  if (!caption && !onPrepareRead) return null;
   return (
     <div className="doc-lib-read" data-testid={`doc-read-${f.id}`} style={{ fontSize: 11, color: 'var(--t2)', marginTop: 4 }}>
-      <div>{caption.summary}</div>
-      <div>{caption.details}</div>
-      <div>{caption.source}</div>
+      {caption ? <div>{caption.summary}</div> : null}
+      {caption ? <div>{caption.details}</div> : null}
+      {caption ? <div>{caption.source}</div> : null}
+      {onPrepareRead ? (
+        <button
+          type="button"
+          data-testid={`doc-read-prepare-${f.id}`}
+          onClick={() => {
+            const result = onPrepareRead(f);
+            if (typeof result === 'string') setPlan(result);
+            else void result.then(setPlan);
+          }}
+        >
+          הכן לקריאה
+        </button>
+      ) : null}
+      {plan ? <div data-testid={`doc-read-plan-${f.id}`}>{plan}</div> : null}
     </div>
   );
 }
 
 export default function ClaimDocsLibrary({
-  files, picked, category, thumbs, isImage, fileLabel, onCategory, onToggle, onToggleAll, onPreview, onDownload, onPrint, onShareTopic, onRename,
+  files, picked, category, thumbs, isImage, fileLabel, onCategory, onToggle, onToggleAll, onPreview, onDownload, onPrint, onShareTopic, onRename, onPrepareRead,
 }: Props) {
   const visible = filesForLibCategory(files, category);
   const visibleDocs = visible.filter((f) => !isImage(f));
@@ -122,7 +138,7 @@ export default function ClaimDocsLibrary({
             <div className="doc-lib-main">
               <div className="doc-lib-name">{fileLabel(f)}</div>
               <div className="doc-lib-meta">{libTypeLabel(f)} · {fmtDay(f.created_at)}</div>
-              <DocumentReadNote f={f} />
+              <DocumentReadNote f={f} onPrepareRead={onPrepareRead} />
             </div>
             <div className="doc-lib-acts">
               <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, sec.rows)}>Preview</button>
@@ -144,7 +160,7 @@ export default function ClaimDocsLibrary({
                   {thumbs[f.id] ? <ClaimImage src={thumbs[f.id]} alt={f.original_name} mime={f.mime_type} /> : <span>📷</span>}
                 </button>
                 <div className="doc-lib-meta">{libTypeLabel(f)} · {fmtDay(f.created_at)}</div>
-                <DocumentReadNote f={f} />
+                <DocumentReadNote f={f} onPrepareRead={onPrepareRead} />
                 <div className="doc-lib-acts">
                   <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, images)}>Preview</button>
                   <button type="button" className="btn btn-g btn-sm" data-testid={`docs-dl-${f.id}`} onClick={() => onDownload(f)}>Download</button>

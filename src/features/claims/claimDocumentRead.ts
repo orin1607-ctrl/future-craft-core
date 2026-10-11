@@ -8,7 +8,7 @@ import { extractDalIds, extractDates, extractPlates } from '../../../supabase/fu
 export const DOCUMENT_READ_AUTORUN = false;
 export const OCR_CONFIDENCE_MIN = 50;
 
-export type DocumentReadStatus = 'pending' | 'ready' | 'unreadable';
+export type DocumentReadStatus = 'pending' | 'processing' | 'ready' | 'unreadable' | 'failed';
 export type DocumentReadSource = 'pdf_text' | 'ocr' | 'none' | '';
 
 export type DocumentRead = {
@@ -501,9 +501,23 @@ export function documentReadCaption(meta: Record<string, string> | null | undefi
   if (!row.read_status) return null;
   if (row.read_status === 'pending') {
     return {
-      summary: 'סיכום: המסמך סומן לקריאה. הניתוח לא רץ אוטומטית.',
+      summary: 'סיכום: המסמך ממתין לקריאה.',
       details: 'פרטים: עדיין לא חולצו.',
       source: 'מקור: המסמך שמור, ללא ניתוח.',
+    };
+  }
+  if (row.read_status === 'processing') {
+    return {
+      summary: 'סיכום: המסמך בעיבוד.',
+      details: 'פרטים: עדיין לא חולצו.',
+      source: 'מקור: המסמך שמור. אין עדיין תוצאה.',
+    };
+  }
+  if (row.read_status === 'failed') {
+    return {
+      summary: `סיכום: ${row.read_summary || 'הקריאה נכשלה.'}`,
+      details: 'פרטים: לא נשמרו.',
+      source: 'מקור: לא חולץ טקסט. לא נוסף מידע שאינו בקובץ.',
     };
   }
   if (row.read_status === 'unreadable') {
@@ -545,7 +559,13 @@ function fieldAnswer(label: string, value: string, evidence: string, source: str
 export function answerFromDocumentRead(question: string, read: Partial<DocumentRead>) {
   const source = sourceLabel(String(read.read_source || ''));
   if (read.read_status === 'pending') {
-    return { answer: 'המסמך סומן לקריאה ועדיין לא נותח. אי אפשר לענות מתוכו.', source: 'מקור: אין טקסט שמור.' };
+    return { answer: 'המסמך ממתין לקריאה ועדיין לא נותח. אי אפשר לענות מתוכו.', source: 'מקור: אין טקסט שמור.' };
+  }
+  if (read.read_status === 'processing') {
+    return { answer: 'המסמך בעיבוד. אין עדיין תוצאה לקריאה.', source: 'מקור: אין טקסט שמור.' };
+  }
+  if (read.read_status === 'failed') {
+    return { answer: 'הקריאה נכשלה. לא נשמרו פרטים מהמסמך.', source: 'מקור: לא חולץ טקסט. לא נוסף מידע שאינו בקובץ.' };
   }
   if (read.read_status !== 'ready') {
     return {

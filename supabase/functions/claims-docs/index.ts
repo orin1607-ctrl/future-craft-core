@@ -8,6 +8,7 @@
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
+import { applyStoredReadMeta, READ_META_KEYS } from "../_shared/claimDocumentReadJob.ts";
 
 const BUCKET = "claims-docs";
 const ALLOWED = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"]);
@@ -1336,10 +1337,19 @@ Deno.serve(async (req) => {
           next.related_file_id = "";
         }
       }
-      const { error: upErr } = await sb.from("claims_documents").update({ doc_meta: next }).eq("id", fileId).eq("claim_id", claimId);
+      const readApplied = applyStoredReadMeta(next, body as Record<string, unknown>, claimId);
+      if (!readApplied.ok) return jsonResponse({ success: false, error: readApplied.error }, 400);
+      const hasRead = READ_META_KEYS.some((key) => body[key] !== undefined);
+      const staffTouched = body.staff_title !== undefined || body.staff_type !== undefined || body.staff_note !== undefined || body.important !== undefined || body.doc_status !== undefined || body.related_file_id !== undefined;
+      if (hasRead && !staffTouched && !readApplied.changed) {
+        return jsonResponse({ success: true, copied: false, unchanged: true, doc_kind: file.doc_kind, doc_meta: readApplied.meta });
+      }
+      const { error: upErr } = await sb.from("claims_documents").update({ doc_meta: readApplied.meta }).eq("id", fileId).eq("claim_id", claimId);
       if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
-      await history(sb, claimId, "עודכנו פרטי מסמך", `${file.original_name} · סוג ${next.staff_type || "לא סווג"} · סטטוס ${next.doc_status || "—"} · חשוב ${next.important === "true" ? "כן" : "לא"}`, actorName);
-      return jsonResponse({ success: true, copied: false, doc_kind: file.doc_kind, doc_meta: next });
+      if (staffTouched || !hasRead) {
+        await history(sb, claimId, "עודכנו פרטי מסמך", `${file.original_name} · סוג ${readApplied.meta.staff_type || "לא סווג"} · סטטוס ${readApplied.meta.doc_status || "—"} · חשוב ${readApplied.meta.important === "true" ? "כן" : "לא"}`, actorName);
+      }
+      return jsonResponse({ success: true, copied: false, doc_kind: file.doc_kind, doc_meta: readApplied.meta });
     }
 
     if (action === "signed_url") {

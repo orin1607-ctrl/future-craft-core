@@ -26,6 +26,7 @@ import { downloadRemoteFile } from './claimFileDownload';
 import { emailsUnknownToDirectory, parseFromAddr, type ClaimContact } from './claimContacts';
 import { claimContextFromRecord } from './claimsAiModel';
 import { documentReadCaption } from './claimDocumentRead';
+import { prepareSelectedDocumentRead } from './claimDocumentReadSave';
 import { ClaimsAiWorkspace } from './ClaimsAiWorkspace';
 import './claims.css';
 
@@ -3746,6 +3747,33 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     onPrint={(f) => void printClaimFile(cur.id, f as ClaimFile)}
                     onShareTopic={(ids) => openSecureShare(ids)}
                     onRename={(f, title) => void renameClaimDoc(f as ClaimFile, title)}
+                    onPrepareRead={(f) => {
+                      const file = f as ClaimFile;
+                      return (async () => {
+                        const signed = await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: file.id });
+                        if (!signed.url) return 'לא ניתן לפתוח את הקובץ לקריאה.';
+                        const response = await fetch(String(signed.url));
+                        if (!response.ok) return 'הקריאה נכשלה. הניתוח הקודם נשמר.';
+                        const bytes = new Uint8Array(await response.arrayBuffer());
+                        const hash = await crypto.subtle.digest('SHA-256', bytes);
+                        const sha256 = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
+                        const result = await prepareSelectedDocumentRead({
+                          claimId: cur.id,
+                          fileName: file.original_name,
+                          mimeType: file.mime_type,
+                          existingMeta: file.doc_meta,
+                          bytes,
+                          sha256,
+                          save: async (patch) => {
+                            const saved = await apiRef.current.invokeDocs('update_doc_meta', { claim_id: cur.id, file_id: file.id, ...patch });
+                            if (saved.success) await loadCardData(cur.id);
+                            const meta = saved.doc_meta && typeof saved.doc_meta === 'object' ? saved.doc_meta as Record<string, string> : null;
+                            return { success: !!saved.success, doc_meta: meta };
+                          },
+                        });
+                        return result.message;
+                      })();
+                    }}
                   />
                   {docsShareBar(cur)}
                   <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
