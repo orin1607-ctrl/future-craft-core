@@ -1754,6 +1754,7 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         doc_kind: guessDocKind(filename, storedMime, subject),
         uploaded_by: actorId,
         uploaded_by_name: actorName,
+        doc_meta: { read_status: "pending", read_sha: digest },
       });
       if (insErr) {
         failures.push({ filename, reason: `db_error:${insErr.message}` });

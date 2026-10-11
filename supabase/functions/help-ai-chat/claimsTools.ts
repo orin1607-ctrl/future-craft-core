@@ -969,6 +969,43 @@ function formatDocLabel(d: { original_name?: string; mime_type?: string; doc_kin
   return d.original_name || "מסמך";
 }
 
+function storedDocumentRead(meta: unknown) {
+  const row = (meta && typeof meta === "object" ? meta : {}) as Record<string, unknown>;
+  const status = String(row.read_status || "");
+  if (!status) return undefined;
+  if (status === "pending") {
+    return { status, instruction: "המסמך ממתין לקריאה ולא נותח עדיין. אל תנחש את תוכנו." };
+  }
+  if (status === "processing") {
+    return { status, instruction: "המסמך בעיבוד. אין עדיין תוצאה. אל תנחש את תוכנו." };
+  }
+  if (status === "failed") {
+    return { status, instruction: "הקריאה נכשלה. אל תנחש פרטים ואל תמציא נתונים." };
+  }
+  return {
+    status,
+    source: String(row.read_source || ""),
+    summary: String(row.read_summary || ""),
+    text: String(row.read_text || ""),
+    evidence: String(row.read_evidence || ""),
+    doc_type: String(row.read_doc_type || ""),
+    claim_numbers: String(row.read_claim_nums || ""),
+    claim_source: String(row.read_claim_src || ""),
+    plates: String(row.read_plates || ""),
+    plate_source: String(row.read_plate_src || ""),
+    dates: String(row.read_dates || ""),
+    date_source: String(row.read_date_src || ""),
+    amounts: String(row.read_amounts || ""),
+    amount_source: String(row.read_amount_src || ""),
+    insurer_decision: String(row.read_insurer_decision || ""),
+    missing: String(row.read_missing || ""),
+    recommendation: String(row.read_recommendation || ""),
+    instruction: status === "unreadable"
+      ? "הקובץ אינו קריא. אמור זאת במפורש ואל תנחש פרטים."
+      : "ענה רק מתוך text ו-evidence של המסמך הזה. אם הפרט לא מופיע, אמור שאינו במסמך. אל תשנה סטטוס ואל תשלח הודעה.",
+  };
+}
+
 async function checkDuplicatesHelper(
   supabase: ReturnType<typeof createClient>,
   args: {
@@ -1668,7 +1705,7 @@ export async function executeClaimsTool(
 
         const { data: docs } = await supabase
           .from("claims_documents")
-          .select("id, original_name, mime_type, byte_size, storage_path, created_at, source")
+          .select("id, original_name, mime_type, byte_size, storage_path, created_at, source, doc_meta")
           .eq("claim_id", claimId);
 
         const emailAttachments = (docs || []).filter((d) => {
@@ -1694,6 +1731,7 @@ export async function executeClaimsTool(
               name: a.original_name,
               size_bytes: a.byte_size,
               mime_type: a.mime_type,
+              document_read: storedDocumentRead(a.doc_meta),
             })),
           },
         };
@@ -1902,6 +1940,7 @@ export async function executeClaimsTool(
               size: d.byte_size,
               kind: d.doc_kind || "מסמך",
               created_at: d.created_at,
+              document_read: storedDocumentRead(d.doc_meta),
             })),
           },
         };
