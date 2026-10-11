@@ -3,6 +3,7 @@ import {
   claimContextFromRecord,
   conversationMatchesClaim,
   conversationsForClaim,
+  documentCardsOf,
   messagesForModel,
   pendingActionOf,
   titleFromFirstMessage,
@@ -88,5 +89,20 @@ describe('messages and titles', () => {
   it('reads a future write preview without treating it as permission to execute', () => {
     expect(pendingActionOf({ pending_action: { preview_id: 'p1', summary: 'שינוי סטטוס לנסגר', tool_name: 'preview_claim_status_change' } })?.preview_id).toBe('p1');
     expect(pendingActionOf({})).toBeNull();
+  });
+});
+
+describe('documentCardsOf', () => {
+  const card = { kind: 'document', claim_id: 'C1', file_id: 'F1', title: 'דוח שמאי – רכב 1234567', original_name: 'a.pdf', mime_type: 'application/pdf', read_status: '', needs_read: true };
+
+  it('reads cards from a stream event or from saved metadata', () => {
+    expect(documentCardsOf([card])).toHaveLength(1);
+    expect(documentCardsOf({ document_cards: [card] })[0]).toMatchObject({ file_id: 'F1', needs_read: true });
+  });
+
+  it('keeps only cards of the open claim and drops malformed or repeated ones', () => {
+    expect(documentCardsOf([card], 'C2')).toEqual([]);
+    expect(documentCardsOf([card, card, { kind: 'document', file_id: '' }, null, 'x'], 'C1')).toHaveLength(1);
+    expect(documentCardsOf({})).toEqual([]);
   });
 });

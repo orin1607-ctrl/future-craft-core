@@ -28,7 +28,7 @@ import { claimContextFromRecord } from './claimsAiModel';
 import { documentReadCaption } from './claimDocumentRead';
 import { documentDisplayTitle, documentLabel } from '../../../supabase/functions/_shared/claimDocumentLabel';
 import { prepareSelectedDocumentRead } from './claimDocumentReadSave';
-import { ClaimsAiWorkspace } from './ClaimsAiWorkspace';
+import { ClaimsAiWorkspace, type ClaimsAiDocumentActions } from './ClaimsAiWorkspace';
 import './claims.css';
 
 const ST_CSS: Record<string, string> = {
@@ -1749,6 +1749,64 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     if (!r.url) { toast('לא ניתן להדפיס את הקובץ', 'err'); return; }
     const w = window.open(String(r.url), '_blank', 'noopener');
     w?.addEventListener('load', () => { try { w.print(); } catch { /* ignore */ } });
+  };
+
+  // One selected document, read in this browser with the existing reader and saved on its own row.
+  const readClaimDocNow = async (claimId: string, file: ClaimFile) => {
+    const signed = await apiRef.current.invokeDocs('signed_url', { claim_id: claimId, file_id: file.id });
+    if (!signed.url) return 'לא ניתן לפתוח את הקובץ לקריאה.';
+    const response = await fetch(String(signed.url));
+    if (!response.ok) return 'הקריאה נכשלה. הניתוח הקודם נשמר.';
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const hash = await crypto.subtle.digest('SHA-256', bytes);
+    const sha256 = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
+    const result = await prepareSelectedDocumentRead({
+      claimId,
+      fileName: file.original_name,
+      mimeType: file.mime_type,
+      existingMeta: file.doc_meta,
+      bytes,
+      sha256,
+      save: async (patch) => {
+        const saved = await apiRef.current.invokeDocs('update_doc_meta', { claim_id: claimId, file_id: file.id, ...patch });
+        if (saved.success) await loadCardData(claimId);
+        const meta = saved.doc_meta && typeof saved.doc_meta === 'object' ? saved.doc_meta as Record<string, string> : null;
+        return { success: !!saved.success, doc_meta: meta };
+      },
+    });
+    return result.message;
+  };
+
+  // The claims chat acts on documents of the open claim only, through the same calls as the gallery.
+  const chatDocumentActions = (claimId: string): ClaimsAiDocumentActions => {
+    const fileOf = (fileId: string) => docs.files.find((f) => f.id === fileId) || null;
+    return {
+      meta: (fileId) => {
+        const f = fileOf(fileId);
+        return f ? fileMeta(f) as Record<string, string> : null;
+      },
+      open: async (fileId) => {
+        const f = fileOf(fileId);
+        if (!f) return 'המסמך לא נמצא בתיק הפתוח.';
+        const win = window.open('', '_blank');
+        const r = await apiRef.current.invokeDocs('signed_url', { claim_id: claimId, file_id: f.id });
+        if (!r.url) { win?.close(); return 'לא ניתן לפתוח את הקובץ.'; }
+        if (win) win.location.href = String(r.url);
+        else window.open(String(r.url), '_blank', 'noopener');
+        return null;
+      },
+      download: async (fileId) => {
+        const f = fileOf(fileId);
+        if (!f) return 'המסמך לא נמצא בתיק הפתוח.';
+        await downloadClaimFile(claimId, f);
+        return null;
+      },
+      read: async (fileId) => {
+        const f = fileOf(fileId);
+        if (!f) return 'המסמך לא נמצא בתיק הפתוח.';
+        return readClaimDocNow(claimId, f);
+      },
+    };
   };
 
   const openSecureShare = (ids?: string[]) => {
@@ -3754,33 +3812,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     onPrint={(f) => void printClaimFile(cur.id, f as ClaimFile)}
                     onShareTopic={(ids) => openSecureShare(ids)}
                     onRename={(f, title) => void renameClaimDoc(f as ClaimFile, title)}
-                    onPrepareRead={(f) => {
-                      const file = f as ClaimFile;
-                      return (async () => {
-                        const signed = await apiRef.current.invokeDocs('signed_url', { claim_id: cur.id, file_id: file.id });
-                        if (!signed.url) return 'לא ניתן לפתוח את הקובץ לקריאה.';
-                        const response = await fetch(String(signed.url));
-                        if (!response.ok) return 'הקריאה נכשלה. הניתוח הקודם נשמר.';
-                        const bytes = new Uint8Array(await response.arrayBuffer());
-                        const hash = await crypto.subtle.digest('SHA-256', bytes);
-                        const sha256 = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('');
-                        const result = await prepareSelectedDocumentRead({
-                          claimId: cur.id,
-                          fileName: file.original_name,
-                          mimeType: file.mime_type,
-                          existingMeta: file.doc_meta,
-                          bytes,
-                          sha256,
-                          save: async (patch) => {
-                            const saved = await apiRef.current.invokeDocs('update_doc_meta', { claim_id: cur.id, file_id: file.id, ...patch });
-                            if (saved.success) await loadCardData(cur.id);
-                            const meta = saved.doc_meta && typeof saved.doc_meta === 'object' ? saved.doc_meta as Record<string, string> : null;
-                            return { success: !!saved.success, doc_meta: meta };
-                          },
-                        });
-                        return result.message;
-                      })();
-                    }}
+                    onPrepareRead={(f) => readClaimDocNow(cur.id, f as ClaimFile)}
                   />
                   {docsShareBar(cur)}
                   <InCardPreview file={previewFile} onClose={closePreview} {...previewNav} />
@@ -6270,6 +6302,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         claim={modal === 'moCard' && cur ? claimContextFromRecord(cur) : null}
         userId={actor.id}
         companyName={null}
+        documentActions={modal === 'moCard' && cur ? chatDocumentActions(cur.id) : undefined}
       />
 
       <div className="toasts">

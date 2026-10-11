@@ -133,6 +133,11 @@
   gap: 8px;
 }
 .claims-root .claims-ai-preview-acts { display: flex; gap: 8px; }
+.claims-root .claims-ai-doc-card {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--br2);
+}
 .claims-root .claims-ai-speak {
   margin-top: 8px;
   background: transparent;

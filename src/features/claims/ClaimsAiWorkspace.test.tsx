@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimsAiWorkspace } from './ClaimsAiWorkspace';
 import type { ClaimsAiClaimContext } from './claimsAiModel';
@@ -133,5 +133,55 @@ describe('ClaimsAiWorkspace', () => {
     expect(await screen.findByText('damage_front.jpg')).toBeInTheDocument();
     expect(screen.getByText('surveyor_report.pdf')).toBeInTheDocument();
     expect(screen.getByTestId('claims-ai-msg-attachments')).toBeInTheDocument();
+  });
+
+  describe('document cards', () => {
+    const cardMsg = (card: Record<string, unknown>) => ({
+      data: [{ id: 'm3', conversation_id: 'conv-1', role: 'assistant', content: 'הנה דוח השמאי.', created_at: '2026-10-07T08:03:00Z', tool_name: null, metadata: { document_cards: [card] } }],
+      error: null,
+    });
+    const baseCard = { kind: 'document', claim_id: 'DAL-2026-0001', file_id: 'F1', title: 'דוח שמאי – רכב 1234567', original_name: 'scan.pdf', mime_type: 'application/pdf' };
+
+    it('shows the document with open and download, and reads an unread one once in the browser', async () => {
+      listClaimsAiMessages.mockResolvedValue(cardMsg({ ...baseCard, read_status: '', needs_read: true }));
+      const actions = {
+        meta: vi.fn(() => null),
+        open: vi.fn(async () => null),
+        download: vi.fn(async () => null),
+        read: vi.fn(async () => 'סיכום: נקרא.'),
+      };
+      render(<div className="claims-root"><ClaimsAiWorkspace open onClose={() => {}} claim={claimA} userId="user-1" companyName={null} documentActions={actions} /></div>);
+
+      expect(await screen.findByText('📄 דוח שמאי – רכב 1234567')).toBeInTheDocument();
+      expect(screen.getByText('קובץ מקורי: scan.pdf')).toBeInTheDocument();
+      await waitFor(() => expect(actions.read).toHaveBeenCalledWith('F1'));
+      expect(await screen.findByTestId('claims-ai-doc-note-F1')).toHaveTextContent('סיכום: נקרא.');
+      fireEvent.click(screen.getByTestId('claims-ai-doc-open-F1'));
+      fireEvent.click(screen.getByTestId('claims-ai-doc-download-F1'));
+      expect(actions.open).toHaveBeenCalledWith('F1');
+      expect(actions.download).toHaveBeenCalledWith('F1');
+      expect(actions.read).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the saved read and does not read again', async () => {
+      listClaimsAiMessages.mockResolvedValue(cardMsg({ ...baseCard, read_status: 'ready', needs_read: false }));
+      const actions = {
+        meta: vi.fn(() => ({ read_status: 'ready', read_summary: 'דוח שמאי לרכב', read_source: 'pdf_text', read_doc_type: 'דוח שמאי' })),
+        open: vi.fn(async () => null),
+        download: vi.fn(async () => null),
+        read: vi.fn(async () => ''),
+      };
+      render(<div className="claims-root"><ClaimsAiWorkspace open onClose={() => {}} claim={claimA} userId="user-1" companyName={null} documentActions={actions} /></div>);
+
+      expect(await screen.findByTestId('claims-ai-doc-read-F1')).toHaveTextContent('דוח שמאי לרכב');
+      expect(actions.read).not.toHaveBeenCalled();
+    });
+
+    it('ignores a card from another claim', async () => {
+      listClaimsAiMessages.mockResolvedValue(cardMsg({ ...baseCard, claim_id: 'DAL-2026-0999', read_status: '', needs_read: true }));
+      render(<div className="claims-root"><ClaimsAiWorkspace open onClose={() => {}} claim={claimA} userId="user-1" companyName={null} /></div>);
+      expect(await screen.findByText('הנה דוח השמאי.')).toBeInTheDocument();
+      expect(screen.queryByTestId('claims-ai-doc-card-F1')).toBeNull();
+    });
   });
 });

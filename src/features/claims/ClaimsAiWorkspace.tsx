@@ -4,12 +4,14 @@ import {
   activeConversationStorageKey,
   conversationMatchesClaim,
   conversationsForClaim,
+  documentCardsOf,
   messagesForModel,
   pendingActionOf,
   titleFromFirstMessage,
   type ClaimsAiAttachment,
   type ClaimsAiClaimContext,
   type ClaimsAiConversation,
+  type ClaimsAiDocumentCard,
   type ClaimsAiMessage,
   type ClaimsAiPendingAction,
 } from './claimsAiModel';
@@ -22,7 +24,68 @@ import {
   listClaimsAiMessages,
   renameClaimsAiConversation,
 } from './claimsAiStore';
+import { documentReadCaption } from './claimDocumentRead';
 import './claims-ai.css';
+
+/** Claim-file actions the chat can run through the existing claims screen (signed URL, download, browser reader). */
+export type ClaimsAiDocumentActions = {
+  meta: (fileId: string) => Record<string, string> | null;
+  open: (fileId: string) => Promise<string | null>;
+  download: (fileId: string) => Promise<string | null>;
+  read: (fileId: string) => Promise<string>;
+};
+
+function ChatDocumentCard({ card, actions }: { card: ClaimsAiDocumentCard; actions?: ClaimsAiDocumentActions }) {
+  const [note, setNote] = useState('');
+  const [reading, setReading] = useState(false);
+  const [, setVersion] = useState(0);
+  const started = useRef(false);
+  const meta = actions?.meta(card.file_id) || null;
+  const caption = documentReadCaption(meta);
+  const readStatus = meta?.read_status || card.read_status;
+  const needsRead = readStatus !== 'ready' && readStatus !== 'unreadable';
+
+  useEffect(() => {
+    if (!actions || !needsRead || started.current) return;
+    started.current = true;
+    setReading(true);
+    void actions.read(card.file_id)
+      .then((msg) => setNote(msg))
+      .catch(() => setNote('הקריאה נכשלה. המסמך לא השתנה.'))
+      .finally(() => { setReading(false); setVersion((v) => v + 1); });
+  }, [actions, card.file_id, needsRead]);
+
+  const run = (fn?: (id: string) => Promise<string | null>) => {
+    if (!fn) return;
+    void fn(card.file_id).then((err) => { if (err) setNote(err); });
+  };
+
+  return (
+    <div className="claims-ai-doc-card" data-testid={`claims-ai-doc-card-${card.file_id}`}>
+      <div style={{ fontWeight: 600 }}>📄 {card.title}</div>
+      {card.original_name && card.original_name !== card.title ? (
+        <div style={{ fontSize: '0.8rem', opacity: 0.75 }}>קובץ מקורי: {card.original_name}</div>
+      ) : null}
+      {actions ? (
+        <div className="claims-ai-preview-acts" style={{ marginTop: 6 }}>
+          <button type="button" className="btn btn-p btn-sm" data-testid={`claims-ai-doc-open-${card.file_id}`} onClick={() => run(actions.open)}>פתח</button>
+          <button type="button" className="btn btn-g btn-sm" data-testid={`claims-ai-doc-download-${card.file_id}`} onClick={() => run(actions.download)}>הורד</button>
+        </div>
+      ) : (
+        <div style={{ fontSize: '0.8rem', marginTop: 6 }}>פתח את התיק כדי להציג את המסמך.</div>
+      )}
+      {reading ? <div className="claims-ai-status" style={{ marginTop: 6 }}>קורא את המסמך בדפדפן…</div> : null}
+      {caption ? (
+        <div style={{ fontSize: '0.8rem', marginTop: 6 }} data-testid={`claims-ai-doc-read-${card.file_id}`}>
+          <div>{caption.summary}</div>
+          <div>{caption.details}</div>
+          <div>{caption.source}</div>
+        </div>
+      ) : null}
+      {note ? <div style={{ fontSize: '0.8rem', marginTop: 4 }} data-testid={`claims-ai-doc-note-${card.file_id}`}>{note}</div> : null}
+    </div>
+  );
+}
 
 interface StagedAttachment {
   id: string;
@@ -139,7 +202,7 @@ async function streamHelpAi(input: {
   attachments?: Array<{ name: string; mime_type: string; byte_size: number; file_id?: string; data_base64?: string }>;
   onDelta: (full: string) => void;
   onPendingAction?: (pending: ClaimsAiPendingAction) => void;
-}): Promise<{ text: string; pendingAction: ClaimsAiPendingAction | null }> {
+}): Promise<{ text: string; pendingAction: ClaimsAiPendingAction | null; documentCards: ClaimsAiDocumentCard[] }> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error('יש להתחבר למערכת');
 
@@ -174,6 +237,7 @@ async function streamHelpAi(input: {
   let full = '';
   let buffer = '';
   let receivedPendingAction: ClaimsAiPendingAction | null = null;
+  let receivedCards: ClaimsAiDocumentCard[] = [];
 
   while (true) {
     const { done, value } = await reader.read();
@@ -196,6 +260,9 @@ async function streamHelpAi(input: {
           if (delta) {
             full += delta;
             input.onDelta(full);
+          }
+          if (parsed.document_cards) {
+            receivedCards = documentCardsOf(parsed.document_cards, input.claimId);
           }
           if (parsed.pending_action) {
             const rawPending = parsed.pending_action as Record<string, unknown>;
@@ -221,7 +288,7 @@ async function streamHelpAi(input: {
     }
   }
   if (!full.trim()) throw new Error('תשובה ריקה מהשרת');
-  return { text: full, pendingAction: receivedPendingAction };
+  return { text: full, pendingAction: receivedPendingAction, documentCards: receivedCards };
 }
 
 export function ClaimsAiWorkspace({
@@ -230,12 +297,14 @@ export function ClaimsAiWorkspace({
   claim,
   userId,
   companyName,
+  documentActions,
 }: {
   open: boolean;
   onClose: () => void;
   claim: ClaimsAiClaimContext | null;
   userId: string;
   companyName: string | null;
+  documentActions?: ClaimsAiDocumentActions;
 }) {
   const claimId = claim?.claimId || null;
   const [conversations, setConversations] = useState<ClaimsAiConversation[]>([]);
@@ -505,6 +574,7 @@ export function ClaimsAiWorkspace({
           claim_id: claimId,
           model: 'help-ai-chat',
           ...(answer.pendingAction ? { pending_action: answer.pendingAction } : {}),
+          ...(answer.documentCards.length ? { document_cards: answer.documentCards } : {}),
         },
       });
       if (saved.error || !saved.data) throw new Error(saved.error?.message || 'שמירת התשובה נכשלה');
@@ -822,6 +892,9 @@ export function ClaimsAiWorkspace({
                   ) : null}
                   {msg.content}
                   {toolError ? <div className="claims-ai-tool-err">הכלי נכשל: {toolError}</div> : null}
+                  {documentCardsOf(msg.metadata, claimId).map((card) => (
+                    <ChatDocumentCard key={card.file_id} card={card} actions={documentActions} />
+                  ))}
                   {pending ? (
                     <div className="claims-ai-preview" data-testid="claims-ai-preview">
                       <div className="claims-ai-preview-head" style={{ fontWeight: 600, marginBottom: 4 }}>

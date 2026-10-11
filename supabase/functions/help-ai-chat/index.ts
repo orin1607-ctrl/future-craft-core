@@ -10,6 +10,7 @@ import {
   executeClaimsGeneralTool,
   recordAiAudit,
   type ClaimsPendingAction,
+  type ClaimsDocumentCard,
 } from "./claimsTools.ts";
 
 const corsHeaders = edgeCorsHeaders;
@@ -319,6 +320,8 @@ async function loadClaimsContext(
     "הנחיות לפעולה בתיק:",
     "- כששואלים 'על איזה תיק אני עובד עכשיו?' או שאלות דומות על התיק הפתוח, ענה במפורש בעברית עם פרטי התיק הפתוח (מספר תביעה, רכב, לקוח, חברת ביטוח וסטטוס).",
     "- יש לך כלים ייעודיים לקריאת מיילים (חיפוש, מייל אחרון, בדיקת מענה מביטוח, מיילים ללקוח, קריאת תוכן וטיוטה), הצגת תמונות ומסמכים, ובדיקת קישורי שיתוף. השתמש בהם לקבלת מידע עדכני.",
+    "- מסמכים: כשהמשתמש מבקש מסמך (למשל 'תביא לי דוח שמאי'), חפש עם list_claim_documents ו-query, ואז הצג אותו עם show_claim_document. אם נמצאו כמה, הצג את הרשימה ושאל איזה. אם לא נמצא, אמור שלא נמצא. אל תשלח את המשתמש ללחוץ על כפתורים בגלריה.",
+    "- שליחת מסמך במייל: השתמש ב-preview_send_claim_email עם file_ids של המסמך המבוקש בלבד. 'שלח לי' = send_to_self=true. לפני האישור אמור במפורש למי ומה יישלח; אחרי ביצוע דווח רק את התוצאה שהתקבלה, ואם לא נשלח — אמור שלא נשלח.",
     "- כשכלי מסמך מחזיר document_read, ענה רק מתוך text ו-evidence שלו וציין את המקור. כשמפנים למסמך, השתמש ב-title שלו כשם המסמך. אם needs_review הוא true, אמור שהמסמך דורש בדיקה. אם status הוא unreadable, pending, processing או failed, אמור שהקובץ לא נקרא ואל תנחש. אל תשנה סטטוס ואל תשלח הודעה בגלל מסמך.",
     "- לפעולות כתיבה (שליחת מייל, יצירת קישור שיתוף, ביטול קישור, שינוי סטטוס, יצירת משימה, סגירת משימה, הוספת הערה) — השתמש תמיד בכלי ה-Preview המתאים. כלי ה-Preview יציג כרטיס אישור למשתמש.",
     "- הסבר בעברית ברורה מה הכנת עבור המשתמש, ובקש ממנו לאשר את הפעולה.",
@@ -731,7 +734,7 @@ async function callClaude(
   return { error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.", status: 500 };
 }
 
-function streamTextAsSse(replyText: string, pendingAction?: ClaimsPendingAction | null): Response {
+function streamTextAsSse(replyText: string, pendingAction?: ClaimsPendingAction | null, documentCards: ClaimsDocumentCard[] = []): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -743,6 +746,7 @@ function streamTextAsSse(replyText: string, pendingAction?: ClaimsPendingAction 
           const payload = JSON.stringify({
             choices: [{ delta: { content: piece } }],
             ...(isLast && pendingAction ? { pending_action: pendingAction } : {}),
+            ...(isLast && documentCards.length ? { document_cards: documentCards } : {}),
           });
           controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
           if (i % 2 === 0 && i < words.length - 1) {
@@ -880,9 +884,13 @@ Deno.serve(async (req) => {
       ? (claimId ? CLAIMS_GEMINI_TOOLS : CLAIMS_GENERAL_GEMINI_TOOLS)
       : FLEET_GEMINI_TOOLS;
 
+    // Document cards go to the chat screen only; the model gets the tool result without them.
+    const documentCards: ClaimsDocumentCard[] = [];
     const onToolCall = async (toolName: string, toolArgs: Record<string, unknown>) => {
       if (isClaimsModule && claimId) {
-        return await executeClaimsTool(toolName, toolArgs, supabase, claimId, userId, actorName, attachments);
+        const res = await executeClaimsTool(toolName, toolArgs, supabase, claimId, userId, actorName, attachments);
+        if (res.card && !documentCards.some((c) => c.file_id === res.card!.file_id)) documentCards.push(res.card);
+        return { result: res.result, preview: res.preview };
       }
       if (isClaimsModule && !claimId) {
         return await executeClaimsGeneralTool(toolName, toolArgs, supabase, userId, actorName, attachments);
@@ -930,7 +938,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return streamTextAsSse(finalResult.text, finalResult.pendingAction);
+    return streamTextAsSse(finalResult.text, finalResult.pendingAction, documentCards);
   } catch (e) {
     console.error("help-ai-chat error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {

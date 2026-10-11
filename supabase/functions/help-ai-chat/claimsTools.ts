@@ -1,6 +1,25 @@
 // supabase/functions/help-ai-chat/claimsTools.ts
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { documentLabel } from "../_shared/claimDocumentLabel.ts";
+import { documentDisplayTitle, documentLabel } from "../_shared/claimDocumentLabel.ts";
+
+/**
+ * Document text, summaries and extracted fields are passed to the AI model (Gemini, or the
+ * Claude fallback) only when this is true. Until the owner approves, the model gets the title,
+ * type and read status; the user sees the content in the chat card, which reads it in the browser.
+ */
+export const CLAIMS_CHAT_DOC_TEXT_TO_MODEL = false;
+
+/** UI-only card. Sent to the chat screen, never to the model. */
+export interface ClaimsDocumentCard {
+  kind: "document";
+  claim_id: string;
+  file_id: string;
+  title: string;
+  original_name: string;
+  mime_type: string;
+  read_status: string;
+  needs_read: boolean;
+}
 
 export interface ClaimsPendingAction {
   preview_id: string;
@@ -105,7 +124,7 @@ export const CLAIMS_GEMINI_TOOLS = [
       },
       {
         name: "list_claim_documents",
-        description: "רשימת כל התמונות והמסמכים הקיימים בתיק הפתוח (תמונות שמאי, חשבוניות, שמאות, רישיון רכב וכו')",
+        description: "רשימת התמונות והמסמכים בתיק הפתוח, עם שם בעברית, סוג וסטטוס קריאה. לחיפוש מסמך מסוים (למשל 'דוח שמאי', 'החשבונית האחרונה') העבר query.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -113,7 +132,25 @@ export const CLAIMS_GEMINI_TOOLS = [
               type: "STRING",
               description: "סוג סינון: 'photos' (תמונות בלבד), 'docs' (מסמכים ומסמכי PDF בלבד), או 'all' (הכל)",
             },
+            query: {
+              type: "STRING",
+              description: "מילות חיפוש בעברית או באנגלית: סוג מסמך, שם, שולח או מילה מהמסמך (אופציונלי)",
+            },
           },
+        },
+      },
+      {
+        name: "show_claim_document",
+        description: "הצגת המסמך המקורי מהתיק למשתמש בתוך הצ'אט, עם פתיחה והורדה. אם המסמך עוד לא נקרא, הכרטיס מפעיל את הקריאה הקיימת בדפדפן ומציג את התוצאה. השתמש אחרי list_claim_documents כשהמשתמש מבקש להביא, להציג, להוריד או לקרוא מסמך.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            file_id: {
+              type: "STRING",
+              description: "מזהה המסמך מתוך list_claim_documents (חובה)",
+            },
+          },
+          required: ["file_id"],
         },
       },
       {
@@ -149,7 +186,11 @@ export const CLAIMS_GEMINI_TOOLS = [
           properties: {
             to: {
               type: "STRING",
-              description: "כתובת מייל הנמען (חובה)",
+              description: "כתובת מייל הנמען. אם המשתמש מבקש לשלוח לעצמו, השאר ריק וקבע send_to_self=true",
+            },
+            send_to_self: {
+              type: "BOOLEAN",
+              description: "true כשהמשתמש מבקש 'שלח לי' — המייל יישלח לכתובת של המשתמש המחובר",
             },
             cc: {
               type: "STRING",
@@ -166,7 +207,7 @@ export const CLAIMS_GEMINI_TOOLS = [
             file_ids: {
               type: "ARRAY",
               items: { type: "STRING" },
-              description: "מזהי קבצים מתוך התיק לצירוף (אופציונלי - אם לא צוין, מצרף אוטומטית את תמונות התיק)",
+              description: "מזהי קבצים מתוך התיק לצירוף. כשהמשתמש מבקש מסמך מסוים, העבר רק את המזהה שלו מתוך list_claim_documents (אם לא צוין, מצורפים קבצי התיק)",
             },
           },
         },
@@ -984,6 +1025,16 @@ function storedDocumentRead(meta: unknown) {
     return { status, instruction: "הקריאה נכשלה. אל תנחש פרטים ואל תמציא נתונים." };
   }
   const label = documentLabel(row as Record<string, string>);
+  if (!CLAIMS_CHAT_DOC_TEXT_TO_MODEL) {
+    return {
+      status,
+      title: label?.title || "",
+      doc_type: label?.docType || "",
+      needs_review: label?.needsReview ?? status === "unreadable",
+      content_withheld: true,
+      instruction: "תוכן המסמך לא מועבר למודל (לא אושר). אל תנחש את תוכנו. כדי שהמשתמש יראה את התוכן, הצג לו את המסמך עם show_claim_document — הכרטיס מציג את הקריאה השמורה.",
+    };
+  }
   return {
     status,
     title: label?.title || "",
@@ -1476,7 +1527,7 @@ export async function executeClaimsTool(
   userId: string,
   userName: string,
   attachments?: Array<{ name: string; mime_type: string; data_base64?: string; file_id?: string; byte_size?: number }>,
-): Promise<{ result: unknown; preview?: ClaimsPendingAction }> {
+): Promise<{ result: unknown; preview?: ClaimsPendingAction; card?: ClaimsDocumentCard }> {
   try {
     switch (name) {
       case "search_claim_emails": {
@@ -1896,6 +1947,7 @@ export async function executeClaimsTool(
 
       case "list_claim_documents": {
         const filterType = String(args.filter_type || "all").toLowerCase();
+        const query = String(args.query || "").trim().toLowerCase();
 
         const { data: docs } = await supabase
           .from("claims_documents")
@@ -1920,7 +1972,24 @@ export async function executeClaimsTool(
           );
         }
 
-        const numberedList = filtered.map((d, idx) => `${idx + 1}. ${formatDocLabel(d)} (${d.original_name})`);
+        if (query) {
+          const words = query.split(/\s+/).filter((w) => w.length >= 2);
+          filtered = filtered.filter((d) => {
+            const meta = (d.doc_meta && typeof d.doc_meta === "object" ? d.doc_meta : {}) as Record<string, string>;
+            const hay = [
+              documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: meta }),
+              documentLabel(meta)?.docType || "",
+              formatDocLabel(d),
+              d.original_name,
+              d.doc_kind,
+              meta.staff_type,
+              meta.read_text,
+            ].join(" ").toLowerCase();
+            return words.every((w) => hay.includes(w));
+          });
+        }
+
+        const numberedList = filtered.map((d, idx) => `${idx + 1}. ${documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: d.doc_meta as Record<string, string> })} (${d.original_name})`);
 
         await recordAiAudit(supabase, {
           userId,
@@ -1935,13 +2004,16 @@ export async function executeClaimsTool(
           result: {
             claim_id: claimId,
             filter: filterType,
+            query: query || undefined,
             total_count: filtered.length,
+            ...(query && !filtered.length ? { not_found: "לא נמצא מסמך מתאים בתיק הזה. אל תנחש — אמור למשתמש שלא נמצא." } : {}),
             selection_instruction: "ניתן לבחור מסמכים לפי מספרם (לדוגמה: 'שלח ללקוח 1 ו-2' או 'תכין קישור לתמונות 3 ו-4').",
             numbered_list: numberedList,
             documents: filtered.map((d, idx) => ({
               index: idx + 1,
               id: d.id,
               name: d.original_name,
+              title: documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: d.doc_meta as Record<string, string> }),
               label: formatDocLabel(d),
               mime: d.mime_type,
               size: d.byte_size,
@@ -1950,6 +2022,54 @@ export async function executeClaimsTool(
               document_read: storedDocumentRead(d.doc_meta),
             })),
           },
+        };
+      }
+
+      case "show_claim_document": {
+        const fileId = String(args.file_id || "").trim();
+        if (!fileId) return { result: { found: false, error: "חסר מזהה מסמך. הרץ קודם list_claim_documents." } };
+        const { data: doc } = await supabase
+          .from("claims_documents")
+          .select("id, claim_id, original_name, mime_type, doc_meta")
+          .eq("id", fileId)
+          .eq("claim_id", claimId)
+          .maybeSingle();
+        if (!doc) {
+          return { result: { found: false, claim_id: claimId, error: "המסמך לא נמצא בתיק הזה. אל תציג מסמך מתיק אחר." } };
+        }
+        const meta = (doc.doc_meta && typeof doc.doc_meta === "object" ? doc.doc_meta : {}) as Record<string, string>;
+        const title = documentDisplayTitle({ original_name: String(doc.original_name || ""), doc_meta: meta });
+        const readStatus = String(meta.read_status || "");
+        const needsRead = readStatus !== "ready" && readStatus !== "unreadable";
+        const card: ClaimsDocumentCard = {
+          kind: "document",
+          claim_id: claimId,
+          file_id: String(doc.id),
+          title,
+          original_name: String(doc.original_name || ""),
+          mime_type: String(doc.mime_type || ""),
+          read_status: readStatus,
+          needs_read: needsRead,
+        };
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: name,
+          actionType: "show_document",
+          status: "success",
+        });
+        return {
+          result: {
+            found: true,
+            claim_id: claimId,
+            file_id: String(doc.id),
+            title,
+            read_status: readStatus || "not_read",
+            shown_to_user: "המסמך הוצג למשתמש בכרטיס בצ'אט עם פתיחה והורדה.",
+            ...(needsRead ? { reading: "המסמך עוד לא נקרא. הכרטיס מפעיל עכשיו את הקריאה בדפדפן של המשתמש ומציג את התוצאה." } : {}),
+          },
+          card,
         };
       }
 
@@ -2180,6 +2300,16 @@ export async function executeClaimsTool(
       // PREVIEW TOOLS (Write operations)
       case "preview_send_claim_email": {
         let to = String(args.to || "").trim();
+        const sendToSelf = args.send_to_self === true || String(args.send_to_self || "") === "true";
+        let recipientNote = "";
+        if (sendToSelf) {
+          const { data: me } = await supabase.auth.getUser();
+          to = String(me?.user?.email || "").trim();
+          if (!to) {
+            return { result: { error: "לא נמצאה כתובת מייל למשתמש המחובר. ציין כתובת נמען." } };
+          }
+          recipientNote = "הכתובת של המשתמש המחובר";
+        }
         const cc = String(args.cc || "").trim();
         let subject = String(args.subject || "").trim();
         let body = String(args.body || "").trim();
@@ -2197,6 +2327,7 @@ export async function executeClaimsTool(
 
         if (!to) {
           to = String(claimRow.insEmail || claimRow.clientEmail || "").trim();
+          if (to) recipientNote = claimRow.insEmail ? "נבחר אוטומטית: מייל חברת הביטוח מהתיק" : "נבחר אוטומטית: מייל הלקוח מהתיק";
         }
 
         if (!to) {
@@ -2233,6 +2364,24 @@ export async function executeClaimsTool(
           }
         }
 
+        // Attach only files that belong to this claim, and show their names before approval.
+        let attachmentTitles: string[] = [];
+        let droppedFileIds: string[] = [];
+        if (fileIds.length > 0) {
+          const { data: inClaim } = await supabase
+            .from("claims_documents")
+            .select("id, original_name, doc_meta")
+            .eq("claim_id", claimId)
+            .in("id", fileIds);
+          const known = new Map((inClaim || []).map((d) => [d.id, d]));
+          droppedFileIds = fileIds.filter((id) => !known.has(id));
+          fileIds = fileIds.filter((id) => known.has(id));
+          attachmentTitles = fileIds.map((id) => {
+            const d = known.get(id)!;
+            return documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: d.doc_meta as Record<string, string> });
+          });
+        }
+
         if (!body) {
           body = `שלום רב,
 מצורפים בזאת מסמכים ותמונות עבור תיק תביעה ${claimNum} (רכב ${plate}).
@@ -2241,7 +2390,8 @@ export async function executeClaimsTool(
         }
 
         const previewId = `P-SEND-${Date.now()}`;
-        const summary = `שליחת מייל אל ${to} (נושא: "${subject}", ${fileIds.length} קבצים מצורפים)`;
+        const attachList = attachmentTitles.length ? `: ${attachmentTitles.slice(0, 5).join(", ")}${attachmentTitles.length > 5 ? ` ועוד ${attachmentTitles.length - 5}` : ""}` : "";
+        const summary = `שליחת מייל אל ${to}${recipientNote ? ` (${recipientNote})` : ""} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}`;
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
@@ -2255,6 +2405,7 @@ export async function executeClaimsTool(
             subject,
             body,
             file_ids: fileIds,
+            attachment_titles: attachmentTitles,
           },
         };
 
@@ -2280,6 +2431,9 @@ export async function executeClaimsTool(
               subject,
               body_excerpt: body.slice(0, 300),
               attachments_count: fileIds.length,
+              attachments: attachmentTitles,
+              ...(recipientNote ? { recipient_note: recipientNote } : {}),
+              ...(droppedFileIds.length ? { not_attached: `${droppedFileIds.length} מזהים לא שייכים לתיק הזה ולא צורפו` } : {}),
             },
           },
           preview,
@@ -3379,12 +3533,13 @@ export async function executeClaimsPendingAction(
 
     switch (action_type) {
       case "send_email": {
-        const { to, cc, subject, body, file_ids } = parameters as {
+        const { to, cc, subject, body, file_ids, attachment_titles } = parameters as {
           to: string;
           cc?: string | null;
           subject: string;
           body: string;
           file_ids?: string[];
+          attachment_titles?: string[];
         };
 
         const idempotencyKey = `IDEMP-${Date.now()}-${Math.random().toString(36).slice(2, 9).toUpperCase()}`;
@@ -3403,7 +3558,7 @@ export async function executeClaimsPendingAction(
           },
         });
 
-        if (res.error || !res.data?.success) {
+        if (res.error || !res.data?.success || res.data?.realEmailSend !== true) {
           const errMsg = res.data?.error || res.error?.message || "שליחת המייל דרך Gmail נכשלה";
           await recordAiAudit(supabase, {
             userId,
@@ -3419,7 +3574,7 @@ export async function executeClaimsPendingAction(
             status: "failed",
             errorMessage: errMsg,
           });
-          return { success: false, message: `שליחת המייל נכשלה: ${errMsg}`, error: errMsg };
+          return { success: false, message: `המייל לא נשלח: ${errMsg}`, error: errMsg };
         }
 
         await recordAiAudit(supabase, {
@@ -3439,7 +3594,7 @@ export async function executeClaimsPendingAction(
         const msgId = res.data?.message_id || res.data?.gmail_message_id || "";
         return {
           success: true,
-          message: `המייל נשלח בהצלחה לנמען ${to}${msgId ? ` (מזהה: ${msgId})` : ""}`,
+          message: `המייל נשלח אל ${to}${(attachment_titles || []).length ? ` עם ${(attachment_titles || []).length} קבצים: ${(attachment_titles || []).join(", ")}` : (file_ids || []).length ? ` עם ${(file_ids || []).length} קבצים` : " ללא קבצים מצורפים"}${msgId ? ` (מזהה Gmail: ${msgId})` : ""}`,
         };
       }
 

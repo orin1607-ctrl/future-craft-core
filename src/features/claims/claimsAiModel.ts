@@ -40,6 +40,18 @@ export type ClaimsAiPendingAction = {
   parameters?: Record<string, unknown>;
 };
 
+/** A claim document the chat showed to the user. Display only; never sent to the model. */
+export type ClaimsAiDocumentCard = {
+  kind: 'document';
+  claim_id: string;
+  file_id: string;
+  title: string;
+  original_name: string;
+  mime_type: string;
+  read_status: string;
+  needs_read: boolean;
+};
+
 export type ClaimsAiAttachment = {
   id?: string;
   name: string;
@@ -109,6 +121,36 @@ export function pendingActionOf(metadata: Record<string, unknown> | null | undef
   const parameters = row.parameters && typeof row.parameters === 'object' ? (row.parameters as Record<string, unknown>) : undefined;
   if (!preview_id || !summary) return null;
   return { preview_id, summary, tool_name, action_type, status, parameters };
+}
+
+/** Document cards from a stream event or saved message metadata. Drops anything malformed. */
+export function documentCardsOf(raw: unknown, claimId?: string | null): ClaimsAiDocumentCard[] {
+  const list = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object' && Array.isArray((raw as Record<string, unknown>).document_cards)
+    ? ((raw as Record<string, unknown>).document_cards as unknown[])
+    : [];
+  const out: ClaimsAiDocumentCard[] = [];
+  for (const item of list) {
+    if (!item || typeof item !== 'object') continue;
+    const row = item as Record<string, unknown>;
+    const file_id = String(row.file_id || '').trim();
+    const claim_id = String(row.claim_id || '').trim();
+    if (row.kind !== 'document' || !file_id || !claim_id) continue;
+    if (claimId && claim_id !== claimId) continue;
+    if (out.some((c) => c.file_id === file_id)) continue;
+    out.push({
+      kind: 'document',
+      claim_id,
+      file_id,
+      title: String(row.title || row.original_name || 'מסמך'),
+      original_name: String(row.original_name || ''),
+      mime_type: String(row.mime_type || ''),
+      read_status: String(row.read_status || ''),
+      needs_read: row.needs_read === true,
+    });
+  }
+  return out;
 }
 
 export function activeConversationStorageKey(userId: string, claimId: string | null): string {
