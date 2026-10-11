@@ -11,6 +11,8 @@ import ClaimAccidentForm from './ClaimAccidentForm';
 import SignaturePad from './SignaturePad';
 import { EMPTY_INTAKE, intakeFromClaim, mergeIntakeToClaim, resolveStaffClaimSaveId, shouldAutoPersistNoticePdf, type IntakeDraft } from './claimIntakeModel';
 import { ClaimContactsModal, ContactPickerList } from './ClaimContactsModal';
+import ClaimWhatsAppModal from './ClaimWhatsAppModal';
+import ClaimWhatsAppDueList, { type WaDueItem } from './ClaimWhatsAppDueList';
 import CustomerRequestModal from './CustomerRequestModal';
 import SecureShareModal from './SecureShareModal';
 import { type ShareRow } from './claimSecureShare';
@@ -21,7 +23,7 @@ import GaragePhotosGallery from './GaragePhotosGallery';
 import { isGaragePhoto, type GarageAssignment } from './claimGarage';
 import { sharePublicUrl } from './claimSecureShare';
 import { downloadRemoteFile } from './claimFileDownload';
-import { emailsUnknownToDirectory, parseFromAddr, phoneUnknownToDirectory, type ClaimContact } from './claimContacts';
+import { emailsUnknownToDirectory, parseFromAddr, type ClaimContact } from './claimContacts';
 import { claimContextFromRecord } from './claimsAiModel';
 import { ClaimsAiWorkspace } from './ClaimsAiWorkspace';
 import './claims.css';
@@ -869,12 +871,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [mailFollowups, setMailFollowups] = useState<MailFollowupRow[]>([]);
   const [mailFuLoaded, setMailFuLoaded] = useState(false);
   const [dashFollowups, setDashFollowups] = useState<Array<{ id: string; claim_id: string; status: string; mail_to: string; mail_subject: string; next_run_at: string; recipient_kind: string }>>([]);
+  const [manualWa, setManualWa] = useState<WaDueItem[]>([]);
+  const [waClock, setWaClock] = useState(() => new Date());
   const [pendingCustTaskId, setPendingCustTaskId] = useState<string | null>(null);
   const [claimContacts, setClaimContacts] = useState<ClaimContact[]>([]);
   const [mailPicker, setMailPicker] = useState<'to' | 'cc' | null>(null);
   const [mailSaveOffer, setMailSaveOffer] = useState<{ email: string; name: string } | null>(null);
   const [mailSaveName, setMailSaveName] = useState('');
-  const [waSaveOffer, setWaSaveOffer] = useState('');
   const [suggestDraftBody, setSuggestDraftBody] = useState('');
   const [fuEditId, setFuEditId] = useState<string | null>(null);
   const [fuTreatTaskId, setFuTreatTaskId] = useState('');
@@ -1038,6 +1041,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         setGarageReviews({});
       }
       if (!cr.success && cr.error) toast(`טעינת תביעות נכשלה: ${cr.error}`, 'err');
+      const wa = await apiRef.current.listManualWa().catch(() => ({ success: false as const, data: [] as ClaimRecord[] }));
+      if (wa.success) {
+        setManualWa((wa.data || []).map((row) => ({
+          id: row.id,
+          claimId: row.claimId,
+          phone: row.phone,
+          body: row.body,
+          contactName: row.contactName,
+          waStatus: row.waStatus,
+          plannedAt: row.plannedAt,
+        })));
+      }
       if (actor.role === 'super_admin') {
         const a = await apiRef.current.listAssignees();
         setAssignees(a.data || []);
@@ -1110,6 +1125,17 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       setGmailBusy('');
     }
   };
+
+  useEffect(() => {
+    const tick = () => setWaClock(new Date());
+    const timer = window.setInterval(tick, 30_000);
+    const onVisible = () => { if (document.visibilityState === 'visible') tick(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 820px)');
@@ -2715,6 +2741,23 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   );
   const myTasks = dashTasks.filter((t) => t.done !== 'true' && customerStatusOf(t) !== 'done' && customerStatusOf(t) !== 'cancelled' && (!mineOnly || workset.some((c) => c.id === t.claimId))).slice(0, 8);
   const myRems = dashRems.filter((r) => !mineOnly || workset.some((c) => c.id === r.claimId)).slice(0, 8);
+  const waDueList = (
+    <ClaimWhatsAppDueList
+      now={waClock}
+      rows={manualWa.map((row) => {
+        const c = claims.find((x) => x.id === row.claimId);
+        return { ...row, claimLabel: c ? displayClaimNum(c) : row.claimId };
+      })}
+      onOpened={(row) => { if (row.claimId && row.id) void apiRef.current.noteWaOpened(row.claimId, row.id); }}
+      onMarkSent={async (row) => {
+        if (!row.claimId || !row.id) return;
+        const saved = await apiRef.current.updateWaComm(row.claimId, row.id, { waStatus: 'marked_sent_by_user' });
+        if (!saved.success) { toast(saved.error || 'הסימון נכשל', 'err'); return; }
+        toast('סומן ידנית כנשלח');
+        await loadAll();
+      }}
+    />
+  );
 
   if (!ready) {
     return (
@@ -2880,6 +2923,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           <div className="main">
             {view === 'dashboard' && (
               <>
+                {waDueList}
                 <div className="ph">
                   <div><div className="ph-t">{isSuperAdmin && !mineOnly ? 'דשבורד' : 'התביעות שלי'}<div className="ph-bar" /></div>
                     <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>{new Date().toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} · {actor.full_name}</div>
@@ -2966,6 +3010,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
             {view === 'claims' && (
               <>
+                {waDueList}
                 <div className="ph">
                   <div><div className="ph-t" data-testid="claims-list-heading">{listMode === 'archive' ? 'תיקים בארכיון' : (filter || stFil || workFil || insCoFil || (mineOnly ? 'התביעות שלי' : 'כל התיקים'))}<div className="ph-bar" /></div></div>
                   <div className="ph-a">
@@ -3452,11 +3497,12 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   <div className="sdiv"><div className="sdiv-t">תקשורת והערות</div><div className="sdiv-l" /></div>
                   {comm.length === 0 ? <div className="empty">אין תקשורת מתועדת</div>
                     : comm.map((e) => (
-                      <div key={e.id} className={`comm-item ${e.type || ''}`}>
+                      <div key={e.id} className={`comm-item ${e.type || ''}`} data-testid={e.type === 'wa' ? `wa-log-${e.id}` : undefined}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <span style={{ fontSize: 10, fontWeight: 700 }}>{e.type}</span>
+                          <span style={{ fontSize: 10, fontWeight: 700 }}>{e.type === 'wa' ? 'WhatsApp' : e.type}{e.waStatus ? ` · ${e.waStatus === 'opened_not_sent' ? 'נפתח, לא נשלח' : e.waStatus === 'scheduled_blocked' ? 'מתוזמן, לא נשלח' : e.waStatus === 'cancelled' ? 'בוטל' : e.waStatus === 'marked_sent_by_user' ? 'סומן ידנית כנשלח' : e.waStatus}` : ''}</span>
                           <span style={{ fontSize: 10, color: 'var(--t3)' }}>{e.at} · {e.by || ''}</span>
                         </div>
+                        {e.phone ? <div style={{ fontSize: 11 }}>{e.contactName || ''} · {e.phone}{e.plannedAt ? ` · ${e.plannedAt}` : ''}</div> : null}
                         <div style={{ fontSize: 12.5, color: 'var(--t2)' }}>{e.body || e.note || ''}</div>
                       </div>
                     ))}
@@ -4806,55 +4852,65 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         </div>
       </div>
 
-      <div className={`ov ${modal === 'moWA' ? 'open' : ''}`}>
-        <div className="modal modal-sm">
-          <div className="mh"><div className="mh-t">💬 שליחת WhatsApp</div><button className="mcl" onClick={() => setModal('moCard')}>✕</button></div>
-          <div className="mb">
-            <div className="fg"><label className="fl">טלפון</label><input className="fi" id="wa_phone" data-testid="wa-phone" key={val(null, 'wa_phone') || cur?.clientPhone || 'wa'} defaultValue={val(null, 'wa_phone') || cur?.clientPhone} /></div>
-            <div className="fg"><label className="fl">הודעה</label><textarea className="fta" id="wa_msg" data-testid="wa-msg" /></div>
-            {phoneUnknownToDirectory(val(null, 'wa_phone') || cur?.clientPhone || '', claimContacts) && waSaveOffer !== '__dismissed__' ? (
-              <div className="claim-contact-offer" data-testid="wa-save-offer">
-                המספר הזה אינו שמור באנשי הקשר. האם לשמור אותו?
-                <div className="claim-contact-acts" style={{ marginTop: 8 }}>
-                  <button type="button" className="btn btn-p btn-sm" data-testid="wa-save-confirm" onClick={async () => {
-                    if (!cur) return;
-                    const phone = val(null, 'wa_phone') || cur.clientPhone || '';
-                    const r = await apiRef.current.saveContact({
-                      full_name: cur.clientName || phone,
-                      role: 'client',
-                      listed_in_directory: true,
-                      claimId: cur.id,
-                      linkClaim: true,
-                      channels: [{ kind: 'whatsapp', value: phone }, { kind: 'phone', value: phone }],
-                    });
-                    if (r.duplicate && r.existing) {
-                      await apiRef.current.linkContactToClaim(cur.id, r.existing.id, r.existing.role);
-                      toast('שויך איש קשר קיים — לא נוצרה כפילות');
-                    } else if (!r.success) { toast(String(r.error || 'שמירה נכשלה'), 'err'); return; }
-                    else toast('נשמר במאגר אחרי אישור מפורש');
-                    setWaSaveOffer('__dismissed__');
-                    await loadCardData(cur.id);
-                  }}>שמור במאגר</button>
-                  <button type="button" className="btn btn-g btn-sm" onClick={() => setWaSaveOffer('__dismissed__')}>לא עכשיו</button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-          <div className="mf"><button className="btn btn-g" onClick={() => setModal('moCard')}>ביטול</button>
-            <button className="btn btn-p" style={{ background: '#15803d' }} onClick={async () => {
-              const phone = val(null, 'wa_phone'); const msg = val(null, 'wa_msg');
-              if (!phone || !msg) { toast('נא להזין טלפון והודעה', 'err'); return; }
-              const p = phone.replace(/[^0-9]/g, '');
-              const intl = p.startsWith('0') ? `972${p.slice(1)}` : p;
-              window.open(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`, '_blank');
-              await apiRef.current.saveCommEntry({ claimId: curId || '', type: 'wa', phone, body: msg, direction: 'out', contactName: cur?.clientName || '' });
-              await markPendingCustomerSent();
-              toast('WhatsApp נפתח ותועד. אין שליחה אוטומטית מספק.');
-              if (curId) await afterSignificant(curId, 'תועד WhatsApp');
-            }}>💬 שלח + תעד</button>
-          </div>
-        </div>
-      </div>
+      {modal === 'moWA' && cur ? (
+        <ClaimWhatsAppModal
+          claim={{ ...cur, claimNum: workClaimNum(cur) }}
+          contacts={claimContacts}
+          held={comm.filter((e) => e.type === 'wa').map((e) => ({ id: e.id, waStatus: e.waStatus, phone: e.phone, body: e.body, plannedAt: e.plannedAt, contactName: e.contactName }))}
+          initialPhone={val(null, 'wa_phone') || cur.clientPhone || ''}
+          initialBody={val(null, 'wa_msg') || ''}
+          onClose={() => setModal('moCard')}
+          toast={(m, k) => toast(m, k || 'ok')}
+          onOpenManual={async (entry) => {
+            const saved = await apiRef.current.saveCommEntry(entry);
+            if (!saved.success) return { success: false, error: 'התיעוד נכשל' };
+            await markPendingCustomerSent();
+            if (curId) await afterSignificant(curId, 'נפתח WhatsApp (לא נשלח)');
+            await loadCardData(cur.id);
+            return { success: true };
+          }}
+          onHold={async (entry) => {
+            const saved = await apiRef.current.saveCommEntry(entry);
+            if (!saved.success) return { success: false, error: 'התזמון לא נשמר' };
+            await loadCardData(cur.id);
+            await loadAll();
+            return { success: true };
+          }}
+          onUpdateHeld={async (id, patch) => {
+            const saved = await apiRef.current.updateWaComm(cur.id, id, patch);
+            if (!saved.success) return saved;
+            await loadCardData(cur.id);
+            await loadAll();
+            return { success: true };
+          }}
+          onNoteOpened={async (id) => apiRef.current.noteWaOpened(cur.id, id)}
+          onMarkSent={async (id) => {
+            const saved = await apiRef.current.updateWaComm(cur.id, id, { waStatus: 'marked_sent_by_user' });
+            if (!saved.success) return saved;
+            await loadCardData(cur.id);
+            await loadAll();
+            return { success: true };
+          }}
+          onSavePhone={async (phone) => {
+            const r = await apiRef.current.saveContact({
+              full_name: cur.clientName || phone,
+              role: 'client',
+              listed_in_directory: true,
+              claimId: cur.id,
+              linkClaim: true,
+              channels: [{ kind: 'whatsapp', value: phone }, { kind: 'phone', value: phone }],
+            });
+            if (r.duplicate && r.existing) {
+              await apiRef.current.linkContactToClaim(cur.id, r.existing.id, r.existing.role);
+              await loadCardData(cur.id);
+              return { success: true };
+            }
+            if (!r.success) return { success: false, error: String(r.error || 'שמירה נכשלה') };
+            await loadCardData(cur.id);
+            return { success: true };
+          }}
+        />
+      ) : null}
 
       <div className={`ov ${modal === 'moMail' ? 'open' : ''}`} data-testid="mo-mail">
         <div className="modal modal-md">

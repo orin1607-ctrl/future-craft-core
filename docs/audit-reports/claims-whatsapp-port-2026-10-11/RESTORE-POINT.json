@@ -1,0 +1,13 @@
+﻿{
+  "created_at": "2026-10-11T07:16:00Z",
+  "target_branch": "codex/garage-open-case-flow-staging",
+  "restore_sha": "f38a1298d6a44a88307314410488aa9fb55493d8",
+  "backup_ref": "backup/garage-open-case-flow-2026-10-11",
+  "source_commit": "4f6c360499699119a28e4267692c592bc15a66d2",
+  "project": "usfeoerkpcafxxlyuldl",
+  "production_touched": false,
+  "files_sha256_before": {
+    "src/features/claims/ClaimsScreen.tsx": "281f017d107f3471c081ad2c22a4b293302d83dcab214f254465bf5bac14dfec",
+    "src/features/claims/claimsService.ts": "4d2682e6dbe0b93a96e98a56afc7593314e7d92102d732aa621d085d6afe8219"
+  }
+}
