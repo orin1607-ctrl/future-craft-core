@@ -2,6 +2,7 @@ import ClaimImage from './ClaimImage';
 import { useState } from 'react';
 import { DOC_LIB_CATEGORIES, DOC_LIB_GROUPS, DOC_LIB_SECTIONS, fileDocBucket, filesForLibCategory, libTypeLabel } from './claimDocLibrary';
 import { documentReadCaption } from './claimDocumentRead';
+import { documentLabel } from '../../../supabase/functions/_shared/claimDocumentLabel';
 
 export type LibFile = {
   id: string;
@@ -78,9 +79,15 @@ function DocRename({ f, label, onRename }: { f: LibFile; label: string; onRename
 function DocumentReadNote({ f, onPrepareRead }: { f: LibFile; onPrepareRead?: (f: LibFile) => string | Promise<string> }) {
   const [plan, setPlan] = useState('');
   const caption = documentReadCaption(f.doc_meta);
+  const label = documentLabel(f.doc_meta);
   if (!caption && !onPrepareRead) return null;
   return (
     <div className="doc-lib-read" data-testid={`doc-read-${f.id}`} style={{ fontSize: 11, color: 'var(--t2)', marginTop: 4 }}>
+      {label ? (
+        <div data-testid={`doc-read-label-${f.id}`} style={{ fontWeight: 600, color: label.needsReview ? 'hsl(var(--warning))' : 'var(--t)' }}>
+          {[label.statusLabel, label.docType, label.description].filter((v, i, a) => v && a.indexOf(v) === i).join(' · ')}
+        </div>
+      ) : null}
       {caption ? <div>{caption.summary}</div> : null}
       {caption ? <div>{caption.details}</div> : null}
       {caption ? <div>{caption.source}</div> : null}

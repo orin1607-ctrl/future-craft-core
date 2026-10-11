@@ -26,6 +26,7 @@ import { downloadRemoteFile } from './claimFileDownload';
 import { emailsUnknownToDirectory, parseFromAddr, type ClaimContact } from './claimContacts';
 import { claimContextFromRecord } from './claimsAiModel';
 import { documentReadCaption } from './claimDocumentRead';
+import { documentDisplayTitle, documentLabel } from '../../../supabase/functions/_shared/claimDocumentLabel';
 import { prepareSelectedDocumentRead } from './claimDocumentReadSave';
 import { ClaimsAiWorkspace } from './ClaimsAiWorkspace';
 import './claims.css';
@@ -562,11 +563,17 @@ function fileLabel(f: ClaimFile) {
   const t = fileMeta(f).staff_title;
   return t || f.original_name;
 }
+// Gallery name: manual title, then the read title, then the original file name.
+function galleryFileLabel(f: ClaimFile) {
+  return documentDisplayTitle({ original_name: f.original_name, doc_meta: fileMeta(f) });
+}
 function ClaimDocReadNote({ f }: { f: ClaimFile }) {
   const caption = documentReadCaption(fileMeta(f));
   if (!caption) return null;
+  const label = documentLabel(fileMeta(f));
   return (
     <div data-testid={`claim-doc-read-${f.id}`} style={{ marginTop: 2 }}>
+      {label ? <div data-testid={`claim-doc-label-${f.id}`}>{[label.statusLabel, label.docType, label.description].filter((v, i, a) => v && a.indexOf(v) === i).join(' · ')}</div> : null}
       <div>{caption.summary}</div>
       <div>{caption.details}</div>
       <div>{caption.source}</div>
@@ -3738,7 +3745,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     category={docLibCat}
                     thumbs={galleryUrls}
                     isImage={isImageFile}
-                    fileLabel={fileLabel}
+                    fileLabel={galleryFileLabel}
                     onCategory={setDocLibCat}
                     onToggle={(id) => setDocPickIds((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id])}
                     onToggleAll={(ids) => setDocPickIds(ids)}
@@ -3912,7 +3919,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                               <div className="doc-type-files" data-testid={`claim-doc-files-${t.key}`}>
                                 {matched.map((f) => (
                                   <div key={f.id} data-doc-name={f.original_name} data-testid={`claim-doc-file-${f.id}`} style={{ fontSize: 11, color: 'var(--t2)', marginTop: 4 }}>
-                                    <FileName name={fileLabel(f)} />
+                                    <FileName name={galleryFileLabel(f)} />
                                     <ClaimDocReadNote f={f} />
                                   </div>
                                 ))}

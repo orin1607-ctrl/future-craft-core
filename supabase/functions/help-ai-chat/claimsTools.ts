@@ -1,5 +1,6 @@
 // supabase/functions/help-ai-chat/claimsTools.ts
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { documentLabel } from "../_shared/claimDocumentLabel.ts";
 
 export interface ClaimsPendingAction {
   preview_id: string;
@@ -982,13 +983,19 @@ function storedDocumentRead(meta: unknown) {
   if (status === "failed") {
     return { status, instruction: "הקריאה נכשלה. אל תנחש פרטים ואל תמציא נתונים." };
   }
+  const label = documentLabel(row as Record<string, string>);
   return {
     status,
+    title: label?.title || "",
+    needs_review: label?.needsReview ?? status === "unreadable",
+    sender: label?.sender || "",
+    sender_source: label?.senderSource || "",
+    description: label?.description || "",
     source: String(row.read_source || ""),
     summary: String(row.read_summary || ""),
     text: String(row.read_text || ""),
     evidence: String(row.read_evidence || ""),
-    doc_type: String(row.read_doc_type || ""),
+    doc_type: label?.docType || String(row.read_doc_type || ""),
     claim_numbers: String(row.read_claim_nums || ""),
     claim_source: String(row.read_claim_src || ""),
     plates: String(row.read_plates || ""),

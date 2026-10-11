@@ -4,6 +4,7 @@
  * Automatic reading stays off until a later approval. Recommendations are display-only.
  */
 import { extractDalIds, extractDates, extractPlates } from '../../../supabase/functions/claims-gmail/matchIncoming.ts';
+import { classifyDocumentText } from '../../../supabase/functions/_shared/claimDocumentLabel.ts';
 
 export const DOCUMENT_READ_AUTORUN = false;
 export const OCR_CONFIDENCE_MIN = 50;
@@ -90,14 +91,6 @@ function extractAmounts(text: string) {
   return [...new Set(found)].slice(0, 5);
 }
 
-function docTypeFromText(text: string) {
-  if (/שמאי|surveyor|survey report/i.test(text)) return 'דוח שמאי';
-  if (/חשבונ|invoice/i.test(text)) return 'חשבונית';
-  if (/הצעת מחיר|quotation|\bquote\b/i.test(text)) return 'הצעת מחיר';
-  if (/אישור תשלום|payment approval/i.test(text)) return 'אישור תשלום';
-  return 'לא זוהה סוג מתוכן המסמך';
-}
-
 function decisionFromText(text: string) {
   const hit = linesOf(text).find((line) => /אושר|נדחה|שולם|אישור תשלום|approved|declined|rejected|\bpaid\b/i.test(line));
   return hit ? hit.slice(0, 240) : 'לא נמצאה החלטת מבטח במסמך';
@@ -152,7 +145,7 @@ export function analyzeDocumentText(
     read_summary: clean.slice(0, 220),
     read_text: clean,
     read_evidence: evidence,
-    read_doc_type: docTypeFromText(clean),
+    read_doc_type: classifyDocumentText(clean),
     read_claim_nums: joinFound(claimNums, NOT_IN_DOC),
     read_claim_src: claimLine,
     read_plates: joinFound(plates, NOT_IN_DOC),
