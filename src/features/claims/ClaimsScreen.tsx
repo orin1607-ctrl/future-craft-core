@@ -25,6 +25,7 @@ import { sharePublicUrl } from './claimSecureShare';
 import { downloadRemoteFile } from './claimFileDownload';
 import { emailsUnknownToDirectory, parseFromAddr, type ClaimContact } from './claimContacts';
 import { claimContextFromRecord } from './claimsAiModel';
+import { documentReadCaption } from './claimDocumentRead';
 import { ClaimsAiWorkspace } from './ClaimsAiWorkspace';
 import './claims.css';
 
@@ -559,6 +560,17 @@ function kindHe(k: string) {
 function fileLabel(f: ClaimFile) {
   const t = fileMeta(f).staff_title;
   return t || f.original_name;
+}
+function ClaimDocReadNote({ f }: { f: ClaimFile }) {
+  const caption = documentReadCaption(fileMeta(f));
+  if (!caption) return null;
+  return (
+    <div data-testid={`claim-doc-read-${f.id}`} style={{ marginTop: 2 }}>
+      <div>{caption.summary}</div>
+      <div>{caption.details}</div>
+      <div>{caption.source}</div>
+    </div>
+  );
 }
 function isOpeningFormPdf(f: ClaimFile) {
   if (fileMeta(f).staff_type !== 'accident_notice') return false;
@@ -3873,6 +3885,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                                 {matched.map((f) => (
                                   <div key={f.id} data-doc-name={f.original_name} data-testid={`claim-doc-file-${f.id}`} style={{ fontSize: 11, color: 'var(--t2)', marginTop: 4 }}>
                                     <FileName name={fileLabel(f)} />
+                                    <ClaimDocReadNote f={f} />
                                   </div>
                                 ))}
                               </div>

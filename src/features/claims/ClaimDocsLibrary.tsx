@@ -1,6 +1,7 @@
 import ClaimImage from './ClaimImage';
 import { useState } from 'react';
 import { DOC_LIB_CATEGORIES, DOC_LIB_GROUPS, DOC_LIB_SECTIONS, fileDocBucket, filesForLibCategory, libTypeLabel } from './claimDocLibrary';
+import { documentReadCaption } from './claimDocumentRead';
 
 export type LibFile = {
   id: string;
@@ -73,6 +74,18 @@ function DocRename({ f, label, onRename }: { f: LibFile; label: string; onRename
   );
 }
 
+function DocumentReadNote({ f }: { f: LibFile }) {
+  const caption = documentReadCaption(f.doc_meta);
+  if (!caption) return null;
+  return (
+    <div className="doc-lib-read" data-testid={`doc-read-${f.id}`} style={{ fontSize: 11, color: 'var(--t2)', marginTop: 4 }}>
+      <div>{caption.summary}</div>
+      <div>{caption.details}</div>
+      <div>{caption.source}</div>
+    </div>
+  );
+}
+
 export default function ClaimDocsLibrary({
   files, picked, category, thumbs, isImage, fileLabel, onCategory, onToggle, onToggleAll, onPreview, onDownload, onPrint, onShareTopic, onRename,
 }: Props) {
@@ -109,6 +122,7 @@ export default function ClaimDocsLibrary({
             <div className="doc-lib-main">
               <div className="doc-lib-name">{fileLabel(f)}</div>
               <div className="doc-lib-meta">{libTypeLabel(f)} · {fmtDay(f.created_at)}</div>
+              <DocumentReadNote f={f} />
             </div>
             <div className="doc-lib-acts">
               <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, sec.rows)}>Preview</button>
@@ -130,6 +144,7 @@ export default function ClaimDocsLibrary({
                   {thumbs[f.id] ? <ClaimImage src={thumbs[f.id]} alt={f.original_name} mime={f.mime_type} /> : <span>📷</span>}
                 </button>
                 <div className="doc-lib-meta">{libTypeLabel(f)} · {fmtDay(f.created_at)}</div>
+                <DocumentReadNote f={f} />
                 <div className="doc-lib-acts">
                   <button type="button" className="btn btn-p btn-sm" data-testid={`docs-preview-${f.id}`} onClick={() => onPreview(f, images)}>Preview</button>
                   <button type="button" className="btn btn-g btn-sm" data-testid={`docs-dl-${f.id}`} onClick={() => onDownload(f)}>Download</button>
