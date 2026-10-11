@@ -1,0 +1,60 @@
+name: Staging claims-docs only
+
+# Deploys claims-docs to dalia-staging (usfeoerkpcafxxlyuldl) only.
+# Runs ONLY when a matching tag is pushed — pushing the branch never runs it,
+# and the Pages / claims-ai / OpenProspector workflows do not run on tag pushes.
+#   deploy/claims-docs-staging/<name>    → claims-docs from the tagged commit
+#   rollback/claims-docs-staging/<name>  → claims-docs as live before (31a0db02)
+# Both pin edgeAuth.ts to the live (31a0db02) copy, so no auth/role change ships.
+# Uses STAGING_SUPABASE_ACCESS_TOKEN only. No customer-link QA, Gmail, garage, or Production.
+
+on:
+  push:
+    tags:
+      - 'deploy/claims-docs-staging/*'
+      - 'rollback/claims-docs-staging/*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-claims-docs-only-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Guard Staging only
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_TYPE}" = "tag"
+          case "${GITHUB_REF_NAME}" in
+            deploy/claims-docs-staging/*|rollback/claims-docs-staging/*) ;;
+            *) echo "Unexpected ref ${GITHUB_REF_NAME}" >&2; exit 1 ;;
+          esac
+          test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
+
+      - name: Prepare claims-docs files
+        run: |
+          set -euo pipefail
+          case "${GITHUB_REF_NAME}" in
+            rollback/*) MODE=rollback ;;
+            *) MODE=deploy ;;
+          esac
+          bash scripts/claims-docs-staging-prepare-deploy.sh "$MODE" .
+
+      - name: Deploy claims-docs to Staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          npx --yes supabase functions deploy claims-docs --project-ref usfeoerkpcafxxlyuldl --use-api
