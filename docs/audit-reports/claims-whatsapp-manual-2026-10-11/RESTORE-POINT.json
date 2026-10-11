@@ -1,0 +1,15 @@
+{
+  "created_at": "2026-10-11T06:43:15.573Z",
+  "project": "usfeoerkpcafxxlyuldl",
+  "project_name": "dalia-staging",
+  "production_touched": false,
+  "branch": "feat/incident-alerts-staging",
+  "note": "Restore point before manual WhatsApp scheduling. No claim rows, documents, reminders, mail, or Gupshup.",
+  "files": {
+    "src/features/claims/claimWhatsApp.ts": "9e8cbb2234d0c66165e1eb3c19f03279c985e3453036842c964788fbc48d268e",
+    "src/features/claims/claimWhatsApp.test.ts": "7f4e438b6d819ce83bab9b826252ab9f51e107512f6b00abc58effafab329f94",
+    "src/features/claims/ClaimWhatsAppModal.tsx": "46c82f08a6edb83237b34ddde17fdf874ba7e235d3041ba8ceeb01c4b8bc509e",
+    "src/features/claims/claimsService.ts": "dbdf96e752ff74b997e51ae4a1bf13afec4e8af290d3989da42575775dc1a895",
+    "src/features/claims/ClaimsScreen.tsx": "9bf7d671fb5dd68aef97797451a085ae45edce3bde18fbc73e9d671378b9370b"
+  }
+}

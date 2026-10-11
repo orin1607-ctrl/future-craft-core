@@ -949,8 +949,83 @@ export function createClaimsApi(actor: ClaimsActor) {
       row.by = row.by || actorEmail;
       await tbl('claims_comm_log').insert({ id: row.id, claim_id: row.claimId, row_data: row } as never);
       const labels: Record<string, string> = { call: 'שיחת טלפון', wa: 'WhatsApp', mail: 'מייל', note: 'הערה' };
-      await appendHistory(row.claimId, labels[row.type] || row.type, row.body || row.note || '', row.type, '', '');
+      const waAction = row.waStatus === 'scheduled_blocked'
+        ? 'תוזמנה WhatsApp (לא נשלחה)'
+        : row.waStatus === 'opened_not_sent'
+          ? 'נפתח WhatsApp (לא נשלח)'
+          : labels.wa;
+      await appendHistory(row.claimId, row.type === 'wa' ? waAction : (labels[row.type] || row.type), row.body || row.note || '', row.type, '', row.waStatus || '');
       return { success: true, id: row.id };
+    },
+
+    async updateWaComm(claimId: string, id: string, patch: { body?: string; phone?: string; plannedAt?: string; contactName?: string; waStatus?: string }) {
+      const { data, error } = await tbl('claims_comm_log').select('id, claim_id, row_data').eq('id', id).maybeSingle();
+      if (error || !data) return { success: false as const, error: 'רשומה לא נמצאה' };
+      const raw = data as { claim_id?: string; row_data?: Record<string, unknown> };
+      if (raw.claim_id !== claimId) return { success: false as const, error: 'התיק לא תואם' };
+      const prev = rowFromData(raw.row_data);
+      if (prev.type !== 'wa' || prev.waStatus !== 'scheduled_blocked') {
+        return { success: false as const, error: 'אפשר לשנות רק הודעת WhatsApp שממתינה ולא נשלחה' };
+      }
+      const next = { ...prev };
+      if (patch.waStatus === 'cancelled') {
+        next.waStatus = 'cancelled';
+        next.delivery = 'not_sent';
+        next.cancelledAt = new Date().toISOString();
+      } else if (patch.waStatus === 'marked_sent_by_user') {
+        next.waStatus = 'marked_sent_by_user';
+        next.delivery = 'marked_by_user';
+        next.markedSentAt = new Date().toISOString();
+      } else if (patch.waStatus && patch.waStatus !== 'scheduled_blocked') {
+        return { success: false as const, error: 'אי אפשר לסמן שליחה מכאן' };
+      } else {
+        if (patch.body != null) next.body = patch.body;
+        if (patch.phone != null) next.phone = patch.phone;
+        if (patch.plannedAt != null) next.plannedAt = patch.plannedAt;
+        if (patch.contactName != null) next.contactName = patch.contactName;
+        next.waStatus = 'scheduled_blocked';
+        next.delivery = 'not_sent';
+      }
+      const { error: upErr } = await tbl('claims_comm_log').update({ row_data: next } as never).eq('id', id).eq('claim_id', claimId);
+      if (upErr) return { success: false as const, error: upErr.message };
+      const action = next.waStatus === 'cancelled'
+        ? 'בוטלה WhatsApp מתוזמנת'
+        : next.waStatus === 'marked_sent_by_user'
+          ? 'סומן ידנית ש-WhatsApp נשלח'
+          : 'עודכנה WhatsApp מתוזמנת';
+      await appendHistory(claimId, action, next.body || '', 'wa', 'scheduled_blocked', next.waStatus);
+      return { success: true as const };
+    },
+
+    async noteWaOpened(claimId: string, id: string) {
+      const { data, error } = await tbl('claims_comm_log').select('id, claim_id, row_data').eq('id', id).maybeSingle();
+      if (error || !data) return { success: false as const, error: 'רשומה לא נמצאה' };
+      const raw = data as { claim_id?: string; row_data?: Record<string, unknown> };
+      if (raw.claim_id !== claimId) return { success: false as const, error: 'התיק לא תואם' };
+      const prev = rowFromData(raw.row_data);
+      if (prev.type !== 'wa' || prev.waStatus !== 'scheduled_blocked') {
+        return { success: false as const, error: 'ההודעה אינה ממתינה לשליחה ידנית' };
+      }
+      const next = { ...prev, waOpenedAt: new Date().toISOString(), delivery: 'not_sent', waStatus: 'scheduled_blocked' };
+      const { error: upErr } = await tbl('claims_comm_log').update({ row_data: next } as never).eq('id', id).eq('claim_id', claimId);
+      if (upErr) return { success: false as const, error: upErr.message };
+      await appendHistory(claimId, 'נפתח WhatsApp מוכן (לא סומן כנשלח)', prev.body || '', 'wa', '', 'not_sent');
+      return { success: true as const };
+    },
+
+    async listManualWa() {
+      const { data, error } = await tbl('claims_comm_log')
+        .select('id, claim_id, row_data')
+        .eq('row_data->>waStatus', 'scheduled_blocked')
+        .order('created_at', { ascending: true });
+      if (error) return { success: false as const, data: [] as ClaimRecord[], error: error.message };
+      const rows = ((data || []) as Array<{ id: string; claim_id: string; row_data: Record<string, unknown> }>).map((r) => {
+        const row = rowFromData(r.row_data);
+        row.id = row.id || r.id;
+        row.claimId = r.claim_id;
+        return row;
+      });
+      return { success: true as const, data: rows };
     },
 
     async getCommLog(claimId: string) {
