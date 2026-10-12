@@ -6303,6 +6303,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         userId={actor.id}
         companyName={null}
         documentActions={modal === 'moCard' && cur ? chatDocumentActions(cur.id) : undefined}
+        onActionExecuted={() => {
+          // Show what the chat changed (claim fields, status, new claim, tasks) right away.
+          void loadAll();
+          if (modal === 'moCard' && cur) void loadCardData(cur.id);
+        }}
       />
 
       <div className="toasts">

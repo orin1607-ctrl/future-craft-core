@@ -3,13 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimsAiWorkspace } from './ClaimsAiWorkspace';
 import type { ClaimsAiClaimContext } from './claimsAiModel';
 
-const { listClaimsAiConversations, listClaimsAiMessages } = vi.hoisted(() => ({
+const { listClaimsAiConversations, listClaimsAiMessages, getSession, insertClaimsAiMessage } = vi.hoisted(() => ({
   listClaimsAiConversations: vi.fn(),
   listClaimsAiMessages: vi.fn(),
+  getSession: vi.fn(async () => ({ data: { session: null as null | { access_token: string } } })),
+  insertClaimsAiMessage: vi.fn(async () => ({ data: null, error: null })),
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { auth: { getSession: vi.fn(async () => ({ data: { session: null } })) } },
+  supabase: { auth: { getSession: (...args: unknown[]) => getSession(...args) } },
 }));
 
 vi.mock('./claimsAiStore', () => ({
@@ -17,7 +19,7 @@ vi.mock('./claimsAiStore', () => ({
   listClaimsAiMessages: (...args: unknown[]) => listClaimsAiMessages(...args),
   createClaimsAiConversation: vi.fn(),
   archiveClaimsAiConversation: vi.fn(),
-  insertClaimsAiMessage: vi.fn(),
+  insertClaimsAiMessage: (...args: unknown[]) => insertClaimsAiMessage(...args),
   renameClaimsAiConversation: vi.fn(),
   claimsAiSchemaMissing: () => false,
 }));
@@ -182,6 +184,57 @@ describe('ClaimsAiWorkspace', () => {
       render(<div className="claims-root"><ClaimsAiWorkspace open onClose={() => {}} claim={claimA} userId="user-1" companyName={null} /></div>);
       expect(await screen.findByText('הנה דוח השמאי.')).toBeInTheDocument();
       expect(screen.queryByTestId('claims-ai-doc-card-F1')).toBeNull();
+    });
+  });
+
+  describe('claim field fix', () => {
+    const pending = {
+      preview_id: 'P-FIELDS-1',
+      summary: 'תיקון פרטים בתיק DAL-2026-0001:\n• מספר תביעה בחברת הביטוח — ערך נוכחי: OLD-1 · ערך חדש: NEW-777',
+      tool_name: 'preview_update_claim_fields',
+      action_type: 'update_claim_fields',
+      parameters: { claim_id: 'DAL-2026-0001', changes: [] },
+    };
+
+    it('shows old and new values, and after approval tells the screen to reload the claim', async () => {
+      listClaimsAiMessages.mockResolvedValue({
+        data: [{ id: 'm9', conversation_id: 'conv-1', role: 'assistant', content: 'הכנתי תיקון.', created_at: '2026-10-07T08:03:00Z', tool_name: null, metadata: { pending_action: pending } }],
+        error: null,
+      });
+      getSession.mockResolvedValue({ data: { session: { access_token: 'token' } } });
+      const fetchMock = vi.fn(async () => new Response(JSON.stringify({ success: true, message: 'עודכנו 1 שדות בתיק DAL-2026-0001' }), { status: 200 }));
+      vi.stubGlobal('fetch', fetchMock);
+      const onActionExecuted = vi.fn();
+
+      render(<div className="claims-root"><ClaimsAiWorkspace open onClose={() => {}} claim={claimA} userId="user-1" companyName={null} onActionExecuted={onActionExecuted} /></div>);
+
+      expect(await screen.findByText(/ערך נוכחי: OLD-1 · ערך חדש: NEW-777/)).toBeInTheDocument();
+      expect(onActionExecuted).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByTestId('claims-ai-confirm-btn'));
+
+      await waitFor(() => expect(onActionExecuted).toHaveBeenCalledWith(expect.objectContaining({ action_type: 'update_claim_fields' })));
+      const body = JSON.parse(String((fetchMock.mock.calls[0] as unknown[])[1] && ((fetchMock.mock.calls[0] as unknown[])[1] as RequestInit).body));
+      expect(body).toMatchObject({ action: 'execute_pending_action', claim_id: 'DAL-2026-0001' });
+      vi.unstubAllGlobals();
+      getSession.mockResolvedValue({ data: { session: null } });
+    });
+
+    it('does not tell the screen anything when the update failed', async () => {
+      listClaimsAiMessages.mockResolvedValue({
+        data: [{ id: 'm9', conversation_id: 'conv-1', role: 'assistant', content: 'הכנתי תיקון.', created_at: '2026-10-07T08:03:00Z', tool_name: null, metadata: { pending_action: pending } }],
+        error: null,
+      });
+      getSession.mockResolvedValue({ data: { session: { access_token: 'token' } } });
+      vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ success: false, message: 'העדכון לא בוצע: השדות השתנו' }), { status: 400 })));
+      const onActionExecuted = vi.fn();
+
+      render(<div className="claims-root"><ClaimsAiWorkspace open onClose={() => {}} claim={claimA} userId="user-1" companyName={null} onActionExecuted={onActionExecuted} /></div>);
+      fireEvent.click(await screen.findByTestId('claims-ai-confirm-btn'));
+
+      expect(await screen.findByText(/העדכון לא בוצע/)).toBeInTheDocument();
+      expect(onActionExecuted).not.toHaveBeenCalled();
+      vi.unstubAllGlobals();
+      getSession.mockResolvedValue({ data: { session: null } });
     });
   });
 });

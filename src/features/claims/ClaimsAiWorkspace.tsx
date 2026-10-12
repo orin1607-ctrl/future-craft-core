@@ -298,6 +298,7 @@ export function ClaimsAiWorkspace({
   userId,
   companyName,
   documentActions,
+  onActionExecuted,
 }: {
   open: boolean;
   onClose: () => void;
@@ -305,6 +306,8 @@ export function ClaimsAiWorkspace({
   userId: string;
   companyName: string | null;
   documentActions?: ClaimsAiDocumentActions;
+  /** Called after an approved action ran, so the screen can reload the claim. */
+  onActionExecuted?: (pending: ClaimsAiPendingAction) => void;
 }) {
   const claimId = claim?.claimId || null;
   const [conversations, setConversations] = useState<ClaimsAiConversation[]>([]);
@@ -660,13 +663,14 @@ export function ClaimsAiWorkspace({
           )
           .concat(confirmedRow ? [confirmedRow] : [])
       );
+      onActionExecuted?.(pending);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'שגיאה בביצוע הפעולה';
       setBanner(message);
     } finally {
       setExecutingActionId(null);
     }
-  }, [activeId, claimId]);
+  }, [activeId, claimId, onActionExecuted]);
 
   const handleCancelPending = useCallback(async (msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => {
     setBanner('');

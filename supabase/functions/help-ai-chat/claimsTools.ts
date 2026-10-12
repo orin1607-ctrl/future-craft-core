@@ -1,6 +1,7 @@
 // supabase/functions/help-ai-chat/claimsTools.ts
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { documentDisplayTitle, documentLabel } from "../_shared/claimDocumentLabel.ts";
+import { CLAIM_EDIT_FIELDS, applyClaimFieldEdit, describeChanges, planClaimFieldEdit, type FieldChange } from "../_shared/claimFieldEdit.ts";
 
 /**
  * Document text, summaries and extracted fields are passed to the AI model (Gemini, or the
@@ -32,6 +33,21 @@ export interface ClaimsPendingAction {
 // -------------------------------------------------------------
 // 1. CLAIMS_GEMINI_TOOLS (Inside Open Claim mode - claimId != "")
 // -------------------------------------------------------------
+const CLAIM_FIELD_CHANGES_PARAM = {
+  type: "ARRAY",
+  description: "השדות לתיקון. field = שם השדה בטופס (למשל claimNum, eventDate, plate, insCompany, policyNum, clientName, thirdParty, thirdPlate, surveyor) או שמו בעברית. value = הערך החדש בדיוק כפי שהמשתמש מסר.",
+  items: {
+    type: "OBJECT",
+    properties: {
+      field: { type: "STRING", description: "שם השדה" },
+      value: { type: "STRING", description: "הערך החדש" },
+    },
+    required: ["field", "value"],
+  },
+};
+
+const PREVIEW_UPDATE_CLAIM_FIELDS_DESC = "הכנת תצוגה מקדימה לתיקון פרטי תביעה (מספר תביעה בחברת הביטוח, תאריך אירוע, מספר רכב, דגם, סוג תביעה, חברת ביטוח, פוליסה, נציג ביטוח, פרטי לקוח, צד ג׳, שמאי, כספים, משפטי). מציג ערך נוכחי מול ערך חדש ואזהרות, ודורש אישור מפורש. השתמש רק בערכים שהמשתמש מסר במפורש — לעולם אל תשלים ערך חסר. סטטוס משנים עם preview_update_claim_status.";
+
 export const CLAIMS_GEMINI_TOOLS = [
   {
     functionDeclarations: [
@@ -373,6 +389,15 @@ export const CLAIMS_GEMINI_TOOLS = [
         },
       },
       {
+        name: "preview_update_claim_fields",
+        description: PREVIEW_UPDATE_CLAIM_FIELDS_DESC + " פועל על התיק הפתוח בלבד.",
+        parameters: {
+          type: "OBJECT",
+          properties: { changes: CLAIM_FIELD_CHANGES_PARAM },
+          required: ["changes"],
+        },
+      },
+      {
         name: "preview_link_client_to_claim",
         description: "הכנת תצוגה מקדימה לקישור לקוח קיים ממערכת הלקוחות לתיק התביעה הנוכחי. דורש אישור מפורש של המשתמש.",
         parameters: {
@@ -532,6 +557,18 @@ export const CLAIMS_GEMINI_TOOLS = [
 export const CLAIMS_GENERAL_GEMINI_TOOLS = [
   {
     functionDeclarations: [
+      {
+        name: "preview_update_claim_fields",
+        description: PREVIEW_UPDATE_CLAIM_FIELDS_DESC + " במצב כללי חובה לציין claim_ref — מזהה התיק (DAL-YYYY-NNNN) שהתקבל ביצירת התיק או מחיפוש. אם התיק לא ברור, שאל את המשתמש.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            claim_ref: { type: "STRING", description: "מזהה התיק (DAL-YYYY-NNNN) או מספר התביעה בחברת הביטוח — חייב להתאים לתיק אחד בדיוק" },
+            changes: CLAIM_FIELD_CHANGES_PARAM,
+          },
+          required: ["claim_ref", "changes"],
+        },
+      },
       {
         name: "get_claims_summary",
         description: "סיכום מקיף של תיקי התביעות במערכת: סך הכל תיקים, התפלגות לפי סטטוסים, התפלגות לפי חברות ביטוח, ותיקים הדורשים טיפול",
@@ -807,6 +844,7 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 8. שליחת מיילים: שליחת מיילים ללקוח או לחברת הביטוח עם קבצים מצורפים מתוך התיק (preview_send_claim_email).
 9. תפעול התיק: שינוי סטטוס (preview_update_claim_status), יצירת וסגירת משימות (preview_create_claim_task, preview_close_claim_task), הוספת הערות בתיק (preview_add_claim_note).
 10. לקוחות: יצירת לקוח חדש (preview_create_customer), עדכון טלפון/מייל (preview_update_claim_client_contact), קישור לקוח לתביעה (preview_link_client_to_claim), ובדיקת כפילויות (check_claim_and_customer_duplicates).
+11. תיקון פרטי התיק: כשהמשתמש מבקש לתקן פרט בתיק (מספר תביעה בחברת הביטוח, תאריך אירוע/תאונה, מספר רכב, חברת ביטוח, פוליסה, צד ג׳, שמאי, סכומים וכו׳) — קרא ל-preview_update_claim_fields עם השדות והערכים שהמשתמש מסר בלבד. הכרטיס יציג ערך נוכחי מול חדש ואזהרות. אם ערך לא נמסר במפורש — שאל, אל תשלים.
 
 כללי בטיחות ואישורים קריטיים:
 - פעולות קריאה (READ): כגון חיפוש מיילים, בדיקת מענה מביטוח, רשימת תמונות/מסמכים, בדיקת חוסרים, בדיקת קישורים, מי טיפל, בדיקת כפילויות — מבוצעות באופן אוטומטי מיידי דרך הכלים הרלוונטיים. ענה תמיד בעברית ברורה ותמציתית עם הנתונים האמיתיים שנשלפו.
@@ -857,10 +895,12 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
 4. משימות במערכת:
    - סיכום משימות פתוחות בכלל התיקים (get_open_tasks_summary).
 
-5. חיפוש תביעות:
+5. תיקון פרטי תיק קיים (גם מיד אחרי פתיחת תיק): קרא ל-preview_update_claim_fields עם claim_ref (מזהה התיק שנפתח או שנמצא בחיפוש) והשדות לתיקון. אם יש יותר מתיק אחד מתאים — שאל. לעולם אל תשלים ערך שהמשתמש לא מסר.
+
+6. חיפוש תביעות:
    - חיפוש לפי מספר רכב, שם לקוח, מספר תביעה, חברת ביטוח (search_claims).
 
-6. בדיקת כפילויות ישירה:
+7. בדיקת כפילויות ישירה:
    - בדיקת כפילויות לקוח או תיק (check_claim_and_customer_duplicates).
 
 כללי פעולה קריטיים:
@@ -1061,6 +1101,131 @@ function storedDocumentRead(meta: unknown) {
     instruction: status === "unreadable"
       ? "הקובץ אינו קריא. אמור זאת במפורש ואל תנחש פרטים."
       : "ענה רק מתוך text ו-evidence של המסמך הזה. אם הפרט לא מופיע, אמור שאינו במסמך. אל תשנה סטטוס ואל תשלח הודעה.",
+  };
+}
+
+// ---- Claim field edits from the chat (same fields and storage as the claim edit form) ----
+
+function nowHeIL() {
+  return new Date().toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" });
+}
+
+function isDeletedClaim(rowData: unknown) {
+  return !!(rowData && typeof rowData === "object" && String((rowData as Record<string, unknown>).deletedAt || ""));
+}
+
+/** One live claim by its id or by its insurer claim number. Never guesses between several. */
+async function resolveClaimRef(
+  supabase: ReturnType<typeof createClient>,
+  ref: string,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const key = String(ref || "").trim();
+  if (!key) return { ok: false, error: "לא צוין תיק. ציין מזהה תיק (DAL-YYYY-NNNN) או מספר תביעה." };
+  const { data: byId } = await supabase.from("claims_records").select("id, row_data").eq("id", key).maybeSingle();
+  if (byId && !isDeletedClaim(byId.row_data)) return { ok: true, id: String(byId.id) };
+  const { data: byNum } = await supabase.from("claims_records").select("id, row_data").ilike("row_data->>claimNum", key);
+  const live = (byNum || []).filter((r) => !isDeletedClaim(r.row_data));
+  if (live.length === 1) return { ok: true, id: String(live[0].id) };
+  if (live.length > 1) return { ok: false, error: `נמצאו ${live.length} תיקים עם מספר התביעה ${key}: ${live.map((r) => r.id).join(", ")}. ציין מזהה תיק.` };
+  return { ok: false, error: `לא נמצא תיק פעיל עבור "${key}".` };
+}
+
+const digitsOnly = (v: unknown) => String(v ?? "").replace(/\D/g, "");
+
+async function previewUpdateClaimFields(
+  supabase: ReturnType<typeof createClient>,
+  claimId: string,
+  args: Record<string, unknown>,
+  userId: string,
+  userName: string,
+  toolName: string,
+): Promise<{ result: unknown; preview?: ClaimsPendingAction }> {
+  const { data: claim } = await supabase
+    .from("claims_records")
+    .select("id, row_data")
+    .eq("id", claimId)
+    .maybeSingle();
+  if (!claim || isDeletedClaim(claim.row_data)) {
+    return { result: { error: `התיק ${claimId} לא נמצא או שנמחק. לא בוצע שינוי.` } };
+  }
+  const rowData = (claim.row_data && typeof claim.row_data === "object" ? claim.row_data : {}) as Record<string, unknown>;
+  const requested = (Array.isArray(args.changes) ? args.changes : [])
+    .map((c) => (c && typeof c === "object" ? c as Record<string, unknown> : {}))
+    .map((c) => ({ field: String(c.field || ""), value: String(c.value ?? "") }));
+  const plan = planClaimFieldEdit(rowData, requested);
+
+  if (!plan.changes.length) {
+    return {
+      result: {
+        claim_id: claimId,
+        status: "no_change",
+        message: plan.errors.length ? "לא הוכן עדכון — יש שדות לא תקינים." : "הערכים כבר קיימים בתיק. אין מה לעדכן.",
+        rejected: plan.errors,
+        unchanged: plan.unchanged,
+      },
+    };
+  }
+
+  // Changes that may move mail matching to or from another claim.
+  const warnings: string[] = [];
+  for (const c of plan.changes) if (c.risk) warnings.push(`${c.label}: ${c.risk}`);
+  const needsConflictCheck = plan.changes.some((c) => c.field === "plate" || c.field === "claimNum");
+  if (needsConflictCheck) {
+    const { data: others } = await supabase.from("claims_records").select("id, plate, row_data").neq("id", claimId);
+    const live = (others || []).filter((r) => !isDeletedClaim(r.row_data));
+    for (const c of plan.changes) {
+      if (c.field === "plate") {
+        const want = digitsOnly(c.after);
+        const hits = live.filter((r) => digitsOnly(r.plate) === want || digitsOnly((r.row_data as Record<string, unknown>)?.plate) === want);
+        if (hits.length) warnings.push(`⚠️ מספר הרכב ${c.after} כבר קיים בתיק אחר: ${hits.map((h) => h.id).join(", ")}. מיילים עלולים להיות משויכים לתיק הלא נכון.`);
+      }
+      if (c.field === "claimNum") {
+        const want = c.after.trim().toUpperCase();
+        const hits = live.filter((r) => String((r.row_data as Record<string, unknown>)?.claimNum || "").trim().toUpperCase() === want);
+        if (hits.length) warnings.push(`⚠️ מספר התביעה ${c.after} כבר קיים בתיק אחר: ${hits.map((h) => h.id).join(", ")}.`);
+      }
+    }
+  }
+
+  const lines = describeChanges(plan.changes);
+  const summary = [
+    `תיקון פרטים בתיק ${claimId}:`,
+    ...lines.map((l) => `• ${l}`),
+    ...(warnings.length ? ["", "שים לב:", ...warnings.map((w) => `• ${w}`)] : []),
+    ...(plan.errors.length ? ["", "לא ייכלל בעדכון:", ...plan.errors.map((e) => `• ${e}`)] : []),
+  ].join("\n");
+
+  const preview: ClaimsPendingAction = {
+    preview_id: `P-FIELDS-${Date.now()}`,
+    summary,
+    tool_name: toolName,
+    action_type: "update_claim_fields",
+    parameters: { claim_id: claimId, changes: plan.changes, warnings },
+  };
+
+  await recordAiAudit(supabase, {
+    userId,
+    userName,
+    claimId,
+    toolName,
+    actionType: "update_claim_fields",
+    previewSummary: summary,
+    previewPayload: preview.parameters,
+    status: "preview_created",
+  });
+
+  return {
+    result: {
+      preview_id: preview.preview_id,
+      status: "pending_approval",
+      claim_id: claimId,
+      message: "הוכן כרטיס אישור עם הערך הנוכחי מול הערך החדש. השינוי יישמר רק אחרי אישור המשתמש.",
+      changes: lines,
+      warnings,
+      rejected: plan.errors,
+      unchanged: plan.unchanged,
+    },
+    preview,
   };
 }
 
@@ -2025,6 +2190,11 @@ export async function executeClaimsTool(
         };
       }
 
+      case "preview_update_claim_fields": {
+        // Inside a claim the tool acts on the open claim only, whatever the model passes.
+        return await previewUpdateClaimFields(supabase, claimId, args, userId, userName, name);
+      }
+
       case "show_claim_document": {
         const fileId = String(args.file_id || "").trim();
         if (!fileId) return { result: { found: false, error: "חסר מזהה מסמך. הרץ קודם list_claim_documents." } };
@@ -2887,6 +3057,12 @@ export async function executeClaimsGeneralTool(
     const todayStart = getTodayStart();
 
     switch (name) {
+      case "preview_update_claim_fields": {
+        const resolved = await resolveClaimRef(supabase, String(args.claim_ref || ""));
+        if (!resolved.ok) return { result: { error: resolved.error } };
+        return await previewUpdateClaimFields(supabase, resolved.id, args, userId, userName, name);
+      }
+
       case "get_claims_summary": {
         const { data: recs } = await supabase
           .from("claims_records")
@@ -3964,6 +4140,107 @@ export async function executeClaimsPendingAction(
         return {
           success: true,
           message: `לקוח חדש "${nameCust}" נפתח בהצלחה במערכת הלקוחות`,
+        };
+      }
+
+      case "update_claim_fields": {
+        const params = parameters as { claim_id?: string; changes?: FieldChange[] };
+        const target = String(params.claim_id || "");
+        if (!target || (claimId && claimId !== target)) {
+          return { success: false, message: "העדכון לא בוצע: התיק בכרטיס האישור אינו התיק הפתוח.", error: "claim_mismatch" };
+        }
+        const previewChanges = Array.isArray(params.changes) ? params.changes : [];
+        if (!previewChanges.length || previewChanges.some((c) => !CLAIM_EDIT_FIELDS[String(c?.field || "")])) {
+          return { success: false, message: "העדכון לא בוצע: שדות לא מוכרים בכרטיס האישור.", error: "invalid_fields" };
+        }
+
+        const { data: cur } = await supabase.from("claims_records").select("id, row_data").eq("id", target).maybeSingle();
+        if (!cur || isDeletedClaim(cur.row_data)) {
+          return { success: false, message: "העדכון לא בוצע: התיק לא נמצא או שנמחק.", error: "claim_not_found" };
+        }
+        const latest = (cur.row_data && typeof cur.row_data === "object" ? cur.row_data : {}) as Record<string, unknown>;
+
+        // Re-validate on the server from the approved new values; the screen only echoes the preview.
+        const revalidated = planClaimFieldEdit(latest, previewChanges.map((c) => ({ field: c.field, value: c.after })));
+        if (revalidated.errors.length) {
+          return { success: false, message: `העדכון לא בוצע: ${revalidated.errors.join("; ")}`, error: "invalid_values" };
+        }
+        const approved = previewChanges.filter((c) => !revalidated.unchanged.includes(CLAIM_EDIT_FIELDS[c.field].label));
+        if (!approved.length) {
+          return { success: true, message: "הערכים כבר קיימים בתיק. לא נדרש עדכון." };
+        }
+        const applied = applyClaimFieldEdit(latest, approved, { nowHe: nowHeIL(), actorName: userName || "דליה AI" });
+        if (!applied.ok) {
+          return {
+            success: false,
+            message: `העדכון לא בוצע: השדות ${applied.stale.join(", ")} השתנו מאז שהוכן הכרטיס. בקש תצוגה מקדימה חדשה.`,
+            error: "stale",
+          };
+        }
+
+        const nowIso = new Date().toISOString();
+        const { data: saved, error: updErr } = await supabase
+          .from("claims_records")
+          .update({
+            row_data: applied.rowData,
+            ...applied.columns,
+            updated_at: nowIso,
+            updated_by: userId,
+            updated_by_name: userName,
+            last_activity_at: nowIso,
+          })
+          .eq("id", target)
+          .select("id, row_data");
+        if (updErr) {
+          return { success: false, message: `העדכון לא בוצע: ${updErr.message}`, error: updErr.message };
+        }
+        const savedRow = (saved || [])[0] as { row_data?: Record<string, unknown> } | undefined;
+        if (!savedRow) {
+          return { success: false, message: "העדכון לא בוצע: אין הרשאה לעדכן את התיק או שהתיק לא נמצא.", error: "not_updated" };
+        }
+        const notSaved = approved.filter((c) => String(savedRow.row_data?.[c.field] ?? "") !== c.after).map((c) => c.label);
+        if (notSaved.length) {
+          return { success: false, message: `השמירה לא אומתה עבור: ${notSaved.join(", ")}.`, error: "not_verified" };
+        }
+
+        // History — one entry per field, in the same shape as the claim edit screen (appendHistory).
+        const at = nowHeIL();
+        for (const c of approved) {
+          const histId = `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+          await supabase.from("claims_history").insert({
+            id: histId,
+            claim_id: target,
+            row_data: {
+              id: histId,
+              claimId: target,
+              action: "עדכון פרטי תיק",
+              note: `${c.label} — עודכן דרך דליה AI לאחר אישור המשתמש`,
+              type: "update",
+              valueBefore: c.before,
+              valueAfter: c.after,
+              by: userName || "דליה AI",
+              at,
+            },
+          });
+        }
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId: target,
+          toolName: "preview_update_claim_fields",
+          actionType: "update_claim_fields",
+          previewSummary: summary,
+          previewPayload: parameters,
+          approvedBy: userId,
+          approvedByName: userName,
+          executionAction: "update_claim_fields",
+          status: "executed",
+        });
+
+        return {
+          success: true,
+          message: `עודכנו ${approved.length} שדות בתיק ${target}: ${approved.map((c) => `${c.label}: ${c.after}`).join(" · ")}`,
         };
       }
 
