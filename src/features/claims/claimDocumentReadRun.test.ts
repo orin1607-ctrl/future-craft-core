@@ -159,6 +159,17 @@ describe('server read run — results', () => {
     expect(meta.staff_title).toBe('כותרת ידנית');
   });
 
+  it('keeps PDF line breaks, so fields far down the page are still found', async () => {
+    const filler = Array.from({ length: 12 }, (_, i) => `General note line ${i + 1} about the inspection of the vehicle`).join('\n');
+    const d = doc({ id: 'L' });
+    const { store, deps } = harness({ L: pdfWithText(`Survey report\n${filler}\nApproved repair amount 4,850 NIS\nMissing: repair invoice`) }, [d]);
+    await runServerRead([d], deps, { customerApproved: true });
+    const meta = store.get('L')!;
+    expect(meta.read_amounts).toBe('4,850');
+    expect(meta.read_amount_src).toBe('Approved repair amount 4,850 NIS');
+    expect(meta.read_missing).toBe('Missing: repair invoice');
+  });
+
   it('parks a scanned PDF for the browser reader without inventing details', async () => {
     const scan = readFileSync(resolve(root, 'docs/audit-reports/claims-doc-read-live-ocr-2026-10-11/samples/sample-scan-he.pdf'));
     const d = doc({ id: 'S' });

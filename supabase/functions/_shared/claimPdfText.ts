@@ -28,7 +28,15 @@ export async function readPdfTextLayer(pdfjs: PdfjsLike, bytes: Uint8Array, maxP
     for (let i = 1; i <= max; i += 1) {
       const page = await doc.getPage(i);
       const content = await page.getTextContent();
-      pages.push(content.items.map((item) => (item && typeof item === 'object' && 'str' in item ? String((item as { str?: unknown }).str || '') : '')).join(' '));
+      // Keep the PDF's own line breaks (hasEOL); the analysis works line by line.
+      let pageText = '';
+      for (const item of content.items) {
+        if (!item || typeof item !== 'object' || !('str' in item)) continue;
+        const { str, hasEOL } = item as { str?: unknown; hasEOL?: boolean };
+        pageText += String(str || '');
+        pageText += hasEOL ? '\n' : ' ';
+      }
+      pages.push(pageText);
     }
     return pages.join('\n');
   } finally {
