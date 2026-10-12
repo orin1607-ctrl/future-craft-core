@@ -874,8 +874,13 @@ Deno.serve(async (req) => {
 
     const claimsPrompt = claimId ? CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS : CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS;
 
+    // Relative dates ("tomorrow") need today's date in Israel.
+    const todayIsrael = new Intl.DateTimeFormat("he-IL", { timeZone: "Asia/Jerusalem", weekday: "long", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    const todayIso = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+
     const fullSysPrompt = [
       isClaimsModule ? claimsPrompt : basePrompt,
+      isClaimsModule ? `--- תאריך ---\nהיום (שעון ישראל): ${todayIsrael} · ${todayIso}. חשב "מחר", "בעוד שבוע" וכו׳ לפי תאריך זה.` : "",
       page_context ? `--- הקשר מסך נוכחי ---\n${page_context}` : "",
       claimBlock ? `--- הקשר מודול ניהול תביעות ---\n${claimBlock}` : "",
     ].filter(Boolean).join("\n\n");
@@ -893,7 +898,9 @@ Deno.serve(async (req) => {
         return { result: res.result, preview: res.preview };
       }
       if (isClaimsModule && !claimId) {
-        return await executeClaimsGeneralTool(toolName, toolArgs, supabase, userId, actorName, attachments);
+        const res = await executeClaimsGeneralTool(toolName, toolArgs, supabase, userId, actorName, attachments);
+        if (res.card && !documentCards.some((c) => c.file_id === res.card!.file_id)) documentCards.push(res.card);
+        return { result: res.result, preview: res.preview };
       }
       const fleetRes = await executeFleetTool(toolName, toolArgs, supabase, companyScope);
       return { result: fleetRes };

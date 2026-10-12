@@ -2,6 +2,20 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { documentDisplayTitle, documentLabel } from "../_shared/claimDocumentLabel.ts";
 import { CLAIM_EDIT_FIELDS, applyClaimFieldEdit, describeChanges, planClaimFieldEdit, type FieldChange } from "../_shared/claimFieldEdit.ts";
+import {
+  historyRow,
+  nowHe as nowHeRecords,
+  planReminder,
+  planReminderUpdate,
+  planTask,
+  planWaSchedule,
+  reminderRecords,
+  resolveWaWhen,
+  taskRecords,
+  waScheduleRecords,
+  withShareLink,
+  type DbRow,
+} from "../_shared/claimChatRecords.ts";
 
 /**
  * Document text, summaries and extracted fields are passed to the AI model (Gemini, or the
@@ -208,6 +222,10 @@ export const CLAIMS_GEMINI_TOOLS = [
               type: "BOOLEAN",
               description: "true כשהמשתמש מבקש 'שלח לי' — המייל יישלח לכתובת של המשתמש המחובר",
             },
+            thread_id: {
+              type: "STRING",
+              description: "להשבה בתוך שרשור קיים: gmail_thread_id של המייל שמשיבים לו (מ-draft_email_reply או read_email_content). חייב להיות שרשור של התיק.",
+            },
             cc: {
               type: "STRING",
               description: "כתובת מייל להעתק (אופציונלי)",
@@ -297,7 +315,7 @@ export const CLAIMS_GEMINI_TOOLS = [
       },
       {
         name: "preview_create_claim_task",
-        description: "הכנת תצוגה מקדימה ליצירת משימה חדשה בתיק התביעה. דורש אישור מפורש של המשתמש.",
+        description: "הכנת כרטיס אישור ליצירת משימה בתיק (נשמרת ברשימת המשימות של התיק). לא יוצר כפילות של משימה פתוחה זהה.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -305,6 +323,9 @@ export const CLAIMS_GEMINI_TOOLS = [
               type: "STRING",
               description: "תיאור המשימה לביצוע",
             },
+            due_date: { type: "STRING", description: "תאריך יעד YYYY-MM-DD (אופציונלי, רק אם המשתמש ציין)" },
+            owner: { type: "STRING", description: "אחראי (אופציונלי; ברירת מחדל: המשתמש)" },
+            note: { type: "STRING", description: "הערה למשימה (אופציונלי)" },
           },
           required: ["task_description"],
         },
@@ -335,6 +356,59 @@ export const CLAIMS_GEMINI_TOOLS = [
             },
           },
           required: ["note"],
+        },
+      },
+      {
+        name: "list_claim_reminders",
+        description: "רשימת התזכורות הפעילות בתיק (קריאה בלבד, ללא אישור).",
+      },
+      {
+        name: "preview_create_claim_reminder",
+        description: "הכנת כרטיס אישור לתזכורת בתיק (המנגנון הקיים של תזכורות). date בפורמט YYYY-MM-DD — חשב לפי התאריך של היום שבהקשר.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            date: { type: "STRING", description: "תאריך התזכורת YYYY-MM-DD" },
+            note: { type: "STRING", description: "מה להזכיר" },
+          },
+          required: ["date", "note"],
+        },
+      },
+      {
+        name: "preview_update_claim_reminder",
+        description: "הכנת כרטיס אישור לשינוי תאריך/נוסח של תזכורת פעילה, או לביטולה. תזכורת שבוטלה או שכבר הופעלה לא מופעלת מחדש.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            reminder_id: { type: "STRING", description: "מזהה התזכורת מתוך list_claim_reminders" },
+            date: { type: "STRING", description: "תאריך חדש YYYY-MM-DD (אופציונלי)" },
+            note: { type: "STRING", description: "נוסח חדש (אופציונלי)" },
+            cancel: { type: "BOOLEAN", description: "true לביטול התזכורת" },
+          },
+          required: ["reminder_id"],
+        },
+      },
+      {
+        name: "list_claim_whatsapp",
+        description: "הודעות WhatsApp בתיק: מתוזמנות שממתינות לשליחה ידנית, ומה סומן כנשלח (קריאה בלבד).",
+      },
+      {
+        name: "preview_schedule_claim_whatsapp",
+        description: "הכנת הודעת WhatsApp לשליחה ידנית במסלול הקיים: נמען, נוסח ומועד; אפשר לצרף מסמכים מהתיק כקישור מאובטח (מוגבל לתיק, עם תוקף). בכרטיס אחד: יצירת הקישור (אם יש מסמכים) ושמירת התזמון. ההודעה לא נשלחת אוטומטית — במועד מופיעה התראה, המשתמש פותח WhatsApp ושולח בעצמו ומסמן 'שלחתי'. לעולם אל תאמר שההודעה נשלחה.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            phone: { type: "STRING", description: "מספר הנמען (למשל טלפון הלקוח מהתיק). אל תמציא מספר." },
+            contact_name: { type: "STRING", description: "שם הנמען" },
+            recipient_role: { type: "STRING", description: "תפקיד הנמען: לקוח / שמאי / חברת ביטוח / עו״ד / אחר (לרישום הקישור המאובטח)" },
+            body: { type: "STRING", description: "נוסח ההודעה. אפשר לכתוב {link} במקום שבו יופיע הקישור למסמכים." },
+            when: { type: "STRING", description: "'now' להתראה מיידית; אחרת השתמש ב-relative_day או date" },
+            relative_day: { type: "NUMBER", description: "0 = היום, 1 = מחר וכו׳" },
+            date: { type: "STRING", description: "תאריך YYYY-MM-DD" },
+            time: { type: "STRING", description: "שעה HH:MM (ברירת מחדל 09:00)" },
+            file_ids: { type: "ARRAY", items: { type: "STRING" }, description: "מסמכים מהתיק לשליחה כקישור מאובטח (מזהים מ-list_claim_documents)" },
+          },
+          required: ["phone", "body"],
         },
       },
       {
@@ -811,6 +885,54 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
   },
 ];
 
+/**
+ * Claim tools the general chat can also use, on one claim named by claim_ref (resolved to exactly one live
+ * claim). Declarations are derived from CLAIMS_GEMINI_TOOLS so both chats stay the same.
+ */
+export const GENERAL_CLAIM_SCOPED_TOOLS = [
+  "list_claim_documents",
+  "show_claim_document",
+  "search_claim_emails",
+  "get_latest_claim_email",
+  "read_email_content",
+  "get_email_attachments",
+  "draft_email_reply",
+  "preview_send_claim_email",
+  "get_claim_next_action",
+  "get_claim_handler_and_history",
+  "preview_create_claim_task",
+  "preview_close_claim_task",
+  "preview_add_claim_note",
+  "list_claim_reminders",
+  "preview_create_claim_reminder",
+  "preview_update_claim_reminder",
+  "list_claim_whatsapp",
+  "preview_schedule_claim_whatsapp",
+] as const;
+
+{
+  type Decl = { name: string; description?: string; parameters?: { type?: string; properties?: Record<string, unknown>; required?: string[] } };
+  const claimDecls = (CLAIMS_GEMINI_TOOLS[0] as { functionDeclarations: Decl[] }).functionDeclarations;
+  const generalDecls = (CLAIMS_GENERAL_GEMINI_TOOLS[0] as { functionDeclarations: Decl[] }).functionDeclarations;
+  for (const name of GENERAL_CLAIM_SCOPED_TOOLS) {
+    const decl = claimDecls.find((d) => d.name === name);
+    if (!decl || generalDecls.some((d) => d.name === name)) continue;
+    const params = decl.parameters || { type: "OBJECT", properties: {} };
+    generalDecls.push({
+      ...decl,
+      description: `${decl.description || ""} (במצב כללי: חובה claim_ref של התיק)`,
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          ...(params.properties || {}),
+          claim_ref: { type: "STRING", description: "מזהה התיק (DAL-YYYY-NNNN) או מספר התביעה בחברת הביטוח — חייב להתאים לתיק פעיל אחד" },
+        },
+        required: [...(params.required || []), "claim_ref"],
+      },
+    });
+  }
+}
+
 // -------------------------------------------------------------
 // 3. SYSTEM PROMPTS
 // -------------------------------------------------------------
@@ -845,6 +967,12 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 9. תפעול התיק: שינוי סטטוס (preview_update_claim_status), יצירת וסגירת משימות (preview_create_claim_task, preview_close_claim_task), הוספת הערות בתיק (preview_add_claim_note).
 10. לקוחות: יצירת לקוח חדש (preview_create_customer), עדכון טלפון/מייל (preview_update_claim_client_contact), קישור לקוח לתביעה (preview_link_client_to_claim), ובדיקת כפילויות (check_claim_and_customer_duplicates).
 11. תיקון פרטי התיק: כשהמשתמש מבקש לתקן פרט בתיק (מספר תביעה בחברת הביטוח, תאריך אירוע/תאונה, מספר רכב, חברת ביטוח, פוליסה, צד ג׳, שמאי, סכומים וכו׳) — קרא ל-preview_update_claim_fields עם השדות והערכים שהמשתמש מסר בלבד. הכרטיס יציג ערך נוכחי מול חדש ואזהרות. אם ערך לא נמסר במפורש — שאל, אל תשלים.
+12. תזכורות: הצגה (list_claim_reminders), יצירה (preview_create_claim_reminder), שינוי מועד/נוסח או ביטול (preview_update_claim_reminder). תזכורת שבוטלה לא מופעלת מחדש — אפשר ליצור חדשה.
+13. WhatsApp (שליחה ידנית בלבד, במסלול הקיים): "תכין ללקוח הודעה ותתזמן למחר" → preview_schedule_claim_whatsapp עם הטלפון מהתיק, נוסח, relative_day=1. "תשלח לו את דוח השמאי בוואטסאפ" → מצא את המסמך עם list_claim_documents והעבר file_ids — המסמך יישלח כקישור מאובטח. ההודעה לא נשלחת אוטומטית: אמור "ממתין לשליחה ידנית", לעולם לא "נשלח". מצב ההודעות: list_claim_whatsapp.
+14. מיילים: חיפוש וקריאה מיידיים. להשבה בשרשור: draft_email_reply ואז preview_send_claim_email עם thread_id. דווח "נשלח" רק לפי תשובת המערכת אחרי האישור.
+15. משימות: preview_create_claim_task (עם due_date ו-owner אם צוינו). אם קיימת משימה פתוחה זהה — אמור זאת ואל תיצור כפילות. לסגירה: get_claim_next_action ואז preview_close_claim_task.
+
+אישורים: קריאה, חיפוש, הצגת מסמכים וניסוח טיוטות — מיד, בלי כרטיס. כל כתיבה או שליחה — כרטיס אישור אחד שמרכז את כל הפרטים (לא לבקש אישור לכל שלב). אחרי ביצוע דווח את התוצאה האמיתית: בוצע / נכשל / ממתין לשליחה ידנית.
 
 כללי בטיחות ואישורים קריטיים:
 - פעולות קריאה (READ): כגון חיפוש מיילים, בדיקת מענה מביטוח, רשימת תמונות/מסמכים, בדיקת חוסרים, בדיקת קישורים, מי טיפל, בדיקת כפילויות — מבוצעות באופן אוטומטי מיידי דרך הכלים הרלוונטיים. ענה תמיד בעברית ברורה ותמציתית עם הנתונים האמיתיים שנשלפו.
@@ -896,6 +1024,7 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
    - סיכום משימות פתוחות בכלל התיקים (get_open_tasks_summary).
 
 5. תיקון פרטי תיק קיים (גם מיד אחרי פתיחת תיק): קרא ל-preview_update_claim_fields עם claim_ref (מזהה התיק שנפתח או שנמצא בחיפוש) והשדות לתיקון. אם יש יותר מתיק אחד מתאים — שאל. לעולם אל תשלים ערך שהמשתמש לא מסר.
+   גם בלי לפתוח את התיק אפשר לעבוד על תיק מסוים עם claim_ref: מסמכים (list_claim_documents, show_claim_document), מיילים (search_claim_emails, read_email_content, draft_email_reply, preview_send_claim_email), משימות, הערות, תזכורות ו-WhatsApp ידני (preview_schedule_claim_whatsapp — לעולם לא "נשלח", רק "ממתין לשליחה ידנית"). קריאה מיידית; כתיבה ושליחה בכרטיס אישור אחד.
 
 6. חיפוש תביעות:
    - חיפוש לפי מספר רכב, שם לקוח, מספר תביעה, חברת ביטוח (search_claims).
@@ -1103,6 +1232,41 @@ function storedDocumentRead(meta: unknown) {
       : "ענה רק מתוך text ו-evidence של המסמך הזה. אם הפרט לא מופיע, אמור שאינו במסמך. אל תשנה סטטוס ואל תשלח הודעה.",
   };
 }
+
+// ---- Verified writes: an action is reported done only when the saved row comes back ----
+
+function rowOf(r: { id: unknown; row_data?: unknown }): Record<string, string> {
+  return { ...((r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, string>), id: String(r.id) };
+}
+
+async function insertVerified(supabase: ReturnType<typeof createClient>, table: string, row: DbRow) {
+  const { data, error } = await supabase.from(table).insert(row).select("id");
+  if (error) return { ok: false as const, error: error.message };
+  if (!data || !(data as unknown[]).length) return { ok: false as const, error: "השמירה לא אושרה (אין הרשאה לתיק?)" };
+  return { ok: true as const };
+}
+
+/** History row, then last activity on the claim — as appendHistory does in the claims screen. */
+async function writeHistory(supabase: ReturnType<typeof createClient>, row: DbRow, userId: string, userName: string) {
+  const saved = await insertVerified(supabase, "claims_history", row);
+  if (saved.ok) {
+    await supabase.from("claims_records").update({
+      last_activity_at: new Date().toISOString(),
+      updated_by: userId,
+      updated_by_name: userName,
+    }).eq("id", row.claim_id);
+  }
+  return saved;
+}
+
+function pendingResult(preview: ClaimsPendingAction, message: string, extra: Record<string, unknown> = {}) {
+  return {
+    result: { preview_id: preview.preview_id, status: "pending_approval", message, summary: preview.summary, ...extra },
+    preview,
+  };
+}
+
+const SHARE_BASE_URL = "https://orin1607-ctrl.github.io/future-craft-core/claims-share?t=";
 
 // ---- Claim field edits from the chat (same fields and storage as the claim edit form) ----
 
@@ -2103,6 +2267,8 @@ export async function executeClaimsTool(
             reply_to: replyTo,
             subject,
             in_reply_to_message_id: targetImport.gmail_message_id,
+            gmail_thread_id: (targetImport as Record<string, unknown>).gmail_thread_id || null,
+            reply_instruction: "להשבה בתוך השרשור העבר את gmail_thread_id כ-thread_id ל-preview_send_claim_email.",
             original_date: targetImport.sent_at,
             original_snippet: (targetImport.body_text || "").slice(0, 200),
             suggested_opening: "שלום רב,\\nבהמשך לפנייתכם בנושא תביעה זו, להלן המידע והמסמכים הנדרשים:",
@@ -2561,7 +2727,8 @@ export async function executeClaimsTool(
 
         const previewId = `P-SEND-${Date.now()}`;
         const attachList = attachmentTitles.length ? `: ${attachmentTitles.slice(0, 5).join(", ")}${attachmentTitles.length > 5 ? ` ועוד ${attachmentTitles.length - 5}` : ""}` : "";
-        const summary = `שליחת מייל אל ${to}${recipientNote ? ` (${recipientNote})` : ""} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}`;
+        const threadId = String(args.thread_id || "").trim();
+        const summary = `${threadId ? "השבה בשרשור — " : ""}שליחת מייל אל ${to}${recipientNote ? ` (${recipientNote})` : ""} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}`;
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
@@ -2576,6 +2743,7 @@ export async function executeClaimsTool(
             body,
             file_ids: fileIds,
             attachment_titles: attachmentTitles,
+            ...(threadId ? { thread_id: threadId } : {}),
           },
         };
 
@@ -2765,9 +2933,20 @@ export async function executeClaimsTool(
       }
 
       case "preview_create_claim_task": {
-        const taskDescription = String(args.task_description || "").trim();
+        const { data: existingTasks } = await supabase.from("claims_tasks").select("id, row_data").eq("claim_id", claimId);
+        const openRows = (existingTasks || []).map((t) => rowOf(t));
+        const plan = planTask(claimId, { action: args.task_description, dueDate: args.due_date, owner: args.owner, note: args.note }, openRows);
+        if (!plan.ok) {
+          return { result: { status: plan.duplicateId ? "duplicate" : "invalid", error: plan.error, claim_id: claimId } };
+        }
+        const taskDescription = plan.task.action;
         const previewId = `P-TASK-${Date.now()}`;
-        const summary = `יצירת משימה חדשה בתיק: "${taskDescription}"`;
+        const summary = [
+          `יצירת משימה בתיק ${claimId}: "${taskDescription}"`,
+          plan.task.dueDate ? `יעד: ${plan.task.dueDate}` : "",
+          `אחראי: ${plan.task.owner || userName || "המשתמש"}`,
+          plan.task.note ? `הערה: ${plan.task.note}` : "",
+        ].filter(Boolean).join("\n");
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
@@ -2777,6 +2956,9 @@ export async function executeClaimsTool(
           parameters: {
             claim_id: claimId,
             task_description: taskDescription,
+            due_date: plan.task.dueDate,
+            owner: plan.task.owner,
+            note: plan.task.note,
           },
         };
 
@@ -2876,6 +3058,134 @@ export async function executeClaimsTool(
           },
           preview,
         };
+      }
+
+      case "list_claim_reminders": {
+        const { data: rems } = await supabase
+          .from("claims_reminders")
+          .select("id, row_data")
+          .eq("claim_id", claimId)
+          .eq("action", "note");
+        const active = (rems || [])
+          .map((r) => rowOf(r))
+          .filter((r) => r.cancelled !== "true")
+          .map((r) => ({ id: r.id, date: r.date, note: r.note, owner: r.owner, fired: r.sent === "true" }));
+        return { result: { claim_id: claimId, total: active.length, reminders: active } };
+      }
+
+      case "preview_create_claim_reminder": {
+        const plan = planReminder(claimId, { date: args.date, note: args.note, owner: userName });
+        if (!plan.ok) return { result: { status: "invalid", error: plan.error, claim_id: claimId } };
+        const preview: ClaimsPendingAction = {
+          preview_id: `P-REM-${Date.now()}`,
+          summary: `תזכורת בתיק ${claimId} לתאריך ${plan.reminder.date}:\n${plan.reminder.note}`,
+          tool_name: name,
+          action_type: "create_reminder",
+          parameters: { claim_id: claimId, date: plan.reminder.date, note: plan.reminder.note },
+        };
+        await recordAiAudit(supabase, { userId, userName, claimId, toolName: name, actionType: "create_reminder", previewSummary: preview.summary, previewPayload: preview.parameters, status: "preview_created" });
+        return pendingResult(preview, "הוכן כרטיס אישור לתזכורת. היא תישמר רק אחרי אישור.");
+      }
+
+      case "preview_update_claim_reminder": {
+        const remId = String(args.reminder_id || "").trim();
+        const { data: rem } = await supabase.from("claims_reminders").select("id, row_data, action").eq("id", remId).eq("claim_id", claimId).maybeSingle();
+        if (!rem || rem.action !== "note") return { result: { status: "not_found", error: "התזכורת לא נמצאה בתיק הזה." } };
+        const current = rowOf(rem);
+        const plan = planReminderUpdate(current, { date: args.date, note: args.note, cancel: args.cancel });
+        if (!plan.ok) return { result: { status: "invalid", error: plan.error } };
+        const preview: ClaimsPendingAction = {
+          preview_id: `P-REMUP-${Date.now()}`,
+          summary: `${plan.cancelled ? "ביטול" : "עדכון"} תזכורת בתיק ${claimId} (${current.date} · ${current.note}):\n${plan.changes.join("\n")}`,
+          tool_name: name,
+          action_type: "update_reminder",
+          parameters: {
+            claim_id: claimId,
+            reminder_id: remId,
+            date: args.date ?? null,
+            note: args.note ?? null,
+            cancel: plan.cancelled,
+            expected_date: current.date || "",
+            expected_note: current.note || "",
+          },
+        };
+        await recordAiAudit(supabase, { userId, userName, claimId, toolName: name, actionType: "update_reminder", previewSummary: preview.summary, previewPayload: preview.parameters, status: "preview_created" });
+        return pendingResult(preview, "הוכן כרטיס אישור לעדכון התזכורת.");
+      }
+
+      case "list_claim_whatsapp": {
+        const { data: comm } = await supabase.from("claims_comm_log").select("id, row_data").eq("claim_id", claimId);
+        const wa = (comm || [])
+          .map((c) => rowOf(c))
+          .filter((c) => c.type === "wa")
+          .map((c) => ({
+            id: c.id,
+            phone: c.phone,
+            contact_name: c.contactName,
+            planned_at: c.plannedAt || "",
+            status: c.waStatus === "scheduled_blocked" ? "ממתין לשליחה ידנית (לא נשלח)"
+              : c.waStatus === "marked_sent_by_user" ? "המשתמש סימן שנשלח"
+              : c.waStatus === "cancelled" ? "בוטל" : c.waStatus === "opened_not_sent" ? "נפתח, לא סומן כנשלח" : c.waStatus,
+            body_excerpt: String(c.body || "").slice(0, 120),
+          }));
+        return { result: { claim_id: claimId, total: wa.length, messages: wa, note: "הודעה נחשבת נשלחה רק כשהמשתמש סימן 'שלחתי'." } };
+      }
+
+      case "preview_schedule_claim_whatsapp": {
+        const when = resolveWaWhen({ when: args.when, date: args.date, time: args.time, relative_day: args.relative_day });
+        if (!when.ok) return { result: { status: "invalid", error: when.error } };
+        const { data: claimRow } = await supabase.from("claims_records").select("row_data").eq("id", claimId).maybeSingle();
+        const crd = (claimRow?.row_data && typeof claimRow.row_data === "object" ? claimRow.row_data : {}) as Record<string, unknown>;
+        const { data: comm } = await supabase.from("claims_comm_log").select("id, row_data").eq("claim_id", claimId);
+        const held = (comm || []).map((c) => rowOf(c));
+        const plan = planWaSchedule(claimId, { phone: args.phone, body: args.body, contact_name: args.contact_name || crd.clientName }, when, held);
+        if (!plan.ok) return { result: { status: "invalid", error: plan.error } };
+
+        // Documents go as one secure link (created on approval), only files of this claim.
+        const requestedIds = Array.isArray(args.file_ids) ? (args.file_ids as unknown[]).map((x) => String(x)).filter(Boolean) : [];
+        let fileTitles: string[] = [];
+        let fileIds: string[] = [];
+        if (requestedIds.length) {
+          const { data: docs } = await supabase.from("claims_documents").select("id, original_name, doc_meta").eq("claim_id", claimId).in("id", requestedIds);
+          const known = new Map((docs || []).map((d) => [String(d.id), d]));
+          const missing = requestedIds.filter((id) => !known.has(id));
+          if (missing.length) return { result: { status: "invalid", error: `${missing.length} מסמכים לא שייכים לתיק הזה. לא הוכן כרטיס.` } };
+          fileIds = requestedIds;
+          fileTitles = requestedIds.map((id) => {
+            const d = known.get(id)!;
+            return documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: d.doc_meta as Record<string, string> });
+          });
+        }
+        const bodyPreview = fileIds.length ? withShareLink(plan.wa.body, "[קישור מאובטח ייווצר באישור]") : plan.wa.body;
+        const summary = [
+          `WhatsApp ידני בתיק ${claimId} — אל ${plan.wa.contactName || "הנמען"} (${plan.wa.phone})`,
+          `מועד התראה: ${plan.wa.plannedLabel}`,
+          fileIds.length ? `מסמכים בקישור מאובטח (בתוקף 72 שעות, רק לתיק הזה): ${fileTitles.join(", ")}` : "",
+          "",
+          bodyPreview,
+          "",
+          "ההודעה לא תישלח אוטומטית: במועד תופיע התראה, תפתח WhatsApp, תשלח ותסמן 'שלחתי'.",
+        ].filter((l, i, a) => l || (i > 0 && a[i - 1])).join("\n");
+
+        const preview: ClaimsPendingAction = {
+          preview_id: `P-WA-${Date.now()}`,
+          summary,
+          tool_name: name,
+          action_type: "schedule_whatsapp",
+          parameters: {
+            claim_id: claimId,
+            phone: plan.wa.phone,
+            contact_name: plan.wa.contactName,
+            body: plan.wa.body,
+            planned_at: plan.wa.plannedAt,
+            planned_label: plan.wa.plannedLabel,
+            file_ids: fileIds,
+            file_titles: fileTitles,
+            recipient_role: String(args.recipient_role || "client"),
+          },
+        };
+        await recordAiAudit(supabase, { userId, userName, claimId, toolName: name, actionType: "schedule_whatsapp", previewSummary: summary, previewPayload: preview.parameters, status: "preview_created" });
+        return pendingResult(preview, "הוכן כרטיס אחד לאישור: שמירת התזמון" + (fileIds.length ? " ויצירת הקישור המאובטח." : ".") + " ההודעה עצמה תישלח ידנית.");
       }
 
       case "preview_create_customer": {
@@ -3052,9 +3362,20 @@ export async function executeClaimsGeneralTool(
   userId: string,
   userName: string,
   attachments?: any[],
-): Promise<{ result: unknown; preview?: ClaimsPendingAction }> {
+): Promise<{ result: unknown; preview?: ClaimsPendingAction; card?: ClaimsDocumentCard }> {
   try {
     const todayStart = getTodayStart();
+
+    if ((GENERAL_CLAIM_SCOPED_TOOLS as readonly string[]).includes(name)) {
+      const resolved = await resolveClaimRef(supabase, String(args.claim_ref || ""));
+      if (!resolved.ok) return { result: { error: resolved.error } };
+      const { claim_ref: _ref, ...rest } = args;
+      const res = await executeClaimsTool(name, rest, supabase, resolved.id, userId, userName, attachments);
+      const result = res.result && typeof res.result === "object" && !Array.isArray(res.result)
+        ? { claim_id: resolved.id, ...(res.result as Record<string, unknown>) }
+        : res.result;
+      return { ...res, result };
+    }
 
     switch (name) {
       case "preview_update_claim_fields": {
@@ -3707,6 +4028,12 @@ export async function executeClaimsPendingAction(
 
     const { action_type, parameters, summary } = pendingAction;
 
+    // A card always runs on the claim it was prepared for, never on another one.
+    const cardClaim = String((parameters as Record<string, unknown> | undefined)?.claim_id || "");
+    if (cardClaim && claimId && cardClaim !== claimId) {
+      return { success: false, message: "הפעולה לא בוצעה: כרטיס האישור שייך לתיק אחר.", error: "claim_mismatch" };
+    }
+
     switch (action_type) {
       case "send_email": {
         const { to, cc, subject, body, file_ids, attachment_titles } = parameters as {
@@ -3717,6 +4044,7 @@ export async function executeClaimsPendingAction(
           file_ids?: string[];
           attachment_titles?: string[];
         };
+        const threadId = String((parameters as Record<string, unknown>).thread_id || "").trim();
 
         const idempotencyKey = `IDEMP-${Date.now()}-${Math.random().toString(36).slice(2, 9).toUpperCase()}`;
 
@@ -3728,6 +4056,7 @@ export async function executeClaimsPendingAction(
             cc: cc || undefined,
             subject,
             body,
+            ...(threadId ? { thread_id: threadId } : {}),
             file_ids: file_ids || [],
             idempotency_key: idempotencyKey,
             confirm: true,
@@ -3961,28 +4290,22 @@ export async function executeClaimsPendingAction(
       }
 
       case "create_task": {
-        const { task_description } = parameters as { task_description: string };
-        const taskId = `TSK-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-
-        const taskRow = {
-          id: taskId,
-          done: "false",
-          workStatus: "open",
-          action: task_description,
-          claimId,
-          source: `דליה AI (${userName || "משתמש"})`,
-          createdAt: new Date().toISOString(),
-        };
-
-        const { error: taskErr } = await supabase.from("claims_tasks").insert({
-          id: taskId,
-          claim_id: claimId,
-          row_data: taskRow,
-        });
-
-        if (taskErr) {
-          return { success: false, message: `יצירת המשימה נכשלה: ${taskErr.message}`, error: taskErr.message };
+        const p = parameters as { task_description?: string; due_date?: string; owner?: string; note?: string };
+        const task_description = String(p.task_description || "");
+        // Same shape as the claims screen's saveTask; no duplicate of an open task; saved row confirmed.
+        const { data: existingTasks } = await supabase.from("claims_tasks").select("id, row_data").eq("claim_id", claimId);
+        const openRows = (existingTasks || []).map((t) => rowOf(t));
+        const plan = planTask(claimId, { action: task_description, dueDate: p.due_date, owner: p.owner, note: p.note }, openRows);
+        if (!plan.ok) return { success: false, message: `המשימה לא נוצרה: ${plan.error}`, error: plan.duplicateId ? "duplicate" : "invalid" };
+        const by = userName || "דליה AI";
+        const at = nowHeRecords();
+        const recs = taskRecords(plan.task, by, at);
+        const savedTask = await insertVerified(supabase, "claims_tasks", recs.task);
+        if (!savedTask.ok) {
+          return { success: false, message: `המשימה לא נוצרה: ${savedTask.error}`, error: savedTask.error };
         }
+        await writeHistory(supabase, recs.history, userId, by);
+        await supabase.from("claims_notifications").insert(recs.notification);
 
         await recordAiAudit(supabase, {
           userId,
@@ -4014,30 +4337,37 @@ export async function executeClaimsPendingAction(
           .eq("claim_id", claimId)
           .maybeSingle();
 
-        const trd = (curTask?.row_data && typeof curTask.row_data === "object" ? curTask.row_data : {}) as Record<string, unknown>;
-        const patchTrd = { ...trd, done: "true", workStatus: "done", closedAt: new Date().toISOString() };
+        if (!curTask) {
+          return { success: false, message: "המשימה לא נמצאה בתיק הזה. לא נסגר דבר.", error: "task_not_found" };
+        }
+        const trd = (curTask.row_data && typeof curTask.row_data === "object" ? curTask.row_data : {}) as Record<string, unknown>;
+        if (trd.done === "true") {
+          return { success: true, message: "המשימה כבר סגורה. לא בוצע שינוי." };
+        }
+        const patchTrd = { ...trd, done: "true", workStatus: "done", closedAt: new Date().toISOString(), closedBy: userName || "דליה AI" };
 
-        const { error: closeErr } = await supabase
+        const { data: closedRows, error: closeErr } = await supabase
           .from("claims_tasks")
           .update({ row_data: patchTrd })
           .eq("id", task_id)
-          .eq("claim_id", claimId);
+          .eq("claim_id", claimId)
+          .select("id");
 
-        if (closeErr) {
-          return { success: false, message: `סגירת המשימה נכשלה: ${closeErr.message}`, error: closeErr.message };
+        if (closeErr || !closedRows || !(closedRows as unknown[]).length) {
+          const why = closeErr?.message || "השמירה לא אושרה (אין הרשאה לתיק?)";
+          return { success: false, message: `המשימה לא נסגרה: ${why}`, error: why };
         }
 
-        await supabase.from("claims_history").insert({
-          id: `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`,
-          claim_id: claimId,
-          row_data: {
-            action: "סגירת משימה",
-            note: `משימה ${task_id} נסגרה דרך דליה AI`,
-            type: "task_closed",
-            by: userName || "דליה AI",
-            at: new Date().toLocaleString("he-IL"),
-          },
-        });
+        await writeHistory(supabase, historyRow({
+          claimId,
+          action: `משימה נסגרה: ${String(trd.action || task_id)}`,
+          note: "נסגרה דרך דליה AI לאחר אישור המשתמש",
+          type: "task",
+          before: "false",
+          after: "true",
+          by: userName || "דליה AI",
+          at: nowHeRecords(),
+        }), userId, userName || "דליה AI");
 
         await recordAiAudit(supabase, {
           userId,
@@ -4061,22 +4391,20 @@ export async function executeClaimsPendingAction(
 
       case "add_note": {
         const { note } = parameters as { note: string };
-        const histId = `HIS-${Date.now()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+        const cleanNote = String(note || "").trim().slice(0, 2000);
+        if (!cleanNote) return { success: false, message: "ההערה ריקה. לא נשמר דבר.", error: "empty_note" };
 
-        const { error: insErr } = await supabase.from("claims_history").insert({
-          id: histId,
-          claim_id: claimId,
-          row_data: {
-            action: "הערת דליה AI",
-            note,
-            type: "ai_note",
-            by: userName || "דליה AI",
-            at: new Date().toLocaleString("he-IL"),
-          },
-        });
+        const savedNote = await writeHistory(supabase, historyRow({
+          claimId,
+          action: "הערת דליה AI",
+          note: cleanNote,
+          type: "ai_note",
+          by: userName || "דליה AI",
+          at: nowHeRecords(),
+        }), userId, userName || "דליה AI");
 
-        if (insErr) {
-          return { success: false, message: `הוספת ההערה נכשלה: ${insErr.message}`, error: insErr.message };
+        if (!savedNote.ok) {
+          return { success: false, message: `ההערה לא נשמרה: ${savedNote.error}`, error: savedNote.error };
         }
 
         await recordAiAudit(supabase, {
@@ -4140,6 +4468,100 @@ export async function executeClaimsPendingAction(
         return {
           success: true,
           message: `לקוח חדש "${nameCust}" נפתח בהצלחה במערכת הלקוחות`,
+        };
+      }
+
+      case "create_reminder": {
+        const p = parameters as { date?: string; note?: string };
+        const plan = planReminder(claimId, { date: p.date, note: p.note, owner: userName });
+        if (!plan.ok) return { success: false, message: `התזכורת לא נשמרה: ${plan.error}`, error: "invalid" };
+        const by = userName || "דליה AI";
+        const recs = reminderRecords(plan.reminder, by, nowHeRecords());
+        const saved = await insertVerified(supabase, "claims_reminders", recs.reminder);
+        if (!saved.ok) return { success: false, message: `התזכורת לא נשמרה: ${saved.error}`, error: saved.error };
+        await writeHistory(supabase, recs.history, userId, by);
+        await recordAiAudit(supabase, { userId, userName, claimId, toolName: "preview_create_claim_reminder", actionType: "create_reminder", previewSummary: summary, previewPayload: parameters, approvedBy: userId, approvedByName: userName, executionAction: "create_reminder", status: "executed" });
+        return { success: true, message: `נשמרה תזכורת לתאריך ${plan.reminder.date}: ${plan.reminder.note}` };
+      }
+
+      case "update_reminder": {
+        const p = parameters as { reminder_id?: string; date?: string | null; note?: string | null; cancel?: boolean; expected_date?: string; expected_note?: string };
+        const remId = String(p.reminder_id || "");
+        const { data: rem } = await supabase.from("claims_reminders").select("id, row_data, action").eq("id", remId).eq("claim_id", claimId).maybeSingle();
+        if (!rem || rem.action !== "note") return { success: false, message: "התזכורת לא נמצאה בתיק הזה.", error: "not_found" };
+        const current = rowOf(rem);
+        if ((current.date || "") !== (p.expected_date || "") || (current.note || "") !== (p.expected_note || "")) {
+          return { success: false, message: "התזכורת השתנתה מאז שהוכן הכרטיס. בקש כרטיס חדש.", error: "stale" };
+        }
+        const plan = planReminderUpdate(current, { date: p.date ?? undefined, note: p.note ?? undefined, cancel: p.cancel });
+        if (!plan.ok) return { success: false, message: `התזכורת לא עודכנה: ${plan.error}`, error: "invalid" };
+        const { data: upd, error: updErr } = await supabase.from("claims_reminders").update({ row_data: plan.next }).eq("id", remId).eq("claim_id", claimId).select("id");
+        if (updErr || !upd || !(upd as unknown[]).length) {
+          const why = updErr?.message || "השמירה לא אושרה";
+          return { success: false, message: `התזכורת לא עודכנה: ${why}`, error: why };
+        }
+        await writeHistory(supabase, historyRow({
+          claimId,
+          action: plan.cancelled ? `תזכורת בוטלה: ${current.date}` : `תזכורת עודכנה: ${plan.next.date}`,
+          note: plan.changes.join(" · "),
+          type: "reminder",
+          before: current.date || "",
+          after: plan.cancelled ? "cancelled" : plan.next.date,
+          by: userName || "דליה AI",
+          at: nowHeRecords(),
+        }), userId, userName || "דליה AI");
+        await recordAiAudit(supabase, { userId, userName, claimId, toolName: "preview_update_claim_reminder", actionType: "update_reminder", previewSummary: summary, previewPayload: parameters, approvedBy: userId, approvedByName: userName, executionAction: "update_reminder", status: "executed" });
+        return { success: true, message: plan.cancelled ? "התזכורת בוטלה." : `התזכורת עודכנה: ${plan.changes.join(" · ")}` };
+      }
+
+      case "schedule_whatsapp": {
+        const p = parameters as { phone?: string; contact_name?: string; body?: string; planned_at?: string; planned_label?: string; file_ids?: string[]; file_titles?: string[]; recipient_role?: string };
+        const when = { plannedAt: String(p.planned_at || ""), label: String(p.planned_label || "") };
+        if (!when.plannedAt || Number.isNaN(Date.parse(when.plannedAt))) return { success: false, message: "מועד לא תקין. לא נשמר דבר.", error: "invalid" };
+        const { data: comm } = await supabase.from("claims_comm_log").select("id, row_data").eq("claim_id", claimId);
+        const held = (comm || []).map((c) => rowOf(c));
+        const plan = planWaSchedule(claimId, { phone: p.phone, body: p.body, contact_name: p.contact_name }, when, held);
+        if (!plan.ok) return { success: false, message: `ההודעה לא נשמרה: ${plan.error}`, error: "invalid" };
+
+        // 1. Secure link (only when documents were approved): claim-scoped, expires, created by claims-docs.
+        let body = plan.wa.body;
+        const fileIds = Array.isArray(p.file_ids) ? p.file_ids.map(String).filter(Boolean) : [];
+        if (fileIds.length) {
+          const share = await supabase.functions.invoke("claims-docs", {
+            body: {
+              action: "create_share",
+              claim_id: claimId,
+              recipient_name: plan.wa.contactName || "נמען WhatsApp",
+              recipient_kind: normalizeShareRecipientKind(String(p.recipient_role || "client")),
+              recipient_phone: plan.wa.phone,
+              file_ids: fileIds,
+              ttl_hours: 72,
+            },
+          });
+          const token = share.data?.token || "";
+          if (share.error || !share.data?.success || !token) {
+            const why = share.data?.error || share.error?.message || "יצירת הקישור נכשלה";
+            return { success: false, message: `לא נשמר דבר: הקישור המאובטח לא נוצר (${why}).`, error: why };
+          }
+          body = withShareLink(body, `${SHARE_BASE_URL}${token}`);
+        }
+
+        // 2. The manual schedule — the same row the WhatsApp modal saves; the existing due list alerts on it.
+        const by = userName || "דליה AI";
+        const recs = waScheduleRecords({ ...plan.wa, body }, by, nowHeRecords());
+        const saved = await insertVerified(supabase, "claims_comm_log", recs.comm);
+        if (!saved.ok) {
+          return {
+            success: false,
+            message: `ההודעה לא נשמרה: ${saved.error}${fileIds.length ? ". שים לב: הקישור המאובטח נוצר — אפשר לבטל אותו ברשימת השיתופים." : ""}`,
+            error: saved.error,
+          };
+        }
+        await writeHistory(supabase, recs.history, userId, by);
+        await recordAiAudit(supabase, { userId, userName, claimId, toolName: "preview_schedule_claim_whatsapp", actionType: "schedule_whatsapp", previewSummary: summary, previewPayload: parameters, approvedBy: userId, approvedByName: userName, executionAction: "schedule_whatsapp", status: "executed" });
+        return {
+          success: true,
+          message: `ממתין לשליחה ידנית — לא נשלח. נשמר ל-${plan.wa.plannedLabel} אל ${plan.wa.contactName || plan.wa.phone}${fileIds.length ? ` עם קישור מאובטח ל-${fileIds.length} מסמכים` : ""}. במועד תופיע התראה: פתח WhatsApp, שלח וסמן 'שלחתי'.`,
         };
       }
 
