@@ -4,7 +4,8 @@ name: Staging claims-doc-read only
 # Runs ONLY when a tag deploy/claims-doc-read-staging/<name> is pushed — never on a branch push.
 # Deploying does not start reading: the function is off until claims_config switches are set and a
 # schedule is created (docs/audit-reports/claims-doc-autoread-2026-10-12/activation.sql), each by approval.
-# Refuses to deploy with the customer-documents gate on, unless the tag name contains "customer-approved".
+# Refuses to deploy with the customer-documents gate on unless the tag contains "customer-approved",
+# and with the OCR gate on unless the tag contains "ocr-approved".
 # Uses STAGING_SUPABASE_ACCESS_TOKEN only. No migration, no other function, no Production.
 
 on:
@@ -47,8 +48,17 @@ jobs:
               *) echo "DOCUMENT_READ_CUSTOMER_DOCS is on but the tag is not marked customer-approved" >&2; exit 1 ;;
             esac
           fi
-          if grep -qiE "generativelanguage|GEMINI_API_KEY|api\.anthropic|api\.openai" supabase/functions/claims-doc-read/index.ts supabase/functions/_shared/claimDocumentReadRun.ts; then
-            echo "claims-doc-read must not call an AI service" >&2; exit 1
+          # Document content may reach an outside service only through the OCR module, and only when approved.
+          if grep -qiE "generativelanguage|api\.anthropic|api\.openai" supabase/functions/claims-doc-read/index.ts supabase/functions/_shared/claimDocumentReadRun.ts; then
+            echo "claims-doc-read must call outside services only through claimDocumentOcr.ts" >&2; exit 1
+          fi
+          if grep -q "export const DOCUMENT_READ_OCR_PROVIDER: 'none' | 'gemini' = 'none';" "$JOB"; then
+            echo "OCR gate: off (scans and images are not sent anywhere)"
+          else
+            case "${GITHUB_REF_NAME}" in
+              *ocr-approved*) echo "OCR gate: on (tag says approved)" ;;
+              *) echo "DOCUMENT_READ_OCR_PROVIDER is on but the tag is not marked ocr-approved" >&2; exit 1 ;;
+            esac
           fi
 
       - name: Deploy claims-doc-read to Staging

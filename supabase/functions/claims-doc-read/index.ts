@@ -8,15 +8,17 @@
  *   2. claims_config CLAIMS_DOC_READ_ENABLED = 'true' — the stop switch, no deploy needed.
  *   3. A schedule (pg_cron) calling this function — not created here.
  *
- * Reads the PDF text layer only, with the same analysis as the browser reader. No OCR here,
- * no Gemini, no outside service. Logs and responses carry ids and counts only, never document text.
+ * Reads the PDF text layer with the same analysis as the browser reader. Scans and images go to OCR
+ * (Gemini) only when DOCUMENT_READ_OCR_PROVIDER = 'gemini' and CLAIMS_DOC_READ_OCR = 'true'; otherwise
+ * they are parked for the browser reader and nothing leaves Supabase. Logs and responses carry ids and counts only, never document text.
  * The original file is never changed; results go into doc_meta (read_* and read_job_*).
  *
  * Actions: "status" (counts only), "dry_run" (which ids would be read, no download), "run".
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import * as pdfjs from "npm:pdfjs-dist@6.3.289/legacy/build/pdf.mjs";
-import { serverReadGate } from "../_shared/claimDocumentReadJob.ts";
+import { DOCUMENT_READ_OCR_PROVIDER, serverReadGate } from "../_shared/claimDocumentReadJob.ts";
+import { geminiOcr } from "../_shared/claimDocumentOcr.ts";
 import {
   RUN_CONFIG_KEYS,
   allowedClaims,
@@ -64,6 +66,8 @@ Deno.serve(async (req) => {
   const { data: cfgRows } = await sb.from("claims_config").select("key, value").in("key", [...RUN_CONFIG_KEYS]);
   const cfg = readRunConfig((cfgRows || []) as Array<{ key: string; value: string | null }>);
   const gate = serverReadGate();
+  // OCR (scans and images) needs both the code gate and the config switch.
+  const ocrApproved = DOCUMENT_READ_OCR_PROVIDER === "gemini" && cfg.ocr;
 
   // Candidates: documents without a good read, oldest first. Freshness by fingerprint is rechecked in pickDocuments.
   const allowed = allowedClaims(cfg, gate.customerApproved);
@@ -71,7 +75,10 @@ Deno.serve(async (req) => {
     .select("id, claim_id, content_sha256, storage_path, original_name, mime_type, byte_size, doc_meta, created_at")
     .or("doc_meta->>read_status.is.null,doc_meta->>read_status.not.in.(ready,unreadable)")
     // Parked documents (left for the browser reader or a person) must not crowd out new ones.
-    .or("doc_meta->>read_job_state.is.null,doc_meta->>read_job_state.not.in.(needs_ocr,too_large,failed)")
+    // With OCR approved, documents parked for OCR become candidates again.
+    .or(ocrApproved
+      ? "doc_meta->>read_job_state.is.null,doc_meta->>read_job_state.not.in.(too_large,failed)"
+      : "doc_meta->>read_job_state.is.null,doc_meta->>read_job_state.not.in.(needs_ocr,too_large,failed)")
     .order("created_at", { ascending: true })
     .limit(CANDIDATE_LIMIT);
   if (!cfg.backlog && cfg.from) q = q.gte("created_at", cfg.from);
@@ -95,11 +102,29 @@ Deno.serve(async (req) => {
     backlog: cfg.backlog,
     max_per_run: cfg.maxPerRun,
     only_claims: cfg.onlyClaims.length,
+    ocr: ocrApproved,
+    ocr_gate: DOCUMENT_READ_OCR_PROVIDER,
     ...(cfg.problem ? { problem: cfg.problem } : {}),
   };
 
   if (action === "status") {
-    return json({ ok: true, ...state, candidates: docs.length, would_take: picked.take.length, skipped: picked.skipped });
+    // Backlog size by kind and state (counts only), to plan the older gallery documents.
+    const all: Array<Record<string, unknown>> = [];
+    for (let from = 0; from < 20_000; from += 1000) {
+      const { data: page } = await sb.from("claims_documents")
+        .select("mime_type, doc_meta->>read_status, doc_meta->>read_job_state")
+        .order("id", { ascending: true })
+        .range(from, from + 999);
+      all.push(...((page || []) as Array<Record<string, unknown>>));
+      if (!page || page.length < 1000) break;
+    }
+    const backlog: Record<string, number> = {};
+    for (const r of all) {
+      const kind = /pdf/i.test(String(r.mime_type || "")) ? "pdf" : /^image\//i.test(String(r.mime_type || "")) ? "image" : "other";
+      const st = String(r.read_status || r.read_job_state || "not_read");
+      backlog[`${kind}:${st}`] = (backlog[`${kind}:${st}`] || 0) + 1;
+    }
+    return json({ ok: true, ...state, candidates: docs.length, would_take: picked.take.length, skipped: picked.skipped, documents: backlog });
   }
   if (action === "dry_run") {
     return json({ ok: true, ...state, would_read: picked.take.map((d) => d.id), skipped: picked.skipped });
@@ -121,6 +146,7 @@ Deno.serve(async (req) => {
       return new Uint8Array(await data.arrayBuffer());
     },
     extractText: (bytes) => readPdfTextLayer(pdfjs as never, bytes),
+    ...(ocrApproved ? { ocr: geminiOcr(Deno.env.get("GEMINI_API_KEY") || "", Deno.env.get("CLAIMS_DOC_READ_OCR_MODEL") || undefined) } : {}),
     save: async (doc, read, job) => {
       const { data: latestRow } = await sb.from("claims_documents").select("doc_meta").eq("id", doc.id).eq("claim_id", doc.claim_id).maybeSingle();
       if (!latestRow) return false;
@@ -131,7 +157,7 @@ Deno.serve(async (req) => {
       const { error } = await sb.from("claims_documents").update({ doc_meta: merged.meta }).eq("id", doc.id).eq("claim_id", doc.claim_id);
       return !error;
     },
-  }, { customerApproved: true }); // picked.take is already limited to the allowed claims
+  }, { customerApproved: true, ocrApproved }); // picked.take is already limited to the allowed claims
 
   console.log(JSON.stringify({ fn: "claims-doc-read", ...summary, ms: Math.round(performance.now() - started) }));
   return json({ ok: true, ...state, ...summary });

@@ -40,7 +40,8 @@ describe('claim document read job', () => {
     // The function reads the database now, but only for the internal scheduler and behind the switches.
     expect(edge).toContain('x-dalia-internal-key');
     expect(edge).toContain('CLAIMS_DOC_READ_ONLY_CLAIMS');
-    expect(edge).not.toMatch(/generativelanguage|GEMINI_API_KEY|api\.anthropic|api\.openai/);
+    // No direct AI call in the function; OCR goes through claimDocumentOcr.ts behind its own gate (default 'none').
+    expect(edge).not.toMatch(/generativelanguage|api\.anthropic|api\.openai/);
     const gmail = readFileSync(resolve(root, 'supabase/functions/claims-gmail/index.ts'), 'utf8');
     expect(gmail).toContain('read_status: "pending"');
     expect(gmail).not.toContain('processStoredDocument');

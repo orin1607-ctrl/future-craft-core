@@ -3,8 +3,10 @@
  * Reuses the existing pieces: processStoredDocument / applyStoredReadMeta (fingerprint, same claim,
  * no overwrite of a good read) and analyzeDocumentText (the same analysis as the browser reader).
  *
- * Server reads only the PDF text layer. Scanned PDFs and images are marked needs_ocr and left for the
- * browser reader (the chat card reads them when asked). Nothing here calls Gemini or any outside service.
+ * Text PDFs: read on the server from the PDF text layer.
+ * Scanned PDFs and images: read by OCR only when OCR is approved (code gate DOCUMENT_READ_OCR_PROVIDER and
+ * CLAIMS_DOC_READ_OCR = 'true'); otherwise they are marked needs_ocr and left for the browser reader
+ * (the chat card reads them when asked). Nothing here talks to a service by itself — OCR is a dependency.
  *
  * Control lives in claims_config, so it can be stopped without a deploy:
  *   CLAIMS_DOC_READ_ENABLED      'true' to run; anything else stops the run
@@ -14,6 +16,7 @@
  *   CLAIMS_DOC_READ_ONLY_CLAIMS  comma-separated claim ids; when set, only these claims are read.
  *                                While the customer-documents code gate is off, this list is required
  *                                (a pilot on a test claim) and nothing outside it is touched.
+ *   CLAIMS_DOC_READ_OCR          'true' to OCR scans and images (also needs the OCR code gate)
  */
 import {
   applyStoredReadMeta,
@@ -22,7 +25,7 @@ import {
   type ExtractedRead,
   type StoredClaimDoc,
 } from './claimDocumentReadJob.ts';
-import { MIN_TEXT_CHARS, analyzeDocumentText, normalizeDocText } from './claimDocumentAnalyze.ts';
+import { MIN_TEXT_CHARS, analyzeDocumentText, normalizeDocText, unreadableDocumentRead } from './claimDocumentAnalyze.ts';
 
 export const RUN_CONFIG_KEYS = [
   'CLAIMS_DOC_READ_ENABLED',
@@ -30,15 +33,23 @@ export const RUN_CONFIG_KEYS = [
   'CLAIMS_DOC_READ_BACKLOG',
   'CLAIMS_DOC_READ_MAX_PER_RUN',
   'CLAIMS_DOC_READ_ONLY_CLAIMS',
+  'CLAIMS_DOC_READ_OCR',
 ] as const;
 
 export const MAX_PER_RUN_CAP = 10;
 export const DEFAULT_MAX_PER_RUN = 3;
 export const MAX_ATTEMPTS = 3;
 export const MAX_BYTES = 15 * 1024 * 1024;
+export const OCR_MAX_BYTES = 7 * 1024 * 1024;
+/** CPU spent parsing PDFs in one run (the Edge Function CPU limit is 2s). */
 export const RUN_BUDGET_MS = 1200;
+/** Total time of one run (OCR is network wait; the Edge Function wall limit is 150s). */
+export const RUN_WALL_BUDGET_MS = 100_000;
 const RETRY_DELAYS_MIN = [15, 60, 360];
 const PROCESSING_STALE_MIN = 15;
+
+/** Images the OCR provider accepts. Others are marked unreadable (unsupported) instead of guessed. */
+const OCR_IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 
 /** Job bookkeeping kept next to the read_* fields in doc_meta. Written only by the server run. */
 export const JOB_META_KEYS = ['read_job_state', 'read_job_attempts', 'read_job_next_at', 'read_job_at', 'read_job_error'] as const;
@@ -50,6 +61,7 @@ export type RunConfig = {
   backlog: boolean;
   maxPerRun: number;
   onlyClaims: string[];
+  ocr: boolean;
   problem?: string;
 };
 
@@ -69,6 +81,7 @@ export function readRunConfig(rows: Array<{ key: string; value: string | null }>
     backlog: get('CLAIMS_DOC_READ_BACKLOG') === 'true',
     maxPerRun,
     onlyClaims,
+    ocr: get('CLAIMS_DOC_READ_OCR') === 'true',
     ...(enabled && !fromOk ? { problem: 'from_missing' } : {}),
   };
 }
@@ -89,7 +102,7 @@ export function pickReason(doc: RunDoc, cfg: RunConfig, now: Date): 'take' | 'fr
   if (!cfg.backlog && (!doc.created_at || doc.created_at < cfg.from)) return 'backlog';
   const sameFile = meta.read_sha === doc.content_sha256;
   const state = sameFile ? meta.read_job_state : '';
-  if (state === 'needs_ocr') return 'needs_ocr';
+  if (state === 'needs_ocr' && !cfg.ocr) return 'needs_ocr';
   if (state === 'too_large') return 'too_large';
   if (state === 'failed') return 'given_up';
   if (state === 'processing' && meta.read_job_at) {
@@ -151,18 +164,29 @@ export function mergeServerResult(
   return { ok: true as const, meta, unchanged: false };
 }
 
+/** What the OCR provider found: the text, and whether the picture is a vehicle / damage photo. */
+export type OcrResult = { text: string; kind: 'document' | 'vehicle_photo' | 'other_photo' | 'empty' };
+
 export type RunDeps = {
   download: (doc: RunDoc) => Promise<Uint8Array | null>;
   extractText: (bytes: Uint8Array) => Promise<string>;
+  /** OCR of a scan or image. Present only when OCR is approved. */
+  ocr?: (bytes: Uint8Array, mimeType: string) => Promise<OcrResult>;
   /** Re-reads doc_meta, merges with mergeServerResult and writes. Returns false when the write failed. */
   save: (doc: RunDoc, read: ExtractedRead | null, job: Record<string, string>) => Promise<boolean>;
   now?: () => Date;
+  /** Total time since the run started (wall clock). */
   elapsedMs?: () => number;
+  /** Monotonic clock in ms, used to measure PDF parsing (CPU). Defaults to performance.now. */
+  clock?: () => number;
 };
 
 export type RunSummary = {
   taken: number;
   ready: number;
+  ocr_read: number;
+  photos: number;
+  unreadable: number;
   needs_ocr: number;
   too_large: number;
   retry: number;
@@ -172,47 +196,95 @@ export type RunSummary = {
   file_ids: string[];
 };
 
+function readOnlyFields(read: Record<string, unknown>) {
+  return Object.fromEntries(Object.entries(read).filter(([k]) => k.startsWith('read_') && !k.startsWith('read_job_'))) as unknown as ExtractedRead;
+}
+
+/** A read built from OCR output. Photos without text are labelled as photos, never given invented details. */
+export function readFromOcr(ocr: OcrResult, claimId: string, sha: string) {
+  const text = String(ocr.text || '');
+  if (normalizeDocText(text).length >= MIN_TEXT_CHARS) {
+    return { read: analyzeDocumentText(text, 'ocr', claimId, sha), bucket: 'ocr_read' as const };
+  }
+  if (ocr.kind === 'vehicle_photo') {
+    const base = analyzeDocumentText('', 'ocr', claimId, sha);
+    return {
+      read: { ...base, read_doc_type: 'צילום נזק', read_summary: 'צילום של רכב / נזק. לא נמצא בו טקסט.', read_evidence: '' },
+      bucket: 'photos' as const,
+    };
+  }
+  return {
+    read: unreadableDocumentRead(claimId, sha, ocr.kind === 'other_photo' ? 'תמונה ללא טקסט קריא.' : 'לא נמצא טקסט קריא בקובץ.'),
+    bucket: 'unreadable' as const,
+  };
+}
+
 /**
  * Processes the picked documents one by one. Logs and returns ids and counts only — never document text.
- * `customerApproved` comes from the code gate (DOCUMENT_READ_CUSTOMER_DOCS); without it nothing is read.
+ * `customerApproved` comes from the code gate (DOCUMENT_READ_CUSTOMER_DOCS) or the pilot allowlist.
+ * `ocrApproved` = OCR code gate + CLAIMS_DOC_READ_OCR; without it scans and images are parked (needs_ocr).
  */
-export async function runServerRead(take: RunDoc[], deps: RunDeps, opts: { customerApproved: boolean }): Promise<RunSummary> {
+export async function runServerRead(
+  take: RunDoc[],
+  deps: RunDeps,
+  opts: { customerApproved: boolean; ocrApproved?: boolean },
+): Promise<RunSummary> {
   const now = deps.now || (() => new Date());
   const elapsed = deps.elapsedMs || (() => 0);
-  const out: RunSummary = { taken: 0, ready: 0, needs_ocr: 0, too_large: 0, retry: 0, failed: 0, save_failed: 0, stopped_by_budget: false, file_ids: [] };
+  const clock = deps.clock || (() => performance.now());
+  const ocr = opts.ocrApproved && deps.ocr ? deps.ocr : null;
+  let parseMs = 0;
+  const out: RunSummary = {
+    taken: 0, ready: 0, ocr_read: 0, photos: 0, unreadable: 0, needs_ocr: 0, too_large: 0, retry: 0, failed: 0, save_failed: 0,
+    stopped_by_budget: false, file_ids: [],
+  };
   if (!opts.customerApproved) return out;
 
   for (const doc of take) {
-    if (elapsed() > RUN_BUDGET_MS) { out.stopped_by_budget = true; break; }
+    if (parseMs > RUN_BUDGET_MS || elapsed() > RUN_WALL_BUDGET_MS) { out.stopped_by_budget = true; break; }
     out.taken += 1;
     out.file_ids.push(doc.id);
     const meta = metaOf(doc);
     const sha = doc.content_sha256;
+    const mime = String(doc.mime_type || '').toLowerCase();
     const attempts = meta.read_sha === sha ? Number.parseInt(meta.read_job_attempts || '0', 10) || 0 : 0;
     const record = async (read: ExtractedRead | null, job: Record<string, string>, bucket: keyof RunSummary) => {
       const ok = await deps.save(doc, read, { ...job, ...(read ? {} : { read_sha: sha }) });
       if (!ok) out.save_failed += 1;
       else (out[bucket] as number) += 1;
     };
+    const park = (state: 'needs_ocr' | 'too_large') => record(null, { read_status: 'pending', ...jobPatch(state, now()) }, state);
+    const saveOcr = async (result: OcrResult) => {
+      const built = readFromOcr(result, doc.claim_id, sha);
+      await record(readOnlyFields(built.read as unknown as Record<string, unknown>), jobPatch('done', now(), { read_job_attempts: '0', read_job_error: '' }), built.bucket);
+    };
 
-    if (!isPdf(doc)) {
-      await record(null, { read_status: 'pending', ...jobPatch('needs_ocr', now()) }, 'needs_ocr');
-      continue;
+    const pdf = isPdf(doc);
+    if (!pdf) {
+      if (!ocr) { await park('needs_ocr'); continue; }
+      if (!OCR_IMAGE_MIMES.has(mime)) {
+        await record(readOnlyFields(unreadableDocumentRead(doc.claim_id, sha, 'סוג הקובץ אינו נתמך לקריאה.') as unknown as Record<string, unknown>), jobPatch('done', now()), 'unreadable');
+        continue;
+      }
     }
-    if (doc.byte_size && doc.byte_size > MAX_BYTES) {
-      await record(null, { read_status: 'pending', ...jobPatch('too_large', now()) }, 'too_large');
-      continue;
-    }
+    if (doc.byte_size && doc.byte_size > (pdf ? MAX_BYTES : OCR_MAX_BYTES)) { await park('too_large'); continue; }
 
     let failure = '';
     try {
       const bytes = await deps.download(doc);
       if (!bytes || !bytes.byteLength) {
         failure = 'download_empty';
+      } else if (!pdf) {
+        await saveOcr(await ocr!(bytes, mime));
+        continue;
       } else {
+        const t0 = clock();
         const text = await deps.extractText(bytes);
+        parseMs += clock() - t0;
         if (normalizeDocText(text).length < MIN_TEXT_CHARS) {
-          await record(null, { read_status: 'pending', ...jobPatch('needs_ocr', now()) }, 'needs_ocr');
+          if (!ocr) { await park('needs_ocr'); continue; }
+          if (bytes.byteLength > OCR_MAX_BYTES) { await park('too_large'); continue; }
+          await saveOcr(await ocr(bytes, 'application/pdf'));
           continue;
         }
         const result = await processStoredDocument(
@@ -226,13 +298,12 @@ export async function runServerRead(take: RunDoc[], deps: RunDeps, opts: { custo
         if (!result.wrote || !read || read.read_status !== 'ready') {
           failure = String(result.reason || 'read_failed');
         } else {
-          const readOnly = Object.fromEntries(Object.entries(read).filter(([k]) => k.startsWith('read_') && !k.startsWith('read_job_'))) as unknown as ExtractedRead;
-          await record(readOnly, jobPatch('done', now(), { read_job_attempts: '0', read_job_error: '' }), 'ready');
+          await record(readOnlyFields(read as unknown as Record<string, unknown>), jobPatch('done', now(), { read_job_attempts: '0', read_job_error: '' }), 'ready');
           continue;
         }
       }
     } catch {
-      failure = 'read_error';
+      failure = pdf ? 'read_error' : 'ocr_error';
     }
 
     const nextAttempts = attempts + 1;

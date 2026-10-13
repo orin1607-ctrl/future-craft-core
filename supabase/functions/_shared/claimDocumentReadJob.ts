@@ -5,6 +5,11 @@
  */
 export const DOCUMENT_READ_CRON_ENABLED = false;
 export const DOCUMENT_READ_CUSTOMER_DOCS = false;
+/**
+ * Server OCR for scans and images. 'none' = off: documents are not sent anywhere.
+ * 'gemini' sends the file to the Gemini API — only after the owner approves sending document content.
+ */
+export const DOCUMENT_READ_OCR_PROVIDER: 'none' | 'gemini' = 'none';
 
 export type StoredReadStatus = 'pending' | 'processing' | 'ready' | 'unreadable' | 'failed';
 

@@ -43,7 +43,7 @@ async function realPdfText(bytes: Uint8Array) {
   return readPdfTextLayer(pdfjs as never, bytes);
 }
 
-const on: RunConfig = { enabled: true, from: '2026-10-12T00:00:00.000Z', backlog: false, maxPerRun: 3, onlyClaims: [] };
+const on: RunConfig = { enabled: true, from: '2026-10-12T00:00:00.000Z', backlog: false, maxPerRun: 3, onlyClaims: [], ocr: false };
 
 function doc(p: Partial<RunDoc> & Pick<RunDoc, 'id'>): RunDoc {
   return {
@@ -203,11 +203,19 @@ describe('server read run — results', () => {
     expect(pickDocuments([{ ...d, doc_meta: store.get('E')! }], on, NOW).skipped).toMatchObject({ given_up: 1 });
   });
 
-  it('stops when the time budget is used up', async () => {
+  it('stops when the PDF parsing (CPU) budget is used up', async () => {
     const docs = [doc({ id: 'B1' }), doc({ id: 'B2' })];
     const { deps } = harness({ B1: pdfWithText('Invoice\nAmount 80 NIS\nPlate 11-222-33'), B2: pdfWithText('Invoice 2') }, docs);
     let t = 0;
-    const out = await runServerRead(docs, { ...deps, elapsedMs: () => (t += 1000) }, { customerApproved: true });
+    const out = await runServerRead(docs, { ...deps, clock: () => (t += 1500) }, { customerApproved: true });
+    expect(out).toMatchObject({ taken: 1, stopped_by_budget: true });
+  });
+
+  it('stops when the total time budget is used up', async () => {
+    const docs = [doc({ id: 'W1' }), doc({ id: 'W2' })];
+    const { deps } = harness({ W1: pdfWithText('Invoice\nAmount 80 NIS'), W2: pdfWithText('Invoice 2') }, docs);
+    let t = 0;
+    const out = await runServerRead(docs, { ...deps, elapsedMs: () => (t += 60_000) }, { customerApproved: true });
     expect(out).toMatchObject({ taken: 1, stopped_by_budget: true });
   });
 
@@ -227,16 +235,91 @@ describe('server read run — results', () => {
   });
 });
 
+describe('server read run — OCR (only when approved)', () => {
+  const scan = () => new Uint8Array(readFileSync(resolve(root, 'docs/audit-reports/claims-doc-read-live-ocr-2026-10-11/samples/sample-scan-he.pdf')));
+  const ocrText = 'דוח שמאי\nמספר רכב 12-345-67\nסכום 3,200 ש"ח';
+
+  it('without OCR approval, a provided OCR is never called', async () => {
+    const img = doc({ id: 'I0', mime_type: 'image/jpeg', original_name: 'a.jpg' });
+    const { store, deps } = harness({ I0: new Uint8Array([1, 2, 3]) }, [img]);
+    const ocr = vi.fn();
+    await runServerRead([img], { ...deps, ocr }, { customerApproved: true, ocrApproved: false });
+    expect(ocr).not.toHaveBeenCalled();
+    expect(store.get('I0')!.read_job_state).toBe('needs_ocr');
+  });
+
+  it('reads an image with text through OCR', async () => {
+    const img = doc({ id: 'I1', mime_type: 'image/jpeg', original_name: 'license.jpg' });
+    const { store, deps } = harness({ I1: new Uint8Array([1, 2, 3]) }, [img]);
+    const ocr = vi.fn(async () => ({ text: ocrText, kind: 'document' as const }));
+    const out = await runServerRead([img], { ...deps, ocr }, { customerApproved: true, ocrApproved: true });
+    expect(ocr).toHaveBeenCalledWith(expect.any(Uint8Array), 'image/jpeg');
+    expect(out).toMatchObject({ ocr_read: 1 });
+    expect(store.get('I1')).toMatchObject({ read_status: 'ready', read_source: 'ocr', read_doc_type: 'דוח שמאי', read_job_state: 'done' });
+  });
+
+  it('reads a scanned PDF through OCR when its text layer is empty', async () => {
+    const d = doc({ id: 'S1' });
+    const { store, deps } = harness({ S1: scan() }, [d]);
+    const ocr = vi.fn(async () => ({ text: ocrText, kind: 'document' as const }));
+    await runServerRead([d], { ...deps, ocr }, { customerApproved: true, ocrApproved: true });
+    expect(ocr).toHaveBeenCalledWith(expect.any(Uint8Array), 'application/pdf');
+    expect(store.get('S1')).toMatchObject({ read_status: 'ready', read_source: 'ocr' });
+  });
+
+  it('labels a damage photo without text as a damage photo, and nothing else', async () => {
+    const img = doc({ id: 'I2', mime_type: 'image/png', original_name: 'front.png' });
+    const { store, deps } = harness({ I2: new Uint8Array([1]) }, [img]);
+    const out = await runServerRead([img], { ...deps, ocr: async () => ({ text: '', kind: 'vehicle_photo' as const }) }, { customerApproved: true, ocrApproved: true });
+    expect(out).toMatchObject({ photos: 1 });
+    expect(store.get('I2')).toMatchObject({ read_status: 'ready', read_doc_type: 'צילום נזק', read_text: '' });
+  });
+
+  it('marks another photo or an unsupported file as unreadable, without guessing', async () => {
+    const pic = doc({ id: 'I3', mime_type: 'image/webp', original_name: 'x.webp' });
+    const tiff = doc({ id: 'I4', mime_type: 'image/tiff', original_name: 'x.tiff' });
+    const { store, deps } = harness({ I3: new Uint8Array([1]), I4: new Uint8Array([1]) }, [pic, tiff]);
+    const ocr = vi.fn(async () => ({ text: '', kind: 'other_photo' as const }));
+    await runServerRead([pic, tiff], { ...deps, ocr }, { customerApproved: true, ocrApproved: true });
+    expect(store.get('I3')!.read_status).toBe('unreadable');
+    expect(store.get('I4')!.read_status).toBe('unreadable');
+    expect(ocr).toHaveBeenCalledTimes(1); // the TIFF is never sent
+  });
+
+  it('retries when OCR fails', async () => {
+    const img = doc({ id: 'I5', mime_type: 'image/jpeg', original_name: 'a.jpg' });
+    const { store, deps } = harness({ I5: new Uint8Array([1]) }, [img]);
+    await runServerRead([img], { ...deps, ocr: async () => { throw new Error('ocr_http_500'); } }, { customerApproved: true, ocrApproved: true });
+    expect(store.get('I5')).toMatchObject({ read_job_state: 'retry', read_job_error: 'ocr_error', read_job_attempts: '1' });
+  });
+
+  it('documents parked for OCR become candidates again only when OCR is switched on', () => {
+    const parked = doc({ id: 'K', doc_meta: { read_sha: 'sha-K', read_job_state: 'needs_ocr' } });
+    expect(pickDocuments([parked], on, NOW).take).toHaveLength(0);
+    expect(pickDocuments([parked], { ...on, ocr: true }, NOW).take).toHaveLength(1);
+    expect(readRunConfig([{ key: 'CLAIMS_DOC_READ_OCR', value: 'true' }]).ocr).toBe(true);
+    expect(readRunConfig([]).ocr).toBe(false);
+  });
+});
+
 describe('claims-doc-read function', () => {
   const src = readFileSync(resolve(root, 'supabase/functions/claims-doc-read/index.ts'), 'utf8');
 
-  it('accepts only the internal scheduler on Staging and calls no AI service', () => {
+  it('accepts only the internal scheduler on Staging, and reaches an outside service only through the OCR gate', () => {
     expect(src).toContain('x-dalia-internal-key');
     expect(src).toContain('wrong_project');
     const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-    expect(code).not.toMatch(/gemini|generativelanguage|anthropic|openai|GEMINI_API_KEY/i);
+    expect(code).not.toMatch(/generativelanguage|anthropic|openai/i);
     expect(code).not.toMatch(/\bfetch\(/);
+    // OCR is wired only behind the code gate and the config switch.
+    expect(code).toContain('const ocrApproved = DOCUMENT_READ_OCR_PROVIDER === "gemini" && cfg.ocr;');
+    expect(code).toMatch(/\.\.\.\(ocrApproved \? \{ ocr: geminiOcr\(/);
     expect(src).not.toContain('jwtRoleRef');
+  });
+
+  it('keeps the OCR code gate off in this commit', () => {
+    const job = readFileSync(resolve(root, 'supabase/functions/_shared/claimDocumentReadJob.ts'), 'utf8');
+    expect(job).toContain("export const DOCUMENT_READ_OCR_PROVIDER: 'none' | 'gemini' = 'none';");
   });
 
   it('logs only the run summary', () => {
