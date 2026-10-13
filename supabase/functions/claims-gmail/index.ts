@@ -6,6 +6,7 @@
 import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { matchIncomingMail, suggestReply, detectMailRequests, classifySentAttachment, isDocMailRequest, type MatchClaim } from "./matchIncoming.ts";
+import { isInternalSchedulerRequest, isStagingServiceRoleRequest } from "./schedulerAuth.ts";
 
 const ALLOWED_ACCOUNT = "yoni122222@gmail.com";
 const STAGING_REF = "usfeoerkpcafxxlyuldl";
@@ -32,35 +33,13 @@ function admin() {
   return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 }
 
-function jwtRoleRef(token: string): { role?: string; ref?: string } {
-  try {
-    const part = token.split(".")[1];
-    if (!part) return {};
-    const json = atob(part.replace(/-/g, "+").replace(/_/g, "/"));
-    const payload = JSON.parse(json) as { role?: string; ref?: string };
-    return { role: payload.role, ref: payload.ref };
-  } catch {
-    return {};
-  }
-}
-
 function isInternalScheduler(req: Request) {
-  const secret = Deno.env.get("DALIA_EDGE_INTERNAL_SECRET");
-  return !!secret && req.headers.get("x-dalia-internal-key") === secret;
+  return isInternalSchedulerRequest(req.headers, Deno.env.get("DALIA_EDGE_INTERNAL_SECRET"));
 }
 
+// Only the exact service key — a token that merely claims service_role (unsigned payload) is refused.
 function isStagingServiceRole(req: Request) {
-  const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
-  if (!token) return false;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-  if (serviceKey && token === serviceKey) {
-    const parsed = jwtRoleRef(serviceKey);
-    if (parsed.ref === PROD_REF) return false;
-    if (parsed.ref && parsed.ref !== STAGING_REF) return false;
-    return true;
-  }
-  const parsed = jwtRoleRef(token);
-  return parsed.role === "service_role" && parsed.ref === STAGING_REF;
+  return isStagingServiceRoleRequest(req.headers, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"), STAGING_REF, PROD_REF);
 }
 
 function isUuid(v: string) {
