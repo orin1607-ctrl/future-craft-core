@@ -64,6 +64,20 @@ export type ClaimsAiAttachment = {
 
 const EMPTY = '—';
 
+/**
+ * The claim the chat works on: the claim it was opened from, kept while the chat is open — also while
+ * the claim card shows a sub-window (WhatsApp, task, contacts…) or after a reload. Null = general chat.
+ */
+export function chatBoundClaim<T extends { id: string }>(boundClaimId: string | null, claims: T[]): T | null {
+  if (!boundClaimId) return null;
+  return claims.find((c) => c.id === boundClaimId) || null;
+}
+
+/** Which claim a newly opened chat binds to: the open claim card, if any; otherwise general. */
+export function chatClaimOnOpen(cardOpen: boolean, currentClaimId: string | null) {
+  return cardOpen && currentClaimId ? currentClaimId : null;
+}
+
 export function claimContextFromRecord(c: Pick<ClaimRecord, 'id'> & Partial<ClaimRecord>): ClaimsAiClaimContext {
   const claimNum = String(c.claimNum || '').trim();
   const plate = String(c.plate || '').trim();

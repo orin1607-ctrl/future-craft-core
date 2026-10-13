@@ -24,7 +24,7 @@ import { isGaragePhoto, type GarageAssignment } from './claimGarage';
 import { sharePublicUrl } from './claimSecureShare';
 import { downloadRemoteFile } from './claimFileDownload';
 import { emailsUnknownToDirectory, parseFromAddr, type ClaimContact } from './claimContacts';
-import { claimContextFromRecord } from './claimsAiModel';
+import { claimContextFromRecord, chatBoundClaim, chatClaimOnOpen } from './claimsAiModel';
 import { documentReadCaption } from './claimDocumentRead';
 import { documentDisplayTitle, documentLabel } from '../../../supabase/functions/_shared/claimDocumentLabel';
 import { prepareSelectedDocumentRead } from './claimDocumentReadSave';
@@ -865,6 +865,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [handlerFil, setHandlerFil] = useState('');
   const [curId, setCurId] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
+  // The claim the chat was opened from; kept while sub-windows of the card open and close.
+  const [aiClaimId, setAiClaimId] = useState<string | null>(null);
   const [cardTab, setCardTab] = useState('comm');
   const [cardMore, setCardMore] = useState(false);
   const [sbOpen, setSbOpen] = useState(false);
@@ -1204,6 +1206,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
   const unread = notifs.filter((n) => n.read !== 'true').length;
   const cur = claims.find((c) => c.id === curId) || null;
+  const aiClaim = chatBoundClaim(aiClaimId, claims);
   const tabGroup = cardGroupOf(cardTab);
   const snapNewMail = Boolean(cur && (
     notifs.some((n) => n.claimId === cur.id && n.read !== 'true' && (n.type === 'gmail_auto' || n.type === 'gmail_review'))
@@ -2882,7 +2885,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         <div className="tb">
           <button type="button" className="sb-open-btn" data-testid="claims-sb-open" aria-label="פתח תפריט תביעות" onClick={() => setSbOpen(true)}>☰ תפריט</button>
           <div className="tb-logo"><span className="tba">דליה</span><span className="tbb">ניהול תביעות</span></div>
-          <button type="button" className="btn claims-ai-launch" data-testid="claims-ai-open" onClick={() => setAiOpen(true)}>דליה AI</button>
+          <button type="button" className="btn claims-ai-launch" data-testid="claims-ai-open" onClick={() => { setAiClaimId(chatClaimOnOpen(modal === 'moCard', cur?.id || null)); setAiOpen(true); }}>דליה AI</button>
           <button className="btn btn-p btn-sm tb-new" data-testid="claims-open-new" onClick={openNew}>＋ תיק חדש</button>
           <div className="tb-sep" />
           <div className="tb-nav">
@@ -3358,7 +3361,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <span aria-hidden>{cardSnapCollapsed ? '▾' : '▴'}</span>
                   </button>
                 ) : null}
-                <button type="button" className="btn claims-ai-launch btn-sm" data-testid="claims-ai-open-claim" onClick={() => setAiOpen(true)}><span className="claims-ai-launch-label">דליה AI</span><span className="claims-ai-launch-short" aria-hidden>AI</span></button>
+                <button type="button" className="btn claims-ai-launch btn-sm" data-testid="claims-ai-open-claim" onClick={() => { setAiClaimId(cur.id); setAiOpen(true); }}><span className="claims-ai-launch-label">דליה AI</span><span className="claims-ai-launch-short" aria-hidden>AI</span></button>
                 <button className="btn btn-g btn-sm" data-testid="claims-edit-btn" onClick={() => startEdit(cur.id)}>ערוך</button>
                 <button className="mcl" onClick={() => setModal(null)}>✕</button>
               </div>
@@ -6296,17 +6299,17 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       </div>
 
       <ClaimsAiWorkspace
-        key={modal === 'moCard' && cur ? cur.id : 'none'}
+        key={aiClaimId || 'none'}
         open={aiOpen}
         onClose={() => setAiOpen(false)}
-        claim={modal === 'moCard' && cur ? claimContextFromRecord(cur) : null}
+        claim={aiClaim ? claimContextFromRecord(aiClaim) : null}
         userId={actor.id}
         companyName={null}
-        documentActions={modal === 'moCard' && cur ? chatDocumentActions(cur.id) : undefined}
+        documentActions={aiClaim && aiClaim.id === curId ? chatDocumentActions(aiClaim.id) : undefined}
         onActionExecuted={() => {
           // Show what the chat changed (claim fields, status, new claim, tasks) right away.
           void loadAll();
-          if (modal === 'moCard' && cur) void loadCardData(cur.id);
+          if (curId) void loadCardData(curId);
         }}
       />
 

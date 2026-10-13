@@ -4,6 +4,7 @@ import { documentDisplayTitle, documentLabel } from "../_shared/claimDocumentLab
 import { CLAIM_EDIT_FIELDS, applyClaimFieldEdit, describeChanges, planClaimFieldEdit, type FieldChange } from "../_shared/claimFieldEdit.ts";
 import {
   historyRow,
+  normalizeDate,
   nowHe as nowHeRecords,
   planReminder,
   planReminderUpdate,
@@ -166,6 +167,7 @@ export const CLAIMS_GEMINI_TOOLS = [
               type: "STRING",
               description: "מילות חיפוש בעברית או באנגלית: סוג מסמך, שם, שולח או מילה מהמסמך (אופציונלי)",
             },
+            page: { type: "NUMBER", description: "עמוד (40 מסמכים לעמוד; ברירת מחדל 1)" },
           },
         },
       },
@@ -177,10 +179,11 @@ export const CLAIMS_GEMINI_TOOLS = [
           properties: {
             file_id: {
               type: "STRING",
-              description: "מזהה המסמך מתוך list_claim_documents (חובה)",
+              description: "file_id של המסמך מתוך list_claim_documents (מועדף)",
             },
+            index: { type: "NUMBER", description: "מספר המסמך ברשימה של list_claim_documents (אם אין file_id)" },
+            name: { type: "STRING", description: "שם המסמך או הכותרת שלו (אם אין file_id)" },
           },
-          required: ["file_id"],
         },
       },
       {
@@ -189,9 +192,10 @@ export const CLAIMS_GEMINI_TOOLS = [
         parameters: {
           type: "OBJECT",
           properties: {
-            file_id: { type: "STRING", description: "מזהה המסמך מתוך list_claim_documents (חובה)" },
+            file_id: { type: "STRING", description: "file_id של המסמך מתוך list_claim_documents (מועדף)" },
+            index: { type: "NUMBER", description: "מספר המסמך ברשימה של list_claim_documents (אם אין file_id)" },
+            name: { type: "STRING", description: "שם המסמך או הכותרת שלו (אם אין file_id)" },
           },
-          required: ["file_id"],
         },
       },
       {
@@ -247,7 +251,7 @@ export const CLAIMS_GEMINI_TOOLS = [
             },
             body: {
               type: "STRING",
-              description: "תוכן גוף המייל (אופציונלי - ברירת מחדל: נוסח פנייה מקצועי ממוסך אורן)",
+              description: "תוכן גוף המייל (אופציונלי - ברירת מחדל: נוסח פנייה מקצועי בחתימת דליה ניהול תביעות)",
             },
             file_ids: {
               type: "ARRAY",
@@ -582,7 +586,11 @@ export const CLAIMS_GEMINI_TOOLS = [
             },
             plate: {
               type: "STRING",
-              description: "מספר רישוי הרכב (חובה, או 'חסר')",
+              description: "מספר רישוי הרכב — רק אם המשתמש מסר אותו או שהוא מופיע במסמך שצורף. אחרת 'חסר'. לעולם אל תמציא מספר.",
+            },
+            is_test: {
+              type: "BOOLEAN",
+              description: "true רק כשהמשתמש מבקש במפורש תיק בדיקה / QA / פיקטיבי. נוצר תיק עם מזהה DAL-QA-… שלא נספר במונה התיקים.",
             },
             make: {
               type: "STRING",
@@ -614,7 +622,7 @@ export const CLAIMS_GEMINI_TOOLS = [
             },
             garage: {
               type: "STRING",
-              description: "שם המוסך (ברירת מחדל 'מוסך אורן')",
+              description: "שם המוסך המתקן — רק אם צוין במפורש או מופיע במסמכים (אחרת השאר ריק)",
             },
             damage_description: {
               type: "STRING",
@@ -629,7 +637,7 @@ export const CLAIMS_GEMINI_TOOLS = [
               description: "סטטוס התחלתי (ברירת מחדל 'חדש')",
             },
           },
-          required: ["client_name", "plate"],
+          required: ["client_name"],
         },
       },
     ],
@@ -842,7 +850,11 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
             },
             plate: {
               type: "STRING",
-              description: "מספר רישוי הרכב (חובה, או 'חסר')",
+              description: "מספר רישוי הרכב — רק אם המשתמש מסר אותו או שהוא מופיע במסמך שצורף. אחרת 'חסר'. לעולם אל תמציא מספר.",
+            },
+            is_test: {
+              type: "BOOLEAN",
+              description: "true רק כשהמשתמש מבקש במפורש תיק בדיקה / QA / פיקטיבי. נוצר תיק עם מזהה DAL-QA-… שלא נספר במונה התיקים.",
             },
             make: {
               type: "STRING",
@@ -874,7 +886,7 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
             },
             garage: {
               type: "STRING",
-              description: "שם המוסך (ברירת מחדל 'מוסך אורן')",
+              description: "שם המוסך המתקן — רק אם צוין במפורש או מופיע במסמכים (אחרת השאר ריק)",
             },
             damage_description: {
               type: "STRING",
@@ -889,7 +901,7 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
               description: "סטטוס התחלתי (ברירת מחדל 'חדש')",
             },
           },
-          required: ["client_name", "plate"],
+          required: ["client_name"],
         },
       },
     ],
@@ -985,6 +997,7 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 15. משימות: preview_create_claim_task (עם due_date ו-owner אם צוינו). אם קיימת משימה פתוחה זהה — אמור זאת ואל תיצור כפילות. לסגירה: get_claim_next_action ואז preview_close_claim_task.
 16. שאלות על תוכן מסמך ("מה החליטה חברת הביטוח?", "כמה השמאי אישר?"): מצא את המסמך עם list_claim_documents ואז read_claim_document. ענה רק ממה שכתוב, ציין את שם המסמך והציטוט. אם התוכן לא זמין או לא מופיע — אמור זאת.
 
+חתימה: הודעות חדשות (מייל, WhatsApp) נחתמות בשם "דליה ניהול תביעות" בלבד. אל תכתוב "מוסך אורן" ואל תמציא שם אחר.
 אישורים: קריאה, חיפוש, הצגת מסמכים וניסוח טיוטות — מיד, בלי כרטיס. כל כתיבה או שליחה — כרטיס אישור אחד שמרכז את כל הפרטים (לא לבקש אישור לכל שלב). אחרי ביצוע דווח את התוצאה האמיתית: בוצע / נכשל / ממתין לשליחה ידנית.
 
 כללי בטיחות ואישורים קריטיים:
@@ -1037,6 +1050,7 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
    - סיכום משימות פתוחות בכלל התיקים (get_open_tasks_summary).
 
 5. תיקון פרטי תיק קיים (גם מיד אחרי פתיחת תיק): קרא ל-preview_update_claim_fields עם claim_ref (מזהה התיק שנפתח או שנמצא בחיפוש) והשדות לתיקון. אם יש יותר מתיק אחד מתאים — שאל. לעולם אל תשלים ערך שהמשתמש לא מסר.
+   חתימה: הודעות חדשות (מייל, WhatsApp) נחתמות בשם "דליה ניהול תביעות" בלבד. אל תכתוב "מוסך אורן" ואל תמציא שם אחר.
    גם בלי לפתוח את התיק אפשר לעבוד על תיק מסוים עם claim_ref: מסמכים (list_claim_documents, show_claim_document), מיילים (search_claim_emails, read_email_content, draft_email_reply, preview_send_claim_email), משימות, הערות, תזכורות ו-WhatsApp ידני (preview_schedule_claim_whatsapp — לעולם לא "נשלח", רק "ממתין לשליחה ידנית"). קריאה מיידית; כתיבה ושליחה בכרטיס אישור אחד.
 
 6. חיפוש תביעות:
@@ -1296,6 +1310,55 @@ function pendingResult(preview: ClaimsPendingAction, message: string, extra: Rec
 }
 
 const SHARE_BASE_URL = "https://orin1607-ctrl.github.io/future-craft-core/claims-share?t=";
+
+const DOC_PAGE_SIZE = 40;
+
+/** Sender name on new messages from the claims system (same as the claims screen templates). */
+export const CLAIMS_SENDER_NAME = "דליה ניהול תביעות";
+
+type ClaimDocRow = { id: string; claim_id: string; original_name: string | null; mime_type: string | null; doc_meta: unknown };
+
+/**
+ * One document of this claim, by file_id, by its number in list_claim_documents (newest first, unfiltered),
+ * or by a unique name / title match. Never a document of another claim, never a guess between several.
+ */
+async function resolveClaimDocRef(
+  supabase: ReturnType<typeof createClient>,
+  claimId: string,
+  args: Record<string, unknown>,
+): Promise<{ ok: true; doc: ClaimDocRow } | { ok: false; error: string; candidates?: Array<{ file_id: string; title: string }> }> {
+  const fileId = String(args.file_id || "").trim();
+  const { data } = await supabase
+    .from("claims_documents")
+    .select("id, claim_id, original_name, mime_type, doc_meta, created_at")
+    .eq("claim_id", claimId)
+    .order("created_at", { ascending: false });
+  const docs = ((data || []) as ClaimDocRow[]).filter((d) => d.claim_id === claimId);
+  const titleOf = (d: ClaimDocRow) => documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: d.doc_meta as Record<string, string> });
+  if (fileId) {
+    const hit = docs.find((d) => String(d.id) === fileId);
+    return hit ? { ok: true, doc: hit } : { ok: false, error: "המסמך לא נמצא בתיק הזה. אל תציג מסמך מתיק אחר." };
+  }
+  const index = Number(args.index);
+  if (Number.isInteger(index) && index >= 1) {
+    const hit = docs[index - 1];
+    return hit ? { ok: true, doc: hit } : { ok: false, error: `אין מסמך מספר ${index} בתיק (יש ${docs.length}).` };
+  }
+  const name = String(args.name || "").trim().toLowerCase();
+  if (name.length >= 2) {
+    const hits = docs.filter((d) => titleOf(d).toLowerCase().includes(name) || String(d.original_name || "").toLowerCase().includes(name));
+    if (hits.length === 1) return { ok: true, doc: hits[0] };
+    if (hits.length > 1) {
+      return {
+        ok: false,
+        error: `נמצאו ${hits.length} מסמכים מתאימים. שאל את המשתמש איזה, או העבר file_id.`,
+        candidates: hits.slice(0, 10).map((d) => ({ file_id: String(d.id), title: titleOf(d) })),
+      };
+    }
+    return { ok: false, error: `לא נמצא מסמך בשם "${args.name}" בתיק הזה.` };
+  }
+  return { ok: false, error: "לא צוין איזה מסמך. העבר file_id מתוך list_claim_documents (או index / name)." };
+}
 
 // ---- Claim field edits from the chat (same fields and storage as the claim edit form) ----
 
@@ -1704,7 +1767,12 @@ async function handlePreviewCreateClaimFromOnboarding(
   const customerType = String(args.customer_type || "private").trim();
   const existingCustId = args.existing_customer_id ? String(args.existing_customer_id).trim() : "";
 
-  const plate = norm(args.plate);
+  // A plate is 7–8 digits; anything else is treated as missing rather than saved as given.
+  const plateRaw = norm(args.plate);
+  const plateDigits = plateRaw.replace(/\D/g, "");
+  const plate = plateRaw !== "חסר" && /^\d{7,8}$/.test(plateDigits) ? plateRaw : "חסר";
+  const plateRejected = plateRaw !== "חסר" && plate === "חסר";
+  const isTest = args.is_test === true || String(args.is_test || "") === "true";
   const make = norm(args.make);
   const model = norm(args.model);
   const year = norm(args.year);
@@ -1713,7 +1781,7 @@ async function handlePreviewCreateClaimFromOnboarding(
   const claimNumber = norm(args.claim_number);
   const accidentDate = norm(args.accident_date);
   const surveyor = norm(args.surveyor);
-  const garage = args.garage ? String(args.garage).trim() : "מוסך אורן";
+  const garage = args.garage ? String(args.garage).trim() : "חסר";
   const damageDescription = norm(args.damage_description);
   const thirdParty = norm(args.third_party);
   const status = args.status ? String(args.status).trim() : "חדש";
@@ -1759,7 +1827,7 @@ async function handlePreviewCreateClaimFromOnboarding(
   });
 
   const previewId = `P-ONBOARD-${Date.now()}`;
-  let summary = `📋 פתיחת תיק תביעה חדש וקליטת לקוח מתוך מסמכים:
+  let summary = `${isTest ? "🧪 תיק בדיקה (QA) — מזהה DAL-QA-…, לא נספר במונה התיקים\n" : ""}📋 פתיחת תיק תביעה חדש וקליטת לקוח מתוך מסמכים:
 👤 לקוח: ${clientName} | טלפון: ${clientPhone} | מייל: ${clientEmail} | ת"ז/ח"פ: ${businessId}
 🚗 רכב: מספר רישוי ${plate} | יצרן: ${make} | דגם: ${model} | שנה: ${year}
 🏢 תביעה: ביטוח: ${insuranceCompany} | מס' תביעה: ${claimNumber} | תאריך אירוע: ${accidentDate}
@@ -1767,7 +1835,9 @@ async function handlePreviewCreateClaimFromOnboarding(
 💥 נזק: ${damageDescription}
 📁 קבצים שיצורפו לתיק (${classifiedFiles.length}):
 ${classifiedFiles.length > 0 ? classifiedFiles.map((f, i) => `${i + 1}. ${f.name} — ${f.category}`).join("\n") : "לא הועלו קבצים"}
-${missingFields.length > 0 ? `⚠️ שדות חסרים שסומנו כ-"חסר": ${missingFields.join(", ")}` : "✨ כל השדות זוהו בהצלחה."}`;
+${missingFields.length > 0 ? `⚠️ שדות חסרים שסומנו כ-"חסר": ${missingFields.join(", ")}` : "✨ כל השדות זוהו בהצלחה."}${plateRejected ? `
+⚠️ מספר הרישוי "${plateRaw}" אינו תקין (7–8 ספרות) ולא יישמר.` : ""}
+🗄️ יעד השמירה: מערכת ניהול התביעות של סביבת STAGING (dalia-staging) בלבד.`;
 
   if (dupCheck.has_duplicates) {
     summary += `\n⚠️ אזהרת כפילות במערכת:\n`;
@@ -1799,6 +1869,7 @@ ${missingFields.length > 0 ? `⚠️ שדות חסרים שסומנו כ-"חסר
         model,
         year,
       },
+      is_test: isTest,
       claim: {
         insurance_company: insuranceCompany,
         claim_number: claimNumber,
@@ -1943,7 +2014,7 @@ export async function executeClaimsTool(
           outbox = (data || []).map((m) => ({
             id: m.id,
             direction: "outbound",
-            from: "מוסך אורן",
+            from: CLAIMS_SENDER_NAME,
             to: m.to_addr,
             subject: m.subject,
             snippet: (m.body_text || "").slice(0, 200),
@@ -2021,7 +2092,7 @@ export async function executeClaimsTool(
             latestOutbound = {
               id: data.id,
               direction: "outbound",
-              from: "מוסך אורן",
+              from: CLAIMS_SENDER_NAME,
               to: data.to_addr,
               subject: data.subject,
               body_snippet: (data.body_text || "").slice(0, 400),
@@ -2101,7 +2172,7 @@ export async function executeClaimsTool(
             emailData = {
               id: data.id,
               direction: "outbound",
-              from: "מוסך אורן",
+              from: CLAIMS_SENDER_NAME,
               to: data.to_addr,
               cc: data.cc_addr,
               subject: data.subject,
@@ -2367,7 +2438,11 @@ export async function executeClaimsTool(
           });
         }
 
-        const numberedList = filtered.map((d, idx) => `${idx + 1}. ${documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: d.doc_meta as Record<string, string> })} (${d.original_name})`);
+        // Pages of 40 so a claim with many documents stays readable for the model.
+        const pageSize = DOC_PAGE_SIZE;
+        const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+        const page = Math.min(Math.max(Number.parseInt(String(args.page || "1"), 10) || 1, 1), pages);
+        const pageDocs = filtered.slice((page - 1) * pageSize, page * pageSize);
 
         await recordAiAudit(supabase, {
           userId,
@@ -2385,17 +2460,16 @@ export async function executeClaimsTool(
             query: query || undefined,
             total_count: filtered.length,
             ...(query && !filtered.length ? { not_found: "לא נמצא מסמך מתאים בתיק הזה. אל תנחש — אמור למשתמש שלא נמצא." } : {}),
-            selection_instruction: "ניתן לבחור מסמכים לפי מספרם (לדוגמה: 'שלח ללקוח 1 ו-2' או 'תכין קישור לתמונות 3 ו-4').",
-            numbered_list: numberedList,
-            documents: filtered.map((d, idx) => ({
-              index: idx + 1,
-              id: d.id,
-              name: d.original_name,
+            page,
+            pages,
+            selection_instruction: "להצגה/קריאה/שליחה העבר את file_id של המסמך (show_claim_document, read_claim_document, preview_send_claim_email). אם יש יותר מעמוד אחד — צמצם עם query או בקש page הבא.",
+            documents: pageDocs.map((d, idx) => ({
+              index: (page - 1) * pageSize + idx + 1,
+              file_id: String(d.id),
               title: documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: d.doc_meta as Record<string, string> }),
-              label: formatDocLabel(d),
+              name: d.original_name,
+              kind: formatDocLabel(d),
               mime: d.mime_type,
-              size: d.byte_size,
-              kind: d.doc_kind || "מסמך",
               created_at: d.created_at,
               document_read: storedDocumentRead(d.doc_meta),
             })),
@@ -2430,17 +2504,11 @@ export async function executeClaimsTool(
       }
 
       case "show_claim_document": {
-        const fileId = String(args.file_id || "").trim();
-        if (!fileId) return { result: { found: false, error: "חסר מזהה מסמך. הרץ קודם list_claim_documents." } };
-        const { data: doc } = await supabase
-          .from("claims_documents")
-          .select("id, claim_id, original_name, mime_type, doc_meta")
-          .eq("id", fileId)
-          .eq("claim_id", claimId)
-          .maybeSingle();
-        if (!doc) {
-          return { result: { found: false, claim_id: claimId, error: "המסמך לא נמצא בתיק הזה. אל תציג מסמך מתיק אחר." } };
+        const ref = await resolveClaimDocRef(supabase, claimId, args);
+        if (!ref.ok) {
+          return { result: { found: false, claim_id: claimId, error: ref.error, ...(ref.candidates ? { candidates: ref.candidates } : {}) } };
         }
+        const doc = ref.doc;
         const meta = (doc.doc_meta && typeof doc.doc_meta === "object" ? doc.doc_meta : {}) as Record<string, string>;
         const title = documentDisplayTitle({ original_name: String(doc.original_name || ""), doc_meta: meta });
         const readStatus = String(meta.read_status || "");
@@ -2743,7 +2811,7 @@ export async function executeClaimsTool(
         }
 
         if (!subject) {
-          subject = `תיק תביעה ${claimNum} - רכב ${plate} - מסמכים ותמונות ממוסך אורן`;
+          subject = `תיק תביעה ${claimNum} - רכב ${plate} - מסמכים ותמונות מ${CLAIMS_SENDER_NAME}`;
         }
 
         const attachedFileIds = (attachments || []).map((a) => a.file_id).filter(Boolean) as string[];
@@ -2790,7 +2858,7 @@ export async function executeClaimsTool(
           body = `שלום רב,
 מצורפים בזאת מסמכים ותמונות עבור תיק תביעה ${claimNum} (רכב ${plate}).
 בברכה,
-מוסך אורן`;
+${CLAIMS_SENDER_NAME}`;
         }
 
         const previewId = `P-SEND-${Date.now()}`;
@@ -3907,7 +3975,7 @@ export async function executeClaimsGeneralTool(
             id: m.id,
             direction: "outbound",
             claim_id: m.claim_id,
-            from: "מוסך אורן",
+            from: CLAIMS_SENDER_NAME,
             to: m.to_addr,
             subject: m.subject,
             time: m.sent_at || m.created_at,
@@ -4947,22 +5015,28 @@ export async function executeClaimsPendingAction(
           }
         }
 
-        // 2. Claim Counter Bump
-        const { data: cfgRow } = await supabase
-          .from("claims_config")
-          .select("key, value")
-          .eq("key", "CLAIM_COUNTER")
-          .maybeSingle();
+        // 2. Claim id: a QA claim gets DAL-QA-… and never moves the real claim counter.
+        const isTestClaim = (parameters as Record<string, unknown>).is_test === true;
+        let newClaimId = "";
+        if (isTestClaim) {
+          const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
+          newClaimId = `DAL-QA-AI-${stamp}`;
+        } else {
+          const { data: cfgRow } = await supabase
+            .from("claims_config")
+            .select("key, value")
+            .eq("key", "CLAIM_COUNTER")
+            .maybeSingle();
 
-        const curCount = parseInt(String(cfgRow?.value || "0"), 10);
-        const nextCount = curCount + 1;
-        await supabase.from("claims_config").upsert({
-          key: "CLAIM_COUNTER",
-          value: String(nextCount),
-          updated_at: new Date().toISOString(),
-        });
-
-        const newClaimId = `DAL-${new Date().getFullYear()}-${String(nextCount).padStart(4, "0")}`;
+          const curCount = parseInt(String(cfgRow?.value || "0"), 10);
+          const nextCount = curCount + 1;
+          await supabase.from("claims_config").upsert({
+            key: "CLAIM_COUNTER",
+            value: String(nextCount),
+            updated_at: new Date().toISOString(),
+          });
+          newClaimId = `DAL-${new Date().getFullYear()}-${String(nextCount).padStart(4, "0")}`;
+        }
         const nowStr = new Date().toLocaleString("he-IL");
 
         // 3. Claims Record
@@ -4978,11 +5052,18 @@ export async function executeClaimsPendingAction(
           carModel: vehicle.model !== "חסר" ? vehicle.model : "",
           carYear: vehicle.year !== "חסר" ? vehicle.year : "",
           insCompany: claim.insurance_company !== "חסר" ? claim.insurance_company : "",
+          // Claim form fields (FC_MAP): what the claim card shows and edits.
+          claimNum: claim.claim_number !== "חסר" ? claim.claim_number : "",
+          eventDate: claim.accident_date !== "חסר" ? (normalizeDate(claim.accident_date) || "") : "",
+          surveyor: claim.surveyor !== "חסר" ? claim.surveyor : "",
+          thirdParty: claim.third_party !== "חסר" ? claim.third_party : "",
+          ...(isTestClaim ? { isTest: "true", claimKind: "בדיקה" } : {}),
+          // Earlier onboarding keys, kept for anything that reads them.
           claimNumber: claim.claim_number !== "חסר" ? claim.claim_number : "",
           insClaim: claim.claim_number !== "חסר" ? claim.claim_number : "",
           accidentDate: claim.accident_date !== "חסר" ? claim.accident_date : "",
           surveyorName: claim.surveyor !== "חסר" ? claim.surveyor : "",
-          garageName: claim.garage || "מוסך אורן",
+          garageName: claim.garage && claim.garage !== "חסר" ? claim.garage : "",
           damageDescription: claim.damage_description !== "חסר" ? claim.damage_description : "",
           thirdPartyName: claim.third_party !== "חסר" ? claim.third_party : "",
           status: claim.status || "חדש",

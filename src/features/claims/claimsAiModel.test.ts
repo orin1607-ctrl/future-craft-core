@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   claimContextFromRecord,
   conversationMatchesClaim,
+  chatBoundClaim,
+  chatClaimOnOpen,
   conversationsForClaim,
   documentCardsOf,
   messagesForModel,
@@ -106,3 +108,21 @@ describe('documentCardsOf', () => {
     expect(documentCardsOf({})).toEqual([]);
   });
 });
+
+describe('chat claim binding', () => {
+  const claims = [{ id: 'DAL-2026-0013' }, { id: 'DAL-2026-0014' }];
+
+  it('opening the chat from a claim card binds it to that claim; from the list it is general', () => {
+    expect(chatClaimOnOpen(true, 'DAL-2026-0013')).toBe('DAL-2026-0013');
+    expect(chatClaimOnOpen(false, 'DAL-2026-0013')).toBeNull();
+    expect(chatClaimOnOpen(true, null)).toBeNull();
+  });
+
+  it('stays on the bound claim whatever the screen shows meanwhile (sub-windows, reloads)', () => {
+    expect(chatBoundClaim('DAL-2026-0013', claims)?.id).toBe('DAL-2026-0013');
+    expect(chatBoundClaim('DAL-2026-0013', [...claims].reverse())?.id).toBe('DAL-2026-0013');
+    expect(chatBoundClaim(null, claims)).toBeNull();
+    expect(chatBoundClaim('DAL-GONE', claims)).toBeNull();
+  });
+});
+
