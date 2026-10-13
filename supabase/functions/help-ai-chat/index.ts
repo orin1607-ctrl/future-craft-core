@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { edgeCorsHeaders, requireAuth, resolveCompanyScope } from "../_shared/edgeAuth.ts";
+import { addTrace, toolOutcome, type ToolTrace } from "../_shared/claimToolTrace.ts";
 import {
   CLAIMS_GEMINI_TOOLS,
   CLAIMS_GENERAL_GEMINI_TOOLS,
@@ -329,6 +330,8 @@ async function loadClaimsContext(
   return { text };
 }
 
+const CLAIMS_TEMPERATURE = 0.2;
+
 async function callGemini(
   apiKey: string,
   preferredModel: string,
@@ -337,6 +340,7 @@ async function callGemini(
   tools?: unknown[],
   onToolCall?: (name: string, args: Record<string, unknown>) => Promise<{ result: unknown; preview?: ClaimsPendingAction }>,
   attachments?: Array<{ name: string; mime_type: string; data_base64?: string; file_id?: string; byte_size?: number }>,
+  temperature = 0.65,
 ): Promise<{ text: string; model: string; pendingAction?: ClaimsPendingAction | null } | { error: string; status: number }> {
   const modelCandidates = Array.from(new Set([
     preferredModel,
@@ -412,7 +416,7 @@ async function callGemini(
           systemInstruction: { parts: [{ text: systemInstruction }] },
           contents,
           generationConfig: {
-            temperature: 0.65,
+            temperature,
             maxOutputTokens: 2048,
           },
         };
@@ -561,6 +565,7 @@ async function callClaude(
   geminiTools?: unknown[],
   onToolCall?: (name: string, args: Record<string, unknown>) => Promise<{ result: unknown; preview?: ClaimsPendingAction }>,
   attachments?: Array<{ name: string; mime_type: string; data_base64?: string; file_id?: string; byte_size?: number }>,
+  temperature = 0.65,
 ): Promise<{ text: string; model: string; pendingAction?: ClaimsPendingAction | null } | { error: string; status: number }> {
   const modelCandidates = Array.from(new Set([
     "claude-haiku-5-5",
@@ -644,6 +649,7 @@ async function callClaude(
         const payload: Record<string, unknown> = {
           model,
           max_tokens: 2048,
+          temperature,
           system: systemInstruction,
           messages: claudeMessages,
         };
@@ -734,7 +740,7 @@ async function callClaude(
   return { error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.", status: 500 };
 }
 
-function streamTextAsSse(replyText: string, pendingAction?: ClaimsPendingAction | null, documentCards: ClaimsDocumentCard[] = []): Response {
+function streamTextAsSse(replyText: string, pendingAction?: ClaimsPendingAction | null, documentCards: ClaimsDocumentCard[] = [], toolsUsed: ToolTrace[] | null = null): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -747,6 +753,7 @@ function streamTextAsSse(replyText: string, pendingAction?: ClaimsPendingAction 
             choices: [{ delta: { content: piece } }],
             ...(isLast && pendingAction ? { pending_action: pendingAction } : {}),
             ...(isLast && documentCards.length ? { document_cards: documentCards } : {}),
+            ...(isLast && toolsUsed ? { tools_used: toolsUsed } : {}),
           });
           controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
           if (i % 2 === 0 && i < words.length - 1) {
@@ -891,14 +898,20 @@ Deno.serve(async (req) => {
 
     // Document cards go to the chat screen only; the model gets the tool result without them.
     const documentCards: ClaimsDocumentCard[] = [];
+    // Tools that actually ran in this answer and how each ended — shown to the user under the answer.
+    const toolsUsed: ToolTrace[] = [];
     const onToolCall = async (toolName: string, toolArgs: Record<string, unknown>) => {
-      if (isClaimsModule && claimId) {
-        const res = await executeClaimsTool(toolName, toolArgs, supabase, claimId, userId, actorName, attachments);
-        if (res.card && !documentCards.some((c) => c.file_id === res.card!.file_id)) documentCards.push(res.card);
-        return { result: res.result, preview: res.preview };
-      }
-      if (isClaimsModule && !claimId) {
-        const res = await executeClaimsGeneralTool(toolName, toolArgs, supabase, userId, actorName, attachments);
+      if (isClaimsModule) {
+        let res: { result: unknown; preview?: ClaimsPendingAction; card?: ClaimsDocumentCard };
+        try {
+          res = claimId
+            ? await executeClaimsTool(toolName, toolArgs, supabase, claimId, userId, actorName, attachments)
+            : await executeClaimsGeneralTool(toolName, toolArgs, supabase, userId, actorName, attachments);
+        } catch (e) {
+          addTrace(toolsUsed, toolName, "failed");
+          return { result: { error: e instanceof Error ? e.message : "tool_failed" } };
+        }
+        addTrace(toolsUsed, toolName, toolOutcome(res.result, !!res.preview));
         if (res.card && !documentCards.some((c) => c.file_id === res.card!.file_id)) documentCards.push(res.card);
         return { result: res.result, preview: res.preview };
       }
@@ -906,6 +919,8 @@ Deno.serve(async (req) => {
       return { result: fleetRes };
     };
 
+    // Claims answers stay close to the tool results (fewer invented details).
+    const temperature = isClaimsModule ? CLAIMS_TEMPERATURE : 0.65;
     const geminiResult = await callGemini(
       GEMINI_API_KEY,
       GEMINI_MODEL,
@@ -914,6 +929,7 @@ Deno.serve(async (req) => {
       tools,
       onToolCall,
       attachments,
+      temperature,
     );
 
     let finalResult = geminiResult;
@@ -927,6 +943,7 @@ Deno.serve(async (req) => {
         tools,
         onToolCall,
         attachments,
+        temperature,
       );
       if (!("error" in claudeResult)) {
         finalResult = claudeResult;
@@ -945,7 +962,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return streamTextAsSse(finalResult.text, finalResult.pendingAction, documentCards);
+    return streamTextAsSse(finalResult.text, finalResult.pendingAction, documentCards, isClaimsModule ? toolsUsed : null);
   } catch (e) {
     console.error("help-ai-chat error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {

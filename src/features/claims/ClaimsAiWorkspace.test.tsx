@@ -191,6 +191,25 @@ describe('ClaimsAiWorkspace', () => {
     });
   });
 
+  describe('sources checked under each answer', () => {
+    it('shows what was checked, warns when nothing was, and stays silent on old answers', async () => {
+      listClaimsAiMessages.mockResolvedValue({
+        data: [
+          { id: 'a1', conversation_id: 'conv-1', role: 'assistant', content: 'יש 4 משימות פתוחות.', created_at: '2026-10-13T08:01:00Z', tool_name: null, metadata: { tools_used: [{ tool: 'get_claim_next_action', outcome: 'ok' }, { tool: 'list_claim_reminders', outcome: 'ok' }] } },
+          { id: 'a2', conversation_id: 'conv-1', role: 'assistant', content: 'יש תזכורת ל-08.10.', created_at: '2026-10-13T08:02:00Z', tool_name: null, metadata: { tools_used: [] } },
+          { id: 'a3', conversation_id: 'conv-1', role: 'assistant', content: 'תשובה ישנה.', created_at: '2026-10-07T08:02:00Z', tool_name: null, metadata: {} },
+        ],
+        error: null,
+      });
+      render(<div className="claims-root"><ClaimsAiWorkspace open onClose={() => {}} claim={claimA} userId="user-1" companyName={null} /></div>);
+
+      expect(await screen.findByTestId('claims-ai-sources-a1')).toHaveTextContent('מקורות שנבדקו: משימות ופעולה הבאה (נבדק) · תזכורות (נבדק)');
+      expect(screen.getByTestId('claims-ai-sources-a2')).toHaveTextContent('לא נבדקו נתוני מערכת');
+      expect(screen.getByTestId('claims-ai-sources-a2').className).toContain('warn');
+      expect(screen.queryByTestId('claims-ai-sources-a3')).toBeNull();
+    });
+  });
+
   describe('document card in the general chat (no claim open)', () => {
     it('opens the document through claims-docs for the card claim, and does not read it in the browser', async () => {
       listClaimsAiConversations.mockResolvedValue({ data: [{ id: 'conv-g', user_id: 'user-1', claim_id: null, title: 'כללי', created_at: '2026-10-07T08:00:00Z', updated_at: '2026-10-07T09:00:00Z', archived: false }], error: null });

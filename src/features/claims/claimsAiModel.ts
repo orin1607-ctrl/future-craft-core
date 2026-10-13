@@ -137,6 +137,75 @@ export function pendingActionOf(metadata: Record<string, unknown> | null | undef
   return { preview_id, summary, tool_name, action_type, status, parameters };
 }
 
+export type ClaimsAiToolTrace = { tool: string; outcome: 'ok' | 'not_found' | 'failed' | 'pending_approval' };
+
+const TOOL_LABELS: Record<string, string> = {
+  get_claim_next_action: 'משימות ופעולה הבאה',
+  list_claim_reminders: 'תזכורות',
+  get_claim_handler_and_history: 'היסטוריית התיק',
+  list_claim_documents: 'רשימת מסמכים',
+  show_claim_document: 'הצגת מסמך',
+  read_claim_document: 'תוכן מסמך',
+  get_missing_claim_documents: 'מסמכים חסרים',
+  search_claim_emails: 'חיפוש מיילים',
+  get_latest_claim_email: 'המייל האחרון',
+  read_email_content: 'תוכן מייל',
+  get_email_attachments: 'קבצים מצורפים למייל',
+  check_insurance_reply: 'מענה מחברת הביטוח',
+  check_customer_email_sent: 'מיילים ללקוח',
+  draft_email_reply: 'טיוטת מענה',
+  list_claim_share_links: 'קישורי שיתוף',
+  list_claim_whatsapp: 'הודעות WhatsApp',
+  search_claims: 'חיפוש תיקים',
+  get_claims_summary: 'סיכום תיקים',
+  count_claims: 'ספירת תיקים',
+  get_claims_by_status: 'תיקים לפי סטטוס',
+  get_recent_claims: 'תיקים אחרונים',
+  get_claims_created_today: 'תיקים שנפתחו היום',
+  get_claims_needing_attention: 'תיקים לטיפול',
+  get_open_tasks_summary: 'סיכום משימות',
+  get_today_claim_activity: 'פעילות היום',
+  get_today_claim_emails: 'מיילים של היום',
+  get_unhandled_claim_emails: 'מיילים שלא טופלו',
+  count_today_incoming_emails: 'מיילים נכנסים היום',
+  count_today_outgoing_emails: 'מיילים יוצאים היום',
+  check_claim_and_customer_duplicates: 'בדיקת כפילויות',
+};
+
+const OUTCOME_LABELS: Record<ClaimsAiToolTrace['outcome'], string> = {
+  ok: 'נבדק',
+  not_found: 'לא נמצא',
+  failed: 'הבדיקה נכשלה',
+  pending_approval: 'הוכן לאישור',
+};
+
+export function toolLabel(tool: string) {
+  if (TOOL_LABELS[tool]) return TOOL_LABELS[tool];
+  if (tool.startsWith('preview_')) return 'הכנת פעולה לאישור';
+  return tool;
+}
+
+/** Tools reported for an answer; null when the answer predates this report (old messages). */
+export function toolTraceOf(raw: unknown): ClaimsAiToolTrace[] | null {
+  const list = Array.isArray(raw)
+    ? raw
+    : raw && typeof raw === 'object' && Array.isArray((raw as Record<string, unknown>).tools_used)
+    ? ((raw as Record<string, unknown>).tools_used as unknown[])
+    : null;
+  if (!list) return null;
+  const outcomes = new Set(['ok', 'not_found', 'failed', 'pending_approval']);
+  return list
+    .filter((t): t is Record<string, unknown> => !!t && typeof t === 'object')
+    .map((t) => ({ tool: String(t.tool || ''), outcome: (outcomes.has(String(t.outcome)) ? String(t.outcome) : 'failed') as ClaimsAiToolTrace['outcome'] }))
+    .filter((t) => t.tool);
+}
+
+/** One line under an answer: what was checked and how it ended. */
+export function toolTraceLine(trace: ClaimsAiToolTrace[]) {
+  if (!trace.length) return 'לא נבדקו נתוני מערכת בתשובה זו — המידע בה לא אומת מול המערכת.';
+  return `מקורות שנבדקו: ${trace.map((t) => `${toolLabel(t.tool)} (${OUTCOME_LABELS[t.outcome]})`).join(' · ')}`;
+}
+
 /** Document cards from a stream event or saved message metadata. Drops anything malformed. */
 export function documentCardsOf(raw: unknown, claimId?: string | null): ClaimsAiDocumentCard[] {
   const list = Array.isArray(raw)

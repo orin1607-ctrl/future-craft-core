@@ -960,6 +960,18 @@ export const GENERAL_CLAIM_SCOPED_TOOLS = [
 // -------------------------------------------------------------
 // 3. SYSTEM PROMPTS
 // -------------------------------------------------------------
+
+/** Grounding rules shared by the claim chat and the general chat. */
+const CLAIMS_GROUNDING_RULES = `
+אמינות — כללים מחייבים:
+- נתוני מערכת מוצגים רק מתוצאת כלי שהופעל בתשובה הזו או שמופיע בהקשר המערכת. אסור להציג מזיכרון השיחה, מניחוש או מתוכן מייל כאילו הם רשומות במערכת.
+- משימות ותזכורות: רק מ-get_claim_next_action ו-list_claim_reminders. אל תהפוך בקשה או משפט מתוך מייל למשימה או לתזכורת, ואל תמציא מועד.
+- מיילים: רק מ-search_claim_emails / read_email_content / get_latest_claim_email. מסמכים: רק מ-list_claim_documents / read_claim_document. סטטוס ופרטי תיק: רק מהקשר התיק או מכלי התיקים.
+- פעולה שבוצעה (נשלח, נשמר, נוצר, עודכן): רק לפי תוצאת הביצוע אחרי אישור המשתמש. כרטיס שהוכן ולא אושר — "ממתין לאישור", לא "בוצע".
+- אם לא הפעלת את הכלי המתאים, או שהוא נכשל או החזיר שגיאה — אמור במפורש "לא בדקתי" / "הבדיקה נכשלה" ואל תציג מידע כאילו אומת. אם לא נמצא — "לא נמצא".
+- כשאתה מציג נתונים, ציין מאיזה כלי הם הגיעו (למשל: "לפי רשימת המשימות של התיק").
+`;
+
 export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 אתה עוזר AI תפעולי חכם של דליה במודול ניהול תביעות (תיק פתוח).
 התפקיד שלך הוא לסייע למשתמש לעבוד על התיק הפתוח בכל פעולה:
@@ -1006,6 +1018,7 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 - עבור כל פעולת כתיבה, חובה לקרוא לכלי ה-Preview המתאים.
 - כלי ה-Preview מכין את הפעולה ומציג למשתמש כרטיס אישור אינטראקטיבי בממשק. בתשובתך, הסבר בעברית מה הכנת ובקש מהמשתמש ללחוץ על "אישור" כדי לבצע.
 - לעולם אל תמציא מידע שאינו קיים בתיק. השתמש תמיד בכלים לקבלת נתונים חיים.
+${CLAIMS_GROUNDING_RULES}
 `;
 
 export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
@@ -1063,6 +1076,7 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
 - ענה תמיד בעברית ברורה, מקצועית ומסודרת.
 - השתמש תמיד בכלים הייעודיים לקבלת נתונים אמיתיים. לעולם אל תנחש או תמציא מספרים או שמות.
 - כל פעולת יצירה או שינוי דורשת כרטיס Preview ואישור מפורש של המשתמש לפני ביצוע.
+${CLAIMS_GROUNDING_RULES}
 `;
 
 export function normalizeShareRecipientKind(kind: string): string {
@@ -3206,6 +3220,7 @@ ${CLAIMS_SENDER_NAME}`;
           .map((r) => rowOf(r))
           .filter((r) => r.cancelled !== "true")
           .map((r) => ({ id: r.id, date: r.date, note: r.note, owner: r.owner, fired: r.sent === "true" }));
+        await recordAiAudit(supabase, { userId, userName, claimId, toolName: name, actionType: "list_reminders", status: "success" });
         return { result: { claim_id: claimId, total: active.length, reminders: active } };
       }
 
@@ -3264,6 +3279,7 @@ ${CLAIMS_SENDER_NAME}`;
               : c.waStatus === "cancelled" ? "בוטל" : c.waStatus === "opened_not_sent" ? "נפתח, לא סומן כנשלח" : c.waStatus,
             body_excerpt: String(c.body || "").slice(0, 120),
           }));
+        await recordAiAudit(supabase, { userId, userName, claimId, toolName: name, actionType: "list_whatsapp", status: "success" });
         return { result: { claim_id: claimId, total: wa.length, messages: wa, note: "הודעה נחשבת נשלחה רק כשהמשתמש סימן 'שלחתי'." } };
       }
 
@@ -3678,6 +3694,7 @@ export async function executeClaimsGeneralTool(
           grouped[st] = (grouped[st] || 0) + 1;
         }
 
+        await recordAiAudit(supabase, { userId, userName, claimId: null, toolName: name, actionType: "claims_by_status", status: "success" });
         return {
           result: {
             total_active: activeRecs.length,

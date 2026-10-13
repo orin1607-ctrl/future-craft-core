@@ -8,12 +8,15 @@ import {
   messagesForModel,
   pendingActionOf,
   titleFromFirstMessage,
+  toolTraceLine,
+  toolTraceOf,
   type ClaimsAiAttachment,
   type ClaimsAiClaimContext,
   type ClaimsAiConversation,
   type ClaimsAiDocumentCard,
   type ClaimsAiMessage,
   type ClaimsAiPendingAction,
+  type ClaimsAiToolTrace,
 } from './claimsAiModel';
 import {
   archiveClaimsAiConversation,
@@ -231,7 +234,7 @@ async function streamHelpAi(input: {
   attachments?: Array<{ name: string; mime_type: string; byte_size: number; file_id?: string; data_base64?: string }>;
   onDelta: (full: string) => void;
   onPendingAction?: (pending: ClaimsAiPendingAction) => void;
-}): Promise<{ text: string; pendingAction: ClaimsAiPendingAction | null; documentCards: ClaimsAiDocumentCard[] }> {
+}): Promise<{ text: string; pendingAction: ClaimsAiPendingAction | null; documentCards: ClaimsAiDocumentCard[]; toolsUsed: ClaimsAiToolTrace[] | null }> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) throw new Error('יש להתחבר למערכת');
 
@@ -267,6 +270,7 @@ async function streamHelpAi(input: {
   let buffer = '';
   let receivedPendingAction: ClaimsAiPendingAction | null = null;
   let receivedCards: ClaimsAiDocumentCard[] = [];
+  let receivedTools: ClaimsAiToolTrace[] | null = null;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -293,6 +297,9 @@ async function streamHelpAi(input: {
           if (parsed.document_cards) {
             receivedCards = documentCardsOf(parsed.document_cards, input.claimId);
           }
+          if (parsed.tools_used) {
+            receivedTools = toolTraceOf(parsed.tools_used);
+          }
           if (parsed.pending_action) {
             const rawPending = parsed.pending_action as Record<string, unknown>;
             const pendingObj: ClaimsAiPendingAction = {
@@ -317,7 +324,7 @@ async function streamHelpAi(input: {
     }
   }
   if (!full.trim()) throw new Error('תשובה ריקה מהשרת');
-  return { text: full, pendingAction: receivedPendingAction, documentCards: receivedCards };
+  return { text: full, pendingAction: receivedPendingAction, documentCards: receivedCards, toolsUsed: receivedTools };
 }
 
 export function ClaimsAiWorkspace({
@@ -607,6 +614,7 @@ export function ClaimsAiWorkspace({
           model: 'help-ai-chat',
           ...(answer.pendingAction ? { pending_action: answer.pendingAction } : {}),
           ...(answer.documentCards.length ? { document_cards: answer.documentCards } : {}),
+          ...(answer.toolsUsed ? { tools_used: answer.toolsUsed } : {}),
         },
       });
       if (saved.error || !saved.data) throw new Error(saved.error?.message || 'שמירת התשובה נכשלה');
@@ -925,6 +933,14 @@ export function ClaimsAiWorkspace({
                   ) : null}
                   {msg.content}
                   {toolError ? <div className="claims-ai-tool-err">הכלי נכשל: {toolError}</div> : null}
+                  {msg.role === 'assistant' && toolTraceOf(msg.metadata) ? (
+                    <div
+                      className={`claims-ai-sources${(toolTraceOf(msg.metadata) || []).some((t) => t.outcome === 'failed') || !(toolTraceOf(msg.metadata) || []).length ? ' warn' : ''}`}
+                      data-testid={`claims-ai-sources-${msg.id}`}
+                    >
+                      {toolTraceLine(toolTraceOf(msg.metadata) || [])}
+                    </div>
+                  ) : null}
                   {documentCardsOf(msg.metadata, claimId).map((card) => (
                     <ChatDocumentCard key={card.file_id} card={card} actions={documentActions || remoteDocumentActions(card.claim_id, card.original_name)} />
                   ))}
