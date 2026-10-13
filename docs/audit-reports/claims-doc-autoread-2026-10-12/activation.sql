@@ -53,11 +53,26 @@ select net.http_post(
 
 -- ---------------------------------------------------------------------------------------------
 -- STEP 6 — older gallery documents (backlog). Separate approval. Processes MAX_PER_RUN per run, oldest first.
+-- Size first with action 'status' (field "documents": counts by pdf/image and read state — counts only).
+-- Text PDFs cost nothing outside Supabase. With 3 per run every 15 minutes: ~290 documents a day.
 -- ---------------------------------------------------------------------------------------------
 -- update public.claims_config set value = 'true' where key = 'CLAIMS_DOC_READ_BACKLOG';
+
+-- ---------------------------------------------------------------------------------------------
+-- STEP 7 — OCR of scans and images (Hebrew / English) with the computer off. Separate approval:
+-- this SENDS the file content to the Gemini API (Google). Needs BOTH:
+--   a. code gate DOCUMENT_READ_OCR_PROVIDER = 'gemini' in claimDocumentReadJob.ts, deployed with a tag
+--      deploy/claims-doc-read-staging/<name>-ocr-approved (the workflow refuses otherwise);
+--   b. the switch below. Uses the existing GEMINI_API_KEY function secret — no new secret.
+-- Start on the pilot claim only. Images over 7 MB are parked; TIFF / GIF are marked unreadable.
+-- Most gallery images are damage photos: they are labelled "צילום נזק", not given invented details.
+-- ---------------------------------------------------------------------------------------------
+-- insert into public.claims_config (key, value) values ('CLAIMS_DOC_READ_OCR', 'true')
+--   on conflict (key) do update set value = excluded.value;
 
 -- ---------------------------------------------------------------------------------------------
 -- STOP — any time, no deploy needed.
 -- ---------------------------------------------------------------------------------------------
 -- update public.claims_config set value = 'false' where key = 'CLAIMS_DOC_READ_ENABLED';
+-- update public.claims_config set value = 'false' where key = 'CLAIMS_DOC_READ_OCR';
 -- select cron.unschedule('claims-doc-read-staging');

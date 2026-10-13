@@ -184,6 +184,17 @@ export const CLAIMS_GEMINI_TOOLS = [
         },
       },
       {
+        name: "read_claim_document",
+        description: "קריאת התוכן השמור של מסמך אחד מהתיק כדי לענות על שאלה (מה כתוב, סכומים, החלטת מבטח, חוסרים) עם ציטוט מהמקור. גם מציג למשתמש את המסמך בכרטיס. קריאה בלבד, ללא אישור.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            file_id: { type: "STRING", description: "מזהה המסמך מתוך list_claim_documents (חובה)" },
+          },
+          required: ["file_id"],
+        },
+      },
+      {
         name: "list_claim_share_links",
         description: "רשימת קישורי שיתוף פעילים והיסטוריים שנוצרו עבור התיק (עבור שמאי, ביטוח, לקוח)",
       },
@@ -892,6 +903,7 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
 export const GENERAL_CLAIM_SCOPED_TOOLS = [
   "list_claim_documents",
   "show_claim_document",
+  "read_claim_document",
   "search_claim_emails",
   "get_latest_claim_email",
   "read_email_content",
@@ -925,7 +937,7 @@ export const GENERAL_CLAIM_SCOPED_TOOLS = [
         type: "OBJECT",
         properties: {
           ...(params.properties || {}),
-          claim_ref: { type: "STRING", description: "מזהה התיק (DAL-YYYY-NNNN) או מספר התביעה בחברת הביטוח — חייב להתאים לתיק פעיל אחד" },
+          claim_ref: { type: "STRING", description: "מזהה התיק (DAL-YYYY-NNNN), מספר התביעה בחברת הביטוח, מספר רכב או שם הלקוח המלא — חייב להתאים לתיק פעיל אחד" },
         },
         required: [...(params.required || []), "claim_ref"],
       },
@@ -971,6 +983,7 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 13. WhatsApp (שליחה ידנית בלבד, במסלול הקיים): "תכין ללקוח הודעה ותתזמן למחר" → preview_schedule_claim_whatsapp עם הטלפון מהתיק, נוסח, relative_day=1. "תשלח לו את דוח השמאי בוואטסאפ" → מצא את המסמך עם list_claim_documents והעבר file_ids — המסמך יישלח כקישור מאובטח. ההודעה לא נשלחת אוטומטית: אמור "ממתין לשליחה ידנית", לעולם לא "נשלח". מצב ההודעות: list_claim_whatsapp.
 14. מיילים: חיפוש וקריאה מיידיים. להשבה בשרשור: draft_email_reply ואז preview_send_claim_email עם thread_id. דווח "נשלח" רק לפי תשובת המערכת אחרי האישור.
 15. משימות: preview_create_claim_task (עם due_date ו-owner אם צוינו). אם קיימת משימה פתוחה זהה — אמור זאת ואל תיצור כפילות. לסגירה: get_claim_next_action ואז preview_close_claim_task.
+16. שאלות על תוכן מסמך ("מה החליטה חברת הביטוח?", "כמה השמאי אישר?"): מצא את המסמך עם list_claim_documents ואז read_claim_document. ענה רק ממה שכתוב, ציין את שם המסמך והציטוט. אם התוכן לא זמין או לא מופיע — אמור זאת.
 
 אישורים: קריאה, חיפוש, הצגת מסמכים וניסוח טיוטות — מיד, בלי כרטיס. כל כתיבה או שליחה — כרטיס אישור אחד שמרכז את כל הפרטים (לא לבקש אישור לכל שלב). אחרי ביצוע דווח את התוצאה האמיתית: בוצע / נכשל / ממתין לשליחה ידנית.
 
@@ -1180,7 +1193,12 @@ function formatDocLabel(d: { original_name?: string; mime_type?: string; doc_kin
   return d.original_name || "מסמך";
 }
 
-function storedDocumentRead(meta: unknown) {
+/**
+ * The saved read of a document, as the model may see it.
+ * Content flag off: title, type and status only. Content flag on: a short summary per document in lists,
+ * and the full text with its sources only for one document (`full`), via read_claim_document.
+ */
+function storedDocumentRead(meta: unknown, opts: { full?: boolean } = {}) {
   const row = (meta && typeof meta === "object" ? meta : {}) as Record<string, unknown>;
   const status = String(row.read_status || "");
   if (!status) return undefined;
@@ -1202,6 +1220,17 @@ function storedDocumentRead(meta: unknown) {
       needs_review: label?.needsReview ?? status === "unreadable",
       content_withheld: true,
       instruction: "תוכן המסמך לא מועבר למודל (לא אושר). אל תנחש את תוכנו. כדי שהמשתמש יראה את התוכן, הצג לו את המסמך עם show_claim_document — הכרטיס מציג את הקריאה השמורה.",
+    };
+  }
+  if (!opts.full) {
+    return {
+      status,
+      title: label?.title || "",
+      doc_type: label?.docType || String(row.read_doc_type || ""),
+      needs_review: label?.needsReview ?? status === "unreadable",
+      description: label?.description || "",
+      summary: String(row.read_summary || "").slice(0, 200),
+      instruction: "זה תקציר בלבד. לתשובה על תוכן המסמך (סכומים, החלטות, חוסרים) קרא ל-read_claim_document עם file_id.",
     };
   }
   return {
@@ -1291,7 +1320,25 @@ async function resolveClaimRef(
   const live = (byNum || []).filter((r) => !isDeletedClaim(r.row_data));
   if (live.length === 1) return { ok: true, id: String(live[0].id) };
   if (live.length > 1) return { ok: false, error: `נמצאו ${live.length} תיקים עם מספר התביעה ${key}: ${live.map((r) => r.id).join(", ")}. ציין מזהה תיק.` };
-  return { ok: false, error: `לא נמצא תיק פעיל עבור "${key}".` };
+
+  // Plate number (7–8 digits) or client name — still exactly one live claim, never a guess.
+  const { data: all } = await supabase.from("claims_records").select("id, plate, client_name, row_data");
+  const liveAll = (all || []).filter((r) => !isDeletedClaim(r.row_data));
+  const digits = key.replace(/\D/g, "");
+  let hits: typeof liveAll = [];
+  let by = "";
+  if (/^\d{7,8}$/.test(digits) && digits.length >= key.replace(/[\s-]/g, "").length) {
+    hits = liveAll.filter((r) => String(r.plate || "").replace(/\D/g, "") === digits
+      || String((r.row_data as Record<string, unknown>)?.plate || "").replace(/\D/g, "") === digits);
+    by = "מספר הרכב";
+  } else if (key.length >= 3) {
+    const name = key.replace(/\s+/g, " ").toLowerCase();
+    hits = liveAll.filter((r) => String(r.client_name || (r.row_data as Record<string, unknown>)?.clientName || "").replace(/\s+/g, " ").trim().toLowerCase() === name);
+    by = "שם הלקוח";
+  }
+  if (hits.length === 1) return { ok: true, id: String(hits[0].id) };
+  if (hits.length > 1) return { ok: false, error: `נמצאו ${hits.length} תיקים פעילים לפי ${by} "${key}": ${hits.map((r) => r.id).join(", ")}. ציין מזהה תיק.` };
+  return { ok: false, error: `לא נמצא תיק פעיל עבור "${key}". אפשר לחפש עם search_claims.` };
 }
 
 const digitsOnly = (v: unknown) => String(v ?? "").replace(/\D/g, "");
@@ -2359,6 +2406,27 @@ export async function executeClaimsTool(
       case "preview_update_claim_fields": {
         // Inside a claim the tool acts on the open claim only, whatever the model passes.
         return await previewUpdateClaimFields(supabase, claimId, args, userId, userName, name);
+      }
+
+      case "read_claim_document": {
+        // Same lookup and card as show_claim_document, plus the saved read (full only when content is approved).
+        const shown = await executeClaimsTool("show_claim_document", args, supabase, claimId, userId, userName, attachments);
+        const base = shown.result as Record<string, unknown>;
+        if (!base || base.found !== true) return shown;
+        const { data: docRow } = await supabase
+          .from("claims_documents")
+          .select("doc_meta")
+          .eq("id", String(base.file_id))
+          .eq("claim_id", claimId)
+          .maybeSingle();
+        const read = storedDocumentRead(docRow?.doc_meta, { full: true });
+        return {
+          result: {
+            ...base,
+            document_read: read || { status: "not_read", instruction: "המסמך עוד לא נקרא. הכרטיס שהוצג למשתמש יקרא אותו בדפדפן. אל תנחש את תוכנו." },
+          },
+          card: shown.card,
+        };
       }
 
       case "show_claim_document": {

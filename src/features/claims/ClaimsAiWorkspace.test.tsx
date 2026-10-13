@@ -3,15 +3,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimsAiWorkspace } from './ClaimsAiWorkspace';
 import type { ClaimsAiClaimContext } from './claimsAiModel';
 
-const { listClaimsAiConversations, listClaimsAiMessages, getSession, insertClaimsAiMessage } = vi.hoisted(() => ({
+const { listClaimsAiConversations, listClaimsAiMessages, getSession, insertClaimsAiMessage, invokeFn } = vi.hoisted(() => ({
   listClaimsAiConversations: vi.fn(),
   listClaimsAiMessages: vi.fn(),
   getSession: vi.fn(async () => ({ data: { session: null as null | { access_token: string } } })),
   insertClaimsAiMessage: vi.fn(async () => ({ data: null, error: null })),
+  invokeFn: vi.fn(async () => ({ data: { url: 'https://signed.example/file' }, error: null })),
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { auth: { getSession: (...args: unknown[]) => getSession(...args) } },
+  supabase: {
+    auth: { getSession: (...args: unknown[]) => getSession(...args) },
+    functions: { invoke: (...args: unknown[]) => invokeFn(...args) },
+  },
 }));
 
 vi.mock('./claimsAiStore', () => ({
@@ -184,6 +188,26 @@ describe('ClaimsAiWorkspace', () => {
       render(<div className="claims-root"><ClaimsAiWorkspace open onClose={() => {}} claim={claimA} userId="user-1" companyName={null} /></div>);
       expect(await screen.findByText('הנה דוח השמאי.')).toBeInTheDocument();
       expect(screen.queryByTestId('claims-ai-doc-card-F1')).toBeNull();
+    });
+  });
+
+  describe('document card in the general chat (no claim open)', () => {
+    it('opens the document through claims-docs for the card claim, and does not read it in the browser', async () => {
+      listClaimsAiConversations.mockResolvedValue({ data: [{ id: 'conv-g', user_id: 'user-1', claim_id: null, title: 'כללי', created_at: '2026-10-07T08:00:00Z', updated_at: '2026-10-07T09:00:00Z', archived: false }], error: null });
+      listClaimsAiMessages.mockResolvedValue({
+        data: [{ id: 'g1', conversation_id: 'conv-g', role: 'assistant', content: 'הנה הדוח.', created_at: '2026-10-07T08:03:00Z', tool_name: null, metadata: { document_cards: [{ kind: 'document', claim_id: 'DAL-2026-0009', file_id: 'F9', title: 'דוח שמאי', original_name: 'r.pdf', mime_type: 'application/pdf', read_status: '', needs_read: true }] } }],
+        error: null,
+      });
+      const fakeWin = { location: { href: '' }, close: vi.fn() };
+      vi.stubGlobal('open', vi.fn(() => fakeWin));
+      render(<div className="claims-root"><ClaimsAiWorkspace open onClose={() => {}} claim={null} userId="user-1" companyName={null} /></div>);
+
+      expect(await screen.findByText('📄 דוח שמאי')).toBeInTheDocument();
+      expect(screen.queryByText(/קורא את המסמך בדפדפן/)).toBeNull();
+      fireEvent.click(screen.getByTestId('claims-ai-doc-open-F9'));
+      await waitFor(() => expect(fakeWin.location.href).toBe('https://signed.example/file'));
+      expect(invokeFn).toHaveBeenCalledWith('claims-docs', { body: { action: 'signed_url', claim_id: 'DAL-2026-0009', file_id: 'F9' } });
+      vi.unstubAllGlobals();
     });
   });
 

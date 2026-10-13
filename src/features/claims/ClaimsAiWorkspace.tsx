@@ -25,6 +25,7 @@ import {
   renameClaimsAiConversation,
 } from './claimsAiStore';
 import { documentReadCaption } from './claimDocumentRead';
+import { downloadRemoteFile } from './claimFileDownload';
 import './claims-ai.css';
 
 /** Claim-file actions the chat can run through the existing claims screen (signed URL, download, browser reader). */
@@ -32,8 +33,36 @@ export type ClaimsAiDocumentActions = {
   meta: (fileId: string) => Record<string, string> | null;
   open: (fileId: string) => Promise<string | null>;
   download: (fileId: string) => Promise<string | null>;
-  read: (fileId: string) => Promise<string>;
+  /** Browser reading — only inside an open claim; the server reader covers the rest. */
+  read?: (fileId: string) => Promise<string>;
 };
+
+async function signedDocUrl(claimId: string, fileId: string, extra: Record<string, unknown> = {}) {
+  const { data, error } = await supabase.functions.invoke('claims-docs', { body: { action: 'signed_url', claim_id: claimId, file_id: fileId, ...extra } });
+  const url = !error && data && typeof data === 'object' ? String((data as Record<string, unknown>).url || '') : '';
+  return url;
+}
+
+/** Open / download for a card when no claim is open (general chat). Same claims-docs call and permission check as the gallery. */
+export function remoteDocumentActions(claimId: string, fileName = ''): ClaimsAiDocumentActions {
+  return {
+    meta: () => null,
+    open: async (fileId) => {
+      const win = window.open('', '_blank');
+      const url = await signedDocUrl(claimId, fileId);
+      if (!url) { win?.close(); return 'לא ניתן לפתוח את הקובץ (אין הרשאה או שהקובץ לא נמצא).'; }
+      if (win) win.location.href = url;
+      else window.open(url, '_blank', 'noopener');
+      return null;
+    },
+    download: async (fileId) => {
+      const url = await signedDocUrl(claimId, fileId, { purpose: 'download', filename: fileName || 'document' });
+      if (!url) return 'לא ניתן להוריד את הקובץ (אין הרשאה או שהקובץ לא נמצא).';
+      await downloadRemoteFile(url, fileName || 'document');
+      return null;
+    },
+  };
+}
 
 function ChatDocumentCard({ card, actions }: { card: ClaimsAiDocumentCard; actions?: ClaimsAiDocumentActions }) {
   const [note, setNote] = useState('');
@@ -46,7 +75,7 @@ function ChatDocumentCard({ card, actions }: { card: ClaimsAiDocumentCard; actio
   const needsRead = readStatus !== 'ready' && readStatus !== 'unreadable';
 
   useEffect(() => {
-    if (!actions || !needsRead || started.current) return;
+    if (!actions?.read || !needsRead || started.current) return;
     started.current = true;
     setReading(true);
     void actions.read(card.file_id)
@@ -897,7 +926,7 @@ export function ClaimsAiWorkspace({
                   {msg.content}
                   {toolError ? <div className="claims-ai-tool-err">הכלי נכשל: {toolError}</div> : null}
                   {documentCardsOf(msg.metadata, claimId).map((card) => (
-                    <ChatDocumentCard key={card.file_id} card={card} actions={documentActions} />
+                    <ChatDocumentCard key={card.file_id} card={card} actions={documentActions || remoteDocumentActions(card.claim_id, card.original_name)} />
                   ))}
                   {pending ? (
                     <div className="claims-ai-preview" data-testid="claims-ai-preview">
