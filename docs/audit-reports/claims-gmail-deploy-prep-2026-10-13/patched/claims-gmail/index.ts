@@ -1,0 +1,2654 @@
+/**
+ * Claims Gmail — Staging only.
+ * OAuth tokens stay on the server. Manual claim send only after Preview + explicit SEND.
+ * No automatic / scheduled send. No mailbox mutation of existing mail.
+ */
+import { edgeCorsHeaders, requireAuth, jsonResponse } from "../_shared/edgeAuth.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifiedOutboundThreads, safeReplyHeaders, existingSendBlock, backfillPage } from "./mailSafety.ts";
+import { matchIncomingMail, suggestReply, detectMailRequests, classifySentAttachment, isDocMailRequest, type MatchClaim } from "./matchIncoming.ts";
+import { isInternalSchedulerRequest, isStagingServiceRoleRequest } from "./schedulerAuth.ts";
+
+const ALLOWED_ACCOUNT = "yoni122222@gmail.com";
+const STAGING_REF = "usfeoerkpcafxxlyuldl";
+const PROD_REF = "qasomfndnjuixgjmjwcm";
+const MAILBOX_SCAN_EVERY_MS = 3 * 60 * 60 * 1000;
+const MAILBOX_SCAN_STAMP_KEY = "GMAIL_INBOX_LAST_SCAN_AT";
+const MAILBOX_SCAN_LOOKBACK = "newer_than:3d";
+const SCOPES = [
+  "openid",
+  "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/gmail.compose",
+];
+const BUCKET = "claims-docs";
+const MAX_ATTACH = 400;
+const MAX_BYTES = 12 * 1024 * 1024;
+const BATCH = 12;
+const PACKAGE_LIMIT = 18 * 1024 * 1024;
+const ALLOWED_MIME = /^(image\/(jpeg|png|webp|gif|heic|heif)|application\/pdf)$/i;
+
+type Failure = { filename: string; reason: string };
+
+function admin() {
+  return createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+}
+
+function isInternalScheduler(req: Request) {
+  return isInternalSchedulerRequest(req.headers, Deno.env.get("DALIA_EDGE_INTERNAL_SECRET"));
+}
+
+// Only the exact service key — a token that merely claims service_role (unsigned payload) is refused.
+function isStagingServiceRole(req: Request) {
+  return isStagingServiceRoleRequest(req.headers, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"), STAGING_REF, PROD_REF);
+}
+
+function isUuid(v: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+}
+
+function nid(prefix: string) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
+function sanitizeDbTarget(url: string) {
+  try {
+    const u = new URL(url);
+    return { protocol: u.protocol.replace(":", ""), hostname: u.hostname, port: u.port || "", db: u.pathname || "" };
+  } catch {
+    return { protocol: String(url.split(":")[0] || "invalid"), hostname: "", port: "", db: "" };
+  }
+}
+
+async function applyApprovedTickSql(dbUrl: string, sqlText: string) {
+  const target = sanitizeDbTarget(dbUrl);
+  const attempts: string[] = [];
+  if (!/^postgres(ql)?$/i.test(target.protocol)) {
+    return { ok: false, error: "db_url_not_postgres", target, attempts };
+  }
+  try {
+    const { Client } = await import("https://deno.land/x/postgres@v0.19.3/mod.ts");
+    const client = new Client(dbUrl);
+    await client.connect();
+    try {
+      await client.queryArray(sqlText);
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+    return { ok: true, via: "deno_postgres", target, attempts };
+  } catch (e) {
+    attempts.push(`deno_postgres:${String((e as Error).message || e).slice(0, 160)}`);
+  }
+  try {
+    type PgClient = { connect(): Promise<void>; query(s: string): Promise<unknown>; end(): Promise<void> };
+    const pgMod = await import("npm:pg@8.13.1") as {
+      default?: { Client: new (c: { connectionString: string; ssl: { rejectUnauthorized: boolean } }) => PgClient };
+      Client?: new (c: { connectionString: string; ssl: { rejectUnauthorized: boolean } }) => PgClient;
+    };
+    const Client = pgMod.default?.Client || pgMod.Client;
+    if (!Client) throw new Error("pg_client_missing");
+    const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+    await client.connect();
+    try {
+      await client.query(sqlText);
+    } finally {
+      await client.end().catch(() => undefined);
+    }
+    return { ok: true, via: "npm_pg", target, attempts };
+  } catch (e) {
+    attempts.push(`npm_pg:${String((e as Error).message || e).slice(0, 160)}`);
+  }
+  return { ok: false, error: attempts[attempts.length - 1] || "apply_failed", target, attempts };
+}
+
+function htmlPage(title: string, body: string, ok = true) {
+  return new Response(
+    `<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>${title}</title>
+<style>body{font-family:Heebo,Arial,sans-serif;background:#071022;color:#fff;padding:40px;text-align:center}
+h1{color:${ok ? "#22c55e" : "#ef4444"}}p{line-height:1.6;color:#cbd5e1}</style></head>
+<body><h1>${title}</h1><p>${body}</p></body></html>`,
+    { headers: { ...edgeCorsHeaders, "Content-Type": "text/html; charset=utf-8" } },
+  );
+}
+
+async function hasClaimsAccess(sb: ReturnType<typeof admin>, uid: string, role: string) {
+  if (role === "super_admin") return true;
+  const { data } = await sb.from("claims_access").select("user_id").eq("user_id", uid).maybeSingle();
+  return !!data;
+}
+
+async function canWork(sb: ReturnType<typeof admin>, uid: string, role: string, claimId: string) {
+  if (!(await hasClaimsAccess(sb, uid, role))) return false;
+  if (role === "super_admin") return true;
+  const { data } = await sb.from("claims_records").select("id, assigned_to, created_by").eq("id", claimId).maybeSingle();
+  return !!data && (data.assigned_to === uid || data.created_by === uid);
+}
+
+async function loadConnection(sb: ReturnType<typeof admin>) {
+  const { data } = await sb.from("claims_gmail_connection").select("*").eq("id", "staging").maybeSingle();
+  if (!data || data.revoked_at) return null;
+  return data as {
+    connected_email: string;
+    refresh_token: string;
+    scopes: string;
+    revoked_at: string | null;
+  };
+}
+
+function tokenStoredKind(refreshToken: string) {
+  const t = String(refreshToken || "");
+  if (!t) return "missing";
+  if (t === "revoked") return "placeholder_revoked";
+  if (t.startsWith("1//")) return "google_refresh";
+  return "other";
+}
+
+function classifyTokenError(msg: string) {
+  const m = String(msg || "").toLowerCase();
+  if (m.includes("expired") || m.includes("revoked")) return "invalid_grant_revoked";
+  if (m.includes("invalid_client")) return "invalid_client";
+  if (m.includes("unauthorized_client")) return "unauthorized_client";
+  if (m.includes("invalid_request")) return "invalid_request";
+  if (m.includes("token_refresh_failed")) return "token_refresh_failed";
+  return "other";
+}
+
+async function googleAccessToken(refreshToken: string): Promise<{ access: string; newRefresh?: string }> {
+  const clientId = Deno.env.get("CLAIMS_GOOGLE_CLIENT_ID") || "";
+  const clientSecret = Deno.env.get("CLAIMS_GOOGLE_CLIENT_SECRET") || "";
+  if (!clientId || !clientSecret) throw new Error("missing_client_env");
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  const json = await res.json();
+  if (!res.ok || !json.access_token) throw new Error(json.error_description || json.error || "token_refresh_failed");
+  return {
+    access: String(json.access_token),
+    newRefresh: json.refresh_token ? String(json.refresh_token) : undefined,
+  };
+}
+
+async function persistRotatedRefresh(sb: ReturnType<typeof admin>, current: string, next?: string) {
+  if (!next || next === current || tokenStoredKind(next) === "placeholder_revoked") return;
+  await sb.from("claims_gmail_connection").update({
+    refresh_token: next,
+    last_ok_at: new Date().toISOString(),
+  }).eq("id", "staging");
+}
+
+async function loadMatchClaims(sb: ReturnType<typeof admin>): Promise<MatchClaim[]> {
+  const { data: recs } = await sb.from("claims_records").select("id, plate, client_name, row_data, gmail_thread_id");
+  const { data: imps } = await sb.from("claims_gmail_imports").select("claim_id, gmail_thread_id");
+  const { data: outbox, error: outboxError } = await sb.from("claims_gmail_outbox")
+    .select("claim_id, gmail_thread_id, gmail_message_id, status").eq("status", "sent").not("gmail_message_id", "is", null);
+  if (outboxError) throw new Error("outbox_thread_lookup_failed");
+  const threads = verifiedOutboundThreads(outbox || []);
+  for (const i of imps || []) {
+    const cid = String(i.claim_id || "");
+    if (!cid || !i.gmail_thread_id) continue;
+    (threads[cid] ||= []).push(String(i.gmail_thread_id));
+  }
+  return (recs || []).map((r) => {
+    const rd = (r.row_data && typeof r.row_data === "object") ? r.row_data as Record<string, string> : {};
+    return {
+      id: String(r.id),
+      claimNum: String(rd.claimNum || r.id || ""),
+      plate: String(r.plate || rd.plate || ""),
+      eventDate: String(rd.eventDate || ""),
+      clientName: String(r.client_name || rd.clientName || ""),
+      insCompany: String(rd.insCompany || ""),
+      policyNum: String(rd.policyNum || ""),
+      surveyor: String(rd.surveyor || ""),
+      threads: [...new Set([String(r.gmail_thread_id || ""), ...(threads[String(r.id)] || [])].filter(Boolean))],
+    };
+  });
+}
+
+async function gmailGet(access: string, path: string) {
+  const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
+    headers: { Authorization: `Bearer ${access}` },
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error?.message || `gmail ${res.status}`);
+  return json;
+}
+
+function header(headers: Array<{ name?: string; value?: string }> | undefined, name: string) {
+  return (headers || []).find((h) => (h.name || "").toLowerCase() === name.toLowerCase())?.value || "";
+}
+
+function b64urlToBytes(data: string) {
+  const pad = data.replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(pad);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function sha256HexBytes(bytes: Uint8Array) {
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function guessDocKind(filename: string, mime: string, subject: string) {
+  const fileHay = `${filename || ""}`.toLowerCase();
+  const subj = `${subject || ""}`.toLowerCase();
+  const img = String(mime || "").startsWith("image/") || /\.(jpe?g|png|webp|heic|heif|gif)$/i.test(fileHay);
+  const surv = /שמאי|שמאות|survey/.test(subj) || /שמאי|שמאות|survey/.test(fileHay);
+  const invoice = /חשבונ|invoice|קבלה|receipt/.test(fileHay) || /חשבונ|invoice/.test(subj);
+  const garage = /מוסך|garage/.test(fileHay) || /מוסך/.test(subj);
+  if (invoice && garage) return "garage_invoice";
+  if (surv && img) return "surveyor_photo";
+  if (surv && !img) return "surveyor_report";
+  return "general";
+}
+
+function bytesToB64url(bytes: Uint8Array) {
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function bytesToB64(bytes: Uint8Array) {
+  let s = "";
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s);
+}
+
+function walkParts(part: Record<string, unknown>, acc: Array<Record<string, unknown>>) {
+  acc.push(part);
+  const parts = part.parts as Array<Record<string, unknown>> | undefined;
+  if (Array.isArray(parts)) parts.forEach((p) => walkParts(p, acc));
+}
+
+function decodeBody(part: Record<string, unknown> | undefined) {
+  const data = (part?.body as { data?: string } | undefined)?.data;
+  if (!data) return "";
+  try {
+    return new TextDecoder().decode(b64urlToBytes(data));
+  } catch {
+    return "";
+  }
+}
+
+function htmlToText(html: string) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|h[1-6]|li|blockquote|table)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+async function decodePartBody(access: string, messageId: string, part: Record<string, unknown> | undefined) {
+  if (!part) return "";
+  const body = (part.body || {}) as { data?: string; attachmentId?: string };
+  if (body.data) {
+    try { return new TextDecoder().decode(b64urlToBytes(body.data)); } catch { return ""; }
+  }
+  if (body.attachmentId) {
+    try {
+      const att = await gmailGet(access, `messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(body.attachmentId)}`);
+      return new TextDecoder().decode(b64urlToBytes(String(att.data || "")));
+    } catch {
+      return "";
+    }
+  }
+  return "";
+}
+
+function mimeOf(p: Record<string, unknown>) {
+  return String(p.mimeType || "").toLowerCase();
+}
+
+async function extractMailBody(
+  access: string,
+  messageId: string,
+  payload: Record<string, unknown> | undefined,
+  parts: Array<Record<string, unknown>>,
+  snippet = "",
+) {
+  let html = "";
+  let text = "";
+  for (const p of parts) {
+    const mime = mimeOf(p);
+    if (mime.startsWith("text/html")) {
+      const d = await decodePartBody(access, messageId, p);
+      if (d.length > html.length) html = d;
+    } else if (mime.startsWith("text/plain") && !String(p.filename || "").trim()) {
+      const d = await decodePartBody(access, messageId, p);
+      if (d.length > text.length) text = d;
+    }
+  }
+  const fromHtml = html ? htmlToText(html) : "";
+  const fromText = text.replace(/^[\s\r\n]+$/, "").trim();
+  const readable = (fromHtml.length >= fromText.length ? fromHtml : fromText) || fromHtml || fromText;
+  if (readable) return { bodyText: readable.slice(0, 20000), bodyHtml: html.slice(0, 40000) };
+  const root = payload ? await decodePartBody(access, messageId, payload) : "";
+  const rootText = htmlToText(root) || root.replace(/^[\s\r\n]+$/, "").trim();
+  if (rootText) return { bodyText: rootText.slice(0, 20000), bodyHtml: html.slice(0, 40000) };
+  const snip = String(snippet || "").trim();
+  if (snip) return { bodyText: snip.slice(0, 20000), bodyHtml: html.slice(0, 40000) };
+  if (html.trim() || text.trim()) {
+    const note = "המייל התקבל ללא טקסט בגוף — רק מצורפים.\n\n--- מקור HTML מהמייל ---\n" + html.slice(0, 4000);
+    return { bodyText: note.slice(0, 20000), bodyHtml: html.slice(0, 40000), emptyBody: true };
+  }
+  return { bodyText: "", bodyHtml: html.slice(0, 40000) };
+}
+
+function collectFiles(parts: Array<Record<string, unknown>>) {
+  const out: Array<{ filename: string; mime: string; attachmentId: string; inline?: string; part: Record<string, unknown> }> = [];
+  let unnamed = 0;
+  for (const p of parts) {
+    const mime = String(p.mimeType || "");
+    if (mime.startsWith("text/plain") || mime.startsWith("text/html") || mime.startsWith("multipart/")) continue;
+    const rawName = String(p.filename || "").trim();
+    const body = (p.body || {}) as { attachmentId?: string; data?: string; size?: number };
+    const attId = String(body.attachmentId || "");
+    const inline = body.data || "";
+    if (!rawName && !attId && !inline) continue;
+    if (!rawName && !(attId || inline) ) continue;
+    if (!rawName && !ALLOWED_MIME.test(mime) && !mime.startsWith("image/") && mime !== "application/pdf") continue;
+    unnamed += rawName ? 0 : 1;
+    const ext = mime.includes("pdf") ? "pdf" : mime.includes("png") ? "png" : mime.includes("webp") ? "webp" : "jpg";
+    const filename = rawName || `image-${unnamed}.${ext}`;
+    out.push({ filename, mime: mime || "application/octet-stream", attachmentId: attId, inline, part: p });
+  }
+  return out.slice(0, MAX_ATTACH);
+}
+
+function sanitizeName(name: string) {
+  const dot = name.lastIndexOf(".");
+  const base = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot + 1).toLowerCase().replace(/[^a-z0-9]/g, "") : "";
+  const safe = base.replace(/[^a-zA-Z0-9._-]/g, "_").replace(/_+/g, "_").slice(0, 60) || "file";
+  return ext ? `${safe}.${ext}` : safe;
+}
+
+function resolveStoredMime(filename: string, declared: string, bytes?: Uint8Array) {
+  const name = String(filename || "").toLowerCase();
+  const d = String(declared || "").toLowerCase().split(";")[0].trim();
+  if (d === "application/pdf" || /^image\/(jpeg|jpg|png|webp|heic|heif)$/.test(d)) {
+    return d === "image/jpg" ? "image/jpeg" : d;
+  }
+  if (bytes && bytes.length >= 4) {
+    if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return "application/pdf";
+    if (bytes[0] === 0xff && bytes[1] === 0xd8) return "image/jpeg";
+    if (bytes[0] === 0x89 && bytes[1] === 0x50) return "image/png";
+    if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return "image/webp";
+  }
+  if (name.endsWith(".pdf")) return "application/pdf";
+  if (/\.jpe?g$/.test(name)) return "image/jpeg";
+  if (name.endsWith(".png")) return "image/png";
+  if (name.endsWith(".webp")) return "image/webp";
+  if (/\.heic$/.test(name)) return "image/heic";
+  return d || "application/octet-stream";
+}
+
+function rfc2047(s: string) {
+  if (!s) return "";
+  if (/^[\x20-\x7E]+$/.test(s)) return s;
+  return `=?UTF-8?B?${bytesToB64(new TextEncoder().encode(s))}?=`;
+}
+
+function packageSuggestion(bytes: number) {
+  if (bytes <= PACKAGE_LIMIT) return "";
+  return "הקבצים גדולים מדי לשליחה במייל. בחר פחות קבצים, פצל למספר מיילים, או שלח קישור מאובטח — לא אוטומטית.";
+}
+
+function splitPlan(files: Array<{ id: string; name: string; bytes: number }>, limit = PACKAGE_LIMIT) {
+  const groups: Array<{ bytes: number; files: Array<{ id: string; name: string; bytes: number }>; tooLargeSingle?: boolean }> = [];
+  let cur: Array<{ id: string; name: string; bytes: number }> = [];
+  let bytes = 0;
+  for (const f of files) {
+    const b = Number(f.bytes || 0);
+    if (b > limit) {
+      if (cur.length) {
+        groups.push({ files: cur, bytes });
+        cur = [];
+        bytes = 0;
+      }
+      groups.push({ files: [f], bytes: b, tooLargeSingle: true });
+      continue;
+    }
+    if (cur.length && bytes + b > limit) {
+      groups.push({ files: cur, bytes });
+      cur = [];
+      bytes = 0;
+    }
+    cur.push(f);
+    bytes += b;
+  }
+  if (cur.length) groups.push({ files: cur, bytes });
+  return groups;
+}
+
+async function isSendEnabled(sb: ReturnType<typeof admin>) {
+  const { data } = await sb.from("claims_config").select("value").eq("key", "GMAIL_SEND_ENABLED").maybeSingle();
+  return String(data?.value || "") === "true";
+}
+
+/** TEST/DEMO recipient allowlist for scheduled / dispatch_due_test only — not Composer Preview/SEND. */
+const HARDCODED_LIVE_TEST_ALLOWLIST = ["yoni122222@gmail.com"];
+
+async function getLiveSendAllowlist(sb: ReturnType<typeof admin>) {
+  const set = new Set(HARDCODED_LIVE_TEST_ALLOWLIST.map((e) => e.toLowerCase()));
+  const { data } = await sb.from("claims_config").select("value").eq("key", "GMAIL_LIVE_TEST_ALLOWLIST").maybeSingle();
+  const extra = String(data?.value || "");
+  for (const part of extra.split(/[,;\s]+/)) {
+    const e = part.trim().toLowerCase();
+    if (e.includes("@")) set.add(e);
+  }
+  return set;
+}
+
+function recipientsAllowlisted(raw: string, allow: Set<string>, required: boolean) {
+  const parsed = parseEmailListStrict(raw, required);
+  if (!parsed.ok) return parsed;
+  if (parsed.emails.some((e) => !allow.has(e))) {
+    return { ok: false as const, emails: parsed.emails, error: "live_send_recipient_not_allowlisted" };
+  }
+  return parsed;
+}
+
+function stripMailNoise(raw: string) {
+  return String(raw || "")
+    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\u00ad\u200b-\u200d\ufeff]/g, "")
+    .replace(/\uFF20/g, "@")
+    .replace(/[\uFF0E\uFF61]/g, ".")
+    .trim();
+}
+
+function parseEmailListStrict(raw: string, required: boolean) {
+  const parts = stripMailNoise(raw).split(/[,;]/).map((s) => {
+    const cleaned = s.trim();
+    const angle = cleaned.match(/<([^>]+)>/);
+    return (angle ? angle[1] : cleaned).trim();
+  }).filter(Boolean);
+  if (!parts.length) {
+    return required
+      ? { ok: false as const, emails: [] as string[], error: "to_required" }
+      : { ok: true as const, emails: [] as string[] };
+  }
+  const emails: string[] = [];
+  const re = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+  for (const p of parts) {
+    if (!re.test(p)) {
+      return { ok: false as const, emails: [] as string[], error: required ? "to_required" : "cc_invalid" };
+    }
+    emails.push(p.toLowerCase());
+  }
+  return { ok: true as const, emails };
+}
+
+function hasInternalLeak(text: string) {
+  return /היסטוריה פנימית — לא לשלוח לחברת ביטוח|היסטוריה פנימית — לא לשלוח/i.test(String(text || ""));
+}
+
+function parseEmails(raw: string): string[] {
+  return String(raw || "")
+    .split(/[,;]/)
+    .map((s) => {
+      const m = String(s).match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+      return (m?.[0] || "").toLowerCase();
+    })
+    .filter(Boolean);
+}
+
+function assertSelfAllowlist(raw: string, required: boolean) {
+  const emails = parseEmails(raw);
+  if (!emails.length) return required ? { ok: false as const, emails, error: "recipient_required" } : { ok: true as const, emails };
+  if (emails.some((e) => e !== ALLOWED_ACCOUNT)) {
+    return { ok: false as const, emails, error: "recipient_not_allowlisted" };
+  }
+  return { ok: true as const, emails };
+}
+
+async function gmailPost(access: string, path: string, payload: Record<string, unknown>) {
+  const res = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${access}`, "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  return { ok: res.ok, status: res.status, json };
+}
+
+async function encodeMixedMessage(
+  sb: ReturnType<typeof admin>,
+  opts: {
+    to: string;
+    cc: string;
+    subject: string;
+    text: string;
+    extraHeaders?: string[];
+    files: Array<{ id: string; original_name: string; mime_type: string; byte_size: number; storage_path: string }>;
+  },
+) {
+  const packageBytes = opts.files.reduce((s, f) => s + Number(f.byte_size || 0), 0);
+  if (packageBytes > PACKAGE_LIMIT) {
+    return { error: "package_too_large" as const, packageBytes };
+  }
+  const boundary = `mix_${crypto.randomUUID().replace(/-/g, "")}`;
+  const chunks: string[] = [
+    `To: ${opts.to}`,
+    ...(opts.cc ? [`Cc: ${opts.cc}`] : []),
+    `Subject: ${rfc2047(opts.subject)}`,
+    ...(opts.extraHeaders || []),
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: base64",
+    "",
+    bytesToB64(new TextEncoder().encode(opts.text)),
+  ];
+  const attached: Array<{ id: string; name: string; bytes: number }> = [];
+  for (const f of opts.files) {
+    const { data: blob, error: dlErr } = await sb.storage.from(BUCKET).download(f.storage_path);
+    if (dlErr || !blob) {
+      return { error: "attachment_download_failed" as const, filename: f.original_name, reason: dlErr?.message || "empty" };
+    }
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const mime = f.mime_type || "application/octet-stream";
+    const safe = sanitizeName(f.original_name || "file");
+    chunks.push(
+      `--${boundary}`,
+      `Content-Type: ${mime}; name="${safe}"`,
+      `Content-Disposition: attachment; filename="${safe}"`,
+      "Content-Transfer-Encoding: base64",
+      "",
+      bytesToB64(bytes),
+    );
+    attached.push({ id: f.id, name: f.original_name, bytes: bytes.byteLength });
+  }
+  chunks.push(`--${boundary}--`);
+  const raw = chunks.join("\r\n");
+  return {
+    encoded: bytesToB64url(new TextEncoder().encode(raw)),
+    attached,
+    packageBytes,
+  };
+}
+
+async function ensureMailTasks(
+  sb: ReturnType<typeof admin>,
+  opts: {
+    claimId: string;
+    importId: string;
+    messageId: string;
+    threadId: string;
+    from: string;
+    subject: string;
+    body: string;
+    sentAt?: string | null;
+  },
+) {
+  const requests = detectMailRequests(`${opts.subject}\n${opts.body}`);
+  if (!requests.length) {
+    return { created: 0, existing: 0, autoSend: false, requests: [], review: true as const, reason: "דורש בדיקת עובד" };
+  }
+  const { data: files } = await sb.from("claims_documents").select("id, original_name, doc_kind, doc_meta, source, gmail_message_id").eq("claim_id", opts.claimId);
+  const { data: existingTasks } = await sb.from("claims_tasks").select("id, row_data").eq("claim_id", opts.claimId);
+  let created = 0;
+  let existing = 0;
+  const out: Array<Record<string, unknown>> = [];
+  for (const req of requests) {
+    const mailIdem = `mail:${opts.messageId}:${req.type}`;
+    const found = (existingTasks || []).find((t) => {
+      const rd = (t.row_data && typeof t.row_data === "object") ? t.row_data as Record<string, string> : {};
+      return rd.mailIdem === mailIdem;
+    });
+    if (found) {
+      existing += 1;
+      out.push({ id: found.id, created: false, request: req });
+      continue;
+    }
+    const mapped = (files || []).map((f) => {
+      const meta = (f.doc_meta && typeof f.doc_meta === "object") ? f.doc_meta as Record<string, string> : {};
+      return { id: String(f.id), staff_type: meta.staff_type || "", doc_kind: String(f.doc_kind || ""), source: String(f.source || ""), related: meta.related_file_id || "" };
+    });
+    let docState = "missing";
+    let readyFileId = "";
+    let workStatus = "open";
+    if (!isDocMailRequest(req.kind)) {
+      docState = "";
+      workStatus = "open";
+    } else if (req.kind === "generic") {
+      docState = "needs_review";
+      workStatus = "open";
+    } else {
+      const hits = mapped.filter((f) =>
+        f.staff_type === req.type
+        || (req.type === "surveyor_report" && (f.doc_kind === "surveyor_report" || f.doc_kind === "surveyor_attachment"))
+        || (req.type === "garage_invoice" && f.doc_kind === "garage_invoice")
+        || (req.type === "damage_photos" && f.doc_kind === "surveyor_photo")
+      );
+      if (req.kind === "sign") {
+        const signed = hits.filter((f) => f.source === "staff");
+        if (signed.length === 1) {
+          docState = "ready";
+          readyFileId = signed[0].id;
+          workStatus = "ready_to_send";
+        } else if (hits.length > 0) {
+          docState = "awaiting_signature";
+          workStatus = "waiting_doc";
+        } else {
+          docState = "missing";
+          workStatus = "waiting_doc";
+        }
+      } else if (hits.length === 1) {
+        docState = "ready";
+        readyFileId = hits[0].id;
+        workStatus = "ready_to_send";
+      } else if (hits.length === 0) {
+        docState = "missing";
+        workStatus = "waiting_doc";
+      } else {
+        docState = "needs_review";
+        workStatus = "open";
+      }
+    }
+    const id = nid("TSK");
+    const row = {
+      id,
+      claimId: opts.claimId,
+      action: req.label,
+      source: `מייל מ${opts.from}`,
+      gmailMessageId: opts.messageId,
+      gmailThreadId: opts.threadId,
+      importId: opts.importId,
+      mailIdem,
+      requestType: req.type,
+      requestKind: req.kind,
+      workStatus,
+      docState,
+      readyFileId,
+      done: "false",
+      createdAt: opts.sentAt || new Date().toISOString(),
+      note: "",
+    };
+    const { error } = await sb.from("claims_tasks").insert({ id, claim_id: opts.claimId, row_data: row });
+    if (error) continue;
+    created += 1;
+    out.push({ id, created: true, request: req, docState, workStatus, readyFileId });
+  }
+  return { created, existing, autoSend: false, requests, tasks: out, review: requests.some((r) => r.kind === "generic") };
+}
+
+async function handleClaimsGmail(req: Request): Promise<Response> {
+  if (req.method === "OPTIONS") return new Response(null, { headers: edgeCorsHeaders });
+  const url = new URL(req.url);
+  const sb = admin();
+
+  if (req.method === "GET" && (url.searchParams.get("code") || url.searchParams.get("error"))) {
+    const err = url.searchParams.get("error");
+    if (err) return htmlPage("חיבור Gmail נכשל", `Google: ${err}`, false);
+    return htmlPage(
+      "קוד התקבל",
+      "החיבור ל-Claims מתבצע ממסך האישור המקומי (127.0.0.1:4521), לא מדף זה. אפשר לסגור.",
+      true,
+    );
+  }
+
+  let body: Record<string, unknown> = {};
+  try {
+    if (req.method === "POST") body = await req.json();
+  } catch {
+    body = {};
+  }
+  const action = String(body.action || url.searchParams.get("action") || "status");
+
+  if (action === "send" || action === "send_email" || action === "drafts.send" || action === "messages.send") {
+    return jsonResponse({
+      success: false,
+      blocked: true,
+      reason: "live_send_not_approved",
+      realEmailSend: false,
+    }, 403);
+  }
+
+  if (action === "scopes") {
+    return jsonResponse({
+      success: true,
+      account: ALLOWED_ACCOUNT,
+      realEmailSend: false,
+      scopes: SCOPES.map((s) => ({ scope: s, why: whyScope(s) })),
+      tokenStorage: "public.claims_gmail_connection.refresh_token — RLS, no GRANT to authenticated/anon; Edge service_role only",
+      revoke: "Super Admin → בטל חיבור Gmail, plus Google Account → Third-party access",
+      workerIsolation: "Workers never receive the Google token. They may import/list only inside a claim they can work.",
+    });
+  }
+
+  const schedulerRequested = body.scheduler === true && (
+    action === "scan_inbox" || action === "import_message" || action === "apply_approved_gmail_tick"
+  );
+  const systemScheduler = schedulerRequested && (isInternalScheduler(req) || isStagingServiceRole(req));
+  let user: { id: string; email?: string };
+  let role: string;
+  if (systemScheduler) {
+    user = { id: "", email: "claims-gmail-scan@staging" };
+    role = "super_admin";
+  } else {
+    const auth = await requireAuth(req);
+    if ("error" in auth) return auth.error;
+    user = auth.ctx.user;
+    role = auth.ctx.role;
+    if (!(await hasClaimsAccess(sb, user.id, role))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+  }
+
+  if (action === "apply_approved_gmail_tick") {
+    if (!systemScheduler) return jsonResponse({ success: false, error: "forbidden" }, 403);
+    const incoming = String(body.sql || "");
+    const hash = await sha256HexBytes(new TextEncoder().encode(incoming));
+    const expected = "69ec0955a3ef998a22642f2a03c6236564891ee4dd71f986e720f73bc5e4a570";
+    if (hash !== expected) {
+      return jsonResponse({ success: false, error: "sql_hash_mismatch", hash }, 400);
+    }
+    const dbUrl = Deno.env.get("SUPABASE_DB_URL") || Deno.env.get("DATABASE_URL") || Deno.env.get("POSTGRES_URL") || "";
+    const envNames = Object.keys(Deno.env.toObject()).filter((k) => /DB|POSTGRES|DATABASE/i.test(k));
+    if (!dbUrl) {
+      return jsonResponse({
+        success: false,
+        error: "no_db_url",
+        dbEnvNames: envNames,
+        realEmailSend: false,
+      }, 409);
+    }
+    if (dbUrl.includes(PROD_REF)) {
+      return jsonResponse({ success: false, error: "production_db_blocked" }, 403);
+    }
+    const applied = await applyApprovedTickSql(dbUrl, incoming);
+    if (applied.ok) {
+      return jsonResponse({
+        success: true,
+        applied: true,
+        via: applied.via,
+        dbTarget: applied.target,
+        realEmailSend: false,
+        newCron: false,
+      });
+    }
+    return jsonResponse({
+      success: false,
+      error: applied.error || "apply_failed",
+      dbEnvNames: envNames,
+      dbTarget: applied.target,
+      attempts: applied.attempts,
+    }, 400);
+  }
+
+  if (action === "status") {
+    const conn = await loadConnection(sb);
+    const { count: selfTestCount } = await sb.from("claims_gmail_outbox").select("id", { count: "exact", head: true }).eq("kind", "self_test");
+    const sendEnabled = await isSendEnabled(sb);
+    const { data: stamp } = await sb.from("claims_config").select("value").eq("key", MAILBOX_SCAN_STAMP_KEY).maybeSingle();
+    const lastMs = stamp?.value ? Date.parse(String(stamp.value)) : 0;
+    const lastScanAt = lastMs && Number.isFinite(lastMs) ? new Date(lastMs).toISOString() : null;
+    const clientId = Deno.env.get("CLAIMS_GOOGLE_CLIENT_ID") || "";
+    let refreshProbe: { ok: boolean; errorClass: string | null; message: string | null } = { ok: false, errorClass: "not_tried", message: null };
+    if (body.probe === true) {
+      if (conn?.refresh_token && tokenStoredKind(conn.refresh_token) !== "placeholder_revoked") {
+        try {
+          const tok = await googleAccessToken(conn.refresh_token);
+          await persistRotatedRefresh(sb, conn.refresh_token, tok.newRefresh);
+          await sb.from("claims_gmail_connection").update({ last_ok_at: new Date().toISOString() }).eq("id", "staging");
+          refreshProbe = { ok: true, errorClass: null, message: null };
+        } catch (e) {
+          const message = String((e as Error).message || e).slice(0, 160);
+          refreshProbe = { ok: false, errorClass: classifyTokenError(message), message };
+        }
+      } else if (!conn) {
+        refreshProbe = { ok: false, errorClass: "not_connected", message: null };
+      } else {
+        refreshProbe = { ok: false, errorClass: tokenStoredKind(conn.refresh_token), message: null };
+      }
+    }
+    return jsonResponse({
+      success: true,
+      connected: !!conn,
+      email: conn?.connected_email || null,
+      accountExpected: ALLOWED_ACCOUNT,
+      sendEnabled,
+      realEmailSend: false,
+      selfTestSendUsed: Number(selfTestCount || 0) > 0,
+      scopes: SCOPES,
+      canConnect: role === "super_admin",
+      autoDispatch: false,
+      oauth: {
+        clientIdPresent: Boolean(clientId),
+        clientSecretPresent: Boolean(Deno.env.get("CLAIMS_GOOGLE_CLIENT_SECRET")),
+        clientIdPrefix: clientId.slice(0, 12),
+        tokenStored: conn ? tokenStoredKind(conn.refresh_token) : "missing",
+        tokenLen: conn ? String(conn.refresh_token || "").length : 0,
+        lastOkAt: (conn as { last_ok_at?: string } | null)?.last_ok_at || null,
+        refreshProbe,
+      },
+      scheduler: {
+        everyMs: MAILBOX_SCAN_EVERY_MS,
+        everyHours: 3,
+        lookback: MAILBOX_SCAN_LOOKBACK,
+        folders: ["inbox", "sent"],
+        lastScanAt,
+        nextDueAt: lastScanAt ? new Date(lastMs + MAILBOX_SCAN_EVERY_MS).toISOString() : new Date().toISOString(),
+        dueNow: !lastScanAt || Date.now() - lastMs >= MAILBOX_SCAN_EVERY_MS,
+      },
+    });
+  }
+
+  if (action === "revoke") {
+    if (role !== "super_admin") return jsonResponse({ success: false, error: "super_admin only" }, 403);
+    const conn = await loadConnection(sb);
+    if (conn?.refresh_token) {
+      await fetch("https://oauth2.googleapis.com/revoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ token: conn.refresh_token }),
+      }).catch(() => undefined);
+    }
+    await sb.from("claims_gmail_connection").update({
+      revoked_at: new Date().toISOString(),
+      refresh_token: "revoked",
+    }).eq("id", "staging");
+    return jsonResponse({ success: true, connected: false, realEmailSend: false });
+  }
+
+  if (action === "list_imports") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const { data } = await sb.from("claims_gmail_imports")
+      .select("id, gmail_message_id, gmail_thread_id, from_addr, to_addr, cc_addr, subject, snippet, body_text, sent_at, attachment_count, found_count, imported_count, failed_count, failures, imported_by_name, created_at, staff_note")
+      .eq("claim_id", claimId)
+      .order("sent_at", { ascending: true });
+    return jsonResponse({ success: true, data: data || [] });
+  }
+
+  if (action === "update_import_note") {
+    const claimId = String(body.claim_id || "");
+    const importId = String(body.import_id || "");
+    const note = String(body.staff_note || "").trim().slice(0, 500);
+    if (!claimId || !importId) return jsonResponse({ success: false, error: "claim_id and import_id required" }, 400);
+    if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    const { error } = await sb.from("claims_gmail_imports").update({ staff_note: note || null }).eq("id", importId).eq("claim_id", claimId);
+    if (error) return jsonResponse({ success: false, error: error.message }, 400);
+    return jsonResponse({ success: true, mailboxMutated: false, realEmailSend: false });
+  }
+
+  if (action === "list_sends") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const { data } = await sb.from("claims_gmail_outbox")
+      .select("id, send_no, claim_id, to_addr, cc_addr, subject, from_addr, status, gmail_message_id, gmail_thread_id, sent_at, file_ids, file_names, package_bytes, created_by, track_status, track_due, followup_approved, followup_days, followup_count, followup_max")
+      .eq("claim_id", claimId)
+      .eq("kind", "claim_send")
+      .order("send_no", { ascending: false, nullsFirst: false });
+    return jsonResponse({ success: true, data: data || [], mailboxMutated: false, realEmailSend: false });
+  }
+
+  if (action === "suggest_reply") {
+    const claimId = String(body.claim_id || "");
+    const importId = String(body.import_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const { data: im } = await sb.from("claims_gmail_imports").select("id, subject, body_text, from_addr, gmail_thread_id, gmail_message_id, claim_id").eq("id", importId).eq("claim_id", claimId).maybeSingle();
+    if (!im) return jsonResponse({ success: false, error: "not_found" }, 404);
+    const { data: files } = await sb.from("claims_documents").select("id, original_name, doc_kind, doc_meta").eq("claim_id", claimId);
+    const mapped = (files || []).map((f) => {
+      const meta = (f.doc_meta && typeof f.doc_meta === "object") ? f.doc_meta as Record<string, string> : {};
+      return { id: String(f.id), original_name: String(f.original_name || ""), doc_kind: String(f.doc_kind || ""), staff_type: meta.staff_type || "", staff_title: meta.staff_title || "" };
+    });
+    const suggestion = suggestReply(`${im.subject || ""}\n${im.body_text || ""}`, mapped);
+    const detected = detectMailRequests(`${im.subject || ""}\n${im.body_text || ""}`);
+    const toAddr = String(im.from_addr || "").match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "";
+    const generic = detected.find((d) => d.kind === "generic");
+    const kinds = new Set(detected.map((d) => d.kind));
+    const reason = generic
+      ? "דורש בדיקת עובד — רשימת החוסרים במסמך המצורף. אין Guess."
+      : suggestion.reason;
+    const bodyText = suggestion.ok && suggestion.attachments.length
+      ? `שלום,\n\nבהמשך לפנייתכם בנושא ${im.subject || `תביעה ${claimId}`},\nמצורפים המסמכים המבוקשים.\n\nבברכה,\nדליה ניהול תביעות`
+      : generic
+      ? `שלום,\n\nקיבלנו את בקשתכם להשלמת מסמכים.\nרשימת החוסרים מופיעה במסמך שצורף למייל.\nנבדוק את התיק ונשיב עם המסמכים הנדרשים.\n\nבברכה,\nדליה ניהול תביעות`
+      : kinds.has("info")
+      ? `שלום,\n\nקיבלנו את בקשת המידע.\nנבדוק את התיק ונשיב עם הפרטים המבוקשים.\n\nבברכה,\nדליה ניהול תביעות`
+      : kinds.has("reply")
+      ? `שלום,\n\nקיבלנו את פנייתכם ומכינים תשובה.\n\nבברכה,\nדליה ניהול תביעות`
+      : kinds.has("approve")
+      ? `שלום,\n\nקיבלנו את הודעת האישור. נעדכן את התיק בהתאם.\n\nבברכה,\nדליה ניהול תביעות`
+      : kinds.has("reject")
+      ? `שלום,\n\nקיבלנו את הודעת הדחייה. נבדוק את התיק ונחזור אליכם.\n\nבברכה,\nדליה ניהול תביעות`
+      : kinds.has("update")
+      ? `שלום,\n\nקיבלנו את עדכון הסטטוס. נעדכן את התיק בהתאם.\n\nבברכה,\nדליה ניהול תביעות`
+      : `שלום,\n\nקיבלנו את פנייתכם. ${suggestion.reason}.\n\nבברכה,\nדליה ניהול תביעות`;
+    return jsonResponse({
+      success: true,
+      autoSend: false,
+      suggestion: generic ? { ...suggestion, ok: false, reason, requested: detected.map((d) => d.label) } : suggestion,
+      detected,
+      draft: {
+        to: toAddr,
+        subject: String(im.subject || "").startsWith("Re:") ? im.subject : `Re: ${im.subject || claimId}`,
+        body: bodyText,
+        file_ids: suggestion.attachments.map((a) => a.id),
+        thread_id: im.gmail_thread_id || "",
+        in_reply_to_message_id: im.gmail_message_id || "",
+      },
+      mailboxMutated: false,
+      realEmailSend: false,
+    });
+  }
+
+  if (action === "ensure_mail_tasks") {
+    const claimId = String(body.claim_id || "");
+    const importId = String(body.import_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const { data: im } = await sb.from("claims_gmail_imports").select("id, subject, body_text, from_addr, gmail_thread_id, gmail_message_id, sent_at").eq("id", importId).eq("claim_id", claimId).maybeSingle();
+    if (!im) return jsonResponse({ success: false, error: "not_found" }, 404);
+    const tasks = await ensureMailTasks(sb, {
+      claimId,
+      importId: im.id,
+      messageId: String(im.gmail_message_id || ""),
+      threadId: String(im.gmail_thread_id || ""),
+      from: String(im.from_addr || ""),
+      subject: String(im.subject || ""),
+      body: String(im.body_text || ""),
+      sentAt: im.sent_at ? String(im.sent_at) : null,
+    });
+    return jsonResponse({ success: true, autoSend: false, realEmailSend: false, mailboxMutated: false, ...tasks });
+  }
+
+  if (action === "update_send_track") {
+    const claimId = String(body.claim_id || "");
+    const sendId = String(body.send_id || "");
+    const trackStatus = String(body.track_status || "");
+    const allowed = new Set(["sent", "waiting_reply", "reply_received", "needs_action", "done"]);
+    if (!allowed.has(trackStatus)) return jsonResponse({ success: false, error: "invalid_track_status" }, 400);
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    const { error } = await sb.from("claims_gmail_outbox").update({ track_status: trackStatus }).eq("id", sendId).eq("claim_id", claimId);
+    if (error) return jsonResponse({ success: false, error: error.message }, 400);
+    return jsonResponse({ success: true, mailboxMutated: false, realEmailSend: false });
+  }
+
+  if (action === "package_preview") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const ids = Array.isArray(body.file_ids) ? body.file_ids.map((x) => String(x)).filter(Boolean) : [];
+    if (!ids.length) {
+      return jsonResponse({
+        success: true,
+        packageBytes: 0,
+        limitBytes: PACKAGE_LIMIT,
+        overLimit: false,
+        files: [],
+        suggestion: "",
+        realEmailSend: false,
+      });
+    }
+    const { data: files } = await sb.from("claims_documents")
+      .select("id, original_name, mime_type, byte_size")
+      .eq("claim_id", claimId)
+      .in("id", ids);
+    const rows = files || [];
+    const listed = rows.map((f) => ({ id: f.id, name: f.original_name, bytes: Number(f.byte_size || 0), mime: f.mime_type }));
+    const packageBytes = listed.reduce((s, f) => s + f.bytes, 0);
+    const overLimit = packageBytes > PACKAGE_LIMIT;
+    const split = splitPlan(listed);
+    return jsonResponse({
+      success: true,
+      packageBytes,
+      limitBytes: PACKAGE_LIMIT,
+      overLimit,
+      files: listed,
+      missing: ids.filter((id) => !rows.some((f) => f.id === id)),
+      suggestion: packageSuggestion(packageBytes),
+      split: split.map((g, i) => ({
+        index: i + 1,
+        bytes: g.bytes,
+        tooLargeSingle: g.tooLargeSingle === true,
+        file_ids: g.files.map((f) => f.id),
+        names: g.files.map((f) => f.name),
+      })),
+      omitted: false,
+      realEmailSend: false,
+    });
+  }
+
+  if (action === "validate_claim_send") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim", realEmailSend: false }, 403);
+    }
+    // Composer Preview: format validation only. Recipient allowlist stays on
+    // dispatch_due_test / scheduled TEST mail — not on operator SEND after Preview.
+    const toParsed = parseEmailListStrict(String(body.to || ""), true);
+    const ccParsed = parseEmailListStrict(String(body.cc || ""), false);
+    if (!toParsed.ok) return jsonResponse({ success: false, error: toParsed.error, realEmailSend: false }, 400);
+    if (!ccParsed.ok) return jsonResponse({ success: false, error: ccParsed.error, realEmailSend: false }, 400);
+    const to = toParsed.emails.join(", ");
+    const cc = ccParsed.emails.join(", ");
+    const subject = String(body.subject || "").trim();
+    const text = String(body.body || "").trim();
+    const ids = Array.isArray(body.file_ids) ? body.file_ids.map((x) => String(x)).filter(Boolean) : [];
+    if (!subject) return jsonResponse({ success: false, error: "subject_required", realEmailSend: false }, 400);
+    if (!text) return jsonResponse({ success: false, error: "body_required", realEmailSend: false }, 400);
+    if (hasInternalLeak(text)) {
+      return jsonResponse({ success: false, error: "internal_content_blocked", realEmailSend: false }, 400);
+    }
+    const { data: fileRows } = ids.length
+      ? await sb.from("claims_documents")
+        .select("id, original_name, mime_type, byte_size")
+        .eq("claim_id", claimId)
+        .in("id", ids)
+      : { data: [] as Array<{ id: string; original_name: string; mime_type: string; byte_size: number }> };
+    const rows = fileRows || [];
+    const missing = ids.filter((id) => !rows.some((f) => f.id === id));
+    if (missing.length) {
+      return jsonResponse({ success: false, error: "files_not_on_claim", missing, omitted: false, realEmailSend: false }, 400);
+    }
+    const files = rows.map((f) => ({ id: f.id, name: f.original_name, bytes: Number(f.byte_size || 0) }));
+    const packageBytes = files.reduce((s, f) => s + f.bytes, 0);
+    const overLimit = packageBytes > PACKAGE_LIMIT;
+    return jsonResponse({
+      success: !overLimit,
+      error: overLimit ? "package_too_large" : undefined,
+      preview: {
+        from: ALLOWED_ACCOUNT,
+        to,
+        cc: cc || null,
+        subject,
+        body: text,
+        files,
+        fileCount: files.length,
+        packageBytes,
+      },
+      overLimit,
+      omitted: false,
+      suggestion: packageSuggestion(packageBytes),
+      split: splitPlan(files).map((g, i) => ({
+        index: i + 1,
+        bytes: g.bytes,
+        tooLargeSingle: g.tooLargeSingle === true,
+        file_ids: g.files.map((f) => f.id),
+        names: g.files.map((f) => f.name),
+      })),
+      sendEnabled: await isSendEnabled(sb),
+      realEmailSend: false,
+    }, overLimit ? 413 : 200);
+  }
+
+  if (action === "match_dry_run") {
+    const mail = (body.mail && typeof body.mail === "object") ? body.mail as Record<string, unknown> : {};
+    const claimsIn = Array.isArray(body.claims) && body.claims.length
+      ? body.claims as MatchClaim[]
+      : await loadMatchClaims(sb);
+    const result = matchIncomingMail({
+      messageId: String(mail.messageId || "dry"),
+      threadId: String(mail.threadId || ""),
+      subject: String(mail.subject || ""),
+      body: String(mail.body || ""),
+      from: String(mail.from || ""),
+      filenames: Array.isArray(mail.filenames) ? mail.filenames.map((x) => String(x)) : [],
+    }, claimsIn);
+    return jsonResponse({ success: true, result, mailboxMutated: false, realEmailSend: false });
+  }
+
+  if (action === "list_pending") {
+    const { data } = await sb.from("claims_gmail_pending")
+      .select("id, gmail_message_id, gmail_thread_id, from_addr, subject, snippet, sent_at, decision, reason, via, candidates, assigned_claim_id, imported_at, created_at")
+      .order("created_at", { ascending: false })
+      .limit(80);
+    return jsonResponse({ success: true, data: data || [], mailboxMutated: false, realEmailSend: false });
+  }
+
+  if (action === "assign_pending") {
+    const pendingId = String(body.pending_id || "");
+    const claimId = String(body.claim_id || "");
+    if (!pendingId || !claimId) return jsonResponse({ success: false, error: "pending_id and claim_id required" }, 400);
+    if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    const { data: row } = await sb.from("claims_gmail_pending").select("id, gmail_message_id, assigned_claim_id, imported_at").eq("id", pendingId).maybeSingle();
+    if (!row) return jsonResponse({ success: false, error: "not_found" }, 404);
+    if (row.imported_at) {
+      return jsonResponse({ success: false, error: "already_imported", claim_id: row.assigned_claim_id, mailboxMutated: false, realEmailSend: false }, 409);
+    }
+    await sb.from("claims_gmail_pending").update({ assigned_claim_id: claimId, decision: "manual" }).eq("id", pendingId);
+    return jsonResponse({
+      success: true,
+      claim_id: claimId,
+      message_id: row.gmail_message_id,
+      mailboxMutated: false,
+      realEmailSend: false,
+    });
+  }
+
+  if (action === "scan_inbox" && systemScheduler && body.force !== true) {
+    const { data: stamp } = await sb.from("claims_config").select("value").eq("key", MAILBOX_SCAN_STAMP_KEY).maybeSingle();
+    const lastMs = stamp?.value ? Date.parse(String(stamp.value)) : 0;
+    if (lastMs && Number.isFinite(lastMs) && Date.now() - lastMs < MAILBOX_SCAN_EVERY_MS) {
+      return jsonResponse({
+        success: true,
+        skipped: true,
+        reason: "scan_not_due",
+        lookback: MAILBOX_SCAN_LOOKBACK,
+        folders: ["inbox", "sent"],
+        scheduler: true,
+        everyMs: MAILBOX_SCAN_EVERY_MS,
+        lastScanAt: new Date(lastMs).toISOString(),
+        nextDueAt: new Date(lastMs + MAILBOX_SCAN_EVERY_MS).toISOString(),
+        mailboxMutated: false,
+        realEmailSend: false,
+        autoSend: false,
+      });
+    }
+  }
+
+  const conn = await loadConnection(sb);
+  if (!conn) return jsonResponse({ success: false, error: "gmail_not_connected" }, 409);
+  if (conn.connected_email.toLowerCase() !== ALLOWED_ACCOUNT) {
+    return jsonResponse({ success: false, error: "wrong_account", email: conn.connected_email }, 403);
+  }
+
+  let access = "";
+  try {
+    const tok = await googleAccessToken(conn.refresh_token);
+    access = tok.access;
+    await persistRotatedRefresh(sb, conn.refresh_token, tok.newRefresh);
+    await sb.from("claims_gmail_connection").update({ last_ok_at: new Date().toISOString() }).eq("id", "staging");
+  } catch (e) {
+    return jsonResponse({ success: false, error: String((e as Error).message || e) }, 400);
+  }
+
+  if (action === "scan_inbox") {
+    const dry = body.dry === true;
+    const scheduler = systemScheduler;
+    if (body.backfill && !scheduler && role !== "super_admin") return jsonResponse({ success: false, error: "forbidden_backfill" }, 403);
+    let page: ReturnType<typeof backfillPage> | null = null;
+    try { if (body.backfill) page = backfillPage(body.backfill); }
+    catch (e) { return jsonResponse({ success: false, error: String((e as Error).message), realEmailSend: false }, 400); }
+    let nextPageToken: string | null = null;
+    const { data: importedRows } = await sb.from("claims_gmail_imports").select("gmail_message_id");
+    const importedSet = new Set((importedRows || []).map((r) => String(r.gmail_message_id || "")).filter(Boolean));
+    const { data: pendingRows } = await sb.from("claims_gmail_pending").select("id, gmail_message_id, imported_at, decision");
+    const pendingByMsg = new Map((pendingRows || []).map((r) => [String(r.gmail_message_id), r]));
+    const claims = await loadMatchClaims(sb);
+    const auto: Array<Record<string, unknown>> = [];
+    const needsReview: Array<Record<string, unknown>> = [];
+    const folderCounts: Record<string, number> = { inbox: 0, sent: 0 };
+    let skippedImported = 0;
+    let skippedPending = 0;
+    const folders: Array<{ mailbox: "inbox" | "sent"; q: string }> = page ? [page] : [
+      { mailbox: "inbox", q: `in:inbox ${MAILBOX_SCAN_LOOKBACK}` },
+      { mailbox: "sent", q: `in:sent ${MAILBOX_SCAN_LOOKBACK}` },
+    ];
+    const seenIds = new Set<string>();
+    for (const folder of folders) {
+      const maxResults = page?.maxResults || 20;
+      const listed = await gmailGet(access, `messages?maxResults=${maxResults}&q=${encodeURIComponent(folder.q)}${page?.pageToken ? `&pageToken=${encodeURIComponent(page.pageToken)}` : ""}`);
+      if (page) nextPageToken = listed.nextPageToken ? String(listed.nextPageToken) : null;
+      const ids = ((listed.messages || []) as Array<{ id?: string }>).map((m) => String(m.id || "")).filter(Boolean).slice(0, maxResults);
+      folderCounts[folder.mailbox] = ids.length;
+      for (const messageId of ids) {
+        if (seenIds.has(messageId)) continue;
+        seenIds.add(messageId);
+        if (importedSet.has(messageId)) {
+          skippedImported += 1;
+          continue;
+        }
+        const existingPending = pendingByMsg.get(messageId);
+        if (existingPending?.imported_at) {
+          skippedImported += 1;
+          continue;
+        }
+        if (existingPending && !dry) {
+          skippedPending += 1;
+          continue;
+        }
+        const full = await gmailGet(access, `messages/${encodeURIComponent(messageId)}?format=full`);
+        const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+        const parts: Array<Record<string, unknown>> = [];
+        if (full.payload) walkParts(full.payload as Record<string, unknown>, parts);
+        const files = collectFiles(parts);
+        const extracted = await extractMailBody(access, messageId, full.payload as Record<string, unknown>, parts, String(full.snippet || ""));
+        const fromAddr = header(headers, "From");
+        const subject = header(headers, "Subject");
+        const sentAt = full.internalDate ? new Date(Number(full.internalDate)).toISOString() : null;
+        const match = matchIncomingMail({
+          messageId,
+          threadId: String(full.threadId || ""),
+          subject,
+          body: extracted.bodyText,
+          from: fromAddr,
+          filenames: files.map((f) => f.filename),
+        }, claims);
+        const pendingId = `GIP-${messageId}`.slice(0, 80);
+        const row = {
+          id: pendingId,
+          gmail_message_id: messageId,
+          gmail_thread_id: String(full.threadId || ""),
+          from_addr: fromAddr,
+          subject,
+          snippet: String(full.snippet || extracted.bodyText.slice(0, 180)),
+          sent_at: sentAt,
+          decision: match.decision,
+          reason: match.reason,
+          via: match.via || null,
+          candidates: match.candidates,
+          assigned_claim_id: match.decision === "auto" ? (match.claimId || null) : null,
+        };
+        const item = {
+          pending_id: pendingId,
+          message_id: messageId,
+          thread_id: String(full.threadId || ""),
+          mailbox: folder.mailbox,
+          from: fromAddr,
+          subject,
+          sent_at: sentAt,
+          claim_id: match.claimId || null,
+          attachment_count: files.length,
+          ...match,
+        };
+        if (match.decision === "auto" && match.claimId) auto.push(item);
+        else needsReview.push(item);
+        if (dry) continue;
+        await sb.from("claims_gmail_pending").upsert(row, { onConflict: "gmail_message_id" });
+        const ntfId = nid("NTF");
+        const claimLabel = match.claimId || "";
+        const whenHe = sentAt ? new Date(sentAt).toLocaleString("he-IL") : new Date().toLocaleString("he-IL");
+        const folderHe = folder.mailbox === "sent" ? "יוצא" : "נכנס";
+        const message = match.decision === "auto" && match.claimId
+          ? `מייל ${folderHe} שויך לתביעה ${claimLabel}\nשולח: ${fromAddr}\nנושא: ${subject || "(ללא נושא)"}\nשעה: ${whenHe}`
+          : `מייל ${folderHe} דורש בדיקת שיוך\nשולח: ${fromAddr}\nנושא: ${subject || "(ללא נושא)"}\nשעה: ${whenHe}`;
+        await sb.from("claims_notifications").insert({
+          id: ntfId,
+          claim_id: match.claimId || null,
+          row_data: {
+            id: ntfId,
+            claimId: match.claimId || "",
+            type: match.decision === "auto" ? "gmail_auto" : "gmail_review",
+            message,
+            read: "false",
+            createdAt: new Date().toLocaleString("he-IL"),
+            from: fromAddr,
+            subject,
+            pendingId,
+            gmail_message_id: messageId,
+            mailbox: folder.mailbox,
+          },
+        });
+      }
+    }
+    let imported = 0;
+    const importErrors: Array<{ message_id: string; error: string }> = [];
+    if (scheduler && !dry) {
+      for (const item of auto) {
+        const claimId = String(item.claim_id || "");
+        const messageId = String(item.message_id || "");
+        if (!claimId || !messageId) continue;
+        try {
+          let start = 0;
+          for (let step = 0; step < 40; step += 1) {
+            const child = await handleClaimsGmail(new Request(req.url, {
+              method: "POST",
+              headers: req.headers,
+              body: JSON.stringify({
+                action: "import_message",
+                claim_id: claimId,
+                message_id: messageId,
+                start,
+                scheduler: true,
+              }),
+            }));
+            const ir = await child.json() as { success?: boolean; done?: boolean; start?: number; error?: string };
+            if (!ir.success) {
+              importErrors.push({ message_id: messageId, error: String(ir.error || child.status) });
+              break;
+            }
+            if (ir.done) {
+              imported += 1;
+              break;
+            }
+            start = Number(ir.start || start + BATCH);
+          }
+        } catch (e) {
+          importErrors.push({ message_id: messageId, error: String((e as Error).message || e).slice(0, 180) });
+        }
+      }
+      if (!page) await sb.from("claims_config").upsert({
+        key: MAILBOX_SCAN_STAMP_KEY,
+        value: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "key" });
+    }
+    const nowIso = new Date().toISOString();
+    return jsonResponse({
+      success: true,
+      dry,
+      scanned: seenIds.size,
+      folders: folderCounts,
+      auto,
+      needs_review: needsReview,
+      skippedImported,
+      skippedPending,
+      imported,
+      importErrors: importErrors.slice(0, 20),
+      mailboxMutated: false,
+      realEmailSend: false,
+      autoSend: false,
+      scheduler,
+      oauthChanged: false,
+      backfill: !!page,
+      nextPageToken,
+      lookback: page?.q || MAILBOX_SCAN_LOOKBACK,
+      everyMs: MAILBOX_SCAN_EVERY_MS,
+      lastScanAt: scheduler && !dry && !page ? nowIso : undefined,
+      nextDueAt: scheduler && !dry && !page ? new Date(Date.now() + MAILBOX_SCAN_EVERY_MS).toISOString() : undefined,
+    });
+  }
+
+  if (action === "preview_sent") {
+    const q = "in:sent has:attachment newer_than:365d";
+    const listed = await gmailGet(access, `messages?maxResults=40&q=${encodeURIComponent(q)}`);
+    const ids = ((listed.messages || []) as Array<{ id?: string }>).map((m) => String(m.id || "")).filter(Boolean).slice(0, 40);
+    const claims = await loadMatchClaims(sb);
+    const docsByClaim = new Map<string, Array<{ id?: string; original_name?: string; gmail_attachment_id?: string }>>();
+    const loadClaimDocs = async (claimId: string) => {
+      if (docsByClaim.has(claimId)) return docsByClaim.get(claimId) || [];
+      const { data } = await sb.from("claims_documents").select("id, original_name, gmail_attachment_id").eq("claim_id", claimId);
+      const rows = (data || []).map((d) => ({
+        id: String(d.id),
+        original_name: String(d.original_name || ""),
+        gmail_attachment_id: d.gmail_attachment_id ? String(d.gmail_attachment_id) : "",
+      }));
+      docsByClaim.set(claimId, rows);
+      return rows;
+    };
+    const rows: Array<Record<string, unknown>> = [];
+    const summary = {
+      relevant_messages: 0,
+      certain_claim_matches: 0,
+      attachments: 0,
+      already_in_claim: 0,
+      certain_new: 0,
+      needs_review: 0,
+      unmatched: 0,
+    };
+    const certainClaims = new Set<string>();
+    for (const messageId of ids) {
+      const full = await gmailGet(access, `messages/${encodeURIComponent(messageId)}?format=full`);
+      const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+      const parts: Array<Record<string, unknown>> = [];
+      if (full.payload) walkParts(full.payload as Record<string, unknown>, parts);
+      const files = collectFiles(parts);
+      let bodyText = String(full.snippet || "");
+      for (const p of parts) {
+        const mime = String(p.mimeType || "").toLowerCase();
+        if (mime.startsWith("text/plain") && !String(p.filename || "").trim()) {
+          const d = decodeBody(p);
+          if (d.length > bodyText.length) bodyText = d;
+        }
+      }
+      const subject = header(headers, "Subject");
+      const match = matchIncomingMail({
+        messageId,
+        threadId: String(full.threadId || ""),
+        subject,
+        body: bodyText,
+        from: header(headers, "From"),
+        filenames: files.map((f) => f.filename),
+      }, claims);
+      const relevant = match.decision === "auto" || match.candidates.length > 0 || /DAL-|TEST-CLAIMS/i.test(`${subject}\n${bodyText}`);
+      if (relevant) summary.relevant_messages += 1;
+      if (match.decision === "auto" && match.claimId) certainClaims.add(match.claimId);
+      const claimDocs = match.claimId ? await loadClaimDocs(match.claimId) : [];
+      const attachments = files.map((f) => {
+        const cls = classifySentAttachment({
+          filename: f.filename,
+          attachmentId: f.attachmentId,
+          match,
+          claimDocs,
+        });
+        summary.attachments += 1;
+        if (cls.status === "already_in_claim") summary.already_in_claim += 1;
+        else if (cls.status === "certain_new") summary.certain_new += 1;
+        else if (cls.status === "needs_review") summary.needs_review += 1;
+        else summary.unmatched += 1;
+        return {
+          filename: f.filename,
+          mime: f.mime,
+          size: Number((f.part.body as { size?: number } | undefined)?.size || 0),
+          attachmentId: f.attachmentId || "",
+          claim_id: match.claimId || null,
+          ...cls,
+        };
+      });
+      rows.push({
+        message_id: messageId,
+        thread_id: String(full.threadId || ""),
+        subject,
+        from: header(headers, "From"),
+        to: header(headers, "To"),
+        date: header(headers, "Date"),
+        match,
+        relevant,
+        attachments,
+      });
+    }
+    summary.certain_claim_matches = certainClaims.size;
+    return jsonResponse({
+      success: true,
+      preview: true,
+      import: false,
+      autoSend: false,
+      mailboxMutated: false,
+      realEmailSend: false,
+      q,
+      listed: ids.length,
+      resultSizeEstimate: Number(listed.resultSizeEstimate || ids.length),
+      truncated: Number(listed.resultSizeEstimate || 0) > ids.length,
+      scanned: ids.length,
+      summary,
+      rows,
+      note: "SCAN/PREVIEW בלבד. אין Import, אין הורדת קבצים, אין שינוי בתיבה.",
+    });
+  }
+
+  if (action === "list_messages") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const q = String(body.q || "newer_than:30d").slice(0, 180);
+    const listed = await gmailGet(access, `messages?maxResults=20&q=${encodeURIComponent(q)}`);
+    const messages: Array<Record<string, unknown>> = [];
+    for (const m of (listed.messages || []).slice(0, 20)) {
+      const full = await gmailGet(access, `messages/${m.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Date`);
+      const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+      messages.push({
+        id: full.id,
+        threadId: full.threadId,
+        from: header(headers, "From"),
+        subject: header(headers, "Subject"),
+        date: header(headers, "Date"),
+        snippet: full.snippet || "",
+        attachmentsApprox: Number(full.payload?.mimeType?.includes("multipart") ? 1 : 0),
+      });
+    }
+    return jsonResponse({ success: true, messages, mailboxMutated: false, realEmailSend: false });
+  }
+
+  if (action === "enrich_headers") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const { data: rows } = await sb.from("claims_gmail_imports")
+      .select("id, gmail_message_id")
+      .eq("claim_id", claimId);
+    const existing = rows || [];
+    let updated = 0;
+    let missing = 0;
+    const errors: Array<{ id: string; error: string }> = [];
+    for (const row of existing) {
+      const messageId = String(row.gmail_message_id || "");
+      if (!messageId) continue;
+      try {
+        const full = await gmailGet(
+          access,
+          `messages/${encodeURIComponent(messageId)}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Date`,
+        );
+        const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+        const patch: Record<string, string | null> = {
+          to_addr: header(headers, "To") || null,
+          cc_addr: header(headers, "Cc") || null,
+        };
+        if (header(headers, "From")) patch.from_addr = header(headers, "From");
+        const { data: touched, error: upErr } = await sb.from("claims_gmail_imports")
+          .update(patch)
+          .eq("id", row.id)
+          .eq("claim_id", claimId)
+          .eq("gmail_message_id", messageId)
+          .select("id");
+        if (upErr) errors.push({ id: row.id, error: upErr.message });
+        else if (touched?.length) updated += 1;
+      } catch (e) {
+        missing += 1;
+        errors.push({ id: row.id, error: String((e as Error).message || e) });
+      }
+    }
+    return jsonResponse({
+      success: true,
+      claim_id: claimId,
+      existing: existing.length,
+      updated,
+      missing,
+      inserted: 0,
+      documentsTouched: 0,
+      mailboxMutated: false,
+      realEmailSend: false,
+      errors: errors.slice(0, 20),
+    });
+  }
+
+  if (action === "read_message") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const messageId = String(body.message_id || "");
+    if (!messageId) return jsonResponse({ success: false, error: "message_id required" }, 400);
+    const full = await gmailGet(access, `messages/${encodeURIComponent(messageId)}?format=full`);
+    const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+    const parts: Array<Record<string, unknown>> = [];
+    if (full.payload) walkParts(full.payload as Record<string, unknown>, parts);
+    const files = collectFiles(parts);
+    const extracted = await extractMailBody(access, messageId, full.payload as Record<string, unknown>, parts, String(full.snippet || ""));
+    return jsonResponse({
+      success: true,
+      message: {
+        id: full.id,
+        threadId: full.threadId,
+        from: header(headers, "From"),
+        to: header(headers, "To"),
+        subject: header(headers, "Subject"),
+        date: header(headers, "Date"),
+        messageIdHeader: header(headers, "Message-ID") || header(headers, "Message-Id"),
+        labelIds: Array.isArray(full.labelIds) ? full.labelIds : [],
+        cc: header(headers, "Cc"),
+        bodyText: extracted.bodyText,
+        bodyHtml: extracted.bodyHtml?.slice(0, 4000) || "",
+        partsMeta: parts.slice(0, 40).map((p) => ({
+          mime: String(p.mimeType || ""),
+          filename: String(p.filename || ""),
+          size: Number((p.body as { size?: number } | undefined)?.size || 0),
+          hasData: Boolean((p.body as { data?: string } | undefined)?.data),
+        })),
+        attachments: files.map((f) => ({
+          filename: f.filename,
+          mime: f.mime,
+          size: Number((f.part.body as { size?: number } | undefined)?.size || 0),
+          attachmentId: f.attachmentId,
+        })),
+      },
+      mailboxMutated: false,
+      realEmailSend: false,
+    });
+  }
+
+  if (action === "import_message") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const messageId = String(body.message_id || "");
+    if (!messageId) return jsonResponse({ success: false, error: "message_id required" }, 400);
+    const { data: existingImp } = await sb.from("claims_gmail_imports").select("claim_id").eq("gmail_message_id", messageId).limit(5);
+    const otherClaim = (existingImp || []).find((r) => String(r.claim_id) !== claimId);
+    if (otherClaim) {
+      return jsonResponse({
+        success: false,
+        error: "already_imported_other_claim",
+        existing_claim_id: otherClaim.claim_id,
+        done: true,
+        mailboxMutated: false,
+        realEmailSend: false,
+      }, 409);
+    }
+    const start = Number(body.start || 0) || 0;
+    const actorId = isUuid(user.id) ? user.id : null;
+    const profile = actorId
+      ? (await sb.from("profiles").select("full_name").eq("id", actorId).maybeSingle()).data
+      : null;
+    const actorName = systemScheduler
+      ? "מערכת (סריקת Gmail)"
+      : (profile?.full_name || user.email || user.id);
+
+    const full = await gmailGet(access, `messages/${encodeURIComponent(messageId)}?format=full`);
+    const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+    const threadId = String(full.threadId || "");
+    const subject = header(headers, "Subject");
+    const parts: Array<Record<string, unknown>> = [];
+    if (full.payload) walkParts(full.payload as Record<string, unknown>, parts);
+    const files = collectFiles(parts);
+    const extracted = await extractMailBody(access, messageId, full.payload as Record<string, unknown>, parts, String(full.snippet || ""));
+    const importId = `GIM-${claimId}-${String(full.id)}`.slice(0, 80);
+
+    if (start === 0) {
+      await sb.from("claims_gmail_imports").upsert({
+        id: importId,
+        claim_id: claimId,
+        gmail_message_id: String(full.id),
+        gmail_thread_id: threadId,
+        from_addr: header(headers, "From"),
+        to_addr: header(headers, "To"),
+        cc_addr: header(headers, "Cc") || null,
+        subject,
+        snippet: (full.snippet || extracted.bodyText.slice(0, 180)),
+        body_text: extracted.bodyText,
+        sent_at: full.internalDate ? new Date(Number(full.internalDate)).toISOString() : null,
+        attachment_count: files.length,
+        found_count: files.length,
+        imported_count: 0,
+        failed_count: 0,
+        failures: [],
+        imported_by: actorId,
+        imported_by_name: actorName,
+      }, { onConflict: "id" });
+      const { data: rec } = await sb.from("claims_records").select("gmail_message_id").eq("id", claimId).maybeSingle();
+      if (!rec?.gmail_message_id) {
+        await sb.from("claims_records").update({
+          gmail_message_id: String(full.id),
+          gmail_thread_id: threadId,
+          last_activity_at: new Date().toISOString(),
+        }).eq("id", claimId);
+      } else {
+        await sb.from("claims_records").update({ last_activity_at: new Date().toISOString() }).eq("id", claimId);
+      }
+    } else if (extracted.bodyText) {
+      await sb.from("claims_gmail_imports").update({
+        body_text: extracted.bodyText,
+        snippet: (full.snippet || extracted.bodyText.slice(0, 180)),
+      }).eq("id", importId).eq("claim_id", claimId);
+    }
+
+    const { data: existingRows } = await sb.from("claims_documents").select("id, original_name, byte_size, gmail_attachment_id, gmail_message_id, content_sha256, storage_path, mime_type").eq("claim_id", claimId);
+    const haveAtt = new Set((existingRows || []).map((r) => String(r.gmail_attachment_id || "")).filter(Boolean));
+    const haveHash = new Set((existingRows || []).map((r) => String(r.content_sha256 || "")).filter(Boolean));
+    const haveMsgAtt = new Set((existingRows || []).filter((r) => r.gmail_attachment_id).map((r) => `${r.gmail_message_id || ""}:${r.gmail_attachment_id}`));
+
+    const slice = files.slice(start, Math.min(files.length, start + BATCH));
+    let uploaded = 0;
+    let skippedExisting = 0;
+    const failures: Failure[] = [];
+    for (const f of slice) {
+      const filename = f.filename;
+      const mime = f.mime;
+      if ((f.attachmentId && haveAtt.has(f.attachmentId)) || haveMsgAtt.has(`${full.id}:${f.attachmentId || ""}`)) {
+        skippedExisting += 1;
+        continue;
+      }
+      let bytes: Uint8Array | null = null;
+      try {
+        if (f.inline) bytes = b64urlToBytes(f.inline);
+        else if (f.attachmentId) {
+          const att = await gmailGet(access, `messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(f.attachmentId)}`);
+          bytes = b64urlToBytes(String(att.data || ""));
+        }
+      } catch (e) {
+        failures.push({ filename, reason: `download_error: ${String((e as Error).message || e).slice(0, 180)}` });
+        continue;
+      }
+      if (!bytes || bytes.byteLength === 0) {
+        failures.push({ filename, reason: "empty" });
+        continue;
+      }
+      if (bytes.byteLength > MAX_BYTES) {
+        failures.push({ filename, reason: `too_large:${bytes.byteLength}` });
+        continue;
+      }
+      const storedMime = resolveStoredMime(filename, mime, bytes);
+      if (storedMime && !ALLOWED_MIME.test(storedMime) && !/\.(jpg|jpeg|png|gif|webp|pdf|heic)$/i.test(filename)) {
+        failures.push({ filename, reason: `mime_not_allowed:${storedMime}` });
+        continue;
+      }
+      const digest = await sha256HexBytes(bytes);
+      const prior = (existingRows || []).find((r) => String(r.content_sha256 || "") === digest);
+      if (prior || haveHash.has(digest)) {
+        skippedExisting += 1;
+        continue;
+      }
+      const path = `${claimId}/gmail/${full.id}/${nid("F")}-${sanitizeName(filename)}`;
+      const { error: upErr } = await sb.storage.from(BUCKET).upload(path, bytes, {
+        contentType: storedMime,
+        upsert: false,
+      });
+      if (upErr) {
+        failures.push({ filename, reason: `upload_error:${upErr.message}` });
+        continue;
+      }
+      const { error: insErr } = await sb.from("claims_documents").insert({
+        id: nid("CDM"),
+        claim_id: claimId,
+        storage_path: path,
+        original_name: filename,
+        mime_type: storedMime,
+        byte_size: bytes.byteLength,
+        source: "gmail",
+        gmail_message_id: String(full.id),
+        gmail_thread_id: threadId,
+        gmail_attachment_id: f.attachmentId || null,
+        content_sha256: digest,
+        doc_kind: guessDocKind(filename, storedMime, subject),
+        uploaded_by: actorId,
+        uploaded_by_name: actorName,
+      });
+      if (insErr) {
+        failures.push({ filename, reason: `db_error:${insErr.message}` });
+        continue;
+      }
+      uploaded += 1;
+      if (f.attachmentId) haveAtt.add(f.attachmentId);
+      haveHash.add(digest);
+    }
+
+    const next = start + slice.length;
+    const done = next >= files.length;
+
+    const { data: afterRows } = await sb.from("claims_documents")
+      .select("original_name")
+      .eq("claim_id", claimId)
+      .eq("gmail_message_id", String(full.id));
+    const importedCount = new Set((afterRows || []).map((r) => String(r.original_name || "").toLowerCase())).size;
+
+    const { data: prevImp } = await sb.from("claims_gmail_imports").select("failures").eq("id", importId).maybeSingle();
+    const prevFail = start === 0 ? [] : (Array.isArray(prevImp?.failures) ? prevImp.failures as Failure[] : []);
+    const succeededNames = new Set(slice.filter((f) => !failures.some((x) => x.filename === f.filename)).map((f) => f.filename));
+    const keptPrev = prevFail.filter((f) => !succeededNames.has(f.filename));
+    const allFail = [...keptPrev, ...failures];
+    await sb.from("claims_gmail_imports").update({
+      found_count: files.length,
+      imported_count: importedCount,
+      failed_count: allFail.length,
+      failures: allFail,
+      attachment_count: files.length,
+      body_text: extracted.bodyText || undefined,
+    }).eq("id", importId);
+
+    if (done) {
+      await sb.from("claims_history").insert({
+        id: nid("HIS"),
+        claim_id: claimId,
+        row_data: {
+          action: "יובא מייל מ-Gmail כולל כל המצורפים",
+          note: `${header(headers, "Subject")} · Found ${files.length} · Imported ${importedCount} · Failed ${allFail.length}`,
+          type: "gmail_import",
+          by: actorName,
+          at: new Date().toLocaleString("he-IL"),
+          gmail_message_id: full.id,
+          gmail_thread_id: threadId,
+        },
+      });
+      await sb.from("claims_gmail_pending").update({
+        imported_at: new Date().toISOString(),
+        assigned_claim_id: claimId,
+      }).eq("gmail_message_id", String(full.id));
+      const fromAddr = header(headers, "From").toLowerCase();
+      if (threadId && !fromAddr.includes(ALLOWED_ACCOUNT)) {
+        await sb.from("claims_gmail_outbox").update({ track_status: "reply_received" })
+          .eq("claim_id", claimId)
+          .eq("kind", "claim_send")
+          .eq("gmail_thread_id", threadId)
+          .in("track_status", ["waiting_reply", "sent"]);
+        const { data: taskRows } = await sb.from("claims_tasks").select("id, row_data").eq("claim_id", claimId);
+        for (const t of taskRows || []) {
+          const rd = (t.row_data && typeof t.row_data === "object") ? t.row_data as Record<string, string> : {};
+          if (rd.gmailThreadId === threadId && rd.done !== "true") {
+            await sb.from("claims_tasks").update({
+              row_data: { ...rd, replyReceived: "true" },
+            }).eq("id", t.id).eq("claim_id", claimId);
+          }
+        }
+      }
+      const mailTasks = await ensureMailTasks(sb, {
+        claimId,
+        importId,
+        messageId: String(full.id),
+        threadId,
+        from: header(headers, "From"),
+        subject: subject || "",
+        body: extracted.bodyText || "",
+        sentAt: full.internalDate ? new Date(Number(full.internalDate)).toISOString() : null,
+      });
+      if (mailTasks.requests?.length) {
+        const bits = (mailTasks.tasks || []).map((t) => {
+          const req = (t.request && typeof t.request === "object") ? t.request as { label?: string } : {};
+          const ds = String(t.docState || "");
+          const state = ds === "ready" ? "מסמך נמצא" : ds === "missing" ? "מסמך חסר" : ds === "needs_review" ? "דורש בדיקת עובד" : "נדרש טיפול";
+          return `${req.label || ""} · ${state}`.trim();
+        }).filter(Boolean);
+        await sb.from("claims_history").insert({
+          id: nid("HIS"),
+          claim_id: claimId,
+          row_data: {
+            action: "זוהתה בקשה",
+            note: `נדרש טיפול · ${bits.join(" · ") || mailTasks.requests.map((r) => r.label).join(", ")}`,
+            type: "gmail_request",
+            by: actorName,
+            at: new Date().toLocaleString("he-IL"),
+            gmail_message_id: full.id,
+            gmail_thread_id: threadId,
+          },
+        });
+      }
+    }
+    return jsonResponse({
+      success: true,
+      done,
+      start: next,
+      uploaded,
+      skippedExisting,
+      found: files.length,
+      imported: importedCount,
+      failed: allFail.length,
+      failures: allFail,
+      total: files.length,
+      body_len: extracted.bodyText.length,
+      gmail_message_id: full.id,
+      gmail_thread_id: threadId,
+      mailboxMutated: false,
+      realEmailSend: false,
+    });
+  }
+
+  if (action === "create_draft") {
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    }
+    const to = String(body.to || "").trim();
+    const cc = String(body.cc || "").trim();
+    const requestedSubject = String(body.subject || `טיוטה תביעה ${claimId}`);
+    const subject = requestedSubject.includes("לא לשלוח") || requestedSubject.includes("STAGING-QA")
+      ? requestedSubject
+      : `[STAGING-QA-DO-NOT-SEND] ${requestedSubject}`;
+    const text = `[STAGING QA — טיוטה בלבד, לא לשלוח לחברת ביטוח / עורך דין / לקוח]\n\n${String(body.body || "")}`;
+    if (!to) return jsonResponse({ success: false, error: "to required" }, 400);
+
+    const ids = Array.isArray(body.file_ids) ? body.file_ids.map((x) => String(x)).filter(Boolean) : [];
+    const { data: fileRows } = ids.length
+      ? await sb.from("claims_documents")
+        .select("id, original_name, mime_type, byte_size, storage_path, claim_id")
+        .eq("claim_id", claimId)
+        .in("id", ids)
+      : { data: [] as Array<{ id: string; original_name: string; mime_type: string; byte_size: number; storage_path: string; claim_id: string }> };
+    const rows = fileRows || [];
+    const missing = ids.filter((id) => !rows.some((f) => f.id === id));
+    if (missing.length) {
+      return jsonResponse({
+        success: false,
+        error: "files_not_on_claim",
+        missing,
+        realEmailSend: false,
+      }, 400);
+    }
+    const packageBytes = rows.reduce((s, f) => s + Number(f.byte_size || 0), 0);
+    if (packageBytes > PACKAGE_LIMIT) {
+      return jsonResponse({
+        success: false,
+        error: "package_too_large",
+        packageBytes,
+        limitBytes: PACKAGE_LIMIT,
+        suggestion: packageSuggestion(packageBytes),
+        files: rows.map((f) => ({ id: f.id, name: f.original_name, bytes: Number(f.byte_size || 0) })),
+        omitted: false,
+        realEmailSend: false,
+      }, 413);
+    }
+
+    const boundary = `mix_${crypto.randomUUID().replace(/-/g, "")}`;
+    const chunks: string[] = [
+      `To: ${to}`,
+      ...(cc ? [`Cc: ${cc}`] : []),
+      `Subject: ${rfc2047(subject)}`,
+      "MIME-Version: 1.0",
+      `Content-Type: multipart/mixed; boundary="${boundary}"`,
+      "",
+      `--${boundary}`,
+      "Content-Type: text/plain; charset=UTF-8",
+      "Content-Transfer-Encoding: base64",
+      "",
+      bytesToB64(new TextEncoder().encode(text)),
+    ];
+    const attached: Array<{ id: string; name: string; bytes: number }> = [];
+    for (const f of rows) {
+      const { data: blob, error: dlErr } = await sb.storage.from(BUCKET).download(f.storage_path);
+      if (dlErr || !blob) {
+        return jsonResponse({
+          success: false,
+          error: "attachment_download_failed",
+          filename: f.original_name,
+          reason: dlErr?.message || "empty",
+          omitted: false,
+          realEmailSend: false,
+        }, 400);
+      }
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      const mime = f.mime_type || "application/octet-stream";
+      const safe = sanitizeName(f.original_name || "file");
+      chunks.push(
+        `--${boundary}`,
+        `Content-Type: ${mime}; name="${safe}"`,
+        `Content-Disposition: attachment; filename="${safe}"`,
+        "Content-Transfer-Encoding: base64",
+        "",
+        bytesToB64(bytes),
+      );
+      attached.push({ id: f.id, name: f.original_name, bytes: bytes.byteLength });
+    }
+    chunks.push(`--${boundary}--`);
+    const raw = chunks.join("\r\n");
+    const encoded = bytesToB64url(new TextEncoder().encode(raw));
+    const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/drafts", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${access}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ message: { raw: encoded } }),
+    });
+    const json = await res.json();
+    if (!res.ok) return jsonResponse({ success: false, error: json.error?.message || "draft_failed", realEmailSend: false }, 400);
+    const { data: profile } = await sb.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+    await sb.from("claims_history").insert({
+      id: nid("HIS"),
+      claim_id: claimId,
+      row_data: {
+        action: "נוצרה טיוטת Gmail (לא נשלח)",
+        note: `${subject} · to ${to}${cc ? ` · cc ${cc}` : ""} · ${attached.length} קבצים · ${packageBytes} bytes`,
+        type: "gmail_draft",
+        by: profile?.full_name || user.email,
+        at: new Date().toLocaleString("he-IL"),
+        gmail_draft_id: json.id,
+        gmail_message_id: json.message?.id,
+        gmail_thread_id: json.message?.threadId,
+      },
+    });
+    await sb.from("claims_records").update({
+      last_activity_at: new Date().toISOString(),
+    }).eq("id", claimId);
+    return jsonResponse({
+      success: true,
+      draftId: json.id,
+      gmail_message_id: json.message?.id || null,
+      gmail_thread_id: json.message?.threadId || null,
+      to,
+      cc: cc || null,
+      subject,
+      packageBytes,
+      attached,
+      sent: false,
+      realEmailSend: false,
+    });
+  }
+
+  if (action === "send_self_test" || action === "reply_self_test") {
+    if (role !== "super_admin") return jsonResponse({ success: false, error: "super_admin only", realEmailSend: false }, 403);
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim", realEmailSend: false }, 403);
+    }
+    const isReply = action === "reply_self_test";
+    const kind = isReply ? "self_test_reply" : "self_test";
+    const toCheck = assertSelfAllowlist(String(body.to || ""), true);
+    const ccRaw = String(body.cc || "").trim();
+    const ccCheck = assertSelfAllowlist(ccRaw, false);
+    if (!toCheck.ok) {
+      return jsonResponse({ success: false, error: toCheck.error, emails: toCheck.emails, realEmailSend: false }, 403);
+    }
+    if (!ccCheck.ok) {
+      return jsonResponse({ success: false, error: ccCheck.error, emails: ccCheck.emails, realEmailSend: false }, 403);
+    }
+    const to = ALLOWED_ACCOUNT;
+    const cc = ccRaw ? ALLOWED_ACCOUNT : "";
+    const requestedSubject = String(body.subject || "");
+    if (!/test|בדיקה/i.test(requestedSubject)) {
+      return jsonResponse({ success: false, error: "subject_must_include_TEST", realEmailSend: false }, 400);
+    }
+    const text = String(body.body || "").trim();
+    if (!text) return jsonResponse({ success: false, error: "body required", realEmailSend: false }, 400);
+    const ids = Array.isArray(body.file_ids) ? body.file_ids.map((x) => String(x)).filter(Boolean) : [];
+    if (!isReply && (ids.length < 1 || ids.length > 3)) {
+      return jsonResponse({ success: false, error: "self_test_requires_1_to_3_files", realEmailSend: false }, 400);
+    }
+    if (isReply && ids.length > 0) {
+      return jsonResponse({ success: false, error: "reply_test_no_extra_files", realEmailSend: false }, 400);
+    }
+
+    const { data: existingKind } = await sb.from("claims_gmail_outbox").select("id, gmail_message_id").eq("kind", kind).maybeSingle();
+    if (existingKind) {
+      return jsonResponse({
+        success: false,
+        error: "already_sent",
+        kind,
+        existing_id: existingKind.id,
+        gmail_message_id: existingKind.gmail_message_id,
+        realEmailSend: false,
+      }, 409);
+    }
+
+    let extraHeaders: string[] = [];
+    let threadId: string | undefined;
+    if (isReply) {
+      const { data: orig } = await sb.from("claims_gmail_outbox").select("*").eq("kind", "self_test").maybeSingle();
+      if (!orig?.gmail_message_id || !orig.gmail_thread_id) {
+        return jsonResponse({ success: false, error: "original_self_test_missing", realEmailSend: false }, 400);
+      }
+      threadId = String(orig.gmail_thread_id);
+      const origFull = await gmailGet(access, `messages/${encodeURIComponent(String(orig.gmail_message_id))}?format=metadata&metadataHeaders=Message-ID`);
+      const origHeaders = origFull.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+      const rfc = orig.rfc_message_id || header(origHeaders, "Message-ID") || header(origHeaders, "Message-Id");
+      if (rfc) {
+        extraHeaders = [`In-Reply-To: ${rfc}`, `References: ${rfc}`];
+      }
+    }
+
+    const { data: fileRows } = ids.length
+      ? await sb.from("claims_documents")
+        .select("id, original_name, mime_type, byte_size, storage_path, claim_id")
+        .eq("claim_id", claimId)
+        .in("id", ids)
+      : { data: [] as Array<{ id: string; original_name: string; mime_type: string; byte_size: number; storage_path: string; claim_id: string }> };
+    const rows = fileRows || [];
+    if (ids.length && rows.length !== ids.length) {
+      return jsonResponse({ success: false, error: "files_not_on_claim", realEmailSend: false }, 400);
+    }
+
+    const encodedMsg = await encodeMixedMessage(sb, {
+      to,
+      cc,
+      subject: requestedSubject,
+      text,
+      extraHeaders,
+      files: rows,
+    });
+    if ("error" in encodedMsg && encodedMsg.error) {
+      return jsonResponse({ success: false, ...encodedMsg, realEmailSend: false }, encodedMsg.error === "package_too_large" ? 413 : 400);
+    }
+
+    const sent = await gmailPost(access, "messages/send", {
+      raw: (encodedMsg as { encoded: string }).encoded,
+      ...(threadId ? { threadId } : {}),
+    });
+    if (!sent.ok) {
+      return jsonResponse({
+        success: false,
+        error: sent.json?.error?.message || "gmail_send_failed",
+        status: sent.status,
+        realEmailSend: false,
+      }, 400);
+    }
+
+    const gmailMessageId = String(sent.json.id || "");
+    const gmailThreadId = String(sent.json.threadId || threadId || "");
+    let rfcMessageId = "";
+    let labelIds: string[] = [];
+    try {
+      const got = await gmailGet(access, `messages/${encodeURIComponent(gmailMessageId)}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=From&metadataHeaders=Cc`);
+      const hd = got.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+      rfcMessageId = header(hd, "Message-ID") || header(hd, "Message-Id");
+      labelIds = Array.isArray(got.labelIds) ? got.labelIds.map(String) : [];
+    } catch {
+      rfcMessageId = "";
+    }
+
+    const { data: profile } = await sb.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+    const actorName = profile?.full_name || user.email || user.id;
+    const outId = nid(isReply ? "GOR" : "GOS");
+    const attached = (encodedMsg as { attached: Array<{ id: string; name: string; bytes: number }> }).attached || [];
+    const { error: outErr } = await sb.from("claims_gmail_outbox").insert({
+      id: outId,
+      claim_id: claimId,
+      kind,
+      gmail_message_id: gmailMessageId,
+      gmail_thread_id: gmailThreadId,
+      rfc_message_id: rfcMessageId || null,
+      to_addr: to,
+      cc_addr: cc || null,
+      subject: requestedSubject,
+      sender: ALLOWED_ACCOUNT,
+      body_excerpt: text.slice(0, 500),
+      file_ids: ids,
+      sent_at: new Date().toISOString(),
+      created_by: user.id,
+    });
+    if (outErr) {
+      return jsonResponse({
+        success: false,
+        error: "outbox_insert_failed_mail_may_have_sent",
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        db: outErr.message,
+        realEmailSend: true,
+      }, 500);
+    }
+
+    await sb.from("claims_history").insert({
+      id: nid("HIS"),
+      claim_id: claimId,
+      row_data: {
+        action: isReply ? "Reply TEST נשלח (אותו thread, בלי שיוך אוטומטי)" : "נשלח מייל TEST אמיתי (רק לעצמי)",
+        note: `${requestedSubject} · to ${to}${cc ? ` · cc ${cc}` : ""} · ${attached.length} קבצים`,
+        type: isReply ? "gmail_self_test_reply" : "gmail_self_test_send",
+        by: actorName,
+        at: new Date().toLocaleString("he-IL"),
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        sender: ALLOWED_ACCOUNT,
+        sent_at: new Date().toISOString(),
+      },
+    });
+    await sb.from("claims_comm_log").insert({
+      id: nid("COM"),
+      claim_id: claimId,
+      row_data: {
+        id: nid("COM"),
+        claimId,
+        type: "mail",
+        direction: "out",
+        email: to,
+        cc,
+        subject: requestedSubject,
+        body: text,
+        at: new Date().toLocaleString("he-IL"),
+        by: actorName,
+        note: isReply ? "Reply TEST — לא שויך אוטומטית" : "LIVE SEND QA — יעד עצמי בלבד",
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        sender: ALLOWED_ACCOUNT,
+        sent_at: new Date().toISOString(),
+        attachments: attached.map((a) => a.name),
+      },
+    });
+    await sb.from("claims_records").update({ last_activity_at: new Date().toISOString() }).eq("id", claimId);
+
+    return jsonResponse({
+      success: true,
+      kind,
+      sent: true,
+      realEmailSend: true,
+      to,
+      cc: cc || null,
+      subject: requestedSubject,
+      sender: ALLOWED_ACCOUNT,
+      gmail_message_id: gmailMessageId,
+      gmail_thread_id: gmailThreadId,
+      rfc_message_id: rfcMessageId || null,
+      sent_at: new Date().toISOString(),
+      attached,
+      labelIds,
+      generalSendEnabled: false,
+      followUpLive: false,
+    });
+  }
+
+  if (action === "dispatch_due_test") {
+    if (!(await isSendEnabled(sb))) {
+      return jsonResponse({ success: false, error: "send_disabled", realEmailSend: false }, 403);
+    }
+    const allow = await getLiveSendAllowlist(sb);
+    const nowIso = new Date(Date.now() + 90_000).toISOString();
+    const { data: dueJobs } = await sb.from("claims_mail_jobs")
+      .select("id, reminder_id, claim_id, planned_at, status")
+      .eq("status", "pending")
+      .lte("planned_at", nowIso)
+      .order("planned_at", { ascending: true })
+      .limit(20);
+    let processed = 0;
+    let skipped = 0;
+    let failed = 0;
+    const sent: Array<Record<string, unknown>> = [];
+    for (const job of dueJobs || []) {
+      const claimId = String(job.claim_id || "");
+      if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+        skipped += 1;
+        continue;
+      }
+      const { data: rem } = await sb.from("claims_reminders").select("*").eq("id", job.reminder_id).maybeSingle();
+      if (!rem || rem.status === "cancelled") {
+        await sb.from("claims_mail_jobs").update({ status: "cancelled", finished_at: new Date().toISOString(), fail_reason: "followup_cancelled" }).eq("id", job.id);
+        skipped += 1;
+        continue;
+      }
+      const rd = (rem.row_data && typeof rem.row_data === "object") ? (rem.row_data as Record<string, unknown>) : {};
+      const purpose = String(rd.purpose || "");
+      const kind = String(rem.mail_kind || "");
+      if (kind !== "email_repeat" && purpose !== "scheduled_send") {
+        skipped += 1;
+        continue;
+      }
+      const toCheck = recipientsAllowlisted(String(rem.mail_to || ""), allow, true);
+      const ccCheck = recipientsAllowlisted(String(rd.mail_cc || ""), allow, false);
+      if (!toCheck.ok || !ccCheck.ok) {
+        skipped += 1;
+        continue;
+      }
+      const claimed = await sb.from("claims_mail_jobs").update({ status: "sending", claimed_at: new Date().toISOString() }).eq("id", job.id).eq("status", "pending").select("id").maybeSingle();
+      if (!claimed.data) {
+        skipped += 1;
+        continue;
+      }
+      const ids = String(rd.file_ids || "").split(",").map((x) => x.trim()).filter(Boolean);
+      const { data: fileRows } = ids.length
+        ? await sb.from("claims_documents").select("id, original_name, mime_type, byte_size, storage_path, claim_id").eq("claim_id", claimId).in("id", ids)
+        : { data: [] as Array<{ id: string; original_name: string; mime_type: string; byte_size: number; storage_path: string; claim_id: string }> };
+      const ordered = ids.map((id) => (fileRows || []).find((f) => f.id === id)!).filter(Boolean);
+      const to = toCheck.emails.join(", ");
+      const cc = ccCheck.emails.join(", ");
+      const subject = String(rem.mail_subject || "").trim() || "Claims TEST";
+      const text = String(rem.mail_body || "").trim() || "Claims TEST";
+      const encodedMsg = await encodeMixedMessage(sb, { to, cc, subject, text, files: ordered });
+      if ("error" in encodedMsg && encodedMsg.error) {
+        await sb.from("claims_mail_jobs").update({ status: "failed", finished_at: new Date().toISOString(), fail_reason: String(encodedMsg.error) }).eq("id", job.id);
+        failed += 1;
+        continue;
+      }
+      const treatmentTaskId = String(rd.treatmentTaskId || "");
+      let existingTreatThread = "";
+      if (treatmentTaskId) {
+        const { data: treatRow } = await sb.from("claims_tasks").select("id, row_data").eq("id", treatmentTaskId).eq("claim_id", claimId).maybeSingle();
+        const trd = (treatRow?.row_data && typeof treatRow.row_data === "object") ? treatRow.row_data as Record<string, unknown> : {};
+        existingTreatThread = String(trd.gmailThreadId || "");
+      }
+      const sendPayload: Record<string, unknown> = { raw: (encodedMsg as { encoded: string }).encoded };
+      if (existingTreatThread) sendPayload.threadId = existingTreatThread;
+      const gmailRes = await gmailPost(access, "messages/send", sendPayload);
+      if (!gmailRes.ok) {
+        await sb.from("claims_mail_jobs").update({ status: "failed", finished_at: new Date().toISOString(), fail_reason: "gmail_send_failed" }).eq("id", job.id);
+        failed += 1;
+        continue;
+      }
+      const gmailMessageId = String(gmailRes.json.id || "");
+      const gmailThreadId = String(gmailRes.json.threadId || "");
+      const sentAt = new Date().toISOString();
+      const attached = (encodedMsg as { attached: Array<{ id: string; name: string; bytes: number }> }).attached || [];
+      const preview = {
+        dispatch: "live_test",
+        realEmailSend: true,
+        gmailTouched: true,
+        to,
+        cc,
+        subject,
+        body: text,
+        plannedAt: job.planned_at,
+        kind,
+        purpose,
+        attachments: attached,
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        claimId,
+        treatment_task_id: treatmentTaskId || undefined,
+      };
+      await sb.from("claims_mail_jobs").update({
+        status: "dry_run_sent",
+        finished_at: sentAt,
+        preview,
+        fail_reason: null,
+      }).eq("id", job.id);
+      const histType = purpose === "scheduled_send" ? "mail_scheduled" : "mail_recurring";
+      await sb.from("claims_history").insert({
+        id: nid("HIS"),
+        claim_id: claimId,
+        row_data: {
+          action: purpose === "scheduled_send" ? "נשלח מייל מתוזמן (TEST חי)" : "נשלח מייל מתמשך (TEST חי)",
+          note: `From ${ALLOWED_ACCOUNT} · To ${to} · ${subject} · msgid ${gmailMessageId}${treatmentTaskId ? ` · טיפול ${treatmentTaskId}` : ""}`,
+          type: histType,
+          by: user.email || user.id,
+          at: new Date().toLocaleString("he-IL"),
+          to,
+          subject,
+          gmail_message_id: gmailMessageId,
+          gmail_thread_id: gmailThreadId,
+          sent_at: sentAt,
+          treatment_task_id: treatmentTaskId || undefined,
+        },
+      });
+      await sb.from("claims_gmail_outbox").insert({
+        id: nid("GOS"),
+        claim_id: claimId,
+        kind: "claim_send",
+        idempotency_key: `due-test-${job.id}`,
+        status: "sent",
+        to_addr: to,
+        cc_addr: cc || null,
+        subject,
+        sender: ALLOWED_ACCOUNT,
+        from_addr: ALLOWED_ACCOUNT,
+        body_excerpt: text.slice(0, 500),
+        file_ids: ids,
+        file_names: attached.map((a) => a.name),
+        created_by: user.id,
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        sent_at: sentAt,
+      });
+      if (treatmentTaskId && gmailThreadId) {
+        const { data: treatRow } = await sb.from("claims_tasks").select("id, row_data").eq("id", treatmentTaskId).eq("claim_id", claimId).maybeSingle();
+        if (treatRow) {
+          const trd = (treatRow.row_data && typeof treatRow.row_data === "object") ? treatRow.row_data as Record<string, unknown> : {};
+          if (String(trd.done) !== "true" && String(trd.workStatus) !== "done") {
+            await sb.from("claims_tasks").update({
+              row_data: {
+                ...trd,
+                gmailThreadId,
+                gmailMessageId,
+                workStatus: "waiting_reply",
+              },
+            }).eq("id", treatmentTaskId).eq("claim_id", claimId);
+          }
+        }
+      }
+      if (kind === "email_repeat") {
+        const days = Math.max(1, Number(rem.repeat_every_days) || 1);
+        const next = new Date(new Date(String(job.planned_at)).getTime() + days * 86400000);
+        const stopAt = rem.stop_at ? new Date(String(rem.stop_at)) : null;
+        if (stopAt && next > stopAt) {
+          await sb.from("claims_reminders").update({ status: "completed", next_run_at: null }).eq("id", rem.id);
+        } else {
+          await sb.from("claims_reminders").update({ next_run_at: next.toISOString() }).eq("id", rem.id);
+          await sb.from("claims_mail_jobs").insert({
+            id: nid("MJB"),
+            reminder_id: rem.id,
+            claim_id: claimId,
+            planned_at: next.toISOString(),
+            status: "pending",
+          });
+        }
+      } else {
+        await sb.from("claims_reminders").update({ status: "completed", next_run_at: null }).eq("id", rem.id);
+      }
+      processed += 1;
+      sent.push({ job_id: job.id, claim_id: claimId, to, subject, gmail_message_id: gmailMessageId });
+    }
+    return jsonResponse({
+      success: true,
+      processed,
+      skipped,
+      failed,
+      sent,
+      realEmailSend: processed > 0,
+      allowlist: [...allow],
+    });
+  }
+
+  if (action === "send_claim") {
+    if (body.confirm !== true) {
+      return jsonResponse({
+        success: false,
+        error: "confirm_required",
+        realEmailSend: false,
+        hint: "שליחה רק אחרי Preview ואישור מפורש בתוך התיק",
+      }, 400);
+    }
+    if (!(await isSendEnabled(sb))) {
+      return jsonResponse({ success: false, error: "send_disabled", realEmailSend: false }, 403);
+    }
+    const claimId = String(body.claim_id || "");
+    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
+      return jsonResponse({ success: false, error: "forbidden_claim", realEmailSend: false }, 403);
+    }
+    // Composer SEND: format validation only. Do not apply the TEST/DEMO allowlist
+    // here — that guard remains on dispatch_due_test so mass/scheduled TEST mail
+    // cannot go to real customers. Operator send after Preview+confirm uses To as typed.
+    const toParsed = parseEmailListStrict(String(body.to || ""), true);
+    const ccParsed = parseEmailListStrict(String(body.cc || ""), false);
+    if (!toParsed.ok) return jsonResponse({ success: false, error: toParsed.error, realEmailSend: false }, 400);
+    if (!ccParsed.ok) return jsonResponse({ success: false, error: ccParsed.error, realEmailSend: false }, 400);
+    const to = toParsed.emails.join(", ");
+    const cc = ccParsed.emails.join(", ");
+    const subject = String(body.subject || "").trim();
+    const text = String(body.body || "").trim();
+    const ids = Array.isArray(body.file_ids) ? [...new Set(body.file_ids.map((x) => String(x)).filter(Boolean))] : [];
+    const idempotencyKey = String(body.idempotency_key || "").trim();
+    if (!subject) return jsonResponse({ success: false, error: "subject_required", realEmailSend: false }, 400);
+    if (!text) return jsonResponse({ success: false, error: "body_required", realEmailSend: false }, 400);
+    if (hasInternalLeak(text)) {
+      return jsonResponse({ success: false, error: "internal_content_blocked", realEmailSend: false }, 400);
+    }
+    if (!idempotencyKey || idempotencyKey.length < 8) {
+      return jsonResponse({ success: false, error: "idempotency_required", realEmailSend: false }, 400);
+    }
+
+    const { data: existing, error: existingError } = await sb.from("claims_gmail_outbox").select("*").eq("idempotency_key", idempotencyKey).maybeSingle();
+    if (existingError) return jsonResponse({ success: false, error: "outbox_lookup_failed", realEmailSend: false }, 503);
+    const sendBlock = existingSendBlock(existing);
+    if (sendBlock) {
+      return jsonResponse({
+        success: false,
+        error: sendBlock,
+        gmail_message_id: existing?.gmail_message_id,
+        gmail_thread_id: existing?.gmail_thread_id,
+        realEmailSend: false,
+      }, 409);
+    }
+
+    const { data: fileRows } = ids.length
+      ? await sb.from("claims_documents")
+        .select("id, original_name, mime_type, byte_size, storage_path, claim_id")
+        .eq("claim_id", claimId)
+        .in("id", ids)
+      : { data: [] as Array<{ id: string; original_name: string; mime_type: string; byte_size: number; storage_path: string; claim_id: string }> };
+    const rows = fileRows || [];
+    if (ids.length !== rows.length) {
+      return jsonResponse({ success: false, error: "files_not_on_claim", omitted: false, realEmailSend: false }, 400);
+    }
+    const ordered = ids.map((id) => rows.find((f) => f.id === id)!).filter(Boolean);
+    const requestedThread = String(body.thread_id || "").trim();
+    let sendThreadId = "";
+    let replyHeaders: string[] = [];
+    if (requestedThread) {
+      const { data: parents, error: parentsError } = await sb.from("claims_gmail_imports").select("gmail_message_id").eq("claim_id", claimId).eq("gmail_thread_id", requestedThread).limit(1);
+      const { data: sentParents, error: sentParentsError } = await sb.from("claims_gmail_outbox").select("gmail_message_id").eq("claim_id", claimId).eq("gmail_thread_id", requestedThread).eq("status", "sent").not("gmail_message_id", "is", null).limit(1);
+      if (parentsError || sentParentsError) return jsonResponse({ success: false, error: "thread_lookup_failed", realEmailSend: false }, 503);
+      const parentId = parents?.[0]?.gmail_message_id || sentParents?.[0]?.gmail_message_id;
+      if (!parentId) {
+        return jsonResponse({ success: false, error: "thread_not_on_claim", realEmailSend: false }, 400);
+      }
+      const parent = await gmailGet(access, `messages/${encodeURIComponent(parentId)}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=References`);
+      if (String(parent.threadId || "") !== requestedThread) return jsonResponse({ success: false, error: "thread_parent_mismatch", realEmailSend: false }, 409);
+      replyHeaders = safeReplyHeaders(header(parent.payload?.headers, "Message-ID"), header(parent.payload?.headers, "References"));
+      if (!replyHeaders.length) return jsonResponse({ success: false, error: "thread_parent_header_invalid", realEmailSend: false }, 409);
+      sendThreadId = requestedThread;
+    }
+    const followupApproved = body.followup_approved === true;
+    const followupDays = Math.min(30, Math.max(0, Number(body.followup_days) || 0));
+    const trackDue = String(body.track_due || "").trim() || null;
+    const trackStatus = (trackDue || followupApproved) ? "waiting_reply" : "sent";
+    const { data: maxRow } = await sb.from("claims_gmail_outbox").select("send_no").not("send_no", "is", null).order("send_no", { ascending: false }).limit(1).maybeSingle();
+    const sendNo = Number(maxRow?.send_no || 0) + 1;
+
+    const encodedMsg = await encodeMixedMessage(sb, {
+      to,
+      cc,
+      subject,
+      text,
+      extraHeaders: replyHeaders,
+      files: ordered,
+    });
+    if ("error" in encodedMsg && encodedMsg.error) {
+      return jsonResponse({
+        success: false,
+        ...encodedMsg,
+        omitted: false,
+        suggestion: encodedMsg.error === "package_too_large" ? packageSuggestion(Number(encodedMsg.packageBytes || 0)) : undefined,
+        realEmailSend: false,
+      }, encodedMsg.error === "package_too_large" ? 413 : 400);
+    }
+
+    const outId = nid("GOS");
+    const attached = (encodedMsg as { attached: Array<{ id: string; name: string; bytes: number }> }).attached || [];
+    const packageBytes = Number((encodedMsg as { packageBytes?: number }).packageBytes || 0);
+    const { error: lockErr } = await sb.from("claims_gmail_outbox").insert({
+      id: outId,
+      claim_id: claimId,
+      kind: "claim_send",
+      idempotency_key: idempotencyKey,
+      status: "pending",
+      send_no: sendNo,
+      to_addr: to,
+      cc_addr: cc || null,
+      subject,
+      sender: ALLOWED_ACCOUNT,
+      from_addr: ALLOWED_ACCOUNT,
+      body_excerpt: text.slice(0, 500),
+      file_ids: ids,
+      file_names: attached.map((a) => a.name),
+      package_bytes: packageBytes,
+      created_by: user.id,
+      track_status: trackStatus,
+      track_due: trackDue,
+      followup_approved: followupApproved,
+      followup_days: followupApproved ? (followupDays || 3) : null,
+      followup_max: 1,
+      followup_count: 0,
+    });
+    if (lockErr) {
+      const { data: raced } = await sb.from("claims_gmail_outbox").select("*").eq("idempotency_key", idempotencyKey).maybeSingle();
+      if (raced?.status === "sent" && raced.gmail_message_id) {
+        return jsonResponse({
+          success: false,
+          error: "already_sent",
+          gmail_message_id: raced.gmail_message_id,
+          gmail_thread_id: raced.gmail_thread_id,
+          realEmailSend: false,
+        }, 409);
+      }
+      return jsonResponse({ success: false, error: "send_in_progress", db: lockErr.message, realEmailSend: false }, 409);
+    }
+
+    const sentPayload: Record<string, unknown> = { raw: (encodedMsg as { encoded: string }).encoded };
+    if (sendThreadId) sentPayload.threadId = sendThreadId;
+    const sent = await gmailPost(access, "messages/send", sentPayload);
+    if (!sent.ok) {
+      await sb.from("claims_gmail_outbox").update({ status: "failed" }).eq("id", outId);
+      const errMsg = String(sent.json?.error?.message || "gmail_send_failed");
+      const safeErr = errMsg.includes("Bearer") || /ya29\.|1\/\/|refresh_token|GOCSPX-/i.test(errMsg) ? "gmail_send_failed" : errMsg.slice(0, 240);
+      await sb.from("claims_history").insert({
+        id: nid("HIS"),
+        claim_id: claimId,
+        row_data: {
+          action: "שליחת מייל נכשלה",
+          type: "gmail_claim_send_failed",
+          note: `To ${to} · ${subject} · ${safeErr}`,
+          error: safeErr,
+          sent: false,
+          at: new Date().toLocaleString("he-IL"),
+        },
+      });
+      return jsonResponse({
+        success: false,
+        error: safeErr,
+        status: sent.status,
+        realEmailSend: false,
+      }, 400);
+    }
+
+    const gmailMessageId = String(sent.json.id || "");
+    const gmailThreadId = String(sent.json.threadId || "");
+    let rfcMessageId = "";
+    try {
+      const got = await gmailGet(access, `messages/${encodeURIComponent(gmailMessageId)}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=From`);
+      const hd = got.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+      rfcMessageId = header(hd, "Message-ID") || header(hd, "Message-Id");
+    } catch {
+      rfcMessageId = "";
+    }
+    const sentAt = new Date().toISOString();
+    const { data: profile } = await sb.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+    const actorName = profile?.full_name || user.email || user.id;
+    await sb.from("claims_gmail_outbox").update({
+      status: "sent",
+      gmail_message_id: gmailMessageId,
+      gmail_thread_id: gmailThreadId,
+      rfc_message_id: rfcMessageId || null,
+      sent_at: sentAt,
+    }).eq("id", outId);
+
+    const fileList = attached.map((a) => `${a.name} (${a.bytes} bytes)`).join(", ");
+    await sb.from("claims_history").insert({
+      id: nid("HIS"),
+      claim_id: claimId,
+      row_data: {
+        action: `נשלח מייל מתיק התביעה · שליחה #${sendNo}`,
+        note: `שליחה #${sendNo} · From ${ALLOWED_ACCOUNT} · To ${to}${cc ? ` · CC ${cc}` : ""} · ${subject} · ${attached.length} קבצים · ${fileList} · msgid ${gmailMessageId} · thread ${gmailThreadId}`,
+        type: "gmail_claim_send",
+        by: actorName,
+        at: new Date().toLocaleString("he-IL"),
+        from: ALLOWED_ACCOUNT,
+        to,
+        cc,
+        subject,
+        files: attached.map((a) => ({ id: a.id, name: a.name, bytes: a.bytes })),
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        sent_at: sentAt,
+      },
+    });
+    await sb.from("claims_comm_log").insert({
+      id: nid("COM"),
+      claim_id: claimId,
+      row_data: {
+        id: nid("COM"),
+        claimId,
+        type: "mail",
+        direction: "out",
+        email: to,
+        cc,
+        subject,
+        body: text,
+        at: new Date().toLocaleString("he-IL"),
+        by: actorName,
+        note: "נשלח מ-Gmail מתוך התיק",
+        from: ALLOWED_ACCOUNT,
+        gmail_message_id: gmailMessageId,
+        gmail_thread_id: gmailThreadId,
+        sender: ALLOWED_ACCOUNT,
+        sent_at: sentAt,
+        attachments: attached.map((a) => a.name),
+        files: attached,
+      },
+    });
+    await sb.from("claims_records").update({ last_activity_at: sentAt }).eq("id", claimId);
+
+    return jsonResponse({
+      success: true,
+      sent: true,
+      realEmailSend: true,
+      from: ALLOWED_ACCOUNT,
+      to,
+      cc: cc || null,
+      subject,
+      fileCount: attached.length,
+      files: attached,
+      packageBytes,
+      send_no: sendNo,
+      gmail_message_id: gmailMessageId,
+      gmail_thread_id: gmailThreadId,
+      rfc_message_id: rfcMessageId || null,
+      sent_at: sentAt,
+    });
+  }
+
+  return jsonResponse({ success: false, error: "unknown_action" }, 400);
+}
+
+Deno.serve((req) => handleClaimsGmail(req));
+
+function whyScope(s: string) {
+  if (s === "openid") return "זיהוי חשבון Google בלי לגשת לתוכן.";
+  if (s.includes("userinfo.email")) return "לוודא שהחשבון הוא בדיוק yoni122222@gmail.com.";
+  if (s.includes("gmail.readonly")) return "קריאת מיילים ומצורפים לייבוא לתביעה. לא מוחק, לא מסמן כנקרא, לא מעביר.";
+  if (s.includes("gmail.compose")) return "יצירת טיוטה, ושליחת מייל מתוך תיק תביעה רק אחרי Preview ואישור SEND מפורש. אין גישה כללית לתיבה. שליחה אוטומטית כבויה.";
+  return s;
+}

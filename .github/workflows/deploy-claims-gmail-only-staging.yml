@@ -1,0 +1,61 @@
+name: Staging claims-gmail only
+
+# Deploys claims-gmail to dalia-staging (usfeoerkpcafxxlyuldl) only.
+# Runs ONLY when a matching tag is pushed — pushing a branch never runs it.
+#   deploy/claims-gmail-staging/<name>    → live v56 + scheduler-auth security patch (nothing else)
+#   rollback/claims-gmail-staging/<name>  → live v56 exactly as it was
+# The files come from docs/audit-reports/claims-gmail-deploy-prep-2026-10-13 (checked by fingerprint),
+# not from the branch's claims-gmail folder, which is behind the live code.
+# Keeps verify_jwt off, as live. Uses STAGING_SUPABASE_ACCESS_TOKEN only.
+# No migration, no other function, no Production. The pg_cron Gmail scan is not touched.
+
+on:
+  push:
+    tags:
+      - 'deploy/claims-gmail-staging/*'
+      - 'rollback/claims-gmail-staging/*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-claims-gmail-only-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Guard Staging only
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_TYPE}" = "tag"
+          case "${GITHUB_REF_NAME}" in
+            deploy/claims-gmail-staging/*|rollback/claims-gmail-staging/*) ;;
+            *) echo "Unexpected ref ${GITHUB_REF_NAME}" >&2; exit 1 ;;
+          esac
+          test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
+
+      - name: Prepare claims-gmail files
+        run: |
+          set -euo pipefail
+          case "${GITHUB_REF_NAME}" in
+            rollback/*) MODE=rollback ;;
+            *) MODE=deploy ;;
+          esac
+          bash scripts/claims-gmail-staging-prepare-deploy.sh "$MODE" .
+
+      - name: Deploy claims-gmail to Staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          npx --yes supabase functions deploy claims-gmail --project-ref usfeoerkpcafxxlyuldl --use-api --no-verify-jwt
