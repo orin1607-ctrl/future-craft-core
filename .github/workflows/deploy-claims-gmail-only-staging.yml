@@ -2,9 +2,9 @@ name: Staging claims-gmail only
 
 # Deploys claims-gmail to dalia-staging (usfeoerkpcafxxlyuldl) only.
 # Runs ONLY when a matching tag is pushed — pushing a branch never runs it.
-#   deploy/claims-gmail-staging/<name>    → live v56 + scheduler-auth security patch (nothing else)
-#   rollback/claims-gmail-staging/<name>  → live v56 exactly as it was
-# The files come from docs/audit-reports/claims-gmail-deploy-prep-2026-10-13 (checked by fingerprint),
+#   deploy/claims-gmail-staging/<name>    → live v57 + one open task per request (nothing else)
+#   rollback/claims-gmail-staging/<name>  → live v57 exactly as it is
+# The files come from docs/audit-reports/claims-gmail-deploy-prep-2026-10-1{3,4} (checked by fingerprint),
 # not from the branch's claims-gmail folder, which is behind the live code.
 # Keeps verify_jwt off, as live. Uses STAGING_SUPABASE_ACCESS_TOKEN only.
 # No migration, no other function, no Production. The pg_cron Gmail scan is not touched.
