@@ -1,6 +1,7 @@
 -- QA activation of the claims AI — STAGING usfeoerkpcafxxlyuldl ONLY. Not a migration. Never on Production.
 -- One fictitious claim (DAL-QA-AI-001), two fictitious documents, document reading with the computer off.
--- Prerequisite: help-ai-chat and claims-doc-read deployed from commit fc5813e4 (QA scope), by approval.
+-- Prerequisite: help-ai-chat v150 and claims-doc-read v4 from commit f20324f2 (QA scope + explicit approval list).
+-- RUN 2026-10-14 ~18:40-18:54 UTC by approval: steps A, B, D (cron job id 12, owner postgres).
 -- Isolation: customer gates stay off in code, so claims-doc-read reads ONLY DAL-QA-* claims on the pilot list
 -- (a real claim id put there is ignored) and only QA documents may go to OCR (Gemini). The chat sends
 -- document text to the model for DAL-QA-* claims only.
@@ -59,7 +60,8 @@ select cron.schedule(
       url := 'https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/claims-doc-read',
       headers := jsonb_build_object('Content-Type', 'application/json',
         'x-dalia-internal-key', (select decrypted_secret from vault.decrypted_secrets where name = 'DALIA_EDGE_INTERNAL_SECRET')),
-      body := '{"action":"run"}'::jsonb)$$
+      body := '{"action":"run"}'::jsonb,
+      timeout_milliseconds := 120000)$   -- pg_net default (5 s) is shorter than a cold start
 );
 
 -- =============================================================================================
