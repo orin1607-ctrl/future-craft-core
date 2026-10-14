@@ -4,7 +4,7 @@ name: Staging help-ai-chat only
 # Runs ONLY when a matching tag is pushed — pushing the branch never runs it.
 # No migration, no other function, no Pages, no Production.
 #   deploy/help-ai-chat-staging/<name>    → help-ai-chat from the tagged commit
-#   rollback/help-ai-chat-staging/<name>  → help-ai-chat as live before (v148 = f99d797d)
+#   rollback/help-ai-chat-staging/<name>  → help-ai-chat as live before (v149 = 00ac6c73)
 # Keeps verify_jwt off, as live (config.toml says true; the function checks auth itself).
 # Uses STAGING_SUPABASE_ACCESS_TOKEN only.
 

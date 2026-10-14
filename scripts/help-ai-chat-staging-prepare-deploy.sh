@@ -4,19 +4,19 @@
 #
 # deploy   — help-ai-chat from this commit. Stops if _shared/edgeAuth.ts differs from the live copy,
 #            so no auth/role change can ship with the chat.
-# rollback — help-ai-chat as live before (v148 = commit f99d797d), with all its shared files.
+# rollback — help-ai-chat as live before (v149 = commit 00ac6c73), with all its shared files.
 #
 # Only touches files inside the given checkout. Never deploys, never reads secrets.
 set -euo pipefail
 
 MODE="${1:-}"
 ROOT="${2:-.}"
-BACKUP="$ROOT/docs/audit-reports/help-ai-chat-deploy-prep-2026-10-12/live-v148"
+BACKUP="$ROOT/docs/audit-reports/help-ai-chat-deploy-prep-2026-10-12/live-v149"
 FN="$ROOT/supabase/functions"
 
-# Fingerprints of the live v148 files (downloaded from Supabase, identical to commit f99d797d).
+# Fingerprints of the live v149 files (downloaded from Supabase, identical to commit 00ac6c73).
 FILES=(
-  "help-ai-chat/index.ts:7250e3e233d6df60a169f63f1b76baa4600d7d8a44b6774a3a2f33a3c072b1d3"
+  "help-ai-chat/index.ts:b2ec8c64f3fe47216f8714a73089f886a912e0190484c0a314ec654bd9885563"
   "help-ai-chat/claimsTools.ts:607053a2b83fe6a2701f00251050dff074c2e0bd4db3dbdb537354d920ae8b4b"
   "_shared/edgeAuth.ts:53f5ab072fababe33fe466e62ef3486e583ad8f9f17be1b2167d3420af589134"
   "_shared/claimDocumentLabel.ts:1f413688dd0f8a087e26a70b32376300f2aaeddfe0459e958803f49df442b52c"
