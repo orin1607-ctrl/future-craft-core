@@ -4,12 +4,14 @@
  *
  * Off by default, three separate switches must all be on before any document is read:
  *   1. Code gate DOCUMENT_READ_CUSTOMER_DOCS (claimDocumentReadJob.ts) — needs a reviewed deploy.
- *      While it is off, only claims listed in CLAIMS_DOC_READ_ONLY_CLAIMS are read (a pilot).
+ *      While it is off, only fictitious QA claims (DAL-QA-*) listed in CLAIMS_DOC_READ_ONLY_CLAIMS are read;
+ *      a real claim id in that list is ignored.
  *   2. claims_config CLAIMS_DOC_READ_ENABLED = 'true' — the stop switch, no deploy needed.
  *   3. A schedule (pg_cron) calling this function — not created here.
  *
  * Reads the PDF text layer with the same analysis as the browser reader. Scans and images go to OCR
- * (Gemini) only when DOCUMENT_READ_OCR_PROVIDER = 'gemini' and CLAIMS_DOC_READ_OCR = 'true'; otherwise
+ * (Gemini) only when CLAIMS_DOC_READ_OCR = 'true' and either DOCUMENT_READ_OCR_PROVIDER = 'gemini'
+ * (customer documents, separate approval) or the run is QA-only (customer gate off); otherwise
  * they are parked for the browser reader and nothing leaves Supabase. Logs and responses carry ids and counts only, never document text.
  * The original file is never changed; results go into doc_meta (read_* and read_job_*).
  *
@@ -66,11 +68,12 @@ Deno.serve(async (req) => {
   const { data: cfgRows } = await sb.from("claims_config").select("key, value").in("key", [...RUN_CONFIG_KEYS]);
   const cfg = readRunConfig((cfgRows || []) as Array<{ key: string; value: string | null }>);
   const gate = serverReadGate();
-  // OCR (scans and images) needs both the code gate and the config switch.
-  const ocrApproved = DOCUMENT_READ_OCR_PROVIDER === "gemini" && cfg.ocr;
-
   // Candidates: documents without a good read, oldest first. Freshness by fingerprint is rechecked in pickDocuments.
+  // Until customer documents are approved, only fictitious QA claims from the pilot list are read.
   const allowed = allowedClaims(cfg, gate.customerApproved);
+  const qaOnly = !gate.customerApproved;
+  // OCR (scans and images) needs the config switch, and either the customer OCR code gate or a QA-only run.
+  const ocrApproved = cfg.ocr && (DOCUMENT_READ_OCR_PROVIDER === "gemini" || qaOnly);
   let q = sb.from("claims_documents")
     .select("id, claim_id, content_sha256, storage_path, original_name, mime_type, byte_size, doc_meta, created_at")
     .or("doc_meta->>read_status.is.null,doc_meta->>read_status.not.in.(ready,unreadable)")
@@ -102,6 +105,8 @@ Deno.serve(async (req) => {
     backlog: cfg.backlog,
     max_per_run: cfg.maxPerRun,
     only_claims: cfg.onlyClaims.length,
+    qa_only: qaOnly,
+    allowed_claims: allowed ? allowed.size : "all",
     ocr: ocrApproved,
     ocr_gate: DOCUMENT_READ_OCR_PROVIDER,
     ...(cfg.problem ? { problem: cfg.problem } : {}),
@@ -131,7 +136,7 @@ Deno.serve(async (req) => {
   }
   if (action !== "run") return json({ ok: false, error: "unknown_action" }, 400);
 
-  if (!gate.customerApproved && !cfg.onlyClaims.length) {
+  if (!gate.customerApproved && !allowed?.size) {
     return json({ ok: false, error: "customer_docs_not_approved", ...state, processed: 0 }, 403);
   }
   if (!cfg.enabled) return json({ ok: true, stopped: true, reason: cfg.problem || "disabled", ...state, processed: 0 });

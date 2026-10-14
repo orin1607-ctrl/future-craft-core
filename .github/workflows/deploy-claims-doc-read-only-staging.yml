@@ -5,7 +5,8 @@ name: Staging claims-doc-read only
 # Deploying does not start reading: the function is off until claims_config switches are set and a
 # schedule is created (docs/audit-reports/claims-doc-autoread-2026-10-12/activation.sql), each by approval.
 # Refuses to deploy with the customer-documents gate on unless the tag contains "customer-approved",
-# and with the OCR gate on unless the tag contains "ocr-approved".
+# and with the customer OCR gate on unless the tag contains "ocr-approved". With both gates off, only
+# fictitious QA claims (DAL-QA-*) on the pilot list are read, and only they may go to OCR.
 # Uses STAGING_SUPABASE_ACCESS_TOKEN only. No migration, no other function, no Production.
 
 on:
@@ -53,7 +54,7 @@ jobs:
             echo "claims-doc-read must call outside services only through claimDocumentOcr.ts" >&2; exit 1
           fi
           if grep -q "export const DOCUMENT_READ_OCR_PROVIDER: 'none' | 'gemini' = 'none';" "$JOB"; then
-            echo "OCR gate: off (scans and images are not sent anywhere)"
+            echo "customer OCR gate: off (customer scans and images are not sent anywhere; QA claims only, when CLAIMS_DOC_READ_OCR is on)"
           else
             case "${GITHUB_REF_NAME}" in
               *ocr-approved*) echo "OCR gate: on (tag says approved)" ;;

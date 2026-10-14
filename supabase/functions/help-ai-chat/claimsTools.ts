@@ -1,6 +1,7 @@
 // supabase/functions/help-ai-chat/claimsTools.ts
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { documentDisplayTitle, documentLabel } from "../_shared/claimDocumentLabel.ts";
+import { isQaClaimId } from "../_shared/claimQaScope.ts";
 import { CLAIM_EDIT_FIELDS, applyClaimFieldEdit, describeChanges, planClaimFieldEdit, type FieldChange } from "../_shared/claimFieldEdit.ts";
 import {
   historyRow,
@@ -1228,7 +1229,12 @@ function formatDocLabel(d: { original_name?: string; mime_type?: string; doc_kin
  * Content flag off: title, type and status only. Content flag on: a short summary per document in lists,
  * and the full text with its sources only for one document (`full`), via read_claim_document.
  */
-function storedDocumentRead(meta: unknown, opts: { full?: boolean } = {}) {
+/** Content of a stored read may reach the model only when approved: all claims (code gate) or fictitious QA claims. */
+export function docTextToModelAllowed(claimId: unknown) {
+  return CLAIMS_CHAT_DOC_TEXT_TO_MODEL || isQaClaimId(claimId);
+}
+
+function storedDocumentRead(meta: unknown, opts: { full?: boolean; claimId?: string } = {}) {
   const row = (meta && typeof meta === "object" ? meta : {}) as Record<string, unknown>;
   const status = String(row.read_status || "");
   if (!status) return undefined;
@@ -1242,7 +1248,7 @@ function storedDocumentRead(meta: unknown, opts: { full?: boolean } = {}) {
     return { status, instruction: "הקריאה נכשלה. אל תנחש פרטים ואל תמציא נתונים." };
   }
   const label = documentLabel(row as Record<string, string>);
-  if (!CLAIMS_CHAT_DOC_TEXT_TO_MODEL) {
+  if (!docTextToModelAllowed(opts.claimId)) {
     return {
       status,
       title: label?.title || "",
@@ -2252,7 +2258,7 @@ export async function executeClaimsTool(
               name: a.original_name,
               size_bytes: a.byte_size,
               mime_type: a.mime_type,
-              document_read: storedDocumentRead(a.doc_meta),
+              document_read: storedDocumentRead(a.doc_meta, { claimId }),
             })),
           },
         };
@@ -2488,7 +2494,7 @@ export async function executeClaimsTool(
               mime: d.mime_type,
               created_at: d.created_at,
               read_status: String(((d.doc_meta && typeof d.doc_meta === "object" ? d.doc_meta : {}) as Record<string, unknown>).read_status || "not_read"),
-              document_read: storedDocumentRead(d.doc_meta),
+              document_read: storedDocumentRead(d.doc_meta, { claimId }),
             })),
           },
         };
@@ -2510,7 +2516,7 @@ export async function executeClaimsTool(
           .eq("id", String(base.file_id))
           .eq("claim_id", claimId)
           .maybeSingle();
-        const read = storedDocumentRead(docRow?.doc_meta, { full: true });
+        const read = storedDocumentRead(docRow?.doc_meta, { full: true, claimId });
         return {
           result: {
             ...base,

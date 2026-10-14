@@ -56,14 +56,56 @@ export function joinFound(values: string[], empty: string) {
   return clean.length ? clean.join(', ') : empty;
 }
 
+const NUM = '(\\d{1,3}(?:,\\d{3})+(?:\\.\\d{1,2})?|\\d+(?:\\.\\d{1,2})?)';
+const CURRENCY = '(?:₪|ש"ח|ש״ח|\\bnis\\b)';
+const AMOUNT_LABEL = '(?:סכום|הערכת\\s*(?:ה)?נזק|סה"כ(?:\\s*לתשלום)?|סה״כ(?:\\s*לתשלום)?|סהכ|לתשלום|amount|total|damage)';
+
+// Hebrew PDFs often come out in visual order ("3,850 הערכת נזק:"), so labels and currency are matched on both sides.
+const AMOUNT_PATTERNS = [
+  new RegExp(`${NUM}\\s*${CURRENCY}`, 'gi'),
+  new RegExp(`${CURRENCY}\\s*${NUM}`, 'gi'),
+  new RegExp(`${AMOUNT_LABEL}\\s*[:\\-]?\\s*${NUM}`, 'gi'),
+  new RegExp(`${NUM}\\s*${AMOUNT_LABEL}\\s*:?`, 'gi'),
+];
+
 function extractAmounts(text: string) {
   const found: string[] = [];
-  const labeled = /(?:סכום|amount|total|סה"כ|סהכ)\s*[:\-]?\s*(\d[\d,]*(?:\.\d{1,2})?)/gi;
-  const shekel = /(\d[\d,]*(?:\.\d{1,2})?)\s*(?:₪|ש"ח|ש״ח|nis)/gi;
-  let match: RegExpExecArray | null;
-  while ((match = labeled.exec(text))) found.push(match[1]);
-  while ((match = shekel.exec(text))) found.push(match[1]);
+  for (const re of AMOUNT_PATTERNS) {
+    re.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = re.exec(text))) {
+      const value = match[1];
+      // A zero ("ירידת ערך: 0 ₪") or a bare year is not a money amount worth surfacing.
+      if (!/[1-9]/.test(value) || /^(19|20)\d{2}$/.test(value)) continue;
+      found.push(value);
+    }
+  }
   return [...new Set(found)].slice(0, 5);
+}
+
+/** Lines that carry an amount (both reading orders), and the amounts in them. */
+function amountsFromText(text: string) {
+  const lines = linesOf(text).filter((line) => extractAmounts(line).length);
+  return { amounts: [...new Set(lines.flatMap(extractAmounts))].slice(0, 5), source: lines.slice(0, 3).join(' | ').slice(0, 240) };
+}
+
+const CLAIM_LABEL = '(?:מספר\\s*(?:ה)?תביעה|תביעה\\s*(?:מספר|מס[\'׳.]?)|claim\\s*(?:no\\.?|number|#)?)';
+const CLAIM_TOKEN = '([A-Z0-9][A-Z0-9\\-/]{3,24})';
+
+/** DAL ids, and insurer claim numbers that appear next to a claim-number label (either order). */
+function claimNumbersFromText(text: string) {
+  const found: string[] = [];
+  let source = '';
+  for (const line of linesOf(text)) {
+    const hits = [...extractDalIds(line)];
+    for (const re of [new RegExp(`${CLAIM_LABEL}\\s*[:\\-]?\\s*${CLAIM_TOKEN}`, 'gi'), new RegExp(`${CLAIM_TOKEN}\\s*${CLAIM_LABEL}\\s*:?`, 'gi')]) {
+      let match: RegExpExecArray | null;
+      while ((match = re.exec(line))) if (/\d/.test(match[1])) hits.push(match[1].toUpperCase());
+    }
+    if (hits.length && !source) source = line.slice(0, 240);
+    found.push(...hits);
+  }
+  return { claimNums: [...new Set(found)].slice(0, 5), source };
 }
 
 function decisionFromText(text: string) {
@@ -101,14 +143,12 @@ export function analyzeDocumentText(
   sha: string,
 ): DocumentRead {
   const clean = normalizeDocText(text).slice(0, TEXT_LIMIT);
-  const claimLine = lineMatching(clean, /DAL-\d{4}-\d{4}/i);
+  const { claimNums, source: claimLine } = claimNumbersFromText(clean);
   const plateLine = lineMatching(clean, /רכב|לוחית|plate/i);
   const dateLine = lineMatching(clean, /תאריך|\bdate\b/i);
-  const amountLine = lineMatching(clean, /סכום|amount|₪|\bnis\b/i);
-  const claimNums = extractDalIds(claimLine);
+  const { amounts, source: amountLine } = amountsFromText(clean);
   const plates = extractPlates(plateLine);
   const dates = extractDates(dateLine);
-  const amounts = extractAmounts(amountLine);
   const decision = decisionFromText(clean);
   const missing = missingFromText(clean);
   const evidence = evidenceFromText(clean, decision);

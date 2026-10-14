@@ -1,12 +1,14 @@
 /**
  * OCR of a claim scan or image through the Gemini API (Hebrew and English).
- * Used by claims-doc-read only when DOCUMENT_READ_OCR_PROVIDER = 'gemini' and CLAIMS_DOC_READ_OCR = 'true'.
+ * Used by claims-doc-read only when CLAIMS_DOC_READ_OCR = 'true' and either DOCUMENT_READ_OCR_PROVIDER = 'gemini'
+ * or the run is limited to fictitious QA claims.
  * Transcription only: no summary, no translation, no guessing. Returns text and a coarse kind.
  * Never logs the file or the text.
  */
 import type { OcrResult } from './claimDocumentReadRun.ts';
 
-export const OCR_DEFAULT_MODEL = 'gemini-2.5-flash';
+// gemini-2.5-flash is retired (404 "no longer available"); the API points to gemini-3.8-flash.
+export const OCR_DEFAULT_MODEL = 'gemini-3.8-flash';
 const OCR_TEXT_LIMIT = 8000;
 const OCR_TIMEOUT_MS = 60_000;
 

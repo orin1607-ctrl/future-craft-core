@@ -26,6 +26,7 @@ import {
   type StoredClaimDoc,
 } from './claimDocumentReadJob.ts';
 import { MIN_TEXT_CHARS, analyzeDocumentText, normalizeDocText, unreadableDocumentRead } from './claimDocumentAnalyze.ts';
+import { isQaClaimId } from './claimQaScope.ts';
 
 export const RUN_CONFIG_KEYS = [
   'CLAIMS_DOC_READ_ENABLED',
@@ -117,8 +118,14 @@ export function pickReason(doc: RunDoc, cfg: RunConfig, now: Date): 'take' | 'fr
  * Which claims may be read. Customer documents need the code gate; without it only the allowlist (a pilot).
  * Returns null when everything is allowed.
  */
+/**
+ * Which claims a run may read. null = all claims (only once customer documents are approved).
+ * Until then the pilot list is honoured for QA claims only: a real claim id in the list is ignored.
+ */
 export function allowedClaims(cfg: RunConfig, customerDocsApproved: boolean): Set<string> | null {
-  if (cfg.onlyClaims.length) return new Set(cfg.onlyClaims);
+  if (cfg.onlyClaims.length) {
+    return new Set(customerDocsApproved ? cfg.onlyClaims : cfg.onlyClaims.filter(isQaClaimId));
+  }
   return customerDocsApproved ? null : new Set<string>();
 }
 

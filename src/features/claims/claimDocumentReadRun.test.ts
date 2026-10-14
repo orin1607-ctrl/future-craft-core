@@ -123,14 +123,19 @@ describe('server read run — picking', () => {
     expect(skipped).toMatchObject({ fresh: 1, backlog: 1, needs_ocr: 1, busy: 1, waiting: 1, over_limit: 1 });
   });
 
-  it('without the customer gate reads only the allowlisted pilot claim, and nothing without a list', () => {
-    const docs = [doc({ id: 'pilot', claim_id: 'TEST-CLAIM' }), doc({ id: 'real', claim_id: 'CLAIM-REAL' })];
-    const pilot = { ...on, onlyClaims: ['TEST-CLAIM'] };
+  it('without the customer gate reads only allowlisted QA claims, and nothing without a list', () => {
+    const docs = [doc({ id: 'pilot', claim_id: 'DAL-QA-PILOT-1' }), doc({ id: 'real', claim_id: 'DAL-2026-0003' })];
+    const pilot = { ...on, onlyClaims: ['DAL-QA-PILOT-1'] };
     const picked = pickDocuments(docs, pilot, NOW, allowedClaims(pilot, false));
     expect(picked.take.map((d) => d.id)).toEqual(['pilot']);
     expect(picked.skipped).toMatchObject({ not_allowed: 1 });
     expect(pickDocuments(docs, on, NOW, allowedClaims(on, false)).take).toHaveLength(0);
     expect(allowedClaims(on, true)).toBeNull();
+    // A real claim put on the pilot list by mistake is ignored until customer documents are approved.
+    const mistake = { ...on, onlyClaims: ['DAL-2026-0003', 'DAL-QA-PILOT-1', 'DAL-QA-'] };
+    expect([...allowedClaims(mistake, false)!]).toEqual(['DAL-QA-PILOT-1']);
+    expect(pickDocuments(docs, { ...on, onlyClaims: ['DAL-2026-0003'] }, NOW, allowedClaims({ ...on, onlyClaims: ['DAL-2026-0003'] }, false)).take).toHaveLength(0);
+    expect([...allowedClaims(mistake, true)!]).toContain('DAL-2026-0003');
     expect(readRunConfig([{ key: 'CLAIMS_DOC_READ_ONLY_CLAIMS', value: ' A, B ,A,' }]).onlyClaims).toEqual(['A', 'B']);
   });
 
@@ -311,8 +316,9 @@ describe('claims-doc-read function', () => {
     const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
     expect(code).not.toMatch(/generativelanguage|anthropic|openai/i);
     expect(code).not.toMatch(/\bfetch\(/);
-    // OCR is wired only behind the code gate and the config switch.
-    expect(code).toContain('const ocrApproved = DOCUMENT_READ_OCR_PROVIDER === "gemini" && cfg.ocr;');
+    // OCR needs the config switch, and either the customer OCR code gate or a QA-only run.
+    expect(code).toContain('const qaOnly = !gate.customerApproved;');
+    expect(code).toContain('const ocrApproved = cfg.ocr && (DOCUMENT_READ_OCR_PROVIDER === "gemini" || qaOnly);');
     expect(code).toMatch(/\.\.\.\(ocrApproved \? \{ ocr: geminiOcr\(/);
     expect(src).not.toContain('jwtRoleRef');
   });
