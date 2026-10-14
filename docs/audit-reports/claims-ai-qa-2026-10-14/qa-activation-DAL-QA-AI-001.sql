@@ -61,7 +61,7 @@ select cron.schedule(
       headers := jsonb_build_object('Content-Type', 'application/json',
         'x-dalia-internal-key', (select decrypted_secret from vault.decrypted_secrets where name = 'DALIA_EDGE_INTERNAL_SECRET')),
       body := '{"action":"run"}'::jsonb,
-      timeout_milliseconds := 120000)$   -- pg_net default (5 s) is shorter than a cold start
+      timeout_milliseconds := 120000)$$   -- pg_net default (5 s) is shorter than a cold start
 );
 
 -- =============================================================================================
