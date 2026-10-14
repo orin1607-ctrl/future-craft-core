@@ -31,6 +31,7 @@ import {
   type RunDoc,
 } from "../_shared/claimDocumentReadRun.ts";
 import { readPdfTextLayer } from "../_shared/claimPdfText.ts";
+import { isApprovedQaClaimId, isQaClaimRow } from "../_shared/claimQaScope.ts";
 
 const STAGING_REF = "usfeoerkpcafxxlyuldl";
 const PROD_REF = "qasomfndnjuixgjmjwcm";
@@ -94,7 +95,11 @@ Deno.serve(async (req) => {
   const { data: claims } = claimIds.length
     ? await sb.from("claims_records").select("id, row_data").in("id", claimIds)
     : { data: [] as Array<{ id: string; row_data: Record<string, unknown> | null }> };
-  const live = new Set((claims || []).filter((c) => !(c.row_data && (c.row_data as Record<string, unknown>).deletedAt)).map((c) => String(c.id)));
+  // QA-only runs also need the claim row itself marked QA (isQa = 'true'), not just an approved id.
+  const live = new Set((claims || [])
+    .filter((c) => !(c.row_data && (c.row_data as Record<string, unknown>).deletedAt))
+    .filter((c) => !qaOnly || (isApprovedQaClaimId(c.id) && isQaClaimRow(c.row_data)))
+    .map((c) => String(c.id)));
   const docs = (rows || []).filter((r) => live.has(String(r.claim_id))) as unknown as RunDoc[];
 
   const picked = pickDocuments(docs, cfg, new Date(), allowed);

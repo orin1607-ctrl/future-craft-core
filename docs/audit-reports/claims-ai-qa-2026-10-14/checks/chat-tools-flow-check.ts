@@ -7,6 +7,7 @@ const db: Record<string, Row[]> = {
   claims_records: [
     { id: "DAL-QA-P1", plate: "11-222-33", client_name: "לקוח בדיקה", row_data: { id: "DAL-QA-P1", claimNum: "QA-P1", clientName: "לקוח בדיקה", clientPhone: "050-1111111", status: "חדש" } },
     { id: "DAL-QA-P2", plate: "44-555-66", client_name: "אחר", row_data: { id: "DAL-QA-P2", claimNum: "QA-P2", status: "חדש" } },
+    { id: "DAL-QA-AI-001", plate: "99-002-18", client_name: "לקוח בדיקה פיקטיבי", row_data: { id: "DAL-QA-AI-001", claimNum: "QA-AI-001", isQa: "true", status: "חדש" } },
     { id: "DAL-2026-9001", plate: "77-888-99", client_name: "לקוח אמיתי בדיוני", row_data: { id: "DAL-2026-9001", claimNum: "R-9001", status: "חדש" } },
   ],
   claims_tasks: [{ id: "TSK-OPEN", claim_id: "DAL-QA-P1", row_data: { id: "TSK-OPEN", claimId: "DAL-QA-P1", action: "לבקש חשבונית", done: "false" } }],
@@ -19,6 +20,7 @@ const db: Record<string, Row[]> = {
   claims_documents: [
     { id: "DOC-1", claim_id: "DAL-QA-P1", original_name: "survey.pdf", doc_meta: { read_status: "ready", read_doc_type: "דוח שמאי", read_text: "Survey report" } },
     { id: "DOC-OTHER", claim_id: "DAL-QA-P2", original_name: "x.pdf", doc_meta: {} },
+    { id: "DOC-QA", claim_id: "DAL-QA-AI-001", original_name: "survey.pdf", doc_meta: { read_status: "ready", read_doc_type: "דוח שמאי", read_text: "הערכת נזק 3,850", read_amounts: "3,850" } },
     { id: "DOC-R", claim_id: "DAL-2026-9001", original_name: "invoice.pdf", doc_meta: { read_status: "ready", read_doc_type: "חשבונית", read_text: "Invoice 4,500 NIS", read_amounts: "4,500" } },
   ],
   claims_ai_audit_log: [],
@@ -173,7 +175,20 @@ check("guard: card of claim P1 refused while P2 is open", x1x.success === false 
 const rd = await run("read_claim_document", { file_id: "DOC-1" });
 const rdr = rd.result as any;
 check("read: card shown and document found", rdr.found === true && (rd as any).card?.file_id === "DOC-1", rd);
-check("read: QA claim — the stored text reaches the model, with the answer-only-from-this-document rule", rdr.document_read?.text === "Survey report" && !rdr.document_read?.content_withheld && String(rdr.document_read?.instruction).includes("ענה רק מתוך"), rdr.document_read);
+check("read: QA-looking claim that is not approved (DAL-QA-P1) — content withheld", rdr.document_read?.content_withheld === true && !("text" in (rdr.document_read || {})), rdr.document_read);
+const qaRead = await executeClaimsTool("read_claim_document", { file_id: "DOC-QA" }, sb, "DAL-QA-AI-001", "user-1", "בודק");
+const qar = (qaRead.result as any).document_read || {};
+check("read: approved QA claim marked isQa — the stored text reaches the model, answer-only-from-this-document rule", qar.text === "הערכת נזק 3,850" && qar.amounts === "3,850" && !qar.content_withheld && String(qar.instruction).includes("ענה רק מתוך"), qar);
+const qrow = db.claims_records.find((r: any) => r.id === "DAL-QA-AI-001");
+qrow.row_data = { ...qrow.row_data, isQa: "" };
+const qa2 = await executeClaimsTool("read_claim_document", { file_id: "DOC-QA" }, sb, "DAL-QA-AI-001", "user-1", "בודק");
+check("read: approved id but the claim row is not marked QA — content withheld", ((qa2.result as any).document_read || {}).content_withheld === true && !JSON.stringify(qa2.result).includes("3,850"), qa2.result);
+qrow.row_data = { ...qrow.row_data, isQa: "true", deletedAt: "2026-10-15" };
+const qa3 = await executeClaimsTool("read_claim_document", { file_id: "DOC-QA" }, sb, "DAL-QA-AI-001", "user-1", "בודק");
+check("read: approved QA claim that was deleted — content withheld", !JSON.stringify(qa3.result).includes("3,850"), qa3.result);
+qrow.row_data = { ...qrow.row_data, deletedAt: undefined };
+const gqa = await executeClaimsGeneralTool("read_claim_document", { claim_ref: "99-002-18", file_id: "DOC-QA" }, sb, "user-1", "בודק");
+check("general chat: approved QA claim by plate — content reaches the model", JSON.stringify(gqa.result).includes("3,850"), gqa.result);
 const rr = await executeClaimsTool("read_claim_document", { file_id: "DOC-R" }, sb, "DAL-2026-9001", "user-1", "בודק");
 const rrr = (rr.result as any).document_read || {};
 check("read: real claim — content withheld, no text or amount reaches the model", rrr.content_withheld === true && !("text" in rrr) && !JSON.stringify(rr.result).includes("4,500"), rr.result);
@@ -227,7 +242,7 @@ const obx = await executeClaimsPendingAction(sb, "", "user-1", "בודק", {
   ...ob.preview!,
   parameters: { ...(ob.preview as any).parameters, claim: { ...(ob.preview as any).parameters.claim, claim_number: "INS-777", accident_date: "05/09/2026", surveyor: "שמאי בדיקה", third_party: "צד ג בדיקה" } },
 });
-const qa = db.claims_records.find((r: any) => String(r.id).startsWith("DAL-QA-AI-"));
+const qa = db.claims_records.find((r: any) => String(r.id).startsWith("DAL-QA-AI-") && r.id !== "DAL-QA-AI-001");
 check("#4 QA claim id, real counter untouched", obx.success === true && !!qa && db.claims_config?.find((r: any) => r.key === "CLAIM_COUNTER")?.value === counterBefore, { obx, qa: qa?.id });
 check("#4 saved under the claim form's field names (card shows them)", qa?.row_data.claimNum === "INS-777" && qa?.row_data.eventDate === "2026-09-05" && qa?.row_data.surveyor === "שמאי בדיקה" && qa?.row_data.thirdParty === "צד ג בדיקה" && qa?.row_data.isTest === "true", qa?.row_data);
 check("#4 no plate stored when none was given", !qa?.row_data.plate && !qa?.plate, { plate: qa?.plate, rdPlate: qa?.row_data.plate });

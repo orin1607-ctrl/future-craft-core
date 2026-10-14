@@ -26,7 +26,7 @@ import {
   type StoredClaimDoc,
 } from './claimDocumentReadJob.ts';
 import { MIN_TEXT_CHARS, analyzeDocumentText, normalizeDocText, unreadableDocumentRead } from './claimDocumentAnalyze.ts';
-import { isQaClaimId } from './claimQaScope.ts';
+import { isApprovedQaClaimId } from './claimQaScope.ts';
 
 export const RUN_CONFIG_KEYS = [
   'CLAIMS_DOC_READ_ENABLED',
@@ -124,7 +124,7 @@ export function pickReason(doc: RunDoc, cfg: RunConfig, now: Date): 'take' | 'fr
  */
 export function allowedClaims(cfg: RunConfig, customerDocsApproved: boolean): Set<string> | null {
   if (cfg.onlyClaims.length) {
-    return new Set(customerDocsApproved ? cfg.onlyClaims : cfg.onlyClaims.filter(isQaClaimId));
+    return new Set(customerDocsApproved ? cfg.onlyClaims : cfg.onlyClaims.filter(isApprovedQaClaimId));
   }
   return customerDocsApproved ? null : new Set<string>();
 }

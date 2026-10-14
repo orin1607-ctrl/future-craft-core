@@ -124,16 +124,17 @@ describe('server read run — picking', () => {
   });
 
   it('without the customer gate reads only allowlisted QA claims, and nothing without a list', () => {
-    const docs = [doc({ id: 'pilot', claim_id: 'DAL-QA-PILOT-1' }), doc({ id: 'real', claim_id: 'DAL-2026-0003' })];
-    const pilot = { ...on, onlyClaims: ['DAL-QA-PILOT-1'] };
+    const docs = [doc({ id: 'pilot', claim_id: 'DAL-QA-AI-001' }), doc({ id: 'real', claim_id: 'DAL-2026-0003' })];
+    const pilot = { ...on, onlyClaims: ['DAL-QA-AI-001'] };
     const picked = pickDocuments(docs, pilot, NOW, allowedClaims(pilot, false));
     expect(picked.take.map((d) => d.id)).toEqual(['pilot']);
     expect(picked.skipped).toMatchObject({ not_allowed: 1 });
     expect(pickDocuments(docs, on, NOW, allowedClaims(on, false)).take).toHaveLength(0);
     expect(allowedClaims(on, true)).toBeNull();
     // A real claim put on the pilot list by mistake is ignored until customer documents are approved.
-    const mistake = { ...on, onlyClaims: ['DAL-2026-0003', 'DAL-QA-PILOT-1', 'DAL-QA-'] };
-    expect([...allowedClaims(mistake, false)!]).toEqual(['DAL-QA-PILOT-1']);
+    // An unapproved QA-looking id (older QA claims, AI-made test claims) is ignored too.
+    const mistake = { ...on, onlyClaims: ['DAL-2026-0003', 'DAL-QA-AI-001', 'DAL-QA-', 'DAL-QA-AI-1791999999999', 'DAL-QA-GALLERY-1789025793215'] };
+    expect([...allowedClaims(mistake, false)!]).toEqual(['DAL-QA-AI-001']);
     expect(pickDocuments(docs, { ...on, onlyClaims: ['DAL-2026-0003'] }, NOW, allowedClaims({ ...on, onlyClaims: ['DAL-2026-0003'] }, false)).take).toHaveLength(0);
     expect([...allowedClaims(mistake, true)!]).toContain('DAL-2026-0003');
     expect(readRunConfig([{ key: 'CLAIMS_DOC_READ_ONLY_CLAIMS', value: ' A, B ,A,' }]).onlyClaims).toEqual(['A', 'B']);
