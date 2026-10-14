@@ -223,6 +223,7 @@ describe('ClaimsAiWorkspace', () => {
 
       expect(await screen.findByText('📄 דוח שמאי')).toBeInTheDocument();
       expect(screen.queryByText(/קורא את המסמך בדפדפן/)).toBeNull();
+      expect(screen.getByTestId('claims-ai-doc-status-F9')).toHaveTextContent('סטטוס קריאה: טרם נקרא — אפשר לקרוא אותו מתוך התיק');
       fireEvent.click(screen.getByTestId('claims-ai-doc-open-F9'));
       await waitFor(() => expect(fakeWin.location.href).toBe('https://signed.example/file'));
       expect(invokeFn).toHaveBeenCalledWith('claims-docs', { body: { action: 'signed_url', claim_id: 'DAL-2026-0009', file_id: 'F9' } });

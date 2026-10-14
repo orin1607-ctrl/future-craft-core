@@ -15,6 +15,8 @@ import {
   taskRecords,
   waScheduleRecords,
   withShareLink,
+  checkWaRecipient,
+  claimPhoneOwners,
   type DbRow,
 } from "../_shared/claimChatRecords.ts";
 
@@ -415,7 +417,7 @@ export const CLAIMS_GEMINI_TOOLS = [
           properties: {
             phone: { type: "STRING", description: "מספר הנמען (למשל טלפון הלקוח מהתיק). אל תמציא מספר." },
             contact_name: { type: "STRING", description: "שם הנמען" },
-            recipient_role: { type: "STRING", description: "תפקיד הנמען: לקוח / שמאי / חברת ביטוח / עו״ד / אחר (לרישום הקישור המאובטח)" },
+            recipient_role: { type: "STRING", description: "תפקיד הנמען: לקוח / שמאי / חברת ביטוח / צד ג׳ / עו״ד. ברירת מחדל לקוח. המערכת בודקת שהמספר שייך לנמען הזה בתיק." },
             body: { type: "STRING", description: "נוסח ההודעה. אפשר לכתוב {link} במקום שבו יופיע הקישור למסמכים." },
             when: { type: "STRING", description: "'now' להתראה מיידית; אחרת השתמש ב-relative_day או date" },
             relative_day: { type: "NUMBER", description: "0 = היום, 1 = מחר וכו׳" },
@@ -2485,6 +2487,7 @@ export async function executeClaimsTool(
               kind: formatDocLabel(d),
               mime: d.mime_type,
               created_at: d.created_at,
+              read_status: String(((d.doc_meta && typeof d.doc_meta === "object" ? d.doc_meta : {}) as Record<string, unknown>).read_status || "not_read"),
               document_read: storedDocumentRead(d.doc_meta),
             })),
           },
@@ -3293,6 +3296,27 @@ ${CLAIMS_SENDER_NAME}`;
         const plan = planWaSchedule(claimId, { phone: args.phone, body: args.body, contact_name: args.contact_name || crd.clientName }, when, held);
         if (!plan.ok) return { result: { status: "invalid", error: plan.error } };
 
+        // Whose number is it? Never e.g. the surveyor's number for a message to the client.
+        const contactRows: Array<{ full_name?: unknown; role?: unknown; phones?: unknown[] }> = [];
+        try {
+          const { data: links } = await supabase.from("claims_claim_contacts").select("contact_id, role_on_claim").eq("claim_id", claimId);
+          const ids = (links || []).map((l) => String(l.contact_id));
+          if (ids.length) {
+            const { data: people } = await supabase.from("claims_contacts").select("id, full_name, role").in("id", ids);
+            const { data: channels } = await supabase.from("claims_contact_channels").select("contact_id, kind, value").in("contact_id", ids);
+            for (const p of people || []) {
+              const link = (links || []).find((l) => String(l.contact_id) === String(p.id));
+              contactRows.push({
+                full_name: p.full_name,
+                role: link?.role_on_claim || p.role,
+                phones: (channels || []).filter((c) => String(c.contact_id) === String(p.id) && /phone|whatsapp|mobile|tel/i.test(String(c.kind || ""))).map((c) => c.value),
+              });
+            }
+          }
+        } catch { /* contacts are optional; the claim's own fields still count */ }
+        const recipient = checkWaRecipient(claimPhoneOwners(crd, contactRows), plan.wa.phone, args.recipient_role || "client");
+        if (!recipient.ok) return { result: { status: "invalid", error: recipient.error } };
+
         // Documents go as one secure link (created on approval), only files of this claim.
         const requestedIds = Array.isArray(args.file_ids) ? (args.file_ids as unknown[]).map((x) => String(x)).filter(Boolean) : [];
         let fileTitles: string[] = [];
@@ -3311,6 +3335,7 @@ ${CLAIMS_SENDER_NAME}`;
         const bodyPreview = fileIds.length ? withShareLink(plan.wa.body, "[קישור מאובטח ייווצר באישור]") : plan.wa.body;
         const summary = [
           `WhatsApp ידני בתיק ${claimId} — אל ${plan.wa.contactName || "הנמען"} (${plan.wa.phone})`,
+          recipient.ownerLabel ? `המספר שמור בתיק כ: ${recipient.ownerLabel}` : `⚠️ ${recipient.warning}`,
           `מועד התראה: ${plan.wa.plannedLabel}`,
           fileIds.length ? `מסמכים בקישור מאובטח (בתוקף 72 שעות, רק לתיק הזה): ${fileTitles.join(", ")}` : "",
           "",

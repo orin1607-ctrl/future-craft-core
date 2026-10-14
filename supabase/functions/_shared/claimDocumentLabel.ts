@@ -6,6 +6,8 @@
  */
 
 export const UNKNOWN_DOC_TYPE = 'מסמך לא מזוהה – נדרשת בדיקה';
+/** Shown when a document has no read at all — a fact, not a guess. */
+export const NOT_READ_LABEL = 'טרם נקרא';
 const NOT_IN_DOC = 'לא מופיע במסמך';
 const LEGACY_UNKNOWN = 'לא זוהה סוג מתוכן המסמך';
 

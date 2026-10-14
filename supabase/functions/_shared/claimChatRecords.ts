@@ -233,6 +233,75 @@ export function waScheduleRecords(wa: { claimId: string; phone: string; body: st
   };
 }
 
+// ---------------- WhatsApp recipient: whose number is it? ----------------
+
+export type RecipientRole = 'client' | 'surveyor' | 'insurer' | 'third_party' | 'lawyer' | 'other';
+
+const ROLE_LABELS: Record<RecipientRole, string> = {
+  client: 'לקוח',
+  surveyor: 'שמאי',
+  insurer: 'חברת ביטוח',
+  third_party: 'צד ג׳',
+  lawyer: 'עורך דין',
+  other: 'איש קשר',
+};
+
+export function normalizeRecipientRole(raw: unknown): RecipientRole | '' {
+  const k = String(raw ?? '').trim().toLowerCase();
+  if (!k) return '';
+  if (k === 'client' || k.includes('לקוח') || k.includes('מבוטח')) return 'client';
+  if (k === 'surveyor' || k.includes('שמאי')) return 'surveyor';
+  if (k === 'insurer' || k === 'agent' || k.includes('ביטוח') || k.includes('סוכן') || k.includes('נציג')) return 'insurer';
+  if (k === 'third_party' || k.includes('צד ג')) return 'third_party';
+  if (k === 'lawyer' || k.includes('עו"ד') || k.includes('עו״ד') || k.includes('עורך דין')) return 'lawyer';
+  return 'other';
+}
+
+export type PhoneOwner = { digits: string; role: RecipientRole; name: string };
+
+/** Phone numbers saved on the claim (its own fields and linked contacts), with who each belongs to. */
+export function claimPhoneOwners(
+  rowData: Record<string, unknown>,
+  contacts: Array<{ full_name?: unknown; role?: unknown; phones?: unknown[] }> = [],
+): PhoneOwner[] {
+  const out: PhoneOwner[] = [];
+  const add = (phone: unknown, role: RecipientRole, name: unknown) => {
+    const digits = normalizeWaPhone(String(phone ?? ''));
+    if (digits.length >= 11 && !out.some((o) => o.digits === digits && o.role === role)) out.push({ digits, role, name: String(name ?? '').trim() });
+  };
+  add(rowData.clientPhone, 'client', rowData.clientName);
+  add(rowData.phoneMobile, 'client', rowData.clientName);
+  add(rowData.survPhone, 'surveyor', rowData.surveyor);
+  add(rowData.insRepPhone, 'insurer', rowData.insRepName);
+  add(rowData.thirdPhone, 'third_party', rowData.thirdParty);
+  add(rowData.legalPhone, 'lawyer', rowData.legalLawyer);
+  for (const c of contacts) {
+    const role = normalizeRecipientRole(c.role) || 'other';
+    for (const p of c.phones || []) add(p, role, c.full_name);
+  }
+  return out;
+}
+
+/**
+ * Checks the recipient before a WhatsApp card is shown. Refuses when the number belongs to someone else
+ * than the role asked for (e.g. the surveyor's number for a message to the client).
+ */
+export function checkWaRecipient(owners: PhoneOwner[], phone: string, requestedRole: unknown) {
+  const digits = normalizeWaPhone(phone);
+  const hits = owners.filter((o) => o.digits === digits);
+  const wanted = normalizeRecipientRole(requestedRole);
+  const roleLabel = (r: RecipientRole) => ROLE_LABELS[r];
+  if (!hits.length) {
+    return { ok: true as const, ownerLabel: '', warning: 'המספר אינו שמור בתיק. ודא שזה הנמען הנכון.' };
+  }
+  if (wanted && wanted !== 'other' && !hits.some((h) => h.role === wanted)) {
+    const who = hits.map((h) => `${roleLabel(h.role)}${h.name ? ` (${h.name})` : ''}`).join(', ');
+    return { ok: false as const, error: `המספר ${phone} שייך בתיק ל${who}, לא ל${roleLabel(wanted)}. לא הוכן כרטיס.` };
+  }
+  const owner = hits.find((h) => !wanted || h.role === wanted) || hits[0];
+  return { ok: true as const, ownerLabel: `${roleLabel(owner.role)}${owner.name ? ` (${owner.name})` : ''}`, warning: '' };
+}
+
 /** Puts the secure link into the message: replaces {link}, otherwise adds it on its own line. */
 export function withShareLink(body: string, url: string) {
   if (!url) return body;

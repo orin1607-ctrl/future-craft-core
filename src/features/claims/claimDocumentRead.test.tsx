@@ -278,5 +278,30 @@ describe('claim document reading', () => {
     expect(note.textContent).toContain('סיכום');
     expect(note.textContent).toContain('1500');
     expect(note.textContent).toContain('מקור');
+    expect(screen.queryByTestId('doc-read-status-DOC-1')).toBeNull();
+  });
+
+  it('shows "not read yet" for a document that was never read, and nothing invented', () => {
+    render(
+      <ClaimDocsLibrary
+        files={[{ id: 'DOC-U', original_name: 'unread.pdf', mime_type: 'application/pdf', source: 'gmail', doc_meta: { staff_title: 'כותרת' } }]}
+        picked={[]}
+        category="all"
+        thumbs={{}}
+        isImage={() => false}
+        fileLabel={(f) => f.original_name}
+        onCategory={() => undefined}
+        onToggle={() => undefined}
+        onToggleAll={() => undefined}
+        onPreview={() => undefined}
+        onDownload={() => undefined}
+        onPrint={() => undefined}
+        onShareTopic={() => undefined}
+        onRename={() => undefined}
+        onPrepareRead={() => ''}
+      />,
+    );
+    expect(screen.getByTestId('doc-read-status-DOC-U')).toHaveTextContent('סטטוס קריאה: טרם נקרא');
+    expect(screen.queryByTestId('doc-read-label-DOC-U')).toBeNull();
   });
 });

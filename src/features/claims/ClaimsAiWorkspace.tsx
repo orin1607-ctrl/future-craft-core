@@ -28,6 +28,7 @@ import {
   renameClaimsAiConversation,
 } from './claimsAiStore';
 import { documentReadCaption } from './claimDocumentRead';
+import { NOT_READ_LABEL } from '../../../supabase/functions/_shared/claimDocumentLabel';
 import { downloadRemoteFile } from './claimFileDownload';
 import './claims-ai.css';
 
@@ -107,6 +108,11 @@ function ChatDocumentCard({ card, actions }: { card: ClaimsAiDocumentCard; actio
         <div style={{ fontSize: '0.8rem', marginTop: 6 }}>פתח את התיק כדי להציג את המסמך.</div>
       )}
       {reading ? <div className="claims-ai-status" style={{ marginTop: 6 }}>קורא את המסמך בדפדפן…</div> : null}
+      {!reading && !caption && needsRead ? (
+        <div style={{ fontSize: '0.8rem', marginTop: 6 }} data-testid={`claims-ai-doc-status-${card.file_id}`}>
+          סטטוס קריאה: {NOT_READ_LABEL}{actions?.read ? '' : ' — אפשר לקרוא אותו מתוך התיק'}
+        </div>
+      ) : null}
       {caption ? (
         <div style={{ fontSize: '0.8rem', marginTop: 6 }} data-testid={`claims-ai-doc-read-${card.file_id}`}>
           <div>{caption.summary}</div>

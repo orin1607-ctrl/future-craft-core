@@ -1,6 +1,8 @@
 // Fictitious data only.
 import { describe, expect, it } from 'vitest';
 import {
+  checkWaRecipient,
+  claimPhoneOwners,
   historyRow,
   normalizeDate,
   planReminder,
@@ -117,3 +119,24 @@ describe('WhatsApp manual schedule', () => {
     expect(withShareLink('מצורף הדוח', 'https://x/s?t=1')).toBe('מצורף הדוח\nhttps://x/s?t=1');
   });
 });
+
+describe('WhatsApp recipient check', () => {
+  const claim = { clientName: 'לקוח בדיקה', clientPhone: '050-1111111', surveyor: 'שמאי בדיקה', survPhone: '052-2222222', insRepPhone: '03-3333333' };
+  const owners = claimPhoneOwners(claim, [{ full_name: 'עו״ד בדיקה', role: 'עורך דין', phones: ['054-4444444'] }]);
+
+  it('knows whose number each phone on the claim is', () => {
+    expect(checkWaRecipient(owners, '0501111111', 'client')).toMatchObject({ ok: true, ownerLabel: 'לקוח (לקוח בדיקה)' });
+    expect(checkWaRecipient(owners, '054-4444444', 'lawyer')).toMatchObject({ ok: true, ownerLabel: 'עורך דין (עו״ד בדיקה)' });
+  });
+
+  it("refuses the surveyor's number for a message to the client", () => {
+    const res = checkWaRecipient(owners, '052-2222222', 'client');
+    expect(res.ok).toBe(false);
+    expect((res as { error: string }).error).toContain('שייך בתיק לשמאי');
+  });
+
+  it('warns when the number is not saved on the claim, without refusing', () => {
+    expect(checkWaRecipient(owners, '058-9999999', 'client')).toMatchObject({ ok: true, ownerLabel: '', warning: expect.stringContaining('אינו שמור בתיק') });
+  });
+});
+
