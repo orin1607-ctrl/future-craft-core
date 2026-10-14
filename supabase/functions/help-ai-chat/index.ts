@@ -347,8 +347,6 @@ async function callGemini(
     "gemini-3.8-flash",
     "gemini-3.5-flash",
     "gemini-3.5-flash-lite",
-    "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
     "gemini-3.7-flash",
     "gemini-flash-latest",
     "gemini-flash-lite-latest",
@@ -468,9 +466,9 @@ async function callGemini(
             parts: [functionCallPart],
           });
 
-          // Push function response turn with role 'function'
+          // The tool result goes back as a user turn: the API rejects role 'function' (400 INVALID_ARGUMENT).
           contents.push({
-            role: "function",
+            role: "user",
             parts: [{
               functionResponse: {
                 name: fnName,
@@ -565,15 +563,12 @@ async function callClaude(
   geminiTools?: unknown[],
   onToolCall?: (name: string, args: Record<string, unknown>) => Promise<{ result: unknown; preview?: ClaimsPendingAction }>,
   attachments?: Array<{ name: string; mime_type: string; data_base64?: string; file_id?: string; byte_size?: number }>,
-  temperature = 0.65,
+  _temperature = 0.65,
 ): Promise<{ text: string; model: string; pendingAction?: ClaimsPendingAction | null } | { error: string; status: number }> {
   const modelCandidates = Array.from(new Set([
     "claude-haiku-5-5",
     preferredModel,
-    "claude-3-5-haiku-20241022",
-    "claude-3-haiku-20240307",
-    "claude-3-5-sonnet-20241022",
-    "claude-3-7-sonnet-20250219",
+    "claude-sonnet-5-5",
   ].filter(Boolean)));
 
   const anthropicTools = geminiToolsToAnthropic(geminiTools);
@@ -643,13 +638,14 @@ async function callClaude(
       let maxTurns = 10;
       let accumulatedPendingAction: ClaimsPendingAction | null = null;
       let modelResponded = false;
+      let httpFailed = false;
 
       while (maxTurns > 0) {
         maxTurns--;
+        // No `temperature`: current Claude models reject it (400 "temperature is deprecated").
         const payload: Record<string, unknown> = {
           model,
           max_tokens: 2048,
-          temperature,
           system: systemInstruction,
           messages: claudeMessages,
         };
@@ -671,6 +667,7 @@ async function callClaude(
           const errText = await res.text();
           console.error(`Claude error with model ${model} (${res.status}):`, errText.slice(0, 250));
           attemptErrors.push({ model, status: res.status, text: errText.slice(0, 200) });
+          httpFailed = true;
           break;
         }
 
@@ -729,7 +726,7 @@ async function callClaude(
           pendingAction: accumulatedPendingAction,
         };
       }
-      attemptErrors.push({ model, status: 200, text: "No response text" });
+      if (!httpFailed) attemptErrors.push({ model, status: 200, text: "No response text" });
     } catch (e) {
       console.error(`Claude network error with model ${model}:`, e);
       attemptErrors.push({ model, status: 500, text: e instanceof Error ? e.message : String(e) });
