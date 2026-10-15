@@ -1,0 +1,7 @@
+{
+  "armed": false,
+  "reason": "owner-approved-vehicle-tracking-officer-alert-light-only-2026-10-15",
+  "live_before": "1b05e10d7ec5eede4cd84d88d664bbefc5d94e2b",
+  "source": "6a1027c2",
+  "scope": "frontend-vehicle-tracking-officer-alert-light-only"
+}

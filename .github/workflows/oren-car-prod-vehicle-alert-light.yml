@@ -1,0 +1,173 @@
+name: Oren Car Production vehicle tracking officer-alert light
+
+# Owner authorized 2026-10-15: task 2 ONLY — red fleet-officer alert light in
+# רכבים → מעקב רכבים, on top of the live SHA 1b05e10d (driver tracking center).
+# Source of the change: 6a1027c2 (STAGING), ported to the live code.
+# Frontend code-only. Does NOT checkout main/dev/production wholesale.
+# Does not migrate, alter schema, change RLS, Storage, Auth, or any data.
+
+on:
+  push:
+    branches: [claude/prod-vehicle-alert-light]
+    paths:
+      - 'public/project-001/oren-car-prod-vehicle-alert-light.json'
+      - '.github/workflows/oren-car-prod-vehicle-alert-light.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: oren-car-prod-vehicle-alert-light
+  cancel-in-progress: false
+
+env:
+  PROD_SUPABASE_URL: https://qasomfndnjuixgjmjwcm.supabase.co
+  PROD_SUPABASE_PROJECT_ID: qasomfndnjuixgjmjwcm
+  WEB_ROOT: /root/future-craft-core/dist
+  PRODUCTION_URL: https://dalia-car.online
+  # Live frontend before this deploy (driver tracking center by Cross).
+  LIVE_BEFORE: 1b05e10d7ec5eede4cd84d88d664bbefc5d94e2b
+  # Cross's disarm commit on top of LIVE_BEFORE (touches only its own json).
+  BASE: cacab71fe8f5597773f953bf94cf9589356fffed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gate — armed + live ancestor + task-2 files only
+        id: gate
+        run: |
+          set -euo pipefail
+          armed=$(node -e "const q=require('./public/project-001/oren-car-prod-vehicle-alert-light.json'); process.stdout.write(String(q.armed===true))")
+          echo "armed=$armed" >> "$GITHUB_OUTPUT"
+          echo "SHA=${GITHUB_SHA}"
+          if [ "$armed" != "true" ]; then
+            echo "not armed — skip deploy"
+            exit 0
+          fi
+          git merge-base --is-ancestor "$LIVE_BEFORE" HEAD
+          git merge-base --is-ancestor "$BASE" HEAD
+          # BASE differs from the live code only by Cross's own disarm json.
+          base_extra=$(git diff --name-only "$LIVE_BEFORE" "$BASE")
+          if [ "$base_extra" != "public/project-001/oren-car-prod-driver-tracking.json" ]; then
+            echo "REFUSING: unexpected base difference: $base_extra" >&2
+            exit 1
+          fi
+          for ref in origin/main origin/production; do
+            if git rev-parse "$ref" >/dev/null 2>&1 && [ "$GITHUB_SHA" = "$(git rev-parse "$ref")" ]; then
+              echo "REFUSING to deploy $ref wholesale" >&2
+              exit 1
+            fi
+          done
+          mapfile -t changed < <(git diff --name-only "$BASE" HEAD)
+          allow='^(src/lib/vehicleOfficerAlertLight(\.test)?\.ts|src/components/vehicle-tracking/(OfficerAlertLight|TrackingFleetList)\.tsx|src/components/vehicle-tracking/TrackingFleetList\.test\.tsx|src/lib/vehicleTrackingData\.ts|\.github/workflows/oren-car-prod-vehicle-alert-light\.yml|public/project-001/oren-car-prod-vehicle-alert-light\.json)$'
+          if [ "${#changed[@]}" -eq 0 ]; then
+            echo "REFUSING empty diff from live" >&2
+            exit 1
+          fi
+          for f in "${changed[@]}"; do
+            echo "changed: $f"
+            if ! [[ "$f" =~ $allow ]]; then
+              echo "REFUSING unexpected file: $f" >&2
+              exit 1
+            fi
+          done
+          echo "changed_files=${#changed[@]}"
+
+      - uses: oven-sh/setup-bun@v2
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+
+      - name: Install, test the change, build production frontend
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        env:
+          VITE_SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
+          VITE_SUPABASE_PROJECT_ID: ${{ env.PROD_SUPABASE_PROJECT_ID }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          bun install --frozen-lockfile
+          bun x vitest run src/lib/vehicleOfficerAlertLight.test.ts src/components/vehicle-tracking/TrackingFleetList.test.tsx src/lib/driverTrackingData.test.ts src/pages/DriverTracking.test.tsx
+          bun x vite build
+          node scripts/ci-smoke-report.mjs --dist dist --supabase-ref qasomfndnjuixgjmjwcm
+          if grep -q usfeoerkpcafxxlyuldl dist/assets/*.js; then
+            echo "REFUSING staging supabase ref in production bundle" >&2
+            exit 1
+          fi
+          if ! grep -q qasomfndnjuixgjmjwcm dist/assets/*.js; then
+            echo "REFUSING bundle without the production supabase ref" >&2
+            exit 1
+          fi
+          if ! grep -q driver-tracking dist/assets/*.js; then
+            echo "REFUSING bundle without Cross's driver-tracking center" >&2
+            exit 1
+          fi
+          if ! grep -q officer-alert-light dist/assets/*.js; then
+            echo "REFUSING bundle without the officer-alert light" >&2
+            exit 1
+          fi
+
+      - id: bundle
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        run: |
+          BUNDLE=$(grep -oE 'index-[^"]+\.js' dist/index.html | head -1)
+          echo "name=${BUNDLE}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup SSH
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Verify live is LIVE_BEFORE, backup VPS dist, then rsync frontend
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +%F-%H%M%S)
+          SSH=(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=6)
+          RSH="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=6"
+          live=$("${SSH[@]}" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "cat /root/future-craft-core/dist/PRODUCTION-DEPLOY.txt" || true)
+          echo "live_marker=$live"
+          case "$live" in
+            *"commit=${LIVE_BEFORE}"*) echo "live matches LIVE_BEFORE" ;;
+            *) echo "REFUSING: live site is not ${LIVE_BEFORE} (someone deployed since)" >&2; exit 1 ;;
+          esac
+          ok=0
+          for attempt in 1 2 3 4 5; do
+            echo "backup_attempt=$attempt"
+            if "${SSH[@]}" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+              "tar czf /root/pre-deploy-dist-${STAMP}.tgz -C /root/future-craft-core dist && tar tzf /root/pre-deploy-dist-${STAMP}.tgz dist/index.html dist/PRODUCTION-DEPLOY.txt && ls -la /root/pre-deploy-dist-${STAMP}.tgz && echo BACKUP=/root/pre-deploy-dist-${STAMP}.tgz"; then
+              ok=1
+              break
+            fi
+            sleep $((attempt * 8))
+          done
+          test "$ok" = "1"
+          rsync -avz -e "$RSH" \
+            --delete \
+            --filter="P orin-marketing/" \
+            --filter="P orin-owner-gate.js" \
+            dist/ \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:${{ env.WEB_ROOT }}/
+          "${SSH[@]}" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "echo 'commit=${{ github.sha }} bundle=${{ steps.bundle.outputs.name }} at=$(date -u +%Y-%m-%dT%H:%M:%SZ) reason=vehicle-tracking-officer-alert-light-only-2026-10-15 before=${{ env.LIVE_BEFORE }} backup=/root/pre-deploy-dist-${STAMP}.tgz' > /root/future-craft-core/dist/PRODUCTION-DEPLOY.txt"
+          "${SSH[@]}" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "nginx -t && systemctl reload nginx"
+
+      - uses: actions/setup-node@v4
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        with:
+          node-version: '20'
+
+      - name: Post-deploy smoke (live)
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        run: |
+          sleep 5
+          node scripts/ci-smoke-report.mjs \
+            --base "${{ env.PRODUCTION_URL }}" \
+            --supabase-ref qasomfndnjuixgjmjwcm \
+            --out reports/ci-smoke-oren-car-vehicle-alert-light.json
