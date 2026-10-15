@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 import VehicleAccordionSection from '@/components/vehicles/VehicleAccordionSection';
+import { DocumentCard } from '@/components/documents/DocumentViewer';
 import {
   EMPTY_FIELD_LABEL,
   getAllDisplayFields,
   groupDisplayFieldsBySection,
 } from '@/lib/daliaVehicleLoad';
+import type { DocRow } from '@/lib/vehicleHubData';
 
 const SECTION_ORDER = [
   '1. פרטי רכב',
@@ -29,10 +31,12 @@ function FieldCell({ label, value }: { label: string; value: string }) {
 
 export default function VehicleDaliaFullPanel({
   vehicleRow,
+  linkedDocs = [],
   onEdit,
   isManager,
 }: {
   vehicleRow: Record<string, unknown>;
+  linkedDocs?: DocRow[];
   onEdit?: () => void;
   isManager?: boolean;
 }) {
@@ -41,9 +45,11 @@ export default function VehicleDaliaFullPanel({
     const g = groupDisplayFieldsBySection(fields);
     const ordered: Record<string, typeof fields> = {};
     for (const sec of SECTION_ORDER) {
+      if (sec === '6. מסמכים') continue;
       if (g[sec]?.length) ordered[sec] = g[sec];
     }
     for (const [sec, list] of Object.entries(g)) {
+      if (sec === '6. מסמכים') continue;
       if (!ordered[sec]) ordered[sec] = list;
     }
     return ordered;
@@ -77,6 +83,30 @@ export default function VehicleDaliaFullPanel({
           </div>
         </VehicleAccordionSection>
       ))}
+      <VehicleAccordionSection title="6. מסמכים" defaultOpen={false}>
+        {linkedDocs.length === 0 ? (
+          <p className="text-sm text-muted-foreground">אין מסמכים שמורים לרכב זה</p>
+        ) : (
+          <div className="space-y-2">
+            {linkedDocs.map((doc) => (
+              doc.url ? (
+                <DocumentCard
+                  key={doc.id}
+                  url={doc.url}
+                  fileName={doc.name}
+                  meta={doc.expiry && doc.expiry !== '—' ? <p className="text-xs text-muted-foreground mt-0.5">תוקף: {doc.expiry}</p> : undefined}
+                  compact
+                />
+              ) : (
+                <div key={doc.id} className="rounded-xl border border-border p-3">
+                  <p className="font-medium text-sm">{doc.name}</p>
+                  <p className="text-xs text-muted-foreground">אין קובץ לפתיחה</p>
+                </div>
+              )
+            ))}
+          </div>
+        )}
+      </VehicleAccordionSection>
     </div>
   );
 }

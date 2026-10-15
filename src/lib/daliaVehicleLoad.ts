@@ -398,6 +398,17 @@ export function getAllDisplayFields(row: Record<string, unknown>): DisplayField[
     });
   }
 
+  const departmentValue = (values.department || '').trim();
+  const departmentField: DisplayField = {
+    key: 'department',
+    label: 'מחלקה',
+    value: departmentValue || 'לא משויך למחלקה',
+    section: '1. פרטי רכב',
+  };
+  const existingDepartment = fields.findIndex((field) => field.key === 'department');
+  if (existingDepartment >= 0) fields[existingDepartment] = departmentField;
+  else fields.push(departmentField);
+
   if (extras.docs.length) {
     for (const doc of extras.docs) {
       fields.push({
