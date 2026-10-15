@@ -50,6 +50,7 @@ import {
   type HubTabId,
   type VehicleHubData,
 } from '@/lib/vehicleHubData';
+import { mergeStoredVehicleDocs } from '@/lib/vehicleDocumentLink';
 import type { VehicleHistoryEntry } from '@/lib/vehicleHistory';
 import type { DashboardDrillDown } from '@/lib/vehicleDashboardData';
 import { shouldShowInsuranceRed } from '@/lib/vehicleInsuranceAlerts';
@@ -375,8 +376,8 @@ export default function VehicleHub({
       insurance_expiry: v.insurance_expiry,
       comprehensive_insurance_expiry: v.comprehensive_insurance_expiry,
       third_party_insurance_expiry: v.third_party_insurance_expiry,
-    }, v.id)
-      .then(setHubData)
+    }, v.id, v.company_name || '')
+      .then((data) => setHubData({ ...data, docs: mergeStoredVehicleDocs(data.docs, v.import_buffer) }))
       .finally(() => setLoading(false));
   }, [v, companyFilter, previewMode, previewHubExtras]);
 
@@ -937,6 +938,7 @@ export default function VehicleHub({
                 className="text-muted-foreground text-lg"
                 alertLight={<OfficerAlertLight light={effectiveOfficerAlert} />}
               />
+              <p className="text-sm text-muted-foreground mt-0.5">מחלקה: {v.department?.trim() || 'לא משויך למחלקה'}</p>
             </div>
             <span className={`status-badge ${sl.cls}`}>{sl.text}</span>
           </div>
@@ -954,6 +956,7 @@ export default function VehicleHub({
             initialDrillKind={initialDrillKind}
             initialHubFocus={initialHubFocus}
             initialHubEntityId={initialHubEntityId}
+            linkedDocuments={hubData?.docs || []}
             onDrillDataChanged={() => {
               refreshHub();
               setDrillRefreshKey((k) => k + 1);
@@ -1041,6 +1044,7 @@ export default function VehicleHub({
       {mainSection === 'details' && (
         <VehicleDaliaFullPanel
           vehicleRow={v as unknown as Record<string, unknown>}
+          linkedDocs={hubData?.docs || []}
           onEdit={() => onEdit(v)}
           isManager={isManager}
         />

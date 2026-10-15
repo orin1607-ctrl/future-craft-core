@@ -3,6 +3,8 @@ import { ChevronLeft, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { DocumentCard, PrivateDocumentOpenLink } from '@/components/documents/DocumentViewer';
+import type { DocRow } from '@/lib/vehicleHubData';
 import { Input } from '@/components/ui/input';
 import {
   Sheet,
@@ -12,7 +14,6 @@ import {
   SheetDescription,
 } from '@/components/ui/sheet';
 import { VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
-import { PrivateDocumentOpenLink } from '@/components/documents/DocumentViewer';
 import {
   loadDashboardDrillDown,
   type DashboardDrillDown,
@@ -132,6 +133,7 @@ export default function VehicleDashboard({
   initialDrillKind = null,
   initialHubFocus = null,
   initialHubEntityId = null,
+  linkedDocuments = [],
 }: {
   vehicle: VehicleHubVehicle;
   semiInspection: string | null;
@@ -146,6 +148,7 @@ export default function VehicleDashboard({
   initialDrillKind?: DrillKind | null;
   initialHubFocus?: string | null;
   initialHubEntityId?: string | null;
+  linkedDocuments?: DocRow[];
 }) {
   const { user } = useAuth();
   const requiredFieldsCtx = useRequiredFieldsOptional();
@@ -440,6 +443,18 @@ export default function VehicleDashboard({
               >
                 ✓ {d.name} — פתח
               </PrivateDocumentOpenLink>
+            ))}
+          </div>
+        )}
+        {linkedDocuments.some((doc) => doc.url && !uploaded.some((item) => item.url === doc.url)) && (
+          <div className="mb-3 space-y-2">
+            <p className="text-xs font-bold">מסמכים שמורים לרכב</p>
+            {linkedDocuments.filter((doc) => !doc.url || !uploaded.some((item) => item.url === doc.url)).map((doc) => (
+              doc.url ? (
+                <DocumentCard key={doc.id} url={doc.url} fileName={doc.name} compact />
+              ) : (
+                <p key={doc.id} className="text-sm">{doc.name}</p>
+              )
             ))}
           </div>
         )}

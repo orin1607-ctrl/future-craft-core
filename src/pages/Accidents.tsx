@@ -22,6 +22,7 @@ import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { createAccidentIncident } from '@/lib/incidentCreate';
 import IncidentSubmitSuccess from '@/components/incidents/IncidentSubmitSuccess';
 import { formatIsraelDateTime } from '@/lib/incidentEventNumber';
+import { isoToIsraelWall, israelWallTimeToIso } from '@/lib/accidentDateTime';
 import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import {
   currentAuthUserId,
@@ -314,7 +315,8 @@ export default function Accidents() {
           <div className="grid grid-cols-2 gap-4 text-lg">
             <div><span className="text-muted-foreground text-sm">נהג</span><p className="font-bold">{a.driver_name}</p></div>
             <div><span className="text-muted-foreground text-sm">מיקום</span><p className="font-bold">{a.location || '—'}</p></div>
-            <div><span className="text-muted-foreground text-sm">תאריך</span><p className="font-bold">{a.date ? new Date(a.date).toLocaleDateString('he-IL') : '—'}</p></div>
+            <div><span className="text-muted-foreground text-sm">תאריך תאונה</span><p className="font-bold">{a.date ? isoToIsraelWall(a.date).date.split('-').reverse().join('/') : '—'}</p></div>
+            <div><span className="text-muted-foreground text-sm">שעת תאונה</span><p className="font-bold">{a.date ? isoToIsraelWall(a.date).time || '—' : '—'}</p></div>
             <div><span className="text-muted-foreground text-sm">עלות משוערת</span><p className="font-bold">₪{(a.estimated_cost || 0).toLocaleString()}</p></div>
             <div><span className="text-muted-foreground text-sm">מספר תביעה</span><p className="font-bold">{a.claim_number || '—'}</p></div>
             <div>
@@ -878,6 +880,9 @@ function AccidentForm({
   const [thirdParty, setThirdParty] = useState(accident?.third_party || false);
   const [estimatedCost, setEstimatedCost] = useState(accident?.estimated_cost?.toString() || '');
   const [claimNumber, setClaimNumber] = useState(accident?.claim_number || '');
+  const initialWhen = isoToIsraelWall(accident?.date);
+  const [accidentDate, setAccidentDate] = useState(initialWhen.date);
+  const [accidentTime, setAccidentTime] = useState(initialWhen.time);
   const [notes, setNotes] = useState(accident?.notes || '');
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>(() => {
@@ -962,8 +967,17 @@ function AccidentForm({
     }
     if (!isValid || loading) return;
     setLoading(true);
+    const hasDate = !!accidentDate;
+    const hasTime = !!accidentTime;
+    if (hasDate !== hasTime) {
+      toast.error('יש למלא גם תאריך וגם שעה, או להשאיר את שניהם ריקים');
+      setLoading(false);
+      return;
+    }
+    const whenIso = israelWallTimeToIso(accidentDate, accidentTime);
     if (isEdit) {
-      const payload = {
+      const dateChanged = accidentDate !== initialWhen.date || accidentTime !== initialWhen.time;
+      const payload: Record<string, unknown> = {
         vehicle_plate: vehiclePlate,
         driver_name: driverName,
         location,
@@ -975,6 +989,7 @@ function AccidentForm({
         notes,
         images: JSON.stringify(imageUrls),
       };
+      if (dateChanged && whenIso) payload.date = whenIso;
       const { data: updated, error } = await supabase.from('accidents').update(payload).eq('id', accident!.id).select('*').single();
       if (!error && updated) await uploadAccidentDocuments(updated as AccidentRow);
       setLoading(false);
@@ -1003,6 +1018,7 @@ function AccidentForm({
       notes,
       images: imageUrls,
       dryRunNotify: false,
+      occurredAt: whenIso,
     });
 
     if (!result.error && result.data && hubVehicleId) {
@@ -1099,6 +1115,16 @@ function AccidentForm({
           </div>
         )}
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-lg font-medium mb-2">תאריך תאונה</label>
+            <input type="date" value={accidentDate} onChange={(e) => setAccidentDate(e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className="block text-lg font-medium mb-2">שעת תאונה</label>
+            <input type="time" value={accidentTime} onChange={(e) => setAccidentTime(e.target.value)} className={inputClass} />
+          </div>
+        </div>
         <div>
           <label className="block text-lg font-medium mb-2">מיקום</label>
           <input value={location} onChange={(e) => setLocation(e.target.value)} className={inputClass} placeholder="כתובת / מקום האירוע" />
@@ -1133,6 +1159,30 @@ function AccidentForm({
           <label className="block text-lg font-medium mb-2">עלות משוערת</label>
           <input value={estimatedCost} onChange={(e) => setEstimatedCost(e.target.value)} type="number" className={inputClass} />
         </div>
+        <fieldset disabled className="space-y-4 rounded-xl border border-dashed border-border p-4 opacity-80">
+          <legend className="px-2 text-sm text-muted-foreground">שדות תחקיר — עדיין לא נשמרים</legend>
+          <p className="text-sm text-muted-foreground">אשמת הנהג, ביצוע תחקיר ומסקנות יוצגו כאן אחרי אישור עמודות במסד. אין להם שמירה כרגע, ולכן אי אפשר למלא אותם.</p>
+          <div>
+            <label className="block text-lg font-medium mb-2">האם הנהג אשם?</label>
+            <select className={inputClass} defaultValue="" aria-disabled="true">
+              <option value="">—</option>
+              <option value="yes">כן</option>
+              <option value="no">לא</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-lg font-medium mb-2">האם בוצע תחקיר?</label>
+            <select className={inputClass} defaultValue="" aria-disabled="true">
+              <option value="">—</option>
+              <option value="yes">כן</option>
+              <option value="no">לא</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-lg font-medium mb-2">מסקנות התחקיר</label>
+            <textarea rows={2} className={`${inputClass} resize-none`} placeholder="יופעל רק אחרי אישור שמירה" />
+          </div>
+        </fieldset>
         <div>
           <label className="block text-lg font-medium mb-2">הערות</label>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={`${inputClass} resize-none`} />
