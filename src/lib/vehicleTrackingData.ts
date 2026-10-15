@@ -81,6 +81,7 @@ export interface TrackingVehicleRow {
 
 export type SummaryFilterKey =
   | 'total'
+  | 'officerAlert'
   | 'active'
   | 'service'
   | 'transport'
@@ -180,7 +181,7 @@ export async function loadFleetTrackingRows(companyFilter: string | null): Promi
       supabase
         .from('vehicles')
         .select(
-          'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, license_doc_url, insurance_alerts_enabled, insurance_alerts_red_enabled',
+          'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, next_inspection_date, license_doc_url, insurance_alerts_enabled, insurance_alerts_red_enabled',
         )
         .order('license_plate'),
     ),
@@ -425,6 +426,8 @@ export function applySummaryFilter(rows: TrackingVehicleRow[], key: SummaryFilte
       return rows.filter((v) => v.has_open_fault);
     case 'alert':
       return rows.filter((v) => v.has_open_alert);
+    case 'officerAlert':
+      return rows.filter((v) => !!v.officer_alert && v.officer_alert.alerts.length > 0);
     case 'garage':
       return rows.filter((v) => v.in_garage);
     case 'disabled':
@@ -469,6 +472,7 @@ export function applyTrackingFilters(rows: TrackingVehicleRow[], f: TrackingFilt
 export function buildSummaryCounts(rows: TrackingVehicleRow[]): Record<SummaryFilterKey, number> {
   return {
     total: rows.length,
+    officerAlert: rows.reduce((sum, v) => sum + (v.officer_alert?.alerts.length || 0), 0),
     active: applySummaryFilter(rows, 'active').length,
     service: applySummaryFilter(rows, 'service').length,
     transport: applySummaryFilter(rows, 'transport').length,
@@ -493,7 +497,7 @@ export async function loadVehicleTrackingDetail(
     supabase
       .from('vehicles')
       .select(
-        'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, license_doc_url, insurance_alerts_enabled, insurance_alerts_red_enabled',
+        'id, license_plate, internal_number, company_name, department, manufacturer, model, year, status, current_location, odometer, service_status, assigned_driver_id, needs_transport, test_expiry, insurance_expiry, next_inspection_date, license_doc_url, insurance_alerts_enabled, insurance_alerts_red_enabled',
       )
       .eq('id', vehicleId)
       .maybeSingle(),

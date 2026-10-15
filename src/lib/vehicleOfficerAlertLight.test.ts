@@ -154,4 +154,42 @@ describe('officer alert red light in vehicle tracking', () => {
   it('links to all officer alerts, overdue included', () => {
     expect(ALL_OFFICER_ALERTS_URL).toBe('/alerts?category=officer&scope=all');
   });
+
+  it('includes tri-annual inspection from vehicle next_inspection_date within 30 days', () => {
+    const vehiclesWithInsp = [
+      { id: 'veh-c', company_name: 'A', next_inspection_date: shift(14) },
+      { id: 'veh-d', company_name: 'A', next_inspection_date: shift(40) }, // outside 30-day window
+    ];
+    const lights = buildOfficerAlertLights([], vehiclesWithInsp, window30, TODAY);
+    expect(lights.has('veh-c')).toBe(true);
+    expect(lights.get('veh-c')?.alerts[0].daysLeft).toBe(14);
+    expect(lights.has('veh-d')).toBe(false);
+  });
+
+  it('deduplicates custom_alerts and next_inspection_date sharing the same due date', () => {
+    const inspDate = shift(10);
+    const vehiclesWithInsp = [
+      { id: 'veh-a', company_name: 'A', next_inspection_date: inspDate },
+    ];
+    // custom_alerts row also has this target date
+    const customRow = alert({
+      days: 10,
+      description: `vid:veh-a target:${inspDate}`,
+    });
+    const lights = buildOfficerAlertLights([customRow], vehiclesWithInsp, window30, TODAY);
+    const vehA = lights.get('veh-a');
+    expect(vehA?.alerts.length).toBe(1);
+    expect(vehA?.alerts[0].dueDate).toBe(inspDate);
+  });
+
+  it('counts total officer alerts accurately across vehicles', () => {
+    const lights = buildOfficerAlertLights(
+      [alert({ id: 'a1', days: 5 }), alert({ id: 'a2', days: -3 })],
+      VEHICLES,
+      window30,
+      TODAY,
+    );
+    expect(lights.get('veh-a')?.alerts.length).toBe(2);
+  });
 });
+

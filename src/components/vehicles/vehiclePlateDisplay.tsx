@@ -36,20 +36,23 @@ export function VehiclePlateLine({
   internal,
   className = '',
   separator = ' · ',
+  alertLight,
 }: {
   plate: string;
   internal?: string | null;
   className?: string;
   separator?: string;
+  alertLight?: ReactNode;
 }) {
   const p = (plate || '').trim();
   const n = (internal || '').trim();
   if (!p && !n) return <span className={className}>—</span>;
   return (
-    <span className={`font-mono text-sm ${className}`} dir="ltr">
+    <span className={`font-mono text-sm inline-flex items-center gap-1.5 ${className}`} dir="ltr">
       {p}
       {p && n ? separator : null}
       {n ? <InternalNumber value={n} className="inline text-sm" /> : null}
+      {alertLight}
     </span>
   );
 }
@@ -60,16 +63,18 @@ export function VehiclePlatePipeLine({
   internal,
   className = '',
   trailing,
+  alertLight,
 }: {
   plate: string;
   internal?: string | null;
   className?: string;
   trailing?: ReactNode;
+  alertLight?: ReactNode;
 }) {
   const p = (plate || '').trim();
   const n = (internal || '').trim();
   return (
-    <span className={`font-mono text-sm ${className}`} dir="ltr">
+    <span className={`font-mono text-sm inline-flex items-center gap-1.5 ${className}`} dir="ltr">
       {p}
       {n ? (
         <>
@@ -78,6 +83,7 @@ export function VehiclePlatePipeLine({
         </>
       ) : null}
       {trailing}
+      {alertLight}
     </span>
   );
 }

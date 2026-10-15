@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import DriverAlertDot from '@/components/drivers/DriverAlertDot';
 import {
   alertStateLabel,
   daysLeftLabel,
@@ -97,7 +98,10 @@ export default function DriverTrackingList({
                     onClick={() => onOpen(row.id)}
                   >
                     <td className="py-3 px-3">
-                      <div className="font-bold">{row.fullName}</div>
+                      <div className="font-bold flex items-center gap-1.5">
+                        {row.fullName}
+                        <DriverAlertDot alerts={row.alertItems} driverId={row.id} />
+                      </div>
                       <div className="text-xs text-muted-foreground">{row.employeeNumber} · {row.phone}</div>
                     </td>
                     <td className="py-3 px-2">{row.department}</td>
@@ -136,7 +140,10 @@ export default function DriverTrackingList({
                     {row.statusText}
                   </span>
                   <div>
-                    <p className="text-lg font-black">{row.fullName}</p>
+                    <p className="text-lg font-black flex items-center gap-1.5">
+                      {row.fullName}
+                      <DriverAlertDot alerts={row.alertItems} driverId={row.id} />
+                    </p>
                     <p className="text-xs text-muted-foreground">{row.employeeNumber} · {row.phone}</p>
                   </div>
                 </div>

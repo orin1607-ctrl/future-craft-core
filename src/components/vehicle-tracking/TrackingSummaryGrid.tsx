@@ -1,8 +1,9 @@
 import { cn } from '@/lib/utils';
 import type { SummaryFilterKey } from '@/lib/vehicleTrackingData';
 
-const DEFS: { key: SummaryFilterKey; label: string; color: string }[] = [
+const DEFS: { key: SummaryFilterKey; label: string; color?: string }[] = [
   { key: 'total', label: 'סה"כ רכבים', color: 'text-primary' },
+  { key: 'officerAlert', label: 'התראות קצין רכב' },
   { key: 'active', label: 'רכבים פעילים', color: 'text-success' },
   { key: 'service', label: 'בטיפול', color: 'text-warning' },
   { key: 'transport', label: 'בשינוע', color: 'text-info' },
@@ -30,21 +31,33 @@ export default function TrackingSummaryGrid({
   return (
     <div>
       <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3">סיכום צי</p>
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2">
-        {DEFS.map(({ key, label, color }) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => onSelect(key)}
-            className={cn(
-              'card-elevated text-right p-3 min-h-[72px] transition-all hover:shadow-lg',
-              activeKey === key && 'border-2 border-primary bg-primary/5',
-            )}
-          >
-            <p className={cn('text-2xl font-black leading-none mb-1', color)}>{counts[key]}</p>
-            <p className="text-[11px] text-muted-foreground leading-snug">{label}</p>
-          </button>
-        ))}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-8 gap-2">
+        {DEFS.map(({ key, label, color }) => {
+          const isOfficer = key === 'officerAlert';
+          const officerAlertCount = counts.officerAlert || 0;
+          const hasOfficerAlerts = isOfficer && officerAlertCount > 0;
+          const numColor = isOfficer
+            ? hasOfficerAlerts
+              ? 'text-destructive'
+              : 'text-muted-foreground'
+            : (color || 'text-primary');
+
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onSelect(key)}
+              className={cn(
+                'card-elevated text-right p-3 min-h-[72px] transition-all hover:shadow-lg',
+                hasOfficerAlerts && 'border-destructive/40 bg-destructive/5 hover:border-destructive/60',
+                activeKey === key && (hasOfficerAlerts ? 'border-2 border-destructive bg-destructive/10' : 'border-2 border-primary bg-primary/5'),
+              )}
+            >
+              <p className={cn('text-2xl font-black leading-none mb-1', numColor)}>{counts[key]}</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">{label}</p>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

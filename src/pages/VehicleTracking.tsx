@@ -127,7 +127,13 @@ export default function VehicleTracking() {
       ) : (
         <>
           <TrackingSummaryGrid counts={counts} activeKey={summaryKey} onSelect={onSummarySelect} />
-          <div className="flex justify-end mt-3 mb-1">
+          <div className="flex justify-end gap-2 mt-3 mb-1 flex-wrap">
+            <Link
+              to="/alerts?category=officer&scope=all"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-destructive/30 text-destructive text-sm font-bold min-h-[44px] hover:bg-destructive/5"
+            >
+              כל התראות קצין רכב
+            </Link>
             <Link
               to={buildAllAccidentsUrl()}
               className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-primary/30 text-primary text-sm font-bold min-h-[44px] hover:bg-primary/5"
