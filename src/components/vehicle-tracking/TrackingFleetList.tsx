@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { trackingAttentionReasons, type TrackingVehicleRow } from '@/lib/vehicleTrackingData';
 import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import EntityListNote from '@/components/vehicles/EntityListNote';
+import OfficerAlertLight from '@/components/vehicle-tracking/OfficerAlertLight';
 
 function ReasonChips({ reasons }: { reasons: string[] }) {
   return (
@@ -130,7 +131,10 @@ export default function TrackingFleetList({
                 onClick={() => onOpen(v.id)}
               >
                 <td className="py-3 px-3">
-                  <div className="font-bold">{v.license_plate}</div>
+                  <div className="font-bold flex items-center gap-1.5">
+                    {v.license_plate}
+                    <OfficerAlertLight light={v.officer_alert} />
+                  </div>
                   <EntityListNote notes={v.notes} />
                 </td>
                 <td className="py-3 px-2"><InternalNumber value={v.internal_number} className="text-xs" /></td>
@@ -172,7 +176,10 @@ export default function TrackingFleetList({
             <div className="flex justify-between items-start gap-2">
               <StatusBadge text={v.status_text} status={v.status} />
               <div>
-                <p className="text-lg font-black">{v.license_plate}</p>
+                <p className="text-lg font-black flex items-center gap-1.5">
+                  {v.license_plate}
+                  <OfficerAlertLight light={v.officer_alert} />
+                </p>
                 <p className="text-xs text-muted-foreground">
                   מספר פנימי: <InternalNumber value={v.internal_number} className="text-xs" />
                   {' · '}מחלקה: {v.department?.trim() || '—'}
