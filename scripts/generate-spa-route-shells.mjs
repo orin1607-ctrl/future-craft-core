@@ -66,6 +66,7 @@ const ROUTES = [
   'fleetos-ai',
   'transport',
   'vehicle-tracking',
+  'driver-tracking',
   'history',
   'service-orders',
   'expenses',

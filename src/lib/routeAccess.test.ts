@@ -9,6 +9,8 @@ describe('routeAccess', () => {
 
   it('driver cannot access manager modules', () => {
     expect(canAccessRoute('/vehicles', 'driver')).toBe(false);
+    expect(canAccessRoute('/driver-tracking', 'driver')).toBe(false);
+    expect(canAccessRoute('/vehicle-tracking', 'driver')).toBe(false);
     expect(canAccessRoute('/user-management', 'driver')).toBe(false);
     expect(canAccessRoute('/expiry-approvals', 'driver')).toBe(false);
     expect(canAccessRoute('/faults', 'driver')).toBe(true);
@@ -16,6 +18,8 @@ describe('routeAccess', () => {
 
   it('fleet_manager can access expiry approval list', () => {
     expect(canAccessRoute('/expiry-approvals', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/driver-tracking', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/vehicle-tracking', 'fleet_manager')).toBe(true);
   });
 
   it('fleet_manager cannot access super admin settings', () => {
