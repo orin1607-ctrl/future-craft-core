@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import type { TrackingVehicleRow } from '@/lib/vehicleTrackingData';
+import OfficerAlertLight from '@/components/vehicle-tracking/OfficerAlertLight';
 import { TRACKING_ALERT_KIND_LABELS } from '@/lib/vehicleTrackingAlerts';
 import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 
@@ -107,7 +108,12 @@ export default function TrackingFleetList({
                 className="border-t border-border hover:bg-muted/30 cursor-pointer"
                 onClick={() => onOpen(v.id)}
               >
-                <td className="py-3 px-3 font-bold">{v.license_plate}</td>
+                <td className="py-3 px-3 font-bold">
+                  <div className="flex items-center gap-1.5">
+                    {v.license_plate}
+                    <OfficerAlertLight light={v.officer_alert} />
+                  </div>
+                </td>
                 <td className="py-3 px-2"><InternalNumber value={v.internal_number} className="text-xs" /></td>
                 <td className="py-3 px-2">{v.department?.trim() || '—'}</td>
                 <td className="py-3 px-2">{v.company_name}</td>
@@ -147,7 +153,10 @@ export default function TrackingFleetList({
             <div className="flex justify-between items-start gap-2">
               <StatusBadge text={v.status_text} status={v.status} />
               <div>
-                <p className="text-lg font-black">{v.license_plate}</p>
+                <p className="text-lg font-black flex items-center gap-1.5">
+                  {v.license_plate}
+                  <OfficerAlertLight light={v.officer_alert} />
+                </p>
                 <p className="text-xs text-muted-foreground">
                   מספר פנימי: <InternalNumber value={v.internal_number} className="text-xs" />
                   {' · '}מחלקה: {v.department?.trim() || '—'}

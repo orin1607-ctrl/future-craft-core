@@ -18,6 +18,11 @@ import {
 } from '@/lib/vehicleTrackingAlerts';
 import { isInsuranceAlertsEnabled } from '@/lib/vehicleInsuranceAlerts';
 import { applyExcludeArchivedVehicles } from '@/lib/vehicleArchive';
+import {
+  buildOfficerAlertLights,
+  officerAlertWindowDays,
+  type VehicleOfficerAlertLight,
+} from '@/lib/vehicleOfficerAlertLight';
 
 export type { TrackingAlertItem, TrackingAlertKind };
 
@@ -70,6 +75,8 @@ export interface TrackingVehicleRow {
   insurance_alerts_red_enabled: boolean;
   alert_items: TrackingAlertItem[];
   alert_kinds: TrackingAlertKind[];
+  /** Open fleet-officer alerts due within the company window or overdue (red light). */
+  officer_alert?: VehicleOfficerAlertLight | null;
 }
 
 export type SummaryFilterKey =
@@ -141,15 +148,17 @@ function isOpen(list: string[], status: string | null | undefined) {
 
 async function loadCompanyThresholdsMap(
   companyNames: string[],
-): Promise<Map<string, CompanyAlertThresholds>> {
-  const map = new Map<string, CompanyAlertThresholds>();
+): Promise<{ thresholds: Map<string, CompanyAlertThresholds>; officerWindowDays: Map<string, number> }> {
+  const thresholds = new Map<string, CompanyAlertThresholds>();
+  const officerWindowDays = new Map<string, number>();
   await Promise.all(
     companyNames.map(async (name) => {
       const settings = await fetchCompanySettings(name);
-      map.set(name, thresholdsFromCompanySettings(settings));
+      thresholds.set(name, thresholdsFromCompanySettings(settings));
+      officerWindowDays.set(name, officerAlertWindowDays(settings?.alert_days_before));
     }),
   );
-  return map;
+  return { thresholds, officerWindowDays };
 }
 
 export async function countTrackingAttention(companyFilter: string | null): Promise<number> {
@@ -182,7 +191,7 @@ export async function loadFleetTrackingRows(companyFilter: string | null): Promi
   if (vehicles.length === 0) return [];
 
   const companyNames = [...new Set(vehicles.map((v) => v.company_name).filter(Boolean))] as string[];
-  const thresholdsMap = await loadCompanyThresholdsMap(companyNames);
+  const { thresholds: thresholdsMap, officerWindowDays } = await loadCompanyThresholdsMap(companyNames);
 
   const driverIds = [...new Set(vehicles.map((v) => v.assigned_driver_id).filter(Boolean))] as string[];
   const driverMap = new Map<string, string>();
@@ -200,7 +209,7 @@ function pushEntity(map: Map<string, TrackingOpenEntity[]>, plate: string | null
   map.set(key, list);
 }
 
-  const [faultsRes, tasksRes, accidentsRes, servicesRes] = await Promise.all([
+  const [faultsRes, tasksRes, accidentsRes, servicesRes, officerAlertsRes] = await Promise.all([
     applyCompanyScope(
       supabase.from('faults').select('id, vehicle_plate, status, fault_type, description'),
       companyFilter,
@@ -219,7 +228,21 @@ function pushEntity(map: Map<string, TrackingOpenEntity[]>, plate: string | null
         .select('id, vehicle_plate, treatment_status, created_at, service_category, description'),
       companyFilter,
     ),
+    applyCompanyScope(
+      supabase
+        .from('custom_alerts')
+        .select('id, alert_type, company_name, description, alert_date, is_active')
+        .eq('alert_type', 'officer')
+        .eq('is_active', true),
+      companyFilter,
+    ),
   ]);
+
+  const officerLights = buildOfficerAlertLights(
+    officerAlertsRes.data || [],
+    vehicles,
+    (company) => officerWindowDays.get(company) ?? officerAlertWindowDays(null),
+  );
 
   const faultsByPlate = new Map<string, TrackingOpenEntity[]>();
   const defectsByPlate = new Map<string, TrackingOpenEntity[]>();
@@ -380,6 +403,7 @@ function pushEntity(map: Map<string, TrackingOpenEntity[]>, plate: string | null
       insurance_alerts_red_enabled: v.insurance_alerts_red_enabled !== false,
       alert_items,
       alert_kinds: alert_items.map((a) => a.kind),
+      officer_alert: officerLights.get(v.id) ?? null,
     };
   });
 }
