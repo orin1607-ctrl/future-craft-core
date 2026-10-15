@@ -37,6 +37,9 @@ import VehicleSupplierOrderModal from '@/components/vehicles/VehicleSupplierOrde
 import VehicleDashboard from '@/components/vehicles/VehicleDashboard';
 import VehicleHubBottomActions from '@/components/vehicles/VehicleHubBottomActions';
 import { VehiclePlateLine } from '@/components/vehicles/vehiclePlateDisplay';
+import OfficerAlertLight from '@/components/vehicle-tracking/OfficerAlertLight';
+import { loadVehicleOfficerAlertsMap } from '@/lib/vehicleOfficerAlertIndicator';
+import type { VehicleOfficerAlertLight } from '@/lib/vehicleOfficerAlertLight';
 import VehicleDaliaFullPanel from '@/components/vehicles/VehicleDaliaFullPanel';
 import { DocumentCard } from '@/components/documents/DocumentViewer';
 import { statusLabel } from '@/components/vehicles/vehicleHubUtils';
@@ -189,6 +192,7 @@ export default function VehicleHub({
   hubBackLabel,
   initialHubNav,
   onConsumeHubNav,
+  officerAlert,
 }: {
   vehicle: VehicleHubVehicle;
   drivers: DriverRow[];
@@ -210,10 +214,34 @@ export default function VehicleHub({
   hubBackLabel?: string;
   initialHubNav?: VehicleHubDeepLink;
   onConsumeHubNav?: () => void;
+  officerAlert?: VehicleOfficerAlertLight | null;
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const companyFilter = useCompanyFilter();
+  const [internalOfficerAlert, setInternalOfficerAlert] = useState<VehicleOfficerAlertLight | null | undefined>(
+    officerAlert,
+  );
+
+  useEffect(() => {
+    if (officerAlert !== undefined) {
+      setInternalOfficerAlert(officerAlert);
+      return;
+    }
+    if (previewMode) return;
+    let cancelled = false;
+    void loadVehicleOfficerAlertsMap([v], companyFilter).then((lightsMap) => {
+      if (!cancelled) {
+        setInternalOfficerAlert(lightsMap.get(v.id) || null);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [v.id, v.company_name, v.next_inspection_date, officerAlert, previewMode, companyFilter]);
+
+  const effectiveOfficerAlert = officerAlert !== undefined ? officerAlert : internalOfficerAlert;
+
   const [mainSection, setMainSection] = useState<HubMainSection>('home');
   const [activeTab, setActiveTab] = useState<HubTabId>('tracking');
   const [hubData, setHubData] = useState<VehicleHubData | null>(null);
@@ -907,6 +935,7 @@ export default function VehicleHub({
                 plate={v.license_plate}
                 internal={v.internal_number}
                 className="text-muted-foreground text-lg"
+                alertLight={<OfficerAlertLight light={effectiveOfficerAlert} />}
               />
             </div>
             <span className={`status-badge ${sl.cls}`}>{sl.text}</span>
@@ -993,7 +1022,12 @@ export default function VehicleHub({
         <>
           <div className="card-elevated mb-4 p-3 flex items-center justify-between">
             <div>
-              <VehiclePlateLine plate={v.license_plate} internal={v.internal_number} className="font-bold text-base" />
+              <VehiclePlateLine
+                plate={v.license_plate}
+                internal={v.internal_number}
+                className="font-bold text-base"
+                alertLight={<OfficerAlertLight light={effectiveOfficerAlert} />}
+              />
               <p className="text-sm text-muted-foreground">
                 {v.manufacturer} {v.model}
               </p>
@@ -1015,7 +1049,13 @@ export default function VehicleHub({
       {mainSection === 'actions' && (
         <div>
           <p className="text-sm text-muted-foreground mb-3 flex items-center gap-2">
-            פעולות לרכב: <VehiclePlateLine plate={v.license_plate} internal={v.internal_number} className="font-bold" />
+            פעולות לרכב:{' '}
+            <VehiclePlateLine
+              plate={v.license_plate}
+              internal={v.internal_number}
+              className="font-bold"
+              alertLight={<OfficerAlertLight light={effectiveOfficerAlert} />}
+            />
           </p>
           <Button
             type="button"

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, UserRound } from 'lucide-react';
+import DriverAlertDot from '@/components/drivers/DriverAlertDot';
 import {
   alertStateLabel,
   daysLeftLabel,
@@ -34,7 +35,10 @@ export default function DriverTrackingDetail({
 
       <div className="card-elevated mb-4">
         <div className="flex flex-wrap items-start gap-4 mb-4">
-          <span className="text-2xl font-black bg-muted px-4 py-2 rounded-xl">{driver.fullName}</span>
+          <span className="text-2xl font-black bg-muted px-4 py-2 rounded-xl flex items-center gap-2">
+            {driver.fullName}
+            <DriverAlertDot alerts={driver.alertItems} driverId={driver.id} />
+          </span>
           <div>
             <p className="font-bold text-lg">{driver.employeeNumber}</p>
             <p className="text-sm text-muted-foreground">

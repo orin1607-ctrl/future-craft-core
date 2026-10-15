@@ -72,40 +72,93 @@ export function isOfficerAlertLit(daysLeft: number | null, windowDays: number): 
   return daysLeft !== null && daysLeft <= windowDays;
 }
 
+export type OfficerAlertVehicle = {
+  id: string;
+  company_name: string | null;
+  next_inspection_date?: string | null;
+};
+
+/** Optional target:YYYY-MM-DD in the alert description. */
+export function targetDateFromAlertText(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const m = String(text).match(/target:(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : null;
+}
+
 /**
- * Groups open officer alerts by vehicle id. A row without a `vid:` tag, of
- * another company, closed, or without a valid date is skipped.
+ * Groups open officer alerts by vehicle id.
+ * Includes:
+ * 1. Open fleet-officer alerts from custom_alerts (alert_type: 'officer', is_active: true).
+ * 2. Tri-annual / semi-annual inspections from vehicle next_inspection_date.
+ * Deduplicates multiple alerts for the same vehicle and due date.
  */
 export function buildOfficerAlertLights(
   rows: OfficerAlertRow[],
-  vehicles: { id: string; company_name: string | null }[],
+  vehicles: OfficerAlertVehicle[],
   windowDaysForCompany: (company: string) => number,
   today = todayIsoDate(),
 ): Map<string, VehicleOfficerAlertLight> {
   const companyByVehicle = new Map(vehicles.map((v) => [v.id, v.company_name || '']));
   const lights = new Map<string, VehicleOfficerAlertLight>();
-  const seen = new Set<string>();
+  const seenAlertIds = new Set<string>();
+  const seenVehicleDateKeys = new Set<string>();
 
+  // 1. Process custom_alerts rows
   for (const row of rows) {
     if (row.alert_type !== OFFICER_ALERT_TYPE || row.is_active !== true) continue;
-    if (seen.has(row.id)) continue;
+    if (seenAlertIds.has(row.id)) continue;
     const vehicleId = vehicleIdFromAlertText(row.description);
     if (!vehicleId || !companyByVehicle.has(vehicleId)) continue;
     const company = companyByVehicle.get(vehicleId) || '';
     if ((row.company_name || '') !== company) continue;
-    const dueDate = officerAlertDueDate(row.alert_date);
+
+    const targetDate = targetDateFromAlertText(row.description);
+    const dueDate = targetDate || officerAlertDueDate(row.alert_date);
     const daysLeft = calendarDaysLeft(dueDate, today);
     if (dueDate === null || daysLeft === null) continue;
     const windowDays = windowDaysForCompany(company);
     if (!isOfficerAlertLit(daysLeft, windowDays)) continue;
-    seen.add(row.id);
+
+    seenAlertIds.add(row.id);
+    const dedupeKey = `${vehicleId}|${dueDate}`;
+    if (seenVehicleDateKeys.has(dedupeKey)) continue;
+    seenVehicleDateKeys.add(dedupeKey);
+
     const light = lights.get(vehicleId) || { alerts: [], windowDays };
     light.alerts.push({ id: row.id, dueDate, daysLeft });
     lights.set(vehicleId, light);
   }
 
+  // 2. Process vehicle next_inspection_date (tri-annual / officer inspection)
+  for (const v of vehicles) {
+    if (!v.next_inspection_date) continue;
+    const company = v.company_name || '';
+    const dueDate = officerAlertDueDate(v.next_inspection_date);
+    const daysLeft = calendarDaysLeft(dueDate, today);
+    if (dueDate === null || daysLeft === null) continue;
+    const windowDays = windowDaysForCompany(company);
+    if (!isOfficerAlertLit(daysLeft, windowDays)) continue;
+
+    const dedupeKey = `${v.id}|${dueDate}`;
+    if (seenVehicleDateKeys.has(dedupeKey)) continue;
+    seenVehicleDateKeys.add(dedupeKey);
+
+    const light = lights.get(v.id) || { alerts: [], windowDays };
+    light.alerts.push({ id: `insp-${v.id}`, dueDate, daysLeft });
+    lights.set(v.id, light);
+  }
+
   lights.forEach((light) => light.alerts.sort((a, b) => a.daysLeft - b.daysLeft));
   return lights;
+}
+
+/** Total count of active officer alerts across all vehicles. */
+export function countTotalOfficerAlerts(lights: Map<string, VehicleOfficerAlertLight>): number {
+  let count = 0;
+  for (const light of lights.values()) {
+    count += light.alerts.length;
+  }
+  return count;
 }
 
 export function officerAlertDaysText(daysLeft: number): string {

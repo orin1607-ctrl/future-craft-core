@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Car, Search, Plus, Download, Upload, Settings2 } from 'lucide-react';
 import { logVehicleEvent } from '@/lib/vehicleEventLog';
@@ -22,6 +22,9 @@ import { VehicleDaliaFlow, VehicleForm } from '@/pages/VehicleDaliaFlow';
 import { collectDepartmentsFromVehicles } from '@/lib/companyDepartments';
 import { VehiclePlatePipeLine, InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import { sortByExactInternalNumberFirst } from '@/lib/internalNumberSearch';
+import OfficerAlertLight from '@/components/vehicle-tracking/OfficerAlertLight';
+import { loadVehicleOfficerAlertsMap } from '@/lib/vehicleOfficerAlertIndicator';
+import type { VehicleOfficerAlertLight } from '@/lib/vehicleOfficerAlertLight';
 
 export { VehicleForm };
 
@@ -88,6 +91,7 @@ export default function Vehicles() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [loading, setLoading] = useState(true);
   const [listsManagerOpen, setListsManagerOpen] = useState(false);
+  const [officerLightsMap, setOfficerLightsMap] = useState<Map<string, VehicleOfficerAlertLight>>(new Map());
   const hubOpenedForRef = useRef<string | null>(null);
   const fleetOSReturnRef = useRef(false);
 
@@ -97,8 +101,15 @@ export default function Vehicles() {
       applyCompanyScope(supabase.from('vehicles').select('*'), companyFilter).order('created_at', { ascending: false }),
       applyCompanyScope(supabase.from('drivers').select('id, full_name, phone'), companyFilter),
     ]);
-    if (vRes.data) setVehicles(vRes.data as VehicleRow[]);
+    const vData = (vRes.data || []) as VehicleRow[];
+    if (vRes.data) setVehicles(vData);
     if (dRes.data) setDrivers(dRes.data as DriverRow[]);
+    if (vData.length > 0) {
+      const lightsMap = await loadVehicleOfficerAlertsMap(vData, companyFilter);
+      setOfficerLightsMap(lightsMap);
+    } else {
+      setOfficerLightsMap(new Map());
+    }
     setLoading(false);
   };
 
@@ -370,6 +381,7 @@ export default function Vehicles() {
         hubBackLabel={fleetOSReturnRef.current ? 'חזרה ל-FleetOS AI' : undefined}
         initialHubNav={initialHubNav}
         onConsumeHubNav={onConsumeHubNav}
+        officerAlert={officerLightsMap.get(selectedVehicle.id)}
       />
     );
   }
@@ -506,7 +518,11 @@ export default function Vehicles() {
                     <div className="flex-1 min-w-0">
                       <p className="text-xl font-bold truncate">{v.manufacturer} {v.model}</p>
                       <p className="text-muted-foreground text-lg truncate">
-                        <VehiclePlatePipeLine plate={v.license_plate} internal={v.internal_number} />
+                        <VehiclePlatePipeLine
+                          plate={v.license_plate}
+                          internal={v.internal_number}
+                          alertLight={<OfficerAlertLight light={officerLightsMap.get(v.id)} />}
+                        />
                         {' • '}{v.year}
                       </p>
                       <p className="text-sm text-muted-foreground truncate">

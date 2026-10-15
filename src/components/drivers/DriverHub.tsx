@@ -37,6 +37,9 @@ import DriverDeclaration from '@/components/DriverDeclaration';
 import DriverExamsTab from '@/components/driving-exam/DriverExamsTab';
 import NotificationsAndSendsButton from '@/components/notifications/NotificationsAndSendsButton';
 import CreateAlertModal from '@/components/CreateAlertModal';
+import DriverAlertDot from '@/components/drivers/DriverAlertDot';
+import { loadDriverAlertsMap } from '@/lib/driverAlertIndicator';
+import type { DriverAlertItem } from '@/lib/driverTrackingData';
 import { useHiddenButtonsState } from '@/hooks/useHiddenButtons';
 import { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
 import {
@@ -93,6 +96,7 @@ type Props = {
   fromFleetManager?: boolean;
   filterCompany?: string;
   onNotesSaved?: (patch: { notes: string; show_notes_on_list: boolean }) => void;
+  alerts?: DriverAlertItem[];
 };
 
 function HubTile({
@@ -169,8 +173,28 @@ export default function DriverHub({
   fromFleetManager,
   filterCompany,
   onNotesSaved,
+  alerts,
 }: Props) {
   const navigate = useNavigate();
+  const [internalAlerts, setInternalAlerts] = useState<DriverAlertItem[] | undefined>(alerts);
+
+  useEffect(() => {
+    if (alerts !== undefined) {
+      setInternalAlerts(alerts);
+      return;
+    }
+    let cancelled = false;
+    void loadDriverAlertsMap(d.company_name || null).then((map) => {
+      if (!cancelled) {
+        setInternalAlerts(map.get(d.id) || []);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [d.id, d.company_name, alerts]);
+
+  const effectiveAlerts = alerts !== undefined ? alerts : (internalAlerts || []);
   const { hiddenButtons, ready: hiddenReady } = useHiddenButtonsState();
   const showDriverDashboard = hiddenReady && !isDriverHubDashboardHidden(hiddenButtons);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -863,7 +887,10 @@ export default function DriverHub({
           <div className="card-elevated mb-4">
             <div className="flex items-start justify-between gap-2 mb-3">
               <div className="min-w-0">
-                <h1 className="text-2xl font-bold truncate">{d.full_name}</h1>
+                <h1 className="text-2xl font-bold truncate flex items-center gap-2">
+                  <span>{d.full_name}</span>
+                  <DriverAlertDot alerts={effectiveAlerts} driverId={d.id} />
+                </h1>
                 <span
                   className={`status-badge mt-1 inline-flex ${
                     d.status === 'active' ? 'status-active' : 'status-inactive'
@@ -1099,7 +1126,10 @@ export default function DriverHub({
       {section !== 'home' && (
         <>
           <div className="card-elevated mb-4 p-3">
-            <h1 className="text-xl font-bold">{d.full_name}</h1>
+            <h1 className="text-xl font-bold flex items-center gap-2">
+              <span>{d.full_name}</span>
+              <DriverAlertDot alerts={effectiveAlerts} driverId={d.id} />
+            </h1>
             <p className="text-sm text-muted-foreground flex items-center gap-2">
               {isDocumentsHubSection(section) && <FileText size={14} />}
               {section === 'driving' && <AlertTriangle size={14} />}

@@ -14,6 +14,9 @@ import { validateRequiredModuleFields } from '@/lib/requiredFieldsValidate';
 import { DocumentAttachment } from '@/components/documents/DocumentViewer';
 import { uploadDocument } from '@/lib/uploadDocument';
 import DriverHub from '@/components/drivers/DriverHub';
+import DriverAlertDot from '@/components/drivers/DriverAlertDot';
+import { loadDriverAlertsMap } from '@/lib/driverAlertIndicator';
+import type { DriverAlertItem } from '@/lib/driverTrackingData';
 import { fetchCompanyDepartments } from '@/lib/companyDepartments';
 import { useHiddenButtonsState } from '@/hooks/useHiddenButtons';
 import { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
@@ -57,10 +60,15 @@ export default function Drivers() {
   const [selected, setSelected] = useState<DriverRow | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingDriver, setEditingDriver] = useState<DriverRow | null>(null);
+  const [driverAlertsMap, setDriverAlertsMap] = useState<Map<string, DriverAlertItem[]>>(new Map());
 
   const loadDrivers = async () => {
     const { data } = await applyCompanyScope(supabase.from('drivers').select('*'), companyFilter).order('created_at', { ascending: false });
-    if (data) setDrivers(data as DriverRow[]);
+    if (data) {
+      setDrivers(data as DriverRow[]);
+      const map = await loadDriverAlertsMap(companyFilter);
+      setDriverAlertsMap(map);
+    }
   };
 
   useEffect(() => { loadDrivers(); }, []);
@@ -111,6 +119,7 @@ export default function Drivers() {
     return (
       <DriverHub
         driver={d}
+        alerts={driverAlertsMap.get(d.id)}
         isManager={user?.role !== 'driver'}
         onNotesSaved={(patch) => {
           setSelected((s) => (s ? { ...s, ...patch } : s));
@@ -240,7 +249,10 @@ export default function Drivers() {
                   <Users size={28} className="text-info" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xl font-bold">{d.full_name}</p>
+                  <p className="text-xl font-bold flex items-center gap-2">
+                    <span className="truncate">{d.full_name}</span>
+                    <DriverAlertDot alerts={driverAlertsMap.get(d.id)} driverId={d.id} />
+                  </p>
                   <p className="text-muted-foreground text-lg">{d.phone}</p>
                   {d.department && (
                     <p className="text-sm text-muted-foreground">מחלקה: {d.department}</p>
