@@ -3,6 +3,13 @@ import { applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { loadVehicleHistory, type VehicleHistoryEntry } from '@/lib/vehicleHistory';
 import { normalizePlate as normalizePlateKey } from '@/lib/entityNavContext';
 import {
+  documentMatchesVehicle,
+  internalNumberIdentifiesVehicle,
+  normalizeVehicleKey,
+  safePlateFilterValues,
+  type VehicleIdentity,
+} from '@/lib/vehicleDocumentLink';
+import {
   handoverDateTime,
   isTowingServiceOrder,
   plateFromAlertText,
@@ -135,7 +142,7 @@ function vehicleDocumentVersions(vehicleId?: string) {
   }
   return supabase
     .from('document_versions')
-    .select('id, public_url, original_name, document_type_key, expiry_date, created_at, file_path, is_current')
+    .select('id, public_url, original_name, document_type_key, expiry_date, created_at, file_path, is_current, company_name')
     .eq('entity_type', 'vehicle')
     .eq('entity_id', vehicleId)
     .eq('is_current', true)
@@ -165,7 +172,46 @@ export async function loadVehicleHubData(
     third_party_insurance_expiry?: string | null;
   },
   vehicleId?: string,
+  vehicleCompanyName = '',
 ): Promise<VehicleHubData> {
+  const vehicleCompany = vehicleCompanyName.trim();
+  const identity: VehicleIdentity = {
+    id: vehicleId || '',
+    licensePlate: plate,
+    internalNumber,
+    companyName: vehicleCompany,
+  };
+  const scopeBlocked = !!(companyFilter && vehicleCompany && companyFilter !== vehicleCompany);
+  let internalUnique = false;
+  if (!scopeBlocked && vehicleCompany && internalNumber.trim() && vehicleId) {
+    const { data: peers } = await supabase
+      .from('vehicles')
+      .select('id, license_plate, internal_number, company_name')
+      .eq('company_name', vehicleCompany);
+    internalUnique = internalNumberIdentifiesVehicle(
+      identity,
+      (peers || []).map((row) => ({
+        id: String(row.id || ''),
+        licensePlate: String(row.license_plate || ''),
+        internalNumber: String(row.internal_number || ''),
+        companyName: String(row.company_name || ''),
+      })),
+    );
+  }
+  const plateFilters = safePlateFilterValues([
+    plate,
+    normalizePlate(plate),
+    ...(internalUnique ? [internalNumber, normalizeVehicleKey(internalNumber)] : []),
+  ]);
+  const metadataQuery = scopeBlocked || plateFilters.length === 0
+    ? Promise.resolve({ data: [] as Record<string, string>[] })
+    : supabase
+      .from('document_metadata')
+      .select('*')
+      .eq('company_name', vehicleCompany || companyFilter || '')
+      .or(plateFilters.map((value) => `vehicle_plate.eq.${value}`).join(','))
+      .order('created_at', { ascending: false });
+
   const [history, tasksRes, faultsRes, servicesRes, accidentsRes, inspectionsRes, handoversRes, docsRes, alertsRes, versionsRes] =
     await Promise.all([
       loadVehicleHistory(plate, internalNumber, companyFilter),
@@ -175,14 +221,7 @@ export async function loadVehicleHubData(
       byPlate('accidents', plate, companyFilter).order('created_at', { ascending: false }),
       byPlate('vehicle_inspections', plate, companyFilter).order('inspection_date', { ascending: false }),
       byPlate('vehicle_handovers', plate, companyFilter).order('date_time', { ascending: false }),
-      applyCompanyScope(
-        supabase
-          .from('document_metadata')
-          .select('*')
-          .or(`vehicle_plate.eq.${plate},vehicle_plate.eq.${normalizePlate(plate)}`)
-          .order('created_at', { ascending: false }),
-        companyFilter,
-      ),
+      metadataQuery,
       applyCompanyScope(
         supabase
           .from('custom_alerts')
@@ -303,7 +342,10 @@ export async function loadVehicleHubData(
     });
 
   const docs: DocRow[] = [];
-  const metadataRows = (docsRes.data || []) as Record<string, string>[];
+  const metadataRows = ((docsRes.data || []) as Record<string, string>[]).filter((row) => documentMatchesVehicle({
+    companyName: row.company_name,
+    vehiclePlate: row.vehicle_plate,
+  }, identity, internalUnique));
   const metadataCategoriesWithFile = new Set(
     metadataRows.filter((d) => d.file_path || d.public_url).map((d) => d.category),
   );
@@ -363,7 +405,54 @@ export async function loadVehicleHubData(
 
   const seenUrls = new Set(docs.map((d) => d.url).filter(Boolean) as string[]);
   const seenPaths = new Set(metadataRows.map((d) => d.file_path).filter(Boolean));
-  (versionsRes.data || []).forEach((ver: Record<string, string>, idx: number) => {
+  const versionRows = (scopeBlocked ? [] : (versionsRes.data || []) as Record<string, string>[]).filter((ver) => documentMatchesVehicle({
+    companyName: ver.company_name,
+    entityType: 'vehicle',
+    entityId: vehicleId,
+  }, identity, internalUnique));
+  const confirmedAccidentIds = new Set<string>();
+  if (!scopeBlocked && vehicleId && vehicleCompany) {
+    const accidentTable = supabase.from('accidents') as unknown as {
+      select: (columns: string) => {
+        eq: (column: string, value: string) => {
+          eq: (column: string, value: string) => Promise<{ data: Array<{
+            id: string;
+            company_name: string | null;
+            vehicle_plate: string | null;
+            vehicle_id: string | null;
+          }> | null }>;
+        };
+      };
+    };
+    const { data: accidentParents } = await accidentTable
+      .select('id, company_name, vehicle_plate, vehicle_id')
+      .eq('company_name', vehicleCompany)
+      .eq('vehicle_id', vehicleId);
+    for (const parent of accidentParents || []) {
+      if (parent.id && documentMatchesVehicle({
+        companyName: parent.company_name,
+        vehiclePlate: parent.vehicle_plate,
+        entityType: parent.vehicle_id === vehicleId ? 'vehicle' : undefined,
+        entityId: parent.vehicle_id === vehicleId ? vehicleId : undefined,
+      }, identity, internalUnique)) {
+        confirmedAccidentIds.add(String(parent.id));
+      }
+    }
+  }
+  if (confirmedAccidentIds.size > 0) {
+    const { data: accidentVersions } = await supabase
+      .from('document_versions')
+      .select('id, public_url, original_name, document_type_key, expiry_date, created_at, file_path, is_current, company_name, entity_id')
+      .eq('entity_type', 'accident')
+      .eq('is_current', true)
+      .in('entity_id', [...confirmedAccidentIds].slice(0, 100));
+    for (const ver of (accidentVersions || []) as Record<string, string>[]) {
+      if (ver.company_name && ver.company_name !== vehicleCompany) continue;
+      if (!confirmedAccidentIds.has(String(ver.entity_id))) continue;
+      versionRows.push(ver);
+    }
+  }
+  versionRows.forEach((ver: Record<string, string>, idx: number) => {
     const url = ver.file_path || ver.public_url || '';
     if (url && seenUrls.has(url)) return;
     if (ver.file_path && seenPaths.has(ver.file_path)) return;
