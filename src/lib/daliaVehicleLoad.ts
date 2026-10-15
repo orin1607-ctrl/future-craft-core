@@ -389,6 +389,7 @@ export function getAllDisplayFields(row: Record<string, unknown>): DisplayField[
   for (const [key, val] of Object.entries(values).sort(([a], [b]) => a.localeCompare(b, 'he'))) {
     if (seen.has(key)) continue;
     seen.add(key);
+    if (val.trim() === '[object Object]') continue;
     const isBool = key.startsWith('coverage_');
     fields.push({
       key,

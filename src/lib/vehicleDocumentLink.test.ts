@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   documentMatchesVehicle,
   internalNumberIdentifiesVehicle,
+  keepLatestNamedCopies,
+  sameStoredDocument,
   type VehicleIdentity,
 } from './vehicleDocumentLink';
 
@@ -51,6 +53,22 @@ describe('documentMatchesVehicle', () => {
       entityType: 'vehicle',
       entityId: 'veh-1',
     }, vehicle, false)).toBe(false);
+  });
+});
+
+describe('duplicate vehicle documents', () => {
+  it('keeps the newest copy of the same file name and hides it when it is the official license', () => {
+    const copies = keepLatestNamedCopies([
+      { id: 'new', original_name: 'license.jpeg', category: 'vehicle-license', created_at: '2026-09-17T14:29:51' },
+      { id: 'mid', original_name: 'license.jpeg', category: 'vehicle-license', created_at: '2026-09-17T14:26:46' },
+      { id: 'old', original_name: 'license.jpeg', category: 'vehicle-license', created_at: '2026-09-17T14:17:21' },
+      { id: 'other', original_name: 'insurance.pdf', category: 'insurance', created_at: '2026-09-17T14:00:00' },
+    ]);
+    expect(copies.map((row) => row.id)).toEqual(['new', 'other']);
+    const official = 'https://example.supabase.co/storage/v1/object/public/documents/company/vehicles_1/license.jpeg';
+    const saved = 'company/vehicles_1/license.jpeg';
+    expect(sameStoredDocument(official, saved)).toBe(true);
+    expect(official === saved).toBe(false);
   });
 });
 

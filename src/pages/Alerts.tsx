@@ -24,6 +24,7 @@ import {
   vehicleIdFromAlertText,
 } from '@/lib/vehicleActionFollowUp';
 import { normalizePlate } from '@/lib/entityNavContext';
+import { alertCalendarDaysLeft, formatAlertCalendarDate } from '@/lib/alertCalendar';
 import { Bell, ShieldAlert, Car, IdCard, Wrench, Clock, CheckCircle2, ScrollText, Search, Building2, Briefcase, ClipboardList, ClipboardList as LogIcon } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
@@ -102,9 +103,7 @@ const severityBadge: Record<AlertSeverity, string> = {
 };
 
 function getDaysLeft(dateStr: string | null): number | null {
-  if (!dateStr) return null;
-  const diff = new Date(dateStr).getTime() - new Date().getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return alertCalendarDaysLeft(dateStr);
 }
 
 function getSeverity(daysLeft: number | null): AlertSeverity {
@@ -900,7 +899,7 @@ export default function Alerts() {
                           {alert.daysLeft !== null ? (alert.daysLeft <= 0 ? 'פג!' : `${alert.daysLeft} ימים`) : '—'}
                         </td>
                         <td className="p-3 whitespace-nowrap text-muted-foreground">
-                          {alert.date ? new Date(alert.date).toLocaleDateString('he-IL') : '—'}
+                          {formatAlertCalendarDate(alert.date) || '—'}
                         </td>
                       </tr>
                     ))}
@@ -946,7 +945,7 @@ export default function Alerts() {
                           )}
                           {alert.date && (
                             <p className="text-xs opacity-60 mt-1">
-                              {new Date(alert.date).toLocaleDateString('he-IL')}
+                              {formatAlertCalendarDate(alert.date)}
                             </p>
                           )}
                         </div>

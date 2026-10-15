@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { DocumentCard, PrivateDocumentOpenLink } from '@/components/documents/DocumentViewer';
 import type { DocRow } from '@/lib/vehicleHubData';
+import { sameStoredDocument } from '@/lib/vehicleDocumentLink';
 import { Input } from '@/components/ui/input';
 import {
   Sheet,
@@ -446,10 +447,10 @@ export default function VehicleDashboard({
             ))}
           </div>
         )}
-        {linkedDocuments.some((doc) => doc.url && !uploaded.some((item) => item.url === doc.url)) && (
+        {linkedDocuments.some((doc) => doc.url && !uploaded.some((item) => item.url === doc.url || sameStoredDocument(item.url, doc.url))) && (
           <div className="mb-3 space-y-2">
             <p className="text-xs font-bold">מסמכים שמורים לרכב</p>
-            {linkedDocuments.filter((doc) => !doc.url || !uploaded.some((item) => item.url === doc.url)).map((doc) => (
+            {linkedDocuments.filter((doc) => !doc.url || !uploaded.some((item) => item.url === doc.url || sameStoredDocument(item.url, doc.url))).map((doc) => (
               doc.url ? (
                 <DocumentCard key={doc.id} url={doc.url} fileName={doc.name} compact />
               ) : (

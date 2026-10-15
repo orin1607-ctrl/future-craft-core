@@ -5,6 +5,7 @@ import { normalizePlate as normalizePlateKey } from '@/lib/entityNavContext';
 import {
   documentMatchesVehicle,
   internalNumberIdentifiesVehicle,
+  keepLatestNamedCopies,
   normalizeVehicleKey,
   safePlateFilterValues,
   type VehicleIdentity,
@@ -342,10 +343,10 @@ export async function loadVehicleHubData(
     });
 
   const docs: DocRow[] = [];
-  const metadataRows = ((docsRes.data || []) as Record<string, string>[]).filter((row) => documentMatchesVehicle({
+  const metadataRows = keepLatestNamedCopies(((docsRes.data || []) as Record<string, string>[]).filter((row) => documentMatchesVehicle({
     companyName: row.company_name,
     vehiclePlate: row.vehicle_plate,
-  }, identity, internalUnique));
+  }, identity, internalUnique)));
   const metadataCategoriesWithFile = new Set(
     metadataRows.filter((d) => d.file_path || d.public_url).map((d) => d.category),
   );

@@ -10,29 +10,36 @@ import {
   triggerDocumentDownload,
 } from '@/lib/documentDisplayUtils';
 
+export function documentPreviewState(
+  requested: string | null | undefined,
+  settled: { raw: string; resolved: string } | null,
+): { ready: boolean; resolved: string } {
+  const raw = requested || '';
+  if (!raw) return { ready: true, resolved: '' };
+  if (!settled || settled.raw !== raw) return { ready: false, resolved: '' };
+  return { ready: true, resolved: settled.resolved };
+}
+
 function useResolvedDocumentUrl(raw: string | null | undefined) {
-  const [resolved, setResolved] = useState('');
-  const [ready, setReady] = useState(false);
+  const [settled, setSettled] = useState<{ raw: string; resolved: string } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    setReady(false);
+    const key = raw || '';
     if (!raw) {
-      setResolved('');
-      setReady(true);
+      setSettled({ raw: '', resolved: '' });
       return;
     }
     void resolvePrivateDocumentUrl(raw).then((url) => {
       if (cancelled) return;
-      setResolved(url);
-      setReady(true);
+      setSettled({ raw: key, resolved: url });
     });
     return () => {
       cancelled = true;
     };
   }, [raw]);
 
-  return { resolved, ready };
+  return documentPreviewState(raw, settled);
 }
 
 export function PrivateDocumentOpenLink({

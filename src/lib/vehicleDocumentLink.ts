@@ -89,6 +89,64 @@ export function mergeStoredVehicleDocs<T extends { id: string; name: string; url
   return [...linked, ...extra];
 }
 
+/** Storage object key for a public URL or a stored file path. */
+export function storedDocumentPath(urlOrPath: string | null | undefined): string | null {
+  if (!urlOrPath) return null;
+  const raw = String(urlOrPath).trim();
+  if (!raw || raw.startsWith('data:') || raw.startsWith('blob:')) return null;
+  if (!/^https?:\/\//i.test(raw)) return raw.replace(/^\/+/, '');
+  const match = raw.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/documents\/([^?]+)/i);
+  if (!match?.[1]) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
+}
+
+export function sameStoredDocument(a?: string | null, b?: string | null): boolean {
+  const left = storedDocumentPath(a);
+  const right = storedDocumentPath(b);
+  return !!left && left === right;
+}
+
+export type NamedDocumentCopy = {
+  original_name?: string | null;
+  category?: string | null;
+  created_at?: string | null;
+};
+
+function namedCopyKey(row: NamedDocumentCopy): string | null {
+  const name = String(row.original_name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  if (!name) return null;
+  return `${String(row.category || '').trim()}\n${name}`;
+}
+
+/** Keep the newest stored row when the same category and file name were uploaded more than once. */
+export function keepLatestNamedCopies<T extends NamedDocumentCopy>(rows: T[]): T[] {
+  const newest = new Map<string, string>();
+  for (const row of rows) {
+    const key = namedCopyKey(row);
+    if (!key) continue;
+    const created = String(row.created_at || '');
+    const prev = newest.get(key);
+    if (prev == null || created > prev) newest.set(key, created);
+  }
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const row of rows) {
+    const key = namedCopyKey(row);
+    if (!key) {
+      out.push(row);
+      continue;
+    }
+    if (String(row.created_at || '') !== newest.get(key) || seen.has(key)) continue;
+    seen.add(key);
+    out.push(row);
+  }
+  return out;
+}
+
 export function safePlateFilterValues(values: Array<string | null | undefined>): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
