@@ -54,6 +54,7 @@ export type DriverHistoryEntry = {
   result: string;
   documentUrl: string | null;
   documentName: string | null;
+  hubLink: string | null;
   nextFollowUp: string;
   completed: boolean;
 };
@@ -129,6 +130,7 @@ export type DriverSource = {
   license_expiry: string | null;
   exam_expiry: string | null;
   last_exam_date: string | null;
+  license_image_url?: string | null;
 };
 
 export type DriverVehicleSource = {
@@ -149,6 +151,8 @@ export type DriverExamSource = {
   completed_at: string | null;
   created_at: string | null;
   expires_at: string | null;
+  exam_validity_months?: number | null;
+  signature_url?: string | null;
   score: number | null;
 };
 
@@ -163,6 +167,8 @@ export type DriverPracticalExamSource = {
   notes: string | null;
   created_at: string | null;
   vehicle_plate: string | null;
+  driver_signature_url?: string | null;
+  examiner_signature_url?: string | null;
 };
 
 export type DriverHealthSource = {
@@ -171,6 +177,7 @@ export type DriverHealthSource = {
   company_name: string | null;
   declaration_date: string | null;
   created_at: string | null;
+  signature_url?: string | null;
 };
 
 export type DriverDeclarationSource = {
@@ -333,6 +340,57 @@ export function daysLeftLabel(days: number | null): string {
   return `${days} ימים`;
 }
 
+/** Display-only. A stored expiry wins. Months apply only from a completed exam date. */
+export function addMonthsToDate(isoDate: string, months: number): string | null {
+  const iso = toIsoDate(isoDate);
+  if (!iso || !Number.isFinite(months) || months < 1) return null;
+  const [year, month, day] = iso.split('-').map(Number);
+  const wholeMonths = Math.floor(months);
+  const cursor = new Date(Date.UTC(year, month - 1 + wholeMonths, 1));
+  const lastDay = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0)).getUTCDate();
+  const out = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), Math.min(day, lastDay)));
+  return out.toISOString().slice(0, 10);
+}
+
+export function examDisplayExpiry(exam: {
+  expires_at?: string | null;
+  exam_validity_months?: number | null;
+  completed_at?: string | null;
+}): string | null {
+  const stored = toIsoDate(exam.expires_at);
+  if (stored) return stored;
+  const base = toIsoDate(exam.completed_at);
+  const months = exam.exam_validity_months;
+  if (!base || months == null || !Number.isFinite(months) || months < 1) return null;
+  return addMonthsToDate(base, months);
+}
+
+export function safeDocumentUrl(value: string | null | undefined): string | null {
+  const raw = clean(value);
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    if (url.protocol === 'https:' || url.protocol === 'http:') return url.toString();
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+export function validityPhrase(
+  due: string | null | undefined,
+  today: string,
+  windowDays: number,
+  empty = DRIVER_FIELD_MISSING,
+): string {
+  const iso = toIsoDate(due);
+  if (!iso) return empty;
+  const days = calendarDaysLeft(iso, today);
+  if (days === null) return showDate(iso, empty);
+  const state = days < 0 ? 'פג תוקף' : days <= windowDays ? 'עומד לפוג' : 'תקף';
+  return `${showDate(iso)} · ${state} · ${daysLeftLabel(days)}`;
+}
+
 export function alertStateLabel(state: DriverAlertState): string {
   switch (state) {
     case 'overdue':
@@ -371,9 +429,10 @@ function sameCompany(rowCompany: string | null | undefined, driverCompany: strin
   return true;
 }
 
-function driverCardLink(driverId: string, section?: string): string {
+function driverCardLink(driverId: string, section?: string, docType?: string): string {
   const q = new URLSearchParams({ driverId });
   if (section) q.set('section', section);
+  if (docType) q.set('docType', docType);
   return `/drivers?${q.toString()}`;
 }
 
@@ -442,7 +501,7 @@ function inAlertWindow(days: number | null, windowDays: number): boolean {
 
 function pushAlert(list: DriverAlertItem[], item: DriverAlertItem) {
   if (list.some((a) => a.id === item.id)) return;
-  const collapsesIntoExistingDue = item.id.startsWith('doc-due:') || item.id.startsWith('safety-due:') || item.id.startsWith('decl-due:');
+  const collapsesIntoExistingDue = item.id.startsWith('doc-due:') || item.id.startsWith('safety-due:') || item.id.startsWith('decl-due:') || item.id.startsWith('exam-due:');
   if (collapsesIntoExistingDue && item.dueAt && list.some((a) => a.kind === item.kind && a.dueAt === item.dueAt)) return;
   list.push(item);
 }
@@ -458,6 +517,7 @@ function datedAlert(input: {
   today: string;
   inProgress?: boolean;
   detail?: string;
+  docType?: string;
 }): DriverAlertItem | null {
   const days = calendarDaysLeft(input.dueAt, input.today);
   if (!inAlertWindow(days, input.windowDays)) return null;
@@ -472,7 +532,7 @@ function datedAlert(input: {
     state,
     daysLeft: days,
     urgent: isUrgent(state, days, input.windowDays),
-    hubLink: driverCardLink(input.driverId, sectionForKind(input.kind)),
+    hubLink: driverCardLink(input.driverId, sectionForKind(input.kind), input.docType),
   };
 }
 
@@ -487,6 +547,7 @@ function openTaskAlert(input: {
   today: string;
   inProgress?: boolean;
   detail: string;
+  docType?: string;
 }): DriverAlertItem {
   const days = calendarDaysLeft(input.dueAt, input.today);
   const state = classifyState(days, !!input.inProgress);
@@ -500,7 +561,7 @@ function openTaskAlert(input: {
     state,
     daysLeft: days,
     urgent: isUrgent(state, days, input.windowDays),
-    hubLink: driverCardLink(input.driverId, sectionForKind(input.kind)),
+    hubLink: driverCardLink(input.driverId, sectionForKind(input.kind), input.docType),
   };
 }
 
@@ -596,9 +657,11 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
       });
       if (examAlert) pushAlert(alerts, examAlert);
 
-      const latestSafetyId = [...exams]
-        .filter((exam) => exam.exam_type === 'safety')
-        .sort((a, b) => (b.completed_at || b.created_at || '').localeCompare(a.completed_at || a.created_at || ''))[0]?.id;
+      const latestByDate = (rows: DriverExamSource[]) => [...rows].sort((a, b) => (
+        (b.completed_at || b.created_at || '').localeCompare(a.completed_at || a.created_at || '')
+      ))[0]?.id;
+      const latestSafetyId = latestByDate(exams.filter((exam) => exam.exam_type === 'safety'));
+      const latestTheoryId = latestByDate(exams.filter((exam) => exam.exam_type !== 'safety'));
 
       for (const exam of exams) {
         const safety = exam.exam_type === 'safety';
@@ -608,6 +671,8 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
           : `מבחן ${EXAM_LABELS[exam.exam_type || ''] || exam.exam_type || 'נהיגה'}`;
         const when = exam.completed_at || exam.created_at;
         const finished = examFinished(exam.status, exam.passed);
+        const displayExpiry = examDisplayExpiry(exam);
+        const examFile = safeDocumentUrl(exam.signature_url);
         history.push({
           id: `exam:${exam.id}`,
           date: when,
@@ -615,9 +680,10 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
           description: label,
           performedBy: DRIVER_FIELD_MISSING,
           result: resultText(exam.status, exam.passed),
-          documentUrl: null,
-          documentName: null,
-          nextFollowUp: showDate(exam.expires_at),
+          documentUrl: examFile,
+          documentName: examFile ? 'אישור מבחן' : null,
+          hubLink: driverCardLink(driver.id, 'driving'),
+          nextFollowUp: displayExpiry ? validityPhrase(displayExpiry, today, windowDays) : DRIVER_FIELD_MISSING,
           completed: finished && (exam.passed === true || isSuccessStatus(exam.status) || exam.passed === false),
         });
         if (!finished) {
@@ -626,7 +692,7 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
             kind,
             label,
             driverId: driver.id,
-            dueAt: exam.expires_at,
+            dueAt: displayExpiry,
             openedAt: exam.created_at,
             windowDays,
             today,
@@ -639,7 +705,19 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
             kind: 'safety',
             label: DRIVER_ALERT_KIND_LABELS.safety,
             driverId: driver.id,
-            dueAt: exam.expires_at,
+            dueAt: displayExpiry,
+            openedAt: when,
+            windowDays,
+            today,
+          });
+          if (due) pushAlert(alerts, due);
+        } else if (!safety && exam.id === latestTheoryId) {
+          const due = datedAlert({
+            id: `exam-due:${exam.id}`,
+            kind: 'exam',
+            label: DRIVER_ALERT_KIND_LABELS.exam,
+            driverId: driver.id,
+            dueAt: displayExpiry,
             openedAt: when,
             windowDays,
             today,
@@ -650,6 +728,7 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
 
       for (const exam of practical) {
         const finished = examFinished(exam.status, exam.passed);
+        const examFile = safeDocumentUrl(exam.driver_signature_url) || safeDocumentUrl(exam.examiner_signature_url);
         history.push({
           id: `practical:${exam.id}`,
           date: exam.exam_date || exam.created_at,
@@ -657,8 +736,9 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
           description: clean(exam.notes) || 'מבחן מעשי',
           performedBy: textOrMissing(exam.examiner_name),
           result: resultText(exam.status, exam.passed),
-          documentUrl: null,
-          documentName: null,
+          documentUrl: examFile,
+          documentName: examFile ? 'אישור מבחן מעשי' : null,
+          hubLink: driverCardLink(driver.id, 'driving'),
           nextFollowUp: DRIVER_FIELD_MISSING,
           completed: finished,
         });
@@ -679,6 +759,7 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
       }
 
       for (const row of health) {
+        const file = safeDocumentUrl(row.signature_url);
         history.push({
           id: `health:${row.id}`,
           date: row.declaration_date || row.created_at,
@@ -686,8 +767,9 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
           description: 'הצהרת בריאות מתועדת',
           performedBy: DRIVER_FIELD_MISSING,
           result: 'תועדה',
-          documentUrl: null,
-          documentName: null,
+          documentUrl: file,
+          documentName: file ? 'חתימת הצהרה' : null,
+          hubLink: driverCardLink(driver.id, 'documents', 'health_declaration'),
           nextFollowUp: DRIVER_FIELD_MISSING,
           completed: true,
         });
@@ -702,9 +784,10 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
           description: 'הצהרת נהג',
           performedBy: DRIVER_FIELD_MISSING,
           result: row.signed_at ? 'נחתם' : statusText(row.status),
-          documentUrl: clean(row.pdf_url) || null,
-          documentName: clean(row.pdf_url) ? 'מסמך הצהרה' : null,
-          nextFollowUp: showDate(row.expires_at),
+          documentUrl: safeDocumentUrl(row.pdf_url),
+          documentName: safeDocumentUrl(row.pdf_url) ? 'מסמך הצהרה' : null,
+          hubLink: driverCardLink(driver.id, 'documents'),
+          nextFollowUp: row.expires_at ? validityPhrase(row.expires_at, today, windowDays) : DRIVER_FIELD_MISSING,
           completed: finished && (isSuccessStatus(row.status) || !!row.signed_at),
         });
         if (!finished) {
@@ -745,6 +828,7 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
           result: statusText(row.status),
           documentUrl: null,
           documentName: null,
+          hubLink: driverCardLink(driver.id, 'activity'),
           nextFollowUp: showDate(row.scheduled_date),
           completed: finished && isSuccessStatus(row.status),
         });
@@ -772,10 +856,11 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
           actionType: 'מסמך',
           description: label,
           performedBy: DRIVER_FIELD_MISSING,
-          result: doc.expiry_date ? `תוקף ${showDate(doc.expiry_date)}` : 'קיים',
-          documentUrl: clean(doc.public_url) || null,
-          documentName: clean(doc.original_name) || label,
-          nextFollowUp: showDate(doc.expiry_date),
+          result: doc.expiry_date ? validityPhrase(doc.expiry_date, today, windowDays) : 'קיים',
+          documentUrl: safeDocumentUrl(doc.public_url),
+          documentName: safeDocumentUrl(doc.public_url) ? (clean(doc.original_name) || label) : null,
+          hubLink: driverCardLink(driver.id, 'documents', doc.document_type_key),
+          nextFollowUp: doc.expiry_date ? validityPhrase(doc.expiry_date, today, windowDays) : DRIVER_FIELD_MISSING,
           completed: false,
         });
         const due = datedAlert({
@@ -787,6 +872,7 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
           openedAt: doc.created_at,
           windowDays,
           today,
+          docType: doc.document_type_key,
           detail: `${label} · ${daysLeftLabel(calendarDaysLeft(doc.expiry_date, today))}`,
         });
         if (due) pushAlert(alerts, due);
@@ -805,7 +891,8 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
           result: statusText(req.status),
           documentUrl: null,
           documentName: null,
-          nextFollowUp: showDate(req.token_expires_at),
+          hubLink: driverCardLink(driver.id, 'documents', req.document_type_key),
+          nextFollowUp: req.token_expires_at ? validityPhrase(req.token_expires_at, today, windowDays) : DRIVER_FIELD_MISSING,
           completed: finished && isSuccessStatus(req.status),
         });
         if (pending && !finished) {
@@ -819,6 +906,7 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
             windowDays,
             today,
             inProgress: isInProgressStatus(req.status),
+            docType: req.document_type_key,
             detail: statusText(req.status),
           }));
         }
@@ -834,6 +922,7 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
           result: statusText(accident.status),
           documentUrl: null,
           documentName: null,
+          hubLink: `/accidents?id=${encodeURIComponent(accident.id)}`,
           nextFollowUp: DRIVER_FIELD_MISSING,
           completed: isClosedStatus(accident.status) && isSuccessStatus(accident.status),
         });
@@ -850,6 +939,24 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
             detail: clean(accident.description) || statusText(accident.status),
           }));
         }
+      }
+
+      const licensePhoto = safeDocumentUrl(driver.license_image_url);
+      const licenseDocUrl = safeDocumentUrl(licenseDoc?.public_url);
+      if (licensePhoto && licensePhoto !== licenseDocUrl) {
+        history.push({
+          id: `license-photo:${driver.id}`,
+          date: null,
+          actionType: 'רישיון נהיגה',
+          description: 'צילום רישיון',
+          performedBy: DRIVER_FIELD_MISSING,
+          result: 'קיים',
+          documentUrl: licensePhoto,
+          documentName: 'צילום רישיון',
+          hubLink: driverCardLink(driver.id, 'documents', 'driver_license'),
+          nextFollowUp: validityPhrase(driver.license_expiry, today, windowDays),
+          completed: false,
+        });
       }
 
       alerts.sort((a, b) => {
@@ -874,7 +981,7 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
 
       const examCandidates = [
         theoryLatest
-          ? { at: theoryLatest.completed_at || theoryLatest.created_at, result: resultText(theoryLatest.status, theoryLatest.passed), next: theoryLatest.expires_at }
+          ? { at: theoryLatest.completed_at || theoryLatest.created_at, result: resultText(theoryLatest.status, theoryLatest.passed), next: examDisplayExpiry(theoryLatest) }
           : null,
         practicalLatest
           ? { at: practicalLatest.exam_date || practicalLatest.created_at, result: resultText(practicalLatest.status, practicalLatest.passed), next: null }
@@ -904,23 +1011,38 @@ export function assembleDriverTrackingRows(bundle: DriverTrackingBundle): Driver
         vehiclePlatesRaw: plates.join(' '),
         licenseNumber: textOrMissing(driver.license_number),
         licenseGrades: grades.length ? grades.join(', ') : DRIVER_FIELD_MISSING,
-        licenseExpiry: showDate(driver.license_expiry),
+        licenseExpiry: validityPhrase(driver.license_expiry, today, windowDays),
         licenseCheckLast: licenseDoc ? showDate(licenseDoc.created_at) : DRIVER_FIELD_MISSING,
-        licenseCheckNext: licenseDoc ? showDate(licenseDoc.expiry_date) : DRIVER_FIELD_MISSING,
+        licenseCheckNext: licenseDoc?.expiry_date
+          ? validityPhrase(licenseDoc.expiry_date, today, windowDays)
+          : DRIVER_FIELD_MISSING,
         safetyDone: safetyLatest ? showDate(safetyLatest.completed_at || safetyLatest.created_at) : DRIVER_FIELD_ABSENT,
-        safetyNext: safetyLatest ? showDate(safetyLatest.expires_at) : DRIVER_FIELD_ABSENT,
+        safetyNext: safetyLatest
+          ? validityPhrase(examDisplayExpiry(safetyLatest), today, windowDays, DRIVER_FIELD_MISSING)
+          : DRIVER_FIELD_ABSENT,
         examDone: examSummary ? showDate(examSummary.at) : (driver.last_exam_date ? showDate(driver.last_exam_date) : DRIVER_FIELD_ABSENT),
         examResult: examSummary ? examSummary.result : DRIVER_FIELD_ABSENT,
-        examNext: showDate(driver.exam_expiry || examSummary?.next || null, examSummary || driver.exam_expiry ? DRIVER_FIELD_MISSING : DRIVER_FIELD_ABSENT),
-        healthText: health.length || healthDocs.length
-          ? showDate(health[0]?.declaration_date || health[0]?.created_at || healthDocs[0]?.created_at, DRIVER_FIELD_MISSING)
-          : DRIVER_FIELD_ABSENT,
+        examNext: validityPhrase(
+          driver.exam_expiry || examSummary?.next || null,
+          today,
+          windowDays,
+          examSummary || driver.exam_expiry || driver.last_exam_date ? DRIVER_FIELD_MISSING : DRIVER_FIELD_ABSENT,
+        ),
+        healthText: healthDocs[0]?.expiry_date
+          ? validityPhrase(healthDocs[0].expiry_date, today, windowDays)
+          : (health.length || healthDocs.length
+            ? showDate(health[0]?.declaration_date || health[0]?.created_at || healthDocs[0]?.created_at, DRIVER_FIELD_MISSING)
+            : DRIVER_FIELD_ABSENT),
         approvalText: DRIVER_FIELD_ABSENT,
         accidentsText: linkedAccidents.length
           ? linkedAccidents.map((a) => clean(a.description) || statusText(a.status)).join(' · ')
           : DRIVER_FIELD_ABSENT,
         trafficText: trafficDocs.length
-          ? trafficDocs.map((d) => docLabel(d.document_type_key, labels)).join(', ')
+          ? trafficDocs.map((d) => (
+            d.expiry_date
+              ? `${docLabel(d.document_type_key, labels)} · ${validityPhrase(d.expiry_date, today, windowDays)}`
+              : docLabel(d.document_type_key, labels)
+          )).join(', ')
           : DRIVER_FIELD_ABSENT,
         status: clean(driver.status),
         statusText: driver.status ? statusText(driver.status) : DRIVER_FIELD_MISSING,

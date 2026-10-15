@@ -4,10 +4,13 @@ import {
   DRIVER_FIELD_ABSENT,
   DRIVER_FIELD_MISSING,
   accidentBelongsToDriver,
+  addMonthsToDate,
   applyDriverFilters,
   applyDriverSummaryFilter,
   assembleDriverTrackingRows,
   buildDriverSummaryCounts,
+  examDisplayExpiry,
+  safeDocumentUrl,
   sortDriverRows,
   type DriverTrackingBundle,
 } from './driverTrackingData';
@@ -276,6 +279,114 @@ describe('driver tracking alerts', () => {
     expect(row.licenseNumber).toBe(DRIVER_FIELD_MISSING);
     expect(row.licenseGrades).toBe(DRIVER_FIELD_MISSING);
     expect(row.vehiclePlates).toBe(DRIVER_FIELD_ABSENT);
+    expect(row.licenseCheckLast).toBe(DRIVER_FIELD_MISSING);
+  });
+});
+
+describe('driver tracking live links', () => {
+  it('shows valid, approaching and expired license states with day counts', () => {
+    const valid = assembleDriverTrackingRows(bundle({
+      drivers: [{ ...bundle().drivers[0], license_expiry: '2027-10-15', exam_expiry: null }],
+    }))[0];
+    expect(valid.licenseExpiry).toContain('תקף');
+    expect(valid.licenseExpiry).toContain('365 ימים');
+    expect(valid.alertItems.some((a) => a.kind === 'license')).toBe(false);
+
+    const soon = assembleDriverTrackingRows(bundle({
+      drivers: [{ ...bundle().drivers[0], license_expiry: '2026-10-25', exam_expiry: null }],
+    }))[0];
+    expect(soon.licenseExpiry).toContain('עומד לפוג');
+    expect(soon.alertItems.find((a) => a.kind === 'license')?.urgent).toBe(true);
+    expect(soon.alertItems.find((a) => a.kind === 'license')?.hubLink).toContain('section=documents');
+
+    const expired = assembleDriverTrackingRows(bundle({
+      drivers: [{ ...bundle().drivers[0], license_expiry: '2026-10-01', exam_expiry: null }],
+    }))[0];
+    expect(expired.licenseExpiry).toContain('פג תוקף');
+    expect(expired.licenseExpiry).toContain('ימים באיחור');
+    expect(expired.alertItems.find((a) => a.kind === 'license')?.state).toBe('overdue');
+  });
+
+  it('computes an exam date from stored months and a completed date, and does not invent five years', () => {
+    expect(addMonthsToDate('2026-01-31', 1)).toBe('2026-02-28');
+    expect(examDisplayExpiry({
+      expires_at: null,
+      exam_validity_months: 12,
+      completed_at: '2026-01-15',
+    })).toBe('2027-01-15');
+    expect(examDisplayExpiry({
+      expires_at: '2026-05-01',
+      exam_validity_months: 60,
+      completed_at: '2021-05-01',
+    })).toBe('2026-05-01');
+    expect(examDisplayExpiry({
+      expires_at: null,
+      exam_validity_months: 60,
+      completed_at: null,
+    })).toBeNull();
+
+    const [row] = assembleDriverTrackingRows(bundle({
+      drivers: [{ ...bundle().drivers[0], exam_expiry: null, license_expiry: '2027-10-15' }],
+      exams: [{
+        id: 'months',
+        driver_id: 'd1',
+        company_name: 'בארי',
+        exam_type: 'periodic',
+        status: 'completed',
+        passed: true,
+        completed_at: '2025-10-20',
+        created_at: '2025-10-20',
+        expires_at: null,
+        exam_validity_months: 12,
+        signature_url: 'https://files.example/exam.pdf',
+        score: 90,
+      }],
+    }));
+    expect(row.examNext).toContain('2026');
+    expect(row.examNext).toContain('עומד לפוג');
+    expect(row.alertItems.some((a) => a.kind === 'exam' && a.urgent)).toBe(true);
+    expect(row.history.find((h) => h.id === 'exam:months')?.documentUrl).toBe('https://files.example/exam.pdf');
+    expect(row.history.find((h) => h.id === 'exam:months')?.hubLink).toContain('section=driving');
+    expect(row.examNext).not.toContain('2030');
+  });
+
+  it('keeps a document without an expiry date out of red alerts and rejects a broken file link', () => {
+    const [row] = assembleDriverTrackingRows(bundle({
+      drivers: [{ ...bundle().drivers[0], license_expiry: null, exam_expiry: null, license_image_url: 'javascript:alert(1)' }],
+      documents: [{
+        id: 'plain',
+        entity_id: 'd1',
+        company_name: 'בארי',
+        document_type_key: 'health_declaration',
+        expiry_date: null,
+        created_at: '2026-03-01',
+        is_current: true,
+        original_name: 'health.pdf',
+        public_url: 'not a url',
+      }],
+    }));
+    expect(row.alertItems.some((a) => a.kind === 'health')).toBe(false);
+    expect(row.healthText).not.toContain('פג תוקף');
+    expect(row.history.find((h) => h.id === 'doc:plain')?.documentUrl).toBeNull();
+    expect(row.history.some((h) => h.id === 'license-photo:d1')).toBe(false);
+    expect(safeDocumentUrl('javascript:alert(1)')).toBeNull();
+  });
+
+  it('does not attach another company document or its file', () => {
+    const [row] = assembleDriverTrackingRows(bundle({
+      documents: [{
+        id: 'other-co',
+        entity_id: 'd1',
+        company_name: 'חברה אחרת',
+        document_type_key: 'driver_license',
+        expiry_date: '2026-10-01',
+        created_at: '2026-01-01',
+        is_current: true,
+        original_name: 'secret.pdf',
+        public_url: 'https://files.example/secret.pdf',
+      }],
+    }));
+    expect(row.history.some((h) => h.documentUrl === 'https://files.example/secret.pdf')).toBe(false);
     expect(row.licenseCheckLast).toBe(DRIVER_FIELD_MISSING);
   });
 });

@@ -38,23 +38,38 @@ export default function DriverTracking() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [sort, setSort] = useState<DriverSortKey>('urgency');
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    setError('');
+  const refresh = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    if (!silent) setError('');
     try {
       const rows = await loadDriverTrackingRows(companyFilter);
       setAllRows(rows);
+      setError('');
     } catch (err) {
       console.error(err);
-      setAllRows([]);
-      setError('לא ניתן לטעון את מעקב הנהגים');
+      if (!silent) {
+        setAllRows([]);
+        setError('לא ניתן לטעון את מעקב הנהגים');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [companyFilter]);
 
   useEffect(() => {
-    refresh();
+    refresh(false);
+  }, [refresh]);
+
+  useEffect(() => {
+    const reload = () => {
+      if (document.visibilityState === 'visible') refresh(true);
+    };
+    window.addEventListener('focus', reload);
+    document.addEventListener('visibilitychange', reload);
+    return () => {
+      window.removeEventListener('focus', reload);
+      document.removeEventListener('visibilitychange', reload);
+    };
   }, [refresh]);
 
   const filtered = useMemo(

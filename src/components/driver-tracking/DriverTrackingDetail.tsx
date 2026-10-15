@@ -148,6 +148,11 @@ export default function DriverTrackingDetail({
                     </a>
                   ) : 'לא קיים'}
                 </p>
+                {item.hubLink ? (
+                  <p>
+                    <Link to={item.hubLink} className="text-primary font-semibold">פתח בכרטיס הנהג</Link>
+                  </p>
+                ) : null}
                 <p>מעקב הבא: {item.nextFollowUp}</p>
               </div>
             ))

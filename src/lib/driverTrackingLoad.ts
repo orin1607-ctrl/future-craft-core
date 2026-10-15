@@ -90,7 +90,7 @@ export async function loadDriverTrackingRows(companyFilter: string | null): Prom
   const driversRes = await applyCompanyScope(
     supabase
       .from('drivers')
-      .select('id, full_name, id_number, phone, department, company_name, status, license_number, license_types, license_expiry, exam_expiry, last_exam_date')
+      .select('id, full_name, id_number, phone, department, company_name, status, license_number, license_types, license_expiry, license_image_url, exam_expiry, last_exam_date')
       .order('full_name'),
     companyFilter,
   );
@@ -115,21 +115,21 @@ export async function loadDriverTrackingRows(companyFilter: string | null): Prom
     ),
     loadLoose<DriverExamSource>(
       'driving_exams',
-      'id, driver_id, company_name, exam_type, status, passed, completed_at, created_at, expires_at, score',
+      'id, driver_id, company_name, exam_type, status, passed, completed_at, created_at, expires_at, exam_validity_months, signature_url, score',
       companyFilter,
       ids,
       'driver_id',
     ),
     loadLoose<DriverPracticalExamSource>(
       'practical_driving_exams',
-      'id, driver_id, company_name, exam_date, status, passed, examiner_name, notes, created_at, vehicle_plate',
+      'id, driver_id, company_name, exam_date, status, passed, examiner_name, notes, created_at, vehicle_plate, driver_signature_url, examiner_signature_url',
       companyFilter,
       ids,
       'driver_id',
     ),
     loadLoose<DriverHealthSource>(
       'driver_health_declarations',
-      'id, driver_id, company_name, declaration_date, created_at',
+      'id, driver_id, company_name, declaration_date, created_at, signature_url',
       companyFilter,
       ids,
       'driver_id',
