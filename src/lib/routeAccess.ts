@@ -6,6 +6,7 @@ const MANAGER_PREFIXES = [
   '/drivers',
   '/fleet-managers',
   '/vehicle-tracking',
+  '/driver-tracking',
   '/fleetos-ai',
   '/ai-marketing',
   '/dalia-crm',

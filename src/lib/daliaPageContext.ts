@@ -12,6 +12,7 @@ export const ROUTE_LABELS: Record<string, string> = {
   '/work-orders': 'סידור עבודה',
   '/service-orders': 'הוראות שירות',
   '/vehicle-tracking': 'מעקב רכבים',
+  '/driver-tracking': 'מעקב נהגים',
   '/fleetos-ai': 'מיקום צי חכם (FleetOS AI)',
   '/transport': 'חברות הסעות',
   '/attach-car': 'הצמדת רכב',

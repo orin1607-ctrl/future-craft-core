@@ -11,12 +11,14 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/vehicles', 'driver')).toBe(false);
     expect(canAccessRoute('/user-management', 'driver')).toBe(false);
     expect(canAccessRoute('/faults', 'driver')).toBe(true);
+    expect(canAccessRoute('/driver-tracking', 'driver')).toBe(false);
   });
 
   it('fleet_manager cannot access super admin settings', () => {
     expect(canAccessRoute('/dalia-settings', 'fleet_manager')).toBe(false);
     expect(canAccessRoute('/ai-marketing', 'fleet_manager')).toBe(false);
     expect(canAccessRoute('/fleetos-ai', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/driver-tracking', 'fleet_manager')).toBe(true);
   });
 
   it('super_admin can access ai-marketing', () => {

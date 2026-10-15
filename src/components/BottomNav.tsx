@@ -24,6 +24,7 @@ const managerNavItems: NavItem[] = [
   { path: '/vehicles', label: 'רשימת רכבים', icon: Car },
   { path: '/drivers', label: 'רשימת נהגים', icon: Users },
   { path: '/vehicle-tracking', label: 'מעקב רכבים', icon: Radio },
+  { path: '/driver-tracking', label: 'מעקב נהגים', icon: ClipboardList },
   { path: '/fleetos-ai', label: 'מיקום צי חכם', icon: Radar },
   { path: '/transport', label: 'חברות הסעות', icon: Bus },
   { path: '/faults', label: 'תקלות', icon: Wrench },

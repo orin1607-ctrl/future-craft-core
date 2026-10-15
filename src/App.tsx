@@ -124,6 +124,7 @@ import TakeDrivingExam from "@/pages/TakeDrivingExam";
 import Voice from "@/pages/Voice";
 import PickupAppointments from "@/pages/PickupAppointments";
 import VehicleTracking from "@/pages/VehicleTracking";
+import DriverTracking from "@/pages/DriverTracking";
 import AdminHome from "@/pages/AdminHome";
 import FleetManagers from "@/pages/FleetManagers";
 import FleetOSAIPage from "@/pages/FleetOSAIPage";
@@ -230,6 +231,7 @@ function AppRoutes() {
         <Route path="/transport" element={<TransportHubPage />} />
         <Route path="/transport/import" element={<Navigate to="/transport" replace />} />
         <Route path="/vehicle-tracking" element={<VehicleTracking />} />
+        <Route path="/driver-tracking" element={<DriverTracking />} />
         <Route path="/admin-home" element={<AdminHome />} />
         <Route path="/admin/modules" element={<AdminModulesHub />} />
         <Route path="/admin/modules/vehicles" element={<VehicleModuleAdmin />} />
