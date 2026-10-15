@@ -1,0 +1,8 @@
+{
+  "armed": true,
+  "reason": "owner-approved-task3-and-gemini-alerts-only-2026-10-15",
+  "live_before": "9c272b3087636aa407fa0383c656eaa731f96c68",
+  "expected_bundle_before": "index-BSwRk9R7.js",
+  "feature": "7e2f33194223c31116d2f35b76640637432bddcb",
+  "scope": "frontend-task3-and-gemini-alerts-only"
+}
