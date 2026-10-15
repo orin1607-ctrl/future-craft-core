@@ -19,6 +19,18 @@ export type DriverAlertState = 'open' | 'in_progress' | 'overdue' | 'completed';
 
 export type DriverSummaryKey = 'total' | 'open' | 'overdue' | 'in_progress' | 'completed';
 
+/** Stored validity windows. Approaching cards exclude dates that already passed. */
+export const DRIVER_VALIDITY_KEYS = [
+  'license_soon',
+  'exam_renewal',
+  'health_soon',
+  'safety_renewal',
+  'document_soon',
+  'expired',
+] as const;
+
+export type DriverValidityKey = (typeof DRIVER_VALIDITY_KEYS)[number];
+
 export type DriverSortKey = 'date' | 'urgency' | 'name';
 
 export const DRIVER_ALERT_KIND_LABELS: Record<DriverAlertKind, string> = {
@@ -1138,4 +1150,60 @@ export function buildDriverSummaryCounts(rows: DriverTrackingRow[]): Record<Driv
     in_progress: inProgress,
     completed,
   };
+}
+
+const VALIDITY_KINDS: Record<Exclude<DriverValidityKey, 'expired'>, DriverAlertKind[]> = {
+  license_soon: ['license'],
+  exam_renewal: ['exam'],
+  health_soon: ['health'],
+  safety_renewal: ['safety'],
+  document_soon: ['document', 'traffic', 'declaration'],
+};
+
+/** Profile dates and current-document expiries. Open tasks and request tokens stay out. */
+function isStoredValidityAlert(alert: DriverAlertItem): boolean {
+  return alert.daysLeft !== null && (
+    alert.id.startsWith('license:')
+    || alert.id.startsWith('exam-expiry:')
+    || alert.id.startsWith('exam-due:')
+    || alert.id.startsWith('safety-due:')
+    || alert.id.startsWith('decl-due:')
+    || alert.id.startsWith('doc-due:')
+  );
+}
+
+export function driverMatchesValidity(row: DriverTrackingRow, key: DriverValidityKey): boolean {
+  const alerts = row.alertItems.filter(isStoredValidityAlert);
+  if (key === 'expired') return alerts.some((alert) => alert.daysLeft !== null && alert.daysLeft < 0);
+  return alerts.some((alert) =>
+    VALIDITY_KINDS[key].includes(alert.kind)
+    && alert.daysLeft !== null
+    && alert.daysLeft >= 0
+    && alert.daysLeft <= row.alertWindowDays,
+  );
+}
+
+export function applyDriverValidityFilter(
+  rows: DriverTrackingRow[],
+  key: DriverValidityKey | null,
+): DriverTrackingRow[] {
+  if (!key) return rows;
+  return rows.filter((row) => driverMatchesValidity(row, key));
+}
+
+export function buildDriverValidityCounts(rows: DriverTrackingRow[]): Record<DriverValidityKey, number> {
+  const counts: Record<DriverValidityKey, number> = {
+    license_soon: 0,
+    exam_renewal: 0,
+    health_soon: 0,
+    safety_renewal: 0,
+    document_soon: 0,
+    expired: 0,
+  };
+  for (const row of rows) {
+    for (const key of DRIVER_VALIDITY_KEYS) {
+      if (driverMatchesValidity(row, key)) counts[key] += 1;
+    }
+  }
+  return counts;
 }

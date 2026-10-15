@@ -130,4 +130,64 @@ describe('DriverTracking screen', () => {
     root.unmount();
     container.remove();
   });
+
+  it('filters drivers from the validity cards and keeps the summary cards', async () => {
+    await act(async () => {
+      root.render(
+        <MemoryRouter initialEntries={['/driver-tracking']}>
+          <DriverTracking />
+        </MemoryRouter>,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain('תוקפים ומועדי חידוש');
+    expect(container.textContent).toContain('סה"כ נהגים');
+    const card = (name: string) => [...container.querySelectorAll('button')].find((el) => el.textContent?.includes(name));
+    expect(card('רישיונות נהיגה')?.textContent?.replace(/\s/g, '')).toMatch(/^1/);
+    expect(card('תוקף שעבר')?.textContent?.replace(/\s/g, '')).toMatch(/^1/);
+    expect(card('מבחני נהיגה')?.textContent?.replace(/\s/g, '')).toMatch(/^0/);
+
+    await act(async () => {
+      clickButton(container, 'רישיונות נהיגה');
+    });
+    expect(container.textContent).toContain('יוסי לוי');
+    expect(container.textContent).not.toContain('דנה כהן');
+    expect(container.textContent).toMatch(/מוצגים\s*1\s*מתוך/);
+    expect(container.querySelector('a[href*="driverId=d1"]')).toBeTruthy();
+
+    await act(async () => {
+      clickButton(container, 'רישיונות נהיגה');
+    });
+    expect(container.textContent).toContain('דנה כהן');
+
+    await act(async () => {
+      clickButton(container, 'תוקף שעבר');
+    });
+    expect(container.textContent).toContain('דנה כהן');
+    expect(container.textContent).not.toContain('יוסי לוי');
+
+    await act(async () => {
+      clickButton(container, 'באיחור');
+    });
+    expect(container.textContent).toContain('דנה כהן');
+    expect(container.textContent).not.toContain('יוסי לוי');
+
+    await act(async () => {
+      clickButton(container, 'רישיונות נהיגה');
+    });
+    await act(async () => {
+      clickButton(container, 'סינון מתקדם');
+    });
+    await act(async () => {
+      clickButton(container, 'נקה הכול');
+    });
+    expect(container.textContent).toContain('יוסי לוי');
+    expect(container.textContent).toContain('דנה כהן');
+
+    root.unmount();
+    container.remove();
+  });
 });

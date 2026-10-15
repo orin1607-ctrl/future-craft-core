@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, UserRound } from 'lucide-react';
 import { useCompanyFilter } from '@/hooks/useCompanyFilter';
 import DriverTrackingSummaryGrid from '@/components/driver-tracking/DriverTrackingSummaryGrid';
+import DriverTrackingExpiryGrid from '@/components/driver-tracking/DriverTrackingExpiryGrid';
 import DriverTrackingFilterPanel from '@/components/driver-tracking/DriverTrackingFilterPanel';
 import DriverTrackingList from '@/components/driver-tracking/DriverTrackingList';
 import DriverTrackingDetail from '@/components/driver-tracking/DriverTrackingDetail';
@@ -10,16 +11,21 @@ import { loadDriverTrackingRows } from '@/lib/driverTrackingLoad';
 import {
   applyDriverFilters,
   applyDriverSummaryFilter,
+  applyDriverValidityFilter,
   buildDriverSummaryCounts,
+  buildDriverValidityCounts,
+  DRIVER_VALIDITY_KEYS,
   EMPTY_DRIVER_FILTERS,
   sortDriverRows,
   type DriverSortKey,
   type DriverSummaryKey,
   type DriverTrackingFilters,
   type DriverTrackingRow,
+  type DriverValidityKey,
 } from '@/lib/driverTrackingData';
 
 const SUMMARY_KEYS: DriverSummaryKey[] = ['total', 'open', 'overdue', 'in_progress', 'completed'];
+const VALIDITY_KEYS: DriverValidityKey[] = [...DRIVER_VALIDITY_KEYS];
 
 export default function DriverTracking() {
   const companyFilter = useCompanyFilter();
@@ -30,9 +36,12 @@ export default function DriverTracking() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const summaryFromUrl = searchParams.get('summary') as DriverSummaryKey | null;
+  const validityFromUrl = searchParams.get('validity') as DriverValidityKey | null;
+  const initialValidity = validityFromUrl && VALIDITY_KEYS.includes(validityFromUrl) ? validityFromUrl : null;
   const [summaryKey, setSummaryKey] = useState<DriverSummaryKey | null>(
-    summaryFromUrl && SUMMARY_KEYS.includes(summaryFromUrl) ? summaryFromUrl : null,
+    !initialValidity && summaryFromUrl && SUMMARY_KEYS.includes(summaryFromUrl) ? summaryFromUrl : null,
   );
+  const [validityKey, setValidityKey] = useState<DriverValidityKey | null>(initialValidity);
   const [filters, setFilters] = useState<DriverTrackingFilters>(EMPTY_DRIVER_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<DriverTrackingFilters>(EMPTY_DRIVER_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -77,10 +86,14 @@ export default function DriverTracking() {
     [allRows, appliedFilters],
   );
   const displayedRows = useMemo(
-    () => sortDriverRows(applyDriverSummaryFilter(filtered, summaryKey), sort),
-    [filtered, summaryKey, sort],
+    () => sortDriverRows(
+      applyDriverValidityFilter(applyDriverSummaryFilter(filtered, summaryKey), validityKey),
+      sort,
+    ),
+    [filtered, summaryKey, validityKey, sort],
   );
   const counts = useMemo(() => buildDriverSummaryCounts(filtered), [filtered]);
+  const validityCounts = useMemo(() => buildDriverValidityCounts(filtered), [filtered]);
   const selected = driverId ? allRows.find((row) => row.id === driverId) || null : null;
 
   const openDriver = (id: string) => {
@@ -98,9 +111,23 @@ export default function DriverTracking() {
   const onSummarySelect = (key: DriverSummaryKey) => {
     const next = summaryKey === key ? null : key;
     setSummaryKey(next);
+    setValidityKey(null);
     const q = new URLSearchParams(searchParams);
     if (next) q.set('summary', next);
     else q.delete('summary');
+    q.delete('validity');
+    q.delete('driverId');
+    setSearchParams(q);
+  };
+
+  const onValiditySelect = (key: DriverValidityKey) => {
+    const next = validityKey === key ? null : key;
+    setValidityKey(next);
+    setSummaryKey(null);
+    const q = new URLSearchParams(searchParams);
+    if (next) q.set('validity', next);
+    else q.delete('validity');
+    q.delete('summary');
     q.delete('driverId');
     setSearchParams(q);
   };
@@ -153,6 +180,9 @@ export default function DriverTracking() {
         <>
           <DriverTrackingSummaryGrid counts={counts} activeKey={summaryKey} onSelect={onSummarySelect} />
           <div className="mt-6">
+            <DriverTrackingExpiryGrid counts={validityCounts} activeKey={validityKey} onSelect={onValiditySelect} />
+          </div>
+          <div className="mt-6">
             <DriverTrackingFilterPanel
               open={filterOpen}
               onToggle={() => setFilterOpen((o) => !o)}
@@ -163,8 +193,10 @@ export default function DriverTracking() {
                 setFilters(EMPTY_DRIVER_FILTERS);
                 setAppliedFilters(EMPTY_DRIVER_FILTERS);
                 setSummaryKey(null);
+                setValidityKey(null);
                 const q = new URLSearchParams(searchParams);
                 q.delete('summary');
+                q.delete('validity');
                 setSearchParams(q);
               }}
               drivers={allRows}

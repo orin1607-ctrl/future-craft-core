@@ -7,12 +7,16 @@ import {
   addMonthsToDate,
   applyDriverFilters,
   applyDriverSummaryFilter,
+  applyDriverValidityFilter,
   assembleDriverTrackingRows,
   buildDriverSummaryCounts,
+  buildDriverValidityCounts,
   examDisplayExpiry,
   safeDocumentUrl,
   sortDriverRows,
   type DriverTrackingBundle,
+  type DriverTrackingRow,
+  type DriverValidityKey,
 } from './driverTrackingData';
 
 const TODAY = '2026-10-15';
@@ -470,3 +474,190 @@ function empty() {
     approaching: false,
   };
 }
+
+describe('driver validity cards', () => {
+  function listed(rows: DriverTrackingRow[], key: DriverValidityKey) {
+    const matches = applyDriverValidityFilter(rows, key);
+    expect(new Set(matches.map((row) => row.id)).size).toBe(matches.length);
+    expect(matches).toHaveLength(buildDriverValidityCounts(rows)[key]);
+    return matches.map((row) => row.id);
+  }
+
+  it('counts an approaching license once and keeps an expired license on the overdue card', () => {
+    const soon = assembleDriverTrackingRows(bundle());
+    expect(listed(soon, 'license_soon')).toEqual(['d1']);
+    expect(listed(soon, 'expired')).toEqual([]);
+    expect(soon[0].alertItems.find((alert) => alert.kind === 'license')?.hubLink).toContain('driverId=d1');
+
+    const expired = assembleDriverTrackingRows(bundle({
+      drivers: [{ ...bundle().drivers[0], license_expiry: '2026-10-01', exam_expiry: null }],
+    }));
+    expect(listed(expired, 'license_soon')).toEqual([]);
+    expect(listed(expired, 'expired')).toEqual(['d1']);
+  });
+
+  it('counts one driver once when two license dates are both inside the window', () => {
+    const rows = assembleDriverTrackingRows(bundle({
+      documents: [{
+        id: 'doc-license',
+        entity_id: 'd1',
+        company_name: bundle().drivers[0].company_name,
+        document_type_key: 'driver_license',
+        expiry_date: '2026-10-20',
+        created_at: '2026-01-02',
+        is_current: true,
+        original_name: 'license.pdf',
+        public_url: 'https://files.example/license.pdf',
+      }],
+    }));
+    expect(rows[0].alertItems.filter((alert) => alert.kind === 'license').length).toBeGreaterThan(1);
+    expect(listed(rows, 'license_soon')).toEqual(['d1']);
+  });
+
+  it('splits exams, safety, health and other documents, and does not count an open task as expiry', () => {
+    const company = bundle().drivers[0].company_name;
+    const rows = assembleDriverTrackingRows(bundle({
+      drivers: [{ ...bundle().drivers[0], license_expiry: '2027-10-15', exam_expiry: '2026-10-25' }],
+      exams: [{
+        id: 'safe',
+        driver_id: 'd1',
+        company_name: company,
+        exam_type: 'safety',
+        status: 'completed',
+        passed: true,
+        completed_at: '2026-09-01',
+        created_at: '2026-09-01',
+        expires_at: '2026-10-22',
+        score: 80,
+      }],
+      declarations: [{
+        id: 'decl1',
+        driver_id: 'd1',
+        company_name: company,
+        status: 'signed',
+        created_at: '2026-01-01',
+        signed_at: '2026-01-02',
+        expires_at: '2026-10-18',
+        pdf_url: 'https://files.example/decl.pdf',
+      }],
+      documents: [
+        {
+          id: 'health',
+          entity_id: 'd1',
+          company_name: company,
+          document_type_key: 'health_declaration',
+          expiry_date: '2026-10-28',
+          created_at: '2026-02-01',
+          is_current: true,
+          original_name: 'health.pdf',
+          public_url: 'https://files.example/health.pdf',
+        },
+        {
+          id: 'traffic',
+          entity_id: 'd1',
+          company_name: company,
+          document_type_key: 'traffic_ticket',
+          expiry_date: '2026-10-21',
+          created_at: '2026-02-01',
+          is_current: true,
+          original_name: 'ticket.pdf',
+          public_url: 'https://files.example/ticket.pdf',
+        },
+      ],
+      assignments: [{
+        id: 'late-task',
+        driver_id: 'd1',
+        company_name: company,
+        title: 'task',
+        description: null,
+        status: 'open',
+        scheduled_date: '2026-10-01',
+        created_at: '2026-09-01',
+      }],
+    }));
+    expect(listed(rows, 'exam_renewal')).toEqual(['d1']);
+    expect(listed(rows, 'safety_renewal')).toEqual(['d1']);
+    expect(listed(rows, 'health_soon')).toEqual(['d1']);
+    expect(listed(rows, 'document_soon')).toEqual(['d1']);
+    expect(listed(rows, 'license_soon')).toEqual([]);
+    expect(listed(rows, 'expired')).toEqual([]);
+    expect(rows[0].history.find((item) => item.id === 'doc:health')?.hubLink).toContain('health_declaration');
+    expect(rows[0].history.find((item) => item.id === 'decl:decl1')?.documentUrl).toBe('https://files.example/decl.pdf');
+  });
+
+  it('puts a passed safety date on the expired card and leaves renewal empty', () => {
+    const rows = assembleDriverTrackingRows(bundle({
+      drivers: [{ ...bundle().drivers[0], license_expiry: '2027-10-15', exam_expiry: null }],
+      exams: [{
+        id: 'old-safe',
+        driver_id: 'd1',
+        company_name: bundle().drivers[0].company_name,
+        exam_type: 'safety',
+        status: 'completed',
+        passed: true,
+        completed_at: '2025-01-01',
+        created_at: '2025-01-01',
+        expires_at: '2026-09-01',
+        score: 70,
+      }],
+    }));
+    expect(listed(rows, 'safety_renewal')).toEqual([]);
+    expect(listed(rows, 'expired')).toEqual(['d1']);
+  });
+
+  it('uses each company window and ignores another company document', () => {
+    const home = bundle().drivers[0].company_name;
+    const rows = assembleDriverTrackingRows(bundle({
+      drivers: [
+        { ...bundle().drivers[0], license_expiry: '2026-10-27', exam_expiry: null },
+        {
+          ...bundle().drivers[0],
+          id: 'd2',
+          full_name: 'Other Driver',
+          company_name: 'Other Co',
+          license_expiry: '2026-10-27',
+          exam_expiry: null,
+        },
+      ],
+      documents: [{
+        id: 'foreign-health',
+        entity_id: 'd1',
+        company_name: 'Other Co',
+        document_type_key: 'health_declaration',
+        expiry_date: '2026-10-20',
+        created_at: '2026-01-01',
+        is_current: true,
+        original_name: 'secret.pdf',
+        public_url: 'https://files.example/secret.pdf',
+      }],
+      thresholdsByCompany: new Map([
+        [home, { ...DEFAULT_ALERT_THRESHOLDS, firstDays: 30 }],
+        ['Other Co', { ...DEFAULT_ALERT_THRESHOLDS, firstDays: 10 }],
+      ]),
+    }));
+    expect(listed(rows, 'license_soon')).toEqual(['d1']);
+    expect(listed(rows, 'health_soon')).toEqual([]);
+    expect(rows.find((row) => row.id === 'd1')?.history.some((item) => item.documentUrl?.includes('secret'))).toBe(false);
+  });
+
+  it('does not treat an unfinished exam as a renewal date', () => {
+    const rows = assembleDriverTrackingRows(bundle({
+      drivers: [{ ...bundle().drivers[0], license_expiry: '2027-10-15', exam_expiry: null }],
+      exams: [{
+        id: 'open-exam',
+        driver_id: 'd1',
+        company_name: bundle().drivers[0].company_name,
+        exam_type: 'periodic',
+        status: 'started',
+        passed: null,
+        completed_at: null,
+        created_at: '2026-10-10',
+        expires_at: null,
+        score: null,
+      }],
+    }));
+    expect(listed(rows, 'exam_renewal')).toEqual([]);
+    expect(listed(rows, 'expired')).toEqual([]);
+    expect(rows[0].alertItems.some((alert) => alert.id === 'exam-open:open-exam')).toBe(true);
+  });
+});
