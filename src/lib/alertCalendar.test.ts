@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { alertCalendarDaysLeft, formatAlertCalendarDate } from './alertCalendar';
 
 describe('alert calendar days', () => {
-  const now = new Date('2026-10-16T01:07:54+03:00');
+  // Local wall clock on 16 Oct 2026 at 01:07. An offset instant would be the
+  // previous date on a UTC runner, which is not the clock the screen uses.
+  const now = new Date(2026, 9, 16, 1, 7, 54);
 
   it('counts a date-only alert by calendar days, matching the displayed date', () => {
     expect(formatAlertCalendarDate('2026-10-17', now)).toBe('17.10.2026');
