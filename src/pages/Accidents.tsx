@@ -20,6 +20,15 @@ import { recordVehicleHubAction } from '@/lib/vehicleActionFollowUp';
 import VehicleScopedNavChrome from '@/components/vehicles/VehicleScopedNavChrome';
 import { VEHICLE_EMPTY_LIST_MSG } from '@/lib/vehicleScopedUi';
 import { createAccidentIncident } from '@/lib/incidentCreate';
+import { formatAccidentWall, isoToIsraelWall } from '@/lib/accidentDateTime';
+import {
+  ACCIDENT_INVESTIGATION_SAVE_ENABLED,
+  DRIVER_FAULT_DEFAULT,
+  DRIVER_FAULT_OPTIONS,
+  INVESTIGATION_DONE_DEFAULT,
+  INVESTIGATION_DONE_OPTIONS,
+  accidentUpdatePayload,
+} from '@/lib/accidentFormSave';
 import IncidentSubmitSuccess from '@/components/incidents/IncidentSubmitSuccess';
 import { formatIsraelDateTime } from '@/lib/incidentEventNumber';
 import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
@@ -314,7 +323,8 @@ export default function Accidents() {
           <div className="grid grid-cols-2 gap-4 text-lg">
             <div><span className="text-muted-foreground text-sm">נהג</span><p className="font-bold">{a.driver_name}</p></div>
             <div><span className="text-muted-foreground text-sm">מיקום</span><p className="font-bold">{a.location || '—'}</p></div>
-            <div><span className="text-muted-foreground text-sm">תאריך</span><p className="font-bold">{a.date ? new Date(a.date).toLocaleDateString('he-IL') : '—'}</p></div>
+            <div><span className="text-muted-foreground text-sm">תאריך תאונה</span><p className="font-bold">{formatAccidentWall(a.date).date || '—'}</p></div>
+            <div><span className="text-muted-foreground text-sm">שעת תאונה</span><p className="font-bold">{formatAccidentWall(a.date).time || '—'}</p></div>
             <div><span className="text-muted-foreground text-sm">עלות משוערת</span><p className="font-bold">₪{(a.estimated_cost || 0).toLocaleString()}</p></div>
             <div><span className="text-muted-foreground text-sm">מספר תביעה</span><p className="font-bold">{a.claim_number || '—'}</p></div>
             <div>
@@ -366,7 +376,7 @@ export default function Accidents() {
             <div className="flex gap-3 flex-wrap">
               <a
                 href={`mailto:?subject=${encodeURIComponent(`דיווח תאונה - ${a.vehicle_plate}`)}&body=${encodeURIComponent(
-                  `דיווח תאונה - ${a.vehicle_plate}\n\nמספר תביעה: ${a.claim_number || '—'}\nנהג: ${a.driver_name}\nמיקום: ${a.location || '—'}\nתאריך: ${a.date ? new Date(a.date).toLocaleDateString('he-IL') : '—'}\nתיאור: ${a.description}\nעלות משוערת: ₪${(a.estimated_cost || 0).toLocaleString()}\nביטוח: ${a.has_insurance ? 'כן' : 'לא'}\nצד ג׳: ${a.third_party ? 'כן' : 'לא'}\n${a.notes ? `הערות: ${a.notes}\n` : ''}${(() => { let imgs: string[] = []; try { imgs = a.images ? JSON.parse(a.images) : []; } catch { if (a.images) imgs = [a.images]; } return imgs.length > 0 ? `\nתמונות:\n${imgs.join('\n')}` : ''; })()}`
+                  `דיווח תאונה - ${a.vehicle_plate}\n\nמספר תביעה: ${a.claim_number || '—'}\nנהג: ${a.driver_name}\nמיקום: ${a.location || '—'}\nתאריך: ${formatAccidentWall(a.date).date || '—'} ${formatAccidentWall(a.date).time}\nתיאור: ${a.description}\nעלות משוערת: ₪${(a.estimated_cost || 0).toLocaleString()}\nביטוח: ${a.has_insurance ? 'כן' : 'לא'}\nצד ג׳: ${a.third_party ? 'כן' : 'לא'}\n${a.notes ? `הערות: ${a.notes}\n` : ''}${(() => { let imgs: string[] = []; try { imgs = a.images ? JSON.parse(a.images) : []; } catch { if (a.images) imgs = [a.images]; } return imgs.length > 0 ? `\nתמונות:\n${imgs.join('\n')}` : ''; })()}`
                 )}`}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-base min-h-[48px]"
               >
@@ -511,7 +521,7 @@ export default function Accidents() {
                     <p className="text-muted-foreground line-clamp-1">{a.description}</p>
                     <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
                       <span>👤 {a.driver_name}</span>
-                      <span>📅 {a.date ? new Date(a.date).toLocaleDateString('he-IL') : ''}</span>
+                      <span>📅 {[formatAccidentWall(a.date).date, formatAccidentWall(a.date).time].filter(Boolean).join(' ')}</span>
                       {a.claim_number && <span>📄 {a.claim_number}</span>}
                       <span>💰 ₪{(a.estimated_cost || 0).toLocaleString()}</span>
                     </div>
@@ -878,6 +888,9 @@ function AccidentForm({
   const [thirdParty, setThirdParty] = useState(accident?.third_party || false);
   const [estimatedCost, setEstimatedCost] = useState(accident?.estimated_cost?.toString() || '');
   const [claimNumber, setClaimNumber] = useState(accident?.claim_number || '');
+  const initialWhen = isoToIsraelWall(accident?.date);
+  const [accidentDate, setAccidentDate] = useState(initialWhen.date);
+  const [accidentTime, setAccidentTime] = useState(initialWhen.time);
   const [notes, setNotes] = useState(accident?.notes || '');
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>(() => {
@@ -961,20 +974,44 @@ function AccidentForm({
       return;
     }
     if (!isValid || loading) return;
+    const hasDate = !!accidentDate;
+    const hasTime = !!accidentTime;
+    if (hasDate !== hasTime) {
+      toast.error('יש למלא גם תאריך וגם שעה, או להשאיר את שניהם ריקים');
+      return;
+    }
     setLoading(true);
+    const whenIso = accidentUpdatePayload({
+      originalDate: null,
+      accidentDate,
+      accidentTime,
+      vehiclePlate,
+      driverName,
+      location,
+      description,
+      hasInsurance,
+      thirdParty,
+      estimatedCost,
+      claimNumber,
+      notes,
+      imageUrls,
+    }).date as string | undefined;
     if (isEdit) {
-      const payload = {
-        vehicle_plate: vehiclePlate,
-        driver_name: driverName,
+      const payload = accidentUpdatePayload({
+        originalDate: accident?.date,
+        accidentDate,
+        accidentTime,
+        vehiclePlate,
+        driverName,
         location,
         description,
-        has_insurance: hasInsurance,
-        third_party: thirdParty,
-        estimated_cost: parseFloat(estimatedCost) || 0,
-        claim_number: claimNumber.trim(),
+        hasInsurance,
+        thirdParty,
+        estimatedCost,
+        claimNumber,
         notes,
-        images: JSON.stringify(imageUrls),
-      };
+        imageUrls,
+      });
       const { data: updated, error } = await supabase.from('accidents').update(payload).eq('id', accident!.id).select('*').single();
       if (!error && updated) await uploadAccidentDocuments(updated as AccidentRow);
       setLoading(false);
@@ -1003,6 +1040,7 @@ function AccidentForm({
       notes,
       images: imageUrls,
       dryRunNotify: false,
+      occurredAt: whenIso,
     });
 
     if (!result.error && result.data && hubVehicleId) {
@@ -1099,6 +1137,16 @@ function AccidentForm({
           </div>
         )}
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-lg font-medium mb-2" htmlFor="accident-date">תאריך תאונה</label>
+            <input id="accident-date" type="date" value={accidentDate} onChange={(e) => setAccidentDate(e.target.value)} className={inputClass} />
+          </div>
+          <div>
+            <label className="block text-lg font-medium mb-2" htmlFor="accident-time">שעת תאונה</label>
+            <input id="accident-time" type="time" value={accidentTime} onChange={(e) => setAccidentTime(e.target.value)} className={inputClass} />
+          </div>
+        </div>
         <div>
           <label className="block text-lg font-medium mb-2">מיקום</label>
           <input value={location} onChange={(e) => setLocation(e.target.value)} className={inputClass} placeholder="כתובת / מקום האירוע" />
@@ -1133,6 +1181,30 @@ function AccidentForm({
           <label className="block text-lg font-medium mb-2">עלות משוערת</label>
           <input value={estimatedCost} onChange={(e) => setEstimatedCost(e.target.value)} type="number" className={inputClass} />
         </div>
+        <fieldset disabled={!ACCIDENT_INVESTIGATION_SAVE_ENABLED} className="space-y-4 rounded-xl border border-dashed border-border p-4 opacity-80">
+          <legend className="px-2 text-sm text-muted-foreground">שדות תחקיר — עדיין לא נשמרים</legend>
+          <p className="text-sm text-muted-foreground">אשמת הנהג, ביצוע תחקיר ומסקנות יוצגו כאן, אבל אין להם עמודות בטבלת התאונות. אי אפשר למלא אותם עד אישור נפרד לשינוי המסד.</p>
+          <div>
+            <label className="block text-lg font-medium mb-2" htmlFor="driver-at-fault">האם הנהג אשם?</label>
+            <select id="driver-at-fault" className={inputClass} value={DRIVER_FAULT_DEFAULT} onChange={() => undefined}>
+              {DRIVER_FAULT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-lg font-medium mb-2" htmlFor="investigation-done">האם בוצע תחקיר?</label>
+            <select id="investigation-done" className={inputClass} value={INVESTIGATION_DONE_DEFAULT} onChange={() => undefined}>
+              {INVESTIGATION_DONE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-lg font-medium mb-2" htmlFor="investigation-conclusions">מסקנות התחקיר</label>
+            <textarea id="investigation-conclusions" rows={4} className={`${inputClass} resize-y`} value="" readOnly placeholder="יופעל רק אחרי אישור שמירה" />
+          </div>
+        </fieldset>
         <div>
           <label className="block text-lg font-medium mb-2">הערות</label>
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={`${inputClass} resize-none`} />
