@@ -1,0 +1,219 @@
+name: Oren Car Production four display fixes
+
+# Owner authorized 2026-10-16: frontend only, commit c468b690 onto live 7e2f3319.
+# Four display fixes: memo preview, object fields, duplicate license, alert days.
+# Does not migrate, alter schema, change RLS, Storage, Auth, or customer data.
+# Does not deploy main, production, or staging.
+
+on:
+  push:
+    branches: [cross/prod-four-fixes-ship]
+    paths:
+      - 'public/project-001/oren-car-prod-four-fixes.json'
+      - '.github/workflows/oren-car-prod-four-fixes.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: oren-car-prod-four-fixes
+  cancel-in-progress: false
+
+env:
+  PROD_SUPABASE_URL: https://qasomfndnjuixgjmjwcm.supabase.co
+  PROD_SUPABASE_PROJECT_ID: qasomfndnjuixgjmjwcm
+  WEB_ROOT: /root/future-craft-core/dist
+  PRODUCTION_URL: https://dalia-car.online
+  LIVE_BEFORE: 7e2f33194223c31116d2f35b76640637432bddcb
+  LIVE_BUNDLE: index-BaBG_uXO.js
+  FEATURE: c468b6907adb37640066bc061fdc77d707c059d4
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gate — armed, exact four-fix tree, this branch only
+        id: gate
+        run: |
+          set -euo pipefail
+          armed=$(node -e "const q=require('./public/project-001/oren-car-prod-four-fixes.json'); process.stdout.write(String(q.armed===true && q.feature==='$FEATURE' && q.live_before==='$LIVE_BEFORE'))")
+          echo "armed=$armed" >> "$GITHUB_OUTPUT"
+          echo "SHA=${GITHUB_SHA}"
+          if [ "$armed" != "true" ]; then
+            echo "not armed — skip deploy"
+            exit 0
+          fi
+          git merge-base --is-ancestor "$LIVE_BEFORE" "$FEATURE"
+          git merge-base --is-ancestor "$FEATURE" HEAD
+          for ref in origin/main origin/production; do
+            if git rev-parse "$ref" >/dev/null 2>&1 && [ "$GITHUB_SHA" = "$(git rev-parse "$ref")" ]; then
+              echo "REFUSING to deploy $ref wholesale" >&2
+              exit 1
+            fi
+          done
+          git diff --name-only "$FEATURE" HEAD | sort > /tmp/ship.txt
+          cat > /tmp/ship-expected.txt <<'EOF'
+          .github/workflows/oren-car-prod-four-fixes.yml
+          public/project-001/oren-car-prod-four-fixes.json
+          EOF
+          sed -i 's/^[[:space:]]*//; /^$/d' /tmp/ship-expected.txt
+          if ! cmp -s /tmp/ship.txt /tmp/ship-expected.txt; then
+            echo "REFUSING unexpected deploy-commit files" >&2
+            diff -u /tmp/ship-expected.txt /tmp/ship.txt || true
+            exit 1
+          fi
+          git diff --name-only "$LIVE_BEFORE" "$FEATURE" | sort > /tmp/product.txt
+          cat > /tmp/product-expected.txt <<'EOF'
+          src/components/documents/DocumentViewer.test.tsx
+          src/components/documents/DocumentViewer.tsx
+          src/components/vehicles/VehicleDashboard.tsx
+          src/lib/alertCalendar.test.ts
+          src/lib/alertCalendar.ts
+          src/lib/daliaVehicleDepartment.test.ts
+          src/lib/daliaVehicleLoad.ts
+          src/lib/vehicleDocumentLink.test.ts
+          src/lib/vehicleDocumentLink.ts
+          src/lib/vehicleHubData.ts
+          src/pages/Alerts.tsx
+          EOF
+          sed -i 's/^[[:space:]]*//; /^$/d' /tmp/product-expected.txt
+          if ! cmp -s /tmp/product.txt /tmp/product-expected.txt; then
+            echo "REFUSING product diff is not the four approved fixes" >&2
+            diff -u /tmp/product-expected.txt /tmp/product.txt || true
+            exit 1
+          fi
+          echo "approved_files=11"
+
+      - uses: oven-sh/setup-bun@v2
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+
+      - name: Build the approved fix commit with production settings
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        env:
+          VITE_SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
+          VITE_SUPABASE_PROJECT_ID: ${{ env.PROD_SUPABASE_PROJECT_ID }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          git checkout --detach "$FEATURE"
+          test "$(git rev-parse HEAD)" = "$FEATURE"
+          bun install --frozen-lockfile
+          if ! node -e "require.resolve('@testing-library/dom')" >/dev/null 2>&1; then
+            bun add --dev @testing-library/dom@10.4.2
+            git checkout -- package.json bun.lock bun.lockb 2>/dev/null || git checkout -- package.json bun.lock
+          fi
+          bun x vitest run
+          bun x vite build
+          js=$(ls dist/assets/index-*.js)
+          if grep -q usfeoerkpcafxxlyuldl "$js"; then
+            echo "REFUSING staging supabase ref in production bundle" >&2
+            exit 1
+          fi
+          if ! grep -q qasomfndnjuixgjmjwcm "$js"; then
+            echo "REFUSING bundle without the production supabase ref" >&2
+            exit 1
+          fi
+          for needle in driver-tracking officer-alert-light driver-alert-dot 'לא משויך למחלקה' 'שדות תחקיר' 'התראות קצין רכב' 'תאריך תאונה' 'שעת תאונה' 'טוען מסמך'; do
+            if ! grep -q "$needle" "$js"; then
+              echo "REFUSING bundle missing: $needle" >&2
+              exit 1
+            fi
+          done
+          if grep -q OpenProspector "$js"; then
+            echo "REFUSING OpenProspector in the production bundle" >&2
+            exit 1
+          fi
+
+      - id: bundle
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        run: |
+          BUNDLE=$(grep -oE 'index-[^"]+\.js' dist/index.html | head -1)
+          echo "name=${BUNDLE}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup SSH
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Backup live dist, replace frontend, restore if the new files do not verify
+        if: ${{ steps.gate.outputs.armed == 'true' }}
+        run: |
+          set -euo pipefail
+          STAMP=$(date -u +%F-%H%M%S)
+          SSH=(ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=6)
+          RSH="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=20 -o ConnectionAttempts=6"
+          HOST="${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}"
+          live=$("${SSH[@]}" "$HOST" "cat ${WEB_ROOT}/PRODUCTION-DEPLOY.txt" || true)
+          echo "live_marker=$live"
+          case "$live" in
+            *"commit=${LIVE_BEFORE}"*"bundle=${LIVE_BUNDLE}"*) echo "live matches ${LIVE_BEFORE} ${LIVE_BUNDLE}" ;;
+            *) echo "REFUSING: live site is not ${LIVE_BEFORE} ${LIVE_BUNDLE}" >&2; exit 1 ;;
+          esac
+          ok=0
+          for attempt in 1 2 3 4 5; do
+            echo "backup_attempt=$attempt"
+            if "${SSH[@]}" "$HOST" \
+              "tar czf /root/pre-deploy-dist-${STAMP}.tgz -C /root/future-craft-core dist && tar tzf /root/pre-deploy-dist-${STAMP}.tgz | grep -q '${LIVE_BUNDLE}' && tar -xOzf /root/pre-deploy-dist-${STAMP}.tgz dist/PRODUCTION-DEPLOY.txt | grep -q 'commit=${LIVE_BEFORE}' && tar tzf /root/pre-deploy-dist-${STAMP}.tgz dist/index.html dist/PRODUCTION-DEPLOY.txt >/dev/null && ls -la /root/pre-deploy-dist-${STAMP}.tgz && echo BACKUP=/root/pre-deploy-dist-${STAMP}.tgz"; then
+              ok=1
+              break
+            fi
+            sleep $((attempt * 8))
+          done
+          test "$ok" = "1"
+          echo "BACKUP=/root/pre-deploy-dist-${STAMP}.tgz" >> "$GITHUB_ENV"
+          echo "BACKUP=/root/pre-deploy-dist-${STAMP}.tgz" >> "$GITHUB_STEP_SUMMARY"
+          rsync -avz -e "$RSH" \
+            --delete \
+            --filter="P orin-marketing/" \
+            --filter="P orin-owner-gate.js" \
+            dist/ \
+            "$HOST:${WEB_ROOT}/"
+          "${SSH[@]}" "$HOST" \
+            "echo 'commit=${FEATURE} bundle=${{ steps.bundle.outputs.name }} at=$(date -u +%Y-%m-%dT%H:%M:%SZ) reason=four-display-fixes-only-2026-10-16 before=${LIVE_BEFORE} backup=/root/pre-deploy-dist-${STAMP}.tgz' > ${WEB_ROOT}/PRODUCTION-DEPLOY.txt"
+          restore() {
+            echo "RESTORING /root/pre-deploy-dist-${STAMP}.tgz" >&2
+            "${SSH[@]}" "$HOST" "tar xzf /root/pre-deploy-dist-${STAMP}.tgz -C /root/future-craft-core && nginx -t && systemctl reload nginx"
+          }
+          if ! "${SSH[@]}" "$HOST" "nginx -t && systemctl reload nginx"; then
+            restore
+            exit 1
+          fi
+          sleep 4
+          marker=$(curl -fsSL "${PRODUCTION_URL}/PRODUCTION-DEPLOY.txt")
+          echo "published_marker=$marker"
+          case "$marker" in
+            *"commit=${FEATURE}"*"bundle=${{ steps.bundle.outputs.name }}"*) ;;
+            *) echo "REFUSING: published marker mismatch" >&2; restore; exit 1 ;;
+          esac
+          html=$(curl -fsSL "${PRODUCTION_URL}/")
+          case "$html" in
+            *"${{ steps.bundle.outputs.name }}"*) ;;
+            *) echo "REFUSING: homepage bundle mismatch" >&2; restore; exit 1 ;;
+          esac
+          curl -fsSL "${PRODUCTION_URL}/assets/${{ steps.bundle.outputs.name }}" -o /tmp/live.js
+          for needle in qasomfndnjuixgjmjwcm driver-tracking officer-alert-light driver-alert-dot 'לא משויך למחלקה' 'שדות תחקיר' 'התראות קצין רכב' 'תאריך תאונה' 'שעת תאונה' 'טוען מסמך'; do
+            if ! grep -q "$needle" /tmp/live.js; then
+              echo "REFUSING live bundle missing: $needle" >&2
+              restore
+              exit 1
+            fi
+          done
+          if grep -q usfeoerkpcafxxlyuldl /tmp/live.js; then
+            echo "REFUSING staging ref on the live bundle" >&2
+            restore
+            exit 1
+          fi
+          for route in / /login /vehicles /drivers /vehicle-tracking /driver-tracking /accidents /alerts; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' "${PRODUCTION_URL}${route}")
+            echo "route ${route} ${code}"
+            case "$code" in
+              200|301|302|304) ;;
+              *) echo "REFUSING route ${route} HTTP ${code}" >&2; restore; exit 1 ;;
+            esac
+          done
