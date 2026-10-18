@@ -6316,6 +6316,9 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           void loadAll();
           if (curId) void loadCardData(curId);
         }}
+        onOpenClaim={(targetClaimId) => {
+          void openCard(targetClaimId);
+        }}
       />
 
       <div className="toasts">

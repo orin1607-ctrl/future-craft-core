@@ -341,3 +341,226 @@
     font-size: 16px;
   }
 }
+
+/* Modal overlay must be above Claims AI workspace when opened */
+.claims-root .ov {
+  z-index: 6500;
+}
+
+/* AI Message Bubble Actions & Copy Button */
+.claims-root .claims-ai-bubble-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.claims-root .claims-ai-action-btn {
+  background: transparent;
+  color: var(--t2);
+  border: 1px solid var(--br);
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.claims-root .claims-ai-action-btn:hover {
+  background: var(--bg4);
+  color: var(--t);
+  border-color: var(--ac);
+}
+.claims-root .claims-ai-copy-btn.copied {
+  color: #10b981;
+  border-color: #10b981;
+}
+
+/* Stop Button & Loading Bar */
+.claims-root .claims-ai-loading-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg2);
+  border: 1px solid var(--br);
+  border-radius: 8px;
+  margin-top: 8px;
+  width: fit-content;
+}
+.claims-root .claims-ai-stop-btn {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.claims-root .claims-ai-stop-btn:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* Recording State Pulse */
+.claims-root .claims-ai-icon.recording {
+  background: #ef4444 !important;
+  color: #fff !important;
+  border-color: #dc2626 !important;
+  animation: claims-mic-pulse 1.2s infinite;
+}
+@keyframes claims-mic-pulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  50% { transform: scale(1.06); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Claims Report Table Widget */
+.claims-root .claims-report-table-widget {
+  margin: 10px 0;
+  background: var(--bg);
+  border: 1px solid var(--br);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.claims-root .claims-report-table-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--br);
+  flex-wrap: wrap;
+}
+.claims-root .claims-report-search {
+  padding: 5px 10px;
+  font-size: 12px;
+  background: var(--bg3);
+  border: 1px solid var(--br);
+  border-radius: 6px;
+  color: var(--t);
+  min-width: 180px;
+}
+.claims-root .claims-report-search:focus {
+  outline: none;
+  border-color: var(--ac);
+}
+.claims-root .claims-report-table-scroll {
+  overflow-x: auto;
+  max-height: 480px;
+  overflow-y: auto;
+}
+.claims-root .claims-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: right;
+  white-space: normal;
+}
+.claims-root .claims-report-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg2);
+  color: var(--t2);
+  font-weight: 700;
+  padding: 8px 10px;
+  border-bottom: 2px solid var(--br);
+  z-index: 1;
+  white-space: nowrap;
+}
+.claims-root .claims-report-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--br);
+  vertical-align: top;
+}
+.claims-root .claims-report-table tr:hover td {
+  background: var(--bg3);
+}
+.claims-root .claims-claim-btn {
+  background: var(--ac);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.claims-root .claims-claim-btn:hover {
+  background: var(--ac2);
+}
+.claims-root .claims-badge-urgent {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-weight: 700;
+  font-size: 10px;
+  display: inline-block;
+}
+.claims-root .claims-badge-wait {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-weight: 600;
+  font-size: 10px;
+  display: inline-block;
+}
+
+@media (max-width: 760px) {
+  .claims-root .claims-report-table-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .claims-root .claims-report-search {
+    width: 100%;
+    min-height: 38px;
+    font-size: 14px;
+  }
+  .claims-root .claims-report-table-scroll {
+    max-height: 55vh;
+    -webkit-overflow-scrolling: touch;
+  }
+  .claims-root .claims-report-table th,
+  .claims-root .claims-report-table td {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+  .claims-root .claims-claim-btn {
+    min-height: 34px;
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+  .claims-root .claims-ai-action-btn {
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+  .claims-root .claims-ai-loading-bar {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .claims-root .claims-ai-stop-btn {
+    min-height: 34px;
+    padding: 4px 12px;
+  }
+}
+

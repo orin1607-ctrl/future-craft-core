@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
   activeConversationStorageKey,
@@ -239,6 +239,7 @@ async function streamHelpAi(input: {
   claimId: string | null;
   companyName: string | null;
   attachments?: Array<{ name: string; mime_type: string; byte_size: number; file_id?: string; data_base64?: string }>;
+  signal?: AbortSignal;
   onDelta: (full: string) => void;
   onPendingAction?: (pending: ClaimsAiPendingAction) => void;
 }): Promise<{ text: string; pendingAction: ClaimsAiPendingAction | null; documentCards: ClaimsAiDocumentCard[]; toolsUsed: ClaimsAiToolTrace[] | null }> {
@@ -247,6 +248,7 @@ async function streamHelpAi(input: {
 
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
+    signal: input.signal,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${session.access_token}`,
@@ -334,6 +336,262 @@ async function streamHelpAi(input: {
   return { text: full, pendingAction: receivedPendingAction, documentCards: receivedCards, toolsUsed: receivedTools };
 }
 
+interface ContentBlock {
+  type: 'text' | 'table';
+  text?: string;
+  headers?: string[];
+  rows?: string[][];
+}
+
+function parseBlocks(markdown: string): ContentBlock[] {
+  const lines = markdown.split(/\r?\n/);
+  const blocks: ContentBlock[] = [];
+  let currentTextLines: string[] = [];
+  let i = 0;
+
+  const isTableRow = (l: string) => /^\s*\|.*\|\s*$/.test(l);
+  const isSeparator = (l: string) => /^\s*\|(?:\s*:?-+:?\s*\|)+\s*$/.test(l);
+  const parseRowCells = (l: string) => {
+    const trimmed = l.trim();
+    const inner = trimmed.startsWith('|') && trimmed.endsWith('|')
+      ? trimmed.slice(1, -1)
+      : trimmed;
+    return inner.split('|').map((c) => c.trim());
+  };
+
+  while (i < lines.length) {
+    if (isTableRow(lines[i]) && i + 1 < lines.length && isSeparator(lines[i + 1])) {
+      if (currentTextLines.length > 0) {
+        blocks.push({ type: 'text', text: currentTextLines.join('\n') });
+        currentTextLines = [];
+      }
+      const headers = parseRowCells(lines[i]);
+      i += 2;
+      const rows: string[][] = [];
+      while (i < lines.length && isTableRow(lines[i])) {
+        rows.push(parseRowCells(lines[i]));
+        i++;
+      }
+      blocks.push({ type: 'table', headers, rows });
+    } else {
+      currentTextLines.push(lines[i]);
+      i++;
+    }
+  }
+  if (currentTextLines.length > 0) {
+    blocks.push({ type: 'text', text: currentTextLines.join('\n') });
+  }
+  return blocks;
+}
+
+function renderFormattedCell(text: string, onOpenClaim?: (claimId: string) => void) {
+  const isUrgent = text.includes('🔴') || text.includes('[דחוף]');
+  const isWait = text.includes('🟡') || text.includes('[ממתין]');
+  const claimMatch = text.match(/DAL-\d{4}-\d{4}|DAL-[A-Za-z0-9_-]+/);
+
+  if (claimMatch && (text.includes('פתח תיק') || text.includes('claim:') || text.startsWith('DAL-') || text.startsWith('[DAL-'))) {
+    const claimId = claimMatch[0];
+    return (
+      <button
+        type="button"
+        className="claims-claim-btn"
+        title={`פתח כרטיס תביעה ${claimId}`}
+        onClick={() => onOpenClaim?.(claimId)}
+      >
+        🔍 פתח {claimId}
+      </button>
+    );
+  }
+
+  if (isUrgent) {
+    return <span className="claims-badge-urgent">{text}</span>;
+  }
+  if (isWait) {
+    return <span className="claims-badge-wait">{text}</span>;
+  }
+
+  if (text.includes('<br>') || text.includes('\n')) {
+    const parts = text.split(/<br\s*\/?>|\n/i);
+    return (
+      <>
+        {parts.map((p, idx) => (
+          <React.Fragment key={idx}>
+            {idx > 0 ? <br /> : null}
+            {p}
+          </React.Fragment>
+        ))}
+      </>
+    );
+  }
+
+  return text;
+}
+
+function renderFormattedText(text: string, onOpenClaim?: (claimId: string) => void) {
+  const parts = text.split(/(\[.*?\]\(claim:[A-Za-z0-9_-]+\)|DAL-\d{4}-\d{4})/g);
+  return (
+    <>
+      {parts.map((part, idx) => {
+        const linkMatch = part.match(/\[(.*?)\]\(claim:([A-Za-z0-9_-]+)\)/);
+        if (linkMatch) {
+          const label = linkMatch[1];
+          const claimId = linkMatch[2];
+          return (
+            <button
+              key={idx}
+              type="button"
+              className="claims-claim-btn"
+              style={{ margin: '0 4px', display: 'inline-flex' }}
+              onClick={() => onOpenClaim?.(claimId)}
+            >
+              🔍 {label || claimId}
+            </button>
+          );
+        }
+        if (/^DAL-\d{4}-\d{4}$/.test(part)) {
+          return (
+            <button
+              key={idx}
+              type="button"
+              className="claims-claim-btn"
+              style={{ margin: '0 4px', display: 'inline-flex' }}
+              onClick={() => onOpenClaim?.(part)}
+            >
+              🔍 {part}
+            </button>
+          );
+        }
+        return <span key={idx}>{part}</span>;
+      })}
+    </>
+  );
+}
+
+function ClaimsReportTable({
+  headers,
+  rows,
+  onOpenClaim,
+  onCopyText,
+}: {
+  headers: string[];
+  rows: string[][];
+  onOpenClaim?: (claimId: string) => void;
+  onCopyText?: (text: string) => void;
+}) {
+  const [filter, setFilter] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const filteredRows = useMemo(() => {
+    if (!filter.trim()) return rows;
+    const q = filter.trim().toLowerCase();
+    return rows.filter((r) => r.some((cell) => cell.toLowerCase().includes(q)));
+  }, [rows, filter]);
+
+  const handleCopy = () => {
+    const tsv = [
+      headers.join('\t'),
+      ...filteredRows.map((r) => r.join('\t')),
+    ].join('\n');
+    if (onCopyText) {
+      onCopyText(tsv);
+    } else if (navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(tsv);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="claims-report-table-widget" data-testid="claims-report-table-widget">
+      <div className="claims-report-table-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <strong style={{ fontSize: 13, color: 'var(--t)' }}>
+            📊 דוח תביעות ({filteredRows.length} {filteredRows.length === rows.length ? 'תיקים' : `מתוך ${rows.length}`})
+          </strong>
+          <button
+            type="button"
+            className="claims-ai-action-btn"
+            onClick={handleCopy}
+            title="העתק טבלה ללוח (בפורמט המתאים לאקסל/וורד)"
+          >
+            {copied ? '✓ הטבלה הועתקה!' : '📋 העתק טבלה'}
+          </button>
+        </div>
+        <input
+          type="text"
+          className="claims-report-search"
+          placeholder="🔍 חיפוש בטבלה..."
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        />
+      </div>
+      <div className="claims-report-table-scroll">
+        <table className="claims-report-table">
+          <thead>
+            <tr>
+              {headers.map((h, idx) => (
+                <th key={idx}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRows.length === 0 ? (
+              <tr>
+                <td colSpan={headers.length} style={{ textAlign: 'center', padding: 16, color: 'var(--t3)' }}>
+                  לא נמצאו תיקים התואמים את החיפוש "{filter}"
+                </td>
+              </tr>
+            ) : (
+              filteredRows.map((row, rIdx) => (
+                <tr key={rIdx}>
+                  {row.map((cell, cIdx) => (
+                    <td key={cIdx}>{renderFormattedCell(cell, onOpenClaim)}</td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ClaimsMessageContent({
+  content,
+  onOpenClaim,
+  onCopyText,
+}: {
+  content: string;
+  onOpenClaim?: (claimId: string) => void;
+  onCopyText?: (text: string) => void;
+}) {
+  const blocks = useMemo(() => parseBlocks(content), [content]);
+
+  return (
+    <div className="claims-message-content">
+      {blocks.map((block, idx) => {
+        if (block.type === 'table' && block.headers && block.rows) {
+          return (
+            <ClaimsReportTable
+              key={idx}
+              headers={block.headers}
+              rows={block.rows}
+              onOpenClaim={onOpenClaim}
+              onCopyText={onCopyText}
+            />
+          );
+        }
+        return (
+          <div key={idx} style={{ whiteSpace: 'pre-wrap' }}>
+            {renderFormattedText(block.text || '', onOpenClaim)}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ClaimsAiWorkspace({
   open,
   onClose,
@@ -342,6 +600,7 @@ export function ClaimsAiWorkspace({
   companyName,
   documentActions,
   onActionExecuted,
+  onOpenClaim,
 }: {
   open: boolean;
   onClose: () => void;
@@ -351,6 +610,8 @@ export function ClaimsAiWorkspace({
   documentActions?: ClaimsAiDocumentActions;
   /** Called after an approved action ran, so the screen can reload the claim. */
   onActionExecuted?: (pending: ClaimsAiPendingAction) => void;
+  /** Opens the specified claim card directly in the main screen without losing chat. */
+  onOpenClaim?: (claimId: string) => void;
 }) {
   const claimId = claim?.claimId || null;
   const [conversations, setConversations] = useState<ClaimsAiConversation[]>([]);
@@ -365,13 +626,38 @@ export function ClaimsAiWorkspace({
   const [pendingDelete, setPendingDelete] = useState<ClaimsAiConversation | null>(null);
   const [executingActionId, setExecutingActionId] = useState<string | null>(null);
   const [stagedAttachments, setStagedAttachments] = useState<StagedAttachment[]>([]);
+  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRec | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isListeningRef = useRef(false);
+  const isManualStopRef = useRef(false);
+  const baseInputRef = useRef('');
+  const finalTranscriptRef = useRef('');
   const sendRef = useRef<(text: string, source: 'text' | 'voice') => Promise<void>>(async () => {});
   const executingRef = useRef<Set<string>>(new Set());
   const confirmRef = useRef<(msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => Promise<void>>(async () => {});
   const cancelRef = useRef<(msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => Promise<void>>(async () => {});
+
+  const handleCopyText = useCallback((msgId: string, text: string) => {
+    if (navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(text);
+    }
+    setCopiedMsgId(msgId);
+    setTimeout(() => {
+      setCopiedMsgId((cur) => (cur === msgId ? null : cur));
+    }, 2000);
+  }, []);
+
+  const handleStopAi = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     setMicOk(!!speechCtor() && !!window.isSecureContext);
@@ -379,6 +665,16 @@ export function ClaimsAiWorkspace({
 
   useEffect(() => {
     return () => {
+      if (recognitionRef.current) {
+        isManualStopRef.current = true;
+        isListeningRef.current = false;
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
       stagedAttachments.forEach((a) => {
         if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
       });
@@ -540,7 +836,10 @@ export function ClaimsAiWorkspace({
     setStagedAttachments([]);
     setLoading(true);
     setBanner('');
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     let conversationId = activeId;
+    let draft = '';
     try {
       if (!conversationId) {
         const created = await createClaimsAiConversation({
@@ -613,12 +912,12 @@ export function ClaimsAiWorkspace({
       const history = [...messages, userSaved.data];
       setMessages(history);
 
-      let draft = '';
       let pendingFromStream: ClaimsAiPendingAction | null = null;
       const answer = await streamHelpAi({
         messages: messagesForModel(history),
         claimId,
         companyName,
+        signal: controller.signal,
         attachments: finalAttachments.map((a) => ({
           name: a.name,
           mime_type: a.mime_type,
@@ -659,6 +958,23 @@ export function ClaimsAiWorkspace({
       setMessages([...history, saved.data]);
       setConversations((prev) => prev.map((row) => row.id === conversationId ? { ...row, updated_at: saved.data!.created_at } : row));
     } catch (err) {
+      const isAbort = (err instanceof DOMException && err.name === 'AbortError') || (err instanceof Error && err.name === 'AbortError') || controller.signal.aborted;
+      if (isAbort) {
+        if (conversationId && draft.trim()) {
+          const abortedMsg = await insertClaimsAiMessage({
+            conversationId,
+            role: 'assistant',
+            content: `${draft}\n\n*(התשובה נעצרה על ידי המשתמש)*`,
+            metadata: { claim_id: claimId, stopped: true },
+          });
+          if (abortedMsg.data) {
+            setMessages((prev) => [...prev.filter((m) => m.id !== 'draft'), abortedMsg.data!]);
+          }
+        } else {
+          setMessages((prev) => prev.filter((m) => m.id !== 'draft'));
+        }
+        return;
+      }
       const message = err instanceof Error ? err.message : 'שגיאה';
       setBanner(message);
       if (conversationId) {
@@ -673,6 +989,7 @@ export function ClaimsAiWorkspace({
         }
       }
     } finally {
+      abortControllerRef.current = null;
       setLoading(false);
     }
   }, [activeId, claimId, companyName, conversations, loading, messages, stagedAttachments, userId]);
@@ -825,41 +1142,79 @@ export function ClaimsAiWorkspace({
   const toggleMic = () => {
     const Ctor = speechCtor();
     if (!Ctor) return;
-    if (listening && recognitionRef.current) {
-      recognitionRef.current.stop();
+    if (listening || isListeningRef.current) {
+      isManualStopRef.current = true;
+      isListeningRef.current = false;
+      setListening(false);
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+      textareaRef.current?.focus();
       return;
     }
+
+    isManualStopRef.current = false;
+    isListeningRef.current = true;
+    baseInputRef.current = input.trim();
+    finalTranscriptRef.current = '';
+
     const rec = new Ctor();
     rec.lang = 'he-IL';
-    rec.continuous = false;
+    rec.continuous = true;
     rec.interimResults = true;
-    let finalText = '';
+
     rec.onresult = (ev) => {
       let interim = '';
       for (let i = ev.resultIndex; i < ev.results.length; i += 1) {
         const piece = ev.results[i][0]?.transcript || '';
-        if (ev.results[i].isFinal) finalText += piece;
-        else interim += piece;
+        if (ev.results[i].isFinal) {
+          finalTranscriptRef.current = (finalTranscriptRef.current ? `${finalTranscriptRef.current} ` : '') + piece;
+        } else {
+          interim = (interim ? `${interim} ` : '') + piece;
+        }
       }
-      setInput(`${finalText}${interim}`.trim());
+      const full = [baseInputRef.current, finalTranscriptRef.current, interim]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      setInput(full);
     };
+
     rec.onerror = (ev) => {
       if (ev.error !== 'aborted' && ev.error !== 'no-speech') {
-        setBanner('הדיבור לא נקלט. אפשר לכתוב את השאלה.');
+        setBanner('זיהוי הדיבור נתקל בשגיאה. הטקסט שהוקלט נשמר בתיבה, ואפשר להמשיך להקליד.');
       }
-      setListening(false);
+      if (ev.error === 'not-allowed') {
+        isManualStopRef.current = true;
+        isListeningRef.current = false;
+        setListening(false);
+      }
     };
+
     rec.onend = () => {
+      if (isListeningRef.current && !isManualStopRef.current) {
+        try {
+          rec.start();
+          return;
+        } catch {
+          // Restart failed, stop gracefully
+        }
+      }
+      isListeningRef.current = false;
       setListening(false);
-      const spoken = finalText.trim();
-      if (spoken) void sendRef.current(spoken, 'voice');
+      textareaRef.current?.focus();
     };
+
     recognitionRef.current = rec;
     try {
       rec.start();
       setListening(true);
       setBanner('');
     } catch {
+      isListeningRef.current = false;
+      setListening(false);
       setBanner('לא ניתן להפעיל את המיקרופון בדפדפן הזה.');
     }
   };
@@ -989,7 +1344,11 @@ export function ClaimsAiWorkspace({
                       ))}
                     </div>
                   ) : null}
-                  {msg.content}
+                  <ClaimsMessageContent
+                    content={msg.content}
+                    onOpenClaim={onOpenClaim}
+                    onCopyText={(txt) => void handleCopyText(msg.id, txt)}
+                  />
                   {toolError ? <div className="claims-ai-tool-err">הכלי נכשל: {toolError}</div> : null}
                   {msg.role === 'assistant' && toolTraceOf(msg.metadata) ? (
                     <div
@@ -1209,14 +1568,46 @@ export function ClaimsAiWorkspace({
                       )}
                     </div>
                   ) : null}
-                  {msg.role === 'assistant' && msg.metadata.error !== true && typeof window.speechSynthesis !== 'undefined' ? (
-                    <button type="button" className="claims-ai-speak" onClick={() => speakAnswer(msg.content)}>הקרא</button>
+                  {msg.role === 'assistant' && msg.metadata.error !== true ? (
+                    <div className="claims-ai-bubble-actions">
+                      <button
+                        type="button"
+                        className={`claims-ai-action-btn claims-ai-copy-btn${copiedMsgId === msg.id ? ' copied' : ''}`}
+                        onClick={() => void handleCopyText(msg.id, msg.content)}
+                        title="העתק תשובה ללוח"
+                      >
+                        {copiedMsgId === msg.id ? '✓ הועתק!' : '📋 העתק'}
+                      </button>
+                      {typeof window.speechSynthesis !== 'undefined' ? (
+                        <button
+                          type="button"
+                          className="claims-ai-action-btn"
+                          onClick={() => speakAnswer(msg.content)}
+                          title="הקרא בקול"
+                        >
+                          🔊 הקרא
+                        </button>
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
               </div>
             );
           })}
-          {loading ? <div className="claims-ai-status" data-testid="claims-ai-loading">דליה חושבת…</div> : null}
+          {loading ? (
+            <div className="claims-ai-loading-bar" data-testid="claims-ai-loading">
+              <span className="claims-ai-loading-spinner" />
+              <span>דליה מייצרת תשובה…</span>
+              <button
+                type="button"
+                className="claims-ai-stop-btn"
+                onClick={handleStopAi}
+                title="עצור את יצירת התשובה"
+              >
+                ⏹️ עצור
+              </button>
+            </div>
+          ) : null}
         </div>
 
         {stagedAttachments.length > 0 ? (
@@ -1274,14 +1665,16 @@ export function ClaimsAiWorkspace({
           >📎</button>
           <button
             type="button"
-            className={`claims-ai-icon${listening ? ' live' : ''}`}
+            className={`claims-ai-icon${listening ? ' live recording' : ''}`}
             data-testid="claims-ai-mic"
             aria-pressed={listening}
             disabled={!micOk || loading}
-            title={micOk ? 'דבר אל דליה' : 'הדפדפן לא תומך בזיהוי דיבור'}
+            title={listening ? 'עצור הכתבה (הטקסט יישמר בתיבה לעריכה)' : (micOk ? 'התחל הכתבה קולית רציפה' : 'הדפדפן לא תומך בזיהוי דיבור')}
+            aria-label={listening ? 'עצור הכתבה' : 'הכתבה קולית'}
             onClick={toggleMic}
-          >{listening ? '■' : '🎤'}</button>
+          >{listening ? '⏹️' : '🎤'}</button>
           <textarea
+            ref={textareaRef}
             data-testid="claims-ai-input"
             value={input}
             dir="rtl"

@@ -71,6 +71,23 @@ export const CLAIMS_GEMINI_TOOLS = [
   {
     functionDeclarations: [
       {
+        name: "get_claims_status_report",
+        description: "הפקת דוח סטטוס מקיף ומלא על כל תיקי התביעות במערכת. מחזיר טבלה מפורטת עם כל התיקים שאושרו למשתמש לראות, ללא השמטה. עבור כל תיק כולל: מספר תיק, מספר תביעה, שם לקוח, ת.ז./מספר לקוח, חברת ביטוח, סטטוס, פעולה אחרונה ומתי בוצעה, מצב אימיילים (האם נשלח, למי ומתי, או מתוזמן/טיוטה), תשובה אחרונה מחברת הביטוח, למה ממתינים כרגע, גורם מטפל, מה צריך לעשות עכשיו (next action), מועד מעקב הבא, התראות פתוחות ורמת דחיפותן, וקישור ישיר לפתיחת התיק.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            filter_status: {
+              type: "STRING",
+              description: "סינון לפי סטטוס מסוים או 'all' לכלל התיקים (ברירת מחדל 'all')",
+            },
+            include_closed: {
+              type: "BOOLEAN",
+              description: "האם לכלול גם תיקים סגורים/הושלמו (ברירת מחדל true)",
+            },
+          },
+        },
+      },
+      {
         name: "search_claim_emails",
         description: "חיפוש מיילים שנכנסו או יצאו עבור התיק הפתוח (כותרת, תוכן, שולח, נמען, תאריך)",
         parameters: {
@@ -758,6 +775,23 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
         },
       },
       {
+        name: "get_claims_status_report",
+        description: "הפקת דוח סטטוס מקיף ומלא על כל תיקי התביעות במערכת. מחזיר טבלה מפורטת עם כל התיקים שאושרו למשתמש לראות, ללא השמטה. עבור כל תיק כולל: מספר תיק, מספר תביעה, שם לקוח, ת.ז./מספר לקוח, חברת ביטוח, סטטוס, פעולה אחרונה ומתי בוצעה, מצב אימיילים (האם נשלח, למי ומתי, או מתוזמן/טיוטה), תשובה אחרונה מחברת הביטוח, למה ממתינים כרגע, גורם מטפל, מה צריך לעשות עכשיו (next action), מועד מעקב הבא, התראות פתוחות ורמת דחיפותן, וקישור ישיר לפתיחת התיק.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            filter_status: {
+              type: "STRING",
+              description: "סינון לפי סטטוס מסוים או 'all' לכלל התיקים (ברירת מחדל 'all')",
+            },
+            include_closed: {
+              type: "BOOLEAN",
+              description: "האם לכלול גם תיקים סגורים/הושלמו (ברירת מחדל true)",
+            },
+          },
+        },
+      },
+      {
         name: "get_claims_summary",
         description: "סיכום מקיף של תיקי התביעות במערכת: סך הכל תיקים, התפלגות לפי סטטוסים, התפלגות לפי חברות ביטוח, ותיקים הדורשים טיפול",
       },
@@ -1128,6 +1162,25 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 16. שאלות על תוכן מסמך ("מה החליטה חברת הביטוח?", "כמה השמאי אישר?"): מצא את המסמך עם list_claim_documents ואז read_claim_document. ענה רק ממה שכתוב, ציין את שם המסמך והציטוט. אם התוכן לא זמין או לא מופיע — אמור זאת.
 17. הורדת קבצים וייבוא מייל מ-Gmail לתיק: כשהמשתמש מבקש לייבא מייל או להוריד נספחים/קבצים שנשלחו במייל (למשל 'תורידי את הקבצים מהמייל של שמאי/ביטוח', 'יש מייל עם קבצים שצריך לצרף לתיק', 'הגיע מייל עם 112 קבצים תוריד אותם לתיק'):
 קרא ל-search_pending_gmail_messages לאיתור המייל, ואז קרא ל-preview_import_claim_email עם message_id ו-claim_ref. כרטיס האישור יציג את פרטי המייל וכמות הקבצים שיורדו (במנות של 12 תוך מניעת כפילויות מלאה). לאחר אישור המשתמש, המערכת מבצעת את ההורדה במלואה.
+18. דוח סטטוס מקיף על כלל התביעות במערכת ("תוציא לי דוח כללי על כל התיקים", "מה מצב התביעות?", "דוח כללי"):
+כאשר המשתמש מבקש דוח כללי על כל התיקים או שואל על מצב התביעות:
+חובה לקרוא מיידית לכלי get_claims_status_report!
+הצג תמיד טבלת Markdown מלאה ומסודרת של כל התיקים שהוחזרו ללא יוצא מן הכלל (לא להסתפק בסיכום או בחלק מהתיקים).
+הטבלה חייבת לכלול את כל 13 העמודות:
+1. מספר תיק (עם קישור לחיץ [DAL-YYYY-NNNN](claim:DAL-YYYY-NNNN) או [פתח תיק](claim:DAL-YYYY-NNNN)) ומספר תביעה
+2. שם לקוח ומספר לקוח/ת.ז.
+3. חברת הביטוח ומצב הטיפול מולה
+4. סטטוס התביעה הנוכחי
+5. הפעולה האחרונה ותאריך ביצועה
+6. מצב אימייל (האם נשלח, למי ומתי, או מתוזמן/טיוטה)
+7. מה הייתה התשובה האחרונה מחברת הביטוח (או "לא תועד מענה")
+8. למה אנחנו ממתינים כרגע (ביטוח/שמאי/מסמכים/מוסך/טיפול פנימי)
+9. מי הגורם המטפל בתביעה
+10. מה צריך לעשות עכשיו (הפעולה הבאה לקידום התיק)
+11. מועד המעקב הבא
+12. התראות פתוחות, מסמכים חסרים ורמת דחיפות (הדגש ב-🔴 [דחוף] התראות דחופות)
+13. קישור ישיר לפתיחת התיק: [פתח תיק](claim:DAL-YYYY-NNNN)
+מיין תמיד תיקים דחופים תחילה, אחריהם בטיפול, ממתינים ולבסוף סגורים. לעולם אל תמציא נתונים: נתון שאינו קיים יוצג כ"לא ידוע" או "לא עודכן".
 
 חתימה: הודעות חדשות (מייל, WhatsApp) נחתמות בשם "דליה ניהול תביעות" בלבד. אל תכתוב "מוסך אורן" ואל תמציא שם אחר.
 אישורים: קריאה, חיפוש, הצגת מסמכים וניסוח טיוטות — מיד, בלי כרטיס. כל כתיבה או שליחה — כרטיס אישור אחד שמרכז את כל הפרטים (לא לבקש אישור לכל שלב). אחרי ביצוע דווח את התוצאה האמיתית: בוצע / נכשל / ממתין לשליחה ידנית.
@@ -1166,13 +1219,34 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
    ו. הכלי יציג כרטיס אישור (Preview) מסודר למשתמש. לאחר לחיצת "אישור" של המשתמש:
       המערכת תיצור את הלקוח (אם אינו קיים), תקדם את מונה התביעות (DAL-YYYY-XXXX), תיצור את תיק התביעה ב-claims_records, תשמור את כל הקבצים והתמונות ב-claims-docs וב-claims_documents (תמונות לגלריה, מסמכים לספרייה), ותתעד Audit מלא.
 
-2. סקירת תביעות וסטטיסטיקות:
-   - כמות תביעות כוללת, תביעות פתוחות, סגורות, בארכיון (get_claims_summary, count_claims).
-   - חלוקה לפי סטטוסים (get_claims_by_status).
-   - חלוקה לפי חברות ביטוח (get_claims_summary).
-   - תביעות שנפתחו היום (get_claims_created_today).
-   - תביעות אחרונות שנפתחו (get_recent_claims).
-   - תיקים שדורשים טיפול דחוף (get_claims_needing_attention).
+2. סקירת תביעות ודוח סטטוס כלל התיקים במערכת:
+   - כאשר המשתמש מבקש "תוציא לי דוח כללי על כל התיקים", "מה מצב התביעות?", "דוח כללי", "סטטוס תביעות":
+     חובה לקרוא מיידית לכלי get_claims_status_report!
+     לעולם אל תסתפק בתשובה טקסטואלית כללית, ואל תציג רק 5 או 15 תיקים. הצג תמיד טבלת Markdown מסודרת ומלאה של כל התיקים שהוחזרו ללא יוצא מן הכלל.
+     הטבלה חייבת לכלול את כל 13 העמודות:
+     1. מספר תיק (עם קישור לחיץ [DAL-YYYY-NNNN](claim:DAL-YYYY-NNNN) או [פתח תיק](claim:DAL-YYYY-NNNN)) ומספר תביעה
+     2. שם לקוח ומספר לקוח/ת.ז.
+     3. חברת הביטוח ומצב הטיפול מולה
+     4. סטטוס התביעה הנוכחי
+     5. הפעולה האחרונה ותאריך ביצועה
+     6. מצב אימייל (האם נשלח, למי ומתי, או מתוזמן/טיוטה)
+     7. מה הייתה התשובה האחרונה מחברת הביטוח (או "לא תועד מענה")
+     8. למה אנחנו ממתינים כרגע (ביטוח/שמאי/מסמכים/מוסך/טיפול פנימי)
+     9. מי הגורם המטפל בתביעה
+     10. מה צריך לעשות עכשיו (הפעולה הבאה לקידום התיק)
+     11. מועד המעקב הבא
+     12. התראות פתוחות, מסמכים חסרים ורמת דחיפות (הדגש ב-🔴 [דחוף] התראות דחופות)
+     13. קישור ישיר לפתיחת התיק: [פתח תיק](claim:DAL-YYYY-NNNN)
+     - מיין תמיד תיקים דחופים תחילה, אחריהם בטיפול, ממתינים ולבסוף סגורים.
+     - אל תמציא שום נתון: אם מידע חסר הצג "לא ידוע" או "לא תועד".
+     - הבחן בבירור בין פעולה שבוצעה לבין פעולה מתוכננת.
+   - סקירות כמותיות ספציפיות:
+     - כמות תביעות כוללת (get_claims_summary, count_claims).
+     - חלוקה לפי סטטוסים (get_claims_by_status).
+     - חלוקה לפי חברות ביטוח (get_claims_summary).
+     - תביעות שנפתחו היום (get_claims_created_today).
+     - תביעות אחרונות שנפתחו (get_recent_claims).
+     - תיקים שדורשים טיפול דחוף (get_claims_needing_attention).
 
 3. פעילות ומיילים יומיים (Gmail):
    - כמה מיילים נכנסו היום (count_today_incoming_emails).
@@ -2292,6 +2366,10 @@ export async function executeClaimsTool(
 ): Promise<{ result: unknown; preview?: ClaimsPendingAction; card?: ClaimsDocumentCard }> {
   try {
     switch (name) {
+      case "get_claims_status_report": {
+        return await handleGetClaimsStatusReport(supabase, args, userId, userName, name);
+      }
+
       case "search_claim_emails": {
         const direction = String(args.direction || "all").toLowerCase();
         const query = String(args.query || "").trim().toLowerCase();
@@ -4239,6 +4317,352 @@ export async function executeClaimsTool(
   }
 }
 
+function formatHeDateTime(val?: string | null): string {
+  if (!val) return "";
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    return d.toLocaleString("he-IL", {
+      timeZone: "Asia/Jerusalem",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return String(val);
+  }
+}
+
+async function handleGetClaimsStatusReport(
+  supabase: ReturnType<typeof createClient>,
+  args: Record<string, unknown>,
+  userId: string,
+  userName: string,
+  toolName = "get_claims_status_report",
+): Promise<{ result: unknown }> {
+  const filterStatus = String(args.filter_status || "all").trim();
+  const includeClosed = args.include_closed !== false;
+
+  // 1. Fetch claims records
+  const { data: recs, error: recsErr } = await supabase
+    .from("claims_records")
+    .select("id, status, company_name, row_data, created_at, last_activity_at")
+    .order("created_at", { ascending: false });
+
+  if (recsErr) {
+    return { result: { error: `שגיאה בשליפת תביעות: ${recsErr.message}` } };
+  }
+
+  // Filter non-deleted and non-hidden
+  let activeRecs = (recs || []).filter((r) => {
+    const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+    const isDeleted = !!rd.deletedAt || r.status === "נמחק" || rd.status === "נמחק";
+    const isHidden = !!rd.hidden || !!rd.is_hidden;
+    return !isDeleted && !isHidden;
+  });
+
+  if (filterStatus && filterStatus !== "all") {
+    activeRecs = activeRecs.filter((r) => {
+      const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+      const st = String(r.status || rd.status || "");
+      return st === filterStatus;
+    });
+  }
+
+  if (!includeClosed) {
+    activeRecs = activeRecs.filter((r) => {
+      const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+      const st = String(r.status || rd.status || "");
+      return st !== "הושלם" && st !== "סגור";
+    });
+  }
+
+  const claimIds = activeRecs.map((r) => r.id);
+
+  // 2. Fetch latest history per claim
+  const latestHistoryByClaim = new Map<string, { at: string; action: string; by: string; note: string }>();
+  if (claimIds.length > 0) {
+    const { data: histRows } = await supabase
+      .from("claims_history")
+      .select("claim_id, row_data, created_at")
+      .in("claim_id", claimIds)
+      .order("created_at", { ascending: false });
+
+    for (const h of histRows || []) {
+      if (!latestHistoryByClaim.has(h.claim_id)) {
+        const rd = (h.row_data && typeof h.row_data === "object" ? h.row_data : {}) as Record<string, unknown>;
+        latestHistoryByClaim.set(h.claim_id, {
+          at: String(rd.at || formatHeDateTime(h.created_at)),
+          action: String(rd.action || rd.note || "פעולה מתועדת"),
+          by: String(rd.by || ""),
+          note: String(rd.note || ""),
+        });
+      }
+    }
+  }
+
+  // 3. Fetch mail jobs and reminders
+  const sentEmailsByClaim = new Map<string, { to: string; when: string; subject: string }>();
+  const scheduledEmailsByClaim = new Map<string, { to: string; when: string; subject: string }>();
+  const pendingEmailsByClaim = new Map<string, { to: string; subject: string }>();
+
+  if (claimIds.length > 0) {
+    const { data: jobs } = await supabase
+      .from("claims_mail_jobs")
+      .select("claim_id, status, preview, planned_at, finished_at, created_at")
+      .in("claim_id", claimIds)
+      .order("created_at", { ascending: false });
+
+    for (const j of jobs || []) {
+      const prev = (j.preview && typeof j.preview === "object" ? j.preview : {}) as Record<string, unknown>;
+      const to = String(prev.to || "");
+      const subject = String(prev.subject || "");
+      if (j.status === "sent" || j.status === "dry_run_sent") {
+        if (!sentEmailsByClaim.has(j.claim_id)) {
+          sentEmailsByClaim.set(j.claim_id, {
+            to,
+            when: formatHeDateTime(j.finished_at || j.planned_at || j.created_at),
+            subject,
+          });
+        }
+      } else if (j.status === "pending") {
+        if (!pendingEmailsByClaim.has(j.claim_id)) {
+          pendingEmailsByClaim.set(j.claim_id, { to, subject });
+        }
+      }
+    }
+
+    const { data: rems } = await supabase
+      .from("claims_reminders")
+      .select("claim_id, status, mail_to, mail_subject, next_run_at, action")
+      .in("claim_id", claimIds)
+      .eq("action", "send_email")
+      .eq("status", "scheduled")
+      .order("created_at", { ascending: false });
+
+    for (const r of rems || []) {
+      if (!scheduledEmailsByClaim.has(r.claim_id)) {
+        scheduledEmailsByClaim.set(r.claim_id, {
+          to: String(r.mail_to || ""),
+          when: formatHeDateTime(r.next_run_at),
+          subject: String(r.mail_subject || ""),
+        });
+      }
+    }
+  }
+
+  // 4. Inbound emails from claims_gmail_imports
+  const inboundByClaim = new Map<string, { from_addr: string; subject: string; sent_at: string; received_at: string }>();
+  if (claimIds.length > 0) {
+    const { data: imports } = await supabase
+      .from("claims_gmail_imports")
+      .select("claim_id, from_addr, subject, sent_at, received_at")
+      .in("claim_id", claimIds)
+      .order("sent_at", { ascending: false });
+
+    for (const m of imports || []) {
+      if (!inboundByClaim.has(m.claim_id)) {
+        inboundByClaim.set(m.claim_id, {
+          from_addr: String(m.from_addr || ""),
+          subject: String(m.subject || ""),
+          sent_at: formatHeDateTime(m.sent_at || m.received_at),
+          received_at: formatHeDateTime(m.received_at),
+        });
+      }
+    }
+  }
+
+  // 5. Open tasks
+  const openTasksByClaim = new Map<string, Array<Record<string, unknown>>>();
+  if (claimIds.length > 0) {
+    const { data: tasks } = await supabase
+      .from("claims_tasks")
+      .select("id, claim_id, row_data, created_at")
+      .in("claim_id", claimIds)
+      .order("created_at", { ascending: false });
+
+    for (const t of tasks || []) {
+      const rd = (t.row_data && typeof t.row_data === "object" ? t.row_data : {}) as Record<string, unknown>;
+      if (rd.done !== "true" && rd.workStatus !== "done") {
+        const list = openTasksByClaim.get(t.claim_id) || [];
+        list.push(rd);
+        openTasksByClaim.set(t.claim_id, list);
+      }
+    }
+  }
+
+  // 6. Documents
+  const docsByClaim = new Map<string, string[]>();
+  if (claimIds.length > 0) {
+    const { data: docs } = await supabase
+      .from("claims_documents")
+      .select("claim_id, original_name")
+      .in("claim_id", claimIds)
+      .eq("is_archived", false);
+
+    for (const d of docs || []) {
+      const list = docsByClaim.get(d.claim_id) || [];
+      list.push(String(d.original_name || "").toLowerCase());
+      docsByClaim.set(d.claim_id, list);
+    }
+  }
+
+  // Build items with all 13 required fields
+  const items = activeRecs.map((r) => {
+    const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+    const claimId = r.id;
+    const isQa = rd.isQa === "true" || rd.isQa === true || claimId.startsWith("DAL-QA-") || String(rd.clientName || "").includes("QA") || String(rd.clientName || "").includes("בדיקה");
+    const rawClientName = String(rd.clientName || "").trim() || "לא צוין";
+    const clientName = isQa ? `${rawClientName} 🧪 [בדיקה / QA]` : rawClientName;
+    const claimNum = String(rd.claimNum || "").trim() || (isQa ? "QA-TEST" : "לא צוין");
+    const clientId = String(rd.clientId || rd.driverId || "").trim() || "לא תועד";
+    const insCompany = String(rd.insCompany || r.company_name || "").trim() || "לא הוגדרה";
+    const status = String(r.status || rd.status || "חדש").trim();
+    const handler = String(rd.assigned_to_name || rd.createdByName || "").trim() || "לא שויך";
+    const nextDate = String(rd.nextDate || "").trim() || "לא נקבע";
+    const nextAction = String(rd.nextAction || "").trim() || "לא תועדה פעולה הבאה";
+
+    // Last action
+    const hist = latestHistoryByClaim.get(claimId);
+    let lastActionDate = "";
+    let lastActionStr = "לא תועדה פעולה";
+    if (hist) {
+      lastActionDate = hist.at;
+      lastActionStr = `${hist.action}${hist.by ? ` (ע״י ${hist.by})` : ""}`;
+    } else if (r.created_at) {
+      lastActionDate = formatHeDateTime(r.created_at);
+      lastActionStr = "פתיחת תיק במערכת";
+    }
+
+    // Email status
+    const sent = sentEmailsByClaim.get(claimId);
+    const sched = scheduledEmailsByClaim.get(claimId);
+    const pend = pendingEmailsByClaim.get(claimId);
+    let emailStatus = "טרם נשלח אימייל";
+    if (sent) {
+      emailStatus = `נשלח אל ${sent.to} ב-${sent.when}`;
+    } else if (sched) {
+      emailStatus = `📅 מתוזמן ל-${sched.when} אל ${sched.to}`;
+    } else if (pend) {
+      emailStatus = `טיוטה ממתינה לאישור אל ${pend.to}`;
+    }
+
+    // Insurer reply
+    const inbound = inboundByClaim.get(claimId);
+    let insurerReply = "לא תועד מענה מחברת הביטוח";
+    if (inbound) {
+      insurerReply = `${inbound.sent_at}: מאת ${inbound.from_addr} - "${inbound.subject.slice(0, 35)}"`;
+    }
+
+    // Waiting for
+    let waitingFor = "טיפול פנימי";
+    if (rd.treatmentPendingAction) {
+      waitingFor = String(rd.treatmentPendingAction);
+    } else if (rd.treatmentPending) {
+      waitingFor = `ממתין ל-${rd.treatmentPending}`;
+    } else if (status.includes("ממתין לביטוח")) {
+      waitingFor = "מענה מחברת הביטוח";
+    } else if (status.includes("ממתין לשמאי")) {
+      waitingFor = "דוח / בדיקת שמאי";
+    } else if (status.includes("ממתין למסמכים")) {
+      waitingFor = "מסמכים מהלקוח/סוכן";
+    } else if (status.includes("בטיפול מוסך")) {
+      waitingFor = "השלמת טיפול במוסך";
+    } else if (status === "חדש") {
+      waitingFor = "פתיחה וקליטה ראשונית";
+    }
+
+    // Missing documents check
+    const docNames = docsByClaim.get(claimId) || [];
+    const missingDocsList: string[] = [];
+    if (!docNames.some((n) => n.includes("רישיון") || n.includes("רשיון") || n.includes("license"))) missingDocsList.push("רישיון רכב");
+    if (!docNames.some((n) => n.includes("שמאי") || n.includes("surveyor"))) missingDocsList.push("דוח שמאי");
+    if (!docNames.some((n) => n.includes("חשבונית") || n.includes("invoice"))) missingDocsList.push("חשבונית מוסך");
+    if (!docNames.some((n) => n.includes("הודעה") || n.includes("טופס") || n.includes("notice"))) missingDocsList.push("טופס הודעה");
+
+    // Open alerts & tasks
+    const openTasks = openTasksByClaim.get(claimId) || [];
+    const alerts: string[] = [];
+    let isUrgent = false;
+
+    for (const t of openTasks) {
+      if (t.replyReceived === "true") {
+        alerts.push("מענה חדש התקבל");
+        isUrgent = true;
+      }
+    }
+    if (inbound && (!sent || new Date(inbound.sent_at).getTime() > new Date(sent.when).getTime())) {
+      alerts.push("מייל חדש מחברת הביטוח");
+      isUrgent = true;
+    }
+    if (missingDocsList.length > 0) {
+      alerts.push(`חסר: ${missingDocsList.slice(0, 2).join(", ")}`);
+    }
+    if (nextDate && nextDate !== "לא נקבע") {
+      const nd = new Date(nextDate).getTime();
+      if (!isNaN(nd) && nd < Date.now()) {
+        alerts.push("מועד מעקב עבר");
+        isUrgent = true;
+      }
+    }
+
+    const openAlertsFormatted = alerts.length > 0
+      ? (isUrgent ? `🔴 [דחוף] ${alerts.join(" · ")}` : `🟡 [ממתין] ${alerts.join(" · ")}`)
+      : "אין התראות פתוחות";
+
+    // Urgency score
+    let urgencyScore = 0;
+    if (isUrgent) urgencyScore += 100;
+    if (status.includes("בטיפול") || status === "חדש") urgencyScore += 50;
+    else if (status.includes("ממתין")) urgencyScore += 30;
+    else if (status === "הושלם" || status === "סגור") urgencyScore -= 50;
+
+    return {
+      claim_id: claimId,
+      claim_num: claimNum,
+      client_name: clientName,
+      client_id: clientId,
+      ins_company: insCompany,
+      status,
+      last_action_date: lastActionDate,
+      last_action: lastActionStr,
+      email_status: emailStatus,
+      insurer_last_reply: insurerReply,
+      waiting_for: waitingFor,
+      handler,
+      next_action: nextAction,
+      next_followup_date: nextDate,
+      missing_docs: missingDocsList.length > 0 ? missingDocsList.join(", ") : "אין חוסרים מתועדים",
+      open_alerts: openAlertsFormatted,
+      is_urgent: isUrgent,
+      is_qa: isQa,
+      claim_type: isQa ? "בדיקה (QA)" : "תביעה אמיתית",
+      urgency_score: urgencyScore,
+      claim_link: `[פתח תיק ${claimId}](claim:${claimId})`,
+    };
+  });
+
+  items.sort((a, b) => b.urgency_score - a.urgency_score);
+
+  await recordAiAudit(supabase, {
+    userId,
+    userName,
+    toolName,
+    actionType: "get_claims_status_report",
+    status: "success",
+  });
+
+  return {
+    result: {
+      total_claims: items.length,
+      urgent_claims: items.filter((x) => x.is_urgent).length,
+      claims: items,
+    },
+  };
+}
+
 // -------------------------------------------------------------
 // 6. TOOL EXECUTION: General Claims Mode (executeClaimsGeneralTool)
 // -------------------------------------------------------------
@@ -4272,6 +4696,10 @@ export async function executeClaimsGeneralTool(
     }
 
     switch (name) {
+      case "get_claims_status_report": {
+        return await handleGetClaimsStatusReport(supabase, args, userId, userName, name);
+      }
+
       case "preview_update_claim_fields": {
         const resolved = await resolveClaimRef(supabase, String(args.claim_ref || ""));
         if (!resolved.ok) return { result: { error: resolved.error } };
