@@ -18,8 +18,15 @@
     { catId: 72, key: "tourism", label: "עסקים בהחזר מע״מ לתייר – משרד התיירות (data.gov.il)", rid: "b2a6567c-b6d9-439e-9044-7874f4480797", by: "name", nameField: "name", phoneFields: ["phone"] },
     { catId: 27, key: "osm", label: "OpenStreetMap / Nominatim", by: "osm" },
     // מקור חדש (לא ברשימת 130): מעונות יום – משרד העבודה; ח.פ. של הארגון המפעיל + טלפון המעון (טלפון סניף, לא בהכרח מטה)
-    { catId: "daycare", key: "daycare", label: "מעונות יום – משרד העבודה (data.gov.il, טלפון מעון של הארגון)", rid: "0f67a263-d9f4-44d4-9816-c96e9dfbc7e5", by: "hp", hpField: "ח.פ. ארגון", phoneFields: ["מספר טלפון"], nameField: "שם מעון" }
+    { catId: "daycare", key: "daycare", label: "מעונות יום – משרד העבודה (data.gov.il, טלפון מעון של הארגון)", rid: "0f67a263-d9f4-44d4-9816-c96e9dfbc7e5", by: "hp", hpField: "ח.פ. ארגון", phoneFields: ["מספר טלפון"], nameField: "שם מעון" },
+    // מקורות נוספים מ-data.gov.il (סריקה 2026-10-18 של 523 מאגרים, 58 עם שדה טלפון)
+    { catId: "welfare", key: "welfare", label: "מסגרות רווחה – משרד הרווחה (data.gov.il, טלפון מסגרת של הארגון)", rid: "de069ddf-bcbc-4754-bda0-84873a353f7b", by: "hp", hpField: "Registered_Business_Id", hpNumeric: true, phoneFields: ["Telephone"], nameField: "Name" },
+    { catId: "museums", key: "museums", label: "מוזאונים מוכרים – משרד התרבות (data.gov.il)", rid: "0309ee10-21a0-4ee9-8094-8fb474ca208a", by: "name", nameField: "שם המוזאון", phoneFields: ["מספר  טלפון"], emailField: "כתובת מייל" },
+    { catId: "protected_housing", key: "protected_housing", label: "בתי דיור מוגן (data.gov.il)", rid: "7c390473-42b8-4fd2-a72d-07fa126ffeee", by: "name", nameField: "company", phoneFields: ["telephone"] },
+    { catId: "mail_permits", key: "mail_permits", label: "בעלי היתר שירותי דואר – משרד התקשורת (data.gov.il)", rid: "d6add630-6731-4534-9383-cb780fb0c268", by: "name", nameField: "שם בעל היתר", phoneFields: ["טלפון", "נייד"], emailField: "מייל" }
   ];
+  // מסגרות רווחה ומעונות: טלפון של מסגרת שהארגון מפעיל – לא בהכרח טלפון ההנהלה
+  const BRANCH_SOURCES = ["daycare", "welfare"];
 
   // תיקון סטטוס במאגר 130 המקורות לפי בדיקה חיה (2026-10-18): מקורות שסומנו "מחובר אוטומטית" אך נחסמים בדפדפן או לא רלוונטיים
   const BLOCKED_LIVE = {
@@ -60,6 +67,7 @@
   const coreName = (s) => String(s || "")
     .replace(/\(חל.?צ\)|חל"צ|חל״צ/g, "")
     .replace(/בע"?מ|בע״מ|בעמ|בע~מ|ltd\.?|limited/gi, "")
+    .replace(/מוזיאו/g, "מוזאו") // כתיב מלא/חסר: "מוזיאון" במרשם החברות, "מוזאון" במאגר משרד התרבות
     .replace(/[~"'״׳().,\-–_/\\]/g, " ")
     .replace(/\s+/g, "").toLowerCase();
   const hpOf = (c) => String(c.no || c.company_hp || "").replace(/\D/g, "");
@@ -137,7 +145,7 @@
       let recs = [], matchedBy = "", recUrl = "", err = "";
       if (src.by === "hp") {
         if (!hp) { log.sources.push({ source: src.label, result: "אין ח.פ. לחיפוש" }); continue; }
-        recUrl = CKAN + src.rid + "&filters=" + encodeURIComponent(JSON.stringify({ [src.hpField]: hp }));
+        recUrl = CKAN + src.rid + "&filters=" + encodeURIComponent(JSON.stringify({ [src.hpField]: src.hpNumeric ? Number(hp) : hp }));
         const res = await getJson(recUrl + "&limit=20");
         if (res.error || !res.data.success) err = res.error || "API error";
         else { recs = res.data.result.records; matchedBy = "ח.פ. " + hp; }
@@ -160,7 +168,7 @@
       if (err) { log.sources.push({ source: src.label, result: "שגיאה: " + err }); continue; }
       let n = 0;
       for (const rec of recs) {
-        const ev = { source: src.label, url: src.by === "hp" ? recUrl : DS, matched_by: matchedBy, record_name: String(rec[src.nameField] || ""), checked_at: log.checked_at, branch: src.key === "daycare" };
+        const ev = { source: src.label, url: src.by === "hp" ? recUrl : DS, matched_by: matchedBy, record_name: String(rec[src.nameField] || ""), checked_at: log.checked_at, branch: BRANCH_SOURCES.includes(src.key) };
         for (const f of src.phoneFields) {
           const p = normPhone(rec[f]);
           if (!p) continue;
@@ -376,6 +384,101 @@
       if (btn) btn.disabled = false;
     }
   };
+
+  // המקורות החדשים מוצגים גם במסך מקורות החיפוש (לא היו בקטלוג 130)
+  if (Array.isArray(window.ALL_130_SOURCES)) {
+    const extra = [
+      ["daycare", "מעונות יום – משרד העבודה", "ח.פ. ארגון מפעיל + טלפון מעון"],
+      ["welfare", "מסגרות רווחה – משרד הרווחה", "ח.פ. ארגון + טלפון מסגרת"],
+      ["museums", "מוזאונים מוכרים – משרד התרבות", "שם מוזאון + טלפון + אימייל"],
+      ["protected_housing", "בתי דיור מוגן", "שם חברה מפעילה + טלפון"],
+      ["mail_permits", "בעלי היתר שירותי דואר – משרד התקשורת", "שם חברה + טלפון + אימייל"]
+    ];
+    extra.forEach(([key, name, types], i) => {
+      if (window.ALL_130_SOURCES.some(s => s.engineKey === key)) return;
+      const src = PHONE_SOURCES.find(s => s.key === key);
+      window.ALL_130_SOURCES.push({ id: 131 + i, engineKey: key, cat: "gov", catName: "מאגרים ממשלתיים (data.gov.il)", name, nameEn: key,
+        url: CKAN + src.rid, mechanism: "CKAN_API", status: "connected_live", statusLabel: "מחובר אוטומטית – מנוע הטלפונים",
+        dataTypes: types.split(" + "), isIsraeliRelevant: true, authRequired: false, paidRequired: false, blockReason: "" });
+    });
+  }
+
+  // עדכון טלפון ידני: מספר שונה מהקיים מתחיל מאפס מקורות (המקורות הקודמים שייכים למספר הקודם)
+  function manualSave(c, phone, source) {
+    if (!phone) { toast("יש להזין מספר טלפון", "warn"); return false; }
+    const n = normPhone(phone);
+    if (!n) { toast("מספר טלפון לא תקין", "warn"); return false; }
+    const same = normPhone(c.phone) === n;
+    if (!same) {
+      if (normPhone(c.phone)) {
+        c.phone_history = Array.isArray(c.phone_history) ? c.phone_history : [];
+        c.phone_history.push({ phone: c.phone, sources: c.phone_sources || [], replaced_at: new Date().toISOString(), replaced_by: source });
+      }
+      c.phone = fmtPhone(n);
+      c.phone_sources = [];
+      c.phone_live_sources = [];
+      c.phone_note = "";
+    }
+    c.phone_sources = c.phone_sources || [];
+    if (!c.phone_sources.includes(source)) c.phone_sources.push(source);
+    c.phone_evidence = Array.isArray(c.phone_evidence) ? c.phone_evidence : [];
+    c.phone_evidence.push({ phone: c.phone, source, url: "", matched_by: "הזנה ידנית", checked_at: new Date().toISOString() });
+    const n2 = c.phone_sources.length;
+    c.phone_status = n2 >= 2 ? "verified_two_sources" : "single_source";
+    c.phone_verified = n2 >= 2;
+    c.phoneVerBadgeColor = c.phone_verified ? "green" : "orange";
+    c.phoneVerBadgeLabel = c.phone_verified ? "מאומת בשני מקורות" : "קיים, מקור יחיד";
+    c.enrichment_status = "enriched";
+    persistProspectorData();
+    toast("✓ טלפון עודכן (" + c.phoneVerBadgeLabel + (same ? "" : " – מספר חדש, המקורות הקודמים נשמרו בהיסטוריה") + ")", "success");
+    return true;
+  }
+  window.saveManualPhone = function () {
+    const c = S.manualPhoneModal; if (!c) return;
+    const inp = document.getElementById("manualPhoneInput"), srcEl = document.getElementById("manualPhoneSource");
+    if (!manualSave(c, inp ? inp.value.trim() : "", srcEl ? srcEl.value.trim() : "אימות ידני")) return;
+    if (typeof closeManualPhoneModal === "function") closeManualPhoneModal();
+    rerender();
+  };
+  window.saveQuickPhone = function (coId) {
+    const c = C.find(x => String(x.id) === String(coId)); if (!c) return;
+    const inp = document.getElementById("quickPhoneInput"), srcEl = document.getElementById("quickPhoneSource");
+    if (!manualSave(c, inp ? inp.value.trim() : "", srcEl ? srcEl.value.trim() : "אימות ידני")) return;
+    rerender();
+  };
+
+  // תא איש הקשר ב-200: מציג ראיות חיות מהמנוע, טלפון סניף, מספרים מועמדים ומקור האימייל במקום "ממשלתי" קבוע
+  if (typeof window.renderCustom200ContactCell === "function" && !window.renderCustom200ContactCell.__wrapped) {
+    const origCell = window.renderCustom200ContactCell;
+    const esc2 = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+    window.renderCustom200ContactCell = function (c) {
+      let html = origCell(c);
+      const emailSrc = (c.email_sources && c.email_sources.length) ? c.email_sources.join(" + ") : "";
+      html = html.replace('<span class="badge b-ok" style="font-size:9px">ממשלתי</span>',
+        emailSrc ? '<span class="badge ' + (c.email_status === "verified_two_sources" ? "b-ok" : "b-est") + '" style="font-size:9px" title="' + esc2(emailSrc) + '">' + (c.email_status === "verified_two_sources" ? "✓ 2 מקורות" : "מקור יחיד") + "</span>"
+          : '<span class="badge" style="font-size:9px;background:#f1f5f9;color:#64748b" title="מקור האימייל לא תועד">מקור לא מתועד</span>');
+      const live = c.phone_live_sources || [];
+      // "מאומת בשני מקורות" מוצג רק כשיש 2 ראיות מתועדות (בדיקה חיה או הזנה ידנית); אחרת – מקורות מדווחים בלבד
+      const curN = normPhone(c.phone);
+      const documented = new Set((c.phone_evidence || []).filter(e => normPhone(e.phone) === curN).map(e => e.source));
+      if (documented.size < 2) {
+        html = html.replace('title="אומת בשני מקורות עצמאיים">✓ מאומת בשני מקורות',
+          'title="המקורות דווחו ברשימה המובנית ללא קישור ראיה; לא אושרו בבדיקה חיה">≈ 2 מקורות מדווחים – לא אומת בבדיקה חיה');
+        html = html.replace('<span class="badge b-ok" style="font-size:9.5px;padding:2px 6px" title="המקורות', '<span class="badge b-est" style="font-size:9.5px;padding:2px 6px" title="המקורות');
+      }
+      let extra = "";
+      if (c.phone_check_log) {
+        extra += '<div class="xs" style="font-size:9.5px;max-width:220px;white-space:normal;line-height:1.25;color:' + (live.length ? "#15803d" : "#64748b") + '" title="נבדק ' + esc2(c.phone_check_log.checked_at) + '">🔎 ' +
+          (live.length ? "אומת במקור חי: " + esc2(live.join(" + ")) : "לא נמצא במקורות החיים שנבדקו") + "</div>";
+      }
+      if (c.phone_note) extra += '<div class="xs" style="font-size:9.5px;max-width:220px;white-space:normal;color:#b45309">⚠️ ' + esc2(c.phone_note) + "</div>";
+      if (c.phone_candidates && c.phone_candidates.length) extra += '<div class="xs" style="font-size:9.5px;max-width:220px;white-space:normal;color:#7c3aed">📋 מספרים נוספים לבדיקה: ' + esc2(c.phone_candidates.slice(0, 3).map(p => p.phone).join(", ")) + (c.phone_candidates.length > 3 ? " ועוד " + (c.phone_candidates.length - 3) : "") + "</div>";
+      if (!extra) return html;
+      const at = html.indexOf('<div style="margin-top:4px;display:flex;gap:4px;align-items:center">');
+      return at === -1 ? html + extra : html.slice(0, at) + extra + html.slice(at);
+    };
+    window.renderCustom200ContactCell.__wrapped = true;
+  }
 
   window.OPPhoneEngine = { PHONE_SOURCES, enrichSingleCompanyPhone, normPhone };
   window.enrichSingleCompanyPhone = enrichSingleCompanyPhone;
