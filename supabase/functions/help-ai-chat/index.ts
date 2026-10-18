@@ -428,10 +428,14 @@ async function callGemini(
   for (const model of modelCandidates) {
     try {
       const contents = JSON.parse(JSON.stringify(initialContents));
-      let maxTurns = 12;
+      let maxTurns = 8;
       let accumulatedPendingActions: ClaimsPendingAction[] = [];
       let modelResponded = false;
       let lastCandidateData: any = null;
+      let passTools = tools && tools.length > 0;
+      let totalToolCalls = 0;
+      let hasComprehensiveReport = false;
+      const turnStartTime = Date.now();
 
       while (maxTurns > 0) {
         maxTurns--;
@@ -444,7 +448,7 @@ async function callGemini(
             maxOutputTokens: 2048,
           },
         };
-        if (tools && tools.length > 0) {
+        if (passTools) {
           payload.tools = tools;
         }
 
@@ -482,6 +486,10 @@ async function callGemini(
             const fc = fcp.functionCall;
             const fnName = fc.name;
             const fnArgs = fc.args || {};
+            totalToolCalls++;
+            if (fnName === "get_claims_status_report") {
+              hasComprehensiveReport = true;
+            }
 
             const toolRes = await onToolCall(fnName, fnArgs);
             if (toolRes && typeof toolRes === "object" && toolRes.preview) {
@@ -507,6 +515,15 @@ async function callGemini(
             role: "user",
             parts: responseParts,
           });
+
+          // Guard against runaway tool loops or slow sequential requests
+          if (hasComprehensiveReport || totalToolCalls >= 5 || (Date.now() - turnStartTime > 30000)) {
+            passTools = false;
+            contents.push({
+              role: "user",
+              parts: [{ text: "כל הנתונים הנדרשים נאספו בהצלחה מהמערכת. אנא סכם אותם כעת והצג את התשובה הסופית המלאה (כולל טבלת 13 העמודות אם התבקש דוח סטטוס תביעות) ללא הפעלת כלים נוספים." }],
+            });
+          }
           continue;
         }
 
@@ -668,10 +685,14 @@ async function callClaude(
   for (const model of modelCandidates) {
     try {
       const claudeMessages = JSON.parse(JSON.stringify(initialClaudeMessages));
-      let maxTurns = 10;
+      let maxTurns = 8;
       let accumulatedPendingActions: ClaimsPendingAction[] = [];
       let modelResponded = false;
       let httpFailed = false;
+      let passTools = anthropicTools && anthropicTools.length > 0;
+      let totalToolCalls = 0;
+      let hasComprehensiveReport = false;
+      const turnStartTime = Date.now();
 
       while (maxTurns > 0) {
         maxTurns--;
@@ -682,7 +703,7 @@ async function callClaude(
           system: systemInstruction,
           messages: claudeMessages,
         };
-        if (anthropicTools && anthropicTools.length > 0) {
+        if (passTools) {
           payload.tools = anthropicTools;
         }
 
@@ -716,6 +737,11 @@ async function callClaude(
 
           const toolResults: any[] = [];
           for (const tub of toolUseBlocks) {
+            totalToolCalls++;
+            if (tub.name === "get_claims_status_report") {
+              hasComprehensiveReport = true;
+            }
+
             const toolRes = await onToolCall(tub.name, (tub.input as Record<string, unknown>) || {});
             if (toolRes && typeof toolRes === "object" && toolRes.preview) {
               accumulatedPendingActions.push(toolRes.preview);
@@ -731,6 +757,15 @@ async function callClaude(
             role: "user",
             content: toolResults,
           });
+
+          // Guard against runaway tool loops or slow sequential requests
+          if (hasComprehensiveReport || totalToolCalls >= 5 || (Date.now() - turnStartTime > 30000)) {
+            passTools = false;
+            claudeMessages.push({
+              role: "user",
+              content: [{ type: "text", text: "כל הנתונים הנדרשים נאספו בהצלחה מהמערכת. אנא סכם אותם כעת והצג את התשובה הסופית המלאה (כולל טבלת 13 העמודות אם התבקש דוח סטטוס תביעות) ללא הפעלת כלים נוספים." }],
+            });
+          }
           continue;
         }
 

@@ -289,4 +289,50 @@ describe('Claims AI Enhancements (Tasks 1-4)', () => {
       expect(screen.queryByTestId('claims-ai-loading')).toBeNull();
     });
   });
+
+  it('displays friendly message when server returns 504 Gateway Timeout', async () => {
+    insertClaimsAiMessage.mockImplementation(async (arg: any) => ({
+      data: {
+        id: `m-${Math.random()}`,
+        conversation_id: arg.conversationId,
+        role: arg.role,
+        content: arg.content,
+        created_at: new Date().toISOString(),
+        tool_name: null,
+        metadata: arg.metadata || {},
+      },
+      error: null,
+    }));
+
+    (globalThis as any).fetch = vi.fn(async () => ({
+      ok: false,
+      status: 504,
+      headers: new Headers(),
+      json: async () => { throw new Error('Not JSON'); },
+    }));
+
+    render(
+      <ClaimsAiWorkspace
+        open={true}
+        onClose={vi.fn()}
+        claim={null}
+        userId="user-1"
+        companyName="מוסך אורן קאר"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('claims-ai-input')).toBeDefined();
+    });
+
+    const input = screen.getByTestId('claims-ai-input');
+    const sendBtn = screen.getByTestId('claims-ai-send');
+
+    fireEvent.change(input, { target: { value: 'דוח תביעות' } });
+    fireEvent.click(sendBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/שגיאת עומס 504\/503/i)).toBeDefined();
+    });
+  });
 });

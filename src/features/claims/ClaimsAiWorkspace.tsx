@@ -263,8 +263,17 @@ async function streamHelpAi(input: {
   });
 
   if (!resp.ok) {
-    const err = await resp.json().catch(() => ({ error: 'שגיאה' }));
-    throw new Error(String(err.error || `שגיאה ${resp.status}`));
+    let errMsg = `שגיאה ${resp.status}`;
+    try {
+      const err = await resp.json();
+      if (err?.error) errMsg = String(err.error);
+    } catch {
+      // not JSON (e.g. Cloudflare gateway error)
+    }
+    if (resp.status === 504 || resp.status === 503 || errMsg.includes('504') || errMsg.includes('503')) {
+      errMsg = 'שרת ה-AI עמוס כרגע (שגיאת עומס 504/503). אנא נסה שוב בעוד מספר רגעים.';
+    }
+    throw new Error(errMsg);
   }
   const ct = resp.headers.get('content-type') || '';
   if (ct.includes('application/json')) {
@@ -675,6 +684,11 @@ export function ClaimsAiWorkspace({
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
       stagedAttachments.forEach((a) => {
         if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
       });
@@ -838,6 +852,13 @@ export function ClaimsAiWorkspace({
     setBanner('');
     const controller = new AbortController();
     abortControllerRef.current = controller;
+    let didTimeout = false;
+    const timeoutTimer = setTimeout(() => {
+      didTimeout = true;
+      try {
+        controller.abort();
+      } catch {}
+    }, 55000);
     let conversationId = activeId;
     let draft = '';
     try {
@@ -958,6 +979,22 @@ export function ClaimsAiWorkspace({
       setMessages([...history, saved.data]);
       setConversations((prev) => prev.map((row) => row.id === conversationId ? { ...row, updated_at: saved.data!.created_at } : row));
     } catch (err) {
+      if (didTimeout) {
+        const timeoutMsg = 'זמן ההמתנה לתשובה עבר (שגיאת Timeout). שרת ה-AI התעכב במענה. אנא נסה שוב או נסח מחדש.';
+        setBanner(timeoutMsg);
+        if (conversationId) {
+          const failed = await insertClaimsAiMessage({
+            conversationId,
+            role: 'assistant',
+            content: timeoutMsg,
+            metadata: { error: true, timeout: true, claim_id: claimId },
+          });
+          if (failed.data) {
+            setMessages((prev) => [...prev.filter((m) => m.id !== 'draft'), failed.data!]);
+          }
+        }
+        return;
+      }
       const isAbort = (err instanceof DOMException && err.name === 'AbortError') || (err instanceof Error && err.name === 'AbortError') || controller.signal.aborted;
       if (isAbort) {
         if (conversationId && draft.trim()) {
@@ -970,12 +1007,25 @@ export function ClaimsAiWorkspace({
           if (abortedMsg.data) {
             setMessages((prev) => [...prev.filter((m) => m.id !== 'draft'), abortedMsg.data!]);
           }
+        } else if (conversationId) {
+          const abortedMsg = await insertClaimsAiMessage({
+            conversationId,
+            role: 'assistant',
+            content: `*(התשובה נעצרה על ידי המשתמש טרם התקבל מענה)*`,
+            metadata: { claim_id: claimId, stopped: true },
+          });
+          if (abortedMsg.data) {
+            setMessages((prev) => [...prev.filter((m) => m.id !== 'draft'), abortedMsg.data!]);
+          }
         } else {
           setMessages((prev) => prev.filter((m) => m.id !== 'draft'));
         }
         return;
       }
-      const message = err instanceof Error ? err.message : 'שגיאה';
+      const rawMsg = err instanceof Error ? err.message : 'שגיאה';
+      const message = rawMsg.includes('504') || rawMsg.includes('503')
+        ? 'שרת ה-AI עמוס כרגע (שגיאת עומס 504/503). אנא נסה שוב בעוד מספר רגעים.'
+        : rawMsg;
       setBanner(message);
       if (conversationId) {
         const failed = await insertClaimsAiMessage({
@@ -989,6 +1039,7 @@ export function ClaimsAiWorkspace({
         }
       }
     } finally {
+      clearTimeout(timeoutTimer);
       abortControllerRef.current = null;
       setLoading(false);
     }
