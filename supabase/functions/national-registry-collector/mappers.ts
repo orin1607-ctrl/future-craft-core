@@ -10,8 +10,11 @@ export const CKAN = "https://data.gov.il/api/3/action/datastore_search";
 const s = (v: unknown) => String(v ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 const nn = (v: unknown) => { const t = s(v); return t && t !== "null" && t !== "0" && t !== "-" ? t : ""; };
 
-export function normPhone(raw: unknown): string {
-  let d = s(raw).replace(/\D/g, "");
+// area: dialing prefix of a municipal source ("04" for Haifa) – only used for 7-digit local numbers that omit it
+export function normPhone(raw: unknown, area = ""): string {
+  // "8543901.0" – spreadsheet float suffix; must not become an extra digit
+  let d = s(raw).replace(/(\d)\.0+(?!\d)/g, "$1").replace(/\D/g, "");
+  if (area && d.length === 7) d = area + d;
   if (/^1(700|800|599)\d{6}$/.test(d)) return d;
   if (d.startsWith("972")) d = "0" + d.slice(3);
   if (d.length === 8 || (d.length === 9 && !d.startsWith("0"))) d = "0" + d;
@@ -22,11 +25,12 @@ export function fmtPhone(p: string): string {
   return /^0(5|7)/.test(p) ? `${p.slice(0, 3)}-${p.slice(3, 6)}-${p.slice(6)}` : `${p.slice(0, 2)}-${p.slice(2, 5)}-${p.slice(5)}`;
 }
 type Phone = { v: string; d: string; sub?: string; branch_name?: string; branch_address?: string };
-export function phones(vals: unknown[], extra: Partial<Phone> = {}): Phone[] {
+export function phones(vals: unknown[], extra: Partial<Phone> = {}, area = ""): Phone[] {
   const out: Phone[] = [];
   for (const raw of vals) {
-    for (const part of s(raw).split(/[;,/|]| או /)) {
-      const p = normPhone(part);
+    // separators, "או", or a space before another number ("09-7712593 052-3380123")
+    for (const part of s(raw).split(/[;,/|]| או |\s+(?=0\d)/)) {
+      const p = normPhone(part, area);
       if (p && !out.some((x) => x.v === p)) {
         out.push({ ...extra, v: p, d: fmtPhone(p), sub: extra.sub ?? (p.startsWith("05") ? "mobile" : "main") });
       }
@@ -123,9 +127,10 @@ export const MAPPERS: Record<string, Mapper> = {
     };
   },
   business_licenses: (r) => {
-    const tel = phones([r["טלפון בעסק"]]);
+    const tel = phones([r["טלפון בעסק"]], {}, "08");
     return {
-      name: s(r["שם עסק"]), address: [nn(r["שם רחוב"]), nn(r["בית"])].filter(Boolean).join(" "), phones: tel, emails: emails([r["מייל בעסק"]]),
+      // רישוי העסקים הזה מפורסם ע"י עיריית באר שבע – העיר ידועה גם כשאינה מופיעה ברשומה
+      name: s(r["שם עסק"]), address: [nn(r["שם רחוב"]), nn(r["בית"])].filter(Boolean).join(" "), city: "באר שבע", phones: tel, emails: emails([r["מייל בעסק"]]),
       activity: nn(r["תאור רישיון"]),
       fields: { license_no: nn(r["מספר רישיון"]), license: nn(r["תאור רישיון"]), license_status: nn(r["תאור סטטוס"]), phone: tel.map((p) => p.d) },
     };
@@ -305,10 +310,60 @@ export const MAPPERS: Record<string, Mapper> = {
   },
 };
 
-export function withBase(sourceRid: string, rec: Rec, row: Row | null): Row | null {
+// Config-driven mapper for small datasets found by discovery: nr_sources.config.map says which field is what.
+type GenericMap = {
+  name: string | string[]; name_prefix?: string; name_en?: string; reg?: string; city?: string; city_const?: string; address?: string[];
+  phones?: string[]; area_code?: string; phone_sub?: string; branch_name?: string[]; branch_address?: string[]; emails?: string[]; website?: string;
+  activity?: string[]; sector?: string; people?: { name: string[]; role?: string; role_field?: string }[]; create?: boolean; fields?: string[];
+};
+const pick = (r: Rec, f?: string | string[]) => (Array.isArray(f) ? f : f ? [f] : []).map((k) => nn(r[k])).filter(Boolean);
+// broken encoding in some municipal files (Hangul / math symbols instead of Hebrew)
+const garbled = (t: string) => /[\u1100-\u11ff\uac00-\ud7af\u2200-\u22ff]/.test(t);
+export function genericRow(r: Rec, m: GenericMap): Row | null {
+  const raw = pick(r, m.name)[0] || "";
+  if (!raw || garbled(raw) || normPhone(raw)) return null; // a "name" that is a phone number is not a business name
+  const name = (m.name_prefix || "") + raw;
+  const reg = m.reg ? regOk(r[m.reg]) : "";
+  const branch = m.phone_sub === "branch" ? { sub: "branch", branch_name: pick(r, m.branch_name).join(" "), branch_address: pick(r, m.branch_address).join(", ") } : {};
+  const tel = phones(pick(r, m.phones), branch, m.area_code || "");
+  const people = (m.people || []).map((p) => ({ name: pick(r, p.name).join(" "), role: p.role_field ? nn(r[p.role_field]) : (p.role || "") }))
+    .filter((p) => p.name && !garbled(p.name));
+  const fields: Record<string, unknown> = { phone: tel.map((x) => x.d) };
+  for (const f of m.fields || []) if (nn(r[f])) fields[f] = nn(r[f]);
+  return {
+    reg_id: reg, reg_type: regType(reg), name, name_en: m.name_en ? nn(r[m.name_en]) : "",
+    city: m.city_const || (m.city ? nn(r[m.city]) : ""), address: pick(r, m.address).join(" "), phones: tel,
+    emails: emails(pick(r, m.emails)), websites: m.website ? site(r[m.website]) : [], activity: pick(r, m.activity).join(" – "),
+    sector: m.sector || "", people, create: m.create === false ? false : undefined, fields,
+  };
+}
+
+// Tel Aviv-Yafo municipal GIS (IView2) – business layers
+export const TLV_CITY = "תל אביב - יפו";
+export const TLV_MAPPERS: Record<string, Mapper> = {
+  // layer 925 "עסקים": main holder of each business. Only holders with a company / non-profit / cooperative number –
+  // a private person's ID number is never stored.
+  tlv_holders: (r) => {
+    const reg = regOk(r.ms_mezahe_machzik_rashi);
+    if (!reg) return null;
+    return {
+      reg_id: reg, reg_type: regType(reg), name: s(r.shem_machzik_rashi), activities: [nn(r.shimush)].filter(Boolean),
+      fields: { tlv_business_id: nn(r.id_esek), use: nn(r.shimush), address_tlv: [nn(r.shem_rechov), nn(r.ms_bayit)].filter(Boolean).join(" "),
+        area_sqm: nn(r.shetach), license_required: nn(r.sw_taun_rishui) },
+    };
+  },
+  // layer 964 "מאגר עסקים ברשיון או בהיתר": licensed businesses by trade name
+  tlv_licensed: (r) => ({
+    name: s(r.t_shem_esek), city: TLV_CITY, address: nn(r.shem_rechov), activity: nn(r.t_hesber_mahut_esek),
+    activities: nn(r.mahuiot).split(/[,;]/).map((x) => x.trim()).filter(Boolean).slice(0, 8),
+    fields: { license_no: nn(r.t_rishaion_letezuga), license_type: nn(r.t_sug), valid_until: nn(r.taarich_tokef), business_no: nn(r.ms_esek_rashi) },
+  }),
+};
+
+export function withBase(sourceRid: string, rec: Rec, row: Row | null, urlOf?: (id: unknown) => string): Row | null {
   if (!row || !s(row.name)) return null;
   const id = rec._id;
-  const r: Row = { ...row, rid: String(id), url: recordUrl(sourceRid, id) };
+  const r: Row = { ...row, rid: String(id), url: urlOf ? urlOf(id) : recordUrl(sourceRid, id) };
   if (row.alt && row.alt !== row.name) r.alt_names = [row.alt];
   delete r.alt;
   for (const k of Object.keys(r)) {

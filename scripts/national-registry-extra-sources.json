@@ -1,0 +1,480 @@
+{
+  "_note": "Round 2 of the national registry (2026-10-18): municipal sources + data.gov.il discoveries mapped with the config-driven mapper. Applied to nr_sources by supabase/migrations/20261018180000_national_registry_round2_sources_staging.sql.",
+  "collect": [
+    {
+      "key": "cat:98",
+      "kind": "ckan",
+      "priority": 57,
+      "name": "עיריית באר שבע – מאגר עסקים קולטי קהל",
+      "rid": "5f4f8927-b890-42ed-bb25-58d48b5f180f",
+      "reason_note": "שורות שבהן 'שם העסק' הוא מספר טלפון משלט (ללא שם) אינן נאספות",
+      "map": {
+        "name": "business_name",
+        "city_const": "באר שבע",
+        "address": [
+          "full_address"
+        ],
+        "activity": [
+          "business_kind"
+        ],
+        "fields": [
+          "business_kind"
+        ]
+      }
+    },
+    {
+      "key": "cat:77",
+      "kind": "arcgis",
+      "priority": 58,
+      "name": "עיריית תל אביב־יפו – מאגר עסקים ברשיון או בהיתר (GIS)",
+      "layer_url": "https://gisn.tel-aviv.gov.il/arcgis/rest/services/IView2/MapServer/964",
+      "oid": "oid_rishayon",
+      "mapper": "tlv_licensed",
+      "page": 1000
+    },
+    {
+      "key": "cat:77b",
+      "catalog_id": "77",
+      "kind": "arcgis",
+      "priority": 59,
+      "name": "עיריית תל אביב־יפו – מחזיקי עסקים (GIS, תאגידים בלבד)",
+      "layer_url": "https://gisn.tel-aviv.gov.il/arcgis/rest/services/IView2/MapServer/925",
+      "oid": "OBJECTID",
+      "mapper": "tlv_holders",
+      "page": 1000,
+      "reason_note": "נאספים רק מחזיקים עם מספר חברה / עמותה / אגודה; מספר זהות של אדם פרטי לא נשמר"
+    },
+    {
+      "key": "dgov:905e6597",
+      "kind": "ckan",
+      "priority": 61,
+      "name": "עסקים בהחזר מע״מ לתייר – גרסה עדכנית (4,609)",
+      "rid": "905e6597-6b7b-4110-aa34-8ff68b955f43",
+      "map": {
+        "name": "name",
+        "city": "city",
+        "address": [
+          "address"
+        ],
+        "phones": [
+          "phone"
+        ],
+        "sector": "מסחר קמעונאי"
+      }
+    },
+    {
+      "key": "dgov:f7d9c47e",
+      "kind": "ckan",
+      "priority": 62,
+      "name": "סניפי רשתות מזון (ברזל) – משרד הכלכלה",
+      "rid": "f7d9c47e-3414-4524-a187-a0f0e057b08a",
+      "map": {
+        "name": "store",
+        "reg": "PRIVATE_COMPANY",
+        "sector": "קמעונאות מזון – רשתות",
+        "fields": [
+          "branch",
+          "address",
+          "city"
+        ]
+      }
+    },
+    {
+      "key": "dgov:3322791c",
+      "kind": "ckan",
+      "priority": 63,
+      "name": "מרכזי שירות רב־קו – משרד התחבורה",
+      "rid": "3322791c-0450-404a-9e19-416fc9693537",
+      "map": {
+        "name": "chargingcompanyheb",
+        "phones": [
+          "PhoneNumber"
+        ],
+        "phone_sub": "branch",
+        "branch_name": [
+          "NameOfStationHeb"
+        ],
+        "branch_address": [
+          "addressheb",
+          "cityheb"
+        ],
+        "sector": "תחבורה ציבורית"
+      }
+    },
+    {
+      "key": "dgov:80822f1d",
+      "kind": "ckan",
+      "priority": 64,
+      "name": "מועצות דתיות וראשיהן – המשרד לשירותי דת",
+      "rid": "80822f1d-ad3e-437c-b799-92c57aa06477",
+      "map": {
+        "name": "Council_name",
+        "name_prefix": "המועצה הדתית ",
+        "phones": [
+          "Phone"
+        ],
+        "website": "Website",
+        "address": [
+          "Address"
+        ],
+        "sector": "שירותי דת – מועצה דתית",
+        "people": [
+          {
+            "name": [
+              "Name",
+              "Family_name"
+            ],
+            "role_field": "Type"
+          }
+        ]
+      }
+    },
+    {
+      "key": "dgov:c54032cb",
+      "kind": "ckan",
+      "priority": 65,
+      "name": "בתי עסק עם תעודת כשרות – רבנות יקנעם עילית",
+      "rid": "c54032cb-5306-4be9-a20d-a0be0ba49cc1",
+      "map": {
+        "name": "business_name",
+        "city": "city_name",
+        "address": [
+          "street_name"
+        ],
+        "phones": [
+          "business_phone"
+        ],
+        "activity": [
+          "business_type"
+        ],
+        "fields": [
+          "kosher_type"
+        ]
+      }
+    },
+    {
+      "key": "dgov:e1524397",
+      "kind": "ckan",
+      "priority": 66,
+      "name": "מעבדות לבדיקת ראדון – המשרד להגנת הסביבה",
+      "rid": "e1524397-c09b-41db-915d-8d5a1ed77b72",
+      "map": {
+        "name": "שם החברה",
+        "phones": [
+          "טלפון"
+        ],
+        "emails": [
+          "דואל אלקטרוני"
+        ],
+        "website": "אתר אינטרנט",
+        "address": [
+          "כתובת"
+        ],
+        "sector": "בדיקות קרינה וראדון",
+        "people": [
+          {
+            "name": [
+              "בעל ההיתר"
+            ],
+            "role": "בעל היתר בדיקת ראדון"
+          }
+        ]
+      }
+    },
+    {
+      "key": "dgov:a27ff810",
+      "kind": "ckan",
+      "priority": 67,
+      "name": "בעלי היתר לבדיקת ראדון – המשרד להגנת הסביבה",
+      "rid": "a27ff810-d54a-45f7-ae21-173c1d374aa3",
+      "map": {
+        "name": "שם וכתובת החברה",
+        "phones": [
+          "טלפון  החברה"
+        ],
+        "emails": [
+          "דואר אלקטרוני"
+        ],
+        "sector": "בדיקות קרינה וראדון",
+        "people": [
+          {
+            "name": [
+              "שם בעל ההיתר"
+            ],
+            "role": "בעל היתר בדיקת ראדון"
+          }
+        ]
+      }
+    },
+    {
+      "key": "dgov:b4057de6",
+      "kind": "ckan",
+      "priority": 68,
+      "name": "בתי מרקחת – עיריית חיפה",
+      "rid": "b4057de6-ece0-4dff-84a5-f9b8ef904434",
+      "map": {
+        "name": "שם עסק",
+        "city_const": "חיפה",
+        "address": [
+          "רחוב העסק",
+          "בית"
+        ],
+        "phones": [
+          "מספר טלפון"
+        ],
+        "sector": "בתי מרקחת",
+        "area_code": "04"
+      }
+    },
+    {
+      "key": "dgov:1a6d0069",
+      "kind": "ckan",
+      "priority": 69,
+      "name": "בתי ספר – עיריית מעלה אדומים",
+      "rid": "1a6d0069-6311-44f7-80ad-a06aadb2ec69",
+      "map": {
+        "name": "name",
+        "city_const": "מעלה אדומים",
+        "address": [
+          "ktovet"
+        ],
+        "phones": [
+          "telefon"
+        ],
+        "sector": "חינוך",
+        "area_code": "02"
+      }
+    },
+    {
+      "key": "dgov:09fa0468",
+      "kind": "ckan",
+      "priority": 69,
+      "name": "מועדוניות – עיריית מעלה אדומים",
+      "rid": "09fa0468-204b-483d-ad1c-2c93e062c71e",
+      "map": {
+        "name": "name",
+        "city_const": "מעלה אדומים",
+        "address": [
+          "ktovet"
+        ],
+        "phones": [
+          "telefon"
+        ],
+        "activity": [
+          "סוג"
+        ],
+        "sector": "חינוך ורווחה",
+        "area_code": "02"
+      }
+    },
+    {
+      "key": "dgov:a48e7587",
+      "kind": "ckan",
+      "priority": 69,
+      "name": "קופות חולים – עיריית מעלה אדומים",
+      "rid": "a48e7587-554e-4fe5-ba65-973a77f53653",
+      "map": {
+        "name": "name",
+        "city_const": "מעלה אדומים",
+        "address": [
+          "כתובת"
+        ],
+        "phones": [
+          "טלפון"
+        ],
+        "sector": "בריאות",
+        "people": [
+          {
+            "name": [
+              "מנהל_קופה"
+            ],
+            "role": "מנהל/ת סניף"
+          }
+        ],
+        "area_code": "02"
+      }
+    },
+    {
+      "key": "dgov:93b07b08",
+      "kind": "ckan",
+      "priority": 69,
+      "name": "מעונות יום – עיריית מעלה אדומים",
+      "rid": "93b07b08-9234-4502-bee0-a054110dd0a3",
+      "map": {
+        "name": "name",
+        "city_const": "מעלה אדומים",
+        "address": [
+          "ktovet"
+        ],
+        "phones": [
+          "telefon"
+        ],
+        "sector": "חינוך – מעונות יום",
+        "area_code": "02"
+      }
+    },
+    {
+      "key": "cat:90",
+      "kind": "ckan",
+      "priority": 70,
+      "name": "עיריית כפר סבא – עסקים בעלי רישיון עסק (datacity)",
+      "ckan_base": "https://kfar-saba.datacity.org.il/api/3/action/datastore_search",
+      "provider": "עיריית כפר סבא",
+      "terms": "פורטל המידע הפתוח של עיריית כפר סבא – ODbL",
+      "rid": "09f50b32-40b1-4374-822c-c8930a7059d0",
+      "map": {
+        "name": "שם עסק",
+        "city_const": "כפר סבא",
+        "address": [
+          "כתובת"
+        ],
+        "phones": [
+          "טלפון"
+        ],
+        "area_code": "09",
+        "activity": [
+          "מהות"
+        ],
+        "fields": [
+          "קבוצה",
+          "תוקף",
+          "תאריך פקיעת רישיון"
+        ]
+      }
+    },
+    {
+      "key": "cat:85",
+      "kind": "ckan",
+      "priority": 71,
+      "name": "עיריית נתניה – אתרי תעשייה ומשרדים (datacity)",
+      "ckan_base": "https://netanya.datacity.org.il/api/3/action/datastore_search",
+      "provider": "עיריית נתניה",
+      "terms": "פורטל המידע הפתוח של עיריית נתניה (datacity)",
+      "rid": "178b46a1-1fdb-4138-84d4-a4d7a1b380d4",
+      "map": {
+        "name": "SITE_NAME",
+        "city_const": "נתניה",
+        "address": [
+          "STREET_NAM",
+          "HOUSE_NUM"
+        ],
+        "phones": [
+          "SITE_PHONE"
+        ],
+        "area_code": "09",
+        "activity": [
+          "THEME_TITL"
+        ],
+        "sector": "תעשייה ומשרדים",
+        "fields": [
+          "theme_desc",
+          "Neighborho"
+        ]
+      }
+    },
+    {
+      "key": "cat:85b",
+      "catalog_id": "85",
+      "kind": "ckan",
+      "priority": 72,
+      "name": "עיריית נתניה – אתרי קניות ומסחר (datacity)",
+      "ckan_base": "https://netanya.datacity.org.il/api/3/action/datastore_search",
+      "provider": "עיריית נתניה",
+      "terms": "פורטל המידע הפתוח של עיריית נתניה (datacity)",
+      "rid": "48f615c0-037a-4a1d-8db5-2c8b07572ef2",
+      "map": {
+        "name": "SITE_NAME",
+        "city_const": "נתניה",
+        "address": [
+          "STREET_NAM",
+          "HOUSE_NUM"
+        ],
+        "phones": [
+          "SITE_PHONE"
+        ],
+        "area_code": "09",
+        "activity": [
+          "THEME_TITL"
+        ],
+        "sector": "קניות ומסחר",
+        "fields": [
+          "theme_desc",
+          "Neighborho"
+        ]
+      }
+    },
+    {
+      "key": "cat:78",
+      "kind": "ckan",
+      "priority": 73,
+      "name": "עיריית ירושלים – אתרי קניות, מסחר ותעשייה (datacity)",
+      "ckan_base": "https://jerusalem.datacity.org.il/api/3/action/datastore_search",
+      "provider": "עיריית ירושלים",
+      "terms": "פורטל המידע הפתוח של עיריית ירושלים (datacity)",
+      "rid": "d92a8f31-17a8-439a-ae0d-d8459a07c5f1",
+      "reason_note": "נקודות עניין עירוניות (מתחמי מסחר ותעשייה) – resource_id הישן bf998a46 ב-data.gov.il כבר לא קיים",
+      "map": {
+        "name": "שם",
+        "name_en": "ENGLISH",
+        "city": "עיר",
+        "activity": [
+          "סוג"
+        ],
+        "sector": "מסחר ותעשייה (נקודת עניין עירונית)"
+      }
+    }
+  ],
+  "alias": [
+    {
+      "key": "dgov:7f3b5887",
+      "of": "src:protected_housing",
+      "reason": "אותו מאגר דיור מוגן בגרסה בערבית – נאסף במקור 'בתי דיור מוגן'"
+    },
+    {
+      "key": "dgov:03eb376c",
+      "of": "src:mail_permits",
+      "reason": "אותן 53 רשומות של בעלי היתר דואר – נאספו במקור 'בעלי היתר שירותי דואר'"
+    },
+    {
+      "key": "dgov:c2c73c67",
+      "of": "cat:72",
+      "reason": "אותן 3,678 רשומות בגרסה באנגלית – נאספו בעברית עם ח.פ. במקור 72"
+    }
+  ],
+  "unsupported": [
+    {
+      "key": "dgov:80d553c4",
+      "reason": "26 רשומות בשמות חברות באנגלית בלבד וללא ח.פ. – אין התאמה בטוחה לעסק קיים"
+    },
+    {
+      "key": "dgov:d6584ba6",
+      "reason": "26 רשומות בשמות חברות באנגלית בלבד וללא ח.פ. – אין התאמה בטוחה לעסק קיים (כפול ל-80d553c4)"
+    },
+    {
+      "key": "dgov:d65660ac",
+      "reason": "9 בתי מרקחת בשם כללי 'בית מרקחת' ללא שם עסק – אין זהות עסקית לשמירה"
+    }
+  ],
+  "covered": [
+    {
+      "key": "cat:57",
+      "reason": "גיידסטאר מציג את נתוני רשם העמותות – העמותות נאספו במלואן ממקור 56 (75,904 רשומות); האתר עצמו חוסם גישה אוטומטית"
+    },
+    {
+      "key": "cat:66",
+      "reason": "נתוני ספקי הממשלה נאספו ממאגר ההתקשרויות (מקור 65, 165,705 רשומות) ומדוח המכרזים; הפורטל עצמו ללא API"
+    },
+    {
+      "key": "cat:67",
+      "reason": "ספקים זוכים נאספו מדוח המכרזים ב-data.gov.il (14,205 רשומות); הפורטל עצמו ללא API"
+    },
+    {
+      "key": "cat:74",
+      "reason": "נתוני רשות התאגידים נאספו מרשם החברות ב-data.gov.il (מקור 54, 406,878 חברות פעילות); מערכת האיתור עצמה חוסמת גישה אוטומטית ונסח בתשלום"
+    },
+    {
+      "key": "cat:79",
+      "reason": "resource_id 534b8c9c של עיריית חיפה כבר לא קיים; מהעירייה נאסף רק מאגר בתי המרקחת שנמצא בקטלוג"
+    }
+  ]
+}

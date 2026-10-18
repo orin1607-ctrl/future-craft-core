@@ -5,7 +5,7 @@
 // No 7-rule filtering here; no paid services; no login walls; robots.txt respected for websites.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { edgeCorsHeaders, jsonResponse, requireAuth } from "../_shared/edgeAuth.ts";
-import { CKAN, MAPPERS, Row, emails, fmtPhone, normPhone, withBase } from "./mappers.ts";
+import { CKAN, MAPPERS, Row, TLV_MAPPERS, emails, fmtPhone, genericRow, normPhone, withBase } from "./mappers.ts";
 
 const STAGING_REF = "usfeoerkpcafxxlyuldl";
 const UA = "DaliaOpenProspector/1.0 (Israeli business registry research; staging)";
@@ -22,9 +22,9 @@ type Counts = { new: number; enriched: number; merged: number; details: number; 
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchJson(url: string, init: RequestInit = {}, timeoutMs = 60_000): Promise<unknown> {
+async function fetchJson(url: string, init: RequestInit = {}, timeoutMs = 60_000, attempts = 3): Promise<unknown> {
   let lastErr = "";
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < attempts; attempt++) {
     try {
       const r = await fetch(url, { ...init, headers: { "User-Agent": UA, ...(init.headers || {}) }, signal: AbortSignal.timeout(timeoutMs) });
       if (r.status === 429 || r.status >= 500) { lastErr = `HTTP ${r.status}`; await sleep(5000 * (attempt + 1)); continue; }
@@ -58,19 +58,46 @@ type StepResult = { read: number; cursor: number; total: number | null; done: bo
 
 async function stepCkan(sb: SupabaseClient, src: Source, pageSize: number): Promise<StepResult> {
   const rid = String(src.config.rid);
-  const mapper = MAPPERS[String(src.config.mapper)];
+  const generic = src.config.map as Parameters<typeof genericRow>[1] | undefined;
+  const mapper = generic ? (rec: Record<string, unknown>) => genericRow(rec, generic) : MAPPERS[String(src.config.mapper)];
   if (!mapper) throw new Error("no mapper " + src.config.mapper);
   const limit = Number(src.config.page || pageSize);
-  let url = `${CKAN}?resource_id=${rid}&limit=${limit}&offset=${src.cursor}&sort=${encodeURIComponent("_id asc")}`;
+  // municipal CKAN portals (*.datacity.org.il) use the same API as data.gov.il
+  const base = String(src.config.ckan_base || CKAN);
+  const urlOf = base === CKAN ? undefined : (id: unknown) => `${base}?resource_id=${rid}&filters=${encodeURIComponent(JSON.stringify({ _id: id }))}`;
+  let url = `${base}?resource_id=${rid}&limit=${limit}&offset=${src.cursor}&sort=${encodeURIComponent("_id asc")}`;
   if (src.config.filters) url += `&filters=${encodeURIComponent(JSON.stringify(src.config.filters))}`;
   const j = await fetchJson(url) as { success: boolean; result: { total: number; records: Record<string, unknown>[] } };
   if (!j.success) throw new Error("CKAN error");
   const recs = j.result.records || [];
-  const rows = recs.map((rec) => withBase(rid, rec, mapper(rec))).filter(Boolean) as Row[];
+  const rows = recs.map((rec) => withBase(rid, rec, mapper(rec), urlOf)).filter(Boolean) as Row[];
   const counts = rows.length ? await ingest(sb, src.key, rows) : { new: 0, enriched: 0, merged: 0, details: 0, skipped: 0 };
   counts.skipped += recs.length - rows.length;
   const cursor = src.cursor + recs.length;
   return { read: recs.length, cursor, total: j.result.total, done: recs.length === 0 || cursor >= j.result.total, counts };
+}
+
+// ArcGIS MapServer layer (municipal GIS), paged by object id
+async function stepArcgis(sb: SupabaseClient, src: Source): Promise<StepResult> {
+  const layer = String(src.config.layer_url);
+  const oid = String(src.config.oid || "OBJECTID");
+  const mapper = TLV_MAPPERS[String(src.config.mapper)];
+  if (!mapper) throw new Error("no mapper " + src.config.mapper);
+  const page = Number(src.config.page || 1000);
+  let total = src.total_records;
+  if (total == null) {
+    const c = await fetchJson(`${layer}/query?where=1%3D1&returnCountOnly=true&f=json`) as { count: number };
+    total = c.count;
+  }
+  const j = await fetchJson(`${layer}/query?where=1%3D1&outFields=*&returnGeometry=false&orderByFields=${oid}&resultOffset=${src.cursor}&resultRecordCount=${page}&f=json`) as { features?: { attributes: Record<string, unknown> }[]; error?: { message: string } };
+  if (j.error) throw new Error("ArcGIS: " + j.error.message);
+  const feats = j.features || [];
+  const urlOf = (id: unknown) => `${layer}/query?where=${encodeURIComponent(`${oid}=${id}`)}&outFields=*&returnGeometry=false&f=json`;
+  const rows = feats.map((f) => withBase(layer, { ...f.attributes, _id: f.attributes[oid] }, mapper(f.attributes), urlOf)).filter(Boolean) as Row[];
+  const counts = rows.length ? await ingest(sb, src.key, rows) : { new: 0, enriched: 0, merged: 0, details: 0, skipped: 0 };
+  counts.skipped += feats.length - rows.length;
+  const cursor = src.cursor + feats.length;
+  return { read: feats.length, cursor, total, done: feats.length === 0 || cursor >= total, counts };
 }
 
 // Bus fleet per operator (Ministry of Transport public-transport vehicle list): counts real vehicle rows per operator.
@@ -142,12 +169,22 @@ function osmRow(el: { type: string; id: number; tags: Record<string, string> }, 
     fields: { osm: url, category, branch_of: branch ? brand : null, phone: ph.map((p) => p.d), website: web || null, socials: Object.keys(socials) },
   };
 }
+const OVERPASS = ["https://overpass.kumi.systems/api/interpreter", "https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
 async function stepOverpass(sb: SupabaseClient, src: Source): Promise<StepResult> {
   const qs = src.config.queries as { label: string; filter: string }[];
   const i = src.cursor;
   if (i >= qs.length) return { read: 0, cursor: i, total: qs.length, done: true, counts: { new: 0, enriched: 0, merged: 0, details: 0, skipped: 0 } };
-  const q = `[out:json][timeout:170];area["ISO3166-1"="IL"][admin_level=2]->.a;(${qs[i].filter.split("|").map((f) => `nwr${f}["name"](area.a);`).join("")});out center tags;`;
-  const j = await fetchJson("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(q), headers: { "Content-Type": "application/x-www-form-urlencoded" } }, 190_000) as { elements: { type: string; id: number; tags: Record<string, string> }[] };
+  const q = `[out:json][timeout:110];area["ISO3166-1"="IL"][admin_level=2]->.a;(${qs[i].filter.split("|").map((f) => `nwr${f}["name"](area.a);`).join("")});out center tags;`;
+  // the main Overpass server rejects / times out requests from the Supabase region, so public mirrors are tried in order
+  let j: { elements: { type: string; id: number; tags: Record<string, string> }[] } | null = null;
+  let lastErr = "";
+  for (const ep of OVERPASS) {
+    try {
+      j = await fetchJson(ep, { method: "POST", body: "data=" + encodeURIComponent(q), headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" } }, 120_000, 1) as typeof j;
+      break;
+    } catch (e) { lastErr = `${new URL(ep).host}: ${(e as Error).message}`; }
+  }
+  if (!j) throw new Error(lastErr);
   const rows = (j.elements || []).map((el) => osmRow(el, qs[i].label)).filter(Boolean) as Row[];
   for (const r of rows) for (const k of Object.keys(r)) { const v = r[k]; if (v === "" || v == null || (Array.isArray(v) && !v.length) || (typeof v === "object" && !Array.isArray(v) && !Object.keys(v as object).length)) delete r[k]; }
   const counts = await ingest(sb, src.key, rows);
@@ -240,7 +277,7 @@ async function crawlWebsites(sb: SupabaseClient, deadline: number) {
 }
 
 async function nextSource(sb: SupabaseClient): Promise<Source | null> {
-  const { data } = await sb.from("nr_sources").select("*").in("status", ["collecting", "pending"]).in("kind", ["ckan", "fleet_ckan", "overpass"])
+  const { data } = await sb.from("nr_sources").select("*").in("status", ["collecting", "pending"]).in("kind", ["ckan", "fleet_ckan", "overpass", "arcgis"])
     .order("priority", { ascending: true }).order("key").limit(1);
   return (data && data[0]) as Source || null;
 }
@@ -254,6 +291,7 @@ async function step(sb: SupabaseClient, src: Source, pageSize: number) {
       await event(sb, "info", `התחלת איסוף: ${src.name}`, src.key);
     }
     const res = src.kind === "ckan" ? await stepCkan(sb, src, pageSize)
+      : src.kind === "arcgis" ? await stepArcgis(sb, src)
       : src.kind === "fleet_ckan" ? await stepFleetBuses(sb, src)
       : await stepOverpass(sb, src);
     const dt = Date.now() - t0;
@@ -301,7 +339,7 @@ async function checkpoints(sb: SupabaseClient, done: number[]) {
 
 async function tick(sb: SupabaseClient) {
   const t0 = Date.now();
-  const { data: locked } = await sb.rpc("nr_try_lock", { p_seconds: 170 });
+  const { data: locked } = await sb.rpc("nr_try_lock", { p_seconds: 400 });
   if (!locked) return { skipped: "another tick is running" };
   try {
     const { data: ctl } = await sb.from("nr_control").select("*").eq("id", 1).single();
@@ -321,7 +359,7 @@ async function tick(sb: SupabaseClient) {
       const r = await step(sb, src, ctl.page_size);
       steps.push(r);
       if ("error" in r) break;
-      if (src.kind !== "ckan") break; // heavy single-shot adapters: one per tick
+      if (src.kind !== "ckan" && src.kind !== "arcgis") break; // heavy single-shot adapters: one per tick
       await sleep(400); // polite pacing toward data.gov.il
     }
     let web = null;
