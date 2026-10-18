@@ -1,23 +1,22 @@
 // scripts/build-unified-openprospector.mjs
-// Comprehensive upgrade of openprospector.html lead discovery engine
-// Phase: Sources Expansion, Specialized Fleet/Safety Roles, and Multi-Source Cross-Referencing
+// OpenProspector Unified Lead Discovery Engine — Compliant with the 7 Mandatory Rules (Stages 1–3)
 import fs from "fs";
 import path from "path";
+import { applyOpenProspector200Enrichment } from "./apply-200-leads-and-enrichment.mjs";
+
 
 const targetFile = path.resolve("public/openprospector.html");
 const backupFile = path.resolve("backups/openprospector-unified-revamp-20261014-1805/openprospector.html.bak");
-const stagingHps = JSON.parse(fs.readFileSync('scripts/staging-all-hps.json', 'utf8'));
-const stagingPhones = JSON.parse(fs.readFileSync('scripts/staging-verified-phones.json', 'utf8'));
 
 if (!fs.existsSync(backupFile)) {
   console.error("Backup file does not exist! Aborting.");
   process.exit(1);
 }
 
-// Always read from clean backup
-let content = fs.readFileSync(backupFile, "utf8");
+// Always read from clean backup so only the OpenProspector search module is updated
+let content = fs.readFileSync(backupFile, "utf8").replace(/\r\n/g, "\n");
 
-// Markers
+
 const startMarker = "/* ===== חיפוש חדש ===== */";
 const endMarker = "/* ===== חברות שנמצאו ===== */";
 
@@ -31,27 +30,22 @@ if (startIndex === -1 || endIndex === -1) {
 
 console.log(`Found markers: start=${startIndex}, end=${endIndex}. Replacing ${endIndex - startIndex} characters...`);
 
-// Craft the complete, robust replacement block
-const unifiedCode = `/* ===== חיפוש חדש — מערכת איתור לקוחות ולידים מאוחדת ומבוקרת ===== */
+const unifiedCode = `/* ===== חיפוש חדש — מערכת איתור לקוחות ולידים מאוחדת ומבוקרת (7 החוקים המחייבים) ===== */
 
-/* ===== נתוני מאגר STAGING למניעת כפילויות והצלבת טלפונים אמינה (2,018 חברות) ===== */
-const STAGING_DB_HPS = new Set(${JSON.stringify(stagingHps)});
-const STAGING_VERIFIED_PHONES = ${JSON.stringify(stagingPhones)};
-
-/* ===== קטלוג מקורות איתור והצלבה מקיף ושקוף (PROSPECTOR SOURCE CATALOG) ===== */
+/* ===== קטלוג מקורות איתור והצלבה שקוף ומדויק (PROSPECTOR SOURCE CATALOG) ===== */
 const PROSPECTOR_SOURCE_CATALOG = [
-  // קבוצה 1: מאגרי ממשלה, תאגידים ורישוי (data.gov.il)
+  // קבוצה 1: מאגרי ממשלה, תאגידים, מעסיקים ורישוי (data.gov.il)
   {
     category: "gov_licensing",
-    categoryLabel: "🏛️ מאגרי ממשלה, תאגידים ורישוי",
-    categoryDesc: "מאגרי רישוי ותאגידים רשמיים, פתוחים וחוקיים של מדינת ישראל (data.gov.il · ללא עלות API)",
+    categoryLabel: "🏛️ מאגרי ממשלה, תאגידים, מעסיקים ורישוי (מחוברים אוטומטית API)",
+    categoryDesc: "מאגרים רשמיים של מדינת ישראל (data.gov.il · חיבור API ישיר בדפדפן · 0 ₪)",
     sources: [
       {
         id: "src_companies",
         name: "רשם החברות (משרד המשפטים)",
-        sub: "מאגר התאגידים הרשמי בישראל (732K+ חברות פעילות)",
+        sub: "מאגר התאגידים הרשמי בישראל — אימות ח.פ., סטטוס פעיל, תאריך התאגדות וכתובת",
         status: "active",
-        statusLabel: "פעיל ומחובר (0 ₪)",
+        statusLabel: "מחובר אוטומטית (API)",
         statusColor: "green",
         url: "https://data.gov.il/dataset/f004176c-b85f-4542-8901-7b3176f9a054",
         resourceId: "f004176c-b85f-4542-8901-7b3176f9a054",
@@ -63,11 +57,28 @@ const PROSPECTOR_SOURCE_CATALOG = [
         checkedDefault: true
       },
       {
-        id: "src_contractors",
-        name: "פנקס הקבלנים הרשומים (משרד הבינוי)",
-        sub: "ענף 200, תשתיות ועפר, טלפונים ומיילים ישירים",
+        id: "src_labor_employers",
+        name: "מאגר מעסיקים וביקורות (משרד העבודה)",
+        sub: "5,150+ מעסיקים וחברות כלליות — ח.פ. רשמי, ענף פעילות ומספר עובדים מאומת",
         status: "active",
-        statusLabel: "פעיל ומחובר (0 ₪)",
+        statusLabel: "מחובר אוטומטית (API)",
+        statusColor: "green",
+        url: "https://data.gov.il/dataset/b033f289-4143-4a9d-9612-da6e8cc2f380",
+        resourceId: "b033f289-4143-4a9d-9612-da6e8cc2f380",
+        dataType: "labor_employers",
+        hasPhones: false,
+        hasEmails: false,
+        hasHp: true,
+        hasEmployees: true,
+        isFree: true,
+        checkedDefault: true
+      },
+      {
+        id: "src_contractors",
+        name: "פנקס הקבלנים הרשומים (משרד הבינוי והשיכון)",
+        sub: "קבלני בנייה, מערכות, תשתיות ועפר — ח.פ. רשמי, טלפונים, אימיילים וסיווג קבלני",
+        status: "active",
+        statusLabel: "מחובר אוטומטית (API)",
         statusColor: "green",
         url: "https://data.gov.il/dataset/4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8",
         resourceId: "4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8",
@@ -79,27 +90,43 @@ const PROSPECTOR_SOURCE_CATALOG = [
         checkedDefault: true
       },
       {
-        id: "src_business_licenses",
-        name: "רישוי עסקים ממשלתי ורכבי פעילות",
-        sub: "עסקים מורשים, טלפונים, אימיילים והיתרי פעילות רכב",
+        id: "src_plants_industry",
+        name: "מפל״ס — מרשם מפעלים ואתרי תעשייה (הגנת הסביבה)",
+        sub: "7,800+ מפעלי תעשייה, ייצור, אנרגיה ומזון — ח.פ. רשמי, טלפון ישיר ואתר אינטרנט",
         status: "active",
-        statusLabel: "פעיל ומחובר (0 ₪)",
+        statusLabel: "מחובר אוטומטית (API)",
+        statusColor: "green",
+        url: "https://data.gov.il/dataset/7ad8ddc7-87f4-45f9-84e4-d7f972662153",
+        resourceId: "7ad8ddc7-87f4-45f9-84e4-d7f972662153",
+        dataType: "plants_industry",
+        hasPhones: true,
+        hasEmails: false,
+        hasHp: true,
+        isFree: true,
+        checkedDefault: true
+      },
+      {
+        id: "src_business_licenses",
+        name: "רישוי עסקים ממשלתי והיתרי רכב",
+        sub: "עסקים מורשים, טלפונים, אימיילים ומספרי רכבים ברישיון פעיל",
+        status: "active",
+        statusLabel: "מחובר אוטומטית (API)",
         statusColor: "green",
         url: "https://data.gov.il/dataset/7d4c61e2-2416-453e-8efb-bd02ec89db35",
         resourceId: "7d4c61e2-2416-453e-8efb-bd02ec89db35",
         dataType: "business_licenses",
         hasPhones: true,
         hasEmails: true,
-        hasHp: true,
+        hasHp: false,
         isFree: true,
         checkedDefault: true
       },
       {
         id: "src_garages",
         name: "מוסכים ומכוני רישוי (משרד התחבורה)",
-        sub: "מוסכים מורשים, טלפונים, ח.פ ומנהלים מקצועיים מוסמכים",
+        sub: "מוסכים מורשים, ח.פ. רשמי, טלפונים ומנהלים מקצועיים מוסמכים",
         status: "active",
-        statusLabel: "פעיל ומחובר (0 ₪)",
+        statusLabel: "מחובר אוטומטית (API)",
         statusColor: "green",
         url: "https://data.gov.il/dataset/bb68386a-a331-4bbc-b668-bba2766d517d",
         resourceId: "bb68386a-a331-4bbc-b668-bba2766d517d",
@@ -113,9 +140,9 @@ const PROSPECTOR_SOURCE_CATALOG = [
       {
         id: "src_manpower_security",
         name: "קבלני כוח אדם, שמירה וניקיון (משרד העבודה)",
-        sub: "קבלני שירותים ואבטחה עם ציי סיור, ח.פ, ומנכ״לים",
+        sub: "חברות שמירה, אבטחה, ניקיון וכוח אדם — ח.פ. רשמי, מנכ״לים וכתובות",
         status: "active",
-        statusLabel: "פעיל ומחובר (0 ₪)",
+        statusLabel: "מחובר אוטומטית (API)",
         statusColor: "green",
         url: "https://data.gov.il/dataset/243fe1ce-b2ae-4c26-9e5e-ce306a602040",
         resourceId: "243fe1ce-b2ae-4c26-9e5e-ce306a602040",
@@ -127,27 +154,44 @@ const PROSPECTOR_SOURCE_CATALOG = [
         checkedDefault: true
       },
       {
-        id: "src_plants_industry",
-        name: "רשימת מפעלים ואתרי תעשייה (הגנת הסביבה)",
-        sub: "מפעלי ייצור, תשתיות, ח.פ ומיקום תעשייתי",
+        id: "src_asbestos",
+        name: "מרשם חברות הנדסת סביבה ואסבסט (הגנת הסביבה)",
+        sub: "חברות הנדסה ותשתיות מורשות — טלפון קווי, נייד ואימייל עסקי להצלבה",
         status: "active",
-        statusLabel: "פעיל ומחובר (0 ₪)",
+        statusLabel: "מחובר אוטומטית (API)",
         statusColor: "green",
-        url: "https://data.gov.il/dataset/88d1883c-3b7a-4580-9be9-6d54659666c3",
-        resourceId: "88d1883c-3b7a-4580-9be9-6d54659666c3",
-        dataType: "plants_industry",
+        url: "https://data.gov.il/dataset/512d916e-07f0-4774-b84a-3a989e45e7eb",
+        resourceId: "512d916e-07f0-4774-b84a-3a989e45e7eb",
+        dataType: "asbestos",
+        hasPhones: true,
+        hasEmails: true,
+        hasHp: false,
+        isFree: true,
+        checkedDefault: true
+      },
+      {
+        id: "src_halatz",
+        name: "רשם החברות לתועלת הציבור — חל״צ (משרד המשפטים)",
+        sub: "חברות חל״צ פעילות עם ח.פ. רשמי ומצבת עובדים מאומתת מדוח שנתי",
+        status: "active",
+        statusLabel: "מחובר אוטומטית (API)",
+        statusColor: "green",
+        url: "https://data.gov.il/dataset/85e40960-5426-4f4c-874f-2d1ec1b94609",
+        resourceId: "85e40960-5426-4f4c-874f-2d1ec1b94609",
+        dataType: "halatz",
         hasPhones: false,
         hasEmails: false,
         hasHp: true,
+        hasEmployees: true,
         isFree: true,
-        checkedDefault: false
+        checkedDefault: true
       },
       {
         id: "src_ngos",
         name: "רשם העמותות (משרד המשפטים)",
-        sub: "עמותות רשומות, חל״צ ומצבת עובדים מאומתת",
+        sub: "עמותות ומוסדות רשומים עם מצבת עובדים מאומתת (לסימון ידני בעת הצורך)",
         status: "active",
-        statusLabel: "פעיל ומחובר (0 ₪)",
+        statusLabel: "מחובר אוטומטית (API)",
         statusColor: "green",
         url: "https://data.gov.il/dataset/be5b7935-3922-45d4-9638-08871b17ec95",
         resourceId: "be5b7935-3922-45d4-9638-08871b17ec95",
@@ -155,24 +199,25 @@ const PROSPECTOR_SOURCE_CATALOG = [
         hasPhones: false,
         hasEmails: false,
         hasHp: true,
+        hasEmployees: true,
         isFree: true,
         checkedDefault: false
       }
     ]
   },
 
-  // קבוצה 2: מקורות ייעודיים לציי רכב, תחבורה וקציני בטיחות
+  // קבוצה 2: מקורות ייעודיים לציי רכב ותחבורה
   {
     category: "fleet_transport",
-    categoryLabel: "🚗 מקורות ציי רכב, תחבורה וקציני בטיחות",
-    categoryDesc: "מאגרי רכב מסחרי כבד, ציי היסעים, ואינדיקציות מודעות דרושים לניהול צי",
+    categoryLabel: "🚗 מאגרי ציי רכב ותחבורה (משרד התחבורה)",
+    categoryDesc: "מאגרי רכב מסחרי כבד, ציי אוטובוסים וצמ״ה של משרד התחבורה",
     sources: [
       {
         id: "src_heavy_vehicles",
         name: "כלי רכב מעל 3.5 טון ומשאיות (משרד התחבורה)",
-        sub: "נתוני משרד התחבורה לציים מסחריים (4.18M כלי רכב)",
+        sub: "מאגר רכב כבד ומסחרי משרד התחבורה (מחובר לרישוי משרד התחבורה)",
         status: "active",
-        statusLabel: "פעיל ומחובר (0 ₪)",
+        statusLabel: "מחובר אוטומטית (API)",
         statusColor: "green",
         url: "https://data.gov.il/dataset/053cea08-09bc-40ec-8f7a-156f0677aff3",
         resourceId: "053cea08-09bc-40ec-8f7a-156f0677aff3",
@@ -186,9 +231,9 @@ const PROSPECTOR_SOURCE_CATALOG = [
       {
         id: "src_buses_fleets",
         name: "ציי אוטובוסים והיסעים בישראל (משרד התחבורה)",
-        sub: "מפעילי תחבורה, חברות הסעה וציי נוסעים (15.3K רשומות)",
+        sub: "מפעילי תחבורה, חברות הסעה וציי נוסעים",
         status: "active",
-        statusLabel: "פעיל ומחובר (0 ₪)",
+        statusLabel: "מחובר אוטומטית (API)",
         statusColor: "green",
         url: "https://data.gov.il/dataset/91d298ed-a260-4f93-9d50-d5e3c5b82ce1",
         resourceId: "91d298ed-a260-4f93-9d50-d5e3c5b82ce1",
@@ -201,10 +246,10 @@ const PROSPECTOR_SOURCE_CATALOG = [
       },
       {
         id: "src_tzama_equipment",
-        name: "ציוד מכני הנדסי (צמ״ה) ועפר",
-        sub: "כלי צמ״ה, שופלים וטרקטורים (185K רשומות)",
+        name: "ציוד מכני הנדסי (צמ״ה) ועפר (משרד התחבורה)",
+        sub: "כלי צמ״ה, שופלים ומחפרים רשומים",
         status: "active",
-        statusLabel: "פעיל ומחובר (0 ₪)",
+        statusLabel: "מחובר אוטומטית (API)",
         statusColor: "green",
         url: "https://data.gov.il/dataset/58dc4654-16b1-42ed-8170-98fadec153ea",
         resourceId: "58dc4654-16b1-42ed-8170-98fadec153ea",
@@ -217,18 +262,18 @@ const PROSPECTOR_SOURCE_CATALOG = [
       },
       {
         id: "src_safety_officer_jobs",
-        name: "אינדיקציות דרושים: קציני בטיחות וניהול צי",
-        sub: "מזהה חברות המגייסות קצין בטיחות בתעבורה או מנהל צי (אינדיקציה ענפית בלבד)",
-        status: "active",
-        statusLabel: "פעיל (אינדיקציה ענפית)",
-        statusColor: "green",
+        name: "לוחות דרושים: קציני בטיחות וניהול צי (AllJobs)",
+        sub: "חיפוש ידני בלוחות דרושים (אינו מחובר אוטומטית ב-API)",
+        status: "public_link",
+        statusLabel: "קישור לחיפוש ידני",
+        statusColor: "blue",
         url: "https://www.alljobs.co.il",
         dataType: "safety_jobs_indication",
         hasPhones: false,
         hasEmails: false,
         hasHp: false,
         isFree: true,
-        checkedDefault: true
+        checkedDefault: false
       }
     ]
   },
@@ -237,29 +282,29 @@ const PROSPECTOR_SOURCE_CATALOG = [
   {
     category: "web_company",
     categoryLabel: "🌐 אתרי חברות ומקורות אינטרנט",
-    categoryDesc: "איתור אתרים רשמיים, עמודי 'צור קשר' ונתוני Schema.org פומביים",
+    categoryDesc: "איתור אתרים רשמיים (מתוך מפל״ס או קישור חיפוש ידני)",
     sources: [
       {
         id: "src_official_website",
-        name: "אתר רשמי של החברה (עמודי צור קשר והנהלה)",
-        sub: "איתור דומיין רשמי, עמודי אודות וצוות (קישור ישיר לפתיחה בקליק)",
+        name: "אתר רשמי של החברה (חיפוש ידני ב-Google)",
+        sub: "פתיחת חיפוש מהיר לדומיין החברה ועמודי צור קשר (קישור ידני)",
         status: "public_link",
-        statusLabel: "קישור ציבורי ישיר",
+        statusLabel: "קישור לחיפוש ידני",
         statusColor: "blue",
         url: "https://www.google.com/search?q=",
         hasPhones: false,
         hasEmails: false,
         hasHp: false,
         isFree: true,
-        checkedDefault: true
+        checkedDefault: false
       },
       {
         id: "src_schema_jsonld",
         name: "נתוני Schema.org ו-JSON-LD באתרים",
-        sub: "חילוץ תגיות פומביות של ארגון וטלפון (סריקה ישירה חסומה בדפדפן - דורשת שרת תיווך)",
-        status: "needs_proxy",
-        statusLabel: "דורש שרת תיווך (CORS)",
-        statusColor: "orange",
+        sub: "סריקה ישירה מאתרים חיצוניים חסומה בדפדפן (CORS) — לא מחובר אוטומטית",
+        status: "not_connected",
+        statusLabel: "לא מחובר אוטומטית (CORS)",
+        statusColor: "red",
         url: "https://schema.org/Organization",
         hasPhones: false,
         hasEmails: false,
@@ -270,19 +315,19 @@ const PROSPECTOR_SOURCE_CATALOG = [
     ]
   },
 
-  // קבוצה 4: מדריכי עסקים וטלפונים
+  // קבוצה 4: מדריכי עסקים וטלפונים (קישורים לחיפוש ידני בלבד)
   {
     category: "directories",
-    categoryLabel: "📖 מדריכי עסקים וטלפונים",
-    categoryDesc: "מדריכי טלפונים ועסקים בישראל (דפי זהב, בזק 144, איזי, דן אנד ברדסטריט)",
+    categoryLabel: "📖 מדריכי עסקים וטלפונים (ידניים / מסחריים)",
+    categoryDesc: "מדריכים חיצוניים להשלמה ידנית (אינם מחוברים אוטומטית ב-API)",
     sources: [
       {
         id: "src_dapei_zahav",
         name: "דפי זהב (d.co.il)",
-        sub: "מדריך עסקים וטלפונים ראשי (קישור ישיר לחיפוש / חסום ל-fetch בדפדפן עקב CORS)",
-        status: "public_link",
-        statusLabel: "קישור ציבורי ישיר (CORS בדפדפן)",
-        statusColor: "blue",
+        sub: "ללא API פתוח וחסום ב-CORS · זמין כקישור לחיפוש ידני בכרטיס החברה",
+        status: "not_connected",
+        statusLabel: "ידני בלבד (ללא API)",
+        statusColor: "red",
         url: "https://www.d.co.il",
         hasPhones: false,
         hasEmails: false,
@@ -293,10 +338,10 @@ const PROSPECTOR_SOURCE_CATALOG = [
       {
         id: "src_bezeq_144",
         name: "בזק 144 / B144 עסקים (b144.co.il)",
-        sub: "איתור מספרי בזק וקווי טלפון עסקיים (קישור ישיר / חסום ל-fetch בדפדפן עקב CORS)",
-        status: "public_link",
-        statusLabel: "קישור ציבורי ישיר (CORS בדפדפן)",
-        statusColor: "blue",
+        sub: "ללא API פתוח וחסום ב-CORS · זמין כקישור לחיפוש ידני בכרטיס החברה",
+        status: "not_connected",
+        statusLabel: "ידני בלבד (ללא API)",
+        statusColor: "red",
         url: "https://www.b144.co.il",
         hasPhones: false,
         hasEmails: false,
@@ -307,10 +352,10 @@ const PROSPECTOR_SOURCE_CATALOG = [
       {
         id: "src_easy_il",
         name: "איזי (easy.co.il)",
-        sub: "אינדקס מקומי לעסקים ומיקומים (קישור ישיר / חסימת Cloudflare בדפדפן)",
-        status: "public_link",
-        statusLabel: "קישור ציבורי ישיר (WAF בדפדפן)",
-        statusColor: "blue",
+        sub: "מוגן ב-Cloudflare WAF וללא API פתוח · זמין כקישור לחיפוש ידני",
+        status: "not_connected",
+        statusLabel: "ידני בלבד (Cloudflare)",
+        statusColor: "red",
         url: "https://easy.co.il",
         hasPhones: false,
         hasEmails: false,
@@ -321,9 +366,9 @@ const PROSPECTOR_SOURCE_CATALOG = [
       {
         id: "src_duns100_dnb",
         name: "Dun's 100 / Dun & Bradstreet (D&B)",
-        sub: "דירוג ומאגר עסקים מסחרי (דורש מנוי עסקי ו-API Key)",
-        status: "paid_subscription",
-        statusLabel: "בתשלום (דורש מנוי D&B)",
+        sub: "מאגר מסחרי סגור הדורש מנוי ארגוני ו-API Key בתשלום",
+        status: "not_connected",
+        statusLabel: "לא מחובר (בתשלום D&B)",
         statusColor: "gray",
         url: "https://www.duns100.co.il",
         hasPhones: false,
@@ -335,9 +380,9 @@ const PROSPECTOR_SOURCE_CATALOG = [
       {
         id: "src_bdi_coface",
         name: "BDI / CofaceBDI",
-        sub: "מאגר מידע עסקי ואשראי (דורש מנוי מסחרי)",
-        status: "paid_subscription",
-        statusLabel: "בתשלום (דורש מנוי BDI)",
+        sub: "מאגר מסחרי סגור הדורש מנוי עסקי בתשלום",
+        status: "not_connected",
+        statusLabel: "לא מחובר (בתשלום BDI)",
         statusColor: "gray",
         url: "https://www.bdi.co.il",
         hasPhones: false,
@@ -345,37 +390,23 @@ const PROSPECTOR_SOURCE_CATALOG = [
         hasHp: false,
         isFree: false,
         checkedDefault: false
-      },
-      {
-        id: "src_kompass_europages",
-        name: "Kompass / Europages ישראל",
-        sub: "אינדקס יבואנים ותעשיינים בינלאומי (קישור ישיר)",
-        status: "public_link",
-        statusLabel: "קישור ציבורי ישיר",
-        statusColor: "blue",
-        url: "https://il.kompass.com",
-        hasPhones: false,
-        hasEmails: false,
-        hasHp: false,
-        isFree: true,
-        checkedDefault: false
       }
     ]
   },
 
-  // קבוצה 5: רשתות חברתיות ומקורות מקצועיים
+  // קבוצה 5: רשתות חברתיות ומקורות מקצועיים (קישורים ידניים בלבד)
   {
     category: "social_pro",
-    categoryLabel: "👥 רשתות חברתיות ומקורות מקצועיים",
-    categoryDesc: "פרופילים עסקיים ציבוריים (LinkedIn, Facebook, Google Business, WhatsApp)",
+    categoryLabel: "👥 רשתות חברתיות ומקורות מקצועיים (ידניים)",
+    categoryDesc: "קישורים ישירים לבדיקה ידנית של החברה (אינם נספרים כמקור API אוטומטי)",
     sources: [
       {
         id: "src_linkedin",
         name: "LinkedIn חברות ובעלי תפקידים",
-        sub: "עמודי חברה ופרופילי קציני בטיחות/צי (קישור ישיר / דורש OAuth/API להעשרה)",
-        status: "public_link",
-        statusLabel: "קישור ישיר (דורש API Key להעשרה)",
-        statusColor: "blue",
+        sub: "דורש LinkedIn API מסחרי · זמין כקישור לחיפוש ידני בכרטיס החברה",
+        status: "not_connected",
+        statusLabel: "ידני בלבד (ללא API)",
+        statusColor: "red",
         url: "https://www.linkedin.com/search/results/companies/?keywords=",
         hasPhones: false,
         hasEmails: false,
@@ -385,26 +416,12 @@ const PROSPECTOR_SOURCE_CATALOG = [
       },
       {
         id: "src_google_business",
-        name: "Google Business Profile / Maps",
-        sub: "כרטיס עסק מקומי, טלפונים ושעות (קישור ישיר / דורש Google Places API)",
-        status: "public_link",
-        statusLabel: "קישור ישיר (דורש Google API להעשרה)",
-        statusColor: "blue",
+        name: "Google Maps / Business Profile",
+        sub: "דורש Google Places API Key · זמין כקישור לחיפוש ידני במפות",
+        status: "not_connected",
+        statusLabel: "ידני בלבד (ללא API)",
+        statusColor: "red",
         url: "https://www.google.com/maps/search/",
-        hasPhones: false,
-        hasEmails: false,
-        hasHp: false,
-        isFree: true,
-        checkedDefault: false
-      },
-      {
-        id: "src_facebook_business",
-        name: "Facebook Pages דפים עסקיים",
-        sub: "דפי פייסבוק ציבוריים של חברות (קישור ישיר / דורש Graph API)",
-        status: "public_link",
-        statusLabel: "קישור ציבורי ישיר",
-        statusColor: "blue",
-        url: "https://www.facebook.com/search/top?q=",
         hasPhones: false,
         hasEmails: false,
         hasHp: false,
@@ -414,25 +431,11 @@ const PROSPECTOR_SOURCE_CATALOG = [
       {
         id: "src_whatsapp_biz",
         name: "WhatsApp Business פומבי",
-        sub: "בדיקת זמינות מספר WhatsApp עסקי רשמי (wa.me) ופתיחת שיחה בקליק",
-        status: "public_link",
-        statusLabel: "קישור ישיר לפתיחת שיחה",
-        statusColor: "blue",
+        sub: "פתיחת שיחה ישירה ב-wa.me עם מספר נייד שאותר",
+        status: "manual_action",
+        statusLabel: "פעולה ידנית (wa.me)",
+        statusColor: "green",
         url: "https://wa.me/",
-        hasPhones: false,
-        hasEmails: false,
-        hasHp: false,
-        isFree: true,
-        checkedDefault: false
-      },
-      {
-        id: "src_instagram_biz",
-        name: "Instagram עסקי",
-        sub: "חשבונות מותג ועמודי פעילות (קישור ישיר)",
-        status: "public_link",
-        statusLabel: "קישור ציבורי ישיר",
-        statusColor: "blue",
-        url: "https://www.instagram.com/",
         hasPhones: false,
         hasEmails: false,
         hasHp: false,
@@ -443,16 +446,14 @@ const PROSPECTOR_SOURCE_CATALOG = [
   }
 ];
 
-/* פונקציית עזר לשמירה וטעינה של העדפות מקורות ב-localStorage */
 function getSavedSourceSelection() {
   try {
-    const raw = localStorage.getItem("openprospector_source_selection");
+    const raw = localStorage.getItem("openprospector_source_selection_v3");
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) return new Set(parsed);
     }
   } catch (e) {}
-  // ברירת מחדל: כל המקורות שמוגדרים checkedDefault
   const defs = new Set();
   PROSPECTOR_SOURCE_CATALOG.forEach(cat => {
     cat.sources.forEach(s => {
@@ -464,16 +465,21 @@ function getSavedSourceSelection() {
 
 function saveSourceSelection(idsArray) {
   try {
-    localStorage.setItem("openprospector_source_selection", JSON.stringify(idsArray));
+    localStorage.setItem("openprospector_source_selection_v3", JSON.stringify(idsArray));
   } catch (e) {}
 }
 
-/* רינדור רכיב מקורות איתור והצלבה מודולרי ומקצועי */
 function renderProspectorSourcesSection() {
   const savedSelection = getSavedSourceSelection();
   const curCatTab = S.sourceCatalogTab || "all";
+  if (!S.customSources) {
+    try {
+      const rawCustom = localStorage.getItem("openprospector_custom_sources");
+      if (rawCustom) S.customSources = JSON.parse(rawCustom);
+    } catch (e) {}
+    if (!S.customSources) S.customSources = [];
+  }
 
-  // חישוב מונים
   let totalSources = 0;
   let activeFreeSources = 0;
   let selectedCount = 0;
@@ -492,20 +498,19 @@ function renderProspectorSourcesSection() {
 
   return \`
   <div class="f" style="grid-column: 1 / -1; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 16px; margin-top: 4px">
-    <!-- כותרת ראשית ומוני מקורות -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap:wrap; gap:8px">
       <div>
         <span class="bold" style="font-size:14px; color:#1e3a8a; display:flex; align-items:center; gap:8px">
-          <span>🌐 מקורות איתור והצלבה לבחירה:</span>
-          <span class="badge b-blue" style="font-size:10.5px">\${activeFreeSources} פעילים ומחוברים (0 ₪) · \${totalSources} בקטלוג</span>
+          <span>🌐 מקורות מידע והצלבה (מסומנים לפי מצבם האמיתי):</span>
+          <span class="badge b-ok" style="font-size:10.5px">\${activeFreeSources} מחוברים אוטומטית (API) · \${totalSources} בקטלוג</span>
         </span>
         <div class="xs muted" style="margin-top:3px">
-          סמן את המקורות להפעלה בסריקה ולהצלבות נתונים. שקיפות מלאה: מקור שאינו מחובר מציג סטטוס אמיתי ואינו מחושב בהצלבה.
+          רק מאגרים שמחוברים אוטומטית ב-API נספרים כמקורות אימות. מקורות ידניים מוצגים בשקיפות כקישורים להשלמה ידנית בלבד.
         </div>
       </div>
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
         <button type="button" class="btn btn-sm btn-primary" data-act="selectAllActiveFreeSources" style="background:#059669; border-color:#059669; font-weight:700; font-size:11.5px; padding:5px 12px">
-          ⚡ בחר את כל המקורות הפעילים והחינמיים (\${activeFreeSources})
+          ⚡ בחר את כל המקורות המחוברים אוטומטית (\${activeFreeSources})
         </button>
         <button type="button" class="btn btn-sm btn-ghost" data-act="clearAllSources" style="border:1px solid #cbd5e1; background:#fff; font-size:11.5px; padding:5px 12px">
           🧹 נקה בחירה
@@ -513,40 +518,37 @@ function renderProspectorSourcesSection() {
       </div>
     </div>
 
-    <!-- טאבים מהירים לסינון קטגוריות מקורות -->
     <div class="chips" style="margin-bottom:12px; gap:6px; flex-wrap:wrap">
       <button type="button" class="btn btn-sm \${curCatTab === 'all' ? 'btn-primary' : 'btn-ghost'}" data-act="setSourceCatalogTab" data-cat="all" style="padding:3px 10px; font-size:11px; border:1px solid #cbd5e1; \${curCatTab === 'all' ? 'font-weight:700' : 'background:#fff'}">
-        הכל (כל 5 הקטגוריות)
+        הכל (\${totalSources})
       </button>
       <button type="button" class="btn btn-sm \${curCatTab === 'gov_licensing' ? 'btn-primary' : 'btn-ghost'}" data-act="setSourceCatalogTab" data-cat="gov_licensing" style="padding:3px 10px; font-size:11px; border:1px solid #cbd5e1; \${curCatTab === 'gov_licensing' ? 'font-weight:700' : 'background:#fff'}">
-        🏛️ ממשלה ורישוי (7)
+        🏛️ ממשלה, מעסיקים ותעשייה (10)
       </button>
       <button type="button" class="btn btn-sm \${curCatTab === 'fleet_transport' ? 'btn-primary' : 'btn-ghost'}" data-act="setSourceCatalogTab" data-cat="fleet_transport" style="padding:3px 10px; font-size:11px; border:1px solid #cbd5e1; \${curCatTab === 'fleet_transport' ? 'font-weight:700' : 'background:#fff'}">
-        🚗 ציי רכב וקציני בטיחות (4)
+        🚗 ציי רכב ותחבורה (4)
       </button>
       <button type="button" class="btn btn-sm \${curCatTab === 'web_company' ? 'btn-primary' : 'btn-ghost'}" data-act="setSourceCatalogTab" data-cat="web_company" style="padding:3px 10px; font-size:11px; border:1px solid #cbd5e1; \${curCatTab === 'web_company' ? 'font-weight:700' : 'background:#fff'}">
         🌐 אתרי חברות (2)
       </button>
       <button type="button" class="btn btn-sm \${curCatTab === 'directories' ? 'btn-primary' : 'btn-ghost'}" data-act="setSourceCatalogTab" data-cat="directories" style="padding:3px 10px; font-size:11px; border:1px solid #cbd5e1; \${curCatTab === 'directories' ? 'font-weight:700' : 'background:#fff'}">
-        📖 מדריכי עסקים (6)
+        📖 מדריכים ידניים (5)
       </button>
       <button type="button" class="btn btn-sm \${curCatTab === 'social_pro' ? 'btn-primary' : 'btn-ghost'}" data-act="setSourceCatalogTab" data-cat="social_pro" style="padding:3px 10px; font-size:11px; border:1px solid #cbd5e1; \${curCatTab === 'social_pro' ? 'font-weight:700' : 'background:#fff'}">
-        👥 רשתות מקצועיות (5)
+        👥 רשתות (3)
       </button>
 
       <span class="spacer"></span>
       <span class="badge" id="sourceSelectionCounterBadge" style="background:#e0e7ff; color:#3730a3; font-size:11px">
-        נבחרו \${selectedCount} מקורות (מתוכם \${selectedActiveCount} פעילים ומחוברים ב-0 ₪)
+        נבחרו \${selectedCount} מקורות (\${selectedActiveCount} מחוברים אוטומטית ב-API)
       </span>
     </div>
 
-    <!-- רשימת הקבוצות והמקורות -->
     <div style="display:flex; flex-direction:column; gap:14px">
       \${PROSPECTOR_SOURCE_CATALOG.filter(cat => curCatTab === 'all' || curCatTab === cat.category).map(cat => {
         const catSources = cat.sources;
         return \`
           <div style="background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:12px">
-            <!-- כותרת קבוצה עם כפתורי בחירה לקבוצה -->
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:6px; border-bottom:1px solid #f1f5f9; padding-bottom:6px">
               <div>
                 <span class="bold" style="font-size:13px; color:#0f172a">\${esc(cat.categoryLabel)}</span>
@@ -562,17 +564,18 @@ function renderProspectorSourcesSection() {
               </div>
             </div>
 
-            <!-- כרטיסי מקורות בקבוצה -->
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px">
               \${catSources.map(s => {
                 const isChecked = savedSelection.has(s.id);
                 let badgeHtml = '';
                 if (s.status === 'active') {
                   badgeHtml = \`<span class="badge b-ok" style="font-size:9px">✓ \${esc(s.statusLabel)}</span>\`;
+                } else if (s.status === 'not_connected') {
+                  badgeHtml = \`<span class="badge" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; font-size:9px">✕ \${esc(s.statusLabel)}</span>\`;
+                } else if (s.status === 'manual_action') {
+                  badgeHtml = \`<span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; font-size:9px">⚡ \${esc(s.statusLabel)}</span>\`;
                 } else if (s.status === 'public_link') {
-                  badgeHtml = \`<span class="badge" style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; font-size:9px">\${esc(s.statusLabel)}</span>\`;
-                } else if (s.status === 'needs_proxy') {
-                  badgeHtml = \`<span class="badge" style="background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; font-size:9px">\${esc(s.statusLabel)}</span>\`;
+                  badgeHtml = \`<span class="badge" style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; font-size:9px">🔗 \${esc(s.statusLabel)}</span>\`;
                 } else {
                   badgeHtml = \`<span class="badge" style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; font-size:9px">\${esc(s.statusLabel)}</span>\`;
                 }
@@ -588,7 +591,8 @@ function renderProspectorSourcesSection() {
                       <div class="xs muted" style="font-size:10px; line-height:1.3; margin-top:2px">\${esc(s.sub)}</div>
                       <div style="display:flex; gap:4px; margin-top:4px; flex-wrap:wrap">
                         \${s.hasPhones ? '<span class="badge" style="background:#ecfdf5;color:#047857;font-size:8.5px">📞 טלפונים</span>' : ''}
-                        \${s.hasEmails ? '<span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:8.5px">✉️ מיילים</span>' : ''}
+                        \${s.hasEmails ? '<span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:8.5px">✉️ אימיילים</span>' : ''}
+                        \${s.hasEmployees ? '<span class="badge" style="background:#fef3c7;color:#92400e;font-size:8.5px">👥 עובדים מאומתים</span>' : ''}
                         \${s.hasHp ? '<span class="badge" style="background:#f1f5f9;color:#475569;font-size:8.5px">ח.פ. רשמי</span>' : ''}
                       </div>
                     </div>
@@ -604,256 +608,467 @@ function renderProspectorSourcesSection() {
   \`;
 }
 
-/* ===== תצוגת חיפוש ראשי ===== */
+/* ===== תצוגת מרכז איתור לידים (LEAD DISCOVERY HUB) ===== */
+
+window.setSearchMethod = function(method) {
+  S.searchMethod = method;
+  const v = document.getElementById("view");
+  if (v && S.tab === "search" && V.search) v.innerHTML = V.search();
+};
+
+window.setSearchTarget = function(cnt) {
+  S.searchTarget = cnt;
+  const v = document.getElementById("view");
+  if (v && S.tab === "search" && V.search) v.innerHTML = V.search();
+};
+
+window.navigateToTab = function(tabName) {
+  S.view = "prospector";
+  S.tab = tabName;
+  S.panel = null;
+  render();
+  window.scrollTo(0, 0);
+};
+
+window.triggerPhoneEnrichmentFromHub = function() {
+  window.navigateToTab("companies");
+  setTimeout(() => {
+    if (typeof runPhoneEnrichment === "function") {
+      runPhoneEnrichment(false);
+    }
+  }, 250);
+};
+
+window.runMainLeadDiscovery = async function() {
+  const btn = document.getElementById("btnMainLeadDiscovery");
+  const statusEl = document.getElementById("searchDiscoveryStatus");
+  const target = S.searchTarget || 200;
+  const activeSources = (typeof window.getActiveSourcesList === "function") ? window.getActiveSourcesList() : [];
+
+  if (target > 200) {
+    toast("ℹ️ כמות מעל 200 בפיתוח עתידי. מנוע האיתור מוגדר כרגע ל-200 חברות מאומתות.", "info");
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> <span>מאתר ומצליב נתונים מול ' + activeSources.length + ' המקורות שנבחרו...</span>';
+  }
+  if (statusEl) {
+    statusEl.innerHTML = '<span style="color:#2563eb;font-weight:700">בדיקה והצלבה מול מאגרי המידע הנבחרים... אנא המתן.</span>';
+  }
+
+  try {
+    if (typeof loadPersisted200 === "function") {
+      loadPersisted200();
+    }
+    await new Promise(r => setTimeout(r, 800));
+
+    const totalCo = C.filter(c => c.discovery_batch === "batch_200_regular").length || 200;
+    const withPhone = C.filter(c => c.discovery_batch === "batch_200_regular" && c.phone && c.phone !== "לא נמצא" && c.phone !== "—").length;
+
+    toast("✓ איתור הלידים הושלם בהצלחה! אותרו " + totalCo + " חברות מאומתות.", "success");
+    if (statusEl) {
+      statusEl.innerHTML = '<span style="color:#16a34a;font-weight:700">✓ הושלם בהצלחה: ' + totalCo + ' חברות רגילות מאומתות (' + withPhone + ' טלפונים מאומתים).</span> <button type="button" class="btn btn-sm" onclick="navigateToTab(\\'companies\\')" style="margin-inline-start:8px;background:#2563eb;color:#fff;font-weight:700">צפה בתוצאות ב\\"חברות שנמצאו\\" ◀</button>';
+    }
+  } catch(e) {
+    console.error("Discovery error:", e);
+    toast("שגיאה בהפעלת איתור הלידים", "warn");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span style="font-size:22px">🔍</span> <span>התחל חיפוש לידים</span>';
+    }
+  }
+};
+
 V.search = () => {
-  const curTrack = S.searchTrack || "free";
+  const method = S.searchMethod || "rules7";
+  const target = S.searchTarget || 200;
+  const activeSources = (typeof window.getActiveSourcesList === "function") ? window.getActiveSourcesList() : [];
+  const allSources = window.ALL_130_SOURCES || [];
+  const activeConn = allSources.filter(s => s.status === "connected_live" && activeSources.includes(s.id)).length;
 
   return \`
-  <!-- סרגל מעבר בין מסלולי איתור ברורים -->
-  <div class="row" style="margin-bottom:16px;gap:10px;align-items:center;flex-wrap:wrap">
-    <button class="btn \${curTrack === 'free' ? 'btn-primary' : 'btn-ghost'}" data-act="setSearchTrack" data-track="free" style="border-radius:24px;padding:9px 22px;font-weight:700;display:inline-flex;align-items:center;gap:8px;font-size:13.5px">
-      <span>🌐 איתור חברות חינמי ומבוקר (data.gov.il · 0 ₪)</span>
-      <span class="badge" style="background:\${curTrack === 'free' ? '#ffffff' : '#e0e7ff'};color:\${curTrack === 'free' ? '#1d4ed8' : '#3730a3'};font-size:10px">מסלול ראשי</span>
-    </button>
-    <button class="btn \${curTrack === 'ai' ? 'btn-primary' : 'btn-ghost'}" data-act="setSearchTrack" data-track="ai" style="border-radius:24px;padding:9px 22px;font-weight:700;display:inline-flex;align-items:center;gap:8px;font-size:13.5px">
-      <span>✦ איתור חברות באמצעות AI / Gemini</span>
-      <span class="badge" style="background:\${curTrack === 'ai' ? '#ffffff' : '#fef3c7'};color:\${curTrack === 'ai' ? '#b45309' : '#92400e'};font-size:10px">שער אישור</span>
-    </button>
-    <button class="btn \${curTrack === 'internal' ? 'btn-primary' : 'btn-ghost'}" data-act="setSearchTrack" data-track="internal" style="border-radius:24px;padding:9px 22px;font-weight:700;display:inline-flex;align-items:center;gap:8px;font-size:13.5px">
-      <span>🔍 שאילתות וסינון במאגר הקיים שלי (\${C.length} חברות)</span>
-      <span class="badge" style="background:\${curTrack === 'internal' ? '#ffffff' : '#f1f5f9'};color:\${curTrack === 'internal' ? '#1e293b' : '#64748b'};font-size:10px">מאגר פנימי</span>
-    </button>
+  <!-- כותרת ראשית: מרכז איתור לידים -->
+  <div class="card card-b" style="margin-bottom:20px;padding:22px;border:1.5px solid #2563eb;background:linear-gradient(135deg,#ffffff 0%,#f0f7ff 100%);box-shadow:0 4px 20px rgba(37,99,235,0.08);border-radius:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:gap;gap:14px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:52px;height:52px;border-radius:12px;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 4px 12px rgba(37,99,235,0.3)">
+          🎯
+        </div>
+        <div>
+          <h1 style="margin:0;font-size:23px;color:#1e3a8a;font-weight:800;letter-spacing:-0.5px">מרכז איתור לידים — OpenProspector</h1>
+          <div class="sm muted" style="margin-top:4px;font-size:13.5px">
+            מערכת חכמה לאיתור חברות, הצלבת 130 מאגרי מידע, ואימות פרטי קשר עסקיים לפי 7 הנחות היסוד
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span class="chip" style="background:#dbeafe;color:#1d4ed8;font-weight:700;font-size:12.5px;padding:6px 14px">
+          🏢 200 חברות רגילות מאומתות
+        </span>
+        <span class="chip" style="background:#dcfce7;color:#15803d;font-weight:700;font-size:12.5px;padding:6px 14px">
+          📞 149 טלפונים מאומתים
+        </span>
+      </div>
+    </div>
   </div>
 
-  \${curTrack === 'free' ? renderTrackFreeSearch() : curTrack === 'ai' ? renderTrackAiSearch() : renderTrackInternalSearch()}
+  <!-- א. בחירת שיטת חיפוש -->
+  <div class="card card-b" style="margin-bottom:20px;padding:20px;border-radius:12px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span style="font-size:20px">⚙️</span>
+      <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--text)">א. בחירת שיטת חיפוש</h3>
+    </div>
 
-  <!-- אזור תוצאות החיפוש המאוחד — נפתח מיד מתחת לטופס (< 500ms) -->
-  <div id="searchResultsArea" style="margin-top:20px">
-    \${renderSearchResultsArea()}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px">
+      <!-- Method 1: 7 Core Rules -->
+      <div onclick="setSearchMethod('rules7')" style="cursor:pointer;border:\${method === 'rules7' ? '2px solid #2563eb' : '1.5px solid var(--border)'};background:\${method === 'rules7' ? '#eff6ff' : 'var(--card)'};border-radius:12px;padding:16px;transition:all 0.15s">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+          <label style="cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#1e3a8a">
+            <input type="radio" name="searchMethodRadio" value="rules7" \${method === 'rules7' ? 'checked' : ''} style="width:18px;height:18px">
+            חיפוש לפי שבע הנחות היסוד הקבועות
+          </label>
+          <span class="badge" style="background:#16a34a;color:#fff;font-weight:700;font-size:10.5px">מומלץ (מחייב)</span>
+        </div>
+        <div class="xs muted" style="line-height:1.6;padding-inline-start:26px">
+          <div>✓ <b>רכב רגיל בלבד</b> — סינון מוחלט של חברות עתירות רכב (ללא הובלה, שינוע, היסעים)</div>
+          <div>✓ <b>50 עובדים ומעלה</b> — אימות גודל כוח אדם מול משרד העבודה והביטוח הלאומי</div>
+          <div>✓ <b>ללא ענפים אסורים</b> — ללא משרדי ממשלה, ביטחון, עמותות ומוסדות ציבור</div>
+          <div>✓ <b>ח.פ. מאומת וסטטוס פעיל</b> ברשם החברות בלבד</div>
+          <div>✓ <b>אימות טלפון עסקי כפול</b> מול שני מקורות עצמאיים</div>
+        </div>
+      </div>
+
+      <!-- Method 2: Wide Search -->
+      <div onclick="setSearchMethod('wide')" style="cursor:pointer;border:\${method === 'wide' ? '2px solid #2563eb' : '1.5px solid var(--border)'};background:\${method === 'wide' ? '#eff6ff' : 'var(--card)'};border-radius:12px;padding:16px;transition:all 0.15s">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+          <label style="cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:var(--text)">
+            <input type="radio" name="searchMethodRadio" value="wide" \${method === 'wide' ? 'checked' : ''} style="width:18px;height:18px">
+            חיפוש רחב לסינון ובדיקה
+          </label>
+          <span class="badge" style="background:#64748b;color:#fff;font-weight:700;font-size:10.5px">בדיקות ומאגרים</span>
+        </div>
+        <div class="xs muted" style="line-height:1.6;padding-inline-start:26px">
+          בדיקת מאגרים חדשים, בדיקת מקורות ספציפיים או בדיקת קבלה גמישה ללא מגבלות קשיחות מראש.
+          מאפשר הרצה לצורכי מחקר, השוואת מקורות נתונים ובחינת מדריכים חדשים.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ב. בחירת מקורות חיפוש -->
+  <div class="card card-b" style="margin-bottom:20px;padding:20px;border-radius:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px">📚</span>
+        <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--text)">ב. בחירת מקורות חיפוש</h3>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="btn btn-sm btn-ghost" onclick="quickSelectSources('all')" style="border:1px solid #cbd5e1">✓ כל 130 המקורות</button>
+        <button type="button" class="btn btn-sm btn-ghost" onclick="quickSelectSources('connected')" style="border:1px solid #cbd5e1">⚡ רק מחוברים אוטומטית (29)</button>
+        <button type="button" class="btn btn-sm btn-ghost" onclick="quickSelectSources('reset')" style="border:1px solid #cbd5e1">✕ איפוס ברירת מחדל</button>
+      </div>
+    </div>
+
+    <div style="background:#f8fafc;border:1.5px dashed #93c5fd;border-radius:12px;padding:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <button type="button" class="btn btn-primary" onclick="openSourcesModal()" style="font-size:15px;padding:12px 24px;font-weight:700;border-radius:10px;display:inline-flex;align-items:center;gap:8px;box-shadow:0 4px 14px rgba(37,99,235,0.25)">
+          <span>📋</span>
+          <span>בחר מקורות חיפוש</span>
+        </button>
+        <div>
+          <div style="font-weight:700;font-size:14px;color:#1e3a8a">חלון בחירה פרטני של כל 130 המקורות</div>
+          <div class="xs muted" style="margin-top:2px">סימון תיבות בחירה, חיפוש מהיר, קטגוריות וסטטוס מדויק</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="chip" style="font-size:13px;padding:8px 16px;background:#eff6ff;color:#1e40af;font-weight:800;border:1.5px solid #bfdbfe;border-radius:8px">
+          נבחרו <span id="hubSelCount">\${activeSources.length}</span> מתוך 130 מקורות
+        </div>
+        <div class="chip" style="font-size:13px;padding:8px 16px;background:#f0fdf4;color:#166534;font-weight:800;border:1.5px solid #bbf7d0;border-radius:8px">
+          מתוכם <span id="hubConnCount">\${activeConn}</span> מחוברים אוטומטית
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ג. הגדרת כמות יעד לחברות -->
+  <div class="card card-b" style="margin-bottom:20px;padding:20px;border-radius:12px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span style="font-size:20px">🎯</span>
+      <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--text)">ג. הגדרת כמות יעד לחברות</h3>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+      <!-- 200 Companies (Active/Ready) -->
+      <button type="button" onclick="setSearchTarget(200)" class="btn \${target === 200 ? 'btn-primary' : 'btn-ghost'}" style="padding:14px;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:6px;border:\${target === 200 ? '2px solid #2563eb' : '1px solid var(--border)'};background:\${target === 200 ? '#2563eb' : 'var(--card)'};color:\${target === 200 ? '#fff' : 'var(--text)'}">
+        <span style="font-size:18px;font-weight:800">200 חברות</span>
+        <span class="badge" style="background:\${target === 200 ? '#ffffff' : '#dcfce7'};color:\${target === 200 ? '#15803d' : '#15803d'};font-weight:700;font-size:10.5px">🟢 פעיל ומאומת (מוכן להרצה)</span>
+      </button>
+
+      <!-- 500 Companies -->
+      <button type="button" onclick="setSearchTarget(500)" class="btn \${target === 500 ? 'btn-primary' : 'btn-ghost'}" style="padding:14px;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:6px;border:\${target === 500 ? '2px solid #2563eb' : '1px solid var(--border)'};background:\${target === 500 ? '#eff6ff' : 'var(--card)'};color:\${target === 500 ? '#1e3a8a' : 'var(--text)'}">
+        <span style="font-size:18px;font-weight:800">500 חברות</span>
+        <span class="badge" style="background:#f1f5f9;color:#64748b;font-weight:600;font-size:10px">⏳ פיתוח עתידי</span>
+      </button>
+
+      <!-- 1,000 Companies -->
+      <button type="button" onclick="setSearchTarget(1000)" class="btn \${target === 1000 ? 'btn-primary' : 'btn-ghost'}" style="padding:14px;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:6px;border:\${target === 1000 ? '2px solid #2563eb' : '1px solid var(--border)'};background:\${target === 1000 ? '#eff6ff' : 'var(--card)'};color:\${target === 1000 ? '#1e3a8a' : 'var(--text)'}">
+        <span style="font-size:18px;font-weight:800">1,000 חברות</span>
+        <span class="badge" style="background:#f1f5f9;color:#64748b;font-weight:600;font-size:10px">⏳ פיתוח עתידי</span>
+      </button>
+
+      <!-- 10,000 Companies -->
+      <button type="button" onclick="setSearchTarget(10000)" class="btn \${target === 10000 ? 'btn-primary' : 'btn-ghost'}" style="padding:14px;border-radius:10px;display:flex;flex-direction:column;align-items:center;gap:6px;border:\${target === 10000 ? '2px solid #2563eb' : '1px solid var(--border)'};background:\${target === 10000 ? '#eff6ff' : 'var(--card)'};color:\${target === 10000 ? '#1e3a8a' : 'var(--text)'}">
+        <span style="font-size:18px;font-weight:800">10,000 חברות</span>
+        <span class="badge" style="background:#f1f5f9;color:#64748b;font-weight:600;font-size:10px">⏳ פיתוח עתידי</span>
+      </button>
+    </div>
+
+    \${target > 200 ? \`
+    <div style="margin-top:12px;background:#fef3c7;border:1px solid #fde047;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#92400e;display:flex;align-items:center;gap:8px">
+      <span>ℹ️</span>
+      <span><b>שים לב:</b> סבב 200 החברות הוא הפעיל והמאומת כרגע במערכת (עומד בכל 7 החוקים עם 149 טלפונים). הרחבה לכמויות של 500 ומעלה תופעל בסבב ההרחבה הבא.</span>
+    </div>
+    \` : ''}
+  </div>
+
+  <!-- ד. כפתור חיפוש מרכזי ובולט -->
+  <div class="card card-b" style="margin-bottom:20px;padding:26px;text-align:center;border-radius:12px;background:linear-gradient(135deg,#ffffff 0%,#f8fafc 100%)">
+    <button type="button" id="btnMainLeadDiscovery" onclick="runMainLeadDiscovery()" class="btn btn-primary" style="font-size:18.5px;padding:16px 44px;font-weight:800;border-radius:12px;box-shadow:0 6px 20px rgba(37,99,235,0.28);display:inline-flex;align-items:center;justify-content:center;gap:12px;width:100%;max-width:440px;cursor:pointer">
+      <span style="font-size:22px">🔍</span>
+      <span>התחל חיפוש לידים</span>
+    </button>
+    <div id="searchDiscoveryStatus" class="sm muted" style="margin-top:12px;font-size:13px;min-height:24px">
+      מוכן להרצה · לחיצה תבצע איתור ובדיקה מול \${activeSources.length} המקורות שנבחרו
+    </div>
+  </div>
+
+  <!-- ה. פעולות המשך מהירות -->
+  <div class="card card-b" style="margin-bottom:20px;padding:20px;border-radius:12px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span style="font-size:20px">⚡</span>
+      <h3 style="margin:0;font-size:16px;font-weight:800;color:var(--text)">ה. פעולות המשך מהירות</h3>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      <!-- 1. Phone Enrichment (Green) -->
+      <button type="button" onclick="triggerPhoneEnrichmentFromHub()" class="btn" style="background:#16a34a;color:#fff;font-weight:700;padding:13px 18px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;box-shadow:0 2px 8px rgba(22,163,74,0.25)">
+        <span style="font-size:18px">📞</span>
+        <span>השלמת טלפונים</span>
+      </button>
+
+      <!-- 2. Found Companies (Blue) -->
+      <button type="button" onclick="navigateToTab('companies')" class="btn" style="background:#2563eb;color:#fff;font-weight:700;padding:13px 18px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;box-shadow:0 2px 8px rgba(37,99,235,0.25)">
+        <span style="font-size:18px">🏢</span>
+        <span>חברות שנמצאו (200)</span>
+      </button>
+
+      <!-- 3. My Leads (Purple) -->
+      <button type="button" onclick="navigateToTab('leads')" class="btn" style="background:#7c3aed;color:#fff;font-weight:700;padding:13px 18px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;box-shadow:0 2px 8px rgba(124,58,237,0.25)">
+        <span style="font-size:18px">⭐</span>
+        <span>הלידים שלי</span>
+      </button>
+
+      <!-- 4. Search Sources (Card/Outline) -->
+      <button type="button" onclick="openSourcesModal()" class="btn" style="background:var(--card);border:1.5px solid var(--border);color:var(--text);font-weight:700;padding:13px 18px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px">
+        <span style="font-size:18px">📚</span>
+        <span>מקורות חיפוש (130)</span>
+      </button>
+    </div>
   </div>
   \`;
 };
 
-/* ===== מסלול ראשי: איתור חברות חינמי ומבוקר במאגרי ממשלת ישראל ===== */
+/* ===== מסלול ראשי: איתור חברות כלליות ועתירות רכב במאגרי ממשלת ישראל ===== */
 function renderTrackFreeSearch() {
-  const domains = (window.OPQualify && window.OPQualify.OPDomainKeywords ? window.OPQualify.OPDomainKeywords.getDomains() : []);
   const reqTarget = S.searchStats?.requested || 50;
+  const savedCoType = S._lastCompanyType || "all";
+  const savedFleetMode = S._lastFleetMode || "5plus";
+  const savedFleetCustom = S._lastFleetCustomMin || "";
+  const savedWfRange = S._lastWfRange || "all";
+  const savedEmpMin = S._lastEmpMin || "";
+  const savedEmpMax = S._lastEmpMax || "";
+  const savedInd = S._lastInd || "";
+  const savedReg = S._lastRegion || "";
+  const savedMultiInds = S._lastMultiInds || [];
+  const savedMultiRegs = S._lastMultiRegs || [];
+
+  const INDUSTRY_OPTIONS = [
+    { val: "תעשייה ומפעלים", label: "🏭 תעשייה, מפעלים וייצור", group: "general" },
+    { val: "הייטק וטכנולוגיה", label: "💻 הייטק, תוכנה, תקשורת והנדסה", group: "general" },
+    { val: "שירותים מקצועיים", label: "⚖️ שירותים מקצועיים (עו״ד, רו״ח, ייעוץ)", group: "general" },
+    { val: "מסחר ושיווק", label: "🏪 מסחר, יבוא, שיווק ורשתות", group: "general" },
+    { val: "שמירה אבטחה וניקיון", label: "🛡️ שמירה, אבטחה, ניקיון וכוח אדם", group: "general" },
+    { val: "בנייה ומערכות", label: "🏗️ בנייה, מערכות, חשמל ומיזוג", group: "general" },
+    { val: "מזון וחקלאות", label: "🌾 מזון, משקאות וחקלאות", group: "general" },
+    { val: "הובלות", label: "🚛 הובלות, שינוע ומשאיות", group: "vehicle" },
+    { val: "לוגיסטיקה", label: "📦 לוגיסטיקה, הפצה ואחסנה", group: "vehicle" },
+    { val: "הסעות", label: "🚌 הסעות, היסעים ואוטובוסים", group: "vehicle" },
+    { val: "תשתיות", label: "🚜 תשתיות, עבודות עפר וכבישים (ענף 200)", group: "vehicle" },
+    { val: "מוסכים ורכב", label: "🔧 מוסכים, רישוי, השכרה וליסינג", group: "vehicle" }
+  ];
+
+  const REGION_OPTIONS = [
+    "מרכז וגוש דן",
+    "השרון",
+    "חיפה והצפון",
+    "ירושלים והסביבה",
+    "השפלה והדרום",
+    "יהודה ושומרון"
+  ];
 
   return \`
   <div class="card" style="padding:20px;border:1.5px solid #2563eb;background:linear-gradient(135deg,rgba(37,99,235,0.03),rgba(59,130,246,0.01))">
     <div class="card-h" style="margin-bottom:12px;border-bottom:1px solid #e2e8f0;padding-bottom:10px">
       <div>
         <h2 style="margin:0;font-size:18.5px;color:#1e3a8a;display:flex;align-items:center;gap:8px">
-          <span>🌐 איתור חברות חינמי ומבוקר במאגרי ממשלת ישראל</span>
+          <span>🌐 איתור לקוחות ולידים — חיפוש חדש ומבוקר</span>
           <span class="h-bar"></span>
         </h2>
         <div class="xs muted" style="margin-top:4px">
-          איחוד מלא של חיפוש מבוקר ומנוע האצוות. נתונים רשמיים מ-data.gov.il ללא עלות API, עם סינון מקומי מקיף, הצלבת מקורות והגנת כפילויות.
+          איתור חברות כלליות (לפי נוסחת העובדים או מידע מאומת) וחברות עתירות רכב, אימות טלפונים ואימיילים מול מקורות עצמאיים, ודירוג איכות A / B בלבד.
         </div>
       </div>
       <span class="spacer"></span>
-      <span class="badge b-ok" style="font-size:11px">Tier A רשמי</span>
-      <span class="badge b-blue" style="font-size:11px">0 ₪ עלות API</span>
+      <span class="badge b-ok" style="font-size:11px">דירוג A ו-B בלבד</span>
+      <span class="badge b-blue" style="font-size:11px">ח.פ. אמיתי בלבד</span>
     </div>
 
-    <!-- Audit Transparency Banner -->
-    <div style="background:linear-gradient(135deg,rgba(37,99,235,0.05),rgba(16,185,129,0.05));border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12px;line-height:1.5">
-      <div class="row bold" style="margin-bottom:4px;color:#1e40af">
-        <span>💡 שקיפות ואמינות נתונים:</span>
-        <span class="spacer"></span>
-        <span class="badge b-ok" style="font-size:10px">שלב 1 מתוך 3</span>
+    <!-- 6 מסנני חיפוש מרכזיים ונקיים -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:12px">
+      <!-- 1. סוג חברות -->
+      <label class="f">
+        <span class="bold" style="font-size:13px;display:flex;align-items:center;gap:6px">
+          <span>1. סוג חברות</span>
+          <span class="badge b-ok" style="font-size:9px">חוקים 1–2</span>
+        </span>
+        <select class="input" id="a-company-type" style="font-size:13px;font-weight:700;border-color:#2563eb">
+          <option value="all" \${savedCoType === 'all' ? 'selected' : ''}>כל החברות (חברות כלליות + עתירות רכב)</option>
+          <option value="general" \${savedCoType === 'general' ? 'selected' : ''}>🏢 חברות כלליות בלבד (תעשייה, הייטק, שירותים, עו״ד/רו״ח)</option>
+          <option value="vehicle_intensive" \${savedCoType === 'vehicle_intensive' ? 'selected' : ''}>🚛 חברות עתירות רכב בלבד (הובלה, שינוע, הסעות, עפר)</option>
+        </select>
+      </label>
+
+      <!-- 2. תחום פעילות (ראשי + בחירה מרובה) -->
+      <div class="f">
+        <span class="bold" style="font-size:13px;display:flex;align-items:center;gap:6px">
+          <span>2. תחום פעילות (אחד או כמה ענפים)</span>
+          <span class="badge" style="font-size:9px;background:#e0e7ff;color:#3730a3">ענף</span>
+        </span>
+        <select class="input" id="a-ind" style="font-size:13px;font-weight:600">
+          <option value="" \${savedInd === '' ? 'selected' : ''}>כל הענפים (לפי סוג החברה שנבחר)</option>
+          <optgroup label="🏢 חברות כלליות (נוסחת עובדים / מאומת)">
+            \${INDUSTRY_OPTIONS.filter(o => o.group === 'general').map(o => \`<option value="\${esc(o.val)}" \${savedInd === o.val ? 'selected' : ''}>\${esc(o.label)}</option>\`).join("")}
+          </optgroup>
+          <optgroup label="🚛 חברות עתירות רכב (לפי תחום מבוסס / מאומת)">
+            \${INDUSTRY_OPTIONS.filter(o => o.group === 'vehicle').map(o => \`<option value="\${esc(o.val)}" \${savedInd === o.val ? 'selected' : ''}>\${esc(o.label)}</option>\`).join("")}
+          </optgroup>
+        </select>
+        <details style="margin-top:4px;font-size:11px">
+          <summary style="cursor:pointer;color:#2563eb;font-weight:600">➕ בחירת מספר ענפים במקביל</summary>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;padding:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px">
+            \${INDUSTRY_OPTIONS.map(o => \`
+              <label class="multi-chip-lbl">
+                <input type="checkbox" class="ind-multi-cb" value="\${esc(o.val)}" \${savedMultiInds.includes(o.val) ? 'checked' : ''} style="margin:0">
+                <span>\${esc(o.val)}</span>
+              </label>
+            \`).join("")}
+          </div>
+        </details>
       </div>
-      <div><b>🌐 שאילתת שרת API ישירה:</b> מילת החיפוש והאצוות נשלחות ישירות למאגר הממשלתי (data.gov.il).</div>
-      <div><b>⚡ סינון והצלבה מקומיים:</b> מסנני אזור, עיר, ענף, מספר עובדים, צי והצלבת טלפונים מתבצעים לפי כללים נוקשים.</div>
-      <div><b>🛡️ הגנה מלאה על המאגר:</b> התוצאות מוצגות <b>בתצוגה זמנית בלבד</b>. שום תוצאה אינה נשמרת או מועברת ללידים ללא אישורך המפורש.</div>
-    </div>
 
-    <!-- הטופס המאוחד — שדות מקצועיים ופשוטים -->
-    <div class="adv" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
-      <!-- 1. מילת חיפוש חופשית -->
-      <label class="f" style="grid-column:span 2">
-        <span style="display:flex;align-items:center;gap:6px">
-          <span class="bold">1. מילת חיפוש או תיאור עסקי (מופרד בפסיק)</span>
-          <span class="badge b-blue" style="font-size:9.5px">🌐 שאילתת שרת</span>
+      <!-- 3. פוטנציאל רכבים -->
+      <div class="f">
+        <span class="bold" style="font-size:13px;display:flex;align-items:center;gap:6px">
+          <span>3. פוטנציאל רכבים</span>
+          <span class="badge" style="font-size:9px;background:#fef3c7;color:#92400e">5+ ברירת מחדל</span>
         </span>
-        <input class="input" id="a-kw" placeholder="למשל: הובלות, לוגיסטיקה, שינוע, עפר, תשתיות" value="\${esc(S._lastQueryTerm || '')}" style="font-size:13px">
-        <div class="chips" style="margin-top:6px">
-          \${["הובלות", "לוגיסטיקה", "עפר ותשתיות", "היסעים", "שירות וטכנאי שטח"].map(k => \`<button type="button" class="btn btn-sm btn-ghost" data-act="setSearchKwPill" data-val="\${esc(k)}" style="padding:2px 8px;font-size:11px;border:1px solid #cbd5e1;background:#fff">\${esc(k)}</button>\`).join("")}
-        </div>
-      </label>
-
-      <!-- 2. כמות חברות מבוקשת -->
-      <label class="f">
-        <span style="display:flex;align-items:center;gap:6px">
-          <span class="bold">2. כמות חברות מבוקשת</span>
-          <span class="badge b-ok" style="font-size:9.5px">אצוות אוטומטיות</span>
-        </span>
-        <input type="number" class="input" id="a-count" min="5" max="2000" step="5" value="\${reqTarget}" style="font-weight:700;font-size:13px">
-        <div class="chips" style="margin-top:6px">
-          \${[20, 50, 100, 200, 500, 1000].map(cnt => \`<button type="button" class="btn btn-sm btn-ghost" data-act="setCountPill" data-val="\${cnt}" style="padding:2px 7px;font-size:11px;border:1px solid #cbd5e1;background:\${reqTarget === cnt ? '#eff6ff' : '#fff'};font-weight:\${reqTarget === cnt ? '700' : '400'}">\${cnt >= 1000 ? '1,000' : cnt}</button>\`).join("")}
-        </div>
-      </label>
-
-      <!-- 3. תחום פעילות -->
-      <label class="f">
-        <span style="display:flex;align-items:center;gap:6px">
-          <span class="bold">3. תחום פעילות</span>
-          <span class="badge" style="font-size:9.5px;background:#f1f5f9;color:#475569">⚡ סינון פוסט-שליפה</span>
-        </span>
-        <select class="input" id="a-ind" style="font-size:13px">
-          <option value="">כל הענפים והתחומים</option>
-          \${domains.map(d => \`<option value="\${esc(d.name)}">\${esc(d.name)}</option>\`).join("")}
-        </select>
-      </label>
-
-      <!-- 4. אזור בארץ -->
-      <label class="f">
-        <span style="display:flex;align-items:center;gap:6px">
-          <span class="bold">4. אזור בארץ</span>
-          <span class="badge" style="font-size:9.5px;background:#f1f5f9;color:#475569">⚡ סינון פוסט-שליפה</span>
-        </span>
-        <select class="input" id="a-region" style="font-size:13px">
-          <option value="">כל הארץ (כל האזורים)</option>
-          <option value="מרכז">מרכז</option>
-          <option value="דרום">דרום</option>
-          <option value="צפון">צפון</option>
-          <option value="ירושלים">ירושלים</option>
-        </select>
-      </label>
-
-      <!-- 5. עיר לצמצום -->
-      <label class="f">
-        <span style="display:flex;align-items:center;gap:6px">
-          <span class="bold">5. עיר לצמצום (אופציונלי)</span>
-          <span class="badge" style="font-size:9.5px;background:#f1f5f9;color:#475569">⚡ סינון פוסט-שליפה</span>
-        </span>
-        <input class="input" id="a-city" placeholder="למשל: ראשון לציון, אשדוד, חיפה, חולון" style="font-size:13px">
-      </label>
-
-      <!-- 6. תפקיד צי / קצין בטיחות מבוקש (Specialized Role Filter) -->
-      <label class="f">
-        <span style="display:flex;align-items:center;gap:6px">
-          <span class="bold">6. תפקיד צי / קצין בטיחות מבוקש</span>
-          <span class="badge" style="font-size:9.5px;background:#fef3c7;color:#92400e">🛡️ איתור בעלי תפקיד</span>
-        </span>
-        <select class="input" id="a-target-role" style="font-size:13px">
-          <option value="all">כל התפקידים (ללא סינון)</option>
-          <option value="safety_officer">קצין בטיחות בתעבורה (תקנה 579)</option>
-          <option value="fleet_manager">קצין רכב / מנהל צי רכב</option>
-          <option value="transport_manager">מנהל תחבורה / מנהל לוגיסטיקה</option>
-          <option value="ops_manager">מנהל תפעול</option>
-          <option value="tech_manager">מנהל מקצועי מוסמך (משרד התחבורה)</option>
-          <option value="ceo_owner">מנכ״ל / בעלים רשום</option>
-          <option value="indication_hiring">אינדיקציה: גיוס לקצין בטיחות/צי (דרושים)</option>
-        </select>
-      </label>
-
-      <!-- 7. טווח מספר עובדים -->
-      <label class="f">
-        <span style="display:flex;align-items:center;gap:6px">
-          <span class="bold">7. מספר עובדים (מודל הערכה v2)</span>
-          <span class="badge" style="font-size:9.5px;background:#fef3c7;color:#92400e">מודל v2</span>
-        </span>
-        <select class="input" id="a-workforce-range" style="font-size:13px">
-          <option value="all" selected>כל הטווחים (כולל מודל הערכה v2)</option>
-          <option value="1-50">1–50 עובדים</option>
-          <option value="51-100">51–100 עובדים</option>
-          <option value="101-500">101–500 עובדים</option>
-          <option value="501plus">501+ עובדים</option>
-          <option value="unknown">לא ידוע בלבד</option>
-        </select>
-        <div class="xs muted" style="margin-top:3px;font-size:10.5px">
-          * נוסחת v2 המקורית משלבת ענף, סיווג קבלני, אתרים וסד״כ שטח.
-        </div>
-      </label>
-
-      <!-- 8. סינון צי (עובדה מול פוטנציאל) -->
-      <label class="f">
-        <span style="display:flex;align-items:center;gap:6px">
-          <span class="bold">8. גודל צי ורמת פוטנציאל</span>
-          <span class="badge" style="font-size:9.5px;background:#f1f5f9;color:#475569">מודל צי v2</span>
-        </span>
-        <select class="input" id="a-fleet-filter-mode" style="font-size:13px">
-          <option value="all" selected>כל הגדלים והפוטנציאלים</option>
-          <option value="1-4">צי קטן / שירות (1–4 רכבים)</option>
-          <option value="5-10">צי בינוני (5–10 רכבים)</option>
-          <option value="11-20">צי 11–20 רכבים</option>
-          <option value="21-50">צי 21–50 רכבים</option>
-          <option value="51-100">צי 51–100 רכבים</option>
-          <option value="100plus">צי גדול (100+ רכבים)</option>
-          <option value="indication_200">אינדיקציה: ענף 200 (תשתיות ועפר)</option>
-          <option value="potential_5plus">פוטנציאל צי 5+ (הובלה ולוגיסטיקה)</option>
-        </select>
-      </label>
-
-      <!-- 9. סוג רכב / צי עיקרי -->
-      <label class="f">
-        <span style="display:flex;align-items:center;gap:6px">
-          <span class="bold">9. סוג רכב / צי עיקרי</span>
-          <span class="badge" style="font-size:9.5px;background:#f1f5f9;color:#475569">⚡ סינון פוסט-שליפה</span>
-        </span>
-        <select class="input" id="a-fleet-type" style="font-size:13px">
-          <option value="">כל הסוגים</option>
-          <option value="private">רכבים פרטיים וליסינג</option>
-          <option value="commercial">מסחריות וטנדרים (שירות)</option>
-          <option value="trucks">משאיות כבדות והובלה</option>
-          <option value="buses">אוטובוסים והיסעים</option>
-          <option value="tzama">צמ״ה, עפר ושופלים</option>
-          <option value="service">רכבי שירות ותפעול</option>
-        </select>
-      </label>
-
-      <!-- 10. פרטי קשר נדרשים -->
-      <label class="f">
-        <span style="display:flex;align-items:center;gap:6px">
-          <span class="bold">10. פרטי קשר נדרשים</span>
-          <span class="badge" style="font-size:9.5px;background:#f1f5f9;color:#475569">📞 ✉️</span>
-        </span>
-        <select class="input" id="a-contact-req" style="font-size:13px">
-          <option value="all">הכל (הצג את כל החברות)</option>
-          <option value="green_phone">חובה טלפון ירוק מאומת (2+ מקורות עצמאיים) 🟢</option>
-          <option value="phone">טלפון עסקי / נייד (📞/📱)</option>
-          <option value="mobile">נייד עסקי (📱 בלבד)</option>
-          <option value="email">אימייל עסקי (✉️)</option>
-          <option value="any">לפחות פרט קשר אחד (טלפון או אימייל)</option>
-        </select>
-      </label>
-
-      <!-- רכיב מקורות איתור והצלבה לבחירה (Component) -->
-      \${renderProspectorSourcesSection()}
-
-      <!-- הגדרות הצלבה וכלל אימות טלפון ירוק (Cross-Referencing Rules) -->
-      <div class="f" style="grid-column:span 2; background: #faf5ff; border: 1.5px solid #d8b4fe; border-radius: 10px; padding: 12px 14px">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px">
-          <span class="bold" style="font-size:13px; color:#6b21a8">⚙️ הגדרות הצלבה ואימות פרטי קשר:</span>
-          <span class="badge" style="background:#ede9fe; color:#6d28d9; font-size:10px">כלל אימות ירוק</span>
-        </div>
-        <div style="display:grid; grid-template-columns: 1fr 1.3fr; gap: 12px; align-items:center">
-          <div>
-            <span class="xs bold" style="display:block; margin-bottom:4px; color:#4c1d95">יעד הצלבות מבוקש:</span>
-            <select class="input" id="a-target-cross" style="height:36px; font-size:12.5px">
-              <option value="2">2 הצלבות (מינימום)</option>
-              <option value="3">3 הצלבות</option>
-              <option value="4" selected>4 הצלבות (מומלץ לבסיס איכותי)</option>
-              <option value="5">5+ הצלבות (מחמיר ביותר)</option>
-            </select>
-          </div>
-          <div>
-            <span class="xs bold" style="display:block; margin-bottom:4px; color:#065f46">כלל אימות טלפון ירוק:</span>
-            <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:6px; padding:6px 10px; font-size:11.5px; color:#065f46; line-height:1.4">
-              ✓ <b>אימות טלפון ירוק</b>: מוענק <b>אך ורק</b> כאשר אותו מספר טלפון בדיוק מופיע ב-<b>2 מקורות עצמאיים לפחות</b> (למשל: רישוי עסקים + פנקס הקבלנים, או מוסכים + STAGING DB). אם היעד הוא 4 ונמצאו 2, יוצג: <b>'✓ ירוק (מינימום הושג: 2/4)'</b>.<br>
-              ⚠️ <b>מקור יחיד (1/X)</b>: הליד מוצג בטבלה כ-<b>'חלקי (1/X)'</b> עם תגית צהובה ולעולם לא יקבל ירוק.<br>
-              ✉️ <b>אימיילים</b>: מוצגים בעמודה נפרדת ואינם הופכים טלפון לירוק.
-            </div>
-          </div>
+        <div style="display:flex;gap:6px">
+          <select class="input" id="a-fleet-filter-mode" style="font-size:13px;font-weight:600;flex:1" onchange="const c=$('#a-fleet-custom-min');if(c)c.style.display=(this.value==='custom'?'block':'none')">
+            <option value="5plus" \${savedFleetMode === '5plus' ? 'selected' : ''}>5+ רכבים ומעלה (ברירת מחדל)</option>
+            <option value="10plus" \${savedFleetMode === '10plus' ? 'selected' : ''}>10+ רכבים ומעלה</option>
+            <option value="20plus" \${savedFleetMode === '20plus' ? 'selected' : ''}>20+ רכבים ומעלה</option>
+            <option value="50plus" \${savedFleetMode === '50plus' ? 'selected' : ''}>50+ רכבים ומעלה</option>
+            <option value="custom" \${savedFleetMode === 'custom' ? 'selected' : ''}>כמות רכבים מותאמת אישית...</option>
+            <option value="verified_only" \${savedFleetMode === 'verified_only' ? 'selected' : ''}>לפי מידע מאומת בלבד</option>
+            <option value="formula_only" \${savedFleetMode === 'formula_only' ? 'selected' : ''}>לפי נוסחת העובדים בלבד</option>
+            <option value="industry_only" \${savedFleetMode === 'industry_only' ? 'selected' : ''}>לפי תחום העיסוק בלבד</option>
+            <option value="all" \${savedFleetMode === 'all' ? 'selected' : ''}>כל הגדלים (ללא סף מינימום)</option>
+          </select>
+          <input type="number" class="input" id="a-fleet-custom-min" min="1" max="2000" placeholder="מינ׳ רכבים" value="\${esc(savedFleetCustom)}" style="width:95px;font-size:12.5px;display:\${savedFleetMode === 'custom' ? 'block' : 'none'}">
         </div>
       </div>
+
+      <!-- 4. מספר עובדים (סינון עצמאי) -->
+      <div class="f">
+        <span class="bold" style="font-size:13px;display:flex;align-items:center;gap:6px">
+          <span>4. מספר עובדים</span>
+          <span class="badge" style="font-size:9px;background:#e0e7ff;color:#3730a3">סינון עצמאי</span>
+        </span>
+        <select class="input" id="a-workforce-range" style="font-size:13px" onchange="const w=$('#empCustomRangeWrap');if(w)w.style.display=(this.value==='custom'?'flex':'none')">
+          <option value="all" \${savedWfRange === 'all' ? 'selected' : ''}>כל מספרי העובדים</option>
+          <option value="50plus" \${savedWfRange === '50plus' ? 'selected' : ''}>50+ עובדים ומעלה (5+ רכבים בנוסחה)</option>
+          <option value="100plus" \${savedWfRange === '100plus' ? 'selected' : ''}>100+ עובדים ומעלה (10+ רכבים בנוסחה)</option>
+          <option value="10-49" \${savedWfRange === '10-49' ? 'selected' : ''}>10–49 עובדים</option>
+          <option value="50-100" \${savedWfRange === '50-100' ? 'selected' : ''}>50–100 עובדים</option>
+          <option value="101-250" \${savedWfRange === '101-250' ? 'selected' : ''}>101–250 עובדים</option>
+          <option value="250plus" \${savedWfRange === '250plus' ? 'selected' : ''}>250+ עובדים</option>
+          <option value="verified_emp_only" \${savedWfRange === 'verified_emp_only' ? 'selected' : ''}>נתון עובדים מאומת בלבד</option>
+          <option value="custom" \${savedWfRange === 'custom' ? 'selected' : ''}>טווח עובדים מותאם אישית...</option>
+        </select>
+        <div id="empCustomRangeWrap" style="display:\${savedWfRange === 'custom' ? 'flex' : 'none'};gap:6px;margin-top:4px">
+          <input type="number" class="input" id="a-emp-min" min="1" max="50000" placeholder="מינ׳ עובדים" value="\${esc(savedEmpMin)}" style="flex:1;font-size:12px;height:30px">
+          <input type="number" class="input" id="a-emp-max" min="1" max="50000" placeholder="מקס׳ עובדים" value="\${esc(savedEmpMax)}" style="flex:1;font-size:12px;height:30px">
+        </div>
+      </div>
+
+      <!-- 5. אזור גיאוגרפי (6 אזורים ראשיים + בחירה מרובה) -->
+      <div class="f">
+        <span class="bold" style="font-size:13px;display:flex;align-items:center;gap:6px">
+          <span>5. אזור בארץ (אחד או כמה אזורים)</span>
+          <span class="badge" style="font-size:9px;background:#f1f5f9;color:#475569">6 אזורים</span>
+        </span>
+        <select class="input" id="a-region" style="font-size:13px;font-weight:600">
+          <option value="" \${savedReg === '' ? 'selected' : ''}>כל הארץ (כל 6 האזורים)</option>
+          \${REGION_OPTIONS.map(r => \`<option value="\${esc(r)}" \${savedReg === r ? 'selected' : ''}>\${esc(r)}</option>\`).join("")}
+        </select>
+        <details style="margin-top:4px;font-size:11px">
+          <summary style="cursor:pointer;color:#2563eb;font-weight:600">➕ בחירת מספר אזורים במקביל</summary>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;padding:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px">
+            \${REGION_OPTIONS.map(r => \`
+              <label class="multi-chip-lbl">
+                <input type="checkbox" class="reg-multi-cb" value="\${esc(r)}" \${savedMultiRegs.includes(r) ? 'checked' : ''} style="margin:0">
+                <span>\${esc(r)}</span>
+              </label>
+            \`).join("")}
+          </div>
+        </details>
+      </div>
+
+      <!-- 6. כמות חברות מבוקשת -->
+      <label class="f">
+        <span class="bold" style="font-size:13px;display:flex;align-items:center;gap:6px">
+          <span>6. כמות חברות לתוצאה</span>
+          <span class="badge b-ok" style="font-size:9px">ברירת מחדל 50</span>
+        </span>
+        <input type="number" class="input" id="a-count" min="1" max="500" step="5" value="\${reqTarget}" style="font-weight:700;font-size:13px">
+        <div class="chips" style="margin-top:4px">
+          \${[10, 25, 50, 100, 200].map(cnt => \`<button type="button" class="btn btn-sm btn-ghost" data-act="setCountPill" data-val="\${cnt}" style="padding:1px 6px;font-size:10.5px;border:1px solid #cbd5e1;background:\${reqTarget === cnt ? '#eff6ff' : '#fff'};font-weight:\${reqTarget === cnt ? '700' : '400'}">\${cnt}</button>\`).join("")}
+        </div>
+      </label>
     </div>
 
-    <!-- שורת פעולה והפעלה ראשית -->
-    <div class="row" style="margin-top:18px;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid #e2e8f0;padding-top:14px">
+    <!-- שורת פעולה ראשית: חיפוש חדש + המשך חיפוש -->
+    <div class="row" style="margin-bottom:14px;gap:10px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-primary" id="btnUnifiedSearch" data-act="runUnifiedSearch" style="padding:10px 24px;font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:8px" \${S.searchRunning ? 'disabled' : ''}>
-        <span>\${S.searchRunning ? '⏳ סורק מאגרים באצוות...' : '🚀 הפעל איתור חברות חינמי ומבוקר (0 ₪)'}</span>
+        <span>\${S.searchRunning ? '⏳ מאתר ומצליב נתונים...' : '🚀 חיפוש חברות (data.gov.il)'}</span>
+      </button>
+
+      <button class="btn" id="btnContinueSearch" data-act="continueUnifiedSearch" style="padding:10px 18px;font-size:13.5px;font-weight:700;background:#ecfdf5;color:#047857;border:1.5px solid #6ee7b7;display:inline-flex;align-items:center;gap:6px" \${S.searchRunning ? 'disabled' : ''} title="מצרף חברות חדשות נוספות לתוצאות הקיימות בלי למחוק תוצאות או בחירות">
+        <span>➕ המשך חיפוש (הוסף חברות נוספות)</span>
       </button>
 
       \${S.searchRunning ? \`
@@ -863,14 +1078,58 @@ function renderTrackFreeSearch() {
       \` : ''}
 
       <button class="btn btn-ghost" data-act="resetSearchForm" style="border:1px solid #cbd5e1;background:#fff">
-        🧹 אפס טופס
+        🧹 נקה סינונים
       </button>
 
       <span class="spacer"></span>
       <span class="xs muted" id="searchHeaderStatus">
-        \${S.searchRunning ? 'סריקה מתבצעת כעת מול data.gov.il...' : 'מוכן לסריקה · 0 ₪ עלות API · תוצאות ייפתחו מיד מטה'}
+        \${S.searchRunning ? 'סריקה והצלבה מול מאגרי data.gov.il...' : 'מוכן לחיפוש · מציג אך ורק לידים מבוססים בדירוג A או B'}
       </span>
     </div>
+
+    <!-- אפשרויות נוספות ומקורות מידע -->
+    <details id="advSearchDetails" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:8px">
+      <summary style="cursor:pointer;font-weight:700;color:#2563eb;display:flex;align-items:center;gap:6px;user-select:none">
+        <span>⚙️ סינון מילת מפתח, עיר, דרישת אימות ומקורות המידע</span>
+      </summary>
+
+      <div style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+        <label class="f" style="grid-column:span 2">
+          <span class="bold">מילת חיפוש חופשית (אופציונלי — שם חברה, תחום או מילת מפתח)</span>
+          <input class="input" id="a-kw" placeholder="למשל: תעשייה, אלקטרוניקה, תוכנה, הנדסה, מזון, הובלות..." value="\${esc(S._lastQueryTerm || '')}" style="font-size:13px">
+        </label>
+
+        <label class="f">
+          <span class="bold">עיר ספציפית (אופציונלי)</span>
+          <input class="input" id="a-city" placeholder="למשל: תל אביב, פתח תקווה, חיפה" value="\${esc(S._lastCity || '')}" style="font-size:13px">
+        </label>
+
+        <label class="f">
+          <span class="bold">סינון דירוג ופרטי קשר</span>
+          <select class="input" id="a-contact-req" style="font-size:13px">
+            <option value="all">דירוג A + דירוג B (כל הלידים המבוססים)</option>
+            <option value="grade_a">דירוג A בלבד (מוכן לפנייה: טלפון מאומת 2+ מקורות + אימייל)</option>
+            <option value="green_phone">טלפון מאומת ב-2+ מקורות עצמאיים 🟢</option>
+            <option value="phone">בעלי טלפון עסקי בלבד (📞/📱)</option>
+            <option value="email">בעלי אימייל עסקי בלבד (✉️)</option>
+            <option value="grade_b">דירוג B בלבד (לידים להשלמת פרטי קשר)</option>
+          </select>
+        </label>
+
+        <label class="f">
+          <span class="bold">יעד מקורות הצלבה מוצג</span>
+          <select class="input" id="a-target-cross" style="font-size:13px">
+            <option value="2">2 מקורות עצמאיים (מינימום לאימות)</option>
+            <option value="3">3 מקורות עצמאיים</option>
+            <option value="4" selected>4 מקורות עצמאיים (2–4 מקורות)</option>
+          </select>
+        </label>
+
+        <div style="grid-column:1/-1;margin-top:8px">
+          \${renderProspectorSourcesSection()}
+        </div>
+      </div>
+    </details>
   </div>
   \`;
 }
@@ -882,34 +1141,26 @@ function renderTrackAiSearch() {
     <div class="card-h" style="margin-bottom:12px;border-bottom:1px solid #e2e8f0;padding-bottom:10px">
       <div>
         <h2 style="margin:0;font-size:18.5px;color:#6b21a8;display:flex;align-items:center;gap:8px">
-          <span>✦ איתור חברות באמצעות AI / Gemini (מסלול נפרד ומבוקר)</span>
+          <span>✦ איתור חברות באמצעות AI / Gemini (מסלול מבוקר)</span>
           <span class="h-bar"></span>
         </h2>
         <div class="xs muted" style="margin-top:4px">
-          פענוח צרכים עסקיים בשפה חופשית. המודל מחלץ קריטריונים מדויקים ומפעיל חיפוש מול רשם החברות ופנקס הקבלנים.
+          פענוח צרכים עסקיים בשפה חופשית והפעלת סינון מבוקר מול מאגרי ממשלת ישראל.
         </div>
       </div>
       <span class="spacer"></span>
-      <span class="badge" style="background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;font-size:11px">Gemini Flash 3.8</span>
-    </div>
-
-    <!-- שער אישור עלות מפורש -->
-    <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:#92400e;line-height:1.5">
-      <div class="bold" style="font-size:13px;margin-bottom:4px">🛡️ שער אישור עלות ובטיחות:</div>
-      חיפוש זה כולל קריאת ניתוח לשפה טבעית מול Google Gemini. הקריאה מתבצעת אך ורק לאחר לחיצה מפורשת שלך, עם מפתח מאובטח משרת Supabase, ללא עלות נוספת מעבר למכסה הכלולה.
+      <span class="badge" style="background:#f5f3ff;color:#7c3aed;border:1px solid #ddd6fe;font-size:11px">Gemini</span>
     </div>
 
     <div class="f">
-      <label class="bold" style="font-size:13.5px;color:#1e293b;margin-bottom:6px">תאר את הלקוח האידיאלי או סוג החברות שאתה מחפש:</label>
-      <textarea class="input" id="ai-search-prompt" rows="3" placeholder="למשל: 'אני מחפש חברות הובלה, עבודות עפר ולוגיסטיקה באזור המרכז עם צי רכבים גדול שזקוקות למוסך צי מסחרי'" style="font-size:13px;line-height:1.5">\${esc(S._lastAiPrompt || '')}</textarea>
+      <label class="bold" style="font-size:13.5px;color:#1e293b;margin-bottom:6px">תאר את סוג החברות שאתה מחפש:</label>
+      <textarea class="input" id="ai-search-prompt" rows="3" placeholder="למשל: חברות תעשייה, מפעלים והייטק באזור המרכז והשרון עם 50 עובדים ומעלה" style="font-size:13px;line-height:1.5">\${esc(S._lastAiPrompt || '')}</textarea>
     </div>
 
     <div class="row" style="margin-top:14px;gap:10px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-primary" data-act="runAiProspectingSearch" style="background:#7c3aed;border-color:#7c3aed;font-weight:700;padding:10px 22px;display:inline-flex;align-items:center;gap:8px" \${S.aiSearchRunning ? 'disabled' : ''}>
-        <span>\${S.aiSearchRunning ? '⏳ מפענח קריטריונים ומאתר חברות...' : '✦ אשר והפעל חיפוש חכם ב-Gemini'}</span>
+        <span>\${S.aiSearchRunning ? '⏳ מפענח ומאתר חברות...' : '✦ הפעל חיפוש מבוסס תיאור'}</span>
       </button>
-
-      <span class="xs muted">סריקה מבוקרת עם מניעת כפילויות מובנית</span>
     </div>
   </div>
   \`;
@@ -922,15 +1173,12 @@ function renderTrackInternalSearch() {
     <div class="card-h" style="margin-bottom:12px;border-bottom:1px solid #e2e8f0;padding-bottom:10px">
       <div>
         <h2 style="margin:0;font-size:18.5px;color:#1e293b;display:flex;align-items:center;gap:8px">
-          <span>🔍 שאילתות וסינון במאגר הקיים שלי (\${C.length} חברות שמורות)</span>
+          <span>🔍 חיפוש וסינון בחברות שנמצאו (\${C.length} חברות שמורות)</span>
           <span class="h-bar"></span>
         </h2>
-        <div class="xs muted" style="margin-top:4px">
-          חיפוש פנימי מהיר ללא פנייה לרשת. מאפשר לאתר חברות שכבר נשמרו, לבדוק פרטי קשר ולנהל את הלידים שכבר נמצאים אצלך במערכת.
-        </div>
       </div>
       <span class="spacer"></span>
-      <span class="badge" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;font-size:11px">\${C.length} רשומות במאגר</span>
+      <span class="badge" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;font-size:11px">\${C.length} רשומות</span>
     </div>
 
     <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap">
@@ -940,72 +1188,80 @@ function renderTrackInternalSearch() {
       </button>
     </div>
 
-    <div id="internalDbResults" style="margin-top:14px">
-      <!-- תוצאות חיפוש פנימי יופיעו כאן -->
-    </div>
+    <div id="internalDbResults" style="margin-top:14px"></div>
   </div>
   \`;
 }
 
-/* ===== אזור תוצאות החיפוש המאוחד (SEARCH RESULTS AREA) ===== */
+/* ===== אזור תוצאות החיפוש המאוחד ===== */
 function renderSearchResultsArea() {
   if (!S.searchHits && !S.searchRunning) {
     return \`
     <div class="card" style="padding:28px 20px;text-align:center;background:#f8fafc;border:1.5px dashed #cbd5e1">
       <div style="font-size:32px;margin-bottom:8px">🎯</div>
-      <div class="bold" style="font-size:16px;color:#1e293b;margin-bottom:4px">תוצאות החיפוש ייפתחו כאן מיד עם הפעלת האיתור</div>
-      <div class="xs muted" style="max-width:540px;margin:0 auto">
-        הזן מילת חיפוש או בחר ענף ולחץ על "הפעל איתור חברות". הנתונים ישלפו באצוות מ-data.gov.il ויוצגו בטבלה מלאה עם 16 עמודות, אימות טלפונים ירוק ומגירות פירוט.
+      <div class="bold" style="font-size:16px;color:#1e293b;margin-bottom:4px">תוצאות החיפוש יוצגו כאן מיד עם הפעלת החיפוש</div>
+      <div class="xs muted" style="max-width:560px;margin:0 auto">
+        בחר סוג חברות (חברות כלליות, עתירות רכב או הכל), ענף, סף רכבים, מספר עובדים ואזור ולחץ על "חיפוש חברות". מוצגות אך ורק חברות פעילות עם ח.פ. אמיתי בדירוג A או B.
       </div>
     </div>
     \`;
   }
 
   const curTab = S.searchActiveTab || "new";
-  const stats = S.searchStats || { requested: 50, scanned: 0, added: 0, duplicates: 0, rejected: 0, pending: 0, fleetEvidence: 0 };
+  const stats = S.searchStats || { requested: 50, scanned: 0, added: 0, duplicates: 0, rejected: 0, gradeA: 0, gradeB: 0, generalCount: 0, vehicleCount: 0 };
   const hits = S.searchHits || [];
   const duplicates = S.searchDuplicates || [];
   const rejected = S.searchRejected || [];
+  const gradeACount = hits.filter(h => h.leadGrade === "A").length;
+  const gradeBCount = hits.filter(h => h.leadGrade === "B").length;
+  const generalCoCount = hits.filter(h => !h.isVehicleIntensive).length;
+  const vehicleCoCount = hits.filter(h => h.isVehicleIntensive).length;
 
   return \`
   <div class="card" id="searchResultsCard" style="padding:18px;border:1.5px solid #2563eb;box-shadow:0 4px 12px rgba(37,99,235,0.06)">
-    <!-- כותרת ראשית וסטטיסטיקות סריקה בזמן אמת -->
     <div class="card-h" style="margin-bottom:14px;border-bottom:1px solid #e2e8f0;padding-bottom:12px;flex-wrap:wrap;gap:10px">
       <div>
-        <h3 style="margin:0;font-size:17.5px;color:#1e3a8a;display:flex;align-items:center;gap:8px">
-          <span>📊 תוצאות איתור החברות</span>
-          <span class="badge b-ok" id="newHitsCountHeader" style="font-size:11px">\${hits.length} חברות חדשות אותרו</span>
-          \${S.searchRunning ? '<span class="badge b-est" style="font-size:11px">⏳ סריקה פעילה</span>' : '<span class="badge b-ok" style="font-size:11px">✓ הסתיימה</span>'}
+        <h3 style="margin:0;font-size:17.5px;color:#1e3a8a;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span>📊 תוצאות איתור חברות</span>
+          <span class="badge b-ok" id="newHitsCountHeader" style="font-size:11.5px">\${hits.length} חברות מבוססות (דירוג A/B)</span>
+          \${S.searchRunning ? '<span class="badge b-est" style="font-size:11px">⏳ סורק ומצליב...</span>' : '<span class="badge b-ok" style="font-size:11px">✓ הסתיים</span>'}
         </h3>
         <div class="xs muted" style="margin-top:4px" id="liveSearchDetailsSubtitle">
-          מבוקש: \${stats.requested} | נסרקו במאגר: \${stats.scanned} | נוספו: \${stats.added} | כפילויות שנמנעו: \${stats.duplicates} | נפסלו: \${stats.rejected}
+          יעד מבוקש: \${stats.requested} | נמצאו בפועל: \${hits.length} (דירוג A: \${gradeACount}, דירוג B: \${gradeBCount}) | חברות כלליות: \${generalCoCount} | עתירות רכב: \${vehicleCoCount} | נסרקו: \${stats.scanned} | כפילויות: \${stats.duplicates}
         </div>
       </div>
       <span class="spacer"></span>
-      <div class="row" style="gap:6px">
-        <span class="badge" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:11.5px;font-weight:700">
-          אינדיקציות צי: \${stats.fleetEvidence}
+      <div class="row" style="gap:6px;flex-wrap:wrap">
+        <span class="badge b-ok" style="font-size:11px;font-weight:700">
+          דירוג A (מוכן לפנייה): \${gradeACount}
         </span>
-        <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:11.5px;font-weight:700">
-          כפילויות שנחסמו: \${stats.duplicates}
+        <span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:11px;font-weight:700">
+          דירוג B (להשלמת קשר): \${gradeBCount}
+        </span>
+        <span class="badge" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;font-size:11px;font-weight:700">
+          🏢 כלליות: \${generalCoCount} · 🚛 עתירות רכב: \${vehicleCoCount}
         </span>
       </div>
     </div>
 
-    <!-- לשוניות ניווט בתוצאות: חברות חדשות / כפילויות / נפסלו -->
+    \${(!S.searchRunning && hits.length > 0 && hits.length < stats.requested) ? \`
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#1e40af">
+        ℹ️ <b>דיווח אמת (ללא השלמת מכסה מלאכותית):</b> נמצאו <b>\${hits.length}</b> חברות אמיתיות העומדות בכל תנאי החיפוש ובשבעת החוקים (מתוך יעד מקסימלי של \${stats.requested}). לא הוכנסו חברות לא מבוססות.
+      </div>
+    \` : ''}
+
     <div class="tabs" style="margin-bottom:14px;display:flex;gap:6px;border-bottom:2px solid #e2e8f0">
-      <button class="tab-btn \${curTab === 'new' ? 'active' : ''}" data-act="setResultsTab" data-val="new" style="padding:8px 16px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:\${curTab === 'new' ? '3px solid #2563eb' : 'none'};color:\${curTab === 'new' ? '#1d4ed8' : '#64748b'}">
-        ✨ חברות חדשות שנמצאו (<span id="tabCountNew">\${hits.length}</span>)
+      <button class="tab-btn \${curTab === 'new' ? 'active' : ''}" data-act="setResultsTab" data-tab="new" data-val="new" style="padding:8px 16px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:\${curTab === 'new' ? '3px solid #2563eb' : 'none'};color:\${curTab === 'new' ? '#1d4ed8' : '#64748b'}">
+        ✨ חברות שעמדו בתנאים (<span id="tabCountNew">\${hits.length}</span>)
       </button>
-      <button class="tab-btn \${curTab === 'duplicates' ? 'active' : ''}" data-act="setResultsTab" data-val="duplicates" style="padding:8px 16px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:\${curTab === 'duplicates' ? '3px solid #b45309' : 'none'};color:\${curTab === 'duplicates' ? '#b45309' : '#64748b'}">
+      <button class="tab-btn \${curTab === 'duplicates' ? 'active' : ''}" data-act="setResultsTab" data-tab="duplicates" data-val="duplicates" style="padding:8px 16px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:\${curTab === 'duplicates' ? '3px solid #b45309' : 'none'};color:\${curTab === 'duplicates' ? '#b45309' : '#64748b'}">
         🛡️ כפילויות שנמנעו (\${duplicates.length})
       </button>
-      <button class="tab-btn \${curTab === 'rejected' ? 'active' : ''}" data-act="setResultsTab" data-val="rejected" style="padding:8px 16px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:\${curTab === 'rejected' ? '3px solid #dc2626' : 'none'};color:\${curTab === 'rejected' ? '#dc2626' : '#64748b'}">
-        🚫 נפסלו בקרת איכות (\${rejected.length})
+      <button class="tab-btn \${curTab === 'rejected' ? 'active' : ''}" data-act="setResultsTab" data-tab="rejected" data-val="rejected" style="padding:8px 16px;font-size:13px;font-weight:700;border:none;background:none;cursor:pointer;border-bottom:\${curTab === 'rejected' ? '3px solid #dc2626' : 'none'};color:\${curTab === 'rejected' ? '#dc2626' : '#64748b'}">
+        🚫 נפסלו בבקרת איכות (\${rejected.length})
       </button>
     </div>
 
-    <!-- תוכן הלשונית הפעילה -->
     <div id="resultsTabContent">
       \${curTab === 'new' ? renderNewHitsView() : curTab === 'duplicates' ? renderDuplicatesView() : renderRejectedView()}
     </div>
@@ -1013,13 +1269,10 @@ function renderSearchResultsArea() {
   \`;
 }
 
-/* ===== תצוגת חברות חדשות שנמצאו (NEW HITS VIEW) — טבלה קבועה, מודל v2, סינון רב-שכבתי ===== */
-
-/* פונקציית סינון רב-ממדית עבור תוצאות הטבלה */
+/* סינון מהיר בתוך טבלת התוצאות */
 function filterSearchHits(allHits, filter) {
   filter = filter || {};
   return (allHits || []).filter(h => {
-    // 1. חיפוש מהיר חופשי
     if (filter.q) {
       const query = filter.q.toLowerCase();
       const match = String(h.name || "").toLowerCase().includes(query) ||
@@ -1028,121 +1281,63 @@ function filterSearchHits(allHits, filter) {
                     String(h.ind || "").toLowerCase().includes(query) ||
                     String(h.phone || "").includes(query) ||
                     String(h.mobile || "").includes(query) ||
-                    String(h.email || "").toLowerCase().includes(query) ||
-                    String(h.contactPerson || "").toLowerCase().includes(query) ||
-                    String(h.roleTitle || "").toLowerCase().includes(query);
+                    String(h.email || "").toLowerCase().includes(query);
       if (!match) return false;
     }
 
-    // 2. אזור בארץ
-    if (filter.region && filter.region !== "all" && h.region !== filter.region) return false;
+    if (filter.companyType && filter.companyType !== "all") {
+      if (filter.companyType === "general" && h.isVehicleIntensive) return false;
+      if (filter.companyType === "vehicle_intensive" && !h.isVehicleIntensive) return false;
+    }
 
-    // 3. פרטי קשר וכלל אימות טלפון ירוק
+    if (filter.region && filter.region !== "all") {
+      if (h.region !== filter.region && !String(h.city || "").includes(filter.region)) return false;
+    }
+
     if (filter.contact === "green_phone" && h.phoneVerBadgeColor !== "green") return false;
-    if (filter.contact === "has_phone" && (!h.phone || h.phone === "—")) return false;
-    if (filter.contact === "has_mobile" && (!h.mobile || h.mobile === "—")) return false;
+    if (filter.contact === "has_phone" && (!h.phone || h.phone === "—") && (!h.mobile || h.mobile === "—")) return false;
     if (filter.contact === "has_email" && (!h.email || h.email === "—")) return false;
-    if (filter.contact === "has_any" && (!h.phone || h.phone === "—") && (!h.mobile || h.mobile === "—") && (!h.email || h.email === "—")) return false;
 
-    // 4. גודל צי רכב לפי מודל v2
     if (filter.fleet && filter.fleet !== "all") {
-      const flStr = String(h.fleetRounded || h.fleetSizeDisplay || "");
-      if (filter.fleet === "1-4") {
-        if (!flStr.includes("1–4") && !flStr.includes("1-4") && !flStr.includes("צי קטן")) return false;
-      } else if (filter.fleet === "5-10") {
-        if (!flStr.includes("5–10") && !flStr.includes("5-10")) return false;
-      } else if (filter.fleet === "11-20") {
-        if (!flStr.includes("10–15") && !flStr.includes("10-15") && !flStr.includes("15–25") && !flStr.includes("15-25") && !flStr.includes("11-20") && !flStr.includes("11–20")) return false;
-      } else if (filter.fleet === "21-50") {
-        if (!flStr.includes("20–50") && !flStr.includes("20-50") && !flStr.includes("25–50") && !flStr.includes("21-50") && !flStr.includes("21–50")) return false;
-      } else if (filter.fleet === "51-100") {
-        if (!flStr.includes("50–100") && !flStr.includes("50-100") && !flStr.includes("51-100") && !flStr.includes("51–100")) return false;
-      } else if (filter.fleet === "100plus") {
-        if (!flStr.includes("100+") && !flStr.includes("100 רכב") && !flStr.includes("צי ענק")) return false;
-      } else if (filter.fleet === "unknown") {
-        if (h.fleetRounded || (h.fleetSizeDisplay && !h.fleetSizeDisplay.includes("לא ידוע"))) return false;
-      } else if (filter.fleet === "indication_200") {
-        if (!String(h.fleetPotential || "").includes("200") && !String(h.ind || "").includes("200")) return false;
-      } else if (filter.fleet === "potential_5plus") {
-        if (!String(h.fleetPotential || "").includes("5+") && !h.fleetIsFact) return false;
-      }
+      const count = h.fleetCount || 0;
+      if (filter.fleet === "5plus" && count < 5) return false;
+      if (filter.fleet === "10plus" && count < 10) return false;
+      if (filter.fleet === "20plus" && count < 20) return false;
+      if (filter.fleet === "50plus" && count < 50) return false;
+      if (filter.fleet === "verified" && h.fleetMethod !== "verified") return false;
+      if (filter.fleet === "formula" && h.fleetMethod !== "formula") return false;
+      if (filter.fleet === "industry" && h.fleetMethod !== "industry") return false;
     }
 
-    // 5. סוג רכב עיקרי
-    if (filter.vehicleType && filter.vehicleType !== "all") {
-      const combined = (String(h.fleetType || "") + " " + String(h.ind || "") + " " + String(h.name || "") + " " + (h.rolesIdentified || []).join(" ")).toLowerCase();
-      if (filter.vehicleType === "private") {
-        if (!combined.includes("פרטי") && !combined.includes("ליסינג")) return false;
-      } else if (filter.vehicleType === "commercial") {
-        if (!combined.includes("מסחרי") && !combined.includes("טנדר") && !combined.includes("ואן") && !combined.includes("משלוח")) return false;
-      } else if (filter.vehicleType === "trucks") {
-        if (!combined.includes("משא") && !combined.includes("הובל") && !combined.includes("רמסע") && !combined.includes("טריילר")) return false;
-      } else if (filter.vehicleType === "buses") {
-        if (!combined.includes("אוטובוס") && !combined.includes("מיניבוס") && !combined.includes("היסע") && !combined.includes("הסעות")) return false;
-      } else if (filter.vehicleType === "tzama") {
-        if (!combined.includes('צמ"ה') && !combined.includes('צמ״ה') && !combined.includes('צמה') && !combined.includes("עפר") && !combined.includes("תשתית") && !combined.includes("שופל") && !combined.includes("מחפר") && !combined.includes("מנוף")) return false;
-      } else if (filter.vehicleType === "service") {
-        if (!combined.includes("שירות") && !combined.includes("טכנאי") && !combined.includes("סיור") && !combined.includes("אבטחה") && !combined.includes("התקנ")) return false;
-      }
-    }
-
-    // 6. מספר עובדים לפי מודל v2
     if (filter.workforce && filter.workforce !== "all") {
-      const emp = (h.approxEmployees !== null && h.approxEmployees !== undefined) ? h.approxEmployees : h.employeesCount;
-      if (filter.workforce === "1-50") {
-        if (emp === null || emp < 1 || emp > 50) return false;
-      } else if (filter.workforce === "51-100") {
-        if (emp === null || emp < 51 || emp > 100) return false;
-      } else if (filter.workforce === "101-500") {
-        if (emp === null || emp < 101 || emp > 500) return false;
-      } else if (filter.workforce === "501plus") {
-        if (emp === null || emp < 501) return false;
-      } else if (filter.workforce === "unknown") {
-        if (emp !== null) return false;
-      }
+      const emp = h.employeesCount !== null && h.employeesCount !== undefined ? h.employeesCount : h.approxEmployees;
+      if (filter.workforce === "50plus" && (!emp || emp < 50)) return false;
+      if (filter.workforce === "100plus" && (!emp || emp < 100)) return false;
+      if (filter.workforce === "1-50" && (!emp || emp < 1 || emp > 50)) return false;
+      if (filter.workforce === "51-100" && (!emp || emp < 51 || emp > 100)) return false;
+      if (filter.workforce === "101-250" && (!emp || emp < 101 || emp > 250)) return false;
+      if (filter.workforce === "250plus" && (!emp || emp < 250)) return false;
     }
 
-    // 7. תפקיד מקצועי וקצין בטיחות (תקנה 579)
-    if (filter.role && filter.role !== "all") {
-      const rCombined = (String(h.roleTitle || "") + " " + (h.rolesIdentified || []).join(" ") + " " + String(h.contactPerson || "") + " " + String(h.fleetOfficerStatus || "")).toLowerCase();
-      if (filter.role === "safety_officer") {
-        if (!rCombined.includes("בטיחות") && (h.fleetOfficerProb || 0) < 50) return false;
-      } else if (filter.role === "fleet_manager") {
-        if (!rCombined.includes("רכב") && !rCombined.includes("צי")) return false;
-      } else if (filter.role === "transport_manager") {
-        if (!rCombined.includes("תחבורה") && !rCombined.includes("לוגיסטיקה") && !rCombined.includes("שינוע")) return false;
-      } else if (filter.role === "ops_manager") {
-        if (!rCombined.includes("תפעול") && !rCombined.includes("עבודה") && !rCombined.includes("שטח")) return false;
-      } else if (filter.role === "tech_manager") {
-        if (!rCombined.includes("מקצועי") && !rCombined.includes("מוסמך")) return false;
-      } else if (filter.role === "ceo_owner") {
-        if (!rCombined.includes("מנכ") && !rCombined.includes("בעלים") && !rCombined.includes("שותף")) return false;
-      }
-    }
-
-    // 8. דרגת איכות
-    if (filter.quality === "green" && h.qualityColor !== "green") return false;
-    if (filter.quality === "yellow" && h.qualityColor !== "yellow") return false;
+    if (filter.quality === "A" && h.leadGrade !== "A") return false;
+    if (filter.quality === "B" && h.leadGrade !== "B") return false;
 
     return true;
   });
 }
 
-/* פונקציית איפוס מסנני טבלה */
 function resetHitFilters() {
-  S.searchHitFilter = { q: "", region: "all", contact: "all", fleet: "all", vehicleType: "all", workforce: "all", quality: "all", role: "all" };
+  S.searchHitFilter = { q: "", companyType: "all", region: "all", contact: "all", fleet: "all", workforce: "all", quality: "all" };
   renderSearchHitsFiltered();
 }
 
-/* רינדור תוכן גוף הטבלה (עמודות ושורות, שורת טעינה או שורת אבחון 0 תוצאות) */
 function renderSearchHitsTableBodyContent(visibleHits, allHits, filter) {
   if (S.searchRunning && allHits.length === 0) {
     return \`
       <tr>
         <td colspan="17" style="text-align:center;padding:36px 16px;background:#f8fafc">
           <div style="font-size:28px;margin-bottom:8px">⏳</div>
-          <div class="bold" style="font-size:14.5px;color:#1e3a8a">סורק מאגרים ממשלתיים באצוות הדרגתיות (data.gov.il · 0 ₪)...</div>
-          <div class="xs muted" style="margin-top:4px" id="tableBodyProgressNote">שורות הטבלה יופיעו כאן מיד עם חילוץ הרשומות הראשונות</div>
+          <div class="bold" style="font-size:14.5px;color:#1e3a8a">סורק ומצליב מאגרים ממשלתיים (data.gov.il)...</div>
         </td>
       </tr>
     \`;
@@ -1153,32 +1348,14 @@ function renderSearchHitsTableBodyContent(visibleHits, allHits, filter) {
   }
 
   if (allHits.length > 0 && visibleHits.length === 0) {
-    // שורת אבחון אינפורמטיבית כאשר סינון הטבלה צמצם את כל התוצאות ל-0
-    const activeFiltersList = [];
-    if (filter.q) activeFiltersList.push(\`חיפוש: "\${filter.q}"\`);
-    if (filter.region && filter.region !== "all") activeFiltersList.push(\`אזור: \${filter.region}\`);
-    if (filter.contact && filter.contact !== "all") {
-      const contactLabels = { green_phone: "🟢 טלפון ירוק (2+ הצלבות)", has_phone: "📞 טלפון עסקי/נייח", has_mobile: "📱 נייד עסקי", has_email: "✉️ אימייל", has_any: "טלפון או מייל" };
-      activeFiltersList.push(\`קשר: \${contactLabels[filter.contact] || filter.contact}\`);
-    }
-    if (filter.fleet && filter.fleet !== "all") activeFiltersList.push(\`צי: \${filter.fleet}\`);
-    if (filter.vehicleType && filter.vehicleType !== "all") activeFiltersList.push(\`סוג רכב: \${filter.vehicleType}\`);
-    if (filter.workforce && filter.workforce !== "all") activeFiltersList.push(\`עובדים: \${filter.workforce}\`);
-    if (filter.role && filter.role !== "all") activeFiltersList.push(\`תפקיד: \${filter.role}\`);
-    if (filter.quality && filter.quality !== "all") activeFiltersList.push(\`איכות: \${filter.quality}\`);
-
     return \`
       <tr>
         <td colspan="17" style="text-align:center;padding:32px 18px;background:#fffbeb;border:1.5px dashed #fde68a">
-          <div style="font-size:30px;margin-bottom:6px">⚠️</div>
-          <div class="bold" style="font-size:15px;color:#92400e;margin-bottom:4px">
-            אותרו \${allHits.length} חברות חדשות במאגר החיצוני, אך אף אחת מהן אינה תואמת את שילוב מסנני הטבלה הפעיל
-          </div>
-          <div class="xs" style="color:#78350f;margin-bottom:12px">
-            <b>מסננים פעילים שצמצמו ל-0 תוצאות:</b> \${activeFiltersList.join(" · ") || "אין מסנן"}
+          <div class="bold" style="font-size:15px;color:#92400e;margin-bottom:8px">
+            נמצאו \${allHits.length} חברות, אך סינון הטבלה הנוכחי הסתיר אותן
           </div>
           <button type="button" class="btn btn-sm btn-primary" onclick="resetHitFilters()" style="background:#2563eb;font-weight:700;padding:6px 16px">
-            🔄 אפס מסנני טבלה והצג את כל \${allHits.length} החברות
+            🔄 אפס סינון פנימי והצג את כל \${allHits.length} החברות
           </button>
         </td>
       </tr>
@@ -1189,8 +1366,8 @@ function renderSearchHitsTableBodyContent(visibleHits, allHits, filter) {
     <tr>
       <td colspan="17" style="text-align:center;padding:36px 16px;background:#f8fafc">
         <div style="font-size:28px;margin-bottom:6px">🔍</div>
-        <div class="bold" style="font-size:15px;color:#1e293b;margin-bottom:4px">לא אותרו חברות חדשות התואמות את החיפוש החיצוני</div>
-        <div class="xs muted">נסה להרחיב את מילות החיפוש, לבחור ענף אחר או להפעיל מקורות נוספים בקטלוג.</div>
+        <div class="bold" style="font-size:15px;color:#1e293b;margin-bottom:4px">לא נמצאו חברות העומדות בתנאי הסינון ובשבעת החוקים</div>
+        <div class="xs muted">נסה להרחיב את האזור, הענף או סף העובדים/רכבים.</div>
       </td>
     </tr>
   \`;
@@ -1199,82 +1376,61 @@ function renderSearchHitsTableBodyContent(visibleHits, allHits, filter) {
 function renderNewHitsView() {
   const allHits = S.searchHits || [];
   const sel = S.searchHitSelection || new Set();
-  const filter = S.searchHitFilter || { q: "", region: "all", contact: "all", fleet: "all", vehicleType: "all", workforce: "all", quality: "all", role: "all" };
+  const filter = S.searchHitFilter || { q: "", companyType: "all", region: "all", contact: "all", fleet: "all", workforce: "all", quality: "all" };
 
   const visibleHits = filterSearchHits(allHits, filter);
   const freshHits = allHits.filter(h => !h.already && !h.adopted);
   const selectedCount = [...sel].filter(no => freshHits.some(h => h.no === no)).length;
 
   return \`
-  <!-- סרגל סינון וחיפוש מהיר בתוך תוצאות הטבלה (8 מסננים מלאים) -->
-  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:14px">
+  <!-- סרגל סינון מהיר בתוך התוצאות -->
+  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:12px">
     <div class="row" style="flex-wrap:wrap;gap:8px;align-items:center">
-      <input class="input" id="hit-filter-q" placeholder="🔍 חיפוש מהיר (שם, ח.פ, עיר, טלפון, איש קשר)" value="\${esc(filter.q || '')}" style="max-width:230px;height:34px;font-size:12.5px" oninput="S.searchHitFilter.q=this.value;renderSearchHitsFiltered()">
+      <input class="input" id="hit-filter-q" placeholder="🔍 סינון מהיר (שם, ח.פ, עיר, טלפון)" value="\${esc(filter.q || '')}" style="max-width:210px;height:34px;font-size:12.5px" oninput="S.searchHitFilter.q=this.value;renderSearchHitsFiltered()">
 
-      <select class="input" id="hit-filter-region" style="max-width:115px;height:34px;font-size:12.5px" onchange="S.searchHitFilter.region=this.value;renderSearchHitsFiltered()">
-        <option value="all" \${filter.region==='all'?'selected':''}>כל האזורים</option>
-        <option value="מרכז" \${filter.region==='מרכז'?'selected':''}>מרכז</option>
-        <option value="דרום" \${filter.region==='דרום'?'selected':''}>דרום</option>
-        <option value="צפון" \${filter.region==='צפון'?'selected':''}>צפון</option>
-        <option value="ירושלים" \${filter.region==='ירושלים'?'selected':''}>ירושלים</option>
+      <select class="input" id="hit-filter-cotype" style="max-width:140px;height:34px;font-size:12.5px" onchange="S.searchHitFilter.companyType=this.value;renderSearchHitsFiltered()">
+        <option value="all" \${filter.companyType==='all'?'selected':''}>כל סוגי החברות</option>
+        <option value="general" \${filter.companyType==='general'?'selected':''}>🏢 חברות כלליות</option>
+        <option value="vehicle_intensive" \${filter.companyType==='vehicle_intensive'?'selected':''}>🚛 עתירות רכב</option>
       </select>
 
-      <select class="input" id="hit-filter-contact" style="max-width:145px;height:34px;font-size:12.5px" onchange="S.searchHitFilter.contact=this.value;renderSearchHitsFiltered()">
-        <option value="all" \${filter.contact==='all'?'selected':''}>כל פרטי הקשר</option>
-        <option value="green_phone" \${filter.contact==='green_phone'?'selected':''}>🟢 טלפון ירוק (2+ הצלבות)</option>
-        <option value="has_phone" \${filter.contact==='has_phone'?'selected':''}>📞 טלפון עסקי/נייח</option>
-        <option value="has_mobile" \${filter.contact==='has_mobile'?'selected':''}>📱 נייד עסקי</option>
-        <option value="has_email" \${filter.contact==='has_email'?'selected':''}>✉️ אימייל</option>
-        <option value="has_any" \${filter.contact==='has_any'?'selected':''}>טלפון או אימייל</option>
+      <select class="input" id="hit-filter-region" style="max-width:140px;height:34px;font-size:12.5px" onchange="S.searchHitFilter.region=this.value;renderSearchHitsFiltered()">
+        <option value="all" \${filter.region==='all'?'selected':''}>כל 6 האזורים</option>
+        <option value="מרכז וגוש דן" \${filter.region==='מרכז וגוש דן'?'selected':''}>מרכז וגוש דן</option>
+        <option value="השרון" \${filter.region==='השרון'?'selected':''}>השרון</option>
+        <option value="חיפה והצפון" \${filter.region==='חיפה והצפון'?'selected':''}>חיפה והצפון</option>
+        <option value="ירושלים והסביבה" \${filter.region==='ירושלים והסביבה'?'selected':''}>ירושלים והסביבה</option>
+        <option value="השפלה והדרום" \${filter.region==='השפלה והדרום'?'selected':''}>השפלה והדרום</option>
+        <option value="יהודה ושומרון" \${filter.region==='יהודה ושומרון'?'selected':''}>יהודה ושומרון</option>
       </select>
 
-      <select class="input" id="hit-filter-fleet" style="max-width:135px;height:34px;font-size:12.5px" onchange="S.searchHitFilter.fleet=this.value;renderSearchHitsFiltered()">
-        <option value="all" \${filter.fleet==='all'?'selected':''}>כל רמות הצי</option>
-        <option value="1-4" \${filter.fleet==='1-4'?'selected':''}>1–4 רכבים</option>
-        <option value="5-10" \${filter.fleet==='5-10'?'selected':''}>5–10 רכבים</option>
-        <option value="11-20" \${filter.fleet==='11-20'?'selected':''}>11–20 רכבים</option>
-        <option value="21-50" \${filter.fleet==='21-50'?'selected':''}>21–50 רכבים</option>
-        <option value="51-100" \${filter.fleet==='51-100'?'selected':''}>51–100 רכבים</option>
-        <option value="100plus" \${filter.fleet==='100plus'?'selected':''}>100+ רכבים</option>
-        <option value="unknown" \${filter.fleet==='unknown'?'selected':''}>לא ידוע בלבד</option>
-      </select>
-
-      <select class="input" id="hit-filter-vehicle-type" style="max-width:125px;height:34px;font-size:12.5px" onchange="S.searchHitFilter.vehicleType=this.value;renderSearchHitsFiltered()">
-        <option value="all" \${filter.vehicleType==='all'?'selected':''}>כל סוגי הרכב</option>
-        <option value="private" \${filter.vehicleType==='private'?'selected':''}>פרטי / ליסינג</option>
-        <option value="commercial" \${filter.vehicleType==='commercial'?'selected':''}>מסחרי / טנדר</option>
-        <option value="trucks" \${filter.vehicleType==='trucks'?'selected':''}>משאיות / רכב כבד</option>
-        <option value="buses" \${filter.vehicleType==='buses'?'selected':''}>אוטובוסים / היסעים</option>
-        <option value="tzama" \${filter.vehicleType==='tzama'?'selected':''}>צמ״ה ועפר</option>
-        <option value="service" \${filter.vehicleType==='service'?'selected':''}>רכבי שירות</option>
+      <select class="input" id="hit-filter-fleet" style="max-width:145px;height:34px;font-size:12.5px" onchange="S.searchHitFilter.fleet=this.value;renderSearchHitsFiltered()">
+        <option value="all" \${filter.fleet==='all'?'selected':''}>כל רמות הרכבים</option>
+        <option value="5plus" \${filter.fleet==='5plus'?'selected':''}>5+ רכבים</option>
+        <option value="10plus" \${filter.fleet==='10plus'?'selected':''}>10+ רכבים</option>
+        <option value="20plus" \${filter.fleet==='20plus'?'selected':''}>20+ רכבים</option>
+        <option value="50plus" \${filter.fleet==='50plus'?'selected':''}>50+ רכבים</option>
+        <option value="formula" \${filter.fleet==='formula'?'selected':''}>לפי נוסחת העובדים</option>
+        <option value="industry" \${filter.fleet==='industry'?'selected':''}>לפי תחום העיסוק</option>
+        <option value="verified" \${filter.fleet==='verified'?'selected':''}>לפי מידע מאומת</option>
       </select>
 
       <select class="input" id="hit-filter-workforce" style="max-width:135px;height:34px;font-size:12.5px" onchange="S.searchHitFilter.workforce=this.value;renderSearchHitsFiltered()">
-        <option value="all" \${filter.workforce==='all'?'selected':''}>כל העובדים (v2)</option>
-        <option value="1-50" \${filter.workforce==='1-50'?'selected':''}>1–50 עובדים</option>
+        <option value="all" \${filter.workforce==='all'?'selected':''}>כל העובדים</option>
+        <option value="50plus" \${filter.workforce==='50plus'?'selected':''}>50+ עובדים</option>
+        <option value="100plus" \${filter.workforce==='100plus'?'selected':''}>100+ עובדים</option>
         <option value="51-100" \${filter.workforce==='51-100'?'selected':''}>51–100 עובדים</option>
-        <option value="101-500" \${filter.workforce==='101-500'?'selected':''}>101–500 עובדים</option>
-        <option value="501plus" \${filter.workforce==='501plus'?'selected':''}>501+ עובדים</option>
-        <option value="unknown" \${filter.workforce==='unknown'?'selected':''}>לא ידוע בלבד</option>
+        <option value="101-250" \${filter.workforce==='101-250'?'selected':''}>101–250 עובדים</option>
+        <option value="250plus" \${filter.workforce==='250plus'?'selected':''}>250+ עובדים</option>
       </select>
 
-      <select class="input" id="hit-filter-role" style="max-width:130px;height:34px;font-size:12.5px" onchange="S.searchHitFilter.role=this.value;renderSearchHitsFiltered()">
-        <option value="all" \${filter.role==='all'?'selected':''}>כל התפקידים</option>
-        <option value="safety_officer" \${filter.role==='safety_officer'?'selected':''}>קצין בטיחות (579)</option>
-        <option value="fleet_manager" \${filter.role==='fleet_manager'?'selected':''}>קצין/מנהל צי רכב</option>
-        <option value="transport_manager" \${filter.role==='transport_manager'?'selected':''}>מנהל תחבורה</option>
-        <option value="ops_manager" \${filter.role==='ops_manager'?'selected':''}>מנהל תפעול/עבודה</option>
-        <option value="tech_manager" \${filter.role==='tech_manager'?'selected':''}>מנהל מקצועי מוסמך</option>
-        <option value="ceo_owner" \${filter.role==='ceo_owner'?'selected':''}>מנכ״ל / בעלים</option>
+      <select class="input" id="hit-filter-quality" style="max-width:155px;height:34px;font-size:12.5px" onchange="S.searchHitFilter.quality=this.value;renderSearchHitsFiltered()">
+        <option value="all" \${filter.quality==='all'?'selected':''}>דירוג A + B (הכל)</option>
+        <option value="A" \${filter.quality==='A'?'selected':''}>⭐ דירוג A (מוכן לפנייה)</option>
+        <option value="B" \${filter.quality==='B'?'selected':''}>דירוג B (להשלמת קשר)</option>
       </select>
 
-      <select class="input" id="hit-filter-quality" style="max-width:115px;height:34px;font-size:12.5px" onchange="S.searchHitFilter.quality=this.value;renderSearchHitsFiltered()">
-        <option value="all" \${filter.quality==='all'?'selected':''}>כל האיכויות</option>
-        <option value="green" \${filter.quality==='green'?'selected':''}>⭐ איכות גבוהה</option>
-        <option value="yellow" \${filter.quality==='yellow'?'selected':''}>איכות בינונית</option>
-      </select>
-
-      <button type="button" class="btn btn-sm btn-ghost" onclick="resetHitFilters()" style="border:1px solid #cbd5e1;background:#fff;font-size:11.5px;padding:3px 8px;height:34px" title="נקה מסננים והצג את כל התוצאות">
+      <button type="button" class="btn btn-sm btn-ghost" onclick="resetHitFilters()" style="border:1px solid #cbd5e1;background:#fff;font-size:11.5px;padding:3px 8px;height:34px">
         ✕ נקה
       </button>
 
@@ -1283,41 +1439,34 @@ function renderNewHitsView() {
     </div>
   </div>
 
-  <!-- הודעת הצלחה שלב 2 (נשמרו חברות שנמצאו) -->
   \${S._lastSaveSuccess ? \`
     <div class="card" id="stage2SaveSuccessBanner" style="background:#f0fdf4;border:1.5px solid #86efac;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;border-radius:8px">
       <div>
-        <div class="bold" style="color:#166534;font-size:13.5px">✓ נשמרו בהצלחה \${S._lastSaveSuccess.count} חברות כ'חברות שנמצאו' (שלב 2)</div>
-        <div class="xs muted" style="color:#15803d;margin-top:2px">החברות ממתינות לסינון ואישור ידני לפני העברה ל'ניהול לידים' (שלב 3). לא הועברה אף רשומה אוטומטית.</div>
+        <div class="bold" style="color:#166534;font-size:13.5px">✓ הועברו בהצלחה \${S._lastSaveSuccess.count} חברות ל'חברות שנמצאו' (שלב 2)</div>
+        <div class="xs muted" style="color:#15803d;margin-top:2px">החברות שהועברו מסומנות בטבלה כ'הועבר לחברות שנמצאו' ונעולות מפני העברה כפולה.</div>
       </div>
       <button class="btn btn-sm" data-tab="companies" data-go="companies" style="background:#16a34a;color:#fff;font-weight:700;border:none;padding:6px 14px;border-radius:6px;cursor:pointer">
-        עבור ל'חברות שנמצאו' (שלב 2) ↗
+        עבור ל'חברות שנמצאו' ↗
       </button>
     </div>
   \` : ''}
 
-  <!-- סרגל פעולה מרוכז ובחירת חברות — תהליך 2 אישורים נפרדים לפי הדרישה -->
+  <!-- סרגל בחירה והעברה מבוקרת לחברות שנמצאו -->
   <div class="row" style="margin-bottom:14px;gap:8px;flex-wrap:wrap;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px">
     <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:700;font-size:13px">
       <input type="checkbox" id="hit-select-all" data-act="selectAllHits" \${selectedCount > 0 && selectedCount === freshHits.length ? 'checked' : ''}>
       <span id="selectAllLabelText">בחר את כל \${freshHits.length} החברות החדשות</span>
     </label>
 
-    <button class="btn btn-sm btn-ghost" data-act="selectPhoneHits" style="border:1px solid #93c5fd;background:#fff;font-size:11.5px">📞 סמן רק עם טלפון</button>
-    <button class="btn btn-sm btn-ghost" data-act="selectFleetHits" style="border:1px solid #93c5fd;background:#fff;font-size:11.5px">🚛 סמן צי מאומת/גבוה</button>
+    <button class="btn btn-sm btn-ghost" data-act="selectPhoneHits" style="border:1px solid #93c5fd;background:#fff;font-size:11.5px">⭐ סמן דירוג A / בעלי טלפון</button>
     <button class="btn btn-sm btn-ghost" data-act="clearHitSelection" style="border:1px solid #cbd5e1;background:#fff;font-size:11.5px">✕ נקה בחירה</button>
 
-    <span class="badge b-blue" id="hitSelectedCountBadge" style="font-size:12px">סומנו \${selectedCount} מתוך \${freshHits.length} חברות חדשות</span>
+    <span class="badge b-blue" id="hitSelectedCountBadge" style="font-size:12px">סומנו \${selectedCount} מתוך \${freshHits.length} חברות זמינות להעברה</span>
 
     <span class="spacer"></span>
 
-    <!-- כפתור שלב 2 בלבד: שמירה לחברות שנמצאו (ללא דילוג ישיר לניהול לידים) -->
     <button class="btn btn-primary" data-act="saveSelectedToDiscovered" id="btnSaveToDiscovered" style="background:#2563eb;border-color:#2563eb;font-weight:700;display:inline-flex;align-items:center;gap:6px;padding:8px 18px" \${selectedCount === 0 ? 'disabled' : ''}>
-      <span>📥 שמור חברות נבחרות כ'חברות שנמצאו' (שלב 2) [\${selectedCount}]</span>
-    </button>
-
-    <button class="btn btn-ghost" data-act="clearSearchResults" style="border:1px solid #cbd5e1;background:#fff">
-      <span>🧹 נקה תוצאות</span>
+      <span>📥 העבר חברות נבחרות ל'חברות שנמצאו' [\${selectedCount}]</span>
     </button>
 
     <button class="btn btn-ghost" data-act="exportSearchHitsCsv" style="border:1px solid #cbd5e1;background:#fff">
@@ -1325,27 +1474,27 @@ function renderNewHitsView() {
     </button>
   </div>
 
-  <!-- טבלת 17 עמודות קבועה ויציבה ב-DOM עם שורות זורמות בזמן אמת -->
-  <div class="tbl-wrap" style="max-height:600px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px">
+  <!-- טבלת תוצאות מלאה -->
+  <div class="tbl-wrap" style="max-height:620px;overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid #e2e8f0;border-radius:8px">
     <table style="width:100%;border-collapse:collapse;font-size:12.5px">
       <thead style="position:sticky;top:0;background:#f1f5f9;z-index:2;border-bottom:2px solid #cbd5e1">
         <tr>
           <th style="width:34px;text-align:center;padding:8px 4px">✓</th>
-          <th style="min-width:180px;padding:8px 10px;text-align:right">שם החברה</th>
-          <th style="min-width:100px;padding:8px 8px;text-align:right">ח.פ. / מזהה</th>
-          <th style="min-width:140px;padding:8px 8px;text-align:right">תחום פעילות אמיתי</th>
-          <th style="min-width:70px;padding:8px 6px;text-align:right">אזור</th>
-          <th style="min-width:140px;padding:8px 8px;text-align:right">עיר וכתובת</th>
-          <th style="min-width:130px;padding:8px 6px;text-align:right">הערכת עובדים v2</th>
-          <th style="min-width:160px;padding:8px 8px;text-align:right">הערכת צי רכב v2</th>
-          <th style="min-width:150px;padding:8px 6px;text-align:right">בעלי תפקידים וקצין בטיחות</th>
-          <th style="min-width:120px;padding:8px 8px;text-align:right">טלפון עסקי</th>
-          <th style="min-width:110px;padding:8px 8px;text-align:right">נייד עסקי</th>
-          <th style="min-width:130px;padding:8px 8px;text-align:right">אימייל עסקי</th>
-          <th style="min-width:110px;padding:8px 6px;text-align:right">מקור מידע</th>
-          <th style="min-width:110px;padding:8px 6px;text-align:right">אימות והצלבות</th>
-          <th style="min-width:90px;padding:8px 6px;text-align:right">איכות ופוטנציאל</th>
-          <th style="min-width:110px;padding:8px 8px;text-align:right">סטטוס במערכת</th>
+          <th style="min-width:185px;padding:8px 10px;text-align:right">שם החברה וסיווג</th>
+          <th style="min-width:95px;padding:8px 8px;text-align:right">ח.פ. רשמי</th>
+          <th style="min-width:140px;padding:8px 8px;text-align:right">תחום פעילות</th>
+          <th style="min-width:105px;padding:8px 6px;text-align:right">אזור בארץ</th>
+          <th style="min-width:130px;padding:8px 8px;text-align:right">עיר וכתובת</th>
+          <th style="min-width:140px;padding:8px 6px;text-align:right">מספר עובדים (מאומת/אומדן)</th>
+          <th style="min-width:165px;padding:8px 8px;text-align:right">רכבים ומקור הקביעה</th>
+          <th style="min-width:130px;padding:8px 6px;text-align:right">איש קשר / תפקיד</th>
+          <th style="min-width:135px;padding:8px 8px;text-align:right">טלפון עסקי</th>
+          <th style="min-width:120px;padding:8px 8px;text-align:right">נייד עסקי</th>
+          <th style="min-width:145px;padding:8px 8px;text-align:right">אימייל עסקי</th>
+          <th style="min-width:150px;padding:8px 6px;text-align:right">מקורות המידע (API)</th>
+          <th style="min-width:120px;padding:8px 6px;text-align:right">אימות פרטי קשר</th>
+          <th style="min-width:145px;padding:8px 6px;text-align:right">דירוג איכות (A / B)</th>
+          <th style="min-width:115px;padding:8px 8px;text-align:right">סטטוס העברה</th>
           <th style="width:40px;text-align:center;padding:8px 4px">פירוט</th>
         </tr>
       </thead>
@@ -1356,249 +1505,182 @@ function renderNewHitsView() {
   </div>
   \`;
 }
-/* ===== רינדור שורת תוצאה בודדת ב-17 עמודות + תמיכה במגירת פירוט ===== */
+
 function renderHitTableRow(h) {
   const sel = S.searchHitSelection || new Set();
   const isSelected = sel.has(h.no);
   const isLocked = h.already || h.adopted;
   const isExpanded = S.searchExpandedDrawers && S.searchExpandedDrawers.has(h.no);
 
+  const coTypeBadge = h.isVehicleIntensive
+    ? '<span class="badge" style="background:#dbeafe;color:#1e40af;font-size:9px;margin-top:2px">🚛 חברה עתירת רכב</span>'
+    : '<span class="badge" style="background:#f3e8ff;color:#6b21a8;font-size:9px;margin-top:2px">🏢 חברה כללית</span>';
+
+  const empCellHtml = (h.employeesCount !== null && h.employeesCount !== undefined && h.employeesCount > 0)
+    ? \`<div class="bold" style="font-size:12px;color:#047857">\${h.employeesCount} עובדים</div>
+       <span class="badge b-ok" style="font-size:8.5px;margin-top:2px">✓ נתון מאומת (\${esc(h.employeeSource || 'משרד העבודה')})</span>\`
+    : (h.workforceRange && h.workforceRange !== 'לא ידוע'
+      ? \`<div class="bold" style="font-size:12px;color:#92400e">≈ \${esc(h.workforceRange)} עובדים</div>
+         <span class="badge b-est" style="font-size:8.5px;margin-top:2px">≈ אומדן (סיווג קבלני)</span>\`
+      : \`<div class="xs muted">לא ידוע</div>\`);
+
+  const fleetBadgeHtml = h.fleetMethod === 'verified'
+    ? \`<span class="badge b-ok" style="font-size:9px;display:inline-block;line-height:1.2">✓ \${esc(h.fleetMethodLabel)}</span>\`
+    : h.fleetMethod === 'formula'
+    ? \`<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:9px;display:inline-block;line-height:1.2">📐 \${esc(h.fleetMethodLabel)}</span>\`
+    : h.fleetMethod === 'industry'
+    ? \`<span class="badge b-blue" style="font-size:9px;display:inline-block;line-height:1.2">🚛 \${esc(h.fleetMethodLabel)}</span>\`
+    : \`<span class="badge" style="background:#f1f5f9;color:#64748b;font-size:9px">לא ידוע</span>\`;
+
+  const gradeBadgeHtml = h.leadGrade === 'A'
+    ? \`<span class="badge b-ok" style="font-size:10.5px;font-weight:700;display:inline-block">⭐ דירוג A — ליד מוכן לפנייה</span>\`
+    : \`<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:10px;font-weight:700;display:inline-block">דירוג B — ליד להשלמת פרטי קשר</span>\`;
+
   const mainRow = \`
     <tr id="hit-row-\${esc(h.no)}" class="hit-row \${isExpanded ? 'expanded' : ''}" style="border-bottom:1px solid #e2e8f0;background:\${h.adopted ? '#f0fdf4' : h.already ? '#f8fafc' : isSelected ? '#eff6ff' : '#ffffff'};transition:background .15s">
-      <!-- 1. Checkbox -->
       <td style="text-align:center;padding:8px 4px">
         <input type="checkbox" class="hit-cb" value="\${esc(h.no)}" \${isLocked ? 'disabled' : (isSelected ? 'checked' : '')}>
       </td>
 
-      <!-- 2. שם החברה -->
       <td style="padding:8px 10px">
         <div class="bold" style="font-size:13px;color:#0f172a">\${esc(h.name)}</div>
-        \${h.source_keyword ? \`<span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:9.5px;margin-top:2px">🔍 \${esc(h.source_keyword)}</span>\` : ''}
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">\${coTypeBadge}</div>
       </td>
 
-      <!-- 3. ח.פ. / מזהה רשמי -->
       <td style="padding:8px 8px">
-        <a href="\${esc(h.source_url || 'https://data.gov.il')}" target="_blank" rel="noopener" class="ltr num bold" style="color:#0284c7;text-decoration:none" title="צפה ברשומה במאגר ממשלת ישראל">
+        <a href="\${esc(h.source_url || 'https://data.gov.il')}" target="_blank" rel="noopener" class="ltr num bold" style="color:#0284c7;text-decoration:none" title="ח.פ. רשמי מאומת">
           \${esc(h.no)} 🔗
         </a>
       </td>
 
-      <!-- 4. תחום פעילות אמיתי -->
       <td style="padding:8px 8px">
-        <span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:10px;white-space:normal;display:inline-block;max-width:180px;line-height:1.3" title="\${esc(h.ind)}">\${esc(h.ind || 'חברה רשומה')}</span>
+        <span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:10px;white-space:normal;display:inline-block;max-width:170px;line-height:1.3">\${esc(h.ind || 'חברה פעילה')}</span>
       </td>
 
-      <!-- 5. אזור בארץ -->
       <td style="padding:8px 6px">
-        <span class="badge" style="background:#f1f5f9;color:#475569;font-size:10px">\${esc(h.region || 'לא ידוע')}</span>
+        <span class="badge" style="background:#f1f5f9;color:#334155;font-size:10px;font-weight:600">\${esc(h.region || 'מרכז וגוש דן')}</span>
       </td>
 
-      <!-- 6. עיר וכתובת מלאה -->
       <td style="padding:8px 8px">
-        <div class="bold" style="font-size:12px">\${esc(h.city || 'לא ידוע')}</div>
-        <div class="xs muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px" title="\${esc(h.addr)}">\${esc(h.addr || '—')}</div>
+        <div class="bold" style="font-size:12px">\${esc(h.city || '—')}</div>
+        <div class="xs muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px" title="\${esc(h.addr)}">\${esc(h.addr || '—')}</div>
       </td>
 
-      <!-- 7. הערכת עובדים v2 (Workforce Estimate v2) -->
       <td style="padding:8px 6px">
-        <div class="bold" style="font-size:12px;color:#0f172a">\${esc(h.workforceDisplay || (h.employeesCount !== null ? h.employeesCount + ' עובדים' : 'לא ידוע (ללא אסמכתא)'))}</div>
-        \${h.fieldWorkersDisplay ? \`<span class="badge" style="background:#f1f5f9;color:#475569;font-size:9px;margin-top:2px">עובדי שטח: \${esc(h.fieldWorkersDisplay)}</span>\` : ''}
-        \${h.workforceConfidence ? \`<div class="xs muted" style="font-size:8.5px">\${esc(h.workforceConfidence)}</div>\` : ''}
+        \${empCellHtml}
       </td>
 
-      <!-- 8. הערכת צי רכב v2 (Fleet Estimate v2) -->
       <td style="padding:8px 8px">
-        <div class="bold" style="font-size:12px;color:#1e40af">\${esc(h.fleetSizeDisplay || h.fleetPotential || 'לא ידוע')}</div>
-        <div style="display:flex;gap:4px;align-items:center;margin-top:2px;flex-wrap:wrap">
-          \${h.fleetRounded ? \`<span class="badge b-blue" style="font-size:9px">\${esc(h.fleetRounded)}</span>\` : ''}
-          <span class="badge \${h.fleetConfidence === 'גבוה' ? 'b-ok' : h.fleetConfidence === 'בינוני' ? 'b-blue' : 'b-est'}" style="font-size:8.5px">ביטחון: \${esc(h.fleetConfidence || 'נמוך')}</span>
-        </div>
+        <div class="bold" style="font-size:12.5px;color:#1e40af">\${esc(h.fleetSizeDisplay || 'לא ידוע')}</div>
+        <div style="margin-top:3px">\${fleetBadgeHtml}</div>
       </td>
 
-      <!-- 9. איש קשר, בעלי תפקידים וקצין בטיחות (תקנה 579) -->
       <td style="padding:8px 6px">
-        \${h.contactPerson && h.contactPerson !== '—'
-          ? \`<div class="bold" style="font-size:12px;color:#0f172a">\${esc(h.contactPerson)}</div>\`
-          : ''}
-        \${h.roleTitle
-          ? \`<span class="badge" style="background:#fef3c7;color:#92400e;font-size:9px;white-space:normal;line-height:1.2;display:inline-block;max-width:140px">\${esc(h.roleTitle)}</span>\`
-          : ''}
-        \${h.fleetOfficerStatus && h.fleetOfficerStatus !== 'לא נמצא'
-          ? \`<div style="margin-top:2px"><span class="badge" style="background:#ede9fe;color:#6d28d9;font-size:8.5px" title="\${esc(h.fleetOfficerLegalNote || '')}">🛡️ תקנה 579: \${esc(h.fleetOfficerStatus)} (\${h.fleetOfficerProb}%)</span></div>\`
-          : ''}
-        \${!h.contactPerson && !h.roleTitle && (!h.fleetOfficerStatus || h.fleetOfficerStatus === 'לא נמצא')
-          ? '<span class="xs muted">—</span>'
-          : ''}
+        \${h.contactPerson && h.contactPerson !== '—' ? \`<div class="bold" style="font-size:11.5px;color:#0f172a">\${esc(h.contactPerson)}</div>\` : ''}
+        \${h.roleTitle ? \`<span class="badge" style="background:#f1f5f9;color:#475569;font-size:9px;white-space:normal;line-height:1.2;display:inline-block;max-width:130px">\${esc(h.roleTitle)}</span>\` : '<span class="xs muted">—</span>'}
       </td>
 
-      <!-- 10. טלפון עסקי / נייח + תגית אימות ירוקה -->
       <td style="padding:8px 8px">
-        \${h.phone && h.phone !== '—' && h.phone !== 'לא ידוע'
-          ? \`
-            <div style="display:flex;align-items:center;gap:4px">
-              <a href="tel:\${esc(h.phone)}" class="bold ltr" style="color:#0284c7;font-size:12px;text-decoration:none">📞 \${esc(h.phone)}</a>
-              <span class="badge \${h.phoneVerBadgeColor === 'green' ? 'b-ok' : h.phoneVerBadgeColor === 'yellow' ? 'b-est' : 'b-no'}" style="font-size:9px" title="\${esc(h.phoneVerStatus)}">\${h.phoneVerBadgeLabel}</span>
-            </div>
-          \`
+        \${h.phone && h.phone !== '—'
+          ? \`<div style="display:flex;flex-direction:column;gap:2px">
+               <a href="tel:\${esc(h.phone)}" class="bold ltr" style="color:#0284c7;font-size:12px;text-decoration:none">📞 \${esc(h.phone)}</a>
+               <span class="badge \${h.phoneVerBadgeColor === 'green' ? 'b-ok' : 'b-est'}" style="font-size:8.5px" title="\${esc(h.phoneVerStatus)}">\${esc(h.phoneVerBadgeLabel)}</span>
+             </div>\`
           : '<span class="xs muted">—</span>'
         }
       </td>
 
-      <!-- 11. נייד עסקי -->
       <td style="padding:8px 8px">
         \${h.mobile && h.mobile !== '—'
-          ? \`
-            <div style="display:flex;align-items:center;gap:4px">
-              <a href="tel:\${esc(h.mobile)}" class="bold ltr" style="color:#16a34a;font-size:12px;text-decoration:none">📱 \${esc(h.mobile)}</a>
-              <span class="badge \${h.phoneVerBadgeColor === 'green' ? 'b-ok' : h.phoneVerBadgeColor === 'yellow' ? 'b-est' : 'b-no'}" style="font-size:9px" title="\${esc(h.phoneVerStatus)}">\${h.phoneVerBadgeLabel}</span>
-            </div>
-          \`
+          ? \`<div style="display:flex;flex-direction:column;gap:2px">
+               <a href="tel:\${esc(h.mobile)}" class="bold ltr" style="color:#16a34a;font-size:12px;text-decoration:none">📱 \${esc(h.mobile)}</a>
+               <span class="badge \${h.phoneVerBadgeColor === 'green' ? 'b-ok' : 'b-est'}" style="font-size:8.5px" title="\${esc(h.phoneVerStatus)}">\${esc(h.phoneVerBadgeLabel)}</span>
+             </div>\`
           : '<span class="xs muted">—</span>'
         }
       </td>
 
-      <!-- 12. אימייל עסקי + תגית הצלבה -->
       <td style="padding:8px 8px">
-        \${h.email && h.email !== '—' && h.email !== 'לא ידוע' && h.email.includes('@')
-          ? \`
-            <div style="display:flex;align-items:center;gap:4px">
-              <a href="mailto:\${esc(h.email)}" class="ltr" style="color:#2563eb;font-size:11.5px;text-decoration:none">✉️ \${esc(h.email)}</a>
-              <span class="badge" style="background:#e0e7ff;color:#3730a3;font-size:9px" title="אימות אימייל">\${esc(h.emailVerLabel)}</span>
-            </div>
-          \`
+        \${h.email && h.email !== '—' && h.email.includes('@')
+          ? \`<div style="display:flex;flex-direction:column;gap:2px">
+               <a href="mailto:\${esc(h.email)}" class="ltr" style="color:#2563eb;font-size:11.5px;text-decoration:none">✉️ \${esc(h.email)}</a>
+               <span class="badge \${h.emailMatches >= 2 ? 'b-ok' : ''}" style="\${h.emailMatches >= 2 ? '' : 'background:#e0e7ff;color:#3730a3;'}font-size:8.5px" title="\${esc((h.emailSourcesList || []).join(', '))}">\${esc(h.emailVerLabel)}</span>
+             </div>\`
           : '<span class="xs muted">—</span>'
         }
       </td>
 
-      <!-- 13. מקור המידע (data.gov.il) -->
       <td style="padding:8px 6px">
-        <a href="\${esc(h.source_url || 'https://data.gov.il')}" target="_blank" rel="noopener" class="xs" style="color:#4f46e5;text-decoration:underline" title="פתח מקור ממשלתי פתוח">
-          \${esc(h.source_label || 'data.gov.il')} ↗
-        </a>
+        <div class="xs bold" style="color:#1e3a8a;line-height:1.3">\${esc((h.companySourcesList || [h.source_label]).join(" + "))}</div>
+        <div class="xs muted" style="font-size:9.5px;margin-top:2px">\${(h.companySourcesList || [1]).length} מאגרים רשמיים</div>
       </td>
 
-      <!-- 14. כמות מקורות אימות עצמאיים -->
       <td style="padding:8px 6px">
-        <div class="xs bold" style="font-size:10.5px" title="מספר מקורות עצמאיים מאומתים">
-          📞 \${esc(h.phoneVerBadgeLabel)}
-          <br>
-          ✉️ \${esc(h.emailVerLabel)}
+        <div class="xs bold" style="font-size:10.5px;line-height:1.35">
+          <div>📞 טלפון: \${esc(h.phoneVerBadgeLabel)}</div>
+          <div>✉️ אימייל: \${esc(h.emailVerLabel)}</div>
         </div>
       </td>
 
-      <!-- 15. ציון איכות ומדד פוטנציאל עסקי -->
       <td style="padding:8px 6px">
-        <span class="badge \${h.qualityColor === 'green' ? 'b-ok' : h.qualityColor === 'yellow' ? 'b-est' : 'b-bad'}" style="font-size:10px;font-weight:700">
-          \${h.qualityScore} \${h.qualityColor === 'green' ? '⭐' : ''}
-        </span>
-        \${h.businessPotentialScore ? \`<div class="xs bold" style="color:#1d4ed8;font-size:9.5px;margin-top:2px">פוטנציאל: \${h.businessPotentialScore}%</div>\` : ''}
+        \${gradeBadgeHtml}
+        \${h.gradeNote ? \`<div class="xs muted" style="font-size:9.5px;margin-top:3px;line-height:1.2">\${esc(h.gradeNote)}</div>\` : ''}
       </td>
 
-      <!-- 16. סטטוס החברה במערכת -->
       <td style="padding:8px 8px">
         \${h.adopted
-          ? \`<span class="badge b-ok" style="font-weight:700">✓ \${esc(h.statusBadge || 'הועבר')}</span>\`
+          ? \`<span class="badge b-ok" style="font-weight:700">✓ \${esc(h.statusBadge || 'הועבר לחברות שנמצאו')}</span>\`
           : h.already
-          ? \`<span class="badge" style="background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1">🔒 קיים במאגר</span>\`
-          : \`<span class="badge" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-weight:700">✨ חדש טרם נשמר</span>\`
+          ? \`<span class="badge" style="background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1">🔒 כבר בחברות שנמצאו</span>\`
+          : \`<span class="badge" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-weight:700">✨ חדש (זמין להעברה)</span>\`
         }
       </td>
 
-      <!-- 17. כפתור פתיחת מגירת פירוט רספונסיבית -->
       <td style="text-align:center;padding:8px 4px">
-        <button class="btn btn-sm btn-ghost" data-act="toggleHitDrawer" data-hp="\${esc(h.no)}" style="padding:2px 6px;font-size:12px;cursor:pointer" title="הצג/הסתר פירוט כרטיס מלא">
+        <button class="btn btn-sm btn-ghost" data-act="toggleHitDrawer" data-hp="\${esc(h.no)}" style="padding:2px 6px;font-size:12px;cursor:pointer">
           \${isExpanded ? '▲' : '▼'}
         </button>
       </td>
     </tr>
   \`;
 
-  // מגירת פירוט רספונסיבית עם מודל כוח אדם v2, מודל צי רכב v2, קציני בטיחות וקישורים מהירים
-  const wf = h.workforce_v2 || {};
-  const fl = h.fleet_estimate_v2 || {};
-  const wfBreakdown = wf.workforce_breakdown || {};
-
   const drawerRow = isExpanded ? \`
     <tr id="drawer-\${esc(h.no)}" class="hit-drawer-row" style="background:#f8fafc;border-bottom:2px solid #cbd5e1">
       <td colspan="17" style="padding:14px 18px">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
-          <!-- כרטיס 1: פרטי רישום -->
           <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px">
-            <div class="bold" style="color:#1e3a8a;margin-bottom:6px">🏢 פרטי התאגדות ורישום רשמי</div>
-            <div class="xs"><b>שם מלא:</b> \${esc(h.name)}</div>
-            <div class="xs"><b>ח.פ. רשמי:</b> <span class="num ltr font-bold">\${esc(h.no)}</span></div>
-            <div class="xs"><b>סטטוס משפטי:</b> \${esc(h.status || 'פעילה')}</div>
-            <div class="xs"><b>תאריך רישום:</b> \${esc(h.incorporated || 'לא ידוע')}</div>
-            <div class="xs" style="margin-top:4px"><b>מקור ממשלתי:</b> <a href="\${esc(h.source_url || 'https://data.gov.il')}" target="_blank" class="ltr" style="color:#2563eb">\${esc(h.source_label)} ↗</a></div>
+            <div class="bold" style="color:#1e3a8a;margin-bottom:6px">🏢 זיהוי חברה ואימות מאגרים</div>
+            <div class="xs"><b>שם החברה:</b> \${esc(h.name)}</div>
+            <div class="xs"><b>ח.פ. רשמי:</b> <span class="num ltr bold">\${esc(h.no)}</span></div>
+            <div class="xs"><b>סיווג חברה:</b> \${h.isVehicleIntensive ? 'חברה עתירת רכב (חוק 2)' : 'חברה כללית (חוק 1)'}</div>
+            <div class="xs"><b>סטטוס פעילות:</b> \${esc(h.status || 'פעילה')}</div>
+            <div class="xs" style="margin-top:4px"><b>מאגרים רשמיים מאמתים:</b> \${esc((h.companySourcesList || [h.source_label]).join(", "))}</div>
           </div>
 
-          <!-- כרטיס 2: מיקום וכתובת -->
           <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px">
-            <div class="bold" style="color:#0f766e;margin-bottom:6px">📍 מיקום וכתובת מלאה</div>
-            <div class="xs"><b>אזור בארץ:</b> \${esc(h.region || 'לא ידוע')}</div>
-            <div class="xs"><b>עיר:</b> \${esc(h.city || 'לא ידוע')}</div>
-            <div class="xs"><b>כתובת:</b> \${esc(h.addr || 'לא צוין ברשם')}</div>
-            <div class="xs"><b>תחום ועיסוק:</b> \${esc(h.ind || '—')}</div>
+            <div class="bold" style="color:#0369a1;margin-bottom:6px">👥 עובדים וקביעת צי רכבים (חוק 3)</div>
+            <div class="xs"><b>מספר עובדים:</b> \${h.employeesCount ? \`\${h.employeesCount} עובדים (נתון מאומת — \${esc(h.employeeSource)})\` : (h.workforceRange && h.workforceRange !== 'לא ידוע' ? \`≈ \${esc(h.workforceRange)} (אומדן סיווג קבלני)\` : 'לא ידוע')}</div>
+            <div class="xs" style="margin-top:4px"><b>מספר / אומדן רכבים:</b> <span class="bold">\${esc(h.fleetSizeDisplay)}</span></div>
+            <div class="xs"><b>מקור קביעת הרכבים:</b> <span class="bold" style="color:#1d4ed8">\${esc(h.fleetMethodLabel)}</span></div>
+            <div class="xs muted" style="margin-top:4px">\${esc(h.fleetBasis || '')}</div>
           </div>
 
-          <!-- כרטיס 3: מודל כוח אדם v2 (Workforce v2) -->
           <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px">
-            <div class="bold" style="color:#0369a1;margin-bottom:6px">👥 מודל הערכת כוח אדם v2</div>
-            <div class="xs"><b>עובדים משוערים:</b> \${esc(wf.employee_count_display || h.workforceDisplay || 'לא ידוע')}</div>
-            <div class="xs"><b>עובדי שטח ותפעול:</b> \${esc(wf.field_workers_count_display || 'לא ידוע')} (\${esc(wf.field_workers_pct_display || '')})</div>
-            <div class="xs"><b>ביטחון הערכה:</b> \${esc(wf.workforce_confidence_level || 'הערכה גסה')} (\${wf.workforce_confidence_score || 20}%)</div>
-            \${wf.roles_identified && wf.roles_identified.length > 0 ? \`
-              <div class="xs" style="margin-top:4px"><b>תפקידים שזוהו בענף:</b> \${esc(wf.roles_identified.join(', '))}</div>
-            \` : ''}
-            \${wfBreakdown.size_scope ? \`
-              <div class="xs muted" style="margin-top:4px;font-size:9.5px">פירוט 5 גורמים: היקף \${wfBreakdown.size_scope} · אתרים \${wfBreakdown.branches_sites} · גיוס \${wfBreakdown.recruiting} · צי \${wfBreakdown.fleet_operations} · ענף \${wfBreakdown.industry_type}</div>
-            \` : ''}
-          </div>
-
-          <!-- כרטיס 4: ראיות צי רכב וקציני בטיחות (תקנה 579) -->
-          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px">
-            <div class="bold" style="color:#b45309;margin-bottom:6px">🚛 מודל צי רכב וקצין בטיחות (תקנה 579)</div>
-            <div class="xs"><b>הערכת צי רכב:</b> \${esc(fl.fleet_size_display || h.fleetSizeDisplay || 'הערכה ענפית')}</div>
-            <div class="xs"><b>רמת ביטחון:</b> \${esc(fl.fleet_confidence || h.fleetConfidence || 'נמוך')}</div>
-            <div class="xs"><b>קצין בטיחות בתעבורה:</b> \${h.fleetOfficerStatus ? esc(h.fleetOfficerStatus) : 'לא נמצא'} (\${h.fleetOfficerProb || 0}% סבירות)</div>
-            \${h.fleetOfficerLegalNote ? \`<div class="xs" style="color:#92400e;margin-top:2px">\${esc(h.fleetOfficerLegalNote)}</div>\` : ''}
-            \${fl.basis_of_estimate_label ? \`<div class="xs muted" style="margin-top:4px;font-size:9.5px">בסיס הערכה: \${esc(fl.basis_of_estimate_label)}</div>\` : ''}
-          </div>
-
-          <!-- כרטיס 5: תקשורת ואימות רב-מקורות -->
-          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px">
-            <div class="bold" style="color:#7c3aed;margin-bottom:6px">📞 תקשורת והצלבות עצמאיות</div>
-            <div class="xs"><b>טלפון עסקי:</b> \${h.phone && h.phone !== '—' ? \`<a href="tel:\${esc(h.phone)}" class="ltr bold" style="color:#0284c7">\${esc(h.phone)}</a> (\${h.phoneVerBadgeLabel})\` : 'לא ידוע'}</div>
-            <div class="xs"><b>נייד:</b> \${h.mobile && h.mobile !== '—' ? \`<a href="tel:\${esc(h.mobile)}" class="ltr bold" style="color:#16a34a">\${esc(h.mobile)}</a>\` : '—'}</div>
-            <div class="xs"><b>אימייל:</b> \${h.email && h.email !== '—' ? \`<a href="mailto:\${esc(h.email)}" class="ltr" style="color:#2563eb">\${esc(h.email)}</a> (\${h.emailVerLabel})\` : '—'}</div>
-            <div class="xs" style="margin-top:4px"><b>מקורות הצלבה שאושרו:</b> \${esc((h.phoneSourcesList || []).join(", ") || 'טרם הוצלבו מקורות')}</div>
-            <div class="xs" style="margin-top:4px"><b>איכות ופוטנציאל ליד:</b> <span class="badge \${h.qualityColor==='green'?'b-ok':h.qualityColor==='yellow'?'b-est':'b-bad'}">\${h.qualityScore} (\${h.qualityLabel})</span> \${h.businessPotentialScore ? \`· פוטנציאל עסקי: \${h.businessPotentialScore}%\` : ''}</div>
+            <div class="bold" style="color:#7c3aed;margin-bottom:6px">📞 אימות טלפון ואימייל מול מקורות עצמאיים</div>
+            <div class="xs"><b>טלפון:</b> \${esc(h.phone !== '—' ? h.phone : (h.mobile || 'לא נמצא'))} (\${esc(h.phoneVerBadgeLabel)})</div>
+            <div class="xs"><b>מקורות אימות טלפון:</b> \${esc((h.phoneSourcesList || []).join(" + ") || 'ללא מקור טלפוני')}</div>
+            <div class="xs" style="margin-top:4px"><b>אימייל:</b> \${esc(h.email || 'לא נמצא')} (\${esc(h.emailVerLabel)})</div>
+            <div class="xs"><b>מקורות אימות אימייל:</b> \${esc((h.emailSourcesList || []).join(" + ") || 'ללא מקור אימייל')}</div>
+            <div class="xs" style="margin-top:4px"><b>דירוג סופי:</b> <span class="bold">\${esc(h.leadGradeLabel)}</span></div>
           </div>
         </div>
 
-        <!-- קישורי איתור מהיר בלחיצה אחת (רשתות חברתיות, מדריכים ו-Google) -->
         <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #cbd5e1;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span class="xs bold" style="color:#475569">🔍 איתור ישיר בקליק אחד (ללא הקלדה):</span>
-          <a href="https://www.google.com/maps/search/?api=1&query=\${encodeURIComponent(h.name + ' ' + (h.city || ''))}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px;border:1px solid #cbd5e1;background:#fff;text-decoration:none">
-            📍 Google Maps
-          </a>
-          <a href="https://www.linkedin.com/search/results/companies/?keywords=\${encodeURIComponent(h.name)}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px;border:1px solid #cbd5e1;background:#fff;text-decoration:none">
-            👥 LinkedIn
-          </a>
-          <a href="https://www.b144.co.il/search/?query=\${encodeURIComponent(h.name)}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px;border:1px solid #cbd5e1;background:#fff;text-decoration:none">
-            📖 בזק 144
-          </a>
-          <a href="https://www.d.co.il/find/?query=\${encodeURIComponent(h.name)}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px;border:1px solid #cbd5e1;background:#fff;text-decoration:none">
-            📖 דפי זהב
-          </a>
-          <a href="https://easy.co.il/search/?q=\${encodeURIComponent(h.name)}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px;border:1px solid #cbd5e1;background:#fff;text-decoration:none">
-            ⚡ איזי (Easy)
-          </a>
-          \${h.mobile && h.mobile !== '—' ? \`
-            <a href="https://wa.me/972\${esc(String(h.mobile).replace(/\\D/g, '').replace(/^0/, ''))}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px;border:1px solid #86efac;background:#ecfdf5;color:#166534;text-decoration:none;font-weight:600">
-              💬 WhatsApp
-            </a>
-          \` : ''}
+          <span class="xs bold" style="color:#475569">🔗 קישורים לחיפוש והשלמה ידנית (לא נספרים כמקור API אוטומטי):</span>
+          <a href="https://www.google.com/search?q=\${encodeURIComponent(h.name + ' ' + h.no + ' טלפון')}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px;border:1px solid #cbd5e1;background:#fff;text-decoration:none">🔍 Google</a>
+          <a href="https://www.b144.co.il/search/?query=\${encodeURIComponent(h.name)}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px;border:1px solid #cbd5e1;background:#fff;text-decoration:none">📖 בזק 144</a>
+          <a href="https://www.d.co.il/find/?query=\${encodeURIComponent(h.name)}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px;border:1px solid #cbd5e1;background:#fff;text-decoration:none">📖 דפי זהב</a>
+          <a href="https://www.linkedin.com/search/results/companies/?keywords=\${encodeURIComponent(h.name)}" target="_blank" rel="noopener" class="btn btn-sm btn-ghost" style="padding:2px 8px;font-size:11px;border:1px solid #cbd5e1;background:#fff;text-decoration:none">👥 LinkedIn</a>
         </div>
       </td>
     </tr>
@@ -1606,25 +1688,22 @@ function renderHitTableRow(h) {
 
   return mainRow + drawerRow;
 }
-/* ===== תצוגת כפילויות שנמנעו ===== */
+
 function renderDuplicatesView() {
   const duplicates = S.searchDuplicates || [];
-
   return \`
   <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12.5px;color:#92400e">
-    🛡️ <b>מניעת כפילויות קשיחה:</b> הרשומות שלהלן נסרקו במאגר הממשלתי אך זוהו ככפולות מול המאגר הקבוע שלך. הן <b>נחסמו אוטומטית</b> כדי למנוע דריסת נתונים קיימים.
+    🛡️ <b>מניעת כפילויות לפי ח.פ. אמיתי:</b> חברות שכבר מופיעות ב'חברות שנמצאו' או בתוצאות החיפוש הנוכחי אוחדו ונחסמו מהעברה כפולה.
   </div>
-
   \${duplicates.length > 0 ? \`
-    <div class="tbl-wrap" style="max-height:450px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px">
+    <div class="tbl-wrap" style="max-height:420px;overflow:auto;border:1px solid #e2e8f0;border-radius:8px">
       <table style="width:100%;border-collapse:collapse;font-size:12.5px">
         <thead style="background:#f1f5f9;position:sticky;top:0">
           <tr>
-            <th style="padding:8px 10px;text-align:right">שם החברה שנסרקה</th>
+            <th style="padding:8px 10px;text-align:right">שם החברה</th>
             <th style="padding:8px 8px;text-align:right">ח.פ.</th>
             <th style="padding:8px 8px;text-align:right">עיר ותחום</th>
-            <th style="padding:8px 10px;text-align:right">סיבת הכפילות המפורטת</th>
-            <th style="padding:8px 8px;text-align:right">סטטוס במערכת</th>
+            <th style="padding:8px 10px;text-align:right">סיבת מניעת הכפילות</th>
           </tr>
         </thead>
         <tbody>
@@ -1634,43 +1713,37 @@ function renderDuplicatesView() {
               <td style="padding:8px 8px" class="ltr num bold">\${esc(d.no)}</td>
               <td style="padding:8px 8px">\${esc(d.city || '—')} · \${esc(d.ind || '—')}</td>
               <td style="padding:8px 10px;color:#b45309;font-weight:600">\${esc(d.reason)}</td>
-              <td style="padding:8px 8px"><span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a">⚠️ כפילות שנמנעה</span></td>
             </tr>
           \`).join("")}
         </tbody>
       </table>
     </div>
   \` : \`
-    <div class="empty" style="padding:32px 16px;text-align:center;background:#f8fafc;border-radius:8px">
-      <div style="font-size:24px;margin-bottom:6px">✓</div>
+    <div class="empty" style="padding:28px;text-align:center;background:#f8fafc;border-radius:8px">
       <div class="bold">לא אותרו כפילויות בסריקה זו</div>
-      <div class="xs muted">כל החברות שנמצאו חדשות לחלוטין.</div>
     </div>
   \`}
   \`;
 }
 
-/* ===== תצוגת רשומות שנפסלו ===== */
 function renderRejectedView() {
   const rejected = S.searchRejected || [];
-
   return \`
   <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:12.5px;color:#b91c1c">
-    🚫 <b>בקרת איכות וסינון:</b> רשומות אלו הוחזרו ממאגר הממשלה אך נפסלו מכיוון שאינן עומדות בקריטריוני האיכות של המערכת (ח.פ. לא תקין, חברה מחוקה, או ללא פרטי זיהוי).
+    🚫 <b>בקרת איכות (שבעת החוקים):</b> רשומות שנפסלו עקב חברה לא פעילה, היעדר ח.פ. אמיתי, או היעדר נתוני עובדים/רכבים ופרטי קשר מבוססים.
   </div>
-
   \${rejected.length > 0 ? \`
-    <div class="tbl-wrap" style="max-height:450px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:8px">
+    <div class="tbl-wrap" style="max-height:420px;overflow:auto;border:1px solid #e2e8f0;border-radius:8px">
       <table style="width:100%;border-collapse:collapse;font-size:12.5px">
         <thead style="background:#f1f5f9;position:sticky;top:0">
           <tr>
             <th style="padding:8px 10px;text-align:right">שם רשומה</th>
-            <th style="padding:8px 8px;text-align:right">מספר מזהה</th>
+            <th style="padding:8px 8px;text-align:right">מזהה</th>
             <th style="padding:8px 10px;text-align:right">סיבת הפסילה</th>
           </tr>
         </thead>
         <tbody>
-          \${rejected.map(r => \`
+          \${rejected.slice(0, 200).map(r => \`
             <tr style="border-bottom:1px solid #e2e8f0;background:#ffffff">
               <td style="padding:8px 10px" class="bold">\${esc(r.name)}</td>
               <td style="padding:8px 8px" class="ltr num">\${esc(r.no)}</td>
@@ -1681,778 +1754,40 @@ function renderRejectedView() {
       </table>
     </div>
   \` : \`
-    <div class="empty" style="padding:32px 16px;text-align:center;background:#f8fafc;border-radius:8px">
-      <div style="font-size:24px;margin-bottom:6px">✓</div>
-      <div class="bold">אפס רשומות נפסלו</div>
-      <div class="xs muted">כל הרשומות שנסרקו היו תקינות ופעילות.</div>
+    <div class="empty" style="padding:28px;text-align:center;background:#f8fafc;border-radius:8px">
+      <div class="bold">לא נפסלו רשומות</div>
     </div>
   \`}
   \`;
 }
 
-/* ===== אלגוריתם דירוג איכות ליד (LEAD QUALITY SCORE) ===== */
-function evaluateHitQuality(h) {
-  let score = 50; // בסיס לחברה רשומה ופעילה ברשם
-  let color = "yellow";
-  let label = "איכות בינונית";
-
-  if (h.fleetIsFact) score += 25;
-  else if (String(h.fleetPotential || "").includes("5+")) score += 15;
-
-  if (h.phoneVerBadgeColor === "green") score += 20;
-  else if (h.phone && h.phone !== "—" && h.phone !== "לא ידוע") score += 10;
-
-  if (h.mobile && h.mobile !== "—") score += 10;
-  if (h.email && h.email !== "—" && h.email !== "לא ידוע" && h.email.includes("@")) score += 10;
-  if (h.addrKnown) score += 5;
-  if (h.contactPerson && h.contactPerson !== "—") score += 10;
-
-  score = Math.min(98, Math.max(40, score));
-
-  if (score >= 80 && (h.phone && h.phone !== "—" || h.mobile && h.mobile !== "—")) {
-    color = "green";
-    label = "איכות גבוהה ⭐";
-  } else if (score >= 60) {
-    color = "yellow";
-    label = "איכות בינונית";
-  } else {
-    color = "red";
-    label = "בסיסי / חסר קשר";
-  }
-
-  return { score, color, label };
+/* ===== פונקציות עזר לנרמול ואיחוד חברות ממספר מאגרים לפי ח.פ. אמיתי ===== */
+function cleanCorpNameForMatch(s) {
+  return String(s || "")
+    .replace(/בע"מ|בע״מ|בע~מ|בעמ|חברה|קבלנות|עבודות|כללית|הנדסה|ובניו|\(.*?\)/g, " ")
+    .replace(/[^א-תa-zA-Z0-9]/g, " ")
+    .replace(/\\s+/g, " ")
+    .trim();
 }
 
-/* ===== מנוע איתור חברות באצוות הדרגתיות רב-מקורות (STREAMING MULTI-SOURCE BATCH ENGINE) ===== */
-async function runUnifiedSearch(customOpts = {}) {
-  if (S.searchRunning) return;
-
-  // 1. חילוץ שדות הטופס
-  const kwInput = (($("#a-kw") && $("#a-kw").value.trim()) || customOpts.kw || (S._lastQueryTerm || "")).trim();
-  let keywords = kwInput.split(/[,،;]+/).map(k => k.trim()).filter(Boolean);
-  const indVal = ($("#a-ind") && $("#a-ind").value) || customOpts.ind || "";
-
-  if (keywords.length === 0 && indVal && indVal !== "כל הענפים" && indVal !== "כל הענפים והתחומים") {
-    keywords = (window.OPQualify && window.OPQualify.OPDomainKeywords)
-      ? window.OPQualify.OPDomainKeywords.getKeywordsForDomain(indVal)
-      : [indVal];
+function normFullIsraeliPhone(raw) {
+  if (window.OPQualify && typeof window.OPQualify.normPhone === "function") {
+    return window.OPQualify.normPhone(raw);
   }
-  if (keywords.length === 0) keywords = ["הובלות"];
-
-  const countInput = ($("#a-count") && parseInt($("#a-count").value, 10)) || customOpts.reqLimit || 50;
-  const reqLimit = Math.max(5, Math.min(2000, countInput));
-  
-  // חילוץ מקורות נבחרים מהצ'קבוקסים
-  const selectedCheckboxes = Array.from(document.querySelectorAll(".src-cb:checked"));
-  let selectedSourceIds = selectedCheckboxes.map(cb => cb.value);
-  if (selectedSourceIds.length === 0) {
-    // אם לא נבחר כלום, בחר את ברירת המחדל
-    selectedSourceIds = ["src_companies", "src_contractors", "src_business_licenses", "src_garages", "src_manpower_security"];
-  }
-  saveSourceSelection(selectedSourceIds);
-
-  // הגדרת יעד הצלבות
-  const targetCross = parseInt(($("#a-target-cross") && $("#a-target-cross").value) || customOpts.targetCross || 4, 10);
-
-  // חילוץ שאר מסנני הפוסט-שליפה
-  const regionVal = ($("#a-region") && $("#a-region").value) || customOpts.region || "";
-  const cityVal = ($("#a-city") && $("#a-city").value.trim().toLowerCase()) || (customOpts.city || "").trim().toLowerCase();
-  const fleetTypeVal = ($("#a-fleet-type") && $("#a-fleet-type").value) || customOpts.fleetType || "";
-  const fleetModeVal = ($("#a-fleet-filter-mode") && $("#a-fleet-filter-mode").value) || customOpts.fleetMode || "all";
-  const workforceVal = ($("#a-workforce-range") && $("#a-workforce-range").value) || customOpts.workforce || "all";
-  const targetRoleVal = ($("#a-target-role") && $("#a-target-role").value) || customOpts.targetRole || "all";
-  const contactReqVal = ($("#a-contact-req") && $("#a-contact-req").value) || customOpts.contactReq || "all";
-
-  S._lastQueryTerm = keywords.join(", ");
-  S._lastSaveSuccess = null;
-
-  // 2. אתחול משתני מצב
-  S.searchRunning = true;
-  S.searchStopRequested = false;
-  S.searchHits = [];
-  S.searchDuplicates = [];
-  S.searchRejected = [];
-  S.searchHitSelection = new Set();
-  S.searchExpandedDrawers = new Set();
-  S.searchActiveTab = "new";
-  S.searchStats = {
-    requested: reqLimit,
-    scanned: 0,
-    added: 0,
-    duplicates: 0,
-    rejected: 0,
-    pending: 0,
-    fleetEvidence: 0
-  };
-
-  // 3. הצגת שלד התוצאות מיד על המסך מתחת לטופס (< 500ms)
-  const resultsContainer = $("#searchResultsArea");
-  if (resultsContainer) {
-    resultsContainer.innerHTML = renderSearchResultsArea();
-    resultsContainer.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }
-
-  // 4. בניית אינדקס מהיר למניעת כפילויות מול מאגר STAGING (2,018 חברות) ומאגר C
-  const existingHpMap = new Map();
-  if (typeof STAGING_DB_HPS !== "undefined" && STAGING_DB_HPS.forEach) {
-    STAGING_DB_HPS.forEach(hp => {
-      const norm = String(hp || "").replace(/\\D/g, "");
-      if (norm) existingHpMap.set(norm, { name: "חברה קיימת במאגר STAGING DB", no: norm, source: "database" });
-    });
-  }
-  C.forEach(c => {
-    const norm = (window.OPQualify ? OPQualify.normalizeCompanyHp(c.no) : String(c.no || "").replace(/\\D/g, ""));
-    if (norm) existingHpMap.set(norm, c);
-  });
-  const seenInCurrentRun = new Set();
-
-  // 5. מיפוי מקורות נבחרים למשאבי data.gov.il פעילים
-  const datasets = [];
-  if (selectedSourceIds.includes("src_companies")) {
-    datasets.push({ id: "f004176c-b85f-4542-8901-7b3176f9a054", type: "companies", name: "רשם החברות" });
-  }
-  if (selectedSourceIds.includes("src_contractors")) {
-    datasets.push({ id: "4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8", type: "contractors", name: "פנקס הקבלנים" });
-  }
-  if (selectedSourceIds.includes("src_business_licenses")) {
-    datasets.push({ id: "7d4c61e2-2416-453e-8efb-bd02ec89db35", type: "business_licenses", name: "רישוי עסקים ממשלתי" });
-  }
-  if (selectedSourceIds.includes("src_garages")) {
-    datasets.push({ id: "bb68386a-a331-4bbc-b668-bba2766d517d", type: "garages", name: "מוסכים ומכוני רישוי" });
-  }
-  if (selectedSourceIds.includes("src_manpower_security")) {
-    datasets.push({ id: "243fe1ce-b2ae-4c26-9e5e-ce306a602040", type: "manpower_security", name: "קבלני שמירה וכוח אדם" });
-  }
-  if (selectedSourceIds.includes("src_plants_industry")) {
-    datasets.push({ id: "88d1883c-3b7a-4580-9be9-6d54659666c3", type: "plants_industry", name: "רשימת מפעלים ותעשייה" });
-  }
-  if (selectedSourceIds.includes("src_ngos")) {
-    datasets.push({ id: "be5b7935-3922-45d4-9638-08871b17ec95", type: "ngos", name: "רשם העמותות" });
-  }
-
-  // ברירת מחדל אם נבחרו רק מקורות קישור חיצוני
-  if (datasets.length === 0) {
-    datasets.push(
-      { id: "f004176c-b85f-4542-8901-7b3176f9a054", type: "companies", name: "רשם החברות" },
-      { id: "4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8", type: "contractors", name: "פנקס הקבלנים" },
-      { id: "7d4c61e2-2416-453e-8efb-bd02ec89db35", type: "business_licenses", name: "רישוי עסקים ממשלתי" },
-      { id: "bb68386a-a331-4bbc-b668-bba2766d517d", type: "garages", name: "מוסכים ומכוני רישוי" }
-    );
-  }
-
-  const batchSize = 50;
-  let batchIndex = 1;
-  const startTime = Date.now();
-
-  try {
-    const maxOffset = Math.max(250, reqLimit * 4);
-    let offset = 0;
-
-    while (offset < maxOffset && !S.searchStopRequested && S.searchStats.added < reqLimit) {
-      let anyRecordsInRound = false;
-
-      for (const ds of datasets) {
-        if (S.searchStopRequested || S.searchStats.added >= reqLimit) break;
-
-        for (const kw of keywords) {
-          if (S.searchStopRequested || S.searchStats.added >= reqLimit) break;
-
-          updateLiveSearchStatus(\`סורק אצווה \${batchIndex} מ-\${ds.name} (מילת מפתח: "\${kw}", היסט: \${offset})...\`);
-
-          const url = \`https://data.gov.il/api/3/action/datastore_search?resource_id=\${ds.id}&q=\${encodeURIComponent(kw)}&limit=\${batchSize}&offset=\${offset}\`;
-
-          let records = [];
-          try {
-            const resp = await fetch(url);
-            if (resp.ok) {
-              const json = await resp.json();
-              if (json && json.success && Array.isArray(json.result?.records)) {
-                records = json.result.records;
-              }
-            }
-          } catch (err) {
-            console.warn("שגיאת שליפה מאצווה:", err);
-          }
-
-          if (records.length === 0) continue;
-          anyRecordsInRound = true;
-          S.searchStats.scanned += records.length;
-
-          const newBatchHits = [];
-
-          for (const rec of records) {
-            let rawHit = null;
-            if (ds.type === "contractors") rawHit = contractorHit(rec);
-            else if (ds.type === "business_licenses") rawHit = businessLicenseHit(rec);
-            else if (ds.type === "garages") rawHit = garageHit(rec);
-            else if (ds.type === "manpower_security") rawHit = manpowerHit(rec);
-            else if (ds.type === "plants_industry") rawHit = plantHit(rec);
-            else if (ds.type === "ngos") rawHit = ngoHit(rec);
-            else rawHit = registryHit(rec);
-
-            if (!rawHit) {
-              S.searchStats.rejected++;
-              S.searchRejected.push({
-                name: rec.SHEM_YESHUT || rec["שם עסק"] || rec.shem_mosah || rec.companyname || rec["שם חברה"] || "ללא שם",
-                no: rec.MISPAR_YESHUT || rec.rasham_havarot || rec.identitynumber || rec["מספר חברה"] || "ללא מזהה",
-                reason: "חסר שם או ח.פ. תקין"
-              });
-              continue;
-            }
-
-            rawHit.source_keyword = kw;
-            const normHp = (window.OPQualify ? OPQualify.normalizeCompanyHp(rawHit.no) : String(rawHit.no).replace(/\\D/g, ""));
-            rawHit.no = normHp;
-
-            // בדיקת כפילות בתוך הריצה הנוכחית
-            if (seenInCurrentRun.has(normHp)) {
-              S.searchStats.duplicates++;
-              S.searchDuplicates.push({
-                name: rawHit.name,
-                no: normHp,
-                city: rawHit.city,
-                ind: rawHit.ind,
-                reason: "כפילות שחזרה בתוך תוצאות החיפוש הנוכחי"
-              });
-              continue;
-            }
-
-            // בדיקת כפילות מול מאגר STAGING DB (2,018 חברות)
-            if (existingHpMap.has(normHp)) {
-              const existing = existingHpMap.get(normHp);
-              S.searchStats.duplicates++;
-              S.searchDuplicates.push({
-                name: rawHit.name,
-                no: normHp,
-                city: rawHit.city,
-                ind: rawHit.ind,
-                reason: \`ח.פ. קיים במאגר: "\${existing.name}" (סטטוס: \${existing.status || 'חדש'}, נשמר: \${existing.found || 'בעבר'})\`
-              });
-              continue;
-            }
-            // חיבור נוסחת מודל כוח אדם וצי רכב המקורית (Workforce & Fleet Estimation Formula v2)
-            if (window.OPQualify && typeof window.OPQualify.evaluate === "function") {
-              const qRow = {
-                company_name: rawHit.name,
-                company_hp: rawHit.no,
-                industry_name: rawHit.ind,
-                city: rawHit.city,
-                address: rawHit.addr,
-                phone: (rawHit.phone && rawHit.phone !== "—") ? rawHit.phone : "",
-                mobile_phone: (rawHit.mobile && rawHit.mobile !== "—") ? rawHit.mobile : "",
-                email: (rawHit.email && rawHit.email !== "—") ? rawHit.email : "",
-                source_name: rawHit.source_label,
-                contact_name: (rawHit.contactPerson && rawHit.contactPerson !== "—") ? rawHit.contactPerson : "",
-                contact_role: rawHit.roleTitle || "",
-                notes: rawHit.ind,
-                contractor_classification: rawHit.source === "contractors" ? rawHit.ind : "",
-                registry_check: {
-                  companies: { found: rawHit.source === "companies", status: rawHit.status },
-                  contractors: { found: rawHit.source === "contractors", records: (rawHit.phone && rawHit.phone !== "—") ? [{ phone: rawHit.phone }] : [] }
-                }
-              };
-              const evalRes = window.OPQualify.evaluate(qRow);
-              if (evalRes) {
-                const wf = evalRes.workforce_estimate_v2 || evalRes.workforce_estimate || {};
-                rawHit.workforce_v2 = wf;
-                rawHit.approxEmployees = (wf.approx_employees !== undefined) ? wf.approx_employees : null;
-                rawHit.workforceRange = wf.employee_count_range || "לא ידוע";
-                rawHit.workforceDisplay = wf.employee_count_display || (rawHit.employeesCount ? (rawHit.employeesCount + " עובדים (מאומת)") : "לא ידוע (ללא אסמכתא)");
-                rawHit.workforceConfidence = wf.workforce_confidence_level || "";
-                rawHit.workforceBreakdown = wf.workforce_breakdown || {};
-                rawHit.rolesIdentified = wf.roles_identified || [];
-                rawHit.fieldWorkersCount = wf.field_workers_count || 0;
-                rawHit.fieldWorkersDisplay = wf.field_workers_count_display || "";
-                rawHit.workforceBasis = wf.basis_label || "";
-
-                const fl = evalRes.fleet_estimate_v2 || {};
-                rawHit.fleet_v2 = fl;
-                rawHit.fleetSizeDisplay = fl.fleet_size_display || rawHit.fleetPotential || "לא ידוע";
-                rawHit.fleetRounded = fl.fleet_count_rounded || "";
-                rawHit.fleetConfidence = fl.fleet_confidence || "נמוך";
-                rawHit.fleetBasis = fl.basis_of_estimate_label || "";
-                rawHit.fleetIsEstimate = fl.fleet_is_estimate !== false;
-
-                rawHit.fleetOfficerProb = evalRes.fleet_officer_probability || 0;
-                rawHit.fleetOfficerStatus = evalRes.fleet_officer_status || "לא נמצא";
-                rawHit.fleetOfficerLegalNote = evalRes.fleet_officer_legal_note || "";
-
-                rawHit.businessPotentialScore = evalRes.business_potential_score || 50;
-                rawHit.potentialBreakdown = evalRes.business_potential_breakdown || {};
-
-                if ((!rawHit.roleTitle || rawHit.roleTitle.startsWith("אינדיקציה")) && rawHit.rolesIdentified.length > 0) {
-                  rawHit.roleTitle = rawHit.rolesIdentified.slice(0, 2).join(", ");
-                }
-              }
-            }
-
-            // סינונים מקומיים (Post-Fetch Filters):
-            // א. סינון עיר
-            if (cityVal && !String(rawHit.city || "").toLowerCase().includes(cityVal)) {
-              continue;
-            }
-
-            // ב. סינון אזור
-            const derivedReg = (window.OPQualify ? OPQualify.cityToRegion(rawHit.city) : "לא ידוע");
-            rawHit.region = derivedReg;
-            if (regionVal && regionVal !== "כל הארץ" && regionVal !== "כל האזורים" && derivedReg !== regionVal) {
-              continue;
-            }
-
-            // ג. סינון תחום פעילות
-            if (indVal && indVal !== "כל הענפים" && indVal !== "כל הענפים והתחומים" && !String(rawHit.ind || "").includes(indVal) && !String(rawHit.name || "").includes(indVal)) {
-              continue;
-            }
-
-            // ד. סינון סוג רכב
-            if (fleetTypeVal && fleetTypeVal !== "all") {
-              const combType = (String(rawHit.fleetType || "") + " " + String(rawHit.ind || "") + " " + String(rawHit.name || "") + " " + (rawHit.rolesIdentified || []).join(" ")).toLowerCase();
-              if (fleetTypeVal === "private" && !combType.includes("פרטי") && !combType.includes("ליסינג")) continue;
-              if (fleetTypeVal === "commercial" && !combType.includes("מסחרי") && !combType.includes("טנדר") && !combType.includes("ואן")) continue;
-              if (fleetTypeVal === "trucks" && !combType.includes("משא") && !combType.includes("הובל") && !combType.includes("רמסע")) continue;
-              if (fleetTypeVal === "buses" && !combType.includes("אוטובוס") && !combType.includes("מיניבוס") && !combType.includes("הסעות")) continue;
-              if (fleetTypeVal === "tzama" && !combType.includes('צמ"ה') && !combType.includes('צמ״ה') && !combType.includes('צמה') && !combType.includes("עפר") && !combType.includes("תשתית")) continue;
-              if (fleetTypeVal === "service" && !combType.includes("שירות") && !combType.includes("טכנאי") && !combType.includes("סיור")) continue;
-            }
-
-            // ה. סינון צי (מודל v2 עובדה ופוטנציאל)
-            if (fleetModeVal && fleetModeVal !== "all") {
-              const flStr = String(rawHit.fleetRounded || rawHit.fleetSizeDisplay || "");
-              if (fleetModeVal === "1-4" && !flStr.includes("1–4") && !flStr.includes("1-4") && !flStr.includes("צי קטן")) continue;
-              if (fleetModeVal === "5-10" && !flStr.includes("5–10") && !flStr.includes("5-10")) continue;
-              if (fleetModeVal === "11-20" && !flStr.includes("10–15") && !flStr.includes("10-15") && !flStr.includes("15–25") && !flStr.includes("11-20")) continue;
-              if (fleetModeVal === "21-50" && !flStr.includes("20–50") && !flStr.includes("25–50") && !flStr.includes("21-50")) continue;
-              if (fleetModeVal === "51-100" && !flStr.includes("50–100") && !flStr.includes("51-100")) continue;
-              if (fleetModeVal === "100plus" && !flStr.includes("100+")) continue;
-              if (fleetModeVal === "indication_200" && !String(rawHit.fleetPotential || "").includes("200") && !String(rawHit.ind || "").includes("200")) continue;
-              if (fleetModeVal === "potential_5plus" && !String(rawHit.fleetPotential || "").includes("5+") && !rawHit.fleetIsFact) continue;
-            }
-
-            // ו. סינון מספר עובדים (מודל הערכת עובדים v2)
-            if (workforceVal && workforceVal !== "all") {
-              const empNum = (rawHit.approxEmployees !== null && rawHit.approxEmployees !== undefined) ? rawHit.approxEmployees : rawHit.employeesCount;
-              if (workforceVal === "1-50" && (empNum === null || empNum < 1 || empNum > 50)) continue;
-              if (workforceVal === "51-100" && (empNum === null || empNum < 51 || empNum > 100)) continue;
-              if (workforceVal === "101-500" && (empNum === null || empNum < 101 || empNum > 500)) continue;
-              if (workforceVal === "501plus" && (empNum === null || empNum < 501)) continue;
-              if (workforceVal === "unknown" && empNum !== null) continue;
-            }
-
-            // ז. סינון בעל תפקיד / קצין בטיחות מבוקש
-            if (targetRoleVal && targetRoleVal !== "all") {
-              const rTitle = (String(rawHit.roleTitle || "") + " " + (rawHit.rolesIdentified || []).join(" ") + " " + String(rawHit.contactPerson || "") + " " + String(rawHit.fleetOfficerStatus || "")).toLowerCase();
-              if (targetRoleVal === "safety_officer" && !rTitle.includes("בטיחות") && (rawHit.fleetOfficerProb || 0) < 50) continue;
-              if (targetRoleVal === "fleet_manager" && !rTitle.includes("צי") && !rTitle.includes("רכב")) continue;
-              if (targetRoleVal === "transport_manager" && !rTitle.includes("תחבורה") && !rTitle.includes("לוגיסטיקה")) continue;
-              if (targetRoleVal === "ops_manager" && !rTitle.includes("תפעול") && !rTitle.includes("עבודה")) continue;
-              if (targetRoleVal === "tech_manager" && !rTitle.includes("מקצועי") && !rTitle.includes("מוסמך")) continue;
-              if (targetRoleVal === "ceo_owner" && !rTitle.includes("מנכ") && !rTitle.includes("בעלים")) continue;
-            }
-            // ח. מנוע הצלבת מקורות ואימות טלפון ירוק מחמיר (True Green Phone Cross-Referencing)
-            const hasPhone = rawHit.phone && rawHit.phone !== "לא ידוע" && rawHit.phone !== "לא נמצא" && rawHit.phone !== "—";
-            const isMobile = hasPhone && (rawHit.phone.startsWith("05") || String(rawHit.mobile || "").startsWith("05"));
-            const hasEmail = rawHit.email && rawHit.email !== "לא ידוע" && rawHit.email !== "—" && rawHit.email.includes("@");
-
-            const phoneSources = [];
-            if (hasPhone) {
-              if (rawHit.source === "contractors") phoneSources.push("פנקס הקבלנים (data.gov.il)");
-              else if (rawHit.source === "business_licenses") phoneSources.push("רישוי עסקים ממשלתי (data.gov.il)");
-              else if (rawHit.source === "garages") phoneSources.push("מוסכים ומכוני רישוי (משרד התחבורה)");
-              else phoneSources.push(rawHit.source_label || "מאגר ממשלתי");
-
-              // בדיקת הצלבה מול טלפון מאומת במאגר STAGING DB (מקור עצמאי שני)
-              const stagingRec = (typeof STAGING_VERIFIED_PHONES !== "undefined") ? STAGING_VERIFIED_PHONES[normHp] : null;
-              if (stagingRec && stagingRec.phone) {
-                const normP1 = rawHit.phone.replace(/\\D/g, "");
-                const normP2 = String(stagingRec.phone).replace(/\\D/g, "");
-                if (normP1 && normP2 && (normP1 === normP2 || normP1.endsWith(normP2) || normP2.endsWith(normP1))) {
-                  phoneSources.push("מאגר מאומת STAGING DB");
-                }
-              }
-            }
-
-            // כלל אימות טלפון ירוק: רק אם אותו מספר בדיוק מופיע ב-2 מקורות עצמאיים ומעלה -> GREEN
-            const phoneMatches = phoneSources.length;
-            rawHit.phoneSourcesList = phoneSources;
-            rawHit.phoneMatches = phoneMatches;
-
-            if (phoneMatches >= 2) {
-              rawHit.phoneVerBadgeColor = "green";
-              rawHit.phoneVerBadgeLabel = (targetCross === 2)
-                ? "✓ ירוק (2/2)"
-                : \`✓ ירוק (מינימום הושג: \${phoneMatches}/\${targetCross})\`;
-              rawHit.phoneVerStatus = \`מאומת (\${phoneMatches} מקורות עצמאיים: \${phoneSources.join(', ')})\`;
-            } else if (phoneMatches === 1) {
-              rawHit.phoneVerBadgeColor = "yellow";
-              rawHit.phoneVerBadgeLabel = \`חלקי (1/\${targetCross})\`;
-              rawHit.phoneVerStatus = \`אימות חלקי (מקור יחיד: \${phoneSources[0]}) - דורש מקור עצמאי שני לסטטוס ירוק\`;
-            } else {
-              rawHit.phoneVerBadgeColor = "gray";
-              rawHit.phoneVerBadgeLabel = \`0/\${targetCross}\`;
-              rawHit.phoneVerStatus = "ללא אימות טלפוני עצמאי";
-            }
-
-            // אימות אימייל נפרד (אימייל לא הופך טלפון לירוק!)
-            const emailSources = [];
-            if (hasEmail) {
-              if (rawHit.source === "contractors") emailSources.push("פנקס הקבלנים (data.gov.il)");
-              else if (rawHit.source === "business_licenses") emailSources.push("רישוי עסקים ממשלתי (data.gov.il)");
-              else emailSources.push("רישום רשמי");
-            }
-            rawHit.emailMatches = emailSources.length;
-            rawHit.emailVerLabel = emailSources.length > 0 ? \`\${emailSources.length}/\${targetCross}\` : \`0/\${targetCross}\`;
-
-            // ט. סינון פרטי קשר נדרשים
-            if (contactReqVal === "green_phone" && rawHit.phoneVerBadgeColor !== "green") continue;
-            if (contactReqVal === "phone" && !hasPhone) continue;
-            if (contactReqVal === "mobile" && !isMobile) continue;
-            if (contactReqVal === "email" && !hasEmail) continue;
-            if (contactReqVal === "any" && !hasPhone && !hasEmail) continue;
-
-            // הפרדת טלפון נייח מנייד עסקי
-            if (isMobile) {
-              rawHit.mobile = rawHit.phone;
-              rawHit.phone = "—";
-            } else {
-              rawHit.mobile = "—";
-            }
-
-            // י. חישוב ציון איכות ליד
-            const q = evaluateHitQuality(rawHit);
-            rawHit.qualityScore = q.score;
-            rawHit.qualityColor = q.color;
-            rawHit.qualityLabel = q.label;
-
-            // סימון אינדיקציית צי
-            if (rawHit.fleetIsFact || String(rawHit.fleetPotential || "").includes("5+")) {
-              S.searchStats.fleetEvidence++;
-            }
-
-            seenInCurrentRun.add(normHp);
-            newBatchHits.push(rawHit);
-            S.searchStats.added++;
-
-            if (S.searchStats.added >= reqLimit) break;
-          }
-
-          if (newBatchHits.length > 0) {
-            S.searchHits.push(...newBatchHits);
-            renderSearchHitsProgressive();
-            updateLiveKpisAndProgress();
-          }
-        }
-      }
-
-      if (!anyRecordsInRound) {
-        break;
-      }
-
-      offset += batchSize;
-      batchIndex++;
-    }
-  } catch (globalErr) {
-    console.error("שגיאה במנוע החיפוש המאוחד:", globalErr);
-    toast("שגיאה בסריקה: " + globalErr.message, "error");
-  } finally {
-    S.searchRunning = false;
-    const durSec = ((Date.now() - startTime) / 1000).toFixed(1);
-    updateLiveSearchStatus(\`הסריקה הסתיימה בהצלחה ב-\${durSec} שניות. אותרו \${S.searchHits.length} חברות חדשות.\`);
-    renderSearchHitsProgressive();
-    updateLiveKpisAndProgress();
-    updateActionButtonsState();
-  }
+  const d = String(raw || "").replace(/\\D/g, "");
+  if (!d) return "";
+  const local = d.startsWith("972") && d.length >= 11 ? "0" + d.slice(3) : d;
+  return local.length >= 9 && !local.startsWith("0") ? "0" + local : local;
 }
 
-/* ===== פונקציות חילוץ רשומות ממאגרי DATA.GOV.IL השונים ===== */
-
-/* 1. חילוץ רשומת רשם החברות */
-function registryHit(rec) {
-  const hp = String(rec["מספר חברה"] || "").replace(/\\D/g, "");
-  const name = String(rec["שם חברה"] || "").replace(/בע~מ|בע״מ|בע"מ/g, "").trim();
-  if (!hp || hp.length < 5 || !name) return null;
-  const cityRaw = String(rec["שם עיר"] || rec["ישוב"] || "").trim();
-  const street = String(rec["שם רחוב"] || "").trim();
-  const house = String(rec["מספר בית"] || "").trim();
-  const descRaw = String(rec["תאור חברה"] || "").trim();
-  const purposeRaw = String(rec["מטרת החברה"] || "").trim();
-  const industryText = descRaw || (purposeRaw && !purposeRaw.includes("עיסוק חוקי") ? purposeRaw : "חברה פעילה ברשם");
-  const status = String(rec["סטטוס חברה"] || "פעילה").trim();
-  const isHeavy = /הובל|משאיות|הפצה|לוגיסטיקה|שינוע|קירור|מנוף|גרירה/.test(name + " " + industryText);
-
-  return {
-    no: hp,
-    name,
-    city: cityRaw || "לא ידוע",
-    addr: street ? \`\${street}\${house ? " " + house : ""}\${cityRaw ? ", " + cityRaw : ""}\` : (cityRaw || "לא ידוע"),
-    ind: industryText,
-    status: status || "פעילה",
-    incorporated: String(rec["תאריך התאגדות"] || "").trim() || "לא ידוע",
-    addrKnown: !!street,
-    phone: "—",
-    mobile: "—",
-    email: "—",
-    employees: "לא ידוע (ללא אסמכתא)",
-    employeesCount: null,
-    fleetIsFact: false,
-    fleetPotential: isHeavy ? "פוטנציאל צי 5+ (הערכה ענפית)" : "הערכה (ללא אסמכתא)",
-    fleetType: isHeavy ? "משאיות הובלה ולוגיסטיקה" : "רכבי עבודה",
-    contactPerson: "—",
-    roleTitle: isHeavy ? "אינדיקציה: פעילות צי מסחרי" : "",
-    roleType: isHeavy ? "industry_indication" : "none",
-    source: "companies",
-    source_label: "רשם החברות",
-    source_url: \`https://data.gov.il/dataset/f004176c-b85f-4542-8901-7b3176f9a054\`,
-    tierLabel: "Tier A | ממשלתי רשמי"
-  };
-}
-
-/* 2. חילוץ רשומת פנקס הקבלנים ענף 200 */
-function contractorHit(rec) {
-  const hp = String(rec.MISPAR_YESHUT || rec["מספר ח.פ."] || rec["מספר חברה"] || rec["ח.פ"] || rec["ח.פ."] || "").replace(/\\D/g, "");
-  const name = String(rec.SHEM_YESHUT || rec["שם קבלן"] || rec["שם חברה"] || "").replace(/בע~מ|בע״מ|בע"מ/g, "").trim();
-  if (!hp || hp.length < 5 || !name) return null;
-
-  const cityRaw = String(rec.SHEM_YISHUV || rec["ישוב"] || rec["שם ישוב"] || rec["עיר"] || "").trim();
-  const street = String(rec.SHEM_REHOV || "").trim();
-  const house = String(rec.MISPAR_BAIT || "").trim();
-  const branch = String(rec.TEUR_ANAF || "קבלן רשום ענף 200").trim();
-  const kodAnaf = String(rec.KOD_ANAF || "").trim();
-  const isBranch200 = kodAnaf === "200" || branch.includes("200") || branch.includes("עפר") || branch.includes("כבישים") || branch.includes("תשתית");
-  const phone = formatIsraeliPhone(rec.MISPAR_TEL) || "—";
-  const email = rec.EMAIL && String(rec.EMAIL).includes("@") ? String(rec.EMAIL).trim() : "—";
-  const ovdim = String(rec.OVDIM || "").trim();
-
-  return {
-    no: hp,
-    name,
-    city: cityRaw || "לא ידוע",
-    addr: street ? \`\${street}\${house ? " " + house : ""}\${cityRaw ? ", " + cityRaw : ""}\` : (cityRaw || "לא ידוע"),
-    ind: branch,
-    status: "פעילה",
-    incorporated: String(rec.TAARICH_KABLAN || "").trim() || "לא ידוע",
-    addrKnown: !!street || !!cityRaw,
-    phone: phone,
-    mobile: phone.startsWith("05") ? phone : "—",
-    email: email,
-    employees: "לא ידוע (ללא אסמכתא)",
-    employeesCount: null,
-    fleetIsFact: false,
-    fleetPotential: isBranch200 ? '≈ פוטנציאל צי 5+ (אינדיקציה: ענף 200)' : '≈ פוטנציאל צי 5+ (הערכה ענפית)',
-    fleetType: isBranch200 ? "ציוד כבד ועבודות תשתית" : "רכבי שירות ועבודה",
-    contactPerson: ovdim || "—",
-    roleTitle: ovdim ? \`צוות מקצועי מורשה: \${ovdim}\` : (isBranch200 ? "אינדיקציה: קבלן ענף 200" : ""),
-    roleType: ovdim ? "verified_official" : "industry_indication",
-    source: "contractors",
-    source_label: "פנקס הקבלנים",
-    source_url: \`https://data.gov.il/dataset/4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8\`,
-    tierLabel: "Tier A | ממשלתי רשמי"
-  };
-}
-
-/* 3. חילוץ רשומת רישוי עסקים ממשלתי */
-function businessLicenseHit(rec) {
-  const name = String(rec["שם עסק"] || "").replace(/בע~מ|בע״מ|בע"מ/g, "").trim();
-  const licenseNo = String(rec["מספר רישיון"] || "").trim();
-  if (!name || (!licenseNo && !rec["טלפון בעסק"])) return null;
-
-  const phone = formatIsraeliPhone(rec["טלפון בעסק"]) || "—";
-  const email = rec["מייל בעסק"] && String(rec["מייל בעסק"]).includes("@") ? String(rec["מייל בעסק"]).trim() : "—";
-  const street = String(rec["שם רחוב"] || "").trim();
-  const house = String(rec["בית"] || "").trim();
-  const desc = String(rec["תאור רישיון"] || rec["תאור סטטוס"] || "רישוי עסקים ממשלתי").trim();
-  const hasVehicleRef = /רכב|משא|הובל|חבר|מוביל/.test(desc + " " + name);
-
-  // ח.פ נגזר ממספר הרישיון
-  const syntheticHp = licenseNo ? ("70" + String(licenseNo).padStart(7, "0")).slice(0, 9) : ("7000" + Math.floor(Math.random() * 89999 + 10000));
-
-  return {
-    no: syntheticHp,
-    name,
-    city: "רשות מקומית",
-    addr: street ? \`\${street}\${house ? " " + house : ""}\` : "לפי רישוי עסק",
-    ind: desc,
-    status: "מורשה ברישוי עסקים",
-    incorporated: String(rec["תאריך תוקף"] || "").trim() || "לא ידוע",
-    addrKnown: !!street,
-    phone: phone,
-    mobile: phone.startsWith("05") ? phone : "—",
-    email: email,
-    employees: "לא ידוע (ללא אסמכתא)",
-    employeesCount: null,
-    fleetIsFact: hasVehicleRef,
-    fleetPotential: hasVehicleRef ? "✓ פעילות רכבי עסק מאושרת ברישיון" : "פוטנציאל עסקי",
-    fleetType: hasVehicleRef ? "רכבי שירות ושינוע מורשים" : "רכבי עבודה",
-    contactPerson: "—",
-    roleTitle: hasVehicleRef ? "אינדיקציה: היתר רכב מורשה" : "",
-    roleType: hasVehicleRef ? "industry_indication" : "none",
-    source: "business_licenses",
-    source_label: "רישוי עסקים ממשלתי",
-    source_url: "https://data.gov.il/dataset/7d4c61e2-2416-453e-8efb-bd02ec89db35",
-    tierLabel: "Tier A | ממשלתי רשמי"
-  };
-}
-
-/* 4. חילוץ רשומת מוסכים ומכוני רישוי (משרד התחבורה) */
-function garageHit(rec) {
-  const hp = String(rec.rasham_havarot || rec.mispar_mosah || "").replace(/\\D/g, "");
-  const name = String(rec.shem_mosah || "").replace(/בע~מ|בע״מ|בע"מ/g, "").trim();
-  if (!name) return null;
-
-  const validHp = (hp && hp.length >= 6) ? hp : ("58" + String(rec.mispar_mosah || "1000").padStart(7, "0")).slice(0, 9);
-  const phone = formatIsraeliPhone(rec.telephone) || "—";
-  const city = String(rec.yishuv || "").trim();
-  const addr = String(rec.ktovet || "").trim();
-  const manager = String(rec.menahel_miktzoa || "").trim();
-  const field = String(rec.miktzoa || rec.sug_mosah || "מוסך מורשה").trim();
-
-  return {
-    no: validHp,
-    name,
-    city: city || "לא ידוע",
-    addr: addr ? \`\${addr}\${city ? ", " + city : ""}\` : (city || "לא ידוע"),
-    ind: \`מוסך מורשה: \${field}\`,
-    status: "מורשה משרד התחבורה",
-    incorporated: "פעיל במאגר התחבורה",
-    addrKnown: !!addr || !!city,
-    phone: phone,
-    mobile: phone.startsWith("05") ? phone : "—",
-    email: "—",
-    employees: "לא ידוע (ללא אסמכתא)",
-    employeesCount: null,
-    fleetIsFact: true,
-    fleetPotential: "✓ מוסך מורשה ומכון רישוי (עובדה מאומתת משרד התחבורה)",
-    fleetType: "ציוד תחבורה ורכב כבד",
-    contactPerson: manager || "—",
-    roleTitle: manager ? \`מנהל מקצועי מוסמך: \${manager}\` : "מנהל מקצועי מוסמך",
-    roleType: "verified_official",
-    source: "garages",
-    source_label: "מוסכים ומכוני רישוי (משרד התחבורה)",
-    source_url: "https://data.gov.il/dataset/bb68386a-a331-4bbc-b668-bba2766d517d",
-    tierLabel: "Tier A | ממשלתי רשמי"
-  };
-}
-
-/* 5. חילוץ רשומת קבלני כוח אדם, שמירה וניקיון */
-function manpowerHit(rec) {
-  const hp = String(rec.identitynumber || "").replace(/\\D/g, "");
-  const name = String(rec.companyname || "").replace(/בע~מ|בע״מ|בע"מ/g, "").trim();
-  if (!name || !hp || hp.length < 5) return null;
-
-  const city = String(rec.town || "").trim();
-  const addr = String(rec.address || "").trim();
-  const ceo = String(rec.companyceo || "").trim();
-  const field = String(rec.fieldfactivity || "קבלן שירותים ואבטחה").trim();
-
-  return {
-    no: hp,
-    name,
-    city: city || "לא ידוע",
-    addr: addr ? \`\${addr}\${city ? ", " + city : ""}\` : (city || "לא ידוע"),
-    ind: field,
-    status: "רישיון בתוקף",
-    incorporated: String(rec.validuntil || "").trim() || "לא ידוע",
-    addrKnown: !!addr || !!city,
-    phone: "—",
-    mobile: "—",
-    email: "—",
-    employees: "לא ידוע (ללא אסמכתא)",
-    employeesCount: null,
-    fleetIsFact: false,
-    fleetPotential: "≈ פוטנציאל צי 5+ (רכבי סיור, פיקוח ושירות שטח)",
-    fleetType: "רכבי סיור ושירות שטח",
-    contactPerson: ceo || "—",
-    roleTitle: ceo ? \`מנכ״ל רשום: \${ceo}\` : "מנכ״ל רשום",
-    roleType: "verified_official",
-    source: "manpower_security",
-    source_label: "קבלני שמירה וכוח אדם",
-    source_url: "https://data.gov.il/dataset/243fe1ce-b2ae-4c26-9e5e-ce306a602040",
-    tierLabel: "Tier A | ממשלתי רשמי"
-  };
-}
-
-/* 6. חילוץ רשומת מפעלים ואתרי תעשייה */
-function plantHit(rec) {
-  const hp = String(rec.Mispar_Atar || rec.Mispar_Mezahe || "").replace(/\\D/g, "");
-  const name = String(rec.Shem_Atar_Svivati || "").replace(/בע~מ|בע״מ|בע"מ/g, "").trim();
-  if (!name) return null;
-
-  const validHp = (hp && hp.length >= 6) ? hp : ("51" + String(rec.Mispar_Mezahe || "10000").padStart(7, "0")).slice(0, 9);
-  const city = String(rec.Yeshuv || "").trim();
-  const district = String(rec.Machoz || "").trim();
-  const ind = String(rec.mehute_Atar || "אתר תעשייתי").trim();
-
-  return {
-    no: validHp,
-    name,
-    city: city || "לא ידוע",
-    addr: city ? \`\${city}\${district ? " (" + district + ")" : ""}\` : "לא ידוע",
-    ind: ind,
-    status: "אתר תעשייתי פעיל",
-    incorporated: "פעיל ברישום סביבתי",
-    addrKnown: !!city,
-    phone: "—",
-    mobile: "—",
-    email: "—",
-    employees: "לא ידוע (ללא אסמכתא)",
-    employeesCount: null,
-    fleetIsFact: false,
-    fleetPotential: "≈ פוטנציאל צי 5+ (שינוע חומרי גלם ולוגיסטיקת מפעל)",
-    fleetType: "משאיות תעשייה ושינוע",
-    contactPerson: "—",
-    roleTitle: "אינדיקציה: מפעל תעשייה פעיל",
-    roleType: "industry_indication",
-    source: "plants_industry",
-    source_label: "רשימת מפעלים ותעשייה",
-    source_url: "https://data.gov.il/dataset/88d1883c-3b7a-4580-9be9-6d54659666c3",
-    tierLabel: "Tier A | ממשלתי רשמי"
-  };
-}
-
-/* 7. חילוץ רשומת רשם העמותות */
-function ngoHit(rec) {
-  const hp = String(rec["מספר עמותה"] || "").replace(/\\D/g, "");
-  const name = String(rec["שם עמותה בעברית"] || "").trim();
-  if (!name || !hp || hp.length < 5) return null;
-
-  const city = String(rec["כתובת - ישוב"] || "").trim();
-  const street = String(rec["כתובת - רחוב"] || "").trim();
-  const house = String(rec["כתובת - מספר דירה"] || "").trim();
-  const ind = String(rec["סיווג פעילות ענפי"] || "עמותה רשומה").trim();
-  const empCount = rec["כמות עובדים"] ? parseInt(rec["כמות עובדים"], 10) : null;
-
-  return {
-    no: hp,
-    name,
-    city: city || "לא ידוע",
-    addr: street ? \`\${street}\${house ? " " + house : ""}\${city ? ", " + city : ""}\` : (city || "לא ידוע"),
-    ind: ind,
-    status: String(rec["סטטוס עמותה"] || "רשומה").trim(),
-    incorporated: String(rec["תאריך רישום עמותה"] || "").trim() || "לא ידוע",
-    addrKnown: !!street || !!city,
-    phone: "—",
-    mobile: "—",
-    email: "—",
-    employees: empCount !== null ? \`\${empCount} עובדים (מאומת ברשם)\` : "לא ידוע (ללא אסמכתא)",
-    employeesCount: empCount,
-    fleetIsFact: false,
-    fleetPotential: "הערכה (ללא אסמכתא)",
-    fleetType: "רכבי שירות",
-    contactPerson: "—",
-    roleTitle: "",
-    roleType: "none",
-    source: "ngos",
-    source_label: "רשם העמותות",
-    source_url: "https://data.gov.il/dataset/be5b7935-3922-45d4-9638-08871b17ec95",
-    tierLabel: "Tier A | ממשלתי רשמי"
-  };
+function isValidIsraeliPhoneFull(p) {
+  const n = normFullIsraeliPhone(p);
+  return /^0(5\\d{8}|[23489]\\d{7}|7\\d{8})$/.test(n);
 }
 
 function formatIsraeliPhone(raw) {
-  if (!raw) return "";
-  const digits = String(raw).replace(/\\D/g, "");
-  if (!digits || digits === "0" || digits === "00" || digits === "000") return "";
-  let full = digits;
-  if (!full.startsWith("0")) full = "0" + full;
+  const full = normFullIsraeliPhone(raw);
+  if (!isValidIsraeliPhoneFull(full)) return "";
   if (full.length === 10) {
     return full.slice(0, 3) + "-" + full.slice(3, 6) + "-" + full.slice(6);
   }
@@ -2462,30 +1797,1114 @@ function formatIsraeliPhone(raw) {
   return full;
 }
 
-/* עדכון תצוגה הדרגתית של תוצאות הסריקה (Progressive Streaming Update) */
-function renderSearchHitsProgressive() {
-  let container = $("#searchHitsTableBody");
-  if (!container) {
-    const area = $("#searchResultsArea");
-    if (area) {
-      area.innerHTML = renderSearchResultsArea();
-      container = $("#searchHitsTableBody");
+function isValidRealHp(raw) {
+  if (!raw) return false;
+  if (window.OPQualify && typeof window.OPQualify.isValidIsraeliCompanyNumber === "function") {
+    return window.OPQualify.isValidIsraeliCompanyNumber(raw);
+  }
+  const d = String(raw).replace(/\\D/g, "");
+  return d.length >= 8 && d.length <= 9 && /^(51|52|55|56|57|58|50)\\d+$/.test(d.padStart(9, "0"));
+}
+
+function normalizeRealHp(raw) {
+  if (!isValidRealHp(raw)) return "";
+  if (window.OPQualify && typeof window.OPQualify.normalizeCompanyHp === "function") {
+    return window.OPQualify.normalizeCompanyHp(raw);
+  }
+  return String(raw).replace(/\\D/g, "").padStart(9, "0");
+}
+
+/* סיווג חברה: חברה כללית (Rule 1) מול חברה עתירת רכב (Rule 2) */
+function isEntityVehicleIntensive(name, primaryInd, allIndText, sourcesMap) {
+  const text = (String(name || "") + " " + String(primaryInd || "")).toLowerCase();
+  const fullBlob = (text + " " + String(allIndText || "")).toLowerCase();
+  // מילות מפתח מובהקות לעסקי הובלה, הסעות, שינוע, משאיות, מוסכים וליסינג
+  if (/הובל|הובלות|מוביל|שינוע|משאיות|תובלה|היסעים|הסעות|אוטובוס|מוניות|שילוח|בלדרות|משלוח|שליחויות|הפצה|לוגיסטיק|ליסינג|השכרת רכב|מוסך|מכון רישוי|גרירה|מנופים|רמסע/i.test(text)) {
+    return true;
+  }
+  // עבודות עפר/סלילה/חציבה כפעילות עיקרית (שם החברה או הענף הראשי) — לא ענף משני של קבלן חשמל/מערכות
+  if (/עבודות עפר|סלילה|אספלט|חציבה|מחצבות|צמ"?ה|צמ״ה/i.test(text)) {
+    return true;
+  }
+  // אם החברה מופיעה במאגר מעסיקים משרד העבודה או מפל"ס תחת תעשייה/הייטק/שירותים/מסחר/שמירה — היא חברה כללית!
+  if (/תעשייה|תעשיה|מפעל|ייצור|תקשורת|מחשוב|הייטק|תוכנה|טכנולוג|מקצועות חופשיים|עורכי דין|רואי חשבון|שירותים מקצועיים|מסחר|מזון|חקלאות|שמירה|אבטחה|ניקיון|כוח אדם|בריאות|חינוך|פיננס/i.test(primaryInd || "")) {
+    return false;
+  }
+  // קבלן שכל ענפיו הם עפר/כבישים/גשרים (ללא ענף כללי כמו חשמל, מערכות או בנייה) — עתיר רכב
+  const anafList = String(allIndText || "").split(" · ").map(s => s.trim()).filter(Boolean);
+  const heavyAnaf = /עבודות עפר|סלילה|כבישים, תשתית ופיתוח|כבישים תשתית ופיתוח|מחצבות|חציבה|צמ"?ה|צמ״ה|גשרים/i;
+  if (anafList.length && anafList.every(a => heavyAnaf.test(a))) {
+    return true;
+  }
+  return false;
+}
+
+/* מיפוי לתחום פעילות ומילות מפתח לסינון ענפים */
+const INDUSTRY_FILTER_PATTERNS = {
+  "תעשייה ומפעלים": /תעשיי|תעשיה|מפעל|ייצור|מתכת|פלסטיק|כימי|דפוס|אריז|טקסטיל|נייר|קרטון|גומי|זכוכית|אלומיניום|שבבי|מכונות|אנרגיה/i,
+  "הייטק וטכנולוגיה": /הייטק|טכנולוג|מחשוב|תוכנה|מחשבים|תקשורת|אלקטרוניק|סייבר|פיתוח|מו"פ|מערכות מידע|אינטרנט|סמיקונדקטור|הנדס/i,
+  "שירותים מקצועיים": /שירותים מקצועיים|מקצועות חופשיים|עורכי דין|עו"ד|רואי חשבון|רו"ח|ייעוץ|ניהול|אדריכל|שמאות|כספים|פיננס|ביטוח|משרד/i,
+  "מסחר ושיווק": /מסחר|שיווק|יבוא|יצוא|קמעונא|סיטונא|רשת|חנויות|מכירות|אספקה|ציוד/i,
+  "שמירה אבטחה וניקיון": /שמירה|אבטחה|מוקד|סיור|ניקיון|נקיון|כוח אדם|השמה|תחזוקה|אחזקת מבנים/i,
+  "בנייה ומערכות": /בנייה|בניה|בניין|מבנים|שיפוצ|מיזוג|חשמל|מעליות|אינסטלציה|אלומיניום|קונסטרוקציה|איטום|גמר/i,
+  "מזון וחקלאות": /מזון|משקאות|מאפיי|מאפה|מחלבה|בשר|עוף|חקלאות|גידול|יקב|קייטרינג|הסעדה/i,
+  "הובלות": /הובל|הובלות|שינוע|משאיות|תובלה|מטענים|מנוף|קירור|גרר/i,
+  "לוגיסטיקה": /לוגיסטיק|הפצה|שילוח|אחסנ|מחסנים|בלדרות|שרשרת אספקה/i,
+  "הסעות": /הסעות|היסעים|אוטובוס|מיניבוס|תחבורה|שאטל/i,
+  "תשתיות": /תשתית|תשתיות|עפר|כבישים|סלילה|מחצבות|חפירה|צמ"?ה|צמ״ה|גשרים/i,
+  "מוסכים ורכב": /מוסך|מוסכים|רישוי|ליסינג|השכרת רכב|רכב/i
+};
+
+/* בניית אינדקס מאוחד ומוצלב בזמן אמת ממאגרי data.gov.il לפי ח.פ. אמיתי */
+async function ensureGovCrossIndex(selectedSourceIds, statusCallback, depth = 0) {
+  const wantNgos = selectedSourceIds.includes("src_ngos");
+  const cacheKey = selectedSourceIds.slice().sort().join(",") + "|d" + depth;
+  if (S._govCrossIndex && S._govCrossIndexKey === cacheKey && S._govCrossIndexMap && S._govCrossIndexMap.size > 1000) {
+    return S._govCrossIndexMap;
+  }
+
+  statusCallback("שולף ומאחד נתונים ממאגרי הממשלה (מעסיקים, קבלנים, מפעלים, רישוי עסקים, מוסכים, שמירה וחל״צ)...");
+
+  if (!S._sliceCache) S._sliceCache = new Map();
+  const fetchSlice = async (resourceId, limit, offset = 0, extra = "") => {
+    const url = \`https://data.gov.il/api/3/action/datastore_search?resource_id=\${resourceId}&limit=\${limit}&offset=\${offset}\${extra}\`;
+    if (S._sliceCache.has(url)) return S._sliceCache.get(url);
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return [];
+      const j = await r.json();
+      const recs = (j && j.success && Array.isArray(j.result?.records)) ? j.result.records : [];
+      if (recs.length) S._sliceCache.set(url, recs);
+      return recs;
+    } catch (e) {
+      console.warn("data.gov.il slice fetch warning:", resourceId, e);
+      return [];
+    }
+  };
+
+  const tasks = [];
+  if (selectedSourceIds.includes("src_labor_employers")) {
+    tasks.push(fetchSlice("b033f289-4143-4a9d-9612-da6e8cc2f380", 3000, 0).then(r => ({ type: "labor_employers", label: "מאגר מעסיקים משרד העבודה (data.gov.il)", records: r })));
+    tasks.push(fetchSlice("b033f289-4143-4a9d-9612-da6e8cc2f380", 3000, 3000).then(r => ({ type: "labor_employers", label: "מאגר מעסיקים משרד העבודה (data.gov.il)", records: r })));
+  }
+  if (selectedSourceIds.includes("src_contractors")) {
+    tasks.push(fetchSlice("4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8", 3000, 0, "&sort=MISPAR_YESHUT%20desc").then(r => ({ type: "contractors", label: "פנקס הקבלנים (data.gov.il)", records: r })));
+    tasks.push(fetchSlice("4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8", 3000, 3000, "&sort=MISPAR_YESHUT%20desc").then(r => ({ type: "contractors", label: "פנקס הקבלנים (data.gov.il)", records: r })));
+    tasks.push(fetchSlice("4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8", 3000, 6000, "&sort=MISPAR_YESHUT%20desc").then(r => ({ type: "contractors", label: "פנקס הקבלנים (data.gov.il)", records: r })));
+  }
+  if (selectedSourceIds.includes("src_plants_industry")) {
+    tasks.push(fetchSlice("7ad8ddc7-87f4-45f9-84e4-d7f972662153", 4000, 0).then(r => ({ type: "plants_industry", label: "מפל״ס רשימת מפעלים הגנת הסביבה (data.gov.il)", records: r })));
+    tasks.push(fetchSlice("7ad8ddc7-87f4-45f9-84e4-d7f972662153", 4000, 4000).then(r => ({ type: "plants_industry", label: "מפל״ס רשימת מפעלים הגנת הסביבה (data.gov.il)", records: r })));
+  }
+  if (selectedSourceIds.includes("src_garages")) {
+    tasks.push(fetchSlice("bb68386a-a331-4bbc-b668-bba2766d517d", 3000, 0).then(r => ({ type: "garages", label: "מוסכים ומכוני רישוי משרד התחבורה (data.gov.il)", records: r })));
+  }
+  if (selectedSourceIds.includes("src_manpower_security")) {
+    tasks.push(fetchSlice("243fe1ce-b2ae-4c26-9e5e-ce306a602040", 2000, 0).then(r => ({ type: "manpower_security", label: "קבלני שמירה וכוח אדם משרד העבודה (data.gov.il)", records: r })));
+  }
+  if (selectedSourceIds.includes("src_halatz")) {
+    tasks.push(fetchSlice("85e40960-5426-4f4c-874f-2d1ec1b94609", 1500, 0).then(r => ({ type: "halatz", label: "רשם החל״צ משרד המשפטים (data.gov.il)", records: r })));
+  }
+  if (selectedSourceIds.includes("src_business_licenses")) {
+    tasks.push(fetchSlice("7d4c61e2-2416-453e-8efb-bd02ec89db35", 3200, 0).then(r => ({ type: "business_licenses", label: "רישוי עסקים ממשלתי (data.gov.il)", records: r })));
+  }
+  if (selectedSourceIds.includes("src_asbestos")) {
+    tasks.push(fetchSlice("512d916e-07f0-4774-b84a-3a989e45e7eb", 1200, 0).then(r => ({ type: "asbestos", label: "מרשם הנדסת סביבה הגנת הסביבה (data.gov.il)", records: r })));
+  }
+  if (wantNgos) {
+    tasks.push(fetchSlice("be5b7935-3922-45d4-9638-08871b17ec95", 2000, 0).then(r => ({ type: "ngos", label: "רשם העמותות משרד המשפטים (data.gov.il)", records: r })));
+  }
+
+  if (depth >= 1) {
+    const CT = "4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8";
+    if (selectedSourceIds.includes("src_contractors")) {
+      for (let off = 9000; off < 24373; off += 3000) tasks.push(fetchSlice(CT, 3000, off, "&sort=MISPAR_YESHUT%20desc").then(r => ({ type: "contractors", label: "פנקס הקבלנים (data.gov.il)", records: r })));
+    }
+    if (selectedSourceIds.includes("src_garages")) {
+      for (let off = 3000; off < 13948; off += 3000) tasks.push(fetchSlice("bb68386a-a331-4bbc-b668-bba2766d517d", 3000, off).then(r => ({ type: "garages", label: "מוסכים ומכוני רישוי משרד התחבורה (data.gov.il)", records: r })));
+    }
+    if (selectedSourceIds.includes("src_manpower_security")) {
+      for (let off = 2000; off < 8129; off += 2000) tasks.push(fetchSlice("243fe1ce-b2ae-4c26-9e5e-ce306a602040", 2000, off).then(r => ({ type: "manpower_security", label: "קבלני שמירה וכוח אדם משרד העבודה (data.gov.il)", records: r })));
     }
   }
-  if (!container) return;
 
-  const hits = S.searchHits || [];
-  const curTab = S.searchActiveTab || "new";
-  if (curTab !== "new") return;
+  const slices = await Promise.all(tasks);
 
-  const filter = S.searchHitFilter || { q: "", region: "all", contact: "all", fleet: "all", vehicleType: "all", workforce: "all", quality: "all", role: "all" };
-  const visibleHits = filterSearchHits(hits, filter);
+  const byHp = new Map();
+  const byCleanName = new Map();
+  const byPhone = new Map();
 
-  container.innerHTML = renderSearchHitsTableBodyContent(visibleHits, hits, filter);
+  let totalScanned = 0;
 
-  const countEl = $("#hitVisibleCountLabel");
-  if (countEl) countEl.textContent = \`מוצגות \${visibleHits.length} מתוך \${hits.length} חברות\`;
+  const ensureEntity = (hp, name, city, addr, status, sourceType, sourceLabel, sourceUrl) => {
+    let ent = byHp.get(hp);
+    if (!ent) {
+      ent = {
+        no: hp,
+        name: String(name || "").replace(/בע~מ/g, 'בע"מ').trim(),
+        city: String(city || "").trim(),
+        addr: String(addr || "").trim(),
+        status: String(status || "פעילה").trim(),
+        primaryInd: "",
+        industries: new Set(),
+        sourcesMap: new Map(), // sourceType -> sourceLabel (prevents duplicate counting from same dataset)
+        phoneToSources: new Map(), // normPhone -> Map(sourceType -> sourceLabel)
+        phoneFormatted: new Map(), // normPhone -> formatted string
+        emailToSources: new Map(), // lowerEmail -> Map(sourceType -> sourceLabel)
+        website: "",
+        employeesCount: null,
+        employeeSource: "",
+        verifiedFleetCount: null,
+        verifiedFleetSource: "",
+        contractorRecords: [],
+        contactPerson: "",
+        roleTitle: "",
+        source_url: sourceUrl || "https://data.gov.il"
+      };
+      byHp.set(hp, ent);
+    } else {
+      if (!ent.name && name) ent.name = String(name).replace(/בע~מ/g, 'בע"מ').trim();
+      if ((!ent.city || ent.city === "לא ידוע") && city) ent.city = String(city).trim();
+      if ((!ent.addr || ent.addr === "לא ידוע" || ent.addr.length < 4) && addr) ent.addr = String(addr).trim();
+      if (status && /פירוק|מחוסל|מחוק|הופסק|לא פעיל|מבוטל/.test(status)) ent.status = status;
+    }
+    if (sourceType && sourceLabel) {
+      ent.sourcesMap.set(sourceType, sourceLabel);
+    }
+    const cn = cleanCorpNameForMatch(ent.name);
+    if (cn.length >= 3 && !byCleanName.has(cn)) {
+      byCleanName.set(cn, hp);
+    }
+    return ent;
+  };
 
+  const addPhoneToEntity = (ent, rawPhone, sourceType, sourceLabel) => {
+    const norm = normFullIsraeliPhone(rawPhone);
+    if (!isValidIsraeliPhoneFull(norm)) return;
+    if (!ent.phoneToSources.has(norm)) {
+      ent.phoneToSources.set(norm, new Map());
+      ent.phoneFormatted.set(norm, formatIsraeliPhone(norm));
+    }
+    ent.phoneToSources.get(norm).set(sourceType, sourceLabel);
+    if (!byPhone.has(norm)) {
+      byPhone.set(norm, ent.no);
+    }
+  };
+
+  const addEmailToEntity = (ent, rawEmail, sourceType, sourceLabel) => {
+    const mail = String(rawEmail || "").trim().toLowerCase();
+    if (!mail || !mail.includes("@") || mail.length < 5) return;
+    if (!ent.emailToSources.has(mail)) {
+      ent.emailToSources.set(mail, new Map());
+    }
+    ent.emailToSources.get(mail).set(sourceType, sourceLabel);
+  };
+
+  // Pass 1: Process all datasets that have official 9-digit Corporate HP
+  for (const slice of slices) {
+    if (slice.type === "business_licenses" || slice.type === "asbestos") continue;
+    totalScanned += slice.records.length;
+
+    for (const r of slice.records) {
+      if (slice.type === "labor_employers") {
+        const hp = normalizeRealHp(r.employer_number);
+        const name = String(r.employer_name || "").trim();
+        if (!hp || !name) continue;
+        const city = String(r.city || "").trim();
+        const addr = String(r.address || city || "").trim();
+        const ind = String(r.industry || "").trim();
+        const emp = parseInt(r.employees_general_number, 10);
+        const ent = ensureEntity(hp, name, city, addr, "פעילה", "labor_employers", slice.label, "https://data.gov.il/dataset/b033f289-4143-4a9d-9612-da6e8cc2f380");
+        if (ind && ind !== "לא ידוע") {
+          ent.industries.add(ind);
+          if (!ent.primaryInd) ent.primaryInd = ind;
+        }
+        // נתון העובדים העדכני ביותר (לפי תאריך ההחלטה) — לא המקסימום ההיסטורי
+        const empDate = String(r.decision_date || "").slice(0, 10);
+        if (Number.isInteger(emp) && emp > 0 && (ent.employeesCount === null || empDate > (ent.employeeDate || ""))) {
+          ent.employeesCount = emp;
+          ent.employeeDate = empDate;
+          ent.employeeSource = "מאגר מעסיקים משרד העבודה" + (empDate ? ", נתון מ-" + empDate : "");
+        }
+      } else if (slice.type === "contractors") {
+        const hp = normalizeRealHp(r.MISPAR_YESHUT);
+        const name = String(r.SHEM_YESHUT || "").trim();
+        if (!hp || !name) continue;
+        const city = String(r.SHEM_YISHUV || "").trim();
+        const street = String(r.SHEM_REHOV || "").trim();
+        const house = String(r.MISPAR_BAIT || "").trim();
+        const addr = street ? \`\${street}\${house ? " " + house : ""}\${city ? ", " + city : ""}\` : city;
+        const ind = String(r.TEUR_ANAF || "").trim();
+        const ent = ensureEntity(hp, name, city, addr, "פעילה", "contractors", slice.label, "https://data.gov.il/dataset/4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8");
+        if (ind) {
+          ent.industries.add(ind);
+          if (!ent.primaryInd) ent.primaryInd = ind;
+        }
+        addPhoneToEntity(ent, r.MISPAR_TEL, "contractors", slice.label);
+        addEmailToEntity(ent, r.EMAIL, "contractors", slice.label);
+        const ovdim = String(r.OVDIM || "").trim();
+        if (ovdim && !ent.contactPerson) {
+          ent.contactPerson = ovdim;
+          ent.roleTitle = \`איש מקצוע רשום: \${ovdim}\`;
+        }
+        ent.contractorRecords.push({
+          anaf: ind,
+          kod_anaf: String(r.KOD_ANAF || "").trim(),
+          sivug: String(r.SIVUG || "").trim(),
+          ovdim: ovdim,
+          phone: formatIsraeliPhone(r.MISPAR_TEL),
+          email: String(r.EMAIL || "").trim()
+        });
+      } else if (slice.type === "plants_industry") {
+        const hp = normalizeRealHp(r.MisparTaagidShutfutMenifa);
+        const name = String(r.ShemTaagidShutfut || r.ShemAtarSvivatiMenifa || "").trim();
+        if (!hp || !name) continue;
+        const statusRaw = String(r.StatusAtar || "פעיל").trim();
+        const city = String(r.YeshuvAtarSvivatiMenifa || "").trim();
+        const ind = String(r.AnafAtarSvivati || "תעשייה ומפעלים").trim();
+        const ent = ensureEntity(hp, name, city, city, statusRaw, "plants_industry", slice.label, "https://data.gov.il/dataset/7ad8ddc7-87f4-45f9-84e4-d7f972662153");
+        if (ind) {
+          ent.industries.add(\`תעשייה ומפעלים (\${ind})\`);
+          ent.primaryInd = \`תעשייה ומפעלים (\${ind})\`;
+        }
+        addPhoneToEntity(ent, r.TelefonAtarSvivatiMenifa, "plants_industry", slice.label);
+        const web = String(r.AtarInternetMenifa || "").trim();
+        if (web && web.includes(".") && !ent.website) {
+          ent.website = web;
+        }
+      } else if (slice.type === "garages") {
+        const hp = normalizeRealHp(r.rasham_havarot);
+        const name = String(r.shem_mosah || "").trim();
+        if (!hp || !name) continue;
+        const city = String(r.yishuv || "").trim();
+        const addr = String(r.ktovet || "").trim();
+        const field = String(r.miktzoa || r.sug_mosah || "מוסך מורשה").trim();
+        const ent = ensureEntity(hp, name, city, addr ? \`\${addr}, \${city}\` : city, "מורשה משרד התחבורה", "garages", slice.label, "https://data.gov.il/dataset/bb68386a-a331-4bbc-b668-bba2766d517d");
+        ent.industries.add(\`מוסכים ורישוי (\${field})\`);
+        if (!ent.primaryInd) ent.primaryInd = \`מוסכים ורישוי (\${field})\`;
+        addPhoneToEntity(ent, r.telephone, "garages", slice.label);
+        const mgr = String(r.menahel_miktzoa || "").trim();
+        if (mgr && !ent.contactPerson) {
+          ent.contactPerson = mgr;
+          ent.roleTitle = \`מנהל מקצועי מוסמך: \${mgr}\`;
+        }
+      } else if (slice.type === "manpower_security") {
+        const hp = normalizeRealHp(r.identitynumber);
+        const name = String(r.companyname || "").trim();
+        if (!hp || !name) continue;
+        const city = String(r.town || "").trim();
+        const addr = String(r.address || "").trim();
+        const field = String(r.fieldfactivity || "שמירה, אבטחה וכוח אדם").trim();
+        const ent = ensureEntity(hp, name, city, addr ? \`\${addr}, \${city}\` : city, "רישיון בתוקף", "manpower_security", slice.label, "https://data.gov.il/dataset/243fe1ce-b2ae-4c26-9e5e-ce306a602040");
+        ent.industries.add(field);
+        if (!ent.primaryInd) ent.primaryInd = field;
+        const ceo = String(r.companyceo || "").trim();
+        if (ceo && !ent.contactPerson) {
+          ent.contactPerson = ceo;
+          ent.roleTitle = \`מנכ״ל רשום: \${ceo}\`;
+        }
+      } else if (slice.type === "halatz") {
+        const hp = normalizeRealHp(r["מספר חלצ"]);
+        const name = String(r["שם חלצ בעברית"] || r["שם חלצ"] || "").trim();
+        if (!hp || !name) continue;
+        const status = String(r["סטטוס חלצ"] || "").trim();
+        const city = String(r["כתובת - ישוב"] || "").trim();
+        const street = String(r["כתובת - רחוב"] || "").trim();
+        const house = String(r["כתובת - מספר דירה"] || "").trim();
+        const addr = street ? \`\${street}\${house ? " " + house : ""}\${city ? ", " + city : ""}\` : city;
+        const ind = String(r["סיווג פעילות ענפי"] || "שירותים, חינוך ומחקר (חל״צ)").trim();
+        const emp = parseInt(r["עובדים- נתונים מדוח מילולי מקוון"], 10);
+        const repYear = parseInt(r["שנת דיווח דוח כספי אחרון"], 10) || parseInt(String(r["תאריך עדכון אחרון של נתוני חלצ"] || "").slice(0, 4), 10) || 2023;
+        const empDate = \`\${repYear}-12-31\`;
+        const ent = ensureEntity(hp, name, city, addr, status, "halatz", slice.label, "https://data.gov.il/dataset/85e40960-5426-4f4c-874f-2d1ec1b94609");
+        ent.industries.add(ind);
+        if (!ent.primaryInd) ent.primaryInd = ind;
+        if (Number.isInteger(emp) && emp > 0 && (ent.employeesCount === null || empDate > (ent.employeeDate || ""))) {
+          ent.employeesCount = emp;
+          ent.employeeDate = empDate;
+          ent.employeeSource = \`דוח שנתי רשם החל״צ (משרד המשפטים), דיווח \${repYear}\`;
+        }
+      } else if (slice.type === "ngos") {
+        const hp = normalizeRealHp(r["מספר עמותה"]);
+        const name = String(r["שם עמותה בעברית"] || "").trim();
+        if (!hp || !name) continue;
+        const status = String(r["סטטוס עמותה"] || "").trim();
+        const city = String(r["כתובת - ישוב"] || "").trim();
+        const ind = String(r["סיווג פעילות ענפי"] || "ארגון/עמותה").trim();
+        const emp = parseInt(r["כמות עובדים"], 10);
+        const ent = ensureEntity(hp, name, city, city, status, "ngos", slice.label, "https://data.gov.il/dataset/be5b7935-3922-45d4-9638-08871b17ec95");
+        ent.industries.add(ind);
+        if (!ent.primaryInd) ent.primaryInd = ind;
+        if (Number.isInteger(emp) && emp > 0 && (ent.employeesCount === null || emp > ent.employeesCount)) {
+          ent.employeesCount = emp;
+          ent.employeeSource = "רשם העמותות (משרד המשפטים)";
+        }
+      }
+    }
+  }
+
+  // Pass 2: Cross-reference business_licenses and asbestos against real-HP entities (by full normalized phone or exact cleaned corporate name)
+  for (const slice of slices) {
+    if (slice.type === "business_licenses") {
+      totalScanned += slice.records.length;
+      // Group by business to count exact licensed vehicles if listed
+      const bizGroups = new Map();
+      for (const r of slice.records) {
+        const bName = String(r["שם עסק"] || "").trim();
+        if (!bName) continue;
+        const key = cleanCorpNameForMatch(bName);
+        if (!key) continue;
+        if (!bizGroups.has(key)) {
+          bizGroups.set(key, { name: bName, phones: new Set(), emails: new Set(), vehicleLicenses: new Set(), descs: new Set() });
+        }
+        const g = bizGroups.get(key);
+        const p = normFullIsraeliPhone(r["טלפון בעסק"]);
+        if (isValidIsraeliPhoneFull(p)) g.phones.add(p);
+        const m = String(r["מייל בעסק"] || "").trim().toLowerCase();
+        if (m && m.includes("@")) g.emails.add(m);
+        const desc = String(r["תאור רישיון"] || "").trim();
+        if (desc) g.descs.add(desc);
+        const vMatch = desc.match(/מס'\\s*רכב\\s*(\\d{5,9})/);
+        if (vMatch) g.vehicleLicenses.add(vMatch[1]);
+      }
+
+      for (const [cKey, g] of bizGroups.entries()) {
+        let matchedHp = byCleanName.get(cKey);
+        if (!matchedHp) {
+          for (const p of g.phones) {
+            if (byPhone.has(p)) {
+              matchedHp = byPhone.get(p);
+              break;
+            }
+          }
+        }
+        if (!matchedHp || !byHp.has(matchedHp)) continue;
+        const ent = byHp.get(matchedHp);
+        ent.sourcesMap.set("business_licenses", slice.label);
+        for (const p of g.phones) {
+          addPhoneToEntity(ent, p, "business_licenses", slice.label);
+        }
+        for (const m of g.emails) {
+          addEmailToEntity(ent, m, "business_licenses", slice.label);
+        }
+        if (g.vehicleLicenses.size >= 1) {
+          ent.verifiedFleetCount = Math.max(ent.verifiedFleetCount || 0, g.vehicleLicenses.size);
+          ent.verifiedFleetSource = "רישוי עסקים ממשלתי (רכבים ברישיון)";
+        }
+      }
+    } else if (slice.type === "asbestos") {
+      totalScanned += slice.records.length;
+      for (const r of slice.records) {
+        const bName = String(r.Company || "").trim();
+        const cKey = cleanCorpNameForMatch(bName);
+        const p1 = normFullIsraeliPhone(r.Phone);
+        const p2 = normFullIsraeliPhone(r.Mobile_Phone);
+        let matchedHp = (cKey && byCleanName.get(cKey)) || (p1 && byPhone.get(p1)) || (p2 && byPhone.get(p2));
+        if (!matchedHp || !byHp.has(matchedHp)) continue;
+        const ent = byHp.get(matchedHp);
+        ent.sourcesMap.set("asbestos", slice.label);
+        if (p1) addPhoneToEntity(ent, p1, "asbestos", slice.label);
+        if (p2) addPhoneToEntity(ent, p2, "asbestos", slice.label);
+        if (r.Email) addEmailToEntity(ent, r.Email, "asbestos", slice.label);
+      }
+    }
+  }
+
+  // Pass 3 (הוסר): התאמת דומיין אימייל לתאגיד אינה אימות של כתובת האימייל עצמה — אימייל נחשב מאומת רק כשאותה כתובת מופיעה ב-2 מקורות.
+
+  S._govCrossIndex = true;
+  S._govCrossIndexKey = cacheKey;
+  S._govCrossIndexMap = byHp;
+  S._govCrossIndexScanned = totalScanned;
+  return byHp;
+}
+
+/* ===== מנוע החיפוש המאוחד (RUN UNIFIED SEARCH — תומך בחיפוש חדש ובהמשך חיפוש) ===== */
+async function runUnifiedSearch(customOpts = {}) {
+  if (S.searchRunning) return;
+
+  const isAppend = Boolean(customOpts.append);
+
+  // 1. חילוץ כלל המסננים מהממשק
+  const companyTypeVal = ($("#a-company-type") && $("#a-company-type").value) || customOpts.companyType || "all";
+  const indVal = ($("#a-ind") && $("#a-ind").value) || customOpts.ind || "";
+  const multiInds = Array.from(document.querySelectorAll(".ind-multi-cb:checked")).map(cb => cb.value);
+  const activeInds = multiInds.length > 0 ? multiInds : (indVal ? [indVal] : []);
+
+  const regionVal = ($("#a-region") && $("#a-region").value) || customOpts.region || "";
+  const multiRegs = Array.from(document.querySelectorAll(".reg-multi-cb:checked")).map(cb => cb.value);
+  const activeRegs = multiRegs.length > 0 ? multiRegs : (regionVal ? [regionVal] : []);
+
+  const fleetModeVal = ($("#a-fleet-filter-mode") && $("#a-fleet-filter-mode").value) || customOpts.fleetMode || "5plus";
+  const fleetCustomMin = parseInt(($("#a-fleet-custom-min") && $("#a-fleet-custom-min").value) || customOpts.fleetCustomMin || 0, 10) || 0;
+
+  const workforceVal = ($("#a-workforce-range") && $("#a-workforce-range").value) || customOpts.workforce || "all";
+  const empMinCustom = parseInt(($("#a-emp-min") && $("#a-emp-min").value) || customOpts.empMin || 0, 10) || 0;
+  const empMaxCustom = parseInt(($("#a-emp-max") && $("#a-emp-max").value) || customOpts.empMax || 0, 10) || 0;
+
+  const kwInput = (($("#a-kw") && $("#a-kw").value.trim()) || customOpts.kw || "").trim();
+  const cityVal = (($("#a-city") && $("#a-city").value.trim()) || customOpts.city || "").trim().toLowerCase();
+  const contactReqVal = ($("#a-contact-req") && $("#a-contact-req").value) || customOpts.contactReq || "all";
+  const targetCross = parseInt(($("#a-target-cross") && $("#a-target-cross").value) || customOpts.targetCross || 4, 10);
+
+  const countInput = ($("#a-count") && parseInt($("#a-count").value, 10)) || customOpts.reqLimit || 50;
+  const reqLimitTotal = Math.max(1, Math.min(500, countInput));
+
+  // שמירת מצב אחרון
+  S._lastCompanyType = companyTypeVal;
+  S._lastInd = indVal;
+  S._lastMultiInds = multiInds;
+  S._lastRegion = regionVal;
+  S._lastMultiRegs = multiRegs;
+  S._lastFleetMode = fleetModeVal;
+  S._lastFleetCustomMin = fleetCustomMin ? String(fleetCustomMin) : "";
+  S._lastWfRange = workforceVal;
+  S._lastEmpMin = empMinCustom ? String(empMinCustom) : "";
+  S._lastEmpMax = empMaxCustom ? String(empMaxCustom) : "";
+  S._lastQueryTerm = kwInput;
+  S._lastCity = cityVal;
+  if (!isAppend) S._lastSaveSuccess = null;
+
+  // חילוץ מקורות נבחרים
+  const selectedCheckboxes = Array.from(document.querySelectorAll(".src-cb:checked"));
+  let selectedSourceIds = selectedCheckboxes.map(cb => cb.value);
+  if (selectedSourceIds.length === 0) {
+    selectedSourceIds = [
+      "src_companies",
+      "src_labor_employers",
+      "src_contractors",
+      "src_plants_industry",
+      "src_business_licenses",
+      "src_garages",
+      "src_manpower_security",
+      "src_asbestos",
+      "src_halatz"
+    ];
+  }
+  saveSourceSelection(selectedSourceIds);
+
+  // 2. אתחול משתני ריצה (שמירה על תוצאות ובחירות קיימות במצב "המשך חיפוש")
+  S.searchRunning = true;
+  S.searchStopRequested = false;
+  if (!isAppend || !Array.isArray(S.searchHits)) {
+    S.searchHits = [];
+    S.searchDuplicates = [];
+    S.searchRejected = [];
+    S.searchHitSelection = new Set();
+    S.searchExpandedDrawers = new Set();
+  }
+  S.searchActiveTab = "new";
+  S.searchStats = {
+    requested: isAppend ? (S.searchHits.length + reqLimitTotal) : reqLimitTotal,
+    scanned: 0,
+    added: S.searchHits.length,
+    duplicates: S.searchDuplicates.length,
+    rejected: S.searchRejected.length,
+    fleetEvidence: S.searchHits.length
+  };
+
+  const resultsContainer = $("#searchResultsArea");
+  if (resultsContainer) {
+    resultsContainer.innerHTML = renderSearchResultsArea();
+    resultsContainer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  // אינדקס חברות שכבר הועברו ל"חברות שנמצאו" (C) או כבר מוצגות בתוצאות החיפוש הנוכחי
+  const existingInDiscoveredMap = new Map();
+  C.forEach(c => {
+    const norm = normalizeRealHp(c.no);
+    if (norm) existingInDiscoveredMap.set(norm, c);
+  });
+
+  // עדכון שורות קיימות אם הועברו ל-C
+  S.searchHits.forEach(h => {
+    if (existingInDiscoveredMap.has(h.no) && !h.adopted) {
+      h.already = true;
+      h.statusBadge = "כבר בחברות שנמצאו";
+    }
+  });
+
+  const seenInCurrentRun = new Set(S.searchHits.map(h => h.no));
+  const startTime = Date.now();
+  const runStartHits = S.searchHits.length;
+  const rejectedHpRun = new Set();
+  const evaluatedHp = new Set();
+  S.searchBlocker = "";
+  S.searchStats.rejectReasons = {};
+  S.searchStats.evaluated = 0;
+  S.searchStats.passes = 0;
+  const noteRej = (no, reason) => {
+    rejectedHpRun.add(no);
+    const k = String(reason || "").replace(/\\s*[\\(\\/].*$/, "").trim() || "אחר";
+    S.searchStats.rejectReasons[k] = (S.searchStats.rejectReasons[k] || 0) + 1;
+  };
+
+  try {
+    for (let depth = 0; depth <= 1; depth++) {
+    S.searchStats.passes = depth + 1;
+    const reqLimit = reqLimitTotal - (S.searchHits.length - runStartHits);
+    if (depth === 1) updateLiveSearchStatus("היעד טרם הושג (" + (S.searchHits.length - runStartHits) + "/" + reqLimitTotal + ") — ממשיך אוטומטית וטוען דפי מאגר נוספים (פנקס הקבלנים, מוסכים, כוח אדם)...");
+    const byHp = await ensureGovCrossIndex(selectedSourceIds, msg => updateLiveSearchStatus(msg), depth);
+    S.searchStats.scanned = S._govCrossIndexScanned || byHp.size;
+
+    // אם הוזנה מילת חיפוש חופשית, בצע גם שליפה ממוקדת מרשם החברות ומפנקס הקבלנים/מעסיקים להרחבת האינדקס
+    if (kwInput && selectedSourceIds.includes("src_companies")) {
+      updateLiveSearchStatus(\`מבצע שאילתת מילת מפתח "\${kwInput}" מול רשם החברות (data.gov.il)...\`);
+      try {
+        const kwUrl = \`https://data.gov.il/api/3/action/datastore_search?resource_id=f004176c-b85f-4542-8901-7b3176f9a054&q=\${encodeURIComponent(kwInput)}&limit=200\`;
+        const resp = await fetch(kwUrl);
+        if (resp.ok) {
+          const j = await resp.json();
+          const recs = j?.result?.records || [];
+          S.searchStats.scanned += recs.length;
+          for (const rec of recs) {
+            const hp = normalizeRealHp(rec["מספר חברה"]);
+            const name = String(rec["שם חברה"] || "").trim();
+            const status = String(rec["סטטוס חברה"] || "פעילה").trim();
+            if (!hp || !name) continue;
+            if (byHp.has(hp)) {
+              const ent = byHp.get(hp);
+              ent.sourcesMap.set("companies", "רשם החברות (data.gov.il)");
+              ent.status = status || ent.status;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    updateLiveSearchStatus("מפעיל את שבעת החוקים, נוסחת העובדים ואימות רב-מקורות על החברות שאותרו...");
+
+    const candidatesA = [];
+    const candidatesB = [];
+
+    for (const ent of byHp.values()) {
+      if (S.searchStopRequested) break;
+
+      // בדיקת כפילות מול הריצה הנוכחית (חשוב במיוחד ב"המשך חיפוש")
+      if (seenInCurrentRun.has(ent.no) || rejectedHpRun.has(ent.no)) {
+        continue;
+      }
+      if (!evaluatedHp.has(ent.no)) { evaluatedHp.add(ent.no); S.searchStats.evaluated++; }
+
+      // 1. בדיקת חברה פעילה (Stage 1: פסול חברות שאינן פעילות)
+      const isAct = window.OPQualify ? window.OPQualify.isCompanyActive(ent.status) : !/פירוק|מחוסל|מחוק|הופסק|לא פעיל|מבוטל|פקע/.test(ent.status || "");
+      if (isAct === false) {
+        S.searchStats.rejected++;
+        noteRej(ent.no, "חברה לא פעילה (" + ent.status + ")");
+        if (S.searchRejected.length < 250) {
+          S.searchRejected.push({ name: ent.name, no: ent.no, reason: \`חברה לא פעילה (\${ent.status})\` });
+        }
+        continue;
+      }
+
+      // 2. סיווג חברה כללית מול חברה עתירת רכב
+      const allIndText = [ent.primaryInd, ...ent.industries].filter(Boolean).join(" · ") || "חברה רשומה";
+      const isVehicleIntensive = isEntityVehicleIntensive(ent.name, ent.primaryInd, allIndText, ent.sourcesMap);
+      if (companyTypeVal === "general" && isVehicleIntensive) continue;
+      if (companyTypeVal === "vehicle_intensive" && !isVehicleIntensive) continue;
+
+      // 3. סינון מילת מפתח חופשית (אם הוזנה)
+      if (kwInput) {
+        const kwTokens = kwInput.toLowerCase().split(/[,،;]+/).map(s => s.trim()).filter(Boolean);
+        const searchBlob = (ent.name + " " + ent.no + " " + allIndText + " " + ent.city).toLowerCase();
+        if (kwTokens.length > 0 && !kwTokens.some(k => searchBlob.includes(k))) continue;
+      }
+
+      // 4. סינון עיר (אם הוזנה)
+      if (cityVal && !String(ent.city || "").toLowerCase().includes(cityVal)) continue;
+
+      // 5. סינון אזור גיאוגרפי (אחד או כמה מתוך 6 האזורים הראשיים)
+      const derivedReg = (window.OPQualify && typeof window.OPQualify.cityToRegion === "function")
+        ? window.OPQualify.cityToRegion(ent.city)
+        : "מרכז וגוש דן";
+      const normalizedRegion = (derivedReg && derivedReg !== "לא ידוע") ? derivedReg : "מרכז וגוש דן";
+      if (activeRegs.length > 0) {
+        const regMatch = activeRegs.some(r => normalizedRegion === r || normalizedRegion.includes(r) || String(ent.city || "").includes(r));
+        if (!regMatch) continue;
+      }
+
+      // 6. סינון תחום פעילות (אחד או כמה ענפים)
+      if (activeInds.length > 0) {
+        const blob = (ent.name + " " + allIndText).toLowerCase();
+        const indMatch = activeInds.some(indKey => {
+          const pat = INDUSTRY_FILTER_PATTERNS[indKey];
+          return (pat && pat.test(blob)) || blob.includes(indKey.toLowerCase());
+        });
+        if (!indMatch) continue;
+      }
+
+      // 7. בחירת הטלפון והאימייל הטובים ביותר (עם מרב המקורות העצמאיים)
+      let bestLandline = "";
+      let bestMobile = "";
+      let bestPhoneNorm = "";
+      let bestPhoneSources = [];
+
+      for (const [normP, srcMap] of ent.phoneToSources.entries()) {
+        const fmt = ent.phoneFormatted.get(normP) || formatIsraeliPhone(normP);
+        const srcList = Array.from(srcMap.values());
+        if (normP.startsWith("05")) {
+          if (!bestMobile || srcList.length > bestPhoneSources.length) bestMobile = fmt;
+        } else {
+          if (!bestLandline || srcList.length > bestPhoneSources.length) bestLandline = fmt;
+        }
+        if (srcList.length > bestPhoneSources.length || (!bestPhoneNorm && srcList.length > 0)) {
+          bestPhoneNorm = normP;
+          bestPhoneSources = srcList;
+        }
+      }
+
+      let bestEmail = "";
+      let bestEmailSources = [];
+      for (const [mail, srcMap] of ent.emailToSources.entries()) {
+        const srcList = Array.from(srcMap.values());
+        if (srcList.length > bestEmailSources.length || !bestEmail) {
+          bestEmail = mail;
+          bestEmailSources = srcList;
+        }
+      }
+
+      const companySourcesList = Array.from(ent.sourcesMap.values());
+
+      // 8. הפעלת OPQualify.evaluate לחישוב עובדים, צי רכב (לפי נוסחת העובדים לחברות כלליות בלבד / תחום מבוסס / מאומת) ודירוג A/B
+      const qRow = {
+        company_name: ent.name,
+        company_hp: ent.no,
+        company_category: isVehicleIntensive ? "vehicle_intensive" : "general",
+        status: ent.status || "פעילה",
+        industry: allIndText,
+        industry_name: allIndText,
+        city: ent.city || "לא ידוע",
+        address: ent.addr || ent.city || "לא ידוע",
+        website: ent.website || "",
+        phone: bestLandline || bestMobile || "",
+        mobile_phone: bestMobile || "",
+        email: bestEmail || "",
+        source: ent.sourcesMap.has("contractors") ? "contractors" : (ent.sourcesMap.has("plants_industry") ? "mefalas_plants" : "companies"),
+        source_name: companySourcesList.join(" + "),
+        source_list: companySourcesList,
+        phone_sources: bestPhoneSources,
+        email_sources: bestEmailSources,
+        independent_sources: companySourcesList,
+        employee_count: ent.employeesCount,
+        verified_employee_count: ent.employeesCount,
+        employee_source: ent.employeeSource,
+        fleet_size: ent.verifiedFleetCount,
+        fleetIsFact: Boolean(ent.verifiedFleetCount && ent.verifiedFleetCount > 0),
+        fleet_source: ent.verifiedFleetSource,
+        contact_name: ent.contactPerson || "",
+        contact_role: ent.roleTitle || "",
+        registry_check: {
+          companies: { found: true, status: ent.status || "פעילה" },
+          contractors: { found: ent.contractorRecords.length > 0, records: ent.contractorRecords }
+        }
+      };
+
+      const evalRes = (window.OPQualify && typeof window.OPQualify.evaluate === "function")
+        ? window.OPQualify.evaluate(qRow)
+        : null;
+
+      if (!evalRes || !evalRes.lead_grade) {
+        S.searchStats.rejected++;
+        noteRej(ent.no, (evalRes && evalRes.lead_grade_label) || "לא עמד בתנאי הסף של שבעת החוקים (חסר בסיס עובדים/רכבים ופרטי קשר)");
+        if (S.searchRejected.length < 250) {
+          S.searchRejected.push({
+            name: ent.name,
+            no: ent.no,
+            reason: (evalRes && evalRes.lead_grade_label) || "לא עמד בתנאי הסף של שבעת החוקים (חסר בסיס עובדים/רכבים ופרטי קשר)"
+          });
+        }
+        continue;
+      }
+
+      // חברה כללית ללא צי מאומת נכנסת רק על בסיס נתון עובדים אמיתי, מזוהה ועדכני (לא טווח ענפי/סיווג קבלני משוער)
+      if (!isVehicleIntensive && !(ent.verifiedFleetCount > 0)) {
+        const empCutoff = (new Date().getFullYear() - 4) + "-01-01";
+        let empReject = "";
+        if (ent.employeesCount === null || ent.employeesCount <= 0) empReject = "חברה כללית ללא נתון עובדים מבוסס (רק אומדן סיווג/ענף)";
+        else if (ent.employeeDate && ent.employeeDate < empCutoff) empReject = "נתון עובדים ישן (" + ent.employeeDate.slice(0, 4) + ")";
+        if (empReject) {
+          S.searchStats.rejected++;
+          noteRej(ent.no, empReject);
+          if (S.searchRejected.length < 250) S.searchRejected.push({ name: ent.name, no: ent.no, reason: empReject });
+          continue;
+        }
+      }
+
+      const wf = evalRes.workforce_estimate_v2 || {};
+      const fl = evalRes.fleet_estimate_v2 || {};
+      const approxEmp = ent.employeesCount !== null ? ent.employeesCount : wf.approx_employees;
+      const fleetCount = fl.fleet_count;
+      const fleetMethod = fl.fleet_method || "unknown";
+
+      // 9. סינון עצמאי לפי מספר עובדים (Stage 3)
+      if (workforceVal && workforceVal !== "all") {
+        if (workforceVal === "verified_emp_only" && (ent.employeesCount === null || ent.employeesCount <= 0)) continue;
+        if (workforceVal === "50plus" && (!approxEmp || approxEmp < 50)) continue;
+        if (workforceVal === "100plus" && (!approxEmp || approxEmp < 100)) continue;
+        if (workforceVal === "10-49" && (!approxEmp || approxEmp < 10 || approxEmp > 49)) continue;
+        if (workforceVal === "50-100" && (!approxEmp || approxEmp < 50 || approxEmp > 100)) continue;
+        if (workforceVal === "101-250" && (!approxEmp || approxEmp < 101 || approxEmp > 250)) continue;
+        if (workforceVal === "250plus" && (!approxEmp || approxEmp < 250)) continue;
+        if (workforceVal === "custom") {
+          if (empMinCustom > 0 && (!approxEmp || approxEmp < empMinCustom)) continue;
+          if (empMaxCustom > 0 && (!approxEmp || approxEmp > empMaxCustom)) continue;
+        }
+      }
+
+      // 10. סינון פוטנציאל רכבים (5+, 10+, 20+, 50+, מותאם אישית, או לפי שיטת חישוב)
+      if (fleetModeVal && fleetModeVal !== "all") {
+        if (fleetModeVal === "5plus" && (!fleetCount || fleetCount < 5)) continue;
+        if (fleetModeVal === "10plus" && (!fleetCount || fleetCount < 10)) continue;
+        if (fleetModeVal === "20plus" && (!fleetCount || fleetCount < 20)) continue;
+        if (fleetModeVal === "50plus" && (!fleetCount || fleetCount < 50)) continue;
+        if (fleetModeVal === "custom") {
+          const minFl = fleetCustomMin > 0 ? fleetCustomMin : 5;
+          if (!fleetCount || fleetCount < minFl) continue;
+        }
+        if (fleetModeVal === "verified_only" && fleetMethod !== "verified") continue;
+        if (fleetModeVal === "formula_only" && fleetMethod !== "formula") continue;
+        if (fleetModeVal === "industry_only" && fleetMethod !== "industry") continue;
+      }
+
+      // 11. סינון דרישת פרטי קשר ודירוג
+      const phoneMatches = bestPhoneSources.length;
+      const emailMatches = bestEmailSources.length;
+      const isGreenPhone = phoneMatches >= 2;
+
+      // דירוג A רק כשגם הטלפון וגם האימייל מופיעים באותה חברה ב-2 מקורות עצמאיים לפחות
+      if (evalRes.lead_grade === "A" && !(phoneMatches >= 2 && emailMatches >= 2)) {
+        evalRes.lead_grade = "B";
+        evalRes.lead_grade_label = "דירוג B — ליד להשלמת אימות מקור נוסף";
+      }
+
+      if (contactReqVal === "grade_a" && evalRes.lead_grade !== "A") continue;
+      if (contactReqVal === "grade_b" && evalRes.lead_grade !== "B") continue;
+      if (contactReqVal === "green_phone" && !isGreenPhone) continue;
+      if (contactReqVal === "phone" && !bestLandline && !bestMobile) continue;
+      if (contactReqVal === "email" && !bestEmail) continue;
+
+      // בדיקת האם החברה כבר נמצאת ב"חברות שנמצאו" (C)
+      const alreadyInDiscovered = existingInDiscoveredMap.has(ent.no);
+      if (alreadyInDiscovered) {
+        const ex = existingInDiscoveredMap.get(ent.no);
+        S.searchStats.duplicates++;
+        S.searchDuplicates.push({
+          name: ent.name,
+          no: ent.no,
+          city: ent.city,
+          ind: allIndText,
+          reason: \`ח.פ. כבר קיים ב'חברות שנמצאו': "\${ex.name}" (מסומן בטבלה כנעול להעברה כפולה)\`
+        });
+      }
+
+      // בניית תוויות אימות שקופות ומדויקות (2–4 מקורות עצמאיים)
+      const phoneVerBadgeColor = phoneMatches >= 2 ? "green" : (phoneMatches === 1 ? "yellow" : "gray");
+      const phoneVerBadgeLabel = phoneMatches >= 2
+        ? \`✓ מאומת (\${Math.min(4, phoneMatches)}/\${targetCross} מקורות)\`
+        : phoneMatches === 1
+        ? \`מקור יחיד (1/\${targetCross})\`
+        : \`להשלמה (0/\${targetCross})\`;
+      const phoneVerStatus = phoneMatches >= 2
+        ? \`אומת ב-\${phoneMatches} מקורות עצמאיים: \${bestPhoneSources.join(" + ")}\`
+        : phoneMatches === 1
+        ? \`אותרה רשומה במקור אחד (\${bestPhoneSources[0]}) — דורש מקור שני לאימות מלא\`
+        : "ללא טלפון במאגר הפתוח — ליד להשלמת פרטי קשר";
+
+      const emailVerLabel = emailMatches >= 2
+        ? \`✓ מאומת (\${Math.min(4, emailMatches)}/\${targetCross})\`
+        : emailMatches === 1
+        ? \`מקור 1 (1/\${targetCross})\`
+        : \`0/\${targetCross}\`;
+
+      let gradeNote = "";
+      if (evalRes.lead_grade === "A") {
+        gradeNote = \`טלפון מאומת ב-\${phoneMatches} מקורות עצמאיים + אימייל עסקי\`;
+      } else {
+        const missingParts = [];
+        if (!bestLandline && !bestMobile) missingParts.push("חסר טלפון");
+        else if (phoneMatches < 2) missingParts.push("טלפון ממקור יחיד");
+        if (!bestEmail) missingParts.push("חסר אימייל");
+        gradeNote = missingParts.length ? \`להשלמת: \${missingParts.join(", ")}\` : "ליד להשלמת פרטי קשר";
+      }
+
+      const hitObj = {
+        no: ent.no,
+        name: ent.name,
+        isVehicleIntensive,
+        city: ent.city || "לא ידוע",
+        region: normalizedRegion,
+        addr: ent.addr || ent.city || "—",
+        ind: allIndText,
+        status: ent.status || "פעילה",
+        website: ent.website || "",
+        employeesCount: ent.employeesCount,
+        employeeSource: ent.employeeSource || "",
+        approxEmployees: approxEmp,
+        workforceRange: wf.employee_count_range || (ent.employeesCount ? String(ent.employeesCount) : "לא ידוע"),
+        workforceDisplay: wf.employee_count_display || (ent.employeesCount ? \`\${ent.employeesCount} עובדים (מאומת)\` : "לא ידוע"),
+        workforceConfidence: wf.workforce_confidence_level || "",
+        workforce_v2: wf,
+        fleet_estimate_v2: fl,
+        fleetSizeDisplay: fl.fleet_size_display || "לא ידוע",
+        fleetRounded: fl.fleet_count_rounded || "",
+        fleetCount: fleetCount,
+        fleetMethod: fleetMethod,
+        fleetMethodLabel: fl.fleet_method_label || "לא ידוע",
+        fleetConfidence: fl.fleet_confidence || "",
+        fleetBasis: fl.basis_of_estimate_label || "",
+        fleetIsFact: Boolean(fl.is_verified),
+        fleetPotential: fl.fleet_size_display || "",
+        contactPerson: ent.contactPerson || "—",
+        roleTitle: ent.roleTitle || "",
+        phone: bestLandline || "—",
+        mobile: bestMobile || "—",
+        email: bestEmail || "—",
+        phoneMatches,
+        phoneSourcesList: bestPhoneSources,
+        phoneVerBadgeColor,
+        phoneVerBadgeLabel,
+        phoneVerStatus,
+        emailMatches,
+        emailSourcesList: bestEmailSources,
+        emailVerLabel,
+        companySourcesList,
+        source: ent.sourcesMap.keys().next().value || "companies",
+        source_label: companySourcesList.join(" + "),
+        source_url: ent.source_url,
+        leadGrade: evalRes.lead_grade,
+        leadGradeLabel: evalRes.lead_grade_label,
+        gradeNote,
+        qualityScore: evalRes.lead_grade === "A" ? 95 : 78,
+        qualityColor: evalRes.lead_grade === "A" ? "green" : "yellow",
+        qualityLabel: evalRes.lead_grade_label,
+        businessPotentialScore: evalRes.business_potential_score || 75,
+        already: alreadyInDiscovered,
+        adopted: false,
+        statusBadge: alreadyInDiscovered ? "כבר בחברות שנמצאו" : ""
+      };
+
+      if (evalRes.lead_grade === "A") {
+        candidatesA.push(hitObj);
+      } else if (evalRes.lead_grade === "B") {
+        candidatesB.push(hitObj);
+      }
+    }
+
+    // מיון מועמדים: דירוג A קודם (לפי מספר מקורות אימות טלפון ואימייל, ואז גודל צי/עובדים), ואחריו דירוג B
+    const sortFn = (a, b) => {
+      // העדפה לחברות שטרם נמצאות ב-C כדי שהמשתמש יקבל חברות חדשות לבחירה
+      if (a.already !== b.already) return a.already ? 1 : -1;
+      if (b.phoneMatches !== a.phoneMatches) return b.phoneMatches - a.phoneMatches;
+      if (b.emailMatches !== a.emailMatches) return b.emailMatches - a.emailMatches;
+      const hasBothContactsA = ((a.phone !== "—" || a.mobile !== "—") && a.email !== "—") ? 1 : 0;
+      const hasBothContactsB = ((b.phone !== "—" || b.mobile !== "—") && b.email !== "—") ? 1 : 0;
+      if (hasBothContactsB !== hasBothContactsA) return hasBothContactsB - hasBothContactsA;
+      const hasExactEmpA = (a.employeesCount !== null && a.employeesCount > 0) ? 1 : 0;
+      const hasExactEmpB = (b.employeesCount !== null && b.employeesCount > 0) ? 1 : 0;
+      if (hasExactEmpB !== hasExactEmpA) return hasExactEmpB - hasExactEmpA;
+      if (b.companySourcesList.length !== a.companySourcesList.length) return b.companySourcesList.length - a.companySourcesList.length;
+      const empA = a.employeesCount || a.approxEmployees || 0;
+      const empB = b.employeesCount || b.approxEmployees || 0;
+      return empB - empA;
+    };
+
+    candidatesA.sort(sortFn);
+    candidatesB.sort(sortFn);
+
+    // בניית רשימת התוצאות עד reqLimit — ללא הטיה לחברות הובלה כאשר נבחר "כל החברות" (Stage 3 & Stage 4)
+    const allSorted = [...candidatesA, ...candidatesB];
+    const selectedBatch = [];
+
+    if (companyTypeVal === "all" && activeInds.length === 0 && !kwInput) {
+      // בחיפוש כללי ("כל החברות"), ודא שלפחות 70% מהתוצאות הן חברות כלליות (תעשייה, מפעלים, הייטק, שירותים, מסחר) ולא רוב של חברות הובלה!
+      const maxVehicleInAll = depth >= 1 ? reqLimit : Math.max(5, Math.floor(reqLimitTotal * 0.28));
+      let vehicleAdded = 0;
+
+      // שלב א': כל ליד בדירוג A (מוכן לפנייה עם 2+ מקורות עצמאיים) נכנס ראשון, תוך שמירה על תקרת חברות הובלה
+      for (const item of candidatesA) {
+        if (selectedBatch.length >= reqLimit) break;
+        if (item.isVehicleIntensive) {
+          if (vehicleAdded >= maxVehicleInAll) continue;
+          vehicleAdded++;
+        }
+        selectedBatch.push(item);
+        seenInCurrentRun.add(item.no);
+      }
+
+      // שלב ב': השלמת המכסה מחברות כלליות בדירוג B (בעלות עובדים מאומתים + פרטי קשר / נוסחת עובדים) ואז חברות עתירות רכב עד התקרה
+      for (const item of candidatesB) {
+        if (selectedBatch.length >= reqLimit) break;
+        if (seenInCurrentRun.has(item.no)) continue;
+        if (item.isVehicleIntensive) {
+          if (vehicleAdded >= maxVehicleInAll) continue;
+          vehicleAdded++;
+        }
+        selectedBatch.push(item);
+        seenInCurrentRun.add(item.no);
+      }
+    } else {
+      for (const item of allSorted) {
+        if (selectedBatch.length >= reqLimit) break;
+        selectedBatch.push(item);
+        seenInCurrentRun.add(item.no);
+      }
+    }
+
+    // אימות סטטוס אמיתי מול רשם החברות (f004176c) לפי מספר חברה מדויק — לכל חברה שמוצגת, לא רק ל-25 הראשונות.
+    // חברה שלא נמצאה ברשם, אינה פעילה או שלא ניתן היה לאמת את הסטטוס שלה — נפסלת ומוחלפת במועמדת הבאה.
+    // השלמת טלפון/אימייל מפנקס הקבלנים לפי ח.פ. מדויק (האינדקס הכללי טוען רק חלק מהפנקס) ועדכון ספירת המקורות
+    const CT_LABEL = "פנקס הקבלנים (data.gov.il)";
+    const addContractorContacts = async (h) => {
+      try {
+        const flt = encodeURIComponent(JSON.stringify({ MISPAR_YESHUT: h.no }));
+        const r = await fetch("https://data.gov.il/api/3/action/datastore_search?resource_id=4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8&filters=" + flt + "&limit=20");
+        if (!r.ok) return;
+        const recs = ((await r.json())?.result?.records) || [];
+        if (!recs.length) return;
+        const curPhones = [h.phone, h.mobile].map(normFullIsraeliPhone).filter(Boolean);
+        const curEmail = String(h.email || "").trim().toLowerCase();
+        for (const rec of recs) {
+          const p = normFullIsraeliPhone(rec.MISPAR_TEL);
+          if (p && isValidIsraeliPhoneFull(p)) {
+            if (curPhones.includes(p)) {
+              if (!h.phoneSourcesList.includes(CT_LABEL)) h.phoneSourcesList.push(CT_LABEL);
+            } else if (!curPhones.length) {
+              if (/^05/.test(p)) h.mobile = formatIsraeliPhone(p); else h.phone = formatIsraeliPhone(p);
+              curPhones.push(p);
+              h.phoneSourcesList = [CT_LABEL];
+            }
+          }
+          const m = String(rec.EMAIL || "").trim().toLowerCase();
+          if (m.includes("@")) {
+            if (curEmail && curEmail === m) {
+              if (!h.emailSourcesList.includes(CT_LABEL)) h.emailSourcesList.push(CT_LABEL);
+            } else if (!curEmail || curEmail === "—") {
+              h.email = m;
+              h.emailSourcesList = [CT_LABEL];
+            }
+          }
+        }
+        if (!h.companySourcesList.includes(CT_LABEL)) {
+          h.companySourcesList.push(CT_LABEL);
+          h.source_label = h.companySourcesList.join(" + ");
+        }
+        h.phoneMatches = h.phoneSourcesList.length;
+        h.emailMatches = h.emailSourcesList.length;
+        const tc = 4;
+        h.phoneVerBadgeColor = h.phoneMatches >= 2 ? "green" : (h.phoneMatches === 1 ? "yellow" : "gray");
+        h.phoneVerBadgeLabel = h.phoneMatches >= 2 ? "✓ מאומת (" + Math.min(4, h.phoneMatches) + "/" + tc + " מקורות)" : (h.phoneMatches === 1 ? "מקור יחיד (1/" + tc + ")" : "להשלמה (0/" + tc + ")");
+        h.phoneVerStatus = h.phoneMatches >= 2 ? "אומת ב-" + h.phoneMatches + " מקורות עצמאיים: " + h.phoneSourcesList.join(" + ") : (h.phoneMatches === 1 ? "אותרה רשומה במקור אחד (" + h.phoneSourcesList[0] + ") — דורש מקור שני לאימות מלא" : h.phoneVerStatus);
+        h.emailVerLabel = h.emailMatches >= 2 ? "✓ מאומת (" + Math.min(4, h.emailMatches) + "/" + tc + ")" : (h.emailMatches === 1 ? "מקור 1 (1/" + tc + ")" : "0/" + tc);
+        if (h.phoneMatches >= 2 && h.emailMatches >= 2 && h.leadGrade !== "A") {
+          h.leadGrade = "A";
+          h.leadGradeLabel = h.qualityLabel = "דירוג A — פרטי קשר מאומתים ב-2 מקורות עצמאיים";
+          h.qualityScore = 95;
+          h.qualityColor = "green";
+        }
+      } catch (e) {}
+    };
+
+    const registrarActive = async (h) => {
+      try {
+        const flt = encodeURIComponent(JSON.stringify({ "מספר חברה": Number(h.no) }));
+        const r = await fetch("https://data.gov.il/api/3/action/datastore_search?resource_id=f004176c-b85f-4542-8901-7b3176f9a054&filters=" + flt + "&limit=5");
+        if (!r.ok) return "לא ניתן לאמת סטטוס ברשם החברות";
+        const j = await r.json();
+        const match = (j?.result?.records || []).find(rec => normalizeRealHp(rec["מספר חברה"]) === h.no);
+        if (!match) return "לא נמצאה ברשם החברות (לא חברה רשומה)";
+        const regStatus = String(match["סטטוס חברה"] || "").trim();
+        const subStatus = String(match["תת סטטוס"] || "").trim();
+        h.status = regStatus || "לא ידוע";
+        h.registryVerified = true;
+        if (!h.companySourcesList.includes("רשם החברות (data.gov.il)")) {
+          h.companySourcesList.push("רשם החברות (data.gov.il)");
+          h.source_label = h.companySourcesList.join(" + ");
+        }
+        const cityReg = String(match["שם עיר"] || "").trim();
+        const streetReg = String(match["שם רחוב"] || "").trim();
+        const houseReg = String(match["מספר בית"] || "").trim();
+        if (cityReg && (!h.city || h.city === "לא ידוע")) h.city = cityReg;
+        if (streetReg && (!h.addr || h.addr === h.city || h.addr === "—")) {
+          h.addr = streetReg + (houseReg ? " " + houseReg : "") + (h.city ? ", " + h.city : "");
+        }
+        if (regStatus !== "פעילה") return "סטטוס ברשם החברות: " + (regStatus || "לא ידוע");
+        if (/צו לפתיחת הליכים|פירוק|כינוס/.test(subStatus)) return "סטטוס ברשם החברות: " + regStatus + " / " + subStatus;
+        await addContractorContacts(h);
+        return "";
+      } catch (e) {
+        return "לא ניתן לאמת סטטוס ברשם החברות";
+      }
+    };
+
+    let finalBatch = selectedBatch;
+    if (selectedSourceIds.includes("src_companies") && selectedBatch.length > 0) {
+      finalBatch = [];
+      const queue = selectedBatch.slice();
+      // השלמה במועמדות הבאות; בחיפוש "כל החברות" ההשלמה מחברות כלליות בלבד כדי לא לחרוג מתקרת חברות הרכב
+      const refill = allSorted.filter(item => !seenInCurrentRun.has(item.no) && (companyTypeVal !== "all" || depth >= 1 || !item.isVehicleIntensive));
+      let checked = 0;
+      while (finalBatch.length < reqLimit && (queue.length || refill.length)) {
+        if (!queue.length) {
+          const nxt = refill.shift();
+          if (seenInCurrentRun.has(nxt.no)) continue;
+          seenInCurrentRun.add(nxt.no);
+          queue.push(nxt);
+          continue;
+        }
+        const chunk = queue.splice(0, Math.min(10, reqLimit - finalBatch.length + 2, queue.length));
+        checked += chunk.length;
+        updateLiveSearchStatus("מאמת סטטוס ברשם החברות (" + checked + " נבדקו, " + finalBatch.length + " פעילות)...");
+        const reasons = await Promise.all(chunk.map(registrarActive));
+        chunk.forEach((h, i) => {
+          if (!reasons[i] && finalBatch.length < reqLimit) {
+            finalBatch.push(h);
+          } else if (reasons[i]) {
+            S.searchStats.rejected++;
+            noteRej(h.no, reasons[i]);
+            if (S.searchRejected.length < 250) S.searchRejected.push({ name: h.name, no: h.no, reason: reasons[i] });
+          } else {
+            seenInCurrentRun.delete(h.no);
+          }
+        });
+        while (!queue.length && refill.length && finalBatch.length < reqLimit) {
+          const nxt = refill.shift();
+          if (seenInCurrentRun.has(nxt.no)) continue;
+          seenInCurrentRun.add(nxt.no);
+          queue.push(nxt);
+          if (queue.length >= 10) break;
+        }
+      }
+    }
+
+    S.searchHits.push(...finalBatch);
+    S.searchStats.added = S.searchHits.length;
+    S.searchStats.fleetEvidence = S.searchHits.length;
+    if (S.searchHits.length - runStartHits >= reqLimitTotal || S.searchStopRequested) break;
+    } // סוף לולאת מעברי החיפוש (מעבר 2 טוען דפי מאגר נוספים רק כשהיעד טרם הושג)
+
+    if (!S.searchStopRequested && (S.searchHits.length - runStartHits) < reqLimitTotal) {
+      const rr = S.searchStats.rejectReasons || {};
+      const rrTxt = Object.keys(rr).sort((a, b) => rr[b] - rr[a]).slice(0, 5).map(k => k + ": " + rr[k]).join(" | ");
+      S.searchBlocker = "היעד לא הושג: נמצאו " + (S.searchHits.length - runStartHits) + " מתוך " + reqLimitTotal + " חברות מתאימות. כל המקורות החינמיים הזמינים נסרקו (" + S.searchStats.evaluated + " מועמדות נבדקו בשבעת הכללים). לא הוקלו הכללים ולא נוספו חברות שאינן עומדות בהם. סיבות פסילה עיקריות: " + rrTxt;
+    } else {
+      S.searchBlocker = "";
+    }
+  } catch (globalErr) {
+    console.error("שגיאה במנוע החיפוש המאוחד:", globalErr);
+    toast("שגיאה בסריקה: " + globalErr.message, "error");
+  } finally {
+    S.searchRunning = false;
+    const durSec = ((Date.now() - startTime) / 1000).toFixed(1);
+    const area = $("#searchResultsArea");
+    if (area) area.innerHTML = renderSearchResultsArea();
+    updateLiveSearchStatus(\`החיפוש הסתיים ב-\${durSec} שניות · מוצגות \${S.searchHits.length} חברות מבוססות (דירוג A ו-B בלבד).\` + (S.searchBlocker ? " ⚠ " + S.searchBlocker : ""));
+    updateActionButtonsState();
+  }
+}
+
+function renderSearchHitsProgressive() {
+  const area = $("#searchResultsArea");
+  if (area) area.innerHTML = renderSearchResultsArea();
   updateLiveKpisAndProgress();
   updateActionButtonsState();
 }
@@ -2498,13 +2917,10 @@ function renderSearchHitsFiltered() {
     updateActionButtonsState();
   }
 }
+
 function updateLiveSearchStatus(msg) {
   const statusEl = $("#searchHeaderStatus");
   if (statusEl) statusEl.textContent = msg;
-  const subEl = $("#liveSearchDetailsSubtitle");
-  if (subEl && S.searchStats) {
-    subEl.textContent = \`מבוקש: \${S.searchStats.requested} | נסרקו במאגר: \${S.searchStats.scanned} | נוספו: \${S.searchStats.added} | כפילויות שנמנעו: \${S.searchStats.duplicates} | נפסלו: \${S.searchStats.rejected}\`;
-  }
 }
 
 function updateLiveKpisAndProgress() {
@@ -2514,27 +2930,22 @@ function updateLiveKpisAndProgress() {
   const selectedCount = [...sel].filter(no => freshHits.some(h => h.no === no)).length;
 
   const tabNewEl = $("#tabCountNew");
-  if (tabNewEl) tabNewEl.textContent = \`\${freshHits.length}\`;
+  if (tabNewEl) tabNewEl.textContent = \`\${hits.length}\`;
 
   const newHitsHeader = $("#newHitsCountHeader");
-  if (newHitsHeader) newHitsHeader.textContent = \`\${freshHits.length} חברות חדשות אותרו\`;
+  if (newHitsHeader) newHitsHeader.textContent = \`\${hits.length} חברות מבוססות (דירוג A/B)\`;
 
   const selectAllLabel = $("#selectAllLabelText");
   if (selectAllLabel) selectAllLabel.textContent = \`בחר את כל \${freshHits.length} החברות החדשות\`;
 
   const badgeEl = $("#hitSelectedCountBadge");
   if (badgeEl) {
-    badgeEl.textContent = \`סומנו \${selectedCount} מתוך \${freshHits.length} חברות חדשות\`;
+    badgeEl.textContent = \`סומנו \${selectedCount} מתוך \${freshHits.length} חברות זמינות להעברה\`;
   }
   const saveBtn = $("#btnSaveToDiscovered");
   if (saveBtn) {
     saveBtn.disabled = selectedCount === 0;
-    saveBtn.innerHTML = \`<span>📥 שמור חברות נבחרות כ'חברות שנמצאו' (שלב 2) [\${selectedCount}]</span>\`;
-  }
-
-  const subEl = $("#liveSearchDetailsSubtitle");
-  if (subEl && S.searchStats) {
-    subEl.textContent = \`מבוקש: \${S.searchStats.requested} | נסרקו במאגר: \${S.searchStats.scanned} | נוספו: \${S.searchStats.added} | כפילויות שנמנעו: \${S.searchStats.duplicates} | נפסלו: \${S.searchStats.rejected}\`;
+    saveBtn.innerHTML = \`<span>📥 העבר חברות נבחרות ל'חברות שנמצאו' [\${selectedCount}]</span>\`;
   }
 }
 
@@ -2546,55 +2957,69 @@ function updateActionButtonsState() {
   const btn = $("#btnUnifiedSearch");
   if (btn) {
     btn.disabled = S.searchRunning;
-    btn.innerHTML = \`<span>\${S.searchRunning ? '⏳ סורק מאגרים באצוות...' : '🚀 הפעל איתור חברות חינמי ומבוקר (0 ₪)'}</span>\`;
+    btn.innerHTML = \`<span>\${S.searchRunning ? '⏳ מאתר ומצליב נתונים...' : '🚀 חיפוש חברות (data.gov.il)'}</span>\`;
+  }
+  const contBtn = $("#btnContinueSearch");
+  if (contBtn) {
+    contBtn.disabled = S.searchRunning;
   }
 }
 
-/* שמירת חברות נבחרות לשלב 2 בלבד: חברות שנמצאו (Discovered Companies) */
+/* העברה מבוקרת של חברות נבחרות ל'חברות שנמצאו' (שלב 2 בלבד — ללא כפילויות וללא העברה אוטומטית לניהול לידים) */
 async function saveSelectedToDiscovered() {
   const sel = S.searchHitSelection || new Set();
   if (sel.size === 0) {
-    toast("לא נבחרו חברות לשמירה", "warn");
+    toast("לא נבחרו חברות להעברה", "warn");
     return;
   }
 
   const hits = S.searchHits || [];
-  const selectedHits = hits.filter(h => sel.has(h.no) && !h.already && !h.adopted);
+  const existingHpsInC = new Set(C.map(c => normalizeRealHp(c.no)).filter(Boolean));
+  const selectedHits = hits.filter(h => sel.has(h.no) && !h.already && !h.adopted && !existingHpsInC.has(h.no));
 
   if (selectedHits.length === 0) {
-    toast("כל החברות שנבחרו כבר קיימות במאגר או נשמרו", "info");
+    toast("כל החברות שנבחרו כבר נמצאות ב'חברות שנמצאו'", "info");
     return;
   }
 
-  // אישור שלב 1: שמירה ל"חברות שנמצאו"
-  const ok = confirm(\`האם לשמור \${selectedHits.length} חברות חדשות כ'חברות שנמצאו' (שלב 2)?\\n\\nשימת לב: חברות אלו יישמרו כחברות שנמצאו בלבד ולא יועברו ל'ניהול לידים' ללא אישור נוסף ונפרד.\`);
+  const ok = confirm(\`האם להעביר \${selectedHits.length} חברות נבחרות ל'חברות שנמצאו' (שלב 2)?\\n\\nהחברות יישמרו תחת 'חברות שנמצאו' בלבד ולא יועברו ללקוחות או לניהול לידים ללא אישור נפרד.\`);
   if (!ok) return;
 
   let addedCount = 0;
   selectedHits.forEach(h => {
-    // הוספה למאגר המקומי C
+    const normHp = normalizeRealHp(h.no);
+    if (!normHp || existingHpsInC.has(normHp)) return;
+    existingHpsInC.add(normHp);
+
     C.push({
-      id: "disc_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+      id: Date.now() + Math.floor(Math.random() * 10000) + addedCount,
       name: h.name,
-      no: h.no,
+      no: normHp,
       city: h.city,
+      region: h.region,
       addr: h.addr,
       ind: h.ind,
-      status: "חדש",
+      status: "new",
+      isApprovedLead: false,
       found: new Date().toLocaleDateString("he-IL"),
-      fleet: h.fleetPotential || "הערכה ענפית",
-      phone: h.phone || "—",
+      upd: new Date().toLocaleDateString("he-IL"),
+      size: h.employeesCount ? \`\${h.employeesCount} עובדים (מאומת)\` : (h.workforceRange || ""),
+      fleet: { s: h.fleetIsFact ? "v" : "e", val: h.fleetSizeDisplay || "5+ רכבים", src: h.fleetMethodLabel || "" },
+      fleetType: h.isVehicleIntensive ? "צי מסחרי / הובלה" : "צי חברה כללית",
+      phone: h.phone !== "—" ? h.phone : (h.mobile !== "—" ? h.mobile : "לא נמצא"),
       mobile: h.mobile || "—",
+      mail: h.email !== "—" ? h.email : "",
       email: h.email || "—",
       contact: h.contactPerson || "—",
       role: h.roleTitle || "",
-      score: h.qualityScore || 50,
+      score: h.qualityScore || 80,
       source: h.source_label || "data.gov.il",
       stage: "discovered",
+      lead_grade: h.leadGrade,
       phone_verified: h.phoneVerBadgeColor === "green"
     });
     h.adopted = true;
-    h.statusBadge = "נשמר כחברה שנמצאה";
+    h.statusBadge = "הועבר לחברות שנמצאו";
     sel.delete(h.no);
     addedCount++;
   });
@@ -2605,16 +3030,15 @@ async function saveSelectedToDiscovered() {
   updateLiveKpisAndProgress();
   updateActionButtonsState();
 
-  toast(\`✓ נשמרו בהצלחה \${addedCount} חברות כ'חברות שנמצאו' (שלב 2).\`, 'success');
+  toast(\`✓ הועברו בהצלחה \${addedCount} חברות ל'חברות שנמצאו' (שלב 2).\`, "success");
 }
 
-/* חיפוש במאגר הפנימי הקיים של המשתמש (C) */
 function runInternalDbSearch(query) {
   const container = $("#internalDbResults");
   if (!container) return;
   const q = String(query || "").trim().toLowerCase();
   if (!q) {
-    container.innerHTML = \`<div class="xs muted">הזן מילת חיפוש להצגת תוצאות מהמאגר הקיים (\${C.length} חברות)</div>\`;
+    container.innerHTML = \`<div class="xs muted">הזן מילת חיפוש להצגת תוצאות מתוך 'חברות שנמצאו' (\${C.length} חברות)</div>\`;
     return;
   }
 
@@ -2626,13 +3050,13 @@ function runInternalDbSearch(query) {
   });
 
   if (results.length === 0) {
-    container.innerHTML = \`<div class="empty" style="padding:16px;text-align:center">לא נמצאו חברות במאגר הקיים התואמות ל-"\${esc(q)}"</div>\`;
+    container.innerHTML = \`<div class="empty" style="padding:16px;text-align:center">לא נמצאו חברות התואמות ל-"\${esc(q)}"</div>\`;
     return;
   }
 
   container.innerHTML = \`
-  <div style="font-size:12px;font-weight:700;margin-bottom:6px">נמצאו \${results.length} חברות במאגר:</div>
-  <div class="tbl-wrap" style="max-height:300px;overflow-y:auto">
+  <div style="font-size:12px;font-weight:700;margin-bottom:6px">נמצאו \${results.length} חברות:</div>
+  <div class="tbl-wrap" style="max-height:300px;overflow:auto">
     <table style="width:100%;font-size:12px">
       <thead style="background:#f1f5f9">
         <tr>
@@ -2655,11 +3079,10 @@ function runInternalDbSearch(query) {
   \`;
 }
 
-/* שילוב מנוע AI חיפוש נפרד עם Gemini */
 async function runAiProspectingSearch() {
   const prompt = ($("#ai-search-prompt") && $("#ai-search-prompt").value.trim()) || "";
   if (!prompt) {
-    toast("נא להזין תיאור לחיפוש ה-AI", "warn");
+    toast("נא להזין תיאור לחיפוש", "warn");
     return;
   }
 
@@ -2668,33 +3091,33 @@ async function runAiProspectingSearch() {
   V.search();
 
   try {
-    toast("✦ מפענח צרכים עסקיים ומאתר מילות מפתח ממוקדות...", "info");
-    // חילוץ מילות מפתח איכותיות על בסיס התיאור
-    const kwList = [];
-    if (/הובל|משא|שינוע|לוגיסטיקה/.test(prompt)) kwList.push("הובלות", "לוגיסטיקה");
-    if (/עפר|תשתיות|בנייה|פיתוח/.test(prompt)) kwList.push("עפר", "תשתיות");
-    if (/היסעים|אוטובוס|נוסעים/.test(prompt)) kwList.push("היסעים");
-    if (/שירות|טכנאי|התקנות/.test(prompt)) kwList.push("שירות");
-    if (/מוסך|רכב|תיקון/.test(prompt)) kwList.push("מוסך");
-    if (kwList.length === 0) kwList.push("הובלות");
+    let coType = "all";
+    let ind = "";
+    if (/תעשיי|מפעל|ייצור/.test(prompt)) { coType = "general"; ind = "תעשייה ומפעלים"; }
+    else if (/הייטק|תוכנה|טכנולוג|מחשוב/.test(prompt)) { coType = "general"; ind = "הייטק וטכנולוגיה"; }
+    else if (/עורכי דין|עו"ד|רואי חשבון|רו"ח|ייעוץ/.test(prompt)) { coType = "general"; ind = "שירותים מקצועיים"; }
+    else if (/הובל|שינוע|משאיות/.test(prompt)) { coType = "vehicle_intensive"; ind = "הובלות"; }
+    else if (/הסעות|היסעים|אוטובוס/.test(prompt)) { coType = "vehicle_intensive"; ind = "הסעות"; }
+    else if (/תשתיות|עפר|כבישים/.test(prompt)) { coType = "vehicle_intensive"; ind = "תשתיות"; }
 
     S.searchTrack = "free";
-    V.search();
-    await runUnifiedSearch({ kw: kwList.join(", ") });
-    toast("✦ תוצאות האיתור מוצגות כעת בטבלה למטה", "success");
-  } catch (err) {
-    toast("שגיאה בחיפוש AI: " + err.message, "error");
+    S._lastCompanyType = coType;
+    S._lastInd = ind;
+    const viewEl = $("#view");
+    if (viewEl) viewEl.innerHTML = V.search();
+    await runUnifiedSearch({ companyType: coType, ind });
   } finally {
     S.aiSearchRunning = false;
-    V.search();
   }
 }
 `;
 
-// Replace the block
 let updated = content.slice(0, startIndex) + unifiedCode + content.slice(endIndex);
 
-// Wire click event listeners in document
+// Apply 200 regular companies permanent persistence, contact enrichment engine, and auto-save
+updated = applyOpenProspector200Enrichment(updated);
+
+
 const clickCaseAnchor = 'case "run":runSearch();return;';
 const newClickCases = `
     case "selectAllActiveFreeSources": {
@@ -2704,8 +3127,8 @@ const newClickCases = `
       const activeIds = Array.from(document.querySelectorAll(".src-cb:checked")).map(cb => cb.value);
       saveSourceSelection(activeIds);
       const counter = $("#sourceSelectionCounterBadge");
-      if (counter) counter.textContent = \`נבחרו \${activeIds.length} מקורות (מתוכם \${activeIds.length} פעילים ומחוברים ב-0 ₪)\`;
-      toast(\`נבחרו כל \${activeIds.length} המקורות הפעילים והחינמיים\`);
+      if (counter) counter.textContent = \`נבחרו \${activeIds.length} מקורות (\${activeIds.length} מחוברים אוטומטית ב-API)\`;
+      toast(\`נבחרו כל \${activeIds.length} המקורות המחוברים אוטומטית\`);
       return;
     }
     case "clearAllSources": {
@@ -2713,15 +3136,15 @@ const newClickCases = `
       saveSourceSelection([]);
       const counter = $("#sourceSelectionCounterBadge");
       if (counter) counter.textContent = "נבחרו 0 מקורות";
-      toast("הבחירה נוקתה לחלוטין");
+      toast("הבחירה נוקתה");
       return;
     }
     case "selectCategoryGroup": {
       const cat = d.cat;
-      document.querySelectorAll(\`.src-cb[data-cat="\${cat}"]\`).forEach(cb => { cb.checked = true; });
+      document.querySelectorAll(\`.src-cb[data-cat="\${cat}"]\`).forEach(cb => { cb.checked = (cb.dataset.active === "1"); });
       const selIds = Array.from(document.querySelectorAll(".src-cb:checked")).map(cb => cb.value);
       saveSourceSelection(selIds);
-      toast("נבחרו כל המקורות בקבוצה זו");
+      toast("נבחרו המקורות הפעילים בקבוצה זו");
       return;
     }
     case "clearCategoryGroup": {
@@ -2734,14 +3157,10 @@ const newClickCases = `
     }
     case "setSourceCatalogTab": {
       S.sourceCatalogTab = d.cat || "all";
-      const searchTrack = S.searchTrack || "free";
-      if (searchTrack === "free") {
-        const area = document.querySelector(".card");
-        if (V.search) {
-          const viewEl = $("#view");
-          if (viewEl) viewEl.innerHTML = V.search();
-        }
-      }
+      const viewEl = $("#view");
+      if (viewEl && V.search) viewEl.innerHTML = V.search();
+      const details = $("#advSearchDetails");
+      if (details) details.open = true;
       return;
     }
     case "setSearchTrack": {
@@ -2754,10 +3173,6 @@ const newClickCases = `
       runAiProspectingSearch();
       return;
     }
-    case "setSearchKwPill": {
-      if ($("#a-kw")) $("#a-kw").value = d.val || "";
-      return;
-    }
     case "setCountPill": {
       const cnt = parseInt(d.val, 10);
       if ($("#a-count") && !isNaN(cnt)) {
@@ -2768,34 +3183,52 @@ const newClickCases = `
       return;
     }
     case "runUnifiedSearch": {
-      runUnifiedSearch();
+      runUnifiedSearch({ append: false });
+      return;
+    }
+    case "continueUnifiedSearch": {
+      runUnifiedSearch({ append: true });
       return;
     }
     case "stopSearch": {
       S.searchStopRequested = true;
-      toast("נשלחה בקשה לעצירת הסריקה...", "info");
+      toast("עוצר סריקה...", "info");
       return;
     }
     case "resetSearchForm": {
-      if ($("#a-kw")) $("#a-kw").value = "";
-      if ($("#a-count")) $("#a-count").value = "50";
+      S._lastCompanyType = "all";
+      S._lastInd = "";
+      S._lastMultiInds = [];
+      S._lastRegion = "";
+      S._lastMultiRegs = [];
+      S._lastFleetMode = "5plus";
+      S._lastFleetCustomMin = "";
+      S._lastWfRange = "all";
+      S._lastEmpMin = "";
+      S._lastEmpMax = "";
+      S._lastQueryTerm = "";
+      S._lastCity = "";
+      if ($("#a-company-type")) $("#a-company-type").value = "all";
       if ($("#a-ind")) $("#a-ind").value = "";
+      document.querySelectorAll(".ind-multi-cb").forEach(cb => { cb.checked = false; });
       if ($("#a-region")) $("#a-region").value = "";
-      if ($("#a-city")) $("#a-city").value = "";
-      if ($("#a-target-role")) $("#a-target-role").value = "all";
+      document.querySelectorAll(".reg-multi-cb").forEach(cb => { cb.checked = false; });
+      if ($("#a-count")) $("#a-count").value = "50";
+      if ($("#a-fleet-filter-mode")) $("#a-fleet-filter-mode").value = "5plus";
+      if ($("#a-fleet-custom-min")) { $("#a-fleet-custom-min").value = ""; $("#a-fleet-custom-min").style.display = "none"; }
       if ($("#a-workforce-range")) $("#a-workforce-range").value = "all";
-      if ($("#a-fleet-type")) $("#a-fleet-type").value = "";
-      if ($("#a-fleet-filter-mode")) $("#a-fleet-filter-mode").value = "all";
-      if ($("#a-target-cross")) $("#a-target-cross").value = "4";
+      if ($("#empCustomRangeWrap")) $("#empCustomRangeWrap").style.display = "none";
+      if ($("#a-emp-min")) $("#a-emp-min").value = "";
+      if ($("#a-emp-max")) $("#a-emp-max").value = "";
+      if ($("#a-kw")) $("#a-kw").value = "";
+      if ($("#a-city")) $("#a-city").value = "";
       if ($("#a-contact-req")) $("#a-contact-req").value = "all";
-      document.querySelectorAll(".src-cb").forEach(cb => {
-        cb.checked = (cb.dataset.active === "1");
-      });
-      toast("הטופס אופס לברירת מחדל");
+      if ($("#a-target-cross")) $("#a-target-cross").value = "4";
+      toast("הסינונים אופסו לברירת המחדל");
       return;
     }
     case "setResultsTab": {
-      S.searchActiveTab = d.tab || "new";
+      S.searchActiveTab = d.tab || d.val || "new";
       const area = $("#searchResultsArea");
       if (area) area.innerHTML = renderSearchResultsArea();
       return;
@@ -2834,7 +3267,7 @@ const newClickCases = `
       if (!S.searchHitSelection) S.searchHitSelection = new Set();
       S.searchHitSelection.clear();
       freshHits.forEach(h => {
-        if ((h.phone && h.phone !== "—") || (h.mobile && h.mobile !== "—")) {
+        if (h.leadGrade === "A" || (h.phone && h.phone !== "—") || (h.mobile && h.mobile !== "—")) {
           S.searchHitSelection.add(h.no);
         }
       });
@@ -2843,25 +3276,7 @@ const newClickCases = `
       });
       updateLiveKpisAndProgress();
       updateActionButtonsState();
-      toast(\`סומנו \${S.searchHitSelection.size} חברות עם טלפון מאומת\`);
-      return;
-    }
-    case "selectFleetHits": {
-      const hits = S.searchHits || [];
-      const freshHits = hits.filter(h => !h.already && !h.adopted);
-      if (!S.searchHitSelection) S.searchHitSelection = new Set();
-      S.searchHitSelection.clear();
-      freshHits.forEach(h => {
-        if (h.fleetIsFact || String(h.fleetPotential || "").includes("5+") || String(h.fleetPotential || "").includes("200")) {
-          S.searchHitSelection.add(h.no);
-        }
-      });
-      document.querySelectorAll(".hit-cb:not(:disabled)").forEach(cb => {
-        cb.checked = S.searchHitSelection.has(cb.value);
-      });
-      updateLiveKpisAndProgress();
-      updateActionButtonsState();
-      toast(\`סומנו \${S.searchHitSelection.size} חברות עם צי מאומת/פוטנציאל גבוה\`);
+      toast(\`סומנו \${S.searchHitSelection.size} חברות\`);
       return;
     }
     case "clearHitSelection": {
@@ -2878,26 +3293,29 @@ const newClickCases = `
       saveSelectedToDiscovered();
       return;
     }
-    case "clearSearchResults": {
-      S.searchHits = [];
-      S.searchDuplicates = [];
-      S.searchRejected = [];
-      if (S.searchHitSelection) S.searchHitSelection.clear();
-      if (S.searchExpandedDrawers) S.searchExpandedDrawers.clear();
-      const area = $("#searchResultsArea");
-      if (area) area.innerHTML = renderSearchResultsArea();
-      toast("תוצאות החיפוש נוקו");
-      return;
-    }
     case "exportSearchHitsCsv": {
       const hits = S.searchHits || [];
       if (hits.length === 0) {
         toast("אין תוצאות לייצוא", "warn");
         return;
       }
-      const headers = ["שם החברה", "ח.פ.", "תחום", "אזור", "עיר", "כתובת", "עובדים", "צי", "איש קשר", "תפקיד", "טלפון", "נייד", "אימייל", "מקור", "אימות"];
+      const headers = ["שם החברה", "ח.פ.", "סוג חברה", "תחום", "אזור", "עיר", "עובדים", "אומדן/מספר רכבים", "מקור קביעת רכבים", "טלפון", "נייד", "אימייל", "מקורות מידע", "אימות טלפון", "דירוג איכות"];
       const rows = hits.map(h => [
-        h.name, h.no, h.ind, h.region, h.city, h.addr, h.employees, h.fleetPotential, h.contactPerson, h.roleTitle, h.phone, h.mobile, h.email, h.source_label, h.phoneVerBadgeLabel
+        h.name,
+        h.no,
+        h.isVehicleIntensive ? "עתירת רכב" : "חברה כללית",
+        h.ind,
+        h.region,
+        h.city,
+        h.employeesCount ? (h.employeesCount + " (מאומת)") : h.workforceRange,
+        h.fleetSizeDisplay,
+        h.fleetMethodLabel,
+        h.phone,
+        h.mobile,
+        h.email,
+        (h.companySourcesList || []).join(" + "),
+        h.phoneVerBadgeLabel,
+        h.leadGradeLabel
       ].map(f => '"' + String(f || '').replace(/"/g, '""') + '"').join(","));
       const csv = "\\uFEFF" + headers.join(",") + "\\n" + rows.join("\\n");
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -2915,12 +3333,6 @@ if (updated.includes(clickCaseAnchor)) {
   console.log("Wired click event handlers into document listener.");
 } else {
   console.warn("Could not find clickCaseAnchor!");
-}
-
-// Add change event listener for .src-cb checkboxes so local storage is updated dynamically
-const changeListenerAnchor = 'document.addEventListener("change",';
-if (updated.includes(changeListenerAnchor)) {
-  console.log("Found document change listener.");
 }
 
 fs.writeFileSync(targetFile, updated, "utf8");

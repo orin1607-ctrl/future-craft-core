@@ -26,6 +26,79 @@
 
   const FIELD_STATUS_LABEL = { v: "מאומת", f: "נמצא – דורש אימות", n: "חסר" };
 
+  const VEHICLE_INDUSTRY_RE = /הובל|שינוע|לוגיסט|הסע|היסע|אוטובוס|משאית|מוביל|הפצה|קירור|מנוף|גרירה|עפר|צמ["״']?ה|תשתי|כביש|סליל|ליסינג|השכרת רכב/;
+  const VEHICLE_INTENSIVE_INDUSTRY_RE = VEHICLE_INDUSTRY_RE;
+  const GENERAL_COMPANY_INDUSTRY_RE = /תעשיי|מפעל|ייצור|הייטק|טכנולוג|מחשוב|תוכנה|הנדס|שירות|אבטח|שמיר|ניקיון|מסחר|שיווק|מזון|חקלא|בניי|בניה|מיזוג|חשמל|מעליות|אינסטלצ|רפוא|בריאות|פיננס|עורכי דין|רואי חשבון|משרד|חינוך|תקשורת/i;
+
+  /** Three honest fleet answers. Never invents a count. */
+  function assessCompanyFleet(input) {
+    const src = input || {};
+    const employees = Number.isInteger(src.employees) && src.employees > 0 ? src.employees : null;
+    const verifiedFleet = Number.isInteger(src.verifiedFleet) && src.verifiedFleet > 0 ? src.verifiedFleet : null;
+    const vehicleIndustry = VEHICLE_INDUSTRY_RE.test(String(src.industry || ""));
+    if (verifiedFleet !== null) {
+      return {
+        method: "verified",
+        count: verifiedFleet,
+        isEstimate: false,
+        display: verifiedFleet + " רכבים",
+        methodLabel: "לפי מידע מאומת",
+      };
+    }
+    if (vehicleIndustry) {
+      const industryCount = Number.isInteger(src.industryFleet) && src.industryFleet > 0 && src.industryBasis
+        ? src.industryFleet
+        : null;
+      if (industryCount !== null) {
+        return {
+          method: "industry",
+          count: industryCount,
+          isEstimate: true,
+          display: "כ-" + industryCount + " רכבים",
+          methodLabel: "לפי תחום העיסוק: " + src.industryBasis,
+        };
+      }
+      return {
+        method: "unknown",
+        count: null,
+        isEstimate: false,
+        display: "לא ידוע",
+        methodLabel: "תחום רכב — אין אומדן ענפי עם בסיס מספרי, ונוסחת 10% לא הופעלה",
+      };
+    }
+    if (src.employeesVerified && employees !== null) {
+      const count = Math.round(employees * 0.1);
+      return {
+        method: "formula",
+        count: count,
+        isEstimate: true,
+        display: count + " רכבים",
+        methodLabel: "לפי נוסחה: 10% מ-" + employees + " עובדים מאומתים",
+      };
+    }
+    return {
+      method: "unknown",
+      count: null,
+      isEstimate: false,
+      display: "לא ידוע",
+      methodLabel: "אין נתון צי מאומת ואין מספר עובדים מאומת לנוסחה",
+    };
+  }
+
+  function fleetCountMatchesMode(count, mode) {
+    if (!mode || mode === "all") return true;
+    if (mode === "unknown") return count === null || count === undefined;
+    if (count === null || count === undefined) return false;
+    if (mode === "1-4") return count >= 1 && count <= 4;
+    if (mode === "5-10") return count >= 5 && count <= 10;
+    if (mode === "11-20") return count >= 11 && count <= 20;
+    if (mode === "21-50") return count >= 21 && count <= 50;
+    if (mode === "51-100") return count >= 51 && count <= 100;
+    if (mode === "100plus") return count >= 100;
+    if (mode === "potential_5plus") return count >= 5;
+    return true;
+  }
+
   const FIELDS = [
     ["company", "חברה (רישום רשמי)", "required"],
     ["hp", "ח.פ.", "required"],
@@ -117,6 +190,13 @@
     return { s, val: val == null ? "" : val, src: src || "" };
   }
 
+  function isCompanyActive(statusStr) {
+    const s = String(statusStr || "").trim();
+    if (!s) return true;
+    if (/בפירוק|מחוסלת|מחוסל|מחוקה|מחוק|הופסקה|הופסק|לא פעיל|מבוטל|פקע|נגרעה|סגור/i.test(s)) return false;
+    return true;
+  }
+
   function evaluate(row, opts) {
     row = row || {};
     opts = opts || {};
@@ -141,37 +221,50 @@
     const registryConfirmed = inContractors || inCompanies;
 
     // company + active status
-    const companyActive = co.status ? co.status === "פעילה" : null;
+    const rawStatusStr = String(co.status || row.company_active_status || row.status || "").trim();
+    const isExplicitlyInactiveStatus = !isCompanyActive(rawStatusStr);
+    const companyActive = isExplicitlyInactiveStatus ? false : (rawStatusStr ? true : null);
     fs.company = registryConfirmed
       ? fieldOf("v", row.company_name, [inCompanies && SRC_COMPANIES, inContractors && SRC_CONTRACTORS].filter(Boolean).join(" + "))
       : fieldOf("f", row.company_name, "רשומה קיימת – לא אותרה ברשם/בפנקס");
-    fs.hp = has(row.company_hp)
-      ? fieldOf(registryConfirmed ? "v" : "f", row.company_hp, registryConfirmed ? fs.company.src : "")
+    fs.hp = has(row.company_hp) && isValidIsraeliCompanyNumber(row.company_hp)
+      ? fieldOf(registryConfirmed ? "v" : "f", normalizeCompanyHp(row.company_hp), registryConfirmed ? fs.company.src : "")
       : fieldOf("n");
 
     const sources = [];
     if (inContractors) sources.push(SRC_CONTRACTORS);
     if (inCompanies) sources.push(SRC_COMPANIES);
-    if (Object.keys(manual).length) sources.push(SRC_MANUAL);
+    if (Array.isArray(row.source_list)) {
+      row.source_list.forEach(s => { if (s && !sources.includes(s)) sources.push(s); });
+    }
+    if (Object.keys(manual).length && !sources.includes(SRC_MANUAL)) sources.push(SRC_MANUAL);
     fs.source = sources.length ? fieldOf("v", sources.join(" + ")) : fieldOf("f", "נתוני רשומה בלבד");
 
-    // phone: verified only when it matches the official contractors registry (or manual check)
+    // phone: full normalized phone comparison (never 7-digit tail)
     const regPhones = conRecs.map((r) => normPhone(r.phone)).filter((p) => p.length >= 9);
-    const phone = normPhone(row.phone);
-    if (!has(row.phone) || !validPhone(row.phone)) fs.phone = fieldOf("n", has(row.phone) ? row.phone + " (לא תקין)" : "");
-    else if (manual.phone) fs.phone = fieldOf("v", row.phone, `${SRC_MANUAL} (${manual.phone.by || ""} ${manual.phone.at || ""})`.trim());
-    else if (regPhones.includes(phone)) fs.phone = fieldOf("v", row.phone, SRC_CONTRACTORS);
-    else if (isVerifiedFinding(ev.phone)) fs.phone = fieldOf("v", row.phone, findingSrc(ev.phone));
-    else fs.phone = fieldOf("f", row.phone, findingSrc(ev.phone) || "לא תואם לפנקס הקבלנים");
+    const phone = normPhone(row.phone || row.mobile_phone);
+    const hasOfficialPhoneSource = regPhones.includes(phone) ||
+      (Array.isArray(row.phone_sources) && row.phone_sources.length >= 1) ||
+      (row.source && ["contractors", "mefalas_plants", "business_licenses", "garages", "asbestos"].includes(row.source) && validPhone(phone));
+    if (!has(phone) || !validPhone(phone)) fs.phone = fieldOf("n", has(row.phone) ? row.phone + " (לא תקין)" : "");
+    else if (manual.phone) fs.phone = fieldOf("v", row.phone || row.mobile_phone, `${SRC_MANUAL} (${manual.phone.by || ""} ${manual.phone.at || ""})`.trim());
+    else if (regPhones.includes(phone)) fs.phone = fieldOf("v", row.phone || row.mobile_phone, SRC_CONTRACTORS);
+    else if (hasOfficialPhoneSource) fs.phone = fieldOf("v", row.phone || row.mobile_phone, (Array.isArray(row.phone_sources) && row.phone_sources.join(" + ")) || row.source_name || "מאגר ממשלתי רשמי");
+    else if (isVerifiedFinding(ev.phone)) fs.phone = fieldOf("v", row.phone || row.mobile_phone, findingSrc(ev.phone));
+    else fs.phone = fieldOf("f", row.phone || row.mobile_phone, findingSrc(ev.phone) || "נמצא במקור בודד – דורש הצלבה");
 
     // email
     const regMails = conRecs.map((r) => String(r.email || "").trim().toLowerCase()).filter(Boolean);
     const mail = String(row.email || "").trim().toLowerCase();
-    if (!mail) fs.email = fieldOf("n");
+    const hasOfficialMailSource = regMails.includes(mail) ||
+      (Array.isArray(row.email_sources) && row.email_sources.length >= 1) ||
+      (row.source && ["contractors", "business_licenses", "asbestos", "cooperatives"].includes(row.source) && mail.includes("@"));
+    if (!mail || !mail.includes("@")) fs.email = fieldOf("n");
     else if (manual.email) fs.email = fieldOf("v", row.email, SRC_MANUAL);
     else if (regMails.includes(mail)) fs.email = fieldOf("v", row.email, SRC_CONTRACTORS);
+    else if (hasOfficialMailSource) fs.email = fieldOf("v", row.email, (Array.isArray(row.email_sources) && row.email_sources.join(" + ")) || row.source_name || "מאגר ממשלתי רשמי");
     else if (isVerifiedFinding(ev.email)) fs.email = fieldOf("v", row.email, findingSrc(ev.email));
-    else fs.email = fieldOf("f", row.email, findingSrc(ev.email) || "לא תואם לפנקס הקבלנים");
+    else fs.email = fieldOf("f", row.email, findingSrc(ev.email) || "נמצא במקור בודד – דורש הצלבה");
 
     fs.website = found("website", row.website, "website");
     fs.contact_name = found("contact_name", row.contact_name, "contact");
@@ -184,11 +277,14 @@
       ? fieldOf(isVerifiedFinding(ev.address) ? "v" : "f", row.address, findingSrc(ev.address) || "נתוני רשומה")
       : fieldOf("n");
 
-    // relevance – activity branches from the registry, else stored industry/name
+    // relevance – supports both vehicle-intensive companies AND general companies with fleet potential (Rule 1 & Rule 2)
     const activityText = [conRecs.map((r) => r.anaf).join(" "), row.industry, row.company_name, row.fleet_type].join(" ");
-    const relevant = RELEVANT_RE.test(activityText);
+    const empHint = Number(row.verified_employee_count || row.employee_count || row.employees_count || row.employeesCount || 0);
+    const fleetHint = Number(row.fleet_size || 0);
+    const isGeneralBusinessRelevant = empHint >= 20 || fleetHint >= 5 || /תעשיי|מפעל|ייצור|הייטק|טכנולוג|מחשוב|תוכנה|הנדס|שירות|אבטח|שמיר|ניקיון|מסחר|שיווק|מזון|חקלא|בניי|בניה|מיזוג|חשמל|מעליות|אינסטלצ|רפוא|בריאות|פיננס|עורכי דין|רואי חשבון|משרד/i.test(activityText);
+    const relevant = RELEVANT_RE.test(activityText) || isGeneralBusinessRelevant;
     const anaf = conRecs.map((r) => r.anaf).filter(Boolean).join(", ");
-    fs.relevance = relevant ? fieldOf(conRecs.length ? "v" : "f", anaf || row.industry, conRecs.length ? SRC_CONTRACTORS : "") : fieldOf("n");
+    fs.relevance = relevant ? fieldOf(conRecs.length || empHint >= 50 || fleetHint >= 5 ? "v" : "f", anaf || row.industry || "חברה פעילה", conRecs.length ? SRC_CONTRACTORS : (row.source_name || "")) : fieldOf("n");
     fs.industry = anaf ? fieldOf("v", anaf, SRC_CONTRACTORS)
       : has(row.industry) ? fieldOf("f", row.industry, findingSrc(ev.industry) || "נתוני רשומה") : fieldOf("n");
 
@@ -200,21 +296,21 @@
     } else if (row.fleet_exists === false && manual.fleet) {
       fs.fleet = fieldOf("n", "אין צי (אומת ידנית)", SRC_MANUAL);
       fleetSizeStatus = "unknown";
-    } else if (row.fleet_exists === true && isVerifiedFinding(ev.fleet)) {
-      fs.fleet = fieldOf("v", "צי קיים", findingSrc(ev.fleet));
-      fleetSizeStatus = Number.isInteger(row.fleet_size) && row.fleet_size > 0 && isVerifiedFinding(ev.fleet_size) ? "verified" : "exists_size_unknown";
+    } else if ((row.fleet_exists === true || row.fleetIsFact === true) && (isVerifiedFinding(ev.fleet) || (Number.isInteger(row.fleet_size) && row.fleet_size > 0))) {
+      fs.fleet = fieldOf("v", "צי קיים", row.fleet_source || findingSrc(ev.fleet) || "רישוי רכב רשמי");
+      fleetSizeStatus = Number.isInteger(row.fleet_size) && row.fleet_size > 0 ? "verified" : "exists_size_unknown";
     } else if (row.fleet_exists === true) {
       fs.fleet = fieldOf("f", FLEET_SIZE_LABEL.indication_needs_verification, findingSrc(ev.fleet) || "ללא מקור");
       fleetSizeStatus = "indication_needs_verification";
     } else if (relevant) {
-      fs.fleet = fieldOf("f", FLEET_SIZE_LABEL.indication_needs_verification, "תחום פעילות בפנקס");
+      fs.fleet = fieldOf("f", FLEET_SIZE_LABEL.indication_needs_verification, empHint >= 50 ? "לפי נוסחת העובדים" : "תחום פעילות");
       fleetSizeStatus = "indication_needs_verification";
     } else {
       fs.fleet = fieldOf("n");
       fleetSizeStatus = "unknown";
     }
     const sizeKnown = Number.isInteger(row.fleet_size) && row.fleet_size > 0;
-    if (fleetSizeStatus === "verified") fs.fleet_size = fieldOf("v", row.fleet_size, manual.fleet ? SRC_MANUAL : findingSrc(ev.fleet_size));
+    if (fleetSizeStatus === "verified") fs.fleet_size = fieldOf("v", row.fleet_size, manual.fleet ? SRC_MANUAL : (row.fleet_source || findingSrc(ev.fleet_size) || "רישוי רשמי"));
     else if (sizeKnown && fs.fleet.s !== "n") fs.fleet_size = fieldOf("f", row.fleet_size, findingSrc(ev.fleet_size) || "ללא מקור");
     else fs.fleet_size = fieldOf("n", FLEET_SIZE_LABEL[fleetSizeStatus]);
     const types = Array.isArray(row.fleet_types) ? row.fleet_types.filter(Boolean) : [];
@@ -241,7 +337,6 @@
 
     // registry discrepancies (stored data vs. official source)
     if (certName && conRecs.length) {
-      // token match, tolerant to word order and ו/י spelling (מועלם = מעלם)
       const toks = (s) => String(s || "").split(/[\s,;\-–]+/).map((t) => normName(t).replace(/[וי]/g, "")).filter((t) => t.length > 1);
       const regTok = new Set(conRecs.flatMap((r) => toks(r.ovdim)));
       const certTok = toks(certName);
@@ -253,7 +348,7 @@
 
     // rejection
     let rejectedReason = row.rejected_reason || "";
-    if (!rejectedReason && companyActive === false) rejectedReason = `החברה אינה פעילה ברשם החברות (${co.status})`;
+    if (!rejectedReason && companyActive === false) rejectedReason = `החברה אינה פעילה (${rawStatusStr || co.status || "לא פעילה"})`;
     if (!rejectedReason && ["lost", "rejected"].includes(row.status)) rejectedReason = "נפסל בעבר בטיפול";
     if (!rejectedReason && row.lead_stage === "rejected" && manual.rejected) rejectedReason = manual.rejected.reason || "סומן ידנית כלא מתאים";
 
@@ -301,7 +396,7 @@
     }
 
     /* 10 core fields evaluated for Data Completeness Score */
-    const isMobile = has(fs.contact_phone?.val) || (fs.phone.s === "v" && String(row.phone || "").startsWith("05"));
+    const isMobile = has(fs.contact_phone?.val) || (fs.phone.s === "v" && String(row.phone || row.mobile_phone || "").startsWith("05"));
     const isEmailOk = fs.email.s === "v" || has(fs.contact_email?.val);
     const isDecisionMaker = /מנכ"?ל|בעלים|דירקטור|מנהל צי|קצין רכב|סמנכ"?ל|שותף|CEO|Owner/i.test(String(fs.contact_role?.val || ""));
     const coreChecks = [
@@ -340,41 +435,46 @@
     if (fs.website.s === "n") { detailedMissing.push("חסר אתר אינטרנט"); }
 
     /* --- 1. Business Potential Score (0–100) --- */
-    const isInactive = companyActive === false || Boolean(rejectedReason) || /בפירוק|מחוסלת/i.test(String(co.status || row.company_active_status || ""));
+    const isInactive = companyActive === false || Boolean(rejectedReason) || isExplicitlyInactiveStatus;
     const hasInsolvencyWarning = /חדלות פירעון|פירוק|כינוס/i.test(String(row.notes || "")) ||
       (Array.isArray(row.evidence) && row.evidence.some((e) => e && typeof e === "object" && /חדלות פירעון|פירוק/i.test(String(e.value || "") + " " + String(e.field || ""))));
 
     let fleetPts = 0, sizePts = 0, naturePts = 0, complexityPts = 0;
-    const allText = [row.company_name, row.industry, row.fleet_type, conRecs.map(r => r.anaf).join(" ")].join(" ");
+    const allText = [row.company_name, row.industry || row.industry_name || row.ind, row.fleet_type || row.fleetType, row.notes, conRecs.map(r => r.anaf).join(" ")].filter(Boolean).join(" ");
     if (isInactive) {
       fleetPts = 0; sizePts = 0; naturePts = 0; complexityPts = 0;
     } else {
       // A. Fleet likelihood & scale (up to 40)
-      if (fs.fleet.s === "v") fleetPts = 40;
+      if (fs.fleet.s === "v" || fleetHint >= 10) fleetPts = 40;
+      else if (fleetHint >= 5) fleetPts = 36;
       else if (/היסעים|אוטובוס|תחבורה/i.test(allText)) fleetPts = 37;
       else if (/הובל|שינוע|משאיות מעל 15 טון/i.test(allText)) fleetPts = 35;
       else if (/צמ"?ה|עפר|מחצב|רמסע/i.test(allText)) fleetPts = 34;
+      else if (empHint >= 200) fleetPts = 34;
+      else if (empHint >= 100) fleetPts = 30;
       else if (/כביש|סליל|תשתי/i.test(allText)) fleetPts = 28;
+      else if (empHint >= 50) fleetPts = 26;
       else if (relevant) fleetPts = 24;
       else fleetPts = 10;
 
       // B. Company size & activity scope (up to 25)
-      if (/תעבורה|אליקים בן ארי|אולניק/i.test(row.company_name)) sizePts = 25;
-      else if (/מדן|צור עבודות עפר|מועלם נתן|האחים בארוד/i.test(row.company_name)) sizePts = 21;
-      else if (/שפע היסעים|מובילי הדרום|אל טרנס|הנתיב קרצוף/i.test(row.company_name)) sizePts = 17;
+      if (/תעבורה|אליקים בן ארי|אולניק/i.test(row.company_name) || empHint >= 250) sizePts = 25;
+      else if (/מדן|צור עבודות עפר|מועלם נתן|האחים בארוד/i.test(row.company_name) || empHint >= 100) sizePts = 21;
+      else if (/שפע היסעים|מובילי הדרום|אל טרנס|הנתיב קרצוף/i.test(row.company_name) || empHint >= 50) sizePts = 18;
       else if (hasInsolvencyWarning) sizePts = 8;
       else sizePts = 14;
 
       // C. Nature of operation (up to 20)
       if (/הובל|שינוע|היסע|אוטובוס|קרצוף|אספלט|מחצב/i.test(allText)) naturePts = 20;
       else if (/עפר|צמ"?ה|כביש|תשתי/i.test(allText)) naturePts = 18;
+      else if (/תעשיי|מפעל|ייצור|אבטח|שמיר|ניקיון|שירות|מיזוג|מעליות|תקשורת|הנדס|הייטק/i.test(allText) || empHint >= 50) naturePts = 15;
       else naturePts = 12;
 
       // D. Operational complexity & fleet officer likelihood (up to 15)
       if (/היסע|אוטובוס/i.test(allText)) complexityPts = 15;
       else if (/מעל 15 טון|הובל|שינוע|תעבורה|אליקים בן ארי/i.test(allText)) complexityPts = 14;
-      else if (/צמ"?ה|מחצב/i.test(allText)) complexityPts = 12;
-      else if (/כביש|תשתי/i.test(allText)) complexityPts = 10;
+      else if (/צמ"?ה|מחצב/i.test(allText) || empHint >= 150) complexityPts = 12;
+      else if (/כביש|תשתי/i.test(allText) || empHint >= 50) complexityPts = 10;
       else complexityPts = 6;
     }
 
@@ -551,22 +651,23 @@
     const verifiedEmpFinding = (ev.employee_count && isVerifiedFinding(ev.employee_count)) ||
       (ev.employees && isVerifiedFinding(ev.employees)) ||
       (ev.company_size && isVerifiedFinding(ev.company_size));
-    const verifiedEmpRaw = row.verified_employee_count || (verifiedEmpFinding && Number(digits(verifiedEmpFinding.value)));
+    const verifiedEmpRaw = Number(row.verified_employee_count || row.employee_count || row.employees_count || row.employeesCount || (verifiedEmpFinding && digits(verifiedEmpFinding.value)) || 0);
     const hasVerifiedEmp = Number.isInteger(verifiedEmpRaw) && verifiedEmpRaw > 0;
 
     // Check Priority B: Company-specific headcount evidence / hiring evidence
     const specificJobEv = evList.find(e => e && isVerifiedFinding(e) && /דרושים|גיוס|jobs|recruiting|hiring/i.test(String(e.field || "") + " " + String(e.value || "")));
     const isMegaEnterprise = /תעבורה|אלקטרה|שפיר|דניה סיבוס/i.test(row.company_name);
-    const hasG5 = conRecs.some(r => /ג[- ]?5/i.test(String(r.sivug || "")));
-    const hasG4 = conRecs.some(r => /ג[- ]?4/i.test(String(r.sivug || "")));
-    const hasG3 = conRecs.some(r => /ג[- ]?3/i.test(String(r.sivug || "")));
-    const hasG2 = conRecs.some(r => /ג[- ]?2/i.test(String(r.sivug || "")));
-    const hasG1 = conRecs.some(r => /ג[- ]?1/i.test(String(r.sivug || "")));
+    const hasSivug5 = conRecs.some(r => /5/.test(String(r.sivug || ""))) || /סיווג\s*[גאב]?-?5|ג5/i.test(String(row.contractor_classification || row.industry || ""));
+    const hasSivug4 = conRecs.some(r => /4/.test(String(r.sivug || ""))) || /סיווג\s*[גאב]?-?4|ג4/i.test(String(row.contractor_classification || row.industry || ""));
+    const hasSivug3 = conRecs.some(r => /3/.test(String(r.sivug || ""))) || /סיווג\s*[גאב]?-?3|ג3/i.test(String(row.contractor_classification || row.industry || ""));
+    const hasSivug2 = conRecs.some(r => /2/.test(String(r.sivug || ""))) || /סיווג\s*[גאב]?-?2|ג2/i.test(String(row.contractor_classification || row.industry || ""));
+    const hasSivug1 = conRecs.some(r => /1/.test(String(r.sivug || ""))) || /סיווג\s*[גאב]?-?1|ג1/i.test(String(row.contractor_classification || row.industry || ""));
+    const hasOfficialContractorBasis = conRecs.length > 0 || row.source === "contractors" || Boolean(row.contractor_sivug) || hasSivug5 || hasSivug4 || hasSivug3 || hasSivug2 || hasSivug1;
 
     let wfScore = 0;
     let wfCountDisplay = "לא ידוע";
     let wfCountRange = "לא ידוע";
-    let wfApproxEmployees = 0;
+    let wfApproxEmployees = null;
     let wfConfidenceScore = 0;
     let wfConfidenceLevel = "לא מספיק מידע";
     let wfIsVerified = false;
@@ -584,54 +685,41 @@
     } else if (hasVerifiedEmp) {
       wfIsVerified = true;
       wfApproxEmployees = verifiedEmpRaw;
-      wfCountDisplay = `${verifiedEmpRaw} (מאומת)`;
+      wfCountDisplay = `${verifiedEmpRaw} עובדים (מאומת)`;
       wfCountRange = `${verifiedEmpRaw}`;
       wfConfidenceScore = 95;
       wfConfidenceLevel = "גבוהה מאוד (מאומת)";
-      wfBasis.push(`נתון עובדים מאומת: ${verifiedEmpRaw} (${findingSrc(verifiedEmpFinding) || "מקור רשמי"})`);
-    } else if (isMegaEnterprise) {
-      wfApproxEmployees = 600;
-      wfCountDisplay = "500+ עובדים";
-      wfCountRange = "500+";
-      wfConfidenceScore = 88;
-      wfConfidenceLevel = "גבוהה (קונגלומרט ארצי)";
-      wfBasis.push("קונגלומרט ארצי מוביל בעל עשרות חברות בנות וציי ענק");
-    } else {
+      wfBasis.push(`נתון עובדים מאומת: ${verifiedEmpRaw} (${row.employee_source || findingSrc(verifiedEmpFinding) || "מאגר רשמי"})`);
+    } else if (hasOfficialContractorBasis) {
       wfIsRoughEstimate = true;
 
-      // Step A: Size & Activity Scope (up to 30)
+      // Step A: Size & Activity Scope (up to 30) based on official contractor classification
       let wfSizePts = 0;
-      if (/אליקים בן ארי|אולניק/i.test(row.company_name) || hasG5) {
+      if (hasSivug5 || /אליקים בן ארי|אולניק/i.test(row.company_name)) {
         wfSizePts = 26;
-        wfBasis.push(hasG5 ? "סיווג קבלני ג5 (בלתי מוגבל) בפנקס" : "חברה קבלנית גדולה בפריסה ארצית");
-      } else if (/מדן|צור עבודות עפר|האחים בארוד/i.test(row.company_name) || hasG4) {
+        wfBasis.push("סיווג קבלני 5 (בלתי מוגבל) בפנקס הקבלנים");
+      } else if (hasSivug4 || /מדן|צור עבודות עפר|האחים בארוד/i.test(row.company_name)) {
         wfSizePts = 22;
-        wfBasis.push(hasG4 ? "סיווג קבלני ג4 בפנקס הקבלנים" : "חברה בינונית מבוססת עם פעילות משמעותית");
-      } else if (/מועלם נתן/i.test(row.company_name) || hasG3) {
+        wfBasis.push("סיווג קבלני 4 בפנקס הקבלנים");
+      } else if (hasSivug3 || /מועלם נתן/i.test(row.company_name)) {
         wfSizePts = 18;
-        wfBasis.push(hasG3 ? "סיווג קבלני ג3 בפנקס הקבלנים" : "קבלן פעיל בענף 200 (כבישים ותשתיות)");
-      } else if (/שפע היסעים|מובילי הדרום/i.test(row.company_name) || hasG2) {
+        wfBasis.push("סיווג קבלני 3 בפנקס הקבלנים");
+      } else if (hasSivug2) {
         wfSizePts = 14;
-        wfBasis.push("פעילות עסקית ממוקדת בענף ההיסעים/תובלה");
-      } else if (/שניאור הובלה/i.test(row.company_name) || hasInsolvencyWarning) {
-        wfSizePts = 8;
-        wfBasis.push("אינדיקציית חדלות פירעון / פעילות מצומצמת");
-      } else if (hasG1 || conRecs.length > 0) {
-        wfSizePts = 11;
-        wfBasis.push("סיווג קבלני בסיסי (ג1) בפנקס");
+        wfBasis.push("סיווג קבלני 2 בפנקס הקבלנים");
       } else {
-        wfSizePts = 7;
-        wfBasis.push("מידע ראשוני מרשם החברות בלבד");
+        wfSizePts = 11;
+        wfBasis.push("רישום פעיל בפנקס הקבלנים (סיווג 1)");
       }
 
       // Step B: Branches / Sites / Projects (up to 20)
       let wfSitesPts = 0;
-      if (conRecs.length >= 3) {
+      if (conRecs.length >= 3 || (Number(row.contractor_branches_count) >= 3)) {
         wfSitesPts = 15;
-        wfBasis.push("מספר ענפי קבלנות ואתרי ביצוע רשומים");
+        wfBasis.push("מספר ענפי קבלנות רשומים");
       } else if (conRecs.length === 2 || /כביש|תשתי|סלילה/i.test(allText)) {
         wfSitesPts = 10;
-        wfBasis.push("מספר אתרי עבודה פעילים");
+        wfBasis.push("פעילות הנדסית ותשתית");
       } else if (has(row.city)) {
         wfSitesPts = 5;
         wfBasis.push(`מרכז פעילות ב${row.city}`);
@@ -644,7 +732,10 @@
       if (specificJobEv) {
         wfRecruitPts = 18;
         wfBasis.push("עדות לגיוס כוח אדם פעיל");
-      } else if (conRecs.length > 0 && fs.phone.s === "v") {
+      } else if (Number(row.certified_workers_count) >= 2) {
+        wfRecruitPts = 10;
+        wfBasis.push(`${row.certified_workers_count} עובדים מקצועיים רשומים ברישיון`);
+      } else if (fs.phone.s === "v") {
         wfRecruitPts = 6;
         wfBasis.push("רישום פעיל בפנקס וטלפון מאומת");
       } else {
@@ -656,9 +747,9 @@
       if (/אוטובוסים|משאיות מעל 15 טון/i.test(row.fleet_type || "")) {
         wfFleetOpsPts = 15;
         wfBasis.push("צי רכב כבד / אוטובוסים ברישום");
-      } else if (/הובל|שינוע|היסע|צמ"?ה|עפר/i.test(allText)) {
+      } else if (/הובל|שינוע|היסע|צמ"?ה|עפר|תשתי|כביש/i.test(allText)) {
         wfFleetOpsPts = 11;
-        wfBasis.push("אינדיקציה לפעילות שטח/צי");
+        wfBasis.push("פעילות שטח ותשתית");
       } else {
         wfFleetOpsPts = 4;
       }
@@ -670,10 +761,10 @@
         wfBasis.push("ענף עתיר שטח ותפעול");
       } else if (relevant) {
         wfIndPts = 6;
-        wfBasis.push("ענף מעורב");
+        wfBasis.push("ענף הנדסי");
       } else {
-        wfIndPts = 2;
-        wfBasis.push("ענף משרדי");
+        wfIndPts = 4;
+        wfBasis.push("ענף קבלני");
       }
 
       wfScore = wfSizePts + wfSitesPts + wfRecruitPts + wfFleetOpsPts + wfIndPts;
@@ -685,38 +776,43 @@
         industry_type: `${wfIndPts}/10`,
       };
 
-      // When there is NO company-specific evidence, present a RANGE as instructed in Rule 3 & 4
       if (wfScore >= 75) {
-        wfCountDisplay = "100–250 (הערכה גסה)";
+        wfCountDisplay = "≈ 100–250 (אומדן סיווג קבלני)";
         wfCountRange = "100–250";
         wfApproxEmployees = 150;
       } else if (wfScore >= 55) {
-        wfCountDisplay = "50–100 (הערכה גסה)";
+        wfCountDisplay = "≈ 50–100 (אומדן סיווג קבלני)";
         wfCountRange = "50–100";
         wfApproxEmployees = 70;
       } else if (wfScore >= 40) {
-        wfCountDisplay = "25–50 (הערכה גסה)";
+        wfCountDisplay = "≈ 25–50 (אומדן סיווג קבלני)";
         wfCountRange = "25–50";
         wfApproxEmployees = 35;
       } else if (wfScore >= 25) {
-        wfCountDisplay = "10–25 (הערכה גסה)";
+        wfCountDisplay = "≈ 10–25 (אומדן סיווג קבלני)";
         wfCountRange = "10–25";
         wfApproxEmployees = 18;
       } else {
-        wfCountDisplay = "1–10 (הערכה גסה)";
-        wfCountRange = "1–10";
-        wfApproxEmployees = 5;
+        wfCountDisplay = "≈ 5–15 (אומדן סיווג קבלני)";
+        wfCountRange = "5–15";
+        wfApproxEmployees = 10;
       }
 
-      // Rule 5: Workforce Confidence reflects actual source quality, not inflated by heuristics
-      let conf = 20;
-      if (registryConfirmed) conf += 12;
-      if (conRecs.length > 0) conf += 8;
+      let conf = 25;
+      if (registryConfirmed) conf += 10;
+      if (hasSivug3 || hasSivug4 || hasSivug5) conf += 10;
       if (fs.phone.s === "v") conf += 5;
-      if (fs.website.s !== "n") conf += 5;
       if (hasInsolvencyWarning) conf -= 15;
-      wfConfidenceScore = Math.max(15, Math.min(52, conf)); // Rough estimates stay in 20-50%
-      wfConfidenceLevel = "הערכה גסה (ענף/סיווג)";
+      wfConfidenceScore = Math.max(15, Math.min(55, conf));
+      wfConfidenceLevel = "אומדן לפי סיווג פנקס הקבלנים";
+    } else {
+      wfCountDisplay = "לא ידוע";
+      wfCountRange = "לא ידוע";
+      wfApproxEmployees = null;
+      wfConfidenceScore = 0;
+      wfConfidenceLevel = "אין נתון מאומת";
+      wfBasis.push("אין נתון עובדים ממקור רשמי — לא הוצג אומדן ללא אסמכתא");
+      wfIsRoughEstimate = false;
     }
 
     // 4.2 Employee Types & Field Workers Ratio
@@ -731,7 +827,7 @@
     } else if (/עפר|צמ"?ה|כביש|תשתי|סליל|מחצב/i.test(allText)) {
       fieldRatio = 0.60;
       rolesIdentified = ["מפעילי צמ\"ה וציוד מכני", "נהגי רמסע ומשאיות עפר", "מנהלי עבודה ושטח", "עובדי תשתית", "הנהלה ומשרד"];
-    } else if (/שירות|התקנ|טכנאי/i.test(allText)) {
+    } else if (/שירות|התקנ|טכנאי|מיזוג|חשמל|מעליות/i.test(allText)) {
       fieldRatio = 0.65;
       rolesIdentified = ["טכנאי שירות שטח", "מתקינים", "אנשי שירות לקוחות", "מתאמי שירות"];
     } else if (relevant) {
@@ -739,10 +835,10 @@
       rolesIdentified = ["מנהלי פרויקטים בשטח", "מפקחי עבודה", "עובדי ביצוע", "הנדסה ומשרד"];
     } else {
       fieldRatio = 0.15;
-      rolesIdentified = ["עובדי משרד", "הנהלה", "מכירות"];
+      rolesIdentified = ["עובדי משרד", "הנהלה", "מכירות ושירות"];
     }
 
-    const fieldWorkersCount = Math.round(wfApproxEmployees * fieldRatio);
+    const fieldWorkersCount = wfApproxEmployees ? Math.round(wfApproxEmployees * fieldRatio) : 0;
     const fieldWorkersPct = Math.round(fieldRatio * 100);
     const fieldWorkersPctDisplay = isInactive ? "0%" : `כ-${fieldWorkersPct}%`;
 
@@ -759,90 +855,154 @@
       fieldWorkersCountDisplay = `כ-${Math.round(25 * fieldRatio)}–${Math.round(50 * fieldRatio)}`;
     } else if (wfCountRange === "10–25") {
       fieldWorkersCountDisplay = `כ-${Math.round(10 * fieldRatio)}–${Math.round(25 * fieldRatio)}`;
-    } else if (wfCountRange === "1–10") {
-      fieldWorkersCountDisplay = `כ-1–${Math.round(10 * fieldRatio)}`;
-    } else if (isMegaEnterprise) {
-      fieldWorkersCountDisplay = "350+";
-    } else {
+    } else if (wfApproxEmployees) {
       fieldWorkersCountDisplay = `כ-${Math.round(wfApproxEmployees * fieldRatio)}`;
+    } else {
+      fieldWorkersCountDisplay = "—";
     }
 
-    // 4.3 Fleet Estimation v2 (Clear numbers/ranges + Confidence + Basis)
-    let flV2Display = "לא ניתן להעריך";
+    // 4.3 Fleet Estimation (3 distinct methods per Rules 1, 2, 3: Verified, Industry with basis, Formula for general companies, or Unknown)
+    let flV2Display = "לא ידוע";
     let flV2Rounded = "—";
+    let flV2Count = null;
+    let flV2Method = "unknown";
+    let flV2MethodLabel = "לא ידוע (ללא בסיס מאומת)";
     let flV2Confidence = "נמוך";
     let flV2ConfidenceScore = 20;
     let flV2IsEstimate = true;
     const flV2Basis = [];
 
-    if (Number.isInteger(row.fleet_size) && row.fleet_size > 0 && fs.fleet_size.s === "v") {
-      flV2Display = `${row.fleet_size} רכבים (מאומת)`;
-      flV2Rounded = `${row.fleet_size}`;
-      flV2Confidence = "גבוה";
-      flV2ConfidenceScore = 95;
-      flV2IsEstimate = false;
-      flV2Basis.push(`גודל צי מאומת רשמית: ${row.fleet_size} כלי רכב`);
-    } else if (isInactive) {
+    // Verified fleet ONLY when an actual numeric fleet_size > 0 is verified from an official source (never hardcoded 10 or 8)
+    const verifiedFleetNum = (Number.isInteger(row.fleet_size) && row.fleet_size > 0 && (fs.fleet_size.s === "v" || row.fleetIsFact === true))
+      ? row.fleet_size
+      : null;
+
+    const isVehicleIntensive = row.company_category === "general"
+      ? false
+      : (row.company_category === "vehicle_intensive" ? true : VEHICLE_INDUSTRY_RE.test(allText));
+
+    if (isInactive) {
       flV2Display = "חברה אינה פעילה";
       flV2Rounded = "0";
+      flV2Count = 0;
+      flV2Method = "unknown";
+      flV2MethodLabel = "חברה אינה פעילה";
       flV2Confidence = "נמוך";
       flV2ConfidenceScore = 0;
       flV2Basis.push("החברה אינה פעילה או נפסלה");
-    } else if (/תעבורה/i.test(row.company_name)) {
-      flV2Display = "100+ רכבים";
-      flV2Rounded = "100+";
+    } else if (verifiedFleetNum !== null) {
+      // נתיב 1: לפי מידע מאומת (עדיפות עליונה - רק כשיש מספר רכבים מאומת אמיתי)
+      flV2Method = "verified";
+      const fleetSrcLabel = row.fleet_source || "רישוי עסקים / משרד התחבורה";
+      flV2MethodLabel = `לפי מידע מאומת (${fleetSrcLabel})`;
+      flV2IsEstimate = false;
       flV2Confidence = "גבוה";
-      flV2ConfidenceScore = 90;
-      flV2Basis.push("קונגלומרט תחבורה והיסעים ארצי", "מעל 500 עובדים ומאות נהגים", "ציי ענק של אוטובוסים, משאיות וצמ\"ה");
-    } else if (/אליקים בן ארי/i.test(row.company_name)) {
-      flV2Display = "כ-50 רכבים וכלים";
-      flV2Rounded = "כ-50";
-      flV2Confidence = "גבוה";
-      flV2ConfidenceScore = 85;
-      flV2Basis.push("חברת תשתיות ועפר מובילה בפריסה ארצית", "קבלן ג5 מוביל, צי כבד ומפעילי צמ\"ה");
+      flV2ConfidenceScore = 95;
+      flV2Count = verifiedFleetNum;
+      flV2Rounded = `${verifiedFleetNum}`;
+      flV2Display = `${verifiedFleetNum} רכבים (מאומת)`;
+      flV2Basis.push(`מידע מאומת רשמית: ${verifiedFleetNum} כלי רכב רשומים (${fleetSrcLabel})`);
+    } else if (isVehicleIntensive) {
+      // נתיב 2: חברות הובלה, שינוע ועסקים עתירי רכב (חוק 2) — אין להפעיל אוטומטית את נוסחת ה-10% של חברות כלליות!
+      // מותר להציג אומדן לפי תחום העיסוק רק כשיש בסיס אמין ומזוהה (סיווג קבלני רשמי, רישיון מוביל/היסעים/עסק מאומת, או מצבת עובדים מאומתת בענף רכב)
+      const hasCredibleIndustryBasis = hasOfficialContractorBasis ||
+        hasVerifiedEmp ||
+        Boolean(row.industry_fleet_basis) ||
+        row.source === "buses_fleets" ||
+        (row.source === "business_licenses" && /רכב|הובל|משא|היסע|מוסך/.test(allText));
+
+      if (hasCredibleIndustryBasis) {
+        flV2Method = "industry";
+        flV2IsEstimate = true;
+        flV2Confidence = "בינוני";
+        flV2ConfidenceScore = 70;
+
+        if (isMegaEnterprise || (hasVerifiedEmp && verifiedEmpRaw >= 150)) {
+          flV2Display = "כ-50+ רכבים וכלים (אומדן ענפי)";
+          flV2Rounded = "כ-50+";
+          flV2Count = 50;
+          flV2Confidence = "גבוה";
+          flV2ConfidenceScore = 85;
+          const basisText = hasVerifiedEmp ? `ענף עתיר רכב + ${verifiedEmpRaw} עובדים מאומתים` : "תאגיד תחבורה/תשתיות ארצי";
+          flV2MethodLabel = `לפי תחום העיסוק (${basisText})`;
+          flV2Basis.push(basisText);
+        } else if (hasSivug4 || hasSivug5 || (hasVerifiedEmp && verifiedEmpRaw >= 50)) {
+          flV2Display = "כ-20–40 רכבים וכלים (אומדן ענפי)";
+          flV2Rounded = "כ-20–40";
+          flV2Count = 25;
+          flV2Confidence = "גבוה";
+          flV2ConfidenceScore = 80;
+          const basisText = hasVerifiedEmp ? `ענף עתיר רכב + ${verifiedEmpRaw} עובדים מאומתים` : "סיווג קבלני גבוה (ג4/ג5) בפנקס הקבלנים";
+          flV2MethodLabel = `לפי תחום העיסוק (${basisText})`;
+          flV2Basis.push(basisText);
+        } else if (hasSivug3 || (hasVerifiedEmp && verifiedEmpRaw >= 20)) {
+          flV2Display = "כ-10–20 רכבים וכלים (אומדן ענפי)";
+          flV2Rounded = "כ-10–20";
+          flV2Count = 12;
+          const basisText = hasVerifiedEmp ? `ענף עתיר רכב + ${verifiedEmpRaw} עובדים מאומתים` : "סיווג קבלני ג3 בפנקס הקבלנים";
+          flV2MethodLabel = `לפי תחום העיסוק (${basisText})`;
+          flV2Basis.push(basisText);
+        } else if (hasOfficialContractorBasis || (hasVerifiedEmp && verifiedEmpRaw >= 5) || row.industry_fleet_basis) {
+          const indCount = Number.isInteger(row.industry_fleet_count) && row.industry_fleet_count > 0 ? row.industry_fleet_count : 6;
+          flV2Display = `כ-5–10 רכבים וכלים (אומדן ענפי)`;
+          flV2Rounded = "כ-5–10";
+          flV2Count = indCount;
+          const basisText = row.industry_fleet_basis || (hasVerifiedEmp ? `ענף עתיר רכב (${verifiedEmpRaw} עובדים מאומתים)` : "רישום קבלני פעיל בענף תשתית/עפר/הובלה");
+          flV2MethodLabel = `לפי תחום העיסוק (${basisText})`;
+          flV2Basis.push(basisText);
+        } else {
+          flV2Display = "כ-5–10 רכבים (אומדן ענפי)";
+          flV2Rounded = "כ-5–10";
+          flV2Count = 5;
+          flV2MethodLabel = "לפי תחום העיסוק (רישוי פעילות רכב/הובלה)";
+          flV2Basis.push("רישוי פעילות עסקית בענף עתיר רכב");
+        }
+      } else {
+        flV2Method = "unknown";
+        flV2MethodLabel = "לא ידוע (ענף רכב ללא בסיס מספרי מאומת)";
+        flV2Display = "לא ידוע";
+        flV2Rounded = "—";
+        flV2Count = null;
+        flV2Confidence = "נמוך";
+        flV2ConfidenceScore = 15;
+        flV2Basis.push("חברה בתחום רכב/הובלה ללא נתון רישוי/סיווג/עובדים מבוסס — נוסחת 10% לא הופעלה");
+      }
+    } else if (hasVerifiedEmp && verifiedEmpRaw >= 10) {
+      // נתיב 3: לפי נוסחת העובדים (10% מעובדים) - חל אך ורק על חברות כלליות עם נתון עובדים מבוסס (חוק 1 וחוק 3)
+      flV2Method = "formula";
+      const empBase = verifiedEmpRaw;
+      const formulaFleet = Math.max(1, Math.round(empBase * 0.10));
+      flV2MethodLabel = `לפי נוסחת העובדים (10% מ-${empBase} עובדים מאומתים)`;
+      flV2IsEstimate = true;
+      flV2Confidence = "בינוני-גבוה";
+      flV2ConfidenceScore = 75;
+      flV2Count = formulaFleet;
+      flV2Rounded = `כ-${formulaFleet}`;
+      flV2Display = `כ-${formulaFleet} רכבים (לפי נוסחת עובדים)`;
+      flV2Basis.push(`נוסחת אומדן לחברה כללית: 10% מ-${empBase} עובדים מאומתים = ${formulaFleet} רכבים`);
+    } else if (!isVehicleIntensive && hasOfficialContractorBasis && wfApproxEmployees !== null && wfApproxEmployees >= 50) {
+      // קבלן כללי (בנייה/מערכות) עם סיווג קבלני גבוה בפנקס הקבלנים (ג3-ג5) המעיד על 50+ עובדים
+      flV2Method = "formula";
+      const empBase = wfApproxEmployees;
+      const formulaFleet = Math.max(1, Math.round(empBase * 0.10));
+      flV2MethodLabel = `לפי נוסחת העובדים (10% מאומדן ${wfCountRange} עובדים לפי סיווג קבלני)`;
+      flV2IsEstimate = true;
+      flV2Confidence = "בינוני";
+      flV2ConfidenceScore = 55;
+      flV2Count = formulaFleet;
+      flV2Rounded = `כ-${formulaFleet}`;
+      flV2Display = `כ-${formulaFleet} רכבים (לפי נוסחת עובדים)`;
+      flV2Basis.push(`נוסחת אומדן: 10% מ-${empBase} עובדים (מבוסס סיווג פנקס הקבלנים)`);
     } else {
-      // Clear rounded numbers or ranges according to field workforce and industry
-      if (wfCountRange === "100–250") {
-        flV2Display = /היסע|הובל/i.test(allText) ? "כ-20–30 רכבים" : "כ-20–30 רכבים וכלים";
-        flV2Rounded = "כ-20–30";
-      } else if (wfCountRange === "50–100") {
-        flV2Display = /היסע|הובל/i.test(allText) ? "כ-10–20 רכבים" : "כ-10–20 רכבים וכלים";
-        flV2Rounded = "כ-10–20";
-      } else if (wfCountRange === "25–50") {
-        flV2Display = /היסע|הובל/i.test(allText) ? "כ-10–15 רכבים" : "כ-10–15 רכבים וכלים";
-        flV2Rounded = "כ-10–15";
-      } else if (wfCountRange === "10–25") {
-        flV2Display = /היסע|הובל/i.test(allText) ? "כ-5–10 רכבים" : "כ-5–10 רכבים וכלים";
-        flV2Rounded = "כ-5–10";
-      } else if (wfCountRange === "1–10") {
-        flV2Display = "צי קטן / רכבי שירות (כ-1–4)";
-        flV2Rounded = "1–4";
-      } else {
-        flV2Display = "צי קטן / רכבי שירות";
-        flV2Rounded = "1–4";
-      }
-
-      // Fleet Confidence Rule (Section 13)
-      if (wfConfidenceScore < 30 || hasInsolvencyWarning || fs.fleet.s === "n") {
-        flV2Confidence = "נמוך";
-        flV2ConfidenceScore = 30;
-      } else if (/מדן|צור עבודות עפר/i.test(row.company_name) || (hasG4 || hasG5)) {
-        flV2Confidence = "בינוני";
-        flV2ConfidenceScore = 65;
-      } else if (/היסע|הובל|משאיות מעל 15 טון/i.test(allText)) {
-        flV2Confidence = "בינוני";
-        flV2ConfidenceScore = 60;
-      } else {
-        flV2Confidence = "נמוך";
-        flV2ConfidenceScore = 35;
-      }
-
-      // Basis of Estimate factors
-      flV2Basis.push(`עובדים משוערים: ${wfCountDisplay} (ביטחון ${wfConfidenceScore}%)`);
-      flV2Basis.push(`עובדי שטח משוערים: ${fieldWorkersCountDisplay} (${fieldWorkersPctDisplay})`);
-      flV2Basis.push(`ענף ${row.industry || conRecs.map(r => r.anaf).filter(Boolean).join(", ") || "תפעולי"}`);
-      if (rolesIdentified.length) flV2Basis.push(rolesIdentified.slice(0, 2).join(", "));
-      if (conRecs.length) flV2Basis.push("סיווג בפנקס הקבלנים");
+      // נתיב 4: לא ידוע — ללא בסיס לאומדן
+      flV2Method = "unknown";
+      flV2MethodLabel = "לא ידוע (ללא בסיס מאומת)";
+      flV2Display = "לא ידוע";
+      flV2Rounded = "—";
+      flV2Count = null;
+      flV2Confidence = "נמוך";
+      flV2ConfidenceScore = 15;
+      flV2Basis.push("אין מידע צי מאומת ואין נתון עובדים מבוסס להפעלת נוסחת ה-10%");
     }
 
     const flV2BasisLabel = flV2Basis.join(" · ");
@@ -949,40 +1109,71 @@
     else if (!hasAiChecked) nextAction = "לבצע חיפוש נוסף ב-Gemini";
     else nextAction = "לבצע enrichment נוסף";
 
-    /* --- Lead Quality: Color Classification (Green / Yellow / Red) according to User Rules --- */
-    const hasVerifiedCompany = registryConfirmed && Boolean(row.company_hp) && fs.company.s === "v" && fs.hp.s === "v";
+    /* --- Lead Quality: Grade A / Grade B Classification according to the 7 Mandatory Rules --- */
+    const hasValidHp = Boolean(row.company_hp) && isValidIsraeliCompanyNumber(row.company_hp);
+    const hasVerifiedCompany = hasValidHp && has(row.company_name) && (registryConfirmed || fs.hp.s === "v" || Boolean(row.source));
     const hasVerifiedPhone = fs.phone.s === "v";
     const hasVerifiedEmail = fs.email.s === "v";
-    const isDaliaFit = relevant && businessPotentialScore >= 60;
+    const hasAnyPhone = validPhonesList.length > 0;
+    const hasAnyEmail = validMailsList.length > 0;
+    const phoneIndepSourcesCount = Array.isArray(row.phone_sources) ? row.phone_sources.length : (hasVerifiedPhone ? 1 : 0);
+    const emailIndepSourcesCount = Array.isArray(row.email_sources) ? row.email_sources.length : (hasVerifiedEmail ? 1 : 0);
+    const hasMultiSourceVerifiedContact = phoneIndepSourcesCount >= 2;
+
     const hasFleet5Plus = !isInactive && (
+      (flV2Count !== null && flV2Count >= 5) ||
       (Number.isInteger(row.fleet_size) && row.fleet_size >= 5) ||
-      ["100+", "כ-50", "כ-20–30", "כ-10–20", "כ-10–15", "כ-5–10"].includes(flV2Rounded)
+      ["100+", "כ-50+", "כ-50", "כ-30–50", "כ-20–40", "כ-20–30", "כ-10–25", "כ-10–20", "כ-10–15", "כ-5–10"].includes(flV2Rounded)
     );
-    const isNotDisqualified = !isInactive && !rejectedReason;
+    const hasSubstantiatedFleetOrEmp = !isInactive && (
+      flV2Method === "verified" ||
+      flV2Method === "industry" ||
+      (flV2Method === "formula" && ((hasVerifiedEmp && verifiedEmpRaw >= 10) || (wfApproxEmployees !== null && wfApproxEmployees >= 50)))
+    );
+    const isNotDisqualified = !isInactive && !rejectedReason && hasVerifiedCompany;
 
-    // Condition for Green: Meets ALL 6 mandatory rules
-    const isGreen = hasVerifiedCompany && hasVerifiedPhone && hasVerifiedEmail && isDaliaFit && hasFleet5Plus && isNotDisqualified;
+    // Rule 1 & Rule 2 & Rule 7:
+    // Grade A ("ליד מוכן לפנייה"): Active company with real HP, meets fleet potential (5+), has business phone verified across 2+ independent sources AND business email.
+    // Grade B ("ליד להשלמת פרטי קשר"): Active company with real HP that meets substantiated fleet/employee basis (5+ fleet or 50+ employees) and needs contact completion or 2nd independent source verification.
+    // Unsubstantiated companies (no contacts AND no substantiated employee/fleet data, or inactive, or fake HP) are rejected (null, never Grade C).
+    const isGradeA = isNotDisqualified && hasFleet5Plus && hasVerifiedPhone && hasVerifiedEmail && hasMultiSourceVerifiedContact;
+    const isGradeB = !isGradeA && isNotDisqualified && (
+      (hasSubstantiatedFleetOrEmp && hasFleet5Plus) ||
+      (hasSubstantiatedFleetOrEmp && (hasAnyPhone || hasAnyEmail)) ||
+      (isVehicleIntensive && (hasAnyPhone || hasAnyEmail) && hasSubstantiatedFleetOrEmp)
+    );
 
-    // Condition for Green+ (Quality Plus):
-    // A Green lead that meets all readiness criteria AND has identified decision-maker contact(s)
     const hasStrictDecisionMaker = normalizedContacts.some(c => c.is_decision_maker);
     const hasOwnerDecisionMaker = normalizedContacts.some(c => c.is_owner_indicated);
-    const isQualityPlus = isGreen && (hasStrictDecisionMaker || hasOwnerDecisionMaker);
+    const isQualityPlus = isGradeA && (hasStrictDecisionMaker || hasOwnerDecisionMaker);
 
-    let leadQualityColor = "yellow";
-    let leadQualityLabel = "🟡 ליד טוב";
+    let leadGrade = null;
+    let leadGradeLabel = "נפסל — חסר בסיס נתונים";
+    let leadQualityColor = "red";
+    let leadQualityLabel = "🔴 לא מתאים / נפסל";
 
-    if (isInactive || rejectedReason || !relevant) {
+    if (!isNotDisqualified || (!isGradeA && !isGradeB)) {
+      leadGrade = null;
+      leadGradeLabel = isInactive ? "נפסל — חברה לא פעילה" : (!hasValidHp ? "נפסל — חסר ח.פ. אמיתי" : "נפסל — אין נתוני עובדים/צי או פרטי קשר מבוססים");
       leadQualityColor = "red";
-      leadQualityLabel = "🔴 לא כדאי להשקיע";
+      leadQualityLabel = "🔴 לא מתאים";
       stage = "rejected";
-    } else if (isGreen) {
+      if (!rejectedReason) {
+        rejectedReason = leadGradeLabel;
+      }
+    } else if (isGradeA) {
+      leadGrade = "A";
+      leadGradeLabel = "דירוג A — ליד מוכן לפנייה";
       leadQualityColor = "green";
-      leadQualityLabel = isQualityPlus ? "🟢 ליד איכותי+ ⭐" : "🟢 מוכן לפנייה";
+      leadQualityLabel = isQualityPlus ? "🟢 דירוג A+ (מוכן לפנייה ⭐)" : "🟢 דירוג A — ליד מוכן לפנייה";
       stage = "ready";
     } else {
+      leadGrade = "B";
+      leadGradeLabel = (!hasAnyPhone || !hasAnyEmail)
+        ? "דירוג B — ליד להשלמת פרטי קשר"
+        : "דירוג B — ליד להשלמת אימות מקור נוסף";
       leadQualityColor = "yellow";
-      leadQualityLabel = "🟡 ליד טוב (דורש השלמה)";
+      leadQualityLabel = `🟡 ${leadGradeLabel}`;
       if (stage === "ready") stage = isQualified ? "qualified" : "review";
     }
 
@@ -1068,20 +1259,19 @@
 
     /* --- Why not green / Detailed Missing Reason --- */
     let whyNotGreen = "";
-    if (leadQualityColor === "green") {
+    if (leadGrade === "A") {
       whyNotGreen = isQualityPlus
-        ? "ליד איכותי+ מוכן לפנייה: חברה וזהות מאומתים, טלפון ומייל עסקיים מאומתים, פוטנציאל צי 5+, ומקבל החלטות / בעלים מזוהה."
-        : "מוכן לפנייה: חברה מאומתת ברשם, טלפון ומייל עסקיים מאומתים, פוטנציאל צי 5+, ללא עילת פסילה.";
-    } else if (leadQualityColor === "red") {
-      whyNotGreen = rejectedReason || (isInactive ? "החברה אינה פעילה ברשם החברות (בהליכי פירוק/חיסול)." : "החברה אינה מתאימה לשירותי תחזוקת ציי רכב.");
+        ? "דירוג A+ מוכן לפנייה: חברה וזהות מאומתים, טלפון ומייל עסקיים מאומתים ב-2+ מקורות עצמאיים, פוטנציאל צי 5+, ומקבל החלטות מזוהה."
+        : "דירוג A מוכן לפנייה: חברה פעילה עם ח.פ. מאומת, טלפון ומייל עסקיים מאומתים ב-2+ מקורות עצמאיים, ופוטנציאל צי 5+.";
+    } else if (leadGrade === null) {
+      whyNotGreen = rejectedReason || (isInactive ? "החברה אינה פעילה ברשם החברות." : "החברה אינה עומדת בתנאי הסף (חסר בסיס עובדים/רכבים מבוסס או פרטי קשר).");
     } else {
       const missingBits = [];
-      if (!hasVerifiedPhone) missingBits.push("טלפון עסקי מאומת");
-      if (!hasVerifiedEmail) missingBits.push("אימייל עסקי מאומת");
-      if (!hasFleet5Plus) missingBits.push("אינדיקציה לצי של 5+ רכבים");
-      if (!isDaliaFit) missingBits.push("התאמה לשירותי דליה (פוטנציאל עסקי)");
-      if (!hasVerifiedCompany) missingBits.push("אימות זהות החברה מול רשם רשמי");
-      whyNotGreen = `פוטנציאל עסקי טוב (${businessPotentialScore}%), אך עדיין חסר: ${missingBits.join(" + ") || "השלמת פרטי מוכנות"}.`;
+      if (!hasAnyPhone) missingBits.push("טלפון עסקי");
+      else if (phoneIndepSourcesCount < 2) missingBits.push("אימות טלפון במקור עצמאי שני");
+      if (!hasAnyEmail) missingBits.push("אימייל עסקי");
+      if (!hasFleet5Plus) missingBits.push("פוטנציאל צי של 5+ רכבים");
+      whyNotGreen = `דירוג B (ליד להשלמת פרטי קשר): קיים בסיס נתונים אמין (${flV2MethodLabel}), להשלמת: ${missingBits.join(" + ") || "אימות מקור נוסף"}.`;
     }
 
     /* --- Source History --- */
@@ -1127,23 +1317,27 @@
       source_list: sources,
       source_history: sourceHistory,
       status_history: statusHistory,
-      tier: registryConfirmed ? "A" : "C",
-      verification_status: isVerified ? "verified" : registryConfirmed ? "partial" : "unverified",
-      company_active_status: co.status || (inContractors ? "רשום בפנקס הקבלנים" : null),
+      tier: leadGrade || "rejected",
+      lead_grade: leadGrade,
+      lead_grade_label: leadGradeLabel,
+      company_category: isVehicleIntensive ? "vehicle_intensive" : "general",
+      company_category_label: isVehicleIntensive ? "חברה עתירת רכב" : "חברה כללית",
+      verification_status: isGradeA ? "verified" : (isGradeB ? "partial" : "unverified"),
+      company_active_status: co.status || (inContractors ? "רשום בפנקס הקבלנים" : (row.company_active_status || "פעילה")),
       fleet_size_status: fleetSizeStatus,
       lead_stage: stage,
-      lead_quality: leadQualityColor === "green" ? "high" : (leadQualityColor === "yellow" ? "medium" : "low"),
+      lead_quality: leadGrade === "A" ? "high" : (leadGrade === "B" ? "medium" : "low"),
       lead_quality_color: leadQualityColor,
       lead_quality_label: leadQualityLabel,
       is_quality_plus: isQualityPlus,
-      quality_badge: isQualityPlus ? "ירוק+" : (leadQualityColor === "green" ? "ירוק" : ""),
-      quality_tier_label: isQualityPlus ? "ליד איכותי+ ⭐" : (leadQualityColor === "green" ? "מוכן לפנייה" : (leadQualityColor === "yellow" ? "ליד טוב (דורש השלמה)" : "לא מתאים")),
+      quality_badge: leadGrade === "A" ? (isQualityPlus ? "A+" : "A") : (leadGrade === "B" ? "B" : ""),
+      quality_tier_label: leadGradeLabel,
       has_strict_decision_maker: hasStrictDecisionMaker,
       has_owner_match: hasOwnerDecisionMaker,
       workflow_status: workflowStatus,
       workflow_status_label: workflowStatusLabel,
       workflow_status_badge: workflowStatusBadge,
-      ready_for_contact: leadQualityColor === "green",
+      ready_for_contact: leadGrade === "A",
       rejected_reason: rejectedReason || null,
       relevant,
 
@@ -1210,9 +1404,12 @@
 
       /* Fleet Estimation v2 */
       fleet_estimate_v2: {
-        is_verified: !flV2IsEstimate,
+        is_verified: flV2Method === "verified",
         fleet_size_display: flV2Display,
+        fleet_count: flV2Count,
         fleet_count_rounded: flV2Rounded,
+        fleet_method: flV2Method,
+        fleet_method_label: flV2MethodLabel,
         fleet_confidence: flV2Confidence,
         fleet_confidence_score: flV2ConfidenceScore,
         fleet_is_estimate: flV2IsEstimate,
@@ -1317,18 +1514,50 @@
   }
 
   const CITY_TO_REGION = {
-    "חיפה": "חיפה", "קריות": "חיפה", "עכו": "צפון", "נהריה": "צפון", "נצרת": "צפון", "נוף הגליל": "צפון",
-    "טבריה": "צפון", "עפולה": "צפון", "כרמיאל": "צפון", "צפת": "צפון", "קרית שמונה": "צפון", "סכנין": "צפון",
-    "שפרעם": "צפון", "אם אל-פחם": "צפון", "אום אל-פחם": "צפון", "באקה אל גרביה": "צפון", "מגדל העמק": "צפון", "יקנעם": "צפון",
-    "תל אביב": "תל אביב", "תל אביב - יפו": "תל אביב", "תל אביב יפו": "תל אביב", "יפו": "תל אביב", "רמת גן": "תל אביב", "גבעתיים": "תל אביב",
-    "בני ברק": "תל אביב", "חולון": "תל אביב", "בת ים": "תל אביב", "הרצליה": "תל אביב", "רמת השרון": "תל אביב",
-    "פתח תקווה": "מרכז", "ראשון לציון": "מרכז", "רחובות": "מרכז", "נס ציונה": "מרכז", "לוד": "מרכז", "רמלה": "מרכז",
-    "מודיעין": "מרכז", "מודיעין מכבים רעות": "מרכז", "כפר סבא": "מרכז", "רעננה": "מרכז", "הוד השרון": "מרכז",
-    "ראש העין": "מרכז", "נתניה": "מרכז", "כפר יונה": "מרכז", "אבן יהודה": "מרכז", "טייבה": "מרכז", "טירה": "מרכז",
-    "ירושלים": "ירושלים", "בית שמש": "ירושלים", "מבשרת ציון": "ירושלים", "מעלה אדומים": "ירושלים", "ביתר עילית": "ירושלים",
-    "באר שבע": "דרום", "אשדוד": "דרום", "אשקלון": "דרום", "קרית גת": "דרום", "שדרות": "דרום", "נתיבות": "דרום",
-    "אופקים": "דרום", "דימונה": "דרום", "ערד": "דרום", "אילת": "דרום", "קרית מלאכי": "דרום", "רהט": "דרום",
-    "אריאל": "יהודה ושומרון", "מודיעין עילית": "יהודה ושומרון", "גבעת זאב": "יהודה ושומרון", "אפרת": "יהודה ושומרון"
+    // 1. חיפה והצפון
+    "חיפה": "חיפה והצפון", "קריות": "חיפה והצפון", "קרית אתא": "חיפה והצפון", "קרית ביאליק": "חיפה והצפון",
+    "קרית מוצקין": "חיפה והצפון", "קרית ים": "חיפה והצפון", "נשר": "חיפה והצפון", "טירת כרמל": "חיפה והצפון",
+    "עכו": "חיפה והצפון", "נהריה": "חיפה והצפון", "נצרת": "חיפה והצפון", "נוף הגליל": "חיפה והצפון", "נצרת עילית": "חיפה והצפון",
+    "טבריה": "חיפה והצפון", "עפולה": "חיפה והצפון", "כרמיאל": "חיפה והצפון", "צפת": "חיפה והצפון", "קרית שמונה": "חיפה והצפון",
+    "סכנין": "חיפה והצפון", "שפרעם": "חיפה והצפון", "אם אל-פחם": "חיפה והצפון", "אום אל-פחם": "חיפה והצפון", "אום אל פחם": "חיפה והצפון",
+    "באקה אל גרביה": "חיפה והצפון", "מגדל העמק": "חיפה והצפון", "יקנעם": "חיפה והצפון", "יקנעם עילית": "חיפה והצפון",
+    "חדרה": "חיפה והצפון", "אור עקיבא": "חיפה והצפון", "פרדס חנה": "חיפה והצפון", "זכרון יעקב": "חיפה והצפון", "בנימינה": "חיפה והצפון",
+    "מעלות": "חיפה והצפון", "מעלות תרשיחא": "חיפה והצפון", "בית שאן": "חיפה והצפון", "קצרין": "חיפה והצפון", "ירכא": "חיפה והצפון",
+    "טמרה": "חיפה והצפון", "כפר מנדא": "חיפה והצפון", "כפר כנא": "חיפה והצפון", "עראבה": "חיפה והצפון", "מגאר": "חיפה והצפון",
+    "דאלית אל כרמל": "חיפה והצפון", "עספיא": "חיפה והצפון", "קרית טבעון": "חיפה והצפון", "רמת ישי": "חיפה והצפון", "משגב": "חיפה והצפון",
+
+    // 2. השרון
+    "נתניה": "השרון", "הרצליה": "השרון", "רעננה": "השרון", "כפר סבא": "השרון", "הוד השרון": "השרון", "רמת השרון": "השרון",
+    "כפר יונה": "השרון", "אבן יהודה": "השרון", "טייבה": "השרון", "טירה": "השרון", "קלנסווה": "השרון", "תל מונד": "השרון",
+    "קדימה": "השרון", "קדימה צורן": "השרון", "עמק חפר": "השרון", "כפר שמריהו": "השרון", "רשפון": "השרון", "געש": "השרון", "יקום": "השרון",
+
+    // 3. מרכז וגוש דן
+    "תל אביב": "מרכז וגוש דן", "תל אביב - יפו": "מרכז וגוש דן", "תל אביב -יפו": "מרכז וגוש דן", "תל אביב יפו": "מרכז וגוש דן",
+    "יפו": "מרכז וגוש דן", "רמת גן": "מרכז וגוש דן", "גבעתיים": "מרכז וגוש דן", "בני ברק": "מרכז וגוש דן",
+    "חולון": "מרכז וגוש דן", "בת ים": "מרכז וגוש דן", "פתח תקווה": "מרכז וגוש דן", "פתח-תקווה": "מרכז וגוש דן",
+    "ראשון לציון": "מרכז וגוש דן", "ראש העין": "מרכז וגוש דן", "אור יהודה": "מרכז וגוש דן", "יהוד": "מרכז וגוש דן",
+    "קרית אונו": "מרכז וגוש דן", "גבעת שמואל": "מרכז וגוש דן", "שוהם": "מרכז וגוש דן", "אלעד": "מרכז וגוש דן",
+    "אזור": "מרכז וגוש דן", "כפר קאסם": "מרכז וגוש דן", "ג'לג'וליה": "מרכז וגוש דן", "סביון": "מרכז וגוש דן", "גני תקווה": "מרכז וגוש דן",
+
+    // 4. ירושלים והסביבה
+    "ירושלים": "ירושלים והסביבה", "בית שמש": "ירושלים והסביבה", "מבשרת ציון": "ירושלים והסביבה",
+    "מודיעין": "ירושלים והסביבה", "מודיעין מכבים רעות": "ירושלים והסביבה", "אבו גוש": "ירושלים והסביבה",
+    "צור הדסה": "ירושלים והסביבה", "מטה יהודה": "ירושלים והסביבה",
+
+    // 5. השפלה והדרום
+    "רחובות": "השפלה והדרום", "נס ציונה": "השפלה והדרום", "לוד": "השפלה והדרום", "רמלה": "השפלה והדרום",
+    "יבנה": "השפלה והדרום", "גדרה": "השפלה והדרום", "מזכרת בתיה": "השפלה והדרום", "גן יבנה": "השפלה והדרום",
+    "באר יעקב": "השפלה והדרום", "בית דגן": "השפלה והדרום",
+    "באר שבע": "השפלה והדרום", "אשדוד": "השפלה והדרום", "אשקלון": "השפלה והדרום", "קרית גת": "השפלה והדרום",
+    "שדרות": "השפלה והדרום", "נתיבות": "השפלה והדרום", "אופקים": "השפלה והדרום", "דימונה": "השפלה והדרום",
+    "ערד": "השפלה והדרום", "אילת": "השפלה והדרום", "קרית מלאכי": "השפלה והדרום", "רהט": "השפלה והדרום",
+    "חורה": "השפלה והדרום", "כסייפה": "השפלה והדרום", "לקיה": "השפלה והדרום", "תל שבע": "השפלה והדרום",
+    "שגב שלום": "השפלה והדרום", "ערערה בנגב": "השפלה והדרום", "ירוחם": "השפלה והדרום", "מצפה רמון": "השפלה והדרום", "נאות חובב": "השפלה והדרום",
+
+    // 6. יהודה ושומרון
+    "אריאל": "יהודה ושומרון", "מעלה אדומים": "יהודה ושומרון", "ביתר עילית": "יהודה ושומרון", "מודיעין עילית": "יהודה ושומרון",
+    "גבעת זאב": "יהודה ושומרון", "אפרת": "יהודה ושומרון", "קרני שומרון": "יהודה ושומרון", "אורנית": "יהודה ושומרון",
+    "אלפי מנשה": "יהודה ושומרון", "קדומים": "יהודה ושומרון", "עמנואל": "יהודה ושומרון", "ברקן": "יהודה ושומרון", "מישור אדומים": "יהודה ושומרון"
   };
 
   function cityToRegion(city) {
@@ -2002,27 +2231,38 @@
       }
     }
 
-    // 1. פנקס הקבלנים (data.gov.il) - בדיקה ישירה של פרט הקשר המדויק
+    // 0. מקורות עצמאיים שנאספו ומופו ברמת הרשומה (כל מקור עצמאי מקבל מזהה ייחודי)
+    const explicitSources = contactType === "email" ? row.email_sources_detail : row.phone_sources_detail;
+    if (Array.isArray(explicitSources)) {
+      explicitSources.forEach(s => {
+        if (s && s.id && s.name) {
+          const sVal = contactType === "email" ? String(s.val || "").toLowerCase().trim() : normPhone(s.val || contactVal);
+          if ((contactType === "email" && (!s.val || sVal === lowerMail)) || (contactType !== "email" && (!s.val || sVal === cleanPhone))) {
+            addSource(s.id, s.name, s.type || "מאגר רשמי עצמאי", s.url || "", s.date || "01.10.2026", s.confidence || "רשמי (Tier A)");
+          }
+        }
+      });
+    }
+
+    // 1. פנקס הקבלנים (data.gov.il) - בדיקה מלאה של המספר המנורמל (ללא חיתוך 7 ספרות)
     const con = (row.registry_check && row.registry_check.contractors) || {};
     let inContractors = false;
     if (con.records && Array.isArray(con.records)) {
       inContractors = con.records.some(r => {
         if (contactType === "email") return r.email && r.email.toLowerCase().trim() === lowerMail;
         const rp = normPhone(r.phone);
-        return rp && (rp.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(rp.slice(-7)));
+        return Boolean(rp && cleanPhone && rp === cleanPhone);
       });
     }
-    // אם מקור החברה הרשמי הוא פנקס הקבלנים ופרט הקשר הראשי תואם
     if (!inContractors && (row.source === "contractors" || (row.source_name && row.source_name.includes("פנקס הקבלנים")))) {
       if (contactType === "email") {
         const rowMail = (row.email || row.mail || "").toLowerCase().trim();
         if (rowMail && rowMail === lowerMail) inContractors = true;
       } else {
-        const rp = normPhone(row.phone);
-        if (rp && (rp.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(rp.slice(-7)))) inContractors = true;
+        const rp = normPhone(row.phone || row.mobile_phone);
+        if (rp && cleanPhone && rp === cleanPhone) inContractors = true;
       }
     }
-    // בדיקה באנשי מקצוע הרשומים ברישיון הקבלן
     if (!inContractors && Array.isArray(row.people)) {
       inContractors = row.people.some(p => {
         const pRole = Array.isArray(p) ? p[1] : (p && p.role);
@@ -2030,10 +2270,10 @@
         if (!isLic) return false;
         if (contactType === "email") {
           const pm = (Array.isArray(p) ? p[3] : (p && p.email) || "").toLowerCase().trim();
-          return pm && pm === lowerMail;
+          return Boolean(pm && pm === lowerMail);
         } else {
           const pp = normPhone(Array.isArray(p) ? p[4] : (p && p.phone));
-          return pp && (pp.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(pp.slice(-7)));
+          return Boolean(pp && cleanPhone && pp === cleanPhone);
         }
       });
     }
@@ -2043,20 +2283,20 @@
         "gov_contractors",
         "פנקס הקבלנים הרשומים (data.gov.il)",
         "מאגר ממשלתי רשמי — משרד הבינוי והשיכון",
-        "https://data.gov.il/dataset/contractors",
+        "https://data.gov.il/dataset/4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8",
         (row.registry_check && row.registry_check.checked_at ? row.registry_check.checked_at.slice(0, 10) : "01.10.2026"),
         "רשמי (Tier A)"
       );
     }
 
-    // 2. רשם החברות (data.gov.il / ica) - בדיקה ישירה של פרט הקשר המדויק
+    // 2. רשם החברות (data.gov.il / ica) - בדיקה מלאה של המספר המנורמל
     const comp = (row.registry_check && row.registry_check.companies) || {};
     let inCompanies = false;
     if (comp && comp.found) {
       if (contactType === "email" && comp.email && comp.email.toLowerCase().trim() === lowerMail) inCompanies = true;
       if (contactType !== "email" && comp.phone) {
         const cp = normPhone(comp.phone);
-        if (cp && (cp.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(cp.slice(-7)))) inCompanies = true;
+        if (cp && cleanPhone && cp === cleanPhone) inCompanies = true;
       }
     }
     if (!inCompanies && (row.source === "companies" || (row.source_name && row.source_name.includes("רשם החברות")))) {
@@ -2065,7 +2305,7 @@
         if (rowMail && rowMail === lowerMail) inCompanies = true;
       } else {
         const cp = normPhone(row.phone);
-        if (cp && (cp.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(cp.slice(-7)))) inCompanies = true;
+        if (cp && cleanPhone && cp === cleanPhone) inCompanies = true;
       }
     }
     if (inCompanies) {
@@ -2073,18 +2313,18 @@
         "gov_companies",
         "רשם החברות (data.gov.il)",
         "מאגר ממשלתי רשמי — משרד המשפטים",
-        "https://data.gov.il/dataset/ica-companies",
+        "https://data.gov.il/dataset/f004176c-b85f-4542-8901-7b3176f9a054",
         (row.source_date || (row.registry_check && row.registry_check.checked_at ? row.registry_check.checked_at.slice(0, 10) : "01.10.2026")),
         "רשמי (Tier A)"
       );
     }
 
-    // 3. אתר האינטרנט הרשמי של החברה - רק אם פרט הקשר המדויק אומת ספציפית באתר!
+    // 3. אתר האינטרנט הרשמי של החברה - התאמה מלאה של המספר המנורמל
     const multi = row.multi_phones || row.multiPhones || (row.enr && row.enr.multi_phones) || [];
     multi.forEach(m => {
       if (typeof m === "object" && m.val) {
         const mp = normPhone(m.val);
-        if (mp && (mp.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(mp.slice(-7)))) {
+        if (mp && cleanPhone && mp === cleanPhone) {
           if (m.source && (m.source.includes("אתר החברה") || m.source.includes("אתר רשמי") || m.tier === "B")) {
             addSource(
               "company_website",
@@ -2094,12 +2334,21 @@
               "01.10.2026",
               "אימות ישיר (אתר החברה)"
             );
+          } else if (m.source_id && m.source && m.source_id !== "gov_contractors") {
+            addSource(
+              m.source_id,
+              m.source,
+              "מאגר ממשלתי רשמי עצמאי",
+              m.url || "https://data.gov.il",
+              "01.10.2026",
+              "רשמי (Tier A)"
+            );
           }
         }
       }
     });
 
-    // בדיקת ראיות (evidence) ספציפיות לפרט הקשר מהאתר
+    // בדיקת ראיות (evidence) ספציפיות לפרט הקשר (התאמה מלאה של המספר המנורמל)
     const evList = Array.isArray(row.evidence) ? row.evidence : [];
     evList.forEach(e => {
       if (!e || e.status !== "verified") return;
@@ -2108,7 +2357,7 @@
         const evMail = String(e.value || "").toLowerCase().trim();
         if (evMail === lowerMail && (String(e.source || "").includes("אתר") || String(e.url || "").includes("http"))) {
           addSource(
-            "company_website",
+            e.source_id || "company_website",
             e.source || "אתר החברה הרשמי",
             "ערוץ דיגיטלי ישיר של התאגיד",
             e.url || "",
@@ -2118,9 +2367,9 @@
         }
       } else if (contactType !== "email" && (ef.includes("phone") || ef.includes("contact"))) {
         const ep = normPhone(e.value);
-        if (ep && (ep.endsWith(cleanPhone.slice(-7)) || cleanPhone.endsWith(ep.slice(-7))) && (String(e.source || "").includes("אתר") || String(e.url || "").includes("http"))) {
+        if (ep && cleanPhone && ep === cleanPhone && (String(e.source || "").includes("אתר") || String(e.url || "").includes("http"))) {
           addSource(
-            "company_website",
+            e.source_id || "company_website",
             e.source || "אתר החברה הרשמי",
             "ערוץ דיגיטלי ישיר של התאגיד",
             e.url || "",
@@ -2248,6 +2497,18 @@
       bestEmail.sources = bestEmail.verified ? getContactVerificationSources(row, "email", bestEmail.val) : [];
     }
 
+    // כלל אימות: איש קשר מוצג כמאומת רק עם 2 מקורות עצמאיים אמיתיים לפחות; מקור יחיד נשאר מוצג אך כ"לא מאומת"
+    const MIN_INDEPENDENT_SOURCES = 2;
+    [bestMobile, bestLandline, bestEmail].forEach(c => {
+      if (c && c.verified && (c.sources || []).length < MIN_INDEPENDENT_SOURCES) {
+        c.verified = false;
+        c.singleSource = true;
+      }
+    });
+    if (bestMobile && bestMobile.singleSource) mobileStatus = "unverified_present";
+    if (bestLandline && bestLandline.singleSource) landlineStatus = "unverified_present";
+    if (bestEmail && bestEmail.singleSource) emailStatus = "unverified_present";
+
     let yellowSubtype = null;
     let yellowPhoneType = null;
     let yellowReason = "";
@@ -2300,11 +2561,13 @@
   }
 
   const api = { STAGES, STAGE_LABEL, FLEET_SIZE_LABEL, FIELD_STATUS_LABEL, QUALITY_LABEL, LEAD_QUALITY_LABELS, WORKFLOW_STATUS_LABELS, FIELDS, MISSING_SHORT, missingLabel,
-    NOT_SAFETY_PROOF, normPhone, validPhone, isVerifiedFinding, evaluate, hasAnyValidPhone, hasAnyRealContact, hasAnyValidEmail,
+    NOT_SAFETY_PROOF, normPhone, validPhone, isVerifiedFinding, isCompanyActive, evaluate, hasAnyValidPhone, hasAnyRealContact, hasAnyValidEmail,
     normalizeCompanyHp, isValidIsraeliCompanyNumber, CITY_TO_REGION, cityToRegion, KEYWORD_INDUSTRY_MAP, DATA_CLASSIFICATION,
     DEFAULT_DOMAINS, OPDomainKeywords, normName, cleanCorpName,
     WORKFORCE_RANGES, WORKFORCE_STATUS_LABELS, DISCOVERY_BATCHES, calculatePotentialScore, checkDuplicate,
-    isMobilePhone, isLandlinePhone, getContactVerificationSources, classifyLeadContacts };
+    isMobilePhone, isLandlinePhone, getContactVerificationSources, classifyLeadContacts,
+    assessCompanyFleet, fleetCountMatchesMode, VEHICLE_INDUSTRY_RE, VEHICLE_INTENSIVE_INDUSTRY_RE, GENERAL_COMPANY_INDUSTRY_RE };
   root.OPQualify = api;
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);
 

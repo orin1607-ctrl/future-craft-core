@@ -88,6 +88,7 @@ jobs:
           cp public/openseo.html dist/ 2>/dev/null || true
           cp public/openprospector.html dist/ 2>/dev/null || true
           cp public/openprospector-qualify.js dist/ 2>/dev/null || true
+          cp public/openprospector-batch-200.js dist/ 2>/dev/null || true
           cp -r public/ai-marketing dist/
           cp -r public/coco-dalia dist/
           cp -r public/crm dist/
