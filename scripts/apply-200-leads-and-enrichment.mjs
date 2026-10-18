@@ -1555,5 +1555,11 @@ V.companies = () => {
     }
   }
 
+  if (!updated.includes("openprospector-national-registry.js")) {
+    const bodyEnd = updated.lastIndexOf("</body>");
+    if (bodyEnd !== -1) {
+      updated = updated.slice(0, bodyEnd) + '<script src="openprospector-national-registry.js?v=20261018a"></script>\n' + updated.slice(bodyEnd);
+    }
+  }
   return updated;
 }

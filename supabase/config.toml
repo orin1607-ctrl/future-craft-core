@@ -103,3 +103,7 @@ verify_jwt = false
 [functions.notify-telemarketing-followup]
 verify_jwt = true
 
+
+# OpenProspector national registry collector (STAGING): pg_cron with x-dalia-internal-key, or a super_admin / fleet_manager session – checked in the function
+[functions.national-registry-collector]
+verify_jwt = false
