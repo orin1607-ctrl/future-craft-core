@@ -5,6 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyFilter, applyCompanyScope } from '@/hooks/useCompanyFilter';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import DigitalSignaturePad from '@/components/DigitalSignaturePad';
+import { DIGITAL_SIGNATURE_ITEM_NAME, dataUrlToPngBlob } from '@/lib/inspectionSignature';
+import { buildStoragePath } from '@/lib/storage';
 import { buildVehicleHubUrl, isVehicleScopedContext, plateMatches, useVehicleUrlContext } from '@/lib/entityNavContext';
 import {
   addCalendarMonths,
@@ -64,6 +67,8 @@ export default function PrivateVehicleInspection() {
   const [loading, setLoading] = useState(false);
   const [lastTriDate, setLastTriDate] = useState<string | null>(null);
   const [generalNotes, setGeneralNotes] = useState('');
+  const [signatureDataUrl, setSignatureDataUrl] = useState('');
+  const [hasSignature, setHasSignature] = useState(false);
 
   useEffect(() => {
     applyCompanyScope(
@@ -164,6 +169,30 @@ export default function PrivateVehicleInspection() {
       notes: item.notes,
     }));
     await supabase.from('inspection_items').insert(itemsPayload);
+
+    if (hasSignature && signatureDataUrl && user?.id) {
+      const blob = dataUrlToPngBlob(signatureDataUrl);
+      if (blob) {
+        const path = buildStoragePath(user.id, `inspections/${inspection.id}`, 'signature.png');
+        const { error: uploadErr } = await supabase.storage
+          .from('documents')
+          .upload(path, blob, { contentType: 'image/png', upsert: false, cacheControl: '3600' });
+        if (uploadErr) {
+          toast.error('הבדיקה נשמרה, אך החתימה לא הועלתה: ' + uploadErr.message);
+        } else {
+          const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path);
+          const { error: sigItemErr } = await supabase.from('inspection_items').insert({
+            inspection_id: inspection.id,
+            item_name: DIGITAL_SIGNATURE_ITEM_NAME,
+            status: 'ok',
+            notes: urlData.publicUrl,
+          });
+          if (sigItemErr) {
+            toast.error('הבדיקה נשמרה, אך שיוך החתימה לטופס נכשל: ' + sigItemErr.message);
+          }
+        }
+      }
+    }
 
     const defects = items.filter(i => i.status === 'defect');
     if (defects.length > 0) {
@@ -399,6 +428,19 @@ export default function PrivateVehicleInspection() {
 
       <div className="mb-6">
         <TriInspectionNotesField value={generalNotes} onChange={setGeneralNotes} />
+      </div>
+
+      <div className="mb-6" data-testid="tri-inspection-signature">
+        <label className="block text-base font-medium mb-1.5">חתימה דיגיטלית</label>
+        <p className="text-sm text-muted-foreground mb-2">
+          חתימה באצבע בטלפון / טאבלט, או בעכבר במחשב. ניתן לנקות ולחתום מחדש.
+        </p>
+        <DigitalSignaturePad
+          onChange={(url, signed) => {
+            setSignatureDataUrl(url);
+            setHasSignature(signed);
+          }}
+        />
       </div>
 
       {/* Submit */}

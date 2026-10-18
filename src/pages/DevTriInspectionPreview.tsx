@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ClipboardCheck } from 'lucide-react';
 import { TriInspectionMetaCard } from '@/components/vehicles/TriInspectionMetaCard';
 import { TriInspectionNotesField } from '@/components/vehicles/TriInspectionNotesField';
+import DigitalSignaturePad from '@/components/DigitalSignaturePad';
 
 /**
  * תצוגת פיתוח — מסך בדיקת תלת בלי התחברות, לבדיקת Desktop/Mobile.
@@ -69,6 +70,14 @@ export default function DevTriInspectionPreview() {
         </div>
 
         <TriInspectionNotesField value={notes} onChange={setNotes} />
+
+        <div data-testid="tri-inspection-signature">
+          <label className="block text-base font-medium mb-1.5">חתימה דיגיטלית</label>
+          <p className="text-sm text-muted-foreground mb-2">
+            חתימה באצבע בטלפון / טאבלט, או בעכבר במחשב. ניתן לנקות ולחתום מחדש.
+          </p>
+          <DigitalSignaturePad onChange={() => {}} />
+        </div>
       </div>
     </div>
   );
