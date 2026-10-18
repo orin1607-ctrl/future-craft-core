@@ -335,14 +335,20 @@ function bundlePendingActions(actions: ClaimsPendingAction[]): ClaimsPendingActi
   if (actions.length === 1) return actions[0];
   const emailActions = actions.filter((a) => a.action_type === "send_email");
   const isAllEmail = emailActions.length === actions.length;
-  const summary = isAllEmail
-    ? `שליחת קבוצה של ${actions.length} אימיילים נפרדים לתיקים: ${actions.map((a) => String((a.parameters as any)?.claim_id || "כללי")).join(", ")}`
-    : `ביצוע קבוצה של ${actions.length} פעולות מאושרות`;
+  const scheduleActions = actions.filter((a) => a.action_type === "schedule_email");
+  const isAllSchedule = scheduleActions.length === actions.length;
+
+  const summary = isAllSchedule
+    ? `תזמון קבוצה של ${actions.length} אימיילים לשליחה עתידית מאושרת לתיקים: ${actions.map((a) => String((a.parameters as any)?.claim_id || "כללי")).join(", ")}`
+    : (isAllEmail
+        ? `שליחת קבוצה של ${actions.length} אימיילים נפרדים לתיקים: ${actions.map((a) => String((a.parameters as any)?.claim_id || "כללי")).join(", ")}`
+        : `ביצוע קבוצה של ${actions.length} פעולות מאושרות`);
+
   return {
     preview_id: `BATCH-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
     summary,
-    tool_name: isAllEmail ? "batch_send_email" : "batch_action",
-    action_type: isAllEmail ? "batch_send_email" : "batch_action",
+    tool_name: isAllSchedule ? "batch_schedule_email" : (isAllEmail ? "batch_send_email" : "batch_action"),
+    action_type: isAllSchedule ? "batch_schedule_email" : (isAllEmail ? "batch_send_email" : "batch_action"),
     parameters: {
       actions,
       count: actions.length,

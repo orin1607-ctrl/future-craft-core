@@ -1086,6 +1086,95 @@ export function ClaimsAiWorkspace({
                           <div><strong>קבצים לייבוא:</strong> {String(pending.parameters.attachment_count || 0)} קבצים (יורדו במנות תוך מניעת כפילויות)</div>
                         </div>
                       ) : null}
+                      {pending.action_type === 'schedule_email' && pending.parameters ? (
+                        <div
+                          className="claims-ai-preview-schedule"
+                          style={{
+                            margin: '8px 0',
+                            fontSize: '0.82rem',
+                            background: 'rgba(37, 99, 235, 0.05)',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            lineHeight: '1.6',
+                            border: '1px solid rgba(37, 99, 235, 0.15)',
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, color: 'var(--c-primary, #2563eb)', marginBottom: 4 }}>
+                            📅 מועד שליחה מתוכנן: {String(pending.parameters.scheduled_label || pending.parameters.send_at || '')}
+                          </div>
+                          <div><strong>נמען:</strong> {String(pending.parameters.to || '')}</div>
+                          {pending.parameters.cc ? <div><strong>CC:</strong> {String(pending.parameters.cc)}</div> : null}
+                          {pending.parameters.bcc ? <div><strong>BCC:</strong> {String(pending.parameters.bcc)}</div> : null}
+                          {pending.parameters.subject ? <div><strong>נושא:</strong> {String(pending.parameters.subject)}</div> : null}
+                          {Array.isArray(pending.parameters.attachment_titles) && (pending.parameters.attachment_titles as string[]).length > 0 ? (
+                            <div><strong>מסמכים מצורפים:</strong> {(pending.parameters.attachment_titles as string[]).join(', ')}</div>
+                          ) : null}
+                          <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'var(--c-emerald, #10b981)', fontWeight: 600 }}>
+                            ⚡ אישור מראש: המערכת תשלח את האימייל אוטומטית במועד שנקבע ללא צורך באישור נוסף. ניתן לבטל עד מועד השליחה.
+                          </div>
+                        </div>
+                      ) : null}
+                      {pending.action_type === 'cancel_scheduled_email' && pending.parameters ? (
+                        <div
+                          className="claims-ai-preview-cancel-schedule"
+                          style={{
+                            margin: '8px 0',
+                            fontSize: '0.82rem',
+                            background: 'rgba(239, 68, 68, 0.05)',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            lineHeight: '1.6',
+                            border: '1px solid rgba(239, 68, 68, 0.15)',
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, color: '#dc2626', marginBottom: 4 }}>
+                            🚫 ביטול אימייל מתוזמן
+                          </div>
+                          <div><strong>מזהה תזמון:</strong> {String(pending.parameters.reminder_id || '')}</div>
+                          <div><strong>נמען:</strong> {String(pending.parameters.mail_to || '')}</div>
+                          <div><strong>נושא:</strong> {String(pending.parameters.subject || '')}</div>
+                          <div><strong>מועד מתוכנן:</strong> {String(pending.parameters.planned_label || '')}</div>
+                        </div>
+                      ) : null}
+                      {pending.action_type === 'batch_schedule_email' && pending.parameters ? (
+                        <div
+                          className="claims-ai-preview-batch-schedule"
+                          style={{
+                            margin: '8px 0',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                          }}
+                        >
+                          {(((pending.parameters as any).actions as ClaimsAiPendingAction[]) || []).map((sub, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                background: 'rgba(37, 99, 235, 0.04)',
+                                padding: '6px 10px',
+                                borderRadius: '6px',
+                                border: '1px solid rgba(37, 99, 235, 0.12)',
+                                fontSize: '0.82rem',
+                                lineHeight: '1.5',
+                              }}
+                            >
+                              <div style={{ fontWeight: 600, color: 'var(--c-primary, #2563eb)' }}>
+                                תזמון {idx + 1} מתוך {String((pending.parameters as any).count || ((pending.parameters as any).actions || []).length)}
+                                {sub.parameters?.claim_id ? ` · תיק ${String(sub.parameters.claim_id)}` : ''}
+                                {sub.parameters?.scheduled_label ? ` · 📅 ${String(sub.parameters.scheduled_label)}` : ''}
+                              </div>
+                              <div><strong>נמען:</strong> {String(sub.parameters?.to || '')}</div>
+                              {sub.parameters?.subject ? <div><strong>נושא:</strong> {String(sub.parameters.subject)}</div> : null}
+                              {Array.isArray(sub.parameters?.attachment_titles) && (sub.parameters.attachment_titles as string[]).length > 0 ? (
+                                <div><strong>מסמכים:</strong> {(sub.parameters.attachment_titles as string[]).join(', ')}</div>
+                              ) : null}
+                            </div>
+                          ))}
+                          <div style={{ fontSize: '0.78rem', color: 'var(--c-emerald, #10b981)', fontWeight: 600 }}>
+                            ⚡ אישור קבוצתי: כל האימיילים יישמרו כמתוזמנים ומאושרים ויישלחו אוטומטית במועדם.
+                          </div>
+                        </div>
+                      ) : null}
                       {pending.status === 'executed' ? (
                         <div style={{ color: 'var(--c-emerald, #10b981)', fontSize: '0.85rem', marginTop: 6 }}>
                           הפעולה בוצעה במערכת ונשמרה בתיק.

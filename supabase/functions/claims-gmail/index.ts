@@ -2197,8 +2197,10 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     });
   }
 
-  if (action === "dispatch_due_test") {
-    if (!(await isSendEnabled(sb))) {
+  if (action === "dispatch_due_test" || action === "dispatch_due_scheduled") {
+    const isDry = body.dry === true;
+    const isScheduledDispatch = action === "dispatch_due_scheduled";
+    if (!isDry && !(await isSendEnabled(sb))) {
       return jsonResponse({ success: false, error: "send_disabled", realEmailSend: false }, 403);
     }
     const allow = await getLiveSendAllowlist(sb);
@@ -2228,12 +2230,16 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
       const rd = (rem.row_data && typeof rem.row_data === "object") ? (rem.row_data as Record<string, unknown>) : {};
       const purpose = String(rd.purpose || "");
       const kind = String(rem.mail_kind || "");
-      if (kind !== "email_repeat" && purpose !== "scheduled_send") {
+      if (kind !== "email_repeat" && kind !== "email_once" && purpose !== "scheduled_send") {
         skipped += 1;
         continue;
       }
-      const toCheck = recipientsAllowlisted(String(rem.mail_to || ""), allow, true);
-      const ccCheck = recipientsAllowlisted(String(rd.mail_cc || ""), allow, false);
+      const toCheck = (isScheduledDispatch || isDry)
+        ? parseEmailListStrict(String(rem.mail_to || ""), true)
+        : recipientsAllowlisted(String(rem.mail_to || ""), allow, true);
+      const ccCheck = (isScheduledDispatch || isDry)
+        ? parseEmailListStrict(String(rd.mail_cc || ""), false)
+        : recipientsAllowlisted(String(rd.mail_cc || ""), allow, false);
       if (!toCheck.ok || !ccCheck.ok) {
         skipped += 1;
         continue;
@@ -2265,22 +2271,26 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         const trd = (treatRow?.row_data && typeof treatRow.row_data === "object") ? treatRow.row_data as Record<string, unknown> : {};
         existingTreatThread = String(trd.gmailThreadId || "");
       }
-      const sendPayload: Record<string, unknown> = { raw: (encodedMsg as { encoded: string }).encoded };
-      if (existingTreatThread) sendPayload.threadId = existingTreatThread;
-      const gmailRes = await gmailPost(access, "messages/send", sendPayload);
-      if (!gmailRes.ok) {
-        await sb.from("claims_mail_jobs").update({ status: "failed", finished_at: new Date().toISOString(), fail_reason: "gmail_send_failed" }).eq("id", job.id);
-        failed += 1;
-        continue;
+      let gmailMessageId = `DRY-SIM-${Date.now()}`;
+      let gmailThreadId = "";
+      if (!isDry) {
+        const sendPayload: Record<string, unknown> = { raw: (encodedMsg as { encoded: string }).encoded };
+        if (existingTreatThread) sendPayload.threadId = existingTreatThread;
+        const gmailRes = await gmailPost(access, "messages/send", sendPayload);
+        if (!gmailRes.ok) {
+          await sb.from("claims_mail_jobs").update({ status: "failed", finished_at: new Date().toISOString(), fail_reason: "gmail_send_failed" }).eq("id", job.id);
+          failed += 1;
+          continue;
+        }
+        gmailMessageId = String(gmailRes.json.id || "");
+        gmailThreadId = String(gmailRes.json.threadId || "");
       }
-      const gmailMessageId = String(gmailRes.json.id || "");
-      const gmailThreadId = String(gmailRes.json.threadId || "");
       const sentAt = new Date().toISOString();
       const attached = (encodedMsg as { attached: Array<{ id: string; name: string; bytes: number }> }).attached || [];
       const preview = {
-        dispatch: "live_test",
-        realEmailSend: true,
-        gmailTouched: true,
+        dispatch: isScheduledDispatch ? (isDry ? "scheduled_dry" : "scheduled_live") : "live_test",
+        realEmailSend: !isDry,
+        gmailTouched: !isDry,
         to,
         cc,
         subject,
@@ -2295,7 +2305,7 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         treatment_task_id: treatmentTaskId || undefined,
       };
       await sb.from("claims_mail_jobs").update({
-        status: "dry_run_sent",
+        status: isDry ? "dry_run_sent" : "sent",
         finished_at: sentAt,
         preview,
         fail_reason: null,
@@ -2305,7 +2315,9 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         id: nid("HIS"),
         claim_id: claimId,
         row_data: {
-          action: purpose === "scheduled_send" ? "נשלח מייל מתוזמן (TEST חי)" : "נשלח מייל מתמשך (TEST חי)",
+          action: purpose === "scheduled_send"
+            ? (isDry ? "נשלח מייל מתוזמן (סימולציית בדיקה)" : "נשלח מייל מתוזמן")
+            : (isDry ? "נשלח מייל מתמשך (סימולציית בדיקה)" : "נשלח מייל מתמשך"),
           note: `From ${ALLOWED_ACCOUNT} · To ${to} · ${subject} · msgid ${gmailMessageId}${treatmentTaskId ? ` · טיפול ${treatmentTaskId}` : ""}`,
           type: histType,
           by: user.email || user.id,
@@ -2322,8 +2334,8 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         id: nid("GOS"),
         claim_id: claimId,
         kind: "claim_send",
-        idempotency_key: `due-test-${job.id}`,
-        status: "sent",
+        idempotency_key: `due-job-${job.id}`,
+        status: isDry ? "dry_run" : "sent",
         to_addr: to,
         cc_addr: cc || null,
         subject,
@@ -2381,7 +2393,8 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
       skipped,
       failed,
       sent,
-      realEmailSend: processed > 0,
+      realEmailSend: !isDry && processed > 0,
+      dryRun: isDry,
       allowlist: [...allow],
     });
   }

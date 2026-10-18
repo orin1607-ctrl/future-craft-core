@@ -18,6 +18,7 @@ import {
   withShareLink,
   checkWaRecipient,
   claimPhoneOwners,
+  newId,
   type DbRow,
 } from "../_shared/claimChatRecords.ts";
 
@@ -270,7 +271,54 @@ export const CLAIMS_GEMINI_TOOLS = [
               items: { type: "STRING" },
               description: "מזהי קבצים מתוך התיק לצירוף. כשהמשתמש מבקש מסמך מסוים, העבר רק את המזהה שלו מתוך list_claim_documents (אם לא צוין, מצורפים קבצי התיק)",
             },
+            send_at: {
+              type: "STRING",
+              description: "תאריך ושעה מתוזמנים לשליחה (למשל '2026-10-21 10:00', או 'בעוד 3 ימים ב-10:00'). המערכת תתזמן את המייל לשליחה אוטומטית ע״י השרת במועד זה באישור אחד מראש.",
+            },
+            relative_days: {
+              type: "NUMBER",
+              description: "מספר ימים מעכשיו לתזמון השליחה (למשל 3 עבור 'בעוד שלושה ימים')",
+            },
+            send_time: {
+              type: "STRING",
+              description: "שעת השליחה המתוזמנת בפורמט HH:mm (למשל '10:00', ברירת מחדל 09:00 אם לא צוינה שעה)",
+            },
           },
+        },
+      },
+      {
+        name: "list_scheduled_claim_emails",
+        description: "רשימת אימיילים מתוזמנים שממתינים לשליחה עתידית (קריאה בלבד). מחזיר מזהה תזכורת (reminder_id), תאריך ושעת שליחה מתוכננת, נמען, נושא ומספר קבצים מצורפים.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            claim_ref: {
+              type: "STRING",
+              description: "מזהה תיק (אופציונלי). אם לא צוין במצב כללי, מחזיר את כל המיילים המתוזמנים המאושרים לשליחה.",
+            },
+          },
+        },
+      },
+      {
+        name: "preview_cancel_scheduled_claim_email",
+        description: "הכנת כרטיס אישור לביטול אימייל מתוזמן טרם מועד השליחה שלו. דורש אישור מפורש של המשתמש לפני הביטול בפועל. ביטול ימנע את שליחת המייל ויתעד את הביטול בהיסטוריית התיק.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            reminder_id: {
+              type: "STRING",
+              description: "מזהה התזכורת/המייל המתוזמן מתוך list_scheduled_claim_emails (חובה)",
+            },
+            reason: {
+              type: "STRING",
+              description: "סיבת הביטול (אופציונלי)",
+            },
+            claim_ref: {
+              type: "STRING",
+              description: "מזהה התיק (אופציונלי)",
+            },
+          },
+          required: ["reminder_id"],
         },
       },
       {
@@ -987,6 +1035,8 @@ export const GENERAL_CLAIM_SCOPED_TOOLS = [
   "preview_schedule_claim_whatsapp",
   "search_pending_gmail_messages",
   "preview_import_claim_email",
+  "list_scheduled_claim_emails",
+  "preview_cancel_scheduled_claim_email",
 ] as const;
 
 {
@@ -997,7 +1047,7 @@ export const GENERAL_CLAIM_SCOPED_TOOLS = [
     const decl = claimDecls.find((d) => d.name === name);
     if (!decl || generalDecls.some((d) => d.name === name)) continue;
     const params = decl.parameters || { type: "OBJECT", properties: {} };
-    const isOptionalClaim = name === "preview_send_claim_email" || name === "search_pending_gmail_messages" || name === "preview_import_claim_email";
+    const isOptionalClaim = name === "preview_send_claim_email" || name === "search_pending_gmail_messages" || name === "preview_import_claim_email" || name === "list_scheduled_claim_emails" || name === "preview_cancel_scheduled_claim_email";
     generalDecls.push({
       ...decl,
       description: isOptionalClaim
@@ -1062,7 +1112,12 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 5. גורם מטפל והיסטוריה: בירור מי טיפל בתיק והצגת היסטוריית פעולות באמצעות get_claim_handler_and_history.
 6. פעולה הבאה: בדיקת פעולה הבאה ומשימות ממתינות באמצעות get_claim_next_action.
 7. קישורי שיתוף: הצגת קישורים פעילים, יצירת קישורי שיתוף מאובטחים חדשים לשמאי/ביטוח/לקוח (preview_create_claim_share_link), וביטול קישורים (preview_revoke_claim_share_link).
-8. שליחת מיילים: שליחת מיילים ללקוח או לחברת הביטוח עם קבצים מצורפים מתוך התיק (preview_send_claim_email). כשהמשתמש מבקש לשלוח מספר אימיילים נפרדים לתיקים שונים או לנמענים שונים (למשל: מייל ראשון לביטוח, מייל שני לשמאי, מייל שלישי ללקוח) — קרא ל-preview_send_claim_email עבור כל אחת מההודעות בנפרד בתשובתך. המערכת תאגד אותן לקבוצה לאישור אחד, ובאישור המשתמש כל מייל יישלח בנפרד ויתועד בתיק שלו.
+8. שליחת ותזמון מיילים: שליחת מיילים ללקוח או לחברת הביטוח עם קבצים מצורפים מתוך התיק (preview_send_claim_email).
+   - תזמון שליחה עתידית ואישור מראש: כשהמשתמש מבקש לתזמן או לשלוח במועד עתידי (למשל: "שלח אימייל בעוד שלושה ימים בשעה 10:00", "תתזמן מייל למחר ב-09:00", "שלח בעוד יומיים"):
+     חובה לבקש שעה אם לא צוינה: אם המשתמש ציין יום בלבד ללא שעה מפורשת (למשל "תתזמן למחר", "שלח בעוד שלושה ימים"), המערכת חייבת לבקש ממנו שעה ("באיזו שעה ביום המבוקש לשלוח את המייל?") ואסור להחליט על שעה בעצמך!
+     העבר את מועד השליחה דרך פרמטרי send_at, relative_days, ו/או send_time ל-preview_send_claim_email. הכרטיס יציג את מועד השליחה המדויק לפי שעון ישראל ויציין במפורש שמדובר באישור אחד מראש. כשהמשתמש מאשר ("מאשר"/"שלח"), האימייל נשמר כמתוזמן ומאושר לשליחה, והשרת ישלח אותו אוטומטית במועד שנקבע ללא צורך באישור נוסף!
+   - צפייה וביטול תזמונים: לצפייה במיילים מתוזמנים הפעל list_scheduled_claim_emails. לביטול אימייל מתוזמן טרם מועד השליחה הפעל preview_cancel_scheduled_claim_email עם reminder_id.
+   - שליחת מספר אימיילים נפרדים: כשהמשתמש מבקש לשלוח מספר אימיילים נפרדים לתיקים שונים או לנמענים שונים (למשל: מייל ראשון לביטוח, מייל שני לשמאי, מייל שלישי ללקוח) — קרא ל-preview_send_claim_email עבור כל אחת מההודעות בנפרד בתשובתך. המערכת תאגד אותן לקבוצה לאישור אחד, ובאישור המשתמש כל מייל יישלח או יתוזמן בנפרד ויתועד בתיק שלו.
 9. תפעול התיק: שינוי סטטוס (preview_update_claim_status), יצירת וסגירת משימות (preview_create_claim_task, preview_close_claim_task), הוספת הערות בתיק (preview_add_claim_note).
 10. לקוחות: יצירת לקוח חדש (preview_create_customer), עדכון טלפון/מייל (preview_update_claim_client_contact), קישור לקוח לתביעה (preview_link_client_to_claim), ובדיקת כפילויות (check_claim_and_customer_duplicates).
 11. תיקון פרטי התיק: כשהמשתמש מבקש לתקן פרט בתיק (מספר תביעה בחברת הביטוח, תאריך אירוע/תאונה, מספר רכב, חברת ביטוח, פוליסה, צד ג׳, שמאי, סכומים וכו׳) — קרא ל-preview_update_claim_fields עם השדות והערכים שהמשתמש מסר בלבד. הכרטיס יציג ערך נוכחי מול חדש ואזהרות. אם ערך לא נמסר במפורש — שאל, אל תשלים.
@@ -1139,17 +1194,21 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
 7. בדיקת כפילויות ישירה:
    - בדיקת כפילויות לקוח או תיק (check_claim_and_customer_duplicates).
 
-8. שליחת אימיילים מתוך ה-AI הכללי בשם כל תיק וריבוי נמענים:
-   - כאשר המשתמש מבקש לשלוח אימייל לגבי תיק תביעה (למשל: "שלח אימייל לחברת הביטוח לגבי תיק DAL-2026-0245", "שלח דוח שמאי לשמאי ולביטוח בתיק 0245"):
+8. שליחת ותזמון אימיילים מתוך ה-AI הכללי בשם כל תיק וריבוי נמענים:
+   - כאשר המשתמש מבקש לשלוח או לתזמן אימייל לגבי תיק תביעה (למשל: "שלח אימייל לחברת הביטוח לגבי תיק DAL-2026-0245", "תתזמן מייל לביטוח בתיק 20 לעוד שלושה ימים ב-10:00"):
      א. זיהוי תיק: אם נמסר מזהה תיק (DAL-YYYY-NNNN), מספר רכב או לקוח — העבר אותו כ-claim_ref לכלי preview_send_claim_email.
      ב. חוסר ודאות / תיק לא צוין: אם המשתמש ביקש לשלוח מייל לביטוח/שמאי/לקוח בלי לציין תיק, או שיש כמה תיקים אפשריים — בקש הבהרה מהמשתמש ("באיזה תיק תביעה מדובר?") לפני הכנת המייל!
      ג. ריבוי נמענים במקביל: ניתן לשלוח בפעולה אחת ל-2, 3, 5+ נמענים דרך to, cc, bcc ו-recipient_roles ('insurer', 'surveyor', 'client', 'lawyer', 'third_party'). המערכת תמזג, תנקה כפילויות ותציג כרטיס אחד.
-     ד. אישור ושליחה: כשהמשתמש כותב "מאשר", "שלח" או לוחץ על כפתור "אישור" — האימייל נשלח בפועל דרך Gmail API והשליחה נרשמת בהיסטוריה של אותו תיק.
-     ה. הכנה ושליחה של מספר אימיילים שונים במקביל (Multi-Email Group Sending באישור אחד):
-        כאשר המשתמש מבקש לשלוח כמה אימיילים שונים לתיקים או נמענים שונים (לדוגמה: "שלח עדכון לביטוח בתיק 20, ושלח דוח לשמאי בתיק 35"):
+     ד. תזמון שליחה עתידית ואישור מראש: כשהמשתמש מבקש תזמון ("בעוד 3 ימים בשעה 10:00", "מחר ב-14:00", "עוד שבוע"):
+        חובה לבקש שעה אם לא צוינה: אם המשתמש ציין יום בלבד ללא שעה (למשל "תתזמן למחר"), חובה לבקש ממנו שעה ("באיזו שעה ביום המבוקש לשלוח?") ואסור להחליט על שעה בעצמך!
+        העבר את הפרמטרים send_at, relative_days, ו/או send_time ל-preview_send_claim_email. המשתמש מאשר פעם אחת מראש ("מאשר"/"שלח"), האימייל נשמר כמתוזמן ומאושר לשליחה, והשרת ישלח אותו אוטומטית במועד שנקבע לפי שעון ישראל בלי לבקש אישור נוסף במועד השליחה!
+     ה. צפייה וביטול תזמונים: לצפייה בכל המיילים המתוזמנים הפעל list_scheduled_claim_emails (עם או בלי claim_ref). לביטול מייל מתוזמן טרם מועדו הפעל preview_cancel_scheduled_claim_email עם reminder_id.
+     ו. אישור ושליחה מיידית: כשהמשתמש כותב "מאשר", "שלח" או לוחץ על כפתור "אישור" — האימייל נשלח בפועל דרך Gmail API והשליחה נרשמת בהיסטוריה של אותו תיק.
+     ז. הכנה ושליחה/תזמון של מספר אימיילים שונים במקביל (Multi-Email Group Sending / Scheduling באישור אחד):
+        כאשר המשתמש מבקש לשלוח או לתזמן כמה אימיילים שונים לתיקים או נמענים שונים (לדוגמה: "שלח עדכון לביטוח בתיק 20, ותזמן דוח לשמאי בתיק 35 למחר"):
         - קרא ל-preview_send_claim_email עבור כל אחד מהמיילים במקביל בתשובתך.
-        - המערכת תאגד אותם לכרטיס משותף batch_send_email.
-        - כשהמשתמש כותב "מאשר", "מאשר לשלוח את הכול", "שלח את כולם" — המערכת תשלח את כל המיילים באופן עצמאי אחד אחד דרך Gmail, ותתעד כל אחד בתיק שלו.
+        - המערכת תאגד אותם לכרטיס משותף (batch_send_email או batch_schedule_email).
+        - כשהמשתמש כותב "מאשר", "מאשר לשלוח את הכול", "שלח את כולם" — המערכת תבצע את כל הפעולות באופן עצמאי אחד אחד ותתעד כל אחד בתיק שלו.
 
 9. איתור וייבוא מיילים וקבצים מצורפים מ-Gmail לתיק תביעה (Gmail Import):
    - המערכת תומכת באיתור מיילים מתיבת הדואר והורדת קבצים מצורפים ישירות לתיק תביעה קיים או הכנת תיק חדש.
@@ -1513,6 +1572,113 @@ async function resolveClaimDocRef(
 
 function nowHeIL() {
   return new Date().toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" });
+}
+
+export function resolveScheduledWhen(args: { send_at?: unknown; relative_days?: unknown; send_time?: unknown }):
+  | { ok: true; plannedAt: string; label: string; date: string; time: string }
+  | { ok: false; error: "missing_time"; message: string } {
+  const rawAt = String(args.send_at || "").trim();
+  const rawTime = String(args.send_time || "").trim();
+
+  // Check explicit time like 10:00 or 14:30 or 'בשעה 10' or 'ב-10'
+  let hour = -1;
+  let minute = 0;
+  const timeMatch = (rawTime || rawAt).match(/(\d{1,2}):(\d{2})/);
+  if (timeMatch) {
+    hour = parseInt(timeMatch[1], 10);
+    minute = parseInt(timeMatch[2], 10);
+  } else {
+    const singleHourMatch = (rawTime || rawAt).match(/(?:בשעה|ב-)\s*(\d{1,2})(?!\d)/);
+    if (singleHourMatch) {
+      hour = parseInt(singleHourMatch[1], 10);
+      minute = 0;
+    }
+  }
+
+  // If no time is specified, user explicitly requires the system to ask for the hour rather than deciding on its own!
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    return {
+      ok: false,
+      error: "missing_time",
+      message: "לא צוינה שעת שליחה. אנא ציין באיזו שעה ביום המבוקש לשלוח את האימייל (למשל: 10:00 או 14:30).",
+    };
+  }
+
+  const now = new Date();
+  const ilFormatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jerusalem",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = ilFormatter.formatToParts(now).reduce<Record<string, string>>((acc, p) => {
+    acc[p.type] = p.value;
+    return acc;
+  }, {});
+  let year = parseInt(parts.year, 10);
+  let month = parseInt(parts.month, 10);
+  let day = parseInt(parts.day, 10);
+  let daysOffset = typeof args.relative_days === "number" ? args.relative_days : 0;
+
+  if (daysOffset === 0 && rawAt) {
+    if (/מחרתיים/i.test(rawAt)) daysOffset = 2;
+    else if (/מחר/i.test(rawAt)) daysOffset = 1;
+    else if (/שלושה\s*ימים|3\s*ימים/i.test(rawAt)) daysOffset = 3;
+    else if (/ארבעה\s*ימים|4\s*ימים/i.test(rawAt)) daysOffset = 4;
+    else if (/חמישה\s*ימים|5\s*ימים/i.test(rawAt)) daysOffset = 5;
+    else if (/שבוע|7\s*ימים/i.test(rawAt)) daysOffset = 7;
+    else {
+      const dMatch = rawAt.match(/(?:בעוד|עוד)\s*(\d+)\s*ימים/);
+      if (dMatch) daysOffset = parseInt(dMatch[1], 10);
+    }
+  }
+
+  const dateMatch = rawAt.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (dateMatch) {
+    year = parseInt(dateMatch[1], 10);
+    month = parseInt(dateMatch[2], 10);
+    day = parseInt(dateMatch[3], 10);
+  } else {
+    const tempDay = new Date(Date.UTC(year, month - 1, day + daysOffset, 12, 0, 0));
+    year = tempDay.getUTCFullYear();
+    month = tempDay.getUTCMonth() + 1;
+    day = tempDay.getUTCDate();
+  }
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const targetDateStr = `${year}-${pad(month)}-${pad(day)}T${pad(hour)}:${pad(minute)}:00`;
+
+  const guessUtc = new Date(targetDateStr + "Z");
+  const guessParts = ilFormatter.formatToParts(guessUtc).reduce<Record<string, string>>((acc, p) => {
+    acc[p.type] = p.value;
+    return acc;
+  }, {});
+  const guessHour = parseInt(guessParts.hour, 10);
+  const diffHours = (guessHour - guessUtc.getUTCHours() + 24) % 24;
+  const targetUtc = new Date(guessUtc.getTime() - diffHours * 3600000);
+
+  const label = new Intl.DateTimeFormat("he-IL", {
+    timeZone: "Asia/Jerusalem",
+    weekday: "long",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(targetUtc);
+
+  return {
+    ok: true,
+    plannedAt: targetUtc.toISOString(),
+    label: `${label} (שעון ישראל)`,
+    date: `${year}-${pad(month)}-${pad(day)}`,
+    time: `${pad(hour)}:${pad(minute)}`,
+  };
 }
 
 function isDeletedClaim(rowData: unknown) {
@@ -2198,6 +2364,57 @@ export async function executeClaimsTool(
             claim_id: claimId,
             found_count: combined.length,
             emails: combined.slice(0, limit),
+          },
+        };
+      }
+
+      case "list_scheduled_claim_emails": {
+        let query = supabase
+          .from("claims_reminders")
+          .select("id, claim_id, mail_to, mail_subject, next_run_at, status, row_data, created_at")
+          .eq("action", "send_email")
+          .eq("status", "scheduled")
+          .order("next_run_at", { ascending: true });
+
+        if (claimId) {
+          query = query.eq("claim_id", claimId);
+        } else if (args.claim_ref) {
+          const resolved = await resolveClaimRef(supabase, String(args.claim_ref));
+          if (resolved.ok) {
+            query = query.eq("claim_id", resolved.id);
+          }
+        }
+
+        const { data: rows, error: qErr } = await query.limit(25);
+        if (qErr) {
+          return { result: { error: `שגיאה בשליפת מיילים מתוזמנים: ${qErr.message}` } };
+        }
+
+        const scheduled = (rows || []).map((r) => {
+          const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+          const fids = String(rd.file_ids || "").split(",").map((s) => s.trim()).filter(Boolean);
+          const attTitles = Array.isArray(rd.attachment_titles) ? rd.attachment_titles : [];
+          return {
+            reminder_id: r.id,
+            claim_id: r.claim_id,
+            to: r.mail_to,
+            subject: r.mail_subject,
+            next_run_at: r.next_run_at,
+            scheduled_at_label: String(rd.scheduled_at_label || r.next_run_at || ""),
+            attachments_count: fids.length,
+            attachments: attTitles,
+            pre_approved: true,
+          };
+        });
+
+        return {
+          result: {
+            claim_id: claimId || (args.claim_ref ? String(args.claim_ref) : null),
+            count: scheduled.length,
+            scheduled_emails: scheduled,
+            message: scheduled.length === 0
+              ? (claimId ? "אין אימיילים מתוזמנים בתיק זה." : "אין אימיילים מתוזמנים פעילים במערכת.")
+              : `נמצאו ${scheduled.length} אימיילים מתוזמנים שממתינים לשליחה אוטומטית ע״י השרת.`,
           },
         };
       }
@@ -3259,20 +3476,38 @@ export async function executeClaimsTool(
             : `שלום רב,\n\nבברכה,\n${CLAIMS_SENDER_NAME}`;
         }
 
-        const previewId = `P-SEND-${Date.now()}`;
+        const isScheduled = !!(args.send_at || args.relative_days != null || args.send_time);
+        let scheduledInfo: { plannedAt: string; label: string; date: string; time: string } | null = null;
+        if (isScheduled) {
+          const schedRes = resolveScheduledWhen(args);
+          if (!schedRes.ok) {
+            return {
+              result: {
+                error: schedRes.message,
+                missing_parameter: "send_time",
+                status: "needs_time",
+              },
+            };
+          }
+          scheduledInfo = schedRes;
+        }
+
+        const previewId = isScheduled ? `P-SCHED-${Date.now()}` : `P-SEND-${Date.now()}`;
         const attachList = attachmentTitles.length ? `: ${attachmentTitles.slice(0, 5).join(", ")}${attachmentTitles.length > 5 ? ` ועוד ${attachmentTitles.length - 5}` : ""}` : "";
         const threadId = String(args.thread_id || "").trim();
 
         let recSummary = `אל: ${to}`;
         if (cc) recSummary += ` · CC: ${cc}`;
         if (bcc) recSummary += ` · BCC: ${bcc}`;
-        const summary = `${threadId ? "השבה בשרשור — " : ""}שליחת מייל (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}`;
+        const summary = isScheduled
+          ? `${threadId ? "השבה בשרשור — " : ""}תזמון שליחת אימייל ל-${scheduledInfo!.label} (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}`
+          : `${threadId ? "השבה בשרשור — " : ""}שליחת מייל (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}`;
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
           summary,
           tool_name: name,
-          action_type: "send_email",
+          action_type: isScheduled ? "schedule_email" : "send_email",
           parameters: {
             claim_id: claimId || null,
             to,
@@ -3283,6 +3518,12 @@ export async function executeClaimsTool(
             file_ids: fileIds,
             attachment_titles: attachmentTitles,
             ...(threadId ? { thread_id: threadId } : {}),
+            ...(isScheduled ? {
+              send_at: scheduledInfo!.plannedAt,
+              send_at_label: scheduledInfo!.label,
+              relative_days: args.relative_days ?? undefined,
+              send_time: args.send_time ?? undefined,
+            } : {}),
           },
         };
 
@@ -3291,7 +3532,7 @@ export async function executeClaimsTool(
           userName,
           claimId,
           toolName: name,
-          actionType: "send_email",
+          actionType: isScheduled ? "schedule_email" : "send_email",
           previewSummary: summary,
           previewPayload: preview.parameters,
           status: "preview_created",
@@ -3301,7 +3542,9 @@ export async function executeClaimsTool(
           result: {
             preview_id: previewId,
             status: "pending_approval",
-            message: "הוכנה תצוגה מקדימה לשליחת המייל. נדרש אישור המשתמש לביצוע.",
+            message: isScheduled
+              ? `הוכנה תצוגה מקדימה לתזמון המייל ל-${scheduledInfo!.label}. באישור אחד מראש המייל יישמר כמתוזמן ויישלח אוטומטית במועד שנקבע ללא צורך באישור נוסף.`
+              : "הוכנה תצוגה מקדימה לשליחת המייל. נדרש אישור המשתמש לביצוע.",
             details: {
               to,
               to_list: Array.from(toSet),
@@ -3314,8 +3557,84 @@ export async function executeClaimsTool(
               body_excerpt: body.slice(0, 300),
               attachments_count: fileIds.length,
               attachments: attachmentTitles,
+              ...(isScheduled ? {
+                scheduled_for: scheduledInfo!.label,
+                planned_at: scheduledInfo!.plannedAt,
+                single_approval_in_advance: true,
+              } : {}),
               ...(recipientNote ? { recipient_note: recipientNote } : {}),
               ...(droppedFileIds.length ? { not_attached: `${droppedFileIds.length} מזהים לא שייכים לתיק הזה ולא צורפו` } : {}),
+            },
+          },
+          preview,
+        };
+      }
+
+      case "preview_cancel_scheduled_claim_email": {
+        const remId = String(args.reminder_id || "").trim();
+        if (!remId) {
+          return { result: { error: "חובה לציין reminder_id מתוך list_scheduled_claim_emails לביטול." } };
+        }
+
+        const { data: rem, error: fetchErr } = await supabase
+          .from("claims_reminders")
+          .select("id, claim_id, mail_to, mail_subject, next_run_at, status, row_data")
+          .eq("id", remId)
+          .maybeSingle();
+
+        if (fetchErr || !rem) {
+          return { result: { error: "האימייל המתוזמן לא נמצא במערכת." } };
+        }
+        if (rem.status !== "scheduled") {
+          return { result: { error: `לא ניתן לבטל אימייל זה (סטטוס נוכחי: ${rem.status}).` } };
+        }
+
+        const targetClaim = rem.claim_id || claimId || null;
+        const rd = (rem.row_data && typeof rem.row_data === "object" ? rem.row_data : {}) as Record<string, unknown>;
+        const scheduledLabel = String(rd.scheduled_at_label || rem.next_run_at || "");
+        const reason = String(args.reason || "ביטול לבקשת המשתמש").trim();
+
+        const previewId = `P-CANC-${Date.now()}`;
+        const summary = `ביטול אימייל מתוזמן (מזהה ${rem.id}) שתוכנן ל-${scheduledLabel} אל ${rem.mail_to} בנושא "${rem.mail_subject}"`;
+
+        const preview: ClaimsPendingAction = {
+          preview_id: previewId,
+          summary,
+          tool_name: name,
+          action_type: "cancel_scheduled_email",
+          parameters: {
+            claim_id: targetClaim,
+            reminder_id: rem.id,
+            recipient: rem.mail_to,
+            subject: rem.mail_subject,
+            send_at_label: scheduledLabel,
+            reason,
+          },
+        };
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId: targetClaim,
+          toolName: name,
+          actionType: "cancel_scheduled_email",
+          previewSummary: summary,
+          previewPayload: preview.parameters,
+          status: "preview_created",
+        });
+
+        return {
+          result: {
+            preview_id: previewId,
+            status: "pending_approval",
+            message: `הוכנה בקשת ביטול לאימייל המתוזמן ל-${scheduledLabel} אל ${rem.mail_to}. נדרש אישור לביטול.`,
+            details: {
+              reminder_id: rem.id,
+              claim_id: targetClaim,
+              to: rem.mail_to,
+              subject: rem.mail_subject,
+              scheduled_for: scheduledLabel,
+              reason,
             },
           },
           preview,
@@ -4845,6 +5164,231 @@ export async function executeClaimsPendingAction(
             error: "all_failed",
           };
         }
+      }
+
+      case "schedule_email": {
+        const { to, cc, bcc, subject, body, file_ids, attachment_titles, send_at, send_at_label } = parameters as {
+          to: string;
+          cc?: string | null;
+          bcc?: string | null;
+          subject: string;
+          body: string;
+          file_ids?: string[];
+          attachment_titles?: string[];
+          send_at: string;
+          send_at_label: string;
+        };
+        const threadId = String((parameters as Record<string, unknown>).thread_id || "").trim();
+
+        if (!send_at) {
+          return { success: false, message: "חסר מועד שליחה מתוזמן", error: "missing_send_at" };
+        }
+
+        const remId = newId("REM");
+        const jobNid = newId("MJB");
+        const filesArray = Array.isArray(file_ids) ? file_ids : [];
+        const titlesArray = Array.isArray(attachment_titles) ? attachment_titles : [];
+        const plannedAt = send_at;
+        const sendLabel = send_at_label || plannedAt;
+
+        const { error: remErr } = await supabase.from("claims_reminders").insert({
+          id: remId,
+          claim_id: claimId || null,
+          action: "send_email",
+          mail_kind: "email_once",
+          mail_to: to,
+          mail_subject: subject,
+          mail_body: body,
+          attach_mode: filesArray.length > 0 ? "received" : "none",
+          next_run_at: plannedAt,
+          status: "scheduled",
+          created_by: userId,
+          row_data: {
+            action: "send_email",
+            purpose: "scheduled_send",
+            scheduled_at_label: sendLabel,
+            note: subject,
+            owner: userName,
+            sent: "false",
+            mail_to: to,
+            mail_cc: cc || null,
+            mail_bcc: bcc || null,
+            file_ids: filesArray.join(","),
+            attachment_titles: titlesArray,
+            thread_id: threadId || null,
+            pre_approved: true,
+            pre_approved_by: userName || userId,
+            pre_approved_at: new Date().toISOString(),
+          },
+        });
+
+        if (remErr) {
+          return { success: false, message: `שגיאה בשמירת התזמון: ${remErr.message}`, error: remErr.message };
+        }
+
+        const { error: jobErr } = await supabase.from("claims_mail_jobs").insert({
+          id: jobNid,
+          reminder_id: remId,
+          claim_id: claimId || null,
+          planned_at: plannedAt,
+          status: "pending",
+        });
+
+        if (jobErr) {
+          await supabase.from("claims_reminders").delete().eq("id", remId);
+          return { success: false, message: `שגיאה ביצירת משימת התזמון: ${jobErr.message}`, error: jobErr.message };
+        }
+
+        if (claimId) {
+          await supabase.from("claims_history").insert({
+            id: newId("HIS"),
+            claim_id: claimId,
+            row_data: {
+              action: "תוזמן אימייל לשליחה עתידית",
+              note: `אל: ${to} · מועד שליחה: ${sendLabel} · נושא: "${subject}" · ${filesArray.length} קבצים מצורפים`,
+              type: "mail_scheduled",
+              by: userName || userId,
+              at: new Date().toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }),
+              reminder_id: remId,
+              planned_at: plannedAt,
+            },
+          });
+        }
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId,
+          toolName: "preview_send_claim_email",
+          actionType: "schedule_email",
+          previewSummary: summary,
+          previewPayload: parameters,
+          approvedBy: userId,
+          approvedByName: userName,
+          executionAction: "schedule_email",
+          status: "executed",
+        });
+
+        return {
+          success: true,
+          message: `האימייל תוזמן בהצלחה לשליחה ב-${sendLabel}. האישור נשמר סופית בשרת והמערכת תשלח אותו אוטומטית במועד זה ללא צורך באישור נוסף. (מזהה תזמון: ${remId})`,
+        };
+      }
+
+      case "batch_schedule_email": {
+        const actions = ((parameters as Record<string, unknown>)?.actions as ClaimsPendingAction[]) || [];
+        if (!actions.length) {
+          return { success: false, message: "לא סופקו הודעות לתזמון בקבוצה", error: "empty_batch" };
+        }
+
+        const results: Array<{ claim_id?: string; to: string; success: boolean; message?: string; error?: string }> = [];
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const act of actions) {
+          const actClaim = String((act.parameters as any)?.claim_id || claimId || "");
+          const actTo = String((act.parameters as any)?.to || "");
+          const res = await executeClaimsPendingAction(
+            supabase,
+            actClaim,
+            userId,
+            userName,
+            act,
+          );
+          if (res.success) {
+            successCount++;
+            results.push({ claim_id: actClaim, to: actTo, success: true, message: res.message });
+          } else {
+            failCount++;
+            results.push({ claim_id: actClaim, to: actTo, success: false, error: res.error || res.message });
+          }
+        }
+
+        if (failCount === 0) {
+          return {
+            success: true,
+            message: `כל ${successCount} האימיילים תוזמנו בהצלחה: ${results.map((r) => `${r.claim_id ? `תיק ${r.claim_id}` : "כללי"} אל ${r.to}`).join("; ")}. הם יישלחו אוטומטית במועדם ללא צורך באישור נוסף.`,
+          };
+        } else if (successCount > 0) {
+          const failedDetails = results.filter((r) => !r.success).map((r) => `${r.claim_id ? `תיק ${r.claim_id}` : "כללי"} אל ${r.to}: ${r.error}`).join("; ");
+          return {
+            success: false,
+            message: `תוזמנו בהצלחה ${successCount} מתוך ${actions.length} אימיילים. ${failCount} אימיילים נכשלו: ${failedDetails}.`,
+            error: "partial_failure",
+          };
+        } else {
+          const failedDetails = results.map((r) => `${r.claim_id ? `תיק ${r.claim_id}` : "כללי"} אל ${r.to}: ${r.error}`).join("; ");
+          return {
+            success: false,
+            message: `כל ${failCount} האימיילים נכשלו בתזמון: ${failedDetails}`,
+            error: "all_failed",
+          };
+        }
+      }
+
+      case "cancel_scheduled_email": {
+        const { reminder_id, reason } = parameters as { reminder_id: string; reason?: string };
+        const remId = String(reminder_id || "").trim();
+        if (!remId) return { success: false, message: "חסר מזהה תזכורת לביטול", error: "missing_id" };
+
+        const { data: rem, error: fetchErr } = await supabase
+          .from("claims_reminders")
+          .select("id, claim_id, mail_to, mail_subject, status, row_data")
+          .eq("id", remId)
+          .maybeSingle();
+
+        if (fetchErr || !rem) return { success: false, message: "האימייל המתוזמן לא נמצא במערכת", error: "not_found" };
+        if (rem.status !== "scheduled") {
+          return { success: false, message: `האימייל אינו בסטטוס מתוזמן (סטטוס נוכחי: ${rem.status})`, error: "not_scheduled" };
+        }
+
+        const targetClaim = rem.claim_id || claimId || null;
+        const nowIso = new Date().toISOString();
+
+        await supabase
+          .from("claims_reminders")
+          .update({ status: "cancelled", cancelled_at: nowIso, cancelled_by: userId })
+          .eq("id", remId);
+
+        await supabase
+          .from("claims_mail_jobs")
+          .update({ status: "cancelled", finished_at: nowIso, fail_reason: "user_cancelled" })
+          .eq("reminder_id", remId)
+          .in("status", ["pending", "sending"]);
+
+        if (targetClaim) {
+          await supabase.from("claims_history").insert({
+            id: newId("HIS"),
+            claim_id: targetClaim,
+            row_data: {
+              action: "בוטל אימייל מתוזמן",
+              note: `בוטלה שליחת אימייל מתוזמן אל ${rem.mail_to} בנושא "${rem.mail_subject}"${reason ? ` · סיבה: ${reason}` : ""}`,
+              type: "mail_cancelled",
+              by: userName || userId,
+              at: new Date().toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }),
+              reminder_id: remId,
+            },
+          });
+        }
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId: targetClaim,
+          toolName: "preview_cancel_scheduled_claim_email",
+          actionType: "cancel_scheduled_email",
+          previewSummary: summary,
+          previewPayload: parameters,
+          approvedBy: userId,
+          approvedByName: userName,
+          executionAction: "cancel_scheduled_email",
+          status: "executed",
+        });
+
+        return {
+          success: true,
+          message: `האימייל המתוזמן אל ${rem.mail_to} (מזהה ${remId}) בוטל בהצלחה ולא יישלח.`,
+        };
       }
 
       case "create_share_link": {
