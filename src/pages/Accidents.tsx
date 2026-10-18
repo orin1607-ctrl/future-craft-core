@@ -23,6 +23,7 @@ import { createAccidentIncident } from '@/lib/incidentCreate';
 import IncidentSubmitSuccess from '@/components/incidents/IncidentSubmitSuccess';
 import { formatIsraelDateTime } from '@/lib/incidentEventNumber';
 import { isoToIsraelWall, israelWallTimeToIso } from '@/lib/accidentDateTime';
+import { investigationFromRow, investigationPayload, yesNoLabel, type YesNo } from '@/lib/accidentInvestigation';
 import { InternalNumber } from '@/components/vehicles/vehiclePlateDisplay';
 import {
   currentAuthUserId,
@@ -53,6 +54,9 @@ interface AccidentRow {
   created_at?: string;
   company_name?: string;
   assignee_name?: string | null;
+  driver_at_fault?: string | null;
+  investigation_done?: string | null;
+  investigation_conclusions?: string | null;
 }
 
 const statusLabels: Record<string, { text: string; cls: string }> = {
@@ -319,6 +323,11 @@ export default function Accidents() {
             <div><span className="text-muted-foreground text-sm">שעת תאונה</span><p className="font-bold">{a.date ? isoToIsraelWall(a.date).time || '—' : '—'}</p></div>
             <div><span className="text-muted-foreground text-sm">עלות משוערת</span><p className="font-bold">₪{(a.estimated_cost || 0).toLocaleString()}</p></div>
             <div><span className="text-muted-foreground text-sm">מספר תביעה</span><p className="font-bold">{a.claim_number || '—'}</p></div>
+            <div><span className="text-muted-foreground text-sm">האם הנהג אשם?</span><p className="font-bold">{yesNoLabel(a.driver_at_fault, 'טרם נקבע')}</p></div>
+            <div><span className="text-muted-foreground text-sm">האם בוצע תחקיר?</span><p className="font-bold">{yesNoLabel(a.investigation_done, 'טרם בוצע')}</p></div>
+            {a.investigation_conclusions && (
+              <div className="col-span-2"><span className="text-muted-foreground text-sm">מסקנות התחקיר</span><p className="font-bold whitespace-pre-wrap">{a.investigation_conclusions}</p></div>
+            )}
             <div>
               <span className="text-muted-foreground text-sm">מספר פנימי</span>
               <p className="font-bold"><InternalNumber value={findVehicleIdentity(vehicleIdentities, a.vehicle_plate)?.internal_number} /></p>
@@ -883,6 +892,10 @@ function AccidentForm({
   const initialWhen = isoToIsraelWall(accident?.date);
   const [accidentDate, setAccidentDate] = useState(initialWhen.date);
   const [accidentTime, setAccidentTime] = useState(initialWhen.time);
+  const initialInvestigation = investigationFromRow(accident);
+  const [driverAtFault, setDriverAtFault] = useState<YesNo>(initialInvestigation.driverAtFault);
+  const [investigationDone, setInvestigationDone] = useState<YesNo>(initialInvestigation.investigationDone);
+  const [investigationConclusions, setInvestigationConclusions] = useState(initialInvestigation.investigationConclusions);
   const [notes, setNotes] = useState(accident?.notes || '');
   const [documentFiles, setDocumentFiles] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>(() => {
@@ -975,6 +988,7 @@ function AccidentForm({
       return;
     }
     const whenIso = israelWallTimeToIso(accidentDate, accidentTime);
+    const currentInvestigation = { driverAtFault, investigationDone, investigationConclusions };
     if (isEdit) {
       const dateChanged = accidentDate !== initialWhen.date || accidentTime !== initialWhen.time;
       const payload: Record<string, unknown> = {
@@ -990,6 +1004,7 @@ function AccidentForm({
         images: JSON.stringify(imageUrls),
       };
       if (dateChanged && whenIso) payload.date = whenIso;
+      Object.assign(payload, investigationPayload(currentInvestigation, initialInvestigation));
       const { data: updated, error } = await supabase.from('accidents').update(payload).eq('id', accident!.id).select('*').single();
       if (!error && updated) await uploadAccidentDocuments(updated as AccidentRow);
       setLoading(false);
@@ -1019,6 +1034,7 @@ function AccidentForm({
       images: imageUrls,
       dryRunNotify: false,
       occurredAt: whenIso,
+      investigation: investigationPayload(currentInvestigation),
     });
 
     if (!result.error && result.data && hubVehicleId) {
@@ -1159,28 +1175,27 @@ function AccidentForm({
           <label className="block text-lg font-medium mb-2">עלות משוערת</label>
           <input value={estimatedCost} onChange={(e) => setEstimatedCost(e.target.value)} type="number" className={inputClass} />
         </div>
-        <fieldset disabled className="space-y-4 rounded-xl border border-dashed border-border p-4 opacity-80">
-          <legend className="px-2 text-sm text-muted-foreground">שדות תחקיר — עדיין לא נשמרים</legend>
-          <p className="text-sm text-muted-foreground">אשמת הנהג, ביצוע תחקיר ומסקנות יוצגו כאן אחרי אישור עמודות במסד. אין להם שמירה כרגע, ולכן אי אפשר למלא אותם.</p>
+        <fieldset className="space-y-4 rounded-xl border border-border p-4">
+          <legend className="px-2 text-sm text-muted-foreground">תחקיר תאונה</legend>
           <div>
-            <label className="block text-lg font-medium mb-2">האם הנהג אשם?</label>
-            <select className={inputClass} defaultValue="" aria-disabled="true">
-              <option value="">—</option>
+            <label className="block text-lg font-medium mb-2" htmlFor="driver-at-fault">האם הנהג אשם?</label>
+            <select id="driver-at-fault" className={inputClass} value={driverAtFault} onChange={(e) => setDriverAtFault(e.target.value as YesNo)}>
+              <option value="">טרם נקבע</option>
               <option value="yes">כן</option>
               <option value="no">לא</option>
             </select>
           </div>
           <div>
-            <label className="block text-lg font-medium mb-2">האם בוצע תחקיר?</label>
-            <select className={inputClass} defaultValue="" aria-disabled="true">
-              <option value="">—</option>
+            <label className="block text-lg font-medium mb-2" htmlFor="investigation-done">האם בוצע תחקיר?</label>
+            <select id="investigation-done" className={inputClass} value={investigationDone} onChange={(e) => setInvestigationDone(e.target.value as YesNo)}>
+              <option value="">טרם בוצע</option>
               <option value="yes">כן</option>
               <option value="no">לא</option>
             </select>
           </div>
           <div>
-            <label className="block text-lg font-medium mb-2">מסקנות התחקיר</label>
-            <textarea rows={2} className={`${inputClass} resize-none`} placeholder="יופעל רק אחרי אישור שמירה" />
+            <label className="block text-lg font-medium mb-2" htmlFor="investigation-conclusions">מסקנות התחקיר</label>
+            <textarea id="investigation-conclusions" rows={3} value={investigationConclusions} onChange={(e) => setInvestigationConclusions(e.target.value)} className={`${inputClass} resize-y`} />
           </div>
         </fieldset>
         <div>

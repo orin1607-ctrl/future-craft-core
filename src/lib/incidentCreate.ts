@@ -114,6 +114,8 @@ export async function createAccidentIncident(opts: {
   dryRunNotify?: boolean;
   /** Existing accidents.date column. Omitted values keep the previous "now" save. */
   occurredAt?: string | null;
+  /** driver_at_fault / investigation_* columns; only filled answers are sent. */
+  investigation?: Record<string, string | null>;
 }) {
   const company = opts.user.company_name || '';
   const vehicle = await resolveVehicle({
@@ -151,6 +153,7 @@ export async function createAccidentIncident(opts: {
     driver_id: driver?.id || null,
     reporter_phone: opts.user.phone || driver?.phone || '',
     date: opts.occurredAt || nowIso,
+    ...opts.investigation,
   };
 
   const { data, error } = await supabase.from('accidents').insert(insertPayload).select('*').single();
