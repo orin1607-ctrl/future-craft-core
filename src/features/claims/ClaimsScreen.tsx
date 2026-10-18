@@ -911,7 +911,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [askOpen, setAskOpen] = useState(false);
   const [askKeys, setAskKeys] = useState<string[]>([]);
   const [askBusy, setAskBusy] = useState(false);
-  const [gmailStatus, setGmailStatus] = useState<{ connected?: boolean; email?: string | null; canConnect?: boolean }>({});
+  const [gmailStatus, setGmailStatus] = useState<{ connected?: boolean; email?: string | null; canConnect?: boolean; tokenExpired?: boolean }>({});
   const [gmailList, setGmailList] = useState<Array<Record<string, unknown>>>([]);
   const [gmailImports, setGmailImports] = useState<Array<Record<string, unknown>>>([]);
   const [mailListLoading, setMailListLoading] = useState(false);
@@ -1248,6 +1248,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         connected: r.connected === true,
         email: typeof r.email === 'string' ? r.email : null,
         canConnect: r.canConnect === true,
+        tokenExpired: r.tokenExpired === true,
       }));
       apiRef.current.invokeGmail('list_pending').then((r) => {
         if (r.success) setGmailPending((r.data as Array<Record<string, unknown>>) || []);
@@ -3116,8 +3117,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   </div>
                 </div>
                 <div className="gmail-card">
-                  <div style={{ fontWeight: 700, marginBottom: 6 }}>
-                    {gmailStatus.connected ? `מחובר: ${gmailStatus.email || 'yoni122222@gmail.com'}` : 'לא מחובר עדיין'}
+                  <div style={{ fontWeight: 700, marginBottom: 6, color: gmailStatus.connected ? 'var(--gr2)' : (gmailStatus.tokenExpired ? 'var(--rd2)' : undefined) }}>
+                    {gmailStatus.connected
+                      ? `מחובר: ${gmailStatus.email || 'yoni122222@gmail.com'}`
+                      : (gmailStatus.tokenExpired ? '⚠️ חיבור Gmail פג תוקף ב-Google (פג לאחר 7 ימים)' : 'לא מחובר עדיין')}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--t2)', lineHeight: 1.6 }}>
                     העובד לא נכנס לתיבת Gmail. ייבוא רק מתוך תיק מורשה.
@@ -3137,8 +3140,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     }}>בטל חיבור Gmail</button>
                   )}
                   {!gmailStatus.connected && (
-                    <div style={{ marginTop: 10, fontSize: 12, color: 'var(--yn2)' }}>
-                      חיבור OAuth מתבצע במסך האישור המקומי של הבעלים (לא מפה). אחרי האישור רענן דף זה.
+                    <div style={{ marginTop: 10, fontSize: 12, color: gmailStatus.tokenExpired ? 'var(--rd2)' : 'var(--yn2)' }}>
+                      {gmailStatus.tokenExpired
+                        ? 'חיבור ה-Gmail של Google פג תוקף (מצב Testing ב-Google Cloud מגביל ל-7 ימים). יש לחדש את החיבור ולאחר מכן לרענן דף זה.'
+                        : 'חיבור OAuth מתבצע במסך האישור המקומי של הבעלים (לא מפה). אחרי האישור רענן דף זה.'}
                     </div>
                   )}
                 </div>

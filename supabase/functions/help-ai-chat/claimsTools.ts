@@ -191,7 +191,7 @@ export const CLAIMS_GEMINI_TOOLS = [
       },
       {
         name: "read_claim_document",
-        description: "קריאת התוכן השמור של מסמך אחד מהתיק כדי לענות על שאלה (מה כתוב, סכומים, החלטת מבטח, חוסרים) עם ציטוט מהמקור. גם מציג למשתמש את המסמך בכרטיס. קריאה בלבד, ללא אישור.",
+        description: "קריאת התוכן של מסמך אחד מהתיק (כולל קובץ שצורף למייל) כדי לענות על שאלה: מה כתוב, סכומים, מספר חשבונית, שם בעל רישיון, מספר רישיון נהיגה, ת.ז., מספר רכב, החלטת מבטח, חוסרים — עם ציטוט ושם המסמך. אם המסמך עוד לא נקרא, הוא נקרא עכשיו כשהדבר מאושר. מספר רכב, תעודת זהות ומספר רישיון נהיגה הם שדות נפרדים — אל תחליף ביניהם. גם מציג למשתמש את המסמך בכרטיס. קריאה בלבד, ללא אישור, ללא שינוי בתיק.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -228,13 +228,13 @@ export const CLAIMS_GEMINI_TOOLS = [
       },
       {
         name: "preview_send_claim_email",
-        description: "הכנת תצוגה מקדימה (Preview) לשליחת מייל מתוך התיק דרך Gmail. אם לא צוינו נושא, גוף או מזהי קבצים, המערכת תבחר אוטומטית נושא מתאים, גוף מקצועי ואת תמונות/מסמכי התיק. דורש אישור מפורש של המשתמש לפני שליחה בפועל.",
+        description: "הכנת תצוגה מקדימה (Preview) לשליחת מייל דרך Gmail. תומך בנמען יחיד או בריבוי נמענים במקביל (שליחה מרוכזת אחת ל-2, 3, 5+ נמענים). תומך בשדות to, cc, bcc ובתפקידי נמענים (recipient_roles: 'insurer', 'client', 'surveyor', 'lawyer', 'third_party'). אם לא צוינו נושא, גוף או קבצים, המערכת בוחרת אוטומטית. דורש אישור מפורש של המשתמש לפני שליחה.",
         parameters: {
           type: "OBJECT",
           properties: {
             to: {
               type: "STRING",
-              description: "כתובת מייל הנמען. אם המשתמש מבקש לשלוח לעצמו, השאר ריק וקבע send_to_self=true",
+              description: "כתובת מייל הנמען הראשי, או רשימת כתובות מופרדות בפסיקים/נקודה-פסיק לשליחה מרוכזת. אם המשתמש מבקש לשלוח לעצמו, השאר ריק וקבע send_to_self=true",
             },
             send_to_self: {
               type: "BOOLEAN",
@@ -242,11 +242,20 @@ export const CLAIMS_GEMINI_TOOLS = [
             },
             thread_id: {
               type: "STRING",
-              description: "להשבה בתוך שרשור קיים: gmail_thread_id של המייל שמשיבים לו (מ-draft_email_reply או read_email_content). חייב להיות שרשור של התיק.",
+              description: "להשבה בתוך שרשור קיים: gmail_thread_id של המייל שמשיבים לו (מ-draft_email_reply או read_email_content).",
             },
             cc: {
               type: "STRING",
-              description: "כתובת מייל להעתק (אופציונלי)",
+              description: "כתובת מייל או רשימת כתובות מופרדות בפסיקים להעתק (CC) (אופציונלי)",
+            },
+            bcc: {
+              type: "STRING",
+              description: "כתובת מייל או רשימת כתובות מופרדות בפסיקים להעתק מוסתר (BCC) (אופציונלי)",
+            },
+            recipient_roles: {
+              type: "ARRAY",
+              items: { type: "STRING" },
+              description: "תפקידי נמענים מתוך התיק לשליפה אוטומטית של כתובות המייל שלהם: 'insurer' (חברת ביטוח), 'surveyor' (שמאי), 'client' (לקוח), 'lawyer' (עורך דין), 'third_party' (צד ג') (אופציונלי)",
             },
             subject: {
               type: "STRING",
@@ -538,6 +547,41 @@ export const CLAIMS_GEMINI_TOOLS = [
               description: "מספר תביעה בביטוח (אופציונלי)",
             },
           },
+        },
+      },
+      {
+        name: "search_pending_gmail_messages",
+        description: "איתור מיילים נכנסים מ-Gmail הממתינים לשיוך או ייבוא לתיק: מחפש בתיבת המיילים לפי שולח, נושא, מספר רכב או מזהה הודעה. מחזיר רשימת מיילים עם מזהה הודעה (message_id), שולח, נושא, תאריך וכמות קבצים מצורפים (attachment_count).",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            query: {
+              type: "STRING",
+              description: "מילות חיפוש: כתובת שולח, שם, מספר רכב, מספר תביעה או נושא (אופציונלי)",
+            },
+            claim_ref: {
+              type: "STRING",
+              description: "מזהה תיק (אופציונלי)",
+            },
+          },
+        },
+      },
+      {
+        name: "preview_import_claim_email",
+        description: "הכנת תצוגה מקדימה (Preview) לייבוא מייל וכל הקבצים המצורפים אליו מ-Gmail ישירות לתיק תביעה (באמצעות מנגנון import_message הקיים של המערכת). מציג כרטיס אישור למשתמש עם פרטי המייל וכמות הקבצים שייובאו. דורש אישור מפורש של המשתמש לפני הורדה ושמירה.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            message_id: {
+              type: "STRING",
+              description: "מזהה הודעת Gmail או pending_id מתוצאת חיפוש המיילים (חובה)",
+            },
+            claim_ref: {
+              type: "STRING",
+              description: "מזהה התיק (DAL-YYYY-NNNN) או מספר רכב/לקוח שאליו ישויכו הקבצים",
+            },
+          },
+          required: ["message_id"],
         },
       },
       {
@@ -919,6 +963,12 @@ export const GENERAL_CLAIM_SCOPED_TOOLS = [
   "list_claim_documents",
   "show_claim_document",
   "read_claim_document",
+  "get_missing_claim_documents",
+  "list_claim_share_links",
+  "preview_create_claim_share_link",
+  "preview_revoke_claim_share_link",
+  "preview_update_claim_status",
+  "check_insurance_reply",
   "search_claim_emails",
   "get_latest_claim_email",
   "read_email_content",
@@ -935,6 +985,8 @@ export const GENERAL_CLAIM_SCOPED_TOOLS = [
   "preview_update_claim_reminder",
   "list_claim_whatsapp",
   "preview_schedule_claim_whatsapp",
+  "search_pending_gmail_messages",
+  "preview_import_claim_email",
 ] as const;
 
 {
@@ -945,16 +997,24 @@ export const GENERAL_CLAIM_SCOPED_TOOLS = [
     const decl = claimDecls.find((d) => d.name === name);
     if (!decl || generalDecls.some((d) => d.name === name)) continue;
     const params = decl.parameters || { type: "OBJECT", properties: {} };
+    const isOptionalClaim = name === "preview_send_claim_email" || name === "search_pending_gmail_messages" || name === "preview_import_claim_email";
     generalDecls.push({
       ...decl,
-      description: `${decl.description || ""} (במצב כללי: חובה claim_ref של התיק)`,
+      description: isOptionalClaim
+        ? `${decl.description || ""} (במצב כללי: ניתן לציין claim_ref של תיק, או להשאיר ריק לשליחה כללית)`
+        : `${decl.description || ""} (במצב כללי: חובה claim_ref של התיק)`,
       parameters: {
         type: "OBJECT",
         properties: {
           ...(params.properties || {}),
-          claim_ref: { type: "STRING", description: "מזהה התיק (DAL-YYYY-NNNN), מספר התביעה בחברת הביטוח, מספר רכב או שם הלקוח המלא — חייב להתאים לתיק פעיל אחד" },
+          claim_ref: {
+            type: "STRING",
+            description: isOptionalClaim
+              ? "מזהה התיק (DAL-YYYY-NNNN), מספר רכב או שם לקוח (אופציונלי - לשליחה ללא תיק השאר ריק)"
+              : "מזהה התיק (DAL-YYYY-NNNN), מספר התביעה בחברת הביטוח, מספר רכב או שם הלקוח המלא — חייב להתאים לתיק פעיל אחד",
+          },
         },
-        required: [...(params.required || []), "claim_ref"],
+        required: isOptionalClaim ? (params.required || []) : [...(params.required || []), "claim_ref"],
       },
     });
   }
@@ -1002,7 +1062,7 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 5. גורם מטפל והיסטוריה: בירור מי טיפל בתיק והצגת היסטוריית פעולות באמצעות get_claim_handler_and_history.
 6. פעולה הבאה: בדיקת פעולה הבאה ומשימות ממתינות באמצעות get_claim_next_action.
 7. קישורי שיתוף: הצגת קישורים פעילים, יצירת קישורי שיתוף מאובטחים חדשים לשמאי/ביטוח/לקוח (preview_create_claim_share_link), וביטול קישורים (preview_revoke_claim_share_link).
-8. שליחת מיילים: שליחת מיילים ללקוח או לחברת הביטוח עם קבצים מצורפים מתוך התיק (preview_send_claim_email).
+8. שליחת מיילים: שליחת מיילים ללקוח או לחברת הביטוח עם קבצים מצורפים מתוך התיק (preview_send_claim_email). כשהמשתמש מבקש לשלוח מספר אימיילים נפרדים לתיקים שונים או לנמענים שונים (למשל: מייל ראשון לביטוח, מייל שני לשמאי, מייל שלישי ללקוח) — קרא ל-preview_send_claim_email עבור כל אחת מההודעות בנפרד בתשובתך. המערכת תאגד אותן לקבוצה לאישור אחד, ובאישור המשתמש כל מייל יישלח בנפרד ויתועד בתיק שלו.
 9. תפעול התיק: שינוי סטטוס (preview_update_claim_status), יצירת וסגירת משימות (preview_create_claim_task, preview_close_claim_task), הוספת הערות בתיק (preview_add_claim_note).
 10. לקוחות: יצירת לקוח חדש (preview_create_customer), עדכון טלפון/מייל (preview_update_claim_client_contact), קישור לקוח לתביעה (preview_link_client_to_claim), ובדיקת כפילויות (check_claim_and_customer_duplicates).
 11. תיקון פרטי התיק: כשהמשתמש מבקש לתקן פרט בתיק (מספר תביעה בחברת הביטוח, תאריך אירוע/תאונה, מספר רכב, חברת ביטוח, פוליסה, צד ג׳, שמאי, סכומים וכו׳) — קרא ל-preview_update_claim_fields עם השדות והערכים שהמשתמש מסר בלבד. הכרטיס יציג ערך נוכחי מול חדש ואזהרות. אם ערך לא נמסר במפורש — שאל, אל תשלים.
@@ -1011,6 +1071,8 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 14. מיילים: חיפוש וקריאה מיידיים. להשבה בשרשור: draft_email_reply ואז preview_send_claim_email עם thread_id. דווח "נשלח" רק לפי תשובת המערכת אחרי האישור.
 15. משימות: preview_create_claim_task (עם due_date ו-owner אם צוינו). אם קיימת משימה פתוחה זהה — אמור זאת ואל תיצור כפילות. לסגירה: get_claim_next_action ואז preview_close_claim_task.
 16. שאלות על תוכן מסמך ("מה החליטה חברת הביטוח?", "כמה השמאי אישר?"): מצא את המסמך עם list_claim_documents ואז read_claim_document. ענה רק ממה שכתוב, ציין את שם המסמך והציטוט. אם התוכן לא זמין או לא מופיע — אמור זאת.
+17. הורדת קבצים וייבוא מייל מ-Gmail לתיק: כשהמשתמש מבקש לייבא מייל או להוריד נספחים/קבצים שנשלחו במייל (למשל 'תורידי את הקבצים מהמייל של שמאי/ביטוח', 'יש מייל עם קבצים שצריך לצרף לתיק', 'הגיע מייל עם 112 קבצים תוריד אותם לתיק'):
+קרא ל-search_pending_gmail_messages לאיתור המייל, ואז קרא ל-preview_import_claim_email עם message_id ו-claim_ref. כרטיס האישור יציג את פרטי המייל וכמות הקבצים שיורדו (במנות של 12 תוך מניעת כפילויות מלאה). לאחר אישור המשתמש, המערכת מבצעת את ההורדה במלואה.
 
 חתימה: הודעות חדשות (מייל, WhatsApp) נחתמות בשם "דליה ניהול תביעות" בלבד. אל תכתוב "מוסך אורן" ואל תמציא שם אחר.
 אישורים: קריאה, חיפוש, הצגת מסמכים וניסוח טיוטות — מיד, בלי כרטיס. כל כתיבה או שליחה — כרטיס אישור אחד שמרכז את כל הפרטים (לא לבקש אישור לכל שלב). אחרי ביצוע דווח את התוצאה האמיתית: בוצע / נכשל / ממתין לשליחה ידנית.
@@ -1019,6 +1081,8 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 - פעולות קריאה (READ): כגון חיפוש מיילים, בדיקת מענה מביטוח, רשימת תמונות/מסמכים, בדיקת חוסרים, בדיקת קישורים, מי טיפל, בדיקת כפילויות — מבוצעות באופן אוטומטי מיידי דרך הכלים הרלוונטיים. ענה תמיד בעברית ברורה ותמציתית עם הנתונים האמיתיים שנשלפו.
 - פעולות כתיבה (WRITE / SEND / REVOKE / UPDATE): כגון שליחת מייל, יצירת קישור שיתוף, שמירת מסמכים לתיק, ביטול קישור, שינוי סטטוס תיק, יצירת משימה, סגירת משימה, הוספת הערה, יצירת/עדכון לקוח — אסור לבצע ישירות ללא אישור!
 - עבור כל פעולת כתיבה, חובה לקרוא לכלי ה-Preview המתאים.
+- במצב כללי, אם המשתמש מסר מזהה תיק (DAL-YYYY-NNNN), העבר אותו ישירות כ-claim_ref לכלי ההכנה (preview_send_claim_email וכו') — בלי לחפש קודם.
+- שליחה בפועל: כלי ה-Preview אינו שולח. אחרי שהצגת כרטיס, המשתמש מאשר בלחיצה על "אישור" או בכתיבת "מאשר"/"שלח" בצ'אט, והמערכת עצמה מבצעת את השליחה דרך Gmail ומחזירה אישור. לעולם אל תאמר שאין לך יכולת לשלוח; אמור שהכנת מייל לאישור. אל תכתוב "נשלח" לפני שהמערכת אישרה, ואל תכין כרטיס נוסף לאותו מייל אחרי אישור.
 - כלי ה-Preview מכין את הפעולה ומציג למשתמש כרטיס אישור אינטראקטיבי בממשק. בתשובתך, הסבר בעברית מה הכנת ובקש מהמשתמש ללחוץ על "אישור" כדי לבצע.
 - לעולם אל תמציא מידע שאינו קיים בתיק. השתמש תמיד בכלים לקבלת נתונים חיים.
 ${CLAIMS_GROUNDING_RULES}
@@ -1075,10 +1139,30 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
 7. בדיקת כפילויות ישירה:
    - בדיקת כפילויות לקוח או תיק (check_claim_and_customer_duplicates).
 
+8. שליחת אימיילים מתוך ה-AI הכללי בשם כל תיק וריבוי נמענים:
+   - כאשר המשתמש מבקש לשלוח אימייל לגבי תיק תביעה (למשל: "שלח אימייל לחברת הביטוח לגבי תיק DAL-2026-0245", "שלח דוח שמאי לשמאי ולביטוח בתיק 0245"):
+     א. זיהוי תיק: אם נמסר מזהה תיק (DAL-YYYY-NNNN), מספר רכב או לקוח — העבר אותו כ-claim_ref לכלי preview_send_claim_email.
+     ב. חוסר ודאות / תיק לא צוין: אם המשתמש ביקש לשלוח מייל לביטוח/שמאי/לקוח בלי לציין תיק, או שיש כמה תיקים אפשריים — בקש הבהרה מהמשתמש ("באיזה תיק תביעה מדובר?") לפני הכנת המייל!
+     ג. ריבוי נמענים במקביל: ניתן לשלוח בפעולה אחת ל-2, 3, 5+ נמענים דרך to, cc, bcc ו-recipient_roles ('insurer', 'surveyor', 'client', 'lawyer', 'third_party'). המערכת תמזג, תנקה כפילויות ותציג כרטיס אחד.
+     ד. אישור ושליחה: כשהמשתמש כותב "מאשר", "שלח" או לוחץ על כפתור "אישור" — האימייל נשלח בפועל דרך Gmail API והשליחה נרשמת בהיסטוריה של אותו תיק.
+     ה. הכנה ושליחה של מספר אימיילים שונים במקביל (Multi-Email Group Sending באישור אחד):
+        כאשר המשתמש מבקש לשלוח כמה אימיילים שונים לתיקים או נמענים שונים (לדוגמה: "שלח עדכון לביטוח בתיק 20, ושלח דוח לשמאי בתיק 35"):
+        - קרא ל-preview_send_claim_email עבור כל אחד מהמיילים במקביל בתשובתך.
+        - המערכת תאגד אותם לכרטיס משותף batch_send_email.
+        - כשהמשתמש כותב "מאשר", "מאשר לשלוח את הכול", "שלח את כולם" — המערכת תשלח את כל המיילים באופן עצמאי אחד אחד דרך Gmail, ותתעד כל אחד בתיק שלו.
+
+9. איתור וייבוא מיילים וקבצים מצורפים מ-Gmail לתיק תביעה (Gmail Import):
+   - המערכת תומכת באיתור מיילים מתיבת הדואר והורדת קבצים מצורפים ישירות לתיק תביעה קיים או הכנת תיק חדש.
+   - לאיתור מיילים נכנסים מ-Gmail: השתמש בכלי search_pending_gmail_messages (עם query, lookback וכו').
+   - להכנת כרטיס ייבוא וצירוף מסמכים לתיק: השתמש בכלי preview_import_claim_email עם message_id, claim_ref ונושא.
+   - כשהמשתמש כותב "מאשר" / "ייבא" / "הורד קבצים" — המערכת מפעילה את מנגנון ה-import_message הקיים, מורידה את כל הקבצים (כולל 112+ קבצים במנות של 12), מונעת כפילויות, שומרת ב-Storage ומתעדת בהיסטוריית התיק. לעולם אל תגיד שאינך מסוגל להוריד קבצים!
+
 כללי פעולה קריטיים:
 - ענה תמיד בעברית ברורה, מקצועית ומסודרת.
 - השתמש תמיד בכלים הייעודיים לקבלת נתונים אמיתיים. לעולם אל תנחש או תמציא מספרים או שמות.
 - כל פעולת יצירה או שינוי דורשת כרטיס Preview ואישור מפורש של המשתמש לפני ביצוע.
+- במצב כללי, אם המשתמש מסר מזהה תיק (DAL-YYYY-NNNN), העבר אותו ישירות כ-claim_ref לכלי ההכנה (preview_send_claim_email וכו') — בלי לחפש קודם.
+- שליחה בפועל: כלי ה-Preview אינו שולח. אחרי שהצגת כרטיס, המשתמש מאשר בלחיצה על "אישור" או בכתיבת "מאשר"/"שלח" בצ'אט, והמערכת עצמה מבצעת את השליחה דרך Gmail ומחזירה אישור. לעולם אל תאמר שאין לך יכולת לשלוח; אמור שהכנת מייל לאישור. אל תכתוב "נשלח" לפני שהמערכת אישרה, ואל תכין כרטיס נוסף לאותו מייל אחרי אישור.
 ${CLAIMS_GROUNDING_RULES}
 `;
 
@@ -1240,6 +1324,34 @@ export async function docTextToModelAllowed(supabase: any, claimId: unknown) {
   return !!data && isQaClaimRow(data.row_data);
 }
 
+function hasFinalRead(meta: unknown) {
+  const status = String(((meta && typeof meta === "object" ? meta : {}) as Record<string, unknown>).read_status || "");
+  return status === "ready" || status === "unreadable";
+}
+
+/**
+ * Asks claims-doc-read to read one document now. Only called for an approved QA claim; claims-doc-read
+ * checks the same gates again (approved id, claim marked QA, stop switch). Returns counts only, never text.
+ */
+async function readDocumentNow(claimId: string, fileId: string): Promise<Record<string, unknown>> {
+  const url = `${Deno.env.get("SUPABASE_URL") || ""}/functions/v1/claims-doc-read`;
+  const key = Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "";
+  if (!key) return { ok: false, error: "no_internal_key" };
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-dalia-internal-key": key },
+      body: JSON.stringify({ action: "read_one", claim_id: claimId, file_id: fileId }),
+      signal: AbortSignal.timeout(100_000),
+    });
+    const out = await res.json().catch(() => ({})) as Record<string, unknown>;
+    const pick = ["ok", "error", "taken", "ready", "ocr_read", "photos", "unreadable", "needs_ocr", "too_large", "retry", "failed", "read_status"];
+    return Object.fromEntries(pick.filter((k) => k in out).map((k) => [k, out[k]]));
+  } catch {
+    return { ok: false, error: "read_now_failed" };
+  }
+}
+
 function storedDocumentRead(meta: unknown, opts: { full?: boolean; contentAllowed?: boolean } = {}) {
   const row = (meta && typeof meta === "object" ? meta : {}) as Record<string, unknown>;
   const status = String(row.read_status || "");
@@ -1295,6 +1407,15 @@ function storedDocumentRead(meta: unknown, opts: { full?: boolean; contentAllowe
     date_source: String(row.read_date_src || ""),
     amounts: String(row.read_amounts || ""),
     amount_source: String(row.read_amount_src || ""),
+    id_numbers: String(row.read_id_numbers || ""),
+    id_number_source: String(row.read_id_src || ""),
+    driving_license_numbers: String(row.read_license_numbers || ""),
+    driving_license_source: String(row.read_license_src || ""),
+    invoice_numbers: String(row.read_invoice_numbers || ""),
+    invoice_number_source: String(row.read_invoice_src || ""),
+    names: String(row.read_names || ""),
+    name_source: String(row.read_name_src || ""),
+    file_name_note: "שם הקובץ אינו מקור למידע. ענה רק ממה שכתוב במסמך עצמו (text), וציין את שם המסמך.",
     insurer_decision: String(row.read_insurer_decision || ""),
     missing: String(row.read_missing || ""),
     recommendation: String(row.read_recommendation || ""),
@@ -2261,6 +2382,7 @@ export async function executeClaimsTool(
             claim_id: claimId,
             email_id: emailId,
             count: emailAttachments.length,
+            read_instruction: "הקבצים המצורפים שמורים כמסמכי התיק. כדי לענות על תוכן קובץ (סכום, מספר חשבונית, שם, מספר רישיון) קרא ל-read_claim_document עם id של הקובץ. אל תענה משם הקובץ.",
             attachments: emailAttachments.map((a) => ({
               id: a.id,
               name: a.original_name,
@@ -2520,17 +2642,31 @@ export async function executeClaimsTool(
         const shown = await executeClaimsTool("show_claim_document", args, supabase, claimId, userId, userName, attachments);
         const base = shown.result as Record<string, unknown>;
         if (!base || base.found !== true) return shown;
-        const { data: docRow } = await supabase
+        const loadMeta = async () => (await supabase
           .from("claims_documents")
           .select("doc_meta")
           .eq("id", String(base.file_id))
           .eq("claim_id", claimId)
-          .maybeSingle();
-        const read = storedDocumentRead(docRow?.doc_meta, { full: true, contentAllowed: await docTextToModelAllowed(supabase, claimId) });
+          .maybeSingle()).data?.doc_meta;
+        const contentAllowed = await docTextToModelAllowed(supabase, claimId);
+        let meta = await loadMeta();
+        let readNow: Record<string, unknown> | null = null;
+        // Not read yet: for an approved QA claim, read it now on the server (same gates as the schedule).
+        if (contentAllowed && !hasFinalRead(meta)) {
+          readNow = await readDocumentNow(claimId, String(base.file_id));
+          meta = await loadMeta();
+        }
+        const read = storedDocumentRead(meta, { full: true, contentAllowed });
         return {
           result: {
             ...base,
-            document_read: read || { status: "not_read", instruction: "המסמך עוד לא נקרא. הכרטיס שהוצג למשתמש יקרא אותו בדפדפן. אל תנחש את תוכנו." },
+            ...(readNow ? { read_now: readNow } : {}),
+            document_read: read || {
+              status: "not_read",
+              instruction: contentAllowed
+                ? "המסמך לא נקרא (הקריאה בשרת לא הצליחה או נעצרה). אמור זאת ואל תנחש את תוכנו."
+                : "המסמך עוד לא נקרא, ותוכן מסמכים של תיקים אמיתיים אינו מועבר ל-AI עד אישור. אמור זאת, הצג את הכרטיס, ואל תנחש את תוכנו.",
+            },
           },
           card: shown.card,
         };
@@ -2606,6 +2742,173 @@ export async function executeClaimsTool(
 
       case "preview_create_claim_from_onboarding": {
         return await handlePreviewCreateClaimFromOnboarding(supabase, args, userId, userName, attachments);
+      }
+
+      case "search_pending_gmail_messages": {
+        const query = String(args.query || "").trim().toLowerCase();
+        const effectiveClaim = String(claimId || "").trim();
+
+        const db = getAdminClient() || supabase;
+        let q = db
+          .from("claims_gmail_pending")
+          .select("id, gmail_message_id, from_addr, to_addr, subject, snippet, attachment_count, assigned_claim_id, created_at, imported_at")
+          .order("created_at", { ascending: false })
+          .limit(30);
+
+        if (effectiveClaim) {
+          q = q.eq("assigned_claim_id", effectiveClaim);
+        }
+
+        const { data: rows } = await q;
+        let matched = rows || [];
+
+        if (query) {
+          matched = matched.filter((r) => {
+            const hay = [
+              r.from_addr || "",
+              r.subject || "",
+              r.snippet || "",
+              r.assigned_claim_id || "",
+              r.gmail_message_id || "",
+            ].join(" ").toLowerCase();
+            return hay.includes(query);
+          });
+        }
+
+        if (matched.length === 0) {
+          try {
+            const scan = await supabase.functions.invoke("claims-gmail", {
+              body: { action: "scan_inbox", dry: true, lookback: "newer_than:30d", query },
+            });
+            const autoList = (scan.data?.auto || []) as Array<Record<string, unknown>>;
+            const reviewList = (scan.data?.needs_review || []) as Array<Record<string, unknown>>;
+            const scanItems = [...autoList, ...reviewList];
+            if (scanItems.length > 0) {
+              matched = scanItems.map((item) => ({
+                id: String(item.pending_id || item.message_id || ""),
+                gmail_message_id: String(item.message_id || item.pending_id || ""),
+                from_addr: String(item.from || ""),
+                to_addr: "",
+                subject: String(item.subject || ""),
+                snippet: String(item.reason || ""),
+                attachment_count: Number(item.attachment_count || 0),
+                assigned_claim_id: item.claim_id ? String(item.claim_id) : null,
+                created_at: String(item.sent_at || new Date().toISOString()),
+                imported_at: null,
+              }));
+            }
+          } catch (_) {
+            // gracefully continue
+          }
+        }
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId: effectiveClaim || null,
+          toolName: name,
+          actionType: "search_pending_emails",
+          status: "success",
+        });
+
+        return {
+          result: {
+            found_count: matched.length,
+            instruction: "נמצאו המיילים הממתינים. לייבוא מייל וקבציו לתיק, קרא לכלי preview_import_claim_email עם message_id (וגם claim_ref אם אינך בתוך תיק פתוח).",
+            emails: matched.slice(0, 15).map((m) => ({
+              message_id: String(m.gmail_message_id || m.id).replace(/^GIP-/, ""),
+              from: m.from_addr,
+              subject: m.subject,
+              sent_at: m.created_at,
+              attachment_count: m.attachment_count || 0,
+              assigned_claim_id: m.assigned_claim_id || null,
+              already_imported: !!m.imported_at,
+            })),
+          },
+        };
+      }
+
+      case "preview_import_claim_email": {
+        const messageId = String(args.message_id || "").replace(/^GIP-/, "").trim();
+        const targetClaim = String(claimId || "").trim();
+
+        if (!messageId) {
+          return { result: { error: "נדרש מזהה הודעה (message_id) לייבוא." } };
+        }
+        if (!targetClaim) {
+          return {
+            result: {
+              error: "נדרש מזהה תיק (claim_ref) לשיוך המייל. אם מדובר בלקוח/תביעה חדשה, הכן כרטיס פתיחת תיק באמצעות preview_create_claim_from_onboarding.",
+            },
+          };
+        }
+
+        let fromAddr = "";
+        let subject = "";
+        let attCount = 0;
+        const db = getAdminClient() || supabase;
+        const { data: pRow } = await db
+          .from("claims_gmail_pending")
+          .select("from_addr, subject, attachment_count")
+          .or(`gmail_message_id.eq.${messageId},id.eq.GIP-${messageId}`)
+          .maybeSingle();
+
+        if (pRow) {
+          fromAddr = pRow.from_addr || "";
+          subject = pRow.subject || "";
+          attCount = pRow.attachment_count || 0;
+        }
+
+        if (!fromAddr) {
+          const { data: impRow } = await supabase
+            .from("claims_gmail_imports")
+            .select("from_addr, subject, attachment_count")
+            .eq("gmail_message_id", messageId)
+            .maybeSingle();
+          if (impRow) {
+            fromAddr = impRow.from_addr || "";
+            subject = impRow.subject || "";
+            attCount = impRow.attachment_count || 0;
+          }
+        }
+
+        const { data: curDocs } = await supabase
+          .from("claims_documents")
+          .select("id, original_name, byte_size")
+          .eq("claim_id", targetClaim);
+        const existingDocsCount = curDocs?.length || 0;
+
+        const summary = `ייבוא מייל "${subject || messageId}"${fromAddr ? ` מאת ${fromAddr}` : ""}${attCount ? ` וכל ${attCount} הקבצים המצורפים אליו` : " והקבצים המצורפים"} ישירות לתיק ${targetClaim}`;
+
+        const previewAction: ClaimsPendingAction = {
+          preview_id: `IMP-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+          summary,
+          tool_name: "preview_import_claim_email",
+          action_type: "import_claim_email",
+          parameters: {
+            claim_id: targetClaim,
+            claim_ref: targetClaim,
+            message_id: messageId,
+            subject: subject || "מייל נכנס מ-Gmail",
+            from_addr: fromAddr || "לא ידוע",
+            attachment_count: attCount,
+            existing_docs_count: existingDocsCount,
+          },
+        };
+
+        return {
+          result: {
+            prepared: true,
+            claim_id: targetClaim,
+            message_id: messageId,
+            subject: subject || "מייל נכנס מ-Gmail",
+            from: fromAddr || "לא ידוע",
+            attachment_count: attCount,
+            existing_documents_in_claim: existingDocsCount,
+            instruction: "כרטיס הייבוא הוכן בהצלחה. הסבר למשתמש בעברית איזה מייל יובא, לאיזה תיק, וכמה קבצים יורדו וישמרו בתיק, ובקש את אישורו לביצוע הפעולה.",
+          },
+          preview: previewAction,
+        };
       }
 
       case "get_missing_claim_documents": {
@@ -2804,47 +3107,111 @@ export async function executeClaimsTool(
 
       // PREVIEW TOOLS (Write operations)
       case "preview_send_claim_email": {
-        let to = String(args.to || "").trim();
-        const sendToSelf = args.send_to_self === true || String(args.send_to_self || "") === "true";
-        let recipientNote = "";
-        if (sendToSelf) {
-          const { data: me } = await supabase.auth.getUser();
-          to = String(me?.user?.email || "").trim();
-          if (!to) {
-            return { result: { error: "לא נמצאה כתובת מייל למשתמש המחובר. ציין כתובת נמען." } };
-          }
-          recipientNote = "הכתובת של המשתמש המחובר";
-        }
-        const cc = String(args.cc || "").trim();
-        let subject = String(args.subject || "").trim();
-        let body = String(args.body || "").trim();
-        let fileIds = Array.isArray(args.file_ids) ? (args.file_ids as string[]) : [];
-
-        const { data: claimRec } = await supabase
-          .from("claims_records")
-          .select("id, plate, client_name, row_data")
-          .eq("id", claimId)
-          .maybeSingle();
+        const { data: claimRec } = claimId
+          ? await supabase
+            .from("claims_records")
+            .select("id, plate, client_name, row_data")
+            .eq("id", claimId)
+            .maybeSingle()
+          : { data: null };
 
         const claimRow = (claimRec?.row_data && typeof claimRec.row_data === "object" ? claimRec.row_data : {}) as Record<string, unknown>;
-        const claimNum = String(claimRow.claimNum || claimId);
+        const claimNum = claimId ? String(claimRow.claimNum || claimId) : "";
         const plate = String(claimRec?.plate || claimRow.plate || "");
 
-        if (!to) {
-          to = String(claimRow.insEmail || claimRow.clientEmail || "").trim();
-          if (to) recipientNote = claimRow.insEmail ? "נבחר אוטומטית: מייל חברת הביטוח מהתיק" : "נבחר אוטומטית: מייל הלקוח מהתיק";
+        // Helper to parse comma/semicolon separated email lists into clean lowercase array
+        const parseAddressList = (raw: unknown): string[] => {
+          if (!raw) return [];
+          const items = Array.isArray(raw) ? raw : String(raw).split(/[,;\n]+/);
+          const out: string[] = [];
+          for (const item of items) {
+            const trimmed = String(item || "").trim().toLowerCase();
+            if (!trimmed) continue;
+            if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+              out.push(trimmed);
+            }
+          }
+          return out;
+        };
+
+        const sendToSelf = args.send_to_self === true || String(args.send_to_self || "") === "true";
+        let recipientNote = "";
+        const rawToAddrs = parseAddressList(args.to);
+        const rawCcAddrs = parseAddressList(args.cc);
+        const rawBccAddrs = parseAddressList(args.bcc);
+
+        if (sendToSelf) {
+          const { data: me } = await supabase.auth.getUser();
+          const myEmail = String(me?.user?.email || "").trim().toLowerCase();
+          if (!myEmail) {
+            return { result: { error: "לא נמצאה כתובת מייל למשתמש המחובר. ציין כתובת נמען." } };
+          }
+          rawToAddrs.push(myEmail);
+          recipientNote = "הכתובת של המשתמש המחובר";
         }
 
-        if (!to) {
+        // Auto-resolve claim contacts if recipient_roles provided
+        const requestedRoles = Array.isArray(args.recipient_roles) ? args.recipient_roles.map((r) => String(r).toLowerCase().trim()) : [];
+        if (claimId && requestedRoles.length > 0) {
+          for (const role of requestedRoles) {
+            if (/insur|ביטוח/.test(role)) {
+              const ins = String(claimRow.insEmail || claimRow.insRepEmail || "").trim();
+              if (ins) rawToAddrs.push(...parseAddressList(ins));
+            }
+            if (/surv|apprais|שמאי/.test(role)) {
+              const s = String(claimRow.survEmail || "").trim();
+              if (s) rawToAddrs.push(...parseAddressList(s));
+            }
+            if (/client|custom|לקוח/.test(role)) {
+              const c = String(claimRow.clientEmail || "").trim();
+              if (c) rawToAddrs.push(...parseAddressList(c));
+            }
+            if (/lawyer|legal|עו"ד|עורך דין/.test(role)) {
+              const l = String(claimRow.legalEmail || "").trim();
+              if (l) rawToAddrs.push(...parseAddressList(l));
+            }
+            if (/third|צד ג/.test(role)) {
+              const t = String(claimRow.thirdEmail || "").trim();
+              if (t) rawToAddrs.push(...parseAddressList(t));
+            }
+          }
+        }
+
+        // Fallback to claim contacts if To is empty
+        if (rawToAddrs.length === 0 && claimId) {
+          const autoEmail = String(claimRow.insEmail || claimRow.clientEmail || claimRow.survEmail || "").trim();
+          if (autoEmail) {
+            rawToAddrs.push(...parseAddressList(autoEmail));
+            recipientNote = claimRow.insEmail ? "נבחר אוטומטית: מייל חברת הביטוח מהתיק" : claimRow.clientEmail ? "נבחר אוטומטית: מייל הלקוח מהתיק" : "נבחר אוטומטית: מייל השמאי מהתיק";
+          }
+        }
+
+        // Deduplication across To, CC, and BCC
+        const toSet = new Set(rawToAddrs);
+        const ccSet = new Set(rawCcAddrs.filter((e) => !toSet.has(e)));
+        const bccSet = new Set(rawBccAddrs.filter((e) => !toSet.has(e) && !ccSet.has(e)));
+
+        if (toSet.size === 0) {
           return {
             result: {
-              error: "נדרשת כתובת מייל של הנמען. אנא ציין למי לשלוח את המייל.",
+              error: "נדרשת כתובת מייל של הנמען. אנא ציין למי לשלוח את המייל (למשל כתובת מייל, או תפקיד כמו חברת ביטוח / שמאי / לקוח).",
             },
           };
         }
 
+        const to = Array.from(toSet).join(", ");
+        const cc = Array.from(ccSet).join(", ");
+        const bcc = Array.from(bccSet).join(", ");
+        const totalRecipients = toSet.size + ccSet.size + bccSet.size;
+
+        let subject = String(args.subject || "").trim();
+        let body = String(args.body || "").trim();
+        let fileIds = Array.isArray(args.file_ids) ? (args.file_ids as string[]) : [];
+
         if (!subject) {
-          subject = `תיק תביעה ${claimNum} - רכב ${plate} - מסמכים ותמונות מ${CLAIMS_SENDER_NAME}`;
+          subject = claimId
+            ? `תיק תביעה ${claimNum} - רכב ${plate} - מסמכים ותמונות מ${CLAIMS_SENDER_NAME}`
+            : `הודעה מ${CLAIMS_SENDER_NAME}`;
         }
 
         const attachedFileIds = (attachments || []).map((a) => a.file_id).filter(Boolean) as string[];
@@ -2858,7 +3225,7 @@ export async function executeClaimsTool(
           }
         }
 
-        if (fileIds.length === 0) {
+        if (fileIds.length === 0 && claimId) {
           const { data: defaultDocs } = await supabase
             .from("claims_documents")
             .select("id, original_name")
@@ -2873,11 +3240,10 @@ export async function executeClaimsTool(
         let attachmentTitles: string[] = [];
         let droppedFileIds: string[] = [];
         if (fileIds.length > 0) {
-          const { data: inClaim } = await supabase
-            .from("claims_documents")
-            .select("id, original_name, doc_meta")
-            .eq("claim_id", claimId)
-            .in("id", fileIds);
+          const docQuery = claimId
+            ? supabase.from("claims_documents").select("id, original_name, doc_meta").eq("claim_id", claimId).in("id", fileIds)
+            : supabase.from("claims_documents").select("id, original_name, doc_meta").in("id", fileIds);
+          const { data: inClaim } = await docQuery;
           const known = new Map((inClaim || []).map((d) => [d.id, d]));
           droppedFileIds = fileIds.filter((id) => !known.has(id));
           fileIds = fileIds.filter((id) => known.has(id));
@@ -2888,16 +3254,19 @@ export async function executeClaimsTool(
         }
 
         if (!body) {
-          body = `שלום רב,
-מצורפים בזאת מסמכים ותמונות עבור תיק תביעה ${claimNum} (רכב ${plate}).
-בברכה,
-${CLAIMS_SENDER_NAME}`;
+          body = claimId
+            ? `שלום רב,\nמצורפים בזאת מסמכים ותמונות עבור תיק תביעה ${claimNum} (רכב ${plate}).\nבברכה,\n${CLAIMS_SENDER_NAME}`
+            : `שלום רב,\n\nבברכה,\n${CLAIMS_SENDER_NAME}`;
         }
 
         const previewId = `P-SEND-${Date.now()}`;
         const attachList = attachmentTitles.length ? `: ${attachmentTitles.slice(0, 5).join(", ")}${attachmentTitles.length > 5 ? ` ועוד ${attachmentTitles.length - 5}` : ""}` : "";
         const threadId = String(args.thread_id || "").trim();
-        const summary = `${threadId ? "השבה בשרשור — " : ""}שליחת מייל אל ${to}${recipientNote ? ` (${recipientNote})` : ""} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}`;
+
+        let recSummary = `אל: ${to}`;
+        if (cc) recSummary += ` · CC: ${cc}`;
+        if (bcc) recSummary += ` · BCC: ${bcc}`;
+        const summary = `${threadId ? "השבה בשרשור — " : ""}שליחת מייל (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}`;
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
@@ -2905,9 +3274,10 @@ ${CLAIMS_SENDER_NAME}`;
           tool_name: name,
           action_type: "send_email",
           parameters: {
-            claim_id: claimId,
+            claim_id: claimId || null,
             to,
             cc: cc || null,
+            bcc: bcc || null,
             subject,
             body,
             file_ids: fileIds,
@@ -2934,7 +3304,12 @@ ${CLAIMS_SENDER_NAME}`;
             message: "הוכנה תצוגה מקדימה לשליחת המייל. נדרש אישור המשתמש לביצוע.",
             details: {
               to,
+              to_list: Array.from(toSet),
               cc: cc || "ללא",
+              cc_list: Array.from(ccSet),
+              bcc: bcc || "ללא",
+              bcc_list: Array.from(bccSet),
+              total_recipients: totalRecipients,
               subject,
               body_excerpt: body.slice(0, 300),
               attachments_count: fileIds.length,
@@ -3560,12 +3935,19 @@ export async function executeClaimsGeneralTool(
     const todayStart = getTodayStart();
 
     if ((GENERAL_CLAIM_SCOPED_TOOLS as readonly string[]).includes(name)) {
-      const resolved = await resolveClaimRef(supabase, String(args.claim_ref || ""));
-      if (!resolved.ok) return { result: { error: resolved.error } };
+      const claimRefStr = String(args.claim_ref || "").trim();
+      let resolvedId = "";
+      if (claimRefStr) {
+        const resolved = await resolveClaimRef(supabase, claimRefStr);
+        if (!resolved.ok) return { result: { error: resolved.error } };
+        resolvedId = resolved.id;
+      } else if (name !== "preview_send_claim_email") {
+        return { result: { error: "נדרש מזהה תיק (claim_ref) לביצוע פעולה זו." } };
+      }
       const { claim_ref: _ref, ...rest } = args;
-      const res = await executeClaimsTool(name, rest, supabase, resolved.id, userId, userName, attachments);
+      const res = await executeClaimsTool(name, rest, supabase, resolvedId, userId, userName, attachments);
       const result = res.result && typeof res.result === "object" && !Array.isArray(res.result)
-        ? { claim_id: resolved.id, ...(res.result as Record<string, unknown>) }
+        ? { ...(resolvedId ? { claim_id: resolvedId } : {}), ...(res.result as Record<string, unknown>) }
         : res.result;
       return { ...res, result };
     }
@@ -4230,9 +4612,10 @@ export async function executeClaimsPendingAction(
 
     switch (action_type) {
       case "send_email": {
-        const { to, cc, subject, body, file_ids, attachment_titles } = parameters as {
+        const { to, cc, bcc, subject, body, file_ids, attachment_titles } = parameters as {
           to: string;
           cc?: string | null;
+          bcc?: string | null;
           subject: string;
           body: string;
           file_ids?: string[];
@@ -4240,14 +4623,19 @@ export async function executeClaimsPendingAction(
         };
         const threadId = String((parameters as Record<string, unknown>).thread_id || "").trim();
 
-        const idempotencyKey = `IDEMP-${Date.now()}-${Math.random().toString(36).slice(2, 9).toUpperCase()}`;
+        // Stable per approval card: the same card can never produce two real emails (claims-gmail answers 409 already_sent).
+        const cardKey = String(pendingAction.preview_id || "").replace(/[^A-Za-z0-9_-]/g, "");
+        const idempotencyKey = cardKey.length >= 6
+          ? `AIAPPR-${claimId || "GEN"}-${cardKey}`
+          : `IDEMP-${Date.now()}-${Math.random().toString(36).slice(2, 9).toUpperCase()}`;
 
         const res = await supabase.functions.invoke("claims-gmail", {
           body: {
             action: "send_claim",
-            claim_id: claimId,
+            claim_id: claimId || undefined,
             to,
             cc: cc || undefined,
+            bcc: bcc || undefined,
             subject,
             body,
             ...(threadId ? { thread_id: threadId } : {}),
@@ -4258,7 +4646,35 @@ export async function executeClaimsPendingAction(
         });
 
         if (res.error || !res.data?.success || res.data?.realEmailSend !== true) {
-          const errMsg = res.data?.error || res.error?.message || "שליחת המייל דרך Gmail נכשלה";
+          let errCode = String(res.data?.error || "");
+          if (!errCode && res.error) {
+            try {
+              const ctx = (res.error as any).context;
+              if (ctx) {
+                const j = typeof ctx.json === "function" ? await ctx.clone().json().catch(() => null) : null;
+                if (j) {
+                  errCode = String(j.error || j.code || "");
+                }
+              }
+            } catch (_) { /* keep generic message */ }
+          }
+          const knownSendErrors: Record<string, string> = {
+            already_sent: "המייל הזה כבר נשלח (אישור כפול נחסם, לא נשלח מייל נוסף)",
+            send_in_progress: "שליחה של המייל הזה כבר מתבצעת כעת",
+            send_disabled: "השליחה כבויה כרגע בהגדרות Gmail של ניהול התביעות",
+            forbidden_claim: "אין הרשאה לשלוח מתיק זה",
+            files_not_on_claim: "אחד הקבצים שנבחרו אינו שייך לתיק",
+            package_too_large: "הקבצים המצורפים גדולים מדי למייל אחד",
+            WORKER_RESOURCE_LIMIT: "נפח הקבצים המצורפים חרג ממגבלת משאבי השרת לשליחה בודדת. יש לבחור פחות קבצים או לשלוח כקישור שיתוף.",
+            internal_content_blocked: "תוכן המייל כולל מידע פנימי ונחסם",
+            subject_required: "חסר נושא למייל",
+            body_required: "חסר תוכן למייל",
+          };
+          const rawErr = errCode || res.error?.message || String(res.data?.message || "");
+          const gmailAuthExpired = /expired or revoked|invalid_grant|invalid_token|not_connected|gmail_not_connected|reauth/i.test(rawErr);
+          const errMsg = gmailAuthExpired
+            ? "חיבור ה-Gmail של ניהול התביעות פג תוקף או בוטל ב-Google. יש לחבר מחדש את החשבון במסך הגדרות Gmail בניהול התביעות (חיבור מחדש בלחיצה אחת). לא נשלח מייל."
+            : (knownSendErrors[errCode] || rawErr || "שליחת המייל דרך Gmail נכשלה");
           await recordAiAudit(supabase, {
             userId,
             userName,
@@ -4291,10 +4707,144 @@ export async function executeClaimsPendingAction(
         });
 
         const msgId = res.data?.message_id || res.data?.gmail_message_id || "";
+        const recipientsSummary = [
+          `אל ${to}`,
+          cc ? `CC: ${cc}` : null,
+          bcc ? `BCC: ${bcc}` : null,
+        ].filter(Boolean).join(" · ");
         return {
           success: true,
-          message: `המייל נשלח אל ${to}${(attachment_titles || []).length ? ` עם ${(attachment_titles || []).length} קבצים: ${(attachment_titles || []).join(", ")}` : (file_ids || []).length ? ` עם ${(file_ids || []).length} קבצים` : " ללא קבצים מצורפים"}${msgId ? ` (מזהה Gmail: ${msgId})` : ""}`,
+          message: `המייל נשלח (${recipientsSummary})${(attachment_titles || []).length ? ` עם ${(attachment_titles || []).length} קבצים: ${(attachment_titles || []).join(", ")}` : (file_ids || []).length ? ` עם ${(file_ids || []).length} קבצים` : " ללא קבצים מצורפים"}${msgId ? ` (מזהה Gmail: ${msgId})` : ""}`,
         };
+      }
+
+      case "import_claim_email": {
+        const targetClaimId = claimId || String((parameters as Record<string, unknown>)?.claim_id || "");
+        const messageId = String((parameters as Record<string, unknown>)?.message_id || "");
+        if (!targetClaimId) return { success: false, message: "חסר מזהה תיק לשיוך המייל", error: "missing_claim_id" };
+        if (!messageId) return { success: false, message: "חסר מזהה הודעת Gmail לייבוא", error: "missing_message_id" };
+
+        let start = Number((parameters as Record<string, unknown>)?.start || 0);
+        let totalImported = 0;
+        let totalFound = 0;
+        let totalSkipped = 0;
+        let totalFailed = 0;
+        let done = false;
+
+        // Loop in chunks of 12 (BATCH) up to 40 steps = up to 480 files
+        for (let step = 0; step < 40; step++) {
+          const res = await supabase.functions.invoke("claims-gmail", {
+            body: {
+              action: "import_message",
+              claim_id: targetClaimId,
+              message_id: messageId,
+              start,
+            },
+          });
+
+          if (res.error || !res.data?.success) {
+            const err = res.data?.error || res.error?.message || "import_failed";
+            await recordAiAudit(supabase, {
+              userId,
+              userName,
+              claimId: targetClaimId,
+              toolName: "preview_import_claim_email",
+              actionType: "import_claim_email",
+              previewSummary: summary,
+              previewPayload: parameters,
+              approvedBy: userId,
+              approvedByName: userName,
+              executionAction: "import_claim_email",
+              status: "failed",
+              errorMessage: String(err),
+            });
+            return {
+              success: false,
+              message: `ייבוא הנספחים נתקל בשגיאה (יובאו ${totalImported} קבצים עד כה): ${err}`,
+              error: String(err),
+            };
+          }
+
+          totalFound = Number(res.data.found || totalFound);
+          totalImported = Number(res.data.imported || totalImported);
+          totalSkipped += Number(res.data.skippedExisting || 0);
+          totalFailed = Number(res.data.failed || 0);
+          done = res.data.done === true;
+
+          if (done) break;
+          start = Number(res.data.start || (start + 12));
+        }
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId: targetClaimId,
+          toolName: "preview_import_claim_email",
+          actionType: "import_claim_email",
+          previewSummary: summary,
+          previewPayload: parameters,
+          approvedBy: userId,
+          approvedByName: userName,
+          executionAction: "import_claim_email",
+          status: "executed",
+        });
+
+        const detailMsg = `ייבוא המייל והמסמכים לתיק ${targetClaimId} הושלם בהצלחה: נמצאו ${totalFound} קבצים, יובאו ${totalImported} קבצים חדשים${totalSkipped ? ` (${totalSkipped} קבצים כפולים דולגו)` : ""}${totalFailed ? ` (${totalFailed} נכשלו)` : ""}. כל הקבצים שויכו לתיק.`;
+        return {
+          success: true,
+          message: detailMsg,
+        };
+      }
+
+      case "batch_send_email": {
+        const actions = ((parameters as Record<string, unknown>)?.actions as ClaimsPendingAction[]) || [];
+        if (!actions.length) {
+          return { success: false, message: "לא סופקו הודעות לשליחה בקבוצה", error: "empty_batch" };
+        }
+
+        const results: Array<{ claim_id?: string; to: string; success: boolean; message?: string; error?: string }> = [];
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const act of actions) {
+          const actClaim = String((act.parameters as any)?.claim_id || claimId || "");
+          const actTo = String((act.parameters as any)?.to || "");
+          const res = await executeClaimsPendingAction(
+            supabase,
+            actClaim,
+            userId,
+            userName,
+            act
+          );
+          if (res.success) {
+            successCount++;
+            results.push({ claim_id: actClaim, to: actTo, success: true, message: res.message });
+          } else {
+            failCount++;
+            results.push({ claim_id: actClaim, to: actTo, success: false, error: res.error || res.message });
+          }
+        }
+
+        if (failCount === 0) {
+          return {
+            success: true,
+            message: `כל ${successCount} האימיילים נשלחו בהצלחה ובנפרד: ${results.map(r => `${r.claim_id ? `תיק ${r.claim_id}` : "כללי"} אל ${r.to}`).join("; ")}.`,
+          };
+        } else if (successCount > 0) {
+          const failedDetails = results.filter(r => !r.success).map(r => `${r.claim_id ? `תיק ${r.claim_id}` : "כללי"} אל ${r.to}: ${r.error}`).join("; ");
+          return {
+            success: false,
+            message: `נשלחו בהצלחה ${successCount} מתוך ${actions.length} אימיילים. ${failCount} אימיילים נכשלו: ${failedDetails}. (האימיילים שהצליחו לא יישלחו שוב).`,
+            error: "partial_failure",
+          };
+        } else {
+          const failedDetails = results.map(r => `${r.claim_id ? `תיק ${r.claim_id}` : "כללי"} אל ${r.to}: ${r.error}`).join("; ");
+          return {
+            success: false,
+            message: `כל ${failCount} האימיילים נכשלו בשליחה: ${failedDetails}`,
+            error: "all_failed",
+          };
+        }
       }
 
       case "create_share_link": {

@@ -330,6 +330,26 @@ async function loadClaimsContext(
   return { text };
 }
 
+function bundlePendingActions(actions: ClaimsPendingAction[]): ClaimsPendingAction | null {
+  if (actions.length === 0) return null;
+  if (actions.length === 1) return actions[0];
+  const emailActions = actions.filter((a) => a.action_type === "send_email");
+  const isAllEmail = emailActions.length === actions.length;
+  const summary = isAllEmail
+    ? `שליחת קבוצה של ${actions.length} אימיילים נפרדים לתיקים: ${actions.map((a) => String((a.parameters as any)?.claim_id || "כללי")).join(", ")}`
+    : `ביצוע קבוצה של ${actions.length} פעולות מאושרות`;
+  return {
+    preview_id: `BATCH-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+    summary,
+    tool_name: isAllEmail ? "batch_send_email" : "batch_action",
+    action_type: isAllEmail ? "batch_send_email" : "batch_action",
+    parameters: {
+      actions,
+      count: actions.length,
+    },
+  };
+}
+
 const CLAIMS_TEMPERATURE = 0.2;
 
 async function callGemini(
@@ -403,7 +423,7 @@ async function callGemini(
     try {
       const contents = JSON.parse(JSON.stringify(initialContents));
       let maxTurns = 12;
-      let accumulatedPendingAction: ClaimsPendingAction | null = null;
+      let accumulatedPendingActions: ClaimsPendingAction[] = [];
       let modelResponded = false;
       let lastCandidateData: any = null;
 
@@ -449,32 +469,37 @@ async function callGemini(
         lastCandidateData = candidate || data;
         const parts = candidate?.content?.parts || [];
 
-        const functionCallPart = parts.find((p: any) => p.functionCall);
-        if (functionCallPart && onToolCall) {
-          const fc = functionCallPart.functionCall;
-          const fnName = fc.name;
-          const fnArgs = fc.args || {};
+        const functionCallParts = parts.filter((p: any) => p.functionCall);
+        if (functionCallParts.length > 0 && onToolCall) {
+          const responseParts: any[] = [];
+          for (const fcp of functionCallParts) {
+            const fc = fcp.functionCall;
+            const fnName = fc.name;
+            const fnArgs = fc.args || {};
 
-          const toolRes = await onToolCall(fnName, fnArgs);
-          if (toolRes && typeof toolRes === "object" && toolRes.preview) {
-            accumulatedPendingAction = toolRes.preview;
+            const toolRes = await onToolCall(fnName, fnArgs);
+            if (toolRes && typeof toolRes === "object" && toolRes.preview) {
+              accumulatedPendingActions.push(toolRes.preview);
+            }
+
+            responseParts.push({
+              functionResponse: {
+                name: fnName,
+                response: { result: toolRes && "result" in toolRes ? toolRes.result : toolRes },
+              },
+            });
           }
 
           // Push model turn preserving exact thoughtSignature
           contents.push({
             role: "model",
-            parts: [functionCallPart],
+            parts: functionCallParts,
           });
 
           // The tool result goes back as a user turn: the API rejects role 'function' (400 INVALID_ARGUMENT).
           contents.push({
             role: "user",
-            parts: [{
-              functionResponse: {
-                name: fnName,
-                response: { result: toolRes && "result" in toolRes ? toolRes.result : toolRes },
-              },
-            }],
+            parts: responseParts,
           });
           continue;
         }
@@ -483,25 +508,27 @@ async function callGemini(
         // create a helpful default message
         const textParts = parts.filter((p: any) => !p.thought && typeof p.text === "string").map((p: any) => p.text);
         const text = textParts.join("").trim() || parts.map((p: any) => p.text || "").join("").trim();
+        const finalPending = bundlePendingActions(accumulatedPendingActions);
         if (text) {
           modelResponded = true;
-          return { text, model, pendingAction: accumulatedPendingAction };
-        } else if (accumulatedPendingAction) {
+          return { text, model, pendingAction: finalPending };
+        } else if (finalPending) {
           modelResponded = true;
           return {
-            text: `הכנתי עבורך תצוגה מקדימה לפעולה: ${accumulatedPendingAction.summary}. אנא אשר או בטל את הפעולה בכרטיס המצורף.`,
+            text: `הכנתי עבורך תצוגה מקדימה לפעולה: ${finalPending.summary}. אנא אשר או בטל את הפעולה בכרטיס המצורף.`,
             model,
-            pendingAction: accumulatedPendingAction,
+            pendingAction: finalPending,
           };
         }
       }
 
-      if (!modelResponded && accumulatedPendingAction) {
+      const finalPending = bundlePendingActions(accumulatedPendingActions);
+      if (!modelResponded && finalPending) {
         modelResponded = true;
         return {
-          text: `הכנתי עבורך תצוגה מקדימה לפעולה: ${accumulatedPendingAction.summary}. אנא אשר או בטל את הפעולה בכרטיס המצורף.`,
+          text: `הכנתי עבורך תצוגה מקדימה לפעולה: ${finalPending.summary}. אנא אשר או בטל את הפעולה בכרטיס המצורף.`,
           model,
-          pendingAction: accumulatedPendingAction,
+          pendingAction: finalPending,
         };
       }
 
@@ -636,7 +663,7 @@ async function callClaude(
     try {
       const claudeMessages = JSON.parse(JSON.stringify(initialClaudeMessages));
       let maxTurns = 10;
-      let accumulatedPendingAction: ClaimsPendingAction | null = null;
+      let accumulatedPendingActions: ClaimsPendingAction[] = [];
       let modelResponded = false;
       let httpFailed = false;
 
@@ -685,7 +712,7 @@ async function callClaude(
           for (const tub of toolUseBlocks) {
             const toolRes = await onToolCall(tub.name, (tub.input as Record<string, unknown>) || {});
             if (toolRes && typeof toolRes === "object" && toolRes.preview) {
-              accumulatedPendingAction = toolRes.preview;
+              accumulatedPendingActions.push(toolRes.preview);
             }
             toolResults.push({
               type: "tool_result",
@@ -705,25 +732,27 @@ async function callClaude(
           .filter((b: any) => b.type === "text" && typeof b.text === "string")
           .map((b: any) => b.text);
         const text = textParts.join("").trim();
+        const finalPending = bundlePendingActions(accumulatedPendingActions);
 
         if (text) {
           modelResponded = true;
-          return { text, model, pendingAction: accumulatedPendingAction };
-        } else if (accumulatedPendingAction) {
+          return { text, model, pendingAction: finalPending };
+        } else if (finalPending) {
           modelResponded = true;
           return {
-            text: `הכנתי עבורך תצוגה מקדימה לפעולה: ${accumulatedPendingAction.summary}. אנא אשר או בטל את הפעולה בכרטיס המצורף.`,
+            text: `הכנתי עבורך תצוגה מקדימה לפעולה: ${finalPending.summary}. אנא אשר או בטל את הפעולה בכרטיס המצורף.`,
             model,
-            pendingAction: accumulatedPendingAction,
+            pendingAction: finalPending,
           };
         }
       }
 
-      if (!modelResponded && accumulatedPendingAction) {
+      const finalPending = bundlePendingActions(accumulatedPendingActions);
+      if (!modelResponded && finalPending) {
         return {
-          text: `הכנתי עבורך תצוגה מקדימה לפעולה: ${accumulatedPendingAction.summary}. אנא אשר או בטל את הפעולה בכרטיס המצורף.`,
+          text: `הכנתי עבורך תצוגה מקדימה לפעולה: ${finalPending.summary}. אנא אשר או בטל את הפעולה בכרטיס המצורף.`,
           model,
-          pendingAction: accumulatedPendingAction,
+          pendingAction: finalPending,
         };
       }
       if (!httpFailed) attemptErrors.push({ model, status: 200, text: "No response text" });

@@ -246,16 +246,25 @@ function guessDocKind(filename: string, mime: string, subject: string) {
   return "general";
 }
 
-function bytesToB64url(bytes: Uint8Array) {
-  let s = "";
-  for (const b of bytes) s += String.fromCharCode(b);
-  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+function uint8ToBinaryString(bytes: Uint8Array): string {
+  const CHUNK_SIZE = 0x8000;
+  let binary = "";
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i += CHUNK_SIZE) {
+    const chunk = bytes.subarray(i, Math.min(i + CHUNK_SIZE, len));
+    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+  }
+  return binary;
 }
 
-function bytesToB64(bytes: Uint8Array) {
-  let s = "";
-  for (const b of bytes) s += String.fromCharCode(b);
-  return btoa(s);
+function bytesToB64url(bytes: Uint8Array): string {
+  const binary = uint8ToBinaryString(bytes);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function bytesToB64(bytes: Uint8Array): string {
+  const binary = uint8ToBinaryString(bytes);
+  return btoa(binary);
 }
 
 function walkParts(part: Record<string, unknown>, acc: Array<Record<string, unknown>>) {
@@ -532,6 +541,7 @@ async function encodeMixedMessage(
   opts: {
     to: string;
     cc: string;
+    bcc?: string;
     subject: string;
     text: string;
     extraHeaders?: string[];
@@ -546,6 +556,7 @@ async function encodeMixedMessage(
   const chunks: string[] = [
     `To: ${opts.to}`,
     ...(opts.cc ? [`Cc: ${opts.cc}`] : []),
+    ...(opts.bcc ? [`Bcc: ${opts.bcc}`] : []),
     `Subject: ${rfc2047(opts.subject)}`,
     ...(opts.extraHeaders || []),
     "MIME-Version: 1.0",
@@ -801,7 +812,7 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     const lastScanAt = lastMs && Number.isFinite(lastMs) ? new Date(lastMs).toISOString() : null;
     const clientId = Deno.env.get("CLAIMS_GOOGLE_CLIENT_ID") || "";
     let refreshProbe: { ok: boolean; errorClass: string | null; message: string | null } = { ok: false, errorClass: "not_tried", message: null };
-    if (body.probe === true) {
+    if (body.probe !== false) {
       if (conn?.refresh_token && tokenStoredKind(conn.refresh_token) !== "placeholder_revoked") {
         try {
           const tok = await googleAccessToken(conn.refresh_token);
@@ -818,9 +829,12 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         refreshProbe = { ok: false, errorClass: tokenStoredKind(conn.refresh_token), message: null };
       }
     }
+    const isLiveConnected = Boolean(conn && (body.probe === false ? true : refreshProbe.ok));
+    const isTokenExpired = Boolean(conn && refreshProbe.errorClass === "invalid_grant_revoked");
     return jsonResponse({
       success: true,
-      connected: !!conn,
+      connected: isLiveConnected,
+      tokenExpired: isTokenExpired,
       email: conn?.connected_email || null,
       accountExpected: ALLOWED_ACCOUNT,
       sendEnabled,
@@ -1193,9 +1207,11 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     const folderCounts: Record<string, number> = { inbox: 0, sent: 0 };
     let skippedImported = 0;
     let skippedPending = 0;
+    const lookback = typeof body.lookback === "string" && body.lookback.trim() ? body.lookback.trim() : MAILBOX_SCAN_LOOKBACK;
+    const queryPart = typeof body.query === "string" && body.query.trim() ? ` ${body.query.trim()}` : "";
     const folders: Array<{ mailbox: "inbox" | "sent"; q: string }> = [
-      { mailbox: "inbox", q: `in:inbox ${MAILBOX_SCAN_LOOKBACK}` },
-      { mailbox: "sent", q: `in:sent ${MAILBOX_SCAN_LOOKBACK}` },
+      { mailbox: "inbox", q: `in:inbox ${lookback}${queryPart}` },
+      { mailbox: "sent", q: `in:sent ${lookback}${queryPart}` },
     ];
     const seenIds = new Set<string>();
     for (const folder of folders) {
@@ -2382,19 +2398,33 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     if (!(await isSendEnabled(sb))) {
       return jsonResponse({ success: false, error: "send_disabled", realEmailSend: false }, 403);
     }
-    const claimId = String(body.claim_id || "");
-    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
-      return jsonResponse({ success: false, error: "forbidden_claim", realEmailSend: false }, 403);
+    const claimId = String(body.claim_id || "").trim();
+    if (claimId) {
+      if (!(await canWork(sb, user.id, role, claimId))) {
+        return jsonResponse({ success: false, error: "forbidden_claim", realEmailSend: false }, 403);
+      }
+    } else {
+      if (!(await hasClaimsAccess(sb, user.id, role))) {
+        return jsonResponse({ success: false, error: "forbidden_claim", realEmailSend: false }, 403);
+      }
     }
     // Composer SEND: format validation only. Do not apply the TEST/DEMO allowlist
     // here — that guard remains on dispatch_due_test so mass/scheduled TEST mail
     // cannot go to real customers. Operator send after Preview+confirm uses To as typed.
     const toParsed = parseEmailListStrict(String(body.to || ""), true);
     const ccParsed = parseEmailListStrict(String(body.cc || ""), false);
+    const bccParsed = parseEmailListStrict(String(body.bcc || ""), false);
     if (!toParsed.ok) return jsonResponse({ success: false, error: toParsed.error, realEmailSend: false }, 400);
     if (!ccParsed.ok) return jsonResponse({ success: false, error: ccParsed.error, realEmailSend: false }, 400);
-    const to = toParsed.emails.join(", ");
-    const cc = ccParsed.emails.join(", ");
+    if (!bccParsed.ok) return jsonResponse({ success: false, error: bccParsed.error, realEmailSend: false }, 400);
+
+    const toSet = new Set(toParsed.emails);
+    const ccSet = new Set(ccParsed.emails.filter((e) => !toSet.has(e)));
+    const bccSet = new Set(bccParsed.emails.filter((e) => !toSet.has(e) && !ccSet.has(e)));
+    const to = [...toSet].join(", ");
+    const cc = [...ccSet].join(", ");
+    const bcc = [...bccSet].join(", ");
+
     const subject = String(body.subject || "").trim();
     const text = String(body.body || "").trim();
     const ids = Array.isArray(body.file_ids) ? [...new Set(body.file_ids.map((x) => String(x)).filter(Boolean))] : [];
@@ -2430,10 +2460,14 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     }
 
     const { data: fileRows } = ids.length
-      ? await sb.from("claims_documents")
-        .select("id, original_name, mime_type, byte_size, storage_path, claim_id")
-        .eq("claim_id", claimId)
-        .in("id", ids)
+      ? await (claimId
+        ? sb.from("claims_documents")
+          .select("id, original_name, mime_type, byte_size, storage_path, claim_id")
+          .eq("claim_id", claimId)
+          .in("id", ids)
+        : sb.from("claims_documents")
+          .select("id, original_name, mime_type, byte_size, storage_path, claim_id")
+          .in("id", ids))
       : { data: [] as Array<{ id: string; original_name: string; mime_type: string; byte_size: number; storage_path: string; claim_id: string }> };
     const rows = fileRows || [];
     if (ids.length !== rows.length) {
@@ -2443,10 +2477,12 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     const requestedThread = String(body.thread_id || "").trim();
     let sendThreadId = "";
     if (requestedThread) {
-      const { count: nImp } = await sb.from("claims_gmail_imports").select("id", { count: "exact", head: true }).eq("claim_id", claimId).eq("gmail_thread_id", requestedThread);
-      const { count: nOut } = await sb.from("claims_gmail_outbox").select("id", { count: "exact", head: true }).eq("claim_id", claimId).eq("gmail_thread_id", requestedThread);
-      if (!nImp && !nOut) {
-        return jsonResponse({ success: false, error: "thread_not_on_claim", realEmailSend: false }, 400);
+      if (claimId) {
+        const { count: nImp } = await sb.from("claims_gmail_imports").select("id", { count: "exact", head: true }).eq("claim_id", claimId).eq("gmail_thread_id", requestedThread);
+        const { count: nOut } = await sb.from("claims_gmail_outbox").select("id", { count: "exact", head: true }).eq("claim_id", claimId).eq("gmail_thread_id", requestedThread);
+        if (!nImp && !nOut) {
+          return jsonResponse({ success: false, error: "thread_not_on_claim", realEmailSend: false }, 400);
+        }
       }
       sendThreadId = requestedThread;
     }
@@ -2460,6 +2496,7 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     const encodedMsg = await encodeMixedMessage(sb, {
       to,
       cc,
+      bcc,
       subject,
       text,
       files: ordered,
@@ -2479,13 +2516,14 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     const packageBytes = Number((encodedMsg as { packageBytes?: number }).packageBytes || 0);
     const { error: lockErr } = await sb.from("claims_gmail_outbox").insert({
       id: outId,
-      claim_id: claimId,
-      kind: "claim_send",
+      claim_id: claimId || null,
+      kind: claimId ? "claim_send" : "general_send",
       idempotency_key: idempotencyKey,
       status: "pending",
       send_no: sendNo,
       to_addr: to,
       cc_addr: cc || null,
+      bcc_addr: bcc || null,
       subject,
       sender: ALLOWED_ACCOUNT,
       from_addr: ALLOWED_ACCOUNT,
@@ -2522,18 +2560,20 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
       await sb.from("claims_gmail_outbox").update({ status: "failed" }).eq("id", outId);
       const errMsg = String(sent.json?.error?.message || "gmail_send_failed");
       const safeErr = errMsg.includes("Bearer") || /ya29\.|1\/\/|refresh_token|GOCSPX-/i.test(errMsg) ? "gmail_send_failed" : errMsg.slice(0, 240);
-      await sb.from("claims_history").insert({
-        id: nid("HIS"),
-        claim_id: claimId,
-        row_data: {
-          action: "שליחת מייל נכשלה",
-          type: "gmail_claim_send_failed",
-          note: `To ${to} · ${subject} · ${safeErr}`,
-          error: safeErr,
-          sent: false,
-          at: new Date().toLocaleString("he-IL"),
-        },
-      });
+      if (claimId) {
+        await sb.from("claims_history").insert({
+          id: nid("HIS"),
+          claim_id: claimId,
+          row_data: {
+            action: "שליחת מייל נכשלה",
+            type: "gmail_claim_send_failed",
+            note: `To ${to}${cc ? ` · CC ${cc}` : ""}${bcc ? ` · BCC ${bcc}` : ""} · ${subject} · ${safeErr}`,
+            error: safeErr,
+            sent: false,
+            at: new Date().toLocaleString("he-IL"),
+          },
+        });
+      }
       return jsonResponse({
         success: false,
         error: safeErr,
@@ -2564,50 +2604,54 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     }).eq("id", outId);
 
     const fileList = attached.map((a) => `${a.name} (${a.bytes} bytes)`).join(", ");
-    await sb.from("claims_history").insert({
-      id: nid("HIS"),
-      claim_id: claimId,
-      row_data: {
-        action: `נשלח מייל מתיק התביעה · שליחה #${sendNo}`,
-        note: `שליחה #${sendNo} · From ${ALLOWED_ACCOUNT} · To ${to}${cc ? ` · CC ${cc}` : ""} · ${subject} · ${attached.length} קבצים · ${fileList} · msgid ${gmailMessageId} · thread ${gmailThreadId}`,
-        type: "gmail_claim_send",
-        by: actorName,
-        at: new Date().toLocaleString("he-IL"),
-        from: ALLOWED_ACCOUNT,
-        to,
-        cc,
-        subject,
-        files: attached.map((a) => ({ id: a.id, name: a.name, bytes: a.bytes })),
-        gmail_message_id: gmailMessageId,
-        gmail_thread_id: gmailThreadId,
-        sent_at: sentAt,
-      },
-    });
-    await sb.from("claims_comm_log").insert({
-      id: nid("COM"),
-      claim_id: claimId,
-      row_data: {
+    if (claimId) {
+      await sb.from("claims_history").insert({
+        id: nid("HIS"),
+        claim_id: claimId,
+        row_data: {
+          action: `נשלח מייל מתיק התביעה · שליחה #${sendNo}`,
+          note: `שליחה #${sendNo} · From ${ALLOWED_ACCOUNT} · To ${to}${cc ? ` · CC ${cc}` : ""}${bcc ? ` · BCC ${bcc}` : ""} · ${subject} · ${attached.length} קבצים · ${fileList} · msgid ${gmailMessageId} · thread ${gmailThreadId}`,
+          type: "gmail_claim_send",
+          by: actorName,
+          at: new Date().toLocaleString("he-IL"),
+          from: ALLOWED_ACCOUNT,
+          to,
+          cc: cc || null,
+          bcc: bcc || null,
+          subject,
+          files: attached.map((a) => ({ id: a.id, name: a.name, bytes: a.bytes })),
+          gmail_message_id: gmailMessageId,
+          gmail_thread_id: gmailThreadId,
+          sent_at: sentAt,
+        },
+      });
+      await sb.from("claims_comm_log").insert({
         id: nid("COM"),
-        claimId,
-        type: "mail",
-        direction: "out",
-        email: to,
-        cc,
-        subject,
-        body: text,
-        at: new Date().toLocaleString("he-IL"),
-        by: actorName,
-        note: "נשלח מ-Gmail מתוך התיק",
-        from: ALLOWED_ACCOUNT,
-        gmail_message_id: gmailMessageId,
-        gmail_thread_id: gmailThreadId,
-        sender: ALLOWED_ACCOUNT,
-        sent_at: sentAt,
-        attachments: attached.map((a) => a.name),
-        files: attached,
-      },
-    });
-    await sb.from("claims_records").update({ last_activity_at: sentAt }).eq("id", claimId);
+        claim_id: claimId,
+        row_data: {
+          id: nid("COM"),
+          claimId,
+          type: "mail",
+          direction: "out",
+          email: to,
+          cc: cc || null,
+          bcc: bcc || null,
+          subject,
+          body: text,
+          at: new Date().toLocaleString("he-IL"),
+          by: actorName,
+          note: "נשלח מ-Gmail מתוך התיק",
+          from: ALLOWED_ACCOUNT,
+          gmail_message_id: gmailMessageId,
+          gmail_thread_id: gmailThreadId,
+          sender: ALLOWED_ACCOUNT,
+          sent_at: sentAt,
+          attachments: attached.map((a) => a.name),
+          files: attached,
+        },
+      });
+      await sb.from("claims_records").update({ last_activity_at: sentAt }).eq("id", claimId);
+    }
 
     return jsonResponse({
       success: true,

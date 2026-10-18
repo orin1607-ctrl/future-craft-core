@@ -28,6 +28,7 @@ import {
   renameClaimsAiConversation,
 } from './claimsAiStore';
 import { documentReadCaption } from './claimDocumentRead';
+import { isApprovalText, isCancelText } from './claimsAiApproval';
 import { NOT_READ_LABEL } from '../../../supabase/functions/_shared/claimDocumentLabel';
 import { downloadRemoteFile } from './claimFileDownload';
 import './claims-ai.css';
@@ -368,6 +369,9 @@ export function ClaimsAiWorkspace({
   const threadRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRec | null>(null);
   const sendRef = useRef<(text: string, source: 'text' | 'voice') => Promise<void>>(async () => {});
+  const executingRef = useRef<Set<string>>(new Set());
+  const confirmRef = useRef<(msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => Promise<void>>(async () => {});
+  const cancelRef = useRef<(msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => Promise<void>>(async () => {});
 
   useEffect(() => {
     setMicOk(!!speechCtor() && !!window.isSecureContext);
@@ -501,6 +505,34 @@ export function ClaimsAiWorkspace({
   const sendMessage = useCallback(async (text: string, source: 'text' | 'voice') => {
     const trimmed = text.trim();
     if ((!trimmed && stagedAttachments.length === 0) || loading) return;
+
+    // Typed approval: "מאשר" / "שלח" approves the card currently shown (and only that one). The model is not
+    // involved, so it cannot send anything on its own; the same server path as the card button executes it.
+    if (trimmed && stagedAttachments.length === 0 && (isApprovalText(trimmed) || isCancelText(trimmed))) {
+      let target: { msg: ClaimsAiMessage; pending: ClaimsAiPendingAction } | null = null;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const m = messages[i];
+        if ((m.metadata as Record<string, unknown> | null)?.error) continue;
+        const p = pendingActionOf(m.metadata);
+        if (p && p.status === 'pending') {
+          target = { msg: m, pending: p };
+          break;
+        }
+      }
+      if (target && activeId) {
+        setInput('');
+        const userRow = await insertClaimsAiMessage({
+          conversationId: activeId,
+          role: 'user',
+          content: trimmed,
+          metadata: { claim_id: claimId, source, typed_decision: isApprovalText(trimmed) ? 'approve' : 'cancel', preview_id: target.pending.preview_id },
+        });
+        if (userRow.data) setMessages((prev) => [...prev, userRow.data!]);
+        if (isApprovalText(trimmed)) await confirmRef.current(target.msg, target.pending);
+        else await cancelRef.current(target.msg, target.pending);
+        return;
+      }
+    }
     const effectiveText = trimmed || (stagedAttachments.length === 1 ? 'צירפתי קובץ לבדיקה' : 'צירפתי קבצים לבדיקה');
     const filesToUpload = [...stagedAttachments];
 
@@ -650,6 +682,10 @@ export function ClaimsAiWorkspace({
   }, [sendMessage]);
 
   const handleConfirmPending = useCallback(async (msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => {
+    // One execution per card: a double click, or a typed "מאשר" right after a click, must never send twice.
+    const guardKey = pending.preview_id || msg.id;
+    if (executingRef.current.has(guardKey)) return;
+    executingRef.current.add(guardKey);
     setExecutingActionId(msg.id);
     setBanner('');
     try {
@@ -664,7 +700,7 @@ export function ClaimsAiWorkspace({
         },
         body: JSON.stringify({
           action: 'execute_pending_action',
-          claim_id: claimId,
+          claim_id: claimId || (pending.parameters as Record<string, unknown>)?.claim_id || null,
           conversation_id: activeId,
           pending_action: pending,
         }),
@@ -683,7 +719,7 @@ export function ClaimsAiWorkspace({
           role: 'assistant',
           content: confirmText,
           metadata: {
-            claim_id: claimId,
+            claim_id: claimId || (pending.parameters as Record<string, unknown>)?.claim_id || null,
             executed_action: pending.action_type,
             preview_id: pending.preview_id,
           },
@@ -708,8 +744,19 @@ export function ClaimsAiWorkspace({
       );
       onActionExecuted?.(pending);
     } catch (err) {
+      // Failure: the card stays pending so it can be retried, and the user sees the real reason.
+      executingRef.current.delete(guardKey);
       const message = err instanceof Error ? err.message : 'שגיאה בביצוע הפעולה';
       setBanner(message);
+      if (activeId) {
+        const failed = await insertClaimsAiMessage({
+          conversationId: activeId,
+          role: 'assistant',
+          content: `❌ הפעולה לא בוצעה: ${message}`,
+          metadata: { error: true, claim_id: claimId, preview_id: pending.preview_id },
+        });
+        if (failed.data) setMessages((prev) => [...prev, failed.data!]);
+      }
     } finally {
       setExecutingActionId(null);
     }
@@ -769,6 +816,11 @@ export function ClaimsAiWorkspace({
       console.error('Cancel action error:', err);
     }
   }, [activeId, claimId]);
+
+  useEffect(() => {
+    confirmRef.current = handleConfirmPending;
+    cancelRef.current = handleCancelPending;
+  }, [handleConfirmPending, handleCancelPending]);
 
   const toggleMic = () => {
     const Ctor = speechCtor();
@@ -960,6 +1012,80 @@ export function ClaimsAiWorkspace({
                           : '⚠️ עומד להתבצע (נדרש אישורך):'}
                       </div>
                       <div className="claims-ai-preview-summary">{pending.summary}</div>
+                      {pending.action_type === 'send_email' && pending.parameters ? (
+                        <div
+                          className="claims-ai-preview-recipients"
+                          style={{
+                            margin: '8px 0',
+                            fontSize: '0.82rem',
+                            background: 'rgba(0,0,0,0.03)',
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            lineHeight: '1.5',
+                            border: '1px solid rgba(0,0,0,0.06)',
+                          }}
+                        >
+                          <div><strong>נמען (To):</strong> {String(pending.parameters.to || '')}</div>
+                          {pending.parameters.cc ? <div><strong>עותק (CC):</strong> {String(pending.parameters.cc)}</div> : null}
+                          {pending.parameters.bcc ? <div><strong>עותק מוסתר (BCC):</strong> {String(pending.parameters.bcc)}</div> : null}
+                          {pending.parameters.subject ? <div><strong>נושא:</strong> {String(pending.parameters.subject)}</div> : null}
+                        </div>
+                      ) : null}
+                      {pending.action_type === 'batch_send_email' && pending.parameters ? (
+                        <div
+                          className="claims-ai-preview-batch"
+                          style={{
+                            margin: '8px 0',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '8px',
+                          }}
+                        >
+                          {(((pending.parameters as any).actions as ClaimsAiPendingAction[]) || []).map((sub, idx) => (
+                            <div
+                              key={idx}
+                              style={{
+                                background: 'rgba(0,0,0,0.03)',
+                                padding: '6px 10px',
+                                borderRadius: '6px',
+                                border: '1px solid rgba(0,0,0,0.06)',
+                                fontSize: '0.82rem',
+                                lineHeight: '1.5',
+                              }}
+                            >
+                              <div style={{ fontWeight: 600, color: 'var(--c-primary, #2563eb)' }}>
+                                הודעה {idx + 1} מתוך {String((pending.parameters as any).count || ((pending.parameters as any).actions || []).length)}
+                                {sub.parameters?.claim_id ? ` · תיק ${String(sub.parameters.claim_id)}` : ''}
+                              </div>
+                              <div><strong>נמען:</strong> {String(sub.parameters?.to || '')}</div>
+                              {sub.parameters?.cc ? <div><strong>CC:</strong> {String(sub.parameters.cc)}</div> : null}
+                              {sub.parameters?.subject ? <div><strong>נושא:</strong> {String(sub.parameters.subject)}</div> : null}
+                              {Array.isArray(sub.parameters?.attachment_titles) && (sub.parameters.attachment_titles as string[]).length > 0 ? (
+                                <div><strong>מסמכים:</strong> {(sub.parameters.attachment_titles as string[]).join(', ')}</div>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                      {pending.action_type === 'import_claim_email' && pending.parameters ? (
+                        <div
+                          className="claims-ai-preview-import"
+                          style={{
+                            margin: '8px 0',
+                            fontSize: '0.82rem',
+                            background: 'rgba(0,0,0,0.03)',
+                            padding: '6px 10px',
+                            borderRadius: '6px',
+                            lineHeight: '1.5',
+                            border: '1px solid rgba(0,0,0,0.06)',
+                          }}
+                        >
+                          <div><strong>תיק תביעה:</strong> {String(pending.parameters.claim_id || '')}</div>
+                          <div><strong>שולח:</strong> {String(pending.parameters.from_addr || '')}</div>
+                          <div><strong>נושא המייל:</strong> {String(pending.parameters.subject || '')}</div>
+                          <div><strong>קבצים לייבוא:</strong> {String(pending.parameters.attachment_count || 0)} קבצים (יורדו במנות תוך מניעת כפילויות)</div>
+                        </div>
+                      ) : null}
                       {pending.status === 'executed' ? (
                         <div style={{ color: 'var(--c-emerald, #10b981)', fontSize: '0.85rem', marginTop: 6 }}>
                           הפעולה בוצעה במערכת ונשמרה בתיק.
