@@ -2251,6 +2251,8 @@ const S={
 window.S = S;
 S.companies = C;
 window.C = C;
+const _urlTab = (typeof window !== "undefined" && window.location) ? new URLSearchParams(window.location.search).get("tab") : null;
+S.tab = _urlTab || "search";
 window.C = C;
 
 // טעינת סטטוס מקורות שמור מ-localStorage

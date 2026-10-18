@@ -154,8 +154,12 @@ if (typeof window !== "undefined") {
 
   const winSAnchor = 'window.S = S;';
   if (updated.includes(winSAnchor)) {
-    updated = updated.replace(winSAnchor, 'window.S = S;\nS.companies = C;\nwindow.C = C;');
-    console.log("✓ Attached companies to S.companies after S initialization");
+    updated = updated.replace(winSAnchor, `window.S = S;
+S.companies = C;
+window.C = C;
+const _urlTab = (typeof window !== "undefined" && window.location) ? new URLSearchParams(window.location.search).get("tab") : null;
+S.tab = _urlTab || "search";`);
+    console.log("✓ Attached companies to S.companies and defaulted S.tab to search");
   }
 
   // 4. Batch filter in coMatch
