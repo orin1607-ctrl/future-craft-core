@@ -331,8 +331,11 @@ describe('claims-doc-read function', () => {
 
   it('logs only the run summary', () => {
     const logs = src.match(/console\.(log|error|warn)\([^;]*\);/g) || [];
-    expect(logs).toHaveLength(1);
-    expect(logs[0]).toContain('...summary');
-    expect(logs[0]).not.toMatch(/read_text|text|meta/);
+    // The scheduled run and the on-demand read each log their counts only.
+    expect(logs).toHaveLength(2);
+    for (const log of logs) {
+      expect(log).toContain('...summary');
+      expect(log).not.toMatch(/read_text|text|meta|claim_id|file_id|data_base64/);
+    }
   });
 });

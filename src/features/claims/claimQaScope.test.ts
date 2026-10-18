@@ -52,7 +52,14 @@ describe('QA claim scope', () => {
     expect(calls).toHaveLength(3);
     for (const c of calls) expect(c).toContain('contentAllowed');
     const read = readFileSync(resolve(root, 'supabase/functions/claims-doc-read/index.ts'), 'utf8');
-    expect(read).toContain('.filter((c) => !qaOnly || (isApprovedQaClaimId(c.id) && isQaClaimRow(c.row_data)))');
+    // One check for the schedule, on-demand reading and QA seeding: approved id AND claim row marked QA.
+    expect(read).toContain('&& (!qaOnly || (isApprovedQaClaimId(c.id) && isQaClaimRow(c.row_data)));');
+    expect(read).toContain('const live = new Set((claims || []).filter((c) => claimReadable(c))');
+    expect(read).toContain('if (!claimRow || !claimReadable(claimRow');
+    expect(read).toContain('if (!isApprovedQaClaimId(claimId)) return json({ ok: false, error: "not_an_approved_qa_claim" }, 403);');
+    expect(read).toContain('if (!claimRow || !isQaClaimRow(claimRow.row_data)) return json({ ok: false, error: "claim_not_marked_qa" }, 403);');
+    // The chat reads a document now only when content is allowed (approved QA), never for other claims.
+    expect(tools).toContain('if (contentAllowed && !hasFinalRead(meta)) {');
     const job = readFileSync(resolve(root, 'supabase/functions/_shared/claimDocumentReadJob.ts'), 'utf8');
     expect(job).toContain('export const DOCUMENT_READ_CUSTOMER_DOCS = false;');
     expect(job).toContain("export const DOCUMENT_READ_OCR_PROVIDER: 'none' | 'gemini' = 'none';");

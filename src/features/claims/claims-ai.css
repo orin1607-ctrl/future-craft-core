@@ -562,5 +562,265 @@
     min-height: 34px;
     padding: 4px 12px;
   }
+  .claims-root .claims-ai-voice-call-btn {
+    min-height: 34px;
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+  .claims-root .claims-ai-voice-mode-bar {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+/* Voice Conversation Mode & Speech Playback Controls */
+.claims-root .claims-ai-voice-call-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg3);
+  color: var(--t);
+  border: 1px solid var(--br2);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.claims-root .claims-ai-voice-call-btn:hover {
+  background: var(--bg4);
+  border-color: var(--ac);
+}
+.claims-root .claims-ai-voice-call-btn.active {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: #ef4444;
+  animation: claims-voice-pulse 1.5s infinite;
+}
+
+@keyframes claims-voice-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.claims-root .claims-ai-voice-mode-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--br);
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.claims-root .claims-ai-voice-mode-bar.phase-listening {
+  background: rgba(37, 99, 235, 0.08);
+  border-bottom-color: rgba(37, 99, 235, 0.25);
+}
+.claims-root .claims-ai-voice-mode-bar.phase-speaking {
+  background: rgba(16, 185, 129, 0.08);
+  border-bottom-color: rgba(16, 185, 129, 0.25);
+}
+.claims-root .claims-ai-voice-mode-bar.phase-processing {
+  background: rgba(245, 158, 11, 0.08);
+  border-bottom-color: rgba(245, 158, 11, 0.25);
+}
+
+.claims-root .claims-ai-voice-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.claims-root .claims-ai-voice-pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--ac);
+  display: inline-block;
+  animation: claims-dot-pulse 1.2s infinite;
+}
+.claims-root .phase-listening .claims-ai-voice-pulse-dot { background: #2563eb; }
+.claims-root .phase-speaking .claims-ai-voice-pulse-dot { background: #10b981; }
+.claims-root .phase-processing .claims-ai-voice-pulse-dot { background: #f59e0b; }
+
+@keyframes claims-dot-pulse {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.7; }
+}
+
+.claims-root .claims-ai-voice-live-text {
+  color: var(--t2);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.claims-root .claims-ai-voice-sub-btn {
+  background: var(--bg2);
+  border: 1px solid var(--br2);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--t);
+  white-space: nowrap;
+}
+.claims-root .claims-ai-voice-sub-btn:hover {
+  background: var(--bg4);
+}
+.claims-root .claims-ai-voice-sub-btn.danger {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Speaking button state on messages */
+.claims-root .claims-ai-action-btn.speaking {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: #ef4444;
+  font-weight: 700;
+  animation: claims-voice-pulse 1.5s infinite;
+}
+.claims-root .claims-ai-action-btn.speaking:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+/* Docked Claims Report Widget above composer */
+.claims-root .claims-ai-docked-pill-bar {
+  padding: 6px 14px;
+  background: var(--bg2);
+  border-top: 1px solid var(--br);
+  display: flex;
+  justify-content: flex-start;
+}
+
+.claims-root .claims-ai-docked-pill {
+  background: var(--bg);
+  color: var(--t);
+  border: 1px solid var(--br2);
+  border-radius: 16px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.15s ease;
+}
+.claims-root .claims-ai-docked-pill:hover {
+  background: var(--bg3);
+  border-color: var(--ac);
+  color: var(--ac);
+}
+
+.claims-root .claims-ai-docked-report {
+  background: var(--bg);
+  border-top: 2px solid var(--ac);
+  border-bottom: 1px solid var(--br);
+  box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  transition: max-height 0.25s ease;
+  overflow: hidden;
+  position: relative;
+  z-index: 5;
+}
+
+.claims-root .claims-ai-docked-report.normal {
+  max-height: 280px;
+}
+
+.claims-root .claims-ai-docked-report.expanded {
+  max-height: 520px;
+}
+
+.claims-root .claims-ai-docked-report.collapsed {
+  max-height: 44px;
+}
+
+.claims-root .claims-ai-docked-header {
+  padding: 8px 14px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--br);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.claims-root .claims-ai-bar-toggle-btn {
+  background: var(--bg);
+  border: 1px solid var(--br);
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--t2);
+  line-height: 1;
+  transition: background 0.15s ease;
+}
+.claims-root .claims-ai-bar-toggle-btn:hover {
+  background: var(--bg3);
+  color: var(--t);
+}
+
+.claims-root .claims-ai-docked-table-wrap {
+  overflow: auto;
+  max-height: calc(100% - 44px);
+  padding: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.claims-root .claims-ai-docked-table-wrap .claims-report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.claims-root .claims-ai-docked-table-wrap .claims-report-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg2);
+  z-index: 2;
+  box-shadow: 0 1px 0 var(--br);
+  padding: 8px 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.claims-root .claims-ai-docked-table-wrap .claims-report-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--br);
+  white-space: nowrap;
+}
+
+.claims-root .claims-ai-docked-table-wrap .claims-report-table tr:hover td {
+  background: rgba(37, 99, 235, 0.04);
+}
+
+@media (max-width: 768px) {
+  .claims-root .claims-ai-docked-report.normal {
+    max-height: 200px;
+  }
+  .claims-root .claims-ai-docked-report.expanded {
+    max-height: 340px;
+  }
+  .claims-root .claims-ai-docked-header {
+    padding: 6px 10px;
+  }
 }
 

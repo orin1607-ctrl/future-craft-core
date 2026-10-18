@@ -207,13 +207,19 @@ function speechCtor(): (new () => SpeechRec) | null {
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
-function speakAnswer(text: string) {
-  const synth = window.speechSynthesis;
-  if (!synth || !text.trim()) return;
-  synth.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'he-IL';
-  synth.speak(utter);
+export function cleanTextForSpeech(markdown: string): string {
+  if (!markdown) return '';
+  return markdown
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/^#+\s+/gm, '')
+    .replace(/^[-*]\s+/gm, '')
+    .replace(/\|/g, ' ')
+    .replace(/:?-+:?/g, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function readActiveId(userId: string, claimId: string | null): string | null {
@@ -396,20 +402,39 @@ function parseBlocks(markdown: string): ContentBlock[] {
 function renderFormattedCell(text: string, onOpenClaim?: (claimId: string) => void) {
   const isUrgent = text.includes('🔴') || text.includes('[דחוף]');
   const isWait = text.includes('🟡') || text.includes('[ממתין]');
-  const claimMatch = text.match(/DAL-\d{4}-\d{4}|DAL-[A-Za-z0-9_-]+/);
 
-  if (claimMatch && (text.includes('פתח תיק') || text.includes('claim:') || text.startsWith('DAL-') || text.startsWith('[DAL-'))) {
-    const claimId = claimMatch[0];
+  const linkMatch = text.match(/\[(.*?)\]\(claim:([^)]+)\)/);
+  if (linkMatch) {
+    const label = linkMatch[1];
+    const targetRef = linkMatch[2];
     return (
       <button
         type="button"
         className="claims-claim-btn"
-        title={`פתח כרטיס תביעה ${claimId}`}
-        onClick={() => onOpenClaim?.(claimId)}
+        title={`פתח כרטיס תביעה ${targetRef}`}
+        onClick={() => onOpenClaim?.(targetRef)}
       >
-        🔍 פתח {claimId}
+        🔍 {label || `פתח ${targetRef}`}
       </button>
     );
+  }
+
+  const claimMatch = text.match(/DAL-\d{4}-\d{4}|DAL-[A-Za-z0-9_-]+/);
+  if (claimMatch) {
+    const claimId = claimMatch[0];
+    const isExplicit = text.includes('פתח תיק') || text.includes('claim:') || text.trim().startsWith('DAL-') || text.trim().startsWith('[DAL-');
+    if (isExplicit) {
+      return (
+        <button
+          type="button"
+          className="claims-claim-btn"
+          title={`פתח כרטיס תביעה ${claimId}`}
+          onClick={() => onOpenClaim?.(claimId)}
+        >
+          🔍 {text.includes('פתח') ? text.replace(/[\[\]]/g, '') : `פתח ${claimId}`}
+        </button>
+      );
+    }
   }
 
   if (isUrgent) {
@@ -636,6 +661,28 @@ export function ClaimsAiWorkspace({
   const [executingActionId, setExecutingActionId] = useState<string | null>(null);
   const [stagedAttachments, setStagedAttachments] = useState<StagedAttachment[]>([]);
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
+  const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
+  const [voiceModeActive, setVoiceModeActive] = useState(false);
+  const [voicePhase, setVoicePhase] = useState<'idle' | 'listening' | 'processing' | 'speaking'>('idle');
+  const [liveTranscript, setLiveTranscript] = useState('');
+
+  const [dockedReport, setDockedReport] = useState<{
+    headers: string[];
+    rows: string[][];
+    title?: string;
+    updatedAt: string;
+  } | null>(() => {
+    try {
+      const saved = sessionStorage.getItem(`claims_ai_docked_${userId}`);
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [dockedTableState, setDockedTableState] = useState<'normal' | 'expanded' | 'collapsed' | 'hidden'>('normal');
+  const [dockedFilter, setDockedFilter] = useState('');
+  const [copiedDocked, setCopiedDocked] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -649,6 +696,209 @@ export function ClaimsAiWorkspace({
   const executingRef = useRef<Set<string>>(new Set());
   const confirmRef = useRef<(msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => Promise<void>>(async () => {});
   const cancelRef = useRef<(msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => Promise<void>>(async () => {});
+
+  const currentUtterRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const voiceModeActiveRef = useRef(false);
+  const voiceRecognitionRef = useRef<SpeechRec | null>(null);
+  const voiceSilenceTimerRef = useRef<any>(null);
+  const voicePhaseRef = useRef<'idle' | 'listening' | 'processing' | 'speaking'>('idle');
+
+  const stopSpeaking = useCallback(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+        window.speechSynthesis.cancel();
+      } catch {}
+    }
+    currentUtterRef.current = null;
+    setSpeakingMsgId(null);
+  }, []);
+
+  const speakAnswer = useCallback((msgId: string, rawText: string, onEndCallback?: () => void) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    stopSpeaking();
+
+    const clean = cleanTextForSpeech(rawText);
+    if (!clean) {
+      onEndCallback?.();
+      return;
+    }
+
+    const utter = new SpeechSynthesisUtterance(clean);
+    utter.lang = 'he-IL';
+    utter.rate = 1.0;
+    currentUtterRef.current = utter;
+    setSpeakingMsgId(msgId);
+
+    utter.onend = () => {
+      currentUtterRef.current = null;
+      setSpeakingMsgId(null);
+      onEndCallback?.();
+    };
+    utter.onerror = () => {
+      currentUtterRef.current = null;
+      setSpeakingMsgId(null);
+      onEndCallback?.();
+    };
+
+    try {
+      window.speechSynthesis.speak(utter);
+    } catch {
+      setSpeakingMsgId(null);
+      onEndCallback?.();
+    }
+  }, [stopSpeaking]);
+
+  const stopVoiceRecognition = useCallback(() => {
+    if (voiceSilenceTimerRef.current) {
+      clearTimeout(voiceSilenceTimerRef.current);
+      voiceSilenceTimerRef.current = null;
+    }
+    if (voiceRecognitionRef.current) {
+      try {
+        voiceRecognitionRef.current.onresult = null;
+        voiceRecognitionRef.current.onerror = null;
+        voiceRecognitionRef.current.onend = null;
+        voiceRecognitionRef.current.stop();
+      } catch {}
+      voiceRecognitionRef.current = null;
+    }
+  }, []);
+
+  const startVoiceListening = useCallback(() => {
+    if (!voiceModeActiveRef.current) return;
+    stopVoiceRecognition();
+    stopSpeaking();
+
+    const Ctor = speechCtor();
+    if (!Ctor) {
+      setVoiceModeActive(false);
+      voiceModeActiveRef.current = false;
+      setBanner('זיהוי דיבור אינו נתמך בדפדפן זה.');
+      return;
+    }
+
+    voicePhaseRef.current = 'listening';
+    setVoicePhase('listening');
+    setLiveTranscript('');
+
+    const rec = new Ctor();
+    rec.lang = 'he-IL';
+    rec.continuous = true;
+    rec.interimResults = true;
+
+    let localFinal = '';
+
+    rec.onresult = (ev) => {
+      if (!voiceModeActiveRef.current || voicePhaseRef.current !== 'listening') return;
+      let interim = '';
+      for (let i = ev.resultIndex; i < ev.results.length; i += 1) {
+        const piece = ev.results[i][0]?.transcript || '';
+        if (ev.results[i].isFinal) {
+          localFinal = (localFinal ? `${localFinal} ` : '') + piece;
+        } else {
+          interim = (interim ? `${interim} ` : '') + piece;
+        }
+      }
+      const full = [localFinal, interim].filter(Boolean).join(' ').trim();
+      setLiveTranscript(full);
+
+      if (voiceSilenceTimerRef.current) {
+        clearTimeout(voiceSilenceTimerRef.current);
+        voiceSilenceTimerRef.current = null;
+      }
+
+      if (full) {
+        voiceSilenceTimerRef.current = setTimeout(() => {
+          if (!voiceModeActiveRef.current || voicePhaseRef.current !== 'listening') return;
+          const userText = full.trim();
+          if (!userText) return;
+
+          stopVoiceRecognition();
+          voicePhaseRef.current = 'processing';
+          setVoicePhase('processing');
+          setLiveTranscript('');
+
+          void sendRef.current(userText, 'voice');
+        }, 1300);
+      }
+    };
+
+    rec.onerror = (ev) => {
+      if (ev.error === 'not-allowed') {
+        setVoiceModeActive(false);
+        voiceModeActiveRef.current = false;
+        setVoicePhase('idle');
+        setBanner('הגישה למיקרופון נחסמה בהגדרות הדפדפן.');
+        stopVoiceRecognition();
+      }
+    };
+
+    rec.onend = () => {
+      if (voiceModeActiveRef.current && voicePhaseRef.current === 'listening') {
+        try {
+          rec.start();
+        } catch {
+          setTimeout(() => {
+            if (voiceModeActiveRef.current && voicePhaseRef.current === 'listening') {
+              startVoiceListening();
+            }
+          }, 300);
+        }
+      }
+    };
+
+    voiceRecognitionRef.current = rec;
+    try {
+      rec.start();
+    } catch {
+      setTimeout(() => {
+        if (voiceModeActiveRef.current && voicePhaseRef.current === 'listening') {
+          startVoiceListening();
+        }
+      }, 300);
+    }
+  }, [stopSpeaking, stopVoiceRecognition]);
+
+  const handleInterruptSpeech = useCallback(() => {
+    stopSpeaking();
+    if (voiceModeActiveRef.current) {
+      setTimeout(() => {
+        if (voiceModeActiveRef.current) {
+          startVoiceListening();
+        }
+      }, 200);
+    }
+  }, [stopSpeaking, startVoiceListening]);
+
+  const toggleVoiceMode = useCallback(() => {
+    if (voiceModeActive) {
+      voiceModeActiveRef.current = false;
+      setVoiceModeActive(false);
+      voicePhaseRef.current = 'idle';
+      setVoicePhase('idle');
+      setLiveTranscript('');
+      stopSpeaking();
+      stopVoiceRecognition();
+    } else {
+      if (!speechCtor()) {
+        setBanner('הדפדפן אינו תומך בזיהוי קולי רציף (נתמך ב-Chrome, Edge ו-Safari).');
+        return;
+      }
+      stopSpeaking();
+      if (isListeningRef.current) {
+        isManualStopRef.current = true;
+        isListeningRef.current = false;
+        setListening(false);
+        try { recognitionRef.current?.stop(); } catch {}
+      }
+      voiceModeActiveRef.current = true;
+      setVoiceModeActive(true);
+      startVoiceListening();
+    }
+  }, [voiceModeActive, stopSpeaking, stopVoiceRecognition, startVoiceListening]);
 
   const handleCopyText = useCallback((msgId: string, text: string) => {
     if (navigator.clipboard?.writeText) {
@@ -669,11 +919,73 @@ export function ClaimsAiWorkspace({
   }, []);
 
   useEffect(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role === 'assistant' && !m.metadata?.error) {
+        const blocks = parseBlocks(m.content);
+        const tbl = blocks.find((b) => b.type === 'table' && b.headers && b.rows && b.rows.length > 0);
+        if (tbl && tbl.headers && tbl.rows) {
+          const reportData = {
+            headers: tbl.headers,
+            rows: tbl.rows,
+            title: m.content.split('\n')[0]?.replace(/[#*`]/g, '').trim() || 'דוח תביעות',
+            updatedAt: new Date(m.created_at || Date.now()).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+          };
+          setDockedReport(reportData);
+          try {
+            sessionStorage.setItem(`claims_ai_docked_${userId}`, JSON.stringify(reportData));
+          } catch {}
+          break;
+        }
+      }
+    }
+  }, [messages, userId]);
+
+  const filteredDockedRows = useMemo(() => {
+    if (!dockedReport) return [];
+    if (!dockedFilter.trim()) return dockedReport.rows;
+    const q = dockedFilter.trim().toLowerCase();
+    return dockedReport.rows.filter((r) => r.some((cell) => cell.toLowerCase().includes(q)));
+  }, [dockedReport, dockedFilter]);
+
+  const handleCopyDockedTsv = useCallback(() => {
+    if (!dockedReport) return;
+    const tsv = [
+      dockedReport.headers.join('\t'),
+      ...filteredDockedRows.map((r) => r.join('\t')),
+    ].join('\n');
+    if (navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(tsv);
+    }
+    setCopiedDocked(true);
+    setTimeout(() => setCopiedDocked(false), 2000);
+  }, [dockedReport, filteredDockedRows]);
+
+  useEffect(() => {
     setMicOk(!!speechCtor() && !!window.isSecureContext);
   }, []);
 
   useEffect(() => {
+    if (!open) {
+      stopSpeaking();
+      if (voiceModeActiveRef.current) {
+        voiceModeActiveRef.current = false;
+        setVoiceModeActive(false);
+        voicePhaseRef.current = 'idle';
+        setVoicePhase('idle');
+        stopVoiceRecognition();
+      }
+    }
+  }, [open, stopSpeaking, stopVoiceRecognition]);
+
+  useEffect(() => {
+    stopSpeaking();
+  }, [activeId, stopSpeaking]);
+
+  useEffect(() => {
     return () => {
+      stopSpeaking();
+      stopVoiceRecognition();
       if (recognitionRef.current) {
         isManualStopRef.current = true;
         isListeningRef.current = false;
@@ -685,7 +997,7 @@ export function ClaimsAiWorkspace({
         abortControllerRef.current.abort();
       }
     };
-  }, []);
+  }, [stopSpeaking, stopVoiceRecognition]);
 
   useEffect(() => {
     return () => {
@@ -816,6 +1128,20 @@ export function ClaimsAiWorkspace({
     const trimmed = text.trim();
     if ((!trimmed && stagedAttachments.length === 0) || loading) return;
 
+    // Stop one-off dictation immediately if active so it does not re-populate the input
+    if (isListeningRef.current) {
+      isManualStopRef.current = true;
+      isListeningRef.current = false;
+      setListening(false);
+      try { recognitionRef.current?.stop(); } catch {}
+    }
+    baseInputRef.current = '';
+    finalTranscriptRef.current = '';
+
+    // Clear input box immediately upon send
+    setInput('');
+    if (textareaRef.current) textareaRef.current.value = '';
+
     // Typed approval: "מאשר" / "שלח" approves the card currently shown (and only that one). The model is not
     // involved, so it cannot send anything on its own; the same server path as the card button executes it.
     if (trimmed && stagedAttachments.length === 0 && (isApprovalText(trimmed) || isCancelText(trimmed))) {
@@ -831,6 +1157,7 @@ export function ClaimsAiWorkspace({
       }
       if (target && activeId) {
         setInput('');
+        if (textareaRef.current) textareaRef.current.value = '';
         const userRow = await insertClaimsAiMessage({
           conversationId: activeId,
           role: 'user',
@@ -846,7 +1173,6 @@ export function ClaimsAiWorkspace({
     const effectiveText = trimmed || (stagedAttachments.length === 1 ? 'צירפתי קובץ לבדיקה' : 'צירפתי קבצים לבדיקה');
     const filesToUpload = [...stagedAttachments];
 
-    setInput('');
     setStagedAttachments([]);
     setLoading(true);
     setBanner('');
@@ -861,6 +1187,7 @@ export function ClaimsAiWorkspace({
     }, 55000);
     let conversationId = activeId;
     let draft = '';
+    let userSavedSuccessfully = false;
     try {
       if (!conversationId) {
         const created = await createClaimsAiConversation({
@@ -930,6 +1257,7 @@ export function ClaimsAiWorkspace({
         },
       });
       if (userSaved.error || !userSaved.data) throw new Error(userSaved.error?.message || 'שמירת ההודעה נכשלה');
+      userSavedSuccessfully = true;
       const history = [...messages, userSaved.data];
       setMessages(history);
 
@@ -978,7 +1306,33 @@ export function ClaimsAiWorkspace({
       if (saved.error || !saved.data) throw new Error(saved.error?.message || 'שמירת התשובה נכשלה');
       setMessages([...history, saved.data]);
       setConversations((prev) => prev.map((row) => row.id === conversationId ? { ...row, updated_at: saved.data!.created_at } : row));
+
+      // Continuous Voice Mode: automatically speak the response and resume listening
+      if (voiceModeActiveRef.current) {
+        voicePhaseRef.current = 'speaking';
+        setVoicePhase('speaking');
+        stopVoiceRecognition();
+        speakAnswer('voice-continuous', answer.text || draft, () => {
+          if (voiceModeActiveRef.current) {
+            setTimeout(() => {
+              if (voiceModeActiveRef.current) {
+                startVoiceListening();
+              }
+            }, 350);
+          }
+        });
+      }
     } catch (err) {
+      if (!userSavedSuccessfully) {
+        setInput(trimmed);
+      }
+      if (voiceModeActiveRef.current) {
+        setTimeout(() => {
+          if (voiceModeActiveRef.current) {
+            startVoiceListening();
+          }
+        }, 500);
+      }
       if (didTimeout) {
         const timeoutMsg = 'זמן ההמתנה לתשובה עבר (שגיאת Timeout). שרת ה-AI התעכב במענה. אנא נסה שוב או נסח מחדש.';
         setBanner(timeoutMsg);
@@ -1339,7 +1693,16 @@ export function ClaimsAiWorkspace({
             <h2>{active?.title || 'שיחה חדשה'}</h2>
             <div className="claims-ai-status">דליה AI · ניהול תביעות</div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              type="button"
+              className={`claims-ai-voice-call-btn${voiceModeActive ? ' active' : ''}`}
+              data-testid="claims-ai-voice-call-toggle"
+              onClick={toggleVoiceMode}
+              title={voiceModeActive ? 'סיים שיחה קולית רציפה' : 'התחל שיחה קולית רציפה (Hands-Free)'}
+            >
+              {voiceModeActive ? '🔴 סיים שיחה קולית' : '🎙️ התחל שיחה קולית'}
+            </button>
             <button type="button" className="btn btn-g btn-sm claims-ai-list-toggle" onClick={() => setShowList((v) => !v)}>שיחות</button>
             <button type="button" className="btn btn-g" data-testid="claims-ai-close" onClick={onClose}>סגור</button>
           </div>
@@ -1359,6 +1722,55 @@ export function ClaimsAiWorkspace({
             <span>📊 <b>ניהול תביעות כללי</b> (אין תיק פתוח) · סקירת כלל התביעות, מיילים ומשימות במערכת</span>
           )}
         </div>
+
+        {voiceModeActive ? (
+          <div className={`claims-ai-voice-mode-bar phase-${voicePhase}`} data-testid="claims-ai-voice-mode-bar">
+            <div className="claims-ai-voice-mode-status">
+              <span className="claims-ai-voice-pulse-dot" />
+              <span>
+                {voicePhase === 'listening' && (liveTranscript ? `מאזין: "${liveTranscript}"` : '🎙️ דליה מאזינה... דבר כעת')}
+                {voicePhase === 'processing' && '⏳ דליה מעבדת את הדברים...'}
+                {voicePhase === 'speaking' && '🔊 דליה מדברת... (המיקרופון מושהה למניעת הד)'}
+                {voicePhase === 'idle' && 'שיחה קולית רציפה פעילה'}
+              </span>
+            </div>
+            <div className="claims-ai-voice-mode-actions">
+              {voicePhase === 'speaking' ? (
+                <button
+                  type="button"
+                  className="claims-ai-voice-bar-btn stop"
+                  data-testid="claims-ai-voice-interrupt-btn"
+                  onClick={handleInterruptSpeech}
+                  title="עצור את דליה וחזור להאזנה"
+                >
+                  ⏹️ התפרץ / עצור דיבור
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="claims-ai-voice-bar-btn exit"
+                data-testid="claims-ai-voice-end-btn"
+                onClick={toggleVoiceMode}
+                title="סיים שיחה קולית"
+              >
+                ✕ סיים שיחה
+              </button>
+            </div>
+          </div>
+        ) : speakingMsgId ? (
+          <div className="claims-ai-speaking-bar" data-testid="claims-ai-speaking-bar">
+            <span>🔊 דליה מקריאה תשובה ברמקול...</span>
+            <button
+              type="button"
+              className="claims-ai-voice-bar-btn stop"
+              data-testid="claims-ai-stop-speaking-global"
+              onClick={stopSpeaking}
+              title="עצור הקראה קולית"
+            >
+              ⏹️ עצור הקראה
+            </button>
+          </div>
+        ) : null}
 
         <div className="claims-ai-thread" ref={threadRef} data-testid="claims-ai-thread">
           {banner ? <div className="claims-ai-bubble" data-testid="claims-ai-error" style={{ border: '1px solid var(--rd2)' }}>{banner}</div> : null}
@@ -1623,6 +2035,7 @@ export function ClaimsAiWorkspace({
                     <div className="claims-ai-bubble-actions">
                       <button
                         type="button"
+                        data-testid={`claims-ai-copy-${msg.id}`}
                         className={`claims-ai-action-btn claims-ai-copy-btn${copiedMsgId === msg.id ? ' copied' : ''}`}
                         onClick={() => void handleCopyText(msg.id, msg.content)}
                         title="העתק תשובה ללוח"
@@ -1630,14 +2043,27 @@ export function ClaimsAiWorkspace({
                         {copiedMsgId === msg.id ? '✓ הועתק!' : '📋 העתק'}
                       </button>
                       {typeof window.speechSynthesis !== 'undefined' ? (
-                        <button
-                          type="button"
-                          className="claims-ai-action-btn"
-                          onClick={() => speakAnswer(msg.content)}
-                          title="הקרא בקול"
-                        >
-                          🔊 הקרא
-                        </button>
+                        speakingMsgId === msg.id ? (
+                          <button
+                            type="button"
+                            className="claims-ai-action-btn speaking"
+                            data-testid={`claims-ai-stop-speaking-${msg.id}`}
+                            onClick={stopSpeaking}
+                            title="עצור הקראה ברמקול"
+                          >
+                            ⏹️ עצור הקראה
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="claims-ai-action-btn"
+                            data-testid={`claims-ai-speak-${msg.id}`}
+                            onClick={() => speakAnswer(msg.id, msg.content)}
+                            title="הקרא בקול"
+                          >
+                            🔊 הקרא
+                          </button>
+                        )
                       ) : null}
                     </div>
                   ) : null}
@@ -1689,6 +2115,122 @@ export function ClaimsAiWorkspace({
           </div>
         ) : null}
 
+        {dockedReport ? (
+          dockedTableState === 'hidden' ? (
+            <div className="claims-ai-docked-pill-bar" data-testid="claims-ai-docked-pill-bar">
+              <button
+                type="button"
+                className="claims-ai-docked-pill"
+                data-testid="claims-ai-docked-show-btn"
+                onClick={() => setDockedTableState('normal')}
+                title="הצג את טבלת דוח התביעות הפעיל"
+              >
+                📊 הצג טבלת דוח ({dockedReport.rows.length} תיקים) · עודכן {dockedReport.updatedAt}
+              </button>
+            </div>
+          ) : (
+            <div className={`claims-ai-docked-report ${dockedTableState}`} data-testid="claims-ai-docked-report">
+              <div className="claims-ai-docked-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <strong style={{ fontSize: 13, color: 'var(--t)' }}>
+                    📊 {dockedReport.title || 'דוח תביעות'} ({filteredDockedRows.length} מתוך {dockedReport.rows.length})
+                  </strong>
+                  <span style={{ fontSize: 11, color: 'var(--t3)' }}>
+                    עודכן ב-{dockedReport.updatedAt}
+                  </span>
+                  <button
+                    type="button"
+                    className="claims-ai-action-btn"
+                    data-testid="claims-ai-docked-refresh-btn"
+                    onClick={() => void sendMessage('רענן דוח תביעות כללי', 'text')}
+                    disabled={loading}
+                    title="רענן נתוני דוח תביעות"
+                  >
+                    🔄 רענן נתונים
+                  </button>
+                  <button
+                    type="button"
+                    className="claims-ai-action-btn"
+                    data-testid="claims-ai-docked-copy-btn"
+                    onClick={handleCopyDockedTsv}
+                    title="העתק טבלה ללוח (בפורמט המתאים לאקסל/וורד)"
+                  >
+                    {copiedDocked ? '✓ הועתק!' : '📋 העתק טבלה'}
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input
+                    type="text"
+                    className="claims-report-search"
+                    data-testid="claims-ai-docked-search"
+                    placeholder="🔍 חיפוש..."
+                    value={dockedFilter}
+                    onChange={(e) => setDockedFilter(e.target.value)}
+                    style={{ width: 140, padding: '3px 8px', fontSize: 12 }}
+                  />
+                  <button
+                    type="button"
+                    className="claims-ai-bar-toggle-btn"
+                    data-testid="claims-ai-docked-expand-btn"
+                    onClick={() => setDockedTableState((prev) => prev === 'expanded' ? 'normal' : 'expanded')}
+                    title={dockedTableState === 'expanded' ? 'צמצם גודל' : 'הרחב למסך מלא'}
+                  >
+                    {dockedTableState === 'expanded' ? '🗗 צמצם' : '🗖 הרחב'}
+                  </button>
+                  <button
+                    type="button"
+                    className="claims-ai-bar-toggle-btn"
+                    data-testid="claims-ai-docked-collapse-btn"
+                    onClick={() => setDockedTableState((prev) => prev === 'collapsed' ? 'normal' : 'collapsed')}
+                    title={dockedTableState === 'collapsed' ? 'פתח טבלה' : 'קפל טבלה'}
+                  >
+                    {dockedTableState === 'collapsed' ? '▼ הצג' : '▲ קפל'}
+                  </button>
+                  <button
+                    type="button"
+                    className="claims-ai-bar-toggle-btn"
+                    data-testid="claims-ai-docked-close-btn"
+                    onClick={() => setDockedTableState('hidden')}
+                    title="הסתר טבלה"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              {dockedTableState !== 'collapsed' ? (
+                <div className="claims-ai-docked-table-wrap">
+                  <table className="claims-report-table">
+                    <thead>
+                      <tr>
+                        {dockedReport.headers.map((h, idx) => (
+                          <th key={idx}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredDockedRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={dockedReport.headers.length} style={{ textAlign: 'center', padding: 14, color: 'var(--t3)' }}>
+                            לא נמצאו תיקים התואמים את החיפוש "{dockedFilter}"
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredDockedRows.map((row, rIdx) => (
+                          <tr key={rIdx}>
+                            {row.map((cell, cIdx) => (
+                              <td key={cIdx}>{renderFormattedCell(cell, onOpenClaim)}</td>
+                            ))}
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
+            </div>
+          )
+        ) : null}
+
         <form
           className="claims-ai-composer"
           onSubmit={(e) => {
@@ -1730,7 +2272,6 @@ export function ClaimsAiWorkspace({
             value={input}
             dir="rtl"
             placeholder={claim ? 'שאלה על התיק הפתוח…' : 'פתחו תיק, או שאלו שאלה כללית…'}
-            disabled={loading}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {

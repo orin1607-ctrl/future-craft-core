@@ -26,6 +26,14 @@ export type DocumentRead = {
   read_date_src: string;
   read_amounts: string;
   read_amount_src: string;
+  read_id_numbers: string;
+  read_id_src: string;
+  read_license_numbers: string;
+  read_license_src: string;
+  read_invoice_numbers: string;
+  read_invoice_src: string;
+  read_names: string;
+  read_name_src: string;
   read_insurer_decision: string;
   read_missing: string;
   read_recommendation: string;
@@ -92,6 +100,66 @@ function amountsFromText(text: string) {
 const CLAIM_LABEL = '(?:מספר\\s*(?:ה)?תביעה|תביעה\\s*(?:מספר|מס[\'׳.]?)|claim\\s*(?:no\\.?|number|#)?)';
 const CLAIM_TOKEN = '([A-Z0-9][A-Z0-9\\-/]{3,24})';
 
+type Labeled = { values: string[]; source: string };
+
+/**
+ * Values that appear right next to a label, in either reading order ("label: value" or "value :label").
+ * Only labelled values are taken, so a vehicle number, an ID number and a licence number never mix.
+ */
+function labeledValues(text: string, label: string, value: string, accept: (v: string, line: string) => boolean = () => true): Labeled {
+  const found: string[] = [];
+  let source = '';
+  for (const line of linesOf(text)) {
+    const hits: string[] = [];
+    for (const re of [new RegExp(`${label}\\s*[:\\-]?\\s*${value}`, 'gi'), new RegExp(`${value}\\s*[:\\-]?\\s*${label}`, 'gi')]) {
+      let match: RegExpExecArray | null;
+      while ((match = re.exec(line))) {
+        const v = match[1].trim().replace(/\s+/g, ' ');
+        if (v && accept(v, line)) hits.push(v);
+      }
+    }
+    if (hits.length && !source) source = line.slice(0, 240);
+    found.push(...hits);
+  }
+  return { values: [...new Set(found)].slice(0, 5), source };
+}
+
+// Israeli ID: 8–9 digits next to an ID label.
+const ID_LABEL = '(?:ת\\.?\\s?ז\\.?|ת["״]ז|תעודת\\s*זהות|מס[\'׳.]?\\s*זהות|מספר\\s*זהות|\\bID\\s*(?:no\\.?|number)?)';
+// Driving licence number — never a vehicle licence ("רישיון רכב"), whose number is a plate.
+const LICENSE_LABEL = '(?:מספר\\s*(?:ה)?רישיון(?:\\s*(?:ה)?נהיגה)?|רישיון\\s*נהיגה\\s*(?:מספר|מס[\'׳.]?)|מס[\'׳.]?\\s*רישיון(?:\\s*נהיגה)?|(?:driving\\s*)?licen[cs]e\\s*(?:no\\.?|number|#))';
+const INVOICE_LABEL = '(?:חשבונית(?:\\s*מס)?(?:\\s*קבלה)?\\s*(?:מספר|מס[\'׳.]?)|מספר\\s*חשבונית|invoice\\s*(?:no\\.?|number|#))';
+const NAME_LABEL = '(?:שם\\s*(?:בעל\\s*(?:ה)?רישיון|המבוטח|הלקוח|הנהג|מלא|השמאי)|holder\\s*name|full\\s*name|(?:^|\\s)שם)';
+const HE_OR_EN_NAME = '([א-תA-Za-z][א-תA-Za-z\'"׳״.\\-]*(?:\\s+[א-תA-Za-z][א-תA-Za-z\'"׳״.\\-]*){0,3})';
+
+export function extractIdNumbers(text: string) {
+  return labeledValues(text, ID_LABEL, '(\\d{8,9})');
+}
+
+export function extractLicenseNumbers(text: string) {
+  return labeledValues(text, LICENSE_LABEL, '(\\d{5,9})', (_v, line) => !/רישיון\s*(?:ה)?רכב|vehicle\s*licen/i.test(line));
+}
+
+export function extractInvoiceNumbers(text: string) {
+  return labeledValues(text, INVOICE_LABEL, '([A-Z0-9][A-Z0-9\\-/]{1,19})', (v) => /\d/.test(v));
+}
+
+export function extractNames(text: string) {
+  // Labels like "שם" are matched only as "label: value" in logical order; Hebrew-only lines keep that order.
+  const found: string[] = [];
+  let source = '';
+  const re = new RegExp(`${NAME_LABEL}\\s*:\\s*${HE_OR_EN_NAME}`, 'gi');
+  for (const line of linesOf(text)) {
+    re.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    const hits: string[] = [];
+    while ((match = re.exec(line))) hits.push(match[1].trim());
+    if (hits.length && !source) source = line.slice(0, 240);
+    found.push(...hits);
+  }
+  return { values: [...new Set(found)].slice(0, 5), source };
+}
+
 /** DAL ids, and insurer claim numbers that appear next to a claim-number label (either order). */
 function claimNumbersFromText(text: string) {
   const found: string[] = [];
@@ -144,11 +212,16 @@ export function analyzeDocumentText(
 ): DocumentRead {
   const clean = normalizeDocText(text).slice(0, TEXT_LIMIT);
   const { claimNums, source: claimLine } = claimNumbersFromText(clean);
-  const plateLine = lineMatching(clean, /רכב|לוחית|plate/i);
+  // The first "רכב" line is often a heading ("רישיון רכב"): take the first labelled line that holds a plate.
+  const plateLine = linesOf(clean).find((line) => /רכב|לוחית|plate/i.test(line) && extractPlates(line).length)?.slice(0, 240) || '';
   const dateLine = lineMatching(clean, /תאריך|\bdate\b/i);
   const { amounts, source: amountLine } = amountsFromText(clean);
   const plates = extractPlates(plateLine);
   const dates = extractDates(dateLine);
+  const ids = extractIdNumbers(clean);
+  const licenses = extractLicenseNumbers(clean);
+  const invoices = extractInvoiceNumbers(clean);
+  const names = extractNames(clean);
   const decision = decisionFromText(clean);
   const missing = missingFromText(clean);
   const evidence = evidenceFromText(clean, decision);
@@ -169,6 +242,14 @@ export function analyzeDocumentText(
     read_date_src: dates.length ? dateLine : '',
     read_amounts: joinFound(amounts, NOT_IN_DOC),
     read_amount_src: amounts.length ? amountLine : '',
+    read_id_numbers: joinFound(ids.values, NOT_IN_DOC),
+    read_id_src: ids.source,
+    read_license_numbers: joinFound(licenses.values, NOT_IN_DOC),
+    read_license_src: licenses.source,
+    read_invoice_numbers: joinFound(invoices.values, NOT_IN_DOC),
+    read_invoice_src: invoices.source,
+    read_names: joinFound(names.values, NOT_IN_DOC),
+    read_name_src: names.source,
     read_insurer_decision: decision,
     read_missing: missing,
     read_recommendation: recommendationFor(decision, missing),
@@ -193,6 +274,14 @@ export function unreadableDocumentRead(claimId: string, sha: string, reason: str
     read_date_src: '',
     read_amounts: NOT_IN_DOC,
     read_amount_src: '',
+    read_id_numbers: NOT_IN_DOC,
+    read_id_src: '',
+    read_license_numbers: NOT_IN_DOC,
+    read_license_src: '',
+    read_invoice_numbers: NOT_IN_DOC,
+    read_invoice_src: '',
+    read_names: NOT_IN_DOC,
+    read_name_src: '',
     read_insurer_decision: 'לא נמצאה החלטת מבטח במסמך',
     read_missing: 'לא צוינו מסמכים חסרים במסמך',
     read_recommendation: 'המלצה למשתמש בלבד: לא לנהל את התביעה לפי הקובץ הזה עד שיוצג מסמך קריא. אין שינוי סטטוס ואין שליחה.',

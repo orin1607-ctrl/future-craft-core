@@ -2094,6 +2094,20 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const openCard = async (id: string, tab = 'claim', mailIds?: string[]) => {
+    const raw = String(id || '').trim();
+    // Resolve claim ID: match by c.id, c.claimNum, c.plate (case-insensitive and format-tolerant)
+    const rawClean = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const resolvedClaim = claims.find((c) => {
+      if (c.id === raw || (c.id && c.id.toLowerCase() === raw.toLowerCase())) return true;
+      if (c.claimNum === raw || (c.claimNum && c.claimNum.toLowerCase() === raw.toLowerCase())) return true;
+      if (c.plate === raw || (c.plate && c.plate.toLowerCase() === raw.toLowerCase())) return true;
+      if (c.id && c.id.toLowerCase().replace(/[^a-z0-9]/g, '') === rawClean) return true;
+      if (c.claimNum && c.claimNum.toLowerCase().replace(/[^a-z0-9]/g, '') === rawClean) return true;
+      if (c.plate && c.plate.toLowerCase().replace(/[^a-z0-9]/g, '') === rawClean) return true;
+      return false;
+    });
+    const targetId = resolvedClaim ? resolvedClaim.id : raw;
+
     mailFocusRef.current = tab === 'mailfu' ? [] : (mailIds || []);
     fuFocusRef.current = tab === 'mailfu' ? (mailIds || []) : [];
     if (tab === 'gin' && mailIds?.length) {
@@ -2103,7 +2117,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         return next;
       });
     }
-    setCurId(id);
+    setCurId(targetId);
     setCardTab(tab);
     setHistReady(false);
     setCardMore(false);

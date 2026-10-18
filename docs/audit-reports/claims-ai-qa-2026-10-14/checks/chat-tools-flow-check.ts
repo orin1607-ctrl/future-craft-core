@@ -187,6 +187,18 @@ qrow.row_data = { ...qrow.row_data, isQa: "true", deletedAt: "2026-10-15" };
 const qa3 = await executeClaimsTool("read_claim_document", { file_id: "DOC-QA" }, sb, "DAL-QA-AI-001", "user-1", "בודק");
 check("read: approved QA claim that was deleted — content withheld", !JSON.stringify(qa3.result).includes("3,850"), qa3.result);
 qrow.row_data = { ...qrow.row_data, deletedAt: undefined };
+// On-demand reading: a QA document not read yet is sent to claims-doc-read (read_one); a real claim never is.
+const fetchCalls: string[] = [];
+const realFetch = globalThis.fetch;
+globalThis.fetch = (async (url: any, init: any) => { fetchCalls.push(String(url) + " " + String(init?.body || "")); return new Response(JSON.stringify({ ok: true, taken: 1, ready: 1, text: "SHOULD-NOT-PASS" }), { status: 200 }); }) as typeof fetch;
+db.claims_documents.push({ id: "DOC-QA-NEW", claim_id: "DAL-QA-AI-001", original_name: "license.png", mime_type: "image/png", doc_meta: {} });
+db.claims_documents.push({ id: "DOC-R-NEW", claim_id: "DAL-2026-9001", original_name: "license.png", mime_type: "image/png", doc_meta: {} });
+const rn = await executeClaimsTool("read_claim_document", { file_id: "DOC-QA-NEW" }, sb, "DAL-QA-AI-001", "user-1", "בודק");
+check("read now: unread QA document — asks claims-doc-read read_one for that file only", fetchCalls.length === 1 && fetchCalls[0].includes("/functions/v1/claims-doc-read") && fetchCalls[0].includes("\"read_one\"") && fetchCalls[0].includes("DOC-QA-NEW") && fetchCalls[0].includes("DAL-QA-AI-001"), fetchCalls);
+check("read now: only counts come back from the reader, never text", !JSON.stringify((rn.result as any).read_now || {}).includes("SHOULD-NOT-PASS"), rn.result);
+const rr2 = await executeClaimsTool("read_claim_document", { file_id: "DOC-R-NEW" }, sb, "DAL-2026-9001", "user-1", "בודק");
+check("read now: unread real-claim document — no reading call, says it needs approval", fetchCalls.length === 1 && String(((rr2.result as any).document_read || {}).instruction).includes("עד אישור"), { fetchCalls, r: rr2.result });
+globalThis.fetch = realFetch;
 const gqa = await executeClaimsGeneralTool("read_claim_document", { claim_ref: "99-002-18", file_id: "DOC-QA" }, sb, "user-1", "בודק");
 check("general chat: approved QA claim by plate — content reaches the model", JSON.stringify(gqa.result).includes("3,850"), gqa.result);
 const rr = await executeClaimsTool("read_claim_document", { file_id: "DOC-R" }, sb, "DAL-2026-9001", "user-1", "בודק");

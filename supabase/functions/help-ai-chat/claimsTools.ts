@@ -2381,35 +2381,42 @@ export async function executeClaimsTool(
 
         let imports: Array<Record<string, unknown>> = [];
         let outbox: Array<Record<string, unknown>> = [];
+        let pending: Array<Record<string, unknown>> = [];
 
         if (direction === "inbound" || direction === "all") {
-          const { data } = await supabase
+          let impQuery = supabase
             .from("claims_gmail_imports")
-            .select("id, gmail_message_id, gmail_thread_id, from_addr, to_addr, subject, body_text, sent_at, attachment_count")
-            .eq("claim_id", claimId)
-            .order("sent_at", { ascending: false })
-            .limit(limit);
+            .select("id, gmail_message_id, gmail_thread_id, from_addr, to_addr, subject, body_text, sent_at, attachment_count");
+          if (claimId) {
+            impQuery = impQuery.eq("claim_id", claimId);
+          }
+          const { data } = await impQuery.order("sent_at", { ascending: false }).limit(limit);
           imports = (data || []).map((m) => ({
             id: m.id,
+            gmail_message_id: m.gmail_message_id,
             direction: "inbound",
             from: m.from_addr,
             to: m.to_addr,
             subject: m.subject,
             snippet: (m.body_text || "").slice(0, 200),
             sent_at: m.sent_at,
+            status: "מיובא לתיק",
+            source: "claims_gmail_imports",
             attachments: m.attachment_count || 0,
           }));
         }
 
         if (direction === "outbound" || direction === "all") {
-          const { data } = await supabase
+          let outQuery = supabase
             .from("claims_gmail_outbox")
-            .select("id, gmail_message_id, gmail_thread_id, to_addr, subject, body_text, sent_at, status, file_ids")
-            .eq("claim_id", claimId)
-            .order("sent_at", { ascending: false })
-            .limit(limit);
+            .select("id, gmail_message_id, gmail_thread_id, to_addr, subject, body_text, sent_at, status, file_ids");
+          if (claimId) {
+            outQuery = outQuery.eq("claim_id", claimId);
+          }
+          const { data } = await outQuery.order("sent_at", { ascending: false }).limit(limit);
           outbox = (data || []).map((m) => ({
             id: m.id,
+            gmail_message_id: m.gmail_message_id,
             direction: "outbound",
             from: CLAIMS_SENDER_NAME,
             to: m.to_addr,
@@ -2417,11 +2424,53 @@ export async function executeClaimsTool(
             snippet: (m.body_text || "").slice(0, 200),
             sent_at: m.sent_at,
             status: m.status,
+            source: "claims_gmail_outbox",
             attachments: Array.isArray(m.file_ids) ? m.file_ids.length : 0,
           }));
         }
 
-        let combined = [...imports, ...outbox];
+        // Cross-reference claims_gmail_pending: holds live scanned emails directly from Gmail
+        let pendQuery = supabase
+          .from("claims_gmail_pending")
+          .select("id, gmail_message_id, gmail_thread_id, from_addr, subject, snippet, sent_at, decision, reason, assigned_claim_id, candidates");
+
+        if (claimId) {
+          pendQuery = pendQuery.or(`assigned_claim_id.eq.${claimId},candidates.cs.{"${claimId}"}`);
+        }
+        const { data: pendData } = await pendQuery.order("sent_at", { ascending: false }).limit(limit * 2);
+
+        const seenMsgIds = new Set<string>([
+          ...imports.map((m) => String(m.gmail_message_id || "")).filter(Boolean),
+          ...outbox.map((m) => String(m.gmail_message_id || "")).filter(Boolean),
+        ]);
+
+        for (const p of pendData || []) {
+          const msgId = String(p.gmail_message_id || "");
+          if (seenMsgIds.has(msgId)) continue;
+          seenMsgIds.add(msgId);
+
+          const from = String(p.from_addr || "");
+          const isUserSend = from.includes("yoni122222") || from.includes("yoni atias") || from.toLowerCase().includes("atias");
+          const dir = isUserSend ? "outbound" : "inbound";
+          if (direction !== "all" && direction !== dir) continue;
+
+          pending.push({
+            id: p.id,
+            gmail_message_id: p.gmail_message_id,
+            direction: dir,
+            from: isUserSend ? CLAIMS_SENDER_NAME : p.from_addr,
+            to: isUserSend ? "נמען ב-Gmail" : CLAIMS_SENDER_NAME,
+            subject: p.subject,
+            snippet: p.snippet,
+            sent_at: p.sent_at,
+            status: isUserSend ? "נשלח מ-Gmail (ממתין לסנכרון בתיק)" : "התקבל ב-Gmail (ממתין לסנכרון בתיק)",
+            source: "claims_gmail_pending",
+            decision: p.decision,
+            attachments: 0,
+          });
+        }
+
+        let combined = [...imports, ...outbox, ...pending];
         if (query) {
           combined = combined.filter((m) =>
             String(m.subject || "").toLowerCase().includes(query) ||
@@ -2431,6 +2480,25 @@ export async function executeClaimsTool(
           );
         }
         combined.sort((a, b) => new Date(String(b.sent_at || "")).getTime() - new Date(String(a.sent_at || "")).getTime());
+
+        // Check for duplicate sends in outbound emails
+        const allOutbounds = combined.filter((m) => m.direction === "outbound");
+        let duplicateAlert: string | null = null;
+        if (allOutbounds.length >= 2) {
+          for (let i = 0; i < allOutbounds.length - 1; i++) {
+            const m1 = allOutbounds[i];
+            const m2 = allOutbounds[i + 1];
+            const s1 = String(m1.subject || "").trim().toLowerCase();
+            const s2 = String(m2.subject || "").trim().toLowerCase();
+            const t1 = new Date(String(m1.sent_at || "")).getTime();
+            const t2 = new Date(String(m2.sent_at || "")).getTime();
+            const diffSeconds = Math.abs(t1 - t2) / 1000;
+            if (s1 && s2 && s1 === s2 && diffSeconds < 600) {
+              duplicateAlert = `שים לב: זוהתה שליחה כפולה ב-Gmail של אותו אימייל ("${m1.subject}") בהפרש של ${Math.round(diffSeconds)} שניות (מזהי הודעות: ${m1.gmail_message_id || m1.id} ו-${m2.gmail_message_id || m2.id}).`;
+              break;
+            }
+          }
+        }
 
         await recordAiAudit(supabase, {
           userId,
@@ -2445,6 +2513,8 @@ export async function executeClaimsTool(
           result: {
             claim_id: claimId,
             found_count: combined.length,
+            duplicate_send_alert: duplicateAlert,
+            verification_note: "הנתונים מוצלבים מול כל תיבת ה-Gmail (הודעות שנשלחו מהמערכת, וכן הודעות שנשלחו או התקבלו ב-Gmail וממתינות לסנכרון)",
             emails: combined.slice(0, limit),
           },
         };
@@ -2517,12 +2587,14 @@ export async function executeClaimsTool(
           if (data) {
             latestInbound = {
               id: data.id,
+              gmail_message_id: data.gmail_message_id,
               direction: "inbound",
               from: data.from_addr,
               to: data.to_addr,
               subject: data.subject,
               body_snippet: (data.body_text || "").slice(0, 400),
               sent_at: data.sent_at,
+              status: "מיובא לתיק",
               attachments: data.attachment_count || 0,
             };
           }
@@ -2539,6 +2611,7 @@ export async function executeClaimsTool(
           if (data) {
             latestOutbound = {
               id: data.id,
+              gmail_message_id: data.gmail_message_id,
               direction: "outbound",
               from: CLAIMS_SENDER_NAME,
               to: data.to_addr,
@@ -2548,6 +2621,55 @@ export async function executeClaimsTool(
               status: data.status,
               attachments: Array.isArray(data.file_ids) ? data.file_ids.length : 0,
             };
+          }
+        }
+
+        // Cross-reference claims_gmail_pending for live messages in Gmail
+        if (claimId) {
+          const { data: pendRows } = await supabase
+            .from("claims_gmail_pending")
+            .select("id, gmail_message_id, from_addr, subject, snippet, sent_at")
+            .or(`assigned_claim_id.eq.${claimId},candidates.cs.{"${claimId}"}`)
+            .order("sent_at", { ascending: false })
+            .limit(5);
+
+          for (const p of pendRows || []) {
+            const from = String(p.from_addr || "");
+            const isUserSend = from.includes("yoni122222") || from.includes("yoni atias") || from.toLowerCase().includes("atias");
+            const pTime = new Date(String(p.sent_at || "")).getTime();
+            if (isUserSend && (direction === "outbound" || direction === "any")) {
+              const curOutTime = latestOutbound ? new Date(String(latestOutbound.sent_at || "")).getTime() : 0;
+              if (pTime > curOutTime) {
+                latestOutbound = {
+                  id: p.id,
+                  gmail_message_id: p.gmail_message_id,
+                  direction: "outbound",
+                  from: CLAIMS_SENDER_NAME,
+                  to: "נמען ב-Gmail",
+                  subject: p.subject,
+                  body_snippet: (p.snippet || "").slice(0, 400),
+                  sent_at: p.sent_at,
+                  status: "נשלח מ-Gmail (ממתין לסנכרון בתיק)",
+                  attachments: 0,
+                };
+              }
+            } else if (!isUserSend && (direction === "inbound" || direction === "any")) {
+              const curInTime = latestInbound ? new Date(String(latestInbound.sent_at || "")).getTime() : 0;
+              if (pTime > curInTime) {
+                latestInbound = {
+                  id: p.id,
+                  gmail_message_id: p.gmail_message_id,
+                  direction: "inbound",
+                  from: p.from_addr,
+                  to: CLAIMS_SENDER_NAME,
+                  subject: p.subject,
+                  body_snippet: (p.snippet || "").slice(0, 400),
+                  sent_at: p.sent_at,
+                  status: "התקבל ב-Gmail (ממתין לסנכרון בתיק)",
+                  attachments: 0,
+                };
+              }
+            }
           }
         }
 
@@ -2632,6 +2754,32 @@ export async function executeClaimsTool(
           }
         }
 
+        // Check claims_gmail_pending if not found in imports or outbox
+        if (!emailData) {
+          const { data: pendItem } = await supabase
+            .from("claims_gmail_pending")
+            .select("*")
+            .or(`id.eq.${emailId},gmail_message_id.eq.${emailId}`)
+            .maybeSingle();
+
+          if (pendItem) {
+            const from = String(pendItem.from_addr || "");
+            const isUserSend = from.includes("yoni122222") || from.includes("yoni atias") || from.toLowerCase().includes("atias");
+            emailData = {
+              id: pendItem.id,
+              gmail_message_id: pendItem.gmail_message_id,
+              direction: isUserSend ? "outbound" : "inbound",
+              from: isUserSend ? CLAIMS_SENDER_NAME : pendItem.from_addr,
+              to: isUserSend ? "נמען ב-Gmail" : CLAIMS_SENDER_NAME,
+              subject: pendItem.subject,
+              body: pendItem.snippet,
+              sent_at: pendItem.sent_at,
+              status: isUserSend ? "נשלח מ-Gmail (ממתין לסנכרון בתיק)" : "התקבל ב-Gmail (ממתין לסנכרון בתיק)",
+              attachments_count: 0,
+            };
+          }
+        }
+
         await recordAiAudit(supabase, {
           userId,
           userName,
@@ -2694,19 +2842,48 @@ export async function executeClaimsTool(
       }
 
       case "check_insurance_reply": {
-        const { data } = await supabase
+        let importsQuery = supabase
           .from("claims_gmail_imports")
-          .select("id, from_addr, to_addr, subject, body_text, sent_at, attachment_count")
-          .eq("claim_id", claimId)
-          .order("sent_at", { ascending: false });
+          .select("id, from_addr, to_addr, subject, body_text, sent_at, attachment_count");
+        if (claimId) {
+          importsQuery = importsQuery.eq("claim_id", claimId);
+        }
+        const { data } = await importsQuery.order("sent_at", { ascending: false });
 
-        const insuranceKeywords = ["ביטוח", "שומרה", "מגדל", "כלל", "הראל", "הפניקס", "שלמה", "איילון", "מנורה", "shlomo", "migdal", "clal", "harel", "fnx", "menora", "ayalon"];
+        const insuranceKeywords = ["ביטוח", "שומרה", "מגדל", "כלל", "הראל", "הפניקס", "שלמה", "איילון", "מנורה", "aig", "איג", "shlomo", "migdal", "clal", "harel", "fnx", "menora", "ayalon"];
         const insuranceMails = (data || []).filter((m) => {
           const from = String(m.from_addr || "").toLowerCase();
           const subj = String(m.subject || "").toLowerCase();
           return insuranceKeywords.some((kw) => from.includes(kw) || subj.includes(kw));
         });
 
+        // Also check claims_gmail_pending for incoming insurance emails
+        let pendQuery = supabase
+          .from("claims_gmail_pending")
+          .select("id, gmail_message_id, from_addr, subject, snippet, sent_at");
+        if (claimId) {
+          pendQuery = pendQuery.or(`assigned_claim_id.eq.${claimId},candidates.cs.{"${claimId}"}`);
+        }
+        const { data: pendRows } = await pendQuery.order("sent_at", { ascending: false });
+
+        for (const p of pendRows || []) {
+          const from = String(p.from_addr || "").toLowerCase();
+          const subj = String(p.subject || "").toLowerCase();
+          const isUserSend = from.includes("yoni122222") || from.includes("yoni atias") || from.includes("atias");
+          if (!isUserSend && insuranceKeywords.some((kw) => from.includes(kw) || subj.includes(kw))) {
+            insuranceMails.push({
+              id: p.id,
+              from_addr: p.from_addr,
+              to_addr: CLAIMS_SENDER_NAME,
+              subject: p.subject,
+              body_text: p.snippet,
+              sent_at: p.sent_at,
+              attachment_count: 0,
+            });
+          }
+        }
+
+        insuranceMails.sort((a, b) => new Date(String(b.sent_at || "")).getTime() - new Date(String(a.sent_at || "")).getTime());
         const latestReply = insuranceMails[0] || null;
 
         await recordAiAudit(supabase, {
@@ -5151,6 +5328,35 @@ export async function executeClaimsGeneralTool(
           .gte("created_at", todayStart)
           .order("created_at", { ascending: false });
 
+        const { data: pends } = await supabase
+          .from("claims_gmail_pending")
+          .select("id, gmail_message_id, from_addr, subject, snippet, sent_at, created_at, assigned_claim_id")
+          .gte("created_at", todayStart)
+          .order("created_at", { ascending: false });
+
+        const seenMids = new Set<string>([
+          ...(imp || []).map((m) => String(m.id || "")),
+          ...(out || []).map((m) => String(m.id || "")),
+        ]);
+
+        const pendingToday = (pends || [])
+          .filter((p) => !seenMids.has(p.id) && !seenMids.has(p.gmail_message_id))
+          .map((p) => {
+            const from = String(p.from_addr || "");
+            const isUserSend = from.includes("yoni122222") || from.includes("yoni atias") || from.toLowerCase().includes("atias");
+            return {
+              id: p.id,
+              direction: isUserSend ? "outbound" : "inbound",
+              claim_id: p.assigned_claim_id || null,
+              from: isUserSend ? CLAIMS_SENDER_NAME : p.from_addr,
+              to: isUserSend ? "נמען ב-Gmail" : CLAIMS_SENDER_NAME,
+              subject: p.subject,
+              time: p.sent_at || p.created_at,
+              status: isUserSend ? "נשלח מ-Gmail (ממתין לסנכרון בתיק)" : "התקבל ב-Gmail (ממתין לסנכרון בתיק)",
+              attachments: 0,
+            };
+          });
+
         const allEmails = [
           ...(imp || []).map((m) => ({
             id: m.id,
@@ -5172,6 +5378,7 @@ export async function executeClaimsGeneralTool(
             time: m.sent_at || m.created_at,
             status: m.status,
           })),
+          ...pendingToday,
         ].sort((a, b) => new Date(String(b.time || "")).getTime() - new Date(String(a.time || "")).getTime());
 
         await recordAiAudit(supabase, {

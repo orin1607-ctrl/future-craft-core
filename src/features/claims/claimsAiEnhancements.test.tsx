@@ -1,6 +1,6 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ClaimsAiWorkspace } from './ClaimsAiWorkspace';
+import { ClaimsAiWorkspace, cleanTextForSpeech } from './ClaimsAiWorkspace';
 
 const { listClaimsAiConversations, listClaimsAiMessages, getSession, insertClaimsAiMessage } = vi.hoisted(() => ({
   listClaimsAiConversations: vi.fn(),
@@ -29,6 +29,7 @@ vi.mock('./claimsAiStore', () => ({
 describe('Claims AI Enhancements (Tasks 1-4)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     listClaimsAiConversations.mockResolvedValue({
       data: [{
         id: 'conv-gen',
@@ -80,36 +81,39 @@ describe('Claims AI Enhancements (Tasks 1-4)', () => {
       expect(screen.getByTestId('claims-report-table-widget')).toBeDefined();
     });
 
-    // Verify headers
-    expect(screen.getByText('מספר תיק')).toBeDefined();
-    expect(screen.getByText('שם לקוח')).toBeDefined();
-    expect(screen.getByText('חברת ביטוח')).toBeDefined();
-    expect(screen.getByText('התראות פתוחות')).toBeDefined();
+    const widget = screen.getByTestId('claims-report-table-widget');
+    const scoped = within(widget);
 
-    // Verify row contents
-    expect(screen.getByText('ישראל ישראלי')).toBeDefined();
-    expect(screen.getByText('רחל כהן')).toBeDefined();
+    // Verify headers inside widget
+    expect(scoped.getByText('מספר תיק')).toBeDefined();
+    expect(scoped.getByText('שם לקוח')).toBeDefined();
+    expect(scoped.getByText('חברת ביטוח')).toBeDefined();
+    expect(scoped.getByText('התראות פתוחות')).toBeDefined();
+
+    // Verify row contents inside widget
+    expect(scoped.getByText('ישראל ישראלי')).toBeDefined();
+    expect(scoped.getByText('רחל כהן')).toBeDefined();
 
     // Verify urgent badge styling presence
-    expect(screen.getByText(/חסר אישור משטרה/)).toBeDefined();
+    expect(scoped.getByText(/חסר אישור משטרה/)).toBeDefined();
 
     // Verify clickable claim button
-    const claimButtons = screen.getAllByRole('button', { name: /פתח DAL-2026-0001/i });
+    const claimButtons = scoped.getAllByRole('button', { name: /פתח DAL-2026-0001/i });
     expect(claimButtons.length).toBeGreaterThanOrEqual(1);
 
     fireEvent.click(claimButtons[0]);
     expect(onOpenClaimMock).toHaveBeenCalledWith('DAL-2026-0001');
 
-    // Verify table search filter
-    const searchInput = screen.getByPlaceholderText(/חיפוש בטבלה/i);
+    // Verify table search filter inside widget
+    const searchInput = scoped.getByPlaceholderText(/חיפוש בטבלה/i);
     fireEvent.change(searchInput, { target: { value: 'רחל' } });
 
-    expect(screen.queryByText('ישראל ישראלי')).toBeNull();
-    expect(screen.getByText('רחל כהן')).toBeDefined();
+    expect(scoped.queryByText('ישראל ישראלי')).toBeNull();
+    expect(scoped.getByText('רחל כהן')).toBeDefined();
 
     // Verify TSV copy button exists
-    const copyTableBtn = screen.getByRole('button', { name: /📋 העתק טבלה/i });
-    expect(copyTableBtn).toBeDefined();
+    const copyTableBtns = screen.getAllByRole('button', { name: /📋 העתק טבלה/i });
+    expect(copyTableBtns.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders copy button on assistant messages and toggles copied state', async () => {
@@ -142,7 +146,7 @@ describe('Claims AI Enhancements (Tasks 1-4)', () => {
       expect(screen.getByText('יש 5 תביעות פתוחות במערכת.')).toBeDefined();
     });
 
-    const copyBtn = screen.getByRole('button', { name: /📋 העתק/i });
+    const copyBtn = screen.getByTestId('claims-ai-copy-m2');
     expect(copyBtn).toBeDefined();
 
     fireEvent.click(copyBtn);
@@ -335,4 +339,414 @@ describe('Claims AI Enhancements (Tasks 1-4)', () => {
       expect(screen.getByText(/שגיאת עומס 504\/503/i)).toBeDefined();
     });
   });
+
+  describe('cleanTextForSpeech', () => {
+    it('strips markdown syntax, tables, and links into clean spoken Hebrew text', () => {
+      const raw = '# כותרת ראשית\n**שלום רב**, להלן [תיק תביעה](claim:DAL-2026-0001):\n| מספר | סטטוס |\n|---|---|\n| 1 | `בטיפול` |\n* פריט ראשון\n- פריט שני';
+      const cleaned = cleanTextForSpeech(raw);
+      expect(cleaned).not.toContain('#');
+      expect(cleaned).not.toContain('**');
+      expect(cleaned).not.toContain('|');
+      expect(cleaned).not.toContain('`');
+      expect(cleaned).toContain('שלום רב, להלן תיק תביעה:');
+      expect(cleaned).toContain('בטיפול');
+      expect(cleaned).toContain('פריט ראשון');
+    });
+  });
+
+  describe('Task 1: Stop Text-to-Speech Playback', () => {
+    let mockSpeechSynthesis: any;
+    let lastUtterance: any;
+
+    beforeEach(() => {
+      mockSpeechSynthesis = {
+        speak: vi.fn((utter: any) => {
+          lastUtterance = utter;
+        }),
+        cancel: vi.fn(),
+        pause: vi.fn(),
+        resume: vi.fn(),
+        paused: false,
+        speaking: false,
+      };
+      Object.defineProperty(window, 'speechSynthesis', {
+        value: mockSpeechSynthesis,
+        configurable: true,
+        writable: true,
+      });
+      (globalThis as any).SpeechSynthesisUtterance = class {
+        text: string;
+        lang = '';
+        rate = 1.0;
+        onend: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        constructor(text: string) {
+          this.text = text;
+        }
+      };
+    });
+
+    it('clicking speak triggers speech synthesis and toggles button to stop speaking', async () => {
+      listClaimsAiMessages.mockResolvedValue({
+        data: [
+          { id: 'm1', conversation_id: 'conv-gen', role: 'assistant', content: 'התביעה נבדקה ואושרה', created_at: '2026-10-18T10:00:00Z', tool_name: null, metadata: {} },
+        ],
+        error: null,
+      });
+
+      render(
+        <ClaimsAiWorkspace
+          open={true}
+          onClose={vi.fn()}
+          claim={null}
+          userId="user-1"
+          companyName="מוסך אורן קאר"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('claims-ai-speak-m1')).toBeDefined();
+      });
+
+      // Click speak
+      fireEvent.click(screen.getByTestId('claims-ai-speak-m1'));
+
+      expect(mockSpeechSynthesis.speak).toHaveBeenCalled();
+      expect(lastUtterance.text).toBe('התביעה נבדקה ואושרה');
+      expect(lastUtterance.lang).toBe('he-IL');
+
+      // Button should now be Stop Speaking
+      await waitFor(() => {
+        expect(screen.getByTestId('claims-ai-stop-speaking-m1')).toBeDefined();
+        expect(screen.getAllByText('⏹️ עצור הקראה').length).toBe(2);
+      });
+
+      // Also global speaking bar appears
+      expect(screen.getByTestId('claims-ai-speaking-bar')).toBeDefined();
+
+      // Click stop speaking
+      fireEvent.click(screen.getByTestId('claims-ai-stop-speaking-m1'));
+      expect(mockSpeechSynthesis.cancel).toHaveBeenCalled();
+
+      // Returns to speak button
+      await waitFor(() => {
+        expect(screen.getByTestId('claims-ai-speak-m1')).toBeDefined();
+        expect(screen.queryByTestId('claims-ai-stop-speaking-m1')).toBeNull();
+      });
+    });
+
+    it('cancels speech synthesis when workspace is closed or speech completes naturally', async () => {
+      listClaimsAiMessages.mockResolvedValue({
+        data: [
+          { id: 'm1', conversation_id: 'conv-gen', role: 'assistant', content: 'בדיקת סיום', created_at: '2026-10-18T10:00:00Z', tool_name: null, metadata: {} },
+        ],
+        error: null,
+      });
+
+      const { rerender } = render(
+        <ClaimsAiWorkspace
+          open={true}
+          onClose={vi.fn()}
+          claim={null}
+          userId="user-1"
+          companyName="מוסך אורן קאר"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('claims-ai-speak-m1')).toBeDefined();
+      });
+
+      fireEvent.click(screen.getByTestId('claims-ai-speak-m1'));
+      expect(mockSpeechSynthesis.speak).toHaveBeenCalled();
+
+      // Simulate natural speech finish
+      act(() => {
+        lastUtterance.onend();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('claims-ai-speak-m1')).toBeDefined();
+        expect(screen.queryByTestId('claims-ai-speaking-bar')).toBeNull();
+      });
+
+      // Start speaking again and test unmount / close
+      fireEvent.click(screen.getByTestId('claims-ai-speak-m1'));
+      expect(screen.getByTestId('claims-ai-stop-speaking-m1')).toBeDefined();
+
+      rerender(
+        <ClaimsAiWorkspace
+          open={false}
+          onClose={vi.fn()}
+          claim={null}
+          userId="user-1"
+          companyName="מוסך אורן קאר"
+        />
+      );
+
+      expect(mockSpeechSynthesis.cancel).toHaveBeenCalled();
+    });
+  });
+
+  describe('Task 2: Composer Input Clearing & Non-blocking Textarea', () => {
+    it('immediately clears input upon sending and keeps textarea enabled for typing during generation', async () => {
+      listClaimsAiMessages.mockResolvedValue({ data: [], error: null });
+      insertClaimsAiMessage.mockImplementation(async (arg: any) => ({
+        data: {
+          id: `m-${Date.now()}`,
+          conversation_id: arg.conversationId || 'conv-gen',
+          role: arg.role,
+          content: arg.content,
+          created_at: new Date().toISOString(),
+          metadata: {},
+        },
+        error: null,
+      }));
+
+      (globalThis as any).fetch = vi.fn(() => new Promise(() => {})); // pending fetch
+
+      render(
+        <ClaimsAiWorkspace
+          open={true}
+          onClose={vi.fn()}
+          claim={null}
+          userId="user-1"
+          companyName="מוסך אורן קאר"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('claims-ai-input')).toBeDefined();
+      });
+
+      const input = screen.getByTestId('claims-ai-input') as HTMLTextAreaElement;
+      fireEvent.change(input, { target: { value: 'הודעה ראשונה' } });
+      expect(input.value).toBe('הודעה ראשונה');
+
+      fireEvent.submit(input.closest('form')!);
+
+      // Immediately cleared
+      expect(input.value).toBe('');
+
+      // Loading is active
+      await waitFor(() => {
+        expect(screen.getByTestId('claims-ai-loading')).toBeDefined();
+      });
+
+      // Textarea remains enabled so user can type the next question freely!
+      expect(input.disabled).toBe(false);
+      fireEvent.change(input, { target: { value: 'הקלדה בזמן טעינה' } });
+      expect(input.value).toBe('הקלדה בזמן טעינה');
+    });
+
+    it('restores input text if user message failed saving before entering chat', async () => {
+      listClaimsAiMessages.mockResolvedValue({ data: [], error: null });
+      insertClaimsAiMessage.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Network Failure' },
+      });
+
+      render(
+        <ClaimsAiWorkspace
+          open={true}
+          onClose={vi.fn()}
+          claim={null}
+          userId="user-1"
+          companyName="מוסך אורן קאר"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('claims-ai-input')).toBeDefined();
+      });
+
+      const input = screen.getByTestId('claims-ai-input') as HTMLTextAreaElement;
+      fireEvent.change(input, { target: { value: 'טקסט שלא אמור ללכת לאיבוד' } });
+
+      fireEvent.submit(input.closest('form')!);
+
+      await waitFor(() => {
+        expect(input.value).toBe('טקסט שלא אמור ללכת לאיבוד');
+      });
+    });
+  });
+
+  describe('Task 3: Continuous Voice Conversation Mode', () => {
+    let mockSpeechRec: any = null;
+    let mockSpeechSynthesis: any;
+
+    beforeEach(() => {
+      class MockSpeechRec {
+        lang = '';
+        continuous = false;
+        interimResults = false;
+        onresult: any = null;
+        onerror: any = null;
+        onend: any = null;
+        start = vi.fn();
+        stop = vi.fn();
+        constructor() {
+          mockSpeechRec = this;
+        }
+      }
+      Object.defineProperty(window, 'SpeechRecognition', { value: MockSpeechRec, configurable: true, writable: true });
+      mockSpeechSynthesis = {
+        speak: vi.fn(),
+        cancel: vi.fn(),
+        pause: vi.fn(),
+        resume: vi.fn(),
+        paused: false,
+        speaking: false,
+      };
+      Object.defineProperty(window, 'speechSynthesis', {
+        value: mockSpeechSynthesis,
+        configurable: true,
+        writable: true,
+      });
+    });
+
+    it('toggles continuous voice mode on and off via header button', async () => {
+      listClaimsAiMessages.mockResolvedValue({ data: [], error: null });
+
+      render(
+        <ClaimsAiWorkspace
+          open={true}
+          onClose={vi.fn()}
+          claim={null}
+          userId="user-1"
+          companyName="מוסך אורן קאר"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('claims-ai-voice-call-toggle')).toBeDefined();
+      });
+
+      const toggleBtn = screen.getByTestId('claims-ai-voice-call-toggle');
+      expect(toggleBtn.textContent).toContain('התחל שיחה קולית');
+
+      // Activate voice mode
+      fireEvent.click(toggleBtn);
+
+      expect(toggleBtn.textContent).toContain('סיים שיחה קולית');
+      expect(screen.getByTestId('claims-ai-voice-mode-bar')).toBeDefined();
+      expect(mockSpeechRec).not.toBeNull();
+      expect(mockSpeechRec.continuous).toBe(true);
+
+      // Deactivate voice mode
+      fireEvent.click(toggleBtn);
+      expect(toggleBtn.textContent).toContain('התחל שיחה קולית');
+      expect(screen.queryByTestId('claims-ai-voice-mode-bar')).toBeNull();
+      expect(mockSpeechSynthesis.cancel).toHaveBeenCalled();
+    });
+
+    it('cancels speech immediately when stop speaking button is clicked', async () => {
+      listClaimsAiMessages.mockResolvedValue({
+        data: [
+          { id: 'm1', conversation_id: 'conv-gen', role: 'assistant', content: 'שלום, אני דליה ומקריאה תשובה ארוכה.', created_at: '2026-10-18T10:02:00Z', tool_name: null, metadata: {} },
+        ],
+        error: null,
+      });
+
+      render(
+        <ClaimsAiWorkspace
+          open={true}
+          onClose={vi.fn()}
+          claim={null}
+          userId="user-1"
+          companyName="מוסך אורן קאר"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('claims-ai-speak-m1')).toBeDefined();
+      });
+
+      // Click speak
+      fireEvent.click(screen.getByTestId('claims-ai-speak-m1'));
+      expect(mockSpeechSynthesis.speak).toHaveBeenCalled();
+
+      // Verify stop button appears
+      const stopBtn = screen.getByTestId('claims-ai-stop-speaking-m1');
+      expect(stopBtn.textContent).toContain('עצור הקראה');
+
+      // Click stop
+      fireEvent.click(stopBtn);
+      expect(mockSpeechSynthesis.cancel).toHaveBeenCalled();
+
+      // Verify button reverts to speak
+      await waitFor(() => {
+        expect(screen.getByTestId('claims-ai-speak-m1')).toBeDefined();
+      });
+    });
+  });
+
+  describe('Task 5: Docked Claims Report Widget', () => {
+    it('docks table report above composer and allows expand, collapse, hide, and restore via pill', async () => {
+      const tableMarkdown = [
+        '| מספר תיק | שם לקוח | חברת ביטוח | סטטוס |',
+        '|---|---|---|---|',
+        '| DAL-2026-0010 | דני דין | הפניקס | בטיפול |',
+        '| DAL-2026-0011 | שרה סילברמן | מגדל | הושלם |',
+      ].join('\n');
+
+      listClaimsAiMessages.mockResolvedValue({
+        data: [
+          { id: 'm1', conversation_id: 'conv-gen', role: 'assistant', content: tableMarkdown, created_at: '2026-10-18T10:02:00Z', tool_name: null, metadata: {} },
+        ],
+        error: null,
+      });
+
+      render(
+        <ClaimsAiWorkspace
+          open={true}
+          onClose={vi.fn()}
+          claim={null}
+          userId="user-1"
+          companyName="מוסך אורן קאר"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('claims-ai-docked-report')).toBeDefined();
+      });
+
+      const dockedReport = screen.getByTestId('claims-ai-docked-report');
+      expect(dockedReport.className).toContain('normal');
+      expect(screen.getByTestId('claims-ai-docked-refresh-btn')).toBeDefined();
+      expect(screen.getByTestId('claims-ai-docked-copy-btn')).toBeDefined();
+
+      // Test filter
+      const searchInput = screen.getByTestId('claims-ai-docked-search');
+      fireEvent.change(searchInput, { target: { value: 'שרה' } });
+      const dockedScoped = within(dockedReport);
+      expect(dockedScoped.queryByText('דני דין')).toBeNull();
+      expect(dockedScoped.getByText('שרה סילברמן')).toBeDefined();
+
+      // Test collapse
+      const collapseBtn = screen.getByTestId('claims-ai-docked-collapse-btn');
+      fireEvent.click(collapseBtn);
+      expect(dockedReport.className).toContain('collapsed');
+
+      // Test expand
+      const expandBtn = screen.getByTestId('claims-ai-docked-expand-btn');
+      fireEvent.click(expandBtn);
+      expect(dockedReport.className).toContain('expanded');
+
+      // Test hide
+      const closeBtn = screen.getByTestId('claims-ai-docked-close-btn');
+      fireEvent.click(closeBtn);
+      expect(screen.queryByTestId('claims-ai-docked-report')).toBeNull();
+
+      // Verify restore pill is shown
+      expect(screen.getByTestId('claims-ai-docked-pill-bar')).toBeDefined();
+      const showPill = screen.getByTestId('claims-ai-docked-show-btn');
+      expect(showPill.textContent).toContain('הצג טבלת דוח (2 תיקים)');
+
+      // Restore via pill
+      fireEvent.click(showPill);
+      expect(screen.getByTestId('claims-ai-docked-report')).toBeDefined();
+    });
+  });
 });
+

@@ -185,6 +185,7 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, '127.0.0.1', () => {
   console.log('SCOPES_PAGE', `http://127.0.0.1:${PORT}/`);
+  console.log('DIRECT_AUTH_URL', authUrl);
   console.log('AUTH_URL_READY');
   console.log('WAITING_FOR_OWNER_CONSENT');
 });
