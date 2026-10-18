@@ -435,6 +435,9 @@ async function callGemini(
       let passTools = tools && tools.length > 0;
       let totalToolCalls = 0;
       let hasComprehensiveReport = false;
+      let lastReportTable: string | null = null;
+      let lastReportTitle: string | null = null;
+      let lastReportExpectedCount = 0;
       const turnStartTime = Date.now();
 
       while (maxTurns > 0) {
@@ -445,7 +448,7 @@ async function callGemini(
           contents,
           generationConfig: {
             temperature,
-            maxOutputTokens: 2048,
+            maxOutputTokens: 8192,
           },
         };
         if (passTools) {
@@ -496,6 +499,15 @@ async function callGemini(
               accumulatedPendingActions.push(toolRes.preview);
             }
 
+            if (fnName === "get_claims_status_report") {
+              const resObj = toolRes && typeof toolRes === "object" && "result" in toolRes ? (toolRes as any).result : toolRes;
+              if (resObj?.markdown_table) {
+                lastReportTable = String(resObj.markdown_table);
+                lastReportTitle = String(resObj.title || "");
+                lastReportExpectedCount = Number(resObj.total_claims || (resObj.claims ? resObj.claims.length : 0));
+              }
+            }
+
             responseParts.push({
               functionResponse: {
                 name: fnName,
@@ -521,7 +533,7 @@ async function callGemini(
             passTools = false;
             contents.push({
               role: "user",
-              parts: [{ text: "כל הנתונים הנדרשים נאספו בהצלחה מהמערכת. אנא סכם אותם כעת והצג את התשובה הסופית המלאה (כולל טבלת 13 העמודות אם התבקש דוח סטטוס תביעות) ללא הפעלת כלים נוספים." }],
+              parts: [{ text: `כל הנתונים הנדרשים נאספו בהצלחה מהמערכת. הצג את התשובה הסופית הכוללת כותרת "## ${lastReportTitle || "דוח סטטוס תביעות"}" ולאחר מכן את טבלת ה-Markdown המלאה של כל התיקים ללא השמטה.` }],
             });
           }
           continue;
@@ -530,9 +542,31 @@ async function callGemini(
         // If there's an accumulated pending action and the model stopped or returned no text,
         // create a helpful default message
         const textParts = parts.filter((p: any) => !p.thought && typeof p.text === "string").map((p: any) => p.text);
-        const text = textParts.join("").trim() || parts.map((p: any) => p.text || "").join("").trim();
+        let text = textParts.join("").trim() || parts.map((p: any) => p.text || "").join("").trim();
         const finalPending = bundlePendingActions(accumulatedPendingActions);
         if (text) {
+          if (lastReportTable && lastReportExpectedCount > 0) {
+            const lines = text.split("\n");
+            const dataRowLines = lines.filter((l) => /^\s*\|.*\|\s*$/.test(l) && !/^\s*\|(?:\s*:?-+:?\s*\|)+\s*$/.test(l));
+            const tableDataRowsCount = Math.max(0, dataRowLines.length - 1);
+            if (tableDataRowsCount < lastReportExpectedCount) {
+              const firstTblIdx = lines.findIndex((l) => /^\s*\|.*\|\s*$/.test(l));
+              if (firstTblIdx !== -1) {
+                let lastTblIdx = firstTblIdx;
+                for (let idx = firstTblIdx; idx < lines.length; idx++) {
+                  if (/^\s*\|.*\|\s*$/.test(lines[idx]) || lines[idx].trim() === "") {
+                    lastTblIdx = idx;
+                  } else {
+                    break;
+                  }
+                }
+                lines.splice(firstTblIdx, lastTblIdx - firstTblIdx + 1, lastReportTable);
+                text = lines.join("\n");
+              } else {
+                text = `${text}\n\n${lastReportTable}`;
+              }
+            }
+          }
           modelResponded = true;
           return { text, model, pendingAction: finalPending };
         } else if (finalPending) {
@@ -692,6 +726,9 @@ async function callClaude(
       let passTools = anthropicTools && anthropicTools.length > 0;
       let totalToolCalls = 0;
       let hasComprehensiveReport = false;
+      let lastReportTable: string | null = null;
+      let lastReportTitle: string | null = null;
+      let lastReportExpectedCount = 0;
       const turnStartTime = Date.now();
 
       while (maxTurns > 0) {
@@ -699,7 +736,7 @@ async function callClaude(
         // No `temperature`: current Claude models reject it (400 "temperature is deprecated").
         const payload: Record<string, unknown> = {
           model,
-          max_tokens: 2048,
+          max_tokens: 8192,
           system: systemInstruction,
           messages: claudeMessages,
         };
@@ -746,6 +783,16 @@ async function callClaude(
             if (toolRes && typeof toolRes === "object" && toolRes.preview) {
               accumulatedPendingActions.push(toolRes.preview);
             }
+
+            if (tub.name === "get_claims_status_report") {
+              const resObj = toolRes && typeof toolRes === "object" && "result" in toolRes ? (toolRes as any).result : toolRes;
+              if (resObj?.markdown_table) {
+                lastReportTable = String(resObj.markdown_table);
+                lastReportTitle = String(resObj.title || "");
+                lastReportExpectedCount = Number(resObj.total_claims || (resObj.claims ? resObj.claims.length : 0));
+              }
+            }
+
             toolResults.push({
               type: "tool_result",
               tool_use_id: tub.id,
@@ -763,7 +810,7 @@ async function callClaude(
             passTools = false;
             claudeMessages.push({
               role: "user",
-              content: [{ type: "text", text: "כל הנתונים הנדרשים נאספו בהצלחה מהמערכת. אנא סכם אותם כעת והצג את התשובה הסופית המלאה (כולל טבלת 13 העמודות אם התבקש דוח סטטוס תביעות) ללא הפעלת כלים נוספים." }],
+              content: [{ type: "text", text: `כל הנתונים הנדרשים נאספו בהצלחה מהמערכת. הצג את התשובה הסופית הכוללת כותרת "## ${lastReportTitle || "דוח סטטוס תביעות"}" ולאחר מכן את טבלת ה-Markdown המלאה של כל התיקים ללא השמטה.` }],
             });
           }
           continue;
@@ -772,10 +819,32 @@ async function callClaude(
         const textParts = contentBlocks
           .filter((b: any) => b.type === "text" && typeof b.text === "string")
           .map((b: any) => b.text);
-        const text = textParts.join("").trim();
+        let text = textParts.join("").trim();
         const finalPending = bundlePendingActions(accumulatedPendingActions);
 
         if (text) {
+          if (lastReportTable && lastReportExpectedCount > 0) {
+            const lines = text.split("\n");
+            const dataRowLines = lines.filter((l) => /^\s*\|.*\|\s*$/.test(l) && !/^\s*\|(?:\s*:?-+:?\s*\|)+\s*$/.test(l));
+            const tableDataRowsCount = Math.max(0, dataRowLines.length - 1);
+            if (tableDataRowsCount < lastReportExpectedCount) {
+              const firstTblIdx = lines.findIndex((l) => /^\s*\|.*\|\s*$/.test(l));
+              if (firstTblIdx !== -1) {
+                let lastTblIdx = firstTblIdx;
+                for (let idx = firstTblIdx; idx < lines.length; idx++) {
+                  if (/^\s*\|.*\|\s*$/.test(lines[idx]) || lines[idx].trim() === "") {
+                    lastTblIdx = idx;
+                  } else {
+                    break;
+                  }
+                }
+                lines.splice(firstTblIdx, lastTblIdx - firstTblIdx + 1, lastReportTable);
+                text = lines.join("\n");
+              } else {
+                text = `${text}\n\n${lastReportTable}`;
+              }
+            }
+          }
           modelResponded = true;
           return { text, model, pendingAction: finalPending };
         } else if (finalPending) {

@@ -741,11 +741,56 @@ describe('Claims AI Enhancements (Tasks 1-4)', () => {
       // Verify restore pill is shown
       expect(screen.getByTestId('claims-ai-docked-pill-bar')).toBeDefined();
       const showPill = screen.getByTestId('claims-ai-docked-show-btn');
-      expect(showPill.textContent).toContain('הצג טבלת דוח (2 תיקים)');
+      expect(showPill.textContent).toContain('הצג טבלת דוח (2 תביעות פתוחות)');
 
       // Restore via pill
       fireEvent.click(showPill);
       expect(screen.getByTestId('claims-ai-docked-report')).toBeDefined();
+    });
+
+    it('renders all 19 open claims in docked report without truncation and formats title with open claims count', async () => {
+      const openClaimRows = Array.from({ length: 19 }, (_, i) => {
+        const id = `DAL-2026-${String(i + 1).padStart(4, '0')}`;
+        return `| ${id} | לקוח ${i + 1} | מגדל | בטיפול | טיפול ${i + 1} | 18/10/2026 | נשלח | ממתין | חסר | יוסי | מעקב | 20/10 | אין | [פתח](claim:${id}) |`;
+      });
+
+      const reportContent = [
+        '### 📊 דוח כללי – כל התביעות הפתוחות במערכת (סה״כ: 19 תביעות פתוחות)',
+        '',
+        '| מספר תיק | שם לקוח | חברת ביטוח | סטטוס נוכחי | פעולה אחרונה | מועד פעולה | סטטוס אימייל | תשובת מבטחת אחרונה | למה ממתינים | גורם מטפל | פעולה נדרשת | מועד מעקב | התראות פתוחות | פתח תיק |',
+        '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
+        ...openClaimRows,
+      ].join('\n');
+
+      listClaimsAiMessages.mockResolvedValue({
+        data: [
+          { id: 'm-rep', conversation_id: 'conv-gen', role: 'assistant', content: reportContent, created_at: '2026-10-18T10:02:00Z', tool_name: 'get_claims_status_report', metadata: {} },
+        ],
+        error: null,
+      });
+
+      render(
+        <ClaimsAiWorkspace
+          open={true}
+          onClose={vi.fn()}
+          claim={null}
+          userId="user-1"
+          companyName="מוסך אורן קאר"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('claims-ai-docked-report')).toBeDefined();
+      });
+
+      const docked = screen.getByTestId('claims-ai-docked-report');
+      // Assert that header contains total open claims
+      expect(docked.textContent).toContain('סה״כ: 19 תביעות פתוחות');
+      // Assert all 19 claims are in table
+      for (let i = 1; i <= 19; i++) {
+        const id = `DAL-2026-${String(i).padStart(4, '0')}`;
+        expect(within(docked).getByText(new RegExp(id))).toBeDefined();
+      }
     });
   });
 });

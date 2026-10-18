@@ -923,12 +923,18 @@ export function ClaimsAiWorkspace({
       const m = messages[i];
       if (m.role === 'assistant' && !m.metadata?.error) {
         const blocks = parseBlocks(m.content);
-        const tbl = blocks.find((b) => b.type === 'table' && b.headers && b.rows && b.rows.length > 0);
-        if (tbl && tbl.headers && tbl.rows) {
+        const tables = blocks.filter((b) => b.type === 'table' && b.headers && b.rows && b.rows.length > 0);
+        if (tables.length > 0) {
+          const firstTbl = tables[0];
+          const allRows = tables.flatMap((t) => t.rows || []);
+          let reportTitle = m.content.split('\n')[0]?.replace(/[#*`]/g, '').trim() || 'דוח תביעות פתוחות';
+          if (!reportTitle.includes('תביעות פתוחות') && !reportTitle.includes('סה״כ')) {
+            reportTitle = `${reportTitle} (סה״כ תביעות פתוחות: ${allRows.length})`;
+          }
           const reportData = {
-            headers: tbl.headers,
-            rows: tbl.rows,
-            title: m.content.split('\n')[0]?.replace(/[#*`]/g, '').trim() || 'דוח תביעות',
+            headers: firstTbl.headers || [],
+            rows: allRows,
+            title: reportTitle,
             updatedAt: new Date(m.created_at || Date.now()).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
           };
           setDockedReport(reportData);
@@ -2125,7 +2131,7 @@ export function ClaimsAiWorkspace({
                 onClick={() => setDockedTableState('normal')}
                 title="הצג את טבלת דוח התביעות הפעיל"
               >
-                📊 הצג טבלת דוח ({dockedReport.rows.length} תיקים) · עודכן {dockedReport.updatedAt}
+                📊 הצג טבלת דוח ({dockedReport.rows.length} תביעות פתוחות) · עודכן {dockedReport.updatedAt}
               </button>
             </div>
           ) : (
@@ -2133,7 +2139,9 @@ export function ClaimsAiWorkspace({
               <div className="claims-ai-docked-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: 13, color: 'var(--t)' }}>
-                    📊 {dockedReport.title || 'דוח תביעות'} ({filteredDockedRows.length} מתוך {dockedReport.rows.length})
+                    {dockedReport.title.startsWith('📊') ? '' : '📊 '}
+                    {dockedReport.title.includes('סה״כ') ? dockedReport.title : `${dockedReport.title} (סה״כ תביעות פתוחות: ${dockedReport.rows.length})`}
+                    {filteredDockedRows.length !== dockedReport.rows.length ? ` · מוצגות ${filteredDockedRows.length} לפי סינון` : ''}
                   </strong>
                   <span style={{ fontSize: 11, color: 'var(--t3)' }}>
                     עודכן ב-{dockedReport.updatedAt}
@@ -2142,7 +2150,7 @@ export function ClaimsAiWorkspace({
                     type="button"
                     className="claims-ai-action-btn"
                     data-testid="claims-ai-docked-refresh-btn"
-                    onClick={() => void sendMessage('רענן דוח תביעות כללי', 'text')}
+                    onClick={() => void sendMessage('רענן דוח על כל התביעות הפתוחות', 'text')}
                     disabled={loading}
                     title="רענן נתוני דוח תביעות"
                   >

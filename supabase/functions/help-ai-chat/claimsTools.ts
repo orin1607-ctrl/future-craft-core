@@ -782,11 +782,15 @@ export const CLAIMS_GENERAL_GEMINI_TOOLS = [
           properties: {
             filter_status: {
               type: "STRING",
-              description: "סינון לפי סטטוס מסוים או 'all' לכלל התיקים (ברירת מחדל 'all')",
+              description: "סינון לפי סטטוס מסוים, או 'open' עבור תביעות פתוחות, או 'all' לכלל התיקים (ברירת מחדל 'all')",
             },
             include_closed: {
               type: "BOOLEAN",
-              description: "האם לכלול גם תיקים סגורים/הושלמו (ברירת מחדל true)",
+              description: "האם לכלול גם תיקים סגורים/הושלמו/שולמו (ברירת מחדל false עבור דוח תביעות פתוחות)",
+            },
+            open_only: {
+              type: "BOOLEAN",
+              description: "האם להציג אך ורק תביעות פתוחות ללא סגורות/שולמו (ברירת מחדל true כאשר המשתמש מבקש תביעות פתוחות)",
             },
           },
         },
@@ -1221,13 +1225,14 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
       המערכת תיצור את הלקוח (אם אינו קיים), תקדם את מונה התביעות (DAL-YYYY-XXXX), תיצור את תיק התביעה ב-claims_records, תשמור את כל הקבצים והתמונות ב-claims-docs וב-claims_documents (תמונות לגלריה, מסמכים לספרייה), ותתעד Audit מלא.
 
 2. סקירת תביעות ודוח סטטוס כלל התיקים במערכת:
-   - כאשר המשתמש מבקש "תוציא לי דוח כללי על כל התיקים", "מה מצב התביעות?", "דוח כללי", "סטטוס תביעות", "דוח שלם על כל התביעות", "טבלת סטטוסים", או שואל על כלל התיקים:
+   - כאשר המשתמש מבקש "תוציא לי דוח כללי על כל התיקים", "מה מצב התביעות?", "דוח כללי", "סטטוס תביעות", "דוח על כל התביעות הפתוחות", "דוח תביעות פתוחות", "דוח שלם על כל התביעות", "טבלת סטטוסים", או שואל על כלל התיקים:
      חובה מוחלטת לקרוא מיידית אך ורק לכלי get_claims_status_report!
+     כאשר המשתמש מבקש תביעות פתוחות/פעילות, העבר open_only: true ו-include_closed: false כדי להציג את כל התביעות הפתוחות ללא סגורות/שולמו.
      חוק בל יעבור (Zero-Loop Rule): אסור בהחלט לקרוא לכלי תיק בודד בלולאה (כגון check_insurance_reply, get_claim_next_action, get_missing_claim_documents) עבור כל תיק בנפרד!
-     הכלי get_claims_status_report כבר שולף ומחזיר במרוכז ובפנייה אחת מהירה את כל 13 העמודות לכלל התיקים (כולל מצב ביטוח, מענה, מסמכים חסרים, פעולה אחרונה ופעולה הבאה). כל קריאה בלולאה תיצור עיכוב של דקות ותגרום לקריסת שרת (504 Timeout).
-     גם אם בהודעות קודמות בשיחה הוזכרו כלים ספציפיים אלה, get_claims_status_report הוא הכלי הבלעדי והמוחלט שמספק את המענה המלא.
-     לעולם אל תסתפק בתשובה טקסטואלית כללית, ואל תציג רק 5 או 15 תיקים. הצג תמיד טבלת Markdown מסודרת ומלאה של כל התיקים שהוחזרו ללא יוצא מן הכלל.
-     הטבלה חייבת לכלול את כל 13 העמודות:
+     הכלי get_claims_status_report כבר שולף ומחזיר במרוכז ובפנייה אחת מהירה את כל 14 העמודות לכלל התיקים וטבלת markdown_table מוכנה ומלאה.
+     לעולם אל תסתפק בתשובה טקסטואלית כללית, ואל תציג רק חלק מהתיקים. הצג תמיד טבלת Markdown מסודרת אחת יחידה ומלאה של כל התיקים שהוחזרו ללא יוצא מן הכלל.
+     הכותרת בראש התשובה חייבת להכיל מספר ברור: "## דוח סטטוס תביעות (סה״כ תביעות פתוחות: X)".
+     הטבלה חייבת לכלול את כל 14 העמודות:
      1. מספר תיק (עם קישור לחיץ [DAL-YYYY-NNNN](claim:DAL-YYYY-NNNN) או [פתח תיק](claim:DAL-YYYY-NNNN)) ומספר תביעה
      2. שם לקוח ומספר לקוח/ת.ז.
      3. חברת הביטוח ומצב הטיפול מולה
@@ -4523,8 +4528,15 @@ async function handleGetClaimsStatusReport(
   userName: string,
   toolName = "get_claims_status_report",
 ): Promise<{ result: unknown }> {
+  const CLOSED_STATUS_SET = new Set(["הסתיים", "שולם", "נדחה", "הושלם", "סגור", "בוטל"]);
+  const isClaimClosed = (status: string, rowData?: Record<string, unknown>): boolean => {
+    const st = String(status || rowData?.status || "").trim();
+    const archived = String(rowData?.archived || "").toLowerCase() === "true";
+    return archived || CLOSED_STATUS_SET.has(st);
+  };
+
   const filterStatus = String(args.filter_status || "all").trim();
-  const includeClosed = args.include_closed !== false;
+  const openOnly = args.open_only === true || args.include_closed === false || filterStatus === "open" || filterStatus === "פתוח" || filterStatus === "פתוחות";
 
   // 1. Fetch claims records
   const { data: recs, error: recsErr } = await supabase
@@ -4544,19 +4556,23 @@ async function handleGetClaimsStatusReport(
     return !isDeleted && !isHidden;
   });
 
-  if (filterStatus && filterStatus !== "all") {
+  const totalOpenInSystem = activeRecs.filter((r) => !isClaimClosed(r.status, (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>)).length;
+
+  if (openOnly) {
+    activeRecs = activeRecs.filter((r) => {
+      const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
+      return !isClaimClosed(r.status, rd);
+    });
+  } else if (filterStatus && filterStatus !== "all" && filterStatus !== "closed") {
     activeRecs = activeRecs.filter((r) => {
       const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
       const st = String(r.status || rd.status || "");
       return st === filterStatus;
     });
-  }
-
-  if (!includeClosed) {
+  } else if (filterStatus === "closed") {
     activeRecs = activeRecs.filter((r) => {
       const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
-      const st = String(r.status || rd.status || "");
-      return st !== "הושלם" && st !== "סגור";
+      return isClaimClosed(r.status, rd);
     });
   }
 
@@ -4827,6 +4843,56 @@ async function handleGetClaimsStatusReport(
 
   items.sort((a, b) => b.urgency_score - a.urgency_score);
 
+  const tableHeaders = [
+    "מספר תיק",
+    "שם לקוח",
+    "חברת ביטוח",
+    "סטטוס נוכחי",
+    "פעולה אחרונה",
+    "מועד פעולה",
+    "מצב אימייל",
+    "תשובת מבטחת אחרונה",
+    "למה ממתינים",
+    "גורם מטפל",
+    "פעולה נדרשת",
+    "מועד מעקב",
+    "התראות פתוחות",
+    "פתח תיק",
+  ];
+
+  const tableRows = items.map((it) => {
+    const claimDisplay = it.claim_num && it.claim_num !== it.claim_id
+      ? `[${it.claim_id}](claim:${it.claim_id}) · ${it.claim_num}`
+      : `[${it.claim_id}](claim:${it.claim_id})`;
+    const clientDisplay = it.client_name ? `${it.client_name}${it.client_id ? ` · ${it.client_id}` : ""}` : "לא צוין";
+    return [
+      claimDisplay,
+      clientDisplay,
+      it.ins_company || "לא צוין",
+      it.status || "חדש",
+      it.last_action || "—",
+      it.last_action_date || "—",
+      it.email_status || "טרם נשלח אימייל",
+      it.insurer_last_reply || "לא תועד מענה",
+      it.waiting_for || "—",
+      it.handler || "לא שויך",
+      it.next_action || "—",
+      it.next_followup_date || "לא נקבע",
+      it.open_alerts || "אין התראות פתוחות",
+      `[פתח תיק](claim:${it.claim_id})`,
+    ];
+  });
+
+  const markdownLines = [
+    `| ${tableHeaders.join(" | ")} |`,
+    `| ${tableHeaders.map(() => "---").join(" | ")} |`,
+    ...tableRows.map((row) => `| ${row.map((cell) => String(cell).replace(/\|/g, " ").replace(/\r?\n/g, " ")).join(" | ")} |`),
+  ];
+  const markdownTable = markdownLines.join("\n");
+  const reportTitle = openOnly
+    ? `דוח סטטוס תביעות פתוחות (סה״כ תביעות פתוחות: ${items.length})`
+    : `דוח סטטוס תביעות (סה״כ תביעות פתוחות: ${totalOpenInSystem} מתוך ${items.length} תיקים)`;
+
   await recordAiAudit(supabase, {
     userId,
     userName,
@@ -4838,7 +4904,12 @@ async function handleGetClaimsStatusReport(
   return {
     result: {
       total_claims: items.length,
+      open_claims: totalOpenInSystem,
       urgent_claims: items.filter((x) => x.is_urgent).length,
+      title: reportTitle,
+      headers: tableHeaders,
+      rows: tableRows,
+      markdown_table: markdownTable,
       claims: items,
     },
   };
