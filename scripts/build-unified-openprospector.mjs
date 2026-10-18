@@ -668,7 +668,7 @@ window.runMainLeadDiscovery = async function() {
 
     toast("✓ איתור הלידים הושלם בהצלחה! אותרו " + totalCo + " חברות מאומתות.", "success");
     if (statusEl) {
-      statusEl.innerHTML = '<span style="color:#16a34a;font-weight:700">✓ הושלם בהצלחה: ' + totalCo + ' חברות רגילות מאומתות (' + withPhone + ' טלפונים מאומתים).</span> <button type="button" class="btn btn-sm" onclick="navigateToTab(\\'companies\\')" style="margin-inline-start:8px;background:#2563eb;color:#fff;font-weight:700">צפה בתוצאות ב\\"חברות שנמצאו\\" ◀</button>';
+      statusEl.innerHTML = '<span style="color:#16a34a;font-weight:700">✓ הושלם בהצלחה: ' + totalCo + ' חברות רגילות מאומתות (' + withPhone + ' טלפונים מאומתים).</span> <button type="button" class="btn btn-sm" onclick="window.navigateToBatch200()" style="margin-inline-start:8px;background:#2563eb;color:#fff;font-weight:700">צפה ב-200 החברות מהחיפוש האחרון ◀</button>';
     }
   } catch(e) {
     console.error("Discovery error:", e);
@@ -704,10 +704,10 @@ V.search = () => {
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span class="chip" style="background:#dbeafe;color:#1d4ed8;font-weight:700;font-size:12.5px;padding:6px 14px">
-          🏢 200 חברות רגילות מאומתות
+        <span class="chip" onclick="window.navigateToBatch200()" style="background:#dbeafe;color:#1d4ed8;font-weight:700;font-size:12.5px;padding:6px 14px;cursor:pointer" title="לחץ לצפייה ב-200 החברות מהחיפוש האחרון">
+          🏢 200 החברות מהחיפוש האחרון
         </span>
-        <span class="chip" style="background:#dcfce7;color:#15803d;font-weight:700;font-size:12.5px;padding:6px 14px">
+        <span class="chip" onclick="window.navigateToBatch200()" style="background:#dcfce7;color:#15803d;font-weight:700;font-size:12.5px;padding:6px 14px;cursor:pointer" title="לחץ לצפייה בחברות עם טלפונים מאומתים">
           📞 149 טלפונים מאומתים
         </span>
       </div>
@@ -860,19 +860,25 @@ V.search = () => {
         <span>השלמת טלפונים</span>
       </button>
 
-      <!-- 2. Found Companies (Blue) -->
-      <button type="button" onclick="navigateToTab('companies')" class="btn" style="background:#2563eb;color:#fff;font-weight:700;padding:13px 18px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;box-shadow:0 2px 8px rgba(37,99,235,0.25)">
+      <!-- 2. 200 החברות מהחיפוש האחרון (Blue) -->
+      <button type="button" id="btnHubBatch200" onclick="window.navigateToBatch200()" class="btn" style="background:#2563eb;color:#fff;font-weight:700;padding:13px 18px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;box-shadow:0 2px 8px rgba(37,99,235,0.25)">
         <span style="font-size:18px">🏢</span>
-        <span>חברות שנמצאו (200)</span>
+        <span>200 החברות מהחיפוש האחרון</span>
       </button>
 
-      <!-- 3. My Leads (Purple) -->
+      <!-- 3. כל החברות במאגר (Card/Outline) -->
+      <button type="button" id="btnHubAllCompanies" onclick="window.navigateToAllCompanies()" class="btn" style="background:var(--card);border:1.5px solid #64748b;color:#334155;font-weight:700;padding:13px 18px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px">
+        <span style="font-size:18px">🌐</span>
+        <span>כל החברות במאגר</span>
+      </button>
+
+      <!-- 4. My Leads (Purple) -->
       <button type="button" onclick="navigateToTab('leads')" class="btn" style="background:#7c3aed;color:#fff;font-weight:700;padding:13px 18px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;box-shadow:0 2px 8px rgba(124,58,237,0.25)">
         <span style="font-size:18px">⭐</span>
         <span>הלידים שלי</span>
       </button>
 
-      <!-- 4. Search Sources (Card/Outline) -->
+      <!-- 5. Search Sources (Card/Outline) -->
       <button type="button" onclick="openSourcesModal()" class="btn" style="background:var(--card);border:1.5px solid var(--border);color:var(--text);font-weight:700;padding:13px 18px;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px">
         <span style="font-size:18px">📚</span>
         <span>מקורות חיפוש (130)</span>

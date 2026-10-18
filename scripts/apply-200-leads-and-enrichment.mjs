@@ -132,17 +132,39 @@ if (Array.isArray(savedBatch2) && savedBatch2.length > 0) {
 }
 
 // Load Batch 200 Regular Leads (Permanent persistence in 'חברות שנמצאו', table C)
-const saved200 = loadPersisted200();
-if (Array.isArray(saved200) && saved200.length > 0) {
-  const existingHps = new Set(C.map(c => c.no || c.company_hp).filter(Boolean));
-  saved200.forEach(b => {
-    if (!existingHps.has(b.no || b.company_hp)) {
+function merge200IntoC() {
+  const saved200 = loadPersisted200();
+  if (Array.isArray(saved200) && saved200.length > 0) {
+    const b200Map = new Map();
+    saved200.forEach(b => {
+      const hp = String(b.no || b.company_hp || b.id || "").trim();
+      if (hp) b200Map.set(hp, b);
+    });
+    C.forEach(c => {
+      const hp = String(c.no || c.company_hp || c.id || "").trim();
+      if (b200Map.has(hp)) {
+        const b = b200Map.get(hp);
+        c.discovery_batch = "batch_200_regular";
+        if (b.phone && (!c.phone || c.phone === "לא נמצא" || c.phone === "—")) {
+          c.phone = b.phone;
+        }
+        if (b.phone_status) c.phone_status = b.phone_status;
+        if (b.phone_sources) c.phone_sources = b.phone_sources;
+        if (b.multi_phones) c.multi_phones = b.multi_phones;
+        b200Map.delete(hp);
+      }
+    });
+    b200Map.forEach(b => {
       b.discovery_batch = "batch_200_regular";
       if (b.isApprovedLead === undefined) b.isApprovedLead = false;
       C.push(b);
-    }
-  });
+    });
+  }
 }
+if (typeof window !== "undefined") {
+  window.merge200IntoC = merge200IntoC;
+}
+merge200IntoC();
 if (typeof window !== "undefined") {
   window.C = C;
 }`;
@@ -150,6 +172,25 @@ if (typeof window !== "undefined") {
   if (updated.includes(savedBatch2Anchor)) {
     updated = updated.replace(savedBatch2Anchor, newSavedBatch2);
     console.log("✓ Replaced savedBatch2 anchor & merged 200 into C");
+  }
+
+  // Hook merge200IntoC into syncWithRemoteSupabase
+  const sbSyncAnchor = `        const mapped = data.map((r, i) => mapDbRowToLead(r, i));
+        C.length = 0;
+        mapped.forEach(l => C.push(l));
+        persistProspectorData();`;
+
+  const newSbSync = `        const mapped = data.map((r, i) => mapDbRowToLead(r, i));
+        C.length = 0;
+        mapped.forEach(l => C.push(l));
+        if (typeof window.merge200IntoC === "function") {
+          window.merge200IntoC();
+        }
+        persistProspectorData();`;
+
+  if (updated.includes(sbSyncAnchor)) {
+    updated = updated.replace(sbSyncAnchor, newSbSync);
+    console.log("✓ Hooked merge200IntoC into syncWithRemoteSupabase");
   }
 
   const winSAnchor = 'window.S = S;';
@@ -991,21 +1032,61 @@ window.enrichSelectedPhones = async function() {
   if (v && S.tab === "companies" && V.companies) v.innerHTML = V.companies();
 };
 
+window.setDiscoveryBatchFilter = function(batch) {
+  S.coFilter = S.coFilter || {};
+  S.coFilter.discoveryBatch = batch;
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem("dalia_prospector_active_batch", batch);
+  }
+  S.coPage = 1;
+  const v = document.getElementById("view");
+  if (v && S.tab === "companies" && V.companies) {
+    v.innerHTML = V.companies();
+  }
+};
+
+window.navigateToBatch200 = function() {
+  window.setDiscoveryBatchFilter("batch_200_regular");
+  window.navigateToTab("companies");
+};
+
+window.navigateToAllCompanies = function() {
+  window.setDiscoveryBatchFilter("all");
+  window.navigateToTab("companies");
+};
+
 V.companies = () => {
   const f = S.coFilter = S.coFilter || {};
-  if (!f.discoveryBatch) f.discoveryBatch = "batch_200_regular";
+  if (!f.discoveryBatch) {
+    const savedActiveBatch = (typeof localStorage !== "undefined") ? localStorage.getItem("dalia_prospector_active_batch") : null;
+    f.discoveryBatch = savedActiveBatch || "batch_200_regular";
+  }
 
-  const b200All = C.filter(c => c.discovery_batch === "batch_200_regular");
-  const b200List = b200All.length > 0 ? b200All : C;
+  const is200Batch = f.discoveryBatch === "batch_200_regular";
+
+  // Strict separation of lists
+  let baseList;
+  if (is200Batch) {
+    const fromC = C.filter(c => c.discovery_batch === "batch_200_regular");
+    if (fromC.length === 200) {
+      baseList = fromC;
+    } else if (typeof window !== "undefined" && Array.isArray(window.BASE_200_REGULAR_LEADS) && window.BASE_200_REGULAR_LEADS.length > 0) {
+      baseList = window.BASE_200_REGULAR_LEADS;
+    } else {
+      baseList = fromC;
+    }
+  } else {
+    baseList = C;
+  }
 
   // 4 KPI Counters
-  const countTotal = b200List.length;
-  const countWithPhone = b200List.filter(c => c.phone && c.phone !== "לא נמצא" && c.phone !== "—").length;
+  const countTotal = baseList.length;
+  const countWithPhone = baseList.filter(c => c.phone && c.phone !== "לא נמצא" && c.phone !== "—").length;
   const countWithoutPhone = countTotal - countWithPhone;
-  const countTransferred = b200List.filter(c => c.isApprovedLead === true).length;
+  const countTransferred = baseList.filter(c => c.isApprovedLead === true).length;
 
   // Filter application
-  const filtered = b200List.filter(c => {
+  const filtered = baseList.filter(c => {
     // 1. Text Search
     if (f.q) {
       const q = f.q.trim().toLowerCase();
@@ -1074,10 +1155,10 @@ V.companies = () => {
   const b200Stats = {
     total: countTotal,
     withPhone: countWithPhone,
-    verifiedTwo: b200List.filter(c => c.phone_status === "verified_two_sources").length,
-    singleSource: b200List.filter(c => c.phone_status === "single_source").length,
+    verifiedTwo: baseList.filter(c => c.phone_status === "verified_two_sources").length,
+    singleSource: baseList.filter(c => c.phone_status === "single_source").length,
     awaiting: countWithoutPhone,
-    enrichedCount: b200List.filter(c => c.enrichment_status === "enriched" || c.enrichment_status === "awaiting_contact").length
+    enrichedCount: baseList.filter(c => c.enrichment_status === "enriched" || c.enrichment_status === "awaiting_contact").length
   };
   const enrichmentPanelHtml = renderEnrichmentControlPanel(b200Stats);
 
@@ -1088,10 +1169,10 @@ V.companies = () => {
       <div>
         <h2 style="margin:0;font-size:22px;display:flex;align-items:center;gap:10px">
           <span>🏢 חברות שנמצאו</span>
-          <span class="chip" style="font-size:13px;background:var(--blue-50);color:var(--blue);font-weight:700">200 חברות רגילות מאומתות</span>
+          <span class="chip" style="font-size:13px;background:var(--blue-50);color:var(--blue);font-weight:700">\${is200Batch ? '200 חברות רגילות מהחיפוש האחרון' : 'כל החברות במאגר (' + C.length + ')'}</span>
         </h2>
         <div class="sm muted" style="margin-top:4px">
-          מאגר החברות הרגילות שעברו את כל שבע הנחות היסוד — כוח אדם מאומת, ללא ענפים אסורים ואימות נתוני קשר.
+          \${is200Batch ? 'מאגר 200 החברות מהחיפוש האחרון שעברו את כל שבע הנחות היסוד — כוח אדם מאומת, ללא ענפים אסורים ואימות נתוני קשר.' : 'מאגר כלל החברות שנאספו לאורך הזמן (' + C.length + ' חברות שמורות במערכת).'}
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -1105,6 +1186,30 @@ V.companies = () => {
     </div>
   </div>
 
+  <!-- סרגל בחירה ראשי: 200 החברות מהחיפוש האחרון מול כל החברות במאגר -->
+  <div class="card card-b" style="margin-bottom:16px;padding:14px 20px;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:22px">📂</span>
+      <div>
+        <div style="font-weight:800;font-size:15px;color:#1e3a8a">תצוגת רשימת חברות:</div>
+        <div class="xs muted">\${is200Batch ? 'מוצגות כעת 200 החברות המאומתות מהחיפוש האחרון (149 עם טלפון)' : 'מוצגות כעת כל החברות במאגר הכללי (' + C.length + ' חברות)'}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <!-- כפתור 1: 200 החברות מהחיפוש האחרון -->
+      <button type="button" id="btnViewBatch200" onclick="window.setDiscoveryBatchFilter('batch_200_regular')" class="btn" style="\${is200Batch ? 'background:#2563eb;color:#fff;border:2px solid #1d4ed8;font-weight:800;box-shadow:0 3px 12px rgba(37,99,235,0.3);' : 'background:#fff;color:#1e293b;border:1.5px solid #cbd5e1;font-weight:700;'}padding:11px 22px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-size:14.5px">
+        <span>🏢 200 החברות מהחיפוש האחרון</span>
+        <span class="badge" style="\${is200Batch ? 'background:#fff;color:#1d4ed8' : 'background:#dbeafe;color:#1e40af'};font-weight:800;font-size:12px">200 חברות (149 טלפונים)</span>
+      </button>
+
+      <!-- כפתור 2: כל החברות במאגר -->
+      <button type="button" id="btnViewAllCompanies" onclick="window.setDiscoveryBatchFilter('all')" class="btn" style="\${!is200Batch ? 'background:#334155;color:#fff;border:2px solid #1e293b;font-weight:800;box-shadow:0 3px 12px rgba(51,65,85,0.3);' : 'background:#fff;color:#1e293b;border:1.5px solid #cbd5e1;font-weight:700;'}padding:11px 22px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-size:14.5px">
+        <span>🌐 כל החברות במאגר</span>
+        <span class="badge" style="\${!is200Batch ? 'background:#fff;color:#1e293b' : 'background:#f1f5f9;color:#475569'};font-weight:800;font-size:12px">\${C.length} חברות</span>
+      </button>
+    </div>
+  </div>
+
   <!-- 4 כרטיסי KPI מונים עליונים -->
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:16px">
     <!-- 1. סך החברות -->
@@ -1114,7 +1219,7 @@ V.companies = () => {
         <span style="font-size:18px">🏢</span>
       </div>
       <div style="font-size:26px;font-weight:800;color:var(--text);margin:6px 0">\${countTotal}</div>
-      <div class="xs muted">סבב 200 חברות רגילות מאומתות</div>
+      <div class="xs muted">\${is200Batch ? 'סבב 200 חברות רגילות מאומתות' : 'כל החברות במאגר הכללי'}</div>
     </div>
 
     <!-- 2. עם טלפון -->
@@ -1435,6 +1540,20 @@ V.companies = () => {
     'const titles={prospector:"איתור לקוחות עסקיים",enrich:"העשרת לידים – Gemini"',
     'const titles={prospector:"מרכז איתור לידים",search:"מרכז איתור לידים",companies:"חברות שנמצאו",leads:"הלידים שלי",enrich:"העשרת לידים – Gemini"'
   );
+
+  // Claude 2026-10-18: מנוע השלמת טלפונים אמיתי (קובץ נפרד, נטען אחרי הקוד הראשי) + רשימת המסוננות ל"בחר הכול"
+  if (!updated.includes("window.__coFilteredIds")) {
+    updated = updated.replace(
+      "  const pagedIds = pagedList.map(c => c.id);",
+      "  const pagedIds = pagedList.map(c => c.id);\n  window.__coFilteredIds = filtered.map(c => c.id);"
+    );
+  }
+  if (!updated.includes("openprospector-phone-engine.js")) {
+    const bodyEnd = updated.lastIndexOf("</body>");
+    if (bodyEnd !== -1) {
+      updated = updated.slice(0, bodyEnd) + '<script src="openprospector-phone-engine.js?v=20261018"></script>\n' + updated.slice(bodyEnd);
+    }
+  }
 
   return updated;
 }
