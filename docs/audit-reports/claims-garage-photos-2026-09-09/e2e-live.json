@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-09T18:08:47.844Z",
+  "at": "2026-09-09T21:23:25.359Z",
   "staging": "usfeoerkpcafxxlyuldl",
   "productionTouched": false,
   "claimsDocsPrivate": true,
@@ -28,11 +28,11 @@
       "ok": true
     },
     {
-      "name": "create-DAL-QA-GAR-1788977332589",
+      "name": "create-DAL-QA-GAR-1788989007878",
       "ok": true
     },
     {
-      "name": "create-DAL-QA-GAR-O-1788977332589",
+      "name": "create-DAL-QA-GAR-O-1788989007878",
       "ok": true
     },
     {
@@ -54,15 +54,15 @@
       "name": "worker-sees-assigned-only",
       "ok": true,
       "jobIds": [
-        "DAL-QA-GAR-1788977332589"
+        "DAL-QA-GAR-1788989007878"
       ]
     },
     {
       "name": "worker-limited-claim",
       "ok": true,
       "claim": {
-        "id": "DAL-QA-GAR-1788977332589",
-        "client_name": "TEST Garage 1788977332589",
+        "id": "DAL-QA-GAR-1788989007878",
+        "client_name": "TEST Garage 1788989007878",
         "plate": "11-222-33",
         "car_model": "קורולה",
         "garage_name": "מוסך QA",
@@ -104,13 +104,13 @@
     {
       "name": "worker-upload-1",
       "ok": true,
-      "id": "CDM-1788977351143-NZV9OD",
+      "id": "CDM-1788989027590-U4N88T",
       "status": "in_progress"
     },
     {
       "name": "worker-upload-2",
       "ok": true,
-      "id": "CDM-1788977351143-NZV9OD"
+      "id": "CDM-1788989027590-U4N88T"
     },
     {
       "name": "upload-marks-in-progress",
@@ -144,7 +144,7 @@
     {
       "name": "other-claim-file",
       "ok": true,
-      "id": "CDM-1788977369468-FFHIX8"
+      "id": "CDM-1788989044886-I8TJX1"
     },
     {
       "name": "share-foreign-file-blocked",
@@ -155,14 +155,14 @@
     {
       "name": "existing-secure-share",
       "ok": true,
-      "id": "SHR-1788977375303-MJ8RBL",
+      "id": "SHR-1788989050697-3RULN2",
       "tokenLen": 64
     },
     {
       "name": "share-only-garage-photos",
       "ok": true,
       "pubIds": [
-        "CDM-1788977351143-NZV9OD"
+        "CDM-1788989027590-U4N88T"
       ]
     },
     {
@@ -192,7 +192,7 @@
     {
       "name": "ui-base-ready",
       "ok": true,
-      "pagesGarage": 404,
+      "pagesGarage": 200,
       "localGarage": 200,
       "uiBase": "http://127.0.0.1:4173"
     },
@@ -208,7 +208,7 @@
     {
       "name": "staff-assign-current",
       "ok": true,
-      "text": "צילומי מוסך עובד: QA צלם מוסך סטטוס: צילום הושלם תמונות: 1 החלף שיוך בטל שיוך"
+      "text": "צילומי מוסך עובד: QA צלם מוסך סטטוס: צילום הושלם תמונות: 0 החלף שיוך בטל שיוך"
     },
     {
       "name": "staff-gallery-topic",
@@ -222,7 +222,7 @@
       "name": "worker-job-card",
       "ok": true,
       "empty": 0,
-      "text": "צילומי מוסך רק התיקים ששויכו אליך. בלי תביעות אחרות. כל הסטטוסים ממתין לצילום צילום בתהליך צילום הושלם DAL-QA-GAR-1788977332589 TEST Garage 1788977332589 11-222-33 צילום הושלם · 1 תמונות"
+      "text": "צילומי מוסך רק התיקים ששויכו אליך. בלי תביעות אחרות. כל הסטטוסים ממתין לצילום צילום בתהליך צילום הושלם DAL-QA-GAR-1788989007878 TEST Garage 1788989007878 11-222-33 צילום הושלם · 1 תמונות"
     },
     {
       "name": "worker-job-open",
@@ -252,8 +252,8 @@
     {
       "name": "soft-delete-test-claims",
       "ok": true,
-      "claimId": "DAL-QA-GAR-1788977332589",
-      "otherId": "DAL-QA-GAR-O-1788977332589"
+      "claimId": "DAL-QA-GAR-1788989007878",
+      "otherId": "DAL-QA-GAR-O-1788989007878"
     },
     {
       "name": "production-untouched",
