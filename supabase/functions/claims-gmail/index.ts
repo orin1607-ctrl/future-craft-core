@@ -575,6 +575,9 @@ async function encodeMixedMessage(
       return { error: "attachment_download_failed" as const, filename: f.original_name, reason: dlErr?.message || "empty" };
     }
     const bytes = new Uint8Array(await blob.arrayBuffer());
+    if (bytes.byteLength === 0) {
+      return { error: "attachment_download_failed" as const, filename: f.original_name, reason: "empty_file_zero_bytes" };
+    }
     const mime = f.mime_type || "application/octet-stream";
     const safe = sanitizeName(f.original_name || "file");
     chunks.push(
@@ -2540,13 +2543,19 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
       files: ordered,
     });
     if ("error" in encodedMsg && encodedMsg.error) {
+      const errCode = encodedMsg.error;
+      const detailMsg = errCode === "attachment_download_failed"
+        ? `קובץ חסר או פגום באחסון (${(encodedMsg as any).filename || ""}: ${(encodedMsg as any).reason || ""}). השליחה בוטלה ולא נשלח מייל חלקי.`
+        : (errCode === "package_too_large" ? "נפח הקבצים המצורפים חורג ממגבלת השליחה." : String(errCode));
       return jsonResponse({
         success: false,
+        error: errCode,
+        message: detailMsg,
         ...encodedMsg,
         omitted: false,
-        suggestion: encodedMsg.error === "package_too_large" ? packageSuggestion(Number(encodedMsg.packageBytes || 0)) : undefined,
+        suggestion: errCode === "package_too_large" ? packageSuggestion(Number((encodedMsg as any).packageBytes || 0)) : undefined,
         realEmailSend: false,
-      }, encodedMsg.error === "package_too_large" ? 413 : 400);
+      }, errCode === "package_too_large" ? 413 : 400);
     }
 
     const outId = nid("GOS");
@@ -2623,16 +2632,39 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     const gmailMessageId = String(sent.json.id || "");
     const gmailThreadId = String(sent.json.threadId || "");
     let rfcMessageId = "";
+    let verifiedAttachments: Array<{ filename: string; mime: string; size: number }> = [];
+    let verificationError: string | null = null;
     try {
-      const got = await gmailGet(access, `messages/${encodeURIComponent(gmailMessageId)}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=From`);
-      const hd = got.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+      const gotFull = await gmailGet(access, `messages/${encodeURIComponent(gmailMessageId)}?format=full`);
+      const hd = gotFull.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
       rfcMessageId = header(hd, "Message-ID") || header(hd, "Message-Id");
-    } catch {
-      rfcMessageId = "";
+
+      const sentParts: Array<Record<string, unknown>> = [];
+      if (gotFull.payload) walkParts(gotFull.payload as Record<string, unknown>, sentParts);
+      const parsedFiles = collectFiles(sentParts);
+      verifiedAttachments = parsedFiles.map((f) => {
+        const b = (f.part.body || {}) as { size?: number };
+        return {
+          filename: f.filename,
+          mime: f.mime,
+          size: Number(b.size || 0),
+        };
+      });
+    } catch (e) {
+      verificationError = String((e as Error).message || e).slice(0, 200);
     }
+
+    const requestedCount = ids.length;
+    const verifiedCount = verifiedAttachments.length;
+    const isFullMatch = verifiedCount === requestedCount;
+    const missingAttachments = attached.filter((att) => {
+      const safe = sanitizeName(att.name).toLowerCase();
+      return !verifiedAttachments.some((v) => v.filename.toLowerCase() === safe || v.filename.toLowerCase() === att.name.toLowerCase());
+    });
     const sentAt = new Date().toISOString();
     const { data: profile } = await sb.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
     const actorName = profile?.full_name || user.email || user.id;
+
     await sb.from("claims_gmail_outbox").update({
       status: "sent",
       gmail_message_id: gmailMessageId,
@@ -2647,8 +2679,12 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         id: nid("HIS"),
         claim_id: claimId,
         row_data: {
-          action: `נשלח מייל מתיק התביעה · שליחה #${sendNo}`,
-          note: `שליחה #${sendNo} · From ${ALLOWED_ACCOUNT} · To ${to}${cc ? ` · CC ${cc}` : ""}${bcc ? ` · BCC ${bcc}` : ""} · ${subject} · ${attached.length} קבצים · ${fileList} · msgid ${gmailMessageId} · thread ${gmailThreadId}`,
+          action: isFullMatch
+            ? `נשלח מייל מתיק התביעה · שליחה #${sendNo}`
+            : `נשלח מייל חלקי מתיק התביעה [אי-התאמה] · שליחה #${sendNo}`,
+          note: isFullMatch
+            ? `שליחה #${sendNo} · From ${ALLOWED_ACCOUNT} · To ${to}${cc ? ` · CC ${cc}` : ""}${bcc ? ` · BCC ${bcc}` : ""} · ${subject} · ${verifiedCount} קבצים מאומתים ב-Gmail · ${fileList} · msgid ${gmailMessageId} · thread ${gmailThreadId}`
+            : `שליחה #${sendNo} [אי-התאמה במצורפים] · התבקשו ${requestedCount} קבצים אך ב-Gmail אומתו ${verifiedCount} בלבד! חסרים: ${missingAttachments.map((m) => m.name).join(", ")} · msgid ${gmailMessageId}`,
           type: "gmail_claim_send",
           by: actorName,
           at: new Date().toLocaleString("he-IL"),
@@ -2658,6 +2694,12 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
           bcc: bcc || null,
           subject,
           files: attached.map((a) => ({ id: a.id, name: a.name, bytes: a.bytes })),
+          requested_count: requestedCount,
+          verified_count: verifiedCount,
+          is_full_match: isFullMatch,
+          verified_files: verifiedAttachments,
+          missing_files: missingAttachments.map((m) => m.name),
+          verification_error: verificationError,
           gmail_message_id: gmailMessageId,
           gmail_thread_id: gmailThreadId,
           sent_at: sentAt,
@@ -2678,7 +2720,7 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
           body: text,
           at: new Date().toLocaleString("he-IL"),
           by: actorName,
-          note: "נשלח מ-Gmail מתוך התיק",
+          note: isFullMatch ? "נשלח מ-Gmail מתוך התיק (מאומת מלא)" : "נשלח מ-Gmail מתוך התיק (אי-התאמה במצורפים)",
           from: ALLOWED_ACCOUNT,
           gmail_message_id: gmailMessageId,
           gmail_thread_id: gmailThreadId,
@@ -2686,6 +2728,8 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
           sent_at: sentAt,
           attachments: attached.map((a) => a.name),
           files: attached,
+          verified_attachments: verifiedAttachments,
+          is_full_match: isFullMatch,
         },
       });
       await sb.from("claims_records").update({ last_activity_at: sentAt }).eq("id", claimId);
@@ -2700,7 +2744,13 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
       cc: cc || null,
       subject,
       fileCount: attached.length,
+      requested_count: requestedCount,
+      verified_count: verifiedCount,
+      is_full_match: isFullMatch,
       files: attached,
+      verified_files: verifiedAttachments,
+      missing_files: missingAttachments.map((m) => m.name),
+      verification_error: verificationError,
       packageBytes,
       send_no: sendNo,
       gmail_message_id: gmailMessageId,

@@ -2451,7 +2451,7 @@ export async function executeClaimsTool(
         if (direction === "outbound" || direction === "all") {
           let outQuery = supabase
             .from("claims_gmail_outbox")
-            .select("id, gmail_message_id, gmail_thread_id, to_addr, subject, body_text, sent_at, status, file_ids");
+            .select("id, gmail_message_id, gmail_thread_id, to_addr, subject, body_excerpt, sent_at, status, file_ids, file_names");
           if (claimId) {
             outQuery = outQuery.eq("claim_id", claimId);
           }
@@ -2463,10 +2463,12 @@ export async function executeClaimsTool(
             from: CLAIMS_SENDER_NAME,
             to: m.to_addr,
             subject: m.subject,
-            snippet: (m.body_text || "").slice(0, 200),
+            snippet: (m.body_excerpt || "").slice(0, 200),
             sent_at: m.sent_at,
             status: m.status,
             source: "claims_gmail_outbox",
+            file_ids: m.file_ids || [],
+            file_names: m.file_names || [],
             attachments: Array.isArray(m.file_ids) ? m.file_ids.length : 0,
           }));
         }
@@ -3711,6 +3713,14 @@ export async function executeClaimsTool(
             note: rd.note || "",
             type: rd.type || "general",
             at: rd.at || h.created_at,
+            files: rd.files || [],
+            files_count: Array.isArray(rd.files) ? rd.files.length : 0,
+            requested_count: rd.requested_count,
+            verified_count: rd.verified_count,
+            is_full_match: rd.is_full_match,
+            verified_files: rd.verified_files,
+            missing_files: rd.missing_files,
+            gmail_message_id: rd.gmail_message_id,
           };
         });
 
@@ -6083,9 +6093,18 @@ export async function executeClaimsPendingAction(
           cc ? `CC: ${cc}` : null,
           bcc ? `BCC: ${bcc}` : null,
         ].filter(Boolean).join(" · ");
+        const isFullMatch = res.data?.is_full_match !== false;
+        const verifiedCount = res.data?.verified_count ?? (file_ids || []).length;
+        const requestedCount = res.data?.requested_count ?? (file_ids || []).length;
+        const missingList = Array.isArray(res.data?.missing_files) && res.data.missing_files.length
+          ? ` (חסרים ב-Gmail: ${res.data.missing_files.join(", ")})`
+          : "";
+        const matchWarning = !isFullMatch
+          ? ` ⚠️ אזהרה: אומתו ב-Gmail רק ${verifiedCount} מתוך ${requestedCount} קבצים שהתבקשו!${missingList}`
+          : "";
         return {
           success: true,
-          message: `המייל נשלח (${recipientsSummary})${(attachment_titles || []).length ? ` עם ${(attachment_titles || []).length} קבצים: ${(attachment_titles || []).join(", ")}` : (file_ids || []).length ? ` עם ${(file_ids || []).length} קבצים` : " ללא קבצים מצורפים"}${msgId ? ` (מזהה Gmail: ${msgId})` : ""}`,
+          message: `המייל נשלח (${recipientsSummary})${verifiedCount ? ` עם ${verifiedCount} קבצים מאומתים ב-Gmail` : " ללא קבצים מצורפים"}${matchWarning}${msgId ? ` (מזהה Gmail: ${msgId})` : ""}`,
         };
       }
 

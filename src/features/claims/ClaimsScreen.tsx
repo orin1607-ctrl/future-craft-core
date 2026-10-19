@@ -4579,17 +4579,26 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                           {t.owner ? <div style={{ fontSize: 11, color: 'var(--t3)' }}>👤 {t.owner}</div> : null}
                           {t.docState ? <div data-testid={`task-docstate-${t.id}`} style={{ fontSize: 12, fontWeight: 700, margin: '6px 0', color: t.docState === 'ready' ? 'var(--gn2)' : t.docState === 'missing' ? 'var(--rd2)' : 'var(--yn2)' }}>{docStateHe(t.docState)}</div> : null}
                           {t.replyReceived === 'true' ? <div style={{ fontSize: 11, color: 'var(--ac3)' }}>התקבלה תשובה באותו Thread — המשימה לא נסגרה אוטומטית</div> : null}
-                          {ready ? (
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '6px 0' }}>
-                              {isImageFile(ready) ? (
-                                <button type="button" className="pick-thumb" onClick={() => void openInCard(cur.id, ready)}>
-                                  {galleryUrls[ready.id] ? <ClaimImage src={galleryUrls[ready.id]} alt={ready.original_name} mime={ready.mime_type} /> : <span>📷</span>}
+                          {ready ? (() => {
+                            const isReport = t.action?.includes('שמא') || ready.doc_kind === 'surveyor_report';
+                            const relatedFiles = isReport
+                              ? docs.files.filter((f) => f.doc_kind === 'surveyor_report' || f.id === ready.id)
+                              : [ready];
+                            const idsToSend = relatedFiles.map((f) => f.id);
+                            return (
+                              <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '6px 0' }}>
+                                {isImageFile(ready) ? (
+                                  <button type="button" className="pick-thumb" onClick={() => void openInCard(cur.id, ready)}>
+                                    {galleryUrls[ready.id] ? <ClaimImage src={galleryUrls[ready.id]} alt={ready.original_name} mime={ready.mime_type} /> : <span>📷</span>}
+                                  </button>
+                                ) : null}
+                                <span style={{ fontSize: 12 }}>{fileLabel(ready)}{relatedFiles.length > 1 ? ` (+עוד ${relatedFiles.length - 1} עמודים)` : ''} · {sourceHe(ready.source)}</span>
+                                <button type="button" className="btn btn-p btn-sm" onClick={() => void openSendModal('draft', { file_ids: idsToSend, thread_id: t.gmailThreadId || '' })}>
+                                  {relatedFiles.length > 1 ? `בחר לשליחה (${relatedFiles.length} עמודים)` : 'בחר לשליחה'}
                                 </button>
-                              ) : null}
-                              <span style={{ fontSize: 12 }}>{fileLabel(ready)} · {sourceHe(ready.source)}</span>
-                              <button type="button" className="btn btn-p btn-sm" onClick={() => void openSendModal('draft', { file_ids: [ready.id], thread_id: t.gmailThreadId || '' })}>בחר לשליחה</button>
-                            </div>
-                          ) : null}
+                              </div>
+                            );
+                          })() : null}
                           {t.docState === 'missing' || t.docState === 'awaiting_signature' ? (
                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '6px 0' }}>
                               <button type="button" className="btn btn-g btn-sm" onClick={() => setCardTab('docs')}>בקש מהלקוח</button>
