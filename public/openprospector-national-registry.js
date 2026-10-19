@@ -27,6 +27,8 @@
     selected: new Set(), selectAllMatching: false, showAdvanced: false,
     // collection
     loading: false, error: "", stats: null, sources: [], loadedAt: 0, srcFilter: "all",
+    // enrichment report + review queue
+    report: null, reportError: "", reportLoading: false, review: null, reviewPage: 0,
     modal: null, timer: null, busy: false,
   };
   const persist = () => { try { localStorage.setItem(LS_KEY, JSON.stringify({ sub: ST.sub, filters: ST.filters, sort: ST.sort, pageSize: ST.pageSize })); } catch (e) { /* storage blocked */ } };
@@ -35,12 +37,44 @@
     pending: ["ממתין", "b-no"], collecting: ["אוסף", "b-blue"], completed: ["הושלם", "b-ok"], partial: ["חלקי", "b-est"],
     blocked: ["חסום", "b-bad"], unsupported: ["לא נתמך", "b-no"], error: ["שגיאה", "b-bad"],
   };
-  const KIND = { ckan: "API מידע פתוח (CKAN)", arcgis: "GIS עירוני (ArcGIS)", overpass: "OpenStreetMap", fleet_ckan: "צי רכב (API)", website: "אתרי עסקים", alias: "כפול למקור אחר", discovery: "גילוי מקורות", discovered: "התגלה – טרם מופה", manual: "ידני", paid: "בתשלום / מנוי", blocked: "חסום" };
-  const MATCH = { created: "נוצר מרשומה זו", reg_id: "התאמה לפי ח.פ./מזהה רשמי", "name+city": "שם זהה + אותה עיר", name_unique: "שם זהה ויחיד במאגר", business_website: "אתר העסק עצמו" };
+  const KIND = { ckan: "API מידע פתוח (CKAN)", arcgis: "GIS עירוני (ArcGIS)", overpass: "OpenStreetMap", fleet_ckan: "צי רכב (API)", website: "אתרי עסקים", alias: "כפול למקור אחר", discovery: "גילוי מקורות", discovered: "התגלה – טרם מופה", manual: "ידני", paid: "בתשלום / מנוי", blocked: "חסום",
+    enrich_jobs_gov: "משרות – אתר ממשלתי", enrich_gov_contracts: "העשרה – API מידע פתוח", enrich_web_discovery: "גילוי אתר מדומיין האימייל", enrich_web_deep: "סריקת אתר החברה", enrich_rss: "כותרות RSS" };
+  const MATCH = { evidence_record: "רשומת מקור שכבר מקושרת לעסק", registered_name: "שם רשום מלא וייחודי", manual_review: "אושר ידנית", existing_business: "עסק קיים", created: "נוצר מרשומה זו", reg_id: "התאמה לפי ח.פ./מזהה רשמי", "name+city": "שם זהה + אותה עיר", name_unique: "שם זהה ויחיד במאגר", business_website: "אתר העסק עצמו" };
   const BIZ_STATUS = { active: "פעילה", inactive: "לא פעילה", unknown: "לא ידוע" };
   const ROLES = { ceo: "מנכ\"ל", owner: "בעלים", manager: "מנהל/ממונה", operations: "תפעול/לוגיסטיקה", fleet: "קצין רכב / צי", professional: "מנהל מקצועי", other: "תפקיד אחר" };
   const MARKS = { review: ["לבדיקה", "b-est"], irrelevant: ["לא רלוונטי", "b-no"], archived: ["בארכיון", "b-bad"] };
   const BANDS = ["1-5", "6-10", "11-50", "51-100", "101-500", "500+", "unknown"];
+  // ── enrichment: what was found, how important, how sure ──
+  const FCAT = {
+    hiring: "גיוס עובדים", hiring_drivers: "גיוס נהגים", hiring_logistics: "גיוס לוגיסטיקה / תפעול", hiring_operations: "גיוס מנהלי תפעול",
+    new_phone: "טלפון חדש", new_email: "אימייל חדש", new_website: "אתר חדש", new_social: "רשת חברתית / קישור חדש",
+    person: "איש קשר עסקי", ceo: "מנכ\"ל", operations_manager: "מנהל תפעול / צי", expansion: "התרחבות", branch_opened: "פתיחת סניף / מרכז",
+    tender_won: "זכייה במכרז", gov_contract: "התקשרות ממשלתית", fleet: "צי רכב", employees: "מספר עובדים (לפי החברה)", news: "חדשות עסקיות",
+  };
+  if (!document.getElementById("nrEnrichCss")) {
+    const st = document.createElement("style");
+    st.id = "nrEnrichCss";
+    st.textContent = `.nr-imp{background:#ea580c;color:#fff;font-weight:700}
+      .nr-find{border-inline-start:4px solid var(--blue);padding:6px 10px;border-radius:6px;background:var(--blue-100);display:grid;gap:3px}
+      .nr-find.imp{border-color:#ea580c;background:var(--est-bg)} .nr-find.ver{border-color:var(--ok);background:var(--ok-bg)}
+      .nr-find.pend{border-color:var(--no);background:var(--no-bg)} .nr-find .t{white-space:normal;font-size:13px}
+      .nr-hl{display:flex;flex-wrap:wrap;gap:4px;align-items:baseline;margin-top:3px;font-size:12px;white-space:normal;min-width:240px;max-width:460px}`;
+    document.head.appendChild(st);
+  }
+  // colour + words: never colour alone
+  function fmark(f, pending) {
+    if (pending) return `<span class="badge b-no">⏳ ממתין לבדיקת שיוך</span>`;
+    const chips = [];
+    if (f.importance === "important") chips.push(`<span class="badge nr-imp">★ מידע חשוב חדש</span>`);
+    else chips.push(`<span class="badge b-blue">● מידע חדש</span>`);
+    chips.push(f.verification === "verified" ? `<span class="badge b-ok">✓ מאומת (2 מקורות)</span>` : `<span class="badge b-no">לא מאומת</span>`);
+    if (f.fact_kind === "indication") chips.push(`<span class="badge b-no" title="סימן לצורך אפשרי – לא עובדה מתועדת">אינדיקציה</span>`);
+    return chips.join(" ");
+  }
+  const fclass = (f, pending) => pending ? "pend" : f.importance === "important" ? "imp" : f.verification === "verified" ? "ver" : "";
+  const legend = () => `<div class="row xs" style="gap:6px;flex-wrap:wrap"><span class="muted">מקרא:</span>
+    <span class="badge nr-imp">★ מידע חשוב חדש</span><span class="badge b-blue">● מידע חדש</span><span class="badge b-ok">✓ מאומת (2 מקורות)</span>
+    <span class="badge b-no">לא מאומת / אינדיקציה / ממתין לבדיקה</span></div>`;
   const n = (x) => Number(x || 0).toLocaleString("he-IL");
   const catalog = () => (Array.isArray(window.ALL_130_SOURCES) ? window.ALL_130_SOURCES : []);
 
@@ -76,6 +110,23 @@
     } catch (e) { ST.error = e.message || String(e); }
     ST.loading = false; rerender();
   }
+  async function loadReport() {
+    if (ST.reportLoading) return;
+    ST.reportLoading = true; rerender();
+    try {
+      const [rep, rq] = await Promise.all([rpc("nr_enrichment_report"), rpc("nr_review_queue", { p_limit: 25, p_offset: ST.reviewPage * 25, p_source: null })]);
+      ST.report = rep; ST.review = rq; ST.reportError = "";
+    } catch (e) { ST.reportError = e.message || String(e); }
+    ST.reportLoading = false; rerender();
+  }
+  async function reviewDecision(findingId, businessId, accept) {
+    try {
+      const r = await rpc("nr_review_finding", { p_id: Number(findingId), p_business_id: businessId ? Number(businessId) : null, p_accept: accept });
+      toast(accept ? `השיוך אושר${r.jobs_attached ? ` – ${n(r.jobs_attached)} משרות צורפו לחברה` : ""}` : "השיוך נדחה – המידע לא יצורף");
+      if (ST.modal && ST.modal.type === "biz") openBiz(ST.modal.id);
+      loadReport();
+    } catch (e) { toast(e.message); }
+  }
   async function loadFacets() {
     try { ST.facets = await rpc("nr_facets"); } catch (e) { /* shown via browse error */ }
     rerender();
@@ -103,7 +154,7 @@
     clearInterval(ST.timer);
     ST.timer = setInterval(() => {
       if (!(S.view === "prospector" && S.tab === TAB)) { clearInterval(ST.timer); ST.timer = null; return; }
-      if (!document.hidden && !ST.modal) loadStats(true);
+      if (!document.hidden && !ST.modal) { loadStats(true); if (ST.sub === "enrich") loadReport(); }
     }, 30000);
   }
 
@@ -119,12 +170,14 @@
     if (!ST.stats && !ST.loading && !ST.error) setTimeout(() => loadStats(true), 0);
     if (ST.sub === "browse" && !ST.result && !ST.browsing && !ST.browseError) setTimeout(browse, 0);
     if (ST.sub === "browse" && !ST.facets) setTimeout(loadFacets, 0);
+    if (ST.sub === "enrich" && !ST.report && !ST.reportLoading && !ST.reportError) setTimeout(loadReport, 0);
     if (!ST.timer) autoRefresh();
     const subTabs = `<div class="row" style="gap:6px">
       <button class="btn btn-sm ${ST.sub === "browse" ? "btn-primary" : ""}" data-nr="sub" data-v="browse">📋 מאגר העסקים</button>
+      <button class="btn btn-sm ${ST.sub === "enrich" ? "btn-primary" : ""}" data-nr="sub" data-v="enrich">✨ העשרה – מידע חדש ודוח התקדמות</button>
       <button class="btn btn-sm ${ST.sub === "collection" ? "btn-primary" : ""}" data-nr="sub" data-v="collection">⚙️ איסוף ומקורות</button>
       <span class="spacer"></span><span class="badge b-ok">STAGING</span><span class="badge b-est">ללא 7 חוקי הסינון – אין מחיקה</span></div>`;
-    const body = ST.sub === "browse" ? browseView() : collectionView();
+    const body = ST.sub === "browse" ? browseView() : ST.sub === "enrich" ? enrichView() : collectionView();
     return `<div style="display:grid;gap:14px">${subTabs}${kpiStrip()}${body}</div>${modal()}`;
   };
 
@@ -173,6 +226,19 @@
           <label class="f">עיר<input class="input" data-nr-f="city" list="nrCities" placeholder="הקלד עיר" value="${esc(ST.filters.city || "")}">
             <datalist id="nrCities">${(fc.cities || []).map((c) => `<option value="${esc(c.v)}">${n(c.n)}</option>`).join("")}</datalist></label>
         </div>
+        <details ${!ST.openGroups || ST.openGroups.enr !== false ? "open" : ""} data-nr-group="enr"><summary class="bold">✨ מידע חדש, גיוס והתרחבות</summary><div style="display:grid;gap:8px;margin-top:8px">
+          <div class="row" style="flex-wrap:wrap">${chk("important_new", "★ עם מידע חשוב חדש")}${chk("new_info", "עם מידע חדש כלשהו")}${chk("enrich_verified", "✓ מידע חדש שאומת")}${chk("needs_review", "נדרשת בדיקה")}</div>
+          <div class="row" style="flex-wrap:wrap"><span class="xs muted">גיוס:</span>${chk("hiring", "מגייסות עובדים")}${chk("hiring_drivers", "מגייסות נהגים")}${chk("hiring_logistics", "מגייסות לוגיסטיקה / תפעול")}${chk("jobs_open", "עם משרה פעילה")}</div>
+          <div class="row" style="flex-wrap:wrap"><span class="xs muted">פעילות:</span>${chk("expanded", "התרחבו")}${chk("branch_opened", "פתחו סניף / מרכז")}${chk("tender_won", "זכו במכרז")}${chk("gov_contract", "התקשרות עם הממשלה")}${chk("fleet_info", "מידע על צי רכב")}</div>
+          <div class="row" style="flex-wrap:wrap"><span class="xs muted">אנשים ופרטי קשר:</span>${chk("ceo", "מנכ\"ל מזוהה")}${chk("ops_manager", "מנהל תפעול / צי מזוהה")}${chk("corp_email", "אימייל עסקי (דומיין החברה)")}${chk("new_phone", "נמצא טלפון חדש")}${chk("new_website", "נמצא אתר חדש")}</div>
+          <div class="grid g-3" style="gap:10px">
+            ${txt("jobs_min", "מספר משרות שפורסמו – לפחות", "1", "number")}
+            ${sel("finding_source", ((ST.facets && ST.facets.finding_sources) || []).map((s) => [s.v, s.name]), "מקור המידע החדש")}
+            ${txt("found_from", "התגלה מתאריך", "", "date")}${txt("found_to", "התגלה עד תאריך", "", "date")}
+            ${txt("job_from", "משרה פורסמה מתאריך", "", "date")}
+          </div>
+          <div class="xs muted">מספר משרות ≠ מספר עובדים. המסננים האלה לשימושך אחרי האיסוף – 7 חוקי דליה לא מופעלים.</div>
+        </div></details>
         <details ${ST.openGroups && ST.openGroups.biz ? "open" : ""} data-nr-group="biz"><summary class="bold">פרטי עסק</summary><div class="grid g-3" style="gap:10px;margin-top:8px">
           ${sel("status", Object.entries(BIZ_STATUS), "סטטוס")}
           ${sel("corp_type", (fc.corp_types || []).map((c) => [c.v, `${c.v} (${n(c.n)})`]), "סוג התאגדות")}
@@ -220,7 +286,7 @@
     const actions = `<div class="card"><div class="card-b row" style="gap:8px">
         <b class="num" style="font-size:18px">${ST.browsing ? "⏳" : n(total)}</b><span>עסקים עונים לתנאים</span>
         <span class="spacer"></span>
-        <label class="xs muted">מיון <select class="input" style="width:auto;height:32px" data-nr="sort">${[["sources", "מספר מקורות"], ["name", "שם"], ["city", "עיר"], ["employees", "מספר עובדים"], ["founded", "שנת הקמה (ישן→חדש)"], ["founded_desc", "שנת הקמה (חדש→ישן)"], ["updated", "עדכון אחרון"], ["collected", "תאריך איסוף"]].map(([v, l]) => `<option value="${v}" ${ST.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label class="xs muted">מיון <select class="input" style="width:auto;height:32px" data-nr="sort">${[["sources", "מספר מקורות"], ["important", "★ מידע חשוב חדש קודם"], ["found", "מידע חדש – האחרון קודם"], ["jobs", "מספר משרות שפורסמו"], ["name", "שם"], ["city", "עיר"], ["employees", "מספר עובדים"], ["founded", "שנת הקמה (ישן→חדש)"], ["founded_desc", "שנת הקמה (חדש→ישן)"], ["updated", "עדכון אחרון"], ["collected", "תאריך איסוף"]].map(([v, l]) => `<option value="${v}" ${ST.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
         <label class="xs muted">בעמוד <select class="input" style="width:auto;height:32px" data-nr="pagesize">${[25, 50, 100, 200].map((x) => `<option ${ST.pageSize === x ? "selected" : ""}>${x}</option>`).join("")}</select></label>
       </div>
       <div class="card-b row" style="gap:6px;border-top:1px solid var(--border)">
@@ -248,13 +314,18 @@
     const allOnPage = rows.length && rows.every((b) => ST.selected.has(b.id));
     const table = `<div class="card">
       ${ST.browseError ? `<div class="card-b"><div class="badge b-bad" style="white-space:normal">${esc(ST.browseError)}</div></div>` : ""}
+      <div class="card-b" style="padding-bottom:0">${legend()}</div>
       <div class="tbl-wrap"><table><thead><tr>
         <th style="width:32px"><input type="checkbox" data-nr="selpage" ${allOnPage ? "checked" : ""} ${ST.selectAllMatching ? "disabled" : ""}></th>
         <th>עסק</th><th>ח.פ.</th><th>עיר / אזור</th><th>תחום עיסוק</th><th>טלפון</th><th>אימייל / אתר</th><th>עובדים</th><th>מקורות</th></tr></thead>
         <tbody>${rows.map((b) => `<tr data-nr="biz" data-v="${b.id}">
           <td data-nr-stop="1"><input type="checkbox" data-nr="selrow" data-v="${b.id}" ${ST.selectAllMatching || ST.selected.has(b.id) ? "checked" : ""} ${ST.selectAllMatching ? "disabled" : ""}></td>
           <td><div class="co-name">${esc(b.name)}</div><div class="xs muted">${esc(BIZ_STATUS[b.status] || "")}${b.corp_type ? " · " + esc(b.corp_type) : ""}${b.founded_year ? " · הוקם " + b.founded_year : ""}
-            ${(b.marks || []).map((m) => MARKS[m] ? ` <span class="badge ${MARKS[m][1]}">${MARKS[m][0]}</span>` : "").join("")}${b.has_conflict ? ` <span class="badge b-est" title="יש סתירה מתועדת בין מקורות">סתירה</span>` : ""}</div></td>
+            ${(b.marks || []).map((m) => MARKS[m] ? ` <span class="badge ${MARKS[m][1]}">${MARKS[m][0]}</span>` : "").join("")}${b.has_conflict ? ` <span class="badge b-est" title="יש סתירה מתועדת בין מקורות">סתירה</span>` : ""}</div>
+            ${b.enr_findings ? `<div class="nr-hl">${b.enr_important ? `<span class="badge nr-imp">★ חשוב</span>` : `<span class="badge b-blue">● חדש</span>`}${b.enr_verified ? `<span class="badge b-ok">✓</span>` : ""}
+              <span>${esc(String(b.enr_headline || "").slice(0, 130))}</span><span class="muted">${day(b.enr_last_found_at)}${b.enr_findings > 1 ? ` · עוד ${n(b.enr_findings - 1)}` : ""}</span></div>` : ""}
+            ${b.enr_needs_review ? `<div class="nr-hl"><span class="badge b-no">⏳ ממתין לבדיקת שיוך</span></div>` : ""}
+            ${b.enr_jobs_count ? `<div class="xs muted">💼 ${n(b.enr_jobs_count)} משרות פורסמו${b.enr_jobs_open ? ` (${n(b.enr_jobs_open)} פעילות)` : ""}${b.enr_hiring_drivers ? " · 🚚 מגייסת נהגים" : ""}</div>` : ""}</td>
           <td class="num">${esc(b.reg_id || "—")}</td>
           <td>${esc(b.city || "—")}<div class="xs muted">${esc(b.district || "")}</div></td>
           <td class="xs" style="max-width:220px;white-space:normal">${esc(b.main_activity || b.sector || "—")}</td>
@@ -387,6 +458,7 @@
         ${b.has_conflict ? `<span class="badge b-est">יש סתירה מתועדת בין מקורות</span>` : ""}
         <span class="spacer"></span>
         ${Object.entries(MARKS).map(([k, [l]]) => `<button class="btn btn-sm" data-nr="markone" data-v="${k}" data-id="${b.id}">${l}</button>`).join("")}</div>
+      ${findingsBlock(d)}
       <div class="grid g-3" style="gap:10px">
         ${field("סוג התאגדות", b.corp_type)}${field("סטטוס כפי שפורסם", b.status_raw)}${field("שנת הקמה", b.founded_year)}
         ${field("ענף", b.sector)}${field("תחום עיסוק ראשי", b.main_activity)}${field("תחומי עיסוק נוספים", (b.activities || []).join(" · "))}
@@ -413,6 +485,89 @@
           <td class="xs" dir="auto" style="max-width:300px;white-space:normal">${esc(Object.entries(e.fields || {}).filter(([, v]) => v !== null && v !== "" && !(Array.isArray(v) && !v.length)).map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v === true ? "✓" : v}`).join(" · "))}</td>
           <td class="xs">${when(e.collected_at)}</td><td class="xs">${e.source_url ? `<a href="${esc(e.source_url)}" target="_blank" rel="noopener">פתח</a>` : "—"}</td></tr>`).join("")}
       </tbody></table></div></div>`;
+  }
+
+  // one finding: colour + words + what / when / from where
+  function findingRow(f, pending) {
+    const src = f.source_name || f.source_key || "";
+    const items = (f.detail && f.detail.items) || [];
+    return `<div class="nr-find ${fclass(f, pending)}">
+      <div class="row" style="gap:4px;flex-wrap:wrap">${fmark(f, pending)}<span class="badge b-no">${esc(FCAT[f.category] || f.category)}</span></div>
+      <div class="t">${esc(f.title)}</div>
+      <div class="xs muted">התגלה ${when(f.discovered_at)}${f.published_at ? ` · פורסם במקור ${day(f.published_at)}` : ""} · מקור: ${f.source_url ? `<a href="${esc(f.source_url)}" target="_blank" rel="noopener">${esc(src)}</a>` : esc(src)}</div>
+      ${items.length > 1 ? `<details class="xs"><summary>${n((f.detail && f.detail.count) || items.length)} רשומות – פירוט</summary>${items.slice(0, 25).map((x) => `<div>${esc(x.date || "")} · ${esc(x.ministry || "")} · ${esc(x.procedure || x.topic || "")}${x.amount ? ` · ₪${n(Math.round(Number(String(x.amount).replace(/[^0-9.]/g, ""))))}` : ""} ${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">רשומה</a>` : ""}</div>`).join("")}</details>` : ""}
+    </div>`;
+  }
+  function findingsBlock(d) {
+    const fs = d.findings || [], pend = d.pending || [], jobs = d.jobs || [];
+    if (!fs.length && !pend.length && !jobs.length) return `<div class="xs muted">מידע חדש: עדיין לא התגלה מידע חדש על העסק הזה במקורות ההעשרה.</div>`;
+    const imp = fs.filter((f) => f.importance === "important").length;
+    return `<div style="display:grid;gap:6px"><div class="row"><b>✨ מידע חדש שהתגלה (${n(fs.length)})</b>${imp ? `<span class="badge nr-imp">★ ${n(imp)} חשובים</span>` : ""}<span class="spacer"></span>${legend()}</div>
+      ${fs.map((f) => findingRow(f, false)).join("")}
+      ${pend.length ? `<div class="xs muted" style="margin-top:4px">ממצאים שייתכן שהם של העסק הזה – לא צורפו עד שתאשר:</div>${pend.map((f) => `${findingRow(f, true)}<div class="row" style="gap:6px"><button class="btn btn-sm" data-nr="revok" data-id="${f.id}" data-b="${d.business.id}">✓ כן, זה העסק הזה</button><button class="btn btn-sm" data-nr="revno" data-id="${f.id}">✗ לא שייך</button></div>`).join("")}` : ""}
+      ${jobs.length ? `<details ${jobs.length <= 8 ? "open" : ""}><summary class="bold">💼 משרות שפורסמו (${n(jobs.length)}) – מספר משרות אינו מספר עובדים</summary><div class="tbl-wrap"><table><thead><tr><th>משרה</th><th>עיר</th><th>פורסם / עודכן</th><th>מצב</th><th>סוג</th><th>קישור</th></tr></thead><tbody>
+        ${jobs.map((j) => `<tr><td class="xs">${esc(j.title || "")}<div class="muted">${esc(j.occupation || "")}</div></td><td class="xs">${esc(j.city || "—")}</td><td class="xs">${day(j.posted_date)}</td>
+          <td>${j.status === "open" ? `<span class="badge b-ok">פעילה</span>` : j.status === "closed" ? `<span class="badge b-no">נסגרה</span>` : `<span class="badge b-no">לא ידוע</span>`}</td>
+          <td class="xs">${[j.is_driver ? "🚚 נהג" : "", j.is_logistics ? "📦 לוגיסטיקה" : "", j.is_operations ? "⚙️ תפעול" : ""].filter(Boolean).join(" ") || "—"}</td>
+          <td class="xs"><a href="${esc(j.url)}" target="_blank" rel="noopener">מודעה</a></td></tr>`).join("")}</tbody></table></div></details>` : ""}
+    </div>`;
+  }
+
+  // ── enrichment: progress report, sources, examples, review queue ──
+  function enrichView() {
+    const r = ST.report;
+    if (ST.reportError && !r) return `<div class="card card-b"><div class="badge b-bad" style="white-space:normal">${esc(ST.reportError)}</div></div>`;
+    if (!r) return `<div class="card card-b muted">⏳ טוען דוח העשרה מ-Supabase STAGING…</div>`;
+    const j = r.jobs || {}, dq = r.domains || {};
+    const filt = (k) => ` data-nr-enfilter="${k}" style="cursor:pointer" title="לחץ כדי לראות את החברות במאגר"`;
+    const head = `<div class="card"><div class="card-h"><h2>העשרת המאגר הארצי – דוח התקדמות<span class="h-bar"></span></h2><span class="spacer"></span>
+        ${r.control && r.control.enrich_running ? `<span class="badge b-blue">● ההעשרה פועלת בשרת${r.control.enrich_current ? " – " + esc(r.control.enrich_current) : ""}</span>` : `<span class="badge b-no">⏸ ההעשרה עצורה</span>`}
+        <button class="btn btn-sm" data-nr="enrichrun" data-v="${r.control && r.control.enrich_running ? "0" : "1"}">${r.control && r.control.enrich_running ? "⏸ עצור העשרה" : "▶ הפעל העשרה"}</button>
+        <button class="btn btn-sm" data-nr="enrichrefresh">${ST.reportLoading ? "⏳" : "🔄"} רענן</button></div>
+      <div class="card-b xs muted" style="display:grid;gap:4px;white-space:normal">
+        <div>המידע נכנס לכרטיס החברה הקיים במאגר – לא נוצרת רשימת לידים חדשה. שיוך לא ודאי נשאר "ממתין לבדיקה" ולא מצורף. רץ בשרת כל 2 דקות (pg_cron → nr-enrichment), במנות, עם נקודת המשך. עודכן ${when(r.generated_at)}.</div>
+        <div>${legend()}</div></div></div>`;
+    const kpis = `<div class="grid g-kpi tiles">
+      ${kpi("מקורות שנבדקו", n(r.sources_checked), `${n(r.sources_auto)} באיסוף אוטומטי · ${n(r.sources_unavailable)} חסומים / לא מותרים`)}
+      ${kpi("חברות קיימות שקיבלו מידע חדש", n(r.businesses_enriched), `${n(r.findings)} ממצאים`, filt("new_info"))}
+      ${kpi("סומנו ★ מידע חשוב חדש", n(r.important), "לחץ לרשימה", filt("important_new"))}
+      ${kpi("חברות חדשות שנוספו", n(r.businesses_new), `ההעשרה לא יוצרת רשומות בלי ח.פ.; ${n(j.employers_not_in_registry)} מעסיקים שלא זוהו לא נוספו`)}
+      ${kpi("טלפונים חדשים", n(r.new_phones), "לא נדרס אף טלפון קיים", filt("new_phone"))}
+      ${kpi("אימיילים חדשים", n(r.new_emails), `${n(r.new_websites)} אתרים חדשים · ${n(r.new_socials)} קישורים`, filt("new_website"))}
+      ${kpi("מגייסות עובדים", n(r.hiring), `${n(r.hiring_logistics)} מגייסות לוגיסטיקה / תפעול`, filt("hiring"))}
+      ${kpi("מגייסות נהגים", n(r.hiring_drivers), "", filt("hiring_drivers"))}
+      ${kpi("פתחו סניף / התרחבו", `${n(r.branch_opened)} / ${n(r.expansion)}`, "מתוך אתרי החברות – אינדיקציה", filt("expanded"))}
+      ${kpi("זכו במכרז / התקשרו עם הממשלה", `${n(r.tender_won)} / ${n(r.gov_contract)}`, "כולל היקף כספי מ-data.gov.il", filt("gov_contract"))}
+      ${kpi("מנהלים ואנשי קשר שזוהו", n(r.people_found), `${n(r.ceo_found)} מנכ"לים · ${n(r.ops_found)} מנהלי תפעול / צי`)}
+      ${kpi("נתונים חדשים שאומתו", n(r.verified), "אותו פרט מ-2 מקורות עצמאיים", filt("enrich_verified"))}
+      ${kpi("כפילויות שנמנעו", n(r.duplicates_avoided), "רשומות מקור שצורפו לחברה קיימת במקום רשומה חדשה")}
+      ${kpi("ממתינים לבדיקת שיוך", n(r.pending_review), "לא צורפו – ראו למטה", filt("needs_review"))}
+      ${kpi("צי רכב (מאתר החברה)", n(r.fleet), "", filt("fleet_info"))}
+      ${kpi("אתרים לגילוי / סריקה", `${n(dq.queued || 0)} / ${n(r.sites_left)}`, `נמצאו ${n(dq.found || 0)} · לא נמצא ${n((dq.not_found || 0) + (dq.parked || 0) + (dq.error || 0))}`)}
+    </div>`;
+    const ex = (list, title) => list && list.length ? `<div class="card"><div class="card-h"><h2>${title}<span class="h-bar"></span></h2></div><div class="tbl-wrap"><table><thead><tr><th>חברה</th><th>מה התגלה</th><th>סימון</th><th>מתי</th><th>מקור</th></tr></thead><tbody>
+      ${list.map((x) => `<tr data-nr="biz" data-v="${x.business_id}" style="cursor:pointer"><td><div class="co-name">${esc(x.name)}</div><div class="xs muted">${esc(x.city || "")}${x.reg_id ? " · ח.פ. " + esc(x.reg_id) : ""}</div></td>
+        <td class="xs" style="white-space:normal;max-width:420px">${esc(x.title)}</td><td>${fmark(x, false)}</td><td class="xs">${when(x.discovered_at)}</td>
+        <td class="xs">${x.source_url ? `<a href="${esc(x.source_url)}" target="_blank" rel="noopener" data-nr-stop="1">${esc(x.source_name || "מקור")}</a>` : esc(x.source_name || "")}</td></tr>`).join("")}</tbody></table></div>
+      <div class="card-b xs muted">לחיצה על שורה פותחת את כרטיס החברה במאגר; הקישור במקור פותח את הרשומה המקורית.</div></div>` : "";
+    const sources = `<div class="card"><div class="card-h"><h2>מקורות ההעשרה – מה נבדק ומה נאסף (${n((r.sources || []).length)})<span class="h-bar"></span></h2></div><div class="tbl-wrap"><table>
+      <thead><tr><th>מקור</th><th>סטטוס</th><th>נקראו</th><th>חברות שהועשרו</th><th>פרטים</th><th>סיבה / הערה</th></tr></thead><tbody>
+      ${(r.sources || []).map((s) => `<tr><td><div class="co-name">${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.name)}</a>` : esc(s.name)}</div><div class="xs muted">${esc(KIND[s.kind] || s.kind)}${s.last_run_at ? " · ריצה אחרונה " + when(s.last_run_at) : ""}</div></td>
+        <td>${badge(s.status)}${s.total ? `<div class="bar" style="margin-top:4px;height:5px"><i style="width:${Math.min(100, (s.cursor / s.total) * 100)}%"></i></div>` : ""}</td>
+        <td class="num">${s.read ? n(s.read) : "—"}${s.total ? `<div class="xs muted">מתוך ${n(s.total)}</div>` : ""}</td><td class="num">${s.enriched ? n(s.enriched) : "—"}</td><td class="num">${s.details ? n(s.details) : "—"}</td>
+        <td class="xs muted" style="white-space:normal;max-width:420px">${esc(s.reason || "")}</td></tr>`).join("")}</tbody></table></div></div>`;
+    const rq = ST.review || { total: 0, rows: [] };
+    const review = `<div class="card"><div class="card-h"><h2>ממתינים לבדיקת שיוך (${n(rq.total)})<span class="h-bar"></span></h2><span class="spacer"></span>
+        <span class="xs muted">שם דומה בלבד אינו מספיק לשיוך – בחר את החברה הנכונה או דחה</span></div>
+      <div class="card-b" style="display:grid;gap:8px">${(rq.rows || []).map((f) => `${findingRow(f, true)}
+        <div class="row" style="gap:6px;flex-wrap:wrap">${f.jobs ? `<span class="xs muted">${n(f.jobs)} משרות תחת השם הזה</span>` : ""}
+          ${(f.candidates || []).map((c) => `<button class="btn btn-sm" data-nr="revok" data-id="${f.id}" data-b="${c.id}" title="${esc(c.activity || "")}">✓ ${esc(c.name)}${c.city ? " – " + esc(c.city) : ""}${c.reg_id ? " (ח.פ. " + esc(c.reg_id) + ")" : ""}</button>
+            <button class="btn btn-sm btn-ghost" data-nr="biz" data-v="${c.id}">👁 כרטיס</button>`).join("")}
+          <button class="btn btn-sm" data-nr="revno" data-id="${f.id}">✗ לא שייך לאף אחת</button></div>`).join("") || `<div class="xs muted">אין ממצאים שממתינים לבדיקה</div>`}
+      ${rq.total > 25 ? `<div class="row" style="justify-content:center;gap:8px"><button class="btn btn-sm" data-nr="revpage" data-v="${ST.reviewPage - 1}" ${ST.reviewPage <= 0 ? "disabled" : ""}>‹ הקודם</button>
+        <span class="xs">עמוד ${n(ST.reviewPage + 1)} מתוך ${n(Math.ceil(rq.total / 25))}</span><button class="btn btn-sm" data-nr="revpage" data-v="${ST.reviewPage + 1}" ${(ST.reviewPage + 1) * 25 >= rq.total ? "disabled" : ""}>הבא ›</button></div>` : ""}
+      </div></div>`;
+    return head + kpis + ex(r.examples, "דוגמאות אמיתיות – חברה אחת לכל סוג מידע") + ex(r.recent_important, "★ מידע חשוב חדש – האחרונים") + review + sources;
   }
 
   // ── actions ──
@@ -530,11 +685,15 @@
     if (!(S.view === "prospector" && S.tab === TAB)) return;
     if (e.target.matches("input[type=checkbox],select,input,option,summary") || e.target.closest("summary")) return;
     const stop = e.target.closest("[data-nr-stop]");
-    const el = e.target.closest("[data-nr],[data-nr-filter]");
+    const el = e.target.closest("[data-nr],[data-nr-filter],[data-nr-enfilter]");
     if (!el) return;
     if (stop && el.getAttribute("data-nr") === "close" && !el.matches("button")) return;
     if (e.target.closest("a[href]")) return;
     e.preventDefault(); e.stopPropagation();
+    if (el.hasAttribute("data-nr-enfilter")) {
+      ST.sub = "browse"; ST.filters = { hide_archived: true, [el.getAttribute("data-nr-enfilter")]: true };
+      ST.sort = "important"; ST.page = 1; ST.openGroups = Object.assign(ST.openGroups || {}, { enr: true }); persist(); browse(); return;
+    }
     if (el.hasAttribute("data-nr-filter")) {
       const k = el.getAttribute("data-nr-filter");
       ST.sub = "browse";
@@ -542,7 +701,7 @@
       ST.page = 1; persist(); browse(); return;
     }
     const act = el.getAttribute("data-nr"), v = el.getAttribute("data-v");
-    if (act === "sub") { ST.sub = v; persist(); rerender(); if (v === "browse" && !ST.result) browse(); }
+    if (act === "sub") { ST.sub = v; persist(); rerender(); if (v === "browse" && !ST.result) browse(); if (v === "enrich") loadReport(); }
     else if (act === "apply") applyFilters();
     else if (act === "clear") { ST.filters = { hide_archived: true }; ST.page = 1; ST.selected.clear(); ST.selectAllMatching = false; persist(); browse(); }
     else if (act === "page") { ST.page = Math.max(1, Number(v)); browse(); window.scrollTo(0, 0); }
@@ -569,6 +728,11 @@
     else if (act === "source") openSource(v);
     else if (act === "biz") openBiz(v);
     else if (act === "close") { ST.modal = null; rerender(); }
+    else if (act === "enrichrefresh") loadReport();
+    else if (act === "enrichrun") rpc("nr_set_enrich_running", { p_running: v === "1" }).then(() => { toast(v === "1" ? "ההעשרה הופעלה – השרת ממשיך מנקודת ההתקדמות" : "ההעשרה תיעצר אחרי המנה הנוכחית"); loadReport(); }).catch((er) => toast(er.message));
+    else if (act === "revok") reviewDecision(el.dataset.id, el.dataset.b, true);
+    else if (act === "revno") reviewDecision(el.dataset.id, null, false);
+    else if (act === "revpage") { ST.reviewPage = Math.max(0, Number(v)); loadReport(); }
   }, true);
   document.addEventListener("keydown", (e) => {
     if (!(S.view === "prospector" && S.tab === TAB)) return;
