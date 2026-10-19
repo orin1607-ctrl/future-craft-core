@@ -58,6 +58,9 @@
       .nr-find{border-inline-start:4px solid var(--blue);padding:6px 10px;border-radius:6px;background:var(--blue-100);display:grid;gap:3px}
       .nr-find.imp{border-color:#ea580c;background:var(--est-bg)} .nr-find.ver{border-color:var(--ok);background:var(--ok-bg)}
       .nr-find.pend{border-color:var(--no);background:var(--no-bg)} .nr-find .t{white-space:normal;font-size:13px}
+      .nr-ic{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;padding:0 4px;margin:1px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;background:var(--no-bg);color:var(--text,inherit)}
+      .nr-ic-facebook{background:#1877f2;color:#fff}.nr-ic-instagram{background:#c13584;color:#fff}.nr-ic-linkedin{background:#0a66c2;color:#fff}
+      .nr-ic-tiktok{background:#111;color:#fff}.nr-ic-youtube{background:#ff0000;color:#fff}.nr-ic-twitter{background:#000;color:#fff}.nr-ic-whatsapp{background:#25d366;color:#fff}
       .nr-hl{display:flex;flex-wrap:wrap;gap:4px;align-items:baseline;margin-top:3px;font-size:12px;white-space:normal;min-width:240px;max-width:460px}`;
     document.head.appendChild(st);
   }
@@ -72,6 +75,15 @@
     return chips.join(" ");
   }
   const fclass = (f, pending) => pending ? "pend" : f.importance === "important" ? "imp" : f.verification === "verified" ? "ver" : "";
+  // clickable icons for the company's own site and its social / WhatsApp pages
+  const NETS = [["website", "🌐", "אתר החברה"], ["facebook", "f", "פייסבוק"], ["instagram", "IG", "אינסטגרם"], ["linkedin", "in", "לינקדאין"],
+    ["tiktok", "♪", "טיקטוק"], ["youtube", "▶", "יוטיוב"], ["twitter", "X", "X / טוויטר"], ["whatsapp", "WA", "וואטסאפ עסקי"]];
+  function linkIcons(b) {
+    const so = b.socials || {};
+    const url = (k) => k === "website" ? b.website : k === "whatsapp" ? (so.whatsapp || b.whatsapp) : so[k];
+    const a = NETS.filter(([k]) => url(k)).map(([k, ic, l]) => `<a href="${esc(url(k))}" target="_blank" rel="noopener" data-nr-stop="1" title="${l}" class="nr-ic nr-ic-${k}">${ic}</a>`).join("");
+    return a || '<span class="xs muted">—</span>';
+  }
   const legend = () => `<div class="row xs" style="gap:6px;flex-wrap:wrap"><span class="muted">מקרא:</span>
     <span class="badge nr-imp">★ מידע חשוב חדש</span><span class="badge b-blue">● מידע חדש</span><span class="badge b-ok">✓ מאומת (2 מקורות)</span>
     <span class="badge b-no">לא מאומת / אינדיקציה / ממתין לבדיקה</span></div>`;
@@ -114,8 +126,9 @@
     if (ST.reportLoading) return;
     ST.reportLoading = true; rerender();
     try {
-      const [rep, rq] = await Promise.all([rpc("nr_enrichment_report"), rpc("nr_review_queue", { p_limit: 25, p_offset: ST.reviewPage * 25, p_source: null })]);
-      ST.report = rep; ST.review = rq; ST.reportError = "";
+      const [rep, rq, intel, wu] = await Promise.all([rpc("nr_enrichment_report"), rpc("nr_review_queue", { p_limit: 25, p_offset: ST.reviewPage * 25, p_source: null }),
+        rpc("nr_intel_report"), rpc("nr_watch_updates", { p_limit: 60 })]);
+      ST.report = rep; ST.review = rq; ST.intel = intel; ST.watchUpd = wu; ST.reportError = "";
     } catch (e) { ST.reportError = e.message || String(e); }
     ST.reportLoading = false; rerender();
   }
@@ -227,7 +240,8 @@
             <datalist id="nrCities">${(fc.cities || []).map((c) => `<option value="${esc(c.v)}">${n(c.n)}</option>`).join("")}</datalist></label>
         </div>
         <details ${!ST.openGroups || ST.openGroups.enr !== false ? "open" : ""} data-nr-group="enr"><summary class="bold">✨ מידע חדש, גיוס והתרחבות</summary><div style="display:grid;gap:8px;margin-top:8px">
-          <div class="row" style="flex-wrap:wrap">${chk("important_new", "★ עם מידע חשוב חדש")}${chk("new_info", "עם מידע חדש כלשהו")}${chk("enrich_verified", "✓ מידע חדש שאומת")}${chk("needs_review", "נדרשת בדיקה")}</div>
+          <div class="row" style="flex-wrap:wrap">${chk("important_new", "★ עם מידע חשוב חדש")}${chk("new_info", "עם מידע חדש כלשהו")}${chk("new_week", "מידע חדש מהשבוע האחרון")}${chk("enrich_verified", "✓ מידע מאומת בלבד")}${chk("needs_review", "נדרשת בדיקה")}${chk("watched", "👁 חברות במעקב")}</div>
+          <div class="row" style="flex-wrap:wrap"><span class="xs muted">קשרים:</span>${chk("relations", "נמצאו חברות קשורות")}${chk("partners", "נמצאו שותפים / לקוחות / ספקים")}</div>
           <div class="row" style="flex-wrap:wrap"><span class="xs muted">גיוס:</span>${chk("hiring", "מגייסות עובדים")}${chk("hiring_drivers", "מגייסות נהגים")}${chk("hiring_logistics", "מגייסות לוגיסטיקה / תפעול")}${chk("jobs_open", "עם משרה פעילה")}</div>
           <div class="row" style="flex-wrap:wrap"><span class="xs muted">פעילות:</span>${chk("expanded", "התרחבו")}${chk("branch_opened", "פתחו סניף / מרכז")}${chk("tender_won", "זכו במכרז")}${chk("gov_contract", "התקשרות עם הממשלה")}${chk("fleet_info", "מידע על צי רכב")}</div>
           <div class="row" style="flex-wrap:wrap"><span class="xs muted">אנשים ופרטי קשר:</span>${chk("ceo", "מנכ\"ל מזוהה")}${chk("ops_manager", "מנהל תפעול / צי מזוהה")}${chk("corp_email", "אימייל עסקי (דומיין החברה)")}${chk("new_phone", "נמצא טלפון חדש")}${chk("new_website", "נמצא אתר חדש")}</div>
@@ -254,7 +268,8 @@
         </div></details>
         <details ${ST.openGroups && ST.openGroups.contact ? "open" : ""} data-nr-group="contact"><summary class="bold">פרטי קשר</summary><div style="display:grid;gap:8px;margin-top:8px">
           <div class="grid g-3" style="gap:10px">${yesno("phone", "טלפון")}${sel("verified_phone", [["yes", "מאומת (2+ מקורות)"], ["no", "יש טלפון, לא מאומת"]], "אימות טלפון")}${yesno("email", "אימייל")}${yesno("website", "אתר אינטרנט")}${yesno("people", "איש קשר עסקי")}</div>
-          <div class="row">${chk("facebook", "פייסבוק")}${chk("instagram", "אינסטגרם")}${chk("linkedin", "לינקדאין")}</div>
+          <div class="grid g-3" style="gap:10px">${yesno("fb", "פייסבוק")}${yesno("ig", "אינסטגרם")}${yesno("li", "לינקדאין")}${yesno("tt", "טיקטוק")}${yesno("yt", "יוטיוב")}</div>
+          <div class="row">${chk("whatsapp", "וואטסאפ עסקי")}${chk("social_any", "פעילות ברשתות חברתיות (קישור כלשהו)")}</div>
           <div class="row"><span class="xs muted">בעל תפקיד:</span>${Object.entries(ROLES).filter(([k]) => k !== "other").map(([k, l]) => multi("roles", k, l)).join("")}</div>
         </div></details>
         <details ${ST.openGroups && ST.openGroups.emp ? "open" : ""} data-nr-group="emp"><summary class="bold">עובדים</summary><div style="display:grid;gap:8px;margin-top:8px">
@@ -286,7 +301,7 @@
     const actions = `<div class="card"><div class="card-b row" style="gap:8px">
         <b class="num" style="font-size:18px">${ST.browsing ? "⏳" : n(total)}</b><span>עסקים עונים לתנאים</span>
         <span class="spacer"></span>
-        <label class="xs muted">מיון <select class="input" style="width:auto;height:32px" data-nr="sort">${[["sources", "מספר מקורות"], ["important", "★ מידע חשוב חדש קודם"], ["found", "מידע חדש – האחרון קודם"], ["jobs", "מספר משרות שפורסמו"], ["name", "שם"], ["city", "עיר"], ["employees", "מספר עובדים"], ["founded", "שנת הקמה (ישן→חדש)"], ["founded_desc", "שנת הקמה (חדש→ישן)"], ["updated", "עדכון אחרון"], ["collected", "תאריך איסוף"]].map(([v, l]) => `<option value="${v}" ${ST.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label class="xs muted">מיון <select class="input" style="width:auto;height:32px" data-nr="sort">${[["sources", "מספר מקורות"], ["important", "★ מידע חשוב חדש קודם"], ["relations", "מספר קשרים"], ["found", "מידע חדש – האחרון קודם"], ["jobs", "מספר משרות שפורסמו"], ["name", "שם"], ["city", "עיר"], ["employees", "מספר עובדים"], ["founded", "שנת הקמה (ישן→חדש)"], ["founded_desc", "שנת הקמה (חדש→ישן)"], ["updated", "עדכון אחרון"], ["collected", "תאריך איסוף"]].map(([v, l]) => `<option value="${v}" ${ST.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
         <label class="xs muted">בעמוד <select class="input" style="width:auto;height:32px" data-nr="pagesize">${[25, 50, 100, 200].map((x) => `<option ${ST.pageSize === x ? "selected" : ""}>${x}</option>`).join("")}</select></label>
       </div>
       <div class="card-b row" style="gap:6px;border-top:1px solid var(--border)">
@@ -317,7 +332,7 @@
       <div class="card-b" style="padding-bottom:0">${legend()}</div>
       <div class="tbl-wrap"><table><thead><tr>
         <th style="width:32px"><input type="checkbox" data-nr="selpage" ${allOnPage ? "checked" : ""} ${ST.selectAllMatching ? "disabled" : ""}></th>
-        <th>עסק</th><th>ח.פ.</th><th>עיר / אזור</th><th>תחום עיסוק</th><th>טלפון</th><th>אימייל / אתר</th><th>עובדים</th><th>מקורות</th></tr></thead>
+        <th>עסק</th><th>ח.פ.</th><th>עיר / אזור</th><th>תחום עיסוק</th><th>טלפון</th><th>אימייל</th><th>אתרים ורשתות חברתיות</th><th>עובדים</th><th>מקורות</th></tr></thead>
         <tbody>${rows.map((b) => `<tr data-nr="biz" data-v="${b.id}">
           <td data-nr-stop="1"><input type="checkbox" data-nr="selrow" data-v="${b.id}" ${ST.selectAllMatching || ST.selected.has(b.id) ? "checked" : ""} ${ST.selectAllMatching ? "disabled" : ""}></td>
           <td><div class="co-name">${esc(b.name)}</div><div class="xs muted">${esc(BIZ_STATUS[b.status] || "")}${b.corp_type ? " · " + esc(b.corp_type) : ""}${b.founded_year ? " · הוקם " + b.founded_year : ""}
@@ -330,9 +345,10 @@
           <td>${esc(b.city || "—")}<div class="xs muted">${esc(b.district || "")}</div></td>
           <td class="xs" style="max-width:220px;white-space:normal">${esc(b.main_activity || b.sector || "—")}</td>
           <td class="num" dir="ltr">${esc(b.phone_main || (b.branch_phones ? "סניפים: " + b.branch_phones : "—"))}${b.has_verified_phone ? ' <span class="badge b-ok" title="אותו מספר מ-2 מקורות עצמאיים">✓</span>' : ""}</td>
-          <td class="xs" dir="ltr">${esc(b.email_main || "")}${b.website ? `<div><a href="${esc(b.website)}" target="_blank" rel="noopener" data-nr-stop="1">אתר</a>${Object.keys(b.socials || {}).filter((k) => k !== "contact_form").map((k) => ` <a href="${esc(b.socials[k])}" target="_blank" rel="noopener" data-nr-stop="1">${esc(k)}</a>`).join("")}</div>` : Object.keys(b.socials || {}).length ? Object.keys(b.socials).map((k) => `<a href="${esc(b.socials[k])}" target="_blank" rel="noopener" data-nr-stop="1">${esc(k)}</a>`).join(" ") : (b.email_main ? "" : "—")}</td>
+          <td class="xs" dir="ltr">${esc(b.email_main || "—")}</td>
+          <td style="min-width:120px">${linkIcons(b)}</td>
           <td class="num">${b.employees_count ? n(b.employees_count) + '<div class="xs muted">פורסם</div>' : '<span class="xs muted">לא ידוע</span>'}</td>
-          <td class="num">${n(b.source_count)}${b.has_people ? '<div class="xs muted">👤 איש קשר</div>' : ""}${b.fleet_known ? '<div class="xs">🚌 צי</div>' : ""}</td></tr>`).join("") || `<tr><td colspan="9" class="muted">${ST.browsing ? "⏳ מחפש…" : "לא נמצאו עסקים בתנאים האלה"}</td></tr>`}</tbody></table></div>
+          <td class="num">${n(b.source_count)}${b.has_people ? '<div class="xs muted">👤 איש קשר</div>' : ""}${b.fleet_known ? '<div class="xs">🚌 צי</div>' : ""}${b.rel_count ? `<div class="xs muted">🔗 ${n(b.rel_count)} קשרים</div>` : ""}${b.watched ? '<div class="xs">👁 במעקב</div>' : ""}</td></tr>`).join("") || `<tr><td colspan="10" class="muted">${ST.browsing ? "⏳ מחפש…" : "לא נמצאו עסקים בתנאים האלה"}</td></tr>`}</tbody></table></div>
       <div class="card-b row" style="justify-content:center;gap:8px">
         <button class="btn btn-sm" data-nr="page" data-v="1" ${ST.page <= 1 ? "disabled" : ""}>« ראשון</button>
         <button class="btn btn-sm" data-nr="page" data-v="${ST.page - 1}" ${ST.page <= 1 ? "disabled" : ""}>‹ הקודם</button>
@@ -458,7 +474,10 @@
         ${b.has_conflict ? `<span class="badge b-est">יש סתירה מתועדת בין מקורות</span>` : ""}
         <span class="spacer"></span>
         ${Object.entries(MARKS).map(([k, [l]]) => `<button class="btn btn-sm" data-nr="markone" data-v="${k}" data-id="${b.id}">${l}</button>`).join("")}</div>
+      ${watchBlock(d)}
+      <div><b>🌐 אתרים ורשתות חברתיות</b> <span style="margin-inline-start:6px">${linkIcons(b)}</span></div>
       ${findingsBlock(d)}
+      ${relationsBlock(d)}
       <div class="grid g-3" style="gap:10px">
         ${field("סוג התאגדות", b.corp_type)}${field("סטטוס כפי שפורסם", b.status_raw)}${field("שנת הקמה", b.founded_year)}
         ${field("ענף", b.sector)}${field("תחום עיסוק ראשי", b.main_activity)}${field("תחומי עיסוק נוספים", (b.activities || []).join(" · "))}
@@ -511,6 +530,41 @@
           <td class="xs">${[j.is_driver ? "🚚 נהג" : "", j.is_logistics ? "📦 לוגיסטיקה" : "", j.is_operations ? "⚙️ תפעול" : ""].filter(Boolean).join(" ") || "—"}</td>
           <td class="xs"><a href="${esc(j.url)}" target="_blank" rel="noopener">מודעה</a></td></tr>`).join("")}</tbody></table></div></details>` : ""}
     </div>`;
+  }
+
+  const REL = { client: "לקוח של החברה", partner: "שותף עסקי", supplier: "ספק של החברה", parent: "חברת אם", subsidiary: "חברה בת", owner: "בעלים", owned: "בבעלות החברה",
+    brand: "מותג קשור", mention: "אזכור / קישור באתר", client_of: "החברה היא לקוחה שלו", supplier_of: "החברה היא ספקית שלו", mentioned_by: "מזכיר את החברה" };
+  const LEVEL = { verified: ["✓ קשר עסקי מאומת", "b-ok"], stated: ["קשר עסקי לפי אתר החברה", "b-blue"], mention: ["אזכור בלבד – לא קשר מסחרי מוכח", "b-no"] };
+  function relationsBlock(d) {
+    const rs = d.relations || [];
+    if (!rs.length) return "";
+    return `<details ${rs.length <= 10 ? "open" : ""}><summary class="bold">🔗 חברות קשורות (${n(rs.length)})</summary>
+      <div class="xs muted" style="margin:4px 0">"קשר עסקי מאומת" = מקור מובנה או שני מקורות. "לפי אתר החברה" = עמוד לקוחות / שותפים / ספקים. "אזכור" = קישור בלבד, ללא הוכחה לקשר מסחרי.</div>
+      <div class="tbl-wrap"><table><thead><tr><th>חברה</th><th>סוג הקשר</th><th>רמת ודאות</th><th>מקור</th></tr></thead><tbody>
+      ${rs.map((r) => `<tr ${r.other_id ? `data-nr="biz" data-v="${r.other_id}" style="cursor:pointer"` : ""}><td>${esc(r.other_name || r.other_domain || "—")}${r.other_city ? `<div class="xs muted">${esc(r.other_city)}</div>` : ""}${!r.other_id && r.other_domain ? `<div class="xs muted" dir="ltr">${esc(r.other_domain)} · טרם זוהה במאגר</div>` : ""}</td>
+        <td class="xs">${esc(REL[r.relation] || r.relation)}</td><td><span class="badge ${(LEVEL[r.level] || ["", "b-no"])[1]}">${esc((LEVEL[r.level] || [r.level])[0])}</span></td>
+        <td class="xs">${r.source_url ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener" data-nr-stop="1">${esc(r.source_name || "מקור")}</a>` : esc(r.source_name || "")}<div class="muted">${day(r.discovered_at)}</div></td></tr>`).join("")}
+      </tbody></table></div></details>`;
+  }
+  function watchBlock(d) {
+    const w = d.watch, id = d.business.id;
+    return `<div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;padding:8px;border:1px dashed var(--border);border-radius:8px">
+      ${w ? `<span class="badge b-blue">👁 במעקב ${w.frequency === "daily" ? "יומי" : "שבועי"}</span>
+        <span class="xs muted">בדיקה אחרונה: ${when(w.last_checked_at)} · הבאה: ${when(w.next_due_at)}${w.last_result ? " · " + esc(w.last_result) : ""}</span>
+        <span class="spacer"></span><button class="btn btn-sm" data-nr="watch" data-id="${id}" data-v="${w.frequency === "daily" ? "weekly" : "daily"}">עבור למעקב ${w.frequency === "daily" ? "שבועי" : "יומי"}</button>
+        <button class="btn btn-sm" data-nr="watch" data-id="${id}" data-v="">בטל מעקב</button>`
+      : `<span class="xs">הפעל מעקב אחר החברה – השרת יבדוק מידע עסקי חדש באתר החברה ובמקורות המותרים, גם כשהמחשב כבוי:</span><span class="spacer"></span>
+        <button class="btn btn-sm btn-primary" data-nr="watch" data-id="${id}" data-v="daily">👁 הפעל מעקב יומי</button>
+        <button class="btn btn-sm" data-nr="watch" data-id="${id}" data-v="weekly">👁 מעקב שבועי</button>`}
+    </div>`;
+  }
+  async function setWatch(id, freq) {
+    try {
+      await rpc("nr_watch_set", { p_business: Number(id), p_frequency: freq || null });
+      toast(freq ? `המעקב הופעל (${freq === "daily" ? "יומי" : "שבועי"}) – הבדיקה הראשונה תתבצע בדקות הקרובות` : "המעקב בוטל");
+      if (ST.modal && ST.modal.type === "biz") openBiz(ST.modal.id);
+      if (ST.sub === "enrich") loadReport();
+    } catch (e) { toast(e.message); }
   }
 
   // ── enrichment: progress report, sources, examples, review queue ──
@@ -567,7 +621,31 @@
       ${rq.total > 25 ? `<div class="row" style="justify-content:center;gap:8px"><button class="btn btn-sm" data-nr="revpage" data-v="${ST.reviewPage - 1}" ${ST.reviewPage <= 0 ? "disabled" : ""}>‹ הקודם</button>
         <span class="xs">עמוד ${n(ST.reviewPage + 1)} מתוך ${n(Math.ceil(rq.total / 25))}</span><button class="btn btn-sm" data-nr="revpage" data-v="${ST.reviewPage + 1}" ${(ST.reviewPage + 1) * 25 >= rq.total ? "disabled" : ""}>הבא ›</button></div>` : ""}
       </div></div>`;
-    return head + kpis + ex(r.examples, "דוגמאות אמיתיות – חברה אחת לכל סוג מידע") + ex(r.recent_important, "★ מידע חשוב חדש – האחרונים") + review + sources;
+    const it = ST.intel || {}, rsq = it.related_sites || {};
+    const intel = `<div class="card"><div class="card-h"><h2>מודיעין עסקי – אתרים, רשתות וקשרים<span class="h-bar"></span></h2><span class="spacer"></span>
+        <span class="xs muted">ריצה אחרונה: ${when(it.last_run)} · ${n(it.runs_last_hour)} מנות בשעה האחרונה${it.failed_last_hour ? ` · ${n(it.failed_last_hour)} נכשלו` : ""} · מנוע ${it.engine_running ? "פועל" : "עצור"}</span></div>
+      <div class="card-b"><div class="grid g-kpi tiles">
+      ${kpi("עסקים חדשים שנמצאו", n(it.new_businesses), "רק עם ח.פ. תקין שמופיע באתר שלהם")}
+      ${kpi("אתרי אינטרנט שהתגלו", n(it.websites_found), `${n(it.with_website)} עסקים עם אתר כיום`, filt("new_website"))}
+      ${kpi("קישורי פייסבוק", n(it.facebook), "עסקים עם עמוד פייסבוק", ` data-nr-enfilter="fb_yes" style="cursor:pointer"`)}
+      ${kpi("קישורי לינקדאין", n(it.linkedin), "")}
+      ${kpi("אינסטגרם / טיקטוק / יוטיוב", `${n(it.instagram)} / ${n(it.tiktok)} / ${n(it.youtube)}`, `${n(it.whatsapp)} עם וואטסאפ עסקי`)}
+      ${kpi("קשרים בין חברות", n(Number(it.relations_verified || 0) + Number(it.relations_stated || 0) + Number(it.relations_mention || 0)),
+          `${n(it.relations_verified)} מאומתים · ${n(it.relations_stated)} לפי אתר החברה · ${n(it.relations_mention)} אזכורים בלבד`, filt("relations"))}
+      ${kpi("חברות קשורות שזוהו במאגר", n(it.relations_resolved), `${n(it.businesses_with_relations)} עסקים עם קשרים · אתרים קשורים בתור: ${n(rsq.queued || 0)}`)}
+      ${kpi("חברות במעקב", n(it.watched), `${n(it.watched_with_important)} קיבלו עדכון עסקי חשוב`, filt("watched"))}
+      ${kpi("מקורות", `${n(it.sources_active)} פעילים`, `${n(it.sources_blocked)} חסומים · ${n(it.sources_awaiting)} ממתינים להרשאה`)}
+      </div></div></div>`;
+    const wu = ST.watchUpd || { watched: [], updates: [] };
+    const watchCard = `<div class="card"><div class="card-h"><h2>👁 עדכונים מחברות במעקב (${n((wu.watched || []).length)} חברות)<span class="h-bar"></span></h2></div><div class="card-b" style="display:grid;gap:6px">
+      ${(wu.watched || []).length ? `<div class="row" style="flex-wrap:wrap;gap:4px">${wu.watched.map((w) => `<button class="btn btn-sm" data-nr="biz" data-v="${w.id}">${esc(w.name)} <span class="xs muted">${w.frequency === "daily" ? "יומי" : "שבועי"} · ${w.last_checked_at ? "נבדק " + when(w.last_checked_at) : "ממתין לבדיקה ראשונה"}</span></button>`).join("")}</div>` : `<div class="xs muted">עדיין לא סימנת חברות למעקב. פתח כרטיס חברה ולחץ "הפעל מעקב".</div>`}
+      ${(wu.updates || []).slice(0, 30).map((f) => `<div data-nr="biz" data-v="${f.business_id}" style="cursor:pointer">${findingRow(Object.assign({}, f, { title: f.name + " – " + f.title }), false)}</div>`).join("") || ((wu.watched || []).length ? `<div class="xs muted">אין עדיין שינויים מאז שהופעל המעקב.</div>` : "")}
+      </div></div>`;
+    const relEx = (it.relation_examples || []).length ? `<div class="card"><div class="card-h"><h2>דוגמאות לקשרים בין חברות<span class="h-bar"></span></h2></div><div class="tbl-wrap"><table><thead><tr><th>חברה</th><th>קשר</th><th>חברה קשורה</th><th>ודאות</th><th>מקור</th></tr></thead><tbody>
+      ${it.relation_examples.map((x) => `<tr><td data-nr="biz" data-v="${x.from_business_id}" style="cursor:pointer" class="co-name">${esc(x.from_name)}</td><td class="xs">${esc(REL[x.relation] || x.relation)}</td>
+        <td data-nr="biz" data-v="${x.to_business_id}" style="cursor:pointer">${esc(x.to_name)}</td><td><span class="badge ${(LEVEL[x.level] || ["", "b-no"])[1]}">${esc((LEVEL[x.level] || [x.level])[0])}</span></td>
+        <td class="xs">${x.source_url ? `<a href="${esc(x.source_url)}" target="_blank" rel="noopener">${esc(x.source_name || "מקור")}</a>` : ""}</td></tr>`).join("")}</tbody></table></div></div>` : "";
+    return head + kpis + intel + watchCard + relEx + ex(r.examples, "דוגמאות אמיתיות – חברה אחת לכל סוג מידע") + ex(r.recent_important, "★ מידע חשוב חדש – האחרונים") + review + sources;
   }
 
   // ── actions ──
@@ -691,7 +769,8 @@
     if (e.target.closest("a[href]")) return;
     e.preventDefault(); e.stopPropagation();
     if (el.hasAttribute("data-nr-enfilter")) {
-      ST.sub = "browse"; ST.filters = { hide_archived: true, [el.getAttribute("data-nr-enfilter")]: true };
+      const fk = el.getAttribute("data-nr-enfilter");
+      ST.sub = "browse"; ST.filters = fk === "fb_yes" ? { hide_archived: true, fb: "yes" } : { hide_archived: true, [fk]: true };
       ST.sort = "important"; ST.page = 1; ST.openGroups = Object.assign(ST.openGroups || {}, { enr: true }); persist(); browse(); return;
     }
     if (el.hasAttribute("data-nr-filter")) {
@@ -729,6 +808,7 @@
     else if (act === "biz") openBiz(v);
     else if (act === "close") { ST.modal = null; rerender(); }
     else if (act === "enrichrefresh") loadReport();
+    else if (act === "watch") setWatch(el.dataset.id, v);
     else if (act === "enrichrun") rpc("nr_set_enrich_running", { p_running: v === "1" }).then(() => { toast(v === "1" ? "ההעשרה הופעלה – השרת ממשיך מנקודת ההתקדמות" : "ההעשרה תיעצר אחרי המנה הנוכחית"); loadReport(); }).catch((er) => toast(er.message));
     else if (act === "revok") reviewDecision(el.dataset.id, el.dataset.b, true);
     else if (act === "revno") reviewDecision(el.dataset.id, null, false);

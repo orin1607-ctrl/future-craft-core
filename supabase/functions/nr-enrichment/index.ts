@@ -239,10 +239,27 @@ function nameTokens(name: string) {
 // Does this page belong to THIS business? Strong: its known phone or exact e-mail on the page. Name words count only for a
 // registered company/association (a person's name or a common word on someone else's site is not proof), and need two words
 // on the page or one distinctive word in the page title / domain.
-type Biz = { name: string; name_en?: string | null; phones?: string[]; emails?: string[]; reg_id_type?: string | null };
+type Biz = { name: string; name_en?: string | null; phones?: string[]; emails?: string[]; reg_id_type?: string | null; reg_id?: string | null };
+// Israeli company / association number with a valid check digit (same algorithm as ת.ז.)
+function validIlId(d: string) {
+  if (!/^5\d{8}$/.test(d)) return false;
+  let s = 0;
+  for (let i = 0; i < 9; i++) { let x = Number(d[i]) * (i % 2 ? 2 : 1); if (x > 9) x -= 9; s += x; }
+  return s % 10 === 0;
+}
+// company numbers printed on a page ("ח.פ. 51-234567-8", "ע\"ר 580012345", "Reg. No 512345678")
+function regIdsOn(text: string): string[] {
+  const out = new Set<string>();
+  for (const m of text.matchAll(/(?:ח\.?\s?פ\.?|ח["״׳']פ|ע["״׳']ר|עמותה מס['׳]?|מספר חברה|חברה מס['׳]?|company (?:no|number|reg(?:istration)?)\.?|reg\.? ?no\.?)\s*[:.#-]?\s*(5[\d\s-]{8,12})/gi)) {
+    const d = m[1].replace(/\D/g, "").slice(0, 9);
+    if (validIlId(d)) out.add(d);
+  }
+  return [...out];
+}
 function siteConfirms(b: Biz, html: string, host: string): string[] {
   const out: string[] = [];
   const digits = html.replace(/\D/g, ""), low = html.toLowerCase();
+  if (b.reg_id && /^\d{9}$/.test(b.reg_id) && regIdsOn(textOf(html)).includes(b.reg_id)) out.push("ח.פ. " + b.reg_id + " של החברה מופיע באתר");
   const ph = (b.phones || []).find((p) => p.length >= 9 && digits.includes(p.slice(1)));
   if (ph) out.push("טלפון החברה " + fmtPhone(ph) + " מופיע באתר");
   const em = (b.emails || []).find((m) => m && low.includes(m.toLowerCase()));
@@ -319,7 +336,10 @@ const PAGE_KIND: [string, RegExp][] = [
   ["careers", /career|\/jobs?\b|\/drushim|דרושים|משרות|קריירה|בואו לעבוד|join-us|joinus|%d7%93%d7%a8%d7%95%d7%a9%d7%99%d7%9d/i],
   ["about", /about|אודות|מי[-_ %20]*אנחנו|הצוות|הנהלה|team|management|leadership|%d7%90%d7%95%d7%93%d7%95%d7%aa/i],
   ["contact", /contact|צור[-_ %20]*קשר|יצירת[-_ %20]*קשר|%d7%a6%d7%95%d7%a8/i],
+  ["relations", /לקוחות|לקוחותינו|שותפים|שותפי|ספקים|clients|customers|partners|suppliers|our-clients/i],
 ];
+// outbound links that are platforms / services, not business relations
+const NOT_COMPANY = /(^|\.)(facebook|instagram|linkedin|tiktok|youtube|youtu|twitter|x|google|goo|gstatic|googleapis|apple|microsoft|bing|wix|wixsite|wordpress|w|gravatar|cloudflare|jsdelivr|jquery|bootstrapcdn|fontawesome|waze|whatsapp|wa|t|telegram|schema|w3|bit|tinyurl|gov|b144|d|easy|zap|ynet|walla|mako|duns100|dunsguide|bdicoface|cookiedatabase|browsehappy|tase|ontopo|ziperdrop|linkshake|nagich|accessibility-helper|website-files|nipendo|merquly|tepez|wixstatic|paypal|tranzila|cardcom|icount|isracard|adobe|elementor|webflow|shopify|godaddy|mailchimp|hubspot|tripadvisor|booking|amazon|amazonaws|cdninstagram|fbcdn|vimeo|spotify|pinterest|calendly|zoom|weebly|squarespace|github|accessibe|nagish|enable|userway|hotjar|clarity|doubleclick|googletagmanager)\.[a-z.]+$/i;
 const ROLE = `(מנכ["״']?ל(?:ית)?|מנהל(?:ת)? כללי(?:ת)?|סמנכ["״']?ל(?:ית)? (?:תפעול|לוגיסטיקה|רכש)|מנהל(?:ת)? (?:תפעול|לוגיסטיקה|רכש|צי(?: ה)?רכב|תחבורה|הפצה|מחסן|אחזקה)|קצין(?:ת)? (?:בטיחות(?: בתעבורה)?|רכב)|בעלים|מייסד(?:ת)?(?: ומנכ["״']?ל)?|יו["״']?ר)`;
 const NAME = `([א-ת][א-ת'"״׳-]{1,14}(?: [א-ת][א-ת'"״׳-]{1,14}){1,2})`;
 const PLACE_WORD = /^(רכבת|ירושלים|תל|אביב|חיפה|באר|שבע|צפון|דרום|מרכז|פרויקט|פרויקטים|בניין|בניית|רחוב|כביש|עיריית|משרד|בית|גן|קניון|מגדל|שכונת|אזור|תעשייה|לקוח|לקוחות)$/;
@@ -365,7 +385,7 @@ function jsonLd(html: string): Obj[] {
 }
 const typeIs = (o: Obj, rx: RegExp) => [].concat(o["@type"] as never || []).some((t) => rx.test(String(t)));
 
-async function crawlSite(b: { id: number; name: string; name_en?: string | null; reg_id_type?: string | null; website: string; phones: string[]; emails?: string[]; city: string | null }) {
+async function crawlSite(b: { id: number; name: string; name_en?: string | null; reg_id?: string | null; reg_id_type?: string | null; website: string; phones: string[]; emails?: string[]; city: string | null; depth?: number }) {
   let home: Awaited<ReturnType<typeof get>>;
   try { if (!(await allowed(b.website))) return { robots: true }; home = await get(b.website, 9_000); } catch (e) { return { error: (e as Error).message.slice(0, 80) }; }
   if (home.status !== 200 || !/html/i.test(home.type)) return { error: "HTTP " + home.status };
@@ -450,38 +470,300 @@ async function crawlSite(b: { id: number; name: string; name_en?: string | null;
   const emp = (pageOf("about")?.text || pageOf("home")?.text || "").match(EMPLOYEES);
   if (emp && Number(emp[1]) >= 5) findings.push({ business_id: b.id, category: "employees", key: "site", fact_kind: "fact", url: (pageOf("about") || pages[0]).url, importance: "normal",
     title: `החברה מציינת באתרה כ-${Number(emp[1]).toLocaleString("en")} עובדים`, detail: { employees: Number(emp[1]), quote: clean(emp[0]) } });
+  // ── business relations published by the company itself ──
+  // the page chrome (header / footer / navigation) carries credits, widgets and the company's own other sites – ignored
+  const mainOf = (html: string) => html.replace(/<(header|footer|nav|aside)\b[\s\S]*?<\/\1>/gi, " ");
+  const CREDIT = /בני(?:י)?ת אתרים|בניה ועיצוב|עיצוב ו?(?:בניי?ה|פיתוח)|פותח ע|נבנה ע|website by|web ?design|created by|powered by|developed by|design (?:&|and|by)|קידום אתרים|\bseo\b|נגישות|accessib|cookie|purposes|browser|privacy|מדיניות|תקנון|hosting|אחסון|הזמן שולחן|לכתבה|עדכון פרטים|english|hebrew|עברית|русский|français|español|中文/i;
+  // registrable label: "customers.katzd.co.il" → "katzd"
+  const mainLabel = (h: string) => h.replace(/\.(co|org|net|ac|gov|muni|k12)\.[a-z]{2}$|\.[a-z]{2,}$/, "").split(".").pop() || h;
+  const ownLabel = mainLabel(host);
+  const sameBrand = (h: string) => { const l = mainLabel(h); return l === ownLabel || (l.length >= 4 && ownLabel.length >= 4 && (l.includes(ownLabel) || ownLabel.includes(l))); };
+  const relations: Obj[] = [];
+  const depth = (b.depth || 0) + 1;
+  const outLinks = (html: string) => [...html.matchAll(/<a\b[^>]*href\s*=\s*["'](https?:\/\/[^"'#]+)["'][^>]*>([\s\S]{0,400}?)<\/a>/gi)].map((m) => {
+    let h = ""; try { h = new URL(decode(m[1])).hostname.replace(/^www\./, "").toLowerCase(); } catch { /* bad url */ }
+    const alt = (m[2].match(/alt\s*=\s*["']([^"']{2,60})["']/i) || [])[1] || "";
+    return { host: h, url: decode(m[1]), name: clean(textOf(m[2])) || clean(decode(alt)) };
+  }).filter((l) => l.host && /\.[a-z]{2,}$/.test(l.host) && l.host !== host && !l.host.endsWith("." + host) && !host.endsWith("." + l.host)
+      && !NOT_COMPANY.test(l.host) && !SOCIAL_HOST.test(l.host) && !sameBrand(l.host) && !CREDIT.test(l.name + " " + l.url));
+  const relPage = pageOf("relations");
+  if (relPage) {
+    const lbl = decodeURIComponent(relPage.url) + " " + ((relPage.html.match(/<title[^>]*>([^<]*)/i) || [])[1] || "");
+    const kind = /ספק|supplier/i.test(lbl) ? "supplier" : /שותפ|partner/i.test(lbl) ? "partner" : "client";
+    const seen = new Set<string>();
+    for (const l of outLinks(mainOf(relPage.html))) {
+      if (seen.has(l.host) || seen.size >= 40) continue;
+      seen.add(l.host);
+      relations.push({ from_business_id: b.id, relation: kind, level: "stated", to_domain: l.host, to_name: l.name.slice(0, 80) || null, url: relPage.url, depth, detail: { link: l.url } });
+    }
+    // logos without links: the company names written in the image alt text
+    // (kept only when the name is exactly a registered company – certification badges, social icons and slogans are dropped)
+    const own = nameTokens(b.name).map((w) => w.toLowerCase());
+    for (const m of mainOf(relPage.html).matchAll(/<img\b[^>]*alt\s*=\s*["']([^"']{3,60})["']/gi)) {
+      const nm = clean(decode(m[1]));
+      if (seen.size >= 60 || seen.has(nm) || /logo|לוגו|icon|אייקון|image|תמונה|banner|באנר|^\d+$|^img|iso ?\d|תקן|facebook|instagram|youtube|tiktok|linkedin|whatsapp|פייסבוק|אינסטגרם|יוטיוב|וואטסאפ|מיוצר/i.test(nm)
+          || nameTokens(nm).length === 0 || nameTokens(nm).some((w) => own.includes(w.toLowerCase()))) continue;
+      seen.add(nm);
+      relations.push({ from_business_id: b.id, relation: kind, level: "stated", to_name: nm, url: relPage.url, depth, require_match: true, detail: { from_logo_alt: true } });
+    }
+  }
+  // other companies' sites linked from the home page: a mention only (kept, not followed, not a business relation)
+  const seenHome = new Set(relations.map((r) => r.to_domain));
+  for (const l of outLinks(mainOf(home.body))) {
+    if (seenHome.has(l.host) || seenHome.size >= 15) continue;
+    seenHome.add(l.host);
+    relations.push({ from_business_id: b.id, relation: "mention", level: "mention", to_domain: l.host, to_name: l.name.slice(0, 80) || null, url: home.url, depth, detail: { link: l.url } });
+  }
+  // structured data the company publishes about its own group
+  if (org) for (const [k, rel] of [["parentOrganization", "parent"], ["subOrganization", "subsidiary"], ["brand", "brand"]] as const) {
+    for (const o of [].concat((org[k] as never) || [])) {
+      const oo = o as unknown as Obj; const nm = clean(typeof o === "string" ? o : oo?.name); let h = "";
+      try { h = oo?.url ? new URL(String(oo.url)).hostname.replace(/^www\./, "") : ""; } catch { /* bad url */ }
+      if (nm || h) relations.push({ from_business_id: b.id, relation: rel, level: "stated", to_name: nm || null, to_domain: h || null, url: home.url, depth, detail: { json_ld: k } });
+    }
+  }
   const founded = org && clean(org.foundingDate).match(/(19|20)\d{2}/);
   return {
     row: { business_id: b.id, name: b.name, rid: base.origin + "#deep", url: home.url, phones, emails: em, socials, people: ppl.slice(0, 8), founded_year: founded ? founded[0] : undefined,
       fields: { site_confirmed_by: confirmed, pages: pages.map((p) => `${p.kind}: ${p.url}`), phones: phones.map((p) => p.d), emails: em.map((e) => e.v), socials: Object.keys(socials), people: ppl.map((p) => `${p.name} – ${p.role}`) } },
-    jobs, findings,
+    jobs, findings, relations,
   };
+}
+type SiteBiz = { id: number; name: string; name_en: string | null; reg_id: string | null; reg_id_type: string | null; website: string | null; phones: string[]; emails: string[]; city: string | null; shared_by: number; depth: number };
+// crawl a batch of businesses' own sites and put everything into their existing records
+async function processSites(sb: SupabaseClient, batch: SiteBiz[], sourceKey: string) {
+  const rows: Obj[] = [], jobs: Obj[] = [], finds: Obj[] = [], rels: Obj[] = [];
+  const res: Record<number, string> = {};
+  await pool(batch, 10, async (b) => {
+    if (!b.website) { res[b.id] = "אין אתר מאומת לעסק"; return; }
+    // a site listed for 3+ businesses (group / umbrella / brand site) says nothing specific about this one
+    const r = (b.shared_by >= 3
+      ? { row: { business_id: b.id, name: b.name, rid: b.website + "#deep", url: b.website, fields: { shared_site: `האתר רשום ל-${b.shared_by} עסקים – לא נלקח ממנו מידע לעסק בודד` } } }
+      : await crawlSite(b as never)) as { row?: Obj; jobs?: Obj[]; findings?: Obj[]; relations?: Obj[]; error?: string; robots?: boolean };
+    if (r.row) rows.push(r.row);
+    if (r.jobs) jobs.push(...r.jobs);
+    if (r.findings) finds.push(...r.findings);
+    if (r.relations) rels.push(...r.relations);
+    const f = (r.row?.fields || {}) as Obj;
+    res[b.id] = r.error ? "האתר לא נטען: " + r.error : r.robots ? "robots.txt חוסם" : f.site_not_confirmed ? "האתר לא אומת כשייך לעסק" : f.shared_site ? "אתר משותף לכמה עסקים" : "האתר נבדק";
+  });
+  let enriched = 0, details = 0, relCount = 0;
+  if (rows.length) { const x = await rpc<{ enriched: number; details: number }>(sb, "nr_ingest", { p_source: sourceKey, p_rows: rows }); enriched += x.enriched; details += x.details; }
+  // facts read from the company's site keep ONE identity whoever re-reads it (deep crawl or tracking): a re-check updates, never duplicates
+  if (jobs.length) await rpc(sb, "nr_ingest_jobs", { p_source: "enr:web_deep", p_rows: jobs });
+  if (finds.length) { const x = await rpc<{ matched: number }>(sb, "nr_ingest_findings", { p_source: "enr:web_deep", p_rows: finds }); details += x.matched; }
+  for (let i = 0; i < rels.length; i += 200) { const x = await rpc<{ relations: number }>(sb, "nr_ingest_relations", { p_source: "enr:site_relations", p_rows: rels.slice(i, i + 200) }); relCount += x.relations; }
+  return { enriched, details, relations: relCount, results: res };
 }
 async function stepDeep(sb: SupabaseClient, src: Src, deadline: number) {
   const t0 = Date.now();
-  let read = 0, enriched = 0, details = 0;
+  let read = 0, enriched = 0, details = 0, relations = 0;
   try {
     while (Date.now() < deadline - 25_000) {
-      const batch = await rpc<{ id: number; name: string; name_en: string | null; reg_id_type: string | null; website: string; phones: string[]; emails: string[]; city: string | null; shared_by: number }[]>(sb, "nr_claim_sites", { p_limit: 10 });
+      const batch = await rpc<SiteBiz[]>(sb, "nr_claim_sites", { p_limit: 10 });
       if (!batch.length) break;
-      const rows: Obj[] = [], jobs: Obj[] = [], finds: Obj[] = [];
-      await pool(batch, 10, async (b) => {
-        // a site listed for 3+ businesses (group / umbrella / brand site) says nothing specific about this one
-        const r = (b.shared_by >= 3
-          ? { row: { business_id: b.id, name: b.name, rid: b.website + "#deep", url: b.website, fields: { shared_site: `האתר רשום ל-${b.shared_by} עסקים – לא נלקח ממנו מידע לעסק בודד` } } }
-          : await crawlSite(b)) as { row?: Obj; jobs?: Obj[]; findings?: Obj[] };
-        if (r.row) rows.push(r.row);
-        if (r.jobs) jobs.push(...r.jobs);
-        if (r.findings) finds.push(...r.findings);
-      });
-      read += batch.length;
-      if (rows.length) { const res = await rpc<{ enriched: number; details: number }>(sb, "nr_ingest", { p_source: src.key, p_rows: rows }); enriched += res.enriched; details += res.details; }
-      if (jobs.length) await rpc(sb, "nr_ingest_jobs", { p_source: src.key, p_rows: jobs });
-      if (finds.length) { const res = await rpc<{ matched: number }>(sb, "nr_ingest_findings", { p_source: src.key, p_rows: finds }); details += res.matched; }
+      const x = await processSites(sb, batch, src.key);
+      read += batch.length; enriched += x.enriched; details += x.details; relations += x.relations;
     }
     const { count } = await sb.from("nr_businesses").select("id", { count: "exact", head: true }).not("website", "is", null).is("enr_site_checked_at", null);
-    await account(sb, src, t0, { read, enriched, details, done: !count, reason: "כל אתרי העסקים הידועים נסרקו לעומק; אתר חדש שיתגלה ייסרק אוטומטית" });
-    return { key: src.key, read, enriched, details, left: count };
+    await account(sb, src, t0, { read, enriched, details, done: !count, note: relations ? `${relations} קשרים` : undefined, reason: "כל אתרי העסקים הידועים נסרקו לעומק; אתר חדש שיתגלה ייסרק אוטומטית" });
+    return { key: src.key, read, enriched, details, relations, left: count };
+  } catch (e) { await fail(sb, src, t0, e); return { key: src.key, error: (e as Error).message }; }
+}
+
+// ════════════════ 4b. company → company: identify related sites by the ח.פ. printed on them ════════════════
+const LEGAL_NAME = /([א-תA-Za-z0-9"'׳״&.\- ]{2,60}?(?:בע["״׳']?מ|בעמ|ltd\.?|limited|\(ע["״]ר\)))/i;
+async function stepRelDiscovery(sb: SupabaseClient, src: Src, deadline: number) {
+  const t0 = Date.now();
+  let read = 0, matched = 0, created = 0;
+  try {
+    while (Date.now() < deadline - 15_000) {
+      const batch = await rpc<{ domain: string; from_business_id: number; depth: number }[]>(sb, "nr_claim_rel_domains", { p_limit: 10 });
+      if (!batch.length) break;
+      await pool(batch, 10, async (q) => {
+        let status = "no_id", note = "", found: number | null = null;
+        try {
+          const u = `https://${q.domain}/`;
+          if (!(await allowed(u))) { status = "robots"; note = "robots.txt"; }
+          else {
+            const home = await get(u, 8_000);
+            if (home.status !== 200 || !/html/i.test(home.type)) { status = "error"; note = "HTTP " + home.status; }
+            else {
+              let text = textOf(home.body);
+              let ids = regIdsOn(text);
+              if (!ids.length) {
+                // the company number is usually in the footer, the contact page or the terms page
+                const l = [...home.body.matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]{0,120}?)<\/a>/gi)]
+                  .find((m) => /contact|צור[-_ %20]*קשר|אודות|about|תקנון|terms|מדיניות/i.test(decode(m[1]) + " " + textOf(m[2])));
+                if (l) {
+                  try {
+                    const pu = new URL(decode(l[1]), home.url);
+                    if (pu.hostname.replace(/^www\./, "") === new URL(home.url).hostname.replace(/^www\./, "") && await allowed(pu.href)) {
+                      const p2 = await get(pu.href, 7_000);
+                      if (p2.status === 200) { text += "\n" + textOf(p2.body); ids = regIdsOn(text); }
+                    }
+                  } catch { /* page not reachable */ }
+                }
+              }
+              const origin = new URL(home.url).origin;
+              if (ids.length !== 1) { status = "no_id"; note = ids.length ? "כמה מספרי ח.פ. באתר – לא שויך" : "לא נמצא ח.פ. תקין באתר"; }
+              else {
+                const [hit] = await rpc<{ id: number; name: string; website: string | null }[]>(sb, "nr_business_by_reg", { p_reg: ids[0] });
+                if (hit) {
+                  found = hit.id; status = "matched"; note = `ח.פ. ${ids[0]} – ${hit.name}`; matched++;
+                  if (!hit.website) {
+                    await rpc(sb, "nr_ingest", { p_source: src.key, p_rows: [{ business_id: hit.id, name: hit.name, rid: q.domain, url: home.url, websites: [origin],
+                      fields: { identified_by_reg_id_on_site: ids[0], found_via_business: q.from_business_id } }] });
+                    await rpc(sb, "nr_confirm_site", { p_business: hit.id, p_url: origin, p_evidence: [`ח.פ. ${ids[0]} של החברה מופיע באתר`] });
+                    await sb.from("nr_businesses").update({ enr_depth: q.depth }).eq("id", hit.id).eq("enr_depth", 0);
+                  }
+                } else {
+                  // a company that is not in the registry yet: its valid number printed on its own site, with its legal name next to it
+                  const flat = text.replace(/\s+/g, " ");
+                  const at = flat.indexOf(ids[0].slice(0, 3));
+                  const near = at > 0 ? flat.slice(Math.max(0, at - 90), at) : "";
+                  const name = clean((near.match(LEGAL_NAME) || [])[1] || "").replace(/^.*?(©|כל הזכויות שמורות( ל-?)?|all rights reserved( to)?|copyright)\s*/i, "");
+                  if (name.length < 3) { status = "no_id"; note = `ח.פ. ${ids[0]} תקין אך לא במאגר, ולא נמצא לידו שם החברה – לא נוסף`; }
+                  else {
+                    await rpc(sb, "nr_ingest", { p_source: src.key, p_rows: [{ reg_id: ids[0], reg_type: ids[0].startsWith("58") ? "amuta" : "company", name, rid: q.domain, url: home.url, websites: [origin],
+                      create: true, fields: { identified_by_reg_id_on_site: ids[0], name_on_site: name, found_via_business: q.from_business_id } }] });
+                    const [nb] = await rpc<{ id: number; name: string }[]>(sb, "nr_business_by_reg", { p_reg: ids[0] });
+                    if (nb) { found = nb.id; status = "created"; note = `חברה חדשה: ${name} (ח.פ. ${ids[0]})`; created++;
+                      await sb.from("nr_businesses").update({ enr_depth: q.depth }).eq("id", nb.id); }
+                  }
+                }
+                if (found) await rpc(sb, "nr_resolve_domain", { p_domain: q.domain, p_business: found });
+              }
+            }
+          }
+        } catch (e) { status = "error"; note = (e as Error).message.slice(0, 80); }
+        await sb.from("nr_rel_domain_queue").update({ status, note, found_business_id: found, checked_at: now() }).eq("domain", q.domain);
+      });
+      read += batch.length;
+    }
+    const { count } = await sb.from("nr_rel_domain_queue").select("domain", { count: "exact", head: true }).eq("status", "queued");
+    await account(sb, src, t0, { read, enriched: matched, details: matched + created, note: `${matched} זוהו, ${created} חדשות` });
+    const { data: cur } = await sb.from("nr_sources").select("businesses_new").eq("key", src.key).single();
+    await sb.from("nr_sources").update({ status: "collecting", businesses_new: Number(cur?.businesses_new || 0) + created,
+      status_reason: `תור אתרים קשורים: ${count || 0} ממתינים; חברה מזוהה רק לפי ח.פ. תקין שמופיע באתר` }).eq("key", src.key);
+    return { key: src.key, read, matched, created, left: count };
+  } catch (e) { await fail(sb, src, t0, e); return { key: src.key, error: (e as Error).message }; }
+}
+
+// ════════════════ 4c. Wikidata: official social accounts, group structure, CEO, employees ════════════════
+const WD_TYPES = "wd:Q4830453 wd:Q783794 wd:Q6881511 wd:Q891723 wd:Q167037 wd:Q1589009 wd:Q163740 wd:Q658255 wd:Q206361 wd:Q22687 wd:Q507619 wd:Q18388277 wd:Q1058914 wd:Q2659904 wd:Q46970 wd:Q740752 wd:Q4287745 wd:Q1331793";
+async function sparql(q: string) {
+  const r = await fetch("https://query.wikidata.org/sparql?query=" + encodeURIComponent(q), { headers: { "User-Agent": UA + " orin1607@gmail.com", Accept: "application/sparql-results+json" }, signal: AbortSignal.timeout(60_000) });
+  if (!r.ok) throw new Error("Wikidata HTTP " + r.status);
+  const j = await r.json() as { results: { bindings: Record<string, { value: string }>[] } };
+  return j.results.bindings.map((b) => Object.fromEntries(Object.entries(b).map(([k, v]) => [k, v.value])) as Record<string, string>);
+}
+const WD_SOCIAL: Record<string, (v: string) => string> = {
+  fb: (v) => "https://www.facebook.com/" + v, ig: (v) => "https://www.instagram.com/" + v, li: (v) => "https://www.linkedin.com/company/" + v,
+  yt: (v) => "https://www.youtube.com/channel/" + v, tt: (v) => "https://www.tiktok.com/@" + v, tw: (v) => "https://x.com/" + v,
+};
+const WD_NET: Record<string, string> = { fb: "facebook", ig: "instagram", li: "linkedin", yt: "youtube", tt: "tiktok", tw: "twitter" };
+// a Wikidata organisation is attached only by its official website domain or by an exact, unique registered name
+async function wdBusiness(sb: SupabaseClient, web: string | undefined, he: string | undefined): Promise<number | null> {
+  if (web) { const id = await rpc<number | null>(sb, "nr_business_by_domain", { p_domain: web }); if (id) return id; }
+  if (he) { const m = await rpc<{ id?: number; status: string }>(sb, "nr_match_business", { p_name: he, p_city: null, p_reg: null }); if (m.status === "matched" && m.id) return Number(m.id); }
+  return null;
+}
+async function stepWikidata(sb: SupabaseClient, src: Src, deadline: number) {
+  const t0 = Date.now();
+  const phase = String(src.config.phase || "items");
+  let off = src.cursor || 0, read = 0, enriched = 0, details = 0;
+  try {
+    while (Date.now() < deadline - 20_000) {
+      const sub = `{ SELECT DISTINCT ?c WHERE { ?c wdt:P17 wd:Q801; wdt:P31 ?t. VALUES ?t { ${WD_TYPES} } } ORDER BY ?c LIMIT 300 OFFSET ${off} }`;
+      const q = phase === "items"
+        ? `SELECT ?c ?he ?en ?web ?fb ?ig ?li ?yt ?tt ?tw ?emp ?ceoHe ?ceoEn ?inc WHERE { ${sub}
+            OPTIONAL{?c rdfs:label ?he FILTER(LANG(?he)="he")} OPTIONAL{?c rdfs:label ?en FILTER(LANG(?en)="en")} OPTIONAL{?c wdt:P856 ?web}
+            OPTIONAL{?c wdt:P2013 ?fb} OPTIONAL{?c wdt:P2003 ?ig} OPTIONAL{?c wdt:P4264 ?li} OPTIONAL{?c wdt:P2397 ?yt} OPTIONAL{?c wdt:P7085 ?tt} OPTIONAL{?c wdt:P2002 ?tw}
+            OPTIONAL{?c wdt:P1128 ?emp} OPTIONAL{?c wdt:P571 ?inc} OPTIONAL{?c wdt:P169 ?ceo. OPTIONAL{?ceo rdfs:label ?ceoHe FILTER(LANG(?ceoHe)="he")} OPTIONAL{?ceo rdfs:label ?ceoEn FILTER(LANG(?ceoEn)="en")}} }`
+        : `SELECT ?c ?cWeb ?cHe ?rel ?o ?oHe ?oEn ?oWeb WHERE { ${sub}
+            { ?c wdt:P749 ?o BIND("parent" AS ?rel) } UNION { ?c wdt:P355 ?o BIND("subsidiary" AS ?rel) } UNION { ?c wdt:P127 ?o FILTER NOT EXISTS { ?o wdt:P31 wd:Q5 } BIND("owner" AS ?rel) } UNION { ?c wdt:P1830 ?o FILTER NOT EXISTS { ?o wdt:P31 wd:Q5 } BIND("subsidiary" AS ?rel) }
+            OPTIONAL{?c wdt:P856 ?cWeb} OPTIONAL{?c rdfs:label ?cHe FILTER(LANG(?cHe)="he")}
+            OPTIONAL{?o rdfs:label ?oHe FILTER(LANG(?oHe)="he")} OPTIONAL{?o rdfs:label ?oEn FILTER(LANG(?oEn)="en")} OPTIONAL{?o wdt:P856 ?oWeb} }`;
+      const rows = await sparql(q);
+      // page size is measured on the inner item list: re-count the distinct items this page returned
+      const items = new Set(rows.map((r) => r.c));
+      if (phase === "items") {
+        const by = new Map<string, Record<string, Set<string>>>();
+        for (const r of rows) { const e = by.get(r.c) || {}; for (const [k, v] of Object.entries(r)) if (v) (e[k] = e[k] || new Set()).add(v); by.set(r.c, e); }
+        const ingest: Obj[] = [], finds: Obj[] = [];
+        for (const [c, e] of by) {
+          const one = (k: string) => e[k] ? [...e[k]][0] : undefined;
+          const bid = await wdBusiness(sb, one("web"), one("he"));
+          if (!bid) continue;
+          const qid = c.split("/").pop()!;
+          const socials: Record<string, string> = {};
+          for (const k of Object.keys(WD_SOCIAL)) {
+            const v = one(k);
+            if (!v || /^groups\//i.test(v)) continue; // a Facebook group is not the company's page
+            socials[WD_NET[k]] = /^https?:\/\//i.test(v) ? v : WD_SOCIAL[k](v);
+          }
+          const ceo = one("ceoHe") || one("ceoEn");
+          let site = ""; try { site = one("web") ? new URL(one("web")!).origin : ""; } catch { /* bad url */ }
+          ingest.push({ business_id: bid, name: one("he") || one("en"), rid: qid, url: c, websites: site ? [site] : [], socials,
+            people: ceo ? [{ name: ceo, role: 'מנכ"ל' }] : [], founded_year: (one("inc") || "").slice(0, 4) || undefined,
+            fields: { wikidata: c, socials: Object.keys(socials), ceo: ceo || null, employees: e.emp ? [...e.emp] : null } });
+          const empN = e.emp ? Math.max(...[...e.emp].map(Number).filter((x) => x > 0)) : 0;
+          if (empN > 0) finds.push({ business_id: bid, method: "wikidata", category: "employees", key: qid, fact_kind: "fact", url: c, importance: "normal",
+            title: `לפי Wikidata: כ-${empN.toLocaleString("en")} עובדים`, detail: { employees: empN, wikidata: c } });
+          await sb.from("nr_businesses").update({ wd_id: qid }).eq("id", bid);
+        }
+        if (ingest.length) { const x = await rpc<{ enriched: number; details: number }>(sb, "nr_ingest", { p_source: src.key, p_rows: ingest }); enriched += x.enriched; details += x.details; }
+        if (finds.length) await rpc(sb, "nr_ingest_findings", { p_source: src.key, p_rows: finds });
+      } else {
+        const rels: Obj[] = [];
+        for (const r of rows) {
+          const from = await wdBusiness(sb, r.cWeb, r.cHe);
+          if (!from) continue;
+          let dom = ""; try { dom = r.oWeb ? new URL(r.oWeb).hostname.replace(/^www\./, "") : ""; } catch { /* bad url */ }
+          rels.push({ from_business_id: from, relation: r.rel, level: "verified", to_domain: dom || null, to_name: r.oHe || r.oEn || null, url: r.o, depth: 1, detail: { wikidata_from: r.c, wikidata_to: r.o } });
+        }
+        if (rels.length) { const x = await rpc<{ relations: number }>(sb, "nr_ingest_relations", { p_source: src.key, p_rows: rels }); details += x.relations; }
+      }
+      read += items.size; off += 300;
+      // the relations query only returns items that HAVE a relation, so the end of the list is detected by the item phase size
+      const lastPage = phase === "items" ? items.size < 300 : off > Number(src.config.items_total || 0) + 300;
+      if (phase === "items" && lastPage) src.config = { ...src.config, items_total: off };
+      if (lastPage) {
+        if (phase === "items") { src.config = { ...src.config, phase: "relations" }; await sb.from("nr_sources").update({ config: src.config, cursor: 0 }).eq("key", src.key); src.cursor = 0; off = 0; break; }
+        await account(sb, src, t0, { read, enriched, details, cursor: 0, done: true, reason: "כל הארגונים הישראליים ב-Wikidata נבדקו (חשבונות רשמיים, מבנה קבוצה, מנכ\"ל, עובדים); רענון שבועי" });
+        await sb.from("nr_sources").update({ config: { ...src.config, phase: "items", last_full_run: now() } }).eq("key", src.key);
+        return { key: src.key, read, enriched, details, done: true };
+      }
+      break; // one page per tick: the Wikidata query service rate-limits heavy queries
+    }
+    await account(sb, src, t0, { read, enriched, details, cursor: off });
+    return { key: src.key, phase, read, enriched, details, cursor: off };
+  } catch (e) {
+    // 429 = the query service asks us to slow down: not a failure, the next tick continues from the same page
+    if (/HTTP 429/.test((e as Error).message)) { await sb.from("nr_sources").update({ last_error: "Wikidata ביקש להאט (429) – ממשיך בריצה הבאה", updated_at: now() }).eq("key", src.key); return { key: src.key, throttled: true }; }
+    await fail(sb, src, t0, e); return { key: src.key, error: (e as Error).message };
+  }
+}
+
+// ════════════════ 4d. watched companies: re-check on their own schedule ════════════════
+async function stepWatch(sb: SupabaseClient, src: Src, deadline: number) {
+  const t0 = Date.now();
+  let read = 0, details = 0;
+  try {
+    while (Date.now() < deadline - 25_000) {
+      const batch = await rpc<SiteBiz[]>(sb, "nr_claim_watch", { p_limit: 6 });
+      if (!batch.length) break;
+      const before = new Date(Date.now() - 1000).toISOString();
+      const x = await processSites(sb, batch, "enr:watch");
+      details += x.details; read += batch.length;
+      for (const b of batch) {
+        const { count } = await sb.from("nr_findings").select("id", { count: "exact", head: true }).eq("business_id", b.id).eq("match_status", "matched").gte("discovered_at", before);
+        await sb.from("nr_watch").update({ last_result: `${x.results[b.id] || "נבדק"} · ${count || 0} ממצאים חדשים` }).eq("business_id", b.id);
+      }
+    }
+    if (read) await account(sb, src, t0, { read, enriched: read, details });
+    return { key: src.key, read, details };
   } catch (e) { await fail(sb, src, t0, e); return { key: src.key, error: (e as Error).message }; }
 }
 
@@ -545,9 +827,13 @@ async function tick(sb: SupabaseClient) {
       const s = await source(sb, k);
       if (s && ["pending", "collecting"].includes(s.status) && Date.now() < at(0.2)) await run(k, (x) => stepGov(sb, x, at(0.2)));
     }
-    await run("enr:taasuka_jobs", (s) => stepJobs(sb, s, at(0.4)));
-    await run("enr:web_discovery", (s) => stepDiscovery(sb, s, at(0.6)));
-    await run("enr:web_deep", (s) => stepDeep(sb, s, at(1)));
+    await run("enr:watch", (s) => stepWatch(sb, s, at(0.25)));
+    const wd = await source(sb, "enr:wikidata");
+    if (wd && (["pending", "collecting"].includes(wd.status) || (wd.status === "completed" && Date.now() - Date.parse(String(wd.config.last_full_run || 0)) > 7 * 86400_000))) await run("enr:wikidata", (s) => stepWikidata(sb, s, at(0.4)));
+    await run("enr:taasuka_jobs", (s) => stepJobs(sb, s, at(0.45)));
+    await run("enr:web_discovery", (s) => stepDiscovery(sb, s, at(0.55)));
+    await run("enr:web_deep", (s) => stepDeep(sb, s, at(0.85)));
+    await run("enr:rel_discovery", (s) => stepRelDiscovery(sb, s, at(1)));
     const rss = await source(sb, "enr:news_rss");
     if (rss && !["blocked", "unsupported"].includes(rss.status) && (!rss.last_run_at || Date.now() - Date.parse(rss.last_run_at) > 3 * 3600_000) && Date.now() < t0 + TICK_BUDGET_MS + 15_000) steps.push(await stepRss(sb, rss));
     await sb.rpc("nr_refresh_enrich_recent", { p_minutes: 4 });
