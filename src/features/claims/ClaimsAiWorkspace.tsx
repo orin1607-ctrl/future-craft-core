@@ -3634,7 +3634,7 @@ export function ClaimsAiWorkspace({
                     onOpenClaim={onOpenClaim}
                     onCopyText={(txt) => void handleCopyText(msg.id, txt)}
                   />
-                  {msg.role === 'assistant' && (
+                  {msg.role === 'assistant' && msg.id !== 'draft' && (
                     msg.content.includes('מאגר המסמכים') ||
                     msg.content.includes('קטגוריה א:') ||
                     msg.content.includes('קטגוריה א׳') ||
@@ -3659,14 +3659,14 @@ export function ClaimsAiWorkspace({
                         const expLabel = effectiveHours === 0 ? 'ללא תאריך תפוגה אוטומטי (פתוח עד לביטול)' : effectiveHours === 168 ? 'שבוע (7 ימים)' : `${effectiveHours} שעות`;
                         parts.push(`- תוקף הקישור שנבחר: ${expLabel} (${effectiveHours} שעות)`);
                         const uploadedMeta = (uploadedCatalogFormsRef.current || [])
-                          .filter((item) => item.storagePath && (forms.includes(item.name) || docs.includes(item.name)))
+                          .filter((item) => item.storage_path && (forms.includes(item.name) || docs.includes(item.name)))
                           .map((item) => ({
                             name: item.name,
-                            storage_path: item.storagePath!,
-                            original_name: item.fileName || `${item.name}.pdf`,
-                            mime_type: item.mimeType || 'application/pdf',
-                            byte_size: item.byteSize || 0,
-                            doc_type: item.docType || 'poa_form',
+                            storage_path: item.storage_path!,
+                            original_name: item.original_name || `${item.name}.pdf`,
+                            mime_type: item.mime_type || 'application/pdf',
+                            byte_size: item.byte_size || 0,
+                            content_sha256: item.content_sha256 || undefined,
                           }));
                         if (uploadedMeta.length > 0) {
                           parts.push(`<!-- UPLOADED_FORMS:${JSON.stringify(uploadedMeta)} -->`);
