@@ -126,9 +126,9 @@
     if (ST.reportLoading) return;
     ST.reportLoading = true; rerender();
     try {
-      const [rep, rq, intel, wu, sc] = await Promise.all([rpc("nr_enrichment_report"), rpc("nr_review_queue", { p_limit: 25, p_offset: ST.reviewPage * 25, p_source: null }),
-        rpc("nr_intel_report"), rpc("nr_watch_updates", { p_limit: 60 }), rpc("nr_scale_report")]);
-      ST.report = rep; ST.review = rq; ST.intel = intel; ST.watchUpd = wu; ST.scale = sc; ST.reportError = "";
+      const [rep, rq, intel, wu, sc, hl] = await Promise.all([rpc("nr_enrichment_report"), rpc("nr_review_queue", { p_limit: 25, p_offset: ST.reviewPage * 25, p_source: null }),
+        rpc("nr_intel_report"), rpc("nr_watch_updates", { p_limit: 60 }), rpc("nr_scale_report"), rpc("nr_engine_health").catch(() => null)]);
+      ST.report = rep; ST.review = rq; ST.intel = intel; ST.watchUpd = wu; ST.scale = sc; ST.health = hl; ST.reportError = "";
     } catch (e) { ST.reportError = e.message || String(e); }
     ST.reportLoading = false; rerender();
   }
@@ -664,8 +664,25 @@
       ${kpi("תורים ממתינים", n(q.sites), `סריקת עומק ${n(q.deep_crawl)} · דומייני אימייל ${n(q.email_domains)} · אתרים קשורים ${n(q.related_sites)} · לבדיקה ${n(q.review)}`)}
       ${kpi("מקורות", `${n(sc.sources_active)} פעילים`, `${n(sc.sources_blocked)} חסומים / לא מותרים${errs.length ? " · שגיאות בשעה האחרונה: " + errs.map(([k, v]) => `${esc(k)} ${n(v)}`).join(", ") : " · אין שגיאות בשעה האחרונה"}`)}
       </div>
+      ${healthLine(ST.health)}
       <div class="xs muted">תור הזיהוי: ${Object.entries(sq).map(([k, v]) => `${esc(SITE_ST[k] || k)} ${n(v)}`).join(" · ")}</div></div></div>`;
     return head + kpis + scale + intel + watchCard + relEx + ex(r.examples, "דוגמאות אמיתיות – חברה אחת לכל סוג מידע") + ex(r.recent_important, "★ מידע חשוב חדש – האחרונים") + review + sources;
+  }
+
+  // engine health: server calls in the last 15 minutes / hour, and what the self-feeding sources added
+  function healthLine(h) {
+    if (!h) return "";
+    const pct = (a, b) => (Number(b) ? Math.round((Number(a) / Number(b)) * 100) : 0);
+    const ok15 = pct(h.ok_15m, h.calls_15m);
+    const cls = !Number(h.calls_15m) ? "b-no" : ok15 >= 85 ? "b-ok" : ok15 >= 65 ? "b-est" : "b-bad";
+    const graphs = (h.cc_graphs_harvested || []).length;
+    return `<div class="row" style="flex-wrap:wrap;gap:6px;align-items:center">
+      <span class="badge ${cls}">בריאות המנוע: ${ok15}% קריאות תקינות ב־15 הדקות האחרונות</span>
+      <span class="xs muted">${n(h.calls_15m)} קריאות · ${n(h.cpu_limit_15m)} נקטעו במגבלת המעבד (חוזרות לתור) · ${n(h.other_errors_15m)} שגיאות אחרות · ${n(h.sites_checked_15m)} אתרים נבדקו</span>
+      <span class="xs muted">· בשעה האחרונה: ${n(h.ok_last_hour)}/${n(h.calls_last_hour)} תקינות</span>
+      <span class="xs muted">· גילוי דרך קישורים: ${n(h.links_seen_last_hour)} אתרים ישראליים מקושרים נראו בשעה האחרונה, ${n(h.links_new_last_hour)} חדשים לתור (סה"כ ${n(h.link_discovered_queued)})</span>
+      <span class="xs muted">· Common Crawl: ${n(graphs)} גרפים נקראו</span>
+      ${h.last_error ? `<span class="xs muted" title="${esc(h.last_error)}">· שגיאה אחרונה ${when(h.last_error_at)}</span>` : ""}</div>`;
   }
 
   // ── actions ──

@@ -563,6 +563,7 @@ async function processSites(sb: SupabaseClient, batch: SiteBiz[], sourceKey: str
   if (jobs.length) await rpc(sb, "nr_ingest_jobs", { p_source: "enr:web_deep", p_rows: jobs });
   if (finds.length) { const x = await rpc<{ matched: number }>(sb, "nr_ingest_findings", { p_source: "enr:web_deep", p_rows: finds }); details += x.matched; }
   for (let i = 0; i < rels.length; i += 200) { const x = await rpc<{ relations: number }>(sb, "nr_ingest_relations", { p_source: "enr:site_relations", p_rows: rels.slice(i, i + 200) }); relCount += x.relations; }
+  await feedDomains(sb, rels.map((r) => String(r.to_domain || "")).filter((d) => /\.(co|org|net)\.il$/.test(d)).map((d) => d.split(".").slice(-3).join(".")), "enr:link_discovery").catch(() => {});
   return { enriched, details, relations: relCount, results: res };
 }
 async function stepDeep(sb: SupabaseClient, src: Src, deadline: number) {
@@ -865,17 +866,21 @@ async function ccFirstHost(path: string): Promise<string> {
   reader.cancel().catch(() => {});
   return (buf.split("\n")[0].split("\t")[1] || "").trim();
 }
-async function harvestCc(sb: SupabaseClient) {
+// quarterly host graphs, newest first; each one lists hosts the others may miss
+const CC_GRAPHS = ["cc-main-2026-jun-jul-aug", "cc-main-2026-mar-apr-may", "cc-main-2025-26-dec-jan-feb", "cc-main-2025-sep-oct-nov"];
+async function harvestCc(sb: SupabaseClient, graphArg?: string) {
   const src = await source(sb, "enr:cc_domains");
   if (!src) return { error: "no source" };
   const t0 = Date.now();
-  const graph = String(src.config.graph || "cc-main-2026-jun-jul-aug");
+  const done = (src.config.harvested as string[]) || (src.config.harvested_at ? [String(src.config.graph || CC_GRAPHS[0])] : []);
+  const graph = graphArg || CC_GRAPHS.find((g) => !done.includes(g));
+  if (!graph) return { skipped: "all known graphs harvested" };
   const list = await (await fetch(`${CC}projects/hyperlinkgraph/${graph}/host/${graph}-host-vertices.paths.gz`, { signal: AbortSignal.timeout(30_000) })).body!
     .pipeThrough(new DecompressionStream("gzip")).pipeThrough(new TextDecoderStream());
   let paths = ""; for await (const c of list) paths += c;
   const parts = paths.split("\n").map((x) => x.trim()).filter(Boolean);
   // parts are sorted by reversed host name: find the ones whose range covers "il."
-  let idx = Number(src.config.part ?? -1);
+  let idx = graph === String(src.config.graph || CC_GRAPHS[0]) ? Number(src.config.part ?? -1) : -1;
   if (idx < 0) {
     let lo = 0, hi = parts.length - 1;
     while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if ((await ccFirstHost(parts[mid])) <= "il.") lo = mid; else hi = mid - 1; }
@@ -901,16 +906,41 @@ async function harvestCc(sb: SupabaseClient) {
       if (seen && rest.slice(rest.indexOf("\t") + 1) > "il.~") break;
     }
   }
-  const rows = [...domains].map((d) => ({ domain: d, source: "enr:cc_domains", priority: d.endsWith(".co.il") ? 100 : 120 }));
+  const older = graph !== CC_GRAPHS[0];
+  const rows = [...domains].map((d) => ({ domain: d, source: "enr:cc_domains", priority: (d.endsWith(".co.il") ? 100 : 120) + (older ? 20 : 0) }));
+  const { count: before } = await sb.from("nr_site_queue").select("domain", { count: "exact", head: true });
   for (let i = 0; i < rows.length; i += 2000) {
     const { error } = await sb.from("nr_site_queue").upsert(rows.slice(i, i + 2000), { onConflict: "domain", ignoreDuplicates: true });
     if (error) throw new Error("nr_site_queue: " + error.message);
   }
-  await sb.from("nr_sources").update({ status: "completed", total_records: rows.length, records_read: rows.length, last_run_at: now(), finished_at: now(),
-    duration_ms: Date.now() - t0, config: { ...src.config, part: idx, harvested_at: now(), domains: rows.length },
-    status_reason: `נטענו ${rows.length.toLocaleString("en")} שמות מתחם ישראליים עסקיים (.co.il / .org.il / .net.il) מגרף ${graph}; רענון רבעוני` }).eq("key", "enr:cc_domains");
-  await event(sb, "info", `Common Crawl: נטענו ${rows.length.toLocaleString("en")} אתרים ישראליים לתור הזיהוי`, "enr:cc_domains");
-  return { part: idx, domains: rows.length, ms: Date.now() - t0 };
+  const { count: after } = await sb.from("nr_site_queue").select("domain", { count: "exact", head: true });
+  const added = (after || 0) - (before || 0);
+  const harvested = [...new Set([...done, graph])];
+  await sb.from("nr_sources").update({ status: "completed", total_records: (src.total_records || 0) + added, records_read: src.records_read + rows.length, last_run_at: now(), finished_at: now(),
+    duration_ms: Number(src.duration_ms) + Date.now() - t0, businesses_new: 0,
+    config: { ...src.config, harvested, [`part_${graph}`]: idx, harvested_at: now(), domains: (src.config.domains as number || 0) + added },
+    status_reason: `נקראו ${harvested.length} גרפים (${harvested.join(", ")}); ${((src.total_records || 0) + added).toLocaleString("en")} שמות מתחם ישראליים ייחודיים בתור. גרף חדש נקרא אוטומטית כשהתור מתקצר` }).eq("key", "enr:cc_domains");
+  await event(sb, "info", `Common Crawl ${graph}: ${rows.length.toLocaleString("en")} אתרים ישראליים, מתוכם ${added.toLocaleString("en")} חדשים לתור`, "enr:cc_domains");
+  return { graph, part: idx, domains: rows.length, added, ms: Date.now() - t0 };
+}
+
+// Israeli business domains linked from a page (registrable form, own domain excluded) – the self-feeding source
+function ilDomains(html: string, own: string): string[] {
+  const out = new Set<string>();
+  for (const m of html.matchAll(/href\s*=\s*["']https?:\/\/([a-z0-9.-]+\.(?:co|org|net)\.il)(?:[:/"'?#]|$)/gi)) {
+    const p = m[1].toLowerCase().split(".");
+    const d = p.slice(-3).join(".");
+    if (d !== own && /^[a-z0-9-]{2,63}\.(co|org|net)\.il$/.test(d)) out.add(d);
+    if (out.size >= 40) break;
+  }
+  return [...out];
+}
+async function feedDomains(sb: SupabaseClient, domains: string[], via: string): Promise<number> {
+  const uniq = [...new Set(domains)];
+  if (!uniq.length) return 0;
+  const { data, error } = await sb.from("nr_site_queue").upsert(uniq.map((d) => ({ domain: d, source: via, priority: 90 })), { onConflict: "domain", ignoreDuplicates: true }).select("domain");
+  if (error) { console.error("feedDomains", error.message); return 0; }
+  return (data || []).length;
 }
 
 // ════════════════ 7. identify an Israeli site against the registry; add a new business only with a clear identity ════════════════
@@ -925,7 +955,7 @@ function cleanName(n: string, domain: string): string {
   if (/designed by|powered by|developed by|phpbb|wordpress|wix|elementor|בניית אתרים|עיצוב אתרים|קידום אתרים|template|theme/i.test(s)) return "";
   return s;
 }
-type Identity = { cityHint?: string; text?: string; name: string; nameFrom: string; phones: string[]; emails: string[]; ids: string[]; city: string; address: string; socials: Record<string, string>; origin: string; url: string; html: string };
+type Identity = { links?: string[]; cityHint?: string; text?: string; name: string; nameFrom: string; phones: string[]; emails: string[]; ids: string[]; city: string; address: string; socials: Record<string, string>; origin: string; url: string; html: string };
 async function readIdentity(domain: string): Promise<{ status: string; note?: string; id?: Identity }> {
   let page: Awaited<ReturnType<typeof get>> | null = null, note = "";
   for (const u of [`https://${domain}/`, `https://www.${domain}/`, `http://www.${domain}/`]) {
@@ -990,13 +1020,15 @@ async function readIdentity(domain: string): Promise<{ status: string; note?: st
   const em = [...mails].filter((m) => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(m) && !/\.(png|jpe?g|gif|webp|svg)$/.test(m) && (m.endsWith("@" + domain) || m.endsWith("." + domain) || FREE_MAIL.test(m)) && !/sentry|wixpress|example\.|domain\./.test(m)).slice(0, 5);
   // city hints only from address lines – a footer list of served areas or a person's name is not the business's city
   const cityHint = [address, ...(text.match(/[^\n]*(?:כתובת|רחוב|רח['׳]|ת\.ד|שד['׳]|שדרות|address)[^\n]*/gi) || []).slice(0, 4)].join("\n");
-  return { status: "ok", id: { name, nameFrom, phones: [...phones].slice(0, 8), emails: em, ids, city, address, socials, origin: new URL(page.url).origin, url: page.url, html: "", text, cityHint } };
+  return { status: "ok", id: { name, nameFrom, phones: [...phones].slice(0, 8), emails: em, ids, city, address, socials, origin: new URL(page.url).origin, url: page.url, html: "", text, cityHint, links: ilDomains(html, domain) } };
 }
 type Lookup = { domain: number | null; reg: { id: number; reg_id: string; name: string; website: string | null }[]; phones: { id: number; value: string }[]; emails: { id: number; value: string }[] };
+const LINKS_FOUND: string[] = [];
 async function identifyOne(sb: SupabaseClient, domain: string): Promise<{ status: string; business_id?: number; method?: string; note?: string }> {
   const r = await readIdentity(domain);
   if (r.status !== "ok" || !r.id) return { status: r.status, note: r.note };
   const id = r.id;
+  if (id.links) LINKS_FOUND.push(...id.links);
   const lk = await rpc<Lookup>(sb, "nr_identify_lookup", { p_domain: domain, p_phones: id.phones, p_emails: id.emails, p_reg_ids: id.ids });
   if (lk.domain) return { status: "known", business_id: lk.domain, note: "האתר כבר משויך לעסק במאגר" };
   const attach = async (bid: number, method: string, proof: string[]) => {
@@ -1010,6 +1042,8 @@ async function identifyOne(sb: SupabaseClient, domain: string): Promise<{ status
   const nameHit = (n: string) => nameTokens(n).filter((w) => w.length >= 4).some((w) => low.includes(w.toLowerCase()));
   // the registry and the district map use Hebrew locality names: an English city from the site's structured data is replaced when the page names one
   if (/^[A-Za-z]/.test(id.city) && id.cityHint) { const cs = await rpc<string[] | null>(sb, "nr_cities_in_text", { p_text: id.cityHint }); if (cs && cs.length === 1) id.city = cs[0]; }
+  // still English: the official Hebrew name when it is a known locality, otherwise not a city ("Israel", a slogan)
+  if (/^[A-Za-z]/.test(id.city)) id.city = (await rpc<string | null>(sb, "nr_city_from_en", { p_city: id.city })) || "";
   if (!id.city && id.address) { const c = await rpc<string | null>(sb, "nr_city_in_text", { p_text: id.address }); if (c) id.city = c; }
   if (!id.city && id.cityHint) { const cs = await rpc<string[] | null>(sb, "nr_cities_in_text", { p_text: id.cityHint }); if (cs && cs.length === 1) id.city = cs[0]; }
   // 1. company number printed on the site
@@ -1079,7 +1113,7 @@ async function identifyWorker(sb: SupabaseClient, worker: number) {
   let read = 0;
   try {
     const { data: ctl } = await sb.from("nr_control").select("identify_batch").eq("id", 1).single();
-    const batchSize = Math.max(8, Math.min(64, Number(ctl?.identify_batch || 16)));
+    const batchSize = Math.max(2, Math.min(64, Number(ctl?.identify_batch || 4)));
     while (Date.now() - t0 < 95_000) {
       const batch = await rpc<{ domain: string; attempts: number }[]>(sb, "nr_claim_site_queue", { p_limit: Math.min(16, batchSize - read) });
       if (!batch.length) break;
@@ -1092,6 +1126,10 @@ async function identifyWorker(sb: SupabaseClient, worker: number) {
       read += batch.length;
       if (read >= batchSize) break;
     }
+    // Israeli sites linked from the sites just read join the queue (duplicates ignored)
+    const seen = LINKS_FOUND.splice(0);
+    tally.links_seen = new Set(seen).size;
+    tally.links_new = await feedDomains(sb, seen, "enr:link_discovery").catch(() => 0);
     const src = await source(sb, "enr:site_identify");
     if (src && read) {
       const created = tally.created || 0, matched = tally.matched || 0;
@@ -1107,6 +1145,16 @@ async function identifyWorker(sb: SupabaseClient, worker: number) {
   }
 }
 
+// hourly: when the site queue runs low, read the next Common Crawl graph; unreachable sites get another chance after 30 days
+async function feeder(sb: SupabaseClient) {
+  const { count: queued } = await sb.from("nr_site_queue").select("domain", { count: "exact", head: true }).eq("status", "queued");
+  const out: Record<string, unknown> = { queued };
+  if ((queued || 0) < 5000) out.harvest = await harvestCc(sb);
+  const { data: rq } = await sb.rpc("nr_requeue_unreachable", { p_days: 30, p_limit: 5000 });
+  out.requeued_unreachable = rq;
+  return out;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: edgeCorsHeaders });
   const url = Deno.env.get("SUPABASE_URL") || "";
@@ -1119,7 +1167,8 @@ Deno.serve(async (req) => {
     const action = body.action || "tick";
     if (action === "tick") return jsonResponse({ ok: true, ...(await tick(sb)) });
     if (action === "identify") return jsonResponse({ ok: true, ...(await identifyWorker(sb, Math.max(1, Number(body.worker || 1)))) });
-    if (action === "harvest_cc") return jsonResponse({ ok: true, ...(await harvestCc(sb)) });
+    if (action === "harvest_cc") return jsonResponse({ ok: true, ...(await harvestCc(sb, (body as { graph?: string }).graph)) });
+    if (action === "feeder") return jsonResponse({ ok: true, ...(await feeder(sb)) });
     // diagnostics: parse one job page without writing anything
     if (action === "probe_job" && body.url) { const r = await get(body.url); return jsonResponse({ ok: true, status: r.status, job: parseJob(r.body, body.url), head: r.body.slice(0, 600) }); }
     return jsonResponse({ ok: false, error: "unknown action" }, 400);
