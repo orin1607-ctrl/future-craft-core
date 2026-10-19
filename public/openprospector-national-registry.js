@@ -33,6 +33,10 @@
     // marketing work lists (read only – nothing is sent from this screen)
     out: { filters: { fleet: "any", sort: "fleet" }, rows: null, afters: [0], page: 0, loading: false, error: "", summary: null, sumLoading: false },
     pendingBiz: Number(new URLSearchParams(location.search).get("biz")) || 0,
+    // industry classification: taxonomy + counts per industry (cached on the server)
+    ind: null,
+    // Dalia leads streamed from the registry into prospect_leads (the 7 rules run only there)
+    leads: { f: {}, data: null, stats: null, page: 0, loading: false, err: "" },
   };
   const persist = () => { try { localStorage.setItem(LS_KEY, JSON.stringify({ sub: ST.sub, filters: ST.filters, sort: ST.sort, pageSize: ST.pageSize })); } catch (e) { /* storage blocked */ } };
 
@@ -145,7 +149,33 @@
   }
   async function loadFacets() {
     try { ST.facets = await rpc("nr_facets"); } catch (e) { /* shown via browse error */ }
+    loadIndustries();
     rerender();
+  }
+  async function loadIndustries() {
+    try { ST.ind = await rpc("nr_industry_summary"); } catch (e) { /* the filters stay usable without counts */ }
+    rerender();
+  }
+  // industry labels: sub-industry → main label, profession
+  const TAX = () => Object.fromEntries(((ST.ind && ST.ind.taxonomy) || []).map((t) => [t.code, t]));
+  const MAINS = () => { const m = new Map(); ((ST.ind && ST.ind.taxonomy) || []).forEach((t) => { if (!m.has(t.main)) m.set(t.main, { code: t.main, label: t.main_label, subs: [] }); m.get(t.main).subs.push(t); }); return [...m.values()]; };
+  function indBadges(codes) {
+    const tax = TAX(), list = codes || [];
+    if (!list.length) return "";
+    if (list.length === 1 && list[0] === "unclassified") return '<div><span class="badge b-no" title="אין במידע שנאסף בסיס לסיווג – לא מנחשים">לא מסווג</span></div>';
+    return '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">' + list.filter((c) => tax[c]).map((c) => '<span class="badge b-blue" title="' + esc(tax[c].main_label + " › " + tax[c].sub_label) + '">' + esc(tax[c].sub_label.split(" – ")[0].split(",")[0]) + '</span>').join("") + '</div>';
+  }
+  function industryCard() {
+    const d = ST.ind;
+    if (!d || !d.mains) return "";
+    const row = (code, label, x, sub) => x ? '<tr data-nr="indpick" data-v="' + code + '" style="cursor:pointer"><td class="' + (sub ? "xs" : "co-name") + '" style="' + (sub ? "padding-inline-start:22px" : "") + '">' + esc(label) + '</td><td class="num">' + n(x.total) + '</td><td class="num">' + n(x.phone) + '</td><td class="num">' + n(x.email) + '</td><td class="num">' + n(x.contact) + '</td><td class="num">' + n(x.people) + '</td><td class="num">' + n(x.fleet) + '</td><td class="num">' + n(x.fleet_strong) + '</td></tr>' : "";
+    const open = ST.indOpen || {};
+    const body = MAINS().map((m) => row(m.code, (open[m.code] ? "▾ " : "▸ ") + m.label, d.mains[m.code]) + (open[m.code] ? m.subs.map((t) => row(t.code, t.sub_label, (d.subs || {})[t.code], true)).join("") : "")).join("") +
+      row("unclassified", "לא מסווג (אין בסיס לסיווג)", d.mains.unclassified);
+    return '<details class="card" ' + (ST.openGroups && ST.openGroups.indcard ? "open" : "") + ' data-nr-group="indcard"><summary class="card-h" style="cursor:pointer"><h2>🏷️ עסקים לפי ענף ומקצוע<span class="h-bar"></span></h2><span class="spacer"></span><span class="xs muted">' +
+      (d.classified < d.total ? "⏳ סווגו " + n(d.classified) + " מתוך " + n(d.total) + " – הסיווג ממשיך ברקע · " : "") + n(d.multi) + " עסקים משויכים ליותר מענף אחד · עודכן " + when(d.at) + '</span></summary>' +
+      '<div class="tbl-wrap"><table><thead><tr><th>ענף (לחיצה על ▸ פותחת תתי־ענפים; לחיצה על שורה מסננת)</th><th>עסקים</th><th>עם טלפון</th><th>עם אימייל</th><th>טלפון או אימייל</th><th>עם איש קשר</th><th>פוטנציאל צי</th><th>צי – סימנים חזקים / 5+</th></tr></thead><tbody>' + body + '</tbody></table></div>' +
+      '<div class="card-b xs muted">הסיווג נעשה רק לפי מידע שנאסף: ענף או תחום פעילות מהמקור, סוג התאגדות, או מילת מקצוע מפורשת בשם העסק. עסק בלי בסיס מסומן "לא מסווג". עסק יכול להופיע בכמה ענפים. הסיווג לא מסנן ולא מוחק עסקים מהמאגר.</div></details>';
   }
   let browseSeq = 0;
   async function browse() {
@@ -188,16 +218,19 @@
     if (ST.sub === "browse" && !ST.facets) setTimeout(loadFacets, 0);
     if (ST.sub === "enrich" && !ST.report && !ST.reportLoading && !ST.reportError) setTimeout(loadReport, 0);
     if (ST.sub === "outreach" && !ST.out.summary && !ST.out.sumLoading) setTimeout(loadOutreachSummary, 0);
+    if (!ST.ind && !ST.indLoading) { ST.indLoading = true; setTimeout(loadIndustries, 0); }
+    if (ST.sub === "leads" && !ST.leads.data && !ST.leads.loading && !ST.leads.err) setTimeout(loadLeads, 0);
     if (ST.sub === "outreach" && !ST.out.rows && !ST.out.loading && !ST.out.error) setTimeout(loadOutreach, 0);
     if (ST.pendingBiz && !ST.modal) { const id = ST.pendingBiz; ST.pendingBiz = 0; setTimeout(() => openBiz(id), 0); }
     if (!ST.timer) autoRefresh();
     const subTabs = `<div class="row" style="gap:6px">
       <button class="btn btn-sm ${ST.sub === "browse" ? "btn-primary" : ""}" data-nr="sub" data-v="browse">📋 מאגר העסקים</button>
       <button class="btn btn-sm ${ST.sub === "enrich" ? "btn-primary" : ""}" data-nr="sub" data-v="enrich">✨ העשרה – מידע חדש ודוח התקדמות</button>
+      <button class="btn btn-sm ${ST.sub === "leads" ? "btn-primary" : ""}" data-nr="sub" data-v="leads">🚚 לידים לדליה – מתעדכן אוטומטית${ST.leads.stats ? ` <span class="badge b-ok">${n(ST.leads.stats.total)}</span>` : ""}</button>
       <button class="btn btn-sm ${ST.sub === "outreach" ? "btn-primary" : ""}" data-nr="sub" data-v="outreach">🎯 רשימות עבודה לשיווק</button>
       <button class="btn btn-sm ${ST.sub === "collection" ? "btn-primary" : ""}" data-nr="sub" data-v="collection">⚙️ איסוף ומקורות</button>
       <span class="spacer"></span><span class="badge b-ok">STAGING</span><span class="badge b-est">ללא 7 חוקי הסינון – אין מחיקה</span></div>`;
-    const body = ST.sub === "browse" ? browseView() : ST.sub === "enrich" ? enrichView() : ST.sub === "outreach" ? outreachView() : collectionView();
+    const body = ST.sub === "leads" ? leadsView() : ST.sub === "browse" ? industryCard() + browseView() : ST.sub === "enrich" ? enrichView() : ST.sub === "outreach" ? outreachView() : collectionView();
     return `<div style="display:grid;gap:14px">${subTabs}${kpiStrip()}${body}</div>${modal()}`;
   };
 
@@ -246,6 +279,16 @@
           <label class="f">עיר<input class="input" data-nr-f="city" list="nrCities" placeholder="הקלד עיר" value="${esc(ST.filters.city || "")}">
             <datalist id="nrCities">${(fc.cities || []).map((c) => `<option value="${esc(c.v)}">${n(c.n)}</option>`).join("")}</datalist></label>
         </div>
+        <details ${!ST.openGroups || ST.openGroups.ind !== false ? "open" : ""} data-nr-group="ind"><summary class="bold">🏷️ ענף, תת־ענף ומקצוע <span class="xs muted">(אפשר לבחור כמה יחד)</span></summary><div style="display:grid;gap:6px;margin-top:8px">
+          ${ST.ind ? MAINS().map((m) => { const x = (ST.ind.mains || {})[m.code] || {}; return '<div><div class="row" style="flex-wrap:wrap;gap:4px">' + multi("ind", m.code, '<b>' + esc(m.label) + '</b> <span class="muted">' + n(x.total) + '</span>') +
+            '<details style="display:inline-block"><summary class="xs muted" style="cursor:pointer">תתי־ענפים</summary><div class="row" style="flex-wrap:wrap;gap:4px">' + m.subs.map((t) => multi("ind", t.code, esc(t.sub_label) + (t.profession ? ' <span class="muted">(' + esc(t.profession) + ')</span>' : "") + ' <span class="muted">' + n(((ST.ind.subs || {})[t.code] || {}).total) + '</span>')).join("") + '</div></details></div></div>'; }).join("") +
+            '<div class="row">' + multi("ind", "unclassified", 'לא מסווג <span class="muted">' + n(((ST.ind.mains || {}).unclassified || {}).total) + '</span>') + chk("ind_any", "כולל עסקים שהתחום מופיע אצלם רק כפעילות משנית (למשל רישיון עסק נוסף)") + '</div>' : '<div class="xs muted">⏳ טוען ענפים…</div>'}
+          <div class="grid g-3" style="gap:10px">
+            ${sel("fleet_level", [["any", "כל פוטנציאל לצי רכב"], ["strong", "סימנים חזקים או ראיה ל-5+ רכבים"], ["documented", "ראיה מבוססת ל-5+ רכבים"]], "פוטנציאל צי רכב")}
+            ${txt("fleet_min", "רכבים ידועים – לפחות", "5", "number")}
+            ${sel("contact_level", [["official", "טלפון / אימייל ממאגר רשמי"], ["own_site", "טלפון / אימייל מאתר החברה"], ["two_groups", "פרט שנמצא בשני סוגי מקורות"]], "רמת אימות פרטי הקשר")}
+          </div>
+        </div></details>
         <details ${!ST.openGroups || ST.openGroups.enr !== false ? "open" : ""} data-nr-group="enr"><summary class="bold">✨ מידע חדש, גיוס והתרחבות</summary><div style="display:grid;gap:8px;margin-top:8px">
           <div class="row" style="flex-wrap:wrap">${chk("important_new", "★ עם מידע חשוב חדש")}${chk("new_info", "עם מידע חדש כלשהו")}${chk("new_week", "מידע חדש מהשבוע האחרון")}${chk("enrich_verified", "✓ מידע מאומת בלבד")}${chk("needs_review", "נדרשת בדיקה")}${chk("watched", "👁 חברות במעקב")}</div>
           <div class="row" style="flex-wrap:wrap"><span class="xs muted">קשרים:</span>${chk("relations", "נמצאו חברות קשורות")}${chk("partners", "נמצאו שותפים / לקוחות / ספקים")}</div>
@@ -308,7 +351,7 @@
     const actions = `<div class="card"><div class="card-b row" style="gap:8px">
         <b class="num" style="font-size:18px">${ST.browsing ? "⏳" : n(total)}</b><span>עסקים עונים לתנאים</span>
         <span class="spacer"></span>
-        <label class="xs muted">מיון <select class="input" style="width:auto;height:32px" data-nr="sort">${[["sources", "מספר מקורות"], ["important", "★ מידע חשוב חדש קודם"], ["relations", "מספר קשרים"], ["found", "מידע חדש – האחרון קודם"], ["jobs", "מספר משרות שפורסמו"], ["name", "שם"], ["city", "עיר"], ["employees", "מספר עובדים"], ["founded", "שנת הקמה (ישן→חדש)"], ["founded_desc", "שנת הקמה (חדש→ישן)"], ["updated", "עדכון אחרון"], ["collected", "תאריך איסוף"]].map(([v, l]) => `<option value="${v}" ${ST.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label class="xs muted">מיון <select class="input" style="width:auto;height:32px" data-nr="sort">${[["sources", "מספר מקורות"], ["fleet", "🚚 פוטנציאל צי רכב"], ["important", "★ מידע חשוב חדש קודם"], ["relations", "מספר קשרים"], ["found", "מידע חדש – האחרון קודם"], ["jobs", "מספר משרות שפורסמו"], ["name", "שם"], ["city", "עיר"], ["employees", "מספר עובדים"], ["founded", "שנת הקמה (ישן→חדש)"], ["founded_desc", "שנת הקמה (חדש→ישן)"], ["updated", "עדכון אחרון"], ["collected", "תאריך איסוף"]].map(([v, l]) => `<option value="${v}" ${ST.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
         <label class="xs muted">בעמוד <select class="input" style="width:auto;height:32px" data-nr="pagesize">${[25, 50, 100, 200].map((x) => `<option ${ST.pageSize === x ? "selected" : ""}>${x}</option>`).join("")}</select></label>
       </div>
       <div class="card-b row" style="gap:6px;border-top:1px solid var(--border)">
@@ -350,7 +393,7 @@
             ${b.enr_jobs_count ? `<div class="xs muted">💼 ${n(b.enr_jobs_count)} משרות פורסמו${b.enr_jobs_open ? ` (${n(b.enr_jobs_open)} פעילות)` : ""}${b.enr_hiring_drivers ? " · 🚚 מגייסת נהגים" : ""}</div>` : ""}</td>
           <td class="num">${esc(b.reg_id || "—")}</td>
           <td>${esc(b.city || "—")}<div class="xs muted">${esc(b.district || "")}</div></td>
-          <td class="xs" style="max-width:220px;white-space:normal">${esc(b.main_activity || b.sector || "—")}</td>
+          <td class="xs" style="max-width:220px;white-space:normal">${esc(b.main_activity || b.sector || "—")}${indBadges(b.ind_codes)}${b.fleet_level ? '<div class="xs">🚚 ' + esc(b.fleet_level === "documented" ? "ראיה ל-5+ רכבים" : b.fleet_level === "strong" ? "סימנים חזקים לצי" : "פוטנציאל לצי") + (b.fleet_min ? " · " + n(b.fleet_min) + "+" : "") + '</div>' : ""}</td>
           <td class="num" dir="ltr">${esc(b.phone_main || (b.branch_phones ? "סניפים: " + b.branch_phones : "—"))}${b.has_verified_phone ? ' <span class="badge b-ok" title="אותו מספר מ-2 מקורות עצמאיים">✓</span>' : ""}</td>
           <td class="xs" dir="ltr">${esc(b.email_main || "—")}</td>
           <td style="min-width:120px">${linkIcons(b)}</td>
@@ -711,6 +754,8 @@
       const k = el.getAttribute("data-no-f");
       if (el.type === "checkbox") { if (el.checked) f[k] = true; } else if (el.value.trim()) f[k] = el.value.trim();
     });
+    const ind = [...document.querySelectorAll("[data-no-fm=ind]:checked")].map((el) => el.dataset.v);
+    if (ind.length) f.ind = ind;
     return f;
   }
   async function loadOutreachSummary() {
@@ -786,6 +831,9 @@
         <label class="xs">פרטי קשר ${sel("level", LEVELS, "any")}</label>
         <label class="xs">פלח ${sel("segment", SEGS, "all")}</label>
       </div>
+      <details ${(f.ind || []).length ? "open" : ""}><summary class="xs bold" style="cursor:pointer">🏷️ ענף ומקצוע ${(f.ind || []).length ? '<span class="badge b-blue">' + n(f.ind.length) + ' נבחרו</span>' : '<span class="muted">(כל הענפים – לחץ לבחירה, אפשר כמה יחד)</span>'}</summary>
+        <div style="display:grid;gap:4px;margin-top:6px">${MAINS().map((m) => '<div class="row" style="flex-wrap:wrap;gap:4px"><label class="chip"><input type="checkbox" data-no-fm="ind" data-v="' + m.code + '" ' + ((f.ind || []).includes(m.code) ? "checked" : "") + '> <b>' + esc(m.label) + '</b></label>' +
+          m.subs.map((t) => '<label class="chip xs"><input type="checkbox" data-no-fm="ind" data-v="' + t.code + '" ' + ((f.ind || []).includes(t.code) ? "checked" : "") + '> ' + esc(t.sub_label) + '</label>').join("") + '</div>').join("") || '<span class="xs muted">⏳ טוען ענפים…</span>'}</div></details>
       <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
         <label class="xs">אזור <input data-no-f="district" value="${esc(f.district || "")}" placeholder="למשל מרכז" style="width:100px"></label>
         <label class="xs">עיר <input data-no-f="city" value="${esc(f.city || "")}" style="width:100px"></label>
@@ -812,7 +860,7 @@
         <td style="max-width:340px;white-space:normal">${fleetCell(r)}</td>
         <td class="xs" style="max-width:260px;white-space:normal">${peopleCell(r)}</td>
         <td>${contactChips(r, "phone")}</td><td>${contactChips(r, "email")}</td>
-        <td class="xs" style="max-width:200px;white-space:normal">${esc(r.activity || "—")}<div class="muted">${esc(r.city || "")}${r.district ? " · " + esc(r.district) : ""}</div></td>
+        <td class="xs" style="max-width:200px;white-space:normal">${esc(r.activity || "—")}${indBadges(r.ind_codes)}<div class="muted">${esc(r.city || "")}${r.district ? " · " + esc(r.district) : ""}</div></td>
         <td class="xs">${r.website ? `<a href="${esc(r.website)}" target="_blank" rel="noopener" data-nr-stop="1">${esc(String(r.website).replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))}</a>` : "—"}</td>
         <td class="xs">${r.pending_review ? `<span class="badge b-no">${n(r.pending_review)} ממצאים</span>` : "—"}</td></tr>`).join("") || `<tr><td colspan="8" class="muted">אין חברות שתואמות את הסינון.</td></tr>`}
       </tbody></table></div></div>`;
@@ -834,7 +882,7 @@
         ["טלפון ממקור אחר בלבד", (r) => pick(r, "phone", (x) => !x.official && !x.own_site)],
         ["אימייל ממאגר רשמי", (r) => pick(r, "email", (x) => x.official)], ["אימייל מאתר החברה", (r) => pick(r, "email", (x) => x.own_site && !x.official)],
         ["אימייל ממקור אחר בלבד", (r) => pick(r, "email", (x) => !x.official && !x.own_site)],
-        ["אתר", (r) => r.website], ["תחום פעילות", (r) => r.activity], ["עיר", (r) => r.city], ["אזור", (r) => r.district],
+        ["אתר", (r) => r.website], ["תחום פעילות", (r) => r.activity], ["ענף / תת־ענף", (r) => (r.ind_codes || []).map((c) => (TAX()[c] || {}).sub_label || (c === "unclassified" ? "לא מסווג" : c)).join("; ")], ["עיר", (r) => r.city], ["אזור", (r) => r.district],
         ["בעלי תפקידים נוספים", (r) => (r.people || []).filter((p) => !p.cat).map((p) => `${p.name} – ${p.role}`).join("; ")],
         ["ממצאים שטרם אומתו", (r) => r.pending_review || ""], ["קישור לכרטיס", (r) => cardUrl(r.id)]];
       const q = (v) => { const t = v == null ? "" : String(v); return /[",\n;]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
@@ -856,6 +904,93 @@
       ST.modal.msg = `✅ יוצאו ${n(got)} חברות. טלפונים ואימיילים מופרדים לפי מקום הימצאם (רשמי / אתר החברה / אחר), וראיות הצי לפי עובדה / אינדיקציה.${got >= cap ? " (הגבלה של 50,000 שורות)" : ""}`;
     } catch (e) { ST.modal.msg = "⛔ " + e.message; }
     rerender();
+  }
+
+  // ── Dalia leads (live list) ──
+  const LEAD_ST = [["new", "חדש"], ["in_progress", "בטיפול"], ["contacted", "יצרנו קשר"], ["follow_up", "מעקב"], ["closed", "נסגר"],
+    ["meeting", "נקבעה פגישה"], ["quote", "הצעת מחיר"], ["won", "הפך ללקוח"], ["irrelevant", "לא רלוונטי"], ["review", "בבדיקה"]];
+  const LEAD_ST_NAME = Object.fromEntries(LEAD_ST);
+  async function loadLeads(silent) {
+    const L = ST.leads;
+    if (!silent) { L.loading = true; L.err = ""; rerender(); }
+    try {
+      const [d, s] = await Promise.all([rpc("nr_leads_page", { p_filters: L.f, p_offset: L.page * 50, p_limit: 50 }), rpc("nr_leads_stats")]);
+      L.data = d; L.stats = s; L.at = Date.now();
+    } catch (e) { if (!silent) L.err = e.message || String(e); }
+    L.loading = false; rerender();
+    // the list follows the cloud stream: refreshed every minute while it is on screen
+    if (!ST.leadsTimer) ST.leadsTimer = setInterval(() => {
+      if (S.view === "prospector" && S.tab === TAB && ST.sub === "leads" && !document.hidden && !ST.modal && !document.activeElement?.matches?.("[data-nl-f],[data-nl-status]")) loadLeads(true);
+    }, 60000);
+  }
+  async function setLeadStatus(id, status) {
+    try {
+      const sb = await client();
+      const r = await sb.from("prospect_leads").update({ status, updated_date: new Date().toLocaleDateString("he-IL"), updated_at: new Date().toISOString() }).eq("id", id).select("id");
+      if (r.error) throw new Error(r.error.message);
+      if (!r.data || !r.data.length) throw new Error("אין הרשאה לעדכן את הליד");
+      const row = ((ST.leads.data && ST.leads.data.rows) || []).find((x) => x.id === id); if (row) row.status = status;
+      toast(`הסטטוס עודכן: ${LEAD_ST_NAME[status] || status}`);
+      rpc("nr_leads_stats").then((s) => { ST.leads.stats = s; rerender(); }).catch(() => {});
+    } catch (e) { toast("הסטטוס לא נשמר: " + e.message); loadLeads(true); }
+  }
+  function readLeadFilters() {
+    const f = {};
+    document.querySelectorAll("[data-nl-f]").forEach((el) => { const k = el.getAttribute("data-nl-f"); if (el.type === "checkbox") { if (el.checked) f[k] = true; } else if (el.value.trim()) f[k] = el.value.trim(); });
+    const ind = [...document.querySelectorAll("[data-nl-fm=ind]:checked")].map((el) => el.dataset.v);
+    if (ind.length) f.ind = ind;
+    return f;
+  }
+  // site quotes may still carry HTML entities ("&ndash;"); missing-field keys get the rules module's Hebrew labels
+  const ent = (t) => String(t || "").replace(/&ndash;/g, "–").replace(/&mdash;/g, "—").replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&");
+  const missLabel = (k) => (window.OPQualify && OPQualify.missingLabel ? OPQualify.missingLabel(k) : k);
+  function leadsView() {
+    const L = ST.leads, f = L.f, s = L.stats || {}, d = L.data || { total: 0, rows: [] };
+    const tier = (t) => t === "A" ? '<span class="badge b-ok" title="7 החוקים: חברה פעילה עם ח.פ., צי 5+, טלפון ואימייל עסקיים, אימות טלפון ב-2 סוגי מקורות">A – מוכן לפנייה</span>' : t === "B" ? '<span class="badge b-est" title="7 החוקים: בסיס צי / עובדים מבוסס, חסר פרט קשר או מקור אימות שני">B – להשלמה</span>' : '<span class="badge b-no">' + esc(t || "") + '</span>';
+    const head = `<div class="card"><div class="card-h"><h2>🚚 לידים לדליה – זרם אוטומטי מהמאגר הארצי<span class="h-bar"></span></h2><span class="spacer"></span>
+        <span class="xs muted">${L.at ? "עודכן " + new Date(L.at).toLocaleTimeString("he-IL") + " · מתעדכן כל דקה" : ""}</span><button class="btn btn-sm" data-nr="lrefresh">🔄</button></div>
+      <div class="card-b" style="display:grid;gap:10px"><div class="grid g-kpi tiles">
+        ${kpi("לידים בזרם", n(s.total), `${n(s.today)} היום · ${n(s.last_hour)} בשעה האחרונה`)}
+        ${kpi("A – מוכנים לפנייה", n((s.by_tier || {}).A), "טלפון ואימייל עסקיים, אימות ב-2 סוגי מקורות, צי 5+", ` data-nr="ltier" data-v="A" style="cursor:pointer"`)}
+        ${kpi("B – להשלמת פרטים", n((s.by_tier || {}).B), "בסיס צי מבוסס, חסר פרט קשר או מקור שני", ` data-nr="ltier" data-v="B" style="cursor:pointer"`)}
+        ${kpi("בטיפול / מעקב", `${n((s.by_status || {}).in_progress)} / ${n((s.by_status || {}).follow_up)}`, `${n((s.by_status || {}).contacted)} יצרנו קשר · ${n((s.by_status || {}).closed)} נסגרו`)}
+        ${kpi("חברות שנבדקו ב-7 החוקים", n(s.evaluated), `${n(s.waiting)} ממתינות לבדיקה · בדיקה אחרונה ${when(s.last_run)}`)}
+      </div>
+      <div class="xs muted">האיסוף הרחב ממשיך בלי סינון. כאן בלבד מופעלים 7 חוקי הסינון הקיימים של דליה (אותו קוד שהתוכנה משתמשת בו), על חברות עם סימני צי רכב.
+        נכנסות רק חברות בדירוג A או B עם צי משוער של 5 רכבים ומעלה. ליד קיים לא נדרס, ואין כפילויות (ח.פ. ייחודי). הלידים מופיעים גם במסך הלידים הראשי. לא נשלחות הודעות.</div></div></div>`;
+    const sel = (k, opts, all) => `<select data-nl-f="${k}"><option value="">${all}</option>${opts.map(([v, l]) => `<option value="${v}" ${f[k] === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+    const filters = `<div class="card card-b" style="display:grid;gap:8px"><div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+        <label class="xs">סטטוס טיפול ${sel("status", LEAD_ST, "כל הסטטוסים")}</label>
+        <label class="xs">דירוג ${sel("tier", [["A", "A – מוכן לפנייה"], ["B", "B – להשלמה"]], "A + B")}</label>
+        <label class="xs">אזור <input data-nl-f="district" value="${esc(f.district || "")}" style="width:100px" placeholder="מרכז"></label>
+        <label class="xs">שם <input data-nl-f="q" value="${esc(f.q || "")}" style="width:130px"></label>
+        <label class="xs"><input type="checkbox" data-nl-f="fleet_contact" ${f.fleet_contact ? "checked" : ""}> עם איש קשר רלוונטי</label>
+        <button class="btn btn-sm btn-primary" data-nr="lapply">הצג</button></div>
+      <details ${(f.ind || []).length ? "open" : ""}><summary class="xs bold" style="cursor:pointer">🏷️ ענף ${(f.ind || []).length ? '<span class="badge b-blue">' + n(f.ind.length) + ' נבחרו</span>' : '<span class="muted">(כל הענפים)</span>'}</summary>
+        <div class="row" style="flex-wrap:wrap;gap:4px;margin-top:6px">${MAINS().map((m) => '<label class="chip"><input type="checkbox" data-nl-fm="ind" data-v="' + m.code + '" ' + ((f.ind || []).includes(m.code) ? "checked" : "") + '> ' + esc(m.label) + '</label>').join("")}</div></details></div>`;
+    const phones = (r) => { const list = (r.multi_phones || []).length ? r.multi_phones : (r.phone ? [{ v: r.phone }] : []);
+      return list.slice(0, 3).map((p) => `<div class="xs"><a href="tel:${esc(String(p.v || "").replace(/[^\d+]/g, ""))}" data-nr-stop="1">${esc(p.v || "")}</a>${p.sub === "mobile" ? " (נייד)" : ""} ${(p.groups || []).map((g) => `<span class="badge ${/^מאגר רשמי/.test(g) ? "b-ok" : /^אתר החברה/.test(g) ? "b-blue" : "b-no"}" title="${esc(g)}">${esc(/^מאגר רשמי/.test(g) ? "רשמי" : /^אתר החברה/.test(g) ? "אתר החברה" : "מקור אחר")}</span>`).join(" ")}</div>`).join("") || '<span class="xs muted">—</span>'; };
+    const mails = (r) => { const list = (r.multi_mails || []).length ? r.multi_mails : (r.email ? [{ v: r.email }] : []);
+      return list.slice(0, 2).map((m) => `<div class="xs"><a href="mailto:${esc(m.v || "")}" data-nr-stop="1">${esc(m.v || "")}</a></div>`).join("") || '<span class="xs muted">—</span>'; };
+    const fleet = (r) => { const fe = r.fleet_estimate || {}; const ev = (r.fleet_evidence || []).slice(0, 3);
+      return `<div class="xs"><b>${esc(fe.fleet_size_display || (r.fleet_size ? r.fleet_size + " רכבים" : "—"))}</b></div><div class="xs muted">${esc(ent(fe.fleet_method_label || ""))}</div>` +
+        ev.map((x) => `<div class="xs">${x.kind === "fact" ? '<span class="badge b-ok">עובדה</span>' : '<span class="badge b-no">אינדיקציה</span>'} ${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener" data-nr-stop="1">${esc(ent(x.t))}</a>` : esc(ent(x.t))}</div>`).join(""); };
+    const rows = d.rows || [];
+    const table = L.loading && !L.data ? `<div class="card card-b muted">⏳ טוען לידים…</div>` : L.err ? `<div class="card card-b"><span class="badge b-bad" style="white-space:normal">${esc(L.err)}</span></div>` :
+      `<div class="card"><div class="card-h"><h2>${n(d.total)} לידים<span class="h-bar"></span></h2><span class="spacer"></span>
+        <button class="btn btn-sm" data-nr="lpage" data-v="-1" ${L.page ? "" : "disabled"}>→ הקודם</button><span class="xs muted">עמוד ${L.page + 1}</span>
+        <button class="btn btn-sm" data-nr="lpage" data-v="1" ${rows.length === 50 ? "" : "disabled"}>הבא ←</button></div>
+      <div class="tbl-wrap"><table><thead><tr><th>חברה</th><th>סטטוס טיפול</th><th>למה מתאימה לדליה</th><th>רכבים, נהגים ולוגיסטיקה</th><th>איש קשר</th><th>טלפונים (מקור)</th><th>אימייל</th><th>קישורים</th></tr></thead><tbody>
+      ${rows.map((r) => `<tr>
+        <td style="min-width:170px"><div class="co-name"${r.registry_id ? ` data-nr="biz" data-v="${r.registry_id}" style="cursor:pointer"` : ""}>${esc(r.company_name)}</div><div class="xs muted">ח.פ. ${esc(r.company_hp || "")} · ${esc(r.city || "")}${r.region ? " · " + esc(r.region) : ""}</div>${indBadges(r.ind_codes)}</td>
+        <td><select data-nl-status="${esc(r.id)}" class="input" style="height:30px;width:auto">${LEAD_ST.map(([v, l]) => `<option value="${v}" ${r.status === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select><div style="margin-top:4px">${tier(r.tier)}</div></td>
+        <td class="xs" style="max-width:300px;white-space:normal">${esc(ent(String(r.lead_reason || "").split(" ראיות:")[0]))}${(r.missing_fields || []).length ? `<div class="muted">${esc(r.missing_fields.slice(0, 4).map(missLabel).join(" · "))}</div>` : ""}<div class="muted">אימות: ${esc(r.verification_status === "verified" ? "מאומת" : r.verification_status === "partial" ? "חלקי" : "לא מאומת")}</div></td>
+        <td style="max-width:280px;white-space:normal">${fleet(r)}</td>
+        <td class="xs" style="max-width:200px;white-space:normal">${r.contact_name ? `<b>${esc(r.contact_name)}</b><div>${esc(r.contact_role || "")}</div>${r.contact_phone ? `<div><a href="tel:${esc(String(r.contact_phone).replace(/[^\d+]/g, ""))}" data-nr-stop="1">${esc(r.contact_phone)}</a></div>` : ""}${r.contact_email ? `<div><a href="mailto:${esc(r.contact_email)}" data-nr-stop="1">${esc(r.contact_email)}</a></div>` : ""}` : '<span class="muted">טרם נמצא</span>'}</td>
+        <td>${phones(r)}</td><td>${mails(r)}</td>
+        <td>${linkIcons({ website: r.website, socials: r.socials || {}, whatsapp: r.public_whatsapp })}${r.registry_id ? `<div><a class="xs" href="${esc(cardUrl(r.registry_id))}" target="_blank" rel="noopener" data-nr-stop="1">🔗 כרטיס החברה</a></div>` : ""}</td></tr>`).join("") || `<tr><td colspan="8" class="muted">${L.loading ? "⏳ טוען…" : "אין לידים בתנאים האלה עדיין – הזרם ממשיך לבדוק חברות כל 2 דקות."}</td></tr>`}
+      </tbody></table></div></div>`;
+    return head + filters + table;
   }
 
   // ── actions ──
@@ -899,7 +1034,7 @@
     const cap = 100000;
     ST.modal = { type: "export", title: "ייצוא לקובץ CSV", msg: "⏳ מכין קובץ…" }; rerender();
     try {
-      const cols = [["name", "שם"], ["reg_id", "ח.פ."], ["status", "סטטוס"], ["corp_type", "סוג התאגדות"], ["founded_year", "שנת הקמה"], ["main_activity", "תחום עיסוק"], ["sector", "ענף"],
+      const cols = [["name", "שם"], ["reg_id", "ח.פ."], ["status", "סטטוס"], ["corp_type", "סוג התאגדות"], ["founded_year", "שנת הקמה"], ["main_activity", "תחום עיסוק"], ["sector", "ענף"], ["industries", "ענף / תת־ענף (סיווג)"], ["fleet_level", "פוטנציאל צי"], ["fleet_min", "רכבים ידועים"],
         ["city", "עיר"], ["district", "אזור"], ["address", "כתובת"], ["zip", "מיקוד"], ["phones", "טלפונים"], ["emails", "אימיילים"], ["website", "אתר"], ["socials", "רשתות חברתיות"],
         ["people", "אנשי קשר"], ["employees_count", "עובדים (פורסם)"], ["fleet_vehicles", "רכבים (תועד)"], ["source_count", "מספר מקורות"], ["source_names", "מקורות"]];
       const q = (v) => { const s = v == null ? "" : String(v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
@@ -958,6 +1093,7 @@
     const el = e.target;
     if (el.matches("[data-nr-fb],[data-nr-fm]") || el.matches("select[data-nr-f]")) { readFilterInput(el); applyFilters(); return; }
     if (el.matches("[data-nr-f]")) { readFilterInput(el); persist(); return; }
+    if (el.matches("select[data-nl-status]")) { setLeadStatus(el.getAttribute("data-nl-status"), el.value); return; }
     const act = el.getAttribute("data-nr");
     if (act === "sort") { ST.sort = el.value; ST.page = 1; persist(); browse(); }
     else if (act === "pagesize") { ST.pageSize = Number(el.value); ST.page = 1; persist(); browse(); }
@@ -1016,11 +1152,20 @@
     else if (act === "srcfilter") { ST.srcFilter = v; rerender(); }
     else if (act === "source") openSource(v);
     else if (act === "biz") openBiz(v);
+    else if (act === "indpick") {
+      const isMain = MAINS().some((m) => m.code === v);
+      if (isMain && !(ST.indOpen || {})[v] && e.target.closest("td") && e.target.closest("td").cellIndex === 0) { ST.indOpen = Object.assign({}, ST.indOpen, { [v]: true }); rerender(); return; }
+      ST.filters = Object.assign({}, ST.filters, { ind: [v] }); ST.page = 1; persist(); browse(); window.scrollTo(0, 0);
+    }
     else if (act === "oapply") { ST.out.filters = readOutFilters(); ST.out.afters = [0]; ST.out.page = 0; loadOutreach(); }
     else if (act === "ofleet") { ST.out.filters = Object.assign({}, ST.out.filters, { fleet: v, sort: "fleet" }); ST.out.afters = [0]; ST.out.page = 0; loadOutreach(); }
     else if (act === "oseg") { ST.out.filters = Object.assign({}, ST.out.filters, { segment: v }); ST.out.afters = [0]; ST.out.page = 0; loadOutreach(); }
     else if (act === "opage") { const d = Number(v); if (d > 0 && ST.out.rows && ST.out.rows.length === 50) { ST.out.afters[ST.out.page + 1] = byFleet() ? (ST.out.page + 1) * 50 : ST.out.rows[ST.out.rows.length - 1].id; ST.out.page++; } else if (d < 0 && ST.out.page > 0) ST.out.page--; loadOutreach(); window.scrollTo(0, 0); }
     else if (act === "oexport") exportOutreach();
+    else if (act === "lapply") { ST.leads.f = readLeadFilters(); ST.leads.page = 0; loadLeads(); }
+    else if (act === "lrefresh") loadLeads();
+    else if (act === "ltier") { ST.leads.f = Object.assign({}, ST.leads.f, { tier: v }); ST.leads.page = 0; loadLeads(); }
+    else if (act === "lpage") { ST.leads.page = Math.max(0, ST.leads.page + Number(v)); loadLeads(); window.scrollTo(0, 0); }
     else if (act === "osum") loadOutreachSummary();
     else if (act === "close") { ST.modal = null; rerender(); }
     else if (act === "enrichrefresh") loadReport();

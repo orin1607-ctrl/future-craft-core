@@ -11,6 +11,9 @@
 // No paid services, no login walls, no CAPTCHA / Cloudflare bypass, no 7-rule filtering.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { edgeCorsHeaders, jsonResponse, requireAuth } from "../_shared/edgeAuth.ts";
+// the 7 Dalia lead rules – the same file the app loads (public/openprospector-qualify.js), so the cloud stream and the
+// screen always grade a lead identically; it registers itself as globalThis.OPQualify
+import "../../../public/openprospector-qualify.js";
 
 const CKAN = "https://data.gov.il/api/3/action/datastore_search";
 // same normalisation as national-registry-collector/mappers.ts, so contact points dedupe across collectors
@@ -1191,6 +1194,68 @@ async function feeder(sb: SupabaseClient) {
   return out;
 }
 
+// ════════════════ Dalia lead stream: registry companies with fleet signals → the 7 rules → prospect_leads ════════════════
+// Collection is not affected; only companies the rules grade A / B with an estimated fleet of 5+ become leads.
+type Cand = Record<string, unknown> & { registry_id: number; company_name: string; company_hp: string; people?: { name: string; role: string; cat?: string; phone?: string; email?: string; source?: string; url?: string }[];
+  fleet_evidence?: { lvl: string; kind: string; t: string; src?: string; url?: string }[]; ind_codes?: string[]; socials?: Record<string, string>; all_phones?: unknown[]; all_emails?: unknown[] };
+const CARD_URL = "https://orin1607-ctrl.github.io/future-craft-core/openprospector.html?tab=national&biz=";
+async function leadsStep(sb: SupabaseClient) {
+  const t0 = Date.now();
+  const Q = (globalThis as unknown as { OPQualify?: { evaluate: (r: Obj) => Obj } }).OPQualify;
+  if (!Q) return { error: "rules module not loaded" };
+  const cands = await rpc<Cand[]>(sb, "nr_lead_candidates", { p_limit: 150 });
+  const { data: tax } = await sb.from("nr_industries").select("code,sub_label,main_label");
+  const label = Object.fromEntries((tax || []).map((t: { code: string; sub_label: string; main_label: string }) => [t.code, t]));
+  const today = new Date().toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem" });
+  const leads: Obj[] = [], results: Obj[] = [];
+  for (const c of cands) {
+    const ppl = c.people || [];
+    const best = ppl.find((p) => p.cat === "fleet") || ppl.find((p) => p.cat === "ops") || ppl.find((p) => p.cat === "owner");
+    const row: Obj = { ...c, contact_name: best ? best.name : "", contact_role: best ? best.role : "", contact_phone: best?.phone || "", contact_email: best?.email || "" };
+    let q: Obj;
+    try { q = Q.evaluate(row); } catch (e) { results.push({ id: c.registry_id, grade: null, result: "שגיאה בהערכה: " + (e as Error).message.slice(0, 80) }); continue; }
+    const fl = (q.fleet_estimate_v2 || {}) as Obj;
+    const fleetN = Number(fl.fleet_count || 0);
+    const grade = q.lead_grade as string | null;
+    if (!grade || fleetN < 5) {
+      results.push({ id: c.registry_id, grade: null, result: !grade ? String(q.lead_grade_label || "לא עומד ב-7 החוקים") : "צי משוער מתחת ל-5 רכבים" });
+      continue;
+    }
+    results.push({ id: c.registry_id, grade, result: String(q.lead_grade_label) });
+    const ind = (c.ind_codes || []).filter((k) => label[k]).map((k) => `${label[k].main_label} – ${label[k].sub_label}`);
+    const ev = (c.fleet_evidence || []).slice(0, 5);
+    const fleetMgr = ppl.find((p) => p.cat === "fleet");
+    const why = [
+      `${q.lead_grade_label}.`,
+      `צי: ${fl.fleet_size_display || "—"} (${fl.fleet_method_label || ""}).`,
+      ev.length ? "ראיות: " + ev.map((x) => `${x.kind === "fact" ? "עובדה" : "אינדיקציה"} – ${x.t}${x.src ? ` [${x.src}]` : ""}`).join(" · ") : "",
+      q.why_not_green ? String(q.why_not_green) : "",
+    ].filter(Boolean).join(" ");
+    const phone = String(c.phone || c.mobile_phone || "");
+    leads.push({
+      registry_id: c.registry_id, company_name: c.company_name, company_hp: c.company_hp,
+      industry: ind.join("; ") || String(c.industry_name || ""), city: c.city, region: c.region, address: c.address, website: c.website,
+      phone, phone_secondary: c.phone && c.mobile_phone ? c.mobile_phone : null, email: c.email || "",
+      company_size: c.employee_count ? `${c.employee_count} עובדים` : "", score: Number(q.business_potential_score || 0), found_date: today,
+      contact_name: row.contact_name || null, contact_role: row.contact_role || null, contact_phone: row.contact_phone || null, contact_email: row.contact_email || null,
+      fleet_exists: c.fleet_exists ?? null, fleet_size: c.fleet_size ?? null, fleet_size_status: q.fleet_size_status, fleet_types: c.fleet_types ?? null,
+      fleet_evidence: c.fleet_evidence, fleet_manager_name: fleetMgr ? fleetMgr.name : null, fleet_manager_source: fleetMgr ? (fleetMgr.url || fleetMgr.source || null) : null,
+      fleet_info: { level: c.fleet_level, min: c.fleet_min, estimate: fl.fleet_size_display, method: fl.fleet_method_label },
+      lead_reason: why.slice(0, 1500),
+      facts: { fleet_level: c.fleet_level, industries: ind, evaluated_at: new Date().toISOString() },
+      evidence: ev.map((x) => ({ field: "fleet", value: x.t, source: x.src || "", url: x.url || "", status: x.kind === "fact" ? "verified" : "partial" })),
+      people: ppl, multi_phones: c.all_phones || [], multi_mails: c.all_emails || [],
+      company_active_status: c.company_active_status, linkedin_company: c.socials?.linkedin || null, public_whatsapp: (c.whatsapp as string) || c.socials?.whatsapp || null,
+      verification_status: q.verification_status, missing_fields: q.missing_fields, source_list: c.source_list, field_status: q.field_status,
+      registry_check: c.registry_check, tier: q.tier, lead_stage: q.lead_stage, lead_quality: q.lead_quality, ready_for_contact: q.ready_for_contact, rejected_reason: null,
+      raw_payload: { origin: "national_registry_stream", registry_id: c.registry_id, card_url: CARD_URL + c.registry_id, fleet_estimate: fl, why: q.why_not_green,
+        lead_grade_label: q.lead_grade_label, socials: c.socials || {}, ind_codes: c.ind_codes || [], evaluated_at: new Date().toISOString() },
+    });
+  }
+  const stored = await rpc<{ inserted: number }>(sb, "nr_lead_store", { p_leads: leads, p_results: results });
+  return { evaluated: cands.length, qualified: leads.length, inserted: stored.inserted, ms: Date.now() - t0 };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: edgeCorsHeaders });
   const url = Deno.env.get("SUPABASE_URL") || "";
@@ -1205,6 +1270,16 @@ Deno.serve(async (req) => {
     if (action === "identify") return jsonResponse({ ok: true, ...(await identifyWorker(sb, Math.max(1, Number(body.worker || 1)))) });
     if (action === "harvest_cc") return jsonResponse({ ok: true, ...(await harvestCc(sb, (body as { graph?: string }).graph)) });
     if (action === "feeder") return jsonResponse({ ok: true, ...(await feeder(sb)) });
+    if (action === "leads") return jsonResponse({ ok: true, ...(await leadsStep(sb)) });
+    // a second deep-crawl call on the alternate minute: identification now attaches ~700 sites an hour, more than one
+    // 30-site slice per tick reads (claims are SKIP LOCKED, so both calls never read the same site)
+    if (action === "deep") {
+      const { data: ctl } = await sb.from("nr_control").select("enrich_running").eq("id", 1).single();
+      if (!ctl?.enrich_running) return jsonResponse({ ok: true, skipped: "stopped" });
+      const src = await source(sb, "enr:web_deep");
+      if (!src) return jsonResponse({ ok: false, error: "no source" });
+      return jsonResponse({ ok: true, ...(await stepDeep(sb, src, Date.now() + 100_000)) });
+    }
     // diagnostics: parse one job page without writing anything
     if (action === "probe_job" && body.url) { const r = await get(body.url); return jsonResponse({ ok: true, status: r.status, job: parseJob(r.body, body.url), head: r.body.slice(0, 600) }); }
     return jsonResponse({ ok: false, error: "unknown action" }, 400);

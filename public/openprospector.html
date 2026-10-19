@@ -491,7 +491,7 @@ const GROUPS=[["שיווק",["dash","prospector","seo","kw","rank","comp","crm",
 /* ===== הגדרות ענפים וסטטוסים ===== */
 const REGIONS=["כל הארץ","צפון","חיפה והקריות","שרון","מרכז","ירושלים","שפלה","דרום"];
 const INDUSTRIES=["הפצה ולוגיסטיקה","שירות וטכנאי שטח","בנייה ותשתיות","אחזקה ותפעול מבנים","מזון וקמעונאות","הובלות","תקשורת והתקנות","השכרה וליסינג"];
-const STATUSES=[["new","חדש"],["review","בבדיקה"],["contacted","נוצר קשר"],["meeting","נקבעה פגישה"],["quote","הצעת מחיר"],["won","הפך ללקוח"],["irrelevant","לא רלוונטי"]];
+const STATUSES=[["new","חדש"],["in_progress","בטיפול"],["contacted","יצרנו קשר"],["follow_up","מעקב"],["closed","נסגר"],["review","בבדיקה"],["meeting","נקבעה פגישה"],["quote","הצעת מחיר"],["won","הפך ללקוח"],["irrelevant","לא רלוונטי"]];
 const ST=Object.fromEntries(STATUSES);
 
 /* ===== מאגר ספקים וחיבורים (CONNECTIONS REGISTRY) ===== */
@@ -2878,7 +2878,7 @@ function soBadge(c,size){
 const recordBadges=c=>`${stageBadge(c,10)} ${verifBadge(c,10)} ${qualityBadge(c,10)}`;
 const fleetBadge=f=>f.s==="v"?`<span class="badge b-ok">✓ ${esc(f.val)}</span>`:f.s==="e"?`<span class="badge b-est">≈ ${esc(f.val)}</span>`:`<span class="badge b-no">${esc(f.val)}</span>`;
 const scoreCls=s=>s>=80?"s-hi":s>=65?"s-mid":"s-lo";
-const stBadge=s=>{const m={new:"b-blue",review:"b-no",contacted:"b-blue",meeting:"b-est",quote:"b-est",won:"b-ok",irrelevant:"b-no"};return `<span class="badge ${m[s]||'b-no'}">${ST[s]||s}</span>`};
+const stBadge=s=>{const m={new:"b-blue",in_progress:"b-est",review:"b-no",contacted:"b-blue",follow_up:"b-est",closed:"b-ok",meeting:"b-est",quote:"b-est",won:"b-ok",irrelevant:"b-no"};return `<span class="badge ${m[s]||'b-no'}">${ST[s]||s}</span>`};
 function toast(t){const el=$("#toast");if(!el)return;el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,3200)}
 const engine=()=>AI.find(a=>a.def)||AI[0];
 
@@ -13100,6 +13100,6 @@ try { if (window.parent !== window) window.parent.postMessage({ type: "dalia-coc
 syncWithRemoteSupabase();
 </script>
 <script src="openprospector-phone-engine.js?v=20261018b"></script>
-<script src="openprospector-national-registry.js?v=20261019fleet1"></script>
+<script src="openprospector-national-registry.js?v=20261019leads1"></script>
 </body>
 </html>
