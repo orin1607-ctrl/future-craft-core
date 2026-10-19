@@ -284,11 +284,17 @@ export async function buildSignedOpeningFormPdf(opts: {
   eventDesc: string;
   signaturePng?: string;
   claimNum?: string;
+  claimId?: string;
+  signedAt?: string;
   draft?: IntakeDraft;
 }): Promise<File> {
   await readyHebrewFont();
   const d = opts.draft || ({} as IntakeDraft);
-  const claimNum = opts.claimNum || d.claimNum || 'טרם התקבל';
+  const caseNumber = opts.claimId || opts.claimNum || d.claimNum || 'טרם התקבל';
+  const claimKind = (d.claimKind && d.claimKind !== 'תביעה במסגרת פוליסת הלקוח') ? d.claimKind : 'הפעלת פוליסה';
+  const signedTimestamp = opts.signedAt || new Date().toLocaleString('he-IL', {
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  });
   const inner = PAGE_W - MARGIN * 2;
   const col = (n: number, i: number, gap = 4) => {
     const w = (inner - gap * (n - 1)) / n;
@@ -304,21 +310,42 @@ export async function buildSignedOpeningFormPdf(opts: {
     ctx.lineWidth = 2;
     ctx.strokeRect(MARGIN - 6, 18, PAGE_W - (MARGIN - 6) * 2, PAGE_H - 40);
     ctx.fillStyle = '#1e3a5f';
-    ctx.fillRect(MARGIN - 6, 18, PAGE_W - (MARGIN - 6) * 2, 46);
+    ctx.fillRect(MARGIN - 6, 18, PAGE_W - (MARGIN - 6) * 2, 50);
+
+    // Original Dalia logo mark in top-right of header
+    const logoX = PAGE_W - MARGIN - 34;
+    const logoY = 25;
+    ctx.fillStyle = '#2563eb';
+    ctx.fillRect(logoX, logoY, 34, 34);
+    ctx.strokeStyle = '#93c5fd';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(logoX, logoY, 34, 34);
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.direction = 'ltr';
+    ctx.font = `900 20px ${FONT}`;
+    ctx.fillText('ד', logoX + 17, logoY + 24);
+
+    // Branded title & subtitle
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'right';
     ctx.direction = 'ltr';
-    ctx.font = `800 20px ${FONT}`;
-    ctx.fillText('הודעה על תאונת רכב', PAGE_W - MARGIN, 38);
+    ctx.font = `800 19px ${FONT}`;
+    ctx.fillText('דליה – תביעת רכב  |  הודעה על תאונת רכב', logoX - 10, 40);
     ctx.font = `600 10px ${FONT}`;
-    ctx.fillText('דליה ניהול תביעות  ·  נא להקפיד למלא טופס זה באופן מדויק ושלם', PAGE_W - MARGIN, 56);
+    ctx.fillText(`סוג התביעה: ${claimKind}  ·  תיק דליה: ${caseNumber}`, logoX - 10, 58);
+
+    // Case number on top-left
     ctx.textAlign = 'left';
-    ctx.font = `700 11px ${FONT}`;
-    ctx.fillText(claimNum, MARGIN + 4, 38);
+    ctx.font = `800 12px ${FONT}`;
+    ctx.fillText(`מספר תיק: ${caseNumber}`, MARGIN + 4, 40);
+    ctx.font = `600 10px ${FONT}`;
+    ctx.fillText(`חתימה: ${signedTimestamp}`, MARGIN + 4, 58);
+
     ctx.fillStyle = '#475569';
     ctx.textAlign = 'center';
     ctx.font = `11px ${FONT}`;
-    ctx.fillText(`עמ׳ ${pageNo} מתוך ${pageCount}`, PAGE_W / 2, PAGE_H - 10);
+    ctx.fillText(`דליה – תביעת רכב · תיק ${caseNumber} · עמ׳ ${pageNo} מתוך ${pageCount}`, PAGE_W / 2, PAGE_H - 10);
     ctx.textAlign = 'right';
   };
 
@@ -337,10 +364,10 @@ export async function buildSignedOpeningFormPdf(opts: {
   paintChrome(c1, 1, 2);
   paintChrome(c2, 2, 2);
 
-  let y = 72;
-  y = sectionHead(c1, MARGIN, y, inner, 'א', 'פרטי המבוטח והפוליסה');
-  let a = col(4, 0); cell(c1, a.x, y, a.w, 34, 'זהות המדווח', d.reporterName || opts.clientName || d.clientName);
-  a = col(4, 1); cell(c1, a.x, y, a.w, 34, 'שם הסוכן', d.agentName);
+  let y = 74;
+  y = sectionHead(c1, MARGIN, y, inner, 'א', 'פרטי המבוטח, סוג התביעה והפוליסה');
+  let a = col(4, 0); cell(c1, a.x, y, a.w, 34, 'מספר תיק דליה', caseNumber);
+  a = col(4, 1); cell(c1, a.x, y, a.w, 34, 'סוג התביעה', claimKind);
   a = col(4, 2); cell(c1, a.x, y, a.w, 34, 'מס׳ הפוליסה', d.policyNum);
   a = col(4, 3); cell(c1, a.x, y, a.w, 34, 'בתוקף עד', d.policyValidUntil);
   y += 34;
@@ -414,7 +441,7 @@ export async function buildSignedOpeningFormPdf(opts: {
   y += 100;
   para(c1, MARGIN, y, inner, 52, 'תיאור הנזק / מיקום הנזק ברכב המבוטח', d.damageDesc);
 
-  y = 72;
+  y = 74;
   y = sectionHead(c2, MARGIN, y, inner, 'ג', 'פרטי התאונה — המשך');
   a = col(2, 0);
   cell(c2, a.x, y, a.w, 48, 'עד 1 — שם / כתובת', [d.witness1Name, d.witness1Address].filter(Boolean).join(' · '));
@@ -467,13 +494,20 @@ export async function buildSignedOpeningFormPdf(opts: {
   c2.textAlign = 'right';
   c2.font = `600 9px ${FONT}`;
   const third = inner / 3;
-  c2.fillText('תאריך', MARGIN + inner - 8, sigTop + 14);
+  c2.fillText('תאריך ושעת חתימה', MARGIN + inner - 8, sigTop + 14);
   c2.fillText('הטופס מולא ע״י', MARGIN + inner - third - 8, sigTop + 14);
   c2.fillText('חתימת המבוטח/ת', MARGIN + third - 8, sigTop + 14);
   c2.fillStyle = '#0f172a';
+  c2.font = `700 12px ${FONT}`;
+  c2.fillText(signedTimestamp, MARGIN + inner - 8, sigTop + 34);
+  if (d.declarationDate) {
+    c2.font = `600 10px ${FONT}`;
+    c2.fillStyle = '#475569';
+    c2.fillText(`תאריך הצהרה: ${d.declarationDate}`, MARGIN + inner - 8, sigTop + 50);
+  }
+  c2.fillStyle = '#0f172a';
   c2.font = `700 13px ${FONT}`;
-  c2.fillText(dash(d.declarationDate), MARGIN + inner - 8, sigTop + 34);
-  c2.fillText(dash(d.formFilledBy), MARGIN + inner - third - 8, sigTop + 34);
+  c2.fillText(dash(d.formFilledBy || opts.clientName || d.clientName), MARGIN + inner - third - 8, sigTop + 34);
   c2.strokeStyle = '#94a3b8';
   c2.beginPath();
   c2.moveTo(MARGIN + 10, sigTop + 150);
@@ -501,6 +535,167 @@ export async function buildSignedOpeningFormPdf(opts: {
   ];
   const pdf = wrapJpegsAsPdf(jpegs);
   return new File([pdf], opts.signaturePng ? 'טופס-הודעה-על-תאונת-רכב-חתום.pdf' : 'טופס-הודעה-על-תאונת-רכב.pdf', { type: 'application/pdf' });
+}
+
+export async function buildInsurancePackageSummaryPdf(opts: {
+  claimId: string;
+  clientName: string;
+  clientPhone: string;
+  clientId?: string;
+  plate: string;
+  carModel?: string;
+  claimKind: string;
+  insCompany?: string;
+  policyNum?: string;
+  claimNum?: string;
+  eventDate?: string;
+  eventDesc?: string;
+  documents: Array<{ title: string; category: string; source: string; createdAt?: string; fileName?: string }>;
+  missingDocs?: string[];
+  extraPagesJpegs?: Array<{ title: string; dataUrl: string }>;
+}): Promise<File> {
+  await readyHebrewFont();
+  const inner = PAGE_W - MARGIN * 2;
+  const col = (n: number, i: number, gap = 4) => {
+    const w = (inner - gap * (n - 1)) / n;
+    return { x: MARGIN + (n - 1 - i) * (w + gap), w };
+  };
+  const nowHe = new Date().toLocaleString('he-IL', {
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  });
+
+  const paintHeader = (ctx: CanvasRenderingContext2D, pageNo: number, totalPages: number) => {
+    ctx.fillStyle = '#f4f1ea';
+    ctx.fillRect(0, 0, PAGE_W, PAGE_H);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(MARGIN - 6, 18, PAGE_W - (MARGIN - 6) * 2, PAGE_H - 40);
+    ctx.strokeStyle = '#1e3a5f';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(MARGIN - 6, 18, PAGE_W - (MARGIN - 6) * 2, PAGE_H - 40);
+    ctx.fillStyle = '#1e3a5f';
+    ctx.fillRect(MARGIN - 6, 18, PAGE_W - (MARGIN - 6) * 2, 54);
+
+    const logoX = PAGE_W - MARGIN - 36;
+    const logoY = 26;
+    ctx.fillStyle = '#2563eb';
+    ctx.fillRect(logoX, logoY, 36, 36);
+    ctx.strokeStyle = '#93c5fd';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(logoX, logoY, 36, 36);
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.direction = 'ltr';
+    ctx.font = `900 22px ${FONT}`;
+    ctx.fillText('ד', logoX + 18, logoY + 26);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'right';
+    ctx.direction = 'ltr';
+    ctx.font = `800 20px ${FONT}`;
+    ctx.fillText('דליה – תביעת רכב  |  תיק תביעה מלא לחברת הביטוח', logoX - 12, 42);
+    ctx.font = `600 11px ${FONT}`;
+    ctx.fillText(`מספר תיק דליה: ${opts.claimId}  ·  סוג תביעה: ${opts.claimKind || 'הפעלת פוליסה'}`, logoX - 12, 61);
+
+    ctx.textAlign = 'left';
+    ctx.font = `700 11px ${FONT}`;
+    ctx.fillText(`הופק: ${nowHe}`, MARGIN + 6, 42);
+    ctx.fillText(`רכב: ${opts.plate || '—'}`, MARGIN + 6, 61);
+
+    ctx.fillStyle = '#475569';
+    ctx.textAlign = 'center';
+    ctx.font = `11px ${FONT}`;
+    ctx.fillText(`דליה – תביעת רכב · חבילת תביעה ${opts.claimId} · עמ׳ ${pageNo} מתוך ${totalPages}`, PAGE_W / 2, PAGE_H - 10);
+    ctx.textAlign = 'right';
+  };
+
+  const extraImgs: Array<{ title: string; img: HTMLImageElement }> = [];
+  if (opts.extraPagesJpegs?.length) {
+    for (const item of opts.extraPagesJpegs) {
+      try {
+        const img = await loadImage(item.dataUrl);
+        extraImgs.push({ title: item.title, img });
+      } catch {
+        /* ignore non-image attachment */
+      }
+    }
+  }
+
+  const totalPages = 1 + extraImgs.length;
+  const page1 = document.createElement('canvas');
+  page1.width = PAGE_W;
+  page1.height = PAGE_H;
+  const c1 = page1.getContext('2d');
+  if (!c1) throw new Error('canvas');
+  paintHeader(c1, 1, totalPages);
+
+  let y = 80;
+  y = sectionHead(c1, MARGIN, y, inner, '1', 'פרטי התיק, המבוטח והרכב');
+  let a = col(3, 0); cell(c1, a.x, y, a.w, 36, 'מספר תיק דליה', opts.claimId);
+  a = col(3, 1); cell(c1, a.x, y, a.w, 36, 'סוג התביעה', opts.claimKind || 'הפעלת פוליסה');
+  a = col(3, 2); cell(c1, a.x, y, a.w, 36, 'תאריך אירוע', opts.eventDate || '—');
+  y += 36;
+  a = col(3, 0); cell(c1, a.x, y, a.w, 36, 'שם הלקוח / המבוטח', opts.clientName);
+  a = col(3, 1); cell(c1, a.x, y, a.w, 36, 'טלפון נייד', opts.clientPhone);
+  a = col(3, 2); cell(c1, a.x, y, a.w, 36, 'מס׳ ת.ז.', opts.clientId || '—');
+  y += 36;
+  a = col(3, 0); cell(c1, a.x, y, a.w, 36, 'מספר רישוי', opts.plate);
+  a = col(3, 1); cell(c1, a.x, y, a.w, 36, 'דגם רכב', opts.carModel || '—');
+  a = col(3, 2); cell(c1, a.x, y, a.w, 36, 'חברת ביטוח / פוליסה', [opts.insCompany, opts.policyNum, opts.claimNum].filter(Boolean).join(' · ') || '—');
+  y += 40;
+  if (opts.eventDesc) {
+    para(c1, MARGIN, y, inner, 64, 'תיאור האירוע והנזק', opts.eventDesc);
+    y += 70;
+  }
+
+  y = sectionHead(c1, MARGIN, y, inner, '2', `תוכן עניינים — מסמכי תיק התביעה (${opts.documents.length} קבצים)`);
+  const rowH = 28;
+  opts.documents.slice(0, 18).forEach((doc, idx) => {
+    box(c1, MARGIN, y, inner, rowH, idx % 2 === 0 ? '#ffffff' : '#f8fafc');
+    c1.fillStyle = '#1e3a5f';
+    c1.textAlign = 'right';
+    c1.font = `700 11px ${FONT}`;
+    c1.fillText(`${idx + 1}. ${doc.title}`, PAGE_W - MARGIN - 8, y + 18);
+    c1.fillStyle = '#475569';
+    c1.textAlign = 'left';
+    c1.font = `600 10px ${FONT}`;
+    c1.fillText(`${doc.category}  |  ${doc.fileName || ''}`, MARGIN + 8, y + 18);
+    y += rowH;
+  });
+
+  if (opts.missingDocs && opts.missingDocs.length > 0) {
+    y += 10;
+    box(c1, MARGIN, y, inner, 44, '#fffbeb');
+    c1.fillStyle = '#b45309';
+    c1.textAlign = 'right';
+    c1.font = `700 11px ${FONT}`;
+    c1.fillText(`הערה — מסמכים שטרם התקבלו: ${opts.missingDocs.join(', ')}`, PAGE_W - MARGIN - 8, y + 26);
+  }
+
+  const pages: PdfPage[] = [{ jpeg: await canvasToJpeg(page1), widthPx: PAGE_W, heightPx: PAGE_H }];
+
+  for (let i = 0; i < extraImgs.length; i++) {
+    const item = extraImgs[i];
+    const pg = document.createElement('canvas');
+    pg.width = PAGE_W;
+    pg.height = PAGE_H;
+    const ctx = pg.getContext('2d');
+    if (!ctx) continue;
+    paintHeader(ctx, i + 2, totalPages);
+    let py = 80;
+    py = sectionHead(ctx, MARGIN, py, inner, `נספח ${i + 1}`, item.title);
+    const availW = inner - 16;
+    const availH = PAGE_H - py - 50;
+    const scale = Math.min(availW / Math.max(item.img.width, 1), availH / Math.max(item.img.height, 1), 1);
+    const dw = item.img.width * scale;
+    const dh = item.img.height * scale;
+    const dx = MARGIN + (inner - dw) / 2;
+    const dy = py + 12;
+    ctx.drawImage(item.img, dx, dy, dw, dh);
+    pages.push({ jpeg: await canvasToJpeg(pg), widthPx: PAGE_W, heightPx: PAGE_H });
+  }
+
+  const pdfBytes = wrapJpegsAsPdf(pages);
+  return new File([pdfBytes], `תיק-תביעה-מלא-${opts.claimId}.pdf`, { type: 'application/pdf' });
 }
 
 export async function fileToBase64(file: File): Promise<string> {

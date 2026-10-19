@@ -174,7 +174,8 @@ export function intakeFromClaim(c: Record<string, string>): IntakeDraft {
   next.insCompany = c.insCompany || next.insCompany;
   next.policyNum = c.policyNum || next.policyNum;
   next.claimNum = c.claimNum || next.claimNum;
-  next.claimKind = c.claimKind || CLAIM_KINDS[0];
+  const rawKind = String(c.claimKind || '').trim();
+  next.claimKind = (rawKind && rawKind !== 'תביעה במסגרת פוליסת הלקוח') ? rawKind : CLAIM_KINDS[0];
   next.eventDate = c.eventDate || next.eventDate;
   next.thirdDriver = c.thirdParty || c.thirdDriver || '';
   next.thirdPlate = c.thirdPlate || '';

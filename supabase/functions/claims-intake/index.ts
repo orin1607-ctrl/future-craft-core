@@ -27,6 +27,17 @@ const ALLOWED_KEYS = new Set([
   "thirdInsCompany", "thirdPolicy", "thirdClaimNum", "thirdDamage",
   "declarationAck", "formFilledBy", "contactPrefEmail", "contactPrefMobile", "contactPrefPost",
   "missingFlags",
+  "reporterName", "reporterId", "reporterPhone",
+  "licensedDealer", "agentName", "policyValidUntil",
+  "phoneHome", "phoneMobile", "clientFax",
+  "addressStreet", "addressCity", "vehicleOwnerName",
+  "driverAddress", "driverStreet", "driverCity", "driverZip",
+  "driverPhoneHome", "driverPhoneMobile",
+  "fireDept", "journalNumber", "accidentDiagramNotes",
+  "witness1Name", "witness1Address", "witness2Name", "witness2Address",
+  "tripPurpose", "garageName", "surveyorName",
+  "thirdAddress", "thirdCarType", "thirdInsType", "thirdDamageLocation",
+  "thirdClaimAgainstMe", "declarationDate",
 ]);
 
 function admin() {
@@ -63,7 +74,7 @@ function sanitizeDraft(raw: unknown): Record<string, string> {
   for (const [k, v] of Object.entries(src)) {
     if (!ALLOWED_KEYS.has(k)) continue;
     if (v === undefined || v === null) continue;
-    const s = String(v).slice(0, k === "eventDesc" || k === "damageDesc" || k === "witnesses" ? 4000 : 240);
+    const s = String(v).slice(0, k === "eventDesc" || k === "damageDesc" || k === "witnesses" || k === "accidentDiagramNotes" || k === "thirdDamage" ? 4000 : 240);
     out[k] = s;
   }
   return out;
@@ -182,6 +193,8 @@ async function storeSignedOpeningPdf(
 
 function draftFromClaimRow(claim: { plate?: string | null; client_name?: string | null; row_data?: unknown }) {
   const rd = (claim.row_data && typeof claim.row_data === "object") ? claim.row_data as Record<string, unknown> : {};
+  const rawKind = String(rd.claimKind || "").trim();
+  const normalizedKind = (rawKind && rawKind !== "תביעה במסגרת פוליסת הלקוח") ? rawKind : "הפעלת פוליסה";
   return sanitizeDraft({
     clientName: rd.clientName || claim.client_name || "",
     clientPhone: rd.clientPhone || "",
@@ -198,7 +211,7 @@ function draftFromClaimRow(claim: { plate?: string | null; client_name?: string 
     insType: rd.insType || "",
     policyNum: rd.policyNum || "",
     claimNum: rd.claimNum || "",
-    claimKind: rd.claimKind || "",
+    claimKind: normalizedKind,
     driverDifferent: rd.driverDifferent || "",
     driverName: rd.driverName || "",
     eventDate: rd.eventDate || "",
@@ -263,16 +276,18 @@ Deno.serve(async (req) => {
         return jsonResponse({
           success: true,
           submitted: true,
+          claimId: row.claim_id || "",
           message: "הדיווח התקבל בהצלחה",
           upload_url: uploadUrl,
         });
       }
       if (row.status === "submitting") {
-        return jsonResponse({ success: true, submitting: true, draft: sanitizeDraft(row.draft) });
+        return jsonResponse({ success: true, submitting: true, claimId: row.claim_id || "", draft: sanitizeDraft(row.draft) });
       }
       return jsonResponse({
         success: true,
         submitted: false,
+        claimId: row.claim_id || "",
         expiresAt: row.expires_at,
         draft: sanitizeDraft(row.draft),
       });
@@ -303,6 +318,9 @@ Deno.serve(async (req) => {
         }
       }
       const draft = sanitizeDraft({ ...(row.draft || {}), ...(body.draft || {}) });
+      if (!String(draft.claimKind || "").trim() || draft.claimKind === "תביעה במסגרת פוליסת הלקוח") {
+        draft.claimKind = "הפעלת פוליסה";
+      }
       if (!String(draft.clientName || "").trim()) return jsonResponse({ success: false, error: "client_name_required" }, 400);
       if (!String(draft.plate || "").trim()) return jsonResponse({ success: false, error: "plate_required" }, 400);
       if (!String(draft.eventDate || "").trim()) return jsonResponse({ success: false, error: "event_date_required" }, 400);
@@ -365,23 +383,27 @@ Deno.serve(async (req) => {
           await sb.from("claims_intake_links").update({ status: "pending" }).eq("id", row.id);
           return jsonResponse({ success: false, error: "bound_claim_missing" }, 400);
         }
+        const { data: openReqs } = await sb.from("claims_doc_requests").select("id, status").eq("claim_id", boundClaimId);
+        const hasPendingDocs = (openReqs || []).some((r) => r.status !== "received");
         const prev = (existing.row_data && typeof existing.row_data === "object") ? existing.row_data as Record<string, string> : {};
         const prevStatus = String(prev.status || existing.status || "");
-        const nextStatus = (prevStatus === "ממתין למילוי הלקוח" || !prevStatus) ? "חדש" : prevStatus;
+        const nextStatus = (prevStatus === "ממתין למילוי הלקוח" || !prevStatus)
+          ? (hasPendingDocs ? "ממתין למסמכים" : "תביעה חדשה – התקבלה")
+          : prevStatus;
         const rowData: Record<string, string> = {
           ...prev,
           ...draft,
           id: boundClaimId,
           status: nextStatus,
           clientName: draft.clientName,
-          clientPhone: draft.clientPhone || prev.clientPhone || "",
+          clientPhone: draft.clientPhone || draft.phoneMobile || prev.clientPhone || "",
           clientEmail: draft.clientEmail || prev.clientEmail || "",
           plate,
           carModel: [draft.carMake, draft.carModel].filter(Boolean).join(" ").trim() || draft.carModel || prev.carModel || "",
           insCompany: draft.insCompany || prev.insCompany || "",
           policyNum: draft.policyNum || prev.policyNum || "",
           claimNum: claimNum || prev.claimNum || "",
-          claimKind: draft.claimKind || prev.claimKind || "",
+          claimKind: draft.claimKind || prev.claimKind || "הפעלת פוליסה",
           eventDate,
           thirdParty: draft.thirdDriver || prev.thirdParty || "",
           thirdPlate: draft.thirdPlate || prev.thirdPlate || "",
@@ -424,16 +446,16 @@ Deno.serve(async (req) => {
         const rowData: Record<string, string> = {
           ...draft,
           id: claimId,
-          status: "חדש",
+          status: "תביעה חדשה – התקבלה",
           clientName: draft.clientName,
-          clientPhone: draft.clientPhone || "",
+          clientPhone: draft.clientPhone || draft.phoneMobile || "",
           clientEmail: draft.clientEmail || "",
           plate,
           carModel: [draft.carMake, draft.carModel].filter(Boolean).join(" ").trim() || draft.carModel || "",
           insCompany: draft.insCompany || "",
           policyNum: draft.policyNum || "",
           claimNum,
-          claimKind: draft.claimKind,
+          claimKind: draft.claimKind || "הפעלת פוליסה",
           eventDate,
           thirdParty: draft.thirdDriver || "",
           thirdPlate: draft.thirdPlate || "",
@@ -449,7 +471,7 @@ Deno.serve(async (req) => {
           id: claimId,
           plate,
           client_name: draft.clientName,
-          status: "חדש",
+          status: "תביעה חדשה – התקבלה",
           company_name: draft.insCompany || null,
           vehicle_id: null,
           row_data: rowData,

@@ -203,6 +203,10 @@ function nid(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
 
+function isUuid(s: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s || ""));
+}
+
 const DOC_KINDS = new Set([
   "general",
   "surveyor_report",
@@ -233,6 +237,10 @@ const STAFF_TYPES = new Set([
   "power_of_attorney",
   "rejection_letter",
   "demand_form",
+  "claim_form",
+  "signed_form",
+  "declaration_form",
+  "insurance_package",
 ]);
 
 const STAFF_TYPE_BY_DOC_KEY: Record<string, string> = {
@@ -252,6 +260,9 @@ const STAFF_TYPE_BY_DOC_KEY: Record<string, string> = {
   power_of_attorney: "power_of_attorney",
   rejection_letter: "rejection_letter",
   demand_form: "demand_form",
+  claim_form: "claim_form",
+  signed_form: "signed_form",
+  declaration_form: "declaration_form",
 };
 const MULTI_DOC_KEYS = new Set(["surveyor_photos", "damage_photos", "license_driver"]);
 
@@ -429,7 +440,7 @@ Deno.serve(async (req) => {
       const resolved = await resolveLink(sb, token);
       if ("error" in resolved) return jsonResponse({ success: false, error: resolved.error }, 404);
       const claimId = resolved.data.claim_id;
-      const { data: claim } = await sb.from("claims_records").select("client_name, plate").eq("id", claimId).maybeSingle();
+      const { data: claim } = await sb.from("claims_records").select("client_name, plate, status").eq("id", claimId).maybeSingle();
       const { data: docs } = await sb.from("claims_doc_requests").select("id, label, doc_key, status, received_at").eq("claim_id", claimId).order("created_at");
       const { data: custFiles } = await sb.from("claims_documents").select("id, doc_request_id").eq("claim_id", claimId).eq("source", "customer");
       const uploadedByReq = new Map<string, number>();
@@ -458,47 +469,62 @@ Deno.serve(async (req) => {
       }
       const { data: staffFiles } = await sb
         .from("claims_documents")
-        .select("id, doc_request_id, storage_path, original_name, doc_kind, doc_meta")
-        .eq("claim_id", claimId);
+        .select("id, doc_request_id, storage_path, original_name, doc_kind, doc_meta, source")
+        .eq("claim_id", claimId)
+        .eq("source", "staff");
 
       const downloadUrlByReq = new Map<string, { url: string; name: string }>();
       for (const f of staffFiles || []) {
         if (!f.storage_path) continue;
-        const staffTitle = String((f.doc_meta && typeof f.doc_meta === "object" ? (f.doc_meta as any).staff_title : "") || "");
-        const matchingDoc = (docs || []).find((d) =>
-          d.id === f.doc_request_id ||
-          (f.original_name && f.original_name.toLowerCase().includes(d.label.toLowerCase())) ||
-          (staffTitle && staffTitle.toLowerCase().includes(d.label.toLowerCase()))
-        );
+        const metaObj = (f.doc_meta && typeof f.doc_meta === "object") ? f.doc_meta as Record<string, string> : {};
+        const staffTitle = String(metaObj.staff_title || "").trim();
+        const cleanTitle = staffTitle.replace(/\s*\(טופס מקורי.*\)$/i, "").trim();
+        const matchingDoc = (docs || []).find((d) => {
+          if (f.doc_request_id && d.id === f.doc_request_id) return true;
+          const lbl = String(d.label || "").trim().toLowerCase();
+          if (!lbl) return false;
+          if (cleanTitle && (cleanTitle.toLowerCase() === lbl || cleanTitle.toLowerCase().includes(lbl) || lbl.includes(cleanTitle.toLowerCase()))) return true;
+          if (f.original_name && f.original_name.toLowerCase().includes(lbl)) return true;
+          return false;
+        });
         if (matchingDoc && !downloadUrlByReq.has(matchingDoc.id)) {
           const { data: su } = await sb.storage.from(BUCKET).createSignedUrl(f.storage_path, 86400);
           if (su?.signedUrl) {
             downloadUrlByReq.set(matchingDoc.id, {
               url: su.signedUrl,
-              name: staffTitle || f.original_name || matchingDoc.label,
+              name: cleanTitle || f.original_name || matchingDoc.label,
             });
           }
         }
       }
 
+      const FORM_KEYS = new Set(["power_of_attorney", "consent_form", "no_claim_form", "notice_a", "notice_ayin", "demand_form", "claim_form", "declaration_form"]);
       return jsonResponse({
         success: true,
+        claimId,
+        claimStatus: claim?.status || "",
         clientName: claim?.client_name || "לקוח",
         plate: claim?.plate || "",
         expiresAt: resolved.data.expires_at,
-        docs: (docs || []).map((d) => ({
-          id: d.id,
-          label: d.label,
-          docKey: String(d.doc_key || ""),
-          status: d.status,
-          receivedAt: d.received_at,
-          uploadedCount: uploadedByReq.get(d.id) || 0,
-          allowMultiple: MULTI_DOC_KEYS.has(String(d.doc_key || "")),
-          formDownload: downloadUrlByReq.has(d.id),
-          formDownloadUrl: downloadUrlByReq.get(d.id)?.url || null,
-          formFileName: downloadUrlByReq.get(d.id)?.name || d.label,
-          letter: letterByReq.get(d.id) || null,
-        })),
+        docs: (docs || []).map((d) => {
+          const dk = String(d.doc_key || "");
+          const hasDownload = downloadUrlByReq.has(d.id);
+          const isForm = hasDownload || letterByReq.has(d.id) || FORM_KEYS.has(dk) || /ייפוי כוח|הצהר|טופס|ויתור|הסכמ/.test(String(d.label || ""));
+          return {
+            id: d.id,
+            label: d.label,
+            docKey: dk,
+            status: d.status,
+            receivedAt: d.received_at,
+            uploadedCount: uploadedByReq.get(d.id) || 0,
+            allowMultiple: MULTI_DOC_KEYS.has(dk),
+            isForm,
+            formDownload: hasDownload,
+            formDownloadUrl: downloadUrlByReq.get(d.id)?.url || null,
+            formFileName: downloadUrlByReq.get(d.id)?.name || d.label,
+            letter: letterByReq.get(d.id) || null,
+          };
+        }),
       });
     }
 
@@ -521,6 +547,10 @@ Deno.serve(async (req) => {
       if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
       const reqKey = String(reqRow.doc_key || "");
       const staffType = STAFF_TYPE_BY_DOC_KEY[reqKey] || "";
+      const { data: origStaffForm } = await sb.from("claims_documents").select("id").eq("claim_id", claimId).eq("doc_request_id", docRequestId).eq("source", "staff").maybeSingle();
+      const isFormReq = Boolean(origStaffForm?.id) || ["power_of_attorney", "consent_form", "no_claim_form", "notice_a", "notice_ayin", "demand_form", "claim_form", "declaration_form"].includes(reqKey) || /ייפוי כוח|הצהר|טופס|ויתור|הסכמ/.test(String(reqRow.label || ""));
+      const effectiveStaffType = staffType || (isFormReq ? "signed_form" : "");
+      const effectiveTitle = isFormReq ? `${reqRow.label} (חתום ע״י הלקוח)` : reqRow.label;
       const fileId = nid("CDM");
       await sb.from("claims_documents").insert({
         id: fileId,
@@ -533,11 +563,15 @@ Deno.serve(async (req) => {
         source: "customer",
         uploaded_by_name: "לקוח",
         doc_kind: kindFromUpload(reqKey, storedMime, ""),
-        doc_meta: staffType ? { staff_type: staffType } : {},
+        doc_meta: {
+          ...(effectiveStaffType ? { staff_type: effectiveStaffType } : {}),
+          staff_title: effectiveTitle,
+          ...(origStaffForm?.id ? { related_file_id: origStaffForm.id } : {}),
+        },
       });
       await sb.from("claims_doc_requests").update({ status: "received", received_at: new Date().toISOString() }).eq("id", docRequestId);
-      await history(sb, claimId, "מסמך התקבל מהלקוח", reqRow.label, "לקוח");
-      await notify(sb, claimId, `התקבל מסמך חדש מהלקוח · ${reqRow.label}`);
+      await history(sb, claimId, isFormReq ? "טופס חתום התקבל מהלקוח" : "מסמך התקבל מהלקוח", reqRow.label, "לקוח");
+      await notify(sb, claimId, `התקבל ${isFormReq ? "טופס חתום" : "מסמך"} מהלקוח · ${reqRow.label}`);
       const { data: taskRows } = await sb.from("claims_tasks").select("id, row_data").eq("claim_id", claimId);
       for (const t of taskRows || []) {
         const rd = (t.row_data && typeof t.row_data === "object") ? t.row_data as Record<string, string> : {};
@@ -564,11 +598,45 @@ Deno.serve(async (req) => {
           },
         }).eq("id", t.id);
       }
-      const { data: left } = await sb.from("claims_doc_requests").select("id").eq("claim_id", claimId).neq("status", "received");
-      if ((left || []).length > 0) {
-        await sb.from("claims_records").update({ status: "ממתין למסמכים", last_activity_at: new Date().toISOString() }).eq("id", claimId).eq("status", "חדש");
+      return jsonResponse({ success: true, file_id: fileId });
+    }
+
+    if (action === "public_complete_submission") {
+      const token = String(body.token || url.searchParams.get("token") || form?.get("token") || "");
+      const resolved = await resolveLink(sb, token);
+      if ("error" in resolved) return jsonResponse({ success: false, error: resolved.error }, 404);
+      const claimId = resolved.data.claim_id;
+      const { data: pendingReqs } = await sb.from("claims_doc_requests").select("id, label, status").eq("claim_id", claimId).neq("status", "received");
+      if ((pendingReqs || []).length > 0) {
+        return jsonResponse({
+          success: false,
+          error: "missing_documents",
+          missing: (pendingReqs || []).map((r) => r.label),
+        }, 400);
       }
-      return jsonResponse({ success: true });
+      const { data: claimRow } = await sb.from("claims_records").select("id, status, row_data").eq("id", claimId).maybeSingle();
+      if (!claimRow) return jsonResponse({ success: false, error: "claim_not_found" }, 404);
+      const nowIso = new Date().toISOString();
+      const prevRd = (claimRow.row_data && typeof claimRow.row_data === "object") ? claimRow.row_data as Record<string, string> : {};
+      const nextStatus = "תביעה חדשה – התקבלה";
+      const nextRd: Record<string, string> = {
+        ...prevRd,
+        status: nextStatus,
+        completedByCustomerAt: nowIso,
+      };
+      const { error: upErr } = await sb.from("claims_records").update({
+        status: nextStatus,
+        row_data: nextRd,
+        last_activity_at: nowIso,
+      }).eq("id", claimId);
+      if (upErr) return jsonResponse({ success: false, error: upErr.message }, 500);
+      await history(sb, claimId, "הלקוח השלים ושלח את התביעה והמסמכים", `סטטוס התיק עודכן ל: ${nextStatus}`, "לקוח");
+      await notify(sb, claimId, `תביעה חדשה – התקבלה (${claimId}) · כל המסמכים והטפסים הועלו ע״י הלקוח`);
+      return jsonResponse({
+        success: true,
+        claimId,
+        status: nextStatus,
+      });
     }
 
     if (action === "public_share_get" || action === "public_share_url" || action === "public_share_file" || action === "public_share_zip" || action === "public_share_bundle_pdf") {
@@ -1440,12 +1508,75 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true, urls });
     }
 
+    if (action === "upload_package_form") {
+      const claimId = String(form?.get("claim_id") || "").trim();
+      const staffType = String(form?.get("staff_type") || "claim_form").trim();
+      const staffTitle = String(form?.get("staff_title") || "").trim().slice(0, 120);
+      const file = form?.get("file");
+      if (!(file instanceof File)) return jsonResponse({ success: false, error: "file_required" }, 400);
+      if (file.size > MAX_BYTES) return jsonResponse({ success: false, error: "file_too_large" }, 400);
+      const buf = new Uint8Array(await file.arrayBuffer());
+      const storedMime = resolveStoredMime(file.name, file.type, buf);
+      if (!ALLOWED.has(storedMime)) return jsonResponse({ success: false, error: "mime_not_allowed" }, 400);
+      const digest = await sha256HexBytes(buf);
+      const safeName = sanitizeFileName(file.name);
+      const path = `package-forms/${user.id}/${nid("PF")}-${safeName}`;
+      const { error: upErr } = await sb.storage.from(BUCKET).upload(path, buf, { contentType: storedMime, upsert: true });
+      if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
+
+      // Verify file is stored and accessible in Storage before returning success
+      const { data: su, error: signErr } = await sb.storage.from(BUCKET).createSignedUrl(path, 86400);
+      if (signErr || !su?.signedUrl) {
+        return jsonResponse({ success: false, error: "storage_verification_failed" }, 500);
+      }
+
+      let fileId = "";
+      if (claimId) {
+        const { data: claimRow } = await sb.from("claims_records").select("id").eq("id", claimId).maybeSingle();
+        if (claimRow?.id && (await canWork(sb, user.id, role, claimId))) {
+          fileId = nid("CDM");
+          await sb.from("claims_documents").insert({
+            id: fileId,
+            claim_id: claimId,
+            storage_path: path,
+            original_name: file.name,
+            mime_type: storedMime,
+            byte_size: file.size,
+            source: "staff",
+            uploaded_by: user.id,
+            uploaded_by_name: actorName,
+            doc_kind: "general",
+            doc_meta: {
+              staff_type: STAFF_TYPES.has(staffType) ? staffType : "claim_form",
+              staff_title: staffTitle || file.name,
+            },
+            content_sha256: digest,
+          });
+        }
+      }
+
+      return jsonResponse({
+        success: true,
+        verified: true,
+        file_id: fileId || null,
+        storage_path: path,
+        original_name: file.name,
+        mime_type: storedMime,
+        byte_size: file.size,
+        staff_title: staffTitle || file.name,
+        staff_type: STAFF_TYPES.has(staffType) ? staffType : "claim_form",
+        content_sha256: digest,
+        signed_url: su.signedUrl,
+      });
+    }
+
     if (action === "staff_upload") {
       const claimId = String(form?.get("claim_id") || "");
       const docRequestId = String(form?.get("doc_request_id") || "") || null;
       const explicitKind = String(form?.get("doc_kind") || "");
       const staffType = String(form?.get("staff_type") || "");
       const staffTitle = String(form?.get("staff_title") || "").trim().slice(0, 120);
+      const isTemplate = String(form?.get("is_template") || "") === "true" || staffType === "claim_form";
       if (staffType && !STAFF_TYPES.has(staffType)) return jsonResponse({ success: false, error: "invalid_staff_type" }, 400);
       const file = form?.get("file");
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
@@ -1455,9 +1586,10 @@ Deno.serve(async (req) => {
       const storedMime = resolveStoredMime(file.name, file.type, buf);
       if (!ALLOWED.has(storedMime)) return jsonResponse({ success: false, error: "mime_not_allowed" }, 400);
       const digest = await sha256HexBytes(buf);
-      const { data: existing } = await sb.from("claims_documents").select("id, source").eq("claim_id", claimId).eq("content_sha256", digest).maybeSingle();
+      const { data: existing } = await sb.from("claims_documents").select("id, source, storage_path").eq("claim_id", claimId).eq("content_sha256", digest).maybeSingle();
       if (existing?.id) {
-        return jsonResponse({ success: true, file_id: existing.id, reused: true, source: existing.source, copied: false });
+        const { data: exSu } = await sb.storage.from(BUCKET).createSignedUrl(existing.storage_path, 86400);
+        return jsonResponse({ success: true, verified: Boolean(exSu?.signedUrl), file_id: existing.id, storage_path: existing.storage_path, signed_url: exSu?.signedUrl || "", reused: true, source: existing.source, copied: false });
       }
       let reqKey = "";
       if (docRequestId) {
@@ -1468,6 +1600,10 @@ Deno.serve(async (req) => {
       const path = `${claimId}/staff/${nid("F")}-${sanitizeFileName(file.name)}`;
       const { error: upErr } = await sb.storage.from(BUCKET).upload(path, buf, { contentType: storedMime, upsert: false });
       if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
+      const { data: su, error: signErr } = await sb.storage.from(BUCKET).createSignedUrl(path, 86400);
+      if (signErr || !su?.signedUrl) {
+        return jsonResponse({ success: false, error: "storage_verification_failed" }, 500);
+      }
       const { error: insErr } = await sb.from("claims_documents").insert({
         id: fileId,
         claim_id: claimId,
@@ -1487,11 +1623,142 @@ Deno.serve(async (req) => {
         content_sha256: digest,
       });
       if (insErr) return jsonResponse({ success: false, error: insErr.message }, 400);
-      if (docRequestId) {
+      if (docRequestId && !isTemplate) {
         await sb.from("claims_doc_requests").update({ status: "received", received_at: new Date().toISOString() }).eq("id", docRequestId).eq("claim_id", claimId);
       }
-      await history(sb, claimId, "מסמך הועלה ע״י העובד", file.name, actorName);
-      return jsonResponse({ success: true, file_id: fileId, reused: false, source: "staff" });
+      await history(sb, claimId, "מסמך הועלה ע״י העובד", staffTitle || file.name, actorName);
+      return jsonResponse({ success: true, verified: true, file_id: fileId, storage_path: path, signed_url: su.signedUrl, reused: false, source: "staff" });
+    }
+
+    if (action === "assemble_insurance_package") {
+      const claimId = String(body.claim_id || "").trim();
+      if (!claimId) return jsonResponse({ success: false, error: "claim_id_required" }, 400);
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+
+      let summaryFileId = "";
+      const summaryB64 = String(body.summary_pdf_base64 || "").replace(/\s/g, "");
+      if (summaryB64.length > 100) {
+        try {
+          const bin = atob(summaryB64);
+          const pdfBytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) pdfBytes[i] = bin.charCodeAt(i);
+          const digest = await sha256HexBytes(pdfBytes);
+          const summaryPath = `${claimId}/package/central-summary-${Date.now()}.pdf`;
+          const { error: upErr } = await sb.storage.from(BUCKET).upload(summaryPath, pdfBytes, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
+          if (!upErr) {
+            const { data: existingPkg } = await sb
+              .from("claims_documents")
+              .select("id")
+              .eq("claim_id", claimId)
+              .filter("doc_meta->>staff_type", "eq", "insurance_package")
+              .maybeSingle();
+            if (existingPkg?.id) {
+              summaryFileId = existingPkg.id;
+              await sb.from("claims_documents").update({
+                storage_path: summaryPath,
+                original_name: `תיק-תביעה-מרכזי-${claimId}.pdf`,
+                byte_size: pdfBytes.byteLength,
+                content_sha256: digest,
+                doc_meta: {
+                  staff_type: "insurance_package",
+                  staff_title: `תיק תביעה מרכזי לחברת הביטוח – דליה (${claimId})`,
+                },
+              }).eq("id", summaryFileId);
+            } else {
+              summaryFileId = nid("CDM");
+              await sb.from("claims_documents").insert({
+                id: summaryFileId,
+                claim_id: claimId,
+                storage_path: summaryPath,
+                original_name: `תיק-תביעה-מרכזי-${claimId}.pdf`,
+                mime_type: "application/pdf",
+                byte_size: pdfBytes.byteLength,
+                source: "staff",
+                uploaded_by: isUuid(user.id) ? user.id : null,
+                uploaded_by_name: actorName,
+                doc_kind: "general",
+                doc_meta: {
+                  staff_type: "insurance_package",
+                  staff_title: `תיק תביעה מרכזי לחברת הביטוח – דליה (${claimId})`,
+                },
+                content_sha256: digest,
+              });
+            }
+          }
+        } catch (e) {
+          console.error("assemble_insurance_package summary PDF error:", e);
+        }
+      }
+
+      const { data: allFiles } = await sb
+        .from("claims_documents")
+        .select("id, storage_path, original_name, mime_type, byte_size, source, doc_kind, doc_meta, created_at")
+        .eq("claim_id", claimId)
+        .order("created_at", { ascending: true });
+
+      const rows = (allFiles || []).filter((f) => f.storage_path);
+      if (!rows.length) {
+        return jsonResponse({ success: false, error: "no_documents_in_claim" }, 400);
+      }
+
+      const zipEntries: Array<{ name: string; data: Uint8Array }> = [];
+      const includedFileIds: string[] = [];
+      let summaryPdfUrl = "";
+
+      // Put central summary PDF first, then signed questionnaire, then other documents
+      const sortedRows = [...rows].sort((a, b) => {
+        const stA = String((a.doc_meta as any)?.staff_type || "");
+        const stB = String((b.doc_meta as any)?.staff_type || "");
+        const rank = (st: string) => st === "insurance_package" ? 0 : st === "accident_notice" ? 1 : 2;
+        return rank(stA) - rank(stB);
+      });
+
+      for (let i = 0; i < sortedRows.length; i++) {
+        const f = sortedRows[i];
+        const dl = await sb.storage.from(BUCKET).download(f.storage_path);
+        if (dl.error || !dl.data) continue;
+        const buf = new Uint8Array(await dl.data.arrayBuffer());
+        const st = String((f.doc_meta as any)?.staff_type || "");
+        const title = String((f.doc_meta as any)?.staff_title || f.original_name || `file-${i + 1}`);
+        const extMatch = String(f.original_name || "").match(/\.([a-zA-Z0-9]+)$/);
+        const ext = extMatch ? `.${extMatch[1].toLowerCase()}` : (f.mime_type === "application/pdf" ? ".pdf" : ".jpg");
+        const cleanName = sanitizeFileName(title.endsWith(ext) ? title : `${title}${ext}`);
+        const prefix = String(i + 1).padStart(2, "0");
+        zipEntries.push({
+          name: `${prefix}-${cleanName}`,
+          data: buf,
+        });
+        includedFileIds.push(f.id);
+        if (st === "insurance_package" || f.id === summaryFileId) {
+          const { data: su } = await sb.storage.from(BUCKET).createSignedUrl(f.storage_path, 86400);
+          if (su?.signedUrl) summaryPdfUrl = su.signedUrl;
+        }
+      }
+
+      const zipBytes = zipStore(zipEntries);
+      const zipPath = `${claimId}/package/full-claim-package-${claimId}.zip`;
+      await sb.storage.from(BUCKET).upload(zipPath, zipBytes, {
+        contentType: "application/zip",
+        upsert: true,
+      });
+      const { data: zipSu } = await sb.storage.from(BUCKET).createSignedUrl(zipPath, 86400, {
+        download: `תיק-תביעה-מלא-${claimId}.zip`,
+      });
+
+      await history(sb, claimId, "הוכנה חבילת תיק תביעה מלאה לחברת הביטוח", `${includedFileIds.length} מסמכים באריזה`, actorName);
+
+      return jsonResponse({
+        success: true,
+        claim_id: claimId,
+        summary_file_id: summaryFileId || null,
+        summary_pdf_url: summaryPdfUrl || null,
+        zip_url: zipSu?.signedUrl || null,
+        file_ids: includedFileIds,
+        file_count: includedFileIds.length,
+      });
     }
 
     return jsonResponse({ success: false, error: "unknown_action" }, 400);

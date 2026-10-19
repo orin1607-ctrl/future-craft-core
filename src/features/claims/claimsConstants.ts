@@ -2,6 +2,7 @@
 
 export const STATUSES = [
   'ממתין למילוי הלקוח',
+  'תביעה חדשה – התקבלה',
   'חדש', 'ממתין לטיפול', 'בטיפול',
   'ממתין לחברת ביטוח', 'ממתין לשמאי', 'ממתין למסמכים',
   'ממתין לתשלום', 'אושר לתשלום', 'תשלום חלקי', 'שולם',
@@ -30,7 +31,7 @@ export function isClosedStatus(status: string, archived?: string) {
 }
 
 export const CLAIM_KINDS = [
-  'תביעה במסגרת פוליסת הלקוח',
+  'הפעלת פוליסה',
   'תביעת צד ג׳',
 ] as const;
 
@@ -75,6 +76,7 @@ export const CLAIM_DOC_TYPES: ClaimDocType[] = [
   { key: 'accident_notice', label: 'טופס הודעה על תאונת רכב', group: false, formLater: false, staffType: 'accident_notice', docKind: null, aliases: ['טופס הודעה / דיווח אירוע', 'טופס הודעה על תאונה', 'טופס אירוע / פתיחת תביעה', 'טופס פתיחת תביעה חתום', 'טופס אירוע'] },
   { key: 'license_vehicle', label: 'צילום רישיון רכב', group: false, formLater: false, staffType: 'vehicle_license', docKind: null, aliases: ['רישיון רכב'] },
   { key: 'power_of_attorney', label: 'ייפוי כוח', group: false, formLater: true, staffType: 'power_of_attorney', docKind: null, aliases: [] },
+  { key: 'claim_form', label: 'טופס לחתימת לקוח / הצהרה', group: true, formLater: true, staffType: 'claim_form', docKind: null, aliases: ['הצהרת לקוח', 'טופס הצהרת נהג', 'טופס ויתור סודיות', 'טופס הסכמה לטיפול בתביעה'] },
   { key: 'rejection_letter', label: 'מכתב דחייה', group: false, formLater: false, staffType: 'rejection_letter', docKind: null, aliases: [] },
   { key: 'demand_form', label: 'טופס דרישה', group: false, formLater: true, staffType: 'demand_form', docKind: null, aliases: [] },
 ];

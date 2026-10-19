@@ -32,6 +32,8 @@ import { ClaimsAiWorkspace, type ClaimsAiDocumentActions } from './ClaimsAiWorks
 import './claims.css';
 
 const ST_CSS: Record<string, string> = {
+  'ממתין למילוי הלקוח': 's-wait',
+  'תביעה חדשה – התקבלה': 's-new',
   'חדש': 's-new', 'ממתין לטיפול': 's-wait', 'בטיפול': 's-act',
   'ממתין לחברת ביטוח': 's-wait', 'ממתין לשמאי': 's-wait', 'ממתין למסמכים': 's-doc',
   'ממתין לתשלום': 's-pay', 'אושר לתשלום': 's-done', 'תשלום חלקי': 's-wait',

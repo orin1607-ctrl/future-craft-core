@@ -66,10 +66,23 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
             נא להקפיד למלא טופס זה באופן מדויק ושלם. שדות קיימים במערכת ממולאים אוטומטית — ניתן לבדוק ולתקן לפני פתיחת התיק.
           </p>
           <Field id="in_kind" label="סוג התביעה *">
-            <select className="fse fi" id="in_kind" data-testid="intake-kind" value={value.claimKind} onChange={(e) => set('claimKind', e.target.value)}>
-              {CLAIM_KINDS.map((k) => <option key={k}>{k}</option>)}
+            <select
+              className="fse fi"
+              id="in_kind"
+              data-testid="intake-kind"
+              value={value.claimKind || CLAIM_KINDS[0]}
+              onChange={(e) => set('claimKind', e.target.value)}
+            >
+              {CLAIM_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
             </select>
           </Field>
+          <div style={{ gridColumn: '1 / -1', padding: '10px 12px', borderRadius: 8, background: (value.claimKind || CLAIM_KINDS[0]) === 'תביעת צד ג׳' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(37, 99, 235, 0.08)', border: (value.claimKind || CLAIM_KINDS[0]) === 'תביעת צד ג׳' ? '1px solid rgba(245, 158, 11, 0.35)' : '1px solid rgba(37, 99, 235, 0.25)', fontSize: 13 }} data-testid="intake-kind-banner">
+            {(value.claimKind || CLAIM_KINDS[0]) === 'תביעת צד ג׳' ? (
+              <span><strong>תביעת צד ג׳:</strong> התביעה מוגשת מול חברת הביטוח של הרכב הפוגע (צד ג׳). בשלב ד׳ יופיעו שדות החובה של פרטי רכב וביטוח צד ג׳.</span>
+            ) : (
+              <span><strong>הפעלת פוליסה:</strong> התביעה מוגשת במסגרת פוליסת הביטוח של המבוטח. נא למלא את פרטי הפוליסה וחברת הביטוח של הלקוח.</span>
+            )}
+          </div>
           <Field id="in_reporter" label="זהות המדווח">
             <input className="fi" id="in_reporter" data-testid="intake-reporter" value={value.reporterName} onChange={(e) => set('reporterName', e.target.value)} placeholder="שם ממלא הטופס" />
           </Field>
@@ -81,24 +94,33 @@ export default function ClaimAccidentForm({ mode, value, onChange, stepKey, onSi
             <div className="fl">עוסק מורשה</div>
             <YesNo value={value.licensedDealer} onChange={(v) => set('licensedDealer', v)} testid="intake-licensed-dealer" />
           </div>
-          <Field id="in_agent" label="שם הסוכן"><input className="fi" id="in_agent" data-testid="intake-agent" value={value.agentName} onChange={(e) => set('agentName', e.target.value)} /></Field>
-          <Field id="in_policy" label="מס׳ הפוליסה"><input className="fi" id="in_policy" value={value.policyNum} onChange={(e) => set('policyNum', e.target.value)} /></Field>
-          <Field id="in_policyValid" label="בתוקף עד"><input className="fi" id="in_policyValid" data-testid="intake-policy-valid" type="date" value={value.policyValidUntil} onChange={(e) => set('policyValidUntil', e.target.value)} /></Field>
-          <div className="fg full">
-            <div className="fl">סוג ביטוח</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {INS_TYPES.map((t) => (
-                <label key={t} className="pick-row"><input type="radio" name="insType" checked={value.insType === t} onChange={() => set('insType', t)} /><span>{t}</span></label>
-              ))}
-            </div>
-          </div>
-          <Field id="in_co" label="חברת הביטוח של הלקוח">
-            <input className="fi" id="in_co" list="dlCoIn" value={value.insCompany} onChange={(e) => set('insCompany', e.target.value)} />
-            <datalist id="dlCoIn"><option>מגדל</option><option>הפניקס</option><option>מנורה מבטחים</option><option>הראל</option><option>כלל ביטוח</option><option>איילון</option><option>שירביט</option><option>ביטוח ישיר</option></datalist>
-          </Field>
-          <Field id="in_claimNum" label="מספר תביעה בחברת הביטוח (לא חובה)">
-            <input className="fi" id="in_claimNum" value={value.claimNum} onChange={(e) => set('claimNum', e.target.value)} placeholder="אם עדיין אין — השאירו ריק" />
-          </Field>
+          {(value.claimKind || CLAIM_KINDS[0]) === 'הפעלת פוליסה' ? (
+            <>
+              <Field id="in_agent" label="שם הסוכן"><input className="fi" id="in_agent" data-testid="intake-agent" value={value.agentName} onChange={(e) => set('agentName', e.target.value)} /></Field>
+              <Field id="in_policy" label="מס׳ הפוליסה *"><input className="fi" id="in_policy" value={value.policyNum} onChange={(e) => set('policyNum', e.target.value)} /></Field>
+              <Field id="in_policyValid" label="בתוקף עד"><input className="fi" id="in_policyValid" data-testid="intake-policy-valid" type="date" value={value.policyValidUntil} onChange={(e) => set('policyValidUntil', e.target.value)} /></Field>
+              <div className="fg full">
+                <div className="fl">סוג ביטוח</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {INS_TYPES.map((t) => (
+                    <label key={t} className="pick-row"><input type="radio" name="insType" checked={value.insType === t} onChange={() => set('insType', t)} /><span>{t}</span></label>
+                  ))}
+                </div>
+              </div>
+              <Field id="in_co" label="חברת הביטוח של הלקוח *">
+                <input className="fi" id="in_co" list="dlCoIn" value={value.insCompany} onChange={(e) => set('insCompany', e.target.value)} />
+                <datalist id="dlCoIn"><option>מגדל</option><option>הפניקס</option><option>מנורה מבטחים</option><option>הראל</option><option>כלל ביטוח</option><option>איילון</option><option>שירביט</option><option>ביטוח ישיר</option></datalist>
+              </Field>
+              <Field id="in_claimNum" label="מספר תביעה בחברת הביטוח (לא חובה)">
+                <input className="fi" id="in_claimNum" value={value.claimNum} onChange={(e) => set('claimNum', e.target.value)} placeholder="אם עדיין אין — השאירו ריק" />
+              </Field>
+            </>
+          ) : (
+            <Field id="in_co" label="חברת הביטוח של הלקוח (לתיעוד בלבד)">
+              <input className="fi" id="in_co" list="dlCoIn" value={value.insCompany} onChange={(e) => set('insCompany', e.target.value)} placeholder="אופציונלי בתביעת צד ג׳" />
+              <datalist id="dlCoIn"><option>מגדל</option><option>הפניקס</option><option>מנורה מבטחים</option><option>הראל</option><option>כלל ביטוח</option><option>איילון</option><option>שירביט</option><option>ביטוח ישיר</option></datalist>
+            </Field>
+          )}
           <Field id="in_addr" label="כתובת"><input className="fi" id="in_addr" value={value.clientAddress} onChange={(e) => set('clientAddress', e.target.value)} /></Field>
           <Field id="in_street" label="רחוב"><input className="fi" id="in_street" data-testid="intake-address-street" value={value.addressStreet} onChange={(e) => set('addressStreet', e.target.value)} /></Field>
           <Field id="in_city" label="ישוב"><input className="fi" id="in_city" data-testid="intake-address-city" value={value.addressCity} onChange={(e) => set('addressCity', e.target.value)} /></Field>

@@ -375,6 +375,22 @@ export const CLAIMS_GEMINI_TOOLS = [
               items: { type: "STRING" },
               description: "רשימת טפסים שהתבקשו אך חסרים במאגר ודורשים העלאה ישירה ע''י המשתמש בצ'אט",
             },
+            uploaded_forms: {
+              type: "ARRAY",
+              description: "רשימת טפסים או מסמכים שהמשתמש העלה בחבילה (כולל storage_path, name, original_name, mime_type, byte_size, category)",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  name: { type: "STRING" },
+                  category: { type: "STRING" },
+                  storage_path: { type: "STRING" },
+                  original_name: { type: "STRING" },
+                  mime_type: { type: "STRING" },
+                  byte_size: { type: "NUMBER" },
+                  content_sha256: { type: "STRING" },
+                },
+              },
+            },
             channel: {
               type: "STRING",
               description: "ערוץ שליחה מבוקש: 'whatsapp', 'email', 'both' (אימייל ו-WhatsApp), או 'copy' (העתקה בלבד). ברירת מחדל: לפי פרטי הקשר שסופקו",
@@ -386,6 +402,19 @@ export const CLAIMS_GEMINI_TOOLS = [
             expires_in_hours: {
               type: "NUMBER",
               description: "תוקף הקישור בשעות: 24 (יום אחד - ברירת מחדל), 168 (שבוע), מספר שעות מותאם (למשל 12, 48), או 0 / never עבור קישור ללא תאריך תפוגה אוטומטי (פתוח עד לביטול)",
+            },
+          },
+        },
+      },
+      {
+        name: "prepare_insurance_claim_package",
+        description: "הכנת תיק מסמכים מלא ומרוכז לשליחה לחברת הביטוח (כאשר המשתמש מבקש: 'דליה, תכיני לי את כל תיק התביעה לשליחה לחברת הביטוח'). אוסף את כל המסמכים שבתיק ומציג: פרטי התיק והלקוח, השאלון החתום, כל המסמכים שהתקבלו, כל הטפסים החתומים, והתראה ברורה אם עדיין חסר מסמך כלשהו. מאפשר לאשר, להפיק קובץ PDF מרכזי עם לוגו דליה ותוכן עניינים + חבילת ZIP, להוריד ולשלוח במייל לחברת הביטוח באישור מפורש.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            insurer_email: {
+              type: "STRING",
+              description: "כתובת אימייל של חברת הביטוח למשלוח (אופציונלי)",
             },
           },
         },
@@ -1206,6 +1235,7 @@ export const GENERAL_CLAIM_SCOPED_TOOLS = [
   "list_scheduled_claim_emails",
   "preview_cancel_scheduled_claim_email",
   "list_available_claim_documents_and_forms",
+  "prepare_insurance_claim_package",
 ] as const;
 
 {
@@ -1216,7 +1246,7 @@ export const GENERAL_CLAIM_SCOPED_TOOLS = [
     const decl = claimDecls.find((d) => d.name === name);
     if (!decl || generalDecls.some((d) => d.name === name)) continue;
     const params = decl.parameters || { type: "OBJECT", properties: {} };
-    const isOptionalClaim = name === "preview_send_claim_email" || name === "search_pending_gmail_messages" || name === "preview_import_claim_email" || name === "list_scheduled_claim_emails" || name === "preview_cancel_scheduled_claim_email" || name === "preview_send_customer_link" || name === "list_available_claim_documents_and_forms" || name === "get_customer_link_status";
+    const isOptionalClaim = name === "preview_send_claim_email" || name === "search_pending_gmail_messages" || name === "preview_import_claim_email" || name === "list_scheduled_claim_emails" || name === "preview_cancel_scheduled_claim_email" || name === "preview_send_customer_link" || name === "list_available_claim_documents_and_forms" || name === "get_customer_link_status" || name === "prepare_insurance_claim_package";
     generalDecls.push({
       ...decl,
       description: isOptionalClaim
@@ -2030,6 +2060,253 @@ export function resolveDocKey(label: string): string {
   if (norm.includes("העברת זכויות") || norm.includes("הסבת זכות")) return "assignment_of_rights";
   if (norm.includes("אישור תשלום") || norm.includes("סילוק")) return "payment_release";
   return "doc_" + Math.random().toString(36).substring(2, 9);
+}
+
+function createBuiltInFormPdfBytes(formTitle: string, claimId: string): Uint8Array {
+  const safeAsciiTitle = /ייפוי|יפוי/i.test(formTitle)
+    ? "Power of Attorney - Dalia Claims Management"
+    : /הצהר/i.test(formTitle)
+    ? "Client Declaration Form - Dalia Claims Management"
+    : "Official Claim Form - Dalia Claims Management";
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const contentStream = [
+    "BT",
+    "/F1 18 Tf",
+    "50 760 Td",
+    "(DALIA - VEHICLE CLAIMS MANAGEMENT) Tj",
+    "/F1 14 Tf",
+    "0 -30 Td",
+    `(${safeAsciiTitle}) Tj`,
+    "/F1 11 Tf",
+    "0 -25 Td",
+    `(Claim Case Number: ${claimId}) Tj`,
+    "0 -18 Td",
+    `(Date Issued: ${dateStr}) Tj`,
+    "0 -35 Td",
+    "(Instructions for Customer:) Tj",
+    "0 -18 Td",
+    "(1. Please review and fill in the required details below.) Tj",
+    "0 -18 Td",
+    "(2. Sign at the bottom of the form.) Tj",
+    "0 -18 Td",
+    "(3. Upload the signed form back via the secure claim link.) Tj",
+    "0 -45 Td",
+    "(Full Name: ___________________________   ID Number: ___________________) Tj",
+    "0 -30 Td",
+    "(Vehicle Plate: _______________________   Phone: _______________________) Tj",
+    "0 -45 Td",
+    "(I hereby authorize Dalia Claims Management / Oren Car to act on my behalf) Tj",
+    "0 -18 Td",
+    "(regarding the insurance claim for the vehicle listed above, and declare that) Tj",
+    "0 -18 Td",
+    "(all information provided in connection with this claim is true and accurate.) Tj",
+    "0 -60 Td",
+    "(Customer Signature: ________________________   Date: _________________) Tj",
+    "ET",
+  ].join("\n");
+
+  const streamBytes = new TextEncoder().encode(contentStream);
+  const pdfParts = [
+    "%PDF-1.4\n",
+    "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+    "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+    "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n",
+    "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+    `5 0 obj\n<< /Length ${streamBytes.byteLength} >>\nstream\n${contentStream}\nendstream\nendobj\n`,
+    "xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000241 00000 n \n0000000309 00000 n \n",
+    "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n400\n%%EOF\n",
+  ];
+  return new TextEncoder().encode(pdfParts.join(""));
+}
+
+async function ensureProvidedFormInStorage(
+  adminSb: ReturnType<typeof createClient>,
+  targetClaimId: string,
+  dcrId: string,
+  formName: string,
+  docKey: string,
+  uploadedForms: Array<Record<string, any>>,
+  userId: string,
+  userName: string,
+): Promise<{ verified: boolean; signedUrl?: string; storagePath?: string; fileId?: string; error?: string }> {
+  const normForm = formName.trim().toLowerCase();
+  const matchedUpload = (uploadedForms || []).find((uf) => {
+    const uName = String(uf?.name || "").trim().toLowerCase();
+    const uOrig = String(uf?.original_name || "").trim().toLowerCase();
+    if (!uf?.storage_path) return false;
+    if (uName && (uName === normForm || normForm.includes(uName) || uName.includes(normForm))) return true;
+    if (docKey === "power_of_attorney" && (/ייפוי|יפוי|poa/i.test(uName) || /ייפוי|יפוי|poa/i.test(uOrig))) return true;
+    if (docKey === "client_declaration" && (/הצהר/i.test(uName) || /הצהר/i.test(uOrig))) return true;
+    return false;
+  });
+
+  const staffType = docKey === "power_of_attorney"
+    ? "power_of_attorney"
+    : docKey === "client_declaration"
+    ? "declaration_form"
+    : "claim_form";
+
+  if (matchedUpload && matchedUpload.storage_path) {
+    const storagePath = String(matchedUpload.storage_path);
+    const { data: signed, error: signErr } = await adminSb.storage.from("claims-docs").createSignedUrl(storagePath, 86400);
+    if (signErr || !signed?.signedUrl) {
+      return { verified: false, error: `הקובץ שהועלה עבור "${formName}" אינו נגיש באחסון (${signErr?.message || "missing_signed_url"})` };
+    }
+    const { data: existingDoc } = await adminSb
+      .from("claims_documents")
+      .select("id")
+      .eq("claim_id", targetClaimId)
+      .eq("storage_path", storagePath)
+      .maybeSingle();
+
+    let fileId = existingDoc?.id ? String(existingDoc.id) : `CDM-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+    if (!existingDoc) {
+      await adminSb.from("claims_documents").insert({
+        id: fileId,
+        claim_id: targetClaimId,
+        doc_request_id: dcrId,
+        storage_path: storagePath,
+        original_name: String(matchedUpload.original_name || `${formName}.pdf`),
+        mime_type: String(matchedUpload.mime_type || "application/pdf"),
+        byte_size: Number(matchedUpload.byte_size || 0),
+        source: "staff",
+        uploaded_by: isUuid(userId) ? userId : null,
+        uploaded_by_name: userName || "דליה AI",
+        doc_kind: "general",
+        doc_meta: {
+          staff_type: staffType,
+          staff_title: formName,
+          is_template: "true",
+        },
+        content_sha256: matchedUpload.content_sha256 ? String(matchedUpload.content_sha256) : null,
+      });
+    } else {
+      await adminSb.from("claims_documents").update({ doc_request_id: dcrId }).eq("id", fileId);
+    }
+    return { verified: true, signedUrl: signed.signedUrl, storagePath, fileId };
+  }
+
+  // Check if a staff template document already exists for this dcrId on targetClaimId
+  const { data: existingByDcr } = await adminSb
+    .from("claims_documents")
+    .select("id, storage_path")
+    .eq("claim_id", targetClaimId)
+    .eq("doc_request_id", dcrId)
+    .eq("source", "staff")
+    .limit(1)
+    .maybeSingle();
+
+  if (existingByDcr?.storage_path) {
+    const { data: signed } = await adminSb.storage.from("claims-docs").createSignedUrl(String(existingByDcr.storage_path), 86400);
+    if (signed?.signedUrl) {
+      return { verified: true, signedUrl: signed.signedUrl, storagePath: String(existingByDcr.storage_path), fileId: String(existingByDcr.id) };
+    }
+  }
+
+  // Generate a clean, downloadable PDF template in Storage so the customer always receives an openable file
+  const pdfBytes = createBuiltInFormPdfBytes(formName, targetClaimId);
+  const digest = await sha256Hex(pdfBytes);
+  const storagePath = `${targetClaimId}/forms/TPL-${dcrId}.pdf`;
+  const { error: upErr } = await adminSb.storage.from("claims-docs").upload(storagePath, pdfBytes, {
+    contentType: "application/pdf",
+    upsert: true,
+  });
+  if (upErr) {
+    return { verified: false, error: `שגיאה בשמירת טופס "${formName}" באחסון: ${upErr.message}` };
+  }
+  const { data: signed, error: signErr } = await adminSb.storage.from("claims-docs").createSignedUrl(storagePath, 86400);
+  if (signErr || !signed?.signedUrl) {
+    return { verified: false, error: `שגיאה באימות טופס "${formName}" באחסון` };
+  }
+  const fileId = `CDM-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+  const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+  await adminSb.from("claims_documents").insert({
+    id: fileId,
+    claim_id: targetClaimId,
+    doc_request_id: dcrId,
+    storage_path: storagePath,
+    original_name: `${formName.replace(/\s+/g, "-")}-${targetClaimId}.pdf`,
+    mime_type: "application/pdf",
+    byte_size: pdfBytes.byteLength,
+    source: "staff",
+    uploaded_by: isUuid(userId) ? userId : null,
+    uploaded_by_name: userName || "דליה AI",
+    doc_kind: "general",
+    doc_meta: {
+      staff_type: staffType,
+      staff_title: formName,
+      is_template: "true",
+    },
+    content_sha256: digest,
+  });
+
+  return { verified: true, signedUrl: signed.signedUrl, storagePath, fileId };
+}
+
+function generateSecureCustomerToken(bytes = 24): string {
+  const raw = new Uint8Array(bytes);
+  crypto.getRandomValues(raw);
+  let s = "";
+  for (const b of raw) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function mintCustomerIntakeTokenDirect(
+  adminSb: ReturnType<typeof createClient>,
+  targetClaimId: string,
+  expiresInHours: number,
+  userId: string,
+  draftInit: Record<string, string> = {},
+): Promise<{ token: string; expiresAt: string; id: string } | null> {
+  const token = generateSecureCustomerToken(24);
+  const tokenHash = await sha256Hex(new TextEncoder().encode(token));
+  const id = `INL-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const expiresAt = expiresInHours === 0
+    ? new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString()
+    : new Date(Date.now() + expiresInHours * 3600 * 1000).toISOString();
+  const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+  const { error } = await adminSb.from("claims_intake_links").insert({
+    id,
+    token_hash: tokenHash,
+    status: "pending",
+    expires_at: expiresAt,
+    created_by: isUuid(userId) ? userId : null,
+    claim_id: targetClaimId,
+    draft: draftInit,
+  });
+  if (error) {
+    console.error("mintCustomerIntakeTokenDirect error:", error);
+    return null;
+  }
+  return { token, expiresAt, id };
+}
+
+async function mintCustomerUploadTokenDirect(
+  adminSb: ReturnType<typeof createClient>,
+  targetClaimId: string,
+  expiresInHours: number,
+  userId: string,
+): Promise<{ token: string; expiresAt: string; id: string } | null> {
+  const token = generateSecureCustomerToken(24);
+  const tokenHash = await sha256Hex(new TextEncoder().encode(token));
+  const id = `UPL-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const expiresAt = expiresInHours === 0
+    ? new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString()
+    : new Date(Date.now() + expiresInHours * 3600 * 1000).toISOString();
+  const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+  const { error } = await adminSb.from("claims_upload_links").insert({
+    id,
+    claim_id: targetClaimId,
+    token_hash: tokenHash,
+    expires_at: expiresAt,
+    created_by: isUuid(userId) ? userId : null,
+  });
+  if (error) {
+    console.error("mintCustomerUploadTokenDirect error:", error);
+    return null;
+  }
+  return { token, expiresAt, id };
 }
 
 /** One live claim by its id or by its insurer claim number. Never guesses between several. */
@@ -4517,12 +4794,13 @@ export async function executeClaimsTool(
       }
 
       case "preview_send_customer_link": {
+        const adminSb = getAdminClient() || supabase;
         let targetClaimId = String(claimId || args.claim_id || args.claim_ref || "").trim();
         if (!targetClaimId) {
-          targetClaimId = await allocateNextDalClaimId(supabase);
+          targetClaimId = await allocateNextDalClaimId(adminSb);
         }
 
-        const { data: claimRec } = await supabase
+        const { data: claimRec } = await adminSb
           .from("claims_records")
           .select("id, plate, client_name, row_data, status")
           .eq("id", targetClaimId)
@@ -4552,14 +4830,15 @@ export async function executeClaimsTool(
         const requestedDocsRaw = (args.requested_documents as string[]) || [];
         const providedFormsRaw = (args.provided_forms as string[]) || [];
         const missingFormsRaw = (args.missing_forms as string[]) || [];
+        const uploadedFormsRaw = Array.isArray(args.uploaded_forms) ? (args.uploaded_forms as Array<Record<string, any>>) : [];
         const reqDocsList = Array.isArray(requestedDocsRaw) ? requestedDocsRaw.map((x) => String(x || "").trim()).filter(Boolean) : [];
         const provFormsList = Array.isArray(providedFormsRaw) ? providedFormsRaw.map((x) => String(x || "").trim()).filter(Boolean) : [];
         const missingFormsList = Array.isArray(missingFormsRaw) ? missingFormsRaw.map((x) => String(x || "").trim()).filter(Boolean) : [];
 
+        const nowIso = new Date().toISOString();
         // Ensure stub record in claims_records with status 'ממתין למילוי הלקוח'
         if (!claimRec) {
-          const nowIso = new Date().toISOString();
-          await supabase.from("claims_records").insert({
+          await adminSb.from("claims_records").insert({
             id: targetClaimId,
             status: "ממתין למילוי הלקוח",
             client_name: clientName || null,
@@ -4579,17 +4858,17 @@ export async function executeClaimsTool(
           });
         }
 
-        // Seed requested documents & provided forms into claims_doc_requests & claims_tasks immediately
+        // Seed requested documents into claims_doc_requests
         for (const docName of reqDocsList) {
           const key = resolveDocKey(docName);
-          const { data: ex } = await supabase
+          const { data: ex } = await adminSb
             .from("claims_doc_requests")
             .select("id")
             .eq("claim_id", targetClaimId)
             .eq("doc_key", key)
             .maybeSingle();
           if (!ex) {
-            await supabase.from("claims_doc_requests").insert({
+            await adminSb.from("claims_doc_requests").insert({
               id: newId("DCR"),
               claim_id: targetClaimId,
               label: docName.trim(),
@@ -4600,9 +4879,11 @@ export async function executeClaimsTool(
           }
         }
 
+        // Seed provided forms into claims_doc_requests, claims_tasks, AND ensure real file in Storage + claims_documents
+        const verifiedForms: Array<Record<string, any>> = [];
         for (const formName of provFormsList) {
           const key = resolveDocKey(formName);
-          const { data: ex } = await supabase
+          const { data: ex } = await adminSb
             .from("claims_doc_requests")
             .select("id")
             .eq("claim_id", targetClaimId)
@@ -4611,7 +4892,7 @@ export async function executeClaimsTool(
           let dcrId = ex?.id;
           if (!ex) {
             dcrId = newId("DCR");
-            await supabase.from("claims_doc_requests").insert({
+            await adminSb.from("claims_doc_requests").insert({
               id: dcrId,
               claim_id: targetClaimId,
               label: formName.trim(),
@@ -4620,7 +4901,29 @@ export async function executeClaimsTool(
               created_by: userId,
             });
           }
-          const { data: exTask } = await supabase
+
+          // Ensure the actual form file exists in Storage and is linked to dcrId & targetClaimId!
+          const formVerification = await ensureProvidedFormInStorage(
+            adminSb,
+            targetClaimId,
+            dcrId!,
+            formName.trim(),
+            key,
+            uploadedFormsRaw,
+            userId,
+            userName,
+          );
+          verifiedForms.push({
+            label: formName.trim(),
+            doc_key: key,
+            doc_request_id: dcrId,
+            doc_id: formVerification.docId,
+            storage_path: formVerification.storagePath,
+            signed_url: formVerification.signedUrl,
+            verified: formVerification.verified,
+          });
+
+          const { data: exTask } = await adminSb
             .from("claims_tasks")
             .select("id, row_data")
             .eq("claim_id", targetClaimId);
@@ -4628,7 +4931,7 @@ export async function executeClaimsTool(
             (t: any) => t.row_data?.audience === "customer" && (t.row_data?.action === formName || t.row_data?.letterSubject === formName)
           );
           if (!taskExists) {
-            await supabase.from("claims_tasks").insert({
+            await adminSb.from("claims_tasks").insert({
               id: newId("TSK"),
               claim_id: targetClaimId,
               row_data: {
@@ -4640,6 +4943,8 @@ export async function executeClaimsTool(
                 needsSignature: "true",
                 allowUpload: "true",
                 customerStatus: "open",
+                storagePath: formVerification.storagePath,
+                docId: formVerification.docId,
                 createdAt: new Date().toISOString(),
               },
             });
@@ -4662,27 +4967,16 @@ export async function executeClaimsTool(
             ? `בקשת מסמכים וטפסים מלקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId}): ${dCount} מסמכים להעלאה, ${fCount} טפסים למילוי (${expiresLabel})`
             : `שליחת קישור להעלאת מסמכים ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId}) (${expiresLabel})`;
           try {
-            const docsRes = await supabase.functions.invoke("claims-docs", {
-              headers: {
-                "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
-              },
-              body: {
-                action: "create_link",
-                claim_id: targetClaimId,
-                expires_in_hours: expiresInHours,
-              },
-            });
-            if (docsRes.data?.token) {
-              uploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(docsRes.data.token)}`;
-              const waText = customMessage
-                ? (customMessage.includes(uploadUrl) ? customMessage : `${customMessage}\nקישור העלאת מסמכים:\n${uploadUrl}`)
-                : `שלום ${clientName || 'לקוח יקר'},\nלהעלאת מסמכים ומילוי טפסים עבור תיק תביעה ${targetClaimId} באורן קאר, היכנס/י לקישור:\n${uploadUrl}`;
-              waLink = normPhone
-                ? `https://wa.me/${normPhone}?text=${encodeURIComponent(waText)}`
-                : `https://api.whatsapp.com/send?text=${encodeURIComponent(waText)}`;
-            }
+            const minted = await mintCustomerUploadTokenDirect(adminSb, targetClaimId, expiresInHours, userId);
+            uploadUrl = minted.uploadUrl;
+            const waText = customMessage
+              ? (customMessage.includes(uploadUrl) ? customMessage : `${customMessage}\nקישור העלאת מסמכים:\n${uploadUrl}`)
+              : `שלום ${clientName || 'לקוח יקר'},\nלהעלאת מסמכים ומילוי טפסים עבור תיק תביעה ${targetClaimId} באורן קאר, היכנס/י לקישור:\n${uploadUrl}`;
+            waLink = normPhone
+              ? `https://wa.me/${normPhone}?text=${encodeURIComponent(waText)}`
+              : `https://api.whatsapp.com/send?text=${encodeURIComponent(waText)}`;
           } catch (e) {
-            console.error("claims-docs create_link error:", e);
+            console.error("mintCustomerUploadTokenDirect error:", e);
           }
           message = `הוכנה תצוגה מקדימה לבקשת מסמכים וטפסים עבור ${clientName || "הלקוח"} בתיק ${targetClaimId} (${expiresLabel}). הקישור מוכן לבדיקה, העתקה או שליחה.`;
         } else {
@@ -4691,30 +4985,49 @@ export async function executeClaimsTool(
             ? `חבילת פתיחת תיק מלאה ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId}): שאלון פתיחת תיק + ${reqDocsList.length} מסמכים + ${provFormsList.length} טפסים לחתימה (${expiresLabel})`
             : `שליחת קישור פתיחת תיק חדש ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId}) (${expiresLabel})`;
           try {
-            const intakeRes = await supabase.functions.invoke("claims-intake", {
-              headers: {
-                "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
-              },
-              body: {
-                action: "create_link",
-                claim_id: targetClaimId,
-                expires_in_hours: expiresInHours,
-              },
+            const minted = await mintCustomerIntakeTokenDirect(adminSb, targetClaimId, expiresInHours, userId, {
+              clientName: clientName || "",
+              clientPhone: clientPhone || "",
+              clientEmail: clientEmail || "",
             });
-            if (intakeRes.data?.token) {
-              intakeUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-intake?t=${encodeURIComponent(intakeRes.data.token)}`;
-              const waText = customMessage
-                ? (customMessage.includes(intakeUrl) ? customMessage : `${customMessage}\nקישור לפתיחת התיק:\n${intakeUrl}`)
-                : `שלום ${clientName || 'לקוח יקר'},\nנפתח עבורך תיק תביעה ${targetClaimId} באורן קאר. למילוי טופס פתיחת התיק היכנס/י לקישור:\n${intakeUrl}`;
-              waLink = normPhone
-                ? `https://wa.me/${normPhone}?text=${encodeURIComponent(waText)}`
-                : `https://api.whatsapp.com/send?text=${encodeURIComponent(waText)}`;
-            }
+            intakeUrl = minted.intakeUrl;
+            const waText = customMessage
+              ? (customMessage.includes(intakeUrl) ? customMessage : `${customMessage}\nקישור לפתיחת התיק:\n${intakeUrl}`)
+              : `שלום ${clientName || 'לקוח יקר'},\nנפתח עבורך תיק תביעה ${targetClaimId} באורן קאר. למילוי טופס פתיחת התיק היכנס/י לקישור:\n${intakeUrl}`;
+            waLink = normPhone
+              ? `https://wa.me/${normPhone}?text=${encodeURIComponent(waText)}`
+              : `https://api.whatsapp.com/send?text=${encodeURIComponent(waText)}`;
           } catch (e) {
-            console.error("claims-intake create_link error:", e);
+            console.error("mintCustomerIntakeTokenDirect error:", e);
           }
           message = `הוכנה חבילת פתיחת תיק מלאה עבור ${clientName || "הלקוח"}. הוקצה מספר תיק קבוע ${targetClaimId} בסטטוס "ממתין למילוי הלקוח", ותוקף הקישור נקבע ל-${expiresLabel}. הקישור מוכן לבדיקה בלחיצה, להעתקה או לשליחה.`;
         }
+
+        // Persist the generated URLs and package selection directly on claims_records.row_data so they are always retrievable
+        const updatedRowData = {
+          ...claimRow,
+          id: targetClaimId,
+          status: claimRec?.status || "ממתין למילוי הלקוח",
+          clientName: clientName || String(claimRow.clientName || ""),
+          clientPhone: clientPhone || String(claimRow.clientPhone || ""),
+          clientEmail: clientEmail || String(claimRow.clientEmail || ""),
+          intakeLinkUrl: intakeUrl || claimRow.intakeLinkUrl || null,
+          uploadLinkUrl: uploadUrl || claimRow.uploadLinkUrl || null,
+          intakeWaLink: waLink || claimRow.intakeWaLink || null,
+          intakeExpiresInHours: expiresInHours,
+          intakeExpiresLabel: expiresLabel,
+          requestedDocuments: reqDocsList,
+          providedForms: provFormsList,
+          verifiedForms,
+          lastPackageAt: nowIso,
+        };
+        await adminSb
+          .from("claims_records")
+          .update({
+            row_data: updatedRowData,
+            last_activity_at: nowIso,
+          })
+          .eq("id", targetClaimId);
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
@@ -4737,10 +5050,12 @@ export async function executeClaimsTool(
             requested_documents: reqDocsList,
             provided_forms: provFormsList,
             missing_forms: missingFormsList,
+            uploaded_forms: uploadedFormsRaw,
+            verified_forms: verifiedForms,
           },
         };
 
-        await recordAiAudit(supabase, {
+        await recordAiAudit(adminSb, {
           userId,
           userName,
           claimId: targetClaimId,
@@ -4772,6 +5087,7 @@ export async function executeClaimsTool(
               requested_documents: reqDocsList,
               provided_forms: provFormsList,
               missing_forms: missingFormsList,
+              verified_forms: verifiedForms,
             },
           },
           preview,
@@ -4859,9 +5175,10 @@ export async function executeClaimsTool(
       }
 
       case "get_customer_link_status": {
+        const adminSb = getAdminClient() || supabase;
         const targetClaimId = String(claimId || args.claim_ref || args.claim_id || "").trim();
         if (targetClaimId) {
-          const { data: claimRec } = await supabase
+          const { data: claimRec } = await adminSb
             .from("claims_records")
             .select("id, plate, client_name, status, row_data, created_at")
             .eq("id", targetClaimId)
@@ -4870,17 +5187,17 @@ export async function executeClaimsTool(
             return { result: { success: false, message: `תיק תביעה ${targetClaimId} לא נמצא במערכת.` } };
           }
           const claimRow = (claimRec.row_data && typeof claimRec.row_data === "object" ? claimRec.row_data : {}) as Record<string, unknown>;
-          const clientName = claimRec.client_name || claimRow.clientName || "לא צוין";
+          const clientName = String(claimRec.client_name || claimRow.clientName || "לא צוין");
 
-          const { data: intakeLinks } = await supabase
+          const { data: intakeLinks } = await adminSb
             .from("claims_intake_links")
             .select("id, status, created_at, expires_at, submitted_at, token_hash")
             .eq("claim_id", targetClaimId)
             .order("created_at", { ascending: false })
             .limit(1);
-          const latestIntake = intakeLinks?.[0];
+          let latestIntake = intakeLinks?.[0];
 
-          const { data: uploadLinks } = await supabase
+          const { data: uploadLinks } = await adminSb
             .from("claims_upload_links")
             .select("id, claim_id, expires_at, revoked_at, created_at")
             .eq("claim_id", targetClaimId)
@@ -4888,17 +5205,18 @@ export async function executeClaimsTool(
             .limit(1);
           const latestUpload = uploadLinks?.[0];
 
-          // Fetch latest active URLs and WhatsApp links from claims_ai_audit_log
-          const { data: auditRows } = await supabase
+          // Fetch latest active URLs and WhatsApp links from claims_records.row_data or claims_ai_audit_log
+          let intakeUrl: string | null = String(claimRow.intakeLinkUrl || "").trim() || null;
+          let uploadUrl: string | null = String(claimRow.uploadLinkUrl || "").trim() || null;
+          let waLink: string | null = String(claimRow.intakeWaLink || "").trim() || null;
+
+          const { data: auditRows } = await adminSb
             .from("claims_ai_audit_log")
             .select("preview_payload, execution_action, status, created_at")
             .eq("claim_id", targetClaimId)
             .order("created_at", { ascending: false })
             .limit(5);
 
-          let intakeUrl: string | null = null;
-          let uploadUrl: string | null = null;
-          let waLink: string | null = null;
           for (const a of auditRows || []) {
             const p = (a.preview_payload && typeof a.preview_payload === "object" ? a.preview_payload : {}) as Record<string, any>;
             if (!intakeUrl && p.intake_url) intakeUrl = p.intake_url;
@@ -4906,12 +5224,43 @@ export async function executeClaimsTool(
             if (!waLink && p.wa_link) waLink = p.wa_link;
           }
 
-          const { data: docRequests } = await supabase
+          // Self-healing: if claim is waiting for customer fill ("ממתין למילוי הלקוח") and has no active intake link URL, mint one now!
+          if (!intakeUrl && (claimRec.status === "ממתין למילוי הלקוח" || (latestIntake && latestIntake.status === "pending"))) {
+            try {
+              const minted = await mintCustomerIntakeTokenDirect(adminSb, targetClaimId, 24, userId, {
+                clientName: clientName !== "לא צוין" ? clientName : "",
+              });
+              intakeUrl = minted.intakeUrl;
+              const waText = `שלום ${clientName !== "לא צוין" ? clientName : "לקוח יקר"},\nנפתח עבורך תיק תביעה ${targetClaimId} באורן קאר. למילוי טופס פתיחת התיק היכנס/י לקישור:\n${intakeUrl}`;
+              waLink = `https://api.whatsapp.com/send?text=${encodeURIComponent(waText)}`;
+              await adminSb
+                .from("claims_records")
+                .update({
+                  row_data: {
+                    ...claimRow,
+                    intakeLinkUrl: intakeUrl,
+                    intakeWaLink: waLink,
+                  },
+                })
+                .eq("id", targetClaimId);
+              const { data: refreshedIntakes } = await adminSb
+                .from("claims_intake_links")
+                .select("id, status, created_at, expires_at, submitted_at, token_hash")
+                .eq("claim_id", targetClaimId)
+                .order("created_at", { ascending: false })
+                .limit(1);
+              latestIntake = refreshedIntakes?.[0] || latestIntake;
+            } catch (e) {
+              console.error("get_customer_link_status self-heal error:", e);
+            }
+          }
+
+          const { data: docRequests } = await adminSb
             .from("claims_doc_requests")
             .select("id, label, status, doc_key, created_at")
             .eq("claim_id", targetClaimId);
 
-          const { data: tasks } = await supabase
+          const { data: tasks } = await adminSb
             .from("claims_tasks")
             .select("id, row_data")
             .eq("claim_id", targetClaimId);
@@ -4959,7 +5308,7 @@ export async function executeClaimsTool(
           if (docRequests && docRequests.length > 0) {
             lines.push(``, `📥 **מסמכים שנדרשו מהלקוח:**`);
             docRequests.forEach((d) => {
-              const st = d.status === "completed" || d.status === "uploaded" ? "התקבל בהצלחה ✅" : "טרם הועלה ⏳";
+              const st = d.status === "completed" || d.status === "uploaded" || d.status === "received" ? "התקבל בהצלחה ✅" : "טרם הועלה ⏳";
               lines.push(`  - **${d.label}:** ${st}`);
             });
           }
@@ -4989,7 +5338,7 @@ export async function executeClaimsTool(
           };
         } else {
           const nowIso = new Date().toISOString();
-          const { data: activeIntakes } = await supabase
+          const { data: activeIntakes } = await adminSb
             .from("claims_intake_links")
             .select("id, claim_id, status, created_at, expires_at, token_hash")
             .eq("status", "pending")
@@ -4997,7 +5346,7 @@ export async function executeClaimsTool(
             .order("created_at", { ascending: false })
             .limit(20);
 
-          const { data: activeUploads } = await supabase
+          const { data: activeUploads } = await adminSb
             .from("claims_upload_links")
             .select("id, claim_id, expires_at, revoked_at, created_at")
             .is("revoked_at", null)
@@ -5023,15 +5372,27 @@ export async function executeClaimsTool(
             const exp = item.expires_at ? `בתוקף עד ${new Date(item.expires_at).toLocaleString("he-IL")}` : "פעיל ללא תפוגה אוטומטית";
             let linkUrl: string | null = null;
             if (item.claim_id) {
-              const { data: auditRow } = await supabase
-                .from("claims_ai_audit_log")
-                .select("preview_payload, execution_action")
-                .eq("claim_id", item.claim_id)
-                .order("created_at", { ascending: false })
-                .limit(1)
+              const { data: cRec } = await adminSb
+                .from("claims_records")
+                .select("row_data")
+                .eq("id", item.claim_id)
                 .maybeSingle();
-              const p = (auditRow?.preview_payload && typeof auditRow.preview_payload === "object" ? auditRow.preview_payload : {}) as Record<string, any>;
-              linkUrl = item.kind === "intake" ? (p.intake_url || p.upload_url || null) : (p.upload_url || p.intake_url || null);
+              const cRow = (cRec?.row_data && typeof cRec.row_data === "object" ? cRec.row_data : {}) as Record<string, any>;
+              linkUrl = item.kind === "intake"
+                ? (cRow.intakeLinkUrl || null)
+                : (cRow.uploadLinkUrl || null);
+
+              if (!linkUrl) {
+                const { data: auditRow } = await adminSb
+                  .from("claims_ai_audit_log")
+                  .select("preview_payload, execution_action")
+                  .eq("claim_id", item.claim_id)
+                  .order("created_at", { ascending: false })
+                  .limit(1)
+                  .maybeSingle();
+                const p = (auditRow?.preview_payload && typeof auditRow.preview_payload === "object" ? auditRow.preview_payload : {}) as Record<string, any>;
+                linkUrl = item.kind === "intake" ? (p.intake_url || p.upload_url || null) : (p.upload_url || p.intake_url || null);
+              }
             }
             const linkPart = linkUrl ? ` · [פתח לבדיקה](${linkUrl}) · [העתק קישור](${linkUrl})` : "";
             const kindLabel = item.kind === "intake" ? "שאלון פתיחת תיק" : "העלאת מסמכים";
@@ -5045,6 +5406,230 @@ export async function executeClaimsTool(
             },
           };
         }
+      }
+
+      case "prepare_insurance_claim_package": {
+        const adminSb = getAdminClient() || supabase;
+        let targetClaimId = String(claimId || args.claim_ref || args.claim_id || "").trim();
+        if (!targetClaimId) {
+          // Find the most recently active claim that has documents or was recently submitted
+          const { data: recentClaims } = await adminSb
+            .from("claims_records")
+            .select("id, status, client_name, plate, last_activity_at")
+            .order("last_activity_at", { ascending: false })
+            .limit(10);
+          if (recentClaims && recentClaims.length > 0) {
+            const receivedClaim = recentClaims.find((c) => c.status === "תביעה חדשה – התקבלה") || recentClaims[0];
+            targetClaimId = String(receivedClaim.id);
+          }
+        }
+        if (!targetClaimId) {
+          return { result: { success: false, message: "לא נמצא תיק תביעה להכנת חבילה לחברת הביטוח. נא לציין מספר תיק." } };
+        }
+
+        const { data: claimRec } = await adminSb
+          .from("claims_records")
+          .select("id, plate, client_name, company_name, status, row_data, created_at")
+          .eq("id", targetClaimId)
+          .maybeSingle();
+
+        if (!claimRec) {
+          return { result: { success: false, message: `תיק תביעה ${targetClaimId} לא נמצא במערכת.` } };
+        }
+
+        const claimRow = (claimRec.row_data && typeof claimRec.row_data === "object" ? claimRec.row_data : {}) as Record<string, any>;
+        const clientName = String(claimRec.client_name || claimRow.clientName || "לקוח");
+        const plate = String(claimRec.plate || claimRow.plate || "");
+        const insurerName = String(args.insurer_name || claimRec.company_name || claimRow.company || claimRow.insurerName || "חברת הביטוח");
+        const recipientEmail = String(args.recipient_email || claimRow.insurerEmail || claimRow.companyEmail || claimRow.agentEmail || "");
+
+        const { data: rawDocs } = await adminSb
+          .from("claims_documents")
+          .select("id, original_name, mime_type, byte_size, storage_path, doc_request_id, source, doc_kind, doc_meta, created_at")
+          .eq("claim_id", targetClaimId)
+          .order("created_at", { ascending: true });
+
+        const { data: docReqs } = await adminSb
+          .from("claims_doc_requests")
+          .select("id, label, doc_key, status")
+          .eq("claim_id", targetClaimId)
+          .order("created_at", { ascending: true });
+
+        const reqLabelById = new Map<string, string>();
+        for (const r of docReqs || []) {
+          if (r.id && r.label) reqLabelById.set(String(r.id), String(r.label));
+        }
+
+        const allDocs = (rawDocs || [])
+          .map((d: any) => {
+            const meta = (d.doc_meta && typeof d.doc_meta === "object" ? d.doc_meta : {}) as Record<string, any>;
+            const staffType = String(meta.staff_type || d.doc_kind || "other");
+            const reqLabel = d.doc_request_id ? reqLabelById.get(String(d.doc_request_id)) : "";
+            const title = String(meta.staff_title || reqLabel || d.original_name || "מסמך");
+            return {
+              ...d,
+              title,
+              doc_type: staffType,
+              is_template: meta.is_template === "true" || meta.is_template === true,
+            };
+          })
+          .filter((d: any) => d.doc_type !== "insurance_package");
+
+        // Categorize documents:
+        // 1. Signed Questionnaire PDF
+        const questionnaireDocs = allDocs.filter((d: any) =>
+          d.doc_type === "accident_notice" ||
+          String(d.title || "").includes("שאלון") ||
+          String(d.title || "").includes("טופס פתיחת תביעה") ||
+          String(d.original_name || "").includes("טופס-פתיחת-תביעה")
+        );
+
+        // 2. Signed forms returned by customer
+        const signedForms = allDocs.filter((d: any) =>
+          !questionnaireDocs.some((q: any) => q.id === d.id) &&
+          (d.doc_type === "signed_form" || d.doc_type === "power_of_attorney" || String(d.title || "").includes("חתום") || String(d.title || "").includes("ייפוי כוח") || String(d.title || "").includes("הצהרת")) &&
+          d.source === "customer"
+        );
+
+        // 3. Original provided forms (staff)
+        const originalForms = allDocs.filter((d: any) =>
+          !questionnaireDocs.some((q: any) => q.id === d.id) &&
+          d.source === "staff"
+        );
+
+        // 4. Customer uploaded documents & photos (vehicle license, driver license, damage photos, etc.)
+        const customerUploadedDocs = allDocs.filter((d: any) =>
+          !questionnaireDocs.some((q: any) => q.id === d.id) &&
+          !signedForms.some((s: any) => s.id === d.id) &&
+          !originalForms.some((o: any) => o.id === d.id)
+        );
+
+        // 5. Missing documents (requested in claims_doc_requests but not yet received)
+        const missingDocs = (docReqs || [])
+          .filter((r: any) => r.status !== "received" && r.status !== "completed" && r.status !== "uploaded")
+          .map((r: any) => ({
+            id: r.id,
+            label: r.label,
+            doc_key: r.doc_key,
+            status: r.status,
+          }));
+
+        const previewId = `P-INSPKG-${Date.now()}`;
+        const summary = `הכנת תיק תביעה מלא למשלוח לחברת הביטוח (${insurerName}) עבור תיק ${targetClaimId} – ${clientName} (${allDocs.length} מסמכים בתיק${missingDocs.length > 0 ? `, ${missingDocs.length} חסרים` : ", כל המסמכים התקבלו"})`;
+
+        const lines = [
+          `📦 **ריכוז תיק תביעה מלא לחברת הביטוח – תיק ${targetClaimId}**`,
+          ``,
+          `👤 **פרטי התיק והלקוח:**`,
+          `• **מספר תיק:** ${targetClaimId}`,
+          `• **שם הלקוח:** ${clientName}`,
+          `• **מספר רישוי:** ${plate || "לא צוין"}`,
+          `• **סוג התביעה:** ${claimRow.claimKind || "הפעלת פוליסה"}`,
+          `• **חברת ביטוח:** ${insurerName}`,
+          `• **סטטוס התיק:** ${claimRec.status || "תביעה חדשה – התקבלה"}`,
+          ``,
+          `📋 **שאלון פתיחת תיק חתום (${questionnaireDocs.length}):**`,
+          ...(questionnaireDocs.length > 0
+            ? questionnaireDocs.map((d: any) => `  ✅ **${d.title}** (${d.original_name || "PDF"})`)
+            : [`  ⚠️ טרם הופק שאלון פתיחת תיק חתום`]),
+          ``,
+          `📥 **מסמכים ותמונות שהתקבלו מהלקוח (${customerUploadedDocs.length}):**`,
+          ...(customerUploadedDocs.length > 0
+            ? customerUploadedDocs.map((d: any) => `  ✅ **${d.title}** (${d.original_name || d.mime_type || "קובץ"})`)
+            : [`  — אין מסמכים נוספים`]),
+          ``,
+          `✍️ **טפסים חתומים שהוחזרו ע"י הלקוח (${signedForms.length}):**`,
+          ...(signedForms.length > 0
+            ? signedForms.map((d: any) => `  ✅ **${d.title}** (${d.original_name || "קובץ חתום"})`)
+            : [`  — אין טפסים חתומים`]),
+        ];
+
+        if (originalForms.length > 0) {
+          lines.push(
+            ``,
+            `📄 **טפסי מקור שסופקו ללקוח (${originalForms.length}):**`,
+            ...originalForms.map((d: any) => `  • **${d.title}** (${d.original_name || "PDF"})`),
+          );
+        }
+
+        if (missingDocs.length > 0) {
+          lines.push(
+            ``,
+            `⚠️ **מסמכים שעדיין חסרים בתיק (${missingDocs.length}):**`,
+            ...missingDocs.map((m: any) => `  ❌ **${m.label}** (טרם הועלה)`),
+          );
+        } else {
+          lines.push(``, `✨ **כל המסמכים והטפסים שנדרשו בתיק התקבלו במלואם!**`);
+        }
+
+        lines.push(
+          ``,
+          `לחץ על **"אשר והכן חבילה מאוחדת למשלוח"** בכרטיס מטה כדי להפיק PDF מרכזי (כולל לוגו דליה, פרטי התביעה ותוכן עניינים) וחבילת ZIP מלאה להורדה או לשליחה במייל לחברת הביטוח.`,
+        );
+
+        const packageParams = {
+          claim_id: targetClaimId,
+          client_name: clientName,
+          plate,
+          claim_kind: String(claimRow.claimKind || "הפעלת פוליסה"),
+          insurer_name: insurerName,
+          recipient_email: recipientEmail || null,
+          claim_status: claimRec.status || "תביעה חדשה – התקבלה",
+          claim_row: {
+            id: targetClaimId,
+            clientName,
+            clientIdNumber: claimRow.clientIdNumber || claimRow.idNumber || "",
+            clientPhone: claimRow.clientPhone || claimRow.phone || "",
+            clientEmail: claimRow.clientEmail || claimRow.email || "",
+            plate,
+            make: claimRow.make || "",
+            model: claimRow.model || "",
+            year: claimRow.year || "",
+            claimKind: claimRow.claimKind || "הפעלת פוליסה",
+            company: insurerName,
+            policyType: claimRow.policyType || "",
+            eventDate: claimRow.eventDate || "",
+            eventTime: claimRow.eventTime || "",
+            eventLocation: claimRow.eventLocation || "",
+            description: claimRow.description || "",
+          },
+          questionnaire_docs: questionnaireDocs.map((d: any) => ({ id: d.id, title: d.title, original_name: d.original_name, doc_type: d.doc_type, source: d.source })),
+          customer_uploaded_docs: customerUploadedDocs.map((d: any) => ({ id: d.id, title: d.title, original_name: d.original_name, doc_type: d.doc_type, source: d.source })),
+          signed_forms: signedForms.map((d: any) => ({ id: d.id, title: d.title, original_name: d.original_name, doc_type: d.doc_type, source: d.source })),
+          original_forms: originalForms.map((d: any) => ({ id: d.id, title: d.title, original_name: d.original_name, doc_type: d.doc_type, source: d.source })),
+          all_documents: allDocs.map((d: any) => ({ id: d.id, title: d.title, original_name: d.original_name, doc_type: d.doc_type, source: d.source, created_at: d.created_at })),
+          missing_documents: missingDocs,
+        };
+
+        const preview: ClaimsPendingAction = {
+          preview_id: previewId,
+          summary,
+          tool_name: name,
+          action_type: "prepare_insurance_package",
+          parameters: packageParams,
+        };
+
+        await recordAiAudit(adminSb, {
+          userId,
+          userName,
+          claimId: targetClaimId,
+          toolName: name,
+          actionType: "prepare_insurance_package",
+          previewSummary: summary,
+          previewPayload: packageParams,
+          status: "preview_created",
+        });
+
+        return {
+          result: {
+            success: true,
+            preview_id: previewId,
+            status: "pending_approval",
+            message: lines.join("\n"),
+            details: packageParams,
+          },
+          preview,
+        };
       }
 
       case "preview_create_claim_share_link": {
@@ -6366,7 +6951,12 @@ export async function executeClaimsGeneralTool(
         } else {
           return { result: { error: "נדרש מזהה תיק (claim_ref) לשיתוף מסמכים." } };
         }
-      } else if (name !== "preview_send_claim_email" && name !== "list_available_claim_documents_and_forms" && name !== "get_customer_link_status") {
+      } else if (
+        name !== "preview_send_claim_email" &&
+        name !== "list_available_claim_documents_and_forms" &&
+        name !== "get_customer_link_status" &&
+        name !== "prepare_insurance_claim_package"
+      ) {
         return { result: { error: "נדרש מזהה תיק (claim_ref) לביצוע פעולה זו." } };
       }
       const { claim_ref: _ref, ...rest } = args;
@@ -7544,6 +8134,7 @@ export async function executeClaimsPendingAction(
       case "send_customer_link":
       case "send_customer_intake_link":
       case "send_customer_upload_link": {
+        const adminSb = getAdminClient() || supabase;
         const { claim_id, recipient_name, recipient_phone, recipient_email, channel, custom_message, link_type, intake_url, upload_url, wa_link } = parameters as {
           claim_id?: string | null;
           recipient_name?: string | null;
@@ -7557,15 +8148,19 @@ export async function executeClaimsPendingAction(
           wa_link?: string | null;
         };
 
-        const targetClaimId = String(claim_id || claimId || "").trim() || (await allocateNextDalClaimId(supabase));
+        const targetClaimId = String(claim_id || claimId || "").trim() || (await allocateNextDalClaimId(adminSb));
         const clientName = recipient_name || "לקוח יקר";
         const selectedChannel = String(channel || "copy").toLowerCase();
         const effectiveLinkType = String(link_type || (action_type === "send_customer_upload_link" ? "upload" : "intake")).toLowerCase();
         const cleanPhone = String(recipient_phone || "").replace(/\D/g, "");
         const rawCustomMsg = String(custom_message || (parameters as any)?.customMessage || "").trim();
+        const uploadedFormsRaw = Array.isArray((parameters as any)?.uploaded_forms)
+          ? ((parameters as any).uploaded_forms as Array<Record<string, any>>)
+          : [];
+        const expiresInHours = typeof (parameters as any)?.expires_in_hours === "number" ? (parameters as any).expires_in_hours : 24;
 
         // 1. Ensure claim record exists in claims_records with status 'ממתין למילוי הלקוח'
-        const { data: existingClaim } = await supabase
+        const { data: existingClaim } = await adminSb
           .from("claims_records")
           .select("id, status, client_name, row_data")
           .eq("id", targetClaimId)
@@ -7573,7 +8168,7 @@ export async function executeClaimsPendingAction(
 
         const nowIso = new Date().toISOString();
         if (!existingClaim) {
-          await supabase.from("claims_records").insert({
+          await adminSb.from("claims_records").insert({
             id: targetClaimId,
             status: "ממתין למילוי הלקוח",
             client_name: recipient_name || "ממתין לפרטי לקוח",
@@ -7605,14 +8200,11 @@ export async function executeClaimsPendingAction(
         if (effectiveLinkType === "upload") {
           // Upload link only!
           if (!finalUploadUrl) {
-            const docsRes = await supabase.functions.invoke("claims-docs", {
-              headers: {
-                "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
-              },
-              body: { action: "create_link", claim_id: targetClaimId },
-            });
-            if (docsRes.data?.token) {
-              finalUploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(docsRes.data.token)}`;
+            try {
+              const minted = await mintCustomerUploadTokenDirect(adminSb, targetClaimId, expiresInHours, userId);
+              finalUploadUrl = minted.uploadUrl;
+            } catch (e) {
+              console.error("mintCustomerUploadTokenDirect error:", e);
             }
           }
           const defaultWaText = rawCustomMsg
@@ -7662,14 +8254,14 @@ export async function executeClaimsPendingAction(
           // Seed requested documents into claims_doc_requests (customer uploads)
           for (const docName of requestedDocs) {
             const key = resolveDocKey(docName);
-            const { data: ex } = await supabase
+            const { data: ex } = await adminSb
               .from("claims_doc_requests")
               .select("id")
               .eq("claim_id", targetClaimId)
               .eq("doc_key", key)
               .maybeSingle();
             if (!ex) {
-              await supabase.from("claims_doc_requests").insert({
+              await adminSb.from("claims_doc_requests").insert({
                 id: newId("DCR"),
                 claim_id: targetClaimId,
                 label: docName.trim(),
@@ -7680,10 +8272,10 @@ export async function executeClaimsPendingAction(
             }
           }
 
-          // Seed provided forms into claims_doc_requests & claims_tasks (forms provided to customer to sign/fill)
+          // Seed provided forms into claims_doc_requests & claims_tasks & Storage
           for (const formName of providedForms) {
             const key = resolveDocKey(formName);
-            const { data: ex } = await supabase
+            const { data: ex } = await adminSb
               .from("claims_doc_requests")
               .select("id")
               .eq("claim_id", targetClaimId)
@@ -7692,7 +8284,7 @@ export async function executeClaimsPendingAction(
             let dcrId = ex?.id;
             if (!ex) {
               dcrId = newId("DCR");
-              await supabase.from("claims_doc_requests").insert({
+              await adminSb.from("claims_doc_requests").insert({
                 id: dcrId,
                 claim_id: targetClaimId,
                 label: formName.trim(),
@@ -7701,7 +8293,8 @@ export async function executeClaimsPendingAction(
                 created_by: userId,
               });
             }
-            const { data: exTask } = await supabase
+            await ensureProvidedFormInStorage(adminSb, targetClaimId, dcrId!, formName.trim(), key, uploadedFormsRaw, userId, userName);
+            const { data: exTask } = await adminSb
               .from("claims_tasks")
               .select("id, row_data")
               .eq("claim_id", targetClaimId);
@@ -7709,7 +8302,7 @@ export async function executeClaimsPendingAction(
               (t: any) => t.row_data?.audience === "customer" && (t.row_data?.action === formName || t.row_data?.letterSubject === formName)
             );
             if (!taskExists) {
-              await supabase.from("claims_tasks").insert({
+              await adminSb.from("claims_tasks").insert({
                 id: newId("TSK"),
                 claim_id: targetClaimId,
                 row_data: {
@@ -7727,7 +8320,7 @@ export async function executeClaimsPendingAction(
             }
           }
 
-          await supabase.from("claims_history").insert({
+          await adminSb.from("claims_history").insert({
             id: newId("HIS"),
             claim_id: targetClaimId,
             row_data: {
@@ -7739,7 +8332,7 @@ export async function executeClaimsPendingAction(
             },
           });
 
-          await recordAiAudit(supabase, {
+          await recordAiAudit(adminSb, {
             userId,
             userName,
             claimId: targetClaimId,
@@ -7778,17 +8371,17 @@ export async function executeClaimsPendingAction(
           // Intake link (Full case opening package)
           const requestedDocs: string[] = Array.isArray(parameters.requested_documents) ? parameters.requested_documents : [];
           const providedForms: string[] = Array.isArray(parameters.provided_forms) ? parameters.provided_forms : [];
-          const expiresInHours = typeof (parameters as any).expires_in_hours === "number" ? (parameters as any).expires_in_hours : 24;
 
           if (!finalIntakeUrl) {
-            const intakeRes = await supabase.functions.invoke("claims-intake", {
-              headers: {
-                "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
-              },
-              body: { action: "create_link", claim_id: targetClaimId, expires_in_hours: expiresInHours },
-            });
-            if (intakeRes.data?.token) {
-              finalIntakeUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-intake?t=${encodeURIComponent(intakeRes.data.token)}`;
+            try {
+              const minted = await mintCustomerIntakeTokenDirect(adminSb, targetClaimId, expiresInHours, userId, {
+                clientName: recipient_name || "",
+                clientPhone: recipient_phone || "",
+                clientEmail: recipient_email || "",
+              });
+              finalIntakeUrl = minted.intakeUrl;
+            } catch (e) {
+              console.error("mintCustomerIntakeTokenDirect error:", e);
             }
           }
           const defaultWaText = rawCustomMsg
@@ -7835,14 +8428,14 @@ export async function executeClaimsPendingAction(
           // Seed selected documents and forms into claims_doc_requests & claims_tasks (only those selected by the user!)
           for (const docName of requestedDocs) {
             const key = resolveDocKey(docName);
-            const { data: ex } = await supabase
+            const { data: ex } = await adminSb
               .from("claims_doc_requests")
               .select("id")
               .eq("claim_id", targetClaimId)
               .eq("doc_key", key)
               .maybeSingle();
             if (!ex) {
-              await supabase.from("claims_doc_requests").insert({
+              await adminSb.from("claims_doc_requests").insert({
                 id: newId("DCR"),
                 claim_id: targetClaimId,
                 label: docName.trim(),
@@ -7855,7 +8448,7 @@ export async function executeClaimsPendingAction(
 
           for (const formName of providedForms) {
             const key = resolveDocKey(formName);
-            const { data: ex } = await supabase
+            const { data: ex } = await adminSb
               .from("claims_doc_requests")
               .select("id")
               .eq("claim_id", targetClaimId)
@@ -7864,7 +8457,7 @@ export async function executeClaimsPendingAction(
             let dcrId = ex?.id;
             if (!ex) {
               dcrId = newId("DCR");
-              await supabase.from("claims_doc_requests").insert({
+              await adminSb.from("claims_doc_requests").insert({
                 id: dcrId,
                 claim_id: targetClaimId,
                 label: formName.trim(),
@@ -7873,7 +8466,8 @@ export async function executeClaimsPendingAction(
                 created_by: userId,
               });
             }
-            const { data: exTask } = await supabase
+            await ensureProvidedFormInStorage(adminSb, targetClaimId, dcrId!, formName.trim(), key, uploadedFormsRaw, userId, userName);
+            const { data: exTask } = await adminSb
               .from("claims_tasks")
               .select("id, row_data")
               .eq("claim_id", targetClaimId);
@@ -7881,7 +8475,7 @@ export async function executeClaimsPendingAction(
               (t: any) => t.row_data?.audience === "customer" && (t.row_data?.action === formName || t.row_data?.letterSubject === formName)
             );
             if (!taskExists) {
-              await supabase.from("claims_tasks").insert({
+              await adminSb.from("claims_tasks").insert({
                 id: newId("TSK"),
                 claim_id: targetClaimId,
                 row_data: {
@@ -7899,7 +8493,7 @@ export async function executeClaimsPendingAction(
             }
           }
 
-          await supabase.from("claims_history").insert({
+          await adminSb.from("claims_history").insert({
             id: newId("HIS"),
             claim_id: targetClaimId,
             row_data: {
@@ -7911,7 +8505,7 @@ export async function executeClaimsPendingAction(
             },
           });
 
-          await recordAiAudit(supabase, {
+          await recordAiAudit(adminSb, {
             userId,
             userName,
             claimId: targetClaimId,
@@ -7944,6 +8538,15 @@ export async function executeClaimsPendingAction(
             wa_link: finalWaLink,
           };
         }
+      }
+
+      case "prepare_insurance_package": {
+        const targetClaimId = String((parameters as any)?.claim_id || claimId || "").trim();
+        return {
+          success: true,
+          message: `✅ חבילת התביעה עבור תיק ${targetClaimId} לחברת הביטוח מוכנה להורדה או לשליחה במייל.`,
+          claim_id: targetClaimId,
+        };
       }
 
       case "revoke_customer_link": {

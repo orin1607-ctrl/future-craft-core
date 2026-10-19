@@ -65,6 +65,10 @@ export function fileDocBucket(f: LibFile): string {
     || st === 'notice_a'
     || st === 'notice_ayin'
     || st === 'check_photo'
+    || st === 'claim_form'
+    || st === 'signed_form'
+    || st === 'declaration_form'
+    || st === 'insurance_package'
   ) return 'forms';
   if (f.source === 'customer') return 'client';
   return 'other';

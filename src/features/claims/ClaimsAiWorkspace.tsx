@@ -31,6 +31,7 @@ import { documentReadCaption } from './claimDocumentRead';
 import { isApprovalText, isCancelText } from './claimsAiApproval';
 import { NOT_READ_LABEL } from '../../../supabase/functions/_shared/claimDocumentLabel';
 import { downloadRemoteFile } from './claimFileDownload';
+import { buildInsurancePackageSummaryPdf } from './signedClaimPdf';
 import './claims-ai.css';
 
 /** Claim-file actions the chat can run through the existing claims screen (signed URL, download, browser reader). */
@@ -187,6 +188,63 @@ async function uploadChatAttachmentToClaim(
       return { success: false, error: json.error || `HTTP ${res.status}` };
     }
     return { success: true, file_id: String(json.file_id || '') };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+async function uploadPackageFormToStorage(
+  claimId: string,
+  file: File,
+  staffTitle: string,
+  category: 'cat_b' | 'cat_a'
+): Promise<{
+  success: boolean;
+  verified?: boolean;
+  file_id?: string;
+  storage_path?: string;
+  original_name?: string;
+  mime_type?: string;
+  byte_size?: number;
+  signed_url?: string;
+  content_sha256?: string;
+  error?: string;
+}> {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    const form = new FormData();
+    form.set('action', 'upload_package_form');
+    if (claimId) form.set('claim_id', claimId);
+    form.set('file', file);
+    const isImage = file.type.startsWith('image/');
+    const isForm = category === 'cat_b';
+    form.set('staff_type', isForm ? 'claim_form' : (isImage ? 'damage_photos' : 'other'));
+    form.set('staff_title', staffTitle || file.name);
+
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-docs`, {
+      method: 'POST',
+      headers: {
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: form,
+    });
+    const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!res.ok || json.success === false || !json.storage_path || !json.signed_url) {
+      return { success: false, error: String(json.error || `HTTP ${res.status}`) };
+    }
+    return {
+      success: true,
+      verified: Boolean(json.verified),
+      file_id: json.file_id ? String(json.file_id) : undefined,
+      storage_path: String(json.storage_path),
+      original_name: String(json.original_name || file.name),
+      mime_type: String(json.mime_type || file.type || 'application/pdf'),
+      byte_size: Number(json.byte_size || file.size || 0),
+      signed_url: String(json.signed_url),
+      content_sha256: json.content_sha256 ? String(json.content_sha256) : undefined,
+    };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : String(err) };
   }
@@ -613,7 +671,11 @@ function ClaimsMessageContent({
   onOpenClaim?: (claimId: string) => void;
   onCopyText?: (text: string) => void;
 }) {
-  const blocks = useMemo(() => parseBlocks(content), [content]);
+  const cleanContent = useMemo(
+    () => (content || '').replace(/<!--\s*UPLOADED_FORMS:[\s\S]*?-->/g, '').trim(),
+    [content]
+  );
+  const blocks = useMemo(() => parseBlocks(cleanContent), [cleanContent]);
 
   return (
     <div className="claims-message-content">
@@ -661,20 +723,39 @@ export const AVAILABLE_GARAGE_FORMS = [
   'אישור תשלום וסילוק',
 ];
 
-type CustomDocItem = {
+export type CustomDocItem = {
   id: string;
   name: string;
   category: 'cat_b' | 'cat_a';
   fileId?: string;
+  storage_path?: string;
+  original_name?: string;
+  mime_type?: string;
+  byte_size?: number;
+  signed_url?: string;
+  content_sha256?: string;
 };
 
 export function ClaimsCatalogWidget({
   claimId,
   onUploadCustomFile,
+  onUploadedFormsChange,
   onPrepareLink,
 }: {
   claimId?: string;
-  onUploadCustomFile?: (file: File, name: string, category: 'cat_b' | 'cat_a') => Promise<{ success: boolean; file_id?: string; error?: string }>;
+  onUploadCustomFile?: (file: File, name: string, category: 'cat_b' | 'cat_a') => Promise<{
+    success: boolean;
+    file_id?: string;
+    storage_path?: string;
+    original_name?: string;
+    mime_type?: string;
+    byte_size?: number;
+    signed_url?: string;
+    content_sha256?: string;
+    verified?: boolean;
+    error?: string;
+  }>;
+  onUploadedFormsChange?: (items: CustomDocItem[]) => void;
   onPrepareLink: (docs: string[], forms: string[], ttlHours: number) => void | Promise<void>;
 }) {
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
@@ -709,7 +790,7 @@ export function ClaimsCatalogWidget({
     const file = e.target.files?.[0];
     if (!file) return;
     setPendingFile(file);
-    setDocName(file.name.replace(/\.[^/.]+$/, ''));
+    setDocName((prev) => (prev.trim() ? prev : file.name.replace(/\.[^/.]+$/, '')));
     setDocCategory('cat_b'); // default to garage provided form
     setUploadError(null);
     e.target.value = '';
@@ -722,6 +803,13 @@ export function ClaimsCatalogWidget({
     try {
       const cleanTitle = docName.trim();
       let fileId: string | undefined;
+      let storagePath: string | undefined;
+      let originalName: string | undefined;
+      let mimeType: string | undefined;
+      let byteSize: number | undefined;
+      let signedUrl: string | undefined;
+      let contentSha256: string | undefined;
+
       if (onUploadCustomFile) {
         const res = await onUploadCustomFile(pendingFile, cleanTitle, docCategory);
         if (!res.success) {
@@ -730,25 +818,46 @@ export function ClaimsCatalogWidget({
           return;
         }
         fileId = res.file_id;
+        storagePath = res.storage_path;
+        originalName = res.original_name;
+        mimeType = res.mime_type;
+        byteSize = res.byte_size;
+        signedUrl = res.signed_url;
+        contentSha256 = res.content_sha256;
       } else {
-        const targetClaim = claimId || 'DAL-2026-0249';
-        const res = await uploadChatAttachmentToClaim(targetClaim, pendingFile, cleanTitle, docCategory);
+        const res = await uploadPackageFormToStorage(claimId || '', pendingFile, cleanTitle, docCategory);
         if (!res.success) {
           setUploadError(res.error || 'שגיאה בהעלאת המסמך');
           setIsUploading(false);
           return;
         }
         fileId = res.file_id;
+        storagePath = res.storage_path;
+        originalName = res.original_name;
+        mimeType = res.mime_type;
+        byteSize = res.byte_size;
+        signedUrl = res.signed_url;
+        contentSha256 = res.content_sha256;
       }
 
-      // Add to custom items
+      // Add to custom items (replacing any previous upload for the same form title)
       const newItem: CustomDocItem = {
         id: `custom-${Date.now()}`,
         name: cleanTitle,
         category: docCategory,
         fileId,
+        storage_path: storagePath,
+        original_name: originalName || pendingFile.name,
+        mime_type: mimeType || pendingFile.type || 'application/pdf',
+        byte_size: byteSize ?? pendingFile.size,
+        signed_url: signedUrl,
+        content_sha256: contentSha256,
       };
-      setCustomItems((prev) => [...prev, newItem]);
+      setCustomItems((prev) => {
+        const next = [...prev.filter((x) => x.name !== cleanTitle), newItem];
+        onUploadedFormsChange?.(next);
+        return next;
+      });
 
       // Automatically append to selections WITHOUT resetting previous selections
       if (docCategory === 'cat_b') {
@@ -1034,7 +1143,6 @@ export function ClaimsCatalogWidget({
           ref={fileInputRef}
           type="file"
           accept="image/*,application/pdf"
-          capture="environment"
           style={{ display: 'none' }}
           onChange={handleFileSelected}
         />
@@ -1455,6 +1563,503 @@ export function ClaimsCatalogWidget({
   );
 }
 
+function uint8ToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  return btoa(binary);
+}
+
+export function InsurancePackageWidget({
+  parameters,
+  onPackageSent,
+}: {
+  parameters: Record<string, any>;
+  onPackageSent?: () => void;
+}) {
+  const claimId = String(parameters.claim_id || '');
+  const clientName = String(parameters.client_name || 'לקוח');
+  const plate = String(parameters.plate || '');
+  const claimKind = String(parameters.claim_kind || 'הפעלת פוליסה');
+  const insurerName = String(parameters.insurer_name || 'חברת הביטוח');
+  const claimStatus = String(parameters.claim_status || 'תביעה חדשה – התקבלה');
+  const questionnaireDocs = Array.isArray(parameters.questionnaire_docs) ? parameters.questionnaire_docs : [];
+  const customerUploadedDocs = Array.isArray(parameters.customer_uploaded_docs) ? parameters.customer_uploaded_docs : [];
+  const signedForms = Array.isArray(parameters.signed_forms) ? parameters.signed_forms : [];
+  const originalForms = Array.isArray(parameters.original_forms) ? parameters.original_forms : [];
+  const allDocuments = Array.isArray(parameters.all_documents) ? parameters.all_documents : [];
+  const missingDocuments = Array.isArray(parameters.missing_documents) ? parameters.missing_documents : [];
+
+  const [assembling, setAssembling] = useState(false);
+  const [assembleError, setAssembleError] = useState<string | null>(null);
+  const [assembledPackage, setAssembledPackage] = useState<{
+    summary_file_id: string | null;
+    summary_pdf_url: string | null;
+    zip_url: string | null;
+    file_ids: string[];
+    file_count: number;
+  } | null>(null);
+
+  const [emailTo, setEmailTo] = useState<string>(String(parameters.recipient_email || ''));
+  const [emailSubject, setEmailSubject] = useState<string>(
+    `תיק תביעה מלא ${claimId} – ${clientName}${plate ? ` (${plate})` : ''} – דליה ניהול תביעות`
+  );
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailSuccessMsg, setEmailSuccessMsg] = useState<string | null>(null);
+
+  const handleAssemblePackage = async () => {
+    setAssembling(true);
+    setAssembleError(null);
+    try {
+      const claimRow = (parameters.claim_row && typeof parameters.claim_row === 'object' ? parameters.claim_row : {
+        id: claimId,
+        clientName,
+        plate,
+        claimKind,
+        company: insurerName,
+      }) as Record<string, string>;
+
+      const pdfBytes = await buildInsurancePackageSummaryPdf({
+        claimRow,
+        documents: allDocuments.map((d: any) => ({
+          title: String(d.title || d.original_name || 'מסמך'),
+          originalName: String(d.original_name || ''),
+          docType: String(d.doc_type || ''),
+          source: String(d.source || ''),
+          createdAt: String(d.created_at || ''),
+        })),
+        missingDocs: missingDocuments.map((m: any) => String(m.label || m)),
+      });
+
+      const summaryB64 = uint8ToBase64(pdfBytes);
+      const { data, error } = await supabase.functions.invoke('claims-docs', {
+        body: {
+          action: 'assemble_insurance_package',
+          claim_id: claimId,
+          summary_pdf_base64: summaryB64,
+        },
+      });
+
+      if (error || !data?.success) {
+        throw new Error(String(data?.error || error?.message || 'שגיאה בהכנת חבילת התביעה'));
+      }
+
+      setAssembledPackage({
+        summary_file_id: data.summary_file_id || null,
+        summary_pdf_url: data.summary_pdf_url || null,
+        zip_url: data.zip_url || null,
+        file_ids: Array.isArray(data.file_ids) ? data.file_ids : [],
+        file_count: Number(data.file_count || 0),
+      });
+    } catch (err) {
+      setAssembleError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAssembling(false);
+    }
+  };
+
+  const handleSendPackageEmail = async () => {
+    if (!assembledPackage || !emailTo.trim()) {
+      setEmailError('נא להזין כתובת אימייל של חברת הביטוח למשלוח');
+      return;
+    }
+    setSendingEmail(true);
+    setEmailError(null);
+    setEmailSuccessMsg(null);
+    try {
+      const bodyLines = [
+        `שלום רב,`,
+        ``,
+        `מצורפת בזאת חבילת תיק תביעה מלאה עבור:`,
+        `• מספר תיק בדליה: ${claimId}`,
+        `• שם המבוטח / הלקוח: ${clientName}`,
+        `• מספר רישוי: ${plate || 'לא צוין'}`,
+        `• סוג התביעה: ${claimKind}`,
+        `• חברת ביטוח: ${insurerName}`,
+        ``,
+        `החבילה כוללת PDF מרכזי (עם תוכן עניינים ופרטי התביעה) וכן את כלל המסמכים, הרישיונות, הטפסים החתומים ותמונות הנזק (${assembledPackage.file_ids.length} קבצים מצורפים).`,
+        ``,
+        `בברכה,`,
+        `דליה – ניהול תביעות רכב`,
+      ].join('\n');
+
+      const { data, error } = await supabase.functions.invoke('claims-gmail', {
+        body: {
+          action: 'send_claim',
+          claim_id: claimId,
+          to: emailTo.trim(),
+          subject: emailSubject.trim(),
+          body: bodyLines,
+          file_ids: assembledPackage.file_ids,
+          idempotency_key: `INSPKG-${claimId}-${Date.now()}`,
+          confirm: true,
+        },
+      });
+
+      if (error || !data?.success || data?.realEmailSend !== true) {
+        throw new Error(String(data?.error || data?.message || error?.message || 'שליחת המייל לחברת הביטוח נכשלה'));
+      }
+
+      const verifiedCount = Number(data?.verified_count ?? assembledPackage.file_ids.length);
+      if (verifiedCount < assembledPackage.file_ids.length) {
+        throw new Error(`אומתו רק ${verifiedCount} מתוך ${assembledPackage.file_ids.length} קבצים. השליחה לא הושלמה כראוי.`);
+      }
+
+      setEmailSuccessMsg(
+        `✅ החבילה נשלחה בהצלחה לחברת הביטוח (${emailTo.trim()})! אומת שכל ${verifiedCount} הקבצים צורפו למייל, וכל הקבצים שמורים בתיק ${claimId}.`
+      );
+      onPackageSent?.();
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  return (
+    <div
+      className="claims-ai-preview-insurance-package"
+      data-testid="claims-ai-insurance-package-card"
+      style={{
+        margin: '10px 0',
+        fontSize: '0.85rem',
+        background: '#071022',
+        color: '#f8fafc',
+        padding: '16px 18px',
+        borderRadius: '10px',
+        lineHeight: '1.6',
+        border: '1.5px solid #38bdf8',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.45)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+        <div style={{ fontWeight: 800, color: '#38bdf8', fontSize: '0.98rem' }}>
+          📦 כרטיס הכנת תיק תביעה מלא לחברת הביטוח
+        </div>
+        <span style={{ fontSize: '0.76rem', background: '#0369a1', color: '#e0f2fe', padding: '3px 10px', borderRadius: 12, fontWeight: 700 }}>
+          תיק {claimId} · {claimStatus}
+        </span>
+      </div>
+
+      {/* Case & Client Details */}
+      <div style={{ background: '#0f172a', padding: '10px 12px', borderRadius: 8, border: '1px solid #334155', marginBottom: 10 }}>
+        <div style={{ fontWeight: 700, color: '#93c5fd', marginBottom: 4 }}>👤 פרטי התיק והלקוח:</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 6, fontSize: '0.82rem' }}>
+          <div><strong>לקוח:</strong> {clientName}</div>
+          <div><strong>מספר רישוי:</strong> {plate || 'לא צוין'}</div>
+          <div><strong>סוג תביעה:</strong> {claimKind}</div>
+          <div><strong>חברת ביטוח:</strong> {insurerName}</div>
+        </div>
+      </div>
+
+      {/* 1. Signed Questionnaire */}
+      <div style={{ background: '#0c1b33', padding: '10px 12px', borderRadius: 8, border: '1px solid #1e3a8a', marginBottom: 8 }}>
+        <div style={{ fontWeight: 700, color: '#60a5fa', marginBottom: 4 }}>
+          📋 שאלון פתיחת תיק חתום ({questionnaireDocs.length}):
+        </div>
+        {questionnaireDocs.length > 0 ? (
+          questionnaireDocs.map((d: any, i: number) => (
+            <div key={i} style={{ color: '#4ade80', fontSize: '0.82rem', fontWeight: 600 }}>
+              ✓ {d.title} ({d.original_name || 'PDF'})
+            </div>
+          ))
+        ) : (
+          <div style={{ color: '#fbbf24', fontSize: '0.8rem' }}>⚠️ טרם הופק שאלון פתיחת תיק חתום</div>
+        )}
+      </div>
+
+      {/* 2. Received Documents */}
+      <div style={{ background: '#0c1b33', padding: '10px 12px', borderRadius: 8, border: '1px solid #1e3a8a', marginBottom: 8 }}>
+        <div style={{ fontWeight: 700, color: '#38bdf8', marginBottom: 4 }}>
+          📥 כל המסמכים והתמונות שהתקבלו ({customerUploadedDocs.length}):
+        </div>
+        {customerUploadedDocs.length > 0 ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {customerUploadedDocs.map((d: any, i: number) => (
+              <span
+                key={i}
+                style={{
+                  background: '#0369a1',
+                  color: '#ffffff',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  padding: '3px 9px',
+                  borderRadius: 10,
+                }}
+              >
+                ✓ {d.title}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>אין מסמכים נוספים</div>
+        )}
+      </div>
+
+      {/* 3. Signed Forms */}
+      <div style={{ background: '#0a231b', padding: '10px 12px', borderRadius: 8, border: '1px solid #14532d', marginBottom: 8 }}>
+        <div style={{ fontWeight: 700, color: '#4ade80', marginBottom: 4 }}>
+          ✍️ טפסים חתומים שהתקבלו ({signedForms.length}) {originalForms.length > 0 ? `+ ${originalForms.length} טפסי מקור` : ''}:
+        </div>
+        {signedForms.length > 0 ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {signedForms.map((d: any, i: number) => (
+              <span
+                key={i}
+                style={{
+                  background: '#15803d',
+                  color: '#ffffff',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  padding: '3px 9px',
+                  borderRadius: 10,
+                }}
+              >
+                ✍️ {d.title}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>אין טפסים חתומים נוספים</div>
+        )}
+      </div>
+
+      {/* 4. Missing Documents Warning */}
+      {missingDocuments.length > 0 ? (
+        <div
+          data-testid="claims-ai-insurance-pkg-missing-alert"
+          style={{
+            background: 'rgba(245, 158, 11, 0.14)',
+            border: '1.5px solid #f59e0b',
+            borderRadius: 8,
+            padding: '10px 12px',
+            marginBottom: 10,
+            color: '#fde68a',
+          }}
+        >
+          <div style={{ fontWeight: 800, color: '#fbbf24', marginBottom: 4 }}>
+            ⚠️ שים לב – מסמכים שעדיין חסרים בתיק ({missingDocuments.length}):
+          </div>
+          {missingDocuments.map((m: any, i: number) => (
+            <div key={i} style={{ fontSize: '0.8rem' }}>• {m.label || String(m)}</div>
+          ))}
+        </div>
+      ) : (
+        <div
+          data-testid="claims-ai-insurance-pkg-all-present"
+          style={{
+            background: 'rgba(22, 163, 74, 0.15)',
+            border: '1px solid #22c55e',
+            borderRadius: 8,
+            padding: '8px 12px',
+            marginBottom: 10,
+            color: '#86efac',
+            fontWeight: 700,
+            fontSize: '0.82rem',
+          }}
+        >
+          ✨ כל המסמכים והטפסים שנדרשו בתיק התקבלו במלואם!
+        </div>
+      )}
+
+      {assembleError ? (
+        <div style={{ color: '#f87171', fontWeight: 700, marginBottom: 8, fontSize: '0.82rem' }}>
+          ⚠️ {assembleError}
+        </div>
+      ) : null}
+
+      {!assembledPackage ? (
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-testid="claims-ai-assemble-insurance-pkg-btn"
+          disabled={assembling}
+          onClick={() => void handleAssemblePackage()}
+          style={{
+            width: '100%',
+            minHeight: '46px',
+            padding: '10px 16px',
+            borderRadius: 8,
+            background: '#2563eb',
+            color: '#ffffff',
+            fontWeight: 800,
+            fontSize: '0.9rem',
+            border: 'none',
+            cursor: assembling ? 'wait' : 'pointer',
+          }}
+        >
+          {assembling
+            ? '⏳ מפיק PDF מרכזי (עם לוגו דליה ותוכן עניינים) ואורז את כל מסמכי התיק...'
+            : `📦 אשר והכן חבילה מאוחדת לחברת הביטוח (${allDocuments.length} מסמכים)`}
+        </button>
+      ) : (
+        <div
+          data-testid="claims-ai-assembled-package-actions"
+          style={{
+            marginTop: 10,
+            padding: '12px 14px',
+            background: '#0f172a',
+            borderRadius: 8,
+            border: '1.5px solid #22c55e',
+          }}
+        >
+          <div style={{ fontWeight: 800, color: '#4ade80', marginBottom: 8, fontSize: '0.9rem' }}>
+            ✅ החבילה לחברת הביטוח מוכנה ({assembledPackage.file_count} קבצים מאומתים בתיק):
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8, marginBottom: 12 }}>
+            {assembledPackage.summary_pdf_url ? (
+              <a
+                href={assembledPackage.summary_pdf_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="claims-ai-download-central-pdf-btn"
+                style={{
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  minHeight: '42px',
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  background: '#0369a1',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.83rem',
+                }}
+              >
+                📄 פתח / הורד PDF מרכזי (לוגו דליה + תוכן עניינים)
+              </a>
+            ) : null}
+
+            {assembledPackage.zip_url ? (
+              <a
+                href={assembledPackage.zip_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="claims-ai-download-package-zip-btn"
+                style={{
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  minHeight: '42px',
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  background: '#15803d',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.83rem',
+                }}
+              >
+                🗜️ הורד חבילה מלאה (ZIP עם כל המסמכים והתמונות)
+              </a>
+            ) : null}
+          </div>
+
+          {/* Explicit Approval Email Section */}
+          <div style={{ borderTop: '1px solid #334155', paddingTop: 10 }}>
+            <div style={{ fontWeight: 700, color: '#cbd5e1', marginBottom: 6, fontSize: '0.82rem' }}>
+              📧 שליחה במייל לחברת הביטוח (תבוצע רק לאחר אישור מפורש שלך):
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <input
+                type="email"
+                data-testid="claims-ai-insurance-email-input"
+                value={emailTo}
+                onChange={(e) => setEmailTo(e.target.value)}
+                placeholder="כתובת מייל של חברת הביטוח / סוכן..."
+                style={{
+                  width: '100%',
+                  minHeight: '38px',
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  background: '#071022',
+                  border: '1px solid #475569',
+                  color: '#ffffff',
+                  fontSize: '0.84rem',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <input
+                type="text"
+                data-testid="claims-ai-insurance-subject-input"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="נושא המייל..."
+                style={{
+                  width: '100%',
+                  minHeight: '38px',
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  background: '#071022',
+                  border: '1px solid #475569',
+                  color: '#ffffff',
+                  fontSize: '0.84rem',
+                  boxSizing: 'border-box',
+                }}
+              />
+
+              {emailError ? (
+                <div style={{ color: '#f87171', fontSize: '0.8rem', fontWeight: 700 }}>
+                  ⚠️ {emailError}
+                </div>
+              ) : null}
+
+              {emailSuccessMsg ? (
+                <div
+                  data-testid="claims-ai-insurance-email-success"
+                  style={{
+                    background: 'rgba(22, 163, 74, 0.2)',
+                    border: '1px solid #22c55e',
+                    borderRadius: 6,
+                    padding: '8px 12px',
+                    color: '#86efac',
+                    fontWeight: 700,
+                    fontSize: '0.82rem',
+                  }}
+                >
+                  {emailSuccessMsg}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  data-testid="claims-ai-send-insurance-email-btn"
+                  disabled={sendingEmail || !emailTo.trim()}
+                  onClick={() => void handleSendPackageEmail()}
+                  style={{
+                    width: '100%',
+                    minHeight: '42px',
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    background: emailTo.trim() ? '#2563eb' : '#334155',
+                    color: '#ffffff',
+                    fontWeight: 800,
+                    fontSize: '0.85rem',
+                    border: 'none',
+                    cursor: sendingEmail || !emailTo.trim() ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {sendingEmail
+                    ? '⏳ שולח ומאמת צירוף כל הקבצים...'
+                    : `📧 אשר מפורשות ושלח במייל לחברת הביטוח (${assembledPackage.file_ids.length} קבצים)`}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ClaimsAiWorkspace({
   open,
   onClose,
@@ -1513,6 +2118,7 @@ export function ClaimsAiWorkspace({
   const [copiedDocked, setCopiedDocked] = useState(false);
   const [copiedLinkMap, setCopiedLinkMap] = useState<Record<string, boolean>>({});
   const [uploadingMissingDocKey, setUploadingMissingDocKey] = useState<string | null>(null);
+  const uploadedCatalogFormsRef = useRef<CustomDocItem[]>([]);
 
   const copyToClipboard = useCallback(async (text: string, key: string) => {
     try {
@@ -3039,16 +3645,32 @@ export function ClaimsAiWorkspace({
                     <ClaimsCatalogWidget
                       claimId={claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || '')}
                       onUploadCustomFile={async (file, name, cat) => {
-                        const target = claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || 'DAL-2026-0249');
-                        return uploadChatAttachmentToClaim(target, file, name, cat);
+                        const target = claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || '');
+                        return uploadPackageFormToStorage(target, file, name, cat);
+                      }}
+                      onUploadedFormsChange={(items) => {
+                        uploadedCatalogFormsRef.current = items;
                       }}
                       onPrepareLink={(docs, forms, ttlHours) => {
                         const effectiveHours = typeof ttlHours === 'number' ? ttlHours : 24;
                         const parts: string[] = ['- שאלון פתיחת תיק: כלול'];
-                        if (docs.length > 0) parts.push(`- מסמכים שהלקוח נדרש להעלות: ${docs.join(', ')}`);
-                        if (forms.length > 0) parts.push(`- טפסים שהמוסך מספק למילוי וחתימה: ${forms.join(', ')}`);
+                        if (docs.length > 0) parts.push(`- מסמכים שנבחרו להעלאה ע"י הלקוח: ${docs.join(', ')}`);
+                        if (forms.length > 0) parts.push(`- טפסים שנבחרו למילוי וחתימה: ${forms.join(', ')}`);
                         const expLabel = effectiveHours === 0 ? 'ללא תאריך תפוגה אוטומטי (פתוח עד לביטול)' : effectiveHours === 168 ? 'שבוע (7 ימים)' : `${effectiveHours} שעות`;
-                        parts.push(`- תוקף הקישור: ${expLabel} (${effectiveHours} שעות)`);
+                        parts.push(`- תוקף הקישור שנבחר: ${expLabel} (${effectiveHours} שעות)`);
+                        const uploadedMeta = (uploadedCatalogFormsRef.current || [])
+                          .filter((item) => item.storagePath && (forms.includes(item.name) || docs.includes(item.name)))
+                          .map((item) => ({
+                            name: item.name,
+                            storage_path: item.storagePath!,
+                            original_name: item.fileName || `${item.name}.pdf`,
+                            mime_type: item.mimeType || 'application/pdf',
+                            byte_size: item.byteSize || 0,
+                            doc_type: item.docType || 'poa_form',
+                          }));
+                        if (uploadedMeta.length > 0) {
+                          parts.push(`<!-- UPLOADED_FORMS:${JSON.stringify(uploadedMeta)} -->`);
+                        }
                         const targetClaim = claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || '');
                         const prompt = targetClaim
                           ? `דליה, אשר את חבילת פתיחת התיק והפיקי קישור עבור תיק ${targetClaim}:\n${parts.join('\n')}`
@@ -4011,6 +4633,12 @@ export function ClaimsAiWorkspace({
                             ⚡ אישור קבוצתי: כל האימיילים יישמרו כמתוזמנים ומאושרים ויישלחו אוטומטית במועדם.
                           </div>
                         </div>
+                      ) : null}
+                      {pending.action_type === 'prepare_insurance_package' && pending.parameters ? (
+                        <InsurancePackageWidget
+                          parameters={pending.parameters as Record<string, any>}
+                          onPackageSent={() => onActionExecuted?.(pending)}
+                        />
                       ) : null}
                       {pending.status === 'executed' ? (
                         <div style={{ color: 'var(--c-emerald, #10b981)', fontSize: '0.85rem', marginTop: 6 }}>

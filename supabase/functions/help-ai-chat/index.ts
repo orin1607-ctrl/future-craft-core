@@ -1023,7 +1023,9 @@ Deno.serve(async (req) => {
     const companyScope = resolveCompanyScope(ctx, company_name);
     const claimId = effectiveClaimId;
     const userMessagesText = (messages || []).map((m: any) => typeof m?.content === "string" ? m.content : "").join(" ");
-    const hasClaimsIntent = /DAL-\d{4}-\d+|תביע|פתיחת תיק|חבילת פתיח|חבילה|קישור|מסמכ|טופס|טפסים/i.test(userMessagesText);
+    const lastUserMessage = [...(messages || [])].reverse().find((m: any) => m?.role === "user" && typeof m?.content === "string");
+    const lastUserText = String(lastUserMessage?.content || "").trim();
+    const hasClaimsIntent = /DAL-\d{4}-\d+|תביע|פתיחת תיק|חבילת פתיח|חבילה|קישור|מסמכ|טופס|טפסים|תיק חדש|לקוח חדש/i.test(userMessagesText);
     const isClaimsModule = effectiveModule === "claims" || !!claimId || hasClaimsIntent;
 
     let claimBlock = "";
@@ -1086,6 +1088,78 @@ Deno.serve(async (req) => {
       const fleetRes = await executeFleetTool(toolName, toolArgs, supabase, companyScope);
       return { result: fleetRes };
     };
+
+    // Fast-Path 1: Automatic trigger for New Claim Package Preparation Card
+    const isNewClaimPackageTrigger = /^(?:דליה[,،:\s-]*)?(?:אני\s*רוצה\s*)?(?:תפתחי?|פתחי?|פתח|להכין|תכיני|הכיני|הכן|תכין|שלח|שלחי|תשלחי)?\s*(?:לי\s*)?(?:בבקשה\s*)?(?:את\s*)?(?:חבילת\s*פתיחת\s*תיק(?:\s*חדש)?(?:\s*ללקוח)?|קישור\s*לפתיחת\s*תיק(?:\s*חדש)?(?:\s*ללקוח)?|פתיחת\s*תיק\s*חדש(?:\s*ללקוח)?|תיק\s*חדש(?:\s*ללקוח)?|לקוח\s*חדש)[.!?\s]*$/i.test(lastUserText);
+    if (isNewClaimPackageTrigger) {
+      const catRes = await onToolCall("list_available_claim_documents_and_forms", {});
+      const msgText = String((catRes.result as any)?.message || "להלן כרטיס הכנת חבילת פתיחת תיק חדש ללקוח:");
+      return streamTextAsSse(msgText, catRes.preview || null, documentCards, toolsUsed);
+    }
+
+    // Fast-Path 2: Package Approval & Link Generation from ClaimsCatalogWidget
+    if (body.package_approval || lastUserText.startsWith("דליה, אשר את חבילת פתיחת התיק והפיקי קישור")) {
+      let reqDocs: string[] = [];
+      let provForms: string[] = [];
+      let expiresHours = 24;
+      let uploadedForms: any[] = [];
+
+      if (body.package_approval && typeof body.package_approval === "object") {
+        reqDocs = Array.isArray(body.package_approval.requested_documents) ? body.package_approval.requested_documents : [];
+        provForms = Array.isArray(body.package_approval.provided_forms) ? body.package_approval.provided_forms : [];
+        expiresHours = typeof body.package_approval.expires_in_hours === "number" ? body.package_approval.expires_in_hours : 24;
+        uploadedForms = Array.isArray(body.package_approval.uploaded_forms) ? body.package_approval.uploaded_forms : [];
+      } else {
+        const docsMatch = lastUserText.match(/מסמכים שנבחרו להעלאה ע"י הלקוח:\s*(.+)/);
+        if (docsMatch && docsMatch[1].trim() !== "ללא") {
+          reqDocs = docsMatch[1].split(",").map((s) => s.trim()).filter(Boolean);
+        }
+        const formsMatch = lastUserText.match(/טפסים שנבחרו למילוי וחתימה:\s*(.+)/);
+        if (formsMatch && formsMatch[1].trim() !== "ללא") {
+          provForms = formsMatch[1].split(",").map((s) => s.trim()).filter(Boolean);
+        }
+        const ttlMatch = lastUserText.match(/תוקף הקישור שנבחר:\s*(.+)/);
+        if (ttlMatch) {
+          const ttlStr = ttlMatch[1].trim();
+          if (ttlStr.includes("ללא הגבלת זמן") || ttlStr.includes("פתוח עד לביטול") || ttlStr === "0") {
+            expiresHours = 0;
+          } else if (ttlStr.includes("שבוע") || ttlStr.includes("168")) {
+            expiresHours = 168;
+          } else {
+            const numMatch = ttlStr.match(/(\d+)/);
+            if (numMatch) expiresHours = Number(numMatch[1]);
+          }
+        }
+        const ufMatch = lastUserText.match(/<!--\s*UPLOADED_FORMS:(\[[\s\S]*?\])\s*-->/);
+        if (ufMatch) {
+          try {
+            uploadedForms = JSON.parse(ufMatch[1]);
+          } catch (_) {
+            uploadedForms = [];
+          }
+        }
+      }
+
+      const linkRes = await onToolCall("preview_send_customer_link", {
+        link_type: "intake",
+        requested_documents: reqDocs,
+        provided_forms: provForms,
+        expires_in_hours: expiresHours,
+        uploaded_forms: uploadedForms,
+      });
+      const msgText = String((linkRes.result as any)?.message || "הקישור הוכן בהצלחה.");
+      return streamTextAsSse(msgText, linkRes.preview || null, documentCards, toolsUsed);
+    }
+
+    // Fast-Path 3: Prepare Complete Claim Package for Insurance Company
+    const isInsurancePkgTrigger = /(?:תכיני|הכיני|הכן|תכין|אספי|תאספי|רכזי)\s+(?:לי\s+)?(?:את\s+)?(?:כל\s+)?(?:תיק\s+התביעה|חבילת\s+תביעה|מסמכי\s+התביעה).*(?:לחברת\s+הביטוח|לביטוח|לשליחה)/i.test(lastUserText);
+    if (isInsurancePkgTrigger) {
+      const explicitDalMatch = lastUserText.match(/DAL-\d{4}-\d+/i);
+      const refArg = explicitDalMatch ? explicitDalMatch[0].toUpperCase() : (claimId || "");
+      const pkgRes = await onToolCall("prepare_insurance_claim_package", refArg ? { claim_ref: refArg } : {});
+      const msgText = String((pkgRes.result as any)?.message || "ריכוז תיק התביעה לחברת הביטוח הוכן.");
+      return streamTextAsSse(msgText, pkgRes.preview || null, documentCards, toolsUsed);
+    }
 
     // Claims answers stay close to the tool results (fewer invented details).
     const temperature = isClaimsModule ? CLAIMS_TEMPERATURE : 0.65;
