@@ -256,4 +256,203 @@ describe('Claims Links and Sharing UI (Task 8)', () => {
       })
     );
   });
+
+  it('renders permanent DAL ID and waiting status for customer link preview card', async () => {
+    listClaimsAiConversations.mockResolvedValue({
+      data: [{
+        id: 'conv-links',
+        user_id: 'user-1',
+        claim_id: null,
+        title: 'שיחה כללית',
+        created_at: '2026-10-19T10:00:00Z',
+        updated_at: '2026-10-19T10:05:00Z',
+        archived: false,
+      }],
+      error: null,
+    });
+    listClaimsAiMessages.mockResolvedValue({
+      data: [
+        {
+          id: 'm-cust-new-dal',
+          conversation_id: 'conv-links',
+          role: 'assistant',
+          content: 'הכנתי קישור פתיחת תיק.',
+          created_at: '2026-10-19T10:10:00Z',
+          tool_name: 'preview_send_customer_link',
+          metadata: {
+            pending_action: {
+              preview_id: 'P-CUST-DAL-247',
+              summary: 'שליחת קישור פתיחת תיק והעלאת מסמכים ללקוח "ישראל ישראלי" (תיק DAL-2026-0247)',
+              tool_name: 'preview_send_customer_link',
+              action_type: 'send_customer_link',
+              status: 'pending',
+              parameters: {
+                claim_id: 'DAL-2026-0247',
+                recipient_name: 'ישראל ישראלי',
+                recipient_phone: '052-9998877',
+                recipient_email: 'israel@example.com',
+                channel: 'both',
+              },
+            },
+          },
+        },
+      ],
+      error: null,
+    });
+
+    render(
+      <ClaimsAiWorkspace
+        open={true}
+        onClose={vi.fn()}
+        claim={null}
+        userId="user-1"
+        companyName="מוסך אורן קאר"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('claims-ai-preview')).toBeDefined();
+    });
+
+    const preview = screen.getByTestId('claims-ai-preview');
+    expect(preview.textContent).toContain('DAL-2026-0247');
+    expect(preview.textContent).toContain('ממתין למילוי הלקוח');
+    expect(preview.textContent).toContain('ישראל ישראלי');
+    expect(preview.textContent).toContain('אימייל + WhatsApp');
+  });
+
+  it('ensures speech recognition does NOT duplicate sentences across interim and final events', async () => {
+    let mockInstance: any = null;
+    class MockSpeechRecognition {
+      lang = 'he-IL';
+      continuous = true;
+      interimResults = true;
+      onresult: ((ev: any) => void) | null = null;
+      onerror: ((ev: any) => void) | null = null;
+      onend: (() => void) | null = null;
+      start() {
+        mockInstance = this;
+      }
+      stop() {
+        this.onend?.();
+      }
+      abort() {
+        this.onend?.();
+      }
+    }
+
+    (window as any).SpeechRecognition = MockSpeechRecognition;
+    (window as any).isSecureContext = true;
+
+    listClaimsAiMessages.mockResolvedValue({ data: [], error: null });
+
+    render(
+      <ClaimsAiWorkspace
+        open={true}
+        onClose={vi.fn()}
+        claim={null}
+        userId="user-1"
+        companyName="מוסך אורן קאר"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('claims-ai-mic')).toBeDefined();
+    });
+
+    const micBtn = screen.getByTestId('claims-ai-mic');
+    const inputEl = screen.getByTestId('claims-ai-input') as HTMLTextAreaElement;
+
+    // Start mic
+    await act(async () => {
+      fireEvent.click(micBtn);
+    });
+
+    expect(mockInstance).not.toBeNull();
+
+    // 1. First event: interim speech result "שלום דליה"
+    await act(async () => {
+      mockInstance.onresult({
+        resultIndex: 0,
+        results: [
+          Object.assign([{ transcript: 'שלום דליה' }], { isFinal: false }),
+        ],
+      });
+    });
+
+    expect(inputEl.value).toBe('שלום דליה');
+
+    // 2. Second event: interim speech result updates with additional word "שלום דליה מה שלומך"
+    await act(async () => {
+      mockInstance.onresult({
+        resultIndex: 0,
+        results: [
+          Object.assign([{ transcript: 'שלום דליה מה שלומך' }], { isFinal: false }),
+        ],
+      });
+    });
+
+    // Interim replaced cleanly, not duplicated!
+    expect(inputEl.value).toBe('שלום דליה מה שלומך');
+
+    // 3. Third event: first segment becomes final, second interim starts
+    await act(async () => {
+      mockInstance.onresult({
+        resultIndex: 0,
+        results: [
+          Object.assign([{ transcript: 'שלום דליה מה שלומך' }], { isFinal: true }),
+          Object.assign([{ transcript: 'יש לי שאלה' }], { isFinal: false }),
+        ],
+      });
+    });
+
+    expect(inputEl.value).toBe('שלום דליה מה שלומך יש לי שאלה');
+
+    // 4. Fourth event: second segment becomes final
+    await act(async () => {
+      mockInstance.onresult({
+        resultIndex: 1,
+        results: [
+          Object.assign([{ transcript: 'שלום דליה מה שלומך' }], { isFinal: true }),
+          Object.assign([{ transcript: 'יש לי שאלה' }], { isFinal: true }),
+        ],
+      });
+    });
+
+    expect(inputEl.value).toBe('שלום דליה מה שלומך יש לי שאלה');
+
+    // Stop mic
+    await act(async () => {
+      fireEvent.click(micBtn);
+    });
+
+    // Value preserved once and editable
+    expect(inputEl.value).toBe('שלום דליה מה שלומך יש לי שאלה');
+
+    // 5. User manually edits the textarea
+    await act(async () => {
+      fireEvent.change(inputEl, { target: { value: 'שלום דליה, יש לי שאלה חשובה' } });
+    });
+
+    expect(inputEl.value).toBe('שלום דליה, יש לי שאלה חשובה');
+
+    // Start mic again for another sentence
+    await act(async () => {
+      fireEvent.click(micBtn);
+    });
+
+    await act(async () => {
+      mockInstance.onresult({
+        resultIndex: 0,
+        results: [
+          Object.assign([{ transcript: 'לגבי התיק' }], { isFinal: true }),
+        ],
+      });
+    });
+
+    // Appended smoothly to the manually edited text, NO duplication of old speech!
+    expect(inputEl.value).toBe('שלום דליה, יש לי שאלה חשובה לגבי התיק');
+
+    delete (window as any).SpeechRecognition;
+  });
 });

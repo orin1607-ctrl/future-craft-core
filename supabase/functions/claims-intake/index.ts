@@ -349,11 +349,13 @@ Deno.serve(async (req) => {
           return jsonResponse({ success: false, error: "bound_claim_missing" }, 400);
         }
         const prev = (existing.row_data && typeof existing.row_data === "object") ? existing.row_data as Record<string, string> : {};
+        const prevStatus = String(prev.status || existing.status || "");
+        const nextStatus = (prevStatus === "ממתין למילוי הלקוח" || !prevStatus) ? "חדש" : prevStatus;
         const rowData: Record<string, string> = {
           ...prev,
           ...draft,
           id: boundClaimId,
-          status: String(prev.status || existing.status || "חדש"),
+          status: nextStatus,
           clientName: draft.clientName,
           clientPhone: draft.clientPhone || prev.clientPhone || "",
           clientEmail: draft.clientEmail || prev.clientEmail || "",
@@ -374,6 +376,7 @@ Deno.serve(async (req) => {
           plate,
           client_name: draft.clientName,
           company_name: draft.insCompany || existing.company_name || null,
+          status: nextStatus,
           row_data: rowData,
           updated_by: row.created_by,
           updated_by_name: "Customer Accident Intake",

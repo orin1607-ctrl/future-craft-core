@@ -741,6 +741,8 @@ export function ClaimsAiWorkspace({
   const isManualStopRef = useRef(false);
   const baseInputRef = useRef('');
   const finalTranscriptRef = useRef('');
+  const inputRef = useRef(input);
+  inputRef.current = input;
   const sendRef = useRef<(text: string, source: 'text' | 'voice') => Promise<void>>(async () => {});
   const executingRef = useRef<Set<string>>(new Set());
   const confirmRef = useRef<(msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => Promise<void>>(async () => {});
@@ -838,20 +840,21 @@ export function ClaimsAiWorkspace({
     rec.continuous = true;
     rec.interimResults = true;
 
-    let localFinal = '';
-
     rec.onresult = (ev) => {
       if (!voiceModeActiveRef.current || voicePhaseRef.current !== 'listening') return;
-      let interim = '';
-      for (let i = ev.resultIndex; i < ev.results.length; i += 1) {
-        const piece = ev.results[i][0]?.transcript || '';
-        if (ev.results[i].isFinal) {
-          localFinal = (localFinal ? `${localFinal} ` : '') + piece;
+      let sessionFinal = '';
+      let sessionInterim = '';
+      for (let i = 0; i < ev.results.length; i += 1) {
+        const item = ev.results[i];
+        const piece = item[0]?.transcript?.trim() || '';
+        if (!piece) continue;
+        if (item.isFinal) {
+          sessionFinal = sessionFinal ? `${sessionFinal} ${piece}` : piece;
         } else {
-          interim = (interim ? `${interim} ` : '') + piece;
+          sessionInterim = sessionInterim ? `${sessionInterim} ${piece}` : piece;
         }
       }
-      const full = [localFinal, interim].filter(Boolean).join(' ').trim();
+      const full = [sessionFinal, sessionInterim].filter(Boolean).join(' ').trim();
       setLiveTranscript(full);
 
       if (voiceSilenceTimerRef.current) {
@@ -1653,14 +1656,19 @@ export function ClaimsAiWorkspace({
           recognitionRef.current.onend = null;
           recognitionRef.current.stop();
         } catch {}
+        recognitionRef.current = null;
       }
+      baseInputRef.current = inputRef.current.trim();
       return;
     }
 
+    // Stop voice mode & TTS if active to prevent dual recording
+    stopVoiceRecognition();
+    stopSpeaking();
+
     isManualStopRef.current = false;
     isListeningRef.current = true;
-    baseInputRef.current = input.trim();
-    finalTranscriptRef.current = '';
+    baseInputRef.current = inputRef.current.trim();
 
     const rec = new Ctor();
     rec.lang = 'he-IL';
@@ -1669,20 +1677,24 @@ export function ClaimsAiWorkspace({
 
     rec.onresult = (ev) => {
       if (!isListeningRef.current || isManualStopRef.current) return;
-      let interim = '';
-      for (let i = ev.resultIndex; i < ev.results.length; i += 1) {
-        const piece = ev.results[i][0]?.transcript || '';
-        if (ev.results[i].isFinal) {
-          finalTranscriptRef.current = (finalTranscriptRef.current ? `${finalTranscriptRef.current} ` : '') + piece;
+      let sessionFinal = '';
+      let sessionInterim = '';
+      for (let i = 0; i < ev.results.length; i += 1) {
+        const item = ev.results[i];
+        const piece = item[0]?.transcript?.trim() || '';
+        if (!piece) continue;
+        if (item.isFinal) {
+          sessionFinal = sessionFinal ? `${sessionFinal} ${piece}` : piece;
         } else {
-          interim = (interim ? `${interim} ` : '') + piece;
+          sessionInterim = sessionInterim ? `${sessionInterim} ${piece}` : piece;
         }
       }
-      const full = [baseInputRef.current, finalTranscriptRef.current, interim]
+      const full = [baseInputRef.current, sessionFinal, sessionInterim]
         .filter(Boolean)
         .join(' ')
         .trim();
       setInput(full);
+      inputRef.current = full;
     };
 
     rec.onerror = (ev) => {
@@ -1698,6 +1710,8 @@ export function ClaimsAiWorkspace({
 
     rec.onend = () => {
       if (isListeningRef.current && !isManualStopRef.current) {
+        // Commit current text to baseInputRef before restarting session
+        baseInputRef.current = inputRef.current.trim();
         try {
           rec.start();
           return;
@@ -1707,7 +1721,6 @@ export function ClaimsAiWorkspace({
       }
       isListeningRef.current = false;
       setListening(false);
-      // NOTE: Do NOT force textarea focus here on mobile, preventing unwanted keyboard jump
     };
 
     recognitionRef.current = rec;
@@ -2082,9 +2095,14 @@ export function ClaimsAiWorkspace({
                           {pending.parameters.recipient_phone ? <div><strong>טלפון (WhatsApp):</strong> {String(pending.parameters.recipient_phone)}</div> : null}
                           {pending.parameters.recipient_email ? <div><strong>אימייל:</strong> {String(pending.parameters.recipient_email)}</div> : null}
                           <div><strong>ערוץ מסירה:</strong> {String(pending.parameters.channel || 'copy') === 'whatsapp' ? 'WhatsApp' : String(pending.parameters.channel) === 'email' ? 'אימייל' : String(pending.parameters.channel) === 'both' ? 'אימייל + WhatsApp' : 'העתקת קישור'}</div>
-                          {pending.parameters.claim_id ? <div><strong>תיק מקושר:</strong> {String(pending.parameters.claim_id)}</div> : null}
+                          {pending.parameters.claim_id ? (
+                            <div style={{ marginTop: 2 }}>
+                              <strong>מספר תיק שיוקצה:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{String(pending.parameters.claim_id)}</span>
+                              <span style={{ fontSize: '0.72rem', background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: 4, marginRight: 6 }}>ממתין למילוי הלקוח</span>
+                            </div>
+                          ) : null}
                           <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'var(--t2)', fontWeight: 500 }}>
-                            ⚡ באישור: המערכת תייצר קישור העלאה מאובטח בתוקף ל-24 שעות, תשלח במייל/וואטסאפ לפי הבחירה, ותתעד בהיסטוריית התיק.
+                            ⚡ באישור: יוקצה מספר התיק הקבוע, ייפתח קישור מאובטח בתוקף ל-24 שעות לפתיחת התיק והעלאת מסמכים, והתיק יישמר בסטטוס "ממתין למילוי הלקוח".
                           </div>
                         </div>
                       ) : null}
@@ -2434,7 +2452,15 @@ export function ClaimsAiWorkspace({
             value={input}
             dir="rtl"
             placeholder={claim ? 'שאלה על התיק הפתוח…' : 'פתחו תיק, או שאלו שאלה כללית…'}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setInput(val);
+              inputRef.current = val;
+              baseInputRef.current = val;
+            }}
+            onFocus={() => {
+              baseInputRef.current = inputRef.current;
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
