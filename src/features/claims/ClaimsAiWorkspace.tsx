@@ -2062,6 +2062,62 @@ export function ClaimsAiWorkspace({
                           <div><strong>מועד מתוכנן:</strong> {String(pending.parameters.planned_label || '')}</div>
                         </div>
                       ) : null}
+                      {pending.action_type === 'send_customer_link' && pending.parameters ? (
+                        <div
+                          className="claims-ai-preview-custlink"
+                          style={{
+                            margin: '8px 0',
+                            fontSize: '0.82rem',
+                            background: 'rgba(16, 185, 129, 0.05)',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            lineHeight: '1.6',
+                            border: '1px solid rgba(16, 185, 129, 0.2)',
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, color: 'var(--c-emerald, #10b981)', marginBottom: 4 }}>
+                            🔗 קישור פתיחת תיק והעלאת מסמכים ללקוח (claims-upload)
+                          </div>
+                          <div><strong>נמען:</strong> {String(pending.parameters.recipient_name || 'הלקוח')}</div>
+                          {pending.parameters.recipient_phone ? <div><strong>טלפון (WhatsApp):</strong> {String(pending.parameters.recipient_phone)}</div> : null}
+                          {pending.parameters.recipient_email ? <div><strong>אימייל:</strong> {String(pending.parameters.recipient_email)}</div> : null}
+                          <div><strong>ערוץ מסירה:</strong> {String(pending.parameters.channel || 'copy') === 'whatsapp' ? 'WhatsApp' : String(pending.parameters.channel) === 'email' ? 'אימייל' : String(pending.parameters.channel) === 'both' ? 'אימייל + WhatsApp' : 'העתקת קישור'}</div>
+                          {pending.parameters.claim_id ? <div><strong>תיק מקושר:</strong> {String(pending.parameters.claim_id)}</div> : null}
+                          <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'var(--t2)', fontWeight: 500 }}>
+                            ⚡ באישור: המערכת תייצר קישור העלאה מאובטח בתוקף ל-24 שעות, תשלח במייל/וואטסאפ לפי הבחירה, ותתעד בהיסטוריית התיק.
+                          </div>
+                        </div>
+                      ) : null}
+                      {pending.action_type === 'create_share_link' && pending.parameters ? (
+                        <div
+                          className="claims-ai-preview-share"
+                          style={{
+                            margin: '8px 0',
+                            fontSize: '0.82rem',
+                            background: 'rgba(37, 99, 235, 0.05)',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            lineHeight: '1.6',
+                            border: '1px solid rgba(37, 99, 235, 0.2)',
+                          }}
+                        >
+                          <div style={{ fontWeight: 700, color: 'var(--c-primary, #2563eb)', marginBottom: 4 }}>
+                            📂 קישור שיתוף מסמכים מאובטח (claims-share)
+                          </div>
+                          <div><strong>נמען:</strong> {String(pending.parameters.recipient_name || '')} {pending.parameters.recipient_kind ? `(${String(pending.parameters.recipient_kind)})` : ''}</div>
+                          {pending.parameters.recipient_email ? <div><strong>אימייל:</strong> {String(pending.parameters.recipient_email)}</div> : null}
+                          {pending.parameters.recipient_phone ? <div><strong>טלפון (WhatsApp):</strong> {String(pending.parameters.recipient_phone)}</div> : null}
+                          <div><strong>תוקף הקישור:</strong> {String(pending.parameters.ttl_hours || 72)} שעות</div>
+                          {Array.isArray(pending.parameters.file_titles) && (pending.parameters.file_titles as string[]).length > 0 ? (
+                            <div><strong>קבצים לשיתוף ({(pending.parameters.file_titles as string[]).length}):</strong> {(pending.parameters.file_titles as string[]).join(', ')}</div>
+                          ) : Array.isArray(pending.parameters.file_ids) ? (
+                            <div><strong>כמות קבצים:</strong> {(pending.parameters.file_ids as string[]).length} קבצים</div>
+                          ) : null}
+                          <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'var(--t2)', fontWeight: 500 }}>
+                            ⚡ באישור: המערכת תייצר קישור שיתוף מוגן עבור המסמכים שנבחרו בלבד, תאפשר פתיחה בוואטסאפ או שליחה במייל, ותתעד בהיסטוריה.
+                          </div>
+                        </div>
+                      ) : null}
                       {pending.action_type === 'batch_schedule_email' && pending.parameters ? (
                         <div
                           className="claims-ai-preview-batch-schedule"
