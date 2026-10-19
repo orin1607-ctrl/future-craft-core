@@ -354,7 +354,7 @@
     const selCount = ST.selectAllMatching ? total : ST.selected.size;
     const ctl = (ST.stats && ST.stats.control) || {};
     const actions = `<div class="card"><div class="card-b row" style="gap:8px">
-        <b class="num" style="font-size:18px">${ST.browsing ? "⏳" : n(total)}</b><span>עסקים עונים לתנאים</span>
+        <b class="num" style="font-size:18px">${ST.browsing ? "⏳" : (r && r.total_exact === false ? "כ-" : "") + n(total)}</b><span>עסקים עונים לתנאים${r && r.total_exact === false ? ' <span class="xs muted" title="ספירה מדויקת של כל המאגר איטית מדי למסך; עד 200 תוצאות הספירה מדויקת">(הערכה)</span>' : ""}</span>
         <span class="spacer"></span>
         <label class="xs muted">מיון <select class="input" style="width:auto;height:32px" data-nr="sort">${[["sources", "מספר מקורות"], ["fleet", "🚚 פוטנציאל צי רכב"], ["important", "★ מידע חשוב חדש קודם"], ["relations", "מספר קשרים"], ["found", "מידע חדש – האחרון קודם"], ["jobs", "מספר משרות שפורסמו"], ["name", "שם"], ["city", "עיר"], ["employees", "מספר עובדים"], ["founded", "שנת הקמה (ישן→חדש)"], ["founded_desc", "שנת הקמה (חדש→ישן)"], ["updated", "עדכון אחרון"], ["collected", "תאריך איסוף"]].map(([v, l]) => `<option value="${v}" ${ST.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
         <label class="xs muted">בעמוד <select class="input" style="width:auto;height:32px" data-nr="pagesize">${[25, 50, 100, 200].map((x) => `<option ${ST.pageSize === x ? "selected" : ""}>${x}</option>`).join("")}</select></label>
@@ -1175,7 +1175,8 @@
     if (!(S.view === "prospector" && S.tab === TAB)) return;
     const el = e.target;
     if (el.matches("[data-nr-fb],[data-nr-fm]") || el.matches("select[data-nr-f]")) { readFilterInput(el); applyFilters(); return; }
-    if (el.matches("[data-nr-f]")) { readFilterInput(el); persist(); return; }
+    // text / number / date filters apply as soon as the field is left (or Enter) – every choice updates the table at once
+    if (el.matches("[data-nr-f]")) { readFilterInput(el); applyFilters(); return; }
     if (el.matches("select[data-nl-status]")) { setLeadStatus(el.getAttribute("data-nl-status"), el.value); return; }
     const act = el.getAttribute("data-nr");
     if (act === "sort") { ST.sort = el.value; ST.page = 1; persist(); browse(); }
