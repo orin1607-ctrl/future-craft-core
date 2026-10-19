@@ -964,6 +964,7 @@
         <label class="xs">דירוג ${sel("tier", [["A", "A – מוכן לפנייה"], ["B", "B – להשלמה"]], "A + B")}</label>
         <label class="xs">אזור <input data-nl-f="district" value="${esc(f.district || "")}" style="width:100px" placeholder="מרכז"></label>
         <label class="xs">שם <input data-nl-f="q" value="${esc(f.q || "")}" style="width:130px"></label>
+        <label class="xs"><input type="checkbox" data-nl-f="reachable" ${f.reachable ? "checked" : ""}> עם טלפון או אימייל</label>
         <label class="xs"><input type="checkbox" data-nl-f="fleet_contact" ${f.fleet_contact ? "checked" : ""}> עם איש קשר רלוונטי</label>
         <button class="btn btn-sm btn-primary" data-nr="lapply">הצג</button></div>
       <details ${(f.ind || []).length ? "open" : ""}><summary class="xs bold" style="cursor:pointer">🏷️ ענף ${(f.ind || []).length ? '<span class="badge b-blue">' + n(f.ind.length) + ' נבחרו</span>' : '<span class="muted">(כל הענפים)</span>'}</summary>

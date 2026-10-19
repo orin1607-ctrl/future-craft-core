@@ -156,10 +156,13 @@ BEGIN
        AND (jsonb_typeof(f->'ind') IS DISTINCT FROM 'array' OR jsonb_array_length(f->'ind') = 0
             OR b.ind_main && ARRAY(SELECT jsonb_array_elements_text(f->'ind')) OR b.ind_codes && ARRAY(SELECT jsonb_array_elements_text(f->'ind')))
        AND (NOT coalesce((f->>'fleet_contact')::boolean, false) OR coalesce(l.contact_name, '') <> '')
+       AND (NOT coalesce((f->>'reachable')::boolean, false) OR coalesce(l.phone, '') <> '' OR coalesce(l.email, '') <> '')
   )
   SELECT (SELECT count(*) FROM l),
          (SELECT coalesce(jsonb_agg(x ORDER BY x.ord), '[]') FROM (
-            SELECT row_number() OVER (ORDER BY CASE l.tier WHEN 'A' THEN 0 WHEN 'B' THEN 1 ELSE 2 END, l.score DESC, l.created_at DESC) ord,
+            -- ready to work first: grade, then a phone, then an e-mail, then the rules' potential score
+            SELECT row_number() OVER (ORDER BY CASE l.tier WHEN 'A' THEN 0 WHEN 'B' THEN 1 ELSE 2 END, (coalesce(l.phone, '') <> '') DESC,
+                                               (coalesce(l.email, '') <> '') DESC, l.score DESC, l.created_at DESC) ord,
                    l.id, l.lead_number, l.company_name, l.company_hp, l.industry, l.city, l.region, l.website, l.phone, l.phone_secondary, l.email,
                    l.contact_name, l.contact_role, l.contact_phone, l.contact_email, l.fleet_size, l.fleet_size_status, l.fleet_evidence,
                    l.lead_reason, l.tier, l.lead_stage, l.lead_quality, l.verification_status, l.ready_for_contact, l.missing_fields, l.status, l.notes,
