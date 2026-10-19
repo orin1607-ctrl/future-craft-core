@@ -3015,8 +3015,10 @@ export function ClaimsAiWorkspace({
                     onCopyText={(txt) => void handleCopyText(msg.id, txt)}
                   />
                   {msg.role === 'assistant' && (
-                    msg.content.includes('מאגר המסמכים והטפסים') ||
+                    msg.content.includes('מאגר המסמכים') ||
                     msg.content.includes('קטגוריה א:') ||
+                    msg.content.includes('קטגוריה א׳') ||
+                    msg.content.includes('קטגוריה א\'') ||
                     msg.content.includes('חבילת פתיחת תיק') ||
                     (toolTraceOf(msg.metadata) || []).some((t) => t.tool === 'list_available_claim_documents_and_forms')
                   ) ? (

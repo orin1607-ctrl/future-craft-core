@@ -599,7 +599,41 @@ async function callGemini(
   }
 
   console.error("Gemini all candidates failed:", attemptErrors);
-  return { error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.", status: 500 };
+  return { error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.", details: attemptErrors, status: 500 };
+}
+
+function convertGeminiPropToAnthropic(v: any): any {
+  if (!v || typeof v !== "object") return { type: "string" };
+  const rawType = String(v.type || "STRING").toLowerCase();
+  if (rawType === "array") {
+    const itemSchema = v.items ? convertGeminiPropToAnthropic(v.items) : { type: "string" };
+    return {
+      type: "array",
+      description: v.description || "",
+      items: itemSchema,
+    };
+  }
+  if (rawType === "object") {
+    const props: Record<string, any> = {};
+    if (v.properties && typeof v.properties === "object") {
+      for (const [pk, pv] of Object.entries(v.properties)) {
+        props[pk] = convertGeminiPropToAnthropic(pv);
+      }
+    }
+    const res: any = {
+      type: "object",
+      description: v.description || "",
+      properties: props,
+    };
+    if (Array.isArray(v.required) && v.required.length > 0) {
+      res.required = Array.from(new Set(v.required));
+    }
+    return res;
+  }
+  return {
+    type: rawType === "number" ? "number" : rawType === "boolean" ? "boolean" : "string",
+    description: v.description || "",
+  };
 }
 
 function geminiToolsToAnthropic(geminiTools?: unknown[]): any[] {
@@ -619,19 +653,11 @@ function geminiToolsToAnthropic(geminiTools?: unknown[]): any[] {
       if (fn.parameters && fn.parameters.properties && Object.keys(fn.parameters.properties).length > 0) {
         const props: Record<string, any> = {};
         for (const [k, v] of Object.entries(fn.parameters.properties as Record<string, any>)) {
-          const rawType = String(v.type || "STRING").toLowerCase();
-          const propSchema: any = {
-            type: rawType === "number" ? "number" : rawType === "boolean" ? "boolean" : rawType === "array" ? "array" : "string",
-            description: v.description || "",
-          };
-          if (rawType === "array" && v.items) {
-            propSchema.items = { type: String(v.items.type || "string").toLowerCase() };
-          }
-          props[k] = propSchema;
+          props[k] = convertGeminiPropToAnthropic(v);
         }
         tool.input_schema.properties = props;
         if (Array.isArray(fn.parameters.required) && fn.parameters.required.length > 0) {
-          tool.input_schema.required = fn.parameters.required;
+          tool.input_schema.required = Array.from(new Set(fn.parameters.required));
         }
       }
       result.push(tool);
@@ -757,8 +783,8 @@ async function callClaude(
 
         if (!res.ok) {
           const errText = await res.text();
-          console.error(`Claude error with model ${model} (${res.status}):`, errText.slice(0, 250));
-          attemptErrors.push({ model, status: res.status, text: errText.slice(0, 200) });
+          console.error(`Claude error with model ${model} (${res.status}):`, errText);
+          attemptErrors.push({ model, status: res.status, text: errText, tool43: anthropicTools[43], toolCount: anthropicTools.length });
           httpFailed = true;
           break;
         }
@@ -874,7 +900,7 @@ async function callClaude(
   }
 
   console.error("Claude all candidates failed:", attemptErrors);
-  return { error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.", status: 500 };
+  return { error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.", details: attemptErrors, status: 500 };
 }
 
 function streamTextAsSse(replyText: string, pendingAction?: ClaimsPendingAction | null, documentCards: ClaimsDocumentCard[] = [], toolsUsed: ToolTrace[] | null = null): Response {
@@ -1087,13 +1113,17 @@ Deno.serve(async (req) => {
       } else {
         finalResult = {
           error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.",
+          details: {
+            gemini: (geminiResult as any).details,
+            claude: (claudeResult as any).details,
+          },
           status: 500,
         };
       }
     }
 
     if ("error" in finalResult) {
-      return new Response(JSON.stringify({ error: finalResult.error }), {
+      return new Response(JSON.stringify({ error: finalResult.error, details: (finalResult as any).details }), {
         status: finalResult.status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

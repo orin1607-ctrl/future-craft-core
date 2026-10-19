@@ -1233,7 +1233,7 @@ export const GENERAL_CLAIM_SCOPED_TOOLS = [
               : "מזהה התיק (DAL-YYYY-NNNN), מספר התביעה בחברת הביטוח, מספר רכב או שם הלקוח המלא — חייב להתאים לתיק פעיל אחד",
           },
         },
-        required: isOptionalClaim ? (params.required || []) : [...(params.required || []), "claim_ref"],
+        required: Array.from(new Set(isOptionalClaim ? (params.required || []) : [...(params.required || []), "claim_ref"])),
       },
     });
   }
