@@ -155,7 +155,12 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-async function uploadChatAttachmentToClaim(claimId: string, file: File): Promise<{ success: boolean; file_id?: string; error?: string }> {
+async function uploadChatAttachmentToClaim(
+  claimId: string,
+  file: File,
+  staffTitle?: string,
+  category?: 'cat_b' | 'cat_a'
+): Promise<{ success: boolean; file_id?: string; error?: string }> {
   try {
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
@@ -163,9 +168,11 @@ async function uploadChatAttachmentToClaim(claimId: string, file: File): Promise
     form.set('action', 'staff_upload');
     form.set('claim_id', claimId);
     form.set('file', file);
-    form.set('doc_kind', file.type.startsWith('image/') ? 'surveyor_photo' : 'general');
-    form.set('staff_type', file.type.startsWith('image/') ? 'damage_photos' : 'other');
-    form.set('staff_title', file.name);
+    const isImage = file.type.startsWith('image/');
+    const isForm = category === 'cat_b';
+    form.set('doc_kind', isForm ? 'claim_form' : (isImage ? 'surveyor_photo' : 'general'));
+    form.set('staff_type', isForm ? 'claim_form' : (isImage ? 'damage_photos' : 'other'));
+    form.set('staff_title', staffTitle || file.name);
 
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-docs`, {
       method: 'POST',
@@ -648,13 +655,33 @@ export const AVAILABLE_GARAGE_FORMS = [
   'אישור תשלום וסילוק',
 ];
 
+type CustomDocItem = {
+  id: string;
+  name: string;
+  category: 'cat_b' | 'cat_a';
+  fileId?: string;
+};
+
 export function ClaimsCatalogWidget({
+  claimId,
+  onUploadCustomFile,
   onPrepareLink,
 }: {
+  claimId?: string;
+  onUploadCustomFile?: (file: File, name: string, category: 'cat_b' | 'cat_a') => Promise<{ success: boolean; file_id?: string; error?: string }>;
   onPrepareLink: (docs: string[], forms: string[]) => void;
 }) {
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [selectedForms, setSelectedForms] = useState<string[]>([]);
+  const [customItems, setCustomItems] = useState<CustomDocItem[]>([]);
+
+  // State for manual file upload flow
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [docName, setDocName] = useState<string>('');
+  const [docCategory, setDocCategory] = useState<'cat_b' | 'cat_a'>('cat_b');
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const toggleDoc = (doc: string) => {
     setSelectedDocs((prev) =>
@@ -668,6 +695,74 @@ export function ClaimsCatalogWidget({
     );
   };
 
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPendingFile(file);
+    setDocName(file.name.replace(/\.[^/.]+$/, ''));
+    setDocCategory('cat_b'); // default to garage provided form
+    setUploadError(null);
+    e.target.value = '';
+  };
+
+  const handleSaveCustomDoc = async () => {
+    if (!pendingFile || !docName.trim()) return;
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      const cleanTitle = docName.trim();
+      let fileId: string | undefined;
+      if (onUploadCustomFile) {
+        const res = await onUploadCustomFile(pendingFile, cleanTitle, docCategory);
+        if (!res.success) {
+          setUploadError(res.error || 'שגיאה בהעלאת המסמך');
+          setIsUploading(false);
+          return;
+        }
+        fileId = res.file_id;
+      } else {
+        const targetClaim = claimId || 'DAL-2026-0249';
+        const res = await uploadChatAttachmentToClaim(targetClaim, pendingFile, cleanTitle, docCategory);
+        if (!res.success) {
+          setUploadError(res.error || 'שגיאה בהעלאת המסמך');
+          setIsUploading(false);
+          return;
+        }
+        fileId = res.file_id;
+      }
+
+      // Add to custom items
+      const newItem: CustomDocItem = {
+        id: `custom-${Date.now()}`,
+        name: cleanTitle,
+        category: docCategory,
+        fileId,
+      };
+      setCustomItems((prev) => [...prev, newItem]);
+
+      // Automatically append to selections WITHOUT resetting previous selections
+      if (docCategory === 'cat_b') {
+        setSelectedForms((prev) => (prev.includes(cleanTitle) ? prev : [...prev, cleanTitle]));
+      } else {
+        setSelectedDocs((prev) => (prev.includes(cleanTitle) ? prev : [...prev, cleanTitle]));
+      }
+
+      // Reset upload modal/box
+      setPendingFile(null);
+      setDocName('');
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const customDocs = customItems.filter((i) => i.category === 'cat_a');
+  const customForms = customItems.filter((i) => i.category === 'cat_b');
+
+  const allCategoryA = [...AVAILABLE_CUSTOMER_UPLOADS, ...customDocs.map((c) => c.name)];
+  const allCategoryB = [...AVAILABLE_GARAGE_FORMS, ...customForms.map((c) => c.name)];
+
   const hasSelections = selectedDocs.length > 0 || selectedForms.length > 0;
 
   return (
@@ -675,91 +770,375 @@ export function ClaimsCatalogWidget({
       className="claims-catalog-widget"
       data-testid="claims-catalog-widget"
       style={{
-        marginTop: 10,
-        padding: '12px 14px',
-        background: '#f8fafc',
-        borderRadius: 8,
-        border: '1px solid #cbd5e1',
-        fontSize: '0.82rem',
+        marginTop: 12,
+        padding: '14px 16px',
+        background: '#071022',
+        color: '#f8fafc',
+        borderRadius: 10,
+        border: '1.5px solid #334155',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
+        fontSize: '0.85rem',
         lineHeight: 1.5,
       }}
     >
-      <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 8, fontSize: '0.88rem' }}>
-        📋 מאגר מסמכים וטפסים לבחירה מהירה:
+      <div
+        className="claims-catalog-head"
+        style={{
+          fontWeight: 800,
+          color: '#ffffff',
+          marginBottom: 12,
+          fontSize: '0.95rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <span>📋 מאגר מסמכים וטפסים לבחירה מהירה:</span>
+        <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
+          {selectedDocs.length + selectedForms.length} נבחרו
+        </span>
       </div>
 
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ fontWeight: 600, color: '#1e40af', marginBottom: 6 }}>
+      {/* Category A: Requested Documents */}
+      <div style={{ marginBottom: 14 }}>
+        <div
+          className="claims-catalog-section-title cat-a"
+          style={{ fontWeight: 800, color: '#38bdf8', marginBottom: 8, fontSize: '0.88rem' }}
+        >
           📥 קטגוריה א' – מסמכים שהלקוח נדרש להעלות אלינו:
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 6 }}>
-          {AVAILABLE_CUSTOMER_UPLOADS.map((doc) => (
-            <label
-              key={doc}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                cursor: 'pointer',
-                background: selectedDocs.includes(doc) ? '#dbeafe' : '#fff',
-                padding: '4px 8px',
-                borderRadius: 6,
-                border: selectedDocs.includes(doc) ? '1px solid #3b82f6' : '1px solid #e2e8f0',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={selectedDocs.includes(doc)}
-                onChange={() => toggleDoc(doc)}
-              />
-              <span style={{ fontWeight: selectedDocs.includes(doc) ? 600 : 400 }}>{doc}</span>
-            </label>
-          ))}
+        <div
+          className="claims-catalog-items-grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: 8,
+          }}
+        >
+          {allCategoryA.map((doc) => {
+            const isSelected = selectedDocs.includes(doc);
+            const isCustom = customDocs.some((c) => c.name === doc);
+            return (
+              <label
+                key={doc}
+                className={`claims-catalog-item-label ${isSelected ? 'selected cat-a' : ''}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  cursor: 'pointer',
+                  background: isSelected ? '#0369a1' : '#0f172a',
+                  color: '#ffffff',
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  border: isSelected ? '2px solid #38bdf8' : '1.5px solid #334155',
+                  boxShadow: isSelected ? '0 0 0 1px #38bdf8' : 'none',
+                  minHeight: '46px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  className="claims-catalog-item-checkbox"
+                  checked={isSelected}
+                  onChange={() => toggleDoc(doc)}
+                  style={{
+                    width: 22,
+                    height: 22,
+                    minWidth: 22,
+                    cursor: 'pointer',
+                    accentColor: '#38bdf8',
+                  }}
+                />
+                <span
+                  className="claims-catalog-item-name"
+                  style={{
+                    fontWeight: isSelected ? 800 : 600,
+                    fontSize: '13.5px',
+                    color: '#ffffff',
+                    flex: 1,
+                  }}
+                >
+                  {doc} {isCustom ? '⭐ (הועלה ידנית)' : ''}
+                </span>
+              </label>
+            );
+          })}
         </div>
       </div>
 
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontWeight: 600, color: '#166534', marginBottom: 6 }}>
+      {/* Category B: Provided Forms to fill & sign */}
+      <div style={{ marginBottom: 14 }}>
+        <div
+          className="claims-catalog-section-title cat-b"
+          style={{ fontWeight: 800, color: '#4ade80', marginBottom: 8, fontSize: '0.88rem' }}
+        >
           📝 קטגוריה ב' – טפסים שאנו מספקים ללקוח למילוי וחתימה:
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 6 }}>
-          {AVAILABLE_GARAGE_FORMS.map((form) => (
-            <label
-              key={form}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                cursor: 'pointer',
-                background: selectedForms.includes(form) ? '#dcfce7' : '#fff',
-                padding: '4px 8px',
-                borderRadius: 6,
-                border: selectedForms.includes(form) ? '1px solid #22c55e' : '1px solid #e2e8f0',
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={selectedForms.includes(form)}
-                onChange={() => toggleForm(form)}
-              />
-              <span style={{ fontWeight: selectedForms.includes(form) ? 600 : 400 }}>✍️ {form}</span>
-            </label>
-          ))}
+        <div
+          className="claims-catalog-items-grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: 8,
+          }}
+        >
+          {allCategoryB.map((form) => {
+            const isSelected = selectedForms.includes(form);
+            const isCustom = customForms.some((c) => c.name === form);
+            return (
+              <label
+                key={form}
+                className={`claims-catalog-item-label ${isSelected ? 'selected cat-b' : ''}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  cursor: 'pointer',
+                  background: isSelected ? '#15803d' : '#0f172a',
+                  color: '#ffffff',
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  border: isSelected ? '2px solid #4ade80' : '1.5px solid #334155',
+                  boxShadow: isSelected ? '0 0 0 1px #4ade80' : 'none',
+                  minHeight: '46px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  className="claims-catalog-item-checkbox"
+                  checked={isSelected}
+                  onChange={() => toggleForm(form)}
+                  style={{
+                    width: 22,
+                    height: 22,
+                    minWidth: 22,
+                    cursor: 'pointer',
+                    accentColor: '#4ade80',
+                  }}
+                />
+                <span
+                  className="claims-catalog-item-name"
+                  style={{
+                    fontWeight: isSelected ? 800 : 600,
+                    fontSize: '13.5px',
+                    color: '#ffffff',
+                    flex: 1,
+                  }}
+                >
+                  ✍️ {form} {isCustom ? '⭐ (הועלה ידנית)' : ''}
+                </span>
+              </label>
+            );
+          })}
         </div>
+      </div>
+
+      {/* Permanent "➕ העלה מסמך משלך" button and file picker */}
+      <div style={{ marginBottom: 14 }}>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,application/pdf"
+          capture="environment"
+          style={{ display: 'none' }}
+          onChange={handleFileSelected}
+        />
+
+        {!pendingFile ? (
+          <button
+            type="button"
+            className="btn btn-g"
+            data-testid="claims-catalog-upload-custom-btn"
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              minHeight: '44px',
+              padding: '8px 14px',
+              borderRadius: 8,
+              background: '#0f172a',
+              border: '1.5px dashed #38bdf8',
+              color: '#38bdf8',
+              fontWeight: 700,
+              fontSize: '0.88rem',
+              cursor: 'pointer',
+              width: '100%',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            ➕ העלה מסמך משלך (מצלמה / קובץ / PDF)
+          </button>
+        ) : (
+          <div
+            className="claims-catalog-upload-box"
+            data-testid="claims-catalog-upload-dialog"
+            style={{
+              background: '#0f172a',
+              border: '1.5px solid #38bdf8',
+              borderRadius: 8,
+              padding: '12px 14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}
+          >
+            <div style={{ fontWeight: 800, color: '#38bdf8', fontSize: '0.9rem' }}>
+              📎 הגדרת מסמך להעלאה: {pendingFile.name} ({formatFileSize(pendingFile.size)})
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: 4, fontWeight: 600 }}>
+                שם המסמך או הטופס:
+              </label>
+              <input
+                type="text"
+                data-testid="claims-catalog-custom-name-input"
+                value={docName}
+                onChange={(e) => setDocName(e.target.value)}
+                placeholder="לדוגמה: טופס ויתור סודיות מותאם"
+                style={{
+                  width: '100%',
+                  minHeight: '38px',
+                  padding: '6px 10px',
+                  background: '#071022',
+                  border: '1px solid #475569',
+                  borderRadius: 6,
+                  color: '#ffffff',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  boxSizing: 'border-box',
+                }}
+              />
+            </div>
+
+            <div>
+              <div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginBottom: 6, fontWeight: 600 }}>
+                מטרת המסמך:
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    cursor: 'pointer',
+                    background: docCategory === 'cat_b' ? 'rgba(74, 222, 128, 0.15)' : '#071022',
+                    border: docCategory === 'cat_b' ? '1px solid #4ade80' : '1px solid #334155',
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="custom-doc-category"
+                    checked={docCategory === 'cat_b'}
+                    onChange={() => setDocCategory('cat_b')}
+                    style={{ accentColor: '#4ade80' }}
+                  />
+                  <span>📝 <strong>קטגוריה ב'</strong> – טופס שהמוסך מספק ללקוח למילוי ולחתימה (מומלץ)</span>
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    cursor: 'pointer',
+                    background: docCategory === 'cat_a' ? 'rgba(56, 189, 248, 0.15)' : '#071022',
+                    border: docCategory === 'cat_a' ? '1px solid #38bdf8' : '1px solid #334155',
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="custom-doc-category"
+                    checked={docCategory === 'cat_a'}
+                    onChange={() => setDocCategory('cat_a')}
+                    style={{ accentColor: '#38bdf8' }}
+                  />
+                  <span>📥 <strong>קטגוריה א'</strong> – מסמך שהלקוח נדרש להעלות אלינו</span>
+                </label>
+              </div>
+            </div>
+
+            {uploadError ? (
+              <div style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 600 }}>
+                ⚠️ {uploadError}
+              </div>
+            ) : null}
+
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button
+                type="button"
+                data-testid="claims-catalog-save-custom-btn"
+                className="btn btn-primary"
+                disabled={isUploading || !docName.trim()}
+                onClick={() => void handleSaveCustomDoc()}
+                style={{
+                  minHeight: '40px',
+                  padding: '6px 14px',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  flex: 1,
+                }}
+              >
+                {isUploading ? '⏳ מעלה מסמך...' : '💾 שמור וצרף לבחירה'}
+              </button>
+              <button
+                type="button"
+                data-testid="claims-catalog-cancel-custom-btn"
+                className="btn btn-g"
+                disabled={isUploading}
+                onClick={() => {
+                  setPendingFile(null);
+                  setDocName('');
+                  setUploadError(null);
+                }}
+                style={{
+                  minHeight: '40px',
+                  padding: '6px 14px',
+                  fontSize: '0.82rem',
+                }}
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <button
         type="button"
-        className="btn btn-primary btn-sm"
+        className="btn btn-primary"
+        data-testid="claims-catalog-prepare-btn"
         disabled={!hasSelections}
         onClick={() => onPrepareLink(selectedDocs, selectedForms)}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 6,
-          fontWeight: 600,
-          opacity: hasSelections ? 1 : 0.6,
+          justifyContent: 'center',
+          gap: 8,
+          fontWeight: 700,
+          fontSize: '0.92rem',
+          minHeight: '46px',
+          padding: '10px 18px',
+          borderRadius: 8,
+          width: '100%',
           cursor: hasSelections ? 'pointer' : 'not-allowed',
+          opacity: hasSelections ? 1 : 0.5,
+          background: hasSelections ? '#2563eb' : '#334155',
+          color: '#ffffff',
+          border: 'none',
+          boxShadow: hasSelections ? '0 2px 8px rgba(37, 99, 235, 0.4)' : 'none',
         }}
       >
         ✨ הכן כרטיס אישור למסמכים שנבחרו ({selectedDocs.length + selectedForms.length})
@@ -2336,6 +2715,11 @@ export function ClaimsAiWorkspace({
                     (toolTraceOf(msg.metadata) || []).some((t) => t.tool === 'list_available_claim_documents_and_forms')
                   ) ? (
                     <ClaimsCatalogWidget
+                      claimId={claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || 'DAL-2026-0249')}
+                      onUploadCustomFile={async (file, name, cat) => {
+                        const target = claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || 'DAL-2026-0249');
+                        return uploadChatAttachmentToClaim(target, file, name, cat);
+                      }}
                       onPrepareLink={(docs, forms) => {
                         const parts: string[] = [];
                         if (docs.length > 0) parts.push(`מסמכים שהלקוח נדרש להעלות: ${docs.join(', ')}`);
@@ -2497,57 +2881,59 @@ export function ClaimsAiWorkspace({
                           className="claims-ai-preview-custlink"
                           data-testid="claims-ai-preview-intake-card"
                           style={{
-                            margin: '8px 0',
-                            fontSize: '0.82rem',
-                            background: 'rgba(16, 185, 129, 0.05)',
-                            padding: '10px 14px',
-                            borderRadius: '8px',
+                            margin: '10px 0',
+                            fontSize: '0.85rem',
+                            background: '#071022',
+                            color: '#f8fafc',
+                            padding: '14px 16px',
+                            borderRadius: '10px',
                             lineHeight: '1.6',
-                            border: '1px solid rgba(16, 185, 129, 0.25)',
+                            border: '1.5px solid #10b981',
+                            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <div style={{ fontWeight: 700, color: 'var(--c-emerald, #10b981)', fontSize: '0.9rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                            <div style={{ fontWeight: 800, color: '#34d399', fontSize: '0.95rem' }}>
                               📝 כרטיס אישור – קישור פתיחת תיק חדש ללקוח (claims-intake)
                             </div>
                             {pending.parameters.claim_id ? (
-                              <span style={{ fontSize: '0.72rem', background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>
+                              <span style={{ fontSize: '0.75rem', background: '#064e3b', color: '#6ee7b7', border: '1px solid #059669', padding: '3px 10px', borderRadius: 12, fontWeight: 700 }}>
                                 ממתין למילוי הלקוח
                               </span>
                             ) : null}
                           </div>
 
                           {pending.parameters.claim_id ? (
-                            <div style={{ marginBottom: 4 }}>
-                              <strong>מספר תיק שיוקצה:</strong>{' '}
-                              <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1', fontSize: '0.92rem' }}>
+                            <div style={{ marginBottom: 6, fontSize: '0.9rem' }}>
+                              <strong style={{ color: '#cbd5e1' }}>מספר תיק שיוקצה:</strong>{' '}
+                              <span style={{ fontFamily: 'monospace', fontWeight: 800, color: '#38bdf8', fontSize: '1rem' }}>
                                 {String(pending.parameters.claim_id)}
                               </span>
                             </div>
                           ) : null}
 
-                          <div><strong>שם הלקוח:</strong> {String(pending.parameters.recipient_name || 'לקוח')}</div>
-                          {pending.parameters.recipient_phone ? <div><strong>טלפון (WhatsApp):</strong> {String(pending.parameters.recipient_phone)}</div> : null}
-                          {pending.parameters.recipient_email ? <div><strong>אימייל:</strong> {String(pending.parameters.recipient_email)}</div> : null}
-                          <div><strong>ערוץ שליחה:</strong> {String(pending.parameters.channel || 'copy') === 'whatsapp' ? 'WhatsApp' : String(pending.parameters.channel) === 'email' ? 'אימייל' : String(pending.parameters.channel) === 'both' ? 'אימייל + WhatsApp' : 'העתקת קישור'}</div>
+                          <div style={{ color: '#e2e8f0' }}><strong style={{ color: '#cbd5e1' }}>שם הלקוח:</strong> {String(pending.parameters.recipient_name || 'לקוח')}</div>
+                          {pending.parameters.recipient_phone ? <div style={{ color: '#e2e8f0' }}><strong style={{ color: '#cbd5e1' }}>טלפון (WhatsApp):</strong> {String(pending.parameters.recipient_phone)}</div> : null}
+                          {pending.parameters.recipient_email ? <div style={{ color: '#e2e8f0' }}><strong style={{ color: '#cbd5e1' }}>אימייל:</strong> {String(pending.parameters.recipient_email)}</div> : null}
+                          <div style={{ color: '#e2e8f0' }}><strong style={{ color: '#cbd5e1' }}>ערוץ שליחה:</strong> {String(pending.parameters.channel || 'copy') === 'whatsapp' ? 'WhatsApp' : String(pending.parameters.channel) === 'email' ? 'אימייל' : String(pending.parameters.channel) === 'both' ? 'אימייל + WhatsApp' : 'העתקת קישור'}</div>
 
                           {pending.parameters.intake_url ? (
-                            <div style={{ marginTop: 8, background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', wordBreak: 'break-all' }}>
-                              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginBottom: 2 }}>כתובת קישור טופס פתיחת התיק:</div>
-                              <div style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#0f172a' }}>
+                            <div style={{ marginTop: 10, background: '#0f172a', padding: '8px 12px', borderRadius: '8px', border: '1px solid #334155', wordBreak: 'break-all' }}>
+                              <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}>כתובת קישור טופס פתיחת התיק:</div>
+                              <div style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#4ade80', fontWeight: 700 }}>
                                 {String(pending.parameters.intake_url)}
                               </div>
                             </div>
                           ) : null}
 
                           {/* Interactive Preview Buttons */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: 10 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', marginTop: 12 }}>
                             {pending.parameters.intake_url ? (
                               <a
                                 href={String(pending.parameters.intake_url)}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="btn btn-g btn-xs"
+                                className="btn btn-g"
                                 data-testid="claims-ai-preview-open-intake-btn"
                                 style={{
                                   textDecoration: 'none',
@@ -2555,11 +2941,14 @@ export function ClaimsAiWorkspace({
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   gap: 6,
-                                  minHeight: '34px',
-                                  padding: '6px 12px',
-                                  fontSize: '0.8rem',
-                                  fontWeight: 600,
-                                  borderRadius: '6px',
+                                  minHeight: '44px',
+                                  padding: '8px 14px',
+                                  fontSize: '0.85rem',
+                                  fontWeight: 700,
+                                  borderRadius: '8px',
+                                  background: '#0f172a',
+                                  color: '#ffffff',
+                                  border: '1.5px solid #475569',
                                 }}
                                 title="פותח את טופס הלקוח בטאב חדש לבדיקה בלבד (ללא שליחה וללא כפילויות)"
                               >
@@ -2570,18 +2959,21 @@ export function ClaimsAiWorkspace({
                             {pending.parameters.intake_url ? (
                               <button
                                 type="button"
-                                className="btn btn-g btn-xs"
+                                className="btn btn-g"
                                 data-testid="claims-ai-preview-copy-intake-btn"
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   gap: 6,
-                                  minHeight: '34px',
-                                  padding: '6px 12px',
-                                  fontSize: '0.8rem',
-                                  fontWeight: 600,
-                                  borderRadius: '6px',
+                                  minHeight: '44px',
+                                  padding: '8px 14px',
+                                  fontSize: '0.85rem',
+                                  fontWeight: 700,
+                                  borderRadius: '8px',
+                                  background: '#0f172a',
+                                  color: '#ffffff',
+                                  border: '1.5px solid #475569',
                                 }}
                                 onClick={() => void copyToClipboard(String(pending.parameters.intake_url), `intake-${pending.preview_id || msg.id}`)}
                                 title="העתק את קישור פתיחת התיק ללוח"
@@ -2595,7 +2987,7 @@ export function ClaimsAiWorkspace({
                                 href={String(pending.parameters.wa_link)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="btn btn-g btn-xs"
+                                className="btn btn-g"
                                 data-testid="claims-ai-preview-wa-intake-btn"
                                 style={{
                                   textDecoration: 'none',
@@ -2603,11 +2995,14 @@ export function ClaimsAiWorkspace({
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   gap: 6,
-                                  minHeight: '34px',
-                                  padding: '6px 12px',
-                                  fontSize: '0.8rem',
-                                  fontWeight: 600,
-                                  borderRadius: '6px',
+                                  minHeight: '44px',
+                                  padding: '8px 14px',
+                                  fontSize: '0.85rem',
+                                  fontWeight: 700,
+                                  borderRadius: '8px',
+                                  background: '#16a34a',
+                                  color: '#ffffff',
+                                  border: 'none',
                                 }}
                                 onClick={(e) => handleWhatsAppClick(e, String(pending.parameters.wa_link))}
                                 title="פתיחת וואטסאפ עם הודעה מוכנה הכוללת את קישור פתיחת התיק בלבד"
@@ -2617,7 +3012,7 @@ export function ClaimsAiWorkspace({
                             ) : null}
                           </div>
 
-                          <div style={{ marginTop: 8, fontSize: '0.76rem', color: '#64748b', lineHeight: '1.4' }}>
+                          <div style={{ marginTop: 10, fontSize: '0.78rem', color: '#94a3b8', lineHeight: '1.4' }}>
                             ℹ️ בדיקת הקישור פותחת את טופס הלקוח בלבד ואינה שולחת ואינה פותחת תיק כפול. באישור: ייפתח התיק ויישמר בסטטוס "ממתין למילוי הלקוח", ויישלח במייל אם צוין.
                           </div>
                         </div>
@@ -2627,35 +3022,37 @@ export function ClaimsAiWorkspace({
                           className="claims-ai-preview-custlink"
                           data-testid="claims-ai-preview-upload-card"
                           style={{
-                            margin: '8px 0',
-                            fontSize: '0.82rem',
-                            background: 'rgba(245, 158, 11, 0.05)',
-                            padding: '10px 14px',
-                            borderRadius: '8px',
+                            margin: '10px 0',
+                            fontSize: '0.85rem',
+                            background: '#071022',
+                            color: '#f8fafc',
+                            padding: '14px 16px',
+                            borderRadius: '10px',
                             lineHeight: '1.6',
-                            border: '1px solid rgba(245, 158, 11, 0.3)',
+                            border: '1.5px solid #d97706',
+                            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)',
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                            <div style={{ fontWeight: 700, color: '#d97706', fontSize: '0.9rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                            <div style={{ fontWeight: 800, color: '#f59e0b', fontSize: '0.95rem' }}>
                               📤 כרטיס אישור – העלאת מסמכים לתיק (claims-upload)
                             </div>
                             {pending.parameters.claim_id ? (
-                              <span style={{ fontSize: '0.72rem', background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>
+                              <span style={{ fontSize: '0.75rem', background: '#78350f', color: '#fde68a', border: '1px solid #b45309', padding: '3px 10px', borderRadius: 12, fontWeight: 700 }}>
                                 תיק {String(pending.parameters.claim_id)}
                               </span>
                             ) : null}
                           </div>
 
-                          <div><strong>נמען:</strong> {String(pending.parameters.recipient_name || 'הלקוח')}</div>
-                          {pending.parameters.recipient_phone ? <div><strong>טלפון (WhatsApp):</strong> {String(pending.parameters.recipient_phone)}</div> : null}
-                          {pending.parameters.recipient_email ? <div><strong>אימייל:</strong> {String(pending.parameters.recipient_email)}</div> : null}
-                          <div><strong>ערוץ שליחה:</strong> {String(pending.parameters.channel || 'copy') === 'whatsapp' ? 'WhatsApp' : String(pending.parameters.channel) === 'email' ? 'אימייל' : String(pending.parameters.channel) === 'both' ? 'אימייל + WhatsApp' : 'העתקת קישור'}</div>
+                          <div style={{ color: '#e2e8f0' }}><strong style={{ color: '#cbd5e1' }}>נמען:</strong> {String(pending.parameters.recipient_name || 'הלקוח')}</div>
+                          {pending.parameters.recipient_phone ? <div style={{ color: '#e2e8f0' }}><strong style={{ color: '#cbd5e1' }}>טלפון (WhatsApp):</strong> {String(pending.parameters.recipient_phone)}</div> : null}
+                          {pending.parameters.recipient_email ? <div style={{ color: '#e2e8f0' }}><strong style={{ color: '#cbd5e1' }}>אימייל:</strong> {String(pending.parameters.recipient_email)}</div> : null}
+                          <div style={{ color: '#e2e8f0' }}><strong style={{ color: '#cbd5e1' }}>ערוץ שליחה:</strong> {String(pending.parameters.channel || 'copy') === 'whatsapp' ? 'WhatsApp' : String(pending.parameters.channel) === 'email' ? 'אימייל' : String(pending.parameters.channel) === 'both' ? 'אימייל + WhatsApp' : 'העתקת קישור'}</div>
 
                           {/* Category A: Requested documents from customer */}
                           {Array.isArray(pending.parameters.requested_documents) && pending.parameters.requested_documents.length > 0 ? (
-                            <div style={{ marginTop: 8, background: '#eff6ff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
-                              <div style={{ fontSize: '0.78rem', color: '#1e40af', fontWeight: 700, marginBottom: 4 }}>
+                            <div style={{ marginTop: 10, background: '#0c1b33', padding: '10px 12px', borderRadius: '8px', border: '1px solid #1e3a8a' }}>
+                              <div style={{ fontSize: '0.82rem', color: '#38bdf8', fontWeight: 800, marginBottom: 6 }}>
                                 📥 מסמכים שהלקוח נדרש להעלות אלינו ({pending.parameters.requested_documents.length}):
                               </div>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -2665,13 +3062,14 @@ export function ClaimsAiWorkspace({
                                     style={{
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      gap: 4,
-                                      background: '#dbeafe',
-                                      color: '#1e3a8a',
-                                      fontSize: '0.75rem',
-                                      padding: '2px 8px',
+                                      gap: 6,
+                                      background: '#0369a1',
+                                      color: '#ffffff',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 700,
+                                      padding: '4px 10px',
                                       borderRadius: 12,
-                                      border: '1px solid #93c5fd',
+                                      border: '1px solid #38bdf8',
                                     }}
                                   >
                                     ✓ {doc}
@@ -2682,11 +3080,11 @@ export function ClaimsAiWorkspace({
                                         background: 'none',
                                         border: 'none',
                                         cursor: 'pointer',
-                                        color: '#ef4444',
+                                        color: '#fca5a5',
                                         padding: 0,
-                                        marginLeft: 4,
-                                        fontSize: '0.8rem',
-                                        fontWeight: 700,
+                                        marginLeft: 2,
+                                        fontSize: '0.85rem',
+                                        fontWeight: 800,
                                       }}
                                       title={`הסר את ${doc}`}
                                     >
@@ -2700,8 +3098,8 @@ export function ClaimsAiWorkspace({
 
                           {/* Category B: Provided forms to sign/fill */}
                           {Array.isArray(pending.parameters.provided_forms) && pending.parameters.provided_forms.length > 0 ? (
-                            <div style={{ marginTop: 8, background: '#f0fdf4', padding: '8px 10px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
-                              <div style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 700, marginBottom: 4 }}>
+                            <div style={{ marginTop: 10, background: '#0a231b', padding: '10px 12px', borderRadius: '8px', border: '1px solid #14532d' }}>
+                              <div style={{ fontSize: '0.82rem', color: '#4ade80', fontWeight: 800, marginBottom: 6 }}>
                                 📝 טפסים שאנו מספקים ללקוח למילוי וחתימה ({pending.parameters.provided_forms.length}):
                               </div>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -2711,13 +3109,14 @@ export function ClaimsAiWorkspace({
                                     style={{
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      gap: 4,
-                                      background: '#dcfce7',
-                                      color: '#14532d',
-                                      fontSize: '0.75rem',
-                                      padding: '2px 8px',
+                                      gap: 6,
+                                      background: '#15803d',
+                                      color: '#ffffff',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 700,
+                                      padding: '4px 10px',
                                       borderRadius: 12,
-                                      border: '1px solid #86efac',
+                                      border: '1px solid #4ade80',
                                     }}
                                   >
                                     ✍️ {form}
@@ -2728,11 +3127,11 @@ export function ClaimsAiWorkspace({
                                         background: 'none',
                                         border: 'none',
                                         cursor: 'pointer',
-                                        color: '#ef4444',
+                                        color: '#fca5a5',
                                         padding: 0,
-                                        marginLeft: 4,
-                                        fontSize: '0.8rem',
-                                        fontWeight: 700,
+                                        marginLeft: 2,
+                                        fontSize: '0.85rem',
+                                        fontWeight: 800,
                                       }}
                                       title={`הסר את ${form}`}
                                     >
@@ -2744,68 +3143,51 @@ export function ClaimsAiWorkspace({
                             </div>
                           ) : null}
 
-                          {/* Missing forms handling & upload button */}
-                          {Array.isArray(pending.parameters.missing_forms) && pending.parameters.missing_forms.length > 0 ? (
-                            <div style={{ marginTop: 8, background: '#fffbeb', padding: '8px 10px', borderRadius: '6px', border: '1px solid #fde68a' }}>
-                              <div style={{ fontSize: '0.78rem', color: '#b45309', fontWeight: 700, marginBottom: 4 }}>
-                                ⚠️ טופס חסר במאגר: {pending.parameters.missing_forms.join(', ')}
-                              </div>
-                              <div style={{ fontSize: '0.74rem', color: '#78350f', marginBottom: 6 }}>
-                                הטופס אינו מוגדר במאגר המערכת. באפשרותך לצרף אותו מקובץ כאן:
-                              </div>
-                              <button
-                                type="button"
-                                className="btn btn-g btn-xs"
-                                onClick={() => handleTriggerFormUpload(msg.id, String(pending.parameters.claim_id || claimId || 'DAL-2026-0249'))}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 6,
-                                  fontSize: '0.76rem',
-                                  padding: '4px 10px',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {uploadingFormForMsg === msg.id ? '⏳ מעלה טופס...' : '➕ העלה טופס מקובץ (PDF/תמונה)'}
-                              </button>
-                            </div>
-                          ) : (
-                            <div style={{ marginTop: 6 }}>
-                              <button
-                                type="button"
-                                className="btn btn-g btn-xs"
-                                onClick={() => handleTriggerFormUpload(msg.id, String(pending.parameters.claim_id || claimId || 'DAL-2026-0249'))}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 4,
-                                  fontSize: '0.74rem',
-                                  padding: '2px 8px',
-                                  color: '#475569',
-                                }}
-                              >
-                                {uploadingFormForMsg === msg.id ? '⏳ מעלה...' : '➕ צרף טופס נוסף מקובץ'}
-                              </button>
-                            </div>
-                          )}
+                          {/* Permanent "➕ העלה מסמך משלך" button in Card B */}
+                          <div style={{ marginTop: 10 }}>
+                            <button
+                              type="button"
+                              className="btn btn-g"
+                              data-testid="claims-ai-preview-upload-doc-btn"
+                              onClick={() => handleTriggerFormUpload(msg.id, String(pending.parameters.claim_id || claimId || 'DAL-2026-0249'))}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 8,
+                                minHeight: '44px',
+                                padding: '8px 14px',
+                                background: '#0f172a',
+                                border: '1.5px dashed #4ade80',
+                                color: '#4ade80',
+                                borderRadius: 8,
+                                fontWeight: 700,
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                width: '100%',
+                              }}
+                            >
+                              {uploadingFormForMsg === msg.id ? '⏳ מעלה מסמך...' : '➕ העלה מסמך משלך (הוסף טופס מקובץ / צילום)'}
+                            </button>
+                          </div>
 
                           {pending.parameters.upload_url ? (
-                            <div style={{ marginTop: 8, background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', wordBreak: 'break-all' }}>
-                              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginBottom: 2 }}>כתובת קישור העלאת מסמכים:</div>
-                              <div style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#0f172a' }}>
+                            <div style={{ marginTop: 10, background: '#0f172a', padding: '8px 12px', borderRadius: '8px', border: '1px solid #334155', wordBreak: 'break-all' }}>
+                              <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600, marginBottom: 4 }}>כתובת קישור העלאת מסמכים:</div>
+                              <div style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#38bdf8', fontWeight: 700 }}>
                                 {String(pending.parameters.upload_url)}
                               </div>
                             </div>
                           ) : null}
 
                           {/* Interactive Preview Buttons */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: 10 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', marginTop: 12 }}>
                             {pending.parameters.upload_url ? (
                               <a
                                 href={String(pending.parameters.upload_url)}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="btn btn-g btn-xs"
+                                className="btn btn-g"
                                 data-testid="claims-ai-preview-open-upload-btn"
                                 style={{
                                   textDecoration: 'none',
@@ -2813,11 +3195,14 @@ export function ClaimsAiWorkspace({
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   gap: 6,
-                                  minHeight: '34px',
-                                  padding: '6px 12px',
-                                  fontSize: '0.8rem',
-                                  fontWeight: 600,
-                                  borderRadius: '6px',
+                                  minHeight: '44px',
+                                  padding: '8px 14px',
+                                  fontSize: '0.85rem',
+                                  fontWeight: 700,
+                                  borderRadius: '8px',
+                                  background: '#0f172a',
+                                  color: '#ffffff',
+                                  border: '1.5px solid #475569',
                                 }}
                                 title="פותח את דף העלאת המסמכים בטאב חדש לבדיקה"
                               >
@@ -2828,18 +3213,21 @@ export function ClaimsAiWorkspace({
                             {pending.parameters.upload_url ? (
                               <button
                                 type="button"
-                                className="btn btn-g btn-xs"
+                                className="btn btn-g"
                                 data-testid="claims-ai-preview-copy-upload-btn"
                                 style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   gap: 6,
-                                  minHeight: '34px',
-                                  padding: '6px 12px',
-                                  fontSize: '0.8rem',
-                                  fontWeight: 600,
-                                  borderRadius: '6px',
+                                  minHeight: '44px',
+                                  padding: '8px 14px',
+                                  fontSize: '0.85rem',
+                                  fontWeight: 700,
+                                  borderRadius: '8px',
+                                  background: '#0f172a',
+                                  color: '#ffffff',
+                                  border: '1.5px solid #475569',
                                 }}
                                 onClick={() => void copyToClipboard(String(pending.parameters.upload_url), `upload-${pending.preview_id || msg.id}`)}
                                 title="העתק את קישור ההעלאה ללוח"
@@ -2853,7 +3241,7 @@ export function ClaimsAiWorkspace({
                                 href={String(pending.parameters.wa_link)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="btn btn-g btn-xs"
+                                className="btn btn-g"
                                 data-testid="claims-ai-preview-wa-upload-btn"
                                 style={{
                                   textDecoration: 'none',
@@ -2861,11 +3249,14 @@ export function ClaimsAiWorkspace({
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   gap: 6,
-                                  minHeight: '34px',
-                                  padding: '6px 12px',
-                                  fontSize: '0.8rem',
-                                  fontWeight: 600,
-                                  borderRadius: '6px',
+                                  minHeight: '44px',
+                                  padding: '8px 14px',
+                                  fontSize: '0.85rem',
+                                  fontWeight: 700,
+                                  borderRadius: '8px',
+                                  background: '#16a34a',
+                                  color: '#ffffff',
+                                  border: 'none',
                                 }}
                                 onClick={(e) => handleWhatsAppClick(e, String(pending.parameters.wa_link))}
                                 title="פתיחת וואטסאפ עם קישור העלאת מסמכים"
@@ -2875,7 +3266,7 @@ export function ClaimsAiWorkspace({
                             ) : null}
                           </div>
 
-                          <div style={{ marginTop: 8, fontSize: '0.76rem', color: '#64748b', lineHeight: '1.4' }}>
+                          <div style={{ marginTop: 10, fontSize: '0.78rem', color: '#94a3b8', lineHeight: '1.4' }}>
                             ⚡ באישור: ייפתח קישור מאובטח בתוקף ל-24 שעות להעלאת מסמכים ותמונות, והקישור יישלח בערוץ הנבחר.
                           </div>
                         </div>

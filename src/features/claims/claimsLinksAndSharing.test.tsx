@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ClaimsAiWorkspace } from './ClaimsAiWorkspace';
+import { ClaimsAiWorkspace, ClaimsCatalogWidget } from './ClaimsAiWorkspace';
 
 const { listClaimsAiConversations, listClaimsAiMessages, getSession, insertClaimsAiMessage } = vi.hoisted(() => ({
   listClaimsAiConversations: vi.fn(),
@@ -741,5 +741,78 @@ describe('Claims Links and Sharing UI (Task 8)', () => {
     expect(widget.textContent).toContain('מאגר מסמכים וטפסים לבחירה מהירה');
     expect(widget.textContent).toContain('רישיון רכב');
     expect(widget.textContent).toContain('ייפוי כוח');
+    // Permanent custom upload button is present
+    expect(screen.getByTestId('claims-catalog-upload-custom-btn')).toBeDefined();
+  });
+
+  it('allows manual upload in ClaimsCatalogWidget and appends to selections', async () => {
+    const onPrepareLink = vi.fn();
+    const onUploadCustomFile = vi.fn().mockResolvedValue({ success: true, file_id: 'file-xyz' });
+
+    render(
+      <ClaimsCatalogWidget
+        claimId="DAL-2026-0249"
+        onUploadCustomFile={onUploadCustomFile}
+        onPrepareLink={onPrepareLink}
+      />
+    );
+
+    expect(screen.getByTestId('claims-catalog-widget')).toBeDefined();
+
+    // 1. Permanent upload button is present
+    const uploadBtn = screen.getByTestId('claims-catalog-upload-custom-btn');
+    expect(uploadBtn).toBeDefined();
+
+    // 2. Select standard document first (e.g., רישיון רכב)
+    const licenseCheckbox = screen.getByLabelText(/רישיון רכב/);
+    await act(async () => {
+      fireEvent.click(licenseCheckbox);
+    });
+
+    const prepBtn = screen.getByTestId('claims-catalog-prepare-btn');
+    expect(prepBtn.textContent).toContain('(1)');
+
+    // 3. Simulate file selection via hidden file input
+    const file = new File(['content'], 'custom_waiver.pdf', { type: 'application/pdf' });
+    const fileInput = document.querySelector('input[type="file"][accept*="pdf"]') as HTMLInputElement;
+    expect(fileInput).not.toBeNull();
+
+    await act(async () => {
+      fireEvent.change(fileInput, { target: { files: [file] } });
+    });
+
+    // 4. Inline upload dialog should now be visible
+    expect(screen.getByTestId('claims-catalog-upload-dialog')).toBeDefined();
+    const nameInput = screen.getByTestId('claims-catalog-custom-name-input') as HTMLInputElement;
+    expect(nameInput.value).toBe('custom_waiver');
+
+    // Change title
+    await act(async () => {
+      fireEvent.change(nameInput, { target: { value: 'טופס ויתור סודיות מותאם' } });
+    });
+
+    // Click save
+    const saveBtn = screen.getByTestId('claims-catalog-save-custom-btn');
+    await act(async () => {
+      fireEvent.click(saveBtn);
+    });
+
+    // 5. Verify upload was called with custom title and default category B
+    expect(onUploadCustomFile).toHaveBeenCalledWith(file, 'טופס ויתור סודיות מותאם', 'cat_b');
+
+    // 6. Verify selection count is now 2 (standard doc + new custom form) without resetting prior selection
+    await waitFor(() => {
+      expect(prepBtn.textContent).toContain('(2)');
+    });
+
+    // 7. Click prepare link button and verify documents and forms are passed
+    await act(async () => {
+      fireEvent.click(prepBtn);
+    });
+
+    expect(onPrepareLink).toHaveBeenCalledWith(
+      ['רישיון רכב'],
+      ['טופס ויתור סודיות מותאם']
+    );
   });
 });

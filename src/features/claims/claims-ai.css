@@ -905,3 +905,127 @@
   margin: 6px 16px;
 }
 
+/* Document Catalog Widget & Customer Link Previews - High Contrast, Theme-Aware, Mobile-Friendly */
+.claims-root .claims-catalog-widget {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--bg2, #071022);
+  border: 1.5px solid var(--br2, #1e293b);
+  border-radius: 12px;
+  color: var(--t, #f8fafc);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.claims-root .claims-catalog-head {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--t, #ffffff);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.claims-root .claims-catalog-section-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.claims-root .claims-catalog-section-title.cat-a {
+  color: #38bdf8;
+}
+
+.claims-root .claims-catalog-section-title.cat-b {
+  color: #4ade80;
+}
+
+.claims-root .claims-catalog-items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .claims-root .claims-catalog-items-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.claims-root .claims-catalog-item-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 10px 14px;
+  border-radius: 8px;
+  min-height: 46px;
+  user-select: none;
+  border: 1.5px solid var(--br, #334155);
+  background: var(--bg3, #0f172a);
+  color: var(--t, #f8fafc);
+  transition: all 0.15s ease-in-out;
+  box-sizing: border-box;
+}
+
+.claims-root .claims-catalog-item-label:hover {
+  border-color: var(--ac, #3b82f6);
+  background: var(--bg4, #1e293b);
+}
+
+.claims-root .claims-catalog-item-label.selected.cat-a {
+  background: #0369a1;
+  border-color: #38bdf8;
+  color: #ffffff;
+  font-weight: 800;
+  box-shadow: 0 0 0 1px #38bdf8;
+}
+
+.claims-root .claims-catalog-item-label.selected.cat-b {
+  background: #15803d;
+  border-color: #4ade80;
+  color: #ffffff;
+  font-weight: 800;
+  box-shadow: 0 0 0 1px #4ade80;
+}
+
+.claims-root .claims-catalog-item-checkbox {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  cursor: pointer;
+  accent-color: #0284c7;
+}
+
+.claims-root .claims-catalog-item-label.cat-b .claims-catalog-item-checkbox {
+  accent-color: #16a34a;
+}
+
+.claims-root .claims-catalog-item-name {
+  flex: 1;
+  font-size: 13.5px;
+  word-break: break-word;
+}
+
+.claims-root .claims-catalog-upload-box {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1.5px dashed #38bdf8;
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+

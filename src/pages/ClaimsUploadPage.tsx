@@ -27,6 +27,8 @@ type DocItem = {
   uploadedCount?: number;
   allowMultiple?: boolean;
   formDownload?: boolean;
+  formDownloadUrl?: string | null;
+  formFileName?: string;
   letter?: Letter | null;
 };
 
@@ -174,7 +176,27 @@ export default function ClaimsUploadPage() {
                     ) : null}
                   </div>
                 ) : null}
-                {formLater ? (
+                {d.formDownloadUrl ? (
+                  <div style={{ marginBottom: 10 }}>
+                    <a
+                      href={d.formDownloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={d.formFileName || d.label}
+                      style={{
+                        ...btnStyle,
+                        background: '#0284c7',
+                        color: '#fff',
+                        textDecoration: 'none',
+                        fontSize: 15,
+                        fontWeight: 800,
+                      }}
+                      data-testid={`cust-download-form-${d.id}`}
+                    >
+                      📥 הורד טופס למילוי ({d.formFileName || d.label})
+                    </a>
+                  </div>
+                ) : formLater ? (
                   <div data-testid={`cust-form-hold-${d.id}`} style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', marginBottom: 10 }}>
                     הורדת טופס קבוע תתווסף אחרי שהטופס יועלה במערכת. כרגע אפשר להעלות את הקובץ שמולא/צולם.
                   </div>

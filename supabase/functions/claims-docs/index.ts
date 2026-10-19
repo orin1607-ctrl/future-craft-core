@@ -456,6 +456,30 @@ Deno.serve(async (req) => {
           allowUpload: rd.allowUpload !== "false",
         });
       }
+      const { data: staffFiles } = await sb
+        .from("claims_documents")
+        .select("id, doc_request_id, storage_path, original_name, staff_title, doc_kind")
+        .eq("claim_id", claimId);
+
+      const downloadUrlByReq = new Map<string, { url: string; name: string }>();
+      for (const f of staffFiles || []) {
+        if (!f.storage_path) continue;
+        const matchingDoc = (docs || []).find((d) =>
+          d.id === f.doc_request_id ||
+          (f.original_name && f.original_name.toLowerCase().includes(d.label.toLowerCase())) ||
+          (f.staff_title && f.staff_title.toLowerCase().includes(d.label.toLowerCase()))
+        );
+        if (matchingDoc && !downloadUrlByReq.has(matchingDoc.id)) {
+          const { data: su } = await sb.storage.from(BUCKET).createSignedUrl(f.storage_path, 86400);
+          if (su?.signedUrl) {
+            downloadUrlByReq.set(matchingDoc.id, {
+              url: su.signedUrl,
+              name: f.original_name || f.staff_title || matchingDoc.label,
+            });
+          }
+        }
+      }
+
       return jsonResponse({
         success: true,
         clientName: claim?.client_name || "לקוח",
@@ -469,7 +493,9 @@ Deno.serve(async (req) => {
           receivedAt: d.received_at,
           uploadedCount: uploadedByReq.get(d.id) || 0,
           allowMultiple: MULTI_DOC_KEYS.has(String(d.doc_key || "")),
-          formDownload: false,
+          formDownload: downloadUrlByReq.has(d.id),
+          formDownloadUrl: downloadUrlByReq.get(d.id)?.url || null,
+          formFileName: downloadUrlByReq.get(d.id)?.name || d.label,
           letter: letterByReq.get(d.id) || null,
         })),
       });
