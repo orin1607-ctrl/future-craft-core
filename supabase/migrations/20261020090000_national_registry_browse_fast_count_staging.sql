@@ -73,3 +73,8 @@ BEGIN
 END $$;
 SELECT count(*) functions_with_own_timeout FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
  WHERE n.nspname = 'public' AND p.proname LIKE 'nr\_%' AND p.proconfig::text LIKE '%statement_timeout=25s%';
+
+-- the lead stream's database calls get the same function-level limit (the service role's API timeout is 8 s; a slow
+-- moment on the Micro disk – e.g. maintenance – must not drop a run)
+ALTER FUNCTION public.nr_lead_candidates(integer) SET statement_timeout = '25s';
+ALTER FUNCTION public.nr_lead_store(jsonb, jsonb) SET statement_timeout = '25s';
