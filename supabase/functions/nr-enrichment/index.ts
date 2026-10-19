@@ -46,10 +46,13 @@ function decode(t: string): string {
 const textOf = (html: string) => decode(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<noscript[\s\S]*?<\/noscript>/gi, " ")
   .replace(/<br\s*\/?>|<\/(p|div|li|h\d|tr|td|section|article)>/gi, "\n").replace(/<[^>]+>/g, " ")).replace(/[ \t ]+/g, " ").replace(/\n\s*\n+/g, "\n");
 
+let PAGE_CAP = 1_500_000;
 async function get(url: string, timeoutMs = 12_000, accept = "text/html"): Promise<{ status: number; url: string; type: string; body: string }> {
   const r = await fetch(url, { headers: { "User-Agent": UA, Accept: accept, "Accept-Language": "he,en;q=0.8" }, redirect: "follow", signal: AbortSignal.timeout(timeoutMs) });
   const type = r.headers.get("content-type") || "";
-  const body = /text|xml|json|html/i.test(type) || !type ? (await r.text()).slice(0, 1_500_000) : "";
+  let body = "";
+  if (/text|xml|json|html/i.test(type) || !type) { const t = await r.text(); body = t.length > PAGE_CAP ? t.slice(0, PAGE_CAP * 0.7) + t.slice(-PAGE_CAP * 0.3) : t; }
+  else await r.body?.cancel().catch(() => {});
   return { status: r.status, url: r.url, type, body };
 }
 
@@ -844,17 +847,267 @@ async function tick(sb: SupabaseClient) {
   }
 }
 
+// ════════════════ 6. Common Crawl web graph → Israeli business domains (open data, domain names only) ════════════════
+const CC = "https://data.commoncrawl.org/";
+async function ccFirstHost(path: string): Promise<string> {
+  const r = await fetch(CC + path, { headers: { Range: "bytes=0-65535", "User-Agent": UA }, signal: AbortSignal.timeout(30_000) });
+  const reader = r.body!.pipeThrough(new DecompressionStream("gzip")).pipeThrough(new TextDecoderStream()).getReader();
+  let buf = "";
+  try { while (!buf.includes("\n")) { const { value, done } = await reader.read(); if (done) break; buf += value; } } catch { /* truncated range – first line is enough */ }
+  reader.cancel().catch(() => {});
+  return (buf.split("\n")[0].split("\t")[1] || "").trim();
+}
+async function harvestCc(sb: SupabaseClient) {
+  const src = await source(sb, "enr:cc_domains");
+  if (!src) return { error: "no source" };
+  const t0 = Date.now();
+  const graph = String(src.config.graph || "cc-main-2026-jun-jul-aug");
+  const list = await (await fetch(`${CC}projects/hyperlinkgraph/${graph}/host/${graph}-host-vertices.paths.gz`, { signal: AbortSignal.timeout(30_000) })).body!
+    .pipeThrough(new DecompressionStream("gzip")).pipeThrough(new TextDecoderStream());
+  let paths = ""; for await (const c of list) paths += c;
+  const parts = paths.split("\n").map((x) => x.trim()).filter(Boolean);
+  // parts are sorted by reversed host name: find the ones whose range covers "il."
+  let idx = Number(src.config.part ?? -1);
+  if (idx < 0) {
+    let lo = 0, hi = parts.length - 1;
+    while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if ((await ccFirstHost(parts[mid])) <= "il.") lo = mid; else hi = mid - 1; }
+    idx = lo;
+  }
+  const domains = new Set<string>();
+  for (const pi of [idx, idx + 1]) {
+    if (pi >= parts.length) break;
+    if (pi === idx + 1 && !(await ccFirstHost(parts[pi])).startsWith("il.")) break;
+    const st = (await fetch(CC + parts[pi], { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(90_000) })).body!
+      .pipeThrough(new DecompressionStream("gzip")).pipeThrough(new TextDecoderStream());
+    let rest = "", seen = false;
+    for await (const chunk of st) {
+      const lines = (rest + chunk).split("\n"); rest = lines.pop() || "";
+      for (const l of lines) {
+        const h = l.slice(l.indexOf("\t") + 1);
+        if (!h.startsWith("il.")) { if (seen && h > "il.") break; continue; }
+        seen = true;
+        const p = h.split(".");
+        // il.co.example(.www) → example.co.il ; business zones only (no academic / government / municipal / school / army)
+        if (p.length >= 3 && (p[1] === "co" || p[1] === "org" || p[1] === "net") && /^[a-z0-9-]{2,63}$/.test(p[2])) domains.add(`${p[2]}.${p[1]}.il`);
+      }
+      if (seen && rest.slice(rest.indexOf("\t") + 1) > "il.~") break;
+    }
+  }
+  const rows = [...domains].map((d) => ({ domain: d, source: "enr:cc_domains", priority: d.endsWith(".co.il") ? 100 : 120 }));
+  for (let i = 0; i < rows.length; i += 2000) {
+    const { error } = await sb.from("nr_site_queue").upsert(rows.slice(i, i + 2000), { onConflict: "domain", ignoreDuplicates: true });
+    if (error) throw new Error("nr_site_queue: " + error.message);
+  }
+  await sb.from("nr_sources").update({ status: "completed", total_records: rows.length, records_read: rows.length, last_run_at: now(), finished_at: now(),
+    duration_ms: Date.now() - t0, config: { ...src.config, part: idx, harvested_at: now(), domains: rows.length },
+    status_reason: `נטענו ${rows.length.toLocaleString("en")} שמות מתחם ישראליים עסקיים (.co.il / .org.il / .net.il) מגרף ${graph}; רענון רבעוני` }).eq("key", "enr:cc_domains");
+  await event(sb, "info", `Common Crawl: נטענו ${rows.length.toLocaleString("en")} אתרים ישראליים לתור הזיהוי`, "enr:cc_domains");
+  return { part: idx, domains: rows.length, ms: Date.now() - t0 };
+}
+
+// ════════════════ 7. identify an Israeli site against the registry; add a new business only with a clear identity ════════════════
+const COPYRIGHT = /(?:©|&copy;|כל הזכויות שמורות(?:\s*ל-?)?|all rights reserved(?:\s*to)?|copyright)\s*(?:\d{4}\s*[-–]?\s*(?:\d{4})?)?\s*[:|\-–]?\s*([^\n|©<]{2,60})/i;
+const GENERIC_NAME = /^(דף הבית|ראשי|home|homepage|welcome|ברוכים הבאים|אתר|website|כל הזכויות שמורות|all rights reserved|בניית אתרים|תקנון|צור קשר|אודות)$/i;
+function cleanName(n: string, domain: string): string {
+  let s = clean(decode(n)).replace(/\s*(כל הזכויות שמורות|all rights reserved).*$/i, "").replace(/\b(19|20)\d{2}\b/g, "").replace(/[|•·–\-:,.]+\s*$/, "").replace(/^\s*[|•·–\-:,.]+/, "").trim();
+  // "1868 - מסעדה בשרית כשרה בירושלים" → "1868": a slogan after the separator is not part of the name
+  const seg = s.split(/\s+[-–|]\s+/)[0].trim();
+  if (seg.length >= 2) s = seg;
+  if (s.toLowerCase() === domain || /\.(co|org|net)\.il$|\.com$/i.test(s) || GENERIC_NAME.test(s) || s.length < 2 || s.length > 60) return "";
+  if (/designed by|powered by|developed by|phpbb|wordpress|wix|elementor|בניית אתרים|עיצוב אתרים|קידום אתרים|template|theme/i.test(s)) return "";
+  return s;
+}
+type Identity = { cityHint?: string; name: string; nameFrom: string; phones: string[]; emails: string[]; ids: string[]; city: string; address: string; socials: Record<string, string>; origin: string; url: string; html: string };
+async function readIdentity(domain: string): Promise<{ status: string; note?: string; id?: Identity }> {
+  let page: Awaited<ReturnType<typeof get>> | null = null, note = "";
+  for (const u of [`https://${domain}/`, `https://www.${domain}/`, `http://www.${domain}/`]) {
+    try {
+      if (!(await allowed(u))) return { status: "robots", note: "robots.txt" };
+      const r = await get(u, 5_000); if (r.status === 200 && /html/i.test(r.type) && r.body.length > 300) { page = r; break; } note = "HTTP " + r.status;
+    } catch (e) {
+      note = (e as Error).message.slice(0, 60);
+      // a name that does not resolve or refuses connections: no point trying the other variants
+      if (/dns|resolve|lookup|refused|ENOTFOUND|certificate/i.test(note) && u.startsWith("https://www.")) break;
+    }
+  }
+  if (!page) return { status: "unreachable", note };
+  const host = new URL(page.url).hostname.replace(/^www\./, "").toLowerCase();
+  const label = (h: string) => h.replace(/\.(co|org|net|ac|gov|muni|k12)\.[a-z]{2}$|\.[a-z]{2,}$/, "").split(".").pop() || h;
+  if (SOCIAL_HOST.test(host) || label(host) !== label(domain)) return { status: "not_business", note: "מפנה לאתר אחר: " + host };
+  let html = page.body, text = textOf(html);
+  if (PARKED.test(text.slice(0, 4000)) && text.length < 6000) return { status: "parked", note: "דומיין חונה / בבנייה" };
+  const phones = new Set<string>(), mails = new Set<string>(), socials: Record<string, string> = {};
+  let ldName = "", city = "", address = "";
+  const collect = (h: string, t: string) => {
+    for (const m of h.matchAll(/href\s*=\s*["']([^"']+)["']/gi)) {
+      const x = decode(m[1]);
+      if (/^tel:/i.test(x)) { const p = normPhone(decodeURIComponent(x.slice(4))); if (p) phones.add(p); }
+      else if (/^mailto:/i.test(x)) mails.add(decodeURIComponent(x.slice(7).split("?")[0]).trim().toLowerCase());
+      else for (const [net, rx] of SOCIAL_RX) if (!socials[net] && rx.test(x)) socials[net] = x.split("#")[0];
+    }
+    for (const m of t.match(PHONE_TXT) || []) { const p = normPhone(m); if (p) phones.add(p); }
+    for (const m of t.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi) || []) mails.add(m.toLowerCase());
+    for (const o of jsonLd(h)) if (typeIs(o, /Organization|LocalBusiness|Corporation|Store|Restaurant|Service|Company/)) {
+      if (!ldName && o.name) ldName = clean(o.name);
+      for (const tp of [].concat((o.telephone as never) || [])) { const p = normPhone(String(tp)); if (p) phones.add(p); }
+      const ad = o.address as Obj | undefined;
+      if (ad && typeof ad === "object") { city = city || clean(ad.addressLocality); address = address || clean(ad.streetAddress); }
+    }
+  };
+  collect(html, text);
+  let ids = regIdsOn(text);
+  if (!ids.length || !phones.size) {
+    const l = [...html.matchAll(/<a\b[^>]*href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]{0,120}?)<\/a>/gi)]
+      .find((m) => /contact|צור[-_ %20]*קשר|יצירת[-_ %20]*קשר|אודות|about/i.test(decode(m[1]) + " " + textOf(m[2])));
+    if (l) {
+      try {
+        const pu = new URL(decode(l[1]), page.url);
+        if (label(pu.hostname.replace(/^www\./, "")) === label(domain) && await allowed(pu.href)) {
+          const p2 = await get(pu.href, 6_000);
+          if (p2.status === 200 && /html/i.test(p2.type)) { const t2 = textOf(p2.body); collect(p2.body, t2); html += "\n" + p2.body; text += "\n" + t2; ids = regIdsOn(text); }
+        }
+      } catch { /* contact page not reachable */ }
+    }
+  }
+  if (!address) { const m = text.match(/(?:כתובת|כתובתנו|משרדינו|address)\s*[:：]?\s*([^\n]{6,80})/i); if (m) address = clean(m[1]); }
+  if (!city && address.includes(",")) city = clean(address.split(",").pop() || "").replace(/\d+/g, "").replace(/[.]+$/, "").trim();
+  const og = (html.match(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i) || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:site_name["']/i) || [])[1] || "";
+  const cr = (text.match(COPYRIGHT) || [])[1] || "";
+  const tt = cleanName(decode((html.match(/<title[^>]*>([^<]*)/i) || [])[1] || ""), domain);
+  const body = text.replace(/\s+/g, " ");
+  const titleName = tt && body.split(tt).length - 1 >= 2 ? tt : "";
+  const cands: [string, string][] = [[ldName, "json-ld"], [og, "og:site_name"], [cr, "©"], [titleName, "title"]];
+  let name = "", nameFrom = "";
+  for (const [n, f] of cands) { const c = cleanName(n, domain); if (c) { name = c; nameFrom = f; break; } }
+  const em = [...mails].filter((m) => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(m) && !/\.(png|jpe?g|gif|webp|svg)$/.test(m) && (m.endsWith("@" + domain) || m.endsWith("." + domain) || FREE_MAIL.test(m)) && !/sentry|wixpress|example\.|domain\./.test(m)).slice(0, 5);
+  const cityHint = [address, ...(text.match(/[^\n]*(?:כתובת|רחוב|רח['׳]|ת\.ד|שד['׳]|שדרות|address)[^\n]*/gi) || []).slice(0, 4), text.slice(-1500)].join("\n");
+  return { status: "ok", id: { name, nameFrom, phones: [...phones].slice(0, 8), emails: em, ids, city, address, socials, origin: new URL(page.url).origin, url: page.url, html, cityHint } };
+}
+type Lookup = { domain: number | null; reg: { id: number; reg_id: string; name: string; website: string | null }[]; phones: { id: number; value: string }[]; emails: { id: number; value: string }[] };
+async function identifyOne(sb: SupabaseClient, domain: string): Promise<{ status: string; business_id?: number; method?: string; note?: string }> {
+  const r = await readIdentity(domain);
+  if (r.status !== "ok" || !r.id) return { status: r.status, note: r.note };
+  const id = r.id;
+  const lk = await rpc<Lookup>(sb, "nr_identify_lookup", { p_domain: domain, p_phones: id.phones, p_emails: id.emails, p_reg_ids: id.ids });
+  if (lk.domain) return { status: "known", business_id: lk.domain, note: "האתר כבר משויך לעסק במאגר" };
+  const attach = async (bid: number, method: string, proof: string[]) => {
+    await rpc(sb, "nr_ingest", { p_source: "enr:site_identify", p_rows: [{ business_id: bid, name: id.name || domain, rid: domain, url: id.url, websites: [id.origin],
+      phones: id.phones.map((p) => ({ v: p, d: fmtPhone(p), sub: p.startsWith("05") ? "mobile" : "main" })), emails: id.emails.map((v) => ({ v })), socials: id.socials,
+      fields: { identified_by: method, proof, name_on_site: id.name || null, name_from: id.nameFrom || null } }] });
+    await rpc(sb, "nr_confirm_site", { p_business: bid, p_url: id.origin, p_evidence: proof });
+    return { status: "matched", business_id: bid, method, note: proof.join(", ") };
+  };
+  const low = textOf(id.html).toLowerCase();
+  const nameHit = (n: string) => nameTokens(n).filter((w) => w.length >= 4).some((w) => low.includes(w.toLowerCase()));
+  // the registry and the district map use Hebrew locality names: an English city from the site's structured data is replaced when the page names one
+  if (/^[A-Za-z]/.test(id.city) && id.cityHint) { const cs = await rpc<string[] | null>(sb, "nr_cities_in_text", { p_text: id.cityHint }); if (cs && cs.length === 1) id.city = cs[0]; }
+  if (!id.city && id.address) { const c = await rpc<string | null>(sb, "nr_city_in_text", { p_text: id.address }); if (c) id.city = c; }
+  if (!id.city && id.cityHint) { const cs = await rpc<string[] | null>(sb, "nr_cities_in_text", { p_text: id.cityHint }); if (cs && cs.length === 1) id.city = cs[0]; }
+  // 1. company number printed on the site
+  if (id.ids.length === 1) {
+    const hit = lk.reg.find((x) => x.reg_id === id.ids[0]);
+    if (hit) return attach(hit.id, "reg_id_on_site", [`ח.פ. ${id.ids[0]} מופיע באתר`]);
+  }
+  // 2. an e-mail of exactly one registry business appears on its site
+  const emIds = [...new Set(lk.emails.map((x) => x.id))];
+  if (emIds.length === 1) return attach(emIds[0], "email", [`האימייל ${lk.emails[0].value} של העסק מופיע באתר`]);
+  // 3. a phone of exactly one registry business – plus its name on the page
+  const phIds = [...new Set(lk.phones.map((x) => x.id))];
+  if (phIds.length === 1) {
+    const { data: b } = await sb.from("nr_businesses").select("id,name").eq("id", phIds[0]).single();
+    if (b && nameHit(b.name)) return attach(b.id, "phone+name", [`הטלפון ${fmtPhone(lk.phones[0].value)} ושם העסק מופיעים באתר`]);
+    await rpc(sb, "nr_identify_review", { p_domain: domain, p_name: id.name || null, p_city: id.city || null, p_candidates: phIds, p_reason: "phone_only", p_detail: { phones: id.phones } });
+    return { status: "review", note: "טלפון של עסק במאגר, בלי שם העסק באתר – לבדיקה" };
+  }
+  if (phIds.length > 1) {
+    await rpc(sb, "nr_identify_review", { p_domain: domain, p_name: id.name || null, p_city: id.city || null, p_candidates: phIds.slice(0, 5), p_reason: "phone_shared", p_detail: { phones: id.phones } });
+    return { status: "review", note: "הטלפון משותף לכמה עסקים – לבדיקה" };
+  }
+  // 4. the stated name is exactly one registered company
+  let similar: number[] = [];
+  if (id.name) {
+    const nm = await rpc<{ status: string; id?: number; method?: string; candidates?: number[]; similar?: number[] }>(sb, "nr_identify_name", { p_name: id.name, p_city: id.city || null });
+    if (nm.status === "matched" && nm.id && (nm.method === "registered_name" || nm.method === "name+city")) return attach(Number(nm.id), "registered_name", [`שם העסק "${id.name}" (${id.nameFrom}) זהה לשם הרשום`]);
+    similar = (nm.similar || []).concat(nm.status === "pending_review" ? (nm.candidates || []) : []).map(Number);
+  }
+  // 5. a company number on the site that is not in the registry, with the legal name beside it
+  if (id.ids.length === 1 && !lk.reg.length) {
+    const flat = textOf(id.html).replace(/\s+/g, " "); const at = flat.indexOf(id.ids[0].slice(0, 3));
+    const legal = clean(((at > 0 ? flat.slice(Math.max(0, at - 90), at) : "").match(LEGAL_NAME) || [])[1] || "").replace(/^.*?(©|כל הזכויות שמורות( ל-?)?|all rights reserved( to)?|copyright)\s*/i, "");
+    if (legal.length >= 3) {
+      await rpc(sb, "nr_ingest", { p_source: "enr:site_identify", p_rows: [{ reg_id: id.ids[0], reg_type: id.ids[0].startsWith("58") ? "amuta" : "company", name: legal, city: id.city || undefined,
+        address: id.address || undefined, rid: domain, url: id.url, websites: [id.origin], create: true,
+        phones: id.phones.map((p) => ({ v: p, d: fmtPhone(p), sub: p.startsWith("05") ? "mobile" : "main" })), emails: id.emails.map((v) => ({ v })), socials: id.socials,
+        fields: { identified_by: "new_reg_id_on_site", reg_id_on_site: id.ids[0], name_on_site: legal } }] });
+      const [nb] = await rpc<{ id: number }[]>(sb, "nr_business_by_reg", { p_reg: id.ids[0] });
+      return { status: "created", business_id: nb?.id, method: "new_reg_id_on_site", note: `${legal} (ח.פ. ${id.ids[0]})` };
+    }
+  }
+  // 6. a business with no public registry number: a clear identity and nothing similar in the registry
+  if (similar.length) {
+    await rpc(sb, "nr_identify_review", { p_domain: domain, p_name: id.name, p_city: id.city || null, p_candidates: similar.slice(0, 5), p_reason: "similar_name", p_detail: { phones: id.phones, name_from: id.nameFrom } });
+    return { status: "review", note: "שם דומה לעסק קיים – לבדיקה" };
+  }
+  if (id.name && id.phones.length && (id.city || id.address || id.ids.length) && nameHit(id.name)) {
+    await rpc(sb, "nr_ingest", { p_source: "enr:site_identify", p_rows: [{ name: id.name, city: id.city || undefined, address: id.address || undefined, rid: domain, url: id.url,
+      websites: [id.origin], create: true, phones: id.phones.map((p) => ({ v: p, d: fmtPhone(p), sub: p.startsWith("05") ? "mobile" : "main" })),
+      emails: id.emails.map((v) => ({ v })), socials: id.socials,
+      fields: { identified_by: "site_identity", name_from: id.nameFrom, phones: id.phones.map(fmtPhone), city: id.city || null, address: id.address || null } }] });
+    const bid = await rpc<number | null>(sb, "nr_business_by_domain", { p_domain: domain });
+    return { status: "created", business_id: bid || undefined, method: "site_identity", note: `${id.name} – ${id.city || id.address}` };
+  }
+  return { status: "no_identity", note: !id.name ? "לא נמצא שם עסק מוצהר באתר" : !id.phones.length ? "לא נמצא טלפון ישראלי באתר" : "חסרים עיר / כתובת" };
+}
+async function identifyWorker(sb: SupabaseClient, worker: number) {
+  const t0 = Date.now();
+  const { data: locked } = await sb.rpc("nr_identify_lock", { p_worker: worker, p_seconds: 170 });
+  PAGE_CAP = 400_000; // keeps each call within the function's compute allowance
+  if (!locked) return { skipped: "locked or worker not enabled" };
+  const tally: Record<string, number> = {};
+  let read = 0;
+  try {
+    const { data: ctl } = await sb.from("nr_control").select("identify_batch").eq("id", 1).single();
+    const batchSize = Math.max(10, Math.min(200, Number(ctl?.identify_batch || 60)));
+    while (Date.now() - t0 < 95_000) {
+      const batch = await rpc<{ domain: string; attempts: number }[]>(sb, "nr_claim_site_queue", { p_limit: Math.min(16, batchSize - read) });
+      if (!batch.length) break;
+      await pool(batch, 8, async (q) => {
+        let res: { status: string; business_id?: number; method?: string; note?: string };
+        try { res = await identifyOne(sb, q.domain); } catch (e) { res = { status: q.attempts >= 3 ? "error" : "queued", note: (e as Error).message.slice(0, 120) }; }
+        tally[res.status] = (tally[res.status] || 0) + 1;
+        await sb.from("nr_site_queue").update({ status: res.status, business_id: res.business_id ?? null, method: res.method ?? null, note: res.note ?? null, checked_at: now() }).eq("domain", q.domain);
+      });
+      read += batch.length;
+      if (read >= batchSize) break;
+    }
+    const src = await source(sb, "enr:site_identify");
+    if (src && read) {
+      const created = tally.created || 0, matched = tally.matched || 0;
+      await sb.from("nr_sources").update({ records_read: src.records_read + read, businesses_enriched: src.businesses_enriched + matched,
+        businesses_new: Number((src as unknown as { businesses_new: number }).businesses_new || 0) + created, details_added: src.details_added + matched + created,
+        last_run_at: now(), updated_at: now(), status: "collecting", duration_ms: Number(src.duration_ms) + (Date.now() - t0) }).eq("key", src.key);
+      await sb.from("nr_runs").insert({ source_key: "enr:site_identify", started_at: new Date(t0).toISOString(), finished_at: now(), records_read: read,
+        businesses_new: created, businesses_enriched: matched, details_added: matched + created, duration_ms: Date.now() - t0, ok: true, error: JSON.stringify(tally).slice(0, 300) });
+    }
+    return { worker, read, tally, ms: Date.now() - t0 };
+  } finally {
+    await sb.rpc("nr_identify_unlock", { p_worker: worker });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: edgeCorsHeaders });
   const url = Deno.env.get("SUPABASE_URL") || "";
   if (!url.includes(STAGING_REF)) return jsonResponse({ ok: false, error: "staging only" }, 403);
   const auth = await requireAuth(req, { roles: ["super_admin", "fleet_manager"], allowInternal: true });
   if ("error" in auth) return auth.error;
-  const body = await req.json().catch(() => ({})) as { action?: string; url?: string };
+  const body = await req.json().catch(() => ({})) as { action?: string; url?: string; worker?: number };
   const sb = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
   try {
     const action = body.action || "tick";
     if (action === "tick") return jsonResponse({ ok: true, ...(await tick(sb)) });
+    if (action === "identify") return jsonResponse({ ok: true, ...(await identifyWorker(sb, Math.max(1, Number(body.worker || 1)))) });
+    if (action === "harvest_cc") return jsonResponse({ ok: true, ...(await harvestCc(sb)) });
     // diagnostics: parse one job page without writing anything
     if (action === "probe_job" && body.url) { const r = await get(body.url); return jsonResponse({ ok: true, status: r.status, job: parseJob(r.body, body.url), head: r.body.slice(0, 600) }); }
     return jsonResponse({ ok: false, error: "unknown action" }, 400);

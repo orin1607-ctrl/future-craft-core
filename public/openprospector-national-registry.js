@@ -126,9 +126,9 @@
     if (ST.reportLoading) return;
     ST.reportLoading = true; rerender();
     try {
-      const [rep, rq, intel, wu] = await Promise.all([rpc("nr_enrichment_report"), rpc("nr_review_queue", { p_limit: 25, p_offset: ST.reviewPage * 25, p_source: null }),
-        rpc("nr_intel_report"), rpc("nr_watch_updates", { p_limit: 60 })]);
-      ST.report = rep; ST.review = rq; ST.intel = intel; ST.watchUpd = wu; ST.reportError = "";
+      const [rep, rq, intel, wu, sc] = await Promise.all([rpc("nr_enrichment_report"), rpc("nr_review_queue", { p_limit: 25, p_offset: ST.reviewPage * 25, p_source: null }),
+        rpc("nr_intel_report"), rpc("nr_watch_updates", { p_limit: 60 }), rpc("nr_scale_report")]);
+      ST.report = rep; ST.review = rq; ST.intel = intel; ST.watchUpd = wu; ST.scale = sc; ST.reportError = "";
     } catch (e) { ST.reportError = e.message || String(e); }
     ST.reportLoading = false; rerender();
   }
@@ -532,6 +532,8 @@
     </div>`;
   }
 
+  const SITE_ST = { queued: "ממתינים", claimed: "בעבודה", matched: "שויכו לעסק קיים", created: "עסקים חדשים", review: "לבדיקה", no_identity: "ללא זהות ברורה",
+    not_business: "מפנים לאתר אחר", parked: "חונים", robots: "חסום ב-robots", unreachable: "לא זמינים", known: "כבר במאגר", error: "שגיאה" };
   const REL = { client: "לקוח של החברה", partner: "שותף עסקי", supplier: "ספק של החברה", parent: "חברת אם", subsidiary: "חברה בת", owner: "בעלים", owned: "בבעלות החברה",
     brand: "מותג קשור", mention: "אזכור / קישור באתר", client_of: "החברה היא לקוחה שלו", supplier_of: "החברה היא ספקית שלו", mentioned_by: "מזכיר את החברה" };
   const LEVEL = { verified: ["✓ קשר עסקי מאומת", "b-ok"], stated: ["קשר עסקי לפי אתר החברה", "b-blue"], mention: ["אזכור בלבד – לא קשר מסחרי מוכח", "b-no"] };
@@ -645,7 +647,25 @@
       ${it.relation_examples.map((x) => `<tr><td data-nr="biz" data-v="${x.from_business_id}" style="cursor:pointer" class="co-name">${esc(x.from_name)}</td><td class="xs">${esc(REL[x.relation] || x.relation)}</td>
         <td data-nr="biz" data-v="${x.to_business_id}" style="cursor:pointer">${esc(x.to_name)}</td><td><span class="badge ${(LEVEL[x.level] || ["", "b-no"])[1]}">${esc((LEVEL[x.level] || [x.level])[0])}</span></td>
         <td class="xs">${x.source_url ? `<a href="${esc(x.source_url)}" target="_blank" rel="noopener">${esc(x.source_name || "מקור")}</a>` : ""}</td></tr>`).join("")}</tbody></table></div></div>` : "";
-    return head + kpis + intel + watchCard + relEx + ex(r.examples, "דוגמאות אמיתיות – חברה אחת לכל סוג מידע") + ex(r.recent_important, "★ מידע חשוב חדש – האחרונים") + review + sources;
+    const sc = ST.scale || {}, sv = sc.saved_today || {}, so = sc.social_today || {}, q = sc.queues || {}, sq = sc.site_queue || {}, rl = sc.relations_today || {}, wk = sc.workers || {};
+    const errs = Object.entries(sc.errors_last_hour || {});
+    const scale = `<div class="card"><div class="card-h"><h2>⚡ קצב, תורים והתקדמות היום<span class="h-bar"></span></h2><span class="spacer"></span>
+        <span class="xs muted">${n(wk.identify_workers)} עובדי זיהוי במקביל + מנוע ההעשרה · היום מתחיל ${when(sc.day_start)}</span></div>
+      <div class="card-b" style="display:grid;gap:10px"><div class="grid g-kpi tiles">
+      ${kpi("עסקים חדשים היום", n(sc.new_businesses_today), Object.entries(sc.new_businesses_by_source_today || {}).map(([k, v]) => `${esc(k)}: ${n(v)}`).join(" · ") || "—")}
+      ${kpi("עסקים קיימים שהועשרו היום", n(sc.enriched_today), "עם ממצא שנשמר בכרטיס")}
+      ${kpi("טלפונים / אימיילים חדשים היום", `${n(sv.phone)} / ${n(sv.email)}`, `${n(sc.verified_today)} פרטי קשר אומתו היום (2 מקורות)`)}
+      ${kpi("אתרים וקישורים לרשתות היום", n(Number(sv.website || 0) + Number(sv.social || 0) + Number(sv.whatsapp || 0)),
+          `אתרים ${n(so.website)} · פייסבוק ${n(so.facebook)} · אינסטגרם ${n(so.instagram)} · לינקדאין ${n(so.linkedin)} · יוטיוב ${n(so.youtube)} · טיקטוק ${n(so.tiktok)} · וואטסאפ ${n(Number(so.whatsapp || 0))}`)}
+      ${kpi("קשרים עסקיים היום", n(Number(rl.verified || 0) + Number(rl.stated || 0) + Number(rl.mention || 0)), `${n(rl.verified)} מאומתים · ${n(rl.stated)} לפי אתר החברה · ${n(rl.mention)} אזכורים`)}
+      ${kpi("נמצא / אומת / נשמר היום", `${n(sc.findings_today)} / ${n(sc.verified_today)} / ${n(sc.findings_matched_today)}`, `${n(sc.findings_pending_today)} ממתינים לבדיקה · ${n(sc.findings_rejected_today)} נדחו`)}
+      ${kpi("קצב – רשומות מקור", `${n(sc.records_last_hour)} לשעה`, `${n(sc.records_last_24h)} ב-24 השעות האחרונות`)}
+      ${kpi("קצב – אתרים שזוהו", `${n(sc.sites_checked_last_hour)} לשעה`, `${n(sc.sites_checked_last_24h)} ביממה · הצלחה ${sc.site_success_rate ?? "—"}%`)}
+      ${kpi("תורים ממתינים", n(q.sites), `סריקת עומק ${n(q.deep_crawl)} · דומייני אימייל ${n(q.email_domains)} · אתרים קשורים ${n(q.related_sites)} · לבדיקה ${n(q.review)}`)}
+      ${kpi("מקורות", `${n(sc.sources_active)} פעילים`, `${n(sc.sources_blocked)} חסומים / לא מותרים${errs.length ? " · שגיאות בשעה האחרונה: " + errs.map(([k, v]) => `${esc(k)} ${n(v)}`).join(", ") : " · אין שגיאות בשעה האחרונה"}`)}
+      </div>
+      <div class="xs muted">תור הזיהוי: ${Object.entries(sq).map(([k, v]) => `${esc(SITE_ST[k] || k)} ${n(v)}`).join(" · ")}</div></div></div>`;
+    return head + kpis + scale + intel + watchCard + relEx + ex(r.examples, "דוגמאות אמיתיות – חברה אחת לכל סוג מידע") + ex(r.recent_important, "★ מידע חשוב חדש – האחרונים") + review + sources;
   }
 
   // ── actions ──
