@@ -3956,18 +3956,109 @@ export async function executeClaimsTool(
         // Attach only files that belong to this claim, and show their names before approval.
         let attachmentTitles: string[] = [];
         let droppedFileIds: string[] = [];
+        let totalAttachmentBytes = 0;
+        let knownDocsMap = new Map<string, any>();
         if (fileIds.length > 0) {
           const docQuery = claimId
-            ? supabase.from("claims_documents").select("id, original_name, doc_meta").eq("claim_id", claimId).in("id", fileIds)
-            : supabase.from("claims_documents").select("id, original_name, doc_meta").in("id", fileIds);
+            ? supabase.from("claims_documents").select("id, original_name, doc_meta, byte_size").eq("claim_id", claimId).in("id", fileIds)
+            : supabase.from("claims_documents").select("id, original_name, doc_meta, byte_size").in("id", fileIds);
           const { data: inClaim } = await docQuery;
-          const known = new Map((inClaim || []).map((d) => [d.id, d]));
-          droppedFileIds = fileIds.filter((id) => !known.has(id));
-          fileIds = fileIds.filter((id) => known.has(id));
+          knownDocsMap = new Map((inClaim || []).map((d) => [d.id, d]));
+          droppedFileIds = fileIds.filter((id) => !knownDocsMap.has(id));
+          fileIds = fileIds.filter((id) => knownDocsMap.has(id));
           attachmentTitles = fileIds.map((id) => {
-            const d = known.get(id)!;
+            const d = knownDocsMap.get(id)!;
             return documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: d.doc_meta as Record<string, string> });
           });
+          totalAttachmentBytes = fileIds.reduce((sum, id) => {
+            const d = knownDocsMap.get(id);
+            return sum + (Number(d?.byte_size) || 0);
+          }, 0);
+        }
+
+        const PACKAGE_LIMIT = 18 * 1024 * 1024; // 18MB raw bytes limit (~24MB MIME encoded inside Gmail 25MB threshold)
+        const isOverLimit = totalAttachmentBytes > PACKAGE_LIMIT;
+
+        if (isOverLimit) {
+          // Auto-split into numbered emails using split groups
+          const filesForSplit = fileIds.map((id) => {
+            const d = knownDocsMap.get(id)!;
+            return { id, name: String(d.original_name || ""), bytes: Number(d.byte_size || 0) };
+          });
+          const splitGroups: Array<{ bytes: number; files: Array<{ id: string; name: string; bytes: number }> }> = [];
+          let curGroup: Array<{ id: string; name: string; bytes: number }> = [];
+          let curBytes = 0;
+          for (const f of filesForSplit) {
+            if (curGroup.length && curBytes + f.bytes > PACKAGE_LIMIT) {
+              splitGroups.push({ files: curGroup, bytes: curBytes });
+              curGroup = [];
+              curBytes = 0;
+            }
+            curGroup.push(f);
+            curBytes += f.bytes;
+          }
+          if (curGroup.length) splitGroups.push({ files: curGroup, bytes: curBytes });
+
+          const subActions: ClaimsPendingAction[] = splitGroups.map((g, idx) => ({
+            preview_id: `P-SEND-${Date.now()}-${idx + 1}`,
+            summary: `שליחת אימייל חלק ${idx + 1}/${splitGroups.length} (${g.files.length} קבצים, ${(g.bytes / (1024 * 1024)).toFixed(1)}MB)`,
+            tool_name: name,
+            action_type: "send_email",
+            parameters: {
+              claim_id: claimId || null,
+              to,
+              cc: cc || null,
+              bcc: bcc || null,
+              subject: `${subject} (חלק ${idx + 1}/${splitGroups.length})`,
+              body: `${body}\n\n[הערת מערכת: אימייל ${idx + 1} מתוך ${splitGroups.length} עקב מגבלת נפח של 25MB לחבילה ב-Gmail]`,
+              file_ids: g.files.map((f) => f.id),
+              attachment_titles: g.files.map((f) => f.name),
+              ...(threadId ? { thread_id: threadId } : {}),
+            },
+          }));
+
+          const batchSummary = `פיצול אוטומטי ל-${splitGroups.length} אימיילים ממוספרים (סך הכול ${fileIds.length} קבצים, ${(totalAttachmentBytes / (1024 * 1024)).toFixed(1)}MB מעל מגבלת Gmail של 25MB) אל ${to}`;
+          const batchPreview: ClaimsPendingAction = {
+            preview_id: `P-BATCH-${Date.now()}`,
+            summary: batchSummary,
+            tool_name: "batch_send_email",
+            action_type: "batch_send_email",
+            parameters: {
+              claim_id: claimId || null,
+              count: splitGroups.length,
+              total_bytes: totalAttachmentBytes,
+              actions: subActions,
+            },
+          };
+
+          await recordAiAudit(supabase, {
+            userId,
+            userName,
+            claimId,
+            toolName: "batch_send_email",
+            actionType: "batch_send_email",
+            previewSummary: batchSummary,
+            previewPayload: batchPreview.parameters,
+            status: "preview_created",
+          });
+
+          return {
+            result: {
+              preview_id: batchPreview.preview_id,
+              status: "pending_approval",
+              over_limit: true,
+              total_bytes: totalAttachmentBytes,
+              split_count: splitGroups.length,
+              message: `משקל כל ${fileIds.length} הקבצים שנבחרו הוא ${(totalAttachmentBytes / (1024 * 1024)).toFixed(1)}MB, החורג ממגבלת Gmail (25MB). הוכן פיצול אוטומטי ל-${splitGroups.length} אימיילים ממוספרים (חלק 1/${splitGroups.length}, 2/${splitGroups.length}...) לשליחה מסודרת באישור אחד מראש. לחלופין, ניתן לבקש שליחת קישור מאובטח ומוגן סיסמה להורדת כל הקבצים.`,
+              details: {
+                to,
+                subject,
+                total_files: fileIds.length,
+                total_bytes: totalAttachmentBytes,
+                parts: splitGroups.map((g, i) => ({ part: i + 1, file_count: g.files.length, size_mb: (g.bytes / (1024 * 1024)).toFixed(1) })),
+              },
+            },
+          };
         }
 
         if (!body) {
@@ -3994,14 +4085,15 @@ export async function executeClaimsTool(
 
         const previewId = isScheduled ? `P-SCHED-${Date.now()}` : `P-SEND-${Date.now()}`;
         const attachList = attachmentTitles.length ? `: ${attachmentTitles.slice(0, 5).join(", ")}${attachmentTitles.length > 5 ? ` ועוד ${attachmentTitles.length - 5}` : ""}` : "";
+        const sizeInfo = totalAttachmentBytes > 0 ? ` (${(totalAttachmentBytes / (1024 * 1024)).toFixed(1)}MB)` : "";
         const threadId = String(args.thread_id || "").trim();
 
         let recSummary = `אל: ${to}`;
         if (cc) recSummary += ` · CC: ${cc}`;
         if (bcc) recSummary += ` · BCC: ${bcc}`;
         const summary = isScheduled
-          ? `${threadId ? "השבה בשרשור — " : ""}תזמון שליחת אימייל ל-${scheduledInfo!.label} (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}`
-          : `${threadId ? "השבה בשרשור — " : ""}שליחת מייל (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}`;
+          ? `${threadId ? "השבה בשרשור — " : ""}תזמון שליחת אימייל ל-${scheduledInfo!.label} (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}${sizeInfo}`
+          : `${threadId ? "השבה בשרשור — " : ""}שליחת מייל (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}${sizeInfo}`;
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
@@ -4017,6 +4109,7 @@ export async function executeClaimsTool(
             body,
             file_ids: fileIds,
             attachment_titles: attachmentTitles,
+            total_bytes: totalAttachmentBytes,
             ...(threadId ? { thread_id: threadId } : {}),
             ...(isScheduled ? {
               send_at: scheduledInfo!.plannedAt,
@@ -6016,6 +6109,7 @@ export async function executeClaimsPendingAction(
               action: "import_message",
               claim_id: targetClaimId,
               message_id: messageId,
+              allow_reassign: true,
               start,
             },
           });

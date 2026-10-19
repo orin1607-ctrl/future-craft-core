@@ -683,6 +683,55 @@ export function ClaimsAiWorkspace({
   const [dockedFilter, setDockedFilter] = useState('');
   const [copiedDocked, setCopiedDocked] = useState(false);
 
+  const isSubmittingRef = useRef(false);
+  const isNearBottomRef = useRef(true);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  const [batchUploadProgress, setBatchUploadProgress] = useState<{ current: number; total: number } | null>(null);
+  const prevClaimIdRef = useRef<string | null>(claimId);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+    const vv = window.visualViewport;
+    const updateSize = () => {
+      if (!vv) return;
+      setViewportHeight(vv.height);
+      document.documentElement.style.setProperty('--app-viewport-height', `${vv.height}px`);
+    };
+    vv.addEventListener('resize', updateSize);
+    vv.addEventListener('scroll', updateSize);
+    updateSize();
+    return () => {
+      vv.removeEventListener('resize', updateSize);
+      vv.removeEventListener('scroll', updateSize);
+    };
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    const el = threadRef.current;
+    if (!el) return;
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const nearBottom = distanceToBottom < 90;
+    isNearBottomRef.current = nearBottom;
+    setShowScrollBottom(!nearBottom);
+  }, []);
+
+  const scrollToBottom = useCallback((smooth = false) => {
+    const el = threadRef.current;
+    if (!el) return;
+    try {
+      if (smooth && typeof el.scrollTo === 'function') {
+        el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+      } else {
+        el.scrollTop = el.scrollHeight;
+      }
+    } catch {
+      el.scrollTop = el.scrollHeight;
+    }
+    isNearBottomRef.current = true;
+    setShowScrollBottom(false);
+  }, []);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -1018,7 +1067,13 @@ export function ClaimsAiWorkspace({
     const newStaged: StagedAttachment[] = [];
     const errors: string[] = [];
 
-    for (const f of files) {
+    const fileList = files.slice(0, 150);
+    if (files.length > 150) {
+      errors.push('ניתן להעלות עד 150 קבצים בפעולה אחת. נבחרו 150 הקבצים הראשונים.');
+    }
+
+    for (let i = 0; i < fileList.length; i++) {
+      const f = fileList[i];
       const mime = f.type.toLowerCase();
       const ext = f.name.split('.').pop()?.toLowerCase() || '';
       const isImageExt = ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
@@ -1028,15 +1083,16 @@ export function ClaimsAiWorkspace({
         errors.push(`הקובץ "${f.name}" אינו נתמך (נתמכים: JPG, PNG, WEBP, PDF)`);
         continue;
       }
-      if (f.size > 15 * 1024 * 1024) {
-        errors.push(`הקובץ "${f.name}" גדול מדי (מקסימום 15MB)`);
+      if (f.size > 25 * 1024 * 1024) {
+        errors.push(`הקובץ "${f.name}" גדול מדי (מקסימום 25MB לקובץ בודד)`);
         continue;
       }
 
       const isImage = mime.startsWith('image/') || isImageExt;
-      const previewUrl = isImage ? URL.createObjectURL(f) : undefined;
+      // Only generate preview URLs for the first 12 images to avoid browser DOM & memory exhaustion with 120 files
+      const previewUrl = isImage && i < 12 ? URL.createObjectURL(f) : undefined;
       newStaged.push({
-        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${i}`,
         file: f,
         name: f.name,
         size: f.size,
@@ -1046,7 +1102,7 @@ export function ClaimsAiWorkspace({
     }
 
     if (errors.length > 0) {
-      setBanner(errors.join('\n'));
+      setBanner(errors.slice(0, 3).join('\n') + (errors.length > 3 ? ` ועוד ${errors.length - 3} שגיאות` : ''));
     } else {
       setBanner('');
     }
@@ -1092,16 +1148,20 @@ export function ClaimsAiWorkspace({
 
   useEffect(() => {
     if (!open) return;
-    setMessages([]);
-    setInput('');
-    setStagedAttachments([]);
-    setPendingDelete(null);
-    void loadList();
-  }, [open, loadList]);
+    if (prevClaimIdRef.current !== claimId) {
+      prevClaimIdRef.current = claimId;
+      setMessages([]);
+      setInput('');
+      setStagedAttachments([]);
+      setPendingDelete(null);
+      void loadList();
+    } else if (conversations.length === 0) {
+      void loadList();
+    }
+  }, [open, claimId, loadList, conversations.length]);
 
   useEffect(() => {
     if (!open || !activeId) {
-      if (open && !activeId) setMessages([]);
       return;
     }
     const conversation = conversations.find((row) => row.id === activeId);
@@ -1115,7 +1175,6 @@ export function ClaimsAiWorkspace({
       if (cancelled) return;
       if (res.error) {
         setBanner(res.error.message);
-        setMessages([]);
         return;
       }
       setMessages(res.data || []);
@@ -1125,14 +1184,25 @@ export function ClaimsAiWorkspace({
   }, [open, activeId, conversations, claimId, userId]);
 
   useEffect(() => {
-    const el = threadRef.current;
-    if (!el) return;
-    el.scrollTop = el.scrollHeight;
+    if (isNearBottomRef.current) {
+      const el = threadRef.current;
+      if (!el) return;
+      el.scrollTop = el.scrollHeight;
+    }
   }, [messages, loading]);
 
   const sendMessage = useCallback(async (text: string, source: 'text' | 'voice') => {
+    if (isSubmittingRef.current) return;
     const trimmed = text.trim();
     if ((!trimmed && stagedAttachments.length === 0) || loading) return;
+
+    isSubmittingRef.current = true;
+
+    // Clear input box immediately upon send
+    setInput('');
+    if (textareaRef.current) textareaRef.current.value = '';
+
+    scrollToBottom(true);
 
     // Stop one-off dictation immediately if active so it does not re-populate the input
     if (isListeningRef.current) {
@@ -1143,10 +1213,6 @@ export function ClaimsAiWorkspace({
     }
     baseInputRef.current = '';
     finalTranscriptRef.current = '';
-
-    // Clear input box immediately upon send
-    setInput('');
-    if (textareaRef.current) textareaRef.current.value = '';
 
     // Typed approval: "מאשר" / "שלח" approves the card currently shown (and only that one). The model is not
     // involved, so it cannot send anything on its own; the same server path as the card button executes it.
@@ -1222,28 +1288,49 @@ export function ClaimsAiWorkspace({
         preview_url?: string;
       }> = [];
 
-      for (const staged of filesToUpload) {
-        try {
-          const base64 = await readFileAsBase64(staged.file);
-          let fileId: string | undefined = undefined;
-          if (claimId) {
-            const upRes = await uploadChatAttachmentToClaim(claimId, staged.file);
-            if (upRes.success && upRes.file_id) {
-              fileId = upRes.file_id;
-            }
-          }
-          finalAttachments.push({
-            name: staged.name,
-            mime_type: staged.mimeType,
-            byte_size: staged.size,
-            file_id: fileId,
-            data_base64: base64,
-            preview_url: staged.previewUrl,
-          });
-        } catch (err) {
-          console.error('Failed reading/uploading attachment:', staged.name, err);
+      const BATCH_SIZE = 10;
+      for (let b = 0; b < filesToUpload.length; b += BATCH_SIZE) {
+        const chunk = filesToUpload.slice(b, b + BATCH_SIZE);
+        if (filesToUpload.length > 5) {
+          setBatchUploadProgress({ current: Math.min(b + BATCH_SIZE, filesToUpload.length), total: filesToUpload.length });
         }
+        await Promise.all(chunk.map(async (staged, cIdx) => {
+          const globalIdx = b + cIdx;
+          try {
+            let fileId: string | undefined = undefined;
+            if (claimId) {
+              for (let att = 1; att <= 2; att++) {
+                try {
+                  const upRes = await uploadChatAttachmentToClaim(claimId, staged.file);
+                  if (upRes.success && upRes.file_id) {
+                    fileId = upRes.file_id;
+                    break;
+                  }
+                } catch {
+                  if (att === 2) throw new Error('upload_failed');
+                }
+              }
+            }
+            let base64: string | undefined = undefined;
+            if (filesToUpload.length <= 5 && staged.size < 4 * 1024 * 1024) {
+              base64 = await readFileAsBase64(staged.file);
+            } else if (globalIdx < 3 && staged.mimeType.startsWith('image/') && staged.size < 2 * 1024 * 1024) {
+              base64 = await readFileAsBase64(staged.file);
+            }
+            finalAttachments[globalIdx] = {
+              name: staged.name,
+              mime_type: staged.mimeType,
+              byte_size: staged.size,
+              file_id: fileId,
+              data_base64: base64,
+              preview_url: staged.previewUrl,
+            };
+          } catch (err) {
+            console.error('Failed reading/uploading attachment:', staged.name, err);
+          }
+        }));
       }
+      setBatchUploadProgress(null);
 
       const userSaved = await insertClaimsAiMessage({
         conversationId,
@@ -1401,6 +1488,8 @@ export function ClaimsAiWorkspace({
     } finally {
       clearTimeout(timeoutTimer);
       abortControllerRef.current = null;
+      isSubmittingRef.current = false;
+      setBatchUploadProgress(null);
       setLoading(false);
     }
   }, [activeId, claimId, companyName, conversations, loading, messages, stagedAttachments, userId]);
@@ -1559,10 +1648,12 @@ export function ClaimsAiWorkspace({
       setListening(false);
       if (recognitionRef.current) {
         try {
+          recognitionRef.current.onresult = null;
+          recognitionRef.current.onerror = null;
+          recognitionRef.current.onend = null;
           recognitionRef.current.stop();
         } catch {}
       }
-      textareaRef.current?.focus();
       return;
     }
 
@@ -1577,6 +1668,7 @@ export function ClaimsAiWorkspace({
     rec.interimResults = true;
 
     rec.onresult = (ev) => {
+      if (!isListeningRef.current || isManualStopRef.current) return;
       let interim = '';
       for (let i = ev.resultIndex; i < ev.results.length; i += 1) {
         const piece = ev.results[i][0]?.transcript || '';
@@ -1615,7 +1707,7 @@ export function ClaimsAiWorkspace({
       }
       isListeningRef.current = false;
       setListening(false);
-      textareaRef.current?.focus();
+      // NOTE: Do NOT force textarea focus here on mobile, preventing unwanted keyboard jump
     };
 
     recognitionRef.current = rec;
@@ -1657,6 +1749,7 @@ export function ClaimsAiWorkspace({
   return (
     <div
       className={`claims-ai-workspace${showList ? ' show-list' : ''}`}
+      style={viewportHeight ? { height: `${viewportHeight}px`, maxHeight: `${viewportHeight}px` } : undefined}
       role="dialog"
       aria-modal="true"
       aria-label="דליה AI לניהול תביעות"
@@ -1778,7 +1871,12 @@ export function ClaimsAiWorkspace({
           </div>
         ) : null}
 
-        <div className="claims-ai-thread" ref={threadRef} data-testid="claims-ai-thread">
+        <div className="claims-ai-thread" ref={threadRef} onScroll={handleScroll} data-testid="claims-ai-thread">
+          {batchUploadProgress ? (
+            <div className="claims-ai-upload-progress" data-testid="claims-ai-upload-progress">
+              ⏳ מעלה {batchUploadProgress.current} מתוך {batchUploadProgress.total} קבצים במנות מאובטחות…
+            </div>
+          ) : null}
           {banner ? <div className="claims-ai-bubble" data-testid="claims-ai-error" style={{ border: '1px solid var(--rd2)' }}>{banner}</div> : null}
           {messages.length === 0 && !loading ? (
             <div className="claims-ai-empty">
@@ -2284,7 +2382,9 @@ export function ClaimsAiWorkspace({
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                void sendMessage(input, 'text');
+                if (!loading && !isSubmittingRef.current) {
+                  void sendMessage(input, 'text');
+                }
               }
             }}
           />
@@ -2295,6 +2395,17 @@ export function ClaimsAiWorkspace({
             disabled={loading || (!input.trim() && stagedAttachments.length === 0)}
           >שלח</button>
         </form>
+        {showScrollBottom && (
+          <button
+            type="button"
+            className="claims-ai-scroll-bottom-pill"
+            onClick={() => scrollToBottom(true)}
+            title="גלול לתחתית הצ'אט"
+            data-testid="claims-ai-scroll-bottom"
+          >
+            ↓ הודעות חדשות
+          </button>
+        )}
       </section>
     </div>
   );

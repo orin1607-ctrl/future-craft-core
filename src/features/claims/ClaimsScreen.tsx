@@ -675,18 +675,13 @@ function StaffUploadZone({ testId, inputId, busy, compact, addLabel, onFiles }: 
       ...list.map((file) => ({
         key: `${file.name}:${file.size}:${file.lastModified}:${Math.random().toString(36).slice(2, 7)}`,
         file,
-        title: '',
+        title: file.name.replace(/\.[^/.]+$/, '').replace(/[_.-]+/g, ' ').trim().slice(0, 120),
       })),
     ]);
   };
   const saveNamed = () => {
-    const missing = pending.find((p) => !p.title.replace(/\s+/g, ' ').trim());
-    if (missing) {
-      setNameErr('חובה לתת שם לכל מסמך לפני השמירה.');
-      return;
-    }
     const files = pending.map((p) => p.file);
-    const titles = pending.map((p) => p.title.replace(/\s+/g, ' ').trim().slice(0, 120));
+    const titles = pending.map((p) => (p.title || p.file.name.replace(/\.[^/.]+$/, '')).replace(/\s+/g, ' ').trim().slice(0, 120));
     setPending([]);
     setNameErr('');
     onFiles(files, titles);
@@ -719,14 +714,17 @@ function StaffUploadZone({ testId, inputId, busy, compact, addLabel, onFiles }: 
             e.target.value = '';
           }}
         />
-        {busy ? 'מעלה…' : 'גרור קבצים לכאן או לחץ להעלאה — חובה לתת שם לפני השמירה'}
+        {busy ? 'מעלה במנות של 10-12 קבצים…' : 'גרור קבצים לכאן או לחץ להעלאה (תומך בעד 150 קבצים בבת אחת)'}
       </label>
       {pending.length ? (
         <div data-testid={`${testId}-name-form`} style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {pending.map((p, i) => (
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-primary, #2563eb)' }}>
+            📁 {pending.length} קבצים מוכנים להעלאה (שמות חולצו אוטומטית, ניתן לערוך לפי הצורך):
+          </div>
+          {pending.slice(0, 8).map((p, i) => (
             <div key={p.key} className="fg" style={{ marginBottom: 0 }}>
               <label className="fl" htmlFor={`${inputId}_title_${i}`}>שם המסמך</label>
-              <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>{p.file.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 4 }}>{p.file.name} ({(p.file.size / 1024).toFixed(0)} KB)</div>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                 <input
                   className="fi"
@@ -735,7 +733,7 @@ function StaffUploadZone({ testId, inputId, busy, compact, addLabel, onFiles }: 
                   value={p.title}
                   required
                   maxLength={120}
-                  placeholder="חובה — שם ברור למסמך"
+                  placeholder="שם ברור למסמך"
                   onChange={(e) => {
                     const v = e.target.value;
                     setPending((prev) => prev.map((x) => x.key === p.key ? { ...x, title: v } : x));
@@ -745,14 +743,26 @@ function StaffUploadZone({ testId, inputId, busy, compact, addLabel, onFiles }: 
               </div>
             </div>
           ))}
+          {pending.length > 8 ? (
+            <div style={{ fontSize: 12, color: 'var(--t2)', padding: '4px 8px', background: 'var(--bg3)', borderRadius: 6 }}>
+              ועוד {pending.length - 8} קבצים נוספים שיועלו עם שמות הקובץ שלהם.
+            </div>
+          ) : null}
           {nameErr ? <div data-testid={`${testId}-name-err`} style={{ color: 'var(--rd2)', fontSize: 12 }}>{nameErr}</div> : null}
-          <button type="button" className="btn btn-p btn-sm" data-testid={`${testId}-save`} disabled={busy} onClick={saveNamed}>שמור מסמכים</button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button type="button" className="btn btn-p btn-sm" data-testid={`${testId}-save`} disabled={busy} onClick={saveNamed}>
+              🚀 העלה את כל {pending.length} המסמכים
+            </button>
+            <button type="button" className="btn btn-g btn-sm" disabled={busy} onClick={() => setPending([])}>
+              בטל הכול
+            </button>
+          </div>
         </div>
       ) : null}
       <div style={{ fontSize: 10, color: 'var(--t3)', marginTop: 4 }}>
         {compact
-          ? 'נשמר במסמכי התביעה כ«הועלה על ידינו». חובה שם מסמך. ביטול סימון לשליחה לא מוחק את הקובץ.'
-          : 'PDF או תמונה. חובה לתת שם למסמך לפני השמירה. נשמר פרטית בתיק זה בלבד. מקור: הועלה על ידינו. לא דורס מסמך קיים.'}
+          ? 'נשמר במסמכי התביעה כ«הועלה על ידינו». העלאה במנות מקבילות עם הגנה מכפילויות.'
+          : 'PDF או תמונה. נשמר פרטית בתיק זה בלבד. מקור: הועלה על ידינו. לא דורס מסמך קיים.'}
       </div>
     </div>
   );
@@ -1904,14 +1914,34 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     const fails: string[] = [];
     let reused = 0;
     try {
-      for (let i = 0; i < files.length; i += 1) {
-        const file = files[i];
-        const staff_title = String(titles?.[i] ?? extra?.staff_title ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
-        if (titles && !staff_title) { fails.push(`${file.name}: חובה לתת שם למסמך`); continue; }
-        const up = await apiRef.current.staffUpload(claimId, '', file, staff_title ? { ...extra, staff_title } : extra);
-        if (!up.success) { fails.push(`${file.name}: ${up.error || 'שגיאה'}`); continue; }
-        if (up.reused) reused += 1;
-        if (up.file_id) ids.push(up.file_id);
+      const BATCH_SIZE = 10;
+      for (let b = 0; b < files.length; b += BATCH_SIZE) {
+        const chunk = files.slice(b, b + BATCH_SIZE);
+        if (files.length > 5) {
+          toast(`מעלה ${Math.min(b + BATCH_SIZE, files.length)} מתוך ${files.length} קבצים…`, 'inf');
+        }
+        await Promise.all(chunk.map(async (file, idx) => {
+          const globalIdx = b + idx;
+          let staff_title = String(titles?.[globalIdx] ?? extra?.staff_title ?? '').replace(/\s+/g, ' ').trim().slice(0, 120);
+          if (!staff_title) {
+            staff_title = file.name.replace(/\.[^/.]+$/, '').replace(/[_.-]+/g, ' ').trim().slice(0, 120);
+          }
+          let lastErr = '';
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+              const up = await apiRef.current.staffUpload(claimId, '', file, staff_title ? { ...extra, staff_title } : extra);
+              if (up.success) {
+                if (up.reused) reused += 1;
+                if (up.file_id) ids.push(up.file_id);
+                return;
+              }
+              lastErr = up.error || 'שגיאה';
+            } catch (err: any) {
+              lastErr = err?.message || 'שגיאת רשת';
+            }
+          }
+          fails.push(`${file.name}: ${lastErr}`);
+        }));
       }
       await loadCardData(claimId);
       if (selectForSend && ids.length) {
@@ -1923,8 +1953,8 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       }
       if (ids.length) setDocEditId(ids[ids.length - 1]);
       if (fails.length) toast(`הועלו ${ids.length} · נכשלו ${fails.length} · ${fails[0]}`, 'err');
-      else if (reused && reused === ids.length) toast('הקובץ כבר קיים בתיק — לא נוצר עותק');
-      else toast(`הועלו ${ids.length} מסמכים · הועלה על ידינו`);
+      else if (reused && reused === ids.length) toast('הקבצים כבר קיימים בתיק — לא נוצר עותק');
+      else toast(`הועלו ${ids.length} מסמכים בהצלחה`);
     } finally {
       setDocsUploading(false);
     }
@@ -6318,7 +6348,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       </div>
 
       <ClaimsAiWorkspace
-        key={aiClaimId || 'none'}
         open={aiOpen}
         onClose={() => setAiOpen(false)}
         claim={aiClaim ? claimContextFromRecord(aiClaim) : null}

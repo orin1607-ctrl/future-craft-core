@@ -321,7 +321,12 @@
 }
 
 @media (max-width: 760px) {
-  .claims-root .claims-ai-workspace { grid-template-columns: 1fr; }
+  .claims-root .claims-ai-workspace {
+    grid-template-columns: 1fr;
+    height: var(--app-viewport-height, 100dvh);
+    max-height: var(--app-viewport-height, 100dvh);
+    overflow: hidden;
+  }
   .claims-root .claims-ai-side { display: none; }
   .claims-root .claims-ai-workspace.show-list .claims-ai-side { display: flex; }
   .claims-root .claims-ai-workspace.show-list .claims-ai-main { display: none; }
@@ -336,9 +341,24 @@
     gap: 6px;
   }
   .claims-root .claims-ai-icon {
-    width: 42px;
-    height: 42px;
-    font-size: 16px;
+    min-width: 46px;
+    min-height: 46px;
+    width: 46px;
+    height: 46px;
+    font-size: 18px;
+    touch-action: manipulation;
+  }
+  .claims-root .claims-ai-action-btn {
+    min-height: 38px;
+    padding: 6px 12px;
+    font-size: 12px;
+    touch-action: manipulation;
+  }
+  .claims-root .claims-ai-preview-acts .btn {
+    min-height: 44px;
+    padding: 8px 16px;
+    font-size: 14px;
+    touch-action: manipulation;
   }
 }
 
@@ -821,6 +841,67 @@
   }
   .claims-root .claims-ai-docked-header {
     padding: 6px 10px;
+    flex-wrap: wrap;
+    gap: 6px;
   }
+  .claims-root .claims-ai-docked-header > div {
+    flex-wrap: wrap;
+  }
+}
+
+/* Floating Jump-to-bottom indicator */
+.claims-root .claims-ai-scroll-bottom-pill {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ac);
+  color: #fff;
+  border: 1px solid var(--ac2);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  touch-action: manipulation;
+  transition: all 0.15s ease-in-out;
+}
+
+.claims-root .claims-ai-scroll-bottom-pill:hover {
+  background: var(--ac2);
+  transform: translateX(-50%) translateY(-2px);
+}
+
+/* Ensure no horizontal overflow in main AI workspace */
+.claims-root .claims-ai-main {
+  position: relative;
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+.claims-root .claims-ai-thread {
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Upload progress badge */
+.claims-root .claims-ai-upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-primary, #2563eb);
+  margin: 6px 16px;
 }
 

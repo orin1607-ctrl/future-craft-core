@@ -1634,9 +1634,10 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
     }
     const messageId = String(body.message_id || "");
     if (!messageId) return jsonResponse({ success: false, error: "message_id required" }, 400);
+    const allowReassign = body.allow_reassign === true || body.reassign === true;
     const { data: existingImp } = await sb.from("claims_gmail_imports").select("claim_id").eq("gmail_message_id", messageId).limit(5);
     const otherClaim = (existingImp || []).find((r) => String(r.claim_id) !== claimId);
-    if (otherClaim) {
+    if (otherClaim && !allowReassign) {
       return jsonResponse({
         success: false,
         error: "already_imported_other_claim",
