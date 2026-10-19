@@ -1358,11 +1358,29 @@ export function ClaimsCatalogWidget({
         <div style={{ fontWeight: 800, color: '#60a5fa', marginBottom: 6, fontSize: '0.88rem' }}>
           📑 סיכום החבילה להפקה:
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 6, color: '#e2e8f0' }}>
-          <div>📋 <strong>שאלון פתיחת תיק:</strong> כלול ומאושר ✅</div>
-          <div>📥 <strong>מסמכים להעלאה:</strong> {selectedDocs.length > 0 ? `${selectedDocs.length} נבחרו` : 'ללא מסמכים נוספים'}</div>
-          <div>📝 <strong>טפסים לחתימה:</strong> {selectedForms.length > 0 ? `${selectedForms.length} נבחרו` : 'ללא טפסים נוספים'}</div>
-          <div>⏰ <strong>תוקף הקישור:</strong> {ttlLabel}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, color: '#e2e8f0' }}>
+          <div>📋 <strong>שאלון פתיחת תיק:</strong> כלול ומאושר ✅ (שלב 1)</div>
+          <div>
+            📥 <strong>מסמכים להעלאה ({selectedDocs.length}):</strong>{' '}
+            {selectedDocs.length > 0 ? (
+              <span style={{ color: '#38bdf8', fontWeight: 700 }}>
+                {selectedDocs.join(', ')}
+              </span>
+            ) : (
+              <span style={{ color: '#94a3b8' }}>ללא מסמכים נוספים</span>
+            )}
+          </div>
+          <div>
+            📝 <strong>טפסים לחתימה ({selectedForms.length}):</strong>{' '}
+            {selectedForms.length > 0 ? (
+              <span style={{ color: '#4ade80', fontWeight: 700 }}>
+                {selectedForms.join(', ')}
+              </span>
+            ) : (
+              <span style={{ color: '#94a3b8' }}>ללא טפסים נוספים</span>
+            )}
+          </div>
+          <div>⏰ <strong>תוקף הקישור:</strong> <span style={{ color: '#f59e0b', fontWeight: 700 }}>{ttlLabel}</span></div>
         </div>
       </div>
 
@@ -1400,11 +1418,7 @@ export function ClaimsCatalogWidget({
           setIsPreparing(true);
           setPrepareError(null);
           try {
-            if (ttlOption === '24') {
-              await onPrepareLink(selectedDocs, selectedForms);
-            } else {
-              await onPrepareLink(selectedDocs, selectedForms, effectiveTtlHours);
-            }
+            await onPrepareLink(selectedDocs, selectedForms, effectiveTtlHours);
           } catch (err) {
             setPrepareError(err instanceof Error ? err.message : String(err));
           } finally {
@@ -3029,11 +3043,12 @@ export function ClaimsAiWorkspace({
                         return uploadChatAttachmentToClaim(target, file, name, cat);
                       }}
                       onPrepareLink={(docs, forms, ttlHours) => {
+                        const effectiveHours = typeof ttlHours === 'number' ? ttlHours : 24;
                         const parts: string[] = ['- שאלון פתיחת תיק: כלול'];
                         if (docs.length > 0) parts.push(`- מסמכים שהלקוח נדרש להעלות: ${docs.join(', ')}`);
                         if (forms.length > 0) parts.push(`- טפסים שהמוסך מספק למילוי וחתימה: ${forms.join(', ')}`);
-                        const expLabel = ttlHours === 0 ? 'ללא תאריך תפוגה אוטומטי (פתוח עד לביטול)' : ttlHours === 168 ? 'שבוע (7 ימים)' : `${ttlHours} שעות`;
-                        parts.push(`- תוקף הקישור: ${expLabel} (${ttlHours} שעות)`);
+                        const expLabel = effectiveHours === 0 ? 'ללא תאריך תפוגה אוטומטי (פתוח עד לביטול)' : effectiveHours === 168 ? 'שבוע (7 ימים)' : `${effectiveHours} שעות`;
+                        parts.push(`- תוקף הקישור: ${expLabel} (${effectiveHours} שעות)`);
                         const targetClaim = claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || '');
                         const prompt = targetClaim
                           ? `דליה, אשר את חבילת פתיחת התיק והפיקי קישור עבור תיק ${targetClaim}:\n${parts.join('\n')}`

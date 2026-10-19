@@ -1426,7 +1426,7 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
         • כפתור קבוע להעלאת מסמך/טופס מותאם אישית (➕ העלה מסמך משלך) עם בחירת קטגוריה.
         • בחירת תוקף הקישור: 24 שעות (ברירת מחדל), שבוע (7 ימים), שעות מותאמות, או ללא תאריך תפוגה אוטומטי (פתוח עד לביטול).
         • כרטיס סיכום ברור וכפתור הפקה: "אשר את החבילה והפק קישור".
-     3. אם המשתמש כבר פירט בהודעתו את המסמכים, הטפסים ותוקף הקישור (למשל: "הכיני חבילת פתיחת תיק עם רישיון רכב, תמונות נזק וטופס ייפוי כוח לתוקף שבוע") – הפעל מיד את preview_send_customer_link עם link_type: "intake", requested_documents, provided_forms, ו-expires_in_hours: 168.
+     3. אם המשתמש כבר פירט בהודעתו את המסמכים, הטפסים ותוקף הקישור, או אישר את החבילה (למשל: \"דליה, אשר את חבילת פתיחת התיק והפיקי קישור עבור לקוח חדש...\") – הפעל מיד את preview_send_customer_link עם link_type: \"intake\", requested_documents (רשימת המסמכים שנבחרו), provided_forms (רשימת הטפסים שנבחרו), ו-expires_in_hours (שעות התוקף שנבחרו, כגון 24, 168 או 0). אל תקרא שוב ל-list_available_claim_documents_and_forms!
    - כרטיס אישור חבילת פתיחת תיק והפקת קישור יחיד:
      • מוקצה מספר תיק קבוע (DAL-YYYY-XXXX) בסטטוס "ממתין למילוי הלקוח".
      • מופק קישור אחד בלבד: קישור לשאלון פתיחת התיק (claims-intake).
@@ -4565,6 +4565,8 @@ export async function executeClaimsTool(
             client_name: clientName || null,
             created_at: nowIso,
             last_activity_at: nowIso,
+            created_by: userId || null,
+            created_by_name: userName || null,
             row_data: {
               id: targetClaimId,
               status: "ממתין למילוי הלקוח",

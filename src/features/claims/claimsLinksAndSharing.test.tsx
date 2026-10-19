@@ -812,7 +812,8 @@ describe('Claims Links and Sharing UI (Task 8)', () => {
 
     expect(onPrepareLink).toHaveBeenCalledWith(
       ['רישיון רכב'],
-      ['טופס ויתור סודיות מותאם']
+      ['טופס ויתור סודיות מותאם'],
+      24
     );
   });
 
@@ -843,6 +844,11 @@ describe('Claims Links and Sharing UI (Task 8)', () => {
       fireEvent.click(poaForm);
     });
 
+    // Verify summary card contains exact names
+    const summaryCard = screen.getByTestId('claims-catalog-summary-card');
+    expect(summaryCard.textContent).toContain('רישיון רכב, רישיון נהיגה');
+    expect(summaryCard.textContent).toContain('ייפוי כוח');
+
     // 2. Category B form has no attached file -> verify missing form notice appears
     const notice = screen.getByTestId('claims-catalog-missing-forms-notice');
     expect(notice).toBeDefined();
@@ -872,7 +878,8 @@ describe('Claims Links and Sharing UI (Task 8)', () => {
     expect(onPrepareLink).toHaveBeenCalledTimes(2);
     expect(onPrepareLink).toHaveBeenLastCalledWith(
       ['רישיון רכב', 'רישיון נהיגה'],
-      ['ייפוי כוח']
+      ['ייפוי כוח'],
+      24
     );
   });
 
