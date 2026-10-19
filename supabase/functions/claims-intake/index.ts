@@ -532,6 +532,17 @@ Deno.serve(async (req) => {
     const claimId = String(body.claim_id || "").trim();
     const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
     const creatorId = isUuid(user.id) ? user.id : (isUuid(String(body.user_id || "")) ? String(body.user_id) : null);
+    let expiresAt: string;
+    if (body.expires_in_hours === 0 || body.expires_in_hours === "never") {
+      expiresAt = new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString();
+    } else if (typeof body.expires_in_hours === "number" && body.expires_in_hours > 0) {
+      expiresAt = new Date(Date.now() + body.expires_in_hours * 3600 * 1000).toISOString();
+    } else if (body.expires_at) {
+      expiresAt = new Date(body.expires_at).toISOString();
+    } else {
+      expiresAt = new Date(Date.now() + LINK_TTL_MS).toISOString();
+    }
+
     if (claimId) {
       const { data: claim } = await sb.from("claims_records").select("id, plate, client_name, row_data").eq("id", claimId).maybeSingle();
       if (!claim) return jsonResponse({ success: false, error: "claim_not_found" }, 400);
@@ -540,7 +551,7 @@ Deno.serve(async (req) => {
         id,
         token_hash: await sha256Hex(token),
         status: "pending",
-        expires_at: new Date(Date.now() + LINK_TTL_MS).toISOString(),
+        expires_at: expiresAt,
         created_by: creatorId,
         claim_id: claimId,
         draft,
@@ -549,29 +560,52 @@ Deno.serve(async (req) => {
       return jsonResponse({
         success: true,
         token,
-        expiresAt: new Date(Date.now() + LINK_TTL_MS).toISOString(),
+        expiresAt,
+        id,
       });
     }
     const { error } = await sb.from("claims_intake_links").insert({
       id,
       token_hash: await sha256Hex(token),
       status: "pending",
-      expires_at: new Date(Date.now() + LINK_TTL_MS).toISOString(),
+      expires_at: expiresAt,
       created_by: creatorId,
     });
     if (error) return jsonResponse({ success: false, error: error.message }, 400);
     return jsonResponse({
       success: true,
       token,
-      expiresAt: new Date(Date.now() + LINK_TTL_MS).toISOString(),
+      expiresAt,
+      id,
     });
   }
 
   if (action === "revoke_link") {
-    const id = String(body.id || "");
-    if (!id) return jsonResponse({ success: false, error: "id_required" }, 400);
-    await sb.from("claims_intake_links").update({ status: "revoked" }).eq("id", id).eq("status", "pending");
+    const id = String(body.id || "").trim();
+    const claimId = String(body.claim_id || "").trim();
+    if (!id && !claimId) return jsonResponse({ success: false, error: "id_or_claim_id_required" }, 400);
+    let q = sb.from("claims_intake_links").update({ status: "revoked" }).eq("status", "pending");
+    if (id) q = q.eq("id", id);
+    if (claimId) q = q.eq("claim_id", claimId);
+    const { error } = await q;
+    if (error) return jsonResponse({ success: false, error: error.message }, 500);
     return jsonResponse({ success: true });
+  }
+
+  if (action === "extend_link") {
+    const id = String(body.id || "").trim();
+    const claimId = String(body.claim_id || "").trim();
+    if (!id && !claimId) return jsonResponse({ success: false, error: "id_or_claim_id_required" }, 400);
+    const hours = typeof body.expires_in_hours === "number" ? body.expires_in_hours : 168; // default 1 week
+    const newExpires = hours === 0 || body.expires_in_hours === "never"
+      ? new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString()
+      : new Date(Date.now() + hours * 3600 * 1000).toISOString();
+    let q = sb.from("claims_intake_links").update({ expires_at: newExpires }).eq("status", "pending");
+    if (id) q = q.eq("id", id);
+    if (claimId) q = q.eq("claim_id", claimId);
+    const { error } = await q;
+    if (error) return jsonResponse({ success: false, error: error.message }, 500);
+    return jsonResponse({ success: true, expiresAt: newExpires });
   }
 
   return jsonResponse({ success: false, error: "unknown_action" }, 400);

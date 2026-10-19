@@ -1115,7 +1115,16 @@ Deno.serve(async (req) => {
       await sb.from("claims_upload_links").update({ revoked_at: new Date().toISOString() }).eq("claim_id", claimId).is("revoked_at", null);
       const linkId = nid("LNK");
       const token = await mintUploadToken(linkId, claimId);
-      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      let expires: string;
+      if (body.expires_in_hours === 0 || body.expires_in_hours === "never") {
+        expires = new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString();
+      } else if (typeof body.expires_in_hours === "number" && body.expires_in_hours > 0) {
+        expires = new Date(Date.now() + body.expires_in_hours * 3600 * 1000).toISOString();
+      } else if (body.expires_at) {
+        expires = new Date(body.expires_at).toISOString();
+      } else {
+        expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      }
       const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
       const creatorId = isUuid(user.id) ? user.id : (isUuid(String(body.user_id || "")) ? String(body.user_id) : null);
       const { error: insErr } = await sb.from("claims_upload_links").insert({
@@ -1139,6 +1148,19 @@ Deno.serve(async (req) => {
       await sb.from("claims_upload_links").update({ revoked_at: new Date().toISOString() }).eq("claim_id", claimId).is("revoked_at", null);
       await history(sb, claimId, "קישור העלאה בוטל", "", actorName);
       return jsonResponse({ success: true });
+    }
+
+    if (action === "extend_link") {
+      const claimId = String(body.claim_id || "");
+      if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+      const hours = typeof body.expires_in_hours === "number" ? body.expires_in_hours : 168;
+      const newExpires = hours === 0 || body.expires_in_hours === "never"
+        ? new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString()
+        : new Date(Date.now() + hours * 3600 * 1000).toISOString();
+      const { error: upErr } = await sb.from("claims_upload_links").update({ expires_at: newExpires }).eq("claim_id", claimId).is("revoked_at", null);
+      if (upErr) return jsonResponse({ success: false, error: upErr.message }, 500);
+      await history(sb, claimId, "תוקף קישור העלאה הוארך", `עד ${newExpires}`, actorName);
+      return jsonResponse({ success: true, expiresAt: newExpires });
     }
 
     if (action === "get_link") {

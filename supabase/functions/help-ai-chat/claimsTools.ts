@@ -383,15 +383,68 @@ export const CLAIMS_GEMINI_TOOLS = [
               type: "STRING",
               description: "נוסח הודעה מותאם אישית ללקוח (אופציונלי)",
             },
+            expires_in_hours: {
+              type: "NUMBER",
+              description: "תוקף הקישור בשעות: 24 (יום אחד - ברירת מחדל), 168 (שבוע), מספר שעות מותאם (למשל 12, 48), או 0 / never עבור קישור ללא תאריך תפוגה אוטומטי (פתוח עד לביטול)",
+            },
           },
         },
       },
       {
         name: "list_available_claim_documents_and_forms",
-        description: "הצגת מאגר המסמכים והטפסים הקיימים במערכת, מחולקים לשתי קטגוריות ברורות: 1) מסמכים שהלקוח נדרש להעלות אלינו (צילום רישיון נהיגה, רישיון רכב, תמונות נזק, אישור עבר ביטוחי, צ'ק, טופס הודעה על תאונה, חשבונית מוסך, דוח שמאי). 2) טפסים שהמוסך מספק ללקוח למילוי וחתימה (טופס ייפוי כוח, הצהרת לקוח, טופס הסכמה, הודאה א', הודעה ע', אישור אי-הגשת תביעה, טופס דרישה, תצהיר לחברת ביטוח). השתמש בכלי זה כאשר המשתמש מבקש לראות את כל המסמכים והטפסים שאפשר לשלוח ללקוח.",
+        description: "הצגת מאגר המסמכים והטפסים הקיימים במערכת, מחולקים לשתי קטגוריות ברורות: 1) מסמכים שהלקוח נדרש להעלות אלינו (צילום רישיון נהיגה, רישיון רכב, תמונות נזק, אישור עבר ביטוחי, צ'ק, טופס הודעה על תאונה, חשבונית מוסך, דוח שמאי). 2) טפסים שהמוסך מספק ללקוח למילוי וחתימה (טופס ייפוי כוח, הצהרת לקוח, טופס הסכמה, הודאה א', הודעה ע', אישור אי-הגשת תביעה, טופס דרישה, תצהיר לחברת ביטוח). השתמש בכלי זה כאשר המשתמש מבקש לראות את כל המסמכים והטפסים שאפשר לשלוח ללקוח, או מבקש להכין חבילת פתיחת תיק.",
         parameters: {
           type: "OBJECT",
           properties: {},
+        },
+      },
+      {
+        name: "preview_revoke_customer_link",
+        description: "ביטול מיידי של קישורי הלקוח (פתיחת תיק והעלאת מסמכים) בשרת עבור תיק תביעה. דורש אישור מפורש של המשתמש.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            claim_ref: {
+              type: "STRING",
+              description: "מזהה התיק (DAL-YYYY-XXXX) שבו יש לבטל את הקישורים",
+            },
+            reason: {
+              type: "STRING",
+              description: "סיבת הביטול (אופציונלי)",
+            },
+          },
+          required: ["claim_ref"],
+        },
+      },
+      {
+        name: "preview_extend_customer_link",
+        description: "הארכת תוקף קישורי הלקוח עבור תיק תביעה (למשל לעוד שבוע או מספר שעות מבוקש). דורש אישור מפורש של המשתמש.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            claim_ref: {
+              type: "STRING",
+              description: "מזהה התיק (DAL-YYYY-XXXX) שבו יש להאריך את הקישורים",
+            },
+            extend_hours: {
+              type: "NUMBER",
+              description: "מספר שעות להארכה (למשל 168 לעוד שבוע, 24 לעוד יום, או 0 לפתיחה ללא תפוגה אוטומטית)",
+            },
+          },
+          required: ["claim_ref"],
+        },
+      },
+      {
+        name: "get_customer_link_status",
+        description: "בדיקת סטטוס פתיחת התיק של הלקוח: האם הקישור פעיל או פג תוקף/בוטל, האם שאלון פתיחת התיק נפתח/הושלם ונחתם, אילו מסמכים וטפסים התקבלו ואילו חסרים. ניתן להפעיל עבור תיק מסוים או לצפייה בכל הקישורים הפעילים.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            claim_ref: {
+              type: "STRING",
+              description: "מזהה תיק ספציפי (DAL-YYYY-XXXX). אם לא צוין, שולף את כל הקישורים הפעילים במערכת",
+            },
+          },
         },
       },
       {
@@ -1145,6 +1198,9 @@ export const GENERAL_CLAIM_SCOPED_TOOLS = [
   "list_claim_whatsapp",
   "preview_schedule_claim_whatsapp",
   "preview_send_customer_link",
+  "preview_revoke_customer_link",
+  "preview_extend_customer_link",
+  "get_customer_link_status",
   "search_pending_gmail_messages",
   "preview_import_claim_email",
   "list_scheduled_claim_emails",
@@ -1359,24 +1415,35 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
    חתימה: הודעות חדשות (מייל, WhatsApp) נחתמות בשם "דליה ניהול תביעות" בלבד. אל תכתוב "מוסך אורן" ואל תמציא שם אחר.
    גם בלי לפתוח את התיק אפשר לעבוד על תיק מסוים עם claim_ref: מסמכים (list_claim_documents, show_claim_document), מיילים (search_claim_emails, read_email_content, draft_email_reply, preview_send_claim_email), משימות, הערות, תזכורות ו-WhatsApp ידני (preview_schedule_claim_whatsapp — לעולם לא "נשלח", רק "ממתין לשליחה ידנית"). קריאה מיידית; כתיבה ושליחה בכרטיס אישור אחד.
 
-5ב. קישורים ללקוח ולמסמכים מתוך ה-AI (כרטיס א' לפתיחת תיק, כרטיס ב' למסמכים וטפסים — לעולם לא באותו כרטיס!):
-   - הצגת מאגר המסמכים והטפסים: כאשר המשתמש שואל "דליה, תראי לי את כל המסמכים והטפסים שאפשר לשלוח ללקוח" — קרא מיידית לכלי list_available_claim_documents_and_forms!
-   - כרטיס א' – קישור פתיחת תיק חדש ללקוח (טופס דיווח מקוון claims-intake):
-     כאשר המשתמש מבקש: "פתחי תיק חדש ללקוח והכיני לי קישור לשליחה", "שלחי ללקוח קישור לפתיחת התיק שלו":
-     1. הפעל מיד את preview_send_customer_link עם link_type: "intake" (ו-recipient_name, phone, email אם ידועים).
-     2. המערכת מקצה מספר תיק קבוע (DAL-YYYY-XXXX) בסטטוס "ממתין למילוי הלקוח", ומכינה קישור מאובטח לפתיחת התיק בלבד (claims-intake).
-     3. כרטיס זה מכיל אך ורק את קישור פתיחת התיק — חל איסור מוחלט לשלב בכרטיס זה קישור למסמכים או להוסיף מסמכי ברירת מחדל!
-     4. הכרטיס מציג: מספר תיק קבוע, שם לקוח, קישור לפתיחת התיק, כפתור "פתח ובדוק קישור" (פותח רק את קישור הלקוח), כפתור "העתק קישור" (מעתיק רק את הקישור ללא WhatsApp), וכפתור "שלח בוואטסאפ" (פתיחה בטוחה של WhatsApp עם הודעה קצרה).
-   - כרטיס ב' – בקשת מסמכים וטפסים מהלקוח (claims-upload):
-     יש להבחין תמיד בין שני סוגי מסמכים שונים:
-     1) מסמכים שהלקוח נדרש להעלות אלינו (צילום רישיון נהיגה, רישיון רכב, תמונות נזק, אישור עבר ביטוחי, וכו') – נקלטים אוטומטית בתיק.
-     2) טפסים שהמוסך מספק ללקוח כדי שימלא ויחתום (טופס ייפוי כוח, הצהרת לקוח, טופס הסכמה, אי-הגשת תביעה...) – מסמכים שאנו מספקים לו לפתיחה, הורדה, מילוי וחתימה.
-     הפעל את preview_send_customer_link עם link_type: "upload", requested_documents (המסמכים המדויקים להעלאה), ו-provided_forms (הטפסים המדויקים למילוי).
-     חוק ברזל: רק המסמכים והטפסים שצוינו במפורש ייכללו! חל איסור מוחלט להוסיף מסמכי ברירת מחדל שלא התבקשו!
-     אם חסר טופס במאגר: הודע מיד למשתמש: "טופס [שם הטופס] אינו נמצא במאגר. אנא צרף אותו כאן כדי שאוכל להוסיף אותו למשלוח ללקוח.", והעבר אותו ב-missing_forms.
-   - קישור שיתוף למסמכים קיימים לצפייה והורדה (claims-share):
-     כאשר המשתמש מבקש לשלוח מסמכים קיימים מהתיק: הפעל את preview_create_claim_share_link.
-   - ביטול קישורים: preview_revoke_claim_share_link.
+5ב. חבילת פתיחת תיק מלאה, קישורי לקוח ומסמכים מתוך ה-AI הכללי:
+   - הכנת חבילת פתיחת תיק מלאה ללקוח חדש (End-to-End Package Builder):
+     כאשר המשתמש מבקש: "דליה, תכיני לי חבילת פתיחת תיק חדש ללקוח", "תכיני חבילת פתיחת תיק", או פתיחת תיק עם בחירת מסמכים:
+     1. קרא מיידית לכלי list_available_claim_documents_and_forms!
+     2. הממשק מציג את בונה החבילה האינטראקטיבי:
+        • שאלון פתיחת תביעה וחתימה דיגיטלית – תמיד כלול בחבילה כשלב ראשון.
+        • קטגוריה א' – מסמכים שהלקוח נדרש להעלות (רישיון רכב, רישיון נהיגה, תמונות נזק וכו'). שום מסמך לא מתווסף אם לא סומן ידנית!
+        • קטגוריה ב' – טפסים שהמוסך מספק ללקוח למילוי וחתימה (ייפוי כוח, הצהרת לקוח, טופס הסכמה וכו').
+        • כפתור קבוע להעלאת מסמך/טופס מותאם אישית (➕ העלה מסמך משלך) עם בחירת קטגוריה.
+        • בחירת תוקף הקישור: 24 שעות (ברירת מחדל), שבוע (7 ימים), שעות מותאמות, או ללא תאריך תפוגה אוטומטי (פתוח עד לביטול).
+        • כרטיס סיכום ברור וכפתור הפקה: "אשר את החבילה והפק קישור".
+     3. אם המשתמש כבר פירט בהודעתו את המסמכים, הטפסים ותוקף הקישור (למשל: "הכיני חבילת פתיחת תיק עם רישיון רכב, תמונות נזק וטופס ייפוי כוח לתוקף שבוע") – הפעל מיד את preview_send_customer_link עם link_type: "intake", requested_documents, provided_forms, ו-expires_in_hours: 168.
+   - כרטיס אישור חבילת פתיחת תיק והפקת קישור יחיד:
+     • מוקצה מספר תיק קבוע (DAL-YYYY-XXXX) בסטטוס "ממתין למילוי הלקוח".
+     • מופק קישור אחד בלבד: קישור לשאלון פתיחת התיק (claims-intake).
+     • המסמכים והטפסים שנבחרו נקשרים אוטומטית לתיק בשרת (claims_doc_requests ו-claims_tasks).
+     • כרטיס הפעולה מציג: מספר תיק, פרטי לקוח, תוקף קישור, וכפתורים: "פתח ובדוק קישור" (בדיקה נקייה), "העתק קישור" (קישור נקי בלבד), "שלח בוואטסאפ" (הודעה נקייה עם הקישור), "שנה תוקף", ו-"בטל קישור".
+     • חוויית הלקוח הרציפה: עם השלמת השאלון והחתימה ב-claims-intake, הטופס שולח את הדיווח ועובר אוטומטית ובצורה רציפה למסך claims-upload של אותו תיק, שם מוצגים בדיוק המסמכים והטפסים שנבחרו בחבילה.
+   - כרטיס ב' – בקשת מסמכים וטפסים בלבד (ללא שאלון פתיחת תיק, למשל לתיק שכבר פעיל):
+     הפעל את preview_send_customer_link עם link_type: "upload", requested_documents, provided_forms, ו-expires_in_hours.
+   - כלי ניהול ומעקב מתוך ה-AI הכללי:
+     1. בדיקת סטטוס פתיחת תיק וקישורים:
+        כאשר המשתמש שואל "דליה, מה הסטטוס של פתיחת התיק ששלחתי ללקוח?" או "תציגי לי את הקישורים הפעילים" — קרא מיד לכלי get_customer_link_status (עם claim_ref אם נמסר מזהה תיק, או ללא פרמטר לצפייה בכל הקישורים הפעילים).
+     2. ביטול קישורים:
+        כאשר המשתמש מבקש "דליה, תבטלי את הקישור של הלקוח בתיק X" — קרא מיד לכלי preview_revoke_customer_link עם claim_ref.
+     3. הארכת תוקף קישורים:
+        כאשר המשתמש מבקש "דליה, תאריכי את הקישור בתיק X לעוד שבוע / לעוד יומיים" — קרא מיד לכלי preview_extend_customer_link עם claim_ref ו-extend_hours (168 לשבוע, 48 ליומיים, וכו').
+   - שיתוף מסמכים קיימים מהתיק לצפייה והורדה (claims-share):
+     כאשר המשתמש מבקש לשלוח מסמכים קיימים מתוך התיק לגורם חיצוני (ביטוח/שמאי/סוכן): הפעל את preview_create_claim_share_link. ביטול: preview_revoke_claim_share_link.
 
 6. חיפוש תביעות:
    - חיפוש לפי מספר רכב, שם לקוח, מספר תביעה, חברת ביטוח (search_claims).
@@ -1942,6 +2009,27 @@ async function allocateNextDalClaimId(supabase: ReturnType<typeof createClient>)
     const rand = Math.floor(1000 + Math.random() * 9000);
     return `DAL-${year}-${rand}`;
   }
+}
+
+export function resolveDocKey(label: string): string {
+  const norm = String(label || "").trim().toLowerCase();
+  if (norm.includes("רכב") && norm.includes("רישיון")) return "license_vehicle";
+  if (norm.includes("נהיגה") && norm.includes("רישיון")) return "license_driver";
+  if (norm.includes("שמאי")) return "surveyor_report";
+  if (norm.includes("תמונ") && norm.includes("נזק")) return "damage_photos";
+  if (norm.includes("הודעה") && norm.includes("תאונה")) return "accident_notice";
+  if (norm.includes("עבר") && norm.includes("ביטוח")) return "insurance_history";
+  if (norm.includes("תעודת ביטוח") || norm.includes("חובה")) return "insurance_certificate";
+  if (norm.includes("צד ג") || norm.includes("צד ג'")) return "third_party_notice";
+  if (norm.includes("משטרה")) return "police_report";
+  if (norm.includes("קבלה") || norm.includes("חשבונית") || norm.includes("קבלות")) return "repair_receipts";
+  if (norm.includes("ייפוי כוח") || norm.includes("יפוי כוח")) return "power_of_attorney";
+  if (norm.includes("הצהרת לקוח") || norm.includes("הצהרה")) return "client_declaration";
+  if (norm.includes("טופס הסכמה") || norm.includes("הסכמה למסירת מידע")) return "consent_form";
+  if (norm.includes("אי-הגשת") || norm.includes("אי הגשת תביעה")) return "non_submission_declaration";
+  if (norm.includes("העברת זכויות") || norm.includes("הסבת זכות")) return "assignment_of_rights";
+  if (norm.includes("אישור תשלום") || norm.includes("סילוק")) return "payment_release";
+  return "doc_" + Math.random().toString(36).substring(2, 9);
 }
 
 /** One live claim by its id or by its insurer claim number. Never guesses between several. */
@@ -4452,6 +4540,15 @@ export async function executeClaimsTool(
           ? (cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone.startsWith('972') ? cleanPhone : `972${cleanPhone}`)
           : null;
 
+        const expiresInHours = typeof args.expires_in_hours === "number"
+          ? args.expires_in_hours
+          : (args.expires_in_hours === "never" ? 0 : 24);
+        const expiresLabel = expiresInHours === 0
+          ? "ללא תאריך תפוגה אוטומטי (פתוח עד לביטול)"
+          : expiresInHours === 168
+          ? "שבוע אחד (7 ימים)"
+          : `${expiresInHours} שעות`;
+
         const requestedDocsRaw = (args.requested_documents as string[]) || [];
         const providedFormsRaw = (args.provided_forms as string[]) || [];
         const missingFormsRaw = (args.missing_forms as string[]) || [];
@@ -4480,6 +4577,73 @@ export async function executeClaimsTool(
           });
         }
 
+        // Seed requested documents & provided forms into claims_doc_requests & claims_tasks immediately
+        for (const docName of reqDocsList) {
+          const key = resolveDocKey(docName);
+          const { data: ex } = await supabase
+            .from("claims_doc_requests")
+            .select("id")
+            .eq("claim_id", targetClaimId)
+            .eq("doc_key", key)
+            .maybeSingle();
+          if (!ex) {
+            await supabase.from("claims_doc_requests").insert({
+              id: newId("DCR"),
+              claim_id: targetClaimId,
+              label: docName.trim(),
+              doc_key: key,
+              status: "requested",
+              created_by: userId,
+            });
+          }
+        }
+
+        for (const formName of provFormsList) {
+          const key = resolveDocKey(formName);
+          const { data: ex } = await supabase
+            .from("claims_doc_requests")
+            .select("id")
+            .eq("claim_id", targetClaimId)
+            .eq("doc_key", key)
+            .maybeSingle();
+          let dcrId = ex?.id;
+          if (!ex) {
+            dcrId = newId("DCR");
+            await supabase.from("claims_doc_requests").insert({
+              id: dcrId,
+              claim_id: targetClaimId,
+              label: formName.trim(),
+              doc_key: key,
+              status: "requested",
+              created_by: userId,
+            });
+          }
+          const { data: exTask } = await supabase
+            .from("claims_tasks")
+            .select("id, row_data")
+            .eq("claim_id", targetClaimId);
+          const taskExists = (exTask || []).some(
+            (t: any) => t.row_data?.audience === "customer" && (t.row_data?.action === formName || t.row_data?.letterSubject === formName)
+          );
+          if (!taskExists) {
+            await supabase.from("claims_tasks").insert({
+              id: newId("TSK"),
+              claim_id: targetClaimId,
+              row_data: {
+                audience: "customer",
+                action: formName.trim(),
+                letterSubject: formName.trim(),
+                docRequestId: dcrId || "",
+                customerKind: "form",
+                needsSignature: "true",
+                allowUpload: "true",
+                customerStatus: "open",
+                createdAt: new Date().toISOString(),
+              },
+            });
+          }
+        }
+
         const previewId = `P-CUSTLINK-${Date.now()}`;
         let intakeUrl = "";
         let uploadUrl = "";
@@ -4493,8 +4657,8 @@ export async function executeClaimsTool(
           const dCount = reqDocsList.length;
           const fCount = provFormsList.length;
           summary = dCount > 0 || fCount > 0
-            ? `בקשת מסמכים וטפסים מלקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId}): ${dCount} מסמכים להעלאה, ${fCount} טפסים למילוי`
-            : `שליחת קישור להעלאת מסמכים ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId})`;
+            ? `בקשת מסמכים וטפסים מלקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId}): ${dCount} מסמכים להעלאה, ${fCount} טפסים למילוי (${expiresLabel})`
+            : `שליחת קישור להעלאת מסמכים ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId}) (${expiresLabel})`;
           try {
             const docsRes = await supabase.functions.invoke("claims-docs", {
               headers: {
@@ -4503,6 +4667,7 @@ export async function executeClaimsTool(
               body: {
                 action: "create_link",
                 claim_id: targetClaimId,
+                expires_in_hours: expiresInHours,
               },
             });
             if (docsRes.data?.token) {
@@ -4517,10 +4682,12 @@ export async function executeClaimsTool(
           } catch (e) {
             console.error("claims-docs create_link error:", e);
           }
-          message = `הוכנה תצוגה מקדימה לבקשת מסמכים וטפסים עבור ${clientName || "הלקוח"} בתיק ${targetClaimId}. הקישור מוכן לבדיקה, העתקה או שליחה.`;
+          message = `הוכנה תצוגה מקדימה לבקשת מסמכים וטפסים עבור ${clientName || "הלקוח"} בתיק ${targetClaimId} (${expiresLabel}). הקישור מוכן לבדיקה, העתקה או שליחה.`;
         } else {
           actionType = "send_customer_intake_link";
-          summary = `שליחת קישור פתיחת תיק חדש ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId})`;
+          summary = reqDocsList.length > 0 || provFormsList.length > 0
+            ? `חבילת פתיחת תיק מלאה ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId}): שאלון פתיחת תיק + ${reqDocsList.length} מסמכים + ${provFormsList.length} טפסים לחתימה (${expiresLabel})`
+            : `שליחת קישור פתיחת תיק חדש ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId}) (${expiresLabel})`;
           try {
             const intakeRes = await supabase.functions.invoke("claims-intake", {
               headers: {
@@ -4529,6 +4696,7 @@ export async function executeClaimsTool(
               body: {
                 action: "create_link",
                 claim_id: targetClaimId,
+                expires_in_hours: expiresInHours,
               },
             });
             if (intakeRes.data?.token) {
@@ -4543,7 +4711,7 @@ export async function executeClaimsTool(
           } catch (e) {
             console.error("claims-intake create_link error:", e);
           }
-          message = `הוכנה תצוגה מקדימה לשליחת קישור פתיחת תיק חדש עבור ${clientName || "הלקוח"}. הוקצה מספר תיק קבוע ${targetClaimId} בסטטוס "ממתין למילוי הלקוח". הקישור מוכן לבדיקה בלחיצה, להעתקה או לשליחה.`;
+          message = `הוכנה חבילת פתיחת תיק מלאה עבור ${clientName || "הלקוח"}. הוקצה מספר תיק קבוע ${targetClaimId} בסטטוס "ממתין למילוי הלקוח", ותוקף הקישור נקבע ל-${expiresLabel}. הקישור מוכן לבדיקה בלחיצה, להעתקה או לשליחה.`;
         }
 
         const preview: ClaimsPendingAction = {
@@ -4562,6 +4730,8 @@ export async function executeClaimsTool(
             upload_url: uploadUrl || null,
             wa_link: waLink || null,
             custom_message: customMessage || null,
+            expires_in_hours: expiresInHours,
+            expires_label: expiresLabel,
             requested_documents: reqDocsList,
             provided_forms: provFormsList,
             missing_forms: missingFormsList,
@@ -4592,6 +4762,8 @@ export async function executeClaimsTool(
               recipient_email: clientEmail,
               channel,
               link_type: linkType,
+              expires_in_hours: expiresInHours,
+              expires_label: expiresLabel,
               intake_url: intakeUrl || null,
               upload_url: uploadUrl || null,
               wa_link: waLink || null,
@@ -4602,6 +4774,207 @@ export async function executeClaimsTool(
           },
           preview,
         };
+      }
+
+      case "preview_revoke_customer_link": {
+        let targetClaimId = String(claimId || args.claim_ref || args.claim_id || "").trim();
+        if (!targetClaimId) {
+          return { result: { success: false, message: "נא לציין מספר תיק לביטול הקישורים." } };
+        }
+        const reason = String(args.reason || "").trim();
+        const previewId = `P-REVOKELINK-${Date.now()}`;
+        const summary = `ביטול מיידי של קישורי הלקוח עבור תיק ${targetClaimId}${reason ? ` (סיבה: ${reason})` : ""}`;
+        const preview: ClaimsPendingAction = {
+          preview_id: previewId,
+          summary,
+          tool_name: name,
+          action_type: "revoke_customer_link",
+          parameters: {
+            claim_id: targetClaimId,
+            reason: reason || null,
+          },
+        };
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId: targetClaimId,
+          toolName: name,
+          actionType: "revoke_customer_link",
+          previewSummary: summary,
+          previewPayload: preview.parameters,
+          status: "preview_created",
+        });
+        return {
+          result: {
+            preview_id: previewId,
+            status: "pending_approval",
+            message: `הוכנה פעולה לביטול קישורי הלקוח בתיק ${targetClaimId}. לאחר אישורך הקישורים יבוטלו בשרת ולא ניתן יהיה לגשת אליהם עוד.`,
+            details: { claim_id: targetClaimId, reason },
+          },
+          preview,
+        };
+      }
+
+      case "preview_extend_customer_link": {
+        let targetClaimId = String(claimId || args.claim_ref || args.claim_id || "").trim();
+        if (!targetClaimId) {
+          return { result: { success: false, message: "נא לציין מספר תיק להארכת הקישורים." } };
+        }
+        const extendHours = typeof args.extend_hours === "number" ? args.extend_hours : 168; // default 1 week
+        const extendLabel = extendHours === 0 ? "ללא תאריך תפוגה אוטומטי (פתוח עד לביטול)" : extendHours === 168 ? "שבוע אחד (7 ימים)" : `${extendHours} שעות`;
+        const previewId = `P-EXTENDLINK-${Date.now()}`;
+        const summary = `הארכת תוקף קישורי הלקוח בתיק ${targetClaimId} (${extendLabel})`;
+        const preview: ClaimsPendingAction = {
+          preview_id: previewId,
+          summary,
+          tool_name: name,
+          action_type: "extend_customer_link",
+          parameters: {
+            claim_id: targetClaimId,
+            extend_hours: extendHours,
+            extend_label: extendLabel,
+          },
+        };
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId: targetClaimId,
+          toolName: name,
+          actionType: "extend_customer_link",
+          previewSummary: summary,
+          previewPayload: preview.parameters,
+          status: "preview_created",
+        });
+        return {
+          result: {
+            preview_id: previewId,
+            status: "pending_approval",
+            message: `הוכנה פעולה להארכת תוקף קישורי הלקוח בתיק ${targetClaimId} ב-${extendLabel}. לאישור, לחץ על כפתור האישור מטה.`,
+            details: { claim_id: targetClaimId, extend_hours: extendHours, extend_label: extendLabel },
+          },
+          preview,
+        };
+      }
+
+      case "get_customer_link_status": {
+        const targetClaimId = String(claimId || args.claim_ref || args.claim_id || "").trim();
+        if (targetClaimId) {
+          const { data: claimRec } = await supabase
+            .from("claims_records")
+            .select("id, plate, client_name, status, row_data, created_at")
+            .eq("id", targetClaimId)
+            .maybeSingle();
+          if (!claimRec) {
+            return { result: { success: false, message: `תיק תביעה ${targetClaimId} לא נמצא במערכת.` } };
+          }
+          const claimRow = (claimRec.row_data && typeof claimRec.row_data === "object" ? claimRec.row_data : {}) as Record<string, unknown>;
+          const clientName = claimRec.client_name || claimRow.clientName || "לא צוין";
+
+          const { data: intakeLinks } = await supabase
+            .from("claims_intake_links")
+            .select("id, status, created_at, expires_at, submitted_at, token")
+            .eq("claim_id", targetClaimId)
+            .order("created_at", { ascending: false })
+            .limit(1);
+          const latestIntake = intakeLinks?.[0];
+
+          const { data: docLinks } = await supabase
+            .from("claims_doc_links")
+            .select("id, status, created_at, expires_at, token")
+            .eq("claim_id", targetClaimId)
+            .order("created_at", { ascending: false })
+            .limit(1);
+          const latestDoc = docLinks?.[0];
+
+          const { data: docRequests } = await supabase
+            .from("claims_doc_requests")
+            .select("id, label, status, doc_key, created_at")
+            .eq("claim_id", targetClaimId);
+
+          const { data: tasks } = await supabase
+            .from("claims_tasks")
+            .select("id, row_data")
+            .eq("claim_id", targetClaimId);
+
+          const formTasks = (tasks || []).filter((t: any) => t.row_data?.audience === "customer" && t.row_data?.customerKind === "form");
+
+          const now = Date.now();
+          const formatLinkStatus = (link: any, type: string) => {
+            if (!link) return `לא הופק קישור ${type}`;
+            if (link.status === "revoked") return `בוטל ידנית ❌`;
+            if (link.status === "submitted") return `הושלם ונחתם בהצלחה ✅ (${new Date(link.submitted_at || link.created_at).toLocaleString("he-IL")})`;
+            if (link.expires_at && new Date(link.expires_at).getTime() < now) return `פג תוקף ⚠️ (פג ב-${new Date(link.expires_at).toLocaleString("he-IL")})`;
+            const expText = link.expires_at ? `פעיל עד ${new Date(link.expires_at).toLocaleString("he-IL")}` : "פעיל ללא תפוגה אוטומטית";
+            return `פעיל וממתין ללקוח ⏳ (${expText})`;
+          };
+
+          const lines = [
+            `📊 **סטטוס פתיחת תיק ומסמכים עבור ${clientName} (תיק ${targetClaimId}):**`,
+            `• **סטטוס התיק:** ${claimRec.status || "ממתין למילוי הלקוח"}`,
+            `• **קישור שאלון פתיחת תיק (claims-intake):** ${formatLinkStatus(latestIntake, "פתיחת תיק")}`,
+            `• **קישור העלאת מסמכים (claims-upload):** ${formatLinkStatus(latestDoc, "העלאת מסמכים")}`,
+          ];
+
+          if (docRequests && docRequests.length > 0) {
+            lines.push(``, `📥 **מסמכים שנדרשו מהלקוח:**`);
+            docRequests.forEach((d) => {
+              const st = d.status === "completed" || d.status === "uploaded" ? "התקבל בהצלחה ✅" : "טרם הועלה ⏳";
+              lines.push(`  - **${d.label}:** ${st}`);
+            });
+          }
+
+          if (formTasks.length > 0) {
+            lines.push(``, `📝 **טפסים למילוי וחתימה:**`);
+            formTasks.forEach((t: any) => {
+              const actionName = t.row_data?.action || t.row_data?.letterSubject || "טופס";
+              const st = t.row_data?.customerStatus === "completed" || t.row_data?.customerStatus === "signed" ? "נחתם בהצלחה ✅" : "ממתין לחתימת הלקוח ⏳";
+              lines.push(`  - **${actionName}:** ${st}`);
+            });
+          }
+
+          return {
+            result: {
+              success: true,
+              message: lines.join("\n"),
+              claim_id: targetClaimId,
+              client_name: clientName,
+              intake_status: latestIntake?.status || "none",
+              doc_status: latestDoc?.status || "none",
+            },
+          };
+        } else {
+          const { data: activeIntakes } = await supabase
+            .from("claims_intake_links")
+            .select("id, claim_id, status, created_at, expires_at, token")
+            .eq("status", "pending")
+            .gt("expires_at", new Date().toISOString())
+            .order("created_at", { ascending: false })
+            .limit(20);
+
+          if (!activeIntakes || activeIntakes.length === 0) {
+            return {
+              result: {
+                success: true,
+                message: "אין כרגע קישורי לקוח פעילים במערכת הממתינים למילוי.",
+              },
+            };
+          }
+
+          const lines = [
+            `🔗 **קישורי לקוח פעילים במערכת (${activeIntakes.length}):**`,
+          ];
+          for (const l of activeIntakes) {
+            const exp = new Date(l.expires_at).toLocaleString("he-IL");
+            lines.push(`• **תיק ${l.claim_id || "ללא שיוך"}:** נוצר ב-${new Date(l.created_at).toLocaleDateString("he-IL")} · בתוקף עד ${exp} · [פתח לבדיקה](https://orin1607-ctrl.github.io/future-craft-core/claims-intake?t=${encodeURIComponent(l.token)})`);
+          }
+          return {
+            result: {
+              success: true,
+              message: lines.join("\n"),
+              active_count: activeIntakes.length,
+            },
+          };
+        }
       }
 
       case "preview_create_claim_share_link": {
@@ -7159,27 +7532,6 @@ export async function executeClaimsPendingAction(
         let finalWaLink = wa_link || "";
         let emailSentStatus = "";
 
-        const resolveDocKey = (label: string): string => {
-          const norm = label.trim().toLowerCase();
-          if (norm.includes("רכב") && norm.includes("רישיון")) return "license_vehicle";
-          if (norm.includes("נהיגה") && norm.includes("רישיון")) return "license_driver";
-          if (norm.includes("שמאי")) return "surveyor_report";
-          if (norm.includes("תמונ") && norm.includes("נזק")) return "damage_photos";
-          if (norm.includes("הודעה") && norm.includes("תאונה")) return "accident_notice";
-          if (norm.includes("עבר") && norm.includes("ביטוח")) return "insurance_history";
-          if (norm.includes("תעודת ביטוח") || norm.includes("חובה")) return "insurance_certificate";
-          if (norm.includes("צד ג") || norm.includes("צד ג'")) return "third_party_notice";
-          if (norm.includes("משטרה")) return "police_report";
-          if (norm.includes("קבלה") || norm.includes("חשבונית") || norm.includes("קבלות")) return "repair_receipts";
-          if (norm.includes("ייפוי כוח") || norm.includes("יפוי כוח")) return "power_of_attorney";
-          if (norm.includes("הצהרת לקוח") || norm.includes("הצהרה")) return "client_declaration";
-          if (norm.includes("טופס הסכמה") || norm.includes("הסכמה למסירת מידע")) return "consent_form";
-          if (norm.includes("אי-הגשת") || norm.includes("אי הגשת תביעה")) return "non_submission_declaration";
-          if (norm.includes("העברת זכויות") || norm.includes("הסבת זכות")) return "assignment_of_rights";
-          if (norm.includes("אישור תשלום") || norm.includes("סילוק")) return "payment_release";
-          return "doc_" + Math.random().toString(36).substring(2, 9);
-        };
-
         if (effectiveLinkType === "upload") {
           // Upload link only!
           if (!finalUploadUrl) {
@@ -7353,10 +7705,17 @@ export async function executeClaimsPendingAction(
             wa_link: finalWaLink,
           };
         } else {
-          // Intake link only!
+          // Intake link (Full case opening package)
+          const requestedDocs: string[] = Array.isArray(parameters.requested_documents) ? parameters.requested_documents : [];
+          const providedForms: string[] = Array.isArray(parameters.provided_forms) ? parameters.provided_forms : [];
+          const expiresInHours = typeof (parameters as any).expires_in_hours === "number" ? (parameters as any).expires_in_hours : 24;
+
           if (!finalIntakeUrl) {
             const intakeRes = await supabase.functions.invoke("claims-intake", {
-              body: { action: "create_link", claim_id: targetClaimId },
+              headers: {
+                "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
+              },
+              body: { action: "create_link", claim_id: targetClaimId, expires_in_hours: expiresInHours },
             });
             if (intakeRes.data?.token) {
               finalIntakeUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-intake?t=${encodeURIComponent(intakeRes.data.token)}`;
@@ -7403,14 +7762,79 @@ export async function executeClaimsPendingAction(
             }
           }
 
-          // NOTE: No default documents seeded here! Dalia will NOT add default documents automatically.
+          // Seed selected documents and forms into claims_doc_requests & claims_tasks (only those selected by the user!)
+          for (const docName of requestedDocs) {
+            const key = resolveDocKey(docName);
+            const { data: ex } = await supabase
+              .from("claims_doc_requests")
+              .select("id")
+              .eq("claim_id", targetClaimId)
+              .eq("doc_key", key)
+              .maybeSingle();
+            if (!ex) {
+              await supabase.from("claims_doc_requests").insert({
+                id: newId("DCR"),
+                claim_id: targetClaimId,
+                label: docName.trim(),
+                doc_key: key,
+                status: "requested",
+                created_by: userId,
+              });
+            }
+          }
+
+          for (const formName of providedForms) {
+            const key = resolveDocKey(formName);
+            const { data: ex } = await supabase
+              .from("claims_doc_requests")
+              .select("id")
+              .eq("claim_id", targetClaimId)
+              .eq("doc_key", key)
+              .maybeSingle();
+            let dcrId = ex?.id;
+            if (!ex) {
+              dcrId = newId("DCR");
+              await supabase.from("claims_doc_requests").insert({
+                id: dcrId,
+                claim_id: targetClaimId,
+                label: formName.trim(),
+                doc_key: key,
+                status: "requested",
+                created_by: userId,
+              });
+            }
+            const { data: exTask } = await supabase
+              .from("claims_tasks")
+              .select("id, row_data")
+              .eq("claim_id", targetClaimId);
+            const taskExists = (exTask || []).some(
+              (t: any) => t.row_data?.audience === "customer" && (t.row_data?.action === formName || t.row_data?.letterSubject === formName)
+            );
+            if (!taskExists) {
+              await supabase.from("claims_tasks").insert({
+                id: newId("TSK"),
+                claim_id: targetClaimId,
+                row_data: {
+                  audience: "customer",
+                  action: formName.trim(),
+                  letterSubject: formName.trim(),
+                  docRequestId: dcrId || "",
+                  customerKind: "form",
+                  needsSignature: "true",
+                  allowUpload: "true",
+                  customerStatus: "open",
+                  createdAt: new Date().toISOString(),
+                },
+              });
+            }
+          }
 
           await supabase.from("claims_history").insert({
             id: newId("HIS"),
             claim_id: targetClaimId,
             row_data: {
               action: "נוצר קישור פתיחת תיק חדש ללקוח",
-              note: `הוקצה תיק ${targetClaimId} (ממתין למילוי הלקוח) עבור ${clientName}${recipient_email ? ` · אימייל: ${recipient_email}` : ""}${recipient_phone ? ` · טלפון: ${recipient_phone}` : ""} ${emailSentStatus}`.trim(),
+              note: `הוקצה תיק ${targetClaimId} (ממתין למילוי הלקוח) עבור ${clientName}${recipient_email ? ` · אימייל: ${recipient_email}` : ""}${recipient_phone ? ` · טלפון: ${recipient_phone}` : ""} ${emailSentStatus}${requestedDocs.length ? ` · מסמכים: ${requestedDocs.join(", ")}` : ""}${providedForms.length ? ` · טפסים: ${providedForms.join(", ")}` : ""}`.trim(),
               type: "customer_intake_link_created",
               by: userName || "דליה AI",
               at: new Date().toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }),
@@ -7436,6 +7860,8 @@ export async function executeClaimsPendingAction(
             `📁 **מספר תיק קבוע שהוקצה:** ${targetClaimId} (סטטוס: ממתין למילוי הלקוח)`,
             `🔗 **קישור מילוי טופס פתיחת תיק:** ${finalIntakeUrl}`,
           ];
+          if (requestedDocs.length > 0) lines.push(`📥 **מסמכים שהלקוח נדרש להעלות:** ${requestedDocs.join(", ")}`);
+          if (providedForms.length > 0) lines.push(`📝 **טפסים שאנו מספקים למילוי וחתימה:** ${providedForms.join(", ")}`);
           if (emailSentStatus) lines.push(`📧 ${emailSentStatus}`);
           if (finalWaLink) lines.push(`💬 **WhatsApp:** כפתור שליחה מהירה זמין בכרטיס הפעולה מטה.`);
 
@@ -7448,6 +7874,102 @@ export async function executeClaimsPendingAction(
             wa_link: finalWaLink,
           };
         }
+      }
+
+      case "revoke_customer_link": {
+        const { claim_id, reason } = parameters as { claim_id: string; reason?: string };
+        const targetClaimId = String(claim_id || claimId || "").trim();
+        if (!targetClaimId) return { success: false, message: "חסר מזהה תיק לביטול", error: "missing_claim_id" };
+
+        await supabase.functions.invoke("claims-intake", {
+          headers: { "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "" },
+          body: { action: "revoke_link", claim_id: targetClaimId },
+        });
+        await supabase.functions.invoke("claims-docs", {
+          headers: { "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "" },
+          body: { action: "revoke_link", claim_id: targetClaimId },
+        });
+
+        await supabase.from("claims_history").insert({
+          id: newId("HIS"),
+          claim_id: targetClaimId,
+          row_data: {
+            action: "בוטלו קישורי הלקוח",
+            note: `בוטלו כל קישורי הלקוח הפעילים (פתיחת תיק והעלאת מסמכים)${reason ? ` · סיבה: ${reason}` : ""}`,
+            type: "customer_link_revoked",
+            by: userName || "דליה AI",
+            at: new Date().toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }),
+          },
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId: targetClaimId,
+          toolName: "preview_revoke_customer_link",
+          actionType: "revoke_customer_link",
+          previewSummary: summary,
+          previewPayload: parameters,
+          approvedBy: userId,
+          approvedByName: userName,
+          executionAction: "revoke_customer_link",
+          status: "executed",
+        });
+
+        return {
+          success: true,
+          message: `✅ כל קישורי הלקוח עבור תיק ${targetClaimId} בוטלו בהצלחה בשרת ולא ניתן עוד לגשת אליהם.`,
+        };
+      }
+
+      case "extend_customer_link": {
+        const { claim_id, extend_hours, extend_label } = parameters as { claim_id: string; extend_hours?: number; extend_label?: string };
+        const targetClaimId = String(claim_id || claimId || "").trim();
+        if (!targetClaimId) return { success: false, message: "חסר מזהה תיק להארכה", error: "missing_claim_id" };
+        const hours = typeof extend_hours === "number" ? extend_hours : 168;
+
+        const intakeRes = await supabase.functions.invoke("claims-intake", {
+          headers: { "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "" },
+          body: { action: "extend_link", claim_id: targetClaimId, expires_in_hours: hours },
+        });
+        const docsRes = await supabase.functions.invoke("claims-docs", {
+          headers: { "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "" },
+          body: { action: "extend_link", claim_id: targetClaimId, expires_in_hours: hours },
+        });
+
+        const newExpires = intakeRes.data?.expiresAt || docsRes.data?.expiresAt;
+        const newExpiresLabel = newExpires ? new Date(newExpires).toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }) : (extend_label || `${hours} שעות`);
+
+        await supabase.from("claims_history").insert({
+          id: newId("HIS"),
+          claim_id: targetClaimId,
+          row_data: {
+            action: "הוארך תוקף קישורי הלקוח",
+            note: `הוארך תוקף קישורי הלקוח (פתיחת תיק והעלאת מסמכים) עד: ${newExpiresLabel}`,
+            type: "customer_link_extended",
+            by: userName || "דליה AI",
+            at: new Date().toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }),
+          },
+        });
+
+        await recordAiAudit(supabase, {
+          userId,
+          userName,
+          claimId: targetClaimId,
+          toolName: "preview_extend_customer_link",
+          actionType: "extend_customer_link",
+          previewSummary: summary,
+          previewPayload: parameters,
+          approvedBy: userId,
+          approvedByName: userName,
+          executionAction: "extend_customer_link",
+          status: "executed",
+        });
+
+        return {
+          success: true,
+          message: `✅ תוקף קישורי הלקוח עבור תיק ${targetClaimId} הוארך בהצלחה בשרת עד ${newExpiresLabel}.`,
+        };
       }
 
       case "create_share_link": {

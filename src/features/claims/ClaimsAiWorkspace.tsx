@@ -675,11 +675,13 @@ export function ClaimsCatalogWidget({
 }: {
   claimId?: string;
   onUploadCustomFile?: (file: File, name: string, category: 'cat_b' | 'cat_a') => Promise<{ success: boolean; file_id?: string; error?: string }>;
-  onPrepareLink: (docs: string[], forms: string[]) => void | Promise<void>;
+  onPrepareLink: (docs: string[], forms: string[], ttlHours: number) => void | Promise<void>;
 }) {
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [selectedForms, setSelectedForms] = useState<string[]>([]);
   const [customItems, setCustomItems] = useState<CustomDocItem[]>([]);
+  const [ttlOption, setTtlOption] = useState<'24' | '168' | 'custom' | 'never'>('24');
+  const [customTtlHours, setCustomTtlHours] = useState<number>(48);
   const [prepareError, setPrepareError] = useState<string | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
 
@@ -771,7 +773,14 @@ export function ClaimsCatalogWidget({
   const allCategoryA = [...AVAILABLE_CUSTOMER_UPLOADS, ...customDocs.map((c) => c.name)];
   const allCategoryB = [...AVAILABLE_GARAGE_FORMS, ...customForms.map((c) => c.name)];
 
-  const hasSelections = selectedDocs.length > 0 || selectedForms.length > 0;
+  const effectiveTtlHours = ttlOption === '24' ? 24 : ttlOption === '168' ? 168 : ttlOption === 'never' ? 0 : Math.max(1, customTtlHours || 24);
+  const ttlLabel = ttlOption === '24'
+    ? '24 שעות (יום אחד)'
+    : ttlOption === '168'
+    ? 'שבוע אחד (7 ימים)'
+    : ttlOption === 'never'
+    ? 'ללא תאריך תפוגה אוטומטי (פתוח עד לביטול)'
+    : `${effectiveTtlHours} שעות`;
 
   return (
     <div
@@ -779,7 +788,7 @@ export function ClaimsCatalogWidget({
       data-testid="claims-catalog-widget"
       style={{
         marginTop: 12,
-        padding: '14px 16px',
+        padding: '16px 18px',
         background: '#071022',
         color: '#f8fafc',
         borderRadius: 10,
@@ -794,17 +803,47 @@ export function ClaimsCatalogWidget({
         style={{
           fontWeight: 800,
           color: '#ffffff',
-          marginBottom: 12,
-          fontSize: '0.95rem',
+          marginBottom: 10,
+          fontSize: '1rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
         }}
       >
-        <span>📋 מאגר מסמכים וטפסים לבחירה מהירה:</span>
-        <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
-          {selectedDocs.length + selectedForms.length} נבחרו
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>📦</span>
+          <span>הכנת חבילת פתיחת תיק ללקוח חדש (מאגר מסמכים וטפסים לבחירה מהירה):</span>
         </span>
+        <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
+          {selectedDocs.length + selectedForms.length} מסמכים/טפסים נבחרו
+        </span>
+      </div>
+
+      {/* Step 1 & 2 Notice: Intake Questionnaire Always Included */}
+      <div
+        className="claims-catalog-intake-notice"
+        data-testid="claims-catalog-intake-notice"
+        style={{
+          marginBottom: 14,
+          padding: '10px 14px',
+          background: 'rgba(56, 189, 248, 0.12)',
+          border: '1.5px solid #0284c7',
+          borderRadius: 8,
+          color: '#bae6fd',
+          fontSize: '0.86rem',
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}
+      >
+        <span style={{ fontSize: '1.1rem' }}>📋</span>
+        <div>
+          <div>שאלון פתיחת תביעה – תמיד כלול בחבילה (שלב 1)</div>
+          <div style={{ fontSize: '0.78rem', color: '#7dd3fc', fontWeight: 500, marginTop: 2 }}>
+            הלקוח ימלא את שאלון הדיווח ויחתום דיגיטלית, ולאחר מכן יעבור ישירות וברצף להעלאת המסמכים שנבחרו מטה.
+          </div>
+        </div>
       </div>
 
       {/* Category A: Requested Documents */}
@@ -1170,6 +1209,163 @@ export function ClaimsCatalogWidget({
         )}
       </div>
 
+      {/* Step 3: Link Expiration Picker */}
+      <div style={{ marginBottom: 14, background: '#0f172a', padding: '12px 14px', borderRadius: 8, border: '1.5px solid #334155' }}>
+        <div style={{ fontWeight: 800, color: '#f59e0b', marginBottom: 8, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span>⏰</span>
+          <span>שלב 3 – בחירת תוקף הקישור:</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 8 }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              cursor: 'pointer',
+              background: ttlOption === '24' ? 'rgba(245, 158, 11, 0.2)' : '#071022',
+              border: ttlOption === '24' ? '1.5px solid #f59e0b' : '1px solid #334155',
+              padding: '8px 12px',
+              borderRadius: 6,
+              color: '#ffffff',
+              fontSize: '0.82rem',
+              fontWeight: ttlOption === '24' ? 700 : 500,
+            }}
+          >
+            <input
+              type="radio"
+              name="catalog-ttl"
+              checked={ttlOption === '24'}
+              onChange={() => setTtlOption('24')}
+              style={{ accentColor: '#f59e0b' }}
+            />
+            <span>24 שעות (יום אחד) – ברירת מחדל</span>
+          </label>
+
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              cursor: 'pointer',
+              background: ttlOption === '168' ? 'rgba(245, 158, 11, 0.2)' : '#071022',
+              border: ttlOption === '168' ? '1.5px solid #f59e0b' : '1px solid #334155',
+              padding: '8px 12px',
+              borderRadius: 6,
+              color: '#ffffff',
+              fontSize: '0.82rem',
+              fontWeight: ttlOption === '168' ? 700 : 500,
+            }}
+          >
+            <input
+              type="radio"
+              name="catalog-ttl"
+              checked={ttlOption === '168'}
+              onChange={() => setTtlOption('168')}
+              style={{ accentColor: '#f59e0b' }}
+            />
+            <span>שבוע (7 ימים)</span>
+          </label>
+
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              cursor: 'pointer',
+              background: ttlOption === 'never' ? 'rgba(245, 158, 11, 0.2)' : '#071022',
+              border: ttlOption === 'never' ? '1.5px solid #f59e0b' : '1px solid #334155',
+              padding: '8px 12px',
+              borderRadius: 6,
+              color: '#ffffff',
+              fontSize: '0.82rem',
+              fontWeight: ttlOption === 'never' ? 700 : 500,
+            }}
+          >
+            <input
+              type="radio"
+              name="catalog-ttl"
+              checked={ttlOption === 'never'}
+              onChange={() => setTtlOption('never')}
+              style={{ accentColor: '#f59e0b' }}
+            />
+            <span>ללא תאריך תפוגה אוטומטי (פתוח עד לביטול ידני)</span>
+          </label>
+
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              cursor: 'pointer',
+              background: ttlOption === 'custom' ? 'rgba(245, 158, 11, 0.2)' : '#071022',
+              border: ttlOption === 'custom' ? '1.5px solid #f59e0b' : '1px solid #334155',
+              padding: '8px 12px',
+              borderRadius: 6,
+              color: '#ffffff',
+              fontSize: '0.82rem',
+              fontWeight: ttlOption === 'custom' ? 700 : 500,
+            }}
+          >
+            <input
+              type="radio"
+              name="catalog-ttl"
+              checked={ttlOption === 'custom'}
+              onChange={() => setTtlOption('custom')}
+              style={{ accentColor: '#f59e0b' }}
+            />
+            <span>הגדרה מותאמת אישית</span>
+          </label>
+        </div>
+
+        {ttlOption === 'custom' ? (
+          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: '0.82rem', color: '#cbd5e1' }}>מספר שעות תוקף:</span>
+            <input
+              type="number"
+              min={1}
+              max={8760}
+              value={customTtlHours}
+              onChange={(e) => setCustomTtlHours(parseInt(e.target.value, 10) || 24)}
+              style={{
+                width: '100px',
+                minHeight: '34px',
+                padding: '4px 8px',
+                background: '#071022',
+                border: '1.5px solid #f59e0b',
+                borderRadius: 6,
+                color: '#ffffff',
+                fontWeight: 700,
+              }}
+            />
+            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>שעות (לדוגמה 12, 48, 72)</span>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Step 4: Package Summary Card */}
+      <div
+        className="claims-catalog-summary-card"
+        data-testid="claims-catalog-summary-card"
+        style={{
+          marginBottom: 14,
+          background: '#0c1b33',
+          padding: '12px 14px',
+          borderRadius: 8,
+          border: '1.5px solid #2563eb',
+          fontSize: '0.84rem',
+        }}
+      >
+        <div style={{ fontWeight: 800, color: '#60a5fa', marginBottom: 6, fontSize: '0.88rem' }}>
+          📑 סיכום החבילה להפקה:
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 6, color: '#e2e8f0' }}>
+          <div>📋 <strong>שאלון פתיחת תיק:</strong> כלול ומאושר ✅</div>
+          <div>📥 <strong>מסמכים להעלאה:</strong> {selectedDocs.length > 0 ? `${selectedDocs.length} נבחרו` : 'ללא מסמכים נוספים'}</div>
+          <div>📝 <strong>טפסים לחתימה:</strong> {selectedForms.length > 0 ? `${selectedForms.length} נבחרו` : 'ללא טפסים נוספים'}</div>
+          <div>⏰ <strong>תוקף הקישור:</strong> {ttlLabel}</div>
+        </div>
+      </div>
+
       {prepareError ? (
         <div
           className="claims-catalog-error-banner"
@@ -1199,12 +1395,16 @@ export function ClaimsCatalogWidget({
         type="button"
         className="btn btn-primary"
         data-testid="claims-catalog-prepare-btn"
-        disabled={!hasSelections || isPreparing}
+        disabled={isPreparing}
         onClick={async () => {
           setIsPreparing(true);
           setPrepareError(null);
           try {
-            await onPrepareLink(selectedDocs, selectedForms);
+            if (ttlOption === '24') {
+              await onPrepareLink(selectedDocs, selectedForms);
+            } else {
+              await onPrepareLink(selectedDocs, selectedForms, effectiveTtlHours);
+            }
           } catch (err) {
             setPrepareError(err instanceof Error ? err.message : String(err));
           } finally {
@@ -1217,25 +1417,24 @@ export function ClaimsCatalogWidget({
           justifyContent: 'center',
           gap: 8,
           fontWeight: 700,
-          fontSize: '0.92rem',
-          minHeight: '46px',
+          fontSize: '0.94rem',
+          minHeight: '48px',
           padding: '10px 18px',
           borderRadius: 8,
           width: '100%',
-          cursor: hasSelections && !isPreparing ? 'pointer' : 'not-allowed',
-          opacity: hasSelections && !isPreparing ? 1 : 0.5,
-          background: hasSelections ? '#2563eb' : '#334155',
+          cursor: !isPreparing ? 'pointer' : 'not-allowed',
+          background: '#2563eb',
           color: '#ffffff',
           border: 'none',
-          boxShadow: hasSelections ? '0 2px 8px rgba(37, 99, 235, 0.4)' : 'none',
+          boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
         }}
       >
         {isPreparing ? (
-          '⏳ מכין כרטיס אישור...'
+          '⏳ מפיק חבילת פתיחת תיק...'
         ) : prepareError ? (
           `🔄 נסה שוב להכין כרטיס אישור (${selectedDocs.length + selectedForms.length})`
         ) : (
-          `✨ הכן כרטיס אישור למסמכים שנבחרו (${selectedDocs.length + selectedForms.length})`
+          `✨ אשר את החבילה והפק קישור (${selectedDocs.length + selectedForms.length})`
         )}
       </button>
     </div>
@@ -2818,20 +3017,25 @@ export function ClaimsAiWorkspace({
                   {msg.role === 'assistant' && (
                     msg.content.includes('מאגר המסמכים והטפסים') ||
                     msg.content.includes('קטגוריה א:') ||
+                    msg.content.includes('חבילת פתיחת תיק') ||
                     (toolTraceOf(msg.metadata) || []).some((t) => t.tool === 'list_available_claim_documents_and_forms')
                   ) ? (
                     <ClaimsCatalogWidget
-                      claimId={claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || 'DAL-2026-0249')}
+                      claimId={claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || '')}
                       onUploadCustomFile={async (file, name, cat) => {
                         const target = claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || 'DAL-2026-0249');
                         return uploadChatAttachmentToClaim(target, file, name, cat);
                       }}
-                      onPrepareLink={(docs, forms) => {
-                        const parts: string[] = [];
-                        if (docs.length > 0) parts.push(`מסמכים שהלקוח נדרש להעלות: ${docs.join(', ')}`);
-                        if (forms.length > 0) parts.push(`טפסים שהמוסך מספק למילוי וחתימה: ${forms.join(', ')}`);
-                        const targetClaim = claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || 'DAL-2026-0249');
-                        const prompt = `הכיני קישור להעלאת מסמכים עבור תיק ${targetClaim} עם המסמכים הבאים:\n${parts.join('\n')}`;
+                      onPrepareLink={(docs, forms, ttlHours) => {
+                        const parts: string[] = ['- שאלון פתיחת תיק: כלול'];
+                        if (docs.length > 0) parts.push(`- מסמכים שהלקוח נדרש להעלות: ${docs.join(', ')}`);
+                        if (forms.length > 0) parts.push(`- טפסים שהמוסך מספק למילוי וחתימה: ${forms.join(', ')}`);
+                        const expLabel = ttlHours === 0 ? 'ללא תאריך תפוגה אוטומטי (פתוח עד לביטול)' : ttlHours === 168 ? 'שבוע (7 ימים)' : `${ttlHours} שעות`;
+                        parts.push(`- תוקף הקישור: ${expLabel} (${ttlHours} שעות)`);
+                        const targetClaim = claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || '');
+                        const prompt = targetClaim
+                          ? `דליה, אשר את חבילת פתיחת התיק והפיקי קישור עבור תיק ${targetClaim}:\n${parts.join('\n')}`
+                          : `דליה, אשר את חבילת פתיחת התיק והפיקי קישור עבור לקוח חדש:\n${parts.join('\n')}`;
                         void sendMessage(prompt);
                       }}
                     />
@@ -3022,6 +3226,72 @@ export function ClaimsAiWorkspace({
                           {pending.parameters.recipient_phone ? <div style={{ color: '#e2e8f0' }}><strong style={{ color: '#cbd5e1' }}>טלפון (WhatsApp):</strong> {String(pending.parameters.recipient_phone)}</div> : null}
                           {pending.parameters.recipient_email ? <div style={{ color: '#e2e8f0' }}><strong style={{ color: '#cbd5e1' }}>אימייל:</strong> {String(pending.parameters.recipient_email)}</div> : null}
                           <div style={{ color: '#e2e8f0' }}><strong style={{ color: '#cbd5e1' }}>ערוץ שליחה:</strong> {String(pending.parameters.channel || 'copy') === 'whatsapp' ? 'WhatsApp' : String(pending.parameters.channel) === 'email' ? 'אימייל' : String(pending.parameters.channel) === 'both' ? 'אימייל + WhatsApp' : 'העתקת קישור'}</div>
+                          <div style={{ color: '#e2e8f0', marginTop: 2 }}>
+                            <strong style={{ color: '#cbd5e1' }}>תוקף הקישור:</strong>{' '}
+                            <span style={{ color: '#fbbf24', fontWeight: 700 }}>
+                              {String(pending.parameters.expires_label || (pending.parameters.expires_in_hours === 0 ? 'ללא תאריך תפוגה אוטומטי (פתוח עד לביטול)' : `${pending.parameters.expires_in_hours || 24} שעות`))}
+                            </span>
+                          </div>
+
+                          {/* Category A: Requested documents from customer */}
+                          {Array.isArray(pending.parameters.requested_documents) && pending.parameters.requested_documents.length > 0 ? (
+                            <div style={{ marginTop: 8, background: '#0c1b33', padding: '8px 12px', borderRadius: '8px', border: '1px solid #1e3a8a' }}>
+                              <div style={{ fontSize: '0.8rem', color: '#38bdf8', fontWeight: 800, marginBottom: 4 }}>
+                                📥 מסמכים שהלקוח נדרש להעלות ({pending.parameters.requested_documents.length}):
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {pending.parameters.requested_documents.map((doc: string, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      background: '#0369a1',
+                                      color: '#ffffff',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 700,
+                                      padding: '3px 8px',
+                                      borderRadius: 10,
+                                      border: '1px solid #38bdf8',
+                                    }}
+                                  >
+                                    ✓ {doc}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {/* Category B: Provided forms to sign/fill */}
+                          {Array.isArray(pending.parameters.provided_forms) && pending.parameters.provided_forms.length > 0 ? (
+                            <div style={{ marginTop: 8, background: '#0a231b', padding: '8px 12px', borderRadius: '8px', border: '1px solid #14532d' }}>
+                              <div style={{ fontSize: '0.8rem', color: '#4ade80', fontWeight: 800, marginBottom: 4 }}>
+                                📝 טפסים שאנו מספקים ללקוח למילוי וחתימה ({pending.parameters.provided_forms.length}):
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {pending.parameters.provided_forms.map((form: string, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      background: '#15803d',
+                                      color: '#ffffff',
+                                      fontSize: '0.78rem',
+                                      fontWeight: 700,
+                                      padding: '3px 8px',
+                                      borderRadius: 10,
+                                      border: '1px solid #4ade80',
+                                    }}
+                                  >
+                                    ✍️ {form}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
 
                           {pending.parameters.intake_url ? (
                             <div style={{ marginTop: 10, background: '#0f172a', padding: '8px 12px', borderRadius: '8px', border: '1px solid #334155', wordBreak: 'break-all' }}>
@@ -3033,7 +3303,7 @@ export function ClaimsAiWorkspace({
                           ) : null}
 
                           {/* Interactive Preview Buttons */}
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', marginTop: 12 }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '8px', marginTop: 12 }}>
                             {pending.parameters.intake_url ? (
                               <a
                                 href={String(pending.parameters.intake_url)}
@@ -3047,9 +3317,9 @@ export function ClaimsAiWorkspace({
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   gap: 6,
-                                  minHeight: '44px',
-                                  padding: '8px 14px',
-                                  fontSize: '0.85rem',
+                                  minHeight: '42px',
+                                  padding: '8px 12px',
+                                  fontSize: '0.84rem',
                                   fontWeight: 700,
                                   borderRadius: '8px',
                                   background: '#0f172a',
@@ -3072,9 +3342,9 @@ export function ClaimsAiWorkspace({
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   gap: 6,
-                                  minHeight: '44px',
-                                  padding: '8px 14px',
-                                  fontSize: '0.85rem',
+                                  minHeight: '42px',
+                                  padding: '8px 12px',
+                                  fontSize: '0.84rem',
                                   fontWeight: 700,
                                   borderRadius: '8px',
                                   background: '#0f172a',
@@ -3101,9 +3371,9 @@ export function ClaimsAiWorkspace({
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   gap: 6,
-                                  minHeight: '44px',
-                                  padding: '8px 14px',
-                                  fontSize: '0.85rem',
+                                  minHeight: '42px',
+                                  padding: '8px 12px',
+                                  fontSize: '0.84rem',
                                   fontWeight: 700,
                                   borderRadius: '8px',
                                   background: '#16a34a',
@@ -3116,10 +3386,114 @@ export function ClaimsAiWorkspace({
                                 💬 שלח בוואטסאפ
                               </a>
                             ) : null}
+
+                            {pending.parameters.claim_id ? (
+                              <button
+                                type="button"
+                                className="btn btn-g"
+                                data-testid="claims-ai-preview-extend-intake-btn"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6,
+                                  minHeight: '42px',
+                                  padding: '8px 12px',
+                                  fontSize: '0.84rem',
+                                  fontWeight: 700,
+                                  borderRadius: '8px',
+                                  background: '#0f172a',
+                                  color: '#fbbf24',
+                                  border: '1.5px solid #d97706',
+                                }}
+                                onClick={() => void sendMessage(`דליה, תאריכי את הקישור של הלקוח בתיק ${pending.parameters.claim_id} לעוד שבוע`)}
+                                title="הארכת תוקף הקישור של הלקוח"
+                              >
+                                ⏰ שנה תוקף
+                              </button>
+                            ) : null}
+
+                            {pending.parameters.claim_id ? (
+                              <button
+                                type="button"
+                                className="btn btn-g"
+                                data-testid="claims-ai-preview-revoke-intake-btn"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6,
+                                  minHeight: '42px',
+                                  padding: '8px 12px',
+                                  fontSize: '0.84rem',
+                                  fontWeight: 700,
+                                  borderRadius: '8px',
+                                  background: '#0f172a',
+                                  color: '#f87171',
+                                  border: '1.5px solid #dc2626',
+                                }}
+                                onClick={() => void sendMessage(`דליה, תבטלי את הקישור של הלקוח בתיק ${pending.parameters.claim_id}`)}
+                                title="ביטול מיידי של קישור הלקוח בשרת"
+                              >
+                                🚫 בטל קישור
+                              </button>
+                            ) : null}
                           </div>
 
                           <div style={{ marginTop: 10, fontSize: '0.78rem', color: '#94a3b8', lineHeight: '1.4' }}>
                             ℹ️ בדיקת הקישור פותחת את טופס הלקוח בלבד ואינה שולחת ואינה פותחת תיק כפול. באישור: ייפתח התיק ויישמר בסטטוס "ממתין למילוי הלקוח", ויישלח במייל אם צוין.
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {pending.action_type === 'revoke_customer_link' && pending.parameters ? (
+                        <div
+                          className="claims-ai-preview-revoke-link"
+                          data-testid="claims-ai-preview-revoke-link-card"
+                          style={{
+                            margin: '10px 0',
+                            fontSize: '0.85rem',
+                            background: 'rgba(239, 68, 68, 0.08)',
+                            color: '#f8fafc',
+                            padding: '14px 16px',
+                            borderRadius: '10px',
+                            lineHeight: '1.6',
+                            border: '1.5px solid #ef4444',
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, color: '#f87171', fontSize: '0.95rem', marginBottom: 6 }}>
+                            🚫 כרטיס אישור – ביטול קישורי לקוח בשרת
+                          </div>
+                          <div><strong>מספר תיק:</strong> {String(pending.parameters.claim_id || '')}</div>
+                          {pending.parameters.reason ? <div><strong>סיבה:</strong> {String(pending.parameters.reason)}</div> : null}
+                          <div style={{ marginTop: 8, fontSize: '0.8rem', color: '#fca5a5' }}>
+                            ⚠️ באישור: הקישור לשאלון פתיחת התיק והקישור להעלאת מסמכים יבוטלו בשרת מיידית ולא ניתן יהיה לגשת אליהם עוד.
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {pending.action_type === 'extend_customer_link' && pending.parameters ? (
+                        <div
+                          className="claims-ai-preview-extend-link"
+                          data-testid="claims-ai-preview-extend-link-card"
+                          style={{
+                            margin: '10px 0',
+                            fontSize: '0.85rem',
+                            background: 'rgba(245, 158, 11, 0.08)',
+                            color: '#f8fafc',
+                            padding: '14px 16px',
+                            borderRadius: '10px',
+                            lineHeight: '1.6',
+                            border: '1.5px solid #f59e0b',
+                          }}
+                        >
+                          <div style={{ fontWeight: 800, color: '#fbbf24', fontSize: '0.95rem', marginBottom: 6 }}>
+                            ⏰ כרטיס אישור – הארכת תוקף קישורי לקוח
+                          </div>
+                          <div><strong>מספר תיק:</strong> {String(pending.parameters.claim_id || '')}</div>
+                          <div><strong>הארכה מבוקשת:</strong> {String(pending.parameters.extend_label || `${pending.parameters.extend_hours} שעות`)}</div>
+                          <div style={{ marginTop: 8, fontSize: '0.8rem', color: '#fde68a' }}>
+                            ⚡ באישור: תוקף הקישור לשאלון הלקוח והקישור להעלאת מסמכים יוארך בשרת מיידית.
                           </div>
                         </div>
                       ) : null}

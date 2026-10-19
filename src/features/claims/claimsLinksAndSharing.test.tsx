@@ -875,5 +875,210 @@ describe('Claims Links and Sharing UI (Task 8)', () => {
       ['ייפוי כוח']
     );
   });
+
+  it('renders package builder notice, expiration picker, summary card, and triggers custom ttl on prepare', async () => {
+    const onPrepareLink = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <ClaimsCatalogWidget
+        claimId="DAL-2026-0249"
+        onPrepareLink={onPrepareLink}
+      />
+    );
+
+    // 1. Notice that intake questionnaire is always included
+    const notice = screen.getByTestId('claims-catalog-intake-notice');
+    expect(notice.textContent).toContain('שאלון פתיחת תביעה – תמיד כלול בחבילה');
+
+    // 2. Summary card displays questionnaire included
+    const summaryCard = screen.getByTestId('claims-catalog-summary-card');
+    expect(summaryCard.textContent).toContain('שאלון פתיחת תיק: כלול ומאושר');
+    expect(summaryCard.textContent).toContain('24 שעות (יום אחד)');
+
+    // 3. Select 7 days expiration
+    const radio7d = screen.getByLabelText(/שבוע \(7 ימים\)/);
+    fireEvent.click(radio7d);
+    expect(summaryCard.textContent).toContain('שבוע אחד (7 ימים)');
+
+    // 4. Select a document (רישיון נהיגה)
+    const docLabel = screen.getByLabelText(/רישיון נהיגה/);
+    fireEvent.click(docLabel);
+
+    // 5. Submit package with 7 days (168 hours)
+    const prepBtn = screen.getByTestId('claims-catalog-prepare-btn');
+    await act(async () => {
+      fireEvent.click(prepBtn);
+    });
+
+    expect(onPrepareLink).toHaveBeenCalledWith(
+      ['רישיון נהיגה'],
+      [],
+      168
+    );
+  });
+
+  it('renders Card A with expiration, category A chips, category B chips, and management action buttons', async () => {
+    listClaimsAiConversations.mockResolvedValue({
+      data: [{
+        id: 'conv-links',
+        user_id: 'user-1',
+        claim_id: null,
+        title: 'חבילת פתיחת תיק',
+        created_at: '2026-10-19T10:00:00Z',
+        updated_at: '2026-10-19T10:05:00Z',
+        archived: false,
+      }],
+      error: null,
+    });
+    listClaimsAiMessages.mockResolvedValue({
+      data: [
+        {
+          id: 'msg-package-1',
+          conversation_id: 'conv-links',
+          role: 'assistant',
+          content: 'הוכנה חבילת פתיחת תיק מלאה ללקוח',
+          tool_name: 'preview_send_customer_link',
+          metadata: {
+            pending_action: {
+              preview_id: 'P-PACK-1',
+              summary: 'חבילת פתיחת תיק מלאה ללקוח "ישראל ישראלי"',
+              tool_name: 'preview_send_customer_link',
+              action_type: 'send_customer_intake_link',
+              status: 'pending',
+              parameters: {
+                claim_id: 'DAL-2026-0249',
+                recipient_name: 'ישראל ישראלי',
+                recipient_phone: '050-7654321',
+                channel: 'whatsapp',
+                link_type: 'intake',
+                intake_url: 'https://orin1607-ctrl.github.io/future-craft-core/claims-intake?t=tok_pack_77',
+                wa_link: 'https://wa.me/972507654321?text=pack_text',
+                expires_in_hours: 168,
+                expires_label: 'שבוע אחד (7 ימים)',
+                requested_documents: ['רישיון רכב', 'תמונות נזק'],
+                provided_forms: ['ייפוי כוח'],
+              },
+            },
+          },
+        },
+      ],
+      error: null,
+    });
+
+    render(
+      <ClaimsAiWorkspace
+        open={true}
+        onClose={vi.fn()}
+        claim={null}
+        userId="user-1"
+        companyName="מוסך אורן קאר"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('claims-ai-preview-intake-card')).toBeDefined();
+    });
+
+    const card = screen.getByTestId('claims-ai-preview-intake-card');
+    expect(card.textContent).toContain('DAL-2026-0249');
+    expect(card.textContent).toContain('ישראל ישראלי');
+    expect(card.textContent).toContain('שבוע אחד (7 ימים)');
+    expect(card.textContent).toContain('רישיון רכב');
+    expect(card.textContent).toContain('תמונות נזק');
+    expect(card.textContent).toContain('ייפוי כוח');
+
+    // Management buttons
+    expect(screen.getByTestId('claims-ai-preview-open-intake-btn')).toBeDefined();
+    expect(screen.getByTestId('claims-ai-preview-copy-intake-btn')).toBeDefined();
+    expect(screen.getByTestId('claims-ai-preview-wa-intake-btn')).toBeDefined();
+    expect(screen.getByTestId('claims-ai-preview-extend-intake-btn')).toBeDefined();
+    expect(screen.getByTestId('claims-ai-preview-revoke-intake-btn')).toBeDefined();
+  });
+
+  it('renders revoke_customer_link and extend_customer_link preview cards correctly', async () => {
+    listClaimsAiConversations.mockResolvedValue({
+      data: [{
+        id: 'conv-links',
+        user_id: 'user-1',
+        claim_id: null,
+        title: 'ניהול קישורים',
+        created_at: '2026-10-19T10:00:00Z',
+        updated_at: '2026-10-19T10:05:00Z',
+        archived: false,
+      }],
+      error: null,
+    });
+    listClaimsAiMessages.mockResolvedValue({
+      data: [
+        {
+          id: 'msg-revoke-1',
+          conversation_id: 'conv-links',
+          role: 'assistant',
+          content: 'ביטול קישורי לקוח',
+          tool_name: 'preview_revoke_customer_link',
+          metadata: {
+            pending_action: {
+              preview_id: 'P-REV-1',
+              summary: 'ביטול קישורי הלקוח בתיק DAL-2026-0249',
+              tool_name: 'preview_revoke_customer_link',
+              action_type: 'revoke_customer_link',
+              status: 'pending',
+              parameters: {
+                claim_id: 'DAL-2026-0249',
+                reason: 'לבקשת המשתמש',
+              },
+            },
+          },
+        },
+        {
+          id: 'msg-extend-1',
+          conversation_id: 'conv-links',
+          role: 'assistant',
+          content: 'הארכת תוקף קישורי לקוח',
+          tool_name: 'preview_extend_customer_link',
+          metadata: {
+            pending_action: {
+              preview_id: 'P-EXT-1',
+              summary: 'הארכת קישורי הלקוח בתיק DAL-2026-0249',
+              tool_name: 'preview_extend_customer_link',
+              action_type: 'extend_customer_link',
+              status: 'pending',
+              parameters: {
+                claim_id: 'DAL-2026-0249',
+                extend_hours: 168,
+                extend_label: 'שבוע אחד (7 ימים)',
+              },
+            },
+          },
+        },
+      ],
+      error: null,
+    });
+
+    render(
+      <ClaimsAiWorkspace
+        open={true}
+        onClose={vi.fn()}
+        claim={null}
+        userId="user-1"
+        companyName="מוסך אורן קאר"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('claims-ai-preview-revoke-link-card')).toBeDefined();
+    });
+
+    const revokeCard = screen.getByTestId('claims-ai-preview-revoke-link-card');
+    expect(revokeCard.textContent).toContain('ביטול קישורי לקוח בשרת');
+    expect(revokeCard.textContent).toContain('DAL-2026-0249');
+    expect(revokeCard.textContent).toContain('לבקשת המשתמש');
+
+    const extendCard = screen.getByTestId('claims-ai-preview-extend-link-card');
+    expect(extendCard.textContent).toContain('הארכת תוקף קישורי לקוח');
+    expect(extendCard.textContent).toContain('DAL-2026-0249');
+    expect(extendCard.textContent).toContain('שבוע אחד (7 ימים)');
+  });
 });
+
 

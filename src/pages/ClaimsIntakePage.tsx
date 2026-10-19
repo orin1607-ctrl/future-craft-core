@@ -107,7 +107,13 @@ export default function ClaimsIntakePage() {
     setBusy(false);
     if (r.json?.submitted) {
       setDone(true);
-      if (r.json.upload_url) setUploadUrl(String(r.json.upload_url));
+      if (r.json.upload_url) {
+        const u = String(r.json.upload_url);
+        setUploadUrl(u);
+        window.setTimeout(() => {
+          window.location.href = u;
+        }, 1200);
+      }
       sessionStorage.removeItem(`intake-draft-${token}`);
       return;
     }
@@ -134,7 +140,7 @@ export default function ClaimsIntakePage() {
               השלב הבא: העלאת מסמכים וטפסים לתביעה
             </h2>
             <p style={{ fontSize: 14, color: '#374151', margin: '0 0 16px', lineHeight: 1.5 }}>
-              להשלמת התהליך וטיפול מיידי, באפשרותך לצרף כעת את המסמכים והטפסים ישירות לתיק.
+              מעביר אותך כעת באופן אוטומטי להעלאת המסמכים והטפסים שנבחרו עבור התיק...
             </p>
             <a
               href={uploadUrl}
@@ -142,7 +148,7 @@ export default function ClaimsIntakePage() {
               data-testid="intake-continue-to-docs"
               style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px', fontSize: 16, textDecoration: 'none', borderRadius: 8, fontWeight: 800 }}
             >
-              המשך להעלאת מסמכים 📎
+              המשך מיד להעלאת מסמכים 📎
             </a>
           </div>
         ) : (
