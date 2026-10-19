@@ -1690,18 +1690,39 @@ export function ClaimsAiWorkspace({
       );
       onActionExecuted?.(pending);
     } catch (err) {
-      // Failure: the card stays pending so it can be retried, and the user sees the real reason.
-      executingRef.current.delete(guardKey);
+      // Failure: keep guardKey for 1500ms cooldown to prevent accidental rapid double-tap on mobile
+      setTimeout(() => {
+        executingRef.current.delete(guardKey);
+      }, 1500);
       const message = err instanceof Error ? err.message : 'שגיאה בביצוע הפעולה';
       setBanner(message);
       if (activeId) {
-        const failed = await insertClaimsAiMessage({
-          conversationId: activeId,
-          role: 'assistant',
-          content: `❌ הפעולה לא בוצעה: ${message}`,
-          metadata: { error: true, claim_id: claimId, preview_id: pending.preview_id },
+        const errorContent = `❌ הפעולה לא בוצעה: ${message}`;
+        setMessages((prev) => {
+          const lastMsg = prev[prev.length - 1];
+          if (lastMsg && lastMsg.content === errorContent) {
+            return prev;
+          }
+          // Insert asynchronously into DB without duplicating
+          void insertClaimsAiMessage({
+            conversationId: activeId,
+            role: 'assistant',
+            content: errorContent,
+            metadata: { error: true, claim_id: claimId, preview_id: pending.preview_id },
+          }).then((res) => {
+            if (res.data) {
+              setMessages((curr) => curr.map((m) => m.id === 'temp-error' ? res.data! : m));
+            }
+          });
+          return [...prev, {
+            id: `err-${Date.now()}`,
+            conversation_id: activeId,
+            role: 'assistant',
+            content: errorContent,
+            metadata: { error: true, claim_id: claimId, preview_id: pending.preview_id },
+            created_at: new Date().toISOString(),
+          }];
         });
-        if (failed.data) setMessages((prev) => [...prev, failed.data!]);
       }
     } finally {
       setExecutingActionId(null);
@@ -2250,7 +2271,7 @@ export function ClaimsAiWorkspace({
                           ) : null}
 
                           {/* Interactive Preview Buttons */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: 10 }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: 10 }}>
                             {pending.parameters.intake_url ? (
                               <a
                                 href={String(pending.parameters.intake_url)}
@@ -2258,7 +2279,18 @@ export function ClaimsAiWorkspace({
                                 rel="noreferrer"
                                 className="btn btn-g btn-xs"
                                 data-testid="claims-ai-preview-open-intake-btn"
-                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                style={{
+                                  textDecoration: 'none',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6,
+                                  minHeight: '34px',
+                                  padding: '6px 12px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  borderRadius: '6px',
+                                }}
                                 title="פותח את טופס הלקוח בטאב חדש לבדיקה בלבד (ללא שליחה וללא כפילויות)"
                               >
                                 👁️ פתח ובדוק קישור
@@ -2270,6 +2302,17 @@ export function ClaimsAiWorkspace({
                                 type="button"
                                 className="btn btn-g btn-xs"
                                 data-testid="claims-ai-preview-copy-intake-btn"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6,
+                                  minHeight: '34px',
+                                  padding: '6px 12px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  borderRadius: '6px',
+                                }}
                                 onClick={() => void copyToClipboard(String(pending.parameters.intake_url), `intake-${pending.preview_id || msg.id}`)}
                                 title="העתק את קישור פתיחת התיק ללוח"
                               >
@@ -2284,7 +2327,18 @@ export function ClaimsAiWorkspace({
                                 rel="noreferrer"
                                 className="btn btn-g btn-xs"
                                 data-testid="claims-ai-preview-wa-intake-btn"
-                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                style={{
+                                  textDecoration: 'none',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6,
+                                  minHeight: '34px',
+                                  padding: '6px 12px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  borderRadius: '6px',
+                                }}
                                 title="פתיחת וואטסאפ עם הודעה מוכנה הכוללת את קישור פתיחת התיק בלבד"
                               >
                                 💬 שלח בוואטסאפ
@@ -2337,7 +2391,7 @@ export function ClaimsAiWorkspace({
                           ) : null}
 
                           {/* Interactive Preview Buttons */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: 10 }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: 10 }}>
                             {pending.parameters.upload_url ? (
                               <a
                                 href={String(pending.parameters.upload_url)}
@@ -2345,7 +2399,18 @@ export function ClaimsAiWorkspace({
                                 rel="noreferrer"
                                 className="btn btn-g btn-xs"
                                 data-testid="claims-ai-preview-open-upload-btn"
-                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                style={{
+                                  textDecoration: 'none',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6,
+                                  minHeight: '34px',
+                                  padding: '6px 12px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  borderRadius: '6px',
+                                }}
                                 title="פותח את דף העלאת המסמכים בטאב חדש לבדיקה"
                               >
                                 👁️ פתח ובדוק קישור
@@ -2357,6 +2422,17 @@ export function ClaimsAiWorkspace({
                                 type="button"
                                 className="btn btn-g btn-xs"
                                 data-testid="claims-ai-preview-copy-upload-btn"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6,
+                                  minHeight: '34px',
+                                  padding: '6px 12px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  borderRadius: '6px',
+                                }}
                                 onClick={() => void copyToClipboard(String(pending.parameters.upload_url), `upload-${pending.preview_id || msg.id}`)}
                                 title="העתק את קישור ההעלאה ללוח"
                               >
@@ -2371,7 +2447,18 @@ export function ClaimsAiWorkspace({
                                 rel="noreferrer"
                                 className="btn btn-g btn-xs"
                                 data-testid="claims-ai-preview-wa-upload-btn"
-                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                style={{
+                                  textDecoration: 'none',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6,
+                                  minHeight: '34px',
+                                  padding: '6px 12px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  borderRadius: '6px',
+                                }}
                                 title="פתיחת וואטסאפ עם קישור העלאת מסמכים"
                               >
                                 💬 שלח בוואטסאפ
@@ -2508,7 +2595,7 @@ export function ClaimsAiWorkspace({
                           ) : null}
 
                           {/* Interactive Preview Buttons */}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: 10 }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: 10 }}>
                             {pending.parameters.share_url ? (
                               <a
                                 href={String(pending.parameters.share_url)}
@@ -2516,7 +2603,18 @@ export function ClaimsAiWorkspace({
                                 rel="noreferrer"
                                 className="btn btn-g btn-xs"
                                 data-testid="claims-ai-preview-open-share-btn"
-                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                style={{
+                                  textDecoration: 'none',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6,
+                                  minHeight: '34px',
+                                  padding: '6px 12px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  borderRadius: '6px',
+                                }}
                                 title="פתח ובדוק את קישור השיתוף בטאב חדש"
                               >
                                 👁️ פתח ובדוק קישור
@@ -2528,6 +2626,17 @@ export function ClaimsAiWorkspace({
                                 type="button"
                                 className="btn btn-g btn-xs"
                                 data-testid="claims-ai-preview-copy-share-btn"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6,
+                                  minHeight: '34px',
+                                  padding: '6px 12px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  borderRadius: '6px',
+                                }}
                                 onClick={() => void copyToClipboard(String(pending.parameters.share_url), `share-${pending.preview_id || msg.id}`)}
                                 title="העתק את קישור השיתוף ללוח"
                               >
@@ -2542,7 +2651,18 @@ export function ClaimsAiWorkspace({
                                 rel="noreferrer"
                                 className="btn btn-g btn-xs"
                                 data-testid="claims-ai-preview-wa-share-btn"
-                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                style={{
+                                  textDecoration: 'none',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 6,
+                                  minHeight: '34px',
+                                  padding: '6px 12px',
+                                  fontSize: '0.8rem',
+                                  fontWeight: 600,
+                                  borderRadius: '6px',
+                                }}
                                 title="פתיחת וואטסאפ עם קישור השיתוף והמסמכים המבוקשים בלבד"
                               >
                                 💬 שלח בוואטסאפ

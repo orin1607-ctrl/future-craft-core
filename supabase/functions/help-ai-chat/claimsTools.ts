@@ -4416,7 +4416,9 @@ export async function executeClaimsTool(
             });
             if (docsRes.data?.token) {
               uploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(docsRes.data.token)}`;
-              const waText = customMessage || `שלום ${clientName || 'לקוח יקר'},\nלהעלאת מסמכים ותמונות עבור תיק תביעה ${targetClaimId} באורן קאר, היכנס/י לקישור המאובטח:\n${uploadUrl}`;
+              const waText = customMessage
+                ? (customMessage.includes(uploadUrl) ? customMessage : `${customMessage}\nקישור העלאת מסמכים:\n${uploadUrl}`)
+                : `שלום ${clientName || 'לקוח יקר'},\nלהעלאת מסמכים ותמונות עבור תיק תביעה ${targetClaimId} באורן קאר, היכנס/י לקישור המאובטח:\n${uploadUrl}`;
               waLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}` : `https://wa.me/?text=${encodeURIComponent(waText)}`;
             }
           } catch (e) {
@@ -4435,7 +4437,9 @@ export async function executeClaimsTool(
             });
             if (intakeRes.data?.token) {
               intakeUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-intake?t=${encodeURIComponent(intakeRes.data.token)}`;
-              const waText = customMessage || `שלום ${clientName || 'לקוח יקר'},\nנפתח עבורך תיק תביעה ${targetClaimId} באורן קאר. למילוי טופס פתיחת התיק היכנס/י לקישור המאובטח:\n${intakeUrl}`;
+              const waText = customMessage
+                ? (customMessage.includes(intakeUrl) ? customMessage : `${customMessage}\nקישור לפתיחת התיק:\n${intakeUrl}`)
+                : `שלום ${clientName || 'לקוח יקר'},\nנפתח עבורך תיק תביעה ${targetClaimId} באורן קאר. למילוי טופס פתיחת התיק היכנס/י לקישור המאובטח:\n${intakeUrl}`;
               waLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}` : `https://wa.me/?text=${encodeURIComponent(waText)}`;
             }
           } catch (e) {
@@ -7009,8 +7013,9 @@ export async function executeClaimsPendingAction(
         const targetClaimId = String(claim_id || claimId || "").trim() || (await allocateNextDalClaimId(supabase));
         const clientName = recipient_name || "לקוח יקר";
         const selectedChannel = String(channel || "copy").toLowerCase();
-        const effectiveLinkType = String(link_type || (name === "send_customer_upload_link" ? "upload" : "intake")).toLowerCase();
+        const effectiveLinkType = String(link_type || (action_type === "send_customer_upload_link" ? "upload" : "intake")).toLowerCase();
         const cleanPhone = String(recipient_phone || "").replace(/\D/g, "");
+        const rawCustomMsg = String(custom_message || (parameters as any)?.customMessage || "").trim();
 
         // 1. Ensure claim record exists in claims_records with status 'ממתין למילוי הלקוח'
         const { data: existingClaim } = await supabase
@@ -7060,7 +7065,9 @@ export async function executeClaimsPendingAction(
               finalUploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(docsRes.data.token)}`;
             }
           }
-          const defaultWaText = custom_message || `שלום ${clientName},\nלהעלאת מסמכים ותמונות עבור תיק תביעה ${targetClaimId} באורן קאר, היכנס/י לקישור המאובטח:\n${finalUploadUrl}`;
+          const defaultWaText = rawCustomMsg
+            ? (rawCustomMsg.includes(finalUploadUrl) ? rawCustomMsg : `${rawCustomMsg}\nקישור העלאת מסמכים:\n${finalUploadUrl}`)
+            : `שלום ${clientName},\nלהעלאת מסמכים ותמונות עבור תיק תביעה ${targetClaimId} באורן קאר, היכנס/י לקישור המאובטח:\n${finalUploadUrl}`;
           if (!finalWaLink) {
             finalWaLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultWaText)}` : `https://wa.me/?text=${encodeURIComponent(defaultWaText)}`;
           }
@@ -7070,7 +7077,7 @@ export async function executeClaimsPendingAction(
             const emailBody = [
               `שלום ${clientName},`,
               ``,
-              custom_message || `נפתח עבורך תיק תביעה ${targetClaimId} באורן קאר.`,
+              rawCustomMsg || `נפתח עבורך תיק תביעה ${targetClaimId} באורן קאר.`,
               `להעלאת מסמכים ותמונות הדרושים לטיפול בתביעה, אנא היכנס/י לקישור המאובטח:`,
               ``,
               finalUploadUrl,
@@ -7150,7 +7157,9 @@ export async function executeClaimsPendingAction(
               finalIntakeUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-intake?t=${encodeURIComponent(intakeRes.data.token)}`;
             }
           }
-          const defaultWaText = customMessage || `שלום ${clientName},\nנפתח עבורך תיק תביעה ${targetClaimId} באורן קאר. למילוי טופס פתיחת התיק היכנס/י לקישור המאובטח:\n${finalIntakeUrl}`;
+          const defaultWaText = rawCustomMsg
+            ? (rawCustomMsg.includes(finalIntakeUrl) ? rawCustomMsg : `${rawCustomMsg}\nקישור לפתיחת התיק:\n${finalIntakeUrl}`)
+            : `שלום ${clientName},\nנפתח עבורך תיק תביעה ${targetClaimId} באורן קאר. למילוי טופס פתיחת התיק היכנס/י לקישור המאובטח:\n${finalIntakeUrl}`;
           if (!finalWaLink) {
             finalWaLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultWaText)}` : `https://wa.me/?text=${encodeURIComponent(defaultWaText)}`;
           }
@@ -7160,7 +7169,7 @@ export async function executeClaimsPendingAction(
             const emailBody = [
               `שלום ${clientName},`,
               ``,
-              customMessage || `נפתח עבורך תיק תביעה ${targetClaimId} באורן קאר.`,
+              rawCustomMsg || `נפתח עבורך תיק תביעה ${targetClaimId} באורן קאר.`,
               `למילוי פרטי האירוע והשלמת הדיווח, אנא היכנס/י לקישור המאובטח:`,
               ``,
               finalIntakeUrl,
