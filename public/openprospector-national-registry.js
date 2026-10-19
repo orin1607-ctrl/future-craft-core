@@ -30,6 +30,9 @@
     // enrichment report + review queue
     report: null, reportError: "", reportLoading: false, review: null, reviewPage: 0,
     modal: null, timer: null, busy: false,
+    // marketing work lists (read only – nothing is sent from this screen)
+    out: { filters: { segment: "dalia", level: "phone" }, rows: null, afters: [0], page: 0, loading: false, error: "", summary: null, sumLoading: false },
+    pendingBiz: Number(new URLSearchParams(location.search).get("biz")) || 0,
   };
   const persist = () => { try { localStorage.setItem(LS_KEY, JSON.stringify({ sub: ST.sub, filters: ST.filters, sort: ST.sort, pageSize: ST.pageSize })); } catch (e) { /* storage blocked */ } };
 
@@ -184,13 +187,17 @@
     if (ST.sub === "browse" && !ST.result && !ST.browsing && !ST.browseError) setTimeout(browse, 0);
     if (ST.sub === "browse" && !ST.facets) setTimeout(loadFacets, 0);
     if (ST.sub === "enrich" && !ST.report && !ST.reportLoading && !ST.reportError) setTimeout(loadReport, 0);
+    if (ST.sub === "outreach" && !ST.out.summary && !ST.out.sumLoading) setTimeout(loadOutreachSummary, 0);
+    if (ST.sub === "outreach" && !ST.out.rows && !ST.out.loading && !ST.out.error) setTimeout(loadOutreach, 0);
+    if (ST.pendingBiz && !ST.modal) { const id = ST.pendingBiz; ST.pendingBiz = 0; setTimeout(() => openBiz(id), 0); }
     if (!ST.timer) autoRefresh();
     const subTabs = `<div class="row" style="gap:6px">
       <button class="btn btn-sm ${ST.sub === "browse" ? "btn-primary" : ""}" data-nr="sub" data-v="browse">📋 מאגר העסקים</button>
       <button class="btn btn-sm ${ST.sub === "enrich" ? "btn-primary" : ""}" data-nr="sub" data-v="enrich">✨ העשרה – מידע חדש ודוח התקדמות</button>
+      <button class="btn btn-sm ${ST.sub === "outreach" ? "btn-primary" : ""}" data-nr="sub" data-v="outreach">🎯 רשימות עבודה לשיווק</button>
       <button class="btn btn-sm ${ST.sub === "collection" ? "btn-primary" : ""}" data-nr="sub" data-v="collection">⚙️ איסוף ומקורות</button>
       <span class="spacer"></span><span class="badge b-ok">STAGING</span><span class="badge b-est">ללא 7 חוקי הסינון – אין מחיקה</span></div>`;
-    const body = ST.sub === "browse" ? browseView() : ST.sub === "enrich" ? enrichView() : collectionView();
+    const body = ST.sub === "browse" ? browseView() : ST.sub === "enrich" ? enrichView() : ST.sub === "outreach" ? outreachView() : collectionView();
     return `<div style="display:grid;gap:14px">${subTabs}${kpiStrip()}${body}</div>${modal()}`;
   };
 
@@ -685,6 +692,128 @@
       ${h.last_error ? `<span class="xs muted" title="${esc(h.last_error)}">· שגיאה אחרונה ${when(h.last_error_at)}</span>` : ""}</div>`;
   }
 
+  // ── marketing work lists ──
+  const SEGS = [["dalia", "פוטנציאל לדליה – צי רכב, מוסכים, סחר רכב, דלק"], ["dalia_wide", "פוטנציאל רחב – כולל קבלנים ותעשייה"], ["fleet", "צי רכב / נהגים / שליחויות"],
+    ["garages", "מוסכים ושירותי רכב"], ["vehicle_trade", "סחר, יבוא וייצור רכב"], ["fuel", "דלק ותחנות תדלוק"], ["construction", "בנייה וקבלנות"], ["industry", "תעשייה וייצור"], ["all", "כל הענפים"]];
+  const SEG_NAME = Object.fromEntries(SEGS);
+  const LEVELS = [["phone", "יש טלפון"], ["verified", "יש טלפון או אימייל מאומת (2 מקורות)"], ["phone_email", "יש טלפון וגם אימייל"], ["any", "כל פרט קשר"]];
+  const cardUrl = (id) => `${location.origin}${location.pathname}?tab=${TAB}&biz=${id}`;
+  function readOutFilters() {
+    const f = {};
+    document.querySelectorAll("[data-no-f]").forEach((el) => {
+      const k = el.getAttribute("data-no-f");
+      if (el.type === "checkbox") { if (el.checked) f[k] = true; } else if (el.value.trim()) f[k] = el.value.trim();
+    });
+    return f;
+  }
+  async function loadOutreachSummary() {
+    ST.out.sumLoading = true; rerender();
+    try { ST.out.summary = await rpc("nr_outreach_summary"); } catch (e) { ST.out.error = e.message; }
+    ST.out.sumLoading = false; rerender();
+  }
+  async function loadOutreach() {
+    ST.out.loading = true; ST.out.error = ""; rerender();
+    try { ST.out.rows = await rpc("nr_outreach_page", { p_filters: ST.out.filters, p_after: ST.out.afters[ST.out.page] || 0, p_limit: 50 }); }
+    catch (e) { ST.out.error = e.message; ST.out.rows = []; }
+    ST.out.loading = false; rerender();
+  }
+  const contactsOf = (r, kind, level) => (r.contacts || []).filter((c) => c.kind === kind && c.level === level);
+  function contactChips(r, kind) {
+    const one = (c) => {
+      const v = esc(c.v), href = kind === "phone" ? `tel:${esc(String(c.v).replace(/[^\d+]/g, ""))}` : `mailto:${v}`;
+      const tag = c.level === "verified" ? `<span class="badge b-ok" title="אומת ב-2 מקורות או יותר">✓ מאומת</span>` : `<span class="badge b-no" title="מקור אחד בלבד">מקור יחיד</span>`;
+      const sub = c.sub === "mobile" ? " (נייד)" : c.sub === "branch" ? ` (סניף${c.branch ? " " + esc(c.branch) : ""})` : "";
+      return `<div class="xs" title="${esc((c.sources || []).join(" · "))}"><a href="${href}" data-nr-stop="1">${v}</a>${sub} ${tag}</div>`;
+    };
+    const list = [...contactsOf(r, kind, "verified"), ...contactsOf(r, kind, "single")];
+    return list.length ? list.slice(0, 4).map(one).join("") + (list.length > 4 ? `<div class="xs muted">+${list.length - 4} נוספים בכרטיס</div>` : "") : '<span class="xs muted">—</span>';
+  }
+  function signalChips(r) {
+    const sg = (r.signals || []).map((x) => `<div class="xs">${x.kind === "fact" ? '<span class="badge b-ok">עובדה</span>' : '<span class="badge b-no" title="סימן לצורך אפשרי – לא עובדה מתועדת">אינדיקציה</span>'} ${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener" data-nr-stop="1">${esc(x.t)}</a>` : esc(x.t)}</div>`);
+    return sg.join("") || '<span class="xs muted">—</span>';
+  }
+  function outreachView() {
+    const o = ST.out, f = o.filters, su = o.summary;
+    const sumCard = !su ? `<div class="card card-b muted">${o.sumLoading ? "⏳ סופר את המוכנות לשיווק…" : ""}</div>` : `<div class="card"><div class="card-h"><h2>מוכנות לשיווק – מתוך המאגר הקיים<span class="h-bar"></span></h2><span class="spacer"></span>
+        <span class="xs muted">עודכן ${when(su.at)}</span><button class="btn btn-sm" data-nr="osum">🔄</button></div>
+      <div class="card-b" style="display:grid;gap:10px"><div class="grid g-kpi tiles">
+        ${kpi("עסקים פעילים עם פרט קשר", n(su.with_contact), `${n(su.with_phone)} עם טלפון · ${n(su.with_email)} עם אימייל · ${n(su.with_phone_and_email)} עם שניהם`)}
+        ${kpi("עם פרט קשר מאומת (2 מקורות)", n(su.verified_any), `${n(su.verified_phone)} טלפון מאומת · ${n(su.verified_email)} אימייל מאומת`)}
+        ${kpi("עם בעלי תפקידים", n(su.with_people), `${n(su.with_website)} עם אתר אינטרנט`)}
+        ${kpi("פוטנציאל לדליה (צי, מוסכים, סחר רכב, דלק)", n((su.dalia || {}).total), `${n((su.dalia || {}).verified)} עם פרט מאומת`, ` data-nr="oseg" data-v="dalia" style="cursor:pointer"`)}
+        ${kpi("פוטנציאל רחב (כולל קבלנים ותעשייה)", n((su.dalia_wide || {}).total), `${n((su.dalia_wide || {}).verified)} עם פרט מאומת`, ` data-nr="oseg" data-v="dalia_wide" style="cursor:pointer"`)}
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>פלח</th><th>עם פרט קשר</th><th>עם טלפון</th><th>טלפון + אימייל</th><th>עם פרט מאומת</th><th>עם בעלי תפקידים</th></tr></thead><tbody>
+        ${SEGS.filter(([k]) => (su.segments || {})[k]).map(([k, l]) => { const x = su.segments[k]; return `<tr data-nr="oseg" data-v="${k}" style="cursor:pointer"><td class="co-name">${esc(l)}</td><td>${n(x.total)}</td><td>${n(x.phone)}</td><td>${n(x.phone_email)}</td><td>${n(x.verified)}</td><td>${n(x.people)}</td></tr>`; }).join("")}
+      </tbody></table></div>
+      <div class="xs muted">הפלחים נקבעים רק מנתונים שנשמרו בכרטיס: ענף רשמי, תחום פעילות, משרות שפורסמו ואזכורים באתר החברה. ענף הוא אינדיקציה בלבד, ולא הוכחה לצי רכב.</div></div></div>`;
+    const sel = (k, opts) => `<select data-no-f="${k}">${opts.map(([v, l]) => `<option value="${v}" ${String(f[k] || (k === "segment" ? "all" : "any")) === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+    const filters = `<div class="card card-b" style="display:grid;gap:8px">
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+        <label class="xs">פלח ${sel("segment", SEGS)}</label>
+        <label class="xs">פרטי קשר ${sel("level", LEVELS)}</label>
+        <label class="xs">אזור <input data-no-f="district" value="${esc(f.district || "")}" placeholder="למשל מרכז" style="width:110px"></label>
+        <label class="xs">עיר <input data-no-f="city" value="${esc(f.city || "")}" style="width:110px"></label>
+        <label class="xs">שם <input data-no-f="q" value="${esc(f.q || "")}" style="width:140px"></label>
+        <label class="xs"><input type="checkbox" data-no-f="has_people" ${f.has_people ? "checked" : ""}> עם בעלי תפקידים</label>
+        <label class="xs"><input type="checkbox" data-no-f="has_website" ${f.has_website ? "checked" : ""}> עם אתר</label>
+        <button class="btn btn-sm btn-primary" data-nr="oapply">הצג רשימה</button>
+        <button class="btn btn-sm" data-nr="oexport">⬇️ ייצוא הרשימה ל-CSV / אקסל</button>
+      </div>
+      <div class="xs muted">✓ מאומת = הפרט נמצא ב-2 מקורות בלתי תלויים או יותר. "מקור יחיד" = נמצא במקור אחד (שם המקור מופיע במעבר עכבר). ממצאים שטרם אומתו לא מוצגים כפרטי קשר, רק כמספר.
+        מהמסך הזה לא נשלחות הודעות. לפני דיוור באימייל או SMS יש לוודא עמידה בחוק הספאם (סעיף 30א לחוק התקשורת).</div></div>`;
+    const rows = o.rows || [];
+    const table = o.loading ? `<div class="card card-b muted">⏳ טוען רשימה…</div>` : o.error ? `<div class="card card-b"><span class="badge b-bad" style="white-space:normal">${esc(o.error)}</span></div>` :
+      `<div class="card"><div class="card-h"><h2>${esc(SEG_NAME[f.segment || "all"] || "רשימת עבודה")} – עמוד ${o.page + 1}<span class="h-bar"></span></h2><span class="spacer"></span>
+        <button class="btn btn-sm" data-nr="opage" data-v="-1" ${o.page ? "" : "disabled"}>→ הקודם</button>
+        <button class="btn btn-sm" data-nr="opage" data-v="1" ${rows.length === 50 ? "" : "disabled"}>הבא ←</button></div>
+      <div class="tbl-wrap"><table><thead><tr><th>חברה</th><th>תחום פעילות</th><th>עיר</th><th>טלפונים</th><th>אימיילים</th><th>אתר</th><th>בעלי תפקידים</th><th>צי רכב / לוגיסטיקה</th><th>ממתינים לבדיקה</th></tr></thead><tbody>
+      ${rows.map((r) => `<tr>
+        <td><div class="co-name" data-nr="biz" data-v="${r.id}" style="cursor:pointer">${esc(r.name)}</div><div class="xs muted">${r.reg_id ? "ח.פ. " + esc(r.reg_id) : esc(r.corp_type || "")}</div>
+          <a class="xs" href="${esc(cardUrl(r.id))}" target="_blank" rel="noopener" data-nr-stop="1">🔗 קישור לכרטיס</a></td>
+        <td class="xs" style="max-width:220px;white-space:normal">${esc(r.activity || "—")}<div>${(r.segments || []).map((k) => `<span class="badge b-blue">${esc((SEG_NAME[k] || k).split(" – ")[0])}</span>`).join(" ")}</div></td>
+        <td class="xs">${esc(r.city || "—")}${r.district ? `<div class="muted">${esc(r.district)}</div>` : ""}</td>
+        <td>${contactChips(r, "phone")}</td><td>${contactChips(r, "email")}</td>
+        <td class="xs">${r.website ? `<a href="${esc(r.website)}" target="_blank" rel="noopener" data-nr-stop="1">${esc(String(r.website).replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))}</a>` : "—"}</td>
+        <td class="xs" style="max-width:220px;white-space:normal">${(r.people || []).slice(0, 3).map((p) => `<div title="${esc(p.source || "")}">${esc(p.name)} – ${esc(p.role || "")}</div>`).join("") || "—"}</td>
+        <td style="max-width:260px;white-space:normal">${signalChips(r)}</td>
+        <td class="xs">${r.pending_review ? `<span class="badge b-no">${n(r.pending_review)} טרם אומתו</span>` : "—"}</td></tr>`).join("") || `<tr><td colspan="9" class="muted">אין חברות שתואמות את הסינון.</td></tr>`}
+      </tbody></table></div></div>`;
+    return sumCard + filters + table;
+  }
+  async function exportOutreach() {
+    const f = ST.out.filters, cap = 50000;
+    ST.modal = { type: "export", title: "ייצוא רשימת עבודה", msg: "⏳ מכין קובץ…" }; rerender();
+    try {
+      const pick = (r, kind, level) => contactsOf(r, kind, level).map((c) => c.v + (c.sub === "mobile" ? " (נייד)" : c.sub === "branch" ? " (סניף)" : "")).join("; ");
+      const cols = [["שם חברה", (r) => r.name], ["ח.פ.", (r) => r.reg_id], ["תחום פעילות", (r) => r.activity], ["פלחים", (r) => (r.segments || []).map((k) => SEG_NAME[k] || k).join("; ")],
+        ["עיר", (r) => r.city], ["אזור", (r) => r.district], ["טלפון מאומת (2+ מקורות)", (r) => pick(r, "phone", "verified")], ["טלפון ממקור יחיד", (r) => pick(r, "phone", "single")],
+        ["אימייל מאומת (2+ מקורות)", (r) => pick(r, "email", "verified")], ["אימייל ממקור יחיד", (r) => pick(r, "email", "single")], ["אתר", (r) => r.website],
+        ["בעלי תפקידים", (r) => (r.people || []).map((p) => `${p.name} – ${p.role}`).join("; ")],
+        ["צי רכב / לוגיסטיקה – עובדות", (r) => (r.signals || []).filter((x) => x.kind === "fact").map((x) => x.t).join("; ")],
+        ["צי רכב / לוגיסטיקה – אינדיקציות", (r) => (r.signals || []).filter((x) => x.kind !== "fact").map((x) => x.t).join("; ")],
+        ["ממצאים שטרם אומתו", (r) => r.pending_review || ""], ["קישור לכרטיס", (r) => cardUrl(r.id)]];
+      const q = (v) => { const t = v == null ? "" : String(v); return /[",\n;]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+      const lines = [cols.map((c) => c[0]).join(",")];
+      let after = 0, got = 0;
+      for (;;) {
+        const rows = await rpc("nr_outreach_page", { p_filters: f, p_after: after, p_limit: 1000 });
+        for (const r of rows) lines.push(cols.map(([, fn]) => q(fn(r))).join(","));
+        got += rows.length; ST.modal.msg = `⏳ הוכנו ${n(got)} שורות…`; rerender();
+        if (rows.length < 1000 || got >= cap) break;
+        after = rows[rows.length - 1].id;
+      }
+      const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `dalia-work-list-${f.segment || "all"}-${new Date().toISOString().slice(0, 10)}-${got}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      ST.modal.msg = `✅ יוצאו ${n(got)} חברות. טלפונים ואימיילים מופרדים לפי רמת אימות.${got >= cap ? " (הגבלה של 50,000 שורות)" : ""}`;
+    } catch (e) { ST.modal.msg = "⛔ " + e.message; }
+    rerender();
+  }
+
   // ── actions ──
   async function openSource(key) {
     const s = ST.sources.find((x) => x.key === key);
@@ -843,6 +972,11 @@
     else if (act === "srcfilter") { ST.srcFilter = v; rerender(); }
     else if (act === "source") openSource(v);
     else if (act === "biz") openBiz(v);
+    else if (act === "oapply") { ST.out.filters = readOutFilters(); ST.out.afters = [0]; ST.out.page = 0; loadOutreach(); }
+    else if (act === "oseg") { ST.out.filters = Object.assign({}, ST.out.filters, { segment: v }); ST.out.afters = [0]; ST.out.page = 0; loadOutreach(); }
+    else if (act === "opage") { const d = Number(v); if (d > 0 && ST.out.rows && ST.out.rows.length === 50) { ST.out.afters[ST.out.page + 1] = ST.out.rows[ST.out.rows.length - 1].id; ST.out.page++; } else if (d < 0 && ST.out.page > 0) ST.out.page--; loadOutreach(); window.scrollTo(0, 0); }
+    else if (act === "oexport") exportOutreach();
+    else if (act === "osum") loadOutreachSummary();
     else if (act === "close") { ST.modal = null; rerender(); }
     else if (act === "enrichrefresh") loadReport();
     else if (act === "watch") setWatch(el.dataset.id, v);
@@ -854,6 +988,7 @@
   document.addEventListener("keydown", (e) => {
     if (!(S.view === "prospector" && S.tab === TAB)) return;
     if (e.key === "Enter" && e.target && e.target.matches && e.target.matches("[data-nr-f]")) { e.preventDefault(); applyFilters(); }
+    if (e.key === "Enter" && e.target && e.target.matches && e.target.matches("[data-no-f]")) { e.preventDefault(); ST.out.filters = readOutFilters(); ST.out.afters = [0]; ST.out.page = 0; loadOutreach(); }
     if (e.key === "Escape" && ST.modal) { ST.modal = null; rerender(); }
   });
 

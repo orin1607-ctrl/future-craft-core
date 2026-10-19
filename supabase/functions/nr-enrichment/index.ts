@@ -955,6 +955,20 @@ function cleanName(n: string, domain: string): string {
   if (/designed by|powered by|developed by|phpbb|wordpress|wix|elementor|בניית אתרים|עיצוב אתרים|קידום אתרים|template|theme/i.test(s)) return "";
   return s;
 }
+// up to 4 snippets around an address word, each within its line and at most 120 characters to each side.
+// (A /[^\n]*word[^\n]*/ scan is quadratic on pages whose text is one long line: 10 s of CPU on an 80 KB line.)
+function addressLines(text: string): string[] {
+  const out: string[] = [];
+  for (const m of text.matchAll(/כתובת|רחוב|רח['׳]|ת\.ד|שד['׳]|שדרות|address/gi)) {
+    const i = m.index ?? 0;
+    const s = Math.max(text.lastIndexOf("\n", i) + 1, i - 120);
+    const e0 = text.indexOf("\n", i);
+    const e = Math.min(e0 < 0 ? text.length : e0, i + m[0].length + 120);
+    out.push(text.slice(s, e));
+    if (out.length >= 4) break;
+  }
+  return out;
+}
 type Identity = { links?: string[]; cityHint?: string; text?: string; name: string; nameFrom: string; phones: string[]; emails: string[]; ids: string[]; city: string; address: string; socials: Record<string, string>; origin: string; url: string; html: string };
 async function readIdentity(domain: string): Promise<{ status: string; note?: string; id?: Identity }> {
   let page: Awaited<ReturnType<typeof get>> | null = null, note = "";
@@ -1019,7 +1033,7 @@ async function readIdentity(domain: string): Promise<{ status: string; note?: st
   for (const [n, f] of cands) { const c = cleanName(n, domain); if (c) { name = c; nameFrom = f; break; } }
   const em = [...mails].filter((m) => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(m) && !/\.(png|jpe?g|gif|webp|svg)$/.test(m) && (m.endsWith("@" + domain) || m.endsWith("." + domain) || FREE_MAIL.test(m)) && !/sentry|wixpress|example\.|domain\./.test(m)).slice(0, 5);
   // city hints only from address lines – a footer list of served areas or a person's name is not the business's city
-  const cityHint = [address, ...(text.match(/[^\n]*(?:כתובת|רחוב|רח['׳]|ת\.ד|שד['׳]|שדרות|address)[^\n]*/gi) || []).slice(0, 4)].join("\n");
+  const cityHint = [address, ...addressLines(text)].join("\n");
   return { status: "ok", id: { name, nameFrom, phones: [...phones].slice(0, 8), emails: em, ids, city, address, socials, origin: new URL(page.url).origin, url: page.url, html: "", text, cityHint, links: ilDomains(html, domain) } };
 }
 type Lookup = { domain: number | null; reg: { id: number; reg_id: string; name: string; website: string | null }[]; phones: { id: number; value: string }[]; emails: { id: number; value: string }[] };
@@ -1106,7 +1120,7 @@ async function identifyOne(sb: SupabaseClient, domain: string): Promise<{ status
 }
 async function identifyWorker(sb: SupabaseClient, worker: number) {
   const t0 = Date.now();
-  const { data: locked } = await sb.rpc("nr_identify_lock", { p_worker: worker, p_seconds: 110 });
+  const { data: locked } = await sb.rpc("nr_identify_lock", { p_worker: worker, p_seconds: 60 }); // a call killed by the platform cannot unlock: expire soon
   PAGE_CAP = 200_000; // keeps each call within the function's compute allowance (546 WORKER_RESOURCE_LIMIT otherwise)
   if (!locked) return { skipped: "locked or worker not enabled" };
   const tally: Record<string, number> = {};
@@ -1114,15 +1128,21 @@ async function identifyWorker(sb: SupabaseClient, worker: number) {
   try {
     const { data: ctl } = await sb.from("nr_control").select("identify_batch").eq("id", 1).single();
     const batchSize = Math.max(2, Math.min(64, Number(ctl?.identify_batch || 4)));
-    while (Date.now() - t0 < 95_000) {
-      const batch = await rpc<{ domain: string; attempts: number }[]>(sb, "nr_claim_site_queue", { p_limit: Math.min(16, batchSize - read) });
+    const one = async (q: { domain: string; attempts: number }) => {
+      let res: { status: string; business_id?: number; method?: string; note?: string };
+      try { res = await identifyOne(sb, q.domain); } catch (e) { res = { status: q.attempts >= 3 ? "error" : "queued", note: (e as Error).message.slice(0, 120) }; }
+      tally[res.status] = (tally[res.status] || 0) + 1;
+      await sb.from("nr_site_queue").update({ status: res.status, business_id: res.business_id ?? null, method: res.method ?? null, note: res.note ?? null, checked_at: now() }).eq("domain", q.domain);
+    };
+    // a site that was in flight when an earlier call was cut off is read first and alone: if its page is the heavy one,
+    // only it is charged, and the fresh sites below are not cut off with it
+    const suspect = await rpc<{ domain: string; attempts: number }[]>(sb, "nr_claim_site_suspect", {});
+    for (const q of suspect) { await one(q); read++; tally.isolated = (tally.isolated || 0) + 1; }
+    // read sites for a time budget (cron starts each worker every minute); batchSize is the upper bound per call
+    while (Date.now() - t0 < 40_000 && read < batchSize) {
+      const batch = await rpc<{ domain: string; attempts: number }[]>(sb, "nr_claim_site_queue", { p_limit: Math.min(8, batchSize - read) });
       if (!batch.length) break;
-      await pool(batch, 8, async (q) => {
-        let res: { status: string; business_id?: number; method?: string; note?: string };
-        try { res = await identifyOne(sb, q.domain); } catch (e) { res = { status: q.attempts >= 3 ? "error" : "queued", note: (e as Error).message.slice(0, 120) }; }
-        tally[res.status] = (tally[res.status] || 0) + 1;
-        await sb.from("nr_site_queue").update({ status: res.status, business_id: res.business_id ?? null, method: res.method ?? null, note: res.note ?? null, checked_at: now() }).eq("domain", q.domain);
-      });
+      await pool(batch, 8, one);
       read += batch.length;
       if (read >= batchSize) break;
     }
