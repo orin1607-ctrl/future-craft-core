@@ -108,7 +108,11 @@ async function bumpClaimId(): Promise<string> {
 
 async function loadChild(table: string, claimId?: string | null): Promise<ClaimRecord[]> {
   let q = tbl(table).select('id, claim_id, row_data').order('created_at', { ascending: false });
-  if (claimId) q = q.eq('claim_id', claimId);
+  if (claimId) {
+    q = q.eq('claim_id', claimId);
+  } else {
+    q = q.limit(200);
+  }
   const { data, error } = await q;
   if (error) return [];
   return ((data || []) as Array<{ id: string; row_data: Record<string, unknown> }>).map((r) => {
@@ -1026,7 +1030,7 @@ export function createClaimsApi(actor: ClaimsActor) {
     },
 
     async getNotifications() {
-      const { data } = await tbl('claims_notifications').select('id, row_data').order('created_at', { ascending: false });
+      const { data } = await tbl('claims_notifications').select('id, row_data').order('created_at', { ascending: false }).limit(100);
       const rows = ((data || []) as Array<{ id: string; row_data: Record<string, unknown> }>).map((r) => {
         const row = rowFromData(r.row_data);
         row.id = row.id || r.id;

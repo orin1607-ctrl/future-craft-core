@@ -1048,31 +1048,42 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const loadAll = useCallback(async () => {
     setSync('pend');
     try {
-      const [cr, nr, tr, rr, pr, fu, gr] = await Promise.all([
-        apiRef.current.getClaims(),
-        apiRef.current.getNotifications(),
-        apiRef.current.getTasks(null),
-        apiRef.current.getReminders(null),
-        apiRef.current.invokeGmail('list_pending'),
-        apiRef.current.listScheduledMailFollowups(),
-        apiRef.current.invokeDocs('list_garage_reviews').catch(() => ({})),
+      const [cr, nr, tr, rr, fu] = await Promise.all([
+        apiRef.current.getClaims().catch((err) => ({ success: false, data: [] as ClaimRecord[], error: String(err) })),
+        apiRef.current.getNotifications().catch(() => ({ success: true, data: [] })),
+        apiRef.current.getTasks(null).catch(() => ({ success: true, data: [] })),
+        apiRef.current.getReminders(null).catch(() => ({ success: true, data: [] })),
+        apiRef.current.listScheduledMailFollowups().catch(() => ({ success: true, data: [] })),
       ]);
       setClaims(cr.data || []);
       setNotifs(nr.data || []);
       setDashTasks(tr.data || []);
       setDashRems(rr.data || []);
-      if (pr.success) setGmailPending((pr.data as Array<Record<string, unknown>>) || []);
       if (fu.success) setDashFollowups(fu.data || []);
-      if (gr && typeof gr === 'object' && (gr as { success?: boolean }).success && Array.isArray((gr as { reviews?: unknown }).reviews)) {
-        const map: Record<string, { review_status?: string }> = {};
-        for (const row of (gr as { reviews: Array<{ claim_id?: string; review_status?: string }> }).reviews) {
-          if (row?.claim_id) map[row.claim_id] = { review_status: String(row.review_status || '') };
-        }
-        setGarageReviews(map);
-      } else {
-        setGarageReviews({});
-      }
+      setSync('ok');
+
       if (!cr.success && cr.error) toast(`טעינת תביעות נכשלה: ${cr.error}`, 'err');
+
+      // Non-blocking secondary edge queries: Gmail pending review and garage reviews
+      void Promise.race([
+        apiRef.current.invokeGmail('list_pending'),
+        new Promise<{ success: boolean; data: [] }>((resolve) => setTimeout(() => resolve({ success: false, data: [] }), 5000)),
+      ]).then((pr) => {
+        if (pr?.success) setGmailPending((pr.data as Array<Record<string, unknown>>) || []);
+      }).catch(() => undefined);
+
+      void Promise.race([
+        apiRef.current.invokeDocs('list_garage_reviews'),
+        new Promise<Record<string, unknown>>((resolve) => setTimeout(() => resolve({ success: false }), 5000)),
+      ]).then((gr) => {
+        if (gr && typeof gr === 'object' && (gr as { success?: boolean }).success && Array.isArray((gr as { reviews?: unknown }).reviews)) {
+          const map: Record<string, { review_status?: string }> = {};
+          for (const row of (gr as { reviews: Array<{ claim_id?: string; review_status?: string }> }).reviews) {
+            if (row?.claim_id) map[row.claim_id] = { review_status: String(row.review_status || '') };
+          }
+          setGarageReviews(map);
+        }
+      }).catch(() => undefined);
       const wa = await apiRef.current.listManualWa().catch(() => ({ success: false as const, data: [] as ClaimRecord[] }));
       if (wa.success) {
         setManualWa((wa.data || []).map((row) => ({
@@ -1194,8 +1205,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
       document.head.appendChild(l);
     }
     (async () => {
-      await loadAll();
-      setReady(true);
+      try {
+        await loadAll();
+      } catch (err) {
+        console.error('Initial claims load error:', err);
+      } finally {
+        setReady(true);
+      }
     })();
   }, [actor.id, loadAll]);
 

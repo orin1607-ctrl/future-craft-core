@@ -50,9 +50,10 @@ const managerCategories = [
   { title: 'מרכז ניהול', items: adminNavItems },
 ];
 
-// Manager mobile — בית בלבד. שאר מסכי Oren Car נפתחים מתפריט ☰.
-const managerMobileNav: NavItem[] = [
+// Manager mobile — בית וניהול תביעות (למשתמשים בעלי הרשאת תביעות)
+const getManagerMobileNav = (canClaims: boolean): NavItem[] => [
   { path: '/dashboard', label: 'בית', icon: Home },
+  ...(canClaims ? [{ path: '/claims', label: 'ניהול תביעות', icon: Scale } as NavItem] : []),
 ];
 
 // Driver mobile bottom nav
@@ -83,9 +84,12 @@ export default function BottomNav() {
   const unreadCount = useUnreadNotifications();
 
   const isDriver = user?.role === 'driver';
+  const isSuperAdmin = user?.role === 'super_admin';
   const isTelemarketingAgent = user?.role === 'telemarketing_agent';
   const isClaimsWorker = !!user?.claimsWorkerOnly;
   const isGaragePhotographer = !!user?.garagePhotographer;
+  const canClaims = isSuperAdmin || !!user?.hasClaimsAccess;
+
   const mobileNav = isGaragePhotographer
     ? garagePhotographerMobileNav
     : isClaimsWorker
@@ -94,7 +98,7 @@ export default function BottomNav() {
       ? telemarketingMobileNav
       : isDriver
         ? driverMobileNav
-        : managerMobileNav;
+        : getManagerMobileNav(canClaims);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t-2 border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)] md:hidden">

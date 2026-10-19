@@ -9,7 +9,7 @@ export default function ClaimsPage() {
     return <Navigate to="/dashboard" replace />;
   }
   return (
-    <div className="-m-4 md:-m-8 h-[calc(100dvh-6.5rem)] md:h-[calc(100dvh)] overflow-hidden">
+    <div className="-m-4 md:-m-8 min-h-[calc(100dvh-4rem)] md:h-[calc(100dvh)] overflow-x-hidden md:overflow-hidden flex flex-col">
       <ClaimsScreen
         actor={{
           id: user.id,

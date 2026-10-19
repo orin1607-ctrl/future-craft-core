@@ -949,7 +949,10 @@ Deno.serve(async (req) => {
     const { ctx } = auth;
 
     const body = await req.json();
-    const { action, messages, company_name, page_context, claim_id, module, pending_action, conversation_id, attachments } = body;
+    const effectiveClaimId = String(body.claim_id || body.claimId || "").trim();
+    const effectivePageContext = String(body.page_context || body.pageContext || "").trim();
+    const effectiveModule = String(body.module || "").trim();
+    const { action, messages, company_name, pending_action, conversation_id, attachments } = body;
 
     const supabase = ctx.supabaseUser;
     const userId = ctx.user.id;
@@ -964,7 +967,7 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const claimTarget = String(claim_id || pending_action?.parameters?.claim_id || "");
+      const claimTarget = String(effectiveClaimId || pending_action?.parameters?.claim_id || "");
       const execResult = await executeClaimsPendingAction(
         supabase,
         claimTarget,
@@ -980,7 +983,7 @@ Deno.serve(async (req) => {
 
     // Action 2: Cancel Pending Action (rejected by user)
     if (action === "cancel_pending_action") {
-      const claimTarget = String(claim_id || pending_action?.parameters?.claim_id || "");
+      const claimTarget = String(effectiveClaimId || pending_action?.parameters?.claim_id || "");
       await recordAiAudit(supabase, {
         userId,
         userName: actorName,
@@ -1018,8 +1021,10 @@ Deno.serve(async (req) => {
     }
 
     const companyScope = resolveCompanyScope(ctx, company_name);
-    const claimId = typeof claim_id === "string" ? claim_id.trim() : "";
-    const isClaimsModule = module === "claims" || !!claimId;
+    const claimId = effectiveClaimId;
+    const userMessagesText = (messages || []).map((m: any) => typeof m?.content === "string" ? m.content : "").join(" ");
+    const hasClaimsIntent = /DAL-\d{4}-\d+|תביע|פתיחת תיק|חבילת פתיח|חבילה|קישור|מסמכ|טופס|טפסים/i.test(userMessagesText);
+    const isClaimsModule = effectiveModule === "claims" || !!claimId || hasClaimsIntent;
 
     let claimBlock = "";
     if (claimId) {
@@ -1033,9 +1038,9 @@ Deno.serve(async (req) => {
       claimBlock = loaded.text;
     } else if (isClaimsModule) {
       claimBlock = `--- מצב ניהול תביעות כללי (Claims General) ---
-המשתמש נמצא במסך הראשי של מודול ניהול תביעות (ללא תיק פתוח).
-התפקיד שלך הוא לספק מידע וסטטיסטיקות על כלל תיקי התביעות, סיכומי סטטוסים, תביעות שנפתחו היום, מיילים נכנסים ויוצאים של היום, משימות פתוחות, חיפוש תביעות ותיקים שדורשים טיפול.
-השתמש בכלים הייעודיים (get_claims_summary, count_claims, get_claims_by_status, get_claims_created_today, get_recent_claims, get_claims_needing_attention, get_open_tasks_summary, get_today_claim_activity, count_today_incoming_emails, count_today_outgoing_emails, get_today_claim_emails, get_unhandled_claim_emails, search_claims) כדי לקבל נתונים מדויקים ואמיתיים בלבד. אל תנחש נתונים.`;
+המשתמש נמצא בצ'אט הכללי או במסך הראשי של ניהול תביעות (ללא תיק פתוח).
+התפקיד שלך הוא לספק מידע וסטטיסטיקות על כלל תיקי התביעות, סיכומי סטטוסים, תביעות שנפתחו היום, מיילים נכנסים ויוצאים, משימות פתוחות, איתור ובדיקת קישורי לקוח פעילים (get_customer_link_status), חבילות פתיחת תיק (list_available_claim_documents_and_forms / preview_send_customer_link) וחיפוש תביעות.
+השתמש בכלים הייעודיים כדי לקבל נתונים מדויקים ואמיתיים בלבד. אל תנחש נתונים.`;
     }
 
     const basePrompt = companyScope
@@ -1051,7 +1056,7 @@ Deno.serve(async (req) => {
     const fullSysPrompt = [
       isClaimsModule ? claimsPrompt : basePrompt,
       isClaimsModule ? `--- תאריך ---\nהיום (שעון ישראל): ${todayIsrael} · ${todayIso}. חשב "מחר", "בעוד שבוע" וכו׳ לפי תאריך זה.` : "",
-      page_context ? `--- הקשר מסך נוכחי ---\n${page_context}` : "",
+      effectivePageContext ? `--- הקשר מסך נוכחי ---\n${effectivePageContext}` : "",
       claimBlock ? `--- הקשר מודול ניהול תביעות ---\n${claimBlock}` : "",
     ].filter(Boolean).join("\n\n");
 
