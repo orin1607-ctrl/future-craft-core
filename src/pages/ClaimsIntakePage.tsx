@@ -14,6 +14,7 @@ export default function ClaimsIntakePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
+  const [uploadUrl, setUploadUrl] = useState('');
   const [draft, setDraft] = useState<IntakeDraft>({ ...EMPTY_INTAKE });
   const [step, setStep] = useState(0);
   const [sig, setSig] = useState('');
@@ -41,7 +42,12 @@ export default function ClaimsIntakePage() {
         setLoading(false);
         return;
       }
-      if (r.json.submitted) { setDone(true); setLoading(false); return; }
+      if (r.json.submitted) {
+        setDone(true);
+        if (r.json.upload_url) setUploadUrl(String(r.json.upload_url));
+        setLoading(false);
+        return;
+      }
       const serverDraft = (r.json.draft && typeof r.json.draft === 'object') ? r.json.draft as IntakeDraft : {};
       const local = cached ? JSON.parse(cached) as IntakeDraft : {};
       const merged: IntakeDraft = { ...EMPTY_INTAKE, ...serverDraft };
@@ -101,6 +107,7 @@ export default function ClaimsIntakePage() {
     setBusy(false);
     if (r.json?.submitted) {
       setDone(true);
+      if (r.json.upload_url) setUploadUrl(String(r.json.upload_url));
       sessionStorage.removeItem(`intake-draft-${token}`);
       return;
     }
@@ -121,7 +128,26 @@ export default function ClaimsIntakePage() {
       <div className="intake-brand"><div className="intake-mark">ד</div><div><div className="intake-brand-t">דליה</div><div className="intake-brand-s">ניהול תביעות</div></div></div>
       <div className="intake-card">
         <h1 className="intake-ok">הדיווח התקבל בהצלחה</h1>
-        <p className="intake-lead">תודה. הצוות ימשיך את הטיפול בתיק.</p>
+        {uploadUrl ? (
+          <div style={{ marginTop: 24, padding: 18, background: 'rgba(37, 99, 235, 0.08)', borderRadius: 12, border: '1px solid rgba(37, 99, 235, 0.25)', textAlign: 'center' }}>
+            <h2 style={{ fontSize: 17, fontWeight: 800, margin: '0 0 8px', color: '#1d4ed8' }}>
+              השלב הבא: העלאת מסמכים וטפסים לתביעה
+            </h2>
+            <p style={{ fontSize: 14, color: '#374151', margin: '0 0 16px', lineHeight: 1.5 }}>
+              להשלמת התהליך וטיפול מיידי, באפשרותך לצרף כעת את המסמכים והטפסים ישירות לתיק.
+            </p>
+            <a
+              href={uploadUrl}
+              className="btn btn-p"
+              data-testid="intake-continue-to-docs"
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px', fontSize: 16, textDecoration: 'none', borderRadius: 8, fontWeight: 800 }}
+            >
+              המשך להעלאת מסמכים 📎
+            </a>
+          </div>
+        ) : (
+          <p className="intake-lead">תודה. הצוות ימשיך את הטיפול בתיק.</p>
+        )}
       </div>
     </div>
   );

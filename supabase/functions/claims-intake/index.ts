@@ -244,10 +244,27 @@ Deno.serve(async (req) => {
 
     if (action === "public_get") {
       if (row.status === "submitted" || (row.status === "submitting" && row.claim_id)) {
+        let uploadUrl: string | null = null;
+        if (row.claim_id) {
+          try {
+            const docsRes = await sb.functions.invoke("claims-docs", {
+              headers: {
+                "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
+              },
+              body: { action: "create_link", claim_id: row.claim_id },
+            });
+            if (docsRes.data?.token) {
+              uploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(docsRes.data.token)}`;
+            }
+          } catch (e) {
+            console.error("public_get auto upload link error:", e);
+          }
+        }
         return jsonResponse({
           success: true,
           submitted: true,
           message: "הדיווח התקבל בהצלחה",
+          upload_url: uploadUrl,
         });
       }
       if (row.status === "submitting") {
@@ -476,11 +493,27 @@ Deno.serve(async (req) => {
         updated_at: signedAt,
       }).eq("id", row.id);
 
+      let uploadUrl: string | null = null;
+      try {
+        const docsRes = await sb.functions.invoke("claims-docs", {
+          headers: {
+            "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
+          },
+          body: { action: "create_link", claim_id: claimId },
+        });
+        if (docsRes.data?.token) {
+          uploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(docsRes.data.token)}`;
+        }
+      } catch (e) {
+        console.error("public_submit auto upload link error:", e);
+      }
+
       return jsonResponse({
         success: true,
         submitted: true,
         duplicateSuspect,
         message: "הדיווח התקבל בהצלחה",
+        upload_url: uploadUrl,
       });
     }
   }
