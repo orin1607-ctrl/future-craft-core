@@ -1483,25 +1483,43 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
 
   if (action === "list_messages") {
     const claimId = String(body.claim_id || "");
-    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
-      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    if (claimId) {
+      if (!(await canWork(sb, user.id, role, claimId))) {
+        return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+      }
+    } else {
+      if (!(await hasClaimsAccess(sb, user.id, role))) {
+        return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+      }
     }
     const q = String(body.q || "newer_than:30d").slice(0, 180);
     const listed = await gmailGet(access, `messages?maxResults=20&q=${encodeURIComponent(q)}`);
-    const messages: Array<Record<string, unknown>> = [];
-    for (const m of (listed.messages || []).slice(0, 20)) {
-      const full = await gmailGet(access, `messages/${m.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Date`);
-      const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
-      messages.push({
-        id: full.id,
-        threadId: full.threadId,
-        from: header(headers, "From"),
-        subject: header(headers, "Subject"),
-        date: header(headers, "Date"),
-        snippet: full.snippet || "",
-        attachmentsApprox: Number(full.payload?.mimeType?.includes("multipart") ? 1 : 0),
-      });
-    }
+    const msgSlice = ((listed.messages || []) as Array<{ id?: string }>).slice(0, 20);
+    const messages = (
+      await Promise.all(
+        msgSlice.map(async (m) => {
+          if (!m.id) return null;
+          try {
+            const full = await gmailGet(
+              access,
+              `messages/${encodeURIComponent(m.id)}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Subject&metadataHeaders=Date`
+            );
+            const headers = full.payload?.headers as Array<{ name?: string; value?: string }> | undefined;
+            return {
+              id: full.id,
+              threadId: full.threadId,
+              from: header(headers, "From"),
+              subject: header(headers, "Subject"),
+              date: header(headers, "Date"),
+              snippet: full.snippet || "",
+              attachmentsApprox: Number(full.payload?.mimeType?.includes("multipart") ? 1 : 0),
+            };
+          } catch {
+            return null;
+          }
+        })
+      )
+    ).filter(Boolean);
     return jsonResponse({ success: true, messages, mailboxMutated: false, realEmailSend: false });
   }
 
@@ -1560,8 +1578,14 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
 
   if (action === "read_message") {
     const claimId = String(body.claim_id || "");
-    if (!claimId || !(await canWork(sb, user.id, role, claimId))) {
-      return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+    if (claimId) {
+      if (!(await canWork(sb, user.id, role, claimId))) {
+        return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+      }
+    } else {
+      if (!(await hasClaimsAccess(sb, user.id, role))) {
+        return jsonResponse({ success: false, error: "forbidden_claim" }, 403);
+      }
     }
     const messageId = String(body.message_id || "");
     if (!messageId) return jsonResponse({ success: false, error: "message_id required" }, 400);

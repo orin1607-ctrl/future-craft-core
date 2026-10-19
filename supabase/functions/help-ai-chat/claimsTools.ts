@@ -1333,6 +1333,43 @@ function getAdminClient() {
   return createClient(url, key);
 }
 
+function parseSearchTokens(query: string): string[] {
+  if (!query) return [];
+  const STOP_WORDS = new Set([
+    "של", "על", "את", "זה", "זהו", "או", "אם", "גם", "רק", "כל", "הוא", "היא",
+    "עבור", "בנושא", "נושא", "תיק", "תביעה", "תביעות", "אימייל", "אימיילים",
+    "מייל", "מיילים", "הודעה", "הודעות", "חברת", "חברה", "ביטוח", "שנשלח",
+    "שנכנס", "נכנס", "יוצא", "נכנסים", "יוצאים", "לייבא", "ייבוא", "לחפש",
+    "חפשי", "תמצאי", "מצא", "בדוק", "בדיקה", "email", "emails", "mail", "mails",
+    "claim", "claims", "for", "about", "the", "with", "from", "to", "in", "at"
+  ]);
+  return query
+    .toLowerCase()
+    .replace(/[,\-_/:|()]/g, " ")
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length > 1 && !STOP_WORDS.has(w));
+}
+
+function matchesEmailSearch(haystack: string, query: string): boolean {
+  if (!query || !query.trim()) return true;
+  const hayNorm = haystack.toLowerCase().replace(/[,\-_/:|()]/g, " ");
+  const rawQ = query.toLowerCase().trim();
+  if (hayNorm.includes(rawQ)) return true;
+
+  // Normalize numbers by removing whitespace between digits
+  const hayDigitsClean = hayNorm.replace(/(\d)\s+(\d)/g, "$1$2");
+
+  const tokens = parseSearchTokens(query);
+  if (!tokens.length) return hayNorm.includes(rawQ) || hayDigitsClean.includes(rawQ.replace(/[^0-9a-z\u0590-\u05fe]/gi, ""));
+
+  // High confidence anchor: 7-8 digit vehicle plate or 9-16 digit claim number
+  const anchor = tokens.find((t) => /^\d{7,16}$/.test(t));
+  if (anchor && (hayNorm.includes(anchor) || hayDigitsClean.includes(anchor))) return true;
+
+  return tokens.every((tok) => hayNorm.includes(tok) || hayDigitsClean.includes(tok));
+}
+
 function base64ToBytes(base64: string): Uint8Array {
   const clean = base64.replace(/^data:[^;]+;base64,/, "").trim();
   const binaryString = atob(clean);
@@ -2440,9 +2477,21 @@ export async function executeClaimsTool(
           .select("id, gmail_message_id, gmail_thread_id, from_addr, subject, snippet, sent_at, decision, reason, assigned_claim_id, candidates");
 
         if (claimId) {
-          pendQuery = pendQuery.or(`assigned_claim_id.eq.${claimId},candidates.cs.{"${claimId}"}`);
+          pendQuery = pendQuery.or(`assigned_claim_id.eq.${claimId},candidates.cs.{"${claimId}"},assigned_claim_id.is.null`);
         }
         const { data: pendData } = await pendQuery.order("sent_at", { ascending: false }).limit(limit * 2);
+
+        // Fetch claim plate / client if inside claim
+        let claimPlateForSearch = "";
+        let claimNumForSearch = "";
+        if (claimId) {
+          const { data: cRec } = await supabase.from("claims_records").select("plate, row_data").eq("id", claimId).maybeSingle();
+          if (cRec) {
+            const rd = (cRec.row_data && typeof cRec.row_data === "object" ? cRec.row_data : {}) as Record<string, unknown>;
+            claimPlateForSearch = String(cRec.plate || rd.plate || "").trim();
+            claimNumForSearch = String(rd.claimNum || "").trim();
+          }
+        }
 
         const seenMsgIds = new Set<string>([
           ...imports.map((m) => String(m.gmail_message_id || "")).filter(Boolean),
@@ -2452,6 +2501,16 @@ export async function executeClaimsTool(
         for (const p of pendData || []) {
           const msgId = String(p.gmail_message_id || "");
           if (seenMsgIds.has(msgId)) continue;
+
+          // If unassigned in pending, only include if relevant to this claim or matches query
+          if (claimId && !p.assigned_claim_id) {
+            const hay = [p.from_addr || "", p.subject || "", p.snippet || ""].join(" ");
+            const rel = (claimPlateForSearch && matchesEmailSearch(hay, claimPlateForSearch)) ||
+                        (claimNumForSearch && matchesEmailSearch(hay, claimNumForSearch)) ||
+                        (query && matchesEmailSearch(hay, query));
+            if (!rel) continue;
+          }
+
           seenMsgIds.add(msgId);
 
           const from = String(p.from_addr || "");
@@ -2477,12 +2536,16 @@ export async function executeClaimsTool(
 
         let combined = [...imports, ...outbox, ...pending];
         if (query) {
-          combined = combined.filter((m) =>
-            String(m.subject || "").toLowerCase().includes(query) ||
-            String(m.snippet || "").toLowerCase().includes(query) ||
-            String(m.from || "").toLowerCase().includes(query) ||
-            String(m.to || "").toLowerCase().includes(query)
-          );
+          combined = combined.filter((m) => {
+            const hay = [
+              m.subject || "",
+              m.snippet || "",
+              m.from || "",
+              m.to || "",
+              m.gmail_message_id || "",
+            ].join(" ");
+            return matchesEmailSearch(hay, query);
+          });
         }
         combined.sort((a, b) => new Date(String(b.sent_at || "")).getTime() - new Date(String(a.sent_at || "")).getTime());
 
@@ -2715,15 +2778,18 @@ export async function executeClaimsTool(
 
         let emailData: Record<string, unknown> | null = null;
         if (direction !== "outbound") {
-          const { data } = await supabase
+          let impQ = supabase
             .from("claims_gmail_imports")
             .select("*")
-            .eq("id", emailId)
-            .eq("claim_id", claimId)
-            .maybeSingle();
+            .or(`id.eq.${emailId},gmail_message_id.eq.${emailId}`);
+          if (claimId) {
+            impQ = impQ.eq("claim_id", claimId);
+          }
+          const { data } = await impQ.maybeSingle();
           if (data) {
             emailData = {
               id: data.id,
+              gmail_message_id: data.gmail_message_id,
               direction: "inbound",
               from: data.from_addr,
               to: data.to_addr,
@@ -2737,15 +2803,18 @@ export async function executeClaimsTool(
         }
 
         if (!emailData && direction !== "inbound") {
-          const { data } = await supabase
+          let outQ = supabase
             .from("claims_gmail_outbox")
             .select("*")
-            .eq("id", emailId)
-            .eq("claim_id", claimId)
-            .maybeSingle();
+            .or(`id.eq.${emailId},gmail_message_id.eq.${emailId}`);
+          if (claimId) {
+            outQ = outQ.eq("claim_id", claimId);
+          }
+          const { data } = await outQ.maybeSingle();
           if (data) {
             emailData = {
               id: data.id,
+              gmail_message_id: data.gmail_message_id,
               direction: "outbound",
               from: CLAIMS_SENDER_NAME,
               to: data.to_addr,
@@ -2780,8 +2849,36 @@ export async function executeClaimsTool(
               body: pendItem.snippet,
               sent_at: pendItem.sent_at,
               status: isUserSend ? "נשלח מ-Gmail (ממתין לסנכרון בתיק)" : "התקבל ב-Gmail (ממתין לסנכרון בתיק)",
-              attachments_count: 0,
+              attachments_count: Number(pendItem.attachment_count || 0),
             };
+          }
+        }
+
+        // If email only has snippet or was found directly, fetch full message body and attachments via claims-gmail read_message
+        const rawMsgId = String(emailData?.gmail_message_id || emailId).replace(/^GIP-|^GIM-[^-]+-/, "");
+        if (rawMsgId && (!emailData || !emailData.body || emailData.body.length <= 250)) {
+          try {
+            const readRes = await supabase.functions.invoke("claims-gmail", {
+              body: { action: "read_message", message_id: rawMsgId, claim_id: claimId || undefined },
+            });
+            if (readRes.data?.message) {
+              const msg = readRes.data.message;
+              emailData = {
+                id: emailData?.id || msg.id,
+                gmail_message_id: msg.id,
+                direction: emailData?.direction || "inbound",
+                from: msg.from || emailData?.from,
+                to: msg.to || emailData?.to,
+                cc: msg.cc || emailData?.cc,
+                subject: msg.subject || emailData?.subject,
+                body: msg.bodyText || emailData?.body || "",
+                sent_at: msg.date || emailData?.sent_at,
+                attachments_count: msg.attachments?.length ?? (emailData?.attachments_count || 0),
+                attachments: msg.attachments || [],
+              };
+            }
+          } catch {
+            // keep existing emailData
           }
         }
 
@@ -2971,12 +3068,14 @@ export async function executeClaimsTool(
         let targetImport: Record<string, unknown> | null = null;
 
         if (importId) {
-          const { data } = await supabase
+          let q = supabase
             .from("claims_gmail_imports")
             .select("*")
-            .eq("id", importId)
-            .eq("claim_id", claimId)
-            .maybeSingle();
+            .or(`id.eq.${importId},gmail_message_id.eq.${importId}`);
+          if (claimId) {
+            q = q.eq("claim_id", claimId);
+          }
+          const { data } = await q.maybeSingle();
           targetImport = data;
         } else {
           const { data } = await supabase
@@ -3226,57 +3325,175 @@ export async function executeClaimsTool(
       }
 
       case "search_pending_gmail_messages": {
-        const query = String(args.query || "").trim().toLowerCase();
-        const effectiveClaim = String(claimId || "").trim();
+        const query = String(args.query || "").trim();
+        const effectiveClaim = String(claimId || args.claim_ref || args.claim_id || "").trim();
 
         const db = getAdminClient() || supabase;
-        let q = db
+
+        // 1. If inside a claim or claim_ref specified, load claim metadata for context-aware matching
+        let claimPlate = "";
+        let claimNum = "";
+        let clientName = "";
+        let insCompany = "";
+        if (effectiveClaim) {
+          const { data: claimRow } = await db
+            .from("claims")
+            .select("id, claim_number, plate_number, client_name, insurance_company, row_data")
+            .eq("id", effectiveClaim)
+            .maybeSingle();
+          if (claimRow) {
+            const crd = (claimRow.row_data && typeof claimRow.row_data === "object" ? claimRow.row_data : {}) as Record<string, unknown>;
+            claimPlate = String(claimRow.plate_number || crd.plateNumber || crd.carNumber || crd.plate || "").trim();
+            claimNum = String(claimRow.claim_number || crd.claimNumber || crd.claimNum || "").trim();
+            clientName = String(claimRow.client_name || crd.clientName || crd.customerName || "").trim();
+            insCompany = String(claimRow.insurance_company || crd.insuranceCompany || crd.insurer || "").trim();
+          }
+        }
+
+        // 2. Fetch pending messages
+        const { data: pendingRows } = await db
           .from("claims_gmail_pending")
           .select("id, gmail_message_id, from_addr, to_addr, subject, snippet, attachment_count, assigned_claim_id, created_at, imported_at")
           .order("created_at", { ascending: false })
-          .limit(30);
+          .limit(80);
 
+        // 3. Fetch imported messages
+        let impQuery = db
+          .from("claims_gmail_imports")
+          .select("id, gmail_message_id, from_addr, to_addr, subject, snippet, attachment_count, claim_id, imported_at, created_at")
+          .order("created_at", { ascending: false })
+          .limit(80);
         if (effectiveClaim) {
-          q = q.eq("assigned_claim_id", effectiveClaim);
+          impQuery = impQuery.eq("claim_id", effectiveClaim);
         }
+        const { data: impRows } = await impQuery;
 
-        const { data: rows } = await q;
-        let matched = rows || [];
+        type MessageMatch = {
+          id: string;
+          gmail_message_id: string;
+          from_addr: string;
+          to_addr: string;
+          subject: string;
+          snippet: string;
+          attachment_count: number;
+          assigned_claim_id: string | null;
+          created_at: string;
+          imported_at: string | null;
+          already_imported: boolean;
+          status_label: string;
+        };
 
-        if (query) {
-          matched = matched.filter((r) => {
-            const hay = [
-              r.from_addr || "",
-              r.subject || "",
-              r.snippet || "",
-              r.assigned_claim_id || "",
-              r.gmail_message_id || "",
-            ].join(" ").toLowerCase();
-            return hay.includes(query);
-          });
-        }
+        const matched: MessageMatch[] = [];
+        const seenMessageIds = new Set<string>();
 
-        if (matched.length === 0) {
-          try {
-            const scan = await supabase.functions.invoke("claims-gmail", {
-              body: { action: "scan_inbox", dry: true, lookback: "newer_than:30d", query },
+        // Process imported rows first (if assigned to current claim or matching search)
+        for (const imp of impRows || []) {
+          const msgId = String(imp.gmail_message_id || imp.id || "").replace(/^GIP-/, "");
+          if (!msgId || seenMessageIds.has(msgId)) continue;
+          const hay = [
+            imp.from_addr || "",
+            imp.subject || "",
+            imp.snippet || "",
+            imp.claim_id || "",
+            msgId,
+          ].join(" ");
+
+          let matches = false;
+          if (query) {
+            matches = matchesEmailSearch(hay, query);
+          } else if (effectiveClaim) {
+            matches = String(imp.claim_id) === effectiveClaim;
+          }
+
+          if (matches) {
+            seenMessageIds.add(msgId);
+            matched.push({
+              id: imp.id,
+              gmail_message_id: msgId,
+              from_addr: imp.from_addr || "",
+              to_addr: imp.to_addr || "",
+              subject: imp.subject || "",
+              snippet: imp.snippet || "",
+              attachment_count: Number(imp.attachment_count || 0),
+              assigned_claim_id: imp.claim_id || null,
+              created_at: imp.imported_at || imp.created_at || new Date().toISOString(),
+              imported_at: imp.imported_at || imp.created_at || new Date().toISOString(),
+              already_imported: true,
+              status_label: `כבר מיובא לתיק ${imp.claim_id || ""}`,
             });
-            const autoList = (scan.data?.auto || []) as Array<Record<string, unknown>>;
-            const reviewList = (scan.data?.needs_review || []) as Array<Record<string, unknown>>;
-            const scanItems = [...autoList, ...reviewList];
-            if (scanItems.length > 0) {
-              matched = scanItems.map((item) => ({
-                id: String(item.pending_id || item.message_id || ""),
-                gmail_message_id: String(item.message_id || item.pending_id || ""),
-                from_addr: String(item.from || ""),
-                to_addr: "",
-                subject: String(item.subject || ""),
-                snippet: String(item.reason || ""),
-                attachment_count: Number(item.attachment_count || 0),
-                assigned_claim_id: item.claim_id ? String(item.claim_id) : null,
-                created_at: String(item.sent_at || new Date().toISOString()),
+          }
+        }
+
+        // Process pending rows
+        for (const p of pendingRows || []) {
+          const msgId = String(p.gmail_message_id || p.id || "").replace(/^GIP-/, "");
+          if (!msgId || seenMessageIds.has(msgId)) continue;
+          const hay = [
+            p.from_addr || "",
+            p.subject || "",
+            p.snippet || "",
+            p.assigned_claim_id || "",
+            msgId,
+          ].join(" ");
+
+          let matches = false;
+          if (query) {
+            matches = matchesEmailSearch(hay, query);
+          } else if (effectiveClaim) {
+            matches = (p.assigned_claim_id === effectiveClaim) ||
+              (!!claimPlate && matchesEmailSearch(hay, claimPlate)) ||
+              (!!claimNum && matchesEmailSearch(hay, claimNum)) ||
+              (!!clientName && matchesEmailSearch(hay, clientName));
+          } else {
+            matches = true;
+          }
+
+          if (matches) {
+            seenMessageIds.add(msgId);
+            const isImported = !!p.imported_at;
+            matched.push({
+              id: p.id,
+              gmail_message_id: msgId,
+              from_addr: p.from_addr || "",
+              to_addr: p.to_addr || "",
+              subject: p.subject || "",
+              snippet: p.snippet || "",
+              attachment_count: Number(p.attachment_count || 0),
+              assigned_claim_id: p.assigned_claim_id || null,
+              created_at: p.created_at || new Date().toISOString(),
+              imported_at: p.imported_at || null,
+              already_imported: isImported,
+              status_label: isImported ? "כבר יובא" : (p.assigned_claim_id ? `משויך לתיק ${p.assigned_claim_id} (טרם יובא)` : "ממתין לשיוך וייבוא"),
+            });
+          }
+        }
+
+        // 4. Fallback to fast live Gmail search if no local match
+        if (matched.length === 0 && (query || claimPlate || claimNum)) {
+          try {
+            const searchQuery = query || [claimPlate, claimNum].filter(Boolean).join(" ");
+            const listRes = await supabase.functions.invoke("claims-gmail", {
+              body: { action: "list_messages", q: searchQuery, claim_id: effectiveClaim || undefined },
+            });
+            const liveMsgs = (listRes.data?.messages || []) as Array<Record<string, unknown>>;
+            for (const lm of liveMsgs) {
+              const msgId = String(lm.id || "");
+              if (!msgId || seenMessageIds.has(msgId)) continue;
+              seenMessageIds.add(msgId);
+              matched.push({
+                id: msgId,
+                gmail_message_id: msgId,
+                from_addr: String(lm.from || ""),
+                to_addr: String(lm.to || ""),
+                subject: String(lm.subject || ""),
+                snippet: String(lm.snippet || ""),
+                attachment_count: 0,
+                assigned_claim_id: effectiveClaim || null,
+                created_at: String(lm.date || new Date().toISOString()),
                 imported_at: null,
-              }));
+                already_imported: false,
+                status_label: "קיים ב-Gmail (טרם יובא לתיק)",
+              });
             }
           } catch (_) {
             // gracefully continue
@@ -3295,15 +3512,17 @@ export async function executeClaimsTool(
         return {
           result: {
             found_count: matched.length,
-            instruction: "נמצאו המיילים הממתינים. לייבוא מייל וקבציו לתיק, קרא לכלי preview_import_claim_email עם message_id (וגם claim_ref אם אינך בתוך תיק פתוח).",
+            instruction: "נמצאו מיילים רלוונטיים. אם המייל טרם יובא, קרא לכלי preview_import_claim_email עם message_id (וגם claim_ref אם אינך בתוך תיק פתוח). אם המייל כבר מיובא לתיק, ציין זאת למשתמש.",
             emails: matched.slice(0, 15).map((m) => ({
-              message_id: String(m.gmail_message_id || m.id).replace(/^GIP-/, ""),
+              message_id: m.gmail_message_id,
               from: m.from_addr,
               subject: m.subject,
+              snippet: m.snippet,
               sent_at: m.created_at,
               attachment_count: m.attachment_count || 0,
               assigned_claim_id: m.assigned_claim_id || null,
-              already_imported: !!m.imported_at,
+              already_imported: m.already_imported,
+              status_label: m.status_label,
             })),
           },
         };
@@ -3311,7 +3530,7 @@ export async function executeClaimsTool(
 
       case "preview_import_claim_email": {
         const messageId = String(args.message_id || "").replace(/^GIP-/, "").trim();
-        const targetClaim = String(claimId || "").trim();
+        const targetClaim = String(claimId || args.claim_ref || args.claim_id || "").trim();
 
         if (!messageId) {
           return { result: { error: "נדרש מזהה הודעה (message_id) לייבוא." } };
@@ -3331,7 +3550,7 @@ export async function executeClaimsTool(
         const { data: pRow } = await db
           .from("claims_gmail_pending")
           .select("from_addr, subject, attachment_count")
-          .or(`gmail_message_id.eq.${messageId},id.eq.GIP-${messageId}`)
+          .or(`gmail_message_id.eq.${messageId},id.eq.GIP-${messageId},id.eq.${messageId}`)
           .maybeSingle();
 
         if (pRow) {
@@ -3341,15 +3560,32 @@ export async function executeClaimsTool(
         }
 
         if (!fromAddr) {
-          const { data: impRow } = await supabase
+          const { data: impRow } = await db
             .from("claims_gmail_imports")
             .select("from_addr, subject, attachment_count")
-            .eq("gmail_message_id", messageId)
+            .or(`gmail_message_id.eq.${messageId},id.eq.${messageId}`)
             .maybeSingle();
           if (impRow) {
             fromAddr = impRow.from_addr || "";
             subject = impRow.subject || "";
             attCount = impRow.attachment_count || 0;
+          }
+        }
+
+        if (!fromAddr) {
+          try {
+            const liveRes = await supabase.functions.invoke("claims-gmail", {
+              body: { action: "read_message", message_id: messageId, claim_id: targetClaim },
+            });
+            if (liveRes.data?.success) {
+              const msg = (liveRes.data.message || liveRes.data) as Record<string, unknown>;
+              fromAddr = String(msg.from || "");
+              subject = String(msg.subject || "");
+              const atts = Array.isArray(msg.attachments) ? msg.attachments : [];
+              attCount = Number(msg.attachment_count || atts.length || 0);
+            }
+          } catch (_) {
+            // continue
           }
         }
 
@@ -4060,16 +4296,20 @@ export async function executeClaimsTool(
       }
 
       case "preview_create_claim_task": {
-        const { data: existingTasks } = await supabase.from("claims_tasks").select("id, row_data").eq("claim_id", claimId);
+        const effectiveClaim = String(claimId || args.claim_ref || args.claim_id || "").trim();
+        if (!effectiveClaim) {
+          return { result: { error: "נדרש מזהה תיק (claim_ref) ליצירת משימה." } };
+        }
+        const { data: existingTasks } = await supabase.from("claims_tasks").select("id, row_data").eq("claim_id", effectiveClaim);
         const openRows = (existingTasks || []).map((t) => rowOf(t));
-        const plan = planTask(claimId, { action: args.task_description, dueDate: args.due_date, owner: args.owner, note: args.note }, openRows);
+        const plan = planTask(effectiveClaim, { action: args.task_description, dueDate: args.due_date, owner: args.owner, note: args.note }, openRows);
         if (!plan.ok) {
-          return { result: { status: plan.duplicateId ? "duplicate" : "invalid", error: plan.error, claim_id: claimId } };
+          return { result: { status: plan.duplicateId ? "duplicate" : "invalid", error: plan.error, claim_id: effectiveClaim } };
         }
         const taskDescription = plan.task.action;
         const previewId = `P-TASK-${Date.now()}`;
         const summary = [
-          `יצירת משימה בתיק ${claimId}: "${taskDescription}"`,
+          `יצירת משימה בתיק ${effectiveClaim}: "${taskDescription}"`,
           plan.task.dueDate ? `יעד: ${plan.task.dueDate}` : "",
           `אחראי: ${plan.task.owner || userName || "המשתמש"}`,
           plan.task.note ? `הערה: ${plan.task.note}` : "",
@@ -4081,7 +4321,7 @@ export async function executeClaimsTool(
           tool_name: name,
           action_type: "create_task",
           parameters: {
-            claim_id: claimId,
+            claim_id: effectiveClaim,
             task_description: taskDescription,
             due_date: plan.task.dueDate,
             owner: plan.task.owner,
@@ -4092,7 +4332,7 @@ export async function executeClaimsTool(
         await recordAiAudit(supabase, {
           userId,
           userName,
-          claimId,
+          claimId: effectiveClaim,
           toolName: name,
           actionType: "create_task",
           previewSummary: summary,
@@ -4112,9 +4352,10 @@ export async function executeClaimsTool(
       }
 
       case "preview_close_claim_task": {
+        const effectiveClaim = String(claimId || args.claim_ref || args.claim_id || "").trim();
         const taskId = String(args.task_id || "").trim();
         const previewId = `P-CLOSETASK-${Date.now()}`;
-        const summary = `סגירת משימה בתיק (מזהה: ${taskId})`;
+        const summary = `סגירת משימה בתיק ${effectiveClaim || ""}: (מזהה: ${taskId})`;
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
@@ -4122,7 +4363,7 @@ export async function executeClaimsTool(
           tool_name: name,
           action_type: "close_task",
           parameters: {
-            claim_id: claimId,
+            claim_id: effectiveClaim,
             task_id: taskId,
           },
         };
@@ -4130,7 +4371,7 @@ export async function executeClaimsTool(
         await recordAiAudit(supabase, {
           userId,
           userName,
-          claimId,
+          claimId: effectiveClaim || null,
           toolName: name,
           actionType: "close_task",
           previewSummary: summary,
@@ -4150,9 +4391,13 @@ export async function executeClaimsTool(
       }
 
       case "preview_add_claim_note": {
+        const effectiveClaim = String(claimId || args.claim_ref || args.claim_id || "").trim();
+        if (!effectiveClaim) {
+          return { result: { error: "נדרש מזהה תיק (claim_ref) להוספת הערה." } };
+        }
         const note = String(args.note || "").trim();
         const previewId = `P-NOTE-${Date.now()}`;
-        const summary = `הוספת הערה לתיק: "${note}"`;
+        const summary = `הוספת הערה לתיק ${effectiveClaim}: "${note}"`;
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
@@ -4160,7 +4405,7 @@ export async function executeClaimsTool(
           tool_name: name,
           action_type: "add_note",
           parameters: {
-            claim_id: claimId,
+            claim_id: effectiveClaim,
             note,
           },
         };
@@ -4168,7 +4413,7 @@ export async function executeClaimsTool(
         await recordAiAudit(supabase, {
           userId,
           userName,
-          claimId,
+          claimId: effectiveClaim,
           toolName: name,
           actionType: "add_note",
           previewSummary: summary,
@@ -4188,16 +4433,20 @@ export async function executeClaimsTool(
       }
 
       case "list_claim_reminders": {
-        const { data: rems } = await supabase
+        const effectiveClaim = String(claimId || args.claim_ref || args.claim_id || "").trim();
+        let remQuery = supabase
           .from("claims_reminders")
           .select("id, row_data")
-          .eq("claim_id", claimId)
-          .eq("action", "note");
+          .order("created_at", { ascending: false });
+        if (effectiveClaim) {
+          remQuery = remQuery.eq("claim_id", effectiveClaim);
+        }
+        const { data: rems } = await remQuery;
         const active = (rems || [])
           .map((r) => rowOf(r))
           .filter((r) => r.cancelled !== "true")
           .map((r) => ({ id: r.id, date: r.date, note: r.note, owner: r.owner, fired: r.sent === "true" }));
-        await recordAiAudit(supabase, { userId, userName, claimId, toolName: name, actionType: "list_reminders", status: "success" });
+        await recordAiAudit(supabase, { userId, userName, claimId: effectiveClaim || null, toolName: name, actionType: "list_reminders", status: "success" });
         return { result: { claim_id: claimId, total: active.length, reminders: active } };
       }
 
