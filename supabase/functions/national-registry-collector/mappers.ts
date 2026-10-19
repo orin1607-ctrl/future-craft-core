@@ -269,6 +269,18 @@ export const MAPPERS: Record<string, Mapper> = {
       fields: { type: nn(r.sug_esek), phone: tel.map((p) => p.d) },
     };
   },
+  // משרד התחבורה – בתי ספר לנהיגה: שם, כתובת, מנהל, טלפון, וסוגי הרישיון שהם מלמדים (0/1 לכל סוג – לא מספר רכבים)
+  driving_schools: (r) => {
+    const tel = phones([r.telefon]);
+    const kinds = ([["prati", "רכב פרטי"], ["ofnoa", "אופנוע"], ["masa", "משאית"], ["otobus", "אוטובוס"], ["traktor", "טרקטור"], ["grar", "גרור"]] as const)
+      .filter(([k]) => Number(r[k]) > 0).map(([, l]) => l);
+    return {
+      name: s(r.shem_beit_sefer), address: nn(r.ktovet), region: nn(r.ezor), phones: tel, sector: "בתי ספר לנהיגה",
+      activity: `בית ספר לנהיגה${kinds.length ? " – " + kinds.join(", ") : ""}`, logistics: kinds.length >= 2 ? ["בית ספר לנהיגה – כמה סוגי רכב"] : [],
+      people: nn(r.menahel) ? [{ name: nn(r.menahel), role: "מנהל בית הספר לנהיגה" }] : [],
+      fields: { school_code: nn(r.cod_beit_sefer), permit: nn(r.cod_hiter), area: nn(r.ezor), licence_types: kinds, phone: tel.map((p) => p.d) },
+    };
+  },
   fuel_stations: (r) => {
     const tel = phones([r.telephone], { sub: "branch", branch_name: nn(r.station_name), branch_address: [nn(r.location), nn(r.City)].filter(Boolean).join(", ") });
     return {

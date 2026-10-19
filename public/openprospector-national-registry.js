@@ -31,7 +31,7 @@
     report: null, reportError: "", reportLoading: false, review: null, reviewPage: 0,
     modal: null, timer: null, busy: false,
     // marketing work lists (read only – nothing is sent from this screen)
-    out: { filters: { segment: "dalia", level: "phone" }, rows: null, afters: [0], page: 0, loading: false, error: "", summary: null, sumLoading: false },
+    out: { filters: { fleet: "any", sort: "fleet" }, rows: null, afters: [0], page: 0, loading: false, error: "", summary: null, sumLoading: false },
     pendingBiz: Number(new URLSearchParams(location.search).get("biz")) || 0,
   };
   const persist = () => { try { localStorage.setItem(LS_KEY, JSON.stringify({ sub: ST.sub, filters: ST.filters, sort: ST.sort, pageSize: ST.pageSize })); } catch (e) { /* storage blocked */ } };
@@ -696,7 +696,14 @@
   const SEGS = [["dalia", "פוטנציאל לדליה – צי רכב, מוסכים, סחר רכב, דלק"], ["dalia_wide", "פוטנציאל רחב – כולל קבלנים ותעשייה"], ["fleet", "צי רכב / נהגים / שליחויות"],
     ["garages", "מוסכים ושירותי רכב"], ["vehicle_trade", "סחר, יבוא וייצור רכב"], ["fuel", "דלק ותחנות תדלוק"], ["construction", "בנייה וקבלנות"], ["industry", "תעשייה וייצור"], ["all", "כל הענפים"]];
   const SEG_NAME = Object.fromEntries(SEGS);
-  const LEVELS = [["phone", "יש טלפון"], ["verified", "יש טלפון או אימייל מאומת (2 מקורות)"], ["phone_email", "יש טלפון וגם אימייל"], ["any", "כל פרט קשר"]];
+  const LEVELS = [["any", "כל פרט קשר"], ["phone", "יש טלפון"], ["phone_email", "יש טלפון וגם אימייל"], ["official", "טלפון / אימייל ממאגר רשמי"],
+    ["own_site", "טלפון / אימייל מאתר החברה עצמה"], ["two_groups", "פרט שנמצא בשני סוגי מקורות (רשמי + אתר / אחר)"]];
+  const FLEETS = [["", "ללא סינון צי"], ["any", "כל פוטנציאל לצי רכב"], ["strong", "סימנים חזקים או ראיה ל-5+ רכבים"], ["documented", "ראיה מבוססת ל-5+ רכבים"]];
+  const ROLES_F = [["", "ללא סינון אנשי קשר"], ["any", "יש איש קשר רלוונטי (צי / תפעול / בעלים)"], ["ops", "קצין רכב / מנהל צי / תפעול / לוגיסטיקה"], ["fleet", "קצין רכב / מנהל צי בלבד"]];
+  const SORTS = [["fleet", "פוטנציאל צי – החזק ביותר קודם"], ["id", "סדר המאגר"]];
+  const FLEET_LV = { documented: ["ראיה ל-5+ רכבים", "b-ok"], strong: ["סימנים חזקים לצי", "b-blue"], possible: ["פוטנציאל – אינדיקציה בלבד", "b-no"] };
+  const ROLE_CAT = { fleet: "צי / רכב", ops: "תפעול / לוגיסטיקה", owner: "בעלים / הנהלה" };
+  const byFleet = () => (ST.out.filters.sort || "fleet") === "fleet";
   const cardUrl = (id) => `${location.origin}${location.pathname}?tab=${TAB}&biz=${id}`;
   function readOutFilters() {
     const f = {};
@@ -717,81 +724,118 @@
     catch (e) { ST.out.error = e.message; ST.out.rows = []; }
     ST.out.loading = false; rerender();
   }
-  const contactsOf = (r, kind, level) => (r.contacts || []).filter((c) => c.kind === kind && c.level === level);
+  // where a detail was found – never "verified" / "active": that is only known after a call
+  function relTags(rel) {
+    const r = rel || {}, t = [];
+    if (r.official) t.push(`<span class="badge b-ok" title="נמצא במאגר ממשלתי / רשמי">רשמי</span>`);
+    if (r.own_site) t.push(`<span class="badge b-blue" title="פורסם באתר האינטרנט של החברה עצמה">אתר החברה</span>`);
+    if (r.other) t.push(`<span class="badge b-no" title="מקור אחר (למשל OpenStreetMap)">מקור אחר</span>`);
+    if (Number(r.groups) >= 2) t.push(`<span class="badge b-est" title="אותו פרט נמצא בשני סוגי מקורות בלתי תלויים">2 סוגי מקורות</span>`);
+    return t.join(" ");
+  }
+  const relText = (rel) => { const r = rel || {}; return [r.official && "רשמי", r.own_site && "אתר החברה", r.other && "מקור אחר"].filter(Boolean).join(" + "); };
+  const contactsOf = (r, kind) => (r.contacts || []).filter((c) => c.kind === kind);
   function contactChips(r, kind) {
     const one = (c) => {
       const v = esc(c.v), href = kind === "phone" ? `tel:${esc(String(c.v).replace(/[^\d+]/g, ""))}` : `mailto:${v}`;
-      const tag = c.level === "verified" ? `<span class="badge b-ok" title="אומת ב-2 מקורות או יותר">✓ מאומת</span>` : `<span class="badge b-no" title="מקור אחד בלבד">מקור יחיד</span>`;
       const sub = c.sub === "mobile" ? " (נייד)" : c.sub === "branch" ? ` (סניף${c.branch ? " " + esc(c.branch) : ""})` : "";
-      return `<div class="xs" title="${esc((c.sources || []).join(" · "))}"><a href="${href}" data-nr-stop="1">${v}</a>${sub} ${tag}</div>`;
+      return `<div class="xs" title="${esc((c.sources || []).join(" · "))}"><a href="${href}" data-nr-stop="1">${v}</a>${sub} ${relTags(c.rel)}</div>`;
     };
-    const list = [...contactsOf(r, kind, "verified"), ...contactsOf(r, kind, "single")];
+    const list = contactsOf(r, kind);
     return list.length ? list.slice(0, 4).map(one).join("") + (list.length > 4 ? `<div class="xs muted">+${list.length - 4} נוספים בכרטיס</div>` : "") : '<span class="xs muted">—</span>';
   }
-  function signalChips(r) {
-    const sg = (r.signals || []).map((x) => `<div class="xs">${x.kind === "fact" ? '<span class="badge b-ok">עובדה</span>' : '<span class="badge b-no" title="סימן לצורך אפשרי – לא עובדה מתועדת">אינדיקציה</span>'} ${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener" data-nr-stop="1">${esc(x.t)}</a>` : esc(x.t)}</div>`);
-    return sg.join("") || '<span class="xs muted">—</span>';
+  function fleetCell(r) {
+    if (!r.fleet_level) return '<span class="xs muted">אין סימן לצי רכב</span>';
+    const [l, cls] = FLEET_LV[r.fleet_level] || [r.fleet_level, "b-no"];
+    const ev = (r.fleet_evidence || []).slice(0, 4).map((x) => `<div class="xs">${x.kind === "fact" ? '<span class="badge b-ok">עובדה</span>' : '<span class="badge b-no" title="סימן – לא ספירת רכבים">אינדיקציה</span>'}
+      ${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener" data-nr-stop="1">${esc(x.t)}</a>` : esc(x.t)} <span class="muted">– ${esc(x.src || "")}</span>${x.note ? ` <span class="badge b-est">${esc(x.note)}</span>` : ""}</div>`).join("");
+    return `<div><span class="badge ${cls}">${l}</span>${r.fleet_min ? ` <b>${n(r.fleet_min)}+</b> <span class="xs muted">רכבים ידועים</span>` : ""}</div>${ev}`;
+  }
+  function peopleCell(r) {
+    return (r.people || []).slice(0, 4).map((p) => `<div title="${esc(p.source || "")}">${p.cat ? `<span class="badge ${p.cat === "fleet" ? "b-ok" : p.cat === "ops" ? "b-blue" : "b-no"}">${ROLE_CAT[p.cat]}</span> ` : ""}${esc(p.name)} – ${esc(p.role || "")}
+      ${p.phone ? ` · <a href="tel:${esc(String(p.phone).replace(/[^\d+]/g, ""))}" data-nr-stop="1">${esc(p.phone)}</a>` : ""}${p.email ? ` · <a href="mailto:${esc(p.email)}" data-nr-stop="1">${esc(p.email)}</a>` : ""}</div>`).join("") || "—";
   }
   function outreachView() {
-    const o = ST.out, f = o.filters, su = o.summary;
+    const o = ST.out, f = o.filters, su = o.summary, fl = (su && su.fleet) || {};
     const sumCard = !su ? `<div class="card card-b muted">${o.sumLoading ? "⏳ סופר את המוכנות לשיווק…" : ""}</div>` : `<div class="card"><div class="card-h"><h2>מוכנות לשיווק – מתוך המאגר הקיים<span class="h-bar"></span></h2><span class="spacer"></span>
         <span class="xs muted">עודכן ${when(su.at)}</span><button class="btn btn-sm" data-nr="osum">🔄</button></div>
-      <div class="card-b" style="display:grid;gap:10px"><div class="grid g-kpi tiles">
-        ${kpi("עסקים פעילים עם פרט קשר", n(su.with_contact), `${n(su.with_phone)} עם טלפון · ${n(su.with_email)} עם אימייל · ${n(su.with_phone_and_email)} עם שניהם`)}
-        ${kpi("עם פרט קשר מאומת (2 מקורות)", n(su.verified_any), `${n(su.verified_phone)} טלפון מאומת · ${n(su.verified_email)} אימייל מאומת`)}
-        ${kpi("עם בעלי תפקידים", n(su.with_people), `${n(su.with_website)} עם אתר אינטרנט`)}
-        ${kpi("פוטנציאל לדליה (צי, מוסכים, סחר רכב, דלק)", n((su.dalia || {}).total), `${n((su.dalia || {}).verified)} עם פרט מאומת`, ` data-nr="oseg" data-v="dalia" style="cursor:pointer"`)}
-        ${kpi("פוטנציאל רחב (כולל קבלנים ותעשייה)", n((su.dalia_wide || {}).total), `${n((su.dalia_wide || {}).verified)} עם פרט מאומת`, ` data-nr="oseg" data-v="dalia_wide" style="cursor:pointer"`)}
+      <div class="card-b" style="display:grid;gap:10px">
+      <div class="grid g-kpi tiles">
+        ${kpi("חברות עם פוטנציאל לצי רכב", n(fl.total), `${n(fl.usable)} עם טלפון או אימייל · ${n(fl.phone_email)} עם שניהם`, ` data-nr="ofleet" data-v="any" style="cursor:pointer"`)}
+        ${kpi("ראיה מבוססת ל-5+ רכבים", n(fl.documented), `${n(fl.documented_usable)} עם פרט קשר · מאגר רשמי או מספר שהחברה מפרסמת`, ` data-nr="ofleet" data-v="documented" style="cursor:pointer"`)}
+        ${kpi("סימנים חזקים לצי (ללא ספירה)", n(fl.strong), `${n(fl.strong_usable)} עם פרט קשר · גיוס נהגים, צי באתר, מפעיל מורשה, סיווג קבלני גבוה`, ` data-nr="ofleet" data-v="strong" style="cursor:pointer"`)}
+        ${kpi("פוטנציאל – אינדיקציה בלבד", n(fl.possible), `${n(fl.possible_usable)} עם פרט קשר · ענף, גודל`)}
+        ${kpi("עם איש קשר רלוונטי", n(fl.contact_any), `${n(fl.contact_fleet)} קצין רכב / מנהל צי · ${n(fl.contact_ops)} תפעול / לוגיסטיקה · ${n(fl.contact_owner)} בעלים / הנהלה`)}
       </div>
-      <div class="tbl-wrap"><table><thead><tr><th>פלח</th><th>עם פרט קשר</th><th>עם טלפון</th><th>טלפון + אימייל</th><th>עם פרט מאומת</th><th>עם בעלי תפקידים</th></tr></thead><tbody>
+      <div class="grid g-kpi tiles">
+        ${kpi("עסקים פעילים עם פרט קשר", n(su.with_contact), `${n(su.with_phone)} עם טלפון · ${n(su.with_email)} עם אימייל · ${n(su.with_phone_and_email)} עם שניהם`)}
+        ${kpi("טלפון ממאגר רשמי", n(su.phone_official), `${n(su.phone_own_site)} עם טלפון שפורסם באתר החברה`)}
+        ${kpi("פרט שנמצא בשני סוגי מקורות", n(su.verified_any), `${n(su.verified_phone)} טלפון · ${n(su.verified_email)} אימייל · לא בדיקה שהמספר פעיל`)}
+      </div>
+      <div class="tbl-wrap"><table><thead><tr><th>פלח</th><th>עם פרט קשר</th><th>עם טלפון</th><th>טלפון + אימייל</th><th>פרט בשני סוגי מקורות</th><th>עם בעלי תפקידים</th></tr></thead><tbody>
         ${SEGS.filter(([k]) => (su.segments || {})[k]).map(([k, l]) => { const x = su.segments[k]; return `<tr data-nr="oseg" data-v="${k}" style="cursor:pointer"><td class="co-name">${esc(l)}</td><td>${n(x.total)}</td><td>${n(x.phone)}</td><td>${n(x.phone_email)}</td><td>${n(x.verified)}</td><td>${n(x.people)}</td></tr>`; }).join("")}
       </tbody></table></div>
-      <div class="xs muted">הפלחים נקבעים רק מנתונים שנשמרו בכרטיס: ענף רשמי, תחום פעילות, משרות שפורסמו ואזכורים באתר החברה. ענף הוא אינדיקציה בלבד, ולא הוכחה לצי רכב.</div></div></div>`;
-    const sel = (k, opts) => `<select data-no-f="${k}">${opts.map(([v, l]) => `<option value="${v}" ${String(f[k] || (k === "segment" ? "all" : "any")) === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+      <div class="xs muted">פוטנציאל הצי נקבע רק מראיות שנשמרו בכרטיס, וכל ראיה מסומנת "עובדה" או "אינדיקציה" עם המקור שלה. "ראיה ל-5+ רכבים" = מספר רכבים ממאגר רשמי, או מספר שהחברה עצמה מפרסמת באתרה.
+        מוסכים וסוחרי רכב אינם נספרים כבעלי צי.</div></div></div>`;
+    const sel = (k, opts, dflt) => `<select data-no-f="${k}">${opts.map(([v, l]) => `<option value="${v}" ${String(f[k] ?? dflt) === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
     const filters = `<div class="card card-b" style="display:grid;gap:8px">
       <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
-        <label class="xs">פלח ${sel("segment", SEGS)}</label>
-        <label class="xs">פרטי קשר ${sel("level", LEVELS)}</label>
-        <label class="xs">אזור <input data-no-f="district" value="${esc(f.district || "")}" placeholder="למשל מרכז" style="width:110px"></label>
-        <label class="xs">עיר <input data-no-f="city" value="${esc(f.city || "")}" style="width:110px"></label>
-        <label class="xs">שם <input data-no-f="q" value="${esc(f.q || "")}" style="width:140px"></label>
+        <label class="xs">צי רכב ${sel("fleet", FLEETS, "")}</label>
+        <label class="xs">רכבים ידועים לפחות <input data-no-f="fleet_min" value="${esc(f.fleet_min || "")}" inputmode="numeric" style="width:60px" placeholder="5"></label>
+        <label class="xs">איש קשר ${sel("contact_role", ROLES_F, "")}</label>
+        <label class="xs">פרטי קשר ${sel("level", LEVELS, "any")}</label>
+        <label class="xs">פלח ${sel("segment", SEGS, "all")}</label>
+      </div>
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center">
+        <label class="xs">אזור <input data-no-f="district" value="${esc(f.district || "")}" placeholder="למשל מרכז" style="width:100px"></label>
+        <label class="xs">עיר <input data-no-f="city" value="${esc(f.city || "")}" style="width:100px"></label>
+        <label class="xs">שם <input data-no-f="q" value="${esc(f.q || "")}" style="width:130px"></label>
         <label class="xs"><input type="checkbox" data-no-f="has_people" ${f.has_people ? "checked" : ""}> עם בעלי תפקידים</label>
         <label class="xs"><input type="checkbox" data-no-f="has_website" ${f.has_website ? "checked" : ""}> עם אתר</label>
+        <label class="xs" title="למשל מפעילי אוטובוסים מהמאגר הרשמי שעדיין אין להם טלפון במאגר"><input type="checkbox" data-no-f="include_no_contact" ${f.include_no_contact ? "checked" : ""}> כולל חברות ללא פרטי קשר (להשלמה ידנית)</label>
+        <label class="xs">מיון ${sel("sort", SORTS, "fleet")}</label>
         <button class="btn btn-sm btn-primary" data-nr="oapply">הצג רשימה</button>
         <button class="btn btn-sm" data-nr="oexport">⬇️ ייצוא הרשימה ל-CSV / אקסל</button>
       </div>
-      <div class="xs muted">✓ מאומת = הפרט נמצא ב-2 מקורות בלתי תלויים או יותר. "מקור יחיד" = נמצא במקור אחד (שם המקור מופיע במעבר עכבר). ממצאים שטרם אומתו לא מוצגים כפרטי קשר, רק כמספר.
-        מהמסך הזה לא נשלחות הודעות. לפני דיוור באימייל או SMS יש לוודא עמידה בחוק הספאם (סעיף 30א לחוק התקשורת).</div></div>`;
+      <div class="xs muted">ליד כל טלפון ואימייל מופיע איפה הוא נמצא: <b>רשמי</b> (מאגר ממשלתי), <b>אתר החברה</b> (פורסם באתר שלה), <b>מקור אחר</b>. "2 סוגי מקורות" = אותו פרט נמצא גם במאגר רשמי וגם באתר / מקור אחר.
+        זה לא אישור שהמספר פעיל – את זה יודעים רק אחרי שיחה. ממצאים שטרם אומתו מוצגים כמספר בלבד.
+        מהמסך לא נשלחות הודעות. לפני דיוור באימייל, SMS או וואטסאפ יש לוודא עמידה בחוק הספאם (סעיף 30א לחוק התקשורת).</div></div>`;
     const rows = o.rows || [];
     const table = o.loading ? `<div class="card card-b muted">⏳ טוען רשימה…</div>` : o.error ? `<div class="card card-b"><span class="badge b-bad" style="white-space:normal">${esc(o.error)}</span></div>` :
-      `<div class="card"><div class="card-h"><h2>${esc(SEG_NAME[f.segment || "all"] || "רשימת עבודה")} – עמוד ${o.page + 1}<span class="h-bar"></span></h2><span class="spacer"></span>
+      `<div class="card"><div class="card-h"><h2>רשימת עבודה – עמוד ${o.page + 1}<span class="h-bar"></span></h2><span class="spacer"></span>
         <button class="btn btn-sm" data-nr="opage" data-v="-1" ${o.page ? "" : "disabled"}>→ הקודם</button>
         <button class="btn btn-sm" data-nr="opage" data-v="1" ${rows.length === 50 ? "" : "disabled"}>הבא ←</button></div>
-      <div class="tbl-wrap"><table><thead><tr><th>חברה</th><th>תחום פעילות</th><th>עיר</th><th>טלפונים</th><th>אימיילים</th><th>אתר</th><th>בעלי תפקידים</th><th>צי רכב / לוגיסטיקה</th><th>ממתינים לבדיקה</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table><thead><tr><th>חברה</th><th>פוטנציאל צי רכב וראיות</th><th>אנשי קשר רלוונטיים</th><th>טלפונים</th><th>אימיילים</th><th>תחום ועיר</th><th>אתר</th><th>טרם אומתו</th></tr></thead><tbody>
       ${rows.map((r) => `<tr>
         <td><div class="co-name" data-nr="biz" data-v="${r.id}" style="cursor:pointer">${esc(r.name)}</div><div class="xs muted">${r.reg_id ? "ח.פ. " + esc(r.reg_id) : esc(r.corp_type || "")}</div>
           <a class="xs" href="${esc(cardUrl(r.id))}" target="_blank" rel="noopener" data-nr-stop="1">🔗 קישור לכרטיס</a></td>
-        <td class="xs" style="max-width:220px;white-space:normal">${esc(r.activity || "—")}<div>${(r.segments || []).map((k) => `<span class="badge b-blue">${esc((SEG_NAME[k] || k).split(" – ")[0])}</span>`).join(" ")}</div></td>
-        <td class="xs">${esc(r.city || "—")}${r.district ? `<div class="muted">${esc(r.district)}</div>` : ""}</td>
+        <td style="max-width:340px;white-space:normal">${fleetCell(r)}</td>
+        <td class="xs" style="max-width:260px;white-space:normal">${peopleCell(r)}</td>
         <td>${contactChips(r, "phone")}</td><td>${contactChips(r, "email")}</td>
+        <td class="xs" style="max-width:200px;white-space:normal">${esc(r.activity || "—")}<div class="muted">${esc(r.city || "")}${r.district ? " · " + esc(r.district) : ""}</div></td>
         <td class="xs">${r.website ? `<a href="${esc(r.website)}" target="_blank" rel="noopener" data-nr-stop="1">${esc(String(r.website).replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))}</a>` : "—"}</td>
-        <td class="xs" style="max-width:220px;white-space:normal">${(r.people || []).slice(0, 3).map((p) => `<div title="${esc(p.source || "")}">${esc(p.name)} – ${esc(p.role || "")}</div>`).join("") || "—"}</td>
-        <td style="max-width:260px;white-space:normal">${signalChips(r)}</td>
-        <td class="xs">${r.pending_review ? `<span class="badge b-no">${n(r.pending_review)} טרם אומתו</span>` : "—"}</td></tr>`).join("") || `<tr><td colspan="9" class="muted">אין חברות שתואמות את הסינון.</td></tr>`}
+        <td class="xs">${r.pending_review ? `<span class="badge b-no">${n(r.pending_review)} ממצאים</span>` : "—"}</td></tr>`).join("") || `<tr><td colspan="8" class="muted">אין חברות שתואמות את הסינון.</td></tr>`}
       </tbody></table></div></div>`;
     return sumCard + filters + table;
   }
   async function exportOutreach() {
-    const f = ST.out.filters, cap = 50000;
+    const f = ST.out.filters, cap = 50000, fleetSort = byFleet();
     ST.modal = { type: "export", title: "ייצוא רשימת עבודה", msg: "⏳ מכין קובץ…" }; rerender();
     try {
-      const pick = (r, kind, level) => contactsOf(r, kind, level).map((c) => c.v + (c.sub === "mobile" ? " (נייד)" : c.sub === "branch" ? " (סניף)" : "")).join("; ");
-      const cols = [["שם חברה", (r) => r.name], ["ח.פ.", (r) => r.reg_id], ["תחום פעילות", (r) => r.activity], ["פלחים", (r) => (r.segments || []).map((k) => SEG_NAME[k] || k).join("; ")],
-        ["עיר", (r) => r.city], ["אזור", (r) => r.district], ["טלפון מאומת (2+ מקורות)", (r) => pick(r, "phone", "verified")], ["טלפון ממקור יחיד", (r) => pick(r, "phone", "single")],
-        ["אימייל מאומת (2+ מקורות)", (r) => pick(r, "email", "verified")], ["אימייל ממקור יחיד", (r) => pick(r, "email", "single")], ["אתר", (r) => r.website],
-        ["בעלי תפקידים", (r) => (r.people || []).map((p) => `${p.name} – ${p.role}`).join("; ")],
-        ["צי רכב / לוגיסטיקה – עובדות", (r) => (r.signals || []).filter((x) => x.kind === "fact").map((x) => x.t).join("; ")],
-        ["צי רכב / לוגיסטיקה – אינדיקציות", (r) => (r.signals || []).filter((x) => x.kind !== "fact").map((x) => x.t).join("; ")],
+      const pick = (r, kind, test) => contactsOf(r, kind).filter((c) => test(c.rel || {})).map((c) => c.v + (c.sub === "mobile" ? " (נייד)" : c.sub === "branch" ? " (סניף)" : "")).join("; ");
+      const rel = (r) => (r.people || []).filter((p) => p.cat);
+      const cols = [["שם חברה", (r) => r.name], ["ח.פ.", (r) => r.reg_id],
+        ["פוטנציאל צי רכב", (r) => (FLEET_LV[r.fleet_level] || ["אין סימן"])[0]], ["רכבים ידועים (לפחות)", (r) => r.fleet_min || ""],
+        ["ראיות לצי – עובדות", (r) => (r.fleet_evidence || []).filter((x) => x.kind === "fact").map((x) => `${x.t} [${x.src || ""}]${x.url ? " " + x.url : ""}`).join(" | ")],
+        ["ראיות לצי – אינדיקציות", (r) => (r.fleet_evidence || []).filter((x) => x.kind !== "fact").map((x) => `${x.t} [${x.src || ""}]${x.url ? " " + x.url : ""}`).join(" | ")],
+        ["איש קשר רלוונטי", (r) => rel(r).map((p) => `${p.name} – ${p.role}${p.phone ? " · " + p.phone : ""}${p.email ? " · " + p.email : ""}`).join("; ")],
+        ["סוג איש הקשר", (r) => [...new Set(rel(r).map((p) => ROLE_CAT[p.cat]))].join("; ")],
+        ["טלפון ממאגר רשמי", (r) => pick(r, "phone", (x) => x.official)], ["טלפון מאתר החברה", (r) => pick(r, "phone", (x) => x.own_site && !x.official)],
+        ["טלפון ממקור אחר בלבד", (r) => pick(r, "phone", (x) => !x.official && !x.own_site)],
+        ["אימייל ממאגר רשמי", (r) => pick(r, "email", (x) => x.official)], ["אימייל מאתר החברה", (r) => pick(r, "email", (x) => x.own_site && !x.official)],
+        ["אימייל ממקור אחר בלבד", (r) => pick(r, "email", (x) => !x.official && !x.own_site)],
+        ["אתר", (r) => r.website], ["תחום פעילות", (r) => r.activity], ["עיר", (r) => r.city], ["אזור", (r) => r.district],
+        ["בעלי תפקידים נוספים", (r) => (r.people || []).filter((p) => !p.cat).map((p) => `${p.name} – ${p.role}`).join("; ")],
         ["ממצאים שטרם אומתו", (r) => r.pending_review || ""], ["קישור לכרטיס", (r) => cardUrl(r.id)]];
       const q = (v) => { const t = v == null ? "" : String(v); return /[",\n;]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
       const lines = [cols.map((c) => c[0]).join(",")];
@@ -801,15 +845,15 @@
         for (const r of rows) lines.push(cols.map(([, fn]) => q(fn(r))).join(","));
         got += rows.length; ST.modal.msg = `⏳ הוכנו ${n(got)} שורות…`; rerender();
         if (rows.length < 1000 || got >= cap) break;
-        after = rows[rows.length - 1].id;
+        after = fleetSort ? got : rows[rows.length - 1].id;
       }
       const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = `dalia-work-list-${f.segment || "all"}-${new Date().toISOString().slice(0, 10)}-${got}.csv`;
+      a.download = `dalia-work-list-${f.fleet ? "fleet-" + f.fleet : f.segment || "all"}-${new Date().toISOString().slice(0, 10)}-${got}.csv`;
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      ST.modal.msg = `✅ יוצאו ${n(got)} חברות. טלפונים ואימיילים מופרדים לפי רמת אימות.${got >= cap ? " (הגבלה של 50,000 שורות)" : ""}`;
+      ST.modal.msg = `✅ יוצאו ${n(got)} חברות. טלפונים ואימיילים מופרדים לפי מקום הימצאם (רשמי / אתר החברה / אחר), וראיות הצי לפי עובדה / אינדיקציה.${got >= cap ? " (הגבלה של 50,000 שורות)" : ""}`;
     } catch (e) { ST.modal.msg = "⛔ " + e.message; }
     rerender();
   }
@@ -973,8 +1017,9 @@
     else if (act === "source") openSource(v);
     else if (act === "biz") openBiz(v);
     else if (act === "oapply") { ST.out.filters = readOutFilters(); ST.out.afters = [0]; ST.out.page = 0; loadOutreach(); }
+    else if (act === "ofleet") { ST.out.filters = Object.assign({}, ST.out.filters, { fleet: v, sort: "fleet" }); ST.out.afters = [0]; ST.out.page = 0; loadOutreach(); }
     else if (act === "oseg") { ST.out.filters = Object.assign({}, ST.out.filters, { segment: v }); ST.out.afters = [0]; ST.out.page = 0; loadOutreach(); }
-    else if (act === "opage") { const d = Number(v); if (d > 0 && ST.out.rows && ST.out.rows.length === 50) { ST.out.afters[ST.out.page + 1] = ST.out.rows[ST.out.rows.length - 1].id; ST.out.page++; } else if (d < 0 && ST.out.page > 0) ST.out.page--; loadOutreach(); window.scrollTo(0, 0); }
+    else if (act === "opage") { const d = Number(v); if (d > 0 && ST.out.rows && ST.out.rows.length === 50) { ST.out.afters[ST.out.page + 1] = byFleet() ? (ST.out.page + 1) * 50 : ST.out.rows[ST.out.rows.length - 1].id; ST.out.page++; } else if (d < 0 && ST.out.page > 0) ST.out.page--; loadOutreach(); window.scrollTo(0, 0); }
     else if (act === "oexport") exportOutreach();
     else if (act === "osum") loadOutreachSummary();
     else if (act === "close") { ST.modal = null; rerender(); }

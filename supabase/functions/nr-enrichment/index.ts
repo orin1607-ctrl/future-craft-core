@@ -350,22 +350,29 @@ const PAGE_KIND: [string, RegExp][] = [
 ];
 // outbound links that are platforms / services, not business relations
 const NOT_COMPANY = /(^|\.)(facebook|instagram|linkedin|tiktok|youtube|youtu|twitter|x|google|goo|gstatic|googleapis|apple|microsoft|bing|wix|wixsite|wordpress|w|gravatar|cloudflare|jsdelivr|jquery|bootstrapcdn|fontawesome|waze|whatsapp|wa|t|telegram|schema|w3|bit|tinyurl|gov|b144|d|easy|zap|ynet|walla|mako|duns100|dunsguide|bdicoface|cookiedatabase|browsehappy|tase|ontopo|ziperdrop|linkshake|nagich|accessibility-helper|website-files|nipendo|merquly|tepez|wixstatic|paypal|tranzila|cardcom|icount|isracard|adobe|elementor|webflow|shopify|godaddy|mailchimp|hubspot|tripadvisor|booking|amazon|amazonaws|cdninstagram|fbcdn|vimeo|spotify|pinterest|calendly|zoom|weebly|squarespace|github|accessibe|nagish|enable|userway|hotjar|clarity|doubleclick|googletagmanager)\.[a-z.]+$/i;
-const ROLE = `(מנכ["״']?ל(?:ית)?|מנהל(?:ת)? כללי(?:ת)?|סמנכ["״']?ל(?:ית)? (?:תפעול|לוגיסטיקה|רכש)|מנהל(?:ת)? (?:תפעול|לוגיסטיקה|רכש|צי(?: ה)?רכב|תחבורה|הפצה|מחסן|אחזקה)|קצין(?:ת)? (?:בטיחות(?: בתעבורה)?|רכב)|בעלים|מייסד(?:ת)?(?: ומנכ["״']?ל)?|יו["״']?ר)`;
+const ROLE = `(מנכ["״']?ל(?:ית)?|מנהל(?:ת)? כללי(?:ת)?|סמנכ["״']?ל(?:ית)? (?:תפעול|לוגיסטיקה|רכש|כספים)|מנהל(?:ת)? (?:תפעול(?: ולוגיסטיקה)?|לוגיסטיקה|רכש|צי(?: ה)?רכב(?:ים)?|תחבורה|הפצה|מחסן|אחזקה|הובלה|שינוע|משק|אדמיניסטרציה)|קצין(?:ת)? (?:בטיחות(?: בתעבורה)?|רכב)|(?:רכז|אחראי)(?:ת)? (?:רכב|צי(?: ה)?רכב|תחבורה|הפצה|לוגיסטיקה)|סדרן(?:ית)?(?: ראשי(?:ת)?)?|בעלים|שותף מנהל|מייסד(?:ת)?(?: ומנכ["״']?ל)?|יו["״']?ר)`;
 const NAME = `([א-ת][א-ת'"״׳-]{1,14}(?: [א-ת][א-ת'"״׳-]{1,14}){1,2})`;
 const PLACE_WORD = /^(רכבת|ירושלים|תל|אביב|חיפה|באר|שבע|צפון|דרום|מרכז|פרויקט|פרויקטים|בניין|בניית|רחוב|כביש|עיריית|משרד|בית|גן|קניון|מגדל|שכונת|אזור|תעשייה|לקוח|לקוחות)$/;
-const NOT_NAME = /^(החברה|חברת|של|את|עם|על|הוא|היא|אנחנו|שלנו|ו?ה?מנהל|מנהלת|ניסיון|שנים|בעל|הינו|הינה|כיום|מאז|בתחום|תפקיד|צוות|לקוחות|שירות|המשרד|הנהלת|מחלקת|כל|גם|רב|אשר|לפני|אחרי|יותר|פרטים|לפרטים|טלפון|נייד|דוא"ל|מייל)$/;
-function people(text: string): { name: string; role: string }[] {
-  const out: { name: string; role: string }[] = [];
+const NOT_NAME = /^(החברה|חברת|של|את|עם|על|הוא|היא|אנחנו|שלנו|ו?ה?מנהל|מנהלת|ניסיון|שנים|בעל|הינו|הינה|כיום|מאז|בתחום|תפקיד|צוות|לקוחות|שירות|המשרד|הנהלת|מחלקת|כל|גם|רב|אשר|לפני|אחרי|יותר|פרטים|לפרטים|טלפון|נייד|דוא"ל|מייל|מועמד|מועמדת|מתאים|מתאימה|דרוש|דרושה|דרושים|משרה|מחפשים|מגייסים|ניסיון)$/;
+function people(text: string): { name: string; role: string; phone?: string; email?: string }[] {
+  const out: { name: string; role: string; phone?: string; email?: string }[] = [];
+  let line = "";
   const add = (raw: string, role: string) => {
-    const name = raw.replace(/^(מר|גב['׳]?|ד["״]ר|עו["״]ד|רו["״]ח|פרופ['׳]?|אינג['׳]?)\s+/, "");
+    const name = raw.replace(/^(מר|גב['׳]?|ד["״]ר|עו["״]ד|רו["״]ח|פרופ['׳]?|אינג['׳]?)\s+/, "").replace(/\s+(טל['׳]?|נ['׳]|נייד|טלפון|מייל)$/, "");
     const words = name.split(" ");
     if (words.length < 2 || words.some((w) => NOT_NAME.test(w.replace(/^[וה]/, "")) || PLACE_WORD.test(w))) return;
-    if (!out.some((p) => p.name === name)) out.push({ name, role: role.replace(/["״']/g, '"') });
+    // a phone / e-mail written on the same line belongs to this person (direct line); otherwise none is attached
+    const ph = (line.match(PHONE_TXT) || []).map(normPhone).find(Boolean);
+    const em = (line.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i) || [])[0];
+    if (!out.some((p) => p.name === name)) out.push({ name, role: role.replace(/["״']/g, '"'), phone: ph ? fmtPhone(ph) : undefined, email: em ? em.toLowerCase() : undefined });
   };
   // only "role: name" / "name – role" / "name, role" on ONE line with an explicit separator
-  const roleFirst = new RegExp(`${ROLE}\\s*[:\\-–|]\\s*${NAME}\\s*$`);
+  // the name may be followed on the same line by that person's phone / e-mail
+  const TAIL = `(?:\\s*[,|–\\-]?\\s*(?:טל['׳]?|טלפון|נייד|נ['׳]|tel|mobile|דוא["״]ל|מייל|email)?\\s*[:.]?\\s*(?:\\+?[\\d][\\d\\s\\-]{7,15}\\d|[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}))*`;
+  const roleFirst = new RegExp(`${ROLE}\\s*[:\\-–|]\\s*${NAME}${TAIL}\\s*$`, "i");
   const nameFirst = new RegExp(`^\\s*${NAME}\\s*[,\\-–|]\\s*${ROLE}(?![א-ת])`);
-  for (const line of text.split("\n")) {
+  for (const l of text.split("\n")) {
+    line = l;
     if (line.length > 160) continue;
     const a = line.match(roleFirst); if (a) add(a[2], a[1]);
     const b = line.match(nameFirst); if (b) add(b[1], b[2]);
@@ -376,7 +383,7 @@ const PHONE_TXT = /(?<!\d)(?:\+972[-\s]?|0)(?:[23489]|5\d|7\d)[-\s]?\d{3}[-\s]?\
 const snippet = (text: string, rx: RegExp, n = 160) => { const m = text.match(rx); if (!m || m.index === undefined) return ""; const s = Math.max(0, m.index - 50); return clean(text.slice(s, s + n)); };
 const EXPANSION = /(פתחנו|נפתח(?:ה)?|פתיחת|פותחים|תיפתח|נחנך|חנכנו)\s+(?:את\s+)?(?:ה?סניף|ה?מרכז|ה?מחסן|ה?מפעל|ה?אולם|ה?חנות)|סניף חדש|(?:מרכז (?:לוגיסטי|הפצה)|מחסן|מפעל) חדש|הרחבנו את (?:הפעילות|המפעל|המחסן|הצי)/;
 const BRANCH = /(פתחנו|נפתח(?:ה)?|פתיחת|פותחים|תיפתח)\s+(?:את\s+)?ה?סניף|סניף חדש/;
-const FLEET_N = /(?:צי של|מפעילה|ברשותנו|עם|כ-?|מעל)\s*(\d{2,4})\s*(משאיות|רכבי (?:שירות|חלוקה|הפצה|הובלה)|כלי רכב|רכבים|אוטובוסים|מוניות|טנדרים|מיניבוסים|גרר(?:ים)?)/;
+const FLEET_N = /(?:צי של|מפעילה|ברשותנו|עם|כ-?|מעל)\s*(\d{1,4})\s*(משאיות|רכבי (?:שירות|חלוקה|הפצה|הובלה|חברה|עבודה)|רכבים מסחריים|כלי רכב|רכבים|אוטובוסים|מוניות|טנדרים|מיניבוסים|מלגזות|גרר(?:ים)?)/;
 const FLEET = /צי (?:ה)?(?:רכב(?:ים)?|משאיות|אוטובוסים|הובלה)|צי רכבים|משאיות מנוף|ציי? הפצה/;
 const EMPLOYEES = /(?:מעל|יותר מ-?|כ-?|מונה|מעסיקה?|ובה)\s*(\d{2,5})\s+(?:עובדים|עובדות ועובדים|אנשי צוות)/;
 // a role word must start a word (optional ה/ל/ו/ב prefix): "מרכז" is not "רכז", "שליחה" is not "שליח"
@@ -419,7 +426,7 @@ async function crawlSite(b: { id: number; name: string; name_en?: string | null;
   const addPhone = (raw: string) => { const p = normPhone(raw); if (p && !phones.some((x) => x.v === p)) phones.push({ v: p, d: fmtPhone(p), sub: p.startsWith("05") ? "mobile" : "main" }); };
   const mails = new Set<string>();
   const socials: Record<string, string> = {};
-  const ppl: { name: string; role: string }[] = [];
+  const ppl: { name: string; role: string; phone?: string; email?: string }[] = [];
   const jobs: Obj[] = [];
   const findings: Obj[] = [];
   let org: Obj | null = null;
@@ -448,7 +455,8 @@ async function crawlSite(b: { id: number; name: string; name_en?: string | null;
           city: clean(loc), posted: clean(o.datePosted).slice(0, 10), status: o.validThrough && Date.parse(String(o.validThrough)) < Date.now() ? "closed" : "open", occupation: clean(o.occupationalCategory) });
       }
     }
-    if (pg.kind === "about" || pg.kind === "home") for (const p of people(pg.text)) if (!ppl.some((x) => x.name === p.name)) ppl.push(p);
+    // contact pages often list the fleet / logistics / operations manager with a direct line
+    if (pg.kind === "about" || pg.kind === "home" || pg.kind === "contact") for (const p of people(pg.text)) if (!ppl.some((x) => x.name === p.name)) ppl.push(p);
   }
   const em = [...mails].filter((m) => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(m) && !/\.(png|jpe?g|gif|webp|svg)$/.test(m) && (m.endsWith("@" + host) || m.endsWith("." + host) || FREE_MAIL.test(m)) && !/sentry|wixpress|example\.|domain\./.test(m)).slice(0, 6).map((v) => ({ v }));
   const allText = pages.filter((p) => p.kind !== "careers").map((p) => p.text).join("\n");
@@ -473,7 +481,8 @@ async function crawlSite(b: { id: number; name: string; name_en?: string | null;
   const exp = snippet(allText, EXPANSION);
   if (exp) findings.push({ business_id: b.id, category: BRANCH.test(exp) ? "branch_opened" : "expansion", key: "site", fact_kind: "indication", url: home.url,
     importance: "important", title: `${BRANCH.test(exp) ? "פתיחת סניף / מרכז" : "אינדיקציה להתרחבות"} – מתוך אתר החברה: "${exp}"`.slice(0, 280), detail: { quote: exp } });
-  const fn = allText.match(FLEET_N);
+  // a count is a fact only from 5 vehicles up ("עם 2 רכבים" is not a fleet)
+  const fn0 = allText.match(FLEET_N), fn = fn0 && Number(fn0[1]) >= 5 ? fn0 : null;
   const fl = fn ? snippet(allText, FLEET_N) : snippet(allText, FLEET);
   if (fl) findings.push({ business_id: b.id, category: "fleet", key: "site", fact_kind: fn ? "fact" : "indication", url: home.url, importance: "important",
     title: (fn ? `צי רכב: החברה מציינת באתרה ${fn[1]} ${fn[2]}` : "אינדיקציה לצי רכב באתר החברה") + ` – "${fl}"`, detail: { quote: fl, vehicles: fn ? Number(fn[1]) : null, type: fn ? fn[2] : null } });
@@ -1113,7 +1122,8 @@ async function identifyOne(sb: SupabaseClient, domain: string): Promise<{ status
   }
   // a new business needs a real locality (official list) or a structured English address on its own site
   if (id.city && /["{}<>=;]|specs|\.|^.{0,1}$/.test(id.city)) id.city = "";
-  if (id.city && !/^[A-Za-z]/.test(id.city)) { const ok = await rpc<string[]>(sb, "nr_cities_in_text", { p_text: id.city }); if (!ok || !ok.length) id.city = ""; }
+  // keep the official locality name, never the raw address text ("חיפה בWaze)" → "חיפה"); two localities = unclear
+  if (id.city && !/^[A-Za-z]/.test(id.city)) { const ok = await rpc<string[]>(sb, "nr_cities_in_text", { p_text: id.city }); id.city = ok && ok.length === 1 ? ok[0] : ""; }
   if (id.name && id.phones.length && (id.city || id.ids.length) && nameHit(id.name)) {
     await rpc(sb, "nr_ingest", { p_source: "enr:site_identify", p_rows: [{ name: id.name, city: id.city || undefined, address: id.address || undefined, rid: domain, url: id.url,
       websites: [id.origin], create: true, phones: id.phones.map((p) => ({ v: p, d: fmtPhone(p), sub: p.startsWith("05") ? "mobile" : "main" })),
