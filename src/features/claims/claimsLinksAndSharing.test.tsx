@@ -98,7 +98,7 @@ describe('Claims Links and Sharing UI (Task 8)', () => {
     });
 
     const preview = screen.getByTestId('claims-ai-preview');
-    expect(preview.textContent).toContain('קישור פתיחת תיק והעלאת מסמכים ללקוח');
+    expect(preview.textContent).toContain('קישור פתיחת תיק חדש ללקוח');
     expect(preview.textContent).toContain('אילנה אטיאס');
     expect(preview.textContent).toContain('050-1234567');
     expect(preview.textContent).toContain('ilana@example.com');
@@ -454,5 +454,173 @@ describe('Claims Links and Sharing UI (Task 8)', () => {
     expect(inputEl.value).toBe('שלום דליה, יש לי שאלה חשובה לגבי התיק');
 
     delete (window as any).SpeechRecognition;
+  });
+
+  it('renders interactive buttons (open, copy, WhatsApp) on Card A without document link mixing', async () => {
+    listClaimsAiConversations.mockResolvedValue({
+      data: [{
+        id: 'conv-links',
+        user_id: 'user-1',
+        claim_id: null,
+        title: 'שיחה כללית',
+        created_at: '2026-10-19T10:00:00Z',
+        updated_at: '2026-10-19T10:05:00Z',
+        archived: false,
+      }],
+      error: null,
+    });
+    listClaimsAiMessages.mockResolvedValue({
+      data: [
+        {
+          id: 'm-card-a',
+          conversation_id: 'conv-links',
+          role: 'assistant',
+          content: 'הכנתי קישור לפתיחת תיק.',
+          created_at: '2026-10-19T10:15:00Z',
+          tool_name: 'preview_send_customer_link',
+          metadata: {
+            pending_action: {
+              preview_id: 'P-INTAKE-1',
+              summary: 'פתיחת תיק חדש והכנת קישור ללקוח "אילנה אטיאס"',
+              tool_name: 'preview_send_customer_link',
+              action_type: 'send_customer_intake_link',
+              status: 'pending',
+              parameters: {
+                claim_id: 'DAL-2026-0248',
+                recipient_name: 'אילנה אטיאס',
+                recipient_phone: '050-1234567',
+                channel: 'whatsapp',
+                link_type: 'intake',
+                intake_url: 'https://orin1607-ctrl.github.io/future-craft-core/claims-intake?t=tok_intake_99',
+                wa_link: 'https://wa.me/972501234567?text=intake_text',
+              },
+            },
+          },
+        },
+      ],
+      error: null,
+    });
+
+    render(
+      <ClaimsAiWorkspace
+        open={true}
+        onClose={vi.fn()}
+        claim={null}
+        userId="user-1"
+        companyName="מוסך אורן קאר"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('claims-ai-preview-intake-card')).toBeDefined();
+    });
+
+    const card = screen.getByTestId('claims-ai-preview-intake-card');
+    expect(card.textContent).toContain('DAL-2026-0248');
+    expect(card.textContent).toContain('ממתין למילוי הלקוח');
+    expect(card.textContent).not.toContain('claims-share');
+
+    // Open button
+    const openBtn = screen.getByTestId('claims-ai-preview-open-intake-btn') as HTMLAnchorElement;
+    expect(openBtn.href).toContain('claims-intake?t=tok_intake_99');
+    expect(openBtn.target).toBe('_blank');
+
+    // WhatsApp button
+    const waBtn = screen.getByTestId('claims-ai-preview-wa-intake-btn') as HTMLAnchorElement;
+    expect(waBtn.href).toContain('wa.me/972501234567');
+
+    // Copy button
+    const copyBtn = screen.getByTestId('claims-ai-preview-copy-intake-btn');
+    expect(copyBtn.textContent).toContain('העתק קישור');
+
+    Object.defineProperty(navigator, 'clipboard', {
+      value: {
+        writeText: vi.fn().mockResolvedValue(undefined),
+      },
+      configurable: true,
+      writable: true,
+    });
+
+    await act(async () => {
+      fireEvent.click(copyBtn);
+    });
+
+    await waitFor(() => {
+      expect(copyBtn.textContent).toContain('✓ הועתק!');
+    });
+  });
+
+  it('renders Card B2 with exact file checklist and missing documents alert box that disables confirm', async () => {
+    listClaimsAiMessages.mockResolvedValue({
+      data: [
+        {
+          id: 'm-card-b2-missing',
+          conversation_id: 'conv-links',
+          role: 'assistant',
+          content: 'הכנתי קישור לשיתוף מסמכים, אך רישיון הרכב חסר.',
+          created_at: '2026-10-19T10:20:00Z',
+          tool_name: 'preview_create_claim_share_link',
+          metadata: {
+            pending_action: {
+              preview_id: 'P-SHARE-MISSING',
+              summary: 'קישור שיתוף מסמכים לתיק DAL-2026-0246',
+              tool_name: 'preview_create_claim_share_link',
+              action_type: 'create_share_link',
+              status: 'pending',
+              parameters: {
+                claim_id: 'DAL-2026-0246',
+                recipient_name: 'שמאי מורשה',
+                recipient_kind: 'surveyor',
+                file_ids: ['doc-1', 'doc-2'],
+                file_titles: [
+                  'דוח שמאות 2270 (עמוד 1 מתוך 2)',
+                  'דוח שמאות 2270 (עמוד 2 מתוך 2)',
+                ],
+                missing_documents: ['רישיון רכב'],
+                ttl_hours: 48,
+              },
+            },
+          },
+        },
+      ],
+      error: null,
+    });
+
+    render(
+      <ClaimsAiWorkspace
+        open={true}
+        onClose={vi.fn()}
+        claim={{
+          claimId: 'DAL-2026-0246',
+          claimNum: '2279692',
+          plate: '65-941-85',
+          vehicle: 'טויוטה קורולה',
+          clientName: 'אילנה אטיאס',
+          insCompany: 'הפניקס',
+          status: 'חדש',
+        }}
+        userId="user-1"
+        companyName="מוסך אורן קאר"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('claims-ai-preview-share-card')).toBeDefined();
+    });
+
+    const shareCard = screen.getByTestId('claims-ai-preview-share-card');
+    expect(shareCard.textContent).toContain('דוח שמאות 2270 (עמוד 1 מתוך 2)');
+    expect(shareCard.textContent).toContain('דוח שמאות 2270 (עמוד 2 מתוך 2)');
+    expect(shareCard.textContent).toContain('מסמכים שנבחרו לשיתוף (2)');
+
+    // Missing docs alert
+    const missingAlert = screen.getByTestId('claims-ai-missing-docs-alert');
+    expect(missingAlert.textContent).toContain('מסמכים שהתבקשו וחסרים בתיק:');
+    expect(missingAlert.textContent).toContain('רישיון רכב');
+    expect(missingAlert.textContent).toContain('העלה מסמך חסר (רישיון רכב)');
+
+    // Confirm button must be disabled due to missing documents!
+    const confirmBtn = screen.getByTestId('claims-ai-confirm-btn') as HTMLButtonElement;
+    expect(confirmBtn.disabled).toBe(true);
   });
 });

@@ -340,7 +340,7 @@ export const CLAIMS_GEMINI_TOOLS = [
       },
       {
         name: "preview_send_customer_link",
-        description: "הכנת תצוגה מקדימה וכרטיס אישור לשליחת קישור פתיחת תיק / העלאת מסמכים מאובטח ללקוח (claims-upload). משתמש במנגנון הקיים create_link. לאחר אישור המשתמש, המערכת מייצרת את הקישור ומאפשרת שליחה באימייל (Gmail), פתיחה מהירה להודעת WhatsApp (wa.me) והעתקה בלחיצה אחת, ומתעדת ב-claims_history.",
+        description: "הכנת תצוגה מקדימה וכרטיס אישור נפרד לשליחת קישור פתיחת תיק חדש ללקוח (טופס דיווח מקוון) או קישור העלאת מסמכים ללקוח. בכרטיס פתיחת תיק מוקצה מספר תיק קבוע (DAL-YYYY-XXXX) בסטטוס 'ממתין למילוי הלקוח', ומוצג קישור לפתיחת הטופס בלבד (ללא קישור מסמכים) עם כפתור 'פתח ובדוק קישור', 'העתק קישור' ו-WhatsApp. בכרטיס העלאת מסמכים מוצג קישור העלאת מסמכים בלבד.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -356,6 +356,10 @@ export const CLAIMS_GEMINI_TOOLS = [
               type: "STRING",
               description: "כתובת אימייל של הלקוח לשליחה במייל (אם לא צוין, נשלף מהתיק)",
             },
+            link_type: {
+              type: "STRING",
+              description: "סוג הקישור המבוקש: 'intake' (קישור לפתיחת תיק חדש ומילוי טופס תביעה - ברירת מחדל), או 'upload' (קישור להעלאת מסמכים בלבד). לעולם אין לשלב את שני הקישורים באותו כרטיס!",
+            },
             channel: {
               type: "STRING",
               description: "ערוץ שליחה מבוקש: 'whatsapp', 'email', 'both' (אימייל ו-WhatsApp), או 'copy' (העתקה בלבד). ברירת מחדל: לפי פרטי הקשר שסופקו",
@@ -369,7 +373,7 @@ export const CLAIMS_GEMINI_TOOLS = [
       },
       {
         name: "preview_create_claim_share_link",
-        description: "הכנת תצוגה מקדימה ליצירת קישור שיתוף מאובטח לתמונות ומסמכים בתיק (דוח שמאי, תמונות נזק, פוליסה, רישיון). תומך בבחירת מסמכים לפי מזהים (file_ids), מספרים ברשימה, או איתור אוטומטי של דוח שמאי (surveyor_report). תומך בשליחה באימייל, WhatsApp והעתקה. דורש אישור מפורש של המשתמש לפני יצירה.",
+        description: "הכנת תצוגה מקדימה וכרטיס נפרד לשיתוף מסמכים ותמונות קיימים בתיק (דוח שמאי, רישיון רכב, תמונות נזק). מאתר בדיוק את המסמכים שביקש המשתמש (כולל כל עמודי דוח השמאות), מציג את רשימת הקבצים המדויקת וכמותם, ואם מסמך מסוים חסר בתיק (למשל רישיון רכב) — עוצר, מתריע על המסמך החסר ומאפשר להעלות אותו ישירות. אינו מצרף מסמכים שלא התבקשו ואינו משלב קישור לפתיחת תיק.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -393,22 +397,27 @@ export const CLAIMS_GEMINI_TOOLS = [
               type: "STRING",
               description: "ערוץ מסירה: 'whatsapp', 'email', 'both', או 'copy' (ברירת מחדל 'copy')",
             },
-            file_ids: {
-              type: "ARRAY",
-              items: { type: "STRING" },
-              description: "מזהי הקבצים לשיתוף (אופציונלי - אם המשתמש ביקש דוח שמאי או תמונות, המערכת מאתרת אותם אוטומטית)",
+            ttl_hours: {
+              type: "NUMBER",
+              description: "תוקף הקישור בשעות (ברירת מחדל 72 שעות)",
             },
             document_query: {
               type: "STRING",
-              description: "שאילתה לאיתור מסמכים לשיתוף אם אין file_ids ישירים (למשל: 'דוח שמאי', 'תמונות נזק', 'שמאות 2270')",
+              description: "טקסט או מילות חיפוש של המסמכים המבוקשים לשיתוף (למשל: 'דוח שמאות, רישיון רכב ו-3 תמונות נזק')",
             },
-            ttl_hours: {
-              type: "NUMBER",
-              description: "תוקף הקישור בשעות (ברירת מחדל 72)",
+            requested_items: {
+              type: "ARRAY",
+              description: "רשימת המסמכים המדויקת המבוקשת לשיתוף (למשל: ['דוח שמאות', 'רישיון רכב', '3 תמונות נזק'])",
+              items: { type: "STRING" },
+            },
+            file_ids: {
+              type: "ARRAY",
+              description: "מזהי מסמכים ספציפיים לשיתוף מתוך התיק (אופציונלי)",
+              items: { type: "STRING" },
             },
             custom_message: {
               type: "STRING",
-              description: "נוסח הודעה מותאם אישית לנמען (אופציונלי)",
+              description: "הודעה מותאמת אישית לנמען (אופציונלי)",
             },
           },
           required: ["recipient_name"],
@@ -1318,12 +1327,27 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
    חתימה: הודעות חדשות (מייל, WhatsApp) נחתמות בשם "דליה ניהול תביעות" בלבד. אל תכתוב "מוסך אורן" ואל תמציא שם אחר.
    גם בלי לפתוח את התיק אפשר לעבוד על תיק מסוים עם claim_ref: מסמכים (list_claim_documents, show_claim_document), מיילים (search_claim_emails, read_email_content, draft_email_reply, preview_send_claim_email), משימות, הערות, תזכורות ו-WhatsApp ידני (preview_schedule_claim_whatsapp — לעולם לא "נשלח", רק "ממתין לשליחה ידנית"). קריאה מיידית; כתיבה ושליחה בכרטיס אישור אחד.
 
-5ב. קישורים ללקוח ולמסמכים מתוך ה-AI הכללי (למשל: "שלחי ללקוח אילנה אטיאס קישור לפתיחת התיק שלה", "שלחי ללקוח קישור לפתיחת תיק חדש", "שלחי לאותו לקוח קישור להעלאת מסמכים"):
-   - קישור פתיחת תיק חדש / העלאת מסמכים ללקוח:
-     כאשר המשתמש מבקש לשלוח קישור לפתיחת תיק חדש (גם ללא מספר תיק קיים!), הפעל מיד את הכלי preview_send_customer_link עם recipient_name, recipient_phone, recipient_email וערוץ שליחה (whatsapp / email / both / copy). המערכת תקצה מיד מספר תיק קבוע (למשל DAL-2026-XXXX) ממונה התביעות הקיים בסטטוס "ממתין למילוי הלקוח", ותכין קישור מאובטח לפתיחת התיק ולהעלאת מסמכים.
-     כאשר המשתמש מבקש בהמשך "שלחי לאותו לקוח קישור להעלאת מסמכים", המערכת מזהה את התיק הממתין ומקשרת אליו. לעולם אל תסרב ואל תאמר שאינך יכולה בגלל שאין מספר תיק!
-   - קישור לשיתוף מסמכים נבחרים (דוח שמאי, תמונות נזק, פוליסה, רישיון):
-     הפעל את הכלי preview_create_claim_share_link עם claim_ref, recipient_name, recipient_kind (לקוח/שמאי/ביטוח), document_query (כגון 'דוח שמאי') או file_ids, וערוץ מסירה (whatsapp / email / both / copy). המערכת מאתרת את המסמכים הנכונים, מציגה כרטיס אישור, ובאישור מייצרת קישור מאובטח (claims-share), שולחת במייל/WhatsApp ומתעדת ב-claims_history.
+5ב. קישורים ללקוח ולמסמכים מתוך ה-AI (כרטיס א' לפתיחת תיק, כרטיס ב' למסמכים — לעולם לא באותו כרטיס!):
+   - כרטיס א' – קישור פתיחת תיק חדש ללקוח (טופס דיווח מקוון):
+     כאשר המשתמש מבקש: "פתחי תיק חדש ללקוח והכיני לי קישור לשליחה", "שלחי ללקוח קישור לפתיחת התיק שלו", "הכיני קישור לפתיחת תיק חדש":
+     1. הפעל מיד את preview_send_customer_link עם link_type: "intake" (ו-recipient_name, phone, email אם ידועים).
+     2. המערכת מקצה מיד מספר תיק קבוע (DAL-2026-XXXX) ממונה התביעות הקיים בסטטוס "ממתין למילוי הלקוח", ומכינה קישור מאובטח לפתיחת התיק בלבד (claims-intake).
+     3. בכרטיס זה מופיע אך ורק הקישור לפתיחת התיק — חל איסור מוחלט לשלב בכרטיס זה קישור למסמכים!
+     4. הכרטיס מציג: מספר תיק קבוע, שם לקוח, קישור לפתיחת התיק, כפתור "פתח ובדוק קישור" (לצפייה בטוחה ללא יצירת תיק נוסף וללא הגשה), כפתור "העתק קישור", וכפתור "שלח בוואטסאפ" עם נוסח ייעודי לפתיחת תיק בלבד.
+   - כרטיס ב' – קישור מסמכים (בנפרד לחלוטין):
+     1. קישור להעלאת מסמכים ע"י הלקוח (Customer Upload Link):
+        כאשר המשתמש מבקש במפורש קישור שהלקוח יעלה דרכו מסמכים ("שלחי לאותו לקוח קישור להעלאת מסמכים", "קישור שהלקוח יעלה מסמכים"):
+        הפעל preview_send_customer_link עם link_type: "upload". הכרטיס מציג קישור העלאת מסמכים בלבד (claims-upload), ללא קישור פתיחת תיק!
+     2. קישור לשיתוף מסמכים קיימים לצפייה והורדה (Exact Documents Share Link):
+        כאשר המשתמש מבקש לשלוח מסמכים קיימים מהתיק (למשל: "דליה, הכיני קישור למסמכים של אותו תיק", "אני רוצה לשלוח את דוח השמאות, רישיון הרכב ושלוש תמונות הנזק שבחרתי"):
+        הפעל את preview_create_claim_share_link עם document_query או requested_items.
+        - המערכת מאתרת בדיוק את המסמכים שהתבקשו:
+          • דוח שמאות: מזהה את כל עמודי הדוח (אם יש 2 עמודים, שניהם נכללים ומדווחים!).
+          • רישיון רכב: מאתרת את רישיון הרכב.
+          • תמונות נזק: מאתרת בדיוק את הכמות המבוקשת (למשל 3 תמונות).
+          • חל איסור מוחלט לצרף מסמכים שלא התבקשו!
+        - חוסר במסמך: אם מסמך שהתבקש חסר בתיק (למשל רישיון רכב), המערכת עוצרת מיידית, לא מנחשת ולא מצרפת מסמך אחר. היא מודיעה: "המסמך [שם] חסר בתיק. האם תרצה להעלות אותו עכשיו?", ומציגה אפשרות להעלאת המסמך ישירות מתוך כרטיס הפעולה! רק לאחר שהמסמך הועלה ואושר — נוצר קישור השיתוף.
+        - הקישור מוביל לדף claims-share המוגבל בדיוק למסמכים שאושרו. בכרטיס זה מופיעים כפתורי "פתח ובדוק", "העתק", ו-"שלח בוואטסאפ". לעולם אין לשלב קישור פתיחת תיק בכרטיס זה.
 
 6. חיפוש תביעות:
    - חיפוש לפי מספר רכב, שם לקוח, מספר תביעה, חברת ביטוח (search_claims).
@@ -4348,21 +4372,93 @@ export async function executeClaimsTool(
         const clientEmail = String(args.recipient_email || claimRow.clientEmail || claimRow.email || "").trim();
         const channel = String(args.channel || (clientPhone && clientEmail ? "both" : clientPhone ? "whatsapp" : clientEmail ? "email" : "copy")).toLowerCase();
         const customMessage = String(args.custom_message || "").trim();
+        const linkType = String(args.link_type || "intake").toLowerCase();
+        const cleanPhone = String(clientPhone || "").replace(/\D/g, "");
+
+        // Ensure stub record in claims_records with status 'ממתין למילוי הלקוח'
+        if (!claimRec) {
+          const nowIso = new Date().toISOString();
+          await supabase.from("claims_records").insert({
+            id: targetClaimId,
+            status: "ממתין למילוי הלקוח",
+            client_name: clientName || null,
+            created_at: nowIso,
+            last_activity_at: nowIso,
+            row_data: {
+              id: targetClaimId,
+              status: "ממתין למילוי הלקוח",
+              clientName: clientName || "",
+              clientPhone: clientPhone || "",
+              clientEmail: clientEmail || "",
+              createdAt: nowIso,
+              source: "dalia_ai_customer_link",
+            },
+          });
+        }
 
         const previewId = `P-CUSTLINK-${Date.now()}`;
-        const summary = `שליחת קישור פתיחת תיק והעלאת מסמכים ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId})`;
+        let intakeUrl = "";
+        let uploadUrl = "";
+        let waLink = "";
+        let actionType = "send_customer_intake_link";
+        let summary = "";
+        let message = "";
+
+        if (linkType === "upload") {
+          actionType = "send_customer_upload_link";
+          summary = `שליחת קישור להעלאת מסמכים ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId})`;
+          try {
+            const docsRes = await supabase.functions.invoke("claims-docs", {
+              body: {
+                action: "create_link",
+                claim_id: targetClaimId,
+              },
+            });
+            if (docsRes.data?.token) {
+              uploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(docsRes.data.token)}`;
+              const waText = customMessage || `שלום ${clientName || 'לקוח יקר'},\nלהעלאת מסמכים ותמונות עבור תיק תביעה ${targetClaimId} באורן קאר, היכנס/י לקישור המאובטח:\n${uploadUrl}`;
+              waLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}` : `https://wa.me/?text=${encodeURIComponent(waText)}`;
+            }
+          } catch (e) {
+            console.error("claims-docs create_link error:", e);
+          }
+          message = `הוכנה תצוגה מקדימה לשליחת קישור העלאת מסמכים עבור ${clientName || "הלקוח"}. הקישור מוכן לבדיקה, העתקה או שליחה בתיק ${targetClaimId}.`;
+        } else {
+          actionType = "send_customer_intake_link";
+          summary = `שליחת קישור פתיחת תיק חדש ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId})`;
+          try {
+            const intakeRes = await supabase.functions.invoke("claims-intake", {
+              body: {
+                action: "create_link",
+                claim_id: targetClaimId,
+              },
+            });
+            if (intakeRes.data?.token) {
+              intakeUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-intake?t=${encodeURIComponent(intakeRes.data.token)}`;
+              const waText = customMessage || `שלום ${clientName || 'לקוח יקר'},\nנפתח עבורך תיק תביעה ${targetClaimId} באורן קאר. למילוי טופס פתיחת התיק היכנס/י לקישור המאובטח:\n${intakeUrl}`;
+              waLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}` : `https://wa.me/?text=${encodeURIComponent(waText)}`;
+            }
+          } catch (e) {
+            console.error("claims-intake create_link error:", e);
+          }
+          message = `הוכנה תצוגה מקדימה לשליחת קישור פתיחת תיק חדש עבור ${clientName || "הלקוח"}. הוקצה מספר תיק קבוע ${targetClaimId} בסטטוס "ממתין למילוי הלקוח". הקישור מוכן לבדיקה בלחיצה, להעתקה או לשליחה.`;
+        }
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
           summary,
           tool_name: name,
-          action_type: "send_customer_link",
+          action_type: actionType,
           parameters: {
             claim_id: targetClaimId,
             recipient_name: clientName,
             recipient_phone: clientPhone || null,
             recipient_email: clientEmail || null,
             channel,
+            link_type: linkType,
+            intake_url: intakeUrl || null,
+            upload_url: uploadUrl || null,
+            wa_link: waLink || null,
             custom_message: customMessage || null,
           },
         };
@@ -4372,7 +4468,7 @@ export async function executeClaimsTool(
           userName,
           claimId: targetClaimId,
           toolName: name,
-          actionType: "send_customer_link",
+          actionType,
           previewSummary: summary,
           previewPayload: preview.parameters,
           status: "preview_created",
@@ -4382,7 +4478,7 @@ export async function executeClaimsTool(
           result: {
             preview_id: previewId,
             status: "pending_approval",
-            message: `הוכנה תצוגה מקדימה לשליחת קישור פתיחת תיק והעלאת מסמכים עבור ${clientName || "הלקוח"}. הוקצה מספר תיק קבוע ${targetClaimId} בסטטוס "ממתין למילוי הלקוח". נדרש אישור לביצוע.`,
+            message,
             details: {
               claim_id: targetClaimId,
               claim_status: "ממתין למילוי הלקוח",
@@ -4390,7 +4486,10 @@ export async function executeClaimsTool(
               recipient_phone: clientPhone,
               recipient_email: clientEmail,
               channel,
-              action_link_type: "customer_intake_and_upload",
+              link_type: linkType,
+              intake_url: intakeUrl || null,
+              upload_url: uploadUrl || null,
+              wa_link: waLink || null,
             },
           },
           preview,
@@ -4398,11 +4497,12 @@ export async function executeClaimsTool(
       }
 
       case "preview_create_claim_share_link": {
-        const { data: claimRec } = claimId
+        let targetClaimId = String(claimId || args.claim_id || args.claim_ref || "").trim();
+        const { data: claimRec } = targetClaimId
           ? await supabase
             .from("claims_records")
             .select("id, plate, client_name, row_data")
-            .eq("id", claimId)
+            .eq("id", targetClaimId)
             .maybeSingle()
           : { data: null };
 
@@ -4415,6 +4515,9 @@ export async function executeClaimsTool(
         const ttlHours = Number(args.ttl_hours || 72);
         const docQuery = String(args.document_query || "").trim().toLowerCase();
         const customMessage = String(args.custom_message || "").trim();
+        const requestedItems = Array.isArray(args.requested_items)
+          ? (args.requested_items as string[]).map(String).filter(Boolean)
+          : [];
 
         // If recipient not fully specified or is client, fill from claim
         if (!recipientName || recipientKind === "client" || /לקוח/.test(recipientName)) {
@@ -4429,71 +4532,202 @@ export async function executeClaimsTool(
 
         let fileIds = Array.isArray(args.file_ids) ? (args.file_ids as string[]).map(String).filter(Boolean) : [];
         let fileTitles: string[] = [];
+        const missingDocuments: string[] = [];
 
-        // Query or auto-resolve surveyor report / docs
-        if (fileIds.length === 0) {
-          const { data: allDocs } = await supabase
-            .from("claims_documents")
-            .select("id, original_name, doc_kind, doc_meta, created_at")
-            .eq("claim_id", claimId)
-            .order("created_at", { ascending: false });
+        const { data: allDocs } = await supabase
+          .from("claims_documents")
+          .select("id, original_name, doc_kind, doc_meta, created_at, byte_size, mime_type")
+          .eq("claim_id", targetClaimId)
+          .order("created_at", { ascending: false });
 
-          const docsList = allDocs || [];
-          if (docQuery) {
+        const docsList = allDocs || [];
+
+        if (fileIds.length > 0) {
+          const map = new Map(docsList.map((d) => [String(d.id), d]));
+          for (const id of fileIds) {
+            const d = map.get(id);
+            if (d) {
+              fileTitles.push(documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: (d.doc_meta || {}) as Record<string, string> }));
+            } else {
+              missingDocuments.push(`קובץ מזהה ${id}`);
+            }
+          }
+        } else {
+          const matchedSet = new Set<string>();
+
+          // 1. Check for surveyor report (דוח שמאי / דוח שמאות / שמאות)
+          const wantsSurveyor = /שמא[יו]|survey|apprais/i.test(docQuery) || requestedItems.some((it) => /שמא[יו]|survey|apprais/i.test(it));
+          if (wantsSurveyor) {
+            const surveyorDocs = docsList.filter((d) => {
+              const meta = (d.doc_meta && typeof d.doc_meta === "object" ? d.doc_meta : {}) as Record<string, string>;
+              return String(d.doc_kind || "").includes("report") ||
+                /שמא[יו]/i.test(String(d.original_name || "")) ||
+                /survey|apprais/i.test(String(d.original_name || "")) ||
+                String(meta.staff_type || "").includes("report");
+            });
+            if (surveyorDocs.length > 0) {
+              // Add all pages/files of surveyor report
+              for (const d of surveyorDocs) {
+                if (!matchedSet.has(String(d.id))) {
+                  matchedSet.add(String(d.id));
+                  fileIds.push(String(d.id));
+                  fileTitles.push(documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: (d.doc_meta || {}) as Record<string, string> }));
+                }
+              }
+            } else {
+              missingDocuments.push("דוח שמאות");
+            }
+          }
+
+          // 2. Check for vehicle license (רישיון רכב)
+          const wantsVehicleLicense = /ר[י]?שיון\s*רכב|license_vehicle/i.test(docQuery) || requestedItems.some((it) => /ר[י]?שיון\s*רכב/i.test(it));
+          if (wantsVehicleLicense) {
+            const licenseDoc = docsList.find((d) => {
+              const meta = (d.doc_meta && typeof d.doc_meta === "object" ? d.doc_meta : {}) as Record<string, string>;
+              return /ר[י]?שיון\s*רכב|license_vehicle/i.test(String(d.original_name || "")) ||
+                /license_vehicle/i.test(String(meta.staff_type || ""));
+            });
+            if (licenseDoc) {
+              if (!matchedSet.has(String(licenseDoc.id))) {
+                matchedSet.add(String(licenseDoc.id));
+                fileIds.push(String(licenseDoc.id));
+                fileTitles.push(documentDisplayTitle({ original_name: String(licenseDoc.original_name || ""), doc_meta: (licenseDoc.doc_meta || {}) as Record<string, string> }));
+              }
+            } else {
+              missingDocuments.push("רישיון רכב");
+            }
+          }
+
+          // 3. Check for driver license (רישיון נהיגה)
+          const wantsDriverLicense = /ר[י]?שיון\s*נהיגה|license_driver/i.test(docQuery) || requestedItems.some((it) => /ר[י]?שיון\s*נהיגה/i.test(it));
+          if (wantsDriverLicense) {
+            const driverDoc = docsList.find((d) => {
+              const meta = (d.doc_meta && typeof d.doc_meta === "object" ? d.doc_meta : {}) as Record<string, string>;
+              return /ר[י]?שיון\s*נהיגה|license_driver/i.test(String(d.original_name || "")) ||
+                /license_driver/i.test(String(meta.staff_type || ""));
+            });
+            if (driverDoc) {
+              if (!matchedSet.has(String(driverDoc.id))) {
+                matchedSet.add(String(driverDoc.id));
+                fileIds.push(String(driverDoc.id));
+                fileTitles.push(documentDisplayTitle({ original_name: String(driverDoc.original_name || ""), doc_meta: (driverDoc.doc_meta || {}) as Record<string, string> }));
+              }
+            } else {
+              missingDocuments.push("רישיון נהיגה");
+            }
+          }
+
+          // 4. Check for policy (פוליסה)
+          const wantsPolicy = /פוליס|policy/i.test(docQuery) || requestedItems.some((it) => /פוליס/i.test(it));
+          if (wantsPolicy) {
+            const policyDoc = docsList.find((d) => {
+              const meta = (d.doc_meta && typeof d.doc_meta === "object" ? d.doc_meta : {}) as Record<string, string>;
+              return /פוליס/i.test(String(d.original_name || "")) || /policy/i.test(String(meta.staff_type || ""));
+            });
+            if (policyDoc) {
+              if (!matchedSet.has(String(policyDoc.id))) {
+                matchedSet.add(String(policyDoc.id));
+                fileIds.push(String(policyDoc.id));
+                fileTitles.push(documentDisplayTitle({ original_name: String(policyDoc.original_name || ""), doc_meta: (policyDoc.doc_meta || {}) as Record<string, string> }));
+              }
+            } else {
+              missingDocuments.push("פוליסת ביטוח");
+            }
+          }
+
+          // 5. Check for damage photos (תמונות נזק)
+          const wantsDamagePhotos = /תמונ|נזק|damage|photo/i.test(docQuery) || requestedItems.some((it) => /תמונ|damage|photo/i.test(it));
+          if (wantsDamagePhotos) {
+            let countRequested = 3;
+            if (/שלוש[ה]?\s*תמונ|3\s*תמונ/i.test(docQuery)) countRequested = 3;
+            else if (/שת[יי]\s*תמונ|2\s*תמונ/i.test(docQuery)) countRequested = 2;
+            else if (/ארבע[ה]?\s*תמונ|4\s*תמונ/i.test(docQuery)) countRequested = 4;
+            else if (/חמש[ה]?\s*תמונ|5\s*תמונ/i.test(docQuery)) countRequested = 5;
+            else if (/תמונה\s*אחת|1\s*תמונ/i.test(docQuery)) countRequested = 1;
+            else {
+              const numMatch = docQuery.match(/(\d+)\s*תמונ/);
+              if (numMatch) countRequested = parseInt(numMatch[1], 10);
+            }
+
+            const damagePhotos = docsList.filter((d) => {
+              const meta = (d.doc_meta && typeof d.doc_meta === "object" ? d.doc_meta : {}) as Record<string, string>;
+              return String(d.doc_kind || "").includes("photo") ||
+                /תמונ|נזק|damage|photo/i.test(String(d.original_name || "")) ||
+                /damage_photos/i.test(String(meta.staff_type || "")) ||
+                String(d.mime_type || "").startsWith("image/");
+            });
+
+            if (damagePhotos.length > 0) {
+              const toTake = damagePhotos.slice(0, countRequested);
+              for (const d of toTake) {
+                if (!matchedSet.has(String(d.id))) {
+                  matchedSet.add(String(d.id));
+                  fileIds.push(String(d.id));
+                  fileTitles.push(documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: (d.doc_meta || {}) as Record<string, string> }));
+                }
+              }
+            } else {
+              missingDocuments.push("תמונות נזק");
+            }
+          }
+
+          // 6. Keyword fallback if none of above triggered
+          if (!wantsSurveyor && !wantsVehicleLicense && !wantsDriverLicense && !wantsPolicy && !wantsDamagePhotos && docQuery) {
             const words = docQuery.split(/\s+/).filter((w) => w.length >= 2);
             const matched = docsList.filter((d) => {
               const meta = (d.doc_meta && typeof d.doc_meta === "object" ? d.doc_meta : {}) as Record<string, string>;
-              const hay = [
-                documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: meta }),
-                d.original_name,
-                d.doc_kind,
-                meta.staff_type,
-                meta.read_text,
-              ].join(" ").toLowerCase();
+              const hay = [d.original_name, d.doc_kind, meta.staff_type, meta.read_text].join(" ").toLowerCase();
               return words.every((w) => hay.includes(w));
             });
             if (matched.length > 0) {
-              fileIds = matched.map((d) => String(d.id));
-              fileTitles = matched.map((d) => documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: d.doc_meta as Record<string, string> }));
+              for (const d of matched) {
+                if (!matchedSet.has(String(d.id))) {
+                  matchedSet.add(String(d.id));
+                  fileIds.push(String(d.id));
+                  fileTitles.push(documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: (d.doc_meta || {}) as Record<string, string> }));
+                }
+              }
+            } else {
+              missingDocuments.push(docQuery);
             }
           }
+        }
 
-          // If still empty and user specifically asked for surveyor report or reports
-          if (fileIds.length === 0 && (docQuery.includes("שמאי") || docQuery.includes("שמאות") || /surv|apprais/i.test(docQuery))) {
-            const surveyorDocs = docsList.filter((d) =>
-              String(d.doc_kind || "").includes("report") ||
-              /שמא[יו]/i.test(String(d.original_name || "")) ||
-              /survey|apprais/i.test(String(d.original_name || "")) ||
-              String((d.doc_meta as Record<string, string>)?.staff_type || "").includes("report")
-            );
-            if (surveyorDocs.length > 0) {
-              fileIds = surveyorDocs.map((d) => String(d.id));
-              fileTitles = surveyorDocs.map((d) => documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: d.doc_meta as Record<string, string> }));
+        // Pre-mint share link if all requested documents are present and none are missing!
+        let shareToken = "";
+        let shareUrl = "";
+        let waLink = "";
+        const cleanPhone = String(recipientPhone || "").replace(/\D/g, "");
+
+        if (fileIds.length > 0 && missingDocuments.length === 0) {
+          try {
+            const shareRes = await supabase.functions.invoke("claims-docs", {
+              body: {
+                action: "create_share",
+                claim_id: targetClaimId,
+                recipient_name: recipientName,
+                recipient_kind: recipientKind,
+                recipient_email: recipientEmail || undefined,
+                recipient_phone: recipientPhone || undefined,
+                file_ids: fileIds,
+                ttl_hours: ttlHours,
+              },
+            });
+            if (shareRes.data?.success && shareRes.data?.token) {
+              shareToken = String(shareRes.data.token);
+              shareUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-share/?t=${encodeURIComponent(shareToken)}`;
+              const defaultWaText = customMessage || `שלום ${recipientName},\nמצורף קישור מאובטח לצפייה ולהורדת המסמכים בתיק תביעה ${targetClaimId}:\n${shareUrl}`;
+              waLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultWaText)}` : `https://wa.me/?text=${encodeURIComponent(defaultWaText)}`;
             }
+          } catch (e) {
+            console.error("claims-docs create_share error:", e);
           }
-
-          // Fallback to top 20 documents if still not specified
-          if (fileIds.length === 0 && docsList.length > 0) {
-            const subset = docsList.slice(0, 20);
-            fileIds = subset.map((d) => String(d.id));
-            fileTitles = subset.map((d) => documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: d.doc_meta as Record<string, string> }));
-          }
-        } else {
-          // Resolve file titles for provided IDs
-          const { data: specificDocs } = await supabase
-            .from("claims_documents")
-            .select("id, original_name, doc_meta")
-            .eq("claim_id", claimId)
-            .in("id", fileIds);
-          const map = new Map((specificDocs || []).map((d) => [String(d.id), d]));
-          fileTitles = fileIds.map((id) => {
-            const d = map.get(id);
-            return d ? documentDisplayTitle({ original_name: String(d.original_name || ""), doc_meta: d.doc_meta as Record<string, string> }) : id;
-          });
         }
 
         const previewId = `P-SHARE-${Date.now()}`;
-        const summary = `יצירת קישור שיתוף עבור "${recipientName}" לתוקף של ${ttlHours} שעות (${fileIds.length} קבצים)`;
+        const summary = missingDocuments.length > 0
+          ? `הכנת שיתוף מסמכים עבור "${recipientName}" — חסר: ${missingDocuments.join(", ")}`
+          : `יצירת קישור שיתוף עבור "${recipientName}" לתוקף של ${ttlHours} שעות (${fileIds.length} קבצים)`;
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
@@ -4501,7 +4735,7 @@ export async function executeClaimsTool(
           tool_name: name,
           action_type: "create_share_link",
           parameters: {
-            claim_id: claimId,
+            claim_id: targetClaimId,
             recipient_name: recipientName,
             recipient_kind: recipientKind,
             recipient_email: recipientEmail || null,
@@ -4509,6 +4743,9 @@ export async function executeClaimsTool(
             channel,
             file_ids: fileIds,
             file_titles: fileTitles,
+            missing_documents: missingDocuments,
+            share_url: shareUrl || null,
+            wa_link: waLink || null,
             ttl_hours: ttlHours,
             custom_message: customMessage || null,
           },
@@ -4517,7 +4754,7 @@ export async function executeClaimsTool(
         await recordAiAudit(supabase, {
           userId,
           userName,
-          claimId,
+          claimId: targetClaimId,
           toolName: name,
           actionType: "create_share_link",
           previewSummary: summary,
@@ -4525,11 +4762,18 @@ export async function executeClaimsTool(
           status: "preview_created",
         });
 
+        let responseMsg = "";
+        if (missingDocuments.length > 0) {
+          responseMsg = `המסמך ${missingDocuments.map((m) => `"${m}"`).join(", ")} חסר בתיק ${targetClaimId}. האם תרצה להעלות אותו עכשיו ישירות מהמכשיר? ${fileTitles.length > 0 ? `אותרו ${fileTitles.length} קבצים קיימים: ${fileTitles.join(", ")}.` : ""}`;
+        } else {
+          responseMsg = `הוכנה תצוגה מקדימה לשיתוף ${fileIds.length} מסמכים עבור ${recipientName} בתיק ${targetClaimId}. הקישור מוכן לבדיקה, העתקה או שליחה.`;
+        }
+
         return {
           result: {
             preview_id: previewId,
-            status: "pending_approval",
-            message: "הוכנה תצוגה מקדימה ליצירת קישור שיתוף. נדרש אישור המשתמש לביצוע.",
+            status: missingDocuments.length > 0 ? "needs_missing_documents" : "pending_approval",
+            message: responseMsg,
             details: {
               recipient_name: recipientName,
               recipient_kind: recipientKind,
@@ -4539,6 +4783,9 @@ export async function executeClaimsTool(
               ttl_hours: ttlHours,
               files_count: fileIds.length,
               file_titles: fileTitles,
+              missing_documents: missingDocuments,
+              share_url: shareUrl || null,
+              wa_link: waLink || null,
             },
           },
           preview,
@@ -5548,6 +5795,25 @@ export async function executeClaimsGeneralTool(
           resolvedId = existingPendingId;
         } else {
           resolvedId = await allocateNextDalClaimId(supabase);
+        }
+      } else if (name === "preview_create_claim_share_link" && !claimRefStr) {
+        const recipientName = String(args.recipient_name || "").trim();
+        let matchedId = "";
+        if (recipientName) {
+          const { data: matched } = await supabase
+            .from("claims_records")
+            .select("id, client_name")
+            .ilike("client_name", `%${recipientName}%`)
+            .order("created_at", { ascending: false })
+            .limit(1);
+          if (matched && matched.length > 0) {
+            matchedId = String(matched[0].id);
+          }
+        }
+        if (matchedId) {
+          resolvedId = matchedId;
+        } else {
+          return { result: { error: "נדרש מזהה תיק (claim_ref) לשיתוף מסמכים." } };
         }
       } else if (name !== "preview_send_claim_email") {
         return { result: { error: "נדרש מזהה תיק (claim_ref) לביצוע פעולה זו." } };
@@ -6724,19 +6990,27 @@ export async function executeClaimsPendingAction(
         };
       }
 
-      case "send_customer_link": {
-        const { claim_id, recipient_name, recipient_phone, recipient_email, channel, custom_message } = parameters as {
+      case "send_customer_link":
+      case "send_customer_intake_link":
+      case "send_customer_upload_link": {
+        const { claim_id, recipient_name, recipient_phone, recipient_email, channel, custom_message, link_type, intake_url, upload_url, wa_link } = parameters as {
           claim_id?: string | null;
           recipient_name?: string | null;
           recipient_phone?: string | null;
           recipient_email?: string | null;
           channel?: string | null;
           custom_message?: string | null;
+          link_type?: string;
+          intake_url?: string | null;
+          upload_url?: string | null;
+          wa_link?: string | null;
         };
 
         const targetClaimId = String(claim_id || claimId || "").trim() || (await allocateNextDalClaimId(supabase));
         const clientName = recipient_name || "לקוח יקר";
         const selectedChannel = String(channel || "copy").toLowerCase();
+        const effectiveLinkType = String(link_type || (name === "send_customer_upload_link" ? "upload" : "intake")).toLowerCase();
+        const cleanPhone = String(recipient_phone || "").replace(/\D/g, "");
 
         // 1. Ensure claim record exists in claims_records with status 'ממתין למילוי הלקוח'
         const { data: existingClaim } = await supabase
@@ -6747,7 +7021,7 @@ export async function executeClaimsPendingAction(
 
         const nowIso = new Date().toISOString();
         if (!existingClaim) {
-          const { error: insClaimErr } = await supabase.from("claims_records").insert({
+          await supabase.from("claims_records").insert({
             id: targetClaimId,
             status: "ממתין למילוי הלקוח",
             client_name: recipient_name || "ממתין לפרטי לקוח",
@@ -6769,182 +7043,222 @@ export async function executeClaimsPendingAction(
               source: "dalia_ai_customer_link",
             },
           });
-          if (insClaimErr) {
-            console.error("Failed to insert pending claim record:", insClaimErr);
-          }
         }
 
-        // 2. Create customer intake link (claims-intake)
-        let intakeUrl = "";
-        try {
-          const intakeRes = await supabase.functions.invoke("claims-intake", {
-            body: {
-              action: "create_link",
-              claim_id: targetClaimId,
+        let finalIntakeUrl = intake_url || "";
+        let finalUploadUrl = upload_url || "";
+        let finalWaLink = wa_link || "";
+        let emailSentStatus = "";
+
+        if (effectiveLinkType === "upload") {
+          // Upload link only!
+          if (!finalUploadUrl) {
+            const docsRes = await supabase.functions.invoke("claims-docs", {
+              body: { action: "create_link", claim_id: targetClaimId },
+            });
+            if (docsRes.data?.token) {
+              finalUploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(docsRes.data.token)}`;
+            }
+          }
+          const defaultWaText = custom_message || `שלום ${clientName},\nלהעלאת מסמכים ותמונות עבור תיק תביעה ${targetClaimId} באורן קאר, היכנס/י לקישור המאובטח:\n${finalUploadUrl}`;
+          if (!finalWaLink) {
+            finalWaLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultWaText)}` : `https://wa.me/?text=${encodeURIComponent(defaultWaText)}`;
+          }
+
+          if ((selectedChannel === "email" || selectedChannel === "both") && recipient_email) {
+            const emailSubject = `קישור להעלאת מסמכים - תיק תביעה ${targetClaimId} - דליה ניהול תביעות`;
+            const emailBody = [
+              `שלום ${clientName},`,
+              ``,
+              custom_message || `נפתח עבורך תיק תביעה ${targetClaimId} באורן קאר.`,
+              `להעלאת מסמכים ותמונות הדרושים לטיפול בתביעה, אנא היכנס/י לקישור המאובטח:`,
+              ``,
+              finalUploadUrl,
+              ``,
+              `הקישור מאובטח ובתוקף ל-24 שעות.`,
+              ``,
+              `בברכה,`,
+              `דליה ניהול תביעות - אורן קאר`,
+            ].join("\n");
+
+            const mailRes = await supabase.functions.invoke("claims-gmail", {
+              body: {
+                action: "send_claim",
+                claim_id: targetClaimId,
+                to: recipient_email,
+                subject: emailSubject,
+                body: emailBody,
+                idempotency_key: `CUSTUP-${targetClaimId}-${Date.now()}`,
+                confirm: true,
+              },
+            });
+            if (mailRes.data?.success && mailRes.data?.realEmailSend === true) {
+              emailSentStatus = `ונשלח בהצלחה באימייל אל ${recipient_email}`;
+            } else {
+              emailSentStatus = `(הקישור נוצר, אך שליחת המייל ל-${recipient_email} נכשלה)`;
+            }
+          }
+
+          await supabase.from("claims_history").insert({
+            id: newId("HIS"),
+            claim_id: targetClaimId,
+            row_data: {
+              action: "נוצר קישור העלאת מסמכים ללקוח",
+              note: `קישור להעלאת מסמכים עבור ${clientName} (תיק ${targetClaimId})${emailSentStatus ? ` ${emailSentStatus}` : ""}`,
+              type: "customer_upload_link_created",
+              by: userName || "דליה AI",
+              at: new Date().toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }),
             },
           });
-          if (intakeRes.data?.token) {
-            intakeUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-intake?t=${encodeURIComponent(intakeRes.data.token)}`;
-          }
-        } catch (e) {
-          console.error("claims-intake create_link error:", e);
-        }
 
-        // 3. Create document upload link (claims-docs)
-        const docsRes = await supabase.functions.invoke("claims-docs", {
-          body: {
-            action: "create_link",
-            claim_id: targetClaimId,
-          },
-        });
-
-        if (docsRes.error || !docsRes.data?.success || !docsRes.data?.token) {
-          const errMsg = docsRes.data?.error || docsRes.error?.message || "יצירת קישור העלאה ללקוח נכשלה";
           await recordAiAudit(supabase, {
             userId,
             userName,
             claimId: targetClaimId,
             toolName: "preview_send_customer_link",
-            actionType: "send_customer_link",
+            actionType: "send_customer_upload_link",
             previewSummary: summary,
             previewPayload: parameters,
             approvedBy: userId,
             approvedByName: userName,
-            executionAction: "send_customer_link",
-            status: "failed",
-            errorMessage: errMsg,
+            executionAction: "send_customer_upload_link",
+            status: "executed",
           });
-          return { success: false, message: `יצירת קישור העלאת מסמכים נכשלה: ${errMsg}`, error: errMsg };
-        }
 
-        const uploadToken = String(docsRes.data.token || "");
-        const uploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(uploadToken)}`;
+          const lines = [
+            `✅ קישור להעלאת מסמכים הוכן בהצלחה עבור ${clientName}!`,
+            `📁 **מספר תיק:** ${targetClaimId}`,
+            `📤 **קישור ישיר להעלאת מסמכים:** ${finalUploadUrl}`,
+          ];
+          if (emailSentStatus) lines.push(`📧 ${emailSentStatus}`);
+          if (finalWaLink) lines.push(`💬 **WhatsApp:** [פתיחה ושליחה ב-WhatsApp](${finalWaLink})`);
 
-        // Primary link for customer is intake form (which includes doc upload) or uploadUrl
-        const primaryCustomerUrl = intakeUrl || uploadUrl;
-
-        // 4. Seed default document requests in claims_doc_requests so slots are ready
-        const defaultRequests = [
-          { label: "רישיון רכב", doc_key: "license_vehicle" },
-          { label: "רישיון נהיגה", doc_key: "license_driver" },
-          { label: "דוח שמאי", doc_key: "surveyor_report" },
-          { label: "תמונות נזק", doc_key: "damage_photos" },
-          { label: "טופס הודעה על תאונה", doc_key: "accident_notice" },
-        ];
-        for (const req of defaultRequests) {
-          const { data: ex } = await supabase
-            .from("claims_doc_requests")
-            .select("id")
-            .eq("claim_id", targetClaimId)
-            .eq("doc_key", req.doc_key)
-            .maybeSingle();
-          if (!ex) {
-            await supabase.from("claims_doc_requests").insert({
-              id: newId("DCR"),
-              claim_id: targetClaimId,
-              label: req.label,
-              doc_key: req.doc_key,
-              status: "requested",
-              created_by: userId,
-            });
-          }
-        }
-
-        // 5. WhatsApp link preparation
-        let waLink = "";
-        const cleanPhone = String(recipient_phone || "").replace(/\D/g, "");
-        const defaultWaText = custom_message || `שלום ${clientName}, נפתח עבורך תיק תביעה ${targetClaimId} באורן קאר. למילוי פרטי הדיווח והעלאת המסמכים והתמונות היכנס/י לקישור המאובטח:\n${primaryCustomerUrl}`;
-        if (cleanPhone) {
-          waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultWaText)}`;
+          return {
+            success: true,
+            message: lines.join("\n"),
+            claim_id: targetClaimId,
+            upload_url: finalUploadUrl,
+            wa_link: finalWaLink,
+          };
         } else {
-          waLink = `https://wa.me/?text=${encodeURIComponent(defaultWaText)}`;
-        }
+          // Intake link only!
+          if (!finalIntakeUrl) {
+            const intakeRes = await supabase.functions.invoke("claims-intake", {
+              body: { action: "create_link", claim_id: targetClaimId },
+            });
+            if (intakeRes.data?.token) {
+              finalIntakeUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-intake?t=${encodeURIComponent(intakeRes.data.token)}`;
+            }
+          }
+          const defaultWaText = customMessage || `שלום ${clientName},\nנפתח עבורך תיק תביעה ${targetClaimId} באורן קאר. למילוי טופס פתיחת התיק היכנס/י לקישור המאובטח:\n${finalIntakeUrl}`;
+          if (!finalWaLink) {
+            finalWaLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultWaText)}` : `https://wa.me/?text=${encodeURIComponent(defaultWaText)}`;
+          }
 
-        // 6. Email sending if requested and email provided
-        let emailSentStatus = "";
-        if ((selectedChannel === "email" || selectedChannel === "both") && recipient_email) {
-          const emailSubject = `פתיחת תיק תביעה ${targetClaimId} והעלאת מסמכים - דליה ניהול תביעות`;
-          const emailBody = [
-            `שלום ${clientName},`,
-            ``,
-            custom_message || `נפתח עבורך תיק תביעה שמספרו ${targetClaimId} באורן קאר.`,
-            `למילוי פרטי האירוע והעלאת המסמכים והתמונות הדרושים, אנא היכנס/י לקישור המאובטח:`,
-            ``,
-            primaryCustomerUrl,
-            intakeUrl && uploadUrl ? `\nקישור ישיר להעלאת מסמכים נוספים בלבד:\n${uploadUrl}` : ``,
-            ``,
-            `הקישור מאובטח ובתוקף ל-24 שעות.`,
-            ``,
-            `בברכה,`,
-            `דליה ניהול תביעות - אורן קאר`,
-          ].filter(Boolean).join("\n");
+          if ((selectedChannel === "email" || selectedChannel === "both") && recipient_email) {
+            const emailSubject = `פתיחת תיק תביעה ${targetClaimId} - דליה ניהול תביעות`;
+            const emailBody = [
+              `שלום ${clientName},`,
+              ``,
+              customMessage || `נפתח עבורך תיק תביעה ${targetClaimId} באורן קאר.`,
+              `למילוי פרטי האירוע והשלמת הדיווח, אנא היכנס/י לקישור המאובטח:`,
+              ``,
+              finalIntakeUrl,
+              ``,
+              `הקישור מאובטח וזמין למילוי.`,
+              ``,
+              `בברכה,`,
+              `דליה ניהול תביעות - אורן קאר`,
+            ].join("\n");
 
-          const mailIdempKey = `CUSTLNK-${targetClaimId}-${uploadToken.slice(0, 10)}`;
-          const mailRes = await supabase.functions.invoke("claims-gmail", {
-            body: {
-              action: "send_claim",
-              claim_id: targetClaimId,
-              to: recipient_email,
-              subject: emailSubject,
-              body: emailBody,
-              idempotency_key: mailIdempKey,
-              confirm: true,
+            const mailRes = await supabase.functions.invoke("claims-gmail", {
+              body: {
+                action: "send_claim",
+                claim_id: targetClaimId,
+                to: recipient_email,
+                subject: emailSubject,
+                body: emailBody,
+                idempotency_key: `CUSTINT-${targetClaimId}-${Date.now()}`,
+                confirm: true,
+              },
+            });
+            if (mailRes.data?.success && mailRes.data?.realEmailSend === true) {
+              emailSentStatus = `ונשלח בהצלחה באימייל אל ${recipient_email}`;
+            } else {
+              emailSentStatus = `(הקישור נוצר, אך שליחת המייל ל-${recipient_email} נכשלה)`;
+            }
+          }
+
+          // Seed default document requests in claims_doc_requests so slots are ready
+          const defaultRequests = [
+            { label: "רישיון רכב", doc_key: "license_vehicle" },
+            { label: "רישיון נהיגה", doc_key: "license_driver" },
+            { label: "דוח שמאי", doc_key: "surveyor_report" },
+            { label: "תמונות נזק", doc_key: "damage_photos" },
+            { label: "טופס הודעה על תאונה", doc_key: "accident_notice" },
+          ];
+          for (const req of defaultRequests) {
+            const { data: ex } = await supabase
+              .from("claims_doc_requests")
+              .select("id")
+              .eq("claim_id", targetClaimId)
+              .eq("doc_key", req.doc_key)
+              .maybeSingle();
+            if (!ex) {
+              await supabase.from("claims_doc_requests").insert({
+                id: newId("DCR"),
+                claim_id: targetClaimId,
+                label: req.label,
+                doc_key: req.doc_key,
+                status: "requested",
+                created_by: userId,
+              });
+            }
+          }
+
+          await supabase.from("claims_history").insert({
+            id: newId("HIS"),
+            claim_id: targetClaimId,
+            row_data: {
+              action: "נוצר קישור פתיחת תיק חדש ללקוח",
+              note: `הוקצה תיק ${targetClaimId} (ממתין למילוי הלקוח) עבור ${clientName}${recipient_email ? ` · אימייל: ${recipient_email}` : ""}${recipient_phone ? ` · טלפון: ${recipient_phone}` : ""} ${emailSentStatus}`.trim(),
+              type: "customer_intake_link_created",
+              by: userName || "דליה AI",
+              at: new Date().toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }),
             },
           });
 
-          if (mailRes.data?.success && mailRes.data?.realEmailSend === true) {
-            emailSentStatus = `ונשלח בהצלחה באימייל אל ${recipient_email}`;
-          } else {
-            const mErr = mailRes.data?.error || mailRes.error?.message || "שגיאה בשליחת המייל";
-            emailSentStatus = `(הקישור נוצר, אך שליחת המייל ל-${recipient_email} נכשלה: ${mErr})`;
-          }
+          await recordAiAudit(supabase, {
+            userId,
+            userName,
+            claimId: targetClaimId,
+            toolName: "preview_send_customer_link",
+            actionType: "send_customer_intake_link",
+            previewSummary: summary,
+            previewPayload: parameters,
+            approvedBy: userId,
+            approvedByName: userName,
+            executionAction: "send_customer_intake_link",
+            status: "executed",
+          });
+
+          const lines = [
+            `✅ קישור פתיחת תיק הוכן בהצלחה עבור ${clientName}!`,
+            `📁 **מספר תיק קבוע שהוקצה:** ${targetClaimId} (סטטוס: ממתין למילוי הלקוח)`,
+            `🔗 **קישור מילוי טופס פתיחת תיק:** ${finalIntakeUrl}`,
+          ];
+          if (emailSentStatus) lines.push(`📧 ${emailSentStatus}`);
+          if (finalWaLink) lines.push(`💬 **WhatsApp:** [פתיחה ושליחה ב-WhatsApp](${finalWaLink})`);
+
+          return {
+            success: true,
+            message: lines.join("\n"),
+            claim_id: targetClaimId,
+            claim_status: "ממתין למילוי הלקוח",
+            intake_url: finalIntakeUrl,
+            wa_link: finalWaLink,
+          };
         }
-
-        // 7. Log to claims_history
-        await supabase.from("claims_history").insert({
-          id: newId("HIS"),
-          claim_id: targetClaimId,
-          row_data: {
-            action: "נוצר קישור פתיחת תיק והעלאת מסמכים ללקוח",
-            note: `הוקצה תיק ${targetClaimId} (ממתין למילוי הלקוח) עבור ${clientName}${recipient_email ? ` · אימייל: ${recipient_email}` : ""}${recipient_phone ? ` · טלפון: ${recipient_phone}` : ""} ${emailSentStatus}`.trim(),
-            type: "customer_link_created",
-            by: userName || "דליה AI",
-            at: new Date().toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }),
-          },
-        });
-
-        await recordAiAudit(supabase, {
-          userId,
-          userName,
-          claimId: targetClaimId,
-          toolName: "preview_send_customer_link",
-          actionType: "send_customer_link",
-          previewSummary: summary,
-          previewPayload: parameters,
-          approvedBy: userId,
-          approvedByName: userName,
-          executionAction: "send_customer_link",
-          status: "executed",
-        });
-
-        const lines = [
-          `✅ קישור פתיחת תיק והעלאת מסמכים הוכן בהצלחה עבור ${clientName}!`,
-          `📁 **מספר תיק קבוע שהוקצה:** ${targetClaimId} (סטטוס: ממתין למילוי הלקוח)`,
-        ];
-        if (intakeUrl) lines.push(`🔗 **קישור מילוי טופס פתיחת תיק:** ${intakeUrl}`);
-        if (uploadUrl) lines.push(`📤 **קישור ישיר להעלאת מסמכים:** ${uploadUrl}`);
-        if (emailSentStatus) lines.push(`📧 ${emailSentStatus}`);
-        if (waLink) lines.push(`💬 **WhatsApp:** [פתיחה ושליחה ב-WhatsApp](${waLink})`);
-
-        return {
-          success: true,
-          message: lines.join("\n"),
-          claim_id: targetClaimId,
-          claim_status: "ממתין למילוי הלקוח",
-          intake_url: intakeUrl,
-          upload_url: uploadUrl,
-          wa_link: waLink,
-        };
       }
 
       case "create_share_link": {

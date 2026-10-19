@@ -682,6 +682,132 @@ export function ClaimsAiWorkspace({
   const [dockedTableState, setDockedTableState] = useState<'normal' | 'expanded' | 'collapsed' | 'hidden'>('normal');
   const [dockedFilter, setDockedFilter] = useState('');
   const [copiedDocked, setCopiedDocked] = useState(false);
+  const [copiedLinkMap, setCopiedLinkMap] = useState<Record<string, boolean>>({});
+  const [uploadingMissingDocKey, setUploadingMissingDocKey] = useState<string | null>(null);
+
+  const copyToClipboard = useCallback(async (text: string, key: string) => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+    } catch {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch {
+        // graceful ignore
+      }
+    }
+    setCopiedLinkMap((prev) => ({ ...prev, [key]: true }));
+    setTimeout(() => {
+      setCopiedLinkMap((prev) => ({ ...prev, [key]: false }));
+    }, 2500);
+  }, []);
+
+  const handleUploadMissingDoc = useCallback(async (
+    msg: ClaimsAiMessage,
+    pending: ClaimsAiPendingAction,
+    missingDocName: string,
+    file: File
+  ) => {
+    const targetClaim = String(pending.parameters?.claim_id || claimId || '');
+    if (!targetClaim) {
+      setBanner('לא צוין מספר תיק לשמירת המסמך');
+      return;
+    }
+    setUploadingMissingDocKey(missingDocName);
+    try {
+      const upRes = await uploadChatAttachmentToClaim(targetClaim, file);
+      if (!upRes.success || !upRes.file_id) {
+        throw new Error(upRes.error || 'העלאת המסמך נכשלה');
+      }
+      const newFileId = upRes.file_id;
+      const newTitle = file.name;
+      const currentIds = Array.isArray(pending.parameters?.file_ids) ? [...(pending.parameters.file_ids as string[])] : [];
+      const currentTitles = Array.isArray(pending.parameters?.file_titles) ? [...(pending.parameters.file_titles as string[])] : [];
+      const currentMissing = Array.isArray(pending.parameters?.missing_documents) ? [...(pending.parameters.missing_documents as string[])] : [];
+
+      currentIds.push(newFileId);
+      currentTitles.push(newTitle);
+      const updatedMissing = currentMissing.filter((m) => m !== missingDocName);
+
+      let newShareUrl = String(pending.parameters?.share_url || '');
+      let newWaLink = String(pending.parameters?.wa_link || '');
+      if (updatedMissing.length === 0) {
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData.session?.access_token;
+          const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-docs`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              action: 'create_share',
+              claim_id: targetClaim,
+              recipient_name: String(pending.parameters?.recipient_name || 'לקוח'),
+              recipient_kind: String(pending.parameters?.recipient_kind || 'client'),
+              file_ids: currentIds,
+              ttl_hours: Number(pending.parameters?.ttl_hours || 72),
+            }),
+          });
+          const shareData = await res.json();
+          if (shareData.token) {
+            newShareUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-share/?t=${encodeURIComponent(shareData.token)}`;
+            const cleanPhone = String(pending.parameters?.recipient_phone || '').replace(/\D/g, '');
+            const waText = `שלום ${String(pending.parameters?.recipient_name || 'לקוח')},\nמצורף קישור מאובטח לצפייה ולהורדת המסמכים בתיק ${targetClaim}:\n${newShareUrl}`;
+            newWaLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}` : `https://wa.me/?text=${encodeURIComponent(waText)}`;
+          }
+        } catch (err) {
+          console.error('Failed minting share token after upload:', err);
+        }
+      }
+
+      const updatedParams = {
+        ...pending.parameters,
+        file_ids: currentIds,
+        file_titles: currentTitles,
+        missing_documents: updatedMissing,
+        share_url: newShareUrl || pending.parameters?.share_url,
+        wa_link: newWaLink || pending.parameters?.wa_link,
+      };
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msg.id
+            ? {
+                ...m,
+                metadata: {
+                  ...m.metadata,
+                  pending_action: {
+                    ...pending,
+                    parameters: updatedParams,
+                  },
+                },
+              }
+            : m
+        )
+      );
+    } catch (err) {
+      const em = err instanceof Error ? err.message : 'שגיאה בהעלאת המסמך החסר';
+      setBanner(em);
+    } finally {
+      setUploadingMissingDocKey(null);
+    }
+  }, [claimId]);
 
   const isSubmittingRef = useRef(false);
   const isNearBottomRef = useRef(true);
@@ -2075,64 +2201,357 @@ export function ClaimsAiWorkspace({
                           <div><strong>מועד מתוכנן:</strong> {String(pending.parameters.planned_label || '')}</div>
                         </div>
                       ) : null}
-                      {pending.action_type === 'send_customer_link' && pending.parameters ? (
+                      {((pending.action_type === 'send_customer_intake_link') || (pending.action_type === 'send_customer_link' && pending.parameters?.link_type !== 'upload')) && pending.parameters ? (
                         <div
                           className="claims-ai-preview-custlink"
+                          data-testid="claims-ai-preview-intake-card"
                           style={{
                             margin: '8px 0',
                             fontSize: '0.82rem',
                             background: 'rgba(16, 185, 129, 0.05)',
-                            padding: '8px 12px',
-                            borderRadius: '6px',
+                            padding: '10px 14px',
+                            borderRadius: '8px',
                             lineHeight: '1.6',
-                            border: '1px solid rgba(16, 185, 129, 0.2)',
+                            border: '1px solid rgba(16, 185, 129, 0.25)',
                           }}
                         >
-                          <div style={{ fontWeight: 700, color: 'var(--c-emerald, #10b981)', marginBottom: 4 }}>
-                            🔗 קישור פתיחת תיק והעלאת מסמכים ללקוח (claims-upload)
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <div style={{ fontWeight: 700, color: 'var(--c-emerald, #10b981)', fontSize: '0.9rem' }}>
+                              📝 כרטיס אישור – קישור פתיחת תיק חדש ללקוח (claims-intake)
+                            </div>
+                            {pending.parameters.claim_id ? (
+                              <span style={{ fontSize: '0.72rem', background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>
+                                ממתין למילוי הלקוח
+                              </span>
+                            ) : null}
                           </div>
+
+                          {pending.parameters.claim_id ? (
+                            <div style={{ marginBottom: 4 }}>
+                              <strong>מספר תיק שיוקצה:</strong>{' '}
+                              <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1', fontSize: '0.92rem' }}>
+                                {String(pending.parameters.claim_id)}
+                              </span>
+                            </div>
+                          ) : null}
+
+                          <div><strong>שם הלקוח:</strong> {String(pending.parameters.recipient_name || 'לקוח')}</div>
+                          {pending.parameters.recipient_phone ? <div><strong>טלפון (WhatsApp):</strong> {String(pending.parameters.recipient_phone)}</div> : null}
+                          {pending.parameters.recipient_email ? <div><strong>אימייל:</strong> {String(pending.parameters.recipient_email)}</div> : null}
+                          <div><strong>ערוץ שליחה:</strong> {String(pending.parameters.channel || 'copy') === 'whatsapp' ? 'WhatsApp' : String(pending.parameters.channel) === 'email' ? 'אימייל' : String(pending.parameters.channel) === 'both' ? 'אימייל + WhatsApp' : 'העתקת קישור'}</div>
+
+                          {pending.parameters.intake_url ? (
+                            <div style={{ marginTop: 8, background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', wordBreak: 'break-all' }}>
+                              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginBottom: 2 }}>כתובת קישור טופס פתיחת התיק:</div>
+                              <div style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#0f172a' }}>
+                                {String(pending.parameters.intake_url)}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {/* Interactive Preview Buttons */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: 10 }}>
+                            {pending.parameters.intake_url ? (
+                              <a
+                                href={String(pending.parameters.intake_url)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-g btn-xs"
+                                data-testid="claims-ai-preview-open-intake-btn"
+                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                title="פותח את טופס הלקוח בטאב חדש לבדיקה בלבד (ללא שליחה וללא כפילויות)"
+                              >
+                                👁️ פתח ובדוק קישור
+                              </a>
+                            ) : null}
+
+                            {pending.parameters.intake_url ? (
+                              <button
+                                type="button"
+                                className="btn btn-g btn-xs"
+                                data-testid="claims-ai-preview-copy-intake-btn"
+                                onClick={() => void copyToClipboard(String(pending.parameters.intake_url), `intake-${pending.preview_id || msg.id}`)}
+                                title="העתק את קישור פתיחת התיק ללוח"
+                              >
+                                {copiedLinkMap[`intake-${pending.preview_id || msg.id}`] ? '✓ הועתק!' : '📋 העתק קישור'}
+                              </button>
+                            ) : null}
+
+                            {pending.parameters.wa_link ? (
+                              <a
+                                href={String(pending.parameters.wa_link)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-g btn-xs"
+                                data-testid="claims-ai-preview-wa-intake-btn"
+                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                title="פתיחת וואטסאפ עם הודעה מוכנה הכוללת את קישור פתיחת התיק בלבד"
+                              >
+                                💬 שלח בוואטסאפ
+                              </a>
+                            ) : null}
+                          </div>
+
+                          <div style={{ marginTop: 8, fontSize: '0.76rem', color: '#64748b', lineHeight: '1.4' }}>
+                            ℹ️ בדיקת הקישור פותחת את טופס הלקוח בלבד ואינה שולחת ואינה פותחת תיק כפול. באישור: ייפתח התיק ויישמר בסטטוס "ממתין למילוי הלקוח", ויישלח במייל אם צוין.
+                          </div>
+                        </div>
+                      ) : null}
+                      {((pending.action_type === 'send_customer_upload_link') || (pending.action_type === 'send_customer_link' && pending.parameters?.link_type === 'upload')) && pending.parameters ? (
+                        <div
+                          className="claims-ai-preview-custlink"
+                          data-testid="claims-ai-preview-upload-card"
+                          style={{
+                            margin: '8px 0',
+                            fontSize: '0.82rem',
+                            background: 'rgba(245, 158, 11, 0.05)',
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            lineHeight: '1.6',
+                            border: '1px solid rgba(245, 158, 11, 0.3)',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <div style={{ fontWeight: 700, color: '#d97706', fontSize: '0.9rem' }}>
+                              📤 כרטיס אישור – העלאת מסמכים לתיק (claims-upload)
+                            </div>
+                            {pending.parameters.claim_id ? (
+                              <span style={{ fontSize: '0.72rem', background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>
+                                תיק {String(pending.parameters.claim_id)}
+                              </span>
+                            ) : null}
+                          </div>
+
                           <div><strong>נמען:</strong> {String(pending.parameters.recipient_name || 'הלקוח')}</div>
                           {pending.parameters.recipient_phone ? <div><strong>טלפון (WhatsApp):</strong> {String(pending.parameters.recipient_phone)}</div> : null}
                           {pending.parameters.recipient_email ? <div><strong>אימייל:</strong> {String(pending.parameters.recipient_email)}</div> : null}
-                          <div><strong>ערוץ מסירה:</strong> {String(pending.parameters.channel || 'copy') === 'whatsapp' ? 'WhatsApp' : String(pending.parameters.channel) === 'email' ? 'אימייל' : String(pending.parameters.channel) === 'both' ? 'אימייל + WhatsApp' : 'העתקת קישור'}</div>
-                          {pending.parameters.claim_id ? (
-                            <div style={{ marginTop: 2 }}>
-                              <strong>מספר תיק שיוקצה:</strong> <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{String(pending.parameters.claim_id)}</span>
-                              <span style={{ fontSize: '0.72rem', background: '#e0f2fe', color: '#0369a1', padding: '1px 6px', borderRadius: 4, marginRight: 6 }}>ממתין למילוי הלקוח</span>
+                          <div><strong>ערוץ שליחה:</strong> {String(pending.parameters.channel || 'copy') === 'whatsapp' ? 'WhatsApp' : String(pending.parameters.channel) === 'email' ? 'אימייל' : String(pending.parameters.channel) === 'both' ? 'אימייל + WhatsApp' : 'העתקת קישור'}</div>
+
+                          {pending.parameters.upload_url ? (
+                            <div style={{ marginTop: 8, background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', wordBreak: 'break-all' }}>
+                              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginBottom: 2 }}>כתובת קישור העלאת מסמכים:</div>
+                              <div style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#0f172a' }}>
+                                {String(pending.parameters.upload_url)}
+                              </div>
                             </div>
                           ) : null}
-                          <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'var(--t2)', fontWeight: 500 }}>
-                            ⚡ באישור: יוקצה מספר התיק הקבוע, ייפתח קישור מאובטח בתוקף ל-24 שעות לפתיחת התיק והעלאת מסמכים, והתיק יישמר בסטטוס "ממתין למילוי הלקוח".
+
+                          {/* Interactive Preview Buttons */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: 10 }}>
+                            {pending.parameters.upload_url ? (
+                              <a
+                                href={String(pending.parameters.upload_url)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-g btn-xs"
+                                data-testid="claims-ai-preview-open-upload-btn"
+                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                title="פותח את דף העלאת המסמכים בטאב חדש לבדיקה"
+                              >
+                                👁️ פתח ובדוק קישור
+                              </a>
+                            ) : null}
+
+                            {pending.parameters.upload_url ? (
+                              <button
+                                type="button"
+                                className="btn btn-g btn-xs"
+                                data-testid="claims-ai-preview-copy-upload-btn"
+                                onClick={() => void copyToClipboard(String(pending.parameters.upload_url), `upload-${pending.preview_id || msg.id}`)}
+                                title="העתק את קישור ההעלאה ללוח"
+                              >
+                                {copiedLinkMap[`upload-${pending.preview_id || msg.id}`] ? '✓ הועתק!' : '📋 העתק קישור'}
+                              </button>
+                            ) : null}
+
+                            {pending.parameters.wa_link ? (
+                              <a
+                                href={String(pending.parameters.wa_link)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-g btn-xs"
+                                data-testid="claims-ai-preview-wa-upload-btn"
+                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                title="פתיחת וואטסאפ עם קישור העלאת מסמכים"
+                              >
+                                💬 שלח בוואטסאפ
+                              </a>
+                            ) : null}
+                          </div>
+
+                          <div style={{ marginTop: 8, fontSize: '0.76rem', color: '#64748b', lineHeight: '1.4' }}>
+                            ⚡ באישור: ייפתח קישור מאובטח בתוקף ל-24 שעות להעלאת מסמכים ותמונות, והקישור יישלח בערוץ הנבחר.
                           </div>
                         </div>
                       ) : null}
                       {pending.action_type === 'create_share_link' && pending.parameters ? (
                         <div
                           className="claims-ai-preview-share"
+                          data-testid="claims-ai-preview-share-card"
                           style={{
                             margin: '8px 0',
                             fontSize: '0.82rem',
                             background: 'rgba(37, 99, 235, 0.05)',
-                            padding: '8px 12px',
-                            borderRadius: '6px',
+                            padding: '10px 14px',
+                            borderRadius: '8px',
                             lineHeight: '1.6',
-                            border: '1px solid rgba(37, 99, 235, 0.2)',
+                            border: '1px solid rgba(37, 99, 235, 0.25)',
                           }}
                         >
-                          <div style={{ fontWeight: 700, color: 'var(--c-primary, #2563eb)', marginBottom: 4 }}>
-                            📂 קישור שיתוף מסמכים מאובטח (claims-share)
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <div style={{ fontWeight: 700, color: 'var(--c-primary, #2563eb)', fontSize: '0.9rem' }}>
+                              📂 כרטיס אישור – קישור שיתוף מסמכים מאובטח (claims-share)
+                            </div>
+                            {pending.parameters.claim_id ? (
+                              <span style={{ fontSize: '0.72rem', background: '#dbeafe', color: '#1e40af', padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>
+                                תיק {String(pending.parameters.claim_id)}
+                              </span>
+                            ) : null}
                           </div>
+
                           <div><strong>נמען:</strong> {String(pending.parameters.recipient_name || '')} {pending.parameters.recipient_kind ? `(${String(pending.parameters.recipient_kind)})` : ''}</div>
                           {pending.parameters.recipient_email ? <div><strong>אימייל:</strong> {String(pending.parameters.recipient_email)}</div> : null}
                           {pending.parameters.recipient_phone ? <div><strong>טלפון (WhatsApp):</strong> {String(pending.parameters.recipient_phone)}</div> : null}
                           <div><strong>תוקף הקישור:</strong> {String(pending.parameters.ttl_hours || 72)} שעות</div>
-                          {Array.isArray(pending.parameters.file_titles) && (pending.parameters.file_titles as string[]).length > 0 ? (
-                            <div><strong>קבצים לשיתוף ({(pending.parameters.file_titles as string[]).length}):</strong> {(pending.parameters.file_titles as string[]).join(', ')}</div>
-                          ) : Array.isArray(pending.parameters.file_ids) ? (
-                            <div><strong>כמות קבצים:</strong> {(pending.parameters.file_ids as string[]).length} קבצים</div>
+
+                          {/* Selected Files List with Checkmarks */}
+                          <div style={{ marginTop: 8, marginBottom: 6 }}>
+                            <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>
+                              📄 מסמכים שנבחרו לשיתוף ({Array.isArray(pending.parameters.file_titles) ? (pending.parameters.file_titles as string[]).length : Array.isArray(pending.parameters.file_ids) ? (pending.parameters.file_ids as string[]).length : 0}):
+                            </div>
+                            {Array.isArray(pending.parameters.file_titles) && (pending.parameters.file_titles as string[]).length > 0 ? (
+                              <ul style={{ margin: '4px 0 0 0', paddingRight: '18px', listStyleType: 'none' }}>
+                                {(pending.parameters.file_titles as string[]).map((title, idx) => (
+                                  <li key={idx} style={{ color: '#047857', display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', marginBottom: 2 }}>
+                                    <span>✓</span>
+                                    <span>{title}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : Array.isArray(pending.parameters.file_ids) && (pending.parameters.file_ids as string[]).length > 0 ? (
+                              <div style={{ color: '#047857', fontSize: '0.8rem' }}>
+                                ✓ {(pending.parameters.file_ids as string[]).length} קבצים נבחרו
+                              </div>
+                            ) : (
+                              <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>טרם נבחרו קבצים</div>
+                            )}
+                          </div>
+
+                          {/* Missing Documents Alert & Upload Button */}
+                          {Array.isArray(pending.parameters.missing_documents) && (pending.parameters.missing_documents as string[]).length > 0 ? (
+                            <div
+                              data-testid="claims-ai-missing-docs-alert"
+                              style={{
+                                marginTop: 8,
+                                marginBottom: 8,
+                                background: '#fffbeb',
+                                border: '1px solid #fde68a',
+                                borderRadius: 6,
+                                padding: '8px 12px',
+                              }}
+                            >
+                              <div style={{ color: '#b45309', fontWeight: 700, fontSize: '0.82rem', marginBottom: 4 }}>
+                                ⚠️ מסמכים שהתבקשו וחסרים בתיק:
+                              </div>
+                              {(pending.parameters.missing_documents as string[]).map((missingName, idx) => (
+                                <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 4, padding: '4px 0', borderBottom: idx < (pending.parameters.missing_documents as string[]).length - 1 ? '1px dashed #fcd34d' : 'none' }}>
+                                  <span style={{ color: '#92400e', fontSize: '0.8rem' }}>
+                                    • {missingName}
+                                  </span>
+                                  <label
+                                    className="btn btn-g btn-xs"
+                                    data-testid={`claims-ai-upload-missing-${idx}`}
+                                    style={{
+                                      cursor: uploadingMissingDocKey === missingName ? 'wait' : 'pointer',
+                                      margin: 0,
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      fontSize: '0.75rem',
+                                      color: '#b45309',
+                                      borderColor: '#f59e0b',
+                                      background: '#fff',
+                                    }}
+                                    title={`העלה ${missingName} לתיק`}
+                                  >
+                                    {uploadingMissingDocKey === missingName ? 'מעלה...' : `📤 העלה מסמך חסר (${missingName})`}
+                                    <input
+                                      type="file"
+                                      accept="image/*,application/pdf"
+                                      disabled={uploadingMissingDocKey === missingName}
+                                      style={{ display: 'none' }}
+                                      onChange={(e) => {
+                                        const f = e.target.files?.[0];
+                                        if (f) {
+                                          void handleUploadMissingDoc(msg, pending, missingName, f);
+                                        }
+                                        e.target.value = '';
+                                      }}
+                                    />
+                                  </label>
+                                </div>
+                              ))}
+                              <div style={{ fontSize: '0.74rem', color: '#78350f', marginTop: 6 }}>
+                                💡 ניתן להעלות את המסמך עכשיו ישירות מהמכשיר/מחשב. לאחר ההעלאה הוא יתווסף לרשימת השיתוף ויופק קישור.
+                              </div>
+                            </div>
                           ) : null}
-                          <div style={{ marginTop: 6, fontSize: '0.78rem', color: 'var(--t2)', fontWeight: 500 }}>
-                            ⚡ באישור: המערכת תייצר קישור שיתוף מוגן עבור המסמכים שנבחרו בלבד, תאפשר פתיחה בוואטסאפ או שליחה במייל, ותתעד בהיסטוריה.
+
+                          {/* Share URL Box */}
+                          {pending.parameters.share_url ? (
+                            <div style={{ marginTop: 8, background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', wordBreak: 'break-all' }}>
+                              <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginBottom: 2 }}>קישור שיתוף מאובטח מוכן:</div>
+                              <div style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#0f172a' }}>
+                                {String(pending.parameters.share_url)}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {/* Interactive Preview Buttons */}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: 10 }}>
+                            {pending.parameters.share_url ? (
+                              <a
+                                href={String(pending.parameters.share_url)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-g btn-xs"
+                                data-testid="claims-ai-preview-open-share-btn"
+                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                title="פתח ובדוק את קישור השיתוף בטאב חדש"
+                              >
+                                👁️ פתח ובדוק קישור
+                              </a>
+                            ) : null}
+
+                            {pending.parameters.share_url ? (
+                              <button
+                                type="button"
+                                className="btn btn-g btn-xs"
+                                data-testid="claims-ai-preview-copy-share-btn"
+                                onClick={() => void copyToClipboard(String(pending.parameters.share_url), `share-${pending.preview_id || msg.id}`)}
+                                title="העתק את קישור השיתוף ללוח"
+                              >
+                                {copiedLinkMap[`share-${pending.preview_id || msg.id}`] ? '✓ הועתק!' : '📋 העתק קישור'}
+                              </button>
+                            ) : null}
+
+                            {pending.parameters.wa_link ? (
+                              <a
+                                href={String(pending.parameters.wa_link)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-g btn-xs"
+                                data-testid="claims-ai-preview-wa-share-btn"
+                                style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                                title="פתיחת וואטסאפ עם קישור השיתוף והמסמכים המבוקשים בלבד"
+                              >
+                                💬 שלח בוואטסאפ
+                              </a>
+                            ) : null}
+                          </div>
+
+                          <div style={{ marginTop: 8, fontSize: '0.76rem', color: 'var(--t2)', fontWeight: 500 }}>
+                            ⚡ באישור: המערכת תוודא את קישור השיתוף המוגן עבור המסמכים שנבחרו בלבד, תשלח במייל אם הוגדר, ותתעד בהיסטוריית התיק.
                           </div>
                         </div>
                       ) : null}
@@ -2191,7 +2610,8 @@ export function ClaimsAiWorkspace({
                             type="button"
                             className="btn btn-p btn-sm"
                             data-testid="claims-ai-confirm-btn"
-                            disabled={!!executingActionId}
+                            disabled={!!executingActionId || (Array.isArray(pending.parameters?.missing_documents) && (pending.parameters?.missing_documents as string[]).length > 0)}
+                            title={Array.isArray(pending.parameters?.missing_documents) && (pending.parameters?.missing_documents as string[]).length > 0 ? 'יש להעלות תחילה את המסמכים החסרים' : undefined}
                             onClick={() => void handleConfirmPending(msg, pending)}
                           >
                             אישור
