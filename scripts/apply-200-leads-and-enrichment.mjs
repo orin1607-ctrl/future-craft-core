@@ -1558,7 +1558,7 @@ V.companies = () => {
   if (!updated.includes("openprospector-national-registry.js")) {
     const bodyEnd = updated.lastIndexOf("</body>");
     if (bodyEnd !== -1) {
-      updated = updated.slice(0, bodyEnd) + '<script src="openprospector-national-registry.js?v=20261019leads2"></script>\n' + updated.slice(bodyEnd);
+      updated = updated.slice(0, bodyEnd) + '<script src="openprospector-national-registry.js?v=20261019control1"></script>\n' + updated.slice(bodyEnd);
     }
   }
   return updated;

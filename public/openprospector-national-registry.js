@@ -37,6 +37,8 @@
     ind: null,
     // Dalia leads streamed from the registry into prospect_leads (the 7 rules run only there)
     leads: { f: {}, data: null, stats: null, page: 0, loading: false, err: "" },
+    // engine control panel + open alerts (banner on every registry screen)
+    ctl: null, ctlLoading: false, ctlErr: "", alerts: [], alertsAt: 0,
   };
   const persist = () => { try { localStorage.setItem(LS_KEY, JSON.stringify({ sub: ST.sub, filters: ST.filters, sort: ST.sort, pageSize: ST.pageSize })); } catch (e) { /* storage blocked */ } };
 
@@ -220,6 +222,8 @@
     if (ST.sub === "outreach" && !ST.out.summary && !ST.out.sumLoading) setTimeout(loadOutreachSummary, 0);
     if (!ST.ind && !ST.indLoading) { ST.indLoading = true; setTimeout(loadIndustries, 0); }
     if (ST.sub === "leads" && !ST.leads.data && !ST.leads.loading && !ST.leads.err) setTimeout(loadLeads, 0);
+    if (ST.sub === "control" && !ST.ctl && !ST.ctlLoading && !ST.ctlErr) setTimeout(loadControl, 0);
+    if (Date.now() - ST.alertsAt > 60000) { ST.alertsAt = Date.now(); setTimeout(loadAlerts, 0); }
     if (ST.sub === "outreach" && !ST.out.rows && !ST.out.loading && !ST.out.error) setTimeout(loadOutreach, 0);
     if (ST.pendingBiz && !ST.modal) { const id = ST.pendingBiz; ST.pendingBiz = 0; setTimeout(() => openBiz(id), 0); }
     if (!ST.timer) autoRefresh();
@@ -229,9 +233,10 @@
       <button class="btn btn-sm ${ST.sub === "leads" ? "btn-primary" : ""}" data-nr="sub" data-v="leads">🚚 לידים לדליה – מתעדכן אוטומטית${ST.leads.stats ? ` <span class="badge b-ok">${n(ST.leads.stats.total)}</span>` : ""}</button>
       <button class="btn btn-sm ${ST.sub === "outreach" ? "btn-primary" : ""}" data-nr="sub" data-v="outreach">🎯 רשימות עבודה לשיווק</button>
       <button class="btn btn-sm ${ST.sub === "collection" ? "btn-primary" : ""}" data-nr="sub" data-v="collection">⚙️ איסוף ומקורות</button>
+      <button class="btn btn-sm ${ST.sub === "control" ? "btn-primary" : ""}" data-nr="sub" data-v="control">🎛️ מסך שליטה${ST.alerts.length ? ` <span class="badge b-bad">${n(ST.alerts.length)}</span>` : ""}</button>
       <span class="spacer"></span><span class="badge b-ok">STAGING</span><span class="badge b-est">ללא 7 חוקי הסינון – אין מחיקה</span></div>`;
-    const body = ST.sub === "leads" ? leadsView() : ST.sub === "browse" ? industryCard() + browseView() : ST.sub === "enrich" ? enrichView() : ST.sub === "outreach" ? outreachView() : collectionView();
-    return `<div style="display:grid;gap:14px">${subTabs}${kpiStrip()}${body}</div>${modal()}`;
+    const body = ST.sub === "control" ? controlView() : ST.sub === "leads" ? leadsView() : ST.sub === "browse" ? industryCard() + browseView() : ST.sub === "enrich" ? enrichView() : ST.sub === "outreach" ? outreachView() : collectionView();
+    return `<div style="display:grid;gap:14px">${subTabs}${alertBanner()}${kpiStrip()}${body}</div>${modal()}`;
   };
 
   function kpiStrip() {
@@ -994,6 +999,83 @@
     return head + filters + table;
   }
 
+  // ── engine control & alerts ──
+  async function loadAlerts() {
+    try { ST.alerts = (await rpc("nr_open_alerts")) || []; } catch (e) { /* banner stays as it was */ }
+    rerender();
+  }
+  async function loadControl() {
+    ST.ctlLoading = true; ST.ctlErr = ""; rerender();
+    try { ST.ctl = await rpc("nr_control_panel"); ST.alerts = (ST.ctl.alerts || []).filter((a) => !a.resolved_at); ST.alertsAt = Date.now(); }
+    catch (e) { ST.ctlErr = e.message || String(e); }
+    ST.ctlLoading = false; rerender();
+  }
+  async function setEngine(engine, on) {
+    if (engine === "all" && !on && !window.confirm("עצירת חירום: כל מנועי OpenProspector יפסיקו להתחיל ריצות חדשות (ריצה שכבר רצה תסתיים). הנתונים וההתקדמות נשמרים. להמשיך?")) return;
+    try {
+      await rpc("nr_set_engine", { p_engine: engine, p_on: on });
+      toast(engine === "all" ? (on ? "כל המנועים הופעלו מחדש – ממשיכים מאותה נקודה" : "עצירת חירום הופעלה – לא יתחילו ריצות חדשות") : (on ? "המנוע הופעל – ממשיך מאותה נקודה" : "המנוע ייעצר אחרי הריצה הנוכחית"));
+    } catch (e) { toast("השינוי לא נשמר: " + e.message); }
+    loadControl();
+  }
+  function alertBanner() {
+    const a = ST.alerts || [];
+    if (!a.length) return "";
+    return `<div class="card" style="border:2px solid var(--bad);background:var(--bad-bg)"><div class="card-b" style="display:grid;gap:4px">
+      <div class="row"><b style="color:var(--bad)">🚨 ${n(a.length)} התרעות פתוחות במנועי האיסוף</b><span class="spacer"></span><button class="btn btn-sm" data-nr="sub" data-v="control">למסך השליטה</button></div>
+      ${a.slice(0, 4).map((x) => `<div class="xs"><span class="badge ${x.level === "critical" ? "b-bad" : "b-est"}">${x.level === "critical" ? "קריטי" : "אזהרה"}</span> ${esc(x.title)} <span class="muted">· ${esc(x.detail || "")} · מאז ${when(x.since || x.first_seen)}</span></div>`).join("")}
+    </div></div>`;
+  }
+  function controlView() {
+    const c = ST.ctl;
+    if (ST.ctlErr) return `<div class="card card-b"><span class="badge b-bad" style="white-space:normal">${esc(ST.ctlErr)}</span></div>`;
+    if (!c) return `<div class="card card-b muted">⏳ טוען את מצב המנועים…</div>`;
+    const can = !!c.can_control;
+    const state = (e) => {
+      if (c.emergency_stop) return ["⛔ עצירת חירום", "b-bad"];
+      if (!e.enabled) return ["⏸ כבוי (מתג המנוע)", "b-no"];
+      if (!e.legacy_on) return ["⏸ כבוי (מתג איסוף / העשרה כללי)", "b-no"];
+      const stale = e.has_work && (!e.last_ok || Date.now() - Date.parse(e.last_ok) > parseInterval(e.stale_after));
+      if (stale) return ["🚨 תקוע – אין הצלחה", "b-bad"];
+      if (!e.has_work) return ["✓ פעיל – אין עבודה ממתינה", "b-ok"];
+      return ["✓ פעיל", "b-ok"];
+    };
+    const pct = c.max_db_mb ? Math.round((100 * c.db_mb) / c.max_db_mb) : 0;
+    const head = `<div class="card"><div class="card-h"><h2>🎛️ מסך שליטה – כל המנועים<span class="h-bar"></span></h2><span class="spacer"></span>
+        <span class="xs muted">עודכן ${when(c.at)} · כלב השמירה בדק לאחרונה ${when(c.watchdog_at)}</span><button class="btn btn-sm" data-nr="ctlrefresh">🔄</button>
+        ${can ? (c.emergency_stop ? `<button class="btn btn-sm btn-primary" data-nr="engine" data-v="all" data-on="1">▶ הפעל את כל המנועים</button>`
+                                  : `<button class="btn btn-sm" style="background:var(--bad);color:#fff" data-nr="engine" data-v="all" data-on="0">⛔ עצור הכול (חירום)</button>`) : ""}</div>
+      <div class="card-b" style="display:grid;gap:10px"><div class="grid g-kpi tiles">
+        ${kpi("נפח מסד הנתונים", `${n(c.db_mb)} MB`, `${pct}% מתקרת האיסוף (${n(c.max_db_mb)} MB) · הדיסק הכלול: 8GB`)}
+        ${kpi("קריאות שרת בשעה האחרונה", n(c.edge_calls_hour), `${n(c.edge_cut_hour)} נקטעו במגבלת המעבד · ${n(c.edge_err_hour)} שגיאות אחרות`)}
+        ${kpi("התרעות פתוחות", n((c.alerts || []).filter((a) => !a.resolved_at).length), "מנוע עם עבודה בלי הצלחה 15 דק', נפח, קטיעות")}
+      </div>
+      <div class="xs muted">עצירה: ריצה שכבר התחילה מסתיימת, ושום ריצה חדשה לא מתחילה (תוך 1–2 דקות). ההתקדמות נשמרת, והפעלה מחדש ממשיכה מאותה נקודה.
+        כפתורי ההפעלה והעצירה זמינים רק למשתמש עם הרשאת ניהול איסוף.${can ? "" : " <b>למשתמש הנוכחי אין הרשאת ניהול – תצוגה בלבד.</b>"}</div></div></div>`;
+    const table = `<div class="card"><div class="tbl-wrap"><table><thead><tr><th>מנוע</th><th>מצב</th><th>הצלחה אחרונה</th><th>שגיאה אחרונה</th><th>עבודה ממתינה</th><th></th></tr></thead><tbody>
+      ${(c.engines || []).map((e) => { const [l, cls] = state(e); return `<tr>
+        <td><div class="co-name">${esc(e.label)}</div><div class="xs muted" style="max-width:360px;white-space:normal">${esc(e.covers)}</div></td>
+        <td><span class="badge ${cls}">${l}</span></td>
+        <td class="xs">${e.last_ok ? when(e.last_ok) : "—"}</td>
+        <td class="xs" style="max-width:280px;white-space:normal">${e.last_err ? `${when(e.last_err)}<div class="muted">${esc(String(e.last_err_msg || "").slice(0, 140))}</div>` : "—"}</td>
+        <td class="xs">${e.has_work ? "כן" : "לא"}</td>
+        <td>${can && !c.emergency_stop ? (e.enabled ? `<button class="btn btn-sm" data-nr="engine" data-v="${esc(e.engine)}" data-on="0">⏸ עצור</button>` : `<button class="btn btn-sm btn-primary" data-nr="engine" data-v="${esc(e.engine)}" data-on="1">▶ הפעל</button>`) : ""}</td></tr>`; }).join("")}
+      </tbody></table></div></div>`;
+    const al = (c.alerts || []);
+    const alerts = `<div class="card"><div class="card-h"><h2>התרעות – פתוחות ומ-24 השעות האחרונות<span class="h-bar"></span></h2></div><div class="card-b" style="display:grid;gap:4px">
+      ${al.map((a) => `<div class="xs">${a.resolved_at ? '<span class="badge b-ok">נפתרה</span>' : `<span class="badge ${a.level === "critical" ? "b-bad" : "b-est"}">${a.level === "critical" ? "קריטי" : "אזהרה"}</span>`}
+        <b>${esc(a.title)}</b> <span class="muted">· ${esc(a.detail || "")} · נפתחה ${when(a.first_seen)}${a.resolved_at ? " · נפתרה " + when(a.resolved_at) : ""}</span></div>`).join("") || '<div class="xs muted">אין התרעות.</div>'}
+      <div class="xs muted">כלב השמירה בודק כל 5 דקות. התרעה מוצגת כאן ובראש כל מסכי המאגר, ונרשמת ביומן האירועים. אין שליחת אימייל או הודעה (תדרוש שירות שליחה חיצוני).</div></div></div>`;
+    return head + table + alerts;
+  }
+  // "00:15:00" / "1 day 06:00:00" → milliseconds
+  function parseInterval(s) {
+    const t = String(s || "");
+    const d = t.match(/(\d+) days?/), h = t.match(/(\d+):(\d+):(\d+)/);
+    if (!d && !h) return 15 * 60000;
+    return ((Number(d ? d[1] : 0) * 24 + Number(h ? h[1] : 0)) * 3600 + Number(h ? h[2] : 0) * 60 + Number(h ? h[3] : 0)) * 1000;
+  }
+
   // ── actions ──
   async function openSource(key) {
     const s = ST.sources.find((x) => x.key === key);
@@ -1165,6 +1247,8 @@
     else if (act === "oexport") exportOutreach();
     else if (act === "lapply") { ST.leads.f = readLeadFilters(); ST.leads.page = 0; loadLeads(); }
     else if (act === "lrefresh") loadLeads();
+    else if (act === "ctlrefresh") loadControl();
+    else if (act === "engine") setEngine(v, el.dataset.on === "1");
     else if (act === "ltier") { ST.leads.f = Object.assign({}, ST.leads.f, { tier: v }); ST.leads.page = 0; loadLeads(); }
     else if (act === "lpage") { ST.leads.page = Math.max(0, ST.leads.page + Number(v)); loadLeads(); window.scrollTo(0, 0); }
     else if (act === "osum") loadOutreachSummary();

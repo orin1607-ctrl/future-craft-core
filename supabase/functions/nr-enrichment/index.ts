@@ -837,8 +837,11 @@ async function tick(sb: SupabaseClient) {
   if (!locked) return { skipped: "another enrichment tick is running" };
   const steps: unknown[] = [];
   try {
-    const { data: ctl } = await sb.from("nr_control").select("enrich_running").eq("id", 1).single();
+    const { data: ctl } = await sb.from("nr_control").select("enrich_running,engines").eq("id", 1).single();
     if (!ctl?.enrich_running) return { skipped: "stopped" };
+    // per-engine switches (missing = on; "all" = emergency stop): watch and deep crawl run inside the tick
+    const eng = (ctl.engines || {}) as Record<string, boolean>;
+    const on = (e: string) => eng.all !== false && eng[e] !== false;
     const at = (f: number) => t0 + TICK_BUDGET_MS * f;
     const run = async (key: string, f: (s: Src) => Promise<unknown>) => {
       const s = await source(sb, key);
@@ -851,13 +854,19 @@ async function tick(sb: SupabaseClient) {
       const s = await source(sb, k);
       if (s && ["pending", "collecting"].includes(s.status) && Date.now() < at(0.2)) await run(k, (x) => stepGov(sb, x, at(0.2)));
     }
-    await run("enr:watch", (s) => stepWatch(sb, s, at(0.25)));
+    if (on("watch")) {
+      const before = steps.length;
+      await run("enr:watch", (s) => stepWatch(sb, s, at(0.25)));
+      if (steps.length > before) await sb.rpc("nr_beat", { p_engine: "watch", p_ok: true });
+    }
     const wd = await source(sb, "enr:wikidata");
     if (wd && (["pending", "collecting"].includes(wd.status) || (wd.status === "completed" && Date.now() - Date.parse(String(wd.config.last_full_run || 0)) > 7 * 86400_000))) await run("enr:wikidata", (s) => stepWikidata(sb, s, at(0.4)));
     await run("enr:taasuka_jobs", (s) => stepJobs(sb, s, at(0.45)));
     await run("enr:web_discovery", (s) => stepDiscovery(sb, s, at(0.55)));
-    await run("enr:web_deep", (s) => stepDeep(sb, s, at(0.85)));
-    await run("enr:rel_discovery", (s) => stepRelDiscovery(sb, s, at(1)));
+    if (on("deep")) {
+      await run("enr:web_deep", (s) => stepDeep(sb, s, at(0.85)));
+      await run("enr:rel_discovery", (s) => stepRelDiscovery(sb, s, at(1)));
+    }
     const rss = await source(sb, "enr:news_rss");
     if (rss && !["blocked", "unsupported"].includes(rss.status) && (!rss.last_run_at || Date.now() - Date.parse(rss.last_run_at) > 3 * 3600_000) && Date.now() < t0 + TICK_BUDGET_MS + 15_000) steps.push(await stepRss(sb, rss));
     await sb.rpc("nr_refresh_enrich_recent", { p_minutes: 4 });
@@ -1264,13 +1273,17 @@ Deno.serve(async (req) => {
   if ("error" in auth) return auth.error;
   const body = await req.json().catch(() => ({})) as { action?: string; url?: string; worker?: number };
   const sb = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+  // heartbeat per engine (read by the watchdog: an engine with work and no success for 15 minutes raises an alert)
+  const ENGINE: Record<string, string> = { tick: "enrich", identify: "identify", feeder: "identify", leads: "leads", deep: "deep" };
+  const action = body.action || "tick";
+  const beat = (ok: boolean, msg?: string) => ENGINE[action] ? sb.rpc("nr_beat", { p_engine: ENGINE[action], p_ok: ok, p_msg: msg ?? null }).then(() => {}, () => {}) : Promise.resolve();
   try {
-    const action = body.action || "tick";
-    if (action === "tick") return jsonResponse({ ok: true, ...(await tick(sb)) });
-    if (action === "identify") return jsonResponse({ ok: true, ...(await identifyWorker(sb, Math.max(1, Number(body.worker || 1)))) });
+    const done = async (r: Record<string, unknown>) => { await beat(true); return jsonResponse({ ok: true, ...r }); };
+    if (action === "tick") return await done(await tick(sb));
+    if (action === "identify") return await done(await identifyWorker(sb, Math.max(1, Number(body.worker || 1))));
     if (action === "harvest_cc") return jsonResponse({ ok: true, ...(await harvestCc(sb, (body as { graph?: string }).graph)) });
-    if (action === "feeder") return jsonResponse({ ok: true, ...(await feeder(sb)) });
-    if (action === "leads") return jsonResponse({ ok: true, ...(await leadsStep(sb)) });
+    if (action === "feeder") return await done(await feeder(sb));
+    if (action === "leads") return await done(await leadsStep(sb));
     // a second deep-crawl call on the alternate minute: identification now attaches ~700 sites an hour, more than one
     // 30-site slice per tick reads (claims are SKIP LOCKED, so both calls never read the same site)
     if (action === "deep") {
@@ -1278,12 +1291,13 @@ Deno.serve(async (req) => {
       if (!ctl?.enrich_running) return jsonResponse({ ok: true, skipped: "stopped" });
       const src = await source(sb, "enr:web_deep");
       if (!src) return jsonResponse({ ok: false, error: "no source" });
-      return jsonResponse({ ok: true, ...(await stepDeep(sb, src, Date.now() + 100_000)) });
+      return await done(await stepDeep(sb, src, Date.now() + 100_000) as Record<string, unknown>);
     }
     // diagnostics: parse one job page without writing anything
     if (action === "probe_job" && body.url) { const r = await get(body.url); return jsonResponse({ ok: true, status: r.status, job: parseJob(r.body, body.url), head: r.body.slice(0, 600) }); }
     return jsonResponse({ ok: false, error: "unknown action" }, 400);
   } catch (e) {
+    await beat(false, (e as Error).message);
     await event(sb, "error", "nr-enrichment: " + (e as Error).message.slice(0, 300)).catch(() => {});
     return jsonResponse({ ok: false, error: (e as Error).message }, 500);
   }

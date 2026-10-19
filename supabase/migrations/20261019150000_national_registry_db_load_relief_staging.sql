@@ -110,6 +110,7 @@ BEGIN
     INSERT INTO _touched SELECT id FROM public.nr_businesses WHERE updated_at > v_since ON CONFLICT DO NOTHING;
     INSERT INTO _touched SELECT business_id FROM public.nr_findings WHERE updated_at > v_since AND business_id IS NOT NULL ON CONFLICT DO NOTHING;
   END IF;
+  ANALYZE _touched;   -- temp tables have no statistics; without them the planner picks scans over the whole table
   CREATE TEMP TABLE IF NOT EXISTS _fleet (id bigint PRIMARY KEY, lv text, items jsonb, mn int, rc text) ON COMMIT DROP;
   TRUNCATE _fleet;
   INSERT INTO _fleet (id, lv, items, mn, rc)
@@ -201,6 +202,7 @@ BEGIN
       FROM ev
   )
   SELECT l.id, l.lv, l.items, l.mn, l.rc FROM lvl l;
+  ANALYZE _fleet;
 
   -- changed evidence also asks the lead stream to look at the company again (lead_checked_at)
   UPDATE public.nr_businesses b SET fleet_level = f.lv, fleet_evidence = f.items, fleet_min = f.mn, fleet_contact = f.rc, fleet_at = now(),
@@ -213,11 +215,19 @@ BEGIN
   GET DIAGNOSTICS v_set = ROW_COUNT;
   -- companies that are no longer candidates (inactive, a finding rejected in review …) lose their level
   UPDATE public.nr_businesses b SET fleet_level = NULL, fleet_evidence = NULL, fleet_min = NULL, fleet_score = NULL, fleet_contact = NULL, fleet_at = now()
-   WHERE b.fleet_level IS NOT NULL AND (p_full OR b.id IN (SELECT id FROM _touched))
+   WHERE b.fleet_level IS NOT NULL AND p_full
      AND NOT EXISTS (SELECT 1 FROM _fleet f WHERE f.id = b.id AND f.lv IS NOT NULL);
   GET DIAGNOSTICS v_clear = ROW_COUNT;
-  RETURN jsonb_build_object('updated', v_set, 'cleared', v_clear,
-    'levels', (SELECT jsonb_object_agg(coalesce(fleet_level, '-'), c) FROM (SELECT fleet_level, count(*) c FROM public.nr_businesses WHERE fleet_level IS NOT NULL GROUP BY 1) q));
+  -- incremental: only the touched companies (driven by the small temp table, primary-key lookups)
+  IF NOT p_full THEN
+    UPDATE public.nr_businesses b SET fleet_level = NULL, fleet_evidence = NULL, fleet_min = NULL, fleet_score = NULL, fleet_contact = NULL, fleet_at = now()
+      FROM _touched t
+     WHERE b.id = t.id AND b.fleet_level IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM _fleet f WHERE f.id = b.id AND f.lv IS NOT NULL);
+    GET DIAGNOSTICS v_clear = ROW_COUNT;
+  END IF;
+  RETURN jsonb_build_object('updated', v_set, 'cleared', v_clear, 'mode', CASE WHEN p_full THEN 'full' ELSE 'incremental' END,
+    'touched', (SELECT count(*) FROM _touched), 'evaluated', (SELECT count(*) FROM _fleet));
 END;
 $$;
 REVOKE ALL ON FUNCTION public.nr_fleet_refresh(boolean, interval) FROM PUBLIC, anon, authenticated;
