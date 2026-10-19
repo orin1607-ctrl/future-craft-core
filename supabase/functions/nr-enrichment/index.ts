@@ -959,12 +959,14 @@ function cleanName(n: string, domain: string): string {
 // (A /[^\n]*word[^\n]*/ scan is quadratic on pages whose text is one long line: 10 s of CPU on an 80 KB line.)
 function addressLines(text: string): string[] {
   const out: string[] = [];
-  for (const m of text.matchAll(/כתובת|רחוב|רח['׳]|ת\.ד|שד['׳]|שדרות|address/gi)) {
+  // whole words only: "רחוב" inside "רחובות" is the city Rehovot, not an address line
+  for (const m of text.matchAll(/(?<![א-ת])(?:כתובת|רחוב|רח['׳]|ת\.ד|שד['׳]|שדרות)(?![א-ת])|address/gi)) {
     const i = m.index ?? 0;
     const s = Math.max(text.lastIndexOf("\n", i) + 1, i - 120);
     const e0 = text.indexOf("\n", i);
     const e = Math.min(e0 < 0 ? text.length : e0, i + m[0].length + 120);
-    out.push(text.slice(s, e));
+    const snip = text.slice(s, e);
+    if (!out.includes(snip)) out.push(snip);
     if (out.length >= 4) break;
   }
   return out;
@@ -1021,7 +1023,11 @@ async function readIdentity(domain: string): Promise<{ status: string; note?: st
       } catch { /* contact page not reachable */ }
     }
   }
-  if (!address) { const m = text.match(/(?:כתובת|כתובתנו|משרדינו|address)\s*[:：]?\s*([^\n]{6,80})/i); if (m) address = clean(m[1]); }
+  if (!address) {
+    const m = text.match(/(?:כתובת|כתובתנו|משרדינו|address)\s*[:：]?\s*([^\n]{6,80})/i);
+    // "כתובת מייל" / "כתובת למשלוח" is a label, not the business address
+    if (m && !/^\s*[-:*]?\s*(מייל|אימייל|דוא|e-?mail|למשלוח|לשליחת|המייל)/i.test(m[1])) address = clean(m[1]);
+  }
   if (!city && address.includes(",")) city = clean(address.split(",").pop() || "").replace(/\d+/g, "").replace(/[.]+$/, "").trim();
   const og = (html.match(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)["']/i) || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:site_name["']/i) || [])[1] || "";
   const cr = (text.match(COPYRIGHT) || [])[1] || "";
