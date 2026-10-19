@@ -627,7 +627,7 @@
     const intel = `<div class="card"><div class="card-h"><h2>מודיעין עסקי – אתרים, רשתות וקשרים<span class="h-bar"></span></h2><span class="spacer"></span>
         <span class="xs muted">ריצה אחרונה: ${when(it.last_run)} · ${n(it.runs_last_hour)} מנות בשעה האחרונה${it.failed_last_hour ? ` · ${n(it.failed_last_hour)} נכשלו` : ""} · מנוע ${it.engine_running ? "פועל" : "עצור"}</span></div>
       <div class="card-b"><div class="grid g-kpi tiles">
-      ${kpi("עסקים חדשים שנמצאו", n(it.new_businesses), "רק עם ח.פ. תקין שמופיע באתר שלהם")}
+      ${kpi("עסקים חדשים שנמצאו", n(it.new_businesses), "ח.פ. תקין באתר, או זהות ברורה: שם + טלפון + עיר, ללא עסק דומה במאגר")}
       ${kpi("אתרי אינטרנט שהתגלו", n(it.websites_found), `${n(it.with_website)} עסקים עם אתר כיום`, filt("new_website"))}
       ${kpi("קישורי פייסבוק", n(it.facebook), "עסקים עם עמוד פייסבוק", ` data-nr-enfilter="fb_yes" style="cursor:pointer"`)}
       ${kpi("קישורי לינקדאין", n(it.linkedin), "")}

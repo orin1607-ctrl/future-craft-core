@@ -47,7 +47,7 @@ BEGIN
          FROM public.nr_findings f JOIN public.nr_watch w ON w.business_id = f.business_id AND w.active
          JOIN public.nr_businesses b ON b.id = f.business_id LEFT JOIN public.nr_sources s ON s.key = f.source_key
         WHERE f.match_status = 'matched' AND (f.discovered_at >= w.created_at - interval '1 minute' OR (f.detail->>'changed_at')::timestamptz >= w.created_at)
-        ORDER BY 12 DESC LIMIT least(greatest(p_limit, 1), 500)) x));
+        ORDER BY 10 DESC LIMIT least(greatest(p_limit, 1), 500)) x));
 END;
 $$;
 REVOKE ALL ON FUNCTION public.nr_watch_updates(int) FROM PUBLIC, anon;

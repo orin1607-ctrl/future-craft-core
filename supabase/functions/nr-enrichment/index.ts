@@ -51,8 +51,15 @@ async function get(url: string, timeoutMs = 12_000, accept = "text/html"): Promi
   const r = await fetch(url, { headers: { "User-Agent": UA, Accept: accept, "Accept-Language": "he,en;q=0.8" }, redirect: "follow", signal: AbortSignal.timeout(timeoutMs) });
   const type = r.headers.get("content-type") || "";
   let body = "";
-  if (/text|xml|json|html/i.test(type) || !type) { const t = await r.text(); body = t.length > PAGE_CAP ? t.slice(0, PAGE_CAP * 0.7) + t.slice(-PAGE_CAP * 0.3) : t; }
-  else await r.body?.cancel().catch(() => {});
+  if ((/text|xml|json|html/i.test(type) || !type) && r.body) {
+    // stream and stop at the cap: one oversized page must not exhaust the call's memory (546 WORKER_RESOURCE_LIMIT)
+    const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
+    try {
+      while (body.length < PAGE_CAP) { const { value, done } = await reader.read(); if (done) break; body += value; }
+    } catch { /* connection dropped mid-page: keep what arrived */ }
+    reader.cancel().catch(() => {});
+    if (body.length > PAGE_CAP) body = body.slice(0, PAGE_CAP);
+  } else await r.body?.cancel().catch(() => {});
   return { status: r.status, url: r.url, type, body };
 }
 
@@ -562,7 +569,8 @@ async function stepDeep(sb: SupabaseClient, src: Src, deadline: number) {
   const t0 = Date.now();
   let read = 0, enriched = 0, details = 0, relations = 0;
   try {
-    while (Date.now() < deadline - 25_000) {
+    // at most 30 sites per call: parsing many pages in one call exceeds the per-call compute allowance
+    while (Date.now() < deadline - 25_000 && read < 30) {
       const batch = await rpc<SiteBiz[]>(sb, "nr_claim_sites", { p_limit: 10 });
       if (!batch.length) break;
       const x = await processSites(sb, batch, src.key);
@@ -907,7 +915,7 @@ async function harvestCc(sb: SupabaseClient) {
 
 // ════════════════ 7. identify an Israeli site against the registry; add a new business only with a clear identity ════════════════
 const COPYRIGHT = /(?:©|&copy;|כל הזכויות שמורות(?:\s*ל-?)?|all rights reserved(?:\s*to)?|copyright)\s*(?:\d{4}\s*[-–]?\s*(?:\d{4})?)?\s*[:|\-–]?\s*([^\n|©<]{2,60})/i;
-const GENERIC_NAME = /^(דף הבית|ראשי|home|homepage|welcome|ברוכים הבאים|אתר|website|כל הזכויות שמורות|all rights reserved|בניית אתרים|תקנון|צור קשר|אודות)$/i;
+const GENERIC_NAME = /^(share by|share|שתף|דף הבית|ראשי|home|homepage|welcome|ברוכים הבאים|אתר|website|כל הזכויות שמורות|all rights reserved|בניית אתרים|תקנון|צור קשר|אודות)$/i;
 function cleanName(n: string, domain: string): string {
   let s = clean(decode(n)).replace(/\s*(כל הזכויות שמורות|all rights reserved).*$/i, "").replace(/\b(19|20)\d{2}\b/g, "").replace(/[|•·–\-:,.]+\s*$/, "").replace(/^\s*[|•·–\-:,.]+/, "").trim();
   // "1868 - מסעדה בשרית כשרה בירושלים" → "1868": a slogan after the separator is not part of the name
@@ -917,7 +925,7 @@ function cleanName(n: string, domain: string): string {
   if (/designed by|powered by|developed by|phpbb|wordpress|wix|elementor|בניית אתרים|עיצוב אתרים|קידום אתרים|template|theme/i.test(s)) return "";
   return s;
 }
-type Identity = { cityHint?: string; name: string; nameFrom: string; phones: string[]; emails: string[]; ids: string[]; city: string; address: string; socials: Record<string, string>; origin: string; url: string; html: string };
+type Identity = { cityHint?: string; text?: string; name: string; nameFrom: string; phones: string[]; emails: string[]; ids: string[]; city: string; address: string; socials: Record<string, string>; origin: string; url: string; html: string };
 async function readIdentity(domain: string): Promise<{ status: string; note?: string; id?: Identity }> {
   let page: Awaited<ReturnType<typeof get>> | null = null, note = "";
   for (const u of [`https://${domain}/`, `https://www.${domain}/`, `http://www.${domain}/`]) {
@@ -980,8 +988,9 @@ async function readIdentity(domain: string): Promise<{ status: string; note?: st
   let name = "", nameFrom = "";
   for (const [n, f] of cands) { const c = cleanName(n, domain); if (c) { name = c; nameFrom = f; break; } }
   const em = [...mails].filter((m) => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(m) && !/\.(png|jpe?g|gif|webp|svg)$/.test(m) && (m.endsWith("@" + domain) || m.endsWith("." + domain) || FREE_MAIL.test(m)) && !/sentry|wixpress|example\.|domain\./.test(m)).slice(0, 5);
-  const cityHint = [address, ...(text.match(/[^\n]*(?:כתובת|רחוב|רח['׳]|ת\.ד|שד['׳]|שדרות|address)[^\n]*/gi) || []).slice(0, 4), text.slice(-1500)].join("\n");
-  return { status: "ok", id: { name, nameFrom, phones: [...phones].slice(0, 8), emails: em, ids, city, address, socials, origin: new URL(page.url).origin, url: page.url, html, cityHint } };
+  // city hints only from address lines – a footer list of served areas or a person's name is not the business's city
+  const cityHint = [address, ...(text.match(/[^\n]*(?:כתובת|רחוב|רח['׳]|ת\.ד|שד['׳]|שדרות|address)[^\n]*/gi) || []).slice(0, 4)].join("\n");
+  return { status: "ok", id: { name, nameFrom, phones: [...phones].slice(0, 8), emails: em, ids, city, address, socials, origin: new URL(page.url).origin, url: page.url, html: "", text, cityHint } };
 }
 type Lookup = { domain: number | null; reg: { id: number; reg_id: string; name: string; website: string | null }[]; phones: { id: number; value: string }[]; emails: { id: number; value: string }[] };
 async function identifyOne(sb: SupabaseClient, domain: string): Promise<{ status: string; business_id?: number; method?: string; note?: string }> {
@@ -997,7 +1006,7 @@ async function identifyOne(sb: SupabaseClient, domain: string): Promise<{ status
     await rpc(sb, "nr_confirm_site", { p_business: bid, p_url: id.origin, p_evidence: proof });
     return { status: "matched", business_id: bid, method, note: proof.join(", ") };
   };
-  const low = textOf(id.html).toLowerCase();
+  const low = (id.text || "").toLowerCase();
   const nameHit = (n: string) => nameTokens(n).filter((w) => w.length >= 4).some((w) => low.includes(w.toLowerCase()));
   // the registry and the district map use Hebrew locality names: an English city from the site's structured data is replaced when the page names one
   if (/^[A-Za-z]/.test(id.city) && id.cityHint) { const cs = await rpc<string[] | null>(sb, "nr_cities_in_text", { p_text: id.cityHint }); if (cs && cs.length === 1) id.city = cs[0]; }
@@ -1032,7 +1041,7 @@ async function identifyOne(sb: SupabaseClient, domain: string): Promise<{ status
   }
   // 5. a company number on the site that is not in the registry, with the legal name beside it
   if (id.ids.length === 1 && !lk.reg.length) {
-    const flat = textOf(id.html).replace(/\s+/g, " "); const at = flat.indexOf(id.ids[0].slice(0, 3));
+    const flat = (id.text || "").replace(/\s+/g, " "); const at = flat.indexOf(id.ids[0].slice(0, 3));
     const legal = clean(((at > 0 ? flat.slice(Math.max(0, at - 90), at) : "").match(LEGAL_NAME) || [])[1] || "").replace(/^.*?(©|כל הזכויות שמורות( ל-?)?|all rights reserved( to)?|copyright)\s*/i, "");
     if (legal.length >= 3) {
       await rpc(sb, "nr_ingest", { p_source: "enr:site_identify", p_rows: [{ reg_id: id.ids[0], reg_type: id.ids[0].startsWith("58") ? "amuta" : "company", name: legal, city: id.city || undefined,
@@ -1048,7 +1057,10 @@ async function identifyOne(sb: SupabaseClient, domain: string): Promise<{ status
     await rpc(sb, "nr_identify_review", { p_domain: domain, p_name: id.name, p_city: id.city || null, p_candidates: similar.slice(0, 5), p_reason: "similar_name", p_detail: { phones: id.phones, name_from: id.nameFrom } });
     return { status: "review", note: "שם דומה לעסק קיים – לבדיקה" };
   }
-  if (id.name && id.phones.length && (id.city || id.address || id.ids.length) && nameHit(id.name)) {
+  // a new business needs a real locality (official list) or a structured English address on its own site
+  if (id.city && /["{}<>=;]|specs|\.|^.{0,1}$/.test(id.city)) id.city = "";
+  if (id.city && !/^[A-Za-z]/.test(id.city)) { const ok = await rpc<string[]>(sb, "nr_cities_in_text", { p_text: id.city }); if (!ok || !ok.length) id.city = ""; }
+  if (id.name && id.phones.length && (id.city || id.ids.length) && nameHit(id.name)) {
     await rpc(sb, "nr_ingest", { p_source: "enr:site_identify", p_rows: [{ name: id.name, city: id.city || undefined, address: id.address || undefined, rid: domain, url: id.url,
       websites: [id.origin], create: true, phones: id.phones.map((p) => ({ v: p, d: fmtPhone(p), sub: p.startsWith("05") ? "mobile" : "main" })),
       emails: id.emails.map((v) => ({ v })), socials: id.socials,
@@ -1060,14 +1072,14 @@ async function identifyOne(sb: SupabaseClient, domain: string): Promise<{ status
 }
 async function identifyWorker(sb: SupabaseClient, worker: number) {
   const t0 = Date.now();
-  const { data: locked } = await sb.rpc("nr_identify_lock", { p_worker: worker, p_seconds: 170 });
-  PAGE_CAP = 400_000; // keeps each call within the function's compute allowance
+  const { data: locked } = await sb.rpc("nr_identify_lock", { p_worker: worker, p_seconds: 110 });
+  PAGE_CAP = 200_000; // keeps each call within the function's compute allowance (546 WORKER_RESOURCE_LIMIT otherwise)
   if (!locked) return { skipped: "locked or worker not enabled" };
   const tally: Record<string, number> = {};
   let read = 0;
   try {
     const { data: ctl } = await sb.from("nr_control").select("identify_batch").eq("id", 1).single();
-    const batchSize = Math.max(10, Math.min(200, Number(ctl?.identify_batch || 60)));
+    const batchSize = Math.max(8, Math.min(64, Number(ctl?.identify_batch || 16)));
     while (Date.now() - t0 < 95_000) {
       const batch = await rpc<{ domain: string; attempts: number }[]>(sb, "nr_claim_site_queue", { p_limit: Math.min(16, batchSize - read) });
       if (!batch.length) break;
