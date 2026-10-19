@@ -358,7 +358,22 @@ export const CLAIMS_GEMINI_TOOLS = [
             },
             link_type: {
               type: "STRING",
-              description: "סוג הקישור המבוקש: 'intake' (קישור לפתיחת תיק חדש ומילוי טופס תביעה - ברירת מחדל), או 'upload' (קישור להעלאת מסמכים בלבד). לעולם אין לשלב את שני הקישורים באותו כרטיס!",
+              description: "סוג הקישור המבוקש: 'intake' (קישור לפתיחת תיק חדש ומילוי טופס תביעה - ברירת מחדל), או 'upload' (קישור להעלאת מסמכים ומילוי טפסים). לעולם אין לשלב את שני הקישורים באותו כרטיס!",
+            },
+            requested_documents: {
+              type: "ARRAY",
+              items: { type: "STRING" },
+              description: "רשימת המסמכים שהלקוח נדרש להעלות אלינו (לדוגמה: ['צילום רישיון נהיגה', 'צילום רישיון רכב', 'תמונות נזק']). רק המסמכים שצוינו במפורש ייכללו, ללא מסמכי ברירת מחדל!",
+            },
+            provided_forms: {
+              type: "ARRAY",
+              items: { type: "STRING" },
+              description: "רשימת הטפסים שהמוסך מספק ללקוח כדי שימלא ויחתום (לדוגמה: ['טופס ייפוי כוח', 'אישור / הצהרת לקוח']). רק הטפסים שצוינו במפורש ייכללו!",
+            },
+            missing_forms: {
+              type: "ARRAY",
+              items: { type: "STRING" },
+              description: "רשימת טפסים שהתבקשו אך חסרים במאגר ודורשים העלאה ישירה ע''י המשתמש בצ'אט",
             },
             channel: {
               type: "STRING",
@@ -369,6 +384,14 @@ export const CLAIMS_GEMINI_TOOLS = [
               description: "נוסח הודעה מותאם אישית ללקוח (אופציונלי)",
             },
           },
+        },
+      },
+      {
+        name: "list_available_claim_documents_and_forms",
+        description: "הצגת מאגר המסמכים והטפסים הקיימים במערכת, מחולקים לשתי קטגוריות ברורות: 1) מסמכים שהלקוח נדרש להעלות אלינו (צילום רישיון נהיגה, רישיון רכב, תמונות נזק, אישור עבר ביטוחי, צ'ק, טופס הודעה על תאונה, חשבונית מוסך, דוח שמאי). 2) טפסים שהמוסך מספק ללקוח למילוי וחתימה (טופס ייפוי כוח, הצהרת לקוח, טופס הסכמה, הודאה א', הודעה ע', אישור אי-הגשת תביעה, טופס דרישה, תצהיר לחברת ביטוח). השתמש בכלי זה כאשר המשתמש מבקש לראות את כל המסמכים והטפסים שאפשר לשלוח ללקוח.",
+        parameters: {
+          type: "OBJECT",
+          properties: {},
         },
       },
       {
@@ -1126,6 +1149,7 @@ export const GENERAL_CLAIM_SCOPED_TOOLS = [
   "preview_import_claim_email",
   "list_scheduled_claim_emails",
   "preview_cancel_scheduled_claim_email",
+  "list_available_claim_documents_and_forms",
 ] as const;
 
 {
@@ -1136,7 +1160,7 @@ export const GENERAL_CLAIM_SCOPED_TOOLS = [
     const decl = claimDecls.find((d) => d.name === name);
     if (!decl || generalDecls.some((d) => d.name === name)) continue;
     const params = decl.parameters || { type: "OBJECT", properties: {} };
-    const isOptionalClaim = name === "preview_send_claim_email" || name === "search_pending_gmail_messages" || name === "preview_import_claim_email" || name === "list_scheduled_claim_emails" || name === "preview_cancel_scheduled_claim_email" || name === "preview_send_customer_link";
+    const isOptionalClaim = name === "preview_send_claim_email" || name === "search_pending_gmail_messages" || name === "preview_import_claim_email" || name === "list_scheduled_claim_emails" || name === "preview_cancel_scheduled_claim_email" || name === "preview_send_customer_link" || name === "list_available_claim_documents_and_forms";
     generalDecls.push({
       ...decl,
       description: isOptionalClaim
@@ -1200,11 +1224,19 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
 4. בדיקת חוסרים: בדיקה מקיפה מה חסר בתיק (רישיון, שמאי, חשבונית, טופס הודעה, צד ג') באמצעות הכלי get_missing_claim_documents.
 5. גורם מטפל והיסטוריה: בירור מי טיפל בתיק והצגת היסטוריית פעולות באמצעות get_claim_handler_and_history.
 6. פעולה הבאה: בדיקת פעולה הבאה ומשימות ממתינות באמצעות get_claim_next_action.
-7. קישורי שיתוף והעלאה ללקוח/גורמים חיצוניים:
-   - קישור פתיחת תיק / העלאת מסמכים ללקוח (למשל: "שלחי ללקוח אילנה אטיאס קישור לפתיחת התיק שלה", "שלח קישור להעלאת מסמכים ללקוח"):
-     חובה לקרוא מיידית לכלי preview_send_customer_link עם שם הלקוח, טלפון, אימייל וערוץ שליחה (whatsapp / email / both / copy). לעולם אל תסרב ואל תאמר שאינך יכולה! הכלי יכין כרטיס אישור לתצוגה מקדימה, ובאישור המשתמש המערכת תייצר את הקישור במנגנון create_link הקיים, תאפשר שליחה באימייל/WhatsApp, ותתעד ב-claims_history.
-   - קישור שיתוף למסמכים נבחרים (דוח שמאי, תמונות נזק, פוליסה, רישיון) עבור שמאי/ביטוח/לקוח (למשל: "שלחי ללקוח קישור לדוח השמאות", "תכיני קישור לשליחת 5 התמונות והמסמכים שבחרתי", "תכין קישור רק לדו\"ח שמאי ולתמונות"):
-     חובה לקרוא מיידית לכלי preview_create_claim_share_link עם recipient_name, recipient_kind, file_ids או document_query וערוץ מסירה (whatsapp / email / both / copy). המערכת תאתר את המסמכים המבוקשים (כולל דוח שמאי על כל עמודיו), תציג כרטיס אישור, ובאישור תיצור קישור מאובטח, תשלח במייל/וואטסאפ ותתעד בתיק.
+7. קישורי שיתוף והעלאה ללקוח/גורמים חיצוניים (כרטיס א' לפתיחת תיק, כרטיס ב' למסמכים וטפסים — לעולם לא באותו כרטיס!):
+   - הצגת מאגר המסמכים והטפסים: כאשר המשתמש שואל "דליה, תראי לי את כל המסמכים והטפסים שאפשר לשלוח ללקוח" — קרא מיידית לכלי list_available_claim_documents_and_forms!
+   - כרטיס א' – קישור פתיחת תיק חדש ללקוח (claims-intake):
+     כאשר המשתמש מבקש קישור לפתיחת תיק חדש: הפעל preview_send_customer_link עם link_type: "intake". מקצה מספר תיק קבוע (DAL-YYYY-XXXX), מכין קישור לפתיחת התיק בלבד (ללא קישור מסמכים וללא מסמכי ברירת מחדל), עם כפתורי "פתח ובדוק קישור", "העתק קישור" ו-"שלח בוואטסאפ".
+   - כרטיס ב' – בקשת מסמכים וטפסים מהלקוח (claims-upload):
+     יש להבחין תמיד בין שני סוגי מסמכים שונים:
+     1) מסמכים שהלקוח נדרש להעלות אלינו (צילום רישיון נהיגה, רישיון רכב, תמונות נזק, אישור עבר ביטוחי, וכו') – נקלטים אוטומטית בתיק.
+     2) טפסים שהמוסך מספק ללקוח כדי שימלא ויחתום (טופס ייפוי כוח, הצהרת לקוח, טופס הסכמה, אי-הגשת תביעה...) – מסמכים שאנו מספקים לו לפתיחה, הורדה, מילוי וחתימה.
+     הפעל את preview_send_customer_link עם link_type: "upload", requested_documents (המסמכים המדויקים להעלאה), ו-provided_forms (הטפסים המדויקים למילוי).
+     חוק ברזל: רק המסמכים והטפסים שצוינו במפורש ייכללו! חל איסור מוחלט להוסיף מסמכי ברירת מחדל שלא התבקשו!
+     אם חסר טופס במאגר: הודע מיד למשתמש: "טופס [שם הטופס] אינו נמצא במאגר. אנא צרף אותו כאן כדי שאוכל להוסיף אותו למשלוח ללקוח.", והעבר אותו ב-missing_forms.
+   - קישור שיתוף למסמכים קיימים לצפייה והורדה (claims-share):
+     כאשר המשתמש מבקש לשתף מסמכים קיימים שכבר נמצאים בתיק: הפעל את preview_create_claim_share_link.
    - ביטול קישורים: preview_revoke_claim_share_link.
 8. שליחת ותזמון מיילים: שליחת מיילים ללקוח או לחברת הביטוח עם קבצים מצורפים מתוך התיק (preview_send_claim_email).
    - תזמון שליחה עתידית ואישור מראש: כשהמשתמש מבקש לתזמן או לשלוח במועד עתידי (למשל: "שלח אימייל בעוד שלושה ימים בשעה 10:00", "תתזמן מייל למחר ב-09:00", "שלח בעוד יומיים"):
@@ -1327,27 +1359,24 @@ export const CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS = `
    חתימה: הודעות חדשות (מייל, WhatsApp) נחתמות בשם "דליה ניהול תביעות" בלבד. אל תכתוב "מוסך אורן" ואל תמציא שם אחר.
    גם בלי לפתוח את התיק אפשר לעבוד על תיק מסוים עם claim_ref: מסמכים (list_claim_documents, show_claim_document), מיילים (search_claim_emails, read_email_content, draft_email_reply, preview_send_claim_email), משימות, הערות, תזכורות ו-WhatsApp ידני (preview_schedule_claim_whatsapp — לעולם לא "נשלח", רק "ממתין לשליחה ידנית"). קריאה מיידית; כתיבה ושליחה בכרטיס אישור אחד.
 
-5ב. קישורים ללקוח ולמסמכים מתוך ה-AI (כרטיס א' לפתיחת תיק, כרטיס ב' למסמכים — לעולם לא באותו כרטיס!):
-   - כרטיס א' – קישור פתיחת תיק חדש ללקוח (טופס דיווח מקוון):
-     כאשר המשתמש מבקש: "פתחי תיק חדש ללקוח והכיני לי קישור לשליחה", "שלחי ללקוח קישור לפתיחת התיק שלו", "הכיני קישור לפתיחת תיק חדש":
+5ב. קישורים ללקוח ולמסמכים מתוך ה-AI (כרטיס א' לפתיחת תיק, כרטיס ב' למסמכים וטפסים — לעולם לא באותו כרטיס!):
+   - הצגת מאגר המסמכים והטפסים: כאשר המשתמש שואל "דליה, תראי לי את כל המסמכים והטפסים שאפשר לשלוח ללקוח" — קרא מיידית לכלי list_available_claim_documents_and_forms!
+   - כרטיס א' – קישור פתיחת תיק חדש ללקוח (טופס דיווח מקוון claims-intake):
+     כאשר המשתמש מבקש: "פתחי תיק חדש ללקוח והכיני לי קישור לשליחה", "שלחי ללקוח קישור לפתיחת התיק שלו":
      1. הפעל מיד את preview_send_customer_link עם link_type: "intake" (ו-recipient_name, phone, email אם ידועים).
-     2. המערכת מקצה מיד מספר תיק קבוע (DAL-2026-XXXX) ממונה התביעות הקיים בסטטוס "ממתין למילוי הלקוח", ומכינה קישור מאובטח לפתיחת התיק בלבד (claims-intake).
-     3. בכרטיס זה מופיע אך ורק הקישור לפתיחת התיק — חל איסור מוחלט לשלב בכרטיס זה קישור למסמכים!
-     4. הכרטיס מציג: מספר תיק קבוע, שם לקוח, קישור לפתיחת התיק, כפתור "פתח ובדוק קישור" (לצפייה בטוחה ללא יצירת תיק נוסף וללא הגשה), כפתור "העתק קישור", וכפתור "שלח בוואטסאפ" עם נוסח ייעודי לפתיחת תיק בלבד.
-   - כרטיס ב' – קישור מסמכים (בנפרד לחלוטין):
-     1. קישור להעלאת מסמכים ע"י הלקוח (Customer Upload Link):
-        כאשר המשתמש מבקש במפורש קישור שהלקוח יעלה דרכו מסמכים ("שלחי לאותו לקוח קישור להעלאת מסמכים", "קישור שהלקוח יעלה מסמכים"):
-        הפעל preview_send_customer_link עם link_type: "upload". הכרטיס מציג קישור העלאת מסמכים בלבד (claims-upload), ללא קישור פתיחת תיק!
-     2. קישור לשיתוף מסמכים קיימים לצפייה והורדה (Exact Documents Share Link):
-        כאשר המשתמש מבקש לשלוח מסמכים קיימים מהתיק (למשל: "דליה, הכיני קישור למסמכים של אותו תיק", "אני רוצה לשלוח את דוח השמאות, רישיון הרכב ושלוש תמונות הנזק שבחרתי"):
-        הפעל את preview_create_claim_share_link עם document_query או requested_items.
-        - המערכת מאתרת בדיוק את המסמכים שהתבקשו:
-          • דוח שמאות: מזהה את כל עמודי הדוח (אם יש 2 עמודים, שניהם נכללים ומדווחים!).
-          • רישיון רכב: מאתרת את רישיון הרכב.
-          • תמונות נזק: מאתרת בדיוק את הכמות המבוקשת (למשל 3 תמונות).
-          • חל איסור מוחלט לצרף מסמכים שלא התבקשו!
-        - חוסר במסמך: אם מסמך שהתבקש חסר בתיק (למשל רישיון רכב), המערכת עוצרת מיידית, לא מנחשת ולא מצרפת מסמך אחר. היא מודיעה: "המסמך [שם] חסר בתיק. האם תרצה להעלות אותו עכשיו?", ומציגה אפשרות להעלאת המסמך ישירות מתוך כרטיס הפעולה! רק לאחר שהמסמך הועלה ואושר — נוצר קישור השיתוף.
-        - הקישור מוביל לדף claims-share המוגבל בדיוק למסמכים שאושרו. בכרטיס זה מופיעים כפתורי "פתח ובדוק", "העתק", ו-"שלח בוואטסאפ". לעולם אין לשלב קישור פתיחת תיק בכרטיס זה.
+     2. המערכת מקצה מספר תיק קבוע (DAL-YYYY-XXXX) בסטטוס "ממתין למילוי הלקוח", ומכינה קישור מאובטח לפתיחת התיק בלבד (claims-intake).
+     3. כרטיס זה מכיל אך ורק את קישור פתיחת התיק — חל איסור מוחלט לשלב בכרטיס זה קישור למסמכים או להוסיף מסמכי ברירת מחדל!
+     4. הכרטיס מציג: מספר תיק קבוע, שם לקוח, קישור לפתיחת התיק, כפתור "פתח ובדוק קישור" (פותח רק את קישור הלקוח), כפתור "העתק קישור" (מעתיק רק את הקישור ללא WhatsApp), וכפתור "שלח בוואטסאפ" (פתיחה בטוחה של WhatsApp עם הודעה קצרה).
+   - כרטיס ב' – בקשת מסמכים וטפסים מהלקוח (claims-upload):
+     יש להבחין תמיד בין שני סוגי מסמכים שונים:
+     1) מסמכים שהלקוח נדרש להעלות אלינו (צילום רישיון נהיגה, רישיון רכב, תמונות נזק, אישור עבר ביטוחי, וכו') – נקלטים אוטומטית בתיק.
+     2) טפסים שהמוסך מספק ללקוח כדי שימלא ויחתום (טופס ייפוי כוח, הצהרת לקוח, טופס הסכמה, אי-הגשת תביעה...) – מסמכים שאנו מספקים לו לפתיחה, הורדה, מילוי וחתימה.
+     הפעל את preview_send_customer_link עם link_type: "upload", requested_documents (המסמכים המדויקים להעלאה), ו-provided_forms (הטפסים המדויקים למילוי).
+     חוק ברזל: רק המסמכים והטפסים שצוינו במפורש ייכללו! חל איסור מוחלט להוסיף מסמכי ברירת מחדל שלא התבקשו!
+     אם חסר טופס במאגר: הודע מיד למשתמש: "טופס [שם הטופס] אינו נמצא במאגר. אנא צרף אותו כאן כדי שאוכל להוסיף אותו למשלוח ללקוח.", והעבר אותו ב-missing_forms.
+   - קישור שיתוף למסמכים קיימים לצפייה והורדה (claims-share):
+     כאשר המשתמש מבקש לשלוח מסמכים קיימים מהתיק: הפעל את preview_create_claim_share_link.
+   - ביטול קישורים: preview_revoke_claim_share_link.
 
 6. חיפוש תביעות:
    - חיפוש לפי מספר רכב, שם לקוח, מספר תביעה, חברת ביטוח (search_claims).
@@ -4354,6 +4383,51 @@ export async function executeClaimsTool(
         };
       }
 
+      case "list_available_claim_documents_and_forms": {
+        const clientUploadDocs = [
+          { key: "license_driver", label: "צילום רישיון נהיגה", description: "צילום רישיון נהיגה משני הצדדים" },
+          { key: "license_vehicle", label: "צילום רישיון רכב", description: "צילום רישיון רכב בתוקף" },
+          { key: "damage_photos", label: "תמונות נזק / אירוע", description: "תמונות מוקדי הנזק ברכב ומקום האירוע" },
+          { key: "insurance_history", label: "אישור עבר ביטוחי", description: "אישור היעדר תביעות ל-3 שנים" },
+          { key: "check_photo", label: "צילום צ׳ק", description: "צילום צ'ק או אישור ניהול חשבון בנק" },
+          { key: "accident_notice", label: "טופס הודעה על תאונת רכב", description: "טופס דיווח מקרה תאונה מלא" },
+          { key: "garage_invoice", label: "חשבונית מוסך / תיקון", description: "חשבונית תיקון מפורטת" },
+          { key: "surveyor_report", label: "דוח שמאי", description: "דוח שמאות רכב מלא" },
+        ];
+        const systemProvidedForms = [
+          { key: "power_of_attorney", label: "טופס ייפוי כוח", description: "ייפוי כוח למוסך לייצוג מול הביטוח והשמאי" },
+          { key: "tpl-client-declaration", label: "אישור / הצהרת לקוח", description: "טופס הצהרת לקוח על נכונות הפרטים עם חתימה דיגיטלית" },
+          { key: "consent_form", label: "טופס הסכמה", description: "הסכמת הנהג למסירת פרטי רישיון נהיגה" },
+          { key: "notice_a", label: "טופס הודאה א׳", description: "טופס הודאה באחריות לתאונה" },
+          { key: "notice_ayin", label: "טופס הודעה ע׳", description: "טופס הודעה על מעורבות בתאונה" },
+          { key: "no_claim_form", label: "אישור אי-הגשת תביעה", description: "אישור שהנהג לא הגיש תביעה במקום אחר" },
+          { key: "demand_form", label: "טופס דרישה", description: "מכתב דרישה לתשלום מחברת הביטוח" },
+          { key: "tpl-affidavit-insurer", label: "תצהיר לחברת ביטוח", description: "תצהיר מבוטח חתום עבור חברת הביטוח" },
+        ];
+
+        const textLines = [
+          `📋 **מאגר המסמכים והטפסים הקיים במערכת:**`,
+          ``,
+          `📥 **1. מסמכים שהלקוח נדרש להעלות אלינו:**`,
+          ...clientUploadDocs.map((d, i) => `  ${i + 1}. **${d.label}** – ${d.description}`),
+          ``,
+          `📝 **2. טפסים שאנחנו מספקים ללקוח למילוי וחתימה:**`,
+          ...systemProvidedForms.map((f, i) => `  ${i + 1}. **${f.label}** – ${f.description}`),
+          ``,
+          `💡 **כיצד לבחור:**`,
+          `תוכל לציין לי בדיוק אילו מסמכים לבקש ואילו טפסים לספק (לדוגמה: "שלחי ללקוח טופס ייפוי כוח, ובקשי רישיון נהיגה ו-3 תמונות נזק"), או לסמן בתיבות הסימון מטה.`,
+        ];
+
+        return {
+          result: {
+            success: true,
+            message: textLines.join("\n"),
+            client_upload_documents: clientUploadDocs,
+            system_provided_forms: systemProvidedForms,
+          },
+        };
+      }
+
       case "preview_send_customer_link": {
         let targetClaimId = String(claimId || args.claim_id || args.claim_ref || "").trim();
         if (!targetClaimId) {
@@ -4374,6 +4448,16 @@ export async function executeClaimsTool(
         const customMessage = String(args.custom_message || "").trim();
         const linkType = String(args.link_type || "intake").toLowerCase();
         const cleanPhone = String(clientPhone || "").replace(/\D/g, "");
+        const normPhone = cleanPhone && cleanPhone.length >= 7
+          ? (cleanPhone.startsWith('0') ? `972${cleanPhone.slice(1)}` : cleanPhone.startsWith('972') ? cleanPhone : `972${cleanPhone}`)
+          : null;
+
+        const requestedDocsRaw = (args.requested_documents as string[]) || [];
+        const providedFormsRaw = (args.provided_forms as string[]) || [];
+        const missingFormsRaw = (args.missing_forms as string[]) || [];
+        const reqDocsList = Array.isArray(requestedDocsRaw) ? requestedDocsRaw.map((x) => String(x || "").trim()).filter(Boolean) : [];
+        const provFormsList = Array.isArray(providedFormsRaw) ? providedFormsRaw.map((x) => String(x || "").trim()).filter(Boolean) : [];
+        const missingFormsList = Array.isArray(missingFormsRaw) ? missingFormsRaw.map((x) => String(x || "").trim()).filter(Boolean) : [];
 
         // Ensure stub record in claims_records with status 'ממתין למילוי הלקוח'
         if (!claimRec) {
@@ -4406,7 +4490,11 @@ export async function executeClaimsTool(
 
         if (linkType === "upload") {
           actionType = "send_customer_upload_link";
-          summary = `שליחת קישור להעלאת מסמכים ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId})`;
+          const dCount = reqDocsList.length;
+          const fCount = provFormsList.length;
+          summary = dCount > 0 || fCount > 0
+            ? `בקשת מסמכים וטפסים מלקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId}): ${dCount} מסמכים להעלאה, ${fCount} טפסים למילוי`
+            : `שליחת קישור להעלאת מסמכים ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId})`;
           try {
             const docsRes = await supabase.functions.invoke("claims-docs", {
               body: {
@@ -4418,13 +4506,15 @@ export async function executeClaimsTool(
               uploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(docsRes.data.token)}`;
               const waText = customMessage
                 ? (customMessage.includes(uploadUrl) ? customMessage : `${customMessage}\nקישור העלאת מסמכים:\n${uploadUrl}`)
-                : `שלום ${clientName || 'לקוח יקר'},\nלהעלאת מסמכים ותמונות עבור תיק תביעה ${targetClaimId} באורן קאר, היכנס/י לקישור המאובטח:\n${uploadUrl}`;
-              waLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}` : `https://wa.me/?text=${encodeURIComponent(waText)}`;
+                : `שלום ${clientName || 'לקוח יקר'},\nלהעלאת מסמכים ומילוי טפסים עבור תיק תביעה ${targetClaimId} באורן קאר, היכנס/י לקישור:\n${uploadUrl}`;
+              waLink = normPhone
+                ? `https://wa.me/${normPhone}?text=${encodeURIComponent(waText)}`
+                : `https://api.whatsapp.com/send?text=${encodeURIComponent(waText)}`;
             }
           } catch (e) {
             console.error("claims-docs create_link error:", e);
           }
-          message = `הוכנה תצוגה מקדימה לשליחת קישור העלאת מסמכים עבור ${clientName || "הלקוח"}. הקישור מוכן לבדיקה, העתקה או שליחה בתיק ${targetClaimId}.`;
+          message = `הוכנה תצוגה מקדימה לבקשת מסמכים וטפסים עבור ${clientName || "הלקוח"} בתיק ${targetClaimId}. הקישור מוכן לבדיקה, העתקה או שליחה.`;
         } else {
           actionType = "send_customer_intake_link";
           summary = `שליחת קישור פתיחת תיק חדש ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId})`;
@@ -4439,8 +4529,10 @@ export async function executeClaimsTool(
               intakeUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-intake?t=${encodeURIComponent(intakeRes.data.token)}`;
               const waText = customMessage
                 ? (customMessage.includes(intakeUrl) ? customMessage : `${customMessage}\nקישור לפתיחת התיק:\n${intakeUrl}`)
-                : `שלום ${clientName || 'לקוח יקר'},\nנפתח עבורך תיק תביעה ${targetClaimId} באורן קאר. למילוי טופס פתיחת התיק היכנס/י לקישור המאובטח:\n${intakeUrl}`;
-              waLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(waText)}` : `https://wa.me/?text=${encodeURIComponent(waText)}`;
+                : `שלום ${clientName || 'לקוח יקר'},\nנפתח עבורך תיק תביעה ${targetClaimId} באורן קאר. למילוי טופס פתיחת התיק היכנס/י לקישור:\n${intakeUrl}`;
+              waLink = normPhone
+                ? `https://wa.me/${normPhone}?text=${encodeURIComponent(waText)}`
+                : `https://api.whatsapp.com/send?text=${encodeURIComponent(waText)}`;
             }
           } catch (e) {
             console.error("claims-intake create_link error:", e);
@@ -4464,6 +4556,9 @@ export async function executeClaimsTool(
             upload_url: uploadUrl || null,
             wa_link: waLink || null,
             custom_message: customMessage || null,
+            requested_documents: reqDocsList,
+            provided_forms: provFormsList,
+            missing_forms: missingFormsList,
           },
         };
 
@@ -4494,6 +4589,9 @@ export async function executeClaimsTool(
               intake_url: intakeUrl || null,
               upload_url: uploadUrl || null,
               wa_link: waLink || null,
+              requested_documents: reqDocsList,
+              provided_forms: provFormsList,
+              missing_forms: missingFormsList,
             },
           },
           preview,
@@ -5819,7 +5917,7 @@ export async function executeClaimsGeneralTool(
         } else {
           return { result: { error: "נדרש מזהה תיק (claim_ref) לשיתוף מסמכים." } };
         }
-      } else if (name !== "preview_send_claim_email") {
+      } else if (name !== "preview_send_claim_email" && name !== "list_available_claim_documents_and_forms") {
         return { result: { error: "נדרש מזהה תיק (claim_ref) לביצוע פעולה זו." } };
       }
       const { claim_ref: _ref, ...rest } = args;
@@ -7055,6 +7153,27 @@ export async function executeClaimsPendingAction(
         let finalWaLink = wa_link || "";
         let emailSentStatus = "";
 
+        const resolveDocKey = (label: string): string => {
+          const norm = label.trim().toLowerCase();
+          if (norm.includes("רכב") && norm.includes("רישיון")) return "license_vehicle";
+          if (norm.includes("נהיגה") && norm.includes("רישיון")) return "license_driver";
+          if (norm.includes("שמאי")) return "surveyor_report";
+          if (norm.includes("תמונ") && norm.includes("נזק")) return "damage_photos";
+          if (norm.includes("הודעה") && norm.includes("תאונה")) return "accident_notice";
+          if (norm.includes("עבר") && norm.includes("ביטוח")) return "insurance_history";
+          if (norm.includes("תעודת ביטוח") || norm.includes("חובה")) return "insurance_certificate";
+          if (norm.includes("צד ג") || norm.includes("צד ג'")) return "third_party_notice";
+          if (norm.includes("משטרה")) return "police_report";
+          if (norm.includes("קבלה") || norm.includes("חשבונית") || norm.includes("קבלות")) return "repair_receipts";
+          if (norm.includes("ייפוי כוח") || norm.includes("יפוי כוח")) return "power_of_attorney";
+          if (norm.includes("הצהרת לקוח") || norm.includes("הצהרה")) return "client_declaration";
+          if (norm.includes("טופס הסכמה") || norm.includes("הסכמה למסירת מידע")) return "consent_form";
+          if (norm.includes("אי-הגשת") || norm.includes("אי הגשת תביעה")) return "non_submission_declaration";
+          if (norm.includes("העברת זכויות") || norm.includes("הסבת זכות")) return "assignment_of_rights";
+          if (norm.includes("אישור תשלום") || norm.includes("סילוק")) return "payment_release";
+          return "doc_" + Math.random().toString(36).substring(2, 9);
+        };
+
         if (effectiveLinkType === "upload") {
           // Upload link only!
           if (!finalUploadUrl) {
@@ -7069,7 +7188,7 @@ export async function executeClaimsPendingAction(
             ? (rawCustomMsg.includes(finalUploadUrl) ? rawCustomMsg : `${rawCustomMsg}\nקישור העלאת מסמכים:\n${finalUploadUrl}`)
             : `שלום ${clientName},\nלהעלאת מסמכים ותמונות עבור תיק תביעה ${targetClaimId} באורן קאר, היכנס/י לקישור המאובטח:\n${finalUploadUrl}`;
           if (!finalWaLink) {
-            finalWaLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultWaText)}` : `https://wa.me/?text=${encodeURIComponent(defaultWaText)}`;
+            finalWaLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultWaText)}` : `https://api.whatsapp.com/send?text=${encodeURIComponent(defaultWaText)}`;
           }
 
           if ((selectedChannel === "email" || selectedChannel === "both") && recipient_email) {
@@ -7106,12 +7225,83 @@ export async function executeClaimsPendingAction(
             }
           }
 
+          const requestedDocs: string[] = Array.isArray(parameters.requested_documents) ? parameters.requested_documents : [];
+          const providedForms: string[] = Array.isArray(parameters.provided_forms) ? parameters.provided_forms : [];
+
+          // Seed requested documents into claims_doc_requests (customer uploads)
+          for (const docName of requestedDocs) {
+            const key = resolveDocKey(docName);
+            const { data: ex } = await supabase
+              .from("claims_doc_requests")
+              .select("id")
+              .eq("claim_id", targetClaimId)
+              .eq("doc_key", key)
+              .maybeSingle();
+            if (!ex) {
+              await supabase.from("claims_doc_requests").insert({
+                id: newId("DCR"),
+                claim_id: targetClaimId,
+                label: docName.trim(),
+                doc_key: key,
+                status: "requested",
+                created_by: userId,
+              });
+            }
+          }
+
+          // Seed provided forms into claims_doc_requests & claims_tasks (forms provided to customer to sign/fill)
+          for (const formName of providedForms) {
+            const key = resolveDocKey(formName);
+            const { data: ex } = await supabase
+              .from("claims_doc_requests")
+              .select("id")
+              .eq("claim_id", targetClaimId)
+              .eq("doc_key", key)
+              .maybeSingle();
+            let dcrId = ex?.id;
+            if (!ex) {
+              dcrId = newId("DCR");
+              await supabase.from("claims_doc_requests").insert({
+                id: dcrId,
+                claim_id: targetClaimId,
+                label: formName.trim(),
+                doc_key: key,
+                status: "requested",
+                created_by: userId,
+              });
+            }
+            const { data: exTask } = await supabase
+              .from("claims_tasks")
+              .select("id, row_data")
+              .eq("claim_id", targetClaimId);
+            const taskExists = (exTask || []).some(
+              (t: any) => t.row_data?.audience === "customer" && (t.row_data?.action === formName || t.row_data?.letterSubject === formName)
+            );
+            if (!taskExists) {
+              await supabase.from("claims_tasks").insert({
+                id: newId("TSK"),
+                claim_id: targetClaimId,
+                row_data: {
+                  audience: "customer",
+                  action: formName.trim(),
+                  letterSubject: formName.trim(),
+                  docRequestId: dcrId || "",
+                  customerKind: "form",
+                  needsSignature: "true",
+                  allowUpload: "true",
+                  customerStatus: "open",
+                  createdAt: new Date().toISOString(),
+                },
+              });
+            }
+          }
+
           await supabase.from("claims_history").insert({
             id: newId("HIS"),
             claim_id: targetClaimId,
             row_data: {
               action: "נוצר קישור העלאת מסמכים ללקוח",
-              note: `קישור להעלאת מסמכים עבור ${clientName} (תיק ${targetClaimId})${emailSentStatus ? ` ${emailSentStatus}` : ""}`,
+              note: `קישור להעלאת מסמכים עבור ${clientName} (תיק ${targetClaimId})${emailSentStatus ? ` ${emailSentStatus}` : ""}${requestedDocs.length ? ` · מסמכים: ${requestedDocs.join(", ")}` : ""}${providedForms.length ? ` · טפסים לחתימה: ${providedForms.join(", ")}` : ""}`,
               type: "customer_upload_link_created",
               by: userName || "דליה AI",
               at: new Date().toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }),
@@ -7137,8 +7327,14 @@ export async function executeClaimsPendingAction(
             `📁 **מספר תיק:** ${targetClaimId}`,
             `📤 **קישור ישיר להעלאת מסמכים:** ${finalUploadUrl}`,
           ];
+          if (requestedDocs.length > 0) {
+            lines.push(`📥 **מסמכים שהלקוח נדרש להעלות:** ${requestedDocs.join(", ")}`);
+          }
+          if (providedForms.length > 0) {
+            lines.push(`📝 **טפסים שאנו מספקים למילוי וחתימה:** ${providedForms.join(", ")}`);
+          }
           if (emailSentStatus) lines.push(`📧 ${emailSentStatus}`);
-          if (finalWaLink) lines.push(`💬 **WhatsApp:** [פתיחה ושליחה ב-WhatsApp](${finalWaLink})`);
+          if (finalWaLink) lines.push(`💬 **WhatsApp:** כפתור שליחה מהירה זמין בכרטיס הפעולה מטה.`);
 
           return {
             success: true,
@@ -7161,7 +7357,7 @@ export async function executeClaimsPendingAction(
             ? (rawCustomMsg.includes(finalIntakeUrl) ? rawCustomMsg : `${rawCustomMsg}\nקישור לפתיחת התיק:\n${finalIntakeUrl}`)
             : `שלום ${clientName},\nנפתח עבורך תיק תביעה ${targetClaimId} באורן קאר. למילוי טופס פתיחת התיק היכנס/י לקישור המאובטח:\n${finalIntakeUrl}`;
           if (!finalWaLink) {
-            finalWaLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultWaText)}` : `https://wa.me/?text=${encodeURIComponent(defaultWaText)}`;
+            finalWaLink = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultWaText)}` : `https://api.whatsapp.com/send?text=${encodeURIComponent(defaultWaText)}`;
           }
 
           if ((selectedChannel === "email" || selectedChannel === "both") && recipient_email) {
@@ -7198,32 +7394,7 @@ export async function executeClaimsPendingAction(
             }
           }
 
-          // Seed default document requests in claims_doc_requests so slots are ready
-          const defaultRequests = [
-            { label: "רישיון רכב", doc_key: "license_vehicle" },
-            { label: "רישיון נהיגה", doc_key: "license_driver" },
-            { label: "דוח שמאי", doc_key: "surveyor_report" },
-            { label: "תמונות נזק", doc_key: "damage_photos" },
-            { label: "טופס הודעה על תאונה", doc_key: "accident_notice" },
-          ];
-          for (const req of defaultRequests) {
-            const { data: ex } = await supabase
-              .from("claims_doc_requests")
-              .select("id")
-              .eq("claim_id", targetClaimId)
-              .eq("doc_key", req.doc_key)
-              .maybeSingle();
-            if (!ex) {
-              await supabase.from("claims_doc_requests").insert({
-                id: newId("DCR"),
-                claim_id: targetClaimId,
-                label: req.label,
-                doc_key: req.doc_key,
-                status: "requested",
-                created_by: userId,
-              });
-            }
-          }
+          // NOTE: No default documents seeded here! Dalia will NOT add default documents automatically.
 
           await supabase.from("claims_history").insert({
             id: newId("HIS"),
@@ -7257,7 +7428,7 @@ export async function executeClaimsPendingAction(
             `🔗 **קישור מילוי טופס פתיחת תיק:** ${finalIntakeUrl}`,
           ];
           if (emailSentStatus) lines.push(`📧 ${emailSentStatus}`);
-          if (finalWaLink) lines.push(`💬 **WhatsApp:** [פתיחה ושליחה ב-WhatsApp](${finalWaLink})`);
+          if (finalWaLink) lines.push(`💬 **WhatsApp:** כפתור שליחה מהירה זמין בכרטיס הפעולה מטה.`);
 
           return {
             success: true,
@@ -7327,7 +7498,7 @@ export async function executeClaimsPendingAction(
         if (cleanPhone) {
           waLink = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(defaultWaText)}`;
         } else {
-          waLink = `https://wa.me/?text=${encodeURIComponent(defaultWaText)}`;
+          waLink = `https://api.whatsapp.com/send?text=${encodeURIComponent(defaultWaText)}`;
         }
 
         // 2. Email sending if requested and email provided
@@ -7400,7 +7571,7 @@ export async function executeClaimsPendingAction(
           shareUrl,
         ];
         if (emailSentStatus) displayLines.push(emailSentStatus);
-        if (waLink) displayLines.push(`WhatsApp: [פתיחה ושליחה ב-WhatsApp](${waLink})`);
+        if (waLink) displayLines.push(`💬 WhatsApp: כפתור שליחה מהירה זמין בכרטיס הפעולה מטה.`);
 
         return {
           success: true,

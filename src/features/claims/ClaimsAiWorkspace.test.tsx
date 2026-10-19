@@ -275,7 +275,8 @@ describe('ClaimsAiWorkspace', () => {
       render(<div className="claims-root"><ClaimsAiWorkspace open onClose={() => {}} claim={claimA} userId="user-1" companyName={null} onActionExecuted={onActionExecuted} /></div>);
       fireEvent.click(await screen.findByTestId('claims-ai-confirm-btn'));
 
-      expect(await screen.findByText(/העדכון לא בוצע/)).toBeInTheDocument();
+      const errElements = await screen.findAllByText(/העדכון לא בוצע/);
+      expect(errElements.length).toBeGreaterThan(0);
       expect(onActionExecuted).not.toHaveBeenCalled();
       vi.unstubAllGlobals();
       getSession.mockResolvedValue({ data: { session: null } });

@@ -623,4 +623,123 @@ describe('Claims Links and Sharing UI (Task 8)', () => {
     const confirmBtn = screen.getByTestId('claims-ai-confirm-btn') as HTMLButtonElement;
     expect(confirmBtn.disabled).toBe(true);
   });
+
+  it('renders Card B (Upload) with distinct Category A (customer uploads) and Category B (forms to sign) with removal buttons', async () => {
+    listClaimsAiMessages.mockResolvedValue({
+      data: [
+        {
+          id: 'm-card-b-categories',
+          conversation_id: 'conv-links',
+          role: 'assistant',
+          content: 'הכנתי קישור להעלאת מסמכים עבור אילנה אטיאס לתיק DAL-2026-0246.',
+          created_at: '2026-10-19T10:25:00Z',
+          tool_name: 'preview_send_customer_link',
+          metadata: {
+            pending_action: {
+              preview_id: 'P-UPLOAD-CATS',
+              summary: 'שליחת קישור להעלאת מסמכים ללקוח "אילנה אטיאס"',
+              tool_name: 'preview_send_customer_link',
+              action_type: 'send_customer_upload_link',
+              status: 'pending',
+              parameters: {
+                claim_id: 'DAL-2026-0246',
+                recipient_name: 'אילנה אטיאס',
+                recipient_phone: '050-1234567',
+                link_type: 'upload',
+                upload_url: 'https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=tok123',
+                wa_link: 'https://wa.me/972501234567?text=hello',
+                requested_documents: ['רישיון רכב', 'תמונות נזק'],
+                provided_forms: ['ייפוי כוח', 'הצהרת לקוח'],
+              },
+            },
+          },
+        },
+      ],
+      error: null,
+    });
+
+    render(
+      <ClaimsAiWorkspace
+        open={true}
+        onClose={vi.fn()}
+        claim={{
+          claimId: 'DAL-2026-0246',
+          claimNum: '2279692',
+          plate: '65-941-85',
+          vehicle: 'טויוטה קורולה',
+          clientName: 'אילנה אטיאס',
+          insCompany: 'הפניקס',
+          status: 'חדש',
+        }}
+        userId="user-1"
+        companyName="מוסך אורן קאר"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('claims-ai-preview-upload-card')).toBeDefined();
+    });
+
+    const uploadCard = screen.getByTestId('claims-ai-preview-upload-card');
+    expect(uploadCard.textContent).toContain('מסמכים שהלקוח נדרש להעלות אלינו (2)');
+    expect(uploadCard.textContent).toContain('רישיון רכב');
+    expect(uploadCard.textContent).toContain('תמונות נזק');
+
+    expect(uploadCard.textContent).toContain('טפסים שאנו מספקים ללקוח למילוי וחתימה (2)');
+    expect(uploadCard.textContent).toContain('ייפוי כוח');
+    expect(uploadCard.textContent).toContain('הצהרת לקוח');
+
+    // Test removing a document
+    const removeDocBtn = uploadCard.querySelector('button[title="הסר את תמונות נזק"]') as HTMLButtonElement;
+    expect(removeDocBtn).toBeDefined();
+    fireEvent.click(removeDocBtn);
+
+    await waitFor(() => {
+      expect(uploadCard.textContent).not.toContain('תמונות נזק');
+      expect(uploadCard.textContent).toContain('מסמכים שהלקוח נדרש להעלות אלינו (1)');
+    });
+  });
+
+  it('renders ClaimsCatalogWidget when catalog is presented in chat', async () => {
+    listClaimsAiMessages.mockResolvedValue({
+      data: [
+        {
+          id: 'm-catalog-msg',
+          conversation_id: 'conv-links',
+          role: 'assistant',
+          content: 'מאגר המסמכים והטפסים של המערכת:\nקטגוריה א: מסמכים להעלאה\nקטגוריה ב: טפסים לחתימה',
+          created_at: '2026-10-19T10:30:00Z',
+          metadata: {},
+        },
+      ],
+      error: null,
+    });
+
+    render(
+      <ClaimsAiWorkspace
+        open={true}
+        onClose={vi.fn()}
+        claim={{
+          claimId: 'DAL-2026-0246',
+          claimNum: '2279692',
+          plate: '65-941-85',
+          vehicle: 'טויוטה קורולה',
+          clientName: 'אילנה אטיאס',
+          insCompany: 'הפניקס',
+          status: 'חדש',
+        }}
+        userId="user-1"
+        companyName="מוסך אורן קאר"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('claims-catalog-widget')).toBeDefined();
+    });
+
+    const widget = screen.getByTestId('claims-catalog-widget');
+    expect(widget.textContent).toContain('מאגר מסמכים וטפסים לבחירה מהירה');
+    expect(widget.textContent).toContain('רישיון רכב');
+    expect(widget.textContent).toContain('ייפוי כוח');
+  });
 });

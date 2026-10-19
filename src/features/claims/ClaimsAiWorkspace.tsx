@@ -626,6 +626,148 @@ function ClaimsMessageContent({
   );
 }
 
+export const AVAILABLE_CUSTOMER_UPLOADS = [
+  'רישיון רכב',
+  'רישיון נהיגה',
+  'תמונות נזק',
+  'דוח שמאי',
+  'טופס הודעה על תאונה',
+  'אישור עבר ביטוחי',
+  'תעודת ביטוח חובה',
+  "הודעת צד ג'",
+  'אישור משטרה',
+  'קבלות / חשבוניות תיקון',
+];
+
+export const AVAILABLE_GARAGE_FORMS = [
+  'ייפוי כוח',
+  'הצהרת לקוח',
+  'טופס הסכמה למסירת מידע',
+  'אישור אי-הגשת תביעה',
+  'כתב העברת זכויות',
+  'אישור תשלום וסילוק',
+];
+
+export function ClaimsCatalogWidget({
+  onPrepareLink,
+}: {
+  onPrepareLink: (docs: string[], forms: string[]) => void;
+}) {
+  const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
+  const [selectedForms, setSelectedForms] = useState<string[]>([]);
+
+  const toggleDoc = (doc: string) => {
+    setSelectedDocs((prev) =>
+      prev.includes(doc) ? prev.filter((d) => d !== doc) : [...prev, doc]
+    );
+  };
+
+  const toggleForm = (form: string) => {
+    setSelectedForms((prev) =>
+      prev.includes(form) ? prev.filter((f) => f !== form) : [...prev, form]
+    );
+  };
+
+  const hasSelections = selectedDocs.length > 0 || selectedForms.length > 0;
+
+  return (
+    <div
+      className="claims-catalog-widget"
+      data-testid="claims-catalog-widget"
+      style={{
+        marginTop: 10,
+        padding: '12px 14px',
+        background: '#f8fafc',
+        borderRadius: 8,
+        border: '1px solid #cbd5e1',
+        fontSize: '0.82rem',
+        lineHeight: 1.5,
+      }}
+    >
+      <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: 8, fontSize: '0.88rem' }}>
+        📋 מאגר מסמכים וטפסים לבחירה מהירה:
+      </div>
+
+      <div style={{ marginBottom: 10 }}>
+        <div style={{ fontWeight: 600, color: '#1e40af', marginBottom: 6 }}>
+          📥 קטגוריה א' – מסמכים שהלקוח נדרש להעלות אלינו:
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 6 }}>
+          {AVAILABLE_CUSTOMER_UPLOADS.map((doc) => (
+            <label
+              key={doc}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                cursor: 'pointer',
+                background: selectedDocs.includes(doc) ? '#dbeafe' : '#fff',
+                padding: '4px 8px',
+                borderRadius: 6,
+                border: selectedDocs.includes(doc) ? '1px solid #3b82f6' : '1px solid #e2e8f0',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={selectedDocs.includes(doc)}
+                onChange={() => toggleDoc(doc)}
+              />
+              <span style={{ fontWeight: selectedDocs.includes(doc) ? 600 : 400 }}>{doc}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontWeight: 600, color: '#166534', marginBottom: 6 }}>
+          📝 קטגוריה ב' – טפסים שאנו מספקים ללקוח למילוי וחתימה:
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 6 }}>
+          {AVAILABLE_GARAGE_FORMS.map((form) => (
+            <label
+              key={form}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                cursor: 'pointer',
+                background: selectedForms.includes(form) ? '#dcfce7' : '#fff',
+                padding: '4px 8px',
+                borderRadius: 6,
+                border: selectedForms.includes(form) ? '1px solid #22c55e' : '1px solid #e2e8f0',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={selectedForms.includes(form)}
+                onChange={() => toggleForm(form)}
+              />
+              <span style={{ fontWeight: selectedForms.includes(form) ? 600 : 400 }}>✍️ {form}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        className="btn btn-primary btn-sm"
+        disabled={!hasSelections}
+        onClick={() => onPrepareLink(selectedDocs, selectedForms)}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          fontWeight: 600,
+          opacity: hasSelections ? 1 : 0.6,
+          cursor: hasSelections ? 'pointer' : 'not-allowed',
+        }}
+      >
+        ✨ הכן כרטיס אישור למסמכים שנבחרו ({selectedDocs.length + selectedForms.length})
+      </button>
+    </div>
+  );
+}
+
 export function ClaimsAiWorkspace({
   open,
   onClose,
@@ -808,6 +950,118 @@ export function ClaimsAiWorkspace({
       setUploadingMissingDocKey(null);
     }
   }, [claimId]);
+
+  const handleWhatsAppClick = useCallback((e: React.MouseEvent, waUrl: string) => {
+    if (!waUrl) return;
+    const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) {
+      e.preventDefault();
+      window.location.href = waUrl;
+    }
+  }, []);
+
+  const handleRemoveRequestedDoc = useCallback((msgId: string, docName: string) => {
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== msgId) return m;
+        const p = pendingActionOf(m.metadata);
+        if (!p || !p.parameters) return m;
+        const current = Array.isArray(p.parameters.requested_documents) ? p.parameters.requested_documents : [];
+        const updated = current.filter((d: string) => d !== docName);
+        return {
+          ...m,
+          metadata: {
+            ...m.metadata,
+            pending_action: {
+              ...p,
+              parameters: {
+                ...p.parameters,
+                requested_documents: updated,
+              },
+            },
+          },
+        };
+      })
+    );
+  }, []);
+
+  const handleRemoveProvidedForm = useCallback((msgId: string, formName: string) => {
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== msgId) return m;
+        const p = pendingActionOf(m.metadata);
+        if (!p || !p.parameters) return m;
+        const current = Array.isArray(p.parameters.provided_forms) ? p.parameters.provided_forms : [];
+        const updated = current.filter((f: string) => f !== formName);
+        return {
+          ...m,
+          metadata: {
+            ...m.metadata,
+            pending_action: {
+              ...p,
+              parameters: {
+                ...p.parameters,
+                provided_forms: updated,
+              },
+            },
+          },
+        };
+      })
+    );
+  }, []);
+
+  const [uploadingFormForMsg, setUploadingFormForMsg] = useState<string | null>(null);
+  const formFileInputRef = useRef<HTMLInputElement>(null);
+  const currentFormTargetRef = useRef<{ msgId: string; claimId: string } | null>(null);
+
+  const handleTriggerFormUpload = useCallback((msgId: string, targetClaimId: string) => {
+    currentFormTargetRef.current = { msgId, claimId: targetClaimId };
+    formFileInputRef.current?.click();
+  }, []);
+
+  const handleFormFileChosen = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentFormTargetRef.current) return;
+    const { msgId, claimId: targetClaim } = currentFormTargetRef.current;
+    setUploadingFormForMsg(msgId);
+    try {
+      const res = await uploadChatAttachmentToClaim(targetClaim, file);
+      if (res.success) {
+        const formName = file.name.replace(/\.[^/.]+$/, '');
+        setMessages((prev) =>
+          prev.map((m) => {
+            if (m.id !== msgId) return m;
+            const p = pendingActionOf(m.metadata);
+            if (!p || !p.parameters) return m;
+            const forms = Array.isArray(p.parameters.provided_forms) ? [...p.parameters.provided_forms] : [];
+            if (!forms.includes(formName)) forms.push(formName);
+            const missing = Array.isArray(p.parameters.missing_forms)
+              ? p.parameters.missing_forms.filter((mName: string) => mName !== formName)
+              : [];
+            return {
+              ...m,
+              metadata: {
+                ...m.metadata,
+                pending_action: {
+                  ...p,
+                  parameters: {
+                    ...p.parameters,
+                    provided_forms: forms,
+                    missing_forms: missing,
+                  },
+                },
+              },
+            };
+          })
+        );
+      } else {
+        setBanner(`העלאת הטופס נכשלה: ${res.error || 'שגיאה לא ידועה'}`);
+      }
+    } finally {
+      setUploadingFormForMsg(null);
+      e.target.value = '';
+    }
+  }, []);
 
   const isSubmittingRef = useRef(false);
   const isNearBottomRef = useRef(true);
@@ -2076,6 +2330,22 @@ export function ClaimsAiWorkspace({
                     onOpenClaim={onOpenClaim}
                     onCopyText={(txt) => void handleCopyText(msg.id, txt)}
                   />
+                  {msg.role === 'assistant' && (
+                    msg.content.includes('מאגר המסמכים והטפסים') ||
+                    msg.content.includes('קטגוריה א:') ||
+                    (toolTraceOf(msg.metadata) || []).some((t) => t.tool === 'list_available_claim_documents_and_forms')
+                  ) ? (
+                    <ClaimsCatalogWidget
+                      onPrepareLink={(docs, forms) => {
+                        const parts: string[] = [];
+                        if (docs.length > 0) parts.push(`מסמכים שהלקוח נדרש להעלות: ${docs.join(', ')}`);
+                        if (forms.length > 0) parts.push(`טפסים שהמוסך מספק למילוי וחתימה: ${forms.join(', ')}`);
+                        const targetClaim = claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || 'DAL-2026-0249');
+                        const prompt = `הכיני קישור להעלאת מסמכים עבור תיק ${targetClaim} עם המסמכים הבאים:\n${parts.join('\n')}`;
+                        void sendMessage(prompt);
+                      }}
+                    />
+                  ) : null}
                   {toolError ? <div className="claims-ai-tool-err">הכלי נכשל: {toolError}</div> : null}
                   {msg.role === 'assistant' && toolTraceOf(msg.metadata) ? (
                     <div
@@ -2324,7 +2594,7 @@ export function ClaimsAiWorkspace({
                               <a
                                 href={String(pending.parameters.wa_link)}
                                 target="_blank"
-                                rel="noreferrer"
+                                rel="noopener noreferrer"
                                 className="btn btn-g btn-xs"
                                 data-testid="claims-ai-preview-wa-intake-btn"
                                 style={{
@@ -2339,6 +2609,7 @@ export function ClaimsAiWorkspace({
                                   fontWeight: 600,
                                   borderRadius: '6px',
                                 }}
+                                onClick={(e) => handleWhatsAppClick(e, String(pending.parameters.wa_link))}
                                 title="פתיחת וואטסאפ עם הודעה מוכנה הכוללת את קישור פתיחת התיק בלבד"
                               >
                                 💬 שלח בוואטסאפ
@@ -2380,6 +2651,143 @@ export function ClaimsAiWorkspace({
                           {pending.parameters.recipient_phone ? <div><strong>טלפון (WhatsApp):</strong> {String(pending.parameters.recipient_phone)}</div> : null}
                           {pending.parameters.recipient_email ? <div><strong>אימייל:</strong> {String(pending.parameters.recipient_email)}</div> : null}
                           <div><strong>ערוץ שליחה:</strong> {String(pending.parameters.channel || 'copy') === 'whatsapp' ? 'WhatsApp' : String(pending.parameters.channel) === 'email' ? 'אימייל' : String(pending.parameters.channel) === 'both' ? 'אימייל + WhatsApp' : 'העתקת קישור'}</div>
+
+                          {/* Category A: Requested documents from customer */}
+                          {Array.isArray(pending.parameters.requested_documents) && pending.parameters.requested_documents.length > 0 ? (
+                            <div style={{ marginTop: 8, background: '#eff6ff', padding: '8px 10px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+                              <div style={{ fontSize: '0.78rem', color: '#1e40af', fontWeight: 700, marginBottom: 4 }}>
+                                📥 מסמכים שהלקוח נדרש להעלות אלינו ({pending.parameters.requested_documents.length}):
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {pending.parameters.requested_documents.map((doc: string, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      background: '#dbeafe',
+                                      color: '#1e3a8a',
+                                      fontSize: '0.75rem',
+                                      padding: '2px 8px',
+                                      borderRadius: 12,
+                                      border: '1px solid #93c5fd',
+                                    }}
+                                  >
+                                    ✓ {doc}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveRequestedDoc(msg.id, doc)}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: '#ef4444',
+                                        padding: 0,
+                                        marginLeft: 4,
+                                        fontSize: '0.8rem',
+                                        fontWeight: 700,
+                                      }}
+                                      title={`הסר את ${doc}`}
+                                    >
+                                      ✕
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {/* Category B: Provided forms to sign/fill */}
+                          {Array.isArray(pending.parameters.provided_forms) && pending.parameters.provided_forms.length > 0 ? (
+                            <div style={{ marginTop: 8, background: '#f0fdf4', padding: '8px 10px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
+                              <div style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 700, marginBottom: 4 }}>
+                                📝 טפסים שאנו מספקים ללקוח למילוי וחתימה ({pending.parameters.provided_forms.length}):
+                              </div>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {pending.parameters.provided_forms.map((form: string, idx: number) => (
+                                  <span
+                                    key={idx}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      background: '#dcfce7',
+                                      color: '#14532d',
+                                      fontSize: '0.75rem',
+                                      padding: '2px 8px',
+                                      borderRadius: 12,
+                                      border: '1px solid #86efac',
+                                    }}
+                                  >
+                                    ✍️ {form}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveProvidedForm(msg.id, form)}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        color: '#ef4444',
+                                        padding: 0,
+                                        marginLeft: 4,
+                                        fontSize: '0.8rem',
+                                        fontWeight: 700,
+                                      }}
+                                      title={`הסר את ${form}`}
+                                    >
+                                      ✕
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {/* Missing forms handling & upload button */}
+                          {Array.isArray(pending.parameters.missing_forms) && pending.parameters.missing_forms.length > 0 ? (
+                            <div style={{ marginTop: 8, background: '#fffbeb', padding: '8px 10px', borderRadius: '6px', border: '1px solid #fde68a' }}>
+                              <div style={{ fontSize: '0.78rem', color: '#b45309', fontWeight: 700, marginBottom: 4 }}>
+                                ⚠️ טופס חסר במאגר: {pending.parameters.missing_forms.join(', ')}
+                              </div>
+                              <div style={{ fontSize: '0.74rem', color: '#78350f', marginBottom: 6 }}>
+                                הטופס אינו מוגדר במאגר המערכת. באפשרותך לצרף אותו מקובץ כאן:
+                              </div>
+                              <button
+                                type="button"
+                                className="btn btn-g btn-xs"
+                                onClick={() => handleTriggerFormUpload(msg.id, String(pending.parameters.claim_id || claimId || 'DAL-2026-0249'))}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 6,
+                                  fontSize: '0.76rem',
+                                  padding: '4px 10px',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {uploadingFormForMsg === msg.id ? '⏳ מעלה טופס...' : '➕ העלה טופס מקובץ (PDF/תמונה)'}
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ marginTop: 6 }}>
+                              <button
+                                type="button"
+                                className="btn btn-g btn-xs"
+                                onClick={() => handleTriggerFormUpload(msg.id, String(pending.parameters.claim_id || claimId || 'DAL-2026-0249'))}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  fontSize: '0.74rem',
+                                  padding: '2px 8px',
+                                  color: '#475569',
+                                }}
+                              >
+                                {uploadingFormForMsg === msg.id ? '⏳ מעלה...' : '➕ צרף טופס נוסף מקובץ'}
+                              </button>
+                            </div>
+                          )}
 
                           {pending.parameters.upload_url ? (
                             <div style={{ marginTop: 8, background: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0', wordBreak: 'break-all' }}>
@@ -2444,7 +2852,7 @@ export function ClaimsAiWorkspace({
                               <a
                                 href={String(pending.parameters.wa_link)}
                                 target="_blank"
-                                rel="noreferrer"
+                                rel="noopener noreferrer"
                                 className="btn btn-g btn-xs"
                                 data-testid="claims-ai-preview-wa-upload-btn"
                                 style={{
@@ -2459,6 +2867,7 @@ export function ClaimsAiWorkspace({
                                   fontWeight: 600,
                                   borderRadius: '6px',
                                 }}
+                                onClick={(e) => handleWhatsAppClick(e, String(pending.parameters.wa_link))}
                                 title="פתיחת וואטסאפ עם קישור העלאת מסמכים"
                               >
                                 💬 שלח בוואטסאפ
@@ -2648,7 +3057,7 @@ export function ClaimsAiWorkspace({
                               <a
                                 href={String(pending.parameters.wa_link)}
                                 target="_blank"
-                                rel="noreferrer"
+                                rel="noopener noreferrer"
                                 className="btn btn-g btn-xs"
                                 data-testid="claims-ai-preview-wa-share-btn"
                                 style={{
@@ -2663,6 +3072,7 @@ export function ClaimsAiWorkspace({
                                   fontWeight: 600,
                                   borderRadius: '6px',
                                 }}
+                                onClick={(e) => handleWhatsAppClick(e, String(pending.parameters.wa_link))}
                                 title="פתיחת וואטסאפ עם קישור השיתוף והמסמכים המבוקשים בלבד"
                               >
                                 💬 שלח בוואטסאפ
@@ -3028,6 +3438,14 @@ export function ClaimsAiWorkspace({
             ↓ הודעות חדשות
           </button>
         )}
+        <input
+          ref={formFileInputRef}
+          type="file"
+          accept=".pdf,image/*"
+          style={{ display: 'none' }}
+          onChange={handleFormFileChosen}
+          data-testid="claims-ai-form-file-input"
+        />
       </section>
     </div>
   );
