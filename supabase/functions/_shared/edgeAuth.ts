@@ -63,7 +63,12 @@ export async function requireAuth(
 ): Promise<{ ctx: AuthContext } | { error: Response }> {
   const supabaseAdmin = adminClient();
 
-  if (options?.allowInternal && isInternalSecret(req)) {
+  const authHeader = req.headers.get('Authorization');
+  const token = authHeader?.startsWith('Bearer ') ? authHeader.replace('Bearer ', '').trim() : '';
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+  if (options?.allowInternal && (isInternalSecret(req) || (serviceKey && token === serviceKey) || jwtPayload(token)?.role === 'service_role')) {
     return {
       ctx: {
         user: { id: 'internal', email: 'internal@system' },
@@ -77,14 +82,10 @@ export async function requireAuth(
     };
   }
 
-  const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return { error: jsonResponse({ error: 'Unauthorized' }, 401) };
   }
 
-  const token = authHeader.replace('Bearer ', '').trim();
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
   if ((anonKey && token === anonKey) || (serviceKey && token === serviceKey) || isNonUserJwt(token)) {
     return { error: jsonResponse({ error: 'Forbidden — user session required' }, 403) };
   }

@@ -4497,6 +4497,9 @@ export async function executeClaimsTool(
             : `שליחת קישור להעלאת מסמכים ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId})`;
           try {
             const docsRes = await supabase.functions.invoke("claims-docs", {
+              headers: {
+                "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
+              },
               body: {
                 action: "create_link",
                 claim_id: targetClaimId,
@@ -4520,6 +4523,9 @@ export async function executeClaimsTool(
           summary = `שליחת קישור פתיחת תיק חדש ללקוח "${clientName || "הלקוח"}" (תיק ${targetClaimId})`;
           try {
             const intakeRes = await supabase.functions.invoke("claims-intake", {
+              headers: {
+                "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
+              },
               body: {
                 action: "create_link",
                 claim_id: targetClaimId,
@@ -7178,6 +7184,9 @@ export async function executeClaimsPendingAction(
           // Upload link only!
           if (!finalUploadUrl) {
             const docsRes = await supabase.functions.invoke("claims-docs", {
+              headers: {
+                "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
+              },
               body: { action: "create_link", claim_id: targetClaimId },
             });
             if (docsRes.data?.token) {

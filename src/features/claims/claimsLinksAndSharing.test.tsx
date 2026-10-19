@@ -815,4 +815,65 @@ describe('Claims Links and Sharing UI (Task 8)', () => {
       ['טופס ויתור סודיות מותאם']
     );
   });
+
+  it('shows missing form notice for Category B items and preserves selections on retry', async () => {
+    let callCount = 0;
+    const onPrepareLink = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) {
+        throw new Error('שגיאת תקשורת עם שרת דליה (Failed to fetch). נא לבדוק את חיבור האינטרנט ולנסות שוב.');
+      }
+    });
+
+    render(
+      <ClaimsCatalogWidget
+        claimId="DAL-2026-0249"
+        onPrepareLink={onPrepareLink}
+      />
+    );
+
+    // 1. Select Cat A (רישיון רכב, רישיון נהיגה) and Cat B (ייפוי כוח)
+    const vehLicense = screen.getByLabelText(/רישיון רכב/);
+    const drvLicense = screen.getByLabelText(/רישיון נהיגה/);
+    const poaForm = screen.getByLabelText(/ייפוי כוח/);
+
+    await act(async () => {
+      fireEvent.click(vehLicense);
+      fireEvent.click(drvLicense);
+      fireEvent.click(poaForm);
+    });
+
+    // 2. Category B form has no attached file -> verify missing form notice appears
+    const notice = screen.getByTestId('claims-catalog-missing-forms-notice');
+    expect(notice).toBeDefined();
+    expect(notice.textContent).toContain('הטופס חסר, נא להעלות אותו (PDF/תמונה): ייפוי כוח');
+
+    const prepBtn = screen.getByTestId('claims-catalog-prepare-btn');
+    expect(prepBtn.textContent).toContain('(3)');
+
+    // 3. Click prepare button -> first call fails
+    await act(async () => {
+      fireEvent.click(prepBtn);
+    });
+
+    // 4. Verify error banner appears, but selections remain intact
+    const errBanner = screen.getByTestId('claims-catalog-error-banner');
+    expect(errBanner.textContent).toContain('שגיאת תקשורת עם שרת דליה (Failed to fetch)');
+    expect(errBanner.textContent).toContain('כל המסמכים והטפסים שסימנת נשמרו');
+
+    // Button should now show retry text with the 3 selections still counted
+    expect(prepBtn.textContent).toContain('נסה שוב להכין כרטיס אישור (3)');
+
+    // 5. Retry click
+    await act(async () => {
+      fireEvent.click(prepBtn);
+    });
+
+    expect(onPrepareLink).toHaveBeenCalledTimes(2);
+    expect(onPrepareLink).toHaveBeenLastCalledWith(
+      ['רישיון רכב', 'רישיון נהיגה'],
+      ['ייפוי כוח']
+    );
+  });
 });
+

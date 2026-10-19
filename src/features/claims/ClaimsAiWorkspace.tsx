@@ -256,7 +256,12 @@ async function streamHelpAi(input: {
   onDelta: (full: string) => void;
   onPendingAction?: (pending: ClaimsAiPendingAction) => void;
 }): Promise<{ text: string; pendingAction: ClaimsAiPendingAction | null; documentCards: ClaimsAiDocumentCard[]; toolsUsed: ClaimsAiToolTrace[] | null }> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: sessionData } = await supabase.auth.getSession();
+  let session = sessionData?.session;
+  if (!session?.access_token || (session.expires_at && session.expires_at * 1000 < Date.now() + 60000)) {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    if (refreshed?.session) session = refreshed.session;
+  }
   if (!session?.access_token) throw new Error('יש להתחבר למערכת');
 
   const resp = await fetch(CHAT_URL, {
@@ -265,6 +270,7 @@ async function streamHelpAi(input: {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
     },
     body: JSON.stringify({
       messages: input.messages,
@@ -669,11 +675,13 @@ export function ClaimsCatalogWidget({
 }: {
   claimId?: string;
   onUploadCustomFile?: (file: File, name: string, category: 'cat_b' | 'cat_a') => Promise<{ success: boolean; file_id?: string; error?: string }>;
-  onPrepareLink: (docs: string[], forms: string[]) => void;
+  onPrepareLink: (docs: string[], forms: string[]) => void | Promise<void>;
 }) {
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
   const [selectedForms, setSelectedForms] = useState<string[]>([]);
   const [customItems, setCustomItems] = useState<CustomDocItem[]>([]);
+  const [prepareError, setPrepareError] = useState<string | null>(null);
+  const [isPreparing, setIsPreparing] = useState(false);
 
   // State for manual file upload flow
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -933,6 +941,52 @@ export function ClaimsCatalogWidget({
             );
           })}
         </div>
+        {selectedForms.filter((f) => !customForms.some((c) => c.name === f)).length > 0 ? (
+          <div
+            className="claims-catalog-missing-forms-notice"
+            data-testid="claims-catalog-missing-forms-notice"
+            style={{
+              marginTop: 10,
+              padding: '10px 14px',
+              background: 'rgba(234, 179, 8, 0.12)',
+              border: '1.5px solid #eab308',
+              borderRadius: 8,
+              color: '#fef08a',
+              fontSize: '0.82rem',
+              lineHeight: 1.5,
+            }}
+          >
+            <div style={{ fontWeight: 800, color: '#facc15', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>⚠️</span>
+              <span>הטופס חסר, נא להעלות אותו (PDF/תמונה): {selectedForms.filter((f) => !customForms.some((c) => c.name === f)).join(', ')}</span>
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#fef9c3', marginBottom: 6 }}>
+              הטופס מיועד להורדה, מילוי וחתימה ע"י הלקוח. באפשרותך להעלותו כעת (מצלמה/קובץ) והוא יישמר בתיק, או להמשיך ללא קובץ מוכן מראש.
+            </div>
+            <button
+              type="button"
+              className="btn btn-g"
+              onClick={() => {
+                const missing = selectedForms.filter((f) => !customForms.some((c) => c.name === f));
+                if (missing[0]) setDocName(missing[0]);
+                setDocCategory('cat_b');
+                fileInputRef.current?.click();
+              }}
+              style={{
+                background: '#854d0e',
+                color: '#ffffff',
+                border: '1px solid #ca8a04',
+                padding: '6px 12px',
+                borderRadius: 6,
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              📤 העלה קובץ עכשיו עבור "{selectedForms.filter((f) => !customForms.some((c) => c.name === f))[0]}"
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {/* Permanent "➕ העלה מסמך משלך" button and file picker */}
@@ -1116,12 +1170,47 @@ export function ClaimsCatalogWidget({
         )}
       </div>
 
+      {prepareError ? (
+        <div
+          className="claims-catalog-error-banner"
+          data-testid="claims-catalog-error-banner"
+          style={{
+            marginBottom: 10,
+            padding: '10px 14px',
+            background: 'rgba(239, 68, 68, 0.2)',
+            border: '1.5px solid #ef4444',
+            borderRadius: 8,
+            color: '#fca5a5',
+            fontSize: '0.84rem',
+            fontWeight: 600,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+          }}
+        >
+          <div>⚠️ {prepareError}</div>
+          <div style={{ fontSize: '0.78rem', color: '#fecaca' }}>
+            כל המסמכים והטפסים שסימנת נשמרו. באפשרותך ללחוץ על הכפתור מטה כדי לנסות שוב.
+          </div>
+        </div>
+      ) : null}
+
       <button
         type="button"
         className="btn btn-primary"
         data-testid="claims-catalog-prepare-btn"
-        disabled={!hasSelections}
-        onClick={() => onPrepareLink(selectedDocs, selectedForms)}
+        disabled={!hasSelections || isPreparing}
+        onClick={async () => {
+          setIsPreparing(true);
+          setPrepareError(null);
+          try {
+            await onPrepareLink(selectedDocs, selectedForms);
+          } catch (err) {
+            setPrepareError(err instanceof Error ? err.message : String(err));
+          } finally {
+            setIsPreparing(false);
+          }
+        }}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -1133,15 +1222,21 @@ export function ClaimsCatalogWidget({
           padding: '10px 18px',
           borderRadius: 8,
           width: '100%',
-          cursor: hasSelections ? 'pointer' : 'not-allowed',
-          opacity: hasSelections ? 1 : 0.5,
+          cursor: hasSelections && !isPreparing ? 'pointer' : 'not-allowed',
+          opacity: hasSelections && !isPreparing ? 1 : 0.5,
           background: hasSelections ? '#2563eb' : '#334155',
           color: '#ffffff',
           border: 'none',
           boxShadow: hasSelections ? '0 2px 8px rgba(37, 99, 235, 0.4)' : 'none',
         }}
       >
-        ✨ הכן כרטיס אישור למסמכים שנבחרו ({selectedDocs.length + selectedForms.length})
+        {isPreparing ? (
+          '⏳ מכין כרטיס אישור...'
+        ) : prepareError ? (
+          `🔄 נסה שוב להכין כרטיס אישור (${selectedDocs.length + selectedForms.length})`
+        ) : (
+          `✨ הכן כרטיס אישור למסמכים שנבחרו (${selectedDocs.length + selectedForms.length})`
+        )}
       </button>
     </div>
   );
@@ -2117,9 +2212,11 @@ export function ClaimsAiWorkspace({
       setMessages(history);
 
       let pendingFromStream: ClaimsAiPendingAction | null = null;
+      const detectedClaimId = claimId || (effectiveText.match(/DAL-\d{4}-\d{4}/)?.[0] ?? null);
+      const effectiveTargetClaim = claimId || detectedClaimId;
       const answer = await streamHelpAi({
         messages: messagesForModel(history),
-        claimId,
+        claimId: effectiveTargetClaim,
         companyName,
         signal: controller.signal,
         attachments: finalAttachments.map((a) => ({
@@ -2232,9 +2329,12 @@ export function ClaimsAiWorkspace({
         return;
       }
       const rawMsg = err instanceof Error ? err.message : 'שגיאה';
-      const message = rawMsg.includes('504') || rawMsg.includes('503')
-        ? 'שרת ה-AI עמוס כרגע (שגיאת עומס 504/503). אנא נסה שוב בעוד מספר רגעים.'
-        : rawMsg;
+      let message = rawMsg;
+      if (rawMsg.includes('Failed to fetch') || rawMsg.includes('NetworkError') || rawMsg.includes('Load failed')) {
+        message = 'שגיאת תקשורת עם שרת דליה (Failed to fetch). נא לבדוק את חיבור האינטרנט ולנסות שוב.';
+      } else if (rawMsg.includes('504') || rawMsg.includes('503')) {
+        message = 'שרת ה-AI עמוס כרגע (שגיאת עומס 504/503). אנא נסה שוב בעוד מספר רגעים.';
+      }
       setBanner(message);
       if (conversationId) {
         const failed = await insertClaimsAiMessage({
@@ -2268,7 +2368,12 @@ export function ClaimsAiWorkspace({
     setExecutingActionId(msg.id);
     setBanner('');
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession();
+      let session = sessionData?.session;
+      if (!session?.access_token || (session.expires_at && session.expires_at * 1000 < Date.now() + 60000)) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed?.session) session = refreshed.session;
+      }
       if (!session?.access_token) throw new Error('יש להתחבר למערכת');
 
       const resp = await fetch(CHAT_URL, {
@@ -2276,6 +2381,7 @@ export function ClaimsAiWorkspace({
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
         },
         body: JSON.stringify({
           action: 'execute_pending_action',

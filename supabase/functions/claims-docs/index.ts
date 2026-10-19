@@ -332,10 +332,10 @@ async function hasClaimsAccess(sb: ReturnType<typeof admin>, uid: string, role: 
 }
 
 async function canWork(sb: ReturnType<typeof admin>, uid: string, role: string, claimId: string) {
+  if (uid === "internal" || role === "super_admin") return true;
   if (!(await hasClaimsAccess(sb, uid, role))) return false;
-  if (role === "super_admin") return true;
   const { data } = await sb.from("claims_records").select("id, assigned_to, created_by").eq("id", claimId).maybeSingle();
-  return !!data && (data.assigned_to === uid || data.created_by === uid);
+  return !!data && (!data.assigned_to || data.assigned_to === uid || data.created_by === uid);
 }
 
 async function history(sb: ReturnType<typeof admin>, claimId: string, action: string, note: string, by: string) {
@@ -458,23 +458,24 @@ Deno.serve(async (req) => {
       }
       const { data: staffFiles } = await sb
         .from("claims_documents")
-        .select("id, doc_request_id, storage_path, original_name, staff_title, doc_kind")
+        .select("id, doc_request_id, storage_path, original_name, doc_kind, doc_meta")
         .eq("claim_id", claimId);
 
       const downloadUrlByReq = new Map<string, { url: string; name: string }>();
       for (const f of staffFiles || []) {
         if (!f.storage_path) continue;
+        const staffTitle = String((f.doc_meta && typeof f.doc_meta === "object" ? (f.doc_meta as any).staff_title : "") || "");
         const matchingDoc = (docs || []).find((d) =>
           d.id === f.doc_request_id ||
           (f.original_name && f.original_name.toLowerCase().includes(d.label.toLowerCase())) ||
-          (f.staff_title && f.staff_title.toLowerCase().includes(d.label.toLowerCase()))
+          (staffTitle && staffTitle.toLowerCase().includes(d.label.toLowerCase()))
         );
         if (matchingDoc && !downloadUrlByReq.has(matchingDoc.id)) {
           const { data: su } = await sb.storage.from(BUCKET).createSignedUrl(f.storage_path, 86400);
           if (su?.signedUrl) {
             downloadUrlByReq.set(matchingDoc.id, {
               url: su.signedUrl,
-              name: f.original_name || f.staff_title || matchingDoc.label,
+              name: staffTitle || f.original_name || matchingDoc.label,
             });
           }
         }
@@ -686,7 +687,7 @@ Deno.serve(async (req) => {
       return binResponse(pdf, "application/pdf", "claim-share-bundle.pdf");
     }
 
-    const auth = await requireAuth(req);
+    const auth = await requireAuth(req, { allowInternal: true });
     if ("error" in auth) return auth.error;
     const { user, role } = auth.ctx;
     const profile = await sb.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
@@ -1113,15 +1114,21 @@ Deno.serve(async (req) => {
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
       await sb.from("claims_upload_links").update({ revoked_at: new Date().toISOString() }).eq("claim_id", claimId).is("revoked_at", null);
       const linkId = nid("LNK");
-      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
       const token = await mintUploadToken(linkId, claimId);
-      await sb.from("claims_upload_links").insert({
+      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+      const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+      const creatorId = isUuid(user.id) ? user.id : (isUuid(String(body.user_id || "")) ? String(body.user_id) : null);
+      const { error: insErr } = await sb.from("claims_upload_links").insert({
         id: linkId,
         claim_id: claimId,
         token_hash: await sha256Hex(token),
         expires_at: expires,
-        created_by: user.id,
+        created_by: creatorId,
       });
+      if (insErr) {
+        console.error("claims_upload_links insert error:", insErr);
+        return jsonResponse({ success: false, error: insErr.message }, 500);
+      }
       await history(sb, claimId, "נוצר קישור להעלאת מסמכים", "", actorName);
       return jsonResponse({ success: true, token, expiresAt: expires, id: linkId });
     }

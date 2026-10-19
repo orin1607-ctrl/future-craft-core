@@ -485,10 +485,10 @@ Deno.serve(async (req) => {
     }
   }
 
-  const auth = await requireAuth(req);
+  const auth = await requireAuth(req, { allowInternal: true });
   if ("error" in auth) return auth.error;
   const { user, role } = auth.ctx;
-  if (!(await hasClaimsAccess(sb, user.id, role))) return jsonResponse({ success: false, error: "forbidden" }, 403);
+  if (user.id !== "internal" && !(await hasClaimsAccess(sb, user.id, role))) return jsonResponse({ success: false, error: "forbidden" }, 403);
 
   if (action === "create_link") {
     if (!(await rateLimit(sb, user.id, "create_link", 20))) {
@@ -497,6 +497,8 @@ Deno.serve(async (req) => {
     const token = randomToken();
     const id = nid("INL");
     const claimId = String(body.claim_id || "").trim();
+    const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+    const creatorId = isUuid(user.id) ? user.id : (isUuid(String(body.user_id || "")) ? String(body.user_id) : null);
     if (claimId) {
       const { data: claim } = await sb.from("claims_records").select("id, plate, client_name, row_data").eq("id", claimId).maybeSingle();
       if (!claim) return jsonResponse({ success: false, error: "claim_not_found" }, 400);
@@ -506,7 +508,7 @@ Deno.serve(async (req) => {
         token_hash: await sha256Hex(token),
         status: "pending",
         expires_at: new Date(Date.now() + LINK_TTL_MS).toISOString(),
-        created_by: user.id,
+        created_by: creatorId,
         claim_id: claimId,
         draft,
       });
@@ -522,7 +524,7 @@ Deno.serve(async (req) => {
       token_hash: await sha256Hex(token),
       status: "pending",
       expires_at: new Date(Date.now() + LINK_TTL_MS).toISOString(),
-      created_by: user.id,
+      created_by: creatorId,
     });
     if (error) return jsonResponse({ success: false, error: error.message }, 400);
     return jsonResponse({
