@@ -78,3 +78,20 @@ SELECT count(*) functions_with_own_timeout FROM pg_proc p JOIN pg_namespace n ON
 -- moment on the Micro disk – e.g. maintenance – must not drop a run)
 ALTER FUNCTION public.nr_lead_candidates(integer) SET statement_timeout = '25s';
 ALTER FUNCTION public.nr_lead_store(jsonb, jsonb) SET statement_timeout = '25s';
+
+-- Count accuracy: planner estimates are poor for array (industry) and EXISTS filters (e.g. ~10,800 shown for 255,907
+-- unclassified). The total is now exact up to 10,000 matches; above that it is "more than 10,000" (or the planner's
+-- figure when that is higher), still flagged total_exact = false.
+DO $$
+DECLARE d text;
+BEGIN
+  d := pg_get_functiondef('public.nr_browse(jsonb,text,integer,integer)'::regprocedure);
+  IF position('LIMIT 10001' IN d) = 0 THEN
+    d := replace(d, 'LIMIT 201) x', 'LIMIT 10001) x');
+    d := replace(d, 'IF v_total > 200 THEN', 'IF v_total > 10000 THEN');
+    d := replace(d, 'v_total := greatest(201, coalesce((v_plan->0->''Plan''->>''Plan Rows'')::numeric, 201)::bigint);',
+                    'v_total := greatest(10001, coalesce((v_plan->0->''Plan''->>''Plan Rows'')::numeric, 10001)::bigint);');
+    IF position('LIMIT 10001' IN d) = 0 OR position('greatest(10001' IN d) = 0 THEN RAISE EXCEPTION 'nr_browse count text did not match'; END IF;
+    EXECUTE d;
+  END IF;
+END $$;
