@@ -114,3 +114,6 @@ verify_jwt = false
 
 [functions.social-meta]
 verify_jwt = false
+
+[functions.marketing-hub]
+verify_jwt = false

@@ -51,9 +51,22 @@ textarea,input[type=text],input[type=password],input[type=datetime-local],select
 textarea{min-height:170px;resize:vertical}
 label.l{display:block;font-weight:700;margin:12px 0 5px}
 .muted{color:var(--muted);font-size:12.5px}
-.drop{border:2px dashed var(--line);border-radius:12px;padding:16px;text-align:center;cursor:pointer;color:var(--muted)}
-.drop.has{padding:6px}
-.drop img{max-width:100%;max-height:260px;border-radius:8px;display:block;margin:0 auto}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:12px;text-align:center;color:var(--muted)}
+.drop.on{border-color:var(--blue);background:var(--blue-soft)}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:6px;margin-bottom:6px}
+.thumbs:empty{display:none}
+.th{position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.th img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.th .n{position:absolute;top:3px;inset-inline-start:3px;background:rgba(0,0,0,.6);color:#fff;border-radius:6px;font-size:11px;padding:0 5px}
+.th .ta{position:absolute;inset-inline:0;bottom:0;display:flex;justify-content:space-between;background:rgba(0,0,0,.45)}
+.th .ta button{border:0;background:transparent;color:#fff;cursor:pointer;font-size:14px;padding:2px 6px}
+.fbgrid{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.fbgrid div{position:relative} .fbgrid img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.fbgrid span{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.5);color:#fff;font-size:26px;font-weight:800}
+.carousel-n{position:absolute;top:8px;inset-inline-end:8px;background:rgba(0,0,0,.6);color:#fff;border-radius:99px;padding:1px 8px;font-size:12px}
+#galleryDlg{width:min(1100px,96vw);height:min(820px,92vh);padding:0}
+#galleryDlg[open]{display:flex;flex-direction:column}
+#galleryDlg iframe{flex:1;border:0;width:100%}
 .targets label{display:inline-flex;gap:6px;align-items:center;margin-inline-end:16px;font-weight:600}
 .preview{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:12px;background:var(--surface)}
 .preview .ph{display:flex;gap:8px;align-items:center;padding:10px 12px;font-weight:700}
@@ -140,10 +153,17 @@ code{background:var(--bg);padding:1px 6px;border-radius:6px;direction:ltr;unicod
           </div>
         </details>
 
-        <label class="l">תמונה</label>
-        <div class="drop" id="drop">לחצו לבחירת תמונה מהמחשב, או גררו לכאן</div>
-        <input type="file" id="file" accept="image/*" hidden>
-        <div class="row" style="margin-top:6px"><button class="btn sm" id="rmImg" hidden>הסרת תמונה</button><span class="muted" id="imgInfo"></span></div>
+        <label class="l">תמונות <span class="muted" style="font-weight:400">(עד 10 · כמה תמונות = פוסט מרובה תמונות בפייסבוק / קרוסלה באינסטגרם)</span></label>
+        <div class="drop" id="drop">
+          <div class="thumbs" id="thumbs"></div>
+          <div class="muted" id="dropHint">גררו לכאן תמונות מהמחשב או מהגלריה</div>
+          <div class="row" style="justify-content:center;margin-top:8px">
+            <button class="btn sm pri" id="galleryBtn" type="button">🖼️ בחירה מהגלריה</button>
+            <button class="btn sm" id="uploadBtn" type="button">העלאה מהמחשב</button>
+          </div>
+        </div>
+        <input type="file" id="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
+        <div class="muted" id="imgInfo" style="margin-top:4px"></div>
 
         <label class="l">היכן לפרסם</label>
         <div class="targets">
@@ -197,6 +217,14 @@ code{background:var(--bg);padding:1px 6px;border-radius:6px;direction:ltr;unicod
 
 <div class="toast" id="toast"></div>
 
+<dialog id="galleryDlg">
+  <div class="row" style="justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line)">
+    <b>בחירה מהגלריה</b><button class="btn sm" id="galleryClose">סגירה</button>
+  </div>
+  <iframe id="galleryFrame" title="גלריית מדיה"></iframe>
+</dialog>
+
+<script src="./marketing/hub-client.js"></script>
 <script>
 /* Social Center — talks only to the staging social-meta edge function.
    Each business (tenant) is fully separate: accounts, images, drafts and history are keyed by business_id. */
@@ -207,7 +235,7 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 const ls = {get:k=>{try{return localStorage.getItem(k)}catch(e){return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}, del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
 
 const S = {key: ls.get(KEY_LS) || '', businesses: [], biz: ls.get(BIZ_LS) || 'dalia', status: null, posts: [],
-           draft: null, image: null, pv: 'fb'};
+           draft: null, images: [], pv: 'fb'};
 
 function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),2600); }
 async function api(route, body){
@@ -323,7 +351,7 @@ $('#disconnectBtn').onclick = async () => {
 
 /* ---------- composer ---------- */
 function resetComposer(){
-  S.draft = null; S.image = null; $('#body').value=''; $('#brief').value=''; $('#when').value='';
+  S.draft = null; S.images = []; $('#imgInfo').textContent=''; $('#body').value=''; $('#brief').value=''; $('#when').value='';
   $('#tFb').checked = true; $('#tIg').checked = false; $('#composerTitle').textContent='צור פוסט חדש';
   $('#composeNote').innerHTML=''; renderImage(); renderPreview();
 }
@@ -340,69 +368,109 @@ $('#aiBtn').onclick = async () => {
   } catch(e) { toast(e.message); } finally { b.disabled=false; b.textContent='צור טקסט'; }
 };
 
-/* Images: converted in the browser to JPEG (Instagram accepts JPEG only) and padded into
-   Instagram's allowed aspect range 4:5 … 1.91:1, then uploaded to the business's own folder. */
-$('#drop').onclick = () => $('#file').click();
-$('#drop').ondragover = e => { e.preventDefault(); };
-$('#drop').ondrop = e => { e.preventDefault(); if (e.dataTransfer.files[0]) takeFile(e.dataTransfer.files[0]); };
-$('#file').onchange = e => { if (e.target.files[0]) takeFile(e.target.files[0]); e.target.value=''; };
-$('#rmImg').onclick = () => { S.image = null; renderImage(); renderPreview(); };
-function toJpeg(file){
-  return new Promise((res, rej) => {
-    const img = new Image(); img.onerror = () => rej(new Error('לא ניתן לקרוא את התמונה'));
-    img.onload = () => {
-      let w = img.naturalWidth, h = img.naturalHeight; const max = 1440;
-      const sc = Math.min(1, max / Math.max(w, h)); w = Math.round(w*sc); h = Math.round(h*sc);
-      let cw = w, ch = h; const r = w/h;
-      if (r < 0.8) cw = Math.round(h*0.8); else if (r > 1.91) ch = Math.round(w/1.91);
-      const c = document.createElement('canvas'); c.width = cw; c.height = ch;
-      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,cw,ch);
-      x.drawImage(img, Math.round((cw-w)/2), Math.round((ch-h)/2), w, h);
-      res({dataUrl: c.toDataURL('image/jpeg', 0.9), w: cw, h: ch, padded: cw!==w || ch!==h});
-      URL.revokeObjectURL(img.src);
-    };
-    img.src = URL.createObjectURL(file);
-  });
+/* Images come from the shared Media Library (uploads from here land there too, category "פוסטים").
+   Anything Instagram's API would reject (non-JPEG, or aspect outside 4:5 … 1.91:1) gets a padded JPEG
+   version created once in the library and linked to its original — the original is never changed. */
+const MAX_IMAGES = 10;
+const syncHub = () => { Hub.key = S.key; Hub.biz = S.biz; };
+async function addAssets(assets){
+  syncHub();
+  const room = MAX_IMAGES - S.images.length;
+  if (assets.length > room) toast(`אפשר עד ${MAX_IMAGES} תמונות לפוסט`);
+  $('#imgInfo').textContent = 'מכין תמונות…';
+  let adjusted = 0;
+  for (const a of assets.slice(0, Math.max(0, room))) {
+    if (S.images.find(x => x.id === a.id)) continue;
+    try {
+      const ok = await Hub.igCompatible(a);
+      if (ok.id !== a.id) adjusted++;
+      S.images.push(ok);
+    } catch(e) { toast(e.message); }
+  }
+  $('#imgInfo').textContent = adjusted ? `${adjusted} תמונות הותאמו לאינסטגרם (נוספו שוליים / הומרו ל-JPG). המקור נשמר בגלריה.` : '';
+  renderImage(); renderPreview();
 }
-async function takeFile(f){
-  if (!/^image\//.test(f.type)) return toast('יש לבחור קובץ תמונה');
+async function uploadToLibrary(files){
+  syncHub();
   $('#imgInfo').textContent = 'מעלה…';
   try {
-    const j = await toJpeg(f);
-    const up = await api('upload', {base64: j.dataUrl, content_type: 'image/jpeg'});
-    S.image = {url: up.url, path: up.path, local: j.dataUrl, info: `${j.w}×${j.h}${j.padded?' · נוספו שוליים כדי להתאים לאינסטגרם':''}`};
-    renderImage(); renderPreview(); toast('התמונה הועלתה');
-  } catch(e) { $('#imgInfo').textContent=''; toast(e.message); }
+    const r = await Hub.uploadFiles([...files].slice(0, MAX_IMAGES - S.images.length), {category: 'פוסטים',
+      onProgress: (d, t) => { $('#imgInfo').textContent = `מעלה ${d}/${t}…`; }});
+    if (r.errors.length) toast(r.errors[0]);
+    await addAssets(r.assets);
+  } catch(e) { $('#imgInfo').textContent = ''; toast(e.message); }
 }
+$('#uploadBtn').onclick = () => $('#file').click();
+$('#file').onchange = e => { if (e.target.files.length) uploadToLibrary(e.target.files); e.target.value=''; };
+$('#drop').ondragover = e => { e.preventDefault(); $('#drop').classList.add('on'); };
+$('#drop').ondragleave = () => $('#drop').classList.remove('on');
+$('#drop').ondrop = e => {
+  e.preventDefault(); $('#drop').classList.remove('on');
+  const m = e.dataTransfer.getData('application/x-dalia-media');
+  if (m) { try { addAssets([JSON.parse(m)]); } catch(err) {} return; }
+  if (e.dataTransfer.files.length) uploadToLibrary(e.dataTransfer.files);
+};
+$('#thumbs').onclick = e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const i = +b.dataset.i;
+  if (b.dataset.act === 'rm') S.images.splice(i, 1);
+  if (b.dataset.act === 'left' && i < S.images.length - 1) [S.images[i], S.images[i+1]] = [S.images[i+1], S.images[i]];
+  if (b.dataset.act === 'right' && i > 0) [S.images[i], S.images[i-1]] = [S.images[i-1], S.images[i]];
+  renderImage(); renderPreview();
+};
 function renderImage(){
-  const im = S.image;
-  $('#drop').classList.toggle('has', !!im);
-  $('#drop').innerHTML = im ? `<img src="${esc(im.local||im.url)}" alt="">` : 'לחצו לבחירת תמונה מהמחשב, או גררו לכאן';
-  $('#rmImg').hidden = !im; $('#imgInfo').textContent = im?.info || '';
+  $('#thumbs').innerHTML = S.images.map((im, i) => `<div class="th"><img src="${esc(im.thumb_url||im.url)}" alt="">
+    <span class="n">${i+1}</span>
+    <div class="ta"><button type="button" data-act="right" data-i="${i}" title="הזזה קדימה">›</button><button type="button" data-act="rm" data-i="${i}" title="הסרה">✕</button><button type="button" data-act="left" data-i="${i}" title="הזזה אחורה">‹</button></div></div>`).join('');
+  $('#dropHint').textContent = S.images.length ? `${S.images.length}/${MAX_IMAGES} תמונות · התמונה הראשונה היא הראשית` : 'גררו לכאן תמונות מהמחשב או מהגלריה';
+}
+/* Gallery picker: the media library in pick mode inside a dialog. */
+$('#galleryBtn').onclick = () => {
+  $('#galleryFrame').src = `./media-library.html?pick=1&max=${MAX_IMAGES - S.images.length}&biz=${encodeURIComponent(S.biz)}`;
+  $('#galleryDlg').showModal();
+};
+$('#galleryClose').onclick = () => $('#galleryDlg').close();
+window.addEventListener('message', e => {
+  if (e.origin !== location.origin || e.data?.type !== 'media-picked') return;
+  $('#galleryDlg').close();
+  if (e.data.assets?.length) addAssets(e.data.assets);
+});
+async function preloadMedia(ids){
+  try {
+    syncHub();
+    const {assets} = await Hub.hub('media/list', {limit: 1000});
+    const picked = ids.map(id => assets.find(a => a.id === id)).filter(Boolean);
+    if (picked.length) await addAssets(picked);
+  } catch(e) { toast(e.message); }
 }
 document.querySelectorAll('[data-pv]').forEach(b => b.onclick = () => {
   S.pv = b.dataset.pv; document.querySelectorAll('[data-pv]').forEach(x=>x.classList.toggle('on', x===b)); renderPreview();
 });
 function renderPreview(){
-  const st = S.status || {}; const body = $('#body').value; const im = S.image;
+  const st = S.status || {}; const body = $('#body').value; const ims = S.images;
   if (S.pv === 'fb') {
     const a = st.facebook;
+    const media = !ims.length ? '' : ims.length === 1 ? `<img class="media" src="${esc(ims[0].url)}">`
+      : `<div class="fbgrid">${ims.slice(0,4).map((im,i)=>`<div><img src="${esc(im.thumb_url||im.url)}">${i===3&&ims.length>4?`<span>+${ims.length-4}</span>`:''}</div>`).join('')}</div>`;
     $('#preview').innerHTML = `<div class="preview"><div class="ph"><div class="av">${a?.picture_url?`<img src="${esc(a.picture_url)}">`:'f'}</div>
       <div>${esc(a?.name || st.business?.name || 'העמוד העסקי')}<div class="muted" style="font-weight:400">עכשיו · 🌐</div></div></div>
-      <div class="tx">${esc(body) || '<span class="muted">טקסט הפוסט יופיע כאן</span>'}</div>${im?`<img class="media" src="${esc(im.local||im.url)}">`:''}</div>`;
+      <div class="tx">${esc(body) || '<span class="muted">טקסט הפוסט יופיע כאן</span>'}</div>${media}</div>`;
   } else {
     const a = st.instagram;
     $('#preview').innerHTML = `<div class="preview ig"><div class="ph"><div class="av">${a?.picture_url?`<img src="${esc(a.picture_url)}">`:'IG'}</div>${esc(a?.username || 'instagram')}</div>
-      ${im?`<img class="media" src="${esc(im.local||im.url)}">`:'<div class="note" style="margin:0 12px">באינסטגרם חובה לצרף תמונה</div>'}
+      ${ims.length?`<div style="position:relative"><img class="media" src="${esc(ims[0].url)}">${ims.length>1?`<span class="carousel-n">1/${ims.length}</span>`:''}</div>`:'<div class="note" style="margin:0 12px">באינסטגרם חובה לצרף תמונה</div>'}
+      ${ims.length>1?'<div class="muted" style="padding:6px 12px 0">קרוסלה: כל התמונות יוצגו ביחס של התמונה הראשונה</div>':''}
       <div class="tx"><b>${esc(a?.username || '')}</b> ${esc(body)}</div></div>`;
   }
 }
 function collect(){
   const targets = [$('#tFb').checked&&'facebook', $('#tIg').checked&&'instagram'].filter(Boolean);
-  return {id: S.draft?.id, body: $('#body').value, image_url: S.image?.url || null, image_path: S.image?.path || null, targets};
+  const image_urls = S.images.map(i => i.url);
+  return {id: S.draft?.id, body: $('#body').value, image_urls, image_url: image_urls[0] || null, targets};
 }
 function validate(p, forPublish){
   if (!p.body.trim() && !p.image_url) return 'הפוסט ריק — הוסיפו טקסט או תמונה';
+  if (p.image_urls.length > MAX_IMAGES) return `אפשר עד ${MAX_IMAGES} תמונות`;
   if (forPublish) {
     if (!p.targets.length) return 'בחרו היכן לפרסם';
     if (p.targets.includes('facebook') && !S.status?.facebook) return 'עמוד הפייסבוק עדיין לא מחובר';
@@ -448,9 +516,14 @@ function showResult(p){
 $('#suiteBtn').onclick = async () => {
   const p = collect(); if (!p.body.trim() && !p.image_url) return toast('הפוסט ריק');
   try { await navigator.clipboard.writeText(p.body); } catch(e) {}
-  if (S.image) { const a = document.createElement('a'); a.href = S.image.local || S.image.url; a.download = 'post-image.jpg'; a.click(); }
+  for (const [i, im] of S.images.entries()) {
+    try {
+      const blob = await (await fetch(im.url)).blob();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `post-image-${i+1}.jpg`; a.click();
+    } catch(e) {}
+  }
   window.open('https://business.facebook.com/latest/composer', '_blank', 'noopener');
-  toast('הטקסט הועתק' + (S.image?' והתמונה הורדה':'') + ' — הדביקו ב-Business Suite');
+  toast('הטקסט הועתק' + (S.images.length?` ו-${S.images.length} תמונות הורדו`:'') + ' — הדביקו ב-Business Suite');
 };
 
 /* ---------- history ---------- */
@@ -465,7 +538,8 @@ function renderHistory(){
       const links = Object.entries(p.results||{}).map(([t,r]) => r.ok && r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${t==='facebook'?'FB':'IG'}</a>` : (!r.ok && r.error ? `<span class="muted" title="${esc(r.error)}">${t==='facebook'?'FB':'IG'} ✗</span>` : '')).join(' ');
       const when = p.published_at || p.scheduled_at || p.updated_at;
       const editable = ['draft','scheduled','failed','partial'].includes(p.status);
-      return `<tr><td>${p.image_url?`<img class="thumb" src="${esc(p.image_url)}" alt="">`:''}</td>
+      const nImg = p.image_urls?.length || (p.image_url ? 1 : 0);
+      return `<tr><td>${p.image_url?`<img class="thumb" src="${esc(p.image_url)}" alt="">${nImg>1?`<div class="muted">${nImg} תמונות</div>`:''}`:''}</td>
         <td style="max-width:380px">${esc((p.body||'').slice(0,140))}${(p.body||'').length>140?'…':''}</td>
         <td>${(p.targets||[]).map(t=>t==='facebook'?'פייסבוק':'אינסטגרם').join(', ')}</td>
         <td><span class="chip ${tone}">${lbl}</span> ${links}</td>
@@ -480,7 +554,7 @@ $('#history').onclick = async e => {
   if (t.dataset.copy) { try { await navigator.clipboard.writeText(p.body); toast('הטקסט הועתק'); } catch(err) {} }
   if (t.dataset.edit) {
     S.draft = p; $('#body').value = p.body; $('#body').oninput();
-    S.image = p.image_url ? {url: p.image_url, path: null, info: ''} : null; renderImage();
+    S.images = (p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : []).map(u => ({id: u, url: u})); renderImage();
     $('#tFb').checked = p.targets.includes('facebook'); $('#tIg').checked = p.targets.includes('instagram') && !!S.status?.instagram;
     $('#when').value = p.scheduled_at ? new Date(new Date(p.scheduled_at) - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16) : '';
     $('#composerTitle').textContent = 'עריכת פוסט'; if (p.status !== 'draft') showResult(p); else $('#composeNote').innerHTML='';
@@ -502,6 +576,8 @@ async function boot(){
   $('#gate').hidden = true; $('#main').hidden = false;
   const fromOAuth = await handleOAuthReturn();
   renderBizTabs(); if (!fromOAuth) resetComposer(); await loadBiz();
+  const pre = new URLSearchParams(location.search).get('media');
+  if (pre) { history.replaceState(null, '', location.pathname); preloadMedia(pre.split(',').slice(0, MAX_IMAGES)); }
 }
 boot();
 </script>

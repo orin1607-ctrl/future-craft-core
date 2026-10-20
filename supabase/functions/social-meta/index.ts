@@ -272,7 +272,7 @@ async function aiText(businessId: string, brief: string, tone: string, platform:
 }
 
 /* ---------------- posts ---------------- */
-const POST_COLS = "id,business_id,body,image_url,targets,status,scheduled_at,results,published_at,created_at,updated_at";
+const POST_COLS = "id,business_id,body,image_url,image_urls,targets,status,scheduled_at,results,published_at,created_at,updated_at";
 
 async function listPosts(businessId: string) {
   const { data, error } = await db.from("social_posts").select(POST_COLS)
@@ -285,7 +285,9 @@ async function savePost(p: any) {
   await business(p.business_id);
   const targets = (p.targets || []).filter((t: string) => t === "facebook" || t === "instagram");
   const row: any = {
-    business_id: p.business_id, body: String(p.body || ""), image_url: p.image_url || null,
+    business_id: p.business_id, body: String(p.body || ""),
+    image_urls: (p.image_urls || (p.image_url ? [p.image_url] : [])).slice(0, 10),
+    image_url: (p.image_urls || [])[0] || p.image_url || null,
     image_path: p.image_path || null, targets, updated_at: new Date().toISOString(),
     scheduled_at: p.scheduled_at || null, status: p.scheduled_at ? "scheduled" : "draft",
   };
@@ -319,6 +321,69 @@ async function waitIgContainer(id: string, token: string) {
   throw new Error("Instagram עדיין מעבד את התמונה — נסו שוב בעוד דקה");
 }
 
+const postImages = (p: any): string[] =>
+  (p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : []).slice(0, 10);
+
+// dry = run every Meta call that proves the post would go through, but leave nothing public.
+async function publishFacebook(a: any, body: string, images: string[], dry = false) {
+  const tok = a.access_token;
+  if (dry) {
+    const ids = [];
+    for (const url of images) ids.push((await graph(`${a.external_id}/photos`, { url, published: "false", access_token: tok }, "POST")).id);
+    for (const id of ids) await graph(id, { access_token: tok }, "DELETE");
+    return { ok: true, dry: true, photosChecked: ids.length };
+  }
+  let r;
+  if (images.length === 1) {
+    r = await graph(`${a.external_id}/photos`, { url: images[0], caption: body, access_token: tok }, "POST");
+  } else if (images.length > 1) {
+    // Multi-photo post: upload each photo unpublished, then attach them to one feed post.
+    const params: Record<string, string> = { message: body, access_token: tok };
+    for (let i = 0; i < images.length; i++) {
+      const ph = await graph(`${a.external_id}/photos`, { url: images[i], published: "false", access_token: tok }, "POST");
+      params[`attached_media[${i}]`] = JSON.stringify({ media_fbid: ph.id });
+    }
+    r = await graph(`${a.external_id}/feed`, params, "POST");
+  } else {
+    r = await graph(`${a.external_id}/feed`, { message: body, access_token: tok }, "POST");
+  }
+  const postId = r.post_id || r.id;
+  return { ok: true, id: postId, url: `https://www.facebook.com/${postId}`, at: new Date().toISOString() };
+}
+
+// Meta sometimes answers container creation with a transient "Fatal (code -1)" / code 2; retry those.
+async function igCreate(igId: string, params: Record<string, string>) {
+  for (let i = 0; ; i++) {
+    try { return await graph(`${igId}/media`, params, "POST"); }
+    catch (e) {
+      if (i >= 2 || !/code (-1|1|2)[/)]/.test((e as Error).message)) throw e;
+      await new Promise((r) => setTimeout(r, 2500 * (i + 1)));
+    }
+  }
+}
+
+async function publishInstagram(a: any, body: string, images: string[], dry = false) {
+  const tok = a.access_token;
+  if (!images.length) throw new Error("פוסט באינסטגרם חייב לכלול תמונה");
+  let creation: string;
+  if (images.length === 1) {
+    creation = (await igCreate(a.external_id, { image_url: images[0], caption: body, access_token: tok })).id;
+  } else {
+    const children = [];
+    for (const url of images) {
+      const c = await igCreate(a.external_id, { image_url: url, is_carousel_item: "true", access_token: tok });
+      await waitIgContainer(c.id, tok);
+      children.push(c.id);
+    }
+    creation = (await igCreate(a.external_id, { media_type: "CAROUSEL", children: children.join(","), caption: body, access_token: tok })).id;
+  }
+  await waitIgContainer(creation, tok);
+  if (dry) return { ok: true, dry: true, containerReady: creation, items: images.length }; // never published; Meta expires it in 24h
+  const pub = await graph(`${a.external_id}/media_publish`, { creation_id: creation, access_token: tok }, "POST");
+  const link = await graph(pub.id, { fields: "permalink", access_token: tok }).catch(() => ({}));
+  return { ok: true, id: pub.id, url: (link as any).permalink || null, at: new Date().toISOString() };
+}
+
 async function publishPost(businessId: string, id: string) {
   const { data: post } = await db.from("social_posts").select("*").eq("id", id).eq("business_id", businessId).maybeSingle();
   if (!post) throw new Error("הפוסט לא נמצא");
@@ -335,20 +400,10 @@ async function publishPost(businessId: string, id: string) {
     const a = acct(target);
     try {
       if (!a) throw new Error(target === "facebook" ? "עמוד פייסבוק לא מחובר" : "חשבון אינסטגרם לא מחובר");
-      if (target === "facebook") {
-        const r = post.image_url
-          ? await graph(`${a.external_id}/photos`, { url: post.image_url, caption: post.body, access_token: a.access_token }, "POST")
-          : await graph(`${a.external_id}/feed`, { message: post.body, access_token: a.access_token }, "POST");
-        const postId = r.post_id || r.id;
-        results.facebook = { ok: true, id: postId, url: `https://www.facebook.com/${postId}`, at: new Date().toISOString() };
-      } else {
-        if (!post.image_url) throw new Error("פוסט באינסטגרם חייב לכלול תמונה");
-        const c = await graph(`${a.external_id}/media`, { image_url: post.image_url, caption: post.body, access_token: a.access_token }, "POST");
-        await waitIgContainer(c.id, a.access_token);
-        const pub = await graph(`${a.external_id}/media_publish`, { creation_id: c.id, access_token: a.access_token }, "POST");
-        const link = await graph(pub.id, { fields: "permalink", access_token: a.access_token }).catch(() => ({}));
-        results.instagram = { ok: true, id: pub.id, url: (link as any).permalink || null, at: new Date().toISOString() };
-      }
+      const images = postImages(post);
+      results[target] = target === "facebook"
+        ? await publishFacebook(a, post.body, images)
+        : await publishInstagram(a, post.body, images);
     } catch (e) {
       results[target] = { ok: false, error: (e as Error).message, at: new Date().toISOString() };
     }
@@ -374,7 +429,7 @@ async function runScheduled() {
 
 // Proves publish rights without anything going public: Facebook gets an unpublished photo that is
 // deleted at once, Instagram gets a media container that is never passed to media_publish.
-async function dryRun(businessId: string, imageUrl: string) {
+async function dryRun(businessId: string, imageUrls: string[]) {
   const { data: accts } = await db.from("social_accounts").select("*").eq("business_id", businessId);
   const appToken = `${env("META_APP_ID")}|${env("META_APP_SECRET")}`;
   const out: Record<string, unknown> = {};
@@ -383,15 +438,9 @@ async function dryRun(businessId: string, imageUrl: string) {
     try {
       const dbg = await graph("debug_token", { input_token: a.access_token, access_token: appToken });
       r.token = { valid: dbg.data?.is_valid, type: dbg.data?.type, expires: dbg.data?.expires_at || 0, scopes: dbg.data?.scopes };
-      if (a.platform === "facebook") {
-        const p = await graph(`${a.external_id}/photos`, { url: imageUrl, published: "false", access_token: a.access_token }, "POST");
-        r.unpublishedPhoto = p.id;
-        r.deleted = (await graph(p.id, { access_token: a.access_token }, "DELETE")).success === true;
-      } else {
-        const c = await graph(`${a.external_id}/media`, { image_url: imageUrl, caption: "dry-run (not published)", access_token: a.access_token }, "POST");
-        await waitIgContainer(c.id, a.access_token);
-        r.containerReady = c.id; // left unpublished; Meta expires it after 24h
-      }
+      r.check = a.platform === "facebook"
+        ? await publishFacebook(a, "dry-run", imageUrls, true)
+        : await publishInstagram(a, "dry-run (not published)", imageUrls, true);
       r.ok = true;
     } catch (e) {
       r.ok = false; r.error = (e as Error).message;
@@ -435,7 +484,7 @@ Deno.serve(async (req) => {
       case "oauth/pages": return json(await sessionPages(body.session_id));
       case "oauth/select": return json(await selectPage(body.session_id, body.page_id));
       case "verify": return json(await verify(biz));
-      case "dry-run": return json(await dryRun(biz, body.image_url));
+      case "dry-run": return json(await dryRun(biz, body.image_urls || [body.image_url]));
       case "disconnect": return json(await disconnect(biz));
       case "upload": return json(await upload(biz, body.base64, body.content_type));
       case "ai-text": return json(await aiText(biz, body.brief || "", body.tone || "", body.platform || ""));

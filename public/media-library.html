@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>ספריית מדיה</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<style>
+:root{
+  --head:#0A2352; --blue:#1F6FE0; --blue-soft:#E4EEFC;
+  --bg:#EEF2F7; --surface:#FFFFFF; --line:#DCE3EC; --ink:#0E1A2E; --muted:#5B6B82;
+  --ok:#17875A; --ok-soft:#E3F4EC; --warn:#B8700A; --warn-soft:#FBF0DC; --bad:#C23B3B; --bad-soft:#FBE6E6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --head:#081A3D; --blue:#5B9BF5; --blue-soft:#15294A;
+    --bg:#0A1426; --surface:#111E36; --line:#22324F; --ink:#E8EEF7; --muted:#93A3BC;
+    --ok:#4CC792; --ok-soft:#113327; --warn:#E6A94A; --warn-soft:#3A2A10; --bad:#EF7B7B; --bad-soft:#3D1818;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Assistant","Segoe UI",Arial,sans-serif}
+header{background:var(--head);color:#fff;padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+header h1{margin:0;font-size:18px} header .sub{opacity:.75;font-size:12px}
+.biz{display:flex;gap:6px;flex-wrap:wrap;margin-inline-start:auto}
+.biz button{border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:999px;padding:5px 12px;cursor:pointer;font:inherit}
+.biz button.on{background:#fff;color:var(--head);font-weight:700}
+.wrap{max-width:1280px;margin:0 auto;padding:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:7px 13px;cursor:pointer;font:inherit;font-weight:600;white-space:nowrap}
+.btn:hover{border-color:var(--blue)} .btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.bad{color:var(--bad)} .btn.sm{padding:4px 9px;font-size:12.5px} .btn[disabled]{opacity:.5;cursor:not-allowed}
+input[type=text],input[type=password],input[type=search],select,textarea{border:1px solid var(--line);border-radius:10px;padding:7px 10px;font:inherit;background:var(--surface);color:var(--ink);min-width:0}
+.muted{color:var(--muted);font-size:12.5px}
+.chip{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:700;background:var(--bg);color:var(--muted)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.warn{background:var(--warn-soft);color:var(--warn)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+@media (max-width:520px){.grid{grid-template-columns:repeat(2,1fr)}}
+.tile{position:relative;background:var(--surface);border:2px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer}
+.tile.sel{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-soft)}
+.tile.dragging{opacity:.4} .tile.over{border-style:dashed;border-color:var(--blue)}
+.tile img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--bg)}
+.tile .meta{padding:6px 8px;font-size:12px}
+.tile .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+.tile .ck{position:absolute;top:6px;inset-inline-start:6px;width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,.9);border:1px solid var(--line);display:grid;place-items:center;font-weight:800;color:var(--blue)}
+.tile .ver{position:absolute;top:6px;inset-inline-end:6px}
+.dropzone{border:2px dashed var(--line);border-radius:14px;padding:18px;text-align:center;color:var(--muted)}
+.dropzone.on{border-color:var(--blue);background:var(--blue-soft);color:var(--ink)}
+.progress{height:8px;background:var(--bg);border-radius:99px;overflow:hidden;margin-top:8px}
+.progress i{display:block;height:100%;background:var(--blue);width:0;transition:width .2s}
+.toast{position:fixed;inset-inline:0;bottom:16px;margin:auto;width:max-content;max-width:92vw;background:var(--ink);color:var(--surface);padding:9px 15px;border-radius:10px;opacity:0;transition:.2s;pointer-events:none;z-index:50}
+.toast.on{opacity:1}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);padding:0;max-width:96vw}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.dlg-h{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);gap:8px}
+.dlg-b{padding:14px}
+.detail{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;width:min(980px,94vw)}
+@media (max-width:760px){.detail{grid-template-columns:1fr}}
+.detail img.big{width:100%;max-height:60vh;object-fit:contain;background:var(--bg);border-radius:10px}
+label.l{display:block;font-weight:700;margin:10px 0 4px}
+.fit{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+/* editor */
+#editor{width:min(1280px,98vw);height:min(860px,96vh)}
+#editor[open]{display:flex;flex-direction:column}
+.ed{display:grid;grid-template-columns:320px 1fr;flex:1;min-height:0}
+@media (max-width:820px){.ed{grid-template-columns:1fr;grid-template-rows:auto 1fr;overflow:auto}}
+.ed-side{border-inline-end:1px solid var(--line);overflow:auto;padding:12px}
+.ed-main{display:grid;grid-template-rows:1fr auto;min-height:0;background:#1b2233}
+.ed-stage{min-height:300px;position:relative}
+.ed-stage img{max-width:100%;display:block}
+.ed-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+.ed-tabs button{border:0;background:var(--bg);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer;font:inherit}
+.ed-tabs button.on{background:var(--blue);color:#fff}
+.presets{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.presets button{text-align:start;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:7px;cursor:pointer;font:inherit;font-size:12.5px}
+.presets button.on{border-color:var(--blue);background:var(--blue-soft)}
+.presets small{display:block;color:var(--muted)}
+.slider{display:grid;grid-template-columns:90px 1fr 42px;gap:6px;align-items:center;margin:6px 0}
+.slider input{width:100%}
+.ed-preview{background:var(--surface);border-top:1px solid var(--line);padding:8px;display:flex;gap:10px;align-items:center;overflow-x:auto}
+.ed-preview canvas{max-height:140px;max-width:240px;border-radius:6px;background:var(--bg)}
+.logos{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-height:180px;overflow:auto}
+.logos img{width:100%;aspect-ratio:1;object-fit:contain;background:var(--bg);border-radius:6px;cursor:pointer;border:2px solid transparent}
+.logos img.on{border-color:var(--blue)}
+.pickbar{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:8px;align-items:center;justify-content:space-between}
+.pickbar[hidden]{display:none}
+body.pick header{display:none} body.pick .manage{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>ספריית מדיה ועורך תמונות</h1><div class="sub">ניהול שיווק 2 · STAGING</div></div>
+  <div class="biz" id="bizTabs"></div>
+</header>
+
+<div class="wrap">
+  <div class="card" id="gate" hidden>
+    <h2 style="margin-top:0">כניסה לספריית המדיה</h2>
+    <p class="muted">אותו מפתח גישה של מרכז הרשתות החברתיות. נשמר בדפדפן הזה בלבד.</p>
+    <div class="row"><input type="password" id="keyIn" placeholder="מפתח גישה" style="max-width:320px"><button class="btn pri" id="keyBtn">כניסה</button></div>
+  </div>
+
+  <div id="main" hidden>
+    <div class="card manage">
+      <div class="dropzone" id="dz">
+        <b>גררו לכאן תמונות</b> · או <button class="btn sm pri" id="pickFiles">בחירת קבצים</button> · או הדביקו (Ctrl+V)
+        <div class="muted">אפשר עשרות תמונות בבת אחת · JPG / PNG / WEBP / GIF · עד 25MB לתמונה · המקור נשמר תמיד</div>
+        <div class="row" style="justify-content:center;margin-top:8px">
+          <label class="muted">קטגוריה לתמונות החדשות:</label>
+          <input type="text" id="upCat" list="catList" value="כללי" style="width:160px">
+        </div>
+        <div id="upState" hidden><div class="progress"><i id="upBar"></i></div><div class="muted" id="upText"></div></div>
+      </div>
+      <input type="file" id="files" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="row">
+          <input type="search" id="q" placeholder="חיפוש לפי שם או תגית" style="width:220px">
+          <select id="cat"><option value="">כל הקטגוריות</option></select>
+          <span class="muted" id="count"></span>
+        </div>
+        <div class="row manage">
+          <span class="muted" id="selInfo"></span>
+          <button class="btn sm" id="bulkCat" disabled>שינוי קטגוריה</button>
+          <button class="btn sm" id="bulkPost" disabled>יצירת פוסט מהנבחרות</button>
+          <button class="btn sm bad" id="bulkDel" disabled>מחיקה</button>
+          <button class="btn sm" id="selNone">ניקוי בחירה</button>
+        </div>
+      </div>
+      <div class="muted manage" style="margin:6px 0 10px">טיפ: גררו תמונה על תמונה אחרת כדי לשנות סדר. לחיצה על תמונה פותחת פרטים, עריכה וגרסאות.</div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="pickbar" id="pickbar" hidden>
+  <span id="pickInfo">בחרו תמונות</span>
+  <div class="row"><button class="btn" id="pickCancel">ביטול</button><button class="btn pri" id="pickOk" disabled>הוספה לפוסט</button></div>
+</div>
+
+<datalist id="catList"></datalist>
+
+<dialog id="detail">
+  <div class="dlg-h"><b id="dTitle">פרטי תמונה</b><button class="btn sm" data-close>סגירה</button></div>
+  <div class="dlg-b detail">
+    <div>
+      <img class="big" id="dImg" alt="">
+      <div class="fit" id="dFit"></div>
+    </div>
+    <div>
+      <label class="l">שם</label><input type="text" id="dName" style="width:100%">
+      <label class="l">קטגוריה</label><input type="text" id="dCat" list="catList" style="width:100%">
+      <label class="l">תגיות (מופרדות בפסיק)</label><input type="text" id="dTags" style="width:100%">
+      <div class="muted" id="dInfo" style="margin-top:8px"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn pri" id="dSave">שמירה</button>
+        <button class="btn" id="dEdit">✏️ עריכת תמונה</button>
+        <button class="btn" id="dPost">שימוש בפוסט</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <a class="btn sm" id="dDownload" download>הורדה</a>
+        <button class="btn sm" id="dCopy">העתקת קישור</button>
+        <button class="btn sm bad" id="dDel">מחיקה</button>
+      </div>
+      <label class="l">גרסאות</label>
+      <div class="grid" id="dVersions" style="grid-template-columns:repeat(auto-fill,minmax(90px,1fr))"></div>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="editor">
+  <div class="dlg-h">
+    <b>עורך תמונה <span class="muted" id="eName"></span></b>
+    <div class="row">
+      <button class="btn" id="eDownload">הורדה</button>
+      <button class="btn pri" id="eSave">שמירה כגרסה חדשה</button>
+      <button class="btn" data-close>סגירה</button>
+    </div>
+  </div>
+  <div class="ed">
+    <div class="ed-side">
+      <div class="ed-tabs">
+        <button class="on" data-et="crop">חיתוך וגודל</button>
+        <button data-et="adj">צבע ותאורה</button>
+        <button data-et="text">טקסט</button>
+        <button data-et="logo">לוגו</button>
+      </div>
+
+      <div data-ep="crop">
+        <b>יחס ומידות לפי ערוץ</b>
+        <div class="presets" id="presets" style="margin-top:6px"></div>
+        <div class="muted" id="presetNote" style="margin-top:6px"></div>
+        <label class="l">סיבוב</label>
+        <div class="row">
+          <button class="btn sm" id="rotL">↶ 90°</button><button class="btn sm" id="rotR">↷ 90°</button>
+          <button class="btn sm" id="flipH">היפוך ↔</button><button class="btn sm" id="flipV">היפוך ↕</button>
+        </div>
+        <div class="slider"><span>יישור</span><input type="range" id="straight" min="-45" max="45" step="0.5" value="0"><span id="straightV">0°</span></div>
+        <label class="l">הגדלה / הקטנה</label>
+        <div class="row"><button class="btn sm" id="zIn">＋ הגדלה</button><button class="btn sm" id="zOut">－ הקטנה</button><button class="btn sm" id="reset">איפוס</button></div>
+      </div>
+
+      <div data-ep="adj" hidden>
+        <div class="slider"><span>בהירות</span><input type="range" id="fB" min="50" max="150" value="100"><span id="fBv">100</span></div>
+        <div class="slider"><span>ניגודיות</span><input type="range" id="fC" min="50" max="150" value="100"><span id="fCv">100</span></div>
+        <div class="slider"><span>רוויה</span><input type="range" id="fS" min="0" max="200" value="100"><span id="fSv">100</span></div>
+        <div class="slider"><span>חום צבע</span><input type="range" id="fW" min="-30" max="30" value="0"><span id="fWv">0</span></div>
+        <button class="btn sm" id="fReset">איפוס צבעים</button>
+      </div>
+
+      <div data-ep="text" hidden>
+        <label class="l">טקסט / כיתוב</label>
+        <textarea id="tText" rows="3" style="width:100%" placeholder="לדוגמה: מבצע חורף לציי רכב"></textarea>
+        <div class="row" style="margin-top:6px">
+          <select id="tPos"><option value="bottom">למטה</option><option value="center">באמצע</option><option value="top">למעלה</option></select>
+          <label class="muted">גודל <input type="range" id="tSize" min="3" max="14" value="7"></label>
+        </div>
+        <div class="row" style="margin-top:6px">
+          <label class="muted">צבע <input type="color" id="tColor" value="#ffffff"></label>
+          <label class="muted"><input type="checkbox" id="tBand" checked> רקע מאחורי הטקסט</label>
+          <label class="muted"><input type="checkbox" id="tBold" checked> מודגש</label>
+        </div>
+      </div>
+
+      <div data-ep="logo" hidden>
+        <div class="muted">בחרו לוגו מהספרייה (מומלץ PNG שקוף; קטגוריה "לוגו")</div>
+        <div class="logos" id="logos" style="margin-top:6px"></div>
+        <div class="row" style="margin-top:8px">
+          <select id="lPos"><option value="br">פינה שמאלית תחתונה</option><option value="bl">פינה ימנית תחתונה</option><option value="tr">פינה שמאלית עליונה</option><option value="tl">פינה ימנית עליונה</option></select>
+          <label class="muted">גודל <input type="range" id="lSize" min="8" max="40" value="18"></label>
+          <button class="btn sm" id="lNone">ללא לוגו</button>
+        </div>
+      </div>
+    </div>
+    <div class="ed-main">
+      <div class="ed-stage"><img id="eImg" alt=""></div>
+      <div class="ed-preview">
+        <canvas id="ePrev"></canvas>
+        <div class="muted" id="eOut">תצוגה מקדימה של התוצאה הסופית (כולל טקסט, לוגו וצבעים)</div>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="./marketing/hub-client.js"></script>
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = Hub.esc;
+const params = new URLSearchParams(location.search);
+const PICK = params.get('pick') === '1', PICK_MAX = Math.min(+params.get('max') || 10, 10);
+if (PICK) { document.body.classList.add('pick'); $('#pickbar').hidden = false; }
+if (params.get('biz')) Hub.setBiz(params.get('biz'));
+
+const S = {businesses: [], assets: [], categories: [], sel: new Set(), filter: {q: '', cat: ''}, current: null};
+const DEFAULT_CATS = ['כללי', 'פוסטים', 'רכבים', 'צוות', 'שירותים', 'לוגו', 'אירועים'];
+
+function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),2800); }
+Hub.onAuthFail = () => { Hub.clearKey(); $('#gate').hidden=false; $('#main').hidden=true; };
+$$('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+
+/* ---------- boot / gate ---------- */
+$('#keyBtn').onclick = async () => { Hub.setKey($('#keyIn').value.trim()); try { await Hub.hub('ping'); boot(); } catch(e) { toast('מפתח שגוי'); } };
+$('#keyIn').onkeydown = e => { if (e.key === 'Enter') $('#keyBtn').click(); };
+async function boot(){
+  if (!Hub.key) { $('#gate').hidden = false; return; }
+  try { S.businesses = await Hub.businesses(); } catch(e) { return; }
+  if (!S.businesses.find(b=>b.id===Hub.biz)) Hub.setBiz(S.businesses[0].id);
+  $('#gate').hidden = true; $('#main').hidden = false;
+  renderBiz(); load();
+}
+function renderBiz(){
+  $('#bizTabs').innerHTML = S.businesses.map(b=>`<button class="${b.id===Hub.biz?'on':''}" data-biz="${b.id}">${esc(b.name)}</button>`).join('');
+}
+$('#bizTabs').onclick = e => { const b=e.target.closest('[data-biz]'); if(!b) return; Hub.setBiz(b.dataset.biz); S.sel.clear(); renderBiz(); load(); };
+
+async function load(){
+  try {
+    const d = await Hub.hub('media/list', {q: S.filter.q, category: S.filter.cat});
+    S.assets = d.assets; S.categories = d.categories; S.totalBytes = d.totalBytes;
+    renderCats(); renderGrid();
+  } catch(e) { toast(e.message); }
+}
+function renderCats(){
+  const all = [...new Set([...DEFAULT_CATS, ...S.categories])];
+  $('#catList').innerHTML = all.map(c=>`<option value="${esc(c)}">`).join('');
+  $('#cat').innerHTML = '<option value="">כל הקטגוריות</option>' + S.categories.map(c=>`<option ${c===S.filter.cat?'selected':''}>${esc(c)}</option>`).join('');
+}
+const ratioLabel = a => { const r=a.width/a.height; return Math.abs(r-1)<.02?'1:1':Math.abs(r-.8)<.02?'4:5':Math.abs(r-1.91)<.03?'1.91:1':Math.abs(r-.5625)<.02?'9:16':r.toFixed(2); };
+const igOk = a => a.mime==='image/jpeg' && a.width/a.height>=.8 && a.width/a.height<=1.91;
+
+function renderGrid(){
+  const vis = S.assets;
+  $('#count').textContent = `${vis.length} תמונות · ${Hub.fmtBytes(S.totalBytes||0)}`;
+  const childCount = {}; vis.forEach(a=>{ if(a.parent_id) childCount[a.parent_id]=(childCount[a.parent_id]||0)+1; });
+  $('#grid').innerHTML = vis.length ? vis.map(a=>`<div class="tile ${S.sel.has(a.id)?'sel':''}" data-id="${a.id}" draggable="true">
+      <img src="${esc(a.thumb_url||a.url)}" alt="" loading="lazy">
+      <div class="ck" data-check>${S.sel.has(a.id)?'✓':''}</div>
+      ${a.parent_id?'<span class="chip warn ver">גרסה ערוכה</span>':childCount[a.id]?`<span class="chip ok ver">${childCount[a.id]} גרסאות</span>`:''}
+      <div class="meta"><b title="${esc(a.title)}">${esc(a.title||'ללא שם')}</b><span class="muted">${esc(a.category)} · ${a.width}×${a.height}</span></div>
+    </div>`).join('') : '<div class="muted">אין עדיין תמונות. גררו לכאן תמונות או לחצו "בחירת קבצים".</div>';
+  updateSel();
+}
+function updateSel(){
+  const n = S.sel.size;
+  $('#selInfo').textContent = n ? `${n} נבחרו` : '';
+  ['#bulkCat','#bulkDel','#bulkPost'].forEach(id=>$(id).disabled=!n);
+  $('#pickOk').disabled = !n; $('#pickInfo').textContent = n ? `נבחרו ${n} (עד ${PICK_MAX})` : `בחרו עד ${PICK_MAX} תמונות, או גררו תמונה אל הפוסט`;
+}
+$('#q').oninput = () => { clearTimeout(load.t); load.t = setTimeout(()=>{ S.filter.q=$('#q').value.trim(); load(); }, 300); };
+$('#cat').onchange = () => { S.filter.cat = $('#cat').value; load(); };
+$('#selNone').onclick = () => { S.sel.clear(); renderGrid(); };
+
+$('#grid').onclick = e => {
+  const t = e.target.closest('.tile'); if(!t) return;
+  const id = t.dataset.id;
+  if (PICK || e.target.closest('[data-check]') || e.ctrlKey || e.metaKey || S.sel.size) {
+    if (S.sel.has(id)) S.sel.delete(id);
+    else { if (PICK && S.sel.size >= PICK_MAX) return toast(`אפשר לבחור עד ${PICK_MAX} תמונות`); S.sel.add(id); }
+    renderGrid(); return;
+  }
+  openDetail(id);
+};
+
+/* drag: reorder inside the grid, or drag out to a post composer (other frame) */
+let dragId = null;
+$('#grid').ondragstart = e => {
+  const t = e.target.closest('.tile'); if(!t) return;
+  dragId = t.dataset.id; t.classList.add('dragging');
+  const a = S.assets.find(x=>x.id===dragId);
+  e.dataTransfer.setData('application/x-dalia-media', JSON.stringify(a));
+  e.dataTransfer.setData('text/uri-list', a.url);
+  e.dataTransfer.effectAllowed = 'copyMove';
+};
+$('#grid').ondragend = e => { $$('.tile').forEach(t=>t.classList.remove('dragging','over')); dragId = null; };
+$('#grid').ondragover = e => { if(!dragId || PICK || S.filter.q || S.filter.cat) return; e.preventDefault(); $$('.tile').forEach(t=>t.classList.remove('over')); const t=e.target.closest('.tile'); if(t&&t.dataset.id!==dragId) t.classList.add('over'); };
+$('#grid').ondrop = async e => {
+  const t = e.target.closest('.tile'); if(!dragId || !t || t.dataset.id===dragId) return;
+  e.preventDefault(); e.stopPropagation();
+  const ids = S.assets.map(a=>a.id); const from = ids.indexOf(dragId), to = ids.indexOf(t.dataset.id);
+  ids.splice(to, 0, ids.splice(from, 1)[0]);
+  S.assets = ids.map(id=>S.assets.find(a=>a.id===id)); renderGrid();
+  try { await Hub.hub('media/reorder', {ids}); toast('הסדר נשמר'); } catch(err) { toast(err.message); }
+};
+
+/* ---------- upload: picker, drag&drop, paste ---------- */
+$('#pickFiles').onclick = e => { e.stopPropagation(); $('#files').click(); };
+$('#files').onchange = e => { upload(e.target.files); e.target.value=''; };
+const dz = $('#dz');
+['dragenter','dragover'].forEach(ev => document.addEventListener(ev, e => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) { e.preventDefault(); dz.classList.add('on'); } }));
+['dragleave','drop'].forEach(ev => document.addEventListener(ev, e => { if (ev==='dragleave' && e.relatedTarget) return; dz.classList.remove('on'); }));
+document.addEventListener('drop', e => { if (e.dataTransfer?.files?.length && !PICK) { e.preventDefault(); upload(e.dataTransfer.files); } });
+document.addEventListener('paste', e => {
+  if (PICK || $('#editor').open) return;
+  const files = [...(e.clipboardData?.items||[])].filter(i=>i.kind==='file').map(i=>i.getAsFile()).filter(Boolean);
+  if (files.length) { e.preventDefault(); upload(files.map((f,i)=>new File([f], f.name && f.name!=='image.png' ? f.name : `הדבקה-${Date.now()}-${i}.png`, {type:f.type}))); }
+});
+async function upload(fileList){
+  const files = [...fileList];
+  const bad = files.filter(f=>!/^image\/(jpeg|png|webp|gif)$/.test(f.type));
+  if (bad.length) toast(`${bad.length} קבצים דולגו (פורמט לא נתמך, למשל HEIC – יש להמיר ל-JPG)`);
+  if (bad.length === files.length) return;
+  $('#upState').hidden = false; $('#upBar').style.width = '0';
+  try {
+    const r = await Hub.uploadFiles(files, {category: $('#upCat').value.trim() || 'כללי',
+      onProgress: (d,t,n) => { $('#upBar').style.width = (d/t*100)+'%'; $('#upText').textContent = `הועלו ${d} מתוך ${t} · ${n}`; }});
+    toast(`הועלו ${r.assets.length} תמונות` + (r.errors.length ? ` · ${r.errors.length} נכשלו` : ''));
+    if (r.errors.length) console.warn(r.errors);
+    load();
+  } catch(e) { toast(e.message); }
+  setTimeout(()=>{ $('#upState').hidden = true; }, 1500);
+}
+
+/* ---------- bulk ---------- */
+$('#bulkCat').onclick = async () => {
+  const c = prompt('קטגוריה חדשה לתמונות שנבחרו:', S.filter.cat || 'כללי'); if (!c) return;
+  try { await Hub.hub('media/update', {ids:[...S.sel], category:c}); S.sel.clear(); load(); toast('עודכן'); } catch(e) { toast(e.message); }
+};
+$('#bulkDel').onclick = async () => {
+  if (!confirm(`למחוק ${S.sel.size} תמונות לצמיתות? (גרסאות ערוכות שלהן יישארו)`)) return;
+  try { const d = await Hub.hub('media/delete', {ids:[...S.sel]}); S.sel.clear(); load(); toast(`נמחקו ${d.deleted}`); } catch(e) { toast(e.message); }
+};
+$('#bulkPost').onclick = () => toPost([...S.sel].slice(0,10));
+function toPost(ids){
+  const url = './social-center.html?media=' + ids.join(',');
+  if (window.top !== window && window.parent.document?.querySelector('#module-frame-media')) window.location.href = url; else window.open(url, '_blank');
+}
+
+/* ---------- picker mode ---------- */
+$('#pickOk').onclick = () => {
+  const assets = [...S.sel].map(id=>S.assets.find(a=>a.id===id)).filter(Boolean);
+  window.parent.postMessage({type:'media-picked', assets}, location.origin);
+};
+$('#pickCancel').onclick = () => window.parent.postMessage({type:'media-picked', assets:[]}, location.origin);
+
+/* ---------- detail ---------- */
+function openDetail(id){
+  const a = S.assets.find(x=>x.id===id); if(!a) return; S.current = a;
+  $('#dTitle').textContent = a.parent_id ? 'גרסה ערוכה' : 'פרטי תמונה';
+  $('#dImg').src = a.url; $('#dName').value = a.title; $('#dCat').value = a.category; $('#dTags').value = (a.tags||[]).join(', ');
+  $('#dInfo').innerHTML = `${a.width}×${a.height} · יחס ${ratioLabel(a)} · ${Hub.fmtBytes(a.bytes||0)} · ${esc(a.mime)}<br>הועלה ${new Date(a.created_at).toLocaleString('he-IL')}${a.preset?` · פורמט: ${esc(a.preset)}`:''}`;
+  const r = a.width/a.height;
+  $('#dFit').innerHTML = [
+    `<span class="chip ${igOk(a)?'ok':'warn'}">${igOk(a)?'✓ מתאים לאינסטגרם':'אינסטגרם: תיווצר גרסה מותאמת אוטומטית'}</span>`,
+    `<span class="chip ok">✓ מתאים לפייסבוק</span>`,
+    Math.abs(r-.5625)<.02 ? '<span class="chip">סטורי 9:16 (להורדה)</span>' : '',
+  ].join(' ');
+  $('#dDownload').href = a.url; $('#dDownload').setAttribute('download', (a.title||'image') + '.' + (a.mime||'image/jpeg').split('/')[1]);
+  const root = a.parent_id || a.id;
+  const fam = S.assets.filter(x => x.id===root || x.parent_id===root);
+  $('#dVersions').innerHTML = fam.map(v=>`<div class="tile ${v.id===a.id?'sel':''}" data-v="${v.id}"><img src="${esc(v.thumb_url||v.url)}" alt=""><div class="meta"><b>${v.parent_id?esc(v.preset||'ערוך'):'מקור'}</b></div></div>`).join('');
+  $('#detail').showModal();
+}
+$('#dVersions').onclick = e => { const t=e.target.closest('[data-v]'); if(t) openDetail(t.dataset.v); };
+$('#dSave').onclick = async () => {
+  try { await Hub.hub('media/update', {id:S.current.id, title:$('#dName').value, category:$('#dCat').value, tags:$('#dTags').value.split(',').map(s=>s.trim()).filter(Boolean)}); toast('נשמר'); load(); } catch(e) { toast(e.message); }
+};
+$('#dCopy').onclick = async () => { try { await navigator.clipboard.writeText(S.current.url); toast('הקישור הועתק'); } catch(e) {} };
+$('#dDel').onclick = async () => { if(!confirm('למחוק את התמונה לצמיתות?')) return; try { await Hub.hub('media/delete',{ids:[S.current.id]}); $('#detail').close(); load(); toast('נמחקה'); } catch(e) { toast(e.message); } };
+$('#dPost').onclick = () => toPost([S.current.id]);
+$('#dEdit').onclick = () => { $('#detail').close(); openEditor(S.current); };
+
+/* =================== Editor =================== */
+/* Meta formats (Oct 2026). Instagram API publishes feed images between 4:5 and 1.91:1.
+   Story 9:16 is offered for download/manual posting only — direct story publishing is not built. */
+const PRESETS = [
+  {id:'free', name:'חיתוך חופשי', note:'', ratio:NaN},
+  {id:'square', name:'ריבוע 1:1', note:'פוסט פייסבוק / אינסטגרם', w:1080, h:1080},
+  {id:'portrait', name:'לאורך 4:5', note:'מומלץ לפיד – הכי בולט', w:1080, h:1350},
+  {id:'landscape', name:'לרוחב 1.91:1', note:'פוסט / קישור בפייסבוק', w:1200, h:630},
+  {id:'story', name:'סטורי 9:16', note:'סטורי / רילס (הורדה ופרסום ידני)', w:1080, h:1920},
+  {id:'cover', name:'תמונת נושא', note:'כיסוי עמוד פייסבוק', w:1640, h:624},
+];
+const E = {cropper:null, asset:null, preset:PRESETS[0], base:0, fine:0, sx:1, sy:1, logo:null, logoAsset:null};
+$('#presets').innerHTML = PRESETS.map(p=>`<button data-p="${p.id}" class="${p.id==='free'?'on':''}">${p.name}<small>${p.note||'ללא מגבלת יחס'}${p.w?` · ${p.w}×${p.h}`:''}</small></button>`).join('');
+$$('[data-et]').forEach(b => b.onclick = () => {
+  $$('[data-et]').forEach(x=>x.classList.toggle('on', x===b));
+  $$('[data-ep]').forEach(p=>p.hidden = p.dataset.ep!==b.dataset.et);
+  if (b.dataset.et==='logo') renderLogos();
+});
+
+function openEditor(a){
+  E.asset = a; E.base = 0; E.fine = 0; E.sx = 1; E.sy = 1; E.logo = null; E.logoAsset = null;
+  $('#eName').textContent = a.title || ''; $('#straight').value = 0; $('#straightV').textContent = '0°';
+  ['fB','fC','fS'].forEach(id=>$('#'+id).value=100); $('#fW').value=0; syncFilterLabels();
+  $('#tText').value=''; setPreset('free');
+  $('#editor').showModal();
+  if (E.cropper) E.cropper.destroy();
+  const img = $('#eImg'); img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    E.cropper = new Cropper(img, {viewMode:1, autoCropArea:1, background:false, responsive:true, dragMode:'move',
+      ready(){ applyCssFilter(); preview(); }, crop(){ preview(); }});
+  };
+  img.src = a.url + (a.url.includes('?')?'&':'?') + 'cors=1';
+}
+$('#editor').addEventListener('close', () => { if (E.cropper) { E.cropper.destroy(); E.cropper = null; } });
+function setPreset(id){
+  E.preset = PRESETS.find(p=>p.id===id);
+  $$('#presets button').forEach(b=>b.classList.toggle('on', b.dataset.p===id));
+  $('#presetNote').textContent = id==='story' ? 'שימו לב: פרסום סטורי ישיר מהמערכת עדיין לא זמין – התמונה מתאימה להורדה ולפרסום ידני.' : '';
+  if (E.cropper) E.cropper.setAspectRatio(E.preset.w ? E.preset.w/E.preset.h : NaN);
+}
+$('#presets').onclick = e => { const b=e.target.closest('[data-p]'); if(b) setPreset(b.dataset.p); };
+const rot = () => E.cropper && E.cropper.rotateTo(E.base + E.fine);
+$('#rotL').onclick = () => { E.base -= 90; rot(); };
+$('#rotR').onclick = () => { E.base += 90; rot(); };
+$('#straight').oninput = e => { E.fine = +e.target.value; $('#straightV').textContent = E.fine+'°'; rot(); };
+$('#flipH').onclick = () => { E.sx *= -1; E.cropper && E.cropper.scaleX(E.sx); };
+$('#flipV').onclick = () => { E.sy *= -1; E.cropper && E.cropper.scaleY(E.sy); };
+$('#zIn').onclick = () => E.cropper && E.cropper.zoom(0.1);
+$('#zOut').onclick = () => E.cropper && E.cropper.zoom(-0.1);
+$('#reset').onclick = () => { if(!E.cropper) return; E.cropper.reset(); E.base=0; E.fine=0; E.sx=1; E.sy=1; $('#straight').value=0; $('#straightV').textContent='0°'; setPreset(E.preset.id); };
+
+function filterCss(){
+  const b=$('#fB').value, c=$('#fC').value, s=$('#fS').value, w=+$('#fW').value;
+  return `brightness(${b}%) contrast(${c}%) saturate(${s}%)` + (w>0?` sepia(${w}%)`:w<0?` hue-rotate(${w*0.6}deg)`:'');
+}
+function syncFilterLabels(){ ['fB','fC','fS','fW'].forEach(id=>$('#'+id+'v').textContent=$('#'+id).value); }
+function applyCssFilter(){ $$('.cropper-canvas img, .cropper-view-box img').forEach(i=>i.style.filter=filterCss()); }
+['fB','fC','fS','fW'].forEach(id=>$('#'+id).oninput = () => { syncFilterLabels(); applyCssFilter(); preview(); });
+$('#fReset').onclick = () => { ['fB','fC','fS'].forEach(id=>$('#'+id).value=100); $('#fW').value=0; syncFilterLabels(); applyCssFilter(); preview(); };
+['tText','tPos','tSize','tColor','tBand','tBold','lPos','lSize'].forEach(id => $('#'+id).addEventListener('input', () => preview()));
+
+function renderLogos(){
+  const logos = S.assets.filter(a => a.category==='לוגו' || a.mime==='image/png').slice(0, 60);
+  $('#logos').innerHTML = logos.length ? logos.map(a=>`<img src="${esc(a.thumb_url||a.url)}" data-logo="${a.id}" class="${E.logoAsset?.id===a.id?'on':''}" alt="">`).join('') : '<div class="muted" style="grid-column:1/-1">אין לוגו בספרייה. העלו קובץ לוגו לקטגוריה "לוגו".</div>';
+}
+$('#logos').onclick = async e => {
+  const t = e.target.closest('[data-logo]'); if(!t) return;
+  E.logoAsset = S.assets.find(a=>a.id===t.dataset.logo);
+  try { E.logo = await Hub.loadImage(E.logoAsset.url); renderLogos(); preview(); } catch(err) { toast(err.message); }
+};
+$('#lNone').onclick = () => { E.logo = null; E.logoAsset = null; renderLogos(); preview(); };
+
+function outSize(){
+  const p = E.preset; if (p.w) return [p.w, p.h];
+  const d = E.cropper.getData(); const s = Math.min(1, 2048 / Math.max(d.width, d.height));
+  return [Math.max(1, Math.round(d.width * s)), Math.max(1, Math.round(d.height * s))];
+}
+/* Final composite = crop (+rotation/flip) → colour filter → text → logo. */
+function compose(maxW){
+  const cr = E.cropper; if (!cr) return null;
+  let [W, H] = outSize();
+  if (maxW && W > maxW) { H = Math.round(H * maxW / W); W = maxW; }
+  const src = cr.getCroppedCanvas({width: W, height: H, fillColor: '#fff', imageSmoothingQuality: 'high'});
+  if (!src) return null;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  x.filter = filterCss(); x.drawImage(src, 0, 0); x.filter = 'none';
+  const text = $('#tText').value.trim();
+  if (text) {
+    const fs = Math.round(W * (+$('#tSize').value) / 100);
+    x.font = `${$('#tBold').checked?'800':'500'} ${fs}px Assistant, "Segoe UI", Arial, sans-serif`;
+    x.direction = 'rtl'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    const lines = text.split('\n'); const lh = fs * 1.25; const blockH = lines.length * lh + fs * .6;
+    const pos = $('#tPos').value; const y0 = pos==='top' ? blockH/2 + H*.04 : pos==='center' ? H/2 : H - blockH/2 - H*.04;
+    if ($('#tBand').checked) { x.fillStyle = 'rgba(0,0,0,.45)'; x.fillRect(0, y0 - blockH/2, W, blockH); }
+    x.fillStyle = $('#tColor').value;
+    lines.forEach((ln, i) => x.fillText(ln, W/2, y0 - (lines.length-1)*lh/2 + i*lh));
+  }
+  if (E.logo) {
+    const lw = W * (+$('#lSize').value) / 100, lh = lw * E.logo.naturalHeight / E.logo.naturalWidth, m = W * .03;
+    const pos = $('#lPos').value;
+    const lx = pos.includes('r') ? W - lw - m : m, ly = pos.includes('b') ? H - lh - m : m;
+    x.drawImage(E.logo, lx, ly, lw, lh);
+  }
+  return c;
+}
+function preview(){
+  clearTimeout(preview.t);
+  preview.t = setTimeout(() => {
+    const c = compose(480); if (!c) return;
+    const pv = $('#ePrev'); pv.width = c.width; pv.height = c.height; pv.getContext('2d').drawImage(c, 0, 0);
+    const [W, H] = outSize();
+    $('#eOut').textContent = `תוצאה: ${W}×${H} · JPG · ${E.preset.name} · המקור לא משתנה`;
+  }, 180);
+}
+$('#eDownload').onclick = () => {
+  const c = compose(); if(!c) return;
+  const a = document.createElement('a'); a.href = c.toDataURL('image/jpeg', .92); a.download = (E.asset.title||'image') + '-' + E.preset.id + '.jpg'; a.click();
+};
+$('#eSave').onclick = async () => {
+  const c = compose(); if(!c) return;
+  const btn = $('#eSave'); btn.disabled = true; btn.textContent = 'שומר…';
+  try {
+    const blob = await Hub.canvasToBlob(c, 'image/jpeg', .92);
+    const file = new File([blob], (E.asset.title||'image') + '-' + E.preset.id + '.jpg', {type:'image/jpeg'});
+    const r = await Hub.uploadFiles([file], {parent_id: E.asset.parent_id || E.asset.id, preset: E.preset.id==='free'?'edited':E.preset.id,
+      category: E.asset.category, title: (E.asset.title||'תמונה') + ' – ' + E.preset.name});
+    if (r.errors.length) throw new Error(r.errors[0]);
+    toast('נשמרה גרסה חדשה – המקור נשאר ללא שינוי'); $('#editor').close(); await load(); openDetail(r.assets[0].id);
+  } catch(e) { toast(e.message); } finally { btn.disabled = false; btn.textContent = 'שמירה כגרסה חדשה'; }
+};
+
+boot();
+</script>
+</body>
+</html>

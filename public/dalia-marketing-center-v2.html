@@ -464,7 +464,9 @@ const IC = {
   bell:'<path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/>',
   check:'<path d="M20 6L9 17l-5-5"/>',
   lock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/>',
-  left:'<path d="M15 18l-6-6 6-6"/>'
+  left:'<path d="M15 18l-6-6 6-6"/>',
+  outreach:'<path d="M4 4h16v12H8l-4 4z"/><path d="M8 9h8M8 12h5"/>',
+  media:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/>'
 };
 const icon = (k, cls='i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${IC[k]||''}</svg>`;
 
@@ -483,7 +485,9 @@ const MODULES = [
   {id:'design', he:'עיצוב גרפי',            en:'OpenDesign',     siteScoped:false, connection:{status:'not_connected', entry:null}, works:['posts','page']},
   {id:'studio', he:'סטודיו AI',             en:'OpenStudio',     siteScoped:false, connection:{status:'not_connected', entry:null}, works:['posts','seo']},
   {id:'posts',  he:'קידום ברשתות חברתיות – Facebook / Instagram', en:'Social Center', siteScoped:false, connection:{status:'connected', entry:'./social-center.html'}, works:['studio','design']},
-  {id:'mascot', he:'דמות מותג',             en:'OpenMascot',     siteScoped:false, connection:{status:'not_connected', entry:null}, works:['design','posts']}
+  {id:'mascot', he:'דמות מותג',             en:'OpenMascot',     siteScoped:false, connection:{status:'not_connected', entry:null}, works:['design','posts']},
+  {id:'outreach', he:'פניות ללקוחות עסקיים', en:'B2B Outreach', siteScoped:false, connection:{status:'connected', entry:'./outreach.html'}, works:['leads','media']},
+  {id:'media',  he:'ספריית מדיה ועורך תמונות', en:'Media Library', siteScoped:false, connection:{status:'connected', entry:'./media-library.html'}, works:['posts','outreach']}
 ];
 const CONN_LABEL = {not_connected:'טרם חובר למעטפת', demo:'ממשק דמו / בפיתוח – טרם חובר', connected:'מחובר'};
 const connChip = m => `<span class="chip ${m.connection.status==='connected'?'ok':m.connection.status==='demo'?'demo':'mute'}">${CONN_LABEL[m.connection.status]}</span>`;
@@ -498,7 +502,7 @@ const modById = id => MODULES.find(m => m.id === id);
    ========================================================= */
 const CUSTOMERS = [
   {id:'c1', name:'דליה פתרונות תפעול ותחזוקה לרכב', plan:'מרכז מלא',
-   modules:['leads','seo','page','crm','ads','design','studio','posts','mascot'],
+   modules:['leads','seo','page','crm','ads','design','studio','posts','mascot','outreach','media'],
    sites:[{id:'s1',name:'האתר הראשי',domain:'dalia-c.com'},{id:'s2',name:'עמוד ניהול צי רכב',domain:'fleet.example-dalia.co.il'}]},
   {id:'c2', name:'גל-ים הובלות (דמו)', plan:'לידים ופרסום',
    modules:['leads','crm','ads','posts'],
@@ -538,9 +542,11 @@ const EVENT_TPL = {
   design:['הושלמו {n} עיצובים לרשתות','באנר ראשי עודכן','{n} עיצובים ממתינים לאישור'],
   studio:['נוצרו {n} טקסטים שיווקיים','נוצר מאמר טיוטה לבלוג','{n} תמונות נוצרו ב-AI'],
   posts: ['{n} פוסטים תוזמנו לשבוע הבא','פוסט פורסם בפייסבוק (דמו)','{n} תגובות חדשות ממתינות'],
-  mascot:['נוצרו {n} תוצרים לדמות המותג','עודכנה תנוחה חדשה לדמות','מדריך סגנון הדמות עודכן']
+  mascot:['נוצרו {n} תוצרים לדמות המותג','עודכנה תנוחה חדשה לדמות','מדריך סגנון הדמות עודכן'],
+  outreach:['{n} פניות הוכנו בתור העבודה','{n} עסקים סומנו "ממתין לתגובה"','לקוח עסקי חדש התעניין'],
+  media:['הועלו {n} תמונות לספרייה','נוצרה גרסה ערוכה לפוסט','{n} תמונות סווגו לקטגוריות']
 };
-const KPI_LABEL = {leads:'לידים חדשים',seo:'מילות מפתח השתפרו',page:'עדכוני אתר ממתינים',crm:'עסקאות פתוחות',ads:'הוצאה משוערת',design:'עיצובים שהושלמו',studio:'תכנים שנוצרו',posts:'פוסטים מתוזמנים',mascot:'תוצרים לדמות'};
+const KPI_LABEL = {leads:'לידים חדשים',seo:'מילות מפתח השתפרו',page:'עדכוני אתר ממתינים',crm:'עסקאות פתוחות',ads:'הוצאה משוערת',design:'עיצובים שהושלמו',studio:'תכנים שנוצרו',posts:'פוסטים מתוזמנים',mascot:'תוצרים לדמות',outreach:'פניות שהוכנו',media:'תמונות בספרייה'};
 
 function adapterSummary(modId, ctx){
   const m = modById(modId);
@@ -564,8 +570,8 @@ function adapterSummary(modId, ctx){
       text: tpl.replace('{n}', rint(r,2,25)).replace('{site}', site.domain),
       ts: Date.now() - daysAgo*864e5 - hour*36e5});
   }
-  const tasks = r() < .7 ? [{module:modId, text:{leads:'לסנן ולאשר רשימת לידים לפני ייצוא',seo:'לתקן כותרות כפולות ב-'+sites[0].domain,page:'לבדוק טיוטת עמוד לפני פרסום',crm:'לחזור ל-3 לקוחות שלא נענו',ads:'לבדוק חריגה בעלות לקליק',design:'לבחור גרסת באנר',studio:'לעבור על טקסטים שנוצרו',posts:'להשלים לוח פרסום לשבוע',mascot:'לאשר תנוחה חדשה לדמות'}[modId], due:rint(r,0,6)}] : [];
-  const approvals = r() < .45 ? [{module:modId, text:{leads:'ייצוא 40 לידים לקובץ',seo:'שינוי מטא-תיאור ב-6 עמודים',page:'פרסום עמוד חדש ב-'+sites[0].domain,crm:'שליחת מייל מעקב ל-12 לקוחות',ads:'הגדלת תקציב קמפיין ב-₪500',design:'העלאת באנר לאתר',studio:'פרסום מאמר בבלוג',posts:'פרסום 3 פוסטים ברשתות',mascot:'שימוש בדמות בקמפיין'}[modId]}] : [];
+  const tasks = r() < .7 ? [{module:modId, text:{leads:'לסנן ולאשר רשימת לידים לפני ייצוא',seo:'לתקן כותרות כפולות ב-'+sites[0].domain,page:'לבדוק טיוטת עמוד לפני פרסום',crm:'לחזור ל-3 לקוחות שלא נענו',ads:'לבדוק חריגה בעלות לקליק',design:'לבחור גרסת באנר',studio:'לעבור על טקסטים שנוצרו',posts:'להשלים לוח פרסום לשבוע',mascot:'לאשר תנוחה חדשה לדמות',outreach:'לחזור לעסקים שממתינים לתגובה',media:'לסווג תמונות חדשות'}[modId], due:rint(r,0,6)}] : [];
+  const approvals = r() < .45 ? [{module:modId, text:{leads:'ייצוא 40 לידים לקובץ',seo:'שינוי מטא-תיאור ב-6 עמודים',page:'פרסום עמוד חדש ב-'+sites[0].domain,crm:'שליחת מייל מעקב ל-12 לקוחות',ads:'הגדלת תקציב קמפיין ב-₪500',design:'העלאת באנר לאתר',studio:'פרסום מאמר בבלוג',posts:'פרסום 3 פוסטים ברשתות',mascot:'שימוש בדמות בקמפיין',outreach:'פנייה ל-10 עסקים מהרשימה',media:'שימוש בתמונה בפוסט'}[modId]}] : [];
   const usage = [{provider: modId==='leads' ? 'Google Places' : 'מנוע AI', module:modId, est: rint(r,20,260)*scale}];
 
   return {
@@ -721,7 +727,11 @@ function renderDashboard(){
     </div>
   </div>
 
-  ${moduleAccess('posts').ok ? `<button class="btn" data-go="m/posts" id="btnSocialCenter" style="width:100%;margin:0 0 14px;padding:14px 18px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:800;color:#fff;border:0;border-radius:14px;background:linear-gradient(90deg,#1877F2,#C13584)">${icon('posts')}<span>קידום ברשתות חברתיות – Facebook / Instagram</span></button>` : ''}
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:0 0 14px">
+  ${moduleAccess('posts').ok ? `<button class="btn" data-go="m/posts" id="btnSocialCenter" style="width:100%;margin:0;padding:14px 18px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:800;color:#fff;border:0;border-radius:14px;background:linear-gradient(90deg,#1877F2,#C13584)">${icon('posts')}<span>קידום ברשתות חברתיות – Facebook / Instagram</span></button>` : ''}
+  ${moduleAccess('outreach').ok ? `<button class="btn" data-go="m/outreach" id="btnOutreach" style="width:100%;padding:14px 18px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:800;color:#fff;border:0;border-radius:14px;background:#0f766e">${icon('outreach')}<span>פניות ללקוחות עסקיים</span></button>` : ''}
+  ${moduleAccess('media').ok ? `<button class="btn" data-go="m/media" id="btnMedia" style="width:100%;padding:14px 18px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:800;color:#fff;border:0;border-radius:14px;background:#7a4bd1">${icon('media')}<span>ספריית מדיה ועורך תמונות</span></button>` : ''}
+  </div>
 
   ${sums.length ? `<div class="pulse" role="list">
     ${sums.map(s=>`<button class="kpi" role="listitem" data-go="m/${s.module}">

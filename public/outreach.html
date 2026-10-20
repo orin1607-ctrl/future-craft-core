@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>פניות ללקוחות עסקיים</title>
+<style>
+:root{
+  --head:#0A2352; --blue:#1F6FE0; --blue-soft:#E4EEFC; --fb:#1877F2; --ig:#C13584; --wa:#1FA855;
+  --bg:#EEF2F7; --surface:#FFFFFF; --line:#DCE3EC; --ink:#0E1A2E; --muted:#5B6B82;
+  --ok:#17875A; --ok-soft:#E3F4EC; --warn:#B8700A; --warn-soft:#FBF0DC; --bad:#C23B3B; --bad-soft:#FBE6E6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --head:#081A3D; --blue:#5B9BF5; --blue-soft:#15294A;
+    --bg:#0A1426; --surface:#111E36; --line:#22324F; --ink:#E8EEF7; --muted:#93A3BC;
+    --ok:#4CC792; --ok-soft:#113327; --warn:#E6A94A; --warn-soft:#3A2A10; --bad:#EF7B7B; --bad-soft:#3D1818;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Assistant","Segoe UI",Arial,sans-serif}
+header{background:var(--head);color:#fff;padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+header h1{margin:0;font-size:18px} header .sub{opacity:.75;font-size:12px}
+.biz{display:flex;gap:6px;flex-wrap:wrap;margin-inline-start:auto}
+.biz button{border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:999px;padding:5px 12px;cursor:pointer;font:inherit}
+.biz button.on{background:#fff;color:var(--head);font-weight:700}
+.wrap{max-width:1240px;margin:0 auto;padding:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h2{margin:0 0 8px;font-size:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:7px 13px;cursor:pointer;font:inherit;font-weight:600;white-space:nowrap;text-decoration:none;display:inline-flex;gap:6px;align-items:center}
+.btn:hover{border-color:var(--blue)} .btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.go{background:var(--ok);border-color:var(--ok);color:#fff} .btn.bad{color:var(--bad)}
+.btn.sm{padding:4px 9px;font-size:12.5px} .btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn.fb{background:var(--fb);border-color:var(--fb);color:#fff} .btn.ig{background:var(--ig);border-color:var(--ig);color:#fff} .btn.wa{background:var(--wa);border-color:var(--wa);color:#fff}
+input[type=text],input[type=password],input[type=search],input[type=email],input[type=tel],input[type=url],input[type=datetime-local],input[type=date],input[type=number],select,textarea{border:1px solid var(--line);border-radius:10px;padding:7px 10px;font:inherit;background:var(--surface);color:var(--ink);min-width:0}
+textarea{width:100%;resize:vertical}
+.muted{color:var(--muted);font-size:12.5px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:8px 14px;cursor:pointer;font:inherit;font-weight:600}
+.tabs button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.tabs .cnt{background:rgba(0,0,0,.12);border-radius:99px;padding:0 7px;margin-inline-start:4px;font-size:12px}
+.chip{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:700;background:var(--bg);color:var(--muted);white-space:nowrap}
+.s-new{background:var(--bg);color:var(--muted)} .s-ready{background:var(--blue-soft);color:var(--blue)}
+.s-sent,.s-awaiting_reply{background:var(--warn-soft);color:var(--warn)} .s-interested{background:#efe6fb;color:#7a4bd1}
+.s-not_interested{background:var(--bad-soft);color:var(--bad)} .s-customer{background:var(--ok-soft);color:var(--ok)}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.filters button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 11px;cursor:pointer;font:inherit;font-size:12.5px;color:var(--ink)}
+.filters button.on{border-color:var(--blue);background:var(--blue-soft)}
+table{width:100%;border-collapse:collapse}
+td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:start;vertical-align:middle}
+th{font-size:12px;color:var(--muted);font-weight:600}
+tr.clk{cursor:pointer} tr.clk:hover td{background:var(--bg)}
+.ch{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;color:#fff;font-size:11px;font-weight:800;margin-inline-end:2px}
+.ch.fb{background:var(--fb)} .ch.ig{background:var(--ig)} .ch.wa{background:var(--wa)} .ch.em{background:#6b7280} .ch.ph{background:#0f766e}
+.ch.off{opacity:.18}
+.note{background:var(--warn-soft);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:10px}
+.note.info{background:var(--blue-soft)} .note.ok{background:var(--ok-soft)}
+.qitem{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto;gap:10px}
+@media (max-width:700px){.qitem{grid-template-columns:1fr}}
+.qitem .msg{white-space:pre-wrap;background:var(--bg);border-radius:10px;padding:10px;margin-top:6px;font-size:13.5px}
+.qitem img{width:84px;height:84px;object-fit:cover;border-radius:8px}
+.qside{display:flex;flex-direction:column;gap:6px;min-width:170px}
+.toast{position:fixed;inset-inline:0;bottom:16px;margin:auto;width:max-content;max-width:92vw;background:var(--ink);color:var(--surface);padding:9px 15px;border-radius:10px;opacity:0;transition:.2s;pointer-events:none;z-index:50}
+.toast.on{opacity:1}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);padding:0;width:min(640px,96vw)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.dlg-h{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+.dlg-b{padding:14px;max-height:75vh;overflow:auto}
+.dlg-f{padding:10px 14px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+.form label{display:flex;flex-direction:column;gap:3px;font-size:12.5px;font-weight:600}
+.form .full{grid-column:1/-1}
+@media (max-width:560px){.form{grid-template-columns:1fr}}
+.timeline{border-inline-start:2px solid var(--line);padding-inline-start:12px;margin-top:8px}
+.timeline div{margin-bottom:8px;font-size:13px}
+.vars button{border:1px dashed var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:2px 8px;cursor:pointer;font:inherit;font-size:12px}
+#pickDlg{width:min(1100px,96vw);height:min(820px,92vh)}
+#pickDlg[open]{display:flex;flex-direction:column}
+#pickDlg iframe{flex:1;border:0;width:100%}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px}
+.kpi b{font-size:20px;display:block}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>פניות ללקוחות עסקיים</h1><div class="sub">ניהול שיווק 2 · STAGING · הכנה, תור עבודה ומעקב</div></div>
+  <div class="biz" id="bizTabs"></div>
+</header>
+
+<div class="wrap">
+  <div class="card" id="gate" hidden>
+    <h2>כניסה</h2>
+    <p class="muted">אותו מפתח גישה של מרכז הרשתות החברתיות.</p>
+    <div class="row"><input type="password" id="keyIn" placeholder="מפתח גישה" style="max-width:320px"><button class="btn pri" id="keyBtn">כניסה</button></div>
+  </div>
+
+  <div id="main" hidden>
+    <details class="note info" id="policy">
+      <summary style="cursor:pointer"><b>איך נשלחות הפניות?</b> שליחה ידנית מכל ערוץ. שליחה אוטומטית לעסקים שלא פנו אלינו אינה מותרת לפי מדיניות Meta.</summary>
+      <div style="margin-top:8px" id="policyBody"></div>
+    </details>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="tabs" id="tabs">
+      <button data-tab="today" class="on">תור עבודה<span class="cnt" id="cToday">0</span></button>
+      <button data-tab="contacts">לקוחות<span class="cnt" id="cContacts">0</span></button>
+      <button data-tab="templates">תבניות הודעה</button>
+      <button data-tab="prospector">ייבוא מ-OpenProspector</button>
+    </div>
+
+    <!-- QUEUE -->
+    <section data-pane="today">
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <h2 style="margin:0">לשליחה היום</h2>
+          <div class="row"><select id="qScope"><option value="today">עד היום</option><option value="all">כל התור</option></select><button class="btn sm" id="qReload">רענון</button></div>
+        </div>
+        <p class="muted">לכל פנייה: פתחו את השיחה, הדביקו את ההודעה (כבר הועתקה), צרפו תמונה אם יש, ושלחו. אחר כך סמנו "נשלח". מערכת המעקב תזכיר לכם לחזור ללקוח.</p>
+        <div id="queue"></div>
+      </div>
+      <div class="card">
+        <h2>מעקבים שהגיע זמנם</h2>
+        <div id="followups"></div>
+      </div>
+    </section>
+
+    <!-- CONTACTS -->
+    <section data-pane="contacts" hidden>
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="row"><input type="search" id="cq" placeholder="חיפוש שם, עיר, תחום" style="width:220px"><button class="btn pri" id="addBtn">+ לקוח עסקי</button></div>
+          <div class="row">
+            <span class="muted" id="selInfo"></span>
+            <button class="btn sm pri" id="bulkQueue" disabled>הכנת פנייה לנבחרים</button>
+            <select id="bulkStatus" disabled><option value="">שינוי סטטוס…</option></select>
+          </div>
+        </div>
+        <div class="filters" id="sFilters"></div>
+        <div style="overflow-x:auto"><table>
+          <thead><tr><th><input type="checkbox" id="selAll"></th><th>עסק</th><th>ערוצים</th><th>עיר / תחום</th><th>סטטוס</th><th>פנייה אחרונה</th><th>מעקב הבא</th></tr></thead>
+          <tbody id="cBody"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- TEMPLATES -->
+    <section data-pane="templates" hidden>
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2 style="margin:0">תבניות הודעה</h2><button class="btn pri" id="tNew">+ תבנית חדשה</button></div>
+        <p class="muted">משתנים מוחלפים אוטומטית לכל לקוח: {{שם_העסק}} {{איש_קשר}} {{עיר}} {{תחום}} {{העסק_שלנו}}</p>
+        <div id="tList"></div>
+      </div>
+    </section>
+
+    <!-- OPENPROSPECTOR -->
+    <section data-pane="prospector" hidden>
+      <div class="card">
+        <h2>איתור עסקים מ-OpenProspector</h2>
+        <div class="note info">המאגר כולל כ-546 אלף עסקים. כאן מחפשים ובוחרים רק את מי שרוצים, עד 50 בכל ייבוא. אין ייבוא של כל המאגר. החיפוש לקריאה בלבד, וכפילויות נחסמות אוטומטית.</div>
+        <div class="row">
+          <input type="search" id="pq" placeholder="שם עסק (לפחות 2 תווים)" style="width:220px">
+          <input type="search" id="pcity" placeholder="עיר" style="width:140px">
+          <select id="phas"><option value="">כל העסקים</option><option value="social">עם פייסבוק או אינסטגרם</option><option value="facebook">עם פייסבוק</option><option value="instagram">עם אינסטגרם</option></select>
+          <button class="btn pri" id="pGo">חיפוש</button>
+        </div>
+        <div style="overflow-x:auto;margin-top:10px"><table>
+          <thead><tr><th><input type="checkbox" id="pAll"></th><th>עסק</th><th>עיר</th><th>תחום</th><th>ערוצים</th></tr></thead>
+          <tbody id="pBody"><tr><td colspan="5" class="muted">הזינו שם או עיר וחפשו</td></tr></tbody>
+        </table></div>
+        <div class="row" style="margin-top:10px"><button class="btn go" id="pImport" disabled>ייבוא הנבחרים לרשימת הלקוחות</button><span class="muted" id="pInfo"></span></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- contact dialog -->
+<dialog id="cDlg">
+  <div class="dlg-h"><b id="cDlgTitle">לקוח עסקי</b><button class="btn sm" data-close>סגירה</button></div>
+  <div class="dlg-b">
+    <div id="dupNote"></div>
+    <div class="form">
+      <label class="full">שם החברה *<input type="text" id="f_company_name"></label>
+      <label>קישור לעמוד פייסבוק<input type="url" id="f_facebook_url" placeholder="https://facebook.com/..."></label>
+      <label>קישור / שם משתמש באינסטגרם<input type="text" id="f_instagram_url" placeholder="https://instagram.com/..."></label>
+      <label>איש קשר<input type="text" id="f_contact_name"></label>
+      <label>תפקיד<input type="text" id="f_role"></label>
+      <label>טלפון<input type="tel" id="f_phone"></label>
+      <label>וואטסאפ (אם שונה)<input type="tel" id="f_whatsapp"></label>
+      <label>אימייל<input type="email" id="f_email"></label>
+      <label>אתר<input type="url" id="f_website"></label>
+      <label>עיר<input type="text" id="f_city"></label>
+      <label>תחום<input type="text" id="f_industry"></label>
+      <label class="full">הערות<textarea id="f_notes" rows="2"></textarea></label>
+    </div>
+    <div id="cExtra" hidden>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
+      <div class="row">
+        <label class="muted">סטטוס <select id="cStatus"></select></label>
+        <label class="muted">תזכורת <input type="datetime-local" id="cRemind"></label><button class="btn sm" id="cRemindBtn">קבע</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn sm" id="cQueue">הכנת פנייה</button>
+        <button class="btn sm bad" id="cDnc">עצירת פניות ללקוח</button>
+        <button class="btn sm bad" id="cDel">מחיקה</button>
+      </div>
+      <div id="cDncNote"></div>
+      <b style="display:block;margin-top:12px">היסטוריית פניות</b>
+      <div class="timeline" id="cHist"></div>
+    </div>
+  </div>
+  <div class="dlg-f"><button class="btn" data-close>ביטול</button><button class="btn pri" id="cSave">שמירה</button></div>
+</dialog>
+
+<!-- queue builder -->
+<dialog id="qDlg">
+  <div class="dlg-h"><b>הכנת פנייה ל-<span id="qN"></span> לקוחות</b><button class="btn sm" data-close>סגירה</button></div>
+  <div class="dlg-b">
+    <label class="muted">ערוץ</label>
+    <div class="row" id="qChannels" style="margin:4px 0 10px"></div>
+    <label class="muted">נוסח</label>
+    <div class="row" style="margin:4px 0"><select id="qTpl"><option value="">כתיבה חופשית</option></select></div>
+    <textarea id="qBody" rows="5" placeholder="שלום {{איש_קשר}}, ..."></textarea>
+    <div class="vars row" style="margin-top:4px"></div>
+    <div class="muted" style="margin-top:6px">תצוגה ללקוח הראשון:</div>
+    <div class="note" id="qPreview" style="white-space:pre-wrap"></div>
+    <div class="row">
+      <button class="btn sm" id="qImg">🖼️ צירוף תמונה מהגלריה</button><span id="qImgInfo" class="muted"></span>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label class="muted">התחלה <input type="date" id="qStart"></label>
+      <label class="muted">פיזור: <input type="number" id="qPerDay" min="0" max="200" value="20" style="width:70px"> פניות ביום (0 = הכול באותו יום)</label>
+    </div>
+  </div>
+  <div class="dlg-f"><button class="btn" data-close>ביטול</button><button class="btn pri" id="qCreate">הוספה לתור העבודה</button></div>
+</dialog>
+
+<!-- template dialog -->
+<dialog id="tDlg">
+  <div class="dlg-h"><b>תבנית הודעה</b><button class="btn sm" data-close>סגירה</button></div>
+  <div class="dlg-b">
+    <label class="muted">שם התבנית</label><input type="text" id="tName" style="width:100%">
+    <label class="muted" style="display:block;margin-top:8px">נוסח</label><textarea id="tBody" rows="7"></textarea>
+    <div class="vars row" style="margin-top:4px"></div>
+    <div class="row" style="margin-top:8px"><button class="btn sm" id="tImg">🖼️ תמונה קבועה מהגלריה</button><span id="tImgInfo" class="muted"></span></div>
+  </div>
+  <div class="dlg-f"><button class="btn bad" id="tDel">מחיקה</button><button class="btn" data-close>ביטול</button><button class="btn pri" id="tSave">שמירה</button></div>
+</dialog>
+
+<dialog id="pickDlg">
+  <div class="dlg-h"><b>בחירת תמונה</b><button class="btn sm" data-close>סגירה</button></div>
+  <iframe id="pickFrame" title="גלריה"></iframe>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script src="./marketing/hub-client.js"></script>
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = Hub.esc;
+const STATUS = {new:'חדש', ready:'מוכן לפנייה', sent:'נשלח', awaiting_reply:'ממתין לתגובה', interested:'התעניין', not_interested:'לא מעוניין', customer:'לקוח'};
+const CH = {facebook:{he:'מסנג׳ר (פייסבוק)', cls:'fb', s:'f'}, instagram:{he:'אינסטגרם', cls:'ig', s:'IG'}, whatsapp:{he:'וואטסאפ', cls:'wa', s:'W'}, email:{he:'אימייל', cls:'em', s:'@'}, phone:{he:'טלפון', cls:'ph', s:'☎'}};
+const VARS = ['שם_העסק','איש_קשר','עיר','תחום','העסק_שלנו'];
+const S = {businesses:[], contacts:[], counts:{}, filter:'', sel:new Set(), templates:[], queue:[], cur:null, qMedia:null, tMedia:null, tCur:null, pick:null, prospects:[], pSel:new Set()};
+
+function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),3000); }
+Hub.onAuthFail = () => { Hub.clearKey(); $('#gate').hidden=false; $('#main').hidden=true; };
+$$('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
+$('#keyBtn').onclick = async () => { Hub.setKey($('#keyIn').value.trim()); try { await Hub.hub('ping'); boot(); } catch(e) { toast('מפתח שגוי'); } };
+
+const phoneDigits = c => { let d = String(c.whatsapp || c.phone || '').replace(/\D/g,''); if (d.startsWith('0')) d = '972' + d.slice(1); return d; };
+const has = (c, ch) => ch==='facebook' ? !!c.facebook_handle : ch==='instagram' ? !!c.instagram_handle : ch==='whatsapp' ? !!(c.whatsapp||c.phone) : ch==='email' ? !!c.email : !!c.phone;
+/* Opens the conversation in the channel's own app — the person sends; nothing is sent from here. */
+function channelLink(c, ch, body){
+  if (ch==='facebook') return `https://m.me/${encodeURIComponent(c.facebook_handle)}`;
+  if (ch==='instagram') return `https://ig.me/m/${encodeURIComponent(c.instagram_handle)}`;
+  if (ch==='whatsapp') return `https://wa.me/${phoneDigits(c)}?text=${encodeURIComponent(body||'')}`;
+  if (ch==='email') return `mailto:${c.email}?subject=${encodeURIComponent('פנייה מ' + (bizName()||''))}&body=${encodeURIComponent(body||'')}`;
+  return `tel:+${phoneDigits(c)}`;
+}
+const bizName = () => (S.businesses.find(b=>b.id===Hub.biz)||{}).name || '';
+const chIcons = c => Object.entries(CH).map(([k,v]) => `<span class="ch ${v.cls} ${has(c,k)?'':'off'}" title="${v.he}">${v.s}</span>`).join('');
+const render = (tpl, c) => tpl.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, k) => ({'שם_העסק':c.company_name,'איש_קשר':c.contact_name,'עיר':c.city,'תחום':c.industry,'העסק_שלנו':bizName()}[k] ?? '') || '').replace(/[ \t]{2,}/g,' ').trim();
+const fmtD = d => d ? new Date(d).toLocaleDateString('he-IL') : '—';
+
+/* ---------- boot ---------- */
+async function boot(){
+  if (!Hub.key) { $('#gate').hidden = false; return; }
+  try { S.businesses = await Hub.businesses(); } catch(e) { return; }
+  if (!S.businesses.find(b=>b.id===Hub.biz)) Hub.setBiz(S.businesses[0].id);
+  $('#gate').hidden = true; $('#main').hidden = false;
+  $('#bulkStatus').innerHTML = '<option value="">שינוי סטטוס…</option>' + Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+  $('#cStatus').innerHTML = Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+  $$('.vars').forEach(v => v.innerHTML = VARS.map(x=>`<button type="button" data-var="${x}">{{${x}}}</button>`).join(''));
+  renderBiz(); loadAll();
+}
+function renderBiz(){ $('#bizTabs').innerHTML = S.businesses.map(b=>`<button class="${b.id===Hub.biz?'on':''}" data-biz="${b.id}">${esc(b.name)}</button>`).join(''); }
+$('#bizTabs').onclick = e => { const b=e.target.closest('[data-biz]'); if(!b) return; Hub.setBiz(b.dataset.biz); S.sel.clear(); renderBiz(); loadAll(); };
+async function loadAll(){ await Promise.all([loadContacts(), loadQueue(), loadTemplates(), loadFollowups()]); }
+
+$('#tabs').onclick = e => { const b=e.target.closest('[data-tab]'); if(!b) return;
+  $$('#tabs button').forEach(x=>x.classList.toggle('on', x===b)); $$('[data-pane]').forEach(p=>p.hidden = p.dataset.pane!==b.dataset.tab); };
+
+/* ---------- policy ---------- */
+function renderPolicy(p){
+  $('#policyBody').innerHTML = `<table><tr><th>ערוץ</th><th>מה עובד כאן</th><th>שליחה אוטומטית דרך API</th></tr>${
+    Object.entries(p.channels).map(([k,v])=>`<tr><td>${CH[k].he}</td><td>✅ פתיחת השיחה + הודעה מוכנה, שליחה בלחיצה שלכם</td><td class="muted">❌ ${esc(v.api)}</td></tr>`).join('')}</table>
+    <p class="muted">שליחה אוטומטית מרוכזת לעסקים שלא פנו אלינו אסורה לפי מדיניות Meta, ולכן היא לא מוצגת. פרסום בעמוד שלנו נמצא ב"קידום ברשתות חברתיות". פרסום ממומן הוא נושא נפרד ולא נכלל כאן.</p>`;
+}
+
+/* ---------- contacts ---------- */
+async function loadContacts(){
+  try {
+    const d = await Hub.hub('contacts/list', {status: S.filter && S.filter!=='dnc' ? S.filter : undefined, dnc: S.filter==='dnc' || undefined, q: $('#cq').value.trim() || undefined});
+    S.contacts = d.contacts; S.counts = d.counts; renderPolicy(d.policy);
+    $('#cContacts').textContent = d.total;
+    $('#kpis').innerHTML = [
+      ['סה״כ לקוחות', d.total], ['לשליחה היום', d.queuedDue], ['ממתינים לתגובה', d.counts.awaiting_reply||0],
+      ['התעניינו', d.counts.interested||0], ['הפכו ללקוחות', d.counts.customer||0], ['מעקבים להיום', d.followupsDue],
+    ].map(([l,v])=>`<div class="kpi"><span class="muted">${l}</span><b>${v}</b></div>`).join('');
+    $('#sFilters').innerHTML = `<button data-f="" class="${!S.filter?'on':''}">הכול</button>` +
+      Object.entries(STATUS).map(([k,v])=>`<button data-f="${k}" class="${S.filter===k?'on':''}">${v} (${d.counts[k]||0})</button>`).join('') +
+      `<button data-f="dnc" class="${S.filter==='dnc'?'on':''}">פניות עצורות (${d.dnc})</button>`;
+    renderContacts();
+  } catch(e) { toast(e.message); }
+}
+function renderContacts(){
+  $('#cBody').innerHTML = S.contacts.length ? S.contacts.map(c=>`<tr class="clk" data-id="${c.id}">
+    <td><input type="checkbox" data-sel="${c.id}" ${S.sel.has(c.id)?'checked':''}></td>
+    <td><b>${esc(c.company_name)}</b>${c.contact_name?`<div class="muted">${esc(c.contact_name)}${c.role?' · '+esc(c.role):''}</div>`:''}${c.source==='openprospector'?'<div class="muted">מ-OpenProspector</div>':''}</td>
+    <td style="white-space:nowrap">${chIcons(c)}</td>
+    <td>${esc(c.city||'')}${c.industry?`<div class="muted">${esc(c.industry)}</div>`:''}</td>
+    <td>${c.do_not_contact?'<span class="chip s-not_interested">⛔ פניות עצורות</span>':`<span class="chip s-${c.status}">${STATUS[c.status]}</span>`}</td>
+    <td class="muted">${fmtD(c.last_contact_at)}</td>
+    <td class="muted">${c.next_action_at?(new Date(c.next_action_at)<=new Date()?'<b style="color:var(--warn)">היום</b>':fmtD(c.next_action_at)):'—'}</td></tr>`).join('')
+    : '<tr><td colspan="7" class="muted">אין לקוחות להצגה. הוסיפו לקוח עסקי או ייבאו מ-OpenProspector.</td></tr>';
+  updateSel();
+}
+function updateSel(){ const n=S.sel.size; $('#selInfo').textContent = n?`${n} נבחרו`:''; $('#bulkQueue').disabled=!n; $('#bulkStatus').disabled=!n; }
+$('#sFilters').onclick = e => { const b=e.target.closest('[data-f]'); if(!b) return; S.filter=b.dataset.f; loadContacts(); };
+$('#cq').oninput = () => { clearTimeout(loadContacts.t); loadContacts.t = setTimeout(loadContacts, 300); };
+$('#selAll').onchange = e => { S.contacts.forEach(c => e.target.checked ? S.sel.add(c.id) : S.sel.delete(c.id)); renderContacts(); };
+$('#cBody').onclick = e => {
+  const cb = e.target.closest('[data-sel]');
+  if (cb) { cb.checked ? S.sel.add(cb.dataset.sel) : S.sel.delete(cb.dataset.sel); updateSel(); return; }
+  const tr = e.target.closest('tr[data-id]'); if (tr) openContact(S.contacts.find(c=>c.id===tr.dataset.id));
+};
+$('#bulkStatus').onchange = async e => {
+  const st = e.target.value; e.target.value=''; if(!st) return;
+  try { await Hub.hub('contacts/status', {ids:[...S.sel], status:st}); S.sel.clear(); toast('עודכן'); loadContacts(); } catch(err) { toast(err.message); }
+};
+
+const FIELDS = ['company_name','facebook_url','instagram_url','contact_name','role','phone','whatsapp','email','website','city','industry','notes'];
+$('#addBtn').onclick = () => openContact(null);
+async function openContact(c){
+  S.cur = c; $('#dupNote').innerHTML = '';
+  $('#cDlgTitle').textContent = c ? c.company_name : 'לקוח עסקי חדש';
+  FIELDS.forEach(f => $('#f_'+f).value = c?.[f] || '');
+  $('#cExtra').hidden = !c;
+  if (c) {
+    $('#cStatus').value = c.status;
+    $('#cRemind').value = c.next_action_at ? new Date(new Date(c.next_action_at) - new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16) : '';
+    $('#cDnc').textContent = c.do_not_contact ? 'חידוש פניות ללקוח' : 'עצירת פניות ללקוח';
+    $('#cDncNote').innerHTML = c.do_not_contact ? `<div class="note" style="margin-top:8px">⛔ הפניות ללקוח עצורות: ${esc(c.dnc_reason||'')}</div>` : '';
+    $('#cHist').innerHTML = 'טוען…';
+    Hub.hub('contacts/history', {id:c.id}).then(h => {
+      const T = {created:'נוצר', edited:'עודכן', status:'סטטוס', queued:'נוסף לתור', sent:'נשלח', skipped:'דולג', dnc:'עצירה', reminder:'תזכורת', note:'הערה'};
+      $('#cHist').innerHTML = h.events.length ? h.events.map(ev=>`<div><b>${T[ev.type]||ev.type}</b>${ev.channel?' · '+CH[ev.channel].he:''} <span class="muted">${new Date(ev.created_at).toLocaleString('he-IL')}</span>${ev.detail?`<div class="muted">${esc(ev.type==='status'?(STATUS[ev.detail.split(' — ')[0]]||'')+(ev.detail.includes(' — ')?' — '+ev.detail.split(' — ')[1]:''):ev.detail)}</div>`:''}</div>`).join('') : '<div class="muted">אין היסטוריה</div>';
+    }).catch(()=>{});
+  }
+  $('#cDlg').showModal();
+}
+async function saveContact(force){
+  const contact = Object.fromEntries(FIELDS.map(f => [f, $('#f_'+f).value.trim() || null]));
+  if (!contact.company_name) return toast('שם החברה חובה');
+  if (S.cur) contact.id = S.cur.id;
+  try {
+    const d = await Hub.hub('contacts/save', {contact, force});
+    if (d.duplicate) {
+      $('#dupNote').innerHTML = `<div class="note">⚠️ כבר קיים לקוח דומה: <b>${esc(d.duplicate.company_name)}</b> (${esc(d.duplicate.why)}).
+        ${d.duplicate.hard ? 'לא ניתן לשמור כפילות.' : '<button class="btn sm" id="forceSave">שמירה בכל זאת</button>'}</div>`;
+      const fb = $('#forceSave'); if (fb) fb.onclick = () => saveContact(true);
+      return;
+    }
+    $('#cDlg').close(); toast('נשמר'); loadContacts();
+  } catch(e) { toast(e.message); }
+}
+$('#cSave').onclick = () => saveContact(false);
+$('#cStatus').onchange = async e => { try { await Hub.hub('contacts/status', {id:S.cur.id, status:e.target.value}); toast('הסטטוס עודכן'); loadContacts(); openContact({...S.cur, status:e.target.value}); } catch(err) { toast(err.message); } };
+$('#cRemindBtn').onclick = async () => { const v=$('#cRemind').value; try { await Hub.hub('contacts/remind', {id:S.cur.id, at: v?new Date(v).toISOString():null}); toast(v?'התזכורת נקבעה':'התזכורת בוטלה'); loadContacts(); loadFollowups(); } catch(e) { toast(e.message); } };
+$('#cDnc').onclick = async () => {
+  const on = !S.cur.do_not_contact; let reason = null;
+  if (on) { reason = prompt('סיבת העצירה (למשל: ביקש לא לפנות):', 'ביקש לא לפנות'); if (reason===null) return; }
+  try { const d = await Hub.hub('contacts/dnc', {id:S.cur.id, on, reason}); toast(on?'הפניות ללקוח נעצרו – כל הפניות הפתוחות בוטלו':'הפניות חודשו'); loadAll(); openContact(d.contact); } catch(e) { toast(e.message); }
+};
+$('#cDel').onclick = async () => { if(!confirm('למחוק את הלקוח וכל ההיסטוריה שלו?')) return; try { await Hub.hub('contacts/delete',{id:S.cur.id}); $('#cDlg').close(); loadAll(); } catch(e) { toast(e.message); } };
+$('#cQueue').onclick = () => { $('#cDlg').close(); openQueueBuilder([S.cur.id]); };
+
+/* ---------- queue builder ---------- */
+let qIds = [], qChannel = null;
+$('#bulkQueue').onclick = () => openQueueBuilder([...S.sel]);
+function openQueueBuilder(ids){
+  qIds = ids; S.qMedia = null; $('#qImgInfo').textContent = '';
+  const cs = ids.map(id=>S.contacts.find(c=>c.id===id)).filter(Boolean);
+  $('#qN').textContent = ids.length;
+  const best = Object.keys(CH).map(k=>[k, cs.filter(c=>has(c,k) && !c.do_not_contact).length]).sort((a,b)=>b[1]-a[1]);
+  qChannel = best[0][1] ? best[0][0] : 'facebook';
+  $('#qChannels').innerHTML = Object.keys(CH).map(k=>{ const n=cs.filter(c=>has(c,k) && !c.do_not_contact).length;
+    return `<button type="button" class="btn sm ${k===qChannel?'pri':''}" data-qch="${k}" ${n?'':'disabled'}>${CH[k].he} (${n})</button>`; }).join('');
+  $('#qTpl').innerHTML = '<option value="">כתיבה חופשית</option>' + S.templates.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  $('#qBody').value = ''; $('#qStart').value = new Date().toISOString().slice(0,10);
+  qPreview(); $('#qDlg').showModal();
+}
+$('#qChannels').onclick = e => { const b=e.target.closest('[data-qch]'); if(!b) return; qChannel=b.dataset.qch; $$('#qChannels button').forEach(x=>x.classList.toggle('pri', x===b)); };
+$('#qTpl').onchange = () => { const t=S.templates.find(x=>x.id===$('#qTpl').value); $('#qBody').value = t ? t.body : ''; S.qMedia = t?.media_asset_id ? {id:t.media_asset_id} : S.qMedia; $('#qImgInfo').textContent = S.qMedia ? 'תמונה מהתבנית מצורפת' : ''; qPreview(); };
+$('#qBody').oninput = qPreview;
+function qPreview(){ const c = S.contacts.find(x=>x.id===qIds[0]) || {}; $('#qPreview').textContent = render($('#qBody').value, c) || '—'; }
+$$('.vars').forEach(v => v.onclick = e => { const b=e.target.closest('[data-var]'); if(!b) return;
+  const ta = v.closest('dialog').querySelector('textarea'); const p = ta.selectionStart ?? ta.value.length;
+  ta.value = ta.value.slice(0,p) + `{{${b.dataset.var}}}` + ta.value.slice(p); ta.focus(); ta.dispatchEvent(new Event('input')); });
+$('#qCreate').onclick = async () => {
+  const body = $('#qBody').value.trim(); if (!body) return toast('כתבו נוסח או בחרו תבנית');
+  const btn = $('#qCreate'); btn.disabled = true;
+  try {
+    const d = await Hub.hub('queue/create', {contact_ids:qIds, channel:qChannel, body, template_id: $('#qTpl').value || null,
+      media_asset_id: S.qMedia?.id || null, due_at: new Date($('#qStart').value + 'T08:00').toISOString(), per_day: +$('#qPerDay').value || 0});
+    $('#qDlg').close(); S.sel.clear();
+    toast(`נוספו ${d.created} פניות לתור` + (d.skipped.length ? ` · ${d.skipped.length} דולגו` : ''));
+    if (d.skipped.length) alert('דולגו:\n' + d.skipped.map(s=>`${s.name} – ${s.why}`).join('\n'));
+    loadAll();
+  } catch(e) { toast(e.message); } finally { btn.disabled = false; }
+};
+
+/* ---------- media picker (shared gallery) ---------- */
+function pickImage(cb){ S.pick = cb; $('#pickFrame').src = `./media-library.html?pick=1&max=1&biz=${encodeURIComponent(Hub.biz)}`; $('#pickDlg').showModal(); }
+window.addEventListener('message', e => { if (e.origin!==location.origin || e.data?.type!=='media-picked') return; $('#pickDlg').close(); if (e.data.assets?.[0] && S.pick) S.pick(e.data.assets[0]); });
+$('#qImg').onclick = () => pickImage(a => { S.qMedia = a; $('#qImgInfo').innerHTML = `מצורפת: ${esc(a.title)}`; });
+$('#tImg').onclick = () => pickImage(a => { S.tMedia = a; $('#tImgInfo').innerHTML = `מצורפת: ${esc(a.title)}`; });
+
+/* ---------- work queue ---------- */
+async function loadQueue(){
+  try {
+    const d = await Hub.hub('queue/list', {scope: $('#qScope').value});
+    S.queue = d.items; $('#cToday').textContent = d.items.length;
+    $('#queue').innerHTML = d.items.length ? d.items.map(qi => { const c = qi.contact; const ch = CH[qi.channel];
+      return `<div class="qitem" data-q="${qi.id}">
+        <div>
+          <div class="row"><b>${esc(c.company_name)}</b> <span class="chip">${ch.he}</span> <span class="muted">${new Date(qi.due_at)>new Date()?'מתוכנן ל-'+fmtD(qi.due_at):''}</span></div>
+          <div class="muted">${[c.contact_name, c.city, c.industry].filter(Boolean).map(esc).join(' · ')}</div>
+          <div class="msg">${esc(qi.body)}</div>
+        </div>
+        <div class="qside">
+          ${qi.media?`<img src="${esc(qi.media.thumb_url||qi.media.url)}" alt="">`:''}
+          <a class="btn sm ${ch.cls==='em'||ch.cls==='ph'?'pri':ch.cls}" data-open="${qi.id}" href="${esc(channelLink(c, qi.channel, qi.body))}" target="_blank" rel="noopener">פתיחת שיחה + העתקת הודעה</a>
+          ${qi.media?`<button class="btn sm" data-img="${qi.id}">העתקת תמונה</button>`:''}
+          <button class="btn sm go" data-done="${qi.id}">✓ נשלח</button>
+          <div class="row"><button class="btn sm" data-later="${qi.id}">מחר</button><button class="btn sm" data-skip="${qi.id}">דילוג</button></div>
+        </div></div>`; }).join('') : '<div class="muted">אין פניות בתור. בחרו לקוחות בלשונית "לקוחות" ולחצו "הכנת פנייה לנבחרים".</div>';
+  } catch(e) { toast(e.message); }
+}
+$('#qScope').onchange = loadQueue; $('#qReload').onclick = loadQueue;
+$('#queue').onclick = async e => {
+  const t = e.target.closest('[data-open],[data-img],[data-done],[data-later],[data-skip]'); if(!t) return;
+  const qi = S.queue.find(x => x.id === (t.dataset.open||t.dataset.img||t.dataset.done||t.dataset.later||t.dataset.skip));
+  if (t.dataset.open) { try { await navigator.clipboard.writeText(qi.body); toast('ההודעה הועתקה – הדביקו בשיחה ושלחו'); } catch(err) {} return; }
+  e.preventDefault();
+  if (t.dataset.img) {
+    try {
+      const img = await Hub.loadImage(qi.media.url); const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0); const blob = await Hub.canvasToBlob(c, 'image/png');
+      await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]); toast('התמונה הועתקה – הדביקו בשיחה (Ctrl+V)');
+    } catch(err) { window.open(qi.media.url, '_blank'); toast('הדפדפן לא תומך בהעתקת תמונה – נפתחה להורדה'); }
+    return;
+  }
+  try {
+    if (t.dataset.done) { await Hub.hub('queue/done', {id:qi.id, result:'sent', follow_up_days:3}); toast('סומן כנשלח · תזכורת מעקב בעוד 3 ימים'); }
+    if (t.dataset.skip) { await Hub.hub('queue/done', {id:qi.id, result:'skipped'}); toast('דולג'); }
+    if (t.dataset.later) { await Hub.hub('queue/reschedule', {id:qi.id, due_at:new Date(Date.now()+864e5).toISOString()}); toast('נדחה למחר'); }
+    loadQueue(); loadContacts();
+  } catch(err) { toast(err.message); }
+};
+
+async function loadFollowups(){
+  try {
+    const d = await Hub.hub('contacts/followups');
+    $('#followups').innerHTML = d.contacts.length ? `<table>${d.contacts.map(c=>`<tr><td><b>${esc(c.company_name)}</b><div class="muted">פנייה אחרונה: ${fmtD(c.last_contact_at)}</div></td>
+      <td><span class="chip s-${c.status}">${STATUS[c.status]}</span></td>
+      <td class="row"><button class="btn sm" data-fu="${c.id}" data-st="interested">התעניין</button><button class="btn sm" data-fu="${c.id}" data-st="not_interested">לא מעוניין</button>
+      <button class="btn sm" data-fq="${c.id}">פנייה חוזרת</button><button class="btn sm" data-fo="${c.id}">פרטים</button></td></tr>`).join('')}</table>` : '<div class="muted">אין מעקבים פתוחים להיום.</div>';
+  } catch(e) {}
+}
+$('#followups').onclick = async e => {
+  const b = e.target.closest('button'); if(!b) return;
+  if (b.dataset.fu) { try { await Hub.hub('contacts/status', {id:b.dataset.fu, status:b.dataset.st}); loadAll(); } catch(err) { toast(err.message); } }
+  if (b.dataset.fq) openQueueBuilder([b.dataset.fq]);
+  if (b.dataset.fo) openContact(S.contacts.find(c=>c.id===b.dataset.fo) || (await Hub.hub('contacts/list',{})).contacts.find(c=>c.id===b.dataset.fo));
+};
+
+/* ---------- templates ---------- */
+async function loadTemplates(){
+  try {
+    S.templates = (await Hub.hub('templates/list')).templates;
+    $('#tList').innerHTML = S.templates.length ? S.templates.map(t=>`<div class="qitem"><div><b>${esc(t.name)}</b><div class="msg">${esc(t.body)}</div></div>
+      <div class="qside"><button class="btn sm" data-te="${t.id}">עריכה</button></div></div>`).join('') : '<div class="muted">אין תבניות עדיין.</div>';
+  } catch(e) {}
+}
+$('#tNew').onclick = () => openTemplate(null);
+$('#tList').onclick = e => { const b=e.target.closest('[data-te]'); if(b) openTemplate(S.templates.find(t=>t.id===b.dataset.te)); };
+function openTemplate(t){ S.tCur = t; S.tMedia = t?.media_asset_id ? {id:t.media_asset_id} : null; $('#tName').value = t?.name || ''; $('#tBody').value = t?.body || 'שלום {{איש_קשר}},\nראינו את {{שם_העסק}} ב{{עיר}} ורצינו להציע…\n\n{{העסק_שלנו}}'; $('#tImgInfo').textContent = S.tMedia?'תמונה מצורפת':''; $('#tDel').hidden = !t; $('#tDlg').showModal(); }
+$('#tSave').onclick = async () => { try { await Hub.hub('templates/save', {template:{id:S.tCur?.id, name:$('#tName').value, body:$('#tBody').value, media_asset_id:S.tMedia?.id||null}}); $('#tDlg').close(); loadTemplates(); toast('התבנית נשמרה'); } catch(e) { toast(e.message); } };
+$('#tDel').onclick = async () => { if(!confirm('למחוק את התבנית?')) return; try { await Hub.hub('templates/delete', {id:S.tCur.id}); $('#tDlg').close(); loadTemplates(); } catch(e) { toast(e.message); } };
+
+/* ---------- OpenProspector ---------- */
+$('#pGo').onclick = async () => {
+  try {
+    const d = await Hub.hub('prospector/search', {q:$('#pq').value, city:$('#pcity').value, has:$('#phas').value || undefined, limit:50});
+    S.prospects = d.results; S.pSel.clear();
+    $('#pBody').innerHTML = d.results.length ? d.results.map(r=>{ const so=r.socials||{};
+      return `<tr><td><input type="checkbox" data-p="${r.id}"></td><td><b>${esc(r.name)}</b>${r.website?`<div class="muted">${esc(r.website)}</div>`:''}</td><td>${esc(r.city||'')}</td><td class="muted">${esc(r.main_activity||r.sector||'')}</td>
+        <td>${so.facebook?'<span class="ch fb">f</span>':''}${so.instagram?'<span class="ch ig">IG</span>':''}${(r.whatsapp||so.whatsapp)?'<span class="ch wa">W</span>':''}${r.email_main?'<span class="ch em">@</span>':''}${r.phone_main?'<span class="ch ph">☎</span>':''}</td></tr>`; }).join('')
+      : '<tr><td colspan="5" class="muted">לא נמצאו תוצאות</td></tr>';
+    $('#pInfo').textContent = `${d.results.length} תוצאות (מוצגות עד 50)`; $('#pImport').disabled = true;
+  } catch(e) { toast(e.message); }
+};
+$('#pq').onkeydown = $('#pcity').onkeydown = e => { if (e.key==='Enter') $('#pGo').click(); };
+$('#pBody').onchange = e => { const c=e.target.closest('[data-p]'); if(!c) return; c.checked ? S.pSel.add(+c.dataset.p) : S.pSel.delete(+c.dataset.p); $('#pImport').disabled = !S.pSel.size; $('#pInfo').textContent = `${S.pSel.size} נבחרו`; };
+$('#pAll').onchange = e => { $$('#pBody [data-p]').forEach(c => { c.checked = e.target.checked; c.checked ? S.pSel.add(+c.dataset.p) : S.pSel.delete(+c.dataset.p); }); $('#pImport').disabled = !S.pSel.size; };
+$('#pImport').onclick = async () => {
+  try { const d = await Hub.hub('prospector/import', {ids:[...S.pSel]});
+    toast(`יובאו ${d.imported} עסקים` + (d.duplicates.length?` · ${d.duplicates.length} כבר קיימים`:'')); S.pSel.clear(); $('#pImport').disabled = true; loadContacts();
+  } catch(e) { toast(e.message); }
+};
+
+boot();
+</script>
+</body>
+</html>
