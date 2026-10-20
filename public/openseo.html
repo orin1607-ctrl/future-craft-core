@@ -440,6 +440,10 @@ html, body {
   .plan-image-card .fields,.plan-h2-card .fields{flex-direction:column;align-items:stretch}
   .article-plan label.f{min-width:0}
 }
+.brief-steps{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.brief-steps li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:8px;align-items:start}
+.brief-seo-strip{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin:0 0 16px}
+.brief-seo-strip a{color:#1d4ed8}
 
 /* ===== Real Website Simulation Preview Modal ===== */
 .site-preview-modal {
@@ -1836,7 +1840,7 @@ const S = {
   oppType:"", techSev:"", pageFilter:"", demoOpen:false,
   drawer:null, modal:null,
   research:{seed:"",audience:"",busy:false,result:null, coSeed:"",coBusy:false,coResult:null, planForm:null, drafting:null},
-  produce:{keyword:"",plan:"",length:"long",busy:false,lastError:null,topic:"",ideas:[],ideasBusy:false,wordCount:"",h2Count:""},
+  produce:{keyword:"",plan:"",length:"long",busy:false,lastError:null,topic:"",ideas:[],ideasBusy:false,wordCount:"",h2Count:"",brief:"",briefError:""},
   compose:null, publish:{start:"",cadence:"1",month:null,busy:false},
   measure:{busy:false,note:null}, optimize:{postId:null,busy:false,src:null,sugs:[],applied:0},
   pageOpt:{url:null,sugs:[]},
@@ -2624,6 +2628,7 @@ function pageDrawer(url){
     </div></aside>`;
 }
 </script>
+<script src="./openseo-content-brief.js"></script>
 <script>
 "use strict";
 const WP_WRITE_BLOCKED = "פרסום ותזמון ל-WordPress לא מחוברים בשלב הזה — שום דבר לא נשלח לאתר והמאמר נשאר טיוטה. ההעברה לאתר תהיה משימה נפרדת אחרי אישורך.";
@@ -2910,11 +2915,336 @@ function vArticlePlan(c){
   </div></div>`;
 }
 
+/* ================= הוראה חופשית → הכנה לאישור ================= */
+const BRIEF_STEP_HE = {
+  understand: "הבנת המשימה",
+  keyword: "מילת מפתח",
+  site: "בדיקת האתר",
+  structure: "מבנה",
+  write: "כתיבת תוכן",
+  seo: "SEO",
+  images: "תמונות",
+  preview: "Preview",
+  edit: "עריכה",
+  approval: "אישור להעלאה"
+};
+const BRIEF_STATE_HE = {
+  done: ["בוצע", "up"],
+  blocked: ["חסום", "down"],
+  pending: ["ממתין", ""],
+  ready: ["זמין", "info"],
+  waiting: ["ממתין לאישור", "warn"],
+  prepared: ["הוכן מקומית", "warn"],
+  skipped: ["לא נדרש", ""]
+};
+const TYPE_HE = { page: "עמוד חדש", article: "מאמר", other: "תוכן אחר" };
+function briefStep(c, id, state, detail){
+  const step = c && c.brief && (c.brief.steps || []).find(s => s.id === id);
+  if (!step) return;
+  step.state = state;
+  if (detail != null) step.detail = detail;
+}
+function realDraftsForBrief(){
+  return sitePosts().filter(p => p && (p.wp_draft_id || p.aiDraft || p.realDraft));
+}
+function waitForSeoSources(){
+  const start = Date.now();
+  return new Promise(resolve => {
+    (function tick(){
+      if (REAL.checkedAt || S.site !== "s1" || Date.now() - start > 8000) return resolve();
+      setTimeout(tick, 200);
+    })();
+  });
+}
+function scanStateForBrief(){
+  if (S.site !== "s1") return "demo";
+  return REAL.scan ? "real" : "missing";
+}
+function vBriefForm(){
+  const R = S.produce;
+  return `<div class="card" id="contentBrief"><div class="zone stack" style="gap:10px">
+    <div class="head"><h3 class="t">הוראה בשפה חופשית</h3><span class="xs muted">הבנה, מחקר מקומי ובדיקת האתר רצים מכאן. כתיבה מלאה רק אם Gemini עונה. אין פרסום לאתר.</span></div>
+    <textarea class="input" id="briefText" rows="4" placeholder="לדוגמה: תכין לי עמוד חדש בנושא ניהול צי רכב לעסקים. תבדוק מה צריך להיות בעמוד, תכין תוכן מלא, SEO ותמונות ותראה לי אותו לפני העלאה.">${esc(R.brief || "")}</textarea>
+    <div class="row"><button class="btn pri" id="briefRunBtn" data-act="runBrief" ${R.busy ? "disabled" : ""}>${R.busy ? "מכין…" : "הבן והכן"}</button>
+      <span class="xs muted">המסלול הקיים למטה נשאר: מילת מפתח, תוכנית מאמר, או צור מאמר.</span></div>
+    ${R.briefError ? `<p class="xs m0" style="color:var(--down)">${esc(R.briefError)}</p>` : ""}
+  </div></div>`;
+}
+function vBriefSteps(c){
+  const steps = (c.brief && c.brief.steps) || [];
+  return `<ol class="brief-steps" id="briefChecklist">${steps.map(s => {
+    const st = BRIEF_STATE_HE[s.state] || BRIEF_STATE_HE.pending;
+    return `<li><span class="badge ${st[1]}">${st[0]}</span><div><div class="b xs">${esc(BRIEF_STEP_HE[s.id] || s.id)}</div><div class="xs muted">${esc(s.detail || "")}</div></div></li>`;
+  }).join("")}</ol>`;
+}
+function vBriefWorkspace(c){
+  if (!c || !c.brief) return "";
+  const b = c.brief, plan = c.article_plan || {}, parsed = b.parsed || {};
+  const kw = b.keyword || {}, site = b.siteCheck || { pages: [], drafts: [] };
+  const secondary = (plan.secondary_keywords || []).map(k => k.keyword).join(", ");
+  const wp = c.wp_package;
+  return `<div class="card" id="briefWorkspace"><div class="zone stack" style="gap:12px">
+    <div class="head"><h3 class="t">מה שהובן מההוראה</h3><span class="badge">${esc(TYPE_HE[parsed.contentType] || "תוכן")}</span></div>
+    <p class="sm m0">${esc(parsed.goal || "")}</p>
+    ${vBriefSteps(c)}
+    <div class="fields">
+      <label class="f">סוג<select class="input" data-bf="content_type"><option value="page" ${plan.content_type==="page"?"selected":""}>עמוד חדש</option><option value="article" ${plan.content_type==="article"?"selected":""}>מאמר</option><option value="other" ${plan.content_type==="other"?"selected":""}>תוכן אחר</option></select></label>
+      <label class="f" style="flex:1;min-width:180px">H1<input class="input" data-bf="h1" value="${esc(plan.h1 || c.title || "")}"></label>
+      <label class="f">סלאג מוצע<input class="input" dir="ltr" data-bf="slug" value="${esc(plan.slug || "")}"></label>
+    </div>
+    <p class="xs muted m0">כתובת מוצעת: <span dir="ltr">https://dalia-c.com/${esc(plan.slug || "")}/</span> — הצעה בלבד, העמוד לא נוצר.</p>
+    <label class="f">מילות מפתח משניות <span class="xs faint">מ-Search Console בלבד, מופרדות בפסיק</span><input class="input" data-bf="secondary" value="${esc(secondary)}"></label>
+    <div><div class="b xs">מילת מפתח ראשית · ${esc(kw.source || "")}</div><p class="xs muted m0">${esc(kw.note || "")}</p>
+      ${(kw.candidates || []).length ? `<div class="row mt-s">${kw.candidates.map(row => `<button type="button" class="btn sm ${row.keyword===c.keyword?"pri":"ghost"}" data-act="pickBriefKw" data-briefkw="${esc(row.keyword)}">${esc(row.keyword)}</button>`).join("")}</div>` : ""}</div>
+    <div><div class="b xs">בדיקת תוכן קיים · ${site.risk === "high" ? "חפיפה גבוהה" : site.risk === "possible" ? "חפיפה חלקית" : site.risk === "none" ? "אין חפיפה חזקה" : "לא נבדק"}</div>
+      <p class="xs muted m0">${esc(site.note || "")}</p>
+      ${(site.pages || []).length ? `<ul class="sm">${site.pages.map(p => `<li><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title || p.url)}</a> <span class="xs muted">חפיפה ${p.overlap}</span></li>`).join("")}</ul>` : ""}
+      ${(site.drafts || []).length ? `<ul class="sm">${site.drafts.map(d => `<li>טיוטה מקומית: ${esc(d.title)}${d.wp_draft_id ? ` · WP #${esc(d.wp_draft_id)}` : ""}</li>`).join("")}</ul>` : ""}</div>
+    <div><div class="b xs">קישורים פנימיים מוצעים</div>
+      ${(plan.internal_links || []).length ? `<ul class="sm" id="briefLinks">${plan.internal_links.map((l, i) => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.anchor || l.url)}</a> <span class="xs muted">${esc(l.reason || "")}</span> <button type="button" class="btn ghost sm" data-act="dropBriefLink" data-idx="${i}">הסר</button></li>`).join("")}</ul>` : `<p class="xs muted m0">אין קישור פנימי מהסריקה.</p>`}
+      <p class="xs muted m0">הקישורים מוצעים בלבד ולא הוחדרו לגוף המאמר.</p></div>
+    <div class="zone" id="briefApproval" style="background:var(--soft);border-radius:10px">
+      <div class="b sm">אישור לפני העלאה</div>
+      <p class="xs muted m0 mt-s">הכפתור מכין חבילת טיוטה מקומית. הוא לא מפרסם ל-dalia-c.com. העלאה תתבצע רק אם יש הרשאת כתיבה, וכיום החיבור הוא קריאה בלבד.</p>
+      <label class="check mt-s"><input type="checkbox" id="briefApproveCheck"> אני מאשר להכין את החבילה. אין לפרסם לאתר החי.</label>
+      <div class="row mt-s"><button type="button" class="btn pri" data-act="approveWpPackage">אשר והכן חבילה</button>
+        <button type="button" class="btn" data-act="retryBriefWrite" ${S.produce.busy ? "disabled" : ""}>נסה שוב לכתוב עם Gemini</button>
+        <button type="button" class="btn ghost" data-act="sitePreview">Preview מקומי</button></div>
+      ${wp ? `<div class="mt-s"><div class="b xs">${wp.uploaded ? "הועלה" : "לא הועלה"}</div><p class="xs m0">${esc(wp.reason || "")}</p>${wp.readback ? `<p class="xs m0 mt-s">${esc(wp.readback.detail || "")}</p>` : ""}</div>` : ""}
+    </div>
+  </div></div>`;
+}
+function applyBriefPackage(pack){
+  const plan = createArticlePlan({
+    keyword: pack.keyword.keyword,
+    title: pack.structure.h1,
+    length: pack.parsed.length || "long",
+    word_count: pack.parsed.wordCount || "",
+    h2_count: pack.parsed.length === "short" ? 3 : pack.parsed.length === "medium" ? 5 : 6
+  });
+  plan.title = pack.structure.title || "";
+  plan.h1 = pack.structure.h1 || "";
+  plan.meta_description = "";
+  plan.slug = pack.structure.slug || "";
+  plan.content_type = pack.structure.contentType;
+  plan.title_source = pack.structure.titleSource;
+  plan.secondary_keywords = pack.structure.secondaryKeywords || [];
+  plan.internal_links = pack.structure.internalLinks || [];
+  plan.approved = false;
+  if (pack.parsed.wantsImages) applyImageMode(plan, "hero_inline");
+  (plan.images.items || []).forEach((img, i) => {
+    img.alt = defaultImageAlt(img.role, plan, Number(img.afterH2) || i);
+    img.prompt = "";
+    img.src = "";
+  });
+  S.compose = {
+    id: null,
+    keyword: pack.keyword.keyword || "",
+    plan_id: "",
+    length: pack.parsed.length || "long",
+    title: plan.title,
+    meta_description: "",
+    content_html: "",
+    scheduled_at: "",
+    article_plan: plan,
+    brief: {
+      raw: pack.parsed.raw,
+      parsed: pack.parsed,
+      keyword: pack.keyword,
+      siteCheck: pack.siteCheck,
+      steps: pack.steps,
+      wp: null
+    },
+    wp_package: null
+  };
+}
+async function runBriefGemini(c){
+  const plan = c.article_plan;
+  const R = S.produce;
+  R.busy = true;
+  R.lastError = null;
+  briefStep(c, "write", "pending", "פונים ל-Gemini…");
+  render();
+  const outlineBody = {
+    action: "outline",
+    keyword: (plan.keyword || c.keyword || "").trim(),
+    title: plan.title || null,
+    length: plan.length || c.length || "long",
+    word_count: plan.word_count ? Number(plan.word_count) : undefined,
+    h2_count: (plan.headings || []).length || undefined,
+    meta_description: plan.meta_description || ""
+  };
+  let outline;
+  try {
+    const res = await seoApiFetch("/api/project-001/generate-article", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(outlineBody) });
+    outline = await res.json().catch(() => ({}));
+    if (!(res.ok && outline.ok && outline.action === "outline" && (outline.headings || []).length)) {
+      const err = outline.error || ("שגיאת שרת (" + res.status + ")");
+      const code = outline.code ? outline.code + " — " : "";
+      R.lastError = code + err;
+      R.busy = false;
+      briefStep(c, "write", "blocked", R.lastError);
+      briefStep(c, "seo", "ready", "הכתיבה לא בוצעה, ולכן Meta וכותרות H2 לא מולאו.");
+      render();
+      return;
+    }
+  } catch (err) {
+    R.busy = false;
+    R.lastError = "שגיאת תקשורת: " + err.message;
+    briefStep(c, "write", "blocked", R.lastError);
+    render();
+    return;
+  }
+  plan.headings = (outline.headings || []).map(h => ({ id: planUid("h"), text: h.h2 || "", h3s: h.h3s || [] }));
+  if (outline.title) {
+    plan.title = outline.title;
+    plan.h1 = outline.title;
+    plan.title_source = "gemini";
+    c.title = outline.title;
+  }
+  if (outline.meta_description) {
+    plan.meta_description = outline.meta_description;
+    c.meta_description = outline.meta_description;
+  }
+  briefStep(c, "structure", "done", "המבנה כולל כותרות H2/H3 שהתקבלו מ-Gemini (" + (outline.model || "model") + ").");
+  if (!(c.brief.parsed && c.brief.parsed.wantsFullContent)) {
+    R.busy = false;
+    briefStep(c, "write", "skipped", "ההוראה לא ביקשה גוף מלא.");
+    if (c.meta_description) briefStep(c, "seo", "done", "Title ו-Meta הגיעו מ-Gemini. הסלאג ומילות המשנה מהשלב המקומי.");
+    render();
+    return;
+  }
+  plan.approved = true;
+  const articleBody = {
+    action: "article",
+    keyword: (plan.keyword || c.keyword || "").trim(),
+    title: plan.title || null,
+    length: plan.length || "long",
+    meta_description: plan.meta_description || "",
+    word_count: plan.word_count ? Number(plan.word_count) : undefined,
+    outline: {
+      title: plan.title || "",
+      meta_description: plan.meta_description || "",
+      headings: plan.headings.map(h => ({ h2: h.text || "", h3s: h.h3s || [] }))
+    }
+  };
+  try {
+    const res = await seoApiFetch("/api/project-001/generate-article", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(articleBody) });
+    const data = await res.json().catch(() => ({}));
+    R.busy = false;
+    if (res.ok && data.ok && data.content_html) {
+      c.title = data.title || c.title;
+      c.meta_description = data.meta_description || c.meta_description;
+      c.content_html = data.content_html;
+      c.word_count = data.word_count;
+      c.aiDraft = true;
+      c.aiModel = data.model || outline.model || "";
+      plan.title = c.title;
+      plan.h1 = c.title;
+      plan.meta_description = c.meta_description;
+      plan.title_source = "gemini";
+      R.lastError = null;
+      briefStep(c, "write", "done", "התוכן נכתב ב-Gemini (" + (data.model || "model") + "), " + (data.word_count || 0) + " מילים. לא פורסם.");
+      briefStep(c, "seo", "done", "Title ו-Meta הגיעו מתשובת Gemini. הסלאג ומילות המשנה נשארו מהנתונים המקומיים.");
+    } else {
+      const err = data.error || ("שגיאת שרת (" + res.status + ")");
+      const code = data.code ? data.code + " — " : "";
+      R.lastError = code + err;
+      c.content_html = "";
+      briefStep(c, "write", "blocked", R.lastError + " כותרות המבנה נשארו. גוף המאמר לא נכתב.");
+      briefStep(c, "seo", c.meta_description ? "done" : "ready", c.meta_description ? "Meta הגיע ממבנה Gemini. הגוף לא נכתב." : "הגוף לא נכתב.");
+    }
+  } catch (err) {
+    R.busy = false;
+    R.lastError = "שגיאת תקשורת: " + err.message;
+    briefStep(c, "write", "blocked", R.lastError);
+  }
+  render();
+}
+async function runContentBrief(){
+  const R = S.produce;
+  const text = (R.brief || "").trim();
+  if (!text) { R.briefError = "כתוב קודם את ההוראה."; return render(); }
+  if (!window.ContentBrief) { R.briefError = "מנוע ההבנה לא נטען."; return render(); }
+  R.briefError = "";
+  R.busy = true;
+  R.lastError = null;
+  render();
+  try {
+  await waitForSeoSources();
+  const scanState = scanStateForBrief();
+  const pages = scanState === "real" ? (PAGES.s1 || []).filter(p => p.real) : [];
+  const keywords = KEYWORDS.filter(k => k.site === S.site && k.real);
+  const pack = ContentBrief.prepare({ text: text, keywords: keywords, pages: pages, drafts: realDraftsForBrief(), scanState: scanState });
+  if (!pack.parsed.topic) {
+    R.busy = false;
+    R.briefError = "לא זיהיתי נושא. כתוב למשל: תכין לי עמוד חדש בנושא …";
+    return render();
+  }
+  applyBriefPackage(pack);
+  await runBriefGemini(S.compose);
+  } catch (err) {
+    R.busy = false;
+    R.lastError = err.message || String(err);
+    R.briefError = R.lastError;
+    render();
+  }
+}
+function wpWritePermission(){
+  if (S.site === "s1" || realSiteWriteBlocked()) {
+    return { allowed: false, reason: "החיבור ל-dalia-c.com הוא קריאת REST ציבורית בלבד. אין הרשאת יצירת טיוטה, ולכן שום דבר לא נשלח לאתר." };
+  }
+  return { allowed: false, reason: "אין הרשאת כתיבה ל-WordPress במסך הזה. החבילה נשארת מקומית." };
+}
+async function verifyWpReadback(c){
+  const slug = (c.article_plan && c.article_plan.slug) || "";
+  if (!c.wp_package) return;
+  if (S.site !== "s1" || !slug) {
+    c.wp_package.readback = { checked: false, detail: "לא בוצעה קריאה חוזרת מול dalia-c.com." };
+    render();
+    return;
+  }
+  try {
+    const kinds = ["pages", "posts"];
+    const results = await Promise.all(kinds.map(async kind => {
+      const res = await fetch("https://dalia-c.com/wp-json/wp/v2/" + kind + "?slug=" + encodeURIComponent(slug) + "&_fields=id,slug,status,link");
+      const body = res.ok ? await res.json().catch(() => []) : [];
+      return { ok: res.ok, status: res.status, body: Array.isArray(body) ? body : [] };
+    }));
+    const found = [];
+    results.forEach((r, i) => r.body.forEach(item => found.push({ kind: kinds[i], id: item.id, status: item.status, link: item.link })));
+    const failed = results.some(r => !r.ok);
+    c.wp_package.readback = {
+      checked: !failed,
+      found: found,
+      detail: failed
+        ? "קריאת WordPress לא הושלמה (סטטוס " + results.map(r => r.status).join("/") + "). לא סומן שהעמוד קיים."
+        : found.length
+          ? "נמצא תוכן ציבורי שכבר קיים עם הסלאג הזה (" + found.map(f => f.link || ("#" + f.id)).join(", ") + "). זו לא העלאה חדשה, ולא נוצר פריט."
+          : "קריאה ציבורית מ-WordPress: אין עמוד או פוסט מפורסם עם הסלאג הזה. טיוטה חדשה לא נוצרה."
+    };
+  } catch (err) {
+    c.wp_package.readback = { checked: false, detail: "קריאה חוזרת נכשלה: " + err.message + ". לא סומן שהעמוד קיים." };
+  }
+  briefStep(c, "approval", "prepared", c.wp_package.reason + " " + (c.wp_package.readback.detail || ""));
+  render();
+}
+function refreshBriefImageStep(c){
+  if (!c || !c.brief) return;
+  const imgs = (c.article_plan && c.article_plan.images && c.article_plan.images.items) || [];
+  const ready = imgs.filter(i => i.src).length;
+  if (!imgs.length) briefStep(c, "images", "skipped", "אין משבצות תמונה.");
+  else if (ready === imgs.length) briefStep(c, "images", "done", "יש קובץ בכל " + ready + " המשבצות.");
+  else if (ready) briefStep(c, "images", "ready", "הועלה קובץ ל-" + ready + " מתוך " + imgs.length + " משבצות. משבצת בלי קובץ לא סומנה כמוכנה.");
+  else briefStep(c, "images", "ready", "יש " + imgs.length + " משבצות בלי קובץ. העלאה ידנית זמינה. יצירת AI לא הורצה.");
+}
+
 /* ================= יצירת תוכן (Produce) ================= */
 function vProduce(){
   if (S.compose) return vComposer();
   const R = S.produce, plans = PLANS.filter(p => p.site === S.site), drafts = sitePosts().filter(p => p.status === "draft");
   return `<div class="stack">
+    ${vBriefForm()}
     <div class="card"><div class="zone"><div class="head"><h3 class="t">יצירת מאמר עם Gemini AI</h3><button class="btn ghost sm" data-act="newCompose">+ מאמר ריק</button></div>
       <div class="fields mt"><label class="f" style="flex:1;min-width:220px">מילת מפתח יעד<input class="input" id="pKw" value="${esc(R.keyword)}" placeholder="למשל: מה עושה קצין רכב"></label>
         <label class="f">אורך מאמר<select class="input" id="pLength">
@@ -3160,6 +3490,7 @@ function vComposer(){
   const gated = planGate(c);
   const localPreview = (c.content_html || "").trim() || articlePlanOf(c);
   return `<div class="stack" style="max-width:980px">
+    ${vBriefWorkspace(c)}
     <div class="row"><button class="btn ghost sm" data-act="closeCompose">→ חזרה</button><h2 class="t">${existing?"עריכת מאמר":"מאמר חדש"}</h2>${existing?stBadge(existing.status):""} ${c.aiModel?`<span class="badge ai">Gemini (${esc(c.aiModel.replace('models/',''))})</span>`:""}<span class="grow"></span>
       <button type="button" class="btn pri sm" data-act="openDraftImageModal" style="display:inline-flex;align-items:center;gap:6px;font-weight:700">🖼️ צור תמונה עם AI</button>
       ${(c.wp_draft_id || (existing && existing.wp_draft_id)) ? `<span class="badge" style="background:#e8f0fe;color:#1a73e8;font-weight:600">WP טיוטה #${c.wp_draft_id || existing.wp_draft_id}</span>` : ""}
@@ -3191,9 +3522,9 @@ function vComposer(){
     </div>
       ${localPreview?`<div class="zone"><span class="b sm">תצוגה מקדימה</span>${articlePlanOf(c)&&c.article_plan.flow==="plan"?planOutlineHtml(articlePlanOf(c)):""}${heroFigureHtml(c)}<div class="prose mt-s">${previewBodyHtml(c)}</div></div>`:""}
       <div class="zone"><span class="b sm">פרסום</span><div class="fields mt" style="justify-content:space-between">
-        <label class="f">תזמון (לא חובה — מתפרסם אוטומטית ל-WordPress)<input type="datetime-local" class="input" data-cf="scheduled_at" value="${esc(c.scheduled_at)}"></label>
+        <label class="f">תזמון מקומי (לא מעלה לאתר בלי אישור)<input type="datetime-local" class="input" data-cf="scheduled_at" value="${esc(c.scheduled_at)}"></label>
         <div class="row"><button class="btn sm" data-act="openWpPreview" style="display:inline-flex;align-items:center;gap:6px;background:var(--blue-t);color:var(--blue);border:1px solid var(--blue);font-weight:700">🔗 תצוגה באתר</button><button class="btn ghost sm" data-act="sitePreview" style="display:inline-flex;align-items:center;gap:6px">👁️ הדמיה מקומית</button>
-          <button class="btn" data-act="composePublish" ${!c.content_html.trim()||!wp?"disabled":""} title="${wp?"":"חבר WordPress כדי לפרסם"}">פרסם עכשיו</button>
+          <button class="btn" data-act="composePublish" ${!c.content_html.trim()||!wp||realSiteWriteBlocked()?"disabled":""} title="${realSiteWriteBlocked()?"פרסום ל-dalia-c.com חסום":wp?"":"חבר WordPress כדי לפרסם"}">פרסם עכשיו</button>
           <button class="btn pri" data-act="composeSave">${c.scheduled_at?"תזמן":"שמור טיוטה"}</button></div></div>
         ${!wp?`<p class="xs m0 mt-s" style="color:var(--warn)">${site().conn.wp?"WordPress לא מחובר.":"לאתר הזה אין WordPress — אפשר לשמור ולהעתיק, בלי פרסום אוטומטי."}</p>`:""}</div></div>
   </div>`;
@@ -3378,6 +3709,16 @@ function renderOverlay(){
               </div>
               ` : ''}
 
+              ${(previewPlan && (previewPlan.slug || (previewPlan.internal_links || []).length || (previewPlan.secondary_keywords || []).length)) ? `
+              <div class="brief-seo-strip" id="briefSeoStrip">
+                <div class="b sm">פרטי SEO לפני העלאה</div>
+                <p class="xs m0 mt-s">סוג: ${esc(TYPE_HE[previewPlan.content_type] || "—")} · מילת מפתח: ${esc(previewPlan.keyword || post.keyword || "—")}</p>
+                <p class="xs m0">כתובת מוצעת: <span dir="ltr">https://dalia-c.com/${esc(previewPlan.slug || "")}/</span></p>
+                ${(previewPlan.secondary_keywords || []).length ? `<p class="xs m0">מילות משנה: ${esc((previewPlan.secondary_keywords || []).map(k => k.keyword).join(" · "))}</p>` : `<p class="xs m0">אין מילות משנה מאומתות.</p>`}
+                ${(previewPlan.internal_links || []).length ? `<ul class="xs">${previewPlan.internal_links.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.anchor || l.url)}</a></li>`).join("")}</ul>` : ""}
+                <p class="xs muted m0">זו תצוגה מקומית. העמוד לא הועלה.</p>
+              </div>` : ""}
+
               ${previewOutline}
               ${previewHero}
               <!-- Body HTML Content -->
@@ -3426,8 +3767,19 @@ function renderOverlay(){
   }
 
   if (S.modal?.type === "wpPreview") {
-    const post = S.modal.post || S.compose || POSTS.find(p=>p.id===1001) || {};
-    const wpDraftId = post.wp_draft_id || 6255;
+    const post = S.modal.post || S.compose || {};
+    const wpDraftId = post.wp_draft_id || null;
+    if (!wpDraftId) {
+      el.innerHTML = `<div class="scrim" data-act="close"></div>
+      <div class="card modal" role="dialog" aria-label="אין טיוטת WordPress" style="max-width:560px">
+        <div class="zone stack" style="gap:10px">
+          <div class="head"><h2 class="t">אין טיוטה ב-WordPress</h2><button class="btn ghost ic" data-act="close" aria-label="סגור">✕</button></div>
+          <p class="sm m0">לפריט הזה אין מזהה טיוטה שנשמר אחרי העלאה. לא נפתחת טיוטה אחרת, וגם לא טיוטה 6255.</p>
+          <p class="xs muted m0">אפשר לראות את התוכן בהדמיה המקומית. העלאה ל-dalia-c.com לא מתבצעת בלי אישור ובלי הרשאת כתיבה.</p>
+        </div>
+      </div>`;
+      return;
+    }
     const previewUrl = post.wp_preview_url || ("https://dalia-c.com/?p=" + wpDraftId + "&preview=true");
     const editUrl = post.wp_edit_url || ("https://dalia-c.com/wp-admin/post.php?post=" + wpDraftId + "&action=edit");
 
@@ -4809,11 +5161,26 @@ function bindInputs(){
   on("#rankKw", e => { S.rankKw = e.target.value; render(); }, "change");
   on("#cmpPick", e => { S.comp = e.target.value; render(); }, "change");
   on("#pKw", e => S.produce.keyword = e.target.value); on("#pPlan", e => S.produce.plan = e.target.value, "change"); on("#pLength", e => S.produce.length = e.target.value, "change"); on("#pTopic", e => S.produce.topic = e.target.value);
+  on("#briefText", e => { S.produce.brief = e.target.value; S.produce.briefError = ""; });
+  document.querySelectorAll("[data-bf]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", e => {
+    const c = S.compose, plan = c && c.article_plan;
+    if (!c || !plan) return;
+    const key = el.dataset.bf;
+    if (key === "content_type") plan.content_type = e.target.value;
+    if (key === "h1") { plan.h1 = e.target.value; plan.title = e.target.value; plan.title_source = "user"; c.title = e.target.value; }
+    if (key === "slug") plan.slug = e.target.value.trim().replace(/\s+/g, "-");
+    if (key === "secondary") {
+      plan.secondary_keywords = e.target.value.split(",").map(s => s.trim()).filter(Boolean).map(keyword => ({ keyword, source: "user" }));
+    }
+    briefStep(c, "edit", "done", "השדות נערכו במסך. השינוי עדיין לא הועלה.");
+    refreshPlanSummary();
+  }));
   on("#pWords", e => S.produce.wordCount = e.target.value); on("#pH2", e => S.produce.h2Count = e.target.value);
   bindPlanInputs();
   bindDraftInputs();
   document.querySelectorAll("[data-cf]").forEach(i => i.addEventListener(i.tagName==="SELECT"?"change":"input", e => {
     S.compose[i.dataset.cf] = e.target.value;
+    if (S.compose.brief) briefStep(S.compose, "edit", "done", "השדות נערכו במסך. השינוי עדיין לא הועלה.");
     const plan = S.compose.article_plan;
     if (plan && (i.dataset.cf === "keyword" || i.dataset.cf === "title" || i.dataset.cf === "meta_description" || i.dataset.cf === "length")) {
       plan[i.dataset.cf] = e.target.value;
@@ -4966,6 +5333,8 @@ function bindPlanInputs(){
       if (!img) return;
       img.src = shrunk;
       img.fileName = file.name;
+      if (!img.alt) img.alt = defaultImageAlt(img.role, plan, Number(img.afterH2) || 0);
+      refreshBriefImageStep(S.compose);
       render();
     };
     reader.readAsDataURL(file);
@@ -5050,6 +5419,7 @@ function bindDraftInputs(){
             if (post) { post.article_plan = clonePlan(c.article_plan); post.updated_at = new Date().toISOString(); }
           }
           savePostsStorage();
+          refreshBriefImageStep(c);
           toast("✓ התמונה הוחלפה בהצלחה");
           render();
         }
@@ -5106,6 +5476,7 @@ function addDraftImageFiles(fileList){
       if (post) { post.article_plan = clonePlan(c.article_plan); post.updated_at = new Date().toISOString(); }
     }
     const saved = savePostsStorage();
+    refreshBriefImageStep(c);
     if (saved) toast(results.length > 1 ? `✓ ${results.length} תמונות הועלו ונשמרו בטיוטה` : "✓ התמונה הועלתה ונשמרה בטיוטה");
     render();
   });
@@ -5238,7 +5609,60 @@ document.addEventListener("click", e => {
   if (d.prevdevice){ if (S.modal?.type === "sitePreview"){ S.modal.device = d.prevdevice; return renderOverlay(); } }
   if (d.openwp){ const p = POSTS.find(x=>x.id===+d.openwp); if (p){ S.modal = { type: "wpPreview", post: { ...p } }; return renderOverlay(); } }
   if (d.act === "openWpPreview"){ const existing = POSTS.find(p=>p.id===S.compose?.id); const post = S.compose ? { ...existing, ...S.compose } : (POSTS.find(p=>p.id===1001) || {}); S.modal = { type: "wpPreview", post }; return renderOverlay(); }
-  if (d.act === "sitePreview"){ S.modal = { type: "sitePreview", device: S.modal?.device || "desktop", post: { ...S.compose } }; return renderOverlay(); }
+  if (d.act === "sitePreview"){
+    if (S.compose && S.compose.brief) briefStep(S.compose, "preview", "done", "נפתחה תצוגה מקומית של העמוד. הוא לא הועלה.");
+    S.modal = { type: "sitePreview", device: S.modal?.device || "desktop", post: S.compose ? { ...S.compose } : {} };
+    return renderOverlay();
+  }
+  if (d.act === "pickBriefKw"){
+    const c = S.compose;
+    if (!c || !d.briefkw) return;
+    c.keyword = d.briefkw;
+    if (c.article_plan) c.article_plan.keyword = d.briefkw;
+    if (c.brief) {
+      c.brief.keyword = Object.assign({}, c.brief.keyword, { keyword: d.briefkw, source: "user", note: "נבחרה ידנית מתוך שאילתות Search Console שהוצגו. הכתיבה לא הורצה מחדש." });
+      briefStep(c, "keyword", "done", c.brief.keyword.note);
+    }
+    return render();
+  }
+  if (d.act === "dropBriefLink"){
+    const plan = S.compose && S.compose.article_plan;
+    if (!plan || !plan.internal_links) return;
+    plan.internal_links.splice(+d.idx, 1);
+    if (S.compose.brief) briefStep(S.compose, "edit", "done", "רשימת הקישורים נערכה. הם לא הוחדרו לגוף.");
+    return render();
+  }
+  if (d.act === "runBrief"){ runContentBrief(); return; }
+  if (d.act === "retryBriefWrite"){ if (S.compose && S.compose.brief) runBriefGemini(S.compose); return; }
+  if (d.act === "approveWpPackage"){
+    const c = S.compose;
+    if (!c || !c.brief) return toast("אין חבילה להכנה");
+    const box = document.getElementById("briefApproveCheck");
+    if (!box || !box.checked) return toast("צריך סימון אישור מפורש. שום דבר לא נשלח.");
+    const perm = wpWritePermission();
+    const plan = c.article_plan || {};
+    c.wp_package = {
+      prepared: true,
+      uploaded: false,
+      published: false,
+      at: new Date().toISOString(),
+      reason: perm.reason,
+      payload: {
+        status: "draft",
+        type: plan.content_type || "article",
+        title: c.title || "",
+        slug: plan.slug || "",
+        excerpt: c.meta_description || "",
+        content: c.content_html || "",
+        hasBody: !!(c.content_html || "").trim()
+      },
+      readback: null
+    };
+    briefStep(c, "approval", "prepared", perm.reason + ((c.content_html || "").trim() ? "" : " גוף המאמר ריק, ולכן גם החבילה המקומית בלי תוכן כתוב."));
+    render();
+    verifyWpReadback(c);
+    return;
+  }
   if (d.edit){ const p = POSTS.find(x=>x.id===+d.edit); S.compose = {...p, scheduled_at: p.scheduled_at && p.status==="scheduled" ? p.scheduled_at.slice(0,16) : "", article_plan: p.article_plan ? clonePlan(p.article_plan) : undefined}; ensureDraftPlan(S.compose); S.drawer = null; return go("produce"); }
   if (d.rmpost){ POSTS.splice(POSTS.findIndex(x=>x.id===+d.rmpost),1); savePostsStorage(); return render(); }
   if (d.pubnow){ if (realSiteWriteBlocked()) return toast(WP_WRITE_BLOCKED, 9000); S.modal = {type:"confirmPub", id:+d.pubnow}; return renderOverlay(); }
@@ -5500,7 +5924,12 @@ document.addEventListener("click", e => {
   }
 
   switch (d.act){
-    case "close": S.drawer = null; S.modal = null; return renderOverlay();
+    case "close": {
+      const wasPreview = S.modal && S.modal.type === "sitePreview";
+      S.drawer = null; S.modal = null;
+      if (wasPreview && S.compose && S.compose.brief) return render();
+      return renderOverlay();
+    }
     case "points": S.modal = "points"; return renderOverlay();
     case "theme": { const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme==="dark" : matchMedia("(prefers-color-scheme: dark)").matches; r.dataset.theme = dark ? "light" : "dark"; return; }
     case "demo": S.demoOpen = !S.demoOpen; return renderDemo();
@@ -5646,6 +6075,7 @@ document.addEventListener("click", e => {
               : (h2Text || title || kw || "תמונת מאמר") + " - דליה פתרונות רכב";
           }
           if (!img.prompt) img.prompt = promptToUse;
+          refreshBriefImageStep(S.compose);
           toast("✓ תמונת " + (img.role === "hero" ? "Hero" : "Inline") + " נוצרה בהצלחה עם AI (" + (data.model ? data.model.replace('models/','') : 'Gemini') + ")");
         } else {
           const errMsg = data.error || ("שגיאת שרת (" + res.status + ")");
@@ -5915,6 +6345,8 @@ document.addEventListener("click", e => {
       if (c.length) data.length = c.length;
       if (c.word_count) data.word_count = c.word_count;
       if (c.article_plan) data.article_plan = clonePlan(c.article_plan);
+      if (c.brief) data.brief = JSON.parse(JSON.stringify(c.brief));
+      if (c.wp_package) data.wp_package = JSON.parse(JSON.stringify(c.wp_package));
       if (p) Object.assign(p, data); else { p = {id:++PID, site:S.site, published_at:null, published_url:null, error:null, rank:null, rank_checked_at:null, created_at:new Date().toISOString(), ...data}; POSTS.unshift(p); }
       savePostsStorage();
       if (d.act === "composePublish" && !pubBlocked){ S.modal = {type:"confirmPub", id:p.id}; S.compose = null; render(); return renderOverlay(); }
