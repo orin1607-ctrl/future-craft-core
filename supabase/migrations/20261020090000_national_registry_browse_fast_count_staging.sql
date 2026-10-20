@@ -95,3 +95,28 @@ BEGIN
     EXECUTE d;
   END IF;
 END $$;
+
+-- 20.10.2026 (live browser test): the registry table stayed on "searching…" because of a drawing error in the screen
+-- (fixed in openprospector-national-registry.js). Speed: filters on social networks and fleet size read the whole table
+-- to count matches (≈9 s); small partial indexes make them ≈0.3–0.5 s. Built CONCURRENTLY (no write lock) – run outside
+-- a transaction block, one statement at a time:
+--   CREATE INDEX CONCURRENTLY IF NOT EXISTS nr_b_has_facebook  ON public.nr_businesses (id) WHERE has_facebook;
+--   CREATE INDEX CONCURRENTLY IF NOT EXISTS nr_b_has_instagram ON public.nr_businesses (id) WHERE has_instagram;
+--   CREATE INDEX CONCURRENTLY IF NOT EXISTS nr_b_has_linkedin  ON public.nr_businesses (id) WHERE has_linkedin;
+--   CREATE INDEX CONCURRENTLY IF NOT EXISTS nr_b_fleet_min     ON public.nr_businesses (fleet_min) WHERE fleet_min IS NOT NULL;
+-- count_cap tells the screen where the exact count ends (above it: "more than 10,000", the planner figure only as a hint).
+DO $$
+DECLARE d text;
+BEGIN
+  d := pg_get_functiondef('public.nr_browse(jsonb,text,integer,integer)'::regprocedure);
+  d := replace(d, 'LIMIT 2001) x', 'LIMIT 10001) x');
+  d := replace(d, 'IF v_total > 2000 THEN', 'IF v_total > 10000 THEN');
+  d := replace(d, 'greatest(2001, coalesce((v_plan->0->''Plan''->>''Plan Rows'')::numeric, 2001)::bigint)', 'greatest(10001, coalesce((v_plan->0->''Plan''->>''Plan Rows'')::numeric, 10001)::bigint)');
+  d := replace(d, '''count_cap'', 2000,', '''count_cap'', 10000,');
+  d := replace(d, '-- exact up to 2,000 matches;', '-- exact up to 10,000 matches;');
+  IF position('count_cap' IN d) = 0 THEN
+    d := replace(d, $r$'total_exact', v_exact,$r$, $r$'total_exact', v_exact, 'count_cap', 10000,$r$);
+  END IF;
+  IF position('LIMIT 10001' IN d) = 0 OR position('''count_cap'', 10000' IN d) = 0 THEN RAISE EXCEPTION 'nr_browse count text did not match'; END IF;
+  EXECUTE d;
+END $$;

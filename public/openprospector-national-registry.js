@@ -113,7 +113,18 @@
     if (r.error) throw new Error(r.error.message);
     return r.data;
   }
-  const rerender = () => { if (S.view === "prospector" && S.tab === TAB) { const v = document.querySelector("#view"); if (v) v.innerHTML = V[TAB](); } };
+  // redraw once at a time: replacing the view removes a focused filter box, whose "change" event (fired on blur) starts
+  // a new search and asks for a redraw while the first one is still running – that one waits and runs right after
+  let rendering = false, renderAgain = false;
+  const rerender = () => {
+    if (!(S.view === "prospector" && S.tab === TAB)) return;
+    if (rendering) { renderAgain = true; return; }
+    rendering = true;
+    try { const v = document.querySelector("#view"); if (v) v.innerHTML = V[TAB](); }
+    catch (e) { console.error("[national registry] redraw", e); }
+    finally { rendering = false; }
+    if (renderAgain) { renderAgain = false; setTimeout(rerender, 0); }
+  };
 
   // ── data loading ──
   async function loadStats(force) {
@@ -150,12 +161,19 @@
     } catch (e) { toast(e.message); }
   }
   async function loadFacets() {
-    try { ST.facets = await rpc("nr_facets"); } catch (e) { /* shown via browse error */ }
-    loadIndustries();
+    if (ST.facetsLoading) return;
+    ST.facetsLoading = true;
+    try { ST.facets = await rpc("nr_facets"); } catch (e) { ST.facets = ST.facets || {}; /* the filters stay usable without counts */ }
+    ST.facetsLoading = false;
     rerender();
   }
   async function loadIndustries() {
-    try { ST.ind = await rpc("nr_industry_summary"); } catch (e) { /* the filters stay usable without counts */ }
+    try {
+      const d = await rpc("nr_industry_summary");
+      // the server sends the sub-industry label as "sub" – keep one field name for the screen
+      if (d && Array.isArray(d.taxonomy)) d.taxonomy = d.taxonomy.map((t) => ({ ...t, sub_label: t.sub_label || t.sub || t.code, main_label: t.main_label || t.main || "" }));
+      ST.ind = d;
+    } catch (e) { /* the filters stay usable without counts */ }
     rerender();
   }
   // industry labels: sub-industry → main label, profession
@@ -165,7 +183,7 @@
     const tax = TAX(), list = codes || [];
     if (!list.length) return "";
     if (list.length === 1 && list[0] === "unclassified") return '<div><span class="badge b-no" title="אין במידע שנאסף בסיס לסיווג – לא מנחשים">לא מסווג</span></div>';
-    return '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">' + list.filter((c) => tax[c]).map((c) => '<span class="badge b-blue" title="' + esc(tax[c].main_label + " › " + tax[c].sub_label) + '">' + esc(tax[c].sub_label.split(" – ")[0].split(",")[0]) + '</span>').join("") + '</div>';
+    return '<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">' + list.filter((c) => tax[c]).map((c) => { const sub = String(tax[c].sub_label || tax[c].sub || c); return '<span class="badge b-blue" title="' + esc((tax[c].main_label || "") + " › " + sub) + '">' + esc(sub.split(" – ")[0].split(",")[0]) + '</span>'; }).join("") + '</div>';
   }
   function industryCard() {
     const d = ST.ind;
@@ -179,16 +197,33 @@
       '<div class="tbl-wrap"><table><thead><tr><th>ענף (לחיצה על ▸ פותחת תתי־ענפים; לחיצה על שורה מסננת)</th><th>עסקים</th><th>עם טלפון</th><th>עם אימייל</th><th>טלפון או אימייל</th><th>עם איש קשר</th><th>פוטנציאל צי</th><th>צי – סימנים חזקים / 5+</th></tr></thead><tbody>' + body + '</tbody></table></div>' +
       '<div class="card-b xs muted">הסיווג נעשה רק לפי מידע שנאסף: ענף או תחום פעילות מהמקור, סוג התאגדות, או מילת מקצוע מפורשת בשם העסק. עסק בלי בסיס מסומן "לא מסווג". עסק יכול להופיע בכמה ענפים. הסיווג לא מסנן ולא מוחק עסקים מהמאגר.</div></details>';
   }
-  let browseSeq = 0;
+  // every search ends: rows, "no businesses found", or a clear error with a retry button. A newer search cancels the
+  // older one (its request is aborted, so the server stops working on it), and no search waits more than 30 s.
+  let browseSeq = 0, browseAbort = null;
   async function browse() {
     const seq = ++browseSeq;
+    if (browseAbort) try { browseAbort.abort(); } catch (e) { /* already done */ }
+    const ac = new AbortController(); browseAbort = ac;
+    const timer = setTimeout(() => ac.abort(), 30000);
     ST.browsing = true; ST.browseError = ""; rerender();
     try {
-      const data = await rpc("nr_browse", { p_filters: cleanFilters(), p_sort: ST.sort, p_page: ST.page, p_page_size: ST.pageSize });
+      const sb = await client();
+      const r = await sb.rpc("nr_browse", { p_filters: cleanFilters(), p_sort: ST.sort, p_page: ST.page, p_page_size: ST.pageSize }).abortSignal(ac.signal);
       if (seq !== browseSeq) return;
-      ST.result = data;
-    } catch (e) { if (seq === browseSeq) ST.browseError = e.message || String(e); }
-    if (seq === browseSeq) { ST.browsing = false; rerender(); }
+      if (r.error) throw new Error(r.error.message || "שגיאת שרת");
+      ST.result = r.data && Array.isArray(r.data.rows) ? r.data : { total: 0, rows: [] };
+    } catch (e) {
+      if (seq === browseSeq) {
+        const m = String((e && e.message) || e || "");
+        ST.browseError = ac.signal.aborted ? "החיפוש לקח יותר מ-30 שניות ונעצר. נסו שוב או צמצמו את הסינון."
+          : /statement timeout|canceling statement/i.test(m) ? "השרת עמוס כרגע והחיפוש נעצר. נסו שוב בעוד רגע."
+          : /Failed to fetch|NetworkError|network/i.test(m) ? "אין חיבור לשרת. בדקו את החיבור ונסו שוב."
+          : m || "החיפוש נכשל";
+      }
+    } finally {
+      clearTimeout(timer);
+      if (seq === browseSeq) { browseAbort = null; ST.browsing = false; rerender(); }
+    }
   }
   function cleanFilters() {
     const f = {};
@@ -235,8 +270,10 @@
       <button class="btn btn-sm ${ST.sub === "collection" ? "btn-primary" : ""}" data-nr="sub" data-v="collection">⚙️ איסוף ומקורות</button>
       <button class="btn btn-sm ${ST.sub === "control" ? "btn-primary" : ""}" data-nr="sub" data-v="control">🎛️ מסך שליטה${ST.alerts.length ? ` <span class="badge b-bad">${n(ST.alerts.length)}</span>` : ""}</button>
       <span class="spacer"></span><span class="badge b-ok">STAGING</span><span class="badge b-est">ללא 7 חוקי הסינון – אין מחיקה</span></div>`;
-    const body = ST.sub === "control" ? controlView() : ST.sub === "leads" ? leadsView() : ST.sub === "browse" ? industryCard() + browseView() : ST.sub === "enrich" ? enrichView() : ST.sub === "outreach" ? outreachView() : collectionView();
-    return `<div style="display:grid;gap:14px">${subTabs}${alertBanner()}${kpiStrip()}${body}</div>${modal()}`;
+    // a drawing error in one part must never freeze the screen (e.g. the table staying on "searching…")
+    const safe = (fn, what) => { try { return fn(); } catch (e) { console.error("[national registry] " + what, e); return `<div class="card card-b"><span class="badge b-bad" style="white-space:normal">⚠️ שגיאה בהצגת ${what}: ${esc(e.message || String(e))}</span> <button class="btn btn-sm" data-nr="apply">🔄 נסה שוב</button></div>`; } };
+    const body = safe(() => ST.sub === "control" ? controlView() : ST.sub === "leads" ? leadsView() : ST.sub === "browse" ? safe(industryCard, "טבלת הענפים") + browseView() : ST.sub === "enrich" ? enrichView() : ST.sub === "outreach" ? outreachView() : collectionView(), "המסך");
+    return `<div style="display:grid;gap:14px">${subTabs}${safe(alertBanner, "ההתרעות")}${safe(kpiStrip, "הסיכום")}${body}</div>${safe(modal, "החלון")}`;
   };
 
   function kpiStrip() {
@@ -354,7 +391,7 @@
     const selCount = ST.selectAllMatching ? total : ST.selected.size;
     const ctl = (ST.stats && ST.stats.control) || {};
     const actions = `<div class="card"><div class="card-b row" style="gap:8px">
-        <b class="num" style="font-size:18px">${ST.browsing ? "⏳" : (r && r.total_exact === false ? "כ-" : "") + n(total)}</b><span>עסקים עונים לתנאים${r && r.total_exact === false ? ' <span class="xs muted" title="ספירה מדויקת של כל המאגר איטית מדי למסך; עד 200 תוצאות הספירה מדויקת">(הערכה)</span>' : ""}</span>
+        <b class="num" style="font-size:18px">${ST.browsing ? "⏳ מחפש…" : r && r.total_exact === false ? "יותר מ-" + n(r.count_cap || 10000) : n(total)}</b><span>עסקים עונים לתנאים${r && r.total_exact === false ? ` <span class="xs muted" title="הספירה המדויקת נעצרת ב-${n(r.count_cap || 10000)} כדי שהתוצאות יוצגו מהר">(הערכת המערכת: כ-${n(Math.max(total, (r.count_cap || 10000) + 1))})</span>` : ""}</span>
         <span class="spacer"></span>
         <label class="xs muted">מיון <select class="input" style="width:auto;height:32px" data-nr="sort">${[["sources", "מספר מקורות"], ["fleet", "🚚 פוטנציאל צי רכב"], ["important", "★ מידע חשוב חדש קודם"], ["relations", "מספר קשרים"], ["found", "מידע חדש – האחרון קודם"], ["jobs", "מספר משרות שפורסמו"], ["name", "שם"], ["city", "עיר"], ["employees", "מספר עובדים"], ["founded", "שנת הקמה (ישן→חדש)"], ["founded_desc", "שנת הקמה (חדש→ישן)"], ["updated", "עדכון אחרון"], ["collected", "תאריך איסוף"]].map(([v, l]) => `<option value="${v}" ${ST.sort === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
         <label class="xs muted">בעמוד <select class="input" style="width:auto;height:32px" data-nr="pagesize">${[25, 50, 100, 200].map((x) => `<option ${ST.pageSize === x ? "selected" : ""}>${x}</option>`).join("")}</select></label>
@@ -383,7 +420,7 @@
     const rows = (r && r.rows) || [];
     const allOnPage = rows.length && rows.every((b) => ST.selected.has(b.id));
     const table = `<div class="card">
-      ${ST.browseError ? `<div class="card-b"><div class="badge b-bad" style="white-space:normal">${esc(ST.browseError)}</div></div>` : ""}
+      ${ST.browseError ? `<div class="card-b row" style="gap:8px"><div class="badge b-bad" style="white-space:normal">⚠️ ${esc(ST.browseError)}</div><button class="btn btn-sm btn-primary" data-nr="apply">🔄 נסה שוב</button></div>` : ""}
       <div class="card-b" style="padding-bottom:0">${legend()}</div>
       <div class="tbl-wrap"><table><thead><tr>
         <th style="width:32px"><input type="checkbox" data-nr="selpage" ${allOnPage ? "checked" : ""} ${ST.selectAllMatching ? "disabled" : ""}></th>
