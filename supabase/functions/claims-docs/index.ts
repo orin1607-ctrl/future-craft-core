@@ -1636,61 +1636,70 @@ Deno.serve(async (req) => {
       if (!(await canWork(sb, user.id, role, claimId))) return jsonResponse({ success: false, error: "forbidden" }, 403);
 
       let summaryFileId = "";
+      let summaryPdfUrl = "";
       const summaryB64 = String(body.summary_pdf_base64 || "").replace(/\s/g, "");
-      if (summaryB64.length > 100) {
-        try {
+      try {
+        let pdfBytes: Uint8Array;
+        if (summaryB64.length > 100) {
           const bin = atob(summaryB64);
-          const pdfBytes = new Uint8Array(bin.length);
+          pdfBytes = new Uint8Array(bin.length);
           for (let i = 0; i < bin.length; i++) pdfBytes[i] = bin.charCodeAt(i);
-          const digest = await sha256HexBytes(pdfBytes);
-          const summaryPath = `${claimId}/package/central-summary-${Date.now()}.pdf`;
-          const { error: upErr } = await sb.storage.from(BUCKET).upload(summaryPath, pdfBytes, {
-            contentType: "application/pdf",
-            upsert: true,
-          });
-          if (!upErr) {
-            const { data: existingPkg } = await sb
-              .from("claims_documents")
-              .select("id")
-              .eq("claim_id", claimId)
-              .filter("doc_meta->>staff_type", "eq", "insurance_package")
-              .maybeSingle();
-            if (existingPkg?.id) {
-              summaryFileId = existingPkg.id;
-              await sb.from("claims_documents").update({
-                storage_path: summaryPath,
-                original_name: `תיק-תביעה-מרכזי-${claimId}.pdf`,
-                byte_size: pdfBytes.byteLength,
-                content_sha256: digest,
-                doc_meta: {
-                  staff_type: "insurance_package",
-                  staff_title: `תיק תביעה מרכזי לחברת הביטוח – דליה (${claimId})`,
-                },
-              }).eq("id", summaryFileId);
-            } else {
-              summaryFileId = nid("CDM");
-              await sb.from("claims_documents").insert({
-                id: summaryFileId,
-                claim_id: claimId,
-                storage_path: summaryPath,
-                original_name: `תיק-תביעה-מרכזי-${claimId}.pdf`,
-                mime_type: "application/pdf",
-                byte_size: pdfBytes.byteLength,
-                source: "staff",
-                uploaded_by: isUuid(user.id) ? user.id : null,
-                uploaded_by_name: actorName,
-                doc_kind: "general",
-                doc_meta: {
-                  staff_type: "insurance_package",
-                  staff_title: `תיק תביעה מרכזי לחברת הביטוח – דליה (${claimId})`,
-                },
-                content_sha256: digest,
-              });
-            }
-          }
-        } catch (e) {
-          console.error("assemble_insurance_package summary PDF error:", e);
+        } else {
+          const { data: claimRec } = await sb.from("claims_records").select("id, client_name, plate, status").eq("id", claimId).maybeSingle();
+          const titleLine = `DALIA INSURANCE CLAIM PACKAGE - ${claimId} - ${claimRec?.plate || ""}`;
+          const fallbackPdf = `%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj\n4 0 obj << /Length ${titleLine.length + 34} >> stream\nBT /F1 14 Tf 50 760 Td (${titleLine}) Tj ET\nendstream endobj\n5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\nxref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000241 00000 n \n0000000340 00000 n \ntrailer << /Size 6 /Root 1 0 R >>\nstartxref\n408\n%%EOF`;
+          pdfBytes = new TextEncoder().encode(fallbackPdf);
         }
+        const digest = await sha256HexBytes(pdfBytes);
+        const summaryPath = `${claimId}/package/central-summary-${Date.now()}.pdf`;
+        const { error: upErr } = await sb.storage.from(BUCKET).upload(summaryPath, pdfBytes, {
+          contentType: "application/pdf",
+          upsert: true,
+        });
+        if (!upErr) {
+          const { data: sumSu } = await sb.storage.from(BUCKET).createSignedUrl(summaryPath, 86400);
+          if (sumSu?.signedUrl) summaryPdfUrl = sumSu.signedUrl;
+          const { data: existingPkg } = await sb
+            .from("claims_documents")
+            .select("id")
+            .eq("claim_id", claimId)
+            .filter("doc_meta->>staff_type", "eq", "insurance_package")
+            .maybeSingle();
+          if (existingPkg?.id) {
+            summaryFileId = existingPkg.id;
+            await sb.from("claims_documents").update({
+              storage_path: summaryPath,
+              original_name: `תיק-תביעה-מרכזי-${claimId}.pdf`,
+              byte_size: pdfBytes.byteLength,
+              content_sha256: digest,
+              doc_meta: {
+                staff_type: "insurance_package",
+                staff_title: `תיק תביעה מרכזי לחברת הביטוח – דליה (${claimId})`,
+              },
+            }).eq("id", summaryFileId);
+          } else {
+            summaryFileId = nid("CDM");
+            await sb.from("claims_documents").insert({
+              id: summaryFileId,
+              claim_id: claimId,
+              storage_path: summaryPath,
+              original_name: `תיק-תביעה-מרכזי-${claimId}.pdf`,
+              mime_type: "application/pdf",
+              byte_size: pdfBytes.byteLength,
+              source: "staff",
+              uploaded_by: isUuid(user.id) ? user.id : null,
+              uploaded_by_name: actorName,
+              doc_kind: "general",
+              doc_meta: {
+                staff_type: "insurance_package",
+                staff_title: `תיק תביעה מרכזי לחברת הביטוח – דליה (${claimId})`,
+              },
+              content_sha256: digest,
+            });
+          }
+        }
+      } catch (e) {
+        console.error("assemble_insurance_package summary PDF error:", e);
       }
 
       const { data: allFiles } = await sb
@@ -1706,7 +1715,6 @@ Deno.serve(async (req) => {
 
       const zipEntries: Array<{ name: string; data: Uint8Array }> = [];
       const includedFileIds: string[] = [];
-      let summaryPdfUrl = "";
 
       // Put central summary PDF first, then signed questionnaire, then other documents
       const sortedRows = [...rows].sort((a, b) => {

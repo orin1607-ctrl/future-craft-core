@@ -191,6 +191,39 @@ async function storeSignedOpeningPdf(
   return { ok: true };
 }
 
+async function mintDirectUploadUrl(
+  sb: ReturnType<typeof admin>,
+  targetClaimId: string,
+  createdBy?: string | null,
+): Promise<string | null> {
+  try {
+    const linkId = nid("LNK");
+    const material = `claims-upload-link-v1\0${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""}`;
+    const keyHash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(material)));
+    const hmacKey = await crypto.subtle.importKey("raw", keyHash, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sig = new Uint8Array(await crypto.subtle.sign("HMAC", hmacKey, new TextEncoder().encode(`${linkId}|${targetClaimId}`)));
+    const token = [...sig].map((b) => b.toString(16).padStart(2, "0")).join("");
+    const tokenHash = await sha256Hex(token);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
+    const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(s || ""));
+    const { error: insErr } = await sb.from("claims_upload_links").insert({
+      id: linkId,
+      claim_id: targetClaimId,
+      token_hash: tokenHash,
+      expires_at: expiresAt,
+      created_by: isUuid(String(createdBy || "")) ? createdBy : null,
+    });
+    if (insErr) {
+      console.error("mintDirectUploadUrl insert error:", insErr);
+      return null;
+    }
+    return `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(token)}`;
+  } catch (err) {
+    console.error("mintDirectUploadUrl fatal error:", err);
+    return null;
+  }
+}
+
 function draftFromClaimRow(claim: { plate?: string | null; client_name?: string | null; row_data?: unknown }) {
   const rd = (claim.row_data && typeof claim.row_data === "object") ? claim.row_data as Record<string, unknown> : {};
   const rawKind = String(rd.claimKind || "").trim();
@@ -258,19 +291,27 @@ Deno.serve(async (req) => {
     if (action === "public_get") {
       if (row.status === "submitted" || (row.status === "submitting" && row.claim_id)) {
         let uploadUrl: string | null = null;
+        let hasPendingDocs = false;
         if (row.claim_id) {
-          try {
-            const docsRes = await sb.functions.invoke("claims-docs", {
-              headers: {
-                "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
-              },
-              body: { action: "create_link", claim_id: row.claim_id },
-            });
-            if (docsRes.data?.token) {
-              uploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(docsRes.data.token)}`;
+          const { data: openReqs } = await sb.from("claims_doc_requests").select("id, status").eq("claim_id", row.claim_id);
+          hasPendingDocs = (openReqs || []).some((r) => r.status !== "received");
+          if (hasPendingDocs) {
+            try {
+              const docsRes = await sb.functions.invoke("claims-docs", {
+                headers: {
+                  "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
+                },
+                body: { action: "create_link", claim_id: row.claim_id },
+              });
+              if (docsRes.data?.token) {
+                uploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(docsRes.data.token)}`;
+              }
+            } catch (e) {
+              console.error("public_get auto upload link error:", e);
             }
-          } catch (e) {
-            console.error("public_get auto upload link error:", e);
+            if (!uploadUrl) {
+              uploadUrl = await mintDirectUploadUrl(sb, row.claim_id, row.created_by);
+            }
           }
         }
         return jsonResponse({
@@ -278,6 +319,7 @@ Deno.serve(async (req) => {
           submitted: true,
           claimId: row.claim_id || "",
           message: "הדיווח התקבל בהצלחה",
+          has_pending_docs: hasPendingDocs,
           upload_url: uploadUrl,
         });
       }
@@ -376,6 +418,7 @@ Deno.serve(async (req) => {
       }
 
       let claimId = boundClaimId;
+      let hasPendingDocs = false;
       const signedAt = new Date().toISOString();
       if (boundClaimId) {
         const { data: existing } = await sb.from("claims_records").select("id, row_data, status, company_name").eq("id", boundClaimId).maybeSingle();
@@ -384,7 +427,7 @@ Deno.serve(async (req) => {
           return jsonResponse({ success: false, error: "bound_claim_missing" }, 400);
         }
         const { data: openReqs } = await sb.from("claims_doc_requests").select("id, status").eq("claim_id", boundClaimId);
-        const hasPendingDocs = (openReqs || []).some((r) => r.status !== "received");
+        hasPendingDocs = (openReqs || []).some((r) => r.status !== "received");
         const prev = (existing.row_data && typeof existing.row_data === "object") ? existing.row_data as Record<string, string> : {};
         const prevStatus = String(prev.status || existing.status || "");
         const nextStatus = (prevStatus === "ממתין למילוי הלקוח" || !prevStatus)
@@ -516,18 +559,23 @@ Deno.serve(async (req) => {
       }).eq("id", row.id);
 
       let uploadUrl: string | null = null;
-      try {
-        const docsRes = await sb.functions.invoke("claims-docs", {
-          headers: {
-            "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
-          },
-          body: { action: "create_link", claim_id: claimId },
-        });
-        if (docsRes.data?.token) {
-          uploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(docsRes.data.token)}`;
+      if (hasPendingDocs) {
+        try {
+          const docsRes = await sb.functions.invoke("claims-docs", {
+            headers: {
+              "x-dalia-internal-key": Deno.env.get("DALIA_EDGE_INTERNAL_SECRET") || "",
+            },
+            body: { action: "create_link", claim_id: claimId },
+          });
+          if (docsRes.data?.token) {
+            uploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(docsRes.data.token)}`;
+          }
+        } catch (e) {
+          console.error("public_submit auto upload link error:", e);
         }
-      } catch (e) {
-        console.error("public_submit auto upload link error:", e);
+        if (!uploadUrl) {
+          uploadUrl = await mintDirectUploadUrl(sb, claimId, row.created_by);
+        }
       }
 
       return jsonResponse({
@@ -535,6 +583,8 @@ Deno.serve(async (req) => {
         submitted: true,
         duplicateSuspect,
         message: "הדיווח התקבל בהצלחה",
+        claim_id: claimId,
+        has_pending_docs: hasPendingDocs,
         upload_url: uploadUrl,
       });
     }

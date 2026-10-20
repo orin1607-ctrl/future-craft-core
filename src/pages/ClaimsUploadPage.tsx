@@ -63,12 +63,14 @@ export default function ClaimsUploadPage() {
     }
     setClaimId(json.claimId || '');
     setClaimStatus(json.claimStatus || '');
-    if (json.claimStatus === 'תביעה חדשה – התקבלה') {
+    const docList: DocItem[] = json.docs || [];
+    setDocs(docList);
+    const pendingCount = docList.filter((d: DocItem) => d.status !== 'received').length;
+    if (json.claimStatus === 'תביעה חדשה – התקבלה' && pendingCount === 0) {
       setCompleted(true);
     }
     setClientName(json.clientName || '');
     setPlate(json.plate || '');
-    setDocs(json.docs || []);
     setLoading(false);
   };
 
@@ -88,20 +90,23 @@ export default function ClaimsUploadPage() {
     setBusy(docId);
     setMsg('');
     setErrMsg('');
-    const form = new FormData();
-    form.set('action', 'public_upload');
-    form.set('token', token);
-    form.set('doc_request_id', docId);
-    form.set('file', file);
-    const res = await fetch(FN, { method: 'POST', headers: pubHeaders, body: form });
-    const json = await res.json();
-    setBusy(null);
-    if (!res.ok || json.success === false) {
-      setErrMsg('ההעלאה נכשלה. נא לבדוק את הקובץ ולנסות שוב.');
-      return;
+    try {
+      const form = new FormData();
+      form.set('action', 'public_upload');
+      form.set('token', token);
+      form.set('doc_request_id', docId);
+      form.set('file', file);
+      const res = await fetch(FN, { method: 'POST', headers: pubHeaders, body: form });
+      const json = await res.json();
+      if (!res.ok || json.success === false) {
+        setErrMsg('ההעלאה נכשלה. נא לבדוק את הקובץ ולנסות שוב.');
+        return;
+      }
+      setMsg('הקובץ התקבל ונשמר בתיק בהצלחה.');
+      await load();
+    } finally {
+      setBusy(null);
     }
-    setMsg('הקובץ התקבל ונשמר בתיק בהצלחה.');
-    await load();
   };
 
   const submitSigned = async (d: DocItem) => {

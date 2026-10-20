@@ -177,8 +177,12 @@ export default function ClaimsIntakePage() {
         const u = String(r.json.upload_url);
         setUploadUrl(u);
         window.setTimeout(() => {
-          window.location.href = u;
-        }, 1200);
+          try {
+            window.location.assign(u);
+          } catch {
+            window.location.href = u;
+          }
+        }, 500);
       }
       sessionStorage.removeItem(`intake-draft-${token}`);
       return;
@@ -203,24 +207,31 @@ export default function ClaimsIntakePage() {
         <h1 className="intake-ok">הדיווח התקבל בהצלחה</h1>
         {claimId ? <div style={{ fontSize: 14, fontWeight: 700, color: '#1e3a5f', marginBottom: 8 }}>מספר תיק: {claimId}</div> : null}
         {uploadUrl ? (
-          <div style={{ marginTop: 24, padding: 18, background: 'rgba(37, 99, 235, 0.08)', borderRadius: 12, border: '1px solid rgba(37, 99, 235, 0.25)', textAlign: 'center' }}>
-            <h2 style={{ fontSize: 17, fontWeight: 800, margin: '0 0 8px', color: '#1d4ed8' }}>
+          <div style={{ marginTop: 24, padding: 20, background: 'rgba(37, 99, 235, 0.08)', borderRadius: 12, border: '1.5px solid rgba(37, 99, 235, 0.3)', textAlign: 'center' }}>
+            <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 8px', color: '#1d4ed8' }}>
               השלב הבא: העלאת מסמכים וטפסים לתביעה
             </h2>
             <p style={{ fontSize: 14, color: '#374151', margin: '0 0 16px', lineHeight: 1.5 }}>
-              מעביר אותך כעת באופן אוטומטי להעלאת המסמכים והטפסים שנבחרו עבור התיק...
+              מעביר אותך כעת באופן אוטומטי למסך העלאת המסמכים והטפסים שנבחרו עבור התיק...
             </p>
             <a
               href={uploadUrl}
               className="btn btn-p"
               data-testid="intake-continue-to-docs"
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '12px 20px', fontSize: 16, textDecoration: 'none', borderRadius: 8, fontWeight: 800 }}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px 20px', fontSize: 16, textDecoration: 'none', borderRadius: 8, fontWeight: 800, background: '#2563eb', color: '#fff', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)' }}
             >
               המשך מיד להעלאת מסמכים 📎
             </a>
           </div>
         ) : (
-          <p className="intake-lead">תודה. הצוות ימשיך את הטיפול בתיק.</p>
+          <div style={{ marginTop: 20, padding: 18, background: 'rgba(16, 185, 129, 0.08)', borderRadius: 12, border: '1.5px solid rgba(16, 185, 129, 0.3)', textAlign: 'center' }}>
+            <h2 style={{ fontSize: 17, fontWeight: 800, margin: '0 0 6px', color: '#059669' }}>
+              שאלון פתיחת התביעה הושלם
+            </h2>
+            <p style={{ fontSize: 14, color: '#374151', margin: 0, lineHeight: 1.6 }}>
+              תודה. שאלון פתיחת התביעה נחתם והתקבל בהצלחה. לא נדרשו מסמכים נוספים עבור תיק זה, וצוות המוסך ימשיך את הטיפול מול חברת הביטוח.
+            </p>
+          </div>
         )}
       </div>
     </div>

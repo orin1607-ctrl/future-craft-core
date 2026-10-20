@@ -2244,12 +2244,10 @@ async function ensureProvidedFormInStorage(
   return { verified: true, signedUrl: signed.signedUrl, storagePath, fileId };
 }
 
-function generateSecureCustomerToken(bytes = 24): string {
+function generateSecureCustomerToken(bytes = 32): string {
   const raw = new Uint8Array(bytes);
   crypto.getRandomValues(raw);
-  let s = "";
-  for (const b of raw) s += String.fromCharCode(b);
-  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return [...raw].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 async function mintCustomerIntakeTokenDirect(
@@ -2258,10 +2256,10 @@ async function mintCustomerIntakeTokenDirect(
   expiresInHours: number,
   userId: string,
   draftInit: Record<string, string> = {},
-): Promise<{ token: string; expiresAt: string; id: string } | null> {
-  const token = generateSecureCustomerToken(24);
+): Promise<{ token: string; intakeUrl: string; expiresAt: string; id: string }> {
+  const token = generateSecureCustomerToken(32);
   const tokenHash = await sha256Hex(new TextEncoder().encode(token));
-  const id = `INL-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const id = `INL-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
   const expiresAt = expiresInHours === 0
     ? new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString()
     : new Date(Date.now() + expiresInHours * 3600 * 1000).toISOString();
@@ -2277,9 +2275,10 @@ async function mintCustomerIntakeTokenDirect(
   });
   if (error) {
     console.error("mintCustomerIntakeTokenDirect error:", error);
-    return null;
+    throw new Error(error.message);
   }
-  return { token, expiresAt, id };
+  const intakeUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-intake?t=${encodeURIComponent(token)}`;
+  return { token, intakeUrl, expiresAt, id };
 }
 
 async function mintCustomerUploadTokenDirect(
@@ -2287,10 +2286,14 @@ async function mintCustomerUploadTokenDirect(
   targetClaimId: string,
   expiresInHours: number,
   userId: string,
-): Promise<{ token: string; expiresAt: string; id: string } | null> {
-  const token = generateSecureCustomerToken(24);
+): Promise<{ token: string; uploadUrl: string; expiresAt: string; id: string }> {
+  const id = `LNK-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const material = `claims-upload-link-v1\0${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || ""}`;
+  const keyHash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(material)));
+  const hmacKey = await crypto.subtle.importKey("raw", keyHash, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", hmacKey, new TextEncoder().encode(`${id}|${targetClaimId}`)));
+  const token = [...sig].map((b) => b.toString(16).padStart(2, "0")).join("");
   const tokenHash = await sha256Hex(new TextEncoder().encode(token));
-  const id = `UPL-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const expiresAt = expiresInHours === 0
     ? new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString()
     : new Date(Date.now() + expiresInHours * 3600 * 1000).toISOString();
@@ -2304,9 +2307,10 @@ async function mintCustomerUploadTokenDirect(
   });
   if (error) {
     console.error("mintCustomerUploadTokenDirect error:", error);
-    return null;
+    throw new Error(error.message);
   }
-  return { token, expiresAt, id };
+  const uploadUrl = `https://orin1607-ctrl.github.io/future-craft-core/claims-upload?t=${encodeURIComponent(token)}`;
+  return { token, uploadUrl, expiresAt, id };
 }
 
 /** One live claim by its id or by its insurer claim number. Never guesses between several. */

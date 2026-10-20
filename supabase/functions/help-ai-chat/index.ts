@@ -906,23 +906,15 @@ async function callClaude(
 function streamTextAsSse(replyText: string, pendingAction?: ClaimsPendingAction | null, documentCards: ClaimsDocumentCard[] = [], toolsUsed: ToolTrace[] | null = null): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
-    async start(controller) {
+    start(controller) {
       try {
-        const words = replyText.split(" ");
-        for (let i = 0; i < words.length; i++) {
-          const piece = (i === 0 ? "" : " ") + words[i];
-          const isLast = i === words.length - 1;
-          const payload = JSON.stringify({
-            choices: [{ delta: { content: piece } }],
-            ...(isLast && pendingAction ? { pending_action: pendingAction } : {}),
-            ...(isLast && documentCards.length ? { document_cards: documentCards } : {}),
-            ...(isLast && toolsUsed ? { tools_used: toolsUsed } : {}),
-          });
-          controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
-          if (i % 2 === 0 && i < words.length - 1) {
-            await new Promise((r) => setTimeout(r, 10));
-          }
-        }
+        const payload = JSON.stringify({
+          choices: [{ delta: { content: replyText } }],
+          ...(pendingAction ? { pending_action: pendingAction } : {}),
+          ...(documentCards.length ? { document_cards: documentCards } : {}),
+          ...(toolsUsed ? { tools_used: toolsUsed } : {}),
+        });
+        controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
       } finally {
         controller.close();
@@ -1093,8 +1085,7 @@ Deno.serve(async (req) => {
     const isNewClaimPackageTrigger = /^(?:דליה[,،:\s-]*)?(?:אני\s*רוצה\s*)?(?:תפתחי?|פתחי?|פתח|להכין|תכיני|הכיני|הכן|תכין|שלח|שלחי|תשלחי)?\s*(?:לי\s*)?(?:בבקשה\s*)?(?:את\s*)?(?:חבילת\s*פתיחת\s*תיק(?:\s*חדש)?(?:\s*ללקוח)?|קישור\s*לפתיחת\s*תיק(?:\s*חדש)?(?:\s*ללקוח)?|פתיחת\s*תיק\s*חדש(?:\s*ללקוח)?|תיק\s*חדש(?:\s*ללקוח)?|לקוח\s*חדש)[.!?\s]*$/i.test(lastUserText);
     if (isNewClaimPackageTrigger) {
       const catRes = await onToolCall("list_available_claim_documents_and_forms", {});
-      const msgText = String((catRes.result as any)?.message || "להלן כרטיס הכנת חבילת פתיחת תיק חדש ללקוח:");
-      return streamTextAsSse(msgText, catRes.preview || null, documentCards, toolsUsed);
+      return streamTextAsSse("📦 הכנת חבילת פתיחת תיק חדש ללקוח:", catRes.preview || null, documentCards, toolsUsed);
     }
 
     // Fast-Path 2: Package Approval & Link Generation from ClaimsCatalogWidget
@@ -1110,15 +1101,15 @@ Deno.serve(async (req) => {
         expiresHours = typeof body.package_approval.expires_in_hours === "number" ? body.package_approval.expires_in_hours : 24;
         uploadedForms = Array.isArray(body.package_approval.uploaded_forms) ? body.package_approval.uploaded_forms : [];
       } else {
-        const docsMatch = lastUserText.match(/מסמכים שנבחרו להעלאה ע"י הלקוח:\s*(.+)/);
-        if (docsMatch && docsMatch[1].trim() !== "ללא") {
-          reqDocs = docsMatch[1].split(",").map((s) => s.trim()).filter(Boolean);
+        const docsMatch = lastUserText.match(/(?:מסמכים שנבחרו להעלאה ע"י הלקוח|מסמכים שהלקוח נדרש להעלות(?: אלינו)?|מסמכים להעלאה|קטגוריה א'):?\s*([^\n]+)/i);
+        if (docsMatch && docsMatch[1].trim() && docsMatch[1].trim() !== "ללא" && !docsMatch[1].trim().includes("ללא מסמכים")) {
+          reqDocs = docsMatch[1].replace(/\(שלב\s*\d+\)/g, "").split(",").map((s) => s.trim()).filter(Boolean);
         }
-        const formsMatch = lastUserText.match(/טפסים שנבחרו למילוי וחתימה:\s*(.+)/);
-        if (formsMatch && formsMatch[1].trim() !== "ללא") {
-          provForms = formsMatch[1].split(",").map((s) => s.trim()).filter(Boolean);
+        const formsMatch = lastUserText.match(/(?:טפסים שנבחרו למילוי וחתימה|טפסים שהמוסך מספק(?: למילוי וחתימה)?|טפסים למילוי וחתימה|טפסים לחתימה|קטגוריה ב'):?\s*([^\n]+)/i);
+        if (formsMatch && formsMatch[1].trim() && formsMatch[1].trim() !== "ללא" && !formsMatch[1].trim().includes("ללא טפסים")) {
+          provForms = formsMatch[1].replace(/\(שלב\s*\d+\)/g, "").split(",").map((s) => s.trim()).filter(Boolean);
         }
-        const ttlMatch = lastUserText.match(/תוקף הקישור שנבחר:\s*(.+)/);
+        const ttlMatch = lastUserText.match(/(?:תוקף הקישור שנבחר|תוקף הקישור):?\s*([^\n]+)/i);
         if (ttlMatch) {
           const ttlStr = ttlMatch[1].trim();
           if (ttlStr.includes("ללא הגבלת זמן") || ttlStr.includes("פתוח עד לביטול") || ttlStr === "0") {

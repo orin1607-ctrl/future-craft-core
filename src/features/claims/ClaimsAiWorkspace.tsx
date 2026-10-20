@@ -1623,18 +1623,33 @@ export function InsurancePackageWidget({
         company: insurerName,
       }) as Record<string, string>;
 
-      const pdfBytes = await buildInsurancePackageSummaryPdf({
-        claimRow,
+      const pdfFile = await buildInsurancePackageSummaryPdf({
+        claimId,
+        clientName,
+        clientPhone: String(claimRow.clientPhone || claimRow.phoneMobile || ''),
+        clientId: String(claimRow.clientId || ''),
+        plate,
+        carModel: String(claimRow.carModel || ''),
+        claimKind,
+        insCompany: insurerName,
+        policyNum: String(claimRow.policyNum || ''),
+        claimNum: String(claimRow.claimNum || ''),
+        eventDate: String(claimRow.eventDate || ''),
+        eventDesc: String(claimRow.eventDesc || ''),
         documents: allDocuments.map((d: any) => ({
           title: String(d.title || d.original_name || 'מסמך'),
-          originalName: String(d.original_name || ''),
-          docType: String(d.doc_type || ''),
+          category: String(d.doc_type || d.doc_kind || 'מסמך'),
           source: String(d.source || ''),
           createdAt: String(d.created_at || ''),
+          fileName: String(d.original_name || ''),
         })),
         missingDocs: missingDocuments.map((m: any) => String(m.label || m)),
       });
 
+      const pdfBytes =
+        pdfFile instanceof Uint8Array
+          ? pdfFile
+          : new Uint8Array(await (pdfFile as File).arrayBuffer());
       const summaryB64 = uint8ToBase64(pdfBytes);
       const { data, error } = await supabase.functions.invoke('claims-docs', {
         body: {
@@ -3652,7 +3667,7 @@ export function ClaimsAiWorkspace({
                         uploadedCatalogFormsRef.current = items;
                       }}
                       onPrepareLink={(docs, forms, ttlHours) => {
-                        const effectiveHours = typeof ttlHours === 'number' ? ttlHours : 24;
+                        const effectiveHours = typeof ttlHours === 'number' && !Number.isNaN(ttlHours) ? ttlHours : 24;
                         const parts: string[] = ['- שאלון פתיחת תיק: כלול'];
                         if (docs.length > 0) parts.push(`- מסמכים שנבחרו להעלאה ע"י הלקוח: ${docs.join(', ')}`);
                         if (forms.length > 0) parts.push(`- טפסים שנבחרו למילוי וחתימה: ${forms.join(', ')}`);
