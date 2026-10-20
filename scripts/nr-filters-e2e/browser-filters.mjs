@@ -84,6 +84,9 @@ async function step(name, action, { expectEmpty = false } = {}) {
     if (st.error) note = st.error;
   } catch (e) { note = "never finished: " + e.message.split("\n")[0]; st = await tableState().catch(() => null); }
   const shot = `${String(results.length + 1).padStart(2, "0")}-${name.replace(/[^\w֐-׿]+/g, "_").slice(0, 40)}.png`;
+  // show the result count and the first rows of the table
+  await page.evaluate(() => { const sel = document.querySelector('#view select[data-nr="sort"]'); const card = sel && sel.closest(".card"); if (card) card.scrollIntoView({ block: "start" }); });
+  await page.waitForTimeout(150);
   await page.screenshot({ path: path.join(OUT, shot) });
   const row = { step: name, ok, ms, rows: st && st.ids.length, total: st && st.total, filters: srv && srv.filters, sort: srv && srv.sort, page: srv && srv.page, note, shot };
   results.push(row);
