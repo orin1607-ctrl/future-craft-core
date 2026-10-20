@@ -246,7 +246,7 @@ export const CLAIMS_GEMINI_TOOLS = [
       },
       {
         name: "preview_send_claim_email",
-        description: "הכנת תצוגה מקדימה (Preview) לשליחת מייל דרך Gmail. תומך בנמען יחיד או בריבוי נמענים במקביל (שליחה מרוכזת אחת ל-2, 3, 5+ נמענים). תומך בשדות to, cc, bcc ובתפקידי נמענים (recipient_roles: 'insurer', 'client', 'surveyor', 'lawyer', 'third_party'). אם לא צוינו נושא, גוף או קבצים, המערכת בוחרת אוטומטית. דורש אישור מפורש של המשתמש לפני שליחה.",
+        description: "הכנת תצוגה מקדימה (Preview) לשליחת מייל דרך Gmail. תומך בנמען יחיד או בריבוי נמענים במקביל (שליחה מרוכזת אחת ל-2, 3, 5+ נמענים). תומך בשדות to, cc, bcc ובתפקידי נמענים (recipient_roles: 'insurer', 'client', 'surveyor', 'lawyer', 'third_party'). ברירת המחדל היא תמיד ללא קבצים מצורפים (0 קבצים). בדיקת סטטוס תביעה ומעקב חוזר הן הודעות טקסט בלבד. קבצים יצורפו אך ורק אם המשתמש ביקש במפורש לצרף מסמך מסוים. דורש אישור מפורש של המשתמש לפני שליחה.",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -286,7 +286,7 @@ export const CLAIMS_GEMINI_TOOLS = [
             file_ids: {
               type: "ARRAY",
               items: { type: "STRING" },
-              description: "מזהי קבצים מתוך התיק לצירוף. כשהמשתמש מבקש מסמך מסוים, העבר רק את המזהה שלו מתוך list_claim_documents (אם לא צוין, מצורפים קבצי התיק)",
+              description: "מזהי קבצים מתוך התיק לצירוף (אופציונלי). ברירת המחדל היא ללא קבצים כלל ([]). יש להעביר מזהי קבצים אך ורק אם המשתמש ביקש במפורש לצרף מסמך מסוים מתוך list_claim_documents",
             },
             send_at: {
               type: "STRING",
@@ -1340,7 +1340,11 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
      כאשר המשתמש מבקש לשתף מסמכים קיימים שכבר נמצאים בתיק: הפעל את preview_create_claim_share_link.
    - ביטול קישורים: preview_revoke_claim_share_link.
 8. שליחת ותזמון מיילים ומעקב חוזר כל יומיים:
-   - שליחת מייל מיידי: preview_send_claim_email עם נמען (to), נושא, גוף, וקבצים מצורפים.
+   - חוק ברזל לקבצים מצורפים: ברירת המחדל בכל אימייל (מיידי, מתוזמן, או מעקב חוזר) היא תמיד ללא קבצים מצורפים כלל! (file_ids: []).
+     בדיקת סטטוס תביעה ומעקב חוזר הן הודעות טקסט בלבד. חל איסור מוחלט לצרף אוטומטית מסמכים, רישיונות, תמונות נזק, דוחות שמאות, ייפוי כוח או כל קובץ אחר מהתיק!
+     רק אם המשתמש ביקש במפורש לצרף מסמך מסוים (למשל: 'תצרפי את דוח השמאי') — רק אז יש לאתר את ה-file_id של המסמך מתוך list_claim_documents ולצרף אותו, ודליה תציג את שמו בכרטיס האישור.
+   - בכרטיס האישור יוצג תמיד הכיתוב הברור: 'קבצים מצורפים: 0 – ללא קבצים' (או שמות הקבצים המפורשים אם נתבקשו).
+   - שליחת מייל מיידי: preview_send_claim_email עם נמען (to), נושא, וגוף ההודעה בלבד (file_ids יועבר רק אם נתבקש במפורש).
    - מעקב חוזר כל יומיים (48 שעות) לחברת הביטוח: כשהמשתמש מבקש "שלחי לחברת הביטוח הודעת מעקב לגבי תיק מסוים כל יומיים, עד שתגיע תשובה או עד שאעצור את המעקב" (או נוסח דומה):
      הפעל את preview_send_claim_email בקריאה בודדת אחת בלבד (לעולם אין לקרוא פעמיים ואין לפצל לשליחות נפרדות) עם is_recurring: true, repeat_every_days: 2, stop_on_reply: true, ו-max_iterations: 10. שרת המערכת שולח ומקדם עצמאית את כל השליחות החוזרות כל יומיים.
      הצג למשתמש סיכום ברור: חברת הביטוח והאימייל שלה, מספר התיק והרכב, נוסח ההודעה, תדירות השליחה ("כל יומיים / 48 שעות"), ותנאי העצירה ("עד לקבלת מענה מחברת הביטוח או עד להוראת עצירה ידנית"). ציין במפורש כי נדרש אישור מנהל אחד מראש לכל סדרת הודעות המעקב, והשרת ישלח אותן עצמאית ללא צורך באישור נוסף.
@@ -4570,7 +4574,7 @@ export async function executeClaimsTool(
 
         if (!subject) {
           subject = claimId
-            ? `תיק תביעה ${claimNum} - רכב ${plate} - מסמכים ותמונות מ${CLAIMS_SENDER_NAME}`
+            ? `תיק תביעה ${claimNum} - רכב ${plate} - בדיקת סטטוס מ${CLAIMS_SENDER_NAME}`
             : `הודעה מ${CLAIMS_SENDER_NAME}`;
         }
 
@@ -4585,16 +4589,7 @@ export async function executeClaimsTool(
           }
         }
 
-        if (fileIds.length === 0 && claimId) {
-          const { data: defaultDocs } = await supabase
-            .from("claims_documents")
-            .select("id, original_name")
-            .eq("claim_id", claimId)
-            .limit(15);
-          if (defaultDocs && defaultDocs.length > 0) {
-            fileIds = defaultDocs.map((d) => d.id);
-          }
-        }
+        // Default is ZERO attachments. Files are only attached if explicitly requested by user.
 
         // Attach only files that belong to this claim, and show their names before approval.
         let attachmentTitles: string[] = [];
@@ -4706,7 +4701,7 @@ export async function executeClaimsTool(
 
         if (!body) {
           body = claimId
-            ? `שלום רב,\nמצורפים בזאת מסמכים ותמונות עבור תיק תביעה ${claimNum} (רכב ${plate}).\nבברכה,\n${CLAIMS_SENDER_NAME}`
+            ? `שלום רב,\nנבקש לקבל עדכון לגבי סטטוס הטיפול בתביעה בתיק ${claimNum} (רכב ${plate}).\nבברכה,\n${CLAIMS_SENDER_NAME}`
             : `שלום רב,\n\nבברכה,\n${CLAIMS_SENDER_NAME}`;
         }
 
@@ -4748,14 +4743,18 @@ export async function executeClaimsTool(
         const sizeInfo = totalAttachmentBytes > 0 ? ` (${(totalAttachmentBytes / (1024 * 1024)).toFixed(1)}MB)` : "";
         const threadId = String(args.thread_id || "").trim();
 
+        const attachmentsSummaryText = fileIds.length === 0
+          ? "קבצים מצורפים: 0 – ללא קבצים"
+          : `${fileIds.length} קבצים מצורפים${attachList}${sizeInfo}`;
+
         let recSummary = `אל: ${to}`;
         if (cc) recSummary += ` · CC: ${cc}`;
         if (bcc) recSummary += ` · BCC: ${bcc}`;
         const summary = isRecurring
-          ? `${threadId ? "השבה בשרשור — " : ""}מעקב חוזר כל ${repeatDays} ימים (48 שעות) — עד לקבלת מענה מחברת הביטוח או עד לעצירה ידנית (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}${sizeInfo}`
+          ? `${threadId ? "השבה בשרשור — " : ""}מעקב חוזר כל ${repeatDays} ימים (48 שעות) — עד לקבלת מענה מחברת הביטוח או עד לעצירה ידנית (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}" · ${attachmentsSummaryText}`
           : (isScheduled
-            ? `${threadId ? "השבה בשרשור — " : ""}תזמון שליחת אימייל ל-${scheduledInfo!.label} (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}${sizeInfo}`
-            : `${threadId ? "השבה בשרשור — " : ""}שליחת מייל (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}${sizeInfo}`);
+            ? `${threadId ? "השבה בשרשור — " : ""}תזמון שליחת אימייל ל-${scheduledInfo!.label} (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}" · ${attachmentsSummaryText}`
+            : `${threadId ? "השבה בשרשור — " : ""}שליחת מייל (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}" · ${attachmentsSummaryText}`);
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
@@ -4819,6 +4818,7 @@ export async function executeClaimsTool(
               subject,
               body_excerpt: body.slice(0, 300),
               attachments_count: fileIds.length,
+              attachments_label: fileIds.length === 0 ? "0 – ללא קבצים" : `${fileIds.length} קבצים מצורפים`,
               attachments: attachmentTitles,
               ...(isScheduled ? {
                 scheduled_for: scheduledInfo!.label,

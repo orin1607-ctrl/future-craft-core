@@ -2380,7 +2380,8 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         skipped += 1;
         continue;
       }
-      const ids = String(rd.file_ids || "").split(",").map((x) => x.trim()).filter(Boolean);
+      const attachMode = String(rem.attach_mode || "");
+      const ids = (attachMode === "none" || !rd.file_ids) ? [] : String(rd.file_ids || "").split(",").map((x) => x.trim()).filter(Boolean);
       const { data: fileRows } = ids.length
         ? await sb.from("claims_documents").select("id, original_name, mime_type, byte_size, storage_path, claim_id").eq("claim_id", claimId).in("id", ids)
         : { data: [] as Array<{ id: string; original_name: string; mime_type: string; byte_size: number; storage_path: string; claim_id: string }> };
