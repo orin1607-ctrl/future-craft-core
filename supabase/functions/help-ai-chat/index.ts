@@ -333,6 +333,8 @@ async function loadClaimsContext(
 
 function bundlePendingActions(actions: ClaimsPendingAction[]): ClaimsPendingAction | null {
   if (actions.length === 0) return null;
+  const recurring = actions.find((a) => (a.parameters as any)?.is_recurring === true);
+  if (recurring) return recurring;
   if (actions.length === 1) return actions[0];
   const emailActions = actions.filter((a) => a.action_type === "send_email");
   const isAllEmail = emailActions.length === actions.length;

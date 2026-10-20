@@ -749,7 +749,7 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
   }
 
   const schedulerRequested = body.scheduler === true && (
-    action === "scan_inbox" || action === "import_message" || action === "apply_approved_gmail_tick"
+    action === "scan_inbox" || action === "import_message" || action === "apply_approved_gmail_tick" || action === "dispatch_due_scheduled"
   );
   const systemScheduler = schedulerRequested && (isInternalScheduler(req) || isStagingServiceRole(req));
   let user: { id: string; email?: string };
@@ -1151,6 +1151,33 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
       return jsonResponse({ success: false, error: "already_imported", claim_id: row.assigned_claim_id, mailboxMutated: false, realEmailSend: false }, 409);
     }
     await sb.from("claims_gmail_pending").update({ assigned_claim_id: claimId, decision: "manual" }).eq("id", pendingId);
+
+    // Auto-stop recurring follow-up if assigned pending email is from external sender (e.g. insurer)
+    const { data: pDetail } = await sb.from("claims_gmail_pending").select("from_addr, subject").eq("id", pendingId).maybeSingle();
+    const pFrom = String(pDetail?.from_addr || "").toLowerCase();
+    if (pFrom && !pFrom.includes(ALLOWED_ACCOUNT)) {
+      const { data: activeReminders } = await sb.from("claims_reminders")
+        .select("id, row_data")
+        .eq("claim_id", claimId)
+        .eq("action", "send_email")
+        .eq("status", "scheduled");
+      for (const rem of activeReminders || []) {
+        const rd = (rem.row_data && typeof rem.row_data === "object") ? rem.row_data as Record<string, unknown> : {};
+        if (rd.stop_on_reply !== false) {
+          const nowIso = new Date().toISOString();
+          await sb.from("claims_reminders").update({
+            status: "completed",
+            next_run_at: null,
+            row_data: { ...rd, stopped_by_reply: true, reply_from: pFrom, stopped_at: nowIso },
+          }).eq("id", rem.id);
+          await sb.from("claims_mail_jobs").update({
+            status: "cancelled",
+            finished_at: nowIso,
+            fail_reason: "auto_stopped_on_reply",
+          }).eq("reminder_id", rem.id).eq("status", "pending");
+        }
+      }
+    }
     return jsonResponse({
       success: true,
       claim_id: claimId,
@@ -1352,6 +1379,26 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         value: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }, { onConflict: "key" });
+
+      // Server-side auto-dispatch for due scheduled / recurring mail jobs
+      let autoDispatched: Record<string, unknown> | null = null;
+      try {
+        const dispatchReq = new Request(req.url, {
+          method: "POST",
+          headers: req.headers,
+          body: JSON.stringify({
+            action: "dispatch_due_scheduled",
+            scheduler: true,
+            dry: false,
+          }),
+        });
+        const dispRes = await handleClaimsGmail(dispatchReq);
+        if (dispRes.ok) {
+          autoDispatched = await dispRes.json().catch(() => null);
+        }
+      } catch (_) {
+        // non-fatal
+      }
     }
     const nowIso = new Date().toISOString();
     return jsonResponse({
@@ -1830,19 +1877,75 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         assigned_claim_id: claimId,
       }).eq("gmail_message_id", String(full.id));
       const fromAddr = header(headers, "From").toLowerCase();
-      if (threadId && !fromAddr.includes(ALLOWED_ACCOUNT)) {
-        await sb.from("claims_gmail_outbox").update({ track_status: "reply_received" })
+      if (!fromAddr.includes(ALLOWED_ACCOUNT)) {
+        if (threadId) {
+          await sb.from("claims_gmail_outbox").update({ track_status: "reply_received" })
+            .eq("claim_id", claimId)
+            .eq("kind", "claim_send")
+            .eq("gmail_thread_id", threadId)
+            .in("track_status", ["waiting_reply", "sent"]);
+          const { data: taskRows } = await sb.from("claims_tasks").select("id, row_data").eq("claim_id", claimId);
+          for (const t of taskRows || []) {
+            const rd = (t.row_data && typeof t.row_data === "object") ? t.row_data as Record<string, string> : {};
+            if (rd.gmailThreadId === threadId && rd.done !== "true") {
+              await sb.from("claims_tasks").update({
+                row_data: { ...rd, replyReceived: "true" },
+              }).eq("id", t.id).eq("claim_id", claimId);
+            }
+          }
+        }
+
+        // Auto-stop recurring follow-up upon receiving incoming response!
+        const { data: activeReminders } = await sb.from("claims_reminders")
+          .select("id, mail_kind, row_data")
           .eq("claim_id", claimId)
-          .eq("kind", "claim_send")
-          .eq("gmail_thread_id", threadId)
-          .in("track_status", ["waiting_reply", "sent"]);
-        const { data: taskRows } = await sb.from("claims_tasks").select("id, row_data").eq("claim_id", claimId);
-        for (const t of taskRows || []) {
-          const rd = (t.row_data && typeof t.row_data === "object") ? t.row_data as Record<string, string> : {};
-          if (rd.gmailThreadId === threadId && rd.done !== "true") {
-            await sb.from("claims_tasks").update({
-              row_data: { ...rd, replyReceived: "true" },
-            }).eq("id", t.id).eq("claim_id", claimId);
+          .eq("action", "send_email")
+          .eq("status", "scheduled");
+        for (const rem of activeReminders || []) {
+          const rd = (rem.row_data && typeof rem.row_data === "object") ? rem.row_data as Record<string, unknown> : {};
+          if (rd.stop_on_reply !== false) {
+            const nowIso = new Date().toISOString();
+            await sb.from("claims_reminders").update({
+              status: "completed",
+              next_run_at: null,
+              row_data: {
+                ...rd,
+                stopped_by_reply: true,
+                reply_message_id: String(full.id),
+                reply_from: fromAddr,
+                stopped_at: nowIso,
+              },
+            }).eq("id", rem.id);
+            await sb.from("claims_mail_jobs").update({
+              status: "cancelled",
+              finished_at: nowIso,
+              fail_reason: "auto_stopped_on_reply",
+            }).eq("reminder_id", rem.id).eq("status", "pending");
+
+            await sb.from("claims_history").insert({
+              id: nid("HIS"),
+              claim_id: claimId,
+              row_data: {
+                action: "הודעות המעקב החוזרות נעצרו אוטומטית עקב קבלת מענה",
+                note: `התקבל מענה מ-${header(headers, "From")} בנושא: "${subject}". הודעות המעקב החוזרות נעצרו.`,
+                type: "mail_recurring_stopped",
+                by: "מערכת (מענה Gmail)",
+                at: new Date().toLocaleString("he-IL"),
+                gmail_message_id: full.id,
+              },
+            });
+            await sb.from("claims_notifications").insert({
+              id: nid("NTF"),
+              claim_id: claimId,
+              row_data: {
+                id: nid("NTF"),
+                claimId,
+                type: "mail_reply_received",
+                message: `התקבל מענה מחברת הביטוח בתיק ${claimId} מ-${header(headers, "From")}. המעקב האוטומטי נעצר.`,
+                read: "false",
+                createdAt: new Date().toLocaleString("he-IL"),
+              },
+            });
           }
         }
       }
@@ -2397,10 +2500,19 @@ async function handleClaimsGmail(req: Request): Promise<Response> {
         const days = Math.max(1, Number(rem.repeat_every_days) || 1);
         const next = new Date(new Date(String(job.planned_at)).getTime() + days * 86400000);
         const stopAt = rem.stop_at ? new Date(String(rem.stop_at)) : null;
-        if (stopAt && next > stopAt) {
-          await sb.from("claims_reminders").update({ status: "completed", next_run_at: null }).eq("id", rem.id);
+        const maxIterations = Number(rd.max_iterations) || 10;
+        const currentIterations = (Number(rd.iteration_count) || 0) + 1;
+        if ((stopAt && next > stopAt) || currentIterations >= maxIterations) {
+          await sb.from("claims_reminders").update({
+            status: "completed",
+            next_run_at: null,
+            row_data: { ...rd, iteration_count: currentIterations, completed_reason: currentIterations >= maxIterations ? "max_iterations_reached" : "stop_at_reached" }
+          }).eq("id", rem.id);
         } else {
-          await sb.from("claims_reminders").update({ next_run_at: next.toISOString() }).eq("id", rem.id);
+          await sb.from("claims_reminders").update({
+            next_run_at: next.toISOString(),
+            row_data: { ...rd, iteration_count: currentIterations }
+          }).eq("id", rem.id);
           await sb.from("claims_mail_jobs").insert({
             id: nid("MJB"),
             reminder_id: rem.id,

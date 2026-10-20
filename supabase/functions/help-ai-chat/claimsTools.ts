@@ -300,42 +300,57 @@ export const CLAIMS_GEMINI_TOOLS = [
               type: "STRING",
               description: "שעת השליחה המתוזמנת בפורמט HH:mm (למשל '10:00', ברירת מחדל 09:00 אם לא צוינה שעה)",
             },
+            is_recurring: {
+              type: "BOOLEAN",
+              description: "מעקב חוזר (למשל 'שלחי מעקב כל יומיים / כל 48 שעות'). המערכת תשלח מעקב כל X ימים עד לקבלת מענה מחברת הביטוח או עד לעצירה ידנית, באישור אחד מראש.",
+            },
+            repeat_every_days: {
+              type: "NUMBER",
+              description: "תדירות השליחה בימים במעקב חוזר (למשל 2 עבור מעקב כל יומיים / 48 שעות). ברירת מחדל: 2 ימים.",
+            },
+            stop_on_reply: {
+              type: "BOOLEAN",
+              description: "עצירה אוטומטית של המעקב ברגע שמתקבל מענה מחברת הביטוח או הנמען (ברירת מחדל: true).",
+            },
+            max_iterations: {
+              type: "NUMBER",
+              description: "מספר סבבי מעקב מקסימלי לפני עצירה אוטומטית (ברירת מחדל: 10 סבבים).",
+            },
           },
         },
       },
       {
         name: "list_scheduled_claim_emails",
-        description: "רשימת אימיילים מתוזמנים שממתינים לשליחה עתידית (קריאה בלבד). מחזיר מזהה תזכורת (reminder_id), תאריך ושעת שליחה מתוכננת, נמען, נושא ומספר קבצים מצורפים.",
+        description: "רשימת אימיילים מתוזמנים שממתינים לשליחה עתידית ומעקבים חוזרים פעילים (קריאה בלבד). מחזיר מזהה תזכורת (reminder_id), תאריך ושעת שליחה מתוכננת, תדירות מעקב (אם מוגדר מעקב חוזר כל יומיים), נמען, נושא ומספר קבצים מצורפים.",
         parameters: {
           type: "OBJECT",
           properties: {
             claim_ref: {
               type: "STRING",
-              description: "מזהה תיק (אופציונלי). אם לא צוין במצב כללי, מחזיר את כל המיילים המתוזמנים המאושרים לשליחה.",
+              description: "מזהה תיק (אופציונלי). אם לא צוין במצב כללי, מחזיר את כל המיילים המתוזמנים והמעקבים הפעילים במערכת.",
             },
           },
         },
       },
       {
         name: "preview_cancel_scheduled_claim_email",
-        description: "הכנת כרטיס אישור לביטול אימייל מתוזמן טרם מועד השליחה שלו. דורש אישור מפורש של המשתמש לפני הביטול בפועל. ביטול ימנע את שליחת המייל ויתעד את הביטול בהיסטוריית התיק.",
+        description: "הכנת כרטיס אישור לביטול אימייל מתוזמן או לעצירת מעקב חוזר (למשל 'דליה, תעצרי את המעקב בתיק הזה'). דורש אישור מפורש של המשתמש לפני הביטול בפועל. ביטול ימנע את שליחת המייל הבא, יעצור את סדרת המעקב ויתעד את הביטול בהיסטוריית התיק.",
         parameters: {
           type: "OBJECT",
           properties: {
             reminder_id: {
               type: "STRING",
-              description: "מזהה התזכורת/המייל המתוזמן מתוך list_scheduled_claim_emails (חובה)",
+              description: "מזהה התזכורת מתוך list_scheduled_claim_emails (אם ידוע)",
+            },
+            claim_ref: {
+              type: "STRING",
+              description: "מזהה התיק לעצירת המעקב בו (אם reminder_id אינו ידוע, המערכת תאתר אוטומטית את המעקב הפעיל בתיק)",
             },
             reason: {
               type: "STRING",
               description: "סיבת הביטול (אופציונלי)",
             },
-            claim_ref: {
-              type: "STRING",
-              description: "מזהה התיק (אופציונלי)",
-            },
           },
-          required: ["reminder_id"],
         },
       },
       {
@@ -1324,12 +1339,21 @@ export const CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS = `
    - קישור שיתוף למסמכים קיימים לצפייה והורדה (claims-share):
      כאשר המשתמש מבקש לשתף מסמכים קיימים שכבר נמצאים בתיק: הפעל את preview_create_claim_share_link.
    - ביטול קישורים: preview_revoke_claim_share_link.
-8. שליחת ותזמון מיילים: שליחת מיילים ללקוח או לחברת הביטוח עם קבצים מצורפים מתוך התיק (preview_send_claim_email).
-   - תזמון שליחה עתידית ואישור מראש: כשהמשתמש מבקש לתזמן או לשלוח במועד עתידי (למשל: "שלח אימייל בעוד שלושה ימים בשעה 10:00", "תתזמן מייל למחר ב-09:00", "שלח בעוד יומיים"):
-     חובה לבקש שעה אם לא צוינה: אם המשתמש ציין יום בלבד ללא שעה מפורשת (למשל "תתזמן למחר", "שלח בעוד שלושה ימים"), המערכת חייבת לבקש ממנו שעה ("באיזו שעה ביום המבוקש לשלוח את המייל?") ואסור להחליט על שעה בעצמך!
-     העבר את מועד השליחה דרך פרמטרי send_at, relative_days, ו/או send_time ל-preview_send_claim_email. הכרטיס יציג את מועד השליחה המדויק לפי שעון ישראל ויציין במפורש שמדובר באישור אחד מראש. כשהמשתמש מאשר ("מאשר"/"שלח"), האימייל נשמר כמתוזמן ומאושר לשליחה, והשרת ישלח אותו אוטומטית במועד שנקבע ללא צורך באישור נוסף!
-   - צפייה וביטול תזמונים: לצפייה במיילים מתוזמנים הפעל list_scheduled_claim_emails. לביטול אימייל מתוזמן טרם מועד השליחה הפעל preview_cancel_scheduled_claim_email עם reminder_id.
-   - שליחת מספר אימיילים נפרדים: כשהמשתמש מבקש לשלוח מספר אימיילים נפרדים לתיקים שונים או לנמענים שונים (למשל: מייל ראשון לביטוח, מייל שני לשמאי, מייל שלישי ללקוח) — קרא ל-preview_send_claim_email עבור כל אחת מההודעות בנפרד בתשובתך. המערכת תאגד אותן לקבוצה לאישור אחד, ובאישור המשתמש כל מייל יישלח או יתוזמן בנפרד ויתועד בתיק שלו.
+8. שליחת ותזמון מיילים ומעקב חוזר כל יומיים:
+   - שליחת מייל מיידי: preview_send_claim_email עם נמען (to), נושא, גוף, וקבצים מצורפים.
+   - מעקב חוזר כל יומיים (48 שעות) לחברת הביטוח: כשהמשתמש מבקש "שלחי לחברת הביטוח הודעת מעקב לגבי תיק מסוים כל יומיים, עד שתגיע תשובה או עד שאעצור את המעקב" (או נוסח דומה):
+     הפעל את preview_send_claim_email בקריאה בודדת אחת בלבד (לעולם אין לקרוא פעמיים ואין לפצל לשליחות נפרדות) עם is_recurring: true, repeat_every_days: 2, stop_on_reply: true, ו-max_iterations: 10. שרת המערכת שולח ומקדם עצמאית את כל השליחות החוזרות כל יומיים.
+     הצג למשתמש סיכום ברור: חברת הביטוח והאימייל שלה, מספר התיק והרכב, נוסח ההודעה, תדירות השליחה ("כל יומיים / 48 שעות"), ותנאי העצירה ("עד לקבלת מענה מחברת הביטוח או עד להוראת עצירה ידנית"). ציין במפורש כי נדרש אישור מנהל אחד מראש לכל סדרת הודעות המעקב, והשרת ישלח אותן עצמאית ללא צורך באישור נוסף.
+   - תזמון שליחה עתידית חד-פעמית: כשהמשתמש מבקש לתזמן למועד עתידי (למשל: "שלח אימייל בעוד שלושה ימים בשעה 10:00", "תתזמן מייל למחר ב-09:00"):
+     חובה לבקש שעה אם לא צוינה: אם המשתמש ציין יום בלבד ללא שעה מפורשת, בקש שעה ואל תנחש. העבר send_at, relative_days, ו/או send_time ל-preview_send_claim_email.
+   - צפייה במעקבים ומיילים מתוזמנים: כשנשאל "אילו הודעות מעקב מתוזמנות להישלח?" או "מה מתוזמן?" — הפעל list_scheduled_claim_emails.
+   - עצירת מעקב יזומה: כשהמשתמש מבקש "דליה, תעצרי את המעקב בתיק הזה" או "תעצרי את הודעות המעקב" — הפעל preview_cancel_scheduled_claim_email עם claim_ref (ו-reminder_id אם ידוע).
+   - שאילתות סטטוס אימיילים:
+     • "איזה אימיילים התקבלו היום?" -> קרא ל-get_today_claim_emails והצג את האימיילים שהתקבלו.
+     • "אילו חברות ביטוח עדיין לא ענו לנו?" -> קרא ל-get_claims_status_report והצג את התיקים שבהם נשלח מייל וטרם התקבל מענה או שממתינים למענה ביטוח.
+     • "דליה, תראי לי את המסמכים בתיק הזה" -> קרא ל-list_claim_documents.
+     • "מה התקבל בתיק הזה?" -> קרא ל-search_claim_emails עם direction: "inbound".
+   - שליחת מספר אימיילים נפרדים: כשהמשתמש מבקש לשלוח מספר אימיילים נפרדים לתיקים שונים או לנמענים שונים — קרא ל-preview_send_claim_email עבור כל אחת מההודעות בנפרד בתשובתך.
 9. תפעול התיק: שינוי סטטוס (preview_update_claim_status), יצירת וסגירת משימות (preview_create_claim_task, preview_close_claim_task), הוספת הערות בתיק (preview_add_claim_note).
 10. לקוחות: יצירת לקוח חדש (preview_create_customer), עדכון טלפון/מייל (preview_update_claim_client_contact), קישור לקוח לתביעה (preview_link_client_to_claim), ובדיקת כפילויות (check_claim_and_customer_duplicates).
 11. תיקון פרטי התיק: כשהמשתמש מבקש לתקן פרט בתיק (מספר תביעה בחברת הביטוח, תאריך אירוע/תאונה, מספר רכב, חברת ביטוח, פוליסה, צד ג׳, שמאי, סכומים וכו׳) — קרא ל-preview_update_claim_fields עם השדות והערכים שהמשתמש מסר בלבד. הכרטיס יציג ערך נוכחי מול חדש ואזהרות. אם ערך לא נמסר במפורש — שאל, אל תשלים.
@@ -3155,7 +3179,7 @@ export async function executeClaimsTool(
       case "list_scheduled_claim_emails": {
         let query = supabase
           .from("claims_reminders")
-          .select("id, claim_id, mail_to, mail_subject, next_run_at, status, row_data, created_at")
+          .select("id, claim_id, mail_kind, repeat_every_days, mail_to, mail_subject, next_run_at, status, row_data, created_at")
           .eq("action", "send_email")
           .eq("status", "scheduled")
           .order("next_run_at", { ascending: true });
@@ -3178,6 +3202,8 @@ export async function executeClaimsTool(
           const rd = (r.row_data && typeof r.row_data === "object" ? r.row_data : {}) as Record<string, unknown>;
           const fids = String(rd.file_ids || "").split(",").map((s) => s.trim()).filter(Boolean);
           const attTitles = Array.isArray(rd.attachment_titles) ? rd.attachment_titles : [];
+          const isRecurring = r.mail_kind === "email_repeat" || rd.is_recurring === true;
+          const repeatDays = Number(r.repeat_every_days || rd.repeat_every_days) || 2;
           return {
             reminder_id: r.id,
             claim_id: r.claim_id,
@@ -3185,6 +3211,13 @@ export async function executeClaimsTool(
             subject: r.mail_subject,
             next_run_at: r.next_run_at,
             scheduled_at_label: String(rd.scheduled_at_label || r.next_run_at || ""),
+            mail_kind: r.mail_kind || "email_once",
+            is_recurring: isRecurring,
+            frequency: isRecurring ? `כל ${repeatDays} ימים (48 שעות)` : "שליחה חד-פעמית מתוזמנת",
+            repeat_every_days: isRecurring ? repeatDays : undefined,
+            stop_condition: isRecurring ? "עד לקבלת מענה מחברת הביטוח או עצירה ידנית" : undefined,
+            iteration_count: Number(rd.iteration_count) || 0,
+            max_iterations: Number(rd.max_iterations) || 10,
             attachments_count: fids.length,
             attachments: attTitles,
             pre_approved: true,
@@ -3552,6 +3585,39 @@ export async function executeClaimsTool(
         insuranceMails.sort((a, b) => new Date(String(b.sent_at || "")).getTime() - new Date(String(a.sent_at || "")).getTime());
         const latestReply = insuranceMails[0] || null;
 
+        // When an insurer reply is confirmed, auto-stop any active recurring follow-up for this claim
+        let stoppedFollowupCount = 0;
+        if (latestReply && claimId) {
+          const { data: activeReminders } = await supabase
+            .from("claims_reminders")
+            .select("id, row_data")
+            .eq("claim_id", claimId)
+            .eq("action", "send_email")
+            .eq("status", "scheduled");
+          for (const rem of activeReminders || []) {
+            const rd = (rem.row_data && typeof rem.row_data === "object") ? rem.row_data as Record<string, unknown> : {};
+            if (rd.stop_on_reply !== false) {
+              const nowIso = new Date().toISOString();
+              await supabase.from("claims_reminders").update({
+                status: "completed",
+                next_run_at: null,
+                row_data: {
+                  ...rd,
+                  stopped_by_reply: true,
+                  reply_message_id: latestReply.id,
+                  stopped_at: nowIso,
+                },
+              }).eq("id", rem.id);
+              await supabase.from("claims_mail_jobs").update({
+                status: "cancelled",
+                finished_at: nowIso,
+                fail_reason: "auto_stopped_on_reply",
+              }).eq("reminder_id", rem.id).eq("status", "pending");
+              stoppedFollowupCount++;
+            }
+          }
+        }
+
         await recordAiAudit(supabase, {
           userId,
           userName,
@@ -3566,6 +3632,8 @@ export async function executeClaimsTool(
             claim_id: claimId,
             insurance_replied: !!latestReply,
             replies_count: insuranceMails.length,
+            recurring_followup_stopped: stoppedFollowupCount > 0,
+            stopped_followups_count: stoppedFollowupCount,
             latest_reply: latestReply ? {
               from: latestReply.from_addr,
               date: latestReply.sent_at,
@@ -3573,6 +3641,9 @@ export async function executeClaimsTool(
               summary: (latestReply.body_text || "").slice(0, 300),
               attachments: latestReply.attachment_count || 0,
             } : null,
+            system_note: stoppedFollowupCount > 0
+              ? "זוהה מענה מחברת הביטוח! הודעות המעקב החוזרות בתיק זה נעצרו אוטומטית בהצלחה."
+              : undefined,
           },
         };
       }
@@ -3901,16 +3972,16 @@ export async function executeClaimsTool(
         let insCompany = "";
         if (effectiveClaim) {
           const { data: claimRow } = await db
-            .from("claims")
-            .select("id, claim_number, plate_number, client_name, insurance_company, row_data")
+            .from("claims_records")
+            .select("id, plate, client_name, row_data")
             .eq("id", effectiveClaim)
             .maybeSingle();
           if (claimRow) {
             const crd = (claimRow.row_data && typeof claimRow.row_data === "object" ? claimRow.row_data : {}) as Record<string, unknown>;
-            claimPlate = String(claimRow.plate_number || crd.plateNumber || crd.carNumber || crd.plate || "").trim();
-            claimNum = String(claimRow.claim_number || crd.claimNumber || crd.claimNum || "").trim();
+            claimPlate = String(claimRow.plate || crd.plateNumber || crd.carNumber || crd.plate || "").trim();
+            claimNum = String(crd.claimNumber || crd.claimNum || claimRow.id || "").trim();
             clientName = String(claimRow.client_name || crd.clientName || crd.customerName || "").trim();
-            insCompany = String(claimRow.insurance_company || crd.insuranceCompany || crd.insurer || "").trim();
+            insCompany = String(crd.insuranceCompany || crd.insCompany || crd.insurer || "").trim();
           }
         }
 
@@ -4639,23 +4710,40 @@ export async function executeClaimsTool(
             : `שלום רב,\n\nבברכה,\n${CLAIMS_SENDER_NAME}`;
         }
 
-        const isScheduled = !!(args.send_at || args.relative_days != null || args.send_time);
+        const isRecurring = args.is_recurring === true || String(args.is_recurring || "") === "true" || (args.repeat_every_days != null && Number(args.repeat_every_days) > 0);
+        const repeatDays = Math.max(1, Number(args.repeat_every_days) || 2);
+        const stopOnReply = args.stop_on_reply !== false && String(args.stop_on_reply || "") !== "false";
+        const maxIterations = Math.min(Math.max(1, Number(args.max_iterations) || 10), 30);
+        const isScheduled = isRecurring || !!(args.send_at || args.relative_days != null || args.send_time);
         let scheduledInfo: { plannedAt: string; label: string; date: string; time: string } | null = null;
         if (isScheduled) {
-          const schedRes = resolveScheduledWhen(args);
-          if (!schedRes.ok) {
-            return {
-              result: {
-                error: schedRes.message,
-                missing_parameter: "send_time",
-                status: "needs_time",
-              },
+          if (isRecurring && !args.send_at && args.relative_days == null && !args.send_time) {
+            // Default recurring starts immediately with follow-up every 2 days (48h)
+            scheduledInfo = {
+              plannedAt: new Date().toISOString(),
+              label: `שליחה ראשונה מיידית ומעקב כל ${repeatDays} ימים (48 שעות)`,
+              date: new Date().toLocaleDateString("he-IL"),
+              time: new Date().toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" }),
             };
+          } else {
+            const schedRes = resolveScheduledWhen(args);
+            if (!schedRes.ok) {
+              return {
+                result: {
+                  error: schedRes.message,
+                  missing_parameter: "send_time",
+                  status: "needs_time",
+                },
+              };
+            }
+            scheduledInfo = schedRes;
+            if (isRecurring) {
+              scheduledInfo.label = `${schedRes.label} (ומעקב חוזר כל ${repeatDays} ימים)`;
+            }
           }
-          scheduledInfo = schedRes;
         }
 
-        const previewId = isScheduled ? `P-SCHED-${Date.now()}` : `P-SEND-${Date.now()}`;
+        const previewId = isRecurring ? `P-RECUR-${Date.now()}` : (isScheduled ? `P-SCHED-${Date.now()}` : `P-SEND-${Date.now()}`);
         const attachList = attachmentTitles.length ? `: ${attachmentTitles.slice(0, 5).join(", ")}${attachmentTitles.length > 5 ? ` ועוד ${attachmentTitles.length - 5}` : ""}` : "";
         const sizeInfo = totalAttachmentBytes > 0 ? ` (${(totalAttachmentBytes / (1024 * 1024)).toFixed(1)}MB)` : "";
         const threadId = String(args.thread_id || "").trim();
@@ -4663,9 +4751,11 @@ export async function executeClaimsTool(
         let recSummary = `אל: ${to}`;
         if (cc) recSummary += ` · CC: ${cc}`;
         if (bcc) recSummary += ` · BCC: ${bcc}`;
-        const summary = isScheduled
-          ? `${threadId ? "השבה בשרשור — " : ""}תזמון שליחת אימייל ל-${scheduledInfo!.label} (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}${sizeInfo}`
-          : `${threadId ? "השבה בשרשור — " : ""}שליחת מייל (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}${sizeInfo}`;
+        const summary = isRecurring
+          ? `${threadId ? "השבה בשרשור — " : ""}מעקב חוזר כל ${repeatDays} ימים (48 שעות) — עד לקבלת מענה מחברת הביטוח או עד לעצירה ידנית (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}${sizeInfo}`
+          : (isScheduled
+            ? `${threadId ? "השבה בשרשור — " : ""}תזמון שליחת אימייל ל-${scheduledInfo!.label} (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}${sizeInfo}`
+            : `${threadId ? "השבה בשרשור — " : ""}שליחת מייל (${totalRecipients} נמענים) ${recSummary} — נושא: "${subject}", ${fileIds.length} קבצים מצורפים${attachList}${sizeInfo}`);
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
@@ -4689,6 +4779,12 @@ export async function executeClaimsTool(
               relative_days: args.relative_days ?? undefined,
               send_time: args.send_time ?? undefined,
             } : {}),
+            ...(isRecurring ? {
+              is_recurring: true,
+              repeat_every_days: repeatDays,
+              stop_on_reply: stopOnReply,
+              max_iterations: maxIterations,
+            } : {}),
           },
         };
 
@@ -4707,9 +4803,11 @@ export async function executeClaimsTool(
           result: {
             preview_id: previewId,
             status: "pending_approval",
-            message: isScheduled
-              ? `הוכנה תצוגה מקדימה לתזמון המייל ל-${scheduledInfo!.label}. באישור אחד מראש המייל יישמר כמתוזמן ויישלח אוטומטית במועד שנקבע ללא צורך באישור נוסף.`
-              : "הוכנה תצוגה מקדימה לשליחת המייל. נדרש אישור המשתמש לביצוע.",
+            message: isRecurring
+              ? `הוכנה תצוגה מקדימה למעקב חוזר כל ${repeatDays} ימים (48 שעות) אל ${to}. באישור אחד מראש המערכת תשלח הודעות מעקב בשרת באופן אוטומטי עד לקבלת מענה מחברת הביטוח או עד לעצירה ידנית.`
+              : (isScheduled
+                ? `הוכנה תצוגה מקדימה לתזמון המייל ל-${scheduledInfo!.label}. באישור אחד מראש המייל יישמר כמתוזמן ויישלח אוטומטית במועד שנקבע ללא צורך באישור נוסף.`
+                : "הוכנה תצוגה מקדימה לשליחת המייל. נדרש אישור המשתמש לביצוע."),
             details: {
               to,
               to_list: Array.from(toSet),
@@ -4727,6 +4825,13 @@ export async function executeClaimsTool(
                 planned_at: scheduledInfo!.plannedAt,
                 single_approval_in_advance: true,
               } : {}),
+              ...(isRecurring ? {
+                frequency: `כל ${repeatDays} ימים (48 שעות)`,
+                repeat_every_days: repeatDays,
+                stop_condition: stopOnReply ? "קבלת מענה מחברת הביטוח או עצירה ידנית" : "עצירה ידנית בלבד",
+                max_iterations: maxIterations,
+                single_approval_for_series: true,
+              } : {}),
               ...(recipientNote ? { recipient_note: recipientNote } : {}),
               ...(droppedFileIds.length ? { not_attached: `${droppedFileIds.length} מזהים לא שייכים לתיק הזה ולא צורפו` } : {}),
             },
@@ -4736,14 +4841,29 @@ export async function executeClaimsTool(
       }
 
       case "preview_cancel_scheduled_claim_email": {
-        const remId = String(args.reminder_id || "").trim();
+        let remId = String(args.reminder_id || "").trim();
+        const effectiveClaim = String(claimId || args.claim_ref || args.claim_id || "").trim();
+        if (!remId && effectiveClaim) {
+          const { data: activeRem } = await supabase
+            .from("claims_reminders")
+            .select("id")
+            .eq("claim_id", effectiveClaim)
+            .eq("action", "send_email")
+            .eq("status", "scheduled")
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (activeRem?.id) {
+            remId = activeRem.id;
+          }
+        }
         if (!remId) {
-          return { result: { error: "חובה לציין reminder_id מתוך list_scheduled_claim_emails לביטול." } };
+          return { result: { error: "לא נמצא מעקב או אימייל מתוזמן פעיל לביטול בתיק זה." } };
         }
 
         const { data: rem, error: fetchErr } = await supabase
           .from("claims_reminders")
-          .select("id, claim_id, mail_to, mail_subject, next_run_at, status, row_data")
+          .select("id, claim_id, mail_kind, mail_to, mail_subject, next_run_at, status, row_data")
           .eq("id", remId)
           .maybeSingle();
 
@@ -4758,9 +4878,12 @@ export async function executeClaimsTool(
         const rd = (rem.row_data && typeof rem.row_data === "object" ? rem.row_data : {}) as Record<string, unknown>;
         const scheduledLabel = String(rd.scheduled_at_label || rem.next_run_at || "");
         const reason = String(args.reason || "ביטול לבקשת המשתמש").trim();
+        const isRec = rem.mail_kind === "email_repeat" || rd.is_recurring === true;
 
         const previewId = `P-CANC-${Date.now()}`;
-        const summary = `ביטול אימייל מתוזמן (מזהה ${rem.id}) שתוכנן ל-${scheduledLabel} אל ${rem.mail_to} בנושא "${rem.mail_subject}"`;
+        const summary = isRec
+          ? `עצירת מעקב אימיילים חוזר (מזהה ${rem.id}) אל ${rem.mail_to} בנושא "${rem.mail_subject}"`
+          : `ביטול אימייל מתוזמן (מזהה ${rem.id}) שתוכנן ל-${scheduledLabel} אל ${rem.mail_to} בנושא "${rem.mail_subject}"`;
 
         const preview: ClaimsPendingAction = {
           preview_id: previewId,
@@ -7989,11 +8112,17 @@ export async function executeClaimsPendingAction(
         const plannedAt = send_at;
         const sendLabel = send_at_label || plannedAt;
 
+        const isRecurring = (parameters as any)?.is_recurring === true || String((parameters as any)?.is_recurring || "") === "true";
+        const repeatDays = Math.max(1, Number((parameters as any)?.repeat_every_days) || 2);
+        const stopOnReply = (parameters as any)?.stop_on_reply !== false;
+        const maxIterations = Number((parameters as any)?.max_iterations) || 10;
+
         const { error: remErr } = await supabase.from("claims_reminders").insert({
           id: remId,
           claim_id: claimId || null,
           action: "send_email",
-          mail_kind: "email_once",
+          mail_kind: isRecurring ? "email_repeat" : "email_once",
+          repeat_every_days: isRecurring ? repeatDays : null,
           mail_to: to,
           mail_subject: subject,
           mail_body: body,
@@ -8003,7 +8132,7 @@ export async function executeClaimsPendingAction(
           created_by: userId,
           row_data: {
             action: "send_email",
-            purpose: "scheduled_send",
+            purpose: isRecurring ? "followup_recurring" : "scheduled_send",
             scheduled_at_label: sendLabel,
             note: subject,
             owner: userName,
@@ -8014,6 +8143,11 @@ export async function executeClaimsPendingAction(
             file_ids: filesArray.join(","),
             attachment_titles: titlesArray,
             thread_id: threadId || null,
+            is_recurring: isRecurring,
+            repeat_every_days: repeatDays,
+            stop_on_reply: stopOnReply,
+            max_iterations: maxIterations,
+            iteration_count: 0,
             pre_approved: true,
             pre_approved_by: userName || userId,
             pre_approved_at: new Date().toISOString(),
@@ -8042,9 +8176,13 @@ export async function executeClaimsPendingAction(
             id: newId("HIS"),
             claim_id: claimId,
             row_data: {
-              action: "תוזמן אימייל לשליחה עתידית",
-              note: `אל: ${to} · מועד שליחה: ${sendLabel} · נושא: "${subject}" · ${filesArray.length} קבצים מצורפים`,
-              type: "mail_scheduled",
+              action: isRecurring
+                ? `הוגדר מעקב חוזר אוטומטי כל ${repeatDays} ימים (48 שעות)`
+                : "תוזמן אימייל לשליחה עתידית",
+              note: isRecurring
+                ? `אל: ${to} · תדירות: כל ${repeatDays} ימים · תנאי עצירה: קבלת מענה או עצירה ידנית · נושא: "${subject}"`
+                : `אל: ${to} · מועד שליחה: ${sendLabel} · נושא: "${subject}" · ${filesArray.length} קבצים מצורפים`,
+              type: isRecurring ? "mail_recurring" : "mail_scheduled",
               by: userName || userId,
               at: new Date().toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" }),
               reminder_id: remId,
@@ -8069,7 +8207,9 @@ export async function executeClaimsPendingAction(
 
         return {
           success: true,
-          message: `האימייל תוזמן בהצלחה לשליחה ב-${sendLabel}. האישור נשמר סופית בשרת והמערכת תשלח אותו אוטומטית במועד זה ללא צורך באישור נוסף. (מזהה תזמון: ${remId})`,
+          message: isRecurring
+            ? `הוגדר מעקב חוזר כל ${repeatDays} ימים (48 שעות) אל ${to} (באישור אחד מראש). השרת ישלח את ההודעות באופן אוטומטי ועצמאי עד לקבלת מענה מחברת הביטוח או עד לעצירה ידנית (מזהה תזמון: ${remId}).`
+            : `האימייל תוזמן בהצלחה לשליחה ב-${sendLabel}. האישור נשמר סופית בשרת והמערכת תשלח אותו אוטומטית במועד זה ללא צורך באישור נוסף. (מזהה תזמון: ${remId})`,
         };
       }
 

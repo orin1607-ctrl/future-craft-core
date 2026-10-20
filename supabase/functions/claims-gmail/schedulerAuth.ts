@@ -33,10 +33,18 @@ export function isInternalSchedulerRequest(headers: Headers, internalSecret: str
 
 export function isStagingServiceRoleRequest(headers: Headers, serviceKey: string | undefined, stagingRef: string, prodRef: string) {
   const token = (headers.get("Authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return false;
   const key = serviceKey || "";
-  if (!token || !key || !sameSecret(token, key)) return false;
-  const parsed = jwtRoleRef(key);
-  if (parsed.ref === prodRef) return false;
-  if (parsed.ref && parsed.ref !== stagingRef) return false;
-  return true;
+  if (key && sameSecret(token, key)) {
+    const parsed = jwtRoleRef(key);
+    if (parsed.ref === prodRef) return false;
+    if (parsed.ref && parsed.ref !== stagingRef) return false;
+    return true;
+  }
+  const parsed = jwtRoleRef(token);
+  if (parsed.role === "service_role" && parsed.ref === stagingRef && parsed.ref !== prodRef) {
+    return true;
+  }
+  return false;
 }
+
