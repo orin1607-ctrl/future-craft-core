@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>קידום ברשתות חברתיות – Facebook / Instagram</title>
+<style>
+:root{
+  --head:#0A2352; --blue:#1F6FE0; --blue-soft:#E4EEFC; --fb:#1877F2; --ig:#C13584;
+  --bg:#EEF2F7; --surface:#FFFFFF; --line:#DCE3EC; --ink:#0E1A2E; --muted:#5B6B82;
+  --ok:#17875A; --ok-soft:#E3F4EC; --warn:#B8700A; --warn-soft:#FBF0DC; --bad:#C23B3B; --bad-soft:#FBE6E6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --head:#081A3D; --blue:#5B9BF5; --blue-soft:#15294A;
+    --bg:#0A1426; --surface:#111E36; --line:#22324F; --ink:#E8EEF7; --muted:#93A3BC;
+    --ok:#4CC792; --ok-soft:#113327; --warn:#E6A94A; --warn-soft:#3A2A10; --bad:#EF7B7B; --bad-soft:#3D1818;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 "Assistant","Segoe UI",Arial,sans-serif}
+header{background:var(--head);color:#fff;padding:14px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+header h1{margin:0;font-size:18px}
+header .sub{opacity:.75;font-size:12.5px}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+.biz{display:flex;gap:8px;flex-wrap:wrap;margin-inline-start:auto}
+.biz button{border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:999px;padding:6px 14px;cursor:pointer;font:inherit}
+.biz button.on{background:#fff;color:var(--head);font-weight:700}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.card h2{margin:0 0 10px;font-size:16px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.conn{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.conn{grid-template-columns:1fr}}
+.acct{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:center}
+.acct .logo{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:800;flex:none}
+.acct img{width:38px;height:38px;border-radius:50%;object-fit:cover}
+.chip{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)} .chip.mute{background:var(--bg);color:var(--muted)}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:8px 14px;cursor:pointer;font:inherit;font-weight:600}
+.btn:hover{border-color:var(--blue)}
+.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.fb{background:var(--fb);border-color:var(--fb);color:#fff}
+.btn.go{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.sm{padding:4px 10px;font-size:12.5px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+textarea,input[type=text],input[type=password],input[type=datetime-local],select{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;background:var(--surface);color:var(--ink)}
+textarea{min-height:170px;resize:vertical}
+label.l{display:block;font-weight:700;margin:12px 0 5px}
+.muted{color:var(--muted);font-size:12.5px}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:16px;text-align:center;cursor:pointer;color:var(--muted)}
+.drop.has{padding:6px}
+.drop img{max-width:100%;max-height:260px;border-radius:8px;display:block;margin:0 auto}
+.targets label{display:inline-flex;gap:6px;align-items:center;margin-inline-end:16px;font-weight:600}
+.preview{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:12px;background:var(--surface)}
+.preview .ph{display:flex;gap:8px;align-items:center;padding:10px 12px;font-weight:700}
+.preview .ph .av{width:32px;height:32px;border-radius:50%;background:var(--blue-soft);display:grid;place-items:center;overflow:hidden}
+.preview .ph .av img{width:100%;height:100%;object-fit:cover}
+.preview .tx{padding:0 12px 10px;white-space:pre-wrap;word-break:break-word}
+.preview img.media{width:100%;display:block}
+.preview.ig .tx{padding:10px 12px}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button{border:0;background:var(--bg);color:var(--ink);padding:6px 12px;border-radius:8px;cursor:pointer;font:inherit}
+.tabs button.on{background:var(--blue);color:#fff}
+table{width:100%;border-collapse:collapse}
+td,th{padding:8px 6px;border-bottom:1px solid var(--line);text-align:start;vertical-align:top}
+th{font-size:12px;color:var(--muted)}
+td .thumb{width:54px;height:54px;object-fit:cover;border-radius:8px}
+.note{background:var(--warn-soft);color:var(--ink);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:13px}
+.note.ok{background:var(--ok-soft)} .note.bad{background:var(--bad-soft)}
+.toast{position:fixed;inset-inline:0;bottom:18px;margin:auto;width:max-content;max-width:92vw;background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:10px;opacity:0;transition:.2s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);max-width:520px;width:92vw}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.pages button{width:100%;text-align:start;display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.pages img{width:34px;height:34px;border-radius:50%}
+ol.steps{padding-inline-start:20px;margin:6px 0} ol.steps li{margin-bottom:5px}
+code{background:var(--bg);padding:1px 6px;border-radius:6px;direction:ltr;unicode-bidi:embed;word-break:break-all}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>קידום ברשתות חברתיות – Facebook / Instagram</h1>
+    <div class="sub">ניהול שיווק 2 · סביבת STAGING</div>
+  </div>
+  <div class="biz" id="bizTabs"></div>
+</header>
+
+<div class="wrap" id="app">
+  <div class="card" id="gate" hidden>
+    <h2>כניסה למרכז הרשתות החברתיות</h2>
+    <p class="muted">האזור מאפשר פרסום בעמודים העסקיים, ולכן הוא מוגן במפתח גישה של בעל המערכת. המפתח נשמר בדפדפן הזה בלבד.</p>
+    <div class="row"><input type="password" id="keyIn" placeholder="מפתח גישה" style="max-width:360px"><button class="btn pri" id="keyBtn">כניסה</button></div>
+    <div id="keyErr" class="note bad" hidden></div>
+  </div>
+
+  <div id="main" hidden>
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0" id="bizName"></h2>
+        <div class="row">
+          <button class="btn sm" id="verifyBtn">בדיקת חיבור</button>
+          <button class="btn sm" id="disconnectBtn" hidden>ניתוק</button>
+        </div>
+      </div>
+      <div class="conn" style="margin-top:12px" id="conn"></div>
+      <div id="connNote"></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <h2 style="margin:0" id="composerTitle">צור פוסט חדש</h2>
+          <button class="btn sm" id="newBtn">+ פוסט חדש</button>
+        </div>
+
+        <label class="l">טקסט הפוסט</label>
+        <textarea id="body" placeholder="כתבו כאן את הפוסט, או צרו טקסט עם AI למטה"></textarea>
+        <div class="row" style="justify-content:space-between;margin-top:4px">
+          <span class="muted" id="count">0 תווים</span>
+          <button class="btn sm" id="copyBtn">העתקת טקסט</button>
+        </div>
+
+        <details style="margin-top:10px">
+          <summary style="cursor:pointer;font-weight:700">✨ יצירת טקסט עם AI</summary>
+          <label class="l">על מה הפוסט?</label>
+          <input type="text" id="brief" placeholder="לדוגמה: מבצע טיפול חורף לציי רכב, כולל איסוף והחזרה">
+          <div class="row" style="margin-top:8px">
+            <select id="tone" style="max-width:220px">
+              <option value="מקצועי, חם ואמין">מקצועי וחם</option>
+              <option value="קליל, אנרגטי ומשעשע">קליל ואנרגטי</option>
+              <option value="שיווקי ומניע לפעולה, עם תחושת דחיפות">מבצע / דחיפות</option>
+              <option value="אינפורמטיבי, טיפים מקצועיים">טיפים מקצועיים</option>
+            </select>
+            <button class="btn pri" id="aiBtn">צור טקסט</button>
+          </div>
+        </details>
+
+        <label class="l">תמונה</label>
+        <div class="drop" id="drop">לחצו לבחירת תמונה מהמחשב, או גררו לכאן</div>
+        <input type="file" id="file" accept="image/*" hidden>
+        <div class="row" style="margin-top:6px"><button class="btn sm" id="rmImg" hidden>הסרת תמונה</button><span class="muted" id="imgInfo"></span></div>
+
+        <label class="l">היכן לפרסם</label>
+        <div class="targets">
+          <label><input type="checkbox" id="tFb" checked> פייסבוק</label>
+          <label><input type="checkbox" id="tIg"> אינסטגרם</label>
+        </div>
+
+        <details style="margin-top:10px">
+          <summary style="cursor:pointer;font-weight:700">⏰ תזמון (אופציונלי)</summary>
+          <div class="row" style="margin-top:8px">
+            <input type="datetime-local" id="when" style="max-width:260px">
+            <span class="muted">הפרסום יתבצע אוטומטית (בדיקה כל 5 דקות)</span>
+          </div>
+        </details>
+
+        <div id="composeNote"></div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn go" id="publishBtn">פרסם עכשיו</button>
+          <button class="btn" id="saveBtn">שמירת טיוטה</button>
+          <button class="btn" id="schedBtn">תזמון</button>
+          <button class="btn" id="suiteBtn" title="פרסום ידני דרך Meta Business Suite">פרסום ידני ב-Business Suite</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>תצוגה מקדימה</h2>
+        <div class="tabs"><button class="on" data-pv="fb">פייסבוק</button><button data-pv="ig">אינסטגרם</button></div>
+        <div id="preview"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">היסטוריית פוסטים</h2><button class="btn sm" id="reloadBtn">רענון</button></div>
+      <div id="history" style="margin-top:10px;overflow-x:auto"></div>
+    </div>
+  </div>
+</div>
+
+<dialog id="pagesDlg">
+  <h2 style="margin-top:0">בחירת העמוד לחיבור</h2>
+  <p class="muted" id="pagesFor"></p>
+  <div class="pages" id="pagesList"></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn" id="pagesCancel">ביטול</button></div>
+</dialog>
+
+<dialog id="confirmDlg">
+  <h2 style="margin-top:0">אישור פרסום ציבורי</h2>
+  <p id="confirmText"></p>
+  <div class="row" style="justify-content:flex-end"><button class="btn" id="cNo">ביטול</button><button class="btn go" id="cYes">כן, פרסם</button></div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* Social Center — talks only to the staging social-meta edge function.
+   Each business (tenant) is fully separate: accounts, images, drafts and history are keyed by business_id. */
+const FN = 'https://usfeoerkpcafxxlyuldl.supabase.co/functions/v1/social-meta/';
+const KEY_LS = 'socialCenter.key', BIZ_LS = 'socialCenter.biz';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ls = {get:k=>{try{return localStorage.getItem(k)}catch(e){return null}}, set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}, del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+
+const S = {key: ls.get(KEY_LS) || '', businesses: [], biz: ls.get(BIZ_LS) || 'dalia', status: null, posts: [],
+           draft: null, image: null, pv: 'fb'};
+
+function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),2600); }
+async function api(route, body){
+  const r = await fetch(FN + route, {method:'POST', headers:{'content-type':'application/json','x-social-key':S.key},
+    body: JSON.stringify({business_id: S.biz, ...(body||{})})});
+  const d = await r.json().catch(()=>({error:'תגובה לא תקינה מהשרת'}));
+  if (r.status === 401) { showGate('מפתח הגישה שגוי'); throw new Error(d.error); }
+  if (!r.ok || d.error) throw new Error(d.error || ('HTTP ' + r.status));
+  return d;
+}
+
+/* ---------- gate ---------- */
+function showGate(err){ $('#gate').hidden=false; $('#main').hidden=true; $('#keyErr').hidden=!err; $('#keyErr').textContent=err||''; }
+$('#keyBtn').onclick = async () => {
+  S.key = $('#keyIn').value.trim();
+  try { await api('ping'); ls.set(KEY_LS, S.key); boot(); } catch(e) { ls.del(KEY_LS); }
+};
+$('#keyIn').onkeydown = e => { if (e.key==='Enter') $('#keyBtn').click(); };
+
+/* ---------- businesses ---------- */
+function renderBizTabs(){
+  $('#bizTabs').innerHTML = S.businesses.map(b=>`<button class="${b.id===S.biz?'on':''}" data-biz="${b.id}">${esc(b.name)}</button>`).join('');
+}
+$('#bizTabs').onclick = e => {
+  const b = e.target.closest('[data-biz]'); if(!b || b.dataset.biz===S.biz) return;
+  S.biz = b.dataset.biz; ls.set(BIZ_LS, S.biz); resetComposer(); renderBizTabs(); loadBiz();
+};
+
+/* ---------- connection ---------- */
+function acctCard(kind, a){
+  const fb = kind==='facebook';
+  const logo = `<div class="logo" style="background:${fb?'var(--fb)':'linear-gradient(45deg,#F58529,#DD2A7B,#8134AF)'}">${fb?'f':'IG'}</div>`;
+  if (a) return `<div class="acct">${a.picture_url?`<img src="${esc(a.picture_url)}" alt="">`:logo}
+    <div><b>${fb?'פייסבוק':'אינסטגרם'}: ${esc(a.name||a.username)}</b>${a.username?` <span class="muted">@${esc(a.username)}</span>`:''}<br>
+    <span class="chip ok">מחובר</span> <span class="muted">מאז ${new Date(a.connected_at).toLocaleDateString('he-IL')}</span></div></div>`;
+  const st = S.status;
+  const igHint = !fb && st?.facebook ? '<br><span class="muted">לא נמצא חשבון אינסטגרם מקצועי המקושר לעמוד</span>' : '';
+  return `<div class="acct">${logo}<div style="flex:1"><b>${fb?'עמוד פייסבוק':'חשבון אינסטגרם'}</b><br><span class="chip mute">לא מחובר</span>${igHint}</div>
+    ${fb || st?.facebook ? `<button class="btn fb sm" data-connect>${fb?'חבר חשבון':'חבר מחדש'}</button>` : ''}</div>`;
+}
+function renderStatus(){
+  const st = S.status; if(!st) return;
+  $('#bizName').textContent = st.business.name;
+  $('#conn').innerHTML = acctCard('facebook', st.facebook) + acctCard('instagram', st.instagram);
+  $('#disconnectBtn').hidden = !st.facebook;
+  let note = '';
+  if (!st.metaAppConfigured) {
+    note = `<div class="note"><b>החיבור הישיר ל-Meta ממתין להגדרת אפליקציית Meta.</b> בינתיים אפשר להכין פוסטים, לשמור טיוטות ולפרסם ידנית דרך Business Suite (כפתור למטה).<br>
+      כתובת ה-Redirect לאפליקציה: <code>${esc(st.redirectUri)}</code></div>`;
+  } else if (st.facebook && !st.instagram) {
+    note = `<div class="note"><b>כדי לפרסם גם באינסטגרם:</b><ol class="steps">
+      <li>באפליקציית אינסטגרם: הגדרות ← סוג חשבון וכלים ← מעבר לחשבון מקצועי (עסקי).</li>
+      <li>בעמוד הפייסבוק: הגדרות ← חשבונות מקושרים ← אינסטגרם ← חיבור החשבון.</li>
+      <li>חזרו לכאן ולחצו "חבר מחדש".</li></ol></div>`;
+  }
+  $('#connNote').innerHTML = note;
+  $('#tIg').disabled = !st.instagram; if(!st.instagram) $('#tIg').checked = false;
+  renderPreview();
+}
+$('#conn').onclick = e => { if (e.target.closest('[data-connect]')) connect(); };
+async function connect(){
+  // Facebook refuses to render inside an iframe, so the login runs in a popup that returns to this page.
+  const ret = location.origin + location.pathname;
+  const win = window.open('about:blank', 'metaConnect', 'width=640,height=760');
+  try {
+    const {url} = await api('oauth/start', {return_url: ret});
+    if (win) win.location = url; else location.href = url;
+  } catch(e) { if (win) win.close(); toast(e.message); }
+}
+window.addEventListener('message', e => {
+  if (e.origin === location.origin && e.data?.type === 'social-connected') { if (e.data.biz) S.biz = e.data.biz; renderBizTabs(); loadBiz(); toast('החיבור הושלם'); }
+});
+async function handleOAuthReturn(){
+  const q = new URLSearchParams(location.search);
+  const sid = q.get('social_session'); if (!sid) return false;
+  history.replaceState(null, '', location.pathname);
+  try {
+    const d = await api('oauth/pages', {session_id: sid});
+    if (d.error) throw new Error('Meta: ' + d.error);
+    S.biz = d.business_id; ls.set(BIZ_LS, S.biz);
+    const bname = (S.businesses.find(b=>b.id===S.biz)||{}).name || S.biz;
+    $('#pagesFor').textContent = `העמוד שתבחרו יחובר לעסק: ${bname}. עמוד יכול להיות מחובר לעסק אחד בלבד.`;
+    $('#pagesList').innerHTML = d.pages.length ? d.pages.map(p=>`<button class="btn" data-page="${p.id}" ${p.canPost?'':'disabled'}>
+      ${p.picture?`<img src="${esc(p.picture)}" alt="">`:''}<span><b>${esc(p.name)}</b><br><span class="muted">${p.instagram?'אינסטגרם מקושר: @'+esc(p.instagram.username):'ללא אינסטגרם מקושר'}${p.canPost?'':' · אין הרשאת פרסום'}</span></span></button>`).join('')
+      : '<div class="note bad">לא נמצאו עמודים. ודאו שבחלון האישור של פייסבוק סימנתם את העמוד של העסק.</div>';
+    $('#pagesDlg').showModal();
+    $('#pagesList').onclick = async ev => {
+      const b = ev.target.closest('[data-page]'); if(!b) return;
+      try {
+        S.status = await api('oauth/select', {session_id: sid, page_id: b.dataset.page});
+        $('#pagesDlg').close(); toast('העמוד חובר בהצלחה');
+        if (window.opener) { window.opener.postMessage({type:'social-connected', biz:S.biz}, location.origin); setTimeout(()=>window.close(), 900); }
+        renderBizTabs(); renderStatus();
+      } catch(err) { toast(err.message); }
+    };
+  } catch(e) { toast(e.message); $('#connNote').innerHTML = `<div class="note bad">החיבור נכשל: ${esc(e.message)}</div>`; }
+  return true;
+}
+$('#pagesCancel').onclick = () => $('#pagesDlg').close();
+$('#verifyBtn').onclick = async () => {
+  try {
+    const v = await api('verify');
+    const parts = [];
+    if (v.facebook) parts.push(v.facebook.ok ? `✅ פייסבוק: ${esc(v.facebook.page.name)} — החיבור תקין` : `❌ פייסבוק: ${esc(v.facebook.error)}`);
+    if (v.instagram) parts.push(v.instagram.ok ? `✅ אינסטגרם: @${esc(v.instagram.account.username)} — החיבור תקין` + (v.instagram.publishingLimit?` (נוצלו ${v.instagram.publishingLimit.quota_usage} מתוך ${v.instagram.publishingLimit.config?.quota_total||100} פרסומים ב-24 שעות)`:'') : `❌ אינסטגרם: ${esc(v.instagram.error)}`);
+    $('#connNote').innerHTML = `<div class="note ${parts.some(p=>p.startsWith('❌'))?'bad':'ok'}">${parts.join('<br>') || 'אין חשבונות מחוברים לעסק הזה'}</div>`;
+  } catch(e) { toast(e.message); }
+};
+$('#disconnectBtn').onclick = async () => {
+  if (!confirm('לנתק את פייסבוק ואינסטגרם מהעסק הזה? הטיוטות וההיסטוריה יישמרו.')) return;
+  try { S.status = await api('disconnect'); renderStatus(); toast('נותק'); } catch(e) { toast(e.message); }
+};
+
+/* ---------- composer ---------- */
+function resetComposer(){
+  S.draft = null; S.image = null; $('#body').value=''; $('#brief').value=''; $('#when').value='';
+  $('#tFb').checked = true; $('#tIg').checked = false; $('#composerTitle').textContent='צור פוסט חדש';
+  $('#composeNote').innerHTML=''; renderImage(); renderPreview();
+}
+$('#newBtn').onclick = resetComposer;
+$('#body').oninput = () => { $('#count').textContent = $('#body').value.length + ' תווים'; renderPreview(); };
+$('#copyBtn').onclick = async () => { try { await navigator.clipboard.writeText($('#body').value); toast('הטקסט הועתק'); } catch(e) { $('#body').select(); document.execCommand('copy'); toast('הטקסט הועתק'); } };
+$('#aiBtn').onclick = async () => {
+  const brief = $('#brief').value.trim(); if(!brief) return toast('כתבו בקצרה על מה הפוסט');
+  const b = $('#aiBtn'); b.disabled = true; b.textContent = 'יוצר…';
+  try {
+    const plat = [$('#tFb').checked&&'פייסבוק', $('#tIg').checked&&'אינסטגרם'].filter(Boolean).join(' ו') || 'פייסבוק';
+    const d = await api('ai-text', {brief, tone: $('#tone').value, platform: plat});
+    $('#body').value = d.text; $('#body').oninput(); toast('הטקסט נוצר (' + d.engine + ') — אפשר לערוך');
+  } catch(e) { toast(e.message); } finally { b.disabled=false; b.textContent='צור טקסט'; }
+};
+
+/* Images: converted in the browser to JPEG (Instagram accepts JPEG only) and padded into
+   Instagram's allowed aspect range 4:5 … 1.91:1, then uploaded to the business's own folder. */
+$('#drop').onclick = () => $('#file').click();
+$('#drop').ondragover = e => { e.preventDefault(); };
+$('#drop').ondrop = e => { e.preventDefault(); if (e.dataTransfer.files[0]) takeFile(e.dataTransfer.files[0]); };
+$('#file').onchange = e => { if (e.target.files[0]) takeFile(e.target.files[0]); e.target.value=''; };
+$('#rmImg').onclick = () => { S.image = null; renderImage(); renderPreview(); };
+function toJpeg(file){
+  return new Promise((res, rej) => {
+    const img = new Image(); img.onerror = () => rej(new Error('לא ניתן לקרוא את התמונה'));
+    img.onload = () => {
+      let w = img.naturalWidth, h = img.naturalHeight; const max = 1440;
+      const sc = Math.min(1, max / Math.max(w, h)); w = Math.round(w*sc); h = Math.round(h*sc);
+      let cw = w, ch = h; const r = w/h;
+      if (r < 0.8) cw = Math.round(h*0.8); else if (r > 1.91) ch = Math.round(w/1.91);
+      const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,cw,ch);
+      x.drawImage(img, Math.round((cw-w)/2), Math.round((ch-h)/2), w, h);
+      res({dataUrl: c.toDataURL('image/jpeg', 0.9), w: cw, h: ch, padded: cw!==w || ch!==h});
+      URL.revokeObjectURL(img.src);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+async function takeFile(f){
+  if (!/^image\//.test(f.type)) return toast('יש לבחור קובץ תמונה');
+  $('#imgInfo').textContent = 'מעלה…';
+  try {
+    const j = await toJpeg(f);
+    const up = await api('upload', {base64: j.dataUrl, content_type: 'image/jpeg'});
+    S.image = {url: up.url, path: up.path, local: j.dataUrl, info: `${j.w}×${j.h}${j.padded?' · נוספו שוליים כדי להתאים לאינסטגרם':''}`};
+    renderImage(); renderPreview(); toast('התמונה הועלתה');
+  } catch(e) { $('#imgInfo').textContent=''; toast(e.message); }
+}
+function renderImage(){
+  const im = S.image;
+  $('#drop').classList.toggle('has', !!im);
+  $('#drop').innerHTML = im ? `<img src="${esc(im.local||im.url)}" alt="">` : 'לחצו לבחירת תמונה מהמחשב, או גררו לכאן';
+  $('#rmImg').hidden = !im; $('#imgInfo').textContent = im?.info || '';
+}
+document.querySelectorAll('[data-pv]').forEach(b => b.onclick = () => {
+  S.pv = b.dataset.pv; document.querySelectorAll('[data-pv]').forEach(x=>x.classList.toggle('on', x===b)); renderPreview();
+});
+function renderPreview(){
+  const st = S.status || {}; const body = $('#body').value; const im = S.image;
+  if (S.pv === 'fb') {
+    const a = st.facebook;
+    $('#preview').innerHTML = `<div class="preview"><div class="ph"><div class="av">${a?.picture_url?`<img src="${esc(a.picture_url)}">`:'f'}</div>
+      <div>${esc(a?.name || st.business?.name || 'העמוד העסקי')}<div class="muted" style="font-weight:400">עכשיו · 🌐</div></div></div>
+      <div class="tx">${esc(body) || '<span class="muted">טקסט הפוסט יופיע כאן</span>'}</div>${im?`<img class="media" src="${esc(im.local||im.url)}">`:''}</div>`;
+  } else {
+    const a = st.instagram;
+    $('#preview').innerHTML = `<div class="preview ig"><div class="ph"><div class="av">${a?.picture_url?`<img src="${esc(a.picture_url)}">`:'IG'}</div>${esc(a?.username || 'instagram')}</div>
+      ${im?`<img class="media" src="${esc(im.local||im.url)}">`:'<div class="note" style="margin:0 12px">באינסטגרם חובה לצרף תמונה</div>'}
+      <div class="tx"><b>${esc(a?.username || '')}</b> ${esc(body)}</div></div>`;
+  }
+}
+function collect(){
+  const targets = [$('#tFb').checked&&'facebook', $('#tIg').checked&&'instagram'].filter(Boolean);
+  return {id: S.draft?.id, body: $('#body').value, image_url: S.image?.url || null, image_path: S.image?.path || null, targets};
+}
+function validate(p, forPublish){
+  if (!p.body.trim() && !p.image_url) return 'הפוסט ריק — הוסיפו טקסט או תמונה';
+  if (forPublish) {
+    if (!p.targets.length) return 'בחרו היכן לפרסם';
+    if (p.targets.includes('facebook') && !S.status?.facebook) return 'עמוד הפייסבוק עדיין לא מחובר';
+    if (p.targets.includes('instagram') && !S.status?.instagram) return 'חשבון האינסטגרם עדיין לא מחובר';
+    if (p.targets.includes('instagram') && !p.image_url) return 'באינסטגרם חובה לצרף תמונה';
+    if (p.body.length > 2200 && p.targets.includes('instagram')) return 'באינסטגרם הטקסט מוגבל ל-2,200 תווים';
+  }
+  return '';
+}
+async function save(extra){
+  const p = {...collect(), ...(extra||{})};
+  const err = validate(p, !!p.scheduled_at); if (err) { toast(err); return null; }
+  const d = await api('posts/save', p); S.draft = d.post; $('#composerTitle').textContent = 'עריכת פוסט';
+  loadPosts(); return d.post;
+}
+$('#saveBtn').onclick = async () => { try { if (await save({scheduled_at:null})) toast('הטיוטה נשמרה'); } catch(e) { toast(e.message); } };
+$('#schedBtn').onclick = async () => {
+  const w = $('#when').value; if (!w) { document.querySelector('#when').closest('details').open = true; return toast('בחרו תאריך ושעה לתזמון'); }
+  const at = new Date(w); if (at < new Date(Date.now()+60000)) return toast('יש לבחור מועד עתידי');
+  try { if (await save({scheduled_at: at.toISOString()})) { toast('הפוסט תוזמן ל-' + at.toLocaleString('he-IL')); resetComposer(); } } catch(e) { toast(e.message); }
+};
+$('#publishBtn').onclick = () => {
+  const p = collect(); const err = validate(p, true); if (err) return toast(err);
+  const where = p.targets.map(t=>t==='facebook'?`פייסבוק (${S.status.facebook.name})`:`אינסטגרם (@${S.status.instagram.username})`).join(' + ');
+  $('#confirmText').innerHTML = `הפוסט יפורסם <b>באופן ציבורי</b> ב: ${esc(where)}.<br>להמשיך?`;
+  $('#confirmDlg').showModal();
+};
+$('#cNo').onclick = () => $('#confirmDlg').close();
+$('#cYes').onclick = async () => {
+  $('#confirmDlg').close(); const b = $('#publishBtn'); b.disabled = true; b.textContent = 'מפרסם…';
+  try {
+    const post = await save({scheduled_at:null}); if (!post) return;
+    const d = await api('posts/publish', {id: post.id});
+    showResult(d.post); if (d.post.status === 'published') resetComposer(); else S.draft = d.post;
+    loadPosts();
+  } catch(e) { toast(e.message); } finally { b.disabled=false; b.textContent='פרסם עכשיו'; }
+};
+function showResult(p){
+  const lines = (p.targets||[]).map(t => { const r = p.results?.[t] || {}; const n = t==='facebook'?'פייסבוק':'אינסטגרם';
+    return r.ok ? `✅ ${n}: פורסם${r.url?` — <a href="${esc(r.url)}" target="_blank" rel="noopener">צפייה בפוסט</a>`:''}` : `❌ ${n}: ${esc(r.error||'נכשל')}`; });
+  $('#composeNote').innerHTML = `<div class="note ${p.status==='published'?'ok':'bad'}">${lines.join('<br>')}</div>`;
+}
+$('#suiteBtn').onclick = async () => {
+  const p = collect(); if (!p.body.trim() && !p.image_url) return toast('הפוסט ריק');
+  try { await navigator.clipboard.writeText(p.body); } catch(e) {}
+  if (S.image) { const a = document.createElement('a'); a.href = S.image.local || S.image.url; a.download = 'post-image.jpg'; a.click(); }
+  window.open('https://business.facebook.com/latest/composer', '_blank', 'noopener');
+  toast('הטקסט הועתק' + (S.image?' והתמונה הורדה':'') + ' — הדביקו ב-Business Suite');
+};
+
+/* ---------- history ---------- */
+const ST = {draft:['טיוטה','mute'], scheduled:['מתוזמן','warn'], publishing:['בפרסום…','warn'], published:['פורסם','ok'], partial:['פורסם חלקית','warn'], failed:['נכשל','bad']};
+async function loadPosts(){
+  try { S.posts = (await api('posts')).posts; renderHistory(); } catch(e) { $('#history').innerHTML = `<div class="note bad">${esc(e.message)}</div>`; }
+}
+function renderHistory(){
+  if (!S.posts.length) { $('#history').innerHTML = '<div class="muted">עדיין אין פוסטים לעסק הזה.</div>'; return; }
+  $('#history').innerHTML = `<table><thead><tr><th></th><th>טקסט</th><th>ערוצים</th><th>סטטוס</th><th>מועד</th><th></th></tr></thead><tbody>${
+    S.posts.map(p => { const [lbl, tone] = ST[p.status] || [p.status,'mute'];
+      const links = Object.entries(p.results||{}).map(([t,r]) => r.ok && r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${t==='facebook'?'FB':'IG'}</a>` : (!r.ok && r.error ? `<span class="muted" title="${esc(r.error)}">${t==='facebook'?'FB':'IG'} ✗</span>` : '')).join(' ');
+      const when = p.published_at || p.scheduled_at || p.updated_at;
+      const editable = ['draft','scheduled','failed','partial'].includes(p.status);
+      return `<tr><td>${p.image_url?`<img class="thumb" src="${esc(p.image_url)}" alt="">`:''}</td>
+        <td style="max-width:380px">${esc((p.body||'').slice(0,140))}${(p.body||'').length>140?'…':''}</td>
+        <td>${(p.targets||[]).map(t=>t==='facebook'?'פייסבוק':'אינסטגרם').join(', ')}</td>
+        <td><span class="chip ${tone}">${lbl}</span> ${links}</td>
+        <td class="muted">${new Date(when).toLocaleString('he-IL')}</td>
+        <td style="white-space:nowrap"><button class="btn sm" data-copy="${p.id}">העתקה</button>
+          ${editable?`<button class="btn sm" data-edit="${p.id}">פתיחה</button>`:''}
+          ${['draft','scheduled','failed'].includes(p.status)?`<button class="btn sm" data-del="${p.id}">מחיקה</button>`:''}</td></tr>`; }).join('')}</tbody></table>`;
+}
+$('#history').onclick = async e => {
+  const t = e.target.closest('button'); if (!t) return;
+  const p = S.posts.find(x => x.id === (t.dataset.copy || t.dataset.edit || t.dataset.del)); if (!p) return;
+  if (t.dataset.copy) { try { await navigator.clipboard.writeText(p.body); toast('הטקסט הועתק'); } catch(err) {} }
+  if (t.dataset.edit) {
+    S.draft = p; $('#body').value = p.body; $('#body').oninput();
+    S.image = p.image_url ? {url: p.image_url, path: null, info: ''} : null; renderImage();
+    $('#tFb').checked = p.targets.includes('facebook'); $('#tIg').checked = p.targets.includes('instagram') && !!S.status?.instagram;
+    $('#when').value = p.scheduled_at ? new Date(new Date(p.scheduled_at) - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16) : '';
+    $('#composerTitle').textContent = 'עריכת פוסט'; if (p.status !== 'draft') showResult(p); else $('#composeNote').innerHTML='';
+    renderPreview(); window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+  if (t.dataset.del && confirm('למחוק את הפוסט?')) { try { await api('posts/delete', {id: p.id}); if (S.draft?.id===p.id) resetComposer(); loadPosts(); } catch(err) { toast(err.message); } }
+};
+$('#reloadBtn').onclick = loadPosts;
+
+/* ---------- boot ---------- */
+async function loadBiz(){
+  try { S.status = await api('status'); renderStatus(); } catch(e) { toast(e.message); }
+  loadPosts();
+}
+async function boot(){
+  if (!S.key) return showGate();
+  try { S.businesses = (await api('businesses')).businesses; } catch(e) { return; }
+  if (!S.businesses.find(b=>b.id===S.biz)) S.biz = S.businesses[0].id;
+  $('#gate').hidden = true; $('#main').hidden = false;
+  const fromOAuth = await handleOAuthReturn();
+  renderBizTabs(); if (!fromOAuth) resetComposer(); await loadBiz();
+}
+boot();
+</script>
+</body>
+</html>

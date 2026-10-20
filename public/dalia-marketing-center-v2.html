@@ -482,7 +482,7 @@ const MODULES = [
   {id:'ads',    he:'ניתוח קמפיינים ופרסום', en:'OpenAdsReport',  siteScoped:true,  connection:{status:'not_connected', entry:null}, works:['design','seo']},
   {id:'design', he:'עיצוב גרפי',            en:'OpenDesign',     siteScoped:false, connection:{status:'not_connected', entry:null}, works:['posts','page']},
   {id:'studio', he:'סטודיו AI',             en:'OpenStudio',     siteScoped:false, connection:{status:'not_connected', entry:null}, works:['posts','seo']},
-  {id:'posts',  he:'פוסטים ורשתות חברתיות', en:'OpenPost',       siteScoped:false, connection:{status:'not_connected', entry:null}, works:['studio','design']},
+  {id:'posts',  he:'קידום ברשתות חברתיות – Facebook / Instagram', en:'Social Center', siteScoped:false, connection:{status:'connected', entry:'./social-center.html'}, works:['studio','design']},
   {id:'mascot', he:'דמות מותג',             en:'OpenMascot',     siteScoped:false, connection:{status:'not_connected', entry:null}, works:['design','posts']}
 ];
 const CONN_LABEL = {not_connected:'טרם חובר למעטפת', demo:'ממשק דמו / בפיתוח – טרם חובר', connected:'מחובר'};
@@ -720,6 +720,8 @@ function renderDashboard(){
       <div>תקופה<br><b>${state.days} ימים</b></div>
     </div>
   </div>
+
+  ${moduleAccess('posts').ok ? `<button class="btn" data-go="m/posts" id="btnSocialCenter" style="width:100%;margin:0 0 14px;padding:14px 18px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:16px;font-weight:800;color:#fff;border:0;border-radius:14px;background:linear-gradient(90deg,#1877F2,#C13584)">${icon('posts')}<span>קידום ברשתות חברתיות – Facebook / Instagram</span></button>` : ''}
 
   ${sums.length ? `<div class="pulse" role="list">
     ${sums.map(s=>`<button class="kpi" role="listitem" data-go="m/${s.module}">
