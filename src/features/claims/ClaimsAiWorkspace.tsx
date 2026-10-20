@@ -197,11 +197,14 @@ async function uploadPackageFormToStorage(
   claimId: string,
   file: File,
   staffTitle: string,
-  category: 'cat_b' | 'cat_a'
+  category: 'cat_b' | 'cat_a',
+  isPermanent: boolean = false,
 ): Promise<{
   success: boolean;
   verified?: boolean;
   file_id?: string;
+  template_id?: string;
+  is_permanent?: boolean;
   storage_path?: string;
   original_name?: string;
   mime_type?: string;
@@ -221,6 +224,8 @@ async function uploadPackageFormToStorage(
     const isForm = category === 'cat_b';
     form.set('staff_type', isForm ? 'claim_form' : (isImage ? 'damage_photos' : 'other'));
     form.set('staff_title', staffTitle || file.name);
+    form.set('category', category);
+    form.set('is_permanent', isPermanent ? 'true' : 'false');
 
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/claims-docs`, {
       method: 'POST',
@@ -238,6 +243,8 @@ async function uploadPackageFormToStorage(
       success: true,
       verified: Boolean(json.verified),
       file_id: json.file_id ? String(json.file_id) : undefined,
+      template_id: json.template_id ? String(json.template_id) : undefined,
+      is_permanent: Boolean(json.is_permanent),
       storage_path: String(json.storage_path),
       original_name: String(json.original_name || file.name),
       mime_type: String(json.mime_type || file.type || 'application/pdf'),
@@ -734,6 +741,7 @@ export type CustomDocItem = {
   byte_size?: number;
   signed_url?: string;
   content_sha256?: string;
+  is_permanent?: boolean;
 };
 
 export function ClaimsCatalogWidget({
@@ -743,9 +751,11 @@ export function ClaimsCatalogWidget({
   onPrepareLink,
 }: {
   claimId?: string;
-  onUploadCustomFile?: (file: File, name: string, category: 'cat_b' | 'cat_a') => Promise<{
+  onUploadCustomFile?: (file: File, name: string, category: 'cat_b' | 'cat_a', isPermanent?: boolean) => Promise<{
     success: boolean;
     file_id?: string;
+    template_id?: string;
+    is_permanent?: boolean;
     storage_path?: string;
     original_name?: string;
     mime_type?: string;
@@ -766,13 +776,50 @@ export function ClaimsCatalogWidget({
   const [prepareError, setPrepareError] = useState<string | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
 
-  // State for manual file upload flow
+  // State for manual file upload flow & permanent gallery choice
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [docName, setDocName] = useState<string>('');
   const [docCategory, setDocCategory] = useState<'cat_b' | 'cat_a'>('cat_b');
+  const [saveToPermanentGallery, setSaveToPermanentGallery] = useState<boolean>(true);
+  const [permanentTemplates, setPermanentTemplates] = useState<CustomDocItem[]>([]);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Load permanent templates from DB on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPermanentTemplates() {
+      if (typeof supabase?.from !== 'function') return;
+      try {
+        const { data, error } = await supabase
+          .from('claims_templates')
+          .select('*')
+          .eq('is_permanent', true)
+          .order('created_at', { ascending: false });
+        if (!cancelled && data && data.length > 0) {
+          const items: CustomDocItem[] = data.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            category: d.category === 'cat_a' ? 'cat_a' : 'cat_b',
+            storage_path: d.storage_path,
+            original_name: d.original_name,
+            mime_type: d.mime_type,
+            byte_size: d.byte_size,
+            content_sha256: d.content_sha256,
+            is_permanent: true,
+          }));
+          setPermanentTemplates(items);
+        }
+      } catch (err) {
+        console.warn('Failed to load permanent templates:', err);
+      }
+    }
+    loadPermanentTemplates();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const toggleDoc = (doc: string) => {
     setSelectedDocs((prev) =>
@@ -792,6 +839,7 @@ export function ClaimsCatalogWidget({
     setPendingFile(file);
     setDocName((prev) => (prev.trim() ? prev : file.name.replace(/\.[^/.]+$/, '')));
     setDocCategory('cat_b'); // default to garage provided form
+    setSaveToPermanentGallery(true);
     setUploadError(null);
     e.target.value = '';
   };
@@ -811,7 +859,7 @@ export function ClaimsCatalogWidget({
       let contentSha256: string | undefined;
 
       if (onUploadCustomFile) {
-        const res = await onUploadCustomFile(pendingFile, cleanTitle, docCategory);
+        const res = await onUploadCustomFile(pendingFile, cleanTitle, docCategory, saveToPermanentGallery);
         if (!res.success) {
           setUploadError(res.error || 'שגיאה בהעלאת המסמך');
           setIsUploading(false);
@@ -825,7 +873,7 @@ export function ClaimsCatalogWidget({
         signedUrl = res.signed_url;
         contentSha256 = res.content_sha256;
       } else {
-        const res = await uploadPackageFormToStorage(claimId || '', pendingFile, cleanTitle, docCategory);
+        const res = await uploadPackageFormToStorage(claimId || '', pendingFile, cleanTitle, docCategory, saveToPermanentGallery);
         if (!res.success) {
           setUploadError(res.error || 'שגיאה בהעלאת המסמך');
           setIsUploading(false);
@@ -852,12 +900,20 @@ export function ClaimsCatalogWidget({
         byte_size: byteSize ?? pendingFile.size,
         signed_url: signedUrl,
         content_sha256: contentSha256,
+        is_permanent: saveToPermanentGallery,
       };
       setCustomItems((prev) => {
         const next = [...prev.filter((x) => x.name !== cleanTitle), newItem];
         onUploadedFormsChange?.(next);
         return next;
       });
+
+      if (saveToPermanentGallery) {
+        setPermanentTemplates((prev) => [
+          ...prev.filter((p) => p.name !== cleanTitle),
+          { ...newItem, is_permanent: true },
+        ]);
+      }
 
       // Automatically append to selections WITHOUT resetting previous selections
       if (docCategory === 'cat_b') {
@@ -878,9 +934,23 @@ export function ClaimsCatalogWidget({
 
   const customDocs = customItems.filter((i) => i.category === 'cat_a');
   const customForms = customItems.filter((i) => i.category === 'cat_b');
+  const permDocs = permanentTemplates.filter((i) => i.category === 'cat_a');
+  const permForms = permanentTemplates.filter((i) => i.category === 'cat_b');
 
-  const allCategoryA = [...AVAILABLE_CUSTOMER_UPLOADS, ...customDocs.map((c) => c.name)];
-  const allCategoryB = [...AVAILABLE_GARAGE_FORMS, ...customForms.map((c) => c.name)];
+  const allCategoryA = Array.from(
+    new Set([
+      ...AVAILABLE_CUSTOMER_UPLOADS,
+      ...permDocs.map((c) => c.name),
+      ...customDocs.map((c) => c.name),
+    ])
+  );
+  const allCategoryB = Array.from(
+    new Set([
+      ...AVAILABLE_GARAGE_FORMS,
+      ...permForms.map((c) => c.name),
+      ...customForms.map((c) => c.name),
+    ])
+  );
 
   const effectiveTtlHours = ttlOption === '24' ? 24 : ttlOption === '168' ? 168 : ttlOption === 'never' ? 0 : Math.max(1, customTtlHours || 24);
   const ttlLabel = ttlOption === '24'
@@ -1083,13 +1153,13 @@ export function ClaimsCatalogWidget({
                     flex: 1,
                   }}
                 >
-                  ✍️ {form} {isCustom ? '⭐ (הועלה ידנית)' : ''}
+                  ✍️ {form} {form === 'ייפוי כוח' ? '📜 (טופס מקורי מעודכן)' : permForms.some((p) => p.name === form) ? '🏛️ (טופס קבוע במאגר)' : isCustom ? '⭐ (הועלה ידנית)' : ''}
                 </span>
               </label>
             );
           })}
         </div>
-        {selectedForms.filter((f) => !customForms.some((c) => c.name === f)).length > 0 ? (
+        {selectedForms.filter((f) => !customForms.some((c) => c.name === f) && !permForms.some((p) => p.name === f)).length > 0 ? (
           <div
             className="claims-catalog-missing-forms-notice"
             data-testid="claims-catalog-missing-forms-notice"
@@ -1106,7 +1176,7 @@ export function ClaimsCatalogWidget({
           >
             <div style={{ fontWeight: 800, color: '#facc15', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span>⚠️</span>
-              <span>הטופס חסר, נא להעלות אותו (PDF/תמונה): {selectedForms.filter((f) => !customForms.some((c) => c.name === f)).join(', ')}</span>
+              <span>הטופס חסר, נא להעלות אותו (PDF/תמונה): {selectedForms.filter((f) => !customForms.some((c) => c.name === f) && !permForms.some((p) => p.name === f)).join(', ')}</span>
             </div>
             <div style={{ fontSize: '0.78rem', color: '#fef9c3', marginBottom: 6 }}>
               הטופס מיועד להורדה, מילוי וחתימה ע"י הלקוח. באפשרותך להעלותו כעת (מצלמה/קובץ) והוא יישמר בתיק, או להמשיך ללא קובץ מוכן מראש.
@@ -1115,7 +1185,7 @@ export function ClaimsCatalogWidget({
               type="button"
               className="btn btn-g"
               onClick={() => {
-                const missing = selectedForms.filter((f) => !customForms.some((c) => c.name === f));
+                const missing = selectedForms.filter((f) => !customForms.some((c) => c.name === f) && !permForms.some((p) => p.name === f));
                 if (missing[0]) setDocName(missing[0]);
                 setDocCategory('cat_b');
                 fileInputRef.current?.click();
@@ -1131,7 +1201,7 @@ export function ClaimsCatalogWidget({
                 cursor: 'pointer',
               }}
             >
-              📤 העלה קובץ עכשיו עבור "{selectedForms.filter((f) => !customForms.some((c) => c.name === f))[0]}"
+              📤 העלה קובץ עכשיו עבור "{selectedForms.filter((f) => !customForms.some((c) => c.name === f) && !permForms.some((p) => p.name === f))[0]}"
             </button>
           </div>
         ) : null}
@@ -1267,6 +1337,96 @@ export function ClaimsCatalogWidget({
                     style={{ accentColor: '#38bdf8' }}
                   />
                   <span>📥 <strong>קטגוריה א'</strong> – מסמך שהלקוח נדרש להעלות אלינו</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Question: Save as permanent template in general gallery? */}
+            <div
+              className="claims-catalog-permanent-choice"
+              data-testid="claims-catalog-permanent-choice"
+              style={{
+                background: '#071022',
+                border: '1.5px solid #475569',
+                borderRadius: 8,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              <div
+                style={{
+                  fontWeight: 800,
+                  color: '#facc15',
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <span>❓</span>
+                <span>האם לשמור את הטופס הזה כטופס קבוע במאגר המסמכים של דליה לשימוש חוזר עם לקוחות נוספים?</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 8,
+                    cursor: 'pointer',
+                    background: saveToPermanentGallery ? 'rgba(74, 222, 128, 0.15)' : '#071022',
+                    border: saveToPermanentGallery ? '1.5px solid #4ade80' : '1px solid #334155',
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="save-to-permanent-gallery"
+                    data-testid="radio-save-permanent-yes"
+                    checked={saveToPermanentGallery === true}
+                    onChange={() => setSaveToPermanentGallery(true)}
+                    style={{ accentColor: '#4ade80', marginTop: 2 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#4ade80' }}>כן, שמור במאגר הקבוע</div>
+                    <div style={{ fontSize: '0.76rem', color: '#cbd5e1', marginTop: 1 }}>
+                      הטופס נשמר בגלריית המסמכים הכללית של המערכת, ואני יכול לבחור אותו בעתיד לכל לקוח, בלי להעלות אותו שוב.
+                    </div>
+                  </div>
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 8,
+                    cursor: 'pointer',
+                    background: !saveToPermanentGallery ? 'rgba(56, 189, 248, 0.15)' : '#071022',
+                    border: !saveToPermanentGallery ? '1.5px solid #38bdf8' : '1px solid #334155',
+                    padding: '6px 10px',
+                    borderRadius: 6,
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="save-to-permanent-gallery"
+                    data-testid="radio-save-permanent-no"
+                    checked={saveToPermanentGallery === false}
+                    onChange={() => setSaveToPermanentGallery(false)}
+                    style={{ accentColor: '#38bdf8', marginTop: 2 }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#38bdf8' }}>לא, לתיק הנוכחי בלבד</div>
+                    <div style={{ fontSize: '0.76rem', color: '#cbd5e1', marginTop: 1 }}>
+                      הטופס משויך רק לתיק הנוכחי ואינו מתווסף למאגר הכללי.
+                    </div>
+                  </div>
                 </label>
               </div>
             </div>
@@ -3659,9 +3819,9 @@ export function ClaimsAiWorkspace({
                   ) ? (
                     <ClaimsCatalogWidget
                       claimId={claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || '')}
-                      onUploadCustomFile={async (file, name, cat) => {
+                      onUploadCustomFile={async (file, name, cat, isPerm) => {
                         const target = claimId || String((pendingActionOf(msg.metadata)?.parameters as any)?.claim_id || '');
-                        return uploadPackageFormToStorage(target, file, name, cat);
+                        return uploadPackageFormToStorage(target, file, name, cat, isPerm);
                       }}
                       onUploadedFormsChange={(items) => {
                         uploadedCatalogFormsRef.current = items;

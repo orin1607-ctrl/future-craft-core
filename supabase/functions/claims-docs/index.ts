@@ -488,12 +488,61 @@ Deno.serve(async (req) => {
           return false;
         });
         if (matchingDoc && !downloadUrlByReq.has(matchingDoc.id)) {
-          const { data: su } = await sb.storage.from(BUCKET).createSignedUrl(f.storage_path, 86400);
+          let pathToSign = String(f.storage_path);
+          const isPoa = matchingDoc.doc_key === "power_of_attorney" || /ייפוי|יפוי|poa/i.test(matchingDoc.label);
+          // If this is POA and points to an old dummy generated TPL file, upgrade to Dani's authentic POA
+          if (isPoa && (pathToSign.includes("/forms/TPL-") || Number(f.byte_size || 0) < 5000)) {
+            pathToSign = "templates/power_of_attorney/dani-poa-nov23.pdf";
+          }
+          const { data: su } = await sb.storage.from(BUCKET).createSignedUrl(pathToSign, 86400);
           if (su?.signedUrl) {
             downloadUrlByReq.set(matchingDoc.id, {
               url: su.signedUrl,
-              name: cleanTitle || f.original_name || matchingDoc.label,
+              name: isPoa ? "דני - ייפוי כוח מעודכן" : (cleanTitle || f.original_name || matchingDoc.label),
             });
+          }
+        }
+      }
+
+      // Check claims_templates gallery for any form that does not yet have a download URL
+      for (const d of docs || []) {
+        if (!downloadUrlByReq.has(d.id)) {
+          const dk = String(d.doc_key || "");
+          const lbl = String(d.label || "").trim();
+          const isPoa = dk === "power_of_attorney" || /ייפוי|יפוי|poa/i.test(lbl);
+          let tplPath: string | null = null;
+          let tplName: string | null = null;
+
+          try {
+            const { data: tpl } = await sb
+              .from("claims_templates")
+              .select("storage_path, original_name, name")
+              .or(`form_key.eq.${dk},name.eq.${lbl},name.ilike.%${lbl}%`)
+              .eq("is_permanent", true)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (tpl?.storage_path) {
+              tplPath = String(tpl.storage_path);
+              tplName = String(tpl.name || tpl.original_name);
+            }
+          } catch (e) {
+            console.warn("claims_templates public_get query warning:", e);
+          }
+
+          if (!tplPath && isPoa) {
+            tplPath = "templates/power_of_attorney/dani-poa-nov23.pdf";
+            tplName = "דני - ייפוי כוח מעודכן";
+          }
+
+          if (tplPath) {
+            const { data: su } = await sb.storage.from(BUCKET).createSignedUrl(tplPath, 86400);
+            if (su?.signedUrl) {
+              downloadUrlByReq.set(d.id, {
+                url: su.signedUrl,
+                name: tplName || d.label,
+              });
+            }
           }
         }
       }
@@ -753,6 +802,18 @@ Deno.serve(async (req) => {
       }
       const pdf = wrapJpegsPdf(pages);
       return binResponse(pdf, "application/pdf", "claim-share-bundle.pdf");
+    }
+
+    if (action === "list_templates") {
+      const { data: templates } = await sb
+        .from("claims_templates")
+        .select("id, name, category, form_key, storage_path, original_name, mime_type, byte_size, content_sha256, is_permanent, created_at")
+        .eq("is_permanent", true)
+        .order("created_at", { ascending: false });
+      return jsonResponse({
+        success: true,
+        templates: templates || [],
+      });
     }
 
     const auth = await requireAuth(req, { allowInternal: true });
@@ -1512,6 +1573,8 @@ Deno.serve(async (req) => {
       const claimId = String(form?.get("claim_id") || "").trim();
       const staffType = String(form?.get("staff_type") || "claim_form").trim();
       const staffTitle = String(form?.get("staff_title") || "").trim().slice(0, 120);
+      const isPermanent = String(form?.get("is_permanent") || "").trim() === "true";
+      const category = String(form?.get("category") || "cat_b").trim();
       const file = form?.get("file");
       if (!(file instanceof File)) return jsonResponse({ success: false, error: "file_required" }, 400);
       if (file.size > MAX_BYTES) return jsonResponse({ success: false, error: "file_too_large" }, 400);
@@ -1520,7 +1583,9 @@ Deno.serve(async (req) => {
       if (!ALLOWED.has(storedMime)) return jsonResponse({ success: false, error: "mime_not_allowed" }, 400);
       const digest = await sha256HexBytes(buf);
       const safeName = sanitizeFileName(file.name);
-      const path = `package-forms/${user.id}/${nid("PF")}-${safeName}`;
+      const path = isPermanent
+        ? `templates/gallery/${nid("TPL")}-${safeName}`
+        : `package-forms/${user.id}/${nid("PF")}-${safeName}`;
       const { error: upErr } = await sb.storage.from(BUCKET).upload(path, buf, { contentType: storedMime, upsert: true });
       if (upErr) return jsonResponse({ success: false, error: upErr.message }, 400);
 
@@ -1528,6 +1593,24 @@ Deno.serve(async (req) => {
       const { data: su, error: signErr } = await sb.storage.from(BUCKET).createSignedUrl(path, 86400);
       if (signErr || !su?.signedUrl) {
         return jsonResponse({ success: false, error: "storage_verification_failed" }, 500);
+      }
+
+      let templateId = "";
+      if (isPermanent) {
+        templateId = nid("TPL");
+        await sb.from("claims_templates").insert({
+          id: templateId,
+          name: staffTitle || file.name,
+          category: category === "cat_a" ? "cat_a" : "cat_b",
+          form_key: staffType || "custom_form",
+          storage_path: path,
+          original_name: file.name,
+          mime_type: storedMime,
+          byte_size: file.size,
+          content_sha256: digest,
+          is_permanent: true,
+          created_by: user.id,
+        });
       }
 
       let fileId = "";
@@ -1549,6 +1632,8 @@ Deno.serve(async (req) => {
             doc_meta: {
               staff_type: STAFF_TYPES.has(staffType) ? staffType : "claim_form",
               staff_title: staffTitle || file.name,
+              is_permanent: isPermanent ? "true" : "false",
+              ...(templateId ? { template_id: templateId } : {}),
             },
             content_sha256: digest,
           });
@@ -1559,6 +1644,8 @@ Deno.serve(async (req) => {
         success: true,
         verified: true,
         file_id: fileId || null,
+        template_id: templateId || null,
+        is_permanent: isPermanent,
         storage_path: path,
         original_name: file.name,
         mime_type: storedMime,

@@ -798,7 +798,7 @@ describe('Claims Links and Sharing UI (Task 8)', () => {
     });
 
     // 5. Verify upload was called with custom title and default category B
-    expect(onUploadCustomFile).toHaveBeenCalledWith(file, 'טופס ויתור סודיות מותאם', 'cat_b');
+    expect(onUploadCustomFile).toHaveBeenCalledWith(file, 'טופס ויתור סודיות מותאם', 'cat_b', true);
 
     // 6. Verify selection count is now 2 (standard doc + new custom form) without resetting prior selection
     await waitFor(() => {

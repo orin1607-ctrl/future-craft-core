@@ -2204,6 +2204,60 @@ async function ensureProvidedFormInStorage(
     }
   }
 
+  // Check if a permanent template exists in the global gallery (claims_templates)
+  const isPoa = docKey === "power_of_attorney" || /ייפוי|יפוי|poa/i.test(normForm);
+  let globalTpl: any = null;
+  try {
+    const { data: tplRow } = await adminSb
+      .from("claims_templates")
+      .select("*")
+      .or(`form_key.eq.${docKey},name.eq.${formName},name.ilike.%${formName}%`)
+      .eq("is_permanent", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    globalTpl = tplRow;
+  } catch (e) {
+    console.warn("claims_templates lookup warning:", e);
+  }
+
+  const templateStoragePath = globalTpl?.storage_path || (isPoa ? "templates/power_of_attorney/dani-poa-nov23.pdf" : null);
+
+  if (templateStoragePath) {
+    const { data: signed, error: signErr } = await adminSb.storage.from("claims-docs").createSignedUrl(templateStoragePath, 86400);
+    if (!signErr && signed?.signedUrl) {
+      const fileId = `CDM-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+      const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+      await adminSb.from("claims_documents").insert({
+        id: fileId,
+        claim_id: targetClaimId,
+        doc_request_id: dcrId,
+        storage_path: templateStoragePath,
+        original_name: String(globalTpl?.original_name || (isPoa ? "דני-ייפוי כוח מעודכן-נובמבר 23.pdf" : `${formName}.pdf`)),
+        mime_type: String(globalTpl?.mime_type || "application/pdf"),
+        byte_size: Number(globalTpl?.byte_size || (isPoa ? 125867 : 0)),
+        source: "staff",
+        uploaded_by: isUuid(userId) ? userId : null,
+        uploaded_by_name: userName || "דליה AI",
+        doc_kind: "general",
+        doc_meta: {
+          staff_type: staffType,
+          staff_title: formName,
+          is_template: "true",
+          template_id: globalTpl?.id || "TPL-GLOBAL-POA-NOV23",
+          is_authentic_poa: isPoa ? "true" : undefined,
+        },
+        content_sha256: globalTpl?.content_sha256 || (isPoa ? "dfd7e6a9e0f3db7dc2ec31770e5875554e2894fca115e46e9c748ba172db43c2" : null),
+      });
+      return { verified: true, signedUrl: signed.signedUrl, storagePath: templateStoragePath, fileId };
+    }
+  }
+
+  if (isPoa) {
+    // Under no circumstances generate a dummy form for Power of Attorney if user explicitly forbade it!
+    return { verified: false, error: "טופס ייפוי כוח המקורי אינו זמין באחסון" };
+  }
+
   // Generate a clean, downloadable PDF template in Storage so the customer always receives an openable file
   const pdfBytes = createBuiltInFormPdfBytes(formName, targetClaimId);
   const digest = await sha256Hex(pdfBytes);
