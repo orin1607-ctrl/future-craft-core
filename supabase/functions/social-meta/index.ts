@@ -8,7 +8,7 @@
 // - run-scheduled is called by pg_cron with `x-social-cron` == SOCIAL_CRON_SECRET.
 //
 // Secrets: META_APP_ID, META_APP_SECRET, SOCIAL_ADMIN_KEY, SOCIAL_CRON_SECRET,
-//          optional META_GRAPH_VERSION, GEMINI_API_KEY / CLAUDE_API_KEY / OPENAI_API_KEY (AI text).
+//          optional META_LOGIN_CONFIG_ID, META_GRAPH_VERSION, GEMINI_API_KEY / CLAUDE_API_KEY / OPENAI_API_KEY (AI text).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const GRAPH = `https://graph.facebook.com/${Deno.env.get("META_GRAPH_VERSION") || "v23.0"}`;
@@ -91,8 +91,14 @@ async function oauthStart(businessId: string, returnUrl: string) {
   u.searchParams.set("redirect_uri", REDIRECT_URI);
   u.searchParams.set("state", data.id);
   u.searchParams.set("response_type", "code");
-  u.searchParams.set("scope", SCOPES.join(","));
-  u.searchParams.set("auth_type", "rerequest");
+  // Business-type apps use a Facebook Login for Business configuration that carries the permissions.
+  if (env("META_LOGIN_CONFIG_ID")) {
+    u.searchParams.set("config_id", env("META_LOGIN_CONFIG_ID"));
+    u.searchParams.set("override_default_response_type", "true");
+  } else {
+    u.searchParams.set("scope", SCOPES.join(","));
+    u.searchParams.set("auth_type", "rerequest");
+  }
   return { url: u.toString() };
 }
 
