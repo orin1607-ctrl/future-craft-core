@@ -107,7 +107,7 @@ code{background:var(--bg);padding:1px 6px;border-radius:6px;direction:ltr;unicod
   <div class="card" id="gate" hidden>
     <h2>כניסה למרכז הרשתות החברתיות</h2>
     <p class="muted">האזור מאפשר פרסום בעמודים העסקיים, ולכן הוא מוגן במפתח גישה של בעל המערכת. המפתח נשמר בדפדפן הזה בלבד.</p>
-    <div class="row"><input type="password" id="keyIn" placeholder="מפתח גישה" style="max-width:360px"><button class="btn pri" id="keyBtn">כניסה</button></div>
+    <form class="row" id="keyForm" novalidate><input type="password" id="keyIn" name="key" placeholder="מפתח גישה" style="max-width:360px;flex:1"><button class="btn pri" id="keyBtn" type="submit">כניסה</button></form>
     <div id="keyErr" class="note bad" hidden></div>
   </div>
 
@@ -248,12 +248,9 @@ async function api(route, body){
 }
 
 /* ---------- gate ---------- */
-function showGate(err){ $('#gate').hidden=false; $('#main').hidden=true; $('#keyErr').hidden=!err; $('#keyErr').textContent=err||''; }
-$('#keyBtn').onclick = async () => {
-  S.key = $('#keyIn').value.trim();
-  try { await api('ping'); ls.set(KEY_LS, S.key); boot(); } catch(e) { ls.del(KEY_LS); }
-};
-$('#keyIn').onkeydown = e => { if (e.key==='Enter') $('#keyBtn').click(); };
+const gate = Hub.mountGate({input: $('#keyIn'), button: $('#keyBtn'), error: $('#keyErr'),
+  onSuccess: () => { S.key = Hub.key; return boot(true); }});
+function showGate(err){ $('#gate').hidden=false; $('#main').hidden=true; gate.show(err || ''); }
 
 /* ---------- businesses ---------- */
 function renderBizTabs(){
@@ -569,9 +566,10 @@ async function loadBiz(){
   try { S.status = await api('status'); renderStatus(); } catch(e) { toast(e.message); }
   loadPosts();
 }
-async function boot(){
+async function boot(fromGate){
   if (!S.key) return showGate();
-  try { S.businesses = (await api('businesses')).businesses; } catch(e) { return; }
+  try { S.businesses = (await api('businesses')).businesses; }
+  catch(e) { if (fromGate) throw e; return showGate(e.message); }
   if (!S.businesses.find(b=>b.id===S.biz)) S.biz = S.businesses[0].id;
   $('#gate').hidden = true; $('#main').hidden = false;
   const fromOAuth = await handleOAuthReturn();

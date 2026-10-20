@@ -99,7 +99,8 @@ body.pick header{display:none} body.pick .manage{display:none!important}
   <div class="card" id="gate" hidden>
     <h2 style="margin-top:0">כניסה לספריית המדיה</h2>
     <p class="muted">אותו מפתח גישה של מרכז הרשתות החברתיות. נשמר בדפדפן הזה בלבד.</p>
-    <div class="row"><input type="password" id="keyIn" placeholder="מפתח גישה" style="max-width:320px"><button class="btn pri" id="keyBtn">כניסה</button></div>
+    <form class="row" id="keyForm" novalidate><input type="password" id="keyIn" name="key" placeholder="מפתח גישה" style="max-width:320px;flex:1"><button class="btn pri" id="keyBtn" type="submit">כניסה</button></form>
+    <div id="keyErr" role="alert" hidden style="margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--bad-soft);color:var(--bad)"></div>
   </div>
 
   <div id="main" hidden>
@@ -262,15 +263,15 @@ const S = {businesses: [], assets: [], categories: [], sel: new Set(), filter: {
 const DEFAULT_CATS = ['כללי', 'פוסטים', 'רכבים', 'צוות', 'שירותים', 'לוגו', 'אירועים'];
 
 function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),2800); }
-Hub.onAuthFail = () => { Hub.clearKey(); $('#gate').hidden=false; $('#main').hidden=true; };
 $$('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
 
 /* ---------- boot / gate ---------- */
-$('#keyBtn').onclick = async () => { Hub.setKey($('#keyIn').value.trim()); try { await Hub.hub('ping'); boot(); } catch(e) { toast('מפתח שגוי'); } };
-$('#keyIn').onkeydown = e => { if (e.key === 'Enter') $('#keyBtn').click(); };
-async function boot(){
+const gate = Hub.mountGate({input: $('#keyIn'), button: $('#keyBtn'), error: $('#keyErr'), onSuccess: () => boot(true)});
+Hub.onAuthFail = () => { Hub.clearKey(); $('#gate').hidden=false; $('#main').hidden=true; gate.show('מפתח הגישה כבר לא תקף. הזינו אותו מחדש.'); };
+async function boot(fromGate){
   if (!Hub.key) { $('#gate').hidden = false; return; }
-  try { S.businesses = await Hub.businesses(); } catch(e) { return; }
+  try { S.businesses = await Hub.businesses(); }
+  catch(e) { if (fromGate) throw e; $('#gate').hidden = false; gate.show(e.message); return; }
   if (!S.businesses.find(b=>b.id===Hub.biz)) Hub.setBiz(S.businesses[0].id);
   $('#gate').hidden = true; $('#main').hidden = false;
   renderBiz(); load();

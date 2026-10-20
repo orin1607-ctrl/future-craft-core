@@ -33,6 +33,59 @@
     async businesses() { return (await this.social('businesses')).businesses; },
   };
 
+  /* ---------- sign-in gate (shared by every Marketing Center page) ---------- */
+  // Phones often paste extra text (the file's title line, spaces, invisible characters): keep only the key.
+  Hub.normalizeKey = function (raw) {
+    const s = String(raw || '').replace(/[​-‏‪-‮⁦-⁩﻿]/g, '');
+    const tokens = s.match(/[A-Za-z0-9_-]{16,}/g);
+    return tokens ? tokens[tokens.length - 1] : s.trim();
+  };
+  // Returns '' on success, otherwise a message the person can act on.
+  Hub.verifyKey = async function (key) {
+    let r;
+    try {
+      r = await fetch(BASE + 'marketing-hub/ping', {
+        method: 'POST', headers: { 'content-type': 'application/json', 'x-social-key': key }, body: '{}',
+      });
+    } catch (e) {
+      return 'אין חיבור לשרת. בדקו את החיבור לאינטרנט ונסו שוב.';
+    }
+    if (r.status === 401) return 'מפתח הגישה שגוי. העתיקו רק את השורה השנייה בקובץ המפתח (בלי הכותרת) ונסו שוב.';
+    if (!r.ok) return 'השרת לא זמין כרגע (' + r.status + '). נסו שוב בעוד דקה.';
+    return '';
+  };
+  /* Wires a gate: Enter or button → clean key → verify → onSuccess(). Errors are shown inline next to
+     the field (a toast can hide behind a phone keyboard), and the button shows progress. */
+  Hub.mountGate = function ({ input, button, error, onSuccess }) {
+    const show = msg => {
+      error.textContent = msg; error.hidden = !msg;
+      if (msg) error.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    };
+    input.setAttribute('autocomplete', 'current-password');
+    input.setAttribute('autocapitalize', 'off'); input.setAttribute('autocorrect', 'off'); input.setAttribute('spellcheck', 'false');
+    input.setAttribute('enterkeyhint', 'go');
+    const label = button.textContent;
+    const submit = async ev => {
+      if (ev) ev.preventDefault();
+      const key = Hub.normalizeKey(input.value);
+      if (!key) return show('הזינו את מפתח הגישה.');
+      button.disabled = true; button.textContent = 'בודק…'; show('');
+      const msg = await Hub.verifyKey(key);
+      if (msg) { button.disabled = false; button.textContent = label; return show(msg); }
+      Hub.setKey(key);
+      try { input.blur(); await onSuccess(); show(''); }
+      catch (e) { show('הכניסה הצליחה אבל טעינת הנתונים נכשלה: ' + (e.message || e) + '. רעננו את העמוד.'); }
+      finally { button.disabled = false; button.textContent = label; }
+    };
+    const form = input.closest('form');
+    if (form) form.addEventListener('submit', submit);   // button is type=submit: covers tap and Enter/"Go"
+    else {
+      input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(e); });
+      button.addEventListener('click', submit);
+    }
+    return { show };
+  };
+
   /* ---------- images ---------- */
   function loadImage(src) {
     return new Promise((res, rej) => {

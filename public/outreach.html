@@ -94,7 +94,8 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
   <div class="card" id="gate" hidden>
     <h2>כניסה</h2>
     <p class="muted">אותו מפתח גישה של מרכז הרשתות החברתיות.</p>
-    <div class="row"><input type="password" id="keyIn" placeholder="מפתח גישה" style="max-width:320px"><button class="btn pri" id="keyBtn">כניסה</button></div>
+    <form class="row" id="keyForm" novalidate><input type="password" id="keyIn" name="key" placeholder="מפתח גישה" style="max-width:320px;flex:1"><button class="btn pri" id="keyBtn" type="submit">כניסה</button></form>
+    <div class="note" id="keyErr" role="alert" hidden style="margin-top:10px;background:var(--bad-soft);color:var(--bad)"></div>
   </div>
 
   <div id="main" hidden>
@@ -267,9 +268,9 @@ const VARS = ['שם_העסק','איש_קשר','עיר','תחום','העסק_של
 const S = {businesses:[], contacts:[], counts:{}, filter:'', sel:new Set(), templates:[], queue:[], cur:null, qMedia:null, tMedia:null, tCur:null, pick:null, prospects:[], pSel:new Set()};
 
 function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),3000); }
-Hub.onAuthFail = () => { Hub.clearKey(); $('#gate').hidden=false; $('#main').hidden=true; };
+const gate = Hub.mountGate({input: $('#keyIn'), button: $('#keyBtn'), error: $('#keyErr'), onSuccess: () => boot(true)});
+Hub.onAuthFail = () => { Hub.clearKey(); $('#gate').hidden=false; $('#main').hidden=true; gate.show('מפתח הגישה כבר לא תקף. הזינו אותו מחדש.'); };
 $$('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
-$('#keyBtn').onclick = async () => { Hub.setKey($('#keyIn').value.trim()); try { await Hub.hub('ping'); boot(); } catch(e) { toast('מפתח שגוי'); } };
 
 const phoneDigits = c => { let d = String(c.whatsapp || c.phone || '').replace(/\D/g,''); if (d.startsWith('0')) d = '972' + d.slice(1); return d; };
 const has = (c, ch) => ch==='facebook' ? !!c.facebook_handle : ch==='instagram' ? !!c.instagram_handle : ch==='whatsapp' ? !!(c.whatsapp||c.phone) : ch==='email' ? !!c.email : !!c.phone;
@@ -287,9 +288,10 @@ const render = (tpl, c) => tpl.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, k) => ({'�
 const fmtD = d => d ? new Date(d).toLocaleDateString('he-IL') : '—';
 
 /* ---------- boot ---------- */
-async function boot(){
+async function boot(fromGate){
   if (!Hub.key) { $('#gate').hidden = false; return; }
-  try { S.businesses = await Hub.businesses(); } catch(e) { return; }
+  try { S.businesses = await Hub.businesses(); }
+  catch(e) { if (fromGate) throw e; $('#gate').hidden = false; gate.show(e.message); return; }
   if (!S.businesses.find(b=>b.id===Hub.biz)) Hub.setBiz(S.businesses[0].id);
   $('#gate').hidden = true; $('#main').hidden = false;
   $('#bulkStatus').innerHTML = '<option value="">שינוי סטטוס…</option>' + Object.entries(STATUS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
