@@ -372,6 +372,35 @@ async function runScheduled() {
   return { ran: out.length, out };
 }
 
+// Proves publish rights without anything going public: Facebook gets an unpublished photo that is
+// deleted at once, Instagram gets a media container that is never passed to media_publish.
+async function dryRun(businessId: string, imageUrl: string) {
+  const { data: accts } = await db.from("social_accounts").select("*").eq("business_id", businessId);
+  const appToken = `${env("META_APP_ID")}|${env("META_APP_SECRET")}`;
+  const out: Record<string, unknown> = {};
+  for (const a of accts || []) {
+    const r: Record<string, unknown> = {};
+    try {
+      const dbg = await graph("debug_token", { input_token: a.access_token, access_token: appToken });
+      r.token = { valid: dbg.data?.is_valid, type: dbg.data?.type, expires: dbg.data?.expires_at || 0, scopes: dbg.data?.scopes };
+      if (a.platform === "facebook") {
+        const p = await graph(`${a.external_id}/photos`, { url: imageUrl, published: "false", access_token: a.access_token }, "POST");
+        r.unpublishedPhoto = p.id;
+        r.deleted = (await graph(p.id, { access_token: a.access_token }, "DELETE")).success === true;
+      } else {
+        const c = await graph(`${a.external_id}/media`, { image_url: imageUrl, caption: "dry-run (not published)", access_token: a.access_token }, "POST");
+        await waitIgContainer(c.id, a.access_token);
+        r.containerReady = c.id; // left unpublished; Meta expires it after 24h
+      }
+      r.ok = true;
+    } catch (e) {
+      r.ok = false; r.error = (e as Error).message;
+    }
+    out[a.platform] = r;
+  }
+  return out;
+}
+
 async function disconnect(businessId: string) {
   await db.from("social_accounts").delete().eq("business_id", businessId);
   return status(businessId);
@@ -406,6 +435,7 @@ Deno.serve(async (req) => {
       case "oauth/pages": return json(await sessionPages(body.session_id));
       case "oauth/select": return json(await selectPage(body.session_id, body.page_id));
       case "verify": return json(await verify(biz));
+      case "dry-run": return json(await dryRun(biz, body.image_url));
       case "disconnect": return json(await disconnect(biz));
       case "upload": return json(await upload(biz, body.base64, body.content_type));
       case "ai-text": return json(await aiText(biz, body.brief || "", body.tone || "", body.platform || ""));
