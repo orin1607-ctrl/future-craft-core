@@ -25,8 +25,72 @@
     { catId: "protected_housing", key: "protected_housing", label: "בתי דיור מוגן (data.gov.il)", rid: "7c390473-42b8-4fd2-a72d-07fa126ffeee", by: "name", nameField: "company", phoneFields: ["telephone"] },
     { catId: "mail_permits", key: "mail_permits", label: "בעלי היתר שירותי דואר – משרד התקשורת (data.gov.il)", rid: "d6add630-6731-4534-9383-cb780fb0c268", by: "name", nameField: "שם בעל היתר", phoneFields: ["טלפון", "נייד"], emailField: "מייל" }
   ];
+  // אתר החברה עצמה כפי שנסרק במאגר הלאומי (nr_contact_points.src_own_site) – מקור עצמאי מהמאגרים הממשלתיים; דורש משתמש מחובר
+  PHONE_SOURCES.push({ catId: "registry_site", key: "registry_site", label: "אתר החברה – סריקת המאגר הלאומי", by: "registry" });
   // מסגרות רווחה ומעונות: טלפון של מסגרת שהארגון מפעיל – לא בהכרח טלפון ההנהלה
   const BRANCH_SOURCES = ["daycare", "welfare"];
+
+  async function queryRegistrySite(hp) {
+    const url = typeof SUPABASE_STAGING_URL !== "undefined" ? SUPABASE_STAGING_URL : "";
+    const anon = typeof SUPABASE_STAGING_ANON !== "undefined" ? SUPABASE_STAGING_ANON : "";
+    let sess = null;
+    try { sess = (typeof userSession === "function") ? await userSession() : null; } catch (e) {}
+    if (!url || !sess || !sess.accessToken) return { error: "דורש התחברות לדליה" };
+    const q = url + "/rest/v1/nr_businesses?select=id,website,nr_contact_points(value,subkind,branch_name,src_own_site,kind)&reg_id=eq." + encodeURIComponent(hp) + "&nr_contact_points.kind=eq.phone";
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), 15000);
+    try {
+      const r = await fetch(q, { signal: ac.signal, headers: { apikey: anon, Authorization: "Bearer " + sess.accessToken } });
+      clearTimeout(t);
+      if (!r.ok) return { error: "HTTP " + r.status };
+      const rows = await r.json();
+      const hits = [];
+      (rows || []).forEach(b => (b.nr_contact_points || []).forEach(p => {
+        if (!p.src_own_site) return;
+        const n = normPhone(p.value);
+        if (n) hits.push({ phone: n, website: b.website || "", branch: !!p.branch_name || p.subkind === "branch", branchName: p.branch_name || "" });
+      }));
+      return { hits };
+    } catch (e) {
+      clearTimeout(t);
+      return { error: e.name === "AbortError" ? "timeout" : "שגיאת רשת" };
+    }
+  }
+
+  // סטטוס אימות לפי ראיות מתועדות בלבד (מקור + קישור) עבור המספר הנוכחי; מקורות מדווחים בלי ראיה נשמרים בנפרד ולא נמחקים
+  function documentedSources(c) {
+    const cur = normPhone(c.phone);
+    if (!cur) return [];
+    return [...new Set((c.phone_evidence || []).filter(e => normPhone(e.phone) === cur && e.url).map(e => e.source))];
+  }
+  function applyVerificationStatus(c) {
+    const cur = normPhone(c.phone);
+    if (!Array.isArray(c.phone_reported_sources)) {
+      c.phone_reported_sources = Array.isArray(c.phone_sources) ? c.phone_sources.slice() : [];
+      c.phone_reported_status = c.phone_status || "";
+    }
+    if (!cur) {
+      c.phone_status = "awaiting_contact"; c.phone_verified = false; c.phone_sources = [];
+      c.phoneVerBadgeColor = "gray"; c.phoneVerBadgeLabel = "ממתינה להשלמת קשר"; c.phone_type = "";
+      return;
+    }
+    const doc = documentedSources(c);
+    c.phone_sources = doc;
+    c.phone_status = doc.length >= 2 ? "verified_two_sources" : (doc.length === 1 ? "single_source" : "unverified");
+    c.phone_verified = doc.length >= 2;
+    c.phoneVerBadgeColor = doc.length >= 2 ? "green" : (doc.length === 1 ? "orange" : "gray");
+    c.phoneVerBadgeLabel = doc.length >= 2 ? "מאומת בשני מקורות" : (doc.length === 1 ? "מקור חי אחד" : "לא מאומת");
+    const evCur = (c.phone_evidence || []).filter(e => normPhone(e.phone) === cur && e.url);
+    c.phone_type = !evCur.length ? "unknown" : (evCur.every(e => e.branch) ? "branch" : "main");
+    c.verification_rule_v = 2;
+  }
+  function migrateBatchVerification() {
+    if (typeof C === "undefined" || !Array.isArray(C)) return 0;
+    let n = 0;
+    C.forEach(c => { if (c.discovery_batch === "batch_200_regular" && c.verification_rule_v !== 2) { applyVerificationStatus(c); n++; } });
+    if (n && typeof persistProspectorData === "function") persistProspectorData();
+    return n;
+  }
 
   // תיקון סטטוס במאגר 130 המקורות לפי בדיקה חיה (2026-10-18): מקורות שסומנו "מחובר אוטומטית" אך נחסמים בדפדפן או לא רלוונטיים
   const BLOCKED_LIVE = {
@@ -164,11 +228,24 @@
         });
         log.sources.push({ source: src.label, result: err ? "שגיאה: " + err : (r.hits.length ? "נמצא " + r.hits.length + " טלפון" : "לא נמצא"), url: r.url });
         continue;
+      } else if (src.by === "registry") {
+        if (!hp) { log.sources.push({ source: src.label, result: "אין ח.פ. לחיפוש" }); continue; }
+        const r = await queryRegistrySite(hp);
+        if (r.error) { log.sources.push({ source: src.label, result: r.error.startsWith("דורש") ? r.error : "שגיאה: " + r.error }); continue; }
+        r.hits.forEach(h => {
+          const ev = { source: src.label, url: h.website, matched_by: "ח.פ. " + hp + " במאגר הלאומי + הטלפון מופיע באתר החברה", record_name: h.branchName, checked_at: log.checked_at, branch: h.branch };
+          if (!found.has(h.phone)) found.set(h.phone, []);
+          if (!found.get(h.phone).some(e => e.source === src.label)) found.get(h.phone).push(ev);
+        });
+        log.sources.push({ source: src.label, result: r.hits.length ? "נמצא " + r.hits.length + " טלפון באתר החברה" : "לא נמצא" });
+        continue;
       }
       if (err) { log.sources.push({ source: src.label, result: "שגיאה: " + err }); continue; }
       let n = 0;
       for (const rec of recs) {
-        const ev = { source: src.label, url: src.by === "hp" ? recUrl : DS, matched_by: matchedBy, record_name: String(rec[src.nameField] || ""), checked_at: log.checked_at, branch: BRANCH_SOURCES.includes(src.key) };
+        // קישור ראיה שמחזיר את הרשומה עצמה (לפי ח.פ. או לפי השם המדויק במאגר)
+        const recLink = src.by === "hp" ? recUrl : CKAN + src.rid + "&filters=" + encodeURIComponent(JSON.stringify({ [src.nameField]: rec[src.nameField] }));
+        const ev = { source: src.label, url: recLink, matched_by: matchedBy, record_name: String(rec[src.nameField] || ""), checked_at: log.checked_at, branch: BRANCH_SOURCES.includes(src.key) };
         for (const f of src.phoneFields) {
           const p = normPhone(rec[f]);
           if (!p) continue;
@@ -188,41 +265,34 @@
       if (!c.phone_evidence.some(e => e.phone === p && e.source === ev.source)) c.phone_evidence.push(Object.assign({ phone: fmtPhone(p) }, ev));
     });
     let newPhone = false;
+    // מועמד = מספר שונה מהקיים; נשמר עם הראיות וסימון סניף כדי שאפשר יהיה לאשר אותו ידנית
+    const toCandidate = ([p, evs]) => ({ phone: fmtPhone(p), sources: evs.map(e => e.source), branch: evs.every(e => e.branch), evidence: evs.map(e => Object.assign({ phone: fmtPhone(p) }, e)) });
+    const keepRejected = (list) => list.filter(x => !(c.phone_candidates_rejected || []).some(r => normPhone(r.phone) === normPhone(x.phone)));
     if (existing) {
       if (found.has(existing)) addEvidence(existing, found.get(existing));
-      const others = [...found.keys()].filter(p => p !== existing);
+      const others = [...found.entries()].filter(([p]) => p !== existing);
       if (others.length) {
-        c.phone_candidates = others.map(p => ({ phone: fmtPhone(p), sources: found.get(p).map(e => e.source) }));
-        log.note = "נמצא מספר שונה מהקיים – נשמר כמועמד לבדיקה, הקיים לא הוחלף";
+        c.phone_candidates = keepRejected(others.map(toCandidate));
+        log.note = "נמצא מספר שונה מהקיים – נשמר כמועמד לבדיקה ואישור, הקיים לא הוחלף";
       }
     } else if (found.size) {
-      // המספר עם הכי הרבה מקורות עצמאיים
-      const best = [...found.entries()].sort((a, b) => b[1].length - a[1].length)[0];
+      // עדיפות לטלפון ראשי (לא סניף), ואז למספר עם הכי הרבה מקורות עצמאיים
+      const best = [...found.entries()].sort((a, b) => (a[1].every(e => e.branch) ? 1 : 0) - (b[1].every(e => e.branch) ? 1 : 0) || b[1].length - a[1].length)[0];
       c.phone = fmtPhone(best[0]);
       if (/^05/.test(best[0])) c.mobile = c.phone;
       addEvidence(best[0], best[1]);
       // טלפון שמקורו רק במעון/סניף שהארגון מפעיל – מסומן כטלפון סניף ולא כטלפון ההנהלה
       c.phone_note = best[1].every(e => e.branch) ? "טלפון של מעון/סניף שהארגון מפעיל (" + (best[1][0].record_name || "") + ") – לא בהכרח טלפון ההנהלה" + (found.size > 1 ? "; נמצאו " + found.size + " מספרי סניפים" : "") : "";
       newPhone = true;
-      if (found.size > 1) c.phone_candidates = [...found.entries()].filter(([p]) => p !== best[0]).map(([p, evs]) => ({ phone: fmtPhone(p), sources: evs.map(e => e.source) }));
+      if (found.size > 1) c.phone_candidates = keepRejected([...found.entries()].filter(([p]) => p !== best[0]).map(toCandidate));
     }
     const cur = normPhone(c.phone);
     const liveSources = [...new Set(c.phone_evidence.filter(e => normPhone(e.phone) === cur).map(e => e.source))];
-    if (newPhone) {
-      c.phone_sources = liveSources;
-      c.phone_status = liveSources.length >= 2 ? "verified_two_sources" : "single_source";
-      c.phone_verified = liveSources.length >= 2;
-      c.phoneVerBadgeColor = c.phone_verified ? "green" : "orange";
-      c.phoneVerBadgeLabel = c.phone_verified ? "מאומת בשני מקורות" : (c.phone_note ? "מקור יחיד – טלפון סניף" : "קיים, מקור יחיד");
-      c.enrichment_status = "enriched";
-    } else if (!cur) {
-      c.phone_status = "awaiting_contact";
-      c.phone_verified = false;
-      c.phoneVerBadgeColor = "gray";
-      c.phoneVerBadgeLabel = "ממתינה להשלמת קשר";
-      c.enrichment_status = "awaiting_contact";
-    }
-    // מספר קיים: הסימון הקודם נשמר; ראיות חיות נרשמות בנפרד (phone_live_sources) כדי שאפשר יהיה לבדוק אותו
+    // סטטוס לפי ראיות מתועדות בלבד; "מאומת" רק עם 2 מקורות עצמאיים שלכל אחד ראיה
+    applyVerificationStatus(c);
+    c.enrichment_status = cur ? "enriched" : "awaiting_contact";
+    if (c.phone_type === "branch" && !c.phone_note) c.phone_note = "טלפון של סניף/מסגרת שהארגון מפעיל – לא בהכרח טלפון ההנהלה";
+    if (c.phone_type === "main") c.phone_note = "";
     c.phone_live_sources = liveSources;
     if ((!c.email || c.email === "—") && emails.size) {
       const bestM = [...emails.entries()].sort((a, b) => b[1].length - a[1].length)[0];
@@ -392,13 +462,14 @@
       ["welfare", "מסגרות רווחה – משרד הרווחה", "ח.פ. ארגון + טלפון מסגרת"],
       ["museums", "מוזאונים מוכרים – משרד התרבות", "שם מוזאון + טלפון + אימייל"],
       ["protected_housing", "בתי דיור מוגן", "שם חברה מפעילה + טלפון"],
-      ["mail_permits", "בעלי היתר שירותי דואר – משרד התקשורת", "שם חברה + טלפון + אימייל"]
+      ["mail_permits", "בעלי היתר שירותי דואר – משרד התקשורת", "שם חברה + טלפון + אימייל"],
+      ["registry_site", "אתר החברה – סריקת המאגר הלאומי (דורש התחברות)", "טלפון שמופיע באתר החברה + קישור לאתר"]
     ];
     extra.forEach(([key, name, types], i) => {
       if (window.ALL_130_SOURCES.some(s => s.engineKey === key)) return;
       const src = PHONE_SOURCES.find(s => s.key === key);
       window.ALL_130_SOURCES.push({ id: 131 + i, engineKey: key, cat: "gov", catName: "מאגרים ממשלתיים (data.gov.il)", name, nameEn: key,
-        url: CKAN + src.rid, mechanism: "CKAN_API", status: "connected_live", statusLabel: "מחובר אוטומטית – מנוע הטלפונים",
+        url: src.rid ? CKAN + src.rid : "https://usfeoerkpcafxxlyuldl.supabase.co/rest/v1/nr_businesses", mechanism: src.rid ? "CKAN_API" : "SUPABASE_AUTH", status: "connected_live", statusLabel: "מחובר אוטומטית – מנוע הטלפונים",
         dataTypes: types.split(" + "), isIsraeliRelevant: true, authRequired: false, paidRequired: false, blockReason: "" });
     });
   }
@@ -423,11 +494,10 @@
     if (!c.phone_sources.includes(source)) c.phone_sources.push(source);
     c.phone_evidence = Array.isArray(c.phone_evidence) ? c.phone_evidence : [];
     c.phone_evidence.push({ phone: c.phone, source, url: "", matched_by: "הזנה ידנית", checked_at: new Date().toISOString() });
-    const n2 = c.phone_sources.length;
-    c.phone_status = n2 >= 2 ? "verified_two_sources" : "single_source";
-    c.phone_verified = n2 >= 2;
-    c.phoneVerBadgeColor = c.phone_verified ? "green" : "orange";
-    c.phoneVerBadgeLabel = c.phone_verified ? "מאומת בשני מקורות" : "קיים, מקור יחיד";
+    // הזנה ידנית נרשמת כמקור מדווח; אימות נקבע רק לפי ראיות מתועדות (מקור + קישור)
+    c.phone_reported_sources = Array.isArray(c.phone_reported_sources) ? c.phone_reported_sources : [];
+    if (!c.phone_reported_sources.includes(source)) c.phone_reported_sources.push(source);
+    applyVerificationStatus(c);
     c.enrichment_status = "enriched";
     persistProspectorData();
     toast("✓ טלפון עודכן (" + c.phoneVerBadgeLabel + (same ? "" : " – מספר חדש, המקורות הקודמים נשמרו בהיסטוריה") + ")", "success");
@@ -457,28 +527,76 @@
       html = html.replace('<span class="badge b-ok" style="font-size:9px">ממשלתי</span>',
         emailSrc ? '<span class="badge ' + (c.email_status === "verified_two_sources" ? "b-ok" : "b-est") + '" style="font-size:9px" title="' + esc2(emailSrc) + '">' + (c.email_status === "verified_two_sources" ? "✓ 2 מקורות" : "מקור יחיד") + "</span>"
           : '<span class="badge" style="font-size:9px;background:#f1f5f9;color:#64748b" title="מקור האימייל לא תועד">מקור לא מתועד</span>');
+      if (c.discovery_batch === "batch_200_regular" && c.verification_rule_v !== 2) applyVerificationStatus(c);
+      // תווית סטטוס לפי ראיות מתועדות: מאומת (2) / מקור חי אחד (1) / לא מאומת (0)
+      const single = '<span class="badge b-est" style="font-size:9.5px;padding:2px 6px" title="אומת במקור יחיד">≈ קיים, מקור יחיד</span>';
+      if (c.phone_status === "unverified") html = html.replace(single, '<span class="badge" style="font-size:9.5px;padding:2px 6px;background:#f1f5f9;color:#475569" title="אין ראיה מתועדת (מקור + קישור) למספר הזה">⚠️ לא מאומת</span>');
+      else if (c.phone_status === "single_source") html = html.replace(single, '<span class="badge b-est" style="font-size:9.5px;padding:2px 6px" title="נמצא במקור חי אחד עם ראיה">◐ מקור חי אחד</span>');
       const live = c.phone_live_sources || [];
-      // "מאומת בשני מקורות" מוצג רק כשיש 2 ראיות מתועדות (בדיקה חיה או הזנה ידנית); אחרת – מקורות מדווחים בלבד
-      const curN = normPhone(c.phone);
-      const documented = new Set((c.phone_evidence || []).filter(e => normPhone(e.phone) === curN).map(e => e.source));
-      if (documented.size < 2) {
-        html = html.replace('title="אומת בשני מקורות עצמאיים">✓ מאומת בשני מקורות',
-          'title="המקורות דווחו ברשימה המובנית ללא קישור ראיה; לא אושרו בבדיקה חיה">≈ 2 מקורות מדווחים – לא אומת בבדיקה חיה');
-        html = html.replace('<span class="badge b-ok" style="font-size:9.5px;padding:2px 6px" title="המקורות', '<span class="badge b-est" style="font-size:9.5px;padding:2px 6px" title="המקורות');
-      }
       let extra = "";
+      if (c.phone_type === "main" || c.phone_type === "branch") {
+        extra += '<div class="xs" style="font-size:9.5px">' + (c.phone_type === "main" ? "🏢 טלפון ראשי של החברה" : "🏬 טלפון סניף/מסגרת") + "</div>";
+      }
+      const reported = (c.phone_reported_sources || []).filter(s => !(c.phone_sources || []).includes(s));
+      if (reported.length && normPhone(c.phone)) extra += '<div class="xs" style="font-size:9.5px;max-width:220px;white-space:normal;color:#64748b" title="שמות מקורות שנרשמו בלי קישור ראיה – לא נספרים כאימות">🗒️ מקורות מדווחים (לא נבדקו): ' + esc2(reported.join(" + ")) + "</div>";
       if (c.phone_check_log) {
         extra += '<div class="xs" style="font-size:9.5px;max-width:220px;white-space:normal;line-height:1.25;color:' + (live.length ? "#15803d" : "#64748b") + '" title="נבדק ' + esc2(c.phone_check_log.checked_at) + '">🔎 ' +
-          (live.length ? "אומת במקור חי: " + esc2(live.join(" + ")) : "לא נמצא במקורות החיים שנבדקו") + "</div>";
+          (live.length ? "נמצא במקור חי: " + esc2(live.join(" + ")) : "לא נמצא במקורות החיים שנבדקו") + "</div>";
       }
       if (c.phone_note) extra += '<div class="xs" style="font-size:9.5px;max-width:220px;white-space:normal;color:#b45309">⚠️ ' + esc2(c.phone_note) + "</div>";
-      if (c.phone_candidates && c.phone_candidates.length) extra += '<div class="xs" style="font-size:9.5px;max-width:220px;white-space:normal;color:#7c3aed">📋 מספרים נוספים לבדיקה: ' + esc2(c.phone_candidates.slice(0, 3).map(p => p.phone).join(", ")) + (c.phone_candidates.length > 3 ? " ועוד " + (c.phone_candidates.length - 3) : "") + "</div>";
+      if (c.phone_candidates && c.phone_candidates.length) {
+        extra += '<div class="xs" style="font-size:9.5px;max-width:240px;white-space:normal;color:#7c3aed;margin-top:2px">📋 מספרים נוספים לבדיקה ואישור:</div>';
+        c.phone_candidates.slice(0, 4).forEach(p => {
+          extra += '<div class="xs" style="font-size:9.5px;display:flex;gap:4px;align-items:center;flex-wrap:wrap"><span class="ltr bold">' + esc2(p.phone) + "</span>" +
+            '<span class="muted">' + (p.branch ? "סניף · " : "") + esc2((p.sources || []).join(" + ")) + "</span>" +
+            '<button class="btn btn-sm" style="padding:0 5px;font-size:9.5px" onclick="promoteCandidatePhone(' + JSON.stringify(String(c.id)).replace(/"/g, "&quot;") + "," + JSON.stringify(p.phone).replace(/"/g, "&quot;") + ')">✓ קבע כראשי</button>' +
+            '<button class="btn btn-sm" style="padding:0 5px;font-size:9.5px" onclick="rejectCandidatePhone(' + JSON.stringify(String(c.id)).replace(/"/g, "&quot;") + "," + JSON.stringify(p.phone).replace(/"/g, "&quot;") + ')">✕ דחה</button></div>';
+        });
+        if (c.phone_candidates.length > 4) extra += '<div class="xs muted" style="font-size:9.5px">ועוד ' + (c.phone_candidates.length - 4) + " מספרים</div>";
+      }
       if (!extra) return html;
       const at = html.indexOf('<div style="margin-top:4px;display:flex;gap:4px;align-items:center">');
       return at === -1 ? html + extra : html.slice(0, at) + extra + html.slice(at);
     };
     window.renderCustom200ContactCell.__wrapped = true;
   }
+
+  // אישור ידני של מספר מועמד: המספר הנוכחי עובר להיסטוריה (לא נמחק), הראיות של המועמד נשמרות
+  window.promoteCandidatePhone = function (coId, phone) {
+    const c = C.find(x => String(x.id) === String(coId)); if (!c) return;
+    const cand = (c.phone_candidates || []).find(p => normPhone(p.phone) === normPhone(phone)); if (!cand) return;
+    if (!confirm("לקבוע את " + cand.phone + " כטלפון הראשי של " + c.name + "?\nהמספר הנוכחי (" + (c.phone || "—") + ") יישמר בהיסטוריה ולא יימחק.")) return;
+    if (normPhone(c.phone)) {
+      c.phone_history = Array.isArray(c.phone_history) ? c.phone_history : [];
+      c.phone_history.push({ phone: c.phone, sources: c.phone_sources || [], reported_sources: c.phone_reported_sources || [], replaced_at: new Date().toISOString(), replaced_by: "אישור ידני של מספר מועמד" });
+      c.phone_candidates.push({ phone: c.phone, sources: c.phone_sources || [], branch: c.phone_type === "branch", evidence: (c.phone_evidence || []).filter(e => normPhone(e.phone) === normPhone(c.phone)) });
+    }
+    c.phone = cand.phone;
+    if (/^05/.test(normPhone(cand.phone))) c.mobile = cand.phone;
+    c.phone_evidence = Array.isArray(c.phone_evidence) ? c.phone_evidence : [];
+    (cand.evidence || []).forEach(e => { if (!c.phone_evidence.some(x => normPhone(x.phone) === normPhone(e.phone) && x.source === e.source)) c.phone_evidence.push(e); });
+    c.phone_candidates = c.phone_candidates.filter(p => normPhone(p.phone) !== normPhone(cand.phone));
+    c.phone_reported_sources = [];
+    c.phone_note = cand.branch ? "טלפון של סניף/מסגרת שהארגון מפעיל – לא בהכרח טלפון ההנהלה" : "";
+    c.phone_approved = { phone: cand.phone, at: new Date().toISOString() };
+    applyVerificationStatus(c);
+    persistProspectorData();
+    rerender();
+    toast("✓ " + cand.phone + " נקבע כטלפון הראשי (" + c.phoneVerBadgeLabel + ")", "success");
+  };
+  window.rejectCandidatePhone = function (coId, phone) {
+    const c = C.find(x => String(x.id) === String(coId)); if (!c) return;
+    const cand = (c.phone_candidates || []).find(p => normPhone(p.phone) === normPhone(phone)); if (!cand) return;
+    c.phone_candidates = c.phone_candidates.filter(p => p !== cand);
+    c.phone_candidates_rejected = Array.isArray(c.phone_candidates_rejected) ? c.phone_candidates_rejected : [];
+    c.phone_candidates_rejected.push(Object.assign({ rejected_at: new Date().toISOString() }, cand));
+    persistProspectorData();
+    rerender();
+    toast("המספר " + cand.phone + " סומן כלא רלוונטי (נשמר ברשימת הנדחים)", "info");
+  };
+
+  // החלת כלל האימות על 200 החברות בטעינה (חד-פעמי לכל דפדפן; לא מוחק מספרים, רק מעדכן סטטוס ומעביר מקורות מדווחים לשדה נפרד)
+  try { migrateBatchVerification(); } catch (e) { console.warn("[phone-engine] verification migration", e); }
 
   window.OPPhoneEngine = { PHONE_SOURCES, enrichSingleCompanyPhone, normPhone };
   window.enrichSingleCompanyPhone = enrichSingleCompanyPhone;

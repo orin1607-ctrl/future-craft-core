@@ -1125,6 +1125,7 @@ V.companies = () => {
     if (f.phoneVer) {
       if (f.phoneVer === "verified_two" && c.phone_status !== "verified_two_sources") return false;
       if (f.phoneVer === "single_source" && c.phone_status !== "single_source") return false;
+      if (f.phoneVer === "unverified" && c.phone_status !== "unverified") return false;
       if (f.phoneVer === "awaiting" && c.phone_status !== "awaiting_contact" && hasP) return false;
     }
 
@@ -1317,6 +1318,7 @@ V.companies = () => {
           <option value="" \${!f.phoneVer ? 'selected' : ''}>כל רמות האימות</option>
           <option value="verified_two" \${f.phoneVer === 'verified_two' ? 'selected' : ''}>🟢 אימות כפול (שני מקורות)</option>
           <option value="single_source" \${f.phoneVer === 'single_source' ? 'selected' : ''}>🟡 מקור יחיד</option>
+          <option value="unverified" \${f.phoneVer === 'unverified' ? 'selected' : ''}>⚪ לא מאומת (אין ראיה)</option>
           <option value="awaiting" \${f.phoneVer === 'awaiting' ? 'selected' : ''}>⚪ ממתין לקשר</option>
         </select>
       </label>
@@ -1551,7 +1553,7 @@ V.companies = () => {
   if (!updated.includes("openprospector-phone-engine.js")) {
     const bodyEnd = updated.lastIndexOf("</body>");
     if (bodyEnd !== -1) {
-      updated = updated.slice(0, bodyEnd) + '<script src="openprospector-phone-engine.js?v=20261018b"></script>\n' + updated.slice(bodyEnd);
+      updated = updated.slice(0, bodyEnd) + '<script src="openprospector-phone-engine.js?v=20261021"></script>\n' + updated.slice(bodyEnd);
     }
   }
 
