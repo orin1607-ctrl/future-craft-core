@@ -283,7 +283,7 @@
       { id: "structure", state: structure.slug ? "done" : "blocked", detail: structure.slug ? "הוכנו H1, סלאג, מילת מפתח, מילות משנה מ-Search Console וקישורים פנימיים מהסריקה. Meta וכותרות H2 לא נכתבו כאן — הן מגיעות מ-Gemini או מעריכה." : "לא הוכן מבנה." },
       { id: "write", state: "pending", detail: parsed.wantsFullContent ? "הכתיבה עדיין לא רצה." : "ההוראה לא ביקשה גוף מלא." },
       { id: "seo", state: "ready", detail: "מילת מפתח וסלאג מוכנים. Title הוא הצעה מהנושא, לא ניסוח AI. Meta Description ריק עד כתיבה או עריכה." },
-      { id: "images", state: parsed.wantsImages ? "ready" : "skipped", detail: parsed.wantsImages ? "נפתחו משבצות Hero וגוף. לא נוצרה תמונה. העלאה ידנית זמינה, ויצירת AI נשארת אופציונלית." : "ההוראה לא ביקשה תמונות." },
+      { id: "images", state: parsed.wantsImages ? "ready" : "skipped", detail: parsed.wantsImages ? "נפתחו משבצות Hero וגוף. גלריית התוכן זמינה לבחירה ולהעלאה, ואפשר גם לבחור מהגלריה של פרסום ברשתות. לא נוצרה תמונה ב-AI." : "ההוראה לא ביקשה תמונות." },
       { id: "preview", state: "ready", detail: "תצוגה מקומית זמינה. היא עדיין לא נפתחה, והעמוד לא הועלה." },
       { id: "edit", state: "ready", detail: "אפשר לערוך כותרת, טקסט, Meta, סלאג, תמונות ו-ALT לפני אישור." },
       { id: "approval", state: "waiting", detail: "לא הוכן ולא הועלה. אין פרסום לאתר החי בלי אישור מפורש." }
