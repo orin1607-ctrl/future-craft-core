@@ -57,6 +57,142 @@
     }
   }
 
+  // ═══ שמירה מרכזית ב-Supabase STAGING (prospect_leads.raw_payload.batch200) ═══
+  // כל שינוי בחברה נכנס לתור "ממתין לשמירה" (נשמר גם בדפדפן), ונשלח אוטומטית כשהמשתמש מחובר.
+  // בטעינה: קודם נשלח מה שממתין, ואז נטענות התוצאות מהמאגר – כך שסגירת הדפדפן לא מוחקת דבר.
+  const PENDING_KEY = "dalia_prospector_batch200_pending";
+  const CENTRAL = { state: "idle", lastOkAt: "", lastCount: 0, lastError: "", loaded: false };
+  const readPending = () => { try { return new Set(JSON.parse(localStorage.getItem(PENDING_KEY) || "[]")); } catch (e) { return new Set(); } };
+  const writePending = (set) => { try { localStorage.setItem(PENDING_KEY, JSON.stringify([...set])); } catch (e) {} };
+  function toDbItem(c) {
+    const keep = ["no", "name", "city", "phone", "mobile", "phone_status", "phone_type", "phone_note", "phone_sources", "phone_reported_sources", "phone_reported_status",
+      "phone_evidence", "phone_candidates", "phone_candidates_rejected", "phone_history", "phone_approved", "phone_live_sources", "email", "mail", "email_sources", "email_status",
+      "verification_rule_v", "enrichment_status", "saved_at"];
+    const o = {};
+    keep.forEach(k => { if (c[k] !== undefined) o[k] = c[k]; });
+    if (c.phone_check_log) o.phone_check = { checked_at: c.phone_check_log.checked_at, result: c.phone_check_log.result, sources: (c.phone_check_log.sources || []).map(s => ({ source: s.source, result: s.result })) };
+    // עמודת הטלפון הראשית במאגר מתמלאת (רק אם ריקה) אך ורק בטלפון עם ראיה מתועדת – לא במספר "לא מאומת"
+    o.phone_db = normPhone(c.phone) && (c.phone_status === "single_source" || c.phone_status === "verified_two_sources") ? c.phone : "";
+    return o;
+  }
+  async function authHeaders() {
+    let sess = null;
+    try { sess = (typeof userSession === "function") ? await userSession() : null; } catch (e) {}
+    if (!sess || !sess.accessToken || typeof SUPABASE_STAGING_URL === "undefined") return null;
+    return { "Content-Type": "application/json", apikey: SUPABASE_STAGING_ANON, Authorization: "Bearer " + sess.accessToken };
+  }
+  async function rpcCall(name, body, headers) {
+    const r = await fetch(SUPABASE_STAGING_URL + "/rest/v1/rpc/" + name, { method: "POST", headers, body: JSON.stringify(body) });
+    if (!r.ok) throw new Error("HTTP " + r.status + " " + (await r.text()).slice(0, 160));
+    return r.json();
+  }
+  let flushTimer = null, flushing = false;
+  function queueSave(c) {
+    if (!c || !c.no) return;
+    c.saved_at = new Date().toISOString();
+    CACHE.set(String(c.no), toDbItem(c));
+    const p = readPending(); p.add(String(c.no)); writePending(p);
+    clearTimeout(flushTimer);
+    flushTimer = setTimeout(() => { flushSaves(); }, 2500);
+  }
+  async function flushSaves() {
+    if (flushing) return CENTRAL;
+    const pending = readPending();
+    if (!pending.size) return CENTRAL;
+    const headers = await authHeaders();
+    if (!headers) { CENTRAL.state = "not_signed_in"; updateCentralBadge(); return CENTRAL; }
+    flushing = true;
+    try {
+      const items = C.filter(c => c.discovery_batch === "batch_200_regular" && pending.has(String(c.no))).map(toDbItem);
+      for (let i = 0; i < items.length; i += 50) {
+        await rpcCall("op_batch200_save", { p_items: items.slice(i, i + 50) }, headers);
+        const p = readPending(); items.slice(i, i + 50).forEach(it => p.delete(String(it.no))); writePending(p);
+      }
+      CENTRAL.state = "ok"; CENTRAL.lastOkAt = new Date().toISOString(); CENTRAL.lastCount = items.length; CENTRAL.lastError = "";
+    } catch (e) {
+      CENTRAL.state = "error"; CENTRAL.lastError = String(e.message || e);
+      console.warn("[phone-engine] central save failed", e);
+    } finally { flushing = false; updateCentralBadge(); }
+    return CENTRAL;
+  }
+  async function loadFromCentral() {
+    const headers = await authHeaders();
+    if (!headers) { CENTRAL.state = "not_signed_in"; updateCentralBadge(); return CENTRAL; }
+    await flushSaves(); // שינויים מקומיים שלא נשמרו עוברים קודם למאגר
+    const batch = C.filter(c => c.discovery_batch === "batch_200_regular");
+    if (!batch.length) return CENTRAL;
+    try {
+      const rows = await rpcCall("op_batch200_load", { p_hps: batch.map(c => String(c.no)) }, headers);
+      const byHp = new Map((rows || []).map(r => [String(r.company_hp), r.batch200]));
+      const pending = readPending();
+      let applied = 0;
+      batch.forEach(c => {
+        const db = byHp.get(String(c.no));
+        if (db) { const cur = CACHE.get(String(c.no)); if (!cur || !cur.saved_at || (db.saved_at && db.saved_at >= cur.saved_at)) CACHE.set(String(c.no), db); }
+        if (db && !pending.has(String(c.no)) && (!c.saved_at || !db.saved_at || db.saved_at >= c.saved_at)) {
+          Object.keys(db).forEach(k => { if (k !== "phone_db" && k !== "phone_check") c[k] = db[k]; });
+          if (db.phone_check) c.phone_check_log = Object.assign({}, c.phone_check_log || {}, db.phone_check);
+          applied++;
+        } else if (!db && (normPhone(c.phone) || c.phone_check_log)) {
+          pending.add(String(c.no)); // עדיין לא במאגר – יישמר עכשיו
+        }
+      });
+      writePending(pending);
+      if (applied && typeof persistProspectorData === "function") persistProspectorData();
+      CENTRAL.loaded = true; CENTRAL.loadedCount = byHp.size;
+      if (pending.size) await flushSaves();
+      else { CENTRAL.state = "ok"; CENTRAL.lastOkAt = CENTRAL.lastOkAt || new Date().toISOString(); }
+      rerender();
+    } catch (e) {
+      CENTRAL.state = "error"; CENTRAL.lastError = String(e.message || e);
+    }
+    updateCentralBadge();
+    return CENTRAL;
+  }
+  function centralBadgeHtml() {
+    const n = readPending().size;
+    if (CENTRAL.state === "ok" && !n) return '☁️ התוצאות נשמרות במאגר המרכזי (Supabase STAGING)' + (CENTRAL.lastOkAt ? " · נשמר " + new Date(CENTRAL.lastOkAt).toLocaleTimeString("he-IL") : "") + (CENTRAL.loadedCount ? " · " + CENTRAL.loadedCount + " חברות במאגר" : "");
+    if (CENTRAL.state === "error") return "⚠️ שמירה למאגר נכשלה – ינוסה שוב (" + (CENTRAL.lastError || "") + ")" + (n ? " · " + n + " ממתינות" : "");
+    if (CENTRAL.state === "not_signed_in" || n) return "⚠️ לא מחובר לדליה – התוצאות נשמרות בדפדפן בלבד" + (n ? " (" + n + " חברות ממתינות לשמירה במאגר)" : "") + ". התחבר כדי לשמור לצמיתות.";
+    return "☁️ שמירה מרכזית – בודק חיבור…";
+  }
+  function updateCentralBadge() {
+    const el = document.getElementById("op200CentralBadge");
+    if (el) el.textContent = centralBadgeHtml();
+  }
+  // עותק בזיכרון של התוצאות העדכניות לכל ח.פ. – מוחל מחדש אחרי שהסנכרון של המערכת מחליף את רשימת החברות בשורות מהמאגר
+  const CACHE = new Map();
+  function cacheFromC() {
+    if (typeof C === "undefined") return;
+    C.forEach(c => { if (c.discovery_batch === "batch_200_regular" && (c.phone_check_log || c.verification_rule_v === 2)) {
+      const cur = CACHE.get(String(c.no));
+      if (!cur || !cur.saved_at || (c.saved_at && c.saved_at >= cur.saved_at)) CACHE.set(String(c.no), toDbItem(c));
+    } });
+  }
+  function applyCache() {
+    if (typeof C === "undefined") return 0;
+    let n = 0;
+    C.forEach(c => {
+      const it = CACHE.get(String(c.no));
+      if (!it || c.discovery_batch !== "batch_200_regular") return;
+      if (c.saved_at && it.saved_at && c.saved_at > it.saved_at) return;
+      Object.keys(it).forEach(k => { if (k !== "phone_db" && k !== "phone_check") c[k] = it[k]; });
+      if (it.phone_check) c.phone_check_log = Object.assign({}, c.phone_check_log || {}, it.phone_check);
+      n++;
+    });
+    return n;
+  }
+  if (typeof window.merge200IntoC === "function" && !window.merge200IntoC.__opWrapped) {
+    const origMerge = window.merge200IntoC;
+    window.merge200IntoC = function () {
+      const r = origMerge.apply(this, arguments);
+      try { applyCache(); } catch (e) {}
+      return r;
+    };
+    window.merge200IntoC.__opWrapped = true;
+  }
+  window.OPCentral = { flushSaves, loadFromCentral, queueSave, state: CENTRAL, pending: () => [...readPending()], cacheSize: () => CACHE.size };
+
   // סטטוס אימות לפי ראיות מתועדות בלבד (מקור + קישור) עבור המספר הנוכחי; מקורות מדווחים בלי ראיה נשמרים בנפרד ולא נמחקים
   function documentedSources(c) {
     const cur = normPhone(c.phone);
@@ -334,10 +470,12 @@
       if (log.sources.some(s => String(s.result).startsWith("שגיאה"))) run.errors++;
       run.items.push({ name: c.name, hp: log.hp, result: log.result, sources: log.sources });
       persistProspectorData(); // שמירה אחרי כל חברה
+      queueSave(c); // ושמירה במאגר המרכזי
       const st = document.getElementById("phoneRunProgress");
       if (st) st.textContent = "נבדקו " + run.checked + "/" + run.total + " · טלפונים חדשים: " + run.new_phones;
     }
     run.finished_at = new Date().toISOString();
+    await flushSaves();
     run.stopped = S.enrichmentPaused;
     try { localStorage.setItem("dalia_prospector_last_phone_run", JSON.stringify(run)); } catch (e) {}
     S.enrichmentRunning = false;
@@ -408,6 +546,7 @@
         '<button type="button" class="btn btn-sm" onclick="selectAllFilteredCompanies()">☑ בחר את כל המסוננות (' + n + ')</button>' +
         '<button type="button" class="btn btn-sm" onclick="clearCompanySelection()"' + (sel ? "" : " disabled") + '>✕ נקה בחירה</button>' +
         '<button type="button" class="btn btn-sm" onclick="showLastPhoneRun()">📋 יומן השלמה</button>' +
+        '<div id="op200CentralBadge" class="xs" style="flex-basis:100%;font-weight:700;margin-top:2px">' + centralBadgeHtml() + '</div>' +
         '<span id="phoneRunProgress" class="xs" style="font-weight:700">' + (S.enrichmentRunning ? "מריץ השלמת טלפונים..." : "") + '</span>';
       return html.replace(marker, extra + marker);
     };
@@ -500,6 +639,7 @@
     applyVerificationStatus(c);
     c.enrichment_status = "enriched";
     persistProspectorData();
+    queueSave(c);
     toast("✓ טלפון עודכן (" + c.phoneVerBadgeLabel + (same ? "" : " – מספר חדש, המקורות הקודמים נשמרו בהיסטוריה") + ")", "success");
     return true;
   }
@@ -582,6 +722,7 @@
     applyVerificationStatus(c);
     persistProspectorData();
     rerender();
+    queueSave(c);
     toast("✓ " + cand.phone + " נקבע כטלפון הראשי (" + c.phoneVerBadgeLabel + ")", "success");
   };
   window.rejectCandidatePhone = function (coId, phone) {
@@ -592,11 +733,17 @@
     c.phone_candidates_rejected.push(Object.assign({ rejected_at: new Date().toISOString() }, cand));
     persistProspectorData();
     rerender();
+    queueSave(c);
     toast("המספר " + cand.phone + " סומן כלא רלוונטי (נשמר ברשימת הנדחים)", "info");
   };
 
   // החלת כלל האימות על 200 החברות בטעינה (חד-פעמי לכל דפדפן; לא מוחק מספרים, רק מעדכן סטטוס ומעביר מקורות מדווחים לשדה נפרד)
   try { migrateBatchVerification(); } catch (e) { console.warn("[phone-engine] verification migration", e); }
+  try { cacheFromC(); } catch (e) {}
+  // טעינה מהמאגר המרכזי אחרי שהחיבור לדליה מאותחל, ושליחה חוזרת של שמירות שממתינות
+  setTimeout(() => { loadFromCentral().catch(() => {}); }, 2500);
+  window.addEventListener("online", () => { flushSaves(); });
+  setInterval(() => { if (readPending().size) flushSaves(); }, 60000);
 
   window.OPPhoneEngine = { PHONE_SOURCES, enrichSingleCompanyPhone, normPhone };
   window.enrichSingleCompanyPhone = enrichSingleCompanyPhone;

@@ -1553,7 +1553,7 @@ V.companies = () => {
   if (!updated.includes("openprospector-phone-engine.js")) {
     const bodyEnd = updated.lastIndexOf("</body>");
     if (bodyEnd !== -1) {
-      updated = updated.slice(0, bodyEnd) + '<script src="openprospector-phone-engine.js?v=20261021"></script>\n' + updated.slice(bodyEnd);
+      updated = updated.slice(0, bodyEnd) + '<script src="openprospector-phone-engine.js?v=20261021b"></script>\n' + updated.slice(bodyEnd);
     }
   }
 
