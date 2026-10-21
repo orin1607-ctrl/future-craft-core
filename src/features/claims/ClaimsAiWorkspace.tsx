@@ -2813,6 +2813,9 @@ export function ClaimsAiWorkspace({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const replaceTargetIdRef = useRef<string | null>(null);
   const [previewModalUrl, setPreviewModalUrl] = useState<string | null>(null);
+  const [previewZoom, setPreviewZoom] = useState<number>(1);
+  const [attachMenuOpen, setAttachMenuOpen] = useState<boolean>(false);
+  const speechCommittedRef = useRef<string>('');
   const threadRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRec | null>(null);
@@ -3886,6 +3889,7 @@ export function ClaimsAiWorkspace({
     isManualStopRef.current = false;
     isListeningRef.current = true;
     baseInputRef.current = inputRef.current.trim();
+    speechCommittedRef.current = inputRef.current.trim() ? `${inputRef.current.trim()} ` : '';
 
     const rec = new Ctor();
     rec.lang = 'he-IL';
@@ -4128,51 +4132,130 @@ export function ClaimsAiWorkspace({
           {messages.length === 0 && !loading ? (
             <div className="claims-ai-empty">
               {module === 'garage' ? (
-                <div>
-                  <div style={{ marginBottom: 10, fontWeight: 700, fontSize: 14 }}>
+                <div className="garage-welcome-hub" data-testid="garage-welcome-hub">
+                  <div className="garage-welcome-badge">✨ דליה AI · ניהול המוסך</div>
+                  <h3 className="garage-welcome-title">שלום, במה תרצה לטפל היום?</h3>
+                  <p className="garage-welcome-subtitle">
                     {garageCase
-                      ? `🚗 כרטיס עבודה ${garageCase.caseNumber || ''} (${garageCase.customerName || ''} · ${garageCase.plate || ''})`
-                      : '✨ דליה AI · עוזר אישי לניהול מוסך'}
-                  </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--t3)', marginBottom: 14 }}>
-                    {garageCase
-                      ? 'שאלו בשפה חופשית על הכרטיס, עדכנו סטטוס, הוסיפו עבודות פחחות/צבע/חלקים, הגדירו משימות או הפיקו דוח סיכום.'
-                      : 'סקירת תיקים פתוחים, חיפוש לקוחות ורכבים, פתיחת כרטיס עבודה חדש, הצעות מחיר ודוחות.'}
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                      ? `תיק עבודה פעיל: ${garageCase.caseNumber || ''} (${garageCase.customerName || ''} · ${garageCase.plate || ''})`
+                      : 'העובד מדבר – דליה AI ממלאת. בחר פעולה להתחלת תהליך מודרך, או הקלד/דבר בחופשיות:'}
+                  </p>
+                  <div className="garage-actions-grid">
                     <button
                       type="button"
-                      className="claims-ai-action-btn"
-                      onClick={() => void sendMessage('הצג טבלת דוח של כל תיקי המוסך הפעילים', 'text')}
+                      className="garage-action-card"
+                      data-testid="garage-action-new-customer"
+                      onClick={() => void sendMessage('אני רוצה לפתוח לקוח ורכב חדשים', 'text')}
                     >
-                      📑 דוח כרטיסי עבודה פעילים
+                      <span className="garage-action-icon">👤➕</span>
+                      <div className="garage-action-body">
+                        <strong>לקוח חדש</strong>
+                        <small>פתיחת לקוח ורכב חדשים, והצעת מחיר לפי הצורך</small>
+                      </div>
                     </button>
+
                     <button
                       type="button"
-                      className="claims-ai-action-btn"
-                      onClick={() => void sendMessage('תמונת מצב מוסך וסטטיסטיקות', 'text')}
+                      className="garage-action-card"
+                      data-testid="garage-action-existing-customer"
+                      onClick={() => void sendMessage('אני רוצה לאתר ולטפל בלקוח קיים', 'text')}
                     >
-                      📊 תמונת מצב מוסך
+                      <span className="garage-action-icon">🔍👤</span>
+                      <div className="garage-action-body">
+                        <strong>לקוח קיים</strong>
+                        <small>איתור לקוח מהמערכת והמשך טיפול / הוספת רכב</small>
+                      </div>
                     </button>
+
                     <button
                       type="button"
-                      className="claims-ai-action-btn"
-                      onClick={() => {
-                        setInput('חפש לקוח ');
-                        textareaRef.current?.focus();
-                      }}
+                      className="garage-action-card"
+                      data-testid="garage-action-intake"
+                      onClick={() => void sendMessage('קבלת רכב לעבודה – צילום 5 תמונות ורישום קילומטראז\'', 'text')}
                     >
-                      🔍 חיפוש לקוח / רכב
+                      <span className="garage-action-icon">🚗📋</span>
+                      <div className="garage-action-body">
+                        <strong>קבלת רכב לעבודה</strong>
+                        <small>תהליך קבלה מלא של רכב שהגיע בפועל (5 תמונות וק\"מ)</small>
+                      </div>
                     </button>
+
                     <button
                       type="button"
-                      className="claims-ai-action-btn"
-                      onClick={() => {
-                        setInput('פתח כרטיס עבודה חדש עבור רכב ');
-                        textareaRef.current?.focus();
-                      }}
+                      className="garage-action-card"
+                      data-testid="garage-action-quote"
+                      onClick={() => void sendMessage('הכנת הצעת מחיר חדשה או פתיחת הצעה קיימת', 'text')}
                     >
-                      🚗 פתיחת כרטיס עבודה חדש
+                      <span className="garage-action-icon">💰📑</span>
+                      <div className="garage-action-body">
+                        <strong>הצעת מחיר</strong>
+                        <small>הכנת הצעה חדשה בדיבור או פתיחת הצעה קיימת</small>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="garage-action-card"
+                      data-testid="garage-action-invoices-credits"
+                      onClick={() => void sendMessage('קליטת חשבונית חלקים / זיכוי עבור תיק רכב', 'text')}
+                    >
+                      <span className="garage-action-icon">🧾🚗</span>
+                      <div className="garage-action-body">
+                        <strong>חשבוניות וזיכויים</strong>
+                        <small>קליטת חשבוניות חלקים, החזרות וזיכויים לרכב</small>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="garage-action-card"
+                      data-testid="garage-action-general-expenses"
+                      onClick={() => void sendMessage('ספקים וחשבוניות כלליות (הוצאות מוסך ללא שיוך לרכב)', 'text')}
+                    >
+                      <span className="garage-action-icon">🏭📦</span>
+                      <div className="garage-action-body">
+                        <strong>ספקים וחשבוניות כלליות</strong>
+                        <small>צבעים, חומרים, כלי עבודה וספר ספקים</small>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="garage-action-card"
+                      data-testid="garage-action-find-case"
+                      onClick={() => void sendMessage('איתור תיק עבודה לפי לקוח, רכב או מספר תיק', 'text')}
+                    >
+                      <span className="garage-action-icon">🔎📂</span>
+                      <div className="garage-action-body">
+                        <strong>איתור תיק עבודה</strong>
+                        <small>חיפוש לפי לקוח, רכב, מספר תיק או מספר הזמנה</small>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="garage-action-card"
+                      data-testid="garage-action-close-case"
+                      onClick={() => void sendMessage('סגירת תיק עבודה ובדיקת חוסרים', 'text')}
+                    >
+                      <span className="garage-action-icon">🔒✅</span>
+                      <div className="garage-action-body">
+                        <strong>סגירת תיק עבודה</strong>
+                        <small>בדיקת חוסרים, אישורים וסגירת תיק למשתמש מורשה</small>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="garage-action-card"
+                      data-testid="garage-action-resume"
+                      onClick={() => void sendMessage('המשך פעולה אחרונה', 'text')}
+                    >
+                      <span className="garage-action-icon">🔄⏯️</span>
+                      <div className="garage-action-body">
+                        <strong>המשך פעולה אחרונה</strong>
+                        <small>חזרה לתהליך שהופסק באמצע בלי לאבד נתונים</small>
+                      </div>
                     </button>
                   </div>
                 </div>
@@ -5594,42 +5677,77 @@ export function ClaimsAiWorkspace({
             data-testid="claims-ai-camera-input"
             onChange={handleFilesSelected}
           />
-          <button
-            type="button"
-            className="claims-ai-icon camera"
-            data-testid="claims-ai-camera-btn"
-            disabled={loading}
-            title="צלם מסמך / תמונת נזק במצלמה"
-            aria-label="צלם מסמך במצלמה"
-            onClick={() => {
-              replaceTargetIdRef.current = null;
-              cameraInputRef.current?.click();
-            }}
-          >📷</button>
-          <button
-            type="button"
-            className="claims-ai-icon gallery"
-            data-testid="claims-ai-gallery-btn"
-            disabled={loading}
-            title="בחר תמונות מהגלריה"
-            aria-label="בחר תמונות מהגלריה"
-            onClick={() => {
-              replaceTargetIdRef.current = null;
-              galleryInputRef.current?.click();
-            }}
-          >🖼️</button>
-          <button
-            type="button"
-            className="claims-ai-icon attach"
-            data-testid="claims-ai-attach-btn"
-            disabled={loading}
-            title="צרף מסמך PDF / קובץ"
-            aria-label="צרף קובץ / תמונה"
-            onClick={() => {
-              replaceTargetIdRef.current = null;
-              fileInputRef.current?.click();
-            }}
-          >📎</button>
+          <div className="claims-ai-attach-wrap" style={{ position: 'relative' }}>
+            <button
+              type="button"
+              className={`claims-ai-icon attach-toggle${attachMenuOpen ? ' active' : ''}`}
+              data-testid="claims-ai-attach-toggle"
+              disabled={loading}
+              title="צרף תמונה, מסמך או פתח מצלמה"
+              aria-label="צרף קובץ"
+              onClick={() => setAttachMenuOpen((prev) => !prev)}
+            >
+              📎
+            </button>
+            {attachMenuOpen && (
+              <div
+                className="claims-ai-attach-popover"
+                data-testid="claims-ai-attach-popover"
+                style={{
+                  position: 'absolute',
+                  bottom: 'calc(100% + 8px)',
+                  right: 0,
+                  background: 'var(--bg2, #1e293b)',
+                  border: '1px solid var(--br2, #475569)',
+                  borderRadius: 12,
+                  padding: 6,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                  zIndex: 100,
+                  minWidth: 170,
+                }}
+              >
+                <button
+                  type="button"
+                  data-testid="claims-ai-camera-btn"
+                  onClick={() => {
+                    setAttachMenuOpen(false);
+                    replaceTargetIdRef.current = null;
+                    cameraInputRef.current?.click();
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>📷</span>
+                  <span>צלם במצלמה</span>
+                </button>
+                <button
+                  type="button"
+                  data-testid="claims-ai-gallery-btn"
+                  onClick={() => {
+                    setAttachMenuOpen(false);
+                    replaceTargetIdRef.current = null;
+                    galleryInputRef.current?.click();
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>🖼️</span>
+                  <span>בחר מגלריה</span>
+                </button>
+                <button
+                  type="button"
+                  data-testid="claims-ai-attach-btn"
+                  onClick={() => {
+                    setAttachMenuOpen(false);
+                    replaceTargetIdRef.current = null;
+                    fileInputRef.current?.click();
+                  }}
+                >
+                  <span style={{ fontSize: 16 }}>📄</span>
+                  <span>צרף מסמך / PDF</span>
+                </button>
+              </div>
+            )}
+          </div>
           <button
             type="button"
             className={`claims-ai-icon${listening ? ' live recording' : ''}`}
@@ -5752,16 +5870,55 @@ export function ClaimsAiWorkspace({
               >
                 ✕
               </button>
-              <img
-                src={previewModalUrl}
-                alt="תצוגה מקדימה מלאה"
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '82vh',
-                  objectFit: 'contain',
-                  borderRadius: 8,
-                }}
-              />
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8, zIndex: 3 }}>
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom((z) => Math.min(z + 0.25, 3))}
+                  style={{ background: 'var(--bg3, #334155)', color: '#fff', border: 0, borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 13 }}
+                  title="הגדל"
+                >🔍 +</button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom((z) => Math.max(z - 0.25, 0.5))}
+                  style={{ background: 'var(--bg3, #334155)', color: '#fff', border: 0, borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 13 }}
+                  title="הקטן"
+                >🔍 -</button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewZoom(1)}
+                  style={{ background: 'var(--bg3, #334155)', color: '#fff', border: 0, borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 13 }}
+                  title="אפס גודל"
+                >100%</button>
+              </div>
+              {previewModalUrl && (previewModalUrl.toLowerCase().includes('.pdf') || previewModalUrl.startsWith('data:application/pdf')) ? (
+                <iframe
+                  src={previewModalUrl}
+                  title="PDF Preview"
+                  style={{
+                    width: '88vw',
+                    height: '78vh',
+                    border: 'none',
+                    borderRadius: 8,
+                    background: '#fff',
+                  }}
+                />
+              ) : (
+                <div style={{ overflow: 'auto', maxWidth: '88vw', maxHeight: '78vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img
+                    src={previewModalUrl || ''}
+                    alt="תצוגה מקדימה מלאה"
+                    style={{
+                      transform: `scale(${previewZoom})`,
+                      transformOrigin: 'center center',
+                      transition: 'transform 0.15s ease-out',
+                      maxWidth: '100%',
+                      maxHeight: '75vh',
+                      objectFit: 'contain',
+                      borderRadius: 8,
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </div>
         ) : null}

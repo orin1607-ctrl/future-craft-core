@@ -845,6 +845,104 @@ export const GARAGE_GEMINI_TOOLS = [
         },
       },
       {
+        name: "preview_garage_create_customer_and_vehicle",
+        description: "הקמת לקוח חדש ורכב חדש במהלך אחד לאחר בדיקת כפילויות. בודק אם הלקוח או הרכב כבר קיימים. לאחר האישור והשמירה יש לשאול: 'האם צריך להכין ללקוח הצעת מחיר?'.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            customer_name: { type: "STRING", description: "שם מלא של הלקוח" },
+            customer_phone: { type: "STRING", description: "מספר טלפון נייד" },
+            customer_type: { type: "STRING", description: "'private' (פרטי) או 'business' (עסקי) או 'fleet' (צי רכב)" },
+            company_name: { type: "STRING", description: "שם חברה (עבור לקוח עסקי/צי)" },
+            email: { type: "STRING", description: "כתובת דוא\"ל" },
+            address: { type: "STRING", description: "כתובת הלקוח" },
+            business_id: { type: "STRING", description: "ח.פ. או ת.ז." },
+            notes: { type: "STRING", description: "הערות" },
+            vehicle_plate: { type: "STRING", description: "מספר רישוי הרכב (חובה)" },
+            vehicle_make: { type: "STRING", description: "יצרן הרכב (למשל: יונדאי, טויוטה)" },
+            vehicle_model: { type: "STRING", description: "דגם הרכב" },
+            vehicle_year: { type: "NUMBER", description: "שנת ייצור" },
+            vehicle_color: { type: "STRING", description: "צבע הרכב" },
+            vehicle_vin: { type: "STRING", description: "מספר שלדה (VIN)" },
+            vehicle_type: { type: "STRING", description: "סוג רכב (פרטי, מסחרי וכו')" },
+          },
+          required: ["customer_name", "vehicle_plate"],
+        },
+      },
+      {
+        name: "preview_garage_intake_inspection",
+        description: "קבלת רכב לעבודה עם חובת 5 תמונות ורישום קילומטראז'. חובה לספק 5 תמונות: חזית, אחור, ימין, שמאל, ולוח שעונים/קילומטראז'. ללא התמונות והקילומטראז' לא ניתן להשלים קבלת רכב.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            case_number: { type: "STRING", description: "מספר תיק עבודה (למשל GM-2026-0056) או מספר לוחית רישוי" },
+            intake_km: { type: "STRING", description: "קילומטראז' מד אוץ בפועל (שדה חובה)" },
+            front_photo: { type: "STRING", description: "תמונת חזית הרכב (חובה)" },
+            rear_photo: { type: "STRING", description: "תמונת אחורי הרכב (חובה)" },
+            right_photo: { type: "STRING", description: "תמונת צד ימין של הרכב (חובה)" },
+            left_photo: { type: "STRING", description: "תמונת צד שמאל של הרכב (חובה)" },
+            dashboard_km_photo: { type: "STRING", description: "תמונת לוח שעונים/מד אוץ (חובה)" },
+            intake_fuel: { type: "STRING", description: "כמות דלק (רבע, חצי, מלא וכו')" },
+            intake_keys: { type: "STRING", description: "מספר מפתחות שנמסרו" },
+            intake_lights: { type: "STRING", description: "בדיקת תאורה" },
+            intake_interior: { type: "STRING", description: "מצב פנים הרכב" },
+            intake_items: { type: "STRING", description: "חפצים ברכב" },
+            inspector_notes: { type: "STRING", description: "הערות בוחן/יועץ שירות" },
+          },
+          required: ["case_number", "intake_km"],
+        },
+      },
+      {
+        name: "preview_garage_record_invoice",
+        description: "קליטת חשבונית ספק, הוצאה כללית או זיכוי. תומך ב: מסלול א' (חשבונית חלקים לתיק רכב), מסלול ב' (הוצאה כללית ללא שיוך לרכב: צבעים, כלים, ציוד), מסלול ג' (איתור/פתיחת ספק בספר הספקים), מסלול ד' (חשבונית זיכוי והחזרת חלקים).",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            invoice_type: { type: "STRING", description: "'parts_invoice' (חשבונית חלקים לרכב), 'general_expense' (הוצאה כללית של המוסך), או 'credit_note' (חשבונית זיכוי)" },
+            invoice_number: { type: "STRING", description: "מספר חשבונית הספק" },
+            supplier_name: { type: "STRING", description: "שם הספק" },
+            invoice_date: { type: "STRING", description: "תאריך החשבונית (YYYY-MM-DD)" },
+            subtotal: { type: "NUMBER", description: "סכום לפני מע\"מ" },
+            vat_amount: { type: "NUMBER", description: "סכום מע\"מ (18%)" },
+            total_amount: { type: "NUMBER", description: "סה\"כ כולל מע\"מ" },
+            case_number: { type: "STRING", description: "מספר תיק עבודה (אם החשבונית שייכת לרכב מסוים)" },
+            vehicle_plate: { type: "STRING", description: "מספר רישוי הרכב (אם שייכת לרכב)" },
+            expense_category: { type: "STRING", description: "קטגוריה עבור הוצאה כללית: 'paints' (צבעים), 'materials' (חומרי פחחות), 'tools' (כלי עבודה), 'equipment' (ציוד), 'services' (שירותים למוסך), 'parts' (חלקים)" },
+            parts_received_confirmed: { type: "BOOLEAN", description: "האם כל החלקים התקבלו בפועל" },
+            returned_parts_exist: { type: "BOOLEAN", description: "האם יש חלק שהוחזר" },
+            returned_parts_notes: { type: "STRING", description: "פירוט חלקים שהוחזרו" },
+            credit_status: { type: "STRING", description: "'none', 'credit_pending' (ממתין לזיכוי), 'credit_received' (התקבל זיכוי)" },
+            accounting_notes: { type: "STRING", description: "הערה להנהלת החשבונות" },
+            line_items: {
+              type: "ARRAY",
+              description: "פירוט שורות הפריטים בחשבונית",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  item_name: { type: "STRING" },
+                  qty: { type: "NUMBER" },
+                  price: { type: "NUMBER" },
+                },
+              },
+            },
+          },
+          required: ["invoice_type", "invoice_number", "supplier_name", "total_amount"],
+        },
+      },
+      {
+        name: "preview_garage_close_case",
+        description: "בדיקת חוסרים וסגירת תיק עבודה למשתמש מורשה. בודק: 1. סיום עבודה בפועל 2. הצעת מחיר מאושרת 3. מסמכים מחייבים ותמונות קבלה 4. סגירת חשבוניות וזיכויים 5. עבור לקוח אלדן/צי: קבלת הזמנה מתומחרת. מציג רשימת חוסרים אם ישנם.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            case_number: { type: "STRING", description: "מספר התיק לסגירה (למשל GM-2026-0056) או מספר לוחית רישוי" },
+            closure_notes: { type: "STRING", description: "הערות סיום עבודה ומסירה" },
+            force_override: { type: "BOOLEAN", description: "אישור מנהל מורשה לסגירה חרף חוסרים" },
+          },
+          required: ["case_number"],
+        },
+      },
+      {
         name: "get_garage_case_summary_report",
         description: "הפקת דוח סיכום מקיף, מקצועי ומפורט על כרטיס עבודה במוסך (פרטי לקוח, רכב, פירוט נזקים, עבודות, חלקים, עלויות, סטטוס ומסמכים).",
         parameters: {
@@ -2065,6 +2163,150 @@ export async function executeGarageTool(
       };
     }
 
+    case "preview_garage_create_customer_and_vehicle": {
+      const custName = String(args.customer_name || "").trim();
+      const phone = String(args.customer_phone || "").trim();
+      const plate = String(args.vehicle_plate || "").replace(/[^0-9]/g, "").trim();
+
+      // Check duplicates
+      const [{ data: existingCust }, { data: existingVeh }] = await Promise.all([
+        phone ? supabase.from("garage_customers").select("id, name, customer_number, phone").eq("phone", phone).maybeSingle() : Promise.resolve({ data: null }),
+        plate ? supabase.from("garage_vehicles").select("id, plate, make, model, customer_id").eq("plate", plate).maybeSingle() : Promise.resolve({ data: null }),
+      ]);
+
+      const warnings: string[] = [];
+      if (existingCust) {
+        warnings.push(`⚠️ לקוח עם טלפון זה כבר קיים: "${existingCust.name}" (מספר לקוח: ${existingCust.customer_number || existingCust.id})`);
+      }
+      if (existingVeh) {
+        warnings.push(`⚠️ רכב עם לוחית ${existingVeh.plate} כבר קיים במערכת (${existingVeh.make || ""} ${existingVeh.model || ""})`);
+      }
+
+      const pendingAction: GaragePendingAction = {
+        preview_id: `prev_cust_veh_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        summary: `פתיחת לקוח ורכב חדשים: ${custName} (טלפון: ${phone || "לא צוין"}), רכב ${plate} (${args.vehicle_make || ""} ${args.vehicle_model || ""})${warnings.length ? " [נמצאו אזהרות כפילות]" : ""}`,
+        tool_name: "preview_garage_create_customer_and_vehicle",
+        action_type: "garage_create_customer_and_vehicle",
+        parameters: { ...args, plate, customer_name: custName, warnings },
+      };
+
+      return {
+        result: {
+          success: true,
+          warnings,
+          summary: pendingAction.summary,
+          prompt_quote_followup: true,
+        },
+        preview: pendingAction,
+      };
+    }
+
+    case "preview_garage_intake_inspection": {
+      const caseRef = String(args.case_number || targetCaseId || "").trim();
+      const intakeKm = String(args.intake_km || "").trim();
+
+      const missing: string[] = [];
+      if (!intakeKm) missing.push("קילומטראז' (מד אוץ)");
+      if (!args.front_photo) missing.push("תמונת חזית הרכב");
+      if (!args.rear_photo) missing.push("תמונת אחורי הרכב");
+      if (!args.right_photo) missing.push("תמונת צד ימין");
+      if (!args.left_photo) missing.push("תמונת צד שמאל");
+      if (!args.dashboard_km_photo) missing.push("תמונת לוח שעונים/מד אוץ");
+
+      const pendingAction: GaragePendingAction = {
+        preview_id: `prev_intake_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        summary: `קבלת רכב לעבודה עבור תיק ${caseRef}: מד אוץ ${intakeKm} ק"מ, 5 תמונות חובה, בדיקת מערכות ואישור קבלה${missing.length ? ` (חסרים: ${missing.join(', ')})` : ""}`,
+        tool_name: "preview_garage_intake_inspection",
+        action_type: "garage_intake_inspection",
+        parameters: { ...args, caseRef, missing },
+      };
+
+      return {
+        result: {
+          success: missing.length === 0,
+          missing,
+          summary: pendingAction.summary,
+        },
+        preview: pendingAction,
+      };
+    }
+
+    case "preview_garage_record_invoice": {
+      const invNum = String(args.invoice_number || "").trim();
+      const supplier = String(args.supplier_name || "").trim();
+      const invType = String(args.invoice_type || "parts_invoice");
+      const total = Number(args.total_amount || 0);
+
+      const typeLabel = invType === "parts_invoice" ? "חשבונית חלקים לרכב" : invType === "credit_note" ? "חשבונית זיכוי" : "הוצאה כללית למוסך";
+      const pendingAction: GaragePendingAction = {
+        preview_id: `prev_inv_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        summary: `קליטת ${typeLabel} מס' ${invNum} מאת ספק "${supplier}" ע"ס ${total.toLocaleString()} ₪${args.case_number ? ` (עבור תיק ${args.case_number})` : ""}`,
+        tool_name: "preview_garage_record_invoice",
+        action_type: "garage_record_invoice",
+        parameters: { ...args, invoice_type: invType, total_amount: total },
+      };
+
+      return {
+        result: {
+          success: true,
+          summary: pendingAction.summary,
+          invoice_type: invType,
+          supplier_name: supplier,
+          total_amount: total,
+        },
+        preview: pendingAction,
+      };
+    }
+
+    case "preview_garage_close_case": {
+      const caseRef = String(args.case_number || targetCaseId || "").trim();
+
+      // Look up case
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseRef);
+      const query = isUuid
+        ? supabase.from("garage_cases").select("*").eq("id", caseRef)
+        : supabase.from("garage_cases").select("*").eq("case_number", caseRef);
+      const { data: foundCase } = await query.maybeSingle();
+
+      const gaps: string[] = [];
+      if (!foundCase) {
+        gaps.push(`תיק עבודה ${caseRef} לא נמצא במסד הנתונים`);
+      } else {
+        const cd = foundCase.case_data || {};
+        if (!cd.workFinished && foundCase.status !== "work_finished") {
+          gaps.push("העבודה טרם סומנה כהסתיימה");
+        }
+        if (!cd.quoteApproved && !cd.priceReview) {
+          gaps.push("אין הצעת מחיר מאושרת שמורה בתיק");
+        }
+        if (!cd.intakeDone) {
+          gaps.push("טרם הושלמה קבלת רכב עם תמונות וקילומטראז'");
+        }
+        // Eldan check
+        const custName = String(foundCase.customer_name_snapshot || "");
+        if (custName.includes("אלדן") && !cd.pricedOrderReceived && !cd.workOrderNumber) {
+          gaps.push("חסרה הזמנת עבודה מתומחרת מצי רכב אלדן");
+        }
+      }
+
+      const pendingAction: GaragePendingAction = {
+        preview_id: `prev_close_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        summary: `סגירת תיק עבודה ${caseRef}${gaps.length ? ` [נמצאו חוסרים: ${gaps.join("; ")}]` : " [כל התנאים מולאו בהצלחה]"}`,
+        tool_name: "preview_garage_close_case",
+        action_type: "garage_close_case",
+        parameters: { ...args, caseRef, gaps, case_id: foundCase?.id },
+      };
+
+      return {
+        result: {
+          ready_for_closure: gaps.length === 0,
+          gaps,
+          summary: pendingAction.summary,
+        },
+        preview: pendingAction,
+      };
+    }
+
     case "get_garage_case_summary_report": {
       const gCase = await resolveGarageCase(supabase, targetCaseId);
       if (!gCase) return { result: { error: `לא נמצא תיק מוסך תואם עבור: "${targetCaseId}"` } };
@@ -2560,6 +2802,208 @@ export async function executeGaragePendingAction(
     }
 
     switch (action_type) {
+      case "garage_create_customer_and_vehicle": {
+        const custName = String(parameters.customer_name || "").trim();
+        const phone = String(parameters.customer_phone || "").trim();
+        const plate = String(parameters.vehicle_plate || parameters.plate || "").replace(/[^0-9]/g, "").trim();
+
+        // 1. Create or locate customer
+        let customerId = "";
+        let customerNumber = "";
+        if (phone) {
+          const { data: existingC } = await supabase.from("garage_customers").select("id, customer_number").eq("phone", phone).maybeSingle();
+          if (existingC) {
+            customerId = existingC.id;
+            customerNumber = existingC.customer_number || existingC.id;
+          }
+        }
+
+        if (!customerId) {
+          const { data: newCust, error: cErr } = await supabase.from("garage_customers").insert({
+            name: custName,
+            phone: phone || "לא צוין",
+            customer_type: String(parameters.customer_type || "private"),
+            company_name: String(parameters.company_name || ""),
+            email: String(parameters.email || ""),
+            address: String(parameters.address || ""),
+            business_id: String(parameters.business_id || ""),
+            notes: String(parameters.notes || ""),
+          }).select("id, customer_number").single();
+          if (cErr) throw new Error(`יצירת לקוח נכשלה: ${cErr.message}`);
+          customerId = newCust.id;
+          customerNumber = newCust.customer_number || newCust.id;
+        }
+
+        // 2. Create vehicle linked to customer
+        let vehicleId = "";
+        const { data: existingV } = await supabase.from("garage_vehicles").select("id").eq("plate", plate).maybeSingle();
+        if (existingV) {
+          vehicleId = existingV.id;
+        } else {
+          const { data: newVeh, error: vErr } = await supabase.from("garage_vehicles").insert({
+            customer_id: customerId,
+            plate,
+            make: String(parameters.vehicle_make || ""),
+            model: String(parameters.vehicle_model || ""),
+            year: parameters.vehicle_year ? Number(parameters.vehicle_year) : null,
+            color: String(parameters.vehicle_color || ""),
+            vin: String(parameters.vehicle_vin || ""),
+            vehicle_type: String(parameters.vehicle_type || ""),
+          }).select("id").single();
+          if (vErr) throw new Error(`שמירת רכב נכשלה: ${vErr.message}`);
+          vehicleId = newVeh.id;
+        }
+
+        return {
+          success: true,
+          message: `✅ לקוח "${custName}" (לקוח #${customerNumber}) ורכב מס' ${plate} נשמרו בהצלחה במערכת!\n\nהאם תרצה להכין ללקוח הצעת מחיר בשלב זה?`,
+          data: { customer_id: customerId, vehicle_id: vehicleId, customer_number: customerNumber, plate },
+        };
+      }
+
+      case "garage_intake_inspection": {
+        const caseRef = String(parameters.caseRef || parameters.case_number || "");
+        const intakeKm = String(parameters.intake_km || "");
+
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseRef);
+        const query = isUuid
+          ? supabase.from("garage_cases").select("*").eq("id", caseRef)
+          : supabase.from("garage_cases").select("*").eq("case_number", caseRef);
+        const { data: cData, error: cErr } = await query.single();
+        if (cErr || !cData) throw new Error(`תיק עבודה ${caseRef} לא נמצא: ${cErr?.message || ""}`);
+
+        const cd = cData.case_data || {};
+        cd.intakeDone = true;
+        cd.intakeKm = intakeKm;
+        cd.intakeAngles = {
+          front: parameters.front_photo || "captured",
+          rear: parameters.rear_photo || "captured",
+          right: parameters.right_photo || "captured",
+          left: parameters.left_photo || "captured",
+          dash: parameters.dashboard_km_photo || "captured",
+        };
+        cd.intakeFuel = parameters.intake_fuel || "חצי";
+        cd.intakeKeys = parameters.intake_keys || "1";
+        cd.intakeLights = parameters.intake_lights || "תקין";
+        cd.intakeInterior = parameters.intake_interior || "";
+        cd.intakeItems = parameters.intake_items || "";
+        cd.intakeWorker = actorName || "מנהל מוסך";
+        cd.flowStage = "inspection_completed";
+
+        const { error: updErr } = await supabase.from("garage_cases").update({
+          case_data: cd,
+          status: "in_progress",
+        }).eq("id", cData.id);
+        if (updErr) throw new Error(`עדכון קבלת רכב נכשל: ${updErr.message}`);
+
+        return {
+          success: true,
+          message: `✅ קבלת רכב עבור תיק ${cData.case_number} הושלמה בהצלחה! 5 תמונות נקלטו, קילומטראז' (${intakeKm} ק"מ) עודכן והתיק הועבר לטיפול.`,
+        };
+      }
+
+      case "garage_record_invoice": {
+        const invType = String(parameters.invoice_type || "parts_invoice");
+        const invNum = String(parameters.invoice_number || "");
+        const supplierName = String(parameters.supplier_name || "").trim();
+        const total = Number(parameters.total_amount || 0);
+        const subtotal = Number(parameters.subtotal || Math.round(total / 1.18));
+        const vat = Number(parameters.vat_amount || Math.round(total - subtotal));
+
+        // 1. Resolve or create supplier
+        let supplierId = "";
+        let supplierNumber = "";
+        const { data: existingSupp } = await supabase.from("garage_suppliers").select("id, supplier_number").eq("name", supplierName).maybeSingle();
+        if (existingSupp) {
+          supplierId = existingSupp.id;
+          supplierNumber = existingSupp.supplier_number || "";
+        } else {
+          supplierNumber = `SUP-${Math.floor(1000 + Math.random() * 9000)}`;
+          const { data: newSupp, error: sErr } = await supabase.from("garage_suppliers").insert({
+            name: supplierName,
+            supplier_number: supplierNumber,
+            category: String(parameters.expense_category || "general"),
+          }).select("id, supplier_number").single();
+          if (!sErr && newSupp) {
+            supplierId = newSupp.id;
+            supplierNumber = newSupp.supplier_number;
+          }
+        }
+
+        // 2. Insert into garage_invoices
+        const { data: invRow, error: invErr } = await supabase.from("garage_invoices").insert({
+          invoice_type: invType,
+          invoice_number: invNum,
+          supplier_id: supplierId || null,
+          supplier_name: supplierName,
+          case_number: parameters.case_number ? String(parameters.case_number) : null,
+          vehicle_plate: parameters.vehicle_plate ? String(parameters.vehicle_plate) : null,
+          expense_category: String(parameters.expense_category || "parts"),
+          subtotal,
+          vat_amount: vat,
+          total_amount: total,
+          parts_received_confirmed: Boolean(parameters.parts_received_confirmed),
+          returned_parts_exist: Boolean(parameters.returned_parts_exist),
+          returned_parts_notes: String(parameters.returned_parts_notes || ""),
+          credit_status: String(parameters.credit_status || "none"),
+          accounting_notes: String(parameters.accounting_notes || ""),
+          payment_status: "pending_accounting",
+        }).select("id").single();
+
+        if (invErr) throw new Error(`שמירת חשבונית נכשלה: ${invErr.message}`);
+
+        // 3. If linked to case, update case_data
+        if (parameters.case_number) {
+          const { data: c } = await supabase.from("garage_cases").select("id, case_data").eq("case_number", parameters.case_number).maybeSingle();
+          if (c) {
+            const cd = c.case_data || {};
+            cd.invoices = cd.invoices || [];
+            cd.invoices.push({
+              invoice_id: invRow.id,
+              invoice_number: invNum,
+              supplier: supplierName,
+              total,
+              type: invType,
+              credit_status: parameters.credit_status,
+              recorded_at: new Date().toISOString(),
+            });
+            await supabase.from("garage_cases").update({ case_data: cd }).eq("id", c.id);
+          }
+        }
+
+        return {
+          success: true,
+          message: `✅ חשבונית מס' ${invNum} (${supplierName}) ע"ס ${total.toLocaleString()} ₪ נקלטה בהצלחה ושויכה לספר הספקים (ספק ${supplierNumber || supplierName}) ולהנהלת החשבונות.`,
+        };
+      }
+
+      case "garage_close_case": {
+        const caseRef = String(parameters.caseRef || parameters.case_number || "");
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseRef);
+        const query = isUuid
+          ? supabase.from("garage_cases").select("*").eq("id", caseRef)
+          : supabase.from("garage_cases").select("*").eq("case_number", caseRef);
+        const { data: cData, error: cErr } = await query.single();
+        if (cErr || !cData) throw new Error(`תיק ${caseRef} לא נמצא: ${cErr?.message || ""}`);
+
+        const cd = cData.case_data || {};
+        cd.caseClosed = true;
+        cd.caseClosedAt = new Date().toISOString();
+        cd.caseClosedBy = actorName || "מנהל מוסך";
+        cd.closeNote = String(parameters.closure_notes || "תיק נסגר לאחר סיום עבודות ואימות כלל המסמכים");
+
+        const { error: updErr } = await supabase.from("garage_cases").update({
+          status: "closed",
+          case_data: cd,
+        }).eq("id", cData.id);
+        if (updErr) throw new Error(`סגירת תיק נכשלה: ${updErr.message}`);
+
+        return {
+          success: true,
+          message: `🔒 תיק עבודה מס' ${cData.case_number} נסגר בהצלחה בסטטוס סופי על ידי ${actorName || "מנהל מוסך"}. כלל הנתונים נשמרו בארכיון התיקים הסגורים.`,
+        };
+      }
+
       case "garage_create_customer": {
         const name = String(parameters.name || "").trim();
         const phone = String(parameters.phone || "").trim();

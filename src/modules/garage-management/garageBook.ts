@@ -912,13 +912,21 @@ export async function updateCase(
   if (patch.snapshots?.customer_name_snapshot) updates.customer_name_snapshot = patch.snapshots.customer_name_snapshot;
   if (patch.snapshots?.vehicle_plate_snapshot) updates.vehicle_plate_snapshot = patch.snapshots.vehicle_plate_snapshot;
   if (patch.snapshots?.vehicle_label_snapshot) updates.vehicle_label_snapshot = patch.snapshots.vehicle_label_snapshot;
-  const { data, error } = await tbl('garage_cases').update(updates as never).eq('id', caseId).select('*').single();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+  const query = isUuid
+    ? tbl('garage_cases').update(updates as never).eq('id', caseId)
+    : tbl('garage_cases').update(updates as never).eq('case_number', caseId);
+  const { data, error } = await query.select('*').single();
   if (error) throw new Error(errMessage(error, 'שמירת תיק נכשלה'));
   return data as GarageCase;
 }
 
 export async function getCase(caseId: string, scope?: GarageShopScope): Promise<GarageCase | null> {
-  const { data, error } = await tbl('garage_cases').select('*').eq('id', caseId).maybeSingle();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+  const query = isUuid
+    ? tbl('garage_cases').select('*').eq('id', caseId)
+    : tbl('garage_cases').select('*').eq('case_number', caseId);
+  const { data, error } = await query.maybeSingle();
   if (error) {
     if (isGarageSchemaMissing(error)) return null;
     throw new Error(errMessage(error, 'טעינת תיק נכשלה'));
