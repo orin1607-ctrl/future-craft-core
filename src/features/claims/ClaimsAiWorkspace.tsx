@@ -3402,6 +3402,10 @@ export function ClaimsAiWorkspace({
             } else if (module === 'garage') {
               try {
                 let targetGarageCaseId = garageCase?.id || '';
+                if (!targetGarageCaseId && typeof window !== 'undefined') {
+                  const urlMatch = window.location.pathname.match(/\/garage-management\/([0-9a-f-]{36})/i);
+                  if (urlMatch) targetGarageCaseId = urlMatch[1];
+                }
                 if (!targetGarageCaseId) {
                   // Find active/latest garage case from conversation history or DB
                   for (let mIdx = messages.length - 1; mIdx >= 0; mIdx--) {
