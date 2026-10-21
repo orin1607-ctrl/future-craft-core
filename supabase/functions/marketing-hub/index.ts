@@ -9,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkSocialKey, listDevices, pairComplete, pairStart, revokeDevice, safeEq } from "../_shared/socialAuth.ts";
 import * as Auto from "./automation.ts";
 import * as Finder from "./socialFinder.ts";
+import * as Contact from "./contactFinder.ts";
 
 const BUCKET = "media-library";
 const cors = {
@@ -170,7 +171,7 @@ function igHandle(url?: string | null) {
   } catch { return null; }
 }
 
-const CONTACT_COLS = "id,source_url,profile,linkedin_url,opt_out_channels,consent,company_name,contact_name,role,phone,email,website,facebook_url,facebook_handle,instagram_url,instagram_handle,whatsapp,city,industry,notes,tags,status,do_not_contact,dnc_reason,source,source_ref,next_action_at,last_contact_at,created_at,updated_at";
+const CONTACT_COLS = "id,source_url,profile,linkedin_url,contact_form_url,opt_out_channels,consent,company_name,contact_name,role,phone,email,website,facebook_url,facebook_handle,instagram_url,instagram_handle,whatsapp,city,industry,notes,tags,status,do_not_contact,dnc_reason,source,source_ref,next_action_at,last_contact_at,created_at,updated_at";
 
 async function logEvent(biz: string, contactId: string, type: string, detail?: string, channel?: string) {
   await db.from("outreach_events").insert({ business_id: biz, contact_id: contactId, type, detail: detail || null, channel: channel || null });
@@ -541,20 +542,22 @@ async function prospectorStatus(ids: number[]) {
 }
 
 
-/* =============== Social link finder (selected companies only) =============== */
-const FIND_COLS = "id,run_id,contact_id,platform,url,handle,confidence,source,evidence,status,created_at,reviewed_at";
+/* =============== Contact finder (selected companies only) =============== */
+const FIND_COLS = "id,run_id,contact_id,platform,url,handle,confidence,source,evidence,status,detail,created_at,reviewed_at";
+const CARD_COL: Record<string, string> = { facebook: "facebook_url", instagram: "instagram_url", linkedin: "linkedin_url", website: "website", email: "email", phone: "phone", contact_form: "contact_form_url", whatsapp: "whatsapp" };
+const FIELD_HE: Record<string, string> = { facebook: "פייסבוק", instagram: "אינסטגרם", linkedin: "לינקדאין", website: "אתר", email: "אימייל", phone: "טלפון", contact_form: "טופס יצירת קשר", whatsapp: "וואטסאפ" };
 
-async function finderStart(biz: string, ids: string[]) {
+async function finderStart(biz: string, ids: string[], mode = "full", engine = "v2") {
   ids = [...new Set(ids || [])].slice(0, 200);
   if (!ids.length) throw new Error("בחרו חברות לאיתור");
   const own = must(await db.from("outreach_contacts").select("id").eq("business_id", biz).in("id", ids)) as any[];
   const ordered = ids.filter((id) => own.some((o) => o.id === id));
   if (!ordered.length) throw new Error("החברות לא נמצאו");
-  const run: any = must(await db.from("outreach_social_runs").insert({ business_id: biz, contact_ids: ordered }).select("*").single());
+  const run: any = must(await db.from("outreach_social_runs").insert({ business_id: biz, contact_ids: ordered, mode, engine }).select("*").single());
   return { run };
 }
 
-// One company per call: the screen shows progress and the owner can leave and come back to the results.
+// One company per call: progress is visible, and the owner can leave and come back to the results.
 async function finderNext(biz: string, runId: string) {
   const run: any = must(await db.from("outreach_social_runs").select("*").eq("business_id", biz).eq("id", runId).single());
   if (run.status !== "running") return { run, done: true };
@@ -564,20 +567,29 @@ async function finderNext(biz: string, runId: string) {
     return { run: fin, done: true };
   }
   const c: any = must(await db.from("outreach_contacts").select("*").eq("id", nextId).single());
-  const { findings, notes } = await Finder.findForContact(db, c);
-  // a link that was already rejected for this company is not offered again
-  const rejected = must(await db.from("outreach_social_findings").select("platform,handle").eq("contact_id", c.id).eq("status", "rejected")) as any[];
+  const prior = must(await db.from("outreach_social_findings").select("platform,handle,url,status").eq("contact_id", c.id).in("status", ["rejected", "suggested"])) as any[];
+  let findings: any[], steps: any[] = [], queries = 0, ms = 0;
+  if (run.engine === "v1") {
+    findings = (await Finder.findForContact(db, c)).findings;
+  } else {
+    // rerun "missing only": fields that already wait for approval are not searched again
+    const skip = run.mode === "missing" ? [...new Set(prior.filter((p) => p.status === "suggested").map((p) => p.platform))] : [];
+    const r = await Contact.investigate(db, c, { skip: skip as any });
+    findings = r.findings; steps = r.steps; queries = r.queries; ms = r.ms;
+  }
+  const rejected = prior.filter((p) => p.status === "rejected");
   const rows = findings.map((f) => {
-    const wasRejected = f.handle && rejected.some((r) => r.platform === f.platform && r.handle === f.handle);
+    const wasRejected = f.url && rejected.some((r) => r.platform === f.platform && ((f.handle && r.handle === f.handle) || r.url === f.url));
     return {
       run_id: run.id, business_id: biz, contact_id: c.id, platform: f.platform,
       url: wasRejected ? null : f.url, handle: wasRejected ? null : f.handle,
-      confidence: wasRejected ? "none" : f.confidence, source: f.source,
-      evidence: wasRejected ? "הקישור שנמצא נדחה בעבר – לא מוצע שוב" : f.evidence + (notes.length && f.confidence === "none" ? ` · ${notes.join(" · ")}` : ""),
+      confidence: wasRejected ? "none" : f.confidence, source: f.source, detail: f.detail || {},
+      evidence: wasRejected ? "הממצא נדחה בעבר – לא מוצע שוב" : f.evidence,
       status: f.confidence === "existing" ? "existing" : (wasRejected || f.confidence === "none") ? "not_found" : "suggested",
     };
   });
   if (rows.length) must(await db.from("outreach_social_findings").insert(rows));
+  if (run.engine !== "v1") await db.from("outreach_find_checks").upsert({ run_id: run.id, contact_id: c.id, steps, queries, ms });
   const upd: any = must(await db.from("outreach_social_runs").update({ done_ids: [...run.done_ids, c.id] }).eq("id", run.id).select("*").single());
   return { run: upd, done: false, contact: { id: c.id, company_name: c.company_name } };
 }
@@ -585,12 +597,13 @@ async function finderNext(biz: string, runId: string) {
 async function finderRun(biz: string, runId: string) {
   const run: any = must(await db.from("outreach_social_runs").select("*").eq("business_id", biz).eq("id", runId).single());
   const findings = must(await db.from("outreach_social_findings").select(FIND_COLS).eq("run_id", run.id)) as any[];
-  const contacts = must(await db.from("outreach_contacts").select("id,company_name,city,website,email,facebook_url,instagram_url").in("id", run.contact_ids)) as any[];
-  return { run, findings, contacts };
+  const contacts = must(await db.from("outreach_contacts").select("id,company_name,city,website,email,phone,whatsapp,linkedin_url,contact_form_url,facebook_url,instagram_url").in("id", run.contact_ids)) as any[];
+  const checks = must(await db.from("outreach_find_checks").select("contact_id,steps,queries,ms").eq("run_id", run.id)) as any[];
+  return { run, findings, contacts, checks };
 }
 
 async function finderRuns(biz: string) {
-  const runs = must(await db.from("outreach_social_runs").select("id,status,contact_ids,done_ids,created_at,finished_at").eq("business_id", biz).order("created_at", { ascending: false }).limit(10)) as any[];
+  const runs = must(await db.from("outreach_social_runs").select("id,status,mode,engine,contact_ids,done_ids,created_at,finished_at").eq("business_id", biz).order("created_at", { ascending: false }).limit(15)) as any[];
   return { runs: runs.map((r) => ({ ...r, total: r.contact_ids.length, done: r.done_ids.length })) };
 }
 
@@ -599,8 +612,13 @@ async function finderStop(biz: string, runId: string) {
   return finderRun(biz, runId);
 }
 
-/** approve (optionally with a corrected link) / reject. Approval writes the link to the card only if that
-    field is still empty — existing card data is never replaced. */
+async function searchStatus() {
+  const { data } = await db.from("search_usage").select("count").eq("day", new Date().toISOString().slice(0, 10)).eq("provider", "brave").maybeSingle();
+  return { configured: Contact.searchConfigured(), provider: "Brave Search API", daily_limit: Number(env("SEARCH_DAILY_LIMIT") || 30), per_company: Number(env("SEARCH_PER_COMPANY") || 6), used_today: data?.count || 0 };
+}
+
+/** approve (optionally corrected) / reject. Approval fills the card field only if it is empty; when the card
+    already has a value (e.g. a second e-mail or phone) the new value is kept in the card's extra contacts. */
 async function finderDecide(biz: string, b: any) {
   const f: any = must(await db.from("outreach_social_findings").select("*").eq("business_id", biz).eq("id", b.id).single());
   const now = new Date().toISOString();
@@ -609,32 +627,69 @@ async function finderDecide(biz: string, b: any) {
     return { ok: true };
   }
   if (b.action !== "approve") throw new Error("פעולה לא מוכרת");
-  let url = String(b.url || f.url || "").trim();
-  if (!url) throw new Error("אין קישור לאישור – הדביקו קישור לעמוד");
-  if (!/^https?:\/\//i.test(url)) url = "https://" + url.replace(/^\/+/, "");
-  const handle = f.platform === "facebook" ? fbHandle(url) : igHandle(url);
-  if (!handle) throw new Error(f.platform === "facebook" ? "זה לא נראה כמו קישור לעמוד פייסבוק" : "זה לא נראה כמו קישור לחשבון אינסטגרם");
+  let value = String(b.url || f.url || "").trim();
+  if (!value) throw new Error("אין ערך לאישור – הדביקו קישור או פרט קשר");
+  const p = f.platform as string;
   const c: any = must(await db.from("outreach_contacts").select("*").eq("id", f.contact_id).single());
-  const field = f.platform === "facebook" ? "facebook_url" : "instagram_url";
-  const hField = f.platform === "facebook" ? "facebook_handle" : "instagram_handle";
-  if (c[field] && c[hField] !== handle) throw new Error("בכרטיס כבר יש קישור אחר – לא משנים נתונים קיימים. ערכו את הכרטיס ידנית אם צריך.");
-  const other = must(await db.from("outreach_contacts").select("company_name").eq("business_id", biz).eq(hField, handle).neq("id", c.id).limit(1)) as any[];
-  if (other.length) throw new Error(`העמוד כבר משויך ללקוח אחר: ${other[0].company_name}`);
-  if (!c[field]) must(await db.from("outreach_contacts").update({ [field]: url, [hField]: handle, updated_at: now }).eq("id", c.id));
+  const col = CARD_COL[p];
+  const patch: any = {};
+  let handle: string | null = null;
+  if (p === "facebook" || p === "instagram") {
+    if (!/^https?:\/\//i.test(value)) value = "https://" + value.replace(/^\/+/, "");
+    handle = p === "facebook" ? fbHandle(value) : igHandle(value);
+    if (!handle) throw new Error(p === "facebook" ? "זה לא נראה כמו קישור לעמוד פייסבוק" : "זה לא נראה כמו קישור לחשבון אינסטגרם");
+    const hCol = p === "facebook" ? "facebook_handle" : "instagram_handle";
+    if (c[col] && c[hCol] !== handle) throw new Error("בכרטיס כבר יש קישור אחר – לא משנים נתונים קיימים.");
+    const other = must(await db.from("outreach_contacts").select("company_name").eq("business_id", biz).eq(hCol, handle).neq("id", c.id).limit(1)) as any[];
+    if (other.length) throw new Error(`העמוד כבר משויך ללקוח אחר: ${other[0].company_name}`);
+    if (!c[col]) { patch[col] = value; patch[hCol] = handle; }
+  } else if (p === "email") {
+    value = value.toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(value)) throw new Error("כתובת אימייל לא תקינה");
+    if (!c.email) patch.email = value;
+  } else if (p === "phone" || p === "whatsapp") {
+    const n = normPhone(value);
+    if (!n) throw new Error("מספר טלפון לא תקין");
+    if (!c[col]) patch[col] = value;
+    if (!c.phone_norm) {
+      const other = must(await db.from("outreach_contacts").select("company_name").eq("business_id", biz).eq("phone_norm", n).neq("id", c.id).limit(1)) as any[];
+      if (other.length) throw new Error(`המספר כבר שייך ללקוח אחר: ${other[0].company_name}`);
+      patch.phone_norm = n;
+    }
+  } else {
+    if (!/^https?:\/\//i.test(value)) value = "https://" + value.replace(/^\/+/, "");
+    if (!c[col]) patch[col] = value;
+  }
+  if (!Object.keys(patch).some((k) => k === col) && String(c[col] || "").toLowerCase() !== value.toLowerCase()) {
+    // the card already holds a different value — keep both, never overwrite
+    const prof = c.profile || {};
+    const extra = Array.isArray(prof.extra_contacts) ? prof.extra_contacts : [];
+    if (!extra.some((x: any) => x.type === p && x.value === value)) extra.push({ type: p, value, source: f.source, kind: f.detail?.kind || null, role: f.detail?.role || null, at: now });
+    patch.profile = { ...prof, extra_contacts: extra };
+  }
+  if (Object.keys(patch).length) must(await db.from("outreach_contacts").update({ ...patch, updated_at: now }).eq("id", c.id));
   const corrected = b.url && b.url !== f.url;
   must(await db.from("outreach_social_findings").update({
-    status: "approved", reviewed_at: now, url, handle,
-    ...(corrected ? { source: "manual", evidence: "קישור שתוקן ואושר ידנית" } : {}),
+    status: "approved", reviewed_at: now, url: value, handle: handle || f.handle,
+    ...(corrected ? { source: "manual", evidence: "ערך שתוקן ואושר ידנית" } : {}),
   }).eq("id", f.id));
-  await logEvent(biz, c.id, "edited", `${f.platform === "facebook" ? "פייסבוק" : "אינסטגרם"} אושר ונשמר בכרטיס${corrected ? " (תוקן ידנית)" : ""}: ${url}`);
+  // other page options for the same single-value field are closed once one is approved
+  if (["facebook", "instagram", "linkedin", "website", "contact_form"].includes(p)) {
+    await db.from("outreach_social_findings").update({ status: "rejected", reviewed_at: now, evidence: "נבחרה אפשרות אחרת" })
+      .eq("contact_id", c.id).eq("platform", p).eq("status", "suggested").neq("id", f.id);
+  }
+  await logEvent(biz, c.id, "edited", `${FIELD_HE[p]} אושר ונשמר בכרטיס${corrected ? " (תוקן ידנית)" : ""}: ${value}`);
   return { ok: true };
 }
 
 async function finderApproveHigh(biz: string, runId: string) {
-  const list = must(await db.from("outreach_social_findings").select("id").eq("business_id", biz).eq("run_id", runId).eq("status", "suggested").eq("confidence", "high")) as any[];
+  const list = must(await db.from("outreach_social_findings").select("id,contact_id,platform").eq("business_id", biz).eq("run_id", runId).eq("status", "suggested").eq("confidence", "high").order("created_at")) as any[];
   let approved = 0; const errors: string[] = [];
+  const doneSingle = new Set<string>();
   for (const f of list) {
-    try { await finderDecide(biz, { id: f.id, action: "approve" }); approved++; }
+    const key = f.contact_id + f.platform;
+    if (["facebook", "instagram", "linkedin", "website", "contact_form"].includes(f.platform) && doneSingle.has(key)) continue;
+    try { await finderDecide(biz, { id: f.id, action: "approve" }); approved++; doneSingle.add(key); }
     catch (e) { errors.push((e as Error).message); }
   }
   return { approved, errors };
@@ -677,7 +732,9 @@ Deno.serve(async (req) => {
       case "items/preview": return json(await Auto.itemPreview(await actx(), b.id));
       case "items/outcome": return json(await Auto.itemOutcome(await actx(), b));
       case "automation/summary": return json(await Auto.summary(await actx()));
-      case "social-find/start": return json(await finderStart(biz, b.contact_ids));
+      case "social-find/start": return json(await finderStart(biz, b.contact_ids, b.mode || "full", b.engine === "v1" ? "v1" : "v2"));
+      case "social-find/search-status": return json(await searchStatus());
+      case "social-find/selftest": return json(Contact.selftest());
       case "social-find/next": return json(await finderNext(biz, b.run_id));
       case "social-find/run": return json(await finderRun(biz, b.run_id));
       case "social-find/runs": return json(await finderRuns(biz));

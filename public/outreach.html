@@ -403,6 +403,10 @@ async function openContact(c){
       <b>מ-OpenProspector</b>${pf.fleet_level ? ` · 🚚 ${pf.fleet_level==='documented'?'ראיה ל-5+ רכבים':pf.fleet_level==='strong'?'סימנים חזקים לצי':'פוטנציאל לצי'}${pf.fleet_min?` (לפחות ${pf.fleet_min})`:''}` : ''}${pf.district ? ' · ' + esc(pf.district) : ''}
       ${(pf.people||[]).length ? `<div class="muted">בעלי תפקידים: ${pf.people.map(p=>esc(p.name)+(p.role?' – '+esc(p.role):'')).join(' · ')}</div>` : ''}
       ${c.source_url ? `<a class="btn sm" style="margin-top:6px" href="${esc(c.source_url)}" target="_blank" rel="noopener">🔗 כרטיס החברה ב-OpenProspector</a>` : ''}</div>` : '';
+    const extra = (pf.extra_contacts || []);
+    if (c.contact_form_url || extra.length) $('#cSrc').innerHTML += `<div class="note" style="margin-top:8px;background:var(--bg)"><b>דרכי התקשרות נוספות</b>
+      ${c.contact_form_url ? `<div>טופס יצירת קשר: <a href="${esc(c.contact_form_url)}" target="_blank" rel="noopener">${esc(c.contact_form_url.replace(/^https?:\/\//,''))}</a></div>` : ''}
+      ${extra.map(x => `<div>${({email:'אימייל',phone:'טלפון',whatsapp:'וואטסאפ',linkedin:'לינקדאין',website:'אתר',facebook:'פייסבוק',instagram:'אינסטגרם',contact_form:'טופס'})[x.type]||x.type}: <span dir="ltr">${esc(x.value)}</span>${x.role ? ` <span class="muted">(${esc(x.role)})</span>` : ''}</div>`).join('')}</div>`;
     $('#cStatus').value = c.status;
     $('#cRemind').value = c.next_action_at ? new Date(new Date(c.next_action_at) - new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16) : '';
     $('#cDnc').textContent = c.do_not_contact ? 'חידוש פניות ללקוח' : 'עצירת פניות ללקוח';
@@ -581,6 +585,6 @@ $('#pImport').onclick = async () => {
 boot();
 </script>
 <script src="./marketing/outreach-campaigns.js?v=20261021a"></script>
-<script src="./marketing/outreach-social-finder.js?v=20261021a"></script>
+<script src="./marketing/outreach-social-finder.js?v=20261021b"></script>
 </body>
 </html>
