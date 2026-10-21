@@ -33,6 +33,8 @@ import { NOT_READ_LABEL } from '../../../supabase/functions/_shared/claimDocumen
 import { downloadRemoteFile } from './claimFileDownload';
 import { buildInsurancePackageSummaryPdf } from './signedClaimPdf';
 import { uploadGarageMedia } from '@/modules/garage-management/garageMedia';
+import { GarageQuoteCard } from '@/modules/garage-management/GarageQuoteCard';
+import type { GarageQuoteCardData } from '@/modules/garage-management/garageQuoteDoc';
 import './claims-ai.css';
 
 /** Claim-file actions the chat can run through the existing claims screen (signed URL, download, browser reader). */
@@ -335,7 +337,14 @@ async function streamHelpAi(input: {
   signal?: AbortSignal;
   onDelta: (full: string) => void;
   onPendingAction?: (pending: ClaimsAiPendingAction) => void;
-}): Promise<{ text: string; pendingAction: ClaimsAiPendingAction | null; documentCards: ClaimsAiDocumentCard[]; toolsUsed: ClaimsAiToolTrace[] | null }> {
+  onGarageQuoteCard?: (card: GarageQuoteCardData) => void;
+}): Promise<{
+  text: string;
+  pendingAction: ClaimsAiPendingAction | null;
+  documentCards: ClaimsAiDocumentCard[];
+  toolsUsed: ClaimsAiToolTrace[] | null;
+  garageQuoteCard: GarageQuoteCardData | null;
+}> {
   const { data: sessionData } = await supabase.auth.getSession();
   let session = sessionData?.session;
   if (!session?.access_token || (session.expires_at && session.expires_at * 1000 < Date.now() + 60000)) {
@@ -390,6 +399,7 @@ async function streamHelpAi(input: {
   let receivedPendingAction: ClaimsAiPendingAction | null = null;
   let receivedCards: ClaimsAiDocumentCard[] = [];
   let receivedTools: ClaimsAiToolTrace[] | null = null;
+  let receivedGarageQuoteCard: GarageQuoteCardData | null = null;
 
   while (true) {
     const { done, value } = await reader.read();
@@ -408,16 +418,15 @@ async function streamHelpAi(input: {
         }
         try {
           const parsed = JSON.parse(jsonStr);
-          const delta = parsed.choices?.[0]?.delta?.content as string | undefined;
-          if (delta) {
-            full += delta;
-            input.onDelta(full);
-          }
           if (parsed.document_cards) {
             receivedCards = documentCardsOf(parsed.document_cards, input.claimId);
           }
           if (parsed.tools_used) {
             receivedTools = toolTraceOf(parsed.tools_used);
+          }
+          if (parsed.garage_quote_card && typeof parsed.garage_quote_card === 'object') {
+            receivedGarageQuoteCard = parsed.garage_quote_card as GarageQuoteCardData;
+            input.onGarageQuoteCard?.(receivedGarageQuoteCard);
           }
           if (parsed.pending_action) {
             const rawPending = parsed.pending_action as Record<string, unknown>;
@@ -434,6 +443,11 @@ async function streamHelpAi(input: {
             receivedPendingAction = pendingObj;
             input.onPendingAction?.(pendingObj);
           }
+          const delta = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (delta) {
+            full += delta;
+            input.onDelta(full);
+          }
         } catch {
           buffer = `${line}\n${buffer}`;
           break;
@@ -443,7 +457,13 @@ async function streamHelpAi(input: {
     }
   }
   if (!full.trim()) throw new Error('תשובה ריקה מהשרת');
-  return { text: full, pendingAction: receivedPendingAction, documentCards: receivedCards, toolsUsed: receivedTools };
+  return {
+    text: full,
+    pendingAction: receivedPendingAction,
+    documentCards: receivedCards,
+    toolsUsed: receivedTools,
+    garageQuoteCard: receivedGarageQuoteCard,
+  };
 }
 
 interface ContentBlock {
@@ -3256,9 +3276,12 @@ export function ClaimsAiWorkspace({
       setMessages([]);
       return;
     }
+    if (isSubmittingRef.current) {
+      return;
+    }
     let cancelled = false;
     void listClaimsAiMessages(activeId).then((res) => {
-      if (cancelled) return;
+      if (cancelled || isSubmittingRef.current) return;
       if (res.error) {
         setBanner(res.error.message);
         return;
@@ -3505,6 +3528,7 @@ export function ClaimsAiWorkspace({
       setMessages(history);
 
       let pendingFromStream: ClaimsAiPendingAction | null = null;
+      let quoteCardFromStream: GarageQuoteCardData | null = null;
       const detectedClaimId = module === 'garage' ? null : (claimId || (effectiveText.match(/DAL-\d{4}-\d{4}/)?.[0] ?? null));
       const effectiveTargetClaim = module === 'garage' ? null : (claimId || detectedClaimId);
       const effectiveGarageCaseId = module === 'garage' ? (garageCase?.id || effectiveText.match(/GM-\d{4}-\d{4}/)?.[0] || null) : null;
@@ -3532,11 +3556,17 @@ export function ClaimsAiWorkspace({
             content: full,
             created_at: new Date().toISOString(),
             tool_name: null,
-            metadata: pendingFromStream ? { pending_action: pendingFromStream } : {},
+            metadata: {
+              ...(pendingFromStream ? { pending_action: pendingFromStream } : {}),
+              ...(quoteCardFromStream ? { garage_quote_card: quoteCardFromStream } : {}),
+            },
           }]);
         },
         onPendingAction: (pending) => {
           pendingFromStream = pending;
+        },
+        onGarageQuoteCard: (card) => {
+          quoteCardFromStream = card;
         },
       });
       const saved = await insertClaimsAiMessage({
@@ -3548,6 +3578,7 @@ export function ClaimsAiWorkspace({
           claim_id: claimId,
           model: 'help-ai-chat',
           ...(answer.pendingAction ? { pending_action: answer.pendingAction } : {}),
+          ...(answer.garageQuoteCard ? { garage_quote_card: answer.garageQuoteCard } : {}),
           ...(answer.documentCards.length ? { document_cards: answer.documentCards } : {}),
           ...(answer.toolsUsed ? { tools_used: answer.toolsUsed } : {}),
         },
@@ -4274,6 +4305,12 @@ export function ClaimsAiWorkspace({
                   {documentCardsOf(msg.metadata, claimId).map((card) => (
                     <ChatDocumentCard key={card.file_id} card={card} actions={documentActions || remoteDocumentActions(card.claim_id, card.original_name)} />
                   ))}
+                  {msg.metadata && typeof (msg.metadata as Record<string, unknown>).garage_quote_card === 'object' && (msg.metadata as Record<string, unknown>).garage_quote_card !== null ? (
+                    <GarageQuoteCard
+                      quote={(msg.metadata as Record<string, unknown>).garage_quote_card as GarageQuoteCardData}
+                      onOpenGarageCase={onOpenGarageCase}
+                    />
+                  ) : null}
                   {pending ? (
                     <div className="claims-ai-preview" data-testid="claims-ai-preview">
                       <div className="claims-ai-preview-head" style={{ fontWeight: 600, marginBottom: 4 }}>

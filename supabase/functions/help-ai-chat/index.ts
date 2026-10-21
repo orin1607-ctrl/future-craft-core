@@ -19,6 +19,7 @@ import {
   executeGaragePendingAction,
   executeGarageTool,
   type GaragePendingAction,
+  type GarageQuoteCardData,
 } from "./garageTools.ts";
 
 const corsHeaders = edgeCorsHeaders;
@@ -912,7 +913,13 @@ async function callClaude(
   return { error: "שגיאה בתקשורת עם שירות ה-AI. אנא נסה שוב בעוד מספר שניות.", details: attemptErrors, status: 500 };
 }
 
-function streamTextAsSse(replyText: string, pendingAction?: ClaimsPendingAction | null, documentCards: ClaimsDocumentCard[] = [], toolsUsed: ToolTrace[] | null = null): Response {
+function streamTextAsSse(
+  replyText: string,
+  pendingAction?: ClaimsPendingAction | null,
+  documentCards: ClaimsDocumentCard[] = [],
+  toolsUsed: ToolTrace[] | null = null,
+  garageQuoteCard: GarageQuoteCardData | null = null,
+): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
@@ -922,6 +929,7 @@ function streamTextAsSse(replyText: string, pendingAction?: ClaimsPendingAction 
           ...(pendingAction ? { pending_action: pendingAction } : {}),
           ...(documentCards.length ? { document_cards: documentCards } : {}),
           ...(toolsUsed ? { tools_used: toolsUsed } : {}),
+          ...(garageQuoteCard ? { garage_quote_card: garageQuoteCard } : {}),
         });
         controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
@@ -1092,11 +1100,12 @@ Deno.serve(async (req) => {
 
     // Document cards go to the chat screen only; the model gets the tool result without them.
     const documentCards: ClaimsDocumentCard[] = [];
+    let garageQuoteCard: GarageQuoteCardData | null = null;
     // Tools that actually ran in this answer and how each ended — shown to the user under the answer.
     const toolsUsed: ToolTrace[] = [];
     const onToolCall = async (toolName: string, toolArgs: Record<string, unknown>) => {
       if (isGarageModule) {
-        let res: { result: unknown; preview?: GaragePendingAction };
+        let res: { result: unknown; preview?: GaragePendingAction; quoteCard?: GarageQuoteCardData };
         try {
           res = await executeGarageTool(toolName, toolArgs, supabase, effectiveGarageCaseId || effectiveClaimId, userId, actorName);
         } catch (e) {
@@ -1104,6 +1113,9 @@ Deno.serve(async (req) => {
           return { result: { error: e instanceof Error ? e.message : "tool_failed" } };
         }
         addTrace(toolsUsed, toolName, toolOutcome(res.result, !!res.preview));
+        if (res.quoteCard) {
+          garageQuoteCard = res.quoteCard;
+        }
         return { result: res.result, preview: res.preview };
       }
       if (isClaimsModule) {
@@ -1192,7 +1204,25 @@ Deno.serve(async (req) => {
       const refArg = explicitDalMatch ? explicitDalMatch[0].toUpperCase() : (claimId || "");
       const pkgRes = await onToolCall("prepare_insurance_claim_package", refArg ? { claim_ref: refArg } : {});
       const msgText = String((pkgRes.result as any)?.message || "ריכוז תיק התביעה לחברת הביטוח הוכן.");
-      return streamTextAsSse(msgText, pkgRes.preview || null, documentCards, toolsUsed);
+      return streamTextAsSse(msgText, pkgRes.preview || null, documentCards, toolsUsed, garageQuoteCard);
+    }
+
+    // Fast-Path 4: Read-only lookup of an existing Garage Quote in chat (without creating or mutating anything)
+    const isGarageQuoteLookupTrigger = isGarageModule
+      && /(?:תביא|תביאי|הבא|הביאי|תציג|תציגי|הצג|הציגי|תראה|תראי|הראה|שלוף|שלפי|תשלוף|תשלפי|פתח|פתחי|תפתח|תפתחי|איפה|מה\s+עם|תן|תני)\s+(?:לי\s+)?(?:בבקשה\s+)?(?:את\s+)?הצעת\s+ה?מחיר/i.test(lastUserText)
+      && !/פירוט\s+העבודות|פתיחת\s+לקוח|פתח\s+כרטיס\s+עבודה/i.test(lastUserText);
+    if (isGarageQuoteLookupTrigger) {
+      const plateMatch = lastUserText.replace(/-/g, "").match(/\b\d{5,8}\b/);
+      const gmMatch = lastUserText.match(/GM-\d{4}-\d+/i);
+      const lookupRes = await onToolCall("get_garage_quote_for_chat", {
+        query: lastUserText,
+        vehicle_plate: plateMatch ? plateMatch[0] : "",
+        case_id: gmMatch ? gmMatch[0].toUpperCase() : "",
+      });
+      if ((lookupRes.result as any)?.found && garageQuoteCard) {
+        const msgText = String((lookupRes.result as any)?.message || "הצעת המחיר נמצאה ומוצגת לפניך:");
+        return streamTextAsSse(msgText, null, documentCards, toolsUsed, garageQuoteCard);
+      }
     }
 
     // Claims answers stay close to the tool results (fewer invented details).
@@ -1242,7 +1272,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return streamTextAsSse(finalResult.text, finalResult.pendingAction, documentCards, (isClaimsModule || isGarageModule) ? toolsUsed : null);
+    return streamTextAsSse(finalResult.text, finalResult.pendingAction, documentCards, (isClaimsModule || isGarageModule) ? toolsUsed : null, garageQuoteCard);
   } catch (e) {
     console.error("help-ai-chat error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {

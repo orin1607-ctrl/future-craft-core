@@ -1,6 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  buildGarageQuotePdfFile,
+  buildGarageQuotePngFile,
+  DEFAULT_YONI_BRANDING,
+  downloadFileInBrowser,
+  resolveShopBranding,
+  shareGarageQuoteFileNative,
+  type GarageQuoteCardData,
+  type GarageShopBranding,
+} from '@/modules/garage-management/garageQuoteDoc';
 
 interface QuoteWorkRow {
   id?: string;
@@ -33,18 +43,21 @@ interface GarageQuotePayload {
   quote_works: QuoteWorkRow[];
   quote_parts: QuotePartRow[];
   priced_subtotal: number;
+  global_price?: number | null;
   priced_lines_count: number;
   unpriced_lines_count: number;
   vat_rate: number;
   vat_mode: 'unspecified' | 'plus_vat' | 'includes_vat';
   damage_photos_attached: boolean;
   damage_photos_count: number;
+  damage_photos?: Array<{ id?: string; title?: string; file_name?: string; storage_path?: string }>;
   quote_notes: string;
   status: 'ready_to_send' | 'sent' | 'signed' | 'superseded' | 'revoked';
   sent_at?: string | null;
   signed_at?: string | null;
   signer_name?: string;
   signature_data_url?: string;
+  shop_branding?: Partial<GarageShopBranding> | null;
 }
 
 export default function GarageQuoteSignPage() {
@@ -60,6 +73,8 @@ export default function GarageQuoteSignPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [signSuccess, setSignSuccess] = useState(false);
+  const [busyAction, setBusyAction] = useState<'pdf' | 'share' | null>(null);
+  const [shareFallbackOpen, setShareFallbackOpen] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawingRef = useRef(false);
@@ -224,6 +239,70 @@ export default function GarageQuoteSignPage() {
   const pricedSubtotal = Number(quote.priced_subtotal || 0);
   const vatRate = Number(quote.vat_rate || 18);
   const isSigned = quote.status === 'signed';
+  const branding: GarageShopBranding = resolveShopBranding(quote.shop_branding || DEFAULT_YONI_BRANDING);
+
+  const toCardData = (): GarageQuoteCardData => ({
+    quote_id: quote.id,
+    case_id: quote.case_id,
+    case_number: quote.case_number,
+    quote_version: quote.quote_version,
+    quote_token: token,
+    quote_url: typeof window !== 'undefined' ? window.location.href : '',
+    quote_title: quote.quote_title || 'הצעת מחיר – עבודות פחחות וצבע',
+    customer_name: quote.customer_name,
+    vehicle_plate: quote.vehicle_plate,
+    quote_date: quote.quote_date,
+    work_type: quote.work_type,
+    quote_works: works,
+    quote_parts: parts,
+    priced_subtotal: pricedSubtotal,
+    global_price: quote.global_price ?? null,
+    priced_lines_count: quote.priced_lines_count,
+    unpriced_lines_count: quote.unpriced_lines_count,
+    vat_rate: vatRate,
+    vat_mode: quote.vat_mode || 'unspecified',
+    damage_photos_attached: quote.damage_photos_attached,
+    damage_photos_count: quote.damage_photos_count,
+    damage_photos: quote.damage_photos || [],
+    quote_notes: quote.quote_notes,
+    status: quote.status,
+    sent_at: quote.sent_at || null,
+    signed_at: quote.signed_at || null,
+    signer_name: quote.signer_name,
+    signature_data_url: quote.signature_data_url,
+    shop_branding: branding,
+  });
+
+  const handleDownloadPdf = async () => {
+    setBusyAction('pdf');
+    try {
+      const cardData = toCardData();
+      const pdfFile = await buildGarageQuotePdfFile(cardData, {
+        brandingOverride: branding,
+        includeDamagePhotos: Boolean(quote.damage_photos_attached),
+      });
+      downloadFileInBrowser(pdfFile, pdfFile.name);
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handleShareNative = async () => {
+    setBusyAction('share');
+    try {
+      const cardData = toCardData();
+      const pdfFile = await buildGarageQuotePdfFile(cardData, {
+        brandingOverride: branding,
+        includeDamagePhotos: Boolean(quote.damage_photos_attached),
+      });
+      const res = await shareGarageQuoteFileNative(pdfFile, cardData);
+      if (!res.shared && res.mode === 'fallback_needed') {
+        setShareFallbackOpen(true);
+      }
+    } finally {
+      setBusyAction(null);
+    }
+  };
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-100 py-6 px-4 print:bg-white print:p-0" data-testid="garage-quote-sign-page">
@@ -252,14 +331,68 @@ export default function GarageQuoteSignPage() {
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            data-testid="garage-quote-print-btn"
-            className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg transition"
-          >
-            🖨️ הדפס / הורד הצעת מחיר (PDF)
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={busyAction !== null}
+              onClick={() => void handleDownloadPdf()}
+              data-testid="garage-quote-download-pdf-btn"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg transition"
+            >
+              {busyAction === 'pdf' ? '⏳ מפיק PDF...' : '📄 הורדת PDF'}
+            </button>
+            <button
+              type="button"
+              disabled={busyAction !== null}
+              onClick={() => void handleShareNative()}
+              data-testid="garage-quote-share-btn"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg transition"
+            >
+              {busyAction === 'share' ? '⏳ פותח שיתוף...' : '📤 שיתוף'}
+            </button>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              data-testid="garage-quote-print-btn"
+              className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg transition"
+            >
+              🖨️ הדפסה
+            </button>
+          </div>
+        </div>
+
+        {/* Per-Garage Branded Header Banner */}
+        <div
+          className="bg-gradient-to-l from-slate-900 via-slate-800 to-blue-950 text-white px-6 sm:px-8 py-5 flex flex-wrap items-center justify-between gap-4 border-b-4 border-amber-500"
+          data-testid="garage-quote-shop-branding-header"
+        >
+          <div className="flex items-center gap-3.5">
+            {branding.logo_url ? (
+              <img
+                src={branding.logo_url}
+                alt={branding.shop_title}
+                data-testid="garage-quote-shop-logo"
+                className="w-14 h-14 rounded-xl object-contain bg-slate-950/60 border border-slate-600 p-1"
+              />
+            ) : null}
+            <div>
+              <div className="text-xl sm:text-2xl font-extrabold tracking-tight text-white" data-testid="garage-quote-shop-title">
+                {branding.shop_title}
+              </div>
+              {branding.subtitle ? (
+                <div className="text-xs sm:text-sm text-slate-300 font-medium mt-0.5" data-testid="garage-quote-shop-subtitle">
+                  {branding.subtitle}
+                </div>
+              ) : null}
+              {(branding.phone || branding.address || branding.business_id) ? (
+                <div className="text-xs text-slate-400 mt-1 flex flex-wrap gap-3">
+                  {branding.phone ? <span>📞 {branding.phone}</span> : null}
+                  {branding.address ? <span>📍 {branding.address}</span> : null}
+                  {branding.business_id ? <span>מס׳ עוסק/מוסך: {branding.business_id}</span> : null}
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
 
         {/* Document Content */}
@@ -528,6 +661,58 @@ export default function GarageQuoteSignPage() {
           )}
         </div>
       </div>
+
+      {shareFallbackOpen ? (
+        <div
+          className="no-print fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+          data-testid="garage-quote-sign-share-fallback"
+          onClick={() => setShareFallbackOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-extrabold text-slate-900">📤 הורדה ושיתוף של קובץ הצעת המחיר</h3>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              הדפדפן הנוכחי אינו תומך בפתיחת חלון שיתוף קבצים ישיר. באפשרותך להוריד את קובץ ההצעה (PDF או תמונה) ולשתף אותו ידנית:
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleDownloadPdf();
+                  setShareFallbackOpen(false);
+                }}
+                className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold py-2.5 px-4 rounded-xl text-sm"
+              >
+                📄 הורד קובץ PDF של ההצעה
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const cardData = toCardData();
+                  const png = await buildGarageQuotePngFile(cardData, {
+                    brandingOverride: branding,
+                    includeDamagePhotos: Boolean(quote.damage_photos_attached),
+                  });
+                  downloadFileInBrowser(png, png.name);
+                  setShareFallbackOpen(false);
+                }}
+                className="bg-slate-800 hover:bg-slate-700 text-white font-extrabold py-2.5 px-4 rounded-xl text-sm"
+              >
+                🖼️ הורד כתמונה (PNG) לשיתוף בוואטסאפ
+              </button>
+              <button
+                type="button"
+                onClick={() => setShareFallbackOpen(false)}
+                className="text-slate-600 hover:text-slate-900 font-bold py-2 text-xs"
+              >
+                סגור
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

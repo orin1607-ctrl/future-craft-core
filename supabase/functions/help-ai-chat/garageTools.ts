@@ -10,6 +10,73 @@ export interface GaragePendingAction {
   parameters: Record<string, unknown>;
 }
 
+export interface GarageShopBranding {
+  shop_company_name: string;
+  shop_name: string;
+  shop_title: string;
+  subtitle: string;
+  logo_url: string;
+  phone: string;
+  address: string;
+  email: string;
+  business_id: string;
+  footer_note: string;
+}
+
+export interface GarageQuoteCardData {
+  case_id: string;
+  case_number: string;
+  quote_token: string;
+  quote_url: string;
+  quote_version: number;
+  quote_title: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  vehicle_plate: string;
+  vehicle_label: string;
+  quote_date: string;
+  work_type: string;
+  quote_works: Array<{
+    id?: string;
+    part?: string;
+    type?: string;
+    desc?: string;
+    qty?: number;
+    price?: number | null;
+    unpriced?: boolean;
+  }>;
+  quote_parts: Array<{
+    id?: string;
+    name?: string;
+    sku?: string;
+    supplier?: string;
+    qty?: number;
+    price?: number | null;
+  }>;
+  priced_subtotal: number;
+  global_price?: number | null;
+  priced_lines_count: number;
+  unpriced_lines_count: number;
+  vat_rate: number;
+  vat_mode: string;
+  quote_notes: string;
+  quote_validity: string;
+  status: string;
+  signed_at?: string | null;
+  signer_name?: string;
+  signature_data_url?: string;
+  damage_photos_attached: boolean;
+  damage_photos_count: number;
+  damage_photos: Array<{
+    id: string;
+    title: string;
+    category: string;
+    signed_url: string;
+  }>;
+  shop_branding: GarageShopBranding;
+}
+
 export const GARAGE_SYSTEM_PROMPT_INSTRUCTIONS = `
 אתה "דליה AI" – העוזר האישי החכם והמתקדם של ניהול המוסך והדשבורד הראשי של אורן קאר (Orin Car).
 תפקידך לסייע למנהל המוסך, ליועצי השירות ולצוות התפעול בניהול כלל פעילויות המוסך, ביצוע פעולות אמיתיות במערכת, מתן מידע מדויק והפקת דוחות.
@@ -46,6 +113,7 @@ export const GARAGE_SYSTEM_PROMPT_INSTRUCTIONS = `
      * לציין מע"מ לפי שיעור המס התקף בישראל, **18%**, בהתאם להגדרת המחירים ככוללים או לא כוללים מע"מ (אין להניח זאת ללא הגדרה).
      * לבדוק אם הועלו תמונות נזק בפועל: אם טרם הועלו תמונות נזק, להציג התראה מפורשת להוספתן ולא לטעון שהן צורפו בפועל עד שיועלו.
      * להכין קישור מאובטח לשליחה ולחתימה דיגיטלית של הלקוח.
+   - איתור והצגת הצעת מחיר קיימת בצ'אט (get_garage_quote_for_chat): כאשר המשתמש מבקש לראות או לקבל הצעת מחיר קיימת (למשל: "תביא לי את הצעת המחיר של לירן לוי, רכב 8042376"), השתמש תמיד ב-get_garage_quote_for_chat כדי לשלוף ולהציג את הצעת המחיר השמורה בכרטיס העבודה **בלי ליצור הצעה חדשה ובלי לשנות נתונים**. המערכת תציג כרטיס תצוגה מקדימה מעוצב (עם מיתוג המוסך, למשל "מוסך יוני – פחחות וצבע לרכב") ובו כפתורים להורדת PDF, שיתוף מהטלפון, שליחה בוואטסאפ, שליחה באימייל, הדפסה ופתיחת כרטיס העבודה.
    - עריכת הצעת מחיר קיימת (preview_update_garage_quote): תוקף הצעה, אישור לקוח, סכום מאושר, הערות.
    - פירוט נזקים, עבודות פחחות/צבע, חלקי חילוף ואישורים חריגים (preview_update_garage_repair_details).
    - חישוב סכומים ומע"מ לפי שיעור **18%** התקף בישראל.
@@ -752,6 +820,31 @@ export const GARAGE_GEMINI_TOOLS = [
         },
       },
       {
+        name: "get_garage_quote_for_chat",
+        description: "איתור והצגת הצעת מחיר שמורה מתוך כרטיס עבודה קיים ישירות בתוך הצ'אט (לפי שם לקוח, מספר רכב או מספר כרטיס עבודה), בלי ליצור הצעה חדשה ובלי לשנות נתונים. מציג בצ'אט כרטיס הצעת מחיר מעוצב עם כפתורי הורדת PDF, שיתוף, שליחה בוואטסאפ, שליחה באימייל, הדפסה ופתיחת כרטיס העבודה.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            query: {
+              type: "STRING",
+              description: "מחרוזת חיפוש חופשית (למשל שם לקוח ו/או מספר רכב או מספר כרטיס עבודה GM-2026-XXXX)",
+            },
+            customer_name: {
+              type: "STRING",
+              description: "שם הלקוח (למשל: לירן לוי)",
+            },
+            vehicle_plate: {
+              type: "STRING",
+              description: "מספר לוחית רישוי של הרכב (למשל: 8042376)",
+            },
+            case_id: {
+              type: "STRING",
+              description: "מזהה התיק (UUID) או מספר כרטיס עבודה (למשל: GM-2026-0056)",
+            },
+          },
+        },
+      },
+      {
         name: "get_garage_case_summary_report",
         description: "הפקת דוח סיכום מקיף, מקצועי ומפורט על כרטיס עבודה במוסך (פרטי לקוח, רכב, פירוט נזקים, עבודות, חלקים, עלויות, סטטוס ומסמכים).",
         parameters: {
@@ -769,7 +862,9 @@ export const GARAGE_GEMINI_TOOLS = [
   },
 ];
 
-// Helper to resolve case ID by UUID, case_number, or plate snapshot
+const DEFAULT_YONI_LOGO_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" width="240" height="80"><rect width="240" height="80" rx="14" fill="%230f172a"/><rect x="3" y="3" width="234" height="74" rx="11" fill="none" stroke="%2338bdf8" stroke-width="2"/><g transform="translate(185, 16)"><circle cx="24" cy="24" r="22" fill="%230284c7"/><path d="M12 28 L16 19 L32 19 L36 28 Z" fill="%23ffffff"/><rect x="10" y="26" width="28" height="8" rx="3" fill="%2338bdf8"/><circle cx="16" cy="34" r="4" fill="%230f172a" stroke="%23ffffff" stroke-width="2"/><circle cx="32" cy="34" r="4" fill="%230f172a" stroke="%23ffffff" stroke-width="2"/></g><text x="170" y="36" font-family="Heebo, Arial, sans-serif" font-size="22" font-weight="900" fill="%23ffffff" text-anchor="end" direction="rtl">מוסך יוני</text><text x="170" y="58" font-family="Heebo, Arial, sans-serif" font-size="13" font-weight="700" fill="%2338bdf8" text-anchor="end" direction="rtl">פחחות וצבע לרכב</text></svg>`;
+
+// Helper to resolve case ID by UUID, case_number, plate snapshot, or customer name
 async function resolveGarageCase(supabase: any, caseIdentifier: string) {
   const clean = String(caseIdentifier || "").trim();
   if (!clean) return null;
@@ -780,15 +875,212 @@ async function resolveGarageCase(supabase: any, caseIdentifier: string) {
     if (data) return data;
   }
 
+  // Try explicit GM-YYYY-XXXX inside string
+  const gmMatch = clean.match(/GM-\d{4}-\d+/i);
+  if (gmMatch) {
+    const { data } = await supabase.from("garage_cases").select("*").ilike("case_number", `%${gmMatch[0]}%`).order("updated_at", { ascending: false }).limit(1);
+    if (data && data.length > 0) return data[0];
+  }
+
+  // Try explicit plate digits (5-8 digits) inside string
+  const plateMatch = clean.replace(/-/g, "").match(/\b\d{5,8}\b/);
+  if (plateMatch) {
+    const pNum = plateMatch[0];
+    const { data: plateData } = await supabase.from("garage_cases").select("*").ilike("vehicle_plate_snapshot", `%${pNum}%`).order("updated_at", { ascending: false }).limit(1);
+    if (plateData && plateData.length > 0) return plateData[0];
+
+    const { data: qlRows } = await supabase.from("garage_quote_links").select("case_id").ilike("vehicle_plate", `%${pNum}%`).order("updated_at", { ascending: false }).limit(1);
+    if (qlRows && qlRows.length > 0 && qlRows[0].case_id) {
+      const { data: cByLink } = await supabase.from("garage_cases").select("*").eq("id", qlRows[0].case_id).maybeSingle();
+      if (cByLink) return cByLink;
+    }
+
+    const { data: vehRows } = await supabase.from("garage_vehicles").select("id").ilike("plate", `%${pNum}%`).limit(5);
+    if (vehRows && vehRows.length > 0) {
+      const vIds = vehRows.map((v: any) => v.id);
+      const { data: cByVeh } = await supabase.from("garage_cases").select("*").in("vehicle_id", vIds).order("updated_at", { ascending: false }).limit(1);
+      if (cByVeh && cByVeh.length > 0) return cByVeh[0];
+    }
+  }
+
   // Try case_number match
-  const { data } = await supabase.from("garage_cases").select("*").ilike("case_number", `%${clean}%`).limit(1);
+  const { data } = await supabase.from("garage_cases").select("*").ilike("case_number", `%${clean}%`).order("updated_at", { ascending: false }).limit(1);
   if (data && data.length > 0) return data[0];
 
   // Try plate snapshot match
-  const { data: plateData } = await supabase.from("garage_cases").select("*").ilike("vehicle_plate_snapshot", `%${clean}%`).limit(1);
+  const { data: plateData } = await supabase.from("garage_cases").select("*").ilike("vehicle_plate_snapshot", `%${clean}%`).order("updated_at", { ascending: false }).limit(1);
   if (plateData && plateData.length > 0) return plateData[0];
 
+  // Try customer_name_snapshot match
+  const { data: custData } = await supabase.from("garage_cases").select("*").ilike("customer_name_snapshot", `%${clean}%`).order("updated_at", { ascending: false }).limit(1);
+  if (custData && custData.length > 0) return custData[0];
+
+  // Try garage_quote_links customer_name match
+  const { data: qlCust } = await supabase.from("garage_quote_links").select("case_id").ilike("customer_name", `%${clean}%`).order("updated_at", { ascending: false }).limit(1);
+  if (qlCust && qlCust.length > 0 && qlCust[0].case_id) {
+    const { data: cByLink } = await supabase.from("garage_cases").select("*").eq("id", qlCust[0].case_id).maybeSingle();
+    if (cByLink) return cByLink;
+  }
+
+  // Try garage_customers name match -> garage_cases by customer_id
+  const { data: custRows } = await supabase.from("garage_customers").select("id").ilike("name", `%${clean}%`).limit(5);
+  if (custRows && custRows.length > 0) {
+    const cIds = custRows.map((c: any) => c.id);
+    const { data: cByCust } = await supabase.from("garage_cases").select("*").in("customer_id", cIds).order("updated_at", { ascending: false }).limit(1);
+    if (cByCust && cByCust.length > 0) return cByCust[0];
+  }
+
   return null;
+}
+
+export async function buildGarageQuoteCardFromCase(
+  supabase: any,
+  gCase: any,
+): Promise<GarageQuoteCardData> {
+  const cd = gCase.case_data || {};
+  const shopCompanyName = String(gCase.shop_company_name || "").trim();
+
+  // 1. Read latest quote link if exists (READ-ONLY — never mutate)
+  const { data: linkRows } = await supabase
+    .from("garage_quote_links")
+    .select("*")
+    .eq("case_id", gCase.id)
+    .neq("status", "revoked")
+    .order("quote_version", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const linkRow = linkRows && linkRows.length > 0 ? linkRows[0] : null;
+
+  // 2. Read customer & vehicle details (READ-ONLY)
+  let customerRecord: any = null;
+  if (gCase.customer_id) {
+    const { data: cust } = await supabase.from("garage_customers").select("*").eq("id", gCase.customer_id).maybeSingle();
+    customerRecord = cust;
+  }
+  let vehicleRecord: any = null;
+  if (gCase.vehicle_id) {
+    const { data: veh } = await supabase.from("garage_vehicles").select("*").eq("id", gCase.vehicle_id).maybeSingle();
+    vehicleRecord = veh;
+  }
+
+  // 3. Read shop branding from garage_shop_settings (READ-ONLY)
+  let shopBranding: GarageShopBranding = {
+    shop_company_name: shopCompanyName,
+    shop_name: shopCompanyName || "מוסך יוני",
+    shop_title: shopCompanyName || "מוסך יוני – פחחות וצבע לרכב",
+    subtitle: "מומחים לפחחות, צבע ושיקום רכב מתקדם",
+    logo_url: DEFAULT_YONI_LOGO_SVG,
+    phone: "",
+    address: "",
+    email: "yoni191177@gmail.com",
+    business_id: "",
+    footer_note: "תודה שבחרתם במוסך יוני – פחחות וצבע לרכב.",
+  };
+
+  try {
+    const { data: shopRow } = await supabase
+      .from("garage_shop_settings")
+      .select("*")
+      .in("shop_company_name", [shopCompanyName, ""])
+      .order("shop_company_name", { ascending: false })
+      .limit(1);
+    if (shopRow && shopRow.length > 0) {
+      const s = shopRow[0];
+      shopBranding = {
+        shop_company_name: s.shop_company_name || shopCompanyName,
+        shop_name: s.shop_name || "מוסך יוני",
+        shop_title: s.shop_title || "מוסך יוני – פחחות וצבע לרכב",
+        subtitle: s.subtitle || "פחחות וצבע לרכב",
+        logo_url: s.logo_url || DEFAULT_YONI_LOGO_SVG,
+        phone: s.phone && s.phone !== "050-0000000" ? s.phone : "",
+        address: s.address && s.address !== "ישראל" ? s.address : "",
+        email: s.email || "yoni191177@gmail.com",
+        business_id: s.business_id || "",
+        footer_note: s.footer_note || "תודה שבחרתם במוסך יוני – פחחות וצבע לרכב.",
+      };
+    }
+  } catch {
+    // Fallback to default Yoni's Garage branding
+  }
+
+  // 4. Read damage/quote photos (READ-ONLY)
+  const damagePhotos: Array<{ id: string; title: string; category: string; signed_url: string }> = [];
+  try {
+    const { data: mediaRows } = await supabase
+      .from("garage_media")
+      .select("id, title, category, storage_path, mime_type")
+      .eq("garage_case_id", gCase.id)
+      .in("category", ["damage", "quote_photos", "intake", "angles"])
+      .limit(8);
+    if (Array.isArray(mediaRows)) {
+      for (const m of mediaRows) {
+        if (m.storage_path && String(m.mime_type || "").startsWith("image/")) {
+          const { data: signed } = await supabase.storage.from("garage-media").createSignedUrl(m.storage_path, 3600);
+          if (signed?.signedUrl) {
+            damagePhotos.push({
+              id: m.id,
+              title: m.title || "תמונת נזק",
+              category: m.category || "damage",
+              signed_url: signed.signedUrl,
+            });
+          }
+        }
+      }
+    }
+  } catch {
+    // Ignore media errors
+  }
+
+  const works = Array.isArray(linkRow?.quote_works) && linkRow.quote_works.length > 0
+    ? linkRow.quote_works
+    : (Array.isArray(cd.quoteWorks) ? cd.quoteWorks : []);
+  const parts = Array.isArray(linkRow?.quote_parts) && linkRow.quote_parts.length > 0
+    ? linkRow.quote_parts
+    : (Array.isArray(cd.quoteParts) ? cd.quoteParts : []);
+
+  const pricedWorks = works.filter((w: any) => w.price !== null && w.price !== undefined && String(w.price).trim() !== "" && !w.unpriced);
+  const unpricedWorks = works.filter((w: any) => w.price === null || w.price === undefined || String(w.price).trim() === "" || w.unpriced);
+  const worksSubtotal = pricedWorks.reduce((acc: number, w: any) => acc + (Number(w.price) || 0) * (Number(w.qty) || 1), 0);
+  const partsSubtotal = parts
+    .filter((p: any) => p.supplier !== "customer")
+    .reduce((acc: number, p: any) => acc + (Number(p.price) || 0) * (Number(p.qty) || 1), 0);
+  const pricedSubtotal = Number(linkRow?.priced_subtotal ?? cd.quotePricedSubtotal ?? (worksSubtotal + partsSubtotal));
+  const globalPrice = cd.finalApprovedAmount || cd.workOrderAmount || null;
+  const quoteToken = String(linkRow?.token || cd.quoteToken || "");
+
+  return {
+    case_id: gCase.id,
+    case_number: gCase.case_number,
+    quote_token: quoteToken,
+    quote_url: quoteToken ? `/garage-quote?t=${quoteToken}` : "",
+    quote_version: Number(linkRow?.quote_version || cd.quoteVersion || 1),
+    quote_title: String(linkRow?.quote_title || cd.quoteTitle || "הצעת מחיר – עבודות פחחות וצבע"),
+    customer_name: String(linkRow?.customer_name || gCase.customer_name_snapshot || customerRecord?.name || ""),
+    customer_phone: String(linkRow?.recipient_phone || customerRecord?.phone || ""),
+    customer_email: String(linkRow?.recipient_email || customerRecord?.email || ""),
+    vehicle_plate: String(linkRow?.vehicle_plate || gCase.vehicle_plate_snapshot || vehicleRecord?.plate || ""),
+    vehicle_label: String(gCase.vehicle_label_snapshot || [vehicleRecord?.make, vehicleRecord?.model, vehicleRecord?.year].filter(Boolean).join(" ") || ""),
+    quote_date: String(linkRow?.quote_date || cd.quoteDate || (gCase.created_at ? new Date(gCase.created_at).toLocaleDateString("he-IL") : "")),
+    work_type: String(linkRow?.work_type || cd.workType || ""),
+    quote_works: works,
+    quote_parts: parts,
+    priced_subtotal: pricedSubtotal,
+    global_price: globalPrice ? Number(globalPrice) : null,
+    priced_lines_count: pricedWorks.length,
+    unpriced_lines_count: unpricedWorks.length,
+    vat_rate: Number(linkRow?.vat_rate || cd.vatRate || 18),
+    vat_mode: String(linkRow?.vat_mode || cd.vatMode || "unspecified"),
+    quote_notes: String(linkRow?.quote_notes || cd.quoteNotes || ""),
+    quote_validity: String(cd.quoteValidity || "14 יום"),
+    status: String(linkRow?.status || (cd.quoteSigned ? "signed" : cd.quoteStatus || "ready_to_send")),
+    signed_at: linkRow?.signed_at || cd.quoteSignedAt || null,
+    signer_name: String(linkRow?.signer_name || cd.quoteSignerName || ""),
+    signature_data_url: String(linkRow?.signature_data_url || cd.quoteSignatureDataUrl || ""),
+    damage_photos_attached: Boolean(damagePhotos.length > 0 || linkRow?.damage_photos_attached || cd.damagePhotosAttached),
+    damage_photos_count: Math.max(damagePhotos.length, Number(linkRow?.damage_photos_count || cd.damagePhotosCount || 0)),
+    damage_photos: damagePhotos,
+    shop_branding: shopBranding,
+  };
 }
 
 export async function executeGarageTool(
@@ -798,7 +1090,7 @@ export async function executeGarageTool(
   caseId: string | null,
   userId: string,
   actorName: string,
-): Promise<{ result: unknown; preview?: GaragePendingAction }> {
+): Promise<{ result: unknown; preview?: GaragePendingAction; quoteCard?: GarageQuoteCardData }> {
   const targetCaseId = String(args?.case_id || caseId || "").trim();
 
   switch (toolName) {
@@ -1023,6 +1315,90 @@ export async function executeGarageTool(
           reminders: cd.reminders || [],
           timeline: (cd.timeline || []).slice(-10),
         },
+      };
+    }
+
+    case "get_garage_quote_for_chat": {
+      const explicitCaseId = String(args?.case_id || "").trim();
+      const vehiclePlate = String(args?.vehicle_plate || "").replace(/[^0-9A-Za-z]/g, "").trim();
+      const customerName = String(args?.customer_name || "").trim();
+      const freeQuery = String(args?.query || targetCaseId || "").trim();
+
+      let gCase: any = null;
+      if (explicitCaseId) {
+        gCase = await resolveGarageCase(supabase, explicitCaseId);
+      }
+      if (!gCase && vehiclePlate) {
+        gCase = await resolveGarageCase(supabase, vehiclePlate);
+      }
+      if (!gCase && freeQuery) {
+        gCase = await resolveGarageCase(supabase, freeQuery);
+      }
+      if (!gCase && customerName) {
+        gCase = await resolveGarageCase(supabase, customerName);
+      }
+      if (!gCase && caseId) {
+        gCase = await resolveGarageCase(supabase, caseId);
+      }
+
+      if (!gCase) {
+        return {
+          result: {
+            error: `לא נמצאה הצעת מחיר או כרטיס עבודה עבור: "${[customerName, vehiclePlate, explicitCaseId, freeQuery].filter(Boolean).join(" / ")}"`,
+          },
+        };
+      }
+
+      const quoteCard = await buildGarageQuoteCardFromCase(supabase, gCase);
+      const workLinesFormatted = (quoteCard.quote_works || [])
+        .map((w: any, idx: number) => {
+          const hasPrice = w.price !== null && w.price !== undefined && String(w.price).trim() !== "" && !w.unpriced;
+          const priceLabel = hasPrice
+            ? `${Number(w.price).toLocaleString()} ₪`
+            : "ללא מחיר בשלב זה";
+          return `${idx + 1}. **${w.part || w.type || "עבודה"}** – **${priceLabel}**${w.desc ? `\n   ${w.desc}` : ""}`;
+        })
+        .join("\n\n");
+
+      const formattedReply = [
+        `📄 **הצעת המחיר אותרה בכרטיס העבודה [${quoteCard.case_number}](#/garage-management/${quoteCard.case_id}) (ללא שינוי נתונים או יצירת הצעה חדשה):**`,
+        `- **מוסך:** ${quoteCard.shop_branding.shop_title}`,
+        `- **לכבוד:** ${quoteCard.customer_name}`,
+        `- **מספר רכב:** ${quoteCard.vehicle_plate}${quoteCard.vehicle_label ? ` (${quoteCard.vehicle_label})` : ""}`,
+        `- **תאריך ההצעה:** ${quoteCard.quote_date} · **גרסה:** #${quoteCard.quote_version}`,
+        quoteCard.work_type ? `- **סוג עבודה:** ${quoteCard.work_type}` : "",
+        "",
+        `### 🛠️ פירוט העבודות (${quoteCard.quote_works.length} שורות):`,
+        workLinesFormatted || "אין שורות עבודה מתומחרות.",
+        "",
+        `### 💰 סיכום כספי ומע"מ:`,
+        `- **סה"כ עבור ${quoteCard.priced_lines_count} השורות המתומחרות בלבד:** **${Number(quoteCard.priced_subtotal || 0).toLocaleString()} ₪**`,
+        ...(quoteCard.unpriced_lines_count > 0
+          ? [`- ⚠️ **שים לב:** סכום הביניים (${Number(quoteCard.priced_subtotal || 0).toLocaleString()} ₪) מתייחס ל-${quoteCard.priced_lines_count} העבודות המתומחרות בלבד ואינו סופי (${quoteCard.unpriced_lines_count} שורות מוגדרות "ללא מחיר בשלב זה").`]
+          : []),
+        `- **מע"מ (${quoteCard.vat_rate || 18}%):** מע"מ, ככל שחל, יחושב לפי שיעור המס התקף בישראל, **18%**, ובהתאם להגדרת המחירים ככוללים או לא כוללים מע"מ.`,
+        "",
+        `👇 **כרטיס הצעת המחיר המעוצב מוצג להלן עם כפתורי הורדת PDF, שיתוף ישיר מהטלפון, וואטסאפ, אימייל, הדפסה ופתיחת כרטיס העבודה:**`,
+      ].filter(Boolean).join("\n");
+
+      return {
+        result: {
+          found: true,
+          read_only: true,
+          message: formattedReply,
+          case_id: quoteCard.case_id,
+          case_number: quoteCard.case_number,
+          customer_name: quoteCard.customer_name,
+          vehicle_plate: quoteCard.vehicle_plate,
+          quote_version: quoteCard.quote_version,
+          quote_url: quoteCard.quote_url,
+          priced_subtotal: quoteCard.priced_subtotal,
+          priced_lines_count: quoteCard.priced_lines_count,
+          unpriced_lines_count: quoteCard.unpriced_lines_count,
+          status: quoteCard.status,
+          shop_title: quoteCard.shop_branding.shop_title,
+        },
+        quoteCard,
       };
     }
 
