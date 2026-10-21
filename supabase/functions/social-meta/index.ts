@@ -274,7 +274,7 @@ async function aiText(businessId: string, brief: string, tone: string, platform:
 }
 
 /* ---------------- posts ---------------- */
-const POST_COLS = "id,business_id,body,image_url,image_urls,targets,status,scheduled_at,results,published_at,created_at,updated_at";
+const POST_COLS = "id,business_id,body,image_url,image_urls,targets,status,scheduled_at,results,published_at,series_id,test_mode,created_at,updated_at";
 
 async function listPosts(businessId: string) {
   const { data, error } = await db.from("social_posts").select(POST_COLS)
@@ -292,11 +292,18 @@ async function savePost(p: any) {
     image_url: (p.image_urls || [])[0] || p.image_url || null,
     image_path: p.image_path || null, targets, updated_at: new Date().toISOString(),
     scheduled_at: p.scheduled_at || null, status: p.scheduled_at ? "scheduled" : "draft",
+    series_id: p.series_id || null, test_mode: !!p.test_mode,
   };
+  if (row.series_id) {
+    const { data: s } = await db.from("post_series").select("business_id,status").eq("id", row.series_id).maybeSingle();
+    if (!s || s.business_id !== p.business_id) throw new Error("הסדרה לא נמצאה בעסק הזה");
+    if (["cancelled", "completed"].includes(s.status)) throw new Error("הסדרה הסתיימה – צרו סדרה חדשה");
+    if (!row.scheduled_at) throw new Error("פוסט בסדרה חייב מועד פרסום");
+  }
   if (p.id) {
     const { data: cur } = await db.from("social_posts").select("business_id,status").eq("id", p.id).maybeSingle();
     if (!cur || cur.business_id !== p.business_id) throw new Error("הפוסט לא נמצא בעסק הזה");
-    if (["published", "publishing"].includes(cur.status)) throw new Error("פוסט שפורסם אינו ניתן לעריכה");
+    if (["published", "publishing", "partial", "attention"].includes(cur.status)) throw new Error("פוסט שפורסם (או שהפרסום שלו לא הסתיים) אינו ניתן לעריכה");
     const { data, error } = await db.from("social_posts").update(row).eq("id", p.id).select(POST_COLS).single();
     if (error) throw error;
     return { post: data };
@@ -308,7 +315,7 @@ async function savePost(p: any) {
 
 async function deletePost(businessId: string, id: string) {
   const { error } = await db.from("social_posts").delete().eq("id", id).eq("business_id", businessId)
-    .in("status", ["draft", "scheduled", "failed"]);
+    .in("status", ["draft", "scheduled", "failed", "paused", "cancelled"]);
   if (error) throw error;
   return { ok: true };
 }
@@ -386,26 +393,37 @@ async function publishInstagram(a: any, body: string, images: string[], dry = fa
   return { ok: true, id: pub.id, url: (link as any).permalink || null, at: new Date().toISOString() };
 }
 
-async function publishPost(businessId: string, id: string) {
+async function publishPost(businessId: string, id: string, opts: { scheduled?: boolean } = {}) {
   const { data: post } = await db.from("social_posts").select("*").eq("id", id).eq("business_id", businessId).maybeSingle();
   if (!post) throw new Error("הפוסט לא נמצא");
-  if (["published", "publishing"].includes(post.status)) throw new Error("הפוסט כבר פורסם");
   if (!post.targets?.length) throw new Error("לא נבחר ערוץ פרסום");
-  await db.from("social_posts").update({ status: "publishing" }).eq("id", id);
+  // Atomic claim: only one caller (button, cron tick, retry) can move a post into "publishing".
+  // A post whose outcome is unknown ("publishing" / "attention") is never picked up again automatically.
+  const allowed = opts.scheduled ? ["scheduled"] : ["draft", "scheduled", "failed", "partial", "paused"];
+  const claim = await db.from("social_posts").update({ status: "publishing", publishing_started_at: new Date().toISOString() })
+    .eq("id", id).in("status", allowed).select("id");
+  if (claim.error) throw claim.error;
+  if (!claim.data?.length) throw new Error(post.status === "published" ? "הפוסט כבר פורסם" : "הפוסט כבר בתהליך פרסום או לא זמין לפרסום");
 
+  let testMode = !!post.test_mode;
+  if (post.series_id) {
+    const { data: s } = await db.from("post_series").select("test_mode").eq("id", post.series_id).maybeSingle();
+    testMode = testMode || !!s?.test_mode;
+  }
   const { data: accts } = await db.from("social_accounts").select("*").eq("business_id", businessId);
   const acct = (p: string) => (accts || []).find((a) => a.platform === p);
   const results: Record<string, any> = { ...(post.results || {}) };
 
   for (const target of post.targets as string[]) {
-    if (results[target]?.ok) continue; // retry only what failed
+    if (results[target]?.ok && !results[target]?.dry) continue; // retry only what failed — never re-publish a success
     const a = acct(target);
     try {
       if (!a) throw new Error(target === "facebook" ? "עמוד פייסבוק לא מחובר" : "חשבון אינסטגרם לא מחובר");
       const images = postImages(post);
       results[target] = target === "facebook"
-        ? await publishFacebook(a, post.body, images)
-        : await publishInstagram(a, post.body, images);
+        ? await publishFacebook(a, post.body, images, testMode)
+        : await publishInstagram(a, post.body, images, testMode);
+      if (testMode) results[target] = { ...results[target], at: new Date().toISOString(), note: "מצב בדיקה – לא פורסם בפועל" };
     } catch (e) {
       results[target] = { ok: false, error: (e as Error).message, at: new Date().toISOString() };
     }
@@ -413,20 +431,122 @@ async function publishPost(businessId: string, id: string) {
   const oks = (post.targets as string[]).filter((t) => results[t]?.ok).length;
   const st = oks === post.targets.length ? "published" : oks ? "partial" : "failed";
   const { data } = await db.from("social_posts").update({
-    status: st, results, published_at: oks ? new Date().toISOString() : null, updated_at: new Date().toISOString(),
+    status: st, results, published_at: oks ? new Date().toISOString() : null, updated_at: new Date().toISOString(), publishing_started_at: null,
   }).eq("id", id).select(POST_COLS).single();
+  if (post.series_id) await finishSeriesIfDone(post.series_id);
   return { post: data };
 }
 
+async function finishSeriesIfDone(seriesId: string) {
+  const { count } = await db.from("social_posts").select("id", { count: "exact", head: true })
+    .eq("series_id", seriesId).in("status", ["scheduled", "paused", "publishing"]);
+  if (!count) await db.from("post_series").update({ status: "completed", updated_at: new Date().toISOString() }).eq("id", seriesId).eq("status", "approved");
+}
+
+/* Cron tick (every 5 minutes). A scheduled post is published when it is due AND either it is a single post the
+   owner scheduled, or it belongs to a series the owner approved (and did not pause). */
 async function runScheduled() {
-  const { data } = await db.from("social_posts").select("id,business_id")
-    .eq("status", "scheduled").lte("scheduled_at", new Date().toISOString()).limit(10);
+  const now = new Date();
+  // A publish that never finished (timeout / crash): its result is unknown, so stop and ask the owner.
+  const stale = new Date(now.getTime() - 10 * 60000).toISOString();
+  await db.from("social_posts").update({ status: "attention", results: { error: "הפרסום לא הסתיים – בדקו בעמוד אם הפוסט עלה לפני ניסיון חוזר" } })
+    .eq("status", "publishing").lt("publishing_started_at", stale);
+
+  const { data } = await db.from("social_posts").select("id,business_id,series_id")
+    .eq("status", "scheduled").lte("scheduled_at", now.toISOString()).order("scheduled_at").limit(10);
+  const seriesIds = [...new Set((data || []).map((p) => p.series_id).filter(Boolean))];
+  const { data: series } = seriesIds.length ? await db.from("post_series").select("id,status").in("id", seriesIds) : { data: [] as any[] };
+  const okSeries = new Set((series || []).filter((s) => s.status === "approved").map((s) => s.id));
   const out = [];
   for (const p of data || []) {
-    try { out.push({ id: p.id, status: (await publishPost(p.business_id, p.id)).post?.status }); }
+    if (p.series_id && !okSeries.has(p.series_id)) { out.push({ id: p.id, wait: "series not approved" }); continue; }
+    try { out.push({ id: p.id, status: (await publishPost(p.business_id, p.id, { scheduled: true })).post?.status }); }
     catch (e) { out.push({ id: p.id, error: (e as Error).message }); }
   }
   return { ran: out.length, out };
+}
+
+/* ---------------- post series & calendar ---------------- */
+const SERIES_COLS = "id,name,status,test_mode,approved_at,created_at,updated_at";
+async function seriesList(businessId: string) {
+  const { data: series, error } = await db.from("post_series").select(SERIES_COLS).eq("business_id", businessId).order("created_at", { ascending: false }).limit(50);
+  if (error) throw error;
+  const ids = (series || []).map((s) => s.id);
+  const { data: posts } = ids.length ? await db.from("social_posts").select("series_id,status,scheduled_at").in("series_id", ids) : { data: [] as any[] };
+  return {
+    series: (series || []).map((s) => {
+      const mine = (posts || []).filter((p) => p.series_id === s.id);
+      const upcoming = mine.filter((p) => p.status === "scheduled" && p.scheduled_at).map((p) => p.scheduled_at).sort();
+      const counts: Record<string, number> = {};
+      mine.forEach((p) => counts[p.status] = (counts[p.status] || 0) + 1);
+      return { ...s, total: mine.length, counts, next_at: upcoming[0] || null, last_at: upcoming[upcoming.length - 1] || null };
+    }),
+  };
+}
+async function seriesCreate(businessId: string, b: any) {
+  await business(businessId);
+  if (!String(b.name || "").trim()) throw new Error("תנו שם לסדרה");
+  const { data, error } = await db.from("post_series").insert({ business_id: businessId, name: String(b.name).slice(0, 120), test_mode: !!b.test_mode }).select(SERIES_COLS).single();
+  if (error) throw error;
+  return { series: data };
+}
+async function seriesControl(businessId: string, b: any) {
+  const { data: s } = await db.from("post_series").select("*").eq("id", b.id).eq("business_id", businessId).maybeSingle();
+  if (!s) throw new Error("הסדרה לא נמצאה");
+  const now = new Date().toISOString();
+  const set = async (status: string, extra: any = {}) => {
+    const { error } = await db.from("post_series").update({ status, updated_at: now, ...extra }).eq("id", s.id);
+    if (error) throw error;
+  };
+  if (b.action === "approve") {
+    // The one explicit approval: from now on the posts of this series publish at their times without asking again.
+    if (b.confirm !== "מאשר") throw new Error("נדרש אישור מפורש");
+    if (!["draft", "paused"].includes(s.status)) throw new Error("אפשר לאשר רק סדרה בטיוטה או בהשהיה");
+    const { count } = await db.from("social_posts").select("id", { count: "exact", head: true }).eq("series_id", s.id).eq("status", "scheduled");
+    if (!count) throw new Error("אין בסדרה פוסטים מתוזמנים");
+    await set("approved", { approved_at: now });
+  } else if (b.action === "pause") {
+    if (s.status !== "approved") throw new Error("הסדרה לא פעילה");
+    await set("paused");
+  } else if (b.action === "cancel") {
+    await set("cancelled");
+    await db.from("social_posts").update({ status: "cancelled", updated_at: now }).eq("series_id", s.id).in("status", ["scheduled", "paused", "draft"]);
+  } else if (b.action === "test") {
+    if (s.status === "approved") throw new Error("השהו את הסדרה לפני שינוי מצב בדיקה");
+    const { error } = await db.from("post_series").update({ test_mode: !!b.on, updated_at: now }).eq("id", s.id);
+    if (error) throw error;
+  } else throw new Error("פעולה לא מוכרת");
+  return seriesList(businessId);
+}
+async function postControl(businessId: string, b: any) {
+  const now = new Date().toISOString();
+  const map: Record<string, [string[], string]> = {
+    pause: [["scheduled"], "paused"], resume: [["paused"], "scheduled"], cancel: [["scheduled", "paused", "draft", "failed", "attention"], "cancelled"],
+    reschedule: [["scheduled", "paused", "draft", "failed", "cancelled"], "scheduled"], review: [["attention"], "failed"],
+  };
+  const m = map[b.action]; if (!m) throw new Error("פעולה לא מוכרת");
+  const patch: any = { status: m[1], updated_at: now };
+  if (b.action === "reschedule") {
+    if (!b.scheduled_at || new Date(b.scheduled_at) < new Date()) throw new Error("יש לבחור מועד עתידי");
+    patch.scheduled_at = b.scheduled_at;
+  }
+  if (b.action === "resume") {
+    const { data: cur } = await db.from("social_posts").select("scheduled_at").eq("id", b.id).maybeSingle();
+    if (!cur?.scheduled_at) throw new Error("לפוסט אין מועד פרסום");
+  }
+  const { data, error } = await db.from("social_posts").update(patch).eq("id", b.id).eq("business_id", businessId).in("status", m[0]).select(POST_COLS);
+  if (error) throw error;
+  if (!data?.length) throw new Error("לא ניתן לבצע את הפעולה במצב הנוכחי של הפוסט");
+  return { post: data[0] };
+}
+async function calendar(businessId: string, b: any) {
+  const from = b.from || new Date(Date.now() - 7 * 864e5).toISOString();
+  const to = b.to || new Date(Date.now() + 60 * 864e5).toISOString();
+  const { data, error } = await db.from("social_posts").select(POST_COLS).eq("business_id", businessId)
+    .or(`and(scheduled_at.gte.${from},scheduled_at.lte.${to}),and(published_at.gte.${from},published_at.lte.${to})`)
+    .order("scheduled_at", { ascending: true }).limit(500);
+  if (error) throw error;
+  return { posts: data };
 }
 
 // Proves publish rights without anything going public: Facebook gets an unpublished photo that is
@@ -494,6 +614,11 @@ Deno.serve(async (req) => {
       case "posts/save": return json(await savePost({ ...body, business_id: biz }));
       case "posts/delete": return json(await deletePost(biz, body.id));
       case "posts/publish": return json(await publishPost(biz, body.id));
+      case "posts/control": return json(await postControl(biz, body));
+      case "posts/calendar": return json(await calendar(biz, body));
+      case "series/list": return json(await seriesList(biz));
+      case "series/create": return json(await seriesCreate(biz, body));
+      case "series/control": return json(await seriesControl(biz, body));
       default: return json({ error: "route not found", route }, 404);
     }
   } catch (e) {

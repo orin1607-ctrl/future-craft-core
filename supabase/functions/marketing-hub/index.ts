@@ -6,7 +6,8 @@
 // through the channel's own app (Messenger / Instagram / WhatsApp / mail). See OUTREACH_POLICY below.
 // OpenProspector (nr_businesses) is read-only here: search + import of up to 50 chosen businesses.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkSocialKey, listDevices, pairComplete, pairStart, revokeDevice } from "../_shared/socialAuth.ts";
+import { checkSocialKey, listDevices, pairComplete, pairStart, revokeDevice, safeEq } from "../_shared/socialAuth.ts";
+import * as Auto from "./automation.ts";
 
 const BUCKET = "media-library";
 const cors = {
@@ -168,7 +169,7 @@ function igHandle(url?: string | null) {
   } catch { return null; }
 }
 
-const CONTACT_COLS = "id,source_url,profile,company_name,contact_name,role,phone,email,website,facebook_url,facebook_handle,instagram_url,instagram_handle,whatsapp,city,industry,notes,tags,status,do_not_contact,dnc_reason,source,source_ref,next_action_at,last_contact_at,created_at,updated_at";
+const CONTACT_COLS = "id,source_url,profile,linkedin_url,opt_out_channels,consent,company_name,contact_name,role,phone,email,website,facebook_url,facebook_handle,instagram_url,instagram_handle,whatsapp,city,industry,notes,tags,status,do_not_contact,dnc_reason,source,source_ref,next_action_at,last_contact_at,created_at,updated_at";
 
 async function logEvent(biz: string, contactId: string, type: string, detail?: string, channel?: string) {
   await db.from("outreach_events").insert({ business_id: biz, contact_id: contactId, type, detail: detail || null, channel: channel || null });
@@ -185,7 +186,7 @@ function contactRow(biz: string, c: any) {
     website: c.website || null,
     facebook_url: c.facebook_url || null, facebook_handle: fbHandle(c.facebook_url),
     instagram_url: c.instagram_url || null, instagram_handle: igHandle(c.instagram_url),
-    whatsapp: c.whatsapp || null, city: c.city || null, industry: c.industry || null, notes: c.notes || null,
+    whatsapp: c.whatsapp || null, linkedin_url: c.linkedin_url || null, city: c.city || null, industry: c.industry || null, notes: c.notes || null,
     tags: (c.tags || []).slice(0, 20).map(String),
     source: c.source || "manual", source_ref: c.source_ref || null,
     updated_at: new Date().toISOString(),
@@ -350,9 +351,12 @@ async function queueCreate(biz: string, b: any) {
 
 async function queueList(biz: string, b: any) {
   let q = db.from("outreach_queue")
-    .select(`id,channel,body,status,due_at,done_at,media_asset_id,contact:outreach_contacts(${CONTACT_COLS})`)
+    .select(`id,channel,body,subject,status,due_at,done_at,ready_at,media_asset_id,campaign_id,position,contact:outreach_contacts(${CONTACT_COLS}),campaign:outreach_campaigns(name)`)
     .eq("business_id", biz).order("due_at", { ascending: true }).limit(500);
-  q = q.eq("status", b.status || "queued");
+  // Work list: one-off items that are due, plus campaign items the scheduler released ("ready"), in queue order.
+  // Campaign items still waiting for their turn stay hidden so the cadence is kept.
+  if (!b.status || b.status === "queued") q = q.or("and(status.eq.queued,campaign_id.is.null),status.eq.ready");
+  else q = q.eq("status", b.status);
   if (b.scope === "today") q = q.lte("due_at", new Date(new Date().setHours(23, 59, 59, 999)).toISOString());
   const items = must(await q) as any[];
   const mediaIds = [...new Set(items.map((i) => i.media_asset_id).filter(Boolean))];
@@ -363,9 +367,10 @@ async function queueList(biz: string, b: any) {
 
 async function queueDone(biz: string, b: any) {
   const item: any = must(await db.from("outreach_queue").select("*").eq("business_id", biz).eq("id", b.id).single());
-  if (item.status !== "queued") throw new Error("הפריט כבר טופל");
+  if (!["queued", "ready"].includes(item.status)) throw new Error("הפריט כבר טופל");
   const result = b.result === "sent" ? "sent" : "skipped";
-  must(await db.from("outreach_queue").update({ status: result, done_at: new Date().toISOString() }).eq("id", b.id));
+  const claimed = must(await db.from("outreach_queue").update({ status: result, done_at: new Date().toISOString() }).eq("id", b.id).in("status", ["queued", "ready"]).select("id")) as any[];
+  if (!claimed.length) throw new Error("הפריט כבר טופל");
   if (result === "sent") {
     const followDays = Math.max(1, Math.min(30, Number(b.follow_up_days) || 3));
     must(await db.from("outreach_contacts").update({
@@ -452,6 +457,7 @@ function prospectorToContact(r: any, cps: any[] = [], people: any[] = []) {
   const email = best((c) => c.kind === "email");
   const fb = best((c) => c.kind === "social" && c.subkind === "facebook");
   const ig = best((c) => c.kind === "social" && c.subkind === "instagram");
+  const li = best((c) => c.kind === "social" && c.subkind === "linkedin");
   const person = [...people].filter((p) => p.full_name).sort((a, b) => roleRank(b.role || "") - roleRank(a.role || ""))[0];
   const waNum = (v?: string | null) => v ? ((String(v).match(/phone=(\d+)/) || [])[1] || String(v).replace(/\D/g, "") || null) : null;
   const facts = [
@@ -469,6 +475,7 @@ function prospectorToContact(r: any, cps: any[] = [], people: any[] = []) {
     website: r.website || null,
     facebook_url: fb?.value || so.facebook || null,
     instagram_url: ig?.value || so.instagram || null,
+    linkedin_url: li?.value || so.linkedin || null,
     city: r.city || null, industry: r.main_activity || r.sector || null,
     notes: facts.length ? "מ-OpenProspector · " + facts.join(" · ") : "מ-OpenProspector",
     tags: ["OpenProspector", ...(r.fleet_level ? ["צי רכב"] : [])],
@@ -481,7 +488,7 @@ function prospectorToContact(r: any, cps: any[] = [], people: any[] = []) {
   };
 }
 
-const FILLABLE = ["contact_name", "role", "phone", "whatsapp", "email", "website", "facebook_url", "instagram_url", "city", "industry"];
+const FILLABLE = ["contact_name", "role", "phone", "whatsapp", "email", "website", "facebook_url", "instagram_url", "linkedin_url", "city", "industry"];
 
 async function prospectorImport(biz: string, ids: number[]) {
   ids = [...new Set((ids || []).map(Number).filter(Boolean))];
@@ -538,6 +545,11 @@ Deno.serve(async (req) => {
   const route = new URL(req.url).pathname.split("/marketing-hub/")[1]?.replace(/\/$/, "") || "";
   try {
     const b = await req.json().catch(() => ({}));
+    // Scheduler tick from pg_cron (every minute): releases the next company of each running campaign.
+    if (route === "run-campaigns") {
+      if (!safeEq(req.headers.get("x-social-cron") || "", env("SOCIAL_CRON_SECRET"))) return json({ error: "unauthorized" }, 401);
+      return json(await Auto.tick(db, (biz) => (cid, type, detail, ch) => logEvent(biz, cid, type, detail, ch)));
+    }
     // The phone's only unauthenticated call: trade the one-time code for its own device token.
     if (route === "auth/pair-complete") return json(await pairComplete(db, b.code, b.device_name));
     const auth = await checkSocialKey(db, req.headers.get("x-social-key") || "");
@@ -548,8 +560,22 @@ Deno.serve(async (req) => {
     const biz = String(b.business_id || "");
     if (!["ping", "prospector/search", "prospector/status"].includes(route)) await business(biz);
 
+    const actx = () => business(biz).then((bz) => ({ db, biz, bizName: bz.name, log: (cid: string, type: string, detail?: string, ch?: string) => logEvent(biz, cid, type, detail, ch) }));
     switch (route) {
       case "ping": return json({ ok: true });
+      case "channels/list": return json(await Auto.channelsList(await actx()));
+      case "channels/update": return json(await Auto.channelUpdate(await actx(), b));
+      case "campaigns/list": return json(await Auto.campaignsList(await actx()));
+      case "campaigns/create": return json(await Auto.campaignCreate(await actx(), b));
+      case "campaigns/get": return json(await Auto.campaignGet(await actx(), b.id));
+      case "campaigns/update": return json(await Auto.campaignUpdate(await actx(), b));
+      case "campaigns/control": return json(await Auto.campaignControl(await actx(), b));
+      case "campaigns/add": return json(await Auto.campaignAddContacts(await actx(), b));
+      case "campaigns/reorder": return json(await Auto.campaignReorder(await actx(), b));
+      case "items/edit": return json(await Auto.itemEdit(await actx(), b));
+      case "items/preview": return json(await Auto.itemPreview(await actx(), b.id));
+      case "items/outcome": return json(await Auto.itemOutcome(await actx(), b));
+      case "automation/summary": return json(await Auto.summary(await actx()));
       case "media/list": return json(await mediaList(biz, b));
       case "media/sign": return json(await mediaSign(biz, b.files));
       case "media/register": return json(await mediaRegister(biz, b.items));

@@ -55,6 +55,18 @@ tr.clk{cursor:pointer} tr.clk:hover td{background:var(--bg)}
 .ch{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;color:#fff;font-size:11px;font-weight:800;margin-inline-end:2px}
 .ch.fb{background:var(--fb)} .ch.ig{background:var(--ig)} .ch.wa{background:var(--wa)} .ch.em{background:#6b7280} .ch.ph{background:#0f766e}
 .ch.off{opacity:.18}
+.ch.li{background:#0a66c2} .btn.li{background:#0a66c2;border-color:#0a66c2;color:#fff}
+.q-ready{background:var(--blue-soft);color:var(--blue)} .q-queued{background:var(--bg);color:var(--muted)} .q-sent{background:var(--ok-soft);color:var(--ok)}
+.q-failed,.q-attention{background:var(--bad-soft);color:var(--bad)} .q-replied{background:#efe6fb;color:#7a4bd1} .q-skipped,.q-cancelled{background:var(--bg);color:var(--muted);text-decoration:line-through}
+.camp-grid{display:grid;grid-template-columns:300px 1fr;gap:12px} @media (max-width:900px){.camp-grid{grid-template-columns:1fr}}
+.camp-card{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;cursor:pointer;background:var(--surface)}
+.camp-card.on{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-soft)}
+.days{display:flex;gap:4px;flex-wrap:wrap} .days label{border:1px solid var(--line);border-radius:8px;padding:3px 8px;cursor:pointer;font-size:13px}
+.days input{display:none} .days label:has(input:checked){background:var(--blue);border-color:var(--blue);color:#fff}
+tr.dragging{opacity:.4} tr.over td{border-top:2px solid var(--blue)}
+.handle{cursor:grab;color:var(--muted);font-size:16px;user-select:none}
+.policy{border-inline-start:4px solid var(--blue);background:var(--blue-soft);border-radius:8px;padding:8px 12px;font-size:13px}
+.policy.future{border-color:#7a4bd1;background:#efe6fb}
 .note{background:var(--warn-soft);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:10px}
 .note.info{background:var(--blue-soft)} .note.ok{background:var(--ok-soft)}
 .qitem{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto;gap:10px}
@@ -109,7 +121,9 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
     <div class="tabs" id="tabs">
       <button data-tab="today" class="on">תור עבודה<span class="cnt" id="cToday">0</span></button>
       <button data-tab="contacts">לקוחות<span class="cnt" id="cContacts">0</span></button>
+      <button data-tab="campaigns">קמפיינים ותור<span class="cnt" id="cCamps">0</span></button>
       <button data-tab="templates">תבניות הודעה</button>
+      <button data-tab="channels">ערוצים</button>
       <button data-tab="prospector">ייבוא מ-OpenProspector</button>
     </div>
 
@@ -136,7 +150,8 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
           <div class="row"><input type="search" id="cq" placeholder="חיפוש שם, עיר, תחום" style="width:220px"><button class="btn pri" id="addBtn">+ לקוח עסקי</button></div>
           <div class="row">
             <span class="muted" id="selInfo"></span>
-            <button class="btn sm pri" id="bulkQueue" disabled>הכנת פנייה לנבחרים</button>
+            <button class="btn sm pri" id="bulkCamp" disabled>📣 קמפיין מהנבחרים</button>
+            <button class="btn sm" id="bulkQueue" disabled>פנייה חד-פעמית</button>
             <select id="bulkStatus" disabled><option value="">שינוי סטטוס…</option></select>
           </div>
         </div>
@@ -146,6 +161,22 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
           <tbody id="cBody"></tbody>
         </table></div>
       </div>
+    </section>
+
+    <!-- CAMPAIGNS -->
+    <section data-pane="campaigns" hidden>
+      <div class="camp-grid">
+        <div class="card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">קמפיינים</h2><button class="btn sm pri" id="campNew">+ חדש</button></div>
+          <p class="muted">הודעה אחת לרשימת חברות, לפי סדר שאתם קובעים, בקצב ובשעות שתבחרו.</p><div id="campList"></div></div>
+        <div id="campDetail"><div class="card muted">בחרו קמפיין מהרשימה, או צרו קמפיין חדש מתוך לשונית "לקוחות".</div></div>
+      </div>
+    </section>
+
+    <!-- CHANNELS -->
+    <section data-pane="channels" hidden>
+      <div class="card"><h2>ערוצי פנייה</h2>
+        <p class="muted">כל הערוצים מנוהלים מאותו מסך. ערוץ נשלח אוטומטית רק כשיש לו חיבור, הרשאות והסכמת נמען. בכל מקרה אחר הפנייה מוכנה לשליחה ידנית לפי סדר התור.</p>
+        <div id="chList"></div></div>
     </section>
 
     <!-- TEMPLATES -->
@@ -193,6 +224,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
       <label>וואטסאפ (אם שונה)<input type="tel" id="f_whatsapp"></label>
       <label>אימייל<input type="email" id="f_email"></label>
       <label>אתר<input type="url" id="f_website"></label>
+      <label>לינקדאין<input type="url" id="f_linkedin_url" placeholder="https://linkedin.com/company/..."></label>
       <label>עיר<input type="text" id="f_city"></label>
       <label>תחום<input type="text" id="f_industry"></label>
       <label class="full">הערות<textarea id="f_notes" rows="2"></textarea></label>
@@ -264,7 +296,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const esc = Hub.esc;
 const STATUS = {new:'חדש', ready:'מוכן לפנייה', sent:'נשלח', awaiting_reply:'ממתין לתגובה', interested:'התעניין', not_interested:'לא מעוניין', customer:'לקוח'};
-const CH = {facebook:{he:'מסנג׳ר (פייסבוק)', cls:'fb', s:'f'}, instagram:{he:'אינסטגרם', cls:'ig', s:'IG'}, whatsapp:{he:'וואטסאפ', cls:'wa', s:'W'}, email:{he:'אימייל', cls:'em', s:'@'}, phone:{he:'טלפון', cls:'ph', s:'☎'}};
+const CH = {facebook:{he:'מסנג׳ר (פייסבוק)', cls:'fb', s:'f'}, instagram:{he:'אינסטגרם', cls:'ig', s:'IG'}, whatsapp:{he:'וואטסאפ', cls:'wa', s:'W'}, email:{he:'אימייל', cls:'em', s:'@'}, linkedin:{he:'לינקדאין', cls:'li', s:'in'}, phone:{he:'טלפון', cls:'ph', s:'☎'}};
 const VARS = ['שם_העסק','איש_קשר','עיר','תחום','העסק_שלנו'];
 const S = {businesses:[], contacts:[], counts:{}, filter:'', sel:new Set(), templates:[], queue:[], cur:null, qMedia:null, tMedia:null, tCur:null, pick:null, prospects:[], pSel:new Set()};
 
@@ -274,13 +306,14 @@ Hub.onAuthFail = () => { Hub.clearKey(); $('#gate').hidden=false; $('#main').hid
 $$('[data-close]').forEach(b => b.onclick = () => b.closest('dialog').close());
 
 const phoneDigits = c => { let d = String(c.whatsapp || c.phone || '').replace(/\D/g,''); if (d.startsWith('0')) d = '972' + d.slice(1); return d; };
-const has = (c, ch) => ch==='facebook' ? !!c.facebook_handle : ch==='instagram' ? !!c.instagram_handle : ch==='whatsapp' ? !!(c.whatsapp||c.phone) : ch==='email' ? !!c.email : !!c.phone;
+const has = (c, ch) => ch==='facebook' ? !!c.facebook_handle : ch==='instagram' ? !!c.instagram_handle : ch==='whatsapp' ? !!(c.whatsapp||c.phone) : ch==='email' ? !!c.email : ch==='linkedin' ? !!c.linkedin_url : !!c.phone;
 /* Opens the conversation in the channel's own app — the person sends; nothing is sent from here. */
-function channelLink(c, ch, body){
+function channelLink(c, ch, body, subject){
+  if (ch==='linkedin') return c.linkedin_url;
   if (ch==='facebook') return `https://m.me/${encodeURIComponent(c.facebook_handle)}`;
   if (ch==='instagram') return `https://ig.me/m/${encodeURIComponent(c.instagram_handle)}`;
   if (ch==='whatsapp') return `https://wa.me/${phoneDigits(c)}?text=${encodeURIComponent(body||'')}`;
-  if (ch==='email') return `mailto:${c.email}?subject=${encodeURIComponent('פנייה מ' + (bizName()||''))}&body=${encodeURIComponent(body||'')}`;
+  if (ch==='email') return `mailto:${c.email}?subject=${encodeURIComponent(subject || ('פנייה מ' + (bizName()||'')))}&body=${encodeURIComponent(body||'')}`;
   return `tel:+${phoneDigits(c)}`;
 }
 const bizName = () => (S.businesses.find(b=>b.id===Hub.biz)||{}).name || '';
@@ -302,10 +335,11 @@ async function boot(fromGate){
 }
 function renderBiz(){ Hub.mountPhoneButton($('header')); $('#bizTabs').innerHTML = S.businesses.map(b=>`<button class="${b.id===Hub.biz?'on':''}" data-biz="${b.id}">${esc(b.name)}</button>`).join(''); }
 $('#bizTabs').onclick = e => { const b=e.target.closest('[data-biz]'); if(!b) return; Hub.setBiz(b.dataset.biz); S.sel.clear(); renderBiz(); loadAll(); };
-async function loadAll(){ await Promise.all([loadContacts(), loadQueue(), loadTemplates(), loadFollowups()]); }
+async function loadAll(){ await Promise.all([loadContacts(), loadQueue(), loadTemplates(), loadFollowups(), window.Camp ? Camp.load() : null]); }
 
 $('#tabs').onclick = e => { const b=e.target.closest('[data-tab]'); if(!b) return;
-  $$('#tabs button').forEach(x=>x.classList.toggle('on', x===b)); $$('[data-pane]').forEach(p=>p.hidden = p.dataset.pane!==b.dataset.tab); };
+  $$('#tabs button').forEach(x=>x.classList.toggle('on', x===b)); $$('[data-pane]').forEach(p=>p.hidden = p.dataset.pane!==b.dataset.tab);
+  if (b.dataset.tab==='channels' && window.Camp) Camp.loadChannels(); };
 
 /* ---------- policy ---------- */
 function renderPolicy(p){
@@ -342,7 +376,7 @@ function renderContacts(){
     : '<tr><td colspan="7" class="muted">אין לקוחות להצגה. הוסיפו לקוח עסקי או ייבאו מ-OpenProspector.</td></tr>';
   updateSel();
 }
-function updateSel(){ const n=S.sel.size; $('#selInfo').textContent = n?`${n} נבחרו`:''; $('#bulkQueue').disabled=!n; $('#bulkStatus').disabled=!n; }
+function updateSel(){ const n=S.sel.size; $('#selInfo').textContent = n?`${n} נבחרו`:''; $('#bulkQueue').disabled=!n; $('#bulkCamp').disabled=!n; $('#bulkStatus').disabled=!n; }
 $('#sFilters').onclick = e => { const b=e.target.closest('[data-f]'); if(!b) return; S.filter=b.dataset.f; loadContacts(); };
 $('#cq').oninput = () => { clearTimeout(loadContacts.t); loadContacts.t = setTimeout(loadContacts, 300); };
 $('#selAll').onchange = e => { S.contacts.forEach(c => e.target.checked ? S.sel.add(c.id) : S.sel.delete(c.id)); renderContacts(); };
@@ -356,7 +390,7 @@ $('#bulkStatus').onchange = async e => {
   try { await Hub.hub('contacts/status', {ids:[...S.sel], status:st}); S.sel.clear(); toast('עודכן'); loadContacts(); } catch(err) { toast(err.message); }
 };
 
-const FIELDS = ['company_name','facebook_url','instagram_url','contact_name','role','phone','whatsapp','email','website','city','industry','notes'];
+const FIELDS = ['company_name','facebook_url','instagram_url','contact_name','role','phone','whatsapp','email','website','linkedin_url','city','industry','notes'];
 $('#addBtn').onclick = () => openContact(null);
 async function openContact(c){
   S.cur = c; $('#dupNote').innerHTML = '';
@@ -456,23 +490,23 @@ async function loadQueue(){
     $('#queue').innerHTML = d.items.length ? d.items.map(qi => { const c = qi.contact; const ch = CH[qi.channel];
       return `<div class="qitem" data-q="${qi.id}">
         <div>
-          <div class="row"><b>${esc(c.company_name)}</b> <span class="chip">${ch.he}</span> <span class="muted">${new Date(qi.due_at)>new Date()?'מתוכנן ל-'+fmtD(qi.due_at):''}</span></div>
+          <div class="row"><b>${esc(c.company_name)}</b> <span class="chip">${ch.he}</span>${qi.campaign?` <span class="chip q-ready">📣 ${esc(qi.campaign.name)} · מוכן לשליחה</span>`:""} <span class="muted">${new Date(qi.due_at)>new Date()?'מתוכנן ל-'+fmtD(qi.due_at):''}</span></div>
           <div class="muted">${[c.contact_name, c.city, c.industry].filter(Boolean).map(esc).join(' · ')}</div>
-          <div class="msg">${esc(qi.body)}</div>
+          ${qi.subject?`<div class="muted" style="margin-top:4px">נושא: ${esc(qi.subject)}</div>`:""}<div class="msg">${esc(qi.body)}</div>
         </div>
         <div class="qside">
           ${qi.media?`<img src="${esc(qi.media.thumb_url||qi.media.url)}" alt="">`:''}
-          <a class="btn sm ${ch.cls==='em'||ch.cls==='ph'?'pri':ch.cls}" data-open="${qi.id}" href="${esc(channelLink(c, qi.channel, qi.body))}" target="_blank" rel="noopener">פתיחת שיחה + העתקת הודעה</a>
+          <a class="btn sm ${ch.cls==='em'||ch.cls==='ph'?'pri':ch.cls}" data-open="${qi.id}" href="${esc(channelLink(c, qi.channel, qi.body, qi.subject))}" target="_blank" rel="noopener">פתיחת שיחה + העתקת הודעה</a>
           ${qi.media?`<button class="btn sm" data-img="${qi.id}">העתקת תמונה</button>`:''}
           <button class="btn sm go" data-done="${qi.id}">✓ נשלח</button>
-          <div class="row"><button class="btn sm" data-later="${qi.id}">מחר</button><button class="btn sm" data-skip="${qi.id}">דילוג</button></div>
+          <div class="row">${qi.campaign_id ? `<button class="btn sm" data-fail="${qi.id}">נכשל</button><button class="btn sm" data-attn="${qi.id}">דורש טיפול</button>` : `<button class="btn sm" data-later="${qi.id}">מחר</button>`}<button class="btn sm" data-skip="${qi.id}">דילוג</button></div>
         </div></div>`; }).join('') : '<div class="muted">אין פניות בתור. בחרו לקוחות בלשונית "לקוחות" ולחצו "הכנת פנייה לנבחרים".</div>';
   } catch(e) { toast(e.message); }
 }
 $('#qScope').onchange = loadQueue; $('#qReload').onclick = loadQueue;
 $('#queue').onclick = async e => {
-  const t = e.target.closest('[data-open],[data-img],[data-done],[data-later],[data-skip]'); if(!t) return;
-  const qi = S.queue.find(x => x.id === (t.dataset.open||t.dataset.img||t.dataset.done||t.dataset.later||t.dataset.skip));
+  const t = e.target.closest('[data-open],[data-img],[data-done],[data-later],[data-skip],[data-fail],[data-attn]'); if(!t) return;
+  const qi = S.queue.find(x => x.id === (t.dataset.open||t.dataset.img||t.dataset.done||t.dataset.later||t.dataset.skip||t.dataset.fail||t.dataset.attn));
   if (t.dataset.open) { try { await navigator.clipboard.writeText(qi.body); toast('ההודעה הועתקה – הדביקו בשיחה ושלחו'); } catch(err) {} return; }
   e.preventDefault();
   if (t.dataset.img) {
@@ -484,8 +518,10 @@ $('#queue').onclick = async e => {
     return;
   }
   try {
-    if (t.dataset.done) { await Hub.hub('queue/done', {id:qi.id, result:'sent', follow_up_days:3}); toast('סומן כנשלח · תזכורת מעקב בעוד 3 ימים'); }
-    if (t.dataset.skip) { await Hub.hub('queue/done', {id:qi.id, result:'skipped'}); toast('דולג'); }
+    if (t.dataset.done) { await Hub.hub('items/outcome', {id:qi.id, result:'sent', follow_up_days:3}); toast('סומן כנשלח · תזכורת מעקב בעוד 3 ימים'); }
+    if (t.dataset.fail) { const n = prompt('מה השתבש? (לא חובה)', '') ; if (n === null) return; await Hub.hub('items/outcome', {id:qi.id, result:'failed', note:n}); toast('סומן כנכשל'); }
+    if (t.dataset.attn) { const n = prompt('מה דורש טיפול?', ''); if (n === null) return; await Hub.hub('items/outcome', {id:qi.id, result:'attention', note:n}); toast('סומן לטיפול'); }
+    if (t.dataset.skip) { await Hub.hub('items/outcome', {id:qi.id, result:'skipped'}); toast('דולג'); }
     if (t.dataset.later) { await Hub.hub('queue/reschedule', {id:qi.id, due_at:new Date(Date.now()+864e5).toISOString()}); toast('נדחה למחר'); }
     loadQueue(); loadContacts();
   } catch(err) { toast(err.message); }
@@ -544,5 +580,6 @@ $('#pImport').onclick = async () => {
 
 boot();
 </script>
+<script src="./marketing/outreach-campaigns.js?v=20261021a"></script>
 </body>
 </html>

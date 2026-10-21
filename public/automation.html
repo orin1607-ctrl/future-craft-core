@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>מרכז בקרה</title>
+<style>
+:root{
+  --head:#0A2352; --blue:#1F6FE0; --blue-soft:#E4EEFC; --bg:#EEF2F7; --surface:#FFFFFF; --line:#DCE3EC; --ink:#0E1A2E; --muted:#5B6B82;
+  --ok:#17875A; --ok-soft:#E3F4EC; --warn:#B8700A; --warn-soft:#FBF0DC; --bad:#C23B3B; --bad-soft:#FBE6E6; --pur:#7a4bd1; --pur-soft:#efe6fb;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --head:#081A3D; --blue:#5B9BF5; --blue-soft:#15294A; --bg:#0A1426; --surface:#111E36; --line:#22324F; --ink:#E8EEF7; --muted:#93A3BC;
+    --ok:#4CC792; --ok-soft:#113327; --warn:#E6A94A; --warn-soft:#3A2A10; --bad:#EF7B7B; --bad-soft:#3D1818; --pur:#B596F0; --pur-soft:#2A1E45;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Assistant","Segoe UI",Arial,sans-serif}
+header{background:var(--head);color:#fff;padding:12px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+header h1{margin:0;font-size:18px} header .sub{opacity:.75;font-size:12px}
+.biz{display:flex;gap:6px;flex-wrap:wrap;margin-inline-start:auto}
+.biz button{border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:999px;padding:5px 12px;cursor:pointer;font:inherit}
+.biz button.on{background:#fff;color:var(--head);font-weight:700}
+.wrap{max-width:1180px;margin:0 auto;padding:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h2{margin:0 0 10px;font-size:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.kpi b{display:block;font-size:26px;line-height:1.2} .kpi .muted{font-size:12.5px}
+.kpi.alert{border-color:var(--bad);background:var(--bad-soft)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px} @media (max-width:860px){.grid{grid-template-columns:1fr}}
+.muted{color:var(--muted);font-size:12.5px}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:6px 12px;cursor:pointer;font:inherit;font-weight:600;text-decoration:none;display:inline-flex;gap:6px;align-items:center}
+.btn:hover{border-color:var(--blue)} .btn.pri{background:var(--blue);border-color:var(--blue);color:#fff} .btn.go{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.sm{padding:3px 9px;font-size:12.5px}
+.chip{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:700;background:var(--bg);color:var(--muted)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.bad{background:var(--bad-soft);color:var(--bad)} .chip.pur{background:var(--pur-soft);color:var(--pur)}
+.next{border:2px solid var(--blue);border-radius:12px;padding:12px;background:var(--blue-soft);margin-top:8px}
+.next .msg{white-space:pre-wrap;background:var(--surface);border-radius:10px;padding:10px;margin-top:6px;font-size:13.5px}
+.camp{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+table{width:100%;border-collapse:collapse} td,th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:start;vertical-align:top} th{font-size:12px;color:var(--muted);font-weight:600}
+.ch-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}
+.ch-box{border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+#gate input{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;background:var(--surface);color:var(--ink)}
+#keyErr{margin-top:10px;padding:10px;border-radius:10px;background:var(--bad-soft);color:var(--bad)}
+.toast{position:fixed;inset-inline:0;bottom:16px;margin:auto;width:max-content;max-width:92vw;background:var(--ink);color:var(--surface);padding:9px 15px;border-radius:10px;opacity:0;transition:.2s;pointer-events:none}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>מרכז בקרה – פניות ופרסומים</h1><div class="sub">ניהול שיווק 2 · STAGING · מתעדכן כל דקה</div></div>
+  <div class="biz" id="bizTabs"></div>
+</header>
+<div class="wrap">
+  <div class="card" id="gate" hidden>
+    <h2>כניסה</h2>
+    <form class="row" id="keyForm" novalidate><input id="keyIn" style="max-width:280px"><button class="btn pri" id="keyBtn" type="submit">כניסה</button></form>
+    <div id="keyErr" role="alert" hidden></div>
+  </div>
+
+  <div id="main" hidden>
+    <div class="kpis" id="kpis"></div>
+    <div class="grid">
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2 style="margin:0">תור הפניות</h2><a class="btn sm" href="./outreach.html" id="toOutreach">ניהול הקמפיינים ←</a></div>
+        <div id="camps"></div>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h2 style="margin:0">פוסטים מתוכננים</h2><a class="btn sm" href="./social-center.html">לוח הפרסומים ←</a></div>
+        <div id="series" style="margin-top:8px"></div>
+        <div id="posts" style="margin-top:8px"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>ערוצים – מה פועל אוטומטית ומה ידני</h2>
+      <div class="ch-grid" id="chans"></div>
+    </div>
+    <div class="muted" id="updated" style="text-align:center"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="./marketing/hub-client.js?v=20261020c"></script>
+<script>
+const $ = s => document.querySelector(s), esc = Hub.esc;
+const PST = {scheduled:['מתוזמן','warn'], paused:['מושהה',''], publishing:['בפרסום…','warn'], published:['פורסם','ok'], partial:['פורסם חלקית','warn'], failed:['נכשל','bad'], attention:['דורש בדיקה','bad'], cancelled:['בוטל',''], draft:['טיוטה','']};
+const CST = {draft:['טיוטה – לא הופעל',''], running:['פעיל','ok'], paused:['מושהה','warn']};
+const fmt = d => d ? new Date(d).toLocaleString('he-IL', {weekday:'short', day:'numeric', month:'numeric', hour:'2-digit', minute:'2-digit'}) : '—';
+const rel = d => { if (!d) return ''; const m = Math.round((new Date(d) - Date.now()) / 60000); return m <= 0 ? 'עכשיו' : m < 60 ? `בעוד ${m} דק׳` : m < 1440 ? `בעוד ${Math.round(m/60)} שע׳` : `בעוד ${Math.round(m/1440)} ימים`; };
+function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('on'); clearTimeout(toast.t); toast.t=setTimeout(()=>el.classList.remove('on'),2600); }
+const gate = Hub.mountGate({input: $('#keyIn'), button: $('#keyBtn'), error: $('#keyErr'), onSuccess: () => boot(true)});
+Hub.onAuthFail = () => { Hub.clearKey(); $('#gate').hidden = false; $('#main').hidden = true; };
+let BIZ = [];
+
+async function boot(fromGate){
+  if (!Hub.key) { $('#gate').hidden = false; return; }
+  try { BIZ = await Hub.businesses(); } catch(e) { if (fromGate) throw e; $('#gate').hidden = false; gate.show(e.message); return; }
+  if (!BIZ.find(b => b.id === Hub.biz)) Hub.setBiz(BIZ[0].id);
+  $('#gate').hidden = true; $('#main').hidden = false;
+  Hub.mountPhoneButton(document.querySelector('header'));
+  renderBiz(); refresh();
+  setInterval(() => { if (!document.hidden) refresh(); }, 60000);
+}
+function renderBiz(){ $('#bizTabs').innerHTML = BIZ.map(b => `<button class="${b.id===Hub.biz?'on':''}" data-biz="${b.id}">${esc(b.name)}</button>`).join(''); }
+$('#bizTabs').onclick = e => { const b = e.target.closest('[data-biz]'); if (!b) return; Hub.setBiz(b.dataset.biz); renderBiz(); refresh(); };
+
+async function refresh(){
+  try {
+    const now = Date.now();
+    const [sum, cal, ser, ch] = await Promise.all([
+      Hub.hub('automation/summary'),
+      Hub.social('posts/calendar', {from: new Date(now - 864e5).toISOString(), to: new Date(now + 30 * 864e5).toISOString()}),
+      Hub.social('series/list'), Hub.hub('channels/list'),
+    ]);
+    const posts = cal.posts.filter(p => ['scheduled','paused','publishing','attention','failed'].includes(p.status)).sort((a,b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+    const postAttention = cal.posts.filter(p => ['attention','failed'].includes(p.status)).length;
+    const t = sum.totals;
+    const kp = [
+      ['לקוחות בתור', t.in_queue, `${t.ready_now} מוכנים לשליחה עכשיו`],
+      ['נשלחו', t.sent_total, `${t.sent_today} היום · ${t.replied} נענו`],
+      ['דורשים טיפול', t.attention + postAttention, `${t.attention} פניות · ${postAttention} פוסטים`, (t.attention + postAttention) ? 'alert' : ''],
+      ['פוסטים מתוכננים', posts.filter(p => p.status === 'scheduled').length, posts[0] ? `הבא: ${fmt(posts[0].scheduled_at)}` : 'אין'],
+    ];
+    $('#kpis').innerHTML = kp.map(([l, v, s, cls]) => `<div class="kpi ${cls||''}"><span class="muted">${l}</span><b>${v}</b><span class="muted">${s}</span></div>`).join('');
+
+    $('#camps').innerHTML = sum.campaigns.length ? sum.campaigns.map(c => {
+      const [l, tone] = CST[c.status] || [c.status, ''];
+      return `<div class="camp">
+        <div class="row" style="justify-content:space-between"><b>${esc(c.name)}</b><span class="chip ${tone}">${l}</span></div>
+        <div class="muted">${esc(c.channel_he)} · בתור ${c.queued} · מוכנים ${c.ready} · נשלחו ${c.sent} · לטיפול ${c.attention} · כל ${c.cadence_minutes} דק׳, ${c.active_from.slice(0,5)}–${c.active_to.slice(0,5)}</div>
+        ${c.next ? `<div class="next"><div class="row" style="justify-content:space-between"><span>הבא בתור: <b>${esc(c.next.company)}</b>${c.next.contact ? ' · ' + esc(c.next.contact) : ''}</span>
+            <span class="chip ${c.next.status==='ready'?'ok':'warn'}">${c.next.status === 'ready' ? 'מוכן עכשיו – לשליחה ידנית' : c.status === 'running' ? `${fmt(c.next.when)} (${rel(c.next.when)})` : 'יופעל כשהקמפיין יתחיל'}</span></div>
+          ${c.next.subject ? `<div class="muted">נושא: ${esc(c.next.subject)}</div>` : ''}<div class="msg">${esc(c.next.body)}</div></div>` : '<div class="muted">אין חברות שממתינות.</div>'}
+        <div class="row" style="margin-top:8px">
+          ${c.status==='running' ? `<button class="btn sm" data-cc="pause" data-id="${c.id}">⏸ השהיה</button>` : ''}
+          ${c.status==='paused' ? `<button class="btn sm go" data-cc="resume" data-id="${c.id}">▶ המשך</button>` : ''}
+          ${c.ready ? `<a class="btn sm pri" href="./outreach.html">לשליחת ${c.ready} המוכנים ←</a>` : ''}
+        </div></div>`;
+    }).join('') : '<div class="muted">אין קמפיינים פעילים. צרו קמפיין מלשונית "לקוחות" במסך הפניות.</div>';
+
+    const active = ser.series.filter(s => ['draft','approved','paused'].includes(s.status));
+    $('#series').innerHTML = active.map(s => `<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0">
+      <span><b>${esc(s.name)}</b> <span class="chip ${s.status==='approved'?'ok':s.status==='draft'?'warn':''}">${s.status==='approved'?'מאושרת – מתפרסמת אוטומטית':s.status==='draft'?'ממתינה לאישור שלכם':'מושהית'}</span>${s.test_mode?' <span class="chip pur">🧪 בדיקה</span>':''}</span>
+      <span class="muted">${s.counts.scheduled||0} מתוזמנים${s.next_at ? ' · הבא ' + fmt(s.next_at) : ''}</span></div>`).join('');
+    $('#posts').innerHTML = posts.length ? `<table><thead><tr><th>מתי</th><th>פוסט</th><th>סטטוס</th></tr></thead><tbody>${posts.slice(0, 12).map(p => {
+      const [l, tone] = PST[p.status] || [p.status, ''];
+      return `<tr><td style="white-space:nowrap">${fmt(p.scheduled_at)}<div class="muted">${rel(p.scheduled_at)}</div></td>
+        <td>${esc((p.body||'').slice(0, 70))}<div class="muted">${p.targets.map(x => x==='facebook'?'פייסבוק':'אינסטגרם').join(' + ')}${(p.image_urls||[]).length ? ` · ${(p.image_urls||[]).length} תמונות` : ''}</div></td>
+        <td><span class="chip ${tone}">${l}</span></td></tr>`; }).join('')}</tbody></table>` : '<div class="muted">אין פוסטים מתוכננים ל-30 הימים הקרובים.</div>';
+
+    $('#chans').innerHTML = ch.channels.map(c => `<div class="ch-box"><b>${esc(c.he)}</b><br>
+      <span class="chip ${c.connector && c.auto_allowed ? 'ok' : c.phase === 'active' ? 'warn' : 'pur'}">${c.connector && c.auto_allowed ? 'אוטומטי' : c.phase === 'active' ? 'ידני מהתור' : 'מוכן לחיבור עתידי'}</span></div>`).join('')
+      + `<div class="ch-box"><b>פוסטים בפייסבוק ובאינסטגרם</b><br><span class="chip ok">אוטומטי לפי לוח הזמנים</span></div>`;
+    $('#updated').textContent = 'עודכן ' + new Date().toLocaleTimeString('he-IL');
+  } catch(e) { toast(e.message); }
+}
+$('#camps').onclick = async e => {
+  const b = e.target.closest('[data-cc]'); if (!b) return;
+  try { await Hub.hub('campaigns/control', {id: b.dataset.id, action: b.dataset.cc}); toast(b.dataset.cc === 'pause' ? 'הקמפיין הושהה' : 'הקמפיין ממשיך'); refresh(); } catch(err) { toast(err.message); }
+};
+boot();
+</script>
+</body>
+</html>

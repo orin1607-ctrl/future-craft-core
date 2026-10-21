@@ -175,8 +175,10 @@ code{background:var(--bg);padding:1px 6px;border-radius:6px;direction:ltr;unicod
           <summary style="cursor:pointer;font-weight:700">⏰ תזמון (אופציונלי)</summary>
           <div class="row" style="margin-top:8px">
             <input type="datetime-local" id="when" style="max-width:260px">
-            <span class="muted">הפרסום יתבצע אוטומטית (בדיקה כל 5 דקות)</span>
+            <select id="seriesSel" style="max-width:240px"><option value="">פוסט בודד</option></select>
+            <button class="btn sm" id="seriesNewBtn" type="button">+ סדרה חדשה</button>
           </div>
+          <div class="muted" style="margin-top:4px">פוסט בודד יפורסם במועד שבחרתם אחרי אישור שלכם עכשיו. פוסט בסדרה יפורסם רק אחרי שתאשרו את הסדרה כולה (בלוח הפרסומים).</div>
         </details>
 
         <div id="composeNote"></div>
@@ -193,6 +195,18 @@ code{background:var(--bg);padding:1px 6px;border-radius:6px;direction:ltr;unicod
         <div class="tabs"><button class="on" data-pv="fb">פייסבוק</button><button data-pv="ig">אינסטגרם</button></div>
         <div id="preview"></div>
       </div>
+    </div>
+
+    <div class="card" id="calCard">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">לוח פרסומים</h2>
+        <div class="row"><button class="btn sm" id="calPrev">→</button><b id="calTitle"></b><button class="btn sm" id="calNext">←</button><button class="btn sm" id="calReload">רענון</button></div>
+      </div>
+      <div id="calGrid" style="margin-top:10px"></div>
+      <h2 style="margin:16px 0 6px">סדרות פרסום</h2>
+      <div id="seriesList"></div>
+      <h2 style="margin:16px 0 6px">תור פרסומים קרובים</h2>
+      <div id="calQueue"></div>
     </div>
 
     <div class="card">
@@ -225,6 +239,7 @@ code{background:var(--bg);padding:1px 6px;border-radius:6px;direction:ltr;unicod
 </dialog>
 
 <script src="./marketing/hub-client.js?v=20261020c"></script>
+<script src="./marketing/social-calendar.js?v=20261021a" defer></script>
 <script>
 /* Social Center — talks only to the staging social-meta edge function.
    Each business (tenant) is fully separate: accounts, images, drafts and history are keyed by business_id. */
@@ -349,7 +364,7 @@ $('#disconnectBtn').onclick = async () => {
 
 /* ---------- composer ---------- */
 function resetComposer(){
-  S.draft = null; S.images = []; $('#imgInfo').textContent=''; $('#body').value=''; $('#brief').value=''; $('#when').value='';
+  S.draft = null; S.images = []; $('#imgInfo').textContent=''; $('#body').value=''; $('#brief').value=''; $('#when').value=''; if ($('#seriesSel')) $('#seriesSel').value='';
   $('#tFb').checked = true; $('#tIg').checked = false; $('#composerTitle').textContent='צור פוסט חדש';
   $('#composeNote').innerHTML=''; renderImage(); renderPreview();
 }
@@ -488,7 +503,13 @@ $('#saveBtn').onclick = async () => { try { if (await save({scheduled_at:null}))
 $('#schedBtn').onclick = async () => {
   const w = $('#when').value; if (!w) { document.querySelector('#when').closest('details').open = true; return toast('בחרו תאריך ושעה לתזמון'); }
   const at = new Date(w); if (at < new Date(Date.now()+60000)) return toast('יש לבחור מועד עתידי');
-  try { if (await save({scheduled_at: at.toISOString()})) { toast('הפוסט תוזמן ל-' + at.toLocaleString('he-IL')); resetComposer(); } } catch(e) { toast(e.message); }
+  const series_id = $('#seriesSel').value || null;
+  if (!series_id) {
+    const p = collect(); const err = validate(p, true); if (err) return toast(err);
+    const where = p.targets.map(t=>t==='facebook'?'פייסבוק':'אינסטגרם').join(' + ');
+    if (!confirm(`הפוסט יפורסם אוטומטית ובאופן ציבורי ב-${where} ב-${at.toLocaleString('he-IL')}.\nזה האישור שלכם לפרסום הזה. להמשיך?`)) return;
+  }
+  try { if (await save({scheduled_at: at.toISOString(), series_id})) { toast(series_id ? 'הפוסט נוסף לסדרה – יפורסם אחרי אישור הסדרה' : 'הפוסט תוזמן ל-' + at.toLocaleString('he-IL')); resetComposer(); window.Cal && Cal.load(); } } catch(e) { toast(e.message); }
 };
 $('#publishBtn').onclick = () => {
   const p = collect(); const err = validate(p, true); if (err) return toast(err);
@@ -525,7 +546,7 @@ $('#suiteBtn').onclick = async () => {
 };
 
 /* ---------- history ---------- */
-const ST = {draft:['טיוטה','mute'], scheduled:['מתוזמן','warn'], publishing:['בפרסום…','warn'], published:['פורסם','ok'], partial:['פורסם חלקית','warn'], failed:['נכשל','bad']};
+const ST = {draft:['טיוטה','mute'], scheduled:['מתוזמן','warn'], publishing:['בפרסום…','warn'], published:['פורסם','ok'], partial:['פורסם חלקית','warn'], failed:['נכשל','bad'], paused:['מושהה','mute'], cancelled:['בוטל','mute'], attention:['דורש בדיקה','bad']};
 async function loadPosts(){
   try { S.posts = (await api('posts')).posts; renderHistory(); } catch(e) { $('#history').innerHTML = `<div class="note bad">${esc(e.message)}</div>`; }
 }
@@ -535,7 +556,7 @@ function renderHistory(){
     S.posts.map(p => { const [lbl, tone] = ST[p.status] || [p.status,'mute'];
       const links = Object.entries(p.results||{}).map(([t,r]) => r.ok && r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${t==='facebook'?'FB':'IG'}</a>` : (!r.ok && r.error ? `<span class="muted" title="${esc(r.error)}">${t==='facebook'?'FB':'IG'} ✗</span>` : '')).join(' ');
       const when = p.published_at || p.scheduled_at || p.updated_at;
-      const editable = ['draft','scheduled','failed','partial'].includes(p.status);
+      const editable = ['draft','scheduled','failed','partial','paused','cancelled'].includes(p.status);
       const nImg = p.image_urls?.length || (p.image_url ? 1 : 0);
       return `<tr><td>${p.image_url?`<img class="thumb" src="${esc(p.image_url)}" alt="">${nImg>1?`<div class="muted">${nImg} תמונות</div>`:''}`:''}</td>
         <td style="max-width:380px">${esc((p.body||'').slice(0,140))}${(p.body||'').length>140?'…':''}</td>
@@ -550,22 +571,24 @@ $('#history').onclick = async e => {
   const t = e.target.closest('button'); if (!t) return;
   const p = S.posts.find(x => x.id === (t.dataset.copy || t.dataset.edit || t.dataset.del)); if (!p) return;
   if (t.dataset.copy) { try { await navigator.clipboard.writeText(p.body); toast('הטקסט הועתק'); } catch(err) {} }
-  if (t.dataset.edit) {
-    S.draft = p; $('#body').value = p.body; $('#body').oninput();
-    S.images = (p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : []).map(u => ({id: u, url: u})); renderImage();
-    $('#tFb').checked = p.targets.includes('facebook'); $('#tIg').checked = p.targets.includes('instagram') && !!S.status?.instagram;
-    $('#when').value = p.scheduled_at ? new Date(new Date(p.scheduled_at) - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16) : '';
-    $('#composerTitle').textContent = 'עריכת פוסט'; if (p.status !== 'draft') showResult(p); else $('#composeNote').innerHTML='';
-    renderPreview(); window.scrollTo({top: 0, behavior: 'smooth'});
-  }
+  if (t.dataset.edit) openPost(p);
   if (t.dataset.del && confirm('למחוק את הפוסט?')) { try { await api('posts/delete', {id: p.id}); if (S.draft?.id===p.id) resetComposer(); loadPosts(); } catch(err) { toast(err.message); } }
 };
+function openPost(p){
+  S.draft = p; $('#body').value = p.body; $('#body').oninput();
+  S.images = (p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : []).map(u => ({id: u, url: u})); renderImage();
+  $('#tFb').checked = p.targets.includes('facebook'); $('#tIg').checked = p.targets.includes('instagram') && !!S.status?.instagram;
+  $('#when').value = p.scheduled_at ? new Date(new Date(p.scheduled_at) - new Date().getTimezoneOffset()*60000).toISOString().slice(0,16) : '';
+  $('#seriesSel').value = p.series_id || '';
+  $('#composerTitle').textContent = 'עריכת פוסט'; if (p.status !== 'draft') showResult(p); else $('#composeNote').innerHTML='';
+  renderPreview(); window.scrollTo({top: 0, behavior: 'smooth'});
+}
 $('#reloadBtn').onclick = loadPosts;
 
 /* ---------- boot ---------- */
 async function loadBiz(){
   try { S.status = await api('status'); renderStatus(); } catch(e) { toast(e.message); }
-  loadPosts();
+  loadPosts(); window.Cal && Cal.load();
 }
 async function boot(fromGate){
   if (!S.key) return showGate();
