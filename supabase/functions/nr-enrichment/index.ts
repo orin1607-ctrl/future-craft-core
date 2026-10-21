@@ -11,6 +11,7 @@
 // No paid services, no login walls, no CAPTCHA / Cloudflare bypass, no 7-rule filtering.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { edgeCorsHeaders, jsonResponse, requireAuth } from "../_shared/edgeAuth.ts";
+import { locateSocial } from "./socialLocate.ts";
 // the 7 Dalia lead rules – the same file the app loads (public/openprospector-qualify.js), so the cloud stream and the
 // screen always grade a lead identically; it registers itself as globalThis.OPQualify
 import "../../../public/openprospector-qualify.js";
@@ -1284,6 +1285,27 @@ Deno.serve(async (req) => {
     if (action === "harvest_cc") return jsonResponse({ ok: true, ...(await harvestCc(sb, (body as { graph?: string }).graph)) });
     if (action === "feeder") return await done(await feeder(sb));
     if (action === "leads") return await done(await leadsStep(sb));
+    // social / digital-presence locator for one company (card button) or a measured sample (internal only)
+    const deps = { get: (u: string, ms?: number) => get(u, ms), allowed, siteConfirms };
+    if (action === "social_locate") {
+      const id = Number((body as { business_id?: number }).business_id);
+      if (!id) return jsonResponse({ ok: false, error: "business_id required" }, 400);
+      return jsonResponse({ ok: true, ...(await locateSocial(sb, deps, id, { mode: "button", userId: auth.ctx.isInternalCall ? null : auth.ctx.user?.id })) });
+    }
+    if (action === "social_sample") {
+      if (!auth.ctx.isInternalCall) return jsonResponse({ ok: false, error: "internal only" }, 403);
+      const { ids = [], tag = "sample" } = body as { ids?: number[]; tag?: string };
+      const t0 = Date.now(), done: number[] = [], failed: Record<number, string> = {};
+      for (const id of ids) {
+        if (Date.now() - t0 > 100_000) break;
+        try { await locateSocial(sb, deps, Number(id), { mode: "sample", tag }); done.push(Number(id)); }
+        catch (e) {
+          failed[id] = (e as Error).message.slice(0, 200);
+          await sb.from("nr_social_runs").insert({ business_id: Number(id), mode: "sample", tag, error: failed[id], ms: 0 }).then(() => {}, () => {});
+        }
+      }
+      return jsonResponse({ ok: true, done: done.length, failed, left: ids.filter((i) => !done.includes(Number(i)) && !(i in failed)), ms: Date.now() - t0 });
+    }
     // a second deep-crawl call on the alternate minute: identification now attaches ~700 sites an hour, more than one
     // 30-site slice per tick reads (claims are SKIP LOCKED, so both calls never read the same site)
     if (action === "deep") {

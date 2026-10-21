@@ -671,6 +671,7 @@
         ${Object.entries(MARKS).map(([k, [l]]) => `<button class="btn btn-sm" data-nr="markone" data-v="${k}" data-id="${b.id}">${l}</button>`).join("")}</div>
       ${watchBlock(d)}
       <div><b>🌐 אתרים ורשתות חברתיות</b> <span style="margin-inline-start:6px">${linkIcons(b)}</span></div>
+      ${socialBlock(d)}
       ${findingsBlock(d)}
       ${relationsBlock(d)}
       <div class="grid g-3" style="gap:10px">
@@ -713,7 +714,9 @@
     </div>`;
   }
   function findingsBlock(d) {
-    const fs = d.findings || [], pend = d.pending || [], jobs = d.jobs || [];
+    const fs = d.findings || [], jobs = d.jobs || [];
+    // social-locator candidates have their own section (socialBlock) with confidence and evidence
+    const pend = (d.pending || []).filter((f) => f.match_method !== "social_locate");
     if (!fs.length && !pend.length && !jobs.length) return `<div class="xs muted">מידע חדש: עדיין לא התגלה מידע חדש על העסק הזה במקורות ההעשרה.</div>`;
     const imp = fs.filter((f) => f.importance === "important").length;
     return `<div style="display:grid;gap:6px"><div class="row"><b>✨ מידע חדש שהתגלה (${n(fs.length)})</b>${imp ? `<span class="badge nr-imp">★ ${n(imp)} חשובים</span>` : ""}<span class="spacer"></span>${legend()}</div>
@@ -754,6 +757,58 @@
         <button class="btn btn-sm btn-primary" data-nr="watch" data-id="${id}" data-v="daily">👁 הפעל מעקב יומי</button>
         <button class="btn btn-sm" data-nr="watch" data-id="${id}" data-v="weekly">👁 מעקב שבועי</button>`}
     </div>`;
+  }
+  // ── social / digital presence locator (per company, on demand) ──
+  const PF = { facebook: ["פייסבוק", "f"], instagram: ["אינסטגרם", "IG"], linkedin: ["לינקדאין", "in"], website: ["אתר", "🌐"], email: ["אימייל", "@"],
+    whatsapp: ["וואטסאפ", "WA"], contact_form: ["טופס יצירת קשר", "✉"], tiktok: ["טיקטוק", "♪"], youtube: ["יוטיוב", "▶"], twitter: ["X / טוויטר", "X"] };
+  const CONF = { high: ["ודאות גבוהה", "b-ok"], medium: ["סביר – לבדיקה", "b-est"], low: ["חלש – לבדיקה", "b-no"] };
+  const SITE_STATUS = { registry: "אתר שכבר משויך לעסק", confirmed: "אתר שאומת עכשיו מול פרטי החברה", unconfirmed: "אתר שלא אומת – ממצאיו לבדיקה", archive: "אתר שלא נפתח כעת – אומת מעותק ארכיון", none: "לא נמצא אתר מאומת" };
+  function socialBlock(d) {
+    const so = d.social || {}, id = d.business.id, run = so.last_run;
+    const saved = (so.saved || []).filter((c) => c.kind !== "email" || (c.sources || []).some((x) => /רשתות חברתיות/.test(x)));
+    const link = (u, t) => /^https?:\/\//.test(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener" data-nr-stop="1">${esc(t || u)}</a>` : esc(t || u);
+    const savedRows = saved.map((c) => {
+      const pf = c.kind === "social" ? c.sub : c.kind;
+      return `<div class="xs"><span class="nr-ic nr-ic-${esc(pf)}">${esc((PF[pf] || [pf, "•"])[1])}</span> ${esc((PF[pf] || [pf])[0])}: ${link(c.v, String(c.v).replace(/^https?:\/\/(www\.)?/, ""))}
+        ${c.verified ? `<span class="badge b-ok">✓ מאומת (2 מקורות)</span>` : `<span class="badge b-blue">נשמר – מקור אחד</span>`}
+        <span class="muted">מקור: ${esc((c.sources || []).join(" · "))}</span></div>`;
+    }).join("");
+    const pend = (so.pending || []).map((f) => {
+      const x = f.detail || {}, c = CONF[x.confidence] || CONF.low;
+      return `<div class="nr-find pend"><div class="t">${esc((PF[x.platform] || [x.platform])[0])}: ${link(x.url, x.handle || x.url)} <span class="badge ${c[1]}">${c[0]}</span></div>
+        <div class="xs muted">${esc(x.evidence || "")}${(x.options || []).length > 1 ? ` · אפשרויות: ${x.options.map((o) => link(o, o.replace(/^https?:\/\/(www\.)?/, ""))).join(" , ")}` : ""}</div>
+        <div class="row" style="gap:6px"><button class="btn btn-sm" data-nr="revok" data-id="${f.id}" data-b="${id}">✓ שייך לחברה</button><button class="btn btn-sm" data-nr="revno" data-id="${f.id}">✗ לא שלה</button></div></div>`;
+    }).join("");
+    const steps = run ? (run.steps || []).map((st) => `<div class="xs">${st.ok ? "✓" : "✗"} <b>${esc(st.step)}</b> – ${esc(st.note)}</div>`).join("") : "";
+    const busy = ST.socBusy === id;
+    return `<div style="padding:8px;border:1px dashed var(--border);border-radius:8px;display:grid;gap:6px">
+      <div class="row" style="gap:6px;align-items:center;flex-wrap:wrap"><b>🔎 איתור רשתות חברתיות ונוכחות דיגיטלית</b>
+        <span class="xs muted">${run ? `בדיקה אחרונה ${when(run.started_at)} · ${esc(SITE_STATUS[run.site_status] || "")}${run.site ? " (" + esc(run.site) + ")" : ""}` : "טרם נבדק"}</span>
+        <span class="spacer"></span><button class="btn btn-sm btn-primary" data-nr="soclocate" data-id="${id}" ${busy ? "disabled" : ""}>${busy ? "⏳ מחפש… (עד דקה)" : run ? "🔎 אתר שוב" : "🔎 איתור רשתות חברתיות"}</button></div>
+      ${savedRows || `<div class="xs muted">אין עדיין קישורים לרשתות שנשמרו בכרטיס.</div>`}
+      ${pend ? `<div class="xs"><b>אפשרויות שנמצאו וממתינות לבדיקה שלך (${n((so.pending || []).length)})</b> – לא נשמרו בכרטיס עד שתאשר:</div>${pend}` : ""}
+      ${so.rejected ? `<div class="xs muted">${n(so.rejected)} אפשרויות נדחו בעבר ולא יוצעו שוב.</div>` : ""}
+      ${steps ? `<details><summary class="xs">מה נבדק בחיפוש האחרון</summary>${steps}</details>` : ""}
+      <div class="xs muted">החיפוש משתמש רק במקורות מותרים: אתר החברה (כולל דפי צור קשר, אודות וצוות, לפי robots.txt), דומיין האימייל העסקי, דומיינים ישראליים מוכרים שאומתו מול הטלפון / האימייל / הח.פ., ו-Wikidata. אין חיפוש או קריאה בתוך פייסבוק, אינסטגרם או לינקדאין – התנאים שלהם אוסרים זאת. ודאות גבוהה נשמרת בכרטיס; כל השאר ממתין לאישורך, ושום ערך קיים לא נדרס.</div>
+    </div>`;
+  }
+  async function locateSocial(id) {
+    ST.socBusy = Number(id); rerender();
+    try {
+      const sess = (typeof userSession === "function") ? await userSession() : null;
+      if (!sess || !sess.accessToken) throw new Error("נדרשת התחברות לדליה");
+      // run in Frankfurt: some Israeli sites do not answer the Mumbai region at all (measured 21.10.2026);
+      // a browser request cannot add the x-region header (CORS), so the documented query parameter is used
+      const res = await fetch(`${SUPABASE_STAGING_URL}/functions/v1/nr-enrichment?forceFunctionRegion=eu-central-1`, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + sess.accessToken, apikey: SUPABASE_STAGING_ANON },
+        body: JSON.stringify({ action: "social_locate", business_id: Number(id) }) });
+      const x = await res.json().catch(() => ({}));
+      if (!res.ok && x.ok !== false) throw new Error(`HTTP ${res.status}`);
+      if (x.ok === false) throw new Error(x.error || "שגיאה");
+      toast(`החיפוש הסתיים: ${n(x.saved)} פרטים חדשים נשמרו בכרטיס, ${n(x.review)} אפשרויות ממתינות לבדיקה שלך`);
+    } catch (e) { toast("⛔ " + e.message); }
+    ST.socBusy = 0;
+    if (ST.modal && ST.modal.type === "biz" && ST.modal.id === Number(id)) openBiz(id); else rerender();
   }
   async function setWatch(id, freq) {
     try {
@@ -1226,7 +1281,8 @@
   async function openBiz(id) {
     ST.modal = { type: "biz", title: "טוען עסק…", id: Number(id) }; rerender();
     try {
-      const d = await rpc("nr_business_detail", { p_id: Number(id) });
+      const [d, soc] = await Promise.all([rpc("nr_business_detail", { p_id: Number(id) }), rpc("nr_social_result", { p_business_id: Number(id) }).catch(() => null)]);
+      d.social = soc;
       const row = ((ST.result && ST.result.rows) || []).find((r) => r.id === Number(id));
       d.marks = (row && row.marks) || [];
       ST.modal.data = d; ST.modal.title = (d.business || {}).name || "עסק";
@@ -1400,6 +1456,7 @@
     else if (act === "close") { ST.modal = null; rerender(); }
     else if (act === "enrichrefresh") loadReport();
     else if (act === "watch") setWatch(el.dataset.id, v);
+    else if (act === "soclocate") locateSocial(el.dataset.id);
     else if (act === "enrichrun") rpc("nr_set_enrich_running", { p_running: v === "1" }).then(() => { toast(v === "1" ? "ההעשרה הופעלה – השרת ממשיך מנקודת ההתקדמות" : "ההעשרה תיעצר אחרי המנה הנוכחית"); loadReport(); }).catch((er) => toast(er.message));
     else if (act === "revok") reviewDecision(el.dataset.id, el.dataset.b, true);
     else if (act === "revno") reviewDecision(el.dataset.id, null, false);

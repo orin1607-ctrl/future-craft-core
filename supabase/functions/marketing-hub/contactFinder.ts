@@ -23,7 +23,7 @@ const UA = "DaliaMarketingCenter/1.0 (business contact research for companies se
 const FIELDS: Field[] = ["facebook", "instagram", "linkedin", "website", "email", "phone", "contact_form", "whatsapp"];
 const CARD_FIELD: Record<Field, string> = { facebook: "facebook_url", instagram: "instagram_url", linkedin: "linkedin_url", website: "website", email: "email", phone: "phone", contact_form: "contact_form_url", whatsapp: "whatsapp" };
 const FREE_MAIL = /@(gmail|walla|hotmail|yahoo|outlook|live|icloud|me|012|netvision|bezeqint|zahav|smile|actcom|017|013|msn|aol|nana10?)\./i;
-const FB_RX = /https?:\/\/(?:www\.|m\.|he-il\.|he\.)?facebook\.com\/(?!sharer|share|tr\b|plugins|dialog|login|policies|groups\/|events\/|watch|hashtag|help|privacy|legal|ads\b|business\b|gaming|search)([^"'<>\s?#\\]{2,120})/gi;
+const FB_RX = /https?:\/\/(?:www\.|m\.|he-il\.|he\.)?facebook\.com\/(?!sharer|share|tr\b|plugins|dialog|login|policies|groups\/|events\/|watch|hashtag|help|privacy|legal|ads\b|business\b|gaming|search)([^"'<>\s?#\\]{2,400})/gi; // Hebrew page names URL-encode to 6 characters a letter
 const IG_RX = /https?:\/\/(?:www\.)?instagram\.com\/(?!p\/|reel|reels\/|explore|accounts|stories|tv\/|about|developer|legal)([A-Za-z0-9._]{2,30})/gi;
 const LI_RX = /https?:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/(company|school|showcase)\/([^"'<>\s?#\\/]{2,100})/gi;
 const WA_RX = /https?:\/\/(?:wa\.me\/|api\.whatsapp\.com\/send\/?\?phone=|web\.whatsapp\.com\/send\?phone=)(\+?\d{9,15})/gi;
@@ -69,8 +69,16 @@ function nameScore(variants: string[], text: string) {
 
 /* ---------- link cleaning ---------- */
 function cleanFb(raw: string) {
-  const h0 = decodeURIComponent(raw).replace(/\/+$/, "");
+  let h0 = raw;
+  try { h0 = decodeURIComponent(raw); } catch { /* keep raw */ }
+  h0 = h0.replace(/\/+$/, "");
+  // new-style page address: facebook.com/p/Name-100064123456789 → the numeric page id
+  const pm = h0.match(/^p\/[^/]*?(\d{10,})$/i);
+  if (pm) return { handle: pm[1], url: `https://www.facebook.com/${pm[1]}` };
+  if (raw.length >= 400) return null; // cut off by the pattern limit: not a whole address
   const h = h0.split("/")[0];
+  // markup or escaped JSON caught by the link pattern (&quot;]}…) is not a page name
+  if (!/^profile\.php/i.test(h0) && !/^[\p{L}\p{N}._-]{2,100}$/u.test(h)) return null;
   if (/^pages$/i.test(h)) { const id = (h0.match(/\/(\d{10,})/) || [])[1]; return id ? { handle: id, url: `https://www.facebook.com/${id}` } : null; }
   if (/^profile\.php/i.test(h0)) { const id = (h0.match(/id=(\d{5,})/) || [])[1]; return id ? { handle: id, url: `https://www.facebook.com/profile.php?id=${id}` } : null; }
   if (PLATFORM_HANDLES.test(h) || /\.(php|html?|js|css|png|jpg)$/i.test(h) || /^www\.|\.(co\.il|org\.il|com|net|org|co|il)$/i.test(h)) return null;
@@ -116,7 +124,9 @@ function collect(html: string, page: string, f: SiteFacts, siteHost: string) {
   for (const m of t.matchAll(IG_RX)) bump(f.ig, cleanIg(m[1]));
   for (const m of t.matchAll(LI_RX)) bump(f.li, cleanLi(m[1].toLowerCase(), m[2]));
   for (const m of t.matchAll(WA_RX)) { const p = ilPhone(m[1]); if (p) f.wa.add(p); }
-  const mailtos = new Set([...t.matchAll(/mailto:([^"'?<>\s]+)/gi)].map((m) => decodeURIComponent(m[1]).toLowerCase()));
+  // stop at & and \ too: inside escaped JSON a mailto runs on into &quot;&gt;… (office@x.co.il\"&gt;office@…)
+  const mailtos = new Set([...t.matchAll(/mailto:([^"'?<>\s&\\]+)/gi)].map((m) => { try { return decodeURIComponent(m[1]).toLowerCase(); } catch { return m[1].toLowerCase(); } })
+    .filter((em) => /^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(em)));
   const visible = t.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ");
   for (const em of new Set([...mailtos, ...(visible.match(MAIL_RX) || []).map((x) => x.toLowerCase())])) {
     if (/\.(png|jpe?g|gif|svg|webp)$/i.test(em) || /example|sentry|wixpress|domain\.com|email\.com|yourmail|@2x/i.test(em)) continue;
@@ -132,6 +142,14 @@ function collect(html: string, page: string, f: SiteFacts, siteHost: string) {
   }
   if (/<form[\s\S]{0,4000}?(type=["']email["']|<textarea|name=["'][^"']*(message|הודעה|email|phone)[^"']*["'])/i.test(t) && !f.forms.includes(page)) f.forms.push(page);
   f.text += " " + visible.slice(0, 200_000).toLowerCase();
+}
+/** Social / WhatsApp / e-mail links on one page — same reader as the site crawl (used by the OpenProspector locator
+ *  for an archived copy of a company site). */
+export function linksOnPage(html: string, pageUrl: string) {
+  const f: SiteFacts = { fb: new Map(), ig: new Map(), li: new Map(), wa: new Set(), emails: new Map(), phones: new Map(), forms: [], pages: [], text: "" };
+  collect(html, pageUrl, f, hostOf(pageUrl));
+  const top = (m: Map<string, any>) => [...m.values()].sort((a, b) => b.n - a.n);
+  return { facebook: top(f.fb), instagram: top(f.ig), linkedin: top(f.li), whatsapp: [...f.wa], emails: [...f.emails.keys()] };
 }
 async function crawlSite(host: string, steps: Step[]): Promise<{ facts: SiteFacts; host: string } | null> {
   const robots = new Map<string, string[]>();
