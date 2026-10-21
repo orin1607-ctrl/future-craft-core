@@ -609,10 +609,82 @@ function renderFormattedText(
   onOpenClaim?: (claimId: string) => void,
   onOpenGarageCase?: (caseId: string) => void,
 ) {
-  const parts = text.split(/(\[.*?\]\(claim:[A-Za-z0-9_-]+\)|\[.*?\]\((?:#\/garage-management\/|garage:)[A-Za-z0-9_-]+\)|DAL-\d{4}-\d{4}|GM-\d{4}-\d{4})/g);
+  const parts = text.split(/(\[.*?\]\(claim:[A-Za-z0-9_-]+\)|\[.*?\]\((?:#\/garage-management\/|garage:)[A-Za-z0-9_-]+\)|\[.*?\]\(\/garage-quote\?t=[A-Za-z0-9_-]+(?:&print=1)?\)|DAL-\d{4}-\d{4}|GM-\d{4}-\d{4})/g);
   return (
     <>
       {parts.map((part, idx) => {
+        const quoteLinkMatch = part.match(/\[(.*?)\]\((\/garage-quote\?t=[A-Za-z0-9_-]+(?:&print=1)?)\)/);
+        if (quoteLinkMatch) {
+          const label = quoteLinkMatch[1];
+          const quoteHref = quoteLinkMatch[2];
+          return (
+            <span key={idx} style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 6, margin: '4px 4px', verticalAlign: 'middle' }}>
+              <a
+                href={quoteHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="claims-claim-btn"
+                data-testid="garage-ai-open-quote-link-btn"
+                style={{
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  borderColor: '#10b981',
+                  background: '#059669',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                }}
+              >
+                ✍️ {label || 'צפייה וחתימה על הצעת המחיר'}
+              </a>
+              <a
+                href={`${quoteHref}${quoteHref.includes('print=1') ? '' : '&print=1'}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="claims-claim-btn"
+                data-testid="garage-ai-print-quote-btn"
+                style={{
+                  textDecoration: 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  borderColor: '#3b82f6',
+                  background: 'rgba(59, 130, 246, 0.12)',
+                  color: '#1d4ed8',
+                  fontWeight: 700,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                }}
+              >
+                🖨️ הדפס / הורד הצעה
+              </a>
+              <button
+                type="button"
+                className="claims-claim-btn"
+                data-testid="garage-ai-copy-quote-link-btn"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  borderColor: '#64748b',
+                  background: 'rgba(100, 116, 139, 0.1)',
+                  fontWeight: 700,
+                  padding: '4px 10px',
+                  borderRadius: 6,
+                }}
+                onClick={() => {
+                  const fullUrl = `${window.location.origin}${window.location.pathname.replace(/\/+$/, '')}${quoteHref}`;
+                  void navigator.clipboard?.writeText(fullUrl);
+                }}
+              >
+                📋 העתק קישור לשליחה ללקוח
+              </button>
+            </span>
+          );
+        }
         const garageLinkMatch = part.match(/\[(.*?)\]\((?:#\/garage-management\/|garage:)([A-Za-z0-9_-]+)\)/);
         if (garageLinkMatch) {
           const label = garageLinkMatch[1];
@@ -622,6 +694,7 @@ function renderFormattedText(
               key={idx}
               type="button"
               className="claims-claim-btn"
+              data-testid="garage-ai-open-case-btn"
               style={{ margin: '0 4px', display: 'inline-flex', borderColor: 'rgba(59, 130, 246, 0.4)', background: 'rgba(59, 130, 246, 0.1)' }}
               onClick={() => {
                 if (onOpenGarageCase) onOpenGarageCase(caseId);
@@ -2716,6 +2789,7 @@ export function ClaimsAiWorkspace({
   }, []);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const replaceTargetIdRef = useRef<string | null>(null);
   const [previewModalUrl, setPreviewModalUrl] = useState<string | null>(null);
@@ -3325,21 +3399,59 @@ export function ClaimsAiWorkspace({
                   if (att === 2) throw new Error('upload_failed');
                 }
               }
-            } else if (module === 'garage' && garageCase?.id) {
+            } else if (module === 'garage') {
               try {
-                const arrayBuf = await staged.file.arrayBuffer();
-                const mediaRes = await uploadGarageMedia({
-                  garageCaseId: garageCase.id,
-                  category: 'other',
-                  title: staged.name,
-                  fileName: staged.name,
-                  mimeType: staged.mimeType,
-                  bytes: arrayBuf,
-                  actorId: userId,
-                });
-                if (mediaRes?.id) {
-                  fileId = mediaRes.id;
-                  if (mediaRes.signedUrl) previewUrl = mediaRes.signedUrl;
+                let targetGarageCaseId = garageCase?.id || '';
+                if (!targetGarageCaseId) {
+                  // Find active/latest garage case from conversation history or DB
+                  for (let mIdx = messages.length - 1; mIdx >= 0; mIdx--) {
+                    const prevMsg = messages[mIdx];
+                    const metaCaseId = (prevMsg.metadata as any)?.garage_case_id || (prevMsg.metadata as any)?.case_id;
+                    if (metaCaseId) {
+                      targetGarageCaseId = String(metaCaseId);
+                      break;
+                    }
+                    const linkMatch = prevMsg.content.match(/#\/garage-management\/([0-9a-f-]{36})/i);
+                    if (linkMatch) {
+                      targetGarageCaseId = linkMatch[1];
+                      break;
+                    }
+                  }
+                }
+                if (targetGarageCaseId) {
+                  const arrayBuf = await staged.file.arrayBuffer();
+                  const isImg = staged.mimeType.startsWith('image/');
+                  const mediaCategory = isImg ? 'damage' : 'intake_docs';
+                  const mediaRes = await uploadGarageMedia({
+                    garageCaseId: targetGarageCaseId,
+                    category: mediaCategory,
+                    title: staged.name,
+                    fileName: staged.name,
+                    mimeType: staged.mimeType,
+                    bytes: arrayBuf,
+                    actorId: userId,
+                  });
+                  if (mediaRes?.id) {
+                    fileId = mediaRes.id;
+                    if (mediaRes.signedUrl) previewUrl = mediaRes.signedUrl;
+                  }
+                  if (isImg) {
+                    // Update damage_photos_attached on garage_quote_links and garage_cases
+                    const { count } = await supabase
+                      .from('garage_media')
+                      .select('id', { count: 'exact', head: true })
+                      .eq('garage_case_id', targetGarageCaseId)
+                      .in('category', ['damage', 'quote_photos', 'intake', 'angles']);
+                    const photosCount = count || 1;
+                    await supabase
+                      .from('garage_quote_links')
+                      .update({
+                        damage_photos_attached: true,
+                        damage_photos_count: photosCount,
+                        updated_at: new Date().toISOString(),
+                      })
+                      .eq('case_id', targetGarageCaseId);
+                  }
                 }
               } catch (e) {
                 console.warn('Garage media upload failed, passing base64 anyway:', e);
@@ -3586,6 +3698,9 @@ export function ClaimsAiWorkspace({
           content: confirmText,
           metadata: {
             claim_id: claimId || (pending.parameters as Record<string, unknown>)?.claim_id || null,
+            garage_case_id: result.case_id || (pending.parameters as Record<string, unknown>)?.case_id || null,
+            quote_token: result.quote_token || null,
+            quote_url: result.quote_url || null,
             executed_action: pending.action_type,
             preview_id: pending.preview_id,
           },
@@ -5422,6 +5537,15 @@ export function ClaimsAiWorkspace({
           />
           <input
             type="file"
+            ref={galleryInputRef}
+            style={{ display: 'none' }}
+            multiple
+            accept="image/*"
+            data-testid="claims-ai-gallery-input"
+            onChange={handleFilesSelected}
+          />
+          <input
+            type="file"
             ref={cameraInputRef}
             style={{ display: 'none' }}
             accept="image/*"
@@ -5434,7 +5558,7 @@ export function ClaimsAiWorkspace({
             className="claims-ai-icon camera"
             data-testid="claims-ai-camera-btn"
             disabled={loading}
-            title="צלם מסמך / תמונה במצלמה"
+            title="צלם מסמך / תמונת נזק במצלמה"
             aria-label="צלם מסמך במצלמה"
             onClick={() => {
               replaceTargetIdRef.current = null;
@@ -5443,10 +5567,22 @@ export function ClaimsAiWorkspace({
           >📷</button>
           <button
             type="button"
+            className="claims-ai-icon gallery"
+            data-testid="claims-ai-gallery-btn"
+            disabled={loading}
+            title="בחר תמונות מהגלריה"
+            aria-label="בחר תמונות מהגלריה"
+            onClick={() => {
+              replaceTargetIdRef.current = null;
+              galleryInputRef.current?.click();
+            }}
+          >🖼️</button>
+          <button
+            type="button"
             className="claims-ai-icon attach"
             data-testid="claims-ai-attach-btn"
             disabled={loading}
-            title="צרף קובץ / תמונה"
+            title="צרף מסמך PDF / קובץ"
             aria-label="צרף קובץ / תמונה"
             onClick={() => {
               replaceTargetIdRef.current = null;

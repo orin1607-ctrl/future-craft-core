@@ -142,6 +142,7 @@ import ClaimsPage from "@/pages/ClaimsPage";
 import ClaimsUploadPage from "@/pages/ClaimsUploadPage";
 import ClaimsSharePage from "@/pages/ClaimsSharePage";
 import ClaimsIntakePage from "@/pages/ClaimsIntakePage";
+import GarageQuoteSignPage from "@/pages/GarageQuoteSignPage";
 import GarageJobsPage from "@/pages/GarageJobsPage";
 import GarageApp from "@/modules/garage-management/GarageApp";
 
@@ -149,7 +150,7 @@ const queryClient = new QueryClient();
 
 function isPublicClaimsPath(pathname: string) {
   const p = pathname.replace(/\/+$/, '') || '/';
-  return p === '/claims-share' || p === '/claims-upload' || p === '/claims-intake';
+  return p === '/claims-share' || p === '/claims-upload' || p === '/claims-intake' || p === '/garage-quote';
 }
 
 function PublicClaimsRoutes() {
@@ -158,6 +159,7 @@ function PublicClaimsRoutes() {
       <Route path="/claims-upload" element={<ClaimsUploadPage />} />
       <Route path="/claims-share" element={<ClaimsSharePage />} />
       <Route path="/claims-intake" element={<ClaimsIntakePage />} />
+      <Route path="/garage-quote" element={<GarageQuoteSignPage />} />
     </Routes>
   );
 }
@@ -229,6 +231,7 @@ function AppRoutes() {
         <Route path="/claims-upload" element={<ClaimsUploadPage />} />
         <Route path="/claims-share" element={<ClaimsSharePage />} />
         <Route path="/claims-intake" element={<ClaimsIntakePage />} />
+        <Route path="/garage-quote" element={<GarageQuoteSignPage />} />
         {/* Protected deep links → login (not marketing About / fake 404) */}
         <Route path="*" element={<LoginRedirect />} />
       </Routes>
@@ -270,6 +273,7 @@ function AppRoutes() {
       <Route path="/claims-upload" element={<ClaimsUploadPage />} />
       <Route path="/claims-share" element={<ClaimsSharePage />} />
       <Route path="/claims-intake" element={<ClaimsIntakePage />} />
+      <Route path="/garage-quote" element={<GarageQuoteSignPage />} />
       <Route element={<Layout />}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/fleetos-ai" element={<FleetOSAIPage />} />

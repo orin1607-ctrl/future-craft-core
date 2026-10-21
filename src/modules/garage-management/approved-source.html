@@ -669,6 +669,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     </div>
     <button class="btn btn-white" style="margin-top:10px;" onclick="sendQuoteEmail()">שלח במייל</button>
     <button class="btn btn-ghost" style="margin-top:10px;" onclick="openWhatsApp()">📱 WhatsApp — אפשרות נוספת</button>
+    <button class="btn btn-white" id="quote-digital-sign-btn" style="margin-top:10px; background:linear-gradient(135deg,#059669,#10b981); color:#fff; border:none;" onclick="openDigitalQuoteSignLink()">✍️ שלח הצעת מחיר לחתימה דיגיטלית (קישור מאובטח)</button>
+    <div id="quote-signature-status-box" style="margin-top:10px;"></div>
     <div class="section-label" style="padding-right:0;">גרסאות הצעה</div>
     <div class="card" id="quote-versions">
       <div class="hint" style="margin:0;">אין גרסאות שמורות עדיין.</div>
@@ -1325,12 +1327,13 @@ function money(n){
 }
 function quoteWorksTotal(){
   return (state.quoteWorks || []).reduce(function(sum, item){
+    if(item.price === null || item.price === undefined || item.price === '') return sum;
     return sum + (Number(item.price) || 0) * (Number(item.qty) || 1);
   }, 0);
 }
 function quotePartsTotal(){
   return (state.quoteParts || []).reduce(function(sum, item){
-    if(item.supplier === 'customer') return sum;
+    if(item.supplier === 'customer' || item.price === null || item.price === undefined || item.price === '') return sum;
     return sum + (Number(item.price) || 0) * (Number(item.qty) || 1);
   }, 0);
 }
@@ -1339,7 +1342,8 @@ function quoteCustomerPartCount(){
 }
 function quoteGrandTotal(){
   var net = quoteWorksTotal() + quotePartsTotal();
-  return net + Math.round(net * 0.17);
+  if(state.vatMode === 'unspecified') return net;
+  return net + Math.round(net * 0.18);
 }
 function setText(id, text){
   var el = document.getElementById(id);
@@ -2805,8 +2809,10 @@ function renderQuote(){
     (state.quoteWorks || []).forEach(function(item){
       var card = document.createElement('div');
       card.className = 'job-card';
-      var lineTotal = (Number(item.price) || 0) * (Number(item.qty) || 1);
-      card.innerHTML = '<div class="jh"><div><div class="part">'+esc(item.part)+'</div><div class="type">'+esc(item.type || 'עבודה')+' · כמות '+esc(item.qty || 1)+'</div></div><div class="price">'+money(lineTotal)+'</div></div><div class="desc">'+esc(item.desc || '')+'</div><div class="jactions"><span class="edit-btn" style="cursor:pointer;margin-left:8px;color:var(--accent);">ערוך</span><span class="dup-btn" style="cursor:pointer;margin-left:8px;color:var(--accent);">שכפל</span><span class="del" data-id="'+esc(item.id)+'">הסר</span></div>';
+      var isUnpriced = item.price === null || item.price === undefined || item.price === '';
+      var lineTotal = isUnpriced ? null : (Number(item.price) || 0) * (Number(item.qty) || 1);
+      var priceDisplay = isUnpriced ? 'ללא מחיר בשלב זה' : money(lineTotal);
+      card.innerHTML = '<div class="jh"><div><div class="part">'+esc(item.part)+'</div><div class="type">'+esc(item.type || 'עבודה')+' · כמות '+esc(item.qty || 1)+'</div></div><div class="price">'+esc(priceDisplay)+'</div></div><div class="desc">'+esc(item.desc || '')+'</div><div class="jactions"><span class="edit-btn" style="cursor:pointer;margin-left:8px;color:var(--accent);">ערוך</span><span class="dup-btn" style="cursor:pointer;margin-left:8px;color:var(--accent);">שכפל</span><span class="del" data-id="'+esc(item.id)+'">הסר</span></div>';
       card.querySelector('.edit-btn').onclick = function(){ editQuoteWork(item.id); };
       card.querySelector('.dup-btn').onclick = function(){ duplicateQuoteWork(item.id); };
       card.querySelector('.del').onclick = function(){ removeQuoteWork(item.id); };
@@ -2839,6 +2845,24 @@ function renderQuote(){
     photosEmpty.style.display = 'block';
   }
   recalcTotals();
+  var sigBox = document.getElementById('quote-signature-status-box');
+  if(sigBox){
+    if(state.quoteSigned){
+      sigBox.innerHTML = '<div class="card" style="border-color:var(--ok);background:rgba(16,185,129,0.08);"><div style="font-weight:700;color:var(--ok);margin-bottom:4px;">✅ הצעת המחיר נחתמה דיגיטלית ע״י הלקוח</div><div class="hint" style="margin:0;">חותם: '+esc(state.quoteSignerName || 'לקוח')+' · גרסה: '+esc(state.quoteVersion || 1)+(state.quoteSignedAt ? (' · מועד: '+esc(new Date(state.quoteSignedAt).toLocaleString('he-IL'))) : '')+'</div>'+(state.quoteSignatureDataUrl ? '<div style="margin-top:8px;background:#fff;padding:6px;border-radius:8px;text-align:center;"><img src="'+esc(state.quoteSignatureDataUrl)+'" alt="חתימה" style="max-height:60px;object-fit:contain;"></div>' : '')+'</div>';
+    } else if(state.quoteToken){
+      sigBox.innerHTML = '<div class="card"><div style="font-weight:700;font-size:13px;margin-bottom:4px;">🔗 קישור חתימה דיגיטלית מוכן לשליחה (גרסה '+esc(state.quoteVersion || 1)+')</div><div class="hint" style="margin:0;word-break:break-all;">/garage-quote?t='+esc(state.quoteToken)+'</div></div>';
+    } else {
+      sigBox.innerHTML = '';
+    }
+  }
+}
+function openDigitalQuoteSignLink(){
+  if(state.quoteToken){
+    var url = '/garage-quote?t=' + encodeURIComponent(state.quoteToken);
+    window.open(url, '_blank');
+    return;
+  }
+  parent.postMessage({type:'gm:open_ai'}, '*');
 }
 function renderQuotePreview(){
   bindLiveCase();
@@ -2848,7 +2872,9 @@ function renderQuotePreview(){
   if(works){
     works.innerHTML = (state.quoteWorks || []).length
       ? state.quoteWorks.map(function(item){
-          return '<div class="doc-row"><span>'+esc(item.part)+' — '+esc(item.type || '')+' × '+esc(item.qty || 1)+'</span><span>'+money((Number(item.price)||0)*(Number(item.qty)||1))+'</span></div>';
+          var isUnpriced = item.price === null || item.price === undefined || item.price === '';
+          var pLabel = isUnpriced ? 'ללא מחיר בשלב זה' : money((Number(item.price)||0)*(Number(item.qty)||1));
+          return '<div class="doc-row"><span>'+esc(item.part)+' — '+esc(item.desc || item.type || '')+'</span><span>'+esc(pLabel)+'</span></div>';
         }).join('')
       : '<div class="doc-muted">אין עבודות</div>';
   }
@@ -2863,7 +2889,7 @@ function renderQuotePreview(){
       : '<div class="doc-muted">אין חלקים</div>';
   }
   setText('preview-tot-works', money(quoteWorksTotal()));
-  setText('preview-tot-vat', money(Math.round((quoteWorksTotal()+quotePartsTotal())*0.17)));
+  setText('preview-tot-vat', state.vatMode === 'unspecified' ? '18% (לפי הגדרת מע״מ)' : money(Math.round((quoteWorksTotal()+quotePartsTotal())*0.18)));
   setText('preview-tot-final', money(quoteGrandTotal()));
   setText('preview-notes', state.quoteNotes || 'אין הערות');
   setText('preview-validity', state.quoteValidity ? ('תוקף ההצעה: ' + state.quoteValidity) : 'תוקף ההצעה ייקבע בעת השמירה.');
@@ -2871,12 +2897,12 @@ function renderQuotePreview(){
 function recalcTotals(){
   var works = quoteWorksTotal();
   var parts = quotePartsTotal();
-  var vat = Math.round((works + parts) * 0.17);
+  var vat = state.vatMode === 'unspecified' ? 0 : Math.round((works + parts) * 0.18);
   var final = works + parts + vat;
   setText('tot-works', money(works));
   setText('tot-parts', money(parts));
   setText('tot-cust-parts', quoteCustomerPartCount() + ' פריטים');
-  setText('tot-vat', money(vat));
+  setText('tot-vat', state.vatMode === 'unspecified' ? '18% (לפי הגדרה)' : money(vat));
   setText('tot-final', money(final));
   if((state.quoteWorks || []).length || (state.quoteParts || []).length) state.quoteCreated = true;
   refreshCaseHub();

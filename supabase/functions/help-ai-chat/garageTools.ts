@@ -38,9 +38,17 @@ export const GARAGE_SYSTEM_PROMPT_INSTRUCTIONS = `
    - שלבי עבודה וסטטוסים (preview_update_garage_case_status): בדיקת רכב, הצעה בהכנה, ממתין לאישור, עבודה התחילה / בעבודה, עבודה הסתיימה, תיק סגור.
 
 5. הצעות מחיר, פחחות, צבע וחלקים:
-   - עריכת הצעת מחיר (preview_update_garage_quote): תוקף הצעה, אישור לקוח, סכום מאושר, הערות.
+   - הכתבה מלאה של לקוח + רכב + כרטיס עבודה + הצעת מחיר מרובת שורות (preview_garage_dictate_case_and_quote): כלי מרכזי ומתקדם המאפשר בקריאה אחת:
+     * לבדוק אם הלקוח או הרכב כבר קיימים במערכת למניעת כפילויות (או לפתוח אותם ולקשר ביניהם). אם מספר טלפון או דוא"ל אינם ידועים — אל תמציא אותם! השאר ריק.
+     * לפתוח כרטיס עבודה מסודר ולשמור את כל שורות העבודות בשורות נפרדות עם התיאור המלא של כל שורה.
+     * לשמור שורות ללא מחיר עם price: null (תוצגנה כ-"ללא מחיר בשלב זה" — חל איסור להמציא להן מחיר או לאפס אותן ל-0!).
+     * לחשב את סכום השורות המתומחרות בלבד ולציין במפורש אם ישנן שורות נוספות ללא מחיר בשלב זה.
+     * לציין מע"מ לפי שיעור המס התקף בישראל, **18%**, בהתאם להגדרת המחירים ככוללים או לא כוללים מע"מ (אין להניח זאת ללא הגדרה).
+     * לבדוק אם הועלו תמונות נזק בפועל: אם טרם הועלו תמונות נזק, להציג התראה מפורשת להוספתן ולא לטעון שהן צורפו בפועל עד שיועלו.
+     * להכין קישור מאובטח לשליחה ולחתימה דיגיטלית של הלקוח.
+   - עריכת הצעת מחיר קיימת (preview_update_garage_quote): תוקף הצעה, אישור לקוח, סכום מאושר, הערות.
    - פירוט נזקים, עבודות פחחות/צבע, חלקי חילוף ואישורים חריגים (preview_update_garage_repair_details).
-   - חישוב סכומים ומע"מ (17%).
+   - חישוב סכומים ומע"מ לפי שיעור **18%** התקף בישראל.
 
 6. משימות, תזכורות, מסמכים ודוחות:
    - יצירת משימות למעקב (preview_create_garage_task).
@@ -57,8 +65,9 @@ export const GARAGE_SYSTEM_PROMPT_INSTRUCTIONS = `
    - דיוק מרבי: אל תמציא נתונים. אם שדה לא קריא, ציין שלא זוהה.
 
 8. הצעות מחיר מרובות שורות ורציפות:
-   - תמיכה מלאה בהכתבה או כתיבה של מספר עבודות וחלקי חילוף בפעם אחת (preview_update_garage_repair_details ו-preview_update_garage_quote).
-   - חשב תמיד סכום ביניים, מע"מ 17% וסה"כ לתשלום, ללא מחיקת פריטים קיימים (מצב append).
+   - תמיכה מלאה בהכתבה או כתיבה של פרטי לקוח, מספר רכב ומספר עבודות וחלקי חילוף בפעם אחת (השתמש ב-preview_garage_dictate_case_and_quote כאשר המשתמש מכתיב פרטי לקוח, רכב והצעת מחיר חדשה, או ב-preview_update_garage_repair_details לעדכון תיק קיים).
+   - שמור כל עבודה בשורה נפרדת ללא איחוד שורות, שמור את התיאור המלא של כל שורה, ואל תמציא מחירים לשורות שנאמר עליהן "ללא מחיר בשלב זה" (העבר price: null).
+   - שיעור המע"מ התקף בישראל הוא **18%**. אם לא הוגדר האם המחירים כוללים או לא כוללים מע"מ, ציין: "מע"מ, ככל שחל, יחושב לפי שיעור המס התקף בישראל, 18%, ובהתאם להגדרת המחירים ככוללים או לא כוללים מע"מ. אין להניח זאת ללא הגדרה."
 
 9. שפה וסגנון:
    - השב תמיד בעברית מקצועית, בהירה, אדיבה ותמציתית.
@@ -662,6 +671,87 @@ export const GARAGE_GEMINI_TOOLS = [
         },
       },
       {
+        name: "preview_garage_dictate_case_and_quote",
+        description: "פתיחת/עדכון לקוח, רכב, כרטיס עבודה והכנת הצעת מחיר מלאה מרובת שורות (כולל שורות עם מחיר ושורות ללא מחיר בשלב זה price: null) מוכנה לשליחה ולחתימה דיגיטלית של הלקוח. בודק כפילויות תחילה ומונע המצאת נתונים.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            customer_name: {
+              type: "STRING",
+              description: "שם הלקוח המלא (למשל: לירן לוי)",
+            },
+            customer_type_label: {
+              type: "STRING",
+              description: "סוג לקוח ותיאור (למשל: 'לקוח פרטי, חד־פעמי')",
+            },
+            customer_phone: {
+              type: "STRING",
+              description: "טלפון הלקוח אם ידוע בלבד (אל תמציא מספר טלפון אם לא נמסר! השאר ריק)",
+            },
+            customer_email: {
+              type: "STRING",
+              description: "אימייל הלקוח אם ידוע בלבד (אל תמציא אימייל אם לא נמסר! השאר ריק)",
+            },
+            vehicle_plate: {
+              type: "STRING",
+              description: "מספר הרכב / לוחית רישוי (למשל: 8042376)",
+            },
+            vehicle_model: {
+              type: "STRING",
+              description: "דגם הרכב אם ידוע",
+            },
+            quote_title: {
+              type: "STRING",
+              description: "כותרת הצעת המחיר (למשל: 'הצעת מחיר – עבודות פחחות וצבע')",
+            },
+            quote_date: {
+              type: "STRING",
+              description: "תאריך הצעת המחיר (למשל: '21.10.2026')",
+            },
+            work_type: {
+              type: "STRING",
+              description: "סוג העבודה הכללי (למשל: 'תיקוני פחחות וצבע בחזית הרכב')",
+            },
+            vat_mode: {
+              type: "STRING",
+              description: "מצב מע\"מ: 'unspecified' (ברירת מחדל אם לא הוגדר האם כולל או לא כולל מע\"מ), 'plus_vat' (תוספת 18% מע\"מ), או 'includes_vat' (כולל 18% מע\"מ)",
+            },
+            quote_works: {
+              type: "ARRAY",
+              description: "פירוט שורות העבודה בהצעת המחיר — כל חלק/עבודה בשורה נפרדת ללא איחוד שורות",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  part: { type: "STRING", description: "שם החלק או המכלול (למשל: 'פגוש קדמי', 'כנף קדמית שמאלית')" },
+                  type: { type: "STRING", description: "סוג העבודה (למשל: 'פחחות וצבע', 'פחחות', 'יישור', 'כיוון')" },
+                  price: { type: "NUMBER", description: "מחיר בש\"ח עבור השורה. אם העבודה היא 'ללא מחיר בשלב זה', אל תעביר 0 ואל תמציא מחיר — השאר ריק/null!" },
+                  unpriced: { type: "BOOLEAN", description: "סמן true אם השורה היא 'ללא מחיר בשלב זה'" },
+                  qty: { type: "NUMBER", description: "כמות (ברירת מחדל 1)" },
+                  desc: { type: "STRING", description: "התיאור המלא והמדויק של העבודה בשורה זו" },
+                },
+              },
+            },
+            quote_parts: {
+              type: "ARRAY",
+              description: "חלקי חילוף (אם ישנם)",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  name: { type: "STRING", description: "שם החלק" },
+                  price: { type: "NUMBER", description: "מחיר בש\"ח" },
+                  qty: { type: "NUMBER", description: "כמות" },
+                },
+              },
+            },
+            quote_notes: {
+              type: "STRING",
+              description: "הערות נוספות להצעת המחיר",
+            },
+          },
+          required: ["customer_name", "vehicle_plate", "quote_works"],
+        },
+      },
+      {
         name: "get_garage_case_summary_report",
         description: "הפקת דוח סיכום מקיף, מקצועי ומפורט על כרטיס עבודה במוסך (פרטי לקוח, רכב, פירוט נזקים, עבודות, חלקים, עלויות, סטטוס ומסמכים).",
         parameters: {
@@ -903,9 +993,26 @@ export async function executeGarageTool(
             done: !!cd.intakeDone,
           },
           quote: {
+            title: cd.quoteTitle || "הצעת מחיר – עבודות פחחות וצבע",
+            date: cd.quoteDate || "",
+            work_type: cd.workType || "",
             notes: cd.quoteNotes || "",
             validity: cd.quoteValidity || "14 יום",
             approved: !!cd.quoteApproved,
+            signed: !!cd.quoteSigned,
+            signed_at: cd.quoteSignedAt || null,
+            signer_name: cd.quoteSignerName || null,
+            version: cd.quoteVersion || 1,
+            token: cd.quoteToken || null,
+            quote_url: cd.quoteToken ? `/garage-quote?t=${cd.quoteToken}` : null,
+            status: cd.quoteStatus || "draft",
+            priced_subtotal: cd.quotePricedSubtotal ?? null,
+            priced_lines_count: cd.quotePricedLinesCount ?? null,
+            unpriced_lines_count: cd.quoteUnpricedLinesCount ?? null,
+            vat_rate: cd.vatRate || 18,
+            vat_mode: cd.vatMode || "unspecified",
+            damage_photos_attached: !!cd.damagePhotosAttached,
+            damage_photos_count: cd.damagePhotosCount || 0,
             amount: cd.workOrderAmount || null,
           },
           damage_items: cd.damageItems || [],
@@ -1594,10 +1701,11 @@ export async function executeGarageTool(
       const tasks = cd.tasks || [];
       const reminders = cd.reminders || [];
 
-      const totalWorks = works.reduce((sum: number, w: any) => sum + (Number(w.price) || 0) * (Number(w.qty) || 1), 0);
-      const totalParts = parts.reduce((sum: number, p: any) => sum + (Number(p.price) || 0) * (Number(p.qty) || 1), 0);
+      const totalWorks = works.reduce((sum: number, w: any) => sum + (w.price !== null && w.price !== undefined && Number(w.price) > 0 ? Number(w.price) * (Number(w.qty) || 1) : 0), 0);
+      const totalParts = parts.reduce((sum: number, p: any) => sum + (p.price !== null && p.price !== undefined && Number(p.price) > 0 ? Number(p.price) * (Number(p.qty) || 1) : 0), 0);
       const totalExtras = extras.reduce((sum: number, e: any) => sum + (Number(e.price) || 0), 0);
       const grandTotal = totalWorks + totalParts + totalExtras;
+      const unpricedCount = works.filter((w: any) => w.price === null || w.price === undefined || w.price === "").length;
 
       const reportText = `
 # 📋 דוח סיכום כרטיס עבודה מוסך · [${gCase.case_number}](#/garage-management/${gCase.id})
@@ -1624,8 +1732,8 @@ export async function executeGarageTool(
 ${damage.length > 0 ? damage.map((d: any, i: number) => `${i + 1}. **${d.part || "חלק"}**: ${d.status || "נדרש תיקון"}`).join("\n") : "אין פריטי נזק רשומים"}
 
 ---
-### 🛠️ עבודות לביצוע (${works.length} עבודות · סה"כ: ₪${totalWorks.toLocaleString()})
-${works.length > 0 ? works.map((w: any, i: number) => `${i + 1}. ${w.type || "עבודה"} - ${w.part || ""}${w.desc ? ` (${w.desc})` : ""} | מחיר: ₪${(Number(w.price) || 0).toLocaleString()} (כמות: ${w.qty || 1})`).join("\n") : "אין עבודות רשומות"}
+### 🛠️ עבודות לביצוע (${works.length} שורות · סה"כ מתומחר: ₪${totalWorks.toLocaleString()}${unpricedCount > 0 ? ` + ${unpricedCount} שורות ללא מחיר בשלב זה` : ""})
+${works.length > 0 ? works.map((w: any, i: number) => `${i + 1}. **${w.part || w.type || "עבודה"}** — ${w.price !== null && w.price !== undefined && Number(w.price) > 0 ? `${Number(w.price).toLocaleString()} ₪` : "ללא מחיר בשלב זה"}${w.desc ? `\n   ${w.desc}` : ""}`).join("\n") : "אין עבודות רשומות"}
 
 ---
 ### 📦 חלקי חילוף (${parts.length} חלפים · סה"כ: ₪${totalParts.toLocaleString()})
@@ -1637,10 +1745,10 @@ ${extras.map((e: any, i: number) => `${i + 1}. ${e.text} | תוספת: ₪${(Num
 
 ---
 ### 💰 סיכום כספי
-- **עבודות:** ₪${totalWorks.toLocaleString()}
-- **חלקים:** ₪${totalParts.toLocaleString()}
-${totalExtras > 0 ? `- **חריגים:** ₪${totalExtras.toLocaleString()}\n` : ""}- **סה"כ משוער לפני מע"מ:** ₪${grandTotal.toLocaleString()}
-- **סה"כ כולל מע"מ (17%):** ₪${Math.round(grandTotal * 1.17).toLocaleString()}
+- **סה"כ עבודות מתומחרות:** ${totalWorks.toLocaleString()} ₪${unpricedCount > 0 ? ` (מתוך ${works.length} שורות; ${unpricedCount} שורות ללא מחיר בשלב זה — סכום זה אינו המחיר הסופי לכל העבודות)` : ""}
+- **חלקים:** ${totalParts.toLocaleString()} ₪
+${totalExtras > 0 ? `- **חריגים:** ${totalExtras.toLocaleString()} ₪\n` : ""}- **סה"כ לשורות המתומחרות:** ${grandTotal.toLocaleString()} ₪
+- **מע"מ:** מע"מ, ככל שחל, יחושב לפי שיעור המס התקף בישראל, **18%**, ובהתאם להגדרת המחירים ככוללים או לא כוללים מע"מ. אין להניח זאת ללא הגדרה.
 
 ---
 ### 📌 משימות ותזכורות
@@ -1821,10 +1929,10 @@ ${totalExtras > 0 ? `- **חריגים:** ₪${totalExtras.toLocaleString()}\n` :
       const cd = gCase.case_data || {};
       const works = cd.quoteWorks || [];
       const parts = cd.quoteParts || [];
-      const totalWorks = works.reduce((sum: number, w: any) => sum + (Number(w.price) || 0) * (Number(w.qty) || 1), 0);
-      const totalParts = parts.reduce((sum: number, p: any) => sum + (Number(p.price) || 0) * (Number(p.qty) || 1), 0);
+      const totalWorks = works.reduce((sum: number, w: any) => sum + (w.price !== null && w.price !== undefined && Number(w.price) > 0 ? Number(w.price) * (Number(w.qty) || 1) : 0), 0);
+      const totalParts = parts.reduce((sum: number, p: any) => sum + (p.price !== null && p.price !== undefined && Number(p.price) > 0 ? Number(p.price) * (Number(p.qty) || 1) : 0), 0);
       const subtotal = totalWorks + totalParts;
-      const vat = Math.round(subtotal * 0.17);
+      const vat = Math.round(subtotal * 0.18);
       const grandTotal = subtotal + vat;
 
       const recipientName = String(args?.recipient_name || gCase.customer_name_snapshot || "לקוח").trim();
@@ -1833,7 +1941,7 @@ ${totalExtras > 0 ? `- **חריגים:** ₪${totalExtras.toLocaleString()}\n` :
       const channel = String(args?.channel || "whatsapp").trim();
       const quoteNotes = String(args?.quote_notes || "").trim();
 
-      const summary = `שליחת הצעת מחיר לתיק ${gCase.case_number} ל-${recipientName} (${channel === "whatsapp" ? "WhatsApp" : (channel === "sms" ? "SMS" : "אימייל")}). סכום לתשלום: ₪${grandTotal.toLocaleString()} כולל מע"מ (עבודות: ₪${totalWorks.toLocaleString()}, חלקים: ₪${totalParts.toLocaleString()}).`;
+      const summary = `שליחת הצעת מחיר וקישור לחתימה דיגיטלית לתיק ${gCase.case_number} ל-${recipientName} (${channel === "whatsapp" ? "WhatsApp" : (channel === "sms" ? "SMS" : "אימייל/קישור")}). סה"כ לשורות המתומחרות: ₪${subtotal.toLocaleString()} (עבודות: ₪${totalWorks.toLocaleString()}, חלקים: ₪${totalParts.toLocaleString()}).`;
 
       const pendingAction: GaragePendingAction = {
         preview_id: `g_send_quote_${Date.now()}`,
@@ -1858,7 +1966,156 @@ ${totalExtras > 0 ? `- **חריגים:** ₪${totalExtras.toLocaleString()}\n` :
         result: {
           status: "pending_user_confirmation",
           preview_card: pendingAction,
-          message: `הכנתי הצעת מחיר לשליחה ל-${recipientName} על סך ₪${grandTotal.toLocaleString()} כולל מע"מ 17%. לחץ על 'אישור' לשליחה.`,
+          message: `הכנתי הצעת מחיר וקישור לחתימה דיגיטלית לשליחה ל-${recipientName} (סה"כ לשורות המתומחרות: ₪${subtotal.toLocaleString()}). לחץ על 'אישור' להפקת הקישור ושליחה.`,
+        },
+        preview: pendingAction,
+      };
+    }
+
+    case "preview_garage_dictate_case_and_quote": {
+      const customerName = String(args?.customer_name || "").trim();
+      const customerTypeLabel = String(args?.customer_type_label || "לקוח פרטי, חד־פעמי").trim();
+      const customerPhone = String(args?.customer_phone || "").trim();
+      const customerEmail = String(args?.customer_email || "").trim();
+      const vehiclePlate = String(args?.vehicle_plate || "").replace(/[^0-9A-Za-z]/g, "").trim();
+      const vehicleModel = String(args?.vehicle_model || "").trim();
+      const quoteTitle = String(args?.quote_title || "הצעת מחיר – עבודות פחחות וצבע").trim();
+      const quoteDate = String(args?.quote_date || new Date().toLocaleDateString("he-IL")).trim();
+      const workType = String(args?.work_type || "תיקוני פחחות וצבע בחזית הרכב").trim();
+      const vatMode = String(args?.vat_mode || "unspecified").trim();
+      const quoteNotes = String(args?.quote_notes || "").trim();
+
+      if (!customerName || !vehiclePlate) {
+        return { result: { error: "חובה לספק שם לקוח ומספר רכב לפתיחת כרטיס העבודה והכנת הצעת המחיר." } };
+      }
+
+      const rawWorks = Array.isArray(args?.quote_works) ? args.quote_works : [];
+      const normalizedWorks = rawWorks.map((w: any, idx: number) => {
+        const descStr = String(w?.desc || "").trim();
+        const isExplicitlyUnpriced =
+          w?.unpriced === true ||
+          w?.price === null ||
+          w?.price === undefined ||
+          w?.price === "" ||
+          /ללא מחיר/i.test(descStr);
+        const numericPrice = !isExplicitlyUnpriced && Number.isFinite(Number(w?.price)) && Number(w?.price) > 0
+          ? Number(w.price)
+          : null;
+        return {
+          row_number: idx + 1,
+          part: String(w?.part || "").trim(),
+          type: String(w?.type || "פחחות וצבע").trim(),
+          price: numericPrice,
+          qty: Number(w?.qty) > 0 ? Number(w.qty) : 1,
+          desc: descStr,
+        };
+      });
+
+      const rawParts = Array.isArray(args?.quote_parts) ? args.quote_parts : [];
+      const normalizedParts = rawParts.map((p: any, idx: number) => ({
+        row_number: idx + 1,
+        name: String(p?.name || "").trim(),
+        price: Number.isFinite(Number(p?.price)) && Number(p?.price) > 0 ? Number(p.price) : null,
+        qty: Number(p?.qty) > 0 ? Number(p.qty) : 1,
+      }));
+
+      // Duplicate check in STAGING DB
+      const { data: existingCustomers } = await supabase
+        .from("garage_customers")
+        .select("id, name, phone, email, customer_type, notes")
+        .or(`name.eq.${customerName},company_name.eq.${customerName}`)
+        .limit(1);
+      const existingCustomer = existingCustomers?.[0] || null;
+
+      const { data: existingVehicles } = await supabase
+        .from("garage_vehicles")
+        .select("id, plate, customer_id, make, model, year")
+        .eq("plate", vehiclePlate)
+        .limit(1);
+      const existingVehicle = existingVehicles?.[0] || null;
+
+      const { data: existingCases } = await supabase
+        .from("garage_cases")
+        .select("id, case_number, status, case_data")
+        .eq("vehicle_plate_snapshot", vehiclePlate)
+        .eq("customer_name_snapshot", customerName)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const existingCase = existingCases?.[0] || null;
+
+      const pricedWorks = normalizedWorks.filter((w: any) => w.price !== null && w.price > 0);
+      const unpricedWorks = normalizedWorks.filter((w: any) => w.price === null);
+      const pricedWorksTotal = pricedWorks.reduce((s: number, w: any) => s + Number(w.price) * (Number(w.qty) || 1), 0);
+      const pricedPartsTotal = normalizedParts
+        .filter((p: any) => p.price !== null && p.price > 0)
+        .reduce((s: number, p: any) => s + Number(p.price) * (Number(p.qty) || 1), 0);
+      const pricedSubtotal = pricedWorksTotal + pricedPartsTotal;
+
+      const summary = [
+        `פתיחת/עדכון כרטיס עבודה והכנת הצעת מחיר מובנית מוכנה לשליחה ולחתימת לקוח:`,
+        `• לקוח: ${customerName} (${customerTypeLabel})${existingCustomer ? " [קיים במערכת]" : " [לקוח חדש]"}`,
+        `• מספר רכב: ${vehiclePlate}${existingVehicle ? " [קיים במערכת]" : " [רכב חדש]"}`,
+        `• תאריך הצעת המחיר: ${quoteDate} · סוג עבודה: ${workType}`,
+        `• פירוט שורות: ${normalizedWorks.length} שורות עבודה נפרדות (${pricedWorks.length} מתומחרות בסך ${pricedSubtotal.toLocaleString()} ₪ + ${unpricedWorks.length} שורות ללא מחיר בשלב זה)`,
+        `• מע"מ: יחושב לפי שיעור המס התקף בישראל, 18%, ובהתאם להגדרת המחירים ככוללים או לא כוללים מע"מ.`,
+      ].join("\n");
+
+      const pendingAction: GaragePendingAction = {
+        preview_id: `g_dictate_quote_${Date.now()}`,
+        summary,
+        tool_name: "preview_garage_dictate_case_and_quote",
+        action_type: "garage_dictate_case_and_quote",
+        parameters: {
+          customer_name: customerName,
+          customer_type_label: customerTypeLabel,
+          customer_phone: customerPhone,
+          customer_email: customerEmail,
+          vehicle_plate: vehiclePlate,
+          vehicle_model: vehicleModel,
+          quote_title: quoteTitle,
+          quote_date: quoteDate,
+          work_type: workType,
+          vat_mode: vatMode,
+          quote_works: normalizedWorks,
+          quote_parts: normalizedParts,
+          quote_notes: quoteNotes,
+          existing_customer_id: existingCustomer?.id || null,
+          existing_vehicle_id: existingVehicle?.id || null,
+          existing_case_id: existingCase?.id || null,
+          existing_case_number: existingCase?.case_number || null,
+          priced_subtotal: pricedSubtotal,
+          priced_lines_count: pricedWorks.length,
+          unpriced_lines_count: unpricedWorks.length,
+        },
+      };
+
+      return {
+        result: {
+          status: "pending_user_confirmation",
+          duplicate_check: {
+            customer_exists: Boolean(existingCustomer),
+            existing_customer_id: existingCustomer?.id || null,
+            vehicle_exists: Boolean(existingVehicle),
+            existing_vehicle_id: existingVehicle?.id || null,
+            case_exists: Boolean(existingCase),
+            existing_case_number: existingCase?.case_number || null,
+          },
+          quote_preview: {
+            title: quoteTitle,
+            customer_name: customerName,
+            customer_type_label: customerTypeLabel,
+            vehicle_plate: vehiclePlate,
+            quote_date: quoteDate,
+            work_type: workType,
+            works: normalizedWorks,
+            priced_subtotal_ils: pricedSubtotal,
+            priced_lines_count: pricedWorks.length,
+            unpriced_lines_count: unpricedWorks.length,
+            vat_rate_percent: 18,
+            vat_notice: "מע\"מ, ככל שחל, יחושב לפי שיעור המס התקף בישראל, 18%, ובהתאם להגדרת המחירים ככוללים או לא כוללים מע\"מ. אין להניח זאת ללא הגדרה.",
+          },
+          preview_card: pendingAction,
+          message: `בדקתי כפילויות במערכת והכנתי כרטיס אישור לפתיחת הלקוח "${customerName}", רכב ${vehiclePlate}, כרטיס העבודה והצעת המחיר המלאה (${normalizedWorks.length} שורות נפרדות, סה"כ לשורות המתומחרות: ${pricedSubtotal.toLocaleString()} ₪). לחץ על 'אישור' לשמירה והפקת הצעת המחיר לחתימה.`,
         },
         preview: pendingAction,
       };
@@ -2403,12 +2660,25 @@ export async function executeGaragePendingAction(
       case "garage_update_repair_details": {
         const caseId = String(parameters.case_id || "");
         const damageItems = Array.isArray(parameters.damage_items) ? parameters.damage_items : [];
-        const quoteWorks = Array.isArray(parameters.quote_works) ? parameters.quote_works : [];
+        const rawQuoteWorks = Array.isArray(parameters.quote_works) ? parameters.quote_works : [];
+        const quoteWorks = rawQuoteWorks.map((w: any) => {
+          const descStr = String(w?.desc || "").trim();
+          const isUnpriced = w?.unpriced === true || w?.price === null || w?.price === undefined || w?.price === "" || /ללא מחיר/i.test(descStr);
+          return {
+            ...w,
+            price: !isUnpriced && Number.isFinite(Number(w?.price)) && Number(w?.price) > 0 ? Number(w.price) : null,
+            qty: Number(w?.qty) > 0 ? Number(w.qty) : 1,
+          };
+        });
         const quoteParts = Array.isArray(parameters.quote_parts) ? parameters.quote_parts : [];
         const extraApprovals = Array.isArray(parameters.extra_approvals) ? parameters.extra_approvals : [];
         const mode = String(parameters.mode || "append");
 
-        const { data: existing, error: loadErr } = await supabase.from("garage_cases").select("id, case_number, case_data").eq("id", caseId).single();
+        const { data: existing, error: loadErr } = await supabase
+          .from("garage_cases")
+          .select("id, case_number, customer_name_snapshot, vehicle_plate_snapshot, case_data, shop_company_name")
+          .eq("id", caseId)
+          .single();
         if (loadErr || !existing) throw new Error("תיק מוסך לא נמצא לעדכון");
 
         const cd = existing.case_data || {};
@@ -2419,10 +2689,27 @@ export async function executeGaragePendingAction(
         const nextParts = mode === "replace" ? quoteParts : [...(cd.quoteParts || []), ...quoteParts];
         const nextExtras = mode === "replace" ? extraApprovals : [...(cd.extraApprovals || []), ...extraApprovals];
 
-        timeline.push({
-          at: new Date().toISOString(),
-          text: `עודכנו פרטי תיקון (פחחות/חלקים/עבודות) ע"י ${actorName || "דליה AI"}.`,
-        });
+        // Version immutability: if previous version was signed, increment quoteVersion and supersede old links
+        const prevVersion = Number(cd.quoteVersion) || 1;
+        const wasSigned = cd.quoteSigned === true;
+        const nextVersion = wasSigned ? prevVersion + 1 : prevVersion;
+
+        if (wasSigned) {
+          await supabase
+            .from("garage_quote_links")
+            .update({ status: "superseded", updated_at: new Date().toISOString() })
+            .eq("case_id", caseId)
+            .eq("status", "signed");
+          timeline.push({
+            at: new Date().toISOString(),
+            text: `נוצרה גרסה חדשה להצעת המחיר (גרסה ${nextVersion}) בעקבות עדכון לאחר חתימת לקוח על גרסה ${prevVersion}. הגרסה החתומה הקודמת נשמרה בארכיון.`,
+          });
+        } else {
+          timeline.push({
+            at: new Date().toISOString(),
+            text: `עודכנו פרטי תיקון (פחחות/חלקים/עבודות) ע"י ${actorName || "דליה AI"}.`,
+          });
+        }
 
         const patchCaseData = {
           ...cd,
@@ -2430,6 +2717,8 @@ export async function executeGaragePendingAction(
           quoteWorks: nextWorks,
           quoteParts: nextParts,
           extraApprovals: nextExtras,
+          quoteVersion: nextVersion,
+          ...(wasSigned ? { quoteSigned: false, quoteApproved: false, quoteStatus: "ready_to_send" } : {}),
           timeline,
         };
 
@@ -2445,7 +2734,7 @@ export async function executeGaragePendingAction(
 
         return {
           success: true,
-          message: `✅ פרטי התיקון, הפחחות והחלקים נשמרו בהצלחה בכרטיס עבודה [${existing.case_number}](#/garage-management/${existing.id}).`,
+          message: `✅ פרטי התיקון, הפחחות והחלקים נשמרו בהצלחה בכרטיס עבודה [${existing.case_number}](#/garage-management/${existing.id})${wasSigned ? ` (נפתחה גרסת הצעה חדשה מס' ${nextVersion} לשליחה מחדש לחתימה)` : ""}.`,
         };
       }
 
@@ -2807,46 +3096,514 @@ export async function executeGaragePendingAction(
         };
       }
 
+      case "garage_dictate_case_and_quote": {
+        const customerName = String(parameters.customer_name || "").trim();
+        const customerTypeLabel = String(parameters.customer_type_label || "לקוח פרטי, חד־פעמי").trim();
+        const customerPhone = String(parameters.customer_phone || "").trim();
+        const customerEmail = String(parameters.customer_email || "").trim();
+        const vehiclePlate = String(parameters.vehicle_plate || "").replace(/[^0-9A-Za-z]/g, "").trim();
+        const vehicleModel = String(parameters.vehicle_model || "").trim();
+        const quoteTitle = String(parameters.quote_title || "הצעת מחיר – עבודות פחחות וצבע").trim();
+        const quoteDate = String(parameters.quote_date || new Date().toLocaleDateString("he-IL")).trim();
+        const workType = String(parameters.work_type || "תיקוני פחחות וצבע בחזית הרכב").trim();
+        const vatMode = String(parameters.vat_mode || "unspecified").trim();
+        const quoteNotes = String(parameters.quote_notes || "").trim();
+
+        const rawWorks = Array.isArray(parameters.quote_works) ? parameters.quote_works : [];
+        const quoteWorks = rawWorks.map((w: any, idx: number) => {
+          const descStr = String(w?.desc || "").trim();
+          const isUnpriced =
+            w?.unpriced === true ||
+            w?.price === null ||
+            w?.price === undefined ||
+            w?.price === "" ||
+            /ללא מחיר/i.test(descStr);
+          return {
+            row_number: idx + 1,
+            part: String(w?.part || "").trim(),
+            type: String(w?.type || "פחחות וצבע").trim(),
+            price: !isUnpriced && Number.isFinite(Number(w?.price)) && Number(w?.price) > 0 ? Number(w.price) : null,
+            qty: Number(w?.qty) > 0 ? Number(w.qty) : 1,
+            desc: descStr,
+          };
+        });
+
+        const rawParts = Array.isArray(parameters.quote_parts) ? parameters.quote_parts : [];
+        const quoteParts = rawParts.map((p: any, idx: number) => ({
+          row_number: idx + 1,
+          name: String(p?.name || "").trim(),
+          price: Number.isFinite(Number(p?.price)) && Number(p?.price) > 0 ? Number(p.price) : null,
+          qty: Number(p?.qty) > 0 ? Number(p.qty) : 1,
+        }));
+
+        // 1. Check / create customer (prevent duplicates, never invent phone or email!)
+        let customerId = parameters.existing_customer_id as string | null;
+        if (!customerId) {
+          const { data: foundCust } = await supabase
+            .from("garage_customers")
+            .select("id")
+            .or(`name.eq.${customerName},company_name.eq.${customerName}`)
+            .limit(1);
+          if (foundCust && foundCust.length > 0) {
+            customerId = foundCust[0].id;
+          }
+        }
+        if (!customerId) {
+          const { data: newCust, error: custErr } = await supabase
+            .from("garage_customers")
+            .insert({
+              name: customerName,
+              company_name: "",
+              phone: customerPhone || "",
+              second_phone: "",
+              email: customerEmail || "",
+              address: "",
+              business_id: "",
+              contact_person: "",
+              customer_type: "private",
+              notes: customerTypeLabel,
+            })
+            .select("id")
+            .single();
+          if (custErr) throw new Error(`יצירת לקוח נכשלה: ${custErr.message}`);
+          customerId = newCust.id;
+        }
+
+        // 2. Check / create vehicle (prevent duplicates & link to customer)
+        let vehicleId = parameters.existing_vehicle_id as string | null;
+        if (!vehicleId) {
+          const { data: foundVeh } = await supabase
+            .from("garage_vehicles")
+            .select("id, customer_id")
+            .eq("plate", vehiclePlate)
+            .limit(1);
+          if (foundVeh && foundVeh.length > 0) {
+            vehicleId = foundVeh[0].id;
+            if (!foundVeh[0].customer_id) {
+              await supabase.from("garage_vehicles").update({ customer_id: customerId }).eq("id", vehicleId);
+            }
+          }
+        }
+        if (!vehicleId) {
+          const { data: newVeh, error: vehErr } = await supabase
+            .from("garage_vehicles")
+            .insert({
+              plate: vehiclePlate,
+              customer_id: customerId,
+              make: vehicleModel.split(" ")[0] || "",
+              model: vehicleModel.split(" ").slice(1).join(" ") || "",
+              color: "",
+              vin: "",
+              notes: workType,
+            })
+            .select("id")
+            .single();
+          if (vehErr) throw new Error(`יצירת רכב נכשלה: ${vehErr.message}`);
+          vehicleId = newVeh.id;
+        }
+
+        // 3. Check / create or update work card (garage_cases)
+        let targetCase: any = null;
+        const { data: existingCases } = await supabase
+          .from("garage_cases")
+          .select("id, case_number, status, case_data, shop_company_name")
+          .eq("vehicle_plate_snapshot", vehiclePlate)
+          .eq("customer_name_snapshot", customerName)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (existingCases && existingCases.length > 0) {
+          targetCase = existingCases[0];
+        }
+
+        const damageItems = quoteWorks.map((w: any) => ({
+          part: w.part,
+          status: w.desc || w.type,
+        }));
+
+        const pricedWorks = quoteWorks.filter((w: any) => w.price !== null && w.price > 0);
+        const unpricedWorks = quoteWorks.filter((w: any) => w.price === null);
+        const pricedSubtotal =
+          pricedWorks.reduce((s: number, w: any) => s + Number(w.price) * (Number(w.qty) || 1), 0) +
+          quoteParts.filter((p: any) => p.price !== null && p.price > 0).reduce((s: number, p: any) => s + Number(p.price) * (Number(p.qty) || 1), 0);
+
+        let caseId = "";
+        let caseNumber = "";
+        let quoteVersion = 1;
+        let shopCompanyName = "";
+
+        if (targetCase) {
+          caseId = targetCase.id;
+          caseNumber = targetCase.case_number;
+          shopCompanyName = targetCase.shop_company_name || "";
+          const prevCd = targetCase.case_data || {};
+          const wasSigned = prevCd.quoteSigned === true;
+          quoteVersion = wasSigned ? (Number(prevCd.quoteVersion) || 1) + 1 : (Number(prevCd.quoteVersion) || 1);
+          if (wasSigned) {
+            await supabase
+              .from("garage_quote_links")
+              .update({ status: "superseded", updated_at: new Date().toISOString() })
+              .eq("case_id", caseId)
+              .eq("status", "signed");
+          }
+          const timeline = Array.isArray(prevCd.timeline) ? [...prevCd.timeline] : [];
+          timeline.push({
+            at: new Date().toISOString(),
+            text: `הוכנה הצעת מחיר מובנית (${quoteTitle}, גרסה ${quoteVersion}) ע"י ${actorName || "דליה AI"} · ${quoteWorks.length} שורות עבודה.`,
+          });
+
+          const nextCaseData = {
+            ...prevCd,
+            route: "quote_first",
+            flowStage: "quote",
+            customerTypeLabel,
+            quoteTitle,
+            quoteDate,
+            workType,
+            vatRate: 18,
+            vatMode,
+            damageItems,
+            quoteWorks,
+            quoteParts,
+            quoteCreated: true,
+            quoteVersion,
+            quoteSigned: false,
+            quoteApproved: false,
+            quoteStatus: "ready_to_send",
+            quotePricedSubtotal: pricedSubtotal,
+            quotePricedLinesCount: pricedWorks.length,
+            quoteUnpricedLinesCount: unpricedWorks.length,
+            quoteNotes: quoteNotes || prevCd.quoteNotes || "",
+            timeline,
+          };
+
+          const { error: updCaseErr } = await supabase
+            .from("garage_cases")
+            .update({
+              customer_id: customerId,
+              vehicle_id: vehicleId,
+              customer_name_snapshot: customerName,
+              vehicle_plate_snapshot: vehiclePlate,
+              status: "הצעה בהכנה",
+              case_data: nextCaseData,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", caseId);
+          if (updCaseErr) throw new Error(`עדכון כרטיס עבודה נכשל: ${updCaseErr.message}`);
+        } else {
+          const initialCaseData = {
+            route: "quote_first",
+            flowStage: "quote",
+            customerTypeLabel,
+            quoteTitle,
+            quoteDate,
+            workType,
+            vatRate: 18,
+            vatMode,
+            damageItems,
+            quoteWorks,
+            quoteParts,
+            extraApprovals: [],
+            tasks: [],
+            reminders: [],
+            quoteCreated: true,
+            quoteVersion: 1,
+            quoteSigned: false,
+            quoteApproved: false,
+            quoteStatus: "ready_to_send",
+            quotePricedSubtotal: pricedSubtotal,
+            quotePricedLinesCount: pricedWorks.length,
+            quoteUnpricedLinesCount: unpricedWorks.length,
+            quoteNotes: quoteNotes || "",
+            timeline: [
+              {
+                at: new Date().toISOString(),
+                text: `נפתח כרטיס עבודה והוכנה הצעת מחיר (${quoteTitle}) ע"י ${actorName || "דליה AI"} · לקוח: ${customerName} (${customerTypeLabel}) · רכב: ${vehiclePlate}.`,
+              },
+            ],
+          };
+
+          const { data: createdCase, error: createCaseErr } = await supabase
+            .from("garage_cases")
+            .insert({
+              customer_id: customerId,
+              vehicle_id: vehicleId,
+              customer_name_snapshot: customerName,
+              vehicle_plate_snapshot: vehiclePlate,
+              vehicle_label_snapshot: vehicleModel || vehiclePlate,
+              status: "הצעה בהכנה",
+              opened_by: userId,
+              opened_by_name: actorName || "דליה AI",
+              case_data: initialCaseData,
+            })
+            .select("id, case_number, shop_company_name")
+            .single();
+          if (createCaseErr) throw new Error(`פתיחת כרטיס עבודה נכשלה: ${createCaseErr.message}`);
+          caseId = createdCase.id;
+          caseNumber = createdCase.case_number;
+          shopCompanyName = createdCase.shop_company_name || "";
+        }
+
+        // 4. Check actual damage photos in garage_media
+        const { data: mediaList } = await supabase
+          .from("garage_media")
+          .select("id, category, title")
+          .eq("garage_case_id", caseId)
+          .in("category", ["damage", "quote_photos", "intake", "angles"]);
+        const damagePhotosCount = Array.isArray(mediaList) ? mediaList.length : 0;
+        const damagePhotosAttached = damagePhotosCount > 0;
+
+        // 5. Create or update secure quote link in garage_quote_links (status: ready_to_send)
+        const { data: existingLinks } = await supabase
+          .from("garage_quote_links")
+          .select("id, token, status")
+          .eq("case_id", caseId)
+          .eq("quote_version", quoteVersion)
+          .in("status", ["ready_to_send", "sent"])
+          .limit(1);
+
+        let quoteToken = "";
+        const quoteLinkPayload = {
+          case_id: caseId,
+          case_number: caseNumber,
+          shop_company_name: shopCompanyName,
+          quote_version: quoteVersion,
+          quote_title: quoteTitle,
+          customer_name: customerName,
+          customer_type_label: customerTypeLabel,
+          customer_phone: customerPhone || "",
+          customer_email: customerEmail || "",
+          vehicle_plate: vehiclePlate,
+          quote_date: quoteDate,
+          work_type: workType,
+          works: quoteWorks,
+          parts: quoteParts,
+          priced_subtotal: pricedSubtotal,
+          priced_lines_count: pricedWorks.length,
+          unpriced_lines_count: unpricedWorks.length,
+          vat_rate: 18,
+          vat_mode: vatMode,
+          vat_note: "מע\"מ, ככל שחל, יחושב לפי שיעור המס התקף בישראל, 18%, ובהתאם להגדרת המחירים ככוללים או לא כוללים מע\"מ. אין להניח זאת ללא הגדרה.",
+          photos_note: "מצורפות תמונות המתעדות את הנזקים ברכב.",
+          damage_photos_attached: damagePhotosAttached,
+          damage_photos_count: damagePhotosCount,
+          status: "ready_to_send",
+          created_by: userId,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (existingLinks && existingLinks.length > 0) {
+          quoteToken = existingLinks[0].token;
+          await supabase.from("garage_quote_links").update(quoteLinkPayload).eq("id", existingLinks[0].id);
+        } else {
+          const { data: insertedLink, error: linkErr } = await supabase
+            .from("garage_quote_links")
+            .insert(quoteLinkPayload)
+            .select("token")
+            .single();
+          if (linkErr) throw new Error(`יצירת קישור הצעת מחיר נכשלה: ${linkErr.message}`);
+          quoteToken = insertedLink.token;
+        }
+
+        // Sync quoteToken and photo counts into garage_cases.case_data
+        const { data: latestCase } = await supabase.from("garage_cases").select("case_data").eq("id", caseId).single();
+        if (latestCase) {
+          await supabase
+            .from("garage_cases")
+            .update({
+              case_data: {
+                ...(latestCase.case_data || {}),
+                quoteToken,
+                damagePhotosAttached,
+                damagePhotosCount,
+              },
+            })
+            .eq("id", caseId);
+        }
+
+        // 6. Format full structured quote in chat
+        const workLinesFormatted = quoteWorks
+          .map((w: any, idx: number) => {
+            const priceLabel = w.price !== null && w.price !== undefined && Number(w.price) > 0
+              ? `${Number(w.price).toLocaleString()} ₪`
+              : "ללא מחיר בשלב זה";
+            return `${idx + 1}. **${w.part}** – **${priceLabel}**\n   ${w.desc}`;
+          })
+          .join("\n\n");
+
+        const photosStatusLine = damagePhotosAttached
+          ? `📷 **מצורפות תמונות המתעדות את הנזקים ברכב** (${damagePhotosCount} תמונות נזק שמורות בכרטיס העבודה).`
+          : `📷 **מצורפות תמונות המתעדות את הנזקים ברכב.**\n⚠️ *שים לב: טרם הועלו תמונות נזק בפועל לכרטיס העבודה. נא לצלם או להעלות תמונות מתעדות (דרך כפתור המצלמה 📷 או הגלריה 🖼️ בצ'אט או בכרטיס העבודה) לפני שליחת ההצעה ללקוח.*`;
+
+        const contactReadinessLine = customerPhone || customerEmail
+          ? `📲 **פרטי קשר לשליחה:** ${[customerPhone, customerEmail].filter(Boolean).join(" · ")}`
+          : `ℹ️ **סטטוס שליחה:** ההצעה והקישור המאובטח לחתימה דיגיטלית מוכנים לשליחה (\`ready_to_send\`). לא הוזן טלפון או אימייל עבור ${customerName} — ניתן להעתיק את קישור החתימה או להזין מספר טלפון/מייל בחלונית השליחה.`;
+
+        const fullFormattedQuote = [
+          `✅ **כרטיס העבודה והצעת המחיר נשמרו ואומתו במערכת!**`,
+          `- **מספר כרטיס עבודה:** [${caseNumber}](#/garage-management/${caseId})`,
+          `- **לקוח:** ${customerName} (${customerTypeLabel})`,
+          `- **מספר רכב:** ${vehiclePlate}`,
+          `- **סוג עבודה:** ${workType}`,
+          "",
+          `---`,
+          `## 📄 ${quoteTitle}`,
+          `**לכבוד:** ${customerName}`,
+          `**מספר רכב:** ${vehiclePlate}`,
+          `**תאריך:** ${quoteDate}`,
+          "",
+          `### 🛠️ פירוט העבודות:`,
+          workLinesFormatted,
+          "",
+          `---`,
+          `### 💰 סיכום כספי ומע"מ`,
+          `- **סה"כ עבור ${pricedWorks.length} השורות המתומחרות בלבד:** **${pricedSubtotal.toLocaleString()} ₪**`,
+          ...(unpricedWorks.length > 0
+            ? [`- ⚠️ **הבהרה חשובה:** סכום הביניים (**${pricedSubtotal.toLocaleString()} ₪**) מתייחס ל-${pricedWorks.length} העבודות המתומחרות בלבד, ו**אינו** המחיר הסופי לכל ${quoteWorks.length} העבודות (${unpricedWorks.length} שורות מוגדרות "ללא מחיר בשלב זה").`]
+            : []),
+          `- **מע"מ (18%):** מע"מ, ככל שחל, יחושב לפי שיעור המס התקף בישראל, **18%**, ובהתאם להגדרת המחירים ככוללים או לא כוללים מע"מ. אין להניח זאת ללא הגדרה.`,
+          "",
+          `---`,
+          photosStatusLine,
+          "",
+          contactReadinessLine,
+          "",
+          `🔗 **קישור ישיר להצעת המחיר ולחתימת הלקוח:** [צפייה וחתימה על הצעת המחיר](/garage-quote?t=${quoteToken})`,
+          `📂 **קישור ישיר לכרטיס העבודה:** [פתח כרטיס עבודה ${caseNumber}](#/garage-management/${caseId})`,
+        ].join("\n");
+
+        return {
+          success: true,
+          message: fullFormattedQuote,
+          case_id: caseId,
+          case_number: caseNumber,
+          customer_id: customerId,
+          vehicle_id: vehicleId,
+          quote_token: quoteToken,
+          quote_url: `/garage-quote?t=${quoteToken}`,
+          priced_subtotal: pricedSubtotal,
+          priced_lines_count: pricedWorks.length,
+          unpriced_lines_count: unpricedWorks.length,
+          damage_photos_attached: damagePhotosAttached,
+          damage_photos_count: damagePhotosCount,
+        } as any;
+      }
+
       case "garage_send_quote": {
         const caseId = String(parameters.case_id || "");
         const recipientName = String(parameters.recipient_name || "");
+        const recipientPhone = String(parameters.recipient_phone || "");
+        const recipientEmail = String(parameters.recipient_email || "");
         const channel = String(parameters.channel || "whatsapp");
-        const grandTotal = Number(parameters.grand_total) || 0;
+        const subtotal = Number(parameters.subtotal) || 0;
 
-        const { data: existing, error: loadErr } = await supabase.from("garage_cases").select("id, case_number, case_data").eq("id", caseId).single();
+        const { data: existing, error: loadErr } = await supabase
+          .from("garage_cases")
+          .select("id, case_number, customer_name_snapshot, vehicle_plate_snapshot, case_data, shop_company_name")
+          .eq("id", caseId)
+          .single();
         if (loadErr || !existing) throw new Error("תיק מוסך לא נמצא לשליחת הצעת מחיר");
 
         const cd = existing.case_data || {};
+        const quoteVersion = Number(cd.quoteVersion) || 1;
+        const works = Array.isArray(cd.quoteWorks) ? cd.quoteWorks : [];
+        const parts = Array.isArray(cd.quoteParts) ? cd.quoteParts : [];
+        const pricedWorks = works.filter((w: any) => w.price !== null && w.price !== undefined && Number(w.price) > 0);
+        const unpricedWorks = works.filter((w: any) => w.price === null || w.price === undefined || w.price === "");
+
+        // Check or create quote link
+        const { data: existingLinks } = await supabase
+          .from("garage_quote_links")
+          .select("id, token")
+          .eq("case_id", caseId)
+          .eq("quote_version", quoteVersion)
+          .limit(1);
+
+        let quoteToken = cd.quoteToken || "";
+        const hasRealRecipient = Boolean(recipientPhone || recipientEmail);
+        const linkStatus = hasRealRecipient ? "sent" : "ready_to_send";
+
+        if (existingLinks && existingLinks.length > 0) {
+          quoteToken = existingLinks[0].token;
+          await supabase
+            .from("garage_quote_links")
+            .update({
+              customer_phone: recipientPhone || "",
+              customer_email: recipientEmail || "",
+              status: linkStatus,
+              sent_channel: channel,
+              sent_at: hasRealRecipient ? new Date().toISOString() : null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingLinks[0].id);
+        } else {
+          const { data: insertedLink, error: linkErr } = await supabase
+            .from("garage_quote_links")
+            .insert({
+              case_id: caseId,
+              case_number: existing.case_number,
+              shop_company_name: existing.shop_company_name || "",
+              quote_version: quoteVersion,
+              quote_title: cd.quoteTitle || "הצעת מחיר – עבודות פחחות וצבע",
+              customer_name: recipientName || existing.customer_name_snapshot || "",
+              customer_type_label: cd.customerTypeLabel || "לקוח פרטי",
+              customer_phone: recipientPhone || "",
+              customer_email: recipientEmail || "",
+              vehicle_plate: existing.vehicle_plate_snapshot || "",
+              quote_date: cd.quoteDate || new Date().toLocaleDateString("he-IL"),
+              work_type: cd.workType || "",
+              works,
+              parts,
+              priced_subtotal: subtotal,
+              priced_lines_count: pricedWorks.length,
+              unpriced_lines_count: unpricedWorks.length,
+              vat_rate: 18,
+              vat_mode: cd.vatMode || "unspecified",
+              status: linkStatus,
+              sent_channel: channel,
+              sent_at: hasRealRecipient ? new Date().toISOString() : null,
+              created_by: userId,
+            })
+            .select("token")
+            .single();
+          if (linkErr) throw new Error(`יצירת קישור הצעה נכשלה: ${linkErr.message}`);
+          quoteToken = insertedLink.token;
+        }
+
         const timeline = Array.isArray(cd.timeline) ? [...cd.timeline] : [];
         timeline.push({
           at: new Date().toISOString(),
-          text: `הצעת מחיר (₪${grandTotal.toLocaleString()}) נשלחה ל-${recipientName} בערוץ ${channel} ע"י ${actorName || "דליה AI"}`,
+          text: hasRealRecipient
+            ? `הצעת מחיר (גרסה ${quoteVersion}) וקישור לחתימה נשלחו ל-${recipientName} בערוץ ${channel} ע"י ${actorName || "דליה AI"}`
+            : `הופק קישור מאובטח להצעת מחיר ולחתימת הלקוח ${recipientName} (גרסה ${quoteVersion}) ע"י ${actorName || "דליה AI"}`,
         });
 
+        const nextCaseStatus = hasRealRecipient ? "הצעה נשלחה" : "הצעה בהכנה";
         const { error: updErr } = await supabase.from("garage_cases").update({
-          status: "הצעה נשלחה",
+          status: nextCaseStatus,
           case_data: {
             ...cd,
-            quoteSent: true,
-            quoteSentAt: new Date().toISOString(),
+            quoteToken,
+            quoteSent: hasRealRecipient,
+            quoteSentAt: hasRealRecipient ? new Date().toISOString() : null,
             quoteSentTo: recipientName,
             quoteSentChannel: channel,
-            quoteStatus: "sent",
+            quoteStatus: linkStatus,
             timeline,
           },
           updated_at: new Date().toISOString(),
         }).eq("id", caseId);
         if (updErr) throw new Error(`עדכון שליחת הצעה נכשל: ${updErr.message}`);
 
-        await supabase.from("garage_orders").update({
-          status: "quote_sent",
-          updated_at: new Date().toISOString(),
-        }).eq("case_id", caseId);
-
         return {
           success: true,
-          message: `✅ הצעת המחיר נשלחה בהצלחה ל-${recipientName} (${channel}) עבור כרטיס עבודה [${existing.case_number}](#/garage-management/${existing.id}). הסטטוס עודכן ל-'הצעה נשלחה'.`,
-        };
+          message: hasRealRecipient
+            ? `✅ הצעת המחיר והקישור לחתימה דיגיטלית נשלחו ל-${recipientName} (${channel}) עבור כרטיס עבודה [${existing.case_number}](#/garage-management/${existing.id}). קישור חתימה: [צפייה וחתימה](/garage-quote?t=${quoteToken})`
+            : `✅ קישור מאובטח להצעת המחיר ולחתימת הלקוח מוכן עבור ${recipientName} בכרטיס עבודה [${existing.case_number}](#/garage-management/${existing.id}): [צפייה וחתימה על הצעת המחיר](/garage-quote?t=${quoteToken})`,
+          quote_token: quoteToken,
+          quote_url: `/garage-quote?t=${quoteToken}`,
+          case_id: existing.id,
+          case_number: existing.case_number,
+        } as any;
       }
 
       case "garage_approve_quote": {
