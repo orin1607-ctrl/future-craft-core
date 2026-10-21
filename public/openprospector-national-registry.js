@@ -936,7 +936,11 @@
   }
 
   // ── marketing work lists ──
-  const SEGS = [["dalia", "פוטנציאל לדליה – צי רכב, מוסכים, סחר רכב, דלק"], ["dalia_wide", "פוטנציאל רחב – כולל קבלנים ותעשייה"], ["fleet", "צי רכב / נהגים / שליחויות"],
+  const SEGS = [["dalia", "פוטנציאל לדליה – צי רכב, מוסכים, סחר רכב, דלק"], ["dalia_wide", "פוטנציאל רחב – כולל קבלנים ותעשייה"], ["yoni_body", "פוטנציאל לפחחות וצבע (מוסך יוני) – לפי ענף או סימני צי, לא הזמנה"],
+    ["vehicles_5", "ראיה או מספר ידוע של 5 רכבים ומעלה"], ["large_fleet", "מספר ידוע של 20 רכבים ומעלה"], ["fleet_officer", "איש קשר: קצין רכב / מנהל צי"],
+    ["logistics", "הובלה ולוגיסטיקה"], ["courier", "הפצה ושליחויות"], ["rental", "השכרת רכב וליסינג"],
+    ["service_vehicles", "שירות עם פוטנציאל לרכבי עבודה – לפי ענף, לא ספירה"],
+    ["fleet", "צי רכב / נהגים / שליחויות"],
     ["garages", "מוסכים ושירותי רכב"], ["vehicle_trade", "סחר, יבוא וייצור רכב"], ["fuel", "דלק ותחנות תדלוק"], ["construction", "בנייה וקבלנות"], ["industry", "תעשייה וייצור"], ["all", "כל הענפים"]];
   const SEG_NAME = Object.fromEntries(SEGS);
   const LEVELS = [["any", "כל פרט קשר"], ["phone", "יש טלפון"], ["phone_email", "יש טלפון וגם אימייל"], ["official", "טלפון / אימייל ממאגר רשמי"],
@@ -1047,13 +1051,14 @@
       </div>
       <div class="xs muted">ליד כל טלפון ואימייל מופיע איפה הוא נמצא: <b>רשמי</b> (מאגר ממשלתי), <b>אתר החברה</b> (פורסם באתר שלה), <b>מקור אחר</b>. "2 סוגי מקורות" = אותו פרט נמצא גם במאגר רשמי וגם באתר / מקור אחר.
         זה לא אישור שהמספר פעיל – את זה יודעים רק אחרי שיחה. ממצאים שטרם אומתו מוצגים כמספר בלבד.
+        רק «ראיה מבוססת» ו«מספר ידוע» הם עובדה על כמות רכבים. שאר הפלחים הם פוטנציאל לפי ענף או סימן, לא ספירה.
         מהמסך לא נשלחות הודעות. לפני דיוור באימייל, SMS או וואטסאפ יש לוודא עמידה בחוק הספאם (סעיף 30א לחוק התקשורת).</div></div>`;
     const rows = o.rows || [];
     const table = o.loading ? `<div class="card card-b muted">⏳ טוען רשימה…</div>` : o.error ? `<div class="card card-b"><span class="badge b-bad" style="white-space:normal">${esc(o.error)}</span></div>` :
       `<div class="card"><div class="card-h"><h2>רשימת עבודה – עמוד ${o.page + 1}<span class="h-bar"></span></h2><span class="spacer"></span>
         <button class="btn btn-sm" data-nr="opage" data-v="-1" ${o.page ? "" : "disabled"}>→ הקודם</button>
         <button class="btn btn-sm" data-nr="opage" data-v="1" ${rows.length === 50 ? "" : "disabled"}>הבא ←</button></div>
-      <div class="tbl-wrap"><table><thead><tr><th>חברה</th><th>פוטנציאל צי רכב וראיות</th><th>אנשי קשר רלוונטיים</th><th>טלפונים</th><th>אימיילים</th><th>תחום ועיר</th><th>אתר</th><th>טרם אומתו</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table><thead><tr><th>חברה</th><th>פוטנציאל צי רכב וראיות</th><th>אנשי קשר רלוונטיים</th><th>טלפונים</th><th>אימיילים</th><th>תחום ועיר</th><th>אתר ורשתות</th><th>טרם אומתו</th></tr></thead><tbody>
       ${rows.map((r) => `<tr>
         <td><div class="co-name" data-nr="biz" data-v="${r.id}" style="cursor:pointer">${esc(r.name)}</div>${mkBadge(r.id) ? `<div>${mkBadge(r.id)}</div>` : `<button class="btn btn-sm" data-nr="tomk1" data-v="${r.id}" style="margin:2px 0">📣 למרכז השיווק</button>`}<div class="xs muted">${r.reg_id ? "ח.פ. " + esc(r.reg_id) : esc(r.corp_type || "")}</div>
           <a class="xs" href="${esc(cardUrl(r.id))}" target="_blank" rel="noopener" data-nr-stop="1">🔗 קישור לכרטיס</a></td>
@@ -1061,7 +1066,7 @@
         <td class="xs" style="max-width:260px;white-space:normal">${peopleCell(r)}</td>
         <td>${contactChips(r, "phone")}</td><td>${contactChips(r, "email")}</td>
         <td class="xs" style="max-width:200px;white-space:normal">${esc(r.activity || "—")}${indBadges(r.ind_codes)}<div class="muted">${esc(r.city || "")}${r.district ? " · " + esc(r.district) : ""}</div></td>
-        <td class="xs">${r.website ? `<a href="${esc(r.website)}" target="_blank" rel="noopener" data-nr-stop="1">${esc(String(r.website).replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))}</a>` : "—"}</td>
+        <td class="xs">${linkIcons({ website: r.website, socials: r.socials || {} })}</td>
         <td class="xs">${r.pending_review ? `<span class="badge b-no">${n(r.pending_review)} ממצאים</span>` : "—"}</td></tr>`).join("") || `<tr><td colspan="8" class="muted">אין חברות שתואמות את הסינון.</td></tr>`}
       </tbody></table></div></div>`;
     return sumCard + filters + table;
@@ -1082,7 +1087,9 @@
         ["טלפון ממקור אחר בלבד", (r) => pick(r, "phone", (x) => !x.official && !x.own_site)],
         ["אימייל ממאגר רשמי", (r) => pick(r, "email", (x) => x.official)], ["אימייל מאתר החברה", (r) => pick(r, "email", (x) => x.own_site && !x.official)],
         ["אימייל ממקור אחר בלבד", (r) => pick(r, "email", (x) => !x.official && !x.own_site)],
-        ["אתר", (r) => r.website], ["תחום פעילות", (r) => r.activity], ["ענף / תת־ענף", (r) => (r.ind_codes || []).map((c) => (TAX()[c] || {}).sub_label || (c === "unclassified" ? "לא מסווג" : c)).join("; ")], ["עיר", (r) => r.city], ["אזור", (r) => r.district],
+        ["אתר", (r) => r.website],
+        ["פייסבוק", (r) => (r.socials || {}).facebook || ""], ["אינסטגרם", (r) => (r.socials || {}).instagram || ""], ["לינקדאין", (r) => (r.socials || {}).linkedin || ""],
+        ["תחום פעילות", (r) => r.activity], ["ענף / תת־ענף", (r) => (r.ind_codes || []).map((c) => (TAX()[c] || {}).sub_label || (c === "unclassified" ? "לא מסווג" : c)).join("; ")], ["עיר", (r) => r.city], ["אזור", (r) => r.district],
         ["בעלי תפקידים נוספים", (r) => (r.people || []).filter((p) => !p.cat).map((p) => `${p.name} – ${p.role}`).join("; ")],
         ["ממצאים שטרם אומתו", (r) => r.pending_review || ""], ["קישור לכרטיס", (r) => cardUrl(r.id)]];
       const q = (v) => { const t = v == null ? "" : String(v); return /[",\n;]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };

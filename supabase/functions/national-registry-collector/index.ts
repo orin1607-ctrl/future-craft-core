@@ -6,6 +6,7 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { edgeCorsHeaders, jsonResponse, requireAuth } from "../_shared/edgeAuth.ts";
 import { socialUrl, socialsFrom } from "../_shared/socialUrl.ts";
+import { stepOsmTiles } from "./osmTiles.ts";
 import { CKAN, MAPPERS, Row, TLV_MAPPERS, emails, fmtPhone, genericRow, normPhone, withBase } from "./mappers.ts";
 
 const STAGING_REF = "usfeoerkpcafxxlyuldl";
@@ -417,6 +418,11 @@ Deno.serve(async (req) => {
     const action = body.action || "tick";
     if (action === "tick") return jsonResponse({ ok: true, ...(await tick(sb)) });
     if (action === "discover") return jsonResponse({ ok: true, ...(await discover(sb)) });
+    // tile cross-match is internal-only and does not take a site from the identify queue or from cat:27
+    if (action === "osm_tiles") {
+      if (!auth.ctx.isInternalCall) return jsonResponse({ ok: false, error: "internal only" }, 403);
+      return jsonResponse({ ok: true, ...(await stepOsmTiles(sb)) });
+    }
     return jsonResponse({ ok: false, error: "unknown action" }, 400);
   } catch (e) {
     await event(sb, "error", "collector: " + (e as Error).message.slice(0, 300)).catch(() => {});
