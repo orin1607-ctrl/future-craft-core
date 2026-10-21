@@ -12,6 +12,7 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { edgeCorsHeaders, jsonResponse, requireAuth } from "../_shared/edgeAuth.ts";
 import { locateSocial } from "./socialLocate.ts";
+import { socialUrl, socialsFrom } from "../_shared/socialUrl.ts";
 // the 7 Dalia lead rules – the same file the app loads (public/openprospector-qualify.js), so the cloud stream and the
 // screen always grade a lead identically; it registers itself as globalThis.OPQualify
 import "../../../public/openprospector-qualify.js";
@@ -336,15 +337,6 @@ async function stepDiscovery(sb: SupabaseClient, src: Src, deadline: number) {
 }
 
 // ════════════════ 4. deep crawl of the business's own website ════════════════
-const SOCIAL_RX: [string, RegExp][] = [
-  ["facebook", /^https?:\/\/(www\.|m\.|he-il\.)?facebook\.com\/(?!sharer|share|tr\b|plugins|dialog|login|policies|groups\/?$)[^"'?#\s]{2,}/i],
-  ["instagram", /^https?:\/\/(www\.)?instagram\.com\/(?!p\/|explore|accounts)[\w.]{2,}/i],
-  ["linkedin", /^https?:\/\/([a-z]{2,3}\.)?linkedin\.com\/(company|school|showcase)\/[^"'?#\s]+/i],
-  ["tiktok", /^https?:\/\/(www\.)?tiktok\.com\/@[\w.]+/i],
-  ["youtube", /^https?:\/\/(www\.)?youtube\.com\/(channel\/|c\/|user\/|@)[^"'?#\s]+/i],
-  ["twitter", /^https?:\/\/(www\.)?(twitter|x)\.com\/(?!intent|share|home)[\w]{2,}/i],
-  ["whatsapp", /^https?:\/\/(wa\.me\/\d{9,15}|api\.whatsapp\.com\/send\/?\?phone=\d{9,15})/i],
-];
 const FREE_MAIL = /@(gmail|walla|hotmail|yahoo|outlook|012|netvision|bezeqint|zahav|smile|actcom|017)\./;
 const PAGE_KIND: [string, RegExp][] = [
   ["careers", /career|\/jobs?\b|\/drushim|דרושים|משרות|קריירה|בואו לעבוד|join-us|joinus|%d7%93%d7%a8%d7%95%d7%a9%d7%99%d7%9d/i],
@@ -439,7 +431,7 @@ async function crawlSite(b: { id: number; name: string; name_en?: string | null;
     for (const h of hrefs) {
       if (/^tel:/i.test(h)) addPhone(decodeURIComponent(h.slice(4)));
       else if (/^mailto:/i.test(h)) mails.add(decodeURIComponent(h.slice(7).split("?")[0]).trim().toLowerCase());
-      else for (const [net, rx] of SOCIAL_RX) if (!socials[net] && rx.test(h)) socials[net] = h.split("#")[0];
+      else socialsFrom([h], socials);
     }
     if (pg.kind === "contact") for (const m of pg.text.match(PHONE_TXT) || []) addPhone(m);
     for (const m of pg.text.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi) || []) mails.add(m.toLowerCase());
@@ -449,7 +441,7 @@ async function crawlSite(b: { id: number; name: string; name_en?: string | null;
         org = org || o;
         for (const t of [].concat((o.telephone as never) || [])) addPhone(String(t));
         if (o.email) mails.add(String(o.email).replace(/^mailto:/, "").toLowerCase());
-        for (const s of [].concat((o.sameAs as never) || [])) for (const [net, rx] of SOCIAL_RX) if (!socials[net] && rx.test(String(s))) socials[net] = String(s);
+        socialsFrom([].concat((o.sameAs as never) || []).map(String), socials);
         for (const f of [].concat((o.founder as never) || [])) if (f && typeof f === "object" && (f as Obj).name) ppl.push({ name: clean((f as Obj).name), role: "מייסד/ת" });
       }
       if (typeIs(o, /JobPosting/)) {
@@ -726,7 +718,8 @@ async function stepWikidata(sb: SupabaseClient, src: Src, deadline: number) {
           for (const k of Object.keys(WD_SOCIAL)) {
             const v = one(k);
             if (!v || /^groups\//i.test(v)) continue; // a Facebook group is not the company's page
-            socials[WD_NET[k]] = /^https?:\/\//i.test(v) ? v : WD_SOCIAL[k](v);
+            const u = socialUrl(WD_NET[k], /^https?:\/\//i.test(v) ? v : WD_SOCIAL[k](v));
+            if (u) socials[WD_NET[k]] = u;
           }
           const ceo = one("ceoHe") || one("ceoEn");
           let site = ""; try { site = one("web") ? new URL(one("web")!).origin : ""; } catch { /* bad url */ }
@@ -1019,7 +1012,7 @@ async function readIdentity(domain: string): Promise<{ status: string; note?: st
       const x = decode(m[1]);
       if (/^tel:/i.test(x)) { const p = normPhone(decodeURIComponent(x.slice(4))); if (p) phones.add(p); }
       else if (/^mailto:/i.test(x)) mails.add(decodeURIComponent(x.slice(7).split("?")[0]).trim().toLowerCase());
-      else for (const [net, rx] of SOCIAL_RX) if (!socials[net] && rx.test(x)) socials[net] = x.split("#")[0];
+      else socialsFrom([x], socials);
     }
     for (const m of t.match(PHONE_TXT) || []) { const p = normPhone(m); if (p) phones.add(p); }
     for (const m of t.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi) || []) mails.add(m.toLowerCase());

@@ -5,6 +5,7 @@
 // No 7-rule filtering here; no paid services; no login walls; robots.txt respected for websites.
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { edgeCorsHeaders, jsonResponse, requireAuth } from "../_shared/edgeAuth.ts";
+import { socialUrl, socialsFrom } from "../_shared/socialUrl.ts";
 import { CKAN, MAPPERS, Row, TLV_MAPPERS, emails, fmtPhone, genericRow, normPhone, withBase } from "./mappers.ts";
 
 const STAGING_REF = "usfeoerkpcafxxlyuldl";
@@ -155,9 +156,10 @@ function osmRow(el: { type: string; id: number; tags: Record<string, string> }, 
     let v = String(t[k] || "").trim();
     if (!v) continue;
     if (net === "whatsapp") { const d = normPhone(v); if (d) v = "https://wa.me/972" + d.slice(1); }
-    if (/^https?:\/\//.test(v)) { socials[net] = v; break; }
-    if (net === "facebook" && /^[\w.-]+$/.test(v)) { socials[net] = "https://www.facebook.com/" + v; break; }
-    if (net === "instagram" && /^@?[\w.]+$/.test(v)) { socials[net] = "https://www.instagram.com/" + v.replace(/^@/, ""); break; }
+    // OSM holds full links or bare handles; either way only a whole account address is kept
+    if (!/^https?:\/\//.test(v)) v = net === "facebook" ? "https://www.facebook.com/" + v : net === "instagram" ? "https://www.instagram.com/" + v.replace(/^@/, "") : v;
+    const u = socialUrl(net, v);
+    if (u) { socials[net] = u; break; }
   }
   const web = t.website || t["contact:website"] || t.url || "";
   const url = `https://www.openstreetmap.org/${el.type}/${el.id}`;
@@ -192,15 +194,6 @@ async function stepOverpass(sb: SupabaseClient, src: Source): Promise<StepResult
 }
 
 // ── website enrichment: public homepage of a business website already in the registry ──
-const SOCIAL_RX: [string, RegExp][] = [
-  ["facebook", /^https?:\/\/(www\.|m\.|he-il\.)?facebook\.com\/(?!sharer|share|tr\b|plugins|dialog|login|policies|groups\/?$)[^"'?#\s]{2,}/i],
-  ["instagram", /^https?:\/\/(www\.)?instagram\.com\/(?!p\/|explore|accounts)[\w.]{2,}/i],
-  ["linkedin", /^https?:\/\/([a-z]{2,3}\.)?linkedin\.com\/(company|school|showcase)\/[^"'?#\s]+/i],
-  ["tiktok", /^https?:\/\/(www\.)?tiktok\.com\/@[\w.]+/i],
-  ["youtube", /^https?:\/\/(www\.)?youtube\.com\/(channel\/|c\/|user\/|@)[^"'?#\s]+/i],
-  ["twitter", /^https?:\/\/(www\.)?(twitter|x)\.com\/(?!intent|share|home)[\w]{2,}/i],
-  ["whatsapp", /^https?:\/\/(wa\.me\/\d{9,15}|api\.whatsapp\.com\/send\/?\?phone=\d{9,15})/i],
-];
 const FREE_MAIL = /@(gmail|walla|hotmail|yahoo|outlook|012|netvision|bezeqint|zahav|smile|actcom|017)\./;
 async function allowedByRobots(origin: string): Promise<boolean> {
   try {
@@ -238,7 +231,7 @@ async function crawlOne(b: { id: number; name: string; website: string }): Promi
   for (const m of html.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi) || []) mails.add(m.toLowerCase());
   const em = [...mails].filter((m) => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/.test(m) && !/\.(png|jpe?g|gif|webp|svg)$/.test(m) && (m.endsWith("@" + host) || m.endsWith("." + host) || FREE_MAIL.test(m)) && !/sentry|wixpress|example\./.test(m)).slice(0, 5).map((v) => ({ v }));
   const socials: Record<string, string> = {};
-  for (const h of hrefs) for (const [net, rx] of SOCIAL_RX) if (!socials[net] && rx.test(h)) socials[net] = h.split("#")[0];
+  socialsFrom(hrefs, socials);
   const contact = hrefs.find((h) => /contact|צור[-_ %20]*קשר|%d7%a6%d7%95%d7%a8/i.test(h) && !/^mailto|^tel/i.test(h));
   if (contact) { try { socials.contact_form = new URL(contact, finalUrl).href; } catch { /* ignore */ } }
   return {
