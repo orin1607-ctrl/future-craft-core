@@ -148,6 +148,9 @@ function fbHandle(url?: string | null) {
     if (!parts.length || /^(sharer|sharer\.php|share|dialog|plugins|tr|groups|events|watch|login|hashtag|policies|help)$/i.test(parts[0])) return null;
     if (parts[0] === "pages") { const id = parts.find((p) => /^\d{6,}$/.test(p)); return id || null; }
     const h = decodeURIComponent(parts[0]).toLowerCase();
+    // Vanity URLs like "name-in-hebrew-1060798157267233": the trailing page id is what Messenger accepts.
+    const tailId = h.match(/-(\d{10,})$/);
+    if (tailId) return tailId[1];
     // Scrapers sometimes store a website domain here (e.g. "www.example.co.il") — not a page username.
     if (/^www\.|\.(co\.il|org\.il|com|net|org|co)$/i.test(h)) return null;
     return /^[\p{L}\p{N}.\-]{2,80}$/u.test(h) ? h : null;
@@ -165,7 +168,7 @@ function igHandle(url?: string | null) {
   } catch { return null; }
 }
 
-const CONTACT_COLS = "id,company_name,contact_name,role,phone,email,website,facebook_url,facebook_handle,instagram_url,instagram_handle,whatsapp,city,industry,notes,tags,status,do_not_contact,dnc_reason,source,source_ref,next_action_at,last_contact_at,created_at,updated_at";
+const CONTACT_COLS = "id,source_url,profile,company_name,contact_name,role,phone,email,website,facebook_url,facebook_handle,instagram_url,instagram_handle,whatsapp,city,industry,notes,tags,status,do_not_contact,dnc_reason,source,source_ref,next_action_at,last_contact_at,created_at,updated_at";
 
 async function logEvent(biz: string, contactId: string, type: string, detail?: string, channel?: string) {
   await db.from("outreach_events").insert({ business_id: biz, contact_id: contactId, type, detail: detail || null, channel: channel || null });
@@ -223,7 +226,7 @@ async function contactSave(biz: string, c: any, force = false) {
     return { contact: data };
   }
   const data: any = must(await db.from("outreach_contacts").insert(row).select(CONTACT_COLS).single());
-  await logEvent(biz, data.id, "created", row.source === "manual" ? "נוסף ידנית" : `יובא מ-${row.source}`);
+  await logEvent(biz, data.id, "created", row.source === "manual" ? "נוסף ידנית" : (row.source === "openprospector" ? "הועבר מ-OpenProspector" : `יובא מ-${row.source}`));
   return { contact: data };
 }
 
@@ -413,22 +416,120 @@ async function prospectorSearch(b: any) {
   return { results: must(await q) };
 }
 
+/* Transfer from OpenProspector. Uses what the registry already collected: contact points (with source and
+   verification), people with roles, social links, fleet signals. The best value per channel is chosen:
+   verified > official registry > the company's own site > other. A company that is already in the
+   Marketing Center is never overwritten — only its empty fields are filled, and a note is added. */
+const PROSPECTOR_CARD = "https://orin1607-ctrl.github.io/future-craft-core/openprospector.html?tab=national&biz=";
+const FLEET_HE: Record<string, string> = { documented: "ראיה ל-5+ רכבים", strong: "סימנים חזקים לצי", possible: "פוטנציאל לצי" };
+const cpRank = (c: any) => (c.verified ? 8 : 0) + (c.src_official ? 4 : 0) + (c.src_own_site ? 2 : 0) + (c.src_groups || 0) * 0.1;
+const roleRank = (role: string) =>
+  /קצין\s*רכב|מנהל\s*(צי|רכב)|fleet|רכבים/i.test(role) ? 3 : /תפעול|לוגיסטיק|operations|רכש/i.test(role) ? 2
+  : /מנכ"?ל|בעלים|owner|ceo|מנהל\s*כללי|שותף/i.test(role) ? 1 : 0;
+
+async function prospectorLoad(ids: number[]) {
+  const cols = NR_COLS + ",district,reg_id,fleet_level,fleet_min,employees_count";
+  const [biz, cps, people] = await Promise.all([
+    db.from("nr_businesses").select(cols).in("id", ids),
+    db.from("nr_contact_points").select("business_id,kind,subkind,value,display,verified,src_official,src_own_site,src_groups").in("business_id", ids).in("kind", ["phone", "email", "social", "whatsapp", "website"]),
+    db.from("nr_people").select("business_id,full_name,role,phone,email").in("business_id", ids),
+  ]);
+  if (biz.error) throw biz.error;
+  const byBiz = (rows: any[] | null) => {
+    const m = new Map<number, any[]>();
+    for (const r of rows || []) { if (!m.has(r.business_id)) m.set(r.business_id, []); m.get(r.business_id)!.push(r); }
+    return m;
+  };
+  return { rows: biz.data as any[], cps: byBiz(cps.data), people: byBiz(people.data) };
+}
+
+function prospectorToContact(r: any, cps: any[] = [], people: any[] = []) {
+  const best = (pred: (c: any) => boolean) => cps.filter(pred).sort((a, b) => cpRank(b) - cpRank(a))[0];
+  const so = r.socials || {};
+  const phone = best((c) => c.kind === "phone" && c.subkind !== "branch") || best((c) => c.kind === "phone");
+  const mobile = best((c) => c.kind === "phone" && c.subkind === "mobile");
+  const wa = best((c) => c.kind === "whatsapp");
+  const email = best((c) => c.kind === "email");
+  const fb = best((c) => c.kind === "social" && c.subkind === "facebook");
+  const ig = best((c) => c.kind === "social" && c.subkind === "instagram");
+  const person = [...people].filter((p) => p.full_name).sort((a, b) => roleRank(b.role || "") - roleRank(a.role || ""))[0];
+  const waNum = (v?: string | null) => v ? ((String(v).match(/phone=(\d+)/) || [])[1] || String(v).replace(/\D/g, "") || null) : null;
+  const facts = [
+    r.fleet_level && FLEET_HE[r.fleet_level] ? `צי: ${FLEET_HE[r.fleet_level]}${r.fleet_min ? ` (לפחות ${r.fleet_min} רכבים)` : ""}` : "",
+    r.employees_count ? `עובדים: ${r.employees_count}` : r.employees_range ? `עובדים: ${r.employees_range}` : "",
+    r.reg_id ? `ח.פ. ${r.reg_id}` : "",
+    phone ? `טלפון: ${phone.verified ? "מאומת ב-2 מקורות" : phone.src_official ? "ממאגר רשמי" : phone.src_own_site ? "מאתר החברה" : "ממקור אחר"}` : "",
+  ].filter(Boolean);
+  return {
+    company_name: r.name,
+    contact_name: person?.full_name || null, role: person?.role || null,
+    phone: phone?.value || r.phone_main || person?.phone || null,
+    whatsapp: waNum(wa?.value) || waNum(so.whatsapp) || waNum(r.whatsapp) || (mobile && mobile.value !== phone?.value ? mobile.value : null),
+    email: email?.value || r.email_main || person?.email || null,
+    website: r.website || null,
+    facebook_url: fb?.value || so.facebook || null,
+    instagram_url: ig?.value || so.instagram || null,
+    city: r.city || null, industry: r.main_activity || r.sector || null,
+    notes: facts.length ? "מ-OpenProspector · " + facts.join(" · ") : "מ-OpenProspector",
+    tags: ["OpenProspector", ...(r.fleet_level ? ["צי רכב"] : [])],
+    source: "openprospector", source_ref: String(r.id),
+    _extra: {
+      source_url: PROSPECTOR_CARD + r.id,
+      profile: { district: r.district || null, reg_id: r.reg_id || null, fleet_level: r.fleet_level || null, fleet_min: r.fleet_min || null,
+        people: people.slice(0, 5).map((p) => ({ name: p.full_name, role: p.role })), imported_at: new Date().toISOString() },
+    },
+  };
+}
+
+const FILLABLE = ["contact_name", "role", "phone", "whatsapp", "email", "website", "facebook_url", "instagram_url", "city", "industry"];
+
 async function prospectorImport(biz: string, ids: number[]) {
-  if (!Array.isArray(ids) || !ids.length || ids.length > 50) throw new Error("ניתן לייבא 1–50 עסקים בכל פעם");
-  const rows = must(await db.from("nr_businesses").select(NR_COLS).in("id", ids)) as any[];
-  const imported: string[] = [], dups: { name: string; why: string }[] = [];
-  for (const r of rows) {
-    const so = r.socials || {};
-    const res: any = await contactSave(biz, {
-      company_name: r.name, phone: r.phone_main, email: r.email_main, website: r.website,
-      facebook_url: so.facebook || null, instagram_url: so.instagram || null,
-      whatsapp: r.whatsapp || (so.whatsapp ? (String(so.whatsapp).match(/phone=(\d+)/) || [])[1] || null : null),
-      city: r.city, industry: r.main_activity || r.sector, source: "openprospector", source_ref: String(r.id),
-    });
-    if (res.duplicate) dups.push({ name: r.name, why: res.duplicate.why });
-    else imported.push(res.contact.id);
+  ids = [...new Set((ids || []).map(Number).filter(Boolean))];
+  if (!ids.length || ids.length > 500) throw new Error("ניתן להעביר 1–500 עסקים בכל פעם");
+  const imported: string[] = [], merged: { name: string; filled: string[] }[] = [], skipped: { name: string; why: string }[] = [];
+  for (let i = 0; i < ids.length; i += 100) {
+    const { rows, cps, people } = await prospectorLoad(ids.slice(i, i + 100));
+    for (const r of rows) {
+      const c = prospectorToContact(r, cps.get(r.id), people.get(r.id));
+      const extra = c._extra; delete (c as any)._extra;
+      const res: any = await contactSave(biz, c);
+      if (res.contact) {
+        await db.from("outreach_contacts").update(extra).eq("id", res.contact.id);
+        imported.push(res.contact.id);
+        continue;
+      }
+      // Already in the Marketing Center: keep what is there, fill only empty fields.
+      const cur: any = (await db.from("outreach_contacts").select("*").eq("id", res.duplicate.id).single()).data;
+      if (!cur) { skipped.push({ name: r.name, why: res.duplicate.why }); continue; }
+      const patch: any = {};
+      const nRow = contactRow(biz, c);
+      for (const k of FILLABLE) if (!cur[k] && (c as any)[k]) patch[k] = (c as any)[k];
+      if (patch.facebook_url && !cur.facebook_handle && nRow.facebook_handle) patch.facebook_handle = nRow.facebook_handle;
+      if (patch.instagram_url && !cur.instagram_handle && nRow.instagram_handle) patch.instagram_handle = nRow.instagram_handle;
+      if ((patch.phone || patch.whatsapp) && !cur.phone_norm && nRow.phone_norm) patch.phone_norm = nRow.phone_norm;
+      if (!cur.source_ref) { patch.source_url = extra.source_url; patch.profile = { ...(cur.profile || {}), ...extra.profile }; }
+      const filled = Object.keys(patch).filter((k) => FILLABLE.includes(k));
+      if (Object.keys(patch).length) {
+        patch.updated_at = new Date().toISOString();
+        const { error } = await db.from("outreach_contacts").update(patch).eq("id", cur.id);
+        if (error) { skipped.push({ name: r.name, why: /unique|duplicate/i.test(error.message) ? "פרט קשר כבר שייך ללקוח אחר" : error.message }); continue; }
+        await logEvent(biz, cur.id, "edited", `הושלמו פרטים מ-OpenProspector: ${filled.join(", ") || "קישור לכרטיס"}`);
+      }
+      merged.push({ name: r.name, filled });
+    }
   }
-  return { imported: imported.length, duplicates: dups };
+  return { imported: imported.length, merged, skipped, duplicates: merged.map((m) => ({ name: m.name, why: "כבר במרכז השיווק" })) };
+}
+
+// Which registry businesses are already in the Marketing Center (any business), with their outreach status.
+async function prospectorStatus(ids: number[]) {
+  ids = [...new Set((ids || []).map(Number).filter(Boolean))].slice(0, 500);
+  if (!ids.length) return { map: {} };
+  const rows = must(await db.from("outreach_contacts").select("source_ref,business_id,status,do_not_contact,last_contact_at")
+    .eq("source", "openprospector").in("source_ref", ids.map(String))) as any[];
+  const map: Record<string, any[]> = {};
+  for (const r of rows) (map[r.source_ref] ||= []).push({ business_id: r.business_id, status: r.status, dnc: r.do_not_contact, last: r.last_contact_at });
+  return { map };
 }
 
 /* =============== router =============== */
@@ -445,7 +546,7 @@ Deno.serve(async (req) => {
     if (route === "auth/devices") return json({ ...(await listDevices(db)), current: auth.kind === "device" ? auth.deviceId : null });
     if (route === "auth/revoke") return json(await revokeDevice(db, b.id));
     const biz = String(b.business_id || "");
-    if (route !== "ping" && !route.startsWith("prospector/search")) await business(biz);
+    if (!["ping", "prospector/search", "prospector/status"].includes(route)) await business(biz);
 
     switch (route) {
       case "ping": return json({ ok: true });
@@ -475,6 +576,7 @@ Deno.serve(async (req) => {
       case "queue/cancel": return json(await queueCancel(biz, b));
       case "prospector/search": return json(await prospectorSearch(b));
       case "prospector/import": return json(await prospectorImport(biz, b.ids));
+      case "prospector/status": return json(await prospectorStatus(b.ids));
       default: return json({ error: "route not found", route }, 404);
     }
   } catch (e) {

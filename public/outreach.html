@@ -198,6 +198,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
       <label class="full">הערות<textarea id="f_notes" rows="2"></textarea></label>
     </div>
     <div id="cExtra" hidden>
+      <div id="cSrc"></div>
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0">
       <div class="row">
         <label class="muted">סטטוס <select id="cStatus"></select></label>
@@ -363,6 +364,11 @@ async function openContact(c){
   FIELDS.forEach(f => $('#f_'+f).value = c?.[f] || '');
   $('#cExtra').hidden = !c;
   if (c) {
+    const pf = c.profile || {};
+    $('#cSrc').innerHTML = c.source === 'openprospector' ? `<div class="note info" style="margin-top:12px">
+      <b>מ-OpenProspector</b>${pf.fleet_level ? ` · 🚚 ${pf.fleet_level==='documented'?'ראיה ל-5+ רכבים':pf.fleet_level==='strong'?'סימנים חזקים לצי':'פוטנציאל לצי'}${pf.fleet_min?` (לפחות ${pf.fleet_min})`:''}` : ''}${pf.district ? ' · ' + esc(pf.district) : ''}
+      ${(pf.people||[]).length ? `<div class="muted">בעלי תפקידים: ${pf.people.map(p=>esc(p.name)+(p.role?' – '+esc(p.role):'')).join(' · ')}</div>` : ''}
+      ${c.source_url ? `<a class="btn sm" style="margin-top:6px" href="${esc(c.source_url)}" target="_blank" rel="noopener">🔗 כרטיס החברה ב-OpenProspector</a>` : ''}</div>` : '';
     $('#cStatus').value = c.status;
     $('#cRemind').value = c.next_action_at ? new Date(new Date(c.next_action_at) - new Date().getTimezoneOffset()*6e4).toISOString().slice(0,16) : '';
     $('#cDnc').textContent = c.do_not_contact ? 'חידוש פניות ללקוח' : 'עצירת פניות ללקוח';

@@ -37,6 +37,8 @@
     ind: null,
     // Dalia leads streamed from the registry into prospect_leads (the 7 rules run only there)
     leads: { f: {}, data: null, stats: null, page: 0, loading: false, err: "" },
+    // Marketing Center link: registry businesses already transferred (by id) → their outreach status
+    mk: {},
     // engine control panel + open alerts (banner on every registry screen)
     ctl: null, ctlLoading: false, ctlErr: "", alerts: [], alertsAt: 0,
   };
@@ -113,6 +115,104 @@
     if (r.error) throw new Error(r.error.message);
     return r.data;
   }
+  // ── Marketing Center (מרכז השיווק) link ──
+  // Selected businesses are transferred to the Marketing Center outreach list through the marketing-hub function
+  // (shared owner sign-in, window.Hub). Nothing is sent to anyone from here; existing outreach data is never overwritten.
+  const MK_ST = { new: "חדש", ready: "מוכן לפנייה", sent: "נשלח", awaiting_reply: "ממתין לתגובה", interested: "התעניין", not_interested: "לא מעוניין", customer: "לקוח" };
+  const MK_URL = "./outreach.html";
+  function mkReady() { return !!(window.Hub && Hub.key); }
+  // An expired / disconnected sign-in drops back to the sign-in field instead of a dead-end error.
+  if (window.Hub) Hub.onAuthFail = () => {
+    Hub.clearKey();
+    if (ST.modal && ST.modal.type === "mk") { ST.modal.error = ""; ST.modal.authErr = "החיבור למרכז השיווק בדפדפן הזה פג. התחברו מחדש עם קוד מ\"📱 חיבור טלפון\" או עם מפתח הגישה."; rerender(); }
+  };
+  function markStatus(ids) {
+    if (!mkReady() || !ids || !ids.length) return;
+    Hub.hub("prospector/status", { ids }).then((d) => {
+      ids.forEach((id) => { ST.mk[id] = (d.map || {})[String(id)] || null; });
+      rerender();
+    }).catch(() => {});
+  }
+  function mkBadge(id) {
+    const s = ST.mk[id];
+    if (!s || !s.length) return "";
+    const x = s[0];
+    return ` <a class="badge ${x.dnc ? "b-bad" : x.status === "customer" ? "b-ok" : "b-blue"}" href="${MK_URL}" target="_blank" rel="noopener" data-nr-stop="1" title="כבר במרכז השיווק – פניות ללקוחות עסקיים">📣 ${x.dnc ? "פניות עצורות" : "במרכז השיווק · " + esc(MK_ST[x.status] || x.status)}</a>`;
+  }
+  async function mkIds(m) {
+    if (m.ids) return m.ids;
+    if (!ST.selectAllMatching) return [...ST.selected];
+    const out = [];
+    let after = 0;
+    while (out.length < 500) {
+      const rows = await rpc("nr_export_page", { p_filters: cleanFilters(), p_after: after, p_limit: 500 });
+      rows.forEach((r) => { if (out.length < 500) out.push(r.id); });
+      if (rows.length < 500) break;
+      after = rows[rows.length - 1].id;
+    }
+    return out;
+  }
+  function mkBody(m) {
+    if (!window.Hub) return `<div class="badge b-bad">מודול מרכז השיווק לא נטען. רעננו את העמוד.</div>`;
+    if (!mkReady()) return `<div class="xs" style="white-space:normal">כדי להעביר עסקים צריך להתחבר פעם אחת למרכז השיווק בדפדפן הזה.
+        הזינו את הקוד בן 6 הספרות ממסך "📱 חיבור טלפון" במרכז השיווק, או את מפתח הגישה.</div>
+      <div class="row"><input class="input" id="nrMkKey" autocomplete="one-time-code" placeholder="קוד בן 6 ספרות / מפתח גישה" style="max-width:280px;direction:ltr">
+        <button class="btn btn-sm btn-primary" data-nr="mkauth">התחברות</button></div>
+      ${m.authErr ? `<div class="badge b-bad" style="white-space:normal">${esc(m.authErr)}</div>` : ""}`;
+    if (m.result) {
+      const r = m.result;
+      return `<div class="badge b-ok" style="white-space:normal;font-size:14px">✅ הועברו ${n(r.imported)} עסקים חדשים למרכז השיווק${r.merged.length ? ` · ${n(r.merged.length)} כבר היו שם (הנתונים שלהם נשמרו, רק שדות ריקים הושלמו)` : ""}${r.skipped.length ? ` · ${n(r.skipped.length)} דולגו` : ""}</div>
+        ${r.skipped.length ? `<div class="xs" style="white-space:normal">דולגו: ${r.skipped.slice(0, 20).map((x) => esc(x.name) + " – " + esc(x.why)).join(" · ")}</div>` : ""}
+        <div class="xs muted" style="white-space:normal">שום הודעה לא נשלחה. במרכז השיווק אפשר להכין פניות, לנהל תור עבודה ולעקוב אחרי כל חברה.</div>
+        <div class="row"><a class="btn btn-sm btn-primary" href="${MK_URL}" target="_blank" rel="noopener">📣 פתיחת "פניות ללקוחות עסקיים"</a><button class="btn btn-sm" data-nr="close">סגור</button></div>`;
+    }
+    const bizs = m.businesses || [];
+    const count = m.ids ? n(m.ids.length) : ST.selectAllMatching ? "כל התוצאות (עד 500 הראשונות)" : n(ST.selected.size);
+    return `<div class="xs" style="white-space:normal"><b>${count}</b> עסקים יועברו לרשימת "פניות ללקוחות עסקיים" במרכז השיווק,
+        כולל טלפון (המאומת ביותר), וואטסאפ, אימייל, פייסבוק, אינסטגרם, אתר, עיר, תחום, איש קשר רלוונטי (קצין רכב / תפעול / הנהלה) ומידע על צי הרכב, עם קישור חזרה לכרטיס כאן.</div>
+      <div class="xs muted" style="white-space:normal">עסק שכבר קיים במרכז השיווק לא ייווצר פעמיים, והנתונים שכבר הוזנו לו לא יידרסו – רק שדות ריקים יושלמו. שום הודעה לא נשלחת בשלב הזה.</div>
+      <div class="row"><label class="xs">לאיזה עסק שלנו? <select class="input" id="nrMkBiz" style="width:auto">${bizs.map((b) => `<option value="${esc(b.id)}" ${b.id === (m.biz || Hub.biz) ? "selected" : ""}>${esc(b.name)}</option>`).join("") || '<option value="dalia">דליה</option>'}</select></label>
+        <button class="btn btn-sm btn-primary" data-nr="mkgo" ${m.busy ? "disabled" : ""}>${m.busy ? "⏳ " + esc(m.progress || "מעביר…") : "📣 העברה למרכז השיווק"}</button></div>
+      ${m.error ? `<div class="badge b-bad" style="white-space:normal">${esc(m.error)}</div>` : ""}`;
+  }
+  async function openMk(ids) {
+    ST.modal = { type: "mk", title: "העברה למרכז השיווק", ids: ids || null };
+    rerender();
+    if (mkReady()) { try { ST.modal.businesses = await Hub.businesses(); } catch (e) { if (mkReady()) ST.modal.error = e.message; } rerender(); }
+  }
+  async function mkAuth() {
+    const m = ST.modal, el = document.getElementById("nrMkKey"), raw = el ? el.value : "";
+    const digits = String(raw).replace(/\s/g, "");
+    m.authErr = "";
+    try {
+      let key;
+      if (/^\d{6}$/.test(digits)) { const p = await Hub.pairWithCode(digits); if (p.error) throw new Error(p.error); key = p.token; }
+      else { key = Hub.normalizeKey(raw); const msg = await Hub.verifyKey(key); if (msg) throw new Error(msg); }
+      Hub.setKey(key);
+      m.businesses = await Hub.businesses();
+    } catch (e) { m.authErr = e.message || String(e); }
+    rerender();
+  }
+  async function mkGo() {
+    const m = ST.modal;
+    const sel = document.getElementById("nrMkBiz");
+    m.biz = sel ? sel.value : Hub.biz; m.busy = true; m.error = ""; m.progress = "אוסף את הרשימה…"; rerender();
+    try {
+      const ids = await mkIds(m);
+      if (!ids.length) throw new Error("לא נבחרו עסקים");
+      const total = { imported: 0, merged: [], skipped: [] };
+      for (let i = 0; i < ids.length; i += 100) {
+        m.progress = `מעביר ${n(Math.min(i + 100, ids.length))} / ${n(ids.length)}…`; rerender();
+        const r = await Hub.hub("prospector/import", { business_id: m.biz, ids: ids.slice(i, i + 100) });
+        total.imported += r.imported; total.merged.push(...r.merged); total.skipped.push(...r.skipped);
+      }
+      m.result = total; m.busy = false;
+      markStatus(ids.slice(0, 500));
+      if (!m.ids) { ST.selected.clear(); ST.selectAllMatching = false; }
+    } catch (e) { m.error = e.message || String(e); m.busy = false; }
+    rerender();
+  }
+
   // redraw once at a time: replacing the view removes a focused filter box, whose "change" event (fired on blur) starts
   // a new search and asks for a redraw while the first one is still running – that one waits and runs right after
   let rendering = false, renderAgain = false;
@@ -212,6 +312,7 @@
       if (seq !== browseSeq) return;
       if (r.error) throw new Error(r.error.message || "שגיאת שרת");
       ST.result = r.data && Array.isArray(r.data.rows) ? r.data : { total: 0, rows: [] };
+      markStatus(ST.result.rows.map((x) => x.id));
     } catch (e) {
       if (seq === browseSeq) {
         const m = String((e && e.message) || e || "");
@@ -405,6 +506,7 @@
         <button class="btn btn-sm" data-nr="markset" data-v="irrelevant" ${selCount ? "" : "disabled"}>🚫 לא רלוונטי</button>
         <button class="btn btn-sm" data-nr="markset" data-v="archived" ${selCount ? "" : "disabled"}>🗄️ לארכיון</button>
         <button class="btn btn-sm" data-nr="togroup" ${selCount ? "" : "disabled"}>👥 לקבוצת עבודה</button>
+        <button class="btn btn-sm btn-primary" data-nr="tomk" ${selCount ? "" : "disabled"} title="העברת העסקים שנבחרו לרשימת הפניות במרכז השיווק">📣 למרכז השיווק</button>
         <button class="btn btn-sm" data-nr="export">⬇️ ייצוא CSV / אקסל${selCount ? " (נבחרים)" : " (תוצאות הסינון)"}</button>
         <button class="btn btn-sm" disabled title="יופעל בשלב הבא – כרגע לא מסננים ולא מוחקים">🧭 7 חוקי הסינון של דליה – בשלב הבא</button>
         <button class="btn btn-sm btn-ghost" data-nr="advanced">${ST.showAdvanced ? "▲" : "▼"} ניהול מתקדם</button>
@@ -428,7 +530,7 @@
         <tbody>${rows.map((b) => `<tr data-nr="biz" data-v="${b.id}">
           <td data-nr-stop="1"><input type="checkbox" data-nr="selrow" data-v="${b.id}" ${ST.selectAllMatching || ST.selected.has(b.id) ? "checked" : ""} ${ST.selectAllMatching ? "disabled" : ""}></td>
           <td><div class="co-name">${esc(b.name)}</div><div class="xs muted">${esc(BIZ_STATUS[b.status] || "")}${b.corp_type ? " · " + esc(b.corp_type) : ""}${b.founded_year ? " · הוקם " + b.founded_year : ""}
-            ${(b.marks || []).map((m) => MARKS[m] ? ` <span class="badge ${MARKS[m][1]}">${MARKS[m][0]}</span>` : "").join("")}${b.has_conflict ? ` <span class="badge b-est" title="יש סתירה מתועדת בין מקורות">סתירה</span>` : ""}</div>
+            ${(b.marks || []).map((m) => MARKS[m] ? ` <span class="badge ${MARKS[m][1]}">${MARKS[m][0]}</span>` : "").join("")}${b.has_conflict ? ` <span class="badge b-est" title="יש סתירה מתועדת בין מקורות">סתירה</span>` : ""}${mkBadge(b.id)}</div>
             ${b.enr_findings ? `<div class="nr-hl">${b.enr_important ? `<span class="badge nr-imp">★ חשוב</span>` : `<span class="badge b-blue">● חדש</span>`}${b.enr_verified ? `<span class="badge b-ok">✓</span>` : ""}
               <span>${esc(String(b.enr_headline || "").slice(0, 130))}</span><span class="muted">${day(b.enr_last_found_at)}${b.enr_findings > 1 ? ` · עוד ${n(b.enr_findings - 1)}` : ""}</span></div>` : ""}
             ${b.enr_needs_review ? `<div class="nr-hl"><span class="badge b-no">⏳ ממתין לבדיקת שיוך</span></div>` : ""}
@@ -511,6 +613,7 @@
     else if (m.type === "group") body = groupPicker();
     else if (m.type === "confirm") body = confirmBox(m);
     else if (m.type === "export") body = `<div>${esc(m.msg || "")}</div>`;
+    else if (m.type === "mk") body = mkBody(m);
     else if (m.data && m.type === "source") body = sourceDetail(m.data);
     else if (m.data && m.type === "biz") body = bizDetail(m.data);
     return `<div data-nr="close" style="position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:900;display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto">
@@ -807,7 +910,7 @@
   }
   async function loadOutreach() {
     ST.out.loading = true; ST.out.error = ""; rerender();
-    try { ST.out.rows = await rpc("nr_outreach_page", { p_filters: ST.out.filters, p_after: ST.out.afters[ST.out.page] || 0, p_limit: 50 }); }
+    try { ST.out.rows = await rpc("nr_outreach_page", { p_filters: ST.out.filters, p_after: ST.out.afters[ST.out.page] || 0, p_limit: 50 }); markStatus(ST.out.rows.map((x) => x.id)); }
     catch (e) { ST.out.error = e.message; ST.out.rows = []; }
     ST.out.loading = false; rerender();
   }
@@ -897,7 +1000,7 @@
         <button class="btn btn-sm" data-nr="opage" data-v="1" ${rows.length === 50 ? "" : "disabled"}>הבא ←</button></div>
       <div class="tbl-wrap"><table><thead><tr><th>חברה</th><th>פוטנציאל צי רכב וראיות</th><th>אנשי קשר רלוונטיים</th><th>טלפונים</th><th>אימיילים</th><th>תחום ועיר</th><th>אתר</th><th>טרם אומתו</th></tr></thead><tbody>
       ${rows.map((r) => `<tr>
-        <td><div class="co-name" data-nr="biz" data-v="${r.id}" style="cursor:pointer">${esc(r.name)}</div><div class="xs muted">${r.reg_id ? "ח.פ. " + esc(r.reg_id) : esc(r.corp_type || "")}</div>
+        <td><div class="co-name" data-nr="biz" data-v="${r.id}" style="cursor:pointer">${esc(r.name)}</div>${mkBadge(r.id) ? `<div>${mkBadge(r.id)}</div>` : `<button class="btn btn-sm" data-nr="tomk1" data-v="${r.id}" style="margin:2px 0">📣 למרכז השיווק</button>`}<div class="xs muted">${r.reg_id ? "ח.פ. " + esc(r.reg_id) : esc(r.corp_type || "")}</div>
           <a class="xs" href="${esc(cardUrl(r.id))}" target="_blank" rel="noopener" data-nr-stop="1">🔗 קישור לכרטיס</a></td>
         <td style="max-width:340px;white-space:normal">${fleetCell(r)}</td>
         <td class="xs" style="max-width:260px;white-space:normal">${peopleCell(r)}</td>
@@ -1257,6 +1360,10 @@
     else if (act === "markone") setMark(v, [Number(el.dataset.id)]);
     else if (act === "togroup") { ST.modal = { type: "group", title: "הוספה לקבוצת עבודה" }; rerender(); }
     else if (act === "groupadd") addToGroup(v);
+    else if (act === "tomk") openMk(null);
+    else if (act === "tomk1") openMk([Number(v)]);
+    else if (act === "mkauth") mkAuth();
+    else if (act === "mkgo") mkGo();
     else if (act === "groupnew") {
       const name = ((document.getElementById("nrNewGroup") || {}).value || "").trim();
       if (!name) { toast("יש להזין שם לקבוצה"); return; }
