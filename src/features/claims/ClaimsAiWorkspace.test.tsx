@@ -78,7 +78,7 @@ describe('ClaimsAiWorkspace', () => {
     expect(screen.getByTestId('claims-ai-new')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(listClaimsAiConversations).toHaveBeenCalledWith('user-1', 'DAL-2026-0001');
+      expect(listClaimsAiConversations).toHaveBeenCalledWith('user-1', 'DAL-2026-0001', 'claims', null);
     });
     expect(await screen.findByText('מה הסטטוס?')).toBeInTheDocument();
     expect(screen.getByText('הסטטוס ממתין לחברת ביטוח.')).toBeInTheDocument();
@@ -94,7 +94,7 @@ describe('ClaimsAiWorkspace', () => {
     );
     expect(screen.getByTestId('claims-ai-context')).toHaveTextContent('אין תיק פתוח');
     await waitFor(() => {
-      expect(listClaimsAiConversations).toHaveBeenCalledWith('user-1', null);
+      expect(listClaimsAiConversations).toHaveBeenCalledWith('user-1', null, 'claims', null);
     });
     expect(screen.queryByText('דנה לוי')).not.toBeInTheDocument();
   });

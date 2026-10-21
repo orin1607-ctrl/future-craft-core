@@ -114,9 +114,9 @@ describe('expiry alert feed (unified log)', () => {
       id: 'veh-1',
       license_plate: '45954002',
       company_name: 'QA-Company-A',
-      test_expiry: '2026-08-20',
-      insurance_expiry: '2026-12-01',
-      next_inspection_date: '2026-11-13',
+      test_expiry: '2027-08-20',
+      insurance_expiry: '2027-12-01',
+      next_inspection_date: '2027-11-13',
     });
     const topics = rows.map((r) => r.topic);
     expect(topics).toContain('טסט / רישיון רכב');
@@ -139,7 +139,7 @@ describe('expiry alert feed (unified log)', () => {
     const rows = driverExpiryToLogEntries({
       id: 'drv-1',
       full_name: 'נהג בדיקה',
-      license_expiry: '2026-09-01',
+      license_expiry: '2027-09-01',
     });
     expect(rows[0].topic).toBe('רישיון נהיגה');
     expect(rows[0].driverId).toBe('drv-1');

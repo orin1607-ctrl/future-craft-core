@@ -15,6 +15,8 @@ export type ClaimsAiConversation = {
   id: string;
   user_id: string;
   claim_id: string | null;
+  module?: 'claims' | 'garage' | 'dashboard';
+  garage_case_id?: string | null;
   title: string;
   created_at: string;
   updated_at: string;
@@ -93,13 +95,24 @@ export function claimContextFromRecord(c: Pick<ClaimRecord, 'id'> & Partial<Clai
   };
 }
 
-/** A conversation is visible only for the claim it was created on. No open claim means unscoped chats only. */
-export function conversationsForClaim<T extends { claim_id: string | null; archived?: boolean }>(
+/** A conversation is visible only for the context it was created on (claims, garage, or dashboard). */
+export function conversationsForClaim<T extends { claim_id?: string | null; module?: string; garage_case_id?: string | null; archived?: boolean }>(
   rows: T[],
   claimId: string | null,
+  module: 'claims' | 'garage' | 'dashboard' = 'claims',
+  garageCaseId: string | null = null,
 ): T[] {
   return rows.filter((row) => {
     if (row.archived) return false;
+    const m = row.module || 'claims';
+    if (m !== module) return false;
+    if (module === 'garage') {
+      if (garageCaseId) return row.garage_case_id === garageCaseId;
+      return row.garage_case_id == null || row.garage_case_id === '';
+    }
+    if (module === 'dashboard') {
+      return true;
+    }
     if (claimId) return row.claim_id === claimId;
     return row.claim_id == null || row.claim_id === '';
   });
@@ -236,6 +249,17 @@ export function documentCardsOf(raw: unknown, claimId?: string | null): ClaimsAi
   return out;
 }
 
-export function activeConversationStorageKey(userId: string, claimId: string | null): string {
+export function activeConversationStorageKey(
+  userId: string,
+  claimId: string | null,
+  module: 'claims' | 'garage' | 'dashboard' = 'claims',
+  garageCaseId?: string | null,
+): string {
+  if (module === 'garage') {
+    return `garage-ai-active:${userId}:${garageCaseId || 'none'}`;
+  }
+  if (module === 'dashboard') {
+    return `dashboard-ai-active:${userId}`;
+  }
   return `claims-ai-active:${userId}:${claimId || 'none'}`;
 }

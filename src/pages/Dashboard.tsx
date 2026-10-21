@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import DriverDashboard from '@/components/DriverDashboard';
 import PrivateCustomerDashboard from '@/components/PrivateCustomerDashboard';
@@ -13,6 +13,7 @@ import { ClaimsAiWorkspace } from '@/features/claims/ClaimsAiWorkspace';
 /** דשבורד ראשי — כרטיסי עולמות + התראות (+ מרכז ניהול ל-super_admin) */
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [aiOpen, setAiOpen] = useState(false);
   const { driverId, driverName, locked: driverLocked } = useDriverUrlContext();
   const { hiddenButtons, ready } = useHiddenButtonsState();
@@ -75,6 +76,12 @@ export default function Dashboard() {
             userId={user.id}
             companyName={user.company_name || null}
             module={user.garageOps ? 'garage' : 'dashboard'}
+            onOpenGarageCase={(caseId) => {
+              navigate(`/garage-management/${caseId}`);
+            }}
+            onOpenClaim={(claimId) => {
+              navigate(`/claims/${claimId}`);
+            }}
           />
         </div>
       )}

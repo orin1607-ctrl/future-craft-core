@@ -294,17 +294,28 @@ export function cleanTextForSpeech(markdown: string): string {
     .trim();
 }
 
-function readActiveId(userId: string, claimId: string | null): string | null {
+function readActiveId(
+  userId: string,
+  claimId: string | null,
+  module: 'claims' | 'garage' | 'dashboard' = 'claims',
+  garageCaseId?: string | null,
+): string | null {
   try {
-    return sessionStorage.getItem(activeConversationStorageKey(userId, claimId));
+    return sessionStorage.getItem(activeConversationStorageKey(userId, claimId, module, garageCaseId));
   } catch {
     return null;
   }
 }
 
-function writeActiveId(userId: string, claimId: string | null, id: string | null) {
+function writeActiveId(
+  userId: string,
+  claimId: string | null,
+  id: string | null,
+  module: 'claims' | 'garage' | 'dashboard' = 'claims',
+  garageCaseId?: string | null,
+) {
   try {
-    const key = activeConversationStorageKey(userId, claimId);
+    const key = activeConversationStorageKey(userId, claimId, module, garageCaseId);
     if (id) sessionStorage.setItem(key, id);
     else sessionStorage.removeItem(key);
   } catch {
@@ -317,6 +328,8 @@ async function streamHelpAi(input: {
   claimId: string | null;
   companyName: string | null;
   module?: 'claims' | 'garage' | 'dashboard';
+  garageCaseId?: string | null;
+  garageCase?: GarageCaseAiContext | null;
   attachments?: Array<{ name: string; mime_type: string; byte_size: number; file_id?: string; data_base64?: string }>;
   signal?: AbortSignal;
   onDelta: (full: string) => void;
@@ -343,6 +356,8 @@ async function streamHelpAi(input: {
       company_name: input.companyName,
       module: input.module || 'claims',
       claim_id: input.claimId,
+      garage_case_id: input.garageCaseId,
+      garage_case: input.garageCase,
       attachments: input.attachments,
     }),
   });
@@ -478,9 +493,57 @@ function parseBlocks(markdown: string): ContentBlock[] {
   return blocks;
 }
 
-function renderFormattedCell(text: string, onOpenClaim?: (claimId: string) => void) {
+function renderFormattedCell(
+  text: string,
+  onOpenClaim?: (claimId: string) => void,
+  onOpenGarageCase?: (caseId: string) => void,
+) {
   const isUrgent = text.includes('🔴') || text.includes('[דחוף]');
   const isWait = text.includes('🟡') || text.includes('[ממתין]');
+
+  // Match garage markdown link [label](#/garage-management/<id>) or [label](garage:<id>)
+  const garageLinkMatch = text.match(/\[(.*?)\]\((?:#\/garage-management\/|garage:)([^)]+)\)/);
+  if (garageLinkMatch) {
+    const label = garageLinkMatch[1];
+    const targetRef = garageLinkMatch[2];
+    return (
+      <button
+        type="button"
+        className="claims-claim-btn"
+        style={{ borderColor: 'rgba(59, 130, 246, 0.4)', background: 'rgba(59, 130, 246, 0.1)' }}
+        title={`פתח כרטיס עבודה ${targetRef}`}
+        onClick={() => {
+          if (onOpenGarageCase) onOpenGarageCase(targetRef);
+          else window.location.hash = `#/garage-management/${targetRef}`;
+        }}
+      >
+        🚗 {label || `פתח ${targetRef}`}
+      </button>
+    );
+  }
+
+  // Match garage case number like GM-2026-0043
+  const garageCaseMatch = text.match(/GM-\d{4}-\d{4}|GM-[A-Za-z0-9_-]+/);
+  if (garageCaseMatch) {
+    const caseId = garageCaseMatch[0];
+    const isExplicit = text.includes('פתח') || text.includes('garage:') || text.trim().startsWith('GM-') || text.trim().startsWith('[GM-');
+    if (isExplicit) {
+      return (
+        <button
+          type="button"
+          className="claims-claim-btn"
+          style={{ borderColor: 'rgba(59, 130, 246, 0.4)', background: 'rgba(59, 130, 246, 0.1)' }}
+          title={`פתח כרטיס עבודה ${caseId}`}
+          onClick={() => {
+            if (onOpenGarageCase) onOpenGarageCase(caseId);
+            else window.location.hash = `#/garage-management/${caseId}`;
+          }}
+        >
+          🚗 {text.includes('פתח') ? text.replace(/[\[\]]/g, '') : `פתח ${caseId}`}
+        </button>
+      );
+    }
+  }
 
   const linkMatch = text.match(/\[(.*?)\]\(claim:([^)]+)\)/);
   if (linkMatch) {
@@ -540,11 +603,50 @@ function renderFormattedCell(text: string, onOpenClaim?: (claimId: string) => vo
   return text;
 }
 
-function renderFormattedText(text: string, onOpenClaim?: (claimId: string) => void) {
-  const parts = text.split(/(\[.*?\]\(claim:[A-Za-z0-9_-]+\)|DAL-\d{4}-\d{4})/g);
+function renderFormattedText(
+  text: string,
+  onOpenClaim?: (claimId: string) => void,
+  onOpenGarageCase?: (caseId: string) => void,
+) {
+  const parts = text.split(/(\[.*?\]\(claim:[A-Za-z0-9_-]+\)|\[.*?\]\((?:#\/garage-management\/|garage:)[A-Za-z0-9_-]+\)|DAL-\d{4}-\d{4}|GM-\d{4}-\d{4})/g);
   return (
     <>
       {parts.map((part, idx) => {
+        const garageLinkMatch = part.match(/\[(.*?)\]\((?:#\/garage-management\/|garage:)([A-Za-z0-9_-]+)\)/);
+        if (garageLinkMatch) {
+          const label = garageLinkMatch[1];
+          const caseId = garageLinkMatch[2];
+          return (
+            <button
+              key={idx}
+              type="button"
+              className="claims-claim-btn"
+              style={{ margin: '0 4px', display: 'inline-flex', borderColor: 'rgba(59, 130, 246, 0.4)', background: 'rgba(59, 130, 246, 0.1)' }}
+              onClick={() => {
+                if (onOpenGarageCase) onOpenGarageCase(caseId);
+                else window.location.hash = `#/garage-management/${caseId}`;
+              }}
+            >
+              🚗 {label || caseId}
+            </button>
+          );
+        }
+        if (/^GM-\d{4}-\d{4}$/.test(part)) {
+          return (
+            <button
+              key={idx}
+              type="button"
+              className="claims-claim-btn"
+              style={{ margin: '0 4px', display: 'inline-flex', borderColor: 'rgba(59, 130, 246, 0.4)', background: 'rgba(59, 130, 246, 0.1)' }}
+              onClick={() => {
+                if (onOpenGarageCase) onOpenGarageCase(part);
+                else window.location.hash = `#/garage-management/${part}`;
+              }}
+            >
+              🚗 {part}
+            </button>
+          );
+        }
         const linkMatch = part.match(/\[(.*?)\]\(claim:([A-Za-z0-9_-]+)\)/);
         if (linkMatch) {
           const label = linkMatch[1];
@@ -584,15 +686,22 @@ function ClaimsReportTable({
   headers,
   rows,
   onOpenClaim,
+  onOpenGarageCase,
   onCopyText,
 }: {
   headers: string[];
   rows: string[][];
   onOpenClaim?: (claimId: string) => void;
+  onOpenGarageCase?: (caseId: string) => void;
   onCopyText?: (text: string) => void;
 }) {
   const [filter, setFilter] = useState('');
   const [copied, setCopied] = useState(false);
+
+  const isGarageTable = useMemo(
+    () => headers.some((h) => h.includes('כרטיס') || h.includes('מוסך') || h.includes('לוחית') || h.includes('רכב')),
+    [headers]
+  );
 
   const filteredRows = useMemo(() => {
     if (!filter.trim()) return rows;
@@ -619,7 +728,8 @@ function ClaimsReportTable({
       <div className="claims-report-table-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <strong style={{ fontSize: 13, color: 'var(--t)' }}>
-            📊 דוח תביעות ({filteredRows.length} {filteredRows.length === rows.length ? 'תיקים' : `מתוך ${rows.length}`})
+            {isGarageTable ? '🚗 ' : '📊 '}
+            {isGarageTable ? 'דוח כרטיסי עבודה במוסך' : 'דוח תביעות'} ({filteredRows.length} {filteredRows.length === rows.length ? 'תיקים' : `מתוך ${rows.length}`})
           </strong>
           <button
             type="button"
@@ -658,7 +768,7 @@ function ClaimsReportTable({
               filteredRows.map((row, rIdx) => (
                 <tr key={rIdx}>
                   {row.map((cell, cIdx) => (
-                    <td key={cIdx}>{renderFormattedCell(cell, onOpenClaim)}</td>
+                    <td key={cIdx}>{renderFormattedCell(cell, onOpenClaim, onOpenGarageCase)}</td>
                   ))}
                 </tr>
               ))
@@ -673,10 +783,12 @@ function ClaimsReportTable({
 function ClaimsMessageContent({
   content,
   onOpenClaim,
+  onOpenGarageCase,
   onCopyText,
 }: {
   content: string;
   onOpenClaim?: (claimId: string) => void;
+  onOpenGarageCase?: (caseId: string) => void;
   onCopyText?: (text: string) => void;
 }) {
   const cleanContent = useMemo(
@@ -695,13 +807,14 @@ function ClaimsMessageContent({
               headers={block.headers}
               rows={block.rows}
               onOpenClaim={onOpenClaim}
+              onOpenGarageCase={onOpenGarageCase}
               onCopyText={onCopyText}
             />
           );
         }
         return (
           <div key={idx} style={{ whiteSpace: 'pre-wrap' }}>
-            {renderFormattedText(block.text || '', onOpenClaim)}
+            {renderFormattedText(block.text || '', onOpenClaim, onOpenGarageCase)}
           </div>
         );
       })}
@@ -2290,6 +2403,12 @@ export function ClaimsAiWorkspace({
   const [voicePhase, setVoicePhase] = useState<'idle' | 'listening' | 'processing' | 'speaking'>('idle');
   const [liveTranscript, setLiveTranscript] = useState('');
 
+  const dockedStorageKey = module === 'garage'
+    ? `garage_ai_docked_${userId}`
+    : module === 'dashboard'
+    ? `dashboard_ai_docked_${userId}`
+    : `claims_ai_docked_${userId}`;
+
   const [dockedReport, setDockedReport] = useState<{
     headers: string[];
     rows: string[][];
@@ -2297,7 +2416,7 @@ export function ClaimsAiWorkspace({
     updatedAt: string;
   } | null>(() => {
     try {
-      const saved = sessionStorage.getItem(`claims_ai_docked_${userId}`);
+      const saved = sessionStorage.getItem(dockedStorageKey);
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -2842,9 +2961,15 @@ export function ClaimsAiWorkspace({
         if (tables.length > 0) {
           const firstTbl = tables[0];
           const allRows = tables.flatMap((t) => t.rows || []);
-          let reportTitle = m.content.split('\n')[0]?.replace(/[#*`]/g, '').trim() || 'דוח תביעות פתוחות';
-          if (!reportTitle.includes('תביעות פתוחות') && !reportTitle.includes('סה״כ')) {
-            reportTitle = `${reportTitle} (סה״כ תביעות פתוחות: ${allRows.length})`;
+          let reportTitle = m.content.split('\n')[0]?.replace(/[#*`]/g, '').trim() || (module === 'garage' ? 'דוח כרטיסי עבודה במוסך' : 'דוח תביעות פתוחות');
+          if (module === 'garage') {
+            if (!reportTitle.includes('מוסך') && !reportTitle.includes('סה״כ')) {
+              reportTitle = `${reportTitle} (סה״כ: ${allRows.length} תיקים)`;
+            }
+          } else {
+            if (!reportTitle.includes('תביעות פתוחות') && !reportTitle.includes('סה״כ')) {
+              reportTitle = `${reportTitle} (סה״כ תביעות פתוחות: ${allRows.length})`;
+            }
           }
           const reportData = {
             headers: firstTbl.headers || [],
@@ -2854,13 +2979,13 @@ export function ClaimsAiWorkspace({
           };
           setDockedReport(reportData);
           try {
-            sessionStorage.setItem(`claims_ai_docked_${userId}`, JSON.stringify(reportData));
+            sessionStorage.setItem(dockedStorageKey, JSON.stringify(reportData));
           } catch {}
           break;
         }
       }
     }
-  }, [messages, userId]);
+  }, [messages, userId, module, dockedStorageKey]);
 
   const filteredDockedRows = useMemo(() => {
     if (!dockedReport) return [];
@@ -2996,7 +3121,7 @@ export function ClaimsAiWorkspace({
   }, []);
 
   const loadList = useCallback(async () => {
-    const listed = await listClaimsAiConversations(userId, claimId);
+    const listed = await listClaimsAiConversations(userId, claimId, module, garageCase?.id || null);
     if (listed.error) {
       setBanner(claimsAiSchemaMissing(listed.error)
         ? 'שמירת השיחות עדיין לא הותקנה ב-Staging. צריך להריץ את מיגרציית claims_ai על פרויקט Staging בלבד.'
@@ -3005,17 +3130,18 @@ export function ClaimsAiWorkspace({
       return;
     }
     setBanner('');
-    const rows = conversationsForClaim(listed.data || [], claimId);
+    const rows = conversationsForClaim(listed.data || [], claimId, module, garageCase?.id || null);
     setConversations(rows);
-    const remembered = readActiveId(userId, claimId);
+    const remembered = readActiveId(userId, claimId, module, garageCase?.id || null);
     const next = rows.find((row) => row.id === remembered) || rows[0] || null;
     setActiveId(next?.id || null);
-  }, [userId, claimId]);
+  }, [userId, claimId, module, garageCase?.id]);
 
   useEffect(() => {
     if (!open) return;
-    if (prevClaimIdRef.current !== claimId) {
-      prevClaimIdRef.current = claimId;
+    const currentContextId = module === 'garage' ? (garageCase?.id || 'garage-root') : (claimId || 'unscoped');
+    if (prevClaimIdRef.current !== currentContextId) {
+      prevClaimIdRef.current = currentContextId;
       setMessages([]);
       setInput('');
       setStagedAttachments([]);
@@ -3024,7 +3150,7 @@ export function ClaimsAiWorkspace({
     } else if (conversations.length === 0) {
       void loadList();
     }
-  }, [open, claimId, loadList, conversations.length]);
+  }, [open, claimId, module, garageCase?.id, loadList, conversations.length]);
 
   useEffect(() => {
     if (!open || !activeId) {
@@ -3044,10 +3170,10 @@ export function ClaimsAiWorkspace({
         return;
       }
       setMessages(res.data || []);
-      writeActiveId(userId, claimId, activeId);
+      writeActiveId(userId, claimId, activeId, module, garageCase?.id || null);
     });
     return () => { cancelled = true; };
-  }, [open, activeId, conversations, claimId, userId]);
+  }, [open, activeId, conversations, claimId, module, garageCase?.id, userId]);
 
   useEffect(() => {
     if (isNearBottomRef.current) {
@@ -3130,14 +3256,16 @@ export function ClaimsAiWorkspace({
       if (!conversationId) {
         const created = await createClaimsAiConversation({
           userId,
-          claimId,
+          claimId: module === 'garage' ? null : claimId,
+          module,
+          garageCaseId: garageCase?.id || null,
           title: titleFromFirstMessage(effectiveText),
         });
         if (created.error || !created.data) throw new Error(created.error?.message || 'יצירת השיחה נכשלה');
         conversationId = created.data.id;
         setConversations((prev) => [created.data!, ...prev]);
         setActiveId(conversationId);
-        writeActiveId(userId, claimId, conversationId);
+        writeActiveId(userId, claimId, conversationId, module, garageCase?.id || null);
       } else if ((conversations.find((row) => row.id === conversationId)?.title || 'שיחה חדשה') === 'שיחה חדשה'
         && messages.filter((m) => m.role === 'user').length === 0) {
         const title = titleFromFirstMessage(effectiveText);
@@ -3221,13 +3349,16 @@ export function ClaimsAiWorkspace({
       setMessages(history);
 
       let pendingFromStream: ClaimsAiPendingAction | null = null;
-      const detectedClaimId = claimId || (effectiveText.match(/DAL-\d{4}-\d{4}/)?.[0] ?? null);
-      const effectiveTargetClaim = garageCase?.id || claimId || detectedClaimId;
+      const detectedClaimId = module === 'garage' ? null : (claimId || (effectiveText.match(/DAL-\d{4}-\d{4}/)?.[0] ?? null));
+      const effectiveTargetClaim = module === 'garage' ? null : (claimId || detectedClaimId);
+      const effectiveGarageCaseId = module === 'garage' ? (garageCase?.id || effectiveText.match(/GM-\d{4}-\d{4}/)?.[0] || null) : null;
       const answer = await streamHelpAi({
         messages: messagesForModel(history),
         claimId: effectiveTargetClaim,
         companyName,
         module,
+        garageCaseId: effectiveGarageCaseId,
+        garageCase: garageCase || null,
         signal: controller.signal,
         attachments: finalAttachments.map((a) => ({
           name: a.name,
@@ -3636,7 +3767,7 @@ export function ClaimsAiWorkspace({
     setMessages([]);
     setInput('');
     setShowList(false);
-    writeActiveId(userId, claimId, null);
+    writeActiveId(userId, claimId, null, module, garageCase?.id || null);
   };
 
   const confirmArchive = async () => {
@@ -3806,9 +3937,83 @@ export function ClaimsAiWorkspace({
           {banner ? <div className="claims-ai-bubble" data-testid="claims-ai-error" style={{ border: '1px solid var(--rd2)' }}>{banner}</div> : null}
           {messages.length === 0 && !loading ? (
             <div className="claims-ai-empty">
-              {claim
-                ? 'שאלו בשפה חופשית על התיק הפתוח. ההודעות נשמרות ב-Staging ונשארות אחרי סגירת החלון.'
-                : 'שאלו בשפה חופשית על כלל התביעות, סיכומים, מיילים מהיום, ומשימות פתוחות במערכת.'}
+              {module === 'garage' ? (
+                <div>
+                  <div style={{ marginBottom: 10, fontWeight: 700, fontSize: 14 }}>
+                    {garageCase
+                      ? `🚗 כרטיס עבודה ${garageCase.caseNumber || ''} (${garageCase.customerName || ''} · ${garageCase.plate || ''})`
+                      : '✨ דליה AI · עוזר אישי לניהול מוסך'}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--t3)', marginBottom: 14 }}>
+                    {garageCase
+                      ? 'שאלו בשפה חופשית על הכרטיס, עדכנו סטטוס, הוסיפו עבודות פחחות/צבע/חלקים, הגדירו משימות או הפיקו דוח סיכום.'
+                      : 'סקירת תיקים פתוחים, חיפוש לקוחות ורכבים, פתיחת כרטיס עבודה חדש, הצעות מחיר ודוחות.'}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                    <button
+                      type="button"
+                      className="claims-ai-action-btn"
+                      onClick={() => void sendMessage('הצג טבלת דוח של כל תיקי המוסך הפעילים', 'text')}
+                    >
+                      📑 דוח כרטיסי עבודה פעילים
+                    </button>
+                    <button
+                      type="button"
+                      className="claims-ai-action-btn"
+                      onClick={() => void sendMessage('תמונת מצב מוסך וסטטיסטיקות', 'text')}
+                    >
+                      📊 תמונת מצב מוסך
+                    </button>
+                    <button
+                      type="button"
+                      className="claims-ai-action-btn"
+                      onClick={() => {
+                        setInput('חפש לקוח ');
+                        textareaRef.current?.focus();
+                      }}
+                    >
+                      🔍 חיפוש לקוח / רכב
+                    </button>
+                    <button
+                      type="button"
+                      className="claims-ai-action-btn"
+                      onClick={() => {
+                        setInput('פתח כרטיס עבודה חדש עבור רכב ');
+                        textareaRef.current?.focus();
+                      }}
+                    >
+                      🚗 פתיחת כרטיס עבודה חדש
+                    </button>
+                  </div>
+                </div>
+              ) : module === 'dashboard' ? (
+                <div>
+                  <div style={{ marginBottom: 10, fontWeight: 700, fontSize: 14 }}>✨ דליה AI · דשבורד ראשי</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--t3)', marginBottom: 14 }}>
+                    עוזר אישי לפקודות קוליות, תמונת מצב מוסך, מעקב משימות ודוחות תפעול שוטף.
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                    <button
+                      type="button"
+                      className="claims-ai-action-btn"
+                      onClick={() => void sendMessage('תמונת מצב מוסך וסטטיסטיקות', 'text')}
+                    >
+                      📊 תמונת מצב מוסך
+                    </button>
+                    <button
+                      type="button"
+                      className="claims-ai-action-btn"
+                      onClick={() => void sendMessage('הצג טבלת דוח של כל תיקי המוסך הפעילים', 'text')}
+                    >
+                      🚗 כרטיסי עבודה פעילים במוסך
+                    </button>
+                  </div>
+                </div>
+              ) : claim ? (
+                'שאלו בשפה חופשית על התיק הפתוח. ההודעות נשמרות ב-Staging ונשארות אחרי סגירת החלון.'
+              ) : (
+                'שאלו בשפה חופשית על כלל התביעות, סיכומים, מיילים מהיום, ומשימות פתוחות במערכת.'
+              )}
             </div>
           ) : null}
           {messages.map((msg) => {
@@ -3840,9 +4045,10 @@ export function ClaimsAiWorkspace({
                   <ClaimsMessageContent
                     content={msg.content}
                     onOpenClaim={onOpenClaim}
+                    onOpenGarageCase={onOpenGarageCase}
                     onCopyText={(txt) => void handleCopyText(msg.id, txt)}
                   />
-                  {msg.role === 'assistant' && msg.id !== 'draft' && (
+                  {module === 'claims' && msg.role === 'assistant' && msg.id !== 'draft' && (
                     msg.content.includes('מאגר המסמכים') ||
                     msg.content.includes('קטגוריה א:') ||
                     msg.content.includes('קטגוריה א׳') ||
@@ -4975,9 +5181,12 @@ export function ClaimsAiWorkspace({
                 className="claims-ai-docked-pill"
                 data-testid="claims-ai-docked-show-btn"
                 onClick={() => setDockedTableState('normal')}
-                title="הצג את טבלת דוח התביעות הפעיל"
+                title={module === 'garage' ? 'הצג את טבלת דוח תיקי המוסך הפעיל' : 'הצג את טבלת דוח התביעות הפעיל'}
               >
-                📊 הצג טבלת דוח ({dockedReport.rows.length} תביעות פתוחות) · עודכן {dockedReport.updatedAt}
+                {module === 'garage' ? '🚗 ' : '📊 '}
+                {module === 'garage'
+                  ? `הצג טבלת דוח תיקי מוסך (${dockedReport.rows.length} כרטיסים פעילים) · עודכן ${dockedReport.updatedAt}`
+                  : `הצג טבלת דוח (${dockedReport.rows.length} תביעות פתוחות) · עודכן ${dockedReport.updatedAt}`}
               </button>
             </div>
           ) : (
@@ -4985,8 +5194,12 @@ export function ClaimsAiWorkspace({
               <div className="claims-ai-docked-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: 13, color: 'var(--t)' }}>
-                    {dockedReport.title.startsWith('📊') ? '' : '📊 '}
-                    {dockedReport.title.includes('סה״כ') ? dockedReport.title : `${dockedReport.title} (סה״כ תביעות פתוחות: ${dockedReport.rows.length})`}
+                    {module === 'garage' ? '🚗 ' : (dockedReport.title.startsWith('📊') ? '' : '📊 ')}
+                    {dockedReport.title.includes('סה״כ')
+                      ? dockedReport.title
+                      : (module === 'garage'
+                        ? `${dockedReport.title} (סה״כ: ${dockedReport.rows.length} תיקים)`
+                        : `${dockedReport.title} (סה״כ תביעות פתוחות: ${dockedReport.rows.length})`)}
                     {filteredDockedRows.length !== dockedReport.rows.length ? ` · מוצגות ${filteredDockedRows.length} לפי סינון` : ''}
                   </strong>
                   <span style={{ fontSize: 11, color: 'var(--t3)' }}>
@@ -4996,9 +5209,9 @@ export function ClaimsAiWorkspace({
                     type="button"
                     className="claims-ai-action-btn"
                     data-testid="claims-ai-docked-refresh-btn"
-                    onClick={() => void sendMessage('רענן דוח על כל התביעות הפתוחות', 'text')}
+                    onClick={() => void sendMessage(module === 'garage' ? 'רענן טבלת דוח של תיקי המוסך הפעילים' : 'רענן דוח על כל התביעות הפתוחות', 'text')}
                     disabled={loading}
-                    title="רענן נתוני דוח תביעות"
+                    title={module === 'garage' ? 'רענן נתוני דוח תיקי מוסך' : 'רענן נתוני דוח תביעות'}
                   >
                     🔄 רענן נתונים
                   </button>
@@ -5072,7 +5285,7 @@ export function ClaimsAiWorkspace({
                         filteredDockedRows.map((row, rIdx) => (
                           <tr key={rIdx}>
                             {row.map((cell, cIdx) => (
-                              <td key={cIdx}>{renderFormattedCell(cell, onOpenClaim)}</td>
+                              <td key={cIdx}>{renderFormattedCell(cell, onOpenClaim, onOpenGarageCase)}</td>
                             ))}
                           </tr>
                         ))
@@ -5125,7 +5338,13 @@ export function ClaimsAiWorkspace({
             data-testid="claims-ai-input"
             value={input}
             dir="rtl"
-            placeholder={claim ? 'שאלה על התיק הפתוח…' : 'פתחו תיק, או שאלו שאלה כללית…'}
+            placeholder={
+              module === 'garage'
+                ? (garageCase ? 'שאלה או פקודה על כרטיס העבודה…' : 'פתחו כרטיס עבודה, חפשו לקוח/רכב או שאלו שאלה…')
+                : module === 'dashboard'
+                ? 'פקודה קולית, תמונת מצב מוסך או שאלה על פעילות המוסך…'
+                : (claim ? 'שאלה על התיק הפתוח…' : 'פתחו תיק, או שאלו שאלה כללית…')
+            }
             onChange={(e) => {
               const val = e.target.value;
               setInput(val);

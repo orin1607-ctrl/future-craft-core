@@ -951,6 +951,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const effectiveClaimId = String(body.claim_id || body.claimId || "").trim();
+    const effectiveGarageCaseId = String(body.garage_case_id || body.garageCaseId || "").trim();
     const effectivePageContext = String(body.page_context || body.pageContext || "").trim();
     const effectiveModule = String(body.module || "").trim();
     const { action, messages, company_name, pending_action, conversation_id, attachments } = body;
@@ -1093,7 +1094,7 @@ Deno.serve(async (req) => {
       if (isGarageModule) {
         let res: { result: unknown; preview?: GaragePendingAction };
         try {
-          res = await executeGarageTool(toolName, toolArgs, supabase, effectiveClaimId, userId, actorName);
+          res = await executeGarageTool(toolName, toolArgs, supabase, effectiveGarageCaseId || effectiveClaimId, userId, actorName);
         } catch (e) {
           addTrace(toolsUsed, toolName, "failed");
           return { result: { error: e instanceof Error ? e.message : "tool_failed" } };
@@ -1127,7 +1128,7 @@ Deno.serve(async (req) => {
     }
 
     // Fast-Path 2: Package Approval & Link Generation from ClaimsCatalogWidget
-    if (body.package_approval || lastUserText.startsWith("דליה, אשר את חבילת פתיחת התיק והפיקי קישור")) {
+    if (!isGarageModule && (body.package_approval || lastUserText.startsWith("דליה, אשר את חבילת פתיחת התיק והפיקי קישור"))) {
       let reqDocs: string[] = [];
       let provForms: string[] = [];
       let expiresHours = 24;

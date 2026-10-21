@@ -25,6 +25,8 @@ function asConversation(row: unknown): ClaimsAiConversation {
     id: r.id,
     user_id: r.user_id,
     claim_id: r.claim_id ?? null,
+    module: (r.module as 'claims' | 'garage' | 'dashboard') || 'claims',
+    garage_case_id: r.garage_case_id ?? null,
     title: r.title || 'שיחה חדשה',
     created_at: r.created_at,
     updated_at: r.updated_at,
@@ -51,14 +53,29 @@ export function claimsAiSchemaMissing(error: DbError | null): boolean {
   return code === '42P01' || code === 'PGRST205' || /claims_ai_(conversations|messages)/.test(message);
 }
 
-export async function listClaimsAiConversations(userId: string, claimId: string | null): Promise<DbResult<ClaimsAiConversation[]>> {
+export async function listClaimsAiConversations(
+  userId: string,
+  claimId: string | null,
+  module: 'claims' | 'garage' | 'dashboard' = 'claims',
+  garageCaseId: string | null = null,
+): Promise<DbResult<ClaimsAiConversation[]>> {
   let query = from('claims_ai_conversations')
-    .select('id, user_id, claim_id, title, created_at, updated_at, archived')
+    .select('id, user_id, claim_id, module, garage_case_id, title, created_at, updated_at, archived')
     .eq('user_id', userId)
     .eq('archived', false)
     .order('updated_at', { ascending: false })
     .limit(50);
-  query = claimId ? query.eq('claim_id', claimId) : query.is('claim_id', null);
+
+  if (module === 'garage') {
+    query = query.eq('module', 'garage');
+    query = garageCaseId ? query.eq('garage_case_id', garageCaseId) : query.is('garage_case_id', null);
+  } else if (module === 'dashboard') {
+    query = query.eq('module', 'dashboard');
+  } else {
+    query = query.eq('module', 'claims');
+    query = claimId ? query.eq('claim_id', claimId) : query.is('claim_id', null);
+  }
+
   const { data, error } = await query;
   if (error) return { data: null, error };
   return { data: (Array.isArray(data) ? data : []).map(asConversation), error: null };
@@ -67,15 +84,19 @@ export async function listClaimsAiConversations(userId: string, claimId: string 
 export async function createClaimsAiConversation(input: {
   userId: string;
   claimId: string | null;
+  module?: 'claims' | 'garage' | 'dashboard';
+  garageCaseId?: string | null;
   title: string;
 }): Promise<DbResult<ClaimsAiConversation>> {
   const { data, error } = await from('claims_ai_conversations')
     .insert({
       user_id: input.userId,
       claim_id: input.claimId,
+      module: input.module || 'claims',
+      garage_case_id: input.garageCaseId || null,
       title: input.title || 'שיחה חדשה',
     })
-    .select('id, user_id, claim_id, title, created_at, updated_at, archived')
+    .select('id, user_id, claim_id, module, garage_case_id, title, created_at, updated_at, archived')
     .single();
   if (error || !data) return { data: null, error: error || { message: 'יצירת השיחה נכשלה' } };
   return { data: asConversation(data), error: null };

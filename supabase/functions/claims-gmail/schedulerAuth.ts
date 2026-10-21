@@ -41,10 +41,6 @@ export function isStagingServiceRoleRequest(headers: Headers, serviceKey: string
     if (parsed.ref && parsed.ref !== stagingRef) return false;
     return true;
   }
-  const parsed = jwtRoleRef(token);
-  if (parsed.role === "service_role" && parsed.ref === stagingRef && parsed.ref !== prodRef) {
-    return true;
-  }
   return false;
 }
 
