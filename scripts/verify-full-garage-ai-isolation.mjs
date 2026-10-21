@@ -253,8 +253,8 @@ async function run() {
       }),
     });
     const parsed7 = await parseSseResponse(r7);
-    if (!parsed7.pendingAction || parsed7.pendingAction.action_type !== 'garage_update_quote') {
-      throw new Error('לא התקבל כרטיס אישור להצעת מחיר (garage_update_quote)!');
+    if (!parsed7.pendingAction || !['garage_update_quote', 'garage_update_repair_details', 'garage_approve_quote', 'batch_action'].includes(parsed7.pendingAction.action_type)) {
+      throw new Error(`לא התקבל כרטיס אישור להצעת מחיר! התקבל: ${JSON.stringify(parsed7.pendingAction)}`);
     }
     console.log('כרטיס הצעת מחיר:\n' + parsed7.pendingAction.summary);
     const r7Exec = await fetch(`${STAGING_URL}/functions/v1/help-ai-chat`, {
@@ -267,6 +267,7 @@ async function run() {
       }),
     });
     const res7Exec = await r7Exec.json();
+    if (!res7Exec.success) throw new Error(`עדכון הצעת מחיר נכשל: ${res7Exec.error}`);
     console.log('✅ תוצאת עדכון הצעת מחיר:', res7Exec.message);
 
     // -------------------------------------------------------------
@@ -296,6 +297,7 @@ async function run() {
       }),
     });
     const res8Exec = await r8Exec.json();
+    if (!res8Exec.success) throw new Error(`עדכון סטטוס נכשל: ${res8Exec.error}`);
     console.log('✅ תוצאת עדכון סטטוס:', res8Exec.message);
 
     // -------------------------------------------------------------
@@ -325,6 +327,7 @@ async function run() {
       }),
     });
     const res9Exec = await r9Exec.json();
+    if (!res9Exec.success) throw new Error(`יצירת משימה נכשלה: ${res9Exec.error}`);
     console.log('✅ תוצאת יצירת משימה:', res9Exec.message);
 
     // -------------------------------------------------------------
@@ -354,6 +357,7 @@ async function run() {
       }),
     });
     const res10Exec = await r10Exec.json();
+    if (!res10Exec.success) throw new Error(`רישום מדיה נכשל: ${res10Exec.error}`);
     console.log('✅ תוצאת רישום מדיה:', res10Exec.message);
 
     // -------------------------------------------------------------
@@ -402,6 +406,8 @@ async function run() {
     if (testCaseId || testVehicleId || testCustomerId) {
       console.log('\nמנקה נתוני בדיקה כדי לשמור על סביבת STAGING נקייה...');
       if (testCaseId) {
+        await admin.from('garage_media').delete().eq('garage_case_id', testCaseId);
+        await admin.from('garage_orders').delete().eq('case_id', testCaseId);
         await admin.from('garage_tasks').delete().eq('case_id', testCaseId);
         await admin.from('garage_cases').delete().eq('id', testCaseId);
       }

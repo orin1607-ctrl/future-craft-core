@@ -730,7 +730,10 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   <div class="field"><label>פירוט עבודה</label><textarea id="w-desc" placeholder="תיאור העבודה"></textarea></div>
   <div class="field"><label>כמות</label><input id="w-qty" type="number" min="1" step="1" value="1"></div>
   <div class="field"><label>מחיר ליחידה (₪)</label><input id="w-price" type="number" placeholder="0"></div>
-  <button class="btn btn-white" style="margin-bottom:10px;" onclick="saveWork()">שמור עבודה</button>
+  <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <button class="btn btn-white" style="flex:1;" onclick="saveWork()">שמור עבודה</button>
+    <button class="btn btn-ghost" style="flex:1;" onclick="saveWorkAndContinue()">שמור והוסף עוד</button>
+  </div>
 </div>
 <!-- add part sheet -->
 <div class="sheet-overlay" id="overlay-part" onclick="closePartSheet()"></div>
@@ -745,7 +748,10 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="radio-opt sel" onclick="selRadio(this)"><div class="radio-dot"></div>אנחנו</div>
     <div class="radio-opt" onclick="selRadio(this)"><div class="radio-dot"></div>הלקוח / החברה</div>
   </div>
-  <button class="btn btn-white" style="margin-bottom:10px;" onclick="savePart()">שמור חלק</button>
+  <div style="display:flex;gap:8px;margin-bottom:10px;">
+    <button class="btn btn-white" style="flex:1;" onclick="savePart()">שמור חלק</button>
+    <button class="btn btn-ghost" style="flex:1;" onclick="savePartAndContinue()">שמור והוסף עוד</button>
+  </div>
 </div>
 <!-- ================= SCREEN: WORK ORDER ================= -->
 <section class="screen" id="s-workorder">
@@ -758,6 +764,19 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <h2 class="section-title">פרטי הזמנה חדשה</h2>
     <div class="bar"></div>
     <div class="field"><label>מספר הזמנה <span class="req">*</span></label><input id="wo-num" placeholder="מספר הזמנה"></div>
+    <div class="field"><label>סטטוס הזמנה</label>
+      <select id="wo-status" style="width:100%;padding:10px;background:rgba(255,255,255,0.06);color:var(--white);border:1px solid var(--border);border-radius:10px;font-size:14px;">
+        <option value="received">הזמנה התקבלה</option>
+        <option value="waiting_quote">ממתין להצעת מחיר</option>
+        <option value="quote_in_progress">הצעת מחיר בהכנה</option>
+        <option value="quote_sent">הצעת מחיר נשלחה</option>
+        <option value="waiting_approval">ממתין לאישור לקוח</option>
+        <option value="approved">אושר לביצוע</option>
+        <option value="in_progress">עבודה בביצוע</option>
+        <option value="done">העבודה הסתיימה</option>
+        <option value="closed">סגור</option>
+      </select>
+    </div>
     <div class="field"><label>מספר תיק / אסמכתא</label><input id="wo-ref" placeholder="אם מופיע בהזמנה"></div>
     <div class="field"><label>תאריך הזמנה</label><input id="wo-date" placeholder="תאריך"></div>
     <div class="field"><label>סכום מאושר <span class="req">*</span></label><input id="wo-amount" type="number" placeholder="0"></div>
@@ -1320,7 +1339,7 @@ function quoteCustomerPartCount(){
 }
 function quoteGrandTotal(){
   var net = quoteWorksTotal() + quotePartsTotal();
-  return net + Math.round(net * 0.18);
+  return net + Math.round(net * 0.17);
 }
 function setText(id, text){
   var el = document.getElementById(id);
@@ -2656,6 +2675,28 @@ function saveWork(){
   closeWorkSheet();
   schedulePersist();
 }
+function saveWorkAndContinue(){
+  var part = (document.getElementById('w-part').value || '').trim();
+  if(!part){ alert('יש למלא שם עבודה'); return; }
+  var typeEl = document.querySelector('#work-sheet .chip.selected');
+  state.quoteWorks = state.quoteWorks || [];
+  state.quoteWorks.push({
+    id: 'w'+Date.now(),
+    part: part,
+    type: typeEl ? typeEl.textContent.trim() : 'עבודה',
+    qty: parseFloat(document.getElementById('w-qty').value) || 1,
+    price: parseFloat(document.getElementById('w-price').value) || 0,
+    desc: (document.getElementById('w-desc').value || '').trim()
+  });
+  state.quoteCreated = true;
+  renderQuote();
+  schedulePersist();
+  document.getElementById('w-part').value = '';
+  document.getElementById('w-qty').value = '1';
+  document.getElementById('w-price').value = '';
+  document.getElementById('w-desc').value = '';
+  document.getElementById('w-part').focus();
+}
 function openAddPart(){
   document.getElementById('p-name').value = '';
   document.getElementById('p-sku').value = '';
@@ -2684,6 +2725,67 @@ function savePart(){
   closePartSheet();
   schedulePersist();
 }
+function savePartAndContinue(){
+  var name = (document.getElementById('p-name').value || '').trim();
+  if(!name){ alert('יש למלא שם חלק'); return; }
+  var supplierEl = document.querySelector('#part-add-sheet .radio-opt.sel');
+  var supplier = (supplierEl && supplierEl.textContent.indexOf('הלקוח') !== -1) ? 'customer' : 'us';
+  state.quoteParts = state.quoteParts || [];
+  state.quoteParts.push({
+    id: 'p'+Date.now(),
+    name: name,
+    sku: (document.getElementById('p-sku').value || '').trim(),
+    qty: parseFloat(document.getElementById('p-qty').value) || 1,
+    price: parseFloat(document.getElementById('p-price').value) || 0,
+    supplier: supplier
+  });
+  state.quoteCreated = true;
+  renderQuote();
+  schedulePersist();
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-sku').value = '';
+  document.getElementById('p-qty').value = '1';
+  document.getElementById('p-price').value = '';
+  document.getElementById('p-name').focus();
+}
+function duplicateQuoteWork(id){
+  var item = (state.quoteWorks || []).find(function(w){ return w.id === id; });
+  if(!item) return;
+  state.quoteWorks.push(Object.assign({}, item, { id: 'w' + Date.now(), part: item.part + ' (העתק)' }));
+  renderQuote();
+  schedulePersist();
+}
+function editQuoteWork(id){
+  var item = (state.quoteWorks || []).find(function(w){ return w.id === id; });
+  if(!item) return;
+  var newPrice = prompt('עדכן מחיר עבור ' + item.part + ' (₪):', item.price || 0);
+  if(newPrice === null) return;
+  var parsed = parseFloat(newPrice);
+  if(!isNaN(parsed)){
+    item.price = parsed;
+    renderQuote();
+    schedulePersist();
+  }
+}
+function duplicateQuotePart(id){
+  var item = (state.quoteParts || []).find(function(p){ return p.id === id; });
+  if(!item) return;
+  state.quoteParts.push(Object.assign({}, item, { id: 'p' + Date.now(), name: item.name + ' (העתק)' }));
+  renderQuote();
+  schedulePersist();
+}
+function editQuotePart(id){
+  var item = (state.quoteParts || []).find(function(p){ return p.id === id; });
+  if(!item) return;
+  var newPrice = prompt('עדכן מחיר עבור ' + item.name + ' (₪):', item.price || 0);
+  if(newPrice === null) return;
+  var parsed = parseFloat(newPrice);
+  if(!isNaN(parsed)){
+    item.price = parsed;
+    renderQuote();
+    schedulePersist();
+  }
+}
 function removeQuoteWork(id){
   state.quoteWorks = (state.quoteWorks || []).filter(function(item){ return item.id !== id; });
   renderQuote();
@@ -2704,7 +2806,9 @@ function renderQuote(){
       var card = document.createElement('div');
       card.className = 'job-card';
       var lineTotal = (Number(item.price) || 0) * (Number(item.qty) || 1);
-      card.innerHTML = '<div class="jh"><div><div class="part">'+esc(item.part)+'</div><div class="type">'+esc(item.type || 'עבודה')+' · כמות '+esc(item.qty || 1)+'</div></div><div class="price">'+money(lineTotal)+'</div></div><div class="desc">'+esc(item.desc || '')+'</div><div class="jactions"><span class="del" data-id="'+esc(item.id)+'">הסר</span></div>';
+      card.innerHTML = '<div class="jh"><div><div class="part">'+esc(item.part)+'</div><div class="type">'+esc(item.type || 'עבודה')+' · כמות '+esc(item.qty || 1)+'</div></div><div class="price">'+money(lineTotal)+'</div></div><div class="desc">'+esc(item.desc || '')+'</div><div class="jactions"><span class="edit-btn" style="cursor:pointer;margin-left:8px;color:var(--accent);">ערוך</span><span class="dup-btn" style="cursor:pointer;margin-left:8px;color:var(--accent);">שכפל</span><span class="del" data-id="'+esc(item.id)+'">הסר</span></div>';
+      card.querySelector('.edit-btn').onclick = function(){ editQuoteWork(item.id); };
+      card.querySelector('.dup-btn').onclick = function(){ duplicateQuoteWork(item.id); };
       card.querySelector('.del').onclick = function(){ removeQuoteWork(item.id); };
       worksBox.appendChild(card);
     });
@@ -2719,7 +2823,9 @@ function renderQuote(){
       card.className = 'job-card';
       var lineTotal = (Number(item.price) || 0) * (Number(item.qty) || 1);
       var supplied = item.supplier === 'customer' ? 'מסופק על ידי הלקוח — לא לחיוב' : 'מסופק על ידי המוסך';
-      card.innerHTML = '<div class="jh"><div><div class="part">'+esc(item.name)+'</div><div class="type">כמות '+esc(item.qty || 1)+'</div></div><div class="price">'+(item.supplier === 'customer' ? '—' : money(lineTotal))+'</div></div><div class="desc">'+esc(supplied)+'</div><div class="jactions"><span class="del">הסר</span></div>';
+      card.innerHTML = '<div class="jh"><div><div class="part">'+esc(item.name)+'</div><div class="type">כמות '+esc(item.qty || 1)+'</div></div><div class="price">'+(item.supplier === 'customer' ? '—' : money(lineTotal))+'</div></div><div class="desc">'+esc(supplied)+'</div><div class="jactions"><span class="edit-btn" style="cursor:pointer;margin-left:8px;color:var(--accent);">ערוך</span><span class="dup-btn" style="cursor:pointer;margin-left:8px;color:var(--accent);">שכפל</span><span class="del">הסר</span></div>';
+      card.querySelector('.edit-btn').onclick = function(){ editQuotePart(item.id); };
+      card.querySelector('.dup-btn').onclick = function(){ duplicateQuotePart(item.id); };
       card.querySelector('.del').onclick = function(){ removeQuotePart(item.id); };
       partsBox.appendChild(card);
     });
@@ -2757,7 +2863,7 @@ function renderQuotePreview(){
       : '<div class="doc-muted">אין חלקים</div>';
   }
   setText('preview-tot-works', money(quoteWorksTotal()));
-  setText('preview-tot-vat', money(Math.round((quoteWorksTotal()+quotePartsTotal())*0.18)));
+  setText('preview-tot-vat', money(Math.round((quoteWorksTotal()+quotePartsTotal())*0.17)));
   setText('preview-tot-final', money(quoteGrandTotal()));
   setText('preview-notes', state.quoteNotes || 'אין הערות');
   setText('preview-validity', state.quoteValidity ? ('תוקף ההצעה: ' + state.quoteValidity) : 'תוקף ההצעה ייקבע בעת השמירה.');
@@ -2765,7 +2871,7 @@ function renderQuotePreview(){
 function recalcTotals(){
   var works = quoteWorksTotal();
   var parts = quotePartsTotal();
-  var vat = Math.round((works + parts) * 0.18);
+  var vat = Math.round((works + parts) * 0.17);
   var final = works + parts + vat;
   setText('tot-works', money(works));
   setText('tot-parts', money(parts));
@@ -3123,9 +3229,11 @@ function saveWorkOrder(){
   var num = (document.getElementById('wo-num').value || '').trim();
   var amount = (document.getElementById('wo-amount').value || '').trim();
   if(!num || !amount){ alert('יש למלא מספר הזמנה וסכום מאושר'); return; }
+  var status = (document.getElementById('wo-status') && document.getElementById('wo-status').value) || 'received';
   state.workOrderSaved = true;
   state.workOrderNumber = num;
   state.workOrderAmount = amount;
+  state.workOrderStatus = status;
   state.workOrderRef = (document.getElementById('wo-ref') && document.getElementById('wo-ref').value || '').trim();
   state.workOrderContact = (document.getElementById('wo-contact') && document.getElementById('wo-contact').value || '').trim();
   state.workOrderDate = (document.getElementById('wo-date') && document.getElementById('wo-date').value || '').trim();
@@ -3134,13 +3242,29 @@ function saveWorkOrder(){
   var v = document.getElementById('wo-versions');
   var row = document.createElement('div');
   row.className = 'card';
-  row.innerHTML = '<div class="doc-row"><span>הזמנה '+esc(num)+'</span><span>'+money(amount)+'</span></div><div class="hint" style="margin:6px 0 0;">'+esc(liveCustomerName() || '')+' · '+esc(liveCaseNumber() || '')+'</div>';
+  row.innerHTML = '<div class="doc-row"><span>הזמנה '+esc(num)+'</span><span>'+money(amount)+'</span></div><div class="hint" style="margin:6px 0 0;">סטטוס: '+esc(status)+' · '+esc(liveCustomerName() || '')+' · '+esc(liveCaseNumber() || '')+'</div>';
   v.prepend(row);
   document.getElementById('case-order-pill').textContent = 'הזמנה: '+num;
   setText('quote-order-ref', 'הזמנה: '+num);
-  addTimelineEvent('הזמנת לקוח '+num+' נשמרה בתיק');
+  addTimelineEvent('הזמנת לקוח '+num+' ('+status+') נשמרה בתיק');
   if(caseRoute() === 'intake_first') unlockIntake();
   refreshCaseHub();
+  try {
+    window.parent.postMessage({
+      type: 'gm:saveOrder',
+      payload: {
+        caseId: state.currentCaseId || null,
+        orderNumber: num,
+        caseRef: state.workOrderRef || '',
+        orderDate: state.workOrderDate || '',
+        approvedAmount: parseFloat(amount) || 0,
+        contactName: state.workOrderContact || '',
+        notes: state.workOrderNotes || '',
+        status: status,
+      }
+    }, '*');
+  } catch(e){}
+  schedulePersist();
   notifySave('ההזמנה נשמרה בתיק. במסלול לקוח קבוע אפשר לעבור לקבלת רכב.');
 }
 function unlockIntake(){

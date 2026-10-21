@@ -255,8 +255,8 @@ export function routeLabel(route?: string): string {
 export type GarageListBucket = 'open' | 'in_work' | 'closed';
 
 export function garageListBucket(data: GarageCaseData = {}, status?: string): GarageListBucket {
-  if (data.caseClosed || data.workFinished || status === 'סגור' || status === 'מוכן למסירה') return 'closed';
-  if (data.workStarted || status === 'בעבודה') return 'in_work';
+  if (data.caseClosed || data.workFinished || status === 'סגור' || status === 'תיק סגור' || status === 'מוכן למסירה' || status === 'עבודה הסתיימה') return 'closed';
+  if (data.workStarted || status === 'בעבודה' || status === 'עבודה התחילה') return 'in_work';
   return 'open';
 }
 

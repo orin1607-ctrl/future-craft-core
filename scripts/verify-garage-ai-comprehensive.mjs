@@ -137,6 +137,7 @@ async function run() {
       }),
     });
     const res5Exec = await r5Exec.json();
+    if (!res5Exec.success) throw new Error(`עדכון סטטוס נכשל: ${res5Exec.error}`);
     console.log('✅ תוצאת עדכון סטטוס:', res5Exec.message);
 
     // Test 6: פחחות וצבע - הוספת עבודות, חלקים ואישורים חריגים (Preview & Execute)
@@ -163,6 +164,7 @@ async function run() {
       }),
     });
     const res6Exec = await r6Exec.json();
+    if (!res6Exec.success) throw new Error(`שמירת עבודות וחלקים נכשלה: ${res6Exec.error}`);
     console.log('✅ תוצאת שמירת עבודות וחלקים:', res6Exec.message);
 
     // Test 7: משימות ותזכורות (Preview & Execute)
@@ -189,6 +191,7 @@ async function run() {
       }),
     });
     const res7Exec = await r7Exec.json();
+    if (!res7Exec.success) throw new Error(`יצירת משימה נכשלה: ${res7Exec.error}`);
     console.log('✅ תוצאת יצירת משימה:', res7Exec.message);
 
     // Test 8: הפקת דוח סיכום תיק מקיף
@@ -238,6 +241,7 @@ async function run() {
     // Cleanup created test case and associated customer/vehicle
     if (createdCaseId) {
       console.log('\nמנקה נתוני בדיקה...');
+      await admin.from('garage_tasks').delete().eq('case_id', createdCaseId);
       await admin.from('garage_cases').delete().eq('id', createdCaseId);
       await admin.from('garage_vehicles').delete().eq('plate', '11223344');
       await admin.from('garage_customers').delete().eq('phone', '0541112233');

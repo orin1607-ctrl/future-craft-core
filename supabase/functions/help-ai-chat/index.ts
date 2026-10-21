@@ -969,7 +969,10 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (String(pending_action.action_type).startsWith("garage_")) {
+      const isGarageBatch = pending_action.action_type === "batch_action"
+        && Array.isArray(pending_action.parameters?.actions)
+        && pending_action.parameters.actions.some((a: any) => String(a?.action_type || "").startsWith("garage_"));
+      if (String(pending_action.action_type).startsWith("garage_") || isGarageBatch) {
         const garageResult = await executeGaragePendingAction(
           supabase,
           pending_action as GaragePendingAction,
@@ -1076,6 +1079,7 @@ Deno.serve(async (req) => {
         ? garagePrompt
         : (isClaimsModule ? claimsPrompt : basePrompt),
       (isClaimsModule || isGarageModule) ? `--- תאריך ---\nהיום (שעון ישראל): ${todayIsrael} · ${todayIso}. חשב "מחר", "בעוד שבוע" וכו׳ לפי תאריך זה.` : "",
+      (isGarageModule && effectiveGarageCaseId) ? `--- כרטיס עבודה פעיל במסך (Active Garage Case) ---\nהמשתמש צופה כעת בכרטיס עבודה שמזההו (case_id) הוא: "${effectiveGarageCaseId}". בכל בקשה ליצירת משימה, תזכורת, עדכון סטטוס, הצעת מחיר, קליטה, הזמנת לקוח או סיכום שאינה מציינת מספר תיק אחר, העבר אוטומטית case_id="${effectiveGarageCaseId}" לכלי המתאים ואל תשאל את המשתמש לאיזה תיק הכוונה.` : "",
       effectivePageContext ? `--- הקשר מסך נוכחי ---\n${effectivePageContext}` : "",
       claimBlock ? `--- הקשר מודול ניהול תביעות ---\n${claimBlock}` : "",
     ].filter(Boolean).join("\n\n");

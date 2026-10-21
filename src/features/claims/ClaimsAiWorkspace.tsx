@@ -32,6 +32,7 @@ import { isApprovalText, isCancelText } from './claimsAiApproval';
 import { NOT_READ_LABEL } from '../../../supabase/functions/_shared/claimDocumentLabel';
 import { downloadRemoteFile } from './claimFileDownload';
 import { buildInsurancePackageSummaryPdf } from './signedClaimPdf';
+import { uploadGarageMedia } from '@/modules/garage-management/garageMedia';
 import './claims-ai.css';
 
 /** Claim-file actions the chat can run through the existing claims screen (signed URL, download, browser reader). */
@@ -2715,6 +2716,9 @@ export function ClaimsAiWorkspace({
   }, []);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const replaceTargetIdRef = useRef<string | null>(null);
+  const [previewModalUrl, setPreviewModalUrl] = useState<string | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRec | null>(null);
@@ -3106,7 +3110,23 @@ export function ClaimsAiWorkspace({
   const handleFilesSelected = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    addFilesToStaged(Array.from(files));
+    if (replaceTargetIdRef.current) {
+      const targetId = replaceTargetIdRef.current;
+      replaceTargetIdRef.current = null;
+      const file = files[0];
+      const isPdfExt = file.name.toLowerCase().endsWith('.pdf');
+      const mime = file.type || (isPdfExt ? 'application/pdf' : 'image/jpeg');
+      const previewUrl = mime.startsWith('image/') ? URL.createObjectURL(file) : undefined;
+      setStagedAttachments((prev) => prev.map((item) => {
+        if (item.id === targetId) {
+          if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
+          return { id: item.id, file, name: file.name, size: file.size, mimeType: mime, previewUrl };
+        }
+        return item;
+      }));
+    } else {
+      addFilesToStaged(Array.from(files));
+    }
     e.target.value = '';
   }, [addFilesToStaged]);
 
@@ -3292,6 +3312,7 @@ export function ClaimsAiWorkspace({
           const globalIdx = b + cIdx;
           try {
             let fileId: string | undefined = undefined;
+            let previewUrl: string | undefined = staged.previewUrl;
             if (claimId) {
               for (let att = 1; att <= 2; att++) {
                 try {
@@ -3303,6 +3324,25 @@ export function ClaimsAiWorkspace({
                 } catch {
                   if (att === 2) throw new Error('upload_failed');
                 }
+              }
+            } else if (module === 'garage' && garageCase?.id) {
+              try {
+                const arrayBuf = await staged.file.arrayBuffer();
+                const mediaRes = await uploadGarageMedia({
+                  garageCaseId: garageCase.id,
+                  category: 'other',
+                  title: staged.name,
+                  fileName: staged.name,
+                  mimeType: staged.mimeType,
+                  bytes: arrayBuf,
+                  actorId: userId,
+                });
+                if (mediaRes?.id) {
+                  fileId = mediaRes.id;
+                  if (mediaRes.signedUrl) previewUrl = mediaRes.signedUrl;
+                }
+              } catch (e) {
+                console.warn('Garage media upload failed, passing base64 anyway:', e);
               }
             }
             let base64: string | undefined = undefined;
@@ -3317,7 +3357,7 @@ export function ClaimsAiWorkspace({
               byte_size: staged.size,
               file_id: fileId,
               data_base64: base64,
-              preview_url: staged.previewUrl,
+              preview_url: previewUrl,
             };
           } catch (err) {
             console.error('Failed reading/uploading attachment:', staged.name, err);
@@ -4025,21 +4065,31 @@ export function ClaimsAiWorkspace({
                 <div className="claims-ai-bubble">
                   {msgAttachments.length > 0 ? (
                     <div className="claims-ai-msg-attachments" data-testid="claims-ai-msg-attachments">
-                      {msgAttachments.map((att: any, idx: number) => (
-                        <div key={idx} className="claims-ai-msg-att-badge" data-testid={`claims-ai-msg-attachment-${idx}`}>
-                          {att.data_base64 && String(att.mime_type || '').startsWith('image/') ? (
-                            <img src={`data:${att.mime_type};base64,${att.data_base64}`} alt={att.name} className="claims-ai-msg-att-thumb" />
-                          ) : att.preview_url ? (
-                            <img src={att.preview_url} alt={att.name} className="claims-ai-msg-att-thumb" />
-                          ) : (
-                            <span className="claims-ai-msg-att-icon">📄</span>
-                          )}
-                          <div className="claims-ai-msg-att-info">
-                            <span className="claims-ai-msg-att-name" title={att.name}>{att.name}</span>
-                            {att.byte_size ? <span className="claims-ai-msg-att-size">{formatFileSize(att.byte_size)}</span> : null}
+                      {msgAttachments.map((att: any, idx: number) => {
+                        const imgUrl = (att.data_base64 && String(att.mime_type || '').startsWith('image/'))
+                          ? `data:${att.mime_type};base64,${att.data_base64}`
+                          : (att.preview_url || '');
+                        return (
+                          <div key={idx} className="claims-ai-msg-att-badge" data-testid={`claims-ai-msg-attachment-${idx}`}>
+                            {imgUrl ? (
+                              <img
+                                src={imgUrl}
+                                alt={att.name}
+                                className="claims-ai-msg-att-thumb"
+                                style={{ cursor: 'pointer' }}
+                                title="לחץ להגדלת התמונה"
+                                onClick={() => setPreviewModalUrl(imgUrl)}
+                              />
+                            ) : (
+                              <span className="claims-ai-msg-att-icon">📄</span>
+                            )}
+                            <div className="claims-ai-msg-att-info">
+                              <span className="claims-ai-msg-att-name" title={att.name}>{att.name}</span>
+                              {att.byte_size ? <span className="claims-ai-msg-att-size">{formatFileSize(att.byte_size)}</span> : null}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : null}
                   <ClaimsMessageContent
@@ -5147,10 +5197,26 @@ export function ClaimsAiWorkspace({
 
         {stagedAttachments.length > 0 ? (
           <div className="claims-ai-attachments-tray" data-testid="claims-ai-attachments-tray">
-            {stagedAttachments.map((att) => (
+            {stagedAttachments.map((att, idx) => (
               <div key={att.id} className="claims-ai-attachment-badge" data-testid={`claims-ai-attachment-badge-${att.id}`}>
+                {stagedAttachments.length > 1 ? (
+                  <span
+                    className="claims-ai-attachment-page-num"
+                    data-testid={`claims-ai-attachment-page-${idx}`}
+                    style={{ fontSize: '10px', background: 'var(--pr)', color: '#fff', borderRadius: '4px', padding: '1px 5px', fontWeight: 700 }}
+                  >
+                    עמוד {idx + 1}
+                  </span>
+                ) : null}
                 {att.previewUrl ? (
-                  <img src={att.previewUrl} alt={att.name} className="claims-ai-attachment-thumb" />
+                  <img
+                    src={att.previewUrl}
+                    alt={att.name}
+                    className="claims-ai-attachment-thumb"
+                    style={{ cursor: 'pointer' }}
+                    title="לחץ לתצוגה מוגדלת"
+                    onClick={() => setPreviewModalUrl(att.previewUrl || null)}
+                  />
                 ) : (
                   <span className="claims-ai-attachment-icon">📄</span>
                 )}
@@ -5158,6 +5224,20 @@ export function ClaimsAiWorkspace({
                   <span className="claims-ai-attachment-name" title={att.name}>{att.name}</span>
                   <span className="claims-ai-attachment-size">{formatFileSize(att.size)}</span>
                 </div>
+                <button
+                  type="button"
+                  className="claims-ai-attachment-replace"
+                  data-testid={`claims-ai-replace-attachment-${att.id}`}
+                  title="החלף קובץ / עמוד זה"
+                  aria-label={`החלף קובץ ${att.name}`}
+                  style={{ background: 'transparent', border: 0, cursor: 'pointer', fontSize: 13, padding: '0 3px' }}
+                  onClick={() => {
+                    replaceTargetIdRef.current = att.id;
+                    fileInputRef.current?.click();
+                  }}
+                >
+                  🔄
+                </button>
                 <button
                   type="button"
                   className="claims-ai-attachment-remove"
@@ -5170,6 +5250,32 @@ export function ClaimsAiWorkspace({
                 </button>
               </div>
             ))}
+            <div className="claims-ai-tray-actions" style={{ display: 'flex', gap: 8, width: '100%', marginTop: 4 }}>
+              <button
+                type="button"
+                className="claims-ai-action-btn"
+                data-testid="claims-ai-add-camera-page-btn"
+                onClick={() => {
+                  replaceTargetIdRef.current = null;
+                  cameraInputRef.current?.click();
+                }}
+                style={{ fontSize: 11, padding: '3px 8px' }}
+              >
+                📷 צלם עמוד נוסף
+              </button>
+              <button
+                type="button"
+                className="claims-ai-action-btn"
+                data-testid="claims-ai-add-file-page-btn"
+                onClick={() => {
+                  replaceTargetIdRef.current = null;
+                  fileInputRef.current?.click();
+                }}
+                style={{ fontSize: 11, padding: '3px 8px' }}
+              >
+                📎 צרף קובץ נוסף
+              </button>
+            </div>
           </div>
         ) : null}
 
@@ -5314,6 +5420,27 @@ export function ClaimsAiWorkspace({
             data-testid="claims-ai-file-input"
             onChange={handleFilesSelected}
           />
+          <input
+            type="file"
+            ref={cameraInputRef}
+            style={{ display: 'none' }}
+            accept="image/*"
+            capture="environment"
+            data-testid="claims-ai-camera-input"
+            onChange={handleFilesSelected}
+          />
+          <button
+            type="button"
+            className="claims-ai-icon camera"
+            data-testid="claims-ai-camera-btn"
+            disabled={loading}
+            title="צלם מסמך / תמונה במצלמה"
+            aria-label="צלם מסמך במצלמה"
+            onClick={() => {
+              replaceTargetIdRef.current = null;
+              cameraInputRef.current?.click();
+            }}
+          >📷</button>
           <button
             type="button"
             className="claims-ai-icon attach"
@@ -5321,7 +5448,10 @@ export function ClaimsAiWorkspace({
             disabled={loading}
             title="צרף קובץ / תמונה"
             aria-label="צרף קובץ / תמונה"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              replaceTargetIdRef.current = null;
+              fileInputRef.current?.click();
+            }}
           >📎</button>
           <button
             type="button"
@@ -5389,6 +5519,75 @@ export function ClaimsAiWorkspace({
           onChange={handleFormFileChosen}
           data-testid="claims-ai-form-file-input"
         />
+        {previewModalUrl ? (
+          <div
+            className="claims-ai-preview-modal-overlay"
+            data-testid="claims-ai-preview-modal"
+            onClick={() => setPreviewModalUrl(null)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.8)',
+              zIndex: 99999,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 16,
+            }}
+          >
+            <div
+              style={{
+                position: 'relative',
+                maxWidth: '92vw',
+                maxHeight: '92vh',
+                background: 'var(--bg2, #1e293b)',
+                borderRadius: 12,
+                padding: 12,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => setPreviewModalUrl(null)}
+                data-testid="claims-ai-preview-modal-close"
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  left: 8,
+                  background: 'rgba(0,0,0,0.6)',
+                  color: '#fff',
+                  border: 0,
+                  borderRadius: '50%',
+                  width: 32,
+                  height: 32,
+                  fontSize: 18,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 2,
+                }}
+                title="סגור תצוגה מקדימה"
+              >
+                ✕
+              </button>
+              <img
+                src={previewModalUrl}
+                alt="תצוגה מקדימה מלאה"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '82vh',
+                  objectFit: 'contain',
+                  borderRadius: 8,
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
       </section>
     </div>
   );

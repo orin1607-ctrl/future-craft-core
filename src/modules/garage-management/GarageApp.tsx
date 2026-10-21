@@ -219,6 +219,39 @@ export default function GarageApp() {
           reply(requestId, { ok: true, saved });
           return;
         }
+        if (msg.type === 'gm:saveOrder') {
+          const cId = String(payload.caseId || caseId || '');
+          const orderNumber = String(payload.orderNumber || '').trim();
+          if (orderNumber) {
+            try {
+              let customerId: string | null = null;
+              let vehicleId: string | null = null;
+              if (cId) {
+                const { data: cRow } = await supabase.from('garage_cases').select('customer_id, vehicle_id').eq('id', cId).maybeSingle();
+                customerId = cRow?.customer_id || null;
+                vehicleId = cRow?.vehicle_id || null;
+              }
+              await supabase.from('garage_orders').insert({
+                case_id: cId || null,
+                customer_id: customerId,
+                vehicle_id: vehicleId,
+                order_number: orderNumber,
+                case_ref: String(payload.caseRef || ''),
+                order_date: String(payload.orderDate || ''),
+                approved_amount: Number(payload.approvedAmount) || 0,
+                contact_name: String(payload.contactName || ''),
+                notes: String(payload.notes || ''),
+                status: String(payload.status || 'received'),
+                shop_company_name: actor?.company_name || '',
+                created_by: actor?.id || null,
+              });
+            } catch (e) {
+              console.warn('Sync to garage_orders table:', e);
+            }
+          }
+          reply(requestId, { ok: true });
+          return;
+        }
         if (msg.type === 'gm:listMedia') {
           const id = String(payload.garageCaseId || caseId || '');
           const probe = await probeGarageMedia();
@@ -367,7 +400,7 @@ export default function GarageApp() {
           return;
         }
 
-        if (type === 'gm:open_ai') {
+        if (msg.type === 'gm:open_ai') {
           setAiOpen(true);
           return;
         }
