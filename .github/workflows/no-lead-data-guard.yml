@@ -1,0 +1,59 @@
+name: Guard – no lead / contact data in the public repo
+
+# The repository is public. Lead lists, contact dumps and backups with phone numbers must live in
+# Supabase (STAGING) or in gitignored data/, never in git. This check fails when a push or pull request
+# ADDS or CHANGES a file that contains 20 or more distinct Israeli phone numbers.
+# It only reads the files changed by the push, so old branches are not affected.
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: List changed files
+        id: files
+        env:
+          BEFORE: ${{ github.event.before }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -e
+          base=""
+          if [ -n "$BASE_SHA" ]; then base="$BASE_SHA"; elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then base="$BEFORE"; fi
+          if [ -n "$base" ]; then git fetch --no-tags --depth=1 origin "$base" || base=""; fi
+          if [ -n "$base" ]; then git diff --name-only --diff-filter=AM "$base" HEAD > changed.txt; else git diff --name-only --diff-filter=AM HEAD~1 HEAD > changed.txt 2>/dev/null || git ls-tree -r --name-only HEAD > changed.txt; fi
+          echo "changed files: $(wc -l < changed.txt)"
+
+      - name: Scan for phone-number dumps
+        run: |
+          node - <<'EOF'
+          const fs = require("fs");
+          const files = fs.readFileSync("changed.txt", "utf8").split("\n").filter(Boolean);
+          const PHONE = /(?<![0-9])(?:\+?972[- ]?|0)(?:5[0-9]|[23489]|7[0-9])[- ]?[0-9]{3}[- ]?[0-9]{4}(?![0-9])/g;
+          const LIMIT = 20;
+          const bad = [];
+          for (const f of files) {
+            if (!fs.existsSync(f) || fs.statSync(f).size > 20 * 1024 * 1024) continue;
+            const buf = fs.readFileSync(f);
+            if (buf.includes(0)) continue; // binary
+            // numbers in the 0X-555-XXXX range are reserved for fake test data (e.g. scripts/fixtures) and are not counted
+            const found = new Set((buf.toString("utf8").match(PHONE) || []).map(p => p.replace(/[^0-9]/g, "").replace(/^972/, "0")).filter(d => !/^0[0-9]555[0-9]{4}$/.test(d)));
+            if (found.size >= LIMIT) bad.push(`${f}: ${found.size} distinct phone numbers`);
+          }
+          if (bad.length) {
+            console.log("::error::Lead / contact data must not be committed to this public repository:");
+            bad.forEach(b => console.log("::error::" + b));
+            console.log("Store it in Supabase STAGING, in Supabase Storage (private bucket) or in gitignored data/ instead.");
+            process.exit(1);
+          }
+          console.log(`OK – ${files.length} changed files checked, none with ${LIMIT}+ phone numbers.`);
+          EOF

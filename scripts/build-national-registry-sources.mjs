@@ -1,11 +1,11 @@
 // Builds the nr_sources seed migration from the real OpenProspector catalog (ALL_130_SOURCES in
-// public/openprospector-batch-200.js) + the 5 sources added on 2026-10-18 + datasets found by scanning
+// public/openprospector-sources-catalog.js) + the 5 sources added on 2026-10-18 + datasets found by scanning
 // data.gov.il (2,146 datastore resources, 2026-10-18). Each source gets its real status – nothing is
 // marked "completed" here; only the collector marks a source completed after reading it to the end.
 // Usage: node scripts/build-national-registry-sources.mjs [path/to/candidates.json]
 import fs from "node:fs";
 
-const src = fs.readFileSync("public/openprospector-batch-200.js", "utf8");
+const src = fs.readFileSync("public/openprospector-sources-catalog.js", "utf8");
 const w = {};
 new Function("window", "self", "globalThis", "root", src)(w, w, w, w);
 const CAT = w.ALL_130_SOURCES;

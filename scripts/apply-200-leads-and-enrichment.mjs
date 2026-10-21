@@ -7,10 +7,21 @@ export function applyOpenProspector200Enrichment(content) {
 
   // 1. Inject script tag into <head>
   const headScriptAnchor = '<script src="openprospector-enrich.js?v=workforce-fleet-v2"></script>';
-  const newHeadScript = '<script src="openprospector-enrich.js?v=workforce-fleet-v2"></script>\n<script src="openprospector-batch-200.js?v=20261017-baseline"></script>';
-  if (updated.includes(headScriptAnchor)) {
+  // 2026-10-21: only the 130-source catalog is public; the 200-company list is served from Supabase (op_batch200_list)
+  const newHeadScript = '<script src="openprospector-enrich.js?v=workforce-fleet-v2"></script>\n<script src="openprospector-sources-catalog.js?v=20261021"></script>';
+  if (updated.includes(headScriptAnchor) && !updated.includes("openprospector-sources-catalog.js")) {
     updated = updated.replace(headScriptAnchor, newHeadScript);
-    console.log("✓ Injected openprospector-batch-200.js into head");
+    console.log("✓ Injected openprospector-sources-catalog.js into head");
+  }
+  updated = updated.replace('<script src="openprospector-batch-200.js?v=20261017-baseline"></script>', '<script src="openprospector-sources-catalog.js?v=20261021"></script>');
+  // contact data must not be published: empty the legacy seed list if a rebuild brings it back
+  {
+    const s = updated.indexOf("const REAL_SEED_COMPANIES = [");
+    const e = s >= 0 ? updated.indexOf("];", s) : -1;
+    if (s >= 0 && e > s + "const REAL_SEED_COMPANIES = [".length) {
+      updated = updated.slice(0, s) + "// רשימת חברות לדוגמה עם פרטי קשר הוסרה מהקובץ הציבורי (2026-10-21) – הנתונים נשמרים במאגר ובגיבוי פרטי\nconst REAL_SEED_COMPANIES = [];" + updated.slice(e + 2);
+      console.log("✓ Emptied REAL_SEED_COMPANIES");
+    }
   }
 
   // 2. Enhanced Persistence Layer
@@ -1553,7 +1564,7 @@ V.companies = () => {
   if (!updated.includes("openprospector-phone-engine.js")) {
     const bodyEnd = updated.lastIndexOf("</body>");
     if (bodyEnd !== -1) {
-      updated = updated.slice(0, bodyEnd) + '<script src="openprospector-phone-engine.js?v=20261021b"></script>\n' + updated.slice(bodyEnd);
+      updated = updated.slice(0, bodyEnd) + '<script src="openprospector-phone-engine.js?v=20261021c"></script>\n' + updated.slice(bodyEnd);
     }
   }
 

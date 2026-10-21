@@ -59,3 +59,10 @@ supabase/.temp/
 # Private lead and company data (never expose to public web)
 public/data/
 data/
+
+# Lead / contact data must not be committed to this public repository (2026-10-21).
+# The 200-company list is served from Supabase (op_batch200_list); backups live in data/private-archive and a private Storage bucket.
+public/openprospector-batch-200.js
+scripts/staging-verified-phones.json
+**/source-leads-*.csv
+**/*verified-phones*.json

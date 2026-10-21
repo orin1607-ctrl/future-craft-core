@@ -119,11 +119,30 @@
     const headers = await authHeaders();
     if (!headers) { CENTRAL.state = "not_signed_in"; updateCentralBadge(); return CENTRAL; }
     await flushSaves(); // שינויים מקומיים שלא נשמרו עוברים קודם למאגר
-    const batch = C.filter(c => c.discovery_batch === "batch_200_regular");
-    if (!batch.length) return CENTRAL;
     try {
-      const rows = await rpcCall("op_batch200_load", { p_hps: batch.map(c => String(c.no)) }, headers);
-      const byHp = new Map((rows || []).map(r => [String(r.company_hp), r.batch200]));
+      // רשימת 200 החברות מגיעה מהמאגר (לא מקובץ ציבורי): בסיס + תוצאות לכל חברה
+      const listRows = await rpcCall("op_batch200_list", {}, headers);
+      let added = 0;
+      (listRows || []).forEach((r, i) => {
+        const hp = String(r.company_hp);
+        let c = C.find(x => String(x.no) === hp);
+        if (!c && r.base) {
+          c = Object.assign({}, r.base);
+          if (!c.id) c.id = 200001 + i;
+          C.push(c);
+          added++;
+        }
+        if (!c) return;
+        c.discovery_batch = "batch_200_regular";
+        if (r.base) Object.keys(r.base).forEach(k => { if (c[k] === undefined) c[k] = r.base[k]; });
+        // רשימת אנשי הקשר הישנה נשמרת רק כמקורות מדווחים – לעולם לא כאימות
+        if (r.reported && Array.isArray(r.reported.sources) && !Array.isArray(c.phone_reported_sources)) c.phone_reported_sources = r.reported.sources.slice();
+        if (c.verification_rule_v !== 2) applyVerificationStatus(c);
+      });
+      CENTRAL.listCount = (listRows || []).length;
+      CENTRAL.listAdded = added;
+      const batch = C.filter(c => c.discovery_batch === "batch_200_regular");
+      const byHp = new Map((listRows || []).filter(r => r.results).map(r => [String(r.company_hp), r.results]));
       const pending = readPending();
       let applied = 0;
       batch.forEach(c => {
@@ -138,7 +157,8 @@
         }
       });
       writePending(pending);
-      if (applied && typeof persistProspectorData === "function") persistProspectorData();
+      if ((applied || added) && typeof persistProspectorData === "function") persistProspectorData();
+      try { cacheFromC(); } catch (e) {}
       CENTRAL.loaded = true; CENTRAL.loadedCount = byHp.size;
       if (pending.size) await flushSaves();
       else { CENTRAL.state = "ok"; CENTRAL.lastOkAt = CENTRAL.lastOkAt || new Date().toISOString(); }
@@ -153,6 +173,8 @@
     const n = readPending().size;
     if (CENTRAL.state === "ok" && !n) return '☁️ התוצאות נשמרות במאגר המרכזי (Supabase STAGING)' + (CENTRAL.lastOkAt ? " · נשמר " + new Date(CENTRAL.lastOkAt).toLocaleTimeString("he-IL") : "") + (CENTRAL.loadedCount ? " · " + CENTRAL.loadedCount + " חברות במאגר" : "");
     if (CENTRAL.state === "error") return "⚠️ שמירה למאגר נכשלה – ינוסה שוב (" + (CENTRAL.lastError || "") + ")" + (n ? " · " + n + " ממתינות" : "");
+    const hasList = typeof C !== "undefined" && C.some(c => c.discovery_batch === "batch_200_regular");
+    if (CENTRAL.state === "not_signed_in" && !hasList) return "🔒 רשימת 200 החברות זמינה רק למשתמש מחובר – התחבר לדליה כדי לטעון אותה מהמאגר";
     if (CENTRAL.state === "not_signed_in" || n) return "⚠️ לא מחובר לדליה – התוצאות נשמרות בדפדפן בלבד" + (n ? " (" + n + " חברות ממתינות לשמירה במאגר)" : "") + ". התחבר כדי לשמור לצמיתות.";
     return "☁️ שמירה מרכזית – בודק חיבור…";
   }
