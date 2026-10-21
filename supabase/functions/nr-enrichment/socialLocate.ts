@@ -147,7 +147,8 @@ export async function locateSocial(sb: SupabaseClient, deps: LocateDeps, busines
       const r = await confirmSite(deps, biz, c.domain);
       if (r.ok) { site = r.host || c.domain; siteStatus = "confirmed"; siteNote = `${c.from}: ${r.note}`; return; }
       // the site did not open from here: its latest archived copy, confirmed by the same rule
-      if (/לא נפתח/.test(r.note)) {
+      // (only for the company's own domains – a domain found by name similarity is not known to be the company's)
+      if (/לא נפתח/.test(r.note) && !c.similar) {
         const a = await fromArchive(c.domain);
         if (a) {
           const why = deps.siteConfirms(biz, a.html, c.domain).filter((w) => !w.startsWith("שם החברה"));
