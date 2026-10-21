@@ -901,6 +901,23 @@ export const GARAGE_GEMINI_TOOLS = [
         },
       },
       {
+        name: "preview_garage_create_supplier",
+        description: "פתיחת ספק חדש בספר הספקים של המוסך. בודק מראש כפילויות לפי שם או ח.פ/עוסק מורשה, מגדיר קטגוריית ספק ומקצה מספר ספק SUP-xxxx.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            name: { type: "STRING", description: "שם הספק (חובה)" },
+            phone: { type: "STRING", description: "מספר טלפון של הספק" },
+            category: { type: "STRING", description: "קטגוריה: 'parts' (חלפים), 'paints' (צבעים), 'materials' (חומרים), 'tires' (צמיגים), 'subcontractor' (קבלן משנה), 'general' (כללי)" },
+            business_id: { type: "STRING", description: "ח.פ. / עוסק מורשה" },
+            contact_person: { type: "STRING", description: "איש קשר" },
+            email: { type: "STRING", description: "דואר אלקטרוני" },
+            notes: { type: "STRING", description: "הערות" },
+          },
+          required: ["name"],
+        },
+      },
+      {
         name: "preview_garage_record_invoice",
         description: "קליטת חשבונית ספק, הוצאה כללית או זיכוי. תומך ב: מסלול א' (חשבונית חלקים לתיק רכב), מסלול ב' (הוצאה כללית ללא שיוך לרכב: צבעים, כלים, ציוד), מסלול ג' (איתור/פתיחת ספק בספר הספקים), מסלול ד' (חשבונית זיכוי והחזרת חלקים).",
         parameters: {
@@ -2288,6 +2305,42 @@ export async function executeGarageTool(
       };
     }
 
+    case "preview_garage_create_supplier": {
+      const name = String(args.name || "").trim();
+      if (!name) throw new Error("שם ספק הוא שדה חובה");
+      let dupQuery = supabase.from("garage_suppliers").select("id, supplier_number, name").ilike("name", name);
+      if (shopScope?.company_name) {
+        dupQuery = dupQuery.ilike("shop_company_name", `%${shopScope.company_name}%`);
+      }
+      const { data: existing } = await dupQuery.maybeSingle();
+      if (existing) {
+        return {
+          result: {
+            success: true,
+            already_exists: true,
+            supplier_number: existing.supplier_number,
+            message: `הספק "${name}" כבר קיים במערכת עם מספר ספק ${existing.supplier_number}.`,
+          },
+        };
+      }
+      const suppNum = `SUP-${Math.floor(1000 + Math.random() * 9000)}`;
+      const pendingAction: GaragePendingAction = {
+        preview_id: `prev_supp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        summary: `פתיחת ספק חדש: "${name}" (קטגוריה: ${args.category || "חלפים"}, יוקצה מספר ${suppNum})`,
+        tool_name: "preview_garage_create_supplier",
+        action_type: "garage_create_supplier",
+        parameters: { ...args, name, supplier_number: suppNum },
+      };
+      return {
+        result: {
+          success: true,
+          supplier_number: suppNum,
+          summary: pendingAction.summary,
+        },
+        preview: pendingAction,
+      };
+    }
+
     case "preview_garage_record_invoice": {
       const invNum = String(args.invoice_number || "").trim();
       const supplier = String(args.supplier_name || "").trim();
@@ -2956,6 +3009,27 @@ export async function executeGaragePendingAction(
         return {
           success: true,
           message: `✅ קבלת רכב עבור תיק ${cData.case_number} הושלמה בהצלחה! 5 תמונות נקלטו, קילומטראז' (${intakeKm} ק"מ) עודכן והתיק הועבר לטיפול.`,
+        };
+      }
+
+      case "garage_create_supplier": {
+        const name = String(parameters.name || "").trim();
+        const suppNum = String(parameters.supplier_number || `SUP-${Math.floor(1000 + Math.random() * 9000)}`);
+        const { data: created, error: sErr } = await supabase.from("garage_suppliers").insert({
+          supplier_number: suppNum,
+          name,
+          phone: parameters.phone ? String(parameters.phone).trim() : null,
+          email: parameters.email ? String(parameters.email).trim() : null,
+          business_id: parameters.business_id ? String(parameters.business_id).trim() : null,
+          contact_person: parameters.contact_person ? String(parameters.contact_person).trim() : null,
+          category: String(parameters.category || "parts"),
+          notes: parameters.notes ? String(parameters.notes).trim() : null,
+          shop_company_name: actorShopName || "מוסך יוני – פחחות וצבע לרכב",
+        }).select("*").single();
+        if (sErr) throw new Error(`פתיחת ספק נכשלה: ${sErr.message}`);
+        return {
+          success: true,
+          message: `🏭 הספק "${name}" נפתח בהצלחה בספר הספקים! הוקצה מספר ספק: ${suppNum}.`,
         };
       }
 

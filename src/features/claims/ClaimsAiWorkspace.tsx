@@ -2519,6 +2519,31 @@ export function ClaimsAiWorkspace({
     setShowWelcomeHub(true);
   }, [hasUnsavedAction]);
 
+  const handleStartNewChat = useCallback(() => {
+    if (hasUnsavedAction) {
+      setConfirmReturnToMenuModal(true);
+      return;
+    }
+    setActiveId(null);
+    setMessages([]);
+    setInput('');
+    setShowList(false);
+    setShowWelcomeHub(true);
+    writeActiveId(userId, claimId, null, module, garageCase?.id || null);
+  }, [hasUnsavedAction, userId, claimId, module, garageCase?.id]);
+
+  const handleNavBack = useCallback(() => {
+    if (!showWelcomeHub && messages.length > 0) {
+      if (hasUnsavedAction) {
+        setConfirmReturnToMenuModal(true);
+      } else {
+        setShowWelcomeHub(true);
+      }
+    } else {
+      onClose();
+    }
+  }, [showWelcomeHub, messages.length, hasUnsavedAction, onClose]);
+
   const dockedStorageKey = module === 'garage'
     ? `garage_ai_docked_${userId}`
     : module === 'dashboard'
@@ -4048,7 +4073,16 @@ export function ClaimsAiWorkspace({
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <h2>{active?.title || 'שיחה חדשה'}</h2>
               {module === 'garage' && (
-                <div className="claims-ai-top-nav-group" data-testid="dalia-garage-nav-group" style={{ display: 'flex', gap: 6, marginInlineStart: 8 }}>
+                <div className="claims-ai-top-nav-group" data-testid="dalia-garage-nav-group" style={{ display: 'flex', gap: 6, marginInlineStart: 8, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-g btn-xs"
+                    data-testid="dalia-nav-back-btn"
+                    onClick={handleNavBack}
+                    title="חזרה לתפריט הפעולות או לדשבורד"
+                  >
+                    ← חזרה
+                  </button>
                   <button
                     type="button"
                     className="btn btn-g btn-xs"
@@ -4070,11 +4104,11 @@ export function ClaimsAiWorkspace({
                   <button
                     type="button"
                     className="btn btn-g btn-xs"
-                    data-testid="dalia-nav-cases"
-                    onClick={onClose}
-                    title="צפייה ברשימת כרטיסי עבודה בדשבורד"
+                    data-testid="dalia-new-chat-btn"
+                    onClick={handleStartNewChat}
+                    title="פתיחת שיחה חדשה ונקייה (מופיע תפריט 9 הכפתורים)"
                   >
-                    📋 כרטיסי עבודה
+                    ➕ שיחה חדשה
                   </button>
                   <button
                     type="button"
@@ -4084,6 +4118,15 @@ export function ClaimsAiWorkspace({
                     title="חזרה לתפריט 9 כפתורי הפעולה של דליה AI"
                   >
                     🏠 תפריט ראשי
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-g btn-xs"
+                    data-testid="dalia-nav-cases"
+                    onClick={onClose}
+                    title="צפייה ברשימת כרטיסי עבודה בדשבורד"
+                  >
+                    📋 כרטיסי עבודה
                   </button>
                 </div>
               )}

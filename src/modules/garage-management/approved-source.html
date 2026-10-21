@@ -14,13 +14,16 @@
   --ok:#3ddc97; --warn:#f5b84f; --danger:#ff6b6b; --accent:#5b8def;
 }
 *{box-sizing:border-box; margin:0; padding:0;}
-html,body{height:100%;}
+html{
+  height:100%; overflow-y:auto !important; overflow-x:hidden !important; -webkit-overflow-scrolling:touch !important;
+  scroll-behavior:smooth; overscroll-behavior-y:contain;
+}
 body{
   font-family:'Heebo',sans-serif; background:var(--bg); color:var(--white);
-  width:100%; min-height:100dvh; overflow-x:hidden; -webkit-font-smoothing:antialiased;
+  width:100%; min-height:100% !important; height:auto !important; overflow-y:visible !important; overflow-x:hidden !important; -webkit-overflow-scrolling:touch !important;
 }
-#app{width:100%; min-height:100dvh; display:flex; flex-direction:column; max-width:520px; margin:0 auto; position:relative;}
-.screen{display:none; flex-direction:column; min-height:100dvh; padding-bottom:90px;}
+#app{width:100%; min-height:100%; display:flex; flex-direction:column; max-width:520px; margin:0 auto; position:relative;}
+.screen{display:none; flex-direction:column; min-height:auto; padding-bottom:150px;}
 .screen.active{display:flex;}
 .topbar{
   position:sticky; top:0; z-index:20; background:var(--bg);
@@ -160,7 +163,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 .legend .dot{width:9px; height:9px; border-radius:3px; display:inline-block; margin-left:5px;}
 .damage-list-item{display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px;}
 .damage-list-item:last-child{border-bottom:none;}
-.sheet-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:50; display:none;}
+.sheet-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:50; display:none; pointer-events:none;}
+.sheet-overlay.active{display:block; pointer-events:auto;}
 .sheet-overlay.active{display:block;}
 .sheet{
   position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:520px;
@@ -696,14 +700,17 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <div id="app">
 
 <nav class="gm-top-nav-bar" data-testid="garage-top-nav-bar">
-  <button type="button" class="gm-nav-tab active" data-testid="nav-tab-dashboard" onclick="goHomeTab('dashboard')">
+  <button type="button" class="gm-nav-tab active" id="gm-tab-dash" data-testid="nav-tab-dashboard" onclick="goHomeTab('dashboard')">
     <span class="icon">🏠</span> דשבורד מוסך
   </button>
-  <button type="button" class="gm-nav-tab ai-tab" data-testid="nav-tab-ai" onclick="openDaliaAi()">
+  <button type="button" class="gm-nav-tab ai-tab" id="gm-tab-ai" data-testid="nav-tab-ai" onclick="openDaliaAi()">
     <span class="icon">✨</span> דליה AI
   </button>
-  <button type="button" class="gm-nav-tab" data-testid="nav-tab-cases" onclick="goHomeTab('cases')">
-    <span class="icon">📋</span> רשימת כרטיסי עבודה
+  <button type="button" class="gm-nav-tab" id="gm-tab-cases" data-testid="nav-tab-cases" onclick="goHomeTab('cases')">
+    <span class="icon">📋</span> כרטיסי עבודה
+  </button>
+  <button type="button" class="gm-nav-tab" id="gm-tab-suppliers" data-testid="nav-tab-suppliers" onclick="goHomeTab('suppliers')">
+    <span class="icon">📦</span> ספקים וחשבוניות
   </button>
 </nav>
 
@@ -749,6 +756,10 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <button type="button" class="quick-act-btn" onclick="go('s-newtype')" data-testid="action-new-customer">
       <span class="qa-icon">👤</span>
       <span class="qa-title">פתיחת לקוח</span>
+    </button>
+    <button type="button" class="quick-act-btn" onclick="openNewSupplierModal()" data-testid="action-quick-supplier">
+      <span class="qa-icon">🏭</span>
+      <span class="qa-title">פתיחת ספק</span>
     </button>
     <button type="button" class="quick-act-btn ai" onclick="openDaliaAi()" data-testid="action-dalia-ai">
       <span class="qa-icon">✨</span>
@@ -808,6 +819,77 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="cases-mobile-list" id="cases-mobile-list" data-testid="garage-cases-mobile-list"></div>
 
     <div id="home-empty" class="hint" style="padding:16px 0; display:none;">לא נמצאו כרטיסי עבודה התואמים לחיפוש או לסינון הנוכחי.</div>
+  </div>
+
+  <!-- ================= SUPPLIERS & INVOICES SECTION (STAGE 5) ================= -->
+  <div class="suppliers-section-container" id="suppliers-section" data-testid="garage-suppliers-section" style="margin: 20px 24px 36px;">
+    <div class="suppliers-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+      <div>
+        <h3 style="font-size:18px; font-weight:800; color:#fff; display:flex; align-items:center; gap:8px;">
+          <span>📦</span>
+          <span>ספקים, חשבוניות והוצאות מוסך</span>
+        </h3>
+        <p style="font-size:12px; color:var(--white50); margin-top:2px;">ספר ספקים, חשבוניות חלפים לרכב, הוצאות כלליות (צבעים/חומרים ללא שיוך לרכב) וזיכויים</p>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-p btn-sm" onclick="openNewSupplierModal()" data-testid="action-new-supplier" style="padding:8px 14px; font-size:12.5px; font-weight:700; cursor:pointer;">
+          ➕ ספק חדש
+        </button>
+        <button type="button" class="btn btn-g btn-sm" onclick="openNewInvoiceModal()" data-testid="action-new-invoice" style="padding:8px 14px; font-size:12.5px; font-weight:700; cursor:pointer;">
+          🧾 קליטת חשבונית / הוצאה / זיכוי
+        </button>
+      </div>
+    </div>
+
+    <!-- SUB TABS -->
+    <div class="filter-pills-bar" style="margin-bottom:14px; flex-wrap:wrap; gap:6px;">
+      <button type="button" class="filter-pill active" id="supp-pill-suppliers" onclick="switchSuppliersTab('suppliers')">🏭 ספר ספקים (<span id="count-suppliers">0</span>)</button>
+      <button type="button" class="filter-pill" id="supp-pill-parts" onclick="switchSuppliersTab('parts')">🧾 חשבוניות חלפים לרכב (<span id="count-parts-inv">0</span>)</button>
+      <button type="button" class="filter-pill" id="supp-pill-general" onclick="switchSuppliersTab('general')">🎨 הוצאות כלליות ללא רכב (<span id="count-gen-inv">0</span>)</button>
+      <button type="button" class="filter-pill" id="supp-pill-credits" onclick="switchSuppliersTab('credits')">🔄 זיכויים והחזרות (<span id="count-credits">0</span>)</button>
+    </div>
+
+    <!-- SUPPLIERS TABLE CONTAINER -->
+    <div id="supp-tab-content-suppliers" class="cases-full-table-container cases-table-wrap" style="overflow-x:auto;">
+      <table class="cases-full-table" data-testid="garage-suppliers-table">
+        <thead>
+          <tr>
+            <th>מספר ספק</th>
+            <th>שם ספק</th>
+            <th>קטגוריה</th>
+            <th>טלפון</th>
+            <th>ח.פ / עוסק מורשה</th>
+            <th>איש קשר</th>
+            <th>הערות</th>
+          </tr>
+        </thead>
+        <tbody id="suppliers-table-body">
+          <tr><td colspan="7" style="text-align:center; padding:18px; color:var(--white50);">טוען ספר ספקים...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- INVOICES TABLE CONTAINER -->
+    <div id="supp-tab-content-invoices" class="cases-full-table-container cases-table-wrap" style="display:none; overflow-x:auto;">
+      <table class="cases-full-table" data-testid="garage-invoices-table">
+        <thead>
+          <tr>
+            <th>מספר חשבונית</th>
+            <th>סוג</th>
+            <th>שם ספק</th>
+            <th>שיוך תיק / רכב</th>
+            <th>קטגוריה</th>
+            <th>תאריך</th>
+            <th>סכום כולל</th>
+            <th>החזרת חלקים</th>
+            <th>סטטוס זיכוי</th>
+          </tr>
+        </thead>
+        <tbody id="invoices-table-body">
+          <tr><td colspan="9" style="text-align:center; padding:18px; color:var(--white50);">טוען חשבוניות...</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 <!-- ================= SCREEN: CHOOSE NEW/EXISTING ================= -->
@@ -921,7 +1003,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <span class="metapill" id="case-opened-pill">נפתח</span>
       <span class="metapill" id="case-order-pill">הזמנה: —</span>
     </div>
-    <div class="manager-link" onclick="goManager()">← חזרה למסך הניהול</div>
+    <div class="manager-link" id="case-back-btn" data-testid="case-back-btn" onclick="returnToGarageDashboard()">← חזרה למסך הניהול</div>
     <div class="pending-banner" id="book-pending-banner-case">הפעלת מסד נתוני המוסך עדיין ממתינה. אפשר לעבור על הזרימה; שמירת לקוח, רכב, תיק ותמונות תתחיל אחרי הרצת ה-SQL ב-Staging.</div>
   </div>
   <div class="case-facts" aria-hidden="false">
@@ -1001,7 +1083,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     </div>
   </div>
   <div style="padding:16px;">
-    <button class="btn btn-danger-ghost" id="close-case-btn" onclick="tryCloseCase()" disabled>סגור תיק</button>
+    <button type="button" class="btn btn-danger-ghost" id="close-case-btn" onclick="tryCloseCase()" data-testid="action-close-case" style="width:100%;font-size:15px;font-weight:700;padding:14px;border-radius:12px;cursor:pointer;">🔒 סגירת תיק עבודה</button>
   </div>
   </div>
   </div>
@@ -2106,15 +2188,10 @@ function resetOpenCaseDrafts(){
 }
 function returnToGarageDashboard(){
   resetOpenCaseDrafts();
-  if(bootStartScreen === 's-home' && !customerOnly){
-    go('s-home');
-    return;
-  }
-  if(window.parent !== window){
-    parent.postMessage({type:'gm:goHome'}, '*');
-    return;
-  }
   go('s-home');
+  if(window.parent !== window){
+    try { parent.postMessage({type:'gm:goHome'}, '*'); } catch(e){}
+  }
 }
 function finishCustomerOnlySave(customer){
   currentCustomer = customer || currentCustomer;
@@ -2404,12 +2481,17 @@ function openDaliaAi() {
 }
 
 function goHomeTab(tab) {
+  if (state && state.currentScreen !== 's-home') {
+    go('s-home');
+  }
   if (tab === 'cases') {
     var el = document.getElementById('cases-section');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
     document.querySelectorAll('.gm-nav-tab').forEach(function(b){
       b.classList.toggle('active', b.getAttribute('data-testid') === 'nav-tab-cases');
     });
+  } else if (tab === 'suppliers') {
+    showSuppliersSection();
   } else {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     document.querySelectorAll('.gm-nav-tab').forEach(function(b){
@@ -4247,8 +4329,11 @@ function uploadDeliverySignatureIfPossible(){
   }, 'image/png');
 }
 function tryCloseCase(){
-  if(!state.workFinished){ alert('ניתן לסגור את התיק רק לאחר סיום העבודה.'); return; }
-  bindCloseAndFinish();
+  try {
+    bindCloseAndFinish();
+  } catch(e) {
+    console.warn('bindCloseAndFinish warning:', e);
+  }
   go('s-close');
 }
 function confirmCloseCase(){
@@ -4264,8 +4349,12 @@ function confirmCloseCase(){
   state.caseClosedBy = workerName || '';
   addTimelineEvent('הרכב נמסר / התיק נסגר' + (workerName ? (' · ' + workerName) : ''));
   if(state.closeNote) addTimelineEvent('הערת סיום: ' + state.closeNote);
+  schedulePersist();
+  if(state.id) {
+    host('closeCase', { caseId: state.id, closeNote: state.closeNote || '' }).catch(function(){});
+  }
   refreshCaseHub();
-  alert('הרכב נמסר / התיק נסגר. החומר נשאר בתיק.');
+  alert('הרכב נמסר / התיק נסגר בהצלחה. התיק הועבר לרשימת הכרטיסים הסגורים.');
   parent.postMessage({type:'gm:goHome'}, '*');
 }
 function reopenClosedCase(){
@@ -4977,7 +5066,7 @@ function refreshCaseHub(){
       : 'טרם נוצרה הצעה עבור תיק זה. <span class="open-link" onclick="event.stopPropagation(); go(\'s-quote\')">פתח ›</span>');
   document.getElementById('tile-wo-sub').textContent = state.workOrderSaved ? (state.workOrderNumber+' · '+money(state.workOrderAmount)) : 'ממתין';
   document.getElementById('acc-wo-body').innerHTML = state.workOrderSaved ? (state.workOrderNumber+' · '+money(state.workOrderAmount)+' · בתיק <span class="open-link" onclick="event.stopPropagation(); go(\'s-workorder\')">פתח ›</span>') : 'אין הזמנות עבודה מקושרות עדיין. <span class="open-link" onclick="event.stopPropagation(); go(\'s-workorder\')">פתח ›</span>';
-  document.getElementById('close-case-btn').disabled = !state.workFinished;
+  document.getElementById('close-case-btn').disabled = false;
   document.getElementById('close-case-btn').textContent = state.caseClosed ? 'תיק סגור — פתיחה מחדש' : 'סגור תיק';
   setText('tile-hist-sub', ((state.timeline || []).length) + ' אירועים');
   setText('tile-gal-sub', mediaItems.length ? (mediaItems.length + ' קבצים') : 'אין תמונות שמורות');
@@ -5101,6 +5190,354 @@ function renderExtraApprovals(){
   if(el) el.addEventListener('change', function(e){ uploadSelectedFiles(e.target.files); });
 });
 parent.postMessage({type:'gm:ready'}, '*');
+
+
+/* ================= SUPPLIERS & INVOICES JS LOGIC (STAGE 5 & STAGE 11) ================= */
+state.suppliers = state.suppliers || [];
+state.invoices = state.invoices || [];
+var currentSuppliersTab = 'suppliers';
+
+function showSuppliersSection() {
+  go('s-home');
+  var sec = document.getElementById('suppliers-section');
+  if (sec) {
+    sec.scrollIntoView({ behavior: 'smooth' });
+    document.querySelectorAll('.gm-nav-tab').forEach(function(t) { t.classList.remove('active'); });
+    var t = document.getElementById('gm-tab-suppliers');
+    if (t) t.classList.add('active');
+  }
+}
+
+function switchSuppliersTab(tab) {
+  currentSuppliersTab = tab;
+  ['suppliers', 'parts', 'general', 'credits'].forEach(function(t) {
+    var pill = document.getElementById('supp-pill-' + t);
+    if (pill) pill.classList.toggle('active', t === tab);
+  });
+  var suppWrap = document.getElementById('supp-tab-content-suppliers');
+  var invWrap = document.getElementById('supp-tab-content-invoices');
+  if (tab === 'suppliers') {
+    if (suppWrap) suppWrap.style.display = 'block';
+    if (invWrap) invWrap.style.display = 'none';
+    renderSuppliersTable();
+  } else {
+    if (suppWrap) suppWrap.style.display = 'none';
+    if (invWrap) invWrap.style.display = 'block';
+    renderInvoicesTable(tab);
+  }
+}
+
+function renderSuppliersSection() {
+  renderSuppliersTable();
+  renderInvoicesTable(currentSuppliersTab);
+  updateSuppliersCounters();
+  updateSuppliersDatalist();
+}
+
+function updateSuppliersCounters() {
+  var supps = state.suppliers || [];
+  var invs = state.invoices || [];
+  var partsCount = invs.filter(function(i) { return i.invoice_type === 'parts_invoice'; }).length;
+  var genCount = invs.filter(function(i) { return i.invoice_type === 'general_expense'; }).length;
+  var credCount = invs.filter(function(i) { return i.invoice_type === 'credit_note' || !!i.returned_parts_exist || i.credit_status === 'credit_pending' || i.credit_status === 'credit_received'; }).length;
+
+  var elS = document.getElementById('count-suppliers'); if (elS) elS.textContent = supps.length;
+  var elP = document.getElementById('count-parts-inv'); if (elP) elP.textContent = partsCount;
+  var elG = document.getElementById('count-gen-inv'); if (elG) elG.textContent = genCount;
+  var elC = document.getElementById('count-credits'); if (elC) elC.textContent = credCount;
+}
+
+function updateSuppliersDatalist() {
+  var dl = document.getElementById('suppliers-datalist');
+  if (!dl) return;
+  dl.innerHTML = (state.suppliers || []).map(function(s) {
+    return '<option value="' + esc(s.name) + '">' + esc(s.supplier_number || '') + ' (' + esc(s.category || '') + ')</option>';
+  }).join('');
+}
+
+function renderSuppliersTable() {
+  var tbody = document.getElementById('suppliers-table-body');
+  if (!tbody) return;
+  var items = state.suppliers || [];
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:18px; color:var(--white50);">טרם הוזנו ספקים. לחץ "➕ ספק חדש" לפתיחת ספק ראשון.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = items.map(function(s) {
+    var catLabels = { parts: 'חלפים', paints: 'צבעים', materials: 'חומרים', tools: 'כלי עבודה', tires: 'צמיגים', subcontractor: 'קבלן משנה', general: 'כללי' };
+    var catStr = catLabels[s.category] || s.category || 'כללי';
+    return '<tr class="case-row">' +
+      '<td style="font-weight:700; color:var(--accent);">' + esc(s.supplier_number || '—') + '</td>' +
+      '<td style="font-weight:700;">' + esc(s.name) + '</td>' +
+      '<td><span class="badge badge-muted">' + esc(catStr) + '</span></td>' +
+      '<td>' + esc(s.phone || '—') + '</td>' +
+      '<td>' + esc(s.business_id || '—') + '</td>' +
+      '<td>' + esc(s.contact_person || '—') + '</td>' +
+      '<td style="color:var(--white50);">' + esc(s.notes || '—') + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderInvoicesTable(tab) {
+  var tbody = document.getElementById('invoices-table-body');
+  if (!tbody) return;
+  var items = state.invoices || [];
+  if (tab === 'parts') {
+    items = items.filter(function(i) { return i.invoice_type === 'parts_invoice'; });
+  } else if (tab === 'general') {
+    items = items.filter(function(i) { return i.invoice_type === 'general_expense'; });
+  } else if (tab === 'credits') {
+    items = items.filter(function(i) { return i.invoice_type === 'credit_note' || !!i.returned_parts_exist || i.credit_status === 'credit_pending' || i.credit_status === 'credit_received'; });
+  }
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:18px; color:var(--white50);">לא נמצאו חשבוניות בקטגוריה זו.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = items.map(function(i) {
+    var typeLabels = { parts_invoice: 'חלקי רכב', general_expense: 'הוצאה כללית', credit_note: 'זיכוי ספק' };
+    var tStr = typeLabels[i.invoice_type] || i.invoice_type;
+    var target = i.case_number ? ('תיק ' + esc(i.case_number)) : (i.vehicle_plate ? ('רכב ' + esc(i.vehicle_plate)) : '<span style="color:var(--white50);">הוצאת מוסך כללית</span>');
+    var isRet = i.returned_parts_exist ? '<span class="badge badge-warn">יש החזרה</span>' : '—';
+    var isCred = (i.credit_status === 'credit_received' || i.invoice_type === 'credit_note') ? '<span class="badge badge-ok">זוכה</span>' : (i.credit_status === 'credit_pending' ? '<span class="badge badge-warn">ממתין לזיכוי</span>' : 'רגיל');
+    return '<tr class="case-row">' +
+      '<td style="font-weight:700;">' + esc(i.invoice_number) + '</td>' +
+      '<td><span class="badge badge-muted">' + esc(tStr) + '</span></td>' +
+      '<td style="font-weight:700;">' + esc(i.supplier_name) + '</td>' +
+      '<td>' + target + '</td>' +
+      '<td>' + esc(i.expense_category || '—') + '</td>' +
+      '<td>' + esc(i.invoice_date || '—') + '</td>' +
+      '<td style="font-weight:800; color:#fff;">₪' + Number(i.total_amount || 0).toLocaleString() + '</td>' +
+      '<td>' + isRet + '</td>' +
+      '<td>' + isCred + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function host(action, payload) {
+  var type = (action.indexOf('gm:') === 0) ? action : ('gm:' + action);
+  return callHost(type, payload);
+}
+
+function openNewSupplierModal() {
+  document.getElementById('new-supp-name').value = '';
+  document.getElementById('new-supp-phone').value = '';
+  document.getElementById('new-supp-taxid').value = '';
+  document.getElementById('new-supp-contact').value = '';
+  document.getElementById('new-supp-notes').value = '';
+  var m = document.getElementById('modal-new-supplier');
+  if (m) m.classList.add('active');
+}
+function closeNewSupplierModal() {
+  var m = document.getElementById('modal-new-supplier');
+  if (m) m.classList.remove('active');
+}
+
+function submitNewSupplier() {
+  var name = (document.getElementById('new-supp-name').value || '').trim();
+  if (!name) { alert('נא להזין שם ספק'); return; }
+  var cat = document.getElementById('new-supp-cat').value;
+  var phone = (document.getElementById('new-supp-phone').value || '').trim();
+  var taxid = (document.getElementById('new-supp-taxid').value || '').trim();
+  var contact = (document.getElementById('new-supp-contact').value || '').trim();
+  var notes = (document.getElementById('new-supp-notes').value || '').trim();
+
+  host('createSupplier', {
+    name: name,
+    category: cat,
+    phone: phone,
+    business_id: taxid,
+    contact_person: contact,
+    notes: notes
+  }).then(function(res) {
+    if (res && res.supplier) {
+      if (!res.alreadyExisted) {
+        state.suppliers = state.suppliers || [];
+        state.suppliers.unshift(res.supplier);
+        renderSuppliersSection();
+        closeNewSupplierModal();
+        alert('הספק ' + name + ' נפתח בהצלחה! הוקצה מספר ספק: ' + res.supplier.supplier_number);
+      } else {
+        alert('הספק ' + name + ' כבר קיים במערכת (מספר ספק: ' + res.supplier.supplier_number + ')');
+        closeNewSupplierModal();
+      }
+    } else {
+      alert('שגיאה בפתיחת ספק: ' + (res.error || 'נסה שוב'));
+    }
+  }).catch(function(err) {
+    alert('שגיאה: ' + (err.message || err));
+  });
+}
+
+function openNewInvoiceModal() {
+  document.getElementById('new-inv-number').value = '';
+  document.getElementById('new-inv-supplier').value = '';
+  document.getElementById('new-inv-amount').value = '';
+  document.getElementById('new-inv-case').value = (state && state.caseNumber) ? state.caseNumber : '';
+  document.getElementById('new-inv-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('new-inv-parts-ok').checked = true;
+  document.getElementById('new-inv-return').checked = false;
+  document.getElementById('field-return-notes').style.display = 'none';
+  document.getElementById('new-inv-return-notes').value = '';
+  onInvoiceTypeChange();
+  var m = document.getElementById('modal-new-invoice');
+  if (m) m.classList.add('active');
+}
+function closeNewInvoiceModal() {
+  var m = document.getElementById('modal-new-invoice');
+  if (m) m.classList.remove('active');
+}
+
+function onInvoiceTypeChange() {
+  var type = document.getElementById('new-inv-type').value;
+  var caseField = document.getElementById('field-inv-case');
+  var catField = document.getElementById('field-inv-category');
+  if (type === 'general_expense') {
+    if (caseField) caseField.style.display = 'none';
+    if (catField) catField.style.display = 'block';
+  } else {
+    if (caseField) caseField.style.display = 'block';
+    if (catField) catField.style.display = 'none';
+  }
+}
+
+function submitNewInvoice() {
+  var type = document.getElementById('new-inv-type').value;
+  var num = (document.getElementById('new-inv-number').value || '').trim();
+  var supp = (document.getElementById('new-inv-supplier').value || '').trim();
+  var amt = Number(document.getElementById('new-inv-amount').value) || 0;
+  if (!num) { alert('נא להזין מספר חשבונית'); return; }
+  if (!supp) { alert('נא להזין שם ספק'); return; }
+  if (!amt || amt <= 0) { alert('נא להזין סכום תקין'); return; }
+
+  var caseNum = (document.getElementById('new-inv-case').value || '').trim();
+  var cat = document.getElementById('new-inv-category').value;
+  var invDate = document.getElementById('new-inv-date').value;
+  var partsOk = document.getElementById('new-inv-parts-ok').checked;
+  var isRet = document.getElementById('new-inv-return').checked;
+  var retNotes = (document.getElementById('new-inv-return-notes').value || '').trim();
+
+  host('createInvoice', {
+    invoice_type: type,
+    invoice_number: num,
+    supplier_name: supp,
+    total_amount: amt,
+    case_number: type === 'general_expense' ? null : caseNum,
+    expense_category: type === 'general_expense' ? cat : 'parts',
+    invoice_date: invDate,
+    parts_received_confirmed: partsOk,
+    returned_parts_exist: isRet,
+    returned_parts_notes: retNotes,
+    credit_status: isRet ? 'credit_pending' : (type === 'credit_note' ? 'credit_received' : 'none'),
+  }).then(function(res) {
+    if (res && res.invoice) {
+      state.invoices = state.invoices || [];
+      state.invoices.unshift(res.invoice);
+      renderSuppliersSection();
+      closeNewInvoiceModal();
+      alert('החשבונית מס\' ' + num + ' נשמרה בהצלחה!');
+    } else {
+      alert('שגיאה בשמירת חשבונית: ' + (res.error || 'נסה שוב'));
+    }
+  }).catch(function(err) {
+    alert('שגיאה: ' + (err.message || err));
+  });
+}
+
+// Hook into applyBootstrap to update suppliers and invoices
+var _origApplyBootstrap = applyBootstrap;
+applyBootstrap = function(payload) {
+  if (Array.isArray(payload.suppliers)) {
+    state.suppliers = payload.suppliers;
+  }
+  if (Array.isArray(payload.invoices)) {
+    state.invoices = payload.invoices;
+  }
+  _origApplyBootstrap(payload);
+  renderSuppliersSection();
+};
+
 </script>
+
+<!-- ================= MODAL: NEW SUPPLIER (STAGE 5) ================= -->
+<div id="modal-new-supplier" class="sheet-overlay" style="z-index:90;" data-testid="modal-new-supplier">
+  <div class="card" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:90%; max-width:480px; max-height:90vh; overflow-y:auto; background:var(--s1); border:1px solid var(--border-strong); z-index:91; padding:22px; border-radius:18px; box-shadow:0 12px 40px rgba(0,0,0,0.7);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h3 style="font-size:17px; font-weight:800; color:#fff;">➕ פתיחת ספק חדש בספר הספקים</h3>
+      <button type="button" onclick="closeNewSupplierModal()" style="background:transparent; border:0; color:var(--white50); font-size:20px; cursor:pointer;">✕</button>
+    </div>
+    <div class="field"><label>שם הספק <span class="req">*</span></label><input id="new-supp-name" data-testid="new-supp-name" placeholder="למשל: חלפי השרון בע&quot;מ" autocomplete="off"></div>
+    <div class="field"><label>קטגוריה</label>
+      <select id="new-supp-cat" data-testid="new-supp-cat">
+        <option value="parts">חלקי חילוף וחלפים לרכב</option>
+        <option value="paints">צבעים וחומרי גלם לפחחות</option>
+        <option value="materials">חומרים מתכלים למוסך</option>
+        <option value="tools">כלי עבודה ומכשור</option>
+        <option value="tires">צמיגים וכיוון פרונט</option>
+        <option value="subcontractor">קבלן משנה / עבודות חוץ</option>
+        <option value="general">הוצאה כללית אחרת</option>
+      </select>
+    </div>
+    <div class="field"><label>טלפון</label><input id="new-supp-phone" data-testid="new-supp-phone" placeholder="050-0000000" type="tel"></div>
+    <div class="field"><label>ח.פ / עוסק מורשה</label><input id="new-supp-taxid" data-testid="new-supp-taxid" placeholder="514000000"></div>
+    <div class="field"><label>איש קשר</label><input id="new-supp-contact" data-testid="new-supp-contact" placeholder="שם איש קשר"></div>
+    <div class="field"><label>הערות</label><input id="new-supp-notes" data-testid="new-supp-notes" placeholder="תנאי תשלום / הערות"></div>
+    <div style="display:flex; gap:10px; margin-top:18px;">
+      <button type="button" class="btn btn-ghost" onclick="closeNewSupplierModal()" style="flex:1;">ביטול</button>
+      <button type="button" class="btn btn-white" id="save-supplier-btn" data-testid="save-supplier-btn" onclick="submitNewSupplier()" style="flex:1; font-weight:700;">שמור ספק</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: NEW INVOICE (STAGE 5) ================= -->
+<div id="modal-new-invoice" class="sheet-overlay" style="z-index:90;" data-testid="modal-new-invoice">
+  <div class="card" style="position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:90%; max-width:500px; max-height:90vh; overflow-y:auto; background:var(--s1); border:1px solid var(--border-strong); z-index:91; padding:22px; border-radius:18px; box-shadow:0 12px 40px rgba(0,0,0,0.7);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h3 style="font-size:17px; font-weight:800; color:#fff;">🧾 קליטת חשבונית / הוצאה / זיכוי</h3>
+      <button type="button" onclick="closeNewInvoiceModal()" style="background:transparent; border:0; color:var(--white50); font-size:20px; cursor:pointer;">✕</button>
+    </div>
+    <div class="field"><label>סוג מסמך</label>
+      <select id="new-inv-type" data-testid="new-inv-type" onchange="onInvoiceTypeChange()">
+        <option value="parts_invoice">חשבונית חלפים לתיק רכב מסוים</option>
+        <option value="general_expense">הוצאה כללית של המוסך (צבעים, חומרים, כלים - ללא תיק)</option>
+        <option value="credit_note">חשבונית זיכוי ספק / החזרת חלקים</option>
+      </select>
+    </div>
+    <div class="field"><label>מספר חשבונית ספק <span class="req">*</span></label><input id="new-inv-number" data-testid="new-inv-number" placeholder="למשל: INV-10023"></div>
+    <div class="field"><label>שם ספק <span class="req">*</span></label><input id="new-inv-supplier" data-testid="new-inv-supplier" placeholder="בחר או הקלד שם ספק" list="suppliers-datalist"></div>
+    <datalist id="suppliers-datalist"></datalist>
+    <div class="field" id="field-inv-case"><label>מספר תיק עבודה / לוחית רכב (לחשבונית רכב)</label><input id="new-inv-case" data-testid="new-inv-case" placeholder="למשל: GM-2026-0056 או 8042376"></div>
+    <div class="field" id="field-inv-category" style="display:none;"><label>קטגוריית הוצאה כללית</label>
+      <select id="new-inv-category" data-testid="new-inv-category">
+        <option value="paints">צבעים וחומרי פחחות</option>
+        <option value="materials">חומרי שיוף ופחחות מתכלים</option>
+        <option value="tools">כלי עבודה ומכשור למוסך</option>
+        <option value="equipment">ציוד וחלקי מכונות</option>
+        <option value="services">שירותי מוסך / פינוי פסולת</option>
+        <option value="general">הוצאה כללית אחרת</option>
+      </select>
+    </div>
+    <div class="field"><label>סכום כולל מע"מ (₪) <span class="req">*</span></label><input id="new-inv-amount" data-testid="new-inv-amount" type="number" placeholder="0.00"></div>
+    <div class="field"><label>תאריך חשבונית</label><input id="new-inv-date" data-testid="new-inv-date" type="date"></div>
+    <div style="margin:12px 0; display:flex; flex-direction:column; gap:8px;">
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+        <input type="checkbox" id="new-inv-parts-ok" data-testid="new-inv-parts-ok" checked>
+        <span>כל החלקים/חומרים נבדקו והתקבלו בפועל במחסן</span>
+      </label>
+      <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+        <input type="checkbox" id="new-inv-return" data-testid="new-inv-return" onchange="document.getElementById('field-return-notes').style.display=this.checked?'block':'none'">
+        <span>יש חלק שהוחזר / נדרש זיכוי מספק</span>
+      </label>
+    </div>
+    <div class="field" id="field-return-notes" style="display:none;">
+      <label>פירוט החזרת חלקים והערות לזיכוי</label>
+      <input id="new-inv-return-notes" data-testid="new-inv-return-notes" placeholder="פירוט החלק שהוחזר וסיבת ההחזרה">
+    </div>
+    <div style="display:flex; gap:10px; margin-top:18px;">
+      <button type="button" class="btn btn-ghost" onclick="closeNewInvoiceModal()" style="flex:1;">ביטול</button>
+      <button type="button" class="btn btn-white" id="save-invoice-btn" data-testid="save-invoice-btn" onclick="submitNewInvoice()" style="flex:1; font-weight:700;">שמור חשבונית</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

@@ -349,9 +349,31 @@
   }
   .claims-root .claims-ai-top {
     flex-shrink: 0;
-    padding: 10px 14px;
+    padding: 8px 12px;
     z-index: 20;
     position: relative;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .claims-root .claims-ai-top-nav-group {
+    display: flex;
+    gap: 5px;
+    margin-inline-start: 0 !important;
+    margin-top: 4px;
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+  .claims-root .claims-ai-top-nav-group .btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 6px 9px;
+    min-height: 36px;
+    line-height: 1.2;
+    touch-action: manipulation;
   }
   .claims-root .claims-ai-context {
     flex-shrink: 0;
