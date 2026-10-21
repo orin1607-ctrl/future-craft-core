@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#0A2352">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="מרכז השיווק">
+<title>מרכז השיווק</title>
+<style>
+:root{
+  --head:#0A2352; --blue:#1F6FE0; --bg:#EEF2F7; --surface:#FFFFFF; --line:#DCE3EC; --ink:#0E1A2E; --muted:#5B6B82;
+  --ok:#17875A; --ok-soft:#E3F4EC; --bad:#C23B3B; --bad-soft:#FBE6E6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --head:#081A3D; --blue:#5B9BF5; --bg:#0A1426; --surface:#111E36; --line:#22324F; --ink:#E8EEF7; --muted:#93A3BC;
+    --ok:#4CC792; --ok-soft:#113327; --bad:#EF7B7B; --bad-soft:#3D1818;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Assistant","Segoe UI",Arial,sans-serif;min-height:100vh}
+header{background:var(--head);color:#fff;padding:calc(14px + env(safe-area-inset-top)) 16px 14px}
+header h1{margin:0;font-size:20px} header .sub{opacity:.75;font-size:13px}
+.wrap{max-width:480px;margin:0 auto;padding:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+.card h2{margin:0 0 6px;font-size:18px}
+.muted{color:var(--muted);font-size:14px}
+#keyIn{width:100%;font-size:28px;text-align:center;letter-spacing:8px;direction:ltr;border:2px solid var(--line);border-radius:14px;padding:12px;background:var(--surface);color:var(--ink);margin:12px 0}
+#keyIn:focus{outline:none;border-color:var(--blue)}
+.big{display:block;width:100%;border:0;border-radius:14px;padding:15px;font:inherit;font-size:18px;font-weight:800;cursor:pointer;background:var(--blue);color:#fff;text-align:center;text-decoration:none}
+.big[disabled]{opacity:.6}
+#keyErr{margin-top:12px;padding:12px;border-radius:12px;background:var(--bad-soft);color:var(--bad);font-weight:600}
+.menu a{display:flex;align-items:center;gap:14px;padding:16px;border-radius:14px;text-decoration:none;color:#fff;font-weight:800;font-size:17px;margin-bottom:10px}
+.menu a span{font-size:26px}
+.hint{font-size:13.5px}
+.hint ol{padding-inline-start:20px;margin:6px 0}
+.link{background:none;border:0;color:var(--muted);text-decoration:underline;font:inherit;font-size:13px;cursor:pointer;padding:0}
+</style>
+</head>
+<body>
+<header><h1>מרכז השיווק – דליה</h1><div class="sub">STAGING · כניסה מהטלפון</div></header>
+<div class="wrap">
+  <div class="card" id="gate" hidden>
+    <h2>חיבור הטלפון</h2>
+    <div class="muted">במחשב, במרכז השיווק, לחצו <b>"📱 חיבור טלפון"</b> והקלידו כאן את הקוד בן 6 הספרות. עושים את זה פעם אחת בלבד.</div>
+    <form id="keyForm" novalidate>
+      <input id="keyIn" inputmode="numeric" maxlength="64" aria-label="קוד חיבור">
+      <button class="big" id="keyBtn" type="submit">כניסה</button>
+    </form>
+    <div id="keyErr" role="alert" hidden></div>
+  </div>
+
+  <div id="main" hidden>
+    <div class="card menu">
+      <h2 style="margin-bottom:12px">לאן נכנסים?</h2>
+      <a href="./social-center.html" style="background:linear-gradient(90deg,#1877F2,#C13584)"><span>📣</span>קידום ברשתות חברתיות</a>
+      <a href="./outreach.html" style="background:#0f766e"><span>💬</span>פניות ללקוחות עסקיים</a>
+      <a href="./media-library.html" style="background:#7a4bd1"><span>🖼️</span>ספריית מדיה ועורך תמונות</a>
+    </div>
+    <div class="card hint" id="homeHint">
+      <b>טיפ: הוספה למסך הבית</b>
+      <ol id="homeSteps"></ol>
+      <div class="muted">ככה המערכת נפתחת בלחיצה אחת, בלי קודים.</div>
+    </div>
+    <div style="text-align:center"><button class="link" id="logout">ניתוק הטלפון הזה</button></div>
+  </div>
+</div>
+
+<script src="./marketing/hub-client.js?v=20261020c"></script>
+<script>
+const $ = s => document.querySelector(s);
+const gate = Hub.mountGate({input: $('#keyIn'), button: $('#keyBtn'), error: $('#keyErr'), onSuccess: () => boot(true)});
+Hub.onAuthFail = () => { Hub.clearKey(); show(false); gate.show('החיבור של הטלפון בוטל. צרו קוד חדש במחשב.'); };
+$('#keyIn').setAttribute('inputmode', 'numeric');
+
+function show(signedIn){ $('#gate').hidden = signedIn; $('#main').hidden = !signedIn; if (!signedIn) setTimeout(()=>$('#keyIn').focus(), 300); }
+async function boot(fromGate){
+  if (!Hub.key) return show(false);
+  try { await Hub.hub('ping'); show(true); }
+  catch(e) { if (fromGate) throw e; }
+}
+const ios = /iPhone|iPad/.test(navigator.userAgent);
+$('#homeSteps').innerHTML = ios
+  ? '<li>לחצו על כפתור השיתוף <b>⬆️</b> בתחתית Safari</li><li>בחרו <b>"הוספה למסך הבית"</b></li>'
+  : '<li>לחצו על <b>⋮</b> בפינת Chrome</li><li>בחרו <b>"הוספה למסך הבית"</b> / "התקנת אפליקציה"</li>';
+if (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) $('#homeHint').hidden = true;
+$('#logout').onclick = async () => {
+  if (!confirm('לנתק את הטלפון הזה ממרכז השיווק?')) return;
+  try { const d = await Hub.hub('auth/devices'); if (d.current) await Hub.hub('auth/revoke', {id: d.current}); } catch(e) {}
+  Hub.clearKey(); show(false);
+};
+boot();
+</script>
+</body>
+</html>

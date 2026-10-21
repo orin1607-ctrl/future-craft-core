@@ -258,7 +258,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 
 <div class="toast" id="toast"></div>
 
-<script src="./marketing/hub-client.js?v=20261020b"></script>
+<script src="./marketing/hub-client.js?v=20261020c"></script>
 <script>
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const esc = Hub.esc;
@@ -299,7 +299,7 @@ async function boot(fromGate){
   $$('.vars').forEach(v => v.innerHTML = VARS.map(x=>`<button type="button" data-var="${x}">{{${x}}}</button>`).join(''));
   renderBiz(); loadAll();
 }
-function renderBiz(){ $('#bizTabs').innerHTML = S.businesses.map(b=>`<button class="${b.id===Hub.biz?'on':''}" data-biz="${b.id}">${esc(b.name)}</button>`).join(''); }
+function renderBiz(){ Hub.mountPhoneButton($('header')); $('#bizTabs').innerHTML = S.businesses.map(b=>`<button class="${b.id===Hub.biz?'on':''}" data-biz="${b.id}">${esc(b.name)}</button>`).join(''); }
 $('#bizTabs').onclick = e => { const b=e.target.closest('[data-biz]'); if(!b) return; Hub.setBiz(b.dataset.biz); S.sel.clear(); renderBiz(); loadAll(); };
 async function loadAll(){ await Promise.all([loadContacts(), loadQueue(), loadTemplates(), loadFollowups()]); }
 

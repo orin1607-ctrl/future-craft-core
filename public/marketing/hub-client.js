@@ -54,24 +54,59 @@
     if (!r.ok) return 'השרת לא זמין כרגע (' + r.status + '). נסו שוב בעוד דקה.';
     return '';
   };
-  /* Wires a gate: Enter or button → clean key → verify → onSuccess(). Errors are shown inline next to
-     the field (a toast can hide behind a phone keyboard), and the button shows progress. */
+  const deviceName = () => {
+    const ua = navigator.userAgent;
+    const kind = /iPhone/.test(ua) ? 'iPhone' : /iPad/.test(ua) ? 'iPad' : /Android/.test(ua) ? 'Android' : /Mac/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'מכשיר';
+    return kind + ' · ' + new Date().toLocaleDateString('he-IL');
+  };
+  /* Phone pairing: the 6-digit one-time code from a signed-in computer is exchanged for this
+     device's own token. The owner key never reaches the phone. */
+  Hub.pairWithCode = async function (code) {
+    let r;
+    try {
+      r = await fetch(BASE + 'marketing-hub/auth/pair-complete', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code, device_name: deviceName() }),
+      });
+    } catch (e) { return { error: 'אין חיבור לשרת. בדקו את החיבור לאינטרנט ונסו שוב.' }; }
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.token) return { error: d.error || 'החיבור נכשל (' + r.status + ')' };
+    return { token: d.token };
+  };
+
+  /* Wires a gate: Enter or button → (6-digit pairing code | owner key) → verify → onSuccess().
+     Errors are shown inline next to the field (a toast can hide behind a phone keyboard). */
   Hub.mountGate = function ({ input, button, error, onSuccess }) {
     const show = msg => {
       error.textContent = msg; error.hidden = !msg;
       if (msg) error.scrollIntoView({ block: 'center', behavior: 'smooth' });
     };
-    input.setAttribute('autocomplete', 'current-password');
+    input.type = 'text';
+    input.setAttribute('autocomplete', 'one-time-code');
     input.setAttribute('autocapitalize', 'off'); input.setAttribute('autocorrect', 'off'); input.setAttribute('spellcheck', 'false');
     input.setAttribute('enterkeyhint', 'go');
+    input.placeholder = 'קוד בן 6 ספרות מהמחשב';
+    input.style.letterSpacing = '2px';
     const label = button.textContent;
     const submit = async ev => {
       if (ev) ev.preventDefault();
-      const key = Hub.normalizeKey(input.value);
-      if (!key) return show('הזינו את מפתח הגישה.');
-      button.disabled = true; button.textContent = 'בודק…'; show('');
-      const msg = await Hub.verifyKey(key);
-      if (msg) { button.disabled = false; button.textContent = label; return show(msg); }
+      const raw = String(input.value || '');
+      const digits = raw.replace(/[\s​-‏﻿-]/g, '');
+      let key;
+      if (/^\d{6}$/.test(digits)) {
+        button.disabled = true; button.textContent = 'מחבר…'; show('');
+        const p = await Hub.pairWithCode(digits);
+        if (p.error) { button.disabled = false; button.textContent = label; return show(p.error); }
+        key = p.token;
+      } else {
+        key = Hub.normalizeKey(raw);
+        if (!key) return show('הזינו את הקוד בן 6 הספרות שמופיע במחשב (חיבור טלפון).');
+        if (/^\d+$/.test(digits)) return show('הקוד צריך להיות בן 6 ספרות בדיוק.');
+        button.disabled = true; button.textContent = 'בודק…'; show('');
+        const msg = await Hub.verifyKey(key);
+        if (msg) { button.disabled = false; button.textContent = label; return show(msg); }
+      }
+      input.value = '';
       Hub.setKey(key);
       try { input.blur(); await onSuccess(); show(''); }
       catch (e) { show('הכניסה הצליחה אבל טעינת הנתונים נכשלה: ' + (e.message || e) + '. רעננו את העמוד.'); }
@@ -84,6 +119,93 @@
       button.addEventListener('click', submit);
     }
     return { show };
+  };
+
+  /* ---------- "connect phone" dialog (shown on a signed-in computer) ---------- */
+  const QR_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  const loadQrLib = () => window.QRCode ? Promise.resolve() : new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = QR_LIB; s.onload = res; s.onerror = rej; document.head.appendChild(s);
+  });
+  Hub.openPairDialog = async function () {
+    let dlg = document.getElementById('hubPairDlg');
+    if (!dlg) {
+      dlg = document.createElement('dialog'); dlg.id = 'hubPairDlg';
+      dlg.style.cssText = 'border:1px solid var(--line,#ccd);border-radius:14px;background:var(--surface,#fff);color:var(--ink,#111);padding:0;width:min(520px,94vw);font:inherit';
+      dlg.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line,#ccd)">
+          <b>📱 חיבור טלפון למרכז השיווק</b><button type="button" data-x style="border:1px solid var(--line,#ccd);background:transparent;color:inherit;border-radius:8px;padding:4px 10px;cursor:pointer;font:inherit">סגירה</button></div>
+        <div style="padding:14px">
+          <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center">
+            <div data-qr style="background:#fff;padding:8px;border-radius:10px;width:176px;height:176px"></div>
+            <div style="text-align:center">
+              <div style="font-size:13px;opacity:.75">1. סרקו במצלמת הטלפון</div>
+              <div style="font-size:13px;opacity:.75;margin-top:6px">2. הקלידו בטלפון את הקוד:</div>
+              <div data-code style="font-size:38px;font-weight:800;letter-spacing:6px;direction:ltr;margin:4px 0">······</div>
+              <div data-left style="font-size:12.5px;opacity:.75"></div>
+              <button type="button" data-new style="margin-top:6px;border:1px solid var(--line,#ccd);background:transparent;color:inherit;border-radius:8px;padding:4px 10px;cursor:pointer;font:inherit">קוד חדש</button>
+            </div>
+          </div>
+          <div data-ok style="display:none;margin-top:12px;padding:10px;border-radius:10px;background:var(--ok-soft,#e3f4ec);color:var(--ok,#17875a);font-weight:700;text-align:center">✅ הטלפון חובר! אפשר לסגור את החלון.</div>
+          <div style="font-size:12.5px;opacity:.75;margin-top:12px">הקוד חד-פעמי, תקף ל-10 דקות וננעל אחרי 5 טעויות. הטלפון נשאר מחובר עד שתנתקו אותו כאן. המפתח הראשי לא עובר לטלפון.</div>
+          <b style="display:block;margin-top:14px">מכשירים מחוברים</b>
+          <div data-devs style="font-size:13px;margin-top:4px">טוען…</div>
+        </div>`;
+      document.body.appendChild(dlg);
+      dlg.querySelector('[data-x]').onclick = () => dlg.close();
+      dlg.addEventListener('close', () => { clearInterval(dlg._tick); clearInterval(dlg._poll); });
+      dlg.querySelector('[data-devs]').onclick = async e => {
+        const b = e.target.closest('[data-revoke]'); if (!b) return;
+        if (!confirm('לנתק את המכשיר? הוא יצטרך קוד חדש כדי להיכנס.')) return;
+        try { await Hub.hub('auth/revoke', { id: b.dataset.revoke }); renderDevs(); } catch (err) { alert(err.message); }
+      };
+      dlg.querySelector('[data-new]').onclick = () => newCode();
+    }
+    const $d = s => dlg.querySelector(s);
+    let known = null;
+    async function renderDevs() {
+      try {
+        const d = await Hub.hub('auth/devices');
+        const ids = d.devices.map(x => x.id);
+        if (known && ids.some(id => !known.includes(id))) { $d('[data-ok]').style.display = 'block'; $d('[data-code]').textContent = '✓'; clearInterval(dlg._tick); $d('[data-left]').textContent = ''; }
+        known = ids;
+        $d('[data-devs]').innerHTML = d.devices.length ? d.devices.map(x => `<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line,#eee)">
+          <span>${Hub.esc(x.name)}${x.id === d.current ? ' <b>(המכשיר הזה)</b>' : ''}<br><span style="opacity:.7">פעיל לאחרונה: ${x.last_seen_at ? new Date(x.last_seen_at).toLocaleString('he-IL') : '—'}</span></span>
+          <button type="button" data-revoke="${x.id}" style="border:1px solid var(--line,#ccd);background:transparent;color:var(--bad,#c23b3b);border-radius:8px;padding:3px 9px;cursor:pointer;font:inherit">ניתוק</button></div>`).join('')
+          : '<span style="opacity:.7">אין עדיין טלפונים מחוברים.</span>';
+      } catch (e) { $d('[data-devs]').textContent = e.message; }
+    }
+    async function newCode() {
+      $d('[data-ok]').style.display = 'none'; $d('[data-code]').textContent = '······';
+      try {
+        const { code, expires_at } = await Hub.hub('auth/pair-start');
+        $d('[data-code]').textContent = code.slice(0, 3) + ' ' + code.slice(3);
+        clearInterval(dlg._tick);
+        const end = new Date(expires_at).getTime();
+        const tick = () => {
+          const s = Math.max(0, Math.round((end - Date.now()) / 1000));
+          $d('[data-left]').textContent = s ? `בתוקף עוד ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : 'פג תוקף – לחצו "קוד חדש"';
+          if (!s) { clearInterval(dlg._tick); $d('[data-code]').textContent = '······'; }
+        };
+        tick(); dlg._tick = setInterval(tick, 1000);
+      } catch (e) { $d('[data-code]').textContent = '—'; $d('[data-left]').textContent = e.message; }
+    }
+    dlg.showModal();
+    const url = new URL('./m.html', location.href).href.split('?')[0];
+    try {
+      await loadQrLib(); $d('[data-qr]').innerHTML = '';
+      new window.QRCode($d('[data-qr]'), { text: url, width: 160, height: 160, correctLevel: window.QRCode.CorrectLevel.M });
+    } catch (e) { $d('[data-qr]').innerHTML = `<div style="font-size:12px;color:#333;padding:8px">פתחו בטלפון:<br><b style="direction:ltr;display:block;word-break:break-all">${Hub.esc(url)}</b></div>`; }
+    known = null; await renderDevs(); await newCode();
+    clearInterval(dlg._poll); dlg._poll = setInterval(renderDevs, 4000);
+  };
+  // Adds the "connect phone" button to a page header.
+  Hub.mountPhoneButton = function (container) {
+    if (!container || container.querySelector('[data-hub-phone]')) return;
+    const b = document.createElement('button');
+    b.type = 'button'; b.dataset.hubPhone = '1'; b.textContent = '📱 חיבור טלפון';
+    b.style.cssText = 'border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.12);color:#fff;border-radius:999px;padding:5px 12px;cursor:pointer;font:inherit;font-weight:600';
+    b.onclick = () => Hub.openPairDialog();
+    container.appendChild(b);
   };
 
   /* ---------- images ---------- */

@@ -1,11 +1,12 @@
 // marketing-hub — Media Library + B2B Outreach for the Marketing Center (ניהול שיווק 2). STAGING ONLY.
 //
-// Security: every route requires `x-social-key` == SOCIAL_ADMIN_KEY (same owner key as social-meta).
+// Security: every route requires `x-social-key` = owner key or a paired device token (see _shared/socialAuth.ts).
 // Tables are service-role only; every query is scoped by business_id.
 // Outreach never sends anything by itself: it prepares messages and a work queue, and a person sends
 // through the channel's own app (Messenger / Instagram / WhatsApp / mail). See OUTREACH_POLICY below.
 // OpenProspector (nr_businesses) is read-only here: search + import of up to 50 chosen businesses.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkSocialKey, listDevices, pairComplete, pairStart, revokeDevice } from "../_shared/socialAuth.ts";
 
 const BUCKET = "media-library";
 const cors = {
@@ -18,12 +19,6 @@ const json = (body: unknown, status = 200) =>
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const env = (k: string) => (Deno.env.get(k) || "").trim();
 
-function safeEq(a: string, b: string) {
-  if (!a || !b || a.length !== b.length) return false;
-  let r = 0;
-  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return r === 0;
-}
 const must = <T>(r: { data: T; error: unknown }) => { if (r.error) throw r.error; return r.data; };
 
 async function business(id: string) {
@@ -441,10 +436,14 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const route = new URL(req.url).pathname.split("/marketing-hub/")[1]?.replace(/\/$/, "") || "";
   try {
-    if (!safeEq(req.headers.get("x-social-key") || "", env("SOCIAL_ADMIN_KEY"))) {
-      return json({ error: "מפתח גישה שגוי או חסר", code: "AUTH" }, 401);
-    }
     const b = await req.json().catch(() => ({}));
+    // The phone's only unauthenticated call: trade the one-time code for its own device token.
+    if (route === "auth/pair-complete") return json(await pairComplete(db, b.code, b.device_name));
+    const auth = await checkSocialKey(db, req.headers.get("x-social-key") || "");
+    if (!auth.ok) return json({ error: "מפתח גישה שגוי או חסר", code: "AUTH" }, 401);
+    if (route === "auth/pair-start") return json(await pairStart(db));
+    if (route === "auth/devices") return json({ ...(await listDevices(db)), current: auth.kind === "device" ? auth.deviceId : null });
+    if (route === "auth/revoke") return json(await revokeDevice(db, b.id));
     const biz = String(b.business_id || "");
     if (route !== "ping" && !route.startsWith("prospector/search")) await business(biz);
 

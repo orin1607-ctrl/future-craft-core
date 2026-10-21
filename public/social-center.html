@@ -224,7 +224,7 @@ code{background:var(--bg);padding:1px 6px;border-radius:6px;direction:ltr;unicod
   <iframe id="galleryFrame" title="גלריית מדיה"></iframe>
 </dialog>
 
-<script src="./marketing/hub-client.js?v=20261020b"></script>
+<script src="./marketing/hub-client.js?v=20261020c"></script>
 <script>
 /* Social Center — talks only to the staging social-meta edge function.
    Each business (tenant) is fully separate: accounts, images, drafts and history are keyed by business_id. */
@@ -254,6 +254,7 @@ function showGate(err){ $('#gate').hidden=false; $('#main').hidden=true; gate.sh
 
 /* ---------- businesses ---------- */
 function renderBizTabs(){
+  Hub.mountPhoneButton(document.querySelector('header'));
   $('#bizTabs').innerHTML = S.businesses.map(b=>`<button class="${b.id===S.biz?'on':''}" data-biz="${b.id}">${esc(b.name)}</button>`).join('');
 }
 $('#bizTabs').onclick = e => {

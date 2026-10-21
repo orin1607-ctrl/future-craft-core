@@ -2,7 +2,8 @@
 // (ניהול שיווק 2 → קידום ברשתות חברתיות). STAGING ONLY.
 //
 // Security model
-// - Every browser route requires header `x-social-key` == SOCIAL_ADMIN_KEY (owner passphrase).
+// - Every browser route requires header `x-social-key`: the owner key (SOCIAL_ADMIN_KEY) or a paired
+//   device token (_shared/socialAuth.ts).
 // - Meta tokens live only in public.social_accounts (RLS on, no policies) and never leave this function.
 // - oauth/callback is opened by Meta's redirect; it is bound to a one-time social_oauth_sessions row.
 // - run-scheduled is called by pg_cron with `x-social-cron` == SOCIAL_CRON_SECRET.
@@ -10,6 +11,7 @@
 // Secrets: META_APP_ID, META_APP_SECRET, SOCIAL_ADMIN_KEY, SOCIAL_CRON_SECRET,
 //          optional META_LOGIN_CONFIG_ID, META_GRAPH_VERSION, GEMINI_API_KEY / CLAUDE_API_KEY / OPENAI_API_KEY (AI text).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkSocialKey } from "../_shared/socialAuth.ts";
 
 const GRAPH = `https://graph.facebook.com/${Deno.env.get("META_GRAPH_VERSION") || "v23.0"}`;
 const FN_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1/social-meta`;
@@ -467,7 +469,7 @@ Deno.serve(async (req) => {
       if (!safeEq(req.headers.get("x-social-cron") || "", env("SOCIAL_CRON_SECRET"))) return json({ error: "unauthorized" }, 401);
       return json(await runScheduled());
     }
-    if (!safeEq(req.headers.get("x-social-key") || "", env("SOCIAL_ADMIN_KEY"))) {
+    if (!(await checkSocialKey(db, req.headers.get("x-social-key") || "")).ok) {
       return json({ error: "מפתח גישה שגוי או חסר", code: "AUTH" }, 401);
     }
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
