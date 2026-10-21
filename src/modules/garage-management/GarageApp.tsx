@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import approvedSourceHtml from './approved-source.html?raw';
@@ -22,10 +22,12 @@ import {
   updateCase,
   updateCustomerBook,
   type GarageActor,
+  type GarageCase,
   type GarageCustomer,
   type GarageRoute,
   type GarageVehicle,
 } from './garageBook';
+import { ClaimsAiWorkspace } from '@/features/claims/ClaimsAiWorkspace';
 import { garageShopScopeOf } from './garageTenant';
 import {
   GARAGE_MEDIA_PENDING_MESSAGE,
@@ -73,6 +75,8 @@ export default function GarageApp() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const actor = actorOf(user);
   const shopScope = garageShopScopeOf(user);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [loadedCase, setLoadedCase] = useState<GarageCase | null>(null);
 
   const reply = useCallback((requestId: string | undefined, payload: Record<string, unknown>) => {
     iframeRef.current?.contentWindow?.postMessage({ type: 'gm:response', requestId, payload }, '*');
@@ -98,12 +102,14 @@ export default function GarageApp() {
           return;
         }
         const loaded = await getCase(caseId, shopScope);
+        setLoadedCase(loaded);
         win.postMessage({
           type: 'gm:bootstrap',
           payload: { mode: 'case', caseId, userName: actor.full_name || '', loaded, bookPending: false },
         }, '*');
         return;
       }
+      setLoadedCase(null);
       const cases = probe.pending ? [] : await listCases(shopScope);
       win.postMessage({
         type: 'gm:bootstrap',
@@ -360,6 +366,11 @@ export default function GarageApp() {
           });
           return;
         }
+
+        if (type === 'gm:open_ai') {
+          setAiOpen(true);
+          return;
+        }
       } catch (error) {
         reply(requestId, { ok: false, error: asBookError(error) });
       }
@@ -384,6 +395,43 @@ export default function GarageApp() {
         key={caseId || (startCustomer ? 'customer' : startNew ? 'new' : 'home')}
         onLoad={() => { void bootstrap(); }}
       />
+
+      <button
+        type="button"
+        className="gm-ai-fab-btn"
+        data-testid="garage-ai-launch-btn"
+        onClick={() => setAiOpen(true)}
+        title="דליה AI · עוזר אישי לניהול מוסך"
+      >
+        <span className="gm-ai-fab-icon">✨</span>
+        <span className="gm-ai-fab-text">דליה AI</span>
+      </button>
+
+      {aiOpen && (
+        <div className="claims-root">
+          <ClaimsAiWorkspace
+            open={aiOpen}
+            onClose={() => setAiOpen(false)}
+            claim={null}
+            userId={actor?.id || ''}
+            companyName={null}
+            module="garage"
+            garageCase={loadedCase ? {
+              id: loadedCase.id,
+              caseNumber: loadedCase.case_number,
+              customerName: loadedCase.customer_name_snapshot,
+              plate: loadedCase.vehicle_plate_snapshot,
+              status: loadedCase.status,
+            } : null}
+            onActionExecuted={() => {
+              void bootstrap();
+            }}
+            onOpenGarageCase={(targetCaseId) => {
+              navigate(`/garage-management/${targetCaseId}`);
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

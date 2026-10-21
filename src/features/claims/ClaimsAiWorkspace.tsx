@@ -316,6 +316,7 @@ async function streamHelpAi(input: {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   claimId: string | null;
   companyName: string | null;
+  module?: 'claims' | 'garage' | 'dashboard';
   attachments?: Array<{ name: string; mime_type: string; byte_size: number; file_id?: string; data_base64?: string }>;
   signal?: AbortSignal;
   onDelta: (full: string) => void;
@@ -340,7 +341,7 @@ async function streamHelpAi(input: {
     body: JSON.stringify({
       messages: input.messages,
       company_name: input.companyName,
-      module: 'claims',
+      module: input.module || 'claims',
       claim_id: input.claimId,
       attachments: input.attachments,
     }),
@@ -2235,6 +2236,14 @@ export function InsurancePackageWidget({
   );
 }
 
+export type GarageCaseAiContext = {
+  id: string;
+  caseNumber?: string;
+  customerName?: string;
+  plate?: string;
+  status?: string;
+};
+
 export function ClaimsAiWorkspace({
   open,
   onClose,
@@ -2244,6 +2253,9 @@ export function ClaimsAiWorkspace({
   documentActions,
   onActionExecuted,
   onOpenClaim,
+  module = 'claims',
+  garageCase = null,
+  onOpenGarageCase,
 }: {
   open: boolean;
   onClose: () => void;
@@ -2255,6 +2267,9 @@ export function ClaimsAiWorkspace({
   onActionExecuted?: (pending: ClaimsAiPendingAction) => void;
   /** Opens the specified claim card directly in the main screen without losing chat. */
   onOpenClaim?: (claimId: string) => void;
+  module?: 'claims' | 'garage' | 'dashboard';
+  garageCase?: GarageCaseAiContext | null;
+  onOpenGarageCase?: (caseId: string) => void;
 }) {
   const claimId = claim?.claimId || null;
   const [conversations, setConversations] = useState<ClaimsAiConversation[]>([]);
@@ -3207,11 +3222,12 @@ export function ClaimsAiWorkspace({
 
       let pendingFromStream: ClaimsAiPendingAction | null = null;
       const detectedClaimId = claimId || (effectiveText.match(/DAL-\d{4}-\d{4}/)?.[0] ?? null);
-      const effectiveTargetClaim = claimId || detectedClaimId;
+      const effectiveTargetClaim = garageCase?.id || claimId || detectedClaimId;
       const answer = await streamHelpAi({
         messages: messagesForModel(history),
         claimId: effectiveTargetClaim,
         companyName,
+        module,
         signal: controller.signal,
         attachments: finalAttachments.map((a) => ({
           name: a.name,
@@ -3645,7 +3661,7 @@ export function ClaimsAiWorkspace({
       style={viewportHeight ? { height: `${viewportHeight}px`, maxHeight: `${viewportHeight}px` } : undefined}
       role="dialog"
       aria-modal="true"
-      aria-label="דליה AI לניהול תביעות"
+      aria-label={module === 'garage' ? 'דליה AI לניהול מוסך' : module === 'dashboard' ? 'דליה AI לדשבורד' : 'דליה AI לניהול תביעות'}
       data-testid="claims-ai-workspace"
     >
       <aside className="claims-ai-side">
@@ -3683,7 +3699,13 @@ export function ClaimsAiWorkspace({
         <header className="claims-ai-top">
           <div>
             <h2>{active?.title || 'שיחה חדשה'}</h2>
-            <div className="claims-ai-status">דליה AI · ניהול תביעות</div>
+            <div className="claims-ai-status">
+              {module === 'garage'
+                ? 'דליה AI · ניהול מוסך'
+                : module === 'dashboard'
+                ? 'דליה AI · דשבורד ראשי'
+                : 'דליה AI · ניהול תביעות'}
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button
@@ -3701,7 +3723,14 @@ export function ClaimsAiWorkspace({
         </header>
 
         <div className="claims-ai-context" data-testid="claims-ai-context">
-          {claim ? (
+          {garageCase ? (
+            <>
+              <span>כרטיס עבודה <b>{garageCase.caseNumber || garageCase.id}</b></span>
+              {garageCase.plate ? <span>רכב <b>{garageCase.plate}</b></span> : null}
+              {garageCase.customerName ? <span>לקוח <b>{garageCase.customerName}</b></span> : null}
+              {garageCase.status ? <span>סטטוס <b>{garageCase.status}</b></span> : null}
+            </>
+          ) : claim ? (
             <>
               <span>תיק <b>{claim.claimId}</b></span>
               <span>מספר תביעה <b>{claim.claimNum}</b></span>
@@ -3710,6 +3739,10 @@ export function ClaimsAiWorkspace({
               <span>ביטוח <b>{claim.insCompany}</b></span>
               <span>סטטוס <b>{claim.status}</b></span>
             </>
+          ) : module === 'garage' ? (
+            <span>🚗 <b>ניהול מוסך כללי</b> · סקירת תיקים פתוחים, חיפוש לקוחות ורכבים, פתיחת כרטיסי עבודה</span>
+          ) : module === 'dashboard' ? (
+            <span>📊 <b>דשבורד ראשי</b> · עוזר אישי לפקודות קוליות, תמונת מצב מוסך, תביעות ותפעול</span>
           ) : (
             <span>📊 <b>ניהול תביעות כללי</b> (אין תיק פתוח) · סקירת כלל התביעות, מיילים ומשימות במערכת</span>
           )}

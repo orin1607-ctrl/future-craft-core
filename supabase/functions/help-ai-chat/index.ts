@@ -13,6 +13,13 @@ import {
   type ClaimsPendingAction,
   type ClaimsDocumentCard,
 } from "./claimsTools.ts";
+import {
+  GARAGE_GEMINI_TOOLS,
+  GARAGE_SYSTEM_PROMPT_INSTRUCTIONS,
+  executeGaragePendingAction,
+  executeGarageTool,
+  type GaragePendingAction,
+} from "./garageTools.ts";
 
 const corsHeaders = edgeCorsHeaders;
 
@@ -961,6 +968,18 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      if (String(pending_action.action_type).startsWith("garage_")) {
+        const garageResult = await executeGaragePendingAction(
+          supabase,
+          pending_action as GaragePendingAction,
+          userId,
+          actorName,
+        );
+        return new Response(JSON.stringify(garageResult), {
+          status: garageResult.success ? 200 : 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const claimTarget = String(effectiveClaimId || pending_action?.parameters?.claim_id || "");
       const execResult = await executeClaimsPendingAction(
         supabase,
@@ -1019,11 +1038,12 @@ Deno.serve(async (req) => {
     const userMessagesText = (messages || []).map((m: any) => typeof m?.content === "string" ? m.content : "").join(" ");
     const lastUserMessage = [...(messages || [])].reverse().find((m: any) => m?.role === "user" && typeof m?.content === "string");
     const lastUserText = String(lastUserMessage?.content || "").trim();
-    const hasClaimsIntent = /DAL-\d{4}-\d+|תביע|פתיחת תיק|חבילת פתיח|חבילה|קישור|מסמכ|טופס|טפסים|תיק חדש|לקוח חדש/i.test(userMessagesText);
-    const isClaimsModule = effectiveModule === "claims" || !!claimId || hasClaimsIntent;
+    const isGarageModule = effectiveModule === "garage" || (effectiveModule === "dashboard" && !claimId);
+    const hasClaimsIntent = !isGarageModule && /DAL-\d{4}-\d+|תביע|פתיחת תיק|חבילת פתיח|חבילה|קישור|מסמכ|טופס|טפסים|תיק חדש|לקוח חדש/i.test(userMessagesText);
+    const isClaimsModule = (effectiveModule === "claims" || (!!claimId && !isGarageModule) || hasClaimsIntent) && !isGarageModule;
 
     let claimBlock = "";
-    if (claimId) {
+    if (claimId && !isGarageModule) {
       const loaded = await loadClaimsContext(supabase, claimId);
       if ("error" in loaded) {
         return new Response(JSON.stringify({ error: loaded.message }), {
@@ -1044,27 +1064,43 @@ Deno.serve(async (req) => {
       : SYSTEM_PROMPT;
 
     const claimsPrompt = claimId ? CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS : CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS;
+    const garagePrompt = `${GARAGE_SYSTEM_PROMPT_INSTRUCTIONS}\n\n--- מצב מוסך ודשבורד ראשי ---\nהמשתמש נמצא בניהול מוסך או בדשבורד הראשי. באפשרותו לתת פקודות ביצוע מלאות (חיפוש רכבים ולקוחות, פתיחת כרטיסי עבודה, עדכון סטטוסים, פחחות וצבע, משימות, תזכורות, מסמכים והפקת דוחות). תמיד הפק כרטיס אישור preview לפעולות שינוי או שמירה.`;
 
     // Relative dates ("tomorrow") need today's date in Israel.
     const todayIsrael = new Intl.DateTimeFormat("he-IL", { timeZone: "Asia/Jerusalem", weekday: "long", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
     const todayIso = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 
     const fullSysPrompt = [
-      isClaimsModule ? claimsPrompt : basePrompt,
-      isClaimsModule ? `--- תאריך ---\nהיום (שעון ישראל): ${todayIsrael} · ${todayIso}. חשב "מחר", "בעוד שבוע" וכו׳ לפי תאריך זה.` : "",
+      isGarageModule
+        ? garagePrompt
+        : (isClaimsModule ? claimsPrompt : basePrompt),
+      (isClaimsModule || isGarageModule) ? `--- תאריך ---\nהיום (שעון ישראל): ${todayIsrael} · ${todayIso}. חשב "מחר", "בעוד שבוע" וכו׳ לפי תאריך זה.` : "",
       effectivePageContext ? `--- הקשר מסך נוכחי ---\n${effectivePageContext}` : "",
       claimBlock ? `--- הקשר מודול ניהול תביעות ---\n${claimBlock}` : "",
     ].filter(Boolean).join("\n\n");
 
-    const tools = isClaimsModule
-      ? (claimId ? CLAIMS_GEMINI_TOOLS : CLAIMS_GENERAL_GEMINI_TOOLS)
-      : FLEET_GEMINI_TOOLS;
+    const tools = isGarageModule
+      ? GARAGE_GEMINI_TOOLS
+      : (isClaimsModule
+        ? (claimId ? CLAIMS_GEMINI_TOOLS : CLAIMS_GENERAL_GEMINI_TOOLS)
+        : FLEET_GEMINI_TOOLS);
 
     // Document cards go to the chat screen only; the model gets the tool result without them.
     const documentCards: ClaimsDocumentCard[] = [];
     // Tools that actually ran in this answer and how each ended — shown to the user under the answer.
     const toolsUsed: ToolTrace[] = [];
     const onToolCall = async (toolName: string, toolArgs: Record<string, unknown>) => {
+      if (isGarageModule) {
+        let res: { result: unknown; preview?: GaragePendingAction };
+        try {
+          res = await executeGarageTool(toolName, toolArgs, supabase, effectiveClaimId, userId, actorName);
+        } catch (e) {
+          addTrace(toolsUsed, toolName, "failed");
+          return { result: { error: e instanceof Error ? e.message : "tool_failed" } };
+        }
+        addTrace(toolsUsed, toolName, toolOutcome(res.result, !!res.preview));
+        return { result: res.result, preview: res.preview };
+      }
       if (isClaimsModule) {
         let res: { result: unknown; preview?: ClaimsPendingAction; card?: ClaimsDocumentCard };
         try {
@@ -1084,7 +1120,7 @@ Deno.serve(async (req) => {
     };
 
     // Fast-Path 1: Automatic trigger for New Claim Package Preparation Card
-    const isNewClaimPackageTrigger = /^(?:דליה[,،:\s-]*)?(?:אני\s*רוצה\s*)?(?:תפתחי?|פתחי?|פתח|להכין|תכיני|הכיני|הכן|תכין|שלח|שלחי|תשלחי)?\s*(?:לי\s*)?(?:בבקשה\s*)?(?:את\s*)?(?:חבילת\s*פתיחת\s*תיק(?:\s*חדש)?(?:\s*ללקוח)?|קישור\s*לפתיחת\s*תיק(?:\s*חדש)?(?:\s*ללקוח)?|פתיחת\s*תיק\s*חדש(?:\s*ללקוח)?|תיק\s*חדש(?:\s*ללקוח)?|לקוח\s*חדש)[.!?\s]*$/i.test(lastUserText);
+    const isNewClaimPackageTrigger = !isGarageModule && /^(?:דליה[,،:\s-]*)?(?:אני\s*רוצה\s*)?(?:תפתחי?|פתחי?|פתח|להכין|תכיני|הכיני|הכן|תכין|שלח|שלחי|תשלחי)?\s*(?:לי\s*)?(?:בבקשה\s*)?(?:את\s*)?(?:חבילת\s*פתיחת\s*תיק(?:\s*חדש)?(?:\s*ללקוח)?|קישור\s*לפתיחת\s*תיק(?:\s*חדש)?(?:\s*ללקוח)?|פתיחת\s*תיק\s*חדש(?:\s*ללקוח)?|תיק\s*חדש(?:\s*ללקוח)?|לקוח\s*חדש)[.!?\s]*$/i.test(lastUserText);
     if (isNewClaimPackageTrigger) {
       const catRes = await onToolCall("list_available_claim_documents_and_forms", {});
       return streamTextAsSse("📦 הכנת חבילת פתיחת תיק חדש ללקוח:", catRes.preview || null, documentCards, toolsUsed);
@@ -1201,7 +1237,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return streamTextAsSse(finalResult.text, finalResult.pendingAction, documentCards, isClaimsModule ? toolsUsed : null);
+    return streamTextAsSse(finalResult.text, finalResult.pendingAction, documentCards, (isClaimsModule || isGarageModule) ? toolsUsed : null);
   } catch (e) {
     console.error("help-ai-chat error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {

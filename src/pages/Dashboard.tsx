@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import DriverDashboard from '@/components/DriverDashboard';
@@ -7,10 +8,12 @@ import GarageOpsHomeDashboard from '@/components/home/GarageOpsHomeDashboard';
 import { useDriverUrlContext } from '@/lib/entityNavContext';
 import { useHiddenButtonsState } from '@/hooks/useHiddenButtons';
 import { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
+import { ClaimsAiWorkspace } from '@/features/claims/ClaimsAiWorkspace';
 
 /** דשבורד ראשי — כרטיסי עולמות + התראות (+ מרכז ניהול ל-super_admin) */
 export default function Dashboard() {
   const { user } = useAuth();
+  const [aiOpen, setAiOpen] = useState(false);
   const { driverId, driverName, locked: driverLocked } = useDriverUrlContext();
   const { hiddenButtons, ready } = useHiddenButtonsState();
   const isManager = user?.role === 'fleet_manager' || user?.role === 'super_admin';
@@ -46,9 +49,35 @@ export default function Dashboard() {
     return <Navigate to="/telemarketing" replace />;
   }
 
-  if (user.garageOps) {
-    return <GarageOpsHomeDashboard />;
-  }
+  return (
+    <div className="relative">
+      {user.garageOps ? <GarageOpsHomeDashboard /> : <HomeDashboard />}
 
-  return <HomeDashboard />;
+      <div className="dashboard-ai-fab-container fixed bottom-6 left-6 z-40">
+        <button
+          type="button"
+          className="dashboard-dalia-ai-btn flex items-center gap-2.5 px-5 py-3 rounded-full bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white font-bold shadow-xl hover:shadow-blue-500/50 hover:scale-105 active:scale-95 transition-all text-sm border border-white/20"
+          data-testid="dashboard-ai-launch-btn"
+          onClick={() => setAiOpen(true)}
+          title="דליה AI · עוזר אישי לדשבורד ולמוסך"
+        >
+          <span className="text-lg">✨</span>
+          <span>דליה AI</span>
+        </button>
+      </div>
+
+      {aiOpen && (
+        <div className="claims-root">
+          <ClaimsAiWorkspace
+            open={aiOpen}
+            onClose={() => setAiOpen(false)}
+            claim={null}
+            userId={user.id}
+            companyName={user.company_name || null}
+            module={user.garageOps ? 'garage' : 'dashboard'}
+          />
+        </div>
+      )}
+    </div>
+  );
 }
