@@ -883,43 +883,173 @@ async function ccFirstHost(path: string): Promise<string> {
 }
 // quarterly host graphs, newest first; each one lists hosts the others may miss
 const CC_GRAPHS = ["cc-main-2026-jun-jul-aug", "cc-main-2026-mar-apr-may", "cc-main-2025-26-dec-jan-feb", "cc-main-2025-sep-oct-nov"];
+// A host-vertex part is one gzip member of up to ~170 MB, and the "il." hosts can sit 230 MB into its text – more inflate work than
+// one edge call's CPU allows. So the part is inflated here in plain JS, which can stop at any deflate block boundary: the bit offset
+// plus the last 32 KB of output is a full checkpoint (kept in config.cc_progress) and the next call resumes with an HTTP Range request.
+const LBASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
+const LEXT = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
+const DBASE = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577];
+const DEXT = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+const CLORD = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+type Huff = { t: Int32Array; bits: number };
+// lookup table indexed by the next `bits` input bits (LSB first): entry = symbol << 4 | code length
+function huff(lens: ArrayLike<number>, n: number): Huff {
+  let bits = 0; const cnt = new Uint16Array(16);
+  for (let i = 0; i < n; i++) { cnt[lens[i]]++; if (lens[i] > bits) bits = lens[i]; }
+  cnt[0] = 0; const next = new Uint16Array(16);
+  for (let l = 1, c = 0; l < 16; l++) { c = (c + cnt[l - 1]) << 1; next[l] = c; }
+  const t = new Int32Array(1 << bits);
+  for (let s = 0; s < n; s++) {
+    const l = lens[s]; if (!l) continue;
+    let c = next[l]++, r = 0;
+    for (let i = 0; i < l; i++) { r = (r << 1) | (c & 1); c >>= 1; }
+    for (let k = r, e = (s << 4) | l; k < t.length; k += 1 << l) t[k] = e;
+  }
+  return { t, bits };
+}
+let FIXED: [Huff, Huff] | null = null;
+class NeedInput extends Error {}
+// decodes whole blocks from `inp` (whose first byte is file byte `base`) from absolute bit `bit`, appending to `out` (pre-filled with
+// the window); returns at the last complete block before the input runs out, after the final block, or once `olen` passes `stopAt`
+function inflateBlocks(inp: Uint8Array, base: number, bit: number, out: Uint8Array, olen: number, stopAt: number, eof: boolean) {
+  const lim = eof ? Infinity : (inp.length - 8) * 8, blim = eof ? Infinity : (inp.length - 1024) * 8;
+  let pos = bit - base * 8, final = false;
+  const get = (n: number) => {
+    const p = pos >> 3;
+    const v = ((inp[p] | (inp[p + 1] << 8) | (inp[p + 2] << 16) | (inp[p + 3] << 24)) >>> (pos & 7)) & ((1 << n) - 1);
+    pos += n; return v;
+  };
+  const grow = (need: number) => { if (need > out.length) { const o = new Uint8Array(Math.max(need, out.length * 2)); o.set(out.subarray(0, olen)); out = o; } };
+  while (!final && olen < stopAt) {
+    const bpos = pos, bolen = olen;
+    try {
+      if (pos > blim) throw new NeedInput();
+      final = get(1) === 1;
+      const type = get(2);
+      if (type === 0) {
+        pos = (pos + 7) & ~7;
+        const p = pos >> 3, len = inp[p] | (inp[p + 1] << 8);
+        if (!eof && p + 4 + len > inp.length) throw new NeedInput();
+        grow(olen + len); out.set(inp.subarray(p + 4, p + 4 + len), olen); olen += len; pos += (4 + len) * 8;
+        continue;
+      }
+      let L: Huff, D: Huff;
+      if (type === 1) {
+        if (!FIXED) {
+          const l = new Uint8Array(288); l.fill(8, 0, 144); l.fill(9, 144, 256); l.fill(7, 256, 280); l.fill(8, 280, 288);
+          FIXED = [huff(l, 288), huff(new Uint8Array(30).fill(5), 30)];
+        }
+        [L, D] = FIXED;
+      } else if (type === 2) {
+        const hl = get(5) + 257, hd = get(5) + 1, hc = get(4) + 4;
+        const cl = new Uint8Array(19); for (let i = 0; i < hc; i++) cl[CLORD[i]] = get(3);
+        const C = huff(cl, 19), lens = new Uint8Array(hl + hd);
+        for (let i = 0; i < hl + hd;) {
+          const e = C.t[get(C.bits)] | 0; pos -= C.bits - (e & 15);
+          const s = e >> 4;
+          if (s < 16) lens[i++] = s;
+          else if (s === 16) { const r = 3 + get(2), v = lens[i - 1]; for (let k = 0; k < r; k++) lens[i++] = v; }
+          else i += s === 17 ? 3 + get(3) : 11 + get(7);
+        }
+        L = huff(lens.subarray(0, hl), hl); D = huff(lens.subarray(hl), hd);
+      } else throw new Error("bad deflate block");
+      const lt = L.t, lm = (1 << L.bits) - 1, dt = D.t, dm = (1 << D.bits) - 1;
+      for (;;) {
+        if (pos > lim) throw new NeedInput();
+        let p = pos >> 3;
+        let e = lt[((inp[p] | (inp[p + 1] << 8) | (inp[p + 2] << 16) | (inp[p + 3] << 24)) >>> (pos & 7)) & lm];
+        pos += e & 15;
+        const s = e >> 4;
+        if (s < 256) { if (olen >= out.length) grow(olen + 1); out[olen++] = s; continue; }
+        if (s === 256) break;
+        const li = s - 257, len = LBASE[li] + (LEXT[li] ? get(LEXT[li]) : 0);
+        p = pos >> 3;
+        e = dt[((inp[p] | (inp[p + 1] << 8) | (inp[p + 2] << 16) | (inp[p + 3] << 24)) >>> (pos & 7)) & dm];
+        pos += e & 15;
+        const di = e >> 4, dist = DBASE[di] + (DEXT[di] ? get(DEXT[di]) : 0);
+        if (olen + len > out.length) grow(olen + len);
+        let from = olen - dist;
+        if (from < 0) throw new Error("deflate distance beyond window");
+        for (const end = olen + len; olen < end;) out[olen++] = out[from++];
+      }
+    } catch (e) {
+      if (!(e instanceof NeedInput)) throw e;
+      return { bit: base * 8 + bpos, out, olen: bolen, final: false };
+    }
+  }
+  return { bit: base * 8 + pos, out, olen, final };
+}
+function gzipHeaderLen(inp: Uint8Array): number {
+  if (inp[0] !== 0x1f || inp[1] !== 0x8b || inp[2] !== 8) throw new Error("not a gzip part");
+  const flg = inp[3]; let p = 10;
+  if (flg & 4) p += 2 + (inp[p] | (inp[p + 1] << 8));
+  if (flg & 8) while (inp[p++]);
+  if (flg & 16) while (inp[p++]);
+  if (flg & 2) p += 2;
+  return p;
+}
+const b64 = (u: Uint8Array) => { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode(...u.subarray(i, i + 8192)); return btoa(s); };
+const unb64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+// il.co.example(.www) → example.co.il ; business zones only (no academic / government / municipal / school / army)
+function ccDomain(h: string): string | null {
+  const p = h.split(".");
+  return p.length >= 3 && (p[1] === "co" || p[1] === "org" || p[1] === "net") && /^[a-z0-9-]{2,63}$/.test(p[2]) ? `${p[2]}.${p[1]}.il` : null;
+}
+type CcProgress = { graph: string; idx: number; parts: string[]; pi: number; bit: number; win: string; rows: number; added: number; calls: number; inflated: number };
+const CC_CHUNK = 4 << 20, CC_CPU_MS = 600;
 async function harvestCc(sb: SupabaseClient, graphArg?: string) {
   const src = await source(sb, "enr:cc_domains");
   if (!src) return { error: "no source" };
   const t0 = Date.now();
   const done = (src.config.harvested as string[]) || (src.config.harvested_at ? [String(src.config.graph || CC_GRAPHS[0])] : []);
-  const graph = graphArg || CC_GRAPHS.find((g) => !done.includes(g));
+  const saved = src.config.cc_progress as CcProgress | undefined;
+  const graph = graphArg || saved?.graph || CC_GRAPHS.find((g) => !done.includes(g));
   if (!graph) return { skipped: "all known graphs harvested" };
-  const list = await (await fetch(`${CC}projects/hyperlinkgraph/${graph}/host/${graph}-host-vertices.paths.gz`, { signal: AbortSignal.timeout(30_000) })).body!
-    .pipeThrough(new DecompressionStream("gzip")).pipeThrough(new TextDecoderStream());
-  let paths = ""; for await (const c of list) paths += c;
-  const parts = paths.split("\n").map((x) => x.trim()).filter(Boolean);
-  // parts are sorted by reversed host name: find the ones whose range covers "il."
-  let idx = graph === String(src.config.graph || CC_GRAPHS[0]) ? Number(src.config.part ?? -1) : -1;
-  if (idx < 0) {
+  let pr: CcProgress;
+  if (saved?.graph === graph) pr = saved;
+  else {
+    const list = await (await fetch(`${CC}projects/hyperlinkgraph/${graph}/host/${graph}-host-vertices.paths.gz`, { signal: AbortSignal.timeout(30_000) })).body!
+      .pipeThrough(new DecompressionStream("gzip")).pipeThrough(new TextDecoderStream());
+    let paths = ""; for await (const c of list) paths += c;
+    const parts = paths.split("\n").map((x) => x.trim()).filter(Boolean);
+    // parts are sorted by reversed host name: find the ones whose range covers "il."
     let lo = 0, hi = parts.length - 1;
     while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if ((await ccFirstHost(parts[mid])) <= "il.") lo = mid; else hi = mid - 1; }
-    idx = lo;
+    const use = [parts[lo]];
+    if (lo + 1 < parts.length && (await ccFirstHost(parts[lo + 1])).startsWith("il.")) use.push(parts[lo + 1]);
+    pr = { graph, idx: lo, parts: use, pi: 0, bit: -1, win: "", rows: 0, added: 0, calls: 0, inflated: 0 };
   }
-  const domains = new Set<string>();
-  for (const pi of [idx, idx + 1]) {
-    if (pi >= parts.length) break;
-    if (pi === idx + 1 && !(await ccFirstHost(parts[pi])).startsWith("il.")) break;
-    const st = (await fetch(CC + parts[pi], { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(90_000) })).body!
-      .pipeThrough(new DecompressionStream("gzip")).pipeThrough(new TextDecoderStream());
-    let rest = "", seen = false;
-    for await (const chunk of st) {
-      const lines = (rest + chunk).split("\n"); rest = lines.pop() || "";
-      for (const l of lines) {
+  pr.calls++;
+  const domains = new Set<string>(), dec = new TextDecoder();
+  let cpu = 0, past = false;
+  const hostAt = (out: Uint8Array, a: number, b: number) => { const l = dec.decode(out.subarray(a, b)); return l.slice(l.indexOf("\t") + 1); };
+  while (!past && pr.pi < pr.parts.length && cpu < CC_CPU_MS && Date.now() - t0 < 100_000) {
+    const from = pr.bit < 0 ? 0 : pr.bit >> 3;
+    const r = await fetch(CC + pr.parts[pr.pi], { headers: { Range: `bytes=${from}-${from + CC_CHUNK - 1}`, "User-Agent": UA }, signal: AbortSignal.timeout(60_000) });
+    if (r.status !== 206) throw new Error(`Common Crawl range request: HTTP ${r.status}`);
+    const inp = new Uint8Array(await r.arrayBuffer());
+    const eof = from + inp.length >= Number((r.headers.get("content-range") || "").split("/")[1] || Infinity);
+    const c0 = performance.now();
+    if (pr.bit < 0) pr.bit = gzipHeaderLen(inp) * 8;
+    const win = pr.win ? unb64(pr.win) : new Uint8Array(0);
+    const buf = new Uint8Array(CC_CHUNK * 5); buf.set(win);
+    const res = inflateBlocks(inp, from, pr.bit, buf, win.length, win.length + CC_CHUNK * 4, eof);
+    const out = res.out, olen = res.olen;
+    if (res.bit === pr.bit && !res.final) throw new Error("Common Crawl part: no progress (block larger than a chunk?)");
+    pr.inflated += olen - win.length;
+    // complete lines not looked at yet: from after the window's last newline up to the last newline now; the part is sorted, so
+    // nothing before "il." is decoded at all
+    const start = win.lastIndexOf(10) + 1, end = out.subarray(0, olen).lastIndexOf(10);
+    if (end >= start && hostAt(out, out.subarray(0, end).lastIndexOf(10) + 1, end) >= "il.") {
+      for (const l of dec.decode(out.subarray(start, end)).split("\n")) {
         const h = l.slice(l.indexOf("\t") + 1);
-        if (!h.startsWith("il.")) { if (seen && h > "il.") break; continue; }
-        seen = true;
-        const p = h.split(".");
-        // il.co.example(.www) → example.co.il ; business zones only (no academic / government / municipal / school / army)
-        if (p.length >= 3 && (p[1] === "co" || p[1] === "org" || p[1] === "net") && /^[a-z0-9-]{2,63}$/.test(p[2])) domains.add(`${p[2]}.${p[1]}.il`);
+        if (!h.startsWith("il.")) { if (h > "il.") { past = true; break; } continue; }
+        const d = ccDomain(h); if (d) domains.add(d);
       }
-      if (seen && rest.slice(rest.indexOf("\t") + 1) > "il.~") break;
     }
+    pr.bit = res.bit; pr.win = b64(out.slice(Math.max(0, olen - 32768), olen));
+    if (res.final) { pr.pi++; pr.bit = -1; pr.win = ""; }
+    cpu += performance.now() - c0;
   }
   const older = graph !== CC_GRAPHS[0];
   const rows = [...domains].map((d) => ({ domain: d, source: "enr:cc_domains", priority: (d.endsWith(".co.il") ? 100 : 120) + (older ? 20 : 0) }));
@@ -930,13 +1060,18 @@ async function harvestCc(sb: SupabaseClient, graphArg?: string) {
   }
   const { count: after } = await sb.from("nr_site_queue").select("domain", { count: "exact", head: true });
   const added = (after || 0) - (before || 0);
-  const harvested = [...new Set([...done, graph])];
-  await sb.from("nr_sources").update({ status: "completed", total_records: (src.total_records || 0) + added, records_read: src.records_read + rows.length, last_run_at: now(), finished_at: now(),
-    duration_ms: Number(src.duration_ms) + Date.now() - t0, businesses_new: 0,
-    config: { ...src.config, harvested, [`part_${graph}`]: idx, harvested_at: now(), domains: (src.config.domains as number || 0) + added },
-    status_reason: `נקראו ${harvested.length} גרפים (${harvested.join(", ")}); ${((src.total_records || 0) + added).toLocaleString("en")} שמות מתחם ישראליים ייחודיים בתור. גרף חדש נקרא אוטומטית כשהתור מתקצר` }).eq("key", "enr:cc_domains");
-  await event(sb, "info", `Common Crawl ${graph}: ${rows.length.toLocaleString("en")} אתרים ישראליים, מתוכם ${added.toLocaleString("en")} חדשים לתור`, "enr:cc_domains");
-  return { graph, part: idx, domains: rows.length, added, ms: Date.now() - t0 };
+  pr.rows += rows.length; pr.added += added;
+  const finished = past || pr.pi >= pr.parts.length;
+  const harvested = finished ? [...new Set([...done, graph])] : done;
+  const { cc_progress: _, ...rest } = src.config;
+  await sb.from("nr_sources").update({ status: finished ? "completed" : "collecting", total_records: (src.total_records || 0) + added, records_read: src.records_read + rows.length, last_run_at: now(),
+    ...(finished ? { finished_at: now() } : {}), duration_ms: Number(src.duration_ms) + Date.now() - t0, businesses_new: 0,
+    config: { ...rest, harvested, ...(finished ? { [`part_${graph}`]: pr.idx, harvested_at: now() } : { cc_progress: pr }), domains: (src.config.domains as number || 0) + added },
+    status_reason: finished
+      ? `נקראו ${harvested.length} גרפים (${harvested.join(", ")}); ${((src.total_records || 0) + added).toLocaleString("en")} שמות מתחם ישראליים ייחודיים בתור. גרף חדש נקרא אוטומטית כשהתור מתקצר`
+      : `קורא את ${graph} בהמשכים: ${Math.round(pr.inflated / 1e6)}MB פוענחו ב-${pr.calls} קריאות, ${pr.added.toLocaleString("en")} חדשים לתור עד כה` }).eq("key", "enr:cc_domains");
+  if (finished) await event(sb, "info", `Common Crawl ${graph}: ${pr.rows.toLocaleString("en")} אתרים ישראליים, מתוכם ${pr.added.toLocaleString("en")} חדשים לתור (${pr.calls} קריאות)`, "enr:cc_domains");
+  return { graph, part: pr.idx, finished, domains: rows.length, added, inflated_mb: Math.round(pr.inflated / 1e6), cpu_ms: Math.round(cpu), ms: Date.now() - t0 };
 }
 
 // Israeli business domains linked from a page (registrable form, own domain excluded) – the self-feeding source
@@ -1191,7 +1326,9 @@ async function identifyWorker(sb: SupabaseClient, worker: number) {
 async function feeder(sb: SupabaseClient) {
   const { count: queued } = await sb.from("nr_site_queue").select("domain", { count: "exact", head: true }).eq("status", "queued");
   const out: Record<string, unknown> = { queued };
-  if ((queued || 0) < 5000) out.harvest = await harvestCc(sb);
+  // a graph already being read is finished first, whatever the queue size
+  const { data: cc } = await sb.from("nr_sources").select("config").eq("key", "enr:cc_domains").maybeSingle();
+  if ((queued || 0) < 5000 || (cc?.config as Record<string, unknown> | undefined)?.cc_progress) out.harvest = await harvestCc(sb);
   const { data: rq } = await sb.rpc("nr_requeue_unreachable", { p_days: 30, p_limit: 5000 });
   out.requeued_unreachable = rq;
   return out;
