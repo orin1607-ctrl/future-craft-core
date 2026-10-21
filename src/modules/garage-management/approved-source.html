@@ -314,30 +314,501 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 .media-preview-row img{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--border);}
 .file-hidden{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;}
 .approve-btn{margin:0 16px 8px;}
+
+/* ===== GARAGE DASHBOARD UPGRADE: STAGES 1, 3, 4, 6, 7 ===== */
+.gm-top-nav-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--s2, #0d1b2a);
+  border-bottom: 1px solid var(--border-strong, rgba(255,255,255,0.12));
+  padding: 10px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.gm-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: transparent;
+  color: var(--white80, rgba(255,255,255,0.8));
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.gm-nav-tab:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--white, #fff);
+}
+.gm-nav-tab.active {
+  background: var(--accent, #38bdf8);
+  color: #06182e;
+  border-color: var(--accent, #38bdf8);
+}
+.gm-nav-tab.ai-tab {
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  color: #fff;
+  border-color: rgba(255,255,255,0.25);
+  box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+}
+
+.home-header {
+  padding: 18px 20px 12px;
+}
+.home-header .name {
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+.home-header .sub-name {
+  font-size: 12.5px;
+  color: var(--white50, rgba(255,255,255,0.55));
+  margin-top: 2px;
+}
+
+/* KPI CARDS GRID */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 12px 16px 16px;
+}
+@media (min-width: 768px) {
+  .kpi-grid {
+    grid-template-columns: repeat(5, 1fr);
+    margin: 14px 24px 20px;
+  }
+}
+.kpi-card {
+  background: var(--s1, #0f172a);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.kpi-card:hover {
+  border-color: var(--accent, #38bdf8);
+  transform: translateY(-1px);
+  background: var(--s2, #1e293b);
+}
+.kpi-card.active {
+  border-color: var(--accent, #38bdf8);
+  background: rgba(56, 189, 248, 0.1);
+  box-shadow: 0 0 0 1px var(--accent, #38bdf8);
+}
+.kpi-card .kpi-val {
+  font-size: 24px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1.1;
+}
+.kpi-card .kpi-lbl {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--white80, rgba(255,255,255,0.75));
+  margin-top: 6px;
+}
+
+/* QUICK ACTIONS BAR */
+.quick-actions-bar {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 0 16px 18px;
+}
+@media (min-width: 768px) {
+  .quick-actions-bar {
+    grid-template-columns: repeat(4, 1fr);
+    margin: 0 24px 20px;
+  }
+}
+.quick-act-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border-strong, rgba(255,255,255,0.14));
+  background: var(--s2, #1e293b);
+  color: #fff;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+.quick-act-btn:hover {
+  background: rgba(255,255,255,0.12);
+  transform: translateY(-1px);
+}
+.quick-act-btn.primary {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border-color: rgba(56,189,248,0.4);
+}
+.quick-act-btn.ai {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  border-color: rgba(167,139,250,0.4);
+}
+.quick-act-btn .qa-icon {
+  font-size: 16px;
+}
+
+/* CASES TOOLBAR */
+.cases-section-container {
+  margin: 0 16px 24px;
+}
+@media (min-width: 768px) {
+  .cases-section-container {
+    margin: 0 24px 28px;
+  }
+}
+.cases-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--s1, #0f172a);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+.cases-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--s2, #1e293b);
+  border: 1px solid var(--border-strong, rgba(255,255,255,0.16));
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+.cases-search-box input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 13.5px;
+  font-family: inherit;
+}
+.cases-search-box input::placeholder {
+  color: var(--white50, rgba(255,255,255,0.45));
+}
+.filter-pills-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.filter-pill {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--s2, #1e293b);
+  color: var(--white80, rgba(255,255,255,0.8));
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+.filter-pill:hover {
+  background: rgba(255,255,255,0.1);
+}
+.filter-pill.active {
+  background: var(--accent, #38bdf8);
+  color: #041224;
+  border-color: var(--accent, #38bdf8);
+}
+.clear-filter-btn {
+  padding: 6px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  margin-right: auto;
+  font-family: inherit;
+}
+.clear-filter-btn:hover {
+  background: rgba(239, 68, 68, 0.28);
+}
+
+/* FULL CASES TABLE (DESKTOP) */
+.cases-table-wrap {
+  background: var(--s1, #0f172a);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 14px;
+  overflow: hidden;
+}
+.cases-full-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: right;
+}
+.cases-full-table th {
+  background: rgba(255,255,255,0.04);
+  color: var(--white50, rgba(255,255,255,0.6));
+  font-weight: 700;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.1));
+  white-space: nowrap;
+}
+.cases-full-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
+  color: #fff;
+  vertical-align: middle;
+}
+.cases-full-table tr.case-row {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.cases-full-table tr.case-row:hover {
+  background: rgba(56, 189, 248, 0.08);
+}
+.case-badge-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.case-badge-open {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+.case-badge-in-work {
+  background: rgba(14, 165, 233, 0.18);
+  color: #7dd3fc;
+  border: 1px solid rgba(14, 165, 233, 0.35);
+}
+.case-badge-waiting {
+  background: rgba(168, 85, 247, 0.18);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.35);
+}
+.case-badge-closed {
+  background: rgba(100, 116, 139, 0.2);
+  color: #cbd5e1;
+  border: 1px solid rgba(100, 116, 139, 0.35);
+}
+.btn-open-case-table {
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--accent, #38bdf8);
+  color: #06182e;
+  border: none;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+.btn-open-case-table:hover {
+  background: #7dd3fc;
+  transform: translateY(-1px);
+}
+
+/* MOBILE CASES LIST */
+.cases-mobile-list {
+  display: none;
+  gap: 10px;
+  flex-direction: column;
+}
+@media (max-width: 900px) {
+  .cases-full-table-container {
+    display: none;
+  }
+  .cases-mobile-list {
+    display: flex;
+  }
+}
+.case-mobile-card {
+  background: var(--s1, #0f172a);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: background 0.15s ease;
+}
+.case-mobile-card:hover {
+  background: var(--s2, #1e293b);
+  border-color: var(--accent, #38bdf8);
+}
+.case-mobile-card .cm-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.case-mobile-card .cm-cust {
+  font-size: 15px;
+  font-weight: 800;
+  color: #fff;
+}
+.case-mobile-card .cm-veh {
+  font-size: 13px;
+  color: var(--white80, rgba(255,255,255,0.8));
+  margin-top: 2px;
+}
+.case-mobile-card .cm-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--white50, rgba(255,255,255,0.6));
+  background: var(--s2, #1e293b);
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+.case-mobile-card .cm-details b {
+  color: #fff;
+}
+.case-mobile-card .cm-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
 </style>
 </head>
 <body>
 <div id="app">
+
+<nav class="gm-top-nav-bar" data-testid="garage-top-nav-bar">
+  <button type="button" class="gm-nav-tab active" data-testid="nav-tab-dashboard" onclick="goHomeTab('dashboard')">
+    <span class="icon">🏠</span> דשבורד מוסך
+  </button>
+  <button type="button" class="gm-nav-tab ai-tab" data-testid="nav-tab-ai" onclick="openDaliaAi()">
+    <span class="icon">✨</span> דליה AI
+  </button>
+  <button type="button" class="gm-nav-tab" data-testid="nav-tab-cases" onclick="goHomeTab('cases')">
+    <span class="icon">📋</span> רשימת כרטיסי עבודה
+  </button>
+</nav>
+
 <!-- ================= SCREEN: HOME ================= -->
 <section class="screen active" id="s-home">
   <div class="home-header">
     <div class="greet" id="home-greet">בוקר טוב</div>
-    <div class="name">דליה — לקוחות ישירים</div>
+    <div class="name">מוסך יוני – פחחות וצבע לרכב</div><div class="sub-name">מערכת ניהול מוסך וכרטיסי עבודה</div>
     <button type="button" class="ops-back" data-testid="gm-ops-center-back" onclick="goOpsCenter()">→ חזרה למרכז תפעול המוסך</button>
   </div>
   <div class="pending-banner" id="book-pending-banner">הפעלת מסד נתוני המוסך עדיין ממתינה. אפשר לעבור על הזרימה; שמירת לקוח, רכב, תיק ותמונות תתחיל אחרי הרצת ה-SQL ב-Staging.</div>
-  <div class="big-open" onclick="go('s-choose')">
-    <div class="txt"><div>פתח תיק</div><div>לקוח קיים או לקוח חדש</div></div>
-    <div class="plus">＋</div>
+  
+  <!-- KPI SUMMARY CARDS -->
+  <div class="kpi-grid" data-testid="garage-kpi-grid">
+    <div class="kpi-card active" id="kpi-card-all" data-kpi="all" onclick="filterByKpi('all')">
+      <div class="kpi-val" id="kpi-total">0</div>
+      <div class="kpi-lbl">כל כרטיסי העבודה</div>
+    </div>
+    <div class="kpi-card" id="kpi-card-open" data-kpi="open" onclick="filterByKpi('open')">
+      <div class="kpi-val" id="kpi-open">0</div>
+      <div class="kpi-lbl">כרטיסים פתוחים</div>
+    </div>
+    <div class="kpi-card" id="kpi-card-in_work" data-kpi="in_work" onclick="filterByKpi('in_work')">
+      <div class="kpi-val" id="kpi-in-work">0</div>
+      <div class="kpi-lbl">כרטיסים בעבודה</div>
+    </div>
+    <div class="kpi-card" id="kpi-card-waiting_approval" data-kpi="waiting_approval" onclick="filterByKpi('waiting_approval')">
+      <div class="kpi-val" id="kpi-waiting">0</div>
+      <div class="kpi-lbl">ממתינים לאישור</div>
+    </div>
+    <div class="kpi-card" id="kpi-card-closed" data-kpi="closed" onclick="filterByKpi('closed')">
+      <div class="kpi-val" id="kpi-closed">0</div>
+      <div class="kpi-lbl">כרטיסים סגורים</div>
+    </div>
   </div>
-  <div class="section-label">התיקים שלי</div>
-  <div class="tabs" id="home-status-tabs" style="margin:0 16px 12px;">
-    <div class="tab active" data-home-bucket="open" onclick="setHomeBucket('open')">פתוח</div>
-    <div class="tab" data-home-bucket="in_work" onclick="setHomeBucket('in_work')">רכב בעבודה</div>
-    <div class="tab" data-home-bucket="closed" onclick="setHomeBucket('closed')">סגור</div>
+
+  <!-- QUICK ACTION BUTTONS -->
+  <div class="quick-actions-bar" data-testid="garage-quick-actions">
+    <button type="button" class="quick-act-btn primary" onclick="go('s-choose')" data-testid="action-open-case">
+      <span class="qa-icon">➕</span>
+      <span class="qa-title">פתיחת כרטיס עבודה</span>
+    </button>
+    <button type="button" class="quick-act-btn" onclick="go('s-newtype')" data-testid="action-new-customer">
+      <span class="qa-icon">👤</span>
+      <span class="qa-title">פתיחת לקוח</span>
+    </button>
+    <button type="button" class="quick-act-btn ai" onclick="openDaliaAi()" data-testid="action-dalia-ai">
+      <span class="qa-icon">✨</span>
+      <span class="qa-title">מעבר לדליה AI</span>
+    </button>
+    <button type="button" class="quick-act-btn" onclick="focusCasesSearch()" data-testid="action-search-case">
+      <span class="qa-icon">🔍</span>
+      <span class="qa-title">חיפוש כרטיס</span>
+    </button>
   </div>
-  <div id="home-cases"></div>
-  <div id="home-empty" class="hint" style="padding:0 16px;">אין רכבים פתוחים. תיק חדש מופיע כאן עד שהעבודה מתחילה.</div>
+
+  <!-- CASES SECTION & TOOLBAR -->
+  <div class="cases-section-container" id="cases-section">
+    <div class="cases-toolbar">
+      <div class="cases-search-box">
+        <span>🔍</span>
+        <input
+          id="garage-cases-search"
+          type="search"
+          data-testid="garage-cases-search"
+          placeholder="חיפוש לפי מספר כרטיס, מספר רכב, שם לקוח/חברה, דגם רכב, מספר הזמנה או תביעה..."
+          oninput="onCasesSearchInput()"
+        />
+      </div>
+      <div class="filter-pills-bar">
+        <button type="button" class="filter-pill active" id="pill-all" onclick="filterByKpi('all')">כל הכרטיסים</button>
+        <button type="button" class="filter-pill" id="pill-open" onclick="filterByKpi('open')">פתוחים</button>
+        <button type="button" class="filter-pill" id="pill-in_work" onclick="filterByKpi('in_work')">בעבודה</button>
+        <button type="button" class="filter-pill" id="pill-waiting_approval" onclick="filterByKpi('waiting_approval')">ממתינים לאישור</button>
+        <button type="button" class="filter-pill" id="pill-closed" onclick="filterByKpi('closed')">סגורים</button>
+        <button type="button" class="clear-filter-btn" id="clear-filters-btn" onclick="clearAllCasesFilters()" title="נקה את כל הסינונים והחיפוש">✕ נקה סינונים</button>
+      </div>
+    </div>
+
+    <!-- DESKTOP TABLE -->
+    <div class="cases-full-table-container cases-table-wrap" data-testid="garage-cases-table-wrap">
+      <table class="cases-full-table" data-testid="garage-cases-table">
+        <thead>
+          <tr>
+            <th>מספר כרטיס</th>
+            <th>שם לקוח / חברה</th>
+            <th>מספר רכב</th>
+            <th>יצרן ודגם</th>
+            <th>תאריך פתיחה</th>
+            <th>סטטוס</th>
+            <th>מספר הזמנה</th>
+            <th>מספר תביעה</th>
+            <th>תאריך סגירה</th>
+            <th>פעולה</th>
+          </tr>
+        </thead>
+        <tbody id="cases-table-body"></tbody>
+      </table>
+    </div>
+
+    <!-- MOBILE CARDS LIST -->
+    <div class="cases-mobile-list" id="cases-mobile-list" data-testid="garage-cases-mobile-list"></div>
+
+    <div id="home-empty" class="hint" style="padding:16px 0; display:none;">לא נמצאו כרטיסי עבודה התואמים לחיפוש או לסינון הנוכחי.</div>
+  </div>
 </section>
 <!-- ================= SCREEN: CHOOSE NEW/EXISTING ================= -->
 <section class="screen" id="s-choose">
@@ -1925,43 +2396,205 @@ function setHomeBucket(bucket){
   });
   renderHomeCases(homeCasesList);
 }
+var currentKpiFilter = 'all';
+var currentSearchQuery = '';
+
+function openDaliaAi() {
+  parent.postMessage({ type: 'gm:open_ai' }, '*');
+}
+
+function goHomeTab(tab) {
+  if (tab === 'cases') {
+    var el = document.getElementById('cases-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    document.querySelectorAll('.gm-nav-tab').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-testid') === 'nav-tab-cases');
+    });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelectorAll('.gm-nav-tab').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-testid') === 'nav-tab-dashboard');
+    });
+  }
+}
+
+function focusCasesSearch() {
+  var input = document.getElementById('garage-cases-search');
+  if (input) {
+    input.focus();
+    input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function onCasesSearchInput() {
+  var input = document.getElementById('garage-cases-search');
+  currentSearchQuery = input ? input.value.trim().toLowerCase() : '';
+  renderHomeCases(homeCasesList);
+}
+
+function filterByKpi(kpi) {
+  currentKpiFilter = kpi || 'all';
+  document.querySelectorAll('.kpi-card').forEach(function(el){
+    el.classList.toggle('active', el.getAttribute('data-kpi') === currentKpiFilter);
+  });
+  document.querySelectorAll('.filter-pill').forEach(function(el){
+    var id = el.id.replace('pill-', '');
+    el.classList.toggle('active', id === currentKpiFilter);
+  });
+  renderHomeCases(homeCasesList);
+}
+
+function clearAllCasesFilters() {
+  currentKpiFilter = 'all';
+  currentSearchQuery = '';
+  var input = document.getElementById('garage-cases-search');
+  if (input) input.value = '';
+  filterByKpi('all');
+}
+
 function renderHomeCases(cases){
   homeCasesList = Array.isArray(cases) ? cases.slice() : [];
-  var box = document.getElementById('home-cases');
-  var empty = document.getElementById('home-empty');
-  if(!box) return;
-  box.innerHTML = '';
-  var counts = {open:0, in_work:0, closed:0};
-  homeCasesList.forEach(function(c){
-    var bucket = garageListBucket(c.case_data || {}, c.status);
-    counts[bucket] = (counts[bucket] || 0) + 1;
+  
+  var counts = {
+    total: homeCasesList.length,
+    open: 0,
+    in_work: 0,
+    waiting_approval: 0,
+    closed: 0,
+  };
+
+  homeCasesList.forEach(function(c) {
+    var st = String(c.status || '');
+    var cd = c.case_data || {};
+    var isClosed = st === 'סגור' || !!cd.caseClosed || !!cd.workFinished;
+    var isInWork = st === 'בעבודה' || st === 'הרכב התקבל' || !!cd.workStarted;
+    var isWaiting = st === 'ממתין לאישור' || st === 'הצעה בהכנה' || st === 'בדיקת רכב' || !!cd.waitingForApproval || !!cd.quoteSent;
+
+    if (isClosed) {
+      counts.closed++;
+    } else {
+      counts.open++;
+      if (isInWork) counts.in_work++;
+      if (isWaiting) counts.waiting_approval++;
+    }
   });
-  document.querySelectorAll('#home-status-tabs .tab').forEach(function(el){
-    var b = el.getAttribute('data-home-bucket');
-    var base = b === 'in_work' ? 'רכב בעבודה' : (b === 'closed' ? 'סגור' : 'פתוח');
-    el.textContent = base + ' (' + (counts[b] || 0) + ')';
-    el.classList.toggle('active', b === homeBucket);
+
+  // Update KPI counters
+  var kpiTotal = document.getElementById('kpi-total');
+  if (kpiTotal) kpiTotal.textContent = String(counts.total);
+  var kpiOpen = document.getElementById('kpi-open');
+  if (kpiOpen) kpiOpen.textContent = String(counts.open);
+  var kpiInWork = document.getElementById('kpi-in-work');
+  if (kpiInWork) kpiInWork.textContent = String(counts.in_work);
+  var kpiWaiting = document.getElementById('kpi-waiting');
+  if (kpiWaiting) kpiWaiting.textContent = String(counts.waiting_approval);
+  var kpiClosed = document.getElementById('kpi-closed');
+  if (kpiClosed) kpiClosed.textContent = String(counts.closed);
+
+  // Filter
+  var filtered = homeCasesList.filter(function(c) {
+    var st = String(c.status || '');
+    var cd = c.case_data || {};
+    var isClosed = st === 'סגור' || !!cd.caseClosed || !!cd.workFinished;
+    var isInWork = st === 'בעבודה' || st === 'הרכב התקבל' || !!cd.workStarted;
+    var isWaiting = st === 'ממתין לאישור' || st === 'הצעה בהכנה' || st === 'בדיקת רכב' || !!cd.waitingForApproval || !!cd.quoteSent;
+
+    if (currentKpiFilter === 'closed' && !isClosed) return false;
+    if (currentKpiFilter === 'open' && isClosed) return false;
+    if (currentKpiFilter === 'in_work' && !isInWork) return false;
+    if (currentKpiFilter === 'waiting_approval' && !isWaiting) return false;
+
+    if (currentSearchQuery) {
+      var hay = (
+        (c.case_number || '') + ' ' +
+        (c.customer_name_snapshot || '') + ' ' +
+        (c.vehicle_plate_snapshot || '') + ' ' +
+        (c.vehicle_label_snapshot || '') + ' ' +
+        (cd.workOrderNumber || '') + ' ' +
+        (cd.claimNumber || '') + ' ' +
+        st
+      ).toLowerCase();
+      if (!hay.includes(currentSearchQuery)) return false;
+    }
+    return true;
   });
-  var filtered = homeCasesList.filter(function(c){
-    return garageListBucket(c.case_data || {}, c.status) === homeBucket;
-  });
-  if(!filtered.length){
-    if(empty){
-      empty.style.display = 'block';
-      if(!bookPending) empty.textContent = HOME_EMPTY[homeBucket] || HOME_EMPTY.open;
+
+  var tbody = document.getElementById('cases-table-body');
+  var mobileList = document.getElementById('cases-mobile-list');
+  var emptyEl = document.getElementById('home-empty');
+
+  if (tbody) tbody.innerHTML = '';
+  if (mobileList) mobileList.innerHTML = '';
+
+  if (!filtered.length) {
+    if (emptyEl) {
+      emptyEl.style.display = 'block';
+      emptyEl.textContent = currentSearchQuery
+        ? 'לא נמצאו כרטיסי עבודה התואמים לחיפוש: "' + currentSearchQuery + '".'
+        : 'אין כרטיסי עבודה בסינון שנבחר.';
     }
     return;
   }
-  if(empty) empty.style.display = 'none';
-  filtered.forEach(function(c){
-    var el = document.createElement('div');
-    el.className = 'case-card tap';
-    el.onclick = function(){ parent.postMessage({type:'gm:openCase', payload:{caseId:c.id}}, '*'); };
-    var bucket = garageListBucket(c.case_data || {}, c.status);
-    var statusLabel = garageListStatusLabel(bucket);
-    var badge = bucket === 'closed' ? 'badge-muted' : (bucket === 'in_work' ? 'badge-accent' : 'badge-warn');
-    el.innerHTML = '<div class="top-row"><div><div class="co">'+esc(c.customer_name_snapshot||'')+'</div><div class="plate">'+esc(c.vehicle_plate_snapshot||'')+' · '+esc(c.vehicle_label_snapshot||'')+'</div></div><span class="badge '+badge+'">'+esc(statusLabel)+'</span></div><div class="num">'+esc(c.case_number||'')+'</div>';
-    box.appendChild(el);
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  filtered.forEach(function(c) {
+    var cd = c.case_data || {};
+    var st = String(c.status || 'בדיקת רכב');
+    var isClosed = st === 'סגור' || !!cd.caseClosed || !!cd.workFinished;
+    var isInWork = st === 'בעבודה' || st === 'הרכב התקבל' || !!cd.workStarted;
+    var isWaiting = st === 'ממתין לאישור' || st === 'הצעה בהכנה' || st === 'בדיקת רכב' || !!cd.waitingForApproval || !!cd.quoteSent;
+    var badgeClass = isClosed ? 'case-badge-closed' : (isInWork ? 'case-badge-in-work' : (isWaiting ? 'case-badge-waiting' : 'case-badge-open'));
+
+    var createdDate = c.created_at ? new Date(c.created_at).toLocaleDateString('he-IL') : '—';
+    var closedDate = (cd.caseClosedAt || cd.workFinishedAt) ? new Date(cd.caseClosedAt || cd.workFinishedAt).toLocaleDateString('he-IL') : '—';
+    var orderNum = cd.workOrderNumber || '—';
+    var claimNum = cd.claimNumber || '—';
+
+    // 1. Desktop table row
+    if (tbody) {
+      var tr = document.createElement('tr');
+      tr.className = 'case-row';
+      tr.setAttribute('data-testid', 'garage-case-row-' + (c.case_number || c.id));
+      tr.onclick = function() { parent.postMessage({ type: 'gm:openCase', payload: { caseId: c.id } }, '*'); };
+      tr.innerHTML =
+        '<td><strong>' + esc(c.case_number || '') + '</strong></td>' +
+        '<td>' + esc(c.customer_name_snapshot || '—') + '</td>' +
+        '<td><strong>' + esc(c.vehicle_plate_snapshot || '—') + '</strong></td>' +
+        '<td>' + esc(c.vehicle_label_snapshot || '—') + '</td>' +
+        '<td>' + esc(createdDate) + '</td>' +
+        '<td><span class="case-badge-pill ' + badgeClass + '">' + esc(st) + '</span></td>' +
+        '<td>' + esc(orderNum) + '</td>' +
+        '<td>' + esc(claimNum) + '</td>' +
+        '<td>' + esc(closedDate) + '</td>' +
+        '<td><button type="button" class="btn-open-case-table" data-testid="open-case-btn" onclick="event.stopPropagation(); parent.postMessage({type:\'gm:openCase\', payload:{caseId:\'' + c.id + '\'}}, \'*\');">פתח תיק</button></td>';
+      tbody.appendChild(tr);
+    }
+
+    // 2. Mobile card
+    if (mobileList) {
+      var mCard = document.createElement('div');
+      mCard.className = 'case-mobile-card';
+      mCard.setAttribute('data-testid', 'garage-case-mobile-' + (c.case_number || c.id));
+      mCard.onclick = function() { parent.postMessage({ type: 'gm:openCase', payload: { caseId: c.id } }, '*'); };
+      mCard.innerHTML =
+        '<div class="cm-top">' +
+          '<div>' +
+            '<div class="cm-cust">' + esc(c.customer_name_snapshot || '—') + '</div>' +
+            '<div class="cm-veh">' + esc(c.vehicle_plate_snapshot || '') + ' · ' + esc(c.vehicle_label_snapshot || '') + '</div>' +
+          '</div>' +
+          '<span class="case-badge-pill ' + badgeClass + '">' + esc(st) + '</span>' +
+        '</div>' +
+        '<div class="cm-details">' +
+          '<div>תיק: <b>' + esc(c.case_number || '') + '</b></div>' +
+          '<div>פתיחה: <b>' + esc(createdDate) + '</b></div>' +
+          '<div>הזמנה: <b>' + esc(orderNum) + '</b></div>' +
+          '<div>סגירה: <b>' + esc(closedDate) + '</b></div>' +
+        '</div>' +
+        '<div class="cm-bottom">' +
+          '<button type="button" class="btn-open-case-table" data-testid="open-case-mobile-btn" onclick="event.stopPropagation(); parent.postMessage({type:\'gm:openCase\', payload:{caseId:\'' + c.id + '\'}}, \'*\');">פתח כרטיס עבודה ›</button>' +
+        '</div>';
+      mobileList.appendChild(mCard);
+    }
   });
 }
 function esc(s){ return String(s||'').replace(/[&<>"']/g, function(ch){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]); }); }

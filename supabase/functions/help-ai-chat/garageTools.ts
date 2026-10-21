@@ -173,17 +173,25 @@ export const GARAGE_GEMINI_TOOLS = [
       },
       {
         name: "search_garage_cases",
-        description: "חיפוש תיקי מוסך וכרטיסי עבודה לפי מספר תיק (כגון GM-2026-0043), שם לקוח, מספר לוחית רישוי של הרכב, סטטוס או מסלול.",
+        description: "חיפוש וסינון כרטיסי עבודה במוסך לפי שאילתת טקסט חופשית (מספר רכב, שם לקוח, דגם רכב, מספר תיק, אלדן) ו/או סטטוס (all=הכל, open=פתוח, in_work=בעבודה, waiting_approval=ממתין_לאישור, closed=סגור). מחזיר תוצאות מעודכנות ישירות ממסד הנתונים.",
         parameters: {
           type: "OBJECT",
           properties: {
             query: {
               type: "STRING",
-              description: "מחרוזת חיפוש חופשית (מספר תיק, לוחית רישוי, שם לקוח, טלפון וכו')",
+              description: "מחרוזת לחיפוש: מספר רכב (למשל 8042376), שם לקוח (לירן לוי, אלדן), דגם רכב (קיה ספורטאז'), מספר תיק (GM-2026-XXXX) או מספר הזמנה",
+            },
+            status_filter: {
+              type: "STRING",
+              description: "סינון לפי סטטוס: 'all' (הכל), 'open' (פתוח/כל שאינו סגור), 'in_work' (בעבודה/הרכב התקבל), 'waiting_approval' (ממתין לאישור/הצעה בהכנה), 'closed' (סגור)",
             },
             status: {
               type: "STRING",
-              description: "סינון לפי סטטוס מסוים (למשל 'בדיקת רכב', 'הצעה בהכנה', 'ממתין לאישור', 'עבודה התחילה', 'עבודה הסתיימה', 'תיק סגור') או ריק לכל הסטטוסים",
+              description: "סינון נוסף חלופי לפי סטטוס",
+            },
+            limit: {
+              type: "NUMBER",
+              description: "כמות תוצאות מרבית (ברירת מחדל 15)",
             },
           },
         },
@@ -1292,38 +1300,87 @@ export async function executeGarageTool(
     }
 
     case "search_garage_cases": {
-      const query = String(args?.query || "").trim();
-      const statusFilter = String(args?.status || "").trim();
+      const q = String(args?.query || args?.q || "").trim();
+      const rawStatus = String(args?.status_filter || args?.status || "all").toLowerCase();
+      const limit = Math.min(Math.max(Number(args?.limit) || 15, 1), 50);
 
       let dbQuery = supabase
         .from("garage_cases")
         .select("id, case_number, customer_name_snapshot, vehicle_plate_snapshot, vehicle_label_snapshot, status, created_at, updated_at, case_data")
         .order("created_at", { ascending: false })
-        .limit(25);
+        .limit(limit);
 
-      if (query) {
-        dbQuery = dbQuery.or(`case_number.ilike.%${query}%,customer_name_snapshot.ilike.%${query}%,vehicle_plate_snapshot.ilike.%${query}%`);
-      }
-      if (statusFilter && statusFilter !== "all") {
-        dbQuery = dbQuery.ilike("status", `%${statusFilter}%`);
+      if (shopScope?.company_name) {
+        dbQuery = dbQuery.ilike("shop_company_name", `%${shopScope.company_name}%`);
       }
 
-      const { data, error } = await dbQuery;
-      if (error) throw new Error(`חיפוש תיקים נכשל: ${error.message}`);
+      if (rawStatus === "closed" || rawStatus === "סגור") {
+        dbQuery = dbQuery.eq("status", "סגור");
+      } else if (rawStatus === "open" || rawStatus === "פתוח") {
+        dbQuery = dbQuery.neq("status", "סגור");
+      } else if (rawStatus === "in_work" || rawStatus === "בעבודה") {
+        dbQuery = dbQuery.in("status", ["בעבודה", "הרכב התקבל"]);
+      } else if (rawStatus === "waiting_approval" || rawStatus === "ממתין לאישור") {
+        dbQuery = dbQuery.in("status", ["ממתין לאישור", "הצעה בהכנה", "בדיקת רכב"]);
+      }
+
+      const { data: rows, error: qErr } = await dbQuery;
+      if (qErr) {
+        return { result: { error: `שגיאה בשליפת כרטיסי עבודה: ${qErr.message}` } };
+      }
+
+      let cases = rows || [];
+      if (q) {
+        const qLower = q.toLowerCase();
+        cases = cases.filter((c: any) => {
+          const cd = c.case_data || {};
+          const hay = [
+            c.case_number,
+            c.customer_name_snapshot,
+            c.vehicle_plate_snapshot,
+            c.vehicle_label_snapshot,
+            cd.workOrderNumber,
+            cd.claimNumber,
+            c.status,
+          ].filter(Boolean).join(" ").toLowerCase();
+          return hay.includes(qLower);
+        });
+      }
+
+      const formattedCases = cases.map((c: any) => {
+        const cd = c.case_data || {};
+        return {
+          id: c.id,
+          case_number: c.case_number,
+          customer_name: c.customer_name_snapshot || "—",
+          vehicle_plate: c.vehicle_plate_snapshot || "—",
+          vehicle_label: c.vehicle_label_snapshot || "—",
+          status: c.status,
+          created_at: c.created_at,
+          order_number: cd.workOrderNumber || "—",
+          claim_number: cd.claimNumber || "—",
+          closed_at: cd.caseClosedAt || cd.workFinishedAt || null,
+        };
+      });
+
+      let mdTable = "";
+      if (formattedCases.length === 0) {
+        mdTable = `לא נמצאו כרטיסי עבודה התואמים לחיפוש "${q || rawStatus}".`;
+      } else {
+        mdTable = `נמצאו **${formattedCases.length}** כרטיסי עבודה:\n\n` +
+          `| מספר תיק | לקוח | מספר רכב | דגם | סטטוס | פעולה |\n` +
+          `| :--- | :--- | :--- | :--- | :--- | :--- |\n` +
+          formattedCases.map((c: any) =>
+            `| **${c.case_number}** | ${c.customer_name} | **${c.vehicle_plate}** | ${c.vehicle_label} | \`${c.status}\` | [פתח כרטיס עבודה](#/garage-management/${c.id}) |`
+          ).join("\n");
+      }
 
       return {
         result: {
-          total_found: data?.length || 0,
-          cases: (data || []).map((c: any) => ({
-            id: c.id,
-            case_number: c.case_number,
-            customer_name: c.customer_name_snapshot,
-            vehicle_plate: c.vehicle_plate_snapshot,
-            vehicle_label: c.vehicle_label_snapshot,
-            status: c.status,
-            flow_stage: c.case_data?.flowStage || "inspection",
-            created_at: c.created_at,
-          })),
+          success: true,
+          found_count: formattedCases.length,
+          cases: formattedCases,
+          summary_markdown: mdTable,
         },
       };
     }

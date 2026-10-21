@@ -51,8 +51,9 @@ const managerCategories = [
 ];
 
 // Manager mobile — בית וניהול תביעות (למשתמשים בעלי הרשאת תביעות)
-const getManagerMobileNav = (canClaims: boolean): NavItem[] => [
+const getManagerMobileNav = (canClaims: boolean, canGarage: boolean = true): NavItem[] => [
   { path: '/dashboard', label: 'בית', icon: Home },
+  ...(canGarage ? [{ path: '/garage-management', label: 'ניהול מוסך', icon: Warehouse } as NavItem] : []),
   ...(canClaims ? [{ path: '/claims', label: 'ניהול תביעות', icon: Scale } as NavItem] : []),
 ];
 
@@ -89,6 +90,7 @@ export default function BottomNav() {
   const isClaimsWorker = !!user?.claimsWorkerOnly;
   const isGaragePhotographer = !!user?.garagePhotographer;
   const canClaims = isSuperAdmin || !!user?.hasClaimsAccess;
+  const canGarage = isSuperAdmin || user?.role === 'fleet_manager' || !!user?.garageOps;
 
   const mobileNav = isGaragePhotographer
     ? garagePhotographerMobileNav
@@ -98,7 +100,7 @@ export default function BottomNav() {
       ? telemarketingMobileNav
       : isDriver
         ? driverMobileNav
-        : getManagerMobileNav(canClaims);
+        : getManagerMobileNav(canClaims, canGarage);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t-2 border-border shadow-[0_-4px_20px_rgba(0,0,0,0.1)] md:hidden">
@@ -149,7 +151,7 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
     if (path === '/telemarketing/admin') return isSuperAdmin;
     if (path === '/claims') return canClaims;
     if (path === '/garage-management' || path.startsWith('/garage-management/')) {
-      return isSuperAdmin || !!user?.garageOps;
+      return isSuperAdmin || user?.role === 'fleet_manager' || !!user?.garageOps;
     }
     if (path === '/security-center') return isSuperAdmin;
     return true;

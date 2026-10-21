@@ -2496,6 +2496,28 @@ export function ClaimsAiWorkspace({
   const [voiceModeActive, setVoiceModeActive] = useState(false);
   const [voicePhase, setVoicePhase] = useState<'idle' | 'listening' | 'processing' | 'speaking'>('idle');
   const [liveTranscript, setLiveTranscript] = useState('');
+  const [showWelcomeHub, setShowWelcomeHub] = useState(false);
+  const [confirmReturnToMenuModal, setConfirmReturnToMenuModal] = useState(false);
+
+  const hasUnsavedAction = useMemo(() => {
+    return messages.some(
+      (m) =>
+        m.role === 'assistant' &&
+        m.metadata &&
+        typeof (m.metadata as Record<string, unknown>).pending_action === 'object' &&
+        (m.metadata as Record<string, unknown>).pending_action !== null &&
+        ((m.metadata as Record<string, unknown>).pending_action as any).status !== 'executed' &&
+        ((m.metadata as Record<string, unknown>).pending_action as any).status !== 'cancelled'
+    );
+  }, [messages]);
+
+  const handleReturnToMainMenu = useCallback(() => {
+    if (hasUnsavedAction) {
+      setConfirmReturnToMenuModal(true);
+      return;
+    }
+    setShowWelcomeHub(true);
+  }, [hasUnsavedAction]);
 
   const dockedStorageKey = module === 'garage'
     ? `garage_ai_docked_${userId}`
@@ -4022,8 +4044,50 @@ export function ClaimsAiWorkspace({
 
       <section className="claims-ai-main">
         <header className="claims-ai-top">
-          <div>
-            <h2>{active?.title || 'שיחה חדשה'}</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h2>{active?.title || 'שיחה חדשה'}</h2>
+              {module === 'garage' && (
+                <div className="claims-ai-top-nav-group" data-testid="dalia-garage-nav-group" style={{ display: 'flex', gap: 6, marginInlineStart: 8 }}>
+                  <button
+                    type="button"
+                    className="btn btn-g btn-xs"
+                    data-testid="dalia-nav-dashboard"
+                    onClick={onClose}
+                    title="חזרה לדשבורד ניהול המוסך"
+                  >
+                    🏠 דשבורד מוסך
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-b btn-xs"
+                    data-testid="dalia-nav-ai"
+                    title="נמצא בדליה AI"
+                    style={{ fontWeight: 800 }}
+                  >
+                    ✨ דליה AI
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-g btn-xs"
+                    data-testid="dalia-nav-cases"
+                    onClick={onClose}
+                    title="צפייה ברשימת כרטיסי עבודה בדשבורד"
+                  >
+                    📋 כרטיסי עבודה
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-p btn-xs"
+                    data-testid="dalia-main-menu-btn"
+                    onClick={handleReturnToMainMenu}
+                    title="חזרה לתפריט 9 כפתורי הפעולה של דליה AI"
+                  >
+                    🏠 תפריט ראשי
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="claims-ai-status">
               {module === 'garage'
                 ? 'דליה AI · ניהול מוסך'
@@ -4033,6 +4097,17 @@ export function ClaimsAiWorkspace({
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {module !== 'garage' && (
+              <button
+                type="button"
+                className="btn btn-g btn-sm"
+                data-testid="dalia-main-menu-btn"
+                onClick={handleReturnToMainMenu}
+                title="חזרה לתפריט הראשי"
+              >
+                🏠 תפריט ראשי
+              </button>
+            )}
             <button
               type="button"
               className={`claims-ai-voice-call-btn${voiceModeActive ? ' active' : ''}`}
@@ -4129,10 +4204,25 @@ export function ClaimsAiWorkspace({
             </div>
           ) : null}
           {banner ? <div className="claims-ai-bubble" data-testid="claims-ai-error" style={{ border: '1px solid var(--rd2)' }}>{banner}</div> : null}
-          {messages.length === 0 && !loading ? (
+          {((messages.length === 0 && !loading) || showWelcomeHub) ? (
             <div className="claims-ai-empty">
               {module === 'garage' ? (
                 <div className="garage-welcome-hub" data-testid="garage-welcome-hub">
+                  {messages.length > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(56,189,248,0.1)', borderRadius: 10, border: '1px solid rgba(56,189,248,0.25)' }}>
+                      <span style={{ fontSize: '0.85rem', color: '#38bdf8', fontWeight: 600 }}>
+                        💬 שיחה פעילה שמורה ({messages.length} הודעות)
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-g btn-xs"
+                        data-testid="garage-action-resume-chat"
+                        onClick={() => setShowWelcomeHub(false)}
+                      >
+                        ← המשך שיחה קיימת
+                      </button>
+                    </div>
+                  )}
                   <div className="garage-welcome-badge">✨ דליה AI · ניהול המוסך</div>
                   <h3 className="garage-welcome-title">שלום, במה תרצה לטפל היום?</h3>
                   <p className="garage-welcome-subtitle">
@@ -4145,7 +4235,7 @@ export function ClaimsAiWorkspace({
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-new-customer"
-                      onClick={() => void sendMessage('אני רוצה לפתוח לקוח ורכב חדשים', 'text')}
+                      onClick={() => { setShowWelcomeHub(false); void sendMessage('אני רוצה לפתוח לקוח ורכב חדשים', 'text'); }}
                     >
                       <span className="garage-action-icon">👤➕</span>
                       <div className="garage-action-body">
@@ -4158,7 +4248,7 @@ export function ClaimsAiWorkspace({
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-existing-customer"
-                      onClick={() => void sendMessage('אני רוצה לאתר ולטפל בלקוח קיים', 'text')}
+                      onClick={() => { setShowWelcomeHub(false); void sendMessage('אני רוצה לאתר ולטפל בלקוח קיים', 'text'); }}
                     >
                       <span className="garage-action-icon">🔍👤</span>
                       <div className="garage-action-body">
@@ -4171,7 +4261,7 @@ export function ClaimsAiWorkspace({
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-intake"
-                      onClick={() => void sendMessage('קבלת רכב לעבודה – צילום 5 תמונות ורישום קילומטראז\'', 'text')}
+                      onClick={() => { setShowWelcomeHub(false); void sendMessage('קבלת רכב לעבודה – צילום 5 תמונות ורישום קילומטראז\'', 'text'); }}
                     >
                       <span className="garage-action-icon">🚗📋</span>
                       <div className="garage-action-body">
@@ -4184,7 +4274,7 @@ export function ClaimsAiWorkspace({
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-quote"
-                      onClick={() => void sendMessage('הכנת הצעת מחיר חדשה או פתיחת הצעה קיימת', 'text')}
+                      onClick={() => { setShowWelcomeHub(false); void sendMessage('הכנת הצעת מחיר חדשה או פתיחת הצעה קיימת', 'text'); }}
                     >
                       <span className="garage-action-icon">💰📑</span>
                       <div className="garage-action-body">
@@ -4197,7 +4287,7 @@ export function ClaimsAiWorkspace({
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-invoices-credits"
-                      onClick={() => void sendMessage('קליטת חשבונית חלקים / זיכוי עבור תיק רכב', 'text')}
+                      onClick={() => { setShowWelcomeHub(false); void sendMessage('קליטת חשבונית חלקים / זיכוי עבור תיק רכב', 'text'); }}
                     >
                       <span className="garage-action-icon">🧾🚗</span>
                       <div className="garage-action-body">
@@ -4210,7 +4300,7 @@ export function ClaimsAiWorkspace({
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-general-expenses"
-                      onClick={() => void sendMessage('ספקים וחשבוניות כלליות (הוצאות מוסך ללא שיוך לרכב)', 'text')}
+                      onClick={() => { setShowWelcomeHub(false); void sendMessage('ספקים וחשבוניות כלליות (הוצאות מוסך ללא שיוך לרכב)', 'text'); }}
                     >
                       <span className="garage-action-icon">🏭📦</span>
                       <div className="garage-action-body">
@@ -4223,7 +4313,7 @@ export function ClaimsAiWorkspace({
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-find-case"
-                      onClick={() => void sendMessage('איתור תיק עבודה לפי לקוח, רכב או מספר תיק', 'text')}
+                      onClick={() => { setShowWelcomeHub(false); void sendMessage('איתור תיק עבודה לפי לקוח, רכב או מספר תיק', 'text'); }}
                     >
                       <span className="garage-action-icon">🔎📂</span>
                       <div className="garage-action-body">
@@ -4236,7 +4326,7 @@ export function ClaimsAiWorkspace({
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-close-case"
-                      onClick={() => void sendMessage('סגירת תיק עבודה ובדיקת חוסרים', 'text')}
+                      onClick={() => { setShowWelcomeHub(false); void sendMessage('סגירת תיק עבודה ובדיקת חוסרים', 'text'); }}
                     >
                       <span className="garage-action-icon">🔒✅</span>
                       <div className="garage-action-body">
@@ -5354,7 +5444,7 @@ export function ClaimsAiWorkspace({
                       ) : executingActionId === msg.id ? (
                         <div className="claims-ai-status" style={{ marginTop: 6 }}>מבצע את הפעולה...</div>
                       ) : (
-                        <div className="claims-ai-preview-acts" style={{ marginTop: 8 }}>
+                        <div className="claims-ai-preview-acts" style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           <button
                             type="button"
                             className="btn btn-p btn-sm"
@@ -5373,6 +5463,19 @@ export function ClaimsAiWorkspace({
                             onClick={() => void handleCancelPending(msg, pending)}
                           >
                             ביטול
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-g btn-sm"
+                            data-testid="claims-ai-step-back-btn"
+                            disabled={!!executingActionId}
+                            onClick={() => {
+                              void handleCancelPending(msg, pending);
+                              setBanner('חזרת לשלב הקודם. לא בוצעה כל שמירה במסד הנתונים.');
+                            }}
+                            title="חזרה לשלב הקודם ללא שמירה"
+                          >
+                            ↩️ חזרה לשלב הקודם
                           </button>
                         </div>
                       )}
@@ -5922,6 +6025,47 @@ export function ClaimsAiWorkspace({
             </div>
           </div>
         ) : null}
+
+        {confirmReturnToMenuModal && (
+          <div
+            className="claims-ai-preview-modal-backdrop"
+            data-testid="confirm-return-menu-dialog"
+            style={{ zIndex: 10000 }}
+          >
+            <div
+              className="claims-ai-preview-modal-card"
+              style={{ maxWidth: 440, padding: 24, textAlign: 'center', background: 'var(--bg2, #1e293b)', border: '1px solid var(--border, #334155)', borderRadius: 12 }}
+            >
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '1.2rem', color: '#f8fafc' }}>
+                ⚠️ ישנה פעולה שטרם אושרה
+              </h4>
+              <p style={{ fontSize: '0.95rem', color: '#cbd5e1', lineHeight: 1.5, marginBottom: 20 }}>
+                קיימת פעולה פתוחה בדליה AI שטרם אישרת. חזרה לתפריט הראשי תשמור את השיחה כטיוטה, ללא ביצוע שינויים במסד הנתונים. האם להמשיך?
+              </p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  className="btn btn-g"
+                  data-testid="cancel-menu-btn"
+                  onClick={() => setConfirmReturnToMenuModal(false)}
+                >
+                  הישאר בשיחה
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-p"
+                  data-testid="confirm-menu-btn"
+                  onClick={() => {
+                    setConfirmReturnToMenuModal(false);
+                    setShowWelcomeHub(true);
+                  }}
+                >
+                  כן, חזור לתפריט הראשי
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );

@@ -104,8 +104,8 @@ describe('garage ops foundation (existing fleet_manager)', () => {
     })).toBeUndefined();
   });
 
-  it('opens /garage-management only for garage-ops fleet_manager, not every fleet_manager', () => {
-    expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(false);
+  it('opens /garage-management for fleet_manager and super_admin', () => {
+    expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(true);
     expect(canAccessRoute('/garage-management', 'fleet_manager', { garageOps: true })).toBe(true);
     expect(canAccessRoute('/garage-management/case-1', 'fleet_manager', { garageOps: true })).toBe(true);
     expect(canAccessRoute('/garage-management', 'driver', { garageOps: true })).toBe(false);

@@ -64,7 +64,7 @@ export function canAccessRoute(
     return path === '/garage' || path.startsWith('/garage/');
   }
   if (path === '/garage-management' || path.startsWith('/garage-management/')) {
-    return role === 'super_admin' || (role === 'fleet_manager' && !!extras?.garageOps);
+    return role === 'super_admin' || role === 'fleet_manager' || !!extras?.garageOps;
   }
   if (path === '/garage' || path.startsWith('/garage/')) {
     return role !== 'private_customer' && role !== 'business_customer' && role !== 'telemarketing_agent';
