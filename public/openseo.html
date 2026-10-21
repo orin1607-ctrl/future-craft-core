@@ -447,7 +447,8 @@ html, body {
 .content-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
 .content-gal-card{border:1px solid var(--line);border-radius:10px;padding:8px;background:#fff}
 .content-gal-card img{width:100%;height:96px;object-fit:cover;border-radius:8px;background:#f8fafc;display:block}
-#contentGalleryDlg[open]{display:flex;flex-direction:column}
+#contentGalleryDlg[open],#socialGalleryDlg[open]{display:flex;flex-direction:column}
+#contentGalleryBody{overflow:auto;flex:1;padding:12px 14px}
 
 /* ===== Real Website Simulation Preview Modal ===== */
 .site-preview-modal {
@@ -1618,10 +1619,17 @@ html, body {
 <div id="overlay"></div>
 <div class="demo-ctl" id="demoCtl"></div>
 <div id="toast" class="toast" hidden></div>
-<dialog id="contentGalleryDlg" style="width:min(1100px,96vw);height:min(820px,92vh);padding:0;border:0;border-radius:16px">
+<dialog id="contentGalleryDlg" style="width:min(1100px,96vw);height:min(860px,92vh);padding:0;border:0;border-radius:16px">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #e2e8f0">
-    <b>גלריית פרסום ברשתות</b>
+    <b>גלריית תמונות</b>
     <button type="button" class="btn sm" id="contentGalleryClose">סגירה</button>
+  </div>
+  <div id="contentGalleryBody"></div>
+</dialog>
+<dialog id="socialGalleryDlg" style="width:min(1100px,96vw);height:min(820px,92vh);padding:0;border:0;border-radius:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #e2e8f0">
+    <b>העתקה מגלריית פרסום ברשתות</b>
+    <button type="button" class="btn sm" id="socialGalleryClose">חזרה לגלריה</button>
   </div>
   <iframe id="contentGalleryFrame" title="גלריית מדיה" style="flex:1;width:100%;border:0"></iframe>
 </dialog>
@@ -1849,7 +1857,7 @@ const S = {
   kwq:"", kwGroup:"", kwBucket:"", kwMove:"", kwStatus:"", kwIntent:"", kwSel:new Set(), kwSort:"pos", addOpen:false,
   rankKw:null, comp:null, cmpView:"shared",
   oppType:"", techSev:"", pageFilter:"", demoOpen:false,
-  drawer:null, modal:null,
+  drawer:null, modal:null, galleryOpen:false,
   research:{seed:"",audience:"",busy:false,result:null, coSeed:"",coBusy:false,coResult:null, planForm:null, drafting:null},
   produce:{keyword:"",plan:"",length:"long",busy:false,lastError:null,topic:"",ideas:[],ideasBusy:false,wordCount:"",h2Count:"",brief:"",briefError:""},
   compose:null, publish:{start:"",cadence:"1",month:null,busy:false},
@@ -2816,11 +2824,13 @@ function previewBodyHtml(post){
   if (!inline.length) return html;
   const wrap = document.createElement("div");
   wrap.innerHTML = html;
+  const alreadyInContent = new Set([...wrap.querySelectorAll("img")].map(node => node.getAttribute("src")).filter(Boolean));
   const h2s = [...wrap.querySelectorAll("h2")];
   const groups = new Map();
   const pending = [];
   inline.forEach(img => {
-    if (wrap.querySelector(`[data-img-id="${img.id}"]`) || (img.src && wrap.querySelector(`img[src="${img.src}"]`))) return;
+    if (wrap.querySelector(`[data-img-id="${img.id}"]`)) return;
+    if (img.src && alreadyInContent.has(img.src)) return;
     if (img.placement === "start"){
       wrap.insertAdjacentHTML("afterbegin", figureHtml(img));
       return;
@@ -3019,13 +3029,17 @@ function vBriefWorkspace(c){
     <div><div class="b xs">קישורים פנימיים מוצעים</div>
       ${(plan.internal_links || []).length ? `<ul class="sm" id="briefLinks">${plan.internal_links.map((l, i) => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.anchor || l.url)}</a> <span class="xs muted">${esc(l.reason || "")}</span> <button type="button" class="btn ghost sm" data-act="dropBriefLink" data-idx="${i}">הסר</button></li>`).join("")}</ul>` : `<p class="xs muted m0">אין קישור פנימי מהסריקה.</p>`}
       <p class="xs muted m0">הקישורים מוצעים בלבד ולא הוחדרו לגוף המאמר.</p></div>
-    ${vContentGallery(c)}
+    <div class="row">
+      <button type="button" class="btn pri" data-act="openContentGallery">גלריית תמונות</button>
+      <span class="xs muted">בחירת Hero, תמונות לגוף המאמר, מיקום ו-ALT. בלי Gemini.</span>
+    </div>
     <div class="zone" id="briefApproval" style="background:var(--soft);border-radius:10px">
       <div class="b sm">אישור לפני העלאה</div>
       <p class="xs muted m0 mt-s">הכפתור מכין חבילת טיוטה מקומית. הוא לא מפרסם ל-dalia-c.com. העלאה תתבצע רק אם יש הרשאת כתיבה, וכיום החיבור הוא קריאה בלבד.</p>
       <label class="check mt-s"><input type="checkbox" id="briefApproveCheck"> אני מאשר להכין את החבילה. אין לפרסם לאתר החי.</label>
       <div class="row mt-s"><button type="button" class="btn pri" data-act="approveWpPackage">אשר והכן חבילה</button>
         <button type="button" class="btn" data-act="retryBriefWrite" ${S.produce.busy ? "disabled" : ""}>נסה שוב לכתוב עם Gemini</button>
+        <button type="button" class="btn" data-act="skipBriefGemini">המשך בלי AI</button>
         <button type="button" class="btn ghost" data-act="sitePreview">Preview מקומי</button></div>
       <div class="fields mt-s">
         <label class="f">תזמון לפרסום <span class="xs faint">נשמר מקומית, לא נשלח לאתר</span><input type="datetime-local" class="input" id="briefScheduleAt" value="${esc((c._scheduleInput) || (c.local_release && c.local_release.scheduled_for ? toLocalInput(c.local_release.scheduled_for) : ""))}"></label>
@@ -3057,6 +3071,7 @@ function applyBriefPackage(pack){
   plan.secondary_keywords = pack.structure.secondaryKeywords || [];
   plan.internal_links = pack.structure.internalLinks || [];
   plan.approved = false;
+  plan.headings = [];
   if (pack.parsed.wantsImages) applyImageMode(plan, "hero_inline");
   (plan.images.items || []).forEach((img, i) => {
     img.alt = defaultImageAlt(img.role, plan, Number(img.afterH2) || i);
@@ -3085,12 +3100,19 @@ function applyBriefPackage(pack){
     wp_package: null
   };
 }
+let briefRunToken = 0;
+function briefGeminiCurrent(c, token){
+  return token === briefRunToken && S.compose === c;
+}
 async function runBriefGemini(c){
+  const token = briefRunToken;
   const plan = c.article_plan;
   const R = S.produce;
   R.busy = true;
   R.lastError = null;
-  briefStep(c, "write", "pending", "פונים ל-Gemini…");
+  if (!(c.content_source === "manual" && (c.content_html || "").trim())) {
+    briefStep(c, "write", "ready", "אפשר להדביק תוכן עכשיו. Gemini רץ ברקע ולא עוצר את המסלול. אם הוא חסום, לא יסומן שהכתיבה בוצעה.");
+  }
   render();
   const outlineBody = {
     action: "outline",
@@ -3105,6 +3127,7 @@ async function runBriefGemini(c){
   try {
     const res = await seoApiFetch("/api/project-001/generate-article", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(outlineBody) });
     outline = await res.json().catch(() => ({}));
+    if (!briefGeminiCurrent(c, token)) { R.busy = false; return; }
     if (!(res.ok && outline.ok && outline.action === "outline" && (outline.headings || []).length)) {
       const err = outline.error || ("שגיאת שרת (" + res.status + ")");
       const code = outline.code ? outline.code + " — " : "";
@@ -3113,7 +3136,15 @@ async function runBriefGemini(c){
       return;
     }
   } catch (err) {
+    if (!briefGeminiCurrent(c, token)) { R.busy = false; return; }
     geminiWriteFailed(c, "שגיאת תקשורת: " + err.message);
+    render();
+    return;
+  }
+  if (!briefGeminiCurrent(c, token)) { R.busy = false; return; }
+  if (c.content_source === "manual" && (c.content_html || "").trim()) {
+    R.busy = false;
+    briefStep(c, "write", "done", "Gemini החזיר מבנה, אבל התוכן שהודבק נשאר. הוא לא הוחלף ולא סומן ככתיבת AI.");
     render();
     return;
   }
@@ -3154,6 +3185,12 @@ async function runBriefGemini(c){
     const res = await seoApiFetch("/api/project-001/generate-article", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(articleBody) });
     const data = await res.json().catch(() => ({}));
     R.busy = false;
+    if (!briefGeminiCurrent(c, token)) return;
+    if (c.content_source === "manual" && (c.content_html || "").trim()) {
+      briefStep(c, "write", "done", "Gemini החזיר מאמר, אבל התוכן שהודבק נשאר. הוא לא הוחלף ולא סומן ככתיבת AI.");
+      render();
+      return;
+    }
     if (res.ok && data.ok && data.content_html) {
       c.title = data.title || c.title;
       c.meta_description = data.meta_description || c.meta_description;
@@ -3175,7 +3212,22 @@ async function runBriefGemini(c){
       geminiWriteFailed(c, code + err + " כותרות המבנה נשארו. גוף המאמר לא נכתב.");
     }
   } catch (err) {
+    if (!briefGeminiCurrent(c, token)) { R.busy = false; return; }
     geminiWriteFailed(c, "שגיאת תקשורת: " + err.message);
+  }
+  render();
+}
+function skipBriefGemini(){
+  briefRunToken++;
+  S.produce.busy = false;
+  const c = S.compose;
+  if (c && c.brief) {
+    if (c.content_source === "manual" && (c.content_html || "").trim()) {
+      briefStep(c, "write", "done", "התוכן שהודבק נשאר. המשך בלי AI לא מחליף אותו ולא מסמן כתיבת AI.");
+    } else {
+      const err = S.produce.lastError ? S.produce.lastError + " " : "";
+      briefStep(c, "write", "ready", err + "ממשיכים בלי AI. הדביקו תוכן כדי להמשיך. לא סומן שהכתיבה בוצעה.");
+    }
   }
   render();
 }
@@ -3200,6 +3252,9 @@ async function runContentBrief(){
     return render();
   }
   applyBriefPackage(pack);
+  briefRunToken++;
+  briefStep(S.compose, "write", "ready", "אפשר להדביק תוכן עכשיו. Gemini לא תנאי להמשך.");
+  render();
   await runBriefGemini(S.compose);
   } catch (err) {
     R.busy = false;
@@ -3317,7 +3372,7 @@ function placementHeadings(c){
 function galleryPlacementOptions(c){
   const headings = placementHeadings(c);
   const items = (c.article_plan && c.article_plan.images && c.article_plan.images.items) || [];
-  let html = `<option value="hero">Hero — ראש המאמר</option><option value="start">בתחילת המאמר</option><option value="end">בסוף המאמר</option>`;
+  let html = `<option value="start">בתחילת המאמר</option><option value="end">בסוף המאמר</option>`;
   headings.forEach((h, i) => {
     html += `<option value="after_h2_${i}">אחרי H2 ${i + 1}: ${esc(h.text || "פרק")}</option>`;
   });
@@ -3328,27 +3383,45 @@ function galleryPlacementOptions(c){
   });
   return html;
 }
+function galleryCopiesInArticle(c, g){
+  const items = (c && c.article_plan && c.article_plan.images && c.article_plan.images.items) || [];
+  return items.filter(i => i.src && (i.galleryId === g.id || i.src === g.src));
+}
+function galleryLivePreview(c){
+  const items = ((c && c.article_plan && c.article_plan.images && c.article_plan.images.items) || []).filter(i => i.src);
+  return `<div class="zone" id="galleryLivePreview">
+    <div class="b sm">Preview של התמונות במאמר</div>
+    ${items.length ? `${heroFigureHtml(c)}<div class="prose">${previewBodyHtml(c)}</div>` : `<p class="xs muted m0">עדיין לא נבחרה תמונה. אחרי הבחירה היא תופיע כאן וגם ב-Preview המלא.</p>`}
+  </div>`;
+}
 function vContentGallery(c){
   if (!c) return "";
   const list = contentGalleryList();
-  return `<div class="zone stack" id="contentGallery" style="gap:10px">
-    <div class="head"><h3 class="t">גלריית תוכן</h3><span class="xs muted">${list.length} תמונות שמורות מקומית</span></div>
-    <p class="xs muted m0">בוחרים תמונה, קובעים אם היא Hero או איפה היא נכנסת במאמר, ועורכים ALT. אפשר גם להעלות קובץ חדש. יצירת תמונה ב-AI לא רצה מכאן.</p>
+  return `<div class="stack" id="contentGallery" style="gap:10px">
+    ${galleryLivePreview(c)}
+    <div class="head"><h3 class="t">כל התמונות</h3><span class="xs muted">${list.length} בגלריה המקומית</span></div>
+    <p class="xs muted m0">הגלריה הזו שייכת ליצירת תוכן ואינה תלויה ב-Gemini. תמונות מטיוטות מופיעות כאן. אפשר גם להעתיק מגלריית פרסום ברשתות, ואם אין אליה חיבור ההעלאה המקומית ממשיכה.</p>
     <div class="row">
-      <label class="btn sm">העלאת תמונה<input class="content-gallery-file" type="file" accept="image/*" multiple hidden></label>
-      <button type="button" class="btn sm" data-act="openSocialGallery">בחירה מגלריית פרסום ברשתות</button>
+      <label class="btn sm pri">העלאת תמונה לגלריה<input class="content-gallery-file" type="file" accept="image/*" multiple hidden></label>
+      <button type="button" class="btn sm" data-act="openSocialGallery">העתק מגלריית פרסום ברשתות</button>
+      <button type="button" class="btn sm" data-act="sitePreview">פתח Preview מלא</button>
     </div>
-    <p class="xs muted m0">הכפתור השני פותח את ספריית המדיה של פרסום ברשתות. אם אין אליה חיבור, ההעלאה המקומית ממשיכה בלעדיה. תמונות מטיוטות קיימות מופיעות כאן בלי להעתיק אותן מחדש.</p>
-    ${list.length ? `<div class="content-gallery">${list.map(g => `<div class="content-gal-card" data-gid="${esc(g.id)}">
+    ${list.length ? `<div class="content-gallery">${list.map(g => {
+      const used = galleryCopiesInArticle(c, g);
+      return `<div class="content-gal-card" data-gid="${esc(g.id)}">
       <img src="${esc(g.thumb || g.src)}" alt="${esc(g.alt || "")}">
       <div class="xs muted mt-s">${esc(g.origin === "social" ? "מגלריית הרשתות" : g.origin === "draft" ? "מטיוטה קיימת" : "הועלה לכאן")} · ${esc(g.fileName || "")}</div>
+      ${used.length ? `<div class="xs mt-s">${used.map(i => `<span class="badge">${i.role === "hero" || i.placement === "hero" ? "Hero במאמר" : "בגוף המאמר"}</span>`).join(" ")}</div>` : ""}
       <label class="f mt-s">ALT<input class="input" data-gal-alt="${esc(g.id)}" value="${esc(g.alt || "")}" placeholder="תיאור התמונה"></label>
-      <label class="f mt-s">לאן במאמר<select class="input" data-gal-slot="${esc(g.id)}">${galleryPlacementOptions(c)}</select></label>
+      <label class="f mt-s">מיקום בגוף המאמר<select class="input" data-gal-slot="${esc(g.id)}">${galleryPlacementOptions(c)}</select></label>
       <div class="row mt-s">
-        <button type="button" class="btn sm pri" data-act="galleryPlace" data-gid="${esc(g.id)}">שים במאמר</button>
+        <button type="button" class="btn sm pri" data-act="galleryPlace" data-gmode="hero" data-gid="${esc(g.id)}">קבע כ-Hero</button>
+        <button type="button" class="btn sm" data-act="galleryPlace" data-gid="${esc(g.id)}">שים בגוף המאמר</button>
         ${g.origin === "draft" ? "" : `<button type="button" class="btn ghost sm danger" data-act="galleryRemove" data-gid="${esc(g.id)}">הסר מהגלריה</button>`}
       </div>
-    </div>`).join("")}</div>` : `<div class="empty">אין עדיין תמונות בגלריה. העלו קובץ, או בחרו מגלריית פרסום ברשתות.</div>`}
+      ${used.length ? `<div class="row mt-s">${used.map(i => `<button type="button" class="btn ghost sm danger" data-act="galleryUnplace" data-iid="${esc(i.id)}">הסר מהמאמר${i.role === "hero" || i.placement === "hero" ? " (Hero)" : ""}</button>`).join("")}</div>` : ""}
+    </div>`;
+    }).join("")}</div>` : `<div class="empty">אין עדיין תמונות בגלריה. העלו קובץ, או העתיקו מגלריית פרסום ברשתות.</div>`}
   </div>`;
 }
 function addGalleryFiles(fileList){
@@ -3366,13 +3439,13 @@ function addGalleryFiles(fileList){
     render();
   });
 }
-function placeGalleryOnArticle(c, gid){
+function placeGalleryOnArticle(c, gid, forcedMode){
   const g = contentGalleryList().find(x => x.id === gid);
   if (!g || !c) return toast("התמונה לא נמצאה בגלריה");
   ensureDraftPlan(c);
   const slotEl = Array.from(document.querySelectorAll("[data-gal-slot]")).find(el => el.dataset.galSlot === gid);
   const altEl = Array.from(document.querySelectorAll("[data-gal-alt]")).find(el => el.dataset.galAlt === gid);
-  const mode = slotEl ? slotEl.value : "hero";
+  const mode = forcedMode || (slotEl ? slotEl.value : "start");
   const alt = (altEl && altEl.value.trim()) || g.alt || "";
   const stored = CONTENT_GALLERY.find(x => x.id === gid);
   if (stored) { stored.alt = alt; saveContentGallery(); }
@@ -3421,6 +3494,33 @@ function placeGalleryOnArticle(c, gid){
   if (c.brief) briefStep(c, "edit", "done", "תמונה הושמה מהגלריה. היא לא נוצרה ב-AI ולא נשלחה לאתר.");
   toast("התמונה הושמה במאמר. היא מופיעה ב-Preview, ולא נשלחה לאתר.");
   render();
+}
+function galleryUnplace(c, iid){
+  if (!c || !iid) return;
+  ensureDraftPlan(c);
+  const items = c.article_plan.images.items || [];
+  const next = items.filter(i => i.id !== iid);
+  if (next.length === items.length) return toast("התמונה לא נמצאה במאמר");
+  c.article_plan.images.items = next;
+  c.article_plan.images.custom_count = next.length;
+  c.article_plan.images.mode = next.length ? "custom" : "none";
+  refreshBriefImageStep(c);
+  if (c.brief) briefStep(c, "edit", "done", "תמונה הוסרה מהמאמר. היא נשארת בגלריה.");
+  toast("התמונה הוסרה מהמאמר. היא נשארת בגלריה.");
+  render();
+}
+function syncContentGalleryDialog(){
+  const dlg = document.getElementById("contentGalleryDlg");
+  const body = document.getElementById("contentGalleryBody");
+  if (!dlg || !body) return;
+  const open = !!(S.galleryOpen && S.compose && S.tab === "produce");
+  if (!open) {
+    body.innerHTML = "";
+    if (dlg.open) dlg.close();
+    return;
+  }
+  body.innerHTML = vContentGallery(S.compose);
+  if (!dlg.open && typeof dlg.showModal === "function") dlg.showModal();
 }
 function toLocalInput(iso){
   const d = new Date(iso);
@@ -3531,11 +3631,24 @@ function recordLocalRelease(c, intent, when){
   render();
 }
 loadContentGallery();
-document.getElementById("contentGalleryClose").onclick = () => document.getElementById("contentGalleryDlg").close();
-window.addEventListener("message", e => {
-  if (e.origin !== location.origin || !e.data || e.data.type !== "media-picked") return;
+document.getElementById("contentGalleryClose").onclick = () => {
+  S.galleryOpen = false;
   const dlg = document.getElementById("contentGalleryDlg");
   if (dlg && dlg.open) dlg.close();
+};
+document.getElementById("contentGalleryDlg").addEventListener("close", () => { S.galleryOpen = false; });
+document.getElementById("socialGalleryClose").onclick = () => {
+  const dlg = document.getElementById("socialGalleryDlg");
+  if (dlg && dlg.open) dlg.close();
+  const frame = document.getElementById("contentGalleryFrame");
+  if (frame) frame.src = "about:blank";
+};
+window.addEventListener("message", e => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== "media-picked") return;
+  const dlg = document.getElementById("socialGalleryDlg");
+  if (dlg && dlg.open) dlg.close();
+  const frame = document.getElementById("contentGalleryFrame");
+  if (frame) frame.src = "about:blank";
   const assets = Array.isArray(e.data.assets) ? e.data.assets : [];
   if (!assets.length) return;
   assets.forEach(a => {
@@ -3543,7 +3656,10 @@ window.addEventListener("message", e => {
     rememberGalleryImage(a.url, a.title || "", a.title || "גלריית רשתות", { id: "lib:" + (a.id || planUid("lib")), thumb: a.thumb_url || a.url, origin: "social" });
   });
   toast("התמונות נוספו מגלריית פרסום ברשתות. בחרו Hero או מיקום במאמר. הן לא נוצרו ב-AI.");
-  if (S.tab === "produce") render();
+  if (S.tab === "produce" && S.compose) {
+    S.galleryOpen = true;
+    render();
+  }
 });
 
 /* ================= יצירת תוכן (Produce) ================= */
@@ -3708,7 +3824,6 @@ function vDraftImagesManager(c){
   const headings = getDraftHeadings(c);
 
   return `<div class="zone stack" style="gap:10px;border-top:1px solid var(--line);padding-top:16px">
-    ${c.brief ? "" : vContentGallery(c)}
     <div class="head">
       <div class="row" style="gap:8px;align-items:center">
         <span class="b sm">תמונות במאמר (${imgs.length})</span>
@@ -3800,7 +3915,8 @@ function vComposer(){
   return `<div class="stack" style="max-width:980px">
     ${vBriefWorkspace(c)}
     <div class="row"><button class="btn ghost sm" data-act="closeCompose">→ חזרה</button><h2 class="t">${existing?"עריכת מאמר":"מאמר חדש"}</h2>${existing?stBadge(existing.status):""} ${c.aiModel?`<span class="badge ai">Gemini (${esc(c.aiModel.replace('models/',''))})</span>`:""}<span class="grow"></span>
-      <button type="button" class="btn pri sm" data-act="openDraftImageModal" style="display:inline-flex;align-items:center;gap:6px;font-weight:700">🖼️ צור תמונה עם AI</button>
+      <button type="button" class="btn pri" id="openContentGallery" data-act="openContentGallery">גלריית תמונות</button>
+      <button type="button" class="btn ghost sm" data-act="openDraftImageModal">צור תמונה עם AI</button>
       ${(c.wp_draft_id || (existing && existing.wp_draft_id)) ? `<span class="badge" style="background:#e8f0fe;color:#1a73e8;font-weight:600">WP טיוטה #${c.wp_draft_id || existing.wp_draft_id}</span>` : ""}
       <span class="grow"></span>
       <button class="btn sm" data-act="openWpPreview" style="display:inline-flex;align-items:center;gap:6px;background:var(--blue-t);color:var(--blue);border:1px solid var(--blue);font-weight:700">🔗 תצוגה באתר</button>
@@ -5458,7 +5574,7 @@ function vAssistant(){
 
 /* ================= רינדור ================= */
 const VIEWS = {overview:vOverview, assistant:vAssistant, sites:vSites, keywords:vKeywords, research:vResearch, ranks:vRanks, competitors:vCompetitors, opps:vOpps, tech:vTech, produce:vProduce, publish:vPublish, measure:vMeasure, optimize:vOptimize};
-function render(){ renderTabs(); $("#view").innerHTML = dataStrip(S.tab) + VIEWS[S.tab](); bindInputs(); renderOverlay(); renderDemo(); }
+function render(){ renderTabs(); $("#view").innerHTML = dataStrip(S.tab) + VIEWS[S.tab](); syncContentGalleryDialog(); bindInputs(); renderOverlay(); renderDemo(); }
 function go(tab){ S.tab = tab; S.compose = tab === "produce" ? S.compose : null; history.replaceState(null,"","#"+tab); render(); window.scrollTo(0,0); }
 function bindInputs(){
   const on = (id, fn, ev="input") => { const e = $(id); if (e) e.addEventListener(ev, fn); };
@@ -5961,6 +6077,11 @@ document.addEventListener("click", e => {
   if (d.openwp){ const p = POSTS.find(x=>x.id===+d.openwp); if (p){ S.modal = { type: "wpPreview", post: { ...p } }; return renderOverlay(); } }
   if (d.act === "openWpPreview"){ const existing = POSTS.find(p=>p.id===S.compose?.id); const post = S.compose ? { ...existing, ...S.compose } : (POSTS.find(p=>p.id===1001) || {}); S.modal = { type: "wpPreview", post }; return renderOverlay(); }
   if (d.act === "sitePreview"){
+    S.galleryOpen = false;
+    const gal = document.getElementById("contentGalleryDlg");
+    if (gal && gal.open) gal.close();
+    const social = document.getElementById("socialGalleryDlg");
+    if (social && social.open) social.close();
     if (S.compose && S.compose.brief) briefStep(S.compose, "preview", "done", "נפתחה תצוגה מקומית של העמוד. הוא לא הועלה.");
     S.modal = { type: "sitePreview", device: S.modal?.device || "desktop", post: S.compose ? { ...S.compose } : {} };
     return renderOverlay();
@@ -5985,17 +6106,28 @@ document.addEventListener("click", e => {
   }
   if (d.act === "runBrief"){ runContentBrief(); return; }
   if (d.act === "retryBriefWrite"){ if (S.compose && S.compose.brief) runBriefGemini(S.compose); return; }
+  if (d.act === "skipBriefGemini"){ skipBriefGemini(); return; }
+  if (d.act === "openContentGallery"){
+    if (!S.compose) return toast("הגלריה נפתחת מתוך יצירת תוכן.");
+    S.galleryOpen = true;
+    return render();
+  }
   if (d.act === "openSocialGallery"){
     const frame = document.getElementById("contentGalleryFrame");
-    const dlg = document.getElementById("contentGalleryDlg");
+    const dlg = document.getElementById("socialGalleryDlg");
     if (!frame || !dlg) return;
     frame.src = "./media-library.html?pick=1&max=10";
-    if (typeof dlg.showModal === "function") dlg.showModal();
+    if (!dlg.open && typeof dlg.showModal === "function") dlg.showModal();
     return;
   }
   if (d.act === "galleryPlace"){
     if (!S.compose || !d.gid) return;
-    placeGalleryOnArticle(S.compose, d.gid);
+    placeGalleryOnArticle(S.compose, d.gid, d.gmode || "");
+    return;
+  }
+  if (d.act === "galleryUnplace"){
+    if (!S.compose || !d.iid) return;
+    galleryUnplace(S.compose, d.iid);
     return;
   }
   if (d.act === "galleryRemove"){

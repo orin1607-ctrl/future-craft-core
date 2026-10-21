@@ -106,6 +106,9 @@ catch { puppeteer = await import('/tmp/puppeteer-qa/node_modules/puppeteer-core/
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 const pngPath = join(OUT, 'upload.png');
 writeFileSync(pngPath, png);
+const pngHero = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+const pngHeroPath = join(OUT, 'upload-2.png');
+writeFileSync(pngHeroPath, pngHero);
 
 const browser = await puppeteer.default.launch({
   executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome',
@@ -220,64 +223,112 @@ try {
   });
   check('pasted content counts as manual writing', manual.write === 'done' && manual.source === 'manual' && manual.html.includes('הודבק ידנית') && manual.ai === false && /לא נוצר ב-Gemini/.test(manual.detail), manual.detail);
   check('seo is done only after meta is filled by hand', manual.seo === 'done' && manual.meta.includes('טקסט ידני'), manual.seo + ' ' + manual.meta);
+  check('paste field stays editable without gemini', await page.$eval('#briefPaste', (el) => !el.disabled && !el.readOnly));
+  check('content gallery button is visible', await page.$eval('#openContentGallery', (el) => el.textContent.trim()) === 'גלריית תמונות');
 
+  await page.click('#openContentGallery');
+  await page.waitForFunction(() => {
+    const dlg = document.getElementById('contentGalleryDlg');
+    return dlg && dlg.open && [...dlg.querySelectorAll('.content-gal-card')].some(el => (el.textContent || '').includes('upload.png'));
+  });
   const placed = await page.evaluate(() => {
-    const card = [...document.querySelectorAll('.content-gal-card')].find(el => (el.textContent || '').includes('upload.png'));
+    const card = [...document.querySelectorAll('#contentGalleryDlg .content-gal-card')].find(el => (el.textContent || '').includes('upload.png'));
     if (!card) return { ok: false, reason: 'gallery card missing' };
     const gid = card.getAttribute('data-gid');
     const slot = card.querySelector('[data-gal-slot]');
     const alt = card.querySelector('[data-gal-alt]');
+    const options = [...slot.options].map(o => o.value);
     slot.value = 'after_h2_0';
     alt.value = 'צי רכב בחניון החברה';
     alt.dispatchEvent(new Event('input', { bubbles: true }));
-    card.querySelector('[data-act="galleryPlace"]').click();
+    card.querySelector('[data-act="galleryPlace"]:not([data-gmode])').click();
     const items = S.compose.article_plan.images.items;
+    const live = document.getElementById('galleryLivePreview');
     return {
       ok: true,
       gid,
+      options,
       roles: items.map(i => ({ role: i.role, placement: i.placement, src: !!i.src, alt: i.alt })),
-      images: S.compose.brief.steps.find(s => s.id === 'images').state
+      images: S.compose.brief.steps.find(s => s.id === 'images').state,
+      live: live ? live.textContent : '',
+      liveImgs: live ? live.querySelectorAll('img').length : 0,
+      open: document.getElementById('contentGalleryDlg').open
     };
   });
-  check('gallery image is placed inside the article', placed.ok && placed.roles.some(i => i.placement === 'after_h2' && i.alt === 'צי רכב בחניון החברה' && i.src) && placed.roles.some(i => i.role === 'hero' && i.src), JSON.stringify(placed));
-
-  let removedCount = 0;
-  for (let guard = 0; guard < 8; guard++) {
-    const handle = await page.evaluateHandle(() => {
-      const card = [...document.querySelectorAll('.plan-image-card')].find(el => el.querySelector('.dalia-plan-ph'));
-      return card ? card.querySelector('[data-act="planRemoveImage"]') : null;
-    });
-    const el = handle.asElement();
-    if (!el) break;
-    await el.click();
-    removedCount++;
-  }
-  const removed = await page.evaluate(() => {
-    const items = S.compose.article_plan.images.items;
-    const step = S.compose.brief.steps.find(s => s.id === 'images');
-    return { left: items.length, filled: items.filter(i => i.src).length, state: step.state, detail: step.detail };
-  });
-  check('removing an empty image slot uses the article control', removedCount >= 1 && removed.left === removed.filled && removed.filled === 2 && removed.state === 'done', JSON.stringify({ removedCount, ...removed }));
+  check('gallery image is placed inside the article', placed.ok && placed.open && placed.options.includes('after_h2_0') && placed.roles.some(i => i.placement === 'after_h2' && i.alt === 'צי רכב בחניון החברה' && i.src) && placed.roles.some(i => i.role === 'hero' && i.src) && placed.images === 'done', JSON.stringify(placed));
+  check('gallery selection shows in the live preview', placed.live.includes('צי רכב בחניון החברה') && placed.liveImgs >= 2, JSON.stringify({ liveImgs: placed.liveImgs, live: placed.live.slice(0, 180) }));
 
   const replaced = await page.evaluate(() => {
-    const inline = S.compose.article_plan.images.items.find(i => i.role !== 'hero' && i.placement !== 'hero');
-    const card = document.querySelector('.content-gal-card');
+    const inline = S.compose.article_plan.images.items.find(i => i.placement === 'after_h2');
+    const card = [...document.querySelectorAll('#contentGalleryDlg .content-gal-card')].find(el => (el.textContent || '').includes('upload.png'));
     const slot = card.querySelector('[data-gal-slot]');
     const alt = card.querySelector('[data-gal-alt]');
     slot.value = 'replace_' + inline.id;
     alt.value = 'צי רכב אחרי החלפה';
     alt.dispatchEvent(new Event('input', { bubbles: true }));
-    card.querySelector('[data-act="galleryPlace"]').click();
+    card.querySelector('[data-act="galleryPlace"]:not([data-gmode])').click();
     const again = S.compose.article_plan.images.items.find(i => i.id === inline.id);
-    return { alt: again && again.alt, src: !!(again && again.src), role: again && again.role };
+    const live = document.getElementById('galleryLivePreview');
+    return { alt: again && again.alt, src: !!(again && again.src), role: again && again.role, placement: again && again.placement, live: live ? live.textContent : '' };
   });
-  check('gallery replace keeps the slot and updates alt', replaced.alt === 'צי רכב אחרי החלפה' && replaced.src && replaced.role !== 'hero', JSON.stringify(replaced));
+  check('gallery replace keeps the slot and updates alt', replaced.alt === 'צי רכב אחרי החלפה' && replaced.src && replaced.role !== 'hero' && replaced.placement === 'after_h2' && replaced.live.includes('צי רכב אחרי החלפה'), JSON.stringify(replaced));
 
-  await page.click('[data-act="openSocialGallery"]');
-  await page.waitForFunction(() => document.getElementById('contentGalleryDlg') && document.getElementById('contentGalleryDlg').open);
-  const library = await page.evaluate(() => document.getElementById('contentGalleryFrame').src);
-  check('social gallery opens the existing media library', library.includes('media-library.html') && library.includes('pick=1'), library);
-  await page.evaluate(() => document.getElementById('contentGalleryDlg').close());
+  const beforeCards = await page.evaluate(() => document.querySelectorAll('#contentGalleryDlg .content-gal-card').length);
+  const galInput = await page.$('#contentGalleryDlg .content-gallery-file');
+  await galInput.uploadFile(pngHeroPath);
+  await page.waitForFunction((n) => document.querySelectorAll('#contentGalleryDlg .content-gal-card').length > n, {}, beforeCards);
+  const heroSet = await page.evaluate(() => {
+    const card = [...document.querySelectorAll('#contentGalleryDlg .content-gal-card')].find(el => (el.textContent || '').includes('upload-2.png'));
+    if (!card) return { ok: false, reason: 'new upload missing' };
+    const alt = card.querySelector('[data-gal-alt]');
+    alt.value = 'תמונת Hero מהגלריה';
+    alt.dispatchEvent(new Event('input', { bubbles: true }));
+    card.querySelector('[data-gmode="hero"]').click();
+    const hero = S.compose.article_plan.images.items.find(i => i.role === 'hero' || i.placement === 'hero');
+    const live = document.getElementById('galleryLivePreview');
+    return {
+      ok: true,
+      file: hero && hero.fileName,
+      alt: hero && hero.alt,
+      heroes: S.compose.article_plan.images.items.filter(i => i.role === 'hero' || i.placement === 'hero').length,
+      live: live ? live.textContent : ''
+    };
+  });
+  check('new gallery upload can be set as hero', heroSet.ok && heroSet.file === 'upload-2.png' && heroSet.alt === 'תמונת Hero מהגלריה' && heroSet.heroes === 1 && heroSet.live.includes('תמונת Hero מהגלריה') && heroSet.live.includes('צי רכב אחרי החלפה'), JSON.stringify(heroSet));
+
+  const removed = await page.evaluate(() => {
+    const items = S.compose.article_plan.images.items;
+    const start = items.find(i => i.placement === 'start');
+    if (!start) return { ok: false, items: items.map(i => ({ id: i.id, role: i.role, placement: i.placement, file: i.fileName })) };
+    const btn = document.querySelector(`#contentGalleryDlg [data-act="galleryUnplace"][data-iid="${start.id}"]`);
+    if (!btn) return { ok: false, reason: 'unplace missing', id: start.id };
+    btn.click();
+    const left = S.compose.article_plan.images.items;
+    const step = S.compose.brief.steps.find(s => s.id === 'images');
+    return {
+      ok: true,
+      left: left.length,
+      filled: left.filter(i => i.src).length,
+      state: step.state,
+      hasStart: left.some(i => i.placement === 'start'),
+      hero: (left.find(i => i.role === 'hero') || {}).fileName,
+      bodyAlt: (left.find(i => i.placement === 'after_h2') || {}).alt,
+      gallery: [...document.querySelectorAll('#contentGalleryDlg .content-gal-card')].map(el => el.textContent || '').join('\n')
+    };
+  });
+  check('removing an image from the article keeps it in the gallery', removed.ok && removed.left === removed.filled && removed.filled === 2 && removed.state === 'done' && removed.hasStart === false && removed.hero === 'upload-2.png' && removed.bodyAlt === 'צי רכב אחרי החלפה' && removed.gallery.includes('upload.png'), JSON.stringify(removed));
+
+  await page.click('#contentGalleryDlg [data-act="openSocialGallery"]');
+  await page.waitForFunction(() => document.getElementById('socialGalleryDlg') && document.getElementById('socialGalleryDlg').open);
+  const library = await page.evaluate(() => ({
+    src: document.getElementById('contentGalleryFrame').src,
+    localOpen: document.getElementById('contentGalleryDlg').open
+  }));
+  check('social gallery opens the existing media library', library.src.includes('media-library.html') && library.src.includes('pick=1') && library.localOpen, JSON.stringify(library));
+  await page.evaluate(() => document.getElementById('socialGalleryClose').click());
+  await page.screenshot({ path: join(OUT, '04-gallery.png'), fullPage: false });
+  await page.evaluate(() => document.getElementById('contentGalleryClose').click());
+  await page.waitForFunction(() => !document.getElementById('contentGalleryDlg').open && !S.galleryOpen);
 
   await page.$eval('[data-bf="h1"]', (el) => {
     el.value = 'ניהול צי רכב לעסקים — נערך';
