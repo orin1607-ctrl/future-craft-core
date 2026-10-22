@@ -1436,7 +1436,9 @@ async function legalOne(sb: SupabaseClient, q: LegalRow) {
       await rpc(sb, "nr_ingest", { p_source: "enr:legal_pages", p_rows: [{ business_id: b.id, name: b.name, rid: q.domain, url: pages.at(-1), websites: [origin],
         fields: { legal_pages: pages, confirmed: why, web_business_id: q.web_business_id } }] });
       await rpc(sb, "nr_confirm_site", { p_business: b.id, p_url: origin, p_evidence: why });
-      if (q.kind === "no_identity") await sb.from("nr_site_queue").update({ status: "matched", business_id: b.id, method: "legal_pages", note: why.join(" · ").slice(0, 300), checked_at: now() }).eq("domain", q.domain).eq("status", "no_identity");
+      await sb.from("nr_site_queue").update({ status: "matched", business_id: b.id, method: "legal_pages", note: why.join(" · ").slice(0, 300), checked_at: now() }).eq("domain", q.domain).in("status", ["no_identity", "review"]);
+      // a review-queue site whose suggested company is now confirmed: its pending finding is closed as verified
+      if (q.kind === "review_site") await rpc(sb, "nr_legal_resolve", { p_domain: q.domain, p_business: b.id });
       return { status: "matched", matched_business_id: b.id, reg_ids: ids, pages: pages.length, evidence: { ...evidence, confirmed: why } };
     }
   }

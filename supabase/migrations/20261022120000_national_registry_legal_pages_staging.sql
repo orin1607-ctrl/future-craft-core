@@ -106,3 +106,14 @@ $job$);
   end loop;
 end
 $do$;
+
+-- 4 workers ran ≈5,600 sites/hour for 30 minutes with no CPU-limit or HTTP errors → raised to 8 (same job body)
+do $do$
+declare w int;
+begin
+  for w in 5..8 loop
+    perform cron.unschedule('nr-legal-' || w) where exists (select 1 from cron.job where jobname = 'nr-legal-' || w);
+    perform cron.schedule('nr-legal-' || w, '* * * * *', (select command from cron.job where jobname = 'nr-legal-1'));
+  end loop;
+end
+$do$;
