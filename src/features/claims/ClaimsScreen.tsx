@@ -875,7 +875,19 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const [garageCases, setGarageCases] = useState<GarageCaseRecord[]>([]);
   const [caseOriginFilter, setCaseOriginFilter] = useState<'all' | 'insurance' | 'garage'>('all');
   const [notifs, setNotifs] = useState<ClaimRecord[]>([]);
-  const [view, setView] = useState('dashboard');
+  const [view, setView] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const sp = new URLSearchParams(window.location.search);
+      const v = sp.get('view') || sp.get('tab');
+      if (v === 'reports' || v === 'claims' || v === 'gmail' || v === 'tasks' || v === 'dashboard') {
+        return v;
+      }
+      if (window.location.hash.includes('view=reports') || window.location.hash.includes('tab=reports')) {
+        return 'reports';
+      }
+    }
+    return 'claims';
+  });
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
   const [stFil, setStFil] = useState('');
@@ -1323,6 +1335,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const showView = (name: string, f = '') => {
     setSbOpen(false);
     setView(name);
+    try {
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('view', name);
+        window.history.replaceState({}, '', url.toString());
+      }
+    } catch { /* ignore */ }
     setFilter(f);
     setWorkFil('');
     setSelectedIds([]);
@@ -3124,6 +3143,26 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           <div className="tb-logo"><span className="tba">דליה</span><span className="tbb">ניהול תביעות</span></div>
           <button type="button" className="btn claims-ai-launch" data-testid="claims-ai-open" onClick={() => { setAiClaimId(chatClaimOnOpen(modal === 'moCard', cur?.id || null)); setAiOpen(true); }}>דליה AI</button>
           <button className="btn btn-p btn-sm tb-new" data-testid="claims-open-new" onClick={openNew}>＋ תיק חדש</button>
+          <button
+            type="button"
+            className="btn btn-sm tb-reports-btn"
+            data-testid="claims-tb-reports-btn"
+            style={{
+              background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+              color: '#ffffff',
+              fontWeight: 800,
+              border: '1px solid #3b82f6',
+              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
+              padding: '6px 14px',
+              borderRadius: '8px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+            onClick={() => showView('reports')}
+          >
+            📊 מרכז דוחות
+          </button>
           <div className="tb-sep" />
           <div className="tb-nav">
             {[
@@ -3247,6 +3286,23 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>{new Date().toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} · {actor.full_name}</div>
                   </div>
                   <div className="ph-a">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-p"
+                      data-testid="claims-dash-reports-hub"
+                      style={{
+                        background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+                        color: '#ffffff',
+                        fontWeight: 800,
+                        border: '1px solid #3b82f6',
+                        boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
+                        padding: '6px 14px',
+                        borderRadius: '8px',
+                      }}
+                      onClick={() => showView('reports')}
+                    >
+                      📊 מרכז דוחות
+                    </button>
                     {isSuperAdmin && (
                       <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} data-testid="claims-mine-toggle" onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
                     )}
