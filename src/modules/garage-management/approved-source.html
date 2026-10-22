@@ -15,29 +15,37 @@
 }
 *{box-sizing:border-box; margin:0; padding:0;}
 html{
-  height:100%; overflow-y:auto !important; overflow-x:hidden !important; -webkit-overflow-scrolling:touch !important;
-  scroll-behavior:smooth; overscroll-behavior-y:contain;
+  height:auto !important; min-height:100% !important; overflow-y:auto !important; overflow-x:hidden !important;
+  -webkit-overflow-scrolling:touch !important; scroll-behavior:smooth; touch-action:pan-y;
 }
 body{
   font-family:'Heebo',sans-serif; background:var(--bg); color:var(--white);
-  width:100%; min-height:100% !important; height:auto !important; overflow-y:visible !important; overflow-x:hidden !important; -webkit-overflow-scrolling:touch !important;
+  width:100%; min-height:100% !important; height:auto !important; overflow-y:visible !important; overflow-x:hidden !important;
+  -webkit-overflow-scrolling:touch !important; touch-action:pan-y;
 }
-#app{width:100%; min-height:100%; display:flex; flex-direction:column; max-width:520px; margin:0 auto; position:relative;}
-.screen{display:none; flex-direction:column; min-height:auto; padding-bottom:150px;}
+#app{width:100%; min-height:100%; display:flex; flex-direction:column; max-width:520px; margin:0 auto; position:relative; touch-action:pan-y;}
+.screen{display:none; flex-direction:column; min-height:100%; padding-bottom:calc(220px + env(safe-area-inset-bottom, 34px)) !important; touch-action:pan-y;}
 .screen.active{display:flex;}
 .topbar{
-  position:sticky; top:0; z-index:20; background:var(--bg);
-  display:flex; align-items:center; gap:10px; padding:16px 16px 12px;
-  border-bottom:1px solid var(--border);
+  position:sticky; top:0; z-index:35; background:var(--bg);
+  display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 16px 12px;
+  border-bottom:1px solid var(--border); box-shadow:0 4px 14px rgba(0,0,0,0.35); backdrop-filter:blur(8px);
 }
 .topbar .back{
   width:38px; height:38px; border-radius:10px; background:var(--s2); border:1px solid var(--border);
   display:flex; align-items:center; justify-content:center; color:var(--white); font-size:18px; flex-shrink:0; cursor:pointer;
+  transition:background 0.15s ease;
 }
-.topbar .dash-home{
+.topbar .back:hover{background:var(--s3);}
+.topbar .dash-home, .dash-home-btn{
   margin-inline-start:auto; flex-shrink:0; cursor:pointer; white-space:nowrap;
-  padding:9px 12px; border-radius:10px; background:var(--s2); border:1px solid var(--border-strong);
-  color:var(--white); font-size:13px; font-weight:600; font-family:inherit;
+  display:inline-flex; align-items:center; gap:6px;
+  padding:8px 14px; border-radius:10px; background:rgba(56, 189, 248, 0.14); border:1px solid rgba(56, 189, 248, 0.45);
+  color:#38bdf8; font-size:13px; font-weight:700; font-family:inherit;
+  transition:all 0.15s ease; user-select:none;
+}
+.topbar .dash-home:hover, .dash-home-btn:hover{
+  background:rgba(56, 189, 248, 0.25); border-color:#38bdf8; color:#ffffff; transform:translateY(-1px);
 }
 .topbar h1{font-size:17px; font-weight:600;}
 .topbar .sub{font-size:12px; color:var(--white50); margin-top:1px;}
@@ -49,6 +57,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   display:flex; align-items:center; justify-content:center; gap:8px;
   width:100%; padding:15px 16px; border-radius:14px; border:none;
   font-family:inherit; font-size:15px; font-weight:600; cursor:pointer;
+  touch-action:manipulation; user-select:none; -webkit-tap-highlight-color:transparent;
 }
 .btn-white{background:var(--white); color:#0a1830;}
 .btn-white:disabled{opacity:.4; cursor:not-allowed;}
@@ -59,7 +68,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 .btn-row{display:flex; gap:10px;}
 .btn-row .btn{flex:1;}
 .card{background:var(--s1); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:12px;}
-.card.tap{cursor:pointer;}
+.card.tap{cursor:pointer; touch-action:manipulation; user-select:none; -webkit-tap-highlight-color:transparent;}
 .row{display:flex; align-items:center; justify-content:space-between; gap:10px;}
 .chev{color:var(--white30); font-size:14px;}
 .field{margin-bottom:14px;}
@@ -452,6 +461,9 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   color: #fff;
   font-family: inherit;
   transition: all 0.15s ease;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .quick-act-btn:hover {
   background: rgba(255,255,255,0.12);
@@ -699,23 +711,22 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <body>
 <div id="app">
 
-<nav class="gm-top-nav-bar" data-testid="garage-top-nav-bar">
-  <button type="button" class="gm-nav-tab active" id="gm-tab-dash" data-testid="nav-tab-dashboard" onclick="goHomeTab('dashboard')">
-    <span class="icon">🏠</span> דשבורד מוסך
-  </button>
-  <button type="button" class="gm-nav-tab ai-tab" id="gm-tab-ai" data-testid="nav-tab-ai" onclick="openDaliaAi()">
-    <span class="icon">✨</span> דליה AI
-  </button>
-  <button type="button" class="gm-nav-tab" id="gm-tab-cases" data-testid="nav-tab-cases" onclick="goHomeTab('cases')">
-    <span class="icon">📋</span> כרטיסי עבודה
-  </button>
-  <button type="button" class="gm-nav-tab" id="gm-tab-suppliers" data-testid="nav-tab-suppliers" onclick="goHomeTab('suppliers')">
-    <span class="icon">📦</span> ספקים וחשבוניות
-  </button>
-</nav>
-
 <!-- ================= SCREEN: HOME ================= -->
 <section class="screen active" id="s-home">
+  <nav class="gm-top-nav-bar" data-testid="garage-top-nav-bar">
+    <button type="button" class="gm-nav-tab active" id="gm-tab-dash" data-testid="nav-tab-dashboard" onclick="goHomeTab('dashboard')">
+      <span class="icon">🏠</span> דשבורד מוסך
+    </button>
+    <button type="button" class="gm-nav-tab ai-tab" id="gm-tab-ai" data-testid="nav-tab-ai" onclick="openDaliaAi()">
+      <span class="icon">✨</span> דליה AI
+    </button>
+    <button type="button" class="gm-nav-tab" id="gm-tab-cases" data-testid="nav-tab-cases" onclick="goHomeTab('cases')">
+      <span class="icon">📋</span> כרטיסי עבודה
+    </button>
+    <button type="button" class="gm-nav-tab" id="gm-tab-suppliers" data-testid="nav-tab-suppliers" onclick="goHomeTab('suppliers')">
+      <span class="icon">📦</span> ספקים וחשבוניות
+    </button>
+  </nav>
   <div class="home-header">
     <div class="greet" id="home-greet">בוקר טוב</div>
     <div class="name">מוסך יוני – פחחות וצבע לרכב</div><div class="sub-name">מערכת ניהול מוסך וכרטיסי עבודה</div>
@@ -894,7 +905,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: CHOOSE NEW/EXISTING ================= -->
 <section class="screen" id="s-choose">
-  <div class="topbar"><div class="back" onclick="go('s-home')">→</div><div><h1>פתח תיק</h1><div class="sub">שלב 1 מתוך 3 — לקוח</div></div><button type="button" class="dash-home" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">→ חזרה ללקוחות ישירים</button></div>
+  <div class="topbar"><div class="back" onclick="returnToGarageDashboard()">→</div><div><h1>פתח תיק</h1><div class="sub">שלב 1 מתוך 3 — לקוח</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <h2 class="section-title">מי הלקוח?</h2>
     <div class="bar"></div>
@@ -909,7 +920,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: SEARCH EXISTING ================= -->
 <section class="screen" id="s-search">
-  <div class="topbar"><div class="back" onclick="go('s-choose')">→</div><div><h1>לקוח קיים</h1><div class="sub">חיפוש לקוח</div></div><button type="button" class="dash-home" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">→ חזרה ללקוחות ישירים</button></div>
+  <div class="topbar"><div class="back" onclick="go('s-choose')">→</div><div><h1>לקוח קיים</h1><div class="sub">חיפוש לקוח</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <div class="field"><input id="search-q" type="text" placeholder="שם, חברה, טלפון, ח.פ, אימייל, מספר לקוח או מספר רכב" oninput="scheduleSearch()"></div>
     <div id="search-results"></div>
@@ -918,7 +929,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: NEW CUSTOMER TYPE ================= -->
 <section class="screen" id="s-newtype">
-  <div class="topbar"><div class="back" onclick="backFromNewType()">→</div><div><h1 id="newtype-title">לקוח חדש</h1><div class="sub" id="newtype-sub">בחירת סוג לקוח</div></div><button type="button" class="dash-home" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">→ חזרה ללקוחות ישירים</button></div>
+  <div class="topbar"><div class="back" onclick="backFromNewType()">→</div><div><h1 id="newtype-title">לקוח חדש</h1><div class="sub" id="newtype-sub">בחירת סוג לקוח</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <div class="card tap" onclick="startNewCustomer('private')"><div class="row"><div style="font-weight:700;">לקוח פרטי</div><span class="chev">‹</span></div></div>
     <div class="card tap" onclick="startNewCustomer('business')"><div class="row"><div style="font-weight:700;">עסקי / חברה</div><span class="chev">‹</span></div></div>
@@ -929,25 +940,28 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: NEW CUSTOMER FORM ================= -->
 <section class="screen" id="s-newform">
-  <div class="topbar"><div class="back" onclick="go('s-newtype')">→</div><div><h1>פרטי לקוח</h1><div class="sub" id="newform-sub">לקוח חדש</div></div><button type="button" class="dash-home" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">→ חזרה ללקוחות ישירים</button></div>
+  <div class="topbar"><div class="back" onclick="go('s-newtype')">→</div><div><h1>פרטי לקוח</h1><div class="sub" id="newform-sub">לקוח חדש</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" data-testid-back="customer-back-to-dashboard-btn" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <div class="field"><label>שם מלא / שם חברה <span class="req">*</span></label><input id="cust-name" placeholder="שם מלא או שם החברה" autocomplete="off"></div>
-    <div class="field"><label>טלפון <span class="req">*</span></label><input id="cust-phone" placeholder="050-0000000"></div>
-    <div class="field"><label>טלפון נוסף</label><input id="cust-phone2" placeholder="טלפון נוסף"></div>
-    <div class="field"><label>Email</label><input id="cust-email" placeholder="name@mail.com"></div>
+    <div class="field"><label>טלפון <span class="req">*</span></label><input id="cust-phone" placeholder="050-0000000" type="tel"></div>
+    <div class="field"><label>טלפון נוסף</label><input id="cust-phone2" placeholder="טלפון נוסף" type="tel"></div>
+    <div class="field"><label>Email</label><input id="cust-email" placeholder="name@mail.com" type="email"></div>
     <div class="field"><label>כתובת</label><input id="cust-address" placeholder="עיר, רחוב"></div>
     <div class="field"><label>ח.פ / עוסק</label><input id="cust-biz" placeholder="מספר עוסק / ח.פ"></div>
     <div class="field"><label>איש קשר ראשי</label><input id="cust-contact" placeholder="שם איש קשר ראשי"></div>
     <div class="field"><label>אמצעי תקשורת מועדף</label><div class="chip-row"><div class="chip selected" data-channel="WhatsApp" onclick="selChip(this)">WhatsApp</div><div class="chip" data-channel="Email" onclick="selChip(this)">Email</div><div class="chip" data-channel="טלפון" onclick="selChip(this)">טלפון</div></div></div>
     <div class="field"><label>הערות</label><textarea id="cust-notes" placeholder="הערות כלליות על הלקוח"></textarea></div>
     <div id="cust-dupes"></div>
-    <button type="button" class="btn btn-white" id="cust-add-vehicle-btn" onclick="continueToVehicleStep(false)">+ הוסף רכב</button>
-    <button class="btn btn-white" id="cust-save-btn" style="display:none;" onclick="saveCustomerAndContinue(false)">שמור לקוח</button>
+    <div class="customer-form-actions" style="display:flex; flex-direction:column; gap:12px; margin-top:24px; padding-bottom:30px;">
+      <button type="button" class="btn btn-white" id="cust-add-vehicle-btn" onclick="continueToVehicleStep(false)">+ המשך להוספת רכב</button>
+      <button type="button" class="btn btn-ghost" id="cust-save-btn" onclick="saveCustomerAndContinue(false)">שמור לקוח בספר הלקוחות</button>
+      <button type="button" class="btn btn-ghost dash-home-btn" data-testid="customer-bottom-back-btn" style="width:100%; justify-content:center;" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button>
+    </div>
   </div>
 </section>
 <!-- ================= SCREEN: VEHICLE EXISTING PICK ================= -->
 <section class="screen" id="s-newvehicle">
-  <div class="topbar"><div class="back" onclick="go('s-search')">→</div><div><h1>רכב</h1><div class="sub" id="veh-pick-sub">בחירת רכב</div></div><button type="button" class="dash-home" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">→ חזרה ללקוחות ישירים</button></div>
+  <div class="topbar"><div class="back" onclick="go('s-search')">→</div><div><h1>רכב</h1><div class="sub" id="veh-pick-sub">בחירת רכב</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <div class="card" id="existing-customer-contacts">
       <div style="font-weight:700; font-size:14px; margin-bottom:8px;">אנשי קשר</div>
@@ -976,7 +990,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: VEHICLE FORM ================= -->
 <section class="screen" id="s-vehform">
-  <div class="topbar"><div class="back" onclick="backFromVehicleForm()">→</div><div><h1>פרטי רכב</h1><div class="sub" id="vehform-sub">רכב חדש</div></div><button type="button" class="dash-home" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">→ חזרה ללקוחות ישירים</button></div>
+  <div class="topbar"><div class="back" onclick="backFromVehicleForm()">→</div><div><h1>פרטי רכב</h1><div class="sub" id="vehform-sub">רכב חדש</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <div class="field"><label>מספר רישוי <span class="req">*</span></label><input id="veh-plate" placeholder="00-000-00"></div>
     <div class="field"><label>יצרן</label><input id="veh-make" placeholder="יצרן"></div>
@@ -987,6 +1001,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="field"><label>מספר פנימי</label><input id="veh-internal" placeholder="אם רלוונטי"></div>
     <div class="field"><label>הערות</label><textarea id="veh-notes" placeholder="פרטים נוספים על הרכב"></textarea></div>
     <button class="btn btn-white" id="veh-save-btn" onclick="saveVehicleAndCreateCase()">אישור ופתיחת תיק</button>
+    <button type="button" class="btn btn-ghost dash-home-btn" style="width:100%; justify-content:center; margin-top:10px;" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button>
   </div>
 </section>
 <!-- ================= SCREEN: CASE HUB ================= -->
@@ -1003,7 +1018,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <span class="metapill" id="case-opened-pill">נפתח</span>
       <span class="metapill" id="case-order-pill">הזמנה: —</span>
     </div>
-    <div class="manager-link" id="case-back-btn" data-testid="case-back-btn" onclick="returnToGarageDashboard()">← חזרה למסך הניהול</div>
+    <button type="button" class="dash-home-btn" id="case-back-btn" data-testid="case-back-btn" onclick="returnToGarageDashboard()" style="margin: 10px 0 0; width: 100%; justify-content: center;">← חזרה לדשבורד</button>
     <div class="pending-banner" id="book-pending-banner-case">הפעלת מסד נתוני המוסך עדיין ממתינה. אפשר לעבור על הזרימה; שמירת לקוח, רכב, תיק ותמונות תתחיל אחרי הרצת ה-SQL ב-Staging.</div>
   </div>
   <div class="case-facts" aria-hidden="false">
@@ -2149,8 +2164,7 @@ function goOpsCenter(){
   parent.postMessage({type:'gm:goOpsCenter'}, '*');
 }
 function backFromNewType(){
-  if(customerOnly){ goManager(); return; }
-  go('s-choose');
+  returnToGarageDashboard();
 }
 function syncCustomerOnlyUi(){
   var title = document.getElementById('newtype-title');
@@ -2161,8 +2175,8 @@ function syncCustomerOnlyUi(){
   if(sub) sub.textContent = customerOnly ? 'לקוח בלבד — בלי תיק עבודה' : 'בחירת סוג לקוח';
   if(hint) hint.style.display = customerOnly ? 'block' : 'none';
   if(saveBtn){
-    saveBtn.textContent = customerOnly ? 'שמור לקוח' : 'שמור והמשך לרכב';
-    saveBtn.style.display = customerOnly ? '' : 'none';
+    saveBtn.textContent = customerOnly ? 'שמור לקוח' : 'שמור לקוח בספר הלקוחות';
+    saveBtn.style.display = '';
   }
   var addVehicleBtn = document.getElementById('cust-add-vehicle-btn');
   if(addVehicleBtn) addVehicleBtn.style.display = customerOnly ? 'none' : '';
@@ -2187,8 +2201,15 @@ function resetOpenCaseDrafts(){
   closeContactEditor();
 }
 function returnToGarageDashboard(){
+  customerOnly = false;
   resetOpenCaseDrafts();
   go('s-home');
+  window.scrollTo(0,0);
+  if(document.documentElement) document.documentElement.scrollTop = 0;
+  if(document.body) document.body.scrollTop = 0;
+  document.querySelectorAll('.gm-nav-tab').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-testid') === 'nav-tab-dashboard');
+  });
   if(window.parent !== window){
     try { parent.postMessage({type:'gm:goHome'}, '*'); } catch(e){}
   }
@@ -3164,11 +3185,21 @@ function createCaseWithVehicle(vehicle){
     alert(err.message || err);
   });
 }
-function go(id){
+function go(id, skipHistory){
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
-  document.getElementById(id).classList.add('active');
+  var target = document.getElementById(id);
+  if(target) target.classList.add('active');
   window.scrollTo(0,0);
+  if(document.documentElement) document.documentElement.scrollTop = 0;
+  if(document.body) document.body.scrollTop = 0;
   state.currentScreen = id;
+  if(!skipHistory){
+    try {
+      if(window.history && window.history.pushState){
+        window.history.pushState({ gmScreen: id }, '', window.location.href);
+      }
+    } catch(e){}
+  }
   bindLiveCase();
   if(id==='s-quote') renderQuote();
   if(id==='s-quote-preview') renderQuotePreview();
@@ -3189,6 +3220,23 @@ function go(id){
   }
   if(currentCase && currentCase.id) schedulePersist();
 }
+
+window.addEventListener('popstate', function(e){
+  var targetScreen = (e.state && e.state.gmScreen) || 's-home';
+  if(targetScreen && document.getElementById(targetScreen)){
+    go(targetScreen, true);
+    if(targetScreen === 's-home'){
+      document.querySelectorAll('.gm-nav-tab').forEach(function(b){
+        b.classList.toggle('active', b.getAttribute('data-testid') === 'nav-tab-dashboard');
+      });
+      if(window.parent !== window){
+        try { parent.postMessage({ type: 'gm:goHome' }, '*'); } catch(err){}
+      }
+    }
+  } else {
+    returnToGarageDashboard();
+  }
+});
 function openCase(){ if(currentCase) { refreshCaseHub(); go('s-case'); } }
 function createCase(){ if(currentVehicle) createCaseWithVehicle(currentVehicle); }
 function toggleAcc(el){ el.classList.toggle('open'); }

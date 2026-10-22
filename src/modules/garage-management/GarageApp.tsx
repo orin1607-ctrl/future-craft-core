@@ -317,7 +317,7 @@ export default function GarageApp() {
           return;
         }
         if (msg.type === 'gm:goHome') {
-          navigate('/garage-management');
+          navigate('/garage-management', { replace: true });
           return;
         }
         if (msg.type === 'gm:goManager') {

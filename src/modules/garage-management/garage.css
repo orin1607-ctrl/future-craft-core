@@ -4,9 +4,11 @@
   inset: 0;
   z-index: 60;
   width: 100%;
+  height: 100%;
   height: 100dvh;
   background: #04091a;
   overflow: hidden;
+  touch-action: pan-y;
 }
 
 .gm-approved-frame {
@@ -15,12 +17,14 @@
   height: 100%;
   border: 0;
   background: #04091a;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .gm-ai-fab-btn {
   position: fixed;
-  bottom: 24px;
-  left: 24px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  left: 20px;
   z-index: 100;
   display: inline-flex;
   align-items: center;

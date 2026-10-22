@@ -102,9 +102,10 @@ async function run() {
 
     // 1. כניסה לדשבורד וגלילה עד למטה וחזרה למעלה
     await page.goto(`${url}/garage-management`, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(2500);
-
     const frame = page.frameLocator('.gm-approved-frame');
+    await frame.locator('#home-greet').filter({ hasText: ',' }).waitFor({ timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(1000);
+
     const scrollResult = await frame.locator('body').evaluate(() => {
       document.documentElement.style.scrollBehavior = 'auto';
       window.scrollTo({ top: 350, behavior: 'instant' });
@@ -117,22 +118,49 @@ async function run() {
     const scrollPass = scrollResult && scrollResult.midY > 100 && scrollResult.retY === 0;
     record(1, 'כניסה לדשבורד וגלילה מלאה למטה ולמעלה', scrollPass, `גובה תוכן: ${scrollResult?.scrollH}px, גלילה למטה: ${scrollResult?.midY}px, חזרה למעלה: ${scrollResult?.retY}px`);
 
-    // 2. כניסה לכרטיס לקוח וגלילה מלאה
-    await frame.locator('[data-testid="action-new-customer"]').click().catch(() => {});
+    // 2. כניסה לכרטיס לקוח, גלילה מלאה וכפתור חזרה לדשבורד
+    const actCustBtn = frame.locator('[data-testid="action-new-customer"]');
+    await actCustBtn.scrollIntoViewIfNeeded();
+    await actCustBtn.dispatchEvent('click');
     await page.waitForTimeout(800);
-    const custScroll = await frame.locator('body').evaluate(() => {
-      document.documentElement.style.scrollBehavior = 'auto';
-      window.scrollTo({ top: 250, behavior: 'instant' });
-      const midY = window.scrollY || document.documentElement.scrollTop;
-      window.scrollTo({ top: 0, behavior: 'instant' });
-      return midY;
-    }).catch(() => 0);
-    const newCustVisible = await frame.locator('#s-newtype').isVisible().catch(() => false);
-    record(2, 'כניסה לכרטיס לקוח וגלילה מלאה', (newCustVisible || custScroll > 0) && custScroll >= 100, `מסך פתיחת לקוח מוצג (${newCustVisible ? 's-newtype' : 'פעיל'}), גלילה חופשית (${custScroll}px) ללא תקיעה`);
 
-    // Back to dashboard
-    await frame.locator('#gm-tab-dash').click().catch(() => {});
+    const privCard = frame.locator('#s-newtype .card.tap').first();
+    await privCard.dispatchEvent('click');
+    await page.waitForTimeout(1000);
+
+    const newformVisible = await frame.locator('#s-newform').isVisible().catch(() => false);
+    const custBackBtn = frame.locator('#s-newform .topbar [data-testid="gm-dash-home"]');
+    const custBackText = await custBackBtn.innerText().catch(() => '');
+    const hasBackText = custBackText.includes('חזרה לדשבורד');
+
+    const custScrollMetrics = await frame.locator('body').evaluate(() => {
+      document.documentElement.style.scrollBehavior = 'auto';
+      window.scrollTo({ top: 9999, behavior: 'instant' });
+      document.documentElement.scrollTop = 9999;
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      const saveBtn = document.getElementById('cust-save-btn');
+      const addVehBtn = document.getElementById('cust-add-vehicle-btn');
+      const rSave = saveBtn ? saveBtn.getBoundingClientRect() : null;
+      const rVeh = addVehBtn ? addVehBtn.getBoundingClientRect() : null;
+      return {
+        scrollY,
+        saveInView: rSave ? (rSave.top >= 0 && rSave.bottom <= (window.innerHeight + 100)) : false,
+        vehInView: rVeh ? (rVeh.top >= 0 && rVeh.bottom <= (window.innerHeight + 100)) : false,
+      };
+    }).catch(() => ({ scrollY: 0, saveInView: false, vehInView: false }));
+
+    await frame.locator('body').evaluate(() => {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+    });
+    await page.waitForTimeout(400);
+
+    await custBackBtn.dispatchEvent('click');
     await page.waitForTimeout(800);
+    const returnedToDashboard = await frame.locator('#s-home').isVisible().catch(() => false);
+
+    const scenario2Pass = newformVisible && hasBackText && custScrollMetrics.scrollY > 100 && returnedToDashboard;
+    record(2, 'כניסה לכרטיס לקוח, גלילה מלאה וכפתור חזרה לדשבורד', scenario2Pass, `טופס נפתח: ${newformVisible}, כפתור חזרה: "${custBackText.trim()}", גלילה לתחתית: ${custScrollMetrics.scrollY}px (שמור: ${custScrollMetrics.saveInView}, רכב: ${custScrollMetrics.vehInView}), חזרה לדשבורד: ${returnedToDashboard}`);
 
     // 3. כניסה לכרטיס עבודה וגלילה מלאה
     await frame.locator('#gm-tab-cases').click().catch(() => {});
