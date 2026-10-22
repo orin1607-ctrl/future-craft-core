@@ -1396,6 +1396,78 @@ async function leadsStep(sb: SupabaseClient) {
   return { evaluated: cands.length, qualified: leads.length, inserted: stored.inserted, ms: Date.now() - t0 };
 }
 
+// ════════════════ legal pages: the company number on a site's terms / accessibility / privacy / about / contact page ════════════════
+// For sites the identify engine could not tie to a company, and for businesses created from a website without a company number.
+// A site is tied to a registered company only when exactly ONE valid company number appears on it, the number is in the registry,
+// and the company's name appears on the site (1,000-lead test 2026-10-22: 17 of 17 correct under this rule). Any other number → review.
+const LEGAL_LINK = /נגישות|accessib|תקנון|terms|תנאי.?שימוש|privacy|פרטיות|אודות|about|צור.?קשר|contact/i;
+type LegalRow = { domain: string; kind: string; web_business_id: number | null };
+async function legalOne(sb: SupabaseClient, q: LegalRow) {
+  let home: Awaited<ReturnType<typeof get>> | null = null, note = "";
+  for (const u of [`https://${q.domain}/`, `https://www.${q.domain}/`, `http://www.${q.domain}/`]) {
+    if (!(await allowed(u))) return { status: "robots", note: "robots.txt" };
+    try { const r = await get(u, 8_000); if (r.status === 200 && /html/i.test(r.type) && r.body.length > 300) { home = r; break; } note = "HTTP " + r.status; }
+    catch (e) { note = (e as Error).message.slice(0, 80); }
+  }
+  if (!home) return { status: "unreachable", note };
+  const origin = new URL(home.url).origin, host = new URL(home.url).hostname.replace(/^www\./, "");
+  const norm = (s: string) => { try { return decodeURI(s).toLowerCase().replace(/\/$/, ""); } catch { return s.toLowerCase(); } };
+  const links: string[] = [];
+  for (const m of home.body.matchAll(/<a\b[^>]*href=["']([^"'#]+)["'][^>]*>([\s\S]{0,200}?)<\/a>/gi)) {
+    if (!LEGAL_LINK.test(m[1] + " " + textOf(m[2]))) continue;
+    try { const u = new URL(m[1], origin); if (u.origin === origin && !links.some((x) => norm(x) === norm(u.href))) links.push(u.href); } catch { /* bad link */ }
+  }
+  const pages = [home.url], html = [home.body];
+  for (const u of links.slice(0, 4)) {
+    if (!(await allowed(u))) continue;
+    try { const r = await get(u, 8_000); if (r.status === 200 && /html/i.test(r.type)) { pages.push(u); html.push(r.body); } } catch { /* skip this page */ }
+  }
+  const all = html.join("\n");
+  const ids = regIdsOn(textOf(all));
+  if (!ids.length) return { status: "no_number", pages: pages.length };
+  const reg = await rpc<Record<string, { id: number; name: string; name_en: string | null; reg_id_type: string | null; website: string | null }>>(sb, "nr_legal_lookup", { p_ids: ids });
+  const known = ids.filter((d) => reg[d]);
+  if (!known.length) return { status: "no_number", pages: pages.length, reg_ids: ids, note: "המספר באתר לא נמצא במאגר" };
+  const evidence = { pages, reg_ids: ids };
+  if (ids.length === 1) {
+    const b = reg[ids[0]];
+    const why = siteConfirms({ name: b.name, name_en: b.name_en, reg_id: ids[0], reg_id_type: b.reg_id_type }, all, host);
+    if (why.some((w) => w.startsWith("ח.פ.")) && why.some((w) => w.startsWith("שם החברה"))) {
+      await rpc(sb, "nr_ingest", { p_source: "enr:legal_pages", p_rows: [{ business_id: b.id, name: b.name, rid: q.domain, url: pages.at(-1), websites: [origin],
+        fields: { legal_pages: pages, confirmed: why, web_business_id: q.web_business_id } }] });
+      await rpc(sb, "nr_confirm_site", { p_business: b.id, p_url: origin, p_evidence: why });
+      if (q.kind === "no_identity") await sb.from("nr_site_queue").update({ status: "matched", business_id: b.id, method: "legal_pages", note: why.join(" · ").slice(0, 300), checked_at: now() }).eq("domain", q.domain).eq("status", "no_identity");
+      return { status: "matched", matched_business_id: b.id, reg_ids: ids, pages: pages.length, evidence: { ...evidence, confirmed: why } };
+    }
+  }
+  // a number but not the full rule (two numbers, or the company's name is not on the site): a person decides
+  const cands = known.map((d) => reg[d].id);
+  await rpc(sb, "nr_put_finding", { f: { business_id: null, candidates: cands, subject_name: host, source_key: "enr:legal_pages", source_url: origin,
+    category: "new_website", title: `האתר ${host} מציג מספר תאגיד של ${known.map((d) => reg[d].name).join(" / ")} – ממתין לאישור שיוך`.slice(0, 300),
+    detail: { reg_ids: ids, pages, web_business_id: q.web_business_id, reason: ids.length > 1 ? "כמה מספרי תאגיד באתר" : "שם החברה לא מופיע באתר" },
+    fact_kind: "indication", match_status: "pending_review", match_method: "legal_pages", dedup_key: `site_identify:legal:${q.domain}` } });
+  return { status: "review", reg_ids: ids, pages: pages.length, evidence };
+}
+async function legalWorker(sb: SupabaseClient) {
+  const t0 = Date.now();
+  PAGE_CAP = 300_000; // five pages per site: keep each call within the function's compute allowance
+  const tally: Record<string, number> = {};
+  let read = 0;
+  while (Date.now() - t0 < 45_000 && read < 24) {
+    const batch = await rpc<LegalRow[]>(sb, "nr_claim_legal", { p_n: 6 });
+    if (!batch.length) break;
+    await pool(batch, 6, async (q) => {
+      let r: { status: string; note?: string; matched_business_id?: number; reg_ids?: string[]; pages?: number; evidence?: unknown };
+      try { r = await legalOne(sb, q); } catch (e) { r = { status: "error", note: (e as Error).message.slice(0, 200) }; }
+      tally[r.status] = (tally[r.status] || 0) + 1;
+      await sb.from("nr_legal_queue").update({ status: r.status, checked_at: now(), matched_business_id: r.matched_business_id ?? null, reg_ids: r.reg_ids ?? null,
+        pages: r.pages ?? null, evidence: r.evidence ?? null, note: r.note ?? null }).eq("domain", q.domain);
+    });
+    read += batch.length;
+  }
+  return { read, ...tally, ms: Date.now() - t0 };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: edgeCorsHeaders });
   const url = Deno.env.get("SUPABASE_URL") || "";
@@ -1405,7 +1477,7 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({})) as { action?: string; url?: string; worker?: number };
   const sb = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
   // heartbeat per engine (read by the watchdog: an engine with work and no success for 15 minutes raises an alert)
-  const ENGINE: Record<string, string> = { tick: "enrich", identify: "identify", feeder: "identify", leads: "leads", deep: "deep" };
+  const ENGINE: Record<string, string> = { tick: "enrich", identify: "identify", feeder: "identify", leads: "leads", deep: "deep", legal_pages: "legal" };
   const action = body.action || "tick";
   const beat = (ok: boolean, msg?: string) => ENGINE[action] ? sb.rpc("nr_beat", { p_engine: ENGINE[action], p_ok: ok, p_msg: msg ?? null }).then(() => {}, () => {}) : Promise.resolve();
   try {
@@ -1415,6 +1487,10 @@ Deno.serve(async (req) => {
     if (action === "harvest_cc") return jsonResponse({ ok: true, ...(await harvestCc(sb, (body as { graph?: string }).graph)) });
     if (action === "feeder") return await done(await feeder(sb));
     if (action === "leads") return await done(await leadsStep(sb));
+    if (action === "legal_pages") {
+      if (!auth.ctx.isInternalCall) return jsonResponse({ ok: false, error: "internal only" }, 403);
+      return await done(await legalWorker(sb));
+    }
     // social / digital-presence locator for one company (card button) or a measured sample (internal only)
     const deps = { get: (u: string, ms?: number) => get(u, ms), allowed, siteConfirms };
     if (action === "social_locate") {
