@@ -112,6 +112,10 @@ verify_jwt = false
 [functions.nr-enrichment]
 verify_jwt = false
 
+# inverted-index bulk import (Wikidata / OpenStreetMap); protected by requireAuth (internal key or super_admin)
+[functions.nr-bulk-index]
+verify_jwt = false
+
 [functions.social-meta]
 verify_jwt = false
 

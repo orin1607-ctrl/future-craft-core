@@ -10,11 +10,16 @@ returns table (
   phones jsonb, emails jsonb, websites jsonb, facebook jsonb, instagram jsonb, linkedin jsonb, whatsapp jsonb,
   pending_review int, has_verified_phone boolean
 )
-language sql
+language plpgsql
 stable
-security invoker
+security definer
 set search_path = public
 as $$
+#variable_conflict use_column
+begin
+  -- one permission check per call (the row-level policy would re-check the role for every registry row)
+  if not public.nr_can_read() then raise exception 'forbidden'; end if;
+  return query
   with biz as (
     select b.id, b.name, b.reg_id, b.city, b.fleet_level, b.has_verified_phone
       from nr_businesses b
@@ -43,6 +48,7 @@ as $$
          biz.has_verified_phone
     from biz
    order by biz.id;
+end;
 $$;
 
 revoke all on function public.nr_marketing_contacts(bigint, int, boolean) from public, anon;
