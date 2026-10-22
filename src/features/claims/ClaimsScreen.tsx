@@ -2,6 +2,7 @@ import ClaimImage from './ClaimImage';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import ClaimsReportsView, { type GarageCaseRecord } from './ClaimsReportsView';
+import ClaimsReportsIntegratedView from './ClaimsReportsIntegratedView';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, addRecurringDays, buildClaimRowAlerts, canMarkMailTaskDone, customerStatusLabel, customerStatusOf, defaultRecurringFirstLocal, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isRecurringMailFollowup, isScheduledOnceMail, lastTreatmentActionText, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringFirstPlannedAt, recurringLabel, resolveRecurringFirstRun, shortStatusNote, untreatedMailIds, type ClaimAlert, type RecurringFirstSendMode } from './claimWorkAlerts';
@@ -3383,9 +3384,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     data-testid="filter-all-cases"
                     style={{
                       flex: '1 1 0',
+                      minWidth: 'fit-content',
                       whiteSpace: 'nowrap',
-                      padding: '8px 12px',
-                      fontSize: 13,
+                      padding: '7px 10px',
+                      fontSize: 12.5,
                       fontWeight: caseOriginFilter === 'all' ? 700 : 500,
                       textAlign: 'center',
                       borderRadius: 'var(--r2)',
@@ -3400,9 +3402,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     data-testid="filter-garage-cases"
                     style={{
                       flex: '1 1 0',
+                      minWidth: 'fit-content',
                       whiteSpace: 'nowrap',
-                      padding: '8px 12px',
-                      fontSize: 13,
+                      padding: '7px 10px',
+                      fontSize: 12.5,
                       fontWeight: caseOriginFilter === 'garage' ? 700 : 500,
                       textAlign: 'center',
                       borderRadius: 'var(--r2)',
@@ -3417,9 +3420,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     data-testid="filter-insurance-cases"
                     style={{
                       flex: '1 1 0',
+                      minWidth: 'fit-content',
                       whiteSpace: 'nowrap',
-                      padding: '8px 12px',
-                      fontSize: 13,
+                      padding: '7px 10px',
+                      fontSize: 12.5,
                       fontWeight: caseOriginFilter === 'insurance' ? 700 : 500,
                       textAlign: 'center',
                       borderRadius: 'var(--r2)',
@@ -3427,6 +3431,28 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     onClick={() => setCaseOriginFilter('insurance')}
                   >
                     ניהול תביעות ({currentInsuranceCount})
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-g btn-sm"
+                    data-testid="claims-btn-reports-compact"
+                    style={{
+                      flex: '0 0 auto',
+                      whiteSpace: 'nowrap',
+                      padding: '7px 11px',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      borderRadius: 'var(--r2)',
+                      border: '1px solid var(--br2)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => showView('reports')}
+                    title="מעבר לדוחות ניהול"
+                  >
+                    📊 דוחות
                   </button>
                 </div>
                 <div className="ph">
@@ -3545,37 +3571,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             )}
 
             {view === 'reports' && (
-              <>
-                <div className="ph"><div><div className="ph-t">דוחות ניהול<div className="ph-bar" /></div></div>
-                  <div className="ph-a">
-                    {[7, 14, 30, 60].map((d) => (
-                      <button key={d} className="btn btn-g btn-sm" onClick={async () => {
-                        const r = await apiRef.current.getInactiveClaims(d);
-                        setInactive({ days: d, rows: r.data || [] });
-                      }}>{d} ימים</button>
-                    ))}
-                  </div>
-                </div>
-                {inactive && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div className="sdiv"><div className="sdiv-t">תיקים ללא פעילות – {inactive.days} ימים ({inactive.rows.length})</div><div className="sdiv-l" /></div>
-                    <div className="tw"><table><thead><tr><th>מספר תביעה</th><th>לקוח</th><th>רכב</th><th>סטטוס</th><th>פעילות אחרונה</th></tr></thead>
-                      <tbody>
-                        {inactive.rows.length === 0 ? <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--t3)', padding: 20 }}>אין תיקים ללא פעילות</td></tr>
-                          : inactive.rows.map((c) => (
-                            <tr key={c.id} onClick={() => openCard(c.id)}>
-                              <td style={{ fontWeight: 800, color: 'var(--ac3)', fontSize: 11 }}>{displayClaimNum(c)}</td>
-                              <td>{c.clientName}</td><td>{c.plate || '—'}</td>
-                              <td>{stBadge(c.status)}</td>
-                              <td style={{ fontSize: 11, color: 'var(--rd2)' }}>{c.lastActivityAt || c.updatedAt || '—'}</td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table></div>
-                  </div>
-                )}
-                <div dangerouslySetInnerHTML={{ __html: reportHtml }} />
-              </>
+              <ClaimsReportsIntegratedView
+                claims={claims}
+                garageCases={garageCases}
+                onBack={() => showView('claims')}
+                onOpenClaim={(id) => openCard(id)}
+                onOpenGarageCase={(id) => navigate(`/garage-management/${id}`)}
+              />
             )}
           </div>
         </div>
