@@ -73,9 +73,23 @@ export default function UserManagement() {
   }, []);
 
   const loadCompanyOptions = async () => {
-    const { data } = await supabase.from('profiles').select('company_name');
-    const set = new Set((data || []).map(p => p.company_name).filter(Boolean) as string[]);
-    setCompanyOptions(Array.from(set).sort());
+    const [profilesRes, customersRes] = await Promise.all([
+      supabase.from('profiles').select('company_name'),
+      supabase.from('customers').select('name, company_name'),
+    ]);
+    const names = new Set<string>();
+    for (const row of profilesRes.data || []) {
+      const name = row.company_name?.trim();
+      if (name) names.add(name);
+    }
+    // Companies opened from "לקוח חדש" are stored with the same name and company_name,
+    // before any user is assigned to them.
+    for (const row of customersRes.data || []) {
+      const name = row.name?.trim();
+      const company = row.company_name?.trim();
+      if (name && company && name === company) names.add(name);
+    }
+    setCompanyOptions(Array.from(names).sort((a, b) => a.localeCompare(b, 'he')));
   };
 
   const loadUsers = async () => {
@@ -289,6 +303,12 @@ export default function UserManagement() {
         onOpenChange={setCreateOpen}
         companyOptions={companyOptions}
         onCreated={loadUsers}
+        canCreateCompany={user?.role === 'super_admin'}
+        onCompanyCreated={(name) => {
+          setCompanyOptions((prev) => (
+            prev.includes(name) ? prev : [...prev, name].sort((a, b) => a.localeCompare(b, 'he'))
+          ));
+        }}
       />
 
       {/* Filters */}

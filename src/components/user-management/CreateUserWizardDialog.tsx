@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   Loader2,
   CheckCircle2,
+  Plus,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -57,6 +58,9 @@ interface CreateUserWizardDialogProps {
   onOpenChange: (open: boolean) => void;
   companyOptions: string[];
   onCreated: () => void;
+  /** Only a super admin may open a company that is not already in the list. */
+  canCreateCompany?: boolean;
+  onCompanyCreated?: (name: string) => void;
 }
 
 export default function CreateUserWizardDialog({
@@ -64,6 +68,8 @@ export default function CreateUserWizardDialog({
   onOpenChange,
   companyOptions,
   onCreated,
+  canCreateCompany = false,
+  onCompanyCreated,
 }: CreateUserWizardDialogProps) {
   const [step, setStep] = useState(0);
   const [userType, setUserType] = useState<UserCreationType | null>(null);
@@ -72,6 +78,11 @@ export default function CreateUserWizardDialog({
   const [creating, setCreating] = useState(false);
   const [resultReport, setResultReport] = useState<CreateUserResultReport | null>(null);
   const [vehicles, setVehicles] = useState<{ id: string; label: string }[]>([]);
+  const [addedCompanies, setAddedCompanies] = useState<string[]>([]);
+  const [showNewCustomerDialog, setShowNewCustomerDialog] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState('');
+  const [newCustomerBusinessId, setNewCustomerBusinessId] = useState('');
+  const [creatingCustomer, setCreatingCustomer] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -80,6 +91,10 @@ export default function CreateUserWizardDialog({
       setForm({});
       setAccessCode(DEFAULT_ACCESS_CODE_CONFIG);
       setResultReport(null);
+      setAddedCompanies([]);
+      setShowNewCustomerDialog(false);
+      setNewCustomerName('');
+      setNewCustomerBusinessId('');
     }
   }, [open]);
 
@@ -103,6 +118,15 @@ export default function CreateUserWizardDialog({
 
   const fields = userType ? FIELDS_BY_TYPE[userType] : [];
 
+  const mergedCompanyOptions = useMemo(() => {
+    const names = new Set<string>();
+    for (const raw of [...companyOptions, ...addedCompanies]) {
+      const name = raw?.trim();
+      if (name) names.add(name);
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b, 'he'));
+  }, [companyOptions, addedCompanies]);
+
   const loginEmail = form.login_email || form.email || '';
 
   useEffect(() => {
@@ -113,6 +137,33 @@ export default function CreateUserWizardDialog({
 
   const setField = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleCreateCustomer = async () => {
+    if (!canCreateCompany) return;
+    const name = newCustomerName.trim();
+    if (!name) {
+      toast({ title: 'שגיאה', description: 'יש למלא שם חברה', variant: 'destructive' });
+      return;
+    }
+    setCreatingCustomer(true);
+    const { error } = await supabase.from('customers').insert({
+      name,
+      company_name: name,
+      business_id: newCustomerBusinessId.trim() || null,
+    });
+    setCreatingCustomer(false);
+    if (error) {
+      toast({ title: 'שגיאה', description: 'לא ניתן ליצור חברה', variant: 'destructive' });
+      return;
+    }
+    toast({ title: '✅ חברה נוצרה', description: `${name} נוספה בהצלחה` });
+    setAddedCompanies((prev) => (prev.includes(name) ? prev : [...prev, name]));
+    setField('company_assigned', name);
+    onCompanyCreated?.(name);
+    setNewCustomerName('');
+    setNewCustomerBusinessId('');
+    setShowNewCustomerDialog(false);
   };
 
   const selectType = (type: UserCreationType) => {
@@ -329,6 +380,7 @@ export default function CreateUserWizardDialog({
   }, [userType, fields, form]);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
@@ -410,16 +462,32 @@ export default function CreateUserWizardDialog({
                 return (
                   <div key={fd.key}>
                     <label className="text-sm font-medium mb-1 block">{fd.label}{fd.required ? ' *' : ''}</label>
-                    <Select value={form.company_assigned || ''} onValueChange={(v) => setField('company_assigned', v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="בחר חברה" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {companyOptions.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2">
+                      <div className="flex-1 min-w-0">
+                        <Select value={form.company_assigned || ''} onValueChange={(v) => setField('company_assigned', v)}>
+                          <SelectTrigger data-testid="create-user-field-company_assigned">
+                            <SelectValue placeholder="בחר חברה" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mergedCompanyOptions.map((c) => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {canCreateCompany && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setShowNewCustomerDialog(true)}
+                          className="shrink-0 gap-1 font-bold"
+                          data-testid="create-company-open"
+                        >
+                          <Plus size={16} />
+                          לקוח חדש
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 );
               }
@@ -590,5 +658,49 @@ export default function CreateUserWizardDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    {canCreateCompany && (
+      <Dialog open={showNewCustomerDialog} onOpenChange={setShowNewCustomerDialog}>
+        <DialogContent className="sm:max-w-md" dir="rtl" data-testid="create-company-dialog">
+          <DialogHeader>
+            <DialogTitle>הוספת לקוח / חברה חדשה</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-sm font-medium mb-1 block" htmlFor="new-company-name">שם חברה *</label>
+              <Input
+                id="new-company-name"
+                value={newCustomerName}
+                onChange={(e) => setNewCustomerName(e.target.value)}
+                placeholder="שם החברה"
+                data-testid="create-company-name"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block" htmlFor="new-company-business-id">ח.פ / מספר עוסק</label>
+              <Input
+                id="new-company-business-id"
+                value={newCustomerBusinessId}
+                onChange={(e) => setNewCustomerBusinessId(e.target.value)}
+                placeholder="מספר עוסק"
+                dir="ltr"
+                className="text-right"
+                data-testid="create-company-business-id"
+              />
+            </div>
+            <Button
+              type="button"
+              onClick={handleCreateCustomer}
+              disabled={creatingCustomer}
+              className="w-full font-bold"
+              data-testid="create-company-submit"
+            >
+              {creatingCustomer ? 'יוצר...' : '✅ צור חברה'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )}
+    </>
   );
 }
