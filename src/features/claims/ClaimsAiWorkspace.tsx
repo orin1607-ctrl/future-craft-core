@@ -2476,6 +2476,29 @@ export type GarageCaseAiContext = {
   status?: string;
 };
 
+export function deduplicateMessages(msgs: ClaimsAiMessage[]): ClaimsAiMessage[] {
+  const seenIds = new Set<string>();
+  const result: ClaimsAiMessage[] = [];
+  for (const m of msgs) {
+    if (m.id && m.id !== 'draft' && m.id !== 'temp-error') {
+      if (seenIds.has(m.id)) continue;
+      seenIds.add(m.id);
+    }
+    if (m.role === 'user' && result.length > 0) {
+      const prev = result[result.length - 1];
+      if (
+        prev.role === 'user' &&
+        prev.content.trim() === m.content.trim() &&
+        Math.abs(new Date(prev.created_at || 0).getTime() - new Date(m.created_at || 0).getTime()) < 3500
+      ) {
+        continue;
+      }
+    }
+    result.push(m);
+  }
+  return result;
+}
+
 export function ClaimsAiWorkspace({
   open,
   onClose,
@@ -2549,6 +2572,7 @@ export function ClaimsAiWorkspace({
       setConfirmReturnToMenuModal(true);
       return;
     }
+    loadedActiveIdRef.current = null;
     setActiveId(null);
     setMessages([]);
     setInput('');
@@ -2558,7 +2582,7 @@ export function ClaimsAiWorkspace({
   }, [hasUnsavedAction, userId, claimId, module, garageCase?.id]);
 
   const handleNavBack = useCallback(() => {
-    if (!showWelcomeHub && messages.length > 0) {
+    if (!showWelcomeHub && (messages.length > 0 || activeId)) {
       if (hasUnsavedAction) {
         setConfirmReturnToMenuModal(true);
       } else {
@@ -2834,6 +2858,8 @@ export function ClaimsAiWorkspace({
   }, []);
 
   const isSubmittingRef = useRef(false);
+  const lastSendTimeRef = useRef(0);
+  const loadedActiveIdRef = useRef<string | null>(null);
   const isNearBottomRef = useRef(true);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
@@ -3378,11 +3404,13 @@ export function ClaimsAiWorkspace({
   }, [messages, loading]);
 
   const sendMessage = useCallback(async (text: string, source: 'text' | 'voice') => {
-    if (isSubmittingRef.current) return;
+    const now = Date.now();
+    if (isSubmittingRef.current || (now - lastSendTimeRef.current < 1200)) return;
     const trimmed = text.trim();
     if ((!trimmed && stagedAttachments.length === 0) || loading) return;
 
     isSubmittingRef.current = true;
+    lastSendTimeRef.current = now;
 
     // Clear input box immediately upon send
     setInput('');
@@ -3601,7 +3629,7 @@ export function ClaimsAiWorkspace({
       });
       if (userSaved.error || !userSaved.data) throw new Error(userSaved.error?.message || 'שמירת ההודעה נכשלה');
       userSavedSuccessfully = true;
-      const history = [...messages, userSaved.data];
+      const history = deduplicateMessages([...messages, userSaved.data]);
       setMessages(history);
 
       let pendingFromStream: ClaimsAiPendingAction | null = null;
@@ -3661,7 +3689,7 @@ export function ClaimsAiWorkspace({
         },
       });
       if (saved.error || !saved.data) throw new Error(saved.error?.message || 'שמירת התשובה נכשלה');
-      setMessages([...history, saved.data]);
+      setMessages(deduplicateMessages([...history, saved.data]));
       setConversations((prev) => prev.map((row) => row.id === conversationId ? { ...row, updated_at: saved.data!.created_at } : row));
 
       // Continuous Voice Mode: automatically speak the response and resume listening
@@ -4079,7 +4107,7 @@ export function ClaimsAiWorkspace({
               <button
                 type="button"
                 className={`claims-ai-conv${row.id === activeId ? ' active' : ''}`}
-                onClick={() => { setActiveId(row.id); setShowList(false); }}
+                onClick={() => { setActiveId(row.id); setShowList(false); setShowWelcomeHub(false); }}
               >
                 <b>{row.title}</b>
                 <span>{new Date(row.updated_at).toLocaleString('he-IL')}</span>
@@ -4118,9 +4146,7 @@ export function ClaimsAiWorkspace({
                   <button
                     type="button"
                     className="btn btn-b btn-xs"
-                    data-testid="dalia-nav-ai"
-                    title="נמצא בדליה AI"
-                    style={{ fontWeight: 800 }}
+                    data-testid="dalia-nav-ai" onClick={handleReturnToMainMenu} title="נמצא בדליה AI · לחיצה לחזרה לתפריט הפעולות" style={{ fontWeight: 800, cursor: 'pointer' }}
                   >
                     ✨ דליה AI
                   </button>
@@ -4477,7 +4503,7 @@ export function ClaimsAiWorkspace({
               )}
             </div>
           ) : null}
-          {messages.map((msg) => {
+          {deduplicateMessages(messages).map((msg) => {
             const pending = pendingActionOf(msg.metadata);
             const toolError = typeof msg.metadata.tool_error === 'string' ? msg.metadata.tool_error : '';
             const msgAttachments = Array.isArray(msg.metadata?.attachments) ? (msg.metadata.attachments as any[]) : [];
@@ -5984,6 +6010,7 @@ export function ClaimsAiWorkspace({
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.nativeEvent.isComposing) return;
                 e.preventDefault();
                 if (!loading && !isSubmittingRef.current) {
                   void sendMessage(input, 'text');

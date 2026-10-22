@@ -77,6 +77,7 @@ export default function GarageApp() {
   const shopScope = garageShopScopeOf(user);
   const [aiOpen, setAiOpen] = useState(false);
   const [loadedCase, setLoadedCase] = useState<GarageCase | null>(null);
+  const activeCaseIdRef = useRef<string | null>(caseId || null);
 
   const reply = useCallback((requestId: string | undefined, payload: Record<string, unknown>) => {
     iframeRef.current?.contentWindow?.postMessage({ type: 'gm:response', requestId, payload }, '*');
@@ -87,7 +88,9 @@ export default function GarageApp() {
     if (!win || !actor) return;
     const probe = await probeGarageBook();
     try {
-      if (caseId) {
+      const effectiveCaseId = activeCaseIdRef.current || caseId;
+      if (effectiveCaseId) {
+        const targetId = effectiveCaseId;
         if (probe.pending) {
           win.postMessage({
             type: 'gm:bootstrap',
@@ -101,11 +104,11 @@ export default function GarageApp() {
           }, '*');
           return;
         }
-        const loaded = await getCase(caseId, shopScope);
+        const loaded = await getCase(targetId, shopScope);
         setLoadedCase(loaded);
         win.postMessage({
           type: 'gm:bootstrap',
-          payload: { mode: 'case', caseId, userName: actor.full_name || '', loaded, bookPending: false },
+          payload: { mode: 'case', caseId: targetId, userName: actor.full_name || '', loaded, bookPending: false },
         }, '*');
         return;
       }
@@ -313,20 +316,29 @@ export default function GarageApp() {
         }
         if (msg.type === 'gm:openCase') {
           const id = String(payload.caseId || '');
-          if (id) navigate(`/garage-management/${id}`);
+          if (id) {
+            void getCase(id, shopScope).then((loaded) => {
+              setLoadedCase(loaded);
+            }).catch(console.error);
+            try {
+              window.history.pushState({ gmCaseId: id }, '', `${import.meta.env.BASE_URL}garage-management/${id}`);
+            } catch {}
+          }
           return;
         }
         if (msg.type === 'gm:openReports') {
           navigate('/claims?view=reports');
           return;
         }
+        if (msg.type === 'gm:openClaims') {
+          navigate('/claims');
+          return;
+        }
         if (msg.type === 'gm:goHome') {
           setLoadedCase(null);
-          if (caseId) {
-            navigate('/garage-management', { replace: true });
-          } else {
-            void bootstrap();
-          }
+          try {
+            window.history.pushState(null, '', `${import.meta.env.BASE_URL}garage-management`);
+          } catch {}
           return;
         }
         if (msg.type === 'gm:goManager') {
@@ -562,6 +574,26 @@ export default function GarageApp() {
     void bootstrap();
   }, [bootstrap]);
 
+  useEffect(() => {
+    const handlePop = () => {
+      const match = window.location.pathname.match(/\/garage-management\/([0-9a-f-]{36})/i);
+      const targetCaseId = match?.[1] || null;
+      if (targetCaseId) {
+        iframeRef.current?.contentWindow?.postMessage({
+          type: 'gm:bootstrap',
+          payload: { mode: 'case', caseId: targetCaseId },
+        }, '*');
+      } else {
+        iframeRef.current?.contentWindow?.postMessage({
+          type: 'gm:bootstrap',
+          payload: { mode: 'home' },
+        }, '*');
+      }
+    };
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, []);
+
   return (
     <div className="gm-root" dir="rtl">
       <iframe
@@ -571,7 +603,7 @@ export default function GarageApp() {
         srcDoc={approvedSourceHtml}
         sandbox="allow-scripts allow-modals allow-same-origin allow-downloads allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation"
         allow="camera; microphone; clipboard-write"
-        key={caseId || (startCustomer ? 'customer' : startNew ? 'new' : 'home')}
+        key="garage-management-main-frame"
         onLoad={() => { void bootstrap(); }}
       />
 

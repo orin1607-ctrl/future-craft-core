@@ -3173,6 +3173,16 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 {l}{k === 'claims' ? <span className="nb b">{caseOriginFilter === 'all' ? currentTotalCount : caseOriginFilter === 'garage' ? currentGarageCount : currentInsuranceCount}</span> : null}
               </button>
             ))}
+            <button
+              type="button"
+              className="tbn"
+              data-testid="claims-nav-to-garage"
+              onClick={() => navigate('/garage-management')}
+              title="מעבר לניהול מוסך"
+              style={{ color: '#0284c7', fontWeight: 700 }}
+            >
+              🚗 ניהול מוסך
+            </button>
             <button className="tbn" onClick={async () => {
               const r = await apiRef.current.getTemplates();
               setTpl(r.data || {});
@@ -3240,6 +3250,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <button className={`sb-i ${view === 'gmail' ? 'act' : ''}`} onClick={() => showView('gmail')}><span className="ic">📧</span>Gmail{gmailPending.filter((p) => !p.imported_at && p.decision === 'needs_review').length ? <span className="sb-bd r">{gmailPending.filter((p) => !p.imported_at && p.decision === 'needs_review').length}</span> : null}</button>
               <button className={`sb-i ${view === 'tasks' ? 'act' : ''}`} onClick={() => showView('tasks')}><span className="ic">✅</span>משימות</button>
               <button className={`sb-i ${view === 'reports' ? 'act' : ''}`} onClick={() => showView('reports')}><span className="ic">📊</span>דוחות</button>
+              <button className="sb-i" data-testid="claims-nav-to-garage-sidebar" onClick={() => { setSbOpen(false); navigate('/garage-management'); }}><span className="ic">🚗</span>ניהול מוסך</button>
               <button className="sb-i" data-testid="claims-nav-templates" onClick={async () => {
                 setSbOpen(false);
                 const r = await apiRef.current.getTemplates();
@@ -3454,6 +3465,28 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     title="מעבר לדוחות ניהול"
                   >
                     📊 דוחות
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-g btn-sm"
+                    style={{
+                      flex: '0 0 auto',
+                      whiteSpace: 'nowrap',
+                      padding: '6px 8px',
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      borderRadius: 'var(--r2)',
+                      border: '1px solid var(--br2)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 3,
+                      cursor: 'pointer',
+                    }}
+                    onClick={() => navigate('/garage-management')}
+                    data-testid="claims-to-garage-btn"
+                    title="מעבר לניהול מוסך"
+                  >
+                    🚗 ניהול מוסך
                   </button>
                 </div>
                 <div className="ph">

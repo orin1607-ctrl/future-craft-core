@@ -68,10 +68,31 @@ body{
 #s-home .gm-top-nav-bar{
   flex:0 0 auto; position:sticky; top:0; z-index:35;
 }
-.case-content{
-  flex:1 1 auto; min-height:0; overflow-y:auto !important; overflow-x:hidden;
-  -webkit-overflow-scrolling:touch !important; overscroll-behavior-y:contain; touch-action:pan-y !important;
-  padding:0 0 calc(180px + env(safe-area-inset-bottom, 32px)) !important;
+.case-content, #case-content {
+  flex:1 1 0% !important;
+  min-height:0 !important;
+  max-height:100% !important;
+  height:auto !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  -webkit-overflow-scrolling:touch !important;
+  overscroll-behavior-y:contain !important;
+  touch-action:pan-y !important;
+  padding:0 0 calc(240px + env(safe-area-inset-bottom, 40px)) !important;
+}
+#s-case .case-desk,
+#s-case .case-desk-main,
+#s-case .case-head,
+#s-case .route-block,
+#s-case .flow-meter,
+#s-case .status-strip,
+#s-case .action-grid,
+#s-case .vehicle-docs-card,
+#s-case .accordion-item {
+  touch-action: pan-y !important;
+}
+#s-case input, #s-case textarea, #s-case select, #s-case button {
+  touch-action: manipulation !important;
 }
 h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 .bar{width:34px; height:3px; background:var(--white); border-radius:3px; margin-bottom:14px;}
@@ -763,6 +784,9 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     </button>
     <button type="button" class="gm-nav-tab" id="gm-tab-suppliers" data-testid="nav-tab-suppliers" onclick="goHomeTab('suppliers')">
       <span class="icon">📦</span> ספקים וחשבוניות
+    </button>
+    <button type="button" class="gm-nav-tab" id="gm-tab-claims" data-testid="nav-tab-claims" onclick="openClaimsHub()">
+      <span class="icon">🛡️</span> ניהול תביעות
     </button>
   </nav>
   <div class="home-header">
@@ -2505,6 +2529,9 @@ function applyBootstrap(payload){
   if(payload.mode === 'home'){
     renderHomeCases(payload.cases || []);
     bootstrapDone = true;
+    if(state && (state.currentScreen === 's-case' || currentCase) && !payload.forceHome){
+      return;
+    }
     currentCase = null;
     currentCustomer = null;
     currentVehicle = null;
@@ -2522,11 +2549,18 @@ function applyBootstrap(payload){
     if(payload.loaded){
       hydrateCase(payload.loaded);
     } else {
-      renderGarageGallery(payload.caseId || '');
-      var tag = document.getElementById('case-number-tag');
-      if(tag) tag.textContent = payload.caseId || '';
+      var match = (homeCasesList || []).filter(function(x){ return x.id === payload.caseId; })[0];
+      if (match) {
+        hydrateCase(match);
+      } else {
+        renderGarageGallery(payload.caseId || '');
+        var tag = document.getElementById('case-number-tag');
+        if(tag) tag.textContent = payload.caseId || '';
+      }
     }
-    go('s-case');
+    if (state.currentScreen !== 's-case') {
+      go('s-case');
+    }
   }
 }
 function garageListBucket(data, status){
@@ -2549,6 +2583,16 @@ function setHomeBucket(bucket){
 }
 var currentKpiFilter = 'all';
 var currentSearchQuery = '';
+
+function openClaimsHub() {
+  if (window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage({ type: 'gm:openClaims' }, '*');
+      return;
+    } catch(e) {}
+  }
+  window.location.href = '/claims';
+}
 
 function openReportsHub() {
   if (window.parent && window.parent !== window) {
@@ -2619,15 +2663,15 @@ function clearAllCasesFilters() {
 }
 
 function triggerOpenCase(cId) {
+  var match = (homeCasesList || []).filter(function(x){ return x.id === cId; })[0];
+  if (match) {
+    hydrateCase(match);
+  }
+  go('s-case');
   if (window.parent !== window) {
     try {
       parent.postMessage({ type: 'gm:openCase', payload: { caseId: cId } }, '*');
     } catch(e){}
-  }
-  var match = (homeCasesList || []).filter(function(x){ return x.id === cId; })[0];
-  if (match) {
-    hydrateCase(match);
-    go('s-case');
   }
 }
 
