@@ -881,8 +881,11 @@ async function ccFirstHost(path: string): Promise<string> {
   reader.cancel().catch(() => {});
   return (buf.split("\n")[0].split("\t")[1] || "").trim();
 }
-// quarterly host graphs, newest first; each one lists hosts the others may miss
-const CC_GRAPHS = ["cc-main-2026-jun-jul-aug", "cc-main-2026-mar-apr-may", "cc-main-2025-26-dec-jan-feb", "cc-main-2025-sep-oct-nov"];
+// quarterly host graphs, newest first; each one lists hosts the others may miss. The two 2025 graphs add ~6.5k / ~5k new Israeli
+// domains beyond the newer ones. Older graphs were left out on purpose: a 300-domain sample (22.10.2026) found 82% of the 2025
+// extras and 93% of the 2023 extras unreachable (1 match / 3 for review, and 1 new / 1 for review, per 150)
+const CC_GRAPHS = ["cc-main-2026-jun-jul-aug", "cc-main-2026-mar-apr-may", "cc-main-2025-26-dec-jan-feb", "cc-main-2025-sep-oct-nov",
+  "cc-main-2025-jun-jul-aug", "cc-main-2025-mar-apr-may"];
 // A host-vertex part is one gzip member of up to ~170 MB, and the "il." hosts can sit 230 MB into its text – more inflate work than
 // one edge call's CPU allows. So the part is inflated here in plain JS, which can stop at any deflate block boundary: the bit offset
 // plus the last 32 KB of output is a full checkpoint (kept in config.cc_progress) and the next call resumes with an HTTP Range request.
