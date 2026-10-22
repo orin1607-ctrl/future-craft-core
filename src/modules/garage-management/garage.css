@@ -8,7 +8,6 @@
   height: 100dvh;
   background: #04091a;
   overflow: hidden;
-  touch-action: pan-y;
 }
 
 .gm-approved-frame {
@@ -18,7 +17,6 @@
   border: 0;
   background: #04091a;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
 }
 
 .gm-ai-fab-btn {

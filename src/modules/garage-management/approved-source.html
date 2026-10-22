@@ -15,20 +15,27 @@
 }
 *{box-sizing:border-box; margin:0; padding:0;}
 html{
-  height:auto !important; min-height:100% !important; overflow-y:auto !important; overflow-x:hidden !important;
-  -webkit-overflow-scrolling:touch !important; scroll-behavior:smooth; touch-action:pan-y;
+  height:100% !important; height:100dvh !important; overflow:hidden !important;
+  scroll-behavior:smooth;
 }
 body{
   font-family:'Heebo',sans-serif; background:var(--bg); color:var(--white);
-  width:100%; min-height:100% !important; height:auto !important; overflow-y:visible !important; overflow-x:hidden !important;
-  -webkit-overflow-scrolling:touch !important; touch-action:pan-y;
+  width:100%; height:100% !important; height:100dvh !important; overflow:hidden !important;
+  margin:0; padding:0; -webkit-font-smoothing:antialiased;
 }
-#app{width:100%; min-height:100%; display:flex; flex-direction:column; max-width:520px; margin:0 auto; position:relative; touch-action:pan-y;}
-.screen{display:none; flex-direction:column; min-height:100%; padding-bottom:calc(220px + env(safe-area-inset-bottom, 34px)) !important; touch-action:pan-y;}
+#app{
+  width:100%; height:100% !important; height:100dvh !important;
+  display:flex; flex-direction:column; max-width:520px; margin:0 auto; position:relative;
+  overflow:hidden;
+}
+.screen{
+  display:none; flex-direction:column; width:100%; height:100% !important; height:100dvh !important;
+  position:relative; overflow:hidden;
+}
 .screen.active{display:flex;}
 .topbar{
-  position:sticky; top:0; z-index:35; background:var(--bg);
-  display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 16px 12px;
+  flex:0 0 auto; min-height:56px; z-index:35; background:var(--bg);
+  display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 16px;
   border-bottom:1px solid var(--border); box-shadow:0 4px 14px rgba(0,0,0,0.35); backdrop-filter:blur(8px);
 }
 .topbar .back{
@@ -49,7 +56,22 @@ body{
 }
 .topbar h1{font-size:17px; font-weight:600;}
 .topbar .sub{font-size:12px; color:var(--white50); margin-top:1px;}
-.content{padding:18px 16px 8px; flex:1;}
+.content{
+  flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; touch-action:pan-y;
+  padding:18px 16px calc(130px + env(safe-area-inset-bottom, 24px));
+}
+#s-home{
+  overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; touch-action:pan-y;
+  padding-bottom:calc(130px + env(safe-area-inset-bottom, 24px));
+}
+#s-home .gm-top-nav-bar{
+  flex:0 0 auto; position:sticky; top:0; z-index:35;
+}
+#s-case{
+  overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; touch-action:pan-y;
+  padding-bottom:calc(130px + env(safe-area-inset-bottom, 24px));
+}
 h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 .bar{width:34px; height:3px; background:var(--white); border-radius:3px; margin-bottom:14px;}
 .hint{font-size:12.5px; color:var(--white50); margin-bottom:16px; line-height:1.6;}
@@ -465,6 +487,9 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
+.quick-act-btn * { pointer-events: none; }
+.dash-home-btn * { pointer-events: none; }
+.btn * { pointer-events: none; }
 .quick-act-btn:hover {
   background: rgba(255,255,255,0.12);
   transform: translateY(-1px);
@@ -1105,7 +1130,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: INSPECTION ================= -->
 <section class="screen" id="s-inspect">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>תמונות נזק / הצעת מחיר</h1><div class="sub" data-live="case-sub">תיק חדש</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>תמונות נזק / הצעת מחיר</h1><div class="sub" data-live="case-sub">תיק חדש</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <h2 class="section-title">תמונות להצעת מחיר</h2>
     <div class="bar"></div>
@@ -1184,7 +1209,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </div>
 <!-- ================= SCREEN: QUOTE ================= -->
 <section class="screen" id="s-quote">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>הצעת מחיר</h1><div class="sub" id="quote-version-sub" data-live="quote-sub">תיק חדש · טיוטה</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>הצעת מחיר</h1><div class="sub" id="quote-version-sub" data-live="quote-sub">תיק חדש · טיוטה</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <div class="card" style="margin-bottom:16px;">
       <div style="font-size:11.5px; color:var(--white50);">לכבוד</div>
@@ -1247,7 +1272,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: QUOTE PDF PREVIEW / PRINT ================= -->
 <section class="screen" id="s-quote-preview">
-  <div class="topbar no-print"><div class="back" onclick="go('s-quote')">→</div><div><h1>תצוגה מקדימה</h1><div class="sub" data-live="quote-preview-sub">הצעת מחיר</div></div></div>
+  <div class="topbar no-print"><div class="back" onclick="go('s-quote')">→</div><div><h1>תצוגה מקדימה</h1><div class="sub" data-live="quote-preview-sub">הצעת מחיר</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <div class="doc-page" id="printable">
       <div style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -1325,7 +1350,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </div>
 <!-- ================= SCREEN: WORK ORDER ================= -->
 <section class="screen" id="s-workorder">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>הזמנת עבודה</h1><div class="sub" data-live="case-customer-sub">הזמנת עבודה</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>הזמנת עבודה</h1><div class="sub" data-live="case-customer-sub">הזמנת עבודה</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <div class="card" style="margin-bottom:18px;">
       <div class="row"><div class="lbl" style="font-size:11.5px; color:var(--white50);">סכום מאושר נוכחי</div></div>
@@ -1377,7 +1402,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: GALLERY ================= -->
 <section class="screen" id="s-gallery">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>מסמכים לרכב</h1><div class="sub" id="gallery-case-sub">תיק מוסך</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>מסמכים לרכב</h1><div class="sub" id="gallery-case-sub">תיק מוסך</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="gal-bar no-print">
     <button class="btn btn-white btn-sm" style="white-space:nowrap;" onclick="pickGalleryMedia(true)">📷 צלם</button>
     <button class="btn btn-ghost btn-sm" style="white-space:nowrap;" onclick="pickGalleryMedia(false)">העלה</button>
@@ -1393,7 +1418,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: COMMUNICATION ================= -->
 <section class="screen" id="s-comm">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>מיילים / התכתבויות / עדכונים</h1><div class="sub" data-live="case-customer-sub">התכתבות התיק</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>מיילים / התכתבויות / עדכונים</h1><div class="sub" data-live="case-customer-sub">התכתבות התיק</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <div class="hint">תיבת המוסך המיועדת: yoni191177@gmail.com. לא תיבת Claims (yoni122222@gmail.com). מייל משויך לתיק רק כשההתאמה חד-משמעית. מחיר שזוהה לא מתעדכן בלי אישור העובד.</div>
     <div class="card" id="garage-mail-status" style="margin-bottom:12px;"></div>
@@ -1423,7 +1448,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: COMPOSE EMAIL ================= -->
 <section class="screen" id="s-compose">
-  <div class="topbar"><div class="back" onclick="go('s-comm')">→</div><div><h1>שליחה מהתיק</h1><div class="sub" data-live="case-sub">מייל ברירת מחדל</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-comm')">→</div><div><h1>שליחה מהתיק</h1><div class="sub" data-live="case-sub">מייל ברירת מחדל</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <div class="hint">שליחה מתוך ניהול המוסך דרך yoni191177@gmail.com. לא נפתח Gmail ולא mailto. לא תיבת Claims.</div>
     <div class="field"><label>ערוץ</label>
@@ -1454,7 +1479,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: SECURE SHARE ================= -->
 <section class="screen" id="s-share">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>שיתוף מאובטח</h1><div class="sub" data-live="case-sub">שיתוף מאובטח</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>שיתוף מאובטח</h1><div class="sub" data-live="case-sub">שיתוף מאובטח</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content" id="share-step1">
     <h2 class="section-title">1. מה לשתף?</h2>
     <div class="bar"></div>
@@ -1500,7 +1525,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: VEHICLE INTAKE ================= -->
 <section class="screen" id="s-intake">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>קבלת רכב</h1><div class="sub" data-live="case-sub">קבלת רכב</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>קבלת רכב</h1><div class="sub" data-live="case-sub">קבלת רכב</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <h2 class="section-title">1. 4 תמונות חוץ — חובה</h2>
     <div class="bar"></div>
@@ -1570,7 +1595,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: JOB / FINISH WORK ================= -->
 <section class="screen" id="s-job">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>כרטיס עבודה</h1><div class="sub" data-live="case-sub">כרטיס עבודה</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>כרטיס עבודה</h1><div class="sub" data-live="case-sub">כרטיס עבודה</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <div class="hint">כל מה שנאסף בתיק עד כה נשאר זמין כאן: לקוח, רכב, תמונות, בדיקה, הצעה, חלקים, הזמנה וחתימה. אפשר להוסיף עבודה, חלק, תמונה, מסמך ובקשת אישור נוספת.</div>
     <div class="chip-row" style="margin-bottom:18px;">
@@ -1589,7 +1614,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: FINISH WORK ================= -->
 <section class="screen" id="s-finish">
-  <div class="topbar"><div class="back" onclick="go('s-job')">→</div><div><h1>סיום עבודה / סגירת רכב</h1><div class="sub" data-live="case-sub">סיום עבודה</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-job')">→</div><div><h1>סיום עבודה / סגירת רכב</h1><div class="sub" data-live="case-sub">סיום עבודה</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <div class="hint">סיום עבודה סוגר את הרכב בתיק: הסטטוס הופך ל«סגור», התיק יורד מ«פתוח» ומ«רכב בעבודה», ונשאר בסינון «סגור» ובהיסטוריה. אין מחיקה. תמונות קליטה, תמונות סיום, מסמכים, הצעות, התכתבויות והיסטוריה נשארים בתיק. מסירת הרכב נשארת שלב נפרד אחרי הסגירה.</div>
     <div class="card" id="finish-gaps" style="margin-bottom:16px;"></div>
@@ -1634,7 +1659,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: CLOSE CASE ================= -->
 <section class="screen" id="s-close">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>מסירה וסגירת תיק</h1><div class="sub" data-live="case-sub">סגירת תיק</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>מסירה וסגירת תיק</h1><div class="sub" data-live="case-sub">סגירת תיק</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content">
     <div class="card" style="margin-bottom:16px;">
       <div class="doc-row"><span>לקוח</span><span id="close-customer">—</span></div>
@@ -1707,7 +1732,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: TIMELINE ================= -->
 <section class="screen" id="s-timeline">
-  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>היסטוריית תיק</h1><div class="sub" data-live="case-sub">היסטוריה</div></div></div>
+  <div class="topbar"><div class="back" onclick="go('s-case')">→</div><div><h1>היסטוריית תיק</h1><div class="sub" data-live="case-sub">היסטוריה</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
   <div class="content" id="timeline-content">
     <div class="hint" id="timeline-empty">אין אירועים בתיק זה עדיין.</div>
   </div>
@@ -1750,6 +1775,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 <input id="gm-file-camera" class="file-hidden" type="file" accept="image/*" capture="environment">
 <input id="gm-file-pick" class="file-hidden" type="file" accept="image/*,application/pdf" multiple>
 <script>
+var bootstrapDone = false;
 var state = emptyFlowState();
 var currentCase = null;
 var currentCustomer = null;
@@ -2204,6 +2230,8 @@ function returnToGarageDashboard(){
   customerOnly = false;
   resetOpenCaseDrafts();
   go('s-home');
+  var homeEl = document.getElementById('s-home');
+  if(homeEl) homeEl.scrollTop = 0;
   window.scrollTo(0,0);
   if(document.documentElement) document.documentElement.scrollTop = 0;
   if(document.body) document.body.scrollTop = 0;
@@ -2452,20 +2480,24 @@ function applyBootstrap(payload){
   renderGarageGallery((payload.loaded && payload.loaded.id) || payload.caseId || '');
   if(payload.loaded && payload.loaded.id) loadGarageMedia();
   if(payload.mode === 'home'){
-    currentCase = null;
-    currentCustomer = null;
-    currentVehicle = null;
-    state = emptyFlowState();
-    clearCustomerForm();
-    clearVehicleForm();
-    renderQuote();
-    renderDamageList();
-    renderTimeline();
     renderHomeCases(payload.cases || []);
-    go(payload.startScreen || 's-home');
+    if(!bootstrapDone){
+      bootstrapDone = true;
+      currentCase = null;
+      currentCustomer = null;
+      currentVehicle = null;
+      state = emptyFlowState();
+      clearCustomerForm();
+      clearVehicleForm();
+      renderQuote();
+      renderDamageList();
+      renderTimeline();
+      go(payload.startScreen || 's-home');
+    }
     return;
   }
   if(payload.mode === 'case'){
+    bootstrapDone = true;
     if(payload.loaded){
       hydrateCase(payload.loaded);
     } else {
@@ -3188,7 +3220,12 @@ function createCaseWithVehicle(vehicle){
 function go(id, skipHistory){
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
   var target = document.getElementById(id);
-  if(target) target.classList.add('active');
+  if(target){
+    target.classList.add('active');
+    if(target.scrollTop !== undefined) target.scrollTop = 0;
+    var c = target.querySelector('.content');
+    if(c && c.scrollTop !== undefined) c.scrollTop = 0;
+  }
   window.scrollTo(0,0);
   if(document.documentElement) document.documentElement.scrollTop = 0;
   if(document.body) document.body.scrollTop = 0;
