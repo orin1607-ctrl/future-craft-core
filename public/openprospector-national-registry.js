@@ -81,7 +81,7 @@
     const chips = [];
     if (f.importance === "important") chips.push(`<span class="badge nr-imp">★ מידע חשוב חדש</span>`);
     else chips.push(`<span class="badge b-blue">● מידע חדש</span>`);
-    chips.push(f.verification === "verified" ? `<span class="badge b-ok">✓ מאומת (2 מקורות)</span>` : `<span class="badge b-no">לא מאומת</span>`);
+    chips.push(f.verification === "verified" ? `<span class="badge b-ok">✓ מאומת (2 מקורות בלתי תלויים)</span>` : `<span class="badge b-no">לא מאומת</span>`);
     if (f.fact_kind === "indication") chips.push(`<span class="badge b-no" title="סימן לצורך אפשרי – לא עובדה מתועדת">אינדיקציה</span>`);
     return chips.join(" ");
   }
@@ -96,7 +96,7 @@
     return a || '<span class="xs muted">—</span>';
   }
   const legend = () => `<div class="row xs" style="gap:6px;flex-wrap:wrap"><span class="muted">מקרא:</span>
-    <span class="badge nr-imp">★ מידע חשוב חדש</span><span class="badge b-blue">● מידע חדש</span><span class="badge b-ok">✓ מאומת (2 מקורות)</span>
+    <span class="badge nr-imp">★ מידע חשוב חדש</span><span class="badge b-blue">● מידע חדש</span><span class="badge b-ok">✓ מאומת (2 מקורות בלתי תלויים)</span>
     <span class="badge b-no">לא מאומת / אינדיקציה / ממתין לבדיקה</span></div>`;
   const n = (x) => Number(x || 0).toLocaleString("he-IL");
   const catalog = () => (Array.isArray(window.ALL_130_SOURCES) ? window.ALL_130_SOURCES : []);
@@ -460,7 +460,7 @@
           <div class="row" style="align-items:end">${chk("branches", "עם סניפים / טלפוני סניף")}</div>
         </div></details>
         <details ${ST.openGroups && ST.openGroups.contact ? "open" : ""} data-nr-group="contact"><summary class="bold">פרטי קשר</summary><div style="display:grid;gap:8px;margin-top:8px">
-          <div class="grid g-3" style="gap:10px">${yesno("phone", "טלפון")}${sel("verified_phone", [["yes", "מאומת (2+ מקורות)"], ["no", "יש טלפון, לא מאומת"]], "אימות טלפון")}${yesno("email", "אימייל")}${yesno("website", "אתר אינטרנט")}${yesno("people", "איש קשר עסקי")}</div>
+          <div class="grid g-3" style="gap:10px">${yesno("phone", "טלפון")}${sel("verified_phone", [["yes", "מאומת (2 מקורות בלתי תלויים)"], ["no", "יש טלפון, לא מאומת"]], "אימות טלפון")}${yesno("email", "אימייל")}${yesno("website", "אתר אינטרנט")}${yesno("people", "איש קשר עסקי")}</div>
           <div class="grid g-3" style="gap:10px">${yesno("fb", "פייסבוק")}${yesno("ig", "אינסטגרם")}${yesno("li", "לינקדאין")}${yesno("tt", "טיקטוק")}${yesno("yt", "יוטיוב")}</div>
           <div class="row">${chk("whatsapp", "וואטסאפ עסקי")}${chk("social_any", "פעילות ברשתות חברתיות (קישור כלשהו)")}</div>
           <div class="row"><span class="xs muted">בעל תפקיד:</span>${Object.entries(ROLES).filter(([k]) => k !== "other").map(([k, l]) => multi("roles", k, l)).join("")}</div>
@@ -655,13 +655,12 @@
       </tbody></table></div></div>` : ""}`;
   }
 
-  // reliability of one contact point. "verified" alone can be two crawls of the same site, so high needs an official
-  // registry or two independent kinds of source (src_groups); the company's own verified site is good; anything else is low
+  // reliability of one contact point. verified = two independent source families (nr_source_family, 22.10.2026):
+  // several crawls of the company's site, or two releases of one dataset, count once
   function cpTrust(c) {
-    const t = Number(c.src_groups) >= 2 ? ["גבוהה", "b-ok", "אושר בשני סוגי מקורות בלתי תלויים"]
+    const t = c.verified ? ["גבוהה", "b-ok", "אומת בשני מקורות בלתי תלויים"]
       : c.src_official ? ["גבוהה", "b-ok", "ממאגר רשמי"]
-      : c.src_own_site ? ["טובה", "b-blue", "מאתר החברה שאומת מול פרטיה" + (c.verified ? " (נמצא בכמה סריקות של האתר)" : "")]
-      : c.verified ? ["בינונית", "b-est", "2 מקורות מאותו סוג"]
+      : c.src_own_site ? ["טובה", "b-blue", "מאתר החברה שאומת מול פרטיה"]
       : ["נמוכה", "b-no", "מקור אחד – לא מאומת"];
     return `<span class="badge ${t[1]}">${t[0]}</span><div class="xs muted">${t[2]}</div>`;
   }
@@ -780,7 +779,7 @@
     const savedRows = saved.map((c) => {
       const pf = c.kind === "social" ? c.sub : c.kind;
       return `<div class="xs"><span class="nr-ic nr-ic-${esc(pf)}">${esc((PF[pf] || [pf, "•"])[1])}</span> ${esc((PF[pf] || [pf])[0])}: ${link(c.v, String(c.v).replace(/^https?:\/\/(www\.)?/, ""))}
-        ${c.verified ? `<span class="badge b-ok">✓ מאומת (2 מקורות)</span>` : `<span class="badge b-blue">נשמר – מקור אחד</span>`}
+        ${c.verified ? `<span class="badge b-ok">✓ מאומת (2 מקורות בלתי תלויים)</span>` : `<span class="badge b-blue">נשמר – מקור אחד</span>`}
         <span class="muted">מקור: ${esc((c.sources || []).join(" · "))}</span></div>`;
     }).join("");
     const pend = (so.pending || []).map((f) => {
@@ -914,7 +913,7 @@
       <div class="card-b" style="display:grid;gap:10px"><div class="grid g-kpi tiles">
       ${kpi("עסקים חדשים היום", n(sc.new_businesses_today), Object.entries(sc.new_businesses_by_source_today || {}).map(([k, v]) => `${esc(k)}: ${n(v)}`).join(" · ") || "—")}
       ${kpi("עסקים קיימים שהועשרו היום", n(sc.enriched_today), "עם ממצא שנשמר בכרטיס")}
-      ${kpi("טלפונים / אימיילים חדשים היום", `${n(sv.phone)} / ${n(sv.email)}`, `${n(sc.verified_today)} פרטי קשר אומתו היום (2 מקורות)`)}
+      ${kpi("טלפונים / אימיילים חדשים היום", `${n(sv.phone)} / ${n(sv.email)}`, `${n(sc.verified_today)} פרטי קשר אומתו היום (2 מקורות בלתי תלויים)`)}
       ${kpi("אתרים וקישורים לרשתות היום", n(Number(sv.website || 0) + Number(sv.social || 0) + Number(sv.whatsapp || 0)),
           `אתרים ${n(so.website)} · פייסבוק ${n(so.facebook)} · אינסטגרם ${n(so.instagram)} · לינקדאין ${n(so.linkedin)} · יוטיוב ${n(so.youtube)} · טיקטוק ${n(so.tiktok)} · וואטסאפ ${n(Number(so.whatsapp || 0))}`)}
       ${kpi("קשרים עסקיים היום", n(Number(rl.verified || 0) + Number(rl.stated || 0) + Number(rl.mention || 0)), `${n(rl.verified)} מאומתים · ${n(rl.stated)} לפי אתר החברה · ${n(rl.mention)} אזכורים`)}
