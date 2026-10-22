@@ -830,7 +830,8 @@
   }
 
   // ── enrichment: progress report, sources, examples, review queue ──
-  // goal: 50% of the registry with at least one reliable business social account; snapshots every 6 hours (nr_progress_take)
+  // goal: 50% of the registry with at least one reliable business social account; snapshots every 6 hours (nr_progress_take),
+  // counted from nr_contact_points (method contact_points_v2) – the has_* flags lag behind by ~2k businesses per kind
   function progressCard(p) {
     if (!p || p.empty || !p.data) return "";
     const d = p.data, tot = Number(d.total) || 1, pct = (x) => `${(100 * Number(x || 0) / tot).toFixed(1)}%`;
@@ -839,7 +840,7 @@
     const rate = p.social_per_day == null ? "הקצב יימדד אחרי יממה של צילומי מצב"
       : `${n(Math.round(p.social_per_day))} חברות ביום (${p.rate_basis === "snapshots_7d" ? "ממוצע שבוע" : "יממה אחרונה"})${p.days_to_goal ? ` · בקצב הזה: כ-${n(p.days_to_goal)} ימים ליעד` : ""}`;
     return `<div class="card"><div class="card-h"><h2>🎯 התקדמות ליעד – 50% מהחברות עם רשת חברתית עסקית אמינה<span class="h-bar"></span></h2><span class="spacer"></span>
-        <span class="xs muted">צילום מצב ${when(p.taken_at)} · מתעדכן כל 6 שעות</span></div>
+        <span class="xs muted">צילום מצב ${when(p.taken_at)} · מתעדכן כל 6 שעות${d.method === "contact_points_v2" ? " · נספר מפרטי הקשר עצמם" : ""}</span></div>
       <div class="card-b" style="display:grid;gap:8px">
         <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap"><b class="num">${n(d.social_reliable)} / ${n(p.goal_social)}</b>
           <div style="flex:1;min-width:160px;height:10px;border-radius:5px;background:var(--border);overflow:hidden"><div style="height:100%;width:${Math.min(100, 100 * Number(d.social_reliable) / Number(p.goal_social || 1)).toFixed(2)}%;background:var(--ok, #2e9d5b)"></div></div>
@@ -847,6 +848,7 @@
         <div class="grid g-kpi tiles">
           ${kpi("חברות במאגר", n(d.total), `${n(d.active)} פעילות לפי המקור`)}
           ${kpi("הועשרו (פרט קשר אחד לפחות)", n(d.enriched), pct(d.enriched) + dl("enriched"))}
+          ${d.active_private ? kpi("חברות פרטיות פעילות", `${n(d.active_private_enriched)} / ${n(d.active_private)}`, `עם פרט קשר · ${n(d.active_private_social_reliable)} עם רשת אמינה`) : ""}
           ${kpi("רשת חברתית אמינה", n(d.social_reliable), `${pct(d.social_reliable)} · ${n(d.social_two_families)} מ-2 מקורות בלתי תלויים${dl("social_reliable")}`)}
           ${kpi("קישור חברתי ממקור יחיד", n(Number(d.social_any) - Number(d.social_reliable)), "לא נספר ביעד – ממתין לאימות")}
           ${kpi("טלפון עסקי", n(d.phone), `${n(d.phone_verified)} מאומתים מ-2 מקורות${dl("phone")}`)}
