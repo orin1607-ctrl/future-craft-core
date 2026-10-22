@@ -1206,7 +1206,7 @@
     ST.ctlLoading = false; rerender();
   }
   async function setEngine(engine, on) {
-    if (engine === "all" && !on && !window.confirm("עצירת חירום: כל מנועי OpenProspector יפסיקו להתחיל ריצות חדשות (ריצה שכבר רצה תסתיים). הנתונים וההתקדמות נשמרים. להמשיך?")) return;
+    if (engine === "all" && !on && !window.confirm("עצירת חירום: כל מנועי דליה איתור לידים יפסיקו להתחיל ריצות חדשות (ריצה שכבר רצה תסתיים). הנתונים וההתקדמות נשמרים. להמשיך?")) return;
     try {
       await rpc("nr_set_engine", { p_engine: engine, p_on: on });
       toast(engine === "all" ? (on ? "כל המנועים הופעלו מחדש – ממשיכים מאותה נקודה" : "עצירת חירום הופעלה – לא יתחילו ריצות חדשות") : (on ? "המנוע הופעל – ממשיך מאותה נקודה" : "המנוע ייעצר אחרי הריצה הנוכחית"));

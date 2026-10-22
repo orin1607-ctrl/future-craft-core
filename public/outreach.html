@@ -124,7 +124,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
       <button data-tab="campaigns">קמפיינים ותור<span class="cnt" id="cCamps">0</span></button>
       <button data-tab="templates">תבניות הודעה</button>
       <button data-tab="channels">ערוצים</button>
-      <button data-tab="prospector">ייבוא מ-OpenProspector</button>
+      <button data-tab="prospector">ייבוא מדליה איתור לידים</button>
     </div>
 
     <!-- QUEUE -->
@@ -191,7 +191,7 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
     <!-- OPENPROSPECTOR -->
     <section data-pane="prospector" hidden>
       <div class="card">
-        <h2>איתור עסקים מ-OpenProspector</h2>
+        <h2>איתור עסקים מדליה איתור לידים</h2>
         <div class="note info">המאגר כולל כ-546 אלף עסקים. כאן מחפשים ובוחרים רק את מי שרוצים, עד 50 בכל ייבוא. אין ייבוא של כל המאגר. החיפוש לקריאה בלבד, וכפילויות נחסמות אוטומטית.</div>
         <div class="row">
           <input type="search" id="pq" placeholder="שם עסק (לפחות 2 תווים)" style="width:220px">
@@ -367,13 +367,13 @@ async function loadContacts(){
 function renderContacts(){
   $('#cBody').innerHTML = S.contacts.length ? S.contacts.map(c=>`<tr class="clk" data-id="${c.id}">
     <td><input type="checkbox" data-sel="${c.id}" ${S.sel.has(c.id)?'checked':''}></td>
-    <td><b>${esc(c.company_name)}</b>${c.contact_name?`<div class="muted">${esc(c.contact_name)}${c.role?' · '+esc(c.role):''}</div>`:''}${c.source==='openprospector'?'<div class="muted">מ-OpenProspector</div>':''}</td>
+    <td><b>${esc(c.company_name)}</b>${c.contact_name?`<div class="muted">${esc(c.contact_name)}${c.role?' · '+esc(c.role):''}</div>`:''}${c.source==='openprospector'?'<div class="muted">מדליה איתור לידים</div>':''}</td>
     <td style="white-space:nowrap">${chIcons(c)}</td>
     <td>${esc(c.city||'')}${c.industry?`<div class="muted">${esc(c.industry)}</div>`:''}</td>
     <td>${c.do_not_contact?'<span class="chip s-not_interested">⛔ פניות עצורות</span>':`<span class="chip s-${c.status}">${STATUS[c.status]}</span>`}</td>
     <td class="muted">${fmtD(c.last_contact_at)}</td>
     <td class="muted">${c.next_action_at?(new Date(c.next_action_at)<=new Date()?'<b style="color:var(--warn)">היום</b>':fmtD(c.next_action_at)):'—'}</td></tr>`).join('')
-    : '<tr><td colspan="7" class="muted">אין לקוחות להצגה. הוסיפו לקוח עסקי או ייבאו מ-OpenProspector.</td></tr>';
+    : '<tr><td colspan="7" class="muted">אין לקוחות להצגה. הוסיפו לקוח עסקי או ייבאו מדליה איתור לידים.</td></tr>';
   updateSel();
 }
 function updateSel(){ const n=S.sel.size; $('#selInfo').textContent = n?`${n} נבחרו`:''; $('#bulkQueue').disabled=!n; $('#bulkCamp').disabled=!n; $('#bulkStatus').disabled=!n; }
@@ -400,9 +400,9 @@ async function openContact(c){
   if (c) {
     const pf = c.profile || {};
     $('#cSrc').innerHTML = c.source === 'openprospector' ? `<div class="note info" style="margin-top:12px">
-      <b>מ-OpenProspector</b>${pf.fleet_level ? ` · 🚚 ${pf.fleet_level==='documented'?'ראיה ל-5+ רכבים':pf.fleet_level==='strong'?'סימנים חזקים לצי':'פוטנציאל לצי'}${pf.fleet_min?` (לפחות ${pf.fleet_min})`:''}` : ''}${pf.district ? ' · ' + esc(pf.district) : ''}
+      <b>מדליה איתור לידים</b>${pf.fleet_level ? ` · 🚚 ${pf.fleet_level==='documented'?'ראיה ל-5+ רכבים':pf.fleet_level==='strong'?'סימנים חזקים לצי':'פוטנציאל לצי'}${pf.fleet_min?` (לפחות ${pf.fleet_min})`:''}` : ''}${pf.district ? ' · ' + esc(pf.district) : ''}
       ${(pf.people||[]).length ? `<div class="muted">בעלי תפקידים: ${pf.people.map(p=>esc(p.name)+(p.role?' – '+esc(p.role):'')).join(' · ')}</div>` : ''}
-      ${c.source_url ? `<a class="btn sm" style="margin-top:6px" href="${esc(c.source_url)}" target="_blank" rel="noopener">🔗 כרטיס החברה ב-OpenProspector</a>` : ''}</div>` : '';
+      ${c.source_url ? `<a class="btn sm" style="margin-top:6px" href="${esc(c.source_url)}" target="_blank" rel="noopener">🔗 כרטיס החברה בדליה איתור לידים</a>` : ''}</div>` : '';
     const extra = (pf.extra_contacts || []);
     if (c.contact_form_url || extra.length) $('#cSrc').innerHTML += `<div class="note" style="margin-top:8px;background:var(--bg)"><b>דרכי התקשרות נוספות</b>
       ${c.contact_form_url ? `<div>טופס יצירת קשר: <a href="${esc(c.contact_form_url)}" target="_blank" rel="noopener">${esc(c.contact_form_url.replace(/^https?:\/\//,''))}</a></div>` : ''}

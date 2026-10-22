@@ -697,7 +697,7 @@ V.search = () => {
           🎯
         </div>
         <div>
-          <h1 style="margin:0;font-size:23px;color:#1e3a8a;font-weight:800;letter-spacing:-0.5px">מרכז איתור לידים — OpenProspector</h1>
+          <h1 style="margin:0;font-size:23px;color:#1e3a8a;font-weight:800;letter-spacing:-0.5px">דליה איתור לידים</h1>
           <div class="sm muted" style="margin-top:4px;font-size:13.5px">
             מערכת חכמה לאיתור חברות, הצלבת 130 מאגרי מידע, ואימות פרטי קשר עסקיים לפי 7 הנחות היסוד
           </div>

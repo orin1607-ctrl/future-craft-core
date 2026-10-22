@@ -34,7 +34,7 @@
   $('#bulkCamp').onclick = () => createDialog([...S.sel]);
   $('#campNew').onclick = () => {
     if (S.sel.size) return createDialog([...S.sel]);
-    toast('בחרו חברות בלשונית "לקוחות" (או ייבאו מ-OpenProspector) ואז "קמפיין מהנבחרים"');
+    toast('בחרו חברות בלשונית "לקוחות" (או ייבאו מדליה איתור לידים) ואז "קמפיין מהנבחרים"');
     document.querySelector('[data-tab=contacts]').click();
   };
   function ensureDialog() {

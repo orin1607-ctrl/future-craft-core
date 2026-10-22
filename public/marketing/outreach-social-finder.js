@@ -3,7 +3,7 @@
    be reopened, a rerun can cover only what was not found. Nothing is saved without approval, nothing is sent. */
 (function () {
   const CONF = { existing: ['קיים', 'q-sent'], high: ['גבוהה', 'q-sent'], medium: ['בינונית', 'q-attention'], low: ['נמוכה', 'q-queued'], none: ['לא אותר', 'q-queued'] };
-  const SRC = { card: 'כרטיס', openprospector: 'OpenProspector', website: 'אתר החברה', wikidata: 'Wikidata', search: 'חיפוש Brave', manual: 'תיקון ידני', email_domain: 'דומיין האימייל', domain_check: 'אימות אתר' };
+  const SRC = { card: 'כרטיס', openprospector: 'דליה איתור לידים', website: 'אתר החברה', wikidata: 'Wikidata', search: 'חיפוש Brave', manual: 'תיקון ידני', email_domain: 'דומיין האימייל', domain_check: 'אימות אתר' };
   const COLS = [['facebook', 'פייסבוק'], ['instagram', 'אינסטגרם'], ['email', 'אימייל'], ['phone', 'טלפון'], ['linkedin', 'לינקדאין'], ['more', 'אתר · טופס · וואטסאפ']];
   const MORE = [['website', 'אתר'], ['contact_form', 'טופס'], ['whatsapp', 'וואטסאפ']];
   const F = { data: null, busy: false, stop: false, open: new Set(), search: null };
@@ -44,7 +44,7 @@
   async function searchInfo() {
     try { F.search = await Hub.hub('social-find/search-status'); } catch (e) { F.search = null; }
     const s = F.search;
-    $('#fdInfo').innerHTML = `<b>איך המנוע עובד:</b> רק על החברות שבחרתם. בודק את הכרטיס ואת OpenProspector, מאמת את אתר החברה, סורק את דף הבית ועמודי צור קשר / אודות / צוות (לפי robots.txt),
+    $('#fdInfo').innerHTML = `<b>איך המנוע עובד:</b> רק על החברות שבחרתם. בודק את הכרטיס ואת דליה איתור לידים, מאמת את אתר החברה, סורק את דף הבית ועמודי צור קשר / אודות / צוות (לפי robots.txt),
       בודק Wikidata${s && s.configured ? `, ומבצע חיפוש אינטרנט מורשה (Brave Search) – ${s.used_today}/${s.daily_limit} חיפושים היום` : ''}. כל ממצא מגיע עם מקור והסבר. שום דבר לא נשמר בלי אישור, ושום הודעה לא נשלחת.
       ${s && !s.configured ? `<div style="margin-top:6px"><b>⚠️ חיפוש אינטרנט כבוי:</b> כדי שהמנוע יחפש גם בגוגל-סטייל (פייסבוק / אינסטגרם / לינקדאין שאינם מקושרים מהאתר) צריך מפתח Brave Search API. זה חשבון שאתם פותחים (כולל כרטיס אשראי, כ-1,000 חיפושים בחודש בקרדיט החינמי). אחרי שהמפתח נשמר בשרת – המנוע מפעיל את החיפוש אוטומטית, עם מכסה יומית.</div>` : ''}
       <div class="muted" style="margin-top:6px">איתור כתובת אימייל אינו הרשאה לשלוח אליה פרסומת: לפי חוק התקשורת (סעיף 30א) דיוור פרסומי דורש הסכמה מראש. ההסכמה נשמרת בנפרד בכרטיס.</div>`;
