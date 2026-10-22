@@ -68,9 +68,10 @@ body{
 #s-home .gm-top-nav-bar{
   flex:0 0 auto; position:sticky; top:0; z-index:35;
 }
-#s-case{
-  overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; touch-action:pan-y;
-  padding-bottom:calc(130px + env(safe-area-inset-bottom, 24px));
+.case-content{
+  flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; touch-action:pan-y;
+  padding:0 0 calc(140px + env(safe-area-inset-bottom, 24px));
 }
 h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 .bar{width:34px; height:3px; background:var(--white); border-radius:3px; margin-bottom:14px;}
@@ -490,6 +491,14 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 .quick-act-btn * { pointer-events: none; }
 .dash-home-btn * { pointer-events: none; }
 .btn * { pointer-events: none; }
+.act-tile * { pointer-events: none; }
+.route-opt * { pointer-events: none; }
+.accordion-head * { pointer-events: none; }
+.kpi-card * { pointer-events: none; }
+.case-card * { pointer-events: none; }
+.btn-open-case-table * { pointer-events: none; }
+.cust-result * { pointer-events: none; }
+.gm-nav-tab * { pointer-events: none; }
 .quick-act-btn:hover {
   background: rgba(255,255,255,0.12);
   transform: translateY(-1px);
@@ -1031,6 +1040,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: CASE HUB ================= -->
 <section class="screen" id="s-case">
+  <div class="topbar"><div class="back" onclick="returnToGarageDashboard()">→</div><div><h1 id="case-topbar-title">תיק עבודה</h1><div class="sub" id="case-topbar-sub" data-live="case-sub">תיק חדש</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
+  <div class="content case-content" id="case-content">
   <div class="case-desk">
   <aside class="case-desk-side">
   <div class="case-head">
@@ -1124,6 +1135,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   </div>
   <div style="padding:16px;">
     <button type="button" class="btn btn-danger-ghost" id="close-case-btn" onclick="tryCloseCase()" data-testid="action-close-case" style="width:100%;font-size:15px;font-weight:700;padding:14px;border-radius:12px;cursor:pointer;">🔒 סגירת תיק עבודה</button>
+  </div>
   </div>
   </div>
   </div>
@@ -1956,6 +1968,7 @@ function bindLiveCase(){
   document.querySelectorAll('[data-live="customer-name"]').forEach(function(el){ el.textContent = name; });
   document.querySelectorAll('[data-live="quote-sub"]').forEach(function(el){ el.textContent = caseNo + ' · טיוטה'; });
   document.querySelectorAll('[data-live="quote-preview-sub"]').forEach(function(el){ el.textContent = 'הצעת מחיר · ' + caseNo; });
+  setText('case-topbar-title', caseNo ? (caseNo.indexOf('תיק') === 0 ? caseNo : ('תיק ' + caseNo)) : 'תיק עבודה');
   setText('quote-customer-name', name);
   setText('quote-customer-number', custNo ? ('מספר לקוח #' + custNo) : 'מספר לקוח —');
   setText('quote-case-number', 'מספר תיק ' + caseNo);
@@ -2587,6 +2600,19 @@ function clearAllCasesFilters() {
   filterByKpi('all');
 }
 
+function triggerOpenCase(cId) {
+  if (window.parent !== window) {
+    try {
+      parent.postMessage({ type: 'gm:openCase', payload: { caseId: cId } }, '*');
+    } catch(e){}
+  }
+  var match = (homeCasesList || []).filter(function(x){ return x.id === cId; })[0];
+  if (match) {
+    hydrateCase(match);
+    go('s-case');
+  }
+}
+
 function renderHomeCases(cases){
   homeCasesList = Array.isArray(cases) ? cases.slice() : [];
   
@@ -2690,7 +2716,7 @@ function renderHomeCases(cases){
       var tr = document.createElement('tr');
       tr.className = 'case-row';
       tr.setAttribute('data-testid', 'garage-case-row-' + (c.case_number || c.id));
-      tr.onclick = function() { parent.postMessage({ type: 'gm:openCase', payload: { caseId: c.id } }, '*'); };
+      tr.onclick = function() { triggerOpenCase(c.id); };
       tr.innerHTML =
         '<td><strong>' + esc(c.case_number || '') + '</strong></td>' +
         '<td>' + esc(c.customer_name_snapshot || '—') + '</td>' +
@@ -2701,7 +2727,7 @@ function renderHomeCases(cases){
         '<td>' + esc(orderNum) + '</td>' +
         '<td>' + esc(claimNum) + '</td>' +
         '<td>' + esc(closedDate) + '</td>' +
-        '<td><button type="button" class="btn-open-case-table" data-testid="open-case-btn" onclick="event.stopPropagation(); parent.postMessage({type:\'gm:openCase\', payload:{caseId:\'' + c.id + '\'}}, \'*\');">פתח תיק</button></td>';
+        '<td><button type="button" class="btn-open-case-table" data-testid="open-case-btn" onclick="event.stopPropagation(); triggerOpenCase(\'' + c.id + '\');">פתח תיק</button></td>';
       tbody.appendChild(tr);
     }
 
@@ -2710,7 +2736,7 @@ function renderHomeCases(cases){
       var mCard = document.createElement('div');
       mCard.className = 'case-mobile-card';
       mCard.setAttribute('data-testid', 'garage-case-mobile-' + (c.case_number || c.id));
-      mCard.onclick = function() { parent.postMessage({ type: 'gm:openCase', payload: { caseId: c.id } }, '*'); };
+      mCard.onclick = function() { triggerOpenCase(c.id); };
       mCard.innerHTML =
         '<div class="cm-top">' +
           '<div>' +
@@ -2726,7 +2752,7 @@ function renderHomeCases(cases){
           '<div>סגירה: <b>' + esc(closedDate) + '</b></div>' +
         '</div>' +
         '<div class="cm-bottom">' +
-          '<button type="button" class="btn-open-case-table" data-testid="open-case-mobile-btn" onclick="event.stopPropagation(); parent.postMessage({type:\'gm:openCase\', payload:{caseId:\'' + c.id + '\'}}, \'*\');">פתח כרטיס עבודה ›</button>' +
+          '<button type="button" class="btn-open-case-table" data-testid="open-case-mobile-btn" onclick="event.stopPropagation(); triggerOpenCase(\'' + c.id + '\');">פתח כרטיס עבודה ›</button>' +
         '</div>';
       mobileList.appendChild(mCard);
     }
