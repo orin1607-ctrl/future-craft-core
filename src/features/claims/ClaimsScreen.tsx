@@ -3371,7 +3371,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 6,
+                    gap: 4,
                     marginBottom: 12,
                     width: '100%',
                     overflowX: 'auto',
@@ -3383,11 +3383,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     className={`btn btn-sm ${caseOriginFilter === 'all' ? 'btn-p' : 'btn-g'}`}
                     data-testid="filter-all-cases"
                     style={{
-                      flex: '1 1 0',
-                      minWidth: 'fit-content',
+                      flex: '1 1 auto',
+                      minWidth: 0,
                       whiteSpace: 'nowrap',
-                      padding: '7px 10px',
-                      fontSize: 12.5,
+                      padding: '6px 6px',
+                      fontSize: 11.5,
                       fontWeight: caseOriginFilter === 'all' ? 700 : 500,
                       textAlign: 'center',
                       borderRadius: 'var(--r2)',
@@ -3401,11 +3401,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     className={`btn btn-sm ${caseOriginFilter === 'garage' ? 'btn-p' : 'btn-g'}`}
                     data-testid="filter-garage-cases"
                     style={{
-                      flex: '1 1 0',
-                      minWidth: 'fit-content',
+                      flex: '1 1 auto',
+                      minWidth: 0,
                       whiteSpace: 'nowrap',
-                      padding: '7px 10px',
-                      fontSize: 12.5,
+                      padding: '6px 6px',
+                      fontSize: 11.5,
                       fontWeight: caseOriginFilter === 'garage' ? 700 : 500,
                       textAlign: 'center',
                       borderRadius: 'var(--r2)',
@@ -3419,11 +3419,11 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     className={`btn btn-sm ${caseOriginFilter === 'insurance' ? 'btn-p' : 'btn-g'}`}
                     data-testid="filter-insurance-cases"
                     style={{
-                      flex: '1 1 0',
-                      minWidth: 'fit-content',
+                      flex: '1 1 auto',
+                      minWidth: 0,
                       whiteSpace: 'nowrap',
-                      padding: '7px 10px',
-                      fontSize: 12.5,
+                      padding: '6px 6px',
+                      fontSize: 11.5,
                       fontWeight: caseOriginFilter === 'insurance' ? 700 : 500,
                       textAlign: 'center',
                       borderRadius: 'var(--r2)',
@@ -3439,14 +3439,14 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     style={{
                       flex: '0 0 auto',
                       whiteSpace: 'nowrap',
-                      padding: '7px 11px',
-                      fontSize: 12,
-                      fontWeight: 600,
+                      padding: '6px 8px',
+                      fontSize: 11.5,
+                      fontWeight: 700,
                       borderRadius: 'var(--r2)',
                       border: '1px solid var(--br2)',
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 4,
+                      gap: 3,
                       cursor: 'pointer',
                     }}
                     onClick={() => showView('reports')}
