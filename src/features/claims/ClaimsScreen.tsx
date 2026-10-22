@@ -1,4 +1,7 @@
 import ClaimImage from './ClaimImage';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import ClaimsReportsView, { type GarageCaseRecord } from './ClaimsReportsView';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CLAIM_DOC_TYPES, CLAIM_KINDS, CLOSE_REASONS, DOCS_ORDER, MANDATORY_STATUSES, STATUS_MANUAL, STATUS_UNCHANGED, STATUSES, claimHasNextAction, claimNeedsReturn, displayClaimNum, docsOrderLabel, docsOrderOf, isClosedStatus, mailClaimLabel, workClaimNum, type ClaimDocType, type ClaimRecord, type ClaimsActor, type ClaimsVehicleHit } from './claimsConstants';
 import { CUSTOMER_REQUEST_STATUSES, FOLLOWUP_DAY_PRESETS, RECURRING_DAY_PRESETS, addRecurringDays, buildClaimRowAlerts, canMarkMailTaskDone, customerStatusLabel, customerStatusOf, defaultRecurringFirstLocal, detectMailRequests, followupDaysPreset, followupWaitDaysFromRow, inferRecipientKind, isDocMailRequest, isRecurringMailFollowup, isScheduledOnceMail, lastTreatmentActionText, mailLooksInbound, mailShowsTreatment, normalizeFollowupDays, normalizeRecurringDays, recipientKindLabel, recurringDaysPreset, recurringFirstPlannedAt, recurringLabel, resolveRecurringFirstRun, shortStatusNote, untreatedMailIds, type ClaimAlert, type RecurringFirstSendMode } from './claimWorkAlerts';
@@ -864,10 +867,13 @@ function InCardPreview({ file, onClose, pos, canPrev, canNext, onPrev, onNext }:
 type ToastItem = { id: number; msg: string; type: string };
 
 export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
+  const navigate = useNavigate();
   const apiRef = useRef<ClaimsApi>(createClaimsApi(actor));
   const [ready, setReady] = useState(false);
   const [sync, setSync] = useState<'ok' | 'pend' | 'err'>('ok');
   const [claims, setClaims] = useState<ClaimRecord[]>([]);
+  const [garageCases, setGarageCases] = useState<GarageCaseRecord[]>([]);
+  const [caseOriginFilter, setCaseOriginFilter] = useState<'all' | 'insurance' | 'garage'>('all');
   const [notifs, setNotifs] = useState<ClaimRecord[]>([]);
   const [view, setView] = useState('dashboard');
   const [filter, setFilter] = useState('');
@@ -1066,6 +1072,18 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
 
       if (!cr.success && cr.error) toast(`טעינת תביעות נכשלה: ${cr.error}`, 'err');
 
+      // Fetch garage cases for unified case list and reports
+      void supabase
+        .from('garage_cases')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .then(({ data: gcData, error: gcErr }) => {
+          if (!gcErr && gcData) {
+            setGarageCases(gcData as unknown as GarageCaseRecord[]);
+          }
+        })
+        .catch(() => undefined);
+
       // Non-blocking secondary edge queries: Gmail pending review and garage reviews
       void Promise.race([
         apiRef.current.invokeGmail('list_pending'),
@@ -1259,6 +1277,48 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const isMyClaim = (c: ClaimRecord) => c.assigned_to === actor.id || c.created_by === actor.id;
   const workset = mineOnly ? activeClaims.filter(isMyClaim) : activeClaims;
   const cnt = (f: (x: ClaimRecord) => boolean) => workset.filter(f).length;
+
+  const garageCaseToRow = useCallback((g: GarageCaseRecord): ClaimRecord => {
+    const cd = g.case_data || {};
+    const isClosed = g.status === 'סגור' || !!cd.caseClosed || !!cd.workFinished;
+    return {
+      id: g.id,
+      caseOrigin: 'garage',
+      claimNum: g.case_number || (g.id ? `GC-${g.id.slice(0, 6)}` : ''),
+      clientName: g.customer_name_snapshot || (typeof cd.customerName === 'string' ? cd.customerName : '') || 'לקוח מוסך',
+      clientPhone: typeof cd.customerPhone === 'string' ? cd.customerPhone : '',
+      plate: g.vehicle_plate_snapshot || (typeof cd.vehiclePlate === 'string' ? cd.vehiclePlate : '') || '—',
+      insCompany: typeof cd.claimNumber === 'string' && cd.claimNumber ? `תביעה: ${cd.claimNumber}` : '— מוסך כללי —',
+      status: g.status || 'חדש',
+      assigned_to_name: (typeof cd.intakeWorker === 'string' ? cd.intakeWorker : '') || 'צוות המוסך',
+      lastActivityAt: (typeof cd.workFinishedAt === 'string' ? cd.workFinishedAt : '') || g.updated_at || g.created_at || '',
+      updatedAt: g.updated_at || g.created_at || '',
+      createdAt: g.created_at || '',
+      archived: isClosed ? 'true' : 'false',
+    };
+  }, []);
+
+  const activeGarageCases = useMemo(() => {
+    return garageCases.filter((g) => {
+      const cd = g.case_data || {};
+      return g.status !== 'סגור' && !cd.caseClosed;
+    });
+  }, [garageCases]);
+
+  const archiveGarageCases = useMemo(() => {
+    return garageCases.filter((g) => {
+      const cd = g.case_data || {};
+      return g.status === 'סגור' || !!cd.caseClosed;
+    });
+  }, [garageCases]);
+
+  const mappedActiveClaims = useMemo(() => {
+    return activeClaims.map((c) => ({ ...c, caseOrigin: 'insurance' }));
+  }, [activeClaims]);
+
+  const mappedArchiveClaims = useMemo(() => {
+    return archiveClaims.map((c) => ({ ...c, caseOrigin: 'insurance' }));
+  }, [archiveClaims]);
 
   const showView = (name: string, f = '') => {
     setSbOpen(false);
@@ -2668,9 +2728,35 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   };
 
   const list = useMemo(() => {
-    const pool = listMode === 'archive' ? archiveClaims : activeClaims;
+    let pool: ClaimRecord[] = [];
+    if (listMode === 'archive') {
+      if (caseOriginFilter === 'all') {
+        pool = [...mappedArchiveClaims, ...archiveGarageCases.map(garageCaseToRow)];
+      } else if (caseOriginFilter === 'insurance') {
+        pool = mappedArchiveClaims;
+      } else {
+        pool = archiveGarageCases.map(garageCaseToRow);
+      }
+    } else {
+      if (caseOriginFilter === 'all') {
+        pool = [...mappedActiveClaims, ...activeGarageCases.map(garageCaseToRow)];
+      } else if (caseOriginFilter === 'insurance') {
+        pool = mappedActiveClaims;
+      } else {
+        pool = activeGarageCases.map(garageCaseToRow);
+      }
+    }
     return pool.filter(matchesRowFilters);
-  }, [activeClaims, archiveClaims, listMode, search, stFil, filter, insCoFil, handlerFil, docsOrderFil, workFil, mineOnly, actor.id, dashTasks, dashRems]);
+  }, [
+    activeGarageCases,
+    archiveGarageCases,
+    caseOriginFilter,
+    garageCaseToRow,
+    listMode,
+    mappedActiveClaims,
+    mappedArchiveClaims,
+    matchesRowFilters,
+  ]);
 
   const dashRows = useMemo(
     () => activeClaims.filter(matchesRowFilters),
@@ -2788,45 +2874,85 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     </tr></thead>
   );
 
-  const renderClaimMobileCard = (c: ClaimRecord, extra?: boolean) => (
-    <article key={c.id} className="claim-mcard" data-testid={`claim-row-${c.id}`} onClick={() => openCard(c.id)}>
-      <div className="claim-mcard-head">
-        <div>
-          <div className="claim-mcard-name">{c.clientName || '—'}</div>
-          <div className="claim-mcard-num">מספר תביעה: {displayClaimNum(c)}</div>
+  const renderClaimMobileCard = (c: ClaimRecord, extra?: boolean) => {
+    const isGarage = c.caseOrigin === 'garage';
+    return (
+      <article
+        key={c.id}
+        className="claim-mcard"
+        data-testid={`claim-row-${c.id}`}
+        onClick={() => {
+          if (isGarage) {
+            navigate(`/garage-management/${c.id}`);
+          } else {
+            openCard(c.id);
+          }
+        }}
+      >
+        <div className="claim-mcard-head">
+          <div>
+            <div className="claim-mcard-name" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>{c.clientName || '—'}</span>
+              {isGarage ? (
+                <span className="lbl-pill" style={{ background: 'rgba(245,158,11,0.2)', color: '#f59e0b', fontWeight: 700, fontSize: 10 }}>🔧 מוסך</span>
+              ) : c.caseOrigin === 'insurance' ? (
+                <span className="lbl-pill" style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', fontWeight: 700, fontSize: 10 }}>🛡️ ביטוח</span>
+              ) : (
+                <span className="lbl-pill" style={{ background: 'rgba(148,163,184,0.2)', color: '#94a3b8', fontWeight: 700, fontSize: 10 }}>לא מסווג</span>
+              )}
+            </div>
+            <div className="claim-mcard-num">{isGarage ? 'מספר תיק: ' : 'מספר תביעה: '}{displayClaimNum(c)}</div>
+          </div>
+          <div className="claim-mcard-side">
+            {stBadge(c.status)}
+            {shortStatusNote(c.lastStatusNote) ? <div className="claim-status-note" data-testid="claim-status-note">{shortStatusNote(c.lastStatusNote)}</div> : null}
+            <label className="claim-mcard-check" onClick={(e) => e.stopPropagation()}>
+              <input type="checkbox" data-testid={`claim-check-${c.id}`} checked={selectedIds.includes(c.id)} onChange={(e) => toggleSelect(c.id, e.target.checked)} />
+            </label>
+          </div>
         </div>
-        <div className="claim-mcard-side">
-          {stBadge(c.status)}
-          {shortStatusNote(c.lastStatusNote) ? <div className="claim-status-note" data-testid="claim-status-note">{shortStatusNote(c.lastStatusNote)}</div> : null}
-          <label className="claim-mcard-check" onClick={(e) => e.stopPropagation()}>
-            <input type="checkbox" data-testid={`claim-check-${c.id}`} checked={selectedIds.includes(c.id)} onChange={(e) => toggleSelect(c.id, e.target.checked)} />
-          </label>
+        <div className="claim-mcard-meta">
+          <span>רכב {c.plate || '—'}</span>
+          <span>{claimInsCompanyLabel(c) || '—'}</span>
         </div>
-      </div>
-      <div className="claim-mcard-meta">
-        <span>רכב {c.plate || '—'}</span>
-        <span>{claimInsCompanyLabel(c) || '—'}</span>
-      </div>
-      <div className="claim-mcard-next">
-        פעולה/טיפול הבא: {fmtDay(c.nextDate || '') || '—'}
-        {c.nextAction ? ` · ${c.nextAction}` : ''}
-      </div>
-      <div className="claim-mcard-last" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          className="claim-last-treat"
-          data-testid={`claim-last-treatment-${c.id}`}
-          onClick={() => void openCard(c.id, 'timeline')}
-        >הטיפול האחרון: {lastTreatLabel(c)}</button>
-      </div>
-      <div className="claim-mcard-alerts" onClick={(e) => e.stopPropagation()}>
-        <RowAlerts alerts={buildClaimRowAlerts(c, alertCtx)} onAlertClick={(a) => openMailAction(c.id, a)} />
-      </div>
-      {extra ? (
-        <button type="button" className="btn btn-g btn-sm claim-mcard-edit" onClick={(e) => { e.stopPropagation(); startEdit(c.id); }}>ערוך</button>
-      ) : null}
-    </article>
-  );
+        {!isGarage && (
+          <>
+            <div className="claim-mcard-next">
+              פעולה/טיפול הבא: {fmtDay(c.nextDate || '') || '—'}
+              {c.nextAction ? ` · ${c.nextAction}` : ''}
+            </div>
+            <div className="claim-mcard-last" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                className="claim-last-treat"
+                data-testid={`claim-last-treatment-${c.id}`}
+                onClick={() => void openCard(c.id, 'timeline')}
+              >הטיפול האחרון: {lastTreatLabel(c)}</button>
+            </div>
+            <div className="claim-mcard-alerts" onClick={(e) => e.stopPropagation()}>
+              <RowAlerts alerts={buildClaimRowAlerts(c, alertCtx)} onAlertClick={(a) => openMailAction(c.id, a)} />
+            </div>
+          </>
+        )}
+        {extra ? (
+          <button
+            type="button"
+            className="btn btn-g btn-sm claim-mcard-edit"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isGarage) {
+                navigate(`/garage-management/${c.id}`);
+              } else {
+                startEdit(c.id);
+              }
+            }}
+          >
+            {isGarage ? 'פתח תיק' : 'ערוך'}
+          </button>
+        ) : null}
+      </article>
+    );
+  };
 
   const renderClaimList = (rows: ClaimRecord[], extra: boolean | undefined, empty: string, tableTestId: string) => {
     const emptyText = searchEmptyLabel(Boolean(search.trim()), empty);
@@ -2851,38 +2977,86 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     );
   };
 
-  const renderClaimRow = (c: ClaimRecord, extra?: boolean) => (
-    <tr key={c.id} onClick={() => openCard(c.id)} data-testid={`claim-row-${c.id}`}>
-      <td onClick={(e) => e.stopPropagation()}>
-        <input type="checkbox" data-testid={`claim-check-${c.id}`} checked={selectedIds.includes(c.id)} onChange={(e) => toggleSelect(c.id, e.target.checked)} />
-      </td>
-      <td style={{ fontWeight: 800, color: 'var(--ac3)', fontSize: 11 }}>{displayClaimNum(c)}</td>
-      <td>
-        <div style={{ fontWeight: 600 }}>{c.clientName}</div>
-        {c.clientPhone && extra ? <div style={{ fontSize: 10, color: 'var(--t3)' }}>{c.clientPhone}</div> : null}
-        {c.source === 'Customer Accident Intake' ? <div className="lbl-pill">טופס לקוח</div> : null}
-        {c.duplicateSuspect === 'true' ? <div className="lbl-pill" style={{ color: '#b45309' }}>חשד לכפילות</div> : null}
-      </td>
-      <td>{c.plate || '—'}</td>
-      <td>{claimInsCompanyLabel(c)}</td>
-      <td>
-        {stBadge(c.status)}
-        {shortStatusNote(c.lastStatusNote) ? <div className="claim-status-note" data-testid="claim-status-note">{shortStatusNote(c.lastStatusNote)}</div> : null}
-      </td>
-      <td style={{ fontSize: 11 }}>{c.assigned_to_name || '—'}</td>
-      <td onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          className="claim-last-treat"
-          data-testid={`claim-last-treatment-${c.id}`}
-          onClick={() => void openCard(c.id, 'timeline')}
-        >{lastTreatLabel(c)}</button>
-      </td>
-      <td style={{ fontSize: 10, color: 'var(--yn2)' }}>{fmtDay(c.nextDate || '')}</td>
-      <td onClick={(e) => e.stopPropagation()}><RowAlerts alerts={buildClaimRowAlerts(c, alertCtx)} onAlertClick={(a) => openMailAction(c.id, a)} /></td>
-      {extra ? <td onClick={(e) => e.stopPropagation()}><button className="btn btn-g btn-sm" onClick={() => startEdit(c.id)}>✏️</button></td> : null}
-    </tr>
-  );
+  const renderClaimRow = (c: ClaimRecord, extra?: boolean) => {
+    const isGarage = c.caseOrigin === 'garage';
+    return (
+      <tr
+        key={c.id}
+        onClick={() => {
+          if (isGarage) {
+            navigate(`/garage-management/${c.id}`);
+          } else {
+            openCard(c.id);
+          }
+        }}
+        data-testid={`claim-row-${c.id}`}
+        style={{ cursor: 'pointer' }}
+      >
+        <td onClick={(e) => e.stopPropagation()}>
+          <input type="checkbox" data-testid={`claim-check-${c.id}`} checked={selectedIds.includes(c.id)} onChange={(e) => toggleSelect(c.id, e.target.checked)} />
+        </td>
+        <td>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontWeight: 800, color: isGarage ? '#fbbf24' : 'var(--ac3)', fontSize: 11 }}>
+              {displayClaimNum(c)}
+            </span>
+            {isGarage ? (
+              <span className="lbl-pill" style={{ background: 'rgba(245,158,11,0.2)', color: '#f59e0b', fontWeight: 700, fontSize: 10 }}>🔧 מוסך</span>
+            ) : c.caseOrigin === 'insurance' ? (
+              <span className="lbl-pill" style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa', fontWeight: 700, fontSize: 10 }}>🛡️ ביטוח</span>
+            ) : (
+              <span className="lbl-pill" style={{ background: 'rgba(148,163,184,0.2)', color: '#94a3b8', fontWeight: 700, fontSize: 10 }}>לא מסווג</span>
+            )}
+          </div>
+        </td>
+        <td>
+          <div style={{ fontWeight: 600 }}>{c.clientName}</div>
+          {c.clientPhone && extra ? <div style={{ fontSize: 10, color: 'var(--t3)' }}>{c.clientPhone}</div> : null}
+          {c.source === 'Customer Accident Intake' ? <div className="lbl-pill">טופס לקוח</div> : null}
+          {c.duplicateSuspect === 'true' ? <div className="lbl-pill" style={{ color: '#b45309' }}>חשד לכפילות</div> : null}
+        </td>
+        <td>{c.plate || '—'}</td>
+        <td>{claimInsCompanyLabel(c)}</td>
+        <td>
+          {stBadge(c.status)}
+          {shortStatusNote(c.lastStatusNote) ? <div className="claim-status-note" data-testid="claim-status-note">{shortStatusNote(c.lastStatusNote)}</div> : null}
+        </td>
+        <td style={{ fontSize: 11 }}>{c.assigned_to_name || '—'}</td>
+        <td onClick={(e) => e.stopPropagation()}>
+          {isGarage ? (
+            <span style={{ fontSize: 11, color: 'var(--t3)' }}>{c.lastActivityAt ? fmtDay(c.lastActivityAt) : '—'}</span>
+          ) : (
+            <button
+              type="button"
+              className="claim-last-treat"
+              data-testid={`claim-last-treatment-${c.id}`}
+              onClick={() => void openCard(c.id, 'timeline')}
+            >{lastTreatLabel(c)}</button>
+          )}
+        </td>
+        <td style={{ fontSize: 10, color: 'var(--yn2)' }}>{fmtDay(c.nextDate || '')}</td>
+        <td onClick={(e) => e.stopPropagation()}>
+          {isGarage ? null : <RowAlerts alerts={buildClaimRowAlerts(c, alertCtx)} onAlertClick={(a) => openMailAction(c.id, a)} />}
+        </td>
+        {extra ? (
+          <td onClick={(e) => e.stopPropagation()}>
+            <button
+              className="btn btn-g btn-sm"
+              onClick={() => {
+                if (isGarage) {
+                  navigate(`/garage-management/${c.id}`);
+                } else {
+                  startEdit(c.id);
+                }
+              }}
+            >
+              {isGarage ? 'פתח' : '✏️'}
+            </button>
+          </td>
+        ) : null}
+      </tr>
+    );
+  };
   const myTasks = dashTasks.filter((t) => t.done !== 'true' && customerStatusOf(t) !== 'done' && customerStatusOf(t) !== 'cancelled' && (!mineOnly || workset.some((c) => c.id === t.claimId))).slice(0, 8);
   const myRems = dashRems.filter((r) => !mineOnly || workset.some((c) => c.id === r.claimId)).slice(0, 8);
   const waDueList = (
@@ -2957,10 +3131,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               ['claims', '📋 תיקים'],
               ['gmail', '📧 Gmail'],
               ['tasks', '✅ משימות'],
-              ['reports', '📈 דוחות'],
+              ['reports', '📊 דוחות'],
             ].map(([k, l]) => (
               <button key={k} className={`tbn ${view === k ? 'act' : ''}`} onClick={() => showView(k)}>
-                {l}{k === 'claims' ? <span className="nb b">{workset.length}</span> : null}
+                {l}{k === 'claims' ? <span className="nb b">{caseOriginFilter === 'all' ? (activeClaims.length + activeGarageCases.length) : (caseOriginFilter === 'garage' ? activeGarageCases.length : workset.length)}</span> : null}
               </button>
             ))}
             <button className="tbn" onClick={async () => {
@@ -3029,7 +3203,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <button className={`sb-i ${view === 'claims' && listMode === 'archive' ? 'act' : ''}`} data-testid="claims-nav-archive" onClick={() => { setListMode('archive'); setView('claims'); setFilter(''); setStFil(''); setSbOpen(false); }}><span className="ic">📦</span>תיקים בארכיון<span className="sb-bd">{archiveClaims.length}</span></button>
               <button className={`sb-i ${view === 'gmail' ? 'act' : ''}`} onClick={() => showView('gmail')}><span className="ic">📧</span>Gmail{gmailPending.filter((p) => !p.imported_at && p.decision === 'needs_review').length ? <span className="sb-bd r">{gmailPending.filter((p) => !p.imported_at && p.decision === 'needs_review').length}</span> : null}</button>
               <button className={`sb-i ${view === 'tasks' ? 'act' : ''}`} onClick={() => showView('tasks')}><span className="ic">✅</span>משימות</button>
-              <button className={`sb-i ${view === 'reports' ? 'act' : ''}`} onClick={() => showView('reports')}><span className="ic">📈</span>דוחות</button>
+              <button className={`sb-i ${view === 'reports' ? 'act' : ''}`} onClick={() => showView('reports')}><span className="ic">📊</span>דוחות</button>
               <button className="sb-i" data-testid="claims-nav-templates" onClick={async () => {
                 setSbOpen(false);
                 const r = await apiRef.current.getTemplates();
@@ -3155,6 +3329,55 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             {view === 'claims' && (
               <>
                 {waDueList}
+                <div
+                  className="claims-case-origin-toggle"
+                  style={{
+                    display: 'flex',
+                    gap: 8,
+                    marginBottom: 14,
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    padding: '8px 12px',
+                    background: 'var(--bg2)',
+                    border: '1px solid var(--br2)',
+                    borderRadius: 'var(--r)',
+                  }}
+                  data-testid="claims-origin-filters"
+                >
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${caseOriginFilter === 'all' ? 'btn-p' : 'btn-g'}`}
+                    data-testid="filter-all-cases"
+                    onClick={() => setCaseOriginFilter('all')}
+                  >
+                    הכול ({activeClaims.length + activeGarageCases.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${caseOriginFilter === 'insurance' ? 'btn-p' : 'btn-g'}`}
+                    data-testid="filter-insurance-cases"
+                    onClick={() => setCaseOriginFilter('insurance')}
+                  >
+                    🛡️ תביעות ביטוח ({activeClaims.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${caseOriginFilter === 'garage' ? 'btn-p' : 'btn-g'}`}
+                    data-testid="filter-garage-cases"
+                    onClick={() => setCaseOriginFilter('garage')}
+                  >
+                    🔧 תיקי מוסך ({activeGarageCases.length})
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-p"
+                    style={{ marginRight: 'auto', fontWeight: 700 }}
+                    data-testid="claims-btn-reports-hub"
+                    onClick={() => showView('reports')}
+                  >
+                    📊 מרכז דוחות
+                  </button>
+                </div>
                 <div className="ph">
                   <div><div className="ph-t" data-testid="claims-list-heading">{listMode === 'archive' ? 'תיקים בארכיון' : (filter || stFil || workFil || insCoFil || (mineOnly ? 'התביעות שלי' : 'כל התיקים'))}<div className="ph-bar" /></div></div>
                   <div className="ph-a">
@@ -3271,37 +3494,13 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             )}
 
             {view === 'reports' && (
-              <>
-                <div className="ph"><div><div className="ph-t">דוחות ניהול<div className="ph-bar" /></div></div>
-                  <div className="ph-a">
-                    {[7, 14, 30, 60].map((d) => (
-                      <button key={d} className="btn btn-g btn-sm" onClick={async () => {
-                        const r = await apiRef.current.getInactiveClaims(d);
-                        setInactive({ days: d, rows: r.data || [] });
-                      }}>{d} ימים</button>
-                    ))}
-                  </div>
-                </div>
-                {inactive && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div className="sdiv"><div className="sdiv-t">תיקים ללא פעילות – {inactive.days} ימים ({inactive.rows.length})</div><div className="sdiv-l" /></div>
-                    <div className="tw"><table><thead><tr><th>מספר תביעה</th><th>לקוח</th><th>רכב</th><th>סטטוס</th><th>פעילות אחרונה</th></tr></thead>
-                      <tbody>
-                        {inactive.rows.length === 0 ? <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--t3)', padding: 20 }}>אין תיקים ללא פעילות</td></tr>
-                          : inactive.rows.map((c) => (
-                            <tr key={c.id} onClick={() => openCard(c.id)}>
-                              <td style={{ fontWeight: 800, color: 'var(--ac3)', fontSize: 11 }}>{displayClaimNum(c)}</td>
-                              <td>{c.clientName}</td><td>{c.plate || '—'}</td>
-                              <td>{stBadge(c.status)}</td>
-                              <td style={{ fontSize: 11, color: 'var(--rd2)' }}>{c.lastActivityAt || c.updatedAt || '—'}</td>
-                            </tr>
-                          ))}
-                      </tbody>
-                    </table></div>
-                  </div>
-                )}
-                <div dangerouslySetInnerHTML={{ __html: reportHtml }} />
-              </>
+              <ClaimsReportsView
+                claims={claims}
+                garageCases={garageCases}
+                onBack={() => showView('claims')}
+                onOpenClaim={(id) => openCard(id)}
+                onOpenGarageCase={(id) => navigate(`/garage-management/${id}`)}
+              />
             )}
           </div>
         </div>
