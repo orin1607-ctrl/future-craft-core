@@ -1,0 +1,10 @@
+{
+  "armed": true,
+  "feature": "4d2a2a199d56f1c8495c67742edba0624b48fe24",
+  "live_before": "3532f02daf1211abc265fe9fe15ac3fe8be00481",
+  "live_bundle": "index-C-TPe4y3.js",
+  "scope": "frontend-accident-investigation-fields-only",
+  "requires_db_migration": "20261018120000_accident_investigation_fields",
+  "owner_approved": "2026-10-18",
+  "db_migration_applied": "2026-10-18 (16 rows backed up to backup.accidents_20261018, data unchanged)"
+}
