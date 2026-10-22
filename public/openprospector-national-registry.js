@@ -655,6 +655,16 @@
       </tbody></table></div></div>` : ""}`;
   }
 
+  // reliability of one contact point. "verified" alone can be two crawls of the same site, so high needs an official
+  // registry or two independent kinds of source (src_groups); the company's own verified site is good; anything else is low
+  function cpTrust(c) {
+    const t = Number(c.src_groups) >= 2 ? ["גבוהה", "b-ok", "אושר בשני סוגי מקורות בלתי תלויים"]
+      : c.src_official ? ["גבוהה", "b-ok", "ממאגר רשמי"]
+      : c.src_own_site ? ["טובה", "b-blue", "מאתר החברה שאומת מול פרטיה" + (c.verified ? " (נמצא בכמה סריקות של האתר)" : "")]
+      : c.verified ? ["בינונית", "b-est", "2 מקורות מאותו סוג"]
+      : ["נמוכה", "b-no", "מקור אחד – לא מאומת"];
+    return `<span class="badge ${t[1]}">${t[0]}</span><div class="xs muted">${t[2]}</div>`;
+  }
   function bizDetail(d) {
     const b = d.business || {};
     const kindL = { phone: "טלפון", email: "אימייל", website: "אתר", social: "רשת חברתית", fax: "פקס", contact_form: "טופס קשר", whatsapp: "WhatsApp" };
@@ -684,13 +694,13 @@
       ${b.fleet_known ? `<div class="badge b-ok" style="white-space:normal">צי רכב: ${b.fleet_vehicles ? n(b.fleet_vehicles) + " רכבים לפי רשומת מקור" : "קיים"}${(b.fleet_types || []).length ? " · " + esc(b.fleet_types.join(", ")) : ""}</div>` : `<div class="xs muted">צי רכב: לא ידוע (אין רשומת מקור)</div>`}
       ${(b.logistics_indicators || []).length ? `<div class="xs">אינדיקציה (לא עובדה) לפעילות שטח/לוגיסטיקה: ${esc(b.logistics_indicators.join(" · "))}</div>` : ""}
       ${b.description ? `<div class="xs" style="white-space:normal"><span class="muted">תיאור:</span> ${esc(b.description)}</div>` : ""}
-      <div><b>פרטי קשר (${n((d.contacts || []).length)})</b><div class="tbl-wrap"><table><thead><tr><th>סוג</th><th>ערך</th><th>סניף</th><th>מקורות</th><th>נמצא לראשונה</th><th>אימות</th></tr></thead><tbody>
+      <div><b>פרטי קשר (${n((d.contacts || []).length)})</b><div class="tbl-wrap"><table><thead><tr><th>סוג</th><th>ערך</th><th>סניף</th><th>מקורות</th><th>נמצא לראשונה</th><th>רמת אמינות</th></tr></thead><tbody>
         ${(d.contacts || []).map((c) => `<tr><td class="xs">${kindL[c.kind] || c.kind}${c.subkind && c.subkind !== c.kind ? ` · ${esc(subL[c.subkind] || c.subkind)}` : ""}</td>
           <td dir="ltr" class="xs">${isUrl(c.display || c.value) ? `<a href="${esc(c.display || c.value)}" target="_blank" rel="noopener">${esc(c.display || c.value)}</a>` : esc(c.display || c.value)}</td>
           <td class="xs">${esc([c.branch_name, c.branch_address].filter(Boolean).join(" – ") || "—")}</td>
           <td class="xs">${(c.sources || []).map((k) => esc(srcName(k))).join("<br>")}</td>
           <td class="xs">${day(c.first_seen_at)}</td>
-          <td>${c.verified ? `<span class="badge b-ok">מאומת (2+ מקורות)</span>` : `<span class="badge b-no">לא מאומת</span>`}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">לא נמצאו פרטי קשר</td></tr>`}
+          <td>${cpTrust(c)}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">לא נמצאו פרטי קשר</td></tr>`}
       </tbody></table></div></div>
       ${(d.people || []).length ? `<div><b>אנשי קשר עסקיים (${n(d.people.length)})</b><div class="tbl-wrap"><table><thead><tr><th>שם</th><th>תפקיד</th><th>מקור</th><th>מועד</th></tr></thead><tbody>
         ${d.people.map((p) => `<tr><td>${esc(p.full_name)}</td><td class="xs">${esc(p.role)}</td><td class="xs">${p.source_url ? `<a href="${esc(p.source_url)}" target="_blank" rel="noopener">${esc(srcName(p.source_key))}</a>` : esc(srcName(p.source_key))}</td><td class="xs">${day(p.collected_at)}</td></tr>`).join("")}

@@ -475,9 +475,10 @@ function prospectorToContact(r: any, cps: any[] = [], people: any[] = []) {
     whatsapp: waNum(wa?.value) || waNum(so.whatsapp) || waNum(r.whatsapp) || (mobile && mobile.value !== phone?.value ? mobile.value : null),
     email: email?.value || r.email_main || person?.email || null,
     website: r.website || null,
-    facebook_url: fb?.value || so.facebook || null,
-    instagram_url: ig?.value || so.instagram || null,
-    linkedin_url: li?.value || so.linkedin || null,
+    // value is the lower-cased match key; display keeps the published case (facebook.com/share/… is case-sensitive)
+    facebook_url: fb?.display || fb?.value || so.facebook || null,
+    instagram_url: ig?.display || ig?.value || so.instagram || null,
+    linkedin_url: li?.display || li?.value || so.linkedin || null,
     city: r.city || null, industry: r.main_activity || r.sector || null,
     notes: facts.length ? "מ-OpenProspector · " + facts.join(" · ") : "מ-OpenProspector",
     tags: ["OpenProspector", ...(r.fleet_level ? ["צי רכב"] : [])],
