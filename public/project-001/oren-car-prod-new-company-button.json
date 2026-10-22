@@ -1,0 +1,9 @@
+{
+  "armed": true,
+  "feature": "bf698ddefd90333d67642ff3265a10fee7667cf8",
+  "live_before": "4d2a2a199d56f1c8495c67742edba0624b48fe24",
+  "live_bundle": "index-DINbVFmc.js",
+  "scope": "frontend-new-company-button-only",
+  "requires_db_migration": false,
+  "owner_approved": "2026-10-22"
+}
