@@ -249,6 +249,7 @@
       const [rep, rq, intel, wu, sc, hl] = await Promise.all([rpc("nr_enrichment_report"), rpc("nr_review_queue", { p_limit: 25, p_offset: ST.reviewPage * 25, p_source: null }),
         rpc("nr_intel_report"), rpc("nr_watch_updates", { p_limit: 60 }), rpc("nr_scale_report"), rpc("nr_engine_health").catch(() => null)]);
       ST.report = rep; ST.review = rq; ST.intel = intel; ST.watchUpd = wu; ST.scale = sc; ST.health = hl; ST.reportError = "";
+      ST.progress = await rpc("nr_progress_report").catch(() => null); // a missing snapshot must not hide the rest of the report
     } catch (e) { ST.reportError = e.message || String(e); }
     ST.reportLoading = false; rerender();
   }
@@ -829,6 +830,36 @@
   }
 
   // ── enrichment: progress report, sources, examples, review queue ──
+  // goal: 50% of the registry with at least one reliable business social account; snapshots every 6 hours (nr_progress_take)
+  function progressCard(p) {
+    if (!p || p.empty || !p.data) return "";
+    const d = p.data, tot = Number(d.total) || 1, pct = (x) => `${(100 * Number(x || 0) / tot).toFixed(1)}%`;
+    const delta = (k) => p.day_ago ? Number(d[k] || 0) - Number(p.day_ago.data[k] || 0) : null;
+    const dl = (k) => { const x = delta(k); return x === null ? "" : ` · ${x >= 0 ? "+" : ""}${n(x)} ביממה`; };
+    const rate = p.social_per_day == null ? "הקצב יימדד אחרי יממה של צילומי מצב"
+      : `${n(Math.round(p.social_per_day))} חברות ביום (${p.rate_basis === "snapshots_7d" ? "ממוצע שבוע" : "יממה אחרונה"})${p.days_to_goal ? ` · בקצב הזה: כ-${n(p.days_to_goal)} ימים ליעד` : ""}`;
+    return `<div class="card"><div class="card-h"><h2>🎯 התקדמות ליעד – 50% מהחברות עם רשת חברתית עסקית אמינה<span class="h-bar"></span></h2><span class="spacer"></span>
+        <span class="xs muted">צילום מצב ${when(p.taken_at)} · מתעדכן כל 6 שעות</span></div>
+      <div class="card-b" style="display:grid;gap:8px">
+        <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap"><b class="num">${n(d.social_reliable)} / ${n(p.goal_social)}</b>
+          <div style="flex:1;min-width:160px;height:10px;border-radius:5px;background:var(--border);overflow:hidden"><div style="height:100%;width:${Math.min(100, 100 * Number(d.social_reliable) / Number(p.goal_social || 1)).toFixed(2)}%;background:var(--ok, #2e9d5b)"></div></div>
+          <span class="xs">חסרות ${n(p.goal_gap)} חברות · ${esc(rate)}</span></div>
+        <div class="grid g-kpi tiles">
+          ${kpi("חברות במאגר", n(d.total), `${n(d.active)} פעילות לפי המקור`)}
+          ${kpi("הועשרו (פרט קשר אחד לפחות)", n(d.enriched), pct(d.enriched) + dl("enriched"))}
+          ${kpi("רשת חברתית אמינה", n(d.social_reliable), `${pct(d.social_reliable)} · ${n(d.social_two_families)} מ-2 מקורות בלתי תלויים${dl("social_reliable")}`)}
+          ${kpi("קישור חברתי ממקור יחיד", n(Number(d.social_any) - Number(d.social_reliable)), "לא נספר ביעד – ממתין לאימות")}
+          ${kpi("טלפון עסקי", n(d.phone), `${n(d.phone_verified)} מאומתים מ-2 מקורות${dl("phone")}`)}
+          ${kpi("אימייל עסקי", n(d.email), pct(d.email) + dl("email"))}
+          ${kpi("אתר החברה", n(d.website), pct(d.website) + dl("website"))}
+          ${kpi("צי רכב", `${n(d.fleet_documented)} / ${n(d.fleet_strong)} / ${n(d.fleet_possible)}`, "מתועד / סימנים חזקים / הערכה בלבד")}
+          ${kpi("איתותי רכישה", n(Number(d.sig_tenders) + Number(d.sig_hiring_drivers) + Number(d.sig_expansion)), `${n(d.sig_tenders)} מכרזים / התקשרויות · ${n(d.sig_hiring_drivers)} מגייסות נהגים · ${n(d.sig_expansion)} התרחבות`)}
+          ${kpi("פרטי קשר מאומתים", n(d.cp_two_families), "מ-2 משפחות מקור בלתי תלויות")}
+          ${kpi("מקורות מידע", `${n(d.sources_working)} / ${n(d.sources_total)}`, `פעילים / סה"כ · ${n(d.sources_new_7d)} חוברו השבוע`)}
+          ${kpi("ללא שום מידע קשר", n(Number(d.total) - Number(d.enriched)), pct(Number(d.total) - Number(d.enriched)))}
+          ${kpi("בתורים", `${n(d.site_queue)} / ${n(d.legal_queue)} / ${n(d.social_queue)}`, `אתרים / דפים משפטיים / רשתות · ${n(d.pending_review)} לבדיקה`)}
+        </div></div></div>`;
+  }
   function enrichView() {
     const r = ST.report;
     if (ST.reportError && !r) return `<div class="card card-b"><div class="badge b-bad" style="white-space:normal">${esc(ST.reportError)}</div></div>`;
@@ -925,7 +956,7 @@
       </div>
       ${healthLine(ST.health)}
       <div class="xs muted">תור הזיהוי: ${Object.entries(sq).map(([k, v]) => `${esc(SITE_ST[k] || k)} ${n(v)}`).join(" · ")}</div></div></div>`;
-    return head + kpis + scale + intel + watchCard + relEx + ex(r.examples, "דוגמאות אמיתיות – חברה אחת לכל סוג מידע") + ex(r.recent_important, "★ מידע חשוב חדש – האחרונים") + review + sources;
+    return progressCard(ST.progress) + head + kpis + scale + intel + watchCard + relEx + ex(r.examples, "דוגמאות אמיתיות – חברה אחת לכל סוג מידע") + ex(r.recent_important, "★ מידע חשוב חדש – האחרונים") + review + sources;
   }
 
   // engine health: server calls in the last 15 minutes / hour, and what the self-feeding sources added
