@@ -1310,19 +1310,31 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
     };
   }, []);
 
-  const activeGarageCases = useMemo(() => {
+  const deduplicatedGarageCases = useMemo(() => {
+    const seenIds = new Set<string>();
+    const claimIds = new Set(claims.map((c) => c.id));
     return garageCases.filter((g) => {
-      const cd = g.case_data || {};
-      return g.status !== 'סגור' && !cd.caseClosed;
+      if (!g || !g.id) return false;
+      if (seenIds.has(g.id)) return false;
+      seenIds.add(g.id);
+      if (claimIds.has(g.id)) return false;
+      return true;
     });
-  }, [garageCases]);
+  }, [garageCases, claims]);
+
+  const activeGarageCases = useMemo(() => {
+    return deduplicatedGarageCases.filter((g) => {
+      const cd = g.case_data || {};
+      return g.status !== 'סגור' && !cd.caseClosed && !cd.workFinished;
+    });
+  }, [deduplicatedGarageCases]);
 
   const archiveGarageCases = useMemo(() => {
-    return garageCases.filter((g) => {
+    return deduplicatedGarageCases.filter((g) => {
       const cd = g.case_data || {};
-      return g.status === 'סגור' || !!cd.caseClosed;
+      return g.status === 'סגור' || !!cd.caseClosed || !!cd.workFinished;
     });
-  }, [garageCases]);
+  }, [deduplicatedGarageCases]);
 
   const mappedActiveClaims = useMemo(() => {
     return activeClaims.map((c) => ({ ...c, caseOrigin: 'insurance' }));
@@ -1331,6 +1343,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
   const mappedArchiveClaims = useMemo(() => {
     return archiveClaims.map((c) => ({ ...c, caseOrigin: 'insurance' }));
   }, [archiveClaims]);
+
+  const currentInsuranceCount = listMode === 'archive' ? mappedArchiveClaims.length : mappedActiveClaims.length;
+  const currentGarageCount = listMode === 'archive' ? archiveGarageCases.length : activeGarageCases.length;
+  const currentTotalCount = currentInsuranceCount + currentGarageCount;
 
   const showView = (name: string, f = '') => {
     setSbOpen(false);
@@ -3143,26 +3159,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
           <div className="tb-logo"><span className="tba">דליה</span><span className="tbb">ניהול תביעות</span></div>
           <button type="button" className="btn claims-ai-launch" data-testid="claims-ai-open" onClick={() => { setAiClaimId(chatClaimOnOpen(modal === 'moCard', cur?.id || null)); setAiOpen(true); }}>דליה AI</button>
           <button className="btn btn-p btn-sm tb-new" data-testid="claims-open-new" onClick={openNew}>＋ תיק חדש</button>
-          <button
-            type="button"
-            className="btn btn-sm tb-reports-btn"
-            data-testid="claims-tb-reports-btn"
-            style={{
-              background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
-              color: '#ffffff',
-              fontWeight: 800,
-              border: '1px solid #3b82f6',
-              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
-              padding: '6px 14px',
-              borderRadius: '8px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-            onClick={() => showView('reports')}
-          >
-            📊 מרכז דוחות
-          </button>
           <div className="tb-sep" />
           <div className="tb-nav">
             {[
@@ -3170,10 +3166,10 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               ['claims', '📋 תיקים'],
               ['gmail', '📧 Gmail'],
               ['tasks', '✅ משימות'],
-              ['reports', '📊 דוחות'],
+              ['reports', '📈 דוחות'],
             ].map(([k, l]) => (
               <button key={k} className={`tbn ${view === k ? 'act' : ''}`} onClick={() => showView(k)}>
-                {l}{k === 'claims' ? <span className="nb b">{caseOriginFilter === 'all' ? (activeClaims.length + activeGarageCases.length) : (caseOriginFilter === 'garage' ? activeGarageCases.length : workset.length)}</span> : null}
+                {l}{k === 'claims' ? <span className="nb b">{caseOriginFilter === 'all' ? currentTotalCount : caseOriginFilter === 'garage' ? currentGarageCount : currentInsuranceCount}</span> : null}
               </button>
             ))}
             <button className="tbn" onClick={async () => {
@@ -3286,23 +3282,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>{new Date().toLocaleDateString('he-IL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} · {actor.full_name}</div>
                   </div>
                   <div className="ph-a">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-p"
-                      data-testid="claims-dash-reports-hub"
-                      style={{
-                        background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
-                        color: '#ffffff',
-                        fontWeight: 800,
-                        border: '1px solid #3b82f6',
-                        boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)',
-                        padding: '6px 14px',
-                        borderRadius: '8px',
-                      }}
-                      onClick={() => showView('reports')}
-                    >
-                      📊 מרכז דוחות
-                    </button>
                     {isSuperAdmin && (
                       <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} data-testid="claims-mine-toggle" onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
                     )}
@@ -3386,52 +3365,68 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
               <>
                 {waDueList}
                 <div
-                  className="claims-case-origin-toggle"
+                  className="claims-origin-filter-bar"
+                  data-testid="claims-origin-filters"
                   style={{
                     display: 'flex',
-                    gap: 8,
-                    marginBottom: 14,
                     alignItems: 'center',
-                    flexWrap: 'wrap',
-                    padding: '8px 12px',
-                    background: 'var(--bg2)',
-                    border: '1px solid var(--br2)',
-                    borderRadius: 'var(--r)',
+                    gap: 6,
+                    marginBottom: 12,
+                    width: '100%',
+                    overflowX: 'auto',
+                    WebkitOverflowScrolling: 'touch',
                   }}
-                  data-testid="claims-origin-filters"
                 >
                   <button
                     type="button"
                     className={`btn btn-sm ${caseOriginFilter === 'all' ? 'btn-p' : 'btn-g'}`}
                     data-testid="filter-all-cases"
+                    style={{
+                      flex: '1 1 0',
+                      whiteSpace: 'nowrap',
+                      padding: '8px 12px',
+                      fontSize: 13,
+                      fontWeight: caseOriginFilter === 'all' ? 700 : 500,
+                      textAlign: 'center',
+                      borderRadius: 'var(--r2)',
+                    }}
                     onClick={() => setCaseOriginFilter('all')}
                   >
-                    הכול ({activeClaims.length + activeGarageCases.length})
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${caseOriginFilter === 'insurance' ? 'btn-p' : 'btn-g'}`}
-                    data-testid="filter-insurance-cases"
-                    onClick={() => setCaseOriginFilter('insurance')}
-                  >
-                    🛡️ תביעות ביטוח ({activeClaims.length})
+                    הכול ({currentTotalCount})
                   </button>
                   <button
                     type="button"
                     className={`btn btn-sm ${caseOriginFilter === 'garage' ? 'btn-p' : 'btn-g'}`}
                     data-testid="filter-garage-cases"
+                    style={{
+                      flex: '1 1 0',
+                      whiteSpace: 'nowrap',
+                      padding: '8px 12px',
+                      fontSize: 13,
+                      fontWeight: caseOriginFilter === 'garage' ? 700 : 500,
+                      textAlign: 'center',
+                      borderRadius: 'var(--r2)',
+                    }}
                     onClick={() => setCaseOriginFilter('garage')}
                   >
-                    🔧 תיקי מוסך ({activeGarageCases.length})
+                    ניהול מוסך ({currentGarageCount})
                   </button>
                   <button
                     type="button"
-                    className="btn btn-sm btn-p"
-                    style={{ marginRight: 'auto', fontWeight: 700 }}
-                    data-testid="claims-btn-reports-hub"
-                    onClick={() => showView('reports')}
+                    className={`btn btn-sm ${caseOriginFilter === 'insurance' ? 'btn-p' : 'btn-g'}`}
+                    data-testid="filter-insurance-cases"
+                    style={{
+                      flex: '1 1 0',
+                      whiteSpace: 'nowrap',
+                      padding: '8px 12px',
+                      fontSize: 13,
+                      fontWeight: caseOriginFilter === 'insurance' ? 700 : 500,
+                      textAlign: 'center',
+                      borderRadius: 'var(--r2)',
+                    }}
+                    onClick={() => setCaseOriginFilter('insurance')}
                   >
-                    📊 מרכז דוחות
+                    ניהול תביעות ({currentInsuranceCount})
                   </button>
                 </div>
                 <div className="ph">
@@ -3550,13 +3545,37 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
             )}
 
             {view === 'reports' && (
-              <ClaimsReportsView
-                claims={claims}
-                garageCases={garageCases}
-                onBack={() => showView('claims')}
-                onOpenClaim={(id) => openCard(id)}
-                onOpenGarageCase={(id) => navigate(`/garage-management/${id}`)}
-              />
+              <>
+                <div className="ph"><div><div className="ph-t">דוחות ניהול<div className="ph-bar" /></div></div>
+                  <div className="ph-a">
+                    {[7, 14, 30, 60].map((d) => (
+                      <button key={d} className="btn btn-g btn-sm" onClick={async () => {
+                        const r = await apiRef.current.getInactiveClaims(d);
+                        setInactive({ days: d, rows: r.data || [] });
+                      }}>{d} ימים</button>
+                    ))}
+                  </div>
+                </div>
+                {inactive && (
+                  <div style={{ marginBottom: 16 }}>
+                    <div className="sdiv"><div className="sdiv-t">תיקים ללא פעילות – {inactive.days} ימים ({inactive.rows.length})</div><div className="sdiv-l" /></div>
+                    <div className="tw"><table><thead><tr><th>מספר תביעה</th><th>לקוח</th><th>רכב</th><th>סטטוס</th><th>פעילות אחרונה</th></tr></thead>
+                      <tbody>
+                        {inactive.rows.length === 0 ? <tr><td colSpan={5} style={{ textAlign: 'center', color: 'var(--t3)', padding: 20 }}>אין תיקים ללא פעילות</td></tr>
+                          : inactive.rows.map((c) => (
+                            <tr key={c.id} onClick={() => openCard(c.id)}>
+                              <td style={{ fontWeight: 800, color: 'var(--ac3)', fontSize: 11 }}>{displayClaimNum(c)}</td>
+                              <td>{c.clientName}</td><td>{c.plate || '—'}</td>
+                              <td>{stBadge(c.status)}</td>
+                              <td style={{ fontSize: 11, color: 'var(--rd2)' }}>{c.lastActivityAt || c.updatedAt || '—'}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table></div>
+                  </div>
+                )}
+                <div dangerouslySetInnerHTML={{ __html: reportHtml }} />
+              </>
             )}
           </div>
         </div>
