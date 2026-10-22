@@ -10,6 +10,7 @@ export interface ClaimsReportsIntegratedViewProps {
   onBack: () => void;
   onOpenClaim: (id: string) => void;
   onOpenGarageCase: (id: string) => void;
+  onOpenAiReports?: () => void;
 }
 
 interface UnifiedReportRow {
@@ -113,6 +114,7 @@ export default function ClaimsReportsIntegratedView({
   onBack,
   onOpenClaim,
   onOpenGarageCase,
+  onOpenAiReports,
 }: ClaimsReportsIntegratedViewProps) {
   // Filters
   const [period, setPeriod] = useState<PeriodOption>('this_month');
@@ -439,6 +441,18 @@ export default function ClaimsReportsIntegratedView({
           </div>
         </div>
         <div className="ph-a">
+          {onOpenAiReports && (
+            <button
+              type="button"
+              className="btn btn-g btn-sm"
+              data-testid="reports-open-ai-btn"
+              onClick={onOpenAiReports}
+              style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6, borderColor: 'var(--ac)' }}
+              title="פתיחת עוזר דוחות ניהוליים ומאזן משותף"
+            >
+              <span>✨</span> דליה AI דוחות ומאזן
+            </button>
+          )}
           <button
             type="button"
             className="btn btn-g btn-sm"

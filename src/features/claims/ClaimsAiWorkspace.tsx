@@ -1,3 +1,24 @@
+
+function cleanAndDeduplicateTranscript(base: string, sessionFinal: string, sessionInterim: string): string {
+  const parts = [base, sessionFinal, sessionInterim].filter(Boolean);
+  if (parts.length === 0) return '';
+  const text = parts.join(' ').replace(/\s+/g, ' ').trim();
+  const words = text.split(' ');
+  for (let len = Math.floor(words.length / 2); len >= 2; len--) {
+    let hasDup = false;
+    for (let i = 0; i <= words.length - 2 * len; i++) {
+      const slice1 = words.slice(i, i + len).join(' ');
+      const slice2 = words.slice(i + len, i + 2 * len).join(' ');
+      if (slice1 === slice2) {
+        words.splice(i + len, len);
+        hasDup = true;
+        break;
+      }
+    }
+    if (hasDup) break;
+  }
+  return words.join(' ');
+}
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -300,7 +321,7 @@ export function cleanTextForSpeech(markdown: string): string {
 function readActiveId(
   userId: string,
   claimId: string | null,
-  module: 'claims' | 'garage' | 'dashboard' = 'claims',
+  module: 'claims' | 'garage' | 'reports' | 'dashboard' = 'claims',
   garageCaseId?: string | null,
 ): string | null {
   try {
@@ -314,7 +335,7 @@ function writeActiveId(
   userId: string,
   claimId: string | null,
   id: string | null,
-  module: 'claims' | 'garage' | 'dashboard' = 'claims',
+  module: 'claims' | 'garage' | 'reports' | 'dashboard' = 'claims',
   garageCaseId?: string | null,
 ) {
   try {
@@ -330,7 +351,7 @@ async function streamHelpAi(input: {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   claimId: string | null;
   companyName: string | null;
-  module?: 'claims' | 'garage' | 'dashboard';
+  module?: 'claims' | 'garage' | 'reports' | 'dashboard';
   garageCaseId?: string | null;
   garageCase?: GarageCaseAiContext | null;
   attachments?: Array<{ name: string; mime_type: string; byte_size: number; file_id?: string; data_base64?: string }>;
@@ -445,7 +466,11 @@ async function streamHelpAi(input: {
           }
           const delta = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (delta) {
-            full += delta;
+            if (delta.startsWith(full)) {
+              full = delta;
+            } else {
+              full += delta;
+            }
             input.onDelta(full);
           }
         } catch {
@@ -2474,7 +2499,7 @@ export function ClaimsAiWorkspace({
   onActionExecuted?: (pending: ClaimsAiPendingAction) => void;
   /** Opens the specified claim card directly in the main screen without losing chat. */
   onOpenClaim?: (claimId: string) => void;
-  module?: 'claims' | 'garage' | 'dashboard';
+  module?: 'claims' | 'garage' | 'reports' | 'dashboard';
   garageCase?: GarageCaseAiContext | null;
   onOpenGarageCase?: (caseId: string) => void;
 }) {
@@ -2546,6 +2571,8 @@ export function ClaimsAiWorkspace({
 
   const dockedStorageKey = module === 'garage'
     ? `garage_ai_docked_${userId}`
+    : module === 'reports'
+    ? `reports_ai_docked_${userId}`
     : module === 'dashboard'
     ? `dashboard_ai_docked_${userId}`
     : `claims_ai_docked_${userId}`;
@@ -3314,7 +3341,7 @@ export function ClaimsAiWorkspace({
     } else if (conversations.length === 0) {
       void loadList();
     }
-  }, [open, claimId, module, garageCase?.id, loadList, conversations.length]);
+  }, [open, claimId, module, garageCase?.id, loadList]);
 
   useEffect(() => {
     if (!open || !activeId) {
@@ -3415,7 +3442,7 @@ export function ClaimsAiWorkspace({
       try {
         controller.abort();
       } catch {}
-    }, 55000);
+    }, 35000);
     let conversationId = activeId;
     let draft = '';
     let userSavedSuccessfully = false;
@@ -3978,14 +4005,10 @@ export function ClaimsAiWorkspace({
 
     rec.onend = () => {
       if (isListeningRef.current && !isManualStopRef.current) {
-        // Commit current text to baseInputRef before restarting session
-        baseInputRef.current = inputRef.current.trim();
         try {
           rec.start();
           return;
-        } catch {
-          // Restart failed, stop gracefully
-        }
+        } catch {}
       }
       isListeningRef.current = false;
       setListening(false);
@@ -4033,7 +4056,7 @@ export function ClaimsAiWorkspace({
       style={viewportHeight ? { height: `${viewportHeight}px`, maxHeight: `${viewportHeight}px` } : undefined}
       role="dialog"
       aria-modal="true"
-      aria-label={module === 'garage' ? 'דליה AI לניהול מוסך' : module === 'dashboard' ? 'דליה AI לדשבורד' : 'דליה AI לניהול תביעות'}
+      aria-label={module === 'garage' ? 'דליה AI לניהול מוסך' : module === 'reports' ? 'דליה AI לדוחות ומאזן' : module === 'dashboard' ? 'דליה AI לדשבורד' : 'דליה AI לניהול תביעות'}
       data-testid="claims-ai-workspace"
     >
       <aside className="claims-ai-side">
@@ -4134,6 +4157,8 @@ export function ClaimsAiWorkspace({
             <div className="claims-ai-status">
               {module === 'garage'
                 ? 'דליה AI · ניהול מוסך'
+                : module === 'reports'
+                ? 'דליה AI · דוחות ומאזן משותף'
                 : module === 'dashboard'
                 ? 'דליה AI · דשבורד ראשי'
                 : 'דליה AI · ניהול תביעות'}
@@ -4249,7 +4274,37 @@ export function ClaimsAiWorkspace({
           {banner ? <div className="claims-ai-bubble" data-testid="claims-ai-error" style={{ border: '1px solid var(--rd2)' }}>{banner}</div> : null}
           {((messages.length === 0 && !loading) || showWelcomeHub) ? (
             <div className="claims-ai-empty">
-              {module === 'garage' ? (
+              {module === 'reports' ? (
+                <div className="garage-welcome-hub" data-testid="reports-welcome-hub">
+                  <div className="garage-welcome-badge" style={{ background: 'rgba(59,130,246,0.18)', color: '#60a5fa', borderColor: 'rgba(59,130,246,0.4)' }}>📊 דליה AI · דוחות ומאזן משותף</div>
+                  <h3 className="garage-welcome-title">שלום! מה תרצה לבדוק במאזן ובדוחות?</h3>
+                  <p className="garage-welcome-subtitle">
+                    עוזר ניהולי משותף למוסך יוני ולתביעות הביטוח. נתוני אמת על עבודות, תביעות, כספים ומקורות הגעה:
+                  </p>
+                  <div className="garage-actions-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
+                    <button type="button" className="garage-action-card" data-testid="rep-prompt-balance" onClick={() => void sendMessage('מה המאזן הכספי הכולל של המוסך והתביעות?', 'text')}>
+                      <span className="garage-action-icon">💰</span>
+                      <strong>מאזן כספי כולל</strong>
+                      <span style={{ fontSize: 11, color: 'var(--t3)' }}>הכנסות, אישורים ויתרות לגבייה</span>
+                    </button>
+                    <button type="button" className="garage-action-card" data-testid="rep-prompt-activity" onClick={() => void sendMessage('כמה עבודות נפתחו וכמה נסגרו החודש?', 'text')}>
+                      <span className="garage-action-icon">📈</span>
+                      <strong>עבודות שנפתחו ונסגרו</strong>
+                      <span style={{ fontSize: 11, color: 'var(--t3)' }}>פילוח חודשי של כלל התיקים</span>
+                    </button>
+                    <button type="button" className="garage-action-card" data-testid="rep-prompt-ins" onClick={() => void sendMessage('כמה כסף אושר וכמה התקבל בפועל מול חברות הביטוח?', 'text')}>
+                      <span className="garage-action-icon">🛡️</span>
+                      <strong>פעילות חברות ביטוח</strong>
+                      <span style={{ fontSize: 11, color: 'var(--t3)' }}>אישורים, תשלומים וחובות פתוחים</span>
+                    </button>
+                    <button type="button" className="garage-action-card" data-testid="rep-prompt-sources" onClick={() => void sendMessage('כמה לקוחות ותיקים נכנסו לפי מקורות הגעה?', 'text')}>
+                      <span className="garage-action-icon">🎯</span>
+                      <strong>מקורות הגעת לקוחות</strong>
+                      <span style={{ fontSize: 11, color: 'var(--t3)' }}>ישיר, סוכנים, ציי רכב והפניות</span>
+                    </button>
+                  </div>
+                </div>
+              ) : module === 'garage' ? (
                 <div className="garage-welcome-hub" data-testid="garage-welcome-hub">
                   {messages.length > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '8px 12px', background: 'rgba(56,189,248,0.1)', borderRadius: 10, border: '1px solid rgba(56,189,248,0.25)' }}>
@@ -5827,7 +5882,7 @@ export function ClaimsAiWorkspace({
             <button
               type="button"
               className={`claims-ai-icon attach-toggle${attachMenuOpen ? ' active' : ''}`}
-              data-testid="claims-ai-attach-toggle"
+              data-testid="claims-ai-attach-btn"
               disabled={loading}
               title="צרף תמונה, מסמך או פתח מצלמה"
               aria-label="צרף קובץ"
@@ -5912,6 +5967,8 @@ export function ClaimsAiWorkspace({
             placeholder={
               module === 'garage'
                 ? (garageCase ? 'שאלה או פקודה על כרטיס העבודה…' : 'פתחו כרטיס עבודה, חפשו לקוח/רכב או שאלו שאלה…')
+                : module === 'reports'
+                ? 'שאלה על דוחות, מאזן כספי, פעילות מוסך או תביעות ביטוח…'
                 : module === 'dashboard'
                 ? 'פקודה קולית, תמונת מצב מוסך או שאלה על פעילות המוסך…'
                 : (claim ? 'שאלה על התיק הפתוח…' : 'פתחו תיק, או שאלו שאלה כללית…')
@@ -5934,12 +5991,29 @@ export function ClaimsAiWorkspace({
               }
             }}
           />
-          <button
-            type="submit"
-            className="claims-ai-icon send"
-            data-testid="claims-ai-send"
-            disabled={loading || (!input.trim() && stagedAttachments.length === 0)}
-          >שלח</button>
+          {loading ? (
+            <button
+              type="button"
+              className="claims-ai-icon stop-loading-btn"
+              data-testid="claims-ai-stop"
+              onClick={() => {
+                abortControllerRef.current?.abort();
+                setLoading(false);
+                isSubmittingRef.current = false;
+              }}
+              title="עצור מענה / בטל המתנה"
+              style={{ background: 'var(--rd)', color: '#fff', borderRadius: '50%', minWidth: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer' }}
+            >
+              ⏹️
+            </button>
+          ) : (
+            <button
+              type="submit"
+              className="claims-ai-icon send"
+              data-testid="claims-ai-send"
+              disabled={loading || (!input.trim() && stagedAttachments.length === 0)}
+            >שלח</button>
+          )}
         </form>
         {showScrollBottom && (
           <button

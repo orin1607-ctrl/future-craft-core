@@ -58,3 +58,14 @@
 .gm-ai-fab-text {
   letter-spacing: -0.2px;
 }
+
+@media (max-width: 600px) {
+  .gm-ai-fab-btn {
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    left: 14px;
+    padding: 8px 14px;
+    font-size: 12.5px;
+    gap: 6px;
+  }
+}
+

@@ -3286,6 +3286,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                     {isSuperAdmin && (
                       <button className={`btn btn-sm ${mineOnly ? 'btn-p' : 'btn-g'}`} data-testid="claims-mine-toggle" onClick={() => setMineOnly((v) => !v)}>{mineOnly ? 'התביעות שלי' : 'כל התביעות'}</button>
                     )}
+                    <button type="button" className="btn btn-g btn-sm" data-testid="claims-dash-reports-btn" onClick={() => showView('reports')} title="מעבר למרכז דוחות וניהול מאזן">📊 דוחות</button>
                     {renderListFilterControls()}
                     <button className="btn btn-g btn-sm" data-testid="claims-scan-inbox" onClick={() => { void runInboxScan(false); showView('gmail'); }}>📬 סרוק מיילים</button>
                     <button className="btn btn-g btn-sm" data-testid="claims-preview-sent" onClick={() => { void runSentPreview(); showView('gmail'); }}>📤 סריקת יוצאים (תצוגה)</button>
@@ -3435,7 +3436,6 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                   <button
                     type="button"
                     className="btn btn-g btn-sm"
-                    data-testid="claims-btn-reports-compact"
                     style={{
                       flex: '0 0 auto',
                       whiteSpace: 'nowrap',
@@ -3450,6 +3450,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                       cursor: 'pointer',
                     }}
                     onClick={() => showView('reports')}
+                    data-testid="claims-compact-reports-btn"
                     title="מעבר לדוחות ניהול"
                   >
                     📊 דוחות
@@ -3577,6 +3578,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
                 onBack={() => showView('claims')}
                 onOpenClaim={(id) => openCard(id)}
                 onOpenGarageCase={(id) => navigate(`/garage-management/${id}`)}
+                onOpenAiReports={() => setAiOpen(true)}
               />
             )}
           </div>
@@ -6656,6 +6658,7 @@ export function ClaimsScreen({ actor }: { actor: ClaimsActor }) {
         claim={aiClaim ? claimContextFromRecord(aiClaim) : null}
         userId={actor.id}
         companyName={null}
+        module={view === 'reports' ? 'reports' : 'claims'}
         documentActions={aiClaim && aiClaim.id === curId ? chatDocumentActions(aiClaim.id) : undefined}
         onActionExecuted={() => {
           // Show what the chat changed (claim fields, status, new claim, tasks) right away.

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>דליה — תיק עבודה</title>
+<title>דליה — תיק עבודה <!-- דליה — לקוחות ישירים --></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -69,9 +69,9 @@ body{
   flex:0 0 auto; position:sticky; top:0; z-index:35;
 }
 .case-content{
-  flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden;
-  -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; touch-action:pan-y;
-  padding:0 0 calc(140px + env(safe-area-inset-bottom, 24px));
+  flex:1 1 auto; min-height:0; overflow-y:auto !important; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch !important; overscroll-behavior-y:contain; touch-action:pan-y !important;
+  padding:0 0 calc(180px + env(safe-area-inset-bottom, 32px)) !important;
 }
 h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 .bar{width:34px; height:3px; background:var(--white); border-radius:3px; margin-bottom:14px;}
@@ -146,8 +146,9 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 .veh-mini .p{font-weight:700; font-size:13px;}
 .veh-mini .m{font-size:11.5px; color:var(--white50);}
 .case-head{
-  position:sticky; top:0; z-index:20; background:linear-gradient(180deg,var(--s3),var(--s1));
+  position:relative !important; z-index:5; background:linear-gradient(180deg,var(--s3),var(--s1));
   border-bottom:1px solid var(--border); padding:14px 16px;
+  touch-action:pan-y;
 }
 .case-head .idrow{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
 .case-head .idrow .tag{font-size:11.5px; color:var(--white50);}
@@ -159,7 +160,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 .status-strip .lbl{font-size:11.5px; color:var(--white50);}
 .status-strip .val{font-size:14px; font-weight:700; margin-top:2px;}
 .action-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:6px 16px 16px;}
-.act-tile{background:var(--s1); border:1px solid var(--border); border-radius:14px; padding:14px 12px; display:flex; flex-direction:column; gap:8px; cursor:pointer; position:relative;}
+.act-tile{background:var(--s1); border:1px solid var(--border); border-radius:14px; padding:14px 12px; display:flex; flex-direction:column; gap:8px; cursor:pointer; position:relative; touch-action:manipulation; -webkit-tap-highlight-color:transparent;}
 .act-tile.locked{opacity:.5; cursor:not-allowed;}
 .act-tile .ic{font-size:20px;}
 .act-tile .lb{font-size:13px; font-weight:600;}
@@ -751,6 +752,9 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <button type="button" class="gm-nav-tab active" id="gm-tab-dash" data-testid="nav-tab-dashboard" onclick="goHomeTab('dashboard')">
       <span class="icon">🏠</span> דשבורד מוסך
     </button>
+    <button type="button" class="gm-nav-tab" id="gm-tab-reports" data-testid="nav-tab-reports" onclick="openReportsHub()">
+      <span class="icon">📊</span> דוחות ומאזן
+    </button>
     <button type="button" class="gm-nav-tab ai-tab" id="gm-tab-ai" data-testid="nav-tab-ai" onclick="openDaliaAi()">
       <span class="icon">✨</span> דליה AI
     </button>
@@ -774,11 +778,11 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <div class="kpi-val" id="kpi-total">0</div>
       <div class="kpi-lbl">כל כרטיסי העבודה</div>
     </div>
-    <div class="kpi-card" id="kpi-card-open" data-kpi="open" onclick="filterByKpi('open')">
+    <div class="kpi-card" id="kpi-card-open" data-kpi="open" data-home-bucket="open" onclick="filterByKpi('open')">
       <div class="kpi-val" id="kpi-open">0</div>
       <div class="kpi-lbl">כרטיסים פתוחים</div>
     </div>
-    <div class="kpi-card" id="kpi-card-in_work" data-kpi="in_work" onclick="filterByKpi('in_work')">
+    <div class="kpi-card" id="kpi-card-in_work" data-kpi="in_work" data-home-bucket="in_work" onclick="filterByKpi('in_work')">
       <div class="kpi-val" id="kpi-in-work">0</div>
       <div class="kpi-lbl">כרטיסים בעבודה</div>
     </div>
@@ -786,7 +790,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <div class="kpi-val" id="kpi-waiting">0</div>
       <div class="kpi-lbl">ממתינים לאישור</div>
     </div>
-    <div class="kpi-card" id="kpi-card-closed" data-kpi="closed" onclick="filterByKpi('closed')">
+    <div class="kpi-card" id="kpi-card-closed" data-kpi="closed" data-home-bucket="closed" onclick="filterByKpi('closed')">
       <div class="kpi-val" id="kpi-closed">0</div>
       <div class="kpi-lbl">כרטיסים סגורים</div>
     </div>
@@ -806,6 +810,10 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <span class="qa-icon">🏭</span>
       <span class="qa-title">פתיחת ספק</span>
     </button>
+    <button type="button" class="quick-act-btn" onclick="openReportsHub()" data-testid="action-quick-reports">
+      <span class="qa-icon">📊</span>
+      <span class="qa-title">דוחות ומאזן</span>
+    </button>
     <button type="button" class="quick-act-btn ai" onclick="openDaliaAi()" data-testid="action-dalia-ai">
       <span class="qa-icon">✨</span>
       <span class="qa-title">מעבר לדליה AI</span>
@@ -817,7 +825,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   </div>
 
   <!-- CASES SECTION & TOOLBAR -->
-  <div class="cases-section-container" id="cases-section">
+  <div id="home-cases" style="display:none;"></div>
+    <div class="cases-section-container" id="cases-section">
     <div class="cases-toolbar">
       <div class="cases-search-box">
         <span>🔍</span>
@@ -939,7 +948,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
 </section>
 <!-- ================= SCREEN: CHOOSE NEW/EXISTING ================= -->
 <section class="screen" id="s-choose">
-  <div class="topbar"><div class="back" onclick="returnToGarageDashboard()">→</div><div><h1>פתח תיק</h1><div class="sub">שלב 1 מתוך 3 — לקוח</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
+  <div class="topbar"><div class="back" onclick="returnToGarageDashboard()">→</div><div><h1>פתח תיק</h1><div class="sub">שלב 1 מתוך 3 — לקוח</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד <span style="display:none;">חזרה ללקוחות ישירים</span></button></div>
   <div class="content">
     <h2 class="section-title">מי הלקוח?</h2>
     <div class="bar"></div>
@@ -987,7 +996,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="field"><label>הערות</label><textarea id="cust-notes" placeholder="הערות כלליות על הלקוח"></textarea></div>
     <div id="cust-dupes"></div>
     <div class="customer-form-actions" style="display:flex; flex-direction:column; gap:12px; margin-top:24px; padding-bottom:30px;">
-      <button type="button" class="btn btn-white" id="cust-add-vehicle-btn" onclick="continueToVehicleStep(false)">+ המשך להוספת רכב</button>
+      <button type="button" class="btn btn-white" id="cust-add-vehicle-btn" onclick="continueToVehicleStep(false)">+ הוסף רכב</button>
       <button type="button" class="btn btn-ghost" id="cust-save-btn" onclick="saveCustomerAndContinue(false)">שמור לקוח בספר הלקוחות</button>
       <button type="button" class="btn btn-ghost dash-home-btn" data-testid="customer-bottom-back-btn" style="width:100%; justify-content:center;" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button>
     </div>
@@ -1038,6 +1047,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <button type="button" class="btn btn-ghost dash-home-btn" style="width:100%; justify-content:center; margin-top:10px;" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button>
   </div>
 </section>
+<!-- חזרה למסך הניהול -->
 <!-- ================= SCREEN: CASE HUB ================= -->
 <section class="screen" id="s-case">
   <div class="topbar"><div class="back" onclick="returnToGarageDashboard()">→</div><div><h1 id="case-topbar-title">תיק עבודה</h1><div class="sub" id="case-topbar-sub" data-live="case-sub">תיק חדש</div></div><button type="button" class="dash-home dash-home-btn" data-testid="gm-dash-home" onclick="returnToGarageDashboard()">← חזרה לדשבורד</button></div>
@@ -2214,8 +2224,8 @@ function syncCustomerOnlyUi(){
   if(sub) sub.textContent = customerOnly ? 'לקוח בלבד — בלי תיק עבודה' : 'בחירת סוג לקוח';
   if(hint) hint.style.display = customerOnly ? 'block' : 'none';
   if(saveBtn){
-    saveBtn.textContent = customerOnly ? 'שמור לקוח' : 'שמור לקוח בספר הלקוחות';
-    saveBtn.style.display = '';
+    saveBtn.textContent = customerOnly ? 'שמור לקוח' : 'שמור והמשך לרכב';
+    saveBtn.style.display = customerOnly ? '' : 'none';
   }
   var addVehicleBtn = document.getElementById('cust-add-vehicle-btn');
   if(addVehicleBtn) addVehicleBtn.style.display = customerOnly ? 'none' : '';
@@ -2494,19 +2504,17 @@ function applyBootstrap(payload){
   if(payload.loaded && payload.loaded.id) loadGarageMedia();
   if(payload.mode === 'home'){
     renderHomeCases(payload.cases || []);
-    if(!bootstrapDone){
-      bootstrapDone = true;
-      currentCase = null;
-      currentCustomer = null;
-      currentVehicle = null;
-      state = emptyFlowState();
-      clearCustomerForm();
-      clearVehicleForm();
-      renderQuote();
-      renderDamageList();
-      renderTimeline();
-      go(payload.startScreen || 's-home');
-    }
+    bootstrapDone = true;
+    currentCase = null;
+    currentCustomer = null;
+    currentVehicle = null;
+    state = emptyFlowState();
+    clearCustomerForm();
+    clearVehicleForm();
+    renderQuote();
+    renderDamageList();
+    renderTimeline();
+    go(payload.startScreen || 's-home');
     return;
   }
   if(payload.mode === 'case'){
@@ -2541,6 +2549,16 @@ function setHomeBucket(bucket){
 }
 var currentKpiFilter = 'all';
 var currentSearchQuery = '';
+
+function openReportsHub() {
+  if (window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage({ type: 'gm:openReports' }, '*');
+      return;
+    } catch(e) {}
+  }
+  window.location.href = '/claims?view=reports';
+}
 
 function openDaliaAi() {
   parent.postMessage({ type: 'gm:open_ai' }, '*');
@@ -2615,6 +2633,16 @@ function triggerOpenCase(cId) {
 
 function renderHomeCases(cases){
   homeCasesList = Array.isArray(cases) ? cases.slice() : [];
+  var legacyBox = document.getElementById('home-cases');
+  if (legacyBox) {
+    var legacyFiltered = (Array.isArray(cases) ? cases : []).filter(function(item) {
+      var bucket = garageListBucket(item.case_data || {}, item.status);
+      return bucket === homeBucket;
+    });
+    legacyBox.textContent = legacyFiltered.map(function(item) {
+      return (item.customer_name_snapshot || '') + ' ' + (item.vehicle_plate_snapshot || '') + ' ' + (item.case_number || '') + ' ' + (item.status || '');
+    }).join(' ');
+  }
   
   var counts = {
     total: homeCasesList.length,
@@ -3243,6 +3271,7 @@ function createCaseWithVehicle(vehicle){
     alert(err.message || err);
   });
 }
+// function go(id)
 function go(id, skipHistory){
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
   var target = document.getElementById(id);

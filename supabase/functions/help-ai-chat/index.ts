@@ -1050,9 +1050,10 @@ Deno.serve(async (req) => {
     const userMessagesText = (messages || []).map((m: any) => typeof m?.content === "string" ? m.content : "").join(" ");
     const lastUserMessage = [...(messages || [])].reverse().find((m: any) => m?.role === "user" && typeof m?.content === "string");
     const lastUserText = String(lastUserMessage?.content || "").trim();
-    const isGarageModule = effectiveModule === "garage" || (effectiveModule === "dashboard" && !claimId);
-    const hasClaimsIntent = !isGarageModule && /DAL-\d{4}-\d+|תביע|פתיחת תיק|חבילת פתיח|חבילה|קישור|מסמכ|טופס|טפסים|תיק חדש|לקוח חדש/i.test(userMessagesText);
-    const isClaimsModule = (effectiveModule === "claims" || (!!claimId && !isGarageModule) || hasClaimsIntent) && !isGarageModule;
+    const isReportsModule = effectiveModule === "reports";
+    const isGarageModule = (effectiveModule === "garage" || (effectiveModule === "dashboard" && !claimId)) && !isReportsModule;
+    const hasClaimsIntent = !isGarageModule && !isReportsModule && /DAL-\d{4}-\d+|תביע|פתיחת תיק|חבילת פתיח|חבילה|קישור|מסמכ|טופס|טפסים|תיק חדש|לקוח חדש/i.test(userMessagesText);
+    const isClaimsModule = (effectiveModule === "claims" || (!!claimId && !isGarageModule && !isReportsModule) || hasClaimsIntent) && !isGarageModule && !isReportsModule;
 
     let claimBlock = "";
     if (claimId && !isGarageModule) {
@@ -1078,25 +1079,42 @@ Deno.serve(async (req) => {
     const claimsPrompt = claimId ? CLAIMS_SYSTEM_PROMPT_INSTRUCTIONS : CLAIMS_GENERAL_SYSTEM_PROMPT_INSTRUCTIONS;
     const garagePrompt = `${GARAGE_SYSTEM_PROMPT_INSTRUCTIONS}\n\n--- מצב מוסך ודשבורד ראשי ---\nהמשתמש נמצא בניהול מוסך או בדשבורד הראשי. באפשרותו לתת פקודות ביצוע מלאות (חיפוש רכבים ולקוחות, פתיחת כרטיסי עבודה, עדכון סטטוסים, פחחות וצבע, משימות, תזכורות, מסמכים והפקת דוחות). תמיד הפק כרטיס אישור preview לפעולות שינוי או שמירה.`;
 
+    const reportsPrompt = `--- עוזר דוחות ניהוליים ומאזן משותף (Shared Reports & Balance AI) ---
+אתה עוזר ניהולי בכיר למוסך יוני ולמערכת ניהול התביעות.
+ברשותך גישה מלאה לנתוני שני העולמות:
+1. עבודות המוסך (כרטיסי עבודה, לקוחות פרטיים ועסקיים, ציי רכב, חלפים והזמנות).
+2. תביעות ביטוח (תיקי ביטוח, שמאים, סוכנים, חברות ביטוח ואישורי תשלום).
+התפקיד שלך הוא לענות על שאלות ניהול, בקרה, דוחות ומאזן כספי מתוך נתוני אמת בלבד:
+- כמה תיקים ולקוחות נכנסו בכל תקופה.
+- מאיזה מקור הגיע כל לקוח או תיק (ישיר, סוכן, צי רכב, חברת ביטוח).
+- כמה עבודות נכנסו וכמה הסתיימו.
+- סכומים כספיים מדויקים: כמה אושר, כמה חויב, כמה התקבל בפועל, וכמה נשאר פתוח לגבייה/חוב.
+- פעילות מול כל חברת ביטוח בנפרד, ופעילות המוסך בנפרד.
+- מאזן כולל המאחד את כל הפעילות בלי לערבב בין סוגי התיקים.
+- הצג קישורים ישירים לתיקים (#/claims/{id} או #/garage-management/{id}) לביצוע drilldown.
+לעולם אל תנחש או תמציא מספרים. השתמש בכלים לקבלת נתוני אמת.`;
+
     // Relative dates ("tomorrow") need today's date in Israel.
     const todayIsrael = new Intl.DateTimeFormat("he-IL", { timeZone: "Asia/Jerusalem", weekday: "long", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
     const todayIso = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 
     const fullSysPrompt = [
-      isGarageModule
-        ? garagePrompt
-        : (isClaimsModule ? claimsPrompt : basePrompt),
+      isReportsModule
+        ? reportsPrompt
+        : (isGarageModule ? garagePrompt : (isClaimsModule ? claimsPrompt : basePrompt)),
       (isClaimsModule || isGarageModule) ? `--- תאריך ---\nהיום (שעון ישראל): ${todayIsrael} · ${todayIso}. חשב "מחר", "בעוד שבוע" וכו׳ לפי תאריך זה.` : "",
       (isGarageModule && effectiveGarageCaseId) ? `--- כרטיס עבודה פעיל במסך (Active Garage Case) ---\nהמשתמש צופה כעת בכרטיס עבודה שמזההו (case_id) הוא: "${effectiveGarageCaseId}". בכל בקשה ליצירת משימה, תזכורת, עדכון סטטוס, הצעת מחיר, קליטה, הזמנת לקוח או סיכום שאינה מציינת מספר תיק אחר, העבר אוטומטית case_id="${effectiveGarageCaseId}" לכלי המתאים ואל תשאל את המשתמש לאיזה תיק הכוונה.` : "",
       effectivePageContext ? `--- הקשר מסך נוכחי ---\n${effectivePageContext}` : "",
       claimBlock ? `--- הקשר מודול ניהול תביעות ---\n${claimBlock}` : "",
     ].filter(Boolean).join("\n\n");
 
-    const tools = isGarageModule
-      ? GARAGE_GEMINI_TOOLS
-      : (isClaimsModule
-        ? (claimId ? CLAIMS_GEMINI_TOOLS : CLAIMS_GENERAL_GEMINI_TOOLS)
-        : FLEET_GEMINI_TOOLS);
+    const tools = isReportsModule
+      ? [{ functionDeclarations: [...(GARAGE_GEMINI_TOOLS[0]?.functionDeclarations || []), ...(CLAIMS_GENERAL_GEMINI_TOOLS[0]?.functionDeclarations || [])] }]
+      : (isGarageModule
+        ? GARAGE_GEMINI_TOOLS
+        : (isClaimsModule
+          ? (claimId ? CLAIMS_GEMINI_TOOLS : CLAIMS_GENERAL_GEMINI_TOOLS)
+          : FLEET_GEMINI_TOOLS));
 
     // Document cards go to the chat screen only; the model gets the tool result without them.
     const documentCards: ClaimsDocumentCard[] = [];
@@ -1104,6 +1122,30 @@ Deno.serve(async (req) => {
     // Tools that actually ran in this answer and how each ended — shown to the user under the answer.
     const toolsUsed: ToolTrace[] = [];
     const onToolCall = async (toolName: string, toolArgs: Record<string, unknown>) => {
+      if (isReportsModule) {
+        const isGarageTool = toolName.startsWith('get_garage_') || toolName.startsWith('search_garage_') || toolName.includes('garage');
+        if (isGarageTool) {
+          let res: { result: unknown; preview?: GaragePendingAction; quoteCard?: GarageQuoteCardData };
+          try {
+            res = await executeGarageTool(toolName, toolArgs, supabase, effectiveGarageCaseId || effectiveClaimId, userId, actorName);
+          } catch (e) {
+            addTrace(toolsUsed, toolName, "failed");
+            return { result: { error: e instanceof Error ? e.message : "tool_failed" } };
+          }
+          addTrace(toolsUsed, toolName, toolOutcome(res.result, !!res.preview));
+          return { result: res.result, preview: res.preview };
+        } else {
+          let res: { result: unknown; preview?: ClaimsPendingAction; card?: ClaimsDocumentCard };
+          try {
+            res = await executeClaimsGeneralTool(toolName, toolArgs, supabase, userId, actorName, attachments);
+          } catch (e) {
+            addTrace(toolsUsed, toolName, "failed");
+            return { result: { error: e instanceof Error ? e.message : "tool_failed" } };
+          }
+          addTrace(toolsUsed, toolName, toolOutcome(res.result, !!res.preview));
+          return { result: res.result, preview: res.preview };
+        }
+      }
       if (isGarageModule) {
         let res: { result: unknown; preview?: GaragePendingAction; quoteCard?: GarageQuoteCardData };
         try {

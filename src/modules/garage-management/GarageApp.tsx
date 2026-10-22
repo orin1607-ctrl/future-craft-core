@@ -316,8 +316,17 @@ export default function GarageApp() {
           if (id) navigate(`/garage-management/${id}`);
           return;
         }
+        if (msg.type === 'gm:openReports') {
+          navigate('/claims?view=reports');
+          return;
+        }
         if (msg.type === 'gm:goHome') {
-          navigate('/garage-management', { replace: true });
+          setLoadedCase(null);
+          if (caseId) {
+            navigate('/garage-management', { replace: true });
+          } else {
+            void bootstrap();
+          }
           return;
         }
         if (msg.type === 'gm:goManager') {
@@ -507,6 +516,29 @@ export default function GarageApp() {
           cd.closeNote = String(payload.closeNote || 'סגירת תיק עבודה מורשית');
           const { error: updErr } = await supabase.from('garage_cases').update({
             status: 'סגור',
+            case_data: cd,
+          }).eq('id', cId);
+          if (updErr) throw updErr;
+          reply(requestId, { ok: true });
+          return;
+        }
+
+        if (msg.type === 'gm:reopenCase') {
+          const cId = String(payload.caseId || caseId || '');
+          if (!cId) throw new Error('אין מזהה תיק לפתיחה מחדש');
+          const { data: cRow, error: cErr } = await supabase.from('garage_cases').select('*').eq('id', cId).single();
+          if (cErr || !cRow) throw new Error('תיק לא נמצא');
+          const cd = cRow.case_data || {};
+          cd.caseClosed = false;
+          cd.workFinished = false;
+          cd.reopenHistory = cd.reopenHistory || [];
+          cd.reopenHistory.push({
+            at: new Date().toISOString(),
+            by: actor?.full_name || 'מנהל מוסך',
+            reason: String(payload.reason || ''),
+          });
+          const { error: updErr } = await supabase.from('garage_cases').update({
+            status: 'בעבודה',
             case_data: cd,
           }).eq('id', cId);
           if (updErr) throw updErr;
