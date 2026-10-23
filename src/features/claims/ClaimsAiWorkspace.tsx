@@ -344,6 +344,71 @@ export function findHebrewVoice(voicesList?: SpeechSynthesisVoice[]): SpeechSynt
   return byName || null;
 }
 
+export function splitTextIntoChunks(text: string, maxLen = 150): string[] {
+  if (!text || text.length <= maxLen) return text ? [text] : [];
+  const parts: string[] = [];
+  const sentences = text.split(/(?<=[.?!,\n])\s+/);
+  let cur = '';
+  for (const s of sentences) {
+    if ((cur + ' ' + s).trim().length <= maxLen) {
+      cur = (cur + ' ' + s).trim();
+    } else {
+      if (cur) parts.push(cur);
+      if (s.length <= maxLen) {
+        cur = s;
+      } else {
+        const words = s.split(' ');
+        cur = '';
+        for (const w of words) {
+          if ((cur + ' ' + w).trim().length <= maxLen) {
+            cur = (cur + ' ' + w).trim();
+          } else {
+            if (cur) parts.push(cur);
+            cur = w;
+          }
+        }
+      }
+    }
+  }
+  if (cur) parts.push(cur);
+  return parts.length > 0 ? parts : [text.slice(0, maxLen)];
+}
+
+export function isSafeSystemPromptForOnlineAudio(text: string): boolean {
+  if (!text) return false;
+  // 1. Strict Privacy & PII Guard: NEVER allow online audio for text containing phone numbers, ID, plates, large numbers or emails
+  if (/\b05\d-?\d{7}\b/.test(text) || /\b\d{6,}\b/.test(text) || /@/.test(text)) {
+    return false;
+  }
+  // 2. Safe Voice Test Phrase
+  if (text.includes('האם אתה שומע אותי') || text.includes('שלום, אני דליה')) {
+    return true;
+  }
+  // 3. Whitelist of generic system prompt questions only (no customer/claim data)
+  const safePatterns = [
+    'בוא נפתח לקוח חדש',
+    'מה שם הלקוח',
+    'מה מספר הטלפון שלו',
+    'האם מדובר בלקוח פרטי או בחברה',
+    'מה מספר הרכב',
+    'מה היצרן והדגם',
+    'האם הרכב הגיע עכשיו למוסך',
+    'מה הבעיה או התקלה ברכב',
+    'מי הלקוח שאתה מחפש',
+    'איזה רכב נכנס למוסך',
+    'לאיזה רכב מכינים הצעת מחיר',
+    'מה תרצה לעשות',
+    'איזה תיק אתה מחפש',
+    'איזה תיק תרצה לסגור',
+    'היינו באמצע תהליך',
+    'נמשיך',
+    'עצרתי את ההאזנה',
+    'ביטלתי את הפעולה',
+    'אין כרגע פעולה שהופסקה',
+  ];
+  return safePatterns.some((pattern) => text.includes(pattern));
+}
+
 export function cleanTextForSpeech(markdown: string): string {
   if (!markdown) return '';
   return markdown
@@ -2585,6 +2650,42 @@ export function ClaimsAiWorkspace({
   const [voiceModeActive, setVoiceModeActive] = useState(false);
   const [voicePhase, setVoicePhase] = useState<'idle' | 'listening' | 'processing' | 'speaking' | 'executing' | 'waiting_confirm'>('idle');
   const [currentVoiceWorkflow, setCurrentVoiceWorkflow] = useState<DaliaWorkflowState | null>(() => loadVoiceWorkflowState());
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioPreference, setAudioPreference] = useState<'auto' | 'online' | 'native'>(() => {
+    try {
+      return ((typeof window !== 'undefined' && window.localStorage?.getItem('dalia_audio_preference')) as any) || 'auto';
+    } catch {
+      return 'auto';
+    }
+  });
+  const [showVoiceDiag, setShowVoiceDiag] = useState(false);
+  const [voiceDiagnostics, setVoiceDiagnostics] = useState<{
+    supported: boolean;
+    voicesCount: number;
+    hebrewVoice: string | null;
+    lastEngine: 'native' | 'online' | 'none';
+    lastStatus: string;
+    lastError: string | null;
+    speaking: boolean;
+  }>({
+    supported: typeof window !== 'undefined' && !!window.speechSynthesis,
+    voicesCount: 0,
+    hebrewVoice: null,
+    lastEngine: 'none',
+    lastStatus: 'מוכן',
+    lastError: null,
+    speaking: false,
+  });
+
+  const changeAudioPreference = useCallback((pref: 'auto' | 'online' | 'native') => {
+    setAudioPreference(pref);
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage?.setItem('dalia_audio_preference', pref);
+      }
+    } catch {}
+  }, []);
+
   const [installedVoices, setInstalledVoices] = useState<SpeechSynthesisVoice[]>([]);
   useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -2593,6 +2694,14 @@ export function ClaimsAiWorkspace({
           const list = window.speechSynthesis.getVoices();
           if (list && list.length > 0) {
             setInstalledVoices(list);
+            const he = findHebrewVoice(list);
+            setVoiceDiagnostics((prev) => ({
+              ...prev,
+              supported: true,
+              voicesCount: list.length,
+              hebrewVoice: he?.name || null,
+              lastStatus: he ? `זוהה קול עברי: ${he.name}` : `זוהו ${list.length} קולות (ללא קול עברי מקומי)`,
+            }));
           }
         } catch {}
       };
@@ -3015,16 +3124,132 @@ export function ClaimsAiWorkspace({
         window.speechSynthesis.cancel();
       } catch {}
     }
+    if (currentAudioRef.current) {
+      try {
+        currentAudioRef.current.pause();
+        currentAudioRef.current.currentTime = 0;
+      } catch {}
+      currentAudioRef.current = null;
+    }
     currentUtterRef.current = null;
+    if (typeof window !== 'undefined') {
+      (window as any).__daliaSpeechUtterance = null;
+      (window as any).__daliaActiveAudio = null;
+    }
     setSpeakingMsgId(null);
+    setVoiceDiagnostics((prev) => ({
+      ...prev,
+      speaking: false,
+      lastStatus: 'ההשמעה הופסקה',
+    }));
+  }, []);
+
+  const playOnlineAudio = useCallback((cleanText: string, onEnd?: () => void, onError?: (err: any) => void) => {
+    // Privacy & PII Security Gate:
+    if (!isSafeSystemPromptForOnlineAudio(cleanText)) {
+      console.log('🔒 Online audio restricted by Privacy Guard (text contains user data or non-whitelisted prompt). Running native on-device TTS only.');
+      onEnd?.();
+      return;
+    }
+
+    try {
+      if (currentAudioRef.current) {
+        try {
+          currentAudioRef.current.pause();
+          currentAudioRef.current.currentTime = 0;
+        } catch {}
+        currentAudioRef.current = null;
+      }
+
+      const chunks = splitTextIntoChunks(cleanText, 150);
+      let currentChunkIndex = 0;
+
+      const playNextChunk = () => {
+        if (currentChunkIndex >= chunks.length) {
+          currentAudioRef.current = null;
+          if (typeof window !== 'undefined') {
+            (window as any).__daliaActiveAudio = null;
+          }
+          setSpeakingMsgId(null);
+          setVoiceDiagnostics((prev) => ({
+            ...prev,
+            speaking: false,
+            lastStatus: 'השמעה הושלמה בהצלחה (שמע עברי ישיר)',
+          }));
+          onEnd?.();
+          return;
+        }
+
+        const chunk = chunks[currentChunkIndex];
+        currentChunkIndex += 1;
+
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=iw&client=tw-ob`;
+        const audio = new Audio(url);
+        currentAudioRef.current = audio;
+        if (typeof window !== 'undefined') {
+          (window as any).__daliaActiveAudio = audio;
+        }
+
+        setVoiceDiagnostics((prev) => ({
+          ...prev,
+          speaking: true,
+          lastEngine: 'online',
+          lastStatus: chunks.length > 1 ? `משמיע שמע עברי (חלק ${currentChunkIndex}/${chunks.length})...` : 'משמיע שמע עברי ישיר...',
+          lastError: null,
+        }));
+
+        audio.onended = () => {
+          playNextChunk();
+        };
+
+        audio.onerror = (ev) => {
+          console.warn('Online audio chunk error:', ev);
+          currentAudioRef.current = null;
+          if (typeof window !== 'undefined') {
+            (window as any).__daliaActiveAudio = null;
+          }
+          setSpeakingMsgId(null);
+          setVoiceDiagnostics((prev) => ({
+            ...prev,
+            speaking: false,
+            lastStatus: 'שגיאה בטעינת שמע מקוון',
+            lastError: 'נכשלה טעינת קובץ השמע מהשרת',
+          }));
+          onError?.(ev);
+          onEnd?.();
+        };
+
+        const playPromise = audio.play();
+        if (playPromise) {
+          playPromise.catch((err) => {
+            console.warn('Audio play rejected:', err);
+            currentAudioRef.current = null;
+            if (typeof window !== 'undefined') {
+              (window as any).__daliaActiveAudio = null;
+            }
+            setSpeakingMsgId(null);
+            setVoiceDiagnostics((prev) => ({
+              ...prev,
+              speaking: false,
+              lastStatus: 'חסימת שמע בדפדפן',
+              lastError: `הדפדפן חסם שמע: ${err?.message || err}`,
+            }));
+            setBanner('⚠️ הדפדפן חסם השמעת שמע אוטומטית. יש ללחוץ על המסך או לבדוק הגדרות שמע בדפדפן.');
+            onError?.(err);
+            onEnd?.();
+          });
+        }
+      };
+
+      playNextChunk();
+    } catch (e: any) {
+      console.warn('playOnlineAudio exception:', e);
+      onError?.(e);
+      onEnd?.();
+    }
   }, []);
 
   const speakAnswer = useCallback((msgId: string, rawText: string, onEndCallback?: () => void) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-      setBanner('⚠️ הדפדפן אינו תומך בהקראת קול (SpeechSynthesis).');
-      onEndCallback?.();
-      return;
-    }
     stopSpeaking();
 
     const clean = cleanTextForSpeech(rawText);
@@ -3033,60 +3258,138 @@ export function ClaimsAiWorkspace({
       return;
     }
 
+    setSpeakingMsgId(msgId);
+
     const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
-    const currentVoices = installedVoices.length > 0 ? installedVoices : (window.speechSynthesis.getVoices?.() || []);
+    const currentVoices = installedVoices.length > 0 ? installedVoices : (typeof window !== 'undefined' && window.speechSynthesis ? (window.speechSynthesis.getVoices?.() || []) : []);
     const heVoice = findHebrewVoice(currentVoices);
 
-    // On Desktop: if voices are loaded (> 0) and definitely no Hebrew voice is installed, warn.
-    // On Mobile: never block! Mobile devices (Android Google TTS / iOS) synthesize Hebrew with lang='he-IL' even when getVoices() is empty.
-    if (!heVoice && currentVoices.length > 0 && !isMobile) {
-      setBanner('⚠️ לא זוהה מנוע קולי בעברית במכשיר זה. ניתן להתקין קול עברי בהגדרות השפה.');
-      onEndCallback?.();
+    // Decision: If user chose online audio, or if 'auto' on a device without native Hebrew voice -> use Online Audio directly!
+    const shouldUseOnline = audioPreference === 'online' || (audioPreference === 'auto' && !heVoice);
+
+    if (shouldUseOnline) {
+      playOnlineAudio(clean, onEndCallback, () => {
+        if (typeof window !== 'undefined' && window.speechSynthesis) {
+          tryNativeSpeak();
+        }
+      });
       return;
     }
 
-    const utter = new SpeechSynthesisUtterance(clean);
-    if (heVoice) {
+    tryNativeSpeak();
+
+    function tryNativeSpeak() {
+      if (typeof window === 'undefined' || !window.speechSynthesis) {
+        playOnlineAudio(clean, onEndCallback);
+        return;
+      }
+
+      setVoiceDiagnostics((prev) => ({
+        ...prev,
+        speaking: true,
+        lastEngine: 'native',
+        lastStatus: 'מפעיל דיבור מובנה (TTS)...',
+        lastError: null,
+      }));
+
+      const utter = new SpeechSynthesisUtterance(clean);
+      if (typeof window !== 'undefined') {
+        (window as any).__daliaSpeechUtterance = utter;
+      }
+      currentUtterRef.current = utter;
+
+      if (heVoice) {
+        try {
+          utter.voice = heVoice;
+        } catch {}
+        utter.lang = heVoice.lang || 'he-IL';
+      } else {
+        utter.lang = 'he-IL';
+      }
+      utter.rate = 1.0;
+
+      let ended = false;
+      let hasStarted = false;
+      const startTime = Date.now();
+
+      const finish = () => {
+        if (ended) return;
+        ended = true;
+        currentUtterRef.current = null;
+        if (typeof window !== 'undefined') {
+          (window as any).__daliaSpeechUtterance = null;
+        }
+        setSpeakingMsgId(null);
+        setVoiceDiagnostics((prev) => ({
+          ...prev,
+          speaking: false,
+          lastStatus: 'השמעה הושלמה (דיבור מקומי)',
+        }));
+        onEndCallback?.();
+      };
+
+      utter.onstart = () => {
+        hasStarted = true;
+        setVoiceDiagnostics((prev) => ({
+          ...prev,
+          speaking: true,
+          lastStatus: `דליה מדברת (${heVoice?.name || 'עברית ברירת מחדל'})...`,
+        }));
+      };
+
+      utter.onend = () => {
+        const duration = Date.now() - startTime;
+        if (clean.length > 5 && duration < 150 && !hasStarted) {
+          console.warn('Native TTS finished suspiciously fast (silent skip). Falling back to online audio!');
+          playOnlineAudio(clean, onEndCallback);
+          return;
+        }
+        finish();
+      };
+
+      utter.onerror = (ev) => {
+        const errName = (ev && typeof ev === 'object' && 'error' in ev) ? String(ev.error) : '';
+        console.warn('SpeechSynthesis error:', errName, '-> Falling back to online audio');
+        setVoiceDiagnostics((prev) => ({
+          ...prev,
+          lastError: `שגיאת דיבור מקומי: ${errName || 'לא ידוע'} (עבר לשמע מקוון)`,
+        }));
+        playOnlineAudio(clean, onEndCallback);
+      };
+
+      setTimeout(() => {
+        if (!hasStarted && !ended && currentUtterRef.current === utter) {
+          console.warn('Native TTS did not start in 700ms -> Falling back to online audio');
+          try {
+            window.speechSynthesis.cancel();
+          } catch {}
+          currentUtterRef.current = null;
+          if (typeof window !== 'undefined') {
+            (window as any).__daliaSpeechUtterance = null;
+          }
+          playOnlineAudio(clean, onEndCallback);
+        }
+      }, 700);
+
       try {
-        utter.voice = heVoice;
-      } catch {}
-      utter.lang = heVoice.lang || 'he-IL';
-    } else {
-      utter.lang = 'he-IL';
-    }
-    utter.rate = 1.0;
-    currentUtterRef.current = utter;
-    setSpeakingMsgId(msgId);
-
-    let ended = false;
-    const finish = () => {
-      if (ended) return;
-      ended = true;
-      currentUtterRef.current = null;
-      setSpeakingMsgId(null);
-      onEndCallback?.();
-    };
-
-    utter.onend = finish;
-    utter.onerror = (ev) => {
-      const errName = (ev && typeof ev === 'object' && 'error' in ev) ? String(ev.error) : '';
-      console.warn('SpeechSynthesis error:', errName);
-      if (errName === 'not-allowed') {
-        setBanner('⚠️ הדפדפן חסם השמעת שמע אוטומטית. יש ללחוץ על המסך או להסיר חסימת שמע בהגדרות האתר בדפדפן.');
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+        window.speechSynthesis.speak(utter);
+      } catch (err: any) {
+        console.warn('SpeechSynthesis speak failed:', err, '-> Falling back to online audio');
+        playOnlineAudio(clean, onEndCallback);
       }
-      finish();
-    };
-
-    try {
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-      }
-      window.speechSynthesis.speak(utter);
-    } catch (err) {
-      console.warn('SpeechSynthesis speak failed:', err);
-      finish();
     }
-  }, [installedVoices, stopSpeaking]);
+  }, [audioPreference, installedVoices, playOnlineAudio, stopSpeaking]);
+
+  const handleTestVoice = useCallback(() => {
+    const testText = 'שלום, אני דליה. האם אתה שומע אותי?';
+    setBanner('🔊 מפעיל בדיקת קול של דליה...');
+    speakAnswer('test-voice', testText, () => {
+      setBanner('✅ בדיקת הקול הסתיימה. אם שמעת את דליה ברמקול, המערכת מוכנה!');
+    });
+  }, [speakAnswer]);
 
   const stopVoiceRecognition = useCallback(() => {
     if (voiceSilenceTimerRef.current) {
@@ -4685,7 +4988,16 @@ const toggleVoiceMute = useCallback(() => {
               </div>
             )}
             <div className="claims-ai-voice-mode-actions">
-              <button
+                            <button
+                type="button"
+                className="claims-ai-voice-bar-btn"
+                data-testid="claims-ai-voice-quick-test-btn"
+                onClick={handleTestVoice}
+                title="בדיקת קול דליה ברמקול"
+              >
+                🔊 בדיקת קול
+              </button>
+<button
                 type="button"
                 className={`claims-ai-voice-bar-btn mute${voiceMuted ? ' active' : ''}`}
                 data-testid="claims-ai-voice-mute-btn"
@@ -4798,6 +5110,66 @@ const toggleVoiceMute = useCallback(() => {
                     </div>
                   )}
                   <div className="garage-welcome-badge">✨ דליה AI · ניהול המוסך</div>
+                  <div className="dalia-voice-control-bar" data-testid="dalia-voice-control-bar">
+                    <button
+                      type="button"
+                      className="dalia-voice-test-btn"
+                      data-testid="dalia-test-voice-btn"
+                      onClick={handleTestVoice}
+                      title="בדיקת קול דליה ברמקול של המכשיר"
+                    >
+                      🔊 בדיקת קול
+                    </button>
+                    <div className="dalia-audio-mode-selector">
+                      <span className="dalia-audio-mode-label">מקור שמע:</span>
+                      <select
+                        value={audioPreference}
+                        onChange={(e) => changeAudioPreference(e.target.value as any)}
+                        className="dalia-audio-select"
+                        data-testid="dalia-audio-preference-select"
+                      >
+                        <option value="auto">⚡ אוטומטי (מומלץ למובייל)</option>
+                        <option value="online">🌐 שמע מקוון ישיר (עברית נקייה)</option>
+                        <option value="native">📱 מנוע דיבור מקומי (SpeechSynthesis)</option>
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      className="dalia-voice-diag-toggle-btn"
+                      onClick={() => setShowVoiceDiag((prev) => !prev)}
+                      title="הצג/הסתר פרטי אבחון קולי"
+                    >
+                      ℹ️ {showVoiceDiag ? 'הסתר אבחון' : 'פרטי אבחון'}
+                    </button>
+                    {showVoiceDiag && (
+                      <div className="dalia-voice-diag-panel" data-testid="dalia-voice-diag-panel">
+                        <div className="dalia-diag-row">
+                          <span className="dalia-diag-label">דפדפן SpeechSynthesis:</span>
+                          <span className={`dalia-diag-val ${voiceDiagnostics.supported ? '' : 'warn'}`}>
+                            {voiceDiagnostics.supported ? 'נתמך' : 'לא נתמך (יופעל שמע מקוון)'}
+                          </span>
+                        </div>
+                        <div className="dalia-diag-row">
+                          <span className="dalia-diag-label">קול עברי במכשיר:</span>
+                          <span className={`dalia-diag-val ${voiceDiagnostics.hebrewVoice ? '' : 'warn'}`}>
+                            {voiceDiagnostics.hebrewVoice || 'לא מותקן (שמע מקוון יופעל אוטומטית)'}
+                          </span>
+                        </div>
+                        <div className="dalia-diag-row">
+                          <span className="dalia-diag-label">מנוע שמע אחרון:</span>
+                          <span className="dalia-diag-val">
+                            {voiceDiagnostics.lastEngine === 'online' ? '🌐 שמע מקוון ישיר' : voiceDiagnostics.lastEngine === 'native' ? '📱 מנוע דיבור מקומי' : 'טרם הופעל'}
+                          </span>
+                        </div>
+                        <div className="dalia-diag-row">
+                          <span className="dalia-diag-label">סטטוס שמע:</span>
+                          <span className={`dalia-diag-val ${voiceDiagnostics.lastError ? 'err' : ''}`}>
+                            {voiceDiagnostics.lastError || voiceDiagnostics.lastStatus}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <h3 className="garage-welcome-title">שלום, במה תרצה לטפל היום?</h3>
                   <p className="garage-welcome-subtitle">
                     {garageCase

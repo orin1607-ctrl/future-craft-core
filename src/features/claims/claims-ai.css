@@ -1360,6 +1360,117 @@
   animation: none;
 }
 
+/* Dalia Voice Diagnostics & Control Bar */
+.claims-root .dalia-voice-control-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.claims-root .dalia-voice-test-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  min-height: 38px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border: 1px solid #38bdf8;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+  transition: all 0.18s ease;
+}
+
+.claims-root .dalia-voice-test-btn:hover,
+.claims-root .dalia-voice-test-btn:active {
+  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+  transform: translateY(-1px);
+}
+
+.claims-root .dalia-audio-mode-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+}
+
+.claims-root .dalia-audio-mode-label {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.claims-root .dalia-audio-select {
+  background: #1e293b;
+  color: #f1f5f9;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.claims-root .dalia-voice-diag-toggle-btn {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #94a3b8;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.claims-root .dalia-voice-diag-toggle-btn:hover {
+  color: #f1f5f9;
+  border-color: rgba(148, 163, 184, 0.5);
+}
+
+.claims-root .dalia-voice-diag-panel {
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: rgba(2, 6, 23, 0.85);
+  border: 1px dashed rgba(56, 189, 248, 0.35);
+  border-radius: 6px;
+  font-size: 12px;
+  color: #cbd5e1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 6px;
+}
+
+.claims-root .dalia-diag-row {
+  display: flex;
+  gap: 6px;
+}
+
+.claims-root .dalia-diag-label {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.claims-root .dalia-diag-val {
+  color: #38bdf8;
+  font-weight: 500;
+}
+
+.claims-root .dalia-diag-val.warn {
+  color: #f59e0b;
+}
+
+.claims-root .dalia-diag-val.err {
+  color: #ef4444;
+}
+
 /* Mobile full-screen guarantee */
 @media (max-width: 760px) {
   .claims-root .claims-ai-workspace {
