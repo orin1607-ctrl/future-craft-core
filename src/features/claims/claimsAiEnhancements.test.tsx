@@ -368,6 +368,7 @@ describe('Claims AI Enhancements (Tasks 1-4)', () => {
         resume: vi.fn(),
         paused: false,
         speaking: false,
+        getVoices: vi.fn(() => [{ lang: 'he-IL', name: 'Microsoft Asaf' }]),
       };
       Object.defineProperty(window, 'speechSynthesis', {
         value: mockSpeechSynthesis,
@@ -597,6 +598,7 @@ describe('Claims AI Enhancements (Tasks 1-4)', () => {
         resume: vi.fn(),
         paused: false,
         speaking: false,
+        getVoices: vi.fn(() => [{ lang: 'he-IL', name: 'Microsoft Asaf' }]),
       };
       Object.defineProperty(window, 'speechSynthesis', {
         value: mockSpeechSynthesis,

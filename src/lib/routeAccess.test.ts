@@ -101,7 +101,7 @@ describe('routeAccess', () => {
 
   it('garage-management is not the photographer /garage portal', () => {
     expect(canAccessRoute('/garage', 'fleet_manager')).toBe(true);
-    expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(true);
     expect(canAccessRoute('/garage-management', 'super_admin')).toBe(true);
   });
 

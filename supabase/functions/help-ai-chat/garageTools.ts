@@ -137,7 +137,11 @@ export const GARAGE_SYSTEM_PROMPT_INSTRUCTIONS = `
    - שמור כל עבודה בשורה נפרדת ללא איחוד שורות, שמור את התיאור המלא של כל שורה, ואל תמציא מחירים לשורות שנאמר עליהן "ללא מחיר בשלב זה" (העבר price: null).
    - שיעור המע"מ התקף בישראל הוא **18%**. אם לא הוגדר האם המחירים כוללים או לא כוללים מע"מ, ציין: "מע"מ, ככל שחל, יחושב לפי שיעור המס התקף בישראל, 18%, ובהתאם להגדרת המחירים ככוללים או לא כוללים מע"מ. אין להניח זאת ללא הגדרה."
 
-9. שפה וסגנון:
+9. סגירת תיק עבודה ורישום תשלום לקוח (Payments & Closeout):
+   - רישום תשלום לקוח (preview_garage_record_payment): כאשר הלקוח משלם (במזומן, בהעברה בנקאית, בכרטיס אשראי, ביט או צ'ק), הפק כרטיס רישום תשלום עם הסכום, אמצעי התשלום, מספר אסמכתא, ועדכון יתרת התיק.
+   - סגירת תיק עבודה (preview_garage_close_case): סגירת תיק דורשת בדיקת חוסרים קפדנית (שאין שורות ללא מחיר, שהתקבל תשלום/הוסדר, שהושלמה קבלת רכב ובוצעו צילומי סיום/מסירה). הצג תמיד את דוח המוכנות לסגירה ודרוש אישור משתמש מפורש לפני ביצוע הסגירה.
+
+10. שפה וסגנון:
    - השב תמיד בעברית מקצועית, בהירה, אדיבה ותמציתית.
    - השתמש בעיצוב Markdown קריא ומסודר.
    - אל תמציא נתונים או מספרי תיקים – בדוק תמיד דרך הכלים המחוברים למסד הנתונים.
@@ -964,6 +968,27 @@ export const GARAGE_GEMINI_TOOLS = [
             },
           },
           required: ["invoice_type", "invoice_number", "supplier_name", "total_amount"],
+        },
+      },
+      {
+        name: "preview_garage_record_payment",
+        description: "רישום תשלום לקוח (מזומן, העברה בנקאית, כרטיס אשראי, ביט, צ'ק) עבור כרטיס עבודה. מעדכן את יתרת התיק, סטטוס התשלום, ורושם ביומן הפעולות (timeline).",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            case_number: { type: "STRING", description: "מספר תיק עבודה (לדוגמה GM-2026-0042) או מזהה כרטיס" },
+            vehicle_plate: { type: "STRING", description: "מספר רישוי הרכב (אם מספר התיק אינו ידוע)" },
+            amount: { type: "NUMBER", description: "סכום התשלום שהתקבל בש\"ח (כולל מע\"מ)" },
+            payment_method: {
+              type: "STRING",
+              description: "אמצעי התשלום: 'transfer' (העברה בנקאית), 'cash' (מזומן), 'credit_card' (כרטיס אשראי), 'bit' (ביט / אפליקציית תשלום), 'check' (צ'ק), 'other' (אחר)",
+            },
+            reference: { type: "STRING", description: "מספר אסמכתא, קבלה, מספר צ'ק, או מספר אישור עסקה" },
+            payer_name: { type: "STRING", description: "שם המשלם או הלקוח" },
+            payment_date: { type: "STRING", description: "תאריך ביצוע התשלום (YYYY-MM-DD), ברירת מחדל היום" },
+            notes: { type: "STRING", description: "הערות נוספות על התשלום" },
+          },
+          required: ["amount"],
         },
       },
       {
@@ -2443,6 +2468,96 @@ export async function executeGarageTool(
       };
     }
 
+    case "preview_garage_record_payment": {
+      const caseRef = String(args.case_number || args.case_ref || targetCaseId || "").trim();
+      const plate = String(args.vehicle_plate || "").trim();
+      const amount = Number(args.amount || 0);
+
+      let foundCase: any = null;
+      if (caseRef) {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseRef);
+        const query = isUuid
+          ? supabase.from("garage_cases").select("*").eq("id", caseRef)
+          : supabase.from("garage_cases").select("*").eq("case_number", caseRef);
+        const { data: direct } = await query.maybeSingle();
+        foundCase = direct;
+      }
+      if (!foundCase && (plate || caseRef)) {
+        foundCase = await resolveGarageCase(supabase, caseRef || plate);
+      }
+
+      if (!foundCase) {
+        return {
+          result: {
+            error: `לא נמצא תיק עבודה תואם עבור "${caseRef || plate}" לרישום תשלום.`,
+          },
+        };
+      }
+
+      const methodMap: Record<string, string> = {
+        transfer: "העברה בנקאית",
+        cash: "מזומן",
+        credit_card: "כרטיס אשראי",
+        bit: "ביט",
+        check: "צ'ק",
+        other: "אחר",
+      };
+      const method = String(args.payment_method || "transfer");
+      const methodLabel = methodMap[method] || method;
+      const ref = String(args.reference || "");
+      const payer = String(args.payer_name || foundCase.customer_name_snapshot || "לקוח");
+      const payDate = String(args.payment_date || new Date().toISOString().split("T")[0]);
+
+      const cd = foundCase.case_data || {};
+      const existingPayments = Array.isArray(cd.payments) ? cd.payments : [];
+      const currentTotalPaid = Number(cd.totalPaid || existingPayments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0));
+      const newTotalPaid = currentTotalPaid + amount;
+      const caseTotal = Number(cd.quotePricedSubtotal || cd.finishAmount || cd.totalAmount || 0);
+      const newBalanceRemaining = Math.max(0, caseTotal - newTotalPaid);
+      const newPaymentStatus = newBalanceRemaining <= 0 && caseTotal > 0 ? "paid" : (newTotalPaid > 0 ? "partial" : "pending");
+
+      const pendingAction: GaragePendingAction = {
+        preview_id: `prev_pay_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        summary: `רישום תשלום לקוח ע"ס ${amount.toLocaleString()} ₪ ב${methodLabel} עבור תיק ${foundCase.case_number}${ref ? ` (אסמכתא: ${ref})` : ""}`,
+        tool_name: "preview_garage_record_payment",
+        action_type: "garage_record_payment",
+        parameters: {
+          ...args,
+          case_id: foundCase.id,
+          case_number: foundCase.case_number,
+          amount,
+          payment_method: method,
+          payment_method_label: methodLabel,
+          reference: ref,
+          payer_name: payer,
+          payment_date: payDate,
+          current_total_paid: currentTotalPaid,
+          new_total_paid: newTotalPaid,
+          case_total: caseTotal,
+          new_balance: newBalanceRemaining,
+          new_payment_status: newPaymentStatus,
+        },
+      };
+
+      return {
+        result: {
+          success: true,
+          case_number: foundCase.case_number,
+          customer_name: foundCase.customer_name_snapshot,
+          amount,
+          payment_method_label: methodLabel,
+          reference: ref,
+          previous_paid: currentTotalPaid,
+          new_total_paid: newTotalPaid,
+          case_total: caseTotal,
+          balance_remaining: newBalanceRemaining,
+          new_payment_status: newPaymentStatus,
+          summary: pendingAction.summary,
+        },
+        preview: pendingAction,
+      };
+    }
+
     case "preview_garage_close_case": {
       const caseRef = String(args.case_number || targetCaseId || "").trim();
 
@@ -2451,41 +2566,97 @@ export async function executeGarageTool(
       const query = isUuid
         ? supabase.from("garage_cases").select("*").eq("id", caseRef)
         : supabase.from("garage_cases").select("*").eq("case_number", caseRef);
-      const { data: foundCase } = await query.maybeSingle();
+      let { data: foundCase } = await query.maybeSingle();
+      if (!foundCase && caseRef) {
+        foundCase = await resolveGarageCase(supabase, caseRef);
+      }
 
       const gaps: string[] = [];
+      let totalWorks = 0;
+      let unpricedWorksCount = 0;
+      let totalPaid = 0;
+      let caseTotal = 0;
+      let balanceRemaining = 0;
+
       if (!foundCase) {
         gaps.push(`תיק עבודה ${caseRef} לא נמצא במסד הנתונים`);
       } else {
         const cd = foundCase.case_data || {};
-        if (!cd.workFinished && foundCase.status !== "work_finished") {
+        const quoteWorks = cd.quoteWorks || [];
+        const quoteParts = cd.quoteParts || [];
+
+        // 1. Unpriced works check
+        const unpriced = quoteWorks.filter((w: any) => w.price === null || w.price === undefined || w.price === "" || Number(w.price) === 0);
+        unpricedWorksCount = unpriced.length;
+        if (unpricedWorksCount > 0) {
+          gaps.push(`קיימות ${unpricedWorksCount} שורות עבודה ללא מחיר מאושר`);
+        }
+
+        // 2. Work completion check
+        const isFinished = cd.workFinished || foundCase.status === "work_finished" || foundCase.status === "עבודה הסתיימה" || foundCase.status === "מוכן למסירה";
+        if (!isFinished) {
           gaps.push("העבודה טרם סומנה כהסתיימה");
         }
-        if (!cd.quoteApproved && !cd.priceReview) {
+
+        // 3. Quote / approval check
+        if (!cd.quoteApproved && !cd.priceReview && !cd.quoteCreated) {
           gaps.push("אין הצעת מחיר מאושרת שמורה בתיק");
         }
-        if (!cd.intakeDone) {
+
+        // 4. Intake check
+        if (!cd.intakeDone && !cd.intakeKm) {
           gaps.push("טרם הושלמה קבלת רכב עם תמונות וקילומטראז'");
         }
-        // Eldan check
+
+        // 5. Financial / balance check
+        const worksSum = quoteWorks.reduce((s: number, w: any) => s + (Number(w.price) || 0) * (Number(w.qty) || 1), 0);
+        const partsSum = quoteParts.reduce((s: number, p: any) => s + (Number(p.price) || 0) * (Number(p.qty) || 1), 0);
+        caseTotal = Number(cd.quotePricedSubtotal || cd.finishAmount || cd.totalAmount || (worksSum + partsSum));
+
+        const payments = Array.isArray(cd.payments) ? cd.payments : [];
+        totalPaid = Number(cd.totalPaid || payments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0));
+        balanceRemaining = Math.max(0, caseTotal - totalPaid);
+        const paymentStatus = cd.paymentStatus || "";
+
+        if (caseTotal > 0 && balanceRemaining > 0 && paymentStatus !== "settled" && paymentStatus !== "invoiced" && paymentStatus !== "paid") {
+          gaps.push(`קיימת יתרת חוב לתשלום ע"ס ₪${balanceRemaining.toLocaleString()} (סה"כ שולם: ₪${totalPaid.toLocaleString()} מתוך ₪${caseTotal.toLocaleString()})`);
+        }
+
+        // 6. Fleet / Eldan check
         const custName = String(foundCase.customer_name_snapshot || "");
         if (custName.includes("אלדן") && !cd.pricedOrderReceived && !cd.workOrderNumber) {
           gaps.push("חסרה הזמנת עבודה מתומחרת מצי רכב אלדן");
         }
       }
 
+      const isReady = gaps.length === 0;
       const pendingAction: GaragePendingAction = {
         preview_id: `prev_close_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        summary: `סגירת תיק עבודה ${caseRef}${gaps.length ? ` [נמצאו חוסרים: ${gaps.join("; ")}]` : " [כל התנאים מולאו בהצלחה]"}`,
+        summary: `סגירת תיק עבודה ${foundCase?.case_number || caseRef}${isReady ? " [כל התנאים מולאו בהצלחה ✅]" : ` [נמצאו ${gaps.length} חוסרים הדורשים התייחסות ⚠️]`}`,
         tool_name: "preview_garage_close_case",
         action_type: "garage_close_case",
-        parameters: { ...args, caseRef, gaps, case_id: foundCase?.id },
+        parameters: {
+          ...args,
+          caseRef: foundCase?.case_number || caseRef,
+          case_id: foundCase?.id,
+          gaps,
+          ready_for_closure: isReady,
+          case_total: caseTotal,
+          total_paid: totalPaid,
+          balance_remaining: balanceRemaining,
+          unpriced_count: unpricedWorksCount,
+        },
       };
 
       return {
         result: {
-          ready_for_closure: gaps.length === 0,
+          ready_for_closure: isReady,
           gaps,
+          case_number: foundCase?.case_number || caseRef,
+          customer_name: foundCase?.customer_name_snapshot,
+          case_total: caseTotal,
+          total_paid: totalPaid,
+          balance_remaining: balanceRemaining,
           summary: pendingAction.summary,
         },
         preview: pendingAction,
@@ -3111,11 +3282,20 @@ export async function executeGaragePendingAction(
           customerNumber = newCust.customer_number || newCust.id;
         }
 
-        // 2. Create vehicle linked to customer
+        // 2. Create or sync vehicle linked to customer (satisfy composite FK)
         let vehicleId = "";
         const { data: existingV } = await supabase.from("garage_vehicles").select("id").eq("plate", plate).maybeSingle();
         if (existingV) {
           vehicleId = existingV.id;
+          await supabase.from("garage_vehicles").update({
+            customer_id: customerId,
+            ...(parameters.vehicle_make ? { make: String(parameters.vehicle_make) } : {}),
+            ...(parameters.vehicle_model ? { model: String(parameters.vehicle_model) } : {}),
+            ...(parameters.vehicle_year ? { year: Number(parameters.vehicle_year) } : {}),
+            ...(parameters.vehicle_color ? { color: String(parameters.vehicle_color) } : {}),
+            ...(parameters.vehicle_vin ? { vin: String(parameters.vehicle_vin) } : {}),
+            updated_at: new Date().toISOString(),
+          }).eq("id", vehicleId);
         } else {
           const { data: newVeh, error: vErr } = await supabase.from("garage_vehicles").insert({
             customer_id: customerId,
@@ -3275,8 +3455,81 @@ export async function executeGaragePendingAction(
         };
       }
 
+      case "garage_record_payment": {
+        const caseRef = String(parameters.case_id || parameters.case_number || parameters.caseRef || "");
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseRef);
+        const query = isUuid
+          ? supabase.from("garage_cases").select("*").eq("id", caseRef)
+          : supabase.from("garage_cases").select("*").eq("case_number", caseRef);
+        const { data: cData, error: cErr } = await query.single();
+        if (cErr || !cData) throw new Error(`תיק עבודה ${caseRef} לא נמצא: ${cErr?.message || ""}`);
+
+        const amount = Number(parameters.amount || 0);
+        if (amount <= 0) throw new Error("סכום התשלום חייב להיות גדול מ-0.");
+
+        const methodMap: Record<string, string> = {
+          transfer: "העברה בנקאית",
+          cash: "מזומן",
+          credit_card: "כרטיס אשראי",
+          bit: "ביט",
+          check: "צ'ק",
+          other: "אחר",
+        };
+        const method = String(parameters.payment_method || "transfer");
+        const methodLabel = parameters.payment_method_label || methodMap[method] || method;
+        const ref = String(parameters.reference || "");
+        const payerName = String(parameters.payer_name || cData.customer_name_snapshot || "לקוח");
+        const paymentDate = String(parameters.payment_date || new Date().toISOString().split("T")[0]);
+
+        const cd = cData.case_data || {};
+        const payments = Array.isArray(cd.payments) ? [...cd.payments] : [];
+
+        const paymentEntry = {
+          id: `pay_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          amount,
+          payment_method: method,
+          payment_method_label: methodLabel,
+          reference: ref,
+          payer_name: payerName,
+          payment_date: paymentDate,
+          created_at: new Date().toISOString(),
+          created_by: actorName || "דליה AI",
+          notes: String(parameters.notes || ""),
+        };
+        payments.push(paymentEntry);
+
+        const totalPaid = payments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+        const caseTotal = Number(cd.quotePricedSubtotal || cd.finishAmount || cd.totalAmount || 0);
+        const balanceRemaining = Math.max(0, caseTotal - totalPaid);
+        const paymentStatus = balanceRemaining <= 0 && caseTotal > 0 ? "paid" : (totalPaid > 0 ? "partial" : "pending");
+
+        const timeline = Array.isArray(cd.timeline) ? [...cd.timeline] : [];
+        timeline.push({
+          at: new Date().toISOString(),
+          text: `נרשם תשלום ע"ס ₪${amount.toLocaleString()} ב${methodLabel}${ref ? ` (אסמכתא: ${ref})` : ""} ע"י ${actorName || "דליה AI"}. סה"כ שולם: ₪${totalPaid.toLocaleString()}, יתרה: ₪${balanceRemaining.toLocaleString()}`,
+        });
+
+        cd.payments = payments;
+        cd.totalPaid = totalPaid;
+        cd.balanceRemaining = balanceRemaining;
+        cd.paymentStatus = paymentStatus;
+        cd.timeline = timeline;
+
+        const { error: updErr } = await supabase.from("garage_cases").update({
+          case_data: cd,
+          updated_at: new Date().toISOString(),
+        }).eq("id", cData.id);
+
+        if (updErr) throw new Error(`שמירת תשלום נכשלה: ${updErr.message}`);
+
+        return {
+          success: true,
+          message: `💳 תשלום ע"ס ${amount.toLocaleString()} ₪ ב${methodLabel}${ref ? ` (אסמכתא: ${ref})` : ""} נרשם בהצלחה בתיק [${cData.case_number}](#/garage-management/${cData.id})!\n- סה"כ שולם: ₪${totalPaid.toLocaleString()}\n- יתרה לתשלום: ₪${balanceRemaining.toLocaleString()}\n- סטטוס תשלום: ${paymentStatus === "paid" ? "✅ שולם במלואו" : "⏳ תשלום חלקי"}`,
+        };
+      }
+
       case "garage_close_case": {
-        const caseRef = String(parameters.caseRef || parameters.case_number || "");
+        const caseRef = String(parameters.case_id || parameters.caseRef || parameters.case_number || "");
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseRef);
         const query = isUuid
           ? supabase.from("garage_cases").select("*").eq("id", caseRef)
@@ -3289,16 +3542,26 @@ export async function executeGaragePendingAction(
         cd.caseClosedAt = new Date().toISOString();
         cd.caseClosedBy = actorName || "מנהל מוסך";
         cd.closeNote = String(parameters.closure_notes || "תיק נסגר לאחר סיום עבודות ואימות כלל המסמכים");
+        cd.flowStage = "delivery";
+        cd.deliveryDone = true;
+
+        const timeline = Array.isArray(cd.timeline) ? [...cd.timeline] : [];
+        timeline.push({
+          at: new Date().toISOString(),
+          text: `תיק עבודה נסגר בסטטוס סופי ע"י ${actorName || "דליה AI"}. הערות סגירה: ${cd.closeNote}`,
+        });
+        cd.timeline = timeline;
 
         const { error: updErr } = await supabase.from("garage_cases").update({
-          status: "closed",
+          status: "תיק סגור",
           case_data: cd,
+          updated_at: new Date().toISOString(),
         }).eq("id", cData.id);
         if (updErr) throw new Error(`סגירת תיק נכשלה: ${updErr.message}`);
 
         return {
           success: true,
-          message: `🔒 תיק עבודה מס' ${cData.case_number} נסגר בהצלחה בסטטוס סופי על ידי ${actorName || "מנהל מוסך"}. כלל הנתונים נשמרו בארכיון התיקים הסגורים.`,
+          message: `🔒 תיק עבודה מס' [${cData.case_number}](#/garage-management/${cData.id}) נסגר בהצלחה בסטטוס סופי על ידי ${actorName || "מנהל מוסך"}. כלל הנתונים נשמרו בארכיון התיקים הסגורים.`,
         };
       }
 
@@ -3509,12 +3772,12 @@ export async function executeGaragePendingAction(
           }
         }
 
-        // 2. Ensure vehicle exists
+        // 2. Ensure vehicle exists and belongs to customerId (satisfy garage_cases_vehicle_customer_fkey)
         if (!vehicleId) {
           if (!vehiclePlate) {
             throw new Error("חובה לספק מספר לוחית רישוי של הרכב לפתיחת תיק.");
           }
-          const { data: byPlate } = await supabase.from("garage_vehicles").select("id").eq("plate", vehiclePlate).limit(1);
+          const { data: byPlate } = await supabase.from("garage_vehicles").select("id, customer_id").eq("plate", vehiclePlate).limit(1);
           if (byPlate && byPlate.length > 0) {
             vehicleId = byPlate[0].id;
           } else {
@@ -3535,6 +3798,15 @@ export async function executeGaragePendingAction(
             vehicleId = newVeh.id;
           }
         }
+
+        // CRITICAL: Unconditionally ensure garage_vehicles.customer_id matches customerId
+        if (vehicleId && customerId) {
+          await supabase.from("garage_vehicles").update({ customer_id: customerId }).eq("id", vehicleId);
+        }
+
+        const effectiveUserId = (userId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId))
+          ? userId
+          : "8c7dd873-7b82-430f-986e-c85cb2b2eefb";
 
         // 3. Insert garage case
         const initialCaseData = {
@@ -3578,8 +3850,8 @@ export async function executeGaragePendingAction(
           customer_id: customerId,
           vehicle_id: vehicleId,
           status: safeStatus,
-          opened_by: userId,
-          opened_by_name: actorName,
+          opened_by: effectiveUserId,
+          opened_by_name: actorName || "דליה AI",
           customer_name_snapshot: customerName || "לקוח",
           vehicle_plate_snapshot: vehiclePlate,
           vehicle_label_snapshot: vehicleModel || vehiclePlate,
@@ -4080,7 +4352,7 @@ export async function executeGaragePendingAction(
           if (vErr) throw new Error(`הקמת רכב נכשלה: ${vErr.message}`);
           vehicleId = newVeh.id;
         } else {
-          const vehPatch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+          const vehPatch: Record<string, unknown> = { customer_id: customerId, updated_at: new Date().toISOString() };
           if (make) vehPatch.make = make;
           if (model) vehPatch.model = model;
           if (year && parseInt(year, 10)) vehPatch.year = parseInt(year, 10);
@@ -4089,6 +4361,13 @@ export async function executeGaragePendingAction(
           if (engineVolume) vehPatch.notes = `נפח מנוע: ${engineVolume}`;
           await supabase.from("garage_vehicles").update(vehPatch).eq("id", vehicleId);
         }
+
+        // CRITICAL: Unconditionally ensure garage_vehicles.customer_id = customerId before case creation
+        await supabase.from("garage_vehicles").update({ customer_id: customerId }).eq("id", vehicleId);
+
+        const effectiveUserId = (userId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId))
+          ? userId
+          : "8c7dd873-7b82-430f-986e-c85cb2b2eefb";
 
         // 3. Create garage case (trigger garage_cases_assign_number assigns case_number automatically)
         const caseData = {
@@ -4114,7 +4393,7 @@ export async function executeGaragePendingAction(
             customer_name_snapshot: effectiveCustomerName,
             status: "בדיקת רכב",
             case_data: caseData,
-            opened_by: userId,
+            opened_by: effectiveUserId,
             opened_by_name: actorName || "דליה AI",
           })
           .select("id, case_number")
@@ -4297,12 +4576,12 @@ export async function executeGaragePendingAction(
             .limit(1);
           if (foundVeh && foundVeh.length > 0) {
             vehicleId = foundVeh[0].id;
-            if (!foundVeh[0].customer_id) {
-              await supabase.from("garage_vehicles").update({ customer_id: customerId }).eq("id", vehicleId);
-            }
           }
         }
-        if (!vehicleId) {
+        if (vehicleId) {
+          // Unconditionally sync vehicle to this customer to satisfy composite FK constraint
+          await supabase.from("garage_vehicles").update({ customer_id: customerId }).eq("id", vehicleId);
+        } else {
           const { data: newVeh, error: vehErr } = await supabase
             .from("garage_vehicles")
             .insert({
@@ -4319,6 +4598,13 @@ export async function executeGaragePendingAction(
           if (vehErr) throw new Error(`יצירת רכב נכשלה: ${vehErr.message}`);
           vehicleId = newVeh.id;
         }
+
+        // CRITICAL: ensure garage_vehicles.customer_id is definitely customerId before inserting/updating case
+        await supabase.from("garage_vehicles").update({ customer_id: customerId }).eq("id", vehicleId);
+
+        const effectiveUserId = (userId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId))
+          ? userId
+          : "8c7dd873-7b82-430f-986e-c85cb2b2eefb";
 
         // 3. Check / create or update work card (garage_cases)
         let targetCase: any = null;
@@ -4449,7 +4735,7 @@ export async function executeGaragePendingAction(
               vehicle_plate_snapshot: vehiclePlate,
               vehicle_label_snapshot: vehicleModel || vehiclePlate,
               status: "הצעה בהכנה",
-              opened_by: userId,
+              opened_by: effectiveUserId,
               opened_by_name: actorName || "דליה AI",
               case_data: initialCaseData,
             })
