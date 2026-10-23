@@ -1266,6 +1266,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="tabs">
       <div class="tab active" onclick="switchTab(this,'q-works')">עבודות</div>
       <div class="tab" onclick="switchTab(this,'q-parts')">חלקים</div>
+      <div class="tab" onclick="switchTab(this,'q-extras')">תוספות עבודה (<span id="q-extras-count">0</span>)</div>
       <div class="tab" onclick="switchTab(this,'q-photos')">תמונות</div>
       <div class="tab" onclick="switchTab(this,'q-docs')">מסמכים</div>
     </div>
@@ -1292,9 +1293,15 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <div class="hint" id="quote-docs-empty">אין מסמכים להצעה עדיין.</div>
       <button class="btn btn-ghost" onclick="pickMedia('quotes','מסמך להצעה',false)">＋ מסמך להצעה</button>
     </div>
+    <div class="tabpanel" id="q-extras">
+      <div id="quote-extras-list"></div>
+      <div class="hint" id="quote-extras-empty">אין תוספות עבודה עדיין. תוספות שנתגלו במהלך העבודה מוצגות כאן בנפרד מההצעה המקורית.</div>
+      <button type="button" class="btn btn-ghost" onclick="openExtraApproval()">＋ הוסף תוספת עבודה חדשה</button>
+    </div>
     <div class="total-box">
       <div class="total-row"><span>סה"כ עבודות</span><span id="tot-works">0 ₪</span></div>
       <div class="total-row"><span>סה"כ חלקים (אנחנו)</span><span id="tot-parts">0 ₪</span></div>
+      <div class="total-row" id="row-tot-extras" style="display:none; color:var(--accent); font-weight:700;"><span>תוספות עבודה מאושרות</span><span id="tot-extras">0 ₪</span></div>
       <div class="total-row"><span>חלקים שמסופקים על ידי הלקוח</span><span id="tot-cust-parts">0 פריטים</span></div>
       <div class="total-row"><span>הנחה</span><span id="tot-discount">0 ₪</span></div>
       <div class="total-row"><span>מע"מ (18%)</span><span id="tot-vat">0 ₪</span></div>
@@ -1814,6 +1821,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   <div class="field"><label>מחיר נוסף (₪)</label><input id="extra-price" type="number" placeholder="0"></div>
   <div class="field"><label>הערה</label><textarea id="extra-note" placeholder="הערה לתוספת"></textarea></div>
   <button class="btn btn-ghost" style="margin-bottom:10px;" onclick="pickMedia('during_work','תוספת עבודה',true)">📷 צרף תמונה</button>
+  <button type="button" class="btn btn-white" style="margin-bottom:8px; width:100%; font-weight:700;" onclick="saveDirectExtraApproval()">✅ אשר ושמור תוספת להצעת המחיר</button>
   <div class="btn-row">
     <button class="btn btn-white" onclick="sendExtraApproval('email')">שלח במייל</button>
     <button class="btn btn-ghost" onclick="sendExtraApproval('whatsapp')">WhatsApp</button>
@@ -1993,8 +2001,16 @@ function quotePartsTotal(){
 function quoteCustomerPartCount(){
   return (state.quoteParts || []).filter(function(item){ return item.supplier === 'customer'; }).length;
 }
+function quoteApprovedExtrasTotal(){
+  return (state.extraApprovals || []).reduce(function(sum, item){
+    if(item.status === 'approved' || item.approvedAt) {
+      return sum + (Number(item.price) || 0);
+    }
+    return sum;
+  }, 0);
+}
 function quoteGrandTotal(){
-  var net = quoteWorksTotal() + quotePartsTotal();
+  var net = quoteWorksTotal() + quotePartsTotal() + quoteApprovedExtrasTotal();
   if(state.vatMode === 'unspecified') return net;
   return net + Math.round(net * 0.18);
 }
@@ -3806,6 +3822,24 @@ function renderQuote(){
   } else if(photosEmpty){
     photosEmpty.style.display = 'block';
   }
+  var extrasBadge = document.getElementById('q-extras-count');
+  if(extrasBadge) extrasBadge.textContent = (state.extraApprovals || []).length;
+  var extrasList = document.getElementById('quote-extras-list');
+  var extrasEmpty = document.getElementById('quote-extras-empty');
+  if(extrasList){
+    extrasList.innerHTML = '';
+    (state.extraApprovals || []).forEach(function(item){
+      var card = document.createElement('div');
+      card.className = 'job-card';
+      var isApp = item.status === 'approved' || !!item.approvedAt;
+      var statusBadge = isApp
+        ? '<span class="badge" style="background:rgba(16,185,129,0.15);color:var(--ok);">מאושר</span>'
+        : '<span class="badge" style="background:rgba(245,158,11,0.15);color:#f59e0b;">ממתין לאישור</span>';
+      card.innerHTML = '<div class="jh"><div><div class="part">➕ ' + esc(item.text || 'תוספת עבודה') + '</div><div class="type">' + (item.works ? (esc(item.works) + ' · ') : '') + statusBadge + '</div></div><div class="price">' + money(item.price) + '</div></div>' + (item.note ? ('<div class="desc">' + esc(item.note) + '</div>') : '');
+      extrasList.appendChild(card);
+    });
+    if(extrasEmpty) extrasEmpty.style.display = (state.extraApprovals || []).length ? 'none' : 'block';
+  }
   recalcTotals();
   var sigBox = document.getElementById('quote-signature-status-box');
   if(sigBox){
@@ -3869,14 +3903,26 @@ function renderQuotePreview(){
 function recalcTotals(){
   var works = quoteWorksTotal();
   var parts = quotePartsTotal();
-  var vat = state.vatMode === 'unspecified' ? 0 : Math.round((works + parts) * 0.18);
-  var final = works + parts + vat;
+  var extras = quoteApprovedExtrasTotal();
+  var rowExtras = document.getElementById('row-tot-extras');
+  var totExtras = document.getElementById('tot-extras');
+  if(rowExtras && totExtras){
+    if(extras > 0){
+      rowExtras.style.display = 'flex';
+      totExtras.textContent = money(extras);
+    } else {
+      rowExtras.style.display = 'none';
+    }
+  }
+  var subtotal = works + parts + extras;
+  var vat = state.vatMode === 'unspecified' ? 0 : Math.round(subtotal * 0.18);
+  var final = subtotal + vat;
   setText('tot-works', money(works));
   setText('tot-parts', money(parts));
   setText('tot-cust-parts', quoteCustomerPartCount() + ' פריטים');
   setText('tot-vat', state.vatMode === 'unspecified' ? '18% (לפי הגדרה)' : money(vat));
   setText('tot-final', money(final));
-  if((state.quoteWorks || []).length || (state.quoteParts || []).length) state.quoteCreated = true;
+  if((state.quoteWorks || []).length || (state.quoteParts || []).length || extras > 0) state.quoteCreated = true;
   refreshCaseHub();
 }
 function markQuotePdfCreated(){
@@ -4281,6 +4327,24 @@ function importQuoteToWorkOrder(){
       total_amount: qty * price,
       is_unpriced: false
     });
+  });
+  (state.extraApprovals || []).forEach(function(x, idx){
+    if(x.status === 'approved' || x.approvedAt){
+      var alreadyInWorks = (state.quoteWorks || []).some(function(w){ return w.part === x.text || (w.desc && w.desc.indexOf(x.text) !== -1); });
+      if(!alreadyInWorks){
+        var price = Number(x.price) || 0;
+        items.push({
+          id: 'wo-x-' + (idx + 1) + '-' + Date.now().toString(36),
+          type: 'work',
+          category: 'תוספת עבודה',
+          description: x.text + (x.works ? (' (' + x.works + ')') : ''),
+          qty: 1,
+          unit_price: price,
+          total_amount: price,
+          is_unpriced: false
+        });
+      }
+    }
   });
   state.workOrderItems = items;
   renderWorkOrderItems();
@@ -5492,7 +5556,51 @@ function markExtraApproved(id){
   });
   addTimelineEvent('תוספת עבודה סומנה כמאושרת על ידי העובד');
   renderExtraApprovals();
+  renderQuote();
   schedulePersist();
+}
+function saveDirectExtraApproval(){
+  var text = (document.getElementById('extra-text').value || '').trim();
+  var price = parseFloat(document.getElementById('extra-price').value) || 0;
+  var works = (document.getElementById('extra-works') && document.getElementById('extra-works').value || '').trim();
+  var note = (document.getElementById('extra-note') && document.getElementById('extra-note').value || '').trim();
+  if(!text){ alert('יש לתאר את מה שהתגלה בבדיקה / פירוק'); return; }
+  state.extraApprovals = state.extraApprovals || [];
+  var prevVer = Number(state.quoteVersion) || 1;
+  state.quoteVersion = prevVer + 1;
+  var item = {
+    id: 'x' + Date.now(),
+    text: text,
+    works: works,
+    note: note,
+    price: price,
+    at: new Date().toISOString(),
+    sent: false,
+    status: 'approved',
+    channel: 'direct',
+    sentAt: new Date().toISOString(),
+    sentTo: 'אושר במקום ע״י המוסך והלקוח',
+    approvedAt: new Date().toISOString(),
+    approvedBy: workerName || 'מנהל מוסך'
+  };
+  state.extraApprovals.push(item);
+  state.quoteWorks = state.quoteWorks || [];
+  state.quoteWorks.push({
+    id: 'w_extra_' + Date.now(),
+    part: text,
+    type: 'תוספת עבודה (מאושרת)',
+    qty: 1,
+    price: price,
+    desc: (works ? (works + ' · ') : '') + (note || 'תוספת עבודה שנתגלתה בטיפול')
+  });
+  state.quoteCreated = true;
+  addTimelineEvent('אושרה תוספת עבודה חדשה: ' + text + ' בסך ₪' + price.toLocaleString() + ' (גרסת הצעה מס׳ ' + state.quoteVersion + ')');
+  closeExtraApproval();
+  renderExtraApprovals();
+  renderQuote();
+  refreshCaseHub();
+  schedulePersist();
+  alert('תוספת העבודה נשמרה ואושרה בהצלחה בהצעת המחיר (גרסה ' + state.quoteVersion + '). ההצעה המקורית נשמרה.');
 }
 function renderExtraApprovals(){
   var box = document.getElementById('extra-approval-list');
