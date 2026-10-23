@@ -901,18 +901,59 @@ export async function updateCase(
   caseId: string,
   patch: { case_data?: GarageCaseData; status?: string; snapshots?: Partial<GarageCase> },
 ): Promise<GarageCase> {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
   const updates: Record<string, unknown> = {};
+
   if (patch.case_data) {
-    const case_data = sanitizeCaseData(patch.case_data);
+    // Read current database state to prevent accidental wiping of background/AI fields
+    const prevRes = isUuid
+      ? await tbl('garage_cases').select('case_data, status').eq('id', caseId).maybeSingle()
+      : await tbl('garage_cases').select('case_data, status').eq('case_number', caseId).maybeSingle();
+    const prevData = (prevRes?.data?.case_data || {}) as Record<string, unknown>;
+    const incoming = (patch.case_data || {}) as Record<string, unknown>;
+
+    // Deep merge: incoming overrides previous, but preserve non-empty server fields if incoming is empty/missing
+    const merged: Record<string, unknown> = {
+      ...prevData,
+      ...incoming,
+      quoteToken: incoming.quoteToken || prevData.quoteToken || '',
+      quoteVersion: incoming.quoteVersion || prevData.quoteVersion || 1,
+      quoteTitle: incoming.quoteTitle || prevData.quoteTitle || '',
+      quoteSigned: incoming.quoteSigned !== undefined ? incoming.quoteSigned : prevData.quoteSigned,
+      quoteSignedAt: incoming.quoteSignedAt || prevData.quoteSignedAt || '',
+      quoteSignerName: incoming.quoteSignerName || prevData.quoteSignerName || '',
+      quoteSignatureDataUrl: incoming.quoteSignatureDataUrl || prevData.quoteSignatureDataUrl || '',
+      totalPaid: (incoming.totalPaid !== undefined && incoming.totalPaid !== null && Number(incoming.totalPaid) > 0)
+        ? incoming.totalPaid
+        : (prevData.totalPaid !== undefined ? prevData.totalPaid : (incoming.totalPaid || 0)),
+      payments: (Array.isArray(incoming.payments) && incoming.payments.length > 0)
+        ? incoming.payments
+        : (Array.isArray(prevData.payments) ? prevData.payments : []),
+      balanceRemaining: incoming.balanceRemaining !== undefined && incoming.balanceRemaining !== null
+        ? incoming.balanceRemaining
+        : prevData.balanceRemaining,
+      damagePhotosAttached: incoming.damagePhotosAttached !== undefined ? incoming.damagePhotosAttached : prevData.damagePhotosAttached,
+      damagePhotosCount: incoming.damagePhotosCount ? incoming.damagePhotosCount : (prevData.damagePhotosCount || 0),
+      workOrderNumber: incoming.workOrderNumber || prevData.workOrderNumber || null,
+      workOrderSaved: incoming.workOrderSaved !== undefined ? incoming.workOrderSaved : prevData.workOrderSaved,
+      workOrderAmount: incoming.workOrderAmount || prevData.workOrderAmount || null,
+      invoices: (Array.isArray(incoming.invoices) && incoming.invoices.length > 0) ? incoming.invoices : (prevData.invoices || []),
+      timeline: (Array.isArray(incoming.timeline) && incoming.timeline.length >= (Array.isArray(prevData.timeline) ? prevData.timeline.length : 0))
+        ? incoming.timeline
+        : (Array.isArray(prevData.timeline) ? prevData.timeline : incoming.timeline || []),
+    };
+
+    const case_data = sanitizeCaseData(merged);
     updates.case_data = case_data;
     updates.status = patch.status || deriveCaseStatus(case_data);
   } else if (patch.status) {
     updates.status = patch.status;
   }
+
   if (patch.snapshots?.customer_name_snapshot) updates.customer_name_snapshot = patch.snapshots.customer_name_snapshot;
   if (patch.snapshots?.vehicle_plate_snapshot) updates.vehicle_plate_snapshot = patch.snapshots.vehicle_plate_snapshot;
   if (patch.snapshots?.vehicle_label_snapshot) updates.vehicle_label_snapshot = patch.snapshots.vehicle_label_snapshot;
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(caseId);
+
   const query = isUuid
     ? tbl('garage_cases').update(updates as never).eq('id', caseId)
     : tbl('garage_cases').update(updates as never).eq('case_number', caseId);

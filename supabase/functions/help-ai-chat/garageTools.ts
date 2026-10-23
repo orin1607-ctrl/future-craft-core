@@ -1372,8 +1372,11 @@ export async function executeGarageTool(
         .select("id, case_number, customer_name_snapshot, vehicle_plate_snapshot, vehicle_label_snapshot, status, created_at, updated_at, case_data")
         .order("created_at", { ascending: false });
 
-      if (shopScope?.company_name) {
-        dbQuery = dbQuery.ilike("shop_company_name", `%${shopScope.company_name}%`);
+      // Extract tenant shop company name from profile if available
+      const { data: userProf } = await supabase.from("profiles").select("company_name").eq("id", userId).maybeSingle();
+      const effectiveShopName = userProf?.company_name || "";
+      if (effectiveShopName) {
+        dbQuery = dbQuery.ilike("shop_company_name", `%${effectiveShopName}%`);
       }
 
       if (rawStatus === "closed" || rawStatus === "סגור") {
@@ -1832,6 +1835,7 @@ export async function executeGarageTool(
               case_id: c.id,
               case_number: c.case_number,
               plate: c.vehicle_plate_snapshot,
+              customer_name: c.customer_name_snapshot || "—",
               status: c.status,
               date: c.created_at ? new Date(c.created_at).toLocaleDateString("he-IL") : "",
               amount_ils: amount || "—",
@@ -2466,8 +2470,10 @@ export async function executeGarageTool(
       const name = String(args.name || "").trim();
       if (!name) throw new Error("שם ספק הוא שדה חובה");
       let dupQuery = supabase.from("garage_suppliers").select("id, supplier_number, name").ilike("name", name);
-      if (shopScope?.company_name) {
-        dupQuery = dupQuery.ilike("shop_company_name", `%${shopScope.company_name}%`);
+      const { data: suppProf } = await supabase.from("profiles").select("company_name").eq("id", userId).maybeSingle();
+      const effectiveSuppShop = suppProf?.company_name || "";
+      if (effectiveSuppShop) {
+        dupQuery = dupQuery.ilike("shop_company_name", `%${effectiveSuppShop}%`);
       }
       const { data: existing } = await dupQuery.maybeSingle();
       if (existing) {
@@ -3609,17 +3615,50 @@ export async function executeGaragePendingAction(
         if (cErr || !cData) throw new Error(`תיק ${caseRef} לא נמצא: ${cErr?.message || ""}`);
 
         const cd = cData.case_data || {};
+        const quoteWorks = cd.quoteWorks || [];
+        const unpriced = quoteWorks.filter((w: any) => w.price === null || w.price === undefined || w.price === "" || Number(w.price) === 0);
+        const isFinished = cd.workFinished || cData.status === "work_finished" || cData.status === "עבודה הסתיימה" || cData.status === "מוכן למסירה";
+        const caseTotal = Number(cd.quotePricedSubtotal || cd.finishAmount || cd.totalAmount || 0);
+        const totalPaid = Number(cd.totalPaid || (Array.isArray(cd.payments) ? cd.payments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0) : 0));
+        const balanceRemaining = Math.max(0, caseTotal - totalPaid);
+
+        const gaps: string[] = [];
+        if (unpriced.length > 0) gaps.push(`קיימות ${unpriced.length} שורות עבודה ללא מחיר מאושר`);
+        if (!isFinished) gaps.push("העבודה טרם סומנה כהסתיימה");
+        if (caseTotal > 0 && balanceRemaining > 0 && cd.paymentStatus !== "settled" && cd.paymentStatus !== "invoiced" && cd.paymentStatus !== "paid") {
+          gaps.push(`קיימת יתרת חוב לתשלום ע"ס ₪${balanceRemaining.toLocaleString()}`);
+        }
+
+        const isForceOverride = Boolean(parameters.force_override);
+        const overrideReason = String(parameters.override_reason || parameters.closure_notes || "").trim();
+
+        // Server-side strict gate: if gaps exist and not authorized with explicit override reason, block!
+        if (gaps.length > 0 && (!isForceOverride || !overrideReason)) {
+          throw new Error(`סגירת התיק נחסמה על ידי המערכת: קיימים ${gaps.length} חוסרים פתוחים (${gaps.join("; ")}). סגירה חריגה דורשת אישור מנהל מפורש (force_override: true) וסיבה מנומקת בכתב (override_reason).`);
+        }
+
         cd.caseClosed = true;
         cd.caseClosedAt = new Date().toISOString();
         cd.caseClosedBy = actorName || "מנהל מוסך";
-        cd.closeNote = String(parameters.closure_notes || "תיק נסגר לאחר סיום עבודות ואימות כלל המסמכים");
+        cd.closeNote = overrideReason || String(parameters.closure_notes || "תיק נסגר לאחר סיום עבודות ואימות כלל המסמכים");
         cd.flowStage = "delivery";
         cd.deliveryDone = true;
+        if (gaps.length > 0 && isForceOverride) {
+          cd.closureOverride = {
+            at: new Date().toISOString(),
+            approved_by: actorName || "מנהל מוסך",
+            user_id: userId,
+            reason: overrideReason,
+            unresolved_gaps: gaps,
+          };
+        }
 
         const timeline = Array.isArray(cd.timeline) ? [...cd.timeline] : [];
         timeline.push({
           at: new Date().toISOString(),
-          text: `תיק עבודה נסגר בסטטוס סופי ע"י ${actorName || "דליה AI"}. הערות סגירה: ${cd.closeNote}`,
+          text: gaps.length > 0
+            ? `תיק עבודה נסגר באישור חריג של מנהל (${actorName || "מנהל מוסך"}). סיבה: ${overrideReason}. חוסרים שאושרו לסגירה: ${gaps.join("; ")}`
+            : `תיק עבודה נסגר בסטטוס סופי ע"י ${actorName || "דליה AI"}. הערות סגירה: ${cd.closeNote}`,
         });
         cd.timeline = timeline;
 
@@ -3632,7 +3671,9 @@ export async function executeGaragePendingAction(
 
         return {
           success: true,
-          message: `🔒 תיק עבודה מס' [${cData.case_number}](#/garage-management/${cData.id}) נסגר בהצלחה בסטטוס סופי על ידי ${actorName || "מנהל מוסך"}. כלל הנתונים נשמרו בארכיון התיקים הסגורים.`,
+          message: gaps.length > 0
+            ? `⚠️ תיק עבודה מס' [${cData.case_number}](#/garage-management/${cData.id}) נסגר באישור חריג של מנהל (${actorName || "מנהל מוסך"}). סיבה מתועדת: "${overrideReason}".`
+            : `🔒 תיק עבודה מס' [${cData.case_number}](#/garage-management/${cData.id}) נסגר בהצלחה בסטטוס סופי על ידי ${actorName || "מנהל מוסך"}. כלל הנתונים נשמרו בארכיון התיקים הסגורים.`,
         };
       }
 

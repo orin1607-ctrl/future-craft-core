@@ -596,7 +596,7 @@ export default function GarageApp() {
   useEffect(() => {
     const handlePop = () => {
       const match = window.location.pathname.match(/\/garage-management\/([0-9a-f-]{36})/i);
-      const targetCaseId = match?.[1] || null;
+      const targetCaseId = match?.[1] || activeCaseIdRef.current || caseId || null;
       if (targetCaseId) {
         iframeRef.current?.contentWindow?.postMessage({
           type: 'gm:bootstrap',

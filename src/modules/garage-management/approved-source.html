@@ -2979,6 +2979,12 @@ function schedulePersist(){
   persistTimer = setTimeout(function(){
     captureQuoteFields();
     var existingCaseData = (currentCase && currentCase.case_data) || {};
+    var preservedPayments = (Array.isArray(state.payments) && state.payments.length > 0)
+      ? state.payments.slice()
+      : (Array.isArray(existingCaseData.payments) ? existingCaseData.payments.slice() : []);
+    var preservedTotalPaid = (state.totalPaid !== undefined && state.totalPaid !== null && Number(state.totalPaid) > 0)
+      ? Number(state.totalPaid)
+      : (existingCaseData.totalPaid !== undefined && existingCaseData.totalPaid !== null ? Number(existingCaseData.totalPaid) : 0);
     var data = Object.assign({}, existingCaseData, state, {
       quoteToken: state.quoteToken || existingCaseData.quoteToken || '',
       quoteVersion: state.quoteVersion || existingCaseData.quoteVersion || 1,
@@ -2990,9 +2996,9 @@ function schedulePersist(){
       quoteSignatureDataUrl: state.quoteSignatureDataUrl || existingCaseData.quoteSignatureDataUrl || '',
       damagePhotosAttached: state.damagePhotosAttached !== undefined ? state.damagePhotosAttached : !!existingCaseData.damagePhotosAttached,
       damagePhotosCount: state.damagePhotosCount !== undefined ? state.damagePhotosCount : (existingCaseData.damagePhotosCount || 0),
-      payments: (state.payments || existingCaseData.payments || []).slice(),
-      totalPaid: state.totalPaid !== undefined ? state.totalPaid : existingCaseData.totalPaid,
-      balanceRemaining: state.balanceRemaining !== undefined ? state.balanceRemaining : existingCaseData.balanceRemaining,
+      payments: preservedPayments,
+      totalPaid: preservedTotalPaid,
+      balanceRemaining: (state.balanceRemaining !== undefined && state.balanceRemaining !== null) ? state.balanceRemaining : existingCaseData.balanceRemaining,
       photos: Object.assign({}, state.photos),
       intakeAngles: Object.assign({}, state.intakeAngles),
       damageItems: (state.damageItems || []).slice(),
@@ -3796,9 +3802,10 @@ function renderQuote(){
   }
 }
 function openDigitalQuoteSignLink(){
-  if(state.quoteToken){
+  var tok = state.quoteToken || (currentCase && currentCase.case_data && currentCase.case_data.quoteToken);
+  if(tok){
     var base = (window.location.pathname.indexOf('/future-craft-core') !== -1) ? '/future-craft-core' : '';
-    var url = window.location.origin + base + '/garage-quote?t=' + encodeURIComponent(state.quoteToken);
+    var url = window.location.origin + base + '/garage-quote?t=' + encodeURIComponent(tok);
     window.open(url, '_blank');
     return;
   }
