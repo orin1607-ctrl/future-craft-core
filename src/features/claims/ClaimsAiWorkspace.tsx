@@ -315,22 +315,31 @@ function speechCtor(): (new () => SpeechRec) | null {
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
-export function findHebrewVoice(): SpeechSynthesisVoice | null {
+export function findHebrewVoice(voicesList?: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
   if (typeof window === 'undefined' || !window.speechSynthesis) return null;
-  const voices = window.speechSynthesis.getVoices?.() || [];
+  const voices = (voicesList && voicesList.length > 0) ? voicesList : (window.speechSynthesis.getVoices?.() || []);
   if (!voices.length) return null;
 
-  // 1. Match he-IL, he, iw-IL, iw
+  // 1. Match he-IL, he, iw-IL, iw (Android/Java uses iw for Hebrew)
   const exact = voices.find((v) => {
     const l = (v.lang || '').toLowerCase().replace('_', '-');
-    return l === 'he-il' || l === 'he' || l.startsWith('he-') || l === 'iw-il' || l === 'iw';
+    return l === 'he-il' || l === 'he' || l.startsWith('he-') || l === 'iw-il' || l === 'iw' || l.startsWith('iw-');
   });
   if (exact) return exact;
 
-  // 2. Name contains hebrew, עברית, asaf, hila
+  // 2. Name contains hebrew, עברית, asaf, hila, carmit, he-il, iw-il, google he
   const byName = voices.find((v) => {
     const n = (v.name || '').toLowerCase();
-    return n.includes('hebrew') || n.includes('עברית') || n.includes('asaf') || n.includes('hila');
+    return (
+      n.includes('hebrew') ||
+      n.includes('עברית') ||
+      n.includes('asaf') ||
+      n.includes('hila') ||
+      n.includes('carmit') ||
+      n.includes('he-il') ||
+      n.includes('iw-il') ||
+      n.includes('google he')
+    );
   });
   return byName || null;
 }
@@ -2576,6 +2585,23 @@ export function ClaimsAiWorkspace({
   const [voiceModeActive, setVoiceModeActive] = useState(false);
   const [voicePhase, setVoicePhase] = useState<'idle' | 'listening' | 'processing' | 'speaking' | 'executing' | 'waiting_confirm'>('idle');
   const [currentVoiceWorkflow, setCurrentVoiceWorkflow] = useState<DaliaWorkflowState | null>(() => loadVoiceWorkflowState());
+  const [installedVoices, setInstalledVoices] = useState<SpeechSynthesisVoice[]>([]);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      const load = () => {
+        try {
+          const list = window.speechSynthesis.getVoices();
+          if (list && list.length > 0) {
+            setInstalledVoices(list);
+          }
+        } catch {}
+      };
+      load();
+      if (typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+        window.speechSynthesis.onvoiceschanged = load;
+      }
+    }
+  }, []);
   const currentVoiceWorkflowRef = useRef<DaliaWorkflowState | null>(null);
   currentVoiceWorkflowRef.current = currentVoiceWorkflow;
   const handleVoiceWorkflowInputRef = useRef<((text: string) => Promise<void>) | null>(null);
@@ -2995,6 +3021,7 @@ export function ClaimsAiWorkspace({
 
   const speakAnswer = useCallback((msgId: string, rawText: string, onEndCallback?: () => void) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) {
+      setBanner('⚠️ הדפדפן אינו תומך בהקראת קול (SpeechSynthesis).');
       onEndCallback?.();
       return;
     }
@@ -3006,41 +3033,60 @@ export function ClaimsAiWorkspace({
       return;
     }
 
-    const heVoice = findHebrewVoice();
-    if (!heVoice) {
-      // User strict requirement: NEVER speak in English if Hebrew voice is missing!
-      setBanner('⚠️ לא זוהה מנוע קולי בעברית (he-IL) במכשיר זה. כדי למנוע השמעה משובשת באנגלית, ההקראה הושבתה. ניתן להתקין קול עברי (Microsoft Asaf) בהגדרות השפה.');
+    const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+    const currentVoices = installedVoices.length > 0 ? installedVoices : (window.speechSynthesis.getVoices?.() || []);
+    const heVoice = findHebrewVoice(currentVoices);
+
+    // On Desktop: if voices are loaded (> 0) and definitely no Hebrew voice is installed, warn.
+    // On Mobile: never block! Mobile devices (Android Google TTS / iOS) synthesize Hebrew with lang='he-IL' even when getVoices() is empty.
+    if (!heVoice && currentVoices.length > 0 && !isMobile) {
+      setBanner('⚠️ לא זוהה מנוע קולי בעברית במכשיר זה. ניתן להתקין קול עברי בהגדרות השפה.');
       onEndCallback?.();
       return;
     }
 
     const utter = new SpeechSynthesisUtterance(clean);
-    try {
-      if (heVoice) utter.voice = heVoice;
-    } catch {}
-    utter.lang = heVoice.lang || 'he-IL';
+    if (heVoice) {
+      try {
+        utter.voice = heVoice;
+      } catch {}
+      utter.lang = heVoice.lang || 'he-IL';
+    } else {
+      utter.lang = 'he-IL';
+    }
     utter.rate = 1.0;
     currentUtterRef.current = utter;
     setSpeakingMsgId(msgId);
 
-    utter.onend = () => {
-      currentUtterRef.current = null;
-      setSpeakingMsgId(null);
-      onEndCallback?.();
-    };
-    utter.onerror = () => {
+    let ended = false;
+    const finish = () => {
+      if (ended) return;
+      ended = true;
       currentUtterRef.current = null;
       setSpeakingMsgId(null);
       onEndCallback?.();
     };
 
+    utter.onend = finish;
+    utter.onerror = (ev) => {
+      const errName = (ev && typeof ev === 'object' && 'error' in ev) ? String(ev.error) : '';
+      console.warn('SpeechSynthesis error:', errName);
+      if (errName === 'not-allowed') {
+        setBanner('⚠️ הדפדפן חסם השמעת שמע אוטומטית. יש ללחוץ על המסך או להסיר חסימת שמע בהגדרות האתר בדפדפן.');
+      }
+      finish();
+    };
+
     try {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
       window.speechSynthesis.speak(utter);
-    } catch {
-      setSpeakingMsgId(null);
-      onEndCallback?.();
+    } catch (err) {
+      console.warn('SpeechSynthesis speak failed:', err);
+      finish();
     }
-  }, [stopSpeaking]);
+  }, [installedVoices, stopSpeaking]);
 
   const stopVoiceRecognition = useCallback(() => {
     if (voiceSilenceTimerRef.current) {
@@ -4015,6 +4061,13 @@ const toggleVoiceMute = useCallback(() => {
     setShowWelcomeHub(false);
     setVoiceModeActive(true);
     voiceModeActiveRef.current = true;
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+      } catch {}
+    }
 
     if (wfType === 'resume_action') {
       const saved = loadVoiceWorkflowState();

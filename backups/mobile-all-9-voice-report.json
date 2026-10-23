@@ -1,0 +1,75 @@
+{
+  "timestamp": "2026-10-23T16:46:44.664Z",
+  "results": [
+    {
+      "button": "לקוח חדש",
+      "id": "garage-action-new-customer",
+      "status": "PASS",
+      "spokenText": "שלום, בוא נפתח לקוח חדש. מה שם הלקוח?",
+      "lang": "he-IL"
+    },
+    {
+      "button": "לקוח קיים",
+      "id": "garage-action-existing-customer",
+      "status": "PASS",
+      "spokenText": "מי הלקוח שאתה מחפש? אפשר להגיד שם, מספר טלפון או מספר רכב.",
+      "lang": "he-IL"
+    },
+    {
+      "button": "קבלת רכב לעבודה",
+      "id": "garage-action-intake",
+      "status": "PASS",
+      "spokenText": "איזה רכב נכנס למוסך? מה מספר הרישוי?",
+      "lang": "he-IL"
+    },
+    {
+      "button": "הצעת מחיר",
+      "id": "garage-action-quote",
+      "status": "PASS",
+      "spokenText": "לאיזה רכב מכינים הצעת מחיר? הצעה חדשה או תוספת להצעה קיימת?",
+      "lang": "he-IL"
+    },
+    {
+      "button": "חשבוניות וזיכויים",
+      "id": "garage-action-invoices-credits",
+      "status": "PASS",
+      "spokenText": "מה תרצה לעשות — לבדוק חשבונית, להכין נתונים לחשבונית, או לטפל בזיכוי?",
+      "lang": "he-IL"
+    },
+    {
+      "button": "ספקים וחשבוניות כלליות",
+      "id": "garage-action-general-expenses",
+      "status": "PASS",
+      "spokenText": "מה תרצה לעשות — לחפש ספק, לרשום רכישת חלק, לבדוק חשבונית ספק או לבדוק חוב לספק?",
+      "lang": "he-IL"
+    },
+    {
+      "button": "איתור תיק עבודה",
+      "id": "garage-action-find-case",
+      "status": "PASS",
+      "spokenText": "איזה תיק אתה מחפש? אפשר לומר מספר רכב, שם לקוח או מספר תיק.",
+      "lang": "he-IL"
+    },
+    {
+      "button": "סגירת תיק עבודה",
+      "id": "garage-action-close-case",
+      "status": "PASS",
+      "spokenText": "איזה תיק תרצה לסגור? אמור מספר רכב או מספר תיק.",
+      "lang": "he-IL"
+    },
+    {
+      "button": "המשך פעולה אחרונה",
+      "id": "garage-action-resume",
+      "status": "PASS",
+      "spokenText": "שלום, היינו באמצע תהליך עבור הרכב. השאלה האחרונה הייתה: איזה תיק תרצה לסגור? אמור מספר רכב או מספר תיק.. נמשיך?",
+      "lang": "he-IL"
+    },
+    {
+      "button": "המשך פעולה לאחר ריענון F5",
+      "id": "reload_resume",
+      "status": "PASS",
+      "spokenText": "שלום, היינו באמצע תהליך עבור הרכב. השאלה האחרונה הייתה: איזה תיק תרצה לסגור? אמור מספר רכב או מספר תיק.. נמשיך?",
+      "lang": "he-IL"
+    }
+  ]
+}
