@@ -5109,22 +5109,7 @@ const toggleVoiceMute = useCallback(() => {
           aria-hidden="true"
         />
 
-        {audioBlockedState.blocked && (
-          <div className="dalia-unblock-banner" data-testid="dalia-unblock-banner">
-            <div className="dalia-unblock-text">
-              🔊 <b>דליה מוכנה לדבר:</b> &quot;{audioBlockedState.promptText}&quot;
-            </div>
-            <button
-              type="button"
-              className="dalia-unblock-btn"
-              data-testid="dalia-play-unblock-btn"
-              onClick={handleDirectUnblockPlay}
-              title="לחץ להפעלת שמע בדפדפן"
-            >
-              🔊 הפעל קול (הקשב לדליה)
-            </button>
-          </div>
-        )}
+        
 
         <div className="claims-ai-thread" ref={threadRef} onScroll={handleScroll} data-testid="claims-ai-thread">
           {batchUploadProgress ? (

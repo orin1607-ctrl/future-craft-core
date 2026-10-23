@@ -102,6 +102,7 @@ const ROUTES = [
   'driver-notifications',
   'driver-schedule',
   'dev/vehicle-card',
+  'dev/dalia-voice-poc',
   'dev/vehicle-new-dalia',
   'dev/vehicle-flows',
   'dev/fleetos-module1',

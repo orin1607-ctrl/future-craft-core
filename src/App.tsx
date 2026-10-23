@@ -54,6 +54,7 @@ import VehicleImport from "@/pages/VehicleImport";
 import PrivateVehicleInspection from "@/pages/PrivateVehicleInspection";
 import VehicleLookup from "@/pages/VehicleLookup";
 import VehicleExchange from "@/pages/VehicleExchange";
+import DevDaliaVoicePoc from "@/pages/DevDaliaVoicePoc";
 import DevVehicleHubPreview from "@/pages/DevVehicleHubPreview";
 import DevTriInspectionPreview from "@/pages/DevTriInspectionPreview";
 import DevVehicleFlowsPreview from "@/pages/DevVehicleFlowsPreview";
@@ -240,6 +241,7 @@ function AppRoutes() {
 
   return (
     <Routes>
+      <Route path="/dev/dalia-voice-poc" element={<DevDaliaVoicePoc />} />
       <Route path="/dev/vehicle-card" element={<DevVehicleHubPreview />} />
       <Route path="/dev/tri-inspection" element={<DevTriInspectionPreview />} />
       <Route path="/dev/vehicle-flows" element={<DevVehicleFlowsPreview />} />
