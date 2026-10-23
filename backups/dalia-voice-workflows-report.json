@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-10-23T15:14:12.635Z",
+  "tests": [
+    {
+      "name": "all_9_buttons_present",
+      "status": "PASS"
+    },
+    {
+      "name": "new_customer_auto_voice_start",
+      "status": "PASS",
+      "prompt": "שלום, בוא נפתח לקוח חדש. מה שם הלקוח?📋 העתק🔊 הקרא"
+    },
+    {
+      "name": "voice_hands_free_step_progression",
+      "status": "PASS",
+      "prompt": "מה מספר הטלפון שלו?📋 העתק🔊 הקרא"
+    },
+    {
+      "name": "conversational_memory_resume_after_reload",
+      "status": "PASS",
+      "prompt": "שלום, היינו באמצע תהליך עבור ישראל ישראלי QA-TEST-20261023. השאלה האחרונה הייתה: מה מספר הטלפון שלו?. נמשיך?📋 העתק🔊 הקרא"
+    },
+    {
+      "name": "voice_workflow_db_execution",
+      "status": "PASS",
+      "case_number": "GM-2026-0141",
+      "case_id": "24afdb1a-3baa-44f8-bd13-7a4bd2a5d36f",
+      "customer": "ישראל ישראלי QA-TEST-20261023",
+      "plate": "9988877"
+    }
+  ]
+}

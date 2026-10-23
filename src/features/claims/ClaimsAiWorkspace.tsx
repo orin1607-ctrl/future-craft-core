@@ -56,6 +56,18 @@ import { buildInsurancePackageSummaryPdf } from './signedClaimPdf';
 import { uploadGarageMedia } from '@/modules/garage-management/garageMedia';
 import { GarageQuoteCard } from '@/modules/garage-management/GarageQuoteCard';
 import type { GarageQuoteCardData } from '@/modules/garage-management/garageQuoteDoc';
+import {
+  type DaliaWorkflowType,
+  type DaliaWorkflowState,
+  initWorkflowState,
+  getWorkflowStep,
+  processVoiceAnswer,
+  detectGlobalVoiceCommand,
+  saveVoiceWorkflowState,
+  loadVoiceWorkflowState,
+  clearVoiceWorkflowState,
+  executeVoiceWorkflowAction,
+} from './daliaVoiceWorkflows';
 import './claims-ai.css';
 
 /** Claim-file actions the chat can run through the existing claims screen (signed URL, download, browser reader). */
@@ -2562,9 +2574,13 @@ export function ClaimsAiWorkspace({
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
   const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
   const [voiceModeActive, setVoiceModeActive] = useState(false);
-  const [voicePhase, setVoicePhase] = useState<'idle' | 'listening' | 'processing' | 'speaking'>('idle');
+  const [voicePhase, setVoicePhase] = useState<'idle' | 'listening' | 'processing' | 'speaking' | 'executing' | 'waiting_confirm'>('idle');
+  const [currentVoiceWorkflow, setCurrentVoiceWorkflow] = useState<DaliaWorkflowState | null>(() => loadVoiceWorkflowState());
+  const currentVoiceWorkflowRef = useRef<DaliaWorkflowState | null>(null);
+  currentVoiceWorkflowRef.current = currentVoiceWorkflow;
+  const handleVoiceWorkflowInputRef = useRef<((text: string) => Promise<void>) | null>(null);
   const [liveTranscript, setLiveTranscript] = useState('');
-  const [showWelcomeHub, setShowWelcomeHub] = useState(false);
+  const [showWelcomeHub, setShowWelcomeHub] = useState(true);
   const [confirmReturnToMenuModal, setConfirmReturnToMenuModal] = useState(false);
   const [autoSpeakReplies, setAutoSpeakReplies] = useState(false);
   const autoSpeakRepliesRef = useRef(false);
@@ -2999,7 +3015,9 @@ export function ClaimsAiWorkspace({
     }
 
     const utter = new SpeechSynthesisUtterance(clean);
-    utter.voice = heVoice;
+    try {
+      if (heVoice) utter.voice = heVoice;
+    } catch {}
     utter.lang = heVoice.lang || 'he-IL';
     utter.rate = 1.0;
     currentUtterRef.current = utter;
@@ -3053,8 +3071,10 @@ export function ClaimsAiWorkspace({
       return;
     }
 
-    voicePhaseRef.current = 'listening';
-    setVoicePhase('listening');
+    const isConfirmStep = !!(currentVoiceWorkflowRef.current && getWorkflowStep(currentVoiceWorkflowRef.current).isConfirmation);
+    const targetPhase = isConfirmStep ? 'waiting_confirm' : 'listening';
+    voicePhaseRef.current = targetPhase;
+    setVoicePhase(targetPhase);
     setLiveTranscript('');
 
     const rec = new Ctor();
@@ -3063,7 +3083,7 @@ export function ClaimsAiWorkspace({
     rec.interimResults = true;
 
     rec.onresult = (ev) => {
-      if (!voiceModeActiveRef.current || voicePhaseRef.current !== 'listening' || voiceMutedRef.current) return;
+      if (!voiceModeActiveRef.current || (voicePhaseRef.current !== 'listening' && voicePhaseRef.current !== 'waiting_confirm') || voiceMutedRef.current) return;
       let sessionFinal = '';
       let sessionInterim = '';
       for (let i = 0; i < ev.results.length; i += 1) {
@@ -3086,7 +3106,7 @@ export function ClaimsAiWorkspace({
 
       if (full) {
         voiceSilenceTimerRef.current = setTimeout(() => {
-          if (!voiceModeActiveRef.current || voicePhaseRef.current !== 'listening') return;
+          if (!voiceModeActiveRef.current || (voicePhaseRef.current !== 'listening' && voicePhaseRef.current !== 'waiting_confirm')) return;
           const userText = full.trim();
           if (!userText) return;
 
@@ -3095,7 +3115,11 @@ export function ClaimsAiWorkspace({
           setVoicePhase('processing');
           setLiveTranscript('');
 
-          void sendRef.current(userText, 'voice');
+          if (currentVoiceWorkflowRef.current && handleVoiceWorkflowInputRef.current) {
+            void handleVoiceWorkflowInputRef.current(userText);
+          } else {
+            void sendRef.current(userText, 'voice');
+          }
         }, 1300);
       }
     };
@@ -3111,12 +3135,12 @@ export function ClaimsAiWorkspace({
     };
 
     rec.onend = () => {
-      if (voiceModeActiveRef.current && voicePhaseRef.current === 'listening') {
+      if (voiceModeActiveRef.current && (voicePhaseRef.current === 'listening' || voicePhaseRef.current === 'waiting_confirm')) {
         try {
           rec.start();
         } catch {
           setTimeout(() => {
-            if (voiceModeActiveRef.current && voicePhaseRef.current === 'listening') {
+            if (voiceModeActiveRef.current && (voicePhaseRef.current === 'listening' || voicePhaseRef.current === 'waiting_confirm')) {
               startVoiceListening();
             }
           }, 300);
@@ -3129,7 +3153,7 @@ export function ClaimsAiWorkspace({
       rec.start();
     } catch {
       setTimeout(() => {
-        if (voiceModeActiveRef.current && voicePhaseRef.current === 'listening') {
+        if (voiceModeActiveRef.current && (voicePhaseRef.current === 'listening' || voicePhaseRef.current === 'waiting_confirm')) {
           startVoiceListening();
         }
       }, 300);
@@ -3849,6 +3873,249 @@ const toggleVoiceMute = useCallback(() => {
     sendRef.current = sendMessage;
   }, [sendMessage]);
 
+  const handleStopVoice = useCallback(() => {
+    stopSpeaking();
+    stopVoiceRecognition();
+    setVoicePhase('idle');
+    voicePhaseRef.current = 'idle';
+    if (currentVoiceWorkflowRef.current) {
+      saveVoiceWorkflowState(currentVoiceWorkflowRef.current);
+    }
+    setBanner('שיחה קולית הושהתה. המידע נשמר. תוכל לומר "דליה תמשיכי" או ללחוץ על "המשך פעולה אחרונה".');
+  }, [stopSpeaking, stopVoiceRecognition]);
+
+  const handleVoiceWorkflowInput = useCallback(async (userText: string) => {
+    const current = currentVoiceWorkflowRef.current;
+    if (!current) {
+      void sendMessage(userText, 'voice');
+      return;
+    }
+
+    // 1. Add user speech message to chat
+    const userMsgId = `usr_wf_${Date.now()}`;
+    const userMsg: ClaimsAiMessage = {
+      id: userMsgId,
+      conversation_id: activeId || 'voice_flow',
+      role: 'user',
+      content: userText,
+      created_at: new Date().toISOString(),
+      attachments: [],
+      sources: [],
+      metadata: { voice: true },
+    };
+    setMessages((prev) => [...prev, userMsg]);
+
+    // 2. Check for global commands
+    const cmd = detectGlobalVoiceCommand(userText);
+    if (cmd === 'stop') {
+      const pauseMsg = 'עצרתי את ההאזנה. המידע נשמר במערכת. כשתרצה להמשיך, אמור "דליה תמשיכי" או לחץ על כפתור המשך.';
+      saveVoiceWorkflowState(current);
+      voicePhaseRef.current = 'idle';
+      setVoicePhase('idle');
+      stopSpeaking();
+      stopVoiceRecognition();
+      speakAnswer('wf-pause', pauseMsg);
+      return;
+    }
+    if (cmd === 'cancel') {
+      clearVoiceWorkflowState();
+      setCurrentVoiceWorkflow(null);
+      currentVoiceWorkflowRef.current = null;
+      const cancelMsg = 'ביטלתי את הפעולה לבקשתך. חזרנו למצב רגיל.';
+      voicePhaseRef.current = 'idle';
+      setVoicePhase('idle');
+      stopSpeaking();
+      stopVoiceRecognition();
+      speakAnswer('wf-cancel', cancelMsg);
+      return;
+    }
+
+    // 3. Process voice turn
+    const res = processVoiceAnswer(userText, current);
+    setCurrentVoiceWorkflow(res.nextState);
+    currentVoiceWorkflowRef.current = res.nextState;
+
+    if (res.shouldExecuteAction) {
+      voicePhaseRef.current = 'executing';
+      setVoicePhase('executing');
+      stopVoiceRecognition();
+
+      const execRes = await executeVoiceWorkflowAction(res.nextState, {
+        id: userId || 'dalia_voice',
+        fullName: 'מנהל מוסך',
+        companyName: companyName || undefined,
+      });
+
+      const assistantMsg: ClaimsAiMessage = {
+        id: `asst_wf_${Date.now()}`,
+        conversation_id: activeId || 'voice_flow',
+        role: 'assistant',
+        content: execRes.message,
+        created_at: new Date().toISOString(),
+        attachments: [],
+        sources: [],
+        metadata: {
+          executed: true,
+          case_id: execRes.caseId,
+          case_number: execRes.caseNumber,
+        },
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+
+      setCurrentVoiceWorkflow(null);
+      currentVoiceWorkflowRef.current = null;
+      clearVoiceWorkflowState();
+
+      voicePhaseRef.current = 'speaking';
+      setVoicePhase('speaking');
+      speakAnswer('wf-executed', execRes.message, () => {
+        voicePhaseRef.current = 'idle';
+        setVoicePhase('idle');
+        if (execRes.caseId && onOpenGarageCase) {
+          onOpenGarageCase(execRes.caseId);
+        }
+      });
+      return;
+    }
+
+    // Regular next question
+    const asstMsgId = `asst_wf_${Date.now()}`;
+    const assistantMsg: ClaimsAiMessage = {
+      id: asstMsgId,
+      conversation_id: activeId || 'voice_flow',
+      role: 'assistant',
+      content: res.promptToSpeak,
+      created_at: new Date().toISOString(),
+      attachments: [],
+      sources: [],
+      metadata: { workflow_step: res.nextState.stepIndex },
+    };
+    setMessages((prev) => [...prev, assistantMsg]);
+
+    voicePhaseRef.current = 'speaking';
+    setVoicePhase('speaking');
+
+    stopVoiceRecognition();
+    speakAnswer(`wf-step-${res.nextState.stepIndex}`, res.promptToSpeak, () => {
+      if (voiceModeActiveRef.current && !voiceMutedRef.current) {
+        setTimeout(() => {
+          if (voiceModeActiveRef.current && !voiceMutedRef.current) {
+            startVoiceListening();
+          }
+        }, 350);
+      }
+    });
+  }, [activeId, companyName, onOpenGarageCase, speakAnswer, startVoiceListening, stopSpeaking, stopVoiceRecognition, userId]);
+
+  useEffect(() => {
+    handleVoiceWorkflowInputRef.current = handleVoiceWorkflowInput;
+  }, [handleVoiceWorkflowInput]);
+
+  const handleStartVoiceWorkflow = useCallback((wfType: DaliaWorkflowType) => {
+    setShowWelcomeHub(false);
+    setVoiceModeActive(true);
+    voiceModeActiveRef.current = true;
+
+    if (wfType === 'resume_action') {
+      const saved = loadVoiceWorkflowState();
+      if (!saved) {
+        const msg = 'אין כרגע פעולה שהופסקה באמצע. במה תרצה שנתחיל?';
+        const asstMsg: ClaimsAiMessage = {
+          id: `asst_wf_${Date.now()}`,
+          conversation_id: activeId || 'voice_flow',
+          role: 'assistant',
+          content: msg,
+          created_at: new Date().toISOString(),
+          attachments: [],
+          sources: [],
+          metadata: { workflow: 'resume_none' },
+        };
+        setMessages((prev) => [...prev, asstMsg]);
+        voicePhaseRef.current = 'speaking';
+        setVoicePhase('speaking');
+        stopVoiceRecognition();
+        speakAnswer('wf-resume-none', msg, () => {
+          if (voiceModeActiveRef.current && !voiceMutedRef.current) {
+            setTimeout(() => {
+              if (voiceModeActiveRef.current && !voiceMutedRef.current) {
+                startVoiceListening();
+              }
+            }, 350);
+          }
+        });
+        return;
+      }
+
+      setCurrentVoiceWorkflow(saved);
+      currentVoiceWorkflowRef.current = saved;
+      const step = getWorkflowStep(saved);
+      const resumePrompt = `שלום, היינו באמצע תהליך עבור ${saved.customerName || saved.vehiclePlate || 'הרכב'}. השאלה האחרונה הייתה: ${step.promptText}. נמשיך?`;
+      const asstMsg: ClaimsAiMessage = {
+        id: `asst_wf_${Date.now()}`,
+        conversation_id: activeId || 'voice_flow',
+        role: 'assistant',
+        content: resumePrompt,
+        created_at: new Date().toISOString(),
+        attachments: [],
+        sources: [],
+        metadata: { workflow: 'resume_action' },
+      };
+      setMessages((prev) => [...prev, asstMsg]);
+      voicePhaseRef.current = 'speaking';
+      setVoicePhase('speaking');
+      stopVoiceRecognition();
+      speakAnswer('wf-resumed', resumePrompt, () => {
+        if (voiceModeActiveRef.current && !voiceMutedRef.current) {
+          setTimeout(() => {
+            if (voiceModeActiveRef.current && !voiceMutedRef.current) {
+              startVoiceListening();
+            }
+          }, 350);
+        }
+      });
+      return;
+    }
+
+    // New workflow
+    const state = initWorkflowState(wfType, {
+      caseId: garageCase?.id,
+      caseNumber: garageCase?.caseNumber,
+      customerName: garageCase?.customerName,
+      vehiclePlate: garageCase?.plate,
+    });
+    saveVoiceWorkflowState(state);
+    setCurrentVoiceWorkflow(state);
+    currentVoiceWorkflowRef.current = state;
+
+    const step = getWorkflowStep(state);
+    const prompt = step.promptText;
+
+    const asstMsg: ClaimsAiMessage = {
+      id: `asst_wf_${Date.now()}`,
+      conversation_id: activeId || 'voice_flow',
+      role: 'assistant',
+      content: prompt,
+      created_at: new Date().toISOString(),
+      attachments: [],
+      sources: [],
+      metadata: { workflow: wfType, step: 0 },
+    };
+    setMessages((prev) => [...prev, asstMsg]);
+
+    voicePhaseRef.current = 'speaking';
+    setVoicePhase('speaking');
+    stopVoiceRecognition();
+    speakAnswer(`wf-start-${state.id}`, prompt, () => {
+      if (voiceModeActiveRef.current && !voiceMutedRef.current) {
+        setTimeout(() => {
+          if (voiceModeActiveRef.current && !voiceMutedRef.current) {
+            startVoiceListening();
+          }
+        }, 350);
+      }
+    });
+  }, [activeId, garageCase, speakAnswer, startVoiceListening, stopVoiceRecognition]);
+
   const handleConfirmPending = useCallback(async (msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => {
     // One execution per card: a double click, or a typed "מאשר" right after a click, must never send twice.
     const guardKey = pending.preview_id || msg.id;
@@ -4309,6 +4576,23 @@ const toggleVoiceMute = useCallback(() => {
               {garageCase.plate ? <span>רכב <b>{garageCase.plate}</b></span> : null}
               {garageCase.customerName ? <span>לקוח <b>{garageCase.customerName}</b></span> : null}
               {garageCase.status ? <span>סטטוס <b>{garageCase.status}</b></span> : null}
+              <div className="garage-context-voice-pills" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4, width: '100%' }}>
+                <button type="button" className="btn btn-g btn-xs" data-testid="voice-pill-add-work" onClick={() => handleStartVoiceWorkflow('context_quote_add_work')}>
+                  ➕ הוסף עבודה בקול
+                </button>
+                <button type="button" className="btn btn-g btn-xs" data-testid="voice-pill-add-part" onClick={() => handleStartVoiceWorkflow('context_quote_add_part')}>
+                  🔩 הוסף חלק בקול
+                </button>
+                <button type="button" className="btn btn-g btn-xs" data-testid="voice-pill-supplement" onClick={() => handleStartVoiceWorkflow('context_quote_supplement')}>
+                  📝 תוספת להצעה
+                </button>
+                <button type="button" className="btn btn-g btn-xs" data-testid="voice-pill-pay-balance" onClick={() => handleStartVoiceWorkflow('context_pay_balance')}>
+                  💳 תשלום יתרה
+                </button>
+                <button type="button" className="btn btn-g btn-xs" data-testid="voice-pill-close-case" onClick={() => handleStartVoiceWorkflow('close_case')}>
+                  🔒 סגירת תיק
+                </button>
+              </div>
             </>
           ) : claim ? (
             <>
@@ -4334,9 +4618,11 @@ const toggleVoiceMute = useCallback(() => {
               <span className={`claims-ai-voice-pulse-dot ${voiceMuted ? 'muted' : voicePhase}`} />
               <span>
                 {voiceMuted && '🔇 מיקרופון מושתק (לחץ על "בטל השתקה" להמשך דיבור)'}
-                {!voiceMuted && voicePhase === 'listening' && (liveTranscript ? `מאזין: "${liveTranscript}"` : '🎙️ דליה מאזינה בעברית... דבר כעת')}
-                {!voiceMuted && voicePhase === 'processing' && '⏳ דליה מעבדת את הדברים...'}
-                {!voiceMuted && voicePhase === 'speaking' && '🔊 דליה משיבה בקול בעברית...'}
+                {!voiceMuted && voicePhase === 'listening' && (liveTranscript ? `🎙️ דליה מקשיבה: "${liveTranscript}"` : '🎙️ דליה מקשיבה... דבר כעת')}
+                {!voiceMuted && voicePhase === 'processing' && '⏳ דליה מעבדת תשובה...'}
+                {!voiceMuted && voicePhase === 'speaking' && '🔊 דליה מדברת...'}
+                {!voiceMuted && voicePhase === 'executing' && '⚙️ דליה מבצעת פעולה במערכת...'}
+                {!voiceMuted && voicePhase === 'waiting_confirm' && '⚠️ ממתינה לאישורך (אמור "אשר" או "שמור")'}
                 {!voiceMuted && voicePhase === 'idle' && 'שיחה קולית רציפה פעילה'}
               </span>
             </div>
@@ -4366,6 +4652,16 @@ const toggleVoiceMute = useCallback(() => {
                   ⏹️ עצור הקראה
                 </button>
               ) : null}
+              <button
+                type="button"
+                className="claims-ai-voice-bar-btn exit"
+                data-testid="claims-ai-voice-stop-btn"
+                onClick={handleStopVoice}
+                style={{ backgroundColor: '#ef4444', color: '#fff', fontWeight: 700 }}
+                title="עצור שיחה והשהה"
+              >
+                ⏹️ עצור שיחה
+              </button>
               <button
                 type="button"
                 className="claims-ai-voice-bar-btn exit"
@@ -4460,7 +4756,7 @@ const toggleVoiceMute = useCallback(() => {
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-new-customer"
-                      onClick={() => { setShowWelcomeHub(false); void sendMessage('אני רוצה לפתוח לקוח ורכב חדשים', 'text'); }}
+                      onClick={() => handleStartVoiceWorkflow('new_customer')}
                     >
                       <span className="garage-action-icon">👤➕</span>
                       <div className="garage-action-body">
@@ -4473,7 +4769,7 @@ const toggleVoiceMute = useCallback(() => {
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-existing-customer"
-                      onClick={() => { setShowWelcomeHub(false); void sendMessage('אני רוצה לאתר ולטפל בלקוח קיים', 'text'); }}
+                      onClick={() => handleStartVoiceWorkflow('existing_customer')}
                     >
                       <span className="garage-action-icon">🔍👤</span>
                       <div className="garage-action-body">
@@ -4486,7 +4782,7 @@ const toggleVoiceMute = useCallback(() => {
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-intake"
-                      onClick={() => { setShowWelcomeHub(false); void sendMessage('קבלת רכב לעבודה – צילום 5 תמונות ורישום קילומטראז\'', 'text'); }}
+                      onClick={() => handleStartVoiceWorkflow('intake')}
                     >
                       <span className="garage-action-icon">🚗📋</span>
                       <div className="garage-action-body">
@@ -4499,7 +4795,7 @@ const toggleVoiceMute = useCallback(() => {
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-quote"
-                      onClick={() => { setShowWelcomeHub(false); void sendMessage('הכנת הצעת מחיר חדשה או פתיחת הצעה קיימת', 'text'); }}
+                      onClick={() => handleStartVoiceWorkflow('quote')}
                     >
                       <span className="garage-action-icon">💰📑</span>
                       <div className="garage-action-body">
@@ -4512,7 +4808,7 @@ const toggleVoiceMute = useCallback(() => {
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-invoices-credits"
-                      onClick={() => { setShowWelcomeHub(false); void sendMessage('קליטת חשבונית חלקים / זיכוי עבור תיק רכב', 'text'); }}
+                      onClick={() => handleStartVoiceWorkflow('invoices_credits')}
                     >
                       <span className="garage-action-icon">🧾🚗</span>
                       <div className="garage-action-body">
@@ -4525,7 +4821,7 @@ const toggleVoiceMute = useCallback(() => {
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-general-expenses"
-                      onClick={() => { setShowWelcomeHub(false); void sendMessage('ספקים וחשבוניות כלליות (הוצאות מוסך ללא שיוך לרכב)', 'text'); }}
+                      onClick={() => handleStartVoiceWorkflow('general_expenses')}
                     >
                       <span className="garage-action-icon">🏭📦</span>
                       <div className="garage-action-body">
@@ -4538,7 +4834,7 @@ const toggleVoiceMute = useCallback(() => {
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-find-case"
-                      onClick={() => { setShowWelcomeHub(false); void sendMessage('איתור תיק עבודה לפי לקוח, רכב או מספר תיק', 'text'); }}
+                      onClick={() => handleStartVoiceWorkflow('find_case')}
                     >
                       <span className="garage-action-icon">🔎📂</span>
                       <div className="garage-action-body">
@@ -4551,7 +4847,7 @@ const toggleVoiceMute = useCallback(() => {
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-close-case"
-                      onClick={() => { setShowWelcomeHub(false); void sendMessage('סגירת תיק עבודה ובדיקת חוסרים', 'text'); }}
+                      onClick={() => handleStartVoiceWorkflow('close_case')}
                     >
                       <span className="garage-action-icon">🔒✅</span>
                       <div className="garage-action-body">
@@ -4564,7 +4860,7 @@ const toggleVoiceMute = useCallback(() => {
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-resume"
-                      onClick={() => void sendMessage('המשך פעולה אחרונה', 'text')}
+                      onClick={() => handleStartVoiceWorkflow('resume_action')}
                     >
                       <span className="garage-action-icon">🔄⏯️</span>
                       <div className="garage-action-body">
@@ -4606,10 +4902,10 @@ const toggleVoiceMute = useCallback(() => {
           ) : null}
           {deduplicateMessages(messages).map((msg) => {
             const pending = pendingActionOf(msg.metadata);
-            const toolError = typeof msg.metadata.tool_error === 'string' ? msg.metadata.tool_error : '';
+            const toolError = typeof msg.metadata?.tool_error === 'string' ? msg.metadata.tool_error : '';
             const msgAttachments = Array.isArray(msg.metadata?.attachments) ? (msg.metadata.attachments as any[]) : [];
             return (
-              <div key={msg.id} className={`claims-ai-row ${msg.role}${msg.metadata.error === true ? ' error' : ''}`}>
+              <div key={msg.id} className={`claims-ai-row ${msg.role}${msg.metadata?.error === true ? ' error' : ''}`}>
                 <div className="claims-ai-bubble">
                   {msgAttachments.length > 0 ? (
                     <div className="claims-ai-msg-attachments" data-testid="claims-ai-msg-attachments">

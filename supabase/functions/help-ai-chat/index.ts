@@ -690,9 +690,10 @@ async function callClaude(
   _temperature = 0.65,
 ): Promise<{ text: string; model: string; pendingAction?: ClaimsPendingAction | null } | { error: string; status: number }> {
   const modelCandidates = Array.from(new Set([
-    "claude-haiku-5-5",
+    "claude-3-5-haiku-20241022",
+    "claude-3-haiku-20240307",
     preferredModel,
-    "claude-sonnet-5-5",
+    "claude-3-5-sonnet-20241022",
   ].filter(Boolean)));
 
   const anthropicTools = geminiToolsToAnthropic(geminiTools);
@@ -820,8 +821,9 @@ async function callClaude(
             }
 
             const toolRes = await onToolCall(tub.name, (tub.input as Record<string, unknown>) || {});
-            if (toolRes && typeof toolRes === "object" && toolRes.preview) {
-              accumulatedPendingActions.push(toolRes.preview);
+            if (toolRes && typeof toolRes === "object") {
+              const prev = (toolRes as any).preview || (toolRes as any).result?.preview_card;
+              if (prev) accumulatedPendingActions.push(prev);
             }
 
             if (tub.name === "get_claims_status_report") {
@@ -1291,7 +1293,7 @@ Deno.serve(async (req) => {
       console.warn("Gemini call returned error, falling back to Claude:", finalResult.error);
       const claudeResult = await callClaude(
         CLAUDE_API_KEY,
-        "claude-haiku-5-5",
+        "claude-3-5-haiku-20241022",
         fullSysPrompt,
         messages,
         tools,
