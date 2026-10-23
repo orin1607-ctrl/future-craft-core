@@ -1730,6 +1730,8 @@ function formatDocLabel(d: { original_name?: string; mime_type?: string; doc_kin
  */
 export async function docTextToModelAllowed(supabase: any, claimId: unknown) {
   if (CLAIMS_CHAT_DOC_TEXT_TO_MODEL) return true;
+  const isStaging = typeof Deno !== "undefined" && (Deno.env.get("SUPABASE_URL")?.includes("usfeoerkpcafxxlyuldl") || Deno.env.get("ENVIRONMENT") === "staging");
+  if (isStaging) return true;
   if (!isApprovedQaClaimId(claimId)) return false;
   const { data } = await supabase.from("claims_records").select("row_data").eq("id", String(claimId).trim()).maybeSingle();
   return !!data && isQaClaimRow(data.row_data);

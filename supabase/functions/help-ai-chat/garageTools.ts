@@ -630,6 +630,18 @@ export const GARAGE_GEMINI_TOOLS = [
         },
       },
       {
+        name: "read_garage_document",
+        description: "קריאת תוכן של מסמך, קובץ PDF או תמונה המשויכים לכרטיס עבודה (מתוך garage_media). מחזיר מידע על הקובץ, קישור מאובטח לצפייה ותוכן.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            case_id: { type: "STRING", description: "מספר כרטיס עבודה (GM-XXXX-XXXX) או מזהה כרטיס" },
+            media_id: { type: "STRING", description: "מזהה ייחודי של המסמך (UUID)" },
+            query: { type: "STRING", description: "שם הקובץ, כותרת המסמך או מילת חיפוש (למשל: רישיון, חשבונית, דוח שמאות, הזמנה)" },
+          },
+        },
+      },
+      {
         name: "list_garage_case_media",
         description: "רשימת כל המסמכים, התמונות והקבצים המצורפים לכרטיס עבודה (garage_media).",
         parameters: {
@@ -1324,8 +1336,7 @@ export async function executeGarageTool(
       let dbQuery = supabase
         .from("garage_cases")
         .select("id, case_number, customer_name_snapshot, vehicle_plate_snapshot, vehicle_label_snapshot, status, created_at, updated_at, case_data")
-        .order("created_at", { ascending: false })
-        .limit(limit);
+        .order("created_at", { ascending: false });
 
       if (shopScope?.company_name) {
         dbQuery = dbQuery.ilike("shop_company_name", `%${shopScope.company_name}%`);
@@ -1340,6 +1351,18 @@ export async function executeGarageTool(
       } else if (rawStatus === "waiting_approval" || rawStatus === "ממתין לאישור") {
         dbQuery = dbQuery.in("status", ["ממתין לאישור", "הצעה בהכנה", "בדיקת רכב"]);
       }
+
+      if (q) {
+        const cleanQ = q.replace(/[%_,]/g, "").trim();
+        const digits = cleanQ.replace(/[^0-9]/g, "");
+        if (digits && digits.length >= 5) {
+          dbQuery = dbQuery.or(`vehicle_plate_snapshot.ilike.%${digits}%,vehicle_plate_snapshot.ilike.%${cleanQ}%,case_number.ilike.%${cleanQ}%,customer_name_snapshot.ilike.%${cleanQ}%`);
+        } else {
+          dbQuery = dbQuery.or(`case_number.ilike.%${cleanQ}%,customer_name_snapshot.ilike.%${cleanQ}%,vehicle_plate_snapshot.ilike.%${cleanQ}%,vehicle_label_snapshot.ilike.%${cleanQ}%`);
+        }
+      }
+
+      dbQuery = dbQuery.limit(limit);
 
       const { data: rows, error: qErr } = await dbQuery;
       if (qErr) {
@@ -1583,7 +1606,13 @@ export async function executeGarageTool(
         .limit(20);
 
       if (query) {
-        dbQuery = dbQuery.or(`name.ilike.%${query}%,phone.ilike.%${query}%,company_name.ilike.%${query}%,business_id.ilike.%${query}%`);
+        const cleanQ = query.replace(/[%_,]/g, "").trim();
+        const digits = cleanQ.replace(/[^0-9]/g, "");
+        if (digits && digits.length >= 7) {
+          dbQuery = dbQuery.or(`name.ilike.%${cleanQ}%,phone.ilike.%${digits}%,phone.ilike.%${cleanQ}%,second_phone.ilike.%${digits}%,company_name.ilike.%${cleanQ}%,business_id.ilike.%${cleanQ}%,customer_number.ilike.%${cleanQ}%`);
+        } else {
+          dbQuery = dbQuery.or(`name.ilike.%${cleanQ}%,phone.ilike.%${cleanQ}%,company_name.ilike.%${cleanQ}%,business_id.ilike.%${cleanQ}%,customer_number.ilike.%${cleanQ}%`);
+        }
       }
 
       const { data, error } = await dbQuery;
@@ -2174,6 +2203,52 @@ export async function executeGarageTool(
       };
     }
 
+    case "read_garage_document": {
+      const gCase = await resolveGarageCase(supabase, args?.case_id || targetCaseId);
+      const mediaId = String(args?.media_id || "").trim();
+      const query = String(args?.query || "").trim();
+
+      let dbQuery = supabase.from("garage_media").select("*");
+      if (mediaId) {
+        dbQuery = dbQuery.eq("id", mediaId);
+      } else if (gCase) {
+        dbQuery = dbQuery.eq("garage_case_id", gCase.id);
+        if (query) {
+          dbQuery = dbQuery.or(`title.ilike.%${query}%,original_name.ilike.%${query}%,category.ilike.%${query}%`);
+        }
+      } else if (query) {
+        dbQuery = dbQuery.or(`title.ilike.%${query}%,original_name.ilike.%${query}%`);
+      }
+      dbQuery = dbQuery.order("created_at", { ascending: false }).limit(5);
+
+      const { data: mediaRows, error: mErr } = await dbQuery;
+      if (mErr) throw new Error(`שגיאה באיתור מסמך: ${mErr.message}`);
+      if (!mediaRows || mediaRows.length === 0) {
+        return { result: { error: `לא נמצאו מסמכים תואמים עבור: "${query || mediaId || targetCaseId}"` } };
+      }
+
+      const file = mediaRows[0];
+      let signedUrl = "";
+      if (file.storage_path) {
+        const { data: sData } = await supabase.storage.from("garage-media").createSignedUrl(file.storage_path, 3600);
+        signedUrl = sData?.signedUrl || "";
+      }
+
+      return {
+        result: {
+          id: file.id,
+          title: file.title || file.original_name,
+          category: file.category,
+          mime_type: file.mime_type,
+          size_kb: file.byte_size ? Math.round(file.byte_size / 1024) : 0,
+          created_at: file.created_at,
+          signed_url: signedUrl,
+          meta: file.meta || {},
+          message: `מסמך "${file.title || file.original_name}" אותר בהצלחה (${file.category || "מדיה"}). קישור לצפייה: ${signedUrl}`,
+        },
+      };
+    }
+
     case "list_garage_case_media": {
       const gCase = await resolveGarageCase(supabase, targetCaseId);
       if (!gCase) return { result: { error: `לא נמצא תיק מוסך תואם עבור: "${targetCaseId}"` } };
@@ -2701,20 +2776,112 @@ ${totalExtras > 0 ? `- **חריגים:** ${totalExtras.toLocaleString()} ₪\n` 
     }
 
     case "preview_garage_dictate_case_and_quote": {
-      const customerName = String(args?.customer_name || "").trim();
+      let customerName = String(args?.customer_name || "").trim();
       const customerTypeLabel = String(args?.customer_type_label || "לקוח פרטי, חד־פעמי").trim();
-      const customerPhone = String(args?.customer_phone || "").trim();
-      const customerEmail = String(args?.customer_email || "").trim();
-      const vehiclePlate = String(args?.vehicle_plate || "").replace(/[^0-9A-Za-z]/g, "").trim();
-      const vehicleModel = String(args?.vehicle_model || "").trim();
+      let customerPhone = String(args?.customer_phone || "").trim();
+      let customerEmail = String(args?.customer_email || "").trim();
+      let vehiclePlate = String(args?.vehicle_plate || "").replace(/[^0-9A-Za-z]/g, "").trim();
+      let vehicleModel = String(args?.vehicle_model || "").trim();
       const quoteTitle = String(args?.quote_title || "הצעת מחיר – עבודות פחחות וצבע").trim();
       const quoteDate = String(args?.quote_date || new Date().toLocaleDateString("he-IL")).trim();
       const workType = String(args?.work_type || "תיקוני פחחות וצבע בחזית הרכב").trim();
       const vatMode = String(args?.vat_mode || "unspecified").trim();
       const quoteNotes = String(args?.quote_notes || "").trim();
 
-      if (!customerName || !vehiclePlate) {
-        return { result: { error: "חובה לספק שם לקוח ומספר רכב לפתיחת כרטיס העבודה והכנת הצעת המחיר." } };
+      // Resolve customer if name provided or vehicle provided
+      let matchedCustomer: any = null;
+      let matchedVehicle: any = null;
+
+      if (customerName) {
+        const cleanName = customerName.replace(/[%_,]/g, "").trim();
+        const { data: foundCusts } = await supabase
+          .from("garage_customers")
+          .select("id, name, phone, email, customer_type, notes")
+          .or(`name.ilike.%${cleanName}%,company_name.ilike.%${cleanName}%`)
+          .limit(5);
+
+        if (foundCusts && foundCusts.length === 1) {
+          matchedCustomer = foundCusts[0];
+          customerName = matchedCustomer.name;
+          if (!customerPhone && matchedCustomer.phone) customerPhone = matchedCustomer.phone;
+          if (!customerEmail && matchedCustomer.email) customerEmail = matchedCustomer.email;
+        } else if (foundCusts && foundCusts.length > 1) {
+          const list = foundCusts.map((c: any) => `• ${c.name} (טל' ${c.phone || "ללא"})`).join("\n");
+          return {
+            result: {
+              status: "clarification_needed",
+              message: `נמצאו מספר לקוחות תואמים לשם "${customerName}":\n${list}\nאנא ציין לאיזה לקוח לפתוח את כרטיס העבודה וההצעה.`,
+            }
+          };
+        }
+      }
+
+      // If vehicle plate provided, look up vehicle
+      if (vehiclePlate) {
+        const { data: foundVehs } = await supabase
+          .from("garage_vehicles")
+          .select("id, plate, customer_id, make, model, year")
+          .eq("plate", vehiclePlate)
+          .limit(1);
+        if (foundVehs && foundVehs.length > 0) {
+          matchedVehicle = foundVehs[0];
+          if (!vehicleModel) {
+            vehicleModel = [matchedVehicle.make, matchedVehicle.model].filter(Boolean).join(" ");
+          }
+          if (!matchedCustomer && matchedVehicle.customer_id) {
+            const { data: cRow } = await supabase.from("garage_customers").select("id, name, phone, email").eq("id", matchedVehicle.customer_id).maybeSingle();
+            if (cRow) {
+              matchedCustomer = cRow;
+              customerName = cRow.name;
+              if (!customerPhone && cRow.phone) customerPhone = cRow.phone;
+              if (!customerEmail && cRow.email) customerEmail = cRow.email;
+            }
+          }
+        }
+      }
+
+      // If customer exists but vehiclePlate was omitted by user, find customer's vehicles
+      if (!vehiclePlate && matchedCustomer) {
+        const { data: cVehs } = await supabase
+          .from("garage_vehicles")
+          .select("id, plate, make, model, year")
+          .eq("customer_id", matchedCustomer.id)
+          .limit(5);
+
+        if (cVehs && cVehs.length === 1) {
+          matchedVehicle = cVehs[0];
+          vehiclePlate = matchedVehicle.plate;
+          if (!vehicleModel) {
+            vehicleModel = [matchedVehicle.make, matchedVehicle.model].filter(Boolean).join(" ");
+          }
+        } else if (cVehs && cVehs.length > 1) {
+          const vList = cVehs.map((v: any) => `• רכב ${v.plate} (${[v.make, v.model, v.year].filter(Boolean).join(" ")})`).join("\n");
+          return {
+            result: {
+              status: "clarification_needed",
+              message: `ללקוח ${customerName} יש ${cVehs.length} רכבים רשומים:\n${vList}\nלאיזה מספר רכב לפתוח את כרטיס העבודה והצעת המחיר?`,
+            }
+          };
+        } else {
+          // Check recent case for this customer
+          const { data: rCases } = await supabase
+            .from("garage_cases")
+            .select("vehicle_plate_snapshot, vehicle_label_snapshot")
+            .eq("customer_name_snapshot", customerName)
+            .order("created_at", { ascending: false })
+            .limit(1);
+          if (rCases && rCases.length > 0 && rCases[0].vehicle_plate_snapshot) {
+            vehiclePlate = rCases[0].vehicle_plate_snapshot;
+            if (!vehicleModel) vehicleModel = rCases[0].vehicle_label_snapshot || "";
+          }
+        }
+      }
+
+      if (!customerName) {
+        return { result: { error: "חובה לספק שם לקוח לפתיחת כרטיס העבודה והכנת הצעת המחיר." } };
+      }
+      if (!vehiclePlate) {
+        return { result: { error: `איתרתי את הלקוח ${customerName}, אך לא צוין רכב עבורו. מה מספר הרישוי של הרכב?` } };
       }
 
       const rawWorks = Array.isArray(args?.quote_works) ? args.quote_works : [];

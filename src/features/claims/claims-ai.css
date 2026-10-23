@@ -1246,3 +1246,135 @@
 .claims-root .claims-ai-attach-popover button:active {
   background: var(--bg3, #334155);
 }
+
+/* Floating Minimized Pill for Dalia AI */
+.claims-root .claims-ai-minimized-pill {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 23, 42, 0.95);
+  border: 2px solid #38bdf8;
+  border-radius: 999px;
+  padding: 6px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.4);
+  backdrop-filter: blur(8px);
+  animation: pulseAiPill 2.5s infinite ease-in-out;
+  direction: rtl;
+  font-family: 'Heebo', sans-serif;
+}
+
+@keyframes pulseAiPill {
+  0%, 100% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 12px rgba(56, 189, 248, 0.35); }
+  50% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 24px rgba(56, 189, 248, 0.7); }
+}
+
+.claims-root .claims-ai-pill-restore-btn {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+}
+
+.claims-root .claims-ai-pill-badge { font-size: 16px; }
+.claims-root .claims-ai-pill-title { font-weight: 800; color: #f8fafc; }
+.claims-root .claims-ai-pill-count { font-size: 11px; color: #94a3b8; }
+.claims-root .claims-ai-pill-voice {
+  font-size: 11px;
+  background: rgba(239, 68, 68, 0.25);
+  color: #f87171;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+.claims-root .claims-ai-pill-arrow { color: #38bdf8; font-size: 12px; margin-right: 4px; }
+
+.claims-root .claims-ai-pill-close-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 0 4px;
+  margin-right: 4px;
+  transition: color 0.15s;
+}
+.claims-root .claims-ai-pill-close-btn:hover { color: #ef4444; }
+
+/* Minimize button in header */
+.claims-root .claims-ai-min-btn {
+  font-weight: 700;
+  padding: 4px 10px;
+}
+
+/* Auto-speak toggle button */
+.claims-root .claims-ai-icon.auto-speak-btn {
+  font-size: 17px;
+  transition: all 0.2s;
+}
+.claims-root .claims-ai-icon.auto-speak-btn.active {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: #3b82f6;
+  color: #60a5fa;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+/* Voice mode bar controls & live transcript */
+.claims-root .claims-ai-voice-transcript {
+  font-size: 12px;
+  color: #cbd5e1;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-top: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.claims-root .claims-ai-voice-bar-btn.mute {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f1f5f9;
+}
+.claims-root .claims-ai-voice-bar-btn.mute.active {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
+.claims-root .claims-ai-voice-pulse-dot.muted {
+  background: #f59e0b;
+  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  animation: none;
+}
+
+/* Mobile full-screen guarantee */
+@media (max-width: 760px) {
+  .claims-root .claims-ai-workspace {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    z-index: 99999;
+    grid-template-columns: 1fr;
+    overflow: hidden;
+  }
+  .claims-root .claims-ai-minimized-pill {
+    bottom: 16px;
+    right: 16px;
+    left: auto;
+  }
+}

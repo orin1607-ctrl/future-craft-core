@@ -303,6 +303,26 @@ function speechCtor(): (new () => SpeechRec) | null {
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
+export function findHebrewVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices?.() || [];
+  if (!voices.length) return null;
+
+  // 1. Match he-IL, he, iw-IL, iw
+  const exact = voices.find((v) => {
+    const l = (v.lang || '').toLowerCase().replace('_', '-');
+    return l === 'he-il' || l === 'he' || l.startsWith('he-') || l === 'iw-il' || l === 'iw';
+  });
+  if (exact) return exact;
+
+  // 2. Name contains hebrew, עברית, asaf, hila
+  const byName = voices.find((v) => {
+    const n = (v.name || '').toLowerCase();
+    return n.includes('hebrew') || n.includes('עברית') || n.includes('asaf') || n.includes('hila');
+  });
+  return byName || null;
+}
+
 export function cleanTextForSpeech(markdown: string): string {
   if (!markdown) return '';
   return markdown
@@ -2546,6 +2566,13 @@ export function ClaimsAiWorkspace({
   const [liveTranscript, setLiveTranscript] = useState('');
   const [showWelcomeHub, setShowWelcomeHub] = useState(false);
   const [confirmReturnToMenuModal, setConfirmReturnToMenuModal] = useState(false);
+  const [autoSpeakReplies, setAutoSpeakReplies] = useState(false);
+  const autoSpeakRepliesRef = useRef(false);
+  autoSpeakRepliesRef.current = autoSpeakReplies;
+  const [voiceMuted, setVoiceMuted] = useState(false);
+  const voiceMutedRef = useRef(false);
+  voiceMutedRef.current = voiceMuted;
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const hasUnsavedAction = useMemo(() => {
     return messages.some(
@@ -2951,7 +2978,10 @@ export function ClaimsAiWorkspace({
   }, []);
 
   const speakAnswer = useCallback((msgId: string, rawText: string, onEndCallback?: () => void) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      onEndCallback?.();
+      return;
+    }
     stopSpeaking();
 
     const clean = cleanTextForSpeech(rawText);
@@ -2960,8 +2990,17 @@ export function ClaimsAiWorkspace({
       return;
     }
 
+    const heVoice = findHebrewVoice();
+    if (!heVoice) {
+      // User strict requirement: NEVER speak in English if Hebrew voice is missing!
+      setBanner('⚠️ לא זוהה מנוע קולי בעברית (he-IL) במכשיר זה. כדי למנוע השמעה משובשת באנגלית, ההקראה הושבתה. ניתן להתקין קול עברי (Microsoft Asaf) בהגדרות השפה.');
+      onEndCallback?.();
+      return;
+    }
+
     const utter = new SpeechSynthesisUtterance(clean);
-    utter.lang = 'he-IL';
+    utter.voice = heVoice;
+    utter.lang = heVoice.lang || 'he-IL';
     utter.rate = 1.0;
     currentUtterRef.current = utter;
     setSpeakingMsgId(msgId);
@@ -3024,7 +3063,7 @@ export function ClaimsAiWorkspace({
     rec.interimResults = true;
 
     rec.onresult = (ev) => {
-      if (!voiceModeActiveRef.current || voicePhaseRef.current !== 'listening') return;
+      if (!voiceModeActiveRef.current || voicePhaseRef.current !== 'listening' || voiceMutedRef.current) return;
       let sessionFinal = '';
       let sessionInterim = '';
       for (let i = 0; i < ev.results.length; i += 1) {
@@ -3107,6 +3146,21 @@ export function ClaimsAiWorkspace({
       }, 200);
     }
   }, [stopSpeaking, startVoiceListening]);
+
+const toggleVoiceMute = useCallback(() => {
+    setVoiceMuted((prev) => {
+      const next = !prev;
+      voiceMutedRef.current = next;
+      if (next) {
+        stopVoiceRecognition();
+      } else {
+        if (voiceModeActiveRef.current && voicePhaseRef.current !== 'speaking') {
+          startVoiceListening();
+        }
+      }
+      return next;
+    });
+  }, [stopVoiceRecognition, startVoiceListening]);
 
   const toggleVoiceMode = useCallback(() => {
     if (voiceModeActive) {
@@ -3692,7 +3746,7 @@ export function ClaimsAiWorkspace({
       setMessages(deduplicateMessages([...history, saved.data]));
       setConversations((prev) => prev.map((row) => row.id === conversationId ? { ...row, updated_at: saved.data!.created_at } : row));
 
-      // Continuous Voice Mode: automatically speak the response and resume listening
+      // Continuous Voice Mode or Auto-Speak: speak the response
       if (voiceModeActiveRef.current) {
         voicePhaseRef.current = 'speaking';
         setVoicePhase('speaking');
@@ -3700,12 +3754,14 @@ export function ClaimsAiWorkspace({
         speakAnswer('voice-continuous', answer.text || draft, () => {
           if (voiceModeActiveRef.current) {
             setTimeout(() => {
-              if (voiceModeActiveRef.current) {
+              if (voiceModeActiveRef.current && !voiceMutedRef.current) {
                 startVoiceListening();
               }
             }, 350);
           }
         });
+      } else if (autoSpeakRepliesRef.current) {
+        speakAnswer(saved.data.id, answer.text || draft);
       }
     } catch (err) {
       if (!userSavedSuccessfully) {
@@ -4078,6 +4134,35 @@ export function ClaimsAiWorkspace({
   if (!open) return null;
   const active = conversations.find((row) => row.id === activeId) || null;
 
+  if (isMinimized) {
+    return (
+      <div className="claims-ai-minimized-pill" data-testid="claims-ai-minimized-pill">
+        <button
+          type="button"
+          className="claims-ai-pill-restore-btn"
+          data-testid="claims-ai-pill-restore"
+          onClick={() => setIsMinimized(false)}
+          title="פתח מחדש את שיחת דליה AI"
+        >
+          <span className="claims-ai-pill-badge">✨</span>
+          <span className="claims-ai-pill-title">דליה AI</span>
+          {messages.length > 0 && <span className="claims-ai-pill-count">({messages.length})</span>}
+          {voiceModeActive && <span className="claims-ai-pill-voice">🎙️ שיחה קולית</span>}
+          <span className="claims-ai-pill-arrow">↗ להגדלה</span>
+        </button>
+        <button
+          type="button"
+          className="claims-ai-pill-close-btn"
+          data-testid="claims-ai-pill-close"
+          onClick={onClose}
+          title="סגור שיחה"
+        >
+          ✕
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`claims-ai-workspace${showList ? ' show-list' : ''}`}
@@ -4212,6 +4297,7 @@ export function ClaimsAiWorkspace({
               {voiceModeActive ? '🔴 סיים שיחה קולית' : '🎙️ התחל שיחה קולית'}
             </button>
             <button type="button" className="btn btn-g btn-sm claims-ai-list-toggle" onClick={() => setShowList((v) => !v)}>שיחות</button>
+            <button type="button" className="btn btn-g btn-sm claims-ai-min-btn" data-testid="claims-ai-minimize-btn" onClick={() => setIsMinimized(true)} title="מזער חלון AI להצצה במסך שמתחת">— מזער</button>
             <button type="button" className="btn btn-g" data-testid="claims-ai-close" onClick={onClose}>סגור</button>
           </div>
         </header>
@@ -4243,26 +4329,41 @@ export function ClaimsAiWorkspace({
         </div>
 
         {voiceModeActive ? (
-          <div className={`claims-ai-voice-mode-bar phase-${voicePhase}`} data-testid="claims-ai-voice-mode-bar">
+          <div className={`claims-ai-voice-mode-bar phase-${voicePhase}${voiceMuted ? ' muted' : ''}`} data-testid="claims-ai-voice-mode-bar">
             <div className="claims-ai-voice-mode-status">
-              <span className="claims-ai-voice-pulse-dot" />
+              <span className={`claims-ai-voice-pulse-dot ${voiceMuted ? 'muted' : voicePhase}`} />
               <span>
-                {voicePhase === 'listening' && (liveTranscript ? `מאזין: "${liveTranscript}"` : '🎙️ דליה מאזינה... דבר כעת')}
-                {voicePhase === 'processing' && '⏳ דליה מעבדת את הדברים...'}
-                {voicePhase === 'speaking' && '🔊 דליה מדברת... (המיקרופון מושהה למניעת הד)'}
-                {voicePhase === 'idle' && 'שיחה קולית רציפה פעילה'}
+                {voiceMuted && '🔇 מיקרופון מושתק (לחץ על "בטל השתקה" להמשך דיבור)'}
+                {!voiceMuted && voicePhase === 'listening' && (liveTranscript ? `מאזין: "${liveTranscript}"` : '🎙️ דליה מאזינה בעברית... דבר כעת')}
+                {!voiceMuted && voicePhase === 'processing' && '⏳ דליה מעבדת את הדברים...'}
+                {!voiceMuted && voicePhase === 'speaking' && '🔊 דליה משיבה בקול בעברית...'}
+                {!voiceMuted && voicePhase === 'idle' && 'שיחה קולית רציפה פעילה'}
               </span>
             </div>
+            {liveTranscript && (
+              <div className="claims-ai-voice-transcript" data-testid="claims-ai-voice-live-transcript">
+                תמלול חי: {liveTranscript}
+              </div>
+            )}
             <div className="claims-ai-voice-mode-actions">
+              <button
+                type="button"
+                className={`claims-ai-voice-bar-btn mute${voiceMuted ? ' active' : ''}`}
+                data-testid="claims-ai-voice-mute-btn"
+                onClick={toggleVoiceMute}
+                title={voiceMuted ? 'בטל השתקת מיקרופון' : 'השתק מיקרופון'}
+              >
+                {voiceMuted ? '🎙️ בטל השתקה' : '🔇 השתק'}
+              </button>
               {voicePhase === 'speaking' ? (
                 <button
                   type="button"
                   className="claims-ai-voice-bar-btn stop"
                   data-testid="claims-ai-voice-interrupt-btn"
                   onClick={handleInterruptSpeech}
-                  title="עצור את דליה וחזור להאזנה"
+                  title="עצור דיבור בעברית וחזור להאזנה"
                 >
-                  ⏹️ התפרץ / עצור דיבור
+                  ⏹️ עצור הקראה
                 </button>
               ) : null}
               <button
@@ -5975,6 +6076,16 @@ export function ClaimsAiWorkspace({
               </div>
             )}
           </div>
+          <button
+            type="button"
+            className={`claims-ai-icon auto-speak-btn${autoSpeakReplies ? ' active' : ''}`}
+            data-testid="claims-ai-auto-speak-toggle"
+            title={autoSpeakReplies ? 'מענה קולי אוטומטי בעברית פעיל (לחץ לכיבוי)' : 'הפעל מענה קולי אוטומטי בעברית'}
+            aria-pressed={autoSpeakReplies}
+            onClick={() => setAutoSpeakReplies((v) => !v)}
+          >
+            {autoSpeakReplies ? '🔊' : '🔈'}
+          </button>
           <button
             type="button"
             className={`claims-ai-icon${listening ? ' live recording' : ''}`}
