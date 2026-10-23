@@ -1426,6 +1426,15 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="field"><label>סכום מאושר <span class="req">*</span></label><input id="wo-amount" type="number" placeholder="0"></div>
     <div class="field"><label>איש קשר</label><input id="wo-contact" placeholder="שם איש הקשר אצל הלקוח"></div>
     <div class="field"><label>הערות</label><textarea id="wo-notes" placeholder="הערות להזמנה"></textarea></div>
+    <div class="card" id="wo-items-card" style="margin-bottom:14px;">
+      <div style="font-weight:700;font-size:13.5px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+        <span>🔧 פירוט פריטי עבודה וחלקים בהזמנה</span>
+        <span id="wo-items-count" class="badge">0 פריטים</span>
+      </div>
+      <div id="wo-items-list" style="display:flex;flex-direction:column;gap:8px;">
+        <div class="hint" id="wo-items-empty">לא נטענו פריטים. ניתן לטעון מהצעת המחיר או להזין ידנית.</div>
+      </div>
+    </div>
     <div class="btn-row" style="margin-bottom:14px;">
       <button class="btn btn-ghost" onclick="pickMedia('customer_order','הזמנת לקוח',true)">📷 צלם הזמנה</button>
       <button class="btn btn-ghost" onclick="pickMedia('customer_order','הזמנת לקוח',false)">העלה הזמנה</button>
@@ -1893,6 +1902,7 @@ function emptyFlowState(){
     workOrderContact: '',
     workOrderDate: '',
     workOrderNotes: '',
+    workOrderItems: [],
     intakeDone: false,
     intakeKm: '',
     intakeFuel: '',
@@ -2863,6 +2873,8 @@ function hydrateCase(loaded){
   state.workOrderContact = data.workOrderContact || '';
   state.workOrderDate = data.workOrderDate || '';
   state.workOrderNotes = data.workOrderNotes || '';
+  state.workOrderItems = Array.isArray(data.workOrderItems) ? data.workOrderItems.slice() : [];
+  if(document.getElementById('wo-items-list')) renderWorkOrderItems();
   state.intakeDone = !!data.intakeDone;
   state.intakeKm = data.intakeKm || '';
   state.intakeFuel = data.intakeFuel || '';
@@ -3007,6 +3019,7 @@ function schedulePersist(){
       damageItems: (state.damageItems || []).slice(),
       quoteWorks: (state.quoteWorks || []).slice(),
       quoteParts: (state.quoteParts || []).slice(),
+      workOrderItems: (state.workOrderItems || []).slice(),
       extraApprovals: (state.extraApprovals || []).slice(),
       timeline: (state.timeline || []).slice(),
       selectedContact: state.selectedContact || null,
@@ -3384,6 +3397,7 @@ function go(id, skipHistory){
     } catch(e){}
   }
   bindLiveCase();
+  if(id==='s-workorder') renderWorkOrderItems();
   if(id==='s-quote') renderQuote();
   if(id==='s-quote-preview') renderQuotePreview();
   if(id==='s-timeline') renderTimeline();
@@ -4209,10 +4223,67 @@ function applyExtractedOrderToForm(){
   copy('wo-scan-date', 'wo-date');
   alert('הנתונים הועתקו לטופס. לחץ "אשר ושמור הזמנה" כדי לשמור בתיק. הלקוח לא משתנה.');
 }
+function renderWorkOrderItems(){
+  var box = document.getElementById('wo-items-list');
+  var badge = document.getElementById('wo-items-count');
+  var empty = document.getElementById('wo-items-empty');
+  var items = state.workOrderItems || [];
+  if(badge) badge.textContent = items.length + ' פריטים';
+  if(!box) return;
+  box.innerHTML = '';
+  if(!items.length){
+    if(empty) empty.style.display = 'block';
+    box.appendChild(empty || document.createElement('div'));
+    return;
+  }
+  items.forEach(function(item, idx){
+    var card = document.createElement('div');
+    card.className = 'job-card';
+    var isWork = item.type === 'work';
+    var isUnpriced = !!item.is_unpriced;
+    var lineTotal = isUnpriced ? 'ללא מחיר' : money(Number(item.total_amount || 0));
+    var qtyDisplay = 'כמות: ' + (item.qty || 1);
+    var unitPriceDisplay = isUnpriced ? '' : (' (יחידה: ' + money(Number(item.unit_price || 0)) + ')');
+    card.innerHTML = '<div class="jh"><div><div class="part">' + (isWork ? '🔧 ' : '📦 ') + esc(item.description || item.category || 'פריט') + '</div><div class="type">' + esc(item.category || (isWork ? 'עבודה' : 'חלק')) + ' · ' + esc(qtyDisplay + unitPriceDisplay) + '</div></div><div class="price">' + esc(lineTotal) + '</div></div>';
+    box.appendChild(card);
+  });
+}
 function importQuoteToWorkOrder(){
   var tot = quoteGrandTotal();
   var woAmt = document.getElementById('wo-amount');
   if(woAmt && tot > 0) woAmt.value = tot;
+  var items = [];
+  (state.quoteWorks || []).forEach(function(w, idx){
+    var price = Number(w.price) || 0;
+    var qty = Number(w.qty) || 1;
+    var unpriced = !w.price || Number(w.price) === 0;
+    items.push({
+      id: 'wo-w-' + (idx + 1) + '-' + Date.now().toString(36),
+      type: 'work',
+      category: w.part || 'עבודה',
+      description: (w.part ? (w.part + ' - ') : '') + (w.desc || 'עבודה כללית'),
+      qty: qty,
+      unit_price: price,
+      total_amount: unpriced ? 0 : (price * qty),
+      is_unpriced: unpriced
+    });
+  });
+  (state.quoteParts || []).forEach(function(p, idx){
+    var qty = Number(p.qty) || 1;
+    var price = Number(p.price) || 0;
+    items.push({
+      id: 'wo-p-' + (idx + 1) + '-' + Date.now().toString(36),
+      type: 'part',
+      category: 'חלק חילוף',
+      description: p.name || 'חלק חילוף',
+      qty: qty,
+      unit_price: price,
+      total_amount: qty * price,
+      is_unpriced: false
+    });
+  });
+  state.workOrderItems = items;
+  renderWorkOrderItems();
   var woNotes = document.getElementById('wo-notes');
   if(woNotes){
     var lines = (state.quoteWorks || []).map(function(w){
@@ -4227,7 +4298,8 @@ function importQuoteToWorkOrder(){
   }
   var approvedEl = document.getElementById('wo-approved-amount');
   if(approvedEl) approvedEl.textContent = money(tot || 0);
-  alert('סכום ההצעה (₪' + (tot || 0).toLocaleString() + ') ופירוט השורות נטענו להזמנה.');
+  schedulePersist();
+  alert('סכום ההצעה (₪' + (tot || 0).toLocaleString() + ') ו-' + items.length + ' פריטי עבודה וחלקים נטענו להזמנה.');
 }
 function saveWorkOrder(){
   var num = (document.getElementById('wo-num').value || '').trim();
@@ -4242,15 +4314,16 @@ function saveWorkOrder(){
   state.workOrderContact = (document.getElementById('wo-contact') && document.getElementById('wo-contact').value || '').trim();
   state.workOrderDate = (document.getElementById('wo-date') && document.getElementById('wo-date').value || '').trim();
   state.workOrderNotes = (document.getElementById('wo-notes') && document.getElementById('wo-notes').value || '').trim();
+  state.workOrderItems = Array.isArray(state.workOrderItems) ? state.workOrderItems : [];
   document.getElementById('wo-approved-amount').textContent = money(amount);
   var v = document.getElementById('wo-versions');
   var row = document.createElement('div');
   row.className = 'card';
-  row.innerHTML = '<div class="doc-row"><span>הזמנה '+esc(num)+'</span><span>'+money(amount)+'</span></div><div class="hint" style="margin:6px 0 0;">סטטוס: '+esc(status)+' · '+esc(liveCustomerName() || '')+' · '+esc(liveCaseNumber() || '')+'</div>';
+  row.innerHTML = '<div class="doc-row"><span>הזמנה '+esc(num)+'</span><span>'+money(amount)+'</span></div><div class="hint" style="margin:6px 0 0;">סטטוס: '+esc(status)+' · '+esc(liveCustomerName() || '')+' · '+esc(liveCaseNumber() || '')+' · '+state.workOrderItems.length+' פריטים מובנים</div>';
   v.prepend(row);
   document.getElementById('case-order-pill').textContent = 'הזמנה: '+num;
   setText('quote-order-ref', 'הזמנה: '+num);
-  addTimelineEvent('הזמנת לקוח '+num+' ('+status+') נשמרה בתיק');
+  addTimelineEvent('הזמנת לקוח '+num+' ('+status+') נשמרה בתיק ('+state.workOrderItems.length+' פריטים מובנים)');
   if(caseRoute() === 'intake_first') unlockIntake();
   refreshCaseHub();
   try {
@@ -4266,11 +4339,12 @@ function saveWorkOrder(){
         contactName: state.workOrderContact || '',
         notes: state.workOrderNotes || '',
         status: status,
+        orderItems: state.workOrderItems || []
       }
     }, '*');
   } catch(e){}
   schedulePersist();
-  notifySave('ההזמנה נשמרה בתיק. במסלול לקוח קבוע אפשר לעבור לקבלת רכב.');
+  notifySave('ההזמנה נשמרה בתיק עם ' + (state.workOrderItems ? state.workOrderItems.length : 0) + ' פריטים מובנים.');
 }
 function unlockIntake(){
   var tile = document.getElementById('tile-intake');

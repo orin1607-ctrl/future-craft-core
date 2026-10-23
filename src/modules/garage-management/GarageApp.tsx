@@ -258,11 +258,12 @@ export default function GarageApp() {
                       workOrderContact: String(payload.contactName || ''),
                       workOrderNotes: String(payload.notes || ''),
                       workOrderStatus: String(payload.status || 'received'),
+                      workOrderItems: Array.isArray(payload.orderItems) ? payload.orderItems : ((existingCaseData.workOrderItems as unknown[]) || []),
                     }
                   }).eq('id', cId);
                 }
               }
-              await supabase.from('garage_orders').insert({
+              const orderInsert: Record<string, unknown> = {
                 case_id: cId || null,
                 customer_id: customerId,
                 vehicle_id: vehicleId,
@@ -275,7 +276,20 @@ export default function GarageApp() {
                 status: String(payload.status || 'received'),
                 shop_company_name: actor?.company_name || '',
                 created_by: actor?.id || null,
-              });
+              };
+              if (Array.isArray(payload.orderItems) && payload.orderItems.length > 0) {
+                try {
+                  const withItems = { ...orderInsert, order_items: payload.orderItems };
+                  const { error: insErr } = await supabase.from('garage_orders').insert(withItems as never);
+                  if (insErr) {
+                    await supabase.from('garage_orders').insert(orderInsert as never);
+                  }
+                } catch {
+                  await supabase.from('garage_orders').insert(orderInsert as never);
+                }
+              } else {
+                await supabase.from('garage_orders').insert(orderInsert as never);
+              }
             } catch (e) {
               console.warn('Sync to garage_orders table:', e);
             }

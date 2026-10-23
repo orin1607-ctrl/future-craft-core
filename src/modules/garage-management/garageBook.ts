@@ -77,6 +77,16 @@ export type GarageCaseData = {
   workOrderContact?: string | null;
   workOrderDate?: string | null;
   workOrderNotes?: string | null;
+  workOrderItems?: Array<{
+    id?: string;
+    type?: 'work' | 'part';
+    category?: string;
+    description?: string;
+    qty?: number;
+    unit_price?: number;
+    total_amount?: number;
+    is_unpriced?: boolean;
+  }>;
   intakeDone?: boolean;
   signatureCaptured?: boolean;
   workStarted?: boolean;
@@ -302,6 +312,7 @@ export function emptyCaseData(): GarageCaseData {
     workOrderSaved: false,
     workOrderAmount: null,
     workOrderNumber: null,
+    workOrderItems: [],
     intakeDone: false,
     signatureCaptured: false,
     workStarted: false,
