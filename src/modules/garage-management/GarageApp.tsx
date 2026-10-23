@@ -235,16 +235,32 @@ export default function GarageApp() {
           return;
         }
         if (msg.type === 'gm:saveOrder') {
-          const cId = String(payload.caseId || caseId || '');
+          const cId = String(payload.caseId || activeCaseIdRef.current || caseId || '');
           const orderNumber = String(payload.orderNumber || '').trim();
           if (orderNumber) {
             try {
               let customerId: string | null = null;
               let vehicleId: string | null = null;
               if (cId) {
-                const { data: cRow } = await supabase.from('garage_cases').select('customer_id, vehicle_id').eq('id', cId).maybeSingle();
+                const { data: cRow } = await supabase.from('garage_cases').select('customer_id, vehicle_id, case_data').eq('id', cId).maybeSingle();
                 customerId = cRow?.customer_id || null;
                 vehicleId = cRow?.vehicle_id || null;
+                if (cRow) {
+                  const existingCaseData = (cRow.case_data as Record<string, unknown>) || {};
+                  await supabase.from('garage_cases').update({
+                    case_data: {
+                      ...existingCaseData,
+                      workOrderSaved: true,
+                      workOrderNumber: orderNumber,
+                      workOrderAmount: String(payload.approvedAmount || ''),
+                      workOrderRef: String(payload.caseRef || ''),
+                      workOrderDate: String(payload.orderDate || ''),
+                      workOrderContact: String(payload.contactName || ''),
+                      workOrderNotes: String(payload.notes || ''),
+                      workOrderStatus: String(payload.status || 'received'),
+                    }
+                  }).eq('id', cId);
+                }
               }
               await supabase.from('garage_orders').insert({
                 case_id: cId || null,
@@ -317,6 +333,7 @@ export default function GarageApp() {
         if (msg.type === 'gm:openCase') {
           const id = String(payload.caseId || '');
           if (id) {
+            activeCaseIdRef.current = id;
             void getCase(id, shopScope).then((loaded) => {
               setLoadedCase(loaded);
             }).catch(console.error);
@@ -335,6 +352,7 @@ export default function GarageApp() {
           return;
         }
         if (msg.type === 'gm:goHome') {
+          activeCaseIdRef.current = null;
           setLoadedCase(null);
           try {
             window.history.pushState(null, '', `${import.meta.env.BASE_URL}garage-management`);
@@ -571,8 +589,9 @@ export default function GarageApp() {
   }, [actor, bootstrap, caseId, navigate, reply, shopScope, user?.garageOps]);
 
   useEffect(() => {
+    activeCaseIdRef.current = caseId || null;
     void bootstrap();
-  }, [bootstrap]);
+  }, [caseId, bootstrap]);
 
   useEffect(() => {
     const handlePop = () => {
@@ -633,12 +652,24 @@ export default function GarageApp() {
               customerName: loadedCase.customer_name_snapshot,
               plate: loadedCase.vehicle_plate_snapshot,
               status: loadedCase.status,
-            } : null}
-            onActionExecuted={() => {
+            } : (activeCaseIdRef.current ? {
+              id: activeCaseIdRef.current,
+              caseNumber: '',
+              customerName: '',
+              plate: '',
+              status: '',
+            } : null)}
+            onActionExecuted={(pending) => {
+              const targetId = (pending?.parameters?.case_id as string) || (pending?.parameters?.existing_case_id as string) || activeCaseIdRef.current;
+              if (targetId && !activeCaseIdRef.current) {
+                activeCaseIdRef.current = targetId;
+              }
               void bootstrap();
             }}
             onOpenGarageCase={(targetCaseId) => {
+              activeCaseIdRef.current = targetCaseId;
               navigate(`/garage-management/${targetCaseId}`);
+              void bootstrap();
             }}
           />
         </div>

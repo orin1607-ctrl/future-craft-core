@@ -2832,10 +2832,12 @@ function renderHomeCases(cases){
 }
 function esc(s){ return String(s||'').replace(/[&<>"']/g, function(ch){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]); }); }
 function hydrateCase(loaded){
-  currentCase = loaded;
+  currentCase = Object.assign({}, loaded);
+  currentCase.case_data = Object.assign({}, loaded && loaded.case_data);
   currentCustomer = loaded.customer || currentCustomer;
   currentVehicle = loaded.vehicle || currentVehicle;
-  var data = loaded.case_data || {};
+  var data = currentCase.case_data || {};
+  Object.assign(state, data);
   state.route = data.route === 'intake_first' ? 'intake_first' : (data.route || defaultRouteForCustomer());
   state.flowStage = data.flowStage || 'open';
   state.photos = Object.assign({fl:false,fr:false,rl:false,rr:false}, data.photos || {});
@@ -2898,6 +2900,27 @@ function hydrateCase(loaded){
   state.correspondence = Array.isArray(data.correspondence) ? data.correspondence.slice() : [];
   state.unreadMail = !!data.unreadMail;
   state.priceReview = data.priceReview || { status: 'none', detectedAmount: null, sentAmount: null };
+  state.quoteToken = data.quoteToken || state.quoteToken || '';
+  state.quoteVersion = data.quoteVersion || state.quoteVersion || 1;
+  state.quoteTitle = data.quoteTitle || state.quoteTitle || '';
+  state.quoteDate = data.quoteDate || state.quoteDate || '';
+  state.quoteSigned = !!data.quoteSigned;
+  state.quoteSignedAt = data.quoteSignedAt || '';
+  state.quoteSignerName = data.quoteSignerName || '';
+  state.quoteSignerId = data.quoteSignerId || '';
+  state.quoteSignerPhone = data.quoteSignerPhone || '';
+  state.quoteSignatureDataUrl = data.quoteSignatureDataUrl || state.quoteSignatureDataUrl || '';
+  state.quotePricedSubtotal = data.quotePricedSubtotal || null;
+  state.damagePhotosAttached = !!data.damagePhotosAttached;
+  state.damagePhotosCount = data.damagePhotosCount || 0;
+  state.payments = Array.isArray(data.payments) ? data.payments.slice() : [];
+  state.totalPaid = data.totalPaid || 0;
+  state.balanceRemaining = (data.balanceRemaining !== undefined && data.balanceRemaining !== null) ? data.balanceRemaining : null;
+  state.invoices = Array.isArray(data.invoices) ? data.invoices.slice() : [];
+  state.customerOrders = Array.isArray(data.customerOrders) ? data.customerOrders.slice() : [];
+  state.tasks = Array.isArray(data.tasks) ? data.tasks.slice() : [];
+  state.reminders = Array.isArray(data.reminders) ? data.reminders.slice() : [];
+  state.preClosureChecklist = data.preClosureChecklist || null;
   draftContacts = parseCustomerContacts(currentCustomer);
   if(state.customerContacts && state.customerContacts.length && !draftContacts.length) draftContacts = state.customerContacts.slice();
   draftSelectedContactId = (state.selectedContact && state.selectedContact.id) || draftSelectedContactId || (draftContacts[0] && draftContacts[0].id) || '';
@@ -2955,7 +2978,21 @@ function schedulePersist(){
   clearTimeout(persistTimer);
   persistTimer = setTimeout(function(){
     captureQuoteFields();
-    var data = Object.assign({}, state, {
+    var existingCaseData = (currentCase && currentCase.case_data) || {};
+    var data = Object.assign({}, existingCaseData, state, {
+      quoteToken: state.quoteToken || existingCaseData.quoteToken || '',
+      quoteVersion: state.quoteVersion || existingCaseData.quoteVersion || 1,
+      quoteTitle: state.quoteTitle || existingCaseData.quoteTitle || '',
+      quoteDate: state.quoteDate || existingCaseData.quoteDate || '',
+      quoteSigned: state.quoteSigned !== undefined ? state.quoteSigned : !!existingCaseData.quoteSigned,
+      quoteSignedAt: state.quoteSignedAt || existingCaseData.quoteSignedAt || '',
+      quoteSignerName: state.quoteSignerName || existingCaseData.quoteSignerName || '',
+      quoteSignatureDataUrl: state.quoteSignatureDataUrl || existingCaseData.quoteSignatureDataUrl || '',
+      damagePhotosAttached: state.damagePhotosAttached !== undefined ? state.damagePhotosAttached : !!existingCaseData.damagePhotosAttached,
+      damagePhotosCount: state.damagePhotosCount !== undefined ? state.damagePhotosCount : (existingCaseData.damagePhotosCount || 0),
+      payments: (state.payments || existingCaseData.payments || []).slice(),
+      totalPaid: state.totalPaid !== undefined ? state.totalPaid : existingCaseData.totalPaid,
+      balanceRemaining: state.balanceRemaining !== undefined ? state.balanceRemaining : existingCaseData.balanceRemaining,
       photos: Object.assign({}, state.photos),
       intakeAngles: Object.assign({}, state.intakeAngles),
       damageItems: (state.damageItems || []).slice(),
@@ -2983,6 +3020,7 @@ function schedulePersist(){
         validity: state.quoteValidity || ''
       }
     });
+    if(currentCase) currentCase.case_data = data;
     callHost('gm:saveCase', {caseId: currentCase.id, caseData: data}).catch(function(err){ console.warn(err); });
   }, 400);
 }
@@ -3705,7 +3743,8 @@ function renderQuote(){
   var worksEmpty = document.getElementById('quote-works-empty');
   if(worksBox){
     worksBox.innerHTML = '';
-    (state.quoteWorks || []).forEach(function(item){
+    (state.quoteWorks || []).forEach(function(item, idx){
+      if(!item.id) item.id = 'w_' + (idx + 1) + '_' + Math.random().toString(36).slice(2, 7);
       var card = document.createElement('div');
       card.className = 'job-card';
       var isUnpriced = item.price === null || item.price === undefined || item.price === '';
@@ -3723,7 +3762,8 @@ function renderQuote(){
   var partsEmpty = document.getElementById('quote-parts-empty');
   if(partsBox){
     partsBox.innerHTML = '';
-    (state.quoteParts || []).forEach(function(item){
+    (state.quoteParts || []).forEach(function(item, idx){
+      if(!item.id) item.id = 'p_' + (idx + 1) + '_' + Math.random().toString(36).slice(2, 7);
       var card = document.createElement('div');
       card.className = 'job-card';
       var lineTotal = (Number(item.price) || 0) * (Number(item.qty) || 1);
@@ -3757,7 +3797,8 @@ function renderQuote(){
 }
 function openDigitalQuoteSignLink(){
   if(state.quoteToken){
-    var url = '/garage-quote?t=' + encodeURIComponent(state.quoteToken);
+    var base = (window.location.pathname.indexOf('/future-craft-core') !== -1) ? '/future-craft-core' : '';
+    var url = window.location.origin + base + '/garage-quote?t=' + encodeURIComponent(state.quoteToken);
     window.open(url, '_blank');
     return;
   }
@@ -4175,10 +4216,11 @@ function saveWorkOrder(){
   if(caseRoute() === 'intake_first') unlockIntake();
   refreshCaseHub();
   try {
+    var effectiveCaseId = (currentCase && currentCase.id) || state.currentCaseId || null;
     window.parent.postMessage({
       type: 'gm:saveOrder',
       payload: {
-        caseId: state.currentCaseId || null,
+        caseId: effectiveCaseId,
         orderNumber: num,
         caseRef: state.workOrderRef || '',
         orderDate: state.workOrderDate || '',

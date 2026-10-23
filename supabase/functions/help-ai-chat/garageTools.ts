@@ -127,7 +127,16 @@ export const GARAGE_SYSTEM_PROMPT_INSTRUCTIONS = `
    - הפקת דוח סיכום מלא של כרטיס עבודה (get_garage_case_summary_report).
 
 7. פענוח מסמכים ותמונות (OCR & Vision):
+   - זיהוי וניתוח תמונות נזק (Damage Photo Analysis & Drafting):
+     כאשר מועלית תמונת נזק לרכב (או מספר תמונות):
+     1. נתח את התמונה ותאר במדויק את כל מוקדי הנזק הנראים לעין (מעיכה, קרע בפח, שפשוף צבע, שבר בפגוש, פנס שבור וכו') ומיקומם ברכב.
+     2. ציין במפורש מה **לא ניתן לקבוע בוודאות מהתמונה בלבד** (כגון פגיעה פנימית בשלדה, תושבות שבורות, נזק מכני/רדיאטור מוסתר) הדורש בדיקה פיזית במוסך על ליפט או פירוק ראשוני.
+     3. הכן טיוטת עבודות להצעת מחיר (פחחות, צבע, החלפת חלקים), כאשר סעיפים הטעונים בדיקה או פירוק ישמרו עם price: null ("ללא מחיר בשלב זה - דורש פירוק/בדיקה").
+     4. ודא שהתמונות נשמרות בכרטיס העבודה (ב-garage_media תחת קטגוריית damage) ומשויכות לרכב המתאים.
+     5. הפק כרטיס אישור preview_update_garage_repair_details או preview_garage_dictate_case_and_quote להוספת העבודות לכרטיס.
    - קליטה מרישיון רכב: כאשר מועלה צילום/PDF של רישיון רכב, חלץ בדיוק: מספר לוחית רישוי, יצרן, דגם, שנת ייצור, צבע, שלדה (VIN), נפח/סוג מנוע, שם בעל הרכב הרשום, ת.ז./ח.פ. בעלים ותוקף הרישיון. בדוק אם הלקוח/רכב כבר קיימים למניעת כפילויות, הבדל בין בעל הרכב למזמין התיקון, והכן כרטיס preview_garage_onboard_from_vehicle_license לקליטה ופתיחת כרטיס עבודה.
+   - העברת בעלות על רכב (Ownership Transfer): אל תדרוס שיוך רכב מלקוח אחד ללקוח אחר באופן שקט. אם רכב עם לוחית זהה קיים אצל לקוח אחר, בדוק מי הבעלים הנוכחי, התרע על כך בכרטיס האישור (Preview), ורק באישור מפורש בצע העברת בעלות תוך רישום מלא של היסטוריית הבעלות.
+   - סטטוס אינטגרציית דוא"ל מוסך: חיבור המייל של המוסך (yoni191177@gmail.com) אינו מחובר כרגע לסריקה אוטומטית שוטפת. המיילים והתכתובות המוצגים הם אלו שנרשמו בתיק או יובאו ידנית. אל תטען שהדוא"ל נסרק אוטומטית אם אינו מחובר. אסור לשלוח מייל ללא אישור מפורש של המשתמש.
    - קליטת הזמנת עבודה של לקוח/צי/ביטוח: כאשר מועלית הזמנה/פקודת עבודה, חלץ: מספר הזמנה, שם מזמין, תאריך הזמנה, איש קשר, נהג, לוחית רישוי, תלונות/עבודות נדרשות, סכום מאושר והוראות מיוחדות. הכן כרטיס preview_garage_create_customer_order לשמירה ב-garage_orders.
    - שליחת הצעה ואישור לקוח: הכן כרטיס preview_send_garage_quote לשליחת הצעת מחיר ללקוח (WhatsApp/SMS/מייל), ולאחר אישור הלקוח רשום אותו עם preview_approve_garage_quote לעדכון הסטטוס ל-'אושר לביצוע'.
    - דיוק מרבי: אל תמציא נתונים. אם שדה לא קריא, ציין שלא זוהה.
@@ -1343,7 +1352,7 @@ export async function executeGarageTool(
         "| כרטיס עבודה | שם לקוח | לוחית רישוי | סטטוס | שלב | תאריך פתיחה | פעולות |",
         "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |",
         ...tableRows,
-      ].join("\n");
+      ].filter(Boolean).join("\n");
 
       return {
         result: {
@@ -1633,10 +1642,29 @@ export async function executeGarageTool(
       if (query) {
         const cleanQ = query.replace(/[%_,]/g, "").trim();
         const digits = cleanQ.replace(/[^0-9]/g, "");
+        const numVal = Number(cleanQ);
+        const hasNum = Number.isInteger(numVal) && numVal > 0 && numVal < 2147483647;
+
         if (digits && digits.length >= 7) {
-          dbQuery = dbQuery.or(`name.ilike.%${cleanQ}%,phone.ilike.%${digits}%,phone.ilike.%${cleanQ}%,second_phone.ilike.%${digits}%,company_name.ilike.%${cleanQ}%,business_id.ilike.%${cleanQ}%,customer_number.ilike.%${cleanQ}%`);
+          const parts = [
+            `name.ilike.%${cleanQ}%`,
+            `phone.ilike.%${digits}%`,
+            `phone.ilike.%${cleanQ}%`,
+            `second_phone.ilike.%${digits}%`,
+            `company_name.ilike.%${cleanQ}%`,
+            `business_id.ilike.%${cleanQ}%`,
+          ];
+          if (hasNum) parts.push(`customer_number.eq.${numVal}`);
+          dbQuery = dbQuery.or(parts.join(","));
         } else {
-          dbQuery = dbQuery.or(`name.ilike.%${cleanQ}%,phone.ilike.%${cleanQ}%,company_name.ilike.%${cleanQ}%,business_id.ilike.%${cleanQ}%,customer_number.ilike.%${cleanQ}%`);
+          const parts = [
+            `name.ilike.%${cleanQ}%`,
+            `phone.ilike.%${cleanQ}%`,
+            `company_name.ilike.%${cleanQ}%`,
+            `business_id.ilike.%${cleanQ}%`,
+          ];
+          if (hasNum) parts.push(`customer_number.eq.${numVal}`);
+          dbQuery = dbQuery.or(parts.join(","));
         }
       }
 
@@ -1927,7 +1955,9 @@ export async function executeGarageTool(
       }
 
       let existingVehicleId: string | null = null;
-      let existingCustomerId: string | null = null;
+      let vehicleOwnerId: string | null = null;
+      let prevOwnerName = "";
+      let isOwnershipTransfer = false;
 
       const { data: existingVehs } = await supabase
         .from("garage_vehicles")
@@ -1937,28 +1967,52 @@ export async function executeGarageTool(
       if (existingVehs && existingVehs.length > 0) {
         const v = existingVehs[0];
         existingVehicleId = v.id;
-        existingCustomerId = v.customer_id || null;
+        vehicleOwnerId = v.customer_id || null;
         if (!vehModel) {
           vehModel = [v.make, v.model, v.year].filter(Boolean).join(" ").trim();
         }
-        if (existingCustomerId && (!custName || !custPhone)) {
-          const { data: cRow } = await supabase
+        if (vehicleOwnerId) {
+          const { data: prevCust } = await supabase
             .from("garage_customers")
-            .select("name, company_name, phone")
-            .eq("id", existingCustomerId)
+            .select("id, name, company_name, phone")
+            .eq("id", vehicleOwnerId)
             .maybeSingle();
-          if (cRow) {
-            if (!custName) custName = cRow.name || cRow.company_name || "";
-            if (!custPhone) custPhone = cRow.phone || "";
+          if (prevCust) {
+            prevOwnerName = prevCust.name || prevCust.company_name || "בעלים קודם";
+            if (!custName && !custPhone) {
+              custName = prevOwnerName;
+              custPhone = prevCust.phone || "";
+            } else if (custName && prevOwnerName && !custName.includes(prevOwnerName) && !prevOwnerName.includes(custName)) {
+              isOwnershipTransfer = true;
+            }
           }
         }
+      }
+
+      // Check if target customer already exists in DB
+      let targetCustomerId: string | null = null;
+      if (custPhone) {
+        const { data: cByPhone } = await supabase.from("garage_customers").select("id").eq("phone", custPhone).limit(1);
+        if (cByPhone && cByPhone.length > 0) targetCustomerId = cByPhone[0].id;
+      }
+      if (!targetCustomerId && custName) {
+        const { data: cByName } = await supabase.from("garage_customers").select("id").or(`name.eq.${custName},company_name.eq.${custName}`).limit(1);
+        if (cByName && cByName.length > 0) targetCustomerId = cByName[0].id;
+      }
+
+      if (vehicleOwnerId && targetCustomerId && vehicleOwnerId !== targetCustomerId) {
+        isOwnershipTransfer = true;
       }
 
       if (!custName && !custPhone) {
         custName = `לקוח רכב ${vehPlate}`;
       }
 
-      const summary = `פתיחת כרטיס עבודה חדש במוסך: רכב ${vehPlate} (${vehModel || "רכב"}) עבור הלקוח ${custName || custPhone} במסלול ${route === "quote_first" ? "הצעת מחיר תחילה" : "קליטה ובדיקה תחילה"}. סטטוס ראשוני: "${status}".`;
+      const transferNotice = isOwnershipTransfer
+        ? `\n• ⚠️ שים לב: הרכב (${vehPlate}) רשום כרגע במערכת ע"ש "${prevOwnerName}". אישור פעולה זו יעדכן את בעלות הרכב ללקוח "${custName}" ויתעד את השינוי בהיסטוריה.`
+        : "";
+
+      const summary = `פתיחת כרטיס עבודה חדש במוסך: רכב ${vehPlate} (${vehModel || "רכב"}) עבור הלקוח ${custName || custPhone} במסלול ${route === "quote_first" ? "הצעת מחיר תחילה" : "קליטה ובדיקה תחילה"}. סטטוס ראשוני: "${status}".${transferNotice}`;
 
       const pendingAction: GaragePendingAction = {
         preview_id: `g_case_new_${Date.now()}`,
@@ -1966,7 +2020,7 @@ export async function executeGarageTool(
         tool_name: "preview_create_garage_case",
         action_type: "garage_create_case",
         parameters: {
-          customer_id: existingCustomerId,
+          customer_id: targetCustomerId || (isOwnershipTransfer ? null : vehicleOwnerId),
           vehicle_id: existingVehicleId,
           customer_name: custName,
           customer_phone: custPhone,
@@ -1976,6 +2030,9 @@ export async function executeGarageTool(
           status,
           notes,
           damage_items: damageItems,
+          is_ownership_transfer: isOwnershipTransfer,
+          prev_owner_id: vehicleOwnerId,
+          prev_owner_name: prevOwnerName,
         },
       };
 
@@ -2999,7 +3056,7 @@ ${totalExtras > 0 ? `- **חריגים:** ${totalExtras.toLocaleString()} ₪\n` 
           if (!vehicleModel) {
             vehicleModel = [matchedVehicle.make, matchedVehicle.model].filter(Boolean).join(" ");
           }
-          if (!matchedCustomer && matchedVehicle.customer_id) {
+          if (!customerName && matchedVehicle.customer_id) {
             const { data: cRow } = await supabase.from("garage_customers").select("id, name, phone, email").eq("id", matchedVehicle.customer_id).maybeSingle();
             if (cRow) {
               matchedCustomer = cRow;
@@ -3068,6 +3125,7 @@ ${totalExtras > 0 ? `- **חריגים:** ${totalExtras.toLocaleString()} ₪\n` 
           ? Number(w.price)
           : null;
         return {
+          id: String(w?.id || `w_${idx + 1}_${Date.now().toString(36)}`),
           row_number: idx + 1,
           part: String(w?.part || "").trim(),
           type: String(w?.type || "פחחות וצבע").trim(),
@@ -3079,6 +3137,7 @@ ${totalExtras > 0 ? `- **חריגים:** ${totalExtras.toLocaleString()} ₪\n` 
 
       const rawParts = Array.isArray(args?.quote_parts) ? args.quote_parts : [];
       const normalizedParts = rawParts.map((p: any, idx: number) => ({
+        id: String(p?.id || `p_${idx + 1}_${Date.now().toString(36)}`),
         row_number: idx + 1,
         name: String(p?.name || "").trim(),
         price: Number.isFinite(Number(p?.price)) && Number(p?.price) > 0 ? Number(p.price) : null,
@@ -3100,6 +3159,17 @@ ${totalExtras > 0 ? `- **חריגים:** ${totalExtras.toLocaleString()} ₪\n` 
         .limit(1);
       const existingVehicle = existingVehicles?.[0] || null;
 
+      let ownershipTransferNotice = "";
+      if (existingVehicle && existingVehicle.customer_id && existingCustomer && existingVehicle.customer_id !== existingCustomer.id) {
+        const { data: prevOwner } = await supabase
+          .from("garage_customers")
+          .select("id, name, phone")
+          .eq("id", existingVehicle.customer_id)
+          .maybeSingle();
+        const prevName = prevOwner?.name || "בעלים קודם";
+        ownershipTransferNotice = `⚠️ שים לב: הרכב (${vehiclePlate}) רשום כרגע במערכת ע"ש "${prevName}". אישור פעולה זו יעדכן את בעלות הרכב ללקוח "${customerName}" ויתעד את השינוי בהיסטוריה.`;
+      }
+
       const { data: existingCases } = await supabase
         .from("garage_cases")
         .select("id, case_number, status, case_data")
@@ -3119,6 +3189,7 @@ ${totalExtras > 0 ? `- **חריגים:** ${totalExtras.toLocaleString()} ₪\n` 
 
       const summary = [
         `פתיחת/עדכון כרטיס עבודה והכנת הצעת מחיר מובנית מוכנה לשליחה ולחתימת לקוח:`,
+        ownershipTransferNotice ? `• ${ownershipTransferNotice}` : null,
         `• לקוח: ${customerName} (${customerTypeLabel})${existingCustomer ? " [קיים במערכת]" : " [לקוח חדש]"}`,
         `• מספר רכב: ${vehiclePlate}${existingVehicle ? " [קיים במערכת]" : " [רכב חדש]"}`,
         `• תאריך הצעת המחיר: ${quoteDate} · סוג עבודה: ${workType}`,
@@ -3772,14 +3843,24 @@ export async function executeGaragePendingAction(
           }
         }
 
-        // 2. Ensure vehicle exists and belongs to customerId (satisfy garage_cases_vehicle_customer_fkey)
+        // 2. Ensure vehicle exists and belongs to customerId (satisfy garage_cases_vehicle_customer_fkey with ownership audit)
+        let isCaseVehTransfer = false;
+        let prevCaseOwnerName = "";
+        let prevCaseOwnerId = "";
+
         if (!vehicleId) {
           if (!vehiclePlate) {
             throw new Error("חובה לספק מספר לוחית רישוי של הרכב לפתיחת תיק.");
           }
-          const { data: byPlate } = await supabase.from("garage_vehicles").select("id, customer_id").eq("plate", vehiclePlate).limit(1);
+          const { data: byPlate } = await supabase.from("garage_vehicles").select("id, customer_id, notes").eq("plate", vehiclePlate).limit(1);
           if (byPlate && byPlate.length > 0) {
             vehicleId = byPlate[0].id;
+            if (byPlate[0].customer_id && byPlate[0].customer_id !== customerId) {
+              isCaseVehTransfer = true;
+              prevCaseOwnerId = byPlate[0].customer_id;
+              const { data: pCust } = await supabase.from("garage_customers").select("name").eq("id", prevCaseOwnerId).maybeSingle();
+              prevCaseOwnerName = pCust?.name || "בעלים קודם";
+            }
           } else {
             const { data: newVeh, error: vehErr } = await supabase
               .from("garage_vehicles")
@@ -3799,9 +3880,27 @@ export async function executeGaragePendingAction(
           }
         }
 
-        // CRITICAL: Unconditionally ensure garage_vehicles.customer_id matches customerId
+        // Ensure garage_vehicles.customer_id matches customerId, preserving ownership transfer history
         if (vehicleId && customerId) {
-          await supabase.from("garage_vehicles").update({ customer_id: customerId }).eq("id", vehicleId);
+          // If vehicle was provided explicitly, check if it was previously owned by someone else
+          if (!isCaseVehTransfer) {
+            const { data: vExisting } = await supabase.from("garage_vehicles").select("id, customer_id, notes").eq("id", vehicleId).maybeSingle();
+            if (vExisting && vExisting.customer_id && vExisting.customer_id !== customerId) {
+              isCaseVehTransfer = true;
+              prevCaseOwnerId = vExisting.customer_id;
+              const { data: pCust } = await supabase.from("garage_customers").select("name").eq("id", prevCaseOwnerId).maybeSingle();
+              prevCaseOwnerName = pCust?.name || "בעלים קודם";
+            }
+          }
+
+          if (isCaseVehTransfer) {
+            const { data: vRow } = await supabase.from("garage_vehicles").select("notes").eq("id", vehicleId).single();
+            const logEntry = `[${new Date().toISOString()}] העברת בעלות מלקוח "${prevCaseOwnerName}" (מזהה ${prevCaseOwnerId}) ללקוח "${customerName}" (מזהה ${customerId}) ע"י ${actorName || "דליה AI"}`;
+            const updatedNotes = vRow?.notes ? `${vRow.notes}\n${logEntry}` : logEntry;
+            await supabase.from("garage_vehicles").update({ customer_id: customerId, notes: updatedNotes }).eq("id", vehicleId);
+          } else {
+            await supabase.from("garage_vehicles").update({ customer_id: customerId }).eq("id", vehicleId);
+          }
         }
 
         const effectiveUserId = (userId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId))
@@ -4516,6 +4615,7 @@ export async function executeGaragePendingAction(
             w?.price === "" ||
             /ללא מחיר/i.test(descStr);
           return {
+            id: String(w?.id || `w_${idx + 1}_${Date.now().toString(36)}`),
             row_number: idx + 1,
             part: String(w?.part || "").trim(),
             type: String(w?.type || "פחחות וצבע").trim(),
@@ -4527,6 +4627,7 @@ export async function executeGaragePendingAction(
 
         const rawParts = Array.isArray(parameters.quote_parts) ? parameters.quote_parts : [];
         const quoteParts = rawParts.map((p: any, idx: number) => ({
+          id: String(p?.id || `p_${idx + 1}_${Date.now().toString(36)}`),
           row_number: idx + 1,
           name: String(p?.name || "").trim(),
           price: Number.isFinite(Number(p?.price)) && Number(p?.price) > 0 ? Number(p.price) : null,
@@ -4566,21 +4667,46 @@ export async function executeGaragePendingAction(
           customerId = newCust.id;
         }
 
-        // 2. Check / create vehicle (prevent duplicates & link to customer)
+        // 2. Check / create vehicle (prevent duplicates & link to customer with ownership transfer tracking)
         let vehicleId = parameters.existing_vehicle_id as string | null;
+        let isOwnershipTransfer = false;
+        let prevOwnerName = "";
+        let prevOwnerId = "";
+
         if (!vehicleId) {
           const { data: foundVeh } = await supabase
             .from("garage_vehicles")
-            .select("id, customer_id")
+            .select("id, customer_id, notes")
             .eq("plate", vehiclePlate)
             .limit(1);
           if (foundVeh && foundVeh.length > 0) {
             vehicleId = foundVeh[0].id;
+            if (foundVeh[0].customer_id && foundVeh[0].customer_id !== customerId) {
+              isOwnershipTransfer = true;
+              prevOwnerId = foundVeh[0].customer_id;
+              const { data: pCust } = await supabase.from("garage_customers").select("name").eq("id", prevOwnerId).maybeSingle();
+              prevOwnerName = pCust?.name || "בעלים קודם";
+            }
+          }
+        } else {
+          const { data: foundVeh } = await supabase.from("garage_vehicles").select("id, customer_id, notes").eq("id", vehicleId).maybeSingle();
+          if (foundVeh && foundVeh.customer_id && foundVeh.customer_id !== customerId) {
+            isOwnershipTransfer = true;
+            prevOwnerId = foundVeh.customer_id;
+            const { data: pCust } = await supabase.from("garage_customers").select("name").eq("id", prevOwnerId).maybeSingle();
+            prevOwnerName = pCust?.name || "בעלים קודם";
           }
         }
+
         if (vehicleId) {
-          // Unconditionally sync vehicle to this customer to satisfy composite FK constraint
-          await supabase.from("garage_vehicles").update({ customer_id: customerId }).eq("id", vehicleId);
+          if (isOwnershipTransfer) {
+            const { data: vRow } = await supabase.from("garage_vehicles").select("notes").eq("id", vehicleId).single();
+            const logEntry = `[${new Date().toISOString()}] העברת בעלות מלקוח "${prevOwnerName}" (מזהה ${prevOwnerId}) ללקוח "${customerName}" (מזהה ${customerId}) ע"י ${actorName || "דליה AI"}`;
+            const updatedNotes = vRow?.notes ? `${vRow.notes}\n${logEntry}` : logEntry;
+            await supabase.from("garage_vehicles").update({ customer_id: customerId, notes: updatedNotes }).eq("id", vehicleId);
+          } else {
+            await supabase.from("garage_vehicles").update({ customer_id: customerId }).eq("id", vehicleId);
+          }
         } else {
           const { data: newVeh, error: vehErr } = await supabase
             .from("garage_vehicles")
