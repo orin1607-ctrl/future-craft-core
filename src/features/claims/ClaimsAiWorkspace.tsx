@@ -68,6 +68,7 @@ import {
   clearVoiceWorkflowState,
   executeVoiceWorkflowAction,
 } from './daliaVoiceWorkflows';
+import { diagLog, installSynthSpy, describeVoices, copyDiagReport } from './daliaVoiceDiag';
 import './claims-ai.css';
 
 /** Claim-file actions the chat can run through the existing claims screen (signed URL, download, browser reader). */
@@ -2716,6 +2717,18 @@ export function ClaimsAiWorkspace({
     } catch {}
   }, []);
   useEffect(() => {
+    installSynthSpy();
+    diagLog('workspace-mounted');
+    const s = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
+    if (s) {
+      try { diagLog('initial-voices', describeVoices(s.getVoices?.() || [])); } catch {}
+      const onVc = () => { try { diagLog('voiceschanged', describeVoices(s.getVoices?.() || [])); } catch {} };
+      s.addEventListener?.('voiceschanged', onVc);
+      return () => s.removeEventListener?.('voiceschanged', onVc);
+    }
+    return undefined;
+  }, []);
+  useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       const load = () => {
         try {
@@ -3144,6 +3157,7 @@ export function ClaimsAiWorkspace({
   const voicePhaseRef = useRef<'idle' | 'listening' | 'processing' | 'speaking'>('idle');
 
   const stopSpeaking = useCallback(() => {
+    diagLog('stopSpeaking()');
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       try {
         if (window.speechSynthesis.paused) {
@@ -3173,6 +3187,7 @@ export function ClaimsAiWorkspace({
   }, []);
 
   const speakAnswer = useCallback((msgId: string, rawText: string, onEndCallback?: () => void) => {
+    diagLog('speakAnswer-called', `id=${msgId} textLen=${(rawText || '').length} hasCallback=${!!onEndCallback} userActive=${(navigator as any).userActivation?.isActive}`);
     stopSpeaking();
 
     const clean = cleanTextForSpeech(rawText);
@@ -3214,6 +3229,7 @@ export function ClaimsAiWorkspace({
       ? installedVoices
       : (window.speechSynthesis.getVoices?.() || []);
     const heVoice = findHebrewVoice(currentVoices);
+    diagLog('voice-chosen', `heVoice=${heVoice ? heVoice.name + '[' + heVoice.lang + ']' : 'NONE(lang-only he-IL)'} voicesSeen=${currentVoices.length}`);
 
     if (heVoice) {
       try {
@@ -3227,9 +3243,12 @@ export function ClaimsAiWorkspace({
     utter.pitch = 1.0;
 
     let ended = false;
+    let started = false;
+    const speakAt = Date.now();
     const finish = () => {
       if (ended) return;
       ended = true;
+      diagLog('finish', `startedEver=${started} elapsedMs=${Date.now() - speakAt} willCallCallback=${!!onEndCallback}`);
       currentUtterRef.current = null;
       if (typeof window !== 'undefined') {
         (window as any).__daliaSpeechUtterance = null;
@@ -3244,6 +3263,8 @@ export function ClaimsAiWorkspace({
     };
 
     utter.onstart = () => {
+      started = true;
+      diagLog('utter.onstart', `afterMs=${Date.now() - speakAt}`);
       setVoiceDiagnostics((prev) => ({
         ...prev,
         speaking: true,
@@ -3252,12 +3273,14 @@ export function ClaimsAiWorkspace({
     };
 
     utter.onend = () => {
+      diagLog('utter.onend', `afterMs=${Date.now() - speakAt}`);
       finish();
     };
 
     utter.onerror = (ev) => {
       const errName = (ev && typeof ev === 'object' && 'error' in ev) ? String(ev.error) : '';
       console.warn('SpeechSynthesis error:', errName);
+      diagLog('utter.onerror', `error=${errName || 'unknown'} afterMs=${Date.now() - speakAt}`);
       if (errName === 'not-allowed') {
         setBanner('⚠️ הדפדפן דורש אישור הפעלת שמע. לחץ על כפתור הפעולה כדי להפעיל.');
       }
@@ -3266,8 +3289,15 @@ export function ClaimsAiWorkspace({
 
     try {
       window.speechSynthesis.speak(utter);
+      for (const ms of [300, 1000, 2500]) {
+        setTimeout(() => {
+          const s = window.speechSynthesis;
+          diagLog(`probe+${ms}ms`, `speaking=${s.speaking} pending=${s.pending} paused=${s.paused} onstartFired=${started} ended=${ended}`);
+        }, ms);
+      }
     } catch (err: any) {
       console.warn('SpeechSynthesis speak failed:', err);
+      diagLog('speak-threw', String(err?.message || err));
       finish();
     }
   }, [installedVoices, stopSpeaking]);
@@ -3284,6 +3314,16 @@ export function ClaimsAiWorkspace({
       setBanner('✅ בדיקת הקול הסתיימה. אם שמעת את דליה ברמקול, המערכת מוכנה!');
     });
   }, [speakAnswer]);
+
+  const handleCopyDiag = useCallback(async () => {
+    const r = await copyDiagReport();
+    if (r.ok) {
+      setBanner('📋 דוח האבחון הועתק. הדבק אותו בצ׳אט עם ג׳ימיני.');
+    } else {
+      setBanner('⚠️ ההעתקה האוטומטית נכשלה — העתק את הדוח מהחלון שנפתח.');
+      try { window.prompt('העתק את דוח האבחון:', r.text); } catch {}
+    }
+  }, []);
 
   const stopVoiceRecognition = useCallback(() => {
     if (voiceSilenceTimerRef.current) {
@@ -3325,6 +3365,9 @@ export function ClaimsAiWorkspace({
     rec.continuous = true;
     rec.interimResults = true;
 
+    diagLog('listen-start', `phase=${voicePhaseRef.current} synthSpeaking=${window.speechSynthesis?.speaking}`);
+    rec.onstart = () => diagLog('rec.onstart');
+    (rec as any).onaudiostart = () => diagLog('rec.onaudiostart');
     rec.onresult = (ev) => {
       if (!voiceModeActiveRef.current || (voicePhaseRef.current !== 'listening' && voicePhaseRef.current !== 'waiting_confirm') || voiceMutedRef.current) return;
       let sessionFinal = '';
@@ -3368,6 +3411,7 @@ export function ClaimsAiWorkspace({
     };
 
     rec.onerror = (ev) => {
+      diagLog('rec.onerror', String(ev.error));
       if (ev.error === 'not-allowed') {
         setVoiceModeActive(false);
         voiceModeActiveRef.current = false;
@@ -4257,6 +4301,7 @@ const toggleVoiceMute = useCallback(() => {
   }, [handleVoiceWorkflowInput]);
 
   const handleStartVoiceWorkflow = useCallback((wfType: DaliaWorkflowType) => {
+    diagLog('click-workflow', `type=${wfType} userActive=${(navigator as any).userActivation?.isActive}`);
     unlockAudioGesture();
     setShowWelcomeHub(false);
     setVoiceModeActive(true);
@@ -4894,6 +4939,15 @@ const toggleVoiceMute = useCallback(() => {
               >
                 🔊 בדיקת קול
               </button>
+              <button
+                type="button"
+                className="claims-ai-voice-bar-btn"
+                data-testid="claims-ai-voice-diag-copy-btn"
+                onClick={handleCopyDiag}
+                title="העתק דוח אבחון קולי טכני (ללא פרטי לקוחות)"
+              >
+                📋 דוח אבחון
+              </button>
 <button
                 type="button"
                 className={`claims-ai-voice-bar-btn mute${voiceMuted ? ' active' : ''}`}
@@ -5027,6 +5081,15 @@ const toggleVoiceMute = useCallback(() => {
                       title="בדיקת קול דליה ברמקול של המכשיר"
                     >
                       🔊 בדיקת קול
+                    </button>
+                    <button
+                      type="button"
+                      className="dalia-voice-test-btn"
+                      data-testid="dalia-diag-copy-btn"
+                      onClick={handleCopyDiag}
+                      title="העתק דוח אבחון קולי טכני (ללא פרטי לקוחות)"
+                    >
+                      📋 דוח אבחון
                     </button>
                   </div>
                   <h3 className="garage-welcome-title">שלום, במה תרצה לטפל היום?</h3>
