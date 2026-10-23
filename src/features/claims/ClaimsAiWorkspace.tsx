@@ -2709,6 +2709,13 @@ export function ClaimsAiWorkspace({
 
   const [installedVoices, setInstalledVoices] = useState<SpeechSynthesisVoice[]>([]);
   useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem('dalia_audio_preference');
+      }
+    } catch {}
+  }, []);
+  useEffect(() => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       const load = () => {
         try {
@@ -3165,126 +3172,6 @@ export function ClaimsAiWorkspace({
     }));
   }, []);
 
-  const playOnlineAudio = useCallback((cleanText: string, onEnd?: () => void, onError?: (err: any) => void) => {
-    // Privacy & PII Security Gate:
-    if (!isSafeSystemPromptForOnlineAudio(cleanText)) {
-      console.log('🔒 Online audio restricted by Privacy Guard (text contains user data or non-whitelisted prompt). Running native on-device TTS only.');
-      onEnd?.();
-      return;
-    }
-
-    try {
-      if (currentAudioRef.current) {
-        try {
-          currentAudioRef.current.pause();
-          currentAudioRef.current.currentTime = 0;
-        } catch {}
-        currentAudioRef.current = null;
-      }
-
-      const chunks = splitTextIntoChunks(cleanText, 150);
-      let currentChunkIndex = 0;
-
-      const playNextChunk = () => {
-        if (currentChunkIndex >= chunks.length) {
-          currentAudioRef.current = null;
-          if (typeof window !== 'undefined') {
-            (window as any).__daliaActiveAudio = null;
-          }
-          setSpeakingMsgId(null);
-          setAudioBlockedState({ blocked: false, promptText: '' });
-          setVoiceDiagnostics((prev) => ({
-            ...prev,
-            speaking: false,
-            lastStatus: 'השמעה הושלמה בהצלחה (שמע עברי ישיר)',
-          }));
-          onEnd?.();
-          return;
-        }
-
-        const chunk = chunks[currentChunkIndex];
-        currentChunkIndex += 1;
-
-        const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=iw&client=tw-ob`;
-        
-        // Use persistent DOM audio element if available for strict Mobile/Brave policy compliance
-        const audio = persistentAudioRef.current || new Audio();
-        audio.src = url;
-        currentAudioRef.current = audio;
-        if (typeof window !== 'undefined') {
-          (window as any).__daliaActiveAudio = audio;
-        }
-
-        setVoiceDiagnostics((prev) => ({
-          ...prev,
-          speaking: true,
-          lastEngine: 'online',
-          lastStatus: chunks.length > 1 ? `משמיע שמע עברי (חלק ${currentChunkIndex}/${chunks.length})...` : 'משמיע שמע עברי ישיר...',
-          lastError: null,
-        }));
-
-        audio.onended = () => {
-          playNextChunk();
-        };
-
-        audio.onerror = (ev) => {
-          console.warn('Online audio chunk error:', ev);
-          currentAudioRef.current = null;
-          if (typeof window !== 'undefined') {
-            (window as any).__daliaActiveAudio = null;
-          }
-          setSpeakingMsgId(null);
-          setVoiceDiagnostics((prev) => ({
-            ...prev,
-            speaking: false,
-            lastStatus: 'שגיאה בטעינת שמע מקוון',
-            lastError: 'נכשלה טעינת קובץ השמע מהשרת',
-          }));
-          onError?.(ev);
-          // Do NOT call onEnd on error to prevent unwanted premature mic activation!
-        };
-
-        const playPromise = audio.play();
-        if (playPromise) {
-          playPromise.catch((err) => {
-            console.warn('Audio play rejected (Autoplay policy / Brave Shield):', err);
-            currentAudioRef.current = null;
-            if (typeof window !== 'undefined') {
-              (window as any).__daliaActiveAudio = null;
-            }
-            setSpeakingMsgId(null);
-
-            // SAVE PENDING ACTION AND SHOW PROMINENT UNBLOCK BUTTON
-            // CRITICAL: NEVER call onEnd() when blocked! Keep current question and wait for user to click "🔊 הפעל קול".
-            pendingAudioActionRef.current = () => {
-              currentChunkIndex = 0;
-              playNextChunk();
-            };
-
-            setAudioBlockedState({
-              blocked: true,
-              promptText: cleanText,
-            });
-
-            setVoiceDiagnostics((prev) => ({
-              ...prev,
-              speaking: false,
-              lastStatus: 'הדפדפן דורש לחיצה להפעלת שמע',
-              lastError: 'דפדפן Brave חסם השמעה אוטומטית. לחץ על "🔊 הפעל קול" מטה.',
-            }));
-            setBanner(''); // Clear generic warning banner, the big unblock button takes over!
-            onError?.(err);
-          });
-        }
-      };
-
-      playNextChunk();
-    } catch (e: any) {
-      console.warn('playOnlineAudio exception:', e);
-      onError?.(e);
-    }
-  }, []);
-
   const speakAnswer = useCallback((msgId: string, rawText: string, onEndCallback?: () => void) => {
     stopSpeaking();
 
@@ -3296,136 +3183,97 @@ export function ClaimsAiWorkspace({
 
     setSpeakingMsgId(msgId);
 
-    const isMobile = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
-    const currentVoices = installedVoices.length > 0 ? installedVoices : (typeof window !== 'undefined' && window.speechSynthesis ? (window.speechSynthesis.getVoices?.() || []) : []);
-    const heVoice = findHebrewVoice(currentVoices);
-
-    // Decision: If user chose online audio, or if 'auto' on a device without native Hebrew voice -> use Online Audio directly!
-    const shouldUseOnline = audioPreference === 'online' || (audioPreference === 'auto' && !heVoice);
-
-    if (shouldUseOnline) {
-      playOnlineAudio(clean, onEndCallback, () => {
-        if (typeof window !== 'undefined' && window.speechSynthesis) {
-          tryNativeSpeak();
-        }
-      });
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      console.warn('SpeechSynthesis is not available in this browser.');
+      onEndCallback?.();
       return;
     }
 
-    tryNativeSpeak();
+    setVoiceDiagnostics((prev) => ({
+      ...prev,
+      speaking: true,
+      lastEngine: 'native',
+      lastStatus: 'מפעיל דיבור עברי (SpeechSynthesis)...',
+      lastError: null,
+    }));
 
-    function tryNativeSpeak() {
-      if (typeof window === 'undefined' || !window.speechSynthesis) {
-        playOnlineAudio(clean, onEndCallback);
-        return;
+    try {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
       }
+      window.speechSynthesis.cancel();
+    } catch {}
 
+    const utter = new SpeechSynthesisUtterance(clean);
+    if (typeof window !== 'undefined') {
+      (window as any).__daliaSpeechUtterance = utter;
+    }
+    currentUtterRef.current = utter;
+
+    const currentVoices = installedVoices.length > 0
+      ? installedVoices
+      : (window.speechSynthesis.getVoices?.() || []);
+    const heVoice = findHebrewVoice(currentVoices);
+
+    if (heVoice) {
+      try {
+        utter.voice = heVoice;
+      } catch {}
+      utter.lang = heVoice.lang || 'he-IL';
+    } else {
+      utter.lang = 'he-IL';
+    }
+    utter.rate = 1.0;
+    utter.pitch = 1.0;
+
+    let ended = false;
+    const finish = () => {
+      if (ended) return;
+      ended = true;
+      currentUtterRef.current = null;
+      if (typeof window !== 'undefined') {
+        (window as any).__daliaSpeechUtterance = null;
+      }
+      setSpeakingMsgId(null);
+      setVoiceDiagnostics((prev) => ({
+        ...prev,
+        speaking: false,
+        lastStatus: 'השמעה הושלמה בהצלחה',
+      }));
+      onEndCallback?.();
+    };
+
+    utter.onstart = () => {
       setVoiceDiagnostics((prev) => ({
         ...prev,
         speaking: true,
-        lastEngine: 'native',
-        lastStatus: 'מפעיל דיבור מובנה (TTS)...',
-        lastError: null,
+        lastStatus: `דליה מדברת (${heVoice?.name || 'עברית'})...`,
       }));
+    };
 
-      const utter = new SpeechSynthesisUtterance(clean);
-      if (typeof window !== 'undefined') {
-        (window as any).__daliaSpeechUtterance = utter;
+    utter.onend = () => {
+      finish();
+    };
+
+    utter.onerror = (ev) => {
+      const errName = (ev && typeof ev === 'object' && 'error' in ev) ? String(ev.error) : '';
+      console.warn('SpeechSynthesis error:', errName);
+      if (errName === 'not-allowed') {
+        setBanner('⚠️ הדפדפן דורש אישור הפעלת שמע. לחץ על כפתור הפעולה כדי להפעיל.');
       }
-      currentUtterRef.current = utter;
+      finish();
+    };
 
-      if (heVoice) {
-        try {
-          utter.voice = heVoice;
-        } catch {}
-        utter.lang = heVoice.lang || 'he-IL';
-      } else {
-        utter.lang = 'he-IL';
-      }
-      utter.rate = 1.0;
-
-      let ended = false;
-      let hasStarted = false;
-      const startTime = Date.now();
-
-      const finish = () => {
-        if (ended) return;
-        ended = true;
-        currentUtterRef.current = null;
-        if (typeof window !== 'undefined') {
-          (window as any).__daliaSpeechUtterance = null;
-        }
-        setSpeakingMsgId(null);
-        setVoiceDiagnostics((prev) => ({
-          ...prev,
-          speaking: false,
-          lastStatus: 'השמעה הושלמה (דיבור מקומי)',
-        }));
-        onEndCallback?.();
-      };
-
-      utter.onstart = () => {
-        hasStarted = true;
-        setVoiceDiagnostics((prev) => ({
-          ...prev,
-          speaking: true,
-          lastStatus: `דליה מדברת (${heVoice?.name || 'עברית ברירת מחדל'})...`,
-        }));
-      };
-
-      utter.onend = () => {
-        const duration = Date.now() - startTime;
-        if (clean.length > 5 && duration < 150 && !hasStarted) {
-          console.warn('Native TTS finished suspiciously fast (silent skip). Falling back to online audio!');
-          playOnlineAudio(clean, onEndCallback);
-          return;
-        }
-        finish();
-      };
-
-      utter.onerror = (ev) => {
-        const errName = (ev && typeof ev === 'object' && 'error' in ev) ? String(ev.error) : '';
-        console.warn('SpeechSynthesis error:', errName, '-> Falling back to online audio');
-        setVoiceDiagnostics((prev) => ({
-          ...prev,
-          lastError: `שגיאת דיבור מקומי: ${errName || 'לא ידוע'} (עבר לשמע מקוון)`,
-        }));
-        playOnlineAudio(clean, onEndCallback);
-      };
-
-      setTimeout(() => {
-        if (!hasStarted && !ended && currentUtterRef.current === utter) {
-          console.warn('Native TTS did not start in 700ms -> Falling back to online audio');
-          try {
-            window.speechSynthesis.cancel();
-          } catch {}
-          currentUtterRef.current = null;
-          if (typeof window !== 'undefined') {
-            (window as any).__daliaSpeechUtterance = null;
-          }
-          playOnlineAudio(clean, onEndCallback);
-        }
-      }, 700);
-
-      try {
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-        }
-        window.speechSynthesis.speak(utter);
-      } catch (err: any) {
-        console.warn('SpeechSynthesis speak failed:', err, '-> Falling back to online audio');
-        playOnlineAudio(clean, onEndCallback);
-      }
+    try {
+      window.speechSynthesis.speak(utter);
+    } catch (err: any) {
+      console.warn('SpeechSynthesis speak failed:', err);
+      finish();
     }
-  }, [audioPreference, installedVoices, playOnlineAudio, stopSpeaking]);
+  }, [installedVoices, stopSpeaking]);
 
   const handleDirectUnblockPlay = useCallback(() => {
-    setAudioBlockedState({ blocked: false, promptText: '' });
-    if (pendingAudioActionRef.current) {
-      const action = pendingAudioActionRef.current;
-      pendingAudioActionRef.current = null;
-      action();
-    }
+    // Kept for backward compatibility
   }, []);
 
   const handleTestVoice = useCallback(() => {
@@ -4391,15 +4239,17 @@ const toggleVoiceMute = useCallback(() => {
     setVoicePhase('speaking');
 
     stopVoiceRecognition();
-    speakAnswer(`wf-step-${res.nextState.stepIndex}`, res.promptToSpeak, () => {
-      if (voiceModeActiveRef.current && !voiceMutedRef.current) {
-        setTimeout(() => {
-          if (voiceModeActiveRef.current && !voiceMutedRef.current) {
-            startVoiceListening();
-          }
-        }, 350);
-      }
-    });
+    setTimeout(() => {
+      speakAnswer(`wf-step-${res.nextState.stepIndex}`, res.promptToSpeak, () => {
+        if (voiceModeActiveRef.current && !voiceMutedRef.current) {
+          setTimeout(() => {
+            if (voiceModeActiveRef.current && !voiceMutedRef.current) {
+              startVoiceListening();
+            }
+          }, 350);
+        }
+      });
+    }, 250);
   }, [activeId, companyName, onOpenGarageCase, speakAnswer, startVoiceListening, stopSpeaking, stopVoiceRecognition, userId]);
 
   useEffect(() => {
@@ -5178,55 +5028,6 @@ const toggleVoiceMute = useCallback(() => {
                     >
                       🔊 בדיקת קול
                     </button>
-                    <div className="dalia-audio-mode-selector">
-                      <span className="dalia-audio-mode-label">מקור שמע:</span>
-                      <select
-                        value={audioPreference}
-                        onChange={(e) => changeAudioPreference(e.target.value as any)}
-                        className="dalia-audio-select"
-                        data-testid="dalia-audio-preference-select"
-                      >
-                        <option value="auto">⚡ אוטומטי (מומלץ למובייל)</option>
-                        <option value="online">🌐 שמע מקוון ישיר (עברית נקייה)</option>
-                        <option value="native">📱 מנוע דיבור מקומי (SpeechSynthesis)</option>
-                      </select>
-                    </div>
-                    <button
-                      type="button"
-                      className="dalia-voice-diag-toggle-btn"
-                      onClick={() => setShowVoiceDiag((prev) => !prev)}
-                      title="הצג/הסתר פרטי אבחון קולי"
-                    >
-                      ℹ️ {showVoiceDiag ? 'הסתר אבחון' : 'פרטי אבחון'}
-                    </button>
-                    {showVoiceDiag && (
-                      <div className="dalia-voice-diag-panel" data-testid="dalia-voice-diag-panel">
-                        <div className="dalia-diag-row">
-                          <span className="dalia-diag-label">דפדפן SpeechSynthesis:</span>
-                          <span className={`dalia-diag-val ${voiceDiagnostics.supported ? '' : 'warn'}`}>
-                            {voiceDiagnostics.supported ? 'נתמך' : 'לא נתמך (יופעל שמע מקוון)'}
-                          </span>
-                        </div>
-                        <div className="dalia-diag-row">
-                          <span className="dalia-diag-label">קול עברי במכשיר:</span>
-                          <span className={`dalia-diag-val ${voiceDiagnostics.hebrewVoice ? '' : 'warn'}`}>
-                            {voiceDiagnostics.hebrewVoice || 'לא מותקן (שמע מקוון יופעל אוטומטית)'}
-                          </span>
-                        </div>
-                        <div className="dalia-diag-row">
-                          <span className="dalia-diag-label">מנוע שמע אחרון:</span>
-                          <span className="dalia-diag-val">
-                            {voiceDiagnostics.lastEngine === 'online' ? '🌐 שמע מקוון ישיר' : voiceDiagnostics.lastEngine === 'native' ? '📱 מנוע דיבור מקומי' : 'טרם הופעל'}
-                          </span>
-                        </div>
-                        <div className="dalia-diag-row">
-                          <span className="dalia-diag-label">סטטוס שמע:</span>
-                          <span className={`dalia-diag-val ${voiceDiagnostics.lastError ? 'err' : ''}`}>
-                            {voiceDiagnostics.lastError || voiceDiagnostics.lastStatus}
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </div>
                   <h3 className="garage-welcome-title">שלום, במה תרצה לטפל היום?</h3>
                   <p className="garage-welcome-subtitle">

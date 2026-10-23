@@ -206,12 +206,21 @@ export type GlobalVoiceCommand =
 
 export function detectGlobalVoiceCommand(text: string): GlobalVoiceCommand {
   const t = text.trim().toLowerCase();
-  if (t === 'עצירה' || t === 'תעצרי' || t === 'תעצרי רגע' || t === 'עצור' || t === 'להמתין' || t === 'המתן') return 'stop';
-  if (t === 'המשך' || t === 'תמשיכי' || t === 'דליה תמשיכי' || t === 'להמשיך') return 'resume';
-  if (t === 'חזרה' || t === 'תחזרי' || t === 'שאלה קודמת' || t === 'תחזרי לשאלה הקודמת') return 'back';
-  if (t === 'בטל' || t === 'בטל פעולה' || t === 'לבטל' || t === 'ביטול') return 'cancel';
-  if (t === 'סיכום' || t === 'מה רשמת' || t === 'מה כבר רשמת' || t === 'תסכמי' || t === 'סכמי') return 'summary';
-  if (t === 'שמור' || t === 'תשמרי' || t === 'כן תשמרי' || t === 'אשר' || t === 'תאשרי' || t === 'אישור' || t === 'כן') return 'save';
+  if (t.includes('תעצרי') || t.includes('עצירה') || t.includes('עצור') || t.includes('להמתין') || t.includes('המתן')) return 'stop';
+  if (t.includes('תמשיכי') || t.includes('להמשיך') || t.includes('המשך')) return 'resume';
+  if (
+    t.includes('חזרה') ||
+    t.includes('תחזרי') ||
+    t.includes('שאלה קודמת') ||
+    t.includes('טעיתי') ||
+    t.includes('תיקון') ||
+    t.includes('רגע לא') ||
+    t.includes('רגע שגיתי') ||
+    t.includes('לתקן')
+  ) return 'back';
+  if (t.includes('בטל') || t.includes('ביטול') || t.includes('לבטל')) return 'cancel';
+  if (t.includes('סיכום') || t.includes('תסכמי') || t.includes('סכמי') || t.includes('מה רשמת') || t.includes('מה כבר רשמת')) return 'summary';
+  if (t === 'שמור' || t === 'תשמרי' || t === 'כן תשמרי' || t === 'אשר' || t === 'תאשרי' || t === 'אישור' || t === 'כן' || t.includes('תשמרי את') || t.includes('לאשר')) return 'save';
   return 'none';
 }
 
@@ -230,7 +239,7 @@ export function getWorkflowStep(state: DaliaWorkflowState): WorkflowStepSpec {
     case 'new_customer': {
       switch (state.stepIndex) {
         case 0:
-          return { promptText: 'שלום, בוא נפתח לקוח חדש. מה שם הלקוח?', field: 'customerName' };
+          return { promptText: 'שלום, בוא נפתח לקוח חדש במערכת המוסך. מה שם הלקוח?', field: 'customerName' };
         case 1:
           return { promptText: 'מה מספר הטלפון שלו?', field: 'customerPhone' };
         case 2:
@@ -256,7 +265,7 @@ export function getWorkflowStep(state: DaliaWorkflowState): WorkflowStepSpec {
     case 'existing_customer': {
       switch (state.stepIndex) {
         case 0:
-          return { promptText: 'מי הלקוח שאתה מחפש? אפשר להגיד שם, מספר טלפון או מספר רכב.', field: 'searchQuery' };
+          return { promptText: 'שלום, בוא נאתר לקוח קיים. מה שם הלקוח, מספר הטלפון או מספר הרכב?', field: 'searchQuery' };
         case 1:
           return {
             promptText: state.customerName
@@ -277,7 +286,7 @@ export function getWorkflowStep(state: DaliaWorkflowState): WorkflowStepSpec {
     case 'intake': {
       switch (state.stepIndex) {
         case 0:
-          return { promptText: 'איזה רכב נכנס למוסך? מה מספר הרישוי?', field: 'vehiclePlate' };
+          return { promptText: 'שלום, בוא נקלוט רכב לעבודה ונפתח תיק חדש. מה מספר הרכב?', field: 'vehiclePlate' };
         case 1:
           return { promptText: 'מה תלונת הלקוח או סיבת הכניסה?', field: 'complaint' };
         case 2:
@@ -324,7 +333,7 @@ export function getWorkflowStep(state: DaliaWorkflowState): WorkflowStepSpec {
       // New Quote
       switch (state.stepIndex) {
         case 0:
-          return { promptText: 'לאיזה רכב מכינים הצעת מחיר? הצעה חדשה או תוספת להצעה קיימת?', field: 'quoteScope' };
+          return { promptText: 'שלום, בוא נכין הצעת מחיר. לאיזה רכב מכינים הצעה, והאם זו הצעה חדשה או תוספת להצעה קיימת?', field: 'quoteScope' };
         case 1:
           return { promptText: 'אילו עבודות נדרשות לביצוע?', field: 'works' };
         case 2:
@@ -344,7 +353,7 @@ export function getWorkflowStep(state: DaliaWorkflowState): WorkflowStepSpec {
     case 'invoices_credits': {
       switch (state.stepIndex) {
         case 0:
-          return { promptText: 'מה תרצה לעשות — לבדוק חשבונית, להכין נתונים לחשבונית, או לטפל בזיכוי?', field: 'subType' };
+          return { promptText: 'שלום, מה תרצה לעשות בחשבוניות וזיכויים — לבדוק חשבונית, להכין נתוני חשבונית, או לטפל בזיכוי?', field: 'subType' };
         case 1:
           return { promptText: 'מה מספר הרכב או מספר החשבונית?', field: 'invoiceNumber' };
         case 2:
@@ -360,7 +369,7 @@ export function getWorkflowStep(state: DaliaWorkflowState): WorkflowStepSpec {
     case 'general_expenses': {
       switch (state.stepIndex) {
         case 0:
-          return { promptText: 'מה תרצה לעשות — לחפש ספק, לרשום רכישת חלק, לבדוק חשבונית ספק או לבדוק חוב לספק?', field: 'subType' };
+          return { promptText: 'שלום, בספקים והוצאות כלליות — מה תרצה לעשות: לחפש ספק, לרשום רכישת חלק, או לבדוק חוב לספק?', field: 'subType' };
         case 1:
           return { promptText: 'מה שם הספק?', field: 'supplierName' };
         case 2:
@@ -376,7 +385,7 @@ export function getWorkflowStep(state: DaliaWorkflowState): WorkflowStepSpec {
     case 'find_case': {
       switch (state.stepIndex) {
         case 0:
-          return { promptText: 'איזה תיק אתה מחפש? אפשר לומר מספר רכב, שם לקוח או מספר תיק.', field: 'searchQuery' };
+          return { promptText: 'שלום, איזה תיק עבודה אתה מחפש? אפשר לומר מספר רכב, שם לקוח או מספר תיק.', field: 'searchQuery' };
         case 1:
         default:
           return {
@@ -389,7 +398,7 @@ export function getWorkflowStep(state: DaliaWorkflowState): WorkflowStepSpec {
     case 'close_case': {
       switch (state.stepIndex) {
         case 0:
-          return { promptText: 'איזה תיק תרצה לסגור? אמור מספר רכב או מספר תיק.', field: 'caseRef' };
+          return { promptText: 'שלום, איזה תיק עבודה תרצה לסגור? אמור מספר רכב או מספר תיק.', field: 'caseRef' };
         case 1:
         default:
           return {
@@ -534,7 +543,7 @@ export function processVoiceAnswer(
   if (cmd === 'back') {
     if (next.stepIndex > 0) next.stepIndex -= 1;
     const spec = getWorkflowStep(next);
-    next.lastPromptSpoken = `חזרנו שלב אחד אחורה. ${spec.promptText}`;
+    next.lastPromptSpoken = `הבנתי, בוא נתקן את התשובה. ${spec.promptText}`;
     saveVoiceWorkflowState(next);
     return { nextState: next, promptToSpeak: next.lastPromptSpoken };
   }
