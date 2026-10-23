@@ -1821,7 +1821,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
   <div class="field"><label>מחיר נוסף (₪)</label><input id="extra-price" type="number" placeholder="0"></div>
   <div class="field"><label>הערה</label><textarea id="extra-note" placeholder="הערה לתוספת"></textarea></div>
   <button class="btn btn-ghost" style="margin-bottom:10px;" onclick="pickMedia('during_work','תוספת עבודה',true)">📷 צרף תמונה</button>
-  <button type="button" class="btn btn-white" style="margin-bottom:8px; width:100%; font-weight:700;" onclick="saveDirectExtraApproval()">✅ אשר ושמור תוספת להצעת המחיר</button>
+  <button type="button" class="btn btn-ghost" style="margin-bottom:8px; width:100%; font-weight:600;" onclick="saveInternalExtraNotation()">📝 שמור כרישום פנימי (ממתין לאישור לקוח)</button>
+  <button type="button" class="btn btn-white" style="margin-bottom:8px; width:100%; font-weight:700;" onclick="saveDirectExtraApproval()">✅ אושר ע״י הלקוח — הוסף להצעת המחיר</button>
   <div class="btn-row">
     <button class="btn btn-white" onclick="sendExtraApproval('email')">שלח במייל</button>
     <button class="btn btn-ghost" onclick="sendExtraApproval('whatsapp')">WhatsApp</button>
@@ -1988,6 +1989,7 @@ function money(n){
 }
 function quoteWorksTotal(){
   return (state.quoteWorks || []).reduce(function(sum, item){
+    if(item.id && String(item.id).indexOf('w_extra_') === 0) return sum;
     if(item.price === null || item.price === undefined || item.price === '') return sum;
     return sum + (Number(item.price) || 0) * (Number(item.qty) || 1);
   }, 0);
@@ -5546,18 +5548,78 @@ function sendExtraApproval(channel){
     addTimelineEvent('נשלח מייל מתוך התוכנה לתוספת עבודה · לא סומן כאישור');
   });
 }
-function markExtraApproved(id){
-  (state.extraApprovals || []).forEach(function(item){
-    if(item.id === id){
-      item.status = 'approved';
-      item.approvedAt = new Date().toISOString();
-      item.approvedBy = workerName || '';
-    }
-  });
-  addTimelineEvent('תוספת עבודה סומנה כמאושרת על ידי העובד');
+function saveInternalExtraNotation(){
+  var text = (document.getElementById('extra-text').value || '').trim();
+  var price = parseFloat(document.getElementById('extra-price').value) || 0;
+  var works = (document.getElementById('extra-works') && document.getElementById('extra-works').value || '').trim();
+  var note = (document.getElementById('extra-note') && document.getElementById('extra-note').value || '').trim();
+  if(!text){ alert('יש לתאר את מה שהתגלה בבדיקה / פירוק'); return; }
+  state.extraApprovals = state.extraApprovals || [];
+  var item = {
+    id: 'x' + Date.now(),
+    text: text,
+    works: works,
+    note: note,
+    price: price,
+    at: new Date().toISOString(),
+    sent: false,
+    status: 'pending_customer',
+    channel: 'internal_discovery',
+    sentAt: new Date().toISOString(),
+    sentTo: 'רישום פנימי של המוסך — טרם נמסר/אושר ע״י הלקוח',
+    approvedAt: null,
+    approvedBy: null
+  };
+  state.extraApprovals.push(item);
+  addTimelineEvent('נרשם גילוי פנימי של תוספת עבודה: ' + text + (price > 0 ? (' בסך ₪' + price.toLocaleString()) : '') + ' — ממתין לאישור לקוח (אינו נכלל בחשבון)');
+  closeExtraApproval();
   renderExtraApprovals();
   renderQuote();
+  refreshCaseHub();
   schedulePersist();
+  alert('תוספת העבודה נרשמה כהערה פנימית בלבד. היא לא תתווסף לחשבון או להזמנת העבודה עד לקבלת אישור מפורש מהלקוח.');
+}
+function markExtraApproved(id){
+  var found = null;
+  (state.extraApprovals || []).forEach(function(item){
+    if(item.id === id){
+      found = item;
+      item.status = 'approved';
+      item.approvedAt = new Date().toISOString();
+      item.approvedBy = workerName || 'עובד מוסך';
+      item.channel = item.channel || 'direct_verbal';
+      item.sentTo = 'אושר ע״י הלקוח';
+    }
+  });
+  if(found){
+    var prevVer = Number(state.quoteVersion) || 1;
+    state.quoteVersion = prevVer + 1;
+    addTimelineEvent('תוספת עבודה סומנה כמאושרת ע״י הלקוח: ' + found.text + ' בסך ₪' + Number(found.price || 0).toLocaleString() + ' (גרסה ' + state.quoteVersion + ')');
+    renderExtraApprovals();
+    renderQuote();
+    refreshCaseHub();
+    schedulePersist();
+  }
+}
+function markExtraRejected(id){
+  var found = null;
+  (state.extraApprovals || []).forEach(function(item){
+    if(item.id === id){
+      found = item;
+      item.status = 'rejected';
+      item.rejectedAt = new Date().toISOString();
+      item.rejectedBy = workerName || 'עובד מוסך';
+      item.rejectionReason = 'הלקוח סירב לתוספת זו';
+    }
+  });
+  if(found){
+    addTimelineEvent('הלקוח סירב לתוספת העבודה: ' + found.text + ' — נדחה ולא ייכלל בהזמנת העבודה או בחשבון');
+    renderExtraApprovals();
+    renderQuote();
+    refreshCaseHub();
+    schedulePersist();
+    alert('התוספת סומנה כנדחית ע״י הלקוח. הסכום הוסר ולא ייגבה.');
+  }
 }
 function saveDirectExtraApproval(){
   var text = (document.getElementById('extra-text').value || '').trim();
@@ -5577,9 +5639,9 @@ function saveDirectExtraApproval(){
     at: new Date().toISOString(),
     sent: false,
     status: 'approved',
-    channel: 'direct',
+    channel: 'direct_verbal',
     sentAt: new Date().toISOString(),
-    sentTo: 'אושר במקום ע״י המוסך והלקוח',
+    sentTo: 'אושר במקום ע״י הלקוח',
     approvedAt: new Date().toISOString(),
     approvedBy: workerName || 'מנהל מוסך'
   };
@@ -5594,7 +5656,7 @@ function saveDirectExtraApproval(){
     desc: (works ? (works + ' · ') : '') + (note || 'תוספת עבודה שנתגלתה בטיפול')
   });
   state.quoteCreated = true;
-  addTimelineEvent('אושרה תוספת עבודה חדשה: ' + text + ' בסך ₪' + price.toLocaleString() + ' (גרסת הצעה מס׳ ' + state.quoteVersion + ')');
+  addTimelineEvent('אושרה תוספת עבודה חדשה ע״י הלקוח: ' + text + ' בסך ₪' + price.toLocaleString() + ' (גרסת הצעה מס׳ ' + state.quoteVersion + '). ההצעה המקורית נשמרה.');
   closeExtraApproval();
   renderExtraApprovals();
   renderQuote();
@@ -5614,20 +5676,42 @@ function renderExtraApprovals(){
     var pending = extraApprovalIsPending(item);
     var sentWhen = item.sentAt ? new Date(item.sentAt).toLocaleString('he-IL') : '';
     var approvedWhen = item.approvedAt ? new Date(item.approvedAt).toLocaleString('he-IL') : '';
-    var st = item.approvedAt
-      ? ('אושר' + (item.approvedBy ? (' · '+item.approvedBy) : '') + (approvedWhen ? (' · '+approvedWhen) : ''))
-      : (item.status === 'sent_whatsapp' ? 'נשלח WhatsApp — ממתין לאישור עובד' : (item.status === 'sent' || item.status === 'sent_email' ? 'נשלח מהתוכנה — ממתין לאישור עובד' : 'ממתין'));
-    return '<div class="card">'
-      + '<div class="doc-row"><span>מה נוסף</span><span>'+esc(item.text || '—')+'</span></div>'
+    var rejectedWhen = item.rejectedAt ? new Date(item.rejectedAt).toLocaleString('he-IL') : '';
+    
+    var statusBadge = '';
+    if(item.status === 'rejected'){
+      statusBadge = '<span class="badge" style="background:#fee2e2; color:#b91c1c; font-weight:700;">🔴 נדחה ע״י הלקוח (לא ייגבה)</span>';
+    } else if(item.status === 'approved' || item.approvedAt){
+      statusBadge = '<span class="badge" style="background:#dcfce7; color:#15803d; font-weight:700;">✅ אושר ע״י הלקוח</span>';
+    } else if(item.status === 'pending_customer'){
+      statusBadge = '<span class="badge" style="background:#fef3c7; color:#b45309; font-weight:600;">📝 רישום פנימי (ממתין לאישור לקוח)</span>';
+    } else {
+      statusBadge = '<span class="badge" style="background:#f3f4f6; color:#4b5563;">ממתין לאישור</span>';
+    }
+
+    var channelLabel = item.channel === 'direct_verbal' ? 'בע״פ במקום' : (item.channel === 'direct_phone' ? 'טלפונית' : (item.channel === 'whatsapp' ? 'WhatsApp' : (item.channel === 'internal_discovery' ? 'רישום פנימי' : (item.channel || 'ישיר'))));
+
+    var actionButtons = '';
+    if(pending){
+      actionButtons = '<div style="margin-top:10px; display:flex; gap:8px;">'
+        + '<button class="btn btn-white btn-sm" onclick="markExtraApproved(\''+esc(item.id)+'\')">✅ סמן שאושר ע״י הלקוח</button>'
+        + '<button class="btn btn-ghost btn-sm" style="color:var(--danger, #ef4444);" onclick="markExtraRejected(\''+esc(item.id)+'\')">❌ לקוח מסרב לתוספת</button>'
+        + '</div>';
+    }
+
+    return '<div class="card" style="margin-bottom:12px; border-right:4px solid ' + (item.status === 'approved' ? '#10b981' : (item.status === 'rejected' ? '#ef4444' : '#f59e0b')) + ';">'
+      + '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">'
+      + '<strong style="font-size:15px;">' + esc(item.text || '—') + '</strong>'
+      + statusBadge
+      + '</div>'
       + (item.works ? '<div class="doc-row"><span>עבודות / חלקים</span><span>'+esc(item.works)+'</span></div>' : '')
-      + '<div class="doc-row"><span>מחיר</span><span>'+money(item.price)+'</span></div>'
-      + '<div class="doc-row"><span>נשלח אל</span><span>'+esc(item.sentTo || '—')+'</span></div>'
-      + '<div class="doc-row"><span>מתי נשלח</span><span>'+esc(sentWhen || '—')+'</span></div>'
-      + '<div class="doc-row"><span>מי אישר</span><span>'+esc(item.approvedBy || (pending ? 'טרם' : '—'))+'</span></div>'
-      + '<div class="doc-row"><span>מתי אושר</span><span>'+esc(approvedWhen || 'טרם')+'</span></div>'
+      + '<div class="doc-row"><span>מחיר</span><span style="font-weight:700;">'+money(item.price)+'</span></div>'
+      + '<div class="doc-row"><span>אופן / ערוץ אישור</span><span>'+esc(channelLabel)+'</span></div>'
+      + '<div class="doc-row"><span>סטטוס פנימי</span><span>'+esc(item.sentTo || '—')+'</span></div>'
+      + (item.approvedAt ? ('<div class="doc-row"><span>אושר ע״י</span><span>'+esc(item.approvedBy || 'עובד מוסך')+'</span></div>' + '<div class="doc-row"><span>זמן אישור</span><span>'+esc(approvedWhen)+'</span></div>') : '')
+      + (item.rejectedAt ? ('<div class="doc-row"><span>תועד סירוב ע״י</span><span>'+esc(item.rejectedBy || 'עובד מוסך')+'</span></div>' + '<div class="doc-row"><span>זמן סירוב</span><span>'+esc(rejectedWhen)+'</span></div>' + '<div class="hint" style="color:#b91c1c;">הערת סירוב: '+esc(item.rejectionReason || 'לקוח סירב לתוספת')+'</div>') : '')
       + (item.note ? '<div class="hint" style="margin:6px 0;">הערה: '+esc(item.note)+'</div>' : '')
-      + '<div class="hint" style="margin:6px 0;">'+esc(st)+'</div>'
-      + (pending ? '<button class="btn btn-ghost btn-sm" onclick="markExtraApproved(\''+esc(item.id)+'\')">סמן שאושר על ידי הלקוח</button>' : '')
+      + actionButtons
       + '</div>';
   }).join('');
 }

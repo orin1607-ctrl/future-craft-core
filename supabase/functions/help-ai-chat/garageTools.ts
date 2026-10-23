@@ -1255,6 +1255,8 @@ export async function buildGarageQuoteCardFromCase(
 export function resolveCaseTotalPayable(cd: any): number {
   if (!cd) return 0;
   if (cd.finishAmount && Number(cd.finishAmount) > 0) return Number(cd.finishAmount);
+  if (cd.finalApprovedAmount && Number(cd.finalApprovedAmount) > 0) return Number(cd.finalApprovedAmount);
+  if (cd.workOrderAmount && Number(cd.workOrderAmount) > 0) return Number(cd.workOrderAmount);
   if (cd.quoteGrandTotal && Number(cd.quoteGrandTotal) > 0) return Number(cd.quoteGrandTotal);
   if (cd.totalAmount && Number(cd.totalAmount) > 0) return Number(cd.totalAmount);
   const works = Array.isArray(cd.quoteWorks) ? cd.quoteWorks : [];
@@ -1539,14 +1541,14 @@ export async function executeGarageTool(
             work_type: cd.workType || "",
             notes: cd.quoteNotes || "",
             validity: cd.quoteValidity || "14 יום",
-            approved: !!cd.quoteApproved,
-            signed: !!cd.quoteSigned,
-            signed_at: cd.quoteSignedAt || null,
-            signer_name: cd.quoteSignerName || null,
+            approved: !!(cd.quoteApproved || cd.quoteSigned || cd.digitalSignatureStatus === "signed" || cd.workOrderNumber),
+            signed: !!(cd.quoteSigned || cd.digitalSignatureStatus === "signed" || cd.quoteSignedAt),
+            signed_at: cd.quoteSignedAt || cd.digitalSignatureSignedAt || null,
+            signer_name: cd.quoteSignerName || cd.digitalSignatureSignerName || null,
             version: cd.quoteVersion || 1,
             token: cd.quoteToken || null,
             quote_url: cd.quoteToken ? `/garage-quote?t=${cd.quoteToken}` : null,
-            status: cd.quoteStatus || "draft",
+            status: (cd.quoteApproved || cd.quoteSigned || cd.workOrderNumber) ? "approved" : (cd.quoteStatus || "draft"),
             priced_subtotal: cd.quotePricedSubtotal ?? null,
             priced_lines_count: cd.quotePricedLinesCount ?? null,
             unpriced_lines_count: cd.quoteUnpricedLinesCount ?? null,
@@ -1554,12 +1556,36 @@ export async function executeGarageTool(
             vat_mode: cd.vatMode || "unspecified",
             damage_photos_attached: !!cd.damagePhotosAttached,
             damage_photos_count: cd.damagePhotosCount || 0,
+            amount: cd.workOrderAmount || resolveCaseTotalPayable(cd) || null,
+          },
+          work_order: {
+            has_order: !!(cd.workOrderNumber || cd.workOrderSaved),
+            order_number: cd.workOrderNumber || null,
             amount: cd.workOrderAmount || null,
+            items_count: Array.isArray(cd.workOrderItems) ? cd.workOrderItems.length : 0,
+            items: cd.workOrderItems || [],
+            status: cd.workOrderStatus || (cd.workOrderNumber ? "received" : "none"),
+          },
+          payments: {
+            payments_list: Array.isArray(cd.payments) ? cd.payments : [],
+            count: Array.isArray(cd.payments) ? cd.payments.length : 0,
+            total_paid: Number(cd.totalPaid || (Array.isArray(cd.payments) ? cd.payments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0) : 0)),
+            case_total_payable: resolveCaseTotalPayable(cd),
+            balance_remaining: cd.balanceRemaining !== undefined ? Number(cd.balanceRemaining) : Math.max(0, resolveCaseTotalPayable(cd) - Number(cd.totalPaid || 0)),
+            payment_status: (cd.balanceRemaining !== undefined ? Number(cd.balanceRemaining) <= 0 : Math.max(0, resolveCaseTotalPayable(cd) - Number(cd.totalPaid || 0)) <= 0) && Number(cd.totalPaid || 0) > 0 ? "paid" : (Number(cd.totalPaid || 0) > 0 ? "partial" : "unpaid"),
+          },
+          case_closed: !!(cd.caseClosed || gCase.status === "סגור" || gCase.status === "תיק סגור"),
+          delivery: {
+            done: !!cd.deliveryDone,
+            delivery_at: cd.deliveryAt || null,
+            recipient: cd.deliveryRecipient || null,
+            note: cd.deliveryNote || null,
           },
           damage_items: cd.damageItems || [],
           quote_works: cd.quoteWorks || [],
           quote_parts: cd.quoteParts || [],
           extra_approvals: cd.extraApprovals || [],
+          quote_supplements: cd.quoteSupplements || cd.extraApprovals || [],
           tasks: cd.tasks || [],
           reminders: cd.reminders || [],
           timeline: (cd.timeline || []).slice(-10),
@@ -3575,6 +3601,21 @@ export async function executeGaragePendingAction(
 
         const cd = cData.case_data || {};
         const payments = Array.isArray(cd.payments) ? [...cd.payments] : [];
+
+        // Duplicate payment prevention
+        if (ref && payments.some((p: any) => p.reference && String(p.reference).trim() === ref.trim())) {
+          throw new Error(`תשלום כפול נחסם: אסמכתא "${ref}" כבר נרשמה בתיק זה.`);
+        }
+        const recentDuplicate = payments.find((p: any) => {
+          if (Number(p.amount) === amount && p.payment_method === method) {
+            const ageMs = Date.now() - new Date(p.created_at || 0).getTime();
+            return ageMs < 10 * 60 * 1000;
+          }
+          return false;
+        });
+        if (recentDuplicate && !parameters.allow_duplicate) {
+          throw new Error(`אזהרת כפילות תשלום: תשלום זהה בסך ₪${amount.toLocaleString()} ב${methodLabel} כבר נרשם לפני פחות מ-10 דקות (אסמכתא: ${recentDuplicate.reference || 'ללא'}).`);
+        }
 
         const paymentEntry = {
           id: `pay_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
