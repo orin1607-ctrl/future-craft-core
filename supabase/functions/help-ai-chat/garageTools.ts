@@ -1252,6 +1252,23 @@ export async function buildGarageQuoteCardFromCase(
   };
 }
 
+export function resolveCaseTotalPayable(cd: any): number {
+  if (!cd) return 0;
+  if (cd.finishAmount && Number(cd.finishAmount) > 0) return Number(cd.finishAmount);
+  if (cd.quoteGrandTotal && Number(cd.quoteGrandTotal) > 0) return Number(cd.quoteGrandTotal);
+  if (cd.totalAmount && Number(cd.totalAmount) > 0) return Number(cd.totalAmount);
+  const works = Array.isArray(cd.quoteWorks) ? cd.quoteWorks : [];
+  const parts = Array.isArray(cd.quoteParts) ? cd.quoteParts : [];
+  const worksSum = works.reduce((s: number, w: any) => s + (Number(w.price) || 0) * (Number(w.qty) || 1), 0);
+  const partsSum = parts.reduce((s: number, p: any) => (p.supplier === "customer" ? s : s + (Number(p.price) || 0) * (Number(p.qty) || 1)), 0);
+  const sub = Number(cd.quotePricedSubtotal || (worksSum + partsSum) || 0);
+  if (sub > 0) {
+    if (cd.vatMode === "includes_vat") return sub;
+    return Math.round(sub * 1.18);
+  }
+  return 0;
+}
+
 export async function executeGarageTool(
   toolName: string,
   args: Record<string, unknown>,
@@ -2575,7 +2592,7 @@ export async function executeGarageTool(
       const existingPayments = Array.isArray(cd.payments) ? cd.payments : [];
       const currentTotalPaid = Number(cd.totalPaid || existingPayments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0));
       const newTotalPaid = currentTotalPaid + amount;
-      const caseTotal = Number(cd.quotePricedSubtotal || cd.finishAmount || cd.totalAmount || 0);
+      const caseTotal = resolveCaseTotalPayable(cd);
       const newBalanceRemaining = Math.max(0, caseTotal - newTotalPaid);
       const newPaymentStatus = newBalanceRemaining <= 0 && caseTotal > 0 ? "paid" : (newTotalPaid > 0 ? "partial" : "pending");
 
@@ -2672,9 +2689,7 @@ export async function executeGarageTool(
         }
 
         // 5. Financial / balance check
-        const worksSum = quoteWorks.reduce((s: number, w: any) => s + (Number(w.price) || 0) * (Number(w.qty) || 1), 0);
-        const partsSum = quoteParts.reduce((s: number, p: any) => s + (Number(p.price) || 0) * (Number(p.qty) || 1), 0);
-        caseTotal = Number(cd.quotePricedSubtotal || cd.finishAmount || cd.totalAmount || (worksSum + partsSum));
+        caseTotal = resolveCaseTotalPayable(cd);
 
         const payments = Array.isArray(cd.payments) ? cd.payments : [];
         totalPaid = Number(cd.totalPaid || payments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0));
@@ -3576,7 +3591,7 @@ export async function executeGaragePendingAction(
         payments.push(paymentEntry);
 
         const totalPaid = payments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
-        const caseTotal = Number(cd.quotePricedSubtotal || cd.finishAmount || cd.totalAmount || 0);
+        const caseTotal = resolveCaseTotalPayable(cd);
         const balanceRemaining = Math.max(0, caseTotal - totalPaid);
         const paymentStatus = balanceRemaining <= 0 && caseTotal > 0 ? "paid" : (totalPaid > 0 ? "partial" : "pending");
 
@@ -3618,7 +3633,7 @@ export async function executeGaragePendingAction(
         const quoteWorks = cd.quoteWorks || [];
         const unpriced = quoteWorks.filter((w: any) => w.price === null || w.price === undefined || w.price === "" || Number(w.price) === 0);
         const isFinished = cd.workFinished || cData.status === "work_finished" || cData.status === "עבודה הסתיימה" || cData.status === "מוכן למסירה";
-        const caseTotal = Number(cd.quotePricedSubtotal || cd.finishAmount || cd.totalAmount || 0);
+        const caseTotal = resolveCaseTotalPayable(cd);
         const totalPaid = Number(cd.totalPaid || (Array.isArray(cd.payments) ? cd.payments.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0) : 0));
         const balanceRemaining = Math.max(0, caseTotal - totalPaid);
 
@@ -3635,6 +3650,19 @@ export async function executeGaragePendingAction(
         // Server-side strict gate: if gaps exist and not authorized with explicit override reason, block!
         if (gaps.length > 0 && (!isForceOverride || !overrideReason)) {
           throw new Error(`סגירת התיק נחסמה על ידי המערכת: קיימים ${gaps.length} חוסרים פתוחים (${gaps.join("; ")}). סגירה חריגה דורשת אישור מנהל מפורש (force_override: true) וסיבה מנומקת בכתב (override_reason).`);
+        }
+
+        // Server-side manager authorization check: force_override is restricted to super_admin
+        if (gaps.length > 0 && isForceOverride) {
+          const { data: userRoleRows } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", userId);
+          const roles = (userRoleRows || []).map((r: any) => r.role);
+          const isAuthorizedManager = roles.includes("super_admin");
+          if (!isAuthorizedManager) {
+            throw new Error(`סגירת התיק נחסמה: למשתמש (${actorName || userId}) אין הרשאת מנהל-על (super_admin) הנדרשת לסגירה חריגה של תיק עם חוסרים פתוחים.`);
+          }
         }
 
         cd.caseClosed = true;
@@ -4841,6 +4869,7 @@ export async function executeGaragePendingAction(
             quoteApproved: false,
             quoteStatus: "ready_to_send",
             quotePricedSubtotal: pricedSubtotal,
+            quoteGrandTotal: vatMode === "includes_vat" ? pricedSubtotal : Math.round(pricedSubtotal * 1.18),
             quotePricedLinesCount: pricedWorks.length,
             quoteUnpricedLinesCount: unpricedWorks.length,
             quoteNotes: quoteNotes || prevCd.quoteNotes || "",
@@ -4882,6 +4911,7 @@ export async function executeGaragePendingAction(
             quoteApproved: false,
             quoteStatus: "ready_to_send",
             quotePricedSubtotal: pricedSubtotal,
+            quoteGrandTotal: vatMode === "includes_vat" ? pricedSubtotal : Math.round(pricedSubtotal * 1.18),
             quotePricedLinesCount: pricedWorks.length,
             quoteUnpricedLinesCount: unpricedWorks.length,
             quoteNotes: quoteNotes || "",

@@ -1341,6 +1341,7 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
       <div id="preview-parts"><div class="doc-muted">אין חלקים</div></div>
       <div class="doc-section-title">סיכום כספי</div>
       <div class="doc-row"><span>סה"כ עבודות</span><span id="preview-tot-works">0 ₪</span></div>
+      <div class="doc-row"><span>סה"כ חלקים</span><span id="preview-tot-parts">0 ₪</span></div>
       <div class="doc-row"><span>מע"מ (18%)</span><span id="preview-tot-vat">0 ₪</span></div>
       <div class="doc-row" style="font-weight:800; border-bottom:2px solid #111;"><span>סה"כ לתשלום</span><span id="preview-tot-final">0 ₪</span></div>
       <div class="doc-section-title">הערות</div>
@@ -1401,6 +1402,8 @@ h2.section-title{font-size:15px; font-weight:700; margin-bottom:4px;}
     <div class="card" style="margin-bottom:18px;">
       <div class="row"><div class="lbl" style="font-size:11.5px; color:var(--white50);">סכום מאושר נוכחי</div></div>
       <div style="font-size:22px; font-weight:800; margin-top:4px;" id="wo-approved-amount">—</div>
+      <div id="wo-quote-summary" class="hint" style="margin-top:6px;"></div>
+      <button type="button" class="btn btn-ghost" style="margin-top:8px; width:100%; font-size:13px;" onclick="importQuoteToWorkOrder()">📋 טען סכום ופירוט מהצעת המחיר</button>
     </div>
     <h2 class="section-title">פרטי הזמנה חדשה</h2>
     <div class="bar"></div>
@@ -3803,23 +3806,29 @@ function renderQuote(){
 }
 function openDigitalQuoteSignLink(){
   var tok = state.quoteToken || (currentCase && currentCase.case_data && currentCase.case_data.quoteToken);
-  if(tok){
-    var base = (window.location.pathname.indexOf('/future-craft-core') !== -1) ? '/future-craft-core' : '';
-    var url = window.location.origin + base + '/garage-quote?t=' + encodeURIComponent(tok);
-    window.open(url, '_blank');
-    return;
+  if(!tok){
+    tok = 'qt_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+    state.quoteToken = tok;
+    if(currentCase && currentCase.case_data) {
+      currentCase.case_data.quoteToken = tok;
+    }
+    schedulePersist();
   }
-  parent.postMessage({type:'gm:open_ai'}, '*');
+  var base = (window.location.pathname.indexOf('/future-craft-core') !== -1) ? '/future-craft-core' : '';
+  var url = window.location.origin + base + '/garage-quote?t=' + encodeURIComponent(tok);
+  window.open(url, '_blank');
 }
 function renderQuotePreview(){
   bindLiveCase();
   captureQuoteFields();
   setText('preview-date', 'תאריך: ' + new Date().toLocaleDateString('he-IL'));
   var works = document.getElementById('preview-works');
+  var unpricedCount = 0;
   if(works){
     works.innerHTML = (state.quoteWorks || []).length
       ? state.quoteWorks.map(function(item){
-          var isUnpriced = item.price === null || item.price === undefined || item.price === '';
+          var isUnpriced = item.price === null || item.price === undefined || item.price === '' || Number(item.price) === 0;
+          if(isUnpriced) unpricedCount++;
           var pLabel = isUnpriced ? 'ללא מחיר בשלב זה' : money((Number(item.price)||0)*(Number(item.qty)||1));
           return '<div class="doc-row"><span>'+esc(item.part)+' — '+esc(item.desc || item.type || '')+'</span><span>'+esc(pLabel)+'</span></div>';
         }).join('')
@@ -3836,8 +3845,10 @@ function renderQuotePreview(){
       : '<div class="doc-muted">אין חלקים</div>';
   }
   setText('preview-tot-works', money(quoteWorksTotal()));
+  setText('preview-tot-parts', money(quotePartsTotal()));
   setText('preview-tot-vat', state.vatMode === 'unspecified' ? '18% (לפי הגדרת מע״מ)' : money(Math.round((quoteWorksTotal()+quotePartsTotal())*0.18)));
-  setText('preview-tot-final', money(quoteGrandTotal()));
+  var finalLabel = money(quoteGrandTotal()) + (unpricedCount > 0 ? ' (לא כולל ' + unpricedCount + ' שורות ללא מחיר)' : '');
+  setText('preview-tot-final', finalLabel);
   setText('preview-notes', state.quoteNotes || 'אין הערות');
   setText('preview-validity', state.quoteValidity ? ('תוקף ההצעה: ' + state.quoteValidity) : 'תוקף ההצעה ייקבע בעת השמירה.');
 }
@@ -4197,6 +4208,26 @@ function applyExtractedOrderToForm(){
   copy('wo-scan-ref', 'wo-ref');
   copy('wo-scan-date', 'wo-date');
   alert('הנתונים הועתקו לטופס. לחץ "אשר ושמור הזמנה" כדי לשמור בתיק. הלקוח לא משתנה.');
+}
+function importQuoteToWorkOrder(){
+  var tot = quoteGrandTotal();
+  var woAmt = document.getElementById('wo-amount');
+  if(woAmt && tot > 0) woAmt.value = tot;
+  var woNotes = document.getElementById('wo-notes');
+  if(woNotes){
+    var lines = (state.quoteWorks || []).map(function(w){
+      var isUnpriced = w.price === null || w.price === undefined || w.price === '' || Number(w.price) === 0;
+      return '• ' + (w.part || '') + ' ' + (w.desc || '') + ': ' + (isUnpriced ? 'ללא מחיר' : money(w.price));
+    });
+    var partLines = (state.quoteParts || []).map(function(p){
+      return '• חלק: ' + (p.name || '') + ' × ' + (p.qty || 1) + ' (' + money(p.price) + ')';
+    });
+    var summary = [].concat(lines, partLines).join('\n');
+    woNotes.value = (woNotes.value ? (woNotes.value + '\n\n') : '') + 'פירוט לפי הצעת מחיר:\n' + summary;
+  }
+  var approvedEl = document.getElementById('wo-approved-amount');
+  if(approvedEl) approvedEl.textContent = money(tot || 0);
+  alert('סכום ההצעה (₪' + (tot || 0).toLocaleString() + ') ופירוט השורות נטענו להזמנה.');
 }
 function saveWorkOrder(){
   var num = (document.getElementById('wo-num').value || '').trim();

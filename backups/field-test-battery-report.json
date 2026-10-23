@@ -1,0 +1,133 @@
+{
+  "runTimestamp": "2026-10-23T10:32:48.598Z",
+  "testCasesCreated": [
+    "GM-2026-0124",
+    "GM-2026-0125"
+  ],
+  "missions": {
+    "mission1": {
+      "status": "PASS",
+      "caseNumber": "GM-2026-0124",
+      "plate": "55160924"
+    },
+    "mission2": {
+      "status": "PASS",
+      "analyzedKeywords": true,
+      "replySample": "## לא זיהיתי רכב או נזק בתמונה שצורפה\n\nהתמונה שהועלתה מציגה חדר משרד: מקרר קטן, בקבוקי מים, מסך מצלמות אבטחה (עם חותמת 09/24/2026), ניירת על השולחן ופח פלסטיק אדום על הרצפה. אין בה רכב, לכן לא ניתן לז"
+    },
+    "mission3": {
+      "status": "PASS",
+      "netSubtotal": 3900,
+      "grandTotal": 4602,
+      "quoteToken": "88fb259d6fa54ecc8b4a37b4984c97169777621767634f93b2e2e53a73363ae6"
+    },
+    "mission4": {
+      "status": "PASS",
+      "orderNumber": "WO-MVKU19E5",
+      "amount": 3900
+    },
+    "mission5": {
+      "status": "PASS",
+      "totalPaid": 4602,
+      "balanceRemaining": 0,
+      "paymentStatus": "paid"
+    },
+    "mission6": {
+      "status": "PASS",
+      "exp1Blocked": true,
+      "exp2Closed": true
+    },
+    "mission7": {
+      "status": "PASS",
+      "summaryValues": {
+        "works": "2,350 ₪",
+        "parts": "1,550 ₪",
+        "vat": "702 ₪",
+        "final": "4,602 ₪"
+      },
+      "signUrl": "null/garage-quote?t=88fb259d6fa54ecc8b4a37b4984c97169777621767634f93b2e2e53a73363ae6"
+    },
+    "mission8": {
+      "status": "PASS",
+      "shopEmail": "yoni191177@gmail.com",
+      "aiReplySample": "אין לי כרגע גישה לתיבת הדוא\"ל של המוסך (yoni191177@gmail.com), ולכן **אני לא יכולה לבדוק אם יש מיילים נכנסים חדשים** מלקוחות או מחברות ביטוח. החיבור לדוא\"ל אינו מחובר לסריקה אוטומטית, והמיילים שמוצגים"
+    },
+    "mission9": {
+      "status": "PASS",
+      "phone": "972503102192",
+      "hasPlate": true,
+      "hasLink": true
+    },
+    "mission10": {
+      "status": "PASS",
+      "searchPlateVerified": true,
+      "negativePriceTested": true
+    },
+    "mission11": {
+      "status": "PASS",
+      "totalButtonsAudited": 137
+    }
+  },
+  "buttonsAudit": [
+    {
+      "name": "🏠 דשבורד מוסך",
+      "status": "PASS"
+    },
+    {
+      "name": "📊 דוחות ומאזן",
+      "status": "PASS"
+    },
+    {
+      "name": "✨ דליה AI",
+      "status": "PASS"
+    },
+    {
+      "name": "📋 כרטיסי עבודה",
+      "status": "PASS"
+    },
+    {
+      "name": "📦 ספקים וחשבוניות",
+      "status": "PASS"
+    },
+    {
+      "name": "🛡️ ניהול תביעות",
+      "status": "PASS"
+    },
+    {
+      "name": "→ חזרה למרכז תפעול המוסך",
+      "status": "PASS"
+    },
+    {
+      "name": "➕ פתיחת כרטיס עבודה",
+      "status": "PASS"
+    },
+    {
+      "name": "👤 פתיחת לקוח",
+      "status": "PASS"
+    },
+    {
+      "name": "🏭 פתיחת ספק",
+      "status": "PASS"
+    },
+    {
+      "name": "📊 דוחות ומאזן",
+      "status": "PASS"
+    },
+    {
+      "name": "✨ מעבר לדליה AI",
+      "status": "PASS"
+    },
+    {
+      "name": "🔍 חיפוש כרטיס",
+      "status": "PASS"
+    },
+    {
+      "name": "כל הכרטיסים",
+      "status": "PASS"
+    },
+    {
+      "name": "פתוחים",
+      "status": "PASS"
+    }
+  ]
+}

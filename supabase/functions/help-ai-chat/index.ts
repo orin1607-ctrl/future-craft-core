@@ -542,9 +542,12 @@ async function callGemini(
           // Guard against runaway tool loops or slow sequential requests
           if (hasComprehensiveReport || totalToolCalls >= 5 || (Date.now() - turnStartTime > 30000)) {
             passTools = false;
+            const finalInstruction = isGarageModule
+              ? "כל הנתונים נאספו מהמערכת. הצג את התשובה המלאה והסופית עבור ניהול המוסך בהתאם לבקשת המשתמש."
+              : `כל הנתונים הנדרשים נאספו בהצלחה מהמערכת. הצג את התשובה הסופית הכוללת כותרת "## ${lastReportTitle || "דוח סטטוס תביעות"}" ולאחר מכן את טבלת ה-Markdown המלאה של כל התיקים ללא השמטה.`;
             contents.push({
               role: "user",
-              parts: [{ text: `כל הנתונים הנדרשים נאספו בהצלחה מהמערכת. הצג את התשובה הסופית הכוללת כותרת "## ${lastReportTitle || "דוח סטטוס תביעות"}" ולאחר מכן את טבלת ה-Markdown המלאה של כל התיקים ללא השמטה.` }],
+              parts: [{ text: finalInstruction }],
             });
           }
           continue;
@@ -845,9 +848,12 @@ async function callClaude(
           // Guard against runaway tool loops or slow sequential requests
           if (hasComprehensiveReport || totalToolCalls >= 5 || (Date.now() - turnStartTime > 30000)) {
             passTools = false;
+            const finalInstruction = isGarageModule
+              ? "כל הנתונים נאספו מהמערכת. הצג את התשובה המלאה והסופית עבור ניהול המוסך בהתאם לבקשת המשתמש."
+              : `כל הנתונים הנדרשים נאספו בהצלחה מהמערכת. הצג את התשובה הסופית הכוללת כותרת "## ${lastReportTitle || "דוח סטטוס תביעות"}" ולאחר מכן את טבלת ה-Markdown המלאה של כל התיקים ללא השמטה.`;
             claudeMessages.push({
               role: "user",
-              content: [{ type: "text", text: `כל הנתונים הנדרשים נאספו בהצלחה מהמערכת. הצג את התשובה הסופית הכוללת כותרת "## ${lastReportTitle || "דוח סטטוס תביעות"}" ולאחר מכן את טבלת ה-Markdown המלאה של כל התיקים ללא השמטה.` }],
+              content: [{ type: "text", text: finalInstruction }],
             });
           }
           continue;
