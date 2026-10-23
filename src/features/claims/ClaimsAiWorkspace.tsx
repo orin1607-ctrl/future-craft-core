@@ -2651,6 +2651,27 @@ export function ClaimsAiWorkspace({
   const [voicePhase, setVoicePhase] = useState<'idle' | 'listening' | 'processing' | 'speaking' | 'executing' | 'waiting_confirm'>('idle');
   const [currentVoiceWorkflow, setCurrentVoiceWorkflow] = useState<DaliaWorkflowState | null>(() => loadVoiceWorkflowState());
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const persistentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioBlockedState, setAudioBlockedState] = useState<{
+    blocked: boolean;
+    promptText: string;
+  }>({ blocked: false, promptText: '' });
+  const pendingAudioActionRef = useRef<(() => void) | null>(null);
+
+  const unlockAudioGesture = useCallback(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try {
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+      } catch {}
+    }
+    if (persistentAudioRef.current) {
+      try {
+        persistentAudioRef.current.load();
+      } catch {}
+    }
+  }, []);
   const [audioPreference, setAudioPreference] = useState<'auto' | 'online' | 'native'>(() => {
     try {
       return ((typeof window !== 'undefined' && window.localStorage?.getItem('dalia_audio_preference')) as any) || 'auto';
@@ -3171,6 +3192,7 @@ export function ClaimsAiWorkspace({
             (window as any).__daliaActiveAudio = null;
           }
           setSpeakingMsgId(null);
+          setAudioBlockedState({ blocked: false, promptText: '' });
           setVoiceDiagnostics((prev) => ({
             ...prev,
             speaking: false,
@@ -3184,7 +3206,10 @@ export function ClaimsAiWorkspace({
         currentChunkIndex += 1;
 
         const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=iw&client=tw-ob`;
-        const audio = new Audio(url);
+        
+        // Use persistent DOM audio element if available for strict Mobile/Brave policy compliance
+        const audio = persistentAudioRef.current || new Audio();
+        audio.src = url;
         currentAudioRef.current = audio;
         if (typeof window !== 'undefined') {
           (window as any).__daliaActiveAudio = audio;
@@ -3216,27 +3241,39 @@ export function ClaimsAiWorkspace({
             lastError: 'נכשלה טעינת קובץ השמע מהשרת',
           }));
           onError?.(ev);
-          onEnd?.();
+          // Do NOT call onEnd on error to prevent unwanted premature mic activation!
         };
 
         const playPromise = audio.play();
         if (playPromise) {
           playPromise.catch((err) => {
-            console.warn('Audio play rejected:', err);
+            console.warn('Audio play rejected (Autoplay policy / Brave Shield):', err);
             currentAudioRef.current = null;
             if (typeof window !== 'undefined') {
               (window as any).__daliaActiveAudio = null;
             }
             setSpeakingMsgId(null);
+
+            // SAVE PENDING ACTION AND SHOW PROMINENT UNBLOCK BUTTON
+            // CRITICAL: NEVER call onEnd() when blocked! Keep current question and wait for user to click "🔊 הפעל קול".
+            pendingAudioActionRef.current = () => {
+              currentChunkIndex = 0;
+              playNextChunk();
+            };
+
+            setAudioBlockedState({
+              blocked: true,
+              promptText: cleanText,
+            });
+
             setVoiceDiagnostics((prev) => ({
               ...prev,
               speaking: false,
-              lastStatus: 'חסימת שמע בדפדפן',
-              lastError: `הדפדפן חסם שמע: ${err?.message || err}`,
+              lastStatus: 'הדפדפן דורש לחיצה להפעלת שמע',
+              lastError: 'דפדפן Brave חסם השמעה אוטומטית. לחץ על "🔊 הפעל קול" מטה.',
             }));
-            setBanner('⚠️ הדפדפן חסם השמעת שמע אוטומטית. יש ללחוץ על המסך או לבדוק הגדרות שמע בדפדפן.');
+            setBanner(''); // Clear generic warning banner, the big unblock button takes over!
             onError?.(err);
-            onEnd?.();
           });
         }
       };
@@ -3245,7 +3282,6 @@ export function ClaimsAiWorkspace({
     } catch (e: any) {
       console.warn('playOnlineAudio exception:', e);
       onError?.(e);
-      onEnd?.();
     }
   }, []);
 
@@ -3383,7 +3419,17 @@ export function ClaimsAiWorkspace({
     }
   }, [audioPreference, installedVoices, playOnlineAudio, stopSpeaking]);
 
+  const handleDirectUnblockPlay = useCallback(() => {
+    setAudioBlockedState({ blocked: false, promptText: '' });
+    if (pendingAudioActionRef.current) {
+      const action = pendingAudioActionRef.current;
+      pendingAudioActionRef.current = null;
+      action();
+    }
+  }, []);
+
   const handleTestVoice = useCallback(() => {
+    unlockAudioGesture();
     const testText = 'שלום, אני דליה. האם אתה שומע אותי?';
     setBanner('🔊 מפעיל בדיקת קול של דליה...');
     speakAnswer('test-voice', testText, () => {
@@ -4361,6 +4407,7 @@ const toggleVoiceMute = useCallback(() => {
   }, [handleVoiceWorkflowInput]);
 
   const handleStartVoiceWorkflow = useCallback((wfType: DaliaWorkflowType) => {
+    unlockAudioGesture();
     setShowWelcomeHub(false);
     setVoiceModeActive(true);
     voiceModeActiveRef.current = true;
@@ -5052,6 +5099,32 @@ const toggleVoiceMute = useCallback(() => {
             </button>
           </div>
         ) : null}
+
+        {/* Persistent Audio Element for Brave / Android Mobile Policy */}
+        <audio
+          ref={persistentAudioRef}
+          playsInline
+          preload="auto"
+          style={{ position: 'fixed', opacity: 0, pointerEvents: 'none', width: 0, height: 0, zIndex: -1 }}
+          aria-hidden="true"
+        />
+
+        {audioBlockedState.blocked && (
+          <div className="dalia-unblock-banner" data-testid="dalia-unblock-banner">
+            <div className="dalia-unblock-text">
+              🔊 <b>דליה מוכנה לדבר:</b> &quot;{audioBlockedState.promptText}&quot;
+            </div>
+            <button
+              type="button"
+              className="dalia-unblock-btn"
+              data-testid="dalia-play-unblock-btn"
+              onClick={handleDirectUnblockPlay}
+              title="לחץ להפעלת שמע בדפדפן"
+            >
+              🔊 הפעל קול (הקשב לדליה)
+            </button>
+          </div>
+        )}
 
         <div className="claims-ai-thread" ref={threadRef} onScroll={handleScroll} data-testid="claims-ai-thread">
           {batchUploadProgress ? (
