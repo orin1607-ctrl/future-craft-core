@@ -70,6 +70,7 @@ import {
 } from './daliaVoiceEngine';
 import type { GarageVoiceActions } from '@/modules/garage-management/garageVoiceActions';
 import { DaliaDrawer, DaliaTurnUi, type DaliaDrawerData } from './DaliaTurnUi';
+import { mergeRecognitionResults } from './daliaSpeechText';
 import type { VoiceFile, VoiceUi } from './daliaVoiceEngine';
 import { diagLog, installSynthSpy, describeVoices, copyDiagReport, playTestTone, registerDiagSection } from './daliaVoiceDiag';
 import { DaliaSpeechController, pickHebrewVoice, type CloudSynthResult, type SpeakOptions, type SpeakResult } from './daliaSpeechController';
@@ -2664,6 +2665,23 @@ export type GarageCaseAiContext = {
   status?: string;
 };
 
+/** Always-visible chips above the composer; the rest open under "כל הפעולות". */
+const DALIA_PRIMARY_ACTIONS: Array<[VoiceWorkflowType, string]> = [
+  ['general_action', '💬 שיחה כללית'],
+  ['new_customer', '👤 לקוח חדש'],
+  ['find_case', '📂 איתור תיק'],
+];
+const DALIA_MORE_ACTIONS: Array<[VoiceWorkflowType, string]> = [
+  ['existing_customer', '🔍 לקוח קיים'],
+  ['intake', '🚗 קבלת רכב'],
+  ['quote', '📝 הצעת מחיר'],
+  ['invoices_credits', '🧾 חשבוניות'],
+  ['general_expenses', '🏭 ספקים'],
+  ['close_case', '🔒 סגירת תיק'],
+  ['resume_action', '⏯️ המשך'],
+  ['reports', '📊 דוחות'],
+];
+
 export function deduplicateMessages(msgs: ClaimsAiMessage[]): ClaimsAiMessage[] {
   const seenIds = new Set<string>();
   const result: ClaimsAiMessage[] = [];
@@ -2679,6 +2697,17 @@ export function deduplicateMessages(msgs: ClaimsAiMessage[]): ClaimsAiMessage[] 
         prev.content.trim() === m.content.trim() &&
         Math.abs(new Date(prev.created_at || 0).getTime() - new Date(m.created_at || 0).getTime()) < 3500
       ) {
+        continue;
+      }
+      // A side question asked inside a voice workflow is shown at once (local bubble) and then sent to the
+      // chat — the saved message takes the local bubble's place instead of appearing a second time.
+      const local = result.findIndex((r, i) => i >= result.length - 3
+        && r.role === 'user'
+        && String(r.id || '').startsWith('usr_wf_')
+        && r.content.trim() === m.content.trim()
+        && Math.abs(new Date(r.created_at || 0).getTime() - new Date(m.created_at || 0).getTime()) < 60000);
+      if (local >= 0 && !String(m.id || '').startsWith('usr_wf_')) {
+        result[local] = m;
         continue;
       }
     }
@@ -2853,7 +2882,9 @@ export function ClaimsAiWorkspace({
   const [isMinimized, setIsMinimized] = useState(false);
   /** Garage window: large centred window by default, full screen on demand (phones are always full screen). */
   const [isMaximized, setIsMaximized] = useState(false);
-  const [actionsBarOpen, setActionsBarOpen] = useState(true);
+  const [actionsBarOpen, setActionsBarOpen] = useState(false);
+  /** Garage composer: tall writing area on demand (like a chat app's "expand"). */
+  const [composerExpanded, setComposerExpanded] = useState(false);
 
   const hasUnsavedAction = useMemo(() => {
     return messages.some(
@@ -3242,6 +3273,14 @@ export function ClaimsAiWorkspace({
   const voiceModeActiveRef = useRef(false);
   const voiceRecognitionRef = useRef<SpeechRec | null>(null);
   const voiceSilenceTimerRef = useRef<any>(null);
+  /** Text heard in the current voice-listening session, not yet submitted. */
+  const pendingVoiceTextRef = useRef('');
+  const moduleRef = useRef(module);
+  moduleRef.current = module;
+  /** Stops dictation into the text box (set once toggleMic exists). */
+  const stopDictationRef = useRef<() => void>(() => {});
+  /** Last voice/typed answer sent to a workflow — the same sentence is never processed twice in a row. */
+  const lastWorkflowInputRef = useRef<{ text: string; at: number; turn: VoiceTurn | null }>({ text: '', at: 0, turn: null });
   const voicePhaseRef = useRef<'idle' | 'listening' | 'processing' | 'speaking' | 'executing' | 'waiting_confirm'>('idle');
 
   const stopSpeaking = useCallback(() => {
@@ -3257,6 +3296,8 @@ export function ClaimsAiWorkspace({
   const speakAnswer = useCallback((msgId: string, rawText: string, opts: SpeakOptions = {}): Promise<SpeakResult> => {
     diagLog('speakAnswer-called', `id=${msgId} textLen=${(rawText || '').length} userActive=${(navigator as any).userActivation?.isActive}`);
     const clean = cleanTextForSpeech(rawText);
+    // Dalia never records herself: dictation stops while she speaks (garage window)
+    if (moduleRef.current === 'garage') stopDictationRef.current();
     setSpeechIssue(null);
     setSpeakingMsgId(msgId);
     setVoiceDiagnostics((prev) => ({ ...prev, speaking: true, lastStatus: 'מפעיל דיבור עברי...', lastError: null }));
@@ -3338,6 +3379,8 @@ export function ClaimsAiWorkspace({
     if (!voiceModeActiveRef.current) return;
     stopVoiceRecognition();
     stopSpeaking();
+    // only one microphone at a time: dictation into the text box stops when Dalia listens
+    if (moduleRef.current === 'garage') stopDictationRef.current();
 
     const Ctor = speechCtor();
     if (!Ctor) {
@@ -3363,19 +3406,9 @@ export function ClaimsAiWorkspace({
     (rec as any).onaudiostart = () => diagLog('rec.onaudiostart');
     rec.onresult = (ev) => {
       if (!voiceModeActiveRef.current || (voicePhaseRef.current !== 'listening' && voicePhaseRef.current !== 'waiting_confirm') || voiceMutedRef.current) return;
-      let sessionFinal = '';
-      let sessionInterim = '';
-      for (let i = 0; i < ev.results.length; i += 1) {
-        const item = ev.results[i];
-        const piece = item[0]?.transcript?.trim() || '';
-        if (!piece) continue;
-        if (item.isFinal) {
-          sessionFinal = sessionFinal ? `${sessionFinal} ${piece}` : piece;
-        } else {
-          sessionInterim = sessionInterim ? `${sessionInterim} ${piece}` : piece;
-        }
-      }
-      const full = [sessionFinal, sessionInterim].filter(Boolean).join(' ').trim();
+      // Android repeats earlier text inside later results — merge, never concatenate blindly
+      const full = mergeRecognitionResults(ev.results as ArrayLike<{ isFinal: boolean; 0?: { transcript?: string } }>).full;
+      pendingVoiceTextRef.current = full;
       setLiveTranscript(full);
 
       if (voiceSilenceTimerRef.current) {
@@ -3388,6 +3421,7 @@ export function ClaimsAiWorkspace({
           if (!voiceModeActiveRef.current || (voicePhaseRef.current !== 'listening' && voicePhaseRef.current !== 'waiting_confirm')) return;
           const userText = full.trim();
           if (!userText) return;
+          pendingVoiceTextRef.current = '';
 
           stopVoiceRecognition();
           voicePhaseRef.current = 'processing';
@@ -3415,6 +3449,22 @@ export function ClaimsAiWorkspace({
     };
 
     rec.onend = () => {
+      const heard = pendingVoiceTextRef.current.trim();
+      if (heard && voiceSilenceTimerRef.current && voiceModeActiveRef.current) {
+        clearTimeout(voiceSilenceTimerRef.current);
+        voiceSilenceTimerRef.current = null;
+        pendingVoiceTextRef.current = '';
+        stopVoiceRecognition();
+        voicePhaseRef.current = 'processing';
+        setVoicePhase('processing');
+        setLiveTranscript('');
+        if (currentVoiceWorkflowRef.current && handleVoiceWorkflowInputRef.current) {
+          void handleVoiceWorkflowInputRef.current(heard);
+        } else {
+          void sendRef.current(heard, 'voice');
+        }
+        return;
+      }
       if (voiceModeActiveRef.current && (voicePhaseRef.current === 'listening' || voicePhaseRef.current === 'waiting_confirm')) {
         try {
           rec.start();
@@ -4228,32 +4278,55 @@ const toggleVoiceMute = useCallback(() => {
     const seq = ++voiceTurnSeqRef.current;
     lastVoiceTurnRef.current = turn;
     const id = `asst_wf_${Date.now()}_${seq}`;
-    setLastVoiceMsgId(id);
-    setMessages((prev) => [...prev, {
+    const bubble = (content: string) => ({
       id,
       conversation_id: activeId || 'voice_flow',
       role: 'assistant',
-      content: turn.display ? `${turn.say}\n\n${turn.display}` : turn.say,
+      content,
       created_at: new Date().toISOString(),
       attachments: [],
       sources: [],
       metadata: { voice_workflow: label, outcome: turn.outcome || null, voice_ui: turn.ui || null },
-    } as unknown as ClaimsAiMessage]);
+    } as unknown as ClaimsAiMessage);
+    // A question handed to the regular chat: the user's question must stay the last message the chat model
+    // sees, so Dalia's bubble (only when it carries "continue / cancel" buttons) is added after the answer.
+    if (!turn.handoff) {
+      setLastVoiceMsgId(id);
+      setMessages((prev) => [...prev, bubble([turn.say, turn.display, turn.followSay].filter(Boolean).join('\n\n'))]);
+    }
     stopVoiceRecognition();
     voicePhaseRef.current = 'speaking';
     setVoicePhase('speaking');
     const opts = turn.alt ? { safeAlternative: turn.alt } : {};
-    if (turn.expectsAnswer && voiceModeActiveRef.current) {
-      await speakThenListenRef.current(label, turn.say, opts);
+    // a side answer is followed by its own fixed question ("continue the previous action?")
+    let question = turn.say;
+    let questionOpts: { safeAlternative?: string } = opts;
+    if (turn.followSay) {
+      const first = await speakAnswer(label, turn.say, opts);
+      if (voiceTurnSeqRef.current !== seq || (first.outcome === 'cancelled' && first.reason === 'superseded')) return;
+      question = turn.followSay;
+      questionOpts = {};
+    }
+    // a side question for the regular chat: the chat answers, the flow waits (no listening over the answer)
+    if (turn.expectsAnswer && voiceModeActiveRef.current && !turn.handoff) {
+      await speakThenListenRef.current(label, question, questionOpts);
+      if (turn.openCaseId && onOpenGarageCase) onOpenGarageCase(turn.openCaseId);
       return;
     }
-    const r = await speakAnswer(label, turn.say, opts);
+    const r = await speakAnswer(label, question, questionOpts);
     if (voiceTurnSeqRef.current !== seq || (r.outcome === 'cancelled' && r.reason === 'superseded')) return;
     voicePhaseRef.current = 'idle';
     setVoicePhase('idle');
-    if (turn.handoff) void sendMessage(turn.handoff, 'text');
+    // sendRef = the latest sendMessage, so the bubbles added during this turn are kept
+    if (turn.handoff) {
+      await sendRef.current(turn.handoff, 'text');
+      if (turn.ui?.length || turn.display) {
+        setLastVoiceMsgId(id);
+        setMessages((prev) => [...prev, bubble(turn.display || turn.say)]);
+      }
+    }
     if (turn.openCaseId && onOpenGarageCase) onOpenGarageCase(turn.openCaseId);
-  }, [activeId, onOpenGarageCase, sendMessage, speakAnswer, stopVoiceRecognition]);
+  }, [activeId, onOpenGarageCase, speakAnswer, stopVoiceRecognition]);
 
   const handleStopVoice = useCallback(() => {
     stopSpeaking();
@@ -4318,6 +4391,14 @@ const toggleVoiceMute = useCallback(() => {
   }, [activeId, onActionExecuted, presentVoiceTurn, setActiveVoiceSession, stopVoiceRecognition]);
 
   const handleVoiceWorkflowInput = useCallback(async (userText: string) => {
+    const norm = userText.replace(/\s+/g, ' ').trim();
+    const last = lastWorkflowInputRef.current;
+    // the same sentence for the SAME question (double event / double tap) — "כן" to the next question is fine
+    if (norm && norm === last.text && last.turn === lastVoiceTurnRef.current && Date.now() - last.at < 2500) {
+      diagLog('workflow-input-duplicate-ignored', `len=${norm.length}`);
+      return;
+    }
+    lastWorkflowInputRef.current = { text: norm, at: Date.now(), turn: lastVoiceTurnRef.current };
     const current = currentVoiceWorkflowRef.current;
     if (!current) {
       void sendMessage(userText, 'voice');
@@ -4566,6 +4647,24 @@ const toggleVoiceMute = useCallback(() => {
     cancelRef.current = handleCancelPending;
   }, [handleConfirmPending, handleCancelPending]);
 
+  const stopDictation = () => {
+    if (!isListeningRef.current && !recognitionRef.current) return;
+    isManualStopRef.current = true;
+    isListeningRef.current = false;
+    setListening(false);
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onend = null;
+        recognitionRef.current.stop();
+      } catch {}
+      recognitionRef.current = null;
+    }
+    baseInputRef.current = inputRef.current.trim();
+  };
+  stopDictationRef.current = stopDictation;
+
   const toggleMic = () => {
     const Ctor = speechCtor();
     if (!Ctor) return;
@@ -4602,19 +4701,9 @@ const toggleVoiceMute = useCallback(() => {
 
     rec.onresult = (ev) => {
       if (!isListeningRef.current || isManualStopRef.current) return;
-      let sessionFinal = '';
-      let sessionInterim = '';
-      for (let i = 0; i < ev.results.length; i += 1) {
-        const item = ev.results[i];
-        const piece = item[0]?.transcript?.trim() || '';
-        if (!piece) continue;
-        if (item.isFinal) {
-          sessionFinal = sessionFinal ? `${sessionFinal} ${piece}` : piece;
-        } else {
-          sessionInterim = sessionInterim ? `${sessionInterim} ${piece}` : piece;
-        }
-      }
-      const full = [baseInputRef.current, sessionFinal, sessionInterim]
+      // Android repeats earlier text inside later results — merge, never concatenate blindly
+      const heard = mergeRecognitionResults(ev.results as ArrayLike<{ isFinal: boolean; 0?: { transcript?: string } }>).full;
+      const full = [baseInputRef.current, heard]
         .filter(Boolean)
         .join(' ')
         .trim();
@@ -4635,6 +4724,8 @@ const toggleVoiceMute = useCallback(() => {
 
     rec.onend = () => {
       if (isListeningRef.current && !isManualStopRef.current) {
+        // a restarted session starts with empty results — keep what is already in the box
+        baseInputRef.current = inputRef.current.trim();
         try {
           rec.start();
           return;
@@ -4878,7 +4969,7 @@ const toggleVoiceMute = useCallback(() => {
           </div>
         </header>
 
-        <div className="claims-ai-context" data-testid="claims-ai-context">
+        <div className={`claims-ai-context${module === 'garage' && !garageCase ? ' dalia-context-general' : ''}`} data-testid="claims-ai-context">
           {garageCase ? (
             <>
               <span>כרטיס עבודה <b>{garageCase.caseNumber || garageCase.id}</b></span>
@@ -5136,6 +5227,19 @@ const toggleVoiceMute = useCallback(() => {
                   <div className="garage-actions-grid">
                     <button
                       type="button"
+                      className="garage-action-card garage-action-card-chat"
+                      data-testid="garage-action-general"
+                      onClick={() => void handleStartVoiceWorkflow('general_action')}
+                    >
+                      <span className="garage-action-icon">💬</span>
+                      <div className="garage-action-body">
+                        <strong>שיחה כללית</strong>
+                        <small>לדבר עם דליה חופשי: שאלות, "כמה תיקים פתוחים", "תמצאי את התיק של אלדן", או כל פעולה</small>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
                       className="garage-action-card"
                       data-testid="garage-action-new-customer"
                       onClick={() => handleStartVoiceWorkflow('new_customer')}
@@ -5254,19 +5358,6 @@ const toggleVoiceMute = useCallback(() => {
                     <button
                       type="button"
                       className="garage-action-card"
-                      data-testid="garage-action-general"
-                      onClick={() => void handleStartVoiceWorkflow('general_action')}
-                    >
-                      <span className="garage-action-icon">✨💬</span>
-                      <div className="garage-action-body">
-                        <strong>פעולה כללית</strong>
-                        <small>בקשה חופשית: "תמצאי לי את התיק של אלדן", "כמה כסף נכנס השבוע"</small>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      className="garage-action-card"
                       data-testid="garage-action-reports"
                       onClick={() => void handleStartVoiceWorkflow('reports')}
                     >
@@ -5356,7 +5447,10 @@ const toggleVoiceMute = useCallback(() => {
                       active={msg.id === lastVoiceMsgId && !!currentVoiceWorkflow}
                       onAnswer={handleTurnAnswer}
                       onUpload={handleTurnUpload}
-                      onOpenDrawer={setDaliaDrawer}
+                      onOpenDrawer={(d) => {
+                        setActionsBarOpen(false);
+                        setDaliaDrawer((cur) => (cur && cur.title === d.title && cur.rows.length === d.rows.length ? null : d));
+                      }}
                       onRestart={(t) => void handleStartVoiceWorkflow(t)}
                     />
                   ) : null}
@@ -6486,36 +6580,41 @@ const toggleVoiceMute = useCallback(() => {
 
         {module === 'garage' && !((messages.length === 0 && !loading) || showWelcomeHub) ? (
           <div className={`dalia-actions-bar${actionsBarOpen ? ' open' : ''}`} data-testid="dalia-actions-bar">
-            <button
-              type="button"
-              className="dalia-actions-toggle"
-              data-testid="dalia-actions-toggle"
-              aria-expanded={actionsBarOpen}
-              onClick={() => setActionsBarOpen((v) => !v)}
-            >
-              ⚡ פעולות {actionsBarOpen ? '▾' : '▸'}
-            </button>
+            <div className="dalia-actions-primary">
+              {DALIA_PRIMARY_ACTIONS.map(([type, label]) => (
+                <button
+                  key={type}
+                  type="button"
+                  className="dalia-chip dalia-chip-primary"
+                  data-testid={`dalia-bar-${type}`}
+                  onClick={() => { setActionsBarOpen(false); void handleStartVoiceWorkflow(type); }}
+                >
+                  {label}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="dalia-actions-toggle"
+                data-testid="dalia-actions-toggle"
+                aria-expanded={actionsBarOpen}
+                onClick={() => {
+                  // one panel at a time, so the conversation keeps its room
+                  if (!actionsBarOpen) setDaliaDrawer(null);
+                  setActionsBarOpen((v) => !v);
+                }}
+              >
+                ☰ כל הפעולות {actionsBarOpen ? '▴' : '▾'}
+              </button>
+            </div>
             {actionsBarOpen ? (
-              <div className="dalia-actions-scroll">
-                {([
-                  ['new_customer', '👤 לקוח חדש'],
-                  ['existing_customer', '🔍 לקוח קיים'],
-                  ['intake', '🚗 קבלת רכב'],
-                  ['quote', '📝 הצעת מחיר'],
-                  ['invoices_credits', '🧾 חשבוניות'],
-                  ['general_expenses', '🏭 ספקים'],
-                  ['find_case', '📂 איתור תיק'],
-                  ['close_case', '🔒 סגירת תיק'],
-                  ['resume_action', '⏯️ המשך'],
-                  ['general_action', '✨ פעולה כללית'],
-                  ['reports', '📊 דוחות'],
-                ] as Array<[VoiceWorkflowType, string]>).map(([type, label]) => (
+              <div className="dalia-actions-scroll" data-testid="dalia-actions-all">
+                {DALIA_MORE_ACTIONS.map(([type, label]) => (
                   <button
                     key={type}
                     type="button"
                     className="dalia-chip"
                     data-testid={`dalia-bar-${type}`}
-                    onClick={() => void handleStartVoiceWorkflow(type)}
+                    onClick={() => { setActionsBarOpen(false); void handleStartVoiceWorkflow(type); }}
                   >
                     {label}
                   </button>
@@ -6753,7 +6852,7 @@ const toggleVoiceMute = useCallback(() => {
         ) : null}
 
         <form
-          className="claims-ai-composer"
+          className={`claims-ai-composer${module === 'garage' ? ' dalia-composer' : ''}${module === 'garage' && composerExpanded ? ' is-expanded' : ''}`}
           onSubmit={(e) => {
             e.preventDefault();
             submitComposer();
@@ -6947,14 +7046,19 @@ const toggleVoiceMute = useCallback(() => {
               setInput(val);
               inputRef.current = val;
               baseInputRef.current = val;
-              if (module === 'garage') {
+              if (module === 'garage' && !composerExpanded) {
                 const el = e.target;
                 el.style.height = 'auto';
-                el.style.height = `${Math.min(el.scrollHeight, Math.round(window.innerHeight * 0.35))}px`;
+                el.style.height = `${Math.min(el.scrollHeight, Math.round(window.innerHeight * 0.4))}px`;
               }
             }}
-            onFocus={() => {
+            onFocus={(e) => {
               baseInputRef.current = inputRef.current;
+              if (module === 'garage') {
+                // phone keyboard: keep the writing area and its buttons in view
+                const el = e.currentTarget;
+                window.setTimeout(() => { try { el.scrollIntoView({ block: 'nearest' }); } catch {} }, 300);
+              }
             }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -6966,6 +7070,22 @@ const toggleVoiceMute = useCallback(() => {
               }
             }}
           />
+          {module === 'garage' ? (
+            <button
+              type="button"
+              className="claims-ai-icon dalia-expand-input"
+              data-testid="claims-ai-expand-input"
+              aria-pressed={composerExpanded}
+              title={composerExpanded ? 'הקטן את תיבת הכתיבה' : 'הגדל את תיבת הכתיבה'}
+              aria-label={composerExpanded ? 'הקטן את תיבת הכתיבה' : 'הגדל את תיבת הכתיבה'}
+              onClick={() => {
+                setComposerExpanded((v) => !v);
+                if (textareaRef.current) textareaRef.current.style.height = '';
+              }}
+            >
+              {composerExpanded ? '⤡' : '⤢'}
+            </button>
+          ) : null}
           {loading ? (
             <button
               type="button"

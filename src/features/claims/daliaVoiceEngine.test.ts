@@ -850,3 +850,132 @@ describe('without garage actions', () => {
     expect(r.turn.say).toBe(P.noActions);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Topic switching: a side question in the middle of a flow
+// ---------------------------------------------------------------------------
+
+describe('מעבר נושא באמצע פעולה', () => {
+  it('"רגע, כמה תיקים פתוחים?" while asked for the customer name: answered from data, not saved as the name', async () => {
+    const start = await startVoiceWorkflow('new_customer', {}, env());
+    expect(start.turn.say).toBe(P.newCustomerOpen);
+    const side = await answerVoiceWorkflow(start.session!, 'רגע, כמה תיקים פתוחים יש לנו היום?', env());
+    expect(side.turn.say).toBe(P.listSummary);
+    expect(side.turn.display).toMatch(/פתוחים: 4/);
+    expect(side.turn.followSay).toBe(P.continueFlowAsk);
+    expect(side.turn.done).toBe(false);
+    expect(side.session?.type).toBe('new_customer');
+    expect(side.session?.data.customerName).toBeUndefined();
+    expect(g.writes).toEqual([]);
+    // continue → the same question again, then the flow goes on normally
+    const back = await answerVoiceWorkflow(side.session!, 'כן, להמשיך', env());
+    expect(back.turn.say).toBe(P.newCustomerOpen);
+    const named = await answerVoiceWorkflow(back.session!, 'יוסי מזרחי', env());
+    expect(named.turn.say).toBe(P.phone);
+    expect(named.session?.data.customerName).toBe('יוסי מזרחי');
+  });
+
+  it('"לא" to "continue?" cancels the interrupted action without saving', async () => {
+    const start = await startVoiceWorkflow('new_customer', {}, env());
+    const side = await answerVoiceWorkflow(start.session!, 'רגע, כמה תיקים פתוחים?', env());
+    const r = await answerVoiceWorkflow(side.session!, 'לא, לבטל', env());
+    expect(r.turn.say).toBe(P.cancelled);
+    expect(r.session).toBeNull();
+    expect(g.writes).toEqual([]);
+  });
+
+  it('a request for another action asks before switching, keeps the draft, and offers to go back', async () => {
+    const { last } = await talk('new_customer', ['רונית', '0541112233']);
+    const ask = await answerVoiceWorkflow(last.session!, 'רגע, אני רוצה לסגור את התיק של דנה', env());
+    expect(ask.turn.say).toBe(P.switchFlowAsk);
+    expect(ask.session?.data.customerName).toBe('רונית');
+    const stay = await answerVoiceWorkflow(ask.session!, 'לא, להישאר', env());
+    expect(stay.turn.say).toBe(P.customerTypeBiz);
+    const ask2 = await answerVoiceWorkflow(stay.session!, 'רגע, אני רוצה לסגור את התיק של דנה', env());
+    const sw = await answerVoiceWorkflow(ask2.session!, 'כן, לעבור', env());
+    expect(sw.session?.type).toBe('close_case');
+    expect(sw.session?.data.returnTo?.type).toBe('new_customer');
+    const cancelled = await answerVoiceWorkflow(sw.session!, 'בטל', env());
+    expect(cancelled.turn.say).toBe(P.cancelled);
+    expect(cancelled.turn.followSay).toBe(P.continueFlowAsk);
+    expect(cancelled.session?.type).toBe('new_customer');
+    const back = await answerVoiceWorkflow(cancelled.session!, 'כן', env());
+    expect(back.turn.say).toBe(P.customerTypeBiz);
+    expect(back.session?.data.customerName).toBe('רונית');
+    expect(g.writes).toEqual([]);
+  });
+
+  it('small talk is answered with a fixed sentence and nothing is saved', async () => {
+    const start = await startVoiceWorkflow('new_customer', {}, env());
+    const r = await answerVoiceWorkflow(start.session!, 'מה שלומך', env());
+    expect(r.turn.say).toBe(P.smallTalkHowAreYou);
+    expect(r.turn.followSay).toBe(P.continueFlowAsk);
+    expect(r.session?.data.customerName).toBeUndefined();
+  });
+
+  it('a question the engine cannot answer goes to the Dalia chat; the flow waits', async () => {
+    const start = await startVoiceWorkflow('new_customer', {}, env());
+    const r = await answerVoiceWorkflow(start.session!, 'רגע, מה ההבדל בין שמן 5W30 ל 5W40?', env());
+    expect(r.turn.say).toBe(P.sideChat);
+    expect(r.turn.handoff).toMatch(/שמן/);
+    expect(r.session?.data.customerName).toBeUndefined();
+  });
+
+  it('a real answer that starts with an action verb stays an answer (intake: "תמצאי את הרכב …")', async () => {
+    const r = await startVoiceWorkflow('existing_customer', {}, env());
+    const found = await answerVoiceWorkflow(r.session!, 'תמצאי את דנה לוי', env());
+    expect(found.turn.followSay).toBeUndefined();
+    expect(found.turn.say).toBe(P.customerOne);
+  });
+
+  it('the existing-customer menu still opens a new work case (menus are not interrupted)', async () => {
+    const r = await startVoiceWorkflow('existing_customer', {}, env());
+    const found = await answerVoiceWorkflow(r.session!, 'דנה לוי', env());
+    const yes = await answerVoiceWorkflow(found.session!, 'כן', env());
+    expect(yes.turn.say).toBe(P.customerMenu);
+    const menu = await answerVoiceWorkflow(yes.session!, 'תפתחי תיק עבודה חדש', env());
+    expect(menu.turn.followSay).toBeUndefined();
+    expect(menu.session?.data.customerAction).toBe('new_case');
+  });
+
+  it('current-state questions use the live case list, explicit periods use reports', () => {
+    expect(routeFreeRequest('כמה תיקים פתוחים יש לנו היום')?.type).toBe('find_case');
+    expect(routeFreeRequest('כמה רכבים יש כרגע במוסך')?.type).toBe('find_case');
+    expect(routeFreeRequest('כמה כסף נכנס השבוע')?.type).toBe('reports');
+  });
+});
+
+describe('שיחה כללית', () => {
+  it('opens a free conversation that stays open after small talk, data answers and chat questions', async () => {
+    const start = await startVoiceWorkflow('general_action', {}, env());
+    expect(start.turn.say).toBe(P.generalChatOpen);
+    const hi = await answerVoiceWorkflow(start.session!, 'מה נשמע', env());
+    expect(hi.turn.say).toBe(P.smallTalkHowAreYou);
+    expect(hi.session?.type).toBe('general_action');
+    const list = await answerVoiceWorkflow(hi.session!, 'כמה תיקים פתוחים יש לנו', env());
+    expect(list.turn.say).toBe(P.listSummary);
+    expect(list.turn.followSay).toBeUndefined();
+    expect(list.turn.done).toBe(false);
+    expect(list.session?.type).toBe('general_action');
+    const chat = await answerVoiceWorkflow(list.session!, 'איך מחליפים מגב', env());
+    expect(chat.turn.say).toBe(P.generalToChat);
+    expect(chat.turn.handoff).toBe('איך מחליפים מגב');
+    expect(chat.turn.done).toBe(false);
+    expect(chat.session?.type).toBe('general_action');
+    const cars = await answerVoiceWorkflow(chat.session!, 'כמה רכבים יש כרגע במוסך', env());
+    expect(cars.turn.display).toMatch(/פתוחים: 4/);
+    const bye = await answerVoiceWorkflow(cars.session!, 'זהו תודה', env());
+    expect(bye.session).toBeNull();
+    expect(g.writes).toEqual([]);
+  });
+
+  it('an action from the general chat runs its own questions and then returns to the chat', async () => {
+    const start = await startVoiceWorkflow('general_action', {}, env());
+    const nc = await answerVoiceWorkflow(start.session!, 'אני רוצה לפתוח לקוח חדש', env());
+    expect(nc.session?.type).toBe('new_customer');
+    const cancelled = await answerVoiceWorkflow(nc.session!, 'בטל', env());
+    expect(cancelled.session?.type).toBe('general_action');
+    expect(cancelled.turn.followSay).toBeUndefined();
+    expect(g.writes).toEqual([]);
+  });
+});

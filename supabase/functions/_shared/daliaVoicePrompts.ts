@@ -267,6 +267,19 @@ export const DALIA_VOICE_PROMPTS = {
   reportShown: 'הדוח מוצג על המסך.',
   reportNoData: 'אין נתונים מתאימים לתקופה ולסינון שבחרת.',
   reportNoPermission: 'אין לך הרשאה לדוחות של המוסך.',
+  // ---------------------------------------------------------------------------
+  // v3: topic switching, general chat, small talk
+  // ---------------------------------------------------------------------------
+  continueFlowAsk: 'תרצה להמשיך בפעולה הקודמת?',
+  switchFlowAsk: 'זו בקשה לפעולה אחרת. לעבור אליה? הטיוטה הנוכחית תישמר ואפשר לחזור אליה.',
+  backToFlowAsk: 'תרצה לחזור לפעולה שהתחלנו קודם?',
+  stayInFlow: 'בסדר, נמשיך מאיפה שהיינו.',
+  sideChat: 'אענה על זה, ואחר כך נמשיך בפעולה.',
+  generalChatOpen: 'שיחה כללית. אפשר לשאול אותי כל דבר, או לבקש פעולה במערכת.',
+  smallTalkHello: 'שלום! אני כאן. במה אוכל לעזור?',
+  smallTalkHowAreYou: 'אני מצוינת, תודה ששאלת. במה אוכל לעזור?',
+  smallTalkThanks: 'בשמחה! אני כאן אם צריך עוד משהו.',
+  caseGapsShown: 'מה שחסר בתיק מוצג על המסך.',
 } as const;
 
 /** Whitespace/Unicode normalisation used for every lookup (prompt set, clip manifest, cache). */

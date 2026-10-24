@@ -1848,3 +1848,91 @@
   .claims-root .dalia-garage-window .claims-ai-icon.send { min-width: 52px; width: 52px; }
   .claims-root .dalia-garage-window .claims-ai-composer { gap: 6px; padding-inline: 8px; }
 }
+
+/* ---------------------------------------------------------------------------
+   v3 garage composer: a large writing area (full width) with the buttons on a row below it,
+   expandable, readable on phones; the mic and send stay reachable
+   --------------------------------------------------------------------------- */
+.claims-root .dalia-garage-window .claims-ai-composer.dalia-composer {
+  flex-wrap: wrap;
+  align-items: center;
+  row-gap: 8px;
+  padding: 10px 14px max(12px, env(safe-area-inset-bottom));
+}
+.claims-root .dalia-garage-window .claims-ai-composer.dalia-composer textarea {
+  order: -1;
+  flex: 1 1 100%;
+  width: 100%;
+  min-height: 96px;
+  max-height: 40vh;
+  font-size: 17px;
+  line-height: 1.55;
+  padding: 14px 16px;
+  border-radius: 18px;
+}
+.claims-root .dalia-garage-window .claims-ai-composer.dalia-composer.is-expanded textarea {
+  min-height: 45vh;
+  max-height: 60vh;
+  height: 45vh !important;
+}
+.claims-root .dalia-garage-window .claims-ai-composer.dalia-composer .claims-ai-icon.send,
+.claims-root .dalia-garage-window .claims-ai-composer.dalia-composer .stop-loading-btn {
+  margin-inline-start: auto;
+  min-width: 88px;
+  height: 52px;
+  border-radius: 16px;
+  font-size: 17px;
+}
+.claims-root .dalia-garage-window .dalia-expand-input { border-radius: 50%; font-size: 22px; }
+@media (max-width: 760px) {
+  .claims-root .dalia-garage-window .claims-ai-composer.dalia-composer { padding: 8px 10px max(10px, env(safe-area-inset-bottom)); row-gap: 6px; }
+  .claims-root .dalia-garage-window .claims-ai-composer.dalia-composer textarea {
+    min-height: 72px;
+    max-height: 32vh;
+    font-size: 16px;
+  }
+  .claims-root .dalia-garage-window .claims-ai-composer.dalia-composer.is-expanded textarea { min-height: 38vh; height: 38vh !important; max-height: 50vh; }
+  .claims-root .dalia-garage-window .claims-ai-composer.dalia-composer .claims-ai-icon.send { min-width: 76px; width: auto; height: 50px; }
+  .claims-root .dalia-garage-window .claims-ai-composer.dalia-composer .claims-ai-icon { width: 46px; height: 46px; min-width: 46px; }
+  .claims-root .dalia-garage-window .claims-ai-composer.dalia-composer .claims-ai-icon[data-testid="claims-ai-mic"] { width: 52px; height: 52px; min-width: 52px; }
+}
+
+/* v3 actions bar: three main chips + "כל הפעולות"; the full list wraps under them and closes on a second click */
+.claims-root .dalia-actions-bar { flex-direction: column; align-items: stretch; gap: 6px; }
+.claims-root .dalia-actions-primary {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.claims-root .dalia-actions-primary > * { flex-shrink: 0; }
+.claims-root .dalia-actions-primary .dalia-actions-toggle { margin-inline-start: auto; }
+.claims-root .dalia-chip-primary { background: var(--bg2); border-color: var(--ac); font-weight: 700; }
+.claims-root .dalia-actions-bar.open .dalia-actions-scroll {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  max-height: 30vh;
+  overflow-y: auto;
+}
+/* lists and reports never cover more than ~40% of the chat or the composer */
+.claims-root .dalia-garage-window .dalia-drawer { max-height: 40%; }
+@media (max-width: 760px) {
+  .claims-root .dalia-garage-window .dalia-drawer { max-height: 40%; }
+  .claims-root .dalia-chip-primary, .claims-root .dalia-actions-toggle { min-height: 34px; padding: 5px 10px; font-size: 12.5px; }
+}
+/* hub: the general chat card stands out */
+.claims-root .garage-action-card.garage-action-card-chat { border-color: var(--ac); box-shadow: 0 0 0 1px var(--ac) inset; }
+@media (max-width: 760px) {
+  /* phones: the general "garage management" description strip gives its room to the conversation */
+  .claims-root .dalia-garage-window .claims-ai-context.dalia-context-general { display: none; }
+}
+/* "כל הפעולות" never scrolls out of view on narrow phones */
+.claims-root .dalia-actions-primary .dalia-actions-toggle {
+  position: sticky;
+  inset-inline-end: 0;
+  z-index: 1;
+  background: var(--bg2);
+  box-shadow: 0 0 0 4px var(--bg2);
+}

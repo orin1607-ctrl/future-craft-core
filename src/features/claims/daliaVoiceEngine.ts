@@ -102,7 +102,7 @@ export const VOICE_WORKFLOW_LABELS: Record<VoiceWorkflowType, string> = {
   find_case: 'איתור תיק עבודה',
   close_case: 'סגירת תיק עבודה',
   resume_action: 'המשך פעולה אחרונה',
-  general_action: 'פעולה כללית',
+  general_action: 'שיחה כללית',
   reports: 'דוחות',
   context_quote_add_work: 'הוספת עבודה להצעה',
   context_quote_add_part: 'הוספת חלק להצעה',
@@ -230,6 +230,12 @@ export interface VoiceData {
   reportDetailAsked?: boolean;
   listIntent?: CaseListIntent;
   resumeOf?: VoiceSession;
+  /** The flow that was interrupted by a side question / another action — offered again when this one ends. */
+  returnTo?: VoiceSession;
+  /** After a side answer: waiting for "continue the previous action?". */
+  awaitingContinue?: boolean;
+  /** Another action was requested mid-flow: waiting for "switch to it?". */
+  pendingSwitch?: { type: VoiceWorkflowType; prefill?: string; data?: Partial<VoiceData> };
 }
 
 export interface VoiceSession {
@@ -259,6 +265,8 @@ export interface VoiceTurn {
   keepForResume?: boolean;
   /** Free request Dalia's engine could not route — send it to the regular Dalia chat. */
   handoff?: string;
+  /** Fixed question spoken right after `say` (e.g. "continue the previous action?" after a side answer). */
+  followSay?: string;
 }
 
 export interface VoiceContext {
@@ -3097,6 +3105,13 @@ export function routeFreeRequest(text: string): { type: VoiceWorkflowType; prefi
   const t = String(text || '').trim();
   if (!t) return null;
   const listIntent = parseCaseListIntent(t);
+  // "how many cases are open (today / now)" is the current state → the live case list, not a period report
+  const period = parsePeriod(t);
+  const explicitPeriod = !!period && period.key !== 'today';
+  if (listIntent && !explicitPeriod) return { type: 'find_case', prefill: t };
+  if (/כמה רכבים (יש )?(לנו )?(כרגע |עכשיו )?(יש )?(במוסך)|כמה רכבים יש (לנו )?(כרגע|עכשיו)/.test(t)) {
+    return { type: 'find_case', prefill: 'תראי לי את כל התיקים הפתוחים' };
+  }
   const reportish = /כמה כסף|הכנס|תקבול|נכנס|דוח|מאזן|לא שולם|יתר|כמה תיקים|כמה רכבים|הצעות מחיר (השבוע|החודש)/.test(t);
   if (reportish) return { type: 'reports', prefill: t };
   if (listIntent) return { type: 'find_case', prefill: t };
@@ -3119,16 +3134,181 @@ export function routeFreeRequest(text: string): { type: VoiceWorkflowType; prefi
   return null;
 }
 
+// -----------------------------------------------------------------------------
+// Topic switching: a side question or another action in the middle of a flow
+// -----------------------------------------------------------------------------
+
+/** Workflows that only show data — answered on the side without leaving the current flow. */
+const INFO_WORKFLOWS: VoiceWorkflowType[] = ['find_case', 'reports'];
+
+// Question words alone; action verbs ("תמצאי", "תפתחי") count only after "רגע", because they are also real answers
+// ("תמצאי את הרכב 12-345-67" inside intake).
+const QUESTION_START = /^(רגע[,.\s]+(כמה|מה|איפה|מתי|למה|איזה|אילו|האם|יש לנו|תגידי|תראי לי|תביאי לי|אני רוצה|בואי|תעברי|תפתחי|תמצאי|תחפשי)|כמה|מה|איפה|מתי|למה|איזה|אילו|האם|יש לנו|תגידי)(?=$|[\s,?])/;
+/** Steps that themselves choose what to do next — their answers are actions by design, so only greetings interrupt. */
+const MENU_STEPS = new Set(['customerAction', 'pickOpenCase', 'listOrSearch', 'general']);
+
+export type SmallTalk = 'hello' | 'howAreYou' | 'thanks';
+/** Short greetings / thanks — answered locally with a fixed sentence. */
+export function detectSmallTalk(text: string): SmallTalk | null {
+  const t = String(text || '').trim().replace(/[.!?,]+/g, '').replace(/\s+/g, ' ');
+  if (/^(דליה )?(מה שלומך|מה נשמע|מה קורה|מה המצב|איך את)( דליה)?$/.test(t)) return 'howAreYou';
+  if (/^(דליה )?(שלום|היי|הי|הלו|בוקר טוב|ערב טוב|צהריים טובים)( דליה)?$/.test(t)) return 'hello';
+  if (/^(תודה|תודה רבה|תודה לך|יופי תודה|מעולה תודה|סבבה תודה)( דליה)?$/.test(t)) return 'thanks';
+  return null;
+}
+export function smallTalkSay(kind: SmallTalk): string {
+  return kind === 'hello' ? P.smallTalkHello : kind === 'howAreYou' ? P.smallTalkHowAreYou : P.smallTalkThanks;
+}
+
+type Interruption =
+  | { kind: 'info'; route: { type: VoiceWorkflowType; prefill?: string; data?: Partial<VoiceData> } }
+  | { kind: 'action'; route: { type: VoiceWorkflowType; prefill?: string; data?: Partial<VoiceData> } }
+  | { kind: 'chat'; text: string }
+  | { kind: 'smalltalk'; talk: SmallTalk };
+
+/**
+ * Is this utterance an answer to the current question, or a new topic?
+ * A new topic needs a clear signal ("רגע, …", a question word, "?", an explicit action phrase) so a real answer
+ * (a name, an address, a work description) is never taken for a question — and a question is never saved as data.
+ */
+export function classifyInterruption(text: string, s: VoiceSession): Interruption | null {
+  const t = String(text || '').trim();
+  if (!t || s.type === 'general_action' || s.type === 'resume_action') return null;
+  const talk = detectSmallTalk(t);
+  const menu = MENU_STEPS.has(currentStep(s)?.id || s.current || '');
+  if (talk && !(menu && talk === 'thanks')) return { kind: 'smalltalk', talk };
+  if (menu) return null;
+  const route = routeFreeRequest(t);
+  // "show me all the open cases" is never an answer to a question inside another flow
+  const signal = QUESTION_START.test(t) || /\?\s*$/.test(t) || (route?.type === 'find_case' && !!parseCaseListIntent(t));
+  // the list / report flows answer each other's questions themselves
+  const bothInfo = !!route && INFO_WORKFLOWS.includes(route.type) && INFO_WORKFLOWS.includes(s.type);
+  if (route && route.type !== s.type && !bothInfo && signal) {
+    return INFO_WORKFLOWS.includes(route.type) ? { kind: 'info', route } : { kind: 'action', route };
+  }
+  // an explicit "open a new customer / close a case …" phrase is clear even without a question word
+  // (the customer search already turns "לקוח חדש" into a new customer by itself)
+  const ownSwitch = s.type === 'existing_customer' && route?.type === 'new_customer';
+  if (route && route.type !== s.type && !ownSwitch && /^(בואי|אני רוצה|תעברי|נעבור|לעבור|תפתחי|תתחילי|נתחיל)( ל| ל?ה| ל?פתוח| ל?עשות| ל?פתיחת)?.{0,12}(לקוח חדש|לקוח|סגירת תיק|לסגור תיק|קבלת רכב|הצעת מחיר)/.test(t)) {
+    return INFO_WORKFLOWS.includes(route.type) ? { kind: 'info', route } : { kind: 'action', route };
+  }
+  // a clear question the engine cannot answer → the regular Dalia chat
+  if (!route && (/^רגע[,.\s]+\S/.test(t) || (/\?\s*$/.test(t) && QUESTION_START.test(t)))) return { kind: 'chat', text: t };
+  return null;
+}
+
+const CONTINUE_CHOICES = choices(['▶ להמשיך', 'כן, להמשיך'], ['✖ לבטל את הפעולה', 'לא, לבטל']);
+const SWITCH_CHOICES = choices(['➡ לעבור', 'כן, לעבור'], ['↩ להישאר', 'לא, להישאר']);
+const GENERAL_CHOICES = choices(
+  ['📂 כמה תיקים פתוחים', 'כמה תיקים פתוחים יש לנו'],
+  ['✅ מוכנים לסגירה', 'אילו תיקים מוכנים לסגירה'],
+  ['💰 כמה כסף נכנס השבוע', 'כמה כסף נכנס השבוע'],
+  ['🔧 רכבים בעבודה', 'תראי לי את כל הרכבים בעבודה'],
+);
+
+function snapshot(s: VoiceSession): VoiceSession {
+  return JSON.parse(JSON.stringify({ ...s, data: { ...s.data, invoiceFile: undefined, awaitingContinue: undefined, pendingSwitch: undefined } }));
+}
+
+/** When a side flow ends, go back to the interrupted one and ask whether to continue it. */
+function resumeAfter(returnTo: VoiceSession | undefined, result: VoiceResult, say: string = P.continueFlowAsk): VoiceResult {
+  if (!returnTo || result.session || result.turn.outcome === 'paused') return result;
+  if (returnTo.type === 'general_action') {
+    // back to the open general chat — no "continue?" question, the chat simply keeps listening
+    return { session: returnTo, turn: { ...result.turn, expectsAnswer: true, done: false, isConfirmation: false } };
+  }
+  returnTo.data.awaitingContinue = true;
+  return {
+    session: returnTo,
+    turn: {
+      ...result.turn,
+      followSay: say,
+      expectsAnswer: true,
+      done: false,
+      isConfirmation: false,
+      ui: [...(result.turn.ui || []), CONTINUE_CHOICES],
+    },
+  };
+}
+
+async function startSide(s: VoiceSession, route: { type: VoiceWorkflowType; prefill?: string; data?: Partial<VoiceData> }, env: VoiceEnv, say: string): Promise<VoiceResult> {
+  const back = snapshot(s);
+  const result = await startVoiceWorkflow(route.type, {}, env, route.prefill, { ...(route.data || {}), returnTo: back });
+  return resumeAfter(back, result, say);
+}
+
+async function handleInterruption(s: VoiceSession, it: Interruption, env: VoiceEnv): Promise<VoiceResult> {
+  switch (it.kind) {
+    case 'smalltalk':
+      s.data.awaitingContinue = true;
+      return { session: s, turn: { say: smallTalkSay(it.talk), followSay: P.continueFlowAsk, ui: [CONTINUE_CHOICES], expectsAnswer: true, done: false } };
+    case 'chat':
+      s.data.awaitingContinue = true;
+      return { session: s, turn: { say: P.sideChat, handoff: it.text, display: 'כשתסיים, אפשר לומר "להמשיך" או "לבטל".', ui: [CONTINUE_CHOICES], expectsAnswer: true, done: false } };
+    case 'info':
+      return startSide(s, it.route, env, P.continueFlowAsk);
+    case 'action':
+      s.data.pendingSwitch = it.route;
+      return { session: s, turn: { say: P.switchFlowAsk, display: `פעולה חדשה: ${VOICE_WORKFLOW_LABELS[it.route.type]}\nהפעולה הנוכחית: ${VOICE_WORKFLOW_LABELS[s.type]}`, ui: [SWITCH_CHOICES], expectsAnswer: true, isConfirmation: false, done: false } };
+  }
+}
+
+const CONTINUE_WORDS = /המשך|להמשיך|נמשיך|תמשיכי|ממשיכים|לחזור|נחזור|חזרה לפעולה/;
+const STAY_WORDS = /להישאר|נישאר|תישארי|לא לעבור/;
+
+/** The answer to "continue the previous action?" or "switch to the other action?". */
+async function answerPending(s: VoiceSession, answer: string, env: VoiceEnv): Promise<VoiceResult | null> {
+  const yn = parseYesNo(answer);
+  if (s.data.pendingSwitch) {
+    const route = s.data.pendingSwitch;
+    if (STAY_WORDS.test(answer) || yn === 'no' || detectCommand(answer) === 'cancel') {
+      s.data.pendingSwitch = undefined;
+      return { session: s, turn: await advance(s, env, P.stayInFlow) };
+    }
+    if (yn === 'yes' || /לעבור|נעבור|תעברי/.test(answer)) {
+      s.data.pendingSwitch = undefined;
+      return startSide(s, route, env, P.backToFlowAsk);
+    }
+    return { session: s, turn: askTurn({ say: P.switchFlowAsk, ui: [SWITCH_CHOICES] }) };
+  }
+  if (s.data.awaitingContinue) {
+    if (CONTINUE_WORDS.test(answer) || yn === 'yes') {
+      s.data.awaitingContinue = undefined;
+      return { session: s, turn: await advance(s, env, s.filled.length ? recap(s) : undefined) };
+    }
+    if (yn === 'no' || detectCommand(answer) === 'cancel' || /לבטל/.test(answer)) {
+      return { session: null, turn: { say: P.cancelled, expectsAnswer: false, done: true, outcome: 'cancelled' } };
+    }
+    // another side question while waiting — answer it too
+    const it = classifyInterruption(answer, s) || (() => {
+      const route = routeFreeRequest(answer);
+      if (!route || route.type === s.type) return null;
+      return INFO_WORKFLOWS.includes(route.type) ? { kind: 'info', route } as Interruption : { kind: 'action', route } as Interruption;
+    })();
+    if (it) {
+      s.data.awaitingContinue = undefined;
+      return handleInterruption(s, it, env);
+    }
+    return { session: s, turn: askTurn({ say: P.continueFlowAsk, ui: [CONTINUE_CHOICES] }) };
+  }
+  return null;
+}
+
 function generalFlow(): Step[] {
   return [
     {
       id: 'general',
       done: () => false,
-      ask: (_d, _s, env) => ({ ...personal(env, P.generalAsk), ui: [choices(['📂 כל התיקים הפתוחים', 'תראי לי את כל התיקים הפתוחים'], ['✅ מוכנים לסגירה', 'אילו תיקים מוכנים לסגירה'], ['💰 כמה כסף נכנס השבוע', 'כמה כסף נכנס השבוע'], ['🔧 רכבים בעבודה', 'תראי לי את כל הרכבים בעבודה'])] }),
-      answer: (text) => {
+      ask: (_d, _s, env) => ({ ...personal(env, P.generalChatOpen), ui: [GENERAL_CHOICES] }),
+      answer: (text, s) => {
+        // general chat stays open: greetings are answered here, system requests go to their flow and come
+        // back here, anything else is answered by the regular Dalia chat
+        if (/^(זהו|סיימתי|סיימנו|ביי|להתראות|יום טוב)( תודה)?$/.test(text.trim())) return finish(P.okDone, 'info');
+        const talk = detectSmallTalk(text);
+        if (talk) return reask(smallTalkSay(talk), undefined, [GENERAL_CHOICES]);
         const route = routeFreeRequest(text);
-        if (!route) return finish(P.generalToChat, 'info', { handoff: text });
-        return { kind: 'switch', type: route.type, data: route.data, prefill: route.prefill };
+        if (!route) return finish(P.generalToChat, 'info', { handoff: text, expectsAnswer: true, done: false, keepForResume: true });
+        return { kind: 'switch', type: route.type, data: { ...(route.data || {}), returnTo: snapshot(s) }, prefill: route.prefill };
       },
       clear: () => {},
     },
@@ -3341,8 +3521,18 @@ export async function startVoiceWorkflow(type: VoiceWorkflowType, ctx: VoiceCont
 
 /** Processes one spoken (or typed) answer. */
 export async function answerVoiceWorkflow(s: VoiceSession, text: string, env: VoiceEnv): Promise<VoiceResult> {
+  const returnTo = s.data.returnTo;
+  const result = await answerInner(s, text, env);
+  // the side flow ended → back to the interrupted one (its own "continue?" question)
+  return result.session === null ? resumeAfter(returnTo, result) : result;
+}
+
+async function answerInner(s: VoiceSession, text: string, env: VoiceEnv): Promise<VoiceResult> {
   const answer = String(text || '').trim();
   touch(s, env);
+
+  const pending = await answerPending(s, answer, env);
+  if (pending) return pending;
 
   if (s.type === 'resume_action') {
     const saved = s.data.resumeOf;
@@ -3387,6 +3577,10 @@ export async function answerVoiceWorkflow(s: VoiceSession, text: string, env: Vo
     return { session: s, turn: askTurn(step.ask(s.data, s, env), join('לא הבנתי איזה פרט לתקן.', HELP_TEXT)) };
   }
 
+  // a side question / another action → answered on the side, never saved as the answer to this step
+  const interruption = classifyInterruption(answer, s);
+  if (interruption) return handleInterruption(s, interruption, env);
+
   const out = await runStep(step, answer, s, env);
   return applyOutcome(s, step, out, env);
 }
@@ -3404,7 +3598,8 @@ export async function answerVoiceFile(s: VoiceSession, file: VoiceFile, env: Voi
   } catch (e) {
     out = e instanceof NoActionsError ? finish(P.noActions, 'failed') : failed(e);
   }
-  return applyOutcome(s, step, out, env);
+  const result = await applyOutcome(s, step, out, env);
+  return result.session === null ? resumeAfter(s.data.returnTo, result) : result;
 }
 
 async function runStepless(fn: () => Promise<Outcome | null>): Promise<Outcome | null> {
@@ -3446,9 +3641,11 @@ async function applyOutcome(s: VoiceSession, step: Step, out: Outcome, env: Voic
       const carry: Partial<VoiceData> = {
         customerId: s.data.customerId,
         customerLabel: s.data.customerLabel,
+        returnTo: s.data.returnTo,
         ...(out.data || {}),
       };
-      return startVoiceWorkflow(out.type, {}, env, out.prefill, Object.fromEntries(Object.entries(carry).filter(([, v]) => v !== undefined)));
+      const started = await startVoiceWorkflow(out.type, {}, env, out.prefill, Object.fromEntries(Object.entries(carry).filter(([, v]) => v !== undefined)));
+      return started.session === null ? resumeAfter(carry.returnTo, started) : started;
     }
   }
 }
