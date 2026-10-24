@@ -277,10 +277,10 @@ describe('לקוח חדש', () => {
     const { last, says, transcript } = await talk('new_customer', [
       'קוראים לו יוסי מזרחי', '0525551234', 'פרטי', 'כן',
       'בדיבור', '12-345-99', 'טויוטה קורולה', '2019', 'כן',
-      'כן', 'רעש בבלמים', 'לא',
+      'פתיחת עבודה', 'רעש בבלמים', 'לא',
     ]);
     expect(says.slice(0, 5)).toEqual([P.newCustomerOpen, P.phone, P.customerTypeBiz, P.confirmCustomer, P.vehicleChoice]);
-    expect(says.slice(5, 10)).toEqual([P.vehiclePlate, P.model, P.year, P.vehicleConfirm, P.vehicleSavedOpenWork]);
+    expect(says.slice(5, 10)).toEqual([P.vehiclePlate, P.model, P.year, P.vehicleConfirm, P.customerDoneOfferQuote]);
     expect(g.writes).toEqual(['createCustomer', 'createVehicle']);
     expect(last.turn.isConfirmation).toBe(true);
     const done = await answerVoiceWorkflow(last.session!, 'כן', env());
@@ -346,9 +346,12 @@ describe('לקוח חדש', () => {
     expect(last.turn.say).toBe(P.licenseReadFailed);
   });
 
-  it('"בלי רכב" after the customer is saved ends with the customer only', async () => {
+  it('"בלי רכב" after the customer is saved → the closing offer → "לא, תודה" ends with the customer only', async () => {
     const { last } = await talk('new_customer', ['שרה', '0541112233', 'פרטי', 'כן', 'בלי רכב']);
-    expect(last.turn.say).toBe(P.customerOnlyCreated);
+    expect(last.turn.say).toBe(P.customerDoneOfferQuote);
+    const end = await answerVoiceWorkflow(last.session!, 'לא, תודה', env());
+    expect(end.turn.say).toBe(P.finishedPolite);
+    expect(end.session).toBeNull();
     expect(g.writes).toEqual(['createCustomer']);
   });
 
@@ -992,5 +995,82 @@ describe('שאלה חופשית ארוכה לא מפעילה חיפוש', () => 
   it('long requests that start with a clear command are still routed', () => {
     expect(routeFreeRequest('תמצאי לי את התיק של משה כהן שהגיע אתמול עם רעש בבלמים בבקשה')?.type).toBe('find_case');
     expect(routeFreeRequest('כמה כסף נכנס השבוע מכל התשלומים של הלקוחות הפרטיים והעסקיים יחד')?.type).toBe('reports');
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// v4: quote for the customer being opened, the closing offer, stop words in front of an answer
+// ---------------------------------------------------------------------------
+
+describe('לקוח חדש → הצעת מחיר לאותו לקוח', () => {
+  it('"דליה, עצרי. תפתחי לי גם הצעת מחיר ללקוח הזה" mid-flow: noted, details kept, no double record, quote for the same case', async () => {
+    const { last } = await talk('new_customer', ['יוסי מזרחי', '0525551234']);
+    expect(last.turn.say).toBe(P.customerTypeBiz);
+    const noted = await answerVoiceWorkflow(last.session!, 'דליה, עצרי. תפתחי לי גם הצעת מחיר ללקוח הזה', env());
+    expect(noted.turn.say).toBe(P.quoteAfterCustomer);
+    expect(noted.turn.followSay).toBe(P.customerTypeBiz); // the same open question — nothing asked twice
+    expect(noted.session?.type).toBe('new_customer');
+    expect(noted.session?.data.customerName).toBe('יוסי מזרחי');
+    expect(noted.session?.data.customerPhone).toBeTruthy();
+    expect(g.writes).toEqual([]);
+    let r = noted;
+    const says: string[] = [];
+    for (const a of ['פרטי', 'כן', 'בדיבור', '12-345-99', 'טויוטה קורולה', '2019', 'כן', 'רעש בבלמים', 'לא']) {
+      r = await answerVoiceWorkflow(r.session!, a, env());
+      says.push(r.turn.say);
+    }
+    // the closing offer is NOT asked again (the quote was already requested)
+    expect(says).not.toContain(P.customerDoneOfferQuote);
+    expect(r.turn.isConfirmation).toBe(true);
+    const created = await answerVoiceWorkflow(r.session!, 'כן', env());
+    expect(g.writes).toEqual(['createCustomer', 'createVehicle', 'createCase']);
+    expect(created.turn.say).toBe(P.caseCreatedToQuote);
+    expect(created.turn.followSay).toBe(P.works);
+    expect(created.session?.type).toBe('quote');
+    expect(created.session?.data.caseFromContext).toBe(true);
+    const caseId = created.session?.data.caseId;
+    expect(g.cases.find((c) => c.id === caseId)?.customer_name_snapshot).toBe('יוסי מזרחי');
+    expect(g.customers.filter((c) => c.name === 'יוסי מזרחי')).toHaveLength(1);
+  });
+
+  it('closing offer: "כן, הצעת מחיר" → work case → quote for that case; asked once only', async () => {
+    const { last } = await talk('new_customer', ['רונית', '0541112233', 'פרטי', 'כן', 'בדיבור', '12-345-77', 'מאזדה 3', '2020', 'כן']);
+    expect(last.turn.say).toBe(P.customerDoneOfferQuote);
+    expect(g.writes).toEqual(['createCustomer', 'createVehicle']); // the offer comes only after the real save
+    let r = await answerVoiceWorkflow(last.session!, 'כן, הצעת מחיר', env());
+    expect(r.turn.say).toBe(P.complaint);
+    r = await answerVoiceWorkflow(r.session!, 'פנס שבור', env());
+    r = await answerVoiceWorkflow(r.session!, 'כן', env());
+    expect(r.turn.isConfirmation).toBe(true);
+    r = await answerVoiceWorkflow(r.session!, 'כן', env());
+    expect(r.turn.say).toBe(P.caseCreatedToQuote);
+    expect(r.session?.type).toBe('quote');
+  });
+
+  it('closing offer: another task switches with the customer kept', async () => {
+    const { last } = await talk('new_customer', ['רונית', '0541112233', 'פרטי', 'כן', 'בלי רכב']);
+    const r = await answerVoiceWorkflow(last.session!, 'תמצאי לי את התיק 42', env());
+    expect(r.turn.say).not.toBe(P.choiceRetry);
+    expect(r.session?.type ?? 'find_case').not.toBe('new_customer');
+    expect(g.writes).toEqual(['createCustomer']);
+  });
+
+  it('a quote without a vehicle asks for the vehicle instead of inventing one', async () => {
+    const { last } = await talk('new_customer', ['רונית', '0541112233', 'פרטי', 'כן', 'בלי רכב']);
+    const r = await answerVoiceWorkflow(last.session!, 'כן, הצעת מחיר', env());
+    expect(r.turn.say).toBe(P.quoteNeedsVehicle);
+    const again = await answerVoiceWorkflow(r.session!, 'בלי רכב', env());
+    expect(again.turn.say).toBe(P.quoteNeedsVehicle);
+    const drop = await answerVoiceWorkflow(again.session!, 'בלי הצעת מחיר', env());
+    expect(drop.turn.say).toBe(P.customerOnlyCreated);
+    expect(g.writes).toEqual(['createCustomer']);
+  });
+
+  it('"דליה, עצרי" alone is the stop command, never recorded as an answer', async () => {
+    const start = await startVoiceWorkflow('new_customer', {}, env());
+    const r = await answerVoiceWorkflow(start.session!, 'דליה, עצרי', env());
+    expect(r.turn.outcome).toBe('paused');
+    expect(r.session?.data.customerName).toBeUndefined();
   });
 });

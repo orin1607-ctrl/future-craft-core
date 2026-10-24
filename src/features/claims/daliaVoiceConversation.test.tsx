@@ -42,7 +42,13 @@ const violations: string[] = [];
 let spoken: string[] = [];
 let speakingNow: Utter | null = null;
 let recs: FakeRec[] = [];
-const activeRecs = () => recs.filter((r) => r.active);
+/** Answer microphones (the stop-word listener that runs while Dalia speaks is not one of them). */
+const activeRecs = () => recs.filter((r) => r.active && !r.daliaBarge);
+const bargeRecs = () => recs.filter((r) => r.active && r.daliaBarge);
+/** How long a fake sentence lasts, and whether opening a mic cuts the speech (some Android phones). */
+let speechMs = 80;
+let cutOnMic = false;
+let micDenied = false;
 
 class FakeRec {
   lang = '';
@@ -53,12 +59,23 @@ class FakeRec {
   onerror: ((e: unknown) => void) | null = null;
   onstart: (() => void) | null = null;
   active = false;
+  daliaBarge?: boolean;
   constructor() { recs.push(this); }
   start() {
     if (this.active) throw new Error('InvalidStateError');
-    if (activeRecs().length) violations.push('two microphones open');
-    if (speakingNow) violations.push(`mic opened while Dalia speaks: ${speakingNow.text}`);
+    if (micDenied) {
+      setTimeout(() => { this.onerror?.({ error: 'not-allowed' }); this.onend?.(); }, 0);
+      return;
+    }
+    if (recs.some((r) => r !== this && r.active)) violations.push('two microphones open');
+    if (speakingNow && !this.daliaBarge) violations.push(`mic opened while Dalia speaks: ${speakingNow.text}`);
     this.active = true;
+    if (cutOnMic && speakingNow) {
+      // this phone stops the speech as soon as a microphone opens
+      const u = speakingNow;
+      speakingNow = null;
+      setTimeout(() => u.onend?.(), 0);
+    }
   }
   stop() { this.end(); }
   abort() { this.end(); }
@@ -74,13 +91,16 @@ function installPhone() {
   spoken = [];
   speakingNow = null;
   recs = [];
+  speechMs = 80;
+  cutOnMic = false;
+  micDenied = false;
   const synth = {
     get speaking() { return !!speakingNow; },
     pending: false,
     paused: false,
     speak: vi.fn((u: Utter) => {
       if (speakingNow) violations.push(`two sentences at once: "${speakingNow.text}" + "${u.text}"`);
-      if (activeRecs().length) violations.push(`Dalia speaks while the mic is open: ${u.text}`);
+      if (activeRecs().length || bargeRecs().length) violations.push(`Dalia speaks while a mic is open: ${u.text}`);
       speakingNow = u;
       spoken.push(u.text);
       setTimeout(() => { if (speakingNow === u) u.onstart?.(); }, 10);
@@ -88,7 +108,7 @@ function installPhone() {
         if (speakingNow !== u) return;
         speakingNow = null;
         u.onend?.();
-      }, 80);
+      }, speechMs);
     }),
     cancel: vi.fn(() => {
       const u = speakingNow;
@@ -392,5 +412,109 @@ describe('one continuous conversation — 24 exchanges', () => {
     expect(spoken[spoken.length - 1]).toBe(P.findOpen);
     expect(violations).toEqual([]);
     expect(activeRecs().length).toBeLessThanOrEqual(1);
+  }, 30000);
+});
+
+
+// ---------------------------------------------------------------------------
+// Barge-in: "דליה, עצרי" while she speaks
+// ---------------------------------------------------------------------------
+
+const res = (t: string, isFinal: boolean) => Object.assign([{ transcript: t }], { isFinal });
+function deliver(rec: FakeRec, text: string) {
+  act(() => {
+    rec.onresult?.({ resultIndex: 0, results: [res(text, false)] });
+    rec.onresult?.({ resultIndex: 0, results: [res(text, true)] });
+  });
+}
+function renderWindow() {
+  return render(
+    <div className="claims-root">
+      <ClaimsAiWorkspace open onClose={vi.fn()} claim={null} userId="u-1" companyName="מוסך" module="garage" garageVoiceActions={garage as never} onOpenGarageCase={vi.fn()} />
+    </div>,
+  );
+}
+
+describe('עצירה קולית בזמן שדליה מדברת (barge-in)', () => {
+  it('Dalia hearing her own sentence never stops her; "דליה, עצרי" stops at once and the same mic takes the answer', async () => {
+    speechMs = 4000;
+    renderWindow();
+    fireEvent.click(screen.getByTestId('garage-action-new-customer'));
+    await waitFor(() => expect(speakingNow?.text).toBe(P.newCustomerOpen));
+    await waitFor(() => expect(bargeRecs()).toHaveLength(1), { timeout: 2000 });
+    const rec = bargeRecs()[0];
+    // echo: the mic picks up Dalia's own question — not a command
+    deliver(rec, P.newCustomerOpen);
+    await new Promise((r) => setTimeout(r, 200));
+    expect(speakingNow?.text).toBe(P.newCustomerOpen);
+    // the worker: "דליה, עצרי — יוסי בדיקה"
+    deliver(rec, 'דליה עצרי');
+    await waitFor(() => expect(speakingNow).toBeNull(), { timeout: 500 });
+    expect(activeRecs()).toEqual([rec]); // the same microphone keeps listening
+    speechMs = 80;
+    deliver(rec, 'דליה עצרי יוסי בדיקה');
+    await nextSentence(P.phone);
+    expect(spoken.filter((t) => t === P.newCustomerOpen)).toHaveLength(1); // the stopped question is not repeated
+    expect(screen.getAllByText(/יוסי בדיקה/).length).toBeGreaterThan(0);
+    expect(violations).toEqual([]);
+  }, 30000);
+
+  it('stop + a new instruction in one breath: quote for the same customer, details kept, the open question asked once', async () => {
+    renderWindow();
+    fireEvent.click(screen.getByTestId('garage-action-new-customer'));
+    await nextSentence(P.newCustomerOpen);
+    speechMs = 4000; // the next question (phone) is long enough to interrupt
+    await userSays('יוסי בדיקה');
+    await waitFor(() => expect(speakingNow?.text).toBe(P.phone), { timeout: 4000 });
+    await waitFor(() => expect(bargeRecs()).toHaveLength(1), { timeout: 2000 });
+    const rec = bargeRecs()[0];
+    speechMs = 80;
+    deliver(rec, 'דליה עצרי תפתחי לי גם הצעת מחיר ללקוח הזה');
+    await waitFor(() => expect(spoken).toContain(P.quoteAfterCustomer), { timeout: 4000 });
+    await waitFor(() => expect(spoken[spoken.length - 1]).toBe(P.phone), { timeout: 4000 });
+    await userSays('0525551234');
+    await nextSentence(P.customerTypeBiz);
+    expect(garage.createCustomer).not.toHaveBeenCalled();
+    expect(violations).toEqual([]);
+  }, 30000);
+
+  it('"עצרי" alone: Dalia stops and waits for the next words — nothing is sent as an answer', async () => {
+    speechMs = 4000;
+    renderWindow();
+    fireEvent.click(screen.getByTestId('garage-action-new-customer'));
+    await waitFor(() => expect(bargeRecs()).toHaveLength(1), { timeout: 2500 });
+    const rec = bargeRecs()[0];
+    deliver(rec, 'עצרי');
+    await waitFor(() => expect(speakingNow).toBeNull(), { timeout: 500 });
+    await new Promise((r) => setTimeout(r, 1800)); // longer than the silence timeout
+    expect(spoken).toHaveLength(1); // no reply, no repeat
+    expect(activeRecs()).toHaveLength(1); // still listening
+    speechMs = 80;
+    deliver(rec, 'עצרי דנה טסט');
+    await nextSentence(P.phone);
+    expect(violations).toEqual([]);
+  }, 30000);
+
+  it('a phone that cuts speech when the mic opens: barge-in switches itself off, says so, and replays the cut question once', async () => {
+    speechMs = 4000;
+    cutOnMic = true;
+    renderWindow();
+    fireEvent.click(screen.getByTestId('garage-action-new-customer'));
+    await waitFor(() => expect(screen.getByTestId('claims-ai-error').textContent).toContain('עצירה בקול כבויה'), { timeout: 4000 });
+    await waitFor(() => expect(spoken).toHaveLength(2), { timeout: 3000 });
+    expect(spoken).toEqual([P.newCustomerOpen, P.newCustomerOpen]); // replayed once because the phone cut it
+    // the replay plays to the end: no stop-word listener anymore
+    await new Promise((r) => setTimeout(r, 800));
+    expect(bargeRecs()).toHaveLength(0);
+    expect(speakingNow?.text).toBe(P.newCustomerOpen);
+  }, 30000);
+
+  it('microphone permission off: a clear message, voice listening stops, typing still works', async () => {
+    micDenied = true;
+    renderWindow();
+    fireEvent.click(screen.getByTestId('garage-action-new-customer'));
+    await waitFor(() => expect(screen.getByTestId('claims-ai-error').textContent).toContain('אין לדליה גישה למיקרופון'), { timeout: 4000 });
+    typeAnswer('יוסי בדיקה');
+    await waitFor(() => expect(spoken[spoken.length - 1]).toBe(P.phone), { timeout: 4000 });
   }, 30000);
 });

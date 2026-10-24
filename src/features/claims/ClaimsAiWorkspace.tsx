@@ -354,6 +354,20 @@ async function invokeDaliaTts(text: string): Promise<CloudSynthResult> {
   return { ok: true, url };
 }
 
+/** Words that stop Dalia while she speaks ("דליה, עצרי", "רגע", "חכי"). */
+const STOP_WORDS = new Set(['דליה', 'עצרי', 'תעצרי', 'עצור', 'תעצור', 'חכי', 'תחכי', 'רגע', 'stop']);
+function stopWordTokens(text: string): string[] {
+  return String(text || '').toLowerCase().replace(/[.,!?״"'׳]/g, ' ').split(/\s+/).filter((w) => STOP_WORDS.has(w));
+}
+function isOnlyStopWords(text: string): boolean {
+  const words = String(text || '').toLowerCase().replace(/[.,!?״"'׳]/g, ' ').split(/\s+/).filter(Boolean);
+  return words.length > 0 && words.every((w) => STOP_WORDS.has(w));
+}
+/** "דליה, עצרי. תפתחי לי…" → "תפתחי לי…" ("רגע, כמה…" keeps its "רגע": it marks a side question). */
+function stripStopWords(text: string): string {
+  return String(text || '').replace(/^\s*((דליה|עצרי|תעצרי|עצור|תעצור|חכי|תחכי|stop)[\s,.!]*)+/i, '').trim();
+}
+
 /**
  * Only ONE Dalia window may talk or listen at a time. Each window instance takes a token when it mounts;
  * an older (closed / replaced) instance whose timers fire later can no longer open the mic or speak.
@@ -3400,11 +3414,32 @@ export function ClaimsAiWorkspace({
     }
   }, []);
 
+  /** Listener that runs WHILE Dalia speaks and reacts only to a stop word ("דליה, עצרי"). */
+  const bargeRecRef = useRef<SpeechRec | null>(null);
+  const bargeStartedAtRef = useRef(0);
+  /** Set to the speakThenListen call whose sentence the user stopped — that call must not open another mic. */
+  const bargeConvertedRef = useRef<object | null>(null);
+  /** Off when this phone cuts Dalia's speech as soon as a mic opens (seen on some Android phones). */
+  const bargeSupportedRef = useRef(true);
+
+  const stopBargeIn = useCallback(() => {
+    const rec = bargeRecRef.current;
+    bargeRecRef.current = null;
+    if (!rec) return;
+    try {
+      rec.onresult = null;
+      rec.onerror = null;
+      rec.onend = null;
+      rec.stop();
+    } catch {}
+  }, []);
+
   const stopVoiceRecognition = useCallback(() => {
     if (voiceSilenceTimerRef.current) {
       clearTimeout(voiceSilenceTimerRef.current);
       voiceSilenceTimerRef.current = null;
     }
+    stopBargeIn();
     if (voiceRecognitionRef.current) {
       try {
         voiceRecognitionRef.current.onresult = null;
@@ -3414,7 +3449,93 @@ export function ClaimsAiWorkspace({
       } catch {}
       voiceRecognitionRef.current = null;
     }
+  }, [stopBargeIn]);
+
+  /** A clear message when the microphone cannot be used (permission off / no microphone). */
+  const reportMicError = useCallback((error: string) => {
+    if (error === 'not-allowed' || error === 'service-not-allowed') {
+      setVoiceModeActive(false);
+      voiceModeActiveRef.current = false;
+      voicePhaseRef.current = 'idle';
+      setVoicePhase('idle');
+      setBanner('🎙️ אין לדליה גישה למיקרופון. כדי לדבר איתה: לחצו על סמל המנעול ליד כתובת האתר ← הרשאות ← מיקרופון ← אפשר, ורעננו. בינתיים אפשר להקליד בתיבה למטה.');
+      return true;
+    }
+    if (error === 'audio-capture') {
+      setBanner('🎙️ לא נמצא מיקרופון פעיל במכשיר. אפשר להקליד בתיבה למטה.');
+      return true;
+    }
+    return false;
   }, []);
+
+  const startVoiceListeningRef = useRef<() => void>(() => {});
+
+  /** The normal listener: one sentence, sent after a short silence. Also used for a mic taken over from barge-in. */
+  const attachMainListener = useCallback((rec: SpeechRec, fromBarge = false) => {
+    const submit = (userText: string) => {
+      stopVoiceRecognition();
+      voicePhaseRef.current = 'processing';
+      setVoicePhase('processing');
+      setLiveTranscript('');
+      if (currentVoiceWorkflowRef.current && handleVoiceWorkflowInputRef.current) {
+        void handleVoiceWorkflowInputRef.current(userText);
+      } else {
+        void sendRef.current(userText, 'voice');
+      }
+    };
+    rec.onresult = (ev) => {
+      if (!voiceModeActiveRef.current || (voicePhaseRef.current !== 'listening' && voicePhaseRef.current !== 'waiting_confirm') || voiceMutedRef.current) return;
+      // Android repeats earlier text inside later results — merge, never concatenate blindly
+      let full = mergeRecognitionResults(ev.results as ArrayLike<{ isFinal: boolean; 0?: { transcript?: string } }>).full;
+      // after "דליה, עצרי" the stop words are not part of the answer; "עצרי" alone = just listen
+      if (fromBarge) full = isOnlyStopWords(full) ? '' : stripStopWords(full);
+      pendingVoiceTextRef.current = full;
+      setLiveTranscript(full);
+
+      if (voiceSilenceTimerRef.current) {
+        clearTimeout(voiceSilenceTimerRef.current);
+        voiceSilenceTimerRef.current = null;
+      }
+
+      if (full) {
+        voiceSilenceTimerRef.current = setTimeout(() => {
+          if (!voiceModeActiveRef.current || (voicePhaseRef.current !== 'listening' && voicePhaseRef.current !== 'waiting_confirm')) return;
+          const userText = full.trim();
+          if (!userText) return;
+          pendingVoiceTextRef.current = '';
+          submit(userText);
+        }, 1300);
+      }
+    };
+
+    rec.onerror = (ev) => {
+      diagLog('rec.onerror', String(ev.error));
+      if (reportMicError(String(ev.error))) stopVoiceRecognition();
+    };
+
+    rec.onend = () => {
+      const heard = pendingVoiceTextRef.current.trim();
+      if (heard && voiceSilenceTimerRef.current && voiceModeActiveRef.current) {
+        clearTimeout(voiceSilenceTimerRef.current);
+        voiceSilenceTimerRef.current = null;
+        pendingVoiceTextRef.current = '';
+        submit(heard);
+        return;
+      }
+      if (voiceModeActiveRef.current && ownsVoice() && (voicePhaseRef.current === 'listening' || voicePhaseRef.current === 'waiting_confirm')) {
+        try {
+          rec.start();
+        } catch {
+          setTimeout(() => {
+            if (voiceModeActiveRef.current && (voicePhaseRef.current === 'listening' || voicePhaseRef.current === 'waiting_confirm')) {
+              startVoiceListeningRef.current();
+            }
+          }, 300);
+        }
+      }
+    };
+    voiceRecognitionRef.current = rec;
+  }, [reportMicError, stopVoiceRecognition]);
 
   const startVoiceListening = useCallback(() => {
     if (!voiceModeActiveRef.current) return;
@@ -3440,6 +3561,7 @@ export function ClaimsAiWorkspace({
     voicePhaseRef.current = targetPhase;
     setVoicePhase(targetPhase);
     setLiveTranscript('');
+    pendingVoiceTextRef.current = '';
 
     const rec = new Ctor();
     rec.lang = 'he-IL';
@@ -3449,81 +3571,7 @@ export function ClaimsAiWorkspace({
     diagLog('listen-start', `phase=${voicePhaseRef.current} synthSpeaking=${window.speechSynthesis?.speaking}`);
     rec.onstart = () => diagLog('rec.onstart');
     (rec as any).onaudiostart = () => diagLog('rec.onaudiostart');
-    rec.onresult = (ev) => {
-      if (!voiceModeActiveRef.current || (voicePhaseRef.current !== 'listening' && voicePhaseRef.current !== 'waiting_confirm') || voiceMutedRef.current) return;
-      // Android repeats earlier text inside later results — merge, never concatenate blindly
-      const full = mergeRecognitionResults(ev.results as ArrayLike<{ isFinal: boolean; 0?: { transcript?: string } }>).full;
-      pendingVoiceTextRef.current = full;
-      setLiveTranscript(full);
-
-      if (voiceSilenceTimerRef.current) {
-        clearTimeout(voiceSilenceTimerRef.current);
-        voiceSilenceTimerRef.current = null;
-      }
-
-      if (full) {
-        voiceSilenceTimerRef.current = setTimeout(() => {
-          if (!voiceModeActiveRef.current || (voicePhaseRef.current !== 'listening' && voicePhaseRef.current !== 'waiting_confirm')) return;
-          const userText = full.trim();
-          if (!userText) return;
-          pendingVoiceTextRef.current = '';
-
-          stopVoiceRecognition();
-          voicePhaseRef.current = 'processing';
-          setVoicePhase('processing');
-          setLiveTranscript('');
-
-          if (currentVoiceWorkflowRef.current && handleVoiceWorkflowInputRef.current) {
-            void handleVoiceWorkflowInputRef.current(userText);
-          } else {
-            void sendRef.current(userText, 'voice');
-          }
-        }, 1300);
-      }
-    };
-
-    rec.onerror = (ev) => {
-      diagLog('rec.onerror', String(ev.error));
-      if (ev.error === 'not-allowed') {
-        setVoiceModeActive(false);
-        voiceModeActiveRef.current = false;
-        setVoicePhase('idle');
-        setBanner('הגישה למיקרופון נחסמה בהגדרות הדפדפן.');
-        stopVoiceRecognition();
-      }
-    };
-
-    rec.onend = () => {
-      const heard = pendingVoiceTextRef.current.trim();
-      if (heard && voiceSilenceTimerRef.current && voiceModeActiveRef.current) {
-        clearTimeout(voiceSilenceTimerRef.current);
-        voiceSilenceTimerRef.current = null;
-        pendingVoiceTextRef.current = '';
-        stopVoiceRecognition();
-        voicePhaseRef.current = 'processing';
-        setVoicePhase('processing');
-        setLiveTranscript('');
-        if (currentVoiceWorkflowRef.current && handleVoiceWorkflowInputRef.current) {
-          void handleVoiceWorkflowInputRef.current(heard);
-        } else {
-          void sendRef.current(heard, 'voice');
-        }
-        return;
-      }
-      if (voiceModeActiveRef.current && (voicePhaseRef.current === 'listening' || voicePhaseRef.current === 'waiting_confirm')) {
-        try {
-          rec.start();
-        } catch {
-          setTimeout(() => {
-            if (voiceModeActiveRef.current && (voicePhaseRef.current === 'listening' || voicePhaseRef.current === 'waiting_confirm')) {
-              startVoiceListening();
-            }
-          }, 300);
-        }
-      }
-    };
-
-    voiceRecognitionRef.current = rec;
+    attachMainListener(rec);
     try {
       rec.start();
     } catch {
@@ -3533,7 +3581,61 @@ export function ClaimsAiWorkspace({
         }
       }, 300);
     }
-  }, [stopSpeaking, stopVoiceRecognition]);
+  }, [attachMainListener, stopSpeaking, stopVoiceRecognition]);
+  startVoiceListeningRef.current = startVoiceListening;
+
+  /**
+   * Barge-in: while Dalia speaks, listen ONLY for a stop word. Her own sentence is never a command — a
+   * stop word that is part of what she is saying is ignored (echo guard). On a real stop the speech is
+   * cancelled at once and the same microphone keeps listening, so "…תפתחי לי גם הצעת מחיר" is not lost.
+   */
+  const startBargeIn = useCallback((spokenText: string, token: object) => {
+    if (!bargeSupportedRef.current || moduleRef.current !== 'garage') return;
+    if (!voiceModeActiveRef.current || voiceMutedRef.current || !ownsVoice()) return;
+    if (voiceRecognitionRef.current || bargeRecRef.current || !speechController.isActive()) return;
+    const Ctor = speechCtor();
+    if (!Ctor) return;
+    const own = new Set(stopWordTokens(spokenText));
+    const rec = new Ctor();
+    rec.lang = 'he-IL';
+    rec.continuous = true;
+    rec.interimResults = true;
+    (rec as unknown as { daliaBarge?: boolean }).daliaBarge = true;
+    rec.onresult = (ev) => {
+      const full = mergeRecognitionResults(ev.results as ArrayLike<{ isFinal: boolean; 0?: { transcript?: string } }>).full;
+      const stop = stopWordTokens(full).find((w) => !own.has(w));
+      if (!stop) return; // Dalia's own words, or not a stop
+      diagLog('barge-in', `word=${stop}`);
+      bargeConvertedRef.current = token;
+      bargeRecRef.current = null;
+      (rec as unknown as { daliaBarge?: boolean }).daliaBarge = false;
+      speechController.cancel('barge-in');
+      setSpeakingMsgId(null);
+      voicePhaseRef.current = 'listening';
+      setVoicePhase('listening');
+      attachMainListener(rec, true);
+      rec.onresult?.(ev); // whatever followed the stop word in the same breath
+    };
+    rec.onerror = (ev) => {
+      diagLog('barge.onerror', String(ev.error));
+      if (reportMicError(String(ev.error))) bargeSupportedRef.current = false;
+      if (bargeRecRef.current === rec) stopBargeIn();
+    };
+    rec.onend = () => {
+      // keep the stop-word listener alive for the rest of the sentence
+      if (bargeRecRef.current === rec && speechController.isActive()) {
+        try { rec.start(); } catch {}
+      }
+    };
+    bargeRecRef.current = rec;
+    bargeStartedAtRef.current = Date.now();
+    try {
+      rec.start();
+      diagLog('barge-listen-start');
+    } catch {
+      bargeRecRef.current = null;
+    }
+  }, [attachMainListener, reportMicError, speechController, stopBargeIn]);
 
   const handleInterruptSpeech = useCallback(() => {
     stopSpeaking();
@@ -3553,10 +3655,29 @@ export function ClaimsAiWorkspace({
   /**
    * Speaks a question, then opens the mic ONLY if it was really played (`completed`) and no newer
    * utterance started meanwhile. On failed/blocked the question stays on screen and the user decides.
+   * While it speaks, a stop word ("דליה, עצרי") stops it and the mic keeps listening (barge-in).
    */
   const speakThenListen = useCallback(async (msgId: string, text: string, opts: SpeakOptions = {}): Promise<SpeakResult> => {
+    const token = {};
+    bargeStartedAtRef.current = 0;
+    const bargeTimer = setTimeout(() => startBargeIn(text, token), 300);
     const r = await speakAnswer(msgId, text, opts);
+    clearTimeout(bargeTimer);
+    if (bargeConvertedRef.current === token) {
+      bargeConvertedRef.current = null;
+      return r; // the user stopped Dalia — their microphone is already listening
+    }
+    const bargeAt = bargeRecRef.current ? bargeStartedAtRef.current : 0;
+    stopBargeIn();
     if (!speechController.isLatest(r.id)) return r;
+    // Some phones cut the speech the moment a microphone opens. Then barge-in cannot work here:
+    // switch it off for this window, say so once, and replay the question that was cut.
+    if (r.outcome === 'completed' && bargeAt && Date.now() - bargeAt < 900 && r.durationMs < (500 + text.length * 60) * 0.5) {
+      bargeSupportedRef.current = false;
+      diagLog('barge-in-unsupported', `ms=${r.durationMs} len=${text.length}`);
+      setBanner('ℹ️ בטלפון הזה פתיחת המיקרופון בזמן שדליה מדברת קוטעת את הדיבור, ולכן עצירה בקול כבויה. כדי לעצור את דליה לחצו על 🔇.');
+      return speakThenListenRef.current(msgId, text, opts);
+    }
     if (r.outcome === 'completed') {
       if (voiceModeActiveRef.current && !voiceMutedRef.current) {
         setTimeout(() => {
@@ -3581,7 +3702,7 @@ export function ClaimsAiWorkspace({
         : `🔇 דליה לא הצליחה להשמיע את השאלה (${r.reason || 'אין מנוע עברי זמין'}). השאלה מוצגת בכתב — לחץ "🎙️ ענה בקול" או הקלד תשובה.`);
     }
     return r;
-  }, [speakAnswer, speechController, startVoiceListening, unlockAudioGesture]);
+  }, [speakAnswer, speechController, startBargeIn, startVoiceListening, stopBargeIn, unlockAudioGesture]);
   speakThenListenRef.current = speakThenListen;
 
   const handleAnswerByVoice = useCallback(() => {

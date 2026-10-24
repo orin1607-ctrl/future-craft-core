@@ -156,13 +156,16 @@ describe('garage voice workflows — mic only after the question was really spok
     expect(utterances[0].text).toContain('מה שם הלקוח');
     expect(utterances[0].lang).toBe('he-IL');
     act(() => utterances[0].onstart?.());
-    await new Promise((r) => setTimeout(r, 450));
-    expect(recognizers).toHaveLength(0); // still speaking → mic closed
+    // a real question lasts seconds; ending it right after the stop-word listener opens would look like a
+    // phone that cuts speech when the mic opens (that case has its own test)
+    await new Promise((r) => setTimeout(r, 1500));
+    const main = () => recognizers.filter((r) => !(r as unknown as { daliaBarge?: boolean }).daliaBarge);
+    expect(main()).toHaveLength(0); // still speaking → no answer mic (only the stop-word listener)
 
     act(() => utterances[0].onend?.());
-    await waitFor(() => expect(recognizers).toHaveLength(1), { timeout: 1500 });
-    expect(recognizers[0].start).toHaveBeenCalled();
-    expect(recognizers[0].lang).toBe('he-IL');
+    await waitFor(() => expect(main()).toHaveLength(1), { timeout: 1500 });
+    expect(main()[0].start).toHaveBeenCalled();
+    expect(main()[0].lang).toBe('he-IL');
   });
 
   it('speech error: mic is NOT opened, replay and answer buttons appear', async () => {
@@ -275,9 +278,9 @@ describe('garage voice workflows — mic only after the question was really spok
     await say('1234599', 'מה היצרן והדגם של הרכב?');
     await say('טויוטה קורולה', 'באיזו שנה יוצר הרכב? אפשר לומר "לא ידוע".');
     await say('לא ידוע', 'פרטי הרכב מוצגים על המסך. האם לשמור את הרכב ללקוח?');
-    await say('כן', 'הרכב נשמר. תרצה לפתוח לו עבודה חדשה?');
+    await say('כן', 'סיימתי לפתוח את הלקוח. תרצה שאכין לו גם הצעת מחיר, או שנסיים כאן?');
     expect(garage.createVehicle).toHaveBeenCalledWith({ customer_id: 'c-new', plate: '1234599', make: 'טויוטה', model: 'קורולה', year: null, color: '', vin: '' });
-    await say('כן', 'מה הבעיה או התקלה ברכב?');
+    await say('פתיחת עבודה', 'מה הבעיה או התקלה ברכב?');
     await say('החלפת שמן', 'האם הרכב הגיע עכשיו למוסך?');
     await say('לא', 'סיכמתי את הפרטים על המסך. האם לאשר ולשמור?');
     expect(garage.createCase).not.toHaveBeenCalled();

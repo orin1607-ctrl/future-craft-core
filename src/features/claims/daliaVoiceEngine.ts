@@ -151,6 +151,10 @@ export interface VoiceData {
   vin?: string;
   vehicleSaved?: boolean;
   openWork?: boolean;
+  /** The worker asked for a price quote for this customer (now or when the customer is ready). */
+  wantQuote?: boolean;
+  /** "תרצה שאכין לו גם הצעת מחיר?" was already asked — it is offered once. */
+  quoteOffered?: boolean;
   arrivedNow?: boolean;
   complaint?: string;
   requestedWork?: string;
@@ -290,7 +294,7 @@ type Outcome =
   | { kind: 'next'; display?: string; ui?: VoiceUi[] }
   | { kind: 'reask'; ask: Ask; display?: string }
   | { kind: 'finish'; turn: VoiceTurn }
-  | { kind: 'switch'; type: VoiceWorkflowType; data?: Partial<VoiceData>; prefill?: string };
+  | { kind: 'switch'; type: VoiceWorkflowType; data?: Partial<VoiceData>; prefill?: string; intro?: string; introDisplay?: string };
 
 interface Step {
   id: string;
@@ -1001,6 +1005,10 @@ const LICENSE_FIELDS = (p: Record<string, unknown>) => ({
   vin: String(p.vin || '').trim() || undefined,
 });
 
+/** A work case is opened when the worker asked for work, or for a quote once a vehicle is attached. */
+const workWanted = (d: VoiceData) => !!d.openWork || (!!d.wantQuote && !!d.vehicleSaved);
+const QUOTE_OFFER = choices(['📝 כן, הצעת מחיר', 'כן, הצעת מחיר'], ['🔧 פתיחת עבודה בלי הצעה', 'פתיחת עבודה'], ['✔ לא, תודה', 'לא, תודה']);
+
 function vehicleAttachSteps(): Step[] {
   const wantsVehicle = (d: VoiceData) => !!d.customerSaved && (d.vehicleMode === 'photo' || d.vehicleMode === 'voice') && !d.vehicleSaved;
   return [
@@ -1008,11 +1016,24 @@ function vehicleAttachSteps(): Step[] {
       id: 'vehicleChoice',
       applies: (d) => !!d.customerSaved,
       done: (d) => !!d.vehicleMode,
-      ask: () => ({ say: P.vehicleChoice, ui: [choices(['📷 צילום רישיון', 'צילום רישיון'], ['🎙️ בדיבור', 'בדיבור'], ['בלי רכב'])] }),
+      ask: (d) => (d.wantQuote || d.openWork
+        ? { say: P.quoteNeedsVehicle, ui: [choices(['📷 צילום רישיון', 'צילום רישיון'], ['🎙️ בדיבור', 'בדיבור'], ['בלי הצעת מחיר'])] }
+        : { say: P.vehicleChoice, ui: [choices(['📷 צילום רישיון', 'צילום רישיון'], ['🎙️ בדיבור', 'בדיבור'], ['בלי רכב'])] }),
       answer: (text, s) => {
-        if (/בלי|לא עכשיו|אחר כך|לא תודה|^לא$|אין/.test(text.trim())) {
+        if (/בלי הצעת מחיר|בלי הצעה|לא צריך הצעה|בלי עבודה/.test(text)) {
+          // the worker dropped the quote / work: the customer stays saved, nothing else is opened
+          s.data.wantQuote = false;
+          s.data.openWork = false;
+          s.data.quoteOffered = true;
           s.data.vehicleMode = 'none';
           return finish(P.customerOnlyCreated, 'executed', { display: s.data.customerLabel ? `כרטיס לקוח: ${s.data.customerLabel}` : undefined });
+        }
+        if (/בלי|לא עכשיו|אחר כך|לא תודה|^לא$|אין/.test(text.trim())) {
+          if (s.data.wantQuote || s.data.openWork) {
+            return reask(P.quoteNeedsVehicle, undefined, [choices(['📷 צילום רישיון', 'צילום רישיון'], ['🎙️ בדיבור', 'בדיבור'], ['בלי הצעת מחיר'])]);
+          }
+          s.data.vehicleMode = 'none';
+          return next(); // → the closing offer
         }
         if (/צילום|תמונה|רישיון|לצלם|מצלמה|להעלות/.test(text)) s.data.vehicleMode = 'photo';
         else if (/דיבור|להגיד|בקול|אגיד|אומר|פרטים/.test(text)) s.data.vehicleMode = 'voice';
@@ -1106,19 +1127,52 @@ function vehicleAttachSteps(): Step[] {
       P.vehicleConfirm,
       'vehicleConfirm',
     ),
-    yesNoGate(
-      'openWork',
-      (d) => !!d.vehicleSaved && d.openWork === undefined,
-      () => ({ say: P.vehicleSavedOpenWork }),
-      (s) => {
-        s.data.openWork = true;
-        return next();
+    {
+      id: 'quoteOffer',
+      applies: (d) => !!d.customerSaved && (!!d.vehicleSaved || d.vehicleMode === 'none') && !d.wantQuote && d.openWork === undefined,
+      done: (d) => d.openWork !== undefined || !!d.wantQuote,
+      ask: (d) => ({
+        say: P.customerDoneOfferQuote,
+        display: [d.customerLabel ? `לקוח: ${d.customerLabel}` : '', d.vehicleLabel ? `רכב: ${d.vehicleLabel}` : ''].filter(Boolean).join('\n') || undefined,
+        ui: [QUOTE_OFFER],
+      }),
+      answer: (text, s) => {
+        const d = s.data;
+        d.quoteOffered = true;
+        const t = text.trim();
+        const yn = parseYesNo(t);
+        const needVehicle = () => {
+          if (d.vehicleMode === 'none' && !d.vehicleSaved) d.vehicleMode = undefined; // the vehicle question comes back
+          return next();
+        };
+        if (/הצעת מחיר|הצעה|הצעת/.test(t) && yn !== 'no') {
+          d.wantQuote = true;
+          return needVehicle();
+        }
+        if (/פתיחת עבודה|עבודה חדשה|לפתוח עבודה|תיק עבודה|לפתוח תיק/.test(t) && yn !== 'no') {
+          d.openWork = true;
+          return needVehicle();
+        }
+        if (yn === 'yes') {
+          d.wantQuote = true;
+          return needVehicle();
+        }
+        if (yn === 'no' || /^(נסיים|לסיים|סיימנו|זהו|זה הכל|זה הכול|תודה)/.test(t)) {
+          d.openWork = false;
+          return finish(P.finishedPolite, 'executed', { display: [d.customerLabel, d.vehicleLabel].filter(Boolean).join('\n') || undefined });
+        }
+        // another task — keep the customer that was just opened
+        const route = routeFreeRequest(t);
+        if (route && route.type !== 'new_customer') {
+          d.openWork = false;
+          return { kind: 'switch', type: route.type, data: route.data, prefill: route.prefill };
+        }
+        return reask(P.choiceRetry, undefined, [QUOTE_OFFER]);
       },
-      (s) => finish(P.customerAndVehicleSaved, 'executed', { display: [s.data.customerLabel, s.data.vehicleLabel].filter(Boolean).join('\n') }),
-      (d) => d.openWork !== undefined,
-    ),
-    freeTextStep('complaint', 'complaint', P.complaint, /תלונה|תקלה|בעיה|סיבת/, (d) => !!d.openWork),
-    yesNoStep('arrivedNow', P.arrivedNow, 'arrivedNow', /הגיע|נמצא במוסך/, (d) => !!d.openWork),
+      clear: (d) => { d.openWork = undefined; d.wantQuote = undefined; },
+    },
+    freeTextStep('complaint', 'complaint', P.complaint, /תלונה|תקלה|בעיה|סיבת/, (d) => workWanted(d)),
+    yesNoStep('arrivedNow', P.arrivedNow, 'arrivedNow', /הגיע|נמצא במוסך/, (d) => workWanted(d)),
     confirmStep(
       (d) => ['סיכום עבודה חדשה:', ...customerSummary(d), ...vehicleSummary(d)].join('\n'),
       async (s, env) => {
@@ -1127,12 +1181,26 @@ function vehicleAttachSteps(): Step[] {
         const { customer } = await ensureCustomer(s, env);
         const vehicle = await ensureVehicle(s, env, customer);
         const created = await a.createCase({ customer, vehicle, caseData: newCaseData(env, d, d.arrivedNow ? 'intake_first' : 'quote_first') });
-        return finish(P.caseCreated, 'executed', {
-          display: `נפתח תיק ${created.case_number || ''} עבור ${customerDisplayName(customer)}, רכב ${vehicle.plate}.`,
-          openCaseId: created.id,
-        });
+        const opened = `נפתח תיק ${created.case_number || ''} עבור ${customerDisplayName(customer)}, רכב ${vehicle.plate}.`;
+        if (d.wantQuote) {
+          // the same customer, vehicle and case — the quote asks only for works / parts / prices
+          return {
+            kind: 'switch',
+            type: 'quote',
+            intro: P.caseCreatedToQuote,
+            introDisplay: opened,
+            data: {
+              caseId: created.id,
+              caseNumber: created.case_number || undefined,
+              caseLabel: [created.case_number, customerDisplayName(customer), `רכב ${vehicle.plate}`].filter(Boolean).join(' · '),
+              caseFromContext: true,
+              scope: 'quote',
+            },
+          };
+        }
+        return finish(P.caseCreated, 'executed', { display: opened, openCaseId: created.id });
       },
-      (d) => !!d.openWork,
+      (d) => workWanted(d),
       DALIA_SAFE_ALTERNATIVES.confirm,
       'caseConfirm',
     ),
@@ -3164,6 +3232,7 @@ export function smallTalkSay(kind: SmallTalk): string {
 }
 
 type Interruption =
+  | { kind: 'quoteLater' }
   | { kind: 'info'; route: { type: VoiceWorkflowType; prefill?: string; data?: Partial<VoiceData> } }
   | { kind: 'action'; route: { type: VoiceWorkflowType; prefill?: string; data?: Partial<VoiceData> } }
   | { kind: 'chat'; text: string }
@@ -3181,6 +3250,11 @@ export function classifyInterruption(text: string, s: VoiceSession): Interruptio
   const menu = MENU_STEPS.has(currentStep(s)?.id || s.current || '');
   if (talk && !(menu && talk === 'thanks')) return { kind: 'smalltalk', talk };
   if (menu) return null;
+  // a quote for the customer being opened: kept for when the customer + vehicle are saved (no double record)
+  const stepId = currentStep(s)?.id || '';
+  if (s.type === 'new_customer' && /הצעת מחיר|הצעה ל/.test(t) && !['quoteOffer', 'vehicleChoice'].includes(stepId) && !s.data.wantQuote) {
+    return { kind: 'quoteLater' };
+  }
   const route = routeFreeRequest(t);
   // "show me all the open cases" is never an answer to a question inside another flow
   const signal = QUESTION_START.test(t) || /\?\s*$/.test(t) || (route?.type === 'find_case' && !!parseCaseListIntent(t));
@@ -3242,6 +3316,12 @@ async function startSide(s: VoiceSession, route: { type: VoiceWorkflowType; pref
 
 async function handleInterruption(s: VoiceSession, it: Interruption, env: VoiceEnv): Promise<VoiceResult> {
   switch (it.kind) {
+    case 'quoteLater': {
+      s.data.wantQuote = true;
+      s.data.quoteOffered = true;
+      const turn = await advance(s, env);
+      return { session: s, turn: { ...turn, say: P.quoteAfterCustomer, alt: undefined, followSay: turn.expectsAnswer ? (turn.alt || turn.say) : undefined } };
+    }
     case 'smalltalk':
       s.data.awaitingContinue = true;
       return { session: s, turn: { say: smallTalkSay(it.talk), followSay: P.continueFlowAsk, ui: [CONTINUE_CHOICES], expectsAnswer: true, done: false } };
@@ -3431,7 +3511,7 @@ const HELP_TEXT = [
 
 /** Control phrases are recognised only in short utterances, so they never swallow a real answer. */
 export function detectCommand(text: string): Command | null {
-  const t = text.trim().replace(/[.!?,]+$/g, '');
+  const t = text.trim().replace(/^דליה[,.!\s]+/, '').replace(/[.!?,]+$/g, '');
   const words = t.split(/\s+/).length;
   if (/(תחזרי|חזרי|תגידי|תגיד) (שוב )?(על )?(ה)?שאלה|לא שמעתי|מה שאלת|מה השאלה|^שוב$|^עוד פעם$|^חזרי$|^תחזרי$/.test(t)) return 'repeat';
   if (/^(מה רשמת|מה רשמנו|מה יש עד עכשיו|תסכמי|סיכום עד עכשיו|מה כבר רשמת)/.test(t)) return 'summary';
@@ -3530,8 +3610,15 @@ export async function answerVoiceWorkflow(s: VoiceSession, text: string, env: Vo
   return result.session === null ? resumeAfter(returnTo, result) : result;
 }
 
+/** "דליה, עצרי. תפתחי לי…" → "תפתחי לי…" (only when something follows the address / stop word). */
+export function stripAddress(text: string): string {
+  const t = String(text || '').trim();
+  const rest = t.replace(/^(דליה[,.!\s]*)?((עצרי|תעצרי|עצור|חכי|תחכי|stop)[,.!\s]+)?/, '').trim();
+  return rest && rest !== t ? rest : t;
+}
+
 async function answerInner(s: VoiceSession, text: string, env: VoiceEnv): Promise<VoiceResult> {
-  const answer = String(text || '').trim();
+  const answer = stripAddress(String(text || '').trim());
   touch(s, env);
 
   const pending = await answerPending(s, answer, env);
@@ -3648,6 +3735,16 @@ async function applyOutcome(s: VoiceSession, step: Step, out: Outcome, env: Voic
         ...(out.data || {}),
       };
       const started = await startVoiceWorkflow(out.type, {}, env, out.prefill, Object.fromEntries(Object.entries(carry).filter(([, v]) => v !== undefined)));
+      if (out.intro) {
+        // "תיק העבודה נפתח. עכשיו נכין את הצעת המחיר." and then the first question of the next workflow
+        started.turn = {
+          ...started.turn,
+          say: out.intro,
+          alt: undefined,
+          followSay: started.turn.expectsAnswer ? (started.turn.alt || started.turn.say) : undefined,
+          display: join(out.introDisplay, started.turn.display),
+        };
+      }
       return started.session === null ? resumeAfter(carry.returnTo, started) : started;
     }
   }

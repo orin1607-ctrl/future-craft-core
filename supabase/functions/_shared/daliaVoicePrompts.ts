@@ -280,6 +280,14 @@ export const DALIA_VOICE_PROMPTS = {
   smallTalkHowAreYou: 'אני מצוינת, תודה ששאלת. במה אוכל לעזור?',
   smallTalkThanks: 'בשמחה! אני כאן אם צריך עוד משהו.',
   caseGapsShown: 'מה שחסר בתיק מוצג על המסך.',
+  // ---------------------------------------------------------------------------
+  // v4: voice stop, quote after a new customer
+  // ---------------------------------------------------------------------------
+  customerDoneOfferQuote: 'סיימתי לפתוח את הלקוח. תרצה שאכין לו גם הצעת מחיר, או שנסיים כאן?',
+  quoteAfterCustomer: 'בסדר, אכין גם הצעת מחיר ללקוח הזה. קודם נשלים את הפרטים שחסרים, ואז נעבור ישר להצעה.',
+  quoteNeedsVehicle: 'כדי להכין הצעת מחיר צריך לשייך ללקוח רכב. אפשר לצלם רישיון או להגיד את הפרטים.',
+  caseCreatedToQuote: 'תיק העבודה נפתח. עכשיו נכין את הצעת המחיר.',
+  finishedPolite: 'בשמחה. סיימנו כאן.',
 } as const;
 
 /** Whitespace/Unicode normalisation used for every lookup (prompt set, clip manifest, cache). */
