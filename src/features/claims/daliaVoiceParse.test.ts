@@ -14,6 +14,15 @@ import {
   parseYesNo,
   pickFromList,
   splitMakeModel,
+  extractCompanyName,
+  nameWordsOf,
+  parseCaseListIntent,
+  parseDate,
+  parsePeriod,
+  parseReportType,
+  parseYear,
+  stripPrefix,
+  workTypeOf,
 } from './daliaVoiceParse';
 
 describe('parseHebrewNumber', () => {
@@ -146,5 +155,60 @@ describe('pickFromList', () => {
   it('ambiguous → null', () => {
     expect(pickFromList('משה', labels)).toBeNull();
     expect(pickFromList('החמישי', labels)).toBeNull();
+  });
+});
+
+describe('search / report / form parsers', () => {
+  const now = new Date('2026-10-24T12:00:00Z');
+  it('nameWordsOf drops command words', () => {
+    expect(nameWordsOf('תביאי לי את התיק של משה כהן')).toEqual(['משה', 'כהן']);
+    expect(nameWordsOf('רכב 12-345-67')).toEqual([]);
+  });
+  it('stripPrefix', () => {
+    expect(stripPrefix('לאלדן')).toBe('אלדן');
+    expect(stripPrefix('משה')).toBe('משה');
+  });
+  it.each([
+    ['כמה כסף נכנס השבוע', 'week'],
+    ['דוח של החודש', 'month'],
+    ['מה היה אתמול', 'yesterday'],
+    ['היום', 'today'],
+    ['השנה', 'year'],
+  ])('parsePeriod %s', (t, key) => {
+    expect(parsePeriod(t, now)?.key).toBe(key);
+  });
+  it('custom date range', () => {
+    expect(parsePeriod('מ-1.10 עד 15.10', now)).toEqual({ key: 'custom', from: '2026-10-01', to: '2026-10-15' });
+  });
+  it.each([
+    ['תראי לי את כל התיקים הפתוחים', 'open'],
+    ['תראי לי גם תיקים סגורים', 'all'],
+    ['תיקים סגורים', 'closed'],
+    ['תבדקי איזה תיקים מוכנים לסגירה', 'ready_close'],
+    ['כל הרכבים בעבודה', 'in_work'],
+    ['תפתחי את כל רשימת התיקים', 'all'],
+  ])('parseCaseListIntent %s', (t, v) => {
+    expect(parseCaseListIntent(t)).toBe(v);
+  });
+  it('a single case request is not a list', () => {
+    expect(parseCaseListIntent('תביאי לי את התיק של משה')).toBeNull();
+  });
+  it('report type and company', () => {
+    expect(parseReportType('כמה כסף נכנס השבוע מאלדן')).toBe('financial');
+    expect(extractCompanyName('כמה כסף נכנס השבוע מאלדן')).toBe('אלדן');
+    expect(extractCompanyName('דוח של חברת אלדן')).toBe('אלדן');
+    expect(extractCompanyName('כמה כסף נכנס השבוע')).toBeNull();
+  });
+  it('year and date', () => {
+    expect(parseYear('2019', now)).toBe(2019);
+    expect(parseYear('3019', now)).toBeNull();
+    expect(parseDate('היום', now)).toBe('2026-10-24');
+    expect(parseDate('15/10/2026', now)).toBe('2026-10-15');
+  });
+  it('job types match the quote screen chips', () => {
+    expect(workTypeOf('יישור פח בכנף')).toBe('פחחות');
+    expect(workTypeOf('תיקון וצבע לדלת')).toBe('תיקון + צבע');
+    expect(workTypeOf('החלפת רפידות')).toBe('החלפה');
+    expect(workTypeOf('טיפול שמן')).toBe('עבודה מכנית');
   });
 });

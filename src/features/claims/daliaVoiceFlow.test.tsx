@@ -45,7 +45,7 @@ function fakeGarage() {
   return {
     actorName: 'עובד בדיקה',
     searchCustomers: vi.fn(async () => []),
-    getCustomer: vi.fn(async () => null),
+    getCustomer: vi.fn(async (id: string) => (id === 'c-new' ? customer : null)),
     listVehicles: vi.fn(async () => []),
     findVehicleByPlate: vi.fn(async () => null),
     listCustomerCases: vi.fn(async () => []),
@@ -266,16 +266,22 @@ describe('garage voice workflows — mic only after the question was really spok
       await waitFor(() => expect(utterances[utterances.length - 1].text).toBe(expectNext), { timeout: 2000 });
     };
     await say('יוסי מזרחי', 'מה מספר הטלפון שלו?');
-    await say('0525551234', 'האם מדובר בלקוח פרטי או בחברה?');
-    await say('פרטי', 'מה מספר הרכב (לוחית רישוי)?');
-    await say('1234599', 'מה היצרן והדגם של הרכב?');
-    await say('טויוטה קורולה', 'האם הרכב הגיע עכשיו למוסך?');
-    await say('לא', 'מה הבעיה או התקלה ברכב?');
-    await say('החלפת שמן', 'סיכמתי את הפרטים על המסך. האם לאשר ולשמור?');
+    await say('0525551234', 'האם מדובר בלקוח פרטי או עסקי?');
+    await say('פרטי', 'סיכמתי את פרטי הלקוח על המסך. האם לאשר את פתיחת הלקוח?');
     expect(garage.createCustomer).not.toHaveBeenCalled();
-    await say('כן', 'הלקוח והתיק נשמרו במערכת. פותחת את התיק.');
-    expect(garage.createCustomer).toHaveBeenCalledWith({ customer_type: 'private', name: 'יוסי מזרחי', company_name: '', phone: '052-5551234' });
-    expect(garage.createVehicle).toHaveBeenCalledWith({ customer_id: 'c-new', plate: '1234599', make: 'טויוטה', model: 'קורולה' });
+    await say('כן', 'הלקוח נפתח. תרצה לשייך לו רכב? אפשר לשלוח צילום של רישיון הרכב ואנסה למלא את הפרטים, או להגיד לי את הפרטים בדיבור. מה אתה מעדיף?');
+    expect(garage.createCustomer).toHaveBeenCalledWith({ customer_type: 'private', name: 'יוסי מזרחי', company_name: '', phone: '052-5551234', business_id: '' }, { force: false });
+    await say('בדיבור', 'מה מספר הרישוי של הרכב?');
+    await say('1234599', 'מה היצרן והדגם של הרכב?');
+    await say('טויוטה קורולה', 'באיזו שנה יוצר הרכב? אפשר לומר "לא ידוע".');
+    await say('לא ידוע', 'פרטי הרכב מוצגים על המסך. האם לשמור את הרכב ללקוח?');
+    await say('כן', 'הרכב נשמר. תרצה לפתוח לו עבודה חדשה?');
+    expect(garage.createVehicle).toHaveBeenCalledWith({ customer_id: 'c-new', plate: '1234599', make: 'טויוטה', model: 'קורולה', year: null, color: '', vin: '' });
+    await say('כן', 'מה הבעיה או התקלה ברכב?');
+    await say('החלפת שמן', 'האם הרכב הגיע עכשיו למוסך?');
+    await say('לא', 'סיכמתי את הפרטים על המסך. האם לאשר ולשמור?');
+    expect(garage.createCase).not.toHaveBeenCalled();
+    await say('כן', 'תיק העבודה נפתח. פותחת את התיק.');
     expect(garage.createCase).toHaveBeenCalledTimes(1);
     // the case opens only after the result sentence finished playing
     expect(openCase).not.toHaveBeenCalled();

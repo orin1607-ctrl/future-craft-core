@@ -341,3 +341,126 @@ export function parsePaymentMethod(text: string): { method: string; label: strin
   if (/מזומן|קאש|cash/i.test(text)) return { method: 'cash', label: 'מזומן' };
   return null;
 }
+
+// -----------------------------------------------------------------------------
+// Search, reports and form helpers
+// -----------------------------------------------------------------------------
+
+const SEARCH_STOPWORDS = new Set([
+  'תיק', 'התיק', 'תיקים', 'התיקים', 'של', 'את', 'לי', 'לקוח', 'הלקוח', 'רכב', 'הרכב', 'מספר', 'עבודה', 'העבודה',
+  'תמצאי', 'תמצא', 'תביאי', 'תביא', 'תפתחי', 'תפתח', 'פתחי', 'תראי', 'תראה', 'תחפשי', 'חפשי', 'מצאי', 'האחרון',
+  'האחרונה', 'אחרון', 'פתוח', 'הפתוח', 'סגור', 'הסגור', 'זה', 'הזה', 'שלו', 'שלה', 'בבקשה', 'דליה', 'רוצה',
+  'מחפש', 'מחפשת', 'כל', 'גם', 'עם', 'בשם', 'שם', 'טלפון', 'חברה', 'החברה', 'חברת',
+]);
+
+/** Name words for a search ("התיק של משה כהן" → ["משה","כהן"]), without command words or digits. */
+export function nameWordsOf(text: string): string[] {
+  return String(text || '')
+    .replace(/[\d\-+]+/g, ' ')
+    .replace(/[.,!?״"'׳]/g, ' ')
+    .split(/\s+/)
+    .map((w) => w.trim())
+    .filter((w) => w.length >= 2 && /[א-תA-Za-z]/.test(w) && !SEARCH_STOPWORDS.has(w));
+}
+
+/** Hebrew one-letter prefixes (ל, מ, ש, ב, ה, ו) stripped from a word — "לאלדן" → "אלדן". */
+export function stripPrefix(word: string): string {
+  return word.length > 3 && /^[למשבהו]/.test(word) ? word.slice(1) : word;
+}
+
+export type PeriodKey = 'today' | 'yesterday' | 'week' | 'month' | 'year' | 'all' | 'custom';
+/** Period of a report request. Custom ranges: "מ-1.10 עד 15.10" / "1/10/2026 - 15/10/2026". */
+export function parsePeriod(text: string, now = new Date()): { key: PeriodKey; from?: string; to?: string } | null {
+  const t = String(text || '');
+  const dates = [...t.matchAll(/(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?/g)].map((m) => {
+    const y = m[3] ? (m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3])) : now.getFullYear();
+    const d = new Date(y, Number(m[2]) - 1, Number(m[1]));
+    return Number.isNaN(d.getTime()) ? null : d;
+  }).filter((d): d is Date => !!d);
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  if (dates.length >= 2) return { key: 'custom', from: iso(dates[0]), to: iso(dates[1]) };
+  if (dates.length === 1) return { key: 'custom', from: iso(dates[0]), to: iso(dates[0]) };
+  if (/אתמול/.test(t)) return { key: 'yesterday' };
+  if (/היום|הבוקר/.test(t)) return { key: 'today' };
+  if (/שבוע/.test(t)) return { key: 'week' };
+  if (/חודש/.test(t)) return { key: 'month' };
+  if (/השנה|שנתי|בשנה/.test(t)) return { key: 'year' };
+  if (/כל הזמן|כל התקופה|מההתחלה|^הכל$|^הכול$/.test(t.trim())) return { key: 'all' };
+  return null;
+}
+
+export type ReportKind = 'financial' | 'company' | 'cases' | 'quotes' | 'activity';
+export function parseReportType(text: string): ReportKind | null {
+  const t = String(text || '');
+  if (/הצעות? מחיר/.test(t)) return 'quotes';
+  if (/פעילות|כמה רכבים נכנסו|סוגי עבודות|כללי/.test(t)) return 'activity';
+  if (/לפי חברה|לפי לקוח|דוח חברה|דוח לקוח/.test(t)) return 'company';
+  if (/כסף|כספי|הכנס|תקבול|התקבל|שולם|יתר|מאזן|חוב|נכנס/.test(t)) return 'financial';
+  if (/תיקים|תיקי עבודה|רכבים בעבודה|מוכנים|ממתינים|חסרי הזמנה|תוספות/.test(t)) return 'cases';
+  return null;
+}
+
+export type CaseListIntent = 'all' | 'open' | 'in_work' | 'waiting_approval' | 'ready_delivery' | 'ready_close' | 'closed' | 'missing_order' | 'with_extras';
+/** "תראי לי את כל התיקים הפתוחים" → open; "גם סגורים" → all; null when it is not a list request. */
+export function parseCaseListIntent(text: string): CaseListIntent | null {
+  const t = String(text || '');
+  if (/מוכנ(ים|ות) לסגירה/.test(t)) return 'ready_close';
+  if (/מוכנ(ים|ות) למסירה/.test(t)) return 'ready_delivery';
+  if (/בעבודה/.test(t) && /רכבים|תיקים|כל/.test(t)) return 'in_work';
+  if (/ממתינ(ים|ות) לאישור/.test(t)) return 'waiting_approval';
+  if (/חסרי? הזמנה|בלי הזמנה|ללא הזמנה/.test(t)) return 'missing_order';
+  if (/תיקים עם תוספות|תוספות עבודה/.test(t) && /תיקים/.test(t)) return 'with_extras';
+  const isList = /(כל|רשימת|רשימה של)\s+(ה)?תיקים|(ה)?תיקים ה?(פתוחים|סגורים)|כל רשימת התיקים|גם (תיקים )?סגורים/.test(t);
+  if (!isList) return null;
+  if (/גם (תיקים )?סגורים|פתוחים וסגורים|כל רשימת/.test(t)) return 'all';
+  if (/סגורים/.test(t)) return 'closed';
+  if (/פתוחים/.test(t)) return 'open';
+  return 'all';
+}
+
+const PERIOD_WORD = /^(השבוע|החודש|היום|השנה|אתמול|הבוקר|כל|הזמן|השבוע\.)$/;
+/** Company/customer name in a report or search request: "מאלדן", "של אלדן", "חברת אלדן". */
+export function extractCompanyName(text: string): string | null {
+  const t = String(text || '').replace(/[?.!,]/g, ' ').replace(/\s+/g, ' ').trim();
+  const m = t.match(/(?:חברת|לחברת|מחברת|של|עבור|ללקוח|מהלקוח)\s+([א-תA-Za-z-]{2,}(?:\s[א-תA-Za-z-]{2,})?)/);
+  if (m) {
+    const words = m[1].split(' ').filter((w) => !PERIOD_WORD.test(w) && !SEARCH_STOPWORDS.has(w));
+    if (words.length) return words.join(' ');
+  }
+  const from = t.match(/(?:^|\s)מ([א-ת]{3,})(?=\s|$)/);
+  if (from && !PERIOD_WORD.test(from[1]) && !/^(ה|ש)/.test(from[1])) return from[1];
+  return null;
+}
+
+/** Manufacturing year (1950–next year) or null. */
+export function parseYear(text: string, now = new Date()): number | null {
+  const m = String(text || '').match(/(19[5-9]\d|20\d{2})/);
+  if (!m) return null;
+  const y = Number(m[1]);
+  return y <= now.getFullYear() + 1 ? y : null;
+}
+
+/** A single date ("היום", "אתמול", "15.10", "15/10/2026") as YYYY-MM-DD. */
+export function parseDate(text: string, now = new Date()): string | null {
+  const t = String(text || '');
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  if (/היום/.test(t)) return iso(now);
+  if (/אתמול/.test(t)) return iso(new Date(now.getTime() - 86400000));
+  const m = t.match(/(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?/);
+  if (!m) return null;
+  const y = m[3] ? (m[3].length === 2 ? 2000 + Number(m[3]) : Number(m[3])) : now.getFullYear();
+  const d = new Date(y, Number(m[2]) - 1, Number(m[1]));
+  return Number.isNaN(d.getTime()) ? null : iso(d);
+}
+
+/** The garage screen's own job types (quote "סוג עבודה" chips). */
+export function workTypeOf(text: string): string {
+  const t = String(text || '');
+  if (/תיקון/.test(t) && /צבע/.test(t)) return 'תיקון + צבע';
+  if (/צבע/.test(t)) return 'צבע';
+  if (/פירוק|הרכבה/.test(t)) return 'פירוק והרכבה';
+  if (/החלפ/.test(t)) return 'החלפה';
+  if (/פח|יישור|מכה|שקע/.test(t)) return 'פחחות';
+  if (/מכני|מנוע|בלמ|שמן|רפידות|גיר|מצמד|מתלה|טיפול|חשמל/.test(t)) return 'עבודה מכנית';
+  return 'עבודה';
+}
