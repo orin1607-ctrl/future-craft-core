@@ -138,6 +138,16 @@ describe('local Hebrew voice engine', () => {
     expect(r.reason).toContain('synthesis-failed');
   });
 
+  it('failed: onend without onstart (engine produced no audio) is never success, even after a delay', async () => {
+    const { ctrl, spoken } = makeController({ voices: HE_VOICE });
+    const p = ctrl.speak(DYNAMIC_NO_PII);
+    await vi.advanceTimersByTimeAsync(1500);
+    spoken[0].onend?.();
+    const r = await p;
+    expect(r.outcome).toBe('failed');
+    expect(r.reason).toContain('ended-without-start');
+  });
+
   it('blocked: not-allowed error is reported as blocked', async () => {
     const { ctrl, spoken } = makeController({ voices: HE_VOICE });
     const p = ctrl.speak(DYNAMIC_NO_PII);

@@ -541,7 +541,8 @@ export class DaliaSpeechController {
         this.deps.log('local-onstart', `id=${run.id} afterMs=${this.deps.now() - speakAt}`);
       };
       u.onend = () => {
-        if (!started && this.deps.now() - speakAt < 250) settle({ outcome: 'failed', reason: 'ended-immediately' });
+        // No onstart means the engine never produced audio (seen on Android with an unusable voice).
+        if (!started) settle({ outcome: 'failed', reason: 'ended-without-start' });
         else settle({ outcome: 'completed' });
       };
       u.onerror = (ev: SpeechSynthesisErrorEvent) => {

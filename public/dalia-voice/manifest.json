@@ -1,6 +1,11 @@
 {
   "version": 1,
-  "voice": null,
-  "note": "Empty until scripts/generate-dalia-voice-clips.ts is run with GOOGLE_TTS_API_KEY. Keys are speechClipId() of each fixed sentence.",
-  "clips": {}
+  "voice": "test-only: Microsoft Asaf (Windows built-in, generated offline)",
+  "note": "Single test clip for the voice-test button. Replaced when scripts/generate-dalia-voice-clips.ts is run with a TTS provider.",
+  "clips": {
+    "686bc0e4": {
+      "file": "clips/686bc0e4.wav",
+      "text": "שלום, אני דליה AI. בדיקת קול בעברית במערכת המוסך."
+    }
+  }
 }

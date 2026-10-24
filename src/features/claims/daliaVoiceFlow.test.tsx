@@ -154,6 +154,29 @@ describe('garage voice workflows — mic only after the question was really spok
     expect(recognizers).toHaveLength(0);
   });
 
+  it('voice-test button plays the committed Hebrew test clip (no Google key, no device voice)', async () => {
+    installSpeech([{ lang: 'en-US', name: 'Google US English' }]);
+    const manifest = JSON.parse(
+      (await import('node:fs')).readFileSync(`${process.cwd()}/public/dalia-voice/manifest.json`, 'utf8'),
+    );
+    const fetchMock = vi.fn(async (url: string) =>
+      String(url).endsWith('dalia-voice/manifest.json')
+        ? { ok: true, status: 200, json: async () => manifest }
+        : { ok: false, status: 404, json: async () => null },
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const playSpy = HTMLMediaElement.prototype.play as unknown as ReturnType<typeof vi.fn>;
+    renderGarage();
+    fireEvent.click(await screen.findByTestId('dalia-test-voice-btn'));
+
+    await waitFor(() => {
+      const srcs = playSpy.mock.contexts.map((el) => (el as HTMLMediaElement).src);
+      expect(srcs.some((s) => s.endsWith('/dalia-voice/clips/686bc0e4.wav'))).toBe(true);
+    }, { timeout: 2500 });
+    expect(invoke).not.toHaveBeenCalled();
+    expect(window.speechSynthesis.speak as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
+  });
+
   it('fast switching between two buttons: the stale end of the first never opens the mic over the second', async () => {
     installSpeech([{ lang: 'he-IL', name: 'Google עברית' }]);
     renderGarage();
