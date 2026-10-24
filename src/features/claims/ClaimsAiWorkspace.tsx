@@ -57,6 +57,7 @@ import { uploadGarageMedia } from '@/modules/garage-management/garageMedia';
 import { GarageQuoteCard } from '@/modules/garage-management/GarageQuoteCard';
 import type { GarageQuoteCardData } from '@/modules/garage-management/garageQuoteDoc';
 import {
+  answerVoiceFile,
   answerVoiceWorkflow,
   clearVoiceSession,
   saveVoiceSession,
@@ -68,6 +69,8 @@ import {
   type VoiceWorkflowType,
 } from './daliaVoiceEngine';
 import type { GarageVoiceActions } from '@/modules/garage-management/garageVoiceActions';
+import { DaliaDrawer, DaliaTurnUi, type DaliaDrawerData } from './DaliaTurnUi';
+import type { VoiceFile, VoiceUi } from './daliaVoiceEngine';
 import { diagLog, installSynthSpy, describeVoices, copyDiagReport, playTestTone, registerDiagSection } from './daliaVoiceDiag';
 import { DaliaSpeechController, pickHebrewVoice, type CloudSynthResult, type SpeakOptions, type SpeakResult } from './daliaSpeechController';
 import { DALIA_SAFE_ALTERNATIVES, isFixedDaliaPrompt } from '../../../supabase/functions/_shared/daliaVoicePrompts';
@@ -635,6 +638,45 @@ async function streamHelpAi(input: {
     toolsUsed: receivedTools,
     garageQuoteCard: receivedGarageQuoteCard,
   };
+}
+
+/** First name of the signed-in worker for personal phrasing ("מאיר, …"); never used for permissions. */
+function firstNameOf(fullName?: string | null): string | undefined {
+  const first = String(fullName || '').trim().split(/\s+/)[0];
+  return first && first !== 'דליה' ? first : undefined;
+}
+
+/**
+ * Reads a vehicle license / supplier invoice photo with the existing Dalia document reader
+ * (help-ai-chat, the same path as attaching a photo in the chat). Preview only: the reader
+ * returns a proposal and nothing is saved until the worker confirms it in the voice flow.
+ */
+async function readGarageDocument(kind: 'vehicle_license' | 'supplier_invoice', file: VoiceFile): Promise<Record<string, unknown> | null> {
+  const bytes = new Uint8Array(file.bytes);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  const prompt = kind === 'vehicle_license'
+    ? 'צירפתי צילום של רישיון רכב. קראי ממנו את פרטי הרכב (מספר רישוי, יצרן, דגם, שנת ייצור, צבע, שלדה) והכיני קליטה מרישיון רכב לבדיקה בלבד. אל תבצעי שום פעולה.'
+    : 'צירפתי צילום של חשבונית ספק. קראי ממנה את מספר החשבונית, שם הספק, התאריך והסכום הכולל, והכיני רישום חשבונית ספק לבדיקה בלבד. אל תבצעי שום פעולה.';
+  const got: { pending: ClaimsAiPendingAction | null } = { pending: null };
+  try {
+    const r = await streamHelpAi({
+      messages: [{ role: 'user', content: prompt }],
+      claimId: null,
+      companyName: null,
+      module: 'garage',
+      attachments: [{ name: file.name, mime_type: file.type || 'image/jpeg', byte_size: bytes.byteLength, data_base64: btoa(bin) }],
+      onDelta: () => {},
+      onPendingAction: (p) => { got.pending = p; },
+    });
+    got.pending = got.pending || r.pendingAction;
+  } catch {
+    // an empty text answer throws even when a proposal arrived; the proposal is what matters
+  }
+  const p = got.pending;
+  if (!p?.parameters) return null;
+  const wanted = kind === 'vehicle_license' ? /vehicle_license|onboard/ : /record_invoice/;
+  return wanted.test(p.tool_name || '') ? p.parameters : null;
 }
 
 interface ContentBlock {
@@ -2809,6 +2851,9 @@ export function ClaimsAiWorkspace({
   const voiceMutedRef = useRef(false);
   voiceMutedRef.current = voiceMuted;
   const [isMinimized, setIsMinimized] = useState(false);
+  /** Garage window: large centred window by default, full screen on demand (phones are always full screen). */
+  const [isMaximized, setIsMaximized] = useState(false);
+  const [actionsBarOpen, setActionsBarOpen] = useState(true);
 
   const hasUnsavedAction = useMemo(() => {
     return messages.some(
@@ -4156,8 +4201,16 @@ const toggleVoiceMute = useCallback(() => {
     sendRef.current = sendMessage;
   }, [sendMessage]);
 
-  const voiceEnv = useMemo<VoiceEnv>(() => ({ actions: garageVoiceActions || null }), [garageVoiceActions]);
+  const voiceEnv = useMemo<VoiceEnv>(() => ({
+    actions: garageVoiceActions || null,
+    userName: firstNameOf(garageVoiceActions?.actorName),
+    readDocument: readGarageDocument,
+  }), [garageVoiceActions]);
   const voiceTurnSeqRef = useRef(0);
+  const [lastVoiceMsgId, setLastVoiceMsgId] = useState<string | null>(null);
+  const [daliaDrawer, setDaliaDrawer] = useState<DaliaDrawerData | null>(null);
+  const voiceCameraInputRef = useRef<HTMLInputElement>(null);
+  const voiceFileInputRef = useRef<HTMLInputElement>(null);
 
   /** Makes `s` the active workflow. Paused/failed sessions stay stored for "המשך פעולה אחרונה". */
   const setActiveVoiceSession = useCallback((s: VoiceSession | null, store: 'save' | 'clear' | 'keep') => {
@@ -4167,33 +4220,40 @@ const toggleVoiceMute = useCallback(() => {
     if (store === 'clear') clearVoiceSession();
   }, []);
 
-  /** Shows a workflow turn, speaks its fixed sentence, and opens the mic only when it asks something. */
+  /**
+   * Shows a workflow turn (text + buttons), speaks it — the fixed `alt` sentence is played when the
+   * personal/figure sentence has no voice — and opens the mic only when it asks something.
+   */
   const presentVoiceTurn = useCallback(async (turn: VoiceTurn, label: string) => {
     const seq = ++voiceTurnSeqRef.current;
     lastVoiceTurnRef.current = turn;
+    const id = `asst_wf_${Date.now()}_${seq}`;
+    setLastVoiceMsgId(id);
     setMessages((prev) => [...prev, {
-      id: `asst_wf_${Date.now()}_${seq}`,
+      id,
       conversation_id: activeId || 'voice_flow',
       role: 'assistant',
       content: turn.display ? `${turn.say}\n\n${turn.display}` : turn.say,
       created_at: new Date().toISOString(),
       attachments: [],
       sources: [],
-      metadata: { voice_workflow: label, outcome: turn.outcome || null },
+      metadata: { voice_workflow: label, outcome: turn.outcome || null, voice_ui: turn.ui || null },
     } as unknown as ClaimsAiMessage]);
     stopVoiceRecognition();
     voicePhaseRef.current = 'speaking';
     setVoicePhase('speaking');
+    const opts = turn.alt ? { safeAlternative: turn.alt } : {};
     if (turn.expectsAnswer && voiceModeActiveRef.current) {
-      await speakThenListenRef.current(label, turn.say);
+      await speakThenListenRef.current(label, turn.say, opts);
       return;
     }
-    const r = await speakAnswer(label, turn.say);
+    const r = await speakAnswer(label, turn.say, opts);
     if (voiceTurnSeqRef.current !== seq || (r.outcome === 'cancelled' && r.reason === 'superseded')) return;
     voicePhaseRef.current = 'idle';
     setVoicePhase('idle');
+    if (turn.handoff) void sendMessage(turn.handoff, 'text');
     if (turn.openCaseId && onOpenGarageCase) onOpenGarageCase(turn.openCaseId);
-  }, [activeId, onOpenGarageCase, speakAnswer, stopVoiceRecognition]);
+  }, [activeId, onOpenGarageCase, sendMessage, speakAnswer, stopVoiceRecognition]);
 
   const handleStopVoice = useCallback(() => {
     stopSpeaking();
@@ -4206,17 +4266,13 @@ const toggleVoiceMute = useCallback(() => {
     setBanner('שיחה קולית הושהתה. המידע נשמר. כדי להמשיך, לחץ על "המשך פעולה אחרונה".');
   }, [setActiveVoiceSession, stopSpeaking, stopVoiceRecognition]);
 
-  const handleVoiceWorkflowInput = useCallback(async (userText: string) => {
-    const current = currentVoiceWorkflowRef.current;
-    if (!current) {
-      void sendMessage(userText, 'voice');
-      return;
-    }
+  /** Stores/clears the session after an engine result and presents the next turn. */
+  const applyVoiceResult = useCallback(async (current: VoiceSession, run: () => Promise<VoiceResult>, userContent: string) => {
     setMessages((prev) => [...prev, {
       id: `usr_wf_${Date.now()}`,
       conversation_id: activeId || 'voice_flow',
       role: 'user',
-      content: userText,
+      content: userContent,
       created_at: new Date().toISOString(),
       attachments: [],
       sources: [],
@@ -4229,7 +4285,7 @@ const toggleVoiceMute = useCallback(() => {
 
     let res: VoiceResult;
     try {
-      res = await answerVoiceWorkflow(current, userText, voiceEnv);
+      res = await run();
     } catch (err) {
       res = {
         session: current,
@@ -4258,17 +4314,45 @@ const toggleVoiceMute = useCallback(() => {
       // let the garage screen reload (new supplier, invoice…)
       onActionExecuted({ preview_id: `voice_${Date.now()}`, summary: '', tool_name: 'voice_workflow', action_type: 'voice_workflow', parameters: {} } as unknown as ClaimsAiPendingAction);
     }
-    await presentVoiceTurn(res.turn, `wf-${current.type}`);
-  }, [activeId, onActionExecuted, presentVoiceTurn, sendMessage, setActiveVoiceSession, stopVoiceRecognition, voiceEnv]);
+    await presentVoiceTurn(res.turn, `wf-${(res.session || current).type}`);
+  }, [activeId, onActionExecuted, presentVoiceTurn, setActiveVoiceSession, stopVoiceRecognition]);
+
+  const handleVoiceWorkflowInput = useCallback(async (userText: string) => {
+    const current = currentVoiceWorkflowRef.current;
+    if (!current) {
+      void sendMessage(userText, 'voice');
+      return;
+    }
+    await applyVoiceResult(current, () => answerVoiceWorkflow(current, userText, voiceEnv), userText);
+  }, [applyVoiceResult, sendMessage, voiceEnv]);
 
   useEffect(() => {
     handleVoiceWorkflowInputRef.current = handleVoiceWorkflowInput;
   }, [handleVoiceWorkflowInput]);
 
-  const handleStartVoiceWorkflow = useCallback(async (wfType: VoiceWorkflowType) => {
+  /** A photo / document picked for the current question (camera or upload). */
+  const handleVoiceFile = useCallback(async (file: File) => {
+    const current = currentVoiceWorkflowRef.current;
+    if (!current) return;
+    const bytes = await file.arrayBuffer();
+    await applyVoiceResult(
+      current,
+      () => answerVoiceFile(current, { name: file.name || 'photo.jpg', type: file.type || 'image/jpeg', bytes }, voiceEnv),
+      `📷 ${file.name || 'תמונה'}`,
+    );
+  }, [applyVoiceResult, voiceEnv]);
+
+  const onVoiceFilePicked = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (file) void handleVoiceFile(file);
+  }, [handleVoiceFile]);
+
+  const handleStartVoiceWorkflow = useCallback(async (wfType: VoiceWorkflowType, prefill?: string) => {
     diagLog('click-workflow', `type=${wfType} userActive=${(navigator as any).userActivation?.isActive}`);
     unlockAudioGesture();
     setShowWelcomeHub(false);
+    setDaliaDrawer(null);
     setVoiceModeActive(true);
     voiceModeActiveRef.current = true;
     // A click starts a new conversation; a reply still being processed for the old one is dropped.
@@ -4278,11 +4362,26 @@ const toggleVoiceMute = useCallback(() => {
       caseNumber: garageCase?.caseNumber,
       customerName: garageCase?.customerName,
       plate: garageCase?.plate,
-    }, voiceEnv);
+    }, voiceEnv, prefill);
     if (res.turn.done) setActiveVoiceSession(null, 'keep');
     else setActiveVoiceSession(res.session, 'save');
     await presentVoiceTurn(res.turn, `wf-start-${wfType}`);
   }, [garageCase, presentVoiceTurn, setActiveVoiceSession, unlockAudioGesture, voiceEnv]);
+
+  const voiceAwaitingFile = useCallback(
+    () => !!currentVoiceWorkflowRef.current && !!lastVoiceTurnRef.current?.ui?.some((u) => u.type === 'upload'),
+    [],
+  );
+
+  /** Answer / upload buttons under Dalia's latest turn. */
+  const handleTurnAnswer = useCallback((text: string) => {
+    unlockAudioGesture();
+    void handleVoiceWorkflowInput(text);
+  }, [handleVoiceWorkflowInput, unlockAudioGesture]);
+  const handleTurnUpload = useCallback((camera: boolean) => {
+    unlockAudioGesture();
+    (camera ? voiceCameraInputRef : voiceFileInputRef).current?.click();
+  }, [unlockAudioGesture]);
 
   /** Composer submit: while a voice workflow is active, a typed line answers Dalia's question. */
   const submitComposer = useCallback(() => {
@@ -4612,7 +4711,7 @@ const toggleVoiceMute = useCallback(() => {
 
   return (
     <div
-      className={`claims-ai-workspace${showList ? ' show-list' : ''}`}
+      className={`claims-ai-workspace${showList ? ' show-list' : ''}${module === 'garage' ? ' dalia-garage-window' : ''}${module === 'garage' && isMaximized ? ' is-maximized' : ''}`}
       style={viewportHeight ? { height: `${viewportHeight}px`, maxHeight: `${viewportHeight}px` } : undefined}
       role="dialog"
       aria-modal="true"
@@ -4762,6 +4861,18 @@ const toggleVoiceMute = useCallback(() => {
               📋 דוח אבחון
             </button>
             <button type="button" className="btn btn-g btn-sm claims-ai-list-toggle" onClick={() => setShowList((v) => !v)}>שיחות</button>
+            {module === 'garage' ? (
+              <button
+                type="button"
+                className="btn btn-g btn-sm dalia-max-btn"
+                data-testid="claims-ai-maximize-btn"
+                aria-pressed={isMaximized}
+                onClick={() => setIsMaximized((v) => !v)}
+                title={isMaximized ? 'הקטן לחלון' : 'הגדל למסך מלא'}
+              >
+                {isMaximized ? '🗗 חלון' : '⛶ מסך מלא'}
+              </button>
+            ) : null}
             <button type="button" className="btn btn-g btn-sm claims-ai-min-btn" data-testid="claims-ai-minimize-btn" onClick={() => setIsMinimized(true)} title="מזער חלון AI להצצה במסך שמתחת">— מזער</button>
             <button type="button" className="btn btn-g" data-testid="claims-ai-close" onClick={onClose}>סגור</button>
           </div>
@@ -5014,7 +5125,9 @@ const toggleVoiceMute = useCallback(() => {
                       📋 דוח אבחון
                     </button>
                   </div>
-                  <h3 className="garage-welcome-title">שלום, במה תרצה לטפל היום?</h3>
+                  <h3 className="garage-welcome-title" data-testid="garage-welcome-title">
+                    {firstNameOf(garageVoiceActions?.actorName) ? `שלום ${firstNameOf(garageVoiceActions?.actorName)}, במה אוכל לעזור?` : 'שלום, במה תרצה לטפל היום?'}
+                  </h3>
                   <p className="garage-welcome-subtitle">
                     {garageCase
                       ? `תיק עבודה פעיל: ${garageCase.caseNumber || ''} (${garageCase.customerName || ''} · ${garageCase.plate || ''})`
@@ -5137,6 +5250,32 @@ const toggleVoiceMute = useCallback(() => {
                         <small>חזרה לתהליך שהופסק באמצע בלי לאבד נתונים</small>
                       </div>
                     </button>
+
+                    <button
+                      type="button"
+                      className="garage-action-card"
+                      data-testid="garage-action-general"
+                      onClick={() => void handleStartVoiceWorkflow('general_action')}
+                    >
+                      <span className="garage-action-icon">✨💬</span>
+                      <div className="garage-action-body">
+                        <strong>פעולה כללית</strong>
+                        <small>בקשה חופשית: "תמצאי לי את התיק של אלדן", "כמה כסף נכנס השבוע"</small>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="garage-action-card"
+                      data-testid="garage-action-reports"
+                      onClick={() => void handleStartVoiceWorkflow('reports')}
+                    >
+                      <span className="garage-action-icon">📊</span>
+                      <div className="garage-action-body">
+                        <strong>דוחות</strong>
+                        <small>כספי, לפי חברה, תיקי עבודה, הצעות מחיר ופעילות</small>
+                      </div>
+                    </button>
                   </div>
                 </div>
               ) : module === 'dashboard' ? (
@@ -5211,6 +5350,16 @@ const toggleVoiceMute = useCallback(() => {
                     onOpenGarageCase={onOpenGarageCase}
                     onCopyText={(txt) => void handleCopyText(msg.id, txt)}
                   />
+                  {msg.role === 'assistant' && Array.isArray(msg.metadata?.voice_ui) && (msg.metadata.voice_ui as VoiceUi[]).length ? (
+                    <DaliaTurnUi
+                      ui={msg.metadata.voice_ui as VoiceUi[]}
+                      active={msg.id === lastVoiceMsgId && !!currentVoiceWorkflow}
+                      onAnswer={handleTurnAnswer}
+                      onUpload={handleTurnUpload}
+                      onOpenDrawer={setDaliaDrawer}
+                      onRestart={(t) => void handleStartVoiceWorkflow(t)}
+                    />
+                  ) : null}
                   {module === 'claims' && msg.role === 'assistant' && msg.id !== 'draft' && (
                     msg.content.includes('מאגר המסמכים') ||
                     msg.content.includes('קטגוריה א:') ||
@@ -6327,6 +6476,73 @@ const toggleVoiceMute = useCallback(() => {
           ) : null}
         </div>
 
+        {daliaDrawer ? (
+          <DaliaDrawer
+            data={daliaDrawer}
+            onClose={() => setDaliaDrawer(null)}
+            onOpenCase={onOpenGarageCase ? (id) => { setDaliaDrawer(null); onOpenGarageCase(id); } : undefined}
+          />
+        ) : null}
+
+        {module === 'garage' && !((messages.length === 0 && !loading) || showWelcomeHub) ? (
+          <div className={`dalia-actions-bar${actionsBarOpen ? ' open' : ''}`} data-testid="dalia-actions-bar">
+            <button
+              type="button"
+              className="dalia-actions-toggle"
+              data-testid="dalia-actions-toggle"
+              aria-expanded={actionsBarOpen}
+              onClick={() => setActionsBarOpen((v) => !v)}
+            >
+              ⚡ פעולות {actionsBarOpen ? '▾' : '▸'}
+            </button>
+            {actionsBarOpen ? (
+              <div className="dalia-actions-scroll">
+                {([
+                  ['new_customer', '👤 לקוח חדש'],
+                  ['existing_customer', '🔍 לקוח קיים'],
+                  ['intake', '🚗 קבלת רכב'],
+                  ['quote', '📝 הצעת מחיר'],
+                  ['invoices_credits', '🧾 חשבוניות'],
+                  ['general_expenses', '🏭 ספקים'],
+                  ['find_case', '📂 איתור תיק'],
+                  ['close_case', '🔒 סגירת תיק'],
+                  ['resume_action', '⏯️ המשך'],
+                  ['general_action', '✨ פעולה כללית'],
+                  ['reports', '📊 דוחות'],
+                ] as Array<[VoiceWorkflowType, string]>).map(([type, label]) => (
+                  <button
+                    key={type}
+                    type="button"
+                    className="dalia-chip"
+                    data-testid={`dalia-bar-${type}`}
+                    onClick={() => void handleStartVoiceWorkflow(type)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        <input
+          type="file"
+          ref={voiceCameraInputRef}
+          style={{ display: 'none' }}
+          accept="image/*"
+          capture="environment"
+          data-testid="dalia-voice-camera-input"
+          onChange={onVoiceFilePicked}
+        />
+        <input
+          type="file"
+          ref={voiceFileInputRef}
+          style={{ display: 'none' }}
+          accept="image/*,application/pdf"
+          data-testid="dalia-voice-file-input"
+          onChange={onVoiceFilePicked}
+        />
+
         {stagedAttachments.length > 0 ? (
           <div className="claims-ai-attachments-tray" data-testid="claims-ai-attachments-tray">
             {stagedAttachments.map((att, idx) => (
@@ -6580,7 +6796,7 @@ const toggleVoiceMute = useCallback(() => {
               aria-label="צרף קובץ"
               onClick={() => setAttachMenuOpen((prev) => !prev)}
             >
-              📎
+              {module === 'garage' ? '+' : '📎'}
             </button>
             {attachMenuOpen && (
               <div
@@ -6608,6 +6824,10 @@ const toggleVoiceMute = useCallback(() => {
                   onClick={() => {
                     setAttachMenuOpen(false);
                     replaceTargetIdRef.current = null;
+                    if (voiceAwaitingFile()) {
+                      voiceCameraInputRef.current?.click();
+                      return;
+                    }
                     cameraInputRef.current?.click();
                   }}
                 >
@@ -6620,12 +6840,36 @@ const toggleVoiceMute = useCallback(() => {
                   onClick={() => {
                     setAttachMenuOpen(false);
                     replaceTargetIdRef.current = null;
+                    if (voiceAwaitingFile()) {
+                      voiceFileInputRef.current?.click();
+                      return;
+                    }
                     galleryInputRef.current?.click();
                   }}
                 >
                   <span style={{ fontSize: 16 }}>🖼️</span>
                   <span>בחר מגלריה</span>
                 </button>
+                {module === 'garage' ? (
+                  <button
+                    type="button"
+                    data-testid="claims-ai-license-btn"
+                    onClick={() => {
+                      setAttachMenuOpen(false);
+                      replaceTargetIdRef.current = null;
+                      if (voiceAwaitingFile()) {
+                        voiceCameraInputRef.current?.click();
+                        return;
+                      }
+                      // outside a voice flow: the existing chat reads the license and proposes the customer/vehicle
+                      if (!input.trim()) setInput('צירפתי צילום של רישיון רכב — קראי את הפרטים והכיני קליטת לקוח ורכב לבדיקה.');
+                      cameraInputRef.current?.click();
+                    }}
+                  >
+                    <span style={{ fontSize: 16 }}>🪪</span>
+                    <span>רישיון רכב</span>
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   data-testid="claims-ai-attach-btn"
@@ -6659,8 +6903,31 @@ const toggleVoiceMute = useCallback(() => {
             disabled={!micOk || loading}
             title={listening ? 'עצור הכתבה (הטקסט יישמר בתיבה לעריכה)' : (micOk ? 'התחל הכתבה קולית רציפה' : 'הדפדפן לא תומך בזיהוי דיבור')}
             aria-label={listening ? 'עצור הכתבה' : 'הכתבה קולית'}
-            onClick={toggleMic}
+            onClick={() => {
+              if (module === 'garage' && currentVoiceWorkflowRef.current && !listening) {
+                unlockAudioGesture();
+                if (!voiceModeActiveRef.current) {
+                  voiceModeActiveRef.current = true;
+                  setVoiceModeActive(true);
+                }
+                handleAnswerByVoice();
+                return;
+              }
+              toggleMic();
+            }}
           >{listening ? '⏹️' : '🎤'}</button>
+          {module === 'garage' && (voicePhase === 'speaking' || speakingMsgId) ? (
+            <button
+              type="button"
+              className="claims-ai-icon dalia-stop-speech"
+              data-testid="claims-ai-composer-stop-speech"
+              onClick={handleInterruptSpeech}
+              title="עצור את הדיבור של דליה"
+              aria-label="עצור דיבור"
+            >
+              🔇
+            </button>
+          ) : null}
           <textarea
             ref={textareaRef}
             data-testid="claims-ai-input"
@@ -6668,7 +6935,7 @@ const toggleVoiceMute = useCallback(() => {
             dir="rtl"
             placeholder={
               module === 'garage'
-                ? (garageCase ? 'שאלה או פקודה על כרטיס העבודה…' : 'פתחו כרטיס עבודה, חפשו לקוח/רכב או שאלו שאלה…')
+                ? (garageCase ? 'כתבו או דברו עם דליה על התיק…' : 'כתבו או דברו עם דליה…')
                 : module === 'reports'
                 ? 'שאלה על דוחות, מאזן כספי, פעילות מוסך או תביעות ביטוח…'
                 : module === 'dashboard'
@@ -6680,6 +6947,11 @@ const toggleVoiceMute = useCallback(() => {
               setInput(val);
               inputRef.current = val;
               baseInputRef.current = val;
+              if (module === 'garage') {
+                const el = e.target;
+                el.style.height = 'auto';
+                el.style.height = `${Math.min(el.scrollHeight, Math.round(window.innerHeight * 0.35))}px`;
+              }
             }}
             onFocus={() => {
               baseInputRef.current = inputRef.current;

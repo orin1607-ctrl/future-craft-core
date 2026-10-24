@@ -45,7 +45,7 @@ function customer(id: string, name: string, phone: string, num: number, type: 'p
 function vehicle(id: string, customerId: string, plate: string, make = 'טויוטה', model = 'קורולה'): GarageVehicle {
   return { id, customer_id: customerId, plate, make, model, year: null, color: '', vin: '', vehicle_type: '', internal_number: '', notes: '' };
 }
-function gcase(id: string, num: string, c: GarageCustomer, v: GarageVehicle, data: GarageCaseData = {}, created = '2026-10-20T08:00:00Z'): GarageCase {
+function gcase(id: string, num: string, c: GarageCustomer, v: GarageVehicle, data: GarageCaseData & Record<string, unknown> = {}, created = '2026-10-20T08:00:00Z'): GarageCase {
   return {
     id, case_number: num, customer_id: c.id, vehicle_id: v.id, status: 'בדיקת רכב', opened_by: 'u', opened_by_name: 'בודק',
     customer_name_snapshot: c.name, vehicle_plate_snapshot: v.plate, vehicle_label_snapshot: `${v.make} ${v.model}`, case_data: data, created_at: created,
@@ -690,7 +690,7 @@ describe('סגירת תיק — שאלון', () => {
   });
   it('monthly customer (אלדן) that has not paid: operational close, payment stays tracked, never "שולם"', async () => {
     const k4 = g.cases.find((c) => c.id === 'k4')!;
-    k4.case_data = { ...k4.case_data, ...READY_TO_CLOSE, paymentStatus: '', payments: k4.case_data.payments, totalPaid: 500 };
+    k4.case_data = { ...k4.case_data, ...READY_TO_CLOSE, paymentStatus: '', totalPaid: 500 } as GarageCaseData;
     const { last, says } = await talk('close_case', ['11-222-33', 'בדיבור', 'לא', 'כן', 'כן']);
     expect(says.at(-1)).toBe(P.cqMarkInvoiced);
     const r = await answerVoiceWorkflow(last.session!, 'כן', env());
@@ -702,7 +702,7 @@ describe('סגירת תיק — שאלון', () => {
   });
   it('regular customer that has not paid → kept open', async () => {
     const k4 = g.cases.find((c) => c.id === 'k4')!;
-    k4.case_data = { ...k4.case_data, ...READY_TO_CLOSE, paymentStatus: '', totalPaid: 500 };
+    k4.case_data = { ...k4.case_data, ...READY_TO_CLOSE, paymentStatus: '', totalPaid: 500 } as GarageCaseData;
     const { last } = await talk('close_case', ['11-222-33', 'בדיבור', 'לא', 'כן', 'לא']);
     expect(last.turn.say).toBe(P.closeUnpaid);
     expect(g.writes).toEqual([]);

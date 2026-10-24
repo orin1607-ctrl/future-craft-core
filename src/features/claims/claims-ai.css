@@ -1522,3 +1522,329 @@
     gap: 3px;
   }
 }
+
+
+/* ==========================================================================
+   Dalia AI — garage assistant window (module="garage" only).
+   Everything below is scoped to .dalia-garage-window / .dalia-* so the garage
+   system and Dalia in the claims module keep their existing look.
+   ========================================================================== */
+
+/* Large, clean window on desktop; full screen on demand. Phones stay full screen. */
+@media (min-width: 761px) {
+  .claims-root .claims-ai-workspace.dalia-garage-window:not(.is-maximized) {
+    inset: 2.5vh 2.5vw;
+    border-radius: 18px;
+    border: 1px solid var(--br2);
+    overflow: hidden;
+    box-shadow: 0 0 0 100vmax rgba(2, 6, 23, 0.55), 0 24px 64px rgba(0, 0, 0, 0.55);
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+  .claims-root .dalia-garage-window .claims-ai-thread {
+    padding-inline: max(16px, calc((100% - 920px) / 2));
+  }
+}
+
+/* Composer: wide, comfortable, grows with the text; prominent mic */
+.claims-root .dalia-garage-window .claims-ai-composer {
+  align-items: flex-end;
+  gap: 8px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+.claims-root .dalia-garage-window .claims-ai-composer textarea {
+  min-height: 56px;
+  max-height: 35vh;
+  resize: none;
+  font-size: 15px;
+  line-height: 1.5;
+  border-radius: 16px;
+  padding: 14px 16px;
+}
+.claims-root .dalia-garage-window .claims-ai-icon.attach-toggle {
+  border-radius: 50%;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+}
+.claims-root .dalia-garage-window .claims-ai-icon[data-testid="claims-ai-mic"] {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  border-radius: 50%;
+  background: var(--ac);
+  border-color: var(--ac);
+  color: #fff;
+  font-size: 24px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.22);
+}
+.claims-root .dalia-garage-window .claims-ai-icon[data-testid="claims-ai-mic"].live {
+  background: var(--rd);
+  border-color: var(--rd);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.25);
+}
+.claims-root .dalia-garage-window .claims-ai-icon.send { border-radius: 14px; min-width: 64px; }
+.claims-root .dalia-garage-window .dalia-stop-speech { border-radius: 50%; }
+.claims-root .dalia-garage-window .dalia-max-btn { white-space: nowrap; }
+
+/* Compact actions bar above the composer (keeps the existing buttons, does not crowd the chat) */
+.claims-root .dalia-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-top: 1px solid var(--br);
+  background: var(--bg2);
+  min-height: 0;
+  flex-shrink: 0;
+}
+.claims-root .dalia-actions-toggle {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--br2);
+  color: var(--t2);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 34px;
+}
+.claims-root .dalia-actions-scroll {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: 2px;
+}
+
+/* Chips: answers, uploads, list / report actions */
+.claims-root .dalia-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.claims-root .dalia-chip {
+  border-radius: 999px;
+  border: 1px solid var(--br2);
+  background: var(--bg3);
+  color: var(--t);
+  padding: 7px 13px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 36px;
+  touch-action: manipulation;
+}
+.claims-root .dalia-chip:hover:not(:disabled) { border-color: var(--ac); }
+.claims-root .dalia-chip.primary { background: var(--ac); border-color: var(--ac); color: #fff; }
+.claims-root .dalia-chip:disabled { opacity: 0.45; cursor: default; }
+
+.claims-root .dalia-turn-ui {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Summary cards */
+.claims-root .dalia-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.claims-root .dalia-card {
+  background: var(--bg3);
+  border: 1px solid var(--br);
+  border-radius: 12px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.claims-root .dalia-card-label { font-size: 11.5px; color: var(--t3); }
+.claims-root .dalia-card-value { font-size: 18px; font-weight: 800; color: var(--t); direction: rtl; }
+.claims-root .dalia-card-hint { font-size: 11px; color: var(--t3); line-height: 1.35; }
+
+.claims-root .dalia-list-summary,
+.claims-root .dalia-report {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.claims-root .dalia-report-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.claims-root .dalia-report-head span { font-size: 12px; color: var(--t3); }
+.claims-root .dalia-report-notes {
+  margin: 0;
+  padding-inline-start: 18px;
+  font-size: 12px;
+  color: var(--t3);
+  line-height: 1.5;
+}
+
+/* Close-case checklist */
+.claims-root .dalia-checklist ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.claims-root .dalia-checklist li {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: var(--bg3);
+}
+.claims-root .dalia-checklist li small { color: var(--t3); font-size: 11.5px; }
+.claims-root .dalia-checklist li.state-missing { outline: 1px solid rgba(239, 68, 68, 0.35); }
+
+/* List drawer — between the conversation and the composer; never covers the composer */
+.claims-root .dalia-drawer {
+  flex: 0 1 auto;
+  max-height: 45%;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  border-top: 2px solid var(--ac);
+  background: var(--bg2);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+}
+.claims-root .dalia-drawer-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--br);
+  flex-shrink: 0;
+}
+.claims-root .dalia-drawer-head strong { font-size: 14px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.claims-root .dalia-drawer-count { font-size: 12px; color: var(--t3); white-space: nowrap; }
+.claims-root .dalia-drawer-close {
+  background: var(--bg3);
+  border: 1px solid var(--br2);
+  color: var(--t);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 34px;
+  white-space: nowrap;
+}
+.claims-root .dalia-drawer-filter {
+  margin: 8px 12px 0;
+  border-radius: 10px;
+  border: 1px solid var(--br2);
+  background: var(--bg);
+  color: var(--t);
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+}
+.claims-root .dalia-drawer-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 12px 10px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+.claims-root .dalia-drawer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--bg3);
+  border: 1px solid var(--br);
+}
+.claims-root .dalia-drawer-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.claims-root .dalia-drawer-row-text strong { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.claims-root .dalia-drawer-row-text span { font-size: 11.5px; color: var(--t3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.claims-root .dalia-drawer-amount { font-weight: 800; font-size: 13px; white-space: nowrap; }
+.claims-root .dalia-drawer-empty { color: var(--t3); font-size: 13px; padding: 8px; }
+
+@media (max-width: 760px) {
+  .claims-root .dalia-drawer { max-height: 50%; min-height: 120px; }
+  .claims-root .dalia-actions-bar { padding: 5px 8px; }
+  .claims-root .dalia-garage-window .claims-ai-icon[data-testid="claims-ai-mic"] {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+  }
+  .claims-root .dalia-garage-window .claims-ai-composer textarea {
+    min-height: 48px;
+    max-height: 30vh;
+    padding: 12px 14px;
+    font-size: 16px; /* 16px keeps iOS from zooming when the keyboard opens */
+  }
+  .claims-root .dalia-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Garage window header: one tidy row of nav buttons; no squeezed labels */
+.claims-root .dalia-garage-window .claims-ai-voice-call-btn,
+.claims-root .dalia-garage-window .claims-ai-header-diag-btn { white-space: nowrap; }
+.claims-root .dalia-garage-window .claims-ai-top-nav-group {
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+  max-width: 100%;
+  scrollbar-width: thin;
+}
+.claims-root .dalia-garage-window .claims-ai-top-nav-group .btn { white-space: nowrap; flex-shrink: 0; }
+/* Medium screens: the conversation gets the width; "שיחות" opens the list as on phones */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .claims-root .claims-ai-workspace.dalia-garage-window { grid-template-columns: minmax(0, 1fr) !important; }
+  .claims-root .dalia-garage-window .claims-ai-side { display: none; }
+  .claims-root .dalia-garage-window.show-list .claims-ai-side { display: flex; }
+  .claims-root .dalia-garage-window.show-list .claims-ai-main { display: none; }
+}
+/* the header may not grow wider than its column (long nav rows scroll instead) */
+.claims-root .dalia-garage-window .claims-ai-main { min-width: 0; }
+.claims-root .dalia-garage-window .claims-ai-top { min-width: 0; max-width: 100%; }
+.claims-root .dalia-garage-window .claims-ai-top > * { min-width: 0; }
+.claims-root .dalia-garage-window .claims-ai-top > div:first-child { flex: 1 1 auto; overflow: hidden; }
+.claims-root .dalia-garage-window .claims-ai-main { overflow-x: clip; }
+.claims-root .dalia-garage-window .claims-ai-top { flex-wrap: wrap; row-gap: 8px; }
+.claims-root .dalia-garage-window .claims-ai-top > div:last-child { flex-wrap: wrap; justify-content: flex-end; min-width: 0; }
+@media (max-width: 760px) {
+  /* phones are always full screen; keep the header to two short rows */
+  .claims-root .dalia-garage-window .dalia-max-btn { display: none; }
+  .claims-root .dalia-garage-window .claims-ai-top { padding: 6px 10px; row-gap: 6px; }
+  .claims-root .dalia-garage-window .claims-ai-top h2 { font-size: 16px; }
+  .claims-root .dalia-garage-window .claims-ai-top > div:last-child {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    justify-content: flex-start;
+    width: 100%;
+    gap: 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .claims-root .dalia-garage-window .claims-ai-top > div:last-child > * { flex-shrink: 0; }
+  .claims-root .dalia-garage-window .claims-ai-top .btn,
+  .claims-root .dalia-garage-window .claims-ai-top .claims-ai-header-diag-btn,
+  .claims-root .dalia-garage-window .claims-ai-voice-call-btn { min-height: 36px; padding: 6px 10px; font-size: 12px; }
+  .claims-root .dalia-garage-window .claims-ai-icon.send { min-width: 52px; width: 52px; }
+  .claims-root .dalia-garage-window .claims-ai-composer { gap: 6px; padding-inline: 8px; }
+}
