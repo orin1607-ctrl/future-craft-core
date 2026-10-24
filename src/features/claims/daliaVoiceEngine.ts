@@ -90,7 +90,10 @@ export type VoiceWorkflowType =
   | 'context_quote_add_part'
   | 'context_quote_supplement'
   | 'context_pay_balance'
-  | 'context_pay_record';
+  | 'context_pay_record'
+  | 'new_customer_choice'
+  | 'prospect_quote'
+  | 'quote_drafts';
 
 export const VOICE_WORKFLOW_LABELS: Record<VoiceWorkflowType, string> = {
   new_customer: 'לקוח חדש',
@@ -109,10 +112,13 @@ export const VOICE_WORKFLOW_LABELS: Record<VoiceWorkflowType, string> = {
   context_quote_supplement: 'תוספת להצעה',
   context_pay_balance: 'תשלום יתרה',
   context_pay_record: 'רישום תשלום',
+  new_customer_choice: 'לקוח חדש',
+  prospect_quote: 'הצעת מחיר ללקוח',
+  quote_drafts: 'הצעות מחיר ממתינות',
 };
 
 type Candidate = { id: string; label: string };
-type CandidateKind = 'customer' | 'case' | 'vehicle' | 'supplier';
+type CandidateKind = 'customer' | 'case' | 'vehicle' | 'supplier' | 'draft' | 'intakeVehicle' | 'intakeCase';
 type IntakeAngle = 'front' | 'rear' | 'right' | 'left' | 'dashboard';
 type FinishAngle = 'front' | 'rear' | 'right' | 'left';
 
@@ -155,6 +161,31 @@ export interface VoiceData {
   wantQuote?: boolean;
   /** "תרצה שאכין לו גם הצעת מחיר?" was already asked — it is offered once. */
   quoteOffered?: boolean;
+  // --- quote without a work case (prospect / existing customer) ---
+  /** How the vehicle of a quote is given: photo / document, speech, none, or one of the customer's vehicles. */
+  prospectVehicleMode?: 'photo' | 'voice' | 'none' | 'known';
+  /** A new quote for a customer who is already in the system. */
+  prospectExisting?: boolean;
+  /** The existing customer's vehicle is not in the list — details follow like a new vehicle. */
+  otherVehicle?: boolean;
+  prospectVehicles?: Array<{ id: string; label: string; plate: string; make: string; model: string; year: number | null }>;
+  extrasDone?: boolean;
+  extrasNote?: string;
+  /** The review was answered with "לתקן" at least once. */
+  editing?: boolean;
+  /** The pending quote being edited / continued (saved again under the same id — never a second copy). */
+  draftId?: string;
+  draftStatus?: 'pending_approval' | 'approved' | 'converted' | 'cancelled';
+  draftDecision?: 'approved';
+  /** A customer / case opened from this pending quote (it is marked converted and linked). */
+  fromDraftId?: string;
+  /** quote menu: 'add' = lines added to an existing case quote */
+  quoteMenu?: 'add';
+  addKind?: 'work' | 'part' | 'both';
+  // --- intake search ---
+  intakeOptions?: Array<{ vehicleId: string; customerId: string; plate: string; label: string }>;
+  intakeCaseOptions?: Candidate[];
+  intakeCaseDecided?: boolean;
   arrivedNow?: boolean;
   complaint?: string;
   requestedWork?: string;
@@ -1121,6 +1152,9 @@ function vehicleAttachSteps(): Step[] {
         const v = await ensureVehicle(s, env, customer);
         d.vehicleSaved = true;
         d.vehicleLabel = vehicleLine(v);
+        if (d.fromDraftId && env.actions?.updateQuoteDraft) {
+          try { await env.actions.updateQuoteDraft(d.fromDraftId, { customer_id: customer.id, vehicle_id: v.id, status: 'converted' }); } catch {}
+        }
         return next(`נשמר רכב: ${d.vehicleLabel}`);
       },
       (d) => wantsVehicle(d) && (!!d.plate || !!d.noVehicle),
@@ -1261,6 +1295,9 @@ function newCustomerFlow(): Step[] {
       async (s, env) => {
         const { customer, note } = await ensureCustomer(s, env, s.data.similarDecision === 'new');
         s.data.customerSaved = true;
+        if (s.data.fromDraftId && env.actions?.updateQuoteDraft) {
+          try { await env.actions.updateQuoteDraft(s.data.fromDraftId, { customer_id: customer.id }); } catch {}
+        }
         return next(join(`נשמר כרטיס לקוח: ${customerLine(customer)}`, note));
       },
       beforeSave,
@@ -1268,6 +1305,457 @@ function newCustomerFlow(): Step[] {
       'customerConfirm',
     ),
     ...vehicleAttachSteps(),
+  ];
+}
+
+// -----------------------------------------------------------------------------
+// Workflow: "לקוח חדש" button — a regular opening, or a new customer with a price quote
+// -----------------------------------------------------------------------------
+
+const NC_CHOICE = choices(['👤 פתיחת לקוח רגילה', 'פתיחת לקוח רגילה'], ['📝 לקוח חדש + הצעת מחיר', 'הצעת מחיר ללקוח חדש']);
+
+function newCustomerChoiceFlow(): Step[] {
+  return [
+    {
+      id: 'ncChoice',
+      done: () => false,
+      ask: (_d, _s, env) => ({ ...personal(env, P.newCustomerChoice), ui: [NC_CHOICE] }),
+      answer: (text) => {
+        const t = text.trim();
+        if (/הצע|מחיר/.test(t)) return { kind: 'switch', type: 'prospect_quote' };
+        if (/פתיחת לקוח|לפתוח לקוח|רגיל|רק לקוח|רק לפתוח|במערכת|פתיחה/.test(t) || parseYesNo(t) === 'yes') return { kind: 'switch', type: 'new_customer' };
+        // a name said right away = the regular opening, with the name already given
+        if (t.split(/\s+/).length <= 4 && extractName(t) && !detectCommand(t)) return { kind: 'switch', type: 'new_customer', prefill: t };
+        return reask(P.newCustomerChoiceRetry, undefined, [NC_CHOICE]);
+      },
+      clear: () => {},
+    },
+  ];
+}
+
+// -----------------------------------------------------------------------------
+// Workflow: price quote WITHOUT a work case — a customer not in the system yet, or a new quote for an
+// existing customer. Saved as a pending quote (no customer record, no case) until the customer approves.
+// -----------------------------------------------------------------------------
+
+const PROSPECT_VEHICLE = choices(['📷 לצלם רישיון', 'לצלם'], ['📎 להעלות מסמך', 'להעלות מסמך'], ['🎙️ בדיבור', 'בדיבור'], ['בלי רכב']);
+const DRAFT_REVIEW = choices(['✅ להכין את ההצעה', 'להכין את ההצעה'], ['✏️ לתקן', 'לתקן']);
+
+async function readVehicleDocument(file: VoiceFile, s: VoiceSession, env: VoiceEnv): Promise<Outcome> {
+  let fields: Record<string, unknown> | null = null;
+  try {
+    fields = env.readDocument ? await env.readDocument('vehicle_license', file) : null;
+  } catch {
+    fields = null;
+  }
+  const f = fields ? LICENSE_FIELDS(fields) : null;
+  if (!f || !f.plate) {
+    s.data.prospectVehicleMode = 'voice';
+    return reask(P.licenseReadFailed);
+  }
+  // nothing read from the document is used before the worker confirms it
+  Object.assign(s.data, f);
+  s.data.prospectVehicleMode = 'photo';
+  s.data.licenseRead = true;
+  return next();
+}
+
+function prospectQuoteFlow(): Step[] {
+  const isNew = (d: VoiceData) => !d.prospectExisting;
+  const vehicleByDetails = (d: VoiceData) => d.prospectVehicleMode === 'voice' || !!d.licenseVerified;
+  const customerSearch = customerSearchStep(() => ({ say: P.existingCustomerQuote }));
+  return [
+    // existing customer: who, and which of their vehicles
+    {
+      ...customerSearch,
+      applies: (d) => !!d.prospectExisting,
+      answer: async (text, s, env) => {
+        const out = await customerSearch.answer(text, s, env);
+        const d = s.data;
+        if (d.customerId && !d.prospectVehicles) {
+          const a = needActions(env);
+          const c = await a.getCustomer(d.customerId);
+          d.customerName = c ? customerDisplayName(c) : d.customerLabel;
+          d.customerPhone = c?.phone || '';
+          d.prospectVehicles = (await a.listVehicles(d.customerId)).map((v) => ({ id: v.id, label: vehicleLine(v), plate: v.plate, make: v.make || '', model: v.model || '', year: v.year ?? null }));
+        }
+        return out;
+      },
+    },
+    {
+      id: 'pickVehicle',
+      applies: (d) => !!d.prospectExisting && !!d.customerId && !d.prospectVehicleMode && !d.otherVehicle,
+      done: (d) => !!d.prospectVehicleMode || !!d.otherVehicle,
+      ask: (d) => ({
+        say: P.pickVehicle,
+        display: (d.prospectVehicles || []).length ? numbered((d.prospectVehicles || []).map((v) => v.label)) : 'ללקוח אין רכבים רשומים.',
+        ui: [choices(...(d.prospectVehicles || []).slice(0, 6).map((v, i) => [`${i + 1}. ${v.plate}`, `מספר ${i + 1}`] as [string, string]), ['רכב אחר'], ['בלי רכב'])],
+      }),
+      answer: async (text, s, env) => {
+        const d = s.data;
+        const list = d.prospectVehicles || [];
+        if (/רכב אחר|חדש|לא ברשימה/.test(text)) {
+          d.otherVehicle = true;
+          return next();
+        }
+        if (/בלי רכב|אין רכב|ללא רכב/.test(text)) {
+          d.prospectVehicleMode = 'none';
+          d.noVehicle = true;
+          return next();
+        }
+        const plate = extractPlate(text);
+        const idx = plate ? list.findIndex((v) => normalizePlate(v.plate) === plate) : pickFromList(text, list.map((v, i) => `${i + 1}. ${v.label}`));
+        if (idx === null || idx < 0) return reask(P.pickRetry, numbered(list.map((v) => v.label)));
+        const v = list[idx];
+        Object.assign(d, { vehicleId: v.id, vehicleLabel: v.label, plate: normalizePlate(v.plate), make: v.make, model: v.model, year: v.year, prospectVehicleMode: 'known' as const });
+        // an open work case for this vehicle is shown (its own quote can also be extended)
+        try {
+          const open = (await needActions(env).listCustomerCases(d.customerId!)).filter((c) => c.vehicle_id === v.id && !isClosed(c));
+          if (open.length) return next(`לרכב יש תיק פתוח ${open[0].case_number || ''}. אפשר גם להוסיף להצעה שבתיק דרך "תוספת להצעה קיימת".`);
+        } catch {}
+        return next(`נבחר רכב: ${v.label}`);
+      },
+      clear: (d) => { d.vehicleId = undefined; d.vehicleLabel = undefined; d.prospectVehicleMode = undefined; d.otherVehicle = undefined; },
+    },
+    // new customer: name, optional phone
+    nameStep('name', (_d, _s, env) => personal(env, P.prospectName), isNew),
+    {
+      id: 'prospectPhone',
+      slots: /טלפון|פלאפון|נייד/,
+      applies: isNew,
+      done: (d) => d.customerPhone !== undefined,
+      ask: () => ({ say: P.prospectPhone, ui: [choices(['דלג'])] }),
+      answer: (text, s) => {
+        if (/דלג|אין|לא יודע|אחר כך|בלי/.test(text)) {
+          s.data.customerPhone = '';
+          return next();
+        }
+        const phone = extractPhone(text);
+        if (!phone) return reask(P.phoneInvalid, undefined, [choices(['דלג'])]);
+        s.data.customerPhone = phone;
+        return next();
+      },
+      clear: (d) => { d.customerPhone = undefined; },
+    },
+    // the vehicle: photo / document (read by the existing reader, then confirmed), speech, or none
+    {
+      id: 'vehicleSource',
+      applies: (d) => !d.prospectVehicleMode && (isNew(d) || !!d.otherVehicle),
+      done: (d) => !!d.prospectVehicleMode,
+      ask: () => ({ say: P.prospectVehicleSource, ui: [PROSPECT_VEHICLE] }),
+      answer: (text, s) => {
+        const d = s.data;
+        if (/בלי רכב|אין רכב|ללא רכב|^אין$|^לא$/.test(text.trim())) {
+          d.prospectVehicleMode = 'none';
+          d.noVehicle = true;
+          return next();
+        }
+        if (/צילום|לצלם|תמונה|מצלמה|רישיון|מסמך|להעלות|העלאה|קובץ/.test(text)) d.prospectVehicleMode = 'photo';
+        else if (/דיבור|להגיד|בקול|אגיד|אומר|פרטים/.test(text)) d.prospectVehicleMode = 'voice';
+        else if (extractPlate(text)) {
+          d.prospectVehicleMode = 'voice';
+          d.plate = extractPlate(text)!;
+        } else return reask(P.choiceRetry, undefined, [PROSPECT_VEHICLE]);
+        return next();
+      },
+      onFile: (file, s, env) => readVehicleDocument(file, s, env),
+      clear: (d) => { d.prospectVehicleMode = undefined; d.noVehicle = undefined; },
+    },
+    {
+      id: 'vehicleDoc',
+      applies: (d) => d.prospectVehicleMode === 'photo' && !d.licenseRead,
+      done: (d) => !!d.licenseRead,
+      ask: () => ({ say: P.prospectDocUpload, ui: [upload('רישיון רכב או מסמך', ['בדיבור במקום', 'בדיבור'])] }),
+      answer: (text, s) => {
+        if (/דיבור|בקול|אגיד/.test(text)) {
+          s.data.prospectVehicleMode = 'voice';
+          return next();
+        }
+        return reask(P.prospectDocUpload, undefined, [upload('רישיון רכב או מסמך', ['בדיבור במקום', 'בדיבור'])]);
+      },
+      onFile: (file, s, env) => readVehicleDocument(file, s, env),
+      clear: (d) => { d.licenseRead = undefined; },
+    },
+    {
+      id: 'vehicleDocVerify',
+      applies: (d) => !!d.licenseRead && !d.licenseVerified,
+      done: (d) => !!d.licenseVerified,
+      ask: (d) => ({ say: P.licenseReadOk, display: ['פרטים שנקראו מהמסמך (לבדיקה):', ...vehicleSummary(d)].join('\n'), ui: [YES_NO] }),
+      answer: (text, s) => {
+        const yn = parseYesNo(text);
+        if (yn === 'yes') {
+          s.data.licenseVerified = true;
+          return next();
+        }
+        if (yn === 'no') {
+          Object.assign(s.data, { plate: undefined, make: undefined, model: undefined, year: undefined, color: undefined, vin: undefined, licenseRead: false, prospectVehicleMode: 'voice' });
+          return next('בסדר, נמלא את פרטי הרכב בדיבור.');
+        }
+        return reask(P.yesNoRetry, undefined, [YES_NO]);
+      },
+      clear: (d) => { d.licenseVerified = undefined; },
+    },
+    plateStep(() => ({ say: P.vehiclePlate }), {
+      applies: (d) => vehicleByDetails(d) && !d.vehicleId,
+      onPlate: async (s, env) => {
+        try {
+          const existing = await needActions(env).findVehicleByPlate(s.data.plate!);
+          if (existing) return next(`הרכב ${s.data.plate} כבר רשום במערכת. ההצעה לא משנה אותו.`);
+        } catch {}
+        return null;
+      },
+    }),
+    modelStep((d) => vehicleByDetails(d) && !!d.plate && !d.vehicleId),
+    yearStep((d) => vehicleByDetails(d) && !!d.plate && !d.vehicleId),
+    // the quote itself — only what the worker says (no invented prices)
+    lineLoopStep('work', () => P.works, () => true, false),
+    lineLoopStep('part', () => P.parts, () => true, false),
+    {
+      id: 'extras',
+      slots: /תוספות|הערה/,
+      done: (d) => !!d.extrasDone,
+      ask: () => ({ say: P.prospectExtras, ui: [choices(['אין תוספות', 'אין'])] }),
+      answer: (text, s) => {
+        const d = s.data;
+        d.extrasDone = true;
+        if (isNoneAnswer(text)) return next();
+        const line = parseSpokenLine(text);
+        if (line && line.price != null) {
+          (d.works = d.works || []).push(line);
+          return next(`נוסף: ${lineText(line)}`);
+        }
+        d.extrasNote = text.trim();
+        return next();
+      },
+      clear: (d) => { d.extrasDone = undefined; d.extrasNote = undefined; },
+    },
+    {
+      id: 'draftReview',
+      done: () => false,
+      ask: (d) => ({ say: d.editing ? P.prospectEdited : P.prospectReview, display: draftSummary(d), ui: [DRAFT_REVIEW] }),
+      answer: async (text, s, env) => {
+        const d = s.data;
+        const t = text.trim();
+        const changed = editDraftLines(d, t);
+        if (changed) {
+          d.editing = true;
+          return reask(P.prospectEdited, join(changed, draftSummary(d)), [DRAFT_REVIEW]);
+        }
+        const empty = !(d.works?.length || d.parts?.length);
+        if (empty) {
+          const line = parseSpokenLine(t);
+          if (line && !/להכין|לשמור|לתקן/.test(t)) {
+            (d.works = d.works || []).push(line);
+            d.editing = true;
+            return reask(P.prospectEdited, draftSummary(d), [DRAFT_REVIEW]);
+          }
+        }
+        if (/לתקן|תיקון|לשנות|לערוך/.test(t) && !/^(לא|אל)/.test(t)) return reask(P.prospectEditHow, draftSummary(d), [DRAFT_REVIEW]);
+        if (/להכין|לשמור|תכיני|תשמרי|מאשר|אשר/.test(t) || parseYesNo(t) === 'yes') {
+          if (empty) return reask(P.prospectNoLines, draftSummary(d));
+          const a = needActions(env);
+          if (!a.saveQuoteDraft) return finish(P.draftsUnavailable, 'failed', { display: draftSummary(d) });
+          const saved = await a.saveQuoteDraft({
+            status: d.draftStatus || 'pending_approval',
+            customer_name: d.customerName || '',
+            customer_phone: d.customerPhone || '',
+            customer_id: d.customerId || null,
+            vehicle_id: d.vehicleId || null,
+            vehicle_plate: d.plate || '',
+            vehicle_make: d.make || '',
+            vehicle_model: d.model || '',
+            vehicle_year: d.year ?? null,
+            works: (d.works || []).map((l) => ({ name: l.name, qty: l.qty, price: l.price })),
+            parts: (d.parts || []).map((l) => ({ name: l.name, qty: l.qty, price: l.price })),
+            extras_note: d.extrasNote || '',
+            total_net: quoteTotals(d).net,
+            case_id: null,
+          }, d.draftId);
+          d.draftId = saved.id;
+          return finish(saved.storage === 'device' ? P.prospectSavedDevice : P.prospectSaved, 'executed', {
+            display: join(
+              draftSummary(d, 'הצעת מחיר — ממתינה לאישור הלקוח'),
+              saved.storage === 'device'
+                ? 'נשמר במכשיר הזה בלבד: טבלת ההצעות הממתינות עוד לא הופעלה במערכת. אפשר להמשיך ממנה בכפתור "הצעת מחיר" ← "הצעות ממתינות".'
+                : 'אפשר למצוא אותה בהמשך בכפתור "הצעת מחיר" ← "הצעות ממתינות".',
+            ),
+          });
+        }
+        return reask(P.prospectReview, draftSummary(d), [DRAFT_REVIEW]);
+      },
+      clear: (d) => { d.editing = undefined; },
+    },
+  ];
+}
+
+// -----------------------------------------------------------------------------
+// Workflow: pending quotes — find one, mark the customer's answer, continue to the customer or the intake
+// -----------------------------------------------------------------------------
+
+const DRAFT_ACTIONS = choices(['✅ הלקוח אישר', 'הלקוח אישר'], ['⏳ עדיין ממתינה', 'עדיין ממתינה'], ['➕ להוסיף סעיפים', 'להוסיף סעיפים'], ['✖ לבטל את ההצעה', 'לבטל את ההצעה']);
+const DRAFT_NEXT = choices(['👤 פתיחת הלקוח', 'פתיחת לקוח'], ['🚗 קליטת הרכב לעבודה', 'קליטת רכב לעבודה'], ['אחר כך']);
+
+function draftLabel(q: { customer_name: string; customer_phone: string; vehicle_plate: string; total_net: number; status: string; created_at: string; storage?: string }): string {
+  const status = q.status === 'approved' ? 'אושרה' : 'ממתינה';
+  return [q.customer_name || 'ללא שם', q.vehicle_plate ? `רכב ${q.vehicle_plate}` : '', q.customer_phone || '', money(q.total_net), status, formatDay(q.created_at), q.storage === 'device' ? 'במכשיר' : ''].filter(Boolean).join(' · ');
+}
+
+function formatDay(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+}
+
+/** For an already-approved quote the first answer is already "customer or intake?". */
+function draftNextFlowAnswer(text: string, s: VoiceSession): Outcome | Promise<Outcome> {
+  const step = quoteDraftsFlow().find((st) => st.id === 'draftNext')!;
+  return step.answer(text, s, { actions: null });
+}
+
+function quoteDraftsFlow(): Step[] {
+  return [
+    {
+      id: 'draftPick',
+      done: (d) => !!d.draftId,
+      ask: (d) => ({
+        say: P.draftsOpen,
+        display: numbered((d.candidates || []).map((c) => c.label)),
+        ui: [choices(...(d.candidates || []).slice(0, 6).map((c, i) => [`${i + 1}. ${c.label.split(' · ').slice(0, 2).join(' · ')}`, `מספר ${i + 1}`] as [string, string]))],
+      }),
+      answer: async (text, s, env) => {
+        const d = s.data;
+        const list = d.candidates || [];
+        let idx = pickFromList(text, list.map((c, i) => `${i + 1}. ${c.label}`));
+        if (idx === null) {
+          const plate = extractPlate(text);
+          const phone = extractPhone(text)?.replace(/\D/g, '');
+          const words = nameWordsOf(text);
+          const hits = list.map((c, i) => ({ c, i })).filter(({ c }) =>
+            (plate && c.label.replace(/\D/g, '').includes(plate))
+            || (phone && c.label.replace(/\D/g, '').includes(phone))
+            || (words.length > 0 && words.every((w) => c.label.includes(w) || c.label.includes(stripPrefix(w)))));
+          if (hits.length === 1) idx = hits[0].i;
+          else if (hits.length > 1) return reask(P.pickRetry, numbered(hits.map((h) => h.c.label)));
+        }
+        if (idx === null) return reask(P.pickRetry, numbered(list.map((c) => c.label)));
+        const all = await needActions(env).listQuoteDrafts!();
+        const q = all.find((x) => x.id === list[idx!].id);
+        if (!q) return reask(P.searchFailed);
+        Object.assign(d, {
+          draftId: q.id,
+          draftStatus: q.status,
+          customerName: q.customer_name,
+          customerPhone: q.customer_phone,
+          customerId: q.customer_id || undefined,
+          vehicleId: q.vehicle_id || undefined,
+          plate: q.vehicle_plate || undefined,
+          make: q.vehicle_make,
+          model: q.vehicle_model,
+          year: q.vehicle_year,
+          works: q.works.map((l) => ({ name: l.name, qty: l.qty, price: l.price })),
+          parts: q.parts.map((l) => ({ name: l.name, qty: l.qty, price: l.price })),
+          extrasNote: q.extras_note || undefined,
+          candidates: undefined,
+          candidateKind: undefined,
+        });
+        return next(draftSummary(d, `הצעת מחיר (${q.status === 'approved' ? 'אושרה' : 'ממתינה'}):`));
+      },
+      clear: (d) => { d.draftId = undefined; },
+    },
+    {
+      id: 'draftAction',
+      applies: (d) => !!d.draftId && !d.draftDecision,
+      done: (d) => !!d.draftDecision,
+      ask: (d) => (d.draftStatus === 'approved'
+        ? { say: P.draftApprovedNext, display: draftSummary(d), ui: [DRAFT_NEXT] }
+        : { say: P.draftStatusAsk, display: draftSummary(d), ui: [DRAFT_ACTIONS] }),
+      answer: async (text, s, env) => {
+        const d = s.data;
+        const a = needActions(env);
+        if (d.draftStatus === 'approved' && !/להוסיף|סעיפ|לבטל/.test(text)) {
+          d.draftDecision = 'approved';
+          return draftNextFlowAnswer(text, s);
+        }
+        if (/להוסיף|סעיפ|לעדכן|לתקן/.test(text)) {
+          return {
+            kind: 'switch',
+            type: 'prospect_quote',
+            data: {
+              draftId: d.draftId,
+              draftStatus: d.draftStatus,
+              customerName: d.customerName,
+              customerPhone: d.customerPhone ?? '',
+              customerId: d.customerId,
+              vehicleId: d.vehicleId,
+              plate: d.plate,
+              make: d.make,
+              model: d.model,
+              year: d.year,
+              noVehicle: !d.plate,
+              prospectVehicleMode: d.plate ? 'known' : 'none',
+              works: d.works,
+              parts: d.parts,
+              extrasNote: d.extrasNote,
+              extrasDone: true,
+              worksDone: false,
+              partsDone: false,
+            },
+          };
+        }
+        if (/לבטל|ביטול|מבוטל|בוטל/.test(text)) {
+          await a.updateQuoteDraft!(d.draftId!, { status: 'cancelled' });
+          return finish(P.draftCancelled, 'executed');
+        }
+        if (/אישר|מאושר|אושר|אישור/.test(text) || parseYesNo(text) === 'yes') {
+          await a.updateQuoteDraft!(d.draftId!, { status: 'approved' });
+          d.draftStatus = 'approved';
+          d.draftDecision = 'approved';
+          return next('ההצעה סומנה כמאושרת על ידי הלקוח.');
+        }
+        if (/ממתינ|עוד לא|טרם|לא אישר|מחכה/.test(text) || parseYesNo(text) === 'no') return finish(P.draftStillPending, 'info');
+        return reask(P.draftStatusAsk, undefined, [DRAFT_ACTIONS]);
+      },
+      clear: (d) => { d.draftDecision = undefined; },
+    },
+    {
+      id: 'draftNext',
+      applies: (d) => d.draftDecision === 'approved',
+      done: () => false,
+      ask: () => ({ say: P.draftApprovedNext, ui: [DRAFT_NEXT] }),
+      answer: (text, s) => {
+        const d = s.data;
+        const vehicle = { plate: d.plate, make: d.make, model: d.model, year: d.year };
+        if (/קליט|קבלת|לעבודה|נכנס|הגיע/.test(text)) {
+          // the intake finds the vehicle by its plate; the approved lines go into the NEW case it opens
+          return {
+            kind: 'switch',
+            type: 'intake',
+            prefill: d.plate || undefined,
+            data: { fromDraftId: d.draftId, customerName: d.customerName, customerPhone: d.customerPhone || undefined, ...vehicle, works: d.works, parts: d.parts },
+          };
+        }
+        if (/פתיחת לקוח|לפתוח לקוח|הלקוח|לקוח/.test(text)) {
+          if (d.customerId) return finish(P.okDone, 'info', { display: 'הלקוח כבר קיים במערכת. אפשר להמשיך לקליטת הרכב.' });
+          return {
+            kind: 'switch',
+            type: 'new_customer',
+            data: {
+              fromDraftId: d.draftId,
+              customerName: d.customerName,
+              customerPhone: d.customerPhone || undefined,
+              ...vehicle,
+              vehicleMode: d.plate ? 'voice' : 'none',
+              noVehicle: !d.plate,
+              // the quote already exists: no "shall I prepare a quote?" at the end
+              quoteOffered: true,
+              openWork: false,
+            },
+          };
+        }
+        if (/אחר כך|לא עכשיו|מאוחר יותר|^לא$/.test(text.trim())) return finish(P.okDone, 'info', { display: 'ההצעה נשמרה כמאושרת. אפשר להמשיך ממנה בכל עת.' });
+        return reask(P.draftApprovedNext, undefined, [DRAFT_NEXT]);
+      },
+      clear: () => {},
+    },
   ];
 }
 
@@ -1481,16 +1969,38 @@ const FINISH_ANGLES: Array<{ id: FinishAngle; title: string; say: string }> = [
 ];
 const missingIntakeAngles = (d: VoiceData) => INTAKE_ANGLES.filter((a) => !d.angles?.[a.id]);
 
+/** "GM-2026-0042 · בעבודה · 20.10.2026 · הצעה: מאושרת · הזמנה: יש" — for choosing between a vehicle's cases. */
+function intakeCaseLine(c: GarageCase): string {
+  const cd = c.case_data || {};
+  const quote = cd.quoteApproved ? 'הצעה: מאושרת' : cd.quoteCreated ? 'הצעה: ממתינה לאישור' : '';
+  const order = cd.workOrderSaved || (cd as Record<string, unknown>).orderNumber ? 'הזמנה: יש' : '';
+  return [c.case_number || 'תיק', garageCaseListStatus(cd, c.status), formatDay(c.created_at || ''), quote, order].filter(Boolean).join(' · ');
+}
+
+/** A pending quote (not in a case) for this plate is mentioned, so it is not forgotten. */
+async function pendingDraftNote(env: VoiceEnv, plate: string): Promise<string | undefined> {
+  try {
+    const drafts = env.actions?.listQuoteDrafts ? await env.actions.listQuoteDrafts() : [];
+    const q = drafts.find((x) => normalizePlate(x.vehicle_plate) === normalizePlate(plate) && (x.status === 'pending_approval' || x.status === 'approved'));
+    if (!q) return undefined;
+    return `יש לרכב הצעת מחיר ${q.status === 'approved' ? 'שאושרה' : 'ממתינה'} (${money(q.total_net)} לפני מע"מ) — אפשר להמשיך ממנה בכפתור "הצעת מחיר" ← "הצעות ממתינות".`;
+  } catch {
+    return undefined;
+  }
+}
+
 function intakeFlow(): Step[] {
   const newOwner = (d: VoiceData) => !d.vehicleKnown && !d.caseFromContext && !d.intakeSaved;
   const details = (d: VoiceData) => !d.intakeSaved;
+  /** The vehicle's cases (open + history) and anything related: quote, work order, pending quote. */
   const lookup = async (s: VoiceSession, env: VoiceEnv): Promise<Outcome | null> => {
     const a = needActions(env);
     const d = s.data;
     const vehicle = await a.findVehicleByPlate(d.plate!);
     if (!vehicle) {
       d.vehicleKnown = false;
-      return next(`הרכב ${d.plate} לא נמצא במערכת — ייפתחו לקוח, רכב ותיק חדשים.`);
+      const pending = await pendingDraftNote(env, d.plate!);
+      return next(join(`הרכב ${d.plate} לא נמצא במערכת — ייפתחו לקוח, רכב ותיק חדשים.`, pending));
     }
     d.vehicleKnown = true;
     d.vehicleId = vehicle.id;
@@ -1498,27 +2008,135 @@ function intakeFlow(): Step[] {
     d.customerId = vehicle.customer_id;
     const customer = await a.getCustomer(vehicle.customer_id);
     d.customerLabel = customer ? customerLine(customer) : undefined;
-    const open = (await a.listCustomerCases(vehicle.customer_id)).filter((c) => c.vehicle_id === vehicle.id && !isClosed(c) && !c.case_data.workFinished);
+    const cases = (await a.listCustomerCases(vehicle.customer_id)).filter((c) => c.vehicle_id === vehicle.id);
+    const open = cases.filter((c) => !isClosed(c) && !c.case_data.workFinished);
+    const history = cases.length ? `תיקים של הרכב:\n${numbered(cases.slice(0, 6).map(intakeCaseLine))}` : '';
+    const pending = await pendingDraftNote(env, d.plate!);
+    const found = `הרכב נמצא: ${d.vehicleLabel}${d.customerLabel ? ` · ${d.customerLabel}` : ''}`;
     if (open.length) {
-      const c = open[0];
-      if (c.case_data.intakeDone) {
-        return finish(P.okNotOpening, 'info', { display: `הרכב כבר התקבל בתיק הפתוח ${c.case_number || ''}.`, openCaseId: c.id });
-      }
-      if (c.case_data.route === 'quote_first' && !c.case_data.quoteApproved && !c.case_data.intakeUnlocked) {
-        return finish(P.intakeBlockedQuoteFirst, 'info', { display: caseLine(c), openCaseId: c.id });
-      }
-      d.caseId = c.id;
-      d.caseNumber = c.case_number;
-      d.caseLabel = caseLine(c);
-      d.angles = { ...(c.case_data.intakeAngles || {}) };
+      // never a second open case by mistake: the worker continues in an open case (or chooses which one)
+      d.intakeCaseOptions = open.map((c) => ({ id: c.id, label: intakeCaseLine(c) }));
+      return next(join(found, history, pending));
     }
-    return next(join(
-      `הרכב נמצא: ${d.vehicleLabel}${d.customerLabel ? ` · ${d.customerLabel}` : ''}`,
-      open.length ? `פרטי הקבלה יישמרו בתיק הפתוח ${open[0].case_number || ''}.` : 'ייפתח תיק עבודה חדש לרכב.',
-    ));
+    return next(join(found, history, 'אין לרכב תיק פתוח — ייפתח תיק עבודה חדש.', pending));
+  };
+  const chooseOpenCase = async (s: VoiceSession, env: VoiceEnv, id: string): Promise<Outcome> => {
+    const d = s.data;
+    const c = await needActions(env).getCase(id);
+    d.intakeCaseOptions = undefined;
+    d.intakeCaseDecided = true;
+    if (!c) return reask(P.searchFailed);
+    if (c.case_data.intakeDone) {
+      return finish(P.okNotOpening, 'info', { display: `הרכב כבר התקבל בתיק הפתוח ${c.case_number || ''}.`, openCaseId: c.id });
+    }
+    if (c.case_data.route === 'quote_first' && !c.case_data.quoteApproved && !c.case_data.intakeUnlocked) {
+      return finish(P.intakeBlockedQuoteFirst, 'info', { display: caseLine(c), openCaseId: c.id });
+    }
+    d.caseId = c.id;
+    d.caseNumber = c.case_number;
+    d.caseLabel = caseLine(c);
+    d.angles = { ...(c.case_data.intakeAngles || {}) };
+    return next(`פרטי הקבלה יישמרו בתיק ${c.case_number || ''}.`);
+  };
+  const chooseVehicle = async (s: VoiceSession, env: VoiceEnv, plate: string): Promise<Outcome> => {
+    s.data.plate = normalizePlate(plate);
+    s.data.intakeOptions = undefined;
+    s.data.candidateKind = undefined;
+    return (await lookup(s, env)) || next();
   };
   return [
-    plateStep((_d, _s, env) => personal(env, P.intakeOpen), { applies: (d) => !d.caseFromContext && details(d), onPlate: lookup }),
+    {
+      id: 'plate',
+      slots: /מספר( ה)?רכב|לוחית|רישוי/,
+      applies: (d) => !d.caseFromContext && details(d),
+      done: (d) => !!d.plate,
+      ask: (d, _s, env) => (d.intakeOptions?.length
+        ? {
+          say: P.intakeFindMany,
+          display: numbered(d.intakeOptions.map((o) => o.label)),
+          ui: [choices(...d.intakeOptions.slice(0, 6).map((o, i) => [`${i + 1}. ${o.label.split(' · ').slice(0, 2).join(' · ')}`, `מספר ${i + 1}`] as [string, string]))],
+        }
+        : personal(env, P.intakeFind)),
+      answer: async (text, s, env) => {
+        const d = s.data;
+        const opts = d.intakeOptions || [];
+        if (opts.length) {
+          const idx = pickFromList(text, opts.map((o, i) => `${i + 1}. ${o.label}`));
+          if (idx !== null) return chooseVehicle(s, env, opts[idx].plate);
+        }
+        const plate = extractPlate(text);
+        if (plate && !/תיק/.test(text)) return chooseVehicle(s, env, plate);
+        // case number / customer name / phone → the vehicles behind them
+        const a = needActions(env);
+        const byVehicle = new Map<string, { vehicleId: string; customerId: string; plate: string; label: string }>();
+        const cases = await searchCasesFor(env, text, 'any');
+        for (const c of cases) {
+          if (!c.vehicle_id || byVehicle.has(c.vehicle_id) || !c.vehicle_plate_snapshot) continue;
+          const all = cases.filter((x) => x.vehicle_id === c.vehicle_id);
+          const openCount = all.filter((x) => !isClosed(x)).length;
+          byVehicle.set(c.vehicle_id, {
+            vehicleId: c.vehicle_id,
+            customerId: c.customer_id,
+            plate: c.vehicle_plate_snapshot,
+            label: [c.vehicle_plate_snapshot, c.customer_name_snapshot, c.vehicle_label_snapshot, `${all.length} תיקים${openCount ? ` (${openCount} פתוחים)` : ''}`, `אחרון: ${intakeCaseLine(all[0])}`].filter(Boolean).join(' · '),
+          });
+        }
+        const terms = caseSearchTerms(text);
+        if (byVehicle.size === 0 && (terms.phone || (terms.nameWords || []).length)) {
+          try {
+            const customers = await a.searchCustomers(terms.phone ? terms.phone.replace(/\D/g, '') : (terms.nameWords || []).join(' '));
+            for (const c of customers.slice(0, 5)) {
+              for (const v of await a.listVehicles(c.id)) {
+                if (!byVehicle.has(v.id)) byVehicle.set(v.id, { vehicleId: v.id, customerId: c.id, plate: v.plate, label: [vehicleLine(v), customerDisplayName(c), 'אין תיקים'].filter(Boolean).join(' · ') });
+              }
+            }
+          } catch {}
+        }
+        const found = [...byVehicle.values()];
+        if (!found.length) return reask(P.intakeFindNone, `חיפוש: ${text.trim()}`);
+        if (found.length === 1) return chooseVehicle(s, env, found[0].plate);
+        d.intakeOptions = found.slice(0, 8);
+        return reask(P.intakeFindMany, numbered(d.intakeOptions.map((o) => o.label)), [choices(...d.intakeOptions.slice(0, 6).map((o, i) => [`${i + 1}. ${o.label.split(' · ').slice(0, 2).join(' · ')}`, `מספר ${i + 1}`] as [string, string]))]);
+      },
+      clear: (d) => {
+        d.plate = undefined;
+        d.vehicleKnown = undefined;
+        d.vehicleId = undefined;
+        d.vehicleLabel = undefined;
+        d.intakeOptions = undefined;
+        d.intakeCaseOptions = undefined;
+        d.intakeCaseDecided = undefined;
+        if (!d.caseFromContext && !d.intakeSaved) {
+          d.caseId = undefined;
+          d.caseNumber = undefined;
+        }
+      },
+    },
+    {
+      id: 'intakeCase',
+      applies: (d) => !!d.intakeCaseOptions?.length && !d.intakeCaseDecided && !d.intakeSaved,
+      done: (d) => !!d.intakeCaseDecided,
+      ask: (d) => (d.intakeCaseOptions!.length === 1
+        ? { say: P.intakeContinueOpen, display: d.intakeCaseOptions![0].label, ui: [YES_NO] }
+        : {
+          say: P.intakeOpenCases,
+          display: numbered(d.intakeCaseOptions!.map((c) => c.label)),
+          ui: [choices(...d.intakeCaseOptions!.slice(0, 6).map((c, i) => [`${i + 1}. ${c.label.split(' · ').slice(0, 2).join(' · ')}`, `מספר ${i + 1}`] as [string, string]))],
+        }),
+      answer: async (text, s, env) => {
+        const list = s.data.intakeCaseOptions || [];
+        if (list.length === 1) {
+          const yn = parseYesNo(text);
+          if (yn === 'yes') return chooseOpenCase(s, env, list[0].id);
+          if (yn === 'no') return finish(P.intakeNoSecondCase, 'info');
+          return reask(P.yesNoRetry, list[0].label, [YES_NO]);
+        }
+        const idx = pickFromList(text, list.map((c, i) => `${i + 1}. ${c.label}`));
+        if (idx === null) return reask(P.pickRetry, numbered(list.map((c) => c.label)));
+        return chooseOpenCase(s, env, list[idx].id);
+      },
+      clear: (d) => { d.intakeCaseDecided = undefined; },
+    },
     nameStep('name', () => ({ say: P.vehicleNotFoundName }), newOwner),
     phoneStep(newOwner),
     ...customerTypeSteps(newOwner),
@@ -1636,11 +2254,25 @@ function intakeFlow(): Step[] {
         } else {
           const { customer } = await ensureCustomer(s, env);
           const vehicle = await ensureVehicle(s, env, customer);
+          const fromQuote = !!d.fromDraftId && !!(d.works?.length || d.parts?.length);
+          const quote = fromQuote ? caseQuoteLines(d, (env.now?.() || new Date()).getTime()) : null;
           const created = await a.createCase({
             customer,
             vehicle,
-            caseData: { route: 'intake_first', ...intake, flowStage: 'intake', timeline: [timelineEntry(env, notes)] },
+            caseData: {
+              route: 'intake_first',
+              ...intake,
+              flowStage: 'intake',
+              ...(quote ? { quoteWorks: quote.works, quoteParts: quote.parts, quoteCreated: true } : {}),
+              timeline: [
+                timelineEntry(env, notes),
+                ...(quote ? [timelineEntry(env, `צורפה הצעת מחיר ממתינה שהלקוח אישר (לפי העובד, בשיחה עם דליה AI): ${quote.works.length} עבודות, ${quote.parts.length} חלקים. אישור הלקוח נרשם במסך התיק.`)] : []),
+              ],
+            },
           });
+          if (d.fromDraftId && env.actions?.updateQuoteDraft) {
+            try { await env.actions.updateQuoteDraft(d.fromDraftId, { status: 'converted', case_id: created.id, customer_id: customer.id, vehicle_id: vehicle.id }); } catch {}
+          }
           d.caseId = created.id;
           d.caseNumber = created.case_number;
           d.caseLabel = caseLine(created);
@@ -1735,6 +2367,77 @@ function quoteTotals(d: VoiceData) {
   return { net, vat, gross: net + vat, unpriced: lines.filter((l) => l.price == null).length };
 }
 
+/** Spoken quote lines in the case screen's own shape (works / parts, price before VAT). */
+function caseQuoteLines(d: VoiceData, stamp: number) {
+  const works = (d.works || []).map((l, i) => ({
+    id: `w${stamp}${i}`,
+    part: l.name,
+    type: workTypeOf(l.name),
+    qty: l.qty,
+    price: l.price ?? 0,
+    desc: l.price == null ? 'ללא מחיר — להשלים' : '',
+  }));
+  const parts = (d.parts || []).map((l, i) => ({
+    id: `p${stamp}${i}`,
+    name: l.name,
+    sku: '',
+    qty: l.qty,
+    price: l.price ?? 0,
+    supplier: 'us',
+  }));
+  return { works, parts };
+}
+
+/** The whole quote, numbered, as shown for review ("סעיף 2" refers to this numbering). */
+function draftSummary(d: VoiceData, title = 'הצעת מחיר (ממתינה לאישור הלקוח):'): string {
+  const lines = [...(d.works || []).map((l) => ({ kind: 'עבודה', l })), ...(d.parts || []).map((l) => ({ kind: 'חלק', l }))];
+  const t = quoteTotals(d);
+  return [
+    title,
+    d.customerLabel ? `לקוח קיים: ${d.customerLabel}` : d.customerName ? `לקוח: ${d.customerName}${d.customerPhone ? ` · ${d.customerPhone}` : ''}` : '',
+    d.vehicleLabel ? `רכב: ${d.vehicleLabel}` : d.plate ? `רכב: ${[d.plate, d.make, d.model, d.year || ''].filter(Boolean).join(' ')}` : d.noVehicle ? 'רכב: לא צוין' : '',
+    lines.length ? lines.map((x, i) => `${i + 1}. ${x.kind}: ${lineText(x.l)}`).join('\n') : 'אין עדיין סעיפים.',
+    d.extrasNote ? `הערה / תוספת: ${d.extrasNote}` : '',
+    `סה"כ לפני מע"מ: ${money(t.net)} · מע"מ 18%: ${money(t.vat)} · סה"כ כולל מע"מ: ${money(t.gross)}`,
+    t.unpriced ? `${t.unpriced} סעיפים ללא מחיר.` : '',
+  ].filter(Boolean).join('\n');
+}
+
+/** "מחקי סעיף 2" / "מחיר סעיף 1 600" / "הוסיפי עבודה החלפת בלמים 800" → the changed quote, or null. */
+function editDraftLines(d: VoiceData, text: string): string | null {
+  const t = text.trim();
+  const all = [...(d.works || []).map((l, i) => ({ list: 'works' as const, i })), ...(d.parts || []).map((l, i) => ({ list: 'parts' as const, i }))];
+  const lineNo = (m: string | undefined) => {
+    const n = m ? parseHebrewNumber(m) : null;
+    return n && n >= 1 && n <= all.length ? all[n - 1] : null;
+  };
+  const del = t.match(/(?:תמחקי|מחקי|למחוק|תורידי|הורידי|להוריד)\s+(?:את\s+)?סעיף\s+(\S+)/);
+  if (del) {
+    const at = lineNo(del[1]);
+    if (!at) return null;
+    const removed = d[at.list]!.splice(at.i, 1)[0];
+    return `נמחק: ${removed.name}`;
+  }
+  const price = t.match(/(?:מחיר|תשני|שני|לשנות|תעדכני|עדכני)[^\d]*?סעיף\s+(\S+)\s+(?:ל-?|ל\s|ל|הוא|יהיה|=)?\s*(.+)$/);
+  if (price) {
+    const at = lineNo(price[1]);
+    const n = parseHebrewNumber(price[2].replace(/שקל(ים)?|ש"ח|₪/g, ''));
+    if (!at || n === null || n < 0) return null;
+    const line = d[at.list]![at.i];
+    d[at.list]![at.i] = { ...line, price: n };
+    return `מחיר עודכן: ${line.name} — ${money(n * line.qty)}`;
+  }
+  const add = t.match(/^(?:תוסיפי|הוסיפי|להוסיף|תוסיף|הוסף)\s+(?:גם\s+)?(עבודה|עבודת|חלק|חלקים)?\s*(?:של\s+)?(.+)$/);
+  if (add) {
+    const line = parseSpokenLine(add[2]);
+    if (!line) return null;
+    const list = add[1] && /חלק/.test(add[1]) ? 'parts' : 'works';
+    (d[list] = d[list] || []).push(line);
+    return `נוסף: ${lineText(line)}${line.price == null ? ' (ללא מחיר — אפשר לומר "מחיר סעיף N …")' : ''}`;
+  }
+  return null;
+}
+
 function lineLoopStep(kind: 'work' | 'part', firstSay: (s: VoiceSession) => string, applies: Step['applies'], single: boolean): Step {
   const listKey = kind === 'work' ? 'works' : 'parts';
   const doneKey = kind === 'work' ? 'worksDone' : 'partsDone';
@@ -1787,7 +2490,13 @@ function lineLoopStep(kind: 'work' | 'part', firstSay: (s: VoiceSession) => stri
   };
 }
 
-const QUOTE_MODE = choices(['הצעה חדשה'], ['עדכון הצעה קיימת', 'עדכון הצעה'], ['תוספת עבודה']);
+const QUOTE_MODE = choices(
+  ['👤 הצעה חדשה ללקוח קיים', 'הצעה חדשה ללקוח קיים'],
+  ['➕ תוספת להצעה קיימת', 'תוספת להצעה קיימת'],
+  ['🔧 תוספת לתיק עבודה', 'תוספת עבודה או חלקים לתיק קיים'],
+  ['🆕 הצעה ללקוח חדש', 'הצעת מחיר ללקוח חדש'],
+  ['📂 הצעות ממתינות', 'הצעות ממתינות'],
+);
 const EXTRA_KIND = choices(['חלק'], ['עבודה'], ['גם וגם']);
 
 function quoteFlow(type: VoiceWorkflowType): Step[] {
@@ -1807,15 +2516,25 @@ function quoteFlow(type: VoiceWorkflowType): Step[] {
       id: 'quoteMode',
       applies: () => type === 'quote',
       done: (d) => !!d.scope,
-      ask: (_d, _s, env) => ({ ...personal(env, P.quoteOpen), ui: [QUOTE_MODE] }),
+      ask: (_d, _s, env) => ({ ...personal(env, P.quoteMenu), ui: [QUOTE_MODE] }),
       answer: (text, s) => {
-        if (/תוספת|גילוי|התגלה|גילינו|שבור|נמצא/.test(text)) {
+        const t = text.trim();
+        if (/ממתינ|שמורות|טיוטות|הצעות שהכנו/.test(t)) return { kind: 'switch', type: 'quote_drafts' };
+        if (/לקוח חדש|לא קיים|לא נקלט|שעדיין לא|לקוח שלא/.test(t)) return { kind: 'switch', type: 'prospect_quote' };
+        if (/לקוח קיים|ללקוח קיים|הצעה חדשה|הצעת מחיר חדשה/.test(t)) return { kind: 'switch', type: 'prospect_quote', data: { prospectExisting: true } };
+        if (/להצעה|הצעה קיימת|עדכון|לעדכן/.test(t)) {
+          // lines added to the quote of an existing work case
+          s.data.scope = 'quote';
+          s.data.quoteMenu = 'add';
+          return next();
+        }
+        if (/תוספת|לתיק|גילוי|התגלה|גילינו|שבור|נמצא/.test(t)) {
           s.data.scope = 'supplement';
           // "פירקנו את הפגוש וגילינו שגם התומך שבור" — the finding itself
-          if (text.trim().split(/\s+/).length > 3) s.data.extraText = text.trim();
-        } else if (/הצעה|עבוד|חלק|מחיר|חדשה|עדכון/.test(text)) s.data.scope = 'quote';
-        else return reask(P.quoteOpenRetry, undefined, [QUOTE_MODE]);
-        return next();
+          if (t.split(/\s+/).length > 3 && !/לתיק|תיק עבודה|תוספת עבודה או חלקים/.test(t)) s.data.extraText = t;
+          return next();
+        }
+        return reask(P.quoteMenuRetry, undefined, [QUOTE_MODE]);
       },
       clear: (d) => { d.scope = undefined; },
     },
@@ -1832,8 +2551,25 @@ function quoteFlow(type: VoiceWorkflowType): Step[] {
       () => finish(P.okDone, 'info', { display: 'ההצעה לא שונתה.' }),
       (d) => !d.quoteLocked,
     ),
-    lineLoopStep('work', () => (type === 'context_quote_add_work' ? P.addWork : P.works), (d) => isQuote(d) && !d.quoteLocked && type !== 'context_quote_add_part', type === 'context_quote_add_work'),
-    lineLoopStep('part', () => (type === 'context_quote_add_part' ? P.addPart : P.parts), (d) => isQuote(d) && !d.quoteLocked && type !== 'context_quote_add_work', type === 'context_quote_add_part'),
+    {
+      id: 'addKind',
+      applies: (d) => isQuote(d) && d.quoteMenu === 'add' && !!d.caseId && !d.quoteLocked,
+      done: (d) => !!d.addKind,
+      ask: () => ({ say: P.addKind, ui: [EXTRA_KIND] }),
+      answer: (text, s) => {
+        const d = s.data;
+        if (/גם וגם|שניהם|את שניהם|חלק ועבודה|עבודה וחלק|עבודות וחלקים/.test(text)) d.addKind = 'both';
+        else if (/חלק|חלפים/.test(text)) d.addKind = 'part';
+        else if (/עבודה|עבודות/.test(text)) d.addKind = 'work';
+        else return reask(P.addKind, undefined, [EXTRA_KIND]);
+        if (d.addKind === 'part') d.worksDone = true;
+        if (d.addKind === 'work') d.partsDone = true;
+        return next();
+      },
+      clear: (d) => { d.addKind = undefined; d.worksDone = false; d.partsDone = false; },
+    },
+    lineLoopStep('work', () => (type === 'context_quote_add_work' ? P.addWork : P.works), (d) => isQuote(d) && !d.quoteLocked && type !== 'context_quote_add_part' && (d.quoteMenu !== 'add' || !!d.addKind), type === 'context_quote_add_work'),
+    lineLoopStep('part', () => (type === 'context_quote_add_part' ? P.addPart : P.parts), (d) => isQuote(d) && !d.quoteLocked && type !== 'context_quote_add_work' && (d.quoteMenu !== 'add' || !!d.addKind), type === 'context_quote_add_part'),
     {
       id: 'emptyQuote',
       applies: (d) => isQuote(d) && !d.quoteLocked && linesEmpty(d),
@@ -1984,22 +2720,7 @@ function quoteFlow(type: VoiceWorkflowType): Step[] {
         if (cd.quoteApproved || cd.quoteSent || cd.waitingForApproval) {
           throw new Error('ההצעה בתיק כבר נשלחה או אושרה בינתיים — לא שיניתי אותה. אפשר לרשום תוספת עבודה.');
         }
-        const works = (d.works || []).map((l, i) => ({
-          id: `w${stamp}${i}`,
-          part: l.name,
-          type: workTypeOf(l.name),
-          qty: l.qty,
-          price: l.price ?? 0,
-          desc: l.price == null ? 'ללא מחיר — להשלים' : '',
-        }));
-        const parts = (d.parts || []).map((l, i) => ({
-          id: `p${stamp}${i}`,
-          name: l.name,
-          sku: '',
-          qty: l.qty,
-          price: l.price ?? 0,
-          supplier: 'us',
-        }));
+        const { works, parts } = caseQuoteLines(d, stamp);
         await a.saveCaseData(d.caseId!, {
           quoteWorks: [...(cd.quoteWorks || []), ...works],
           quoteParts: [...(cd.quoteParts || []), ...parts],
@@ -3421,6 +4142,9 @@ function flowFor(type: VoiceWorkflowType): Step[] {
     case 'general_expenses': return expensesFlow();
     case 'reports': return reportsFlow();
     case 'general_action': return generalFlow();
+    case 'new_customer_choice': return newCustomerChoiceFlow();
+    case 'prospect_quote': return prospectQuoteFlow();
+    case 'quote_drafts': return quoteDraftsFlow();
     default: return [];
   }
 }
@@ -3471,7 +4195,7 @@ function newSession(type: VoiceWorkflowType, ctx: VoiceContext, env: VoiceEnv): 
   return { id: `vs_${now.getTime()}_${Math.random().toString(36).slice(2, 6)}`, type, data, filled: [], updatedAt: now.toISOString() };
 }
 
-const WORKFLOWS_WITHOUT_CASE_CONTEXT: VoiceWorkflowType[] = ['new_customer', 'existing_customer', 'find_case', 'general_expenses', 'reports', 'general_action', 'invoices_credits'];
+const WORKFLOWS_WITHOUT_CASE_CONTEXT: VoiceWorkflowType[] = ['new_customer', 'existing_customer', 'find_case', 'general_expenses', 'reports', 'general_action', 'invoices_credits', 'new_customer_choice', 'prospect_quote', 'quote_drafts'];
 
 /** What was done and what is left — shown when resuming. */
 function recap(s: VoiceSession): string {
@@ -3580,6 +4304,18 @@ export async function startVoiceWorkflow(type: VoiceWorkflowType, ctx: VoiceCont
   }
   const s = newSession(type, WORKFLOWS_WITHOUT_CASE_CONTEXT.includes(type) ? {} : ctx, env);
   if (data) Object.assign(s.data, data);
+  if (type === 'quote_drafts' && !s.data.draftId) {
+    const out = await runStepless(async () => {
+      const a = needActions(env);
+      if (!a.listQuoteDrafts) return finish(P.draftsUnavailable, 'info');
+      const open = (await a.listQuoteDrafts()).filter((q) => q.status === 'pending_approval' || q.status === 'approved');
+      if (!open.length) return finish(P.draftsNone, 'info');
+      s.data.candidateKind = 'draft';
+      s.data.candidates = open.slice(0, 12).map((q) => ({ id: q.id, label: draftLabel(q) }));
+      return null;
+    });
+    if (out) return applyOutcomeAtStart(s, out, env);
+  }
   if (type === 'close_case' && s.data.caseId) {
     const out = await runStepless(async () => {
       const c = await needActions(env).getCase(s.data.caseId!);

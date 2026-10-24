@@ -153,7 +153,7 @@ describe('garage voice workflows — mic only after the question was really spok
     fireEvent.click(await screen.findByTestId('garage-action-new-customer'));
 
     await waitFor(() => expect(utterances).toHaveLength(1));
-    expect(utterances[0].text).toContain('מה שם הלקוח');
+    expect(utterances[0].text).toContain('תרצה לפתוח לקוח חדש במערכת');
     expect(utterances[0].lang).toBe('he-IL');
     act(() => utterances[0].onstart?.());
     // a real question lasts seconds; ending it right after the stop-word listener opens would look like a
@@ -191,7 +191,7 @@ describe('garage voice workflows — mic only after the question was really spok
 
     expect(await screen.findByTestId('claims-ai-voice-replay-btn', {}, { timeout: 2500 })).toBeDefined();
     expect((window.speechSynthesis.speak as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
-    expect(invoke).toHaveBeenCalledWith('dalia-tts', { body: { text: expect.stringContaining('מה שם הלקוח') } });
+    expect(invoke).toHaveBeenCalledWith('dalia-tts', { body: { text: expect.stringContaining('תרצה לפתוח לקוח חדש') } });
     expect(recognizers).toHaveLength(0);
   });
 
@@ -303,12 +303,12 @@ describe('garage voice workflows — mic only after the question was really spok
     expect((await screen.findByTestId('garage-welcome-title')).textContent).toContain('שלום מאיר');
     fireEvent.click(screen.getByTestId('garage-action-new-customer'));
     await waitFor(() => expect(utterances).toHaveLength(1));
-    expect(utterances[0].text).toBe('מאיר, איזה לקוח תרצה לפתוח? מה שם הלקוח או החברה?');
+    expect(utterances[0].text).toBe('מאיר, תרצה לפתוח לקוח חדש במערכת, או להכין ללקוח חדש גם הצעת מחיר?');
     // the device voice fails → nothing repeats the question in another voice; it stays on screen with "play again"
     act(() => utterances[0].onerror?.({ error: 'synthesis-failed' }));
     await new Promise((r) => setTimeout(r, 1500));
     expect(utterances).toHaveLength(1);
-    expect(screen.getByText(/איזה לקוח תרצה לפתוח/)).toBeDefined();
+    expect(screen.getByText(/תרצה לפתוח לקוח חדש במערכת/)).toBeDefined();
   });
 
   it('answer buttons under the latest turn answer Dalia; a list opens in the drawer and closes back to the chat', async () => {

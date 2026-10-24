@@ -2702,6 +2702,9 @@ const DALIA_MORE_ACTIONS: Array<[VoiceWorkflowType, string]> = [
   ['reports', '📊 דוחות'],
 ];
 
+/** "לקוח חדש" first asks: a regular opening, or a new customer with a price quote. */
+const buttonWorkflow = (type: VoiceWorkflowType): VoiceWorkflowType => (type === 'new_customer' ? 'new_customer_choice' : type);
+
 export function deduplicateMessages(msgs: ClaimsAiMessage[]): ClaimsAiMessage[] {
   const seenIds = new Set<string>();
   const result: ClaimsAiMessage[] = [];
@@ -5445,7 +5448,7 @@ const toggleVoiceMute = useCallback(() => {
                       type="button"
                       className="garage-action-card"
                       data-testid="garage-action-new-customer"
-                      onClick={() => handleStartVoiceWorkflow('new_customer')}
+                      onClick={() => handleStartVoiceWorkflow('new_customer_choice')}
                     >
                       <span className="garage-action-icon">👤➕</span>
                       <div className="garage-action-body">
@@ -6790,7 +6793,7 @@ const toggleVoiceMute = useCallback(() => {
                   type="button"
                   className="dalia-chip dalia-chip-primary"
                   data-testid={`dalia-bar-${type}`}
-                  onClick={() => { setActionsBarOpen(false); void handleStartVoiceWorkflow(type); }}
+                  onClick={() => { setActionsBarOpen(false); void handleStartVoiceWorkflow(buttonWorkflow(type)); }}
                 >
                   {label}
                 </button>
@@ -6817,7 +6820,7 @@ const toggleVoiceMute = useCallback(() => {
                     type="button"
                     className="dalia-chip"
                     data-testid={`dalia-bar-${type}`}
-                    onClick={() => { setActionsBarOpen(false); void handleStartVoiceWorkflow(type); }}
+                    onClick={() => { setActionsBarOpen(false); void handleStartVoiceWorkflow(buttonWorkflow(type)); }}
                   >
                     {label}
                   </button>

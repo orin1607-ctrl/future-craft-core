@@ -256,7 +256,7 @@ describe('one continuous conversation — 24 exchanges', () => {
     };
 
     // 1–3: new customer, answers by voice (Android repeats every phrase)
-    await step('1 לקוח חדש', () => fireEvent.click(screen.getByTestId('garage-action-new-customer')), P.newCustomerOpen);
+    await step('1 לקוח חדש', () => fireEvent.click(screen.getByTestId('garage-action-new-customer')), P.newCustomerChoice);
     await step('2 שם', () => userSays('יוסי בדיקה'), P.phone);
     expect(userBubbles('יוסי בדיקה')).toBe(1);
     await step('3 טלפון', () => userSays('0525551234'), P.customerTypeBiz);
@@ -293,7 +293,7 @@ describe('one continuous conversation — 24 exchanges', () => {
 
     // 18–19: stop Dalia mid-sentence, then answer with the mic; tapping the mic twice opens ONE mic
     fireEvent.click(screen.getByTestId('dalia-bar-new_customer'));
-    await waitFor(() => expect(speakingNow?.text).toBe(P.newCustomerOpen));
+    await waitFor(() => expect(speakingNow?.text).toBe(P.newCustomerChoice));
     fireEvent.click(screen.getByTestId('claims-ai-composer-stop-speech'));
     await waitFor(() => expect(speakingNow).toBeNull());
     await new Promise((r) => setTimeout(r, 400));
@@ -356,11 +356,11 @@ describe('one continuous conversation — 24 exchanges', () => {
     await nextSentence(P.generalToChat);
     // the user moves on before the chat answered
     fireEvent.click(screen.getByTestId('dalia-bar-new_customer'));
-    await nextSentence(P.newCustomerOpen);
+    await nextSentence(P.newCustomerChoice);
     await waitFor(() => expect(activeRecs()).toHaveLength(1));
     await act(async () => { releaseReply(); await new Promise((r) => setTimeout(r, 600)); });
     expect(spoken).not.toContain('תשובה ישנה שהגיעה באיחור.');
-    expect(spoken[spoken.length - 1]).toBe(P.newCustomerOpen);
+    expect(spoken[spoken.length - 1]).toBe(P.newCustomerChoice);
     expect(violations).toEqual([]);
     // the open question still gets the answer
     await userSays('רינה בדיקה');
@@ -374,7 +374,7 @@ describe('one continuous conversation — 24 exchanges', () => {
       </div>,
     );
     fireEvent.click(screen.getByTestId('garage-action-new-customer'));
-    await nextSentence(P.newCustomerOpen);
+    await nextSentence(P.newCustomerChoice);
     await userSays('יוסי בדיקה');
     await waitFor(() => expect(spoken).toContain(P.phone), { timeout: 4000 });
     view.unmount(); // closed while Dalia asks the next question (the "listen after speaking" timer is pending)
@@ -440,13 +440,13 @@ describe('עצירה קולית בזמן שדליה מדברת (barge-in)', () =
     speechMs = 4000;
     renderWindow();
     fireEvent.click(screen.getByTestId('garage-action-new-customer'));
-    await waitFor(() => expect(speakingNow?.text).toBe(P.newCustomerOpen));
+    await waitFor(() => expect(speakingNow?.text).toBe(P.newCustomerChoice));
     await waitFor(() => expect(bargeRecs()).toHaveLength(1), { timeout: 2000 });
     const rec = bargeRecs()[0];
     // echo: the mic picks up Dalia's own question — not a command
-    deliver(rec, P.newCustomerOpen);
+    deliver(rec, P.newCustomerChoice);
     await new Promise((r) => setTimeout(r, 200));
-    expect(speakingNow?.text).toBe(P.newCustomerOpen);
+    expect(speakingNow?.text).toBe(P.newCustomerChoice);
     // the worker: "דליה, עצרי — יוסי בדיקה"
     deliver(rec, 'דליה עצרי');
     await waitFor(() => expect(speakingNow).toBeNull(), { timeout: 500 });
@@ -454,7 +454,7 @@ describe('עצירה קולית בזמן שדליה מדברת (barge-in)', () =
     speechMs = 80;
     deliver(rec, 'דליה עצרי יוסי בדיקה');
     await nextSentence(P.phone);
-    expect(spoken.filter((t) => t === P.newCustomerOpen)).toHaveLength(1); // the stopped question is not repeated
+    expect(spoken.filter((t) => t === P.newCustomerChoice)).toHaveLength(1); // the stopped question is not repeated
     expect(screen.getAllByText(/יוסי בדיקה/).length).toBeGreaterThan(0);
     expect(violations).toEqual([]);
   }, 30000);
@@ -462,7 +462,7 @@ describe('עצירה קולית בזמן שדליה מדברת (barge-in)', () =
   it('stop + a new instruction in one breath: quote for the same customer, details kept, the open question asked once', async () => {
     renderWindow();
     fireEvent.click(screen.getByTestId('garage-action-new-customer'));
-    await nextSentence(P.newCustomerOpen);
+    await nextSentence(P.newCustomerChoice);
     speechMs = 4000; // the next question (phone) is long enough to interrupt
     await userSays('יוסי בדיקה');
     await waitFor(() => expect(speakingNow?.text).toBe(P.phone), { timeout: 4000 });
@@ -502,11 +502,11 @@ describe('עצירה קולית בזמן שדליה מדברת (barge-in)', () =
     fireEvent.click(screen.getByTestId('garage-action-new-customer'));
     await waitFor(() => expect(screen.getByTestId('claims-ai-error').textContent).toContain('עצירה בקול כבויה'), { timeout: 4000 });
     await waitFor(() => expect(spoken).toHaveLength(2), { timeout: 3000 });
-    expect(spoken).toEqual([P.newCustomerOpen, P.newCustomerOpen]); // replayed once because the phone cut it
+    expect(spoken).toEqual([P.newCustomerChoice, P.newCustomerChoice]); // replayed once because the phone cut it
     // the replay plays to the end: no stop-word listener anymore
     await new Promise((r) => setTimeout(r, 800));
     expect(bargeRecs()).toHaveLength(0);
-    expect(speakingNow?.text).toBe(P.newCustomerOpen);
+    expect(speakingNow?.text).toBe(P.newCustomerChoice);
   }, 30000);
 
   it('microphone permission off: a clear message, voice listening stops, typing still works', async () => {

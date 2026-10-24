@@ -30,6 +30,8 @@ import type {
   GarageSupplier,
   GarageVehicle,
   GarageVoiceActions,
+  QuoteDraft,
+  QuoteDraftInput,
 } from '@/modules/garage-management/garageVoiceActions';
 
 // ---------------------------------------------------------------------------
@@ -173,6 +175,26 @@ class FakeGarage implements GarageVoiceActions {
     return { supplier: s };
   }
   async listInvoices() { return [...this.invoices]; }
+  // pending quotes (no customer / case required) — test data only
+  drafts: QuoteDraft[] = [];
+  async saveQuoteDraft(input: QuoteDraftInput, existingId?: string) {
+    this.guard(existingId ? 'updateQuoteDraft' : 'saveQuoteDraft');
+    if (existingId) {
+      const i = this.drafts.findIndex((q) => q.id === existingId);
+      this.drafts[i] = { ...this.drafts[i], ...input };
+      return this.drafts[i];
+    }
+    const q: QuoteDraft = { ...input, id: this.id('qd'), created_by_name: this.actorName, created_at: '2026-10-24T10:00:00Z', updated_at: '2026-10-24T10:00:00Z', storage: 'system' };
+    this.drafts.push(q);
+    return q;
+  }
+  async listQuoteDrafts() { return [...this.drafts]; }
+  async updateQuoteDraft(id: string, patch: Partial<QuoteDraftInput>) {
+    this.guard(`updateQuoteDraft:${patch.status || 'fields'}`);
+    const i = this.drafts.findIndex((q) => q.id === id);
+    this.drafts[i] = { ...this.drafts[i], ...patch };
+    return this.drafts[i];
+  }
   async createInvoice(p: Record<string, unknown>) {
     this.guard('createInvoice');
     const inv = { id: this.id('inv'), ...p, invoice_number: String(p.invoice_number), supplier_name: String(p.supplier_name), supplier_id: String(p.supplier_id || ''), total_amount: Number(p.total_amount), case_id: (p.case_id as string) || null } as GarageInvoice;
@@ -465,8 +487,9 @@ const INTAKE_ANSWERS = ['רעש מהמנוע', 'בדיקת מנוע', 'שריט�
 
 describe('קבלת רכב לעבודה', () => {
   it('fields saved first; completion only after all 5 required photos and worker confirmation', async () => {
-    const { last, says } = await talk('intake', ['1234567', ...INTAKE_ANSWERS]);
-    expect(says.slice(1, 4)).toEqual([P.intakeComplaint, P.intakeWork, P.intakeCondition]);
+    const { last, says } = await talk('intake', ['1234567', 'כן', ...INTAKE_ANSWERS]);
+    expect(says[1]).toBe(P.intakeContinueOpen); // the vehicle has an open case — continue in it, never a second one
+    expect(says.slice(2, 5)).toEqual([P.intakeComplaint, P.intakeWork, P.intakeCondition]);
     expect(last.turn.isConfirmation).toBe(true);
     let r = await answerVoiceWorkflow(last.session!, 'כן', env());
     expect(r.turn.say).toBe(P.intakeSavedPhotos);
@@ -487,7 +510,7 @@ describe('קבלת רכב לעבודה', () => {
   });
 
   it('missing photos → "אחר כך" leaves the vehicle NOT received and resumable', async () => {
-    const { last } = await talk('intake', ['1234567', ...INTAKE_ANSWERS, 'כן', 'FILE', 'אחר כך']);
+    const { last } = await talk('intake', ['1234567', 'כן', ...INTAKE_ANSWERS, 'כן', 'FILE', 'אחר כך']);
     expect(last.turn.say).toBe(P.photosLater);
     expect(last.turn.keepForResume).toBe(true);
     expect(last.turn.display).toContain('אחורה');
@@ -495,13 +518,13 @@ describe('קבלת רכב לעבודה', () => {
   });
 
   it('mileage is mandatory (as in the intake screen)', async () => {
-    const { last } = await talk('intake', ['1234567', 'רעש', 'בדיקה', 'תקין', 'לא', 'לא יודע']);
+    const { last } = await talk('intake', ['1234567', 'כן', 'רעש', 'בדיקה', 'תקין', 'לא', 'לא יודע']);
     expect(last.turn.say).toBe(P.kmRetry);
   });
 
   it('quote-first case with an unapproved quote cannot be received', async () => {
     g.cases.find((c) => c.id === 'k1')!.case_data.route = 'quote_first';
-    const { last } = await talk('intake', ['1234567']);
+    const { last } = await talk('intake', ['1234567', 'כן']);
     expect(last.turn.say).toBe(P.intakeBlockedQuoteFirst);
   });
 
@@ -519,7 +542,9 @@ describe('קבלת רכב לעבודה', () => {
 
 describe('הצעת מחיר ותוספות', () => {
   it('new quote: works and parts with qty/price, saved as draft in the screen format', async () => {
-    const { last, transcript } = await talk('quote', ['הצעה חדשה', '1234567', 'יישור פח בכנף 450 שקל', 'זהו', 'פילטר שמן כמות 2 במחיר 80', 'אין עוד']);
+    const { last, transcript, says } = await talk('quote', ['תוספת להצעה קיימת', '1234567', 'גם וגם', 'יישור פח בכנף 450 שקל', 'זהו', 'פילטר שמן כמות 2 במחיר 80', 'אין עוד']);
+    expect(says[0]).toBe(P.quoteMenu);
+    expect(says[2]).toBe(P.addKind);
     expect(last.turn.display).toContain('₪610');
     const done = await answerVoiceWorkflow(last.session!, 'כן', env());
     expect(done.turn.say).toBe(P.quoteSaved);
@@ -1072,5 +1097,225 @@ describe('לקוח חדש → הצעת מחיר לאותו לקוח', () => {
     const r = await answerVoiceWorkflow(start.session!, 'דליה, עצרי', env());
     expect(r.turn.outcome).toBe('paused');
     expect(r.session?.data.customerName).toBeUndefined();
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// v5 · Task 1: "לקוח חדש" — regular opening, or a new customer with a price quote (no customer / case)
+// ---------------------------------------------------------------------------
+
+describe('משימה 1 — לקוח חדש: פתיחה רגילה או לקוח חדש עם הצעת מחיר', () => {
+  it('asks the new question first; "פתיחת לקוח רגילה" continues the existing opening', async () => {
+    const { says, last } = await talk('new_customer_choice', ['פתיחת לקוח רגילה', 'יוסי מזרחי']);
+    expect(says[0]).toBe(P.newCustomerChoice);
+    expect(says[1]).toBe(P.newCustomerOpen);
+    expect(last.turn.say).toBe(P.phone);
+    expect(last.session?.type).toBe('new_customer');
+  });
+
+  it('a name said right away goes to the regular opening with the name kept', async () => {
+    const { last } = await talk('new_customer_choice', ['יוסי מזרחי']);
+    expect(last.turn.say).toBe(P.phone);
+    expect(last.session?.data.customerName).toBe('יוסי מזרחי');
+  });
+
+  it('with a quote: name, phone, license photo read + confirmed, works / parts / prices, extras, review, edit → a pending quote; no customer, no case', async () => {
+    readDocument.mockResolvedValueOnce({ plate_number: '12-345-67', make: 'מאזדה', model: '3', year: '2019' });
+    const { says, last } = await talk('new_customer_choice', [
+      'הצעת מחיר ללקוח חדש', 'רינה בדיקה', 'דלג', 'לצלם', 'FILE', 'כן',
+      'החלפת רפידות 600', 'זהו', 'רפידות קדמיות כמות 2 במחיר 150', 'אין', 'אין',
+    ]);
+    expect(says.slice(1, 5)).toEqual([P.prospectName, P.prospectPhone, P.prospectVehicleSource, P.prospectDocUpload]);
+    expect(says[5]).toBe(P.licenseReadOk);
+    expect(says).not.toContain(P.vehiclePlate); // read from the document — only missing details are asked
+    expect(last.turn.say).toBe(P.prospectReview);
+    expect(last.turn.display).toContain('1. עבודה: החלפת רפידות');
+    expect(last.turn.display).toContain('2. חלק: רפידות קדמיות');
+    const edited = await answerVoiceWorkflow(last.session!, 'מחיר סעיף 1 700', env());
+    expect(edited.turn.say).toBe(P.prospectEdited);
+    expect(edited.turn.display).toContain('₪700');
+    const added = await answerVoiceWorkflow(edited.session!, 'הוסיפי עבודה איזון גלגלים 120', env());
+    expect(added.turn.display).toContain('2. עבודה: איזון גלגלים'); // works are listed first, then parts
+    const removed = await answerVoiceWorkflow(added.session!, 'מחקי סעיף 2', env());
+    expect(removed.turn.display).toContain('נמחק: איזון גלגלים');
+    expect(removed.turn.display).not.toContain('עבודה: איזון');
+    const saved = await answerVoiceWorkflow(removed.session!, 'להכין את ההצעה', env());
+    expect(saved.turn.say).toBe(P.prospectSaved);
+    expect(g.writes).toEqual(['saveQuoteDraft']); // no customer, no vehicle, no case
+    expect(g.drafts).toHaveLength(1);
+    expect(g.drafts[0]).toMatchObject({
+      status: 'pending_approval', customer_name: 'רינה בדיקה', customer_id: null, case_id: null, vehicle_plate: '1234567', vehicle_make: 'מאזדה',
+      works: [{ name: 'החלפת רפידות', qty: 1, price: 700 }], parts: [{ name: 'רפידות קדמיות', qty: 2, price: 150 }], total_net: 1000,
+    });
+  });
+
+  it('a document with only the plate: the missing make / year are asked, nothing invented', async () => {
+    readDocument.mockResolvedValueOnce({ plate_number: '55-666-77' });
+    const { says } = await talk('new_customer_choice', ['הצעת מחיר ללקוח חדש', 'דן בדיקה', '0541234567', 'להעלות מסמך', 'FILE', 'כן', 'פולקסווגן גולף', 'לא ידוע']);
+    expect(says.slice(-3)).toEqual([P.model, P.year, P.works]);
+  });
+
+  it('by speech; a review answered "לתקן" explains how; nothing saved before "להכין"', async () => {
+    const { last } = await talk('prospect_quote', ['דן בדיקה', 'דלג', 'בדיבור', '7778889', 'טויוטה יאריס', '2018', 'טיפול 10000 450', 'זהו', 'אין', 'אין', 'לתקן']);
+    expect(last.turn.say).toBe(P.prospectEditHow);
+    expect(g.writes).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v5 · Task 2: the quote button — four routes + pending quotes
+// ---------------------------------------------------------------------------
+
+describe('משימה 2 — כפתור הצעת מחיר', () => {
+  it('offers the four routes (and the pending quotes)', async () => {
+    const r = await startVoiceWorkflow('quote', {}, env());
+    expect(r.turn.say).toBe(P.quoteMenu);
+    const labels = (r.turn.ui?.find((u) => u.type === 'choices') as { options: Array<{ label: string }> }).options.map((o) => o.label);
+    expect(labels).toEqual(['👤 הצעה חדשה ללקוח קיים', '➕ תוספת להצעה קיימת', '🔧 תוספת לתיק עבודה', '🆕 הצעה ללקוח חדש', '📂 הצעות ממתינות']);
+  });
+
+  it('1. new quote for an existing customer: pick the customer and vehicle, pending quote linked to them, no case', async () => {
+    const { says, last } = await talk('quote', ['הצעה חדשה ללקוח קיים', 'משה כהן', 'כן', 'מספר 1', 'צביעת כנף 900', 'זהו', 'אין', 'אין', 'להכין']);
+    expect(says[1]).toBe(P.existingCustomerQuote);
+    expect(says).toContain(P.pickVehicle);
+    expect(last.turn.say).toBe(P.prospectSaved);
+    expect(g.drafts[0]).toMatchObject({ customer_id: 'c1', vehicle_id: 'v1', vehicle_plate: '1234567', case_id: null });
+    expect(g.writes).toEqual(['saveQuoteDraft']);
+  });
+
+  it('2. addition to an existing quote asks "work, parts or both" — "חלקים" asks only parts', async () => {
+    const { says } = await talk('quote', ['תוספת להצעה קיימת', '1234567', 'חלקים']);
+    expect(says[2]).toBe(P.addKind);
+    expect(says[3]).toBe(P.parts);
+  });
+
+  it('3. extra work / parts for an existing case uses the supplement path (pending customer approval)', async () => {
+    const { says } = await talk('quote', ['תוספת עבודה או חלקים לתיק קיים', '11-222-33', 'נמצא שהמגן האחורי סדוק']);
+    expect(says[1]).toBe(P.quoteCase);
+    expect(says[2]).toBe(P.supplementText);
+    expect([P.extraKind, P.extraKindAbout]).toContain(says[3]);
+  });
+
+  it('4. a quote for a customer not in the system', async () => {
+    const { says } = await talk('quote', ['הצעת מחיר ללקוח חדש']);
+    expect(says[1]).toBe(P.prospectName);
+  });
+});
+
+describe('הצעות ממתינות → אישור הלקוח → פתיחת לקוח או קליטת רכב', () => {
+  const pending = async () => {
+    await talk('prospect_quote', ['רינה בדיקה', '0541112299', 'בדיבור', '7778889', 'טויוטה יאריס', '2018', 'טיפול 10000 450', 'זהו', 'פילטר שמן 80', 'זהו', 'אין', 'להכין']);
+    g.writes = [];
+    return g.drafts[0];
+  };
+
+  it('none pending → says so', async () => {
+    const r = await startVoiceWorkflow('quote_drafts', {}, env());
+    expect(r.turn.say).toBe(P.draftsNone);
+  });
+
+  it('found by name; "עדיין ממתינה" keeps it pending', async () => {
+    await pending();
+    const { says, last } = await talk('quote_drafts', ['רינה', 'עדיין ממתינה']);
+    expect(says[0]).toBe(P.draftsOpen);
+    expect(says[1]).toBe(P.draftStatusAsk);
+    expect(last.turn.say).toBe(P.draftStillPending);
+    expect(g.drafts[0].status).toBe('pending_approval');
+  });
+
+  it('"להוסיף סעיפים" updates the SAME pending quote (no second copy)', async () => {
+    const q = await pending();
+    const { last } = await talk('quote_drafts', ['מספר 1', 'להוסיף סעיפים', 'החלפת מגבים 120', 'זהו', 'זהו', 'להכין']);
+    expect(last.turn.say).toBe(P.prospectSaved);
+    expect(g.drafts).toHaveLength(1);
+    expect(g.drafts[0].id).toBe(q.id);
+    expect(g.drafts[0].works.map((w) => w.name)).toEqual(['טיפול', 'החלפת מגבים']);
+  });
+
+  it('approved → vehicle intake: one new case carrying the approved lines; the quote is marked converted', async () => {
+    const q = await pending();
+    const { says, last } = await talk('quote_drafts', ['מספר 1', 'הלקוח אישר', 'קליטת רכב לעבודה', 'פרטי', 'רעש', 'טיפול', 'תקין', 'לא', '50000', 'חצי', '1', 'לא', 'לא']);
+    expect(says[2]).toBe(P.draftApprovedNext);
+    expect(g.drafts[0].status).toBe('approved');
+    expect(last.turn.isConfirmation).toBe(true);
+    await answerVoiceWorkflow(last.session!, 'כן', env());
+    expect(g.writes.filter((w) => w === 'createCase')).toHaveLength(1);
+    expect(g.writes.filter((w) => w === 'createCustomer')).toHaveLength(1);
+    const created = g.cases[0];
+    expect(created.case_data).toMatchObject({ route: 'intake_first', quoteCreated: true });
+    expect(created.case_data.quoteWorks?.map((w) => w.part)).toEqual(['טיפול']);
+    expect(created.case_data.quoteParts?.map((p) => p.name)).toEqual(['פילטר שמן']);
+    expect(created.case_data.quoteApproved).toBeUndefined(); // the approval itself is confirmed in the case screen
+    expect(g.drafts[0]).toMatchObject({ id: q.id, status: 'converted', case_id: created.id });
+  });
+
+  it('approved → open the customer: customer + vehicle saved and linked to the quote; no case opened', async () => {
+    await pending();
+    const { last } = await talk('quote_drafts', ['מספר 1', 'הלקוח אישר', 'פתיחת לקוח', 'פרטי', 'כן', 'כן']);
+    expect(g.writes).toContain('createCustomer');
+    expect(g.writes).toContain('createVehicle');
+    expect(g.writes).not.toContain('createCase');
+    expect(g.drafts[0].customer_id).toBeTruthy();
+    expect(g.drafts[0].status).toBe('converted');
+    expect(last.turn.say).not.toBe(P.customerDoneOfferQuote); // the quote already exists — not offered again
+  });
+});
+
+// ---------------------------------------------------------------------------
+// v5 · Task 3: vehicle intake — find the vehicle by plate / name / case number / phone
+// ---------------------------------------------------------------------------
+
+describe('משימה 3 — קבלת רכב: חיפוש ובחירה', () => {
+  it('asks the new question', async () => {
+    const r = await startVoiceWorkflow('intake', {}, env({ userName: '' }));
+    expect(r.turn.say).toBe(P.intakeFind);
+  });
+
+  it('by customer name with several vehicles → a list → pick → open case → continue in it', async () => {
+    const { says, last } = await talk('intake', ['משה כהן', 'מספר 1']);
+    expect(says[1]).toBe(P.intakeFindMany);
+    expect(last.turn.say).toBe(P.intakeContinueOpen);
+    expect(last.turn.display).toMatch(/GM-20(26|25)-0/);
+  });
+
+  it('by case number: the vehicle behind the case; its history is shown with status and date', async () => {
+    const { last } = await talk('intake', ['תיק 42']);
+    expect(last.turn.display).toContain('תיקים של הרכב');
+    expect(last.turn.display).toMatch(/\d{2}\.\d{2}\.\d{4}/);
+  });
+
+  it('by phone', async () => {
+    const { says } = await talk('intake', ['052-1111111']);
+    expect([P.intakeFindMany, P.intakeContinueOpen]).toContain(says[1]);
+  });
+
+  it('several open cases for the same vehicle → choose by status and date', async () => {
+    const extra = { ...g.cases.find((c) => c.id === 'k1')!, id: 'k1b', case_number: 'GM-2026-0050', created_at: '2026-10-22T08:00:00Z', case_data: { quoteCreated: true, timeline: [] } };
+    g.cases.push(extra);
+    const { says, last } = await talk('intake', ['1234567']);
+    expect(says[1]).toBe(P.intakeOpenCases);
+    expect(last.turn.display).toContain('GM-2026-0050');
+    expect(last.turn.display).toContain('22.10.2026');
+    const r = await answerVoiceWorkflow(last.session!, 'מספר 2', env());
+    expect(r.turn.say).toBe(P.intakeComplaint);
+    expect(r.session?.data.caseId).toBeTruthy();
+  });
+
+  it('"לא" to continuing the open case: no second case is opened', async () => {
+    const { last } = await talk('intake', ['1234567', 'לא']);
+    expect(last.turn.say).toBe(P.intakeNoSecondCase);
+    expect(g.writes).toEqual([]);
+  });
+
+  it('a pending quote for the vehicle is mentioned', async () => {
+    await talk('prospect_quote', ['רינה בדיקה', 'דלג', 'בדיבור', '7778889', 'טויוטה יאריס', '2018', 'טיפול 450', 'זהו', 'אין', 'אין', 'להכין']);
+    const { last } = await talk('intake', ['7778889']);
+    expect(last.turn.display).toContain('הצעת מחיר ממתינה');
+  });
+
+  it('nothing found → asks again', async () => {
+    const { last } = await talk('intake', ['תיק 9999']);
+    expect(last.turn.say).toBe(P.intakeFindNone);
   });
 });

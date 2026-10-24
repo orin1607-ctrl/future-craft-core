@@ -37,8 +37,9 @@ import {
   type GarageSupplier,
 } from './garageLedger';
 import { uploadGarageMedia, type GarageMediaCategoryId } from './garageMedia';
+import { createQuoteDraftStore, type QuoteDraft, type QuoteDraftInput } from './garageQuoteDrafts';
 
-export type { GarageCase, GarageCaseData, GarageCustomer, GarageVehicle, GarageInvoice, GarageSupplier };
+export type { GarageCase, GarageCaseData, GarageCustomer, GarageVehicle, GarageInvoice, GarageSupplier, QuoteDraft, QuoteDraftInput };
 
 export type VoiceCustomerDraft = {
   customer_type: 'private' | 'business';
@@ -91,10 +92,15 @@ export interface GarageVoiceActions {
   createSupplier(name: string, extra?: { phone?: string; category?: string }): Promise<{ supplier: GarageSupplier; alreadyExisted?: boolean }>;
   listInvoices(): Promise<GarageInvoice[]>;
   createInvoice(payload: Record<string, unknown>): Promise<GarageInvoice>;
+  /** Quotes not tied to a work case (waiting for the customer's approval) — see garageQuoteDrafts. */
+  saveQuoteDraft?(input: QuoteDraftInput, existingId?: string): Promise<QuoteDraft>;
+  listQuoteDrafts?(): Promise<QuoteDraft[]>;
+  updateQuoteDraft?(id: string, patch: Partial<QuoteDraftInput>): Promise<QuoteDraft>;
 }
 
 export function createGarageVoiceActions(actor: GarageActor, shopScope: GarageShopScope): GarageVoiceActions {
   const shopName = actor.company_name || '';
+  const drafts = createQuoteDraftStore(actor);
   return {
     actorName: actor.full_name || 'דליה AI',
     actorRole: actor.role,
@@ -228,5 +234,8 @@ export function createGarageVoiceActions(actor: GarageActor, shopScope: GarageSh
       return invoices;
     },
     createInvoice: (payload) => createGarageInvoice(payload, actor),
+    saveQuoteDraft: (input, existingId) => drafts.save(input, existingId),
+    listQuoteDrafts: () => drafts.list(),
+    updateQuoteDraft: (id, patch) => drafts.update(id, patch),
   };
 }
