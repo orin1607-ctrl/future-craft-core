@@ -9,6 +9,10 @@
 //   → a generic safe alternative sentence (via clip/cloud). The on-device engine is used only when the browser
 //   really exposes a Hebrew voice; otherwise Android Chrome reads only the Latin letters ("AI").
 // - cancel() is a no-op while idle, and the synth is only cancelled when it actually has something queued.
+// - ONE VOICE: when the device has a Hebrew voice, every sentence (fixed or personal) is spoken by that one
+//   voice, and the pre-recorded clips are not used at all. Mixing them made Dalia switch between the phone's
+//   (female) voice and the clips' (male, Microsoft Asaf) voice, and a "failed" phone utterance used to be
+//   repeated by a clip. Clips are used only on devices without any Hebrew voice (then they are the one voice).
 
 import {
   containsLikelyPii,
@@ -80,16 +84,24 @@ interface Run {
 const SILENT_WAV =
   'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
 
-const LOCAL_START_TIMEOUT_MS = 4000;
+const LOCAL_START_TIMEOUT_MS = 7000;
+const VOICES_WAIT_MS = 1200;
 const AUDIO_START_TIMEOUT_MS = 8000;
 const MANIFEST_WAIT_MS = 1500;
 
+const FEMALE_HINT = /hila|carmit|female|woman|אישה|נשי/i;
+const MALE_HINT = /asaf|(^|[^e])male|גבר/i;
+
 export function pickHebrewVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
   if (!voices || !voices.length) return null;
-  const exact = voices.find((v) => {
+  const hebrew = voices.filter((v) => {
     const l = (v.lang || '').toLowerCase().replace('_', '-');
     return l === 'he-il' || l === 'he' || l.startsWith('he-') || l === 'iw-il' || l === 'iw' || l.startsWith('iw-');
   });
+  // Dalia is a woman: a voice named as female first, then one not named as male, then whatever exists
+  const exact = hebrew.find((v) => FEMALE_HINT.test(v.name || ''))
+    || hebrew.find((v) => !MALE_HINT.test(v.name || ''))
+    || hebrew[0];
   if (exact) return exact;
   const byName = voices.find((v) => {
     const n = (v.name || '').toLowerCase();
@@ -118,6 +130,9 @@ export class DaliaSpeechController {
   private cloudDynamicAllowed = true;
   private cloudCache = new Map<string, string>();
   private localNoStartCount = 0;
+  /** The device voice chosen for this window, kept for every sentence so the voice never changes. */
+  private lockedVoiceName: string | null = null;
+  private voicesReady: Promise<void> | null = null;
   private lastSynthCancelAt = -Infinity;
   private cloudRetryAt = 0;
   private history: SpeakResult[] = [];
@@ -259,10 +274,50 @@ export class DaliaSpeechController {
 
   getHebrewVoice(): SpeechSynthesisVoice | null {
     try {
-      return pickHebrewVoice(this.deps.synth?.getVoices?.() || []);
+      const voices = this.deps.synth?.getVoices?.() || [];
+      if (this.lockedVoiceName) {
+        const same = voices.find((v) => v.name === this.lockedVoiceName);
+        if (same) return same;
+      }
+      const v = pickHebrewVoice(voices);
+      if (v && !this.lockedVoiceName) {
+        this.lockedVoiceName = v.name;
+        this.deps.log('voice-locked', `${v.name}[${v.lang}]`);
+      }
+      return v;
     } catch {
       return null;
     }
+  }
+
+  /** Which single voice speaks in this window: the device Hebrew voice, or (only without one) the clips. */
+  getVoiceMode(): 'device' | 'clips' {
+    return this.deps.synth && this.deps.Utterance && this.getHebrewVoice() ? 'device' : 'clips';
+  }
+
+  /** Chrome loads its voice list asynchronously; wait briefly once so the first sentence uses the right voice. */
+  private waitForVoices(): Promise<void> | null {
+    const synth = this.deps.synth;
+    if (!synth || !this.deps.Utterance) return null;
+    try {
+      if ((synth.getVoices?.() || []).length) return null;
+    } catch {
+      return null;
+    }
+    if (!this.voicesReady) {
+      this.voicesReady = new Promise<void>((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          try { synth.removeEventListener?.('voiceschanged', finish); } catch {}
+          resolve();
+        };
+        try { synth.addEventListener?.('voiceschanged', finish); } catch {}
+        this.deps.setTimer(finish, VOICES_WAIT_MS);
+      });
+    }
+    return this.voicesReady;
   }
 
   getDiagnostics() {
@@ -309,9 +364,17 @@ export class DaliaSpeechController {
       return { outcome: 'failed', engine: 'none', reason: 'empty-text', usedAlternative: false, attempts };
     }
 
+    const voicesWait = this.waitForVoices(); // only when the list is still empty: speaking starts at once otherwise
+    if (voicesWait) await voicesWait;
+    if (run.cancelled) return { outcome: 'cancelled', engine: 'none', reason: run.cancelReason, usedAlternative: false, attempts };
     const primary = await this.tryChain(run, clean, attempts);
     if (primary.outcome !== 'failed' || run.cancelled) {
       return { ...primary, outcome: run.cancelled ? 'cancelled' : primary.outcome, usedAlternative: false, attempts };
+    }
+    // Device voice: never repeat the sentence with another engine or voice. The question stays on screen
+    // with "השמע שוב"; a second, different voice repeating it was the "another voice asks again" bug.
+    if (this.getVoiceMode() === 'device') {
+      return { outcome: 'failed', engine: 'none', reason: primary.reason || 'device-voice-failed', usedAlternative: false, attempts };
     }
 
     const alt = opts.safeAlternative ? normalizeSpeechKey(opts.safeAlternative) : '';
@@ -331,7 +394,8 @@ export class DaliaSpeechController {
     attempts: string[],
   ): Promise<{ outcome: SpeechOutcome; engine: SpeechEngine; reason?: string }> {
     const fixed = isFixedDaliaPrompt(text);
-    const order: SpeechEngine[] = fixed ? ['clip', 'cloud', 'local'] : ['local', 'cloud'];
+    // one voice per window: the device Hebrew voice for everything; clips (+ cloud) only without one
+    const order: SpeechEngine[] = this.getVoiceMode() === 'device' ? ['local'] : fixed ? ['clip', 'cloud'] : ['cloud'];
     const reasons: string[] = [];
     let blocked: { engine: SpeechEngine; reason?: string } | null = null;
 
@@ -495,7 +559,6 @@ export class DaliaSpeechController {
     if (!synth || !Utter) return Promise.resolve(null);
     const voice = this.getHebrewVoice();
     if (!voice) return Promise.resolve({ outcome: 'failed', reason: 'no-hebrew-voice' });
-    if (this.localNoStartCount >= 2) return Promise.resolve({ outcome: 'failed', reason: 'local-unreliable' });
 
     return new Promise<EngineOutcome>((resolve) => {
       if (run.cancelled) {
@@ -504,6 +567,8 @@ export class DaliaSpeechController {
       }
       let settled = false;
       let started = false;
+      /** synth.speaking was seen true — Android Chrome often speaks without delivering onstart. */
+      let sawSpeaking = false;
       let ownsSynth = false;
       const timers: unknown[] = [];
       const speakAt = this.deps.now();
@@ -541,9 +606,14 @@ export class DaliaSpeechController {
         this.deps.log('local-onstart', `id=${run.id} afterMs=${this.deps.now() - speakAt}`);
       };
       u.onend = () => {
-        // No onstart means the engine never produced audio (seen on Android with an unusable voice).
-        if (!started) settle({ outcome: 'failed', reason: 'ended-without-start' });
-        else settle({ outcome: 'completed' });
+        if (started) {
+          settle({ outcome: 'completed' });
+          return;
+        }
+        // Android Chrome often skips onstart: if the synth reported speaking, the sentence was heard.
+        // An onend with no sign of speech at all (silent engine) stays a failure.
+        if (sawSpeaking) settle({ outcome: 'completed', reason: 'no-onstart' });
+        else settle({ outcome: 'failed', reason: 'ended-without-start' });
       };
       u.onerror = (ev: SpeechSynthesisErrorEvent) => {
         const err = String(ev?.error || 'unknown');
@@ -562,14 +632,25 @@ export class DaliaSpeechController {
           settle({ outcome: 'failed', reason: `speak-threw-${(e as Error)?.name || 'error'}` });
           return;
         }
-        timers.push(
-          this.deps.setTimer(() => {
-            if (!started && !synth.speaking) {
-              this.localNoStartCount += 1;
-              settle({ outcome: 'failed', reason: 'no-start' });
-            }
-          }, LOCAL_START_TIMEOUT_MS),
-        );
+        // A slow phone voice engine may take seconds to start; give up only when nothing is speaking or queued.
+        const startCheck = () => {
+          if (settled || started) return;
+          let busy = false;
+          try { busy = !!(synth.speaking || synth.pending); } catch {}
+          if (busy && sawSpeaking) {
+            started = true; // audio is playing even though onstart was not delivered
+            return;
+          }
+          this.localNoStartCount += 1;
+          settle({ outcome: 'failed', reason: 'no-start' });
+        };
+        timers.push(this.deps.setTimer(startCheck, LOCAL_START_TIMEOUT_MS));
+        const watchSpeaking = () => {
+          if (settled || started) return;
+          try { if (synth.speaking) sawSpeaking = true; } catch {}
+          timers.push(this.deps.setTimer(watchSpeaking, 250));
+        };
+        timers.push(this.deps.setTimer(watchSpeaking, 250));
         // Chrome sometimes drops onend: poll after the expected duration.
         const expectMs = 1500 + text.length * 90;
         const pollFn = () => {

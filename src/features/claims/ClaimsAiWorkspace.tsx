@@ -354,6 +354,12 @@ async function invokeDaliaTts(text: string): Promise<CloudSynthResult> {
   return { ok: true, url };
 }
 
+/**
+ * Only ONE Dalia window may talk or listen at a time. Each window instance takes a token when it mounts;
+ * an older (closed / replaced) instance whose timers fire later can no longer open the mic or speak.
+ */
+let daliaVoiceOwner = 0;
+
 function createWorkspaceSpeechController(): DaliaSpeechController {
   const base = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
   const hasWindow = typeof window !== 'undefined';
@@ -2774,6 +2780,20 @@ export function ClaimsAiWorkspace({
   const speechControllerRef = useRef<DaliaSpeechController | null>(null);
   if (!speechControllerRef.current) speechControllerRef.current = createWorkspaceSpeechController();
   const speechController = speechControllerRef.current;
+  const voiceOwnerRef = useRef(0);
+  if (!voiceOwnerRef.current) voiceOwnerRef.current = ++daliaVoiceOwner;
+  /** False once this window was closed or a newer Dalia window opened. */
+  const ownsVoice = () => voiceOwnerRef.current === daliaVoiceOwner;
+  useEffect(() => {
+    // a remount (or a newer window) takes ownership again
+    voiceOwnerRef.current = ++daliaVoiceOwner;
+    return () => {
+      // closed: no pending timer may open the mic, restart listening or speak for this window
+      voiceOwnerRef.current = -1;
+      voiceModeActiveRef.current = false;
+      voicePhaseRef.current = 'idle';
+    };
+  }, []);
   /** Set when the last question could not be played: the mic is NOT started automatically. */
   const [speechIssue, setSpeechIssue] = useState<{ outcome: 'failed' | 'blocked'; retry: () => void } | null>(null);
 
@@ -3313,6 +3333,10 @@ export function ClaimsAiWorkspace({
   const speakAnswer = useCallback((msgId: string, rawText: string, opts: SpeakOptions = {}): Promise<SpeakResult> => {
     diagLog('speakAnswer-called', `id=${msgId} textLen=${(rawText || '').length} userActive=${(navigator as any).userActivation?.isActive}`);
     const clean = cleanTextForSpeech(rawText);
+    if (!ownsVoice()) {
+      // a closed / replaced window never talks over the current one
+      return Promise.resolve({ id: -1, label: opts.label || msgId, outcome: 'cancelled', engine: 'none', reason: 'not-owner', usedAlternative: false, attempts: [], durationMs: 0 } as SpeakResult);
+    }
     // Dalia never records herself: dictation stops while she speaks (garage window)
     if (moduleRef.current === 'garage') stopDictationRef.current();
     setSpeechIssue(null);
@@ -3394,6 +3418,10 @@ export function ClaimsAiWorkspace({
 
   const startVoiceListening = useCallback(() => {
     if (!voiceModeActiveRef.current) return;
+    if (!ownsVoice()) {
+      diagLog('listen-blocked-not-owner');
+      return;
+    }
     stopVoiceRecognition();
     stopSpeaking();
     // only one microphone at a time: dictation into the text box stops when Dalia listens
@@ -3891,6 +3919,11 @@ const toggleVoiceMute = useCallback(() => {
 
     isSubmittingRef.current = true;
     lastSendTimeRef.current = now;
+    // A reply that arrives after the user moved on (new button / new question) is shown but never spoken
+    // and never reopens the mic — it must not cut off or rewind the current conversation.
+    const turnSeqAtSend = voiceTurnSeqRef.current;
+    const startSeqAtSend = startSeqRef.current;
+    const replyIsCurrent = () => voiceTurnSeqRef.current === turnSeqAtSend && startSeqRef.current === startSeqAtSend;
 
     // Clear input box immediately upon send
     setInput('');
@@ -4173,7 +4206,9 @@ const toggleVoiceMute = useCallback(() => {
       setConversations((prev) => prev.map((row) => row.id === conversationId ? { ...row, updated_at: saved.data!.created_at } : row));
 
       // Continuous Voice Mode or Auto-Speak: speak the response
-      if (voiceModeActiveRef.current) {
+      if (!replyIsCurrent()) {
+        diagLog('stale-reply-not-spoken');
+      } else if (voiceModeActiveRef.current) {
         voicePhaseRef.current = 'speaking';
         setVoicePhase('speaking');
         stopVoiceRecognition();
@@ -4189,9 +4224,9 @@ const toggleVoiceMute = useCallback(() => {
       if (!userSavedSuccessfully) {
         setInput(trimmed);
       }
-      if (voiceModeActiveRef.current) {
+      if (voiceModeActiveRef.current && replyIsCurrent()) {
         setTimeout(() => {
-          if (voiceModeActiveRef.current) {
+          if (voiceModeActiveRef.current && replyIsCurrent() && !speechController.isActive()) {
             startVoiceListening();
           }
         }, 500);
@@ -4277,6 +4312,11 @@ const toggleVoiceMute = useCallback(() => {
     readDocument: readGarageDocument,
   }), [garageVoiceActions]);
   const voiceTurnSeqRef = useRef(0);
+  /** Bumped by every workflow button: results of an older start / answer are dropped (newest click wins). */
+  const startSeqRef = useRef(0);
+  /** One answer at a time: while the engine processes an answer, a second one (late voice event, typing
+   *  over the voice) is not applied to the same conversation — it would land on the NEXT question. */
+  const workflowBusyRef = useRef(false);
   const [lastVoiceMsgId, setLastVoiceMsgId] = useState<string | null>(null);
   const [daliaDrawer, setDaliaDrawer] = useState<DaliaDrawerData | null>(null);
   const voiceCameraInputRef = useRef<HTMLInputElement>(null);
@@ -4340,6 +4380,7 @@ const toggleVoiceMute = useCallback(() => {
     // sendRef = the latest sendMessage, so the bubbles added during this turn are kept
     if (turn.handoff) {
       await sendRef.current(turn.handoff, 'text');
+      if (voiceTurnSeqRef.current !== seq) return; // the user moved on while the chat answered
       if (turn.ui?.length || turn.display) {
         setLastVoiceMsgId(id);
         setMessages((prev) => [...prev, bubble(turn.display || turn.say)]);
@@ -4361,6 +4402,12 @@ const toggleVoiceMute = useCallback(() => {
 
   /** Stores/clears the session after an engine result and presents the next turn. */
   const applyVoiceResult = useCallback(async (current: VoiceSession, run: () => Promise<VoiceResult>, userContent: string) => {
+    if (workflowBusyRef.current) {
+      diagLog('workflow-input-busy-ignored', `len=${userContent.length}`);
+      return;
+    }
+    workflowBusyRef.current = true;
+    const startSeq = startSeqRef.current;
     setMessages((prev) => [...prev, {
       id: `usr_wf_${Date.now()}`,
       conversation_id: activeId || 'voice_flow',
@@ -4393,7 +4440,8 @@ const toggleVoiceMute = useCallback(() => {
       };
     }
     // Another workflow was started while this answer was processed — drop the stale result.
-    if (currentVoiceWorkflowRef.current !== current) return;
+    if (startSeq === startSeqRef.current) workflowBusyRef.current = false; // a newer start already reset it
+    if (startSeq !== startSeqRef.current || currentVoiceWorkflowRef.current !== current) return;
 
     if (!res.turn.done) {
       setActiveVoiceSession(res.session, 'save');
@@ -4456,18 +4504,30 @@ const toggleVoiceMute = useCallback(() => {
     setDaliaDrawer(null);
     setVoiceModeActive(true);
     voiceModeActiveRef.current = true;
-    // A click starts a new conversation; a reply still being processed for the old one is dropped.
+    // A click starts a new conversation; a reply still being processed for the old one is dropped,
+    // and whatever the old one was saying / listening to stops now.
+    const seq = ++startSeqRef.current;
+    workflowBusyRef.current = false;
+    stopVoiceRecognition();
+    stopSpeaking();
+    const previous = currentVoiceWorkflowRef.current;
     currentVoiceWorkflowRef.current = null;
+    // a half-filled action is kept as a draft: offered again ("להמשיך בפעולה הקודמת?") when the new one ends
+    const draft = previous && previous.type !== wfType && previous.filled.length > 0
+      && previous.type !== 'general_action' && previous.type !== 'resume_action'
+      ? (JSON.parse(JSON.stringify({ ...previous, data: { ...previous.data, invoiceFile: undefined, awaitingContinue: undefined, pendingSwitch: undefined } })) as VoiceSession)
+      : null;
     const res = await startVoiceWorkflow(wfType, {
       caseId: garageCase?.id,
       caseNumber: garageCase?.caseNumber,
       customerName: garageCase?.customerName,
       plate: garageCase?.plate,
-    }, voiceEnv, prefill);
+    }, voiceEnv, prefill, draft ? { returnTo: draft } : undefined);
+    if (seq !== startSeqRef.current) return; // a newer button was pressed meanwhile
     if (res.turn.done) setActiveVoiceSession(null, 'keep');
     else setActiveVoiceSession(res.session, 'save');
     await presentVoiceTurn(res.turn, `wf-start-${wfType}`);
-  }, [garageCase, presentVoiceTurn, setActiveVoiceSession, unlockAudioGesture, voiceEnv]);
+  }, [garageCase, presentVoiceTurn, setActiveVoiceSession, stopSpeaking, stopVoiceRecognition, unlockAudioGesture, voiceEnv]);
 
   const voiceAwaitingFile = useCallback(
     () => !!currentVoiceWorkflowRef.current && !!lastVoiceTurnRef.current?.ui?.some((u) => u.type === 'upload'),

@@ -293,7 +293,7 @@ describe('garage voice workflows — mic only after the question was really spok
     await waitFor(() => expect(openCase).toHaveBeenCalledWith('case-new'));
   });
 
-  it('personal greeting with the signed-in worker name; the fixed sentence is played when the personal one cannot be', async () => {
+  it('personal greeting with the signed-in worker name; a failed sentence is never repeated by another voice', async () => {
     installSpeech([{ lang: 'he-IL', name: 'Google עברית' }]);
     garage.actorName = 'מאיר כהן';
     renderGarage();
@@ -301,9 +301,11 @@ describe('garage voice workflows — mic only after the question was really spok
     fireEvent.click(screen.getByTestId('garage-action-new-customer'));
     await waitFor(() => expect(utterances).toHaveLength(1));
     expect(utterances[0].text).toBe('מאיר, איזה לקוח תרצה לפתוח? מה שם הלקוח או החברה?');
-    // the device voice fails on the personal sentence → the fixed sentence (pre-recorded) is tried next
+    // the device voice fails → nothing repeats the question in another voice; it stays on screen with "play again"
     act(() => utterances[0].onerror?.({ error: 'synthesis-failed' }));
-    await waitFor(() => expect(utterances.map((u) => u.text)).toContain('איזה לקוח תרצה לפתוח? מה שם הלקוח או החברה?'), { timeout: 2500 });
+    await new Promise((r) => setTimeout(r, 1500));
+    expect(utterances).toHaveLength(1);
+    expect(screen.getByText(/איזה לקוח תרצה לפתוח/)).toBeDefined();
   });
 
   it('answer buttons under the latest turn answer Dalia; a list opens in the drawer and closes back to the chat', async () => {

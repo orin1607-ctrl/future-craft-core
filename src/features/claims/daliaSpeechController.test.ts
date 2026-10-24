@@ -158,7 +158,7 @@ describe('local Hebrew voice engine', () => {
   it('failed when the engine never starts (silent Android engine)', async () => {
     const { ctrl } = makeController({ voices: HE_VOICE });
     const p = ctrl.speak(DYNAMIC_NO_PII);
-    await vi.advanceTimersByTimeAsync(4100);
+    await vi.advanceTimersByTimeAsync(7100); // slow phone engines get 7s to start
     const r = await p;
     expect(r.outcome).toBe('failed');
     expect(r.reason).toContain('no-start');
@@ -234,7 +234,7 @@ describe('fallback when the browser has NO Hebrew voice (Samsung Chrome/Brave ca
     const r = await p;
     expect(synth.speak).not.toHaveBeenCalled();
     expect(r.outcome).toBe('failed');
-    expect(r.reason).toContain('no-hebrew-voice');
+    expect(r.reason).toContain('no-hebrew-engine');
   });
 
   it('uses a pre-recorded clip first for a fixed prompt (no cloud call)', async () => {
@@ -335,5 +335,62 @@ describe('diagnostics report', () => {
     expect(report).toContain('local=NO-HEBREW-VOICE');
     expect(report).toContain('wf-start-new_customer: FAILED');
     expect(report).not.toContain(FIXED_2);
+  });
+});
+
+describe('one voice per window (no male clip mixed with the phone voice)', () => {
+  const clipFor = (t: string) => ({ clips: { [speechClipId(t)]: { file: 'clips/male.wav' } } });
+
+  it('with a device Hebrew voice, fixed sentences are spoken by that voice — the clip is never played', async () => {
+    const { ctrl, spoken, audio } = makeController({ voices: HE_VOICE, manifest: clipFor(FIXED) });
+    await ctrl.preload();
+    const p = ctrl.speak(FIXED);
+    expect(spoken).toHaveLength(1);
+    spoken[0].onstart?.();
+    spoken[0].onend?.();
+    expect((await p)).toMatchObject({ outcome: 'completed', engine: 'local' });
+    expect(audio.played).toHaveLength(0);
+  });
+
+  it('a failed device sentence is NOT repeated by another voice (no male clip, no second utterance)', async () => {
+    const { ctrl, spoken, audio } = makeController({ voices: HE_VOICE, manifest: clipFor(FIXED) });
+    await ctrl.preload();
+    const p = ctrl.speak('עובד, ' + FIXED, { safeAlternative: FIXED });
+    spoken[0].onerror?.({ error: 'synthesis-failed' });
+    const r = await p;
+    await vi.advanceTimersByTimeAsync(3000);
+    expect(r.outcome).toBe('failed');
+    expect(spoken).toHaveLength(1);
+    expect(audio.played).toHaveLength(0);
+  });
+
+  it('Android: onend without onstart after the synth reported speaking = heard (no repeat)', async () => {
+    const { ctrl, synth, spoken } = makeController({ voices: HE_VOICE });
+    const p = ctrl.speak(DYNAMIC_NO_PII);
+    synth.speaking = true;
+    await vi.advanceTimersByTimeAsync(1200);
+    synth.speaking = false;
+    spoken[0].onend?.();
+    expect((await p)).toMatchObject({ outcome: 'completed', engine: 'local' });
+  });
+
+  it('keeps the same device voice for the whole window and prefers a female Hebrew voice', async () => {
+    const voices = [{ lang: 'he-IL', name: 'Microsoft Asaf' }, { lang: 'he-IL', name: 'Microsoft Hila' }];
+    expect(pickHebrewVoice(voices as SpeechSynthesisVoice[])?.name).toBe('Microsoft Hila');
+    const { ctrl, synth } = makeController({ voices });
+    expect(ctrl.getHebrewVoice()?.name).toBe('Microsoft Hila');
+    synth.getVoices.mockReturnValue([voices[0], { lang: 'he-IL', name: 'Other' }, voices[1]]);
+    expect(ctrl.getHebrewVoice()?.name).toBe('Microsoft Hila');
+  });
+
+  it('without any device Hebrew voice, the clips are the one voice', async () => {
+    const { ctrl, audio, synth } = makeController({ voices: EN_ONLY, manifest: clipFor(FIXED) });
+    await ctrl.preload();
+    const p = ctrl.speak(FIXED);
+    await vi.advanceTimersByTimeAsync(0);
+    audio.fire('playing');
+    audio.fire('ended');
+    expect((await p)).toMatchObject({ outcome: 'completed', engine: 'clip' });
+    expect(synth.speak).not.toHaveBeenCalled();
   });
 });
