@@ -1,0 +1,49 @@
+name: Staging dalia-tts only
+
+# Deploys the dalia-tts Edge Function (Hebrew TTS for Dalia AI) to dalia-staging (usfeoerkpcafxxlyuldl) only.
+# Runs ONLY when a matching tag is pushed — pushing the branch never runs it.
+#   deploy/dalia-tts-staging/<name>  → dalia-tts from the tagged commit
+# No migration, no other function, no Pages, no Production.
+# The function stays inert (503 not_configured) until GOOGLE_TTS_API_KEY is set as a Staging secret.
+# Uses STAGING_SUPABASE_ACCESS_TOKEN only.
+
+on:
+  push:
+    tags:
+      - 'deploy/dalia-tts-staging/*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-dalia-tts-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Guard Staging only
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_TYPE}" = "tag"
+          case "${GITHUB_REF_NAME}" in
+            deploy/dalia-tts-staging/*) ;;
+            *) echo "Unexpected ref ${GITHUB_REF_NAME}" >&2; exit 1 ;;
+          esac
+          test "usfeoerkpcafxxlyuldl" != "qasomfndnjuixgjmjwcm"
+
+      - name: Deploy dalia-tts to Staging
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          export SUPABASE_ACCESS_TOKEN="$(printf '%s' "$SUPABASE_ACCESS_TOKEN" | tr -d '\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          npx --yes supabase functions deploy dalia-tts --project-ref usfeoerkpcafxxlyuldl --use-api

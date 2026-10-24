@@ -68,7 +68,9 @@ import {
   clearVoiceWorkflowState,
   executeVoiceWorkflowAction,
 } from './daliaVoiceWorkflows';
-import { diagLog, installSynthSpy, describeVoices, copyDiagReport, playTestTone } from './daliaVoiceDiag';
+import { diagLog, installSynthSpy, describeVoices, copyDiagReport, playTestTone, registerDiagSection } from './daliaVoiceDiag';
+import { DaliaSpeechController, pickHebrewVoice, type CloudSynthResult, type SpeakOptions, type SpeakResult } from './daliaSpeechController';
+import { DALIA_SAFE_ALTERNATIVES, isFixedDaliaPrompt } from '../../../supabase/functions/_shared/daliaVoicePrompts';
 import './claims-ai.css';
 
 /** Claim-file actions the chat can run through the existing claims screen (signed URL, download, browser reader). */
@@ -319,31 +321,68 @@ function speechCtor(): (new () => SpeechRec) | null {
 export function findHebrewVoice(voicesList?: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
   if (typeof window === 'undefined' || !window.speechSynthesis) return null;
   const voices = (voicesList && voicesList.length > 0) ? voicesList : (window.speechSynthesis.getVoices?.() || []);
-  if (!voices.length) return null;
-
-  // 1. Match he-IL, he, iw-IL, iw (Android/Java uses iw for Hebrew)
-  const exact = voices.find((v) => {
-    const l = (v.lang || '').toLowerCase().replace('_', '-');
-    return l === 'he-il' || l === 'he' || l.startsWith('he-') || l === 'iw-il' || l === 'iw' || l.startsWith('iw-');
-  });
-  if (exact) return exact;
-
-  // 2. Name contains hebrew, עברית, asaf, hila, carmit, he-il, iw-il, google he
-  const byName = voices.find((v) => {
-    const n = (v.name || '').toLowerCase();
-    return (
-      n.includes('hebrew') ||
-      n.includes('עברית') ||
-      n.includes('asaf') ||
-      n.includes('hila') ||
-      n.includes('carmit') ||
-      n.includes('he-il') ||
-      n.includes('iw-il') ||
-      n.includes('google he')
-    );
-  });
-  return byName || null;
+  // Matches he-IL / he / iw-IL / iw (Android uses iw) or a Hebrew voice name.
+  return pickHebrewVoice(voices);
 }
+
+/** Calls the dalia-tts Edge Function (Google Cloud TTS). Fixed prompts only unless the server allows more. */
+async function invokeDaliaTts(text: string): Promise<CloudSynthResult> {
+  const { data, error } = await supabase.functions.invoke('dalia-tts', { body: { text } });
+  if (error) {
+    const ctx = (error as { context?: Response }).context;
+    let reason = '';
+    let status: number | undefined;
+    if (ctx && typeof ctx.status === 'number') {
+      status = ctx.status;
+      try {
+        reason = String((await ctx.json())?.error || '');
+      } catch {}
+      if (status === 404) reason = 'not_configured';
+    }
+    return { ok: false, reason: reason || (error as Error).name || 'invoke-error', status };
+  }
+  const audio = (data as { audioContent?: string; mimeType?: string } | null)?.audioContent;
+  if (!audio) return { ok: false, reason: 'empty-audio' };
+  const bin = atob(audio);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([bytes], { type: (data as { mimeType?: string }).mimeType || 'audio/mpeg' }));
+  return { ok: true, url };
+}
+
+function createWorkspaceSpeechController(): DaliaSpeechController {
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
+  const hasWindow = typeof window !== 'undefined';
+  return new DaliaSpeechController({
+    synth: hasWindow ? window.speechSynthesis || null : null,
+    Utterance: hasWindow && typeof SpeechSynthesisUtterance !== 'undefined' ? SpeechSynthesisUtterance : null,
+    loadManifest: async () => {
+      if (typeof fetch !== 'function') return null;
+      const res = await fetch(`${base}dalia-voice/manifest.json`, { cache: 'no-cache' });
+      return res.ok ? res.json() : null;
+    },
+    clipUrl: (file) => `${base}dalia-voice/${file}`,
+    cloudSynthesize: invokeDaliaTts,
+    log: diagLog,
+  });
+}
+
+/** Generic fixed sentence to speak when `text` carries customer data and cannot leave the device. */
+function safeAlternativeFor(text: string, kind: 'step' | 'answer' | 'executed-ok' | 'executed-failed' | 'resume', confirmStep = false): string | undefined {
+  if (isFixedDaliaPrompt(text)) return undefined;
+  if (kind === 'answer') return DALIA_SAFE_ALTERNATIVES.answerOnScreen;
+  if (kind === 'executed-ok') return DALIA_SAFE_ALTERNATIVES.executedOk;
+  if (kind === 'executed-failed') return DALIA_SAFE_ALTERNATIVES.executedFailed;
+  if (kind === 'resume') return DALIA_SAFE_ALTERNATIVES.resume;
+  return confirmStep ? DALIA_SAFE_ALTERNATIVES.confirm : DALIA_SAFE_ALTERNATIVES.nextQuestion;
+}
+
+const SPEECH_ENGINE_LABEL: Record<string, string> = {
+  clip: 'קובץ שמע מוקלט',
+  cloud: 'שרת TTS (Google)',
+  local: 'קול עברי של המכשיר',
+  none: 'ללא מנוע',
+};
 
 export function splitTextIntoChunks(text: string, maxLen = 150): string[] {
   if (!text || text.length <= maxLen) return text ? [text] : [];
@@ -2658,21 +2697,22 @@ export function ClaimsAiWorkspace({
     promptText: string;
   }>({ blocked: false, promptText: '' });
   const pendingAudioActionRef = useRef<(() => void) | null>(null);
+  const speechControllerRef = useRef<DaliaSpeechController | null>(null);
+  if (!speechControllerRef.current) speechControllerRef.current = createWorkspaceSpeechController();
+  const speechController = speechControllerRef.current;
+  /** Set when the last question could not be played: the mic is NOT started automatically. */
+  const [speechIssue, setSpeechIssue] = useState<{ outcome: 'failed' | 'blocked'; retry: () => void } | null>(null);
+
+  useEffect(() => {
+    speechController.attachAudioElement(persistentAudioRef.current);
+    return registerDiagSection(() => speechController.getDiagnosticsReport());
+  }, [speechController]);
 
   const unlockAudioGesture = useCallback(() => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      try {
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-        }
-      } catch {}
-    }
-    if (persistentAudioRef.current) {
-      try {
-        persistentAudioRef.current.load();
-      } catch {}
-    }
-  }, []);
+    speechController.attachAudioElement(persistentAudioRef.current);
+    speechController.unlock();
+    void speechController.preload(); // clip manifest, fetched once on the first tap
+  }, [speechController]);
   const [audioPreference, setAudioPreference] = useState<'auto' | 'online' | 'native'>(() => {
     try {
       return ((typeof window !== 'undefined' && window.localStorage?.getItem('dalia_audio_preference')) as any) || 'auto';
@@ -2685,7 +2725,7 @@ export function ClaimsAiWorkspace({
     supported: boolean;
     voicesCount: number;
     hebrewVoice: string | null;
-    lastEngine: 'native' | 'online' | 'none';
+    lastEngine: string;
     lastStatus: string;
     lastError: string | null;
     speaking: boolean;
@@ -3150,158 +3190,43 @@ export function ClaimsAiWorkspace({
   const confirmRef = useRef<(msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => Promise<void>>(async () => {});
   const cancelRef = useRef<(msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => Promise<void>>(async () => {});
 
-  const currentUtterRef = useRef<SpeechSynthesisUtterance | null>(null);
   const voiceModeActiveRef = useRef(false);
   const voiceRecognitionRef = useRef<SpeechRec | null>(null);
   const voiceSilenceTimerRef = useRef<any>(null);
   const voicePhaseRef = useRef<'idle' | 'listening' | 'processing' | 'speaking'>('idle');
 
   const stopSpeaking = useCallback(() => {
-    diagLog('stopSpeaking()');
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      try {
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-        }
-        window.speechSynthesis.cancel();
-      } catch {}
-    }
-    if (currentAudioRef.current) {
-      try {
-        currentAudioRef.current.pause();
-        currentAudioRef.current.currentTime = 0;
-      } catch {}
-      currentAudioRef.current = null;
-    }
-    currentUtterRef.current = null;
-    if (typeof window !== 'undefined') {
-      (window as any).__daliaSpeechUtterance = null;
-      (window as any).__daliaActiveAudio = null;
+    // No-op while idle: never cancels the synth unless one of our utterances is active.
+    if (speechController.isActive()) {
+      diagLog('stopSpeaking()');
+      speechController.cancel('stopped');
     }
     setSpeakingMsgId(null);
-    setVoiceDiagnostics((prev) => ({
-      ...prev,
-      speaking: false,
-      lastStatus: 'ההשמעה הופסקה',
-    }));
-  }, []);
+  }, [speechController]);
 
-  const speakAnswer = useCallback((msgId: string, rawText: string, onEndCallback?: () => void) => {
-    diagLog('speakAnswer-called', `id=${msgId} textLen=${(rawText || '').length} hasCallback=${!!onEndCallback} userActive=${(navigator as any).userActivation?.isActive}`);
-    stopSpeaking();
-
+  /** Speaks through the speech controller. Resolves with an explicit outcome; only `completed` means it was heard. */
+  const speakAnswer = useCallback((msgId: string, rawText: string, opts: SpeakOptions = {}): Promise<SpeakResult> => {
+    diagLog('speakAnswer-called', `id=${msgId} textLen=${(rawText || '').length} userActive=${(navigator as any).userActivation?.isActive}`);
     const clean = cleanTextForSpeech(rawText);
-    if (!clean) {
-      onEndCallback?.();
-      return;
-    }
-
+    setSpeechIssue(null);
     setSpeakingMsgId(msgId);
-
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-      console.warn('SpeechSynthesis is not available in this browser.');
-      onEndCallback?.();
-      return;
-    }
-
-    setVoiceDiagnostics((prev) => ({
-      ...prev,
-      speaking: true,
-      lastEngine: 'native',
-      lastStatus: 'מפעיל דיבור עברי (SpeechSynthesis)...',
-      lastError: null,
-    }));
-
-    try {
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
+    setVoiceDiagnostics((prev) => ({ ...prev, speaking: true, lastStatus: 'מפעיל דיבור עברי...', lastError: null }));
+    const promise = speechController.speak(clean, { label: opts.label || msgId, safeAlternative: opts.safeAlternative });
+    return promise.then((r) => {
+      // A newer utterance owns the UI now — leave its state alone.
+      if (speechController.isLatest(r.id)) {
+        setSpeakingMsgId((cur) => (cur === msgId ? null : cur));
+        setVoiceDiagnostics((prev) => ({
+          ...prev,
+          speaking: false,
+          lastEngine: r.engine,
+          lastStatus: r.outcome === 'completed' ? `הושמע (${SPEECH_ENGINE_LABEL[r.engine]})` : `לא הושמע: ${r.outcome}`,
+          lastError: r.outcome === 'completed' ? null : r.reason || r.outcome,
+        }));
       }
-      window.speechSynthesis.cancel();
-    } catch {}
-
-    const utter = new SpeechSynthesisUtterance(clean);
-    if (typeof window !== 'undefined') {
-      (window as any).__daliaSpeechUtterance = utter;
-    }
-    currentUtterRef.current = utter;
-
-    const currentVoices = installedVoices.length > 0
-      ? installedVoices
-      : (window.speechSynthesis.getVoices?.() || []);
-    const heVoice = findHebrewVoice(currentVoices);
-    diagLog('voice-chosen', `heVoice=${heVoice ? heVoice.name + '[' + heVoice.lang + ']' : 'NONE(lang-only he-IL)'} voicesSeen=${currentVoices.length}`);
-
-    if (heVoice) {
-      try {
-        utter.voice = heVoice;
-      } catch {}
-      utter.lang = heVoice.lang || 'he-IL';
-    } else {
-      utter.lang = 'he-IL';
-    }
-    utter.rate = 1.0;
-    utter.pitch = 1.0;
-
-    let ended = false;
-    let started = false;
-    const speakAt = Date.now();
-    const finish = () => {
-      if (ended) return;
-      ended = true;
-      diagLog('finish', `startedEver=${started} elapsedMs=${Date.now() - speakAt} willCallCallback=${!!onEndCallback}`);
-      currentUtterRef.current = null;
-      if (typeof window !== 'undefined') {
-        (window as any).__daliaSpeechUtterance = null;
-      }
-      setSpeakingMsgId(null);
-      setVoiceDiagnostics((prev) => ({
-        ...prev,
-        speaking: false,
-        lastStatus: 'השמעה הושלמה בהצלחה',
-      }));
-      onEndCallback?.();
-    };
-
-    utter.onstart = () => {
-      started = true;
-      diagLog('utter.onstart', `afterMs=${Date.now() - speakAt}`);
-      setVoiceDiagnostics((prev) => ({
-        ...prev,
-        speaking: true,
-        lastStatus: `דליה מדברת (${heVoice?.name || 'עברית'})...`,
-      }));
-    };
-
-    utter.onend = () => {
-      diagLog('utter.onend', `afterMs=${Date.now() - speakAt}`);
-      finish();
-    };
-
-    utter.onerror = (ev) => {
-      const errName = (ev && typeof ev === 'object' && 'error' in ev) ? String(ev.error) : '';
-      console.warn('SpeechSynthesis error:', errName);
-      diagLog('utter.onerror', `error=${errName || 'unknown'} afterMs=${Date.now() - speakAt}`);
-      if (errName === 'not-allowed') {
-        setBanner('⚠️ הדפדפן דורש אישור הפעלת שמע. לחץ על כפתור הפעולה כדי להפעיל.');
-      }
-      finish();
-    };
-
-    try {
-      window.speechSynthesis.speak(utter);
-      for (const ms of [300, 1000, 2500]) {
-        setTimeout(() => {
-          if (typeof window === 'undefined' || !window.speechSynthesis) return;
-          const s = window.speechSynthesis;
-          diagLog(`probe+${ms}ms`, `speaking=${s.speaking} pending=${s.pending} paused=${s.paused} onstartFired=${started} ended=${ended}`);
-        }, ms);
-      }
-    } catch (err: any) {
-      console.warn('SpeechSynthesis speak failed:', err);
-      diagLog('speak-threw', String(err?.message || err));
-      finish();
-    }
-  }, [installedVoices, stopSpeaking]);
+      return r;
+    });
+  }, [speechController]);
 
   const handleDirectUnblockPlay = useCallback(() => {
     // Kept for backward compatibility
@@ -3318,34 +3243,26 @@ export function ClaimsAiWorkspace({
 
     await new Promise((r) => setTimeout(r, 220));
 
-    // Step 2: Hebrew TTS SpeechSynthesis test
+    // Step 2: Hebrew speech through the controller (clip → cloud TTS → device voice)
     const toneStatusText = toneRes.ok ? 'צליל רגיל: ✅ הושמע' : `צליל רגיל: ❌ ${toneRes.desc}`;
     const testText = 'שלום, אני דליה AI. בדיקת קול בעברית במערכת המוסך.';
-    setBanner(`🔊 בדיקה 2/2: מפעיל דיבור עברי (SpeechSynthesis)... (${toneStatusText})`);
+    setBanner(`🔊 בדיקה 2/2: מפעיל דיבור עברי... (${toneStatusText})`);
 
-    let ttsFinished = false;
-    speakAnswer('test-voice', testText, () => {
-      if (ttsFinished) return;
-      ttsFinished = true;
-      setBanner(`✅ בדיקת שמע הסתיימה (${toneStatusText} | דיבור: הסתיים). שמעת את דליה ברמקול? לחץ "📋 דוח אבחון" להעתקה.`);
-    });
-
-    setTimeout(() => {
-      if (!ttsFinished) {
-        setBanner((cur) => {
-          if (cur && cur.includes('בדיקה 2/2')) {
-            return `ℹ️ סטטוס שמע: (${toneStatusText} | דיבור: בתהליך או שקט). לחץ על "📋 דוח אבחון" להעתקת תוצאות.`;
-          }
-          return cur;
-        });
-      }
-    }, 4500);
-  }, [speakAnswer, unlockAudioGesture]);
+    const r = await speakAnswer('test-voice', testText, { label: 'voice-test' });
+    if (!speechController.isLatest(r.id)) return;
+    if (r.outcome === 'completed') {
+      setBanner(`✅ ההשמעה הסתיימה במנוע: ${SPEECH_ENGINE_LABEL[r.engine]} (${toneStatusText}). שמעת את דליה בעברית? לחץ "📋 דוח אבחון" להעתקה.`);
+    } else if (r.outcome === 'blocked') {
+      setBanner(`🔇 הדפדפן חסם את ההשמעה (${r.reason || 'blocked'}). לחץ שוב על "🔊 בדיקת קול". (${toneStatusText})`);
+    } else if (r.outcome === 'failed') {
+      setBanner(`❌ דיבור עברי לא הושמע — ${r.reason || 'אין מנוע עברי זמין'}. (${toneStatusText}) לחץ "📋 דוח אבחון" להעתקה.`);
+    }
+  }, [speakAnswer, speechController, unlockAudioGesture]);
 
   const handleCopyDiag = useCallback(async () => {
     const r = await copyDiagReport();
     if (r.ok) {
-      setBanner('📋 דוח האבחון הועתק. הדבק אותו בצ׳אט עם ג׳ימיני.');
+      setBanner('📋 דוח האבחון הועתק. הדבק אותו בצ׳אט לבדיקה.');
     } else {
       setBanner('⚠️ ההעתקה האוטומטית נכשלה — העתק את הדוח מהחלון שנפתח.');
       try { window.prompt('העתק את דוח האבחון:', r.text); } catch {}
@@ -3478,12 +3395,56 @@ export function ClaimsAiWorkspace({
     stopSpeaking();
     if (voiceModeActiveRef.current) {
       setTimeout(() => {
-        if (voiceModeActiveRef.current) {
+        // A new question may have started meanwhile — never listen over it.
+        if (voiceModeActiveRef.current && !speechController.isActive()) {
           startVoiceListening();
         }
       }, 200);
     }
-  }, [stopSpeaking, startVoiceListening]);
+  }, [speechController, stopSpeaking, startVoiceListening]);
+
+  const speakThenListenRef = useRef<(msgId: string, text: string, opts?: SpeakOptions) => Promise<SpeakResult>>(async () => {
+    throw new Error('not ready');
+  });
+  /**
+   * Speaks a question, then opens the mic ONLY if it was really played (`completed`) and no newer
+   * utterance started meanwhile. On failed/blocked the question stays on screen and the user decides.
+   */
+  const speakThenListen = useCallback(async (msgId: string, text: string, opts: SpeakOptions = {}): Promise<SpeakResult> => {
+    const r = await speakAnswer(msgId, text, opts);
+    if (!speechController.isLatest(r.id)) return r;
+    if (r.outcome === 'completed') {
+      if (voiceModeActiveRef.current && !voiceMutedRef.current) {
+        setTimeout(() => {
+          if (!speechController.isLatest(r.id) || speechController.isActive()) return;
+          if (voiceModeActiveRef.current && !voiceMutedRef.current) {
+            startVoiceListening();
+          }
+        }, 350);
+      }
+    } else if (r.outcome === 'failed' || r.outcome === 'blocked') {
+      voicePhaseRef.current = 'idle';
+      setVoicePhase('idle');
+      setSpeechIssue({
+        outcome: r.outcome,
+        retry: () => {
+          unlockAudioGesture();
+          void speakThenListenRef.current(msgId, text, opts);
+        },
+      });
+      setBanner(r.outcome === 'blocked'
+        ? '🔇 הדפדפן חסם את השמעת הקול. לחץ "🔊 השמע שוב" כדי לשמוע את דליה, או "🎙️ ענה בקול" כדי לענות.'
+        : `🔇 דליה לא הצליחה להשמיע את השאלה (${r.reason || 'אין מנוע עברי זמין'}). השאלה מוצגת בכתב — לחץ "🎙️ ענה בקול" או הקלד תשובה.`);
+    }
+    return r;
+  }, [speakAnswer, speechController, startVoiceListening, unlockAudioGesture]);
+  speakThenListenRef.current = speakThenListen;
+
+  const handleAnswerByVoice = useCallback(() => {
+    setSpeechIssue(null);
+    setBanner('');
+    startVoiceListening();
+  }, [startVoiceListening]);
 
 const toggleVoiceMute = useCallback(() => {
     setVoiceMuted((prev) => {
@@ -3507,6 +3468,7 @@ const toggleVoiceMute = useCallback(() => {
       voicePhaseRef.current = 'idle';
       setVoicePhase('idle');
       setLiveTranscript('');
+      setSpeechIssue(null);
       stopSpeaking();
       stopVoiceRecognition();
     } else {
@@ -4089,17 +4051,13 @@ const toggleVoiceMute = useCallback(() => {
         voicePhaseRef.current = 'speaking';
         setVoicePhase('speaking');
         stopVoiceRecognition();
-        speakAnswer('voice-continuous', answer.text || draft, () => {
-          if (voiceModeActiveRef.current) {
-            setTimeout(() => {
-              if (voiceModeActiveRef.current && !voiceMutedRef.current) {
-                startVoiceListening();
-              }
-            }, 350);
-          }
+        const spoken = answer.text || draft;
+        void speakThenListenRef.current('voice-continuous', spoken, {
+          label: 'voice-answer',
+          safeAlternative: safeAlternativeFor(cleanTextForSpeech(spoken), 'answer'),
         });
       } else if (autoSpeakRepliesRef.current) {
-        speakAnswer(saved.data.id, answer.text || draft);
+        void speakAnswer(saved.data.id, answer.text || draft, { label: 'auto-speak' });
       }
     } catch (err) {
       if (!userSavedSuccessfully) {
@@ -4226,9 +4184,8 @@ const toggleVoiceMute = useCallback(() => {
       saveVoiceWorkflowState(current);
       voicePhaseRef.current = 'idle';
       setVoicePhase('idle');
-      stopSpeaking();
       stopVoiceRecognition();
-      speakAnswer('wf-pause', pauseMsg);
+      void speakAnswer('wf-pause', pauseMsg);
       return;
     }
     if (cmd === 'cancel') {
@@ -4238,9 +4195,8 @@ const toggleVoiceMute = useCallback(() => {
       const cancelMsg = 'ביטלתי את הפעולה לבקשתך. חזרנו למצב רגיל.';
       voicePhaseRef.current = 'idle';
       setVoicePhase('idle');
-      stopSpeaking();
       stopVoiceRecognition();
-      speakAnswer('wf-cancel', cancelMsg);
+      void speakAnswer('wf-cancel', cancelMsg);
       return;
     }
 
@@ -4282,13 +4238,18 @@ const toggleVoiceMute = useCallback(() => {
 
       voicePhaseRef.current = 'speaking';
       setVoicePhase('speaking');
-      speakAnswer('wf-executed', execRes.message, () => {
+      const execSpeech = await speakAnswer('wf-executed', execRes.message, {
+        safeAlternative: safeAlternativeFor(cleanTextForSpeech(execRes.message), execRes.success ? 'executed-ok' : 'executed-failed'),
+      });
+      // The action already ran; a newer utterance (e.g. a new workflow) means the user moved on.
+      if (execSpeech.outcome === 'cancelled' && execSpeech.reason === 'superseded') return;
+      if (speechController.isLatest(execSpeech.id)) {
         voicePhaseRef.current = 'idle';
         setVoicePhase('idle');
-        if (execRes.caseId && onOpenGarageCase) {
-          onOpenGarageCase(execRes.caseId);
-        }
-      });
+      }
+      if (execRes.caseId && onOpenGarageCase) {
+        onOpenGarageCase(execRes.caseId);
+      }
       return;
     }
 
@@ -4310,18 +4271,16 @@ const toggleVoiceMute = useCallback(() => {
     setVoicePhase('speaking');
 
     stopVoiceRecognition();
+    const nextSpec = getWorkflowStep(res.nextState);
+    const stepAlt = isFixedDaliaPrompt(nextSpec.promptText) && nextSpec.promptText !== res.promptToSpeak
+      ? nextSpec.promptText
+      : safeAlternativeFor(cleanTextForSpeech(res.promptToSpeak), 'step', !!nextSpec.isConfirmation);
+    // Short gap so Android releases the mic before playback starts (same as before).
     setTimeout(() => {
-      speakAnswer(`wf-step-${res.nextState.stepIndex}`, res.promptToSpeak, () => {
-        if (voiceModeActiveRef.current && !voiceMutedRef.current) {
-          setTimeout(() => {
-            if (voiceModeActiveRef.current && !voiceMutedRef.current) {
-              startVoiceListening();
-            }
-          }, 350);
-        }
-      });
+      if (currentVoiceWorkflowRef.current !== res.nextState) return; // user moved on meanwhile
+      void speakThenListen(`wf-step-${res.nextState.stepIndex}`, res.promptToSpeak, { safeAlternative: stepAlt });
     }, 250);
-  }, [activeId, companyName, onOpenGarageCase, speakAnswer, startVoiceListening, stopSpeaking, stopVoiceRecognition, userId]);
+  }, [activeId, companyName, onOpenGarageCase, speakAnswer, speakThenListen, speechController, stopVoiceRecognition, userId]);
 
   useEffect(() => {
     handleVoiceWorkflowInputRef.current = handleVoiceWorkflowInput;
@@ -4333,13 +4292,6 @@ const toggleVoiceMute = useCallback(() => {
     setShowWelcomeHub(false);
     setVoiceModeActive(true);
     voiceModeActiveRef.current = true;
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      try {
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-        }
-      } catch {}
-    }
 
     if (wfType === 'resume_action') {
       const saved = loadVoiceWorkflowState();
@@ -4359,15 +4311,7 @@ const toggleVoiceMute = useCallback(() => {
         voicePhaseRef.current = 'speaking';
         setVoicePhase('speaking');
         stopVoiceRecognition();
-        speakAnswer('wf-resume-none', msg, () => {
-          if (voiceModeActiveRef.current && !voiceMutedRef.current) {
-            setTimeout(() => {
-              if (voiceModeActiveRef.current && !voiceMutedRef.current) {
-                startVoiceListening();
-              }
-            }, 350);
-          }
-        });
+        void speakThenListen('wf-resume-none', msg);
         return;
       }
 
@@ -4389,15 +4333,7 @@ const toggleVoiceMute = useCallback(() => {
       voicePhaseRef.current = 'speaking';
       setVoicePhase('speaking');
       stopVoiceRecognition();
-      speakAnswer('wf-resumed', resumePrompt, () => {
-        if (voiceModeActiveRef.current && !voiceMutedRef.current) {
-          setTimeout(() => {
-            if (voiceModeActiveRef.current && !voiceMutedRef.current) {
-              startVoiceListening();
-            }
-          }, 350);
-        }
-      });
+      void speakThenListen('wf-resumed', resumePrompt, { safeAlternative: safeAlternativeFor(resumePrompt, 'resume') });
       return;
     }
 
@@ -4430,16 +4366,10 @@ const toggleVoiceMute = useCallback(() => {
     voicePhaseRef.current = 'speaking';
     setVoicePhase('speaking');
     stopVoiceRecognition();
-    speakAnswer(`wf-start-${state.id}`, prompt, () => {
-      if (voiceModeActiveRef.current && !voiceMutedRef.current) {
-        setTimeout(() => {
-          if (voiceModeActiveRef.current && !voiceMutedRef.current) {
-            startVoiceListening();
-          }
-        }, 350);
-      }
+    void speakThenListen(`wf-start-${wfType}`, prompt, {
+      safeAlternative: safeAlternativeFor(cleanTextForSpeech(prompt), 'step', !!step.isConfirmation),
     });
-  }, [activeId, garageCase, speakAnswer, startVoiceListening, stopVoiceRecognition]);
+  }, [activeId, garageCase, speakThenListen, stopVoiceRecognition, unlockAudioGesture]);
 
   const handleConfirmPending = useCallback(async (msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => {
     // One execution per card: a double click, or a typed "מאשר" right after a click, must never send twice.
@@ -5012,6 +4942,28 @@ const toggleVoiceMute = useCallback(() => {
                 >
                   ⏹️ עצור הקראה
                 </button>
+              ) : null}
+              {speechIssue && voicePhase === 'idle' ? (
+                <>
+                  <button
+                    type="button"
+                    className="claims-ai-voice-bar-btn"
+                    data-testid="claims-ai-voice-replay-btn"
+                    onClick={speechIssue.retry}
+                    title="נסה להשמיע שוב את השאלה"
+                  >
+                    🔊 השמע שוב
+                  </button>
+                  <button
+                    type="button"
+                    className="claims-ai-voice-bar-btn"
+                    data-testid="claims-ai-voice-answer-btn"
+                    onClick={handleAnswerByVoice}
+                    title="הפעל מיקרופון לתשובה"
+                  >
+                    🎙️ ענה בקול
+                  </button>
+                </>
               ) : null}
               <button
                 type="button"
@@ -6421,7 +6373,7 @@ const toggleVoiceMute = useCallback(() => {
                             type="button"
                             className="claims-ai-action-btn"
                             data-testid={`claims-ai-speak-${msg.id}`}
-                            onClick={() => speakAnswer(msg.id, msg.content)}
+                            onClick={() => { unlockAudioGesture(); void speakAnswer(msg.id, msg.content); }}
                             title="הקרא בקול"
                           >
                             🔊 הקרא

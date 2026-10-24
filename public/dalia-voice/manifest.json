@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "voice": null,
+  "note": "Empty until scripts/generate-dalia-voice-clips.ts is run with GOOGLE_TTS_API_KEY. Keys are speechClipId() of each fixed sentence.",
+  "clips": {}
+}

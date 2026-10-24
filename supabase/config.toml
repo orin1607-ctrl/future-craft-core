@@ -23,6 +23,9 @@ verify_jwt = true
 [functions.elevenlabs-conversation-token]
 verify_jwt = true
 
+[functions.dalia-tts]
+verify_jwt = true
+
 [functions.paypal-charge]
 verify_jwt = true
 

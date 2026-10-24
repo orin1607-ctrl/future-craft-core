@@ -639,7 +639,8 @@ describe('Claims AI Enhancements (Tasks 1-4)', () => {
       fireEvent.click(toggleBtn);
       expect(toggleBtn.textContent).toContain('התחל שיחה קולית');
       expect(screen.queryByTestId('claims-ai-voice-mode-bar')).toBeNull();
-      expect(mockSpeechSynthesis.cancel).toHaveBeenCalled();
+      // Nothing was speaking: the synth must not be cancelled blindly (that used to cut off the next question).
+      expect(mockSpeechSynthesis.cancel).not.toHaveBeenCalled();
     });
 
     it('cancels speech immediately when stop speaking button is clicked', async () => {

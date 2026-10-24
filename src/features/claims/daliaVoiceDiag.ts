@@ -9,7 +9,17 @@ const events: DiagEvent[] = [];
 const t0 = typeof performance !== 'undefined' ? performance.now() : 0;
 let spyInstalled = false;
 
-export const DIAG_BUILD = 'voice-diag-2 (header-buttons + audio-tone-test)';
+export const DIAG_BUILD = 'voice-diag-3 (speech-controller: clip/cloud/local + outcomes)';
+
+const sections = new Set<() => string>();
+
+/** Adds a PII-free block to the copied report (e.g. the speech controller state). Returns an unregister fn. */
+export function registerDiagSection(fn: () => string): () => void {
+  sections.add(fn);
+  return () => {
+    sections.delete(fn);
+  };
+}
 
 let lastToneResult = 'not-run';
 
@@ -153,6 +163,13 @@ export async function getDiagReport(): Promise<string> {
     `lastToneTest: ${lastToneResult}`,
     `SpeechRecognition: ${w.SpeechRecognition || w.webkitSpeechRecognition ? 'available' : 'MISSING'}`,
     describeVoices(voices),
+    ...Array.from(sections).map((fn) => {
+      try {
+        return fn();
+      } catch (e: any) {
+        return `section-error: ${String(e?.message || e)}`;
+      }
+    }),
     `-- events (ms since page load) --`,
     ...events.map((x) => `${x.t}ms ${x.e}${x.d ? ' | ' + x.d : ''}`),
   ];
