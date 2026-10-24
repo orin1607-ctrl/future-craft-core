@@ -37,6 +37,7 @@ import {
   type GarageMediaCategoryId,
 } from './garageMedia';
 import { scanGarageMailbox, sendGarageMail } from './garageMail';
+import { closeGarageCase, createGarageInvoice, createGarageSupplier, listGarageInvoices, listGarageSuppliers } from './garageLedger';
 import { fetchExistingGoogleClientId, isMissingGarageGmailFunction, parseGoogleClientIdFromAuthUrl } from './garageGmailBrowser';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -466,103 +467,33 @@ export default function GarageApp() {
         }
 
         if (msg.type === 'gm:listSuppliers') {
-          let sQuery = supabase.from('garage_suppliers').select('*').order('name');
-          if (shopScope?.company_name) {
-            sQuery = sQuery.ilike('shop_company_name', `%${shopScope.company_name}%`);
-          }
-          const { data: suppliers, error } = await sQuery;
-          reply(requestId, { ok: !error, suppliers: suppliers || [], error: error?.message });
+          const { suppliers, error } = await listGarageSuppliers(shopScope);
+          reply(requestId, { ok: !error, suppliers, error });
           return;
         }
 
         if (msg.type === 'gm:createSupplier') {
-          const name = String(payload.name || '').trim();
-          if (!name) throw new Error('שם ספק הוא שדה חובה');
-          let dupQuery = supabase.from('garage_suppliers').select('id, supplier_number, name').ilike('name', name);
-          if (shopScope?.company_name) {
-            dupQuery = dupQuery.ilike('shop_company_name', `%${shopScope.company_name}%`);
-          }
-          const { data: existing } = await dupQuery.maybeSingle();
-          if (existing) {
-            reply(requestId, { ok: true, supplier: existing, alreadyExisted: true });
-            return;
-          }
-          const suppNum = `SUP-${Math.floor(1000 + Math.random() * 9000)}`;
-          const { data: created, error } = await supabase.from('garage_suppliers').insert({
-            supplier_number: suppNum,
-            name,
-            phone: payload.phone ? String(payload.phone).trim() : null,
-            email: payload.email ? String(payload.email).trim() : null,
-            business_id: payload.business_id ? String(payload.business_id).trim() : null,
-            contact_person: payload.contact_person ? String(payload.contact_person).trim() : null,
-            category: String(payload.category || 'parts'),
-            notes: payload.notes ? String(payload.notes).trim() : null,
-            shop_company_name: actor?.company_name || 'מוסך יוני – פחחות וצבע לרכב',
-          }).select('*').single();
-          if (error) throw error;
-          reply(requestId, { ok: true, supplier: created });
+          const result = await createGarageSupplier(payload, actor, shopScope);
+          reply(requestId, result.alreadyExisted
+            ? { ok: true, supplier: result.supplier, alreadyExisted: true }
+            : { ok: true, supplier: result.supplier });
           return;
         }
 
         if (msg.type === 'gm:listInvoices') {
-          let iQuery = supabase.from('garage_invoices').select('*').order('created_at', { ascending: false });
-          if (shopScope?.company_name) {
-            iQuery = iQuery.ilike('shop_company_name', `%${shopScope.company_name}%`);
-          }
-          const { data: invoices, error } = await iQuery;
-          reply(requestId, { ok: !error, invoices: invoices || [], error: error?.message });
+          const { invoices, error } = await listGarageInvoices(shopScope);
+          reply(requestId, { ok: !error, invoices, error });
           return;
         }
 
         if (msg.type === 'gm:createInvoice') {
-          const invNum = String(payload.invoice_number || '').trim();
-          const suppName = String(payload.supplier_name || '').trim();
-          if (!invNum || !suppName) throw new Error('מספר חשבונית ושם ספק הינם שדות חובה');
-          const total = Number(payload.total_amount) || 0;
-          const subtotal = Number(payload.subtotal) || Math.round(total / 1.18);
-          const vat = Number(payload.vat_amount) || Math.round(total - subtotal);
-          const { data: created, error } = await supabase.from('garage_invoices').insert({
-            invoice_type: String(payload.invoice_type || 'parts_invoice'),
-            invoice_number: invNum,
-            supplier_id: payload.supplier_id ? String(payload.supplier_id) : null,
-            supplier_name: suppName,
-            case_id: payload.case_id ? String(payload.case_id) : null,
-            case_number: payload.case_number ? String(payload.case_number) : null,
-            vehicle_plate: payload.vehicle_plate ? String(payload.vehicle_plate) : (/^\d{7,8}$/.test(String(payload.case_number || '')) ? String(payload.case_number) : null),
-            expense_category: String(payload.expense_category || 'parts'),
-            invoice_date: String(payload.invoice_date || new Date().toISOString().slice(0, 10)),
-            subtotal,
-            vat_amount: vat,
-            total_amount: total,
-            parts_received_confirmed: Boolean(payload.parts_received_confirmed),
-            returned_parts_exist: Boolean(payload.returned_parts_exist),
-            returned_parts_notes: String(payload.returned_parts_notes || ''),
-            credit_status: String(payload.credit_status || 'none'),
-            accounting_notes: String(payload.accounting_notes || ''),
-            payment_status: String(payload.payment_status || 'pending_accounting'),
-            line_items: Array.isArray(payload.line_items) ? payload.line_items : [],
-            shop_company_name: actor?.company_name || 'מוסך יוני – פחחות וצבע לרכב',
-          }).select('*').single();
-          if (error) throw error;
-          reply(requestId, { ok: true, invoice: created });
+          const invoice = await createGarageInvoice(payload, actor);
+          reply(requestId, { ok: true, invoice });
           return;
         }
 
         if (msg.type === 'gm:closeCase') {
-          const cId = String(payload.caseId || caseId || '');
-          if (!cId) throw new Error('אין מזהה תיק לסגירה');
-          const { data: cRow, error: cErr } = await supabase.from('garage_cases').select('*').eq('id', cId).single();
-          if (cErr || !cRow) throw new Error('תיק לא נמצא');
-          const cd = cRow.case_data || {};
-          cd.caseClosed = true;
-          cd.caseClosedAt = new Date().toISOString();
-          cd.caseClosedBy = actor?.full_name || 'מנהל מוסך';
-          cd.closeNote = String(payload.closeNote || 'סגירת תיק עבודה מורשית');
-          const { error: updErr } = await supabase.from('garage_cases').update({
-            status: 'סגור',
-            case_data: cd,
-          }).eq('id', cId);
-          if (updErr) throw updErr;
+          await closeGarageCase(String(payload.caseId || caseId || ''), actor, payload.closeNote ? String(payload.closeNote) : undefined);
           reply(requestId, { ok: true });
           return;
         }
