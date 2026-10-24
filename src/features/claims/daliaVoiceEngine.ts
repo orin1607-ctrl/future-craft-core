@@ -3104,6 +3104,9 @@ async function runReport(s: VoiceSession, env: VoiceEnv): Promise<VoiceTurn> {
 export function routeFreeRequest(text: string): { type: VoiceWorkflowType; prefill?: string; data?: Partial<VoiceData> } | null {
   const t = String(text || '').trim();
   if (!t) return null;
+  // A long free question ("…ואיך לתעד את זה בתיק?") is a conversation, not a system command — unless it
+  // opens with a clear request. Single words inside it ("בתיק", "נכנס", "לקוח") must not trigger a search.
+  if (t.split(/\s+/).length > 9 && !/^(רגע[,.\s]+)?(תמצאי|תחפשי|תביאי|תפתחי|פתחי|תראי|תעשי|תוסיפי|הוסיפי|תרשמי|תסגרי|אני רוצה|בואי|כמה|אילו|איזה תיקים)(?=$|[\s,])/.test(t)) return null;
   const listIntent = parseCaseListIntent(t);
   // "how many cases are open (today / now)" is the current state → the live case list, not a period report
   const period = parsePeriod(t);

@@ -2885,6 +2885,17 @@ export function ClaimsAiWorkspace({
   const [actionsBarOpen, setActionsBarOpen] = useState(false);
   /** Garage composer: tall writing area on demand (like a chat app's "expand"). */
   const [composerExpanded, setComposerExpanded] = useState(false);
+  const composerRef = useRef<HTMLFormElement>(null);
+  /** Garage: the "new messages" pill floats just above the (taller) composer, never over the text. */
+  useEffect(() => {
+    const form = composerRef.current;
+    if (module !== 'garage' || !form || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      form.parentElement?.style.setProperty('--dalia-composer-h', `${Math.round(form.getBoundingClientRect().height)}px`);
+    });
+    ro.observe(form);
+    return () => ro.disconnect();
+  }, [module, open]);
 
   const hasUnsavedAction = useMemo(() => {
     return messages.some(
@@ -3202,6 +3213,11 @@ export function ClaimsAiWorkspace({
   const isNearBottomRef = useRef(true);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  /** How far the phone browser scrolled the visible area (keyboard open) — the window follows it. */
+  const [viewportTop, setViewportTop] = useState(0);
+  /** Phone keyboard detection: the visible height shrinks well below the window height. */
+  const phoneKeyboardOpen = module === 'garage' && typeof window !== 'undefined' && window.innerWidth <= 760
+    && !!viewportHeight && viewportHeight < window.innerHeight * 0.78;
   const [batchUploadProgress, setBatchUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const prevClaimIdRef = useRef<string | null>(claimId);
 
@@ -3211,6 +3227,7 @@ export function ClaimsAiWorkspace({
     const updateSize = () => {
       if (!vv) return;
       setViewportHeight(vv.height);
+      setViewportTop(Math.max(0, Math.round(vv.offsetTop || 0)));
       document.documentElement.style.setProperty('--app-viewport-height', `${vv.height}px`);
     };
     vv.addEventListener('resize', updateSize);
@@ -3856,12 +3873,15 @@ const toggleVoiceMute = useCallback(() => {
   }, [open, activeId, conversations, claimId, module, garageCase?.id, userId]);
 
   useEffect(() => {
-    if (isNearBottomRef.current) {
-      const el = threadRef.current;
-      if (!el) return;
-      el.scrollTop = el.scrollHeight;
+    const el = threadRef.current;
+    if (!el) return;
+    // the garage welcome screen (title + action cards) is read from the top; a conversation from its end
+    if (module === 'garage' && ((messages.length === 0 && !loading) || showWelcomeHub)) {
+      el.scrollTop = 0;
+      return;
     }
-  }, [messages, loading]);
+    if (isNearBottomRef.current) el.scrollTop = el.scrollHeight;
+  }, [messages, loading, module, showWelcomeHub]);
 
   const sendMessage = useCallback(async (text: string, source: 'text' | 'voice') => {
     const now = Date.now();
@@ -4802,8 +4822,10 @@ const toggleVoiceMute = useCallback(() => {
 
   return (
     <div
-      className={`claims-ai-workspace${showList ? ' show-list' : ''}${module === 'garage' ? ' dalia-garage-window' : ''}${module === 'garage' && isMaximized ? ' is-maximized' : ''}`}
-      style={viewportHeight ? { height: `${viewportHeight}px`, maxHeight: `${viewportHeight}px` } : undefined}
+      className={`claims-ai-workspace${showList ? ' show-list' : ''}${module === 'garage' ? ' dalia-garage-window' : ''}${module === 'garage' && isMaximized ? ' is-maximized' : ''}${phoneKeyboardOpen ? ' kb-open' : ''}`}
+      style={viewportHeight
+        ? { height: `${viewportHeight}px`, maxHeight: `${viewportHeight}px`, ...(module === 'garage' && viewportTop > 0 ? { top: `${viewportTop}px` } : {}) }
+        : undefined}
       role="dialog"
       aria-modal="true"
       aria-label={module === 'garage' ? 'דליה AI לניהול מוסך' : module === 'reports' ? 'דליה AI לדוחות ומאזן' : module === 'dashboard' ? 'דליה AI לדשבורד' : 'דליה AI לניהול תביעות'}
@@ -6852,6 +6874,7 @@ const toggleVoiceMute = useCallback(() => {
         ) : null}
 
         <form
+          ref={composerRef}
           className={`claims-ai-composer${module === 'garage' ? ' dalia-composer' : ''}${module === 'garage' && composerExpanded ? ' is-expanded' : ''}`}
           onSubmit={(e) => {
             e.preventDefault();
@@ -7049,7 +7072,9 @@ const toggleVoiceMute = useCallback(() => {
               if (module === 'garage' && !composerExpanded) {
                 const el = e.target;
                 el.style.height = 'auto';
-                el.style.height = `${Math.min(el.scrollHeight, Math.round(window.innerHeight * 0.4))}px`;
+                // grow with the text, up to a share of the VISIBLE height (the phone keyboard takes the rest)
+                const visible = window.visualViewport?.height || window.innerHeight;
+                el.style.height = `${Math.min(el.scrollHeight, Math.round(visible * (visible < window.innerHeight * 0.78 ? 0.22 : 0.35)))}px`;
               }
             }}
             onFocus={(e) => {

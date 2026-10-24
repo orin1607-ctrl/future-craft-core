@@ -28,6 +28,7 @@ import {
   type GarageVehicle,
 } from './garageBook';
 import { ClaimsAiWorkspace } from '@/features/claims/ClaimsAiWorkspace';
+import { DaliaLaunchButton } from '@/features/claims/DaliaLaunchButton';
 import { garageShopScopeOf } from './garageTenant';
 import { createGarageVoiceActions } from './garageVoiceActions';
 import {
@@ -572,16 +573,11 @@ export default function GarageApp() {
         onLoad={() => { void bootstrap(); }}
       />
 
-      <button
-        type="button"
-        className="gm-ai-fab-btn"
-        data-testid="garage-ai-launch-btn"
+      <DaliaLaunchButton
+        testId="garage-ai-launch-btn"
         onClick={() => setAiOpen(true)}
         title="דליה AI · עוזר אישי לניהול מוסך"
-      >
-        <span className="gm-ai-fab-icon">✨</span>
-        <span className="gm-ai-fab-text">דליה AI</span>
-      </button>
+      />
 
       {aiOpen && (
         <div className="claims-root">

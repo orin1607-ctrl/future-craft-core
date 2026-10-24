@@ -9,6 +9,7 @@ import { useDriverUrlContext } from '@/lib/entityNavContext';
 import { useHiddenButtonsState } from '@/hooks/useHiddenButtons';
 import { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
 import { ClaimsAiWorkspace } from '@/features/claims/ClaimsAiWorkspace';
+import { DaliaLaunchButton } from '@/features/claims/DaliaLaunchButton';
 import { createGarageVoiceActions } from '@/modules/garage-management/garageVoiceActions';
 import { garageShopScopeOf } from '@/modules/garage-management/garageTenant';
 
@@ -56,17 +57,14 @@ export default function Dashboard() {
     <div className="relative">
       {user.garageOps ? <GarageOpsHomeDashboard /> : <HomeDashboard />}
 
-      <div className="dashboard-ai-fab-container fixed bottom-6 left-6 z-40">
-        <button
-          type="button"
-          className="dashboard-dalia-ai-btn flex items-center gap-2.5 px-5 py-3 rounded-full bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 text-white font-bold shadow-xl hover:shadow-blue-500/50 hover:scale-105 active:scale-95 transition-all text-sm border border-white/20"
-          data-testid="dashboard-ai-launch-btn"
+      <div className="dashboard-ai-fab-container">
+        <DaliaLaunchButton
+          testId="dashboard-ai-launch-btn"
           onClick={() => setAiOpen(true)}
           title="דליה AI · עוזר אישי לדשבורד ולמוסך"
-        >
-          <span className="text-lg">✨</span>
-          <span>דליה AI</span>
-        </button>
+          subtitle={user.garageOps ? 'עוזרת קולית למוסך' : 'עוזרת אישית'}
+          aboveBottomNav
+        />
       </div>
 
       {aiOpen && (

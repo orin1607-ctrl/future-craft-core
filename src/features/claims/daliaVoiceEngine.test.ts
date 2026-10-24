@@ -979,3 +979,18 @@ describe('שיחה כללית', () => {
     expect(g.writes).toEqual([]);
   });
 });
+
+describe('שאלה חופשית ארוכה לא מפעילה חיפוש', () => {
+  it('a long question that mentions "בתיק" goes to the chat, not to a case search', async () => {
+    const q = 'תני לי תשובה ארוכה על סדר בדיקה של רעש בבלמים, נורית מנוע ורעידות בהגה, כולל איך לתעד בתיק.';
+    expect(routeFreeRequest(q)).toBeNull();
+    const start = await startVoiceWorkflow('general_action', {}, env());
+    const r = await answerVoiceWorkflow(start.session!, q, env());
+    expect(r.turn.handoff).toBe(q);
+    expect(r.session?.type).toBe('general_action');
+  });
+  it('long requests that start with a clear command are still routed', () => {
+    expect(routeFreeRequest('תמצאי לי את התיק של משה כהן שהגיע אתמול עם רעש בבלמים בבקשה')?.type).toBe('find_case');
+    expect(routeFreeRequest('כמה כסף נכנס השבוע מכל התשלומים של הלקוחות הפרטיים והעסקיים יחד')?.type).toBe('reports');
+  });
+});

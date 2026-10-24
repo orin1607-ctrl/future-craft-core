@@ -1,0 +1,66 @@
+/* Floating "דליה AI" launcher (dashboard + garage screen). Bottom-left, above the page, thumb-sized on phones. */
+.dalia-launch-btn {
+  position: fixed;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  left: 20px;
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 7px 18px 7px 8px;
+  direction: rtl;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #3b82f6 100%);
+  color: #fff;
+  font-family: 'Heebo', inherit, sans-serif;
+  cursor: pointer;
+  box-shadow: 0 6px 22px rgba(15, 23, 42, 0.45), 0 0 0 4px rgba(59, 130, 246, 0.18);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.dalia-launch-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(15, 23, 42, 0.5), 0 0 0 6px rgba(59, 130, 246, 0.25); }
+.dalia-launch-btn:active { transform: scale(0.97); }
+.dalia-launch-btn:focus-visible { outline: 3px solid #fde68a; outline-offset: 3px; }
+.dalia-launch-icon {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  flex-shrink: 0;
+}
+.dalia-launch-icon-glyph { font-size: 20px; line-height: 1; }
+.dalia-launch-mic {
+  position: absolute;
+  bottom: -3px;
+  left: -3px;
+  font-size: 13px;
+  line-height: 1;
+  background: #1e3a8a;
+  border-radius: 50%;
+  padding: 2px;
+}
+.dalia-launch-text { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; text-align: right; }
+.dalia-launch-text strong { font-size: 16px; font-weight: 800; letter-spacing: -0.2px; }
+.dalia-launch-text small { font-size: 11.5px; font-weight: 500; opacity: 0.88; }
+@media (max-width: 600px) {
+  .dalia-launch-btn { bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 14px; min-height: 52px; padding: 6px 14px 6px 6px; gap: 8px; }
+  .dalia-launch-icon { width: 38px; height: 38px; }
+  .dalia-launch-text small { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dalia-launch-btn { transition: none; }
+  .dalia-launch-btn:hover { transform: none; }
+}
+
+/* dashboard: same layer as before, and above the phone bottom navigation (shown under 768px) */
+.dalia-launch-btn.above-bottom-nav { z-index: 40; bottom: 24px; left: 24px; }
+@media (max-width: 767px) {
+  .dalia-launch-btn.above-bottom-nav { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); left: 14px; }
+}
