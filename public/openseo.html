@@ -440,6 +440,15 @@ html, body {
   .plan-image-card .fields,.plan-h2-card .fields{flex-direction:column;align-items:stretch}
   .article-plan label.f{min-width:0}
 }
+.brief-steps{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.brief-steps li{display:grid;grid-template-columns:118px minmax(0,1fr);gap:8px;align-items:start}
+.brief-seo-strip{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin:0 0 16px}
+.brief-seo-strip a{color:#1d4ed8}
+.content-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.content-gal-card{border:1px solid var(--line);border-radius:10px;padding:8px;background:#fff}
+.content-gal-card img{width:100%;height:96px;object-fit:cover;border-radius:8px;background:#f8fafc;display:block}
+#contentGalleryDlg[open],#socialGalleryDlg[open]{display:flex;flex-direction:column}
+#contentGalleryBody{overflow:auto;flex:1;padding:12px 14px}
 
 /* ===== Real Website Simulation Preview Modal ===== */
 .site-preview-modal {
@@ -1610,6 +1619,20 @@ html, body {
 <div id="overlay"></div>
 <div class="demo-ctl" id="demoCtl"></div>
 <div id="toast" class="toast" hidden></div>
+<dialog id="contentGalleryDlg" style="width:min(1100px,96vw);height:min(860px,92vh);padding:0;border:0;border-radius:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #e2e8f0">
+    <b>גלריית תמונות</b>
+    <button type="button" class="btn sm" id="contentGalleryClose">סגירה</button>
+  </div>
+  <div id="contentGalleryBody"></div>
+</dialog>
+<dialog id="socialGalleryDlg" style="width:min(1100px,96vw);height:min(820px,92vh);padding:0;border:0;border-radius:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid #e2e8f0">
+    <b>העתקה מגלריית פרסום ברשתות</b>
+    <button type="button" class="btn sm" id="socialGalleryClose">חזרה לגלריה</button>
+  </div>
+  <iframe id="contentGalleryFrame" title="גלריית מדיה" style="flex:1;width:100%;border:0"></iframe>
+</dialog>
 <script>
 "use strict";
 /* ============================================================
@@ -1834,9 +1857,9 @@ const S = {
   kwq:"", kwGroup:"", kwBucket:"", kwMove:"", kwStatus:"", kwIntent:"", kwSel:new Set(), kwSort:"pos", addOpen:false,
   rankKw:null, comp:null, cmpView:"shared",
   oppType:"", techSev:"", pageFilter:"", demoOpen:false,
-  drawer:null, modal:null,
+  drawer:null, modal:null, galleryOpen:false,
   research:{seed:"",audience:"",busy:false,result:null, coSeed:"",coBusy:false,coResult:null, planForm:null, drafting:null},
-  produce:{keyword:"",plan:"",length:"long",busy:false,lastError:null,topic:"",ideas:[],ideasBusy:false,wordCount:"",h2Count:""},
+  produce:{keyword:"",plan:"",length:"long",busy:false,lastError:null,topic:"",ideas:[],ideasBusy:false,wordCount:"",h2Count:"",brief:"",briefError:""},
   compose:null, publish:{start:"",cadence:"1",month:null,busy:false},
   measure:{busy:false,note:null}, optimize:{postId:null,busy:false,src:null,sugs:[],applied:0},
   pageOpt:{url:null,sugs:[]},
@@ -2624,6 +2647,7 @@ function pageDrawer(url){
     </div></aside>`;
 }
 </script>
+<script src="./openseo-content-brief.js"></script>
 <script>
 "use strict";
 const WP_WRITE_BLOCKED = "פרסום ותזמון ל-WordPress לא מחוברים בשלב הזה — שום דבר לא נשלח לאתר והמאמר נשאר טיוטה. ההעברה לאתר תהיה משימה נפרדת אחרי אישורך.";
@@ -2800,11 +2824,13 @@ function previewBodyHtml(post){
   if (!inline.length) return html;
   const wrap = document.createElement("div");
   wrap.innerHTML = html;
+  const alreadyInContent = new Set([...wrap.querySelectorAll("img")].map(node => node.getAttribute("src")).filter(Boolean));
   const h2s = [...wrap.querySelectorAll("h2")];
   const groups = new Map();
   const pending = [];
   inline.forEach(img => {
-    if (wrap.querySelector(`[data-img-id="${img.id}"]`) || (img.src && wrap.querySelector(`img[src="${img.src}"]`))) return;
+    if (wrap.querySelector(`[data-img-id="${img.id}"]`)) return;
+    if (img.src && alreadyInContent.has(img.src)) return;
     if (img.placement === "start"){
       wrap.insertAdjacentHTML("afterbegin", figureHtml(img));
       return;
@@ -2910,11 +2936,738 @@ function vArticlePlan(c){
   </div></div>`;
 }
 
+/* ================= הוראה חופשית → הכנה לאישור ================= */
+const BRIEF_STEP_HE = {
+  understand: "הבנת המשימה",
+  keyword: "מילת מפתח",
+  site: "בדיקת האתר",
+  structure: "מבנה",
+  write: "כתיבת תוכן",
+  seo: "SEO",
+  images: "תמונות",
+  preview: "Preview",
+  edit: "עריכה",
+  approval: "אישור להעלאה"
+};
+const BRIEF_STATE_HE = {
+  done: ["בוצע", "up"],
+  blocked: ["חסום", "down"],
+  pending: ["ממתין", ""],
+  ready: ["זמין", "info"],
+  waiting: ["ממתין לאישור", "warn"],
+  prepared: ["הוכן מקומית", "warn"],
+  skipped: ["לא נדרש", ""]
+};
+const TYPE_HE = { page: "עמוד חדש", article: "מאמר", other: "תוכן אחר" };
+function briefStep(c, id, state, detail){
+  const step = c && c.brief && (c.brief.steps || []).find(s => s.id === id);
+  if (!step) return;
+  step.state = state;
+  if (detail != null) step.detail = detail;
+}
+function realDraftsForBrief(){
+  return sitePosts().filter(p => p && (p.wp_draft_id || p.aiDraft || p.realDraft));
+}
+function waitForSeoSources(){
+  const start = Date.now();
+  return new Promise(resolve => {
+    (function tick(){
+      if (REAL.checkedAt || S.site !== "s1" || Date.now() - start > 8000) return resolve();
+      setTimeout(tick, 200);
+    })();
+  });
+}
+function scanStateForBrief(){
+  if (S.site !== "s1") return "demo";
+  return REAL.scan ? "real" : "missing";
+}
+function vBriefForm(){
+  const R = S.produce;
+  return `<div class="card" id="contentBrief"><div class="zone stack" style="gap:10px">
+    <div class="head"><h3 class="t">הוראה בשפה חופשית</h3><span class="xs muted">הבנה ובדיקת האתר רצים מכאן. אם Gemini חסום, מדביקים תוכן וממשיכים לעריכה, SEO, תמונות, Preview, אישור ותזמון. אין פרסום לאתר.</span></div>
+    <textarea class="input" id="briefText" rows="4" placeholder="לדוגמה: תכין לי עמוד חדש בנושא ניהול צי רכב לעסקים. תבדוק מה צריך להיות בעמוד, תכין תוכן מלא, SEO ותמונות ותראה לי אותו לפני העלאה.">${esc(R.brief || "")}</textarea>
+    <div class="row"><button class="btn pri" id="briefRunBtn" data-act="runBrief" ${R.busy ? "disabled" : ""}>${R.busy ? "מכין…" : "הבן והכן"}</button>
+      <span class="xs muted">המסלול הקיים למטה נשאר: מילת מפתח, תוכנית מאמר, או צור מאמר.</span></div>
+    ${R.briefError ? `<p class="xs m0" style="color:var(--down)">${esc(R.briefError)}</p>` : ""}
+  </div></div>`;
+}
+function vBriefSteps(c){
+  const steps = (c.brief && c.brief.steps) || [];
+  return `<ol class="brief-steps" id="briefChecklist">${steps.map(s => {
+    const st = BRIEF_STATE_HE[s.state] || BRIEF_STATE_HE.pending;
+    return `<li><span class="badge ${st[1]}">${st[0]}</span><div><div class="b xs">${esc(BRIEF_STEP_HE[s.id] || s.id)}</div><div class="xs muted">${esc(s.detail || "")}</div></div></li>`;
+  }).join("")}</ol>`;
+}
+function vBriefWorkspace(c){
+  if (!c || !c.brief) return "";
+  const b = c.brief, plan = c.article_plan || {}, parsed = b.parsed || {};
+  const kw = b.keyword || {}, site = b.siteCheck || { pages: [], drafts: [] };
+  const secondary = (plan.secondary_keywords || []).map(k => k.keyword).join(", ");
+  const wp = c.wp_package;
+  const previewDone = (b.steps || []).some(s => s.id === "preview" && s.state === "done");
+  const canRelease = !!(wp && (c.content_html || "").trim() && previewDone);
+  return `<div class="card" id="briefWorkspace"><div class="zone stack" style="gap:12px">
+    <div class="head"><h3 class="t">מה שהובן מההוראה</h3><span class="badge">${esc(TYPE_HE[parsed.contentType] || "תוכן")}</span></div>
+    <p class="sm m0">${esc(parsed.goal || "")}</p>
+    ${vBriefSteps(c)}
+    ${S.produce.lastError && !(c.content_html || "").trim() ? `<div class="zone" style="border:1px solid var(--down);background:var(--down-t);border-radius:10px"><div class="b xs">Gemini לא כתב תוכן</div><p class="xs m0" style="word-break:break-word">${esc(S.produce.lastError)}</p><p class="xs muted m0">המסלול לא נעצר, ואין כאן סימון שהכתיבה הצליחה. הדביקו למטה תוכן שהוכן ב-ChatGPT או במקום אחר.</p></div>` : ""}
+    <label class="f">תוכן המאמר <span class="xs faint">הדבקה ידנית. לא נשלח ל-Gemini ולא לאתר.</span><textarea class="input" id="briefPaste" rows="8" dir="rtl" data-cf="content_html" placeholder="הדביקו כאן את המאמר, כולל כותרות H2 אם יש.">${esc(c.content_html || "")}</textarea></label>
+    <div class="fields">
+      <label class="f">סוג<select class="input" data-bf="content_type"><option value="page" ${plan.content_type==="page"?"selected":""}>עמוד חדש</option><option value="article" ${plan.content_type==="article"?"selected":""}>מאמר</option><option value="other" ${plan.content_type==="other"?"selected":""}>תוכן אחר</option></select></label>
+      <label class="f" style="flex:1;min-width:180px">H1<input class="input" data-bf="h1" value="${esc(plan.h1 || c.title || "")}"></label>
+      <label class="f">סלאג מוצע<input class="input" dir="ltr" data-bf="slug" value="${esc(plan.slug || "")}"></label>
+      <label class="f" style="flex:1;min-width:220px">Meta Description<textarea class="input" rows="2" data-bf="meta">${esc(c.meta_description || "")}</textarea></label>
+    </div>
+    <p class="xs muted m0">כתובת מוצעת: <span dir="ltr">https://dalia-c.com/${esc(plan.slug || "")}/</span> — הצעה בלבד, העמוד לא נוצר.</p>
+    <label class="f">מילות מפתח משניות <span class="xs faint">מ-Search Console בלבד, מופרדות בפסיק</span><input class="input" data-bf="secondary" value="${esc(secondary)}"></label>
+    <div><div class="b xs">מילת מפתח ראשית · ${esc(kw.source || "")}</div><p class="xs muted m0">${esc(kw.note || "")}</p>
+      ${(kw.candidates || []).length ? `<div class="row mt-s">${kw.candidates.map(row => `<button type="button" class="btn sm ${row.keyword===c.keyword?"pri":"ghost"}" data-act="pickBriefKw" data-briefkw="${esc(row.keyword)}">${esc(row.keyword)}</button>`).join("")}</div>` : ""}</div>
+    <div><div class="b xs">בדיקת תוכן קיים · ${site.risk === "high" ? "חפיפה גבוהה" : site.risk === "possible" ? "חפיפה חלקית" : site.risk === "none" ? "אין חפיפה חזקה" : "לא נבדק"}</div>
+      <p class="xs muted m0">${esc(site.note || "")}</p>
+      ${(site.pages || []).length ? `<ul class="sm">${site.pages.map(p => `<li><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.title || p.url)}</a> <span class="xs muted">חפיפה ${p.overlap}</span></li>`).join("")}</ul>` : ""}
+      ${(site.drafts || []).length ? `<ul class="sm">${site.drafts.map(d => `<li>טיוטה מקומית: ${esc(d.title)}${d.wp_draft_id ? ` · WP #${esc(d.wp_draft_id)}` : ""}</li>`).join("")}</ul>` : ""}</div>
+    <div><div class="b xs">קישורים פנימיים מוצעים</div>
+      ${(plan.internal_links || []).length ? `<ul class="sm" id="briefLinks">${plan.internal_links.map((l, i) => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.anchor || l.url)}</a> <span class="xs muted">${esc(l.reason || "")}</span> <button type="button" class="btn ghost sm" data-act="dropBriefLink" data-idx="${i}">הסר</button></li>`).join("")}</ul>` : `<p class="xs muted m0">אין קישור פנימי מהסריקה.</p>`}
+      <p class="xs muted m0">הקישורים מוצעים בלבד ולא הוחדרו לגוף המאמר.</p></div>
+    <div class="row">
+      <button type="button" class="btn pri" data-act="openContentGallery">גלריית תמונות</button>
+      <span class="xs muted">בחירת Hero, תמונות לגוף המאמר, מיקום ו-ALT. בלי Gemini.</span>
+    </div>
+    <div class="zone" id="briefApproval" style="background:var(--soft);border-radius:10px">
+      <div class="b sm">אישור לפני העלאה</div>
+      <p class="xs muted m0 mt-s">הכפתור מכין חבילת טיוטה מקומית. הוא לא מפרסם ל-dalia-c.com. העלאה תתבצע רק אם יש הרשאת כתיבה, וכיום החיבור הוא קריאה בלבד.</p>
+      <label class="check mt-s"><input type="checkbox" id="briefApproveCheck"> אני מאשר להכין את החבילה. אין לפרסם לאתר החי.</label>
+      <div class="row mt-s"><button type="button" class="btn pri" data-act="approveWpPackage">אשר והכן חבילה</button>
+        <button type="button" class="btn" data-act="retryBriefWrite" ${S.produce.busy ? "disabled" : ""}>נסה שוב לכתוב עם Gemini</button>
+        <button type="button" class="btn" data-act="skipBriefGemini">המשך בלי AI</button>
+        <button type="button" class="btn ghost" data-act="sitePreview">Preview מקומי</button></div>
+      <div class="fields mt-s">
+        <label class="f">תזמון לפרסום <span class="xs faint">נשמר מקומית, לא נשלח לאתר</span><input type="datetime-local" class="input" id="briefScheduleAt" value="${esc((c._scheduleInput) || (c.local_release && c.local_release.scheduled_for ? toLocalInput(c.local_release.scheduled_for) : ""))}"></label>
+      </div>
+      <div class="row mt-s">
+        <button type="button" class="btn" data-act="localPublishNow" ${canRelease ? "" : "disabled"}>פרסום עכשיו</button>
+        <button type="button" class="btn" data-act="localSchedule" ${canRelease ? "" : "disabled"}>תזמון לפרסום</button>
+      </div>
+      <p class="xs muted m0 mt-s">פרסום עכשיו ותזמון נפתחים אחרי תוכן, Preview ואישור. שניהם נרשמים בתור המקומי בלבד ולא שולחים כלום ל-dalia-c.com.</p>
+      ${c.local_release ? `<p class="xs m0 mt-s" id="localReleaseNote">${esc(c.local_release.note)}</p>` : ""}
+      ${wp ? `<div class="mt-s"><div class="b xs">${wp.uploaded ? "הועלה" : "לא הועלה"}</div><p class="xs m0">${esc(wp.reason || "")}</p>${wp.readback ? `<p class="xs m0 mt-s">${esc(wp.readback.detail || "")}</p>` : ""}</div>` : ""}
+    </div>
+  </div></div>`;
+}
+function applyBriefPackage(pack){
+  const plan = createArticlePlan({
+    keyword: pack.keyword.keyword,
+    title: pack.structure.h1,
+    length: pack.parsed.length || "long",
+    word_count: pack.parsed.wordCount || "",
+    h2_count: pack.parsed.length === "short" ? 3 : pack.parsed.length === "medium" ? 5 : 6
+  });
+  plan.title = pack.structure.title || "";
+  plan.h1 = pack.structure.h1 || "";
+  plan.meta_description = "";
+  plan.slug = pack.structure.slug || "";
+  plan.content_type = pack.structure.contentType;
+  plan.title_source = pack.structure.titleSource;
+  plan.secondary_keywords = pack.structure.secondaryKeywords || [];
+  plan.internal_links = pack.structure.internalLinks || [];
+  plan.approved = false;
+  plan.headings = [];
+  if (pack.parsed.wantsImages) applyImageMode(plan, "hero_inline");
+  (plan.images.items || []).forEach((img, i) => {
+    img.alt = defaultImageAlt(img.role, plan, Number(img.afterH2) || i);
+    img.prompt = "";
+    img.src = "";
+  });
+  S.compose = {
+    id: null,
+    keyword: pack.keyword.keyword || "",
+    plan_id: "",
+    length: pack.parsed.length || "long",
+    title: plan.title,
+    meta_description: "",
+    content_html: "",
+    content_source: "",
+    scheduled_at: "",
+    article_plan: plan,
+    brief: {
+      raw: pack.parsed.raw,
+      parsed: pack.parsed,
+      keyword: pack.keyword,
+      siteCheck: pack.siteCheck,
+      steps: pack.steps,
+      wp: null
+    },
+    wp_package: null
+  };
+}
+let briefRunToken = 0;
+function briefGeminiCurrent(c, token){
+  return token === briefRunToken && S.compose === c;
+}
+async function runBriefGemini(c){
+  const token = briefRunToken;
+  const plan = c.article_plan;
+  const R = S.produce;
+  R.busy = true;
+  R.lastError = null;
+  if (!(c.content_source === "manual" && (c.content_html || "").trim())) {
+    briefStep(c, "write", "ready", "אפשר להדביק תוכן עכשיו. Gemini רץ ברקע ולא עוצר את המסלול. אם הוא חסום, לא יסומן שהכתיבה בוצעה.");
+  }
+  render();
+  const outlineBody = {
+    action: "outline",
+    keyword: (plan.keyword || c.keyword || "").trim(),
+    title: plan.title || null,
+    length: plan.length || c.length || "long",
+    word_count: plan.word_count ? Number(plan.word_count) : undefined,
+    h2_count: (plan.headings || []).length || undefined,
+    meta_description: plan.meta_description || ""
+  };
+  let outline;
+  try {
+    const res = await seoApiFetch("/api/project-001/generate-article", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(outlineBody) });
+    outline = await res.json().catch(() => ({}));
+    if (!briefGeminiCurrent(c, token)) { R.busy = false; return; }
+    if (!(res.ok && outline.ok && outline.action === "outline" && (outline.headings || []).length)) {
+      const err = outline.error || ("שגיאת שרת (" + res.status + ")");
+      const code = outline.code ? outline.code + " — " : "";
+      geminiWriteFailed(c, code + err);
+      render();
+      return;
+    }
+  } catch (err) {
+    if (!briefGeminiCurrent(c, token)) { R.busy = false; return; }
+    geminiWriteFailed(c, "שגיאת תקשורת: " + err.message);
+    render();
+    return;
+  }
+  if (!briefGeminiCurrent(c, token)) { R.busy = false; return; }
+  if (c.content_source === "manual" && (c.content_html || "").trim()) {
+    R.busy = false;
+    briefStep(c, "write", "done", "Gemini החזיר מבנה, אבל התוכן שהודבק נשאר. הוא לא הוחלף ולא סומן ככתיבת AI.");
+    render();
+    return;
+  }
+  plan.headings = (outline.headings || []).map(h => ({ id: planUid("h"), text: h.h2 || "", h3s: h.h3s || [] }));
+  if (outline.title) {
+    plan.title = outline.title;
+    plan.h1 = outline.title;
+    plan.title_source = "gemini";
+    c.title = outline.title;
+  }
+  if (outline.meta_description) {
+    plan.meta_description = outline.meta_description;
+    c.meta_description = outline.meta_description;
+  }
+  briefStep(c, "structure", "done", "המבנה כולל כותרות H2/H3 שהתקבלו מ-Gemini (" + (outline.model || "model") + ").");
+  if (!(c.brief.parsed && c.brief.parsed.wantsFullContent)) {
+    R.busy = false;
+    briefStep(c, "write", "skipped", "ההוראה לא ביקשה גוף מלא.");
+    if (c.meta_description) briefStep(c, "seo", "done", "Title ו-Meta הגיעו מ-Gemini. הסלאג ומילות המשנה מהשלב המקומי.");
+    render();
+    return;
+  }
+  plan.approved = true;
+  const articleBody = {
+    action: "article",
+    keyword: (plan.keyword || c.keyword || "").trim(),
+    title: plan.title || null,
+    length: plan.length || "long",
+    meta_description: plan.meta_description || "",
+    word_count: plan.word_count ? Number(plan.word_count) : undefined,
+    outline: {
+      title: plan.title || "",
+      meta_description: plan.meta_description || "",
+      headings: plan.headings.map(h => ({ h2: h.text || "", h3s: h.h3s || [] }))
+    }
+  };
+  try {
+    const res = await seoApiFetch("/api/project-001/generate-article", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(articleBody) });
+    const data = await res.json().catch(() => ({}));
+    R.busy = false;
+    if (!briefGeminiCurrent(c, token)) return;
+    if (c.content_source === "manual" && (c.content_html || "").trim()) {
+      briefStep(c, "write", "done", "Gemini החזיר מאמר, אבל התוכן שהודבק נשאר. הוא לא הוחלף ולא סומן ככתיבת AI.");
+      render();
+      return;
+    }
+    if (res.ok && data.ok && data.content_html) {
+      c.title = data.title || c.title;
+      c.meta_description = data.meta_description || c.meta_description;
+      c.content_html = data.content_html;
+      c.word_count = data.word_count;
+      c.aiDraft = true;
+      c.content_source = "gemini";
+      c.aiModel = data.model || outline.model || "";
+      plan.title = c.title;
+      plan.h1 = c.title;
+      plan.meta_description = c.meta_description;
+      plan.title_source = "gemini";
+      R.lastError = null;
+      briefStep(c, "write", "done", "התוכן נכתב ב-Gemini (" + (data.model || "model") + "), " + (data.word_count || 0) + " מילים. לא פורסם.");
+      briefStep(c, "seo", "done", "Title ו-Meta הגיעו מתשובת Gemini. הסלאג ומילות המשנה נשארו מהנתונים המקומיים.");
+    } else {
+      const err = data.error || ("שגיאת שרת (" + res.status + ")");
+      const code = data.code ? data.code + " — " : "";
+      geminiWriteFailed(c, code + err + " כותרות המבנה נשארו. גוף המאמר לא נכתב.");
+    }
+  } catch (err) {
+    if (!briefGeminiCurrent(c, token)) { R.busy = false; return; }
+    geminiWriteFailed(c, "שגיאת תקשורת: " + err.message);
+  }
+  render();
+}
+function skipBriefGemini(){
+  briefRunToken++;
+  S.produce.busy = false;
+  const c = S.compose;
+  if (c && c.brief) {
+    if (c.content_source === "manual" && (c.content_html || "").trim()) {
+      briefStep(c, "write", "done", "התוכן שהודבק נשאר. המשך בלי AI לא מחליף אותו ולא מסמן כתיבת AI.");
+    } else {
+      const err = S.produce.lastError ? S.produce.lastError + " " : "";
+      briefStep(c, "write", "ready", err + "ממשיכים בלי AI. הדביקו תוכן כדי להמשיך. לא סומן שהכתיבה בוצעה.");
+    }
+  }
+  render();
+}
+async function runContentBrief(){
+  const R = S.produce;
+  const text = (R.brief || "").trim();
+  if (!text) { R.briefError = "כתוב קודם את ההוראה."; return render(); }
+  if (!window.ContentBrief) { R.briefError = "מנוע ההבנה לא נטען."; return render(); }
+  R.briefError = "";
+  R.busy = true;
+  R.lastError = null;
+  render();
+  try {
+  await waitForSeoSources();
+  const scanState = scanStateForBrief();
+  const pages = scanState === "real" ? (PAGES.s1 || []).filter(p => p.real) : [];
+  const keywords = KEYWORDS.filter(k => k.site === S.site && k.real);
+  const pack = ContentBrief.prepare({ text: text, keywords: keywords, pages: pages, drafts: realDraftsForBrief(), scanState: scanState });
+  if (!pack.parsed.topic) {
+    R.busy = false;
+    R.briefError = "לא זיהיתי נושא. כתוב למשל: תכין לי עמוד חדש בנושא …";
+    return render();
+  }
+  applyBriefPackage(pack);
+  briefRunToken++;
+  briefStep(S.compose, "write", "ready", "אפשר להדביק תוכן עכשיו. Gemini לא תנאי להמשך.");
+  render();
+  await runBriefGemini(S.compose);
+  } catch (err) {
+    R.busy = false;
+    R.lastError = err.message || String(err);
+    R.briefError = R.lastError;
+    render();
+  }
+}
+function wpWritePermission(){
+  if (S.site === "s1" || realSiteWriteBlocked()) {
+    return { allowed: false, reason: "החיבור ל-dalia-c.com הוא קריאת REST ציבורית בלבד. אין הרשאת יצירת טיוטה, ולכן שום דבר לא נשלח לאתר." };
+  }
+  return { allowed: false, reason: "אין הרשאת כתיבה ל-WordPress במסך הזה. החבילה נשארת מקומית." };
+}
+async function verifyWpReadback(c){
+  const slug = (c.article_plan && c.article_plan.slug) || "";
+  if (!c.wp_package) return;
+  if (S.site !== "s1" || !slug) {
+    c.wp_package.readback = { checked: false, detail: "לא בוצעה קריאה חוזרת מול dalia-c.com." };
+    render();
+    return;
+  }
+  try {
+    const kinds = ["pages", "posts"];
+    const results = await Promise.all(kinds.map(async kind => {
+      const res = await fetch("https://dalia-c.com/wp-json/wp/v2/" + kind + "?slug=" + encodeURIComponent(slug) + "&_fields=id,slug,status,link");
+      const body = res.ok ? await res.json().catch(() => []) : [];
+      return { ok: res.ok, status: res.status, body: Array.isArray(body) ? body : [] };
+    }));
+    const found = [];
+    results.forEach((r, i) => r.body.forEach(item => found.push({ kind: kinds[i], id: item.id, status: item.status, link: item.link })));
+    const failed = results.some(r => !r.ok);
+    c.wp_package.readback = {
+      checked: !failed,
+      found: found,
+      detail: failed
+        ? "קריאת WordPress לא הושלמה (סטטוס " + results.map(r => r.status).join("/") + "). לא סומן שהעמוד קיים."
+        : found.length
+          ? "נמצא תוכן ציבורי שכבר קיים עם הסלאג הזה (" + found.map(f => f.link || ("#" + f.id)).join(", ") + "). זו לא העלאה חדשה, ולא נוצר פריט."
+          : "קריאה ציבורית מ-WordPress: אין עמוד או פוסט מפורסם עם הסלאג הזה. טיוטה חדשה לא נוצרה."
+    };
+  } catch (err) {
+    c.wp_package.readback = { checked: false, detail: "קריאה חוזרת נכשלה: " + err.message + ". לא סומן שהעמוד קיים." };
+  }
+  briefStep(c, "approval", "prepared", c.wp_package.reason + " " + (c.wp_package.readback.detail || ""));
+  render();
+}
+function refreshBriefImageStep(c){
+  if (!c || !c.brief) return;
+  const imgs = (c.article_plan && c.article_plan.images && c.article_plan.images.items) || [];
+  const ready = imgs.filter(i => i.src).length;
+  if (!imgs.length) briefStep(c, "images", "skipped", "אין משבצות תמונה.");
+  else if (ready === imgs.length) briefStep(c, "images", "done", "יש קובץ בכל " + ready + " המשבצות.");
+  else if (ready) briefStep(c, "images", "ready", "הועלה קובץ ל-" + ready + " מתוך " + imgs.length + " משבצות. משבצת בלי קובץ לא סומנה כמוכנה.");
+  else briefStep(c, "images", "ready", "יש " + imgs.length + " משבצות בלי קובץ. אפשר לבחור מהגלריה או להעלות. יצירת AI לא הורצה.");
+}
+const STORAGE_KEY_GALLERY = "dalia_openseo_content_gallery_v1";
+let CONTENT_GALLERY = [];
+function loadContentGallery(){
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_GALLERY);
+    const list = raw ? JSON.parse(raw) : [];
+    CONTENT_GALLERY = Array.isArray(list) ? list.filter(g => g && g.src) : [];
+  } catch (_) { CONTENT_GALLERY = []; }
+}
+function saveContentGallery(){
+  try {
+    localStorage.setItem(STORAGE_KEY_GALLERY, JSON.stringify(CONTENT_GALLERY));
+    return true;
+  } catch (_) {
+    toast("הגלריה לא נשמרה — התמונות גדולות מדי לזיכרון הדפדפן.", 9000);
+    return false;
+  }
+}
+function rememberGalleryImage(src, alt, fileName, extra){
+  if (!src) return null;
+  const extraId = extra && extra.id;
+  let item = CONTENT_GALLERY.find(g => g.src === src || (extraId && g.id === extraId));
+  if (item) {
+    if (alt && !item.alt) item.alt = alt;
+    if (fileName && !item.fileName) item.fileName = fileName;
+    saveContentGallery();
+    return item;
+  }
+  item = Object.assign({
+    id: planUid("gal"), src: src, thumb: src, alt: alt || "", fileName: fileName || "תמונה",
+    origin: "upload", added_at: new Date().toISOString()
+  }, extra || {});
+  CONTENT_GALLERY.unshift(item);
+  saveContentGallery();
+  return item;
+}
+function contentGalleryList(){
+  const out = CONTENT_GALLERY.map(g => Object.assign({ origin: g.origin || "upload" }, g));
+  const seen = new Set(out.map(g => g.src));
+  sitePosts().forEach(p => {
+    const items = (p.article_plan && p.article_plan.images && p.article_plan.images.items) || [];
+    items.forEach(img => {
+      if (!img.src || seen.has(img.src)) return;
+      seen.add(img.src);
+      out.push({
+        id: "postimg:" + p.id + ":" + img.id, src: img.src, thumb: img.src,
+        alt: img.alt || "", fileName: img.fileName || p.title || "תמונה",
+        origin: "draft", added_at: p.updated_at || ""
+      });
+    });
+  });
+  return out;
+}
+function placementHeadings(c){
+  const fromHtml = extractHeadingsFromHtml((c && c.content_html) || "");
+  if (fromHtml.length) return fromHtml;
+  return (c && c.article_plan && c.article_plan.headings) || [];
+}
+function galleryPlacementOptions(c){
+  const headings = placementHeadings(c);
+  const items = (c.article_plan && c.article_plan.images && c.article_plan.images.items) || [];
+  let html = `<option value="start">בתחילת המאמר</option><option value="end">בסוף המאמר</option>`;
+  headings.forEach((h, i) => {
+    html += `<option value="after_h2_${i}">אחרי H2 ${i + 1}: ${esc(h.text || "פרק")}</option>`;
+  });
+  items.forEach(img => {
+    if (!img.src) return;
+    const name = img.role === "hero" || img.placement === "hero" ? "Hero" : "תמונה במאמר";
+    html += `<option value="replace_${esc(img.id)}">החלף את ${name}${img.fileName ? " · " + esc(img.fileName) : ""}</option>`;
+  });
+  return html;
+}
+function galleryCopiesInArticle(c, g){
+  const items = (c && c.article_plan && c.article_plan.images && c.article_plan.images.items) || [];
+  return items.filter(i => i.src && (i.galleryId === g.id || i.src === g.src));
+}
+function galleryLivePreview(c){
+  const items = ((c && c.article_plan && c.article_plan.images && c.article_plan.images.items) || []).filter(i => i.src);
+  return `<div class="zone" id="galleryLivePreview">
+    <div class="b sm">Preview של התמונות במאמר</div>
+    ${items.length ? `${heroFigureHtml(c)}<div class="prose">${previewBodyHtml(c)}</div>` : `<p class="xs muted m0">עדיין לא נבחרה תמונה. אחרי הבחירה היא תופיע כאן וגם ב-Preview המלא.</p>`}
+  </div>`;
+}
+function vContentGallery(c){
+  if (!c) return "";
+  const list = contentGalleryList();
+  return `<div class="stack" id="contentGallery" style="gap:10px">
+    ${galleryLivePreview(c)}
+    <div class="head"><h3 class="t">כל התמונות</h3><span class="xs muted">${list.length} בגלריה המקומית</span></div>
+    <p class="xs muted m0">הגלריה הזו שייכת ליצירת תוכן ואינה תלויה ב-Gemini. תמונות מטיוטות מופיעות כאן. אפשר גם להעתיק מגלריית פרסום ברשתות, ואם אין אליה חיבור ההעלאה המקומית ממשיכה.</p>
+    <div class="row">
+      <label class="btn sm pri">העלאת תמונה לגלריה<input class="content-gallery-file" type="file" accept="image/*" multiple hidden></label>
+      <button type="button" class="btn sm" data-act="openSocialGallery">העתק מגלריית פרסום ברשתות</button>
+      <button type="button" class="btn sm" data-act="sitePreview">פתח Preview מלא</button>
+    </div>
+    ${list.length ? `<div class="content-gallery">${list.map(g => {
+      const used = galleryCopiesInArticle(c, g);
+      return `<div class="content-gal-card" data-gid="${esc(g.id)}">
+      <img src="${esc(g.thumb || g.src)}" alt="${esc(g.alt || "")}">
+      <div class="xs muted mt-s">${esc(g.origin === "social" ? "מגלריית הרשתות" : g.origin === "draft" ? "מטיוטה קיימת" : "הועלה לכאן")} · ${esc(g.fileName || "")}</div>
+      ${used.length ? `<div class="xs mt-s">${used.map(i => `<span class="badge">${i.role === "hero" || i.placement === "hero" ? "Hero במאמר" : "בגוף המאמר"}</span>`).join(" ")}</div>` : ""}
+      <label class="f mt-s">ALT<input class="input" data-gal-alt="${esc(g.id)}" value="${esc(g.alt || "")}" placeholder="תיאור התמונה"></label>
+      <label class="f mt-s">מיקום בגוף המאמר<select class="input" data-gal-slot="${esc(g.id)}">${galleryPlacementOptions(c)}</select></label>
+      <div class="row mt-s">
+        <button type="button" class="btn sm pri" data-act="galleryPlace" data-gmode="hero" data-gid="${esc(g.id)}">קבע כ-Hero</button>
+        <button type="button" class="btn sm" data-act="galleryPlace" data-gid="${esc(g.id)}">שים בגוף המאמר</button>
+        ${g.origin === "draft" ? "" : `<button type="button" class="btn ghost sm danger" data-act="galleryRemove" data-gid="${esc(g.id)}">הסר מהגלריה</button>`}
+      </div>
+      ${used.length ? `<div class="row mt-s">${used.map(i => `<button type="button" class="btn ghost sm danger" data-act="galleryUnplace" data-iid="${esc(i.id)}">הסר מהמאמר${i.role === "hero" || i.placement === "hero" ? " (Hero)" : ""}</button>`).join("")}</div>` : ""}
+    </div>`;
+    }).join("")}</div>` : `<div class="empty">אין עדיין תמונות בגלריה. העלו קובץ, או העתיקו מגלריית פרסום ברשתות.</div>`}
+  </div>`;
+}
+function addGalleryFiles(fileList){
+  const files = Array.from(fileList || []).filter(f => f && f.type && f.type.indexOf("image/") === 0 && f.size <= MAX_UPLOAD_MB * 1024 * 1024);
+  if (!files.length) return toast("לא נוסף קובץ תמונה. אפשר JPG, PNG או WebP עד " + MAX_UPLOAD_MB + "MB.");
+  const readOne = file => new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = async () => resolve({ file: file, src: await shrinkImage(String(reader.result || "")) });
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+  Promise.all(files.map(readOne)).then(rows => {
+    rows.filter(Boolean).forEach(row => rememberGalleryImage(row.src, "", row.file.name, { origin: "upload" }));
+    toast(rows.length > 1 ? rows.length + " תמונות נוספו לגלריה. בחרו לאן לשים כל אחת." : "התמונה נוספה לגלריה. בחרו אם היא Hero ואיפה היא במאמר.");
+    render();
+  });
+}
+function placeGalleryOnArticle(c, gid, forcedMode){
+  const g = contentGalleryList().find(x => x.id === gid);
+  if (!g || !c) return toast("התמונה לא נמצאה בגלריה");
+  ensureDraftPlan(c);
+  const slotEl = Array.from(document.querySelectorAll("[data-gal-slot]")).find(el => el.dataset.galSlot === gid);
+  const altEl = Array.from(document.querySelectorAll("[data-gal-alt]")).find(el => el.dataset.galAlt === gid);
+  const mode = forcedMode || (slotEl ? slotEl.value : "start");
+  const alt = (altEl && altEl.value.trim()) || g.alt || "";
+  const stored = CONTENT_GALLERY.find(x => x.id === gid);
+  if (stored) { stored.alt = alt; saveContentGallery(); }
+  const items = c.article_plan.images.items;
+  const fill = (slot, role, placement, afterH2) => {
+    slot.src = g.src;
+    slot.fileName = g.fileName || "";
+    slot.galleryId = g.id;
+    slot.aiModel = null;
+    slot.alt = alt;
+    slot.role = role;
+    slot.placement = placement;
+    slot.afterH2 = afterH2 || 0;
+  };
+  if (mode.indexOf("replace_") === 0) {
+    const img = items.find(i => i.id === mode.slice("replace_".length));
+    if (!img) return toast("המשבצת להחלפה לא נמצאה");
+    img.src = g.src;
+    img.fileName = g.fileName || img.fileName;
+    img.galleryId = g.id;
+    img.aiModel = null;
+    img.alt = alt;
+  } else if (mode === "hero") {
+    items.forEach(i => {
+      if (i.role === "hero" || i.placement === "hero") {
+        i.role = "inline";
+        if (i.placement === "hero") i.placement = "start";
+      }
+    });
+    let slot = items.find(i => !i.src);
+    if (!slot) { slot = blankImage("hero"); items.unshift(slot); }
+    fill(slot, "hero", "hero", 0);
+  } else {
+    let placement = mode, afterH2 = 0;
+    if (mode.indexOf("after_h2_") === 0) {
+      placement = "after_h2";
+      afterH2 = parseInt(mode.slice("after_h2_".length), 10) || 0;
+    }
+    let slot = items.find(i => !i.src && i.role !== "hero" && i.placement !== "hero");
+    if (!slot) { slot = blankImage("inline"); items.push(slot); }
+    fill(slot, "inline", placement, afterH2);
+  }
+  c.article_plan.images.mode = items.length ? "custom" : "none";
+  c.article_plan.images.custom_count = items.length;
+  refreshBriefImageStep(c);
+  if (c.brief) briefStep(c, "edit", "done", "תמונה הושמה מהגלריה. היא לא נוצרה ב-AI ולא נשלחה לאתר.");
+  toast("התמונה הושמה במאמר. היא מופיעה ב-Preview, ולא נשלחה לאתר.");
+  render();
+}
+function galleryUnplace(c, iid){
+  if (!c || !iid) return;
+  ensureDraftPlan(c);
+  const items = c.article_plan.images.items || [];
+  const next = items.filter(i => i.id !== iid);
+  if (next.length === items.length) return toast("התמונה לא נמצאה במאמר");
+  c.article_plan.images.items = next;
+  c.article_plan.images.custom_count = next.length;
+  c.article_plan.images.mode = next.length ? "custom" : "none";
+  refreshBriefImageStep(c);
+  if (c.brief) briefStep(c, "edit", "done", "תמונה הוסרה מהמאמר. היא נשארת בגלריה.");
+  toast("התמונה הוסרה מהמאמר. היא נשארת בגלריה.");
+  render();
+}
+function syncContentGalleryDialog(){
+  const dlg = document.getElementById("contentGalleryDlg");
+  const body = document.getElementById("contentGalleryBody");
+  if (!dlg || !body) return;
+  const open = !!(S.galleryOpen && S.compose && S.tab === "produce");
+  if (!open) {
+    body.innerHTML = "";
+    if (dlg.open) dlg.close();
+    return;
+  }
+  body.innerHTML = vContentGallery(S.compose);
+  if (!dlg.open && typeof dlg.showModal === "function") dlg.showModal();
+}
+function toLocalInput(iso){
+  const d = new Date(iso);
+  if (!iso || Number.isNaN(d.getTime())) return "";
+  const p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+function markManualBody(c){
+  if (!c || !c.brief) return;
+  const html = (c.content_html || "").trim();
+  if (c.aiDraft && html) {
+    briefStep(c, "write", "done", "התוכן מגיע מ-Gemini ונערך במסך. לא פורסם.");
+    return;
+  }
+  if (!html) {
+    c.content_source = "";
+    const err = S.produce.lastError ? S.produce.lastError + " " : "";
+    briefStep(c, "write", "ready", err + "Gemini לא כתב את הגוף. הדביקו תוכן כדי להמשיך. לא סומן שהכתיבה בוצעה.");
+    return;
+  }
+  c.content_source = "manual";
+  c.aiDraft = false;
+  const heads = extractHeadingsFromHtml(c.content_html);
+  if (heads.length && c.article_plan) c.article_plan.headings = heads;
+  const words = html.replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length;
+  briefStep(c, "write", "done", "התוכן הודבק ידנית (" + words + " מילים). הוא לא נוצר ב-Gemini ולא פורסם.");
+}
+function refreshBriefSeoStep(c){
+  if (!c || !c.brief) return;
+  const plan = c.article_plan || {};
+  const title = (c.title || plan.h1 || plan.title || "").trim();
+  const meta = (c.meta_description || plan.meta_description || "").trim();
+  const slug = (plan.slug || "").trim();
+  const missing = [];
+  if (!title) missing.push("כותרת");
+  if (!slug) missing.push("סלאג");
+  if (!meta) missing.push("Meta Description");
+  if (missing.length) briefStep(c, "seo", "ready", "אפשר למלא ידנית. עדיין חסר: " + missing.join(", ") + ". לא סומן ש-SEO הושלם.");
+  else briefStep(c, "seo", "done", "Title, H1, Meta וסלאג מולאו" + (c.aiDraft ? " (חלק מהשדות מ-Gemini)." : " ידנית. לא נוצרו ב-Gemini."));
+}
+function geminiWriteFailed(c, message){
+  S.produce.lastError = message;
+  S.produce.busy = false;
+  const manual = c && c.content_source === "manual" && (c.content_html || "").trim();
+  if (c && !manual) c.content_html = "";
+  if (!c || !c.brief) return;
+  if (manual) briefStep(c, "write", "done", "Gemini נכשל: " + message + " התוכן שהודבק נשאר, ולא סומן כאילו נכתב ב-AI.");
+  else briefStep(c, "write", "ready", message + " Gemini לא כתב תוכן. הדביקו תוכן שהוכן במקום אחר כדי להמשיך. לא סומן שהכתיבה בוצעה.");
+  refreshBriefSeoStep(c);
+}
+function persistComposeDraft(c, status, scheduledAt){
+  let p = POSTS.find(x => x.id === c.id);
+  const data = {
+    title: c.title, keyword: c.keyword, plan_id: c.plan_id ? +c.plan_id : null,
+    meta_description: c.meta_description, content_html: c.content_html,
+    status: status, scheduled_at: scheduledAt, updated_at: new Date().toISOString(),
+    local_release: c.local_release ? JSON.parse(JSON.stringify(c.local_release)) : null,
+    content_source: c.content_source || ""
+  };
+  if (c.length) data.length = c.length;
+  if (c.word_count) data.word_count = c.word_count;
+  if (c.article_plan) data.article_plan = clonePlan(c.article_plan);
+  if (c.brief) data.brief = JSON.parse(JSON.stringify(c.brief));
+  if (c.wp_package) data.wp_package = JSON.parse(JSON.stringify(c.wp_package));
+  if (p) Object.assign(p, data);
+  else {
+    p = { id: ++PID, site: S.site, published_at: null, published_url: null, error: null, rank: null, rank_checked_at: null, created_at: new Date().toISOString(), ...data };
+    POSTS.unshift(p);
+    c.id = p.id;
+  }
+  savePostsStorage();
+  return p;
+}
+function recordLocalRelease(c, intent, when){
+  if (!c) return;
+  const live = document.getElementById("briefScheduleAt");
+  if (live) c._scheduleInput = live.value;
+  if (c.brief && !c.wp_package) return toast("קודם סמנו אישור והכינו את החבילה. שום דבר לא נשלח ל-dalia-c.com.");
+  if (!(c.content_html || "").trim()) return toast("אין תוכן במאמר. הדביקו תוכן כדי להמשיך. שום דבר לא נשלח.");
+  if (c.brief) {
+    const preview = (c.brief.steps || []).find(s => s.id === "preview");
+    if (!preview || preview.state !== "done") return toast("פתחו Preview לפני פרסום או תזמון. שום דבר לא נשלח ל-dalia-c.com.");
+  }
+  let scheduledFor = null;
+  if (intent === "schedule") {
+    const raw = when || c._scheduleInput || c.scheduled_at || "";
+    const dt = raw ? new Date(raw) : null;
+    if (!dt || Number.isNaN(dt.getTime())) return toast("בחרו תאריך ושעה לתזמון. שום דבר לא נשלח.");
+    scheduledFor = dt.toISOString();
+  }
+  c.local_release = {
+    intent: intent,
+    sent_to_site: false,
+    recorded_at: new Date().toISOString(),
+    scheduled_for: scheduledFor,
+    note: intent === "now"
+      ? "פרסום עכשיו נרשם בתור המקומי. לא נשלח ל-dalia-c.com."
+      : "תזמון לפרסום נרשם מקומית. לא נשלח ל-dalia-c.com."
+  };
+  c.scheduled_at = scheduledFor ? toLocalInput(scheduledFor) : "";
+  const status = intent === "schedule" ? "scheduled" : "draft";
+  persistComposeDraft(c, status, scheduledFor);
+  if (c.brief) {
+    const readback = c.wp_package && c.wp_package.readback ? " " + (c.wp_package.readback.detail || "") : "";
+    briefStep(c, "approval", "prepared", c.local_release.note + readback);
+  }
+  toast(c.local_release.note);
+  render();
+}
+loadContentGallery();
+document.getElementById("contentGalleryClose").onclick = () => {
+  S.galleryOpen = false;
+  const dlg = document.getElementById("contentGalleryDlg");
+  if (dlg && dlg.open) dlg.close();
+};
+document.getElementById("contentGalleryDlg").addEventListener("close", () => { S.galleryOpen = false; });
+document.getElementById("socialGalleryClose").onclick = () => {
+  const dlg = document.getElementById("socialGalleryDlg");
+  if (dlg && dlg.open) dlg.close();
+  const frame = document.getElementById("contentGalleryFrame");
+  if (frame) frame.src = "about:blank";
+};
+window.addEventListener("message", e => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== "media-picked") return;
+  const dlg = document.getElementById("socialGalleryDlg");
+  if (dlg && dlg.open) dlg.close();
+  const frame = document.getElementById("contentGalleryFrame");
+  if (frame) frame.src = "about:blank";
+  const assets = Array.isArray(e.data.assets) ? e.data.assets : [];
+  if (!assets.length) return;
+  assets.forEach(a => {
+    if (!a || !a.url) return;
+    rememberGalleryImage(a.url, a.title || "", a.title || "גלריית רשתות", { id: "lib:" + (a.id || planUid("lib")), thumb: a.thumb_url || a.url, origin: "social" });
+  });
+  toast("התמונות נוספו מגלריית פרסום ברשתות. בחרו Hero או מיקום במאמר. הן לא נוצרו ב-AI.");
+  if (S.tab === "produce" && S.compose) {
+    S.galleryOpen = true;
+    render();
+  }
+});
+
 /* ================= יצירת תוכן (Produce) ================= */
 function vProduce(){
   if (S.compose) return vComposer();
   const R = S.produce, plans = PLANS.filter(p => p.site === S.site), drafts = sitePosts().filter(p => p.status === "draft");
   return `<div class="stack">
+    ${vBriefForm()}
     <div class="card"><div class="zone"><div class="head"><h3 class="t">יצירת מאמר עם Gemini AI</h3><button class="btn ghost sm" data-act="newCompose">+ מאמר ריק</button></div>
       <div class="fields mt"><label class="f" style="flex:1;min-width:220px">מילת מפתח יעד<input class="input" id="pKw" value="${esc(R.keyword)}" placeholder="למשל: מה עושה קצין רכב"></label>
         <label class="f">אורך מאמר<select class="input" id="pLength">
@@ -3160,8 +3913,10 @@ function vComposer(){
   const gated = planGate(c);
   const localPreview = (c.content_html || "").trim() || articlePlanOf(c);
   return `<div class="stack" style="max-width:980px">
+    ${vBriefWorkspace(c)}
     <div class="row"><button class="btn ghost sm" data-act="closeCompose">→ חזרה</button><h2 class="t">${existing?"עריכת מאמר":"מאמר חדש"}</h2>${existing?stBadge(existing.status):""} ${c.aiModel?`<span class="badge ai">Gemini (${esc(c.aiModel.replace('models/',''))})</span>`:""}<span class="grow"></span>
-      <button type="button" class="btn pri sm" data-act="openDraftImageModal" style="display:inline-flex;align-items:center;gap:6px;font-weight:700">🖼️ צור תמונה עם AI</button>
+      <button type="button" class="btn pri" id="openContentGallery" data-act="openContentGallery">גלריית תמונות</button>
+      <button type="button" class="btn ghost sm" data-act="openDraftImageModal">צור תמונה עם AI</button>
       ${(c.wp_draft_id || (existing && existing.wp_draft_id)) ? `<span class="badge" style="background:#e8f0fe;color:#1a73e8;font-weight:600">WP טיוטה #${c.wp_draft_id || existing.wp_draft_id}</span>` : ""}
       <span class="grow"></span>
       <button class="btn sm" data-act="openWpPreview" style="display:inline-flex;align-items:center;gap:6px;background:var(--blue-t);color:var(--blue);border:1px solid var(--blue);font-weight:700">🔗 תצוגה באתר</button>
@@ -3191,10 +3946,11 @@ function vComposer(){
     </div>
       ${localPreview?`<div class="zone"><span class="b sm">תצוגה מקדימה</span>${articlePlanOf(c)&&c.article_plan.flow==="plan"?planOutlineHtml(articlePlanOf(c)):""}${heroFigureHtml(c)}<div class="prose mt-s">${previewBodyHtml(c)}</div></div>`:""}
       <div class="zone"><span class="b sm">פרסום</span><div class="fields mt" style="justify-content:space-between">
-        <label class="f">תזמון (לא חובה — מתפרסם אוטומטית ל-WordPress)<input type="datetime-local" class="input" data-cf="scheduled_at" value="${esc(c.scheduled_at)}"></label>
+        <label class="f">תזמון מקומי (לא מעלה לאתר בלי אישור)<input type="datetime-local" class="input" data-cf="scheduled_at" value="${esc(c.scheduled_at)}"></label>
         <div class="row"><button class="btn sm" data-act="openWpPreview" style="display:inline-flex;align-items:center;gap:6px;background:var(--blue-t);color:var(--blue);border:1px solid var(--blue);font-weight:700">🔗 תצוגה באתר</button><button class="btn ghost sm" data-act="sitePreview" style="display:inline-flex;align-items:center;gap:6px">👁️ הדמיה מקומית</button>
-          <button class="btn" data-act="composePublish" ${!c.content_html.trim()||!wp?"disabled":""} title="${wp?"":"חבר WordPress כדי לפרסם"}">פרסם עכשיו</button>
+          <button class="btn" data-act="composePublish" ${!c.content_html.trim()?"disabled":""} title="${realSiteWriteBlocked()?"נרשם בתור המקומי. לא נשלח ל-dalia-c.com.":""}">פרסום עכשיו</button>
           <button class="btn pri" data-act="composeSave">${c.scheduled_at?"תזמן":"שמור טיוטה"}</button></div></div>
+        ${realSiteWriteBlocked()?`<p class="xs m0 mt-s">באתר dalia-c.com פרסום עכשיו ותזמון נרשמים במחשב הזה בלבד, אחרי אישור ו-Preview. שום דבר לא נשלח לאתר.</p>`:""}
         ${!wp?`<p class="xs m0 mt-s" style="color:var(--warn)">${site().conn.wp?"WordPress לא מחובר.":"לאתר הזה אין WordPress — אפשר לשמור ולהעתיק, בלי פרסום אוטומטי."}</p>`:""}</div></div>
   </div>`;
 }
@@ -3378,6 +4134,16 @@ function renderOverlay(){
               </div>
               ` : ''}
 
+              ${(previewPlan && (previewPlan.slug || (previewPlan.internal_links || []).length || (previewPlan.secondary_keywords || []).length)) ? `
+              <div class="brief-seo-strip" id="briefSeoStrip">
+                <div class="b sm">פרטי SEO לפני העלאה</div>
+                <p class="xs m0 mt-s">סוג: ${esc(TYPE_HE[previewPlan.content_type] || "—")} · מילת מפתח: ${esc(previewPlan.keyword || post.keyword || "—")}</p>
+                <p class="xs m0">כתובת מוצעת: <span dir="ltr">https://dalia-c.com/${esc(previewPlan.slug || "")}/</span></p>
+                ${(previewPlan.secondary_keywords || []).length ? `<p class="xs m0">מילות משנה: ${esc((previewPlan.secondary_keywords || []).map(k => k.keyword).join(" · "))}</p>` : `<p class="xs m0">אין מילות משנה מאומתות.</p>`}
+                ${(previewPlan.internal_links || []).length ? `<ul class="xs">${previewPlan.internal_links.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.anchor || l.url)}</a></li>`).join("")}</ul>` : ""}
+                <p class="xs muted m0">זו תצוגה מקומית. העמוד לא הועלה.</p>
+              </div>` : ""}
+
               ${previewOutline}
               ${previewHero}
               <!-- Body HTML Content -->
@@ -3426,8 +4192,19 @@ function renderOverlay(){
   }
 
   if (S.modal?.type === "wpPreview") {
-    const post = S.modal.post || S.compose || POSTS.find(p=>p.id===1001) || {};
-    const wpDraftId = post.wp_draft_id || 6255;
+    const post = S.modal.post || S.compose || {};
+    const wpDraftId = post.wp_draft_id || null;
+    if (!wpDraftId) {
+      el.innerHTML = `<div class="scrim" data-act="close"></div>
+      <div class="card modal" role="dialog" aria-label="אין טיוטת WordPress" style="max-width:560px">
+        <div class="zone stack" style="gap:10px">
+          <div class="head"><h2 class="t">אין טיוטה ב-WordPress</h2><button class="btn ghost ic" data-act="close" aria-label="סגור">✕</button></div>
+          <p class="sm m0">לפריט הזה אין מזהה טיוטה שנשמר אחרי העלאה. לא נפתחת טיוטה אחרת, וגם לא טיוטה 6255.</p>
+          <p class="xs muted m0">אפשר לראות את התוכן בהדמיה המקומית. העלאה ל-dalia-c.com לא מתבצעת בלי אישור ובלי הרשאת כתיבה.</p>
+        </div>
+      </div>`;
+      return;
+    }
     const previewUrl = post.wp_preview_url || ("https://dalia-c.com/?p=" + wpDraftId + "&preview=true");
     const editUrl = post.wp_edit_url || ("https://dalia-c.com/wp-admin/post.php?post=" + wpDraftId + "&action=edit");
 
@@ -4797,7 +5574,7 @@ function vAssistant(){
 
 /* ================= רינדור ================= */
 const VIEWS = {overview:vOverview, assistant:vAssistant, sites:vSites, keywords:vKeywords, research:vResearch, ranks:vRanks, competitors:vCompetitors, opps:vOpps, tech:vTech, produce:vProduce, publish:vPublish, measure:vMeasure, optimize:vOptimize};
-function render(){ renderTabs(); $("#view").innerHTML = dataStrip(S.tab) + VIEWS[S.tab](); bindInputs(); renderOverlay(); renderDemo(); }
+function render(){ renderTabs(); $("#view").innerHTML = dataStrip(S.tab) + VIEWS[S.tab](); syncContentGalleryDialog(); bindInputs(); renderOverlay(); renderDemo(); }
 function go(tab){ S.tab = tab; S.compose = tab === "produce" ? S.compose : null; history.replaceState(null,"","#"+tab); render(); window.scrollTo(0,0); }
 function bindInputs(){
   const on = (id, fn, ev="input") => { const e = $(id); if (e) e.addEventListener(ev, fn); };
@@ -4809,18 +5586,39 @@ function bindInputs(){
   on("#rankKw", e => { S.rankKw = e.target.value; render(); }, "change");
   on("#cmpPick", e => { S.comp = e.target.value; render(); }, "change");
   on("#pKw", e => S.produce.keyword = e.target.value); on("#pPlan", e => S.produce.plan = e.target.value, "change"); on("#pLength", e => S.produce.length = e.target.value, "change"); on("#pTopic", e => S.produce.topic = e.target.value);
+  on("#briefText", e => { S.produce.brief = e.target.value; S.produce.briefError = ""; });
+  document.querySelectorAll("[data-bf]").forEach(el => el.addEventListener(el.tagName === "SELECT" ? "change" : "input", e => {
+    const c = S.compose, plan = c && c.article_plan;
+    if (!c || !plan) return;
+    const key = el.dataset.bf;
+    if (key === "content_type") plan.content_type = e.target.value;
+    if (key === "h1") { plan.h1 = e.target.value; plan.title = e.target.value; plan.title_source = "user"; c.title = e.target.value; }
+    if (key === "slug") plan.slug = e.target.value.trim().replace(/\s+/g, "-");
+    if (key === "meta") { plan.meta_description = e.target.value; c.meta_description = e.target.value; }
+    if (key === "secondary") {
+      plan.secondary_keywords = e.target.value.split(",").map(s => s.trim()).filter(Boolean).map(keyword => ({ keyword, source: "user" }));
+    }
+    briefStep(c, "edit", "done", "השדות נערכו במסך. השינוי עדיין לא הועלה.");
+    refreshBriefSeoStep(c);
+    refreshPlanSummary();
+  }));
   on("#pWords", e => S.produce.wordCount = e.target.value); on("#pH2", e => S.produce.h2Count = e.target.value);
   bindPlanInputs();
   bindDraftInputs();
   document.querySelectorAll("[data-cf]").forEach(i => i.addEventListener(i.tagName==="SELECT"?"change":"input", e => {
     S.compose[i.dataset.cf] = e.target.value;
+    if (S.compose.brief) briefStep(S.compose, "edit", "done", "השדות נערכו במסך. השינוי עדיין לא הועלה.");
     const plan = S.compose.article_plan;
     if (plan && (i.dataset.cf === "keyword" || i.dataset.cf === "title" || i.dataset.cf === "meta_description" || i.dataset.cf === "length")) {
       plan[i.dataset.cf] = e.target.value;
+      if (i.dataset.cf === "title") { plan.h1 = e.target.value; plan.title_source = "user"; }
       refreshPlanSummary();
     }
+    if (i.dataset.cf === "content_html") markManualBody(S.compose);
+    if (i.dataset.cf === "meta_description" || i.dataset.cf === "title") refreshBriefSeoStep(S.compose);
     if (i.dataset.cf==="scheduled_at") render();
   }));
+  on("#briefScheduleAt", e => { if (S.compose) S.compose._scheduleInput = e.target.value; });
   on("#pubStart", e => S.publish.start = e.target.value); on("#pubCad", e => S.publish.cadence = e.target.value, "change");
   on("#optPost", e => { S.optimize = {postId:+e.target.value,busy:false,src:null,sugs:[],applied:0}; render(); }, "change");
   [["#rSeed","discover"],["#rCo","analyzeSerp"],["#pKw","openArticlePlan"],["#pTopic","genIdeas"]].forEach(([id,act]) => on(id, e => { if (e.key==="Enter") document.querySelector(`[data-act="${act}"]`)?.click(); }, "keydown"));
@@ -4966,6 +5764,9 @@ function bindPlanInputs(){
       if (!img) return;
       img.src = shrunk;
       img.fileName = file.name;
+      if (!img.alt) img.alt = defaultImageAlt(img.role, plan, Number(img.afterH2) || 0);
+      rememberGalleryImage(shrunk, img.alt, file.name, { origin: "upload" });
+      refreshBriefImageStep(S.compose);
       render();
     };
     reader.readAsDataURL(file);
@@ -5045,11 +5846,13 @@ function bindDraftInputs(){
           img.src = shrunk;
           img.fileName = file.name;
           img.aiModel = null;
+          rememberGalleryImage(shrunk, img.alt, file.name, { origin: "upload" });
           if (c.id) {
             const post = POSTS.find(x => x.id === c.id);
             if (post) { post.article_plan = clonePlan(c.article_plan); post.updated_at = new Date().toISOString(); }
           }
           savePostsStorage();
+          refreshBriefImageStep(c);
           toast("✓ התמונה הוחלפה בהצלחה");
           render();
         }
@@ -5060,6 +5863,38 @@ function bindDraftInputs(){
 
   document.querySelectorAll(".draft-direct-upload").forEach(inp => {
     inp.addEventListener("change", e => { addDraftImageFiles(e.target.files); e.target.value = ""; });
+  });
+  document.querySelectorAll(".content-gallery-file").forEach(inp => {
+    inp.addEventListener("change", e => { addGalleryFiles(e.target.files); e.target.value = ""; });
+  });
+  document.querySelectorAll("[data-gal-alt]").forEach(inp => {
+    inp.addEventListener("input", e => {
+      const g = CONTENT_GALLERY.find(x => x.id === inp.dataset.galAlt);
+      if (!g) return;
+      g.alt = e.target.value;
+      saveContentGallery();
+    });
+  });
+  document.querySelectorAll("#contentGallery").forEach(zone => {
+    zone.addEventListener("dragover", ev => {
+      if (ev.dataTransfer) ev.preventDefault();
+    });
+    zone.addEventListener("drop", ev => {
+      ev.preventDefault();
+      const raw = ev.dataTransfer && ev.dataTransfer.getData("application/x-dalia-media");
+      if (raw) {
+        try {
+          const asset = JSON.parse(raw);
+          if (asset && asset.url) {
+            rememberGalleryImage(asset.url, asset.title || "", asset.title || "גלריית רשתות", { id: "lib:" + (asset.id || planUid("lib")), thumb: asset.thumb_url || asset.url, origin: "social" });
+            toast("התמונה נוספה מגלריית פרסום ברשתות. בחרו לאן לשים אותה.");
+            render();
+            return;
+          }
+        } catch (_) {}
+      }
+      if (ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files.length) addGalleryFiles(ev.dataTransfer.files);
+    });
   });
   document.querySelectorAll(".draft-dropzone").forEach(zone => {
     const on = ev => { ev.preventDefault(); zone.classList.add("over"); };
@@ -5093,9 +5928,11 @@ function addDraftImageFiles(fileList){
     const items = c.article_plan.images.items;
     results.filter(Boolean).forEach(({file, src}) => {
       const hero = !items.some(x => x.role === "hero" || x.placement === "hero");
+      const alt = (c.title || c.keyword || "תמונת מאמר") + " - דליה פתרונות רכב";
+      rememberGalleryImage(src, alt, file.name, { origin: "upload" });
       items.push({
         id: planUid("img"), src, fileName: file.name, prompt: "",
-        alt: (c.title || c.keyword || "תמונת מאמר") + " - דליה פתרונות רכב",
+        alt: alt,
         role: hero ? "hero" : "inline", placement: hero ? "hero" : "start", afterH2: 0, aiModel: null
       });
     });
@@ -5106,6 +5943,7 @@ function addDraftImageFiles(fileList){
       if (post) { post.article_plan = clonePlan(c.article_plan); post.updated_at = new Date().toISOString(); }
     }
     const saved = savePostsStorage();
+    refreshBriefImageStep(c);
     if (saved) toast(results.length > 1 ? `✓ ${results.length} תמונות הועלו ונשמרו בטיוטה` : "✓ התמונה הועלתה ונשמרה בטיוטה");
     render();
   });
@@ -5238,7 +6076,97 @@ document.addEventListener("click", e => {
   if (d.prevdevice){ if (S.modal?.type === "sitePreview"){ S.modal.device = d.prevdevice; return renderOverlay(); } }
   if (d.openwp){ const p = POSTS.find(x=>x.id===+d.openwp); if (p){ S.modal = { type: "wpPreview", post: { ...p } }; return renderOverlay(); } }
   if (d.act === "openWpPreview"){ const existing = POSTS.find(p=>p.id===S.compose?.id); const post = S.compose ? { ...existing, ...S.compose } : (POSTS.find(p=>p.id===1001) || {}); S.modal = { type: "wpPreview", post }; return renderOverlay(); }
-  if (d.act === "sitePreview"){ S.modal = { type: "sitePreview", device: S.modal?.device || "desktop", post: { ...S.compose } }; return renderOverlay(); }
+  if (d.act === "sitePreview"){
+    S.galleryOpen = false;
+    const gal = document.getElementById("contentGalleryDlg");
+    if (gal && gal.open) gal.close();
+    const social = document.getElementById("socialGalleryDlg");
+    if (social && social.open) social.close();
+    if (S.compose && S.compose.brief) briefStep(S.compose, "preview", "done", "נפתחה תצוגה מקומית של העמוד. הוא לא הועלה.");
+    S.modal = { type: "sitePreview", device: S.modal?.device || "desktop", post: S.compose ? { ...S.compose } : {} };
+    return renderOverlay();
+  }
+  if (d.act === "pickBriefKw"){
+    const c = S.compose;
+    if (!c || !d.briefkw) return;
+    c.keyword = d.briefkw;
+    if (c.article_plan) c.article_plan.keyword = d.briefkw;
+    if (c.brief) {
+      c.brief.keyword = Object.assign({}, c.brief.keyword, { keyword: d.briefkw, source: "user", note: "נבחרה ידנית מתוך שאילתות Search Console שהוצגו. הכתיבה לא הורצה מחדש." });
+      briefStep(c, "keyword", "done", c.brief.keyword.note);
+    }
+    return render();
+  }
+  if (d.act === "dropBriefLink"){
+    const plan = S.compose && S.compose.article_plan;
+    if (!plan || !plan.internal_links) return;
+    plan.internal_links.splice(+d.idx, 1);
+    if (S.compose.brief) briefStep(S.compose, "edit", "done", "רשימת הקישורים נערכה. הם לא הוחדרו לגוף.");
+    return render();
+  }
+  if (d.act === "runBrief"){ runContentBrief(); return; }
+  if (d.act === "retryBriefWrite"){ if (S.compose && S.compose.brief) runBriefGemini(S.compose); return; }
+  if (d.act === "skipBriefGemini"){ skipBriefGemini(); return; }
+  if (d.act === "openContentGallery"){
+    if (!S.compose) return toast("הגלריה נפתחת מתוך יצירת תוכן.");
+    S.galleryOpen = true;
+    return render();
+  }
+  if (d.act === "openSocialGallery"){
+    const frame = document.getElementById("contentGalleryFrame");
+    const dlg = document.getElementById("socialGalleryDlg");
+    if (!frame || !dlg) return;
+    frame.src = "./media-library.html?pick=1&max=10";
+    if (!dlg.open && typeof dlg.showModal === "function") dlg.showModal();
+    return;
+  }
+  if (d.act === "galleryPlace"){
+    if (!S.compose || !d.gid) return;
+    placeGalleryOnArticle(S.compose, d.gid, d.gmode || "");
+    return;
+  }
+  if (d.act === "galleryUnplace"){
+    if (!S.compose || !d.iid) return;
+    galleryUnplace(S.compose, d.iid);
+    return;
+  }
+  if (d.act === "galleryRemove"){
+    CONTENT_GALLERY = CONTENT_GALLERY.filter(g => g.id !== d.gid);
+    saveContentGallery();
+    toast("התמונה הוסרה מהגלריה. אם היא כבר במאמר, היא נשארת שם עד שתסירו אותה מהמאמר.");
+    return render();
+  }
+  if (d.act === "localPublishNow"){ if (S.compose) recordLocalRelease(S.compose, "now", ""); return; }
+  if (d.act === "localSchedule"){ if (S.compose) recordLocalRelease(S.compose, "schedule", ""); return; }
+  if (d.act === "approveWpPackage"){
+    const c = S.compose;
+    if (!c || !c.brief) return toast("אין חבילה להכנה");
+    const box = document.getElementById("briefApproveCheck");
+    if (!box || !box.checked) return toast("צריך סימון אישור מפורש. שום דבר לא נשלח.");
+    const perm = wpWritePermission();
+    const plan = c.article_plan || {};
+    c.wp_package = {
+      prepared: true,
+      uploaded: false,
+      published: false,
+      at: new Date().toISOString(),
+      reason: perm.reason,
+      payload: {
+        status: "draft",
+        type: plan.content_type || "article",
+        title: c.title || "",
+        slug: plan.slug || "",
+        excerpt: c.meta_description || "",
+        content: c.content_html || "",
+        hasBody: !!(c.content_html || "").trim()
+      },
+      readback: null
+    };
+    briefStep(c, "approval", "prepared", perm.reason + ((c.content_html || "").trim() ? "" : " גוף המאמר ריק, ולכן גם החבילה המקומית בלי תוכן כתוב."));
+    render();
+    verifyWpReadback(c);
+    return;
+  }
   if (d.edit){ const p = POSTS.find(x=>x.id===+d.edit); S.compose = {...p, scheduled_at: p.scheduled_at && p.status==="scheduled" ? p.scheduled_at.slice(0,16) : "", article_plan: p.article_plan ? clonePlan(p.article_plan) : undefined}; ensureDraftPlan(S.compose); S.drawer = null; return go("produce"); }
   if (d.rmpost){ POSTS.splice(POSTS.findIndex(x=>x.id===+d.rmpost),1); savePostsStorage(); return render(); }
   if (d.pubnow){ if (realSiteWriteBlocked()) return toast(WP_WRITE_BLOCKED, 9000); S.modal = {type:"confirmPub", id:+d.pubnow}; return renderOverlay(); }
@@ -5472,6 +6400,7 @@ document.addEventListener("click", e => {
       }
     }
     savePostsStorage();
+    refreshBriefImageStep(c);
     toast("התמונה נמחקה מהמאמר");
     return render();
   }
@@ -5500,7 +6429,12 @@ document.addEventListener("click", e => {
   }
 
   switch (d.act){
-    case "close": S.drawer = null; S.modal = null; return renderOverlay();
+    case "close": {
+      const wasPreview = S.modal && S.modal.type === "sitePreview";
+      S.drawer = null; S.modal = null;
+      if (wasPreview && S.compose && S.compose.brief) return render();
+      return renderOverlay();
+    }
     case "points": S.modal = "points"; return renderOverlay();
     case "theme": { const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme==="dark" : matchMedia("(prefers-color-scheme: dark)").matches; r.dataset.theme = dark ? "light" : "dark"; return; }
     case "demo": S.demoOpen = !S.demoOpen; return renderDemo();
@@ -5602,7 +6536,8 @@ document.addEventListener("click", e => {
       plan.images.items = (plan.images.items || []).filter(i => i.id !== d.iid);
       plan.images.custom_count = plan.images.items.length;
       plan.images.mode = plan.images.items.length ? "custom" : "none";
-      toast("התמונה הוסרה");
+      toast("התמונה הוסרה מהמאמר. היא נשארת בגלריה אם נשמרה שם.");
+      refreshBriefImageStep(S.compose);
       refreshPlanSummary();
       return render();
     }
@@ -5646,6 +6581,7 @@ document.addEventListener("click", e => {
               : (h2Text || title || kw || "תמונת מאמר") + " - דליה פתרונות רכב";
           }
           if (!img.prompt) img.prompt = promptToUse;
+          refreshBriefImageStep(S.compose);
           toast("✓ תמונת " + (img.role === "hero" ? "Hero" : "Inline") + " נוצרה בהצלחה עם AI (" + (data.model ? data.model.replace('models/','') : 'Gemini') + ")");
         } else {
           const errMsg = data.error || ("שגיאת שרת (" + res.status + ")");
@@ -5906,8 +6842,10 @@ document.addEventListener("click", e => {
     }
     case "composeSave": case "composePublish": {
       const c = S.compose;
-      const pubBlocked = realSiteWriteBlocked() && (d.act === "composePublish" || !!c.scheduled_at);
-      if (pubBlocked){ c.scheduled_at = ""; toast(WP_WRITE_BLOCKED, 9000); }
+      if (!c) return;
+      const liveBlocked = realSiteWriteBlocked();
+      if (liveBlocked && d.act === "composePublish") return recordLocalRelease(c, "now", "");
+      if (liveBlocked && d.act === "composeSave" && c.scheduled_at) return recordLocalRelease(c, "schedule", c.scheduled_at);
       const sched = c.scheduled_at ? new Date(c.scheduled_at).toISOString() : null;
       let p = POSTS.find(x => x.id === c.id);
       const status = sched ? "scheduled" : p?.status === "published" ? "published" : "draft";
@@ -5915,10 +6853,14 @@ document.addEventListener("click", e => {
       if (c.length) data.length = c.length;
       if (c.word_count) data.word_count = c.word_count;
       if (c.article_plan) data.article_plan = clonePlan(c.article_plan);
+      if (c.brief) data.brief = JSON.parse(JSON.stringify(c.brief));
+      if (c.wp_package) data.wp_package = JSON.parse(JSON.stringify(c.wp_package));
+      if (c.local_release) data.local_release = JSON.parse(JSON.stringify(c.local_release));
+      if (c.content_source) data.content_source = c.content_source;
       if (p) Object.assign(p, data); else { p = {id:++PID, site:S.site, published_at:null, published_url:null, error:null, rank:null, rank_checked_at:null, created_at:new Date().toISOString(), ...data}; POSTS.unshift(p); }
       savePostsStorage();
-      if (d.act === "composePublish" && !pubBlocked){ S.modal = {type:"confirmPub", id:p.id}; S.compose = null; render(); return renderOverlay(); }
-      S.compose = null; if (!pubBlocked) toast(sched ? "המאמר תוזמן (הדגמה)" : "הטיוטה נשמרה"); return render(); }
+      if (d.act === "composePublish"){ S.modal = {type:"confirmPub", id:p.id}; S.compose = null; render(); return renderOverlay(); }
+      S.compose = null; toast(sched ? "המאמר תוזמן (הדגמה)" : "הטיוטה נשמרה"); return render(); }
     case "doPublish": { if (realSiteWriteBlocked()){ S.modal = null; toast(WP_WRITE_BLOCKED, 9000); return render(); } const p = POSTS.find(x=>x.id===S.modal.id); Object.assign(p, {status:"published", published_at:new Date().toISOString(), published_url:`https://${site().domain}/blog/${p.id}`, error:null}); S.modal = null; toast("פורסם (הדגמה — לא נשלח דבר)"); return render(); }
     case "scheduleDrafts": { if (realSiteWriteBlocked()) return toast(WP_WRITE_BLOCKED, 9000); const drafts = sitePosts().filter(p=>p.status==="draft"); const start = S.publish.start ? Date.parse(S.publish.start) : Date.now()+DAY, step = +S.publish.cadence*DAY;
       drafts.forEach((p,i) => { const dt = new Date(start + i*step); dt.setHours(9,0,0,0); p.status = "scheduled"; p.scheduled_at = dt.toISOString(); });
