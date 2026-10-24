@@ -1,5 +1,5 @@
 -- Migration: 20261025120000_garage_quote_drafts_staging.sql
--- Status: PREPARED FOR USER REVIEW (DO NOT APPLY WITHOUT EXPLICIT APPROVAL)
+-- Status: APPLIED TO STAGING ONLY (usfeoerkpcafxxlyuldl) on 2026-10-25 with the user's approval, after 17 isolation tests (rolled back). NOT for Production.
 --
 -- Price quotes that are not tied to a work case: a quote for a customer who is not in the system yet
 -- (or a separate quote for an existing customer), waiting for the customer's approval.
@@ -32,6 +32,12 @@ CREATE INDEX IF NOT EXISTS idx_garage_quote_drafts_plate ON public.garage_quote_
 CREATE INDEX IF NOT EXISTS idx_garage_quote_drafts_customer ON public.garage_quote_drafts(customer_id);
 
 ALTER TABLE public.garage_quote_drafts ENABLE ROW LEVEL SECURITY;
+
+-- Least privilege (STAGING's default privileges give anon/authenticated ALL incl. TRUNCATE, which RLS does
+-- not cover): the public key gets nothing; signed-in users only the four row operations RLS governs.
+REVOKE ALL ON TABLE public.garage_quote_drafts FROM anon;
+REVOKE ALL ON TABLE public.garage_quote_drafts FROM authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.garage_quote_drafts TO authenticated;
 
 DROP POLICY IF EXISTS "garage_quote_drafts_select_shop" ON public.garage_quote_drafts;
 DROP POLICY IF EXISTS "garage_quote_drafts_insert_shop" ON public.garage_quote_drafts;

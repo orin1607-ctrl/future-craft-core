@@ -1,7 +1,7 @@
 // Price quotes that are NOT tied to a work case: a quote for a customer who is not in the system yet
 // (or a new quote for an existing customer) waits for the customer's approval without opening a case.
 //
-// Storage: the shop-scoped `garage_quote_drafts` table (docs/proposed-migrations/20261025120000_garage_quote_drafts_staging.sql — prepared for review, not applied).
+// Storage: the shop-scoped `garage_quote_drafts` table (supabase/migrations/20261025120000 — applied to STAGING 2026-10-25).
 // Until that table exists, drafts are kept on this device only — and every result says where it was kept,
 // so nothing pretends to be saved in the system when it is not.
 import { supabase } from '@/integrations/supabase/client';
