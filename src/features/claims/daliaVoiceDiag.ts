@@ -9,7 +9,67 @@ const events: DiagEvent[] = [];
 const t0 = typeof performance !== 'undefined' ? performance.now() : 0;
 let spyInstalled = false;
 
-export const DIAG_BUILD = 'voice-diag-1 (base a7aec782)';
+export const DIAG_BUILD = 'voice-diag-2 (header-buttons + audio-tone-test)';
+
+let lastToneResult = 'not-run';
+
+export function getLastToneResult(): string {
+  return lastToneResult;
+}
+
+/** Plays a brief, pleasant double-chime using AudioContext to verify whether ANY browser audio can play. */
+export async function playTestTone(): Promise<{ ok: boolean; desc: string }> {
+  diagLog('playTestTone-start');
+  if (typeof window === 'undefined') {
+    lastToneResult = 'no-window';
+    return { ok: false, desc: 'window is undefined' };
+  }
+  try {
+    const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) {
+      lastToneResult = 'AudioContext-missing';
+      diagLog('audio-tone-missing');
+      return { ok: false, desc: 'AudioContext לא נתמך בדפדפן' };
+    }
+    const ctx = new AudioCtx();
+    diagLog('audio-ctx-created', `state=${ctx.state}`);
+    if (ctx.state === 'suspended') {
+      try {
+        await ctx.resume();
+        diagLog('audio-ctx-resumed', `state=${ctx.state}`);
+      } catch (e: any) {
+        diagLog('audio-ctx-resume-err', String(e?.message || e));
+      }
+    }
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    const now = ctx.currentTime;
+    osc.frequency.setValueAtTime(587.33, now); // D5
+    osc.frequency.setValueAtTime(880, now + 0.12); // A5
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.34);
+
+    setTimeout(() => {
+      try {
+        if (ctx.state !== 'closed') ctx.close();
+      } catch {}
+    }, 1200);
+
+    lastToneResult = `played (state=${ctx.state})`;
+    diagLog('audio-tone-played', `state=${ctx.state}`);
+    return { ok: true, desc: `צליל רגיל הושמע בהצלחה (מצב: ${ctx.state})` };
+  } catch (err: any) {
+    const msg = String(err?.message || err);
+    lastToneResult = `error: ${msg}`;
+    diagLog('audio-tone-err', msg);
+    return { ok: false, desc: `שגיאת צליל: ${msg}` };
+  }
+}
 
 export function diagLog(e: string, d?: string): void {
   const now = typeof performance !== 'undefined' ? performance.now() : 0;
@@ -32,12 +92,16 @@ export function installSynthSpy(): void {
   spyInstalled = true;
   const synth = window.speechSynthesis as any;
   for (const name of ['cancel', 'pause', 'resume', 'speak'] as const) {
-    const orig = synth[name]?.bind(synth);
-    if (!orig) continue;
+    const orig = synth[name];
+    if (!orig || typeof orig !== 'function') continue;
+    // Never overwrite Vitest / Jest test spies
+    if ((orig as any)._isMockFunction || (orig as any).mock || typeof (orig as any).mockImplementation === 'function') {
+      continue;
+    }
     try {
       synth[name] = (...args: any[]) => {
         diagLog(`synth.${name}()`, `speaking=${synth.speaking} pending=${synth.pending} paused=${synth.paused} caller=${shortStack()}`);
-        return orig(...args);
+        return orig.apply(synth, args);
       };
     } catch {
       diagLog('spy-install-failed', name);
@@ -85,6 +149,8 @@ export async function getDiagReport(): Promise<string> {
     `userActivation: active=${nav.userActivation?.isActive} hasBeen=${nav.userActivation?.hasBeenActive}`,
     `speechSynthesis: ${w.speechSynthesis ? 'available' : 'MISSING'}`,
     `synthState: speaking=${w.speechSynthesis?.speaking} pending=${w.speechSynthesis?.pending} paused=${w.speechSynthesis?.paused}`,
+    `audioContext: ${w.AudioContext || w.webkitAudioContext ? 'available' : 'MISSING'}`,
+    `lastToneTest: ${lastToneResult}`,
     `SpeechRecognition: ${w.SpeechRecognition || w.webkitSpeechRecognition ? 'available' : 'MISSING'}`,
     describeVoices(voices),
     `-- events (ms since page load) --`,

@@ -68,7 +68,7 @@ import {
   clearVoiceWorkflowState,
   executeVoiceWorkflowAction,
 } from './daliaVoiceWorkflows';
-import { diagLog, installSynthSpy, describeVoices, copyDiagReport } from './daliaVoiceDiag';
+import { diagLog, installSynthSpy, describeVoices, copyDiagReport, playTestTone } from './daliaVoiceDiag';
 import './claims-ai.css';
 
 /** Claim-file actions the chat can run through the existing claims screen (signed URL, download, browser reader). */
@@ -3291,6 +3291,7 @@ export function ClaimsAiWorkspace({
       window.speechSynthesis.speak(utter);
       for (const ms of [300, 1000, 2500]) {
         setTimeout(() => {
+          if (typeof window === 'undefined' || !window.speechSynthesis) return;
           const s = window.speechSynthesis;
           diagLog(`probe+${ms}ms`, `speaking=${s.speaking} pending=${s.pending} paused=${s.paused} onstartFired=${started} ended=${ended}`);
         }, ms);
@@ -3306,14 +3307,40 @@ export function ClaimsAiWorkspace({
     // Kept for backward compatibility
   }, []);
 
-  const handleTestVoice = useCallback(() => {
+  const handleTestVoice = useCallback(async () => {
+    diagLog('handleTestVoice-click', `userActive=${(navigator as any).userActivation?.isActive}`);
     unlockAudioGesture();
-    const testText = 'שלום, אני דליה. האם אתה שומע אותי?';
-    setBanner('🔊 מפעיל בדיקת קול של דליה...');
+
+    // Step 1: Normal audio tone test (AudioContext)
+    setBanner('🔊 בדיקה 1/2: משמיע צליל שמע רגיל (Tone)...');
+    const toneRes = await playTestTone();
+    diagLog('tone-result', `ok=${toneRes.ok} desc=${toneRes.desc}`);
+
+    await new Promise((r) => setTimeout(r, 220));
+
+    // Step 2: Hebrew TTS SpeechSynthesis test
+    const toneStatusText = toneRes.ok ? 'צליל רגיל: ✅ הושמע' : `צליל רגיל: ❌ ${toneRes.desc}`;
+    const testText = 'שלום, אני דליה AI. בדיקת קול בעברית במערכת המוסך.';
+    setBanner(`🔊 בדיקה 2/2: מפעיל דיבור עברי (SpeechSynthesis)... (${toneStatusText})`);
+
+    let ttsFinished = false;
     speakAnswer('test-voice', testText, () => {
-      setBanner('✅ בדיקת הקול הסתיימה. אם שמעת את דליה ברמקול, המערכת מוכנה!');
+      if (ttsFinished) return;
+      ttsFinished = true;
+      setBanner(`✅ בדיקת שמע הסתיימה (${toneStatusText} | דיבור: הסתיים). שמעת את דליה ברמקול? לחץ "📋 דוח אבחון" להעתקה.`);
     });
-  }, [speakAnswer]);
+
+    setTimeout(() => {
+      if (!ttsFinished) {
+        setBanner((cur) => {
+          if (cur && cur.includes('בדיקה 2/2')) {
+            return `ℹ️ סטטוס שמע: (${toneStatusText} | דיבור: בתהליך או שקט). לחץ על "📋 דוח אבחון" להעתקת תוצאות.`;
+          }
+          return cur;
+        });
+      }
+    }, 4500);
+  }, [speakAnswer, unlockAudioGesture]);
 
   const handleCopyDiag = useCallback(async () => {
     const r = await copyDiagReport();
@@ -4860,6 +4887,24 @@ const toggleVoiceMute = useCallback(() => {
               title={voiceModeActive ? 'סיים שיחה קולית רציפה' : 'התחל שיחה קולית רציפה (Hands-Free)'}
             >
               {voiceModeActive ? '🔴 סיים שיחה קולית' : '🎙️ התחל שיחה קולית'}
+            </button>
+            <button
+              type="button"
+              className="claims-ai-header-diag-btn"
+              data-testid="claims-ai-header-voice-test-btn"
+              onClick={handleTestVoice}
+              title="בדיקת קול דליה וצליל שמע"
+            >
+              🔊 בדיקת קול
+            </button>
+            <button
+              type="button"
+              className="claims-ai-header-diag-btn"
+              data-testid="claims-ai-header-voice-diag-btn"
+              onClick={handleCopyDiag}
+              title="העתק דוח אבחון קולי טכני ללוח"
+            >
+              📋 דוח אבחון
             </button>
             <button type="button" className="btn btn-g btn-sm claims-ai-list-toggle" onClick={() => setShowList((v) => !v)}>שיחות</button>
             <button type="button" className="btn btn-g btn-sm claims-ai-min-btn" data-testid="claims-ai-minimize-btn" onClick={() => setIsMinimized(true)} title="מזער חלון AI להצצה במסך שמתחת">— מזער</button>
