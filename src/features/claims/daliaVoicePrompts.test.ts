@@ -1,49 +1,33 @@
-import { describe, expect, it, vi } from 'vitest';
-
-vi.mock('@/integrations/supabase/client', () => ({ supabase: {} }));
-
-import { getWorkflowStep, initWorkflowState, type DaliaWorkflowType } from './daliaVoiceWorkflows';
-import { cleanTextForSpeech } from './ClaimsAiWorkspace';
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
 import {
   DALIA_SAFE_ALTERNATIVES,
+  DALIA_VOICE_PROMPTS,
+  allFixedDaliaSentences,
   containsLikelyPii,
   isFixedDaliaPrompt,
   speechClipId,
 } from '../../../supabase/functions/_shared/daliaVoicePrompts';
 
-const TYPES: DaliaWorkflowType[] = [
-  'new_customer', 'existing_customer', 'intake', 'quote', 'invoices_credits', 'general_expenses',
-  'find_case', 'close_case', 'resume_action', 'context_quote_add_work', 'context_quote_add_part',
-  'context_quote_supplement', 'context_pay_balance', 'context_pay_record',
-];
-
-describe('fixed Dalia prompts (eligible for clips / cloud TTS)', () => {
-  it('every question of every workflow without customer data is in the shared fixed list', () => {
-    const missing: string[] = [];
-    const checked = new Set<string>();
-    for (const type of TYPES) {
-      for (const subType of [undefined, 'supplement']) {
-        for (let step = 0; step < 9; step += 1) {
-          const state = { ...initWorkflowState(type), stepIndex: step, subType };
-          const spec = getWorkflowStep(state);
-          // Summaries built from collected answers are dynamic by design; everything else must be fixed.
-          if (/\$\{|לקוח:|רכב:|₪|רשמתי|נוספה|נוסף חלק|תוספת:|רישום תשלום|מצאתי את הלקוח/.test(spec.promptText)) continue;
-          if (spec.promptText.startsWith('סיימנו') || spec.promptText.startsWith('סיכום')) continue;
-          const spoken = cleanTextForSpeech(spec.promptText);
-          checked.add(spoken);
-          if (!isFixedDaliaPrompt(spoken)) missing.push(`${type}#${step}: ${spoken}`);
-        }
-      }
-    }
-    expect(missing).toEqual([]);
-    expect(checked.size).toBeGreaterThan(35);
+describe('fixed Dalia sentences (eligible for clips / cloud TTS)', () => {
+  it('every Hebrew sentence literal the voice engine can speak is in the fixed list', () => {
+    const src = readFileSync(`${process.cwd()}/src/features/claims/daliaVoiceEngine.ts`, 'utf8');
+    // literals passed directly as a spoken sentence: say: '…', reask('…'), finish('…')
+    const literals = [...src.matchAll(/(?:say:\s*|reask\(|finish\()'((?:[^'\\]|\\.)*[א-ת](?:[^'\\]|\\.)*)'/g)]
+      .map((m) => m[1].replace(/\\'/g, "'"));
+    const notFixed = literals.filter((l) => !isFixedDaliaPrompt(l));
+    expect(notFixed).toEqual([]);
   });
 
-  it('safe alternatives are fixed and contain no customer data', () => {
-    for (const alt of Object.values(DALIA_SAFE_ALTERNATIVES)) {
-      expect(isFixedDaliaPrompt(alt)).toBe(true);
-      expect(containsLikelyPii(alt)).toBe(false);
+  it('engine prompts and safe alternatives contain no customer data and are all fixed', () => {
+    for (const p of [...Object.values(DALIA_VOICE_PROMPTS), ...Object.values(DALIA_SAFE_ALTERNATIVES)]) {
+      expect(isFixedDaliaPrompt(p)).toBe(true);
+      expect(containsLikelyPii(p)).toBe(false);
     }
+  });
+
+  it('the set is large enough to cover the nine workflows', () => {
+    expect(allFixedDaliaSentences().length).toBeGreaterThan(100);
   });
 
   it('summaries with customer data are NOT treated as fixed', () => {

@@ -9,6 +9,8 @@ import { useDriverUrlContext } from '@/lib/entityNavContext';
 import { useHiddenButtonsState } from '@/hooks/useHiddenButtons';
 import { isDriverHubDashboardHidden } from '@/lib/hiddenButtons';
 import { ClaimsAiWorkspace } from '@/features/claims/ClaimsAiWorkspace';
+import { createGarageVoiceActions } from '@/modules/garage-management/garageVoiceActions';
+import { garageShopScopeOf } from '@/modules/garage-management/garageTenant';
 
 /** דשבורד ראשי — כרטיסי עולמות + התראות (+ מרכז ניהול ל-super_admin) */
 export default function Dashboard() {
@@ -76,6 +78,9 @@ export default function Dashboard() {
             userId={user.id}
             companyName={user.company_name || null}
             module={user.garageOps ? 'garage' : 'dashboard'}
+            garageVoiceActions={user.garageOps
+              ? createGarageVoiceActions({ id: user.id, full_name: user.full_name, role: user.role, company_name: user.company_name }, garageShopScopeOf(user))
+              : null}
             onOpenGarageCase={(caseId) => {
               navigate(`/garage-management/${caseId}`);
             }}

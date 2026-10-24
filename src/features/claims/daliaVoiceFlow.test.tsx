@@ -36,7 +36,34 @@ type Utter = {
 };
 
 let utterances: Utter[] = [];
-let recognizers: Array<{ start: ReturnType<typeof vi.fn>; lang: string }> = [];
+let recognizers: Array<{ start: ReturnType<typeof vi.fn>; lang: string; onresult: ((ev: unknown) => void) | null }> = [];
+
+/** Minimal fake garage (test data only) — records what the voice workflow writes. */
+function fakeGarage() {
+  const customer = { id: 'c-new', customer_number: 501, customer_type: 'private', name: 'יוסי מזרחי', company_name: '', phone: '052-5551234' };
+  const vehicleRow = { id: 'v-new', customer_id: 'c-new', plate: '1234599', make: 'טויוטה', model: 'קורולה' };
+  return {
+    actorName: 'עובד בדיקה',
+    searchCustomers: vi.fn(async () => []),
+    getCustomer: vi.fn(async () => null),
+    listVehicles: vi.fn(async () => []),
+    findVehicleByPlate: vi.fn(async () => null),
+    listCustomerCases: vi.fn(async () => []),
+    listCases: vi.fn(async () => []),
+    getCase: vi.fn(async () => null),
+    createCustomer: vi.fn(async () => ({ customer, duplicates: [] })),
+    createVehicle: vi.fn(async () => vehicleRow),
+    createCase: vi.fn(async () => ({ id: 'case-new', case_number: 'GM-T-1', case_data: {} })),
+    saveCaseData: vi.fn(),
+    closeCase: vi.fn(),
+    listSuppliers: vi.fn(async () => []),
+    createSupplier: vi.fn(),
+    listInvoices: vi.fn(async () => []),
+    createInvoice: vi.fn(),
+  };
+}
+let garage = fakeGarage();
+let openCase = vi.fn();
 
 function installSpeech(voices: Array<{ lang: string; name: string }>) {
   utterances = [];
@@ -86,7 +113,16 @@ function installSpeech(voices: Array<{ lang: string; name: string }>) {
 
 function renderGarage() {
   return render(
-    <ClaimsAiWorkspace open onClose={vi.fn()} claim={null} userId="user-1" companyName="מוסך" module="garage" />,
+    <ClaimsAiWorkspace
+      open
+      onClose={vi.fn()}
+      claim={null}
+      userId="user-1"
+      companyName="מוסך"
+      module="garage"
+      garageVoiceActions={garage as never}
+      onOpenGarageCase={openCase}
+    />,
   );
 }
 
@@ -95,6 +131,8 @@ const notConfigured = { data: null, error: { name: 'FunctionsHttpError', context
 beforeEach(() => {
   sessionStorage.clear();
   localStorage.clear();
+  garage = fakeGarage();
+  openCase = vi.fn();
   invoke.mockReset();
   invoke.mockResolvedValue(notConfigured);
   listClaimsAiMessages.mockResolvedValue({ data: [], error: null });
@@ -195,5 +233,57 @@ describe('garage voice workflows — mic only after the question was really spok
     });
     await new Promise((r) => setTimeout(r, 500));
     expect(recognizers).toHaveLength(0);
+  });
+
+  it('spoken answer goes into the workflow and Dalia asks the next question', async () => {
+    installSpeech([{ lang: 'he-IL', name: 'Google עברית' }]);
+    renderGarage();
+    fireEvent.click(await screen.findByTestId('garage-action-new-customer'));
+    await waitFor(() => expect(utterances).toHaveLength(1));
+    act(() => {
+      utterances[0].onstart?.();
+      utterances[0].onend?.();
+    });
+    await waitFor(() => expect(recognizers).toHaveLength(1), { timeout: 1500 });
+    // the worker answers by voice
+    act(() => {
+      recognizers[0].onresult?.({ resultIndex: 0, results: [Object.assign([{ transcript: 'קוראים לו יוסי מזרחי' }], { isFinal: true })] });
+    });
+    // silence detection (1.3s) → workflow → next fixed question
+    await waitFor(() => expect(utterances.map((u) => u.text)).toContain('מה מספר הטלפון שלו?'), { timeout: 3500 });
+    expect(screen.getAllByText('קוראים לו יוסי מזרחי').length).toBeGreaterThan(0);
+  });
+
+  it('full typed conversation → confirmation → saved through the garage actions → case opened', async () => {
+    installSpeech([{ lang: 'he-IL', name: 'Google עברית' }]);
+    renderGarage();
+    fireEvent.click(await screen.findByTestId('garage-action-new-customer'));
+    await waitFor(() => expect(utterances).toHaveLength(1));
+    const input = screen.getByTestId('claims-ai-input') as HTMLTextAreaElement;
+    const say = async (text: string, expectNext: string) => {
+      fireEvent.change(input, { target: { value: text } });
+      fireEvent.submit(input.closest('form')!);
+      await waitFor(() => expect(utterances[utterances.length - 1].text).toBe(expectNext), { timeout: 2000 });
+    };
+    await say('יוסי מזרחי', 'מה מספר הטלפון שלו?');
+    await say('0525551234', 'האם מדובר בלקוח פרטי או בחברה?');
+    await say('פרטי', 'מה מספר הרכב (לוחית רישוי)?');
+    await say('1234599', 'מה היצרן והדגם של הרכב?');
+    await say('טויוטה קורולה', 'האם הרכב הגיע עכשיו למוסך?');
+    await say('לא', 'מה הבעיה או התקלה ברכב?');
+    await say('החלפת שמן', 'סיכמתי את הפרטים על המסך. האם לאשר ולשמור?');
+    expect(garage.createCustomer).not.toHaveBeenCalled();
+    await say('כן', 'הלקוח והתיק נשמרו במערכת. פותחת את התיק.');
+    expect(garage.createCustomer).toHaveBeenCalledWith({ customer_type: 'private', name: 'יוסי מזרחי', company_name: '', phone: '052-5551234' });
+    expect(garage.createVehicle).toHaveBeenCalledWith({ customer_id: 'c-new', plate: '1234599', make: 'טויוטה', model: 'קורולה' });
+    expect(garage.createCase).toHaveBeenCalledTimes(1);
+    // the case opens only after the result sentence finished playing
+    expect(openCase).not.toHaveBeenCalled();
+    const last = utterances[utterances.length - 1];
+    act(() => {
+      last.onstart?.();
+      last.onend?.();
+    });
+    await waitFor(() => expect(openCase).toHaveBeenCalledWith('case-new'));
   });
 });

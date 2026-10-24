@@ -57,17 +57,17 @@ import { uploadGarageMedia } from '@/modules/garage-management/garageMedia';
 import { GarageQuoteCard } from '@/modules/garage-management/GarageQuoteCard';
 import type { GarageQuoteCardData } from '@/modules/garage-management/garageQuoteDoc';
 import {
-  type DaliaWorkflowType,
-  type DaliaWorkflowState,
-  initWorkflowState,
-  getWorkflowStep,
-  processVoiceAnswer,
-  detectGlobalVoiceCommand,
-  saveVoiceWorkflowState,
-  loadVoiceWorkflowState,
-  clearVoiceWorkflowState,
-  executeVoiceWorkflowAction,
-} from './daliaVoiceWorkflows';
+  answerVoiceWorkflow,
+  clearVoiceSession,
+  saveVoiceSession,
+  startVoiceWorkflow,
+  type VoiceEnv,
+  type VoiceResult,
+  type VoiceSession,
+  type VoiceTurn,
+  type VoiceWorkflowType,
+} from './daliaVoiceEngine';
+import type { GarageVoiceActions } from '@/modules/garage-management/garageVoiceActions';
 import { diagLog, installSynthSpy, describeVoices, copyDiagReport, playTestTone, registerDiagSection } from './daliaVoiceDiag';
 import { DaliaSpeechController, pickHebrewVoice, type CloudSynthResult, type SpeakOptions, type SpeakResult } from './daliaSpeechController';
 import { DALIA_SAFE_ALTERNATIVES, isFixedDaliaPrompt } from '../../../supabase/functions/_shared/daliaVoicePrompts';
@@ -2657,6 +2657,7 @@ export function ClaimsAiWorkspace({
   module = 'claims',
   garageCase = null,
   onOpenGarageCase,
+  garageVoiceActions = null,
 }: {
   open: boolean;
   onClose: () => void;
@@ -2671,6 +2672,8 @@ export function ClaimsAiWorkspace({
   module?: 'claims' | 'garage' | 'reports' | 'dashboard';
   garageCase?: GarageCaseAiContext | null;
   onOpenGarageCase?: (caseId: string) => void;
+  /** Garage operations for the voice workflows, bound to the signed-in user and shop. */
+  garageVoiceActions?: GarageVoiceActions | null;
 }) {
   const claimId = claim?.claimId || null;
   const [conversations, setConversations] = useState<ClaimsAiConversation[]>([]);
@@ -2689,7 +2692,7 @@ export function ClaimsAiWorkspace({
   const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
   const [voiceModeActive, setVoiceModeActive] = useState(false);
   const [voicePhase, setVoicePhase] = useState<'idle' | 'listening' | 'processing' | 'speaking' | 'executing' | 'waiting_confirm'>('idle');
-  const [currentVoiceWorkflow, setCurrentVoiceWorkflow] = useState<DaliaWorkflowState | null>(() => loadVoiceWorkflowState());
+  const [currentVoiceWorkflow, setCurrentVoiceWorkflow] = useState<VoiceSession | null>(null);
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
   const persistentAudioRef = useRef<HTMLAudioElement | null>(null);
   const [audioBlockedState, setAudioBlockedState] = useState<{
@@ -2792,8 +2795,9 @@ export function ClaimsAiWorkspace({
       }
     }
   }, []);
-  const currentVoiceWorkflowRef = useRef<DaliaWorkflowState | null>(null);
+  const currentVoiceWorkflowRef = useRef<VoiceSession | null>(null);
   currentVoiceWorkflowRef.current = currentVoiceWorkflow;
+  const lastVoiceTurnRef = useRef<VoiceTurn | null>(null);
   const handleVoiceWorkflowInputRef = useRef<((text: string) => Promise<void>) | null>(null);
   const [liveTranscript, setLiveTranscript] = useState('');
   const [showWelcomeHub, setShowWelcomeHub] = useState(true);
@@ -3193,7 +3197,7 @@ export function ClaimsAiWorkspace({
   const voiceModeActiveRef = useRef(false);
   const voiceRecognitionRef = useRef<SpeechRec | null>(null);
   const voiceSilenceTimerRef = useRef<any>(null);
-  const voicePhaseRef = useRef<'idle' | 'listening' | 'processing' | 'speaking'>('idle');
+  const voicePhaseRef = useRef<'idle' | 'listening' | 'processing' | 'speaking' | 'executing' | 'waiting_confirm'>('idle');
 
   const stopSpeaking = useCallback(() => {
     // No-op while idle: never cancels the synth unless one of our utterances is active.
@@ -3298,7 +3302,7 @@ export function ClaimsAiWorkspace({
       return;
     }
 
-    const isConfirmStep = !!(currentVoiceWorkflowRef.current && getWorkflowStep(currentVoiceWorkflowRef.current).isConfirmation);
+    const isConfirmStep = !!(currentVoiceWorkflowRef.current && lastVoiceTurnRef.current?.isConfirmation);
     const targetPhase = isConfirmStep ? 'waiting_confirm' : 'listening';
     voicePhaseRef.current = targetPhase;
     setVoicePhase(targetPhase);
@@ -3471,6 +3475,13 @@ const toggleVoiceMute = useCallback(() => {
       setSpeechIssue(null);
       stopSpeaking();
       stopVoiceRecognition();
+      // ending the call mid-workflow keeps it for "המשך פעולה אחרונה"
+      const current = currentVoiceWorkflowRef.current;
+      if (current) {
+        if (current.type !== 'resume_action') saveVoiceSession(current);
+        currentVoiceWorkflowRef.current = null;
+        setCurrentVoiceWorkflow(null);
+      }
     } else {
       if (!speechCtor()) {
         setBanner('הדפדפן אינו תומך בזיהוי קולי רציף (נתמך ב-Chrome, Edge ו-Safari).');
@@ -4145,16 +4156,55 @@ const toggleVoiceMute = useCallback(() => {
     sendRef.current = sendMessage;
   }, [sendMessage]);
 
+  const voiceEnv = useMemo<VoiceEnv>(() => ({ actions: garageVoiceActions || null }), [garageVoiceActions]);
+  const voiceTurnSeqRef = useRef(0);
+
+  /** Makes `s` the active workflow. Paused/failed sessions stay stored for "המשך פעולה אחרונה". */
+  const setActiveVoiceSession = useCallback((s: VoiceSession | null, store: 'save' | 'clear' | 'keep') => {
+    setCurrentVoiceWorkflow(s);
+    currentVoiceWorkflowRef.current = s;
+    if (store === 'save' && s && s.type !== 'resume_action') saveVoiceSession(s);
+    if (store === 'clear') clearVoiceSession();
+  }, []);
+
+  /** Shows a workflow turn, speaks its fixed sentence, and opens the mic only when it asks something. */
+  const presentVoiceTurn = useCallback(async (turn: VoiceTurn, label: string) => {
+    const seq = ++voiceTurnSeqRef.current;
+    lastVoiceTurnRef.current = turn;
+    setMessages((prev) => [...prev, {
+      id: `asst_wf_${Date.now()}_${seq}`,
+      conversation_id: activeId || 'voice_flow',
+      role: 'assistant',
+      content: turn.display ? `${turn.say}\n\n${turn.display}` : turn.say,
+      created_at: new Date().toISOString(),
+      attachments: [],
+      sources: [],
+      metadata: { voice_workflow: label, outcome: turn.outcome || null },
+    } as unknown as ClaimsAiMessage]);
+    stopVoiceRecognition();
+    voicePhaseRef.current = 'speaking';
+    setVoicePhase('speaking');
+    if (turn.expectsAnswer && voiceModeActiveRef.current) {
+      await speakThenListenRef.current(label, turn.say);
+      return;
+    }
+    const r = await speakAnswer(label, turn.say);
+    if (voiceTurnSeqRef.current !== seq || (r.outcome === 'cancelled' && r.reason === 'superseded')) return;
+    voicePhaseRef.current = 'idle';
+    setVoicePhase('idle');
+    if (turn.openCaseId && onOpenGarageCase) onOpenGarageCase(turn.openCaseId);
+  }, [activeId, onOpenGarageCase, speakAnswer, stopVoiceRecognition]);
+
   const handleStopVoice = useCallback(() => {
     stopSpeaking();
     stopVoiceRecognition();
     setVoicePhase('idle');
     voicePhaseRef.current = 'idle';
-    if (currentVoiceWorkflowRef.current) {
-      saveVoiceWorkflowState(currentVoiceWorkflowRef.current);
-    }
-    setBanner('שיחה קולית הושהתה. המידע נשמר. תוכל לומר "דליה תמשיכי" או ללחוץ על "המשך פעולה אחרונה".');
-  }, [stopSpeaking, stopVoiceRecognition]);
+    const current = currentVoiceWorkflowRef.current;
+    if (current && current.type !== 'resume_action') saveVoiceSession(current);
+    setActiveVoiceSession(null, 'keep');
+    setBanner('שיחה קולית הושהתה. המידע נשמר. כדי להמשיך, לחץ על "המשך פעולה אחרונה".');
+  }, [setActiveVoiceSession, stopSpeaking, stopVoiceRecognition]);
 
   const handleVoiceWorkflowInput = useCallback(async (userText: string) => {
     const current = currentVoiceWorkflowRef.current;
@@ -4162,11 +4212,8 @@ const toggleVoiceMute = useCallback(() => {
       void sendMessage(userText, 'voice');
       return;
     }
-
-    // 1. Add user speech message to chat
-    const userMsgId = `usr_wf_${Date.now()}`;
-    const userMsg: ClaimsAiMessage = {
-      id: userMsgId,
+    setMessages((prev) => [...prev, {
+      id: `usr_wf_${Date.now()}`,
       conversation_id: activeId || 'voice_flow',
       role: 'user',
       content: userText,
@@ -4174,202 +4221,80 @@ const toggleVoiceMute = useCallback(() => {
       attachments: [],
       sources: [],
       metadata: { voice: true },
-    };
-    setMessages((prev) => [...prev, userMsg]);
+    } as unknown as ClaimsAiMessage]);
+    stopVoiceRecognition();
+    const executing = !!lastVoiceTurnRef.current?.isConfirmation;
+    voicePhaseRef.current = executing ? 'executing' : 'processing';
+    setVoicePhase(executing ? 'executing' : 'processing');
 
-    // 2. Check for global commands
-    const cmd = detectGlobalVoiceCommand(userText);
-    if (cmd === 'stop') {
-      const pauseMsg = 'עצרתי את ההאזנה. המידע נשמר במערכת. כשתרצה להמשיך, אמור "דליה תמשיכי" או לחץ על כפתור המשך.';
-      saveVoiceWorkflowState(current);
-      voicePhaseRef.current = 'idle';
-      setVoicePhase('idle');
-      stopVoiceRecognition();
-      void speakAnswer('wf-pause', pauseMsg);
-      return;
-    }
-    if (cmd === 'cancel') {
-      clearVoiceWorkflowState();
-      setCurrentVoiceWorkflow(null);
-      currentVoiceWorkflowRef.current = null;
-      const cancelMsg = 'ביטלתי את הפעולה לבקשתך. חזרנו למצב רגיל.';
-      voicePhaseRef.current = 'idle';
-      setVoicePhase('idle');
-      stopVoiceRecognition();
-      void speakAnswer('wf-cancel', cancelMsg);
-      return;
-    }
-
-    // 3. Process voice turn
-    const res = processVoiceAnswer(userText, current);
-    setCurrentVoiceWorkflow(res.nextState);
-    currentVoiceWorkflowRef.current = res.nextState;
-
-    if (res.shouldExecuteAction) {
-      voicePhaseRef.current = 'executing';
-      setVoicePhase('executing');
-      stopVoiceRecognition();
-
-      const execRes = await executeVoiceWorkflowAction(res.nextState, {
-        id: userId || 'dalia_voice',
-        fullName: 'מנהל מוסך',
-        companyName: companyName || undefined,
-      });
-
-      const assistantMsg: ClaimsAiMessage = {
-        id: `asst_wf_${Date.now()}`,
-        conversation_id: activeId || 'voice_flow',
-        role: 'assistant',
-        content: execRes.message,
-        created_at: new Date().toISOString(),
-        attachments: [],
-        sources: [],
-        metadata: {
-          executed: true,
-          case_id: execRes.caseId,
-          case_number: execRes.caseNumber,
+    let res: VoiceResult;
+    try {
+      res = await answerVoiceWorkflow(current, userText, voiceEnv);
+    } catch (err) {
+      res = {
+        session: current,
+        turn: {
+          say: DALIA_SAFE_ALTERNATIVES.executedFailed,
+          display: err instanceof Error ? err.message : String(err),
+          expectsAnswer: false,
+          done: true,
+          outcome: 'failed',
+          keepForResume: true,
         },
       };
-      setMessages((prev) => [...prev, assistantMsg]);
-
-      setCurrentVoiceWorkflow(null);
-      currentVoiceWorkflowRef.current = null;
-      clearVoiceWorkflowState();
-
-      voicePhaseRef.current = 'speaking';
-      setVoicePhase('speaking');
-      const execSpeech = await speakAnswer('wf-executed', execRes.message, {
-        safeAlternative: safeAlternativeFor(cleanTextForSpeech(execRes.message), execRes.success ? 'executed-ok' : 'executed-failed'),
-      });
-      // The action already ran; a newer utterance (e.g. a new workflow) means the user moved on.
-      if (execSpeech.outcome === 'cancelled' && execSpeech.reason === 'superseded') return;
-      if (speechController.isLatest(execSpeech.id)) {
-        voicePhaseRef.current = 'idle';
-        setVoicePhase('idle');
-      }
-      if (execRes.caseId && onOpenGarageCase) {
-        onOpenGarageCase(execRes.caseId);
-      }
-      return;
     }
+    // Another workflow was started while this answer was processed — drop the stale result.
+    if (currentVoiceWorkflowRef.current !== current) return;
 
-    // Regular next question
-    const asstMsgId = `asst_wf_${Date.now()}`;
-    const assistantMsg: ClaimsAiMessage = {
-      id: asstMsgId,
-      conversation_id: activeId || 'voice_flow',
-      role: 'assistant',
-      content: res.promptToSpeak,
-      created_at: new Date().toISOString(),
-      attachments: [],
-      sources: [],
-      metadata: { workflow_step: res.nextState.stepIndex },
-    };
-    setMessages((prev) => [...prev, assistantMsg]);
-
-    voicePhaseRef.current = 'speaking';
-    setVoicePhase('speaking');
-
-    stopVoiceRecognition();
-    const nextSpec = getWorkflowStep(res.nextState);
-    const stepAlt = isFixedDaliaPrompt(nextSpec.promptText) && nextSpec.promptText !== res.promptToSpeak
-      ? nextSpec.promptText
-      : safeAlternativeFor(cleanTextForSpeech(res.promptToSpeak), 'step', !!nextSpec.isConfirmation);
-    // Short gap so Android releases the mic before playback starts (same as before).
-    setTimeout(() => {
-      if (currentVoiceWorkflowRef.current !== res.nextState) return; // user moved on meanwhile
-      void speakThenListen(`wf-step-${res.nextState.stepIndex}`, res.promptToSpeak, { safeAlternative: stepAlt });
-    }, 250);
-  }, [activeId, companyName, onOpenGarageCase, speakAnswer, speakThenListen, speechController, stopVoiceRecognition, userId]);
+    if (!res.turn.done) {
+      setActiveVoiceSession(res.session, 'save');
+    } else if (res.turn.keepForResume && res.session) {
+      saveVoiceSession(res.session);
+      setActiveVoiceSession(null, 'keep');
+    } else {
+      setActiveVoiceSession(null, 'clear');
+    }
+    if (res.turn.outcome === 'executed' && !res.turn.openCaseId && onActionExecuted) {
+      // let the garage screen reload (new supplier, invoice…)
+      onActionExecuted({ preview_id: `voice_${Date.now()}`, summary: '', tool_name: 'voice_workflow', action_type: 'voice_workflow', parameters: {} } as unknown as ClaimsAiPendingAction);
+    }
+    await presentVoiceTurn(res.turn, `wf-${current.type}`);
+  }, [activeId, onActionExecuted, presentVoiceTurn, sendMessage, setActiveVoiceSession, stopVoiceRecognition, voiceEnv]);
 
   useEffect(() => {
     handleVoiceWorkflowInputRef.current = handleVoiceWorkflowInput;
   }, [handleVoiceWorkflowInput]);
 
-  const handleStartVoiceWorkflow = useCallback((wfType: DaliaWorkflowType) => {
+  const handleStartVoiceWorkflow = useCallback(async (wfType: VoiceWorkflowType) => {
     diagLog('click-workflow', `type=${wfType} userActive=${(navigator as any).userActivation?.isActive}`);
     unlockAudioGesture();
     setShowWelcomeHub(false);
     setVoiceModeActive(true);
     voiceModeActiveRef.current = true;
-
-    if (wfType === 'resume_action') {
-      const saved = loadVoiceWorkflowState();
-      if (!saved) {
-        const msg = 'אין כרגע פעולה שהופסקה באמצע. במה תרצה שנתחיל?';
-        const asstMsg: ClaimsAiMessage = {
-          id: `asst_wf_${Date.now()}`,
-          conversation_id: activeId || 'voice_flow',
-          role: 'assistant',
-          content: msg,
-          created_at: new Date().toISOString(),
-          attachments: [],
-          sources: [],
-          metadata: { workflow: 'resume_none' },
-        };
-        setMessages((prev) => [...prev, asstMsg]);
-        voicePhaseRef.current = 'speaking';
-        setVoicePhase('speaking');
-        stopVoiceRecognition();
-        void speakThenListen('wf-resume-none', msg);
-        return;
-      }
-
-      setCurrentVoiceWorkflow(saved);
-      currentVoiceWorkflowRef.current = saved;
-      const step = getWorkflowStep(saved);
-      const resumePrompt = `שלום, היינו באמצע תהליך עבור ${saved.customerName || saved.vehiclePlate || 'הרכב'}. השאלה האחרונה הייתה: ${step.promptText}. נמשיך?`;
-      const asstMsg: ClaimsAiMessage = {
-        id: `asst_wf_${Date.now()}`,
-        conversation_id: activeId || 'voice_flow',
-        role: 'assistant',
-        content: resumePrompt,
-        created_at: new Date().toISOString(),
-        attachments: [],
-        sources: [],
-        metadata: { workflow: 'resume_action' },
-      };
-      setMessages((prev) => [...prev, asstMsg]);
-      voicePhaseRef.current = 'speaking';
-      setVoicePhase('speaking');
-      stopVoiceRecognition();
-      void speakThenListen('wf-resumed', resumePrompt, { safeAlternative: safeAlternativeFor(resumePrompt, 'resume') });
-      return;
-    }
-
-    // New workflow
-    const state = initWorkflowState(wfType, {
+    // A click starts a new conversation; a reply still being processed for the old one is dropped.
+    currentVoiceWorkflowRef.current = null;
+    const res = await startVoiceWorkflow(wfType, {
       caseId: garageCase?.id,
       caseNumber: garageCase?.caseNumber,
       customerName: garageCase?.customerName,
-      vehiclePlate: garageCase?.plate,
-    });
-    saveVoiceWorkflowState(state);
-    setCurrentVoiceWorkflow(state);
-    currentVoiceWorkflowRef.current = state;
+      plate: garageCase?.plate,
+    }, voiceEnv);
+    if (res.turn.done) setActiveVoiceSession(null, 'keep');
+    else setActiveVoiceSession(res.session, 'save');
+    await presentVoiceTurn(res.turn, `wf-start-${wfType}`);
+  }, [garageCase, presentVoiceTurn, setActiveVoiceSession, unlockAudioGesture, voiceEnv]);
 
-    const step = getWorkflowStep(state);
-    const prompt = step.promptText;
-
-    const asstMsg: ClaimsAiMessage = {
-      id: `asst_wf_${Date.now()}`,
-      conversation_id: activeId || 'voice_flow',
-      role: 'assistant',
-      content: prompt,
-      created_at: new Date().toISOString(),
-      attachments: [],
-      sources: [],
-      metadata: { workflow: wfType, step: 0 },
-    };
-    setMessages((prev) => [...prev, asstMsg]);
-
-    voicePhaseRef.current = 'speaking';
-    setVoicePhase('speaking');
-    stopVoiceRecognition();
-    void speakThenListen(`wf-start-${wfType}`, prompt, {
-      safeAlternative: safeAlternativeFor(cleanTextForSpeech(prompt), 'step', !!step.isConfirmation),
-    });
-  }, [activeId, garageCase, speakThenListen, stopVoiceRecognition, unlockAudioGesture]);
+  /** Composer submit: while a voice workflow is active, a typed line answers Dalia's question. */
+  const submitComposer = useCallback(() => {
+    const text = input.trim();
+    if (currentVoiceWorkflowRef.current && text && stagedAttachments.length === 0) {
+      setInput('');
+      if (textareaRef.current) textareaRef.current.value = '';
+      void handleVoiceWorkflowInput(text);
+      return;
+    }
+    void sendMessage(input, 'text');
+  }, [handleVoiceWorkflowInput, input, sendMessage, stagedAttachments.length]);
 
   const handleConfirmPending = useCallback(async (msg: ClaimsAiMessage, pending: ClaimsAiPendingAction) => {
     // One execution per card: a double click, or a typed "מאשר" right after a click, must never send twice.
@@ -6615,7 +6540,7 @@ const toggleVoiceMute = useCallback(() => {
           className="claims-ai-composer"
           onSubmit={(e) => {
             e.preventDefault();
-            void sendMessage(input, 'text');
+            submitComposer();
           }}
         >
           <input
@@ -6764,7 +6689,7 @@ const toggleVoiceMute = useCallback(() => {
                 if (e.nativeEvent.isComposing) return;
                 e.preventDefault();
                 if (!loading && !isSubmittingRef.current) {
-                  void sendMessage(input, 'text');
+                  submitComposer();
                 }
               }
             }}

@@ -29,6 +29,7 @@ import {
 } from './garageBook';
 import { ClaimsAiWorkspace } from '@/features/claims/ClaimsAiWorkspace';
 import { garageShopScopeOf } from './garageTenant';
+import { createGarageVoiceActions } from './garageVoiceActions';
 import {
   GARAGE_MEDIA_PENDING_MESSAGE,
   listGarageMedia,
@@ -591,6 +592,7 @@ export default function GarageApp() {
             userId={actor?.id || ''}
             companyName={null}
             module="garage"
+            garageVoiceActions={actor ? createGarageVoiceActions(actor, shopScope) : null}
             garageCase={loadedCase ? {
               id: loadedCase.id,
               caseNumber: loadedCase.case_number,
