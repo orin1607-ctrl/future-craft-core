@@ -2771,6 +2771,8 @@ export function ClaimsAiWorkspace({
   garageVoiceActions?: GarageVoiceActions | null;
 }) {
   const claimId = claim?.claimId || null;
+  /** Dalia's large phone composer (auto-grow, expand, stop-speech, keyboard handling): garage and claims. */
+  const daliaComposerUi = module === 'garage' || module === 'claims';
   const [conversations, setConversations] = useState<ClaimsAiConversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ClaimsAiMessage[]>([]);
@@ -2924,16 +2926,16 @@ export function ClaimsAiWorkspace({
   /** Garage composer: tall writing area on demand (like a chat app's "expand"). */
   const [composerExpanded, setComposerExpanded] = useState(false);
   const composerRef = useRef<HTMLFormElement>(null);
-  /** Garage: the "new messages" pill floats just above the (taller) composer, never over the text. */
+  /** Garage and claims: the "new messages" pill floats just above the (taller) composer, never over the text. */
   useEffect(() => {
     const form = composerRef.current;
-    if (module !== 'garage' || !form || typeof ResizeObserver === 'undefined') return;
+    if (!daliaComposerUi || !form || typeof ResizeObserver === 'undefined') return;
     const ro = new ResizeObserver(() => {
       form.parentElement?.style.setProperty('--dalia-composer-h', `${Math.round(form.getBoundingClientRect().height)}px`);
     });
     ro.observe(form);
     return () => ro.disconnect();
-  }, [module, open]);
+  }, [daliaComposerUi, open]);
 
   const hasUnsavedAction = useMemo(() => {
     return messages.some(
@@ -3256,7 +3258,7 @@ export function ClaimsAiWorkspace({
   /** How far the phone browser scrolled the visible area (keyboard open) — the window follows it. */
   const [viewportTop, setViewportTop] = useState(0);
   /** Phone keyboard detection: the visible height shrinks well below the window height. */
-  const phoneKeyboardOpen = module === 'garage' && typeof window !== 'undefined' && window.innerWidth <= 760
+  const phoneKeyboardOpen = daliaComposerUi && typeof window !== 'undefined' && window.innerWidth <= 760
     && !!viewportHeight && viewportHeight < window.innerHeight * 0.78;
   const [batchUploadProgress, setBatchUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const prevClaimIdRef = useRef<string | null>(claimId);
@@ -3357,8 +3359,8 @@ export function ClaimsAiWorkspace({
       // a closed / replaced window never talks over the current one
       return Promise.resolve({ id: -1, label: opts.label || msgId, outcome: 'cancelled', engine: 'none', reason: 'not-owner', usedAlternative: false, attempts: [], durationMs: 0 } as SpeakResult);
     }
-    // Dalia never records herself: dictation stops while she speaks (garage window)
-    if (moduleRef.current === 'garage') stopDictationRef.current();
+    // Dalia never records herself: dictation stops while she speaks (garage and claims windows)
+    if (moduleRef.current === 'garage' || moduleRef.current === 'claims') stopDictationRef.current();
     setSpeechIssue(null);
     setSpeakingMsgId(msgId);
     setVoiceDiagnostics((prev) => ({ ...prev, speaking: true, lastStatus: 'מפעיל דיבור עברי...', lastError: null }));
@@ -5033,9 +5035,9 @@ const toggleVoiceMute = useCallback(() => {
 
   return (
     <div
-      className={`claims-ai-workspace${showList ? ' show-list' : ''}${module === 'garage' ? ' dalia-garage-window' : ''}${module === 'garage' && isMaximized ? ' is-maximized' : ''}${phoneKeyboardOpen ? ' kb-open' : ''}`}
+      className={`claims-ai-workspace${showList ? ' show-list' : ''}${module === 'garage' ? ' dalia-garage-window' : ''}${module === 'claims' ? ' dalia-claims-window' : ''}${module === 'garage' && isMaximized ? ' is-maximized' : ''}${phoneKeyboardOpen ? ' kb-open' : ''}`}
       style={viewportHeight
-        ? { height: `${viewportHeight}px`, maxHeight: `${viewportHeight}px`, ...(module === 'garage' && viewportTop > 0 ? { top: `${viewportTop}px` } : {}) }
+        ? { height: `${viewportHeight}px`, maxHeight: `${viewportHeight}px`, ...(daliaComposerUi && viewportTop > 0 ? { top: `${viewportTop}px` } : {}) }
         : undefined}
       role="dialog"
       aria-modal="true"
@@ -7086,7 +7088,7 @@ const toggleVoiceMute = useCallback(() => {
 
         <form
           ref={composerRef}
-          className={`claims-ai-composer${module === 'garage' ? ' dalia-composer' : ''}${module === 'garage' && composerExpanded ? ' is-expanded' : ''}`}
+          className={`claims-ai-composer${daliaComposerUi ? ' dalia-composer' : ''}${daliaComposerUi && composerExpanded ? ' is-expanded' : ''}`}
           onSubmit={(e) => {
             e.preventDefault();
             submitComposer();
@@ -7249,7 +7251,7 @@ const toggleVoiceMute = useCallback(() => {
               toggleMic();
             }}
           >{listening ? '⏹️' : '🎤'}</button>
-          {module === 'garage' && (voicePhase === 'speaking' || speakingMsgId) ? (
+          {daliaComposerUi && (voicePhase === 'speaking' || speakingMsgId) ? (
             <button
               type="button"
               className="claims-ai-icon dalia-stop-speech"
@@ -7280,7 +7282,7 @@ const toggleVoiceMute = useCallback(() => {
               setInput(val);
               inputRef.current = val;
               baseInputRef.current = val;
-              if (module === 'garage' && !composerExpanded) {
+              if (daliaComposerUi && !composerExpanded) {
                 const el = e.target;
                 el.style.height = 'auto';
                 // grow with the text, up to a share of the VISIBLE height (the phone keyboard takes the rest)
@@ -7290,7 +7292,7 @@ const toggleVoiceMute = useCallback(() => {
             }}
             onFocus={(e) => {
               baseInputRef.current = inputRef.current;
-              if (module === 'garage') {
+              if (daliaComposerUi) {
                 // phone keyboard: keep the writing area and its buttons in view
                 const el = e.currentTarget;
                 window.setTimeout(() => { try { el.scrollIntoView({ block: 'nearest' }); } catch {} }, 300);
@@ -7306,7 +7308,7 @@ const toggleVoiceMute = useCallback(() => {
               }
             }}
           />
-          {module === 'garage' ? (
+          {daliaComposerUi ? (
             <button
               type="button"
               className="claims-ai-icon dalia-expand-input"
