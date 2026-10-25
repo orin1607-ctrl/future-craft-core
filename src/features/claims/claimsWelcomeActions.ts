@@ -1,14 +1,14 @@
 // Dalia AI — claims welcome screen actions (stage 3: read-only).
-// Every enabled action only asks a question or fills the composer; the existing chat and its
-// read tools answer. Actions that change claims data stay disabled until they are connected
+// Every enabled action opens the conversation in the existing chat: Dalia asks her question, or a
+// read-only question is sent as is; the existing chat and its read tools answer. Actions that change claims data stay disabled until they are connected
 // to the existing claims flows in a later stage.
 import type { ClaimsAiClaimContext } from './claimsAiModel';
 
 export type ClaimsWelcomeActionKind =
-  /** Focus the composer for a free question. */
+  /** Dalia opens a free conversation with her question. */
   | 'chat'
-  /** Put the start of a question in the composer; the user completes it (claim number, plate, customer…). */
-  | 'prefill'
+  /** Dalia asks what she needs (claim number, plate, customer…); the answer goes to the existing chat. */
+  | 'question'
   /** Send a read-only question as is. */
   | 'ask'
   /** Return to the saved conversation. */
@@ -24,8 +24,10 @@ export type ClaimsWelcomeAction = {
   kind: ClaimsWelcomeActionKind;
   /** Shown before "כל הפעולות" is opened. */
   primary?: boolean;
-  /** Text for 'prefill' / 'ask'. */
+  /** 'ask': the read-only question sent to the chat. */
   text?: string;
+  /** 'chat' / 'question': what Dalia says and shows to open the conversation. */
+  question?: string;
 };
 
 function claimRef(claim: ClaimsAiClaimContext | null): string {
@@ -38,19 +40,20 @@ export function claimsWelcomeActions(claim: ClaimsAiClaimContext | null): Claims
   const onClaim = (withClaim: Omit<ClaimsWelcomeAction, 'id' | 'icon' | 'title'>, general: Omit<ClaimsWelcomeAction, 'id' | 'icon' | 'title'>) =>
     (ref ? withClaim : general);
   return [
-    { id: 'general', icon: '💬', title: 'שיחה כללית', hint: 'שאלות חופשיות על תביעות, לקוחות, סטטוסים, מסמכים ודוחות', kind: 'chat', primary: true },
+    { id: 'general', icon: '💬', title: 'שיחה כללית', hint: 'שאלות חופשיות על תביעות, לקוחות, סטטוסים, מסמכים ודוחות', kind: 'chat', primary: true,
+      question: 'על מה נדבר? אפשר לשאול על תביעות, לקוחות, סטטוסים, מסמכים ודוחות.' },
     {
       id: 'find', icon: '🔎', title: 'איתור תביעה', primary: true,
       ...onClaim(
         { kind: 'ask', hint: `פרטי תביעה ${ref}`, text: `תציגי את פרטי התביעה ${ref}` },
-        { kind: 'prefill', hint: 'לפי מספר תביעה, מספר רכב, לקוח או חברת ביטוח', text: 'תמצאי לי תביעה לפי ' },
+        { kind: 'question', hint: 'לפי מספר תביעה, מספר רכב, לקוח או חברת ביטוח', question: 'איזו תביעה לאתר? אפשר לומר מספר תביעה, מספר רכב, שם לקוח או חברת ביטוח.' },
       ),
     },
     {
       id: 'continue', icon: '▶️', title: 'המשך טיפול בתביעה', primary: true,
       ...onClaim(
         { kind: 'ask', hint: `השלב הבא בתביעה ${ref}`, text: `מה השלב הבא בטיפול בתביעה ${ref}?` },
-        { kind: 'prefill', hint: 'מה השלב הבא ומי מטפל בתביעה', text: 'מה השלב הבא בטיפול בתביעה ' },
+        { kind: 'question', hint: 'מה השלב הבא ומי מטפל בתביעה', question: 'באיזו תביעה נמשיך לטפל? אפשר לומר מספר תביעה, מספר רכב או שם לקוח.' },
       ),
     },
     {
@@ -62,7 +65,7 @@ export function claimsWelcomeActions(claim: ClaimsAiClaimContext | null): Claims
       id: 'documents', icon: '📁', title: 'מסמכים וקבצים',
       ...onClaim(
         { kind: 'ask', hint: `מסמכים וחוסרים בתביעה ${ref}`, text: `אילו מסמכים יש ואילו חסרים בתביעה ${ref}?` },
-        { kind: 'prefill', hint: 'איתור מסמכים והצגת חוסרים בתביעה', text: 'אילו מסמכים חסרים בתביעה ' },
+        { kind: 'question', hint: 'איתור מסמכים והצגת חוסרים בתביעה', question: 'באיזו תביעה לבדוק מסמכים וחוסרים? אפשר לומר מספר תביעה, מספר רכב או שם לקוח.' },
       ),
     },
     {

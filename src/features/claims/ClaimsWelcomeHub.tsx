@@ -8,8 +8,7 @@ export function ClaimsWelcomeHub({
   actorFirstName,
   savedMessageCount,
   canResume,
-  onChat,
-  onPrefill,
+  onQuestion,
   onAsk,
   onResume,
 }: {
@@ -19,8 +18,8 @@ export function ClaimsWelcomeHub({
   savedMessageCount: number;
   /** A saved conversation exists to return to. */
   canResume: boolean;
-  onChat: () => void;
-  onPrefill: (text: string) => void;
+  /** Dalia opens the conversation with her question ("שיחה כללית" and the actions that need a claim). */
+  onQuestion: (actionId: string, question: string) => void;
   onAsk: (text: string) => void;
   onResume: () => void;
 }) {
@@ -31,8 +30,7 @@ export function ClaimsWelcomeHub({
   const pending = actions.filter((a) => a.kind === 'pending');
 
   const run = (a: ClaimsWelcomeAction) => {
-    if (a.kind === 'chat') onChat();
-    else if (a.kind === 'prefill') onPrefill(a.text || '');
+    if (a.kind === 'chat' || a.kind === 'question') onQuestion(a.id, a.question || '');
     else if (a.kind === 'ask') onAsk(a.text || '');
     else if (a.kind === 'resume') onResume();
   };
