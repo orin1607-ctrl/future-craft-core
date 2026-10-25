@@ -335,6 +335,56 @@ describe('one continuous conversation — 24 exchanges', () => {
     expect(chatRequests).toEqual([]);
   }, 120000);
 
+  it('a question handed to the chat keeps the whole conversation on screen (the reload after the first chat message used to wipe it)', async () => {
+    // a store that keeps the chat messages it saves (a reload returns them, like the real database)
+    const store = await import('./claimsAiStore');
+    const saved: Array<Record<string, unknown>> = [];
+    vi.mocked(store.insertClaimsAiMessage).mockImplementation((async (m: { role: string; content: string }) => {
+      const row = { id: `m-${saved.length + 1}`, conversation_id: 'conv-1', role: m.role, content: m.content, metadata: {}, created_at: new Date().toISOString() };
+      saved.push(row);
+      return { data: row, error: null };
+    }) as never);
+    vi.mocked(store.listClaimsAiMessages).mockImplementation((async () => ({ data: [...saved], error: null })) as never);
+    // a chat that really answers
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: { body?: string }) => {
+      if (String(url).includes('/functions/v1/')) {
+        const body = JSON.parse(String(init?.body || '{}'));
+        chatRequests.push(body.messages?.[body.messages.length - 1]?.content || '');
+        const sse = `data: ${JSON.stringify({ choices: [{ delta: { content: 'תשובת צ׳אט מדומה.' } }] })}\n\ndata: [DONE]\n\n`;
+        // bytes from jsdom's own TextEncoder, so jsdom's TextDecoder accepts them
+        let sent = false;
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => 'text/event-stream' },
+          body: { getReader: () => ({ read: async () => (sent ? { done: true, value: undefined } : (sent = true, { done: false, value: new TextEncoder().encode(sse) })) }) },
+        };
+      }
+      return { ok: false, status: 404, json: async () => null };
+    }));
+    render(
+      <div className="claims-root">
+        <ClaimsAiWorkspace open onClose={vi.fn()} claim={null} userId="u-1" companyName="מוסך" module="garage" garageVoiceActions={garage as never} onOpenGarageCase={vi.fn()} />
+      </div>,
+    );
+    fireEvent.click(screen.getByTestId('garage-action-general'));
+    await nextSentence(P.generalChatOpen);
+    await userSays('כמה תיקים פתוחים יש לנו');
+    await nextSentence('תיקים פתוחים: 2.');
+    await userSays('איך מחליפים מגב');
+    await waitFor(() => expect(chatRequests, `spoken: ${spoken.join(' / ')}`).toEqual(['איך מחליפים מגב']), { timeout: 4000 });
+    await waitFor(() => {
+      const text = document.querySelector('.claims-ai-thread')?.textContent || '';
+      expect(/תשובת צ׳אט מדומה/.test(text), `thread: ${text.slice(-500)}`).toBe(true);
+    }, { timeout: 6000 });
+    // let the conversation list refresh and the messages reload from the (empty) store
+    await new Promise((r) => setTimeout(r, 300));
+    expect(screen.getAllByText(/שיחה כללית\. אפשר לשאול אותי/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/תיקים פתוחים: 2/).length).toBeGreaterThan(0);
+    expect(userBubbles('כמה תיקים פתוחים יש לנו')).toBe(1);
+    expect(violations).toEqual([]);
+  }, 15000);
+
   it('a chat reply that arrives after the user moved on is not spoken and does not reopen the mic', async () => {
     let releaseReply: () => void = () => {};
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {

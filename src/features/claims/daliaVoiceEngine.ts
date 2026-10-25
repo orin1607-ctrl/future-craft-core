@@ -73,7 +73,7 @@ import {
   type ReportRow,
   type ReportType,
 } from './daliaReports';
-import { applyFieldEdits, fieldByKey, looksLikeCorrection, parseFieldEdits, type EditResult } from './daliaFieldEdits';
+import { applyFieldEdits, fieldByKey, looksLikeCorrection, parseFieldEdits, stripFillers, type EditResult } from './daliaFieldEdits';
 import {
   completeRequest,
   parseAssistantRequest,
@@ -1759,12 +1759,14 @@ function quoteDraftsFlow(): Step[] {
         const d = s.data;
         const vehicle = { plate: d.plate, make: d.make, model: d.model, year: d.year };
         if (/קליט|קבלת|לעבודה|נכנס|הגיע/.test(text)) {
-          // the intake finds the vehicle by its plate; the approved lines go into the NEW case it opens
+          // the intake finds the vehicle by its plate (given as the first answer, so its lookup runs: a known
+          // vehicle continues with its customer, an unknown one asks for the new owner); the approved lines go
+          // into the NEW case it opens
           return {
             kind: 'switch',
             type: 'intake',
             prefill: d.plate || undefined,
-            data: { fromDraftId: d.draftId, customerName: d.customerName, customerPhone: d.customerPhone || undefined, ...vehicle, works: d.works, parts: d.parts },
+            data: { fromDraftId: d.draftId, customerName: d.customerName, customerPhone: d.customerPhone || undefined, make: d.make, model: d.model, year: d.year, works: d.works, parts: d.parts },
           };
         }
         if (/פתיחת לקוח|לפתוח לקוח|הלקוח|לקוח/.test(text)) {
@@ -4358,7 +4360,8 @@ const HELP_TEXT = [
 
 /** Control phrases are recognised only in short utterances, so they never swallow a real answer. */
 export function detectCommand(text: string): Command | null {
-  const t = text.trim().replace(/^דליה[,.!\s]+/, '').replace(/[.!?,]+$/g, '');
+  // "בעצם תבטלי", "טוב עזבי", "אוקיי בטל" — a filler before a short command
+  const t = text.trim().replace(/^דליה[,.!\s]+/, '').replace(/^(?:(?:בעצם|טוב|אוקיי|אוקי|יאללה|נו)[,.!\s]+)+/, '').replace(/[.!?,]+$/g, '');
   const words = t.split(/\s+/).length;
   if (/(תחזרי|חזרי|תגידי|תגיד) (שוב )?(על )?(ה)?שאלה|לא שמעתי|מה שאלת|מה השאלה|^שוב$|^עוד פעם$|^חזרי$|^תחזרי$/.test(t)) return 'repeat';
   if (/^(מה רשמת|מה רשמנו|מה יש עד עכשיו|תסכמי|סיכום עד עכשיו|מה כבר רשמת)/.test(t)) return 'summary';
@@ -4520,7 +4523,7 @@ async function handleCorrections(s: VoiceSession, step: Step, answer: string, en
     return { session: s, turn: askTurn({ say: P.correctionWhat, ui: [CORRECTION_CHOICES] }) };
   }
   if (!looksLikeCorrection(answer)) return null;
-  if (FREE_TEXT_STEPS.has(step.id) && !STRONG_EDIT.test(answer.trim())) return null;
+  if (FREE_TEXT_STEPS.has(step.id) && !STRONG_EDIT.test(stripFillers(answer))) return null;
   const { edits } = parseFieldEdits(answer, d);
   if (!edits.length) return null;
   return afterEdits(s, env, applyFieldEdits(d, edits, now));

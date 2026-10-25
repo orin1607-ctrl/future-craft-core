@@ -334,11 +334,23 @@ const ADD_VERB = /^(?:תוסיפי|הוסיפי|להוסיף)/;
 /** "שנת הייצור היא 2022 ולא 2021" / "הטלפון צריך להיות 050…" — a correction without an edit verb. */
 const STATEMENT = /\s(?:הוא|היא|צריך להיות|צריכה להיות|זה)\s.+\sולא\s/;
 
+/** "לא לא, …" / "רגע, …" / "סליחה, …" / "טעיתי, …" before a correction. */
+const FILLER = /^(?:(?:לא|רגע|שנייה|שניה|סליחה|טעות|טעיתי|בעצם|אופס|אה)[,.!\s]+)+/;
+/** "השם הוא יוסי לוי" / "הטלפון הנכון הוא 050…" / "השנה זה 2020" — a field stated with its new value, no edit verb. */
+const DECLARE = /^ו?(?:[א-ת.'"״׳]+\s){1,3}(?:(?:הנכון|הנכונה|האמיתי|האמיתית)\s+)?(?:הוא|היא|זה|זו|יהיה|תהיה|צריך להיות|צריכה להיות)\s+\S/;
+
+export function stripFillers(sentence: string): string {
+  return sentence.trim().replace(FILLER, '').trim();
+}
+
 /** True when the sentence is a correction of the current draft (and not an answer to the open question). */
 export function looksLikeCorrection(sentence: string): boolean {
   const t = sentence.trim();
-  return EDIT_VERB.test(t) || STATEMENT.test(` ${t}`);
+  const bare = stripFillers(t);
+  return EDIT_VERB.test(t) || EDIT_VERB.test(bare) || STATEMENT.test(` ${bare}`) || DECLARE.test(bare) || CONTRAST.test(bare);
 }
+/** "הלקוח עסקי לא פרטי" / "השנה 2022 לא 2021" — a short "X, not Y" (only a field of this draft counts). */
+const CONTRAST = /^(?:\S+\s+){1,2}\S+\s+ו?לא\s+\S+$/;
 
 /** Splits "תשני את הטלפון ל-050… ואת הדגם למאזדה 3, והשנה 2022" into one clause per field. */
 function clauses(sentence: string): string[] {
@@ -354,10 +366,13 @@ function valueAfter(clause: string, spec: FieldSpec): string {
   let rest = m ? clause.slice((m.index || 0) + m[0].length) : clause;
   rest = rest
     .replace(/^\s*(?:של\s+ה?(?:לקוח|רכב|חברה|ספק|חשבונית|תשלום|תוספת)\s*)?/, '')
-    .replace(/^\s*(?:ל-|ל־|ל(?=\d)|ל\s+|הוא\s+|היא\s+|יהיה\s+|תהיה\s+|צריך להיות\s+|צריכה להיות\s+|זה\s+|=|:|ב-|ב(?=\d))\s*/, '')
+    .replace(/^\s*(?:הנכון|הנכונה|האמיתי|האמיתית)\s+/, '')
+    .replace(/^\s*(?:ל-|ל־|ל(?=\d)|ל\s+|הוא\s+|היא\s+|יהיה\s+|תהיה\s+|צריך להיות\s+|צריכה להיות\s+|זה\s+|זו\s+|=|:|ב-|ב(?=\d))\s*/, '')
     .trim();
-  // "2022 ולא 2021" → 2022
-  rest = rest.replace(/\s+ולא\s+.*$/, '').trim();
+  // "2022 ולא 2021" / "2022 לא 2021" → 2022
+  rest = rest.replace(/(?:^|\s+)ו?לא\s+\S+$/, '').trim();
+  // the field word is itself the value: "הלקוח עסקי לא פרטי"
+  if (!rest && m && spec.key === 'customerType') return m[0];
   // a leading Hebrew "ל" glued to a word: "למאזדה 3" → "מאזדה 3" (only when the field was named right before it)
   if (/^ל[א-ת]/.test(rest) && m) rest = rest.slice(1);
   return rest;
@@ -368,7 +383,7 @@ export function parseFieldEdits(sentence: string, d: VoiceData): { edits: FieldE
   const edits: FieldEdit[] = [];
   const unknown: string[] = [];
   let lastVerb: 'set' | 'remove' | 'add' = 'set';
-  for (const raw of clauses(sentence.trim())) {
+  for (const raw of clauses(stripFillers(sentence))) {
     const verbMatch = raw.match(EDIT_VERB);
     if (verbMatch) lastVerb = REMOVE_VERB.test(raw) ? 'remove' : ADD_VERB.test(raw) ? 'add' : 'set';
     const clause = raw.replace(EDIT_VERB, '').replace(/^(?:את\s+)/, '').trim();

@@ -166,6 +166,13 @@ export function parseAssistantRequest(text: string, now = new Date()): Assistant
   if (caseWord && /(?:איזה|אילו|מה)\s.*(?:פתחנו|יש|נפתח).*(?:ללקוח|לחברת|של הלקוח)|(?:כל )?(?:ה)?תיקים של/.test(t)) return { kind: 'cases.for_customer', ref: refOf(t, 'customer') };
   if (caseWord && /(?:תמצאי|מצאי|חפשי|תחפשי)/.test(t) && /מספר (?:ה)?רכב|לפי רכב|לפי מספר/.test(t)) return { kind: 'case.find', ref: refOf(t, 'case') };
   if (caseWord && /(?:תפתחי|פתחי|תביאי|הביאי|תציגי|הציגי)/.test(t) && refOf(t, 'case').by !== 'none') return { kind: 'case.open', ref: refOf(t, 'case') };
+  // "יש לנו תיקים פתוחים של אלדן?" / "מה קורה עם התיק של אלדן" — that customer's cases (not every open case)
+  const statusOrList = /יש לנו|(?:^|\s)יש ל|מה קורה עם|מה המצב (?:של|עם)|מה מצב|איפה עומד|תיקים (?:ה)?(?:פתוחים|סגורים)/.test(t);
+  const action = /לסגור|תסגרי|סגירת|תמצאי|מצאי|תחפשי|חפשי|תפתחי|פתחי|תביאי|הביאי/.test(t);
+  if (caseWord && statusOrList && !action && t.split(' ').length <= 10 && /(?:^|\s)(?:של|ללקוח|לחברת)\s+[א-ת]/.test(t)) {
+    const ref = refOf(t, 'customer');
+    if (ref.by === 'name') return { kind: 'cases.for_customer', ref };
+  }
   return null;
 }
 
@@ -362,7 +369,11 @@ export async function runAssistantRequest(req: AssistantRequest, deps: Assistant
         : matchCases(base, req.ref, deps.focus);
       if (!list.length) return { kind: 'answer', say: customers.length ? 'ללקוח הזה אין תיקים.' : 'לא מצאתי לקוח או תיקים מתאימים.' };
       const who = customers.length === 1 ? customerDisplayName(customers[0]) : (req.ref.by === 'name' ? req.ref.name : 'הלקוח');
-      return listAnswer(`ל${who} יש ${list.length} תיקים, ${list.filter((c) => !isClosed(c)).length} מהם פתוחים.`, `התיקים של ${who} (${list.length})`, list);
+      const openCount = list.filter((c) => !isClosed(c)).length;
+      const say = list.length === 1
+        ? `ל${who} יש תיק אחד, והוא ${openCount ? 'פתוח' : 'סגור'}.`
+        : `ל${who} יש ${list.length} תיקים, ${openCount} מהם פתוחים.`;
+      return listAnswer(say, `התיקים של ${who} (${list.length})`, list);
     }
     case 'case.find':
     case 'case.open': {

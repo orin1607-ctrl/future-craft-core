@@ -172,7 +172,8 @@ export function parseYesNo(text: string): 'yes' | 'no' | null {
 /** Intake fuel level in the screen's own chip values: ריק, 1/4, 1/2, 3/4, מלא. */
 export function parseFuel(text: string): string | null {
   const t = String(text || '');
-  if (/שלושה\s*רבעים|3\s*\/\s*4|שלוש\s*רבעים/.test(t)) return '3/4';
+  // "שלושה רבעים" / "שלושת רבעי (מיכל)" / "שלוש רבעים" — checked before "רבע" so it is never read as 1/4
+  if (/שלוש(?:ה|ת)?\s*(?:ה)?רבע(?:ים|י)?|3\s*\/\s*4/.test(t)) return '3/4';
   if (/מלא/.test(t)) return 'מלא';
   if (/חצי|1\s*\/\s*2/.test(t)) return '1/2';
   if (/רבע|1\s*\/\s*4/.test(t)) return '1/4';

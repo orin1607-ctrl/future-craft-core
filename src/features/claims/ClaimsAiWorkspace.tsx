@@ -3248,6 +3248,8 @@ export function ClaimsAiWorkspace({
   const isSubmittingRef = useRef(false);
   const lastSendTimeRef = useRef(0);
   const loadedActiveIdRef = useRef<string | null>(null);
+  /** The conversation created from this window's first chat message — voice bubbles shown before it belong to it. */
+  const localConversationRef = useRef<string | null>(null);
   const isNearBottomRef = useRef(true);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
@@ -4019,7 +4021,15 @@ const toggleVoiceMute = useCallback(() => {
         setBanner(res.error.message);
         return;
       }
-      setMessages(res.data || []);
+      // Voice-workflow bubbles live only on this device (never saved). A reload of the SAME conversation (the
+      // list refreshes after every chat message) keeps them, in time order; another conversation drops them.
+      const rows = res.data || [];
+      setMessages((prev) => {
+        const local = prev.filter((m) => /^(asst|usr)_wf_/.test(String(m.id || ''))
+          && (m.conversation_id === activeId || (m.conversation_id === 'voice_flow' && localConversationRef.current === activeId)));
+        if (!local.length) return rows;
+        return deduplicateMessages([...rows, ...local].sort((a, b) => String(a.created_at || '').localeCompare(String(b.created_at || ''))));
+      });
       writeActiveId(userId, claimId, activeId, module, garageCase?.id || null);
     });
     return () => { cancelled = true; };
@@ -4123,6 +4133,7 @@ const toggleVoiceMute = useCallback(() => {
         });
         if (created.error || !created.data) throw new Error(created.error?.message || 'יצירת השיחה נכשלה');
         conversationId = created.data.id;
+        localConversationRef.current = conversationId;
         setConversations((prev) => [created.data!, ...prev]);
         setActiveId(conversationId);
         writeActiveId(userId, claimId, conversationId, module, garageCase?.id || null);
