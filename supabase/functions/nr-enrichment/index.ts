@@ -12,6 +12,7 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { edgeCorsHeaders, jsonResponse, requireAuth } from "../_shared/edgeAuth.ts";
 import { locateSocial } from "./socialLocate.ts";
+import { stepWikidataBulk } from "./wikidataBulk.ts";
 import { socialUrl, socialsFrom } from "../_shared/socialUrl.ts";
 // the 7 Dalia lead rules – the same file the app loads (public/openprospector-qualify.js), so the cloud stream and the
 // screen always grade a lead identically; it registers itself as globalThis.OPQualify
@@ -1502,6 +1503,10 @@ Deno.serve(async (req) => {
       const id = Number((body as { business_id?: number }).business_id);
       if (!id) return jsonResponse({ ok: false, error: "business_id required" }, 400);
       return jsonResponse({ ok: true, ...(await locateSocial(sb, deps, id, { mode: "button", userId: auth.ctx.isInternalCall ? null : auth.ctx.user?.id })) });
+    }
+    if (action === "wikidata_bulk") {
+      if (!auth.ctx.isInternalCall) return jsonResponse({ ok: false, error: "internal only" }, 403);
+      return jsonResponse({ ok: true, ...(await stepWikidataBulk(sb)) });
     }
     if (action === "social_sample") {
       if (!auth.ctx.isInternalCall) return jsonResponse({ ok: false, error: "internal only" }, 403);
