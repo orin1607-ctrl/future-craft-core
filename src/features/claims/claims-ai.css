@@ -2163,3 +2163,64 @@
 @media (max-width: 760px) and (max-height: 640px) {
   .claims-root .dalia-claims-window .claims-ai-composer.dalia-composer textarea { min-height: 64px; }
 }
+
+/* ---------------------------------------------------------------------------
+   Dalia AI — claims welcome screen (ClaimsWelcomeHub): "שיחה כללית" first and prominent,
+   main actions, "כל הפעולות" for the rest; not-yet-connected actions are visibly disabled
+   --------------------------------------------------------------------------- */
+.claims-root .claims-ai-empty.claims-hub-empty { max-width: 800px; width: 100%; margin: 0 auto auto; }
+.claims-root .claims-welcome-hub .claims-hub-chat { grid-column: 1 / -1; }
+.claims-root .claims-welcome-hub .claims-hub-chat strong { font-size: 16px; }
+.claims-root .claims-welcome-hub .garage-action-card.is-disabled,
+.claims-root .claims-welcome-hub .garage-action-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-style: dashed;
+  transform: none;
+  box-shadow: none;
+  background: var(--bg2, #1e293b);
+}
+.claims-root .claims-hub-all-toggle {
+  display: block;
+  width: 100%;
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--br, #334155);
+  background: transparent;
+  color: var(--ac3, #60a5fa);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.claims-root .claims-hub-section-title {
+  margin: 14px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--t3, #94a3b8);
+  text-align: right;
+}
+.claims-root [data-testid="claims-hub-all"] > .claims-hub-grid:first-child { margin-top: 10px; }
+.claims-root .claims-hub-resume {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 10px;
+  color: #38bdf8;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+@media (max-width: 600px) {
+  .claims-root .claims-welcome-hub { padding: 10px 2px; }
+  .claims-root .claims-welcome-hub .claims-hub-grid-more { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .claims-root .claims-welcome-hub .claims-hub-grid-more .garage-action-card { flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; min-height: 92px; }
+  .claims-root .claims-welcome-hub .garage-action-body small { font-size: 11px; }
+}

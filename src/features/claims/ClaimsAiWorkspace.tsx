@@ -70,6 +70,7 @@ import {
 } from './daliaVoiceEngine';
 import type { GarageVoiceActions } from '@/modules/garage-management/garageVoiceActions';
 import { DaliaDrawer, DaliaTurnUi, type DaliaDrawerData } from './DaliaTurnUi';
+import { ClaimsWelcomeHub } from './ClaimsWelcomeHub';
 import { mergeRecognitionResults } from './daliaSpeechText';
 import { parseAssistantRequest } from './daliaAssistant';
 import type { VoiceFile, VoiceUi } from './daliaVoiceEngine';
@@ -2911,7 +2912,9 @@ export function ClaimsAiWorkspace({
   const lastVoiceTurnRef = useRef<VoiceTurn | null>(null);
   const handleVoiceWorkflowInputRef = useRef<((text: string) => Promise<void>) | null>(null);
   const [liveTranscript, setLiveTranscript] = useState('');
-  const [showWelcomeHub, setShowWelcomeHub] = useState(true);
+  // Claims: a saved conversation opens as before; the welcome screen shows when the chat is empty
+  // or when the user returns to the main menu.
+  const [showWelcomeHub, setShowWelcomeHub] = useState(module !== 'claims');
   const [confirmReturnToMenuModal, setConfirmReturnToMenuModal] = useState(false);
   const [autoSpeakReplies, setAutoSpeakReplies] = useState(false);
   const autoSpeakRepliesRef = useRef(false);
@@ -4040,13 +4043,18 @@ const toggleVoiceMute = useCallback(() => {
   useEffect(() => {
     const el = threadRef.current;
     if (!el) return;
-    // the garage welcome screen (title + action cards) is read from the top; a conversation from its end
-    if (module === 'garage' && ((messages.length === 0 && !loading) || showWelcomeHub)) {
+    // the garage / claims welcome screen (title + action cards) is read from the top; a conversation from its end
+    if ((module === 'garage' || module === 'claims') && ((messages.length === 0 && !loading) || showWelcomeHub)) {
       el.scrollTop = 0;
       return;
     }
     if (isNearBottomRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, loading, module, showWelcomeHub]);
+
+  /** Claims: once a question is on its way the conversation replaces the welcome screen. */
+  useEffect(() => {
+    if (module === 'claims' && loading) setShowWelcomeHub(false);
+  }, [module, loading]);
 
   const sendMessage = useCallback(async (text: string, source: 'text' | 'voice') => {
     const now = Date.now();
@@ -5382,7 +5390,7 @@ const toggleVoiceMute = useCallback(() => {
           ) : null}
           {banner ? <div className="claims-ai-bubble" data-testid="claims-ai-error" style={{ border: '1px solid var(--rd2)' }}>{banner}</div> : null}
           {((messages.length === 0 && !loading) || showWelcomeHub) ? (
-            <div className="claims-ai-empty">
+            <div className={`claims-ai-empty${module === 'claims' ? ' claims-hub-empty' : ''}`}>
               {module === 'reports' ? (
                 <div className="garage-welcome-hub" data-testid="reports-welcome-hub">
                   <div className="garage-welcome-badge" style={{ background: 'rgba(59,130,246,0.18)', color: '#60a5fa', borderColor: 'rgba(59,130,246,0.4)' }}>📊 דליה AI · דוחות ומאזן משותף</div>
@@ -5627,14 +5635,35 @@ const toggleVoiceMute = useCallback(() => {
                     </button>
                   </div>
                 </div>
-              ) : claim ? (
-                'שאלו בשפה חופשית על התיק הפתוח. ההודעות נשמרות ב-Staging ונשארות אחרי סגירת החלון.'
               ) : (
-                'שאלו בשפה חופשית על כלל התביעות, סיכומים, מיילים מהיום, ומשימות פתוחות במערכת.'
+                <ClaimsWelcomeHub
+                  claim={claim}
+                  savedMessageCount={messages.length}
+                  canResume={messages.length > 0 || conversations.length > 0}
+                  onChat={() => {
+                    setShowWelcomeHub(false);
+                    textareaRef.current?.focus();
+                  }}
+                  onPrefill={(text) => {
+                    setInput(text);
+                    inputRef.current = text;
+                    baseInputRef.current = text;
+                    const el = textareaRef.current;
+                    if (el) {
+                      el.focus();
+                      window.setTimeout(() => { try { el.setSelectionRange(text.length, text.length); } catch {} }, 0);
+                    }
+                  }}
+                  onAsk={(text) => void sendMessage(text, 'text')}
+                  onResume={() => {
+                    if (messages.length === 0 && conversations[0]) setActiveId(conversations[0].id);
+                    setShowWelcomeHub(false);
+                  }}
+                />
               )}
             </div>
           ) : null}
-          {deduplicateMessages(messages).map((msg) => {
+          {(module === 'claims' && showWelcomeHub ? [] : deduplicateMessages(messages)).map((msg) => {
             const pending = pendingActionOf(msg.metadata);
             const toolError = typeof msg.metadata?.tool_error === 'string' ? msg.metadata.tool_error : '';
             const msgAttachments = Array.isArray(msg.metadata?.attachments) ? (msg.metadata.attachments as any[]) : [];
