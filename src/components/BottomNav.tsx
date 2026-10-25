@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Scale, X, Camera, Warehouse } from 'lucide-react';
+import { Home, Car, Users, Wrench, FileText, AlertTriangle, BarChart3, RefreshCw, LogOut, Settings, Bell, ClipboardList, History, Phone, Building2, ChevronsUpDown, Check, Shield, Radio, MessageCircle, Radar, Bus, SlidersHorizontal, Megaphone, Scale, X, Camera, Warehouse, Sparkles } from 'lucide-react';
+import { isFleetDaliaAiEnabled } from '@/features/fleet-dalia-ai/stagingGate';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyScope } from '@/contexts/CompanyScopeContext';
 import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
@@ -20,6 +21,7 @@ interface NavItem {
 /** Sidebar IA — צפייה, מעקב, בקרה, דוחות, ניווט (כל ה-Routes נשארים; פעולות מתוך כרטיסים) */
 const managerNavItems: NavItem[] = [
   { path: '/dashboard', label: 'בית', icon: Home },
+  { path: '/fleet-dalia-ai', label: 'דליה AI לצי', icon: Sparkles },
   { path: '/vehicles', label: 'רשימת רכבים', icon: Car },
   { path: '/drivers', label: 'רשימת נהגים', icon: Users },
   { path: '/vehicle-tracking', label: 'מעקב רכבים', icon: Radio },
@@ -147,6 +149,7 @@ export function DesktopSidebar({ mobileOpen = false, onMobileClose }: { mobileOp
       return transportEnabled;
     }
     if (path === '/fleetos-ai') return canFleetOS;
+    if (path === '/fleet-dalia-ai') return isFleetDaliaAiEnabled() && canFleetOS;
     if (path === '/ai-marketing') return isSuperAdmin;
     if (path === '/telemarketing/admin') return isSuperAdmin;
     if (path === '/claims') return canClaims;

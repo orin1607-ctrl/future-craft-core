@@ -64,6 +64,7 @@ const ROUTES = [
   'take-exam',
   'upload-request',
   'fleetos-ai',
+  'fleet-dalia-ai',
   'transport',
   'vehicle-tracking',
   'driver-tracking',

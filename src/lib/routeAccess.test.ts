@@ -111,4 +111,15 @@ describe('routeAccess', () => {
     expect(canAccessRoute('/claims', 'fleet_manager', { garageOps: true, hasClaimsAccess: true })).toBe(true);
     expect(canAccessRoute('/reports', 'fleet_manager', { garageOps: true })).toBe(true);
   });
+
+  it('fleet dalia is only for fleet managers and super admins', () => {
+    expect(canAccessRoute('/fleet-dalia-ai', 'super_admin')).toBe(true);
+    expect(canAccessRoute('/fleet-dalia-ai', 'fleet_manager')).toBe(true);
+    expect(canAccessRoute('/fleet-dalia-ai', 'driver')).toBe(false);
+    expect(canAccessRoute('/fleet-dalia-ai', 'business_customer')).toBe(false);
+    expect(canAccessRoute('/fleet-dalia-ai', 'telemarketing_agent')).toBe(false);
+    expect(canAccessRoute('/fleet-dalia-ai', 'private_customer')).toBe(false);
+    expect(canAccessRoute('/claims', 'fleet_manager')).toBe(false);
+    expect(canAccessRoute('/garage-management', 'fleet_manager')).toBe(true);
+  });
 });

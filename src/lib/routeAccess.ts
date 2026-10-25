@@ -77,6 +77,10 @@ export function canAccessRoute(
     return path === '/dashboard' || path === '/settings' || path.startsWith('/settings/');
   }
 
+  if (path === '/fleet-dalia-ai') {
+    return role === 'super_admin' || role === 'fleet_manager';
+  }
+
   if (path === '/claims' || path.startsWith('/claims/')) {
     return role === 'super_admin' || !!extras?.hasClaimsAccess;
   }
