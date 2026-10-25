@@ -71,6 +71,7 @@ import {
 import type { GarageVoiceActions } from '@/modules/garage-management/garageVoiceActions';
 import { DaliaDrawer, DaliaTurnUi, type DaliaDrawerData } from './DaliaTurnUi';
 import { mergeRecognitionResults } from './daliaSpeechText';
+import { parseAssistantRequest } from './daliaAssistant';
 import type { VoiceFile, VoiceUi } from './daliaVoiceEngine';
 import { diagLog, installSynthSpy, describeVoices, copyDiagReport, playTestTone, registerDiagSection } from './daliaVoiceDiag';
 import { DaliaSpeechController, pickHebrewVoice, type CloudSynthResult, type SpeakOptions, type SpeakResult } from './daliaSpeechController';
@@ -4441,6 +4442,8 @@ const toggleVoiceMute = useCallback(() => {
   /** One answer at a time: while the engine processes an answer, a second one (late voice event, typing
    *  over the voice) is not applied to the same conversation — it would land on the NEXT question. */
   const workflowBusyRef = useRef(false);
+  /** handleStartVoiceWorkflow, for handlers declared before it. */
+  const startWorkflowRef = useRef<(type: VoiceWorkflowType, prefill?: string) => Promise<void> | void>(() => {});
   const [lastVoiceMsgId, setLastVoiceMsgId] = useState<string | null>(null);
   const [daliaDrawer, setDaliaDrawer] = useState<DaliaDrawerData | null>(null);
   const voiceCameraInputRef = useRef<HTMLInputElement>(null);
@@ -4593,6 +4596,11 @@ const toggleVoiceMute = useCallback(() => {
     lastWorkflowInputRef.current = { text: norm, at: Date.now(), turn: lastVoiceTurnRef.current };
     const current = currentVoiceWorkflowRef.current;
     if (!current) {
+      // a question about the garage data is answered from the real records (general conversation)
+      if (moduleRef.current === 'garage' && parseAssistantRequest(userText)) {
+        void startWorkflowRef.current('general_action', userText);
+        return;
+      }
       void sendMessage(userText, 'voice');
       return;
     }
@@ -4653,6 +4661,8 @@ const toggleVoiceMute = useCallback(() => {
     await presentVoiceTurn(res.turn, `wf-start-${wfType}`);
   }, [garageCase, presentVoiceTurn, setActiveVoiceSession, stopSpeaking, stopVoiceRecognition, unlockAudioGesture, voiceEnv]);
 
+  startWorkflowRef.current = handleStartVoiceWorkflow;
+
   const voiceAwaitingFile = useCallback(
     () => !!currentVoiceWorkflowRef.current && !!lastVoiceTurnRef.current?.ui?.some((u) => u.type === 'upload'),
     [],
@@ -4671,6 +4681,12 @@ const toggleVoiceMute = useCallback(() => {
   /** Composer submit: while a voice workflow is active, a typed line answers Dalia's question. */
   const submitComposer = useCallback(() => {
     const text = input.trim();
+    if (module === 'garage' && !currentVoiceWorkflowRef.current && text && stagedAttachments.length === 0 && parseAssistantRequest(text)) {
+      setInput('');
+      if (textareaRef.current) textareaRef.current.value = '';
+      void startWorkflowRef.current('general_action', text);
+      return;
+    }
     if (currentVoiceWorkflowRef.current && text && stagedAttachments.length === 0) {
       setInput('');
       if (textareaRef.current) textareaRef.current.value = '';

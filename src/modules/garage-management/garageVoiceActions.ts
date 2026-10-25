@@ -47,6 +47,9 @@ export type VoiceCustomerDraft = {
   company_name: string;
   phone: string;
   business_id?: string;
+  address?: string;
+  contact_person?: string;
+  notes?: string;
 };
 
 /** Structured case search terms (parsed from speech by the voice engine). */
@@ -62,6 +65,12 @@ export interface GarageVoiceActions {
   actorName: string;
   /** Auth role of the signed-in user — never taken from speech. */
   actorRole?: string;
+  /** Id of the signed-in user ("the last case I opened" = garage_cases.opened_by). */
+  actorId?: string;
+  /** Customers of the shop, newest first (for "who is the last customer we opened"). */
+  listCustomers?(): Promise<GarageCustomer[]>;
+  /** The customer card fields the card screen edits: name, phone, address. Shop RLS applies. */
+  updateCustomerDetails?(customerId: string, patch: { phone?: string; name?: string; address?: string }): Promise<GarageCustomer>;
   searchCustomers(query: string): Promise<GarageCustomer[]>;
   getCustomer(customerId: string): Promise<GarageCustomer | null>;
   listVehicles(customerId: string): Promise<GarageVehicle[]>;
@@ -104,6 +113,22 @@ export function createGarageVoiceActions(actor: GarageActor, shopScope: GarageSh
   return {
     actorName: actor.full_name || 'דליה AI',
     actorRole: actor.role,
+    actorId: actor.id,
+    async listCustomers() {
+      const { data, error } = await supabase.from('garage_customers' as never).select('*').order('created_at', { ascending: false }).limit(300);
+      if (error) throw new Error(isGarageSchemaMissing(error) ? GARAGE_BOOK_PENDING_MESSAGE : (error.message || 'טעינת לקוחות נכשלה'));
+      return filterGarageByShop(((data || []) as GarageCustomer[]).map(hydrateCustomer), shopScope);
+    },
+    async updateCustomerDetails(customerId, patch) {
+      const updates: Record<string, string> = {};
+      if (patch.phone !== undefined) updates.phone = patch.phone;
+      if (patch.name !== undefined) updates.name = patch.name;
+      if (patch.address !== undefined) updates.address = patch.address;
+      if (!Object.keys(updates).length) throw new Error('אין מה לעדכן');
+      const { data, error } = await supabase.from('garage_customers' as never).update(updates as never).eq('id', customerId).select('*').single();
+      if (error) throw new Error(error.message || 'עדכון הלקוח נכשל');
+      return hydrateCustomer(data as GarageCustomer);
+    },
     searchCustomers: (query) => searchCustomers(query, shopScope),
     async getCustomer(customerId) {
       const { data, error } = await supabase.from('garage_customers' as never).select('*').eq('id', customerId).maybeSingle();
@@ -193,11 +218,11 @@ export function createGarageVoiceActions(actor: GarageActor, shopScope: GarageSh
       phone: draft.phone,
       second_phone: '',
       email: '',
-      address: '',
+      address: draft.address || '',
       business_id: draft.business_id || '',
-      contact_person: '',
+      contact_person: draft.contact_person || '',
       preferred_channel: '',
-      notes: '',
+      notes: draft.notes || '',
       shop_company_name: shopName,
     }, opts),
     createVehicle: (draft) => createVehicle({

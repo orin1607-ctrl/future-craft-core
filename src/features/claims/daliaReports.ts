@@ -237,7 +237,8 @@ export function computeReport(all: GarageCase[], f: ReportFilters, now = new Dat
   }
 
   if (type === 'quotes') {
-    const inP = scoped.filter((c) => c.case_data.quoteCreated && inRange(c.created_at, range));
+    // an approved quote is a quote even when the older "created" flag is missing (seen in real cases)
+    const inP = scoped.filter((c) => (c.case_data.quoteCreated || c.case_data.quoteApproved) && inRange(c.created_at, range));
     const fresh = inP.filter((c) => !c.case_data.quoteSent && !c.case_data.waitingForApproval && !c.case_data.quoteApproved);
     const waiting = inP.filter((c) => (c.case_data.quoteSent || c.case_data.waitingForApproval) && !c.case_data.quoteApproved);
     const approved = inP.filter((c) => c.case_data.quoteApproved);

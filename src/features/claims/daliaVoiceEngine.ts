@@ -73,6 +73,16 @@ import {
   type ReportRow,
   type ReportType,
 } from './daliaReports';
+import { applyFieldEdits, fieldByKey, looksLikeCorrection, parseFieldEdits, type EditResult } from './daliaFieldEdits';
+import {
+  completeRequest,
+  parseAssistantRequest,
+  runAssistantRequest,
+  type AssistantAnswer,
+  type AssistantFocus,
+  type AssistantRequest,
+  type PendingAction,
+} from './daliaAssistant';
 
 export type VoiceWorkflowType =
   | 'new_customer'
@@ -186,6 +196,19 @@ export interface VoiceData {
   intakeOptions?: Array<{ vehicleId: string; customerId: string; plate: string; label: string }>;
   intakeCaseOptions?: Candidate[];
   intakeCaseDecided?: boolean;
+  // --- free corrections ---
+  customerAddress?: string;
+  contactPerson?: string;
+  customerNotes?: string[];
+  /** A field named in a correction without its value — its value is the next answer. */
+  askField?: string;
+  // --- general assistant ---
+  /** The case / customer / vehicle the conversation is about ("התיק הזה", "הלקוח הזה"). */
+  focus?: AssistantFocus;
+  /** A question that waits for one missing detail. */
+  assistantPending?: { req: AssistantRequest; need: 'who' | 'case' | 'customer' | 'phone' | 'company' | 'period' };
+  /** A write that waits for an explicit yes. */
+  assistantAction?: PendingAction;
   arrivedNow?: boolean;
   complaint?: string;
   requestedWork?: string;
@@ -320,7 +343,7 @@ export interface VoiceEnv {
   readDocument?: (kind: 'vehicle_license' | 'supplier_invoice', file: VoiceFile) => Promise<Record<string, unknown> | null>;
 }
 
-type Ask = { say: string; alt?: string; display?: string; confirm?: boolean; ui?: VoiceUi[] };
+type Ask = { say: string; alt?: string; display?: string; confirm?: boolean; ui?: VoiceUi[]; openCaseId?: string };
 type Outcome =
   | { kind: 'next'; display?: string; ui?: VoiceUi[] }
   | { kind: 'reask'; ask: Ask; display?: string }
@@ -886,6 +909,11 @@ function caseSearchStep(opts: {
         return reask(P.searchFailed, e instanceof Error ? `פרטי התקלה: ${e.message}` : undefined);
       }
       d.candidates = undefined;
+      if (!found.length && opts.scope !== 'any') {
+        // not among the open ones — say so when it is a closed case, instead of "not found"
+        const closed = (await searchCasesFor(env, text, 'any').catch(() => [] as GarageCase[])).filter((c) => c.case_data?.caseClosed);
+        if (closed.length) return reask(P.caseAlreadyClosedPick, closed.slice(0, 3).map((c) => `התיק ${c.case_number} כבר סגור${c.case_data.caseClosedAt ? ` (נסגר ${formatDay(c.case_data.caseClosedAt)})` : ''}.`).join('\n'));
+      }
       if (!found.length) return reask(P.caseNotFound, `חיפוש: ${text.trim()}`);
       if (found.length === 1) return select(s, env, { id: found[0].id, label: caseLine(found[0]), number: found[0].case_number });
       if (found.length > 6) {
@@ -954,6 +982,9 @@ function customerSummary(d: VoiceData): string[] {
     d.customerPhone ? `טלפון: ${d.customerPhone}` : '',
     d.customerType ? `סוג: ${d.customerType === 'business' ? 'עסקי' : 'פרטי'}` : '',
     d.businessId ? `ח.פ / עוסק: ${d.businessId}` : '',
+    d.customerAddress ? `כתובת: ${d.customerAddress}` : '',
+    d.contactPerson ? `איש קשר: ${d.contactPerson}` : '',
+    d.customerNotes?.length ? `הערות: ${d.customerNotes.join(' · ')}` : '',
   ].filter(Boolean);
 }
 function vehicleSummary(d: VoiceData): string[] {
@@ -983,6 +1014,9 @@ async function ensureCustomer(s: VoiceSession, env: VoiceEnv, force = false): Pr
     company_name: d.customerType === 'business' ? d.companyName || d.customerName || '' : '',
     phone: d.customerPhone || '',
     business_id: d.businessId || '',
+    address: d.customerAddress || '',
+    contact_person: d.contactPerson || '',
+    notes: (d.customerNotes || []).join('\n'),
   }, { force });
   d.customerId = customer.id;
   d.customerLabel = customerLine(customer);
@@ -3141,6 +3175,16 @@ function findCaseFlow(): Step[] {
         return { ...personal(env, P.findOpen), ui: [choices(['📂 כל התיקים הפתוחים', 'תראי לי את כל התיקים הפתוחים'], ['כל התיקים כולל סגורים', 'תראי לי את כל התיקים גם סגורים'])] };
       },
       answer: async (text, s, env) => {
+        const pending = await answerAssistantPending(text, s, env);
+        if (pending) return pending;
+        const req = parseAssistantRequest(text, env.now?.() || new Date());
+        if (req && req.kind !== 'case.list' && req.kind !== 'case.find') {
+          const out = await runAssistant(req, s, env);
+          if (out.kind === 'reask' && !s.data.assistantPending && !s.data.assistantAction) {
+            return finish(out.ask.say, 'info', { alt: out.ask.alt, display: out.ask.display, ui: out.ask.ui, openCaseId: out.ask.openCaseId });
+          }
+          return out;
+        }
         const intent = parseCaseListIntent(text);
         if (intent) return listCases(env, intent);
         // "התיק האחרון של הלקוח …"
@@ -3954,6 +3998,7 @@ export function smallTalkSay(kind: SmallTalk): string {
 
 type Interruption =
   | { kind: 'quoteLater' }
+  | { kind: 'assistant'; req: AssistantRequest }
   | { kind: 'info'; route: { type: VoiceWorkflowType; prefill?: string; data?: Partial<VoiceData> } }
   | { kind: 'action'; route: { type: VoiceWorkflowType; prefill?: string; data?: Partial<VoiceData> } }
   | { kind: 'chat'; text: string }
@@ -3975,6 +4020,11 @@ export function classifyInterruption(text: string, s: VoiceSession): Interruptio
   const stepId = currentStep(s)?.id || '';
   if (s.type === 'new_customer' && /הצעת מחיר|הצעה ל/.test(t) && !['quoteOffer', 'vehicleChoice'].includes(stepId) && !s.data.wantQuote) {
     return { kind: 'quoteLater' };
+  }
+  // a question about the garage data ("מה התיק האחרון שנפתח?") is answered on the side
+  const asked = INFO_WORKFLOWS.includes(s.type) ? null : parseAssistantRequest(t);
+  if (asked && (QUESTION_START.test(t) || /\?\s*$/.test(t)) && !/^case\.(delete|archive|status)|update_phone/.test(asked.kind)) {
+    return { kind: 'assistant', req: asked };
   }
   const route = routeFreeRequest(t);
   // "show me all the open cases" is never an answer to a question inside another flow
@@ -4037,6 +4087,18 @@ async function startSide(s: VoiceSession, route: { type: VoiceWorkflowType; pref
 
 async function handleInterruption(s: VoiceSession, it: Interruption, env: VoiceEnv): Promise<VoiceResult> {
   switch (it.kind) {
+    case 'assistant': {
+      const ans = await runAssistantRequest(it.req, { actions: needActions(env), now: env.now?.() || new Date(), focus: s.data.focus || {} });
+      if (ans.kind === 'answer') {
+        s.data.awaitingContinue = true;
+        const out = assistantOutcome(ans, s);
+        const ask = out.kind === 'reask' ? out.ask : { say: ans.say };
+        return { session: s, turn: { ...askTurn(ask), followSay: P.continueFlowAsk, ui: [...(askTurn(ask).ui || []), CONTINUE_CHOICES] } };
+      }
+      // a clarification / permission answer inside another flow: shown, the flow continues
+      s.data.awaitingContinue = true;
+      return { session: s, turn: { say: ans.say, alt: P.assistantShown, display: 'display' in ans ? ans.display : undefined, followSay: P.continueFlowAsk, ui: [CONTINUE_CHOICES], expectsAnswer: true, done: false } };
+    }
     case 'quoteLater': {
       s.data.wantQuote = true;
       s.data.quoteOffered = true;
@@ -4098,18 +4160,78 @@ async function answerPending(s: VoiceSession, answer: string, env: VoiceEnv): Pr
   return null;
 }
 
+/** An assistant answer as a turn of the conversation (the conversation stays open). */
+function assistantOutcome(ans: AssistantAnswer, s: VoiceSession, extraUi: VoiceUi[] = []): Outcome {
+  const d = s.data;
+  if (ans.kind === 'clarify') {
+    d.assistantPending = { req: ans.pending, need: ans.need };
+    return { kind: 'reask', ask: { say: ans.say, alt: P.assistantClarify, display: ans.display, ui: ans.options.length ? [choices(...ans.options)] : undefined } };
+  }
+  if (ans.kind === 'confirm') {
+    d.assistantAction = ans.action;
+    const ui = ans.action.type === 'delete_choice'
+      ? [choices(['🗑️ מחיקה', 'למחוק'], ['🙈 רק להסתיר', 'רק להסתיר'], ['ביטול', 'ביטול'])]
+      : [YES_NO];
+    return { kind: 'reask', ask: { say: ans.say, alt: P.assistantConfirm, display: ans.display, confirm: ans.action.type !== 'delete_choice', ui } };
+  }
+  if (ans.kind === 'notAllowed') return { kind: 'reask', ask: { say: ans.say, alt: P.assistantNotAllowed } };
+  if (ans.focus) d.focus = { ...ans.focus };
+  const ui: VoiceUi[] = [];
+  if (ans.rows && ans.rows.rows.length) ui.push({ type: 'list', title: ans.rows.title, rows: ans.rows.rows });
+  if (ans.openChoice) ui.push(choices([`📂 פתחי את ${ans.openChoice.label}`, `תפתחי את תיק ${ans.openChoice.label}`]));
+  ui.push(...extraUi);
+  return { kind: 'reask', ask: { say: ans.say, alt: P.assistantShown, display: ans.display, ui: ui.length ? ui : undefined, openCaseId: ans.openCaseId } };
+}
+
+async function runAssistant(req: AssistantRequest, s: VoiceSession, env: VoiceEnv, extraUi: VoiceUi[] = []): Promise<Outcome> {
+  const ans = await runAssistantRequest(req, { actions: needActions(env), now: env.now?.() || new Date(), focus: s.data.focus || {} });
+  return assistantOutcome(ans, s, extraUi);
+}
+
+/** The answer to an assistant clarification / confirmation, when one is waiting. */
+async function answerAssistantPending(text: string, s: VoiceSession, env: VoiceEnv, extraUi: VoiceUi[] = []): Promise<Outcome | null> {
+  const d = s.data;
+  if (d.assistantAction) {
+    const action = d.assistantAction;
+    d.assistantAction = undefined;
+    if (action.type === 'delete_choice') {
+      if (/למחוק|מחיקה|לגמרי|למחוק לגמרי/.test(text)) return { kind: 'reask', ask: { say: P.deleteNotByVoice, display: action.caseLabel, ui: extraUi.length ? extraUi : undefined } };
+      if (/להסתיר|הסתרה|ארכיון|לארכב/.test(text)) return { kind: 'reask', ask: { say: P.archiveNotAvailable, display: action.caseLabel, ui: extraUi.length ? extraUi : undefined } };
+      return { kind: 'reask', ask: { say: P.okNothingChanged, ui: extraUi.length ? extraUi : undefined } };
+    }
+    const yn = parseYesNo(text);
+    if (yn !== 'yes') return { kind: 'reask', ask: { say: P.okNothingChanged, ui: extraUi.length ? extraUi : undefined } };
+    const a = needActions(env);
+    const updated = await a.updateCustomerDetails!(action.customerId, { phone: action.phone });
+    d.focus = { customerId: updated.id };
+    return { kind: 'reask', ask: { say: P.phoneUpdated, display: `${action.customerLabel} · ${updated.phone}`, ui: extraUi.length ? extraUi : undefined } };
+  }
+  if (d.assistantPending) {
+    const { req, need } = d.assistantPending;
+    d.assistantPending = undefined;
+    const full = completeRequest(req, need, text, env.now?.() || new Date());
+    if (full) return runAssistant(full, s, env, extraUi);
+  }
+  return null;
+}
+
 function generalFlow(): Step[] {
   return [
     {
       id: 'general',
       done: () => false,
       ask: (_d, _s, env) => ({ ...personal(env, P.generalChatOpen), ui: [GENERAL_CHOICES] }),
-      answer: (text, s) => {
-        // general chat stays open: greetings are answered here, system requests go to their flow and come
-        // back here, anything else is answered by the regular Dalia chat
+      answer: async (text, s, env) => {
+        // general chat stays open: greetings are answered here, questions about the garage data are answered
+        // from the real records, system requests go to their flow and come back here, anything else is
+        // answered by the regular Dalia chat
+        const pending = await answerAssistantPending(text, s, env);
+        if (pending) return pending;
         if (/^(זהו|סיימתי|סיימנו|ביי|להתראות|יום טוב)( תודה)?$/.test(text.trim())) return finish(P.okDone, 'info');
         const talk = detectSmallTalk(text);
         if (talk) return reask(smallTalkSay(talk), undefined, [GENERAL_CHOICES]);
+        const req = parseAssistantRequest(text, env.now?.() || new Date());
+        if (req) return runAssistant(req, s, env);
         const route = routeFreeRequest(text);
         if (!route) return finish(P.generalToChat, 'info', { handoff: text, expectsAnswer: true, done: false, keepForResume: true });
         return { kind: 'switch', type: route.type, data: { ...(route.data || {}), returnTo: snapshot(s) }, prefill: route.prefill };
@@ -4163,6 +4285,7 @@ function askTurn(ask: Ask, display?: string, ui?: VoiceUi[]): VoiceTurn {
     expectsAnswer: true,
     isConfirmation: !!ask.confirm,
     done: false,
+    ...(ask.openCaseId ? { openCaseId: ask.openCaseId } : {}),
   };
 }
 
@@ -4303,6 +4426,7 @@ export async function startVoiceWorkflow(type: VoiceWorkflowType, ctx: VoiceCont
     return { session: null, turn: { say: P.reportNoPermission, expectsAnswer: false, done: true, outcome: 'info' } };
   }
   const s = newSession(type, WORKFLOWS_WITHOUT_CASE_CONTEXT.includes(type) ? {} : ctx, env);
+  if (type === 'general_action' && ctx.caseId) s.data.focus = { caseId: ctx.caseId };
   if (data) Object.assign(s.data, data);
   if (type === 'quote_drafts' && !s.data.draftId) {
     const out = await runStepless(async () => {
@@ -4327,6 +4451,9 @@ export async function startVoiceWorkflow(type: VoiceWorkflowType, ctx: VoiceCont
     });
     if (out) return applyOutcomeAtStart(s, out, env);
   }
+  // the general conversation opened BY a question ("תביאי לי את התיק האחרון שפתחת"): answered as a normal turn —
+  // its answers are "reask" outcomes (the conversation stays open), so the step-prefill path below would drop it
+  if (type === 'general_action' && prefill && prefill.trim()) return answerVoiceWorkflow(s, prefill, env);
   if (prefill && prefill.trim()) {
     const first = currentStep(s);
     if (first) {
@@ -4353,6 +4480,52 @@ export function stripAddress(text: string): string {
   return rest && rest !== t ? rest : t;
 }
 
+/** Free-text answers (a work description) are corrections only with an explicit "תתקני / תשני …" verb. */
+const FREE_TEXT_STEPS = new Set(['complaint', 'requestedWork', 'condition', 'extraText', 'general', 'listOrSearch', 'draftReview', 'works', 'parts', 'emptyQuote']);
+const STRONG_EDIT = /^(?:לא[,\s]+)?(?:תתקני|תקני|תשני|שני|תעדכני|עדכני|תמחקי|מחקי|תוסיפי|הוסיפי|תחליפי|החליפי|טעות ב|טעיתי ב)/;
+const CORRECTION_CHOICES = choices(['✅ לאשר ולשמור', 'כן'], ['✏️ עוד תיקון', 'עוד תיקון']);
+
+async function afterEdits(s: VoiceSession, env: VoiceEnv, r: EditResult): Promise<VoiceResult> {
+  const d = s.data;
+  const notes = join(
+    r.changed.length ? `עודכן:\n${r.changed.map((c) => `• ${c}`).join('\n')}` : undefined,
+    r.errors.length ? `לא עודכן:\n${r.errors.map((c) => `• ${c}`).join('\n')}` : undefined,
+    r.saved.length ? `כבר נשמר בכרטיס (${r.saved.join(', ')}) — מתעדכן ממסך הכרטיס, או בבקשה ממני בשיחה כללית.` : undefined,
+  );
+  if (r.ask) {
+    d.askField = r.ask.key;
+    return { session: s, turn: askTurn({ say: P.correctionValueAsk, display: join(`לתקן: ${r.ask.label}`, notes) }) };
+  }
+  const turn = await advance(s, env, notes);
+  if (!r.changed.length) {
+    return { session: s, turn: { ...turn, say: r.saved.length && !r.errors.length ? P.correctionSavedRecord : P.correctionInvalid, alt: undefined, followSay: turn.expectsAnswer ? (turn.alt || turn.say) : undefined } };
+  }
+  // at a confirmation: the updated summary, then "another correction, or approve and save?"
+  if (turn.isConfirmation) return { session: s, turn: { ...turn, say: P.correctionsApplied, alt: undefined, ui: [CORRECTION_CHOICES] } };
+  return { session: s, turn: { ...turn, say: P.correctionApplied, alt: undefined, followSay: turn.expectsAnswer ? (turn.alt || turn.say) : undefined } };
+}
+
+async function handleCorrections(s: VoiceSession, step: Step, answer: string, env: VoiceEnv): Promise<VoiceResult | null> {
+  const d = s.data;
+  const now = env.now?.() || new Date();
+  // the value of a field named in the previous correction
+  if (d.askField) {
+    const spec = fieldByKey(d.askField);
+    d.askField = undefined;
+    if (spec && !/^(עזבי|לא משנה|בלי|ביטול)$/.test(answer.trim())) return afterEdits(s, env, applyFieldEdits(d, [{ kind: 'set', spec, raw: answer }], now));
+    return { session: s, turn: await advance(s, env) };
+  }
+  // "עוד תיקון" at a confirmation
+  if (/^(עוד תיקון|יש עוד תיקון|לתקן עוד|רגע לתקן|אני רוצה לתקן)$/.test(answer.trim())) {
+    return { session: s, turn: askTurn({ say: P.correctionWhat, ui: [CORRECTION_CHOICES] }) };
+  }
+  if (!looksLikeCorrection(answer)) return null;
+  if (FREE_TEXT_STEPS.has(step.id) && !STRONG_EDIT.test(answer.trim())) return null;
+  const { edits } = parseFieldEdits(answer, d);
+  if (!edits.length) return null;
+  return afterEdits(s, env, applyFieldEdits(d, edits, now));
+}
+
 async function answerInner(s: VoiceSession, text: string, env: VoiceEnv): Promise<VoiceResult> {
   const answer = stripAddress(String(text || '').trim());
   touch(s, env);
@@ -4374,6 +4547,12 @@ async function answerInner(s: VoiceSession, text: string, env: VoiceEnv): Promis
   const step = currentStep(s);
   if (!step) return { session: null, turn: { say: P.okDone, expectsAnswer: false, done: true, outcome: 'info' } };
 
+  // free corrections: "תשני את הטלפון ל-…", "שנת הייצור היא 2022 ולא 2021", "תמחקי את הרכב מהטיוטה"
+  // in the general conversation a request about the system ("תשני את הסטטוס של תיק 41") is not a draft correction
+  const generalRequest = (step.id === 'general' || step.id === 'listOrSearch') && !!parseAssistantRequest(answer, env.now?.() || new Date());
+  const edited = generalRequest ? null : await handleCorrections(s, step, answer, env);
+  if (edited) return edited;
+
   const cmd = detectCommand(answer);
   if (cmd === 'cancel') return { session: null, turn: { say: P.cancelled, expectsAnswer: false, done: true, outcome: 'cancelled' } };
   if (cmd === 'pause') return { session: s, turn: { say: P.paused, display: recap(s), expectsAnswer: false, done: true, outcome: 'paused', keepForResume: true } };
@@ -4387,7 +4566,7 @@ async function answerInner(s: VoiceSession, text: string, env: VoiceEnv): Promis
     if (prev) prev.clear(s.data);
     return { session: s, turn: await advance(s, env, prev ? 'חזרנו לשאלה הקודמת.' : undefined) };
   }
-  if (cmd && typeof cmd === 'object') {
+  if (cmd && typeof cmd === 'object' && !generalRequest) {
     const flow = flowFor(s.type);
     const target = flow.find((st) => st.slots && st.slots.test(cmd.correct) && (st.applies ? st.applies(s.data, s) : true));
     if (target) {

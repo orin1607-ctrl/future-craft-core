@@ -84,6 +84,7 @@ export const DALIA_VOICE_PROMPTS = {
   itemsWhich: 'אילו חפצים נשארו ברכב?',
   // quote
   quoteCase: 'לאיזה רכב או תיק עבודה מכינים הצעה? אמור מספר רכב או מספר תיק.',
+  caseAlreadyClosedPick: 'התיק הזה כבר סגור, ולא שיניתי בו דבר. אפשר לומר מספר רכב או מספר תיק אחר.',
   caseNotFound: 'לא מצאתי תיק עבודה פתוח. אפשר לומר מספר רכב, מספר תיק או שם לקוח אחר.',
   quoteScope: 'להוסיף עבודות וחלקים להצעת המחיר, או לרשום תוספת עבודה שהתגלתה?',
   quoteScopeRetry: 'לא הבנתי. הצעת מחיר או תוספת עבודה?',
@@ -322,6 +323,23 @@ export const DALIA_VOICE_PROMPTS = {
   intakeOpenCases: 'לרכב יש כמה תיקים פתוחים. באיזה תיק לקלוט את הרכב?',
   intakeContinueOpen: 'לרכב יש תיק פתוח. לקלוט את הרכב בתיק הזה?',
   intakeNoSecondCase: 'בסדר. לא פתחתי תיק נוסף לרכב שיש לו תיק פתוח. אפשר לפתוח תיק נוסף ממסך המוסך.',
+  // ---------------------------------------------------------------------------
+  // v6: free corrections, the general assistant over the garage data
+  // ---------------------------------------------------------------------------
+  correctionValueAsk: 'מה הערך הנכון?',
+  correctionWhat: 'מה לתקן? אפשר לומר כמה תיקונים במשפט אחד.',
+  correctionsApplied: 'עדכנתי. הסיכום המעודכן מוצג על המסך. יש עוד תיקון, או לאשר ולשמור?',
+  correctionApplied: 'עדכנתי.',
+  correctionInvalid: 'לא הצלחתי לעדכן. הסיבה מוצגת על המסך.',
+  correctionSavedRecord: 'הפרט הזה כבר נשמר בכרטיס. אפשר לעדכן אותו מהכרטיס, או לבקש ממני בשיחה כללית.',
+  assistantShown: 'התשובה מוצגת על המסך.',
+  assistantClarify: 'צריך עוד פרט אחד. השאלה מוצגת על המסך.',
+  assistantConfirm: 'הפרטים מוצגים על המסך. לאשר?',
+  assistantNotAllowed: 'אין לך הרשאה למידע הזה.',
+  deleteNotByVoice: 'מחיקת תיק היא פעולה בלתי הפיכה, ולכן אני לא מבצעת אותה בקול. מחיקה אפשרית רק למנהל ראשי, ממסך התיק.',
+  archiveNotAvailable: 'במערכת עדיין אין אפשרות להסתיר או לארכב תיק בלי למחוק אותו, ולכן לא שיניתי דבר.',
+  okNothingChanged: 'בסדר, לא שיניתי דבר.',
+  phoneUpdated: 'מספר הטלפון של הלקוח עודכן.',
 } as const;
 
 /** Whitespace/Unicode normalisation used for every lookup (prompt set, clip manifest, cache). */

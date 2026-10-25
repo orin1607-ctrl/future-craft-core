@@ -263,7 +263,7 @@ describe('one continuous conversation — 24 exchanges', () => {
 
     // 4–5: side question mid-flow, then back — the question is asked again only because the user chose to continue
     await step('4 שאלת צד', () => userSays('רגע, כמה תיקים פתוחים יש לנו היום?'), P.continueFlowAsk);
-    expect(spoken.slice(-2)).toEqual([P.listSummary, P.continueFlowAsk]);
+    expect(spoken.slice(-2)).toEqual(['תיקים פתוחים: 2.', P.continueFlowAsk]);
     await step('5 להמשיך', () => userSays('כן להמשיך'), P.customerTypeBiz);
 
     // 6–9: switch to the general chat button mid-flow (draft kept), small talk, data, a free question, "זהו"
@@ -271,7 +271,7 @@ describe('one continuous conversation — 24 exchanges', () => {
     await nextSentence(P.generalChatOpen);
     log.push('6 שיחה כללית');
     await step('7 מה נשמע', () => userSays('מה נשמע'), P.smallTalkHowAreYou);
-    await step('8 כמה רכבים', () => userSays('כמה רכבים יש כרגע במוסך'), P.listSummary);
+    await step('8 כמה רכבים', () => userSays('כמה רכבים יש כרגע במוסך'), 'תיקים פתוחים: 2.');
     await step('9 זהו', () => userSays('זהו'), P.continueFlowAsk);
 
     // 10–12: back to the customer: name + phone were kept, the type question comes next (typing now)

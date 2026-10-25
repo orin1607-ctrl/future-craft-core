@@ -393,7 +393,9 @@ describe('לקוח חדש', () => {
     const r = await answerVoiceWorkflow(last.session!, 'תקני את הטלפון ל 0547779999', env());
     expect(r.session!.data.customerPhone).toBe('054-7779999');
     expect(r.session!.data.customerName).toBe('יוסי');
-    expect(r.turn.say).toBe(P.confirmCustomer);
+    expect(r.turn.say).toBe(P.correctionsApplied); // updated summary + "another correction, or approve?"
+    expect(r.turn.isConfirmation).toBe(true);
+    expect(r.turn.display).toContain('054-7779999');
   });
 
   it('save error → failed (never success) and kept for resume', async () => {
@@ -888,8 +890,8 @@ describe('מעבר נושא באמצע פעולה', () => {
     const start = await startVoiceWorkflow('new_customer', {}, env());
     expect(start.turn.say).toBe(P.newCustomerOpen);
     const side = await answerVoiceWorkflow(start.session!, 'רגע, כמה תיקים פתוחים יש לנו היום?', env());
-    expect(side.turn.say).toBe(P.listSummary);
-    expect(side.turn.display).toMatch(/פתוחים: 4/);
+    expect(side.turn.say).toBe('תיקים פתוחים: 4.'); // the number itself is said
+    expect(side.turn.ui?.some((u) => u.type === 'list')).toBe(true);
     expect(side.turn.followSay).toBe(P.continueFlowAsk);
     expect(side.turn.done).toBe(false);
     expect(side.session?.type).toBe('new_customer');
@@ -981,7 +983,7 @@ describe('שיחה כללית', () => {
     expect(hi.turn.say).toBe(P.smallTalkHowAreYou);
     expect(hi.session?.type).toBe('general_action');
     const list = await answerVoiceWorkflow(hi.session!, 'כמה תיקים פתוחים יש לנו', env());
-    expect(list.turn.say).toBe(P.listSummary);
+    expect(list.turn.say).toBe('תיקים פתוחים: 4.');
     expect(list.turn.followSay).toBeUndefined();
     expect(list.turn.done).toBe(false);
     expect(list.session?.type).toBe('general_action');
@@ -991,7 +993,7 @@ describe('שיחה כללית', () => {
     expect(chat.turn.done).toBe(false);
     expect(chat.session?.type).toBe('general_action');
     const cars = await answerVoiceWorkflow(chat.session!, 'כמה רכבים יש כרגע במוסך', env());
-    expect(cars.turn.display).toMatch(/פתוחים: 4/);
+    expect(cars.turn.display || cars.turn.say).toMatch(/פתוחים: 4/);
     const bye = await answerVoiceWorkflow(cars.session!, 'זהו תודה', env());
     expect(bye.session).toBeNull();
     expect(g.writes).toEqual([]);

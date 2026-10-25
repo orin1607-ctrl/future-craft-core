@@ -273,7 +273,7 @@ describe('garage voice workflows — mic only after the question was really spok
     await say('פרטי', 'סיכמתי את פרטי הלקוח על המסך. האם לאשר את פתיחת הלקוח?');
     expect(garage.createCustomer).not.toHaveBeenCalled();
     await say('כן', 'הלקוח נפתח. תרצה לשייך לו רכב? אפשר לשלוח צילום של רישיון הרכב ואנסה למלא את הפרטים, או להגיד לי את הפרטים בדיבור. מה אתה מעדיף?');
-    expect(garage.createCustomer).toHaveBeenCalledWith({ customer_type: 'private', name: 'יוסי מזרחי', company_name: '', phone: '052-5551234', business_id: '' }, { force: false });
+    expect(garage.createCustomer).toHaveBeenCalledWith({ customer_type: 'private', name: 'יוסי מזרחי', company_name: '', phone: '052-5551234', business_id: '', address: '', contact_person: '', notes: '' }, { force: false });
     await say('בדיבור', 'מה מספר הרישוי של הרכב?');
     await say('1234599', 'מה היצרן והדגם של הרכב?');
     await say('טויוטה קורולה', 'באיזו שנה יוצר הרכב? אפשר לומר "לא ידוע".');
