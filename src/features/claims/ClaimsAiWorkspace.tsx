@@ -2915,6 +2915,12 @@ export function ClaimsAiWorkspace({
   // Claims: a saved conversation opens as before; the welcome screen shows when the chat is empty
   // or when the user returns to the main menu.
   const [showWelcomeHub, setShowWelcomeHub] = useState(module !== 'claims');
+  /** Claims: a welcome action (or a sent question) opened the conversation — the hub no longer covers an empty chat. */
+  const [claimsChatOpen, setClaimsChatOpen] = useState(false);
+  /** Welcome screen visible: unchanged for garage/reports/dashboard; claims also waits for a conversation to open. */
+  const welcomeVisible = module === 'claims'
+    ? showWelcomeHub || (messages.length === 0 && !loading && !claimsChatOpen)
+    : (messages.length === 0 && !loading) || showWelcomeHub;
   const [confirmReturnToMenuModal, setConfirmReturnToMenuModal] = useState(false);
   const [autoSpeakReplies, setAutoSpeakReplies] = useState(false);
   const autoSpeakRepliesRef = useRef(false);
@@ -4044,17 +4050,43 @@ const toggleVoiceMute = useCallback(() => {
     const el = threadRef.current;
     if (!el) return;
     // the garage / claims welcome screen (title + action cards) is read from the top; a conversation from its end
-    if ((module === 'garage' || module === 'claims') && ((messages.length === 0 && !loading) || showWelcomeHub)) {
+    if ((module === 'garage' || module === 'claims') && welcomeVisible) {
       el.scrollTop = 0;
       return;
     }
     if (isNearBottomRef.current) el.scrollTop = el.scrollHeight;
-  }, [messages, loading, module, showWelcomeHub]);
+  }, [messages, loading, module, welcomeVisible]);
 
   /** Claims: once a question is on its way the conversation replaces the welcome screen. */
   useEffect(() => {
-    if (module === 'claims' && loading) setShowWelcomeHub(false);
+    if (module === 'claims' && loading) {
+      setShowWelcomeHub(false);
+      setClaimsChatOpen(true);
+    }
   }, [module, loading]);
+
+  /**
+   * Claims welcome action: Dalia opens the conversation with her question — shown as a local Dalia bubble
+   * (same `asst_wf_` path as the garage turns, so the model sees it before the user's answer) and spoken
+   * in Dalia's voice; in hands-free mode the mic opens after she finishes.
+   */
+  const askClaimsQuestion = useCallback((actionId: string, question: string) => {
+    unlockAudioGesture();
+    setShowWelcomeHub(false);
+    setClaimsChatOpen(true);
+    const id = `asst_wf_hub_${Date.now()}`;
+    setMessages((prev) => [...prev, {
+      id,
+      conversation_id: activeId || 'voice_flow',
+      role: 'assistant',
+      content: question,
+      created_at: new Date().toISOString(),
+      metadata: { claims_hub_action: actionId },
+    } as unknown as ClaimsAiMessage]);
+    void speakAnswer(id, question).then((r) => {
+      if (r.outcome === 'completed' && voiceModeActiveRef.current) startVoiceListening();
+    });
+  }, [activeId, unlockAudioGesture, speakAnswer, startVoiceListening]);
 
   const sendMessage = useCallback(async (text: string, source: 'text' | 'voice') => {
     const now = Date.now();
@@ -5389,7 +5421,7 @@ const toggleVoiceMute = useCallback(() => {
             </div>
           ) : null}
           {banner ? <div className="claims-ai-bubble" data-testid="claims-ai-error" style={{ border: '1px solid var(--rd2)' }}>{banner}</div> : null}
-          {((messages.length === 0 && !loading) || showWelcomeHub) ? (
+          {welcomeVisible ? (
             <div className={`claims-ai-empty${module === 'claims' ? ' claims-hub-empty' : ''}`}>
               {module === 'reports' ? (
                 <div className="garage-welcome-hub" data-testid="reports-welcome-hub">
@@ -5640,23 +5672,14 @@ const toggleVoiceMute = useCallback(() => {
                   claim={claim}
                   savedMessageCount={messages.length}
                   canResume={messages.length > 0 || conversations.length > 0}
-                  onChat={() => {
-                    setShowWelcomeHub(false);
-                    textareaRef.current?.focus();
+                  onQuestion={askClaimsQuestion}
+                  onAsk={(text) => {
+                    setClaimsChatOpen(true);
+                    void sendMessage(text, 'text');
                   }}
-                  onPrefill={(text) => {
-                    setInput(text);
-                    inputRef.current = text;
-                    baseInputRef.current = text;
-                    const el = textareaRef.current;
-                    if (el) {
-                      el.focus();
-                      window.setTimeout(() => { try { el.setSelectionRange(text.length, text.length); } catch {} }, 0);
-                    }
-                  }}
-                  onAsk={(text) => void sendMessage(text, 'text')}
                   onResume={() => {
                     if (messages.length === 0 && conversations[0]) setActiveId(conversations[0].id);
+                    setClaimsChatOpen(true);
                     setShowWelcomeHub(false);
                   }}
                 />

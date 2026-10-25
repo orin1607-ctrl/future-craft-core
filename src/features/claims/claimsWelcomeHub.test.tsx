@@ -1,6 +1,6 @@
 // Claims welcome screen (stage 3): read-only actions, disabled not-yet-connected actions,
 // and a saved conversation still opens as before. Storage and the AI endpoint are FAKES.
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimsAiWorkspace } from './ClaimsAiWorkspace';
 import { claimsWelcomeActions } from './claimsWelcomeActions';
@@ -49,6 +49,58 @@ const testClaim: ClaimsAiClaimContext = {
 
 let chatBodies: Array<{ messages: Array<{ role: string; content: string }>; module: string }> = [];
 
+type Utter = { text: string; lang: string; onstart: (() => void) | null; onend: (() => void) | null };
+let recognizers: Array<{ start: ReturnType<typeof vi.fn> }> = [];
+
+/** Fake Hebrew speech engine + speech recognition (test only). Returns the spoken utterances. */
+function installSpeech(): Utter[] {
+  const spoken: Utter[] = [];
+  recognizers = [];
+  class MockRec {
+    lang = '';
+    continuous = false;
+    interimResults = false;
+    onresult = null;
+    onerror = null;
+    onend = null;
+    start = vi.fn();
+    stop = vi.fn();
+    abort = vi.fn();
+    constructor() {
+      recognizers.push(this);
+    }
+  }
+  Object.defineProperty(window, 'SpeechRecognition', { value: MockRec, configurable: true, writable: true });
+  Object.defineProperty(window, 'speechSynthesis', {
+    value: {
+      speak: vi.fn((u: Utter) => spoken.push(u)),
+      cancel: vi.fn(),
+      pause: vi.fn(),
+      resume: vi.fn(),
+      paused: false,
+      speaking: false,
+      pending: false,
+      getVoices: vi.fn(() => [{ lang: 'he-IL', name: 'Google עברית' }]),
+    },
+    configurable: true,
+    writable: true,
+  });
+  (globalThis as unknown as { SpeechSynthesisUtterance: unknown }).SpeechSynthesisUtterance = class {
+    text: string;
+    lang = '';
+    voice = null;
+    rate = 1;
+    pitch = 1;
+    onstart = null;
+    onend = null;
+    onerror = null;
+    constructor(t: string) {
+      this.text = t;
+    }
+  };
+  return spoken;
+}
+
 function renderClaims(claim: ClaimsAiClaimContext | null = null) {
   return render(<ClaimsAiWorkspace open onClose={vi.fn()} claim={claim} userId="u" companyName={null} module="claims" />);
 }
@@ -94,10 +146,20 @@ describe('claims welcome actions (model)', () => {
     const pending = actions.filter((a) => a.kind === 'pending').map((a) => a.id);
     expect(pending).toEqual(['new_claim', 'status', 'whatsapp', 'close']);
     for (const a of actions.filter((x) => x.kind === 'pending')) expect(a.text).toBeUndefined();
-    for (const a of actions.filter((x) => x.kind === 'ask' || x.kind === 'prefill')) {
+    for (const a of actions.filter((x) => x.kind === 'ask')) {
       expect(a.text).toBeTruthy();
       // read-only questions: no change verbs
       expect(a.text).not.toMatch(/תמחק|מחק|לארכב|ארכב|תסגר|סגור|תשני|לשנות|תעדכני|עדכן|שלח|תשלחי|פתחי תביעה|תפתחי/);
+    }
+  });
+
+  it('without an open claim, general chat / find / continue / documents open with a question from Dalia', () => {
+    const actions = claimsWelcomeActions(null);
+    for (const id of ['general', 'find', 'continue', 'documents']) {
+      const a = actions.find((x) => x.id === id)!;
+      expect(['chat', 'question']).toContain(a.kind);
+      expect(a.question).toMatch(/\?/);
+      expect(a.question).not.toMatch(/תמחק|מחק|לארכב|ארכב|תשני|לשנות|תעדכני|שלח/);
     }
   });
 
@@ -140,14 +202,55 @@ describe('claims welcome screen', () => {
     expect(insertClaimsAiMessage).not.toHaveBeenCalled();
   });
 
-  it('"איתור תביעה" puts the start of the question in the composer and sends nothing', async () => {
+  it('"שיחה כללית" on an empty chat opens the conversation: the hub gives way and Dalia asks, in Hebrew', async () => {
+    const spoken = installSpeech();
+    renderClaims();
+    fireEvent.click(await screen.findByTestId('claims-hub-general'));
+    // reported bug: the hub stayed on screen and nothing happened
+    await waitFor(() => expect(screen.queryByTestId('claims-welcome-hub')).toBeNull());
+    expect(screen.getByText(/על מה נדבר\?/)).toBeDefined();
+    await waitFor(() => expect(spoken.length).toBeGreaterThan(0));
+    expect(spoken.at(-1)).toMatchObject({ lang: 'he-IL' });
+    expect(spoken.at(-1)!.text).toContain('על מה נדבר');
+    // opening the conversation sends nothing and saves nothing
+    expect(chatBodies).toHaveLength(0);
+    expect(insertClaimsAiMessage).not.toHaveBeenCalled();
+  });
+
+  it('"איתור תביעה": Dalia asks, the answer goes to the existing claims chat with her question as context', async () => {
+    installSpeech();
     renderClaims();
     fireEvent.click(await screen.findByTestId('claims-hub-find'));
+    expect(await screen.findByText(/איזו תביעה לאתר\?/)).toBeDefined();
+    expect(screen.queryByTestId('claims-welcome-hub')).toBeNull();
     const input = screen.getByTestId('claims-ai-input') as HTMLTextAreaElement;
-    expect(input.value).toBe('תמצאי לי תביעה לפי ');
-    expect(document.activeElement).toBe(input);
-    await new Promise((r) => setTimeout(r, 50));
-    expect(chatBodies).toHaveLength(0);
+    expect(input.value).toBe('');
+    fireEvent.change(input, { target: { value: 'DAL-2099-0001' } });
+    fireEvent.submit(input.closest('form')!);
+    await waitFor(() => expect(chatBodies.length).toBeGreaterThan(0));
+    const sent = chatBodies[0].messages;
+    expect(chatBodies[0].module).toBe('claims');
+    expect(sent.at(-2)).toMatchObject({ role: 'assistant' });
+    expect(sent.at(-2)!.content).toContain('איזו תביעה לאתר');
+    expect(sent.at(-1)).toMatchObject({ role: 'user', content: 'DAL-2099-0001' });
+    // Dalia's question stays on screen after the conversation is created
+    expect(screen.getByText(/איזו תביעה לאתר\?/)).toBeDefined();
+  });
+
+  it('hands-free mode: after Dalia finishes her question the mic opens for the answer', async () => {
+    const spoken = installSpeech();
+    Object.defineProperty(window, 'isSecureContext', { value: true, configurable: true, writable: true });
+    renderClaims();
+    fireEvent.click(await screen.findByTestId('claims-ai-voice-call-toggle'));
+    await waitFor(() => expect(recognizers.length).toBeGreaterThan(0));
+    const startsBefore = recognizers.reduce((n, r) => n + r.start.mock.calls.length, 0);
+    fireEvent.click(screen.getByTestId('claims-hub-continue'));
+    await waitFor(() => expect(spoken.some((u) => u.text.includes('באיזו תביעה נמשיך'))).toBe(true));
+    const utter = spoken.find((u) => u.text.includes('באיזו תביעה נמשיך'))!;
+    act(() => utter.onstart?.());
+    await new Promise((r) => setTimeout(r, 700));
+    act(() => utter.onend?.());
+    await waitFor(() => expect(recognizers.reduce((n, r) => n + r.start.mock.calls.length, 0)).toBeGreaterThan(startsBefore), { timeout: 3000 });
   });
 
   it('"דוחות תביעות" asks the existing claims chat (module claims) and the conversation replaces the hub', async () => {
